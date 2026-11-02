@@ -12,7 +12,7 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   `Classical.epsilon`, `Exists.choose`, `Classical.indefiniteDescription`,
   `Classical.propDecidable`, `Classical.choice` or `Nat.find`. In particular it reaches neither
   `Semantics.addressIndex?` (the address index by `Classical.choose`, the specification's), nor
-  `MemoryImage.read` or `Program.fetch`, which use it: the memory and the bytecode are read
+  `MemoryImage.read` or `LeanIsaProgram.fetch`, which use it: the memory and the bytecode are read
   through the sorted tables of their addresses (`Located.readTable`, `Extraction.Fast.gLogTable`),
   and B1's exponent of a power of `g` by a search (`B1.Main.indexSearch`).
 * **Positive controls.** The traversal reaches the replay through the extractor's address tables

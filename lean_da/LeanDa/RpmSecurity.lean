@@ -15,9 +15,9 @@ public import LeanDa.WithHash
 Position binding and code binding of LeanDA (`LeanDa.Security`, Benedikt Wagner's framework
 `PqDas`) with Keccak-f[1600] idealized as a uniformly random permutation `π` (`Common`): the hash
 `H` is Keccak-256, the sponge over `π`, and the membership challenges are the deployed duplex over
-`π` (`membershipChallengesM`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
+`π` (`membershipChallengesWith`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
 verifier (`verifyRpm`) is the scheme's: the challenges of the root, the argument's verification,
-and the opening's climb hashed with Keccak-256 (`verifyCellM`). Its permutation calls in the
+and the opening's climb hashed with Keccak-256 (`verifyCellWith`). Its permutation calls in the
 challenges' duplex follow the duplex discipline, so the two-oracle transfer
 (`keccak256_transfer2`) moves both games to the two-oracle random-oracle model (`H` a random oracle,
 `F` an independent random function) within `Q² / 2^508` for `Q` permutation calls.

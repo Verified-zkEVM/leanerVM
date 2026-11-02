@@ -37,7 +37,8 @@ namespace LeanVM
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-/-- **A digest's bytes read as a number, through `digestBitVec`, are its little-endian reading.** -/
+/-- **A digest's bytes read as a number, through `digestBytesEquivBitVec`, are its little-endian
+reading.** -/
 theorem digestBitVec_toBytes (d : Digest) :
     Common.SufCma.digestBytesEquivBitVec d.toBytes = Node.digestBits d :=
   Fast.SufCma.digestBitVec_eq_digestBitVecFold d.toBytes

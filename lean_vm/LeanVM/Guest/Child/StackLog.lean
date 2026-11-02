@@ -18,11 +18,11 @@ public import LeanVM.Guest.AcceptableChild
 # The announced stack log of an honest proof
 
 The honest script starts by sending `announce s ρ` (`honestRun`), and the verifier program starts
-by reading eight scalars (`readSizes`), so the honest proof's stream starts with them
-(`stream_prefix`). `readSizes` on them returns the verifier's layout at `s` (`follows_readSizes`,
-run on a stream by `run_of_follows_sendList`), whose stack log is `leanIsaμ prog s`, the ceiling
-of the stacked size's logarithm: at a child's witness the execution's committed size
-(`announced_honest`, `muMin_le_announced`).
+by reading eight scalars (`readAnnouncedSizes`), so the honest proof's stream starts with them
+(`stream_prefix`). `readAnnouncedSizes` on them returns the verifier's layout at `s`
+(`follows_readSizes`, run on a stream by `run_of_follows_sendList`), whose stack log is
+`leanIsaμ prog s`, the ceiling of the stacked size's logarithm: at a child's witness the execution's
+committed size (`announced_honest`, `muMin_le_announced`).
 -/
 
 namespace LeanVM.Guest.Child

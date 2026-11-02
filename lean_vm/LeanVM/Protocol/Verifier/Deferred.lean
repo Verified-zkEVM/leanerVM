@@ -18,11 +18,11 @@ public import LeanVM.Protocol.WithHashBridge
 
 The deferring verifier (`verifyDeferred`) differs from the deployed one (`verify`) in two
 places: its IV is given rather than hashed from the bytecode, and it takes the fixed polynomials'
-values from claims (`claimedValue c`) instead of computing them (`computedValue`).
+values from claims (`claimedBytecodeValue c`) instead of computing them (`computedBytecodeValue`).
 Under the deployed IV the seeds agree, and where the claims are true (`BytecodeClaim.Holds`) each
 claimed value is either refused (the verifier asks at another point) or the computed one. So the
-deferring program refines the deployed one (`Prog.Le`: it does what the deployed one does, or
-fails), and an accepted run of it is an accepted run of the deployed verifier
+deferring program refines the deployed one (`VerifierProgram.Le`: it does what the deployed one
+does, or fails), and an accepted run of it is an accepted run of the deployed verifier
 (`verify_of_verifyDeferred`).
 
 The refinement is proved through the verifier's text: `verifyExecution` reads the fixed
@@ -219,7 +219,7 @@ theorem claimed_le_computed {bytecode : List K} {c : BytecodeClaim} (hc : c.Hold
   · next h => rw [h, ← hc]; exact .ret _
   · exact .fail _
 
-/-- The layout `readSizes` returns carries the bytecode it read. -/
+/-- The layout `readAnnouncedSizes` returns carries the bytecode it read. -/
 theorem readSizes_bytecode {bytecode : List K} {x : Layout × ℕ}
     (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) : x.1.bytecode = bytecode := by
   unfold readAnnouncedSizes at h

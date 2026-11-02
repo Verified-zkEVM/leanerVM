@@ -12,10 +12,10 @@ import all Init.Data.Array.Basic
 /-!
 # LeanDA's challenges as a duplex
 
-The challenges' sponge (`membershipChallengesM`) over the direct calls `F` of the two-oracle model
-is a duplex challenge derivation in the sense of `Common.Duplex` (`daDuplex`): the initial state
-is the label's hash in lanes `0 … 3` (`Sponge.new`), absorbing the root writes its words and tags
-over the rate (`first`), a later sample writes zeros over the rate (`next`), and a challenge is
+The challenges' sponge (`membershipChallengesWith`) over the direct calls `F` of the two-oracle
+model is a duplex challenge derivation in the sense of `Common.Duplex` (`daDuplex`): the initial
+state is the label's hash in lanes `0 … 3` (`Sponge.new`), absorbing the root writes its words and
+tags over the rate (`first`), a later sample writes zeros over the rate (`next`), and a challenge is
 the three lanes `0 … 2` of an answer (`out`). Every one of these keeps lanes `16 … 24`, the bytes
 `128 … 199` of the state (`cap_first`, `cap_next`), which the duplex lemma calls the capacity:
 `72` bytes, so a uniform state has a given capacity with probability `2^-576` (`daDuplex_cap`).

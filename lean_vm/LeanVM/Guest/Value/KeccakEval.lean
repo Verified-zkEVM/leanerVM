@@ -174,7 +174,7 @@ theorem keccakF_eq_iff (a b : KeccakState) : keccakF1600 a = b ↔ keccakFN (toN
 
 /-! ## Keccak-256 -/
 
-/-- `leLane` on bytes held as natural numbers. -/
+/-- `littleEndianLane` on bytes held as natural numbers. -/
 def leLaneN (bytes : List ℕ) (i : ℕ) : ℕ :=
   (List.range 8).foldl (fun acc k ↦ acc ||| (bytes.getD (8 * i + k) 0 <<< (8 * k)) % 2 ^ 64) 0
 

@@ -21,7 +21,8 @@ public import Mathlib.Tactic.IntervalCases
 mix as vectors built from functions, ρ and π as twenty-five writes into a zero state, χ as a
 vector of index arithmetic. `roundLanes` is the same round with its twenty-five lanes written
 out, the indices and rotations computed once (`round_eq_roundLanes`, lane by lane).
-`KeccakHash.leLane` reads a block's bytes by indexing a list, a walk from its head per byte;
+`KeccakHash.littleEndianLane` reads a block's bytes by indexing a list, a walk from its head per
+byte;
 `leLaneArray` reads them from an array (`leLane_eq_leLaneArray`).
 
 A `@[csimp]` lemma acts where code is compiled, and `keccakF1600` and `keccak256` were compiled with
@@ -260,12 +261,12 @@ permutation allocates its final state only. -/
 
 /-! ## The blocks and the hash -/
 
-/-- `leLane` reading the bytes from an array. -/
+/-- `littleEndianLane` reading the bytes from an array. -/
 def leLaneArray (bytes : Array UInt8) (i : ℕ) : UInt64 :=
   (List.range 8).foldl
     (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<< (8 * k).toUInt64)) 0
 
-/-- **Reading a lane from the bytes as an array is `leLane`.** -/
+/-- **Reading a lane from the bytes as an array is `littleEndianLane`.** -/
 theorem leLane_eq_leLaneArray (bytes : List UInt8) (i : ℕ) :
     littleEndianLane bytes i = leLaneArray bytes.toArray i := by
   have h : ∀ j, bytes.toArray.getD j 0 = bytes.getD j 0 := fun j ↦ by

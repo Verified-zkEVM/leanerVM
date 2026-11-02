@@ -16,7 +16,7 @@ public import LeanVM.Guest.Value.Keccak
 
 `kMsg_sound`: when the statements of `kMsg pad cells len tailRun out b` hold, the padding run
 holding `[0x01, 0, 0, 0, 0]` (`PadOK`), the output run's first two cells are
-`digestScalars (keccak256 m)` for `m` the first `len` bytes of the message cells' words (`KC.val`),
+`digestHalves (keccak256 m)` for `m` the first `len` bytes of the message cells' words (`KC.val`),
 provided the bytes past `len` are zero. The proof reads off each block's `KECCAK` inputs: from the
 zero state the message cells (`kCell_sound`, `kRun_sound`), after it the previous output XORed with
 them (`kXor_sound`, `kTailXor_sound`), the padding bytes XORed in first (`kXorByte_sound`); and

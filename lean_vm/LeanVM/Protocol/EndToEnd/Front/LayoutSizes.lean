@@ -13,7 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 /-!
 # The announced sizes
 
-Step 1 of the verifier program (`readSizes`, `verifier.py:1364-1372` at leanVM
+Step 1 of the verifier program (`readAnnouncedSizes`, `verifier.py:1364-1372` at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) reads eight scalars, the memory's log-size, the six
 tables' row counts and the WHIR rate, checks them, and builds the layout. For the program's bytecode
 (`bytecodeWords prog`):
@@ -26,8 +26,9 @@ tables' row counts and the WHIR rate, checks them, and builds the layout. For th
   and a rate with `validRate ρ`, and `layout = verifierLayout prog s`; so its `stackLog` is
   `leanIsaμ prog s` (`stackLog_verifierLayout`) and its placements are the instance's.
 
-The `require`s of `readSizes` are exactly `Sizes.Admissible` and `validRate`: `buildLayout`'s
-windows are the memory and row checks (`buildLayout_eq`), and the stacked-size window
+The `require`s of `readAnnouncedSizes` are exactly `Sizes.Admissible` and `validRate`:
+`buildLayout`'s windows are the memory and row checks (`buildLayout_eq`), and the stacked-size
+window
 `[15, 28]` is the cap `leanIsaμ prog s ≤ 28` (the floor holds by construction).
 -/
 
@@ -113,7 +114,7 @@ theorem IsPure.after_cons {α : Type} {p : VerifierProgram α} (hp : IsPure p) (
 @[simp] theorem fail_bind' {α β : Type} (f : α → VerifierProgram β) :
     (VerifierProgram.fail : VerifierProgram α).bind f = .fail := rfl
 
-/-- **What `readSizes` returns**: after eight reads whose upper limbs are zero, the rate in
+/-- **What `readAnnouncedSizes` returns**: after eight reads whose upper limbs are zero, the rate in
 `[1, 4]` from the last, the layout `buildLayout` gives from the first seven, and a stacked size in
 the window. -/
 theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × ℕ}
@@ -185,7 +186,8 @@ theorem logMem_of_buildLayout {bytecode : List K} {lm : ℕ} {tl : List ℕ} {la
   · split_ifs at h with hc
     exact hc.2.1
 
-/-- **The announced sizes are the instance's**: for the program's bytecode, `readSizes` returns
+/-- **The announced sizes are the instance's**: for the program's bytecode, `readAnnouncedSizes`
+returns
 `(layout, ρ)` only after reading the announcement of sizes `s` admissible for the program and a
 valid rate `ρ`, and the layout is then the verifier's layout at `s`. -/
 theorem readSizes_ret_sizes (prog : LeanIsaProgram) {l : List Ev} {a : Verifier.Layout × ℕ}

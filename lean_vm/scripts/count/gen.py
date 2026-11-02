@@ -263,7 +263,7 @@ def cmd_static(g, wcert=None, fams=None):
     s = '''/-- **`aggregate_claims`' instructions** on `g^n`. -/
 theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ),
     t.name = "aggregate_claims" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      args.getD 0 0 = ofK (gpow n) → 0 < n → n < 2 ^ 64 - 1 →
+      args.getD 0 0 = ofK (addressOfIndex n) → 0 < n → n < 2 ^ 64 - 1 →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤ kcAggC op + kcAggD op * n := by
   intro rd t args rets n hn hv hb ha h0 h1
   have hpre : ArgsPre [(0, 0)] args := by

@@ -51,7 +51,7 @@ namespace SufCma
 
 variable {Seed PK SK Req Resp F : Type}
 
-/-- The hash as the Keccak-256 oracle (`digestBitVec`). -/
+/-- The hash as the Keccak-256 oracle (`digestBytesEquivBitVec`). -/
 def hashKH : QueryImpl SchemeHashSpec (OracleComp KSpecH) :=
   fun m ↦ digestBytesEquivBitVec <$> (liftM (KSpecH.query (.inr (.inl m))) : OracleComp KSpecH
       DigestBytes)

@@ -2524,7 +2524,7 @@ def bigStaticFiles (fname : String) (j : ℕ) (ns : Array ℕ) (counts : List �
       s!"public import LeanVM.Guest.B2C.Shared.N{j}\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
       String.join (ws.toList.map fun w =>
         s!"set_option maxRecDepth 100000 in\n/-- `{fname}`: window {w}'s cells. -/\n" ++
-        s!"theorem lb{j}_{w} : bitsFrom (nth locBits{j} {w} 0) (nth (certOf {j}).cells {w} []) = nth locBits{j} {w + 1} 0 := by\n" ++
+        s!"theorem lb{j}_{w} : bitsFrom (listElementOrDefault locBits{j} {w} 0) (listElementOrDefault (certOf {j}).cells {w} []) = listElementOrDefault locBits{j} {w + 1} 0 := by\n" ++
         "  decide +kernel\n\n") ++
       "end\nend LeanVM.Guest.B2C.Shared\n")
   let nw := counts.length

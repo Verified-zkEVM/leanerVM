@@ -27,7 +27,7 @@ every slot `k` and finalizes the same keys, every row of the six tables reads on
 nonzero count (`CountsNonzero`), and there are at most `6 · 2^32` rows (`Caps`). So `lookup_sound`
 makes every pulled `(pc, e)` a seed's `(g^k, entry (prog.code k))`. The strong form implies the
 pull's guarantee, that the entry decodes (`decode_entry`), and is what joins a row's instruction
-to the program's fetch (`opRecs_fetch`, through `Program.fetch_gpow` and `entry_injective`).
+to the program's fetch (`opRecs_fetch`, through `LeanIsaProgram.fetch_gpow` and `entry_injective`).
 
 ## Wrong readings excluded
 

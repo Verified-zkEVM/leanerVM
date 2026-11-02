@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Table
 # Runs of the table loop (V:664-673)
 
 * `vt_runsTo_const`: a program that leaves every state as it is and returns `a` runs to `a`,
-  reading nothing (the bytecode's value from `(List K → List E → Prog E)`, `BytecodeAt`);
+  reading nothing (the bytecode's value from `(List K → List E → VerifierProgram E)`, `BytecodeAt`);
 * `vt_runsTo_tableTerms`: `tableTerms` over tables with their evaluations reads the evaluations
   in turn and returns `termsPure`'s terminal value and claims.
 -/

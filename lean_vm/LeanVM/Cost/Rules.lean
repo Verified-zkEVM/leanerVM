@@ -1138,7 +1138,7 @@ theorem finVal {t : Term} {n : ℕ} {i : Fin n} {c : ℕ} (h : Runs P env t (enc
 theorem finMk {t : Term} {n i : ℕ} {hi : i < n} {c : ℕ} (h : Runs P env t (encodeValue i) c) :
     Runs P env t (encodeValue (⟨i, hi⟩ : Fin n)) c := h
 
-/-- An array of numbers given by a list, as a literal of the program: its encoding (`Term.val`),
+/-- An array of numbers given by a list, as a literal of the program: its encoding (`Term.literal`),
 written through the list (`List.map`, which the kernel evaluates structurally where it measures
 the program, unlike `Array.map`). The compiler applies it to the constants the rules table lists
 (the guest decoder's tables), whose encodings are far smaller than their code. -/

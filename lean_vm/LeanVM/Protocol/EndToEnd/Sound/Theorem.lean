@@ -18,17 +18,17 @@ public import LeanVM.Protocol.WithHash
 /-!
 # Knowledge soundness of the leanVM verifier in the random-oracle model
 
-For one statement, `P = leanVmProgram (bytecodeWords prog) (publicDigest input)` the deployed
-verifier program (leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) and `σ = leanVmSeed …` its
-Fiat-Shamir seed: the doom certificate's bound, the extractor, and the step from an accepted proof
-without a witness to doom. The probability statements, for an adversary that chooses the
+For one statement, `P = leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)` the
+deployed verifier program (leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) and `σ = leanVmSeed …`
+its Fiat-Shamir seed: the doom certificate's bound, the extractor, and the step from an accepted
+proof without a witness to doom. The probability statements, for an adversary that chooses the
 statement, are in `LeanVM.Protocol.EndToEnd.Sound.Statements`.
 
 * `leanVmCert_bound`: every escape bound of `leanVmCert`, discounted by the proof of work before
   its group, is at most `2^-128`.
 * `extractStack prog input c π`: **the extractor**. It reads the extracted history of `π` under
   the cache `c` (its answers to both oracles, Keccak-256 and Keccak-f), the announced sizes
-  `(s, ρ)` (the value `readSizes` returned along it; a classical choice, unique by
+  `(s, ρ)` (the value `readAnnouncedSizes` returned along it; a classical choice, unique by
   `announced_eq`) and the stack's committed word `W₀` (the first commitment), and returns a
   candidate of `W₀` at level 0's Johnson threshold satisfying
   `M3Holds (leanIsaInstance prog s) input`, if one exists (a classical choice; the extractor is
@@ -106,7 +106,7 @@ theorem realSpec_D {s : Sizes} {ρ : ℕ}
   · exact (restSpec input hw hlb).start_D _ hpost
 
 /-- **After the stack's root, the certificate's doom is the root's postcondition**: along a
-history where `readSizes` returned a good value `a` and the root was committed by `e`, the
+history where `readAnnouncedSizes` returned a good value `a` and the root was committed by `e`, the
 doom holds if no candidate of the root satisfies the relation and the stack's is the only
 commitment. -/
 theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
@@ -144,7 +144,7 @@ theorem leanVmSpec_D_commit {l₁ : List Ev} {a : Verifier.Layout × ℕ}
 
 open Classical in
 /-- The sizes and rate a history announced: the value `(verifierLayout prog s, ρ)` that
-`readSizes` returned along a prefix of it (a classical choice; unique, `announced_eq`). -/
+`readAnnouncedSizes` returned along a prefix of it (a classical choice; unique, `announced_eq`). -/
 noncomputable def announced (hist : List Ev) : Option (Sizes × ℕ) :=
   if h : ∃ p : Sizes × ℕ, ∃ l₁, l₁ <+: hist ∧
       (readAnnouncedSizes (bytecodeWords prog)).after l₁ = some (.ret (verifierLayout prog p.1,

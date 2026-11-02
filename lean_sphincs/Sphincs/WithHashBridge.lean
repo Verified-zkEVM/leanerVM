@@ -8,8 +8,8 @@ The statement's leanSPHINCS hashes with Keccak-256 over the permutation it is gi
 form queries a hash (`Sphincs.WithHash`). With the model's permutation `π`, each algorithm is the
 hash-query one with every query answered by Keccak-256 over `π`
 (`Common.SufCma.schemeHashOverPermutation`), one simulation lemma per algorithm; so the statement's
-scheme is `Rpm.schemeWithHash` so answered (`Sphincs.RandomPermutationModel.scheme_eq`), and its end
-statement
+scheme is `RandomPermutationModel.schemeWithHash` so answered
+(`Sphincs.RandomPermutationModel.scheme_eq`), and its end statement
 follows from the hash-query one (`Sphincs.Lifetimes.leanSphincsStronglyUnforgeable_of_withHash`).
 -/
 

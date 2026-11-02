@@ -70,7 +70,7 @@ def indexSearch (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
 is read: a word whose `y`, `y²` limbs are nonzero gets the exponent of its low limb. -/
 @[irreducible] noncomputable def gLog (x : E) : ℕ := ((indexSearch 34 (x.limb 0)).map Fin.val).getD 0
 
-/-- The digest of two cells, their low limbs its four words (`digestOfScalars`, unchecked). -/
+/-- The digest of two cells, their low limbs its four words (`digestFromHalves`, unchecked). -/
 def digestOfCells (a b : E) : Digest :=
   #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane]
 

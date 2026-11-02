@@ -42,15 +42,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 /-- **A loop helper from `g^a` to `g^e` weighs at most `K` per iteration**, on every valid tree. -/
 def LoopWeightLe (ω : String → ℕ) (f : String) (K : ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
-    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (gpow a) →
-    args.getD 1 0 = ofK (gpow e) → a < e → e < 2 ^ 64 - 1 → t.weight ω ≤ (e - a) * K
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
+    args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.weight ω ≤ (e - a) * K
 
 /-- **A loop helper from `g^a` to `g^e` allocates at most `K` words per iteration**, on every
 valid tree. -/
 def LoopTotalLe (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
-    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (gpow a) →
-    args.getD 1 0 = ofK (gpow e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
+    args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K
 
 /-- A loop's words from a start below its end: at most `K` per unit of the end's exponent. -/
 theorem LoopTotalLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopTotalLe fs f K) :

@@ -12,11 +12,11 @@ public import Statement.CostMachine
 
 Everything this repository proves, in one place: each field of `Theorems` is one end statement,
 defined in the file of `Statement/` named next to it, or, for the guest decoder program
-(`GuestKnowledge`, its encodings, size bound and budget), in this file's first section.
+(`GuestKnowledgeSoundness`, its encodings, size bound and budget), in this file's first section.
 `lean_vm/LeanVM.lean` proves `Statement.Theorems` for its compiled programs (`LeanVM.theorems_hold`:
-`leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram`,
-`guestWitnessDecoder := LeanVM.Cost.decoderProgram`), and the build fails if its axioms are ever
-more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
+`leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor`,
+`guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder`), and the build fails if its axioms
+are ever more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
 Statements that follow from these, in their composed form (what an accepted proof of the leanISA
 guest program establishes; the guest program's completeness on recursion nodes and leaves), are in
@@ -25,25 +25,25 @@ guest program establishes; the guest program's completeness on recursion nodes a
 `Theorems` takes two programs of the cost machine (`CostMachine.lean`) as parameters, of the same
 type, so every use names them: `leanVmKnowledgeExtractor`, the extractor leanVM's knowledge
 soundness is stated for (`LeanVM.extractorComputedBy`: the program, of size at most
-`knowledgeExtractorSizeBound`, run within a budget in the number of queries), and
-`guestWitnessDecoder`, the decoder that names the guest program's witness (`GuestKnowledge`, below;
-`LeanVmGuest.lean` says why its content is in that decoder). A program's size is
-`MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names both programs
-(`LeanVM.Cost.compiledKnowledgeExtractor` and `LeanVM.Cost.compiledGuestWitnessDecoder`, its
-extractor and decoder
-compiled). The statement constrains them only by their size bounds and budgets;
-`knowledgeExtractorSizeBound` (`CostMachine.lean`), `guestWitnessDecoderSizeBound` and the guest
-decoder's budget (below) say what those exclude and what they do not. Every statement with an
-adversary is in the random-permutation model (`Statement/README.md`).
+`leanVmKnowledgeExtractorSizeBound`, run within a budget in the number of queries), and
+`guestWitnessDecoder`, the decoder that names the guest program's witness
+(`GuestKnowledgeSoundness`, below; `LeanVmGuest.lean` says why its content is in that decoder). A
+program's size is `MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names
+both programs (`LeanVM.Cost.compiledKnowledgeExtractor` and
+`LeanVM.Cost.compiledGuestWitnessDecoder`, its extractor and decoder compiled). The statement
+constrains them only by their size bounds and budgets; `leanVmKnowledgeExtractorSizeBound`
+(`CostMachine.lean`), `guestWitnessDecoderSizeBound` and the guest decoder's budget (below) say what
+those exclude and what they do not. Every statement with an adversary is in the random-permutation
+model (`Statement/README.md`).
 -/
 
 /-! ## The guest decoder a program computes
 
-`GuestKnowledge` (`LeanVmGuest.lean`'s guest program, its witness named) takes the decoder that
-names the witness as a program `D` of the cost machine, as `KnowledgeSoundness` takes the extractor:
-`D`, of size at most `guestWitnessDecoderSizeBound`, is run on the encoded program and execution
-(`encodeGuestWitnessDecoderInput`) within `guestWitnessDecoderBudget`, and its output is the
-encoding (`encodeValue`, the encodings below: a constructor of tag `0` for each structure, its
+`GuestKnowledgeSoundness` (`LeanVmGuest.lean`'s guest program, its witness named) takes the decoder
+that names the witness as a program `D` of the cost machine, as `KnowledgeSoundness` takes the
+extractor: `D`, of size at most `guestWitnessDecoderSizeBound`, is run on the encoded program and
+execution (`encodeGuestWitnessDecoderInput`) within `guestWitnessDecoderBudget`, and its output is
+the encoding (`encodeValue`, the encodings below: a constructor of tag `0` for each structure, its
 fields in order) of a seed, a statement and a witness that explain the public input. There is no
 parse: the statement names the decoding whose encoding `D` outputs, and the encoding is injective
 (`lean_vm`'s `LeanVM.Cost.encodeValue_decoded_injective`), so the output determines it.
@@ -112,7 +112,9 @@ instance : MachineEncoding Child :=
 
 /-- `direct` the constructor of tag `0`, `child` of tag `1`. -/
 instance {W : Type} [MachineEncoding W] : MachineEncoding (ClaimHolder W) where
-  encodeValue | .direct w => .constructor 0 [encodeValue w] | .child i => .constructor 1 [encodeValue i]
+  encodeValue
+    | .direct w => .constructor 0 [encodeValue w]
+    | .child i => .constructor 1 [encodeValue i]
 
 instance : MachineEncoding BatchingHints :=
   ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
@@ -123,13 +125,14 @@ instance : MachineEncoding NodeWitness :=
     encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
 
 instance : MachineEncoding SeedStatementAndWitness :=
-  ⟨fun d ↦ .constructor 0 [encodeValue d.seed, encodeValue d.statement, encodeValue d.witness]⟩
+  ⟨fun decoding ↦ .constructor 0 [encodeValue decoding.seed, encodeValue decoding.statement,
+    encodeValue decoding.witness]⟩
 
 /-- **The decoder's input**: the program and its execution (the memory's log-size `κ`, its `2^κ`
 words, the steps). -/
-def encodeGuestWitnessDecoderInput (prog : Semantics.LeanIsaProgram) (t : Execution prog) :
-    MachineValue :=
-  .constructor 0 [encodeValue prog, encodeValue t]
+def encodeGuestWitnessDecoderInput (program : Semantics.LeanIsaProgram)
+    (execution : Execution program) : MachineValue :=
+  .constructor 0 [encodeValue program, encodeValue execution]
 
 end
 
@@ -161,9 +164,9 @@ def guestWitnessDecoderSizeBound : ℕ := 786000
 
 /-! ### The guest decoder's budget -/
 
-/-- **The guest decoder's budget** on an execution of `prog` of `steps` steps on a memory of `2^κ`
-words: the most the decoder's run may cost, in the machine's price (so also the most steps it may
-execute), with `lg = log₂(steps + 1)`,
+/-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
+`2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it
+may execute), with `lg = log₂(steps + 1)`,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)`. `lean_vm` proves the compiled
 decoder's price at most this on every valid execution (`Cost/Prices.lean` has the exact price, part
 by part). Per step, the decoder replays the step and files the state in its sorted table of function
@@ -176,30 +179,33 @@ its frame lookups (about `2^26.6`, each a binary search over the entries), `2^37
 `2^51.2` at `κ = 32` and `2^30`, `2^72.3` at `κ = 32` and `2^51` steps; a valid execution of the
 guest program has fewer than `2^51` steps (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`, no state repeated
 in a halting run; argued, not a Lean theorem). The constants are the deployed guest program's (its
-tables of preconditions and entries, its frames), not those of any program: `prog` is only ever
+tables of preconditions and entries, its frames), not those of any program: `program` is only ever
 `LeanVM.Guest.guestProgram`. -/
-def guestWitnessDecoderBudget {prog : LeanIsaProgram} (t : Execution prog) : ℕ :=
-  (t.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (t.stepCount + 1)) +
-    (70 * t.logMemorySize + 374) * 2 ^ t.logMemorySize + 2 ^ 37 * (Nat.log2 (t.stepCount + 1) + 16)
+def guestWitnessDecoderBudget {program : LeanIsaProgram} (execution : Execution program) : ℕ :=
+  (execution.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (execution.stepCount + 1)) +
+    (70 * execution.logMemorySize + 374) * 2 ^ execution.logMemorySize +
+    2 ^ 37 * (Nat.log2 (execution.stepCount + 1) + 16)
 
 /-- **Knowledge soundness of the leanISA guest program, its witness named**: on every valid
-execution `t` of `guest` on a public input, the decoder program `guestWitnessDecoder`, of size at
-most `guestWitnessDecoderSizeBound`, run on the encoded program and execution within its budget
-(`encodeGuestWitnessDecoderInput`, `guestWitnessDecoderBudget`), outputs the encoding of a decoding
-`d`: a seed, the node statement the input commits to under that seed, and a witness proving it
-(`ExplainsPublicInput`, `LeanVmGuest.lean`). A larger program, or a run that fails or exceeds its
-budget, outputs nothing, so `GuestKnowledge` fails at that execution: a program larger than
-`guestWitnessDecoderSizeBound` satisfies it only if the guest program has no valid execution, which
-the completeness statements exclude, so `GuestKnowledge` bounds the program's size. Its `guest` is
-only ever `LeanVM.Guest.guestProgram`, whose program the budget's constants are. -/
+execution `execution` of `guest` on a public input, the decoder program `guestWitnessDecoder`, of
+size at most `guestWitnessDecoderSizeBound`, run on the encoded program and execution within its
+budget (`encodeGuestWitnessDecoderInput`, `guestWitnessDecoderBudget`), outputs the encoding of a
+decoding `decoding`: a seed, the node statement the input commits to under that seed, and a witness
+proving it (`ExplainsPublicInput`, `LeanVmGuest.lean`). A larger program, or a run that fails or
+exceeds its budget, outputs nothing, so `GuestKnowledgeSoundness` fails at that execution: a program
+larger than `guestWitnessDecoderSizeBound` satisfies it only if the guest program has no valid
+execution, which the completeness statements exclude, so `GuestKnowledgeSoundness` bounds the
+program's size. Its `guest` is only ever `LeanVM.Guest.guestProgram`, whose program the budget's
+constants are. -/
 def GuestKnowledgeSoundness (guest : LeanIsaProgram) (guestWitnessDecoder : Cost.MachineProgram) :
     Prop :=
-  ∀ input (t : Execution guest), ValidExecution guest input t →
-    ∃ d : SeedStatementAndWitness,
+  ∀ input (execution : Execution guest), ValidExecution guest input execution →
+    ∃ decoding : SeedStatementAndWitness,
       Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
-          (Cost.encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
-        some (Cost.encodeValue d) ∧
-      ExplainsPublicInput guest input d
+          (guestWitnessDecoderBudget execution)
+          (Cost.encodeGuestWitnessDecoderInput guest execution) =
+        some (Cost.encodeValue decoding) ∧
+      ExplainsPublicInput guest input decoding
 
 end
 
@@ -214,18 +220,18 @@ of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
-  `knowledgeExtractorOf leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`).
 
   **Efficiency.** The extractor is the program run within its budget,
-  `knowledgeExtractorBudget N` for a transcript of `N` permutation queries (`CostMachine.lean`):
-  `outputWithin` returns the program's output only if its run's price, the sum of its steps'
-  prices, each at least `1`, is at most the budget, and only if the program's size is at most
-  `knowledgeExtractorSizeBound`; otherwise the extractor extracts nothing (`none`). Extracting
-  nothing from an accepted proof breaks knowledge soundness (`BreaksKnowledgeSoundness`). So this
-  statement implies that, but with the probability above, the program extracts a valid execution of
-  an accepted proof within the budget: at most that many steps, about `2^81` up to `2^50`
-  permutation queries and `O(N·log³N)` for `N`. That a price unit is a constant number of
+  `leanVmKnowledgeExtractorBudget N` for a transcript of `N` permutation queries
+  (`CostMachine.lean`): `outputWithin` returns the program's output only if its run's price, the sum
+  of its steps' prices, each at least `1`, is at most the budget, and only if the program's size is
+  at most `leanVmKnowledgeExtractorSizeBound`; otherwise the extractor extracts nothing (`none`).
+  Extracting nothing from an accepted proof breaks knowledge soundness (`BreaksKnowledgeSoundness`).
+  So this statement implies that, but with the probability above, the program extracts a valid
+  execution of an accepted proof within the budget: at most that many steps, about `2^81` up to
+  `2^50` permutation queries and `O(N·log³N)` for `N`. That a price unit is a constant number of
   instructions of a 64-bit CPU is trusted (`CostMachine.lean`, *Why the prices are honest*). -/
   leanVmKnowledgeSoundness : LeanVM.KnowledgeSoundness
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
@@ -245,15 +251,15 @@ structure Theorems
   (`NodeRelation`, `LeanVmGuest.lean`). -/
   guestKnowledgeSoundness : LeanVM.Node.GuestKnowledgeSoundness LeanVM.Guest.guestProgram
       guestWitnessDecoder
-  /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
-  the candidates (`LeanVmGuest.lean`). With `knowledgeSoundness` and `guestKnowledge` it gives what
-  an accepted proof establishes: an accepted proof of the leanISA guest program on
-  `statementDigest (deployedSeed guestProgram) s` yields, by `knowledgeSoundness`, an extracted
-  execution; by `guestKnowledge`, the decoder program's seed and statement of the same digest, with
-  a witness; by `digestBinds`, that they are `deployedSeed guestProgram` and `s`, or a Keccak-256
-  collision. The composed bound is `Statement.Corollaries`' `aggregateSound`, which `lean_vm`
-  derives from these fields (`LeanVM.corollaries_of_theorems`); its form for the memory decoder
-  `decode`, `MemoryAggregateSound`, is also proved directly
+  /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among the
+  candidates (`LeanVmGuest.lean`). With `leanVmKnowledgeSoundness` and `guestKnowledgeSoundness` it
+  gives what an accepted proof establishes: an accepted proof of the leanISA guest program on
+  `statementDigest (deployedSeed guestProgram) s` yields, by `leanVmKnowledgeSoundness`, an
+  extracted execution; by `guestKnowledgeSoundness`, the decoder program's seed and statement of the
+  same digest, with a witness; by `statementDigestBinds`, that they are `deployedSeed guestProgram`
+  and `s`, or a Keccak-256 collision. The composed bound is `Statement.Corollaries`'
+  `aggregateSound`, which `lean_vm` derives from these fields (`LeanVM.corollaries_of_theorems`);
+  its form for the memory decoder `decode`, `MemoryAggregateSound`, is also proved directly
   (`LeanVM.Guest.End.aggregate_sound_outer`). -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
   /-- The leanISA guest program is complete on the eight families of `CoveredNode`, mixed nodes and

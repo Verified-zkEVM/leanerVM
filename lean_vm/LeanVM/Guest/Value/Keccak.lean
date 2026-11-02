@@ -24,7 +24,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
 
 **Bytes and layouts** (`KeccakLayout`)
 * `cellBytes c`, `cellsBytes cs`: a cell's sixteen bytes, limb `0` then limb `1`, little-endian.
-* `leLane_cellsBytes : leLane (cellsBytes cs) l = ((cs.getD (l / 2) 0).limb ⟨l % 2, _⟩).lane`.
+* `leLane_cellsBytes : littleEndianLane (cellsBytes cs) l = ((cs.getD (l / 2) 0).limb ⟨l % 2, _⟩).lane`.
 * `laneCell odd l`, `laneLimb odd l`, `lane_stateOfCells`, `limb_cellsOfState`: where lane `l`
   sits; `stateOfCells_cellsOfState : stateOfCells (cellsOfState S odd) odd = S`;
   `cellsOfState_zero : cellsOfState zeroState odd c = 0`.
@@ -46,7 +46,7 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
   `len ≤ 16 * cells.length`, `∀ j, len ≤ j → (cellsBytes cells).getD j 0 = 0`,
   `O 0 = cellsOfState (absorbChunks n zeroState pre) false` and the three hypotheses of
   `keccak_chain` for `P = padCells cells len`:
-  `(O B 0, O B 1) = digestScalars (keccak256 (pre ++ (cellsBytes cells).take len))`;
+  `(O B 0, O B 1) = digestHalves (keccak256 (pre ++ (cellsBytes cells).take len))`;
   `keccak_final` gives the whole output, `cellsOfState (absorbChunks (n + B) zeroState
   (pre ++ padBytes ((cellsBytes cells).take len))) false`.
 * `keccak_one` (one `KECCAK` from the zero state, `len < 136`):
@@ -79,8 +79,8 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
 * `keccakF_zero : keccakF zeroState = keccakFZero` (the `KECCAK` table's padding row).
 * `batchSeed_eq : Node.batchSeed = batchSeedValue`;
   `aggSeed_cells : litField (aggSeed.getD c 0) = cellsOfState Node.batchSeed false ⟨8 + c, _⟩`.
-* `paddingCell_eq : LeanDa.paddingCell Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest`, `daPadCell_cells`
-  (`DA_PAD_CELL_0/1 = digestScalars daPadCellDigest`), `paddingRow_eq`, `daPadRow_cells`.
+* `paddingCell_eq : LeanDa.paddingCellDigest Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest`, `daPadCell_cells`
+  (`DA_PAD_CELL_0/1 = digestHalves daPadCellDigest`), `paddingRow_eq`, `daPadRow_cells`.
 * For new constants: `keccakF_eq_iff : keccakF a = b ↔ keccakFN (toNats a) = toNats b` and
   `keccak256_eq_iff : keccak256 data = d ↔ keccak256N (data.map UInt8.toNat) =
   d.toList.map UInt64.toNat`, then `decide +kernel` (milliseconds a permutation; avoid

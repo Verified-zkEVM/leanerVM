@@ -128,17 +128,17 @@ def absorbBlockWith (state : KeccakState) (block : List UInt8) : m KeccakState :
 /-- The last block: the remaining `0` to `135` bytes, `PAD_FIRST` after them, zeros, and
 `PAD_LAST` XORed into the block's last byte (one byte `0x81` when `135` bytes remain)
 (`verifier.py:203-205`). -/
-def padBlock (rest : List UInt8) : List UInt8 :=
-  ((rest ++ List.replicate (rate - rest.length) 0).modify rest.length (· ^^^ padFirst)).modify
-    (rate - 1) (· ^^^ padLast)
+def padBlock (remainingBytes : List UInt8) : List UInt8 :=
+  ((remainingBytes ++ List.replicate (rate - remainingBytes.length) 0).modify
+      remainingBytes.length (· ^^^ padFirst)).modify (rate - 1) (· ^^^ padLast)
 
-/-- Absorb `data` into `state` with `π`: `blocks` whole blocks of `136` bytes, then the padded
-last block, which holds the remaining `0` to `135` bytes. -/
-def absorbWith : (blocks : ℕ) → KeccakState → List UInt8 → m KeccakState
+/-- Absorb `data` into `state` with `π`: `wholeBlockCount` whole blocks of `136` bytes, then the
+padded last block, which holds the remaining `0` to `135` bytes. -/
+def absorbWith : (wholeBlockCount : ℕ) → KeccakState → List UInt8 → m KeccakState
   | 0, state, data => absorbBlockWith π state (padBlock data)
-  | blocks + 1, state, data => do
+  | wholeBlockCount + 1, state, data => do
     let state ← absorbBlockWith π state (data.take rate)
-    absorbWith blocks state (data.drop rate)
+    absorbWith wholeBlockCount state (data.drop rate)
 
 /-- **Keccak-256 over a permutation `π`**, in any monad (`keccak_hash`, `verifier.py:200-209`, with
 `π` for Keccak-f[1600]): `⌊len/136⌋` whole blocks, then the padded last one, from the zero state;
@@ -161,14 +161,14 @@ def wordBytes (w : UInt64) : List UInt8 :=
   (List.range 8).map fun k ↦ (w >>> (8 * k).toUInt64).toUInt8
 
 /-- The 32 bytes of a digest: its words, little-endian (`Digest.value`, `verifier.py:209`). -/
-def digestBytes (d : Digest) : List UInt8 := d.toList.flatMap wordBytes
+def digestBytes (digest : Digest) : List UInt8 := digest.toList.flatMap wordBytes
 
 end KeccakHash
 
 /-- The 32 bytes of a digest as a vector: Keccak-256's output as the model's oracle answers it. -/
-def Digest.toBytes (d : Digest) : Vector UInt8 32 :=
-  ⟨(KeccakHash.digestBytes d).toArray, by
-    obtain ⟨⟨l⟩, hl⟩ := d
+def Digest.toBytes (digest : Digest) : Vector UInt8 32 :=
+  ⟨(KeccakHash.digestBytes digest).toArray, by
+    obtain ⟨⟨l⟩, hl⟩ := digest
     match l, hl with
     | [_, _, _, _], _ => rfl⟩
 

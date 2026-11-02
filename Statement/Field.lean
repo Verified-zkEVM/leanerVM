@@ -93,14 +93,16 @@ def _root_.LeanVM.Parameters.K.toBytes (a : K) : List UInt8 := wordBytes a.lane
 
 /-- A digest as the two field elements a transcript carries it in, its 128-bit halves
 `E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:225-228`). -/
-def digestHalves (d : Digest) : E × E :=
-  (E.ofLimbs (K.ofLane d[0]) (K.ofLane d[1]) 0, E.ofLimbs (K.ofLane d[2]) (K.ofLane d[3]) 0)
+def digestHalves (digest : Digest) : E × E :=
+  (E.ofLimbs (K.ofLane digest[0]) (K.ofLane digest[1]) 0,
+    E.ofLimbs (K.ofLane digest[2]) (K.ofLane digest[3]) 0)
 
 /-- The digest two field elements encode, or `none` if either has a nonzero top limb
 (`Digest.from_halves`, `verifier.py:230-233`). -/
-def digestFromHalves (s : E × E) : Option Digest :=
-  if IsCanonical128 s.1 ∧ IsCanonical128 s.2 then
-    some #v[(s.1.limb 0).lane, (s.1.limb 1).lane, (s.2.limb 0).lane, (s.2.limb 1).lane]
+def digestFromHalves (halves : E × E) : Option Digest :=
+  if IsCanonical128 halves.1 ∧ IsCanonical128 halves.2 then
+    some #v[(halves.1.limb 0).lane, (halves.1.limb 1).lane, (halves.2.limb 0).lane,
+      (halves.2.limb 1).lane]
   else none
 
 end LeanVM.Protocol.KeccakHash

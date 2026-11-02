@@ -21,11 +21,11 @@ public import Mathlib.Basic.ENNReal.Operations
 /-!
 # The interactive reading of the verifier language
 
-The language (`Prog`, its five operations, and the compiled reading `runProof` on a proof with a
-hash function) is defined with the verifier, in `Statement.LeanVmVerifier` (Part 2). This module
-gives the second reading of the same programs: a public-coin protocol in which the prover sends
-field elements and whole matrices (`Word`s), and the verifier draws uniform challenges and reads
-rows of the matrices directly. A run is a history (`List Ev`).
+The language (`VerifierProgram`, its five operations, and the compiled reading `runProof` on a proof
+with a hash function) is defined with the verifier, in `Statement.LeanVmVerifier` (Part 2). This
+module gives the second reading of the same programs: a public-coin protocol in which the prover
+sends field elements and whole matrices (`Word`s), and the verifier draws uniform challenges and
+reads rows of the matrices directly. A run is a history (`List Ev`).
 
 Soundness is stated on the interactive reading by a *doom certificate* (`Cert`): a predicate
 `D` on histories ("the prover has lost") that prover moves keep, that the verdict refutes, and

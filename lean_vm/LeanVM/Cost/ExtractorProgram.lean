@@ -5,10 +5,10 @@ public import LeanVM.Cost.Extractor.Top
 /-!
 # The extractor's program
 
-`extractorProgram`, the cost-machine program `LeanVM.theorems_hold` names as the end statement's
-extractor (`Statement.Theorems decode extractorProgram`, `LeanVM.extractorComputedBy`,
+`compiledKnowledgeExtractor`, the cost-machine program `LeanVM.theorems_hold` names as the end
+statement's extractor (`Statement.Theorems decode extractorProgram`, `LeanVM.extractorComputedBy`,
 `Statement/CostMachine.lean`): function `0` is the entry `entryBody j`, which
-destructures the input `encodeKnowledgeExtractorInput prog input T proof` (a constructor of four fields), calls function
+destructures the input `encodeLeanVmKnowledgeExtractorInput prog input T proof` (a constructor of four fields), calls function
 `j = extractorC.costIdx` (the compiled `extractorTop`, `Cost/Extractor/Top.lean`) on them and
 unwraps its optional output; the other functions are the bodies the compiled extractor's spec
 needs (`extractorC.costDeps`, sorted by index, all past `0`: the compiler allocates indices from
@@ -17,7 +17,7 @@ needs (`extractorC.costDeps`, sorted by index, all past `0`: the compiler alloca
 * `includes_ofList`: a program built by `MachineProgram.ofList` holds its bodies if their indices are
   distinct; `nodup_of_increasing`: they are if they increase (a linear check, by evaluation);
 * `size_ofList_le`: its size is at most its bodies' sizes plus two per index, a sum to evaluate,
-  not an array to build. The evaluation for `extractorProgram` is in
+  not an array to build. The evaluation for `compiledKnowledgeExtractor` is in
   `Cost/ExtractorSize.lean`, a module of its own (it is slow).
 -/
 

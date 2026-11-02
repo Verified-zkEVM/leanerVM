@@ -152,8 +152,8 @@ theorem fkChains_sound (hp : PadOK σ sPad) (htws : TwsOK σ) {t : Nat} {keyAt :
         rw [show i + 1 + k = i + (k + 1) by omega] at this
         exact this
 
-/-- **Key `t`'s arm**: the child leaf, `hcell` of `P`, the leaf address `keyAt + tws[24]` and the
-six chain ends, into its leaf cell; the weight of `t` at byte `w` into its weight cell. -/
+/-- **Key `t`'s arm**: the child leaf, `hcell` of `P`, the leaf address `keyIndexOnLayer + tws[24]`
+and the six chain ends, into its leaf cell; the weight of `t` at byte `w` into its weight cell. -/
 theorem fkArm_sound (hp : PadOK σ sPad) (htws : TwsOK σ) {t w : Nat} {keyAt retN retW : V}
     {fresh : Bool} {b : Nat} (h : AtomsHold rd σ (fkArm t w keyAt retN retW fresh b).1) :
     σ (if fresh then .n ((fkChains t keyAt 6 0 b).2.1 + 15) else retN) =

@@ -100,9 +100,10 @@ Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search 
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
-`extractorProgram` (`Cost/ExtractorProgram.lean`) of the end statement: `knowledgeExtractorOf
-extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is proved
-(`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at most
+`compiledKnowledgeExtractor` (`Cost/ExtractorProgram.lean`) of the end statement:
+`knowledgeExtractorOf extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is
+proved (`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at
+most
 `2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
 queries, the transcript's index dominating (`extractorPrice_28_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
@@ -259,7 +260,8 @@ agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the sla
 (`johnsonSlackOf`), computed exactly in natural numbers: `(√(D/n) + η)·n = (√X + e·n)/2^22` with
 `X = 2^44·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
-extractor reaches the threshold only after `readSizes` accepted the sizes, so `1 ≤ R ≤ 4` and
+extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
+and
 `15 ≤ μ ≤ 28`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold

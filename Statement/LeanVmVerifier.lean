@@ -8,15 +8,15 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 Transcribed from `python-verifier/verifier.py` at the pin (`../leanvm-rev`); every citation
 `verifier.py:N` is a line of that file, and the sections follow the Python's: the WHIR constants
-(Part 1), the transcript (Part 2: a program `Prog` of a small language, which `runProof` reads on a
-proof over a permutation `F : KeccakState → m KeccakState` in any monad `m`, Keccak-256 the sponge
-over `F`, `keccak256With F`), and the verifier (Part 3), ending with
-`verifyWith F bytecode publicInput proof`.
+(Part 1), the transcript (Part 2: a program `VerifierProgram` of a small language, which `runProof`
+reads on a proof over a permutation `π : KeccakState → m KeccakState` in any monad `m`, Keccak-256
+the sponge over `π`, `keccak256With π`), and the verifier (Part 3), ending with
+`verifyWith π bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
-extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The
-deferring verifier (`verifyDeferred`), which has no counterpart in the Python, takes it from a
-claim, as an aggregate's in-circuit verifier of its children does
+extension) from a parameter `bytecodeValue : List K → List E → VerifierProgram E`. The deployed
+verifier computes it. The deferring verifier (`verifyDeferred`), which has no counterpart in the
+Python, takes it from a claim, as an aggregate's in-circuit verifier of its children does
 (`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
 -/
 
@@ -149,7 +149,7 @@ instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
 
 /-- The ladder of an admissible stack size and rate (`derive_config(log_n, log_inv_rate)`,
-`verifier.py:1039-1054`): the geometry of `shape` paired with the
+`verifier.py:1039-1054`): the geometry of `ladderShape` paired with the
 tabulated query counts, level by level. `none` outside the window, and `none` if the table did
 not have one count per level (`verifier.py:1053`), so that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
@@ -166,9 +166,9 @@ end LeanVM.Parameters.Whir
 /-! # Part 2: the transcript
 
 The Python verifier touches the proof through five operations of its `Transcript`
-(`verifier.py:336-458`), and computes everything else from their results; `Prog α` is the free
-monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the challenges
-squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
+(`verifier.py:336-458`), and computes everything else from their results; `VerifierProgram α` is the
+free monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the
+challenges squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
 
 The sponge is the Rust's (`crates/verifier/src/transcript.rs:34-91`, `Sponge`; the prover's
 `crates/fiat_shamir/src/lib.rs`): a duplex over Keccak-f[1600] in overwrite mode, the rate lanes
@@ -296,9 +296,9 @@ def pendingLanes (pending : List (E × ℕ)) : List UInt64 :=
 
 /-- The input of a permutation: the waiting scalars' lanes, zeros up to lane `16`, then the
 capacity, lanes `16..25` of the state (`_duplex`, `verifier.py:386-389`). -/
-def duplexInput (sp : Sponge) : KeccakState :=
+def duplexInput (sponge : Sponge) : KeccakState :=
   Vector.ofFn fun i ↦
-    if i.val < 16 then (pendingLanes sp.pending).getD i 0 else Keccak.lane sp.state i
+    if i.val < 16 then (pendingLanes sponge.pending).getD i 0 else Keccak.lane sponge.state i
 
 /-- The challenge squeezed into a state: its first three lanes (`sample`, `verifier.py:401`). -/
 def challengeOf (state : KeccakState) : E :=
@@ -349,41 +349,41 @@ structure VerifierProgramState where
 
 section Run
 
-variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- A permutation: the waiting scalars over the rate, the capacity kept, then Keccak-f; the queue
 empties (`_duplex`, `verifier.py:386-389`). -/
-def duplex (sp : Sponge) : m Sponge := do
-  let state ← F (duplexInput sp)
+def duplex (sponge : Sponge) : m Sponge := do
+  let state ← π (duplexInput sponge)
   pure ⟨state, []⟩
 
 /-- Absorb a scalar with a tag: a full queue is permuted first (`_absorb`,
 `verifier.py:391-394`). -/
-def absorb (sp : Sponge) (x : E) (tag : ℕ) : m Sponge := do
-  let sp ← if sp.pending.length = rateScalars then duplex F sp else pure sp
-  pure { sp with pending := sp.pending ++ [(x, tag)] }
+def absorb (sponge : Sponge) (x : E) (tag : ℕ) : m Sponge := do
+  let sponge ← if sponge.pending.length = rateScalars then duplex π sponge else pure sponge
+  pure { sponge with pending := sponge.pending ++ [(x, tag)] }
 
 /-- Squeeze a challenge: a permutation, then the new state's first three lanes (`sample`,
 `verifier.py:399-401`). -/
-def squeeze (sp : Sponge) : m (E × Sponge) := do
-  let sp ← duplex F sp
-  pure (challengeOf sp.state, sp)
+def squeeze (sponge : Sponge) : m (E × Sponge) := do
+  let sponge ← duplex π sponge
+  pure (challengeOf sponge.state, sponge)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
 whether `node` is the left child (`verifier.py:439-442`). -/
 def climb : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
-    let parent ← if q % 2 = 0 then keccak256With F (digestBytes node ++ digestBytes s)
-      else keccak256With F (digestBytes s ++ digestBytes node)
+    let parent ← if q % 2 = 0 then keccak256With π (digestBytes node ++ digestBytes s)
+      else keccak256With π (digestBytes s ++ digestBytes node)
     climb parent (q / 2) ss
 
-/-- Check one opening against a root of the given shape at position `q`
+/-- Check one opening against a root of the given shape at position `position`
 (`verifier.py:436-443`). -/
-def openOne (root : Digest) (height width q : ℕ) (o : Opening) : m Bool :=
-  if o.leaf.length = width ∧ o.path.length = height then do
-    let leafDigest ← keccak256With F (o.leaf.flatMap K.toBytes)
-    let top ← climb F leafDigest q o.path
+def openOne (root : Digest) (height width position : ℕ) (opening : Opening) : m Bool :=
+  if opening.leaf.length = width ∧ opening.path.length = height then do
+    let leafDigest ← keccak256With π (opening.leaf.flatMap K.toBytes)
+    let top ← climb π leafDigest position opening.path
     pure (decide (top.toList = root.toList))
   else pure false
 
@@ -394,7 +394,7 @@ def openAll (root : Digest) (height width : ℕ) :
   | [], os => pure (some ([], os))
   | _ :: _, [] => pure none
   | q :: qs, o :: os => do
-    if ← openOne F root height width q o then
+    if ← openOne π root height width q o then
       let rest ← openAll root height width qs os
       pure (rest.map fun r ↦ (o.leaf :: r.1, r.2))
     else pure none
@@ -408,37 +408,37 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
   | .read k, s => match s.stream with
     | [] => pure none
     | x :: xs => do
-      let sp ← absorb F s.sponge x dsObserve
-      run (k x) { s with sponge := sp, stream := xs }
+      let sponge ← absorb π s.sponge x dsObserve
+      run (k x) { s with sponge := sponge, stream := xs }
   | .sample k, s => do
-    let (c, sp) ← squeeze F s.sponge
-    run (k c) { s with sponge := sp }
+    let (c, sponge) ← squeeze π s.sponge
+    run (k c) { s with sponge := sponge }
   | .grind bits k, s => match s.stream with
     | [] => pure none
     | n :: xs => do
-      let sp ← absorb F s.sponge n dsPowNonce
-      let (c, sp) ← squeeze F sp
-      if powOk bits n c then run k { s with sponge := sp, stream := xs } else pure none
+      let sponge ← absorb π s.sponge n dsPowNonce
+      let (c, sponge) ← squeeze π sponge
+      if powOk bits n c then run k { s with sponge := sponge, stream := xs } else pure none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs => do
-      let sp ← absorb F s.sponge x0 dsObserve
-      let sp ← absorb F sp x1 dsObserve
+      let sponge ← absorb π s.sponge x0 dsObserve
+      let sponge ← absorb π sponge x1 dsObserve
       match digestFromHalves (x0, x1) with
       | some root =>
-        run k { s with sponge := sp, stream := xs, roots := s.roots ++ [(root, height, width)] }
+        run k { s with sponge := sponge, stream := xs, roots := s.roots ++ [(root, height, width)] }
       | none => pure none
     | _ => pure none
   | .query i ps k, s => match s.roots[i]? with
     | none => pure none
     | some (root, height, width) => do
-      match ← openAll F root height width ps s.openings with
+      match ← openAll π root height width ps s.openings with
       | some (rows, rest) => run (k rows) { s with openings := rest }
       | none => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
 stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
-def runProof (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) : m Bool := do
-  match ← run F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
+def runProof (program : VerifierProgram Bool) (seed : KeccakState) (proof : Proof) : m Bool := do
+  match ← run π program ⟨⟨seed, []⟩, proof.stream, proof.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
 
@@ -446,9 +446,9 @@ end Run
 
 /-- A run with every permutation answered by `default`, for the steps that only read scalars: what
 they read does not depend on the sponge. -/
-def runPure {α : Type} (P : VerifierProgram α) (s : VerifierProgramState) : Option (α ×
-    VerifierProgramState) :=
-  Id.run (run (m := Id) (fun _ ↦ default) P s)
+def runPure {α : Type} (program : VerifierProgram α) (s : VerifierProgramState) : Option
+    (α × VerifierProgramState) :=
+  Id.run (run (m := Id) (fun _ ↦ default) program s)
 
 end LeanVM.Protocol.Compile
 
@@ -483,8 +483,8 @@ def kToNat (a : K) : ℕ := a.toBitVec.toNat
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1) + 2 ^ 128 * kToNat (e.limb 2)
 
-/-- `_gpow(index) = GEN ** index` (`verifier.py:724-725`): `Parameters.gpow index`, the same
-power in `K`, in limb `0` (this file opens `Parameters` without its `gpow`). -/
+/-- `_gpow(index) = GEN ** index` (`verifier.py:724-725`): `Parameters.addressOfIndex index`, the
+same power in `K`, in limb `0` (this file opens `Parameters` without its `addressOfIndex`). -/
 def gpow (index : ℕ) : E := gen ^ index
 
 /-- `E.sum(values)`: the sum from `ZERO`, left to right (`verifier.py:120-122`). -/
@@ -572,8 +572,8 @@ def selectorPoint (selector length : ℕ) : List E :=
   insertion order: `addScaled` adds into an existing monomial's coefficient and appends a new
   one, as the `dict` does. A monomial is the sorted list of its column indices (`()`, `(i,)`,
   `(i, j)`).
-* The Python's column-name lookups `_cols` are `colIdx`, `List.idxOf` on the column-name list;
-  every name the tables use is in its list, as the Python's `assert` checks.
+* The Python's column-name lookups `_cols` are `columnIndexByName`, `List.idxOf` on the column-name
+  list; every name the tables use is in its list, as the Python's `assert` checks.
 * `Table.constraints` is a function of the row's evaluations, as in the Python; only `jump` has
   any (`_jump_constraints`).
 * A placement is `none` where the Python's is `None`: a `KECCAK` output lane, which nothing
@@ -657,16 +657,17 @@ def opKeccak : ℕ := 5
 
 /-! ### Placements (`verifier.py:304-331`) -/
 
-/-- Where something sits in the stacked cube: a claim's point fills the `vars` coordinates
+/-- Where something sits in the stacked cube: a claim's point fills the `variableCount` coordinates
 above `low`, the bits of the selector `index` fixing the rest.
 
 The pin's `Placement` has no `low` (`verifier.py:304-317`): `stack_point` is
 `point ++ _selector_point(index >> variables, stack_log - variables)` and `eq_above` weighs
 `point[variables:]` against `_selector_point(index >> variables, len(point) - variables)`. The two
 are the same verifier: every placement the verifier builds has `low = 0` (`busLayout`,
-`placementsOf`, the default), and at `low = 0`, `bits.drop vars` of `selectorPoint index stackLog`
-is `selectorPoint (index >>> vars) (stackLog - vars)`, `_selector_point` writing the selector's
-bits lowest first. -/
+`placementsOf`, the default), and at `low = 0`, `bits.drop variableCount` of
+`selectorPoint index stackLog` is
+`selectorPoint (index >>> variableCount) (stackLog - variableCount)`, `_selector_point` writing the
+selector's bits lowest first. -/
 structure Placement where
   /-- The coordinates the claim's point fills. -/
   variableCount : ℕ
@@ -809,8 +810,8 @@ def decimalNumeral (n : ℕ) : String :=
   else toString n
 
 /-- The names of the `25` lanes of a state, with a prefix: `prefix_0, …, prefix_24`. -/
-def laneNames (pre : String) : List String := (List.range 25).map fun l ↦ pre ++ "_" ++
-    decimalNumeral l
+def laneNames (namePrefix : String) : List String :=
+  (List.range 25).map fun l ↦ namePrefix ++ "_" ++ decimalNumeral l
 
 /-- `KECCAK_COLUMNS` (`verifier.py:932-941`): the operands, the layout flags, the read limb that
 holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots each; `out_l`,
@@ -1246,10 +1247,10 @@ structure GkrState where
   point : List E
 
 /-- One step of `step` levels of the GKR walk (`verifier.py:483-494`). -/
-def gkrStep (step : ℕ) (s : GkrState) : VerifierProgram GkrState := do
+def gkrStep (step : ℕ) (state : GkrState) : VerifierProgram GkrState := do
   let combiner ← VerifierProgram.sampleChallenge
-  let claim := polyEval s.values combiner
-  let (x, claim) ← sumcheck claim (2 ^ step + 1) (s.point.map some)
+  let claim := polyEval state.values combiner
+  let (x, claim) ← sumcheck claim (2 ^ step + 1) (state.point.map some)
   let child0 ← VerifierProgram.readScalars (2 ^ step)
   let child1 ← VerifierProgram.readScalars (2 ^ step)
   let child2 ← VerifierProgram.readScalars (2 ^ step)
@@ -1296,7 +1297,7 @@ structure BusResult where
 
 /-- The three framework fingerprints of a side (`verifier.py:603-615`, `fingerprints`; the
 Python hoists `memory_index` and `bytecode_index`, pure values inlined here; `bytecode_value` is
-the bytecode's value, from `ev`). -/
+the bytecode's value, from `bytecodeValue`). -/
 def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeValue : E)
     (pc memoryCount bytecodeCount : E) : List E :=
   [dot (weights.take 3) [sepState, pc, gpow 0],
@@ -1331,11 +1332,11 @@ def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlo
 
 /-- `verify_bus_balance(layout)` (`verifier.py:581-643`). **Where the verifier gets the value of the
 fixed polynomial**, the stacked bytecode's multilinear extension at the bus point
-(`verifier.py:605`), which the statement fixes and the proof does not: from `ev`, which the deployed
-verifier computes (`computedValue`) and the verifier inside an aggregate takes from a claim it hands
-on (`claimedValue`). -/
-def verifyBusBalance (ev : List K → List E → VerifierProgram E) (layout : Layout) : VerifierProgram
-    BusResult := do
+(`verifier.py:605`), which the statement fixes and the proof does not: from `bytecodeValue`, which
+the deployed verifier computes (`computedBytecodeValue`) and the verifier inside an aggregate takes
+from a claim it hands on (`claimedBytecodeValue`). -/
+def verifyBusBalance (bytecodeValue : List K → List E → VerifierProgram E) (layout : Layout) :
+    VerifierProgram BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
   let pullLayout := busLayout frameworkLogRows layout.pull
@@ -1355,7 +1356,7 @@ def verifyBusBalance (ev : List K → List E → VerifierProgram E) (layout : La
       memory) ++
     [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
       bytecodeFinal⟩]
-  let bytecodeValue ← ev layout.bytecode (bytecodeLow ++ alphas)
+  let bytecodeValue ← bytecodeValue layout.bytecode (bytecodeLow ++ alphas)
   let fp := fingerprints weights memory memoryLow bytecodeLow bytecodeValue
   let pcFinal := gpow (2 ^ layout.logBytecode - 1)
   let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
@@ -1402,8 +1403,8 @@ def tableTerms (constraintPowers formPowers point : List E) :
 equality_point, target)` (`verifier.py:649-678`): each table's point and its columns'
 evaluations there. -/
 def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
-    (constraintPowers formPowers equalityPoint : List E) (target : E) :
-    VerifierProgram (List (List E × List E)) := do
+    (constraintPowers formPowers equalityPoint : List E) (target : E) : VerifierProgram
+    (List (List E × List E)) := do
   let nRounds := heights.foldl max 0
   let (challenges, claim) ← sumcheck target 4 (List.replicate nRounds none)
   let point := challenges.reverse
@@ -1426,13 +1427,14 @@ matrix shape when the root is read, so the shape is computed from the ladder the
 * the root read at level `ℓ` (commitment `ℓ + 1`) is opened at level `ℓ + 1`:
   `2^(message_log_ℓ − folds[ℓ+1] + rate_{ℓ+1})` leaves of `3 · 2^folds[ℓ+1]` words.
 
-Level `ℓ` therefore opens commitment `ℓ` (`Prog.queryOpenings ℓ`). The rows come back as raw words;
-the level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the program's.
+Level `ℓ` therefore opens commitment `ℓ` (`VerifierProgram.queryOpenings ℓ`). The rows come back as
+raw words; the level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the
+program's.
 
 **Interpretation.**
 
-* `derive_config` is `LeanVM.Parameters.Whir.ladder`, whose `shape` is the Python's loop and whose
-  table is `WHIR_QUERIES` verbatim; the tests compare all 56 admissible pairs with the Python.
+* `derive_config` is `LeanVM.Parameters.Whir.ladder`, whose `ladderShape` is the Python's loop and
+  whose table is `WHIR_QUERIES` verbatim; the tests compare all 56 admissible pairs with the Python.
 * `sample_queries` takes the block's log-length `depth` (the Python takes the length and recovers
   `depth` by `log2_strict`, which cannot fail: the length is `2^depth`). Its loop is bounded by
   `count` rounds of fuel; each round yields `min(192 / depth, remaining) ≥ 1` positions since
@@ -1440,8 +1442,8 @@ the level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are
 * `_induced_weight` requires `len(point) == message_log`. Every glued claim is evaluated at
   `folds[fold_start:] + tail_folds`, of length `log_n − fold_start = message_log`, so the check
   always holds; it is not repeated.
-* The `raise` after the level loop (no terminal level) is `Prog.fail` on an empty ladder, which
-  `derive_config` never returns.
+* The `raise` after the level loop (no terminal level) is `VerifierProgram.fail` on an empty ladder,
+  which `derive_config` never returns.
 -/
 
 /-- The loop of `sample_queries`: each sample yields up to `192 / depth` positions of `depth`
@@ -1548,12 +1550,13 @@ def tailRounds : ℕ → List E → VerifierProgram (List E × E)
 
 /-- Glue a level's pending claims, each an intro message and a weight, into the running sumcheck
 with powers of `λ`, the running claim keeping `λ⁰` (`verifier.py:1175-1179`). -/
-def glue (lam : E) (s : WhirState) (pending : List (List E × (List E → E))) : WhirState :=
+def glue (lam : E) (state : WhirState) (pending : List (List E × (List E → E))) : WhirState :=
   (pending.foldl (fun (acc : WhirState × E) (intro, weightAt) ↦
     let scalar := acc.2 * lam
-    let s := acc.1
-    ({ s with runningQuad := List.zipWith (fun q i ↦ q + scalar * i) s.runningQuad intro,
-              glued := s.glued ++ [⟨scalar, s.folds.length, weightAt⟩] }, scalar)) (s, 1)).1
+    let state := acc.1
+    ({ state with
+        runningQuad := List.zipWith (fun q i ↦ q + scalar * i) state.runningQuad intro,
+        glued := state.glued ++ [⟨scalar, state.folds.length, weightAt⟩] }, scalar)) (state, 1)).1
 
 /-- The shape of the commitment a level opens: `2^(message_log + rate)` leaves of `width`
 words, the message log being the one after the level's folds. -/
@@ -1880,8 +1883,8 @@ inputs. The last segment's output is the permutation's, claimed by the table's l
 `instance`; the others are committed. It leaves openings of `q_keccak`: the committed outputs as
 words at one point (column claims), and the column's 64 slices at another (the point and the
 slices, for ring switching). -/
-def verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    VerifierProgram (List ColumnClaim × List E × List E) := do
+def verifyKeccak (logSteps : ℕ) (inst output : List E) : VerifierProgram
+    (List ColumnClaim × List E × List E) := do
   let packBits := logSteps - 4
   let rLow := inst.take 4
   let segment ← VerifierProgram.sampleChallenges keccakSegmentBits
@@ -1954,9 +1957,10 @@ open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 /-!
 ## The leanVM verifier (`verifier.py:684, 1463-1517, 379-384`)
 
-`leanVmProgram bytecode publicInput` is `verify_execution` in the verifier language, one `Prog`
-function per phase of the Python (the steps of `verifyExecution`). The program returns `true` where
-the Python returns; `Transcript.finish`, the check that the proof is consumed, is `runProof`'s.
+`leanVmVerifierProgram bytecode publicInput` is `verify_execution` in the verifier language, one
+`VerifierProgram` function per phase of the Python (the steps of `verifyExecution`). The program
+returns `true` where the Python returns; `Transcript.finish`, the check that the proof is consumed,
+is `runProof`'s.
 
 **The seed.** The sponge starts at Keccak-f of `IV ‖ public_input ‖ 0^17`, `IV` the Keccak-256 hash
 of `TAG ‖ bytecode`, the tag `"leanvm-v1"` naming the proof system's version and the bytecode as its
@@ -1994,8 +1998,8 @@ def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List
 three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line through that limb of
 the public input's two halves, evaluated at the challenge by the verifier itself. The prover sends
 nothing. -/
-def publicInputPhase (layout : Layout) (publicInput : Digest) : VerifierProgram (List
-    ColumnClaim) := do
+def publicInputPhase (layout : Layout) (publicInput : Digest) : VerifierProgram
+    (List ColumnClaim) := do
   let publicChallenge ← VerifierProgram.sampleChallenge
   let halves := digestHalves publicInput
   let publicLimbs := ([0, 1, 2] : List (Fin 3)).map fun limb ↦
@@ -2009,8 +2013,8 @@ def publicInputPhase (layout : Layout) (publicInput : Digest) : VerifierProgram 
 output lanes' evaluations, `values[KECCAK_OUT : KECCAK_OUT + STATE_LANES]`, are the Keccak
 reduction's claim on the permutation's output. The reduction's column claims, and the point and
 slices of `q_keccak` it leaves for ring switching. -/
-def keccakPhase (layout : Layout) (evaluations : List (List E × List E)) :
-    VerifierProgram (List ColumnClaim × List E × List E) :=
+def keccakPhase (layout : Layout) (evaluations : List (List E × List E)) : VerifierProgram
+    (List ColumnClaim × List E × List E) :=
   let (point, values) := evaluations.getD opKeccak ([], [])
   verifyKeccak (layout.tableLogHeights.getD opKeccak 0) point
     (keccakOutputs.map fun name ↦ values.getD (columnIndexByName keccakColumns name) 0)
@@ -2022,16 +2026,15 @@ def ringSwitchClaim (layout : Layout) (target : E) (weight : List E → E) : Sta
   (fun x ↦ qkeccakPlacement.eqAbove x * weight (x.take qkeccakPlacement.variableCount), target)
 
 /-- `verify_execution(bytecode, public_input, proof)` without its `finish`
-(`verifier.py:1463-1516`), the fixed polynomial's value from `ev`. -/
-def verifyExecution (ev : List K → List E → VerifierProgram E) (bytecode : List K) (publicInput :
-    Digest) :
-    VerifierProgram Unit := do
+(`verifier.py:1463-1516`), the fixed polynomial's value from `bytecodeValue`. -/
+def verifyExecution (bytecodeValue : List K → List E → VerifierProgram E) (bytecode : List K)
+    (publicInput : Digest) : VerifierProgram Unit := do
   -- 1] memory log-size, table row counts, and the WHIR rate
   let (layout, logInverseRate) ← readAnnouncedSizes bytecode
   -- 2] the stack's commitment
   commitStack layout.stackLog logInverseRate
   -- 3] the bus
-  let bus ← verifyBusBalance ev layout
+  let bus ← verifyBusBalance bytecodeValue layout
   -- 4] the table sumcheck, and the tables' column claims
   let evaluations ← tablePhase layout bus
   let claims := bus.claims ++
@@ -2060,17 +2063,18 @@ structure BytecodeClaim where
   bytecodePoint : List E
   bytecodeValue : E
 
-/-- The value claimed by `c`, at the point of `c` only: the run fails where the verifier asks
-elsewhere. -/
-def claimedBytecodeValue (c : BytecodeClaim) (_ : List K) (point : List E) : VerifierProgram E := do
-  VerifierProgram.require (point = c.bytecodePoint)
-  return c.bytecodeValue
+/-- The value claimed by `claim`, at the point of `claim` only: the run fails where the verifier
+asks elsewhere. -/
+def claimedBytecodeValue (claim : BytecodeClaim) (_ : List K) (point : List E) : VerifierProgram
+    E := do
+  VerifierProgram.require (point = claim.bytecodePoint)
+  return claim.bytecodeValue
 
 /-- The claim's value is the bytecode's multilinear extension at its point (the value only;
 `DeferredClaim.HoldsWithShape`, `LeanVmGuestCompleteness.lean`, adds the shape and the
 power-of-two length). -/
-def BytecodeClaim.Holds (bytecode : List K) (c : BytecodeClaim) : Prop :=
-  multilinearEval (bytecode.map ofK) c.bytecodePoint = c.bytecodeValue
+def BytecodeClaim.Holds (bytecode : List K) (claim : BytecodeClaim) : Prop :=
+  multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
 
 /-! ### The programs -/
 
@@ -2080,10 +2084,10 @@ def leanVmVerifierProgram (bytecode : List K) (publicInput : Digest) : VerifierP
   verifyExecution computedBytecodeValue bytecode publicInput
   return true
 
-/-- The verifier program with the fixed polynomial's value claimed by `c`. -/
-def deferringVerifierProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
+/-- The verifier program with the fixed polynomial's value claimed by `claim`. -/
+def deferringVerifierProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     VerifierProgram Bool := do
-  verifyExecution (claimedBytecodeValue c) bytecode publicInput
+  verifyExecution (claimedBytecodeValue claim) bytecode publicInput
   return true
 
 /-! ### The seed and the compiled verifier -/
@@ -2094,31 +2098,31 @@ def versionTag : Bytes := "leanvm-v1".toUTF8.toList
 
 section Hash
 
-variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- The IV over the permutation `F`: Keccak-256 over `F` of the tag, then the bytecode as its
+/-- The IV over the permutation `π`: Keccak-256 over `π` of the tag, then the bytecode as its
 little-endian words (`verifier.py:1464`). -/
 def fiatShamirIvWith (bytecode : List K) : m Digest :=
-  keccak256With F (versionTag ++ bytecode.flatMap K.toBytes)
+  keccak256With π (versionTag ++ bytecode.flatMap K.toBytes)
 
-/-- The sponge's initial state over the permutation `F`: `F` of the IV's and the public input's
+/-- The sponge's initial state over the permutation `π`: `π` of the IV's and the public input's
 words, the other lanes zero (`verifier.py:1464-1465`, `Transcript.__init__`). -/
 def spongeSeedWith (bytecode : List K) (publicInput : Digest) : m KeccakState := do
-  let fiatShamirIv ← fiatShamirIvWith F bytecode
-  F (seedInput fiatShamirIv publicInput)
+  let fiatShamirIv ← fiatShamirIvWith π bytecode
+  π (seedInput fiatShamirIv publicInput)
 
-/-- The compiled verifier over the permutation `F`: the program run on the proof from the seed. -/
-def verifyWith (bytecode : List K) (publicInput : Digest) (π : Proof) : m Bool := do
-  let seed ← spongeSeedWith F bytecode publicInput
-  runProof F (leanVmVerifierProgram bytecode publicInput) seed π
+/-- The compiled verifier over the permutation `π`: the program run on the proof from the seed. -/
+def verifyWith (bytecode : List K) (publicInput : Digest) (proof : Proof) : m Bool := do
+  let seed ← spongeSeedWith π bytecode publicInput
+  runProof π (leanVmVerifierProgram bytecode publicInput) seed proof
 
-/-- **The deferring verifier** over the permutation `F`, as an aggregate runs it on a child's proof
+/-- **The deferring verifier** over the permutation `π`, as an aggregate runs it on a child's proof
 (`verify_sub`): the IV is given rather than hashed from the bytecode, and the fixed polynomial's
-value is the one claimed by `c`. Only the bytecode's length is read. -/
-def verifyDeferredWith (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
-    (π : Proof) : m Bool := do
-  let seed ← F (seedInput iv publicInput)
-  runProof F (deferringVerifierProgram c bytecode publicInput) seed π
+value is the one claimed by `claim`. Only the bytecode's length is read. -/
+def verifyDeferredWith (bytecode : List K) (iv publicInput : Digest) (claim : BytecodeClaim)
+    (proof : Proof) : m Bool := do
+  let seed ← π (seedInput iv publicInput)
+  runProof π (deferringVerifierProgram claim bytecode publicInput) seed proof
 
 end Hash
 
@@ -2127,12 +2131,12 @@ def fiatShamirIv (bytecode : List K) : Digest :=
   Id.run (fiatShamirIvWith (m := Id) keccakF1600 bytecode)
 
 /-- The deployed deferring verifier, over Keccak-f[1600]. -/
-def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim) (π : Proof) :
-    Bool :=
-  Id.run (verifyDeferredWith (m := Id) keccakF1600 bytecode iv publicInput c π)
+def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (claim : BytecodeClaim)
+    (proof : Proof) : Bool :=
+  Id.run (verifyDeferredWith (m := Id) keccakF1600 bytecode iv publicInput claim proof)
 
-/-- The announced layout and rate exponent of a stream, read by the program's own `readSizes`
-(reads only absorb: no hash or permutation is consulted for a value). -/
+/-- The announced layout and rate exponent of a stream, read by the program's own
+`readAnnouncedSizes` (reads only absorb: no hash or permutation is consulted for a value). -/
 def announcedLayoutAndRate (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
   (runPure (readAnnouncedSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩).map (·.1)
 

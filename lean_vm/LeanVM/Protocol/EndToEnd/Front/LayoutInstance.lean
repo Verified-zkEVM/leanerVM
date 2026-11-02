@@ -171,7 +171,7 @@ theorem width_opIdx (j : Fin 6) : width (opIdx j) = (tables.getD j default).widt
 
 /-- The checks `build_layout` makes of the sizes (`verifier.py:865-873`) for the program's
 bytecode: the memory window `[16, 32]` and the row cap `2 ^ 32`. The bytecode's checks hold by
-construction (`Program.logSize_le`). -/
+construction (`LeanIsaProgram.logSize_le`). -/
 def LayoutOk (s : Sizes) : Prop :=
   minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ ∀ j, s.rows j ≤ 2 ^ maxLogRows
 

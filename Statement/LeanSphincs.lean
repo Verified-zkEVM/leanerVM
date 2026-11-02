@@ -10,7 +10,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 The scheme of `crates/signatures/src/lean_sphincs` (`wots.rs`, `forest.rs`, `scheme.rs`; the
 addresses in `crates/signatures/src/tweak.rs`), specified in `doc/lean_sphincs`, for any key
-shape (`Params`: the kept subtree's height `b` and the signature limit): one tree of height
+shape (`KeyShape`: the kept subtree's height `b` and the signature limit): one tree of height
 `h = 26` of WOTS+C keys (`v = 64` chains of 4 positions, target sum `T = 123`, §sec:ots), pruned
 to a kept subtree of height `b` with surrogate siblings (§sec:layer, §sec:pruning), the
 randomizer ground into the kept subtree and a counter for the encoding (§sec:sign), and under each
@@ -48,8 +48,8 @@ namespace Sphincs
 
 export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
   PublicParameter Randomizer WinternitzDigit ChainStep HashInput truncateHash upperHalfOfHash
-      hashHalfForChain PublicKey
-  littleEndianBytes TweakFields addressBytes tweakFields thInput sampleMasterSeed)
+  hashHalfForChain PublicKey littleEndianBytes TweakFields addressBytes tweakFields thInput
+  sampleMasterSeed)
 
 /-- The encoding counter's bits, `32`. -/
 def counterBits : Nat := 32
@@ -166,8 +166,8 @@ def messageDigestBits : Nat := treeHeight + forestCoordinateCount * coordinateBi
 abbrev MessageDigest := BitVec messageDigestBits
 
 /-- The first 234 bits of the single digest call. -/
-def truncateMessageDigest (first : HashOutput) : MessageDigest :=
-  first.extractLsb' 0 messageDigestBits
+def truncateMessageDigest (digestCallOutput : HashOutput) : MessageDigest :=
+  digestCallOutput.extractLsb' 0 messageDigestBits
 
 /-- What a digest selects in one coordinate: the super-child, and per sub-tree a child and a
 codeword index. -/
@@ -181,7 +181,7 @@ structure CoordinateSelection where
 deriving DecidableEq
 
 /-- The forest key of an instance: the two level-3 nodes of every tree, `(t_c[0], t_c[1])`. It is
-not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Concrete.encode`). -/
+not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Verification.encode`). -/
 abbrev ForestKey := ForestCoordinate → Digest × Digest
 
 /-- The opening of one sub-tree: the 6 revealed chain values and the 3 auth nodes. -/
@@ -232,36 +232,34 @@ def chainSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a
   childSlot c s j a + 2048 * i.val
 
 /-- The verification hash domains. Seed derivation uses `KeygenDomain`. Forest levels count from the
-leaves: a `subNode` at `level` is the node of sub-tree level `level + 1`, a `topNode` at `level` the
-node of top-tree level `level + 1`. The scheme hashes sub-tree levels 1 and 2 and top-tree levels 1
-to 3: the address of a tree's root exists and no algorithm uses it. -/
+leaves: a `subtreeNode` at `level` is the node of sub-tree level `level + 1`, a `topTreeNode` at
+`level` the node of top-tree level `level + 1`. The scheme hashes sub-tree levels 1 and 2 and
+top-tree levels 1 to 3: the address of a tree's root exists and no algorithm uses it. -/
 inductive HashDomain where
-  /-- A step of chain `chainIdx` of the one-time key at `leaf`. -/
-  | chain (leaf : LeafIndex) (chainIdx : ChainIndex) (step : ChainStep)
+  /-- A step of chain `chainIndex` of the one-time key at `leaf`. -/
+  | chain (leaf : LeafIndex) (chainIndex : ChainIndex) (step : ChainStep)
   /-- The one-time key's leaf, the hash of its chain ends. -/
   | leaf (leaf : LeafIndex)
-  /-- A tree node at `level`, index `nodeIdx`. -/
-  | node (level : Nat) (nodeIdx : Nat)
+  /-- A tree node at `level`, index `nodeIndex`. -/
+  | node (level : Nat) (nodeIndex : Nat)
   /-- The WOTS+C encoding of the forest key at `leaf`. -/
   | encoding (leaf : LeafIndex)
-  /-- Step `t` of chain `i` of child `(c, s, j, a)` of forest instance `index`. -/
-  | forestChain (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
-        (a : ChildIndex) (i : ForestChainIndex)
-      (t : ForestChainStep)
+  /-- Step `t` of chain `i` of child `(c, s, j, a)` of forest instance `leafIndex`. -/
+  | forestChain (leafIndex : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
+      (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex) (t : ForestChainStep)
   /-- A child's leaf, the hash of its chain tops. -/
-  | childLeaf (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
-        (a : ChildIndex)
+  | childLeaf (leafIndex : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
+      (j : SubtreeIndex) (a : ChildIndex)
   /-- A sub-tree's node. -/
-  | subtreeNode (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
-        (level : Fin forestSubtreeHeight)
-      (node : ChildIndex)
+  | subtreeNode (leafIndex : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
+      (j : SubtreeIndex) (level : Fin forestSubtreeHeight) (node : ChildIndex)
   /-- A super-child, the hash of its sub-trees' level-2 nodes. -/
-  | superChild (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
+  | superChild (leafIndex : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
   /-- A top tree's node. -/
-  | topTreeNode (index : LeafIndex) (c : ForestCoordinate) (level : Fin topTreeHeight) (node :
-      SuperChildIndex)
+  | topTreeNode (leafIndex : LeafIndex) (c : ForestCoordinate) (level : Fin topTreeHeight)
+      (node : SuperChildIndex)
   /-- No algorithm's: a label of the proofs. -/
-  | roots (index : LeafIndex)
+  | roots (leafIndex : LeafIndex)
   /-- The message digest. -/
   | message
 deriving DecidableEq
@@ -273,18 +271,18 @@ node level); a chain step carries its step. In a forest instance `lo` is `idx` a
 position; a forest chain step from position `t` carries step `t`. An address has no layer and no
 tree field (`Tweak`, `tweak.rs`). -/
 def hashDomainFields : HashDomain → TweakFields
-  | .chain leaf chainIdx step => tweakFields 1 step chainIdx leaf
+  | .chain leaf chainIndex step => tweakFields 1 step chainIndex leaf
   | .leaf leaf => tweakFields 2 0 0 leaf
-  | .node level nodeIdx => tweakFields 3 0 level nodeIdx
+  | .node level nodeIndex => tweakFields 3 0 level nodeIndex
   | .encoding leaf => tweakFields 4 0 0 leaf
-  | .forestChain index c s j a i t => tweakFields 15 t (chainSlot c s j a i) index
-  | .childLeaf index c s j a => tweakFields 16 0 (childSlot c s j a) index
-  | .subtreeNode index c s j level node =>
-      tweakFields 17 0 (subtreeSlot c s j + 256 * (level.val + 1) + 1024 * node.val) index
-  | .superChild index c s => tweakFields 18 0 (c.val + 8 * s.val) index
-  | .topTreeNode index c level node =>
-      tweakFields 19 0 (c.val + 8 * (level.val + 1) + 64 * node.val) index
-  | .roots index => tweakFields 20 0 0 index
+  | .forestChain leafIndex c s j a i t => tweakFields 15 t (chainSlot c s j a i) leafIndex
+  | .childLeaf leafIndex c s j a => tweakFields 16 0 (childSlot c s j a) leafIndex
+  | .subtreeNode leafIndex c s j level node =>
+      tweakFields 17 0 (subtreeSlot c s j + 256 * (level.val + 1) + 1024 * node.val) leafIndex
+  | .superChild leafIndex c s => tweakFields 18 0 (c.val + 8 * s.val) leafIndex
+  | .topTreeNode leafIndex c level node =>
+      tweakFields 19 0 (c.val + 8 * (level.val + 1) + 64 * node.val) leafIndex
+  | .roots leafIndex => tweakFields 20 0 0 leafIndex
   | .message => tweakFields 12 0 0 0
 
 /-- The pair of chains a chain of a one-time key belongs to. -/
@@ -300,19 +298,18 @@ def chainPairSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex
     (pair : ForestChainPairIndex) : Nat :=
   childSlot c s j a + 2048 * pair.val
 
-/-- The seed derivations, one hash each. `ots` gives the starts of chains `2t` and `2t + 1` of the
-one-time key at a leaf, `forest` the starts `x_{2t,0}` and `x_{2t+1,0}` of chains `2t` and `2t + 1`
-of child `(idx, c, s, j, a)`: the two 16-byte halves of the hash. The parameter and a surrogate are
-the first 16 bytes of their hash. -/
+/-- The seed derivations, one hash each. `oneTimeChainPair` gives the starts of chains `2t` and
+`2t + 1` of the one-time key at a leaf, `childChainPair` the starts `x_{2t,0}` and `x_{2t+1,0}` of
+chains `2t` and `2t + 1` of child `(idx, c, s, j, a)`: the two 16-byte halves of the hash. The
+parameter and a surrogate are the first 16 bytes of their hash. -/
 inductive KeygenDomain where
   /-- The public parameter `P`. -/
   | parameter
   /-- The starts of chains `2t` and `2t + 1` of the one-time key at `leaf`, `t = pair`. -/
   | oneTimeChainPair (leaf : LeafIndex) (pair : ChainPairIndex)
   /-- The starts of chains `2t` and `2t + 1` of child `(c, s, j, a)`, `t = pair`. -/
-  | childChainPair (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex) (j :
-      SubtreeIndex)
-        (a : ChildIndex) (pair : ForestChainPairIndex)
+  | childChainPair (leafIndex : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
+      (j : SubtreeIndex) (a : ChildIndex) (pair : ForestChainPairIndex)
   /-- The surrogate sibling at `level`. -/
   | surrogate (level : Fin treeHeight)
 deriving DecidableEq
@@ -323,7 +320,8 @@ the level). -/
 def keygenDomainFields : KeygenDomain → TweakFields
   | .parameter => tweakFields 5 0 0 0
   | .oneTimeChainPair leaf pair => tweakFields 0 0 pair leaf
-  | .childChainPair index c s j a pair => tweakFields 14 0 (chainPairSlot c s j a pair) index
+  | .childChainPair leafIndex c s j a pair =>
+      tweakFields 14 0 (chainPairSlot c s j a pair) leafIndex
   | .surrogate level => tweakFields 13 0 level 0
 
 /-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS`. -/
@@ -360,9 +358,9 @@ end TargetSum
 
 /-! ### The algorithms
 
-`Concrete` contains the hash and verification routines; `Seeded` contains key generation and
-signing. Hashing routines work over a permutation `π` of the Keccak state in any monad, the hash
-`H` being Keccak-256 over `π` (`keccakHash`). -/
+`Verification` contains the hash and verification routines; `KeyGenerationAndSigning` contains
+key generation and signing. Hashing routines work over a permutation `π` of the Keccak state in any
+monad, the hash `H` being Keccak-256 over `π` (`keccakHash`). -/
 
 namespace Verification
 
@@ -387,15 +385,15 @@ def leafOfNat (value : Nat) : LeafIndex :=
 
 /-- Chain `i` of the one-time key at a leaf: the step onto position `t + 1` carries step `t`
 (`chain`, `wots.rs`: a step carries the position it leaves). -/
-def chainWalk (parameter : PublicParameter) (leaf : LeafIndex) (chainIdx : ChainIndex) :
+def chainWalk (parameter : PublicParameter) (leaf : LeafIndex) (chainIndex : ChainIndex) :
     Nat → Nat → Digest → m Digest :=
   walkChain fun step value ↦
-    tweakableHash π parameter (.chain leaf chainIdx step) (littleEndianBytes 16 value)
+    tweakableHash π parameter (.chain leaf chainIndex step) (littleEndianBytes 16 value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
-def recoverChain (parameter : PublicParameter) (leaf : LeafIndex) (chainIdx : ChainIndex)
+def recoverChain (parameter : PublicParameter) (leaf : LeafIndex) (chainIndex : ChainIndex)
     (digit : WinternitzDigit) (value : Digest) : m Digest :=
-  chainWalk π parameter leaf chainIdx digit.val (chainLength - 1 - digit.val) value
+  chainWalk π parameter leaf chainIndex digit.val (chainLength - 1 - digit.val) value
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
@@ -414,21 +412,19 @@ def forestKeyPayload (tops : ForestKey) : HashInput :=
 /-- `Enc(P, e, K, c)`: hash the forest key's sixteen nodes, then the counter, under the leaf's
 encoding tweak, and decode. There is no forest-key hash: the counter falls in the last block of this
 one (`P || A || K || c`, 292 bytes). -/
-def encode (parameter : PublicParameter) (leaf : LeafIndex) (message : ForestKey) (counter :
-    EncodingCounter) :
-    m (Option Encoding) := do
+def encode (parameter : PublicParameter) (leaf : LeafIndex) (forestKey : ForestKey)
+    (counter : EncodingCounter) : m (Option Encoding) := do
   let digest ← tweakableHash π parameter (.encoding leaf)
-    (forestKeyPayload message ++ littleEndianBytes 4 counter)
+    (forestKeyPayload forestKey ++ littleEndianBytes 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `Ots.leaf` (`wots_leaf`, `wots.rs`): the verifier's leaf, or nothing if the counter does not
 encode the message. -/
-def otsLeaf (parameter : PublicParameter) (leaf : LeafIndex) (message : ForestKey) (counter :
-    EncodingCounter)
-    (values : ChainIndex → Digest) : m (Option Digest) := do
-  let some encoding ← encode π parameter leaf message counter | return none
-  let endpoints ← sequenceFin fun chainIdx =>
-    recoverChain π parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
+def otsLeaf (parameter : PublicParameter) (leaf : LeafIndex) (forestKey : ForestKey)
+    (counter : EncodingCounter) (values : ChainIndex → Digest) : m (Option Digest) := do
+  let some encoding ← encode π parameter leaf forestKey counter | return none
+  let endpoints ← sequenceFin fun chainIndex =>
+    recoverChain π parameter leaf chainIndex (encoding chainIndex) (values chainIndex)
   let value ← leafHash π parameter leaf endpoints
   return some value
 
@@ -437,55 +433,55 @@ def otsLeaf (parameter : PublicParameter) (leaf : LeafIndex) (message : ForestKe
 /-- `Tree.fold` (`tree_fold`): fold a leaf and a path into the root. -/
 def treeFold (parameter : PublicParameter) (leaf : LeafIndex) (path : Nat → Digest) :
     Nat → Digest → m Digest :=
-  foldPath (fun level nodeIdx ↦ tweakableHash π parameter (.node (level + 1) nodeIdx)) leaf.val path
+  foldPath (fun level nodeIndex ↦ tweakableHash π parameter (.node (level + 1) nodeIndex))
+    leaf.val path
 
 /-! #### The forest -/
 
 /-- Forest chain `i` of a child; the step onto position `t + 1` carries step `t`. -/
-def forestChainWalk (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (i : ForestChainIndex) : Nat → Nat → Digest → m Digest :=
+def forestChainWalk (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex) : Nat → Nat →
+    Digest → m Digest :=
   walkChain fun step value ↦
-    tweakableHash π parameter (.forestChain index c s j a i step) (littleEndianBytes 16 value)
+    tweakableHash π parameter (.forestChain leafIndex c s j a i step) (littleEndianBytes 16 value)
 
 /-- The verifier's half of a forest chain: from position `4 - d` walk `d` steps. -/
-def forestRecoverChain (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (i : ForestChainIndex) (deficit : ForestChainPosition)
-        (value : Digest) : m Digest :=
-  forestChainWalk π parameter index c s j a i (forestChainTop - deficit.val) deficit.val value
+def forestRecoverChain (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex)
+    (deficit : ForestChainPosition) (value : Digest) : m Digest :=
+  forestChainWalk π parameter leafIndex c s j a i (forestChainTop - deficit.val) deficit.val value
 
 /-- `x_{0,4} || ... || x_{5,4}`. -/
-def childPayload (ends : ForestChainIndex → Digest) : HashInput :=
-  (List.ofFn ends).flatMap (littleEndianBytes 16)
+def childPayload (chainEnds : ForestChainIndex → Digest) : HashInput :=
+  (List.ofFn chainEnds).flatMap (littleEndianBytes 16)
 
 /-- The child leaf: the hash of the 6 chain tops. -/
-def childLeafHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (ends : ForestChainIndex → Digest) : m Digest :=
-  tweakableHash π parameter (.childLeaf index c s j a) (childPayload ends)
+def childLeafHash (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+    (chainEnds : ForestChainIndex → Digest) : m Digest :=
+  tweakableHash π parameter (.childLeaf leafIndex c s j a) (childPayload chainEnds)
 
 /-- The child leaf an opening at codeword `word` reaches. -/
-def childLeafRecover (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (word : Codeword) (values : ForestChainIndex → Digest) : m Digest := do
-  let ends ← sequenceFin fun i => forestRecoverChain π parameter index c s j a i (word i) (values i)
-  childLeafHash π parameter index c s j a ends
+def childLeafRecover (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (word : Codeword)
+    (values : ForestChainIndex → Digest) : m Digest := do
+  let chainEnds ← sequenceFin fun i =>
+    forestRecoverChain π parameter leafIndex c s j a i (word i) (values i)
+  childLeafHash π parameter leafIndex c s j a chainEnds
 
 /-- The node hash of a sub-tree: at level `l + 1 ≤ 3`, node `i < 8` (`0` above). -/
-def subtreeNodeHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex)
-    (j : SubtreeIndex) (level node : Nat) (payload : HashInput) : m Digest :=
+def subtreeNodeHash (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (level node : Nat) (payload : HashInput) : m Digest :=
   if h : level < forestSubtreeHeight then
-    tweakableHash π parameter (.subtreeNode index c s j ⟨level, h⟩
+    tweakableHash π parameter (.subtreeNode leafIndex c s j ⟨level, h⟩
       ⟨node % 2 ^ forestSubtreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) payload
   else pure 0
 
 /-- Fold a child leaf and a sub-tree path into the sub-tree root. -/
-def subtreeFold (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (path : Fin forestSubtreeHeight → Digest) : Nat → Digest → m Digest :=
-  foldPath (subtreeNodeHash π parameter index c s j) a.val
+def subtreeFold (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
+    (path : Fin forestSubtreeHeight → Digest) : Nat → Digest → m Digest :=
+  foldPath (subtreeNodeHash π parameter leafIndex c s j) a.val
     fun level ↦ if h : level < forestSubtreeHeight then path ⟨level, h⟩ else 0
 
 /-- The two top nodes of a tree in index order, from the one the fold reached and the last path
@@ -499,25 +495,22 @@ def superChildPayload (tops : SubtreeIndex → Digest × Digest) : HashInput :=
 
 /-- The super-child `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])`: the hash of the
 two level-2 nodes of each of its sub-trees. A sub-tree has no root hash. -/
-def superChildHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex)
-    (tops : SubtreeIndex → Digest × Digest) : m Digest :=
-  tweakableHash π parameter (.superChild index c s) (superChildPayload tops)
+def superChildHash (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (tops : SubtreeIndex → Digest × Digest) : m Digest :=
+  tweakableHash π parameter (.superChild leafIndex c s) (superChildPayload tops)
 
 /-- The node hash of a coordinate's top tree: at level `l + 1 ≤ 4`, node `i < 16` (`0` above). -/
-def topTreeNodeHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (level node : Nat)
-    (payload : HashInput) : m Digest :=
+def topTreeNodeHash (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (level node : Nat) (payload : HashInput) : m Digest :=
   if h : level < topTreeHeight then
-    tweakableHash π parameter (.topTreeNode index c ⟨level, h⟩
+    tweakableHash π parameter (.topTreeNode leafIndex c ⟨level, h⟩
       ⟨node % 2 ^ topTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) payload
   else pure 0
 
 /-- Fold a super-child and a top path into the coordinate root. -/
-def topTreeFold (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex)
-    (path : Fin topTreeHeight → Digest) : Nat → Digest → m Digest :=
-  foldPath (topTreeNodeHash π parameter index c) s.val
+def topTreeFold (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (path : Fin topTreeHeight → Digest) : Nat → Digest → m Digest :=
+  foldPath (topTreeNodeHash π parameter leafIndex c) s.val
     fun level ↦ if h : level < topTreeHeight then path ⟨level, h⟩ else 0
 
 /-- The last level of a sub-tree path: the other level-2 node. -/
@@ -530,42 +523,40 @@ def topTreePathLastLevel : Fin topTreeHeight := ⟨topTreeHeight - 1, by decide�
 child leaf is folded 2 levels and the last path element is the other level-2 node; the four level-2
 nodes hash into the super-child, which is folded 3 levels, and the last top path element is the
 other level-3 node. -/
-def coordinateRecover (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (mark : CoordinateSelection)
-    (opening : CoordinateOpening) : m (Digest × Digest) := do
+def coordinateRecover (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (selection : CoordinateSelection) (opening : CoordinateOpening) : m (Digest × Digest) := do
   let tops ← sequenceFin fun j => do
-    let leaf ← childLeafRecover π parameter index c mark.superChild j (mark.child j) (lut
-        (mark.codewordIndex j))
-      (opening.subtreeOpenings j).values
-    let node ← subtreeFold π parameter index c mark.superChild j (mark.child j)
+    let leaf ← childLeafRecover π parameter leafIndex c selection.superChild j (selection.child j)
+      (lut (selection.codewordIndex j)) (opening.subtreeOpenings j).values
+    let node ← subtreeFold π parameter leafIndex c selection.superChild j (selection.child j)
         (opening.subtreeOpenings j).path
       (forestSubtreeHeight - 1) leaf
-    return orderTops ((mark.child j).val.testBit (forestSubtreeHeight - 1)) node
+    return orderTops ((selection.child j).val.testBit (forestSubtreeHeight - 1)) node
         ((opening.subtreeOpenings j).path subtreePathLastLevel)
-  let super ← superChildHash π parameter index c mark.superChild tops
-  let node ← topTreeFold π parameter index c mark.superChild opening.topTreePath (topTreeHeight -
-      1) super
-  return orderTops (mark.superChild.val.testBit (topTreeHeight - 1)) node (opening.topTreePath
-      topTreePathLastLevel)
+  let super ← superChildHash π parameter leafIndex c selection.superChild tops
+  let node ← topTreeFold π parameter leafIndex c selection.superChild opening.topTreePath
+    (topTreeHeight - 1) super
+  return orderTops (selection.superChild.val.testBit (topTreeHeight - 1)) node
+    (opening.topTreePath topTreePathLastLevel)
 
 /-- `Fts.recover`: the forest key an opening reaches, the sixteen level-3 nodes. A top tree has no
 root hash, and the key has no hash: the WOTS+C encoding absorbs it. -/
-def forestRecover (parameter : PublicParameter) (index : LeafIndex) (marks : ForestCoordinate
-    → CoordinateSelection)
+def forestRecover (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (selections : ForestCoordinate → CoordinateSelection)
     (opening : ForestCoordinate → CoordinateOpening) : m ForestKey :=
-  sequenceFin fun c => coordinateRecover π parameter index c (marks c) (opening c)
+  sequenceFin fun c => coordinateRecover π parameter leafIndex c (selections c) (opening c)
 
 /-! #### The message digest -/
 
 /-- `m || rho`, what the message digest hashes after the parameter and the address: the input
 `P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key). -/
-def messageDigestPayload (message : Message) (randomness : Randomizer) : HashInput :=
-  littleEndianBytes 32 message ++ littleEndianBytes 16 randomness
+def messageDigestPayload (message : Message) (randomizer : Randomizer) : HashInput :=
+  littleEndianBytes 32 message ++ littleEndianBytes 16 randomizer
 
 /-- The single untruncated digest call (`message_digest_bytes`, `scheme.rs`). -/
-def messageDigestCall (parameter : PublicParameter) (message : Message)
-    (randomness : Randomizer) : m HashOutput :=
-  thPair π parameter (hashDomainFields .message) (messageDigestPayload message randomness)
+def messageDigestCall (parameter : PublicParameter) (message : Message) (randomizer : Randomizer) :
+    m HashOutput :=
+  thPair π parameter (hashDomainFields .message) (messageDigestPayload message randomizer)
 
 /-- Bit offset of the index: the low 26 bits of the last 16 bytes of the digest. -/
 def leafIndexOffset : Nat := 128
@@ -575,10 +566,10 @@ def digestLeafIndex (digest : MessageDigest) : LeafIndex :=
   (digest.extractLsb' leafIndexOffset treeHeight).toFin
 
 /-- `Digest(P, m, rho)` (`message_digest`): the single call, truncated to 234 bits. -/
-def messageDigest (parameter : PublicParameter) (message : Message)
-    (randomness : Randomizer) : m MessageDigest := do
-  let first ← messageDigestCall π parameter message randomness
-  return truncateMessageDigest first
+def messageDigest (parameter : PublicParameter) (message : Message) (randomizer : Randomizer) : m
+    MessageDigest := do
+  let digestCallOutput ← messageDigestCall π parameter message randomizer
+  return truncateMessageDigest digestCallOutput
 
 /-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest.
 -/
@@ -603,12 +594,12 @@ def digestCoordinateSelections (digest : MessageDigest) : ForestCoordinate → C
 recover the one-time leaf at `e = idx`, fold the path and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest π publicKey.parameter message signature.randomizer
-  let index := digestLeafIndex digest
-  let forestKey ← forestRecover π publicKey.parameter index (digestCoordinateSelections digest)
+  let leafIndex := digestLeafIndex digest
+  let forestKey ← forestRecover π publicKey.parameter leafIndex (digestCoordinateSelections digest)
       signature.forestOpening
-  let some leaf ← otsLeaf π publicKey.parameter index forestKey signature.counter
+  let some leaf ← otsLeaf π publicKey.parameter leafIndex forestKey signature.counter
     signature.chainValues | return false
-  let root ← treeFold π publicKey.parameter index
+  let root ← treeFold π publicKey.parameter leafIndex
     (fun level ↦ if h : level < treeHeight
         then signature.authenticationPath ⟨level, h⟩ else 0) treeHeight leaf
   return decide (root = publicKey.root)
@@ -628,8 +619,8 @@ def keptSubtreePosition (parameter : PublicParameter) : Nat :=
 
 /-- The kept subtree holds leaves `s * 2^b .. (s + 1) * 2^b` (`LeanSphincsSecretKey::keeps`,
 `scheme.rs`). -/
-abbrev LandsInKeptSubtree (parameter : PublicParameter) (index : LeafIndex) : Prop :=
-  index.val / 2 ^ keptSubtreeHeight = keptSubtreePosition parameter
+abbrev LandsInKeptSubtree (parameter : PublicParameter) (leafIndex : LeafIndex) : Prop :=
+  leafIndex.val / 2 ^ keptSubtreeHeight = keptSubtreePosition parameter
 
 end Pruning
 
@@ -649,117 +640,114 @@ def otsSecrets (parameter : PublicParameter) (leaf : LeafIndex) (seed : MasterSe
   let outputs ← sequenceFin fun pair : ChainPairIndex =>
     thPair π parameter (keygenDomainFields (.oneTimeChainPair leaf pair)) (littleEndianBytes
         32 seed)
-  return fun chainIdx => hashHalfForChain chainIdx.val (outputs (chainPair chainIdx))
+  return fun chainIndex => hashHalfForChain chainIndex.val (outputs (chainPair chainIndex))
 
 /-- The chain ends of the one-time key at a leaf. -/
 def oneTimePublicKey (parameter : PublicParameter) (leaf : LeafIndex) (seed : MasterSeed) :
     m (ChainIndex → Digest) := do
   let secrets ← otsSecrets π parameter leaf seed
-  sequenceFin fun chainIdx =>
-    chainWalk π parameter leaf chainIdx 0 (chainLength - 1) (secrets chainIdx)
+  sequenceFin fun chainIndex =>
+    chainWalk π parameter leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
 
 /-- The encoding counters `counter, counter + 1, ...`, at most `attempts` of them, stopping at the
 first that encodes the message. -/
 def otsSignFrom (parameter : PublicParameter) (leaf : LeafIndex) (seed : MasterSeed)
-    (message : ForestKey) : Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
+    (forestKey : ForestKey) : Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
-      match ← encode π parameter leaf message (BitVec.ofNat counterBits counter) with
+      match ← encode π parameter leaf forestKey (BitVec.ofNat counterBits counter) with
       | some encoding => do
           let secrets ← otsSecrets π parameter leaf seed
-          let values ← sequenceFin fun chainIdx =>
-            chainWalk π parameter leaf chainIdx 0 (encoding chainIdx).val (secrets chainIdx)
+          let values ← sequenceFin fun chainIndex =>
+            chainWalk π parameter leaf chainIndex 0 (encoding chainIndex).val (secrets chainIndex)
           return some (BitVec.ofNat counterBits counter, values)
-      | none => otsSignFrom parameter leaf seed message attempts (counter + 1)
+      | none => otsSignFrom parameter leaf seed forestKey attempts (counter + 1)
 
 /-- `wots_sign`: the least admissible counter, then the opened chain values. -/
-def otsSign (parameter : PublicParameter) (leaf : LeafIndex) (seed : MasterSeed) (message :
-    ForestKey) :
-    m (Option (EncodingCounter × (ChainIndex → Digest))) :=
-  otsSignFrom π parameter leaf seed message encodingAttemptLimit 0
+def otsSign (parameter : PublicParameter) (leaf : LeafIndex) (seed : MasterSeed)
+    (forestKey : ForestKey) : m (Option (EncodingCounter × (ChainIndex → Digest))) :=
+  otsSignFrom π parameter leaf seed forestKey encodingAttemptLimit 0
 
 /-- A node of the tree, computed from the one-time keys below it. -/
 def treeNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → Nat → m Digest :=
-  buildTree (fun nodeIdx ↦ do
-      leafHash π parameter (leafOfNat nodeIdx)
-        (← oneTimePublicKey π parameter (leafOfNat nodeIdx) seed))
-    fun level nodeIdx ↦ tweakableHash π parameter (.node (level + 1) nodeIdx)
+  buildTree (fun nodeIndex ↦ do
+      leafHash π parameter (leafOfNat nodeIndex)
+        (← oneTimePublicKey π parameter (leafOfNat nodeIndex) seed))
+    fun level nodeIndex ↦ tweakableHash π parameter (.node (level + 1) nodeIndex)
 
 /-- The starts `x_{i,0}` of the 6 chains of a child, from 3 seed derivations. Chains `2t` and
 `2t + 1` start at the two halves of derivation `t`. -/
-def forestSecrets (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex)
-    (j : SubtreeIndex) (a : ChildIndex) (seed : MasterSeed) : m (ForestChainIndex → Digest) := do
+def forestSecrets (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (seed : MasterSeed) :
+    m (ForestChainIndex → Digest) := do
   let outputs ← sequenceFin fun pair : ForestChainPairIndex =>
-    thPair π parameter (keygenDomainFields (.childChainPair index c s j a pair)) (littleEndianBytes
-        32 seed)
+    thPair π parameter (keygenDomainFields (.childChainPair leafIndex c s j a pair))
+      (littleEndianBytes 32 seed)
   return fun i => hashHalfForChain i.val (outputs (forestChainPair i))
 
 /-- The leaf of a child, from its 6 chain tops. -/
-def childLeaf (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (a : ChildIndex) (seed : MasterSeed) : m Digest := do
-  let secrets ← forestSecrets π parameter index c s j a seed
-  let ends ← sequenceFin fun i
-      => forestChainWalk π parameter index c s j a i 0 forestChainTop (secrets i)
-  childLeafHash π parameter index c s j a ends
+def childLeaf (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (seed : MasterSeed) : m Digest := do
+  let secrets ← forestSecrets π parameter leafIndex c s j a seed
+  let chainEnds ← sequenceFin fun i
+      => forestChainWalk π parameter leafIndex c s j a i 0 forestChainTop (secrets i)
+  childLeafHash π parameter leafIndex c s j a chainEnds
 
 /-- A node of a sub-tree at tree level `level`. -/
-def subtreeNode (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex) (j : SubtreeIndex)
-    (seed : MasterSeed) : Nat → Nat → m Digest :=
-  buildTree (fun node ↦ childLeaf π parameter index c s j
+def subtreeNode (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (j : SubtreeIndex) (seed : MasterSeed) : Nat → Nat → m Digest :=
+  buildTree (fun node ↦ childLeaf π parameter leafIndex c s j
       ⟨node % 2 ^ forestSubtreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
-    (subtreeNodeHash π parameter index c s j)
+    (subtreeNodeHash π parameter leafIndex c s j)
 
 /-- A super-child, from the two level-2 nodes of each of its two sub-trees. -/
-def superChildNode (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (s : SuperChildIndex)
-    (seed : MasterSeed) : m Digest := do
+def superChildNode (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (s : SuperChildIndex) (seed : MasterSeed) : m Digest := do
   let tops ← sequenceFin fun j => do
-    let left ← subtreeNode π parameter index c s j seed (forestSubtreeHeight - 1) 0
-    let right ← subtreeNode π parameter index c s j seed (forestSubtreeHeight - 1) 1
+    let left ← subtreeNode π parameter leafIndex c s j seed (forestSubtreeHeight - 1) 0
+    let right ← subtreeNode π parameter leafIndex c s j seed (forestSubtreeHeight - 1) 1
     return (left, right)
-  superChildHash π parameter index c s tops
+  superChildHash π parameter leafIndex c s tops
 
 /-- A node of a coordinate's top tree at tree level `level`. -/
-def topTreeNode (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (seed : MasterSeed) :
-    Nat → Nat → m Digest :=
-  buildTree (fun node ↦ superChildNode π parameter index c
+def topTreeNode (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (seed : MasterSeed) : Nat → Nat → m Digest :=
+  buildTree (fun node ↦ superChildNode π parameter leafIndex c
       ⟨node % 2 ^ topTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
-    (topTreeNodeHash π parameter index c)
+    (topTreeNodeHash π parameter leafIndex c)
 
 /-- The forest key of instance `idx`: the two level-3 nodes of every coordinate (no hash). -/
-def forestKey (parameter : PublicParameter) (index : LeafIndex) (seed : MasterSeed) : m ForestKey :=
+def forestKey (parameter : PublicParameter) (leafIndex : LeafIndex) (seed : MasterSeed) : m
+    ForestKey :=
   sequenceFin fun c => do
-    let left ← topTreeNode π parameter index c seed (topTreeHeight - 1) 0
-    let right ← topTreeNode π parameter index c seed (topTreeHeight - 1) 1
+    let left ← topTreeNode π parameter leafIndex c seed (topTreeHeight - 1) 0
+    let right ← topTreeNode π parameter leafIndex c seed (topTreeHeight - 1) 1
     return (left, right)
 
 /-- The opening of one coordinate at a mark. The last element of each path (level 2 of a sub-tree,
 level 3 of the top tree) is the top node the verifier does not compute. -/
-def coordinateOpen (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate)
-    (mark : CoordinateSelection)
-    (seed : MasterSeed) : m CoordinateOpening := do
+def coordinateOpen (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
+    (selection : CoordinateSelection) (seed : MasterSeed) : m CoordinateOpening := do
   let sub ← sequenceFin fun j => do
-    let secrets ← forestSecrets π parameter index c mark.superChild j (mark.child j) seed
+    let secrets ←
+      forestSecrets π parameter leafIndex c selection.superChild j (selection.child j) seed
     let values ← sequenceFin fun i =>
-      forestChainWalk π parameter index c mark.superChild j (mark.child j) i 0
-        (forestChainTop - (lut (mark.codewordIndex j) i).val) (secrets i)
+      forestChainWalk π parameter leafIndex c selection.superChild j (selection.child j) i 0
+        (forestChainTop - (lut (selection.codewordIndex j) i).val) (secrets i)
     let path ← sequenceFin fun level : Fin forestSubtreeHeight =>
-      subtreeNode π parameter index c mark.superChild j seed level.val
-        (Nat.xor ((mark.child j).val / 2 ^ level.val) 1)
+      subtreeNode π parameter leafIndex c selection.superChild j seed level.val
+        (Nat.xor ((selection.child j).val / 2 ^ level.val) 1)
     return (⟨values, path⟩ : SubtreeOpening)
   let top ← sequenceFin fun level : Fin topTreeHeight =>
-    topTreeNode π parameter index c seed level.val (Nat.xor (mark.superChild.val / 2 ^ level.val) 1)
+    topTreeNode π parameter leafIndex c seed level.val
+      (Nat.xor (selection.superChild.val / 2 ^ level.val) 1)
   return ⟨sub, top⟩
 
 /-- `Fts.sign`: the opening of every coordinate. -/
-def forestOpen (parameter : PublicParameter) (index : LeafIndex) (marks : ForestCoordinate
-    → CoordinateSelection)
-    (seed : MasterSeed) : m (ForestCoordinate → CoordinateOpening) :=
-  sequenceFin fun c => coordinateOpen π parameter index c (marks c) seed
+def forestOpen (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (selections : ForestCoordinate → CoordinateSelection) (seed : MasterSeed) : m
+    (ForestCoordinate → CoordinateOpening) :=
+  sequenceFin fun c => coordinateOpen π parameter leafIndex c (selections c) seed
 
 variable [KeyShape]
 
@@ -778,12 +766,12 @@ def spineNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → m Dige
   | steps + 1 => do
       let below ← spineNode parameter seed steps
       let sibling ← surrogate π parameter seed (keptSubtreeHeight + steps)
-      let nodeIdx := keptSubtreePosition parameter / 2 ^ steps
-      if nodeIdx.testBit 0 then
-        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIdx / 2))
+      let nodeIndex := keptSubtreePosition parameter / 2 ^ steps
+      if nodeIndex.testBit 0 then
+        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIndex / 2))
           (nodePayload sibling below)
       else
-        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIdx / 2))
+        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIndex / 2))
           (nodePayload below sibling)
 
 /-- The root: the spine's top. -/
@@ -802,35 +790,36 @@ def treePath (parameter : PublicParameter) (seed : MasterSeed) (leaf : LeafIndex
 
 /-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
 subtree, and build the root. -/
-def keygenFromSchemeSeed (seed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
-  let root ← treeRoot π parameter seed
-  return (⟨root, parameter⟩, ⟨seed, parameter⟩)
+def keygenFromSchemeSeed (schemeSeed : MasterSeed) : m (PublicKey × SecretKey) := do
+  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
+  let root ← treeRoot π parameter schemeSeed
+  return (⟨root, parameter⟩, ⟨schemeSeed, parameter⟩)
 
 /-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
 from `S`. -/
-def keygenFromSeed (seed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let master ← taggedSeed π seedTag seed
+def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
+  let master ← taggedSeed π seedTag masterSeed
   keygenFromSchemeSeed π master
 
 /-- One grinding attempt: the leaf index of the digest call (the `find_map` of `sign`,
 `scheme.rs`). -/
-def grindingAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomizer) :
+def grindingAttempt (secretKey : SecretKey) (message : Message) (randomizer : Randomizer) :
     m (Option LeafIndex) := do
-  let first ← messageDigestCall π secretKey.parameter message randomness
-  if LandsInKeptSubtree secretKey.parameter (digestLeafIndex (truncateMessageDigest first)) then
-    return some (digestLeafIndex (truncateMessageDigest first))
+  let digestCallOutput ← messageDigestCall π secretKey.parameter message randomizer
+  if LandsInKeptSubtree secretKey.parameter
+      (digestLeafIndex (truncateMessageDigest digestCallOutput)) then
+    return some (digestLeafIndex (truncateMessageDigest digestCallOutput))
   else
     return none
 
-/-- Try `randomness, randomness + 1, ...`, stopping at the first that lands in the kept subtree. -/
+/-- Try `randomizer, randomizer + 1, ...`, stopping at the first that lands in the kept subtree. -/
 def grindRandomizer (secretKey : SecretKey) (message : Message) : Nat → Randomizer →
     m (Option (Randomizer × LeafIndex))
   | 0, _ => pure none
-  | attempts + 1, randomness => do
-      match ← grindingAttempt π secretKey message randomness with
-      | some index => return some (randomness, index)
-      | none => grindRandomizer secretKey message attempts (randomness + 1)
+  | attempts + 1, randomizer => do
+      match ← grindingAttempt π secretKey message randomizer with
+      | some leafIndex => return some (randomizer, leafIndex)
+      | none => grindRandomizer secretKey message attempts (randomizer + 1)
 
 /-- `Sign` (`sign`, `scheme.rs`): derive the randomizer base `R0` of the message (one hash), scan
 `R0, R0 + 1, ...` into the kept subtree, compute the digest, open the forest, sign its key (the
@@ -839,17 +828,17 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
   -- the randomizer base `S || m` (`TWEAK_RANDOMIZER = 7`)
   let base ← th π secretKey.parameter (tweakFields 7 0 0 0)
     (littleEndianBytes 32 secretKey.schemeSeed ++ littleEndianBytes 32 message)
-  let some (randomness, _) ← grindRandomizer π secretKey message digestAttemptLimit base
+  let some (randomizer, _) ← grindRandomizer π secretKey message digestAttemptLimit base
     | return none
-  let digest ← messageDigest π secretKey.parameter message randomness
-  let index := digestLeafIndex digest
-  let opening ← forestOpen π secretKey.parameter index (digestCoordinateSelections digest)
+  let digest ← messageDigest π secretKey.parameter message randomizer
+  let leafIndex := digestLeafIndex digest
+  let opening ← forestOpen π secretKey.parameter leafIndex (digestCoordinateSelections digest)
       secretKey.schemeSeed
-  let key ← forestKey π secretKey.parameter index secretKey.schemeSeed
-  let some (counter, values) ← otsSign π secretKey.parameter index secretKey.schemeSeed
+  let key ← forestKey π secretKey.parameter leafIndex secretKey.schemeSeed
+  let some (counter, values) ← otsSign π secretKey.parameter leafIndex secretKey.schemeSeed
       key | return none
-  let path ← treePath π secretKey.parameter secretKey.schemeSeed index
-  return some ⟨randomness, opening, counter, values, path⟩
+  let path ← treePath π secretKey.parameter secretKey.schemeSeed leafIndex
+  return some ⟨randomizer, opening, counter, values, path⟩
 
 end KeyGenerationAndSigning
 
@@ -885,11 +874,10 @@ variable [KeyShape]
 
 /-- leanSPHINCS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed, key
 generation, the deterministic signer, the verifier, and the winning condition: a valid transcript
-without the forgery (`SignerReturned`).
+without the forgery (`SignerReturnedForgery`).
 -/
-noncomputable def sufCmaScheme :
-    Scheme MasterSeed PublicKey KeyGenerationAndSigning.SecretKey Message (Option Signature)
-      Forgery where
+noncomputable def sufCmaScheme : Scheme MasterSeed PublicKey KeyGenerationAndSigning.SecretKey
+    Message (Option Signature) Forgery where
   sampleSeed := sampleMasterSeed
   generateKeys := KeyGenerationAndSigning.keygenFromSeed queryPermutation
   sign sk message := KeyGenerationAndSigning.sign queryPermutation sk message

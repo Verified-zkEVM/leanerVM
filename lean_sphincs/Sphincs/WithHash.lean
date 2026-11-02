@@ -416,8 +416,8 @@ open Common Common.SufCma
 variable [KeyShape]
 
 /-- leanSPHINCS in the generic SUF-CMA game: the seed, key generation, the deterministic signer,
-the verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`).
--/
+the verifier, and the winning condition: a valid transcript without the forgery
+(`SignerReturnedForgery`). -/
 noncomputable def schemeWithHash :
     SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey Message (Option Signature)
       Forgery where

@@ -7,7 +7,7 @@ public import Statement.CostMachine
 
 The closed-form prices `lean_vm` proves of the compiled extractor and the compiled guest decoder,
 part by part (`Cost/Bounds/`), natural-number formulas only. The statement's budgets are short
-upper bounds on them: `knowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
+upper bounds on them: `leanVmKnowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
 at every shape the replay admits (`extractorPrice_le_worst`, `extractorPrice_worst_le`, and the
 compiled extractor within it, `extractorC_within`, `Cost/Bounds/Top.lean`), and
 `guestWitnessDecoderBudget` (`Statement/Theorems.lean`) above `guestDecoderPrice` on every valid
@@ -177,7 +177,7 @@ and the other constants below) are the bounds `lean_vm` proves of the compiled d
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
 tables of preconditions and entries, its frames), not those of any program of `2^ℓ` instructions:
-the budget's constants are `LeanVM.Guest.guestProgram`'s, and `GuestKnowledge`'s `guest` is only ever that
+the budget's constants are `LeanVM.Guest.guestProgram`'s, and `GuestKnowledgeSoundness`'s `guest` is only ever that
 program. -/
 
 /-- The entry table's key exponent: `2·(steps + 1) < 2^exponent` bounds the number of the table's

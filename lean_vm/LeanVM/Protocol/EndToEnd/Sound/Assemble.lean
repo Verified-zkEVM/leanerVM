@@ -31,7 +31,7 @@ with `Spec.bind'`:
 1. the announced sizes (`readSizesSpec`, dead): no doom;
 2. a case split on the announced value `a = (layout, ρ)`: unless `layout` is the verifier's layout
    at admissible sizes `s` with an admissible WHIR shape (`Good`), the rest is dead
-   (`readSizes` never returns such a value, `good_of_readSizes`);
+   (`readAnnouncedSizes` never returns such a value, `good_of_readSizes`);
 3. the stack's root (`commitSpec`), creating `CommitPost`: no candidate of the committed word at
    level 0's Johnson threshold satisfies `M3Holds` of the leanISA instance at `s`
    (`CommitDoom`), and the commitments so far are exactly the stack's, of level 0's shape;

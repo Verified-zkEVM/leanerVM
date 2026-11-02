@@ -68,7 +68,7 @@ def rowRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
 def colRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   merkleRootWithHash H (7 + logPaddedRowCount r) (colLeavesWithHash H c)
 
-/-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
+/-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ columnRoot)`. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
   H (pairBytes (rowRootWithHash H c) (colRootWithHash H c))
 
@@ -177,7 +177,7 @@ def colLeavesMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m Dige
 def rowRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootMWithHash H (logPaddedRowCount r) (rowLeavesMWithHash H c)
 
-/-- The column root over an oracle (`colRoot`). -/
+/-- The column root over an oracle (`columnRoot`). -/
 def colRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootMWithHash H (7 + logPaddedRowCount r) (colLeavesMWithHash H c)
 
@@ -206,7 +206,7 @@ end VectorDigest
 
 /-- **The relation the argument proves**, with a hash `H` and the sponge's permutation `P` in any
 monad: the cells commit to the root and pass the membership test on the root's challenges, drawn
-by the deployed duplex (`membershipChallengesM`). In the games `H` is Keccak-256 over `π`
+by the deployed duplex (`membershipChallengesWith`). In the games `H` is Keccak-256 over `π`
 (`keccak256OverPermutation`) and `P` is `π` (`queryPermutation`). -/
 noncomputable def relationMWithHash {m : Type → Type} [Monad m] (H : List UInt8 → m DigestBytes)
     (P : KeccakState → m KeccakState) {r : ℕ} (root : DigestBytes) (c : Fin (r * 128) → Cell) :
@@ -220,7 +220,7 @@ the games when the permutation is `π` (`runWithRandomPermutation`). -/
 def keccak256WithPermutation (π : KeccakState → KeccakState) (a : List UInt8) : DigestBytes :=
   (Id.run (keccak256With (fun x ↦ pure (π x)) a)).toBytes
 
-/-- **LeanDA's relation for a permutation `π`**: `relationM` with Keccak-256 over `π` and `π`. -/
+/-- **LeanDA's relation for a permutation `π`**: `relationWith` with Keccak-256 over `π` and `π`. -/
 noncomputable def relationForPermutationWithHash (r : ℕ) (π : Equiv.Perm KeccakState)
     (root : DigestBytes)
     (c : Fin (r * 128) → Cell) : Bool :=
@@ -258,7 +258,8 @@ noncomputable def codeBindingGameWithHash (A : CodeBindingAdversary r Crs Proof)
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
 its queries logged, the argument's verification, then the relation's check on the cells the
 extractor reads off the proof and the adversary's transcript; it wins when the proof verifies and
-the extracted cells do not satisfy the relation (`relationM` over Keccak-256 over `π`, and `π`). -/
+the extracted cells do not satisfy the relation (`relationWith` over Keccak-256 over `π`, and `π`).
+-/
 noncomputable def knowledgeSoundnessGameWithHash (B : KnowledgeSoundnessAdversary Crs Proof) :
     OracleComp RandomPermutationOracles Bool := do
   let crs ← liftM ps.setup
@@ -334,7 +335,7 @@ challenges already carries; it exceeds one before `Q = 2^124`.
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
 the adversary's queries, as leanVM's (`LeanVM.KnowledgeSoundness`); an argument may satisfy it and
-be perfectly complete for every permutation (`PerfectlyCompleteRpm`). Proved by
+be perfectly complete for every permutation (`LeanDaPerfectlyComplete`). Proved by
 `LeanDa.leanDa_codeBinding_rpm_bound`. -/
 abbrev CodeBindingRpmWithHash : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)

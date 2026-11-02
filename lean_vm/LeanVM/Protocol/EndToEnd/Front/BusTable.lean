@@ -17,7 +17,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 # The bus phase and the table sumcheck
 
 `busTableSpec` composes `busThenSpec` with `tablePhaseSpec` for the program's
-`do let bus ← verifyBusBalance computedValue layout; tablePhase layout bus`, from the commitment's doom
+`do let bus ← verifyBusBalance computedBytecodeValue layout; tablePhase layout bus`, from the commitment's doom
 (`Seam.commit` on the candidates) to the table seam on the wire (`TablePost`). It needs the table phase's
 identities (`TableFid`) for every read of the right shape.
 

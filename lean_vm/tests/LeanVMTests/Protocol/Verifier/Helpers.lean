@@ -144,7 +144,7 @@ def keccakConstants : List ℕ :=
 #guard sampleLayout.placements.length = globalColumnCount + tableWidths.sum
 
 /- Every column a table's flushes name exists (the Python's `_cols` assertion): a missing name
-would be `colIdx`'s out-of-range index, the table's width. -/
+would be `columnIndexByName`'s out-of-range index, the table's width. -/
 #guard tables.all fun t ↦ (t.flushes.push ++ t.flushes.pull).all fun tuple ↦
   tuple.all fun f ↦ f.terms.all fun (m, _) ↦ m.all (· < t.width)
 

@@ -17,8 +17,8 @@ public import LeanVM.Guest.B1.VerifySub.Split
 `NoCommit p`: on every path, `p` has no `commit` and no `query` step. It is closed under `bind`
 (`NoCommit.bind`), and a carried run of such a program keeps the roots and the openings
 (`NoCommit.runF`). Every phase of the deferring verifier before its stacked opening but the
-stack's commitment is one: `readSizes`, the bus's GKR (`Tables.gkrPhase`), the bus's rest, the
-table sumcheck and the public input (`Tables.tablesSeg`), the Keccak reduction (`keccakSeg`).
+stack's commitment is one: `readAnnouncedSizes`, the bus's GKR (`Tables.gkrPhase`), the bus's rest,
+the table sumcheck and the public input (`Tables.tablesSeg`), the Keccak reduction (`keccakSeg`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

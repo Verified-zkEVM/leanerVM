@@ -2,7 +2,7 @@
   LeanVM.Guest.EndFinal
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
-  `decode`, which replays the run, and `MemoryGuestKnowledge` (`GuestKnowledge` of
+  `decode`, which replays the run, and `MemoryGuestKnowledge` (`GuestKnowledgeSoundness` of
   `Statement/Theorems.lean` for a decoder of memories; `MemoryAggregateSound`, in the
   random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/

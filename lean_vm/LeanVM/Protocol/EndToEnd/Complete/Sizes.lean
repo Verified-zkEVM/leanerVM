@@ -2,8 +2,8 @@
   LeanVM.Protocol.EndToEnd.Complete.Sizes
 
   The honest prover of the verifier program's first two steps: it announces the sizes and the
-  rate, which pass every check of `readSizes` and give the verifier's layout, and commits the
-  stack's word.
+  rate, which pass every check of `readAnnouncedSizes` and give the verifier's layout, and commits
+  the stack's word.
 -/
 
 module
@@ -14,13 +14,14 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 /-!
 # The announced sizes and the commitment
 
-Steps 1 and 2 of `verify_execution` (`readSizes`, `commitStack`; `python-verifier/verifier.py:
-1384-1395` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`). The honest prover sends the
-eight scalars `announce s ρ` (`Front.announce`: the memory's log-size, the six tables' row counts,
-then the WHIR rate, each the Python's `E(n)`), then the stack's level-0 word.
+Steps 1 and 2 of `verify_execution` (`readAnnouncedSizes`, `commitStack`;
+`python-verifier/verifier.py: 1384-1395` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`). The
+honest prover sends the eight scalars `announce s ρ` (`Front.announce`: the memory's log-size, the
+six tables' row counts, then the WHIR rate, each the Python's `E(n)`), then the stack's level-0
+word.
 
 * `follows_readSizes`: for sizes admissible for the program and a valid rate, every `require` of
-  `readSizes` passes, and it returns `(verifierLayout prog s, ρ)`: the converse of
+  `readAnnouncedSizes` passes, and it returns `(verifierLayout prog s, ρ)`: the converse of
   `Front.readSizes_ret_sizes`.
 * `whirAdmissible`: the stack's size and the rate are in WHIR's window, so the opening's
   completeness (`Whir.Complete.follows_commitStack`, `follows_verifyStackedOpening`) applies at
@@ -50,9 +51,9 @@ theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = 
   rw [BitVec.toNat_ofNat]
   exact Nat.mod_eq_of_lt h
 
-/-- **The honest announcement passes `readSizes`.** For sizes admissible for the program and a
-valid rate, the honest prover's eight scalars pass every check, and `readSizes` returns the
-verifier's layout at the sizes, and the rate. -/
+/-- **The honest announcement passes `readAnnouncedSizes`.** For sizes admissible for the program
+and a valid rate, the honest prover's eight scalars pass every check, and `readAnnouncedSizes`
+returns the verifier's layout at the sizes, and the rate. -/
 theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) (cs : Commits) :
     Follows (fun cs' _ b ↦ cs' = cs ∧ b = (verifierLayout prog s, ρ))

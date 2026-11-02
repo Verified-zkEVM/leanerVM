@@ -18,8 +18,8 @@ public import LeanVM.Protocol.WithHash
 /-!
 # Completeness in the random-oracle model
 
-Let `P : Prog Bool` be a verifier program, `S` a strategy that wins every interactive run of `P`
-with well-shaped words, and `σ` the seeding. The honest prover of the random-oracle model
+Let `P : VerifierProgram Bool` be a verifier program, `S` a strategy that wins every interactive run
+of `P` with well-shaped words, and `σ` the seeding. The honest prover of the random-oracle model
 (`honestComp σ P S fuel`) seeds the sponge and runs `proveM callKeccak256 callKeccakF1600`; when a proof-of-work
 search finds no nonce below `fuel`, it outputs the empty proof. In the experiment
 `romExperiment` the honest prover and then the compiled verifier run against the same lazily

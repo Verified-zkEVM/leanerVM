@@ -15,8 +15,7 @@ namespace LeanVM.Guest.B2C.Shared
 
 set_option maxRecDepth 100000 in
 /-- `verify_sig_lean_sphincs`: window 8's cells. -/
-theorem lb21_8 : bitsFrom (listElementOrDefault locBits21 8 0) (listElementOrDefault (certOf
-    21).cells 8 []) = listElementOrDefault locBits21 9 0 := by
+theorem lb21_8 : bitsFrom (listElementOrDefault locBits21 8 0) (listElementOrDefault (certOf 21).cells 8 []) = listElementOrDefault locBits21 9 0 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

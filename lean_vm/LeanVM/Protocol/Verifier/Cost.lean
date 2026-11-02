@@ -17,7 +17,8 @@ public import LeanVM.Protocol.WithHash
 /-!
 # The query cost of the leanVM verifier
 
-`leanVmProgram bytecode publicInput` (`LeanVM.Protocol.Verifier`) is costed in the calculus of
+`leanVmVerifierProgram bytecode publicInput` (`LeanVM.Protocol.Verifier`) is costed in the calculus
+of
 `LeanVM.Protocol.Compile.Cost`, phase by phase, in quarters of a query: a scalar read costs `1`
 (the sponge permutes once per four absorptions), a challenge `4` (one permutation), a proof of
 work `5`, a commitment `2`, and an opening of `k` positions `4 · k · (1 + height)` (one hash per
@@ -27,7 +28,7 @@ not rejected has sizes inside the window the program checks: memory and table lo
 `1 ≤ R ≤ 4`, and the WHIR ladder `Parameters.Whir.ladder μ R`. The cost is maximised over that
 window:
 
-* the sizes (`readSizes`): `8` reads;
+* the sizes (`readAnnouncedSizes`): `8` reads;
 * the stack's root (`commitStack`): one commitment, `2`;
 * the bus (`verifyBusBalance`): `27` plus the GKR walk over the push side's depth, which is at
   most `38` (`3 + 51` blocks of at most `2^32` rows), `gkrCost 38 0 = gkrBound`;
@@ -41,8 +42,9 @@ window:
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
   `costHeight = 26`.
 
-In total `leanVmCost = 48017` quarters (`costLE_leanVmProgram`). The seed of `seedWith` is one hash
-and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at most
+In total `leanVmCost = 48017` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
+hash and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at
+most
 `leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 12006` queries on every proof
 (`isTotalQueryBound_leanVm`). The bound is crude where a tight one would cost proof without
 changing the soundness bound, in which it enters linearly: the bus depth, the table heights and
@@ -51,7 +53,7 @@ the WHIR query positions are charged at the largest height rather than at their 
 
 ## Deployed behaviour
 
-The bound is a statement on the program `leanVmProgram` at leanVM
+The bound is a statement on the program `leanVmVerifierProgram` at leanVM
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, as transcribed in `Statement.LeanVmVerifier`;
 it covers every proof, accepted or not.
 -/
@@ -365,7 +367,7 @@ theorem layoutBounds_of_buildLayout {bytecode : List K} {logMemory : ℕ} {table
       have : ∀ f ∈ tableLogFloors, f ≤ 32 := by decide
       exact this _ (List.getElem_mem hi2)
 
-/-- The sizes a run of `readSizes` returns: a layout `buildLayout` built, the stack in the
+/-- The sizes a run of `readAnnouncedSizes` returns: a layout `buildLayout` built, the stack in the
 window, the rate exponent in `1..4`. -/
 def SizesOK (p : Layout × ℕ) : Prop :=
   LayoutBounds p.1 ∧ 1 ≤ p.2 ∧ p.2 ≤ 4 ∧ Whir.minLogStack ≤ p.1.stackLog ∧
@@ -904,7 +906,7 @@ theorem costs_verifyExecution (bytecode : List K) (publicInput : Digest) :
     · omega
   all_goals omega
 
-/-- **The cost of the leanVM verifier program**: every run of `leanVmProgram` costs at most
+/-- **The cost of the leanVM verifier program**: every run of `leanVmVerifierProgram` costs at most
 `leanVmCost` quarters, every commitment having height at most `costHeight`, for every bytecode
 and public input. -/
 theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
@@ -916,12 +918,12 @@ theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
 /-! ## The seed and the query bound -/
 
 /-- **The leanVM seeding**: the IV, the hash of the version tag and the bytecode, then the
-permutation of the IV and the public input (`seedWith`). -/
+permutation of the IV and the public input (`spongeSeedWith`). -/
 def leanVmSeed (bytecode : List K) (publicInput : Digest) : Seed where
   hs := [fun _ ↦ versionTag ++ bytecode.flatMap K.toBytes]
   fin ds := seedInput (ds.getD 0 default) publicInput
 
-/-- The seeding computes `seedWith`, with any hash and permutation in any lawful monad. -/
+/-- The seeding computes `spongeSeedWith`, with any hash and permutation in any lawful monad. -/
 theorem seedRun_leanVmSeed {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState) (bytecode : List K) (publicInput : Digest) :
     (leanVmSeed bytecode publicInput).run H F = seedWithHash H F bytecode publicInput := by

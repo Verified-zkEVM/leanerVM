@@ -145,14 +145,14 @@ pub fn file() -> File {
     writeln!(out, "/-- The deployed seed (`fs_seed`). -/\ndef seed : Digest := {}\n", cells_digest(&seed)).unwrap();
     writeln!(
         out,
-        "/-- leanXMSS claims. -/\ndef xmss : List XmssClaim :=\n  {}\n",
+        "/-- leanXMSS claims. -/\ndef xmss : List LeanXmssClaim :=\n  {}\n",
         list(xmss.iter().map(|(pk, m)| claim(pk, m)).collect())
     )
     .unwrap();
     writeln!(out, "def xmssListDigest : Digest := {}\n", cells_digest(&xmss_digest)).unwrap();
     writeln!(
         out,
-        "/-- leanSPHINCS claims. -/\ndef sphincs : List SphincsClaim :=\n  {}\n",
+        "/-- leanSPHINCS claims. -/\ndef sphincs : List LeanSphincsClaim :=\n  {}\n",
         list(sphincs.iter().map(|(pk, m)| claim(pk, m)).collect())
     )
     .unwrap();

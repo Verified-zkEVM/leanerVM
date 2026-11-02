@@ -82,7 +82,7 @@ def walk : ℕ → Common.DigestBytes → List Common.DigestBytes → Common.Dig
   | idx, node, s :: rest =>
     walk (idx / 2) (if idx % 2 = 0 then H (pairBytes node s) else H (pairBytes s node)) rest
 
-/-- **Verification of a cell opening** with a pure hash (`verifyCellM` over `Id`): a path of the
+/-- **Verification of a cell opening** with a pure hash (`verifyCellWith` over `Id`): a path of the
 column tree's height that climbs from the cell's digest to a column root, which hashed after the
 row root gives the commitment. -/
 def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Bool :=
@@ -91,7 +91,7 @@ def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cel
         τ.path)) = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one
-`rowRoot ‖ colRoot`. -/
+`rowRoot ‖ columnRoot`. -/
 def hashInputs : ℕ → List UInt8 → List Common.DigestBytes → Common.DigestBytes → List (List UInt8)
   | _, a, [], rr => [a, pairBytes rr (H a)]
   | idx, a, s :: rest, rr =>

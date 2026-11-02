@@ -28,7 +28,7 @@ The two columns both parties know, at leanVM revision
   `(zeta, alpha)` (`crates/verifier/src/bus.rs:140-146`, with `bytecode.rs:100-134`; the
   prover-side `bytecode_claim`, `leaf.rs:627-637` at `a386121f`, is removed at `127510d1`), and so
   does the second verifier (`python-verifier/verifier.py:549-558`). The content of a slot is
-  `encodeSlots`, the one definition of the encoding, zero slots included.
+  `instructionSlots`, the one definition of the encoding, zero slots included.
 
 Every index of the program is encoded, the last one too: the column knows no sentinel. These
 are equalities about the columns' extensions; no theorem here proves that the Rust computes

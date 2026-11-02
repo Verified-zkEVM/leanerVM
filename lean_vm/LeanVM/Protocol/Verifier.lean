@@ -57,11 +57,11 @@ The Python reads the openings file lazily, `8 · leaf_words` bytes then `32 · h
 queried position, the shape coming from the commitment it opens. `Proof.openings` is that byte
 string already cut (`LeanVM.Protocol.Compile.Run`, *Deviation*). The cut is computed here from
 the verifier's own configuration rather than by a second interpreter of the program: the
-announced sizes at the head of the stream, read by the program's own `readSizes`, fix the stack's
-log-size and the rate exponent, and `Whir.ladder` fixes the WHIR ladder, whose level `ℓ` opens
-commitment `ℓ` at `queries_ℓ` positions in the shape `levelShape` gives (`openingShapes`). These
-are the only openings the program makes (commitment `0` is the stack, read by `commitStack`; the
-others are WHIR's), and `sampleQueries` returns exactly `queries_ℓ` positions.
+announced sizes at the head of the stream, read by the program's own `readAnnouncedSizes`, fix the
+stack's log-size and the rate exponent, and `Whir.ladder` fixes the WHIR ladder, whose level `ℓ`
+opens commitment `ℓ` at `queries_ℓ` positions in the shape `levelShape` gives (`openingShapes`).
+These are the only openings the program makes (commitment `0` is the stack, read by `commitStack`;
+the others are WHIR's), and `sampleQueries` returns exactly `queries_ℓ` positions.
 
 The cut is sound with no appeal to that argument: `openOne` checks every opening's width and
 height against the commitment it is opened against, and `runProof` requires every opening to be

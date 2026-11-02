@@ -9,9 +9,9 @@ import LeanVM.Cost.Efficient
 * a program built from a compiled function's bodies (`invItohTsujii.c10`, the inverse in `K`, the
   extractor's) and the entry: its size bounded by evaluating its bodies' sizes (`size_ofList_le`,
   decided by the kernel);
-* the extractor's program (`extractorProgram`): `699` bodies, the entry's and the compiled
+* the extractor's program (`compiledKnowledgeExtractor`): `699` bodies, the entry's and the compiled
   extractor's, the largest index `710`, its size `14125` (`Cost/ExtractorSize.lean` proves at
-  most `14500`, `knowledgeExtractorSizeBound`, by evaluating the program itself);
+  most `14500`, `leanVmKnowledgeExtractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `knowledgeExtractorOf extractorProgram =
   transcriptExtractor`.
 -/
@@ -31,11 +31,11 @@ def entryProgram : MachineProgram := MachineProgram.ofList [(0, entryBody 1), (1
 -- the stand-in's body costs `3` (a variable, a constructor of one field), the entry `14` more
 #guard (runMachineProgram entryProgram 20 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map
     (·.2) == some 17
-#guard outputWithin entryProgram 100 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == some
+#guard outputWithin entryProgram 100 17 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) == some
     (.nat 5)
-#guard outputWithin entryProgram 100 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 16 == none
+#guard outputWithin entryProgram 100 16 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) == none
 -- a program above the size bound outputs nothing
-#guard outputWithin entryProgram 1 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == none
+#guard outputWithin entryProgram 1 17 (.constructor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) == none
 
 /-- The bodies of the inverse in `K`, and the entry calling it. -/
 def invProgramBodies : List (ℕ × Term) :=

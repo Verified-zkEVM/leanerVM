@@ -8,7 +8,8 @@ public import Statement.LeanVmVerifier
 An honest prover written as a program of its own moves, in the order the verifier reads them: it
 sends a scalar (`send`), receives a challenge (`sample`), passes a proof of work (`grind`),
 commits a matrix (`commit`) and receives the opened rows (`query`), carrying whatever state it
-needs in ordinary bindings. `Run.lean` runs a script against the verifier's program (`Prog`,
+needs in ordinary bindings. `Run.lean` runs a script against the verifier's program
+(`VerifierProgram`,
 `LeanVmVerifier.lean`) through the Fiat-Shamir sponge, committing each matrix by its Merkle tree.
 
 A script cannot see a hash or permutation answer other than through the challenges the sponge

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.WithHash
 # Every result of a program
 
 `Always p P`: every value `p` can return satisfies `P`, whatever it reads and samples
-(structurally, on `Prog`). `Always.run`: a run that returns `a` returns one such value;
+(structurally, on `VerifierProgram`). `Always.run`: a run that returns `a` returns one such value;
 `RunsTo.always`: so does a run from a carried sponge.
 
 `tablesSeg_lanes` (in `Lanes`) uses it on `tablesSeg`.

@@ -12,8 +12,7 @@ Read before the two schemes: the tweakable hash `Th(P, A, M) = Truncate_n(H(P �
 (namespace `HashSig`); the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any
 monad (`keccakHash`), and the hash chains, Merkle paths and Merkle trees every chain, path and tree
 of both schemes instantiates (`walkChain`, `foldPath`, `buildTree`, namespace
-`HashSig.OverPermutation`).
-`Statement/LeanSphincs.lean` exports them into `Sphincs`.
+`HashSig.OverPermutation`). `Statement/LeanSphincs.lean` exports them into `Sphincs`.
 -/
 
 @[expose] public section
@@ -57,10 +56,10 @@ def truncateHash (output : HashOutput) : Digest :=
 def upperHalfOfHash (output : HashOutput) : Digest :=
   output.extractLsb' digestBits digestBits
 
-/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`.
--/
-def hashHalfForChain (n : Nat) (output : HashOutput) : Digest :=
-  if n % 2 = 0 then truncateHash output else upperHalfOfHash output
+/-- The half of a hash output that starts chain `chainIndex`: the first for even `chainIndex`, the
+second for odd `chainIndex`. -/
+def hashHalfForChain (chainIndex : Nat) (output : HashOutput) : Digest :=
+  if chainIndex % 2 = 0 then truncateHash output else upperHalfOfHash output
 
 /-- `pk = (root, P)`. -/
 structure PublicKey where
@@ -90,8 +89,8 @@ deriving DecidableEq
 
 /-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`. -/
 def addressBytes (fields : TweakFields) : HashInput :=
-  littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++ littleEndianBytes 1 (fields.step
-      ++ fields.tag) ++ littleEndianBytes 8 0
+  littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++
+    littleEndianBytes 1 (fields.step ++ fields.tag) ++ littleEndianBytes 8 0
 
 /-- Convert the four integer fields to their fixed widths. -/
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
@@ -124,28 +123,31 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
       let tail ← sequenceFin fun index : Fin n => computation index.succ
       return Fin.cases head tail
 
-/-- `steps` steps of a hash chain from position `start`: the step leaving position `t < top` is
-`step t`, and a walk past position `top` gives `0`. -/
-def walkChain {m : Type → Type} [Monad m] {top : Nat} (step : Fin top → Digest → m Digest) :
+/-- `steps` steps of a hash chain from position `start`: the step leaving position
+`t < stepFunctionCount` is `step t`, and a walk past position `stepFunctionCount` gives `0`. -/
+def walkChain {m : Type → Type} [Monad m] {stepFunctionCount : Nat}
+    (step : Fin stepFunctionCount → Digest → m Digest) :
     Nat → Nat → Digest → m Digest
   | _, 0, value => pure value
   | start, steps + 1, value => do
       let previous ← walkChain step start steps value
-      if h : start + steps < top then step ⟨start + steps, h⟩ previous else pure 0
+      if h : start + steps < stepFunctionCount then step ⟨start + steps, h⟩ previous else pure 0
 
 /-- The two children of a Merkle node. -/
 def nodePayload (left right : Digest) : HashInput :=
   littleEndianBytes 16 left ++ littleEndianBytes 16 right
 
-/-- Fold the leaf at index `idx` and its path, the sibling at level `l` being `path l`, up `levels`
-levels: the node at level `l + 1` is `node l (idx / 2^(l + 1))` of its children in index order. -/
-def foldPath {m : Type → Type} [Monad m] (node : Nat → Nat → HashInput → m Digest) (idx : Nat)
-    (path : Nat → Digest) : Nat → Digest → m Digest
+/-- Fold the leaf at index `leafIndex` and its path, the sibling at level `l` being
+`siblingAtLevel l`, up `levels` levels: the node at level `l + 1` is
+`node l (leafIndex / 2^(l + 1))` of its children in index order. -/
+def foldPath {m : Type → Type} [Monad m] (node : Nat → Nat → HashInput → m Digest)
+    (leafIndex : Nat) (siblingAtLevel : Nat → Digest) : Nat → Digest → m Digest
   | 0, value => pure value
   | l + 1, value => do
-      let current ← foldPath node idx path l value
-      node l (idx / 2 ^ (l + 1))
-        (if idx.testBit l then nodePayload (path l) current else nodePayload current (path l))
+      let current ← foldPath node leafIndex siblingAtLevel l value
+      node l (leafIndex / 2 ^ (l + 1))
+        (if leafIndex.testBit l then nodePayload (siblingAtLevel l) current
+          else nodePayload current (siblingAtLevel l))
 
 /-- Node `index` at level `level` of the Merkle tree over the leaves `leaf i`: the node at level
 `l + 1` is `node l index` of its two children. -/

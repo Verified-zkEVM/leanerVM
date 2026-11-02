@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Bind
 # From a specification to a doom certificate
 
 A specification `S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0` of a whole verifier
-program `P : Prog Bool` (no follower; the postcondition is rejection; the precondition is
+program `P : VerifierProgram Bool` (no follower; the postcondition is rejection; the precondition is
 discharged at the start by hand) is a doom certificate `S.toCert` with doom `S.D []` and the
 escape bound of the group at `h` the potential `S.V [] h` (where `h` is a reachable boundary in
 doom, `0` elsewhere). The certificate's escape bounds, discounted by the proof of work before

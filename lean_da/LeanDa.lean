@@ -52,7 +52,7 @@ which implies it (`codeBindingRpmFork_of_codeBindingRpm`).
 /-! ## The end theorems
 
 Each proves a proposition of `Statement/LeanDa.lean`, all three in `LeanDa/PiOnly.lean`:
-`leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm`, `leanDa_positionBinding_rpm :
+`leanDa_perfectlyComplete_rpm : LeanDaPerfectlyComplete`, `leanDa_positionBinding_rpm :
 PositionBindingRpm` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm`; the axioms are pinned at
 the end of this file. -/
 
@@ -279,7 +279,7 @@ theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
         ring
 
 /-- **The forking route's bound for the end statement's games** (proof side, not an end
-statement): `CodeBindingRpm` with the bound the forking route gives,
+statement): `LeanDaCodeBinding` with the bound the forking route gives,
 `(Q + c + 2^22) · 2^-k + (Q + 2^20) · 2^-93 + (Q + 2^22)² · 2^-158`, the end statement's bound
 before the straight-line proof. -/
 abbrev CodeBindingRpmFork : Prop :=

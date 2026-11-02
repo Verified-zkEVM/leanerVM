@@ -8,7 +8,7 @@ public import LeanVM.Cost.Prices
 # The extractor the compiled program computes
 
 `LeanVM.extractorComputedBy P` (`Statement/CostMachine.lean`), the extractor of the end statement, runs
-the program's function `0` on one value, `encodeKnowledgeExtractorInput prog input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
+the program's function `0` on one value, `encodeLeanVmKnowledgeExtractorInput prog input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
 execution's encoding. The compiled extractor (`extractorC`, `Cost/Extractor/Top.lean`, computing
 `extractorTop`, `Fast/Compiled.lean`) is a function of four encoded arguments whose output encodes
@@ -17,15 +17,15 @@ it destructures the input, calls function `j` on its four fields and unwraps the
 `.ctor 0 []`, which no execution decodes from; `some t` to `t`'s encoding), at most `14` more than
 the call (`runsBody_entry`: two `case`s and their five fields, four variables, the call).
 
-* **`extractorTop_output`**: in a program within `knowledgeExtractorSizeBound` whose function `0`
+* **`extractorTop_output`**: in a program within `leanVmKnowledgeExtractorSizeBound` whose function `0`
   is `entryBody j`, if function `j`
-  computes `extractorTop` at a price `cost` that is within `knowledgeExtractorBudget` whenever the
-  extraction succeeds, the decoded output within `knowledgeExtractorBudget` is
+  computes `extractorTop` at a price `cost` that is within `leanVmKnowledgeExtractorBudget` whenever the
+  extraction succeeds, the decoded output within `leanVmKnowledgeExtractorBudget` is
   `transcriptExtractor`'s, on every input; **`extractorOf_eq_of_spec`**: `knowledgeExtractorOf P =
   transcriptExtractor`;
-* `extractorProgram_size_le`: `extractorProgram`'s size is within `knowledgeExtractorSizeBound`
+* `extractorProgram_size_le`: `compiledKnowledgeExtractor`'s size is within `leanVmKnowledgeExtractorSizeBound`
   (`Cost/ExtractorSize.lean`);
-* **`extractorOf_extractorProgram`**: for `extractorProgram` (its entry at `0`, its bodies held),
+* **`extractorOf_extractorProgram`**: for `compiledKnowledgeExtractor` (its entry at `0`, its bodies held),
   the compiled extractor's spec (`extractorC.costSpec`) and its price within the budget
   (`extractorC_within`, `Cost/Bounds/Top.lean`), `knowledgeExtractorOf extractorProgram =
   transcriptExtractor`.
@@ -84,7 +84,7 @@ theorem decodeExecution_unwrap (prog : Semantics.LeanIsaProgram) (o : Option (Ex
 
 /-- An output within a budget is the value of a run. -/
 theorem runsBody_of_outputWithin {P : MachineProgram} {s : ℕ} {x v : MachineValue} {b : ℕ}
-    (h : outputWithin P s x b = some v) : ∃ c, RunsBody P 0 [x] v c := by
+    (h : outputWithin P s b x = some v) : ∃ c, RunsBody P 0 [x] v c := by
   unfold outputWithin runMachineProgram at h
   split at h
   · split at h
@@ -108,7 +108,7 @@ theorem transcriptExtractor_eq_none {prog : Semantics.LeanIsaProgram} {π : Proo
 
 /-- **The glue**: in a program within the size bound whose function `0` is `entryBody j`, if
 function `j` computes `extractorTop` at the price `cost`, within the budget (less the entry's `14`)
-wherever the extraction succeeds, the output within `knowledgeExtractorBudget`, decoded, is
+wherever the extraction succeeds, the output within `leanVmKnowledgeExtractorBudget`, decoded, is
 `transcriptExtractor`'s. -/
 theorem extractorTop_output (P : MachineProgram) (hsize : MachineProgram.size P ≤ leanVmKnowledgeExtractorSizeBound)
     (j : ℕ) (hentry : P[0]? = some (entryBody j))
@@ -122,9 +122,9 @@ theorem extractorTop_output (P : MachineProgram) (hsize : MachineProgram.size P 
       cost prog input (permutationQueries T) π + 14 ≤
         leanVmKnowledgeExtractorBudget (permutationQueries T).length)
     (prog : Semantics.LeanIsaProgram) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) :
-    (outputWithin P leanVmKnowledgeExtractorSizeBound (encodeLeanVmKnowledgeExtractorInput prog
-        input T proof)
-        (leanVmKnowledgeExtractorBudget (permutationQueries T).length)).bind (decodeExecution
+    (outputWithin P leanVmKnowledgeExtractorSizeBound
+        (leanVmKnowledgeExtractorBudget (permutationQueries T).length)
+        (encodeLeanVmKnowledgeExtractorInput prog input T proof)).bind (decodeExecution
             prog) =
       transcriptExtractor prog input T proof := by
   obtain ⟨c, hc, hentryRun⟩ := runsBody_entry hentry (hrun prog input (permutationQueries T) proof)
@@ -132,8 +132,9 @@ theorem extractorTop_output (P : MachineProgram) (hsize : MachineProgram.size P 
   cases ht : extractorTop prog input (permutationQueries T) proof with
   | none =>
     rw [ht] at hentryRun
-    cases ho : outputWithin P leanVmKnowledgeExtractorSizeBound (encodeLeanVmKnowledgeExtractorInput prog input T proof)
-        (leanVmKnowledgeExtractorBudget (permutationQueries T).length) with
+    cases ho : outputWithin P leanVmKnowledgeExtractorSizeBound
+        (leanVmKnowledgeExtractorBudget (permutationQueries T).length)
+        (encodeLeanVmKnowledgeExtractorInput prog input T proof) with
     | none => rfl
     | some v =>
       obtain ⟨c', hv⟩ := runsBody_of_outputWithin ho
@@ -184,7 +185,7 @@ theorem extractorProgram_includes_all : Includes compiledKnowledgeExtractor
   rw [extractorProgramBodies_eq, List.map_cons]
   exact h
 
-/-- **The program's size is within `knowledgeExtractorSizeBound`** (`14500`), evaluated
+/-- **The program's size is within `leanVmKnowledgeExtractorSizeBound`** (`14500`), evaluated
 (`Cost/ExtractorSize.lean`; exactly `14125`). -/
 theorem extractorProgram_size_le : compiledKnowledgeExtractor.size ≤
     leanVmKnowledgeExtractorSizeBound :=
@@ -201,8 +202,8 @@ theorem extractorProgram_entry : compiledKnowledgeExtractor[0]? = some (entryBod
   extractorProgram_includes_all.get (by rw [extractorProgramBodies_eq]; exact List.mem_cons_self)
 
 /-- **The compiled extractor's price is within the budget** (`extractorC_within`,
-`Cost/Bounds/Top.lean`): wherever the proof announces a shape, the price in `extractorProgram` and
-the entry's `14` are within `knowledgeExtractorBudget`. -/
+`Cost/Bounds/Top.lean`): wherever the proof announces a shape, the price in `compiledKnowledgeExtractor` and
+the entry's `14` are within `leanVmKnowledgeExtractorBudget`. -/
 theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate st (t : Execution prog),
     afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
     extractorTop prog input (permutationQueries T) π = some t →
@@ -214,7 +215,7 @@ theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate
         π layout
       logInverseRate st ha
 
-/-- **The extractor `extractorProgram` computes is `transcriptExtractor`**: its spec and its price
+/-- **The extractor `compiledKnowledgeExtractor` computes is `transcriptExtractor`**: its spec and its price
 within the budget. -/
 theorem extractorOf_extractorProgram : LeanVM.extractorComputedBy compiledKnowledgeExtractor = transcriptExtractor :=
   extractorOf_eq_of_spec compiledKnowledgeExtractor extractorProgram_size_le extractorC.costIdx

@@ -14,7 +14,7 @@ import LeanVMTests.Spec.NodeVectors
 /-!
 # The deferring verifier and the node's statement: inhabitants, known answers and mutations
 
-* `claimedValue` answers with the claimed value at the claimed point and rejects
+* `claimedBytecodeValue` answers with the claimed value at the claimed point and rejects
   elsewhere, and the deferring verifier's seed is the deployed verifier's.
 * The deferring verifier rejects garbage, and so does the deployed one on the same proof.
 * `DeferredClaim.HasBytecodeShape` rejects a bytecode point one coordinate short, which the digest alone

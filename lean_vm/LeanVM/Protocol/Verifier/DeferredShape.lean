@@ -15,13 +15,14 @@ public import LeanVM.Protocol.WithHashBridge
 /-!
 # The shapes of the accepted claims
 
-The claimed evaluator (`claimedValue c`) answers only at the point of `c`, so a run of
+The claimed evaluator (`claimedBytecodeValue c`) answers only at the point of `c`, so a run of
 the deferring verifier that returns passes through its call at `c`'s point, which is the
 verifier's own: the bus's `bytecodeLow ++ alphas`. Its length is fixed by the program
 (`verifyDeferred_shaped`).
 
-The run is read through `Prog.Returns` (`returns_of_runProof`: an accepted proof's program may
-return `true`), and every phase on the way is walked with `Prog.returns_bind`:
+The run is read through `VerifierProgram.Returns` (`returns_of_runProof`: an accepted proof's
+program may return `true`), and every phase on the way is walked with
+`VerifierProgram.returns_bind`:
 
 * `readSizes_logBytecode`: the layout's bytecode log-size is `Nat.log2 bytecode.length` less
   `busBits`;
@@ -244,7 +245,7 @@ theorem busLayout_depth_ge (logMemory logBytecode : ℕ) (blocks : List BusBlock
   rw [(List.mergeSort_perm _ _).mem_iff, List.mem_range]
   simp
 
-/-- The layout `readSizes` returns has the bytecode's log-size, in tuples of `2 ^ busBits`. -/
+/-- The layout `readAnnouncedSizes` returns has the bytecode's log-size, in tuples of `2 ^ busBits`. -/
 theorem readSizes_logBytecode {bytecode : List K} {x : Layout × ℕ}
     (h : VerifierProgram.Returns (readAnnouncedSizes bytecode) x) :
     x.1.logBytecode + busBits = Nat.log2 bytecode.length := by

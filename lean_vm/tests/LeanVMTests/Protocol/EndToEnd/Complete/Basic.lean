@@ -13,7 +13,7 @@ import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
   modes; with the claim off by one it rebuilds a different list (the check is load-bearing).
 * **The announcement**: the theorem `follows_readSizes` at a concrete program and admissible
   sizes (an inhabitant of its hypotheses), and the rate `5`, outside `validRate`, rejected.
-* **The public digest**: `publicDigest` inverts the digest's halves on a concrete input.
+* **The public digest**: `publicInputDigest` inverts the digest's halves on a concrete input.
 -/
 
 namespace LeanVMTests.Protocol.EndToEnd.Complete.Basic

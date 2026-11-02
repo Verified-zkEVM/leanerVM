@@ -17,10 +17,10 @@ public import LeanVM.Protocol.WithHash
 /-!
 # The random-oracle theorem of the compiled verifier
 
-Let `P : Prog Bool` be a verifier program (`LeanVM.Protocol.Compile.VerifierProgram`) with a doom
-certificate `C : Cert P`, and `σ : Seeds X` a family of seedings of the Fiat-Shamir sponge, one
-per statement `x : X`, each with the root history `σ.root x` at which its seed puts `P`. The
-verifier of a statement and a proof (`verifierFam σ P`, `LeanVM.Protocol.Compile.Rom.Bridge`)
+Let `P : VerifierProgram Bool` be a verifier program (`LeanVM.Protocol.Compile.VerifierProgram`)
+with a doom certificate `C : Cert P`, and `σ : Seeds X` a family of seedings of the Fiat-Shamir
+sponge, one per statement `x : X`, each with the root history `σ.root x` at which its seed puts `P`.
+The verifier of a statement and a proof (`verifierFam σ P`, `LeanVM.Protocol.Compile.Rom.Bridge`)
 seeds the sponge by `σ.seed x`, then runs `P` from its root node on the proof, every hash a query
 to a random oracle `Bytes →ₒ Digest` and every permutation of the sponge a query to an
 independent random oracle `KState →ₒ KState` (`HashSpec`).

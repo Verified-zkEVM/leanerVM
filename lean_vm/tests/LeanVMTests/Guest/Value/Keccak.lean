@@ -12,7 +12,7 @@ import LeanVM.Guest.Batch.Def
   padded cells from `17k / 2`, in the layouts `inLayout k` and `outLayout B k`) on messages of
   every shape the guest hashes: lengths `0`, `48`, `64`, `80`, `128` (one block), `136`, `272`,
   `292` (`SP_ENCODING_BYTES`, ending four bytes into a cell), `1088` (a claim group, whole
-  blocks) and `2000`; its digest cells are `digestScalars (keccak256 message)`. A nonzero byte
+  blocks) and `2000`; its digest cells are `digestHalves (keccak256 message)`. A nonzero byte
   past `len` in the last cell breaks it (the hypothesis `hz` is needed).
 * `padCells_bytes` on the same shapes; the `state=` continuation after a whole-block prefix.
 * The duplex step against the Spec's `duplex`, and `fs_pack`'s cells.

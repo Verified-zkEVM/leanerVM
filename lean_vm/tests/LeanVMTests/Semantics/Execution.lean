@@ -7,7 +7,7 @@ import LeanVM.Semantics.KeccakCells
 A plain file: each fixture is a proof that peels `run` one step at a time and decides the
 step's relation on literal words in the kernel, which needs `E` arithmetic and `DecidableEq E`
 to reduce there; they do from a plain file and not from a `module`.
-Nothing here evaluates `addressIndex?`: every fetch and read is `Program.fetch_gpow` or
+Nothing here evaluates `addressIndex?`: every fetch and read is `LeanIsaProgram.fetch_gpow` or
 `MemoryImage.read_gpow` at a literal index, or one of the failure lemmas.
 
 Fixtures, from leanVM's executor tests at the pin (`990b9352`): `mul_192bit_word`
@@ -29,12 +29,12 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## Helpers: fetch and read at a literal index -/
 
-/-- `Program.fetch_gpow` at a literal exponent. -/
+/-- `LeanIsaProgram.fetch_gpow` at a literal exponent. -/
 theorem fetch_lit (prog : LeanIsaProgram) (j : ℕ) (hj : j < 2 ^ prog.logSize := by decide) :
     prog.fetch (addressOfIndex j) = some (prog.instructions ⟨j, hj⟩) :=
   prog.fetch_gpow ⟨j, hj⟩
 
-/-- `Program.fetch` at the counter `1 = g^0`. -/
+/-- `LeanIsaProgram.fetch` at the counter `1 = g^0`. -/
 theorem fetch_one (prog : LeanIsaProgram) : prog.fetch 1 = some (prog.instructions ⟨0,
     Nat.two_pow_pos _⟩) := by
   simpa using prog.fetch_gpow ⟨0, Nat.two_pow_pos _⟩

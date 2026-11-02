@@ -14,7 +14,7 @@ read counts, the memory's and the bytecode's finalize counts kept as arrays by i
   fails, the machine halts early, or it is not in the final state after `t.steps` steps.
 * `checkTrace`: the execution is valid (`ValidExecution`) and its committed size is at most
   `2^28` (`Execution.committedSize`), decided by that one run; `opCount` the instruction counts
-  (`Execution.count`).
+  (`Execution.opcodeCount`).
 * `rowsOf`: the rows of the run, table by table, each read carrying the count of its cell so far
   (`g^n` for the `n`-th read of the cell), the counters stepping by `g` in place, and the
   bytecode slot's count likewise: the raw rows of `rowOf` (lean_vm,
@@ -122,7 +122,7 @@ def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) (
   | some (acc, r) => if r = Registers.final prog then some acc else none
   | none => none
 
-/-- The number of steps of opcode `op` (`Execution.count`, computed). -/
+/-- The number of steps of opcode `op` (`Execution.opcodeCount`, computed). -/
 def opCount (steps : Array Step) (op : Opcode) : ℕ :=
   steps.countP fun st ↦ decide (st.ins.opcode = op)
 

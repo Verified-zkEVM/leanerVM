@@ -11,7 +11,7 @@ public import LeanDa.WithHash
 
 For the straight-line proof of code binding (`LeanDa.Straight`): the hash inputs of a commitment
 (`commitIn`, the cells' bytes, the rows' leaves, the two trees' nodes and the root's
-`rowRoot ‖ colRoot`) and of an opening's check (`verifyIn`), for a hash function `f`, and what
+`rowRoot ‖ columnRoot`) and of an opening's check (`verifyIn`), for a hash function `f`, and what
 they give when `f` is injective on a set holding them.
 
 * **Every input but the root's hashes to a digest the commitment's inputs carry**
@@ -233,7 +233,7 @@ def rowInput (c : Fin (r * 128) → Cell) (i : ℕ) : List UInt8 :=
 /-- The rows' leaves' inputs. -/
 def rowIn (c : Fin (r * 128) → Cell) : Set (List UInt8) := {a | ∃ i < paddedRowCount r, a = rowInput f c i}
 
-/-- The root's input: `rowRoot ‖ colRoot`. -/
+/-- The root's input: `rowRoot ‖ columnRoot`. -/
 def rootInput (c : Fin (r * 128) → Cell) : List UInt8 := pairBytes (rowRootWithHash f c) (colRootWithHash f c)
 
 /-- **The inputs a commitment hashes**: the cells', the rows' leaves', the two trees' and the

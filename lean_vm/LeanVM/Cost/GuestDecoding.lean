@@ -6,10 +6,11 @@ public import Statement.Theorems
 /-!
 # The encoding of a guest decoding is injective
 
-`GuestKnowledge` (`Statement/Theorems.lean`) asks the guest decoder program to output the encoding
-(`encodeValue`) of a decoding: a seed, a statement and a witness. That the output determines the
-decoding is **`encodeValue_decoded_injective`**, from a left inverse: `decodeDecoded`, a parse of
-each type of a decoding by its `MachineDecoding` instance (here, not in the statement), and
+`GuestKnowledgeSoundness` (`Statement/Theorems.lean`) asks the guest decoder program to output the
+encoding (`encodeValue`) of a decoding: a seed, a statement and a witness. That the output
+determines the decoding is **`encodeValue_decoded_injective`**, from a left inverse:
+`decodeDecoded`, a parse of each type of a decoding by its `MachineDecoding` instance (here, not in
+the statement), and
 `LawfulMachineDecoding α`, that `MachineDecoding α` inverts `MachineEncoding α`, for each:
 **`decodeDecoded_enc`**, `decodeDecoded (encodeValue d) = some d`.
 -/
@@ -319,7 +320,7 @@ instance : LawfulMachineDecoding SeedStatementAndWitness := ⟨fun ⟨s, t, w⟩
 theorem decodeDecoded_enc (d : SeedStatementAndWitness) : decodeDecoded (encodeValue d) = some d := decodeValue_encodeValue d
 
 /-- **The encoding of a decoding is injective**: the guest decoder program's output determines the
-decoding `GuestKnowledge` names. -/
+decoding `GuestKnowledgeSoundness` names. -/
 theorem encodeValue_decoded_injective : Function.Injective (encodeValue : SeedStatementAndWitness → MachineValue) :=
   fun a b h ↦ Option.some.inj (by rw [← decodeDecoded_enc a, h, decodeDecoded_enc])
 

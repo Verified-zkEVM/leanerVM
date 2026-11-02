@@ -32,7 +32,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-/-- The address word of `Parameters.gpow b`. -/
+/-- The address word of `Parameters.addressOfIndex b`. -/
 noncomputable abbrev ptr (b : ℕ) : E := ofK (Parameters.addressOfIndex b)
 
 theorem ptr_mul_gen_limb (b j off : ℕ) : (ptr b * gen ^ j).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex (b + j + off) := by

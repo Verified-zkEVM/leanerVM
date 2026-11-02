@@ -10,7 +10,7 @@ public import LeanDa.WithHash
 /-!
 # LeanDA's Merkle commitment over a hash oracle
 
-The commitment (`commitCellsM`), the honest opening (`openCellM`), the climb of an opening's hash
+The commitment (`commitCellsWith`), the honest opening (`openCellM`), the climb of an opening's hash
 inputs (`hashInputsM`) and the search for a collision between two climbs (`findCollisionM`), each
 transcribed from its pure definition with the hash `H` an oracle, in any monad. Over a pure hash
 each is its pure definition (the `_eval` lemmas, for any monad morphism that answers `H` by a

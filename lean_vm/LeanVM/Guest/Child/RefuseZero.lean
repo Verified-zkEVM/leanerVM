@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Child.RefuseZero
 
-  The statement's zero-challenge refusal (`Prog.refusingZeroChallenge`, a zero refused at every sampled
+  The statement's zero-challenge refusal (`VerifierProgram.refusingZeroChallenge`, a zero refused at every sampled
   challenge) against the guest's (`Limits.verifyDeferredNZ`, `Budget.verifierNZ`, a zero refused
   at the fold, tail and level batching challenges only): it accepts less, and it is a refusal of
   zero challenges in the sense of `NZ`, so the random-oracle bound of the guest's carries over.

@@ -4,8 +4,8 @@
   The verifier refusing a zero challenge exactly where the guest divides: the fold and tail
   challenges and each WHIR level's batching challenge `λ` (G:1246, 1555, 1560), as copies of the
   verifier's programs with one `require` each. The statement refuses a zero challenge anywhere
-  (`Prog.refusingZeroChallenge`, `Statement/LeanVmGuestCompleteness.lean`), which accepts less
-  (`LeanVM.Guest.Child.refines_refuseZero_of_nz`); the guest's proofs work with these.
+  (`VerifierProgram.refusingZeroChallenge`, `Statement/LeanVmGuestCompleteness.lean`), which accepts
+  less (`LeanVM.Guest.Child.refines_refuseZero_of_nz`); the guest's proofs work with these.
 -/
 
 module
@@ -122,7 +122,7 @@ def verifyExecutionNZ (ev : (List K → List E → VerifierProgram E)) (bytecode
   verifyStackedOpeningNZ layout.stackLog logInverseRate
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout))
 
-/-- `deferredProgram` whose stacked opening refuses a zero fold, tail or level batching
+/-- `deferringVerifierProgram` whose stacked opening refuses a zero fold, tail or level batching
 challenge. -/
 def deferredProgramNZ (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     VerifierProgram Bool := do

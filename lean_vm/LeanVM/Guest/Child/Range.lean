@@ -26,8 +26,8 @@ heights then committed. The leanVM verifier program satisfies it from no commitm
 level `ℓ` samples its positions modulo `2^depth` (`sampleQueries`), `depth` the height of
 commitment `ℓ` (`inRange_whirLevels`).
 
-`queriesOf_le`: a refining program (`Prog.Le`) makes a subset of the query steps of the program
-it refines, so the deferring program's are among the verifier's.
+`queriesOf_le`: a refining program (`VerifierProgram.Le`) makes a subset of the query steps of the
+program it refines, so the deferring program's are among the verifier's.
 -/
 
 namespace LeanVM.Guest.Child

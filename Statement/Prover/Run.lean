@@ -18,7 +18,7 @@ public import Statement.Prover.Script
 * at a `commit` the script's matrix is committed by its Merkle tree (`merkle_tree`,
   `crates/pcs/src/merkle.rs:50-61`: each of the `2^height` rows hashed as the little-endian bytes
   of its words, each parent the hash of its children's 64 bytes, left first), built once
-  (`buildTreeM`); its root is sent as two scalars (`digestScalars`);
+  (`buildTreeM`); its root is sent as two scalars (`digestHalves`);
 * at a `query` the rows at the positions' low `height` bits are given to the script and their
   openings, read off the tree, go into the proof.
 

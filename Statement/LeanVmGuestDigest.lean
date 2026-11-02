@@ -136,8 +136,8 @@ def statementDigest (seed : Digest) (statement : NodeStatement) : Digest :=
 
 The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4229-4328`;
 `aggregate_deferred_claims`, `aggregation.rs:910-1016`), as a program of the verifier's language
-(`Prog`): the count `n` as `g^n` then three zeros, `n` children of the bytecode's shapes, each its
-words then zeros to a whole rate (`readChildren`), then one challenge, whose powers are the
+(`VerifierProgram`): the count `n` as `g^n` then three zeros, `n` children of the bytecode's shapes,
+each its words then zeros to a whole rate (`readChildren`), then one challenge, whose powers are the
 lambdas, the sumcheck's `log₂ |bytecode|` rounds (`sumcheckRoundsProgram`) and the final value,
 accepted if the final claim is the value times the batched weight and the deferred claim meets a
 check (`batchingAfterChildren`); run from the batching transcript's seed (`runBatching`). -/

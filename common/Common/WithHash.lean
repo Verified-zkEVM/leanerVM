@@ -36,7 +36,7 @@ namespace SufCma
 
 
 /-- The hash of a signature scheme, `H : List UInt8 → BitVec 256`: in the model Keccak-256, its
-digest read as a little-endian number (`digestBitVec`). -/
+digest read as a little-endian number (`digestBytesEquivBitVec`). -/
 abbrev SchemeHashSpec := List UInt8 →ₒ BitVec 256
 
 /-- **A signature scheme** with the hash `H` (`SchemeHashSpec`): a seed sampler, key generation from
@@ -57,7 +57,7 @@ structure SchemeWithHash (Seed PK SK Req Resp F : Type) where
 variable {Seed PK SK Req Resp F : Type}
 
 /-- The hash in the random-permutation model: Keccak-256 over `π` (`keccak256OverPermutation`), its
-digest read as a bit vector (`digestBitVec`). -/
+digest read as a bit vector (`digestBytesEquivBitVec`). -/
 def schemeHashOverPermutation : QueryImpl SchemeHashSpec (OracleComp RandomPermutationOracles) :=
   fun m ↦ digestBytesEquivBitVec <$> keccak256OverPermutation m
 
@@ -311,11 +311,11 @@ open Common Common.SufCma
 
 
 /-- leanXMSS in the generic SUF-CMA game: the seed, key generation, the signer of a request, the
-verifier, and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
+verifier, and the winning condition: a valid transcript without the forgery
+(`SignerReturnedForgery`). -/
 noncomputable def schemeWithHash :
-    SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey SigningRequest (Option
-        Signature)
-      Forgery where
+    SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey SigningRequest
+      (Option Signature) Forgery where
   sample := sampleMasterSeed
   keygen := KeyGenerationAndSigning.keygenFromSeedWithHash
   sign sk request :=

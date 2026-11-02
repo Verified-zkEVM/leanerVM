@@ -25,7 +25,7 @@ public import LeanVM.Facts.Verifier
 
 `verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out)` (G:3140-3329) runs
 `verifyDeferredWith` (V:2328) on one child's proof: the seed `keccakF (seedInput iv pi)` by
-`keccak_cells(…, final=0)`, the announced sizes (`readSizes`), the stack's root
+`keccak_cells(…, final=0)`, the announced sizes (`readAnnouncedSizes`), the stack's root
 (`commitStack`), the bus challenges and GKR (`verify_bus_gkr`), the bus leaves, the table
 sumcheck and the public input (`verify_tables`), the Keccak reduction (`verify_keccak`), the
 ring switch (`ring_switch_target`, `c_table`), the batching challenge, the placement

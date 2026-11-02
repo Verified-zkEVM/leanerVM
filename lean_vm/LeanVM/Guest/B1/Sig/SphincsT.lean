@@ -124,8 +124,9 @@ def sPrologue : List Stmt :=
 /-! ## The forest keys -/
 
 /-- Chain `i` of forest key `t` from base `b` (`sp_forest_top`): its hinted value, walked its deficit
-up to the top at the addresses `keyAt + tws[4 i + s]`; a top of chain `i ≥ 2` copied into its cell
-of `tops` (at deficit `0` the hint writes it there). The statements, the next base and the top. -/
+up to the top at the addresses `keyIndexOnLayer + tws[4 i + s]`; a top of chain `i ≥ 2` copied into
+its cell of `tops` (at deficit `0` the hint writes it there). The statements, the next base and the
+top. -/
 def fkChain (t i : Nat) (keyAt : V) (b : Nat) : List Stmt × Nat × V :=
   let d := spCode t i
   if d = 0 then ([hintW "sp_forest_values" [.n b]], b + 1, .n b)
@@ -151,8 +152,8 @@ def fkWeight (t w : Nat) : E :=
   if w < 8 then word (t * 2 ^ (8 * w)) 0 0 else word 0 (t * 2 ^ (8 * (w - 8))) 0
 
 /-- Forest key `t` for the digest's byte `w` from base `b` (`sp_forest_key`): the six chains, the
-leaf hashed from `P`, `keyAt + tws[24]`, the tops of chains `0`, `1` and the run `tops`, its first
-cell into `retN` and the weight into `retW`; the first arm allocates the two. -/
+leaf hashed from `P`, `keyIndexOnLayer + tws[24]`, the tops of chains `0`, `1` and the run `tops`,
+its first cell into `retN` and the weight into `retW`; the first arm allocates the two. -/
 def fkArm (t w : Nat) (keyAt retN retW : V) (fresh : Bool) (b : Nat) : List Stmt × Nat :=
   let ch := fkChains t keyAt 6 0 b
   let B := ch.2.1

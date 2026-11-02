@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.Sizes
 
-  The announced sizes and the layout's logarithms, on the specification's side: `readSizes` on
-  honest words, the stack's and the push side's log-sizes as `log2Ceil` of sums of powers of two.
+  The announced sizes and the layout's logarithms, on the specification's side: `readAnnouncedSizes`
+  on honest words, the stack's and the push side's log-sizes as `log2Ceil` of sums of powers of two.
 -/
 
 module
@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Common.Run
   guest's bytecode of `2^23` words.
 * `pushDepth_eq`: the push side's bus cube is `log2Ceil` of the sum of `2^κ` over the guest's
   `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:113-114, 3198-3204).
-* `readSizes_runsTo`: on the words `logMem`, the six row counts, `lir`, `readSizes` returns the
-  layout `layoutOf` and `lir`.
+* `readSizes_runsTo`: on the words `logMem`, the six row counts, `lir`, `readAnnouncedSizes` returns
+  the layout `layoutOf` and `lir`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -140,7 +140,7 @@ theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMe
     simp only [Tables.tableHeightsOf, tableLogFloors, List.zipWith_cons_cons, List.zipWith_nil_left]
     rw [push_logRows, pushKappas_eq]
 
-/-! ## `readSizes` -/
+/-! ## `readAnnouncedSizes` -/
 
 theorem sz_runsTo_require_bind {β : Type} {c : Prop} [Decidable c] (h : c) {f : Unit →
     VerifierProgram β}
@@ -201,7 +201,8 @@ theorem rows_le {rowsN : List ℕ} (hlen : rowsN.length = 6)
     rcases hr with rfl | rfl | rfl | rfl | rfl | rfl <;>
       exact le_pow_of_log2Ceil (by omega)
 
-/-- **`readSizes` on the honest words**: `logMem`, the six row counts and `lir` give the layout
+/-- **`readAnnouncedSizes` on the honest words**: `logMem`, the six row counts and `lir` give the
+layout
 `layoutOf` and `lir`. -/
 theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem lir : ℕ}
     {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)

@@ -29,7 +29,7 @@ verifier reads them, carrying whatever state it needs in ordinary bindings.
   sent), a commitment meets a commitment with a word of the announced width, an opening is
   answered from the commitments, and where `P` returns, `H` returns too with results related by
   `R` (which sees the commitments at that point). `P` never fails: there is no node of a script
-  that meets `Prog.fail`, so a `require` must hold.
+  that meets `VerifierProgram.fail`, so a `require` must hold.
 * `Follows.bind`: simulations compose along `bind`, which is how a whole verifier's honest prover
   is assembled from its phases.
 * `runFrom_of_follows`: if `H` follows `P` from the commitments of a history `h`, every strategy

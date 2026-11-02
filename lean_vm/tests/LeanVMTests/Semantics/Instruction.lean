@@ -9,7 +9,7 @@ meta import Statement.Fast.FieldWords
 # Tests: instructions, programs, and fetch
 
 A four-instruction program, one per address `g ^ 0, …, g ^ 3`, fetched by address through the
-fetch lemmas, since `Program.fetch` is noncomputable. The last slot `g ^ 3` fetches its typed
+fetch lemmas, since `LeanIsaProgram.fetch` is noncomputable. The last slot `g ^ 3` fetches its typed
 instruction; the one-past-end address `g ^ 4` and counter `0` fetch nothing. The bytecode cap
 is inhabited at its maximum (`2 ^ 32` instructions), and
 `fetch_gpow` applies there. Instruction equality is decidable and compiled, which the bytecode

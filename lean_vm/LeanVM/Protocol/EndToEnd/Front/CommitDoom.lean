@@ -15,7 +15,7 @@ public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 /-!
 # The commitment's doom
 
-Steps 1 and 2 of the verifier program (`readSizes`, `commitStack`; `verify_execution`,
+Steps 1 and 2 of the verifier program (`readAnnouncedSizes`, `commitStack`; `verify_execution`,
 `python-verifier/verifier.py:1469-1481` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) read
 the announced sizes and the stack's root. Before the root, nothing is at stake: the doom is
 false, so no group of challenges is charged. The root creates the doom `CommitDoom`: for the sizes
@@ -25,7 +25,7 @@ public input `input`.
 
 * `firstWord h`: the word of the first commitment of a history, the stack's (commitment `0`).
 * `CommitDoom prog input A (layout, ρ) h`: the doom after the root, for the value
-  `(layout, ρ)` `readSizes` returned.
+  `(layout, ρ)` `readAnnouncedSizes` returned.
 * `readSizesSpec`, `commitStackSpec`: the specifications of the two steps, from no doom; the
   second ends in `CommitDoom`. They compose with `Spec.bind` as the program does:
   `readSizesSpec.bind fun a ↦ (commitStackSpec a).bind fun _ ↦ …`.

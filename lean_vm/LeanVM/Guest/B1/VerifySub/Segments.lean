@@ -26,7 +26,8 @@ challenges; `specPre_flat`: it is `specPre`.
 `runsTo_of_runF`: a carried run of a program without commitments is a `RunsTo` on the words it
 reads. `readSizes_inv`: the announced sizes' run reads `eOfNat logMem`, the row counts, `eOfNat r`
 and returns `layoutOf bytecode logMem rows` (the guest's bytecode of `2^23` words). `announced_eq`:
-the run's sizes are `Verifier.announced`'s, so G7's bound `minChildStackLog ≤ stackLog` applies.
+the run's sizes are `Verifier.announcedLayoutAndRate`'s, so G7's bound `minChildStackLog ≤ stackLog`
+applies.
 
 `child_segments`: on G7's per-child hypotheses, the child's stream is the concatenation of the
 segments' words, each segment a carried run (`ChildSegs`).
@@ -261,7 +262,7 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
     · simp at hcond
 
 
-/-! ## The announced sizes are `Verifier.announced`'s -/
+/-! ## The announced sizes are `Verifier.announcedLayoutAndRate`'s -/
 
 /-- Only reads (the run is a parse of the stream). -/
 def ReadOnlyA {α : Type} : VerifierProgram α → Prop
@@ -347,7 +348,7 @@ theorem ReadOnlyA.run_eq {α : Type} (p : VerifierProgram α) : ReadOnlyA p →
   | commit _ _ _ _ => intro hp; exact hp.elim
   | query _ _ _ _ => intro hp; exact hp.elim
 
-/-- **The run's sizes are `Verifier.announced`'s.** -/
+/-- **The run's sizes are `Verifier.announcedLayoutAndRate`'s.** -/
 theorem announced_eq {bytecode : List K} {s : Fs} {T : List E} {O : List Opening}
     {R : List (Digest × ℕ × ℕ)} {L : Layout} {r : ℕ} {st' : Whir.FSt} {sp : Sponge}
     (hs : s.Carries sp) (h : Whir.runF (readAnnouncedSizes bytecode) ⟨s, T, O, R⟩ = some ((L, r),
@@ -502,7 +503,7 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   /-- The stream is the segments' words. -/
   hstream : c.proof.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat rate]) ++ [x0, x1] ++
     xsG ++ xsT ++ xsK ++ xsW
-  /-- The announced sizes are `Verifier.announced`'s. -/
+  /-- The announced sizes are `Verifier.announcedLayoutAndRate`'s. -/
   hann : Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, rate)
 
 /-- **An honest child's run, in segments** (G7's per-child hypotheses; the guest's bytecode of

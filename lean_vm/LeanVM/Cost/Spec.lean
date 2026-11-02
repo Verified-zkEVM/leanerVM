@@ -388,7 +388,7 @@ theorem eval_fuel (P : MachineProgram) :
 
 /-- **A run within the budget, of a program within the size bound, outputs its value.** -/
 theorem outputWithin_of_runs {P : MachineProgram} {s : ℕ} {x v : MachineValue} {c b : ℕ}
-    (hs : MachineProgram.size P ≤ s) (h : RunsBody P 0 [x] v c) (hc : c ≤ b) : outputWithin P s x b = some v := by
+    (hs : MachineProgram.size P ≤ s) (h : RunsBody P 0 [x] v c) (hc : c ≤ b) : outputWithin P s b x = some v := by
   obtain ⟨n, h⟩ := h
   have := evalBody_le (show c + 1 ≤ b + 1 by omega) ((eval_fuel P).2.2 _ _ _ _ _ h)
   simp [outputWithin, runMachineProgram, this, hc, hs]

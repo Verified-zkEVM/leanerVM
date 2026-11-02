@@ -12,7 +12,7 @@ functions:
 * **`preTable_size`**: the literal table of the functions' preconditions
   (`Guest.Fast.preTable`, `879` entries, `424` of them not `none`) is a value of size `5129`;
 * `preTableC_body_size`: the body that builds it (`preTableC`, its constructors, each natural
-  literal a term `Term.val`) has size `6864`, what it adds to the decoder's program (and `2` for
+  literal a term `Term.literal`) has size `6864`, what it adds to the decoder's program (and `2` for
   its index);
 * `preTestBodies_size`: the bodies the compiled test adds past the decoder's witness (`preTestAtC`'s
   dependencies from `powBelowAtC` on, `25` of them, the lanes' scan `twoPowScanC` and the table's

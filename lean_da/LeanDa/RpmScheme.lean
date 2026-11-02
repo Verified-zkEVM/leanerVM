@@ -14,8 +14,8 @@ public import LeanDa.WithHash
 The random-permutation model (`Common`) instantiates LeanDA's hash `H` with Keccak-256, the
 sponge over a permutation `π` of the 200-byte Keccak-f[1600] state, and the challenges' duplex
 sponge `P` with `π` itself. The definitions of `LeanDa.Scheme` take `H` and `P` as functions; here
-they are transcribed for oracles, in any monad (`Sponge.newM`, …, `membershipChallengesM`,
-`walkM`, `verifyCellM`), and are the scheme's own for pure ones (`membershipChallengesM_id`,
+they are transcribed for oracles, in any monad (`Sponge.newWith`, …, `membershipChallengesWith`,
+`climbWith`, `verifyCellWith`), and are the scheme's own for pure ones (`membershipChallengesM_id`,
 `verifyCellM_id`).
 
 **Lanes and bytes.** The sponge's state is the statement's `KState`, `25` lanes of `u64`, read

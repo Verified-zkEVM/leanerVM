@@ -7,7 +7,7 @@ public import Statement.CostMachine
 # The size of the guest's table of frame cells, by chunks: the definitions
 
 The decoder program holds the guest's frame cells as one literal (`guestLocsTableC`, its body
-`Term.val` of the table's encoding, `Rule.literalNatArrays`): its size is that of every row's
+`Term.literal` of the table's encoding, `Rule.literalNatArrays`): its size is that of every row's
 encoding, `rowSize` (`MachineValue.sizeList` of the row's numbers, and one for the array). The
 kernel evaluates them by chunks of rows (`rowsSize a n`, rows `a … a + n - 1`), the largest row,
 function `21`'s, by chunks of its lists (`namesSize`), each chunk a module of its own
@@ -72,7 +72,7 @@ theorem sizeList_map {α : Type} (f : α → MachineValue) (l : List α) :
   | nil => simp [MachineValue.sizeList]
   | cons x l ih => simp [MachineValue.sizeList, ih]
 
-/-- **A table literal's size**: its rows', the array's and `Term.val`'s. Stated for any table:
+/-- **A table literal's size**: its rows', the array's and `Term.literal`'s. Stated for any table:
 on the guest's, a ground term, `simp` would evaluate it. -/
 theorem literal_size (L : List (List ℕ)) :
     (Term.literal (MachineValue.array

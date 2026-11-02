@@ -129,7 +129,7 @@ abbrev KsAdvRpmH (Crs Proof : Type) := Crs → OracleComp KSpecH (DigestBytes ×
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
 its queries logged, the argument's verification, then the relation's check on the cells the
 extractor reads off the proof and the adversary's transcript; it wins when the proof verifies and
-the extracted cells do not satisfy the relation (`relationM` over Keccak-256 and `π`). -/
+the extracted cells do not satisfy the relation (`relationWith` over Keccak-256 and `π`). -/
 noncomputable def ksGameH (B : KsAdvRpmH Crs Proof) : OracleComp KSpecH Bool := do
   let crs ← liftM ps.setup
   let ((root, proof), log) ← (simulateQ loggedKH (B crs)).run []

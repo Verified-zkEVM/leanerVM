@@ -15,9 +15,9 @@ public import LeanVM.Guest.B2C.Share
 `shareStatic` (`apartOk`) builds the bit set of every value's cell, `bitsOf (certOf j).locs`, one
 bit at a time: in `verify_sig_lean_sphincs`, over a million values, the kernel keeps each of the
 intermediate sets. Here the same check takes the set as an argument (`shareStaticN`, equal by
-definition), and a list of sets `Ns` (`nth Ns 0 0 = 0`) gives it window by window: each window's
-cells added to `Ns[k]` give `Ns[k + 1]` (`bitsFrom`, one kernel evaluation each), so the set of all
-of them is the last (`bitsOf_flatten_of_chain`, `shareStatic_of_chain`).
+definition), and a list of sets `Ns` (`listElementOrDefault Ns 0 0 = 0`) gives it window by window:
+each window's cells added to `Ns[k]` give `Ns[k + 1]` (`bitsFrom`, one kernel evaluation each), so
+the set of all of them is the last (`bitsOf_flatten_of_chain`, `shareStatic_of_chain`).
 -/
 
 namespace LeanVM.Guest.B2C

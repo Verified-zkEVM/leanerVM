@@ -25,7 +25,7 @@ The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, sp
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`hash_cells`). The
   row tree is the Merkle tree over each row's digest of its first `64` cell digests (the payload),
   the column tree the one over all cell digests in column-major order, and the root is
-  `H(rowRoot ‖ colRoot)`. A tree hashes neighbours in pairs, level by level (`tree_from_leaves`).
+  `H(rowRoot ‖ columnRoot)`. A tree hashes neighbours in pairs, level by level (`tree_from_leaves`).
   The padding digests of `padding_digests` are the digests of zero cells and rows, so the root is
   the commitment to the padded matrix.
 * **Openings.** A cell is opened by its authentication path in the column tree and the row root.
@@ -45,7 +45,7 @@ The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, sp
   for `lean_vm` to state the aggregation node's DA claim with: `commitCodewords`, the commitment
   level by level, which is `commitCells` of the matrix (`commitCodewords_eq_commitCells`,
   `LeanDa.Commitment`); the challenges' sponge (`Sponge`, `membershipChallenges`); the dual
-  codeword by the additive NTT (`membershipVector`), which computes `dual`
+  codeword by the additive NTT (`membershipVector`), which computes `dualCodewordAt`
   (`membershipVector_eq_dual`, `LeanDa.Dual`); and the vector's digest, the hash of its `128`
   columns' hashes (`vectorDigest`).
 
@@ -95,8 +95,8 @@ def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
 /-! ## The deployed membership vector (`verifier/src/da.rs:15-96`)
 
 The challenges, drawn from the root by the duplex sponge the security game models as a random
-oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
-(`membershipVector_eq_dual`, `LeanDa.Dual`). -/
+oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes
+`dualCodewordAt` (`membershipVector_eq_dual`, `LeanDa.Dual`). -/
 
 /-! ### The sponge (`verifier/src/transcript.rs:32-95`)
 

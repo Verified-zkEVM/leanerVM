@@ -36,65 +36,80 @@ def digestBytesEquivBitVec : DigestBytes ≃ BitVec 256 :=
       finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
         ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
 
-/-- **A signature scheme** over the model's oracles: a seed sampler, key generation from a seed,
-the signer answering a request `Req` with `Resp`, the verifier of a claimed forgery `F`, and the
-winning condition on the signing transcript and the forgery. Key generation, the signer and the
-verifier hash with Keccak-256 over `π` (`keccak256With queryPermutation`). -/
-structure Scheme (Seed PK SK Req Resp F : Type) where
+/-- **A signature scheme** over the model's oracles: a seed sampler, key generation from a seed, the
+signer answering a request `SigningRequest` with `SigningResponse`, the verifier of a claimed
+forgery `Forgery`, and the winning condition on the signing transcript and the forgery. Key
+generation, the signer and the verifier hash with Keccak-256 over `π`
+(`keccak256With queryPermutation`). -/
+structure Scheme (Seed PublicKey SecretKey SigningRequest SigningResponse Forgery : Type) where
   /-- Sample the secret seed. -/
   sampleSeed : ProbComp Seed
   /-- Generate the keys from the seed. -/
-  generateKeys : Seed → OracleComp RandomPermutationOracles (PK × SK)
+  generateKeys : Seed → OracleComp RandomPermutationOracles (PublicKey × SecretKey)
   /-- Answer a signing request. -/
-  sign : SK → Req → OracleComp RandomPermutationOracles Resp
+  sign : SecretKey → SigningRequest → OracleComp RandomPermutationOracles SigningResponse
   /-- Verify a claimed forgery. -/
-  verify : PK → F → OracleComp RandomPermutationOracles Bool
+  verify : PublicKey → Forgery → OracleComp RandomPermutationOracles Bool
   /-- The transcript and the forgery make a win (when the forgery verifies). -/
-  winningCondition : QueryLog (Req →ₒ Resp) → F → Bool
+  winningCondition : QueryLog (SigningRequest →ₒ SigningResponse) → Forgery → Bool
 
-variable {Seed PK SK Req Resp F : Type}
+variable {Seed PublicKey SecretKey SigningRequest SigningResponse Forgery : Type}
 
-/-- The signer returned the forgery: some request with the forgery's message (`message`) was
-answered with its signature. Any other signature of a signed message is a strong forgery. -/
-abbrev SignerReturnedForgery {M S : Type} (message : Req → M) (log : QueryLog (Req →ₒ Option S))
-    (m : M)
-    (s : S) : Prop :=
-  ∃ entry ∈ log, message entry.1 = m ∧ entry.2 = some s
+/-- The signer returned the forgery: some request with the forgery's message (`messageOfRequest`)
+was answered with its signature. Any other signature of a signed message is a strong forgery. -/
+abbrev SignerReturnedForgery {Message Signature : Type}
+    (messageOfRequest : SigningRequest → Message)
+    (log : QueryLog (SigningRequest →ₒ Option Signature)) (forgedMessage : Message)
+    (forgedSignature : Signature) : Prop :=
+  ∃ entry ∈ log, messageOfRequest entry.1 = forgedMessage ∧ entry.2 = some forgedSignature
 
 /-- The signing oracle: the signer's answer, each request and answer recorded. -/
-def loggedSigningOracle (S : Scheme Seed PK SK Req Resp F) (sk : SK) :
-    QueryImpl (Req →ₒ Resp)
-      (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) :=
-  QueryImpl.withLogging fun r ↦ S.sign sk r
+def loggedSigningOracle
+    (scheme : Scheme Seed PublicKey SecretKey SigningRequest SigningResponse Forgery)
+    (secretKey : SecretKey) :
+    QueryImpl (SigningRequest →ₒ SigningResponse)
+      (WriterT (QueryLog (SigningRequest →ₒ SigningResponse))
+        (OracleComp RandomPermutationOracles)) :=
+  QueryImpl.withLogging fun r ↦ scheme.sign secretKey r
 
 /-- **The game**: key generation, then the adversary, which queries coins, `π`, `π⁻¹` and the
 signing oracle, then the verification of its forgery. -/
-noncomputable def forgeryGame (S : Scheme Seed PK SK Req Resp F)
-    (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) :
+noncomputable def forgeryGame
+    (scheme : Scheme Seed PublicKey SecretKey SigningRequest SigningResponse Forgery)
+    (adversary : PublicKey →
+      OracleComp (RandomPermutationOracles + (SigningRequest →ₒ SigningResponse)) Forgery) :
       OracleComp RandomPermutationOracles Bool := do
-  let seed ← liftM S.sampleSeed
-  let (pk, sk) ← S.generateKeys seed
-  let ((forgery, log) : F × QueryLog (Req →ₒ Resp)) ←
+  let seed ← liftM scheme.sampleSeed
+  let (pk, secretKey) ← scheme.generateKeys seed
+  let ((forgery, log) : Forgery × QueryLog (SigningRequest →ₒ SigningResponse)) ←
     (simulateQ
       (QueryImpl.ofLift RandomPermutationOracles
-        (WriterT (QueryLog (Req →ₒ Resp)) (OracleComp RandomPermutationOracles)) +
-      loggedSigningOracle S sk) (main pk)).run
-  let verified ← S.verify pk forgery
-  return S.winningCondition log forgery && verified
+        (WriterT (QueryLog (SigningRequest →ₒ SigningResponse))
+          (OracleComp RandomPermutationOracles)) +
+      loggedSigningOracle scheme secretKey) (adversary pk)).run
+  let verified ← scheme.verify pk forgery
+  return scheme.winningCondition log forgery && verified
 
 /-- **The experiment**: the game against the lazily sampled random permutation. -/
-noncomputable def forgeryExperiment (S : Scheme Seed PK SK Req Resp F)
-    (main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F) : ProbComp Bool :=
-  runWithRandomPermutation (forgeryGame S main)
+noncomputable def forgeryExperiment
+    (scheme : Scheme Seed PublicKey SecretKey SigningRequest SigningResponse Forgery)
+    (adversary : PublicKey →
+      OracleComp (RandomPermutationOracles + (SigningRequest →ₒ SigningResponse)) Forgery) :
+    ProbComp Bool :=
+  runWithRandomPermutation (forgeryGame scheme adversary)
 
-/-- **`bits` bits of SUF-CMA security in the random-permutation model**: every adversary `main`
+/-- **`securityBits` bits of SUF-CMA security in the random-permutation model**: every adversary
 (coins, `π`, `π⁻¹` and the signing oracle) whose game, key generation, the signer's
 answers and the forgery's verification included, makes at most `Q ≥ 1` permutation calls on every
-path wins with probability at most `(Q + 1) · 2^-bits`. -/
-def StronglyUnforgeable (S : Scheme Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
-  ∀ Q, 1 ≤ Q → ∀ main : PK → OracleComp (RandomPermutationOracles + (Req →ₒ Resp)) F,
-    QueryCostAtMost (forgeryGame S main) permutationCallCost Q →
-      Pr{let b ← forgeryExperiment S main}[b = true] ≤ ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ bits
+path wins with probability at most `(Q + 1) · 2^-securityBits`. -/
+def StronglyUnforgeable
+    (scheme : Scheme Seed PublicKey SecretKey SigningRequest SigningResponse Forgery)
+    (securityBits : ℕ) : Prop :=
+  ∀ Q, 1 ≤ Q → ∀ adversary : PublicKey →
+      OracleComp (RandomPermutationOracles + (SigningRequest →ₒ SigningResponse)) Forgery,
+    QueryCostAtMost (forgeryGame scheme adversary) permutationCallCost Q →
+      Pr{let b ← forgeryExperiment scheme adversary}[b = true] ≤
+        ((Q : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ securityBits
 
 end SufCma
 

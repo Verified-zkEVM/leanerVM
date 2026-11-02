@@ -27,9 +27,9 @@ follower's allowance `T` wherever `p` returns within the group:
 | `Spec.require` | `T` | |
 | `Spec.ofNoMove` | `e + T` | no prover move, `escRet ≤ e < 1` |
 
-`Prog.escRet Post h₀ l q` is the probability, over the remaining challenges, that the program
-returns a value breaking `Post`; it is the expectation `Prog.retExp` of the indicator of a bad
-return.
+`VerifierProgram.escRet Post h₀ l q` is the probability, over the remaining challenges, that the
+program returns a value breaking `Post`; it is the expectation `VerifierProgram.retExp` of the
+indicator of a bad return.
 -/
 
 namespace LeanVM.Protocol.Compile

@@ -40,7 +40,8 @@ open scoped ENNReal
 
 /-! ## The program refusing a zero challenge anywhere -/
 
-/-- The verifier program refusing a zero challenge anywhere (`Prog.refusingZeroChallenge`). -/
+/-- The verifier program refusing a zero challenge anywhere
+(`VerifierProgram.refusingZeroChallenge`). -/
 def rzProgram (bytecode : List K) (publicInput : Digest) : VerifierProgram Bool :=
   (leanVmVerifierProgram bytecode publicInput).refusingZeroChallenge
 

@@ -17,8 +17,9 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The opening's hypotheses from the child's
 
-The deferring verifier (`deferredProgram`, V:2358) and G7's variant refusing a zero fold, tail or
-level batching challenge (`Limits.deferredProgramNZ`) share their run up to the stacked opening:
+The deferring verifier (`deferringVerifierProgram`, V:2358) and G7's variant refusing a zero fold,
+tail or level batching challenge (`Limits.deferredProgramNZ`) share their run up to the stacked
+opening:
 `specPre`, the announced sizes, the stack's commitment and the claims (`restClaims`: the bus,
 the tables, the public input, the Keccak reduction, the ring switch). Then each squeezes the
 batching challenge `λ` and runs B1-b's `whirOpen` (`whirOpenNZ`) and the terminal's check

@@ -37,11 +37,12 @@ grouped by stream as `Hints::push` does, `aggregation.rs:1389-1395`): the node's
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
-`keccakF (seedInput seed publicInput)`): the layout is `readSizes`'s (`Verifier.announced`), and
-the query positions are those of the compiled run itself, recorded by `recordQueries`, which
-rewrites a program to return its queries and changes nothing else. The bytecode enters only through its
-length, as in `verifyDeferred`. A signature's hints are its scheme's own definitions, over
-Keccak-f[1600] (as `leanXmssVerifyWithKeccak` and `leanSphincsVerifyWithKeccak` take them).
+`keccakF (seedInput seed publicInput)`): the layout is `readAnnouncedSizes`'s
+(`Verifier.announcedLayoutAndRate`), and the query positions are those of the compiled run itself,
+recorded by `recordQueries`, which rewrites a program to return its queries and changes nothing
+else. The bytecode enters only through its length, as in `verifyDeferred`. A signature's hints are
+its scheme's own definitions, over Keccak-f[1600] (as `leanXmssVerifyWithKeccak` and
+`leanSphincsVerifyWithKeccak` take them).
 
 Choices the witness does not fix, made as the Rust makes them:
 

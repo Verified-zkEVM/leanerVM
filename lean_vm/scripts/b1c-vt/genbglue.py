@@ -71,7 +71,7 @@ for a, b in SLICES:
     if 'hbkc' in used: H += '{κ : ℕ → ℕ}\n    (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))\n    (hκ : ∀ b < 153, κ b < 34) '
     if 'hpool' in used: H += '{P : ℕ → E}\n    (hpool : ∀ i < 5, LoadHolds rd (vtσ rd wo args (.n 16)) i (P i)) '
     if 'hidx' in used: H += '{Q : ℕ → E}\n    (hidx : ∀ i < 3, LoadHolds rd (vtσ rd wo args (.n 2851)) i (Q i)) '
-    if 'hlow' in used: H += '\n    (hlow : ∀ i < 34, (rd (Parameters.gpow i)).isSome)'
+    if 'hlow' in used: H += '\n    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome)'
     sys.stderr.write(f'{name}: {sorted(used)} specials {specials}\n')
     out.append(f'''set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in

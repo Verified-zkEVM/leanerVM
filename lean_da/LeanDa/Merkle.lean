@@ -12,7 +12,7 @@ public import LeanDa.WithHash
 For every hash function `H`. An honest opening verifies (`verifyCell_openCell`). Two openings of
 one commitment at one position to two different cells give an `H` collision, which
 `findCollision` computes: climb both openings' hash inputs from the cells' bytes up to the root's
-`rowRoot ‖ colRoot`, and return the first pair of inputs that differ while their hashes agree
+`rowRoot ‖ columnRoot`, and return the first pair of inputs that differ while their hashes agree
 (`findCollision_spec`). The cells' bytes differ because a cell's encoding is injective
 (`cellBytes_injective`), and the roots' inputs hash alike, so such a level exists.
 

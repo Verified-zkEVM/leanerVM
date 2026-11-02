@@ -15,7 +15,7 @@ public import Common.WithHash
 
 The SUF-CMA game of a hash-based signature scheme whose hash `H : List UInt8 → BitVec 256` is
 Keccak-256 read through a bijection with its 32 bytes (`e : DigestBytes ≃ BitVec 256`; the statement's,
-in leanXMSS and leanSPHINCS, is `digestBitVec`, the bytes read little endian).
+in leanXMSS and leanSPHINCS, is `digestBytesEquivBitVec`, the bytes read little endian).
 
 * **The ROM game** (`romGame`, `romExperiment`): a seed sampled, keys generated from it, the
   adversary run with the hash and a signing oracle that logs its requests, the forgery verified,

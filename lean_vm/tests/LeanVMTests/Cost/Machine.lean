@@ -77,12 +77,12 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 #guard runMachineProgram #[.applyClosure (.closure 1 [.position 0, .position 0]) [.position 0], .position 2] 1 (.nat 9) == some (.nat 9, 10)
 -- The output within a budget and a size bound (the program's size is `6`).
 #guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 6
-    (.nat 9) 8 ==
+    8 (.nat 9) ==
   some (.nat 9)
 #guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 6
-    (.nat 9) 7 == none
+    7 (.nat 9) == none
 #guard outputWithin #[.letIn (.constructor 4 [.position 0, .position 0]) (.field 1 (.position 0))] 5
-    (.nat 9) 8 == none
+    8 (.nat 9) == none
 
 /-! ## Keccak-f[1600] in the language -/
 

@@ -13,7 +13,8 @@ public import LeanVM.Protocol.WithHash
 # End-to-end completeness
 
 The deployed verifier is `Verifier.verify` (`Verifier.lean`), the compiled reading at Keccak-256
-and Keccak-f[1600] of `leanVmProgram`, a transcription of `python-verifier/verifier.py` at leanVM
+and Keccak-f[1600] of `leanVmVerifierProgram`, a transcription of `python-verifier/verifier.py` at
+leanVM
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`. The statements here are those of `EndToEnd.Complete`,
 which carry no hypothesis.
 

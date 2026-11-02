@@ -58,13 +58,13 @@ theorem RunsWith.bind {α β : Type} {p : VerifierProgram α} {f : α → Verifi
   rw [prog_bind_eq, run_bind, List.append_assoc, List.append_assoc, e1]
   exact e2
 
-/-- `RunsTo.bind` on `Prog.bind`. -/
+/-- `RunsTo.bind` on `VerifierProgram.bind`. -/
 theorem RunsTo.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 s2 : Fs}
     {xs ys : List E}
     {a : α} {b : β} (h1 : RunsTo p s xs a s1) (h2 : RunsTo (f a) s1 ys b s2) :
     RunsTo (p.bind f) s (xs ++ ys) b s2 := RunsTo.bind h1 h2
 
-/-- `RunsWith.bind` on `Prog.bind`. -/
+/-- `RunsWith.bind` on `VerifierProgram.bind`. -/
 theorem RunsWith.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1
     s2 : Fs}
     {xs ys : List E} {os1 os2 : List Opening} {r0 r1 r2 : List (Digest × ℕ × ℕ)} {a : α} {b : β}

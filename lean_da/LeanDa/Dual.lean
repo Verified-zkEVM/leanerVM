@@ -6,7 +6,7 @@ public import LeanDa.Membership
 # The deployed dual codeword is the dual codeword
 
 Proposition prop:ntt of `doc/leanvm/body/d-novel-basis.tex` for the crate's membership vector:
-the additive NTT of `dualCodeword` (`verifier/src/da.rs:24-85`) computes `dual`
+the additive NTT of `dualCodeword` (`verifier/src/da.rs:24-85`) computes `dualCodewordAt`
 (`dualCodeword_eq_dual`), so the membership vector of a root is the dual codeword of its
 challenges (`membershipVector_eq_dual`).
 
@@ -411,7 +411,7 @@ theorem dualCodeword_eq_dual (z : Fin 14 → E) :
 
 variable (H : List UInt8 → Common.DigestBytes) (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
 
-/-- `Sponge.samplesM n` draws `n` challenges. -/
+/-- `Sponge.samplesWith n` draws `n` challenges. -/
 theorem length_samples : ∀ (n : ℕ) (s : Sponge),
     (Id.run (Sponge.samplesWith (m := Id) (fun L ↦ pure (P L)) n s)).length = n
   | 0, _ => rfl

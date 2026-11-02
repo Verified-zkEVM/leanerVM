@@ -301,8 +301,8 @@ abbrev HonestProverWithHash : Type :=
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
 Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, no
 proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
-runs the honest script against the verifier's own program `leanVmProgram`, trying `fuel` nonces
-per proof of work. -/
+runs the honest script against the verifier's own program `leanVmVerifierProgram`, trying `fuel`
+nonces per proof of work. -/
 def proverWithHash : HonestProverWithHash :=
   fun prog input t ρ fuel ↦ Prover.proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel
 

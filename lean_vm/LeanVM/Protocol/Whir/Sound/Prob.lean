@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Whir.Sound.Prob
 
-  Expectations over the challenges of a group (`Prog.retExp`): their algebra (sequencing,
+  Expectations over the challenges of a group (`VerifierProgram.retExp`): their algebra (sequencing,
   monotonicity, sums, constants, independence of the commitments), the uniform tuple drawn by
   `sampleN`, and the query positions drawn by `sampleQueries`: disjoint bit chunks of uniform
   192-bit samples, i.i.d. uniform on the domain.

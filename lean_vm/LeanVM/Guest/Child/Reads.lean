@@ -19,8 +19,9 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # The stream an accepted proof carries
 
-`Reads p n Q` is `Prog.Costs`' calculus with other weights: a scalar read costs `1`, a proof of
-work `1` (its nonce), a commitment `2` (its root's two scalars), and a challenge or an opening
+`Reads p n Q` is `VerifierProgram.Costs`' calculus with other weights: a scalar read costs `1`, a
+proof of work `1` (its nonce), a commitment `2` (its root's two scalars), and a challenge or an
+opening
 `0`. A run of a program of `n` reads consumes at most `n` scalars of the stream (`run_reads`),
 and an accepted run consumes the whole stream (`runProof`), so its proof's stream has at most
 `n` scalars. The verifier's phases are costed as in `Verifier/Cost.lean`, each bound crude: the

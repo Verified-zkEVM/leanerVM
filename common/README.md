@@ -70,8 +70,9 @@ the files below keep their proofs and the definitions only the proofs use.
   calls is a game of the statement's model, with the same distribution and cost (`runK_expand`,
   `isWeightBound_expand_iff`, `SufCma.rpmSecure_of_rpmSecureH`).
 - `Common/WithHash.lean`: the SUF-CMA game and leanXMSS with the hash a query of its own
-  (`SufCma.SchemeWithHash`, `LeanXmss.Rpm.schemeWithHash`); `Common/WithHashBridge.lean`: the
-  statement's are these with the hash Keccak-256 over `π` (`LeanXmss.Rpm.scheme_eq`).
+  (`SufCma.SchemeWithHash`, `LeanXmss.RandomPermutationModel.schemeWithHash`);
+  `Common/WithHashBridge.lean`: the statement's are these with the hash Keccak-256 over `π`
+  (`LeanXmss.RandomPermutationModel.scheme_eq`).
 - `Common/Linear.lean`: a transfer term `q² / 2^n` linear under a query cap, and the folds of the
   transfer terms into the end statements' bounds (`bits_add_sq_le`, `sq_add_sq_le`).
 - `Common/Prob.lean`: game-playing lemmas for stateful simulations: identical until bad
@@ -127,17 +128,17 @@ the direct calls are made by the honest part after the adversary has finished.
 
 **Signature games** (`SufCma.rpm_le_romB`, `SufCma.rpm_bound`). For a scheme hashing with
 `H : List UInt8 → D` (`D ≃` the 32 Keccak-256 bytes; leanXMSS and leanSPHINCS read them as the
-little-endian `BitVec 256`, `digestBitVec`), the ROM game (`romGame`, `romExperiment`: seed, key
-generation, the adversary with `H` and a logging signing oracle, verification, every hash call
-counted) and the RPM game (`forgeryGame`, `forgeryExperiment`: the same with `H` Keccak-256 over `π`, the
-adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so the transfer's
-adversary is the RPM adversary with the signing oracle (its key from the honest phase before), and
-the ROM adversary `romAdv A` is `A` with its permutation queries answered by the simulator (and
-its hash answers read through the bijection), against the game's own signing oracle. If the RPM
-game makes at most `Q` permutation calls on every path (`permutationCallCost`: a hash of `n` bytes costs
-`⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one) and at most `q` calls of `H`, `π`, `π⁻¹` (`oracleCalls`),
-then `romAdv A`'s ROM experiment makes at most `q` hash calls on every outcome and
-`Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM bound `q / 2^b` gives
+little-endian `BitVec 256`, `digestBytesEquivBitVec`), the ROM game (`romGame`, `romExperiment`:
+seed, key generation, the adversary with `H` and a logging signing oracle, verification, every hash
+call counted) and the RPM game (`forgeryGame`, `forgeryExperiment`: the same with `H` Keccak-256
+over `π`, the adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so
+the transfer's adversary is the RPM adversary with the signing oracle (its key from the honest phase
+before), and the ROM adversary `romAdv A` is `A` with its permutation queries answered by the
+simulator (and its hash answers read through the bijection), against the game's own signing oracle.
+If the RPM game makes at most `Q` permutation calls on every path (`permutationCallCost`: a hash of
+`n` bytes costs `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one) and at most `q` calls of `H`, `π`,
+`π⁻¹` (`oracleCalls`), then `romAdv A`'s ROM experiment makes at most `q` hash calls on every
+outcome and `Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM bound `q / 2^b` gives
 `q / 2^b + Q² / 2^509`, and `Q / 2^b + Q² / 2^509` with the permutation budget alone
 (`rpm_bound_perm`).
 

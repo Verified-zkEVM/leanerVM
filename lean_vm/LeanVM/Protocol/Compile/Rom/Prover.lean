@@ -35,9 +35,9 @@ moves of the statement's runner `LeanVM.Prover.runFrom` (`LeanVM/Prover/Refine.l
   running `proveM` with that implementation as the hash and the permutation.
 * `simulateQ_id_of_look`: a computation whose run against a log's answers returns `r` returns
   `r` against every hash function and permutation that agree with the log.
-* `isTotalQueryBound_proveM`: a program of cost `n` at height `h` (`Prog.CostLE`, in quarters)
-  makes the prover query the oracles at most `n · (2^(h + 1) + 2 · fuel + 2)` times, after the
-  seed.
+* `isTotalQueryBound_proveM`: a program of cost `n` at height `h` (`VerifierProgram.CostLE`, in
+  quarters) makes the prover query the oracles at most `n · (2^(h + 1) + 2 · fuel + 2)` times, after
+  the seed.
 -/
 
 namespace LeanVM.Protocol.Compile
@@ -528,8 +528,8 @@ theorem pow_le_proverFactor (height fuel : ℕ) :
     2 ^ (height + 1) + 2 ≤ proverFactor height fuel := by
   unfold proverFactor; exact Nat.add_le_add_right (Nat.le_add_right _ _) 2
 
-/-- **The prover's queries.** The prover runs a program of cost `n` (`Prog.Costs`, in quarters)
-at height `height` with at most `n · proverFactor height fuel` queries. -/
+/-- **The prover's queries.** The prover runs a program of cost `n` (`VerifierProgram.Costs`, in
+quarters) at height `height` with at most `n · proverFactor height fuel` queries. -/
 theorem isTotalQueryBound_proveFromM (S : Strategy) (fuel height : ℕ) {α : Type} :
     ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree) (n : ℕ) (Q : α → Prop),
       p.Costs height n Q →

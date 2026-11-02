@@ -21,7 +21,8 @@ public import LeanVM.Protocol.WithHash
 /-!
 # Perfect completeness of the leanVM verifier
 
-The verifier is the program `leanVmProgram` (`LeanVM.Protocol.Verifier`), the transcription of
+The verifier is the program `leanVmVerifierProgram` (`LeanVM.Protocol.Verifier`), the transcription
+of
 `verify_execution` of `python-verifier/verifier.py` at leanVM
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`. Its honest prover (`honestStrategy`) is assembled
 (`Complete.Assemble`) from the phases' honest scripts: the announcement and the commitment
@@ -44,7 +45,7 @@ prover `KeccakGkr.hKeccak`), ring switching (`Complete.Ring`) and the WHIR openi
   (`constraintCompleteness`) has a witness representing it, at sizes for which, when they are
   admissible, the honest strategy wins.
 
-The honest prover's public statement is the public input's digest `publicDigest input`, whose
+The honest prover's public statement is the public input's digest `publicInputDigest input`, whose
 halves are the input's two memory words (`digestScalars_publicDigest`). No phase carries a
 hypothesis: completeness is unconditional.
 -/

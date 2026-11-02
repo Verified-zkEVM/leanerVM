@@ -33,12 +33,13 @@ absorption in four forces one. The cost is counted in quarters of a query: an ab
 costs `1`, a sample `4`, a proof of work `5`, a commitment `2`, and an opening of `k` positions
 `4 · k · (1 + height)`.
 
-A program's cost depends on the heights of its commitments. `Prog.Costs height p n Q` says:
-every commitment `p` reads has height at most `height`, every run of `p` costs at most `n`
+A program's cost depends on the heights of its commitments. `VerifierProgram.Costs height p n Q`
+says: every commitment `p` reads has height at most `height`, every run of `p` costs at most `n`
 quarters, and every value `p` returns satisfies `Q`. The postcondition is what lets a cost
 depend on the values earlier parts of the program return (the announced sizes, the number of
-query positions): the sequencing rule (`Prog.Costs.bind`) charges the continuation only at the
-values the first part can return. `Prog.CostLE height p n` is the cost without a postcondition.
+query positions): the sequencing rule (`VerifierProgram.Costs.bind`) charges the continuation only
+at the values the first part can return. `VerifierProgram.CostLE height p n` is the cost without a
+postcondition.
 
 * `isTotalQueryBound_run`: a program of cost `n`, run from a state whose roots have height at
   most `height` and whose sponge has `k ≤ 4` scalars waiting, makes at most `(n + k) / 4`

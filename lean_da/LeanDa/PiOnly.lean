@@ -190,7 +190,7 @@ end Games
 /-! ## The end theorems -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
-(`PerfectlyCompleteRpm`): the argument with the hash oracle that never queries it
+(`LeanDaPerfectlyComplete`): the argument with the hash oracle that never queries it
 (`liftArg`) is perfectly complete there, and has the same completeness experiment. -/
 theorem leanDa_perfectlyComplete_rpmWithHash : PerfectlyCompleteRpmWithHash := by
   intro r π Crs Proof ps hps msg p
@@ -202,7 +202,7 @@ theorem leanDa_perfectlyComplete_rpmWithHash : PerfectlyCompleteRpmWithHash := b
     rfl
   rwa [e] at h
 
-/-- **LeanDA is position binding in the random-permutation model** (`PositionBindingRpm`): the
+/-- **LeanDA is position binding in the random-permutation model** (`LeanDaPositionBinding`): the
 game is the game with the hash oracle, expanded, with the same distribution and the same
 permutation calls. -/
 theorem leanDa_positionBinding_rpmWithHash : PositionBindingRpmWithHash := by
@@ -212,7 +212,7 @@ theorem leanDa_positionBinding_rpmWithHash : PositionBindingRpmWithHash := by
   exact leanDa_positionBinding_rpmH r (liftArg ps) (liftAdv A) Q hQ
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
-it** (`CodeBindingRpm`): the game is the game with the hash oracle, expanded, and the knowledge
+it** (`LeanDaCodeBinding`): the game is the game with the hash oracle, expanded, and the knowledge
 soundness the proof uses, of the code-binding adversary's own game (`ksB`), is the statement's
 knowledge soundness of the same adversary (`ksGame_eq_expand`). -/
 theorem leanDa_codeBinding_rpm_boundWithHash : CodeBindingRpmWithHash := by
@@ -232,16 +232,16 @@ theorem leanDa_codeBinding_rpm_boundWithHash : CodeBindingRpmWithHash := by
 a hash so instantiated (`LeanDa.WithHashBridge`). -/
 
 /-- **LeanDA is perfectly complete in the random-permutation model, for every permutation**
-(`PerfectlyCompleteRpm`). -/
+(`LeanDaPerfectlyComplete`). -/
 theorem leanDa_perfectlyComplete_rpm : LeanDaPerfectlyComplete :=
   perfectlyCompleteRpm_of_withHash leanDa_perfectlyComplete_rpmWithHash
 
-/-- **LeanDA is position binding in the random-permutation model** (`PositionBindingRpm`). -/
+/-- **LeanDA is position binding in the random-permutation model** (`LeanDaPositionBinding`). -/
 theorem leanDa_positionBinding_rpm : LeanDaPositionBinding :=
   positionBindingRpm_of_withHash leanDa_positionBinding_rpmWithHash
 
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
-it** (`CodeBindingRpm`). -/
+it** (`LeanDaCodeBinding`). -/
 theorem leanDa_codeBinding_rpm_bound : LeanDaCodeBinding :=
   codeBindingRpm_of_withHash leanDa_codeBinding_rpm_boundWithHash
 

@@ -26,7 +26,7 @@ and it composes through `bind` (`MovesOK.bind`, `MovesOK.seq`) and survives alon
 * `MovesOK.grindBits_le`: on a program whose proofs of work have at most `B` bits, every reachable
   history ends with a proof of work of at most `B` bits.
 
-The instances follow the phases of `leanVmProgram` (`LeanVM.Protocol.Verifier`) with the
+The instances follow the phases of `leanVmVerifierProgram` (`LeanVM.Protocol.Verifier`) with the
 unfoldings and inductions of `LeanVM.Protocol.Verifier.Cost`: the sizes, the bus, the table
 sumcheck, the public input, the Keccak reduction and ring switching make no prover move other than
 reads; the
@@ -40,7 +40,7 @@ bits, the cap at which the random-oracle theorem discounts a group's escape
 
 ## Deployed behaviour
 
-The statements are on the program `leanVmProgram` at leanVM
+The statements are on the program `leanVmVerifierProgram` at leanVM
 `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, as transcribed in `LeanVM.Protocol.Verifier`.
 -/
 

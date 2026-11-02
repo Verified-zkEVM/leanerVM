@@ -15,19 +15,19 @@ import LeanVM.Protocol.Compile.Prover
 # Runs of a sequenced program
 
 A run of `p.bind f` is a run of `p` until `p` returns a value `a`, then a run of `f a`.
-`Prog.retSplit p l` finds the point at which `p` returns along the history `l`: it is
+`VerifierProgram.retSplit p l` finds the point at which `p` returns along the history `l`: it is
 `some (a, l₁, l₂)` exactly when `l = l₁ ++ l₂` and `p` returns `a` after `l₁`
 (`retSplit_eq_some_iff`), and otherwise `p` has not returned along `l` and `p.bind f` is at
 `p`'s node, followed by `f` (`after_bind_of_retSplit_eq_none`).
 
 ## Main results
 
-* `Prog.after_bind_of_after`, `Prog.after_bind_append`, `Prog.after_bind_cases`: the program
-  after a history of `p.bind f`, inside `p`, after a return of `p`, and the converse
-  decomposition.
+* `VerifierProgram.after_bind_of_after`, `VerifierProgram.after_bind_append`,
+  `VerifierProgram.after_bind_cases`: the program after a history of `p.bind f`, inside `p`, after a
+  return of `p`, and the converse decomposition.
 * `Prog.reach_bind_cases`: a local run of `p.bind f` is a run of `p`, or a run of `p` to a
   return at `l₁` followed by a run of `f a` after `h₀ ++ l₁`.
-* `Prog.reach_nil_iff`: the local runs from the empty history are the interactive runs.
+* `VerifierProgram.reach_nil_iff`: the local runs from the empty history are the interactive runs.
 * `endsMove_iff_boundary`: a nonempty history ends with a prover move exactly when it is a
   boundary.
 -/

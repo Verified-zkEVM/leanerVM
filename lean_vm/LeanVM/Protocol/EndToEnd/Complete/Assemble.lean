@@ -25,7 +25,7 @@ sequence of the phases' honest scripts (`honestRun`), and the simulation compose
 
 | phase | honest script | fact handed on |
 | --- | --- | --- |
-| `readSizes` | `announce s ρ` | the layout is `verifierLayout prog s`, the rate `ρ` |
+| `readAnnouncedSizes` | `announce s ρ` | the layout is `verifierLayout prog s`, the rate `ρ` |
 | `commitStack` | the stack's word | the commitments are `[stackCommit μ ρ q]` |
 | `verifyBusBalance` | `Phases.bus` | `BusGood`; its claims are on the framework's columns |
 | `tablePhase` | `Phases.table` | the claims are true, the output lanes' the honest ones |
@@ -171,7 +171,7 @@ noncomputable def honestStrategy (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
     (q : Column (leanIsaμ prog s)) (P : Phases) : Strategy :=
   Strategy.ofScript (honestProver prog s ρ q P) 0
 
-/-- The honest prover follows `leanVmProgram` to `true`. -/
+/-- The honest prover follows `leanVmVerifierProgram` to `true`. -/
 theorem follows_leanVmProgram {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
     (hq : M3Holds (inst prog s) input q) (P : Phases) (hP : P.Honest prog s q) :

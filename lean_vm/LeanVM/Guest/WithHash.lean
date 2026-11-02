@@ -66,8 +66,8 @@ open LeanVM.Guest.Completeness
 
 open Coverage
 
-/-- **The leanVM verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`): `verifier H F`
-with every sampled challenge `0` a failure. -/
+/-- **The leanVM verifier refusing a zero challenge** (`VerifierProgram.refusingZeroChallenge`):
+`verifier H F` with every sampled challenge `0` a failure. -/
 def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (F : KeccakState → m KeccakState)
     (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do

@@ -31,7 +31,7 @@ and decoder programs (`LeanVM.Cost.compiledKnowledgeExtractor`,
 `LeanVM.Cost.compiledGuestWitnessDecoder`).
 
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
-program too (`GuestKnowledge`, `Statement/Theorems.lean`):
+program too (`GuestKnowledgeSoundness`, `Statement/Theorems.lean`):
 `LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
@@ -45,18 +45,19 @@ Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meet
 whose decodings explain the input by `guest_knowledge`.
 
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
-(`Statement/CostMachine.lean`): `extractorProgram`, the knowledge extractor `transcriptExtractor`
-(`LeanVM/Protocol/Extraction/Extractor.lean`) compiled (`Cost/Extractor/Top.lean`) behind an entry
-(`Cost/ExtractorProgram.lean`). Its size is within `knowledgeExtractorSizeBound`
-(`Cost/ExtractorSize.lean`), and the extractor it computes within its budget is
+(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor`, the knowledge extractor
+`transcriptExtractor` (`LeanVM/Protocol/Extraction/Extractor.lean`) compiled
+(`Cost/Extractor/Top.lean`) behind an entry (`Cost/ExtractorProgram.lean`). Its size is within
+`leanVmKnowledgeExtractorSizeBound` (`Cost/ExtractorSize.lean`), and the extractor it computes
+within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `knowledgeExtractorBudget`
+`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget`
 (`Cost/Bounds/Top.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`Statement/README.md`), in the
 random-permutation model where an adversary is involved, except the memory-decoder forms
 `MemoryGuestKnowledge` and `MemoryAggregateSound`, which are `lean_vm`'s own definitions
-(`Guest/EndKnow.lean`, `Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledge` and
+(`Guest/EndKnow.lean`, `Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledgeSoundness` and
 `AggregateSound`; the final `example`, after `theorems_hold`, checks the end theorem against
 `Statement.Theorems` itself:
 
@@ -69,8 +70,8 @@ random-permutation model where an adversary is involved, except the memory-decod
   with `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
   MemoryAggregateSound guestProgram decode transcriptExtractor`): the leanISA guest program, its
   witness named by the decoder of memories `LeanVM.Guest.End.decode`
-  (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledge guestProgram D` of `Statement/Theorems.lean`
-  follows
+  (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledgeSoundness guestProgram D` of
+  `Statement/Theorems.lean` follows
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
@@ -333,10 +334,11 @@ example :
 
 open OracleComp in
 /-- **The corollaries follow from the end theorems**, field by field: `aggregateSound` from
-`knowledgeSoundness`, `guestKnowledge` and `digestBinds` (an accepted proof whose extracted
-execution decodes, by `guestKnowledge`, to a statement of the accepted digest, which `digestBinds`
-identifies with the accepted statement or turns into a collision), the completeness on recursion
-nodes and leaves from `guestCompleteOnHonestChildren` (the first two families of `CoveredNode`). -/
+`leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
+whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
+digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
+collision), the completeness on recursion nodes and leaves from `guestCompleteOnHonestChildren` (the
+first two families of `CoveredNode`). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram)) :

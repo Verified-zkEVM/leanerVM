@@ -203,7 +203,7 @@ def packMain (a b : Expr) : Source.Program :=
 
 Each against the Spec: `keccak` and `keccak_cells` compute Keccak-256 of the message's bytes, each
 cell its two low limbs as sixteen little-endian bytes (`Protocol.KeccakHash.keccak256`), the
-digest in its two cells (`digestScalars`); `state=` continues the sponge where `final=0` left it;
+digest in its two cells (`digestHalves`); `state=` continues the sponge where `final=0` left it;
 `cap=` is one Keccak-f[1600] on the eight message cells, zero, and the previous output's last five
 cells. A wrong digest fails. -/
 

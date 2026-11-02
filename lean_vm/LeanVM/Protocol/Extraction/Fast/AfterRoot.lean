@@ -6,18 +6,20 @@ public import LeanVM.Protocol.Extraction.Extractor
 # The stack's root, without the verifier's free monad
 
 The extractor starts from `afterRoot` (`Extraction/Extractor.lean`): the verifier's steps 1 and 2,
-`announceSizesAndRoot`, a `Prog` run by `runPure` (every permutation answered by `default`).
-`Prog`'s constructors hold continuations (`read : (E → Prog α) → Prog α`, …), which the cost
-compiler does not take. Here the same steps are plain state-passing functions in `Option`:
+`announceSizesAndRoot`, a `VerifierProgram` run by `runPure` (every permutation answered by
+`default`).
+`VerifierProgram`'s constructors hold continuations
+(`read : (E → VerifierProgram α) → VerifierProgram α`, …), which the cost compiler does not take.
+Here the same steps are plain state-passing functions in `Option`:
 
 * `absorbPure`: the sponge's `absorb` with every permutation `default`; `readPure n`: read and
   absorb `n` scalars (`runPure_readScalars`); `commitPure`: read a root (`runPure_readCommitment`);
-* `readSizesPure`, `commitStackPure`: `readSizes` and `commitStack` (`runPure_readSizes`,
+* `readSizesPure`, `commitStackPure`: `readAnnouncedSizes` and `commitStack` (`runPure_readSizes`,
   `runPure_commitStack`);
 * **`afterRootDirect_eq`**: `afterRootDirect` is `afterRoot`;
 * **`announced_of_afterRoot`**: the layout and the rate `afterRoot` returns are the ones the stream
-  announces (`announced`, which the statement's budget reads): `readSizes` reads only the sponge
-  and the stream (`readPure_carry`, `readSizesPure_carry`).
+  announces (`announced`, which the statement's budget reads): `readAnnouncedSizes` reads only the
+  sponge and the stream (`readPure_carry`, `readSizesPure_carry`).
 
 The lighter layout: the extractor reads of the layout only `logMemory`, `logBytecode`,
 `placements`, `stackLog` and `tableLogHeights`. `buildLayoutLite` computes only these (no bus
@@ -117,7 +119,7 @@ default state with an empty queue, then the scalar joins the queue. -/
   let sp : Compile.Sponge := if sp.pending.length = rateScalars then ⟨default, []⟩ else sp
   { sp with pending := sp.pending ++ [(x, tag)] }
 
-/-- Read `n` prover scalars, each absorbed with `dsObserve` (`Prog.readScalars`). -/
+/-- Read `n` prover scalars, each absorbed with `dsObserve` (`VerifierProgram.readScalars`). -/
 @[expose] def readPure : ℕ → VerifierProgramState → Option (List E × VerifierProgramState)
   | 0, s => some ([], s)
   | n + 1, s =>
@@ -153,7 +155,7 @@ theorem runPure_readScalars_bind {β : Type} (n : ℕ) (f : List E → VerifierP
         r.2 := by
   rw [runPure_bind, runPure_readScalars]
 
-/-- Read a root (`Prog.readCommitment height width`): two scalars, absorbed, which must encode a
+/-- Read a root (`VerifierProgram.readCommitment height width`): two scalars, absorbed, which must encode a
 digest; the root is recorded with its shape. -/
 @[expose] def commitPure (height width : ℕ) (s : VerifierProgramState) : Option (Unit ×
     VerifierProgramState) :=
@@ -182,7 +184,7 @@ theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
 
 /-! ## Steps 1 and 2 -/
 
-/-- `readSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
+/-- `readAnnouncedSizes bytecode` (`Statement/LeanVmVerifier.lean`), run: the announced sizes, read and
 checked, and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=

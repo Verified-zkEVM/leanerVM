@@ -50,7 +50,8 @@ end Coverage
 
 namespace Limits
 
-/-- **The deployed deferring verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`):
+/-- **The deployed deferring verifier refusing a zero challenge**
+(`VerifierProgram.refusingZeroChallenge`):
 `verifyDeferred` with every sampled challenge `0` a failure. -/
 def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
     (claim : BytecodeClaim) (proof : Proof) : Bool :=

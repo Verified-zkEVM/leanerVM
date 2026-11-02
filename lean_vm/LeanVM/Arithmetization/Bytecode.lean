@@ -25,7 +25,7 @@ At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, transcribed from:
 * `crates/leanvm_core/src/cpu/isa.rs:58-75`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`.
 
-`entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `encodeSlots i` is
+`entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `instructionSlots i` is
 its sixteen-slot row, the entry at slots 3 to 13. Both are defined in `Statement.LeanIsa`, since
 the verifier receives a program through them; `decode`, here, consumes an eleven-coordinate
 entry. It is exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF`
@@ -34,9 +34,9 @@ Unknown opcodes, invalid `DEREF` flag pairs, `KECCAK` layout flags other than `0
 nonzero spare entry coordinates decode to `none`. These results establish the canonical entry
 boundary.
 
-`Program` already contains typed `Instr` values, and `Program.fetch` looks them up by address;
-it does not invoke this decoder. `encodeSlots` constructs sixteen-slot vectors, but this
-module does not decode arbitrary sixteen-slot vectors or prove a raw-bytecode-to-`Program`
+`Program` already contains typed `LeanIsaInstruction` values, and `LeanIsaProgram.fetch` looks them
+up by address; it does not invoke this decoder. `instructionSlots` constructs sixteen-slot vectors,
+but this module does not decode arbitrary sixteen-slot vectors or prove a raw-bytecode-to-`Program`
 loading/correspondence theorem. Those interfaces require separate coverage or rejection proofs.
 
 ## Wrong readings excluded

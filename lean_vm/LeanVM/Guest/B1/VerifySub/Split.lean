@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.Split
 
-  The deferring verifier's program (`deferredProgram`, V:2328) regrouped along `verify_sub`'s
-  callees.
+  The deferring verifier's program (`deferringVerifierProgram`, V:2328) regrouped along
+  `verify_sub`'s callees.
 -/
 
 module
@@ -16,12 +16,13 @@ public import LeanVM.Guest.B1.Gkr.Interface
 /-!
 # The deferring verifier, regrouped
 
-`deferredFlat c bytecode pi` is `deferredProgram c bytecode pi` (`deferred_eq`) with its phases
-grouped as `verify_sub` runs them: the announced sizes (`readSizes`), the stack's commitment, the
-four bus challenges and `β`, the bus's GKR (`gkrPhase`, `verify_bus_gkr`), the bus's rest, the
-table sumcheck and the public input (`tablesSeg`, `verify_tables`), the output lanes' check, the
-Keccak reduction and the ring map's first challenge (`keccakSeg`, `verify_keccak`), the ring map's
-other five challenges, the batching challenge, the stacked opening up to its terminal (`whirOpen`,
+`deferredFlat c bytecode pi` is `deferringVerifierProgram c bytecode pi` (`deferred_eq`) with its
+phases grouped as `verify_sub` runs them: the announced sizes (`readAnnouncedSizes`), the stack's
+commitment, the four bus challenges and `β`, the bus's GKR (`gkrPhase`, `verify_bus_gkr`), the bus's
+rest, the table sumcheck and the public input (`tablesSeg`, `verify_tables`), the output lanes'
+check, the Keccak reduction and the ring map's first challenge (`keccakSeg`, `verify_keccak`), the
+ring map's other five challenges, the batching challenge, the stacked opening up to its terminal
+(`whirOpen`,
 `open_stacked`) and the terminal's check (`check_opening_terminal`).
 -/
 

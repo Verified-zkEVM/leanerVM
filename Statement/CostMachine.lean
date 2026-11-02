@@ -12,16 +12,17 @@ applies closures, builds and inspects constructors, and runs priced primitive op
 numbers and arrays. Values are immutable. A program carries its literals, and its size counts them
 in full (`MachineProgram.size`); its only runtime data is its input.
 
-`run P fuel x` runs function `0` of `P` on `x`: its value and its price, the sum of its steps'
-prices, or `none` when the run misuses a value (a primitive on the wrong kind of value, a missing
-variable, field, alternative or function) or nests more than `fuel` calls. A misuse is a failure,
-never undefined behavior. `outputWithin P s x b` is the value if `P`'s size is at most `s` and the
-price at most `b`: a program's two resources, in one place. Each call costs at least `1`, so the
-fuel never fails a run of price at most `b`.
+`runMachineProgram program fuel input` runs function `0` of `program` on `input`: its value and its
+price, the sum of its steps' prices, or `none` when the run misuses a value (a primitive on the
+wrong kind of value, a missing variable, field, alternative or function) or nests more than `fuel`
+calls. A misuse is a failure, never undefined behavior. `outputWithin program sizeBound budget
+input` is the value if `program`'s size is at most `sizeBound` and the price at most `budget`: a
+program's two resources, in one place. Each call costs at least `1`, so the fuel never fails a run
+of price at most `budget`.
 
 **Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
-`KnowledgeSoundness (knowledgeExtractorOf P)` and `GuestKnowledge` their meaning). Each step is
-priced by the algorithm that computes it on a 64-bit machine, at least `1`. The environment is a
+`KnowledgeSoundness (extractorComputedBy P)` and `GuestKnowledgeSoundness` their meaning). Each step
+is priced by the algorithm that computes it on a 64-bit machine, at least `1`. The environment is a
 stack frame, read in place: a position costs `1`; a `let` pushes one value, a `case` the fields it
 binds and a closure's application the captured values it puts in front of the arguments, each at `1`
 per value; a call's frame is written by its argument terms, each of price at least `1`. A
@@ -38,17 +39,17 @@ more, a truncated subtraction or a division by `0`), the carry-less product x86-
 ARMv8's PMULL; on more limbs, a constant number per limb or pair of limbs.
 
 **The extractor a program computes** (`LeanVM.extractorComputedBy P`): `P`, if its size is at most
-`knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
-(`encodeKnowledgeExtractorInput`; the transcript without the adversary's coin flips) within its
-budget (`knowledgeExtractorBudget`, at the transcript's number of permutation queries: the most its
-run may cost, so also the most steps it may execute), its output parsed as an execution
+`leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
+(`encodeLeanVmKnowledgeExtractorInput`; the transcript without the adversary's coin flips) within
+its budget (`leanVmKnowledgeExtractorBudget`, at the transcript's number of permutation queries: the
+most its run may cost, so also the most steps it may execute), its output parsed as an execution
 (`decodeExecution`, a linear parse: no search, no run). A larger program, or a run that fails or
 exceeds its budget, extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a
 parameter; `lean_vm` proves it for its knowledge extractor, compiled. What excludes a vacuous
 statement: `P` is a program (no classical choice), its size bound leaves no room for a useful table
 of witnesses beside the compiled extractor, its only runtime data is its input, and its budget is a
 closed formula, polylogarithmic per query. The guest decoder is a program of the same machine, with
-a size bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
+a size bound and a budget of its own (`GuestKnowledgeSoundness`, `Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -62,9 +63,9 @@ inductive MachineValue where
   /-- A constructor: its tag and its fields. -/
   | constructor (tag : ℕ) (fields : List MachineValue)
   /-- An array. -/
-  | array (xs : Array MachineValue)
-  /-- A closure: function `f` with its first arguments. -/
-  | closure (f : ℕ) (args : List MachineValue)
+  | array (entries : Array MachineValue)
+  /-- A closure: function `functionIndex` with its first arguments. -/
+  | closure (functionIndex : ℕ) (capturedArguments : List MachineValue)
   deriving Inhabited, BEq, Repr
 
 /-- `false` and `true`: the constructors of tags `0` and `1`. -/
@@ -143,27 +144,27 @@ def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Opti
 
 /-- The language's terms. -/
 inductive Term where
-  /-- The value at position `i` of the environment. -/
-  | position (i : ℕ)
+  /-- The value at position `position` of the environment. -/
+  | position (position : ℕ)
   /-- A literal value (part of the program). -/
-  | literal (v : MachineValue)
+  | literal (value : MachineValue)
   /-- A primitive operation on the values of the terms. -/
-  | primitive (o : PrimitiveOperation) (args : List Term)
+  | primitive (operation : PrimitiveOperation) (args : List Term)
   /-- A constructor of the values of the terms. -/
   | constructor (tag : ℕ) (args : List Term)
-  /-- Field `i` of a constructor. -/
-  | field (i : ℕ) (t : Term)
+  /-- Field `fieldIndex` of a constructor. -/
+  | field (fieldIndex : ℕ) (term : Term)
   /-- On a constructor of tag `k`, alternative `k` with the fields in front of the
   environment. -/
-  | case (t : Term) (alts : List Term)
-  /-- The body with the value of `t` in front of the environment. -/
-  | letIn (t body : Term)
-  /-- A call of function `f` on the values of the terms. -/
-  | call (f : ℕ) (args : List Term)
-  /-- A closure of function `f` with the values of the terms as its first arguments. -/
-  | closure (f : ℕ) (args : List Term)
+  | case (term : Term) (alternatives : List Term)
+  /-- The body with the value of `term` in front of the environment. -/
+  | letIn (term body : Term)
+  /-- A call of function `functionIndex` on the values of the terms. -/
+  | call (functionIndex : ℕ) (args : List Term)
+  /-- A closure of function `functionIndex` with the values of the terms as its first arguments. -/
+  | closure (functionIndex : ℕ) (args : List Term)
   /-- A closure applied to the values of the terms. -/
-  | applyClosure (t : Term) (args : List Term)
+  | applyClosure (term : Term) (args : List Term)
   deriving Inhabited
 
 /-- A program: the function bodies; function `0` is the entry. -/
@@ -172,48 +173,49 @@ abbrev MachineProgram := Array Term
 mutual
 
 /-- A term's value and price in an environment, with `fuel` nested calls at most. -/
-def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → Option (MachineValue × ℕ)
+def evaluateTerm (program : MachineProgram) :
+    ℕ → List MachineValue → Term → Option (MachineValue × ℕ)
   | _, env, .position i => env[i]?.map (·, 1)
   | _, _, .literal v => some (v, 1)
   | n, env, .primitive o ts => do
-    let (vs, c) ← evaluateTerms P n env ts
+    let (vs, c) ← evaluateTerms program n env ts
     let (v, d) ← o.apply vs
     pure (v, c + d)
   | n, env, .constructor k ts => do
-    let (vs, c) ← evaluateTerms P n env ts
+    let (vs, c) ← evaluateTerms program n env ts
     pure (.constructor k vs, c + vs.length + 1)
   | n, env, .field i t => do
-    let (v, c) ← evaluateTerm P n env t
+    let (v, c) ← evaluateTerm program n env t
     match v with
     | .constructor _ fs => fs[i]?.map (·, c + 1)
     | _ => none
   | n, env, .case t alts => do
-    let (v, c) ← evaluateTerm P n env t
+    let (v, c) ← evaluateTerm program n env t
     match v with
     | .constructor k fs =>
       match _h : alts[k]? with
       | some a => do
-        let (w, d) ← evaluateTerm P n (fs ++ env) a
+        let (w, d) ← evaluateTerm program n (fs ++ env) a
         pure (w, c + d + fs.length + 1)
       | none => none
     | _ => none
   | n, env, .letIn t b => do
-    let (v, c) ← evaluateTerm P n env t
-    let (w, d) ← evaluateTerm P n (v :: env) b
+    let (v, c) ← evaluateTerm program n env t
+    let (w, d) ← evaluateTerm program n (v :: env) b
     pure (w, c + d + 1)
   | n, env, .call f ts => do
-    let (vs, c) ← evaluateTerms P n env ts
-    let (w, d) ← evaluateFunctionBody P n f vs
+    let (vs, c) ← evaluateTerms program n env ts
+    let (w, d) ← evaluateFunctionBody program n f vs
     pure (w, c + d + 1)
   | n, env, .closure f ts => do
-    let (vs, c) ← evaluateTerms P n env ts
+    let (vs, c) ← evaluateTerms program n env ts
     pure (.closure f vs, c + vs.length + 1)
   | n, env, .applyClosure t ts => do
-    let (g, c) ← evaluateTerm P n env t
-    let (vs, d) ← evaluateTerms P n env ts
+    let (g, c) ← evaluateTerm program n env t
+    let (vs, d) ← evaluateTerms program n env ts
     match g with
     | .closure f us => do
-      let (w, e) ← evaluateFunctionBody P n f (us ++ vs)
+      let (w, e) ← evaluateFunctionBody program n f (us ++ vs)
       pure (w, c + d + e + us.length + 1)
     | _ => none
 termination_by n _ t => (n, sizeOf t)
@@ -223,35 +225,35 @@ decreasing_by
     decreasing_tactic
 
 /-- The terms' values, in order, and their total price. -/
-def evaluateTerms (P : MachineProgram) :
+def evaluateTerms (program : MachineProgram) :
     ℕ → List MachineValue → List Term → Option (List MachineValue × ℕ)
   | _, _, [] => some ([], 0)
   | n, env, t :: ts => do
-    let (v, c) ← evaluateTerm P n env t
-    let (vs, d) ← evaluateTerms P n env ts
+    let (v, c) ← evaluateTerm program n env t
+    let (vs, d) ← evaluateTerms program n env ts
     pure (v :: vs, c + d)
 termination_by n _ ts => (n, sizeOf ts)
 
 /-- Function `f`'s body on the arguments `vs`, one call deeper. -/
-def evaluateFunctionBody (P : MachineProgram) :
+def evaluateFunctionBody (program : MachineProgram) :
     ℕ → ℕ → List MachineValue → Option (MachineValue × ℕ)
   | 0, _, _ => none
-  | n + 1, f, vs => match P[f]? with
-    | some b => evaluateTerm P n vs b
+  | n + 1, f, vs => match program[f]? with
+    | some b => evaluateTerm program n vs b
     | none => none
 termination_by n _ _ => (n, 0)
 
 end
 
-/-- **A run**: function `0` on the input `x`, with `fuel` nested calls at most below it. -/
-def runMachineProgram (P : MachineProgram) (fuel : ℕ) (x : MachineValue) : Option (MachineValue
-    × ℕ) :=
-  evaluateFunctionBody P (fuel + 1) 0 [x]
+/-- **A run**: function `0` on the input `input`, with `fuel` nested calls at most below it. -/
+def runMachineProgram (program : MachineProgram) (fuel : ℕ) (input : MachineValue) : Option
+    (MachineValue × ℕ) :=
+  evaluateFunctionBody program (fuel + 1) 0 [input]
 
 /-! ## Size
 
 A constructor's tag and a closure's function index count one with their node, whatever their
-number, and so do a term's positions and function indices (`var`, `field`, `call`, `closure`).
+number, and so do a term's positions and function indices (`position`, `field`, `call`, `closure`).
 That is sound because the machine reads them only by bounded lookups, never as data: a tag selects
 one of a `case`'s alternatives, which the program lists, or is compared with a constant (a list's
 `nil` and `cons` in `arrayOfList`, `MachineValue.toList?`); a function index is looked up in the
@@ -296,14 +298,15 @@ def Term.sizeList : List Term → ℕ
 end
 
 /-- A program's size: the sizes of its bodies. -/
-def MachineProgram.size (P : MachineProgram) : ℕ := (P.toList.map Term.size).sum
+def MachineProgram.size (program : MachineProgram) : ℕ := (program.toList.map Term.size).sum
 
-/-- **The output within a size bound and a budget**: `P`'s value on `x` if `P`'s size is at most
-`sizeBound` (`MachineProgram.size`) and its run costs at most `budget`; `none` otherwise. -/
-def outputWithin (P : MachineProgram) (sizeBound : ℕ) (x : MachineValue) (budget : ℕ) :
+/-- **The output within a size bound and a budget**: `program`'s value on `input` if `program`'s
+size is at most `sizeBound` (`MachineProgram.size`) and its run costs at most `budget`; `none`
+otherwise. -/
+def outputWithin (program : MachineProgram) (sizeBound budget : ℕ) (input : MachineValue) :
     Option MachineValue :=
-  if MachineProgram.size P ≤ sizeBound then
-    match runMachineProgram P budget x with
+  if MachineProgram.size program ≤ sizeBound then
+    match runMachineProgram program budget input with
     | some (v, c) => if c ≤ budget then some v else none
     | none => none
   else none
@@ -349,7 +352,9 @@ instance {α : Type} [MachineEncoding α] {n : ℕ} : MachineEncoding (Fin n →
   ⟨encodeFiniteFunction⟩
 
 instance {S : Type} [MachineEncoding S] : MachineEncoding (PermutationQuery S) where
-  encodeValue | .forward x => .constructor 0 [encodeValue x] | .inverse y => .constructor 1 [encodeValue y]
+  encodeValue
+    | .forward x => .constructor 0 [encodeValue x]
+    | .inverse y => .constructor 1 [encodeValue y]
 
 instance : MachineEncoding PublicInput := ⟨fun p ↦ .constructor 0 [encodeFiniteFunction p.lanes]⟩
 
@@ -377,17 +382,16 @@ instance : MachineEncoding Opening := ⟨fun o ↦ .constructor 0 [encodeValue o
 instance : MachineEncoding Proof :=
   ⟨fun π ↦ .constructor 0 [encodeValue π.stream, encodeValue π.openings]⟩
 
-instance {prog : Semantics.LeanIsaProgram} : MachineEncoding (Execution prog) :=
-  ⟨fun t ↦ .constructor 0 [encodeValue t.logMemorySize, encodeFiniteFunction t.memory,
-    encodeValue t.stepCount]⟩
+instance {program : Semantics.LeanIsaProgram} : MachineEncoding (Execution program) :=
+  ⟨fun execution ↦ .constructor 0 [encodeValue execution.logMemorySize,
+    encodeFiniteFunction execution.memory, encodeValue execution.stepCount]⟩
 
 /-- **The extractor's input**: the program, the public input, the transcript's permutation
 queries, the proof. -/
-def encodeLeanVmKnowledgeExtractorInput (prog : Semantics.LeanIsaProgram) (input : PublicInput)
-    (T : OracleQueryLog)
-    (proof : Proof) : MachineValue :=
-  .constructor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
-    encodeValue proof]
+def encodeLeanVmKnowledgeExtractorInput (program : Semantics.LeanIsaProgram) (input : PublicInput)
+    (transcript : OracleQueryLog) (proof : Proof) : MachineValue :=
+  .constructor 0 [encodeValue program, encodeValue input,
+    encodeValue (permutationQueries transcript), encodeValue proof]
 
 /-- A word of `E` from its encoding (each limb modulo `2^64`). -/
 def decodeExtensionElement : MachineValue → Option E
@@ -397,7 +401,7 @@ def decodeExtensionElement : MachineValue → Option E
 
 /-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;
 `none` on anything else. -/
-def decodeExecution (prog : Semantics.LeanIsaProgram) : MachineValue → Option (Execution prog)
+def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Option (Execution program)
   | .constructor 0 [.nat κ, .array mem, .nat steps] =>
     match (mem.toList.mapM decodeExtensionElement) with
     | some words =>
@@ -409,21 +413,21 @@ def decodeExecution (prog : Semantics.LeanIsaProgram) : MachineValue → Option 
 
 /-! ## The extractor's budget -/
 
-/-- **The extractor's budget**, for a transcript of `N` permutation queries: the most the
-extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, with
+/-- **The extractor's budget**, for a transcript of `N = permutationQueryCount` permutation queries:
+the most the extractor's run may cost, in the machine's price (the sum of its steps' prices, each at
+least `1`, so also the most steps it may execute), `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, with
 `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript. `lean_vm`
-proves the compiled extractor's price at most this at every shape the replay admits (stack
-log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`): `2^81`
-bounds the list decoder
-(about `2^80.49`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each lane
-interpolated by an approximant basis) and the runs of the candidate executions (about `2^65.6`); the
-second term bounds the transcript's index (about `2^14.85` per query and level squared, a level's
-positions growing by a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`).
-So about `2^81` for at most `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and
-`2^157.08` for `2^128`. -/
-def leanVmKnowledgeExtractorBudget (N : ℕ) : ℕ :=
-  2 ^ 81 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
+proves the compiled extractor's price at most this at every shape the replay admits (stack log-size
+`15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`): `2^81` bounds
+the list decoder (about `2^80.49`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each
+lane interpolated by an approximant basis) and the runs of the candidate executions (about
+`2^65.6`); the second term bounds the transcript's index (about `2^14.85` per query and level
+squared, a level's positions growing by a limb per `64` levels) and the committed leaves (`2^26` at
+most, the `2^30`). So about `2^81` for at most `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for
+`2^80` and `2^157.08` for `2^128`. -/
+def leanVmKnowledgeExtractorBudget (permutationQueryCount : ℕ) : ℕ :=
+  2 ^ 81 + (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
+    (2 ^ 15 + 2 * (Nat.log2 (permutationQueryCount + 2) + 1))
 
 end
 
@@ -447,18 +451,19 @@ its code. -/
 def leanVmKnowledgeExtractorSizeBound : ℕ := 14500
 
 /-- **The extractor a program computes**: the program, of size at most
-`knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
-(`encodeKnowledgeExtractorInput`) within the budget at the transcript's number of permutation
-queries (`knowledgeExtractorBudget`), its output parsed as an execution (`decodeExecution`); `none`
-if the program is larger, or the run fails, exceeds its budget, or outputs no execution's encoding.
-A larger program extracts nothing, so `KnowledgeSoundness (knowledgeExtractorOf P)` fails for it: an
-adversary running the honest prover is accepted. -/
-def extractorComputedBy (P : Cost.MachineProgram) : StraightLineExtractor :=
-  fun prog input T proof ↦
-    (Cost.outputWithin P leanVmKnowledgeExtractorSizeBound
-        (Cost.encodeLeanVmKnowledgeExtractorInput prog input T proof)
-      (Cost.leanVmKnowledgeExtractorBudget (permutationQueries T).length)).bind
-          (Cost.decodeExecution prog)
+`leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
+(`encodeLeanVmKnowledgeExtractorInput`) within the budget at the transcript's number of permutation
+queries (`leanVmKnowledgeExtractorBudget`), its output parsed as an execution (`decodeExecution`);
+`none` if the program is larger, or the run fails, exceeds its budget, or outputs no execution's
+encoding. A larger program extracts nothing, so
+`KnowledgeSoundness (extractorComputedBy knowledgeExtractorProgram)` fails for it: an adversary
+running the honest prover is accepted. -/
+def extractorComputedBy (knowledgeExtractorProgram : Cost.MachineProgram) : StraightLineExtractor :=
+  fun program input transcript proof ↦
+    (Cost.outputWithin knowledgeExtractorProgram leanVmKnowledgeExtractorSizeBound
+        (Cost.leanVmKnowledgeExtractorBudget (permutationQueries transcript).length)
+        (Cost.encodeLeanVmKnowledgeExtractorInput program input transcript proof)).bind
+          (Cost.decodeExecution program)
 
 end
 

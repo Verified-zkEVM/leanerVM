@@ -14,7 +14,7 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
   and every output lane has no placement (it is derived, never opened).
 * **Row counts.** Row counts that are not powers of two give the placements and the stacked size
   of the least powers of two holding them.
-* **The announced sizes.** `readSizes` returns on the announcement of admissible sizes, and
+* **The announced sizes.** `readAnnouncedSizes` returns on the announcement of admissible sizes, and
   rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `KECCAK` table
   of two rows is accepted, at its floor height `2^9`.
 * **Mutations.** Breaking ties by the higher index, or reading the lanes in the low six
@@ -102,13 +102,14 @@ example (c : Col) (hc : ¬ IsOut c) (z : Vector E (kappa prog4 s₁ c)) (v : E)
 
 /-! ## The announced sizes -/
 
-/-- Whether `readSizes` returns after the announcement, with the expected stacked size and rate. -/
+/-- Whether `readAnnouncedSizes` returns after the announcement, with the expected stacked size and
+rate. -/
 def readsTo (s : Sizes) (ρ : ℕ) (μ : ℕ) : Bool :=
   match (readAnnouncedSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
   | some (.ret a) => a.1.stackLog == μ && a.2 == ρ
   | _ => false
 
-/-- Whether `readSizes` rejects after the announcement. -/
+/-- Whether `readAnnouncedSizes` rejects after the announcement. -/
 def rejects (s : Sizes) (ρ : ℕ) : Bool :=
   match (readAnnouncedSizes (bytecodeWords prog4)).after ((announce s ρ).map Ev.read) with
   | some .fail => true

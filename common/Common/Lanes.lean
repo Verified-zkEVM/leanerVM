@@ -108,7 +108,7 @@ theorem bytesLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
   norm_num
   omega
 
-/-- `leLane` reads the eight bytes from `8i` as `bytesLane` does. -/
+/-- `littleEndianLane` reads the eight bytes from `8i` as `bytesLane` does. -/
 theorem leLane_eq_bytesLane (bs : List UInt8) (i : ℕ) :
     littleEndianLane bs i = bytesLane (bs.drop (8 * i)) := by
   apply UInt64.toNat_inj.mp
@@ -155,7 +155,7 @@ theorem wordBytes_bytesLane (b : List UInt8) :
     generalize (b.getD 7 0).toNat = x7 at * <;>
     norm_num <;> omega
 
-/-- The bytes of `leLane bs i` are bytes `8i` to `8i + 7` of `bs`, missing ones `0`. -/
+/-- The bytes of `littleEndianLane bs i` are bytes `8i` to `8i + 7` of `bs`, missing ones `0`. -/
 theorem wordBytes_leLane (bs : List UInt8) (i : ℕ) :
     wordBytes (littleEndianLane bs i) = (List.range 8).map fun k ↦ bs.getD (8 * i + k) 0 := by
   rw [leLane_eq_bytesLane, wordBytes_bytesLane]

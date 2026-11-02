@@ -4,15 +4,15 @@ import LeanVM.Protocol.WithHashBridge
 /-!
 # The compiled verifier: the Fiat-Shamir sponge against the Python's, and garbage rejected
 
-`verify` is the compiled reading of `leanVmProgram` with Keccak-256 and Keccak-f[1600]. The
+`verify` is the compiled reading of `leanVmVerifierProgram` with Keccak-256 and Keccak-f[1600]. The
 honest proofs are the fixtures `tests/fixtures/verifier/*` (accepted by the compiled verifier
 `leanvm-verify`, `scripts/fuzz-verifier.py`); this file checks the compiled reading where the
 Python can be run without a proof, on the scalar stream `stream rate n`: the eight announced
 sizes (memory `2^16`, the row counts `4, 2, 2, 4, 4, 8`, the rate exponent), two canonical root
 halves, then `n` scalars `fe(10 + k)`.
 
-* The seed and the sponge: the first two steps of the program (`readSizes`, `commitStack`) and
-  five challenges, in the compiled reading, give the challenges and the sponge state the
+* The seed and the sponge: the first two steps of the program (`readAnnouncedSizes`, `commitStack`)
+  and five challenges, in the compiled reading, give the challenges and the sponge state the
   Python's `Transcript` gives on the same stream after `next_scalars(8)`,
   `from_halves(next_scalars(2))` and `samples(5)` (`python-verifier/verifier.py` at leanVM
   `990b935263dc7f793f280914f262ca7955ddc3e0`, a driver of the port's scratch). This binds the IV's

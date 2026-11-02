@@ -80,19 +80,20 @@ announced sizes have zero upper limbs (`verifier/src/lib.rs:234-238`, the transc
 and (2) the two public words have a zero third limb (`cpu/mod.rs:676-678`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
 (`cpu/mod.rs:688`, `verifier/src/layout.rs:483` and `:487`), `Program`'s by type
-(`Program.logSize_le`); (4) the memory log-size is within `[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]`
-(`verifier/src/layout.rs:485`); (5) every table has at most `2^MAX_LOG_ROWS` rows
-(`verifier/src/layout.rs:417` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover
-announces each table's row count, the rows past it in the table's height being padding rows,
-which the bus never sees, so the witness's tables are the executed rows only); (6) the `KECCAK`
-table's height floor (`TABLE_LOG_FLOORS`) is the protocol layer's, its padding rows being outside
-the bus; (7) the WHIR rate (`verifier/src/lib.rs:242`) and (8) the
-stacked size `mu ∈ [MIN_MU, MAX_MU]` (`verifier/src/lib.rs:244-247`) are parameters of the
-commitment, left to the protocol layer, which reads them off the same announcement. `Caps`
-transcribes (4) and (5) and adds `WellShapedData w.data`, a representation hypothesis
-rather than a check: the shape the announced `log_mem` already implies for an honest prover,
-so that `imageOf` drops no row of the prover data. These caps are what keeps the
-total read count below `2^64 - 1`, the bound the bus argument of `Soundness` needs (Lemma 6.3).
+(`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
+`[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:485`); (5) every table has at most
+`2^MAX_LOG_ROWS` rows (`verifier/src/layout.rs:417` at leanVM
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover announces each table's row count, the rows
+past it in the table's height being padding rows, which the bus never sees, so the witness's tables
+are the executed rows only); (6) the `KECCAK` table's height floor (`TABLE_LOG_FLOORS`) is the
+protocol layer's, its padding rows being outside the bus; (7) the WHIR rate
+(`verifier/src/lib.rs:242`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
+(`verifier/src/lib.rs:244-247`) are parameters of the commitment, left to the protocol layer, which
+reads them off the same announcement. `Caps` transcribes (4) and (5) and adds
+`WellShapedData w.data`, a representation hypothesis rather than a check: the shape the announced
+`log_mem` already implies for an honest prover, so that `imageOf` drops no row of the prover data.
+These caps are what keeps the total read count below `2^64 - 1`, the bound the bus argument of
+`Soundness` needs (Lemma 6.3).
 
 **The three hypotheses Clean cannot yet express** (removed by Clean PR #446, indexed fixed
 columns and proof-committed `ProverData`):

@@ -136,7 +136,7 @@ inductive Atom where
   | assertInK (a b : V)
   /-- `KECCAK`, one instruction: the thirteen values `ins` hold a Keccak state in the layout
   `inOdd`, and the thirteen values `outs` hold its Keccak-f[1600] in the layout `outOdd`
-  (`KeccakCellsRelation`). `ins` lists the cells the instruction reads in its order (`keccakInOffset`,
+  (`KeccakCellsRelation`). `ins` lists the cells the instruction reads in its order (`keccakInputCellOffset`,
   `LeanVM.Guest.keccakIns`): `m0, m1, m2, m3`, the four cells of the run from `tail`, `b8`, the
   four of the run from `cap`; `outs[k]` is the cell `out + k` (`LeanVM.Guest.keccakOuts`). An
   atom whose lists are not thirteen long holds of no valuation. -/

@@ -15,9 +15,11 @@ public import Statement.LeanIsa
 
 The compiler's `Op` (`crates/leanvm_core/src/cpu/isa.rs`) names a frame cell by its offset `o`,
 whose bytecode slot is `g^o` (`crates/leanvm_core/src/cpu/layout.rs:288-353`), and holds a `SET`
-immediate as three `u64` limbs. `OInstr` is that form, and `OInstr.toInstr` its meaning in
+immediate as three `u64` limbs. `OffsetInstruction` is that form, and
+`OffsetInstruction.toLeanIsaInstruction` its meaning in
 `Statement.LeanIsa`: the kernel never evaluates a power of `g`, which costs one multiplication per
-unit of the exponent, because every offset stays a `ℕ` until `toInstr` wraps it in `gpow`.
+unit of the exponent, because every offset stays a `ℕ` until `toLeanIsaInstruction` wraps it in
+`gpow`.
 
 A compiled function (`CompiledFn`) is its name, entry pc, length and code, the code in chunks of
 `chunkSize` instructions so that no literal is too large to elaborate. `assemble` lays a list of
@@ -39,8 +41,8 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## Instructions -/
 
-/-- The frame offset of read cell `c < 13` of `OInstr.keccak m0 m1 m2 m3 tail b8 cap _`:
-`m0, …, m3`, then `tail + k` (`k < 4`), `b8`, then `cap + k` (`k < 4`) (`keccakInOffset` in offset
+/-- The frame offset of read cell `c < 13` of `OffsetInstruction.keccak m0 m1 m2 m3 tail b8 cap _`:
+`m0, …, m3`, then `tail + k` (`k < 4`), `b8`, then `cap + k` (`k < 4`) (`keccakInputCellOffset` in offset
 form, `keccakInOffset_gpow`). -/
 def keccakInOff (m0 m1 m2 m3 tail b8 cap c : ℕ) : ℕ :=
   if c = 0 then m0 else if c = 1 then m1 else if c = 2 then m2 else if c = 3 then m3
@@ -96,7 +98,7 @@ theorem assembleArray_eq (fns : List CompiledFunction) (logSize : ℕ) (h : logS
 
 /-! ## Lemmas -/
 
-/-- `KECCAK`'s read offsets in offset form: read cell `c` of the instruction `toInstr` gives is at
+/-- `KECCAK`'s read offsets in offset form: read cell `c` of the instruction `toLeanIsaInstruction` gives is at
 the frame offset `keccakInOff … c`. -/
 theorem keccakInOffset_gpow (m0 m1 m2 m3 tail b8 cap : ℕ) (c : Fin 13) :
     keccakInputCellOffset ![addressOfIndex m0, addressOfIndex m1, addressOfIndex m2, addressOfIndex
@@ -167,7 +169,7 @@ theorem CompiledFunction.length_code {f : CompiledFunction} (h : f.WellChunked) 
     f.instructionCount :=
   (chunked_spec (by decide) h).1
 
-/-- In a well-chunked function, `instrAt` reads the code. -/
+/-- In a well-chunked function, `instructionAt` reads the code. -/
 theorem CompiledFunction.getElem?_code {f : CompiledFunction} (h : f.WellChunked) {i : ℕ} (hi : i <
     f.instructionCount) :
     f.code[i]? = some (f.instructionAt i) :=
@@ -215,7 +217,7 @@ section
 variable {fns : List CompiledFunction} {logSize e : ℕ} {hl : logSize ≤ maxLogBytecode}
 
 /-- **The fetch lemma**: in a consecutive layout from pc `0` that fits the program, the
-instruction at pc `entry + i` of a function `f` is `f.instrAt i`. -/
+instruction at pc `entry + i` of a function `f` is `f.instructionAt i`. -/
 theorem assemble_fetch (h : consecutive 0 fns e = true) (he : e ≤ 2 ^ logSize)
     {f : CompiledFunction} (hf : f ∈ fns) {i : ℕ} (hi : i < f.instructionCount) :
     (assemble fns logSize hl).fetch (addressOfIndex (f.entryPc + i)) = some (f.instructionAt

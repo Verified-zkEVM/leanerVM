@@ -7,7 +7,7 @@ public import LeanVM.Guest.DecoderProgram
 /-!
 # The guest decoder program and its specification
 
-`decoderProgram`: the entry (`decoderEntryBody`, `Cost/DecoderProgram.lean`), then the compiled
+`compiledGuestWitnessDecoder`: the entry (`decoderEntryBody`, `Cost/DecoderProgram.lean`), then the compiled
 top's bodies (`decTopC`, `Decoder/Top.lean`). On every valid execution `t` of the guest, its
 output is the encoding of the deployed decoder's decoding `End.decode t.memory`: the entry runs
 the top on the program, `κ` and the memory vector (`outputWithin_decoderEntry`), the top's spec
@@ -58,7 +58,8 @@ noncomputable def memoryDecoder (t : Execution LeanVM.Guest.guestProgram) : Seed
 /-- **The program computes the deployed decoder**, within any budget covering its price. -/
 theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guestProgram) {b : ℕ}
     (hb : decoderProgramPrice LeanVM.Guest.guestProgram t ≤ b) :
-    outputWithin compiledGuestWitnessDecoder guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput LeanVM.Guest.guestProgram t) b =
+    outputWithin compiledGuestWitnessDecoder guestWitnessDecoderSizeBound b
+        (encodeGuestWitnessDecoderInput LeanVM.Guest.guestProgram t) =
       some (encodeValue (memoryDecoder t)) := by
   have h : memoryDecoder t = decTop LeanVM.Guest.guestProgram t.logMemorySize (memoryVector t.memory) :=
     (decTop_eq t.memory).symm

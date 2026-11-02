@@ -29,7 +29,7 @@ cells are zero-extended to whole blocks.
 * `padCells_bytes`: the compiler's padded cells hold the padded message;
 * `keccak_final`, `keccak_final_digest`: a `final` chain (after a prefix of whole blocks, the
   `state=` continuation) computes the state, and the digest cells `0`, `1` are
-  `digestScalars (keccak256 (prefix ++ message))`.
+  `digestHalves (keccak256 (prefix ++ message))`.
 -/
 
 namespace LeanVM.Guest.Value.Keccak
@@ -511,7 +511,7 @@ theorem keccak_final {cells : List E} {len : ℕ} {pre : List UInt8} {n : ℕ}
     absorbChunks_append _ _ _ _ _ hpre]
 
 /-- **The digest cells of a `final` chain** (`keccak_final`): cells `0` and `1` of the last
-output are `digestScalars (keccak256 (pre ++ message))`. -/
+output are `digestHalves (keccak256 (pre ++ message))`. -/
 theorem keccak_final_digest {cells : List E} {len : ℕ} {pre : List UInt8} {n : ℕ}
     {I O : ℕ → Fin 13 → E}
     (hpre : pre.length = rate * n) (hlen : len ≤ 16 * cells.length)
@@ -530,7 +530,7 @@ theorem keccak_final_digest {cells : List E} {len : ℕ} {pre : List UInt8} {n :
 
 /-- **One block from the zero state** (`keccak(a, b, out, tail=, len=)`, at most `128` bytes, one
 `KECCAK` in the even layouts, its capacity cells the zero run `keccak_pad_run() + 1`): the
-digest cells are `digestScalars (keccak256 message)`, the output the state's cells. -/
+digest cells are `digestHalves (keccak256 message)`, the output the state's cells. -/
 theorem keccak_one {cells : List E} {len : ℕ} {I O : Fin 13 → E}
     (hlen : len ≤ 16 * cells.length) (hlt : len < rate)
     (hz : ∀ j, len ≤ j → (cellsBytes cells).getD j 0 = 0)

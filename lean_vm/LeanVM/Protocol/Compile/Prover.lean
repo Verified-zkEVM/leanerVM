@@ -36,7 +36,7 @@ The prover is transcribed from the pinned leanVM
   `2^height` rows of the word hashed as the little-endian bytes of their `K` words (`:401-404`),
   each parent the hash of the 64 bytes of its children, left first
   (`crates/fiat_shamir/src/merkle.rs:21-34`);
-  its root goes on the stream as two scalars (`digestScalars`, `hash_to_scalars`);
+  its root goes on the stream as two scalars (`digestHalves`, `hash_to_scalars`);
 * an opening is the row at the position's low `height` bits and its authentication path,
   leaf level first, one per queried position, in the order the verifier reads them (the
   unpruned form of `Proof.openings`).

@@ -15,7 +15,7 @@ public import LeanVM.Guest.AcceptableChild
 `keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)` over the `n = R / 2` packed cells is
 `B = 16n/136 + 1` chained `KECCAK`s (`oqLeafT`): block `k` reads the previous output plus the
 cells from `17k / 2`, the padding `0x01` at cell `n` (the zero/padding run's first cell) and
-`0x80` at cell `n + 1`. `oqLeaf_sound`: its digest cells are `digestScalars (merkleLeafDigest row)`
+`0x80` at cell `n + 1`. `oqLeaf_sound`: its digest cells are `digestHalves (merkleLeafDigest row)`
 (G3's `keccak_final_digest`, the packed cells' bytes being the row's words' bytes).
 -/
 
@@ -151,7 +151,7 @@ theorem cellsBytes_packed (row : List K) (n : ℕ) (hn : row.length = 2 * n) :
 
 /-- **The leaf hash** (G:1217-1219): with the padding run `1, 0, 0, 0, 0` at `pr` and the packed
 cells those of the row's words, the last block's first two cells are the digest of the row,
-`digestScalars (merkleLeafDigest row)` (the leaf of `openOne`, V:501). -/
+`digestHalves (merkleLeafDigest row)` (the leaf of `openOne`, V:501). -/
 theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}
     (hA : ∀ a, Stmt.atom a ∈ oqLeafT s b pr kL → a.Holds rd σ)
     (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)

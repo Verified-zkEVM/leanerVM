@@ -69,7 +69,7 @@ example : guestProgram.fetch (addressOfIndex (2 ^ 19 - 1)) = some
     OffsetInstruction.padding.toLeanIsaInstruction :=
   guest_fetch_pad (by decide) (by decide)
 
-/-- The code list agrees with `instrAt`. -/
+/-- The code list agrees with `instructionAt`. -/
 example : Data.f21.code[100443]? = some (OffsetInstruction.jump 26 0 1) := by
   rw [CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem sphincs_mem)
       (by decide +kernel)]

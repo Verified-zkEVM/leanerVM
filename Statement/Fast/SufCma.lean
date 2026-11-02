@@ -3,7 +3,7 @@ module
 public import Statement.SufCma
 
 /-!
-# `digestBitVec`, compiled fast
+# `digestBytesEquivBitVec`, compiled fast
 
 `Common.SufCma.digestBytesEquivBitVec`, the digest's bytes as a little-endian number, compiles as a
 fold
@@ -34,7 +34,7 @@ theorem foldr_bytes_eq_sum : ∀ l : List UInt8,
     refine Finset.sum_congr rfl fun i _ ↦ ?_
     ring
 
-/-- **`digestBitVec` is the fold.** -/
+/-- **`digestBytesEquivBitVec` is the fold.** -/
 theorem digestBitVec_eq_digestBitVecFold (d : Common.DigestBytes) :
     Common.SufCma.digestBytesEquivBitVec d = digestBitVecFold d := by
   have hval : (Common.SufCma.digestBytesEquivBitVec d).toNat =

@@ -25,8 +25,8 @@ and the node's own claim on the bytecode has the bytecode's shape.
 
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
 relation: what a decoding of an execution explains (`ExplainsPublicInput`, of which
-`GuestKnowledge`, `Theorems.lean`, is the end statement) and the binding of the statement's digest
-(`StatementDigestBinds`). The statement's types, its digest and the batching program
+`GuestKnowledgeSoundness`, `Theorems.lean`, is the end statement) and the binding of the statement's
+digest (`StatementDigestBinds`). The statement's types, its digest and the batching program
 (`Batch.nodeBatchingProgram`), reference material, are `LeanVmGuestDigest.lean`'s, which Lean needs
 first; the completeness side is `LeanVmGuestCompleteness.lean`.
 
@@ -38,11 +38,11 @@ hash; LeanDA is `LeanDa.lean`'s.
 
 The witness is the knowledge content: "some signature verifies" says little (some signature
 verifies for almost every key and message). The soundness statement takes the decoder that names
-the witness as a parameter, a program of the cost machine run within a budget (`GuestKnowledge`).
-A program that output another statement of the same digest would exhibit a Keccak-256 collision;
-what excludes it is that none is known. That the root's statement makes every claim held at the
-leaves is not proved: it would need the Keccak computed inside the guest program to behave as the
-random permutation of `LeanVM.KnowledgeSoundness`.
+the witness as a parameter, a program of the cost machine run within a budget
+(`GuestKnowledgeSoundness`). A program that output another statement of the same digest would
+exhibit a Keccak-256 collision; what excludes it is that none is known. That the root's statement
+makes every claim held at the leaves is not proved: it would need the Keccak computed inside the
+guest program to behave as the random permutation of `LeanVM.KnowledgeSoundness`.
 -/
 
 @[expose] public section
@@ -227,8 +227,8 @@ structure SeedStatementAndWitness where
 
 /-- **The decoding explains the public input `input`**: its seed and statement have the input's
 digest (the statement is the one the input commits to), and its witness covers that statement's
-claims (`NodeRelation`). `GuestKnowledge` (`Theorems.lean`) says this of what the decoder program
-outputs on every valid execution. -/
+claims (`NodeRelation`). `GuestKnowledgeSoundness` (`Theorems.lean`) says this of what the decoder
+program outputs on every valid execution. -/
 def ExplainsPublicInput (guest : LeanIsaProgram) (input : PublicInput)
     (decoding : SeedStatementAndWitness) : Prop :=
   statementDigest decoding.seed decoding.statement = publicInputDigest input ∧

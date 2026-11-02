@@ -24,7 +24,7 @@ are `crates/leanvm_core/src/tables.rs:591-614` (`mod deref`, in that order), the
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
 constraint enforcing Boolean flags. Local soundness instead requires the bytecode pull's
 canonical-entry guarantee, whose decoder (`decode`) admits only the three flag pairs. The typed
-public program stores `Instr` values; this does not supply a raw-program parser or its
+public program stores `LeanIsaInstruction` values; this does not supply a raw-program parser or its
 correspondence theorem.
 
 **The row** `DerefRow` is the column list: `pc, fp`; the operands `o₁, o₂, o₃`; the flags

@@ -58,13 +58,15 @@ def inverseLookup : PermutationEdges S → S → Option S
 
 variable [Fintype S] [SampleableType S]
 
-/-- A uniform draw from the points outside the list `l`, or from all of `S` when `l` covers
-`S` (which the lazy permutation never needs: a full range is a full domain). -/
-noncomputable def uniformAvoiding (l : List S) : ProbComp S :=
-  if h : ∃ y, y ∉ l then
-    letI : Nonempty {y // y ∉ l} := ⟨⟨h.choose, h.choose_spec⟩⟩
-    letI : SampleableType {y // y ∉ l} := SampleableType.subtype S (· ∉ l)
-    Subtype.val <$> ($ᵗ {y // y ∉ l})
+/-- A uniform draw from the points outside the list `excludedPoints`, or from all of `S` when
+`excludedPoints` covers `S` (which the lazy permutation never needs: a full range is a full domain).
+-/
+noncomputable def uniformAvoiding (excludedPoints : List S) : ProbComp S :=
+  if h : ∃ y, y ∉ excludedPoints then
+    letI : Nonempty {y // y ∉ excludedPoints} := ⟨⟨h.choose, h.choose_spec⟩⟩
+    letI : SampleableType {y // y ∉ excludedPoints} :=
+      SampleableType.subtype S (· ∉ excludedPoints)
+    Subtype.val <$> ($ᵗ {y // y ∉ excludedPoints})
   else $ᵗ S
 
 /-- **The lazily sampled random permutation.** A recorded point is answered from the log; a
@@ -123,9 +125,9 @@ noncomputable def lazyRandomPermutationOracles :
 
 /-- **A game in the random-permutation model, run** against the lazily sampled random
 permutation from no edge. -/
-noncomputable def runWithRandomPermutation {α : Type} (G : OracleComp RandomPermutationOracles α) :
-    ProbComp α :=
-  (simulateQ lazyRandomPermutationOracles G).run' []
+noncomputable def runWithRandomPermutation {α : Type}
+    (game : OracleComp RandomPermutationOracles α) : ProbComp α :=
+  (simulateQ lazyRandomPermutationOracles game).run' []
 
 /-- A transcript: the queries of the model's oracles with their answers, in order (VCVio's
 `QueryLog`): coins, `π` and `π⁻¹`. -/

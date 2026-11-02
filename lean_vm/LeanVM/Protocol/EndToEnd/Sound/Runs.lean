@@ -130,7 +130,7 @@ end XRun
 
 /-! ## The first phases' runs -/
 
-/-- The announced sizes are read: `readSizes` does not return without an event. -/
+/-- The announced sizes are read: `readAnnouncedSizes` does not return without an event. -/
 theorem readSizes_ne_ret (bytecode : List K) (a : Layout × ℕ) : readAnnouncedSizes bytecode ≠ .ret
     a := by
   intro h

@@ -22,11 +22,11 @@ with its bodies `deps`:
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
   indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
   most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' literal
-  (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.val` node) is measured by
-  chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`, `Names*.lean`,
-  summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over `18` GB), its body
-  picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies'
-  sizes by `decide +kernel`, which reads the literal's index alone.
+  (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.literal` node) is
+  measured by chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`,
+  `Names*.lean`, summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over
+  `18` GB), its body picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the
+  other bodies' sizes by `decide +kernel`, which reads the literal's index alone.
 
 For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`784434`: the frame
 cells' `749836` and the others', the entry's among them, `34598`, each exact) plus two per index
@@ -49,7 +49,7 @@ theorem decoderProgram_indices_increasing :
   decide +kernel
 
 /-- **The guest's frame cells' literal**: its size, its rows' (`guestLocsList_rowSize`, the
-chunks of `DecoderSize/Locs.lean`), the array's and `Term.val`'s. -/
+chunks of `DecoderSize/Locs.lean`), the array's and `Term.literal`'s. -/
 theorem guestLocsTable_size : guestLocsTableC.costBody.size = 749836 := by
   have h : guestLocsTableC.costBody = Term.literal (MachineValue.array
       (guestLocsList.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray) := rfl

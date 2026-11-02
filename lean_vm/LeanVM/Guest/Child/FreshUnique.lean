@@ -12,7 +12,7 @@ public import LeanVM.Guest.Child.Fresh
 # At most one true fresh claim
 
 The deferring verifier's run is a prefix that does not read the claim (`prefixProg`), the claim's
-value at the point the prefix returns (`claimedValue`, which fails elsewhere), and a suffix
+value at the point the prefix returns (`claimedBytecodeValue`, which fails elsewhere), and a suffix
 (`execSplit`). So an accepted run's claim is at the prefix's point, which is the same for every
 claim on the same proof (`point_of_verifyDeferred`), and a true claim's value is the bytecode's at
 its point: two true claims accepted on one proof are equal (`freshClaim_unique`).

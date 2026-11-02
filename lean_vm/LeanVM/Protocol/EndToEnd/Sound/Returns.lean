@@ -20,7 +20,7 @@ property of the program alone, with no probability, and it composes through `bin
 (`RetOK.bind`): a sequence returns only what its continuation returns on a value its first part
 returns.
 
-The instances bound the column claims the front phases of `leanVmProgram`
+The instances bound the column claims the front phases of `leanVmVerifierProgram`
 (`LeanVM.Protocol.Verifier`) return, with the unfoldings and inductions of
 `LeanVM.Protocol.Verifier.Cost`:
 
@@ -33,7 +33,7 @@ The instances bound the column claims the front phases of `leanVmProgram`
 
 ## Deployed behaviour
 
-The statements are on the program `leanVmProgram` at leanVM
+The statements are on the program `leanVmVerifierProgram` at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, as transcribed in `LeanVM.Protocol.Verifier`.
 -/
 
