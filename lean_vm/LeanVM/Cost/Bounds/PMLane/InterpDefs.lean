@@ -22,7 +22,7 @@ open LeanVM.Cost.Bounds.PMBasis
 public section
 
 /-- The schedule's Karatsuba branch's price. -/
-@[expose] def karMax : ℕ := 2 ^ 32
+@[expose] def karMax : ℕ := 2 ^ 29
 
 /-- Newton's price per step beyond its two products, at precision `≤ k`: the `karMax` and the
 `2^20` of each product (the latter left over from the products' telescoping), the subtraction. -/
