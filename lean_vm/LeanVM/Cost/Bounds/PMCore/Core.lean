@@ -59,34 +59,47 @@ theorem mulTruncEvalP_width_le (ords : Array ℕ) (A B : PolynomialMatrix K) :
   · rw [truncateColumns_getD _ _ (by rw [mulWith_size]; exact hpos), mulWith_getD _ _ _ hpos]
     simp [rowTruncateColumns, rowMulMatrixWith_size]
 
-/-- The composition `A·B` (`mulEvalP`): `|A|` rows of at most `width B` entries of at most
-`dA + dB + 1` coefficients. -/
-theorem mulEvalP_shape (A B : PolynomialMatrix K) {dA dB : ℕ} (hA : DegLe A dA) (hB : DegLe B dB) :
-    (mulEvalP novelTransform fftMulContext A B).size = A.size ∧
-      ∀ i, RowWithin (MatrixWidth B) (dA + dB + 1)
-        ((mulEvalP novelTransform fftMulContext A B).getD i #[]) := by
-  rw [mulEvalP_eq, EvalMat.mulEval_eq_mulWith _ _ fftMulContext]
+/-- The naive product `A·B`: `|A|` rows of at most `width B` entries of at most `dA + dB + 1`
+coefficients. -/
+theorem mulWith_shape (ctx : CPolynomial.MulContext K) (A B : PolynomialMatrix K) {dA dB : ℕ}
+    (hA : DegLe A dA) (hB : DegLe B dB) :
+    (mulWith ctx A B).size = A.size ∧
+      ∀ i, RowWithin (MatrixWidth B) (dA + dB + 1) ((mulWith ctx A B).getD i #[]) := by
   refine ⟨mulWith_size _ _ _, fun i ↦ ?_⟩
   rcases Nat.lt_or_ge i A.size with hi | hi
   · rw [mulWith_getD _ _ _ hi]
     refine ⟨by rw [rowMulMatrixWith_size], fun e he ↦ ?_⟩
     obtain ⟨j, hj, rfl⟩ := Array.getElem_of_mem he
-    have hd := PMDegree.natDegree_rowGet_rowMulMatrixWith_le fftMulContext (A.getD i #[]) B
+    have hd := PMDegree.natDegree_rowGet_rowMulMatrixWith_le ctx (A.getD i #[]) B
       (a := dA) (b := dB) (fun k ↦ hA i k) (fun r hr j ↦ by
         rw [MatrixRows] at hr
         obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hr
         have e : B.toList[l] = B.getD l #[] := by
           rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by simpa using hl)]; simp
         rw [e]; exact hB l j) j
-    have hrg : rowGet (rowMulMatrixWith fftMulContext (A.getD i #[]) B) j =
-        (rowMulMatrixWith fftMulContext (A.getD i #[]) B)[j] := by
+    have hrg : rowGet (rowMulMatrixWith ctx (A.getD i #[]) B) j =
+        (rowMulMatrixWith ctx (A.getD i #[]) B)[j] := by
       rw [rowGet, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hj]; rfl
     rw [hrg] at hd
-    have := PMDegree.val_size_le_natDegree_add_one
-      (rowMulMatrixWith fftMulContext (A.getD i #[]) B)[j]
+    have := PMDegree.val_size_le_natDegree_add_one (rowMulMatrixWith ctx (A.getD i #[]) B)[j]
     omega
   · rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none (by rw [mulWith_size]; omega)]
     exact rowWithin_empty _ _
+
+theorem degLe_of_rows {M : PolynomialMatrix K} {d : ℕ}
+    (h : ∀ r ∈ MatrixRows M, ∀ j, (rowGet r j).natDegree ≤ d) : DegLe M d := by
+  intro i j
+  rcases Nat.lt_or_ge i M.size with hi | hi
+  · exact h _ (getD_mem_matrixRows hi) j
+  · rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none (by omega)]
+    simp only [Option.getD_none, rowGet, Array.getD_eq_getD_getElem?, Array.getElem?_empty]
+    rw [CPolynomial.natDegree_zero]
+    exact Nat.zero_le _
+
+theorem matrixWidth_of_rows {M : PolynomialMatrix K} {r m : ℕ} (hs : M.size = r) (hr : 1 ≤ r)
+    (h : ∀ row ∈ M.toList, row.size = m) : MatrixWidth M = m := by
+  rw [PMDegree.matrixWidth_eq_getD_size']
+  exact h _ (by rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by omega)]; simp)
 
 /-! ## The residual matrix -/
 
@@ -238,6 +251,240 @@ theorem glue_le (r m o ovh d : ℕ) (hr : 1 ≤ r) (hm : m ≤ r) (ho : 2 ≤ o)
   have hX : 3 * (r * m) ≤ r * m * (o + 1) := by nlinarith
   have hY : 3 * (r * r) ≤ r * r * (o + 1) := by nlinarith
   nlinarith
+
+
+theorem targetRT_eq' : popovEvalRuntime novelTransform fftMulContext fftMulLowContext 1 =
+    Popov.popovRuntime fftMulContext fftMulLowContext 1 1 :=
+  popovEvalRuntime_eq _ _ _ 1 1
+
+theorem popovRuntime_leafCutoff :
+    (Popov.popovRuntime fftMulContext fftMulLowContext 1 1).leafCutoff = 1 := rfl
+
+/-- **A node of the compiled core**: at maximal order `o ≥ 2` (fuel at least `o − 1`), its price
+is at most `pmNodePrice p r m o` and its two children's. -/
+theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : MulEvalPCost P p)
+    (hMT : MulTruncEvalPCost P p) (hovh : 80 ≤ p.ovh) {r m SB : ℕ} (hr : 1 ≤ r) (hm : m ≤ r)
+    (hr30 : r < 2 ^ 30) (hSB : SB < 2 ^ 39) (problem : XAdicProblem K) (shift : Array ℕ)
+    (hI : CoreInv r m SB problem shift) (n : ℕ) (hn : n + 1 < 2 ^ 62)
+    (hge : 2 ≤ maxOrder problem) (hfuel : maxOrder problem ≤ n + 2) :
+    machineCost P pmCoreC.costIdx [encodeValue (n + 1), encodeValue problem, encodeValue shift] ≤
+      pmNodePrice p r m (maxOrder problem) +
+        machineCost P pmCoreC.costIdx [encodeValue n, encodeValue (pmLower problem), encodeValue shift] +
+        machineCost P pmCoreC.costIdx [encodeValue n, encodeValue (pmResidual targetRT n problem shift),
+          encodeValue (pmShifted targetRT n problem shift)] := by
+  obtain ⟨hIs, hIrows, hIord, hIsz, hIsh⟩ := hI
+  have hh := PMDegree.popovRuntime_core_node fftMulContext fftMulLowContext 1 (le_refl _) n problem
+    shift hge hfuel
+  dsimp only at hh
+  obtain ⟨-, hd1, hd2, -, -, -, -, hP1s, hP1r, hRs, hRr, hRe, hP2s, hP2r⟩ := hh
+  rw [pmCoreC.costEq_succ P hP]
+  unfold pmNodePrice
+  simp only [pmLower, pmResidual, pmShifted, targetRT]
+  rw [targetRT_eq', popovRuntime_leafCutoff]
+  have hd : decide (maxOrder problem ≤ 1) = false := by simp; omega
+  simp only [hd, Bool.or_false, Bool.false_eq_true, ↓reduceIte]
+  set o := maxOrder problem with ho
+  set d := o / 2 with hdd
+  set RT := Popov.popovRuntime fftMulContext fftMulLowContext 1 1 with hRT
+  set P₁ := pmBasisWithFuelCore RT n { orders := lowerOrders problem d, matrix := problem.matrix }
+    shift with hP₁
+  set R := residualMatrixWithProduct RT.residualProduct P₁
+    problem.matrix d (residualOrders problem d) with hR
+  set P₂ := pmBasisWithFuelCore RT n { orders := residualOrders problem d, matrix := R }
+    (updateShiftByRows P₁ shift) with hP₂
+  have hord : ∀ x ∈ problem.orders, x ≤ o := le_maxOrder problem
+  have ho38 : o < 2 ^ 38 := by have := hIsh 0; omega
+  have hmw : MatrixWidth problem.matrix = m := matrixWidth_of_rows hIs hr hIrows
+  rw [hIs] at hP1s hP1r
+  have hP1D : DegLe P₁ d := degLe_of_rows fun row hrow j ↦ (hP1r row hrow).2 j
+  have hP2r' : ∀ row ∈ MatrixRows P₂, row.size = problem.matrix.size ∧
+      ∀ j, (rowGet row j).natDegree ≤ o - d := hP2r
+  have hP2D : DegLe P₂ (o - d) := degLe_of_rows fun row hrow j ↦ (hP2r' row hrow).2 j
+  have hP1w : MatrixWidth P₁ = r := matrixWidth_of_rows hP1s hr fun row hrow ↦ (hP1r row hrow).1
+  have hP2s' : P₂.size = r := (hP2s : P₂.size = problem.matrix.size).trans hIs
+  -- the glue
+  have hMO := maxOrderC_cost P (by includes) problem (fun x hx ↦ by have := hord x hx; omega)
+  have hLO := lowerOrdersC_cost P (by includes) problem d (by omega)
+    (fun x hx ↦ by have := hord x hx; omega)
+  have hRO := residualOrdersC_cost P (by includes) problem d (by omega)
+    (fun x hx ↦ by have := hord x hx; omega)
+  have hRO' : ∀ j, (residualOrders problem d).getD j 0 ≤ o - d := fun j ↦ getD_le_of_mem
+    fun x hx ↦ by
+      simp only [residualOrders, Array.mem_map] at hx
+      obtain ⟨y, hy, rfl⟩ := hx
+      have := hord y hy; omega
+  have hRM := residualMatrixC_cost P (by includes) P₁ problem.matrix d (residualOrders problem d)
+    hRO' (by omega) (by omega) (by omega)
+  have hMTb := hMT ((residualOrders problem d).map fun order ↦ order + d) P₁ problem.matrix d o
+    hP1D (by omega) (fun c ↦ getD_le_of_mem fun x hx ↦ by
+      simp only [residualOrders, Array.mem_map] at hx
+      obtain ⟨y, ⟨z, hz, rfl⟩, rfl⟩ := hx
+      have := hord z hz; omega) hIsz (by omega) (by omega) (by omega) (by omega)
+  have hUS := updateShiftByRowsC_cost P (by includes) (C := r) (D := d + 1) (S := SB) (by omega)
+    (by omega) P₁ (by omega) (fun i ↦ by
+      rcases Nat.lt_or_ge i P₁.size with hi | hi
+      · have hmem := getD_mem_matrixRows hi
+        refine ⟨(hP1r _ hmem).1.le, fun e he ↦ ?_⟩
+        obtain ⟨j, hj, rfl⟩ := Array.getElem_of_mem he
+        have h1 := (hP1r _ hmem).2 j
+        have h2 := PMDegree.val_size_le_natDegree_add_one (P₁.getD i #[])[j]
+        rw [rowGet, Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hj] at h1
+        exact le_trans h2 (by simpa using Nat.add_le_add_right h1 1)
+      · rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none (by omega)]
+        exact rowWithin_empty _ _) shift (fun j ↦ by have := hIsh j; omega)
+  have hMEb := hME P₂ P₁ (o - d) d hP2D hP1D (by omega) (by omega) (by omega) (by omega)
+  have hshape := mulWith_shape fftMulLowContext.mulContext P₂ P₁ hP2D hP1D
+  have hcomp : RT.composeBasis P₂ P₁ = mulWith fftMulLowContext.mulContext P₂ P₁ :=
+    mulStrassenWith_eq_mulWith _ _ _ _
+  have hCP := compactNonzeroRowsC_cost P (by includes) (C := r) (D := o + 1) (RT.composeBasis P₂ P₁)
+    (fun row hrow ↦ by
+      rw [hcomp] at hrow
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hrow
+      have := hshape.2 i
+      rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (by simpa using hi)] at this
+      have hw : o - d + d + 1 = o + 1 := by omega
+      rw [hP1w, hw] at this
+      simpa using this)
+  have hCPs : (RT.composeBasis P₂ P₁).size = r := by rw [hcomp, hshape.1, hP2s']
+  rw [hCPs] at hCP
+  rw [hP1s] at hRM hUS
+  rw [hmw] at hRM
+  rw [hP2s', hP1s, hP1w] at hMEb
+  rw [hP1s, hIs, hmw] at hMTb
+  have hglue := glue_le r m o p.ovh d hr hm hge hovh (by omega)
+  have hl1 : limbCount (n + 1) = 1 := limbs_of_lt (by omega)
+  have hl2 : limbCount o = 1 := limbs_of_lt (by omega)
+  have hl3 : limbCount 1 = 1 := rfl
+  have hq : (residualOrders problem d).size = problem.orders.size := Array.size_map ..
+  rw [hl1, hl2, hl3]
+  simp only [max_self]
+  omega
+
+
+/-- **The invariant passes to both children.** -/
+theorem coreInv_children {r m SB : ℕ} (hr : 1 ≤ r) (hSB : SB < 2 ^ 62) (problem : XAdicProblem K) (shift : Array ℕ)
+    (hI : CoreInv r m SB problem shift) (n : ℕ) (hge : 2 ≤ maxOrder problem)
+    (hfuel : maxOrder problem ≤ n + 2) :
+    CoreInv r m SB (pmLower problem) shift ∧
+      CoreInv r m SB (pmResidual targetRT n problem shift) (pmShifted targetRT n problem shift) := by
+  obtain ⟨hIs, hIrows, hIord, hIsz, hIsh⟩ := hI
+  have hlo := maxOrder_pmLower problem
+  have hre := maxOrder_pmResidual targetRT n problem shift
+  refine ⟨⟨hIs, hIrows, by simp [pmLower, lowerOrders]; omega, hIsz, fun j ↦ by
+    have := hIsh j; rw [hlo]; omega⟩, ?_⟩
+  have hh := PMDegree.popovRuntime_core_node fftMulContext fftMulLowContext 1 (le_refl _) n problem
+    shift hge hfuel
+  dsimp only at hh
+  obtain ⟨-, hd1, hd2, -, -, -, -, hP1s, hP1r, hRs, hRr, hRe, -, -⟩ := hh
+  have hmw : MatrixWidth problem.matrix = m := matrixWidth_of_rows hIs hr hIrows
+  unfold CoreInv
+  rw [hre]
+  simp only [pmResidual, pmShifted, pmLower, targetRT]
+  rw [targetRT_eq']
+  have hRP : (Popov.popovRuntime fftMulContext fftMulLowContext 1 1).residualProduct =
+      mulTruncColumnStrassenWith fftMulLowContext 1 := rfl
+  rw [hRP]
+  set o := maxOrder problem with ho
+  set d := o / 2 with hdd
+  have hord : ∀ x ∈ problem.orders, x ≤ o := le_maxOrder problem
+  refine ⟨hRs.trans hIs, fun row hrow ↦ (hRr row hrow).trans hmw,
+    by simp [residualOrders]; omega, fun i j ↦ by
+      have := hRe i j; have := getD_le_of_mem hord (j := j); have := hIsh 0; omega,
+    fun j ↦ ?_⟩
+  have hS : ∀ j, shift.getD j 0 ≤ SB - 2 * o := fun j ↦ by have := hIsh j; omega
+  have := updateShiftByRows_getD_le
+    (pmBasisWithFuelCore (Popov.popovRuntime fftMulContext fftMulLowContext 1 1) n
+      { orders := lowerOrders problem d, matrix := problem.matrix } shift) shift
+    (X := SB - 2 * o + (d + 1))
+    (fun i v hv ↦ by
+      have hw := rowWithin_of_rows (C := problem.matrix.size) (D := d + 1)
+        (M := pmBasisWithFuelCore (Popov.popovRuntime fftMulContext fftMulLowContext 1 1) n
+          { orders := lowerOrders problem d, matrix := problem.matrix } shift)
+        (fun row hrow ↦ (hP1r row hrow).1.le)
+        (fun i' j' ↦ by
+          have h2 := PMDegree.val_size_le_natDegree_add_one
+            (rowGet ((pmBasisWithFuelCore (Popov.popovRuntime fftMulContext fftMulLowContext 1 1) n
+              { orders := lowerOrders problem d, matrix := problem.matrix } shift).getD i' #[]) j')
+          have h1 := degLe_of_rows (fun row hrow j ↦ (hP1r row hrow).2 j) i' j'
+          omega) i
+      have := rowShiftedDegree?_le hw hS hv
+      omega)
+    (fun j ↦ by have := hS j; omega) j
+  have := hIsh 0
+  omega
+
+/-- **The compiled PM-basis core's price** (`pmCoreC`, at CompPoly's fuel `pmBasisFuel`): on a
+problem of the invariant (`r ≥ m` rows of width `m`, shifts plus twice the maximal order at most
+`SB < 2^39`), with the products within the model (`MulEvalPCost`, `MulTruncEvalPCost`, track fft's)
+and the leaf within `Lc` (`LeafCost`), at most the model's tree with the node price
+`pmNodePrice p r m` (`p.ovh ≥ 80`) and the leaf price `Lc + 18·m + 60`. -/
+theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : MulEvalPCost P p)
+    (hMT : MulTruncEvalPCost P p) (hovh : 80 ≤ p.ovh) {r m SB Lc : ℕ} (hr : 1 ≤ r) (hm : m ≤ r)
+    (hr30 : r < 2 ^ 30) (hSB : SB < 2 ^ 39) (hL : LeafCost P r m SB Lc)
+    (problem : XAdicProblem K) (shift : Array ℕ) (hI : CoreInv r m SB problem shift) :
+    machineCost P pmCoreC.costIdx
+        [encodeValue (pmBasisFuel problem), encodeValue problem, encodeValue shift] ≤
+      pmTree 1 (Lc + 18 * m + 60) (pmNodePrice p r m) (maxOrder problem) := by
+  let T : ℕ → XAdicProblem K → Array ℕ → ℕ := fun fuel prob sh ↦
+    if fuel < 2 ^ 61 then
+      machineCost P pmCoreC.costIdx [encodeValue fuel, encodeValue prob, encodeValue sh]
+    else 0
+  have hlc : targetRT.leafCutoff = 1 := rfl
+  have hord_lt : ∀ prob sh, CoreInv r m SB prob sh → maxOrder prob < 2 ^ 38 := fun prob sh h ↦ by
+    have := h.2.2.2.2 0; omega
+  have h := pmBasisFuel_price_le targetRT T (Lc + 18 * m + 60) (pmNodePrice p r m)
+    (CoreInv r m SB)
+    (fun fuel prob sh hIp hf hl ↦ by
+      rw [hlc] at hl
+      have hl' : maxOrder prob ≤ 1 := by omega
+      have hleaf := hL prob sh hIp hl'
+      have hMO := maxOrderC_cost P (by includes) prob (fun x hx ↦ by
+        have := le_maxOrder prob x hx; omega)
+      have hos := hIp.2.2.1
+      show (if fuel < 2 ^ 61 then _ else 0) ≤ _
+      split_ifs with hfu
+      · cases fuel with
+        | zero =>
+          rw [pmCoreC.costEq_zero P hP]
+          change machineCost P popovLeafC.costIdx _ +
+            machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis prob sh)] + 9 ≤ _
+          omega
+        | succ k =>
+          rw [pmCoreC.costEq_succ P hP]
+          have hd : decide (maxOrder prob ≤ (popovEvalRuntime novelTransform fftMulContext
+              fftMulLowContext 1).leafCutoff) = true := by
+            show decide (maxOrder prob ≤ 1) = true; simp; omega
+          simp only [hd, Bool.true_or, ↓reduceIte]
+          change _ + (machineCost P popovLeafC.costIdx _ +
+            machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis prob sh)] + 4) +
+              16 ≤ _
+          rw [limbs_of_lt (by omega : k + 1 < 2 ^ 64),
+            limbs_of_lt (by have := hord_lt prob sh hIp; omega : maxOrder prob < 2 ^ 64)]
+          have h1 : limbCount (popovEvalRuntime novelTransform fftMulContext fftMulLowContext 1).leafCutoff =
+            1 := rfl
+          rw [h1]
+          omega
+      · omega)
+    (fun fuel prob sh hIp hf hc h2 ↦ by
+      obtain ⟨hl, hrs⟩ := coreInv_children hr (by omega) prob sh hIp fuel h2 hf
+      refine ⟨hl, hrs, ?_⟩
+      show (if fuel + 1 < 2 ^ 61 then _ else 0) ≤ _ + (if fuel < 2 ^ 61 then _ else 0) +
+        (if fuel < 2 ^ 61 then _ else 0)
+      split_ifs with h1 h3
+      · exact pmCoreC_node P hP hME hMT hovh hr hm hr30 hSB prob sh hIp fuel (by omega) h2 hf
+      · omega
+      · omega
+      · omega)
+    problem shift hI
+  have hf : pmBasisFuel problem < 2 ^ 61 := by
+    have := hord_lt problem shift hI; rw [pmBasisFuel]; omega
+  have hT : T (pmBasisFuel problem) problem shift = machineCost P pmCoreC.costIdx
+      [encodeValue (pmBasisFuel problem), encodeValue problem, encodeValue shift] := by
+    simp only [T]
+    split_ifs
+    rfl
+  rw [← hT]
+  rwa [hlc] at h
 
 end
 
