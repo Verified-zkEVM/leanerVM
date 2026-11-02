@@ -348,7 +348,7 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rintro ⟨t, hx, hv⟩
     obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledge input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.digestBinds _ _ _ _ _ hrel.1 hs (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.digestBinds _ _ _ _ _ hrel.2.2.2.2 hs (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestCompleteRecursion := by
