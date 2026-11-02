@@ -5,6 +5,7 @@ import all CompPoly.Univariate.Raw.Ops
 import all CompPoly.Univariate.Raw.Core
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
+public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Basic
 
 /-!
 # Library additions for compiling CompPoly's approximant bases (probe)
@@ -22,7 +23,8 @@ Generic additions found while compiling CompPoly's PM-basis over `K` (track prob
   result by a `let` (evaluated once, then read from the environment): the same values, a third of
   the work. A rewrite only: no compiler change, so nothing compiled before changes.
 * The encodings of `ForInStep`, `MProd` (a loop's several mutable variables), and CompPoly's
-  `XAdicProblem`, `ScalarRrefResult`, `ModularEquation`.
+  `XAdicProblem`, `ScalarRrefResult`, `ModularEquation`, the
+  partial-linearization plans and the adaptive solver's state, `GSModularData`.
 
 Credits: CompPoly (github.com/Verified-zkEVM/CompPoly, Apache-2.0, "Copyright (c) 2026 CompPoly
 Contributors"), compiled, not copied.
@@ -83,6 +85,11 @@ cost_rewrite rawAdd_shared
 cost_enc CompPoly.PolynomialMatrix.Approximant.XAdicProblem
 cost_enc CompPoly.DenseMatrix.ScalarRrefResult
 cost_enc CompPoly.PolynomialMatrix.Approximant.ModularEquation
+cost_enc CompPoly.PolynomialMatrix.Approximant.PrincipalChunk
+cost_enc CompPoly.PolynomialMatrix.Approximant.PartialLinearizationPlan
+cost_enc CompPoly.PolynomialMatrix.Approximant.PivotDegreeProfile
+cost_enc CompPoly.PolynomialMatrix.Approximant.AdaptiveSolveState
+cost_enc CompPoly.GuruswamiSudan.ApproximantBasis.GSModularData
 
 end
 
