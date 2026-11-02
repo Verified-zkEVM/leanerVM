@@ -46,7 +46,7 @@ open LeanVM.Cost.Bounds.PMBasis
 public section
 
 /-- The price of one pivot of the RREF on `E` rows of at most `r` entries. -/
-@[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
+@[expose] def pivotPrice (E r : ℕ) : ℕ := 2871 * r + (69 * r + E + 87) * E + 3 * E + 100
 
 /-- The price of one step of the pivot table on rows of width `r`. -/
 @[expose] def stepPrice (r : ℕ) : ℕ := 1774 * r + 3567
