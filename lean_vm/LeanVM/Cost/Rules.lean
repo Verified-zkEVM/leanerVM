@@ -328,10 +328,6 @@ theorem wordLt {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encode
     (hb : Runs P env u (encodeValue b) d) :
     Runs P env (.op .wordLessThan [t, u]) (encodeValue (decide (a < b))) (c + d + 1) := op₂ h hb rfl
 
-theorem wordLe {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .wordLessOrEqual [t, u]) (encodeValue (decide (a ≤ b))) (c + d + 1) := op₂ h hb rfl
-
 theorem wordEq {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) :
     Runs P env (.op .wordEqual [t, u]) (encodeValue (decide (a = b))) (c + d + 1) :=
@@ -408,15 +404,6 @@ theorem wShl {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeVa
   op₂ h hb rfl
 theorem wShr {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
     (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .wordShiftRight [t, u]) (encodeValue (a >>> b)) (c + d + 1) :=
-  op₂ h hb rfl
-theorem wAdd {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .wordAdd [t, u]) (encodeValue (a + b)) (c + d + 1) :=
-  op₂ h hb rfl
-theorem wSub {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .wordSubtract [t, u]) (encodeValue (a - b)) (c + d + 1) :=
-  op₂ h hb rfl
-theorem wMul {t u : Term} {a b : UInt64} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) : Runs P env (.op .wordMultiply [t, u]) (encodeValue (a * b)) (c + d + 1) :=
   op₂ h hb rfl
 theorem wToNat {t : Term} {a : UInt64} {c : ℕ} (h : Runs P env t (encodeValue a) c) :
     Runs P env (.op .wordToNatural [t]) (encodeValue a.toNat) (c + 1) := op₁ h rfl
@@ -738,17 +725,6 @@ theorem literalNatArrays (l : List (List ℕ)) :
     show MachineValue.arr (r.toArray.map encodeValue) = _
     simp
   rw [h]; exact Runs.val _
-
-theorem natOr {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .naturalOr [t, u]) (encodeValue (a ||| b)) (c + d + (max (limbCount a) (limbCount b) + 1)) :=
-  op₂ h hb rfl
-
-/-- `Nat.lor`, as `|||` unfolds (a bit vector's `++`). -/
-theorem natLor {t u : Term} {a b : ℕ} {c d : ℕ} (h : Runs P env t (encodeValue a) c)
-    (hb : Runs P env u (encodeValue b) d) :
-    Runs P env (.op .naturalOr [t, u]) (encodeValue (Nat.lor a b)) (c + d + (max (limbCount a) (limbCount b) + 1)) :=
-  op₂ h hb rfl
 
 /-! ### Bit vectors, encoded as their number
 

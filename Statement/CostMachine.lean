@@ -8,69 +8,40 @@ public import Mathlib.Data.Nat.Notation
 
 **The machine.** A first-order functional language with prices. A program is an array of
 function bodies; a body reads its arguments and the values it binds by position, calls functions
-by index, applies closures, builds and inspects constructors, and runs priced primitive
-operations on 64-bit words, natural numbers and arrays. Values are immutable, so sharing one is
-free and building one is priced by the words it writes. The machine's only runtime data is its
-input: a program carries its literals, nothing else.
+by index, applies closures, builds and inspects constructors, and runs priced primitive operations
+on 64-bit words, natural numbers and arrays. Values are immutable. A program carries its literals,
+and its size counts them in full (`MachineProgram.size`); its only runtime data is its input.
 
-`run P fuel x` runs function `0` of `P` on `x`: its value and its price (the sum of the prices of
-the steps it takes), or `none` when the run misuses a value (a primitive on the wrong kind of
-value, a variable or a field that does not exist, a call of a function `P` lacks) or nests more
-than `fuel` calls. A misuse is a failure, never undefined behavior. `outputWithin P x b` is the
-value if the price is at most `b`, `none` otherwise; each call costs at least `1`, so nesting
-depth `b` never fails a run of price at most `b`.
+`run P fuel x` runs function `0` of `P` on `x`: its value and its price, the sum of its steps'
+prices, or `none` when the run misuses a value (a primitive on the wrong kind of value, a missing
+variable, field or function) or nests more than `fuel` calls. A misuse is a failure, never
+undefined behavior. `outputWithin P x b` is the value if the price is at most `b`; each call costs
+at least `1`, so the fuel never fails a run of price at most `b`.
 
-**Prices** (trusted, not a hypothesis: that they are honest, each a constant-time CPU primitive or
-priced by the algorithm that computes it, is what makes the budgets of `KnowledgeSoundness
-(extractorOf P)` and of `GuestKnowledge`, `Theorems.lean`, meaningful). Each step costs at least
-`1`, and every step but two at least the words it writes. The two: a `case` puts the constructor's
-fields in front of the environment, and a closure's application puts its captured values in front of
-the arguments, each at `1`, which is honest for an environment kept as a frame pointer into the
-constructor or the closure (its fields read in place, not copied), where each is `O(1)`. The prices:
-* a variable, a literal, a field, a `case`'s selection, a `let`: `1`;
-* a constructor or a closure of `n` values: `n + 1` (a tag and `n` words);
-* a call or a closure's application: `1`;
-* a word operation (`+`, `−`, `·` modulo `2^64`, `and`, `or`, `xor`, `not`, shifts, comparisons):
-  `1`, each one CPU instruction;
-* a `GF(2^64)` multiplication: `256`: the `64×64` carry-less product (one instruction on current
-  CPUs: PCLMULQDQ, PMULL) and its reduction by the sparse modulus `x^64 + x^4 + x^3 + x + 1`
-  (about `21` word operations, `Statement/Fast/FieldWords.lean`'s `reduceWords`), well within
-  `256`; a software shift-and-xor loop would cost about `800`;
-* an operation on natural numbers of at most `m` and `m'` limbs of 64 bits: `max m m' + 1` for
-  `+`, `−`, comparisons and bitwise operations, `m·m' + 1` for `·`, `/` and `%` (schoolbook), and,
-  for shifts, the shifted number's limbs (the result's for a left shift, the operand's for a right
-  shift) plus the shift amount's limbs plus one; a conversion between a word and a natural
-  number: `1`;
-* arrays: the size or an entry `1`; a new array of `n` entries (from a list, a slice, an append, a
-  copy with one entry set or appended, a replicate) `n + 1`, and a list of `n` cells from an array
-  `3·n + 1`.
+**Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
+`KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is a
+constant-time CPU primitive or is priced by the algorithm that computes it, at least `1` and, but
+for two steps, at least the words it writes. The two: a `case` puts the constructor's fields in
+front of the environment, and a closure's application puts its captured values in front of the
+arguments, each at `1`, honest for an environment kept as a frame pointer into the constructor or
+the closure (its fields read in place, not copied). A word operation is one instruction, at `1`. A
+`GF(2^64)` product is at `256`: one carry-less multiplication (PCLMULQDQ, PMULL) and its reduction
+by the sparse modulus, about `21` word operations (`Statement/Fast/FieldWords.lean`). Natural
+numbers are priced by their limbs of 64 bits (`limbCount`): linear for sums, comparisons and
+bitwise operations, the product of the limb counts for `·`, `/` and `%` (schoolbook). A new array
+or constructor is priced by its entries.
 
-**The encoding** (`MachineEncoding`, `encodeValue`): words for `UInt64` and `K`, natural numbers
-for `ℕ` and `Fin n`, a constructor for each inductive type (its constructor's index as the tag,
-its fields in order), arrays for `Vector` and for the functions of a finite domain
-(`encodeFiniteFunction`: `Semantics.Program.code`, `PublicInput.lanes`, an execution's memory).
-`encodeExtractorInput prog input T proof` is the extractor's input: the program, the public
-input, the transcript's permutation queries (`permutationQueries`: the transcript without the
-adversary's coin flips, its private randomness) and the proof.
-`decodeExecution prog` is a linear parse of an execution, the inverse of its encoding: no search
-and no run, its only check that the memory has `2^κ` words.
-
-**The extractor a program computes** (`LeanVM.extractorOf P`): the program `P` run on the encoded
-statement, transcript and proof within `extractorBudget`, the budget read off the shape the proof
-announces (`announced`: the layout and the rate exponent the verifier's first step reads), its
-output parsed as an execution. A run that fails or exceeds its budget extracts
-nothing, which counts as a break in `KnowledgeSoundness`. `Statement.Theorems` takes the program
-as a parameter, with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge
-extractor compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
-the size bound leaves no room for a useful table of witnesses beside the compiled extractor, the
-machine's only runtime data is its input, and the budget is the one below. The guest decoder is
-a program of the same machine, with a size bound and a budget of its own (`GuestKnowledge`,
-`Theorems.lean`).
-
-**The budget** (`extractorBudgetFor`) is a closed formula in the number `N` of the adversary's
-permutation queries: `2^95` and `O(N·log³N)`, polylogarithmic per query, so about `2^95` for
-`N ≤ 2^60`, `2^107.76` at `N = 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries
-the soundness bound (`KnowledgeSoundness`) is already trivial.
+**The extractor a program computes** (`LeanVM.extractorOf P`): `P` run on the encoded statement,
+transcript and proof (`encodeExtractorInput`; the transcript without the adversary's coin flips)
+within the budget of the shape the proof announces (`extractorBudget`), its output parsed as an
+execution (`decodeExecution`, a linear parse: no search, no run). A run that fails or exceeds its
+budget extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a parameter
+with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge extractor,
+compiled. What excludes a vacuous statement: `P` is a program (no classical choice), its size
+bound leaves no room for a useful table of witnesses beside the compiled extractor, its only
+runtime data is its input, and its budget is a closed formula, polylogarithmic per query
+(`extractorBudgetFor`). The guest decoder is a program of the same machine, with a size bound and
+a budget of its own (`GuestKnowledge`, `Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -115,18 +86,16 @@ def binaryFieldMultiplyWords (a b : UInt64) : UInt64 :=
 /-- The primitive operations. None reads a constructor's tag or a closure's function index as a
 number (see `MachineValue.size`): their operands are words, natural numbers, arrays and lists. -/
 inductive PrimitiveOperation where
-  /-- On words modulo `2^64`: `+`, `−`, `·`, `and`, `or`, `xor`, `not`, the shifts, `=`, `<`,
-  `≤`. -/
-  | wordAdd | wordSubtract | wordMultiply | wordAnd | wordOr | wordXor | wordNot
-  | wordShiftLeft | wordShiftRight | wordEqual | wordLessThan | wordLessOrEqual
+  /-- On words: `and`, `or`, `xor`, `not`, the shifts modulo `2^64`, `=`, `<`. -/
+  | wordAnd | wordOr | wordXor | wordNot
+  | wordShiftLeft | wordShiftRight | wordEqual | wordLessThan
   /-- The `GF(2^64)` product of two words. -/
   | binaryFieldMultiply
   /-- A word as a natural number, and a natural number modulo `2^64` as a word. -/
   | wordToNatural | wordOfNatural
-  /-- On natural numbers: `+`, truncated `−`, `·`, `/`, `%`, `=`, `<`, `≤`, `and`, `or`, `xor`, the
-  shifts. -/
+  /-- On natural numbers: `+`, truncated `−`, `·`, `/`, `%`, `=`, `<`, `≤`, `and`, the shifts. -/
   | naturalAdd | naturalSubtract | naturalMultiply | naturalDivide | naturalModulo
-  | naturalEqual | naturalLessThan | naturalLessOrEqual | naturalAnd | naturalOr | naturalXor
+  | naturalEqual | naturalLessThan | naturalLessOrEqual | naturalAnd
   | naturalShiftLeft | naturalShiftRight
   /-- An array's size; its entry `i` or a default. -/
   | arraySize | arrayGet
@@ -148,9 +117,6 @@ def naturalOperation (f : ℕ → ℕ → ℕ) (a b : ℕ) : Option (MachineValu
 
 /-- A primitive's value and price on its arguments, or `none` on a misuse. -/
 def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Option (MachineValue × ℕ)
-  | .wordAdd, [.word x, .word y] => wordOperation (fun x y ↦ .word (x + y)) x y
-  | .wordSubtract, [.word x, .word y] => wordOperation (fun x y ↦ .word (x - y)) x y
-  | .wordMultiply, [.word x, .word y] => wordOperation (fun x y ↦ .word (x * y)) x y
   | .wordAnd, [.word x, .word y] => wordOperation (fun x y ↦ .word (x &&& y)) x y
   | .wordOr, [.word x, .word y] => wordOperation (fun x y ↦ .word (x ||| y)) x y
   | .wordXor, [.word x, .word y] => wordOperation (fun x y ↦ .word (x ^^^ y)) x y
@@ -159,7 +125,6 @@ def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Opti
   | .wordShiftRight, [.word x, .word y] => wordOperation (fun x y ↦ .word (x >>> y)) x y
   | .wordEqual, [.word x, .word y] => wordOperation (fun x y ↦ .ofBool (x == y)) x y
   | .wordLessThan, [.word x, .word y] => wordOperation (fun x y ↦ .ofBool (decide (x < y))) x y
-  | .wordLessOrEqual, [.word x, .word y] => wordOperation (fun x y ↦ .ofBool (decide (x ≤ y))) x y
   | .binaryFieldMultiply, [.word x, .word y] => some (.word (binaryFieldMultiplyWords x y), 256)
   | .wordToNatural, [.word x] => some (.nat x.toNat, 1)
   | .wordOfNatural, [.nat n] => some (.word n.toUInt64, 1)
@@ -175,8 +140,6 @@ def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Opti
   | .naturalLessOrEqual, [.nat a, .nat b] =>
     some (.ofBool (decide (a ≤ b)), max (limbCount a) (limbCount b) + 1)
   | .naturalAnd, [.nat a, .nat b] => naturalOperation (· &&& ·) a b
-  | .naturalOr, [.nat a, .nat b] => naturalOperation (· ||| ·) a b
-  | .naturalXor, [.nat a, .nat b] => naturalOperation (· ^^^ ·) a b
   | .naturalShiftLeft, [.nat a, .nat k] =>
     some (.nat (a <<< k), limbCount (a <<< k) + limbCount k + 1)
   | .naturalShiftRight, [.nat a, .nat k] => some (.nat (a >>> k), limbCount a + limbCount k + 1)
@@ -488,8 +451,8 @@ open Common
 @[expose] public section
 
 /-- **The bound on the extractor program's size** (`MachineProgram.size`): `14400`, the compiled
-extractor's size (`13813`: its `697` compiled bodies and the entry, at `711` indices, `13` of
-them holes, a literal `0` each) and a slack of `587`, room for one leanXMSS signature's encoding
+extractor's size (`13811`: its `697` compiled bodies and the entry, at `710` indices, `12` of
+them holes, a literal `0` each) and a slack of `589`, room for one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
 its code. -/

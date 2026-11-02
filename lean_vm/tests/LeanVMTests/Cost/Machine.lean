@@ -16,9 +16,6 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 
 /-! ## Primitives -/
 
-#guard PrimitiveOperation.wordAdd.apply [.word 3, .word (2 ^ 64 - 1)] == some (.word 2, 1)
-#guard PrimitiveOperation.wordSubtract.apply [.word 3, .word 5] == some (.word (2 ^ 64 - 2), 1)
-#guard PrimitiveOperation.wordMultiply.apply [.word (2 ^ 63), .word 2] == some (.word 0, 1)
 #guard PrimitiveOperation.wordAnd.apply [.word 12, .word 10] == some (.word 8, 1)
 #guard PrimitiveOperation.wordOr.apply [.word 12, .word 10] == some (.word 14, 1)
 #guard PrimitiveOperation.wordXor.apply [.word 12, .word 10] == some (.word 6, 1)
@@ -27,7 +24,6 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 #guard PrimitiveOperation.wordShiftRight.apply [.word 8, .word 3] == some (.word 1, 1)
 #guard PrimitiveOperation.wordEqual.apply [.word 8, .word 8] == some (.ofBool true, 1)
 #guard PrimitiveOperation.wordLessThan.apply [.word 9, .word 8] == some (.ofBool false, 1)
-#guard PrimitiveOperation.wordLessOrEqual.apply [.word 8, .word 8] == some (.ofBool true, 1)
 #guard PrimitiveOperation.binaryFieldMultiply.apply [.word 2, .word 3] == some (.word 6, 256)
 #guard PrimitiveOperation.wordToNatural.apply [.word 7] == some (.nat 7, 1)
 #guard PrimitiveOperation.wordOfNatural.apply [.nat (2 ^ 64 + 5)] == some (.word 5, 1)
@@ -57,8 +53,8 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 
 /-! ## Misuse fails -/
 
-#guard PrimitiveOperation.wordAdd.apply [.nat 1, .word 2] == none
-#guard PrimitiveOperation.wordAdd.apply [.word 1] == none
+#guard PrimitiveOperation.wordAnd.apply [.nat 1, .word 2] == none
+#guard PrimitiveOperation.wordAnd.apply [.word 1] == none
 #guard PrimitiveOperation.arrayGet.apply [.word 1, .nat 0, .word 0] == none
 #guard PrimitiveOperation.arrayOfList.apply [.ctor 1 [.word 1, .word 2]] == none
 #guard evaluateTerm #[] 5 [] (.var 0) == none
