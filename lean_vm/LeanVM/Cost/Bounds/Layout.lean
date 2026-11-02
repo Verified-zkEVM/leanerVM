@@ -21,7 +21,7 @@ layout `afterRootLite` returns:
 * **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
   stack's log-size in `[15, 28]` and the rate's in `[1, 4]`;
 * **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
-  discharged: at most `runnerBudget` (`≈ 2^71.77`).
+  discharged: at most `runnerBudget` (`≈ 2^65.60`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -215,12 +215,12 @@ theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Pr
 /-! ## The runner on the replay's layouts -/
 
 /-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
-discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^71.77`). -/
+discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.60`). -/
 theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
     (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.Program) (input : PublicInput)
     {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof} {L : LayoutLite} {R : ℕ}
     {st : LeanVM.Protocol.Compile.ProgState} (h : afterRootLite bytecode π = some ((L, R), st))
-    (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 18 + 1) :
+    (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 12 + 1) :
     machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] +
         (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
           [encodeValue (runnerTables prog L), encodeValue prog, encodeValue input, encodeValue L, encodeValue q]).sum ≤

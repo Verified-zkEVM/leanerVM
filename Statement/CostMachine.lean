@@ -406,18 +406,19 @@ def decodeExecution (prog : Semantics.Program) : MachineValue → Option (Execut
 
 /-- **The extractor's budget**, for a transcript of `N` permutation queries: the most the
 extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^95 + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, with
+so also the most steps it may execute), `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, with
 `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript. `lean_vm`
 proves the compiled extractor's price at most this at every shape the replay admits (stack
-log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`): `2^95`
+log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`): `2^81`
 bounds the list decoder
-(about `2^94.07`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each lane
-interpolated by an approximant basis) and the runs of the candidate executions (about `2^71.8`); the
-second term bounds the transcript's index (about `2^14.7` per query and level squared, a level's
+(about `2^80.49`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each lane
+interpolated by an approximant basis) and the runs of the candidate executions (about `2^65.6`); the
+second term bounds the transcript's index (about `2^14.85` per query and level squared, a level's
 positions growing by a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`).
-So about `2^95` for at most `2^60` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
+So about `2^81` for at most `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and
+`2^157.08` for `2^128`. -/
 def knowledgeExtractorBudget (N : ℕ) : ℕ :=
-  2 ^ 95 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
+  2 ^ 81 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
 

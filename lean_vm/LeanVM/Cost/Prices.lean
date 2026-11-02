@@ -16,9 +16,9 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^94.07 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^94.07` for at most `2^40` queries (the
-list decoder dominating), `2^94.21` for `2^64`, `2^107.36` for `2^80` and `2^156.69` for `2^128`
+About `2^80.49 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
+worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^80.49` for at most `2^40` queries (the
+list decoder dominating), `2^86.74` for `2^60`, `2^90.91` for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
 queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
@@ -41,10 +41,10 @@ def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
   (74 * κ + 121) * 2 ^ κ + (74 * ℓ + 121) * 2 ^ ℓ + 73 * ℓ + 357
 
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
-`17·w + cW`. -/
+`15·w + cW`. -/
 def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (1520 * 2 ^ (μ - 6 + R) + 39583) + 102 * 2 ^ (μ - 6 + R) + 17509) +
-    (17 * w + cW + 10 * w + 46) * 2 ^ (μ - 6 + R) + 1016 * 2 ^ μ + 1300
+  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15013) +
+    (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
 `8`-word keys, three insertions into sorted maps below `2^D` entries, a block's `B` bytes; `W` the
@@ -74,28 +74,28 @@ def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
 /-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
 binary searches. -/
 def committedLeavesPrice (D h W : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
+  2 ^ h * (2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h)
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-the worst admissible shape `(28, 4)`: about `2^94.07`. It is `lean_vm`'s `pmDecoderWorstPrice`
+the worst admissible shape `(28, 4)`: about `2^80.49`. It is `lean_vm`'s `pmDecoderWorstPrice`
 (`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 4 0 0`), evaluated
 (`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
 (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 20790986008017779583761482458
+def listDecoderWorstPrice : ℕ := 1696768204877294467202512
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/
-def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
+def listDecoderPrice : ℕ := 1751 * 2 ^ 26 + listDecoderWorstPrice + 22
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
-def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4700 * 2 ^ ℓ + 1100
+def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4320 * 2 ^ ℓ + 947
 
 /-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
-the fast path, the runner's tables, at most `1 + 2^18` candidate runs and the list decoder. -/
+the fast path, the runner's tables, at most `1 + 2^12` candidate runs and the list decoder. -/
 def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
-  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 24 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 15) * (2 ^ 18 + 1) + listDecoderPrice + 133
+  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 23 +
+    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 21) * (2 ^ 12 + 1) + listDecoderPrice + 133
 
 /-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
 def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1
@@ -106,9 +106,9 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (144 * 2 ^ ℓ + 1004514000) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128025) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
-      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 60
+      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
 end
 

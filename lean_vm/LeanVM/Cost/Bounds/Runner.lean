@@ -21,9 +21,9 @@ tables of at most `2^32` rows (the layout's checks in `buildLayoutLite`), and th
 * **`runWithTables_cost`**: one stack, `(runnerStepPrice κ ℓ + 41)·stepCapLite + 45·2^κ + 1738`, with
   `runnerStepPrice κ ℓ = 365466 + 36ℓ + 936κ` (`stepVec_cost`, `Bounds/Step.lean`); at the worst shape
   **`runWithTables_cost_worst`**: `396611·2^35 + 45·2^32 + 1738 ≈ 2^53.60`;
-* **`runner_cost`**: the tables and at most `1 + 2^18` stacks (the fast path's at most one,
-  `FastInv`; the decoder's at most `2^18`, `decodeStacksDistinct_length_le_johnson`): at most
-  `runnerBudget ≈ 2^71.60`.
+* **`runner_cost`**: the tables and at most `1 + 2^12` stacks (the fast path's at most one,
+  `FastInv`; the decoder's at most `2^12`, `decodeStacksDistinct_length_le_johnson`): at most
+  `runnerBudget ≈ 2^65.60`.
 
 Hypotheses: placements' offsets below `2^63` (`(layout.placement c).index < 2^63`, so an offset
 plus an address of a memory of at most `2^62` words is a word) and the layout's
@@ -433,19 +433,19 @@ end Loop
 
 /-! ## The runner -/
 
-/-- The runner's budget at the worst shape: the tables, and `1 + 2^18` stacks. -/
+/-- The runner's budget at the worst shape: the tables, and `1 + 2^12` stacks. -/
 @[expose] def runnerBudget : ℕ :=
-  (4978 * 2 ^ 32 + 2693) + (2 ^ 18 + 1) * (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738)
+  (4978 * 2 ^ 32 + 2693) + (2 ^ 12 + 1) * (396611 * 2 ^ 35 + 45 * 2 ^ 32 + 1738)
 
-/-- **The runner** at the worst shape: its tables once, and at most `1 + 2^18` candidate stacks
-(at most one from the fast path, at most `2^18` from the decoder): at most `runnerBudget`
-(`≈ 2^71.60`). -/
+/-- **The runner** at the worst shape: its tables once, and at most `1 + 2^12` candidate stacks
+(at most one from the fast path, at most `2^12` from the decoder): at most `runnerBudget`
+(`≈ 2^65.60`). -/
 theorem runner_cost (hT : Includes P runnerTablesC.costDeps) (hW : Includes P runWithTablesC.costDeps)
     (prog : Semantics.Program) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 32) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (qs : List (Vector K (2 ^ layout.stackLog)))
-    (hqs : qs.length ≤ 2 ^ 18 + 1) :
+    (hqs : qs.length ≤ 2 ^ 12 + 1) :
     machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue layout] +
         (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
           [encodeValue (runnerTables prog layout), encodeValue prog, encodeValue input, encodeValue layout, encodeValue q]).sum ≤

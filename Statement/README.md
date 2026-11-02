@@ -48,7 +48,7 @@ priced at the run's `κ`, are most of it); that
 a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not proved in
 Lean; literal tables count toward size; the size bounds limit programs written like the compiled
 ones (a decoder written differently could pack the guest's tables tighter, about `1600` signatures'
-room); the extractor's budget is `2^95 + O(N·log³N)` for `N` queries.
+room); the extractor's budget is `2^81 + O(N·log³N)` for `N` queries.
 
 ## Reading order
 
@@ -134,10 +134,10 @@ theorems, then read the files in this order.
     `P` computes, its output parsed, if `P`'s size and its run's price are within them.
     `Statement.Theorems` takes `P` as a parameter and does not name it (`lean_vm` names its
     knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound
-    is `14400`: the compiled extractor's `13811` and a slack of about one leanXMSS signature's
+    is `14500`: the compiled extractor's `14125` and a slack of about one leanXMSS signature's
     encoding, so the compiled extractor could carry no useful table of witnesses beside its code.
-    The budget is a short formula, `2^95 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with
-    `D = log₂(N + 2) + 1`: about `2^95` for `N ≤ 2^60` (the list decoder, about `2^94.07` at the
+    The budget is a short formula, `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with
+    `D = log₂(N + 2) + 1`: about `2^81` for `N ≤ 2^50` (the list decoder, about `2^80.49` at the
     worst shape) and `2^157.08` at `N = 2^128` (the transcript's index), where the soundness bound
     is already trivial; `lean_vm` proves the compiled extractor's price below it at every shape the
     replay admits.
@@ -230,9 +230,9 @@ the challenges the verifier's program samples (`Run.lean` gives the script nothi
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
-(`14400`, the compiled `13811` and a slack of about one leanXMSS signature) leaves the compiled
-extractor no room for a useful table of witnesses; and its budget is `2^95 + O(N·log³N)` for
-`N` permutation queries (polylogarithmic per query: about `2^95` for `N ≤ 2^60`, `2^157.08` at
+(`14500`, the compiled `14125` and a slack of about one leanXMSS signature) leaves the compiled
+extractor no room for a useful table of witnesses; and its budget is `2^81 + O(N·log³N)` for
+`N` permutation queries (polylogarithmic per query: about `2^81` for `N ≤ 2^50`, `2^157.08` at
 `N = 2^128`, where the soundness bound is already trivial). `lean_vm` names the program (`LeanVM.Cost.extractorProgram`, its extractor
 `transcriptExtractor` compiled, `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address
 indices and the public boundary it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`,
@@ -294,7 +294,7 @@ execution within its budget. The program is that decoder compiled (`LeanVM.Cost.
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `786000`) limits any program; it is the compiled
-decoder's size, `785531` (proved at most that and measured exactly), and a slack of `469`: room for
+decoder's size, `785688` (proved at most that and measured exactly), and a slack of `312`: room for
 one leanXMSS signature's encoding (`309`) beside its code but not two, so no useful table of
 witnesses (hard-coded signatures masking a bug of the guest program on finitely many statements)
 fits there. That size counts the guest program's per-function tables, literals of the program, in

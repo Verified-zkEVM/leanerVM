@@ -16,8 +16,8 @@ open LeanVM.Cost LeanVM.Cost.Library LeanVM.Parameters
 def price (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : Option ℕ :=
   (evaluateFunctionBody (MachineProgram.ofList deps) 100000 i args).map (·.2)
 
-/-! The field inverse (`invK_cost`, Itoh–Tsujii): `19674` on `7`, the bound `19676`. -/
+/-! The field inverse (`invK_cost`, Itoh–Tsujii): `2823` on `7`, the bound `2823` (tight). -/
 #guard price LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costDeps LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costIdx
-    [MachineEncoding.encodeValue (K.ofBits 7)] == some 19674
+    [MachineEncoding.encodeValue (K.ofBits 7)] == some 2823
 
 end LeanVMTests.Cost
