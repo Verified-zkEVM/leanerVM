@@ -3,6 +3,7 @@ module
 public import LeanVM.Protocol.Extraction.Fast.CertifiedSolve
 public import LeanVM.Protocol.Extraction.Fast.DecodeAdmissible
 public import LeanVM.Protocol.Extraction.Fast.FFT.Additive
+public import LeanVM.Protocol.Extraction.Fast.GSData
 
 /-!
 # The lanes by the approximant-basis interpolation
@@ -44,7 +45,9 @@ Horner's evaluations. -/
     (CPolynomial.BatchEvalContext.horner K) S
 
 /-- **The approximant-basis interpolation of distinct points**: `approxInterpContextWith S`'s,
-without the distinctness check, with the fast normalization (`normalizeLeeFast`). -/
+without the distinctness check, with the fast normalization (`normalizeLeeFast`), the modular
+data with each modulus's inverse computed once (`buildGSModularDataCached`, on the additive-FFT
+low products). -/
 @[expose] def interpolateDistinctWith (S : ModularSolutionBasisContext K)
     (points : Array (K × K)) (params : GSInterpParams) : Option (CBivariate K) :=
   if params.messageDegree ≤ 1 then
@@ -53,7 +56,7 @@ without the distinctness check, with the fast normalization (`normalizeLeeFast`)
     let G := vanishingFast (points.map fun point ↦ point.1)
     let R := CPolynomial.interpolateCoefficientFormWithVanishing
       (CPolynomial.BatchEvalContext.horner K) G points
-    let data := ApproximantBasis.buildGSModularDataWithRG S.mulContext S.modContext R G params
+    let data := buildGSModularDataCached S.mulContext FFT.fftRawMulLowContext R G params
     let basis := S.solutionBasis (ApproximantBasis.modularEquation data) data.shift
       (some params.weightedDegreeBound)
     match leastShiftedDegreeChoice? basis data.shift with
@@ -75,7 +78,7 @@ theorem interpolateDistinctWith_eq (S : ModularSolutionBasisContext K) {points :
   · rw [ite_eq_left hk, ite_eq_left hk]
   · rw [ite_eq_right hk, ite_eq_right hk, ite_eq_left rfl]
     simp only [vanishingContextFast, ApproximantBasis.normalizeApproximantCandidate?,
-      LeeOSullivan.normalizeLeeCandidate?]
+      LeeOSullivan.normalizeLeeCandidate?, buildGSModularDataCached_eq _ _ S.modContext]
     split
     all_goals (rename_i heq; rw [heq])
 
