@@ -142,7 +142,7 @@ size; the frame cells of the guest's functions are `749835` of it). The slack bo
 witnesses the compiled decoder could carry beside its code (hard-coded signatures, matrices or
 proofs that would mask a bug of the guest program on finitely many statements): it is room for one
 leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as the extractor's
-`11000` against its `10479`). It does not bound what a program written differently could hold: the
+`11000` against its `10471`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
 cells to a limb, freeing room for about `1600` signatures' encodings. -/
 def guestDecoderSizeBound : ℕ := 785500
