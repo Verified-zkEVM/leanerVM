@@ -61,14 +61,14 @@ open LeanVM.Parameters LeanVM.Semantics
 /-- **A decoder of memories**: from a memory, a seed, a statement and a witness. The statement's
 decoder is a cost-machine program (`GuestKnowledge`, `Statement/Theorems.lean`); this is the
 proofs' form, which `LeanVM/Guest/DecoderProgram.lean` relates to it. -/
-abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → Decoded
+abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → SeedStatementAndWitness
 
 /-- **Knowledge soundness of the guest program, for a decoder of memories**: from the memory of
 every valid execution of `guest` on a public input, `decode` reads a seed, the node statement the
-input commits to under that seed, and a witness proving it (`ExplainsInput`). -/
+input commits to under that seed, and a witness proving it (`ExplainsPublicInput`). -/
 def MemoryGuestKnowledge (guest : Program) (decode : MemoryDecoder) : Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
-    ExplainsInput guest input (decode t.memory)
+    ExplainsPublicInput guest input (decode t.memory)
 
 end
 
@@ -105,7 +105,7 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guest (decodeWith W) := by
+theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guestProgram (decodeWith W) := by
   intro input t hv
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
   have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
@@ -117,23 +117,23 @@ theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guest (decod
 coordinates, which the outer verifier's check that it holds implies) decodes to
 `iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
 candidates. -/
-theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
+theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) {iv : Digest} {s₀ : NodeStatement}
     (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
     ((decodeWith W t.memory).seed = iv ∧ (decodeWith W t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeWith W t.memory).seed
         (decodeWith W t.memory).statement iv s₀) := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact decoded_binds hs₀ hrel.1 hpub hd
+  exact decoded_binds hs₀ hrel.2.2.2.2 hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
 and a statement of the input's digest of the guest's shape that a witness holds (`NodeRelation`). -/
-theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution guest)
-    (hv : ValidExecution guest input t) :
+theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution guestProgram)
+    (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact ⟨_, _, hd, hrel.1, _, hrel⟩
+  exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
 
 /-! ## With B1's witnesses -/
 
@@ -153,13 +153,13 @@ theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Protocol.Compil
 
 /-- **Soundness of the deployed guest, its witness named**, from B2 and `verify_sub`'s statement. -/
 theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) : MemoryGuestKnowledge guest (decodeV piOf) :=
+    (hv : B1.Main.SubSoundW bytecode piOf) : MemoryGuestKnowledge guestProgram (decodeV piOf) :=
   guest_knowledge_of (soundHyps_of_sub hb2 hv)
 
 /-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/
 theorem decode_binds_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Execution guest}
-    (hvt : ValidExecution guest input t) {iv : Digest} {s₀ : NodeStatement}
+    (hv : B1.Main.SubSoundW bytecode piOf) {input : PublicInput} {t : Execution guestProgram}
+    (hvt : ValidExecution guestProgram input t) {iv : Digest} {s₀ : NodeStatement}
     (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode) (hpub : publicDigest input = statementDigest iv s₀) :
     ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.memory).seed

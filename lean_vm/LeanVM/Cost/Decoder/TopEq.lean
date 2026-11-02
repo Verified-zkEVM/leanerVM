@@ -26,7 +26,7 @@ attribute [local instance] lexOrd
 
 /-- **The compiled top's function is the deployed decoder.** -/
 theorem decTop_eq {κ : ℕ} (L : MemoryImage κ) :
-    decTop LeanVM.Guest.guest κ (memoryVector L) = LeanVM.Guest.End.decode L := by
+    decTop LeanVM.Guest.guestProgram κ (memoryVector L) = LeanVM.Guest.End.decode L := by
   rw [decode_eq_ends discreteLog_discreteLogSpec L]
   simp only [decTop, decTopTables, decTopStates, decTopFrames, frameAtA_eq,
     ← preTest_eq_preTable, decWitNStaged_eq, cursorLength_tables]

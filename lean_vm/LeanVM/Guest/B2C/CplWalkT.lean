@@ -207,7 +207,7 @@ variable {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} 
 theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {se sj : CW}
     (h : segAtC X J se = some sj) (hok : CWOk L fp X se) (he : EnvAt L fp X wJ wenv J) {W0 : Registers K}
     {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
-    (hr : RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
+    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
     (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)
     (hnm : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sj with cnt := c, uq := u } W0 n xc := by
@@ -447,7 +447,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
     exact ⟨_, gpow pc, hq, isInK_ofK _, ⟨_, htgt, isInK_ofK _, by rw [limb_ofK0]⟩, by simp⟩)
   rw [hent] at hrun
   have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
-  have hrun2 : RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
+  have hrun2 : RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
     rw [← hgr]
     exact hcr.trans hrun
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=

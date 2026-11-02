@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainHonestEnd
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main` on an honest run, the children's loop's tree exposed
@@ -107,7 +108,7 @@ theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
 
 /-- **`main` at `fp` on the honest run, its callees' trees satisfying `p`.** -/
 theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRelation bytecode seed s w) (hl : Limits s w)
+    (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hT : MainGoalsT fs cert fp seed s w p) :

@@ -1041,7 +1041,7 @@ theorem Result.linked_spec {R : Result} (hl : R.linked = true) {s : Seg} (hs : s
   · exact absurd h (by simp)
 
 /-- The code of a guest function is fetched at its pcs. -/
-theorem guest_fetches {f : CompiledFn} (hf : f ∈ Data.functions) : Fetches guest f.entry f.code := by
+theorem guest_fetches {f : CompiledFn} (hf : f ∈ Data.functions) : Fetches guestProgram f.entry f.code := by
   intro j ins hj
   have hw := CompiledFn.wellChunked_of_mem hf
   obtain ⟨hjl, -⟩ := List.getElem?_eq_some_iff.mp hj

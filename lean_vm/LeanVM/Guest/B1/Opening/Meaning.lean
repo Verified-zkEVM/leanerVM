@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The stacked WHIR opening's helpers: meanings (TRIAGE G #35-38)
@@ -181,7 +182,7 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
 
 /-- **One query** (`opening_query`, G:1172-1236, with `verify_merkle_path`, G:1021-1036; TRIAGE
 #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words of `K`, hashed
-(`hashWords`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels by hinted siblings
+(`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels by hinted siblings
 (`climb`, V:492, the position's low bits: `climbD`); the path's children cells are a frame run at
 `pp` (`pathCell`), the node of each level written into it on its bit's side; the node reached is
 written at the cap's cells of node `2^cd + q / 2^(depth - cd)` and its parent flagged; the
@@ -193,16 +194,16 @@ def QueryOpens (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
       IsInK pp ∧
       (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.gpow k) = some x →
-        x = pathCell (hashWords row) q sibs k) ∧
+        x = pathCell (merkleLeafDigest row) q sibs k) ∧
       (∀ l < depth - cd,
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestScalars (climbNode (hashWords row) q sibs l)).1 ∧
+          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestScalars (climbNode (hashWords row) q sibs l)).2) ∧
+          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
-        (digestScalars (climbD (hashWords row) q sibs)).1 ∧
+        (digestScalars (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (hashWords row) q sibs)).2 ∧
+        (digestScalars (climbD (merkleLeafDigest row) q sibs)).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1 ∧
       d = rowDot base I row w
 

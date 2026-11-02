@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.NoCommit
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The opening's hypotheses from the child's
@@ -405,7 +406,7 @@ theorem child_open {bytecode : List K} (seed : Digest) (c : Node.Child)
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf
       (deferredProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
-      (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
+      (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E)
       (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       Whir.runF (specPre (claimedValue c.freshClaim) bytecode (Node.statementDigest seed c.statement))

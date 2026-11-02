@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Whir.QueriesOpen
 public import LeanVM.Guest.B1.Whir.InterfaceW
 public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The queries' openings, named
@@ -162,9 +163,9 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
     (hroot : (r0, r1) = digestScalars root) {q : ℕ} (hq : q < 2 ^ depth) {row : List K}
     (hw : row.length = width) {sibs : List Digest} (hsl : sibs.length = depth - D)
     (h0 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)))
-      (digestScalars (climbD (hashWords row) q sibs)).1)
+      (digestScalars (climbD (merkleLeafDigest row) q sibs)).1)
     (h1 : LoadHolds rd cap (2 * (2 ^ D + q / 2 ^ (depth - D)) + 1)
-      (digestScalars (climbD (hashWords row) q sibs)).2)
+      (digestScalars (climbD (merkleLeafDigest row) q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (D - 1) + q / 2 ^ (depth - D + 1)) 1) :
     Id.run (Compile.openOneWithHash (m := Id) keccak256 root depth width q
       (toOpening rd cap D depth (q, row, sibs))) = true := by
@@ -177,7 +178,7 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
   have hc := cap_climb_w hD hcap hroot hp h0 h1 hfl
   unfold Compile.openOneWithHash toOpening
   rw [ite_pos' ⟨hw, by simp [hsl, capSibsOf_length]; omega⟩]
-  show decide ((climbD (hashWords row) q (sibs ++ capSibsOf rd cap D (q / 2 ^ (depth - D)))).toList =
+  show decide ((climbD (merkleLeafDigest row) q (sibs ++ capSibsOf rd cap D (q / 2 ^ (depth - D)))).toList =
     root.toList) = true
   rw [climbD_append, hsl, hc]
   exact decide_eq_true rfl

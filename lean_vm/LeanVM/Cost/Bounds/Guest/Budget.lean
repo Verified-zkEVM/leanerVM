@@ -120,10 +120,10 @@ variable (P : MachineProgram)
 
 /-- **On every valid execution of the guest, the decoder program's price is within its exact
 price** (`guestDecoderPrice`, `Cost/Prices.lean`). -/
-theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.guest)
-    (hv : ValidExecution LeanVM.Guest.guest input t) :
-    decoderProgramPrice LeanVM.Guest.guest t ≤
-      guestDecoderPrice t.logMemorySize LeanVM.Guest.guest.logSize t.steps := by
+theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.guestProgram)
+    (hv : ValidExecution LeanVM.Guest.guestProgram input t) :
+    decoderProgramPrice LeanVM.Guest.guestProgram t ≤
+      guestDecoderPrice t.logMemorySize LeanVM.Guest.guestProgram.logSize t.steps := by
   unfold decoderProgramPrice guestDecoderPrice
   have hP := decoderProgram_includes
   have hκ : t.logMemorySize ≤ 32 := hv.1.2.1
@@ -134,8 +134,8 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
       16 65535 65535 :=
     ⟨by norm_num, by norm_num, by norm_num, hcv.kids, by have := hcv.slots; omega,
       by have := hcv.slots; omega, hcv.xClaims, hcv.sClaims⟩
-  set states := Decoder.replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guest.logSize)
-    LeanVM.Guest.guest (Decoder.memoryVector t.memory) with hstates
+  set states := Decoder.replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guestProgram.logSize)
+    LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory) with hstates
   set e := guestDecoderEntryTableKeyExponent t.steps
   have hn : 2 * states.length < 2 ^ e :=
     lt_of_le_of_lt (by omega) (tableExponent_spec t.steps)
@@ -166,7 +166,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     omega
   have he1 := keyExponent_pos t.steps
   have hpos := replayStatesOf_length_pos (powTable t.logMemorySize)
-    (powTable LeanVM.Guest.guest.logSize) LeanVM.Guest.guest (Decoder.memoryVector t.memory)
+    (powTable LeanVM.Guest.guestProgram.logSize) LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory)
   rw [← hstates] at hpos
   have hE := entryArrayT_cost decoderProgram _ _ hrd 1271 hR _ _ hpre _ hPr
     includes_budget_entryArrayT Decoder.pcTableT 2 5969 e pcTableT_getD_lt pcTableT_getD_length
@@ -199,14 +199,14 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     (fun p q ↦ cursorLength_cost decoderProgram includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost decoderProgram hP LeanVM.Guest.guest hκ (Decoder.memoryVector t.memory) 12895 7188478 _ _
+  have hT := decTop_cost decoderProgram hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12895 7188478 _ _
     (preTable_cost decoderProgram includes_budget_preTable).le (pcTableT_cost decoderProgram includes_budget_pcTableT)
     hE hW hc
   have hk := topConst_le (guestDecoderFramePrice e)
   rw [addressTablesPrice_eq] at hT
   rw [entryArrayStatePrice_eq] at hT
   rw [← hstates] at hT
-  have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guest.logSize + 48) hlen
+  have h1 := Nat.mul_le_mul_left (runnerStepPrice t.logMemorySize LeanVM.Guest.guestProgram.logSize + 48) hlen
   have h2 := Nat.mul_le_mul_left (guestDecoderStateFilingPrice e) hlen
   rw [Nat.add_mul]
   omega

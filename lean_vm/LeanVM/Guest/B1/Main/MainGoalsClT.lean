@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsFCl
 public import LeanVM.Guest.B1.Digest.ClaimListsAtT
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s claim lists' digests, by trees of honest shape
@@ -63,9 +64,9 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
   CompleteAtDT.toD h
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClXT (hL : Limits s w) : MainGoalClXT fs cert fp seed s w := by
+theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
-    have := hL.coverage
+    have := hL.coverageSlotsBelow2Pow16
     simp only [coverageSlots] at this
     simp only [claimGroup, maxKeys]
     omega
@@ -73,9 +74,9 @@ theorem mainGoalClXT (hL : Limits s w) : MainGoalClXT fs cert fp seed s w := by
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
         (xPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
-  have hl := mf_length_flatMap (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
+  have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
-  have hc := mf_canon_flatMap (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
+  have hc := mf_canon_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.xmss
   have key := claim_list_digest_completeAtT fs cert (Lin := hLmain fs fp seed s w)
     (eP := mfB fs fp seed s w 0) hn hl hc
@@ -92,9 +93,9 @@ theorem mainGoalClXT (hL : Limits s w) : MainGoalClXT fs cert fp seed s w := by
   exact key
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
-theorem mainGoalClST (hL : Limits s w) : MainGoalClST fs cert fp seed s w := by
+theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
-    have := hL.coverage
+    have := hL.coverageSlotsBelow2Pow16
     simp only [coverageSlots] at this
     simp only [claimGroup, maxKeys]
     omega
@@ -102,9 +103,9 @@ theorem mainGoalClST (hL : Limits s w) : MainGoalClST fs cert fp seed s w := by
       s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
         (sPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
     rw [← List.flatMap_append]; rfl
-  have hl := mf_length_flatMap (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
+  have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
+  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.sphincs
   have key := claim_list_digest_completeAtT fs cert (Lin := hLmain fs fp seed s w)
     (eP := mfB fs fp seed s w 1) hn hl hc

@@ -12,6 +12,7 @@ module
 
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 @[expose] public section
 
@@ -61,7 +62,9 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Budget
 
-open Hints
+open LeanVM.Guest.Completeness
+
+open Coverage
 
 /-- **The leanVM verifier refusing a zero challenge** (`Prog.refusingZeroChallenge`): `verifier H F`
 with every sampled challenge `0` a failure. -/
@@ -108,15 +111,15 @@ def GuestChildCompleteWithHash : Prop :=
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
           false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-  ∀ (s : NodeStatement) (t : Execution guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
-    s.deferredClaim.HasBytecodeShape (bytecodeWords guest) →
-    let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
+  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
+    s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
+    let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
     ∀ proof,
-      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guest input t ρ (2 ^ 25) =
+      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 25) =
         some proof →
-    verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest input proof = true →
-    ∃ fresh, fresh.Holds (bytecodeWords guest) ∧
-      AcceptableChild (bytecodeWords guest) (deployedSeed guest) ⟨s, fresh, proof⟩
+    verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram input proof = true →
+    ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧
+      AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) ⟨s, fresh, proof⟩
 
 end Budget
 

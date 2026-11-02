@@ -16,7 +16,7 @@ public import Statement.Prover.Whir
 `LeanVM.Prover.prove F prog input t ρ fuel`: leanVM's honest prover over the permutation `F` in any
 monad, Keccak-256 the sponge over `F`. With Keccak-f[1600] in `Id` it is the executable
 (`lake exe leanvm-prove`); with the model's permutation (`Common.queryPermutation`) it is the
-prover the completeness statements name (`LeanVm.lean`, `LeanVmGuest.lean`).
+prover the completeness statements name (`LeanVm.lean`, `LeanVmGuestCompleteness.lean`).
 
 From the trace it computes the witness (`witness?`: one run of the program; `none` unless the
 trace is a valid execution on the input within `2^28` committed cells), and, at a valid rate

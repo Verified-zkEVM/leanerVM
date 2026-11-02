@@ -13,6 +13,7 @@ public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Lift.OqFits
 public import LeanVM.Guest.B1.Bits.Log2Placed
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `verify_sub` is complete
@@ -43,11 +44,11 @@ def verify_sub_complete_Spec (bytecode : List K) : Prop :=
   ∀ (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 16 ≤ κ →
     c.statement.deferredClaim.HasBytecodeShape bytecode →
     (∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog) →
-    c.proof.stream.length ≤ Hints.childStreamCap →
+      Coverage.minChildStackLog ≤ layout.stackLog) →
+    c.proof.stream.length ≤ Coverage.childStreamCap →
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true →
     (∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode (statementDigest seed c.statement))
-      (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) →
+      (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) →
     (∀ q ∈ log2Lin lpE sqE, q ∈ Lin) →
     (outE, DeferredClaim.cells c.freshClaim) ∈ Lin →
     CompleteAtD fs cert κ "verify_sub" Lin

@@ -1,7 +1,7 @@
 module
 
 public import Statement.LeanVm
-public import Statement.LeanVmGuest
+public import Statement.LeanVmGuestCompleteness
 public import Statement.LeanXmss
 public import Statement.LeanSphincs
 public import Statement.LeanDa
@@ -96,10 +96,10 @@ instance : MachineEncoding DaClaim :=
   ⟨fun c ↦ .ctor 0 [encodeValue c.daRoot, encodeValue c.membershipVectorDigest]⟩
 
 instance : MachineEncoding Da.MatrixWitness :=
-  ⟨fun m ↦ .ctor 0 [encodeValue m.rows, encodeValue m.vector]⟩
+  ⟨fun m ↦ .ctor 0 [encodeValue m.rows, encodeValue m.orthogonalVector]⟩
 
-instance : MachineEncoding Claims :=
-  ⟨fun c ↦ .ctor 0 [encodeValue c.xmss, encodeValue c.sphincs, encodeValue c.da]⟩
+instance : MachineEncoding NodeClaims :=
+  ⟨fun c ↦ .ctor 0 [encodeValue c.xmss, encodeValue c.sphincs, encodeValue c.daDigest]⟩
 
 instance : MachineEncoding NodeStatement :=
   ⟨fun s ↦ .ctor 0 [encodeValue s.claims, encodeValue s.deferredClaim]⟩
@@ -115,10 +115,10 @@ instance : MachineEncoding BatchingHints :=
   ⟨fun h ↦ .ctor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
 
 instance : MachineEncoding NodeWitness :=
-  ⟨fun w ↦ .ctor 0 [encodeValue w.children, encodeValue w.xmss, encodeValue w.sphincs,
+  ⟨fun w ↦ .ctor 0 [encodeValue w.children, encodeValue w.xmssHolders, encodeValue w.sphincsHolders,
     encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
 
-instance : MachineEncoding Decoded :=
+instance : MachineEncoding SeedStatementAndWitness :=
   ⟨fun d ↦ .ctor 0 [encodeValue d.seed, encodeValue d.statement, encodeValue d.witness]⟩
 
 /-- **The decoder's input**: the program and its execution (the memory's log-size `κ`, its `2^κ`
@@ -172,7 +172,7 @@ its frame lookups (about `2^26.6`, each a binary search over the entries), `2^37
 guest program has fewer than `2^51` steps (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`, no state repeated
 in a halting run; argued, not a Lean theorem). The constants are the deployed guest program's (its
 tables of preconditions and entries, its frames), not those of any program: `prog` is only ever
-`LeanVM.Guest.guest`. -/
+`LeanVM.Guest.guestProgram`. -/
 def guestWitnessDecoderBudget {prog : Program} (t : Execution prog) : ℕ :=
   (t.steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (t.steps + 1)) +
     (70 * t.logMemorySize + 374) * 2 ^ t.logMemorySize + 2 ^ 37 * (Nat.log2 (t.steps + 1) + 16)
@@ -182,15 +182,16 @@ execution `t` of `guest` on a public input, the decoder program `guestWitnessDec
 most `guestWitnessDecoderSizeBound`, run on the encoded program and execution within its budget
 (`encodeGuestWitnessDecoderInput`, `guestWitnessDecoderBudget`), outputs the encoding of a decoding
 `d`: a seed, the node statement the input commits to under that seed, and a witness proving it
-(`ExplainsInput`, `LeanVmGuest.lean`). A larger program, or a run that fails or exceeds its budget,
-outputs nothing, so `GuestKnowledge` fails at that execution. Its `guest` is only ever
-`LeanVM.Guest.guest`, whose program the budget's constants are. -/
+(`ExplainsPublicInput`, `LeanVmGuest.lean`). A larger program, or a run that fails or exceeds its
+budget, outputs nothing, so `GuestKnowledge` fails at that execution. Its `guest` is only ever
+`LeanVM.Guest.guestProgram`, whose program the budget's constants are. -/
 def GuestKnowledge (guest : Program) (guestWitnessDecoder : Cost.MachineProgram) : Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
-    ∃ d : Decoded, Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
-        (Cost.encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
-          some (Cost.encodeValue d) ∧
-      ExplainsInput guest input d
+    ∃ d : SeedStatementAndWitness,
+      Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
+          (Cost.encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
+        some (Cost.encodeValue d) ∧
+      ExplainsPublicInput guest input d
 
 end
 
@@ -234,30 +235,32 @@ structure Theorems
   from the witness and checked only at the root, and its DA digest is that of the blob matrix it
   checks, zeros or a child's, and its deferred claim is the batching of its children's
   (`NodeRelation`, `LeanVmGuest.lean`). -/
-  guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest guestWitnessDecoder
+  guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guestProgram guestWitnessDecoder
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
   the candidates (`LeanVmGuest.lean`). With the two fields above it gives what an accepted proof
   establishes: an accepted proof of the leanISA guest program on
-  `statementDigest (deployedSeed guest) s` yields, by `knowledgeSoundness`, an extracted execution;
-  by `guestKnowledge`, the decoder program's seed and statement of the same digest, with a witness;
-  by `digestBinds`, that they are `deployedSeed guest` and `s`, or a Keccak-256 collision. The
-  composed bound is `Statement.Corollaries`' `aggregateSound`, which `lean_vm` derives from these
-  fields (`LeanVM.corollaries_of_theorems`); its form for the memory decoder `decode`,
-  `MemoryAggregateSound`, is also proved directly (`LeanVM.Guest.End.aggregate_sound_outer`). -/
-  digestBinds : LeanVM.Node.DigestBinds
+  `statementDigest (deployedSeed guestProgram) s` yields, by `knowledgeSoundness`, an extracted
+  execution; by `guestKnowledge`, the decoder program's seed and statement of the same digest, with
+  a witness; by `digestBinds`, that they are `deployedSeed guestProgram` and `s`, or a Keccak-256
+  collision. The composed bound is `Statement.Corollaries`' `aggregateSound`, which `lean_vm`
+  derives from these fields (`LeanVM.corollaries_of_theorems`); its form for the memory decoder
+  `decode`, `MemoryAggregateSound`, is also proved directly
+  (`LeanVM.Guest.End.aggregate_sound_outer`). -/
+  digestBinds : LeanVM.Node.StatementDigestBinds
   /-- The leanISA guest program is complete on the eight families of `CoveredNode`, mixed nodes and
-  nodes checking one DA matrix of at most `32` rows among them. The completeness statements assume
-  the children's hypotheses (`AcceptableChild`), which `guestChildComplete` gives honest proofs
-  (`LeanVmGuest.lean`). -/
-  guestCompleteCovered : LeanVM.Guest.Budget.GuestCompleteCovered
-  /-- The same honest prover's proof of an execution of the guest program is a child the guest
-  program accepts: rejected with probability at most `2^-126` in the random-permutation model, and
-  with the deployed Keccak, where accepted, meeting every hypothesis the guest program's
-  completeness assumes of a child (`LeanVmGuest.lean`). -/
-  guestChildComplete : LeanVM.Guest.Budget.GuestChildComplete
+  nodes checking one DA matrix of at most `32` rows among them, under the deployed seed and within
+  the deployed limits, wherever every child carries the honest prover's proof (`HonestChild`: its
+  fresh claim true, its proof the honest one with the deployed Keccak of an execution of the guest
+  program, accepted by the verifier refusing a zero challenge) (`LeanVmGuestCompleteness.lean`). -/
+  guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
+  /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
+  makes none, or the verifier refusing a zero challenge rejects it, with probability at most
+  `2^-126` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
+  Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
+  honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
   5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
-  compose with the in-circuit statements (`LeanVmGuest.lean`). -/
+  compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
   batchSound : LeanVM.Guest.Batch.BatchingSound
   /-- leanXMSS is strongly unforgeable: at most `(Q + 1) · 2^-127` for `Q ≥ 1` permutation
   calls of the whole game (`LeanXmss.lean`), key generation and the honest signer's worst-case

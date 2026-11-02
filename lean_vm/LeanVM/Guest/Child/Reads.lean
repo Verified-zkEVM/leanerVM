@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Verifier.Cost
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The stream an accepted proof carries
@@ -706,12 +707,12 @@ theorem reads_verifyExecution {ev : (List K → List E → Prog E)} (hev : Reads
   all_goals omega
 
 /-- The reads, evaluated: at most `8192`. -/
-theorem childReads_le : childReads ≤ LeanVM.Guest.Hints.childStreamCap := by decide
+theorem childReads_le : childReads ≤ LeanVM.Guest.Coverage.childStreamCap := by decide
 
 /-- **A proof the deferring verifier accepts has a stream of at most `8192` scalars.** -/
 theorem stream_le_of_verifyDeferred {bytecode : List K} {iv publicInput : Digest}
     {c : BytecodeClaim} {π : Proof} (h : verifyDeferred bytecode iv publicInput c π = true) :
-    π.stream.length ≤ LeanVM.Guest.Hints.childStreamCap := by
+    π.stream.length ≤ LeanVM.Guest.Coverage.childStreamCap := by
   have hP : Reads (deferredProgram c bytecode publicInput) childReads fun _ ↦ True := by
     rw [deferredProgram_eq]
     exact Reads.seq (reads_verifyExecution (readsNothing_claimed c) bytecode publicInput)

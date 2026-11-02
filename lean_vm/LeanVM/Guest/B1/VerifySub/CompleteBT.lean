@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.CompleteAll
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.ChildShape
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `verify_sub` by its callees' trees
@@ -167,12 +168,12 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
     (lpE sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Hints.childStreamCap)
+      Coverage.minChildStackLog ≤ layout.stackLog)
+    (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
+      (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
     (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,
@@ -202,12 +203,12 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     (hap : Lift.RunsApart cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
     (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog)
-    (hst : c.proof.stream.length ≤ Hints.childStreamCap)
+      Coverage.minChildStackLog ≤ layout.stackLog)
+    (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferredProgram c.freshClaim bytecode
-      (statementDigest seed c.statement)) (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
+      (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
     (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin
       [(digestScalars (statementDigest seed c.statement)).1,

@@ -10,12 +10,13 @@ module
 public import LeanVM.Guest.B1.Main.MainGoalsHAg
 public import LeanVM.Guest.B1.Main.AggAtTB
 public import LeanVM.Guest.Batch.Node
+public import LeanVM.Guest.AcceptableChild
 
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (Limits)
+open LeanVM.Guest (DeployedLimits)
 open LeanVM.Guest.B1 (CompleteAtDT CompleteAtDTB CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -32,7 +33,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : Limits s w) : (hm fs fp seed s w).nc ≠ 0 →
+    (hl : DeployedLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
       CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
           (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])
@@ -44,12 +45,12 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
   simp only [hne, ↓reduceIte] at hb
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
-    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.1, hlog]
+    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.2.2.2.2, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)
   simp only [hOwn, List.getD_cons_succ, List.getD_cons_zero] at hdst
-  have := aggregate_claims_completeAtTB fs cert SB SK h25 h26 h27 hbs (m := w.children.length) (by omega) hl.children
+  have := aggregate_claims_completeAtTB fs cert SB SK h25 h26 h27 hbs (m := w.children.length) (by omega) hl.atMostSixteenChildren
     (cs := hKids seed w) (by rw [List.length_map]) hrl hb
     (fun rd hM => hkids_words fs fp hbl hrel hM) hdst
   exact this

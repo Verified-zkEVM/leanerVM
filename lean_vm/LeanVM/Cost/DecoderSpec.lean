@@ -50,27 +50,27 @@ and the entry's `13`. -/
 specification's field reads `memoryDecoder t` as stated here (the kernel, matching
 `encodeValue ((fun t ↦ …) t)` with `encodeValue (End.decode t.memory)`, would unfold the
 encoding, then the decoder, before reducing the redex). -/
-noncomputable def memoryDecoder (t : Execution LeanVM.Guest.guest) : Decoded :=
+noncomputable def memoryDecoder (t : Execution LeanVM.Guest.guestProgram) : SeedStatementAndWitness :=
   LeanVM.Guest.End.decode t.memory
 
 /-- **The program computes the deployed decoder**, within any budget covering its price. -/
-theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guest) {b : ℕ}
-    (hb : decoderProgramPrice LeanVM.Guest.guest t ≤ b) :
-    outputWithin decoderProgram guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput LeanVM.Guest.guest t) b =
+theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guestProgram) {b : ℕ}
+    (hb : decoderProgramPrice LeanVM.Guest.guestProgram t ≤ b) :
+    outputWithin decoderProgram guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput LeanVM.Guest.guestProgram t) b =
       some (encodeValue (memoryDecoder t)) := by
-  have h : memoryDecoder t = decTop LeanVM.Guest.guest t.logMemorySize (memoryVector t.memory) :=
+  have h : memoryDecoder t = decTop LeanVM.Guest.guestProgram t.logMemorySize (memoryVector t.memory) :=
     (decTop_eq t.memory).symm
   rw [h]
-  exact outputWithin_decoderEntry decoderProgram_size_le decoderProgram_entry LeanVM.Guest.guest t
-    (decTopC.costSpec decoderProgram decoderProgram_includes LeanVM.Guest.guest t.logMemorySize
+  exact outputWithin_decoderEntry decoderProgram_size_le decoderProgram_entry LeanVM.Guest.guestProgram t
+    (decTopC.costSpec decoderProgram decoderProgram_includes LeanVM.Guest.guestProgram t.logMemorySize
       (memoryVector t.memory)) hb
 
 /-- **The decoder program's price is within its budget** on every valid execution of the guest
 (`guestWitnessDecoderBudget`, `Statement/Theorems.lean`): the fact the decoder's specification takes,
 proved by `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget` (`Cost/Bounds/Guest/Budget.lean`). -/
 @[expose] def DecoderPriceWithinBudget : Prop :=
-  ∀ input (t : Execution LeanVM.Guest.guest), ValidExecution LeanVM.Guest.guest input t →
-    decoderProgramPrice LeanVM.Guest.guest t ≤ guestWitnessDecoderBudget t
+  ∀ input (t : Execution LeanVM.Guest.guestProgram), ValidExecution LeanVM.Guest.guestProgram input t →
+    decoderProgramPrice LeanVM.Guest.guestProgram t ≤ guestWitnessDecoderBudget t
 
 /-- The specification for `memoryDecoder`. -/
 theorem decoderProgram_spec_memoryDecoder (hprice : DecoderPriceWithinBudget) :

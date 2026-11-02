@@ -313,30 +313,30 @@ noncomputable def frameVWith (states : List (Registers K)) (rd : Reader) : Frame
 indices of the addresses, a call's valuation that of the first frame the run entered its callee
 at on the call's words. -/
 noncomputable def replayFrameV {κ : ℕ} (L : MemoryImage κ) : FrameMap :=
-  frameVWith (statesIn (powIndex κ) (powIndex guest.logSize) guest L replayFuel ⟨gpow 0, 1⟩)
+  frameVWith (statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨gpow 0, 1⟩)
     (readIn (powIndex κ) L)
 
 /-- **The located relation unfolds along the replayed frame map**, on a valid execution: the frame
 the replay finds for a call is one the run entered the callee at, its precondition holding and its
 cells holding the call's words, so the callee's contract gives its body there. -/
-theorem unfoldsV_replay (hb2 : End.B2SoundL) {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) :
+theorem unfoldsV_replay (hb2 : End.B2SoundL) {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
     UnfoldsV t.memory.read (RLg t.memory) (replayFrameV t.memory) := by
   obtain ⟨κ, L, T⟩ := t
   have h16 : minLogMem ≤ κ := hv.1.1
   have h32 : κ ≤ maxLogMem := hv.1.2.1
   have hκ : κ < 64 := by unfold maxLogMem at h32; omega
-  have hS : ∀ r, stepIn (powIndex κ) (powIndex guest.logSize) guest L r = step guest L r :=
+  have hS : ∀ r, stepIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L r = step guestProgram L r :=
     stepIn_powIndex hκ L
-  have hT : run guest L T ⟨gpow 0, 1⟩ = some (Registers.final guest) :=
+  have hT : run guestProgram L T ⟨gpow 0, 1⟩ = some (Registers.final guestProgram) :=
     safe_of_validExecution hv
-  have hTi : run guest L T Registers.initial = some (Registers.final guest) := hv.2
+  have hTi : run guestProgram L T Registers.initial = some (Registers.final guestProgram) := hv.2
   have hjt : JTHolds glob L := End.jtHolds_of (End.safe_jumpTables hT).1
   have hfuel : T ≤ replayFuel := (steps_lt_replayFuel hTi).le
-  have hV : replayFrameV L = frameVWith (statesIn (powIndex κ) (powIndex guest.logSize) guest L
+  have hV : replayFrameV L = frameVWith (statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L
       replayFuel ⟨gpow 0, 1⟩) L.read := by
     rw [replayFrameV, readIn_powIndex hκ]
-  set states := statesIn (powIndex κ) (powIndex guest.logSize) guest L replayFuel ⟨gpow 0, 1⟩
+  set states := statesIn (powIndex κ) (powIndex guestProgram.logSize) guestProgram L replayFuel ⟨gpow 0, 1⟩
   show UnfoldsV L.read (RLg L) (replayFrameV L)
   rw [hV]
   intro f args rets h

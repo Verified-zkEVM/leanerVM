@@ -34,25 +34,25 @@ attribute [local instance] lexOrd
 
 /-- The decoding off `main`'s valuation and the entry table. -/
 noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Reader) (σ : Val)
-    (table : Array (CallKey × K)) : Decoded :=
+    (table : Array (CallKey × K)) : SeedStatementAndWitness :=
   decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (cursorLength D))
 
 /-- The decoding off the reader and the replayed states. -/
 noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
     (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (rd : Reader) (states : List (Registers K)) :
-    Decoded :=
+    SeedStatementAndWitness :=
   decTopFrames D R rd (mainVal rd) (entryArrayT pcT (preTestAt D T Pw rd) states rd)
 
 /-- The decoding off the address tables and the memory. -/
 noncomputable def decTopTables (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
     (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (tabs : Array (ℕ × ℕ) × Array (ℕ × ℕ))
-    (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ)) : Decoded :=
+    (prog : LeanVM.Semantics.Program) {κ : ℕ} (mem : Vector E (2 ^ κ)) : SeedStatementAndWitness :=
   decTopStates D T Pw R pcT (memReader tabs.1 mem) (replayStatesOf tabs.1 tabs.2 prog mem)
 
 /-- **The decoder's top**: the decoding of an execution of `prog`, its memory the vector `mem` of
 `2^κ` words. -/
 noncomputable def decTop (prog : LeanVM.Semantics.Program) (κ : ℕ) (mem : Vector E (2 ^ κ)) :
-    Decoded :=
+    SeedStatementAndWitness :=
   decTopTables discreteLogTables preTable genPows readerTabs pcTableT (decoderTables prog κ) prog
     mem
 

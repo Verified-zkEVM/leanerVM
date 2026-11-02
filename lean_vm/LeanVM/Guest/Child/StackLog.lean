@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Child.Honest
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The announced stack log of an honest proof
@@ -159,7 +160,7 @@ theorem muMin_le_announced {prog : Program} {input : PublicInput} {t : Execution
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hc : ChildFor prog input t ρ w s)
     (h22 : 2 ^ 22 ≤ t.committedSize) (rest : List E) :
     ∀ layout r, announced (bytecodeWords prog) (announce s ρ ++ rest) = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog := by
+      Coverage.minChildStackLog ≤ layout.stackLog := by
   intro layout r h
   obtain ⟨⟨hρ, -, -, hadm, -⟩, htot⟩ := hc
   rw [announced_honest hadm hρ rest] at h

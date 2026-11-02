@@ -13,11 +13,12 @@ public import LeanVM.Guest.Child.NZRun
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Refusing a zero challenge anywhere
 
-`P.refusingZeroChallenge` is `P` with every sampled challenge `0` a failure (`Statement/LeanVmGuest.lean`).
+`P.refusingZeroChallenge` is `P` with every sampled challenge `0` a failure (`Statement/LeanVmGuestCompleteness.lean`).
 
 * It is a refusal of zero challenges of `P` (`nz_refuseZero`) and only fails more
   (`refines_refuseZero`), so the completeness argument of `NZ` programs applies to it as it is.

@@ -11,6 +11,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Guest.B1.Opening.Meaning
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `open_stacked`'s completeness: the interface
@@ -181,7 +182,7 @@ def sibNode (depth q l : ℕ) : ℕ := 2 * heapNode depth q (l + 1) + (!q.testBi
 /-- **The opening `o` at `q` gives the heap node `v` the digest `d`**: `v` is on its climb, with
 the climb's digest there, or is the sibling it carries at a level. -/
 def NodeIs (depth : ℕ) (a : ℕ × Opening) (v : ℕ) (d : Digest) : Prop :=
-  (∃ l ≤ depth, v = heapNode depth a.1 l ∧ d = climbD (hashWords a.2.leaf) a.1 (a.2.path.take l)) ∨
+  (∃ l ≤ depth, v = heapNode depth a.1 l ∧ d = climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take l)) ∨
     ∃ l < depth, v = sibNode depth a.1 l ∧ d = a.2.path.getD l default
 
 /-- The openings of one step agree wherever they meet. -/

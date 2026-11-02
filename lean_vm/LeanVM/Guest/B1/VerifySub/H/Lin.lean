@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.H.TermC
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The callees' words
@@ -96,7 +97,7 @@ theorem stream_segs :
       (vsStreamW c.proof.stream).length := by
   have hw := S.words_length
   have hz := fun (P X R : List E) (n : ℕ) (hn : n = P.length) ↦ seg_take P X R n hn
-  set Z := List.replicate (Hints.childStreamCap - c.proof.stream.length) (0 : E)
+  set Z := List.replicate (Coverage.childStreamCap - c.proof.stream.length) (0 : E)
   have e : vsStreamW c.proof.stream = S.words ++ [S.x0, S.x1] ++ S.xsG ++ S.xsT ++ S.xsK ++ S.xsW ++ Z := by
     show c.proof.stream ++ Z = _
     rw [S.stream_eq]

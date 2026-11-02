@@ -48,7 +48,7 @@ structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
   msg : ℕ → HashSig.Message
   sig : ℕ → LeanXmss.Signature
   slot_lt : ∀ i < nrx, slot i < X
-  verify : ∀ i < nrx, Node.xmssVerify (pk i) (msg i) (sig i) = true
+  verify : ∀ i < nrx, Node.leanXmssVerifyWithKeccak (pk i) (msg i) (sig i) = true
   cover : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ i < nrx, LoadHolds rd (gen ^ cv) (slot i) (gen ^ i)
   claim : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ i < nrx,
     Sig.ClaimAt rd (gen ^ (tb + 4 * slot i)) (Sig.cellOf128 (pk i).root)
@@ -64,7 +64,7 @@ structure RawSData (nrs Y X nrx cv tb bb : ℕ) (Lin : Layout) where
   msg : ℕ → Sphincs.Message
   sig : ℕ → Sphincs.Signature
   slot_lt : ∀ j < nrs, slot j < Y
-  verify : ∀ j < nrs, Node.sphincsVerify (pk j) (msg j) (sig j) = true
+  verify : ∀ j < nrs, Node.leanSphincsVerifyWithKeccak (pk j) (msg j) (sig j) = true
   cover : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ j < nrs,
     LoadHolds rd (gen ^ cv) (X + slot j) (gen ^ (nrx + j))
   claim : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ j < nrs,
