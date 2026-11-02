@@ -302,6 +302,101 @@ theorem pivotRowOfColumnC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.pivotR
   simp only [List.length_range] at hf
   omega
 
+/-- The pivots of the RREF: column indices below `cols`, at most `cols` of them. -/
+theorem rref_pivots (rows : Array (Array K)) (cols : ℕ) :
+    (∀ i, (scalarRrefRows rows cols).pivots.getD i 0 < cols ∨ (scalarRrefRows rows cols).pivots.getD i 0 = 0) ∧
+      (scalarRrefRows rows cols).pivots.size ≤ cols ∧
+      (freeColumns cols (scalarRrefRows rows cols).pivots).size ≤ cols := by
+  have hs := scalarRrefRows_spec rows cols
+  have h := freeColumns_size_add_pivots_size (cols := cols)
+    (pivots := (scalarRrefRows rows cols).pivots)
+    (fun i j hi hj hij ↦ hs.mono i j hij hj) hs.pivots_lt
+  refine ⟨fun i ↦ ?_, by omega, by omega⟩
+  rcases Nat.lt_or_ge i (scalarRrefRows rows cols).pivots.size with hi | hi
+  · exact Or.inl (hs.pivots_lt i hi)
+  · right; rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none hi]; rfl
+
+/-- One kernel vector (`basisVectorForFreeColumnRows`): at most `(33·p + 55)·cols + 19`, `p` the
+pivots. -/
+theorem basisVectorC_cost
+    (hP : Includes P Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.costDeps)
+    (rows : Array (Array K)) (pivots : Array ℕ) (cols free : ℕ) (hc : cols < 2 ^ 60)
+    (hf : free < 2 ^ 64) (hp : ∀ i, pivots.getD i 0 < 2 ^ 64) (hps : pivots.size < 2 ^ 60) :
+    machineCost P Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.costIdx
+        [encodeValue rows, encodeValue pivots, encodeValue cols, encodeValue free] ≤
+      (33 * pivots.size + 55) * cols + 19 := by
+  rw [Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.costEq P hP]
+  have hof := ofFnFrom_cost P (by includes) (by omega : cols < 2 ^ 64) _
+    (.closure Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.lam0.costIdx
+      [encodeValue rows, encodeValue pivots, encodeValue cols, encodeValue free])
+    (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.lam0.costSpec P
+      (by includes) rows pivots cols free a)) (33 * pivots.size + 36) (fun a ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c985.lam0.costEq P (by includes),
+        limbs_of_lt (by have := a.isLt; omega : (a : ℕ) < 2 ^ 64), limbs_of_lt hf]
+      have := pivotRowOfColumnC_cost P (by includes) pivots a (by have := a.isLt; omega) hp (by omega)
+      simp only [max_self]
+      split_ifs
+      · omega
+      · cases pivotRowOfColumn? pivots a <;> dsimp only <;> omega) 0 (Nat.zero_le _)
+  rw [ofFnFrom_length]
+  simp only [Nat.sub_zero] at hof
+  nlinarith
+
+/-- **The scalar kernel basis** (`homogeneousKernelBasisRows`) of `E` rows of at most `r` entries
+over `cols` columns. -/
+theorem kernelBasisC_cost
+    (hP : Includes P Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.costDeps)
+    {E r : ℕ} (hr : r < 2 ^ 58) (hE : E < 2 ^ 58) (cols : ℕ) (hc : cols < 2 ^ 30)
+    (rows : Array (Array K)) (h : RowsWithin E r rows) :
+    machineCost P Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.costIdx
+        [encodeValue rows, encodeValue cols] ≤
+      (cols + 1) * (42 * E + 80) + E * pivotPrice E r + (33 * cols + 55) * cols * cols +
+        (16 * cols + 90) * cols + 70 := by
+  rw [Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.costEq P hP]
+  obtain ⟨hpl, hps, hfs⟩ := rref_pivots rows cols
+  set R := scalarRrefRows rows cols with hR
+  have hpw : ∀ i, R.pivots.getD i 0 < 2 ^ 64 := fun i ↦ by rcases hpl i with h | h <;> omega
+  have hrref := scalarRrefRowsC_cost P (by includes) (E := E) (r := r) (by omega) (by omega) cols
+    (by omega) rows h
+  have hrl := rangeLoop_cost P (by includes) cols [] (by omega)
+  have hfilt := filter_cost P (by includes) (fun col ↦ !containsNat R.pivots col)
+    (.closure Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam1.costIdx [encodeValue R])
+    (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam1.costSpec P
+      (by includes) R a)) (16 * cols + 15) (List.range cols) (fun a ha ↦ by
+      rw [appCost_fn, List.singleton_append,
+        Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam1.costEq P (by includes)]
+      have := containsNatC_cost P (by includes) R.pivots a (by have := List.mem_range.1 ha; omega)
+        (fun y hy ↦ by
+          obtain ⟨i, hi, rfl⟩ := Array.getElem_of_mem hy
+          have := hpw i
+          rwa [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem hi] at this)
+      omega)
+  have hm := map_cost P (by includes) (basisVectorForFreeColumnRows R.rows R.pivots cols)
+    (.closure Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam0.costIdx
+      [encodeValue cols, encodeValue R.pivots, encodeValue R.rows, encodeValue R])
+    (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam0.costSpec P
+      (by includes) cols R.pivots R.rows R a)) ((33 * cols + 55) * cols + 24)
+    (freeColumns cols R.pivots).toList (fun a ha ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c972.lam0.costEq P (by includes)]
+      have ha' : a < cols := by
+        simp only [freeColumns, List.toList_toArray, List.mem_filter, List.mem_range] at ha
+        exact ha.1
+      have := basisVectorC_cost P (by includes) R.rows R.pivots cols a (by omega) (by omega) hpw
+        (by omega)
+      have : (33 * R.pivots.size + 55) * cols ≤ (33 * cols + 55) * cols :=
+        Nat.mul_le_mul_right _ (by omega)
+      omega)
+  have hfl := List.length_filter_le (fun col ↦ !containsNat R.pivots col) (List.range cols)
+  simp only [List.length_range, Array.length_toList, List.length_map] at hfilt hm hfl ⊢
+  have e1 : ((33 * cols + 55) * cols + 24 + 11) * (freeColumns cols R.pivots).size ≤
+      ((33 * cols + 55) * cols + 35) * cols := Nat.mul_le_mul_left _ hfs
+  have e3 : ((33 * cols + 55) * cols + 35) * cols = (33 * cols + 55) * cols * cols + 35 * cols := by
+    ring
+  have e4 : (16 * cols + 15 + 13) * cols + 62 * cols = (16 * cols + 90) * cols := by ring
+  omega
+
 end
 
 end LeanVM.Cost.Bounds.PMCore
