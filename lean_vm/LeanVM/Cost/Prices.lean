@@ -177,7 +177,7 @@ and the other constants below) are the bounds `lean_vm` proves of the compiled d
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
 tables of preconditions and entries, its frames), not those of any program of `2^ℓ` instructions:
-the budget's constants are `LeanVM.Guest.guest`'s, and `GuestKnowledge`'s `guest` is only ever that
+the budget's constants are `LeanVM.Guest.guestProgram`'s, and `GuestKnowledge`'s `guest` is only ever that
 program. -/
 
 /-- The entry table's key exponent: `2·(steps + 1) < 2^exponent` bounds the number of the table's
