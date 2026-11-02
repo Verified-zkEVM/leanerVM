@@ -620,30 +620,41 @@ theorem traceCoordFastC_cost (hP : Includes P traceCoordFast.c173.costDeps) {B :
   omega
 
 
-/-! ## Shoup's splitter -/
+/-! ## Shoup's splitter
 
-/-- The cache's entries: factors of at most `B` coefficients, their powers too. -/
-@[expose] def CacheInv (B : ℕ) (cache : ShoupTracePowerCache K) : Prop :=
-  ∀ e ∈ cache, e.1.val.size ≤ B ∧ ∀ q ∈ e.2, q.val.size ≤ B
+Each factor priced at its own size: the cache's entries hold their factor's own Frobenius powers
+(`CacheInv`, `lookup_mem`: a hit is the factor's own entry), so a factor of `b` coefficients costs
+`refineFactorBound b C L` (cubic in `b`: its gcds), at most `b·refineSlope B + 2846718 + …` for
+`b ≤ B` (`refineFactorBound_le`); summed over a trace coordinate's factors, whose sizes sum to at
+most `2·B` (`facInv_sum_natDegree_le`), `refineFactorsBound` (`≈ 2·1600·B³`), not `B` factors at
+`B` coefficients each (`≈ 1600·B⁴`). -/
 
+/-- The cache's entries: factors of at most `C` coefficients, each factor's powers of at most its
+own size. -/
+@[expose] def CacheInv (C : ℕ) (cache : ShoupTracePowerCache K) : Prop :=
+  ∀ e ∈ cache, e.1.val.size ≤ C ∧ ∀ q ∈ e.2, q.val.size ≤ e.1.val.size
+
+/-- **A cache hit is the factor's own entry.** -/
 theorem lookup_mem (u : CPolynomial K) :
     ∀ (cache : ShoupTracePowerCache K) (powers : Array (CPolynomial K)),
-      lookupTracePowers u cache = some powers → ∃ v, (v, powers) ∈ cache
+      lookupTracePowers u cache = some powers → (u, powers) ∈ cache
   | [], _, h => by simp [lookupTracePowers] at h
   | (v, pw) :: rest, powers, h => by
     unfold lookupTracePowers at h
     split at h
-    · cases h; exact ⟨v, by simp⟩
-    · obtain ⟨w, hw⟩ := lookup_mem u rest powers h
-      exact ⟨w, List.mem_cons_of_mem _ hw⟩
+    · rename_i huv
+      cases h
+      rw [beq_iff_eq.1 huv]
+      exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (lookup_mem u rest powers h)
 
-/-- **The cache lookup** (`lookupTracePowers`: the factor compared with each entry's):
-at most `(18·B + 20)·|cache| + 3`. -/
-theorem lookupC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c168.costDeps) {B : ℕ}
+/-- **The cache lookup** (`lookupTracePowers`: the factor compared with each entry's), the factor
+of at most `B` coefficients, the entries of at most `C`: at most `(15·B + 3·C + 20)·|cache| + 3`. -/
+theorem lookupC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c168.costDeps) {B C : ℕ}
     (u : CPolynomial K) (hu : u.val.size ≤ B) :
-    ∀ cache : ShoupTracePowerCache K, CacheInv B cache →
+    ∀ cache : ShoupTracePowerCache K, CacheInv C cache →
       machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c168.costIdx [encodeValue u, encodeValue cache] ≤
-        (18 * B + 20) * cache.length + 3 := by
+        (15 * B + 3 * C + 20) * cache.length + 3 := by
   intro cache
   induction cache with
   | nil => intro _; rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c168.costEq_nil P hP]; omega
@@ -655,34 +666,33 @@ theorem lookupC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteFiel
     have := ih (fun e he ↦ hc e (by simp [he]))
     have := listBeqK_cost P (by includes) u.val.toList v.val.toList
     simp only [Array.length_toList, List.length_cons] at *
-    have e : (18 * B + 20) * (rest.length + 1) = (18 * B + 20) * rest.length + 18 * B + 20 := by
-      ring
+    have e : (15 * B + 3 * C + 20) * (rest.length + 1) =
+        (15 * B + 3 * C + 20) * rest.length + 15 * B + 3 * C + 20 := by ring
     split_ifs <;> omega
 
-theorem tracePowersFast_props {B : ℕ} (u : CPolynomial K) (hu0 : u ≠ 0) (hu : u.val.size ≤ B)
-    (cache : ShoupTracePowerCache K) (hc : CacheInv B cache) :
-    (∀ q ∈ (tracePowersFast u cache).1, q.val.size ≤ B) ∧
-      CacheInv B (tracePowersFast u cache).2 ∧
+theorem tracePowersFast_props {C : ℕ} (u : CPolynomial K) (hu0 : u ≠ 0) (hu : u.val.size ≤ C)
+    (cache : ShoupTracePowerCache K) (hc : CacheInv C cache) :
+    (∀ q ∈ (tracePowersFast u cache).1, q.val.size ≤ u.val.size) ∧
+      CacheInv C (tracePowersFast u cache).2 ∧
       (tracePowersFast u cache).2.length ≤ cache.length + 1 := by
   unfold tracePowersFast
   cases h : lookupTracePowers u cache with
   | some powers =>
-    obtain ⟨v, hv⟩ := lookup_mem u cache powers h
-    exact ⟨(hc _ hv).2, hc, by simp⟩
+    exact ⟨(hc _ (lookup_mem u cache powers h)).2, hc, by simp⟩
   | none =>
-    refine ⟨fun q hq ↦ (frobeniusPowersFast_size_lt hu0 64 hq).le.trans hu, ?_, by simp⟩
+    refine ⟨fun q hq ↦ (frobeniusPowersFast_size_lt hu0 64 hq).le, ?_, by simp⟩
     intro e he
     rcases List.mem_cons.1 he with rfl | he
-    · exact ⟨hu, fun q hq ↦ (frobeniusPowersFast_size_lt hu0 64 hq).le.trans hu⟩
+    · exact ⟨hu, fun q hq ↦ (frobeniusPowersFast_size_lt hu0 64 hq).le⟩
     · exact hc e he
 
 /-- **The Frobenius powers of a factor, cached** (`tracePowersFast`): at most
-`(18·B + 20)·|cache| + frobBound B 64 + 24`. -/
-theorem tracePowersFastC_cost (hP : Includes P tracePowersFast.c167.costDeps) {B : ℕ}
+`(15·B + 3·C + 20)·|cache| + frobBound B 64 + 24`. -/
+theorem tracePowersFastC_cost (hP : Includes P tracePowersFast.c167.costDeps) {B C : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (u : CPolynomial K) (hu0 : u ≠ 0) (hu : u.val.size ≤ B)
-    (cache : ShoupTracePowerCache K) (hc : CacheInv B cache) :
+    (cache : ShoupTracePowerCache K) (hc : CacheInv C cache) :
     machineCost P tracePowersFast.c167.costIdx [encodeValue u, encodeValue cache] ≤
-      (18 * B + 20) * cache.length + frobBound B 64 + 24 := by
+      (15 * B + 3 * C + 20) * cache.length + frobBound B 64 + 24 := by
   rw [tracePowersFast.c167.costEq P hP]
   have := lookupC_cost P (by includes) u hu cache hc
   have := frobeniusPowersFastC_cost P (by includes) hB hB2 u hu0 hu 64 (by norm_num)
@@ -780,9 +790,9 @@ theorem isReprC_cost
   cost_simp
   split_ifs <;> omega
 
-theorem refineFactorFast_cacheInv {B : ℕ} (beta : K) (cache : ShoupTracePowerCache K)
-    (u : CPolynomial K) (hu : u.val.size ≤ B) (hc : CacheInv B cache) :
-    CacheInv B (refineFactorFast beta cache u).1 := by
+theorem refineFactorFast_cacheInv {C : ℕ} (beta : K) (cache : ShoupTracePowerCache K)
+    (u : CPolynomial K) (hu : u.val.size ≤ C) (hc : CacheInv C cache) :
+    CacheInv C (refineFactorFast beta cache u).1 := by
   unfold refineFactorFast
   dsimp only
   split
@@ -803,12 +813,13 @@ theorem natDegree_le_of_size_le {p : CPolynomial K} {B : ℕ} (h : p.val.size �
 
 /-- **One factor refined by one trace coordinate** (`refineFactorFast`: normalized; unless
 trivial or linear, its Frobenius powers from the cache, its trace polynomial, a gcd per base
-constant): at most `refineFactorBound B |cache|`. -/
+constant), the factor of at most `B` coefficients, the cache's entries of at most `C`: at most
+`refineFactorBound B C |cache|`. -/
 theorem refineFactorFastC_cost (hP : Includes P refineFactorFast.c166.costDeps) {B : ℕ}
-    (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (beta : K) (cache : ShoupTracePowerCache K)
-    (hc : CacheInv B cache) (u : CPolynomial K) (hu : u.val.size ≤ B) :
+    (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (beta : K) {C : ℕ} (cache : ShoupTracePowerCache K)
+    (hc : CacheInv C cache) (u : CPolynomial K) (hu : u.val.size ≤ B) (huC : u.val.size ≤ C) :
     machineCost P refineFactorFast.c166.costIdx [encodeValue beta, encodeValue cache, encodeValue u] ≤
-      refineFactorBound B cache.length := by
+      refineFactorBound B C cache.length := by
   rw [refineFactorFast.c166.costEq P hP]
   have hmn := cpoly_monicNormalize_size_le u
   have := monicNormalizeC_cost P (by includes) u (by omega)
@@ -827,10 +838,11 @@ theorem refineFactorFastC_cost (hP : Includes P refineFactorFast.c166.costDeps) 
     have hm0 : CPolynomial.monicNormalize u ≠ 0 := by
       simp only [Bool.or_eq_true, beq_iff_eq, not_or] at h2; exact h2.1
     have := tracePowersFastC_cost P (by includes) hB hB2 _ hm0 (by omega) cache hc
-    obtain ⟨hpw, -, -⟩ := tracePowersFast_props _ hm0 (by omega : _ ≤ B) cache hc
-    generalize tracePowersFast (CPolynomial.monicNormalize u) cache = tp at hpw ⊢
+    obtain ⟨hpw', -, -⟩ := tracePowersFast_props _ hm0 (by omega : _ ≤ C) cache hc
+    generalize tracePowersFast (CPolynomial.monicNormalize u) cache = tp at hpw' ⊢
     obtain ⟨pw, c'⟩ := tp
-    dsimp only at hpw ⊢
+    dsimp only at hpw' ⊢
+    have hpw : ∀ q ∈ pw, q.val.size ≤ B := fun q hq ↦ (hpw' q hq).trans (by omega)
     have := traceCoordFastC_cost P (by includes) hB beta pw hpw
     have hT : (traceCoordFast beta pw).val.size ≤ B := by
       have := traceCoordFast_natDegree_le beta pw (B - 1) fun q hq ↦
@@ -867,13 +879,13 @@ theorem refineFactorsFast_eq_foldl (beta : K) (cache : ShoupTracePowerCache K)
       (cache, #[]) := by
   rw [refineFactorsFast, ← Array.foldl_toList]
 
-theorem refineFactorsFast_cacheInv {B : ℕ} (beta : K) (factors : Array (CPolynomial K))
-    (hf : ∀ u ∈ factors, u.val.size ≤ B) (cache : ShoupTracePowerCache K)
-    (hc : CacheInv B cache) : CacheInv B (refineFactorsFast beta cache factors).1 := by
+theorem refineFactorsFast_cacheInv {C : ℕ} (beta : K) (factors : Array (CPolynomial K))
+    (hf : ∀ u ∈ factors, u.val.size ≤ C) (cache : ShoupTracePowerCache K)
+    (hc : CacheInv C cache) : CacheInv C (refineFactorsFast beta cache factors).1 := by
   rw [refineFactorsFast_eq_foldl]
   suffices ∀ (l : List (CPolynomial K)) (st : ShoupTracePowerCache K × Array (CPolynomial K)),
-      (∀ u ∈ l, u.val.size ≤ B) → CacheInv B st.1 →
-      CacheInv B (l.foldl (fun st f ↦ ((refineFactorFast beta st.1 f).1,
+      (∀ u ∈ l, u.val.size ≤ C) → CacheInv C st.1 →
+      CacheInv C (l.foldl (fun st f ↦ ((refineFactorFast beta st.1 f).1,
         st.2 ++ (refineFactorFast beta st.1 f).2)) st).1 from
     this _ _ (fun u hu ↦ hf u (by simpa using hu)) hc
   intro l
@@ -884,55 +896,114 @@ theorem refineFactorsFast_cacheInv {B : ℕ} (beta : K) (factors : Array (CPolyn
     exact ih _ (fun u hu ↦ hl u (by simp [hu]))
       (refineFactorFast_cacheInv beta st.1 f (hl f (by simp)) h)
 
-/-- **The factors refined by one trace coordinate** (`refineFactorsFast`, at most `F` factors of
-at most `B` coefficients, the cache's length plus `F` at most `L`): at most
-`(refineFactorBound B L + 2·F + 30)·F + 3·F + 15`. -/
+/-- **A factor's refinement, linear in its size**: for `b ≤ B`,
+`refineFactorBound b C L ≤ b·refineSlope B + 2846718 + (15·b + 3·C + 20)·L`. -/
+theorem refineFactorBound_le {b B : ℕ} (hb : b ≤ B) (C L : ℕ) :
+    refineFactorBound b C L ≤ b * refineSlope B + 2846718 + (15 * b + 3 * C + 20) * L := by
+  have h2 : b * b ≤ b * B := Nat.mul_le_mul_left b hb
+  have h3 : b * (b * b) ≤ b * (B * B) := Nat.mul_le_mul_left b (Nat.mul_le_mul hb hb)
+  have e1 : refineFactorBound b C L = 1600 * (b * (b * b)) + 329444 * (b * b) + 367394 * b +
+      2846718 + (15 * b + 3 * C + 20) * L := by
+    unfold refineFactorBound frobBound mulModBound traceBound refineLamBound gcdBound gcdStepBound
+      rawModBound
+    ring
+  have e2 : b * refineSlope B = 1600 * (b * (B * B)) + 329444 * (b * B) + 367394 * b := by
+    unfold refineSlope; ring
+  omega
+
+/-- `List.foldl`, the closure's price depending on the element, an invariant of the accumulator
+and the elements left. -/
+theorem listFoldl_le_sum {α β : Type} [MachineEncoding α] [MachineEncoding β]
+    (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
+    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
+    (g : β → ℕ) (J : α → List β → Prop)
+    (hJ : ∀ acc b l, J acc (b :: l) → J (f acc b) l ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ g b) :
+    ∀ (l : List β) (init : α), J init l →
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤
+        (l.map fun b ↦ g b + 9).sum + 3 := by
+  intro l
+  induction l with
+  | nil => intro init _; rw [listFoldl.costEq_nil P hP f fVal hf]; simp
+  | cons b l ih =>
+    intro init hI
+    rw [listFoldl.costEq_cons P hP f fVal hf]
+    obtain ⟨hI', h2⟩ := hJ init b l hI
+    have := ih (f init b) hI'
+    simp only [List.map_cons, List.sum_cons]
+    omega
+
+theorem sum_map_affine {α : Type} (l : List α) (s : α → ℕ) (c1 c0 : ℕ) :
+    (l.map fun u ↦ s u * c1 + c0).sum = (l.map s).sum * c1 + c0 * l.length := by
+  induction l with
+  | nil => simp
+  | cons x l ih => simp only [List.map_cons, List.sum_cons, List.length_cons, ih]; ring
+
+/-- **The factors refined by one trace coordinate** (`refineFactorsFast`), each factor priced at
+its own size: factors of `2` to `B` coefficients, at most `F` of them, their sizes summing to at
+most `S`, the cache's length plus `F` at most `L`: at most `refineFactorsBound B S F L`. -/
 theorem refineFactorsFastC_cost (hP : Includes P refineFactorsFast.c164.costDeps) {B : ℕ}
-    (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (beta : K) (cache : ShoupTracePowerCache K)
+    (hB : B < 2 ^ 28) (beta : K) (cache : ShoupTracePowerCache K)
     (hc : CacheInv B cache) (factors : Array (CPolynomial K))
-    (hf : ∀ u ∈ factors, u.val.size ≤ B) {F L : ℕ} (hF : factors.size ≤ F)
+    (hf : ∀ u ∈ factors, 2 ≤ u.val.size ∧ u.val.size ≤ B) {S F L : ℕ}
+    (hS : (factors.toList.map fun u ↦ u.val.size).sum ≤ S) (hF : factors.size ≤ F)
     (hL : cache.length + F ≤ L) :
     machineCost P refineFactorsFast.c164.costIdx [encodeValue beta, encodeValue cache, encodeValue factors] ≤
-      (refineFactorBound B L + 2 * F + 30) * F + 3 * F + 15 := by
+      refineFactorsBound B S F L := by
   rw [refineFactorsFast.c164.costEq P hP]
   have hspec := fun st f ↦ RunsApp.of_spec (us := [encodeValue beta]) (vs := [encodeValue st, encodeValue f])
     (refineFactorsFast.c164.lam0.costSpec P (by includes) beta st f)
-  have hfold := listFoldl_le_idx P (by includes) _ (.closure refineFactorsFast.c164.lam0.costIdx
-    [encodeValue beta]) hspec (refineFactorBound B L + 2 * F + 21)
-    (fun k st ↦ CacheInv B st.1 ∧ st.1.length + k ≤ L ∧ st.2.size + 2 * k ≤ 2 * F)
-    factors.toList
-    (fun k st hst f hfm ↦ by
+  have hfold := listFoldl_le_sum P (by includes) _ (.closure refineFactorsFast.c164.lam0.costIdx
+    [encodeValue beta]) hspec (fun u ↦ u.val.size * refineSlope B + 2846718 +
+      (15 * u.val.size + 3 * B + 20) * L + 2 * F + 21)
+    (fun st l ↦ CacheInv B st.1 ∧ st.1.length + l.length ≤ L ∧ st.2.size + 2 * l.length ≤ 2 * F ∧
+      ∀ u ∈ l, 2 ≤ u.val.size ∧ u.val.size ≤ B)
+    (fun st f l hst ↦ by
       obtain ⟨c0, out⟩ := st
-      obtain ⟨hc0, hl0, ho0⟩ := hst
-      have hfs : f.val.size ≤ B := hf f (by simpa using hfm)
+      obtain ⟨hc0, hl0, ho0, hl⟩ := hst
+      have hfs := hl f (by simp)
       have hcl := refineFactorFast_cache_length beta c0 f
       have hch := (refineFactorFast_children beta c0 f).1
-      have hci := refineFactorFast_cacheInv beta c0 f hfs hc0
+      have hci := refineFactorFast_cacheInv beta c0 f hfs.2 hc0
+      simp only [List.length_cons] at hl0 ho0
       refine ⟨?_, ?_⟩
-      · dsimp only at hl0 ho0 ⊢
+      · try dsimp only at hl0 ho0 ⊢
         generalize refineFactorFast beta c0 f = r at hcl hch hci ⊢
         obtain ⟨c1, ch⟩ := r
         dsimp only at hcl hch hci ⊢
-        refine ⟨hci, by omega, ?_⟩
+        refine ⟨hci, by omega, ?_, fun u hu ↦ hl u (by simp [hu])⟩
         rw [Array.size_append]
         omega
       · simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [refineFactorsFast.c164.lam0.costEq_mk P (by includes)]
-        have := refineFactorFastC_cost P (by includes) hB hB2 beta c0 hc0 f hfs
-        have hmono : refineFactorBound B c0.length ≤ refineFactorBound B L := by
+        have := refineFactorFastC_cost P (by includes) (B := f.val.size) (by omega) hfs.1 beta c0 hc0
+          f le_rfl hfs.2
+        have hmono : refineFactorBound f.val.size B c0.length ≤ refineFactorBound f.val.size B L := by
           unfold refineFactorBound
-          have := Nat.mul_le_mul_left (18 * B + 20) (show c0.length ≤ L by dsimp only at hl0; omega)
+          have := Nat.mul_le_mul_left (15 * f.val.size + 3 * B + 20)
+            (show c0.length ≤ L by omega)
           omega
-        dsimp only at ho0
+        have hlin := refineFactorBound_le hfs.2 B L
         generalize refineFactorFast beta c0 f = r at hch this ⊢
         obtain ⟨c1, ch⟩ := r
         dsimp only at hch ⊢
         omega)
-    factors.toList (cache, #[]) (fun _ h ↦ h)
-    ⟨hc, by simp; omega, by simp; omega⟩
+    factors.toList (cache, #[])
+    ⟨hc, by simp; omega, by simp; omega, fun u hu ↦ hf u (by simpa using hu)⟩
+  have e : (factors.toList.map fun u ↦ u.val.size * refineSlope B + 2846718 +
+      (15 * u.val.size + 3 * B + 20) * L + 2 * F + 21 + 9) =
+      (factors.toList.map fun u ↦ u.val.size * (refineSlope B + 15 * L) +
+        (2846718 + (3 * B + 20) * L + 2 * F + 30)) := by
+    refine List.map_congr_left fun u _ ↦ ?_
+    ring
+  rw [e, sum_map_affine] at hfold
   simp only [Array.length_toList] at hfold
-  have h1 : (refineFactorBound B L + 2 * F + 21 + 9) * factors.size ≤
-      (refineFactorBound B L + 2 * F + 30) * F := Nat.mul_le_mul_left _ hF
+  have h1 : (factors.toList.map fun u ↦ u.val.size).sum * (refineSlope B + 15 * L) ≤
+      S * (refineSlope B + 15 * L) := Nat.mul_le_mul_right _ hS
+  have h2 : (2846718 + (3 * B + 20) * L + 2 * F + 30) * factors.size ≤
+      (2846718 + (3 * B + 20) * L + 2 * F + 30) * F := Nat.mul_le_mul_left _ hF
+  have e2 : refineFactorsBound B S F L = S * (refineSlope B + 15 * L) +
+      (2846718 + (3 * B + 20) * L + 2 * F + 30) * F + 3 * F + 15 := by
+    unfold refineFactorsBound; ring
   omega
 
 
@@ -991,7 +1062,7 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
     have hspec := fun st b ↦ RunsApp.of_spec (us := []) (vs := [encodeValue st, encodeValue b])
       (splitCandidatesFast.c161.lam0.costSpec P (by includes) st b)
     have hfold := listFoldl_le_idx P (by includes) _ (.closure splitCandidatesFast.c161.lam0.costIdx [])
-      hspec ((refineFactorBound B (64 * B) + 2 * B + 30) * B + 3 * B + 21)
+      hspec (refineFactorsBound B (2 * B) B (64 * B) + 6)
       (fun k st ↦ FacInv m.toPoly st.2.toList ∧ CacheInv B st.1 ∧
         st.1.length + k * m.natDegree ≤ 64 * m.natDegree)
       LeanVM.Extraction.traceCtx.basis.toList
@@ -1001,14 +1072,31 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
         dsimp only at hfi hc0 hl0 ⊢
         have hlen := facInv_length_le hP0 hfi
         rw [hdeg, Array.length_toList] at hlen
-        have hfs : ∀ u ∈ fs, u.val.size ≤ B := fun u hu ↦ by
-          have := facInv_size_le hP0 hfi u (by simpa using hu)
+        have hsum := facInv_sum_natDegree_le hP0 hfi
+        rw [hdeg] at hsum
+        have hfs : ∀ u ∈ fs, 2 ≤ u.val.size ∧ u.val.size ≤ B := fun u hu ↦ by
+          have h1 := facInv_size_le hP0 hfi u (by simpa using hu)
+          have h2 := (hfi.2 u (by simpa using hu)).2
+          have h3 := natDegree_le_size_sub_one u
+          omega
+        have hS : (fs.toList.map fun u ↦ u.val.size).sum ≤ 2 * B := by
+          have : (fs.toList.map fun u ↦ u.val.size).sum ≤
+              (fs.toList.map CPolynomial.natDegree).sum + fs.toList.length := by
+            have := list_sum_map_le (l := fs.toList) (f := fun u ↦ u.val.size)
+              (g := fun u ↦ u.natDegree + 1) fun u _ ↦ val_size_le_natDegree_add_one u
+            refine this.trans (le_of_eq ?_)
+            clear this
+            induction fs.toList with
+            | nil => simp
+            | cons x l ih => simp only [List.map_cons, List.sum_cons, List.length_cons, ih]; ring
+          rw [Array.length_toList] at this
           omega
         have hbd := refineFactorsFast_bounds b c0 fs m.natDegree (fun u hu ↦ by
           have := Polynomial.natDegree_le_of_dvd (hfi.2 u (by simpa using hu)).1 hP0
           rw [← CPolynomial.natDegree_toPoly, hdeg] at this
           exact this)
-        refine ⟨⟨refineFactorsFast_facInv b c0 fs hfi, refineFactorsFast_cacheInv b fs hfs c0 hc0,
+        refine ⟨⟨refineFactorsFast_facInv b c0 fs hfi,
+          refineFactorsFast_cacheInv b fs (fun u hu ↦ (hfs u hu).2) c0 hc0,
           ?_⟩, ?_⟩
         · have := hbd.2.2
           have e : (k + 1) * m.natDegree = k * m.natDegree + m.natDegree := by ring
@@ -1019,7 +1107,7 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c161.cost
           have hcl : c0.length + B ≤ 64 * B := by
             have := Nat.mul_le_mul_left 64 (show m.natDegree ≤ B by omega)
             omega
-          have := refineFactorsFastC_cost P (by includes) hB hB2 b c0 hc0 fs hfs
+          have := refineFactorsFastC_cost P (by includes) hB b c0 hc0 fs hfs hS
             (F := B) (L := 64 * B) (by omega) hcl
           omega)
       LeanVM.Extraction.traceCtx.basis.toList ([], #[m]) (fun _ h ↦ h)

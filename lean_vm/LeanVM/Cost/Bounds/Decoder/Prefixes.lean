@@ -22,7 +22,9 @@ node of at most `Y` rows of at most `M ≤ X` coefficients, at most `k` levels d
 * **`gsRunDistinctNFC_cost`**: one lane's Guruswami–Sudan run in closed form (`gsRunBound`).
 
 The nodes are at most `1 + k·ℓ` (ℓ paths of `k` levels), each of `ℓ + 1` rows of at most `W + 1`
-coefficients: the substitution, `≈ 960·(W + 1)·(ℓ + 1)²` per node, dominates.
+coefficients: the substitution by the butterfly, `≈ 324·(W + 1)·(ℓ + 2)·(log₂(ℓ + 2) + 1)` per node
+(`substBound`), dominates; the roots (`rootsBound`, the splitter priced per factor) are
+`≈ 2^49.9` per node at `(28, 4)`.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -48,6 +50,7 @@ theorem prefixesNF_size_le_nodes (fr : GuruswamiSudan.FieldRootContext K) (fuel 
   | succ fuel ih =>
     intro q M depth pref
     rw [prefixesNF, rrNodesNF]
+    simp only [substituteBF_eq]
     cases CBivariate.xAdicOrder? q with
     | none => simp
     | some s =>
@@ -102,10 +105,10 @@ theorem prefixesNodes_some {fr : GuruswamiSudan.FieldRootContext K} {fuel : ℕ}
     {M s : ℕ} (hs : CBivariate.xAdicOrder? q = some s) (hsM : s < M) :
     rrNodesNF fr (fuel + 1) q M = 1 + ((GuruswamiSudan.rootsInFieldForNonzeroEquation fr
         (initialCoeffFast (divXPowerFast q s))).toList.map fun a ↦
-      rrNodesNF fr fuel (CBivariate.truncateX (substituteFast (divXPowerFast q s) a) (M - s))
+      rrNodesNF fr fuel (CBivariate.truncateX (substituteBF (divXPowerFast q s) a) (M - s))
         (M - s)).sum := by
   rw [rrNodesNF, hs]
-  simp [hsM]
+  simp [hsM, substituteBF_eq]
 
 theorem prefixesSum_map_add_mul {α : Type} (l : List α) (c G : ℕ) (f : α → ℕ) :
     (l.map fun a ↦ c + G * f a).sum = l.length * c + G * (l.map f).sum := by
@@ -177,15 +180,15 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
         have hr : roots.size ≤ Y := (prefixesRoots_size_le _).trans (by omega)
         -- the children
         set S := (roots.toList.map fun a ↦ rrNodesNF fieldRootCtxFast fuel
-          (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)).sum with hS
+          (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s)).sum with hS
         set G := rrNodePrice X Y + rrChildPrice X Y k + Y * fuel with hG
         have hT : ∀ a, machineCost P prefixesNF.c188.costIdx
-            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
               encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] +
               rrChildPrice X Y k ≤
             G * rrNodesNF fieldRootCtxFast fuel
-              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) :=
-          fun a ↦ ih _ (M - s) (depth + 1) _ ((hQnY.substituteFast a).truncateX _)
+              (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s) :=
+          fun a ↦ ih _ (M - s) (depth + 1) _ ((by rw [substituteBF_eq]; exact hQnY.substituteFast a : YLenLe (substituteBF Qn a) Y).truncateX _)
             (XLenLe.truncateX _ _) (by omega)
             (by have := extendPrefix_size_le pref depth a; omega) (by omega)
         have hf := fun out a ↦ RunsApp.of_spec
@@ -195,23 +198,23 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
         have hfold := prefixesFoldl_le P (by includes) _
           (.closure prefixesNF.c188.lam0.costIdx [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn])
           hf Array.size (fun a ↦ rrNodesNF fieldRootCtxFast fuel
-            (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s))
+            (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s))
           (fun a ↦ rrChildCore X Y k + S + machineCost P prefixesNF.c188.costIdx
-            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+            [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
               encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)]) S
           (fun out a hout ↦ by
             have hres := prefixesNF_size_le_nodes fieldRootCtxFast fuel
-              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)
+              (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s)
               (depth + 1) (GuruswamiSudan.extendPrefix pref depth a)
             refine ⟨by simp only [Array.size_append]; exact Nat.add_le_add_left hres _, ?_⟩
             simp only [appCost_fn, List.cons_append, List.nil_append]
             rw [prefixesNF.c188.lam0.costEq P (by includes)]
-            have hsb := substituteFastC_cost P (by includes) Qn a (X := X) (Y := Y) (by omega)
+            have hsb := substituteBFC_cost P (by includes) Qn a (X := X) (Y := Y) (by omega)
               (by omega) hQni hQns
-            obtain ⟨hss, hsi⟩ := substituteFast_sizes hQni a
-            have htr := truncateXC_cost P (by includes) (substituteFast Qn a) (M - s)
+            obtain ⟨hss, hsi⟩ := substituteBF_sizes hQni a
+            have htr := truncateXC_cost P (by includes) (substituteBF Qn a) (M - s)
               (X := X + Y) (by omega) (hsi.mono (by omega)) (by omega)
-            have h3 : (27 * (X + Y) + 80) * (substituteFast Qn a).val.size ≤
+            have h3 : (27 * (X + Y) + 80) * (substituteBF Qn a).val.size ≤
                 (27 * (X + Y) + 80) * Y := Nat.mul_le_mul_left _ (by omega)
             have hep := extendPrefixC_cost P (by includes) pref depth a (by omega) (by omega)
             rw [limbs_of_lt (show M < 2 ^ 64 by omega), limbs_of_lt (show s < 2 ^ 64 by omega),
@@ -224,16 +227,16 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c188.costDeps) {X Y k
         -- the sum over the children
         have hsum : (roots.toList.map fun a ↦ rrChildCore X Y k + S +
             machineCost P prefixesNF.c188.costIdx
-              [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+              [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
                 encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9).sum ≤
             roots.size * S + G * S := by
           have := list_sum_map_le (l := roots.toList)
             (f := fun a ↦ rrChildCore X Y k + S +
               machineCost P prefixesNF.c188.costIdx
-                [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteFast Qn a) (M - s)), encodeValue (M - s),
+                [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
                   encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9)
             (g := fun a ↦ S + G * rrNodesNF fieldRootCtxFast fuel
-              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s)) fun a _ ↦ by
+              (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s)) fun a _ ↦ by
               have := hT a
               unfold rrChildPrice at this
               unfold rrChildCore

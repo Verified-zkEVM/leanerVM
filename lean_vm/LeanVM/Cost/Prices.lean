@@ -79,7 +79,7 @@ pruning), beyond the word's reads, at the worst admissible shape `(28, 4)`: abou
 is `lean_vm`'s `decoderBound 28 4 0 0` (`Cost/Bounds/Decoder/Decode.lean`, the list decoder's
 price beyond the word's reads), evaluated, and bounds `decoderBound μ R 0 0` at every admissible
 shape `(μ, R)` (`decoderShape_ok`, `Cost/Bounds/DecoderShapes.lean`). -/
-def listDecoderWorstPrice : ℕ := 263761295154139905848615297830647322
+def listDecoderWorstPrice : ℕ := 263752671977657870662169418088819162
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/

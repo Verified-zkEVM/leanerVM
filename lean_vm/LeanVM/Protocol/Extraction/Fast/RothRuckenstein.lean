@@ -124,7 +124,7 @@ for `j ≤ i`, `0` otherwise. -/
     if j ≤ y ∧ j ≤ i then (Q.val.coeff y).coeff (i - j) * (y.choose j : F) * a ^ (y - j) else 0
 
 omit [DecidableEq F] in
-private theorem coeff_taylorCoeff (Q : CBivariate F) (a : F) (t i : ℕ) :
+theorem coeff_taylorCoeff (Q : CBivariate F) (a : F) (t i : ℕ) :
     (taylorCoeff Q a t).coeff i = ∑ k ∈ Finset.range (Q.val.size - t),
       if chooseOdd (t + k) t then a ^ (t + k - t) * (Q.val.coeff (t + k)).coeff i else 0 := by
   have h : ∀ (l : List ℕ) (acc : CPolynomial F),

@@ -15,17 +15,22 @@ most `Y` rows of at most `X` coefficients:
 * the `X`-adic order (`xAdicOrderBC_cost`), the division by `X^s` (`divXPowerFastC_cost`), the
   initial coefficient polynomial (`initialCoeffFastC_cost`), its roots
   (`rootsNonzeroC_cost`, the root finder of `Bounds/Decoder/Roots.lean`);
-* the substitution `Y := a + X·Y` (`substituteFastC_cost`: per row the Taylor coefficient
-  `taylorCoeffC_cost`, with a binomial parity `chooseOddC_cost` and a power `powSq_cost` per
-  term, then the shift `shiftXC_cost`), the truncation (`truncateXC_cost`), the prefix extended
-  (`extendPrefixC_cost`);
+* the substitution `Y := a + X·Y` by the butterfly (`substituteBFC_cost`: the Taylor shift's
+  `log₂ Y + 1` levels, `bfLoopC_cost`, each a power by squaring and `bfLevelC_cost`, a row
+  gaining at most one scaled row `u + c·v`, its raw sum trimmed once, `bfLevelLamC_cost`; then
+  each row shifted by `X^t`, `shiftXC_cost`), the truncation (`truncateXC_cost`), the prefix
+  extended (`extendPrefixC_cost`);
 * the lane filter's pieces: Horner's evaluation, the mismatch count (`mismatchCountC_cost`),
   `degreeLtBool`.
 
 The recursion itself, and the run, are bounded in `Bounds/Decoder/Prefixes.lean`.
 
-**Honest-cost note.** `taylorCoeff`'s step names `a^(y−t) • Q_y` three times through
-`CPolynomial`'s sum (the `trim_eq` rewrite), so the power and the scaling are computed thrice.
+**Looseness.** The bound charges a scaled row addition (`324` per coefficient) to every row of
+every level, `(log₂ Y + 1)·Y` of them; the butterfly makes one per bit set below `Y` (`8631` at
+`Y = 1663`, against `11·1663 = 18293` charged), at `≈ 290` per coefficient measured
+(`LeanVMTests/Cost/Decoder.lean`). The former substitution (`substituteFast`, a Taylor coefficient
+per row, `≈ Y²/2` scaled additions, each computed thrice through `CPolynomial`'s sum) cost
+`≈ 960·X·Y²` per node.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -186,37 +191,6 @@ theorem rootsNonzeroC_cost
 
 /-! ## The substitution `Y := a + X·Y` -/
 
-/-- `chooseOdd n a` (the parity of `C(n, a)`, bit by bit): at most `40 + 40·(log₂ n + 1)`. -/
-theorem chooseOddC_cost (hP : Includes P chooseOdd.c197.costDeps) (n a : ℕ) (hn : n < 2 ^ 64)
-    (ha : a < 2 ^ 64) :
-    machineCost P chooseOdd.c197.costIdx [encodeValue n, encodeValue a] ≤ 40 + 40 * (Nat.log2 n + 1) := by
-  have key := le_of_halving (fun x : ℕ × ℕ ↦ x.1 < 2 ^ 64 ∧ x.2 < 2 ^ 64) (fun x ↦ x.1)
-    (fun x ↦ machineCost P chooseOdd.c197.costIdx [encodeValue x.1, encodeValue x.2]) 40 40
-    (fun x hI h0 ↦ by
-      obtain ⟨n, a⟩ := x
-      dsimp only at h0 hI ⊢
-      subst h0
-      rw [chooseOdd.c197.costEq_zero P hP]
-      cost_simp
-      omega)
-    (fun x hI hpos ↦ by
-      obtain ⟨n, a⟩ := x
-      obtain ⟨hn, ha⟩ := hI
-      dsimp only at hpos hn ha ⊢
-      obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
-      rw [chooseOdd.c197.costEq_succ P hP]
-      cost_simp
-      by_cases hc : a % 2 ≤ (k + 1) % 2
-      · right
-        refine ⟨((k + 1) / 2, a / 2), ⟨by omega, by omega⟩, le_rfl, ?_⟩
-        simp only [hc, decide_true, ↓reduceIte]
-        cost_simp
-        omega
-      · left
-        simp only [hc, decide_false, Bool.false_eq_true, ↓reduceIte]
-        omega)
-  exact key (n, a) ⟨hn, ha⟩
-
 theorem cpoly_smul_size_le (r : K) (p : CPolynomial K) : (r • p).val.size ≤ p.val.size := by
   show (CPolynomial.Raw.smul r p.val).trim.size ≤ _
   exact (raw_trim_size_le _).trans (by rw [size_smul])
@@ -241,102 +215,189 @@ theorem taylorCoeff_size_le {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) 
       omega
     · exact h
 
-/-- **One Taylor coefficient** (`taylorCoeff Q a t`: per row `y ≥ t` a binomial parity and, when
-odd, `a^(y−t)·Q_y` added): at most `taylorBound X Y (log₂ Y + 1)`. -/
-theorem taylorCoeffC_cost (hP : Includes P taylorCoeff.c195.costDeps) (Q : CBivariate K) (a : K)
-    (t : ℕ) {X Y : ℕ} (hX : X < 2 ^ 56) (hY : Y < 2 ^ 56) (hQ : InnerLe Q.val X)
-    (hQs : Q.val.size ≤ Y) (ht : t < 2 ^ 56) :
-    machineCost P taylorCoeff.c195.costIdx [encodeValue Q, encodeValue a, encodeValue t] ≤
-      taylorBound X Y (Nat.log2 Y + 1) := by
-  rw [taylorCoeff.c195.costEq P hP]
-  have := rangeC_cost P (by includes) (Q.val.size - t) t (by omega)
-  have hf := listFoldl_le P (by includes) _ (.closure taylorCoeff.c195.lam0.costIdx [encodeValue Q, encodeValue a, encodeValue t])
-    (fun acc y ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue a, encodeValue t]) (vs := [encodeValue acc, encodeValue y])
-      (taylorCoeff.c195.lam0.costSpec P (by includes) Q a t acc y))
-    (1700 * (Nat.log2 Y + 1) + 960 * X + 320) (fun acc : CPolynomial K ↦ acc.val.size ≤ X)
-    (List.range' t (Q.val.size - t)) 0 (by simp [size_zero_val])
-    (fun acc hacc y hy ↦ by
-      simp only [List.mem_range'_1] at hy
-      have hcs := coeff_size_le_of_innerLe hQ y
-      have hsm := cpoly_smul_size_le (a ^ (y - t)) (Q.val.coeff y)
-      refine ⟨?_, ?_⟩
-      · split_ifs
-        · have := cpoly_add_size_le acc (a ^ (y - t) • Q.val.coeff y)
-          omega
-        · exact hacc
-      · simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [taylorCoeff.c195.lam0.costEq P (by includes)]
-        have hlog : Nat.log2 y ≤ Nat.log2 Y := log2_mono (by omega)
-        have := chooseOddC_cost P (by includes) y t (by omega) (by omega)
-        have := powSq_cost P (by includes) a (y - t) (by omega)
-        have hlog' : Nat.log2 (y - t) ≤ Nat.log2 Y := log2_mono (by omega)
-        have := smulK_cost P (by includes) (a ^ (y - t)) (Q.val.coeff y).val
-        have hss : (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val).size ≤ X := by
-          rw [size_smul]; exact hcs
-        have := trimLen_cost P (by includes) (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val)
-          (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val).size (by omega)
-        have hext : ∀ (arr : Array K) (n : ℕ), (arr.extract 0 n).size ≤ arr.size :=
-          fun arr n ↦ by simp
-        have := hext (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val)
-          (CompPolyLib.trimLen (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val)
-              (CPolynomial.Raw.smul (a ^ (y - t)) (Q.val.coeff y).val).size)
-        have := addK_cost P (by includes) acc.val (a ^ (y - t) • Q.val.coeff y).val (by omega)
-          (by omega)
-        cost_simp
-        split_ifs <;> omega)
-  simp only [List.length_range'] at hf
-  have h1 : (1700 * (Nat.log2 Y + 1) + 960 * X + 320 + 9) * (Q.val.size - t) ≤
-      (1700 * (Nat.log2 Y + 1) + 960 * X + 329) * Y := Nat.mul_le_mul_left _ (by omega)
-  unfold taylorBound
-  cost_simp
+theorem axpyRow_size_le (u : CPolynomial K) (c : K) (v : CPolynomial K) :
+    (axpyRow u c v).val.size ≤ max u.val.size v.val.size := by
+  show (CPolynomial.Raw.trim (CPolynomial.Raw.addRaw u.val (CPolynomial.Raw.smul c v.val))).size ≤ _
+  refine (raw_trim_size_le _).trans ?_
+  rw [size_addRaw, size_smul]
+
+theorem getD_size_le {rows : Array (CPolynomial K)} {X : ℕ} (h : InnerLe rows X) (i : ℕ) :
+    (rows.getD i 0).val.size ≤ X := by
+  rw [Array.getD_eq_getD_getElem?]
+  cases hi : rows[i]? with
+  | none => exact Nat.zero_le _
+  | some r => exact h r (Array.mem_of_getElem? hi)
+
+theorem bfLevel_innerLe {rows : Array (CPolynomial K)} {X : ℕ} (h : InnerLe rows X) (hh : ℕ)
+    (c : K) : InnerLe (bfLevel rows hh c) X := by
+  intro r hr
+  obtain ⟨i, rfl⟩ := Array.mem_ofFn.1 hr
+  have h1 := getD_size_le h i.val
+  have h2 := getD_size_le h (i.val + hh)
+  split
+  · have := axpyRow_size_le (rows.getD i.val 0) c (rows.getD (i.val + hh) 0)
+    omega
+  · exact h1
+
+theorem bfLoop_innerLe (a : K) {X : ℕ} : ∀ (fuel : ℕ) (rows : Array (CPolynomial K)) (hh : ℕ),
+    InnerLe rows X → InnerLe (bfLoop a fuel rows hh) X
+  | 0, rows, hh, h => by rw [bfLoop]; exact h
+  | fuel + 1, rows, hh, h => by
+    rw [bfLoop]
+    split
+    · exact bfLoop_innerLe a fuel _ _ (bfLevel_innerLe h hh _)
+    · exact h
+
+/-- One entry of a butterfly level (`bfLevel`'s closure: unless it is kept, `u + c·v` with the
+raw sum trimmed once), rows of at most `X` coefficients: at most `324·X + 140`. -/
+theorem bfLevelLamC_cost (hP : Includes P bfLevel.c194.lam0.costDeps)
+    (rows : Array (CPolynomial K)) (hh : ℕ) (c : K) (i : Fin rows.size) {X : ℕ} (hX : X < 2 ^ 56)
+    (hr : InnerLe rows X) (hn : rows.size < 2 ^ 56) (hh' : hh < 2 ^ 56) :
+    machineCost P bfLevel.c194.lam0.costIdx
+      [encodeValue rows, encodeValue hh, encodeValue c, encodeValue i] ≤ 324 * X + 140 := by
+  rw [bfLevel.c194.lam0.costEq P hP]
+  have hi := i.isLt
+  have h1 := getD_size_le hr i.val
+  have h2 := getD_size_le hr (i.val + hh)
+  generalize rows.getD i.val 0 = u at h1 ⊢
+  generalize rows.getD (i.val + hh) 0 = v at h2 ⊢
+  have := smulK_cost P (by includes) c v.val
+  have := addRawK_cost P (by includes) u.val (CPolynomial.Raw.smul c v.val) (by omega)
+    (by rw [size_smul]; omega)
+  have := ofArray_cost P (by includes) (u.val.addRaw (CPolynomial.Raw.smul c v.val))
+    (by rw [size_addRaw, size_smul]; omega)
+  rw [size_addRaw, size_smul] at *
+  have hdiv : i.val / hh ≤ i.val := Nat.div_le_self _ _
+  have hmod : i.val / hh % 2 < 2 := Nat.mod_lt _ (by norm_num)
+  rw [limbs_of_lt (show i.val < 2 ^ 64 by omega), limbs_of_lt (show hh < 2 ^ 64 by omega),
+    limbs_of_lt (show i.val / hh < 2 ^ 64 by omega), limbs_of_lt (show i.val / hh % 2 < 2 ^ 64 by omega),
+    limbs_of_lt (show i.val + hh < 2 ^ 64 by omega), limbs_of_lt (show rows.size < 2 ^ 64 by omega)]
+  split_ifs <;> omega
+
+/-- **One butterfly level** (`bfLevel`), `n` rows of at most `X` coefficients: at most
+`(324·X + 160)·n + 20`. -/
+theorem bfLevelC_cost (hP : Includes P bfLevel.c194.costDeps) (rows : Array (CPolynomial K))
+    (hh : ℕ) (c : K) {X : ℕ} (hX : X < 2 ^ 56) (hr : InnerLe rows X) (hn : rows.size < 2 ^ 56)
+    (hh' : hh < 2 ^ 56) :
+    machineCost P bfLevel.c194.costIdx [encodeValue rows, encodeValue hh, encodeValue c] ≤
+      (324 * X + 160) * rows.size + 20 := by
+  rw [bfLevel.c194.costEq P hP]
+  have hf := fun i ↦ RunsApp.of_spec (us := [encodeValue rows, encodeValue hh, encodeValue c])
+    (vs := [encodeValue i]) (bfLevel.c194.lam0.costSpec P (by includes) rows hh c i)
+  have := ofFnFrom_cost P (by includes) (n := rows.size) (by omega) _
+    (.closure bfLevel.c194.lam0.costIdx [encodeValue rows, encodeValue hh, encodeValue c]) hf
+    (324 * X + 140) (fun i ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      exact bfLevelLamC_cost P (by includes) rows hh c i hX hr hn hh') 0 (by omega)
+  simp only [length_ofFnFrom, Nat.sub_zero] at *
+  have e : (324 * X + 160) * rows.size = (324 * X + 140 + 18) * rows.size + 2 * rows.size := by
+    ring
   omega
 
+/-- **The butterfly's levels** (`bfLoop`: while `h` is below the rows' number, a level at
+`c = a^h`, then `2·h`), `n ≤ Y` rows of at most `X` coefficients, `h ≤ 2·Y + 1`, `h·2^L ≥ n`: at
+most `bfLoopBound X Y L`. -/
+theorem bfLoopC_cost (hP : Includes P bfLoop.c193.costDeps) (a : K) {X Y : ℕ} (hX : X < 2 ^ 56)
+    (hY : Y < 2 ^ 56) : ∀ (L fuel : ℕ) (rows : Array (CPolynomial K)) (hh : ℕ),
+      InnerLe rows X → rows.size ≤ Y → fuel < 2 ^ 64 → hh ≤ 2 * Y + 1 → rows.size ≤ hh * 2 ^ L →
+      machineCost P bfLoop.c193.costIdx [encodeValue a, encodeValue fuel, encodeValue rows,
+        encodeValue hh] ≤ bfLoopBound X Y L := by
+  intro L
+  induction L with
+  | zero =>
+    intro fuel rows hh hr hn hf hh2 hL
+    simp only [pow_zero, Nat.mul_one] at hL
+    cases fuel with
+    | zero => rw [bfLoop.c193.costEq_zero P hP]; unfold bfLoopBound; omega
+    | succ fuel =>
+      rw [bfLoop.c193.costEq_succ P hP]
+      rw [limbs_of_lt hf, limbs_of_lt (show rows.size < 2 ^ 64 by omega),
+        limbs_of_lt (show hh < 2 ^ 64 by omega)]
+      unfold bfLoopBound
+      split_ifs with h
+      · omega
+      · omega
+  | succ L ih =>
+    intro fuel rows hh hr hn hf hh2 hL
+    cases fuel with
+    | zero => rw [bfLoop.c193.costEq_zero P hP]; unfold bfLoopBound; omega
+    | succ fuel =>
+      rw [bfLoop.c193.costEq_succ P hP]
+      rw [limbs_of_lt hf, limbs_of_lt (show rows.size < 2 ^ 64 by omega),
+        limbs_of_lt (show hh < 2 ^ 64 by omega)]
+      split_ifs with h
+      · have hlv := bfLevelC_cost P (by includes) rows hh (a ^ hh) hX hr (by omega) (by omega)
+        have hpw := powSq_cost P (by includes) a hh (by omega)
+        have hlog : Nat.log2 hh ≤ Nat.log2 Y := log2_mono (by omega)
+        have hrec := ih fuel (bfLevel rows hh (a ^ hh)) (2 * hh) (bfLevel_innerLe hr hh _)
+          (by rw [size_bfLevel]; omega) (by omega) (by omega)
+          (by rw [size_bfLevel, show 2 * hh * 2 ^ L = hh * 2 ^ (L + 1) by rw [pow_succ]; ring]
+              exact hL)
+        have h1 : (324 * X + 160) * rows.size ≤ (324 * X + 160) * Y := Nat.mul_le_mul_left _ hn
+        unfold bfLoopBound at hrec ⊢
+        have e : (L + 1) * ((324 * X + 160) * Y + 535 * (Nat.log2 Y + 1) + 100) =
+            L * ((324 * X + 160) * Y + 535 * (Nat.log2 Y + 1) + 100) +
+              ((324 * X + 160) * Y + 535 * (Nat.log2 Y + 1) + 100) := by ring
+        omega
+      · unfold bfLoopBound
+        omega
+
 /-- `X^t·p` (`shiftX`): at most `25·(t + |p|) + 22`. -/
-theorem shiftXC_cost (hP : Includes P shiftX.c194.costDeps) (t : ℕ) (p : CPolynomial K)
+theorem shiftXC_cost (hP : Includes P shiftX.c198.costDeps) (t : ℕ) (p : CPolynomial K)
     (h : t + p.val.size < 2 ^ 60) :
-    machineCost P shiftX.c194.costIdx [encodeValue t, encodeValue p] ≤ 25 * (t + p.val.size) + 22 := by
-  rw [shiftX.c194.costEq P hP]
+    machineCost P shiftX.c198.costIdx [encodeValue t, encodeValue p] ≤ 25 * (t + p.val.size) + 22 := by
+  rw [shiftX.c198.costEq P hP]
   have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
   simp only [Array.size_append, Array.size_replicate] at this ⊢
   omega
 
-/-- **The substitution `Y := a + X·Y`** (`substituteFast`: per row its Taylor coefficient, shifted
-by `X^t`): at most `substBound X Y`, its rows of at most `X + Y` coefficients. -/
-theorem substituteFastC_cost (hP : Includes P substituteFast.c192.costDeps) (Q : CBivariate K)
+theorem taylorShiftBF_innerLe {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) :
+    InnerLe (taylorShiftBF Q.val a) X :=
+  bfLoop_innerLe a _ _ _ hQ
+
+/-- **The substitution `Y := a + X·Y`, by the butterfly** (`substituteBF`: the Taylor shift's
+`log₂ Y + 1` levels, then per row its shift by `X^t`): at most `substBound X Y`, its rows of at
+most `X + Y` coefficients. -/
+theorem substituteBFC_cost (hP : Includes P substituteBF.c192.costDeps) (Q : CBivariate K)
     (a : K) {X Y : ℕ} (hX : X < 2 ^ 56) (hY : Y < 2 ^ 56) (hQ : InnerLe Q.val X)
     (hQs : Q.val.size ≤ Y) :
-    machineCost P substituteFast.c192.costIdx [encodeValue Q, encodeValue a] ≤ substBound X Y := by
-  rw [substituteFast.c192.costEq P hP]
-  have hf := fun t ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue a]) (vs := [encodeValue t])
-    (substituteFast.c192.lam0.costSpec P (by includes) Q a t)
+    machineCost P substituteBF.c192.costIdx [encodeValue Q, encodeValue a] ≤ substBound X Y := by
+  rw [substituteBF.c192.costEq P hP]
+  have hY1 : Y < 2 ^ (Nat.log2 Y + 1) := Nat.lt_log2_self
+  have hloop := bfLoopC_cost P (by includes) a hX hY (Nat.log2 Y + 1) Q.val.size Q.val 1 hQ hQs
+    (by omega) (by omega) (by rw [Nat.one_mul]; omega)
+  have hrows := taylorShiftBF_innerLe hQ a
+  have hsz : (taylorShiftBF Q.val a).size = Q.val.size := size_taylorShiftBF Q.val a
+  have hf := fun t ↦ RunsApp.of_spec (us := [encodeValue Q, encodeValue (taylorShiftBF Q.val a)])
+    (vs := [encodeValue t]) (substituteBF.c192.lam0.costSpec P (by includes) Q (taylorShiftBF Q.val a) t)
   have := ofFnFrom_cost P (by includes) (n := Q.val.size) (by omega) _
-    (.closure substituteFast.c192.lam0.costIdx [encodeValue Q, encodeValue a]) hf
-    (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 28) (fun t ↦ by
+    (.closure substituteBF.c192.lam0.costIdx [encodeValue Q, encodeValue (taylorShiftBF Q.val a)])
+    hf (25 * (X + Y) + 29) (fun t ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [substituteFast.c192.lam0.costEq P (by includes)]
+      rw [substituteBF.c192.lam0.costEq P (by includes)]
       have ht := t.isLt
-      have := taylorCoeffC_cost P (by includes) Q a t hX hY hQ hQs (by omega)
-      have hts := taylorCoeff_size_le hQ a t
-      have := shiftXC_cost P (by includes) t (taylorCoeff Q a t) (by omega)
-      have : 25 * (↑t + (taylorCoeff Q a ↑t).val.size) ≤ 25 * (X + Y) := by omega
+      have hr := getD_size_le hrows t.val
+      have := shiftXC_cost P (by includes) t ((taylorShiftBF Q.val a).getD t.val 0) (by omega)
+      have : 25 * (↑t + ((taylorShiftBF Q.val a).getD t.val 0).val.size) ≤ 25 * (X + Y) := by
+        omega
       omega) 0 (by omega)
   have := ofArrayB_cost P (by includes)
-    (Array.ofFn fun t : Fin Q.val.size ↦ shiftX t.val (taylorCoeff Q a t.val)) (X + Y)
+    (Array.ofFn fun t : Fin Q.val.size ↦ shiftX t.val ((taylorShiftBF Q.val a).getD t.val 0)) (X + Y)
     (fun x hx ↦ by
       obtain ⟨t, rfl⟩ := Array.mem_ofFn.1 hx
-      have := taylorCoeff_size_le hQ a t
-      have h1 : (shiftX t.val (taylorCoeff Q a t.val)).val.size ≤ t.val + (taylorCoeff Q a t).val.size :=
+      have := getD_size_le hrows t.val
+      have h1 : (shiftX t.val ((taylorShiftBF Q.val a).getD t.val 0)).val.size ≤
+          t.val + ((taylorShiftBF Q.val a).getD t.val 0).val.size :=
         (raw_trim_size_le _).trans (by simp)
       have := t.isLt
       omega)
     (by simp; omega)
   simp only [length_ofFnFrom, Array.size_ofFn, Nat.sub_zero] at *
-  have h1 : (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 28 + 18) * Q.val.size ≤
-      (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 46) * Y := Nat.mul_le_mul_left _ hQs
+  have h1 : (25 * (X + Y) + 29 + 18) * Q.val.size ≤ (25 * (X + Y) + 47) * Y :=
+    Nat.mul_le_mul_left _ hQs
   have h2 : (3 * (X + Y) + 41) * Q.val.size ≤ (3 * (X + Y) + 41) * Y := Nat.mul_le_mul_left _ hQs
-  have e : (taylorBound X Y (Nat.log2 Y + 1) + 28 * (X + Y) + 100) * Y =
-      (taylorBound X Y (Nat.log2 Y + 1) + 25 * (X + Y) + 46) * Y + (3 * (X + Y) + 41) * Y +
-        13 * Y := by ring
+  have e : (28 * (X + Y) + 90) * Y = (25 * (X + Y) + 47) * Y + (3 * (X + Y) + 41) * Y + 2 * Y := by
+    ring
   unfold substBound
   omega
 
@@ -351,6 +412,12 @@ theorem substituteFast_sizes {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X)
     (raw_trim_size_le _).trans (by simp)
   have := t.isLt
   omega
+
+theorem substituteBF_sizes {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) :
+    (substituteBF Q a).val.size ≤ Q.val.size ∧
+      InnerLe (substituteBF Q a).val (X + Q.val.size) := by
+  rw [substituteBF_eq]
+  exact substituteFast_sizes hQ a
 
 /-- `p mod X^n` (`truncate`): at most `24·|p| + 21`. -/
 theorem truncateC_cost (hP : Includes P Auto.CompPoly.CPolynomial.truncate.c191.costDeps)

@@ -15,7 +15,7 @@ one at `(28, 4)` (`listDecoderWorstPrice ≈ 2^117.67`):
   admissible `(μ, R)`, which `decodeStacksDistinctC_cost_worst` (`Bounds/Decoder/Decode.lean`)
   reads;
 * at `(28, 4)`: a lane `decoderLaneBound_28_4` (`≈ 2^111.67`), Roth–Ruckenstein's search
-  `rrBound_28_4` (`≈ 2^96.77`).
+  `rrBound_28_4` (`≈ 2^87.98`).
 
 The checks evaluate only the extractor's parameter search and the bounds' definitions
 (`Bounds/Decoder/ShapeDefs.lean`), none of their proofs: an edit of a proof rebuilds none of them
@@ -151,19 +151,19 @@ theorem decoderShape_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOk
   · exact decoderShapeOk_28_4
 
 /-- **Roth–Ruckenstein's search at `(28, 4)`** (`k = 2^22`, `W = 6968845169`, `ℓ = 1661`): at most
-`135042381325517127212342746980 ≈ 2^96.77` per lane (`prefixesNFC_cost`: `1 + k·ℓ ≈ 2^32.7` nodes,
-the substitution `≈ 2^64` per node). -/
+`305248793717338995471780915 ≈ 2^87.98` per lane (`prefixesNFC_cost`: `1 + k·ℓ ≈ 2^32.7` nodes, the
+substitution by the butterfly `≈ 2^55.2` per node, the roots `≈ 2^49.9`). -/
 theorem rrBound_28_4 :
     rrBound ((gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp.weightedDegreeBound + 1)
         (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp + 2) (2 ^ 22)
         (interpolationYCap (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp) =
-      135042381325517127212342746980 := by
+      305248793717338995471780915 := by
   decide +kernel
 
-/-- **A lane at `(28, 4)`**: at most `4121270236783434829721770549579915 ≈ 2^111.67`, the
-interpolation (`laneInterp_cost_28_4`) all but `≈ 2^96.77` of it (Roth–Ruckenstein's search). -/
+/-- **A lane at `(28, 4)`**: at most `4121135499650903029933553678613850 ≈ 2^111.67`, the
+interpolation (`laneInterp_cost_28_4`) all but `≈ 2^87.98` of it (Roth–Ruckenstein's search). -/
 theorem decoderLaneBound_28_4 :
-    decoderLaneBound 22 4 16792398 12 = 4121270236783434829721770549579915 := by
+    decoderLaneBound 22 4 16792398 12 = 4121135499650903029933553678613850 := by
   decide +kernel
 
 end

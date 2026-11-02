@@ -12,10 +12,10 @@ rebuilds them.
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
 * **`extractorProgram_size_le_measured`**: the program's size is at most `11000`, evaluated on the
-  program itself. Its exact size is `10489` (`LeanVMTests/Cost/Efficient.lean`): the bodies' sizes
-  (`10465`: `511` compiled bodies and the entry, each natural literal counted by its limbs) and
+  program itself. Its exact size is `10479` (`LeanVMTests/Cost/Efficient.lean`): the bodies' sizes
+  (`10455`: `511` compiled bodies and the entry, each natural literal counted by its limbs) and
   `12` indices without a body, a literal `0` of size `2` each, `524` indices in all. The bound of
-  `size_ofList_le`, two per index on top of the bodies' sizes (`11513`), is too loose for
+  `size_ofList_le`, two per index on top of the bodies' sizes (`11503`), is too loose for
   `LeanVM.extractorSizeBound` (`11000`, `Statement/CostMachine.lean`).
 -/
 
@@ -32,7 +32,7 @@ theorem extractorProgram_indices_increasing :
 
 -- The kernel builds the program's array: deeper than the default recursion depth.
 set_option maxRecDepth 100000 in
-/-- **The program's size**, evaluated: at most `11000` (exactly `10489`). -/
+/-- **The program's size**, evaluated: at most `11000` (exactly `10479`). -/
 theorem extractorProgram_size_le_measured : extractorProgram.size ≤ 11000 := by
   decide +kernel
 

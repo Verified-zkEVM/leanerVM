@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Protocol.Extraction.Fast.Extract
+public import LeanVM.Protocol.Extraction.Fast.TaylorShift
 public import Mathlib.Algebra.Polynomial.Taylor
 public import Mathlib.Algebra.Polynomial.Roots
 import all CompPoly.Univariate.Basic
@@ -149,7 +150,9 @@ theorem truncD_fallback_iff (S : CBivariate F) (M : ℕ) :
       exact absurd rfl hy
 
 /-- **Roth–Ruckenstein's prefixes, truncated, without the fallback** (it returns nothing where
-`prefixesTruncD` would fall back; it never does at precision `W + 1`, `prefixesTruncD_eq_NF`). -/
+`prefixesTruncD` would fall back; it never does at precision `W + 1`, `prefixesTruncD_eq_NF`). The
+substitution is the butterfly's (`substituteBF`, `Fast/TaylorShift.lean`), `substituteFast`
+(`substituteBF_eq`). -/
 @[expose] def prefixesNF (fieldRoots : FieldRootContext F) :
     ℕ → CBivariate F → ℕ → ℕ → CPolynomial F → Array (CPolynomial F)
   | 0, _q, _M, _depth, pref => #[pref]
@@ -161,7 +164,7 @@ theorem truncD_fallback_iff (S : CBivariate F) (M : ℕ) :
         (rootsInFieldForNonzeroEquation fieldRoots (initialCoeffFast Qn)).foldl
           (fun out a ↦
             out ++ prefixesNF fieldRoots fuel
-              (CBivariate.truncateX (substituteFast Qn a) (M - s)) (M - s) (depth + 1)
+              (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s) (depth + 1)
               (extendPrefix pref depth a))
           #[]
       else #[]
@@ -242,7 +245,7 @@ theorem prefixesTruncD_eq_NF [CharP F 2] (fieldRoots : FieldRootContext F) (fuel
     intro S M Q₀ path depth pref hS hI
     obtain ⟨s, hq, hsM, hS'⟩ := xAdicOrder?_truncateX_of_nfInv hS hI
     rw [prefixesTruncD, prefixesNF, hq]
-    simp only [hsM, ↓reduceIte]
+    simp only [hsM, ↓reduceIte, substituteBF_eq]
     rw [divXPowerFast_eq, divXPower_truncateX]
     refine congrArg (fun f ↦ Array.foldl f #[] _) (funext fun out ↦ funext fun a ↦ ?_)
     rw [truncateX_substituteFast]

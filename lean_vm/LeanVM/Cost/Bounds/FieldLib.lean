@@ -45,36 +45,36 @@ theorem invK_cost (hP : Includes P Auto.BF64.invItohTsujii.c33.costDeps) (a : BF
   simp (disch := omega) only [powTwoPow_cost P h6]
   split_ifs <;> omega
 
-/-- `a^n` by squaring (`powSq.c198`): `535` per bit, `6` at the end. -/
-theorem powSq_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
+/-- `a^n` by squaring (`powSq.c196`): `535` per bit, `6` at the end. -/
+theorem powSq_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c196.costDeps) (a : K) (n : ℕ)
     (hn : n < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c196.costIdx [encodeValue a, encodeValue n] ≤
       6 + 535 * (Nat.log2 n + 1) := by
   have := le_of_halving (fun x : K × ℕ ↦ x.2 < 2 ^ 64) (fun x ↦ x.2)
-    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue x.1, encodeValue x.2]) 535 6
+    (fun x ↦ machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c196.costIdx [encodeValue x.1, encodeValue x.2]) 535 6
     (fun x hx h0 ↦ by
       try dsimp only at hx h0 ⊢
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP, h0]
+      rw [Auto.LeanVM.Cost.Rewrite.powSq.c196.costEq P hP, h0]
       simp)
     (fun x hx hpos ↦ by
       try dsimp only at hx hpos ⊢
       right
       refine ⟨(x.1 * x.1, x.2 / 2), by dsimp only; omega, le_refl _, ?_⟩
-      rw [Auto.LeanVM.Cost.Rewrite.powSq.c198.costEq P hP, limbs_of_lt hx,
+      rw [Auto.LeanVM.Cost.Rewrite.powSq.c196.costEq P hP, limbs_of_lt hx,
         limbs_of_lt (by omega : x.2 % 2 < 2 ^ 64)]
       simp only [show x.2 ≠ 0 by omega, ↓reduceIte]
       split_ifs <;> omega)
     (a, n) hn
   simpa using this
 
-theorem powSq_cost_le (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n ≤ 3) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue a, encodeValue n] ≤ 1076 := by
+theorem powSq_cost_le (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c196.costDeps) (a : K) (n : ℕ)
+    (hn : n ≤ 3) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c196.costIdx [encodeValue a, encodeValue n] ≤ 1076 := by
   refine (powSq_cost P hP a n (by omega)).trans ?_
   have := log2_lt_of (k := 2) (by norm_num) (by omega : n < 2 ^ 2)
   omega
 
-theorem powSq_cost_le' (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c198.costDeps) (a : K) (n : ℕ)
-    (hn : n ≤ 15) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c198.costIdx [encodeValue a, encodeValue n] ≤ 2146 := by
+theorem powSq_cost_le' (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c196.costDeps) (a : K) (n : ℕ)
+    (hn : n ≤ 15) : machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c196.costIdx [encodeValue a, encodeValue n] ≤ 2146 := by
   refine (powSq_cost P hP a n (by omega)).trans ?_
   have := log2_lt_of (k := 4) (by norm_num) (by omega : n < 2 ^ 4)
   omega
