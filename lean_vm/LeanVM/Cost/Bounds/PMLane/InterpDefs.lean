@@ -101,15 +101,15 @@ public section
     (w + m) * (84 * (w + m) + 63) + (38 * w + 34) * (w + m) + 4 * (w + m) + 50 * w + 74 * m + 172
 
 /-- The column's step's price (`colStep`). -/
-@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 1350 * N + 4 * w + 1500
+@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 419 * N + 4 * w + 719
 
 /-- The column's price. -/
 @[expose] def colPrice (N w MB LB LBq IB : ℕ) : ℕ :=
-  IB + w * (colStep N w MB LB LBq + 9) + 150 * N + 30 * w + 300
+  IB + w * (colStep N w MB LB LBq + 9) + 110 * N + 19 * w + 174
 
 /-- The matrix's price: `m` columns, the matrix assembled. -/
 @[expose] def matPrice (N w m MB LB LBq IB : ℕ) : ℕ :=
-  m * (colPrice N w MB LB LBq IB + 25) + w * (m * 42 + 48) + 20 * m + 100
+  m * (colPrice N w MB LB LBq IB + 30) + w * (m * 46 + 49) + 16 * m + 60
 
 /-- The GS data's price. -/
 @[expose] def dataPrice (N m w MB LB LBq IB : ℕ) : ℕ :=
