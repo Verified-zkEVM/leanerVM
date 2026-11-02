@@ -204,14 +204,20 @@ namespace Statement
 of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
-  /-- leanVM is knowledge sound for the straight-line extractor the program computes within its size
-  bound and budget, `knowledgeExtractorOf leanVmKnowledgeExtractor` (a program larger than
-  `knowledgeExtractorSizeBound` or a run out of budget extracts nothing, which counts as breaking
-  knowledge soundness, so this bounds the program's size; the machine's prices are trusted to be
-  honest, `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for
-  `Q ≤ 2^128` queries (`LeanVm.lean`). The budget, `knowledgeExtractorBudget` (the most the run may
-  cost, so also the most steps it may execute), is about `2^95` up to `2^60` permutation queries and
-  `O(N·log³N)` for `N`. -/
+  /-- leanVM is knowledge sound for the straight-line extractor the program computes,
+  `knowledgeExtractorOf leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`).
+
+  **Efficiency.** The extractor is the program run within its budget,
+  `knowledgeExtractorBudget N` for a transcript of `N` permutation queries (`CostMachine.lean`):
+  `outputWithin` returns the program's output only if its run's price, the sum of its steps'
+  prices, each at least `1`, is at most the budget, and only if the program's size is at most
+  `knowledgeExtractorSizeBound`; otherwise the extractor extracts nothing (`none`). Extracting
+  nothing from an accepted proof breaks knowledge soundness (`BreaksKnowledgeSoundness`). So this
+  statement implies that, but with the probability above, the program extracts a valid execution of
+  an accepted proof within the budget: at most that many steps, about `2^95` up to `2^60`
+  permutation queries and `O(N·log³N)` for `N`. That a price unit is a constant number of
+  instructions of a 64-bit CPU is trusted (`CostMachine.lean`, *Why the prices are honest*). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness
       (LeanVM.knowledgeExtractorOf leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
