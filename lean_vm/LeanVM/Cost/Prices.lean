@@ -16,9 +16,9 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^94.07 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^94.07` for at most `2^40` queries (the
-list decoder dominating), `2^94.21` for `2^64`, `2^107.36` for `2^80` and `2^156.69` for `2^128`
+About `2^92.47 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
+worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^92.47` for at most `2^40` queries (the
+list decoder dominating), `2^92.89` for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
 queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
@@ -78,15 +78,15 @@ def committedLeavesPrice (D h W : ℕ) : ℕ :=
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-the worst admissible shape `(28, 4)`: about `2^94.07`. It is `lean_vm`'s `pmDecoderWorstPrice`
+the worst admissible shape `(28, 4)`: about `2^92.47`. It is `lean_vm`'s `pmDecoderWorstPrice`
 (`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 4 0 0`), evaluated
 (`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
 (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 20790986008017779583761482458
+def listDecoderWorstPrice : ℕ := 6863287173660331409669053008
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/
-def listDecoderPrice : ℕ := 1752 * 2 ^ 26 + listDecoderWorstPrice + 17
+def listDecoderPrice : ℕ := 1751 * 2 ^ 26 + listDecoderWorstPrice + 22
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 4320 * 2 ^ ℓ + 947
@@ -106,9 +106,9 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (144 * 2 ^ ℓ + 1004514000) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128025) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
-      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 60
+      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
 end
 
