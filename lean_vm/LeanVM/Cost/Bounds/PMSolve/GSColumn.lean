@@ -20,9 +20,11 @@ once (Newton, `InvBound`), then per entry `j ∈ [b, width)`: the binomial `C(j,
 limbs), the entry `C(j, b)·power` (a schoolbook product by a constant), the next power
 `power·R mod M_b` (a product, `MulBound`, and the cached remainder, `modByMonicCachedC_cost`).
 
-**`gsRelationColumnC_cost`**: at most `IB + width·colStep + 120·|M| + 41·|R| + 30·width + 300`,
-`colStep = MB + 2·LB + 1350·N + 4·width + 1500`, on a monic modulus of at least `2` and a dividend
-`R` shorter than it, `|M| + |R| ≤ N`.
+**`gsRelationColumnC_cost`**: at most `colPrice = IB + width·(colStep + 9) + 150·N + 30·width +
+300`, `colStep = MB + LB + LBq + 1350·N + 4·width + 1500`, on a monic modulus of at least `2` and
+a dividend `R` shorter than it, `|M| + |R| ≤ N`: the product within `MB` (its result at most `N`
+coefficients), the back-product within `LB` (precision `|M| − 1 ≤ Nb`), the quotient within `LBq`
+and the inverse within `IB` (precision at most `|R| ≤ Nq`).
 -/
 
 namespace LeanVM.Cost.Bounds.PMSolve
@@ -53,7 +55,7 @@ theorem size_inverseModX_le (M : CPolynomial.Raw.MulLowContext K) (k : ℕ) (p :
       · exact ih _ _
 
 /-- The column's step's price (`colStep`). -/
-@[expose] def colStep (N w MB LB : ℕ) : ℕ := MB + 2 * LB + 1350 * N + 4 * w + 1500
+@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 1350 * N + 4 * w + 1500
 
 theorem size_C_le (c : K) : (CPolynomial.C c).val.size ≤ 1 := by
   show (CPolynomial.Raw.C c).trim.size ≤ 1
@@ -111,8 +113,10 @@ variable (P : MachineProgram)
 
 /-- **The column's fold**, from entry `j₀` on, `n` entries: at most `(colStep + 9)·n + 3`. -/
 theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
-    {N MB LB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P N LB)
+    {N Nb Nq MB LB LBq : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P Nb LB)
+    (hLq : LowBound P Nq LBq)
     (M R : CPolynomial K) (hM : M.monic = true) (hN : M.val.size + R.val.size ≤ N)
+    (hMb : M.val.size ≤ Nb + 1) (hRq : R.val.size ≤ Nq)
     (hN58 : N < 2 ^ 58) (w b : ℕ) (hw : w < 2 ^ 20) (h2 : 2 ≤ M.val.size)
     (inv : CPolynomial.Raw K) (hinvdef : inv = CPolynomial.Raw.inverseModX FFT.fftRawMulLowContext
       R.val.size (CPolynomial.Raw.reverse M.val.size M.val)) :
@@ -121,14 +125,12 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
       machineCost P Library.listFoldl.costIdx
           [.closure gsRelationColumnC.lam0.costIdx [encodeValue M, encodeValue b, encodeValue inv,
             encodeValue R.val.size, encodeValue R], encodeValue st, encodeValue (List.range' j₀ n)] ≤
-        (colStep N w MB LB + 9) * n + 3 := by
+        (colStep N w MB LB LBq + 9) * n + 3 := by
   have hf := fun st j ↦ (RunsApp.of_spec (us := [encodeValue M, encodeValue b, encodeValue inv,
     encodeValue R.val.size, encodeValue R]) (vs := [encodeValue st, encodeValue j])
     (gsRelationColumnC.lam0.costSpec P (by includes) M b inv R.val.size R st j) :
       RunsApp P (.closure gsRelationColumnC.lam0.costIdx [encodeValue M, encodeValue b,
         encodeValue inv, encodeValue R.val.size, encodeValue R]) _ _)
-  have hinv : inv.size ≤ N := by
-    rw [hinvdef]; exact (size_inverseModX_le _ _ _).trans (by omega)
   have hM0 : (M == 0) = false := by
     cases h0 : M == 0 with
     | false => rfl
@@ -184,12 +186,12 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
         (CPolynomial.C (j₀.choose b : K)).val.size ≤ 1 := (Nat.mul_le_mul hC hC).trans (by simp)
     have := listBeqK_cost P (by includes) M.val.toList (↑(0 : CPolynomial K) : Array K).toList
     -- the product and the remainder
-    have hmul := hMB pow R (by omega) (by omega)
+    have hmul := hMB pow R (by omega)
     have hprod := cpoly_mul_size_le pow R
     have hfm : FFT.fftMulContext.mul pow R = pow * R := FFT.fftMulContext.mul_eq_mul pow R
     have hprod' := size_mul_le' pow R
-    have hrem := modByMonicCachedC_cost P (by includes) hLB inv R.val.size (pow * R) M hM hN58
-      (by omega) (by omega) (by omega) hinv (by
+    have hrem := modByMonicCachedC_cost P (by includes) hLB hLq inv R.val.size (pow * R) M hM hN58
+      (by omega) hRq (by omega) (by omega) hMb (by
         rcases Nat.lt_or_ge (pow * R).val.size M.val.size with hlt | hge
         · exact Or.inl hlt
         · right
@@ -219,9 +221,9 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
       rw [limbs_of_lt (by omega : j₀ + 1 < 2 ^ 64)]; omega
     have hmono2 : limbCount (j₀.choose b * (j₀ + 1)) * limbCount (j₀ + 1 - b) ≤ w + 1 := by
       rw [limbs_of_lt (by omega : j₀ + 1 - b < 2 ^ 64)]; omega
-    have hcs : colStep N w MB LB = MB + 2 * LB + 1350 * N + 4 * w + 1500 := rfl
-    have he : (colStep N w MB LB + 9) * (n + 1) =
-        (colStep N w MB LB + 9) * n + colStep N w MB LB + 9 := by ring
+    have hcs : colStep N w MB LB LBq = MB + LB + LBq + 1350 * N + 4 * w + 1500 := rfl
+    have he : (colStep N w MB LB LBq + 9) * (n + 1) =
+        (colStep N w MB LB LBq + 9) * n + colStep N w MB LB LBq + 9 := by ring
     rw [he]
     cost_simp
     omega
@@ -242,50 +244,54 @@ theorem reducedR_eq (R M : CPolynomial K) (hM : M.monic = true) (h : R.val.size 
   modByMonicWith_eq_self _ ((CPolynomial.monic_toPoly_iff M).1 hM) (natDegree_lt_of_size_lt h h2)
 
 /-- The column's price. -/
-@[expose] def colPrice (N w MB LB IB : ℕ) : ℕ :=
-  IB + w * (colStep N w MB LB + 9) + 150 * N + 30 * w + 300
+@[expose] def colPrice (N w MB LB LBq IB : ℕ) : ℕ :=
+  IB + w * (colStep N w MB LB LBq + 9) + 150 * N + 30 * w + 300
 
-/-- **A relation column** (`gsRelationColumnC`): at most `colPrice N w MB LB IB`. -/
+/-- **A relation column** (`gsRelationColumnC`): at most `colPrice N w MB LB LBq IB`. -/
 theorem gsRelationColumnC_cost (hP : Includes P gsRelationColumnC.costDeps)
-    {N MB LB IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P N LB) (hIB : InvBound P N IB)
+    {N Nb Nq MB LB LBq IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P Nb LB)
+    (hLq : LowBound P Nq LBq) (hIB : InvBound P Nq IB)
     (R M : CPolynomial K) (hM : M.monic = true) (hRM : R.val.size < M.val.size)
-    (h2 : 2 ≤ M.val.size) (hN : M.val.size + R.val.size ≤ N) (hN58 : N < 2 ^ 58) (w b : ℕ)
+    (h2 : 2 ≤ M.val.size) (hN : M.val.size + R.val.size ≤ N) (hMb : M.val.size ≤ Nb + 1)
+    (hRq : R.val.size ≤ Nq) (hN58 : N < 2 ^ 58) (w b : ℕ)
     (hw : w < 2 ^ 20) (hb : b ≤ w) :
     machineCost P gsRelationColumnC.costIdx [encodeValue R, encodeValue M, encodeValue w,
-        encodeValue b] ≤ colPrice N w MB LB IB := by
+        encodeValue b] ≤ colPrice N w MB LB LBq IB := by
   rw [gsRelationColumnC.costEq P hP, reducedR_eq R M hM hRM h2]
   have := modByMonicWithC_first_cost P (by includes) R M hM hRM (by omega)
   have := reverseC_cost P (by includes) M.val.size (by omega) M.val
-  have := hIB R.val.size (CPolynomial.Raw.reverse M.val.size M.val) (by omega)
-    (by rw [size_reverse]; omega)
+  have := hIB R.val.size (CPolynomial.Raw.reverse M.val.size M.val) hRq
   have := rangeC_cost P (by includes) (w - b) b (by omega)
-  have hfold := colFoldC_cost P (by includes) hMB hLB M R hM hN hN58 w b hw h2 _ rfl (w - b) b
+  have hfold := colFoldC_cost P (by includes) hMB hLB hLq M R hM hN hMb hRq hN58 w b hw h2 _ rfl
+    (w - b) b
     ((Array.replicate w 0, 1), 1) le_rfl (by omega) (Nat.choose_self b).symm (by simp)
     (by have := size_one_K; simp only []; omega)
-  have hmono := Nat.mul_le_mul_right (colStep N w MB LB + 9) (show w - b ≤ w by omega)
+  have hmono := Nat.mul_le_mul_right (colStep N w MB LB LBq + 9) (show w - b ≤ w by omega)
   unfold colPrice
   cost_simp
-  have e : (colStep N w MB LB + 9) * (w - b) = (w - b) * (colStep N w MB LB + 9) := by ring
+  have e : (colStep N w MB LB LBq + 9) * (w - b) = (w - b) * (colStep N w MB LB LBq + 9) := by ring
   omega
 
 /-- The matrix's price: `m` columns, the matrix assembled. -/
-@[expose] def matPrice (N w m MB LB IB : ℕ) : ℕ :=
-  m * (colPrice N w MB LB IB + 25) + w * (m * 42 + 48) + 20 * m + 100
+@[expose] def matPrice (N w m MB LB LBq IB : ℕ) : ℕ :=
+  m * (colPrice N w MB LB LBq IB + 25) + w * (m * 42 + 48) + 20 * m + 100
 
 /-- **The relation matrix** (`gsRelationMatrixC`): `m` columns on monic moduli of at least `2`
-coefficients, each longer than `R`, `|M_b| + |R| ≤ N`: at most `matPrice N w m MB LB IB`. -/
+coefficients, each longer than `R`, `|M_b| + |R| ≤ N`: at most `matPrice N w m MB LB LBq IB`. -/
 theorem gsRelationMatrixC_cost (hP : Includes P gsRelationMatrixC.costDeps)
-    {N MB LB IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P N LB) (hIB : InvBound P N IB)
-    (R : CPolynomial K) (moduli : Array (CPolynomial K)) (params : GuruswamiSudan.GSInterpParams)
+    {N Nb Nq MB LB LBq IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P Nb LB)
+    (hLq : LowBound P Nq LBq) (hIB : InvBound P Nq IB)
+    (R : CPolynomial K) (hRq : R.val.size ≤ Nq) (moduli : Array (CPolynomial K)) (params : GuruswamiSudan.GSInterpParams)
     (hm : params.multiplicity ≤ GuruswamiSudan.interpolationWidth params)
     (hw : GuruswamiSudan.interpolationWidth params < 2 ^ 20)
     (hpar : params.messageDegree < 2 ^ 64 ∧ params.weightedDegreeBound < 2 ^ 64)
     (hmod : ∀ b < params.multiplicity, (moduli.getD b 1).monic = true ∧
       R.val.size < (moduli.getD b 1).val.size ∧ 2 ≤ (moduli.getD b 1).val.size ∧
-      (moduli.getD b 1).val.size + R.val.size ≤ N) (hN58 : N < 2 ^ 58) :
+      (moduli.getD b 1).val.size + R.val.size ≤ N ∧ (moduli.getD b 1).val.size ≤ Nb + 1)
+    (hN58 : N < 2 ^ 58) :
     machineCost P gsRelationMatrixC.costIdx [encodeValue R, encodeValue moduli,
         encodeValue params] ≤
-      matPrice N (GuruswamiSudan.interpolationWidth params) params.multiplicity MB LB IB := by
+      matPrice N (GuruswamiSudan.interpolationWidth params) params.multiplicity MB LB LBq IB := by
   rw [gsRelationMatrixC.costEq P hP]
   set w := GuruswamiSudan.interpolationWidth params with hwdef
   set m := params.multiplicity with hmdef
@@ -295,14 +301,14 @@ theorem gsRelationMatrixC_cost (hP : Includes P gsRelationMatrixC.costDeps)
       RunsApp P (.closure gsRelationMatrixC.lam0.costIdx [encodeValue R, encodeValue moduli,
         encodeValue w]) _ _)
   have hcols := map_cost P (by includes) _ (.closure gsRelationMatrixC.lam0.costIdx
-    [encodeValue R, encodeValue moduli, encodeValue w]) hl (colPrice N w MB LB IB + 14)
+    [encodeValue R, encodeValue moduli, encodeValue w]) hl (colPrice N w MB LB LBq IB + 14)
     (List.range m) (fun b hb ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [gsRelationMatrixC.lam0.costEq P (by includes)]
       have hb' := List.mem_range.1 hb
-      obtain ⟨h1, h2, h3, h4⟩ := hmod b hb'
-      have := gsRelationColumnC_cost P (by includes) hMB hLB hIB R (moduli.getD b 1) h1 h2 h3 h4
-        hN58 w b hw (by omega)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := hmod b hb'
+      have := gsRelationColumnC_cost P (by includes) hMB hLB hLq hIB R (moduli.getD b 1) h1 h2 h3 h4
+        h5 hRq hN58 w b hw (by omega)
       omega)
   set cols := (List.map (fun b ↦ gsRelationColumnCached FFT.fftMulContext FFT.fftRawMulLowContext
     R (moduli.getD b 1) w b) (List.range m)).toArray
@@ -323,7 +329,7 @@ theorem gsRelationMatrixC_cost (hP : Includes P gsRelationMatrixC.costDeps)
   unfold matPrice
   cost_simp
   have e1 : w * (m * (9 + 33) + 48) = w * (m * 42 + 48) := by ring
-  have e2 : (colPrice N w MB LB IB + 14 + 11) * m = m * (colPrice N w MB LB IB + 25) := by ring
+  have e2 : (colPrice N w MB LB LBq IB + 14 + 11) * m = m * (colPrice N w MB LB LBq IB + 25) := by ring
   omega
 
 end

@@ -20,7 +20,7 @@ Horner's interpolant (the chain's, `vanishingC_cost`, `interpolateC_cost`), the 
 (`leastShiftedDegreeChoiceC_cost`), the row as a bivariate polynomial and its normalization (the
 chain's, `ofCoeffRowC_cost`, `normalizeLeeFastC_cost`).
 
-**`interpolatePMC_cost`**: at most `interpPMCost p N n m w W MB LB IB`.
+**`interpolatePMC_cost`**: at most `interpPMCost p L N n m w W MB LB LBq IB`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMSolve
@@ -236,9 +236,9 @@ theorem gsEquation_maxOrder (R G : CPolynomial K) (params : GuruswamiSudan.GSInt
 
 /-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
 the certified solve, the least row, the row read and normalized. -/
-@[expose] def interpPMCost (p : PMPrices) (N n m w W MB LB IB : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 27100 * n + 1000 + dataPrice N m w MB LB IB +
-    certSolveCost p (m * n + 1) w m (m * n + W + 2) + (90 * w + 130) * (w + m) +
+@[expose] def interpPMCost (p : PMPrices) (L N n m w W MB LB LBq IB : ℕ) : ℕ :=
+  3720 * (n * n) + 1700 * ((n + 1) * n) + 27100 * n + 1000 + dataPrice N m w MB LB LBq IB +
+    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (90 * w + 130) * (w + m) +
     (3 * (m * n + W + 2 + 2) + 41) * w + normBound W w + 200
 
 /-- The sizes the interpolation's price reads, besides the chain's `InterpSizes`. -/
@@ -250,16 +250,18 @@ the certified solve, the least row, the row read and normalized. -/
 
 set_option maxHeartbeats 4000000 in
 /-- **The lanes' interpolation, compiled** (`interpolatePMC`, `interpolateDistinctWith pmSolver`):
-on `n` points, `k > 1`, at most `interpPMCost p N n m w W MB LB IB`, `N = (m + 1)·n + 1`, given
-track fft's product, truncated product and Newton inverse prices at sizes `≤ N` and track
-pmcost's PM-basis core price (`PMCoreCostAt`). -/
+on `n` points, `k > 1`, at most `interpPMCost p L N n m w W MB LB LBq IB`, `N = (m + 1)·n + 1`,
+given track fft's prices (the products of at most `N` coefficients within `MB`, the truncated
+products at precision `m·n` within `LB`, at precision `n` within `LBq`, Newton's inverse at
+precision `n` within `IB`) and track pmcost's PM-basis core price at the leaf price `L`
+(`PMCoreCostAt`). -/
 theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPrices)
-    {MB LB IB : ℕ} (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)
+    {MB LB LBq IB : ℕ} (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)
     (hMB : MulBound P ((params.multiplicity + 1) * points.size + 1) MB)
-    (hLB : LowBound P ((params.multiplicity + 1) * points.size + 1) LB)
-    (hIB : InvBound P ((params.multiplicity + 1) * points.size + 1) IB)
-    {SB : ℕ}
-    (hcore : PMCoreCostAt P p (GuruswamiSudan.interpolationWidth params + params.multiplicity)
+    (hLB : LowBound P (params.multiplicity * points.size) LB)
+    (hLq : LowBound P points.size LBq) (hIB : InvBound P points.size IB)
+    {L SB : ℕ}
+    (hcore : PMCoreCostAt P p L (GuruswamiSudan.interpolationWidth params + params.multiplicity)
       params.multiplicity SB)
     (hSB : params.weightedDegreeBound + params.weightedDegreeBound + 1 +
       2 * (params.multiplicity * points.size + 1 + params.weightedDegreeBound + 2) ≤ SB)
@@ -267,9 +269,9 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
     (hsz : InterpSizes points.size params)
     (hpm : PMInterpSizes points.size params) (hk : 1 < params.messageDegree) :
     machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
-      interpPMCost p ((params.multiplicity + 1) * points.size + 1) points.size
+      interpPMCost p L ((params.multiplicity + 1) * points.size + 1) points.size
         params.multiplicity (GuruswamiSudan.interpolationWidth params)
-        params.weightedDegreeBound MB LB IB := by
+        params.weightedDegreeBound MB LB LBq IB := by
   obtain ⟨hn55, hW60, hk64, hyW, hcap, hm55, -⟩ := hsz
   obtain ⟨hn1, hm1, hmw, hw20, hN45, hW40⟩ := hpm
   rw [interpolatePMC.costEq P hP]
@@ -294,11 +296,11 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
       simp only [appCost_fn, List.nil_append]
       rw [Auto.LeanVM.Extraction.Fast.leeOSullivanPositiveCoreFast.c73.lam0.costEq P (by includes)])
   -- the GS data
-  have hdata := gsDataC_cost P (by includes) hMB hLB hIB
+  have hdata := gsDataC_cost P (by includes) hMB hLB hLq hIB
     (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
       (vanishingFast (points.map fun point ↦ point.1)) points)
     (vanishingFast (points.map fun point ↦ point.1)) params hGm (by omega) (by omega) hm1 hmw hw20
-    ⟨hk64, by omega⟩ (by rw [hGn]) (by omega)
+    ⟨hk64, by omega⟩ (by rw [hGn]) (by rw [hGn]) (by rw [hGn]) (by omega)
   -- the equation, the certified solve
   have hmn : params.multiplicity * points.size + 1 < 2 ^ 45 := by
     have : (params.multiplicity + 1) * points.size = params.multiplicity * points.size +

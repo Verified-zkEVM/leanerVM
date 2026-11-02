@@ -7,14 +7,16 @@ public import LeanVM.Cost.Bounds.PMCore.At28_4
 /-!
 # Bounds: the lanes' interpolation within its price, the hypotheses discharged
 
-The products, truncated products and Newton inverses at sizes `≤ N` (track fft's
-`mulViaFFTC_cost`, `rawMulLowFFTC_cost`, `inverseModXFFTC_cost`): `mulBound_fft`, `lowBound_fft`,
-`invBound_fft`, at the prices `fftMB`, `fftLB`, `fftIB`; the PM-basis core (track pmcost's
-`pmCoreC_cost_le_model`, the leaf's `leafCost`): `pmCoreCostAt_model`.
+The products of at most `N` coefficients, the truncated products and Newton's inverses at
+precision `≤ N` (track fft's `mulViaFFTC_cost`, `rawMulLowFFTC_cost`, `inverseModXFFTC_cost`):
+`mulBound_fft`, `lowBound_fft`, `invBound_fft`, at the prices `fftMB`, `fftLB`, `fftIB`; the
+PM-basis core (track pmcost's `pmCoreC_cost`, the leaf's `leafCost`) at the leaf's proved price
+`leafBound r m + 18·m + 60`: `pmCoreCostAt_leaf`.
 
 **`interpolatePMC_cost_model`**: the lanes' interpolation at most `interpPMModel p n params`, on
 the shapes `PMInterpOK n params` (decidable: the sizes, the transforms within `2^36` points, the
-core's shift bound, the leaf within the model's leaf price).
+core's shift bound). **`interpolatePMC_cost_price`**: within the model's `interpPMPrice` where
+`interpPMModel ≤ interpPMPrice` (decidable, per shape).
 -/
 
 namespace LeanVM.Cost.Bounds.PMSolve
@@ -25,98 +27,110 @@ open LeanVM.Cost.Bounds.PMBasis
 
 public section
 
-/-- A product at sizes `≤ N`. -/
-@[expose] def fftMB (p : PMPrices) (N : ℕ) : ℕ := polyMulPrice p (clog2 (2 * N)) + 2 ^ 32
+/-- A product of at most `N` coefficients. -/
+@[expose] def fftMB (p : PMPrices) (N : ℕ) : ℕ := polyMulPrice p (clog2 N) + 2 ^ 32
 
-/-- A truncated product at precision and sizes `≤ N`. -/
+/-- A truncated product at precision `≤ N`. -/
 @[expose] def fftLB (p : PMPrices) (N : ℕ) : ℕ :=
   polyMulPrice p (clog2 (2 * N)) + 2 ^ 32 + 49 * N + 46
 
-/-- Newton's inverse at precision `≤ N`. -/
-@[expose] def fftIB (p : PMPrices) (N : ℕ) : ℕ :=
-  clog2 N * (2 * polyMulPrice p (clog2 (2 * N)) + 2 * 2 ^ 32 + 224 * N + 500) + N + 19740
+/-- Newton's inverse at precision `≤ N` (track fft's telescoped `newtonBound`). -/
+@[expose] def fftIB (p : PMPrices) (N : ℕ) : ℕ := PMFFT.newtonBound p N
 
 variable (P : MachineProgram)
 
 theorem mulBound_fft (hP : Includes P mulViaFFTC.costDeps) (p : PMPrices)
-    (hp : PMFFT.FFTPricesOK p) (N : ℕ) (hN : 2 * N ≤ 2 ^ 36) : MulBound P N (fftMB p N) := by
-  intro f g hf hg
+    (hp : PMFFT.FFTPricesOK p) (N : ℕ) (hN : N ≤ 2 ^ 36) : MulBound P N (fftMB p N) := by
+  intro f g hfg
   have := PMFFT.mulViaFFTC_cost P hP p hp f g (by omega)
-  have := polyMulPrice_mono p (clog2_mono (show f.val.size + g.val.size - 1 ≤ 2 * N by omega))
+  have := PMFFT.polyMulPrice_mono p (clog2_mono (show f.val.size + g.val.size - 1 ≤ N by omega))
   unfold fftMB
   unfold PMFFT.karMax at *
   omega
 
 theorem lowBound_fft (hP : Includes P rawMulLowFFTC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) (N : ℕ) (hN : N ≤ 2 ^ 35) : LowBound P N (fftLB p N) := by
-  intro k a b hk _ _
+  intro k a b hk
   have := PMFFT.rawMulLowFFTC_cost P hP p hp k (by omega) a b
-  have := polyMulPrice_mono p (clog2_mono (show 2 * k - 1 ≤ 2 * N by omega))
+  have := PMFFT.polyMulPrice_mono p (clog2_mono (show 2 * k - 1 ≤ 2 * N by omega))
   unfold fftLB
   unfold PMFFT.karMax at *
   omega
 
 theorem invBound_fft (hP : Includes P inverseModXFFTC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) (N : ℕ) (hN : N ≤ 2 ^ 35) : InvBound P N (fftIB p N) := by
-  intro k a hk _
+  intro k a hk
   have := PMFFT.inverseModXFFTC_cost P hP p hp k (by omega) a
-  have h1 := polyMulPrice_mono p (clog2_mono (show 2 * k - 1 ≤ 2 * N by omega))
-  have h2 : PMFFT.newtonStep p k ≤
-      2 * polyMulPrice p (clog2 (2 * N)) + 2 * 2 ^ 32 + 224 * N + 500 := by
-    unfold PMFFT.newtonStep PMFFT.karMax
-    omega
-  have h3 := Nat.mul_le_mul (clog2_mono hk) h2
+  have := PMFFT.newtonBound_mono p hk
   unfold fftIB
   omega
 
-/-- **The PM-basis core within the model**, given the leaf within the model's leaf price. -/
-theorem pmCoreCostAt_model (hP : Includes P pmCoreC.costDeps) (p : PMPrices)
+/-- **The PM-basis core at the leaf's proved price** (track pmcost's `pmCoreC_cost` and
+`leafCost`): the tree at the leaf price `leafBound r m + 18·m + 60`. -/
+theorem pmCoreCostAt_leaf (hP : Includes P pmCoreC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) {r m SB : ℕ} (hr : 2 ≤ r) (hm : m ≤ r) (hr28 : r < 2 ^ 28)
-    (hSB : SB < 2 ^ 39) (hleaf : PMCore.leafBound r m + 18 * m + 60 ≤ pmLeafPrice p r) :
-    PMCoreCostAt P p r m SB := by
-  intro problem shift hI
-  have hL := PMCore.leafCost P hP (r := r) (m := m) (SB := SB) (by omega) (by omega) hSB
-  refine PMCore.pmCoreC_cost_le_model P hP hp hr hm (by omega) hSB (fun pr sh hI' ho ↦ ?_)
-    (by omega) problem shift hI
-  have := hL pr sh hI' ho
-  omega
+    (hSB : SB < 2 ^ 39) :
+    PMCoreCostAt P p (PMCore.leafBound r m + 18 * m + 60) r m SB := fun problem shift hI ↦
+  PMCore.pmCoreC_cost P hP hp hr hm (by omega) hSB
+    (PMCore.leafCost P hP (r := r) (m := m) (SB := SB) hr28 (by omega) hSB) problem shift hI
 
-/-- The shapes where the interpolation's price is proved: the sizes, the transforms within `2^36`
-points, the core's shift bound, the leaf within the model's leaf price. -/
-@[expose] def PMInterpOK (p : PMPrices) (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
-  PMInterpSizes n params ∧ 2 * ((params.multiplicity + 1) * n + 1) ≤ 2 ^ 36 ∧
-    3 * params.weightedDegreeBound + 1 + 2 * (params.multiplicity * n + 3) < 2 ^ 39 ∧
-    3 * (params.multiplicity * n + 1 + params.weightedDegreeBound + 2) ≤ 2 ^ 37 ∧
-    PMCore.leafBound (GuruswamiSudan.interpolationWidth params + params.multiplicity)
-        params.multiplicity + 18 * params.multiplicity + 60 ≤
-      pmLeafPrice p (GuruswamiSudan.interpolationWidth params + params.multiplicity)
+/-- The shapes where the interpolation's price is proved: the sizes, the products within `2^36`
+points, the core's shift bound. -/
+@[expose] def PMInterpOK (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
+  PMInterpSizes n params ∧ (params.multiplicity + 1) * n + 1 ≤ 2 ^ 35 ∧
+    4 * params.weightedDegreeBound + 2 * (params.multiplicity * n) + 7 < 2 ^ 39 ∧
+    3 * (params.multiplicity * n + 1 + params.weightedDegreeBound + 2) ≤ 2 ^ 37
 
-instance (p : PMPrices) (n : ℕ) (params : GuruswamiSudan.GSInterpParams) :
-    Decidable (PMInterpOK p n params) := by
+instance (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Decidable (PMInterpOK n params) := by
   unfold PMInterpOK PMInterpSizes; infer_instance
 
-/-- **The interpolation's proved price** at prices `p`, `n` points. -/
+/-- **The interpolation's proved price** at prices `p`, `n` points: the products of at most
+`N = (m + 1)·n + 1` coefficients, the back-products at precision `m·n`, the quotients and the
+inverses at precision `n`, the PM-basis leaf at its proved price. -/
 @[expose] def interpPMModel (p : PMPrices) (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : ℕ :=
-  let N := (params.multiplicity + 1) * n + 1
-  interpPMCost p N n params.multiplicity (GuruswamiSudan.interpolationWidth params)
-    params.weightedDegreeBound (fftMB p N) (fftLB p N) (fftIB p N)
+  let m := params.multiplicity
+  let w := GuruswamiSudan.interpolationWidth params
+  let N := (m + 1) * n + 1
+  interpPMCost p (PMCore.leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
+    (fftMB p N) (fftLB p (m * n)) (fftLB p n) (fftIB p n)
 
 /-- **The lanes' interpolation, compiled, within its proved price** (`interpolatePMC`): no
 hypothesis but the shape's (`PMInterpOK`, decidable) and the chain's `InterpSizes`. -/
 theorem interpolatePMC_cost_model (hP : Includes P interpolatePMC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)
-    (hok : PMInterpOK p points.size params) (hsz : InterpSizes points.size params)
+    (hok : PMInterpOK points.size params) (hsz : InterpSizes points.size params)
     (hk : 1 < params.messageDegree) :
     machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
       interpPMModel p points.size params := by
-  obtain ⟨hpm, hN36, hSB, h37, hleaf⟩ := hok
+  obtain ⟨hpm, hN35, hSB, h37⟩ := hok
   have hpm' := hpm
   obtain ⟨hn1, hm1, hmw, hw20, hN45, hW40⟩ := hpm'
+  have hmn : params.multiplicity * points.size ≤ (params.multiplicity + 1) * points.size := by
+    have := Nat.mul_le_mul_right points.size (show params.multiplicity ≤ params.multiplicity + 1
+      by omega)
+    omega
+  have hn : points.size ≤ (params.multiplicity + 1) * points.size := by
+    have := Nat.mul_le_mul_right points.size (show 1 ≤ params.multiplicity + 1 by omega)
+    omega
   exact interpolatePMC_cost P (by includes) p points params
-    (mulBound_fft P (by includes) p hp _ hN36) (lowBound_fft P (by includes) p hp _ (by omega))
+    (mulBound_fft P (by includes) p hp _ (by omega))
+    (lowBound_fft P (by includes) p hp _ (by omega))
+    (lowBound_fft P (by includes) p hp _ (by omega))
     (invBound_fft P (by includes) p hp _ (by omega))
-    (pmCoreCostAt_model P (by includes) p hp (by omega) (by omega) (by omega) hSB hleaf)
+    (pmCoreCostAt_leaf P (by includes) p hp (by omega) (by omega) (by omega) hSB)
     (by omega) h37 hsz hpm hk
+
+/-- **The lanes' interpolation within the model's price** (`interpPMPrice`, `PMBasis`), on the
+shapes where the proved price is within it (`interpPMModel p n params ≤ interpPMPrice p n params`,
+decidable, checked per shape). -/
+theorem interpolatePMC_cost_price (hP : Includes P interpolatePMC.costDeps) (p : PMPrices)
+    (hp : PMFFT.FFTPricesOK p) (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)
+    (hok : PMInterpOK points.size params)
+    (hle : interpPMModel p points.size params ≤ interpPMPrice p points.size params)
+    (hsz : InterpSizes points.size params) (hk : 1 < params.messageDegree) :
+    machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
+      interpPMPrice p points.size params :=
+  (interpolatePMC_cost_model P hP p hp points params hok hsz hk).trans hle
 
 end
 

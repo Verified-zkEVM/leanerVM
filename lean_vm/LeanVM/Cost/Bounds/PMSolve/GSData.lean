@@ -79,19 +79,19 @@ theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB 
     simp only [appCost_fn, List.cons_append, List.nil_append]
     rw [gsModuliC.lam0.costEq P (by includes)]
     have hs : (powersArr G k).size = k + 1 := by simp [powersArr]
-    have hlast : ((powersArr G k).getD ((powersArr G k).size - 1) 0).val.size ≤ N := by
+    have hlast : ((powersArr G k).getD ((powersArr G k).size - 1) 0).val.size ≤
+        (k + 1) * G.natDegree + 1 := by
       rw [hs, Nat.add_sub_cancel, Array.getD_eq_getD_getElem?]
       simp only [powersArr, List.getElem?_toArray, List.getElem?_map,
         List.getElem?_range (show k < k + 1 by omega), Option.map_some, Option.getD_some]
-      have := size_pow_le G (k + 1)
-      have := Nat.mul_le_mul_right G.natDegree (show k + 1 ≤ m by omega)
-      omega
-    have hG : G.val.size ≤ N := by
+      exact size_pow_le G (k + 1)
+    have hG : G.val.size ≤ G.natDegree + 1 := by
       have := size_pow_le G 1
       simp only [pow_one, one_mul] at this
-      have : G.natDegree ≤ m * G.natDegree := Nat.le_mul_of_pos_left _ (by omega)
-      omega
-    have := hMB _ G hlast hG
+      exact this
+    have hk2 := Nat.mul_le_mul_right G.natDegree (show k + 2 ≤ m by omega)
+    have hk2e : (k + 2) * G.natDegree = (k + 1) * G.natDegree + G.natDegree := by ring
+    have := hMB ((powersArr G k).getD ((powersArr G k).size - 1) 0) G (by omega)
     have hnext := ih (k + 1) (by omega) l' (by simpa using hl)
     rw [← powersArr_step] at hnext
     simp only [pure]
@@ -180,28 +180,32 @@ theorem vanishingFast_monicK (xs : Array K) :
   vanishingFast_monicB xs
 
 /-- The GS data's price. -/
-@[expose] def dataPrice (N m w MB LB IB : ℕ) : ℕ :=
-  (MB + m + 40) * (m - 1) + 34 * m + 120 + matPrice N w m MB LB IB + 40 * w + 80
+@[expose] def dataPrice (N m w MB LB LBq IB : ℕ) : ℕ :=
+  (MB + m + 40) * (m - 1) + 34 * m + 120 + matPrice N w m MB LB LBq IB + 40 * w + 80
 
 /-- **The GS data** (`buildGSModularDataCached fftMulContext fftRawMulLowContext R G params`):
 on a monic `G` of degree `n ≥ 1`, `|R| ≤ n`, `1 ≤ m ≤ w`, `(m + 1)·n + 1 ≤ N`: at most
-`dataPrice N m w MB LB IB`. -/
+`dataPrice N m w MB LB LBq IB`, the products within `MB` (results of at most `N`
+coefficients), the back-products within `LB` (precision `m·n ≤ Nb`), the quotients and the inverses
+within `LBq`, `IB` (precision `n ≤ Nq`). -/
 theorem gsDataC_cost (hP : Includes P gsDataC.costDeps)
-    {N MB LB IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P N LB) (hIB : InvBound P N IB)
+    {N Nb Nq MB LB LBq IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P Nb LB)
+    (hLq : LowBound P Nq LBq) (hIB : InvBound P Nq IB)
     (R G : CPolynomial K) (params : GuruswamiSudan.GSInterpParams) (hG : G.monic = true)
     (hn1 : 1 ≤ G.natDegree) (hR : R.val.size ≤ G.natDegree) (hm1 : 1 ≤ params.multiplicity)
     (hm : params.multiplicity ≤ GuruswamiSudan.interpolationWidth params)
     (hw : GuruswamiSudan.interpolationWidth params < 2 ^ 20)
     (hpar : params.messageDegree < 2 ^ 64 ∧ params.weightedDegreeBound < 2 ^ 64)
-    (hN : (params.multiplicity + 1) * G.natDegree + 1 ≤ N) (hN58 : N < 2 ^ 58) :
+    (hN : (params.multiplicity + 1) * G.natDegree + 1 ≤ N) (hNb : params.multiplicity * G.natDegree ≤ Nb)
+    (hNq : G.natDegree ≤ Nq) (hN58 : N < 2 ^ 58) :
     machineCost P gsDataC.costIdx [encodeValue R, encodeValue G, encodeValue params] ≤
-      dataPrice N params.multiplicity (GuruswamiSudan.interpolationWidth params) MB LB IB := by
+      dataPrice N params.multiplicity (GuruswamiSudan.interpolationWidth params) MB LB LBq IB := by
   rw [gsDataC.costEq P hP]
   have hj : (params.multiplicity + 1) * G.natDegree =
       params.multiplicity * G.natDegree + G.natDegree := by ring
   have hmn : params.multiplicity * G.natDegree + 1 ≤ N := by omega
   have := gsModuliC_cost P (by includes) hMB G params.multiplicity hm1 (by omega) hmn
-  have hmat := gsRelationMatrixC_cost P (by includes) hMB hLB hIB R
+  have hmat := gsRelationMatrixC_cost P (by includes) hMB hLB hLq hIB R (by omega)
     (CompPoly.GuruswamiSudan.ApproximantBasis.gsModuli FFT.fftMulContext G params.multiplicity)
     params hm hw hpar (fun b hb ↦ by
       rw [CompPoly.GuruswamiSudan.ApproximantBasis.gsModuli_getD_one _ _ hb]
@@ -211,7 +215,7 @@ theorem gsDataC_cost (hP : Includes P gsDataC.costDeps)
       have hk := Nat.mul_le_mul_right G.natDegree (show params.multiplicity - b ≤
         params.multiplicity by omega)
       have hk1 := Nat.mul_le_mul_right G.natDegree (show 1 ≤ params.multiplicity - b by omega)
-      refine ⟨hmo, by omega, by omega, by omega⟩) hN58
+      refine ⟨hmo, by omega, by omega, by omega, by omega⟩) hN58
   have := rangeLoop_cost P (by includes) (GuruswamiSudan.interpolationWidth params) [] (by omega)
   have hl := fun j ↦ (RunsApp.of_spec (us := [encodeValue params]) (vs := [encodeValue j])
     (Auto.LeanVM.Extraction.Fast.leeOSullivanPositiveCoreFast.c73.lam1.costSpec P (by includes)
