@@ -149,7 +149,7 @@ inverses at precision `n`, the PM-basis leaf at its proved price. -/
   let m := params.multiplicity
   let w := GuruswamiSudan.interpolationWidth params
   let N := (m + 1) * n + 1
-  interpPMCost p (PMCore.leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
+  interpPMCost p (PMCore.leafBound (w + m) m + 21 * m + 32) N n m w params.weightedDegreeBound
     (fftMB p N) (fftLB p (m * n)) (fftLB p n) (fftIB p n)
 
 end
