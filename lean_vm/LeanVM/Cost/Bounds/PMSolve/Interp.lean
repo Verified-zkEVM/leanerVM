@@ -223,7 +223,7 @@ theorem certifiedRows_sizes (equation : ModularEquation K) (shift : Array ℕ) (
 
 /-- The certified problem's maximal order on the GS data: `m·n + bound + 2`. -/
 theorem gsEquation_maxOrder (R G : CPolynomial K) (params : GuruswamiSudan.GSInterpParams)
-    (hG : G.toPoly.Monic) (hm : 0 < params.multiplicity) (bound : ℕ) :
+    (hG : G.monic = true) (hm : 0 < params.multiplicity) (bound : ℕ) :
     maxOrder (fullWindowExactNullspaceProblem FFT.fftModContext
       (GuruswamiSudan.ApproximantBasis.modularEquation
         (buildGSModularDataCached pmSolver.mulContext FFT.fftRawMulLowContext R G params)) bound) =
@@ -232,7 +232,7 @@ theorem gsEquation_maxOrder (R G : CPolynomial K) (params : GuruswamiSudan.GSInt
       GuruswamiSudan.ApproximantBasis.buildGSModularDataWithRG FFT.fftMulContext FFT.fftModContext
         R G params := buildGSModularDataCached_eq _ _ _ _ _ _
   rw [h]
-  exact gsProblem_maxOrder _ _ R G params hG bound hm
+  exact gsProblem_maxOrder _ _ R G params ((CPolynomial.monic_toPoly_iff G).1 hG) bound hm
 
 /-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
 the certified solve, the least row, the row read and normalized. -/
@@ -248,7 +248,6 @@ the certified solve, the least row, the row read and normalized. -/
     GuruswamiSudan.interpolationWidth params < 2 ^ 20 ∧
     (params.multiplicity + 1) * n + 1 < 2 ^ 45 ∧ params.weightedDegreeBound < 2 ^ 40
 
-set_option maxHeartbeats 4000000 in
 /-- **The lanes' interpolation, compiled** (`interpolatePMC`, `interpolateDistinctWith pmSolver`):
 on `n` points, `k > 1`, at most `interpPMCost p L N n m w W MB LB LBq IB`, `N = (m + 1)·n + 1`,
 given track fft's prices (the products of at most `N` coefficients within `MB`, the truncated
@@ -278,7 +277,8 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
   simp only [show ¬params.messageDegree ≤ 1 by omega, ↓reduceIte]
   -- G and R
   have hxs : (points.map fun point ↦ point.1).size = points.size := Array.size_map ..
-  have hGm := vanishingFast_monicK (points.map fun point ↦ point.1)
+  have hGm0 := vanishingFast_monicK (points.map fun point ↦ point.1)
+  have hGm : (vanishingFast (points.map fun point ↦ point.1)).monic = true := hGm0
   have hGn := natDegree_vanishingFast (points.map fun point ↦ point.1)
   rw [hxs] at hGn
   have hGs := vanishingFast_size_le (points.map fun point ↦ point.1)
@@ -296,39 +296,44 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
       simp only [appCost_fn, List.nil_append]
       rw [Auto.LeanVM.Extraction.Fast.leeOSullivanPositiveCoreFast.c73.lam0.costEq P (by includes)])
   -- the GS data
-  have hdata := gsDataC_cost P (by includes) hMB hLB hLq hIB
+  have hInc : Includes P gsDataC.costDeps := by includes
+  have a1 : 1 ≤ (vanishingFast (points.map fun point ↦ point.1)).natDegree := by omega
+  have a2 : (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
+      (vanishingFast (points.map fun point ↦ point.1)) points).val.size ≤
+      (vanishingFast (points.map fun point ↦ point.1)).natDegree := by omega
+  have a3 : params.weightedDegreeBound < 2 ^ 64 := by omega
+  have a4 : (params.multiplicity + 1) * (vanishingFast (points.map fun point ↦ point.1)).natDegree + 1 ≤
+      (params.multiplicity + 1) * points.size + 1 := by rw [hGn]
+  have a5 : params.multiplicity * (vanishingFast (points.map fun point ↦ point.1)).natDegree ≤
+      params.multiplicity * points.size := by rw [hGn]
+  have a6 : (vanishingFast (points.map fun point ↦ point.1)).natDegree ≤ points.size := by rw [hGn]
+  have a7 : (params.multiplicity + 1) * points.size + 1 < 2 ^ 58 := by omega
+  have hdata := gsDataC_cost P hInc hMB hLB hLq hIB
     (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
       (vanishingFast (points.map fun point ↦ point.1)) points)
-    (vanishingFast (points.map fun point ↦ point.1)) params hGm (by omega) (by omega) hm1 hmw hw20
-    ⟨hk64, by omega⟩ (by rw [hGn]) (by rw [hGn]) (by rw [hGn]) (by omega)
+    (vanishingFast (points.map fun point ↦ point.1)) params
+  replace hdata := hdata hGm a1 a2 hm1 hmw hw20 ⟨hk64, a3⟩ a4 a5 a6 a7
   -- the equation, the certified solve
   have hmn : params.multiplicity * points.size + 1 < 2 ^ 45 := by
     have : (params.multiplicity + 1) * points.size = params.multiplicity * points.size +
       points.size := by ring
     omega
-  obtain ⟨hL, hMW⟩ := gsEquation_sizes
+  have a8 : params.multiplicity * (vanishingFast (points.map fun point ↦ point.1)).natDegree + 1 <
+      2 ^ 60 := by rw [hGn]; omega
+  have a9 : GuruswamiSudan.interpolationWidth params < 2 ^ 29 := by omega
+  have a10 : params.multiplicity < 2 ^ 29 := by omega
+  have hEq := gsEquation_sizes
     (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
       (vanishingFast (points.map fun point ↦ point.1)) points)
-    (vanishingFast (points.map fun point ↦ point.1)) params hGm (by omega) (by omega) (by omega)
-    (by rw [hGn]; omega)
+    (vanishingFast (points.map fun point ↦ point.1)) params
+  replace hEq := hEq hGm a1 a9 a10 a8
+  obtain ⟨hL, hMW⟩ := hEq
   rw [hGn] at hL
-  -- the equation, the certified solve
-  have hmn : params.multiplicity * points.size + 1 < 2 ^ 45 := by
-    have : (params.multiplicity + 1) * points.size = params.multiplicity * points.size +
-      points.size := by ring
-    omega
-  obtain ⟨hL, hMW⟩ := gsEquation_sizes
-    (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
-      (vanishingFast (points.map fun point ↦ point.1)) points)
-    (vanishingFast (points.map fun point ↦ point.1)) params hGm (by omega) (by omega) (by omega)
-    (by rw [hGn]; omega)
-  rw [hGn] at hL
-  have hGp := monic_vanishingFast (points.map fun point ↦ point.1)
   have ho := gsEquation_maxOrder
     (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)
       (vanishingFast (points.map fun point ↦ point.1)) points)
-    (vanishingFast (points.map fun point ↦ point.1)) params hGp (by omega)
-    params.weightedDegreeBound
+    (vanishingFast (points.map fun point ↦ point.1)) params
+  replace ho := ho hGm (Nat.lt_of_lt_of_le Nat.zero_lt_one hm1) params.weightedDegreeBound
   rw [hGn] at ho
   have hshift : (buildGSModularDataCached pmSolver.mulContext FFT.fftRawMulLowContext
       (CPolynomial.interpolateCoefficientFormWithVanishing (CPolynomial.BatchEvalContext.horner K)

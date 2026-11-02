@@ -174,7 +174,6 @@ theorem vanishingFast_monicB {F : Type*} [Field F] [BEq F] [LawfulBEq F] (xs : A
     (vanishingFast xs).monic = true :=
   (CPolynomial.monic_toPoly_iff _).2 (monic_vanishingFast xs)
 
-set_option maxHeartbeats 2000000 in
 theorem vanishingFast_monicK (xs : Array K) :
     @CPolynomial.monic K BF64.instZero BF64.instOne instBEqBF64 (vanishingFast xs) = true :=
   vanishingFast_monicB xs
