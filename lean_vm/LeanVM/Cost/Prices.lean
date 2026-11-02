@@ -31,14 +31,14 @@ def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
 /-- One step of a leanISA run replayed (the extractor's candidate runs, the guest decoder's
 replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
 tables. -/
-def runnerStepPrice (κ ℓ : ℕ) : ℕ := 411697 + 42 * ℓ + 1092 * κ
+def runnerStepPrice (κ ℓ : ℕ) : ℕ := 365466 + 36 * ℓ + 936 * κ
 
 /-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
-def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 45) * 2 ^ 35 + 44 * 2 ^ κ + 1796
+def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 41) * 2 ^ 35 + 45 * 2 ^ κ + 1738
 
 /-- The runner's tables: the sorted address tables of the memory and the program. -/
 def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
-  (70 * κ + 374) * 2 ^ κ + (70 * ℓ + 374) * 2 ^ ℓ + 535 * ℓ + 830
+  (74 * κ + 121) * 2 ^ κ + (74 * ℓ + 121) * 2 ^ ℓ + 73 * ℓ + 357
 
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
 `17·w + cW`. -/
@@ -56,12 +56,12 @@ def replayStepPrice (B D W : ℕ) : ℕ :=
 /-- One step of the first answers, amortized: a lookup and an insertion of a key of at most `L`
 bytes. -/
 def firstAnswersStepPrice (L D W : ℕ) : ℕ :=
-  D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + (23 * L + 31) * D + (40 + 2 * W) * D + 85 + 2 * W
+  D * (20 + (40 + 26 * L + 9 * W) * (D + 2)) + (26 * L + 37) * D + (32 + 2 * W) * D + 78 + 2 * W
 
 /-- One step of the preimage index, amortized: a key of at most `L` bytes, a lookup, an
 insertion. -/
 def preimageStepPrice (L D W : ℕ) : ℕ :=
-  25 * L + 192 * (D * D) + 595 * D + 152 + W * (11 * (D * (D + 2)) + 2 * (D + 1))
+  31 * L + 162 * (D * D) + 537 * D + 145 + W * (9 * (D * (D + 2)) + 2 * (D + 1))
 
 /-- The transcript's index: `N` permutation queries, `N + 2 ≤ 2^D`, evaluations of at most `L`
 bytes kept. -/
