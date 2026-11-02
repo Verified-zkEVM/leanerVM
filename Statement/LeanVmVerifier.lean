@@ -1157,9 +1157,11 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
   let offsetOf := fun c ↦ blockOffsets.getD (blockCols.idxOf c) 0
   let placements := kappas.zipIdx.map fun (kappa, column) ↦
     match keccakSlot column with
-    | some slot => some ({ vars := kappa, index := offsetOf qkeccak + slot * 2 ^ kappa } : Placement)
+    | some slot =>
+      some ({ vars := kappa, index := offsetOf qkeccak + slot * 2 ^ kappa } : Placement)
     | none =>
-      if column ∈ keccakOutputColumns then none else some { vars := kappa, index := offsetOf column }
+      if column ∈ keccakOutputColumns then none
+      else some { vars := kappa, index := offsetOf column }
   (placements, max Whir.minLogStack totalLog)
 
 /-- `build_layout(bytecode, log_memory, table_rows)` (`verifier.py:974-1014`); `none` where the
@@ -2021,7 +2023,8 @@ def verifyExecution (ev : List K → List E → Prog E) (bytecode : List K) (pub
   let bus ← verifyBusBalance ev layout
   -- 4] the table sumcheck, and the tables' column claims
   let evaluations ← tablePhase layout bus
-  let claims := bus.claims ++ (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
+  let claims := bus.claims ++
+    (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
     values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
   -- 5] the public input
   let publicClaims ← publicInputPhase layout publicInput

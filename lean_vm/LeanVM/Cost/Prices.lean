@@ -7,10 +7,10 @@ public import Statement.CostMachine
 
 The closed-form prices `lean_vm` proves of the compiled extractor and the compiled guest decoder,
 part by part (`Cost/Bounds/`), natural-number formulas only. The statement's budgets are short
-upper bounds on them: `extractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
+upper bounds on them: `knowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
 at every shape the replay admits (`extractorPrice_le_worst`, `extractorPrice_worst_le`, and the
 compiled extractor within it, `extractorC_within`, `Cost/Bounds/Top.lean`), and
-`guestDecoderBudget` (`Statement/Theorems.lean`) above `guestDecoderPrice` on every valid
+`guestWitnessDecoderBudget` (`Statement/Theorems.lean`) above `guestDecoderPrice` on every valid
 execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 -/
 

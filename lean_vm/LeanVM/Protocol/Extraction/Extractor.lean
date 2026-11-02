@@ -100,7 +100,7 @@ Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search 
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
-`extractorProgram` (`Cost/ExtractorProgram.lean`) of the end statement: `extractorOf
+`extractorProgram` (`Cost/ExtractorProgram.lean`) of the end statement: `knowledgeExtractorOf
 extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is proved
 (`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at most
 `2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
@@ -110,7 +110,7 @@ returns, whichever interpolation computes it.
 
 **Where it was.** This file and the transcript's extractor were the trusted statement's
 (`Statement/Extractor.lean`, `Statement/LeanVm.lean`) until the end statement took the extractor
-as a cost-machine program within a size bound and a budget (`LeanVM.extractorOf`,
+as a cost-machine program within a size bound and a budget (`LeanVM.knowledgeExtractorOf`,
 `Statement/CostMachine.lean`): moved here verbatim, but for the address indices and the public
 boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which
 the statement keeps for the honest prover. The budget reads the announced shape off the stream

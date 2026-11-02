@@ -7,11 +7,11 @@ public import Statement.Theorems
 # The guest decoder as a program: from its specification to `GuestKnowledge`
 
 `GuestKnowledge guest D` (`Statement/Theorems.lean`) takes the decoder as a cost-machine
-program `D`, run within `guestDecoderBudget` on the encoded execution, its output the encoding of
+program `D`, run within `guestWitnessDecoderBudget` on the encoded execution, its output the encoding of
 a decoding. The proofs read a decoding off an execution (`decoder : Execution guest → Decoded`;
 `guest_knowledge` for `decode`, which reads it off the memory). Two facts relate them:
 
-* **`DecoderProgramSpec D decoder`**: `D`'s size is within `guestDecoderSizeBound`, and on
+* **`DecoderProgramSpec D decoder`**: `D`'s size is within `guestWitnessDecoderSizeBound`, and on
   every valid execution `D` outputs, within its budget, the encoding of `decoder`'s decoding;
 * **`DecoderExplains decoder`**: on every valid execution, `decoder`'s decoding explains the public
   input (`ExplainsInput`); for `decode` it is `guest_knowledge` (`decoderExplains_decode`).
@@ -30,15 +30,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Node LeanVM.Cost
 @[expose] public section
 
 /-- **What the guest decoder program must satisfy**, for a decoder of executions
-`decoder`: its size is within `guestDecoderSizeBound`, and on every valid execution of the guest
+`decoder`: its size is within `guestWitnessDecoderSizeBound`, and on every valid execution of the guest
 it outputs, within its budget, the encoding of `decoder`'s decoding. -/
 structure DecoderProgramSpec (decoderProgram : Cost.MachineProgram) (decoder : Execution guest → Decoded) :
     Prop where
   /-- The size bound. -/
-  size : decoderProgram.size ≤ guestDecoderSizeBound
+  size : decoderProgram.size ≤ guestWitnessDecoderSizeBound
   /-- The program computes `decoder` within its budget on every valid execution. -/
   computes : ∀ input (t : Execution guest), ValidExecution guest input t →
-    outputWithin decoderProgram (encodeDecoderInput guest t) (guestDecoderBudget t) =
+    outputWithin decoderProgram (encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
       some (encodeValue (decoder t))
 
 /-- **The decoder's decodings explain the public input**: on every valid execution of the guest

@@ -491,7 +491,8 @@ structure CompiledFn where
   chunks : List (List OInstr)
 
 /-- Instruction `i` of code in chunks of `C`, the padding past the end. -/
-def chunkAt (C : ℕ) (cs : List (List OInstr)) (i : ℕ) : OInstr := nth (nth cs (i / C) []) (i % C) .pad
+def chunkAt (C : ℕ) (cs : List (List OInstr)) (i : ℕ) : OInstr := nth (nth cs (i / C) [])
+    (i % C) .pad
 
 /-- The instruction at offset `i`, the padding past the end. -/
 def CompiledFn.instrAt (f : CompiledFn) (i : ℕ) : OInstr := chunkAt chunkSize f.chunks i

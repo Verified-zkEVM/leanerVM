@@ -112,7 +112,8 @@ def padLast : UInt8 := 0x80
 /-- The little-endian 64-bit word of bytes `8i` to `8i + 7` of a byte string, missing bytes `0`
 (`unpack("<17Q", ...)`). -/
 def leLane (bytes : List UInt8) (i : ℕ) : UInt64 :=
-  (List.range 8).foldl (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<< (8 * k).toUInt64)) 0
+  (List.range 8).foldl (fun acc k ↦ acc ||| ((bytes.getD (8 * i + k) 0).toUInt64 <<<
+      (8 * k).toUInt64)) 0
 
 section With
 

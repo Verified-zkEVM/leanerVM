@@ -31,7 +31,7 @@ and decoder programs (`LeanVM.Cost.extractorProgram`, `LeanVM.Cost.decoderProgra
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
 program too (`GuestKnowledge`, `Statement/Theorems.lean`): `LeanVM.Cost.decoderProgram`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
-within `guestDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
+within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
 execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
 `guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
 DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
@@ -44,10 +44,10 @@ whose decodings explain the input by `guest_knowledge`.
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
 (`Statement/CostMachine.lean`): `extractorProgram`, the knowledge extractor `transcriptExtractor`
 (`LeanVM/Protocol/Extraction/Extractor.lean`) compiled (`Cost/Extractor/Top.lean`) behind an entry
-(`Cost/ExtractorProgram.lean`). Its size is within `extractorSizeBound`
+(`Cost/ExtractorProgram.lean`). Its size is within `knowledgeExtractorSizeBound`
 (`Cost/ExtractorSize.lean`), and the extractor it computes within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `extractorBudget`
+`knowledgeSoundness_holds` is proved; its price is within `knowledgeExtractorBudget`
 (`Cost/Bounds/Top.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`Statement/README.md`), in the
@@ -241,8 +241,8 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
     {decoder : LeanVM.Semantics.Execution LeanVM.Guest.guest → LeanVM.Node.Decoded}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram decoder)
     (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
-    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
-      (decoderProgram := decoderProgram) where
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+      (guestWitnessDecoder := decoderProgram) where
   extractorSize := LeanVM.Cost.extractorProgram_size_le
   knowledgeSoundness := by
     rw [LeanVM.Cost.extractorOf_extractorProgram]
@@ -270,8 +270,8 @@ the memory) within its size bound and budget on every valid execution: that hypo
 theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProgram}
     (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram
       fun t ↦ LeanVM.Guest.End.decode t.memory) :
-    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
-      (decoderProgram := decoderProgram) :=
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+      (guestWitnessDecoder := decoderProgram) :=
   LeanVM.theorems_of_decoderSpec hspec LeanVM.Guest.End.decoderExplains_decode
 
 /-- info: 'LeanVM.theorems_hold_of_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -283,8 +283,8 @@ decoder `LeanVM.Cost.decoderProgram`, its price within its budget
 (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), the extractor
 `LeanVM.Cost.extractorProgram`. -/
 theorem LeanVM.theorems_hold :
-    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
-      (decoderProgram := LeanVM.Cost.decoderProgram) :=
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
   LeanVM.theorems_hold_of_decode
     (LeanVM.Cost.decoderProgram_spec LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget)
 
@@ -302,8 +302,8 @@ theorem LeanVM.theorems_hold :
 
 /-- The end theorems' statement, pinned: the programs named, no hypothesis. -/
 example :
-    Statement.Theorems (extractorProgram := LeanVM.Cost.extractorProgram)
-      (decoderProgram := LeanVM.Cost.decoderProgram) :=
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
   LeanVM.theorems_hold
 
 open OracleComp in
@@ -313,10 +313,10 @@ execution decodes, by `guestKnowledge`, to a statement of the accepted digest, w
 identifies with the accepted statement or turns into a collision), the completeness on recursion
 nodes and leaves from `guestCompleteCovered` (the first two families of `CoveredNode`). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
-    (h : Statement.Theorems (extractorProgram := extractorProgram)
-      (decoderProgram := decoderProgram)) :
-    Statement.Corollaries (extractorProgram := extractorProgram)
-      (decoderProgram := decoderProgram) where
+    (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
+      (guestWitnessDecoder := decoderProgram)) :
+    Statement.Corollaries (leanVmKnowledgeExtractor := extractorProgram)
+      (guestWitnessDecoder := decoderProgram) where
   aggregateSound := by
     intro A Q hA hQ
     refine le_trans (prEvent_mono _ _ _ ?_) (h.knowledgeSoundness A Q hA hQ)
@@ -348,8 +348,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
 /-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled extractor and decoder
 programs. -/
 theorem LeanVM.corollaries_hold :
-    Statement.Corollaries (extractorProgram := LeanVM.Cost.extractorProgram)
-      (decoderProgram := LeanVM.Cost.decoderProgram) :=
+    Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
+      (guestWitnessDecoder := LeanVM.Cost.decoderProgram) :=
   LeanVM.corollaries_of_theorems LeanVM.theorems_hold
 
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/

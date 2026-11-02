@@ -286,7 +286,8 @@ structure Opening where
 deriving Inhabited
 
 /-- The column tree index of a position: cell `j` of row `i` is leaf `j · 2^⌈log₂ r⌉ + i`. -/
-def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ := (positionCell p : ℕ) * paddedRowCount r + positionRow p
+def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ :=
+  (positionCell p : ℕ) * paddedRowCount r + positionRow p
 
 /-- The honest opening of a position. -/
 def openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
@@ -762,7 +763,8 @@ abbrev CodeBindingRpm : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGame r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGame r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k +
+            ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

@@ -317,7 +317,8 @@ def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed :
 /-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the
 bottom layer node indices are global: node `j` at level `level` is in bottom tree
 `j / 2^(16 - level)`. -/
-def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest :=
+def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat
+    → m Digest :=
   buildTree (fun nodeIdx ↦ do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
       leafHash π parameter lay key (← oneTimePublicKey π parameter lay key seed))
@@ -347,7 +348,8 @@ def signLayer (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : 
 
 /-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
 the root of bottom tree `idx / 2^16`. -/
-def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Option Signature) := do
+def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Option Signature)
+    := do
   let bottomKey := keyAt index bottomLayer
   let topKey := keyAt index topLayer
   let some bottom ← signLayer π secretKey bottomLayer bottomKey (bytesLE 32 message) | return none
