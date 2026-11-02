@@ -6,6 +6,7 @@ public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRecursion
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeafSpan
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeaf
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the leaf's pivot table, by the rank potential
 
@@ -25,9 +26,6 @@ open LeanVM.Cost.Bounds.Decoder CompPoly CompPoly.PolynomialMatrix CompPoly.Poly
 open LeanVM.Extraction.Fast.PMDegree (HomRowLe homRowLe_cancel)
 
 public section
-
-/-- The price of one step of the pivot table on rows of width `r`. -/
-@[expose] def stepPrice (r : ℕ) : ℕ := 2700 * r + 21400
 
 /-- The rank of a slot: `0` when empty. -/
 @[expose] def rkOpt (r : ℕ) (shift : Array ℕ) (o : Option (PolynomialRow K)) : ℕ :=

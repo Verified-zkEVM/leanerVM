@@ -3,7 +3,6 @@ module
 public import LeanVM.Cost.Bounds.PMSolve.Lift
 public import LeanVM.Cost.Bounds.PMBasis.Defs
 public import LeanVM.Protocol.Extraction.Fast.PMShape
-public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRoot
 public import LeanVM.Cost.Bounds.PMCore.Core
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Univariate.Basic
@@ -14,6 +13,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearization
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the certified solve, compiled
 
@@ -21,7 +21,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearizat
 fftMulLowContext 1)` (`certifiedSolveC`, `Cost/Extractor/PMSolve.lean`): the guard, the
 expanded shift and the certified problem (the compiled code evaluates both twice: the context's
 `basis` reads its problem argument twice), the fuel (`maxOrder`), **the PM-basis core**
-(`pmCoreC`, its price a hypothesis, `PMCoreCostAt`: track pmcost's bound), each basis row's
+(`pmCoreC`, its price a hypothesis, `PMCoreCostAt`: `pmCoreC_cost`), each basis row's
 certificate (a size and a shifted degree read), the principal parts.
 
 The basis's sizes come from popov's core (`popovRuntime_core_spec`: as many rows as the problem,
@@ -43,12 +43,12 @@ open LeanVM.Cost.Auto.LeanVM.Extraction.Fast
 
 public section
 
-/-! ## The PM-basis core's price: a hypothesis (track pmcost) -/
+/-! ## The PM-basis core's price: a hypothesis  -/
 
 /-- **The PM-basis core's price** (`pmCoreC`, `pmBasisWithFuelCore` on the target runtime at
 `pmBasisFuel`), as the certified solve needs it: on a problem of `r` rows of width `m` with
 pmcost's invariant (`PMCore.CoreInv r m SB`), at most the model's tree at the leaf price `L`,
-`pmTree 1 L (pmNodePrice p r m) (maxOrder problem)` (track pmcost's `pmCoreC_cost`, `L` the
+`pmTree 1 L (pmNodePrice p r m) (maxOrder problem)` (`pmCoreC_cost`, `L` the
 leaf's proved price plus its glue). -/
 @[expose] def PMCoreCostAt (P : MachineProgram) (p : PMPrices) (L r m SB : ℕ) : Prop :=
   ∀ (problem : XAdicProblem K) (shift : Array ℕ), PMCore.CoreInv r m SB problem shift →
@@ -59,24 +59,6 @@ leaf's proved price plus its glue). -/
 variable (P : MachineProgram)
 
 /-! ## The fuel -/
-
-/-- `maxOrder` on word-sized orders: at most `18·|orders| + 9`. -/
-theorem maxOrderC_cost (hP : Includes P maxOrderC.costDeps) (problem : XAdicProblem K)
-    (ho : ∀ x ∈ problem.orders.toList, x < 2 ^ 62) :
-    machineCost P maxOrderC.costIdx [encodeValue problem] ≤ 18 * problem.orders.size + 9 := by
-  rw [maxOrderC.costEq P hP]
-  have hf := fun a b ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a, encodeValue b])
-    (maxOrderC.lam0.costSpec P (by includes) a b)
-  have := listFoldl_le P (by includes) _ (.closure maxOrderC.lam0.costIdx []) hf 6
-    (fun acc ↦ acc < 2 ^ 62) problem.orders.toList 0 (by norm_num) (fun acc hacc b hb ↦ by
-      have := ho b hb
-      refine ⟨by simp only [max_def]; split <;> omega, ?_⟩
-      simp only [appCost_fn, List.nil_append]
-      rw [maxOrderC.lam0.costEq P (by includes)]
-      cost_simp
-      split <;> omega)
-  simp only [Array.length_toList] at this
-  omega
 
 theorem maxOrder_lt (problem : XAdicProblem K) (B : ℕ)
     (ho : ∀ x ∈ problem.orders.toList, x ≤ B) : maxOrder problem ≤ B := by
@@ -97,7 +79,8 @@ theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c567.costDeps) (problem :
     machineCost P pmBasisFuel.c567.costIdx [encodeValue problem] ≤
       18 * problem.orders.size + 14 := by
   rw [pmBasisFuel.c567.costEq P hP]
-  have := maxOrderC_cost P (by includes) problem ho
+  have := PMCore.maxOrderC_cost P (by includes) problem (fun x hx ↦ by
+    have := ho x (Array.mem_toList_iff.2 hx); omega)
   have := maxOrder_lt problem (2 ^ 62) (fun x hx ↦ (ho x hx).le)
   cost_simp
   omega
@@ -150,7 +133,7 @@ theorem liftProblem_sizes (equation : ModularEquation K) (bound : ℕ)
   have hord : ∀ j < equation.moduli.size,
       (equation.moduli.getD j 0).natDegree + bound + 2 ≤ maxOrder prob := by
     intro j hj
-    have := LeanVM.Extraction.Fast.PMDegree.getD_le_foldl_max prob.orders j
+    have := LeanVM.Extraction.Fast.getD_le_foldl_max prob.orders j
     have hg : prob.orders.getD j 0 = (equation.moduli.getD j 0).natDegree + bound + 2 := by
       show (equation.moduli.map fun M ↦ M.natDegree + bound + 2).getD j 0 = _
       rw [Array.getD_eq_getD_getElem?, Array.getElem?_map, Array.getElem?_eq_getElem hj,
@@ -237,12 +220,6 @@ theorem certShift_getD_le (equation : ModularEquation K) (shift : Array ℕ) (bo
     · simp
 
 /-! ## The certified solve -/
-
-/-- **The certified solve's price** (`certifiedSolveC_cost`): the lift twice, the PM-basis core
-(`pmTreeEval`), the basis rows' certificates and principal parts, the guard and the shifts. -/
-@[expose] def certSolveCost (p : PMPrices) (L Q w m o : ℕ) : ℕ :=
-  2 * liftPrice Q w m + pmTreeEval 1 L (pmNodePrice p (w + m) m) o +
-    (w + m) * (90 * (w + m) + 78) + (37 * w + 32) * (w + m) + 4 * (w + m) + 50 * w + 72 * m + 300
 
 variable (P : MachineProgram)
 

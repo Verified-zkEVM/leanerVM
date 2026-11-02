@@ -30,6 +30,8 @@ open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction.Fast
 /-! The functions compiled on demand, by their short names. -/
 open LeanVM.Cost.Auto.CompPoly.CPolynomial LeanVM.Cost.Auto.LeanVM.Extraction.Fast
 
+open LeanVM.Extraction.Fast.PMDegree (val_size_le_natDegree_add_one)
+
 public section
 
 variable (P : MachineProgram)

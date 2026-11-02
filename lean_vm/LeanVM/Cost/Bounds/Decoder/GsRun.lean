@@ -342,15 +342,6 @@ theorem bfLoopC_cost (hP : Includes P bfLoop.c97.costDeps) (a : K) {X Y : ℕ} (
       · unfold bfLoopBound
         omega
 
-/-- `X^t·p` (`shiftX`): at most `25·(t + |p|) + 22`. -/
-theorem shiftXC_cost (hP : Includes P shiftX.c102.costDeps) (t : ℕ) (p : CPolynomial K)
-    (h : t + p.val.size < 2 ^ 60) :
-    machineCost P shiftX.c102.costIdx [encodeValue t, encodeValue p] ≤ 25 * (t + p.val.size) + 22 := by
-  rw [shiftX.c102.costEq P hP]
-  have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
-  simp only [Array.size_append, Array.size_replicate] at this ⊢
-  omega
-
 theorem taylorShiftBF_innerLe {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) :
     InnerLe (taylorShiftBF Q.val a) X :=
   bfLoop_innerLe a _ _ _ hQ

@@ -9,7 +9,7 @@ public import LeanVM.Cost.Decoder.Ends
 `GuestKnowledge` (`Statement/Theorems.lean`) runs the decoder program's function `0` on
 `encodeDecoderInput prog t = .ctor 0 [encodeValue prog, encodeValue t]`, an execution encoded as
 `.ctor 0 [encodeValue κ, encodeFiniteFunction t.memory, encodeValue t.steps]`. The compiled top
-(Track A's, on `Cost/Decoder/Ends.lean`'s input side) is a function of the program, `κ` and the
+(on `Cost/Decoder/Ends.lean`'s input side) is a function of the program, `κ` and the
 memory vector `memoryVector t.memory`, whose encoding is the memory's
 (`encodeValue_memoryVector`): the entry passes the input's words as they are.
 

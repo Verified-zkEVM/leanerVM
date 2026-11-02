@@ -1,7 +1,6 @@
 import LeanVM.Cost.Bounds.PMLane.Shapes
 
-/-! **The new decoder's shape checks read numbers alone** (as `Bounds/DecoderShapesFirewall.lean`
-for the extractor's decoder). `PMLane/Shapes`' `56` kernel evaluations
+/-! **The decoder's shape checks read numbers alone.** `PMLane/Shapes`' `56` kernel evaluations
 take the longest of the cost bounds, and a module is rebuilt whenever anything it imports changes.
 So they import only the functions they evaluate (the extractor's parameter search,
 `LeanVM.Protocol.Extraction.Extractor`), the bounds as definitions

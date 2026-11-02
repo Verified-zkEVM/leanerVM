@@ -2,15 +2,17 @@ module
 
 public import LeanVM.Cost.Bounds.PMSolve.Interp
 public import LeanVM.Cost.Bounds.PMFFT.InvCost
-public import LeanVM.Cost.Bounds.PMCore.At28_4
+public import LeanVM.Cost.Bounds.PMCore.Leaf
+public import LeanVM.Cost.Bounds.PMBasis.Values
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the lanes' interpolation within its price, the hypotheses discharged
 
 The products of at most `N` coefficients, the truncated products and Newton's inverses at
-precision `≤ N` (track fft's `mulViaFFTC_cost`, `rawMulLowFFTC_cost`, `inverseModXFFTC_cost`):
+precision `≤ N` (`mulViaFFTC_cost`, `rawMulLowFFTC_cost`, `inverseModXFFTC_cost`):
 `mulBound_fft`, `lowBound_fft`, `invBound_fft`, at the prices `fftMB`, `fftLB`, `fftIB`; the
-PM-basis core (track pmcost's `pmCoreC_cost`, the leaf's `leafCost`) at the leaf's proved price
+PM-basis core (`pmCoreC_cost`, the leaf's `leafCost`) at the leaf's proved price
 `leafBound r m + 18·m + 60`: `pmCoreCostAt_leaf`.
 
 **`interpolatePMC_cost_model`**: the lanes' interpolation at most `interpPMModel p n params`, on
@@ -27,15 +29,8 @@ open LeanVM.Cost.Bounds.PMBasis
 
 public section
 
-/-- A product of at most `N` coefficients. -/
-@[expose] def fftMB (p : PMPrices) (N : ℕ) : ℕ := polyMulPrice p (clog2 N) + 2 ^ 32
-
-/-- A truncated product at precision `≤ N`. -/
-@[expose] def fftLB (p : PMPrices) (N : ℕ) : ℕ :=
-  polyMulPrice p (clog2 (2 * N)) + 2 ^ 32 + 49 * N + 46
-
-/-- Newton's inverse at precision `≤ N` (track fft's telescoped `newtonBound`). -/
-@[expose] def fftIB (p : PMPrices) (N : ℕ) : ℕ := PMFFT.newtonBound p N
+/-- **The margin prices fit the transforms' and products' proved prices.** -/
+theorem fftPricesOK_margin : PMFFT.FFTPricesOK marginPrices := by decide +kernel
 
 variable (P : MachineProgram)
 
@@ -65,7 +60,7 @@ theorem invBound_fft (hP : Includes P inverseModXFFTC.costDeps) (p : PMPrices)
   unfold fftIB
   omega
 
-/-- **The PM-basis core at the leaf's proved price** (track pmcost's `pmCoreC_cost` and
+/-- **The PM-basis core at the leaf's proved price** (`pmCoreC_cost` and
 `leafCost`): the tree at the leaf price `leafBound r m + 18·m + 60`. -/
 theorem pmCoreCostAt_leaf (hP : Includes P pmCoreC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) {r m SB : ℕ} (hr : 2 ≤ r) (hm : m ≤ r) (hr28 : r < 2 ^ 28)
@@ -73,26 +68,6 @@ theorem pmCoreCostAt_leaf (hP : Includes P pmCoreC.costDeps) (p : PMPrices)
     PMCoreCostAt P p (PMCore.leafBound r m + 18 * m + 60) r m SB := fun problem shift hI ↦
   PMCore.pmCoreC_cost P hP hp hr hm (by omega) hSB
     (PMCore.leafCost P hP (r := r) (m := m) (SB := SB) hr28 (by omega) hSB) problem shift hI
-
-/-- The shapes where the interpolation's price is proved: the sizes, the products within `2^36`
-points, the core's shift bound. -/
-@[expose] def PMInterpOK (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
-  PMInterpSizes n params ∧ (params.multiplicity + 1) * n + 1 ≤ 2 ^ 35 ∧
-    4 * params.weightedDegreeBound + 2 * (params.multiplicity * n) + 7 < 2 ^ 39 ∧
-    3 * (params.multiplicity * n + 1 + params.weightedDegreeBound + 2) ≤ 2 ^ 37
-
-instance (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Decidable (PMInterpOK n params) := by
-  unfold PMInterpOK PMInterpSizes; infer_instance
-
-/-- **The interpolation's proved price** at prices `p`, `n` points: the products of at most
-`N = (m + 1)·n + 1` coefficients, the back-products at precision `m·n`, the quotients and the
-inverses at precision `n`, the PM-basis leaf at its proved price. -/
-@[expose] def interpPMModel (p : PMPrices) (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : ℕ :=
-  let m := params.multiplicity
-  let w := GuruswamiSudan.interpolationWidth params
-  let N := (m + 1) * n + 1
-  interpPMCost p (PMCore.leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
-    (fftMB p N) (fftLB p (m * n)) (fftLB p n) (fftIB p n)
 
 /-- **The lanes' interpolation, compiled, within its proved price** (`interpolatePMC`): no
 hypothesis but the shape's (`PMInterpOK`, decidable) and the chain's `InterpSizes`. -/

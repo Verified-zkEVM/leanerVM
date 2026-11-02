@@ -15,7 +15,7 @@ import all Init.Data.Array.Basic
 import all LeanVM.Cost.FastLib
 
 /-!
-# The lanes' new interpolation, compiled (stage 1): the additive-FFT product
+# The lanes' approximant-basis interpolation, compiled (stage 1): the additive-FFT product
 
 The extractor's decoder (`decOf`, `decodeStacksDistinctPM`) in five stages on the chain, after the
 replay and before the top (`Top.lean`): this module, `PMEval`, `PMCore`, `PMSolve`, `PMLane`.

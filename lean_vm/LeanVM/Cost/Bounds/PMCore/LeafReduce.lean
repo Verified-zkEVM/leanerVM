@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.PMCore.LeafPivot
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeaf
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the leaf's incremental reduction, compiled
 
@@ -30,10 +31,6 @@ public section
 /-- The potential of a list of rows: their ranks. -/
 @[expose] def psi (r : ℕ) (shift : Array ℕ) (rows : List (PolynomialRow K)) : ℕ :=
   (rows.map (rk r shift)).sum
-
-/-- The price of one incremental insertion beyond the rank potential, `r` rows wide. -/
-@[expose] def incPrice (r : ℕ) : ℕ :=
-  (r + 1) * (stepPrice r + 14) + (90 * r + 76) * (r + 1) + (29 * r + 24) * (r + 1) + 40 * r + 300
 
 theorem psi_filterMap (r : ℕ) (shift : Array ℕ) :
     ∀ l : List (Option (PolynomialRow K)), psi r shift (l.filterMap id) = (l.map (rkOpt r shift)).sum

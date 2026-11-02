@@ -17,7 +17,7 @@ The GS data's remainders: the reversal remainder with the reversed modulus's inv
 modulus: the guard only) or on its cached branch (precision `k ≤ K`: two truncated products, two
 reversals, a subtraction, no Newton iteration): **`modByMonicCachedC_cost`**, at most
 `100·|p| + 200·|q| + LBq + LB + 600`, `LBq`, `LB` the two truncated products' prices
-(`LowBound`: track fft's `rawMulLowFFTC`, a hypothesis). Also: `reverseC_cost`,
+(`LowBound`: `rawMulLowFFTC`, a hypothesis). Also: `reverseC_cost`,
 `modByMonicWithC_first_cost` (CompPoly's `modByMonicWith` on `fftModContext`'s first branch),
 `limbCount_le_of_lt`.
 -/
@@ -32,19 +32,19 @@ open LeanVM.Cost.Auto.CompPoly.PolynomialMatrix
 
 public section
 
-/-- **The truncated product's price** (track fft's `rawMulLowFFTC`, a hypothesis): at precision
+/-- **The truncated product's price** (`rawMulLowFFTC`, a hypothesis): at precision
 `k ≤ N`, at most `LB` (the factors are truncated to `k` first). -/
 @[expose] def LowBound (P : MachineProgram) (N LB : ℕ) : Prop :=
   ∀ (k : ℕ) (a b : CPolynomial.Raw K), k ≤ N →
     machineCost P rawMulLowFFTC.costIdx [encodeValue k, encodeValue a, encodeValue b] ≤ LB
 
-/-- **The product's price** (track fft's `mulViaFFTC`, `fftMulContext.mul`, a hypothesis): on
+/-- **The product's price** (`mulViaFFTC`, `fftMulContext.mul`, a hypothesis): on
 factors whose product has at most `N` coefficients (`|f| + |g| ≤ N + 1`), at most `MB`. -/
 @[expose] def MulBound (P : MachineProgram) (N MB : ℕ) : Prop :=
   ∀ f g : CPolynomial K, f.val.size + g.val.size ≤ N + 1 →
     machineCost P mulViaFFTC.costIdx [encodeValue f, encodeValue g] ≤ MB
 
-/-- **Newton's inverse's price** (track fft's `inverseModXFFTC`, a hypothesis): at precision
+/-- **Newton's inverse's price** (`inverseModXFFTC`, a hypothesis): at precision
 `k ≤ N`, at most `IB`. -/
 @[expose] def InvBound (P : MachineProgram) (N IB : ℕ) : Prop :=
   ∀ (k : ℕ) (a : CPolynomial.Raw K), k ≤ N →

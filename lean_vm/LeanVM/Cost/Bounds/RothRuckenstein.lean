@@ -41,7 +41,7 @@ polynomial of weighted degree `≤ W`): at most `1 + k·ℓ` nodes (**`gsRun_nod
 sizes above (`gsRun_tInv`); CompPoly's root finder lists each root once (`fieldRootCtx_nodup`).
 
 **The fallback** (section `The fallback`): `prefixesTruncD` falls back exactly where the truncated
-polynomial is zero (`truncD_fallback_iff`: the `s ≥ M` branch is dead), i.e. where `X^k` divides
+polynomial is zero (the `s ≥ M` branch is dead), i.e. where `X^k` divides
 `Q(X, p_d + X^d·Y)`; repeated roots reach it (Lee–O'Sullivan's `(Y − f)^m` on an uncorrupted lane
 falls back at depth `≈ k/m`). Kept, its nodes have `ℓ + 1` rows of at most `W + ℓ + 1`
 coefficients (`gsRun_fallback_lenLe`). Removed (`Fast/TruncNoFallback.lean`, what the extractor
@@ -628,7 +628,7 @@ theorem gsRun_tInv {points : Array (K × K)} {params : GSInterpParams} {Q : CBiv
 /-! ## The fallback, removed
 
 `Fast/TruncNoFallback.lean` (proof-side, what the extractor runs): the fallback fires exactly where
-the truncated polynomial is zero (`truncD_fallback_iff`), reachable on repeated roots
+the truncated polynomial is zero, reachable on repeated roots
 (Lee–O'Sullivan's `(Y − f)^m` on an uncorrupted lane falls back at depth `≈ k/m`); at precision
 `W + 1` it never does (`prefixesTruncD_eq_NF`), and the extractor's lanes run `gsRunDistinctNF`
 (`prefixesNF`, no fallback code; `gsRunDistinctNF_eq`). Here: its nodes are at most `1 + k·ℓ`

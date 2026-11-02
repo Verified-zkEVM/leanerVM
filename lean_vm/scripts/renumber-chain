@@ -130,13 +130,6 @@ def fix_literals(text, after):
 
 CHAIN_PREFIXES = ("LeanVM.Cost.Extractor.", "LeanVM.Cost.Decoder.")
 
-# Modules of the chain that the swap emptied, since deleted (the Mulders–Storjohann path dropped,
-# `renumber-chain.d/dropms-*.txt`): in a file renamed across those changes, an import of one of
-# them reaches only the functions before it.
-EMPTIED = {"LeanVM.Cost.Extractor.MsReduce", "LeanVM.Cost.Extractor.Interp",
-           "LeanVM.Cost.Extractor.Lane", "LeanVM.Cost.Extractor.Decode"}
-
-
 def fix_imports(text, after, order):
     """Make the file's import of the chain reach the module that compiles every function it names
     (by index or by name): a function compiled later than before is out of reach of an import of
@@ -157,7 +150,7 @@ def fix_imports(text, after, order):
     imps = re.findall(r"^(public )?import (LeanVM\.Cost\.(?:Extractor|Decoder)\.\w+)$", text, re.M)
     if not imps:
         return text
-    known = [m for _, m in imps if m in order or m in EMPTIED]
+    known = [m for _, m in imps if m in order]
     if not known:
         return text
     have = max(known, key=lambda m: order.get(m, -1))

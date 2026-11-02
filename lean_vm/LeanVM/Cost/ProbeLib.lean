@@ -10,7 +10,7 @@ public import CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.B
 /-!
 # Library additions for compiling CompPoly's approximant bases (probe)
 
-Generic additions found while compiling CompPoly's PM-basis over `K` (track probe):
+Generic additions found while compiling CompPoly's PM-basis over `K` :
 
 * `for i in [a:b] do …` in `Id` (`Id.run do` with a `for` over a `Std.Legacy.Range`): Init's
   `Std.Legacy.Range.forIn'` loops with a membership proof per index (not data, so not compiled). It is

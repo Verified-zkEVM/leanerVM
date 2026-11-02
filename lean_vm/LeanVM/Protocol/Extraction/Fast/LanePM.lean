@@ -205,10 +205,6 @@ evaluation domain, each product's plan built once (`popovEvalPMBasisContext FFT.
   certifiedModularSolutionBasisContext FFT.fftMulContext FFT.fftModContext
     (popovEvalPMBasisContext FFT.novelTransform FFT.fftMulContext FFT.fftMulLowContext 1)
 
-/-- The same solver on Karatsuba's products (Strassen's matrix products), for tests. -/
-@[expose] def pmSolverKaratsuba : ModularSolutionBasisContext K :=
-  certifiedModularSolutionBasisContext karatsubaMulContext karatsubaModContext pmContextKaratsuba
-
 /-- **The decoded stacks, the lanes by the approximant-basis interpolation on `pmSolver`.** -/
 @[expose] def decodeStacksDistinctPM (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
   decodeStacksDistinctWith pmSolver μ R W

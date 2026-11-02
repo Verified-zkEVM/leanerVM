@@ -25,7 +25,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.B
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearization
 
 /-!
-# The lanes' new interpolation, compiled (stage 4): the certified modular solve
+# The lanes' approximant-basis interpolation, compiled (stage 4): the certified modular solve
 
 `certifiedSolutionBasis` (`Fast/CertifiedSolve.lean`, `pmSolver`'s) on the additive-FFT
 remainders and the PM-basis of stage 3: the exact-nullspace problem over the window, one PM-basis

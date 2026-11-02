@@ -359,6 +359,39 @@ theorem matrixWidthC_cost (hP : Includes P MatrixWidth.c428.costDeps) (M : Polyn
   cost_simp
   cases M[0]? <;> dsimp only <;> split_ifs <;> omega
 
+/-- **CompPoly's `ofFn`** of an entry of price at most `B`: at most
+`rows·(width·(B + 33) + 48) + 19`. -/
+theorem ofFnC_cost (hP : Includes P ofFn.c436.costDeps) (rows width : ℕ) (hr : rows < 2 ^ 62)
+    (hw : width < 2 ^ 62) (entry : ℕ → ℕ → CPolynomial K) (eVal : MachineValue)
+    (he : ∀ a b, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b))) (B : ℕ)
+    (hB : ∀ i < rows, ∀ j < width, appCost P eVal [encodeValue i, encodeValue j] ≤ B) :
+    machineCost P ofFn.c436.costIdx [encodeValue rows, encodeValue width, eVal] ≤
+      rows * (width * (B + 33) + 48) + 19 := by
+  rw [ofFn.c436.costEq P hP rows width entry eVal he]
+  have := rangeLoop_cost P (by includes) rows [] (by omega)
+  have hl := fun i ↦ RunsApp.of_spec (us := [encodeValue width, eVal]) (vs := [encodeValue i])
+    (ofFn.c436.lam0.costSpec P (by includes) width entry eVal he i)
+  have := map_cost P (by includes) _ (.closure ofFn.c436.lam0.costIdx [encodeValue width, eVal])
+    hl (width * (B + 33) + 19) (List.range rows) (fun i hi ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [ofFn.c436.lam0.costEq P (by includes) width entry eVal he i]
+      have := rangeLoop_cost P (by includes) width [] (by omega)
+      have hl2 := fun j ↦ RunsApp.of_spec (us := [eVal, encodeValue i]) (vs := [encodeValue j])
+        (ofFn.c436.lam0.lam0.costSpec P (by includes) entry eVal he i j)
+      have := map_cost P (by includes) _ (.closure ofFn.c436.lam0.lam0.costIdx [eVal, encodeValue i])
+        hl2 (B + 4) (List.range width) (fun j hj ↦ by
+          simp only [appCost_fn, List.cons_append, List.nil_append]
+          rw [ofFn.c436.lam0.lam0.costEq P (by includes) entry eVal he i j]
+          have := hB i (List.mem_range.1 hi) j (List.mem_range.1 hj)
+          omega)
+      simp only [List.length_range, List.length_map] at *
+      have e : width * (B + 33) = (B + 4 + 11) * width + 18 * width := by ring
+      omega)
+  simp only [List.length_range, List.length_map] at *
+  have e : rows * (width * (B + 33) + 48) = (width * (B + 33) + 19 + 11) * rows + 18 * rows := by
+    ring
+  omega
+
 end
 
 end LeanVM.Cost.Bounds.Decoder

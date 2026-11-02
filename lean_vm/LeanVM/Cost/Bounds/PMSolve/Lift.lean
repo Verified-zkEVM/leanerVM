@@ -8,6 +8,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Operations
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 
 /-!
 # Bounds: the certified problem's lift, compiled
@@ -17,7 +18,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.B
 its column's modulus, then `−diag(M)`. On the Guruswami–Sudan data the entries are reduced already
 (`natDegree_gsRelationMatrix_entry_lt`, `Fast/PMShape.lean`), so each remainder takes the reversal
 remainder's first branch: its guard reads both operands (`modByMonicFFTC_first_cost`, `≤ 41·|p| +
-64·|q| + 130`), no product. `ofFnC_cost`: CompPoly's `ofFn` of a priced entry.
+64·|q| + 130`), no product.
 
 **`fullWindowProblemC_cost`**: on `w` relation rows, `m` monic moduli of at most `Q` coefficients,
 entries shorter than their column's modulus: at most `liftPrice Q w m`.
@@ -34,39 +35,6 @@ open LeanVM.Cost.Auto.CompPoly.PolynomialMatrix.Approximant LeanVM.Cost.Auto.Com
 public section
 
 variable (P : MachineProgram)
-
-/-- **CompPoly's `ofFn`** of an entry of price at most `B`: at most
-`rows·(width·(B + 33) + 48) + 19`. -/
-theorem ofFnC_cost (hP : Includes P ofFn.c436.costDeps) (rows width : ℕ) (hr : rows < 2 ^ 62)
-    (hw : width < 2 ^ 62) (entry : ℕ → ℕ → CPolynomial K) (eVal : MachineValue)
-    (he : ∀ a b, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b))) (B : ℕ)
-    (hB : ∀ i < rows, ∀ j < width, appCost P eVal [encodeValue i, encodeValue j] ≤ B) :
-    machineCost P ofFn.c436.costIdx [encodeValue rows, encodeValue width, eVal] ≤
-      rows * (width * (B + 33) + 48) + 19 := by
-  rw [ofFn.c436.costEq P hP rows width entry eVal he]
-  have := rangeLoop_cost P (by includes) rows [] (by omega)
-  have hl := fun i ↦ RunsApp.of_spec (us := [encodeValue width, eVal]) (vs := [encodeValue i])
-    (ofFn.c436.lam0.costSpec P (by includes) width entry eVal he i)
-  have := map_cost P (by includes) _ (.closure ofFn.c436.lam0.costIdx [encodeValue width, eVal])
-    hl (width * (B + 33) + 19) (List.range rows) (fun i hi ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [ofFn.c436.lam0.costEq P (by includes) width entry eVal he i]
-      have := rangeLoop_cost P (by includes) width [] (by omega)
-      have hl2 := fun j ↦ RunsApp.of_spec (us := [eVal, encodeValue i]) (vs := [encodeValue j])
-        (ofFn.c436.lam0.lam0.costSpec P (by includes) entry eVal he i j)
-      have := map_cost P (by includes) _ (.closure ofFn.c436.lam0.lam0.costIdx [eVal, encodeValue i])
-        hl2 (B + 4) (List.range width) (fun j hj ↦ by
-          simp only [appCost_fn, List.cons_append, List.nil_append]
-          rw [ofFn.c436.lam0.lam0.costEq P (by includes) entry eVal he i j]
-          have := hB i (List.mem_range.1 hi) j (List.mem_range.1 hj)
-          omega)
-      simp only [List.length_range, List.length_map] at *
-      have e : width * (B + 33) = (B + 4 + 11) * width + 18 * width := by ring
-      omega)
-  simp only [List.length_range, List.length_map] at *
-  have e : rows * (width * (B + 33) + 48) = (width * (B + 33) + 19 + 11) * rows + 18 * rows := by
-    ring
-  omega
 
 theorem cpoly_trim_eq (p : CPolynomial K) : p.val.trim = p.val :=
   CPolynomial.Raw.Trim.trim_eq_of_isCanonical p.property
@@ -135,10 +103,6 @@ theorem negDiagEntryC_cost (hP : Includes P negativeDiagonalRows.c558.lam0.costD
   cost_simp
   split <;> omega
 
-
-/-- The lift's price: `w·m` entries reduced on the first branch, `−diag(M)`, the orders. -/
-@[expose] def liftPrice (Q w m : ℕ) : ℕ :=
-  w * (m * (120 * Q + 203) + 48) + m * (m * (16 * Q + 53) + 48) + w + 40 * m + 90
 
 /-- The sizes the lift's price reads: `w` relation rows, `m` monic moduli of at most `Q`
 coefficients, each entry shorter than its column's modulus. -/

@@ -11,6 +11,7 @@ import all CompPoly.Bivariate.GuruswamiSudan.Interpolation.Basic
 import all CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Basic
 import all LeanVM.Protocol.Extraction.Fast.GSData
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the lanes' approximant-basis interpolation, compiled
 
@@ -234,25 +235,11 @@ theorem gsEquation_maxOrder (R G : CPolynomial K) (params : GuruswamiSudan.GSInt
   rw [h]
   exact gsProblem_maxOrder _ _ R G params ((CPolynomial.monic_toPoly_iff G).1 hG) bound hm
 
-/-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
-the certified solve, the least row, the row read and normalized. -/
-@[expose] def interpPMCost (p : PMPrices) (L N n m w W MB LB LBq IB : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 27100 * n + 1000 + dataPrice N m w MB LB LBq IB +
-    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (90 * w + 130) * (w + m) +
-    (3 * (m * n + W + 2 + 2) + 41) * w + normBound W w + 200
-
-/-- The sizes the interpolation's price reads, besides the chain's `InterpSizes`. -/
-@[expose] def PMInterpSizes (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
-  1 ≤ n ∧ 1 ≤ params.multiplicity ∧
-    params.multiplicity ≤ GuruswamiSudan.interpolationWidth params ∧
-    GuruswamiSudan.interpolationWidth params < 2 ^ 20 ∧
-    (params.multiplicity + 1) * n + 1 < 2 ^ 45 ∧ params.weightedDegreeBound < 2 ^ 40
-
 /-- **The lanes' interpolation, compiled** (`interpolatePMC`, `interpolateDistinctWith pmSolver`):
 on `n` points, `k > 1`, at most `interpPMCost p L N n m w W MB LB LBq IB`, `N = (m + 1)·n + 1`,
-given track fft's prices (the products of at most `N` coefficients within `MB`, the truncated
+given the products' prices (the products of at most `N` coefficients within `MB`, the truncated
 products at precision `m·n` within `LB`, at precision `n` within `LBq`, Newton's inverse at
-precision `n` within `IB`) and track pmcost's PM-basis core price at the leaf price `L`
+precision `n` within `IB`) and the PM-basis core's price at the leaf price `L`
 (`PMCoreCostAt`). -/
 theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPrices)
     {MB LB LBq IB : ℕ} (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)

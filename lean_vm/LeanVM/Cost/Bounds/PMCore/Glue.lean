@@ -21,8 +21,10 @@ matrix products and its leaf, each for every program holding its bodies:
 * `updateShiftByRowsC_cost` (`(90·C + 71)·R + 20`): the shift update, `R` rows of at most `C`
   entries (`rowShiftedDegree_cost`: a constant per entry);
 * `compactNonzeroRowsC_cost` (`((3·D + 23)·C + 28)·R + 8`): the zero-row filter, `R` rows of at
-  most `C` entries of at most `D` coefficients (the zero test reads an entry's coefficients);
-* `ofFnC_cost` (`R·((E + 33)·W + 66) + 19`): `PolynomialMatrix.ofFn`, an entry at most `E`.
+  most `C` entries of at most `D` coefficients (the zero test reads an entry's coefficients).
+
+`PolynomialMatrix.ofFn` and `MatrixWidth` are bounded in `Bounds/Decoder/Rows.lean`
+(`ofFnC_cost`, `matrixWidthC_cost`).
 
 Word-sized orders, shifts, sizes throughout.
 -/
@@ -57,10 +59,6 @@ theorem le_maxOrder (problem : XAdicProblem K) : ∀ x ∈ problem.orders, x ≤
         | cons z l ih' => intro b; exact (le_max_left b z).trans (ih' _)
       exact (le_max_right a x).trans (this l _)
     · exact ih _ h
-
-theorem natDegree_le_size' (q : CPolynomial K) : q.natDegree ≤ q.val.size := by
-  unfold CPolynomial.natDegree
-  split <;> omega
 
 theorem natDegree_le_size_sub_one' (q : CPolynomial K) : q.natDegree ≤ q.val.size - 1 := by
   unfold CPolynomial.natDegree
@@ -220,50 +218,7 @@ theorem compactNonzeroRowsC_cost (hP : Includes P compactNonzeroRowsC.costDeps)
   simp only [Array.length_toList] at hf hl
   nlinarith
 
-/-- The matrix's width (`MatrixWidth.c428`): at most `15`. -/
-theorem matrixWidthC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costDeps)
-    (M : PolynomialMatrix K) (hMs : M.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costIdx [encodeValue M] ≤ 15 := by
-  rw [Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costEq P hP]
-  cost_simp
-  cases M[0]? <;> dsimp only <;> split_ifs <;> omega
-
 /-! ## `PolynomialMatrix.ofFn` -/
-
-/-- **`PolynomialMatrix.ofFn rows width entry`** (`ofFn.c436`), each entry at most `E`: at most
-`rows·((E + 33)·width + 66) + 19`. -/
-theorem ofFnC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.ofFn.c436.costDeps)
-    (rows width : ℕ) (hrows : rows < 2 ^ 64) (hwidth : width < 2 ^ 64)
-    (entry : ℕ → ℕ → CPolynomial K) (eVal : MachineValue)
-    (he : ∀ a b, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b))) (E : ℕ)
-    (hE : ∀ i < rows, ∀ j < width, appCost P eVal [encodeValue i, encodeValue j] ≤ E) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.ofFn.c436.costIdx
-        [encodeValue rows, encodeValue width, eVal] ≤
-      rows * ((E + 33) * width + 66) + 19 := by
-  rw [Auto.CompPoly.PolynomialMatrix.ofFn.c436.costEq P hP rows width entry eVal he]
-  have hr := rangeLoop_cost P (by includes) rows [] hrows
-  have hm := map_cost P (by includes)
-    (fun i ↦ (List.map (fun j ↦ entry i j) (List.range width)).toArray)
-    (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costIdx [encodeValue width, eVal])
-    (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costSpec P (by includes) width entry eVal he a))
-    ((E + 33) * width + 37) (List.range rows) (fun i hi ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costEq P (by includes) width entry eVal he]
-      have hr' := rangeLoop_cost P (by includes) width [] hwidth
-      have hm' := map_cost P (by includes) (fun j ↦ entry i j)
-        (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costIdx [eVal, encodeValue i])
-        (fun a ↦ RunsApp.of_spec
-          (Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costSpec P (by includes) entry eVal he i a))
-        (E + 4) (List.range width) (fun j hj ↦ by
-          rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-            Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costEq P (by includes) entry eVal he]
-          have := hE i (List.mem_range.1 hi) j (List.mem_range.1 hj)
-          omega)
-      simp only [List.length_range, List.length_map] at hm' ⊢
-      nlinarith)
-  simp only [List.length_range, List.length_map] at hm ⊢
-  nlinarith
 
 end
 

@@ -16,7 +16,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Operations
 
 /-!
-# The lanes' new interpolation, compiled (stage 2): products of polynomial matrices
+# The lanes' approximant-basis interpolation, compiled (stage 2): products of polynomial matrices
 
 On the additive FFT's evaluation domain, each product's plan built once (`FFT.mulEvalP`,
 `FFT.mulTruncEvalP` at `novelTransform`): every entry transformed once, the pointwise dot

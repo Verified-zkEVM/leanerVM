@@ -214,12 +214,6 @@ open Classical in
     ∑ y ∈ Finset.range rows0.size, if Sel j i y then a ^ (y - i) * (rows0.getD y 0).coeff x else 0
 
 omit [BEq F] [LawfulBEq F] in
-theorem getD_coeff_eq_zero (rows : Array (CPolynomial F)) {y : ℕ} (hy : rows.size ≤ y) (x : ℕ) :
-    (rows.getD y 0).coeff x = 0 := by
-  rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none hy, Option.getD_none,
-    CPolynomial.coeff_zero]
-
-omit [BEq F] [LawfulBEq F] in
 theorem shiftInv_zero (a : F) (rows0 : Array (CPolynomial F)) : ShiftInv a rows0 rows0 0 := by
   classical
   refine ⟨rfl, fun i hi x ↦ ?_⟩

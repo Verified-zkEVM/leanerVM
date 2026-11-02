@@ -31,12 +31,13 @@ def leaves : Array (List K) := Array.ofFn fun v : Fin 4 ↦ (List.ofFn fun u : F
 /-- The reference decoding: one stack, the survivor of every lane. -/
 def ref : List (Vector K (2 ^ 7)) := decodeStacksDistinct 7 1 (leafAt leaves 2 64)
 
-#guard ref.length == 1
-
-#guard (evaluateFunctionBody (MachineProgram.ofList decOfC.costDeps) 1000000000 decOfC.costIdx
-    [MachineEncoding.encodeValue (7 : ℕ), MachineEncoding.encodeValue (1 : ℕ),
-      MachineEncoding.encodeValue leaves, MachineEncoding.encodeValue (2 : ℕ),
-      MachineEncoding.encodeValue (64 : ℕ)]).map (·.1) ==
-  some (MachineEncoding.encodeValue ref)
+#guard
+  let r := ref
+  r.length == 1 &&
+    (evaluateFunctionBody (MachineProgram.ofList decOfC.costDeps) 1000000000 decOfC.costIdx
+      [MachineEncoding.encodeValue (7 : ℕ), MachineEncoding.encodeValue (1 : ℕ),
+        MachineEncoding.encodeValue leaves, MachineEncoding.encodeValue (2 : ℕ),
+        MachineEncoding.encodeValue (64 : ℕ)]).map (·.1) ==
+      some (MachineEncoding.encodeValue r)
 
 end LeanVMTests.Cost.DecOf

@@ -26,8 +26,9 @@ cancellation, and no position is missing). So **`pmBasis_leafRuntime_eq_core`**:
 its core, with no root pass at all.
 
 `popovLeafBasis` (`PopovLeaf.lean`) is such a leaf, with CompPoly's two leaf facts carried over;
-**`popovPMBasisContext`** is CompPoly's `PMBasisContext` (sound, and complete-minimal through the
-predictable-degree property of the core's weak Popov form) for the PM-basis on it.
+**`popovCorePMBasisContextWithLowAndCompose`** is CompPoly's `PMBasisContext` (sound, and
+complete-minimal through the predictable-degree property of the core's weak Popov form) for the
+PM-basis core on it.
 
 Credits: the PM-basis, its correctness proofs (copied here, generalized over the leaf) and the
 lemmas they use are CompPoly's (github.com/Verified-zkEVM/CompPoly, Apache-2.0, "Copyright (c) 2026
@@ -53,11 +54,6 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F]
   residualProduct := PolynomialMatrix.mulTruncColumnStrassenWith lowCtx composeLeafCutoff
   leafCutoff := leafCutoff
   leafBasis := leaf
-
-theorem kernelLeafRuntimeWithLowAndCompose_eq (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : PolynomialMatrix.MulLowContext F) (leafCutoff composeLeafCutoff : Nat) :
-    kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff =
-      leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff kernelLeafBasis := rfl
 
 /-- The leaf's rows approximate the problem, at its width. -/
 @[expose] def LeafRows (mulCtx : CPolynomial.MulContext F)
@@ -1147,31 +1143,6 @@ theorem pmBasis_popov_complete_minimal [DecidableEq F]
   cases Option.some.inj hrowdeg
   exact hle
 
-/-- **The PM-basis context on the leaf sorted by pivot** (CompPoly's
-`kernelLeafPMBasisContextWithLowAndCompose` with `popovLeafBasis`): its basis is ordered weak
-Popov, and equal to the recursion's core (`pmBasis_popovRuntime_eq_core`). -/
-@[expose] def popovPMBasisContextWithLowAndCompose (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : PolynomialMatrix.MulLowContext F)
-    (leafCutoff composeLeafCutoff : Nat) : PMBasisContext F where
-  runtime := popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff
-  basis := pmBasis (popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff)
-  sound := by
-    intro problem shift row hrow
-    exact pmBasis_popov_approximates mulCtx lowCtx leafCutoff composeLeafCutoff problem shift
-      hrow
-  complete_minimal := by
-    let : DecidableEq F := instDecidableEqOfLawfulBEq
-    intro problem shift row hpos hwf happrox hnz hwidth
-    exact pmBasis_popov_complete_minimal mulCtx lowCtx leafCutoff composeLeafCutoff problem
-      shift row hpos hwf happrox hnz hwidth
-
-/-- The PM-basis context on `popovLeafBasis`, with CompPoly's `kernelLeafPMBasisContext`
-parameters (low products by truncation, composition cutoff = leaf cutoff). -/
-@[expose] def popovPMBasisContext (mulCtx : CPolynomial.MulContext F) (leafCutoff : Nat) :
-    PMBasisContext F :=
-  popovPMBasisContextWithLowAndCompose mulCtx
-    (PolynomialMatrix.MulLowContext.fromMulContext mulCtx) leafCutoff leafCutoff
-
 /-- The same context with the core as its basis, so no root pass runs at all: the basis is
 `pmBasisWithFuelCore` at CompPoly's fuel, equal to `pmBasis` (`pmBasis_popovRuntime_eq_core`). -/
 @[expose] def popovCorePMBasisContextWithLowAndCompose (mulCtx : CPolynomial.MulContext F)
@@ -1191,18 +1162,6 @@ parameters (low products by truncation, composition cutoff = leaf cutoff). -/
     simp only [← pmBasis_popovRuntime_eq_core]
     exact pmBasis_popov_complete_minimal mulCtx lowCtx leafCutoff composeLeafCutoff problem
       shift row hpos hwf happrox hnz hwidth
-
-/-- The core context with CompPoly's `kernelLeafPMBasisContext` parameters. -/
-@[expose] def popovCorePMBasisContext (mulCtx : CPolynomial.MulContext F) (leafCutoff : Nat) :
-    PMBasisContext F :=
-  popovCorePMBasisContextWithLowAndCompose mulCtx
-    (PolynomialMatrix.MulLowContext.fromMulContext mulCtx) leafCutoff leafCutoff
-
-theorem popovCorePMBasisContext_basis (mulCtx : CPolynomial.MulContext F) (leafCutoff : Nat) :
-    (popovCorePMBasisContext mulCtx leafCutoff).basis =
-      (popovPMBasisContext mulCtx leafCutoff).basis := by
-  funext problem shift
-  exact (pmBasis_popovRuntime_eq_core _ _ _ _ problem shift).symm
 
 end
 

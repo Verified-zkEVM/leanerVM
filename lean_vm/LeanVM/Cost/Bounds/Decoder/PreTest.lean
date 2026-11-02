@@ -22,7 +22,7 @@ logarithm's baby-step tables `D` given. Parametric in what the test calls:
   off the powers table `Pw` (`gpowAt_cost`, `19`; `psAt W = 6 + 535·W` by squaring, `3751` at
   `W = 7`, before the table held them).
 
-The bounds, bottom-up: `powBelowAt_cost` (`6`), `readIs_cost` (`19`), `gpowAt_cost` (`19`),
+The bounds, bottom-up: `readIs_cost` (`19`), `gpowAt_cost` (`19`),
 `symValAt_cost`, `envOne_cost`,
 `readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`, `wordAt_cost`
 (`wordWith_cost`, by squaring, for the entry table),
@@ -86,19 +86,6 @@ theorem powSqE_cost (hP : Includes P powSqEC.costDeps) (a : E) (n : ℕ)
       split_ifs <;> omega)
     (a, n) hn
   simpa using this
-
-/-- Whether a logarithm is below `n` (`powBelowAtC`): at most `6`, on word-sized numbers. -/
-theorem powBelowAt_cost (hP : Includes P powBelowAtC.costDeps) (o : Option ℕ) (n : ℕ)
-    (hn : n < 2 ^ 64) (ho : ∀ m, o = some m → m < 2 ^ 64) :
-    machineCost P powBelowAtC.costIdx [encodeValue o, encodeValue n] ≤ 6 := by
-  rw [powBelowAtC.costEq P hP]
-  cases o with
-  | none => dsimp only; omega
-  | some m =>
-    dsimp only
-    rw [limbs_of_lt (ho m rfl), limbs_of_lt hn]
-    simp only [max_self]
-    omega
 
 /-- The lanes' scan (`twoPowScanC`) over `m` shifts from `e`, `e + m ≤ 63`: `26` per shift and
 `6`, on words. -/

@@ -31,11 +31,11 @@ with a faster lane decoder, `gsLaneAtFast`:
 * without the final root check where the parameters make it redundant (`gsRunNoCheck`,
   `checkRedundant`: at most `2^64` columns and `W < m·(n − radius)`, as at every shape the
   statement decodes, `W = m·A − 1`, `radius = n − A`);
-* the interpolation: Lee–O'Sullivan's (`interpContext`) at every shape; CompPoly's
-  approximant-basis interpolation on Karatsuba's products, `approxInterpContext`, is kept, proved,
-  not used. Another interpolation may return another polynomial, so another list in another
-  order: what the list holds does not depend on it (`mem_gsRunNoCheck`: the polynomials of
-  degree `< k` within the radius), and the statement sorts each lane's list (`laneListAt`), so the
+* the interpolation: Lee–O'Sullivan's (`interpContext`) at every shape (the compiled decoder's is
+  the approximant basis, `Fast/LanePM.lean`). Another interpolation may return another
+  polynomial, so another list in another order: what the list holds does not depend on it
+  (`mem_gsRunNoCheck`: the polynomials of degree `< k` within the radius), and the statement sorts
+  each lane's list (`laneListAt`), so the
   sorted lists are equal (`laneListAtFast_eq`).
 
 The definitions from the lane decoder up to the extractor are copied with it (a `@[csimp]` lemma
@@ -202,16 +202,6 @@ theorem distinct_lanePoints (n : ℕ) (hn : n ≤ 2 ^ 64) (W : ℕ → List K) (
   decide (κ + R ≤ 64) &&
     decide (params.interp.weightedDegreeBound <
       params.interp.multiplicity * (2 ^ (κ + R) - params.radius))
-
-/-- **The fast interpolation** (Chowdhury, Jeannerod, Neiger, Schost, Villard): CompPoly's
-approximant-basis interpolation (PM-basis approximant bases solving the Guruswami–Sudan modular
-equations), proved sound and complete, on Karatsuba's products and remainders. -/
-@[expose] def approxInterpContext : GSInterpContext K :=
-  ApproximantBasis.approximantBasisInterpContext CPolynomial.VanishingPolynomialContext.direct
-    (CPolynomial.BatchEvalContext.horner K)
-    (PolynomialMatrix.Approximant.modularSolutionBasisContextViaPMBasis karatsubaMulContext
-      karatsubaModContext
-      (PolynomialMatrix.Approximant.kernelLeafPMBasisContext karatsubaMulContext 8))
 
 /-! ## The word's symbols, read once
 

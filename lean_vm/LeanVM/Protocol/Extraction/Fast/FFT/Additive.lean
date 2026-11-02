@@ -17,8 +17,8 @@ the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`
 `novelFwdPoly j` (`toNovel j`, `novelFwd j 0`) and `novelInvPoly j` (`novelInv j`, `fromNovel j`)
 (`planFwdPoly_eq`, `planInvPoly_eq`), whose laws come from `novelFwd_getD`, `novelInv_eval`,
 `novelFwd_novelInv` and the conversions' `toNovel_spec`, `fromNovel_spec`.
-`fftTransform : EvalMat.EvalTransform K` is the transform for EvalMat's interface (a plan per
-call); `FFT/PlannedEval.lean`'s products build it once per matrix product.
+`FFT/PlannedEval.lean`'s evaluation-domain matrix products use it, the plan built once per
+matrix product.
 
 **The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
 at most `32` coefficients, Karatsuba's when both have at most `4096`, else on the least
@@ -155,13 +155,10 @@ theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
   fwd_inv y hj hy := by
     rw [planInvPoly_eq hj, planFwdPoly_eq hj]; exact novelFwdPoly_novelInvPoly hj y hy
 
-/-- The transform for the evaluation-domain matrix products (`EvalMat`). -/
-@[expose] def fftTransform : EvalMat.EvalTransform K := novelTransform.toEvalMat
-
 /-! ## The product and CompPoly's contexts -/
 
 /-- The schedule: schoolbook when a factor has at most `32` coefficients, Karatsuba's product
-when both have at most `4096` (the compiled prices measured by track probe: at `1100`
+when both have at most `4096` (the compiled prices measured: at `1100`
 coefficients the transform's product `238M` steps against Karatsuba's `76M`, at `2100` `540M`
 against `214M`; the crossover near `4096`). -/
 @[expose] def fftSchedule : MulSchedule K where

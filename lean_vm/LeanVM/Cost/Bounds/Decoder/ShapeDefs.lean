@@ -11,10 +11,9 @@ The bounds the decoder's proofs (`Bounds/Decoder/*.lean`) establish, from Rothâ€
 nodes and the roots in `K` up to a lane's extra work and the pruning (`pruneBound`), and the sizes
 a lane's bound needs (`DecoderLaneSizes`); the decoder's bound on the approximant-basis
 interpolation assembles them (`decoderBoundPM`, `Bounds/PMBasis/LaneDefs.lean`). They are here,
-apart from their proofs, so that the checks evaluating them (`Bounds/DecoderShapes.lean`,
-`Bounds/PMLane/Shapes.lean`) import only what they evaluate (the extractor's parameter search and
-these numbers): an edit of a proof rebuilds no check (`Bounds/DecoderShapesFirewall.lean` guards
-it).
+apart from their proofs, so that the checks evaluating them (`Bounds/PMLane/Shapes.lean`) import
+only what they evaluate (the extractor's parameter search and these numbers): an edit of a proof
+rebuilds no check (`Bounds/PMLane/ShapesFirewall.lean` guards it).
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder

@@ -503,46 +503,6 @@ partial def memProof (x l : Expr) : MetaM Expr := do
     let pf ← mkAppOptM ``List.Mem.tail #[none, x, hd, tl, pt]
     mkExpectedTypeHint pf (← mkAppM ``Membership.mem #[l, x])
 
-/-- A proof of `List.Forall (· ∈ l) l'`, every entry of the literal `l'` in the literal `l`. -/
-partial def forallMemProof (l l' : Expr) : MetaM Expr := do
-  if l'.isAppOfArity ``List.cons 3 then
-    let a ← memProof l'.appFn!.appArg! l
-    -- `List.Forall p [x]` is `p x`, without a conjunction
-    if l'.appArg!.isAppOfArity ``List.cons 3 then
-      mkAppM ``And.intro #[a, ← forallMemProof l l'.appArg!]
-    else return a
-  else return mkConst ``True.intro
-
-/-- A proof of `List.Forall (fun p ↦ l.lookup p.1 = some p.2) l'` for literal lists of pairs
-`(j, b)`: each conjunct `rfl` (the kernel evaluates the lookup), built without elaboration-time
-checks, so its size is linear in `l'` (`Includes.ofLookup`). -/
-partial def forallLookupProof (l l' : Expr) : MetaM Expr := do
-  let pairTy ← mkAppM ``Prod #[mkConst ``Nat, mkConst ``Term]
-  let optTerm := mkApp (mkConst ``Option [0]) (mkConst ``Term)
-  let inst ← synthInstance (mkApp (mkConst ``BEq [0]) (mkConst ``Nat))
-  let pred ← withLocalDeclD `p pairTy fun p ↦ do
-    let lk := mkAppN (mkConst ``List.lookup [0, 0]) #[mkConst ``Nat, mkConst ``Term, inst,
-      mkProj ``Prod 0 p, l]
-    let sm := mkApp2 (mkConst ``Option.some [0]) (mkConst ``Term) (mkProj ``Prod 1 p)
-    mkLambdaFVars #[p] (mkApp3 (mkConst ``Eq [1]) optTerm lk sm)
-  let rec go (l' : Expr) : MetaM Expr := do
-    unless l'.isAppOfArity ``List.cons 3 do return mkConst ``True.intro
-    let x := l'.appFn!.appArg!
-    let tl := l'.appArg!
-    let j := x.appFn!.appArg!
-    let b := x.appArg!
-    let lk := mkAppN (mkConst ``List.lookup [0, 0]) #[mkConst ``Nat, mkConst ``Term, inst, j, l]
-    let sm := mkApp2 (mkConst ``Option.some [0]) (mkConst ``Term) b
-    let a := mkApp3 (mkConst ``Eq [1]) optTerm lk sm
-    let pa := mkExpectedTypeHint' (mkApp2 (mkConst ``Eq.refl [1]) optTerm sm) a
-    -- `List.Forall p [x]` is `p x`, without a conjunction
-    unless tl.isAppOfArity ``List.cons 3 do return pa
-    let rest := mkApp3 (mkConst ``List.Forall [0]) pairTy pred tl
-    return mkApp4 (mkConst ``And.intro) a rest pa (← go tl)
-  go l'
-where
-  mkExpectedTypeHint' (e ty : Expr) : Expr := mkApp2 (mkConst ``id [0]) ty e
-
 /-- The callees' spec premises, from `hP : Includes P deps`. -/
 def solvePending (pending : Array (MVarId × Array (Nat × Name))) (hP deps : Expr) :
     MetaM Unit := do

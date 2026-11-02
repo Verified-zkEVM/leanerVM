@@ -11,6 +11,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Operations
 import all LeanVM.Protocol.Extraction.Fast.GSData
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: a relation column of the GS data, compiled
 
@@ -36,26 +37,6 @@ open CompPoly.PolynomialMatrix CompPoly.PolynomialMatrix.Approximant
 open LeanVM.Cost.Auto.CompPoly.PolynomialMatrix
 
 public section
-
-/-- Newton's inverse at precision `k` has at most `k` coefficients. -/
-theorem size_inverseModX_le (M : CPolynomial.Raw.MulLowContext K) (k : ℕ) (p : CPolynomial.Raw K) :
-    (CPolynomial.Raw.inverseModX M k p).size ≤ k := by
-  unfold CPolynomial.Raw.inverseModX
-  split
-  · simp
-  · suffices h : ∀ fuel n g, (CPolynomial.Raw.inverseModX.go M k p fuel n g).size ≤ k from h _ _ _
-    intro fuel
-    induction fuel with
-    | zero => intro n g; simp [CPolynomial.Raw.inverseModX.go, CPolynomial.Raw.truncate]
-    | succ fuel ih =>
-      intro n g
-      rw [CPolynomial.Raw.inverseModX.go]
-      split
-      · simp [CPolynomial.Raw.truncate]
-      · exact ih _ _
-
-/-- The column's step's price (`colStep`). -/
-@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 1350 * N + 4 * w + 1500
 
 theorem size_C_le (c : K) : (CPolynomial.C c).val.size ≤ 1 := by
   show (CPolynomial.Raw.C c).trim.size ≤ 1
@@ -243,10 +224,6 @@ theorem reducedR_eq (R M : CPolynomial K) (hM : M.monic = true) (h : R.val.size 
       R :=
   modByMonicWith_eq_self _ ((CPolynomial.monic_toPoly_iff M).1 hM) (natDegree_lt_of_size_lt h h2)
 
-/-- The column's price. -/
-@[expose] def colPrice (N w MB LB LBq IB : ℕ) : ℕ :=
-  IB + w * (colStep N w MB LB LBq + 9) + 150 * N + 30 * w + 300
-
 /-- **A relation column** (`gsRelationColumnC`): at most `colPrice N w MB LB LBq IB`. -/
 theorem gsRelationColumnC_cost (hP : Includes P gsRelationColumnC.costDeps)
     {N Nb Nq MB LB LBq IB : ℕ} (hMB : MulBound P N MB) (hLB : LowBound P Nb LB)
@@ -271,10 +248,6 @@ theorem gsRelationColumnC_cost (hP : Includes P gsRelationColumnC.costDeps)
   cost_simp
   have e : (colStep N w MB LB LBq + 9) * (w - b) = (w - b) * (colStep N w MB LB LBq + 9) := by ring
   omega
-
-/-- The matrix's price: `m` columns, the matrix assembled. -/
-@[expose] def matPrice (N w m MB LB LBq IB : ℕ) : ℕ :=
-  m * (colPrice N w MB LB LBq IB + 25) + w * (m * 42 + 48) + 20 * m + 100
 
 /-- **The relation matrix** (`gsRelationMatrixC`): `m` columns on monic moduli of at least `2`
 coefficients, each longer than `R`, `|M_b| + |R| ≤ N`: at most `matPrice N w m MB LB LBq IB`. -/

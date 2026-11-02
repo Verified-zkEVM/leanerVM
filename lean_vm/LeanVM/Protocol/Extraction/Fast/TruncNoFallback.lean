@@ -12,7 +12,7 @@ import all CompPoly.Univariate.Raw.Core
 
 `prefixesTruncD` (`Fast/Truncate.lean`) keeps the polynomial modulo `X^M` and falls back to the
 exact recursion where the truncation does not determine a step: exactly where the truncated
-polynomial is zero (`truncD_fallback_iff`; its `s ≥ M` branch is dead), i.e. where `X^k` divides
+polynomial is zero (its `s ≥ M` branch is dead), i.e. where `X^k` divides
 `Q(X, p_d + X^d·Y)` along the path `p_d`. Repeated roots reach it: Lee–O'Sullivan's `(Y − f)^m`,
 on an uncorrupted lane, strips `m` powers of `X` per level and falls back at depth `≈ k/m`.
 
@@ -131,23 +131,6 @@ theorem coeff_substituteFast_diag_ne_zero [CharP F 2] (Qn : CBivariate F) (a : F
   rw [hμt]
   exact mt Polynomial.trailingCoeff_eq_zero.1 ht
 
-
-omit [DecidableEq F] in
-/-- The `s ≥ M` branch of `prefixesTruncD` is dead: the fallback fires iff the truncated
-polynomial is zero. -/
-theorem truncD_fallback_iff (S : CBivariate F) (M : ℕ) :
-    CBivariate.xAdicOrder? (CBivariate.truncateX S M) = none ↔ CBivariate.truncateX S M = 0 ∧
-      ∀ s, CBivariate.xAdicOrder? (CBivariate.truncateX S M) = some s → s < M := by
-  constructor
-  · intro h
-    exact ⟨cbivar_xAdicOrder?_none_eq_zero h, fun s hs ↦ by rw [h] at hs; cases hs⟩
-  · rintro ⟨h0, -⟩
-    cases h : CBivariate.xAdicOrder? (CBivariate.truncateX S M) with
-    | none => rfl
-    | some s =>
-      obtain ⟨y, -, hy⟩ := cbivar_xAdicOrder?_some_exists h
-      rw [h0, CBivariate.coeff_zero] at hy
-      exact absurd rfl hy
 
 /-- **Roth–Ruckenstein's prefixes, truncated, without the fallback** (it returns nothing where
 `prefixesTruncD` would fall back; it never does at precision `W + 1`, `prefixesTruncD_eq_NF`). The

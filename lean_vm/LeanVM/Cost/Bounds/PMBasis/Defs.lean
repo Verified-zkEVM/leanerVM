@@ -7,21 +7,19 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 The price of CompPoly's divide-and-conquer approximant basis (`pmBasisWithFuelCore`,
 `CompPoly/LinearAlgebra/PolynomialMatrix/Approximant/PMBasis/Recursion.lean:82`) as a function of
-the problem's maximal order, for a node price `N` and a leaf price `L` given as functions (the
-compiled code's prices are not yet known: these are the shapes its bounds will be instantiated
-at). Here, apart from their proofs (`Bounds/PMBasis/Tree.lean`, `Recursion.lean`), so that the
-numbers' checks (`Bounds/PMBasis/Values.lean`) import only what they evaluate.
+the problem's maximal order, for a node price `N` and a leaf price `L` given as functions, and the
+per-operation price model the compiled code's bounds are stated in. Here, apart from their proofs
+(`Bounds/PMBasis/Tree.lean`, `Recursion.lean`), so that the shape checks
+(`Bounds/PMLane/Shapes.lean`) import only what they evaluate.
 
 * `pmTree c L N o`: the recursion's own tree on the maximal order `o`: a leaf (`o ≤ c` or
   `o ≤ 1`) at `L`, else `N o` and the two halves `⌊o/2⌋` (the lower orders) and `o − ⌊o/2⌋`
   (the residual orders), as `pmBasisWithFuelCore` splits;
 * `pmTreePair c L N f q = (pmTree q, pmTree (q + 1))`, its evaluation in `f` steps (the orders at a
   depth are two consecutive numbers), for kernel evaluation (`pmTreePair_eq`);
-* `pmLevels N K o = Σ_{k<K} 2^k·N(⌈o/2^k⌉)`, the per-level closed form
-  (`pmTree_le_levels`: `pmTree ≤ pmLevels + L·o` for a monotone `N`, `o ≤ 2^K`);
 * the price model of the FFT-based recursion (`PMPrices`, `evalMatPrice`, `pmNodePrice`,
-  `pmLeafPrice`, `pmBasisPrice`), in per-operation prices (`PMPrices`: the probes' measurements
-  on the compiled pieces), not yet a compiled function's proved price.
+  `pmLeafPrice`, `pmBasisPrice`), in per-operation prices (`PMPrices`; the compiled pieces' proved
+  prices fit them at `marginPrices`, `Bounds/PMBasis/Values.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds.PMBasis
@@ -67,16 +65,10 @@ tree are two consecutive numbers, so the tree is evaluated in `log₂ q` steps. 
 @[expose] def pmTreeEval (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : ℕ :=
   (pmTreePair c L N (clog2 (o + 1)) o).1
 
-/-- **The per-level sum** `Σ_{k<K} 2^k·N(⌈o/2^k⌉)` (`pmLevels_eq_sum`), by its recurrence. -/
-@[expose] def pmLevels (N : ℕ → ℕ) : ℕ → ℕ → ℕ
-  | 0, _ => 0
-  | K + 1, o => N o + 2 * pmLevels N K ((o + 1) / 2)
-
 /-! ## The price model -/
 
-/-- **The prices of the model's operations**, in steps of the cost machine. `Values.lean` sets them
-to the probes' measurements on the compiled pieces (`measuredPrices`) and to those with a margin
-(`marginPrices`). -/
+/-- **The prices of the model's operations**, in steps of the cost machine (`marginPrices`,
+`Values.lean`). -/
 structure PMPrices where
   /-- A pointwise multiply-add of the evaluation-domain product (`evalDot`). -/
   mac : ℕ
@@ -84,9 +76,9 @@ structure PMPrices where
   fwd : ℕ
   /-- An inverse NTT stage, per element (`invStageFast`). -/
   inv : ℕ
-  /-- The conversion monomial → novel basis, per `j·2^j` (`toNovelRecP`). -/
+  /-- The conversion monomial → novel basis, per `j·2^j` (`Fast/FFT/Convert.lean`). -/
   toNovel : ℕ
-  /-- The conversion novel → monomial basis, per `j·2^j` (`fromNovelRecP`). -/
+  /-- The conversion novel → monomial basis, per `j·2^j` (`Fast/FFT/Convert.lean`). -/
   fromNovel : ℕ
   /-- The order-one leaf (`popovLeafBasis`), per `r³`. -/
   leafCube : ℕ

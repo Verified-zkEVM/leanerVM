@@ -8,6 +8,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Operations
 import all CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Basic
 import all LeanVM.Protocol.Extraction.Fast.GSData
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the GS data, compiled
 
@@ -177,10 +178,6 @@ theorem vanishingFast_monicB {F : Type*} [Field F] [BEq F] [LawfulBEq F] (xs : A
 theorem vanishingFast_monicK (xs : Array K) :
     @CPolynomial.monic K BF64.instZero BF64.instOne instBEqBF64 (vanishingFast xs) = true :=
   vanishingFast_monicB xs
-
-/-- The GS data's price. -/
-@[expose] def dataPrice (N m w MB LB LBq IB : ℕ) : ℕ :=
-  (MB + m + 40) * (m - 1) + 34 * m + 120 + matPrice N w m MB LB LBq IB + 40 * w + 80
 
 /-- **The GS data** (`buildGSModularDataCached fftMulContext fftRawMulLowContext R G params`):
 on a monic `G` of degree `n ≥ 1`, `|R| ≤ n`, `1 ≤ m ≤ w`, `(m + 1)·n + 1 ≤ N`: at most

@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.PMCore.LeafReduce
 import all CompPoly.LinearAlgebra.Dense.RowArray
 public import CompPoly.LinearAlgebra.Dense.RowArrayCorrectness
 public import CompPoly.LinearAlgebra.Dense.KernelBasisCorrectness
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 
 /-!
 # Bounds: the leaf's scalar kernel (row-array RREF), compiled
@@ -179,9 +180,6 @@ theorem eliminateC_cost
     rw [h.1]
     have e : (295 * r + E + 58 + 9) * E + 18 * E = (295 * r + E + 85) * E := by ring
     omega
-
-/-- The price of one pivot of the RREF on `E` rows of at most `r` entries. -/
-@[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
 
 /-- **The RREF loop** (`scalarRrefRowsLoop`): `42·E + 80` per column, `pivotPrice E r` per pivot
 (at most `E − row` of them). -/

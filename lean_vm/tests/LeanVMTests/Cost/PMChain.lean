@@ -2,7 +2,7 @@ import LeanVM.Cost.Extractor.PMLane
 import LeanVMTests.Extraction.LanePM
 
 /-!
-# Tests: the lanes' new interpolation, compiled on the chain
+# Tests: the lanes' approximant-basis interpolation, compiled on the chain
 
 The functions of `Cost/Extractor/PM*.lean` (the additive-FFT product and its plan, the
 evaluation-domain matrix products, the ordered-weak-Popov PM-basis, the certified solve, the
@@ -116,13 +116,6 @@ def priceOf (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : �
     priceOf fromNovelFastC.costDeps fromNovelFastC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
     priceOf planFwdC.costDeps planFwdC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
     priceOf planInvC.costDeps planInvC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val])
-
--- `(d, mulFFT)` at `d` coefficients each, Karatsuba's (measured once: the transform on `2^14`
--- points at `4100` coefficients each, `978055656`).
-/-- info: [(2000, 239250826)] -/
-#guard_msgs in
-#eval [2000].map fun d ↦
-  (d, priceOf mulFFTC.costDeps mulFFTC.costIdx [encodeValue (poly 1 d), encodeValue (poly 2 d)])
 
 -- `(n, d, mulEvalP, n³·2^j)`, `n × n` matrices of `d` coefficients.
 /-- info: [(2, 8, 603506, 128), (4, 8, 2437658, 1024), (4, 32, 16319930, 4096), (8, 8, 10862930, 8192)] -/
