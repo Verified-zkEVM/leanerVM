@@ -11,7 +11,6 @@ open SeedCoupling
 open SphincsBase.QueryCap
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 40000
 attribute [local irreducible] PreparedScheme.sign PreparedScheme.keygen
   Randomized.sign digestAttemptLimit encodingAttemptLimit erasedMaterialSign
   preparedOracle answer

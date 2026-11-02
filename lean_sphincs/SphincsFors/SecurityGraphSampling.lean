@@ -10,7 +10,6 @@ namespace SphincsFors.Security.Graph
 open Concrete Completeness
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 60000
 attribute [local irreducible] canonicalGraphInput canonicalGraphSlots
 
 noncomputable opaque graphLabelsSampleable : SampleableType CanonicalGraphLabels :=

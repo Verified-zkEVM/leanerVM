@@ -10,7 +10,6 @@ namespace SphincsFors.Security.GraphCorrectness
 open Concrete Completeness Graph PrunedGraph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 set_option allowUnsafeReducibility true
 attribute [local reducible] digestBits HashSpec Id

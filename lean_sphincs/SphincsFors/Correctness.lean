@@ -5,7 +5,6 @@ import SphincsFors.Uniform
 
 open OracleComp
 
-set_option maxHeartbeats 250000
 
 namespace SphincsFors.Completeness
 
