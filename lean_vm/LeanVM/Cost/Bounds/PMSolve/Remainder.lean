@@ -85,12 +85,12 @@ theorem size_reverse (n : ℕ) (p : CPolynomial.Raw K) : (CPolynomial.Raw.revers
   simp [CPolynomial.Raw.reverse]
 
 /-- `modByMonicWith fftModContext p M`, `M` monic and longer than `p`: the first branch, at most
-`41·|p| + 79·|M| + 150`. -/
+`42·|p| + 81·|M| + 99`. -/
 theorem modByMonicWithC_first_cost (hP : Includes P modByMonicWith.c556.costDeps)
     (p M : CPolynomial K) (hM : M.monic = true) (hpM : p.val.size < M.val.size)
     (hMs : M.val.size < 2 ^ 60) :
     machineCost P modByMonicWith.c556.costIdx [encodeValue p, encodeValue M] ≤
-      41 * p.val.size + 79 * M.val.size + 150 := by
+      42 * p.val.size + 81 * M.val.size + 99 := by
   rw [modByMonicWith.c556.costEq P hP]
   have := listBeqK_cost P (by includes) M.val.toList (↑(0 : CPolynomial K) : Array K).toList
   have := modByMonicFFTC_first_cost P (by includes) _ _ hM hpM hMs

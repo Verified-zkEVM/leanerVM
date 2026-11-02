@@ -98,7 +98,7 @@ public section
 (`pmTreeEval`), the basis rows' certificates and principal parts, the guard and the shifts. -/
 @[expose] def certSolveCost (p : PMPrices) (L Q w m o : ℕ) : ℕ :=
   2 * liftPrice Q w m + pmTreeEval 1 L (pmNodePrice p (w + m) m) o +
-    (w + m) * (90 * (w + m) + 78) + (37 * w + 32) * (w + m) + 4 * (w + m) + 50 * w + 72 * m + 300
+    (w + m) * (84 * (w + m) + 63) + (38 * w + 34) * (w + m) + 4 * (w + m) + 50 * w + 74 * m + 172
 
 /-- The column's step's price (`colStep`). -/
 @[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 1350 * N + 4 * w + 1500
