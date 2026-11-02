@@ -131,7 +131,7 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorOf}~$P$, \lean{Statement/CostMachine.lean}): the program
-$P$, of size at most $14400$ (\lean{extractorSizeBound}: the compiled extractor's $13895$ and a
+$P$, of size at most $14400$ (\lean{extractorSizeBound}: the compiled extractor's $13813$ and a
 slack of about one leanXMSS signature's encoding), run on the encoded statement, transcript
 and proof within a budget, wherever the proof announces a shape (\lean{extractorBudgetFor}:
 $2^{95} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
@@ -170,9 +170,9 @@ candidates lane by lane with the Guruswami--Sudan list decoder over $\mathbb{F}_
 splitting for the field roots), and it is proved to list every candidate. It runs each
 candidate for at most as many steps as the announced tables have rows (\lean{stepCap}), which a
 valid execution never exceeds (proved). Its running time, as the compiled program, is proved
-within the budget above (\lean{LeanVM.Cost.Bounds.extractorC_cost}, \lean{lean_vm}): the interpolation by
-Lee--O'Sullivan's algorithm with Mulders--Storjohann's reduction dominates, with $O(\log^2 N)$
-comparisons per lookup in the evaluations (sorted maps). It gives straight-line knowledge with a
+within the budget above (\lean{LeanVM.Cost.Bounds.extractorC_cost}, \lean{lean_vm}): the compiled decoder
+interpolates by CompPoly's approximant basis (it lists the same candidates, proved), and
+Roth--Ruckenstein's search dominates, with $O(\log^2 N)$ comparisons per lookup in the evaluations (sorted maps). It gives straight-line knowledge with a
 concrete reduction cost for the collision clauses below.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
@@ -543,8 +543,8 @@ determined by $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop with
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestDecoderSizeBound}, $786000$)
-limits any program; it is the compiled decoder's size, $785615$ (proved at most that, measured
-exactly), and a slack of $385$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
+limits any program; it is the compiled decoder's size, $785533$ (proved at most that, measured
+exactly), and a slack of $467$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
 guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,

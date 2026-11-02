@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Bounds.Decoder.Roots
-public import LeanVM.Cost.Bounds.Decoder.MsReduce
+public import LeanVM.Cost.Bounds.Decoder.Rows
 public import LeanVM.Cost.Extractor.PMLane
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Univariate.Basic
@@ -36,11 +36,11 @@ public section
 variable (P : MachineProgram)
 
 /-- `monic` of a polynomial of word-sized size: at most `15`. -/
-theorem monicC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monic.c669.costDeps)
+theorem monicC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monic.c548.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.monic.c669.costIdx [encodeValue p] ≤ 15 := by
-  rw [Auto.CompPoly.CPolynomial.monic.c669.costEq P hP,
-    Auto.CompPoly.CPolynomial.leadingCoeff.c670.costEq P (by includes)]
+    machineCost P Auto.CompPoly.CPolynomial.monic.c548.costIdx [encodeValue p] ≤ 15 := by
+  rw [Auto.CompPoly.CPolynomial.monic.c548.costEq P hP,
+    Auto.CompPoly.CPolynomial.leadingCoeff.c549.costEq P (by includes)]
   have := getLastDC_cost P (by includes) p.val 0 hp
   omega
 
@@ -53,7 +53,7 @@ theorem certifiedGuardC_cost (hP : Includes P certifiedGuardC.costDeps)
     (hq : ∀ b, (equation.moduli.getD b 0).val.size < 2 ^ 64) :
     machineCost P certifiedGuardC.costIdx [encodeValue equation, encodeValue shift] ≤
       50 * equation.moduli.size + 80 := by
-  rw [certifiedGuardC.costEq P hP, ModularEquation.solutionWidth.c667.costEq P (by includes)]
+  rw [certifiedGuardC.costEq P hP, ModularEquation.solutionWidth.c546.costEq P (by includes)]
   have := matrixWidthC_cost P (by includes) equation.matrix hM
   have := rangeLoop_cost P (by includes) equation.moduli.size [] (by omega)
   have hl := fun b ↦ RunsApp.of_spec (us := [encodeValue equation]) (vs := [encodeValue b])

@@ -130,7 +130,8 @@ def fix_literals(text, after):
 
 CHAIN_PREFIXES = ("LeanVM.Cost.Extractor.", "LeanVM.Cost.Decoder.")
 
-# Modules of the chain that compile nothing any more (the swap emptied them): an import of one of
+# Modules of the chain that the swap emptied, since deleted (the Mulders–Storjohann path dropped,
+# `renumber-chain.d/dropms-*.txt`): in a file renamed across those changes, an import of one of
 # them reaches only the functions before it.
 EMPTIED = {"LeanVM.Cost.Extractor.MsReduce", "LeanVM.Cost.Extractor.Interp",
            "LeanVM.Cost.Extractor.Lane", "LeanVM.Cost.Extractor.Decode"}

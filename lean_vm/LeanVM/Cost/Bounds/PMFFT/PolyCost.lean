@@ -3,7 +3,7 @@ module
 public import LeanVM.Cost.Bounds.PMFFT.Conv
 public import LeanVM.Cost.Bounds.PMFFT.Stages
 public import LeanVM.Cost.Bounds.PMFFT.PlanCost
-public import LeanVM.Cost.Bounds.Decoder.MsStep
+public import LeanVM.Cost.Bounds.Decoder.Rows
 
 /-!
 # Bounds of the PM decoder's FFT: the polynomial transforms

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Extractor.Decode
+public import LeanVM.Cost.Extractor.GsRun
 public import LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.Replay

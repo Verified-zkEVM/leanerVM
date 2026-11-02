@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Extractor.PMCore
-public import LeanVM.Cost.Bounds.Decoder.MsStep
+public import LeanVM.Cost.Bounds.Decoder.Rows
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeaf
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Degree
@@ -169,29 +169,29 @@ theorem updateShiftByRowsC_cost (hP : Includes P updateShiftByRowsC.costDeps)
   nlinarith
 
 /-- The zero test of one entry: at most `3·|p| + 11`. -/
-theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.lam0.costDeps)
+theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costDeps)
     (p : CPolynomial K) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.lam0.costIdx [encodeValue p] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [encodeValue p] ≤
       3 * p.val.size + 11 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.lam0.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costEq P hP]
   have h0 : (0 : CPolynomial K).val.size = 0 := rfl
   have hl : (0 : CPolynomial K).val.toList = [] := rfl
   rw [h0, hl]
   cases hq : p.val.toList with
-  | nil => rw [Auto.List.beq.c27.costEq_nil P (by includes)]; simp
-  | cons x l => rw [Auto.List.beq.c27.costEq_cons P (by includes)]; simp
+  | nil => rw [Auto.List.beq.c4.costEq_nil P (by includes)]; simp
+  | cons x l => rw [Auto.List.beq.c4.costEq_cons P (by includes)]; simp
 
 /-- **`rowIsZero`**: a row of at most `C` entries of at most `D` coefficients, at most
 `(3·D + 23)·C + 7`. -/
-theorem rowIsZeroC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.costDeps)
+theorem rowIsZeroC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costDeps)
     {C D : ℕ} (row : PolynomialRow K) (h : RowWithin C D row) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.costIdx [encodeValue row] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costIdx [encodeValue row] ≤
       (3 * D + 23) * C + 7 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costEq P hP]
   have ha := all_cost P (by includes) (fun p : CPolynomial K ↦ p == 0)
-    (.closure Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.lam0.costIdx [])
+    (.closure Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.rowIsZero.c598.lam0.costSpec P (by includes) a))
+      (Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costSpec P (by includes) a))
     (3 * D + 11) row.toList (fun a ha ↦ by
       rw [appCost_fn, List.nil_append]
       have := rowIsZeroLam_cost P (by includes) a
@@ -220,44 +220,44 @@ theorem compactNonzeroRowsC_cost (hP : Includes P compactNonzeroRowsC.costDeps)
   simp only [Array.length_toList] at hf hl
   nlinarith
 
-/-- The matrix's width (`MatrixWidth.c38`): at most `15`. -/
-theorem matrixWidthC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c38.costDeps)
+/-- The matrix's width (`MatrixWidth.c428`): at most `15`. -/
+theorem matrixWidthC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costDeps)
     (M : PolynomialMatrix K) (hMs : M.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c38.costIdx [encodeValue M] ≤ 15 := by
-  rw [Auto.CompPoly.PolynomialMatrix.MatrixWidth.c38.costEq P hP]
+    machineCost P Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costIdx [encodeValue M] ≤ 15 := by
+  rw [Auto.CompPoly.PolynomialMatrix.MatrixWidth.c428.costEq P hP]
   cost_simp
   cases M[0]? <;> dsimp only <;> split_ifs <;> omega
 
 /-! ## `PolynomialMatrix.ofFn` -/
 
-/-- **`PolynomialMatrix.ofFn rows width entry`** (`ofFn.c563`), each entry at most `E`: at most
+/-- **`PolynomialMatrix.ofFn rows width entry`** (`ofFn.c436`), each entry at most `E`: at most
 `rows·((E + 33)·width + 66) + 19`. -/
-theorem ofFnC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.ofFn.c563.costDeps)
+theorem ofFnC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.ofFn.c436.costDeps)
     (rows width : ℕ) (hrows : rows < 2 ^ 64) (hwidth : width < 2 ^ 64)
     (entry : ℕ → ℕ → CPolynomial K) (eVal : MachineValue)
     (he : ∀ a b, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b))) (E : ℕ)
     (hE : ∀ i < rows, ∀ j < width, appCost P eVal [encodeValue i, encodeValue j] ≤ E) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.ofFn.c563.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.ofFn.c436.costIdx
         [encodeValue rows, encodeValue width, eVal] ≤
       rows * ((E + 33) * width + 66) + 19 := by
-  rw [Auto.CompPoly.PolynomialMatrix.ofFn.c563.costEq P hP rows width entry eVal he]
+  rw [Auto.CompPoly.PolynomialMatrix.ofFn.c436.costEq P hP rows width entry eVal he]
   have hr := rangeLoop_cost P (by includes) rows [] hrows
   have hm := map_cost P (by includes)
     (fun i ↦ (List.map (fun j ↦ entry i j) (List.range width)).toArray)
-    (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.costIdx [encodeValue width, eVal])
+    (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costIdx [encodeValue width, eVal])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.costSpec P (by includes) width entry eVal he a))
+      (Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costSpec P (by includes) width entry eVal he a))
     ((E + 33) * width + 37) (List.range rows) (fun i hi ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.costEq P (by includes) width entry eVal he]
+        Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.costEq P (by includes) width entry eVal he]
       have hr' := rangeLoop_cost P (by includes) width [] hwidth
       have hm' := map_cost P (by includes) (fun j ↦ entry i j)
-        (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.lam0.costIdx [eVal, encodeValue i])
+        (.closure Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costIdx [eVal, encodeValue i])
         (fun a ↦ RunsApp.of_spec
-          (Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.lam0.costSpec P (by includes) entry eVal he i a))
+          (Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costSpec P (by includes) entry eVal he i a))
         (E + 4) (List.range width) (fun j hj ↦ by
           rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-            Auto.CompPoly.PolynomialMatrix.ofFn.c563.lam0.lam0.costEq P (by includes) entry eVal he]
+            Auto.CompPoly.PolynomialMatrix.ofFn.c436.lam0.lam0.costEq P (by includes) entry eVal he]
           have := hE i (List.mem_range.1 hi) j (List.mem_range.1 hj)
           omega)
       simp only [List.length_range, List.length_map] at hm' ⊢

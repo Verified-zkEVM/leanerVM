@@ -8,11 +8,13 @@ public import LeanVM.Cost.Prices
 # Bounds: the decoder's bounds, as definitions
 
 The bounds the decoder's proofs (`Bounds/Decoder/*.lean`) establish, from Roth–Ruckenstein's
-nodes and the roots in `K` up to `decoderBound`, and `DecoderShapeOk` (`DecoderLaneSizes` and the
-decoder's bound at most `msDecoderWorstPrice`), which `Bounds/DecoderShapes.lean` decides at each
-admissible shape by kernel evaluation. They are here, apart from their proofs, so that those
-checks import only what they evaluate (the extractor's parameter search and these numbers): an
-edit of a proof rebuilds no check (`Bounds/DecoderShapesFirewall.lean` guards it).
+nodes and the roots in `K` up to a lane's extra work and the pruning (`pruneBound`), and the sizes
+a lane's bound needs (`DecoderLaneSizes`); the decoder's bound on the approximant-basis
+interpolation assembles them (`decoderBoundPM`, `Bounds/PMBasis/LaneDefs.lean`). They are here,
+apart from their proofs, so that the checks evaluating them (`Bounds/DecoderShapes.lean`,
+`Bounds/PMLane/Shapes.lean`) import only what they evaluate (the extractor's parameter search and
+these numbers): an edit of a proof rebuilds no check (`Bounds/DecoderShapesFirewall.lean` guards
+it).
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -102,42 +104,9 @@ coefficients, `k` levels. -/
 @[expose] def rrBound (X Y k ℓ : ℕ) : ℕ :=
   (rrNodePrice X Y + rrChildPrice X Y k + Y * k) * (1 + k * ℓ)
 
-/-- The bound of a product over `K[X]`: `≤ rp` rows of entries of `≤ a` coefficients by `≤ rq`
-rows, the two factors' entry sizes summing to at most `s`. -/
-@[expose] def mulBBound (rp rq a s : ℕ) : ℕ :=
-  3 * ((930 * (((a + 1) * (s + 1)) * rq) + 110 * (s * (rp + rq)) + 200 * (rp + rq) + 112) * rp) +
-    (3 * s + 41) * (rp + rq) + 100
-
-/-- A row `i ≤ m`: the product `G^(m−i)·(Y − R)^i` and its coefficient row. -/
-@[expose] def rowProdBound (m w N : ℕ) : ℕ :=
-  mulBBound 1 (m + 1) (m * N + 1) (m * N + 2) + 34 * w + 50
-
-/-- A row `i > m`: the shift `Y^(i−m)·(Y − R)^m` and its coefficient row. -/
-@[expose] def rowShiftBound (m w N : ℕ) : ℕ :=
-  (3 * (m * N + 1) + 41) * (w + m + 1) + 2 * w + m + 34 * w + 60
-
-/-- The bound of `leeRowsFast`: `Y − R` and `G`, the `m + 1` powers of each, `m + 1` products
-`G^(m−i)·(Y − R)^i` and `w` shifts, `w` coefficient rows. -/
-@[expose] def leeRowsBound (m w N : ℕ) : ℕ :=
-  703 * (N + 1) + 2460 + (mulBBound 2 (m + 1) (N + 1) ((m + 1) * N + 2) + 3 + 20) * (m + 1) +
-    (mulBBound 1 1 (N + 1) ((m + 1) * N + 2) + 3 + 20) * (m + 1) + 2 * (m + 1) + 18 * w +
-    (rowProdBound m w N + 11) * (m + 1) + (rowShiftBound m w N + 11) * w + 120
-
-/-- The price of one iteration on `r` rows of width `w`, shifted degrees at most `D`: the
-leading positions, the conflict search, one step. -/
-@[expose] def msIterBound (r w D : ℕ) : ℕ :=
-  190 * (w * r) + 64 * (r * r) + 740 * ((D + 1) * w) + 184 * r + 970 * w + 30 * D + 21200
-
 /-- The bound of the normalization on `rows` rows. -/
 @[expose] def normBound (W rows : ℕ) : ℕ :=
   (20057 * (W + 1) + 265) * rows + 121
-
-/-- The bound of the interpolation on `n` points, multiplicity `m`, `w = ℓ + 1` columns, the
-basis's degree bound `D`, the weighted degree `W`. -/
-@[expose] def interpCoreBound (n m w D W : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 30000 * n + 1000 + leeRowsBound m w n + 40 * w +
-    ((w * ((D + 1) * (w + 1)) + 1) * msIterBound w w D + 90 * (w * w) + 77 * w + 66) +
-    ((90 * w + 140) * w + 40) + (90 * w + 30) + ((3 * (D + 1) + 41) * w + 17) + normBound W w + 80
 
 /-- The sizes the interpolation's bound needs, all word-sized. -/
 @[expose] def InterpSizes (n : ℕ) (params : GSInterpParams) : Prop :=
@@ -150,17 +119,6 @@ basis's degree bound `D`, the weighted degree `W`. -/
     (interpolationYCap params + 2) * (interpolationYCap params + 2) *
       (params.multiplicity * n + interpolationYCap params * yWeight params +
         interpolationYCap params * yWeight params + 2) < 2 ^ 64
-
-/-- The bound of one lane's Guruswami–Sudan run on `n` points: the interpolation, the truncation,
-Roth–Ruckenstein's search (`rrBound`), the filter. -/
-@[expose] def gsRunBound (n : ℕ) (params : GSInterpParams) : ℕ :=
-  interpCoreBound n params.multiplicity (interpolationYCap params + 1)
-      (params.multiplicity * n + interpolationYCap params * yWeight params)
-      params.weightedDegreeBound + 10 +
-    ((27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) + 40) +
-    rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2) params.messageDegree
-      (interpolationYCap params) +
-    ((272 * params.messageDegree + 34) * n + 50) * max 1 (interpolationYCap params) + 40
 
 /-- The price of one lane beyond its Guruswami–Sudan run: at most `L` candidates of at most `k`
 coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
@@ -176,12 +134,6 @@ price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and 
   (BW + 10 * Lw + 28) * 2 ^ (κ + R) + 17 * 2 ^ (κ + R) +
     (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 60) * U + 17 * U + 80
 
-/-- The bound of a lane's Guruswami–Sudan run (`gsLaneDistinct κ R A`): the parameter search, the
-lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBound`). -/
-@[expose] def decoderLaneRunBound (κ R A BS : ℕ) : ℕ :=
-  190 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 28) * 2 ^ (κ + R) +
-    gsRunBound (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 200
-
 /-- The sizes at which a lane is bounded: word-sized parameters (`InterpSizes`, …), `k > 1`, at
 most `2^20` multiplicities tried. -/
 @[expose] def DecoderLaneSizes (κ R A : ℕ) : Prop :=
@@ -193,39 +145,6 @@ most `2^20` multiplicities tried. -/
 
 instance (κ R A : ℕ) : Decidable (DecoderLaneSizes κ R A) := by
   unfold DecoderLaneSizes InterpSizes; infer_instance
-
-/-- The bound of a lane's candidates (`laneEncodedDistinct κ R A`): the run, then at most
-`max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -/
-@[expose] def decoderLaneBound (κ R A BS : ℕ) : ℕ :=
-  decoderLaneRunBound κ R A BS +
-    laneExtraBound κ R (max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
-      (2 ^ κ)
-
-/-- The bound of the decoder at the shape `(μ, R)` (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson
-threshold `A`): the threshold, the `2^6` lanes pruned (`pruneBound`: the word's table, `BW` per
-column and `Lw` symbols per column; a lane `decoderLaneBound`, at most `max 1 ℓ` candidates, at
-most `2^18` survivors), a stack per survivor. -/
-@[expose] def decoderBound (μ R BW Lw : ℕ) : ℕ :=
-  pruneBound (μ - Whir.initialFold) R (2 ^ Whir.initialFold) BW Lw
-      (decoderLaneBound (μ - Whir.initialFold) R (johnsonThreshold μ R) 12)
-      (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold))
-        (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
-      (2 ^ 18) +
-    ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 34) * 2 ^ 18 + 16330
-
-/-- The Mulders–Storjohann decoder's bound at the worst admissible shape `(28, 4)`,
-`decoderBound 28 4 0 0` (`≈ 2^117.67`): the former extractor's decoder, still compiled and
-bounded, no longer the extractor's (`decOf` runs `decodeStacksDistinctPM`, `listDecoderWorstPrice`
-its worst, `Cost/Prices.lean`). -/
-@[expose] def msDecoderWorstPrice : ℕ := 263752671977657870662169418088819162
-
-/-- What the decoder's bound needs at a shape, and its value at most the worst. -/
-@[expose] def DecoderShapeOk (μ R : ℕ) : Prop :=
-  DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBound μ R 0 0 ≤ msDecoderWorstPrice
-
-instance (μ R : ℕ) : Decidable (DecoderShapeOk μ R) := by
-  unfold DecoderShapeOk; infer_instance
 
 end
 
