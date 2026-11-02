@@ -549,7 +549,7 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have hl1 := limbs_le_of_lt (x := Sig.cellNat (σ (.n 412448))) (k := 2) (by norm_num)
     (Decoder.cellNat_lt _)
   rw [limbs_two_pow (by norm_num)]
-  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forestCoords) (by decide) _
+  have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forestCoordinates) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))
     (27 * S + 15640) (fun c ↦ by
@@ -587,7 +587,7 @@ theorem sphincsSigOfN_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
       omega) 0 (Nat.zero_le _)
   have hnc : Sphincs.numChains = 64 := rfl
   rw [hnc] at m1 ⊢
-  simp only [Sphincs.forestCoords, Sphincs.totalHeight, Nat.sub_zero] at m0 m1 m2 ⊢
+  simp only [Sphincs.forestCoordinates, Sphincs.totalHeight, Nat.sub_zero] at m0 m1 m2 ⊢
   omega
 
 end Val

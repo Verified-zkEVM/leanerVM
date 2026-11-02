@@ -74,7 +74,7 @@ theorem pureB_loop {S : List String} (hS : coreProgram.PureIn S) {g : String} (h
 
 /-- **`da_row_shape` is complete, placed, within its frame.** -/
 theorem row_shape_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {s r L : ℕ} (hr1 : 1 ≤ r)
-    (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.nPad r) :
+    (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r) :
     CompleteAtDTB fs cert 16 "da_row_shape" [(s + L, [gen ^ 2 ^ L])] [gen ^ r, gen ^ L, gen ^ s]
       (Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]) (fun _ => True) (fs "da_row_shape") := by
   intro fp

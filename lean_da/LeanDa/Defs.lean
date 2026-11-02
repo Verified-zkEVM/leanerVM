@@ -84,7 +84,7 @@ def walk : ℕ → Common.DigestBytes → List Common.DigestBytes → Common.Dig
 column tree's height that climbs from the cell's digest to a column root, which hashed after the
 row root gives the commitment. -/
 def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : Opening) : Bool :=
-  decide (τ.path.length = 7 + logPad r) &&
+  decide (τ.path.length = 7 + logPaddedRowCount r) &&
     decide (H (pairBytes τ.rowRoot (walk H (colIndex p) (cellDigestWithHash H x) τ.path)) = com)
 
 /-- The hash inputs from a cell's bytes `a` at index `idx` up to the root, the last one

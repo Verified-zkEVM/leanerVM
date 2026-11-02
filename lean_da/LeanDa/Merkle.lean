@@ -95,31 +95,31 @@ theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ)
   | zero => rfl
   | succ d ih => simp [merklePathWithHash, ih]
 
-theorem le_nPad (r : ℕ) : r ≤ nPad r := Nat.le_pow_clog (by norm_num) r
+theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
 
 theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     colLeavesWithHash H c (colIndex p) = cellDigestWithHash H (c p) := by
   have hr := le_nPad r
-  have hrow : (posRow p : ℕ) < nPad r := lt_of_lt_of_le (posRow p).isLt hr
-  have hmod : colIndex p % nPad r = posRow p := by
+  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt hr
+  have hmod : colIndex p % paddedRowCount r = positionRow p := by
     rw [colIndex, Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hrow]
-  have hdiv : colIndex p / nPad r = posCell p := by
-    rw [colIndex, Nat.add_comm, Nat.add_mul_div_right _ _ (by unfold nPad; positivity),
+  have hdiv : colIndex p / paddedRowCount r = positionCell p := by
+    rw [colIndex, Nat.add_comm, Nat.add_mul_div_right _ _ (by unfold paddedRowCount; positivity),
       Nat.div_eq_of_lt hrow, Nat.zero_add]
-  have h1 : (posRow p : ℕ) < r := (posRow p).isLt
-  have h2 : (posCell p : ℕ) < 128 := (posCell p).isLt
+  have h1 : (positionRow p : ℕ) < r := (positionRow p).isLt
+  have h2 : (positionCell p : ℕ) < 128 := (positionCell p).isLt
   rw [colLeavesWithHash, hmod, hdiv]
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
-  simp only [pos, posRow, posCell]
+  simp only [cellPosition, positionRow, positionCell]
   omega
 
-theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : colIndex p < 2 ^ (7 + logPad r) := by
-  have hrow : (posRow p : ℕ) < nPad r := lt_of_lt_of_le (posRow p).isLt (le_nPad r)
-  have hcell := (posCell p).isLt
+theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : colIndex p < 2 ^ (7 + logPaddedRowCount r) := by
+  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
+  have hcell := (positionCell p).isLt
   rw [pow_add, colIndex]
-  unfold nPad at hrow ⊢
+  unfold paddedRowCount at hrow ⊢
   nlinarith
 
 /-- **An honest opening verifies.** -/

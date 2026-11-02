@@ -38,50 +38,50 @@ namespace LeanDa
 /-- The first half of a codeword: its payload. -/
 def firstHalf (w : Row) : Payload := fun a ↦ w (Fin.castLE (by norm_num) a)
 
-theorem posRow_pos {r : ℕ} (i : Fin r) (j : Fin 128) : posRow (pos i j) = i :=
-  Fin.ext (by simp only [posRow, pos]; omega)
+theorem posRow_pos {r : ℕ} (i : Fin r) (j : Fin 128) : positionRow (cellPosition i j) = i :=
+  Fin.ext (by simp only [positionRow, cellPosition]; omega)
 
-theorem posCell_pos {r : ℕ} (i : Fin r) (j : Fin 128) : posCell (pos i j) = j :=
-  Fin.ext (by simp only [posCell, pos]; omega)
+theorem posCell_pos {r : ℕ} (i : Fin r) (j : Fin 128) : positionCell (cellPosition i j) = j :=
+  Fin.ext (by simp only [positionCell, cellPosition]; omega)
 
-theorem pos_posRow_posCell {r : ℕ} (p : Fin (r * 128)) : pos (posRow p) (posCell p) = p :=
-  Fin.ext (by simp only [posRow, posCell, pos]; omega)
+theorem pos_posRow_posCell {r : ℕ} (p : Fin (r * 128)) : cellPosition (positionRow p) (positionCell p) = p :=
+  Fin.ext (by simp only [positionRow, positionCell, cellPosition]; omega)
 
 theorem rowOf_encodeMatrix {r : ℕ} (msg : Fin r → Payload) (i : Fin r) :
-    rowOf (encodeMatrix msg) i = encodeRow (msg i) := by
+    matrixRow (encodeMatrix msg) i = encodeRow (msg i) := by
   funext b
-  simp only [rowOf, encodeMatrix, rowCell, posRow_pos, posCell_pos]
+  simp only [matrixRow, encodeMatrix, rowCell, posRow_pos, posCell_pos]
   congr 1
   exact Fin.ext (by simp only; omega)
 
-theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i, rowOf c i ∈ rsCode) :
-    encodeMatrix (fun i ↦ firstHalf (rowOf c i)) = c := by
+theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i, matrixRow c i ∈ rsCode) :
+    encodeMatrix (fun i ↦ firstHalf (matrixRow c i)) = c := by
   funext p s
   simp only [encodeMatrix, rowCell]
-  rw [show firstHalf (rowOf c (posRow p)) =
-      fun a ↦ rowOf c (posRow p) (Fin.castLE (by norm_num) a) from rfl, encodeRow_firstHalf (h _)]
-  simp only [rowOf]
-  have h1 : (⟨(256 * (posCell p : ℕ) + s) / 256, by omega⟩ : Fin 128) = posCell p :=
+  rw [show firstHalf (matrixRow c (positionRow p)) =
+      fun a ↦ matrixRow c (positionRow p) (Fin.castLE (by norm_num) a) from rfl, encodeRow_firstHalf (h _)]
+  simp only [matrixRow]
+  have h1 : (⟨(256 * (positionCell p : ℕ) + s) / 256, by omega⟩ : Fin 128) = positionCell p :=
     Fin.ext (by simp only; omega)
-  have h2 : (⟨(256 * (posCell p : ℕ) + s) % 256, by omega⟩ : Fin 256) = s :=
+  have h2 : (⟨(256 * (positionCell p : ℕ) + s) % 256, by omega⟩ : Fin 256) = s :=
     Fin.ext (by simp only; omega)
   rw [h1, h2, pos_posRow_posCell]
 
 /-- A matrix is a codeword when every row is. -/
 theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
-    c ∈ (code r).code ↔ ∀ i, rowOf c i ∈ rsCode := by
+    c ∈ (code r).code ↔ ∀ i, matrixRow c i ∈ rsCode := by
   constructor
   · rintro ⟨msg, rfl⟩ i
-    change rowOf (encodeMatrix msg) i ∈ rsCode
+    change matrixRow (encodeMatrix msg) i ∈ rsCode
     rw [rowOf_encodeMatrix]
     exact encodeRow_mem _
   · intro h
-    exact ⟨fun i ↦ firstHalf (rowOf c i), encodeMatrix_firstHalf c h⟩
+    exact ⟨fun i ↦ firstHalf (matrixRow c i), encodeMatrix_firstHalf c h⟩
 
 /-! ## The code checker -/
 
 theorem checker_check_iff {r : ℕ} (z : Challenges) (c : Fin (r * 128) → Cell) :
-    (checker r).check z c = true ↔ ∀ i, dot (dual z) (rowOf c i) = 0 :=
+    (checker r).check z c = true ↔ ∀ i, innerProduct (dual z) (matrixRow c i) = 0 :=
   decide_eq_true_iff
 
 theorem checker_complete (r : ℕ) : (checker r).Complete (code r) := by
@@ -113,9 +113,9 @@ theorem checker_sound (r : ℕ) : (checker r).Sound (code r) (14 / 2 ^ 192) := b
   rw [← Nat.card_eq_fintype_card (α := E), BF64.nat_card_ext3] at hcard
   calc Pr{let x ← (fun l ↦ (checker r).check l c) <$> ($ᵗ Challenges)}[x = true]
       = Pr{let l ← $ᵗ Challenges}[(checker r).check l c = true] := prEvent_map _ _ _
-    _ ≤ Pr{let l ← $ᵗ Challenges}[dot (dual l) (rowOf c i) = 0] :=
+    _ ≤ Pr{let l ← $ᵗ Challenges}[innerProduct (dual l) (matrixRow c i) = 0] :=
         prEvent_mono _ _ _ fun l hl ↦ (checker_check_iff l c).mp hl i
-    _ = (acceptSet (rowOf c i)).card / (Fintype.card Challenges : ℝ≥0∞) :=
+    _ = (acceptSet (matrixRow c i)).card / (Fintype.card Challenges : ℝ≥0∞) :=
         SampleableType.prEvent_uniformSample _
     _ ≤ 14 / 2 ^ 192 := by
         rw [card_challenges, Nat.cast_pow, Nat.cast_ofNat]

@@ -233,12 +233,12 @@ theorem leanDa_codeBinding_fork (r : ℕ) {Crs Proof : Type}
       ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 := by
   have : NeZero r := ⟨by omega⟩
-  have hL : logPad r ≤ 10 := by
-    unfold logPad
+  have hL : logPaddedRowCount r ≤ 10 := by
+    unfold logPaddedRowCount
     exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hrM)
-  have hN : nPad r ≤ 1024 := by
-    unfold nPad
-    calc 2 ^ logPad r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
+  have hN : paddedRowCount r ≤ 1024 := by
+    unfold paddedRowCount
+    calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
       _ = 1024 := by norm_num
   have hK : ksCalls r Q ≤ Q + 2 ^ 22 := by unfold ksCalls relCalls; omega
   have hW : wpbCalls r Q + 2 ≤ Q + 2 ^ 22 := by unfold wpbCalls openCalls; omega

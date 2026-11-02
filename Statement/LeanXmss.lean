@@ -23,9 +23,9 @@ open OracleComp OracleSpec ENNReal
 /-!
 ## leanXMSS
 
-The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of height 16 over
-WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a leaf index
-`idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
+The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of
+height 16 over WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a
+leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 
 * WOTS+C: 58 chains of 4 positions. A 16-byte digest is read as 64 base-4 digits, little endian; it
   is a codeword when the last 6 digits are zero and the other 58 sum to 106.
@@ -51,6 +51,7 @@ open HashSig
 def numChains : Nat := 58
 /-- `T`, the sum of a codeword's `v` digits. -/
 def targetSum : Nat := 106
+/-- The layers of XMSS trees: `2`. -/
 def numLayers : Nat := 2
 /-- `h`, the height of each layer's trees. -/
 def layerHeight : Nat := 16
@@ -65,12 +66,16 @@ abbrev Layer := Fin numLayers
 abbrev LeafIndex := Fin lifetime
 /-- `e`, a one-time key of a layer: below `2^32` on the bottom layer, below `2^16` on the top. -/
 abbrev KeyIndex := Fin lifetime
+/-- `i`, a chain of a one-time key. -/
 abbrev ChainIndex := Fin numChains
 /-- A pair of chains `(2t, 2t + 1)`, `t < 29`: one seed derivation. -/
 abbrev ChainPair := Fin (numChains / 2)
+/-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → Digit
 
+/-- The bottom layer, whose keys sign messages. -/
 def bottomLayer : Layer := ⟨0, by decide⟩
+/-- The top layer, whose keys sign the bottom trees' roots. -/
 def topLayer : Layer := ⟨1, by decide⟩
 
 /-- The key of layer `l` a leaf index signs with: `idx` at the bottom, `idx / 2^16` at the top. -/
@@ -78,16 +83,22 @@ def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
   ⟨index.val / 2 ^ (layerHeight * lay.val),
     Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
 
-/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
+/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication
+path. -/
 structure LayerSignature where
+  /-- The randomizer `R0 + c` that makes the message digest a codeword. -/
   randomness : Randomness
+  /-- Chain `i` opened to its codeword digit. -/
   chainValues : ChainIndex → Digest
+  /-- The siblings from the leaf up to the tree's root, one per level. -/
   path : Fin layerHeight → Digest
 deriving DecidableEq
 
 /-- The leaf index, then the bottom layer's signature and the top layer's: 2404 bytes. -/
 structure Signature where
+  /-- The leaf index `idx` it signs with. -/
   leafIndex : LeafIndex
+  /-- Each layer's signature. -/
   layers : Layer → LayerSignature
 deriving DecidableEq
 
@@ -97,9 +108,13 @@ def layerHi (lay : Layer) (field : Nat) : Nat := field + 2 ^ 23 * lay.val
 /-- The verification hash domains. A node at `level` is the node of tree level `level`, its index
 global on the bottom layer (`idx / 2^level`). -/
 inductive HashDomain where
+  /-- A step of a chain of key `key`. -/
   | chain (lay : Layer) (key : KeyIndex) (step : ChainStep)
+  /-- Key `key`'s leaf, the hash of its chain ends. -/
   | leaf (lay : Layer) (key : KeyIndex)
+  /-- A tree's node at `level`, index `nodeIdx`. -/
   | node (lay : Layer) (level : Nat) (nodeIdx : Nat)
+  /-- The message digest under key `key`. -/
   | message (lay : Layer) (key : KeyIndex)
 deriving DecidableEq
 
@@ -116,7 +131,9 @@ def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x58, 0x4d, 0x53, 0x53]
 /-- The seed derivations: the parameter (under `P = 0`), and the starts of chains `2t` and `2t + 1`
 of a one-time key, the two halves of one hash. -/
 inductive KeygenDomain where
+  /-- The public parameter `P`. -/
   | parameter
+  /-- The starts of chains `2t` and `2t + 1` of key `key`, `t = pair`. -/
   | ots (lay : Layer) (key : KeyIndex) (pair : ChainPair)
 deriving DecidableEq
 
@@ -252,7 +269,9 @@ open LeanVM.Semantics (KeccakState)
 
 /-- The signer's key: the scheme's seed `S` and the parameter. -/
 structure SecretKey where
+  /-- `S = H("leanXMSS" ‖ S_0)`, from which every secret derives. -/
   seed : MasterSeed
+  /-- The public parameter `P`. -/
   parameter : PublicParameter
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
@@ -295,8 +314,9 @@ def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed :
   let base ← th π parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
   otsSignFrom π parameter lay key seed message base randomizerAttemptLimit 0
 
-/-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the bottom
-layer node indices are global: node `j` at level `level` is in bottom tree `j / 2^(16 - level)`. -/
+/-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the
+bottom layer node indices are global: node `j` at level `level` is in bottom tree
+`j / 2^(16 - level)`. -/
 def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest :=
   buildTree (fun nodeIdx ↦ do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
@@ -325,8 +345,8 @@ def signLayer (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : 
   let path ← treePath π secretKey.parameter lay secretKey.seed key
   return some ⟨randomness, values, path⟩
 
-/-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs the
-root of bottom tree `idx / 2^16`. -/
+/-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
+the root of bottom tree `idx / 2^16`. -/
 def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Option Signature) := do
   let bottomKey := keyAt index bottomLayer
   let topKey := keyAt index topLayer
@@ -341,13 +361,17 @@ end Seeded
 
 /-- A signing request: a leaf index and a 32-byte message. -/
 structure SignRequest where
+  /-- The leaf index to sign with. -/
   leafIndex : LeafIndex
+  /-- The message. -/
   message : Message
 deriving DecidableEq
 
 /-- A claimed forgery: a message and a signature, which carries its leaf index. -/
 structure Forgery where
+  /-- The message. -/
   message : Message
+  /-- Its claimed signature. -/
   signature : Signature
 deriving DecidableEq
 
@@ -369,8 +393,8 @@ namespace Rpm
 open Common Common.SufCma
 
 /-- leanXMSS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed, key generation,
-the signer of a request, the verifier,
-  and the winning condition: a valid transcript without the forgery (`SignerReturned`). -/
+the signer of a request, the verifier, and the winning condition: a valid transcript without the
+forgery (`SignerReturned`). -/
 noncomputable def scheme :
     Scheme MasterSeed PublicKey Seeded.SecretKey SignRequest (Option Signature)
       Forgery where

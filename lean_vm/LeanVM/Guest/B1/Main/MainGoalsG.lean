@@ -57,8 +57,8 @@ theorem wLog_lt {x : LeanVM.Da.MatrixWitness} {r v : Digest} (hw : x.Opens r v) 
   have hb := (Da.nPad_bounds h1).2
   unfold LeanDa.maxRows at h2
   by_contra hc
-  have : 2 ^ 34 ≤ LeanDa.nPad x.rows.length := by
-    unfold LeanDa.nPad
+  have : 2 ^ 34 ≤ LeanDa.paddedRowCount x.rows.length := by
+    unfold LeanDa.paddedRowCount
     exact Nat.pow_le_pow_right (by norm_num) (by unfold wLog at hc; omega)
   omega
 

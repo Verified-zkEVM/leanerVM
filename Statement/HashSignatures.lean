@@ -21,17 +21,31 @@ open OracleComp OracleSpec ENNReal
 
 namespace HashSig
 
+/-! ## The sizes and types both schemes share -/
+
+/-- `n`: a digest's bits (`128`, `16` bytes). -/
 def digestBits : Nat := 128
+/-- `w`: the bits of a Winternitz digit (`2`). -/
 def winternitzBits : Nat := 2
+/-- A hash chain's positions, `2^w` (`4`): a digit's values. -/
 def chainLength : Nat := 2 ^ winternitzBits
+/-- The key's secret seed `S_0`, `256` bits. -/
 abbrev MasterSeed := BitVec 256
+/-- A digest: a tweakable hash's output, `n` bits (a chain value, a Merkle node, a root). -/
 abbrev Digest := BitVec digestBits
+/-- The hash `H`'s output, `256` bits, before truncation to a digest. -/
 abbrev HashOutput := BitVec 256
+/-- A message to sign, `256` bits. -/
 abbrev Message := BitVec 256
+/-- The public parameter `P`, `128` bits, prefixed to every hash call. -/
 abbrev PublicParameter := BitVec 128
+/-- A signature's randomizer, one digest. -/
 abbrev Randomness := Digest
+/-- A Winternitz digit, a chain's position: `0` to `chainLength - 1`. -/
 abbrev Digit := Fin chainLength
+/-- A step along a chain, from position `t` to `t + 1`: `0` to `chainLength - 2`. -/
 abbrev ChainStep := Fin (chainLength - 1)
+/-- A hash call's input bytes. -/
 abbrev HashInput := List UInt8
 
 /-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
@@ -42,13 +56,16 @@ def truncateHash (output : HashOutput) : Digest :=
 def upperHash (output : HashOutput) : Digest :=
   output.extractLsb' digestBits digestBits
 
-/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`. -/
+/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`.
+-/
 def hashHalf (n : Nat) (output : HashOutput) : Digest :=
   if n % 2 = 0 then truncateHash output else upperHash output
 
 /-- `pk = (root, P)`. -/
 structure PublicKey where
+  /-- The Merkle root over the key's one-time public keys. -/
   root : Digest
+  /-- The public parameter `P`. -/
   parameter : PublicParameter
 deriving DecidableEq
 
@@ -60,9 +77,13 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
 /-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a
 chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
+  /-- The hash call's type. -/
   tag : BitVec 5
+  /-- The chain step, for a chain's hash. -/
   step : BitVec 3
+  /-- The high field, `24` bits, which each hash type fills (each scheme's `hashDomainFields`). -/
   hi : BitVec 24
+  /-- The low field, `32` bits, likewise (a leaf, key or node index). -/
   lo : BitVec 32
 deriving DecidableEq
 
@@ -80,7 +101,7 @@ def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : Hash
     HashInput :=
   bytesLE 16 parameter ++ fieldBytes fields ++ payload
 
-/-- The key's seed `S_0`, uniform. -/
+/-- **The key's seed `S_0`**, sampled uniformly. -/
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
@@ -88,6 +109,8 @@ noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
 namespace Concrete
 
 open LeanVM.Semantics (KeccakState)
+
+/-! ## Chains, Merkle paths and trees, and the hash, over a permutation `π` -/
 
 /-- Run the `n` computations in index order and collect their results. -/
 def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}

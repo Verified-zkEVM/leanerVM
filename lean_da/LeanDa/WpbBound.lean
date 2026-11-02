@@ -63,16 +63,16 @@ theorem findCollision_take (H : List UInt8 → Common.DigestBytes) (l₁ : List 
 collision. -/
 theorem openingsCollision_take {r : ℕ} (H : List UInt8 → Common.DigestBytes) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) (c : Fin (r * 128) → Cell) :
-    openingsCollision H r i x ⟨τ.rowRoot, τ.path.take (8 + logPad r)⟩ (c i) (openCellWithHash H c i) =
+    openingsCollision H r i x ⟨τ.rowRoot, τ.path.take (8 + logPaddedRowCount r)⟩ (c i) (openCellWithHash H c i) =
       openingsCollision H r i x τ (c i) (openCellWithHash H c i) := by
   have hl : (hashInputs H (colIndex i) (cellBytes (c i)) (openCellWithHash H c i).path
-      (openCellWithHash H c i).rowRoot).length = 9 + logPad r := by
+      (openCellWithHash H c i).rowRoot).length = 9 + logPaddedRowCount r := by
     rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega
   simp only [openingsCollision]
-  rw [findCollision_take H _ _ (9 + logPad r) hl.le,
-    findCollision_take H (hashInputs H (colIndex i) (cellBytes x) τ.path τ.rowRoot) _ (9 + logPad r)
-      hl.le, show 9 + logPad r = (8 + logPad r) + 1 by omega,
-    hashInputs_take H τ.path (8 + logPad r)]
+  rw [findCollision_take H _ _ (9 + logPaddedRowCount r) hl.le,
+    findCollision_take H (hashInputs H (colIndex i) (cellBytes x) τ.path τ.rowRoot) _ (9 + logPaddedRowCount r)
+      hl.le, show 9 + logPaddedRowCount r = (8 + logPaddedRowCount r) + 1 by omega,
+    hashInputs_take H τ.path (8 + logPaddedRowCount r)]
 
 theorem shortP_openingsCollision {r : ℕ} (H : List UInt8 → Common.DigestBytes) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) (x' : Cell) (τ' : Opening)
@@ -85,9 +85,9 @@ theorem shortP_openingsCollision {r : ℕ} (H : List UInt8 → Common.DigestByte
 def wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell) (τ : Opening) :
     OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let τ' ← openCellM hS c i
-  let l₁ ← hashInputsM hS (colIndex i) (cellBytes x) (τ.path.take (8 + logPad r)) τ.rowRoot
-  let l₂ ← hashInputsM hS (colIndex i) (cellBytes (c i)) (τ'.path.take (7 + logPad r)) τ'.rowRoot
-  findCollisionM hS l₁ (l₂.take (9 + logPad r))
+  let l₁ ← hashInputsM hS (colIndex i) (cellBytes x) (τ.path.take (8 + logPaddedRowCount r)) τ.rowRoot
+  let l₂ ← hashInputsM hS (colIndex i) (cellBytes (c i)) (τ'.path.take (7 + logPaddedRowCount r)) τ'.rowRoot
+  findCollisionM hS l₁ (l₂.take (9 + logPaddedRowCount r))
 
 theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) :
@@ -101,10 +101,10 @@ theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin 
     findCollisionM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h), pure_bind]
   rw [← openingsCollision_take]
   congr 1
-  have e1 : (openCellWithHash (Hh h) c i).path.take (7 + logPad r) = (openCellWithHash (Hh h) c i).path :=
+  have e1 : (openCellWithHash (Hh h) c i).path.take (7 + logPaddedRowCount r) = (openCellWithHash (Hh h) c i).path :=
     List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
   have e2 : (hashInputs (Hh h) (colIndex i) (cellBytes (c i)) (openCellWithHash (Hh h) c i).path
-      (openCellWithHash (Hh h) c i).rowRoot).take (9 + logPad r) = hashInputs (Hh h) (colIndex i)
+      (openCellWithHash (Hh h) c i).rowRoot).take (9 + logPaddedRowCount r) = hashInputs (Hh h) (colIndex i)
         (cellBytes (c i)) (openCellWithHash (Hh h) c i).path (openCellWithHash (Hh h) c i).rowRoot :=
     List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega)
   simp only [openingsCollision, e1, e2]
@@ -112,14 +112,14 @@ theorem wpbColX_eval (r : ℕ) (h : HTab) (c : Fin (r * 128) → Cell) (i : Fin 
 theorem isWeightBound_wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r * 128)) (x : Cell)
     (τ : Opening) :
     QueryCostAtMost (wpbColX r c i x τ) xCalls
-      (openCalls r + (8 + logPad r + 1) + (7 + logPad r + 1) + 2 * (9 + logPad r)) := by
+      (openCalls r + (8 + logPaddedRowCount r + 1) + (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by
   unfold wpbColX
   have hI : ∀ k idx a (path : List Common.DigestBytes) rr, QueryCostAtMost
       (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take k) rr) xCalls (k + 1) :=
     fun k idx a path rr ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
       (fun _ ↦ isWeightBound_hS _) _ idx a rr).mono (by simp only [List.length_take]; omega)
   have hF : ∀ l₁ (l₂ : List (List UInt8)), QueryCostAtMost
-      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (9 + logPad r))) xCalls (2 * (9 + logPad r)) :=
+      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (9 + logPaddedRowCount r))) xCalls (2 * (9 + logPaddedRowCount r)) :=
     fun l₁ l₂ ↦ (isWeightBound_findCollisionM (hS (Ψ := unifSpec)) xCalls
       (fun _ ↦ isWeightBound_hS _) l₁ _).mono (by simp only [List.length_take]; omega)
   exact ((isWeightBound_openCellM_hS r c i).bind fun _ ↦ (hI _ _ _ _ _).bind fun _ ↦
@@ -179,7 +179,7 @@ noncomputable def wpbX [NeZero r] : OracleComp (unifSpec + XS) (List UInt8 × Li
 
 /-- Its hash calls. -/
 abbrev wpbCalls (r Q : ℕ) : ℕ :=
-  Q + 1 + (openCalls r + (8 + logPad r + 1) + (7 + logPad r + 1) + 2 * (9 + logPad r))
+  Q + 1 + (openCalls r + (8 + logPaddedRowCount r + 1) + (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r))
 
 theorem isWeightBound_wpbX [NeZero r] (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :

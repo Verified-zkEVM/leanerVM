@@ -53,8 +53,8 @@ theorem tensor_eq (z : Fin 14 → E) (u : Fin (2 ^ 14)) : tensor z u = ∏ j ∈
   rw [tensor, bitsOf, Finset.prod_filter]
 
 theorem novelX_eval (u : Fin (2 ^ 14)) (x : K) :
-    (novelX u).eval x = ∏ j ∈ bitsOf u, (normW j).eval x := by
-  unfold novelX AdditiveNTT.Xⱼ normW
+    (novelX u).eval x = ∏ j ∈ bitsOf u, (normalizedSubspacePolynomial j).eval x := by
+  unfold novelX AdditiveNTT.Xⱼ normalizedSubspacePolynomial
   rw [eval_prod, bitsOf, Finset.prod_filter]
   refine Finset.prod_congr rfl fun i _ ↦ ?_
   rw [eval_pow, Nat.getBit_eq_testBit]
@@ -64,7 +64,7 @@ theorem novelX_eval (u : Fin (2 ^ 14)) (x : K) :
 theorem dual_eq_sum (z : Fin 14 → E) (b : Fin (2 ^ 15)) :
     dual z b = ∑ u, tensor z u * ι ((novelX u).eval (point b)) := by
   rw [dual, Finset.prod_one_add, Finset.powerset_univ,
-    ← bitsOf_bijective.sum_comp fun t ↦ ∏ j ∈ t, z j * ι ((normW j).eval (point b))]
+    ← bitsOf_bijective.sum_comp fun t ↦ ∏ j ∈ t, z j * ι ((normalizedSubspacePolynomial j).eval (point b))]
   refine Finset.sum_congr rfl fun u _ ↦ ?_
   rw [tensor_eq, novelX_eval, map_prod, ← Finset.prod_mul_distrib]
 
@@ -105,14 +105,14 @@ noncomputable def membershipPoly (w : Row) : MvPolynomial (Fin 14) E :=
   sumMonomials monoExp fun u ↦ ι (novelCoeff w u)
 
 theorem dot_dual_eq_sum (w : Row) (z : Fin 14 → E) :
-    dot (dual z) w = ∑ u, ι (novelCoeff w u) * tensor z u := by
-  simp only [dot, dual_eq_sum, Finset.sum_mul, novelCoeff, map_sum, map_mul]
+    innerProduct (dual z) w = ∑ u, ι (novelCoeff w u) * tensor z u := by
+  simp only [innerProduct, dual_eq_sum, Finset.sum_mul, novelCoeff, map_sum, map_mul]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun u _ ↦ Finset.sum_congr rfl fun b _ ↦ ?_
   ring
 
 theorem eval_membershipPoly (w : Row) (z : Fin 14 → E) :
-    MvPolynomial.eval z (membershipPoly w) = dot (dual z) w := by
+    MvPolynomial.eval z (membershipPoly w) = innerProduct (dual z) w := by
   have hmono : ∀ u, MvPolynomial.eval z (MvPolynomial.monomial (monoExp u) (ι (novelCoeff w u))) =
       ι (novelCoeff w u) * tensor z u := by
     intro u
@@ -149,7 +149,7 @@ theorem totalDegree_membershipPoly_le (w : Row) : (membershipPoly w).totalDegree
 /-! ## Completeness and soundness -/
 
 /-- **A codeword passes for every challenge.** -/
-theorem dot_dual_eq_zero {w : Row} (hw : w ∈ rsCode) (z : Fin 14 → E) : dot (dual z) w = 0 := by
+theorem dot_dual_eq_zero {w : Row} (hw : w ∈ rsCode) (z : Fin 14 → E) : innerProduct (dual z) w = 0 := by
   rw [dot_dual_eq_sum]
   refine Finset.sum_eq_zero fun u _ ↦ ?_
   have horth := rsCode_le_orthogonal hw
@@ -164,9 +164,9 @@ theorem dot_dual_eq_zero {w : Row} (hw : w ∈ rsCode) (z : Fin 14 → E) : dot 
 
 /-- The challenges for which a row is orthogonal to the dual codeword. -/
 noncomputable def acceptSet (w : Row) : Finset (Fin 14 → E) :=
-  Finset.univ.filter fun z ↦ dot (dual z) w = 0
+  Finset.univ.filter fun z ↦ innerProduct (dual z) w = 0
 
-theorem mem_acceptSet {w : Row} {z : Fin 14 → E} : z ∈ acceptSet w ↔ dot (dual z) w = 0 := by
+theorem mem_acceptSet {w : Row} {z : Fin 14 → E} : z ∈ acceptSet w ↔ innerProduct (dual z) w = 0 := by
   simp [acceptSet]
 
 /-- **Schwartz-Zippel**: a row that is not a codeword is orthogonal to the dual codeword for at
@@ -184,11 +184,11 @@ theorem card_acceptSet_le {w : Row} (hw : w ∉ rsCode) :
   have hE : (0 : ℚ≥0) < Fintype.card E := by exact_mod_cast Fintype.card_pos
   have hdeg : ((membershipPoly w).totalDegree : ℚ≥0) ≤ 14 := by
     exact_mod_cast totalDegree_membershipPoly_le w
-  have h1 : ((Finset.univ.filter fun z : Fin 14 → E ↦ dot (dual z) w = 0).card : ℚ≥0) ≤
+  have h1 : ((Finset.univ.filter fun z : Fin 14 → E ↦ innerProduct (dual z) w = 0).card : ℚ≥0) ≤
       14 * (Fintype.card E : ℚ≥0) ^ 13 := by
     have h2 := hsz.trans (div_le_div_of_nonneg_right hdeg hE.le)
     rw [div_le_div_iff₀ (pow_pos hE 14) hE] at h2
-    have h3 : ((Finset.univ.filter fun z : Fin 14 → E ↦ dot (dual z) w = 0).card : ℚ≥0) *
+    have h3 : ((Finset.univ.filter fun z : Fin 14 → E ↦ innerProduct (dual z) w = 0).card : ℚ≥0) *
         Fintype.card E ≤ 14 * (Fintype.card E : ℚ≥0) ^ 13 * Fintype.card E := by
       calc _ ≤ 14 * (Fintype.card E : ℚ≥0) ^ 14 := h2
         _ = _ := by ring

@@ -25,11 +25,17 @@ namespace LeanVM.Parameters
 
 /-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:99-104`). -/
 inductive Opcode
+  /-- `XOR`: an addition in `E`. -/
   | xor
+  /-- `MUL`: a product in `E`. -/
   | mulNative
+  /-- `SET`: a constant. -/
   | setConstant
+  /-- `DEREF`: a read through a computed address. -/
   | deref
+  /-- `JUMP`: a conditional jump. -/
   | jump
+  /-- `KECCAK`: one Keccak-f[1600] permutation. -/
   | keccak
   deriving DecidableEq
 
@@ -42,10 +48,12 @@ def Opcode.code : Opcode → K
   | .jump => gpow 4
   | .keccak => gpow 5
 
-/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`). -/
+/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`).
+-/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
+/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`,
+`MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
 /-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:490`;
@@ -74,6 +82,7 @@ noncomputable def MemoryImage.read {κ : ℕ} (L : MemoryImage κ) (a : K) : Opt
 
 /-- The public input: 256 bits, as four `K` lanes. -/
 structure PublicInput where
+  /-- Its four `64`-bit lanes, as `K` words. -/
   lanes : Fin 4 → K
   deriving DecidableEq
 
@@ -89,8 +98,11 @@ An operand `o` names the word at `fp · o`, written `[o]`. -/
 
 /-- What a `DEREF` stores: a local word, the return address, or the frame pointer. -/
 inductive DerefMode
+  /-- A local word, `[o₃]`. -/
   | cell
+  /-- The return address, the next `pc`. -/
   | pc
+  /-- The frame pointer, `fp`. -/
   | fp
   deriving DecidableEq
 
@@ -125,8 +137,11 @@ def Instr.opcode : Instr → Opcode
 
 /-- A program: `2^logSize ≤ 2^32` instructions, instruction `i` at address `g^i`. -/
 structure Program where
+  /-- The log-size: `2^logSize` instructions. -/
   logSize : ℕ
+  /-- At most `2^32` instructions. -/
   logSize_le : logSize ≤ maxLogBytecode
+  /-- Instruction `i`, at address `g^i`. -/
   code : Fin (2 ^ logSize) → Instr
 
 /-- The instruction at address `pc`. -/
@@ -137,7 +152,8 @@ noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
-`_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`, `crates/leanvm_core/src/keccak.rs:59-80`):
+`_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`,
+`crates/leanvm_core/src/keccak.rs:59-80`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
@@ -207,7 +223,9 @@ def readCells (read : K → Option E) (fp : K) (offset : Fin 13 → K) : Option 
 
 /-- The registers: the program counter and the frame pointer. -/
 structure Registers (F : Type) where
+  /-- The program counter: the address of the next instruction. -/
   pc : F
+  /-- The frame pointer: operand `o` names the word at `fp · o`. -/
   fp : F
 
 /-- Register equality is decided field by field. Not derived: the derived instance decides the
@@ -310,8 +328,11 @@ noncomputable def run {κ : ℕ} (prog : Program) (L : MemoryImage κ) :
 /-- An execution: a memory of `2^logMemorySize` words (`2^κ` in the specification) and a number of
 steps. -/
 structure Execution (prog : Program) where
+  /-- `κ`: the memory holds `2^κ` words. -/
   logMemorySize : ℕ
+  /-- The memory, fixed before the run and only read. -/
   memory : MemoryImage logMemorySize
+  /-- The number of steps the run takes. -/
   steps : ℕ
 
 /-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
@@ -356,7 +377,8 @@ def derefFlags : DerefMode → K × K
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `crates/leanvm_core/src/cpu/layout.rs:297`). -/
+/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
+`crates/leanvm_core/src/cpu/layout.rs:297`). -/
 def flagK (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
@@ -459,9 +481,13 @@ def nth {α : Type} : List α → ℕ → α → α
 /-- A compiled function: its name (`f__L…` for a specialization), entry pc, number of
 instructions, and code in chunks of `chunkSize` instructions (the last shorter). -/
 structure CompiledFn where
+  /-- Its name, for a reader of the generated data. -/
   name : String
+  /-- The pc of its first instruction. -/
   entry : ℕ
+  /-- Its number of instructions. -/
   len : ℕ
+  /-- Its code, in chunks of `chunkSize` instructions. -/
   chunks : List (List OInstr)
 
 /-- Instruction `i` of code in chunks of `C`, the padding past the end. -/

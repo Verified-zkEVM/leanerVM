@@ -69,7 +69,7 @@ theorem da_verify_holds : da_verify_sound_Spec := by
     calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
       _ = 1024 := by norm_num
   have hrL : r ≤ 2 ^ L := by
-    rw [hnp, LeanDa.nPad, LeanDa.logPad]; exact Nat.le_pow_clog (by norm_num) r
+    rw [hnp, LeanDa.paddedRowCount, LeanDa.logPaddedRowCount]; exact Nat.le_pow_clog (by norm_num) r
   -- the prefix bases and the running sums
   have L18 : ∀ i < r, LoadHolds rd (σ (.n 13) * gen ^ i) 0 (σ (.n 12) * (gen ^ i) ^ 128) :=
     loop_sound (f := "__loop17") (ps := [σ (.n 1), σ (.n 13), σ (.n 12)]) (ordG_of (by omega)) h1

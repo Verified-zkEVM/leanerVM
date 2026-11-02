@@ -99,7 +99,7 @@ theorem paddedCell_cellsOfRows (rows : List (List K)) {i j : ℕ} (hi : i < rows
     (hj : j < 128) :
     paddedCell (cellsOfRows rows) i j = fun s : Fin 256 ↦ rows[i].getD (256 * j + s) 0 := by
   funext s
-  simp only [paddedCell, hi, hj, and_self, ↓reduceDIte, cellsOfRows, pos]
+  simp only [paddedCell, hi, hj, and_self, ↓reduceDIte, cellsOfRows, cellPosition]
   rw [show (128 * i + j) / 128 = i by omega, show (128 * i + j) % 128 = j by omega,
     List.getD_eq_getElem _ _ hi]
 
@@ -125,10 +125,10 @@ theorem paddingRow_eq {rows : List (List K)} {i : ℕ} (hi : rows.length ≤ i) 
     List.ofFn_const, payloadCells]
 
 theorem rowLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    rows.map (rowDigestWithHash H) ++ List.replicate (nPad rows.length - rows.length) (paddingRowWithHash H) =
-      (List.range (2 ^ logPad rows.length)).map (rowLeavesWithHash H (cellsOfRows rows)) := by
+    rows.map (rowDigestWithHash H) ++ List.replicate (paddedRowCount rows.length - rows.length) (paddingRowWithHash H) =
+      (List.range (2 ^ logPaddedRowCount rows.length)).map (rowLeavesWithHash H (cellsOfRows rows)) := by
   have hle := le_nPad rows.length
-  change _ = (List.range (nPad rows.length)).map _
+  change _ = (List.range (paddedRowCount rows.length)).map _
   refine List.ext_getElem (by simp only [List.length_append, List.length_map,
     List.length_replicate, List.length_range]; omega) fun i h₁ h₂ ↦ ?_
   rw [List.getElem_map, List.getElem_range]
@@ -138,15 +138,15 @@ theorem rowLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.lengt
       paddingRow_eq H (rows := rows) (i := i) (by omega)]
 
 theorem colLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    ((List.range cellsPerRow).flatMap fun j ↦ (List.range (nPad rows.length)).map fun i ↦
+    ((List.range cellsPerRow).flatMap fun j ↦ (List.range (paddedRowCount rows.length)).map fun i ↦
         if h : i < rows.length then listCellDigestWithHash H rows[i] j else paddingCellWithHash H) =
-      (List.range (2 ^ (7 + logPad rows.length))).map (colLeavesWithHash H (cellsOfRows rows)) := by
-  have hpos : 0 < nPad rows.length := by unfold nPad; positivity
-  rw [flatMap_range_map_range _ _ hpos, cellsPerRow, show 2 ^ (7 + logPad rows.length) =
-    128 * nPad rows.length by rw [pow_add]; rfl]
+      (List.range (2 ^ (7 + logPaddedRowCount rows.length))).map (colLeavesWithHash H (cellsOfRows rows)) := by
+  have hpos : 0 < paddedRowCount rows.length := by unfold paddedRowCount; positivity
+  rw [flatMap_range_map_range _ _ hpos, cellsPerRow, show 2 ^ (7 + logPaddedRowCount rows.length) =
+    128 * paddedRowCount rows.length by rw [pow_add]; rfl]
   refine List.map_congr_left fun l hl ↦ ?_
   rw [List.mem_range] at hl
-  have hj : l / nPad rows.length < 128 := (Nat.div_lt_iff_lt_mul hpos).mpr hl
+  have hj : l / paddedRowCount rows.length < 128 := (Nat.div_lt_iff_lt_mul hpos).mpr hl
   rw [colLeavesWithHash]
   split_ifs with hi
   · rw [listCellDigest_eq H (hrows _ (List.getElem_mem hi)) hj, paddedCell_cellsOfRows rows hi hj]

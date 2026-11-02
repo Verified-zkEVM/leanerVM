@@ -85,7 +85,7 @@ def da_verify_sound_Spec : Prop :=
 def MeaningDaRowShape (rd : Reader) : List E → List E → Prop
   | [nb, glp, gsq], rets => SquaresAt rd gsq →
       ∃ r L, 1 ≤ r ∧ r ≤ LeanDa.maxRows ∧ L ≤ 10 ∧ nb = gen ^ r ∧ glp = gen ^ L ∧
-        2 ^ L = LeanDa.nPad r ∧ rets = [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
+        2 ^ L = LeanDa.paddedRowCount r ∧ rets = [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
   | _, _ => False
 
 /-- `da_row_shape`'s core IR gives its meaning, on a memory image. -/

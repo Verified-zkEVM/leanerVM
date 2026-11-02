@@ -295,15 +295,15 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
     unfold LeanDa.maxRows at hm
-    unfold LeanDa.nPad at hb
+    unfold LeanDa.paddedRowCount at hb
     have hL : Da.wLog p.2 < 11 := by
       unfold Da.wLog
-      have : 2 ^ LeanDa.logPad p.2.rows.length < 2 ^ 11 := by omega
+      have : 2 ^ LeanDa.logPaddedRowCount p.2.rows.length < 2 ^ 11 := by omega
       exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
     simp only [Option.map_some, Option.getD_some, Nat.one_mul]
     refine (dvB_le fs SB SK (r := p.2.rows.length) (by unfold Da.wLog; omega) hL).trans
       (le_of_eq ?_)
-    unfold Da.wLog LeanDa.nPad
+    unfold Da.wLog LeanDa.paddedRowCount
     ring
 
 /-- `aggregate_claims`' constant words. -/

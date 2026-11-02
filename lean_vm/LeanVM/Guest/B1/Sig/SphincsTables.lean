@@ -28,7 +28,7 @@ theorem spCode_lut_all : ∀ t < 256, ∀ i < 6,
     spCodes / 5 ^ (6 * t + i) % 5 = Sphincs.codewordCodes.getD t 0 / 5 ^ (5 - i) % 5 := by
   decide +kernel
 
-theorem spCode_lut (t : Sphincs.LutIdx) (i : Sphincs.FChain) : spCode t.val i.val = (Sphincs.lut t i).val := by
+theorem spCode_lut (t : Sphincs.CodewordIndex) (i : Sphincs.ForestChainIndex) : spCode t.val i.val = (Sphincs.lut t i).val := by
   rw [lut_val]
   exact spCode_lut_all t.val t.isLt i.val i.isLt
 

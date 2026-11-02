@@ -157,7 +157,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   set D := BitVec.ofNat messageDigestBits (encNat σ + 2 ^ 128 * Vb) with hD
   have hDidx : (digestIndex D).val = sIdx σ := by rw [hD, digestIndex_ofNat hEnc]; exact hVidx
   have hleafI : (digestIndex D).val = sIdx σ := hDidx
-  have hmk : ∀ (c : Coord) (j : SubIdx), ((digestMarks D c).super).val = cS σ c.val ∧
+  have hmk : ∀ (c : ForestCoordinate) (j : SubtreeIndex), ((digestMarks D c).super).val = cS σ c.val ∧
       ((digestMarks D c).child j).val = cA σ c.val j.val ∧
       ((digestMarks D c).word j).val = cT σ c.val j.val := by
     intro c j

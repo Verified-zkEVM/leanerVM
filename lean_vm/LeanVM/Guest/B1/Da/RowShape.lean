@@ -86,8 +86,8 @@ set_option maxRecDepth 100000 in
 theorem rs_ok : rsOk Data.core26 = true := by decide +kernel
 
 /-- The padded count: `2^L` when `2^L < 2r ≤ 2^(L+1)`. -/
-theorem nPad_of {r L : ℕ} (h1 : r ≤ 2 ^ L) (h2 : 2 ^ L < 2 * r) : LeanDa.nPad r = 2 ^ L := by
-  unfold LeanDa.nPad LeanDa.logPad
+theorem nPad_of {r L : ℕ} (h1 : r ≤ 2 ^ L) (h2 : 2 ^ L < 2 * r) : LeanDa.paddedRowCount r = 2 ^ L := by
+  unfold LeanDa.paddedRowCount LeanDa.logPaddedRowCount
   congr 1
   apply le_antisymm
   · exact Nat.clog_le_of_le_pow h1

@@ -177,14 +177,14 @@ end Transport
 /-! ## The bijection of the signatures -/
 
 /-- A sub-tree's opening, in the layered presentation. -/
-def subOpeningEquiv : SphincsLayered.SubOpening ≃ SubOpening where
+def subOpeningEquiv : SphincsLayered.SubOpening ≃ SubtreeOpening where
   toFun o := ⟨o.values, o.path⟩
   invFun o := ⟨o.values, o.path⟩
   left_inv _ := rfl
   right_inv _ := rfl
 
 /-- A coordinate's opening, in the layered presentation. -/
-def coordOpeningEquiv : SphincsLayered.CoordOpening ≃ CoordOpening where
+def coordOpeningEquiv : SphincsLayered.CoordOpening ≃ CoordinateOpening where
   toFun o := ⟨fun j ↦ subOpeningEquiv (o.sub j), o.top⟩
   invFun o := ⟨fun j ↦ subOpeningEquiv.symm (o.sub j), o.top⟩
   left_inv _ := rfl
@@ -264,7 +264,7 @@ theorem bind_map_congr {α β γ : Type} (g : α → β) (x : m α) (y : m β) (
   exact bind_congr hk
 
 /-- The opening of a coordinate, through the bijection. -/
-theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : Coord)
+theorem coordOpen_eq (parameter : PublicParameter) (index : Index) (c : ForestCoordinate)
     (digest : MessageDigest) (seed : MasterSeed) :
     Seeded.coordOpenWithHash (m := m) parameter index c (Concrete.digestMarks digest c) seed =
       coordOpeningEquiv <$> SphincsLayered.Seeded.coordOpen parameter index c

@@ -72,7 +72,7 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
     if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
-        if o.2.2.path.length = 7 + logPad r then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
+        if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
         else pure false
       | none => pure false
     else pure true
@@ -87,7 +87,7 @@ noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challe
     if ext crs ((), out.1.1, l) out.1.2 ∈ (code r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
-        if o.2.2.path.length = 7 + logPad r then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
+        if o.2.2.path.length = 7 + logPaddedRowCount r then verifyCell (Hh h) r out.1.1 o.1 o.2.1 o.2.2
         else false
       | none => false
     else true
@@ -128,7 +128,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challen
     · rw [ite_eq_left hw, ite_eq_left hw]
       rcases firstBad r w out.2 with _ | o
       · simp only [hp]; rfl
-      · by_cases hlen : o.2.2.path.length = 7 + logPad r
+      · by_cases hlen : o.2.2.path.length = 7 + logPaddedRowCount r
         · simp only [ite_eq_left hlen]
           rw [verifyCellM_map (fun x ↦ simulateQ (phiG h ∘ₛ embG) x) hp hb, verifyCellM_congr hHs,
             verifyCellM_pure]
@@ -168,7 +168,7 @@ theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Challenges)
     · simp only [firstBad] at hfb
       have ho := List.mem_of_find?_eq_some hfb
       have hv := hall o ho
-      have hlen : o.2.2.path.length = 7 + logPad r := by
+      have hlen : o.2.2.path.length = 7 + logPaddedRowCount r := by
         simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hv
         exact hv.1
       simp only [ite_eq_left hlen]
@@ -373,7 +373,7 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
     rcases hfb : firstBad r w out.2 with _ | o
     · simp [hfb, hpO] at hrep
     · simp only [hfb] at hrep
-      by_cases hlen : o.2.2.path.length = 7 + logPad r
+      by_cases hlen : o.2.2.path.length = 7 + logPaddedRowCount r
       · rw [ite_eq_left hlen, verifyCellM_map (fun x ↦ simulateQ (lookupH z.2) x) hpO hbO] at hrep
         simp only [hHg] at hrep
         obtain ⟨hb, hvin⟩ := verifyCellM_some (fOf z.2) hg out.1.1 o.1 o.2.1 o.2.2 true hrep

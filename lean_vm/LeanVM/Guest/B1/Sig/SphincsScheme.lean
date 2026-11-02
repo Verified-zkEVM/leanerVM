@@ -289,7 +289,7 @@ theorem bytesLE_counter {x : E} (h : cellNat x < 2 ^ 32) :
 /-- **The encoding over cells**: the hash of `P`, the encoding's address, the sixteen top nodes and
 the counter's four bytes, the first `292` bytes of the cells. -/
 theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : Index} {K : ForestKey} {ctr : Counter} (T : Nat → E)
-    (hK : ∀ c : Coord, K c = (sv (T (2 * c.val)), sv (T (2 * c.val + 1))))
+    (hK : ∀ c : ForestCoordinate, K c = (sv (T (2 * c.val)), sv (T (2 * c.val + 1))))
     (hE : cellBytes aE = tweakBytes (.encoding leaf))
     (hc : Sphincs.bytesLE 4 ctr = (cellBytes x).take 4) :
     @encodeWithHash Id _ inst (spp pp) leaf K ctr =
@@ -301,12 +301,12 @@ theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : Index} {K : ForestKey
   rw [bytesLE_spp, ← hE, hc]
   have hK' : K = fun c => (sv (T (2 * c.val)), sv (T (2 * c.val + 1))) := funext hK
   subst hK'
-  have hr : rootsPayload (fun c : Coord => (sv (T (2 * c.val)), sv (T (2 * c.val + 1)))) =
+  have hr : rootsPayload (fun c : ForestCoordinate => (sv (T (2 * c.val)), sv (T (2 * c.val + 1)))) =
       ((List.range 16).map T).flatMap cellBytes := by
     simp only [rootsPayload, nodePayload]
-    rw [show (List.ofFn fun c : Coord => (sv (T (2 * c.val)), sv (T (2 * c.val + 1)))) =
+    rw [show (List.ofFn fun c : ForestCoordinate => (sv (T (2 * c.val)), sv (T (2 * c.val + 1)))) =
         (List.range 8).map (fun k => (sv (T (2 * k)), sv (T (2 * k + 1)))) from
-      ofFn_val_eq forestCoords (fun k => (sv (T (2 * k)), sv (T (2 * k + 1))))]
+      ofFn_val_eq forestCoordinates (fun k => (sv (T (2 * k)), sv (T (2 * k + 1))))]
     simp [List.range_succ, bytesLE_sv]
   rw [hr, cellsBytes_eq_flatMap]
   have hl : (cellBytes pp ++ cellBytes aE ++ ((List.range 16).map T).flatMap cellBytes).length = 288 := by
@@ -446,21 +446,21 @@ theorem digestByte_ofNat {c0 c1 : Nat} {k : Nat} (hk : k + 8 ≤ 128) :
   have hm : (c0 + 2 ^ 128 * c1) % 2 ^ messageDigestBits / 2 ^ k % 2 ^ 8 =
       (c0 + 2 ^ 128 * c1) / 2 ^ k % 2 ^ 8 :=
     mod_div_mod (show k + 8 ≤ messageDigestBits by
-      simp only [messageDigestBits, totalHeight, forestCoords, coordBits]; omega)
+      simp only [messageDigestBits, totalHeight, forestCoordinates, coordinateBits]; omega)
   rw [hm, e, Nat.add_mul_div_left _ _ (by positivity), Nat.add_mul_mod_self_left]
 
-theorem digestMarks_super_val (D : Sphincs.MessageDigest) (c : Sphincs.Coord) :
+theorem digestMarks_super_val (D : Sphincs.MessageDigest) (c : Sphincs.ForestCoordinate) :
     ((digestMarks D c).super).val = (D.extractLsb' (superOffset c) topHeight).toNat := rfl
 
-theorem digestMarks_child_val (D : Sphincs.MessageDigest) (c : Sphincs.Coord) (j : Sphincs.SubIdx) :
+theorem digestMarks_child_val (D : Sphincs.MessageDigest) (c : Sphincs.ForestCoordinate) (j : Sphincs.SubtreeIndex) :
     ((digestMarks D c).child j).val = (D.extractLsb' (childOffset c j) subHeight).toNat := rfl
 
-theorem digestMarks_word_val (D : Sphincs.MessageDigest) (c : Sphincs.Coord) (j : Sphincs.SubIdx) :
+theorem digestMarks_word_val (D : Sphincs.MessageDigest) (c : Sphincs.ForestCoordinate) (j : Sphincs.SubtreeIndex) :
     ((digestMarks D c).word j).val = (D.extractLsb' (wordOffset c j) 8).toNat := rfl
 
 /-- The marks of a digest of two cells: the super-child and the child fields of the second, the
 codeword byte of the first. -/
-theorem digestMarks_ofNat {c0 c1 : Nat} (h0 : c0 < 2 ^ 128) (c : Sphincs.Coord) (j : Sphincs.SubIdx) :
+theorem digestMarks_ofNat {c0 c1 : Nat} (h0 : c0 < 2 ^ 128) (c : Sphincs.ForestCoordinate) (j : Sphincs.SubtreeIndex) :
     ((digestMarks (BitVec.ofNat messageDigestBits (c0 + 2 ^ 128 * c1)) c).super).val =
         c1 / 2 ^ (26 + 4 * c.val) % 2 ^ 4 ∧
       ((digestMarks (BitVec.ofNat messageDigestBits (c0 + 2 ^ 128 * c1)) c).child j).val =
@@ -469,7 +469,7 @@ theorem digestMarks_ofNat {c0 c1 : Nat} (h0 : c0 < 2 ^ 128) (c : Sphincs.Coord) 
         c0 / 2 ^ (8 * (2 * c.val + j.val)) % 2 ^ 8 := by
   have hc := c.isLt
   have hj := j.isLt
-  simp only [forestCoords] at hc
+  simp only [forestCoordinates] at hc
   refine ⟨?_, ?_, ?_⟩
   · rw [digestMarks_super_val, superOffset, show 154 + 4 * c.val = 128 + (26 + 4 * c.val) by omega]
     exact digestField_ofNat h0 (by simp only [topHeight]; omega)
@@ -489,10 +489,10 @@ def fChain (pp ka : E) (i s : Nat) (v : E) : Nat → E
   | n + 1 => (hcell [pp, ka + eOfNat (tw 15 + i * 2 ^ 43 + (s + n) * stepMul), fChain pp ka i s v n]).1
 
 /-- **A forest chain over cells.** -/
-theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : Coord} {s : SuperIdx}
-    {j : SubIdx} {a : ChildIdx} {i : FChain}
-    (hadr : ∀ t : FStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
-      tweakBytes (.fchain index c s j a i t)) (start : Nat) (x : E) :
+theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : ForestCoordinate} {s : SuperChildIndex}
+    {j : SubtreeIndex} {a : ChildIndex} {i : ForestChainIndex}
+    (hadr : ∀ t : ForestChainStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
+      tweakBytes (.forestChain index c s j a i t)) (start : Nat) (x : E) :
     ∀ n, start + n ≤ chainTop →
       @forestWalkWithHash Id _ inst (spp pp) index c s j a i start n (sv x) = sv (fChain pp ka i.val start x n)
   | 0, _ => by rw [forestWalk_eq_zero]; rfl
@@ -506,10 +506,10 @@ theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : Coord}
       simp
 
 /-- **A forest chain from its deficit.** -/
-theorem sForestRecoverChain_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : Coord}
-    {s : SuperIdx} {j : SubIdx} {a : ChildIdx} {i : FChain}
-    (hadr : ∀ t : FStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
-      tweakBytes (.fchain index c s j a i t)) (d : FPos) (x : E) :
+theorem sForestRecoverChain_cells (hq : SQ inst) {pp ka : E} {index : Index} {c : ForestCoordinate}
+    {s : SuperChildIndex} {j : SubtreeIndex} {a : ChildIndex} {i : ForestChainIndex}
+    (hadr : ∀ t : ForestChainStep, cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
+      tweakBytes (.forestChain index c s j a i t)) (d : ForestChainPosition) (x : E) :
     @forestRecoverChainWithHash Id _ inst (spp pp) index c s j a i d (sv x) =
       sv (fChain pp ka i.val (4 - d.val) x d.val) :=
   sForestWalk_cells hq hadr _ x _ (by have := d.isLt; simp only [chainTop] at this ⊢; omega)
@@ -520,11 +520,11 @@ def fEnds (pp ka : E) (word : Codeword) (vals : Nat → E) (k : Nat) : E :=
     (word ⟨k % 6, Nat.mod_lt _ (by norm_num)⟩).val
 
 /-- **A child leaf over cells**: the hash of the six chain ends. -/
-theorem sChildRecover_cells (hq : SQ inst) {pp ka aL : E} {index : Index} {c : Coord}
-    {s : SuperIdx} {j : SubIdx} {a : ChildIdx} (word : Codeword) (vals : Nat → E)
-    (hadr : ∀ (i : FChain) (t : FStep),
+theorem sChildRecover_cells (hq : SQ inst) {pp ka aL : E} {index : Index} {c : ForestCoordinate}
+    {s : SuperChildIndex} {j : SubtreeIndex} {a : ChildIndex} (word : Codeword) (vals : Nat → E)
+    (hadr : ∀ (i : ForestChainIndex) (t : ForestChainStep),
       cellBytes (ka + eOfNat (tw 15 + i.val * 2 ^ 43 + t.val * stepMul)) =
-        tweakBytes (.fchain index c s j a i t))
+        tweakBytes (.forestChain index c s j a i t))
     (hL : cellBytes aL = tweakBytes (.childLeaf index c s j a)) :
     @childRecoverWithHash Id _ inst (spp pp) index c s j a word (fun i => sv (vals i.val)) =
       sv (hcell (pp :: aL :: (List.range 6).map (fEnds pp ka word vals))).1 := by
@@ -534,21 +534,21 @@ theorem sChildRecover_cells (hq : SQ inst) {pp ka aL : E} {index : Index} {c : C
   show Sphincs.bytesLE 16 (spp pp) ++ tweakBytes _ ++ (List.ofFn _).flatMap (Sphincs.bytesLE 16) = _
   rw [bytesLE_spp, ← hL]
   simp only [sForestRecoverChain_cells hq (hadr _)]
-  have e : (fun i : FChain => sv (fChain pp ka i.val (4 - (word i).val) (vals i.val) (word i).val)) =
-      fun i : FChain => sv (fEnds pp ka word vals i.val) := funext fun i => by
-    rw [fEnds, show (⟨i.val % 6, Nat.mod_lt _ (by norm_num)⟩ : FChain) = i from
+  have e : (fun i : ForestChainIndex => sv (fChain pp ka i.val (4 - (word i).val) (vals i.val) (word i).val)) =
+      fun i : ForestChainIndex => sv (fEnds pp ka word vals i.val) := funext fun i => by
+    rw [fEnds, show (⟨i.val % 6, Nat.mod_lt _ (by norm_num)⟩ : ForestChainIndex) = i from
       Fin.ext (Nat.mod_eq_of_lt i.isLt)]
   rw [e]
-  erw [show (List.ofFn fun i : FChain => sv (fEnds pp ka word vals i.val)) =
+  erw [show (List.ofFn fun i : ForestChainIndex => sv (fEnds pp ka word vals i.val)) =
       ((List.range 6).map (fEnds pp ka word vals)).map sv from
     (ofFn_val_eq childChains (fun k => sv (fEnds pp ka word vals k))).trans List.map_map.symm]
   exact (congrArg (fun t => cellBytes pp ++ cellBytes aL ++ t) (sflatMap_bytesLE_sv _)).trans
     (by simp)
 
 /-- A sub-tree folded over cells: its addresses' bytes are the nodes' tweaks, its bits the child's. -/
-theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {c : Coord}
-    {s : SuperIdx} {j : SubIdx} {a : ChildIdx}
-    (hA : ∀ (l : Fin subHeight) (node : ChildIdx), node.val = a.val / 2 ^ (l.val + 1) →
+theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {c : ForestCoordinate}
+    {s : SuperChildIndex} {j : SubtreeIndex} {a : ChildIndex}
+    (hA : ∀ (l : Fin subHeight) (node : ChildIndex), node.val = a.val / 2 ^ (l.val + 1) →
       cellBytes (A l.val) = tweakBytes (.subNode index c s j l node))
     (sibs : Nat → E) :
     ∀ m ≤ subHeight, ∀ x : E,
@@ -572,9 +572,9 @@ theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
         simp_all
 
 /-- A top tree folded over cells. -/
-theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {c : Coord}
-    {s : SuperIdx}
-    (hA : ∀ (l : Fin topHeight) (node : SuperIdx), node.val = s.val / 2 ^ (l.val + 1) →
+theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {c : ForestCoordinate}
+    {s : SuperChildIndex}
+    (hA : ∀ (l : Fin topHeight) (node : SuperChildIndex), node.val = s.val / 2 ^ (l.val + 1) →
       cellBytes (A l.val) = tweakBytes (.topNode index c l node))
     (sibs : Nat → E) :
     ∀ m ≤ topHeight, ∀ x : E,
@@ -598,8 +598,8 @@ theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : Index} {
         simp_all
 
 /-- **A super-child over cells**: the hash of the four level-2 nodes. -/
-theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : Index} {c : Coord}
-    {s : SuperIdx} {tops : SubIdx → Sphincs.Digest × Sphincs.Digest}
+theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : Index} {c : ForestCoordinate}
+    {s : SuperChildIndex} {tops : SubtreeIndex → Sphincs.Digest × Sphincs.Digest}
     (h0 : tops 0 = (sv t00, sv t01)) (h1 : tops 1 = (sv t10, sv t11))
     (hS : cellBytes aS = tweakBytes (.superChild index c s)) :
     @superHashWithHash Id _ inst (spp pp) index c s tops = sv (hcell [pp, aS, t00, t01, t10, t11]).1 := by
@@ -610,8 +610,8 @@ theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : Ind
 
 /-- A coordinate's two top nodes in `Id`: each sub-tree's child leaf folded and ordered, the
 super-child hashed, folded and ordered. -/
-theorem coordRecover_id (P : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)
-    (opening : CoordOpening) :
+theorem coordRecover_id (P : PublicParameter) (index : Index) (c : ForestCoordinate) (mark : CoordinateSelection)
+    (opening : CoordinateOpening) :
     @coordRecoverWithHash Id _ inst P index c mark opening =
       orderTops (mark.super.val.testBit (topHeight - 1))
         (@topFoldWithHash Id _ inst P index c mark.super opening.top (topHeight - 1)
@@ -627,14 +627,14 @@ theorem coordRecover_id (P : PublicParameter) (index : Index) (c : Coord) (mark 
   simp only [bind, pure, sSequenceFin_id]
 
 /-- The forest key in `Id`: each coordinate's two top nodes. -/
-theorem forestRecover_id (P : PublicParameter) (index : Index) (marks : Coord → CoordMark)
-    (opening : Coord → CoordOpening) :
+theorem forestRecover_id (P : PublicParameter) (index : Index) (marks : ForestCoordinate → CoordinateSelection)
+    (opening : ForestCoordinate → CoordinateOpening) :
     @forestRecoverWithHash Id _ inst P index marks opening =
       fun c => @coordRecoverWithHash Id _ inst P index c (marks c) (opening c) := by
   rw [forestRecoverWithHash.eq_def, sSequenceFin_id]
 
 /-- The codeword table's entries, as base-5 digits. -/
-theorem lut_val (t : LutIdx) (i : FChain) :
+theorem lut_val (t : CodewordIndex) (i : ForestChainIndex) :
     (lut t i).val = codewordCodes.getD t.val 0 / 5 ^ (5 - i.val) % 5 := rfl
 
 end

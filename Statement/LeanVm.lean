@@ -30,10 +30,11 @@ run against the lazily sampled permutation from no edge (`Common.runWithRandomPe
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither
 queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems`
 states it for the extractor that a cost-machine program of bounded size computes within a budget
-in the number of permutation queries (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
-(`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound, which leaves
-no room for a useful table of witnesses beside the compiled extractor's code, and its budget,
-`extractorBudget`, `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for
+in the number of permutation queries (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does
+not name the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its
+size bound, which leaves no room for a useful table of witnesses beside the compiled extractor's
+code, and its budget, `extractorBudget` (the most its run may cost, so also the most steps it may
+execute), `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for
 `N ≤ 2^60`), `lean_vm`'s proved price of the compiled extractor being about
 `2^94.07 + 2^14.7·N·log²N`. A run out of budget extracts nothing, which counts as a break.
 
@@ -129,15 +130,19 @@ access to `π` and `π⁻¹` that outputs a statement and a proof. -/
 abbrev RandomPermutationAdversary : Type :=
   OracleComp RandomPermutationOracles (ProgramAndInput × Proof)
 
-/-- An outcome of the experiment: the statement (`program`, `input`) and the `proof`, the
-verdict (`accepted`), and the adversary's `transcript`, its queries and their answers in order. -/
-abbrev ExperimentOutcome : Type := ((ProgramAndInput × Proof) × Bool) × OracleQueryLog
-
-abbrev ExperimentOutcome.program (z : ExperimentOutcome) : Program := z.1.1.1.1
-abbrev ExperimentOutcome.input (z : ExperimentOutcome) : PublicInput := z.1.1.1.2
-abbrev ExperimentOutcome.proof (z : ExperimentOutcome) : Proof := z.1.1.2
-abbrev ExperimentOutcome.accepted (z : ExperimentOutcome) : Prop := z.1.2 = true
-abbrev ExperimentOutcome.transcript (z : ExperimentOutcome) : OracleQueryLog := z.2
+/-- **An outcome of the experiment**: the statement and proof the adversary outputs, the
+verifier's verdict, and the adversary's transcript. -/
+structure ExperimentOutcome where
+  /-- The adversary's program. -/
+  program : Program
+  /-- Its public input. -/
+  input : PublicInput
+  /-- Its proof. -/
+  proof : Proof
+  /-- The verifier accepted the proof. -/
+  accepted : Bool
+  /-- The adversary's queries and their answers, in order. -/
+  transcript : OracleQueryLog
 
 /-- **The random-permutation experiment**: the adversary, its queries recorded
 (`Common.loggedOracles`), then the verifier over `π` (`Common.queryPermutation`) on its statement
@@ -146,9 +151,9 @@ and proof, the whole game run against the lazily sampled permutation from no edg
 noncomputable def soundnessExperiment (A : RandomPermutationAdversary) :
     ProbComp ExperimentOutcome :=
   Common.runWithRandomPermutation do
-    let (z, transcript) ← (simulateQ Common.loggedOracles A).run []
-    let accepted ← verifier queryPermutation z.1.1 z.1.2 z.2
-    return ((z, accepted), transcript)
+    let (((program, input), proof), transcript) ← (simulateQ Common.loggedOracles A).run []
+    let accepted ← verifier queryPermutation program input proof
+    return ⟨program, input, proof, accepted, transcript⟩
 
 /-! ### The extractor -/
 

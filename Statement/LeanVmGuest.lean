@@ -80,7 +80,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 /-- What holds a DA claim: a matrix of codewords and the vector its rows are orthogonal to. -/
 structure MatrixWitness where
+  /-- The codewords, one per row. -/
   rows : List (List K)
+  /-- The vector every row is orthogonal to. -/
   vector : List E
 
 /-- **The witness holds the DA claim `⟨root, vd⟩`** (`da_verify`): `1` to `1024` codewords of
@@ -92,7 +94,7 @@ def MatrixWitness.Opens (root vd : Digest) (w : MatrixWitness) : Prop :=
     LeanDa.commitCodewords keccakF1600 w.rows = root.toBytes ∧
       w.vector.length = 2 ^ LeanDa.logM ∧
     LeanDa.vectorDigest keccakF1600 w.vector = vd.toBytes ∧
-    ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
+    ∀ row ∈ w.rows, LeanDa.innerProduct (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
 
 end LeanVM.Da
 
@@ -140,8 +142,11 @@ structure DaClaim where
 /-- A node's claims: leanXMSS claims, leanSPHINCS claims, and its DA digest: a DA claim's
 `daClaimDigest`, or `zeroDigest` without one (`da_digest`, `aggregation.rs:550-557`). -/
 structure Claims where
+  /-- The leanXMSS claims. -/
   xmss : List XmssClaim
+  /-- The leanSPHINCS claims. -/
   sphincs : List SphincsClaim
+  /-- The DA digest. -/
   da : Digest
 
 /-- The claim the statement defers on the stacked bytecode: its value at a point
@@ -150,7 +155,9 @@ abbrev DeferredClaim : Type := BytecodeClaim
 
 /-- A node's statement: its claims and its deferred claim. -/
 structure NodeStatement where
+  /-- Its signature and DA claims. -/
   claims : Claims
+  /-- The claim on the bytecode it defers to its parent. -/
   deferredClaim : DeferredClaim
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
@@ -248,8 +255,11 @@ def padToRate (words : List E) : List E :=
 /-- What a node knows of one child: the child's public input, the claim its proof makes
 (`freshClaim`), and the claim its statement defers (`carriedClaim`). -/
 structure ChildClaims where
+  /-- The child's public input. -/
   publicInput : Digest
+  /-- The claim the child's proof makes. -/
   freshClaim : BytecodeClaim
+  /-- The claim the child's statement defers. -/
   carriedClaim : DeferredClaim
 
 /-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
@@ -284,7 +294,9 @@ def _root_.LeanVM.Guest.Batch.sumcheckRoundPolynomial (claim : E) (g : E × E) (
 /-- The prover's part of a batching: the sumcheck's rounds and the bytecode's value at its end
 (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 structure BatchingHints where
+  /-- Each round's message `(g(1), g(∞))`. -/
   sumcheckMessages : List (E × E)
+  /-- The bytecode's value at the sumcheck's final point. -/
   finalBytecodeValue : E
 
 /-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:72`). -/
@@ -435,22 +447,32 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- A child of a node: its statement, its proof, and what the proof claims of the bytecode. -/
 structure Child where
+  /-- The child's node statement. -/
   statement : NodeStatement
+  /-- The claim on the bytecode its proof makes. -/
   freshClaim : BytecodeClaim
+  /-- Its proof. -/
   proof : Proof
 
 /-- How a node holds a claim: directly, by a witness, or through its `i`-th child. -/
 inductive ClaimHolder (W : Type) where
+  /-- Directly, by the witness `w`. -/
   | direct (w : W)
+  /-- Through child `i`. -/
   | child (i : ℕ)
 
 /-- What a node holds its statement by: its children, a holder for every signature claim, the blob
 matrix it checks directly with the DA claim it opens (if any), and the batching's hints. -/
 structure NodeWitness where
+  /-- The children. -/
   children : List Child
+  /-- A holder for each leanXMSS claim, in order. -/
   xmss : List (ClaimHolder LeanXmss.Signature)
+  /-- A holder for each leanSPHINCS claim, in order. -/
   sphincs : List (ClaimHolder Sphincs.Signature)
+  /-- The blob matrix the node checks directly, with the DA claim it opens. -/
   daMatrix : Option (DaClaim × Da.MatrixWitness)
+  /-- The prover's part of the batching of the children's deferred claims. -/
   batchingHints : BatchingHints
 
 /-- **A claim is held**: by a witness `w` that `holds`, or by a child whose claims of the kind
@@ -527,8 +549,11 @@ def DigestBinds : Prop :=
 
 /-- What a decoder names on an execution: a seed, a statement and a witness. -/
 structure Decoded where
+  /-- The seed of the statement's digest. -/
   seed : Digest
+  /-- The node statement. -/
   statement : NodeStatement
+  /-- Its witness. -/
   witness : NodeWitness
 
 /-- **The decoding `d` explains the public input `input`**: its seed and node statement have the
@@ -594,8 +619,11 @@ def takeSlotsAll {α : Type} [BEq α] (declared : List α) :
 /-- One region of the coverage table: its duplicate claims, in slot order, and the slot of every
 raw claim and of every child's claims. -/
 structure CoverageRegion (α : Type) where
+  /-- The duplicate claims, in slot order. -/
   duplicates : List α
+  /-- The slot of each claim held directly. -/
   directSlots : List ℕ
+  /-- The slots of each child's claims. -/
   childSlots : List (List ℕ)
 
 /-- The region of the declared claims: the raw claims take their slots, then the children's. -/
@@ -727,16 +755,22 @@ each child, `NodeRelation`'s two conditions (`shaped`, `verifies`) and the deplo
 * no zero challenge: its proof is accepted by the deferring verifier refusing a zero challenge
   anywhere (`verifyDeferredRefusingZero`), as the guest program divides by some (above). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (c : Child) : Prop where
+  /-- Its deferred claim has the bytecode's shape. -/
   shaped : c.statement.deferredClaim.HasBytecodeShape bytecode
+  /-- The deferring verifier accepts its proof. -/
   verifies :
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true
+  /-- Its stack log is at least `MU_MIN = 22`. -/
   stackLog : ∀ layout r, announced bytecode c.proof.stream = some (layout, r) →
     Hints.minChildStackLog ≤ layout.stackLog
+  /-- Its proof stream is at most `STREAM_CAP = 8192` scalars. -/
   stream : c.proof.stream.length ≤ Hints.childStreamCap
+  /-- Its openings agree in the guest program's Merkle caps. -/
   capsAgree : ∀ b ∈ Limits.queryStepsOf
       (deferredProgram c.freshClaim bytecode (statementDigest seed c.statement))
         (Hints.childVerifierStart seed c),
     Limits.OpeningsAgree b.1 b.2
+  /-- The deferring verifier refusing a zero challenge accepts its proof. -/
   noZeroChallenge :
     Limits.verifyDeferredRefusingZero bytecode seed
       (statementDigest seed c.statement) c.freshClaim c.proof = true
@@ -765,6 +799,7 @@ structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   4200), where `NodeRelation` lets two equal claims share one holder. -/
   xmssHeld : ∀ x, s.claims.xmss.count x ≤ ((heldDirectly s.claims.xmss w.xmss).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.xmss.count x).sum
+  /-- Likewise for the leanSPHINCS claims. -/
   sphincsHeld :
     ∀ x, s.claims.sphincs.count x ≤ ((heldDirectly s.claims.sphincs w.sphincs).map (·.1)).count x +
     (w.children.map fun c ↦ c.statement.claims.sphincs.count x).sum

@@ -58,15 +58,15 @@ def rowLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestB
 
 /-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
 def colLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : DigestBytes :=
-  cellDigestWithHash H (paddedCell c (l % nPad r) (l / nPad r))
+  cellDigestWithHash H (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r))
 
 /-- The row root (`root_row`). -/
 def rowRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRootWithHash H (logPad r) (rowLeavesWithHash H c)
+  merkleRootWithHash H (logPaddedRowCount r) (rowLeavesWithHash H c)
 
 /-- The column root (`root_col`). -/
 def colRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRootWithHash H (7 + logPad r) (colLeavesWithHash H c)
+  merkleRootWithHash H (7 + logPaddedRowCount r) (colLeavesWithHash H c)
 
 /-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
@@ -74,7 +74,7 @@ def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
 
 /-- The honest opening of a position. -/
 def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
-  ⟨rowRootWithHash H c, merklePathWithHash H (7 + logPad r) (colLeavesWithHash H c) (colIndex p)⟩
+  ⟨rowRootWithHash H c, merklePathWithHash H (7 + logPaddedRowCount r) (colLeavesWithHash H c) (colIndex p)⟩
 
 /-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
 def treeLevelWithHash (nodes : List DigestBytes) : List DigestBytes :=
@@ -105,7 +105,7 @@ def paddingRowWithHash : DigestBytes :=
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
 rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
 def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
-  let n := nPad rows.length
+  let n := paddedRowCount rows.length
   let rowTree := treeRootWithHash H
     (rows.map (rowDigestWithHash H) ++ List.replicate (n - rows.length) (paddingRowWithHash H))
   let columnTree :=
@@ -150,7 +150,7 @@ def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : C
   let d ← H (cellBytes x)
   let w ← walkMWithHash H (colIndex p) d τ.path
   let root ← H (pairBytes τ.rowRoot w)
-  pure (decide (τ.path.length = 7 + logPad r) && decide (root = com))
+  pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`up`). -/
 def upMWithHash (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
@@ -170,15 +170,15 @@ def rowLeavesMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m Dige
 
 /-- The column tree's leaves over an oracle (`colLeaves`). -/
 def colLeavesMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
-  H (cellBytes (paddedCell c (l % nPad r) (l / nPad r)))
+  H (cellBytes (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r)))
 
 /-- The row root over an oracle (`rowRoot`). -/
 def rowRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootMWithHash H (logPad r) (rowLeavesMWithHash H c)
+  merkleRootMWithHash H (logPaddedRowCount r) (rowLeavesMWithHash H c)
 
 /-- The column root over an oracle (`colRoot`). -/
 def colRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootMWithHash H (7 + logPad r) (colLeavesMWithHash H c)
+  merkleRootMWithHash H (7 + logPaddedRowCount r) (colLeavesMWithHash H c)
 
 /-- **The root of a matrix over an oracle** (`commitCells`). -/
 def commitCellsMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes := do

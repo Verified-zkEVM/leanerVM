@@ -44,7 +44,7 @@ def merklePathM : ℕ → (ℕ → m Common.DigestBytes) → ℕ → m (List Com
 /-- The honest opening of a position over an oracle (`openCell`). -/
 def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m Opening := do
   let rr ← rowRootMWithHash H c
-  let path ← merklePathM H (7 + logPad r) (colLeavesMWithHash H c) (colIndex p)
+  let path ← merklePathM H (7 + logPaddedRowCount r) (colLeavesMWithHash H c) (colIndex p)
   pure ⟨rr, path⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/
@@ -253,31 +253,31 @@ theorem isWeightBound_rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ
 include hP hC hR in
 theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
     QueryCostAtMost (commitCellsMWithHash H c) w
-      (nPad r * (64 * cC + cR + cP) + 128 * nPad r * (cC + cP) + cP) := by
+      (paddedRowCount r * (64 * cC + cR + cP) + 128 * paddedRowCount r * (cC + cP) + cP) := by
   unfold commitCellsMWithHash rowRootMWithHash colRootMWithHash
   refine (((isWeightBound_merkleRootM H w cP hP _ _ _
     (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
       (isWeightBound_merkleRootM H w cP hP _ _ _ fun _ ↦ hC _).bind fun _ ↦ hP _ _)).mono ?_
-  have h1 : 1 ≤ 2 ^ logPad r := Nat.one_le_two_pow
-  have e : 2 ^ (7 + logPad r) = 128 * nPad r := by rw [pow_add]; rfl
+  have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
+  have e : 2 ^ (7 + logPaddedRowCount r) = 128 * paddedRowCount r := by rw [pow_add]; rfl
   rw [e]
-  unfold nPad
-  zify [h1, show 1 ≤ 128 * 2 ^ logPad r by omega]
+  unfold paddedRowCount
+  zify [h1, show 1 ≤ 128 * 2 ^ logPaddedRowCount r by omega]
   nlinarith
 
 include hP hC hR in
 theorem isWeightBound_openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    QueryCostAtMost (openCellM H c p) w (nPad r * (64 * cC + cR + cP) + 128 * nPad r * (cC + cP)) := by
+    QueryCostAtMost (openCellM H c p) w (paddedRowCount r * (64 * cC + cR + cP) + 128 * paddedRowCount r * (cC + cP)) := by
   unfold openCellM rowRootMWithHash
   refine (((isWeightBound_merkleRootM H w cP hP _ _ _
     (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
       (isWeightBound_merklePathM H w cP hP _ _ _ (fun _ ↦ hC _) _).bind fun _ ↦
         isWeightBound_pure _ _ 0)).mono ?_
-  have h1 : 1 ≤ 2 ^ logPad r := Nat.one_le_two_pow
-  have e : 2 ^ (7 + logPad r) = 128 * nPad r := by rw [pow_add]; rfl
+  have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
+  have e : 2 ^ (7 + logPaddedRowCount r) = 128 * paddedRowCount r := by rw [pow_add]; rfl
   rw [e]
-  unfold nPad
-  zify [h1, show 1 ≤ 128 * 2 ^ logPad r by omega]
+  unfold paddedRowCount
+  zify [h1, show 1 ≤ 128 * 2 ^ logPaddedRowCount r by omega]
   nlinarith
 
 theorem isWeightBound_hashInputsM (h1 : ∀ a, QueryCostAtMost (H a) w 1) (path : List Common.DigestBytes) :

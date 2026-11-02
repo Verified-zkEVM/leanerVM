@@ -50,7 +50,7 @@ theorem rs_loop : coreProgram.loop "da_row_shape" = false := by
 
 /-- **`da_row_shape` is complete, placed**, reading `g_squares[L]` among the caller's words. -/
 theorem row_shape_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {s r L : ℕ} (hr1 : 1 ≤ r)
-    (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.nPad r) :
+    (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r) :
     CompleteAtD fs cert 16 "da_row_shape" [(s + L, [gen ^ 2 ^ L])] [gen ^ r, gen ^ L, gen ^ s]
       (Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]) := by
   intro fp
