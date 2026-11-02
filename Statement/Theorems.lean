@@ -13,8 +13,8 @@ public import Statement.CostMachine
 Everything this repository proves, in one place: each field of `Theorems` is one end statement,
 defined in the file of `Statement/` named next to it, or, for the guest decoder program
 (`GuestKnowledge`, its encodings, size bound and budget), in this file's first section.
-`lean_vm/LeanVM.lean` proves `Statement.Theorems` for its compiled programs
-(`LeanVM.theorems_hold`: `leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram`,
+`lean_vm/LeanVM.lean` proves `Statement.Theorems` for its compiled programs (`LeanVM.theorems_hold`:
+`leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram`,
 `guestWitnessDecoder := LeanVM.Cost.decoderProgram`), and the build fails if its axioms are ever
 more than Lean's three (`propext`, `Classical.choice`, `Quot.sound`).
 
@@ -31,9 +31,9 @@ soundness is stated for (`LeanVM.knowledgeExtractorOf`: the program, of size at 
 `MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names both programs
 (`LeanVM.Cost.extractorProgram` and `LeanVM.Cost.decoderProgram`, its extractor and decoder
 compiled). The statement constrains them only by their size bounds and budgets;
-`knowledgeExtractorSizeBound`, `guestWitnessDecoderSizeBound` and the guest decoder's budget below
-say what those exclude and what they do not. Every statement with an adversary is in the
-random-permutation model (`Statement/README.md`).
+`knowledgeExtractorSizeBound` (`CostMachine.lean`), `guestWitnessDecoderSizeBound` and the guest
+decoder's budget (below) say what those exclude and what they do not. Every statement with an
+adversary is in the random-permutation model (`Statement/README.md`).
 -/
 
 /-! ## The guest decoder a program computes
@@ -183,8 +183,10 @@ most `guestWitnessDecoderSizeBound`, run on the encoded program and execution wi
 (`encodeGuestWitnessDecoderInput`, `guestWitnessDecoderBudget`), outputs the encoding of a decoding
 `d`: a seed, the node statement the input commits to under that seed, and a witness proving it
 (`ExplainsInput`, `LeanVmGuest.lean`). A larger program, or a run that fails or exceeds its budget,
-outputs nothing, so `GuestKnowledge` fails at that execution. Its `guest` is only ever
-`LeanVM.Guest.guest`, whose program the budget's constants are. -/
+outputs nothing, so `GuestKnowledge` fails at that execution: a program larger than
+`guestWitnessDecoderSizeBound` satisfies it only if the guest program has no valid execution, which
+the completeness statements exclude, so `GuestKnowledge` bounds the program's size. Its `guest` is
+only ever `LeanVM.Guest.guest`, whose program the budget's constants are. -/
 def GuestKnowledge (guest : Program) (guestWitnessDecoder : Cost.MachineProgram) : Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
     ∃ d : Decoded, Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
@@ -235,9 +237,9 @@ structure Theorems
   checks, zeros or a child's, and its deferred claim is the batching of its children's
   (`NodeRelation`, `LeanVmGuest.lean`). -/
   guestKnowledge : LeanVM.Node.GuestKnowledge LeanVM.Guest.guest guestWitnessDecoder
-  /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among
-  the candidates (`LeanVmGuest.lean`). With the two fields above it gives what an accepted proof
-  establishes: an accepted proof of the leanISA guest program on
+  /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among the
+  candidates (`LeanVmGuest.lean`). With `knowledgeSoundness` and `guestKnowledge` it gives what an
+  accepted proof establishes: an accepted proof of the leanISA guest program on
   `statementDigest (deployedSeed guest) s` yields, by `knowledgeSoundness`, an extracted execution;
   by `guestKnowledge`, the decoder program's seed and statement of the same digest, with a witness;
   by `digestBinds`, that they are `deployedSeed guest` and `s`, or a Keccak-256 collision. The

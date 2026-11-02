@@ -100,7 +100,7 @@ An operand `o` names the word at `fp · o`, written `[o]`. -/
 inductive DerefMode
   /-- A local word, `[o₃]`. -/
   | cell
-  /-- The return address, the next `pc`. -/
+  /-- The return address, `g² · pc`: two instructions on. -/
   | pc
   /-- The frame pointer, `fp`. -/
   | fp

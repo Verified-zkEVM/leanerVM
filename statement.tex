@@ -142,12 +142,13 @@ parsed as an execution; a run out of budget outputs nothing, which counts as a b
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only by
 its size and budget: $P$ is a program (no classical choice), the size bound leaves the compiled
 extractor no room for a useful table of witnesses, the budget is the one above, and the machine's
-only runtime data is its input. The machine's prices (each step at least $1$, and at least the words it writes but for
-a \texttt{case}'s fields and a closure's captured values, $O(1)$ in a frame-pointer environment;
-$\mathbb{F}_{2^{64}}$ products at $256$, on the basis of a hardware carry-less multiply
-(PCLMULQDQ, PMULL; a software loop would cost about $800$), and operations on large numbers
-priced by their schoolbook algorithms) are
-trusted to be honest. In a program's size, a constructor's tag and a function index count one:
+only runtime data is its input. The machine's prices are trusted to be honest: each step costs
+at least $1$ and at least the words it writes (a \texttt{case} pays for the fields it binds, a
+closure's application for its captured values); an operation on natural numbers costs the
+64-bit limbs it reads or writes, and a product, quotient, remainder or carry-less product the
+product of its operands' limb counts (schoolbook), so one-limb operations, the carry-less product
+included (PCLMULQDQ, PMULL), cost $1$; a $\mathbb{F}_{2^{64}}$ product is compiled code (a
+carry-less product and its reduction, $27$). In a program's size, a constructor's tag and a function index count one:
 the machine reads them only by bounded lookups.
 
 \texttt{lean\_vm} proves it for \lean{LeanVM.Cost.extractorProgram}, the compiled form of
@@ -729,8 +730,8 @@ one finds a Keccak-256 collision.
 \item Soundness across recursion levels (Section~\ref{sec:notgive}); completeness across levels
 holds only through \lean{GuestChildComplete}.
 \item That the cost machine's prices are honest (Section~\ref{sec:zkvm}): trusted, as the
-statement's model of computation (among them a $\mathbb{F}_{2^{64}}$ product priced at $256$, on
-the basis of a hardware carry-less multiply).
+statement's model of computation (a one-limb operation, the carry-less product included, at one
+unit: a few instructions of a 64-bit CPU).
 \item Security against quantum adversaries (a quantum random-permutation model), for the
 signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest

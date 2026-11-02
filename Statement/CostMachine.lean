@@ -30,11 +30,12 @@ constructor, a closure and a new array cost `1` and their entries; a field and a
 it). A natural number is held in limbs of 64 bits (`limbCount`) and knows their count: an operation
 on natural numbers costs the limbs it reads or writes, the larger count (`linearlyPricedResult`),
 and a product, quotient, remainder or carry-less product the product of its operands' limb counts,
-at least the limbs it writes (`quadraticallyPricedResult`, schoolbook); an array index of more than
-one limb is out of bounds. The unit is a word operation: on one-limb operands each operation is a
-few instructions of a 64-bit CPU (one, and a comparison for a shift by `64` or more, a truncated
-subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or ARMv8's PMULL; on
-more limbs, a constant number per limb or pair of limbs.
+at least the limbs it writes (`quadraticallyPricedResult`, schoolbook). An array's entry is read at
+`1` whatever its index: an array of `2^64` entries or more costs at least `2^64` to build, so a
+two-limb index is a constant factor off at most. The unit is a word operation: on one-limb operands
+each operation is a few instructions of a 64-bit CPU (one, and a comparison for a shift by `64` or
+more, a truncated subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or
+ARMv8's PMULL; on more limbs, a constant number per limb or pair of limbs.
 
 **The extractor a program computes** (`LeanVM.knowledgeExtractorOf P`): `P`, if its size is at most
 `knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
@@ -90,7 +91,8 @@ inductive PrimitiveOperation where
   | bitwiseAnd | bitwiseOr | bitwiseXor | shiftLeft | shiftRight | add | truncatedSubtract
   | equal | lessThan
   /-- `·`, `/`, `%` (by `0`: `0` and `a`, as Lean's), the carry-less product (the product of
-  `a` and `b` read as polynomials over `GF(2)`, the verifier's `carryless`). -/
+  `a` and `b` read as polynomials over `GF(2)`: the verifier's `carryless`, whose loop runs once per
+  bit of `b`, its fuel). -/
   | multiply | divide | modulo | carrylessMultiply
   /-- An array's size; its entry `i` or a default. -/
   | arraySize | arrayGet
