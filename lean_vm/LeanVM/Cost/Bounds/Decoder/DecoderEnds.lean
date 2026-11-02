@@ -10,10 +10,10 @@ The prices of `Cost/Decoder/Ends.lean`'s functions and of the decoder's output
 (`Cost/DecoderProgram.lean`):
 
 * **`decoderTables_cost`**: the two address tables (`decoderTablesC`, the extractor's `powTable`
-  twice), at most `(70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48`;
+  twice), at most `(74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42`;
 * **`memReader_cost`**: one memory read (`memReaderC`, the binary search in the table and the
-  vector's entry), at most `123 + 42·log₂|memT|`; on the table `powTable κ`, `κ ≤ 32`, at most
-  `123 + 42κ ≤ 1467` (`memReader_cost_deployed`), the price `R` of the reader closure the readers
+  vector's entry), at most `111 + 36·log₂|memT|`; on the table `powTable κ`, `κ ≤ 32`, at most
+  `111 + 36κ ≤ 1263` (`memReader_cost_deployed`), the price `R` of the reader closure the readers
   and the precondition's test take;
 * `decodedOf_cost`: `7`;
 * **`decoderOutput_cost`**: the seed (`decSeedC`, at most `A`) and the statement (`decStmtC`, the
@@ -37,7 +37,7 @@ open Auto.LeanVM.Extraction.Fast in
 theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : Program) (κ : ℕ)
     (hκ : κ ≤ 62) :
     machineCost P decoderTablesC.costIdx [encodeValue prog, encodeValue κ] ≤
-      (70 * κ + 374) * 2 ^ κ + (70 * prog.logSize + 374) * 2 ^ prog.logSize + 48 := by
+      (74 * κ + 121) * 2 ^ κ + (74 * prog.logSize + 121) * 2 ^ prog.logSize + 42 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   rw [decoderTablesC.costEq P hP]
   have h1 := powTable_cost P (by includes) κ hκ
@@ -46,28 +46,28 @@ theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : Pro
 
 open Auto.LeanVM.Extraction.Fast in
 /-- **One memory read** (`memReaderC`): the binary search in the address table and the vector's
-entry, at most `123 + 42·log₂|memT|`. -/
+entry, at most `111 + 36·log₂|memT|`. -/
 theorem memReader_cost (hP : Includes P memReaderC.costDeps) (memT : Array (ℕ × ℕ))
     (ht : WordTable memT) {κ : ℕ} (hκ : κ < 64) (mem : Vector E (2 ^ κ)) (a : K) :
     machineCost P memReaderC.costIdx [encodeValue memT, encodeValue κ, encodeValue mem,
-      encodeValue a] ≤ 123 + 42 * Nat.log2 memT.size := by
+      encodeValue a] ≤ 111 + 36 * Nat.log2 memT.size := by
   rw [memReaderC.costEq P hP]
   have := gLogTable_cost P (by includes) memT ht κ hκ a
   have := optionMap_cost P (by includes) _
     (.closure stepVec.c258.lam0.lam0.lam0.costIdx [encodeValue κ, encodeValue mem])
     (fun i ↦ RunsApp.of_spec (stepVec.c258.lam0.lam0.lam0.costSpec P (by includes) mem i)) 12
     (gLogTable memT κ a) (fun i _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [stepVec.c258.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c313.costEq P (by includes)])
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c313.costEq P (by includes), max_self])
   omega
 
 /-- **One memory read at the deployed shape** (the table `powTable κ`, `κ ≤ 32`): at most
-`123 + 42κ ≤ 1467`. -/
+`111 + 36κ ≤ 1263`. -/
 theorem memReader_cost_deployed (hP : Includes P memReaderC.costDeps) {κ : ℕ} (hκ : κ ≤ 32)
     (mem : Vector E (2 ^ κ)) (a : K) :
     machineCost P memReaderC.costIdx [encodeValue (powTable κ), encodeValue κ, encodeValue mem,
-      encodeValue a] ≤ 123 + 42 * κ := by
+      encodeValue a] ≤ 111 + 36 * κ := by
   have := memReader_cost P hP (powTable κ) (wordTable_powTable (by omega)) (by omega) mem a
   rwa [powTable_size, Nat.log2_two_pow] at this
 
