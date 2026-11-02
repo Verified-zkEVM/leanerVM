@@ -11,12 +11,12 @@ The price of the replay `Cost/Decoder/Replay.lean` compiles, **the decoder's big
 the run's steps times the step's price**. The step is the extractor's `stepVec` (`stepVec.c258`,
 priced in `Bounds/Step.lean`'s `stepVec_cost`), not compiled again.
 
-* **`statesVec_cost`**: one round per state replayed, each at most the step's price `S` and `48`
+* **`statesVec_cost`**: one round per state replayed, each at most the step's price `S` and `46`
   (the comparison with the final registers, the fuel's decrement, a cons, the step's `match`; the
-  fuel at most `2^128`, three limbs): `(S + 48)·|states|`;
+  fuel at most `2^128`, three limbs): `(S + 46)·|states|`;
 * **`replayStatesOf_cost`**: on the address tables `powTable κ`, `powTable ℓ` (`κ ≤ 62`, `ℓ` the
-  bytecode's `logSize`), at most `(runnerStepPrice κ ℓ + 48)·|states| + 18000`, `runnerStepPrice κ
-  ℓ = 411697 + 42ℓ + 1092κ` (`Statement/CostMachine.lean`) and `18000` the final registers (a
+  bytecode's `logSize`), at most `(runnerStepPrice κ ℓ + 46)·|states| + 2456`, `runnerStepPrice κ
+  ℓ = 365466 + 36ℓ + 936κ` (`Cost/Prices.lean`) and `2456` the final registers (a
   power of `g`), the fuel and the initial registers, once. On a valid execution of `T` steps
   `|states| = T + 1` (the replay stops at the final state, `T < replayFuel`,
   `Located.steps_lt_replayFuel`).
@@ -49,7 +49,7 @@ theorem statesVec_cost (hP : Includes P statesVecC.costDeps)
       machineCost P statesVecC.costIdx
         [encodeValue memT, encodeValue codeT, encodeValue prog, encodeValue κ, encodeValue mem,
           encodeValue fin, encodeValue n, encodeValue r] ≤
-        (S + 48) * (statesVec memT codeT prog mem fin n r).length := by
+        (S + 46) * (statesVec memT codeT prog mem fin n r).length := by
   intro n
   induction n with
   | zero =>
@@ -78,14 +78,14 @@ theorem statesVec_cost (hP : Includes P statesVecC.costDeps)
 
 /-- **The replay of the run** (`replayStatesOfC`) on the address tables of the memory (`2^κ`
 words) and the bytecode: `|states|` rounds, each at most one step's price
-`runnerStepPrice κ ℓ` and `48`, and `18000` once. -/
+`runnerStepPrice κ ℓ` and `46`, and `2456` once. -/
 theorem replayStatesOf_cost (hP : Includes P replayStatesOfC.costDeps) (prog : Semantics.Program)
     {κ : ℕ} (hκ : κ ≤ 62) (mem : Vector E (2 ^ κ)) :
     machineCost P replayStatesOfC.costIdx
         [encodeValue (powTable κ), encodeValue (powTable prog.logSize), encodeValue prog,
           encodeValue κ, encodeValue mem] ≤
-      (runnerStepPrice κ prog.logSize + 48) *
-          (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 18000 := by
+      (runnerStepPrice κ prog.logSize + 46) *
+          (replayStatesOf (powTable κ) (powTable prog.logSize) prog mem).length + 2456 := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
   rw [replayStatesOfC.costEq P hP, Auto.LeanVM.Semantics.Program.pcFinal.c242.costEq P (by includes),
     replayFuelC.costEq P (by includes)]
