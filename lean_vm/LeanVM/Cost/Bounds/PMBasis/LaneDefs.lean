@@ -29,7 +29,7 @@ interpolation's part `interpPMPrice`, the rest the bounds of `Bounds/Decoder/Sha
   - the least row (`leastShiftedDegreeChoice?`) and the normalization (`normBound`, existing, and
     the row as a bivariate polynomial);
 * **the rest of the lane's run** (`gsRunBoundPM`): the truncation, Roth–Ruckenstein's search
-  (`rrBound`, `≈ 2^87.98` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
+  (`rrBound`, `≈ 2^86.38` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
 * **the lane and the decoder** (`decoderLaneRunBoundPM`, `decoderLaneBoundPM`, `decoderBoundPM`),
   on `gsRunBoundPM`: the parameter search, the lane's points, its candidates encoded (`laneExtraBound`), the `64` lanes pruned
   (`pruneBound`), a stack per survivor.
@@ -118,10 +118,10 @@ normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` 
 `interpPMPrice`, the truncation, Roth–Ruckenstein's search (`rrBound`), the candidates' filter. -/
 @[expose] def gsRunBoundPM (p : PMPrices) (n : ℕ) (params : GSInterpParams) : ℕ :=
   interpPMPrice p n params + 10 +
-    ((27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) + 40) +
+    ((25 * (params.weightedDegreeBound + 1) + 72) * (interpolationYCap params + 1) + 25) +
     rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2) params.messageDegree
       (interpolationYCap params) +
-    ((272 * params.messageDegree + 34) * n + 50) * max 1 (interpolationYCap params) + 40
+    ((46 * params.messageDegree + 36) * n + 54) * max 1 (interpolationYCap params) + 40
 
 /-- **A lane's run on `pmSolver`** (`gsLaneWith pmSolver κ R A`): the parameter search, the
 lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBoundPM`). -/

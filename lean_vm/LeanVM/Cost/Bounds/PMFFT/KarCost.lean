@@ -8,9 +8,9 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 # Bounds of the PM decoder's FFT: Karatsuba's product
 
 `karatsuba fuel p q` (`karatsuba.c410`), both factors of at most `32·2^k` coefficients and
-`k ≤ fuel`: at most `karBound k` (`3·karBound k + 1800·32·2^k + 1400` a level, the schoolbook
-product of `32 × 32` below); `karBound 7 ≈ 2^31.14`, so the schedule's Karatsuba branch (both
-factors at most `4096`) is within `karMax = 2^32`.
+`k ≤ fuel`: at most `karBound k` (`3·karBound k + 1006·32·2^k + 587` a level, the schoolbook
+product of `32 × 32` below); `karBound 7 ≈ 2^28.31`, so the schedule's Karatsuba branch (both
+factors at most `4096`) is within `karMax = 2^29`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMFFT
@@ -24,8 +24,8 @@ variable (P : MachineProgram)
 
 /-- Karatsuba's price bound at `k` halvings. -/
 @[expose] def karBound : ℕ → ℕ
-  | 0 => 1031400
-  | k + 1 => 3 * karBound k + 1800 * (32 * 2 ^ k) + 1400
+  | 0 => 121598
+  | k + 1 => 3 * karBound k + 1006 * (32 * 2 ^ k) + 587
 
 theorem karBound_7 : karBound 7 ≤ karMax := by decide
 
@@ -67,7 +67,7 @@ theorem shiftX_size (t : ℕ) (x : CompPoly.CPolynomial K) : (shiftX t x).val.si
 theorem coeffsBetweenC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.coeffsBetween.c411.costDeps)
     (p : CompPoly.CPolynomial K) (lo hi : ℕ) (hhi : hi < 2 ^ 40) :
     machineCost P Auto.LeanVM.Extraction.Fast.coeffsBetween.c411.costIdx [encodeValue p,
-      encodeValue lo, encodeValue hi] ≤ 24 * (hi - lo) + 21 := by
+      encodeValue lo, encodeValue hi] ≤ 22 * (hi - lo) + 19 := by
   rw [Auto.LeanVM.Extraction.Fast.coeffsBetween.c411.costEq P hP]
   have hs : (p.val.extract lo hi).size ≤ hi - lo := by simp only [Array.size_extract]; omega
   have := Decoder.ofArray_cost P (by includes) (p.val.extract lo hi) (by omega)
@@ -76,19 +76,19 @@ theorem coeffsBetweenC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.coeffsB
 theorem negMapC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.c410.costDeps) (x : CompPoly.CPolynomial K) :
     machineCost P Auto.List.map.c30.costIdx
       [MachineValue.closure Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costIdx [],
-        encodeValue x.val.toList] ≤ 12 * x.val.size + 3 := by
+        encodeValue x.val.toList] ≤ 14 * x.val.size + 3 := by
   have := map_cost P (by includes) (fun a : K ↦ -a)
     (.closure Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costSpec P (by includes) a)) 1
     x.val.toList (fun a _ ↦ by
-      simp only [appCost_fn, List.nil_append]
+      simp only [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero]
       rw [Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costEq P (by includes)])
   simpa using this
 
 theorem schoolbook32_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.mul.c36.costDeps)
     (p q : CompPoly.CPolynomial K) (hp : p.val.size ≤ 32) (hq : q.val.size ≤ 32) :
     machineCost P Auto.CompPoly.CPolynomial.Raw.mul.c36.costIdx [encodeValue p.val, encodeValue q.val] ≤
-      1031290 := by
+      121570 := by
   have := Decoder.mulK_cost P hP p.val q.val (by omega) (by omega)
   have h1 : q.val.size * p.val.size ≤ 1024 := by nlinarith
   have h2 : p.val.size * p.val.size ≤ 1024 := by nlinarith
@@ -123,7 +123,7 @@ theorem karatsubaC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.c
     rw [Auto.LeanVM.Extraction.Fast.karatsuba.c410.costEq_succ P hP, hcut]
     simp only [karatsuba_eq]
     have hKB := karBound_mono (show 0 ≤ k + 1 by omega)
-    rw [show karBound 0 = 1031400 from rfl] at hKB
+    rw [show karBound 0 = 121598 from rfl] at hKB
     by_cases hM : max p.val.size q.val.size ≤ 32
     · have := schoolbook32_cost P (by includes) p q (by omega) (by omega)
       cost_simp
@@ -210,7 +210,7 @@ theorem karatsubaC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.c
       cost_simp
       have hH32 : H ≤ 32 * 2 ^ k := hH
       simp only [Nat.sub_zero] at c1 c3
-      have hc2' : 24 * (M - H) ≤ 24 * H := Nat.mul_le_mul_left _ hc2
+      have hc2' : 22 * (M - H) ≤ 22 * H := Nat.mul_le_mul_left _ hc2
       linarith
 
 /-- **The schedule's Karatsuba branch** (fuel `64`, factors of at most `4096` coefficients): at
@@ -227,18 +227,18 @@ theorem karatsuba64_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.
 open LeanVM.Cost.Bounds.PMBasis
 
 /-- A schoolbook product with a factor of at most `32` coefficients folded over: at most
-`29015·|g| + 102900`. -/
+`2581·|g| + 38978`. -/
 theorem schoolbookSmall_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.mul.c36.costDeps)
     (f g : CompPoly.CPolynomial K) (hf : f.val.size ≤ 32) (hg : g.val.size < 2 ^ 40) :
     machineCost P Auto.CompPoly.CPolynomial.Raw.mul.c36.costIdx [encodeValue f.val, encodeValue g.val] ≤
-      29015 * g.val.size + 102900 := by
+      2581 * g.val.size + 38978 := by
   have := Decoder.mulK_cost P hP f.val g.val (by omega) (by omega)
   have h1 : g.val.size * f.val.size ≤ g.val.size * 32 := Nat.mul_le_mul_left _ hf
   have h2 : f.val.size * f.val.size ≤ 1024 := by nlinarith
   omega
 
 theorem schoolbook_fit (p : PMPrices) (hp : FFTPricesOK p) {j b : ℕ} (hj : j ≤ 36)
-    (hb : b ≤ 2 ^ j + 1) : 29015 * b + 102900 + 20 ≤ polyMulPrice p j + karMax := by
+    (hb : b ≤ 2 ^ j + 1) : 2581 * b + 38978 + 20 ≤ polyMulPrice p j + karMax := by
   rcases Nat.lt_or_ge j 9 with h9 | h9
   · have : 2 ^ j ≤ 2 ^ 8 := Nat.pow_le_pow_right (by norm_num) (by omega)
     unfold karMax polyMulPrice

@@ -22,11 +22,11 @@ public section
 variable (P : MachineProgram)
 
 /-- **The forward polynomial transform** (`planFwdPolyC`): at most
-`115·N·j² + 620·N·j + 60·N + 300·j + 145`. -/
+`29·N·j² + 230·N·j + 46·N + 231·j + 85`. -/
 theorem planFwdPolyC_cost (hP : Includes P planFwdPolyC.costDeps) {j : ℕ} (hj : j ≤ 40)
     (f : CompPoly.CPolynomial K) :
     machineCost P planFwdPolyC.costIdx [encodeValue (FFT.mkPlan j), encodeValue f] ≤
-      115 * (2 ^ j * (j * j)) + 620 * (2 ^ j * j) + 60 * 2 ^ j + 300 * j + 145 := by
+      29 * (2 ^ j * (j * j)) + 230 * (2 ^ j * j) + 46 * 2 ^ j + 231 * j + 85 := by
   rw [planFwdPolyC.costEq P hP]
   have h1 := toNovelInPlaceC_cost P (by includes) hj f.val
   have h2 := planFwdC_cost P (by includes) hj (FFT.toNovelInPlace (FFT.mkPlan j) f.val)
@@ -37,11 +37,11 @@ theorem size_fromNovelInPlace_planInv {j : ℕ} (hj : j ≤ 64) (y : Array K) :
   rw [FFT.fromNovelInPlace_eq hj]; exact (FFT.fromNovel_spec hj _).1
 
 /-- **The inverse polynomial transform** (`planInvPolyC`): at most
-`152·N·j² + 540·N·j + 53·N + 220·j + 142`. -/
+`37·N·j² + 167·N·j + 44·N + 156·j + 84`. -/
 theorem planInvPolyC_cost (hP : Includes P planInvPolyC.costDeps) {j : ℕ} (hj : j ≤ 40)
     (y : Array K) :
     machineCost P planInvPolyC.costIdx [encodeValue (FFT.mkPlan j), encodeValue y] ≤
-      152 * (2 ^ j * (j * j)) + 540 * (2 ^ j * j) + 53 * 2 ^ j + 220 * j + 142 := by
+      37 * (2 ^ j * (j * j)) + 167 * (2 ^ j * j) + 44 * 2 ^ j + 156 * j + 84 := by
   rw [planInvPolyC.costEq P hP]
   have h1 := planInvC_cost P (by includes) hj y
   have h2 := fromNovelInPlaceC_cost P (by includes) hj (FFT.planInv (FFT.mkPlan j) y)
