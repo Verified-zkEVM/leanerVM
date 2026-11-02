@@ -15,12 +15,12 @@ import all CompPoly.Univariate.Raw.Core
 The compiled helpers of the PM-basis recursion (`Cost/Extractor/PMCore.lean`) besides its two
 matrix products and its leaf, each for every program holding its bodies:
 
-* `maxOrderC_cost` (`18·|orders| + 9`), `lowerOrdersC_cost` (`21·|orders| + 11`),
-  `residualOrdersC_cost` (`19·|orders| + 11`): the folds and maps over the orders;
-* `divXTruncC_cost` (`59·order + 36`): one residual entry;
-* `updateShiftByRowsC_cost` (`(90·C + 71)·R + 20`): the shift update, `R` rows of at most `C`
+* `maxOrderC_cost` (`21·|orders| + 9`), `lowerOrdersC_cost` (`25·|orders| + 11`),
+  `residualOrdersC_cost` (`21·|orders| + 11`): the folds and maps over the orders;
+* `divXTruncC_cost` (`58·order + 33`): one residual entry;
+* `updateShiftByRowsC_cost` (`(84·C + 63)·R + 19`): the shift update, `R` rows of at most `C`
   entries (`rowShiftedDegree_cost`: a constant per entry);
-* `compactNonzeroRowsC_cost` (`((3·D + 23)·C + 28)·R + 8`): the zero-row filter, `R` rows of at
+* `compactNonzeroRowsC_cost` (`((3·D + 33)·C + 30)·R + 8`): the zero-row filter, `R` rows of at
   most `C` entries of at most `D` coefficients (the zero test reads an entry's coefficients).
 
 `PolynomialMatrix.ofFn` and `MatrixWidth` are bounded in `Bounds/Decoder/Rows.lean`
@@ -72,43 +72,43 @@ theorem getD_le_of_mem {a : Array ℕ} {B j : ℕ} (h : ∀ x ∈ a, x ≤ B) : 
 
 /-! ## The orders -/
 
-/-- **`maxOrder`** (`maxOrderC`): at most `18·|orders| + 9`, word-sized orders. -/
+/-- **`maxOrder`** (`maxOrderC`): at most `21·|orders| + 9`, word-sized orders. -/
 theorem maxOrderC_cost (hP : Includes P maxOrderC.costDeps) (problem : XAdicProblem K)
     (h : ∀ x ∈ problem.orders, x < 2 ^ 63) :
-    machineCost P maxOrderC.costIdx [encodeValue problem] ≤ 18 * problem.orders.size + 9 := by
+    machineCost P maxOrderC.costIdx [encodeValue problem] ≤ 21 * problem.orders.size + 9 := by
   rw [maxOrderC.costEq P hP]
   have hf := listFoldl_le P (by includes) (fun a b : ℕ ↦ max a b) (.closure maxOrderC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (maxOrderC.lam0.costSpec P (by includes) a b)) 6
+    (fun a b ↦ RunsApp.of_spec (maxOrderC.lam0.costSpec P (by includes) a b)) 7
     (fun acc ↦ acc < 2 ^ 63) problem.orders.toList 0 (by norm_num)
     (fun acc hacc b hb ↦ ⟨by have := h b (by simpa using hb); omega, by
       rw [appCost_fn, List.nil_append, maxOrderC.lam0.costEq P (by includes),
         limbs_of_lt (by omega : acc < 2 ^ 64),
         limbs_of_lt (by have := h b (by simpa using hb); omega : b < 2 ^ 64)]
-      split_ifs <;> omega⟩)
+      simp⟩)
   simp only [Array.length_toList] at hf
   omega
 
-/-- **`lowerOrders`** (`lowerOrdersC`): at most `21·|orders| + 11`. -/
+/-- **`lowerOrders`** (`lowerOrdersC`): at most `25·|orders| + 11`. -/
 theorem lowerOrdersC_cost (hP : Includes P lowerOrdersC.costDeps) (problem : XAdicProblem K)
     (d : ℕ) (hd : d < 2 ^ 64) (h : ∀ x ∈ problem.orders, x < 2 ^ 64) :
     machineCost P lowerOrdersC.costIdx [encodeValue problem, encodeValue d] ≤
-      21 * problem.orders.size + 11 := by
+      25 * problem.orders.size + 11 := by
   rw [lowerOrdersC.costEq P hP]
   have hm := map_cost P (by includes) (fun order : ℕ ↦ min order d)
     (.closure lowerOrdersC.lam0.costIdx [encodeValue d])
-    (fun a ↦ RunsApp.of_spec (lowerOrdersC.lam0.costSpec P (by includes) d a)) 6
+    (fun a ↦ RunsApp.of_spec (lowerOrdersC.lam0.costSpec P (by includes) d a)) 8
     problem.orders.toList (fun a ha ↦ by
       rw [appCost_fn, List.singleton_append, lowerOrdersC.lam0.costEq P (by includes),
         limbs_of_lt (h a (by simpa using ha)), limbs_of_lt hd]
-      split_ifs <;> omega)
+      simp)
   simp only [Array.length_toList, List.length_map] at hm ⊢
   omega
 
-/-- **`residualOrders`** (`residualOrdersC`): at most `19·|orders| + 11`. -/
+/-- **`residualOrders`** (`residualOrdersC`): at most `21·|orders| + 11`. -/
 theorem residualOrdersC_cost (hP : Includes P residualOrdersC.costDeps) (problem : XAdicProblem K)
     (d : ℕ) (hd : d < 2 ^ 64) (h : ∀ x ∈ problem.orders, x < 2 ^ 64) :
     machineCost P residualOrdersC.costIdx [encodeValue problem, encodeValue d] ≤
-      19 * problem.orders.size + 11 := by
+      21 * problem.orders.size + 11 := by
   rw [residualOrdersC.costEq P hP]
   have hm := map_cost P (by includes) (fun order : ℕ ↦ order - d)
     (.closure residualOrdersC.lam0.costIdx [encodeValue d])
@@ -122,22 +122,22 @@ theorem residualOrdersC_cost (hP : Includes P residualOrdersC.costDeps) (problem
 
 /-! ## One residual entry -/
 
-/-- **`divXTrunc shift order p`** (`divXTruncC`): at most `59·order + 36`. -/
+/-- **`divXTrunc shift order p`** (`divXTruncC`): at most `58·order + 33`. -/
 theorem divXTruncC_cost (hP : Includes P divXTruncC.costDeps) (shift order : ℕ)
     (p : CPolynomial K) (h : shift + order < 2 ^ 63) :
     machineCost P divXTruncC.costIdx [encodeValue shift, encodeValue order, encodeValue p] ≤
-      59 * order + 36 := by
+      58 * order + 33 := by
   rw [divXTruncC.costEq P hP]
   have hr := rangeLoop_cost P (by includes) order [] (by omega)
   have hm := map_cost P (by includes) (fun i ↦ p.coeff (i + shift))
     (.closure divXTruncC.lam0.costIdx [encodeValue shift, encodeValue p])
-    (fun a ↦ RunsApp.of_spec (divXTruncC.lam0.costSpec P (by includes) shift p a)) 7
+    (fun a ↦ RunsApp.of_spec (divXTruncC.lam0.costSpec P (by includes) shift p a)) 8
     (List.range order) (fun a ha ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        divXTruncC.lam0.costEq P (by includes),
-        limbs_of_lt (by have := List.mem_range.1 ha; omega : a < 2 ^ 64),
-        limbs_of_lt (by omega : shift < 2 ^ 64)]
-      simp)
+        divXTruncC.lam0.costEq P (by includes)]
+      have := List.mem_range.1 ha
+      cost_simp
+      omega)
   have ho := ofArray_cost P (by includes)
     (List.map (fun i ↦ p.coeff (i + shift)) (List.range order)).toArray (by simp; omega)
   simp only [List.length_range, List.length_map, List.size_toArray] at hm ho ⊢
@@ -146,31 +146,31 @@ theorem divXTruncC_cost (hP : Includes P divXTruncC.costDeps) (shift order : ℕ
 /-! ## The shift update and the zero-row filter -/
 
 /-- **`updateShiftByRows`** (`updateShiftByRowsC`): `R` rows of at most `C` entries of at most
-`D` coefficients, shifts at most `S`: at most `(90·C + 71)·R + 20`. -/
+`D` coefficients, shifts at most `S`: at most `(84·C + 63)·R + 19`. -/
 theorem updateShiftByRowsC_cost (hP : Includes P updateShiftByRowsC.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (basis : PolynomialMatrix K)
     (hR : basis.size < 2 ^ 62) (hrows : ∀ i, RowWithin C D (basis.getD i #[]))
     (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
     machineCost P updateShiftByRowsC.costIdx [encodeValue basis, encodeValue shift] ≤
-      (90 * C + 71) * basis.size + 20 := by
+      (84 * C + 63) * basis.size + 19 := by
   rw [updateShiftByRowsC.costEq P hP]
   have hr := rangeLoop_cost P (by includes) basis.size [] (by omega)
   have hm := map_cost P (by includes) _
     (.closure updateShiftByRowsC.lam0.costIdx [encodeValue basis, encodeValue shift])
     (fun a ↦ RunsApp.of_spec (updateShiftByRowsC.lam0.costSpec P (by includes) basis shift a))
-    (90 * C + 42) (List.range basis.size) (fun a _ ↦ by
+    (84 * C + 33) (List.range basis.size) (fun a _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         updateShiftByRowsC.lam0.costEq P (by includes)]
       have := rowShiftedDegree_cost P (by includes) hC hDS (basis.getD a #[]) (hrows a) shift hS
-      cases rowShiftedDegree? (basis.getD a #[]) shift <;> dsimp only <;> omega)
+      cases rowShiftedDegree? (basis.getD a #[]) shift <;> dsimp only <;> cost_simp <;> omega)
   simp only [List.length_range, List.length_map] at hm ⊢
   nlinarith
 
-/-- The zero test of one entry: at most `3·|p| + 11`. -/
+/-- The zero test of one entry: at most `3·|p| + 19`. -/
 theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costDeps)
     (p : CPolynomial K) :
     machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [encodeValue p] ≤
-      3 * p.val.size + 11 := by
+      3 * p.val.size + 19 := by
   rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costEq P hP]
   have h0 : (0 : CPolynomial K).val.size = 0 := rfl
   have hl : (0 : CPolynomial K).val.toList = [] := rfl
@@ -180,38 +180,38 @@ theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZ
   | cons x l => rw [Auto.List.beq.c5.costEq_cons P (by includes)]; simp
 
 /-- **`rowIsZero`**: a row of at most `C` entries of at most `D` coefficients, at most
-`(3·D + 23)·C + 7`. -/
+`(3·D + 33)·C + 7`. -/
 theorem rowIsZeroC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costDeps)
     {C D : ℕ} (row : PolynomialRow K) (h : RowWithin C D row) :
     machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costIdx [encodeValue row] ≤
-      (3 * D + 23) * C + 7 := by
+      (3 * D + 33) * C + 7 := by
   rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costEq P hP]
   have ha := all_cost P (by includes) (fun p : CPolynomial K ↦ p == 0)
     (.closure Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec
       (Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costSpec P (by includes) a))
-    (3 * D + 11) row.toList (fun a ha ↦ by
-      rw [appCost_fn, List.nil_append]
+    (3 * D + 19) row.toList (fun a ha ↦ by
+      rw [appCost_fn, List.nil_append, List.length_nil]
       have := rowIsZeroLam_cost P (by includes) a
       have := h.2 a (by simpa using ha)
       omega)
   have hs := h.1
   simp only [Array.length_toList] at ha
-  have : (3 * D + 11 + 9) * row.size ≤ (3 * D + 20) * C := Nat.mul_le_mul_left _ hs
+  have : (3 * D + 19 + 11) * row.size ≤ (3 * D + 30) * C := Nat.mul_le_mul_left _ hs
   nlinarith
 
 /-- **`compactNonzeroRows`** (`compactNonzeroRowsC`): `R` rows of at most `C` entries of at most
-`D` coefficients, at most `((3·D + 23)·C + 28)·R + 8`. -/
+`D` coefficients, at most `((3·D + 33)·C + 30)·R + 8`. -/
 theorem compactNonzeroRowsC_cost (hP : Includes P compactNonzeroRowsC.costDeps)
     {C D : ℕ} (rows : PolynomialMatrix K) (h : ∀ row ∈ rows.toList, RowWithin C D row) :
     machineCost P compactNonzeroRowsC.costIdx [encodeValue rows] ≤
-      ((3 * D + 23) * C + 28) * rows.size + 8 := by
+      ((3 * D + 33) * C + 30) * rows.size + 8 := by
   rw [compactNonzeroRowsC.costEq P hP]
   have hf := filter_cost P (by includes) (fun row ↦ !rowIsZero row)
     (.closure compactNonzeroRowsC.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (compactNonzeroRowsC.lam0.costSpec P (by includes) a))
-    ((3 * D + 23) * C + 11) rows.toList (fun a ha ↦ by
-      rw [appCost_fn, List.nil_append, compactNonzeroRowsC.lam0.costEq P (by includes)]
+    ((3 * D + 33) * C + 11) rows.toList (fun a ha ↦ by
+      rw [appCost_fn, List.nil_append, List.length_nil, compactNonzeroRowsC.lam0.costEq P (by includes)]
       have := rowIsZeroC_cost P (by includes) a (h a ha)
       omega)
   have hl := List.length_filter_le (fun row ↦ !rowIsZero row) rows.toList

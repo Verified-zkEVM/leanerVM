@@ -64,13 +64,13 @@ theorem choiceInv_step {B : ℕ} {M : PolynomialMatrix K} {shift : Array ℕ}
 variable (P : MachineProgram)
 
 /-- **The least row** (`leastShiftedDegreeChoice?`): on `r` rows of at most `C` entries of at most
-`D` coefficients, shifts at most `S`: at most `(90·C + 130)·r + 20`. -/
+`D` coefficients, shifts at most `S`: at most `(84·C + 98)·r + 20`. -/
 theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoiceC.costDeps)
     {C D S : ℕ} (hC : C < 2 ^ 62) (hDS : D + S < 2 ^ 62) (M : PolynomialMatrix K)
     (hr : M.size < 2 ^ 62) (hrows : ∀ row ∈ M.toList, RowWithin C D row) (shift : Array ℕ)
     (hS : ∀ j, shift.getD j 0 ≤ S) :
     machineCost P leastShiftedDegreeChoiceC.costIdx [encodeValue M, encodeValue shift] ≤
-      (90 * C + 130) * M.size + 20 := by
+      (84 * C + 98) * M.size + 20 := by
   rw [leastShiftedDegreeChoiceC.costEq P hP]
   have hrw : ∀ i, RowWithin C D (M.getD i #[]) := by
     intro i
@@ -84,13 +84,13 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
     (fun best i ↦ RunsApp.of_spec (us := [encodeValue M, encodeValue shift])
       (vs := [encodeValue best, encodeValue i])
       (leastShiftedDegreeChoiceC.lam0.costSpec P (by includes) M shift best i))
-    (90 * C + 100) (ChoiceInv (D + S)) (List.range M.size) none (fun c hc ↦ by cases hc)
+    (84 * C + 72) (ChoiceInv (D + S)) (List.range M.size) none (fun c hc ↦ by cases hc)
     (fun best hbest i hi ↦ by
       rw [List.mem_range] at hi
       have hdeg : ∀ d, rowShiftedDegree? (M.getD i #[]) shift = some d → d ≤ D + S :=
         fun d hd ↦ rowShiftedDegree?_le (hrw i) hS hd
       refine ⟨choiceInv_step hbest hdeg (by omega), ?_⟩
-      · simp only [appCost_fn, List.cons_append, List.nil_append]
+      · simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [leastShiftedDegreeChoiceC.lam0.costEq P (by includes),
           Auto.CompPoly.PolynomialMatrix.leastShiftedDegreeRowStep?.c582.costEq P (by includes)]
         have := rowShiftedDegree_cost P (by includes) hC (by omega) (M.getD i #[]) (hrw i) shift hS
@@ -109,7 +109,7 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
             cost_simp
             split_ifs <;> omega)
   simp only [List.length_range] at hf
-  have e : (90 * C + 130) * M.size = (90 * C + 100 + 9) * M.size + 21 * M.size := by ring
+  have e : (84 * C + 98) * M.size = (84 * C + 72 + 11) * M.size + 15 * M.size := by ring
   omega
 
 
@@ -280,7 +280,7 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
   have := map_cost P (by includes) _
     (.closure LeanVM.Cost.Extractor.interpolatePMC.lam0.costIdx []) hl 2
     points.toList (fun pt _ ↦ by
-      simp only [appCost_fn, List.nil_append]
+      simp only [appCost_fn, List.nil_append, List.length_nil]
       rw [LeanVM.Cost.Extractor.interpolatePMC.lam0.costEq P (by includes)])
   -- the GS data
   have hInc : Includes P gsDataC.costDeps := by includes
@@ -362,10 +362,10 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
           machineCost P ofCoeffRowC.costIdx [encodeValue c.row] +
             machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c627.costIdx
               [encodeValue params, encodeValue (CBivariate.ofCoeffRow c.row)] + 5
-        else 1) + 6 ≤
-      (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 41) *
+        else 1) + 8 ≤
+      (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 32) *
         GuruswamiSudan.interpolationWidth params + normBound params.weightedDegreeBound
-          (GuruswamiSudan.interpolationWidth params) + 40 := by
+          (GuruswamiSudan.interpolationWidth params) + 30 := by
     intro c hc
     obtain ⟨hidx, hrow, hdeg⟩ := leastShiftedDegreeChoice?_some_valid hc
     have hrw : RowWithin (GuruswamiSudan.interpolationWidth params)
@@ -383,7 +383,7 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
   rw [Auto.CompPoly.GuruswamiSudan.ApproximantBasis.modularEquation.c620.costEq P (by includes),
     Auto.LeanVM.Extraction.Fast.solveWindow.c621.costEq P (by includes)]
   have hGn' := Nat.mul_le_mul_right points.size hGs
-  have hMs' := Nat.mul_le_mul_left (90 * GuruswamiSudan.interpolationWidth params + 130) hMs
+  have hMs' := Nat.mul_le_mul_left (84 * GuruswamiSudan.interpolationWidth params + 98) hMs
   have hopt : Option.casesOn (motive := fun _ ↦ ℕ)
       (M.leastShiftedDegreeChoice? (GuruswamiSudan.interpolationShifts params)) 1
       (fun val ↦ max (limbCount val.degree) (limbCount params.weightedDegreeBound) +
@@ -391,10 +391,10 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
           machineCost P ofCoeffRowC.costIdx [encodeValue val.row] +
             machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c627.costIdx
               [encodeValue params, encodeValue (CBivariate.ofCoeffRow val.row)] + 5
-        else 1) + 6) ≤
-      (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 41) *
+        else 1) + 8) ≤
+      (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 32) *
         GuruswamiSudan.interpolationWidth params + normBound params.weightedDegreeBound
-          (GuruswamiSudan.interpolationWidth params) + 40 := by
+          (GuruswamiSudan.interpolationWidth params) + 30 := by
     cases hch : M.leastShiftedDegreeChoice? (GuruswamiSudan.interpolationShifts params) with
     | none => dsimp only; omega
     | some c => exact hcase c hch

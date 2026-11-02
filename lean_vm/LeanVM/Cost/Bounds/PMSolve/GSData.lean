@@ -59,7 +59,7 @@ theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB 
     ∀ (n k : ℕ), k + 1 + n ≤ m → ∀ l : List ℕ, l.length = n →
       machineCost P Auto.LeanVM.Cost.LoopLib.listForInId.c517.costIdx
           [.closure gsModuliC.lam0.costIdx [encodeValue G], encodeValue l,
-            encodeValue (powersArr G k)] ≤ (MB + m + 40) * n + 3 := by
+            encodeValue (powersArr G k)] ≤ (MB + m + 33) * n + 3 := by
   have hf := fun x s ↦ (RunsApp.of_spec (us := [encodeValue G]) (vs := [encodeValue x,
     encodeValue s]) (gsModuliC.lam0.costSpec P (by includes) G x s) :
       RunsApp P (.closure gsModuliC.lam0.costIdx [encodeValue G]) _ _)
@@ -97,7 +97,7 @@ theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB 
     rw [← powersArr_step] at hnext
     simp only [pure]
     cost_simp
-    have e : (MB + m + 40) * (n + 1) = (MB + m + 40) * n + MB + m + 40 := by ring
+    have e : (MB + m + 33) * (n + 1) = (MB + m + 33) * n + MB + m + 33 := by ring
     omega
 
 
@@ -119,12 +119,12 @@ theorem moduliForIn_size (G : CPolynomial K) (m : ℕ) (hm : m ≠ 0) :
 
 
 /-- **The moduli** (`gsModuli`, `m ≥ 1`): `m − 1` products of a power by `G`, the array
-reversed: at most `(MB + m + 40)·(m − 1) + 34·m + 120`. -/
+reversed: at most `(MB + m + 33)·(m − 1) + 33·m + 54`. -/
 theorem gsModuliC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB : MulBound P N MB)
     (G : CPolynomial K) (m : ℕ) (hm1 : 1 ≤ m) (hm : m < 2 ^ 30)
     (hGN : m * G.natDegree + 1 ≤ N) :
     machineCost P gsModuliC.costIdx [encodeValue G, encodeValue m] ≤
-      (MB + m + 40) * (m - 1) + 34 * m + 120 := by
+      (MB + m + 33) * (m - 1) + 33 * m + 54 := by
   rw [gsModuliC.costEq P hP]
   have hm0 : (m == 0) = false := by simp; omega
   rw [hm0]
@@ -225,11 +225,17 @@ theorem gsDataC_cost (hP : Includes P gsDataC.costDeps)
   have := map_cost P (by includes) _ (.closure
     LeanVM.Cost.Extractor.gsDataC.lam0.costIdx [encodeValue params])
     hl 8 (List.range (GuruswamiSudan.interpolationWidth params)) (fun j hj ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [LeanVM.Cost.Extractor.gsDataC.lam0.costEq P (by includes)]
       have := List.mem_range.1 hj
+      have := limbs_le_two (show j * GuruswamiSudan.yWeight params < 2 ^ 128 by
+        have := Nat.mul_le_mul (show j ≤ 2 ^ 20 by omega)
+          (show GuruswamiSudan.yWeight params ≤ 2 ^ 64 by omega)
+        omega)
       cost_simp
       omega)
+  obtain ⟨hp1, hp2⟩ := hpar
+  have hq2 := limbs_le_two (show GuruswamiSudan.interpolationYCap params + 1 < 2 ^ 128 by omega)
   simp only [List.length_range, List.length_map] at *
   unfold dataPrice
   cost_simp

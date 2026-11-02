@@ -24,12 +24,12 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `leafDegreeCap`: at most `36·|orders| + 26`. -/
+/-- `leafDegreeCap`: at most `42·|orders| + 27`. -/
 theorem leafDegreeCapC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.leafDegreeCap.c487.costDeps)
     (problem : XAdicProblem K) (h : ∀ x ∈ problem.orders, x < 2 ^ 63) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.leafDegreeCap.c487.costIdx
-        [encodeValue problem] ≤ 36 * problem.orders.size + 26 := by
+        [encodeValue problem] ≤ 42 * problem.orders.size + 27 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.leafDegreeCap.c487.costEq P hP]
   have := maxOrderC_cost P (by includes) problem h
   have hmo : maxOrder problem < 2 ^ 63 := by
@@ -46,23 +46,23 @@ theorem leafDegreeCapC_cost
   rw [limbs_of_lt (by omega : maxOrder problem < 2 ^ 64)]
   split_ifs <;> omega
 
-/-- `coeffXPower c d` (`c·X^d`): at most `25·d + 46`. -/
+/-- `coeffXPower c d` (`c·X^d`): at most `23·d + 42`. -/
 theorem coeffXPowerC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.coeffXPower.c486.costDeps)
     (c : K) (d : ℕ) (hd : d < 2 ^ 62) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.coeffXPower.c486.costIdx
-        [encodeValue c, encodeValue d] ≤ 25 * d + 46 := by
+        [encodeValue c, encodeValue d] ≤ 23 * d + 42 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.coeffXPower.c486.costEq P hP]
   have := ofArray_cost P (by includes) ((Array.replicate d (0 : K)).push c) (by simp; omega)
   simp only [Array.size_replicate, Array.size_push] at this ⊢
   omega
 
-/-- `monomialUnitRow w i d` (`X^d·eᵢ`): at most `(25·d + 83)·w + 19`. -/
+/-- `monomialUnitRow w i d` (`X^d·eᵢ`): at most `(23·d + 80)·w + 18`. -/
 theorem monomialUnitRowC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.costDeps)
     (w i d : ℕ) (hw : w < 2 ^ 62) (hi : i < 2 ^ 64) (hd : d < 2 ^ 62) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.costIdx
-        [encodeValue w, encodeValue i, encodeValue d] ≤ (25 * d + 83) * w + 19 := by
+        [encodeValue w, encodeValue i, encodeValue d] ≤ (23 * d + 80) * w + 18 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.costEq P hP]
   have hr := rangeLoop_cost P (by includes) w [] (by omega)
   have hm := map_cost P (by includes)
@@ -70,8 +70,8 @@ theorem monomialUnitRowC_cost
     (.closure Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.lam0.costIdx
       [encodeValue i, encodeValue d])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.lam0.costSpec P
-      (by includes) i d a)) (25 * d + 54) (List.range w) (fun j hj ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      (by includes) i d a)) (23 * d + 51) (List.range w) (fun j hj ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.PolynomialMatrix.Approximant.monomialUnitRow.c484.lam0.costEq P (by includes),
         limbs_of_lt hi, limbs_of_lt (by have := List.mem_range.1 hj; omega : j < 2 ^ 64)]
       have := coeffXPowerC_cost P (by includes) 1 d hd
@@ -95,16 +95,16 @@ theorem rowWithin_monomialUnitRow (n i : ℕ) : RowWithin n 2 (monomialUnitRow (
   · simp [size_zero_val]
 
 /-- **The completion rows** (`kernelLeafCompletionRows`), `n` rows at cap `c`: at most
-`36·|orders| + ((25·c + 83)·n + 36)·n + 18·n + 50`. -/
+`42·|orders| + ((23·c + 80)·n + 39)·n + 16·n + 50`. -/
 theorem completionRowsC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.kernelLeafCompletionRows.c542.costDeps)
     (problem : XAdicProblem K) (h : ∀ x ∈ problem.orders, x < 2 ^ 63) (hn : problem.matrix.size < 2 ^ 30)
     (hc : leafDegreeCap problem < 2 ^ 30) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.kernelLeafCompletionRows.c542.costIdx
         [encodeValue problem] ≤
-      36 * problem.orders.size +
-        ((25 * leafDegreeCap problem + 83) * problem.matrix.size + 36) * problem.matrix.size +
-          18 * problem.matrix.size + 50 := by
+      42 * problem.orders.size +
+        ((23 * leafDegreeCap problem + 80) * problem.matrix.size + 39) * problem.matrix.size +
+          16 * problem.matrix.size + 50 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.kernelLeafCompletionRows.c542.costEq P hP]
   have := leafDegreeCapC_cost P (by includes) problem h
   have hr := rangeLoop_cost P (by includes) problem.matrix.size [] (by omega)
@@ -115,9 +115,9 @@ theorem completionRowsC_cost
     (fun a ↦ RunsApp.of_spec
       (Auto.CompPoly.PolynomialMatrix.Approximant.kernelLeafCompletionRows.c542.lam0.costSpec P
         (by includes) problem (leafDegreeCap problem) a))
-    ((25 * leafDegreeCap problem + 83) * problem.matrix.size + 25) (List.range problem.matrix.size)
+    ((23 * leafDegreeCap problem + 80) * problem.matrix.size + 26) (List.range problem.matrix.size)
     (fun i hi ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.PolynomialMatrix.Approximant.kernelLeafCompletionRows.c542.lam0.costEq P
         (by includes)]
       have := monomialUnitRowC_cost P (by includes) problem.matrix.size i (leafDegreeCap problem)
@@ -126,12 +126,12 @@ theorem completionRowsC_cost
   simp only [List.length_range, List.length_map] at hm ⊢
   nlinarith
 
-/-- `vectorToPolynomialRow c w v`: at most `(62·c + 67)·w + 19`. -/
+/-- `vectorToPolynomialRow c w v`: at most `(61·c + 66)·w + 18`. -/
 theorem vectorToPolynomialRowC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.costDeps)
     (c w : ℕ) (v : Array K) (hc : c < 2 ^ 30) (hw : w < 2 ^ 30) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.costIdx
-        [encodeValue c, encodeValue w, encodeValue v] ≤ (62 * c + 67) * w + 19 := by
+        [encodeValue c, encodeValue w, encodeValue v] ≤ (61 * c + 66) * w + 18 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.costEq P hP]
   have hr := rangeLoop_cost P (by includes) w [] (by omega)
   have hm := map_cost P (by includes) _
@@ -139,9 +139,9 @@ theorem vectorToPolynomialRowC_cost
       [encodeValue c, encodeValue v])
     (fun a ↦ RunsApp.of_spec
       (Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.lam0.costSpec P
-        (by includes) c v a)) (62 * c + 38) (List.range w) (fun coord hcoord ↦ by
+        (by includes) c v a)) (61 * c + 37) (List.range w) (fun coord hcoord ↦ by
       have hco := List.mem_range.1 hcoord
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.lam0.costEq P
         (by includes)]
       have hr' := rangeLoop_cost P (by includes) c [] (by omega)
@@ -150,13 +150,16 @@ theorem vectorToPolynomialRowC_cost
           [encodeValue c, encodeValue v, encodeValue coord])
         (fun a ↦ RunsApp.of_spec
           (Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.lam0.lam0.costSpec P
-            (by includes) c v coord a)) 10 (List.range c) (fun d hd ↦ by
+            (by includes) c v coord a)) 11 (List.range c) (fun d hd ↦ by
           have hd' := List.mem_range.1 hd
-          simp only [appCost_fn, List.cons_append, List.nil_append]
+          simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
           rw [Auto.CompPoly.PolynomialMatrix.Approximant.vectorToPolynomialRow.c490.lam0.lam0.costEq P
             (by includes), limbs_of_lt (by omega : coord < 2 ^ 64), limbs_of_lt (by omega : c < 2 ^ 64),
             limbs_of_lt (by omega : d < 2 ^ 64),
             limbs_of_lt (show coord * c < 2 ^ 64 by
+              have := Nat.mul_le_mul (show coord ≤ 2 ^ 30 by omega) (show c ≤ 2 ^ 30 by omega)
+              omega),
+            limbs_of_lt (show coord * c + d < 2 ^ 64 by
               have := Nat.mul_le_mul (show coord ≤ 2 ^ 30 by omega) (show c ≤ 2 ^ 30 by omega)
               omega)]
           simp)
@@ -167,13 +170,13 @@ theorem vectorToPolynomialRowC_cost
   simp only [List.length_range, List.length_map] at hm ⊢
   nlinarith
 
-/-- `coefficientMatrixRow problem c eq`: at most `69·n·c + 26`. -/
+/-- `coefficientMatrixRow problem c eq`: at most `70·n·c + 24`. -/
 theorem coefficientMatrixRowC_cost
     (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRow.c514.costDeps)
     (problem : XAdicProblem K) (c : ℕ) (eq : ℕ × ℕ) (hn : problem.matrix.size < 2 ^ 30)
     (hc : 1 ≤ c) (hc' : c < 2 ^ 30) (heq : eq.2 < 2 ^ 63) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRow.c514.costIdx
-        [encodeValue problem, encodeValue c, encodeValue eq] ≤ 69 * (problem.matrix.size * c) + 26 := by
+        [encodeValue problem, encodeValue c, encodeValue eq] ≤ 70 * (problem.matrix.size * c) + 24 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRow.c514.costEq P hP]
   have hnc : problem.matrix.size * c ≤ 2 ^ 60 := by
     have := Nat.mul_le_mul (show problem.matrix.size ≤ 2 ^ 30 by omega) (show c ≤ 2 ^ 30 by omega)
@@ -184,15 +187,16 @@ theorem coefficientMatrixRowC_cost
       [encodeValue problem, encodeValue c, encodeValue eq])
     (fun a ↦ RunsApp.of_spec
       (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRow.c514.lam0.costSpec P
-        (by includes) problem c eq a)) 40 (List.range (problem.matrix.size * c)) (fun col hcol ↦ by
+        (by includes) problem c eq a)) 41 (List.range (problem.matrix.size * c)) (fun col hcol ↦ by
       have hco := List.mem_range.1 hcol
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRow.c514.lam0.costEq P
         (by includes), limbs_of_lt (by omega : col < 2 ^ 64), limbs_of_lt (by omega : c < 2 ^ 64),
         limbs_of_lt (by have := Nat.mod_lt col (show c > 0 by omega); omega : col % c < 2 ^ 64),
         limbs_of_lt (by omega : eq.2 < 2 ^ 64), rowGet_cost P (by includes)]
       split_ifs <;> simp only [max_self] <;> omega)
-  rw [limbs_of_lt (by omega : problem.matrix.size < 2 ^ 64), limbs_of_lt (by omega : c < 2 ^ 64)]
+  rw [limbs_of_lt (by omega : problem.matrix.size < 2 ^ 64), limbs_of_lt (by omega : c < 2 ^ 64),
+    limbs_of_lt (by omega : problem.matrix.size * c < 2 ^ 64)]
   simp only [List.length_range, List.length_map] at hm ⊢
   omega
 
@@ -212,9 +216,9 @@ theorem coefficientMatrixRowsC_cost
     (hm : problem.orders.size < 2 ^ 30) :
     machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRows.c512.costIdx
         [encodeValue problem] ≤
-      36 * problem.orders.size + 26 +
-        (problem.orders.size * problem.orders.size + 160 * problem.orders.size + 64) +
-        (69 * problem.matrix.size + 45) * problem.orders.size + 20 := by
+      42 * problem.orders.size + 27 +
+        (problem.orders.size * problem.orders.size + 151 * problem.orders.size + 63) +
+        (70 * problem.matrix.size + 47) * problem.orders.size + 17 := by
   rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRows.c512.costEq P hP]
   have hord : ∀ x ∈ problem.orders, x ≤ 1 := fun x hx ↦ (le_maxOrder problem x hx).trans h1
   have hcap : leafDegreeCap problem = 1 := LeanVM.Extraction.Fast.PMDegree.leafDegreeCap_eq_one h1
@@ -227,9 +231,9 @@ theorem coefficientMatrixRowsC_cost
       [encodeValue problem, encodeValue (leafDegreeCap problem)])
     (fun a ↦ RunsApp.of_spec
       (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRows.c512.lam0.costSpec P
-        (by includes) problem (leafDegreeCap problem) a)) (69 * problem.matrix.size + 30)
+        (by includes) problem (leafDegreeCap problem) a)) (70 * problem.matrix.size + 30)
     (coefficientEquationIndices problem.orders).toList (fun eq heq ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientMatrixRows.c512.lam0.costEq P
         (by includes)]
       have hb := mem_coefficientEquationIndices_bounds (orders := problem.orders) (j := eq.1)
@@ -241,8 +245,8 @@ theorem coefficientMatrixRowsC_cost
         rw [hcap, Nat.mul_one]
       omega)
   simp only [Array.length_toList, List.length_map] at hmap ⊢
-  have e : (69 * problem.matrix.size + 30 + 11) * (coefficientEquationIndices problem.orders).size ≤
-      (69 * problem.matrix.size + 41) * problem.orders.size := Nat.mul_le_mul_left _ hE
+  have e : (70 * problem.matrix.size + 30 + 13) * (coefficientEquationIndices problem.orders).size ≤
+      (70 * problem.matrix.size + 43) * problem.orders.size := Nat.mul_le_mul_left _ hE
   nlinarith
 
 end

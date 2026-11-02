@@ -21,14 +21,14 @@ leaf at order one, the evaluation-domain products). Its price, by its two equati
 (`pmBasisWithFuelCore_price_le`, `Bounds/PMBasis/Recursion.lean`):
 
 * **`residualMatrixC_cost`**: the residual `(P₁·A) div X^d`: the column-truncated product
-  (`mulTruncEvalPC_cost`) and `R·W` entries of at most `59·O + 87` each;
+  (`mulTruncEvalPC_cost`) and `R·W` entries of at most `58·O + 89` each;
 * **`pmCoreC_node`**: a node's own price at maximal order `o` is at most
   `pmNodePrice p r m o` (`FFTPricesOK p`), the products within `evalMatPrice` , the sizes from
   `popovRuntime_core_node` (exactly `r` rows, degrees at most the halves' orders);
 * **`pmCoreC_cost`**: on a problem of `r ≥ m` rows of width `m` (`CoreInv`: shifts plus twice the
   maximal order at most `SB < 2^60`), at the fuel `pmBasisFuel = maxOrder + 1`, the price is at
   most `pmTree 1 L (pmNodePrice p r m) (maxOrder problem)`, `L` the leaf's price (`LeafCost`: the
-  ordered-weak-Popov leaf and its compaction within `Lc`) and `18·m + 100`.
+  ordered-weak-Popov leaf and its compaction within `Lc`) and `21·m + 32`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMCore
@@ -109,7 +109,7 @@ theorem matrixWidth_of_rows {M : PolynomialMatrix K} {r m : ℕ} (hs : M.size = 
 variable (P : MachineProgram)
 
 /-- **The residual** `(P₁·A) div X^d` truncated at `orders` (`residualMatrixC`): the
-column-truncated product, then `|P₁|·width` entries, each at most `59·O + 87` (`O` the residual
+column-truncated product, then `|P₁|·width` entries, each at most `58·O + 89` (`O` the residual
 orders' bound). -/
 theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
     (basis matrix : PolynomialMatrix K) (d : ℕ) (orders : Array ℕ) {O : ℕ}
@@ -117,10 +117,10 @@ theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
     (hbs : basis.size < 2 ^ 62) (hmw : MatrixWidth matrix < 2 ^ 62) :
     machineCost P residualMatrixC.costIdx
         [encodeValue basis, encodeValue matrix, encodeValue d, encodeValue orders] ≤
-      19 * orders.size + 60 +
+      21 * orders.size + 59 +
         machineCost P mulTruncEvalPC.costIdx [encodeValue (orders.map fun order ↦ order + d),
           encodeValue basis, encodeValue matrix] +
-        basis.size * ((59 * O + 87) * MatrixWidth matrix + 66) := by
+        basis.size * ((58 * O + 89) * MatrixWidth matrix + 49) := by
   rw [residualMatrixC.costEq P hP]
   have hord : ∀ x ∈ orders, x ≤ O := fun x hx ↦ by
     obtain ⟨j, hj, rfl⟩ := Array.getElem_of_mem hx
@@ -131,9 +131,9 @@ theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
     (fun a ↦ RunsApp.of_spec (residualMatrixC.lam0.costSpec P (by includes) d a)) 4
     orders.toList (fun a ha ↦ by
       have := hord a (by simpa using ha)
-      rw [appCost_fn, List.singleton_append, residualMatrixC.lam0.costEq P (by includes),
-        limbs_of_lt (by omega : a < 2 ^ 64), limbs_of_lt (by omega : d < 2 ^ 64)]
-      simp)
+      rw [appCost_fn, List.singleton_append, residualMatrixC.lam0.costEq P (by includes)]
+      cost_simp
+      omega)
   set prod := mulTruncEvalP novelTransform fftMulContext (orders.map fun order ↦ order + d)
     basis matrix with hprod
   have hps : prod.size = basis.size := mulTruncEvalP_size _ _ _
@@ -143,20 +143,20 @@ theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
     (vs := [encodeValue a, encodeValue b]) (residualMatrixC.lam1.costSpec P (by includes) d orders prod a b)
   have hof := ofFnC_cost P (by includes) prod.size (MatrixWidth prod) (by omega) (by omega) _
     (.closure residualMatrixC.lam1.costIdx [encodeValue d, encodeValue orders, encodeValue prod])
-    hf (59 * O + 54) (fun i _ j _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+    hf (58 * O + 54) (fun i _ j _ ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [residualMatrixC.lam1.costEq P (by includes), rowGet_cost P (by includes)]
       have := divXTruncC_cost P (by includes) d (orders.getD j 0)
         (rowGet (prod.getD i #[]) j) (by have := hO j; omega)
       have := hO j
       omega)
-  have hof2 : prod.size * (MatrixWidth prod * (59 * O + 54 + 33) + 48) ≤
-      prod.size * ((59 * O + 54 + 33) * MatrixWidth prod + 66) :=
-    Nat.mul_le_mul_left _ (by rw [Nat.mul_comm (MatrixWidth prod)]; omega)
-  have h1 : (59 * O + 54 + 33) * MatrixWidth prod ≤ (59 * O + 87) * MatrixWidth matrix :=
+  have hof2 : prod.size * (MatrixWidth prod * (58 * O + 54 + 35) + 49) ≤
+      prod.size * ((58 * O + 54 + 35) * MatrixWidth prod + 49) :=
+    Nat.mul_le_mul_left _ (by rw [Nat.mul_comm (MatrixWidth prod)])
+  have h1 : (58 * O + 54 + 35) * MatrixWidth prod ≤ (58 * O + 89) * MatrixWidth matrix :=
     Nat.mul_le_mul_left _ hpw
-  have h2 : prod.size * ((59 * O + 54 + 33) * MatrixWidth prod + 66) ≤
-      basis.size * ((59 * O + 87) * MatrixWidth matrix + 66) := by
+  have h2 : prod.size * ((58 * O + 54 + 35) * MatrixWidth prod + 49) ≤
+      basis.size * ((58 * O + 89) * MatrixWidth matrix + 49) := by
     rw [hps]; exact Nat.mul_le_mul_left _ (by omega)
   simp only [Array.length_toList, List.length_map] at hm ⊢
   omega
@@ -213,12 +213,12 @@ theorem updateShiftByRows_getD_le (B : PolynomialMatrix K) (shift : Array ℕ) {
 /-- The node's glue and the residual product's truncations within the overhead term. -/
 theorem glue_le (r m o ovh d : ℕ) (hr : 2 ≤ r) (ho : 2 ≤ o) (hovh : 80 ≤ ovh)
     (hd : 2 * (o - d) ≤ o + 1) :
-    r * ((59 * (o - d) + 87) * m + 66) + (90 * r + 71) * r + ((3 * (o + 1) + 23) * r + 28) * r +
-        77 * m + ovh * ((r * r + r * m + r * m) * (o + 1)) ≤
+    r * ((58 * (o - d) + 89) * m + 49) + (84 * r + 63) * r + ((3 * (o + 1) + 33) * r + 30) * r +
+        88 * m + ovh * ((r * r + r * m + r * m) * (o + 1)) ≤
       ovh * (r * (2 * r + 4 * m) * (o + 1)) := by
   generalize he : o - d = e at hd
-  have h59 : 59 * e ≤ 30 * (o + 1) := by omega
-  have hA : r * ((59 * e + 87) * m + 66) ≤ r * m * (30 * (o + 1)) + 87 * (r * m) + 66 * r := by
+  have h59 : 58 * e ≤ 29 * (o + 1) := by omega
+  have hA : r * ((58 * e + 89) * m + 49) ≤ r * m * (29 * (o + 1)) + 89 * (r * m) + 49 * r := by
     have := Nat.mul_le_mul_right m h59
     nlinarith
   have hsplit : ovh * (r * (2 * r + 4 * m) * (o + 1)) =
@@ -412,7 +412,7 @@ theorem coreInv_children {r m SB : ℕ} (hr : 1 ≤ r) (hSB : SB < 2 ^ 62) (prob
 problem of the invariant (`r ≥ m` rows of width `m`, shifts plus twice the maximal order at most
 `SB < 2^39`), with the products within the model (`mulEvalPC_cost`, `mulTruncEvalPC_cost`)
 and the leaf within `Lc` (`LeafCost`), at most the model's tree with the node price
-`pmNodePrice p r m` and the leaf price `Lc + 18·m + 60`, at prices `p` the products fit
+`pmNodePrice p r m` and the leaf price `Lc + 21·m + 32`, at prices `p` the products fit
 (`FFTPricesOK p`). -/
 theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMFFT.FFTPricesOK p)
     {r m SB Lc : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)
@@ -420,7 +420,7 @@ theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMF
     (problem : XAdicProblem K) (shift : Array ℕ) (hI : CoreInv r m SB problem shift) :
     machineCost P pmCoreC.costIdx
         [encodeValue (pmBasisFuel problem), encodeValue problem, encodeValue shift] ≤
-      pmTree 1 (Lc + 18 * m + 60) (pmNodePrice p r m) (maxOrder problem) := by
+      pmTree 1 (Lc + 21 * m + 32) (pmNodePrice p r m) (maxOrder problem) := by
   let T : ℕ → XAdicProblem K → Array ℕ → ℕ := fun fuel prob sh ↦
     if fuel < 2 ^ 61 then
       machineCost P pmCoreC.costIdx [encodeValue fuel, encodeValue prob, encodeValue sh]
@@ -428,7 +428,7 @@ theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMF
   have hlc : targetRT.leafCutoff = 1 := rfl
   have hord_lt : ∀ prob sh, CoreInv r m SB prob sh → maxOrder prob < 2 ^ 38 := fun prob sh h ↦ by
     have := h.2.2.2.2.1 0; omega
-  have h := pmBasisFuel_price_le targetRT T (Lc + 18 * m + 60) (pmNodePrice p r m)
+  have h := pmBasisFuel_price_le targetRT T (Lc + 21 * m + 32) (pmNodePrice p r m)
     (CoreInv r m SB)
     (fun fuel prob sh hIp hf hl ↦ by
       rw [hlc] at hl
@@ -443,7 +443,7 @@ theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMF
         | zero =>
           rw [pmCoreC.costEq_zero P hP]
           change machineCost P popovLeafC.costIdx _ +
-            machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis prob sh)] + 9 ≤ _
+            machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis prob sh)] + 8 ≤ _
           omega
         | succ k =>
           rw [pmCoreC.costEq_succ P hP]
@@ -453,7 +453,7 @@ theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMF
           simp only [hd, Bool.true_or, ↓reduceIte]
           change _ + (machineCost P popovLeafC.costIdx _ +
             machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis prob sh)] + 4) +
-              16 ≤ _
+              15 ≤ _
           rw [limbs_of_lt (by omega : k + 1 < 2 ^ 64),
             limbs_of_lt (by have := hord_lt prob sh hIp; omega : maxOrder prob < 2 ^ 64)]
           have h1 : limbCount (popovEvalRuntime novelTransform fftMulContext fftMulLowContext 1).leafCutoff =

@@ -22,17 +22,17 @@ open LeanVM.Cost.Bounds.PMBasis
 public section
 
 /-- The schedule's Karatsuba branch's price. -/
-@[expose] def karMax : ℕ := 2 ^ 32
+@[expose] def karMax : ℕ := 2 ^ 29
 
 /-- Newton's price per step beyond its two products, at precision `≤ k`: the `karMax` and the
 `2^20` of each product (the latter left over from the products' telescoping), the subtraction. -/
-@[expose] def newtonExtra (k : ℕ) : ℕ := 2 * karMax + 224 * k + 2 ^ 21 + 500
+@[expose] def newtonExtra (k : ℕ) : ℕ := 2 * karMax + 161 * k + 2 ^ 21 + 207
 
 /-- **Newton's inverse modulo `X^k`, proved price**: four products at the last precision (the
 precisions `2, 4, …, k` double, so do the products' prices: their sum is at most twice the last's,
 two products a step) and `⌈log₂ k⌉` times `newtonExtra k`, the inversion of the constant term. -/
 @[expose] def newtonBound (p : PMPrices) (k : ℕ) : ℕ :=
-  4 * polyMulPrice p (clog2 (2 * k - 1)) + clog2 k * newtonExtra k + k + 19740
+  4 * polyMulPrice p (clog2 (2 * k - 1)) + clog2 k * newtonExtra k + k + 2863
 
 end
 
@@ -46,28 +46,28 @@ open LeanVM.Cost.Bounds.PMBasis
 public section
 
 /-- The price of one pivot of the RREF on `E` rows of at most `r` entries. -/
-@[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
+@[expose] def pivotPrice (E r : ℕ) : ℕ := 2871 * r + (69 * r + E + 87) * E + 3 * E + 100
 
 /-- The price of one step of the pivot table on rows of width `r`. -/
-@[expose] def stepPrice (r : ℕ) : ℕ := 2700 * r + 21400
+@[expose] def stepPrice (r : ℕ) : ℕ := 1774 * r + 3567
 
 /-- The price of one incremental insertion beyond the rank potential, `r` rows wide. -/
 @[expose] def incPrice (r : ℕ) : ℕ :=
-  (r + 1) * (stepPrice r + 14) + (90 * r + 76) * (r + 1) + (29 * r + 24) * (r + 1) + 40 * r + 300
+  (r + 1) * (stepPrice r + 18) + (84 * r + 66) * (r + 1) + (39 * r + 30) * r + 23 * r + 110
 
 /-- **The leaf's price**, `n` rows, `m` orders, at order at most one. -/
 @[expose] def leafBound (n m : ℕ) : ℕ :=
   -- the reduced kernel rows
-  (36 * m + 26) +
-    (36 * m + 26 + (m * m + 160 * m + 64) + (69 * n + 45) * m + 20) + 1 +
-    ((n + 1) * (42 * m + 80) + m * pivotPrice m n + (33 * n + 55) * n * n + (16 * n + 90) * n + 70) +
-    3 * n + ((129 * n + 34) * n + 3) + n +
-    (36 * m + ((25 + 83) * n + 36) * n + 18 * n + 50) + 2 * n +
-    (stepPrice n * (2 * n * (2 * n)) + (incPrice n + 16) * (2 * n) + 11) + 28 +
+  (42 * m + 27) +
+    (42 * m + 27 + (m * m + 151 * m + 63) + (70 * n + 47) * m + 17) + 1 +
+    ((n + 1) * (43 * m + 56) + m * pivotPrice m n + (34 * n + 56) * n * n + (18 * n + 91) * n + 62) +
+    3 * n + ((127 * n + 37) * n + 3) + n +
+    (42 * m + ((23 + 80) * n + 39) * n + 16 * n + 50) + 2 * n +
+    (stepPrice n * (2 * n * (2 * n)) + (incPrice n + 19) * (2 * n) + 11) + 27 +
   -- the slots filled
-    (n + (191 * n + 126) * n + 12) + ((36 * m + 108 * n + 75) * n + 6) + n + 18 + 6 +
+    (n + (169 * n + 79) * n + 12) + ((42 * m + 103 * n + 75) * n + 5) + n + 18 + 6 +
   -- the compaction
-    ((29 * n + 28) * n + 8)
+    ((39 * n + 30) * n + 8)
 
 end
 
@@ -92,35 +92,35 @@ public section
 
 /-- The lift's price: `w·m` entries reduced on the first branch, `−diag(M)`, the orders. -/
 @[expose] def liftPrice (Q w m : ℕ) : ℕ :=
-  w * (m * (120 * Q + 203) + 48) + m * (m * (16 * Q + 53) + 48) + w + 40 * m + 90
+  w * (m * (123 * Q + 113) + 49) + m * (m * (18 * Q + 52) + 49) + w + 39 * m + 78
 
 /-- **The certified solve's price** (`certifiedSolveC_cost`): the lift twice, the PM-basis core
 (`pmTreeEval`), the basis rows' certificates and principal parts, the guard and the shifts. -/
 @[expose] def certSolveCost (p : PMPrices) (L Q w m o : ℕ) : ℕ :=
   2 * liftPrice Q w m + pmTreeEval 1 L (pmNodePrice p (w + m) m) o +
-    (w + m) * (90 * (w + m) + 78) + (37 * w + 32) * (w + m) + 4 * (w + m) + 50 * w + 72 * m + 300
+    (w + m) * (84 * (w + m) + 63) + (38 * w + 34) * (w + m) + 4 * (w + m) + 50 * w + 74 * m + 172
 
 /-- The column's step's price (`colStep`). -/
-@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 1350 * N + 4 * w + 1500
+@[expose] def colStep (N w MB LB LBq : ℕ) : ℕ := MB + LB + LBq + 419 * N + 4 * w + 719
 
 /-- The column's price. -/
 @[expose] def colPrice (N w MB LB LBq IB : ℕ) : ℕ :=
-  IB + w * (colStep N w MB LB LBq + 9) + 150 * N + 30 * w + 300
+  IB + w * (colStep N w MB LB LBq + 9) + 110 * N + 19 * w + 174
 
 /-- The matrix's price: `m` columns, the matrix assembled. -/
 @[expose] def matPrice (N w m MB LB LBq IB : ℕ) : ℕ :=
-  m * (colPrice N w MB LB LBq IB + 25) + w * (m * 42 + 48) + 20 * m + 100
+  m * (colPrice N w MB LB LBq IB + 30) + w * (m * 46 + 49) + 16 * m + 60
 
 /-- The GS data's price. -/
 @[expose] def dataPrice (N m w MB LB LBq IB : ℕ) : ℕ :=
-  (MB + m + 40) * (m - 1) + 34 * m + 120 + matPrice N w m MB LB LBq IB + 40 * w + 80
+  (MB + m + 33) * (m - 1) + 33 * m + 54 + matPrice N w m MB LB LBq IB + 37 * w + 43
 
 /-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
 the certified solve, the least row, the row read and normalized. -/
 @[expose] def interpPMCost (p : PMPrices) (L N n m w W MB LB LBq IB : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 27100 * n + 1000 + dataPrice N m w MB LB LBq IB +
-    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (90 * w + 130) * (w + m) +
-    (3 * (m * n + W + 2 + 2) + 41) * w + normBound W w + 200
+  362 * (n * n) + 309 * ((n + 1) * n) + 4146 * n + 299 + dataPrice N m w MB LB LBq IB +
+    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (84 * w + 98) * (w + m) +
+    (3 * (m * n + W + 2 + 2) + 32) * w + normBound W w
 
 /-- The sizes the interpolation's price reads, besides the chain's `InterpSizes`. -/
 @[expose] def PMInterpSizes (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
@@ -149,7 +149,7 @@ inverses at precision `n`, the PM-basis leaf at its proved price. -/
   let m := params.multiplicity
   let w := GuruswamiSudan.interpolationWidth params
   let N := (m + 1) * n + 1
-  interpPMCost p (PMCore.leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
+  interpPMCost p (PMCore.leafBound (w + m) m + 21 * m + 32) N n m w params.weightedDegreeBound
     (fftMB p N) (fftLB p (m * n)) (fftLB p n) (fftIB p n)
 
 end
