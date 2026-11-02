@@ -1172,6 +1172,38 @@ parameters (low products by truncation, composition cutoff = leaf cutoff). -/
   popovPMBasisContextWithLowAndCompose mulCtx
     (PolynomialMatrix.MulLowContext.fromMulContext mulCtx) leafCutoff leafCutoff
 
+/-- The same context with the core as its basis, so no root pass runs at all: the basis is
+`pmBasisWithFuelCore` at CompPoly's fuel, equal to `pmBasis` (`pmBasis_popovRuntime_eq_core`). -/
+@[expose] def popovCorePMBasisContextWithLowAndCompose (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : PolynomialMatrix.MulLowContext F)
+    (leafCutoff composeLeafCutoff : Nat) : PMBasisContext F where
+  runtime := popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff
+  basis problem shift := pmBasisWithFuelCore
+    (popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff) (pmBasisFuel problem) problem shift
+  sound := by
+    intro problem shift row hrow
+    rw [← pmBasis_popovRuntime_eq_core] at hrow
+    exact pmBasis_popov_approximates mulCtx lowCtx leafCutoff composeLeafCutoff problem shift
+      hrow
+  complete_minimal := by
+    let : DecidableEq F := instDecidableEqOfLawfulBEq
+    intro problem shift row hpos hwf happrox hnz hwidth
+    simp only [← pmBasis_popovRuntime_eq_core]
+    exact pmBasis_popov_complete_minimal mulCtx lowCtx leafCutoff composeLeafCutoff problem
+      shift row hpos hwf happrox hnz hwidth
+
+/-- The core context with CompPoly's `kernelLeafPMBasisContext` parameters. -/
+@[expose] def popovCorePMBasisContext (mulCtx : CPolynomial.MulContext F) (leafCutoff : Nat) :
+    PMBasisContext F :=
+  popovCorePMBasisContextWithLowAndCompose mulCtx
+    (PolynomialMatrix.MulLowContext.fromMulContext mulCtx) leafCutoff leafCutoff
+
+theorem popovCorePMBasisContext_basis (mulCtx : CPolynomial.MulContext F) (leafCutoff : Nat) :
+    (popovCorePMBasisContext mulCtx leafCutoff).basis =
+      (popovPMBasisContext mulCtx leafCutoff).basis := by
+  funext problem shift
+  exact (pmBasis_popovRuntime_eq_core _ _ _ _ problem shift).symm
+
 end
 
 end LeanVM.Extraction.Fast.Popov

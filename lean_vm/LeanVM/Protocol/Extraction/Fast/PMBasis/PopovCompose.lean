@@ -189,13 +189,16 @@ theorem updateShiftByRows_getD {P : PolynomialMatrix F} {s : Array Nat} {n i : N
     List.getElem?_map, List.getElem?_range hi', Option.map_some, Option.getD_some,
     rowShiftedDegree?_of_leadingPosition (hP.2 i hi).2]
 
-/-- **The composition lemma.** `P₁` ordered weak Popov at `s`, `P₂` at `rdeg_s(P₁)`: their
-product `P₂ · P₁` is ordered weak Popov at `s`. -/
-theorem orderedWeakPopov_mulWith (mulCtx : CPolynomial.MulContext F)
+/-- Row `k` of `P₂ · P₁`: width `n`, leading position `k`, and the shifted degree of its
+entry `k` is row `k` of `P₂`'s `rdeg_s(P₁)`-degree. -/
+private theorem mulWith_row (mulCtx : CPolynomial.MulContext F)
     {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
-    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n) :
-    OrderedWeakPopov (mulWith mulCtx P₂ P₁) s n := by
-  refine ⟨by rw [mulWith_size, h₂.1], fun k hk ↦ ?_⟩
+    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n)
+    {k : Nat} (hk : k < n) :
+    ((mulWith mulCtx P₂ P₁).getD k #[]).size = n ∧
+      rowShiftedLeadingPosition? ((mulWith mulCtx P₂ P₁).getD k #[]) s = some k ∧
+      (rowGet ((mulWith mulCtx P₂ P₁).getD k #[]) k).natDegree + s.getD k 0 =
+        (rowGet (P₂.getD k #[]) k).natDegree + (updateShiftByRows P₁ s).getD k 0 := by
   have hk₂ : k < P₂.size := h₂.1 ▸ hk
   have hn : 0 < n := by omega
   have hwidth : MatrixWidth P₁ = n := by
@@ -301,7 +304,7 @@ theorem orderedWeakPopov_mulWith (mulCtx : CPolynomial.MulContext F)
         rw [hcoeff]
         exact Polynomial.leadingCoeff_ne_zero.2 (mul_ne_zero hA0 hB0))
     omega
-  refine ⟨hQsize, leadingPosition_eq_some_iff.2 ⟨?_, ?_, ?_⟩⟩
+  refine ⟨hQsize, leadingPosition_eq_some_iff.2 ⟨?_, ?_, ?_⟩, hQkdeg⟩
   · rwa [Ne, ← CPolynomial.toPoly_eq_zero_iff]
   · intro j hj
     rcases hbnd j with h | h
@@ -313,6 +316,42 @@ theorem orderedWeakPopov_mulWith (mulCtx : CPolynomial.MulContext F)
     · exact absurd ((CPolynomial.toPoly_eq_zero_iff _).1 h) hj
     · rw [← CPolynomial.natDegree_toPoly, ite_eq_left hkj] at h
       omega
+
+/-- **The composition lemma.** `P₁` ordered weak Popov at `s`, `P₂` at `rdeg_s(P₁)`: their
+product `P₂ · P₁` is ordered weak Popov at `s`. -/
+theorem orderedWeakPopov_mulWith (mulCtx : CPolynomial.MulContext F)
+    {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
+    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n) :
+    OrderedWeakPopov (mulWith mulCtx P₂ P₁) s n :=
+  ⟨by rw [mulWith_size, h₂.1], fun _ hk ↦
+    ⟨(mulWith_row mulCtx h₁ h₂ hk).1, (mulWith_row mulCtx h₁ h₂ hk).2.1⟩⟩
+
+/-- **The degrees compose**: `rdeg_s(P₂ · P₁) = rdeg_t(P₂)`, `t = rdeg_s(P₁)`, row by row. -/
+theorem rowShiftedDegree?_mulWith (mulCtx : CPolynomial.MulContext F)
+    {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
+    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n)
+    {k : Nat} (hk : k < n) :
+    rowShiftedDegree? ((mulWith mulCtx P₂ P₁).getD k #[]) s =
+      rowShiftedDegree? (P₂.getD k #[]) (updateShiftByRows P₁ s) := by
+  rw [rowShiftedDegree?_of_leadingPosition (mulWith_row mulCtx h₁ h₂ hk).2.1,
+    rowShiftedDegree?_of_leadingPosition (h₂.2 k hk).2, (mulWith_row mulCtx h₁ h₂ hk).2.2]
+
+/-- The shift update composes: `rdeg_s(P₂ · P₁) = rdeg_{rdeg_s(P₁)}(P₂)`. -/
+theorem updateShiftByRows_mulWith (mulCtx : CPolynomial.MulContext F)
+    {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
+    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n) :
+    updateShiftByRows (mulWith mulCtx P₂ P₁) s =
+      updateShiftByRows P₂ (updateShiftByRows P₁ s) := by
+  have h := orderedWeakPopov_mulWith mulCtx h₁ h₂
+  apply Array.ext
+  · simp [updateShiftByRows, mulWith_size]
+  · intro k hk₁ hk₂
+    have hk : k < n := by simpa [updateShiftByRows, mulWith_size, h₂.1] using hk₁
+    have e₁ := updateShiftByRows_getD h hk
+    have e₂ := updateShiftByRows_getD h₂ hk
+    rw [DenseMatrix.array_getD_of_lt' _ _ hk₁] at e₁
+    rw [DenseMatrix.array_getD_of_lt' _ _ hk₂] at e₂
+    rw [e₁, e₂, (mulWith_row mulCtx h₁ h₂ hk).2.2]
 
 omit [LawfulBEq F] in
 /-- An ordered weak Popov matrix is shifted weak Popov (distinct leading positions). -/
