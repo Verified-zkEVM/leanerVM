@@ -202,8 +202,9 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   `extractorSizeBound` or a run out of budget extracts nothing, which counts as breaking knowledge
   soundness, so this bounds the program's size; the machine's prices are trusted to be honest,
   `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`
-  queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^95` up to `2^60`
-  permutation queries and `O(N·log³N)` for `N`. -/
+  queries (`LeanVm.lean`). The budget, `extractorBudget` (the most the run may cost, so also the
+  most steps it may execute), is about `2^95` up to `2^60` permutation queries and `O(N·log³N)`
+  for `N`. -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at

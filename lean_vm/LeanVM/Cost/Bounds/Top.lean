@@ -37,7 +37,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `D = log₂(N + 2) + 1`), so the price grows like `N·D²·(D/64 + 1)`; the closed forms
   (`extractorPrice`, `afterRootStagePrice`, …) are `Cost/Prices.lean`'s;
 * **`extractorC_within`**: the price and the entry's `9` within the statement's
-  `extractorBudgetFor` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
+  `extractorBudget` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
   through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
   `20790990093649275234901499479 ≈ 2^94.07`, the decoder (`listDecoderWorstPrice ≈ 2^94.07`) all
@@ -583,11 +583,11 @@ theorem extractorPrice_le_worst {μ R κ ℓ N : ℕ} (hμ : μ ≤ 28) (hR : R 
     runnerStepPrice committedLeavesPrice bytecodeWordsPrice
   gcongr
 
-/-- **The worst shape's price within the statement's budget** (`extractorBudgetFor`), the entry's
+/-- **The worst shape's price within the statement's budget** (`extractorBudget`), the entry's
 `9` included, for every number of queries: monomial by monomial in `N` and the levels `D`, the
 positions' limbs `W` at most `(D + 65)/64`. -/
-theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ extractorBudgetFor N := by
-  unfold extractorBudgetFor extractorPrice extractorSortedMapLevels
+theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ extractorBudget N := by
+  unfold extractorBudget extractorPrice extractorSortedMapLevels
   have hW : 64 * limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) ≤ Nat.log2 (N + 2) + 1 + 65 := by
     unfold limbsBelowTwoPow; omega
   generalize limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) = W at hW ⊢
@@ -603,14 +603,14 @@ theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ 
 
 /-- **The price within the budget** (the hypothesis `hcost` of `extractorTop_output`,
 `Cost/Efficient.lean`): wherever `afterRoot` announces a shape, the compiled extractor's price and the
-entry's `9` are within `extractorBudgetFor`, on every transcript (`extractorC_cost` at the shape
+entry's `9` are within `extractorBudget`, on every transcript (`extractorC_cost` at the shape
 `afterRootLite_facts` bounds, `extractorPrice_le_worst`, `extractorPrice_worst_le`). -/
 theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (T : Common.OracleQueryLog) (π : Proof) (layout : Layout)
     (logInverseRate : ℕ) (st : ProgState)
     (ha : afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st)) :
     machineCost P extractorC.costIdx [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
-      extractorBudgetFor (permutationQueries T).length := by
+      extractorBudget (permutationQueries T).length := by
   have h := extractorC_cost P hP prog input (permutationQueries T) π
   have hl : afterRootLite (bytecodeWords prog) π = some ((layoutLite layout, logInverseRate), st) := by
     rw [afterRootLite_eq, ha]; rfl
