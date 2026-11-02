@@ -6,11 +6,11 @@ public import Mathlib.Data.Nat.Notation
 /-!
 # The cost machine and the extractor a program computes
 
-**The machine.** A first-order functional language with prices. A program is an array of
-function bodies; a body reads its arguments and the values it binds by position, calls functions
-by index, applies closures, builds and inspects constructors, and runs priced primitive operations
-on natural numbers and arrays. Values are immutable. A program carries its literals, and its size
-counts them in full (`MachineProgram.size`); its only runtime data is its input.
+**The machine.** A first-order functional language with prices. A program is an array of function
+bodies; a body reads its arguments and the values it binds by position, calls functions by index,
+applies closures, builds and inspects constructors, and runs priced primitive operations on natural
+numbers and arrays. Values are immutable. A program carries its literals, and its size counts them
+in full (`MachineProgram.size`); its only runtime data is its input.
 
 `run P fuel x` runs function `0` of `P` on `x`: its value and its price, the sum of its steps'
 prices, or `none` when the run misuses a value (a primitive on the wrong kind of value, a missing
@@ -20,34 +20,34 @@ price at most `b`: a program's two resources, in one place. Each call costs at l
 fuel never fails a run of price at most `b`.
 
 **Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
-`KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is priced by
-the algorithm that computes it on a 64-bit machine, at least `1`. The environment is a stack frame,
-read in place: a position costs `1`; a `let` pushes one value, a `case` the fields it binds and a
-closure's application the captured values it puts in front of the arguments, each at `1` per
-value; a call's frame is written by its argument terms, each of price at least `1`. A constructor,
-a closure and a new array cost `1` and their entries; a field and an array's entry cost `1`, read
-in place: values are immutable, so they are shared, not copied (an array's update copies it). A
-natural number is held in limbs of 64 bits (`limbCount`) and knows their count: an operation on
-natural numbers costs the limbs it reads or writes, the larger count (`linearlyPricedResult`), and
-a product, quotient, remainder or carry-less product the product of its operands' limb counts, at
-least the limbs it writes (`quadraticallyPricedResult`, schoolbook); an array index of more than
+`KnowledgeSoundness (knowledgeExtractorOf P)` and `GuestKnowledge` their meaning). Each step is
+priced by the algorithm that computes it on a 64-bit machine, at least `1`. The environment is a
+stack frame, read in place: a position costs `1`; a `let` pushes one value, a `case` the fields it
+binds and a closure's application the captured values it puts in front of the arguments, each at `1`
+per value; a call's frame is written by its argument terms, each of price at least `1`. A
+constructor, a closure and a new array cost `1` and their entries; a field and an array's entry cost
+`1`, read in place: values are immutable, so they are shared, not copied (an array's update copies
+it). A natural number is held in limbs of 64 bits (`limbCount`) and knows their count: an operation
+on natural numbers costs the limbs it reads or writes, the larger count (`linearlyPricedResult`),
+and a product, quotient, remainder or carry-less product the product of its operands' limb counts,
+at least the limbs it writes (`quadraticallyPricedResult`, schoolbook); an array index of more than
 one limb is out of bounds. The unit is a word operation: on one-limb operands each operation is a
 few instructions of a 64-bit CPU (one, and a comparison for a shift by `64` or more, a truncated
 subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or ARMv8's PMULL; on
 more limbs, a constant number per limb or pair of limbs.
 
-**The extractor a program computes** (`LeanVM.extractorOf P`): `P`, if its size is at most
-`extractorSizeBound`, run on the encoded statement, transcript and proof (`encodeExtractorInput`;
-the transcript without the adversary's coin flips) within its budget (`extractorBudget`, at the
-transcript's number of permutation queries: the most its run may cost, so also the most steps it
-may execute), its output parsed as an execution (`decodeExecution`, a linear parse: no search, no
-run). A larger program, or a run that fails or exceeds its budget, extracts nothing, which counts
-as a break. `Statement.Theorems` takes `P` as a parameter; `lean_vm` proves it for its knowledge
-extractor, compiled. What excludes a vacuous statement: `P` is a program (no classical choice),
-its size bound leaves no room for a useful table of witnesses beside the compiled extractor, its
-only runtime data is its input, and its budget is a closed formula, polylogarithmic per query.
-The guest decoder is a program of the same machine, with a size bound and a budget of its own
-(`GuestKnowledge`, `Theorems.lean`).
+**The extractor a program computes** (`LeanVM.knowledgeExtractorOf P`): `P`, if its size is at most
+`knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
+(`encodeKnowledgeExtractorInput`; the transcript without the adversary's coin flips) within its
+budget (`knowledgeExtractorBudget`, at the transcript's number of permutation queries: the most its
+run may cost, so also the most steps it may execute), its output parsed as an execution
+(`decodeExecution`, a linear parse: no search, no run). A larger program, or a run that fails or
+exceeds its budget, extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a
+parameter; `lean_vm` proves it for its knowledge extractor, compiled. What excludes a vacuous
+statement: `P` is a program (no classical choice), its size bound leaves no room for a useful table
+of witnesses beside the compiled extractor, its only runtime data is its input, and its budget is a
+closed formula, polylogarithmic per query. The guest decoder is a program of the same machine, with
+a size bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -378,7 +378,8 @@ instance {prog : Semantics.Program} : MachineEncoding (Execution prog) :=
 
 /-- **The extractor's input**: the program, the public input, the transcript's permutation
 queries, the proof. -/
-def encodeExtractorInput (prog : Semantics.Program) (input : PublicInput) (T : OracleQueryLog)
+def encodeKnowledgeExtractorInput (prog : Semantics.Program) (input : PublicInput)
+    (T : OracleQueryLog)
     (proof : Proof) : MachineValue :=
   .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
     encodeValue proof]
@@ -415,7 +416,7 @@ interpolated by an approximant basis) and the runs of the candidate executions (
 second term bounds the transcript's index (about `2^14.7` per query and level squared, a level's
 positions growing by a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`).
 So about `2^95` for at most `2^60` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
-def extractorBudget (N : ℕ) : ℕ :=
+def knowledgeExtractorBudget (N : ℕ) : ℕ :=
   2 ^ 95 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
@@ -437,19 +438,21 @@ them holes, a literal `0` each) and a slack of `589`, room for one leanXMSS sign
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
 its code. -/
-def extractorSizeBound : ℕ := 14400
+def knowledgeExtractorSizeBound : ℕ := 14400
 
-/-- **The extractor a program computes**: the program, of size at most `extractorSizeBound`, run on
-the encoded statement, transcript and proof (`encodeExtractorInput`) within the budget at the
-transcript's number of permutation queries (`extractorBudget`), its output parsed as an execution
-(`decodeExecution`); `none` if the program is larger, or the run fails, exceeds its budget, or
-outputs no execution's encoding. A larger program extracts nothing, so
-`KnowledgeSoundness (extractorOf P)` fails for it: an adversary running the honest prover is
-accepted. -/
-def extractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
+/-- **The extractor a program computes**: the program, of size at most
+`knowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
+(`encodeKnowledgeExtractorInput`) within the budget at the transcript's number of permutation
+queries (`knowledgeExtractorBudget`), its output parsed as an execution (`decodeExecution`); `none`
+if the program is larger, or the run fails, exceeds its budget, or outputs no execution's encoding.
+A larger program extracts nothing, so `KnowledgeSoundness (knowledgeExtractorOf P)` fails for it: an
+adversary running the honest prover is accepted. -/
+def knowledgeExtractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
   fun prog input T proof ↦
-    (Cost.outputWithin P extractorSizeBound (Cost.encodeExtractorInput prog input T proof)
-      (Cost.extractorBudget (permutationQueries T).length)).bind (Cost.decodeExecution prog)
+    (Cost.outputWithin P knowledgeExtractorSizeBound
+        (Cost.encodeKnowledgeExtractorInput prog input T proof)
+      (Cost.knowledgeExtractorBudget (permutationQueries T).length)).bind
+          (Cost.decodeExecution prog)
 
 end
 

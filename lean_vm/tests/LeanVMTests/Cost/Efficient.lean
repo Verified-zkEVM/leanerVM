@@ -10,8 +10,8 @@ import LeanVM.Cost.Efficient
   decided by the kernel);
 * the extractor's program (`extractorProgram`): `698` bodies, the entry's and the compiled
   extractor's, the largest index `709`, its size `13811` (`Cost/ExtractorSize.lean` proves at
-  most `14400`, `extractorSizeBound`, by evaluating the program itself);
-* the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
+  most `14400`, `knowledgeExtractorSizeBound`, by evaluating the program itself);
+* the axioms of `extractorOf_extractorProgram`, `knowledgeExtractorOf extractorProgram =
   transcriptExtractor`.
 -/
 

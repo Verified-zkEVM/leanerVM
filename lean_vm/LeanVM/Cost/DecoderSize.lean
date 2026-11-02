@@ -21,7 +21,7 @@ with its bodies `deps`:
   `decoderProgramOf_entry`);
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
   indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
-  most a measured number, then `guestDecoderSizeBound`. The guest's frame cells' literal
+  most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' literal
   (`guestLocsTableC`, `749836`: the table's `749835` and one for its `Term.val` node) is measured by
   chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`, `Names*.lean`,
   summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over `18` GB), its body
@@ -34,7 +34,7 @@ without a body, the indices up to the top's, `decTopC`'s own (the last index all
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
 it in the chain gains a function): `785531` at index `1034` with `407` bodies besides the entry, the
 program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
-(`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestDecoderSizeBound`
+(`guestLocs`, a literal held once, `guestLocsTable`) are `749835`. `guestWitnessDecoderSizeBound`
 (`Statement/Theorems.lean`) is `786000`: this exact size and a slack of `469`, room for one leanXMSS
 signature's encoding (`309`) but not two. The bound applies to every program, but its slack is small
 only for programs written like this one: the frame cells (below `2^20` each), packed three to a

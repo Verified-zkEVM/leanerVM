@@ -7,7 +7,7 @@ public import LeanVM.Cost.Decoder.Ends
 # The guest decoder's program: the entry and the program of a compiled top
 
 `GuestKnowledge` (`Statement/Theorems.lean`) runs the decoder program's function `0` on
-`encodeDecoderInput prog t = .ctor 0 [encodeValue prog, encodeValue t]`, an execution encoded as
+`encodeGuestWitnessDecoderInput prog t = .ctor 0 [encodeValue prog, encodeValue t]`, an execution encoded as
 `.ctor 0 [encodeValue κ, encodeFiniteFunction t.memory, encodeValue t.steps]`. The compiled top
 (on `Cost/Decoder/Ends.lean`'s input side) is a function of the program, `κ` and the
 memory vector `memoryVector t.memory`, whose encoding is the memory's
@@ -43,9 +43,9 @@ theorem runsBody_decoderEntry {P : MachineProgram} {j : ℕ}
     {v : MachineValue} {e : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
       encodeValue (memoryVector t.memory)] v e) :
-    RunsBody P 0 [encodeDecoderInput prog t] v (e + 8) := by
+    RunsBody P 0 [encodeGuestWitnessDecoderInput prog t] v (e + 8) := by
   rw [encodeValue_memoryVector] at h
-  let x := encodeDecoderInput prog t
+  let x := encodeGuestWitnessDecoderInput prog t
   let env1 : List MachineValue := [encodeValue prog, encodeValue t, x]
   let env2 : List MachineValue :=
     [encodeValue t.logMemorySize, encodeValue t.memory, encodeValue t.steps] ++ env1
@@ -70,7 +70,7 @@ theorem outputWithin_decoderEntry {P : MachineProgram} {j : ℕ}
     {v : MachineValue} {e b : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
       encodeValue (memoryVector t.memory)] v e) (hb : e + 8 ≤ b) :
-    outputWithin P (encodeDecoderInput prog t) b = some v :=
+    outputWithin P (encodeGuestWitnessDecoderInput prog t) b = some v :=
   outputWithin_of_runs (runsBody_decoderEntry hentry prog t h) hb
 
 /-! ## The program of a compiled top -/

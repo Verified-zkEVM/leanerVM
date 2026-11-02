@@ -16,7 +16,7 @@ rebuilds them.
   (`13787`: `697` compiled bodies and the entry, each natural literal counted by its limbs) and
   `12` indices without a body, a literal `0` of size `2` each, `710` indices in all. The bound of
   `size_ofList_le`, two per index on top of the bodies' sizes (`15207`), is too loose for
-  `LeanVM.extractorSizeBound` (`14400`, `Statement/CostMachine.lean`).
+  `LeanVM.knowledgeExtractorSizeBound` (`14400`, `Statement/CostMachine.lean`).
 -/
 
 namespace LeanVM.Cost

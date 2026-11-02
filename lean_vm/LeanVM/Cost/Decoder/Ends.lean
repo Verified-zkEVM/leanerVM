@@ -10,7 +10,7 @@ The decoder's top (`Guest.Fast.decode_eq_numbered`) reads the execution's memory
 sorted table of its addresses, replays the run, and builds the decoding from `main`'s valuation.
 Its two ends, compiled:
 
-* **the input side.** The program's input `encodeDecoderInput prog t` holds the memory as the
+* **the input side.** The program's input `encodeGuestWitnessDecoderInput prog t` holds the memory as the
   array of its words (`encodeFiniteFunction t.memory`), which is the encoding of the vector
   `memoryVector t.memory` (`encodeValue_memoryVector`): the entry (`Cost/DecoderProgram.lean`)
   passes it as is, no copy. From `prog`, `κ` and that vector:

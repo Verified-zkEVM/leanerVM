@@ -27,16 +27,16 @@ evaluation is a sequence of forward queries, which it makes itself. The experime
 run against the lazily sampled permutation from no edge (`Common.runWithRandomPermutation`).
 
 **Knowledge soundness** is stated for a straight-line extractor (`StraightLineExtractor`), which
-reads the statement, the proof and the adversary's transcript, and nothing else (it neither
-queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems`
-states it for the extractor that a cost-machine program of bounded size computes within a budget
-in the number of permutation queries (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does
-not name the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its
-size bound, which leaves no room for a useful table of witnesses beside the compiled extractor's
-code, and its budget, `extractorBudget` (the most its run may cost, so also the most steps it may
-execute), `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for
-`N ≤ 2^60`), `lean_vm`'s proved price of the compiled extractor being about
-`2^94.07 + 2^14.7·N·log²N`. A run out of budget extracts nothing, which counts as a break.
+reads the statement, the proof and the adversary's transcript, and nothing else (it neither queries
+`π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states it for
+the extractor that a cost-machine program of bounded size computes within a budget in the number of
+permutation queries (`LeanVM.knowledgeExtractorOf`, `CostMachine.lean`). The statement does not name
+the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound,
+which leaves no room for a useful table of witnesses beside the compiled extractor's code, and its
+budget, `knowledgeExtractorBudget` (the most its run may cost, so also the most steps it may
+execute), `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for `N ≤ 2^60`), `lean_vm`'s
+proved price of the compiled extractor being about `2^94.07 + 2^14.7·N·log²N`. A run out of budget
+extracts nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
@@ -49,18 +49,18 @@ probability at most `2^-256`.
 
 * The deployed Keccak-f[1600] is a fixed permutation; that it behaves as a random one is the
   assumption of this model. Inside the executed program the `KECCAK` instruction computes the
-  deployed Keccak-f[1600], not `π`: in the model the transcript's permutation and the one a
-  proved program computes are independent, while deployed they are the same function. The model
-  so excludes, by construction, programs that evaluate their own proof's Fiat-Shamir duplex, the
+  deployed Keccak-f[1600], not `π`: in the model the transcript's permutation and the one a proved
+  program computes are independent, while deployed they are the same function. The model so
+  excludes, by construction, programs that evaluate their own proof's Fiat-Shamir duplex, the
   setting of the known attacks on Fiat-Shamir for GKR-based systems (Khovratovich, Rothblum and
   Soukhanov, 2025): the assumption is that the deployed Keccak-f[1600] behaves as a random
-  permutation even to programs that compute it. The adversary's code is fixed before `π` is
-  sampled (no advice that depends on the permutation).
-* The adversary is classical: no statement covers quantum adversaries (a quantum
-  random-permutation model).
-* A proof is the Python verifier's format: the scalar stream and one full Merkle path per query.
-  The Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths;
-  that expansion is not formalized.
+  permutation even to programs that compute it. The adversary's code is fixed before `π` is sampled
+  (no advice that depends on the permutation).
+* The adversary is classical: no statement covers quantum adversaries (a quantum random-permutation
+  model).
+* A proof is the Python verifier's format: the scalar stream and one full Merkle path per query. The
+  Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths; that
+  expansion is not formalized.
 * That `verifier` is the Python and Rust verifiers is test evidence: it is a transcription of the
   Python, it accepts the Rust prover's proofs, and on mutated proofs it gives the Rust verifier's
   verdict every time (`scripts/fuzz-verifier.py`).
@@ -180,13 +180,13 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (z : Experiment
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
-probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the
-verifier's own oracle calls, at most `12006` (in the `Q + 12006` of `lean_vm`'s `soundnessError`),
-its `12006 · 2^-256` for a fresh hash answer equal to a stack root the adversary announced without
+probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the verifier's
+own oracle calls, at most `12006` (in the `Q + 12006` of `lean_vm`'s `soundnessError`), its
+`12006 · 2^-256` for a fresh hash answer equal to a stack root the adversary announced without
 computing it, and the transfer from two random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
-(`LeanVM.extractorOf`, `CostMachine.lean`). The extractor must output some valid execution of the
-program on the input; nothing requires it to be the execution the proof commits to (its
+(`LeanVM.knowledgeExtractorOf`, `CostMachine.lean`). The extractor must output some valid execution
+of the program on the input; nothing requires it to be the execution the proof commits to (its
 committed word). For a program with several valid executions on one input, the one extracted may
 differ, and `AggregateSound` (`Corollaries.lean`) then decodes that one. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
