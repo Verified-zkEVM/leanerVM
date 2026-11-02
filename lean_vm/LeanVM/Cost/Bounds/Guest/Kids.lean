@@ -74,11 +74,11 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
 include hrd hR
 
-/-- **A slot's mark and the slot** (`markPairC`), `lo + s < 2^40`: at most `G + R + 21700`. -/
+/-- **A slot's mark and the slot** (`markPairC`), `lo + s < 2^40`: at most `G + R + 2984`. -/
 theorem markPair_cost (D : DiscreteLogTables) (hP : Includes P markPairC.costDeps)
     (hG : GLogBound P D G) (cover : E) (lo s : ℕ) (h : lo + s < 2 ^ 40) :
     machineCost P markPairC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue lo,
-      encodeValue s] ≤ G + R + 21700 := by
+      encodeValue s] ≤ G + R + 2984 := by
   rw [markPairC.costEq P hP D rd rdV hrd, markPairOfC.costEq P (by includes)]
   have := cellAt_cost P hrd hR (by includes) cover (lo + s) h
   have := hG (cellAt rd cover (lo + s))
@@ -86,10 +86,10 @@ theorem markPair_cost (D : DiscreteLogTables) (hP : Includes P markPairC.costDep
   omega
 
 /-- The coverage table's price for a region of `len` slots. -/
-@[expose] def regionTablePrice (G R len : ℕ) : ℕ := (G + R + 27400) * len + 1100
+@[expose] def regionTablePrice (G R len : ℕ) : ℕ := (G + R + 8427) * len + 835
 
 /-- **The coverage table of the region `[lo, lo + len)`** (`regionTableC`), `lo, len ≤ 2^34`: one
-mark per slot, then sorted: at most `regionTablePrice G R len = (G + R + 27400)·len + 1100`. -/
+mark per slot, then sorted: at most `regionTablePrice G R len = (G + R + 8427)·len + 835`. -/
 theorem regionTable_cost (D : DiscreteLogTables) (hP : Includes P regionTableC.costDeps)
     (hG : GLogBound P D G) (cover : E) (lo len : ℕ) (hlo : lo ≤ 2 ^ 34) (hlen : len ≤ 2 ^ 34) :
     machineCost P regionTableC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue lo,
@@ -98,9 +98,9 @@ theorem regionTable_cost (D : DiscreteLogTables) (hP : Includes P regionTableC.c
   have h1 := rangeMap_le P (by includes) (by includes) (markPair D rd cover lo)
     (.closure regionTableC.lam0.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue lo])
     (fun s ↦ RunsApp.of_spec (regionTableC.lam0.costSpec P (by includes) D rd rdV hrd cover lo s))
-    (G + R + 21706) len len (le_refl _) (by omega) (fun s hs ↦ by
+    (G + R + 2994) len len (le_refl _) (by omega) (fun s hs ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.nil_append, regionTableC.lam0.costEq P (by includes) D rd rdV hrd]
+        List.nil_append, regionTableC.lam0.costEq P (by includes) D rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := markPair_cost P hrd hR D (by includes) hG cover lo s (by omega)
       omega)
   have h2 := coverTable_cost P (by includes) ((List.range len).map (markPair D rd cover lo))
@@ -131,21 +131,21 @@ theorem regionTable_size_le (D : DiscreteLogTables) (cover : E) (lo len : ℕ) :
   simp only [regionTable, coverTable, List.size_toArray, List.length_map, List.length_range] at hK ⊢
   exact hK
 
-/-- A running count (`countAtWC`), `c < 2^40`: at most `G + R + 21684`. -/
+/-- A running count (`countAtWC`), `c < 2^40`: at most `G + R + 2975`. -/
 theorem countAtW_cost (D : DiscreteLogTables) (hP : Includes P countAtWC.costDeps)
     (hG : GLogBound P D G) (w : E) (c : ℕ) (hc : c < 2 ^ 40) :
     machineCost P countAtWC.costIdx [encodeValue D, rdV, encodeValue w, encodeValue c] ≤
-      G + R + 21684 := by
+      G + R + 2975 := by
   rw [countAtWC.costEq P hP D rd rdV hrd]
   have := cellAt_cost P hrd hR (by includes) w c hc
   have := hG (cellAt rd w c)
   omega
 
-/-- A segment's end (`countNextC`), `c + 1 < 2^40`: at most `G + R + 21687`. -/
+/-- A segment's end (`countNextC`), `c + 1 < 2^40`: at most `G + R + 2977`. -/
 theorem countNext_cost (D : DiscreteLogTables) (hP : Includes P countNextC.costDeps)
     (hG : GLogBound P D G) (w : E) (c : ℕ) (hc : c + 1 < 2 ^ 40) :
     machineCost P countNextC.costIdx [encodeValue D, rdV, encodeValue w, encodeValue c] ≤
-      G + R + 21687 := by
+      G + R + 2977 := by
   rw [countNextC.costEq P hP D rd rdV hrd]
   have := cellAt_cost P hrd hR (by includes) w (c + 1) hc
   have := hG (cellAt rd w (c + 1))
@@ -153,10 +153,10 @@ theorem countNext_cost (D : DiscreteLogTables) (hP : Includes P countNextC.costD
   omega
 
 /-- The running maxima's price for `n` children. -/
-@[expose] def kidMaxPrice (G R n : ℕ) : ℕ := (G + R + 21800) * n + 30
+@[expose] def kidMaxPrice (G R n : ℕ) : ℕ := (G + R + 3031) * n + 25
 
 /-- **The running maxima of the children's segments' ends** (`kidMaxC`), `n ≤ 2^34`: one
-logarithm and one read per child: at most `kidMaxPrice G R n = (G + R + 21800)·n + 30`. -/
+logarithm and one read per child: at most `kidMaxPrice G R n = (G + R + 3031)·n + 25`. -/
 theorem kidMax_cost (D : DiscreteLogTables) (hP : Includes P kidMaxC.costDeps)
     (hG : GLogBound P D G) (w : E) (n : ℕ) (hn : n ≤ 2 ^ 34) :
     machineCost P kidMaxC.costIdx [encodeValue D, rdV, encodeValue w, encodeValue n] ≤
@@ -165,9 +165,9 @@ theorem kidMax_cost (D : DiscreteLogTables) (hP : Includes P kidMaxC.costDeps)
   have h1 := rangeMap_le P (by includes) (by includes) (countNext D rd w)
     (.closure kidMaxC.lam0.costIdx [encodeValue D, rdV, encodeValue w])
     (fun c ↦ RunsApp.of_spec (kidMaxC.lam0.costSpec P (by includes) D rd rdV hrd w c))
-    (G + R + 21692) n n (le_refl _) (by omega) (fun c hc ↦ by
+    (G + R + 2985) n n (le_refl _) (by omega) (fun c hc ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        kidMaxC.lam0.costEq P (by includes) D rd rdV hrd]
+        kidMaxC.lam0.costEq P (by includes) D rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := countNext_cost P hrd hR D (by includes) hG w c (by omega)
       omega)
   have h2 := prefixMax_cost P (by includes) ((List.range n).map (countNext D rd w)) 0 (by norm_num)
@@ -191,11 +191,11 @@ theorem kidMax_good (D : DiscreteLogTables) (w : E) (n : ℕ) (hn : n ≤ 2 ^ 34
 /-! ## A child -/
 
 /-- **A child's leanXMSS claim** (`xmssKidClaimC`) off a good table, `a, j < 2^35`: a search, a
-power in `K` and four reads, at most `4·R + 108134`. -/
+power in `K` and four reads, at most `4·R + 15929`. -/
 theorem xmssKidClaim_cost (hP : Includes P xmssKidClaimC.costDeps) (p53 : E)
     (t : Array ℕ × Array ℕ) (ht : TableGood t) (a j : ℕ) (ha : a < 2 ^ 35) (hj : j < 2 ^ 35) :
     machineCost P xmssKidClaimC.costIdx [rdV, encodeValue p53, encodeValue t.1, encodeValue t.2,
-      encodeValue a, encodeValue j] ≤ 4 * R + 108134 := by
+      encodeValue a, encodeValue j] ≤ 4 * R + 15929 := by
   rw [xmssKidClaimC.costEq P hP rd rdV hrd]
   have h1 := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
   have hs := slotIn_lt ht (a + j)
@@ -210,7 +210,7 @@ theorem xmssKidClaim_cost (hP : Includes P xmssKidClaimC.costDeps) (p53 : E)
 theorem sphincsKidClaim_cost (hP : Includes P sphincsKidClaimC.costDeps) (p56 : E)
     (t : Array ℕ × Array ℕ) (ht : TableGood t) (a j : ℕ) (ha : a < 2 ^ 35) (hj : j < 2 ^ 35) :
     machineCost P sphincsKidClaimC.costIdx [rdV, encodeValue p56, encodeValue t.1, encodeValue t.2,
-      encodeValue a, encodeValue j] ≤ 4 * R + 108134 := by
+      encodeValue a, encodeValue j] ≤ 4 * R + 15929 := by
   rw [sphincsKidClaimC.costEq P hP rd rdV hrd]
   have h1 := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
   have hs := slotIn_lt ht (a + j)
@@ -229,10 +229,10 @@ variable {σ : Val} {σV : MachineValue}
 include hσ hS
 
 /-- A child's statement's price off its claims' counts, both at most `N`. -/
-@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 216338) * N + 26 * R + 3 * S + 587400
+@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 31938) * N + 26 * R + 3 * S + 81877
 
 /-- **A child's statement, its claims' counts given** (`kidStmtAtC`), off good tables, `c, a <
-2^34`, `nx, ns ≤ N ≤ 2^34`: at most `kidStmtAtPrice R S N = (8·R + 216338)·N + …`. -/
+2^34`, `nx, ns ≤ N ≤ 2^34`: at most `kidStmtAtPrice R S N = (8·R + 31938)·N + …`. -/
 theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p53 p56 : E)
     (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx) (hts : TableGood ts) (c a nx ns : ℕ)
     (hc : c < 2 ^ 34) (ha : a < 2 ^ 34) (N : ℕ) (hN : N ≤ 2 ^ 34) (hnx : nx ≤ N) (hns : ns ≤ N) :
@@ -244,9 +244,9 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p53 p56 : E)
     (.closure kidStmtAtC.lam0.costIdx [rdV, encodeValue p53, encodeValue a, encodeValue tx.2,
       encodeValue tx.1])
     (fun j ↦ RunsApp.of_spec (kidStmtAtC.lam0.costSpec P (by includes) rd rdV hrd p53 a tx.2 tx.1 j))
-    (4 * R + 108141) nx N hnx (by omega) (fun j hj ↦ by
+    (4 * R + 15941) nx N hnx (by omega) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, kidStmtAtC.lam0.costEq P (by includes) rd rdV hrd]
+        List.cons_append, List.nil_append, kidStmtAtC.lam0.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := xmssKidClaim_cost P hrd hR (by includes) p53 tx htx a j (by omega) (by omega)
       omega)
   have h2 := rangeMap_le P (by includes) (by includes) (sphincsKidClaim rd p56 ts.1 ts.2 (a + nx))
@@ -254,9 +254,9 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p53 p56 : E)
       encodeValue ts.2])
     (fun j ↦ RunsApp.of_spec
       (kidStmtAtC.lam1.costSpec P (by includes) rd rdV hrd p56 (a + nx) ts.1 ts.2 j))
-    (4 * R + 108141) ns N hns (by omega) (fun j hj ↦ by
+    (4 * R + 15941) ns N hns (by omega) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, kidStmtAtC.lam1.costEq P (by includes) rd rdV hrd]
+        List.cons_append, List.nil_append, kidStmtAtC.lam1.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := sphincsKidClaim_cost P hrd hR (by includes) p56 ts hts (a + nx) j (by omega)
         (by omega)
       omega)
@@ -269,7 +269,7 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p53 p56 : E)
     (readCellsK rd ((σ (.n 377)).limb 0 * Parameters.g ^ (24 * c)) 24)
   limbs_one
   unfold kidStmtAtPrice
-  have : (4 * R + 108141 + 28) * N + (4 * R + 108141 + 28) * N = (8 * R + 216338) * N := by ring
+  have : (4 * R + 15941 + 28) * N + (4 * R + 15941 + 28) * N = (8 * R + 31938) * N := by ring
   omega
 
 /-- **A child's statement, its segment `[a, b)` given** (`kidStmtSegC`), the tables of at most `N`
@@ -280,7 +280,7 @@ theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p53 p56 : E)
     (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N) :
     machineCost P kidStmtSegC.costIdx [rdV, σV, encodeValue p53, encodeValue p56, encodeValue tx,
       encodeValue ts, encodeValue c, encodeValue a, encodeValue b] ≤
-      kidStmtAtPrice R S N + 5671 := by
+      kidStmtAtPrice R S N + 3705 := by
   rw [kidStmtSegC.costEq P hP rd rdV hrd σ σV hσ]
   have h1 := countIn_cost P (by includes) tx.1 (lt64_of_good htx) htx.2.1 a b (by omega) (by omega)
   have h2 := countIn_cost P (by includes) ts.1 (lt64_of_good hts) hts.2.1 a b (by omega) (by omega)
@@ -290,7 +290,7 @@ theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p53 p56 : E)
   omega
 
 /-- A child's statement's price. -/
-@[expose] def kidStmtPrice (G R S N : ℕ) : ℕ := 2 * G + 2 * R + kidStmtAtPrice R S N + 49100
+@[expose] def kidStmtPrice (G R S N : ℕ) : ℕ := 2 * G + 2 * R + kidStmtAtPrice R S N + 9675
 
 /-- **Child `c`'s statement** (`kidStmtC`), off good tables of at most `N` marks, `c < 2^34`: its
 segment's ends (two logarithms), then `kidStmtSeg_cost`: at most `kidStmtPrice G R S N`. -/
@@ -310,9 +310,9 @@ theorem kidStmt_cost (D : DiscreteLogTables) (hP : Includes P kidStmtC.costDeps)
   unfold kidStmtPrice
   omega
 
-/-- **Child `c`'s `verify_sub` words** (`subArgsC`), `c < 2^34`: at most `7·S + 2·R + 65120`. -/
+/-- **Child `c`'s `verify_sub` words** (`subArgsC`), `c < 2^34`: at most `7·S + 2·R + 8989`. -/
 theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^ 34) :
-    machineCost P subArgsC.costIdx [rdV, σV, encodeValue c] ≤ 7 * S + 2 * R + 65120 := by
+    machineCost P subArgsC.costIdx [rdV, σV, encodeValue c] ≤ 7 * S + 2 * R + 8989 := by
   rw [subArgsC.costEq P hP rd rdV hrd σ σV hσ]
   have h1 := cellAt_cost P hrd hR (by includes) (σ (.n 365)) (2 * c) (by omega)
   have h2 := cellAt_cost P hrd hR (by includes) (σ (.n 365)) (2 * c + 1) (by omega)
@@ -330,7 +330,7 @@ variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
 include hwV
 
 /-- A child's price. -/
-@[expose] def decKidPrice (G R S W N : ℕ) : ℕ := kidStmtPrice G R S N + W + 8 * S + 26 * R + 608200
+@[expose] def decKidPrice (G R S W N : ℕ) : ℕ := kidStmtPrice G R S N + W + 8 * S + 26 * R + 84828
 
 /-- **Child `c`** (`decKidC`), off good tables of at most `N` marks, `c < 2^34`: its statement, its
 proof's claim (24 reads), its proof (`wV` at its `verify_sub` words, at most `W` there): at most
