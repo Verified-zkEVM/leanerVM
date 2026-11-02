@@ -11,7 +11,7 @@ quotient `q / p` limb by limb (`limbQuotC`, an inverse in `GF(2^64)`), its logar
 at most `2^32` and `q = p · a`.
 
 * **`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
-  word-sized: at most `Lg + 22352`;
+  word-sized: at most `Lg + 3214`;
 * **`cursorLenWith_le`**: the length is at most `2^32`, for every logarithm.
 -/
 
@@ -36,9 +36,9 @@ theorem cursorLenWith_le (dl : K → Option ℕ) (p q : E) : cursorLenWith dl p 
       simpa using h.1
     · simp
 
-/-- The quotient limb by limb (`limbQuotC`): an inverse in `GF(2^64)` and `275`, at most `19951`. -/
+/-- The quotient limb by limb (`limbQuotC`): an inverse in `GF(2^64)` and `46`, at most `2869`. -/
 theorem limbQuot_cost (hP : Includes P limbQuotC.costDeps) (p q : E) :
-    machineCost P limbQuotC.costIdx [encodeValue p, encodeValue q] ≤ 19951 := by
+    machineCost P limbQuotC.costIdx [encodeValue p, encodeValue q] ≤ 2869 := by
   rw [limbQuotC.costEq P hP]
   have h0 := invK_cost P (by includes) (p.limb 0)
   have h1 := invK_cost P (by includes) (p.limb 1)
@@ -46,20 +46,21 @@ theorem limbQuot_cost (hP : Includes P limbQuotC.costDeps) (p q : E) :
   split_ifs <;> omega
 
 /-- **The cursor's length** (`cursorLengthC`), the logarithm at most `Lg`, its logarithms
-word-sized: at most `Lg + 22352`. -/
+word-sized: at most `Lg + 3214`. -/
 theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : DiscreteLogTables) (Lg : ℕ)
     (hLg : ∀ x : K, machineCost P discreteLogWithC.costIdx [encodeValue D, encodeValue x] ≤ Lg)
     (hD : ∀ x m, discreteLogWith D x = some m → m < 2 ^ 64) (p q : E) :
     machineCost P cursorLengthC.costIdx [encodeValue D, encodeValue p, encodeValue q] ≤
-      Lg + 22352 := by
+      Lg + 3214 := by
   have hdl : ∀ a : K, RunsApp P (.closure cursorLengthC.lam0.costIdx [encodeValue D])
       [encodeValue a] (encodeValue (discreteLogWith D a)) :=
     fun a ↦ RunsApp.of_spec (cursorLengthC.lam0.costSpec P (by includes) D a)
   rw [cursorLengthC.costEq P hP, cursorLenWithC.costEq P (by includes) _ _ hdl]
   have h1 := limbQuot_cost P (by includes) p q
   have h2 : appCost P (.closure cursorLengthC.lam0.costIdx [encodeValue D])
-      [encodeValue (limbQuot p q)] ≤ Lg + 3 := by
-    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P (by includes)]
+      [encodeValue (limbQuot p q)] ≤ Lg + 4 := by
+    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P (by includes),
+      List.length_singleton]
     have := hLg (limbQuot p q)
     omega
   have hlam : ∀ n : ℕ, RunsApp P (.closure cursorLenWithC.lam0.costIdx
@@ -74,9 +75,9 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
   | some n =>
     have hn := hD _ n ho
     have h3 : appCost P (.closure cursorLenWithC.lam0.costIdx
-        [encodeValue p, encodeValue q, encodeValue (limbQuot p q)]) [encodeValue n] ≤ 2366 := by
+        [encodeValue p, encodeValue q, encodeValue (limbQuot p q)]) [encodeValue n] ≤ 307 := by
       rw [appCost_fn]
-      simp only [List.cons_append, List.nil_append]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [cursorLenWithC.lam0.costEq P (by includes), Nat.one_shiftLeft,
         limbs_of_lt hn, limbs_two_pow (by norm_num)]
       simp only [max_self]
