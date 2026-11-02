@@ -53,7 +53,7 @@ public section
 
 /-- The price of one incremental insertion beyond the rank potential, `r` rows wide. -/
 @[expose] def incPrice (r : ℕ) : ℕ :=
-  (r + 1) * (stepPrice r + 14) + (90 * r + 76) * (r + 1) + (29 * r + 24) * (r + 1) + 40 * r + 300
+  (r + 1) * (stepPrice r + 18) + (84 * r + 66) * (r + 1) + (39 * r + 30) * r + 23 * r + 110
 
 /-- **The leaf's price**, `n` rows, `m` orders, at order at most one. -/
 @[expose] def leafBound (n m : ℕ) : ℕ :=
