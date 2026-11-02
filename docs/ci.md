@@ -24,6 +24,8 @@ the new repository has a useful history of successful main-branch timing artifac
 `pull_request_target` without checking out or executing pull-request code. Review is restricted
 to `/review` comments from owners, members, and collaborators; it may inspect pull-request code,
 so only trusted members should invoke it on an untrusted fork.
+Both workflows use `lean4repo-utils@main`, so updates on that branch change their CI behavior.
+This is a GitHub Actions dependency; it adds no Lean or Python package dependency.
 
 Project releases are milestone-driven. A Lean toolchain update is an ordinary reviewed dependency
 change and does not create or move a release tag. Release automation should be introduced only
