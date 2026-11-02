@@ -247,6 +247,19 @@ theorem pmTree_mono (c L : ℕ) {N : ℕ → ℕ} (hN : Monotone N) :
       have := ih (b - b / 2) (by omega) (a - a / 2) (by omega)
       omega
 
+/-- **`pmTree` is monotone in the leaf price.** -/
+theorem pmTree_mono_leaf (c : ℕ) {L L' : ℕ} (N : ℕ → ℕ) (hL : L ≤ L') :
+    ∀ o, pmTree c L N o ≤ pmTree c L' N o := by
+  intro o
+  induction o using Nat.strong_induction_on with
+  | _ o ih =>
+    by_cases h : o ≤ c ∨ o ≤ 1
+    · rw [pmTree_leaf h, pmTree_leaf h]; exact hL
+    · rw [pmTree_node (L := L) (by omega) (by omega), pmTree_node (L := L') (by omega) (by omega)]
+      have := ih (o / 2) (by omega)
+      have := ih (o - o / 2) (by omega)
+      omega
+
 /-! ## The model is monotone -/
 
 theorem fwdPrice_mono (p : PMPrices) {j j' : ℕ} (h : j ≤ j') : fwdPrice p j ≤ fwdPrice p j' := by
