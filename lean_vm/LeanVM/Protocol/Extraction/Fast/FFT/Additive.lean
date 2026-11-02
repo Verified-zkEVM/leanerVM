@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Protocol.Extraction.Fast.FFT.Plan
+public import LeanVM.Protocol.Extraction.Fast.FFT.Convert
 public import LeanVM.Protocol.Extraction.Fast.FFT.Transform
 public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 import all CompPoly.Univariate.Basic
@@ -11,9 +11,9 @@ import all CompPoly.Univariate.Basic
 **The transform** (`novelTransform : PointTransform K FFTPlan`, `maxLog = 64`, points
 `x_v = K.ofBits v`), through the plan `mkPlan j` (`Fast/FFT/Plan.lean`, built once per size):
 `fwdP P p` (`planFwdPoly`) converts `p`'s monomial coefficients to the novel basis
-(`toNovelRec` on the plan's table, `Fast/FFT/Basis`) and evaluates on `U_j = {x_v | v < 2^j}` by
+(`toNovelFast`, in place level by level, `Fast/FFT/Convert`) and evaluates on `U_j = {x_v | v < 2^j}` by
 the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`) interpolates
-(`planInv`) and converts back (`fromNovelRec`). By the plan they are the unplanned
+(`planInv`) and converts back (`fromNovelFast`). By the plan they are the unplanned
 `novelFwdPoly j` (`toNovel j`, `novelFwd j 0`) and `novelInvPoly j` (`novelInv j`, `fromNovel j`)
 (`planFwdPoly_eq`, `planInvPoly_eq`), whose laws come from `novelFwd_getD`, `novelInv_eval`,
 `novelFwd_novelInv` and the conversions' `toNovel_spec`, `fromNovel_spec`.
@@ -21,14 +21,15 @@ the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`
 call); `FFT/PlannedEval.lean`'s products build it once per matrix product.
 
 **The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
-at most `32` coefficients, Karatsuba's when both have at most `1024`, else on the least
+at most `32` coefficients, Karatsuba's when both have at most `4096`, else on the least
 `2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else Karatsuba's), the plan built once;
 `mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`, `fftMulLowContext` (the
 truncated product as one product of truncated factors), `fftRawMulLowContext`, and
 `fftModContext` (monic remainders by reversal on it).
 
 **Cost** (`K` products, `N = 2^j`, counted on the definitions, every `*` executed): the
-conversions `toNovelRec`, `fromNovelRec` exactly `N·j(j+1)/4` each (the division by `W_i`, or
+conversions `toNovelFast`, `fromNovelFast` exactly `N·j(j+1)/4` each (`1.5·N` and `N` array
+entries per level, the sparse sums stopping at the first vanishing term) (the division by `W_i`, or
 the product by it, at level `i` is `(i+1)·2^i` per block of `2^(i+1)`); `planFwd` and `planInv`
 `N·j/2` each (one product per butterfly and stage, `fwdStageFast`, `invStageFast`); so `fwdP`
 and `invP` `N·(j² + 3j)/4` each, no inversion, and no power of two computed per entry (the
@@ -121,24 +122,22 @@ theorem novelFwdPoly_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) (hy : 
 
 /-! ## The planned transform -/
 
-/-- The evaluations by the plan: `toNovel` on the plan's table, then `planFwd`. -/
+/-- The evaluations by the plan: monomial → novel in place (`toNovelFast`), then `planFwd`. -/
 @[expose] def planFwdPoly (P : FFTPlan) (p : CPolynomial K) : Array K :=
-  planFwd P (toNovelRecP P.pows P.table p.val)
+  planFwd P (toNovelFast P p.val)
 
-/-- The interpolation by the plan: `planInv`, then `fromNovel` on the plan's table. -/
+/-- The interpolation by the plan: `planInv`, then novel → monomial in place (`fromNovelFast`). -/
 @[expose] def planInvPoly (P : FFTPlan) (y : Array K) : CPolynomial K :=
-  CPolynomial.ofArray (fromNovelRecP P.pows P.tableInv (planInv P y))
+  CPolynomial.ofArray (fromNovelFast P (planInv P y))
 
 theorem planFwdPoly_eq {j : ℕ} (hj : j ≤ 64) (p : CPolynomial K) :
     planFwdPoly (mkPlan j) p = novelFwdPoly j p := by
-  rw [planFwdPoly, toNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
-      rwa [mkPlan_table, length_tableUpTo] at ht), mkPlan_table, planFwd_eq hj]
+  rw [planFwdPoly, toNovelFast_eq hj, planFwd_eq hj]
   rfl
 
 theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
     planInvPoly (mkPlan j) y = novelInvPoly j y := by
-  rw [planInvPoly, fromNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
-      rwa [mkPlan_tableInv hj, length_tableInvUpTo] at ht), mkPlan_tableInv hj, planInv_eq hj]
+  rw [planInvPoly, planInv_eq hj, fromNovelFast_eq hj]
   rfl
 
 /-- **The novel-basis transform** over `K`: `2^j` points `x_v`, `j ≤ 64`, through the plan
@@ -162,11 +161,12 @@ theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
 /-! ## The product and CompPoly's contexts -/
 
 /-- The schedule: schoolbook when a factor has at most `32` coefficients, Karatsuba's product
-when both have at most `1024` (below `≈ 2^11` coefficients Karatsuba's `3^⌈log₂(n/32)⌉·32²`
-products are fewer than the transform's `≈ 2^j·(3j²/4 + 19j/4 + 7)`). -/
+when both have at most `4096` (the compiled prices measured by track probe: at `1100`
+coefficients the transform's product `238M` steps against Karatsuba's `76M`, at `2100` `540M`
+against `214M`; the crossover near `4096`). -/
 @[expose] def fftSchedule : MulSchedule K where
   small := 32
-  mid := 1024
+  mid := 4096
   fallback := karatsubaMulContext
 
 /-- **The additive-FFT product** over `K`. -/
