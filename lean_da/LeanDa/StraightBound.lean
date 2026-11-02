@@ -202,7 +202,7 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : Challenges) :
-    QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logPad r)) := by
+    QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logPaddedRowCount r)) := by
   classical
   have h1 : ∀ a, QueryCostAtMost (LeanDa.hH a) tCount 1 := fun a ↦
     isWeightBound_query (spec := unifSpec + roSpec (List UInt8) DigestBytes) tCount (.inr a)
@@ -247,7 +247,7 @@ theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) DigestBytes Co
   rwa [hw] at this
 
 theorem isWeightBound_tailV_hg (crs : Crs) (out : CbOut r Proof) :
-    QueryCostAtMost (tailV r ps ext crs out) hgCalls (14 + (commitCalls r + (9 + logPad r))) :=
+    QueryCostAtMost (tailV r ps ext crs out) hgCalls (14 + (commitCalls r + (9 + logPaddedRowCount r))) :=
   (isWeightBound_readVec hgCalls (fun _ _ ↦ rfl) _).bind fun l ↦
     isWeightBound_embG_h (isWeightBound_tailH r ps ext crs out l)
 
@@ -318,12 +318,12 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
         ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192) := by
-  have hL : logPad r ≤ 10 := by
-    unfold logPad
+  have hL : logPaddedRowCount r ≤ 10 := by
+    unfold logPaddedRowCount
     exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hr)
-  have hN : nPad r ≤ 1024 := by
-    unfold nPad
-    calc 2 ^ logPad r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
+  have hN : paddedRowCount r ≤ 1024 := by
+    unfold paddedRowCount
+    calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
       _ = 1024 := by norm_num
   have h1 : QueryCostAtMost (worldV r ps ext A crs) vCalls (2 * Q + 2 ^ 20) :=
     (isWeightBound_toV_v (ha.bind fun out ↦ isWeightBound_tailV_hg r ps ext crs out)).mono

@@ -32,7 +32,7 @@ variable (π : KeccakState → KeccakState)
 /-- Keccak-256 over `π`, LeanDA's 32 bytes: the hash of the statement's pure algorithms. -/
 abbrev hashOver (bytes : List UInt8) : DigestBytes := Id.run (keccakDigestBytes π bytes)
 
-theorem up_eq_withHash : up π = upWithHash (hashOver π) := rfl
+theorem up_eq_withHash : merkleLevelUp π = upWithHash (hashOver π) := rfl
 
 theorem merkleRoot_eq_withHash : ∀ (d : ℕ) (f : ℕ → DigestBytes),
     merkleRoot π d f = merkleRootWithHash (hashOver π) d f

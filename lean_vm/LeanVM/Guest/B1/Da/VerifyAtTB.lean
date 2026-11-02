@@ -64,7 +64,7 @@ set_option maxRecDepth 20000 in
 `dvB`**, its statically bounded callees within their static bounds (`DvStaticB`). -/
 theorem dvT_completeAtB (fs : String → ℕ) (cert : String → V → ℕ)
     (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {r L : ℕ}
-    (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.nPad r)
+    (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
     {syms : ℕ → ℕ → List K} {ws : ℕ → List E} (hsl : ∀ i j, (syms i j).length = 256)
     (hwl : ∀ j, (ws j).length = 256) (hdot : ∀ i < r, accSum syms ws i 128 = 0) (s : ℕ)
     {SB SK : String → ℕ} (hS : DvStaticB fs SB SK) :

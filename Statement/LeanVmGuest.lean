@@ -94,7 +94,7 @@ def MatrixWitness.Opens (root vd : Digest) (w : MatrixWitness) : Prop :=
     LeanDa.commitCodewords keccakF1600 w.rows = root.toBytes ∧
       w.vector.length = 2 ^ LeanDa.logM ∧
     LeanDa.vectorDigest keccakF1600 w.vector = vd.toBytes ∧
-    ∀ row ∈ w.rows, LeanDa.dot (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
+    ∀ row ∈ w.rows, LeanDa.innerProduct (fun b ↦ w.vector.getD b 0) (fun b ↦ row.getD b 0) = 0
 
 end LeanVM.Da
 

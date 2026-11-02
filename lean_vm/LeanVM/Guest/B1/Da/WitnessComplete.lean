@@ -40,7 +40,7 @@ def wWs (w : LeanVM.Da.MatrixWitness) (j : ℕ) : List E :=
   if j < 128 then (w.vector.drop (256 * j)).take 256 else List.replicate 256 0
 
 /-- The padded count's log. -/
-def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPad w.rows.length
+def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPaddedRowCount w.rows.length
 
 /-- A list of `128` blocks of `256` is the flattening of its blocks. -/
 theorem flatMap_blocks {α : Type} (l : List α) (d : α) (hl : l.length = 128 * 256) (f : ℕ → List α)
@@ -120,7 +120,7 @@ theorem wDot {w : LeanVM.Da.MatrixWitness} {root vd : Digest} (hw : w.Opens root
     (List.getElem_mem _)
   have he : (daRows w.rows.length (wSyms w))[i]'(by rw [hlen]; exact hi) =
       (List.range 128).flatMap (wSyms w i) := by simp [daRows]
-  rw [he, LeanDa.dot, Fin.sum_univ_eq_sum_range (fun b => (daVector (wWs w)).getD b 0 *
+  rw [he, LeanDa.innerProduct, Fin.sum_univ_eq_sum_range (fun b => (daVector (wWs w)).getD b 0 *
     LeanDa.ι (((List.range 128).flatMap (wSyms w i)).getD b 0)) (2 ^ 15),
     show 2 ^ 15 = 128 * 256 by norm_num, sum_range_mul _ 256 128] at hrow
   refine (Finset.sum_congr rfl fun j hj => Finset.sum_congr rfl fun e he => ?_).trans hrow

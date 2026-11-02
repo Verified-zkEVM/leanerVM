@@ -186,21 +186,21 @@ noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eva
 def rowCell (w : Row) (j : Fin 128) : Cell := fun s ↦ w ⟨256 * j + s, by omega⟩
 
 /-- The position of cell `j` of row `i`. -/
-def pos {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
+def cellPosition {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
 
 /-- The row of a position. -/
-def posRow {r : ℕ} (p : Fin (r * 128)) : Fin r := ⟨p / 128, by omega⟩
+def positionRow {r : ℕ} (p : Fin (r * 128)) : Fin r := ⟨p / 128, by omega⟩
 
 /-- The cell of a position within its row. -/
-def posCell {r : ℕ} (p : Fin (r * 128)) : Fin 128 := ⟨p % 128, by omega⟩
+def positionCell {r : ℕ} (p : Fin (r * 128)) : Fin 128 := ⟨p % 128, by omega⟩
 
 /-- The cells of a matrix of encoded payloads. -/
 noncomputable def encodeMatrix {r : ℕ} (msg : Fin r → Payload) : Fin (r * 128) → Cell :=
-  fun p ↦ rowCell (encodeRow (msg (posRow p))) (posCell p)
+  fun p ↦ rowCell (encodeRow (msg (positionRow p))) (positionCell p)
 
 /-- Row `i` of a matrix given by its cells. -/
-def rowOf {r : ℕ} (c : Fin (r * 128) → Cell) (i : Fin r) : Row :=
-  fun b ↦ c (pos i ⟨b / 256, by omega⟩) ⟨b % 256, by omega⟩
+def matrixRow {r : ℕ} (c : Fin (r * 128) → Cell) (i : Fin r) : Row :=
+  fun b ↦ c (cellPosition i ⟨b / 256, by omega⟩) ⟨b % 256, by omega⟩
 
 /-- **LeanDA's hash** over a permutation `π` of the Keccak state in any monad: Keccak-256 over `π`
 (`keccak256With`), its digest's 32 bytes (`Digest.toBytes`). The crate's is Keccak-256 over
@@ -228,23 +228,23 @@ def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
 def cellDigest (x : Cell) : DigestBytes := Id.run (keccakDigestBytes π (cellBytes x))
 
 /-- `⌈log₂ r⌉`: the padded row count `2^⌈log₂ r⌉` is `r.next_power_of_two()`. -/
-def logPad (r : ℕ) : ℕ := Nat.clog 2 r
+def logPaddedRowCount (r : ℕ) : ℕ := Nat.clog 2 r
 
 /-- The padded row count. -/
-def nPad (r : ℕ) : ℕ := 2 ^ logPad r
+def paddedRowCount (r : ℕ) : ℕ := 2 ^ logPaddedRowCount r
 
 /-- Cell `j` of row `i` of the padded matrix: zero below the `r` rows. -/
 def paddedCell {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
-  if h : i < r ∧ j < 128 then c (pos ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
+  if h : i < r ∧ j < 128 then c (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
 /-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
-def up (f : ℕ → DigestBytes) (i : ℕ) : DigestBytes :=
+def merkleLevelUp (f : ℕ → DigestBytes) (i : ℕ) : DigestBytes :=
   Id.run (keccakDigestBytes π (pairBytes (f (2 * i)) (f (2 * i + 1))))
 
 /-- The root of the Merkle tree over the leaves `f 0 … f (2^d - 1)` (`tree_from_leaves`). -/
 def merkleRoot : ℕ → (ℕ → DigestBytes) → DigestBytes
   | 0, f => f 0
-  | d + 1, f => merkleRoot d (up π f)
+  | d + 1, f => merkleRoot d (merkleLevelUp π f)
 
 /-- The other node of the pair of node `idx`. -/
 def sibling (idx : ℕ) : ℕ := if idx % 2 = 0 then idx + 1 else idx - 1
@@ -252,7 +252,7 @@ def sibling (idx : ℕ) : ℕ := if idx % 2 = 0 then idx + 1 else idx - 1
 /-- The authentication path of leaf `idx`, siblings from the bottom. -/
 def merklePath : ℕ → (ℕ → DigestBytes) → ℕ → List DigestBytes
   | 0, _, _ => []
-  | d + 1, f, idx => f (sibling idx) :: merklePath d (up π f) (idx / 2)
+  | d + 1, f, idx => f (sibling idx) :: merklePath d (merkleLevelUp π f) (idx / 2)
 
 /-- The row tree's leaves: each padded row's digest of its first `64` cell digests. -/
 def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
@@ -261,15 +261,15 @@ def rowLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
 
 /-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
 def colLeaves {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : DigestBytes :=
-  cellDigest π (paddedCell c (l % nPad r) (l / nPad r))
+  cellDigest π (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r))
 
 /-- The row root (`root_row`). -/
 def rowRoot {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRoot π (logPad r) (rowLeaves π c)
+  merkleRoot π (logPaddedRowCount r) (rowLeaves π c)
 
 /-- The column root (`root_col`). -/
 def colRoot {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRoot π (7 + logPad r) (colLeaves π c)
+  merkleRoot π (7 + logPaddedRowCount r) (colLeaves π c)
 
 /-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ colRoot)`. -/
 def commitCells {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
@@ -286,30 +286,30 @@ structure Opening where
 deriving Inhabited
 
 /-- The column tree index of a position: cell `j` of row `i` is leaf `j · 2^⌈log₂ r⌉ + i`. -/
-def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ := (posCell p : ℕ) * nPad r + posRow p
+def colIndex {r : ℕ} (p : Fin (r * 128)) : ℕ := (positionCell p : ℕ) * paddedRowCount r + positionRow p
 
 /-- The honest opening of a position. -/
 def openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : Opening :=
-  ⟨rowRoot π c, merklePath π (7 + logPad r) (colLeaves π c) (colIndex p)⟩
+  ⟨rowRoot π c, merklePath π (7 + logPaddedRowCount r) (colLeaves π c) (colIndex p)⟩
 
 /-! ### Membership (`membership.rs`, `verifier/src/da.rs`) -/
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
 at `e_j` (CompPoly's `normalizedW`; `subspace_evaluations` tabulates it on the basis). -/
-noncomputable def normW (j : Fin 14) : K[X] :=
+noncomputable def normalizedSubspacePolynomial (j : Fin 14) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
 /-- **The dual codeword of challenges `z`** (`dual_codeword`): `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on
 the domain, the encoding of `tensor z` (`lean_da`'s `dual_eq_sum`). -/
 noncomputable def dual (z : Fin 14 → E) (b : Fin (2 ^ 15)) : E :=
-  ∏ j : Fin 14, (1 + z j * ι ((normW j).eval (point b)))
+  ∏ j : Fin 14, (1 + z j * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) w(x)` (`check_membership`). -/
-noncomputable def dot (L : Fin (2 ^ 15) → E) (w : Row) : E := ∑ b, L b * ι (w b)
+noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (w : Row) : E := ∑ b, L b * ι (w b)
 
 /-- **The membership check**: every row is orthogonal to the dual codeword. -/
 noncomputable def membershipCheck {r : ℕ} (z : Fin 14 → E) (c : Fin (r * 128) → Cell) : Bool :=
-  decide (∀ i : Fin r, dot (dual z) (rowOf c i) = 0)
+  decide (∀ i : Fin r, innerProduct (dual z) (matrixRow c i) = 0)
 
 /-! ### The deployed commitment (`commit.rs:55-145`)
 
@@ -319,7 +319,7 @@ form (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). -/
 
 /-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
 def treeLevel (nodes : List DigestBytes) : List DigestBytes :=
-  (List.range (nodes.length / 2)).map (up π fun i ↦ nodes.getD i default)
+  (List.range (nodes.length / 2)).map (merkleLevelUp π fun i ↦ nodes.getD i default)
 
 /-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
 other lengths, which `commitCodewords` never passes, the crate panics). -/
@@ -351,7 +351,7 @@ def paddingRow : DigestBytes :=
 /-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
 rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
 def commitCodewords (rows : List (List K)) : DigestBytes :=
-  let n := nPad rows.length
+  let n := paddedRowCount rows.length
   let rowTree := treeRoot π
     (rows.map (rowDigest π) ++ List.replicate (n - rows.length) (paddingRow π))
   let columnTree := treeRoot π ((List.range cellsPerRow).flatMap fun j ↦ (List.range n).map fun i ↦
@@ -490,10 +490,10 @@ def verifyCellM (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ
   let d ← keccakDigestBytes P (cellBytes x)
   let w ← walkM P (colIndex p) d τ.path
   let root ← keccakDigestBytes P (pairBytes τ.rowRoot w)
-  pure (decide (τ.path.length = 7 + logPad r) && decide (root = com))
+  pure (decide (τ.path.length = 7 + logPaddedRowCount r) && decide (root = com))
 
-/-- One level up a Merkle tree over an oracle (`up`). -/
-def upM (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
+/-- One level up a Merkle tree over an oracle (`merkleLevelUp`). -/
+def merkleLevelUpM (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
   let a ← f (2 * i)
   let b ← f (2 * i + 1)
   keccakDigestBytes P (pairBytes a b)
@@ -501,7 +501,7 @@ def upM (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
 /-- The root of a Merkle tree over an oracle (`merkleRoot`). -/
 def merkleRootM : ℕ → (ℕ → m DigestBytes) → m DigestBytes
   | 0, f => f 0
-  | d + 1, f => merkleRootM d (upM P f)
+  | d + 1, f => merkleRootM d (merkleLevelUpM P f)
 
 /-- The row tree's leaves over an oracle (`rowLeaves`). -/
 def rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes := do
@@ -510,15 +510,15 @@ def rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes 
 
 /-- The column tree's leaves over an oracle (`colLeaves`). -/
 def colLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
-  keccakDigestBytes P (cellBytes (paddedCell c (l % nPad r) (l / nPad r)))
+  keccakDigestBytes P (cellBytes (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r)))
 
 /-- The row root over an oracle (`rowRoot`). -/
 def rowRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootM P (logPad r) (rowLeavesM P c)
+  merkleRootM P (logPaddedRowCount r) (rowLeavesM P c)
 
 /-- The column root over an oracle (`colRoot`). -/
 def colRootM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootM P (7 + logPad r) (colLeavesM P c)
+  merkleRootM P (7 + logPaddedRowCount r) (colLeavesM P c)
 
 /-- **The root of a matrix over an oracle** (`commitCells`). -/
 def commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes := do

@@ -154,12 +154,12 @@ theorem cell18_eq (N18 : Nat) :
 /-! ## The hints of an opening -/
 
 /-- A sub-tree's hints: its codeword index `t`, its child `a`, its opening's chain values and path. -/
-def subHOf (op : SubOpening) (t a : Nat) : SubH :=
+def subHOf (op : SubtreeOpening) (t a : Nat) : SubH :=
   ⟨t, a, fun i => if h : i < 6 then cellOf128 (op.values ⟨i, h⟩) else 0,
     fun l => if h : l < 3 then cellOf128 (op.path ⟨l, h⟩) else 0⟩
 
 /-- A coordinate's hints: its super-child `s`, its opening's top path, its sub-trees'. -/
-def coordHOf (op : CoordOpening) (s t0 a0 t1 a1 : Nat) : CoordH :=
+def coordHOf (op : CoordinateOpening) (s t0 a0 t1 a1 : Nat) : CoordH :=
   ⟨s, fun l => if h : l < 4 then cellOf128 (op.top ⟨l, h⟩) else 0, subHOf (op.sub 0) t0 a0,
     subHOf (op.sub 1) t1 a1⟩
 
@@ -169,10 +169,10 @@ theorem canon_dite {p : Prop} [Decidable p] {f : p → BitVec 128} :
   · exact isCanonical128_cellOf128 _
   · exact canon_zero
 
-theorem subHOf_ok (op : SubOpening) {t a : Nat} (ht : t < 256) (ha : a < 8) : (subHOf op t a).OK :=
+theorem subHOf_ok (op : SubtreeOpening) {t a : Nat} (ht : t < 256) (ha : a < 8) : (subHOf op t a).OK :=
   ⟨ht, ha, fun _ => canon_dite, fun _ => canon_dite⟩
 
-theorem coordHOf_ok (op : CoordOpening) {s t0 a0 t1 a1 : Nat} (hs : s < 16) (ht0 : t0 < 256)
+theorem coordHOf_ok (op : CoordinateOpening) {s t0 a0 t1 a1 : Nat} (hs : s < 16) (ht0 : t0 < 256)
     (ha0 : a0 < 8) (ht1 : t1 < 256) (ha1 : a1 < 8) : (coordHOf op s t0 a0 t1 a1).OK :=
   ⟨hs, fun _ => canon_dite, subHOf_ok _ ht0 ha0, subHOf_ok _ ht1 ha1⟩
 
@@ -183,7 +183,7 @@ theorem sv_dite {n : Nat} {f : Fin n → BitVec 128} (i : Fin n) :
 
 /-- **A sub-tree's opening, read off its valuation**, is the hinted one. -/
 theorem subOpening_eq {σ : Val} {encIn boundIn : E} {c j : Nat} {enc : Option V} {b : Nat}
-    {op : SubOpening} {t a : Nat} (ht : t < 256) (ha : a < 8)
+    {op : SubtreeOpening} {t a : Nat} (ht : t < 256) (ha : a < 8)
     (h : SubPost encIn boundIn c j enc b (subHOf op t a) σ) : subOpening σ c j enc b = op := by
   obtain ⟨h0, -, h6, hv, hs, hs2, -⟩ := h
   dsimp only [subHOf] at h0 h6 hv hs hs2
@@ -191,7 +191,7 @@ theorem subOpening_eq {σ : Val} {encIn boundIn : E} {c j : Nat} {enc : Option V
   have et : subT σ b = t := logG_eq ht (by norm_num) h6
   cases op with
   | mk values path =>
-    simp only [subOpening, SubOpening.mk.injEq]
+    simp only [subOpening, SubtreeOpening.mk.injEq]
     refine ⟨funext fun i => ?_, funext fun l => ?_⟩
     · rw [subVal, et, hv i.val i.isLt]
       exact sv_dite i
@@ -210,7 +210,7 @@ theorem subOpening_eq {σ : Val} {encIn boundIn : E} {c j : Nat} {enc : Option V
 
 /-- **A coordinate's opening, read off its valuation**, is the hinted one. -/
 theorem coordOpening_eq {σ : Val} {encIn boundIn : E} {c : Nat} {enc : Option V} {bound : V} {b : Nat}
-    {op : CoordOpening} {s t0 a0 t1 a1 : Nat} (hs : s < 16) (ht0 : t0 < 256) (ha0 : a0 < 8)
+    {op : CoordinateOpening} {s t0 a0 t1 a1 : Nat} (hs : s < 16) (ht0 : t0 < 256) (ha0 : a0 < 8)
     (ht1 : t1 < 256) (ha1 : a1 < 8)
     (h : CoordPost encIn boundIn c enc bound b (coordHOf op s t0 a0 t1 a1) σ) :
     coordOpening σ c enc bound b = op := by
@@ -219,7 +219,7 @@ theorem coordOpening_eq {σ : Val} {encIn boundIn : E} {c : Nat} {enc : Option V
   have es : coordS σ b = s := logG_eq hs (by norm_num) h0
   cases op with
   | mk sub top =>
-    simp only [coordOpening, CoordOpening.mk.injEq]
+    simp only [coordOpening, CoordinateOpening.mk.injEq]
     refine ⟨funext fun j => ?_, funext fun l => ?_⟩
     · rcases Fin.exists_fin_two.mp ⟨j, rfl⟩ with rfl | rfl
       · exact subOpening_eq ht0 ha0 hs0

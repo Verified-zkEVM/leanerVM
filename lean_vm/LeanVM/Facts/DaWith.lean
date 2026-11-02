@@ -71,7 +71,7 @@ def treeRootWith (nodes : List Common.DigestBytes) : m Common.DigestBytes :=
 /-- **`LeanDa.commitCodewords` with the hash `HD`** and the padding digests `pc` (a zero cell) and
 `pr` (a zero row). -/
 def commitCodewordsWith (pc pr : Common.DigestBytes) (rows : List (List K)) : m Common.DigestBytes := do
-  let n := LeanDa.nPad rows.length
+  let n := LeanDa.paddedRowCount rows.length
   let rds ← rows.mapM (rowDigestWith HD)
   let rowTree ← treeRootWith HD (rds ++ List.replicate (n - rows.length) pr)
   let cols ← ((List.range LeanDa.cellsPerRow).flatMap fun j ↦

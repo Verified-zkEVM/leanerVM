@@ -176,8 +176,8 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 `aggregation.rs:149-151`): from bit `128` of the digest, the index, every tree's leaf and every
 subtree's key. -/
 def sphincsUsedBits : ℕ :=
-  Sphincs.totalHeight + Sphincs.forestCoords * Sphincs.topHeight +
-    2 * Sphincs.forestCoords * Sphincs.subHeight
+  Sphincs.totalHeight + Sphincs.forestCoordinates * Sphincs.topHeight +
+    2 * Sphincs.forestCoordinates * Sphincs.subHeight
 
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
 (`mark`, `aggregation.rs:1576-1579`). -/
@@ -196,7 +196,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
   let digest := Sphincs.truncateMessageDigest call
   let index := Sphincs.Concrete.digestIndex digest
   let marks := Sphincs.Concrete.digestMarks digest
-  let coords := List.finRange Sphincs.forestCoords
+  let coords := List.finRange Sphincs.forestCoordinates
   let subtrees := List.finRange 2
   let values := coords.flatMap fun c ↦ subtrees.flatMap fun j ↦
     (List.finRange Sphincs.childChains).map fun i ↦
@@ -238,7 +238,7 @@ every row's cells, column by column (`aggregation.rs:1846-1866`). -/
 def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
   (List.range LeanDa.cellsPerRow).map (fun j ↦
       ("da_weights", (w.vector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
-    [("da_shape", [count w.rows.length, count (LeanDa.logPad w.rows.length)])] ++
+    [("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
     (List.range LeanDa.cellsPerRow).flatMap fun j ↦
       w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
 

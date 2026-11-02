@@ -171,7 +171,7 @@ theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
   | none => simp
   | some p =>
     rw [h] at hr
-    simp only [Option.map_some, Option.getD_some, LeanDa.nPad, LeanDa.logPad] at hr ⊢
+    simp only [Option.map_some, Option.getD_some, LeanDa.paddedRowCount, LeanDa.logPaddedRowCount] at hr ⊢
     exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
 
 /-- `Covered`, by the node's work: `Covered s w` is `CoveredW (work s w)` by definition. -/

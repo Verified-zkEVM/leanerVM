@@ -130,7 +130,7 @@ theorem sum_range_mul (g : ℕ → E) (m : ℕ) : ∀ n,
 
 /-- **The witness opens the claim.** -/
 theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List E} (hr1 : 1 ≤ r)
-    (hr : r ≤ LeanDa.maxRows) (hL : LeanDa.nPad r = 2 ^ L) (hrL : r ≤ 2 ^ L)
+    (hr : r ≤ LeanDa.maxRows) (hL : LeanDa.paddedRowCount r = 2 ^ L) (hrL : r ≤ 2 ^ L)
     (hsyms : ∀ i j, (syms i j).length = 256) (hws : ∀ j, (ws j).length = 256)
     (hdot : ∀ i < r, ∑ j ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
       (ws j).getD e 0 * ofK ((syms i j).getD e 0) = 0) :
@@ -157,7 +157,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     rw [hlcd i j (by omega), toList_toBytes]
   have hRow : LeanDa.treeRootWithHash LeanVM.Da.keccak256Bytes ((daRows r syms).map
       (LeanDa.rowDigestWithHash LeanVM.Da.keccak256Bytes) ++ List.replicate
-        (LeanDa.nPad (daRows r syms).length - (daRows r syms).length)
+        (LeanDa.paddedRowCount (daRows r syms).length - (daRows r syms).length)
         (LeanDa.paddingRowWithHash LeanVM.Da.keccak256Bytes)) = LeanVM.Protocol.Digest.toBytes (mRoot L (rowLeaf r syms)) := by
     rw [hlen, hL, toBytes_mRoot, ← treeRoot_range]
     congr 1
@@ -170,11 +170,11 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
         paddingRow_eq]
   -- the column tree
   have hCol : LeanDa.treeRootWithHash LeanVM.Da.keccak256Bytes ((List.range LeanDa.cellsPerRow).flatMap fun j =>
-      (List.range (LeanDa.nPad (daRows r syms).length)).map fun i => if h : i < (daRows r syms).length then
+      (List.range (LeanDa.paddedRowCount (daRows r syms).length)).map fun i => if h : i < (daRows r syms).length then
         LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
       else LeanDa.paddingCellWithHash LeanVM.Da.keccak256Bytes) =
       LeanVM.Protocol.Digest.toBytes (mRoot 7 fun j => mRoot L (cellLeaf r syms j)) := by
-    rw [show LeanDa.nPad (daRows r syms).length = 2 ^ L by rw [hlen, hL]]
+    rw [show LeanDa.paddedRowCount (daRows r syms).length = 2 ^ L by rw [hlen, hL]]
     have e1 : ((List.range LeanDa.cellsPerRow).flatMap fun j =>
         (List.range (2 ^ L)).map fun i => if h : i < (daRows r syms).length then
           LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes (daRows r syms)[i] j
@@ -224,7 +224,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     intro row hrow'
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hrow'
     have hi' := List.mem_range.mp hi
-    rw [LeanDa.dot, Fin.sum_univ_eq_sum_range (fun b => (daVector ws).getD b 0 *
+    rw [LeanDa.innerProduct, Fin.sum_univ_eq_sum_range (fun b => (daVector ws).getD b 0 *
       LeanDa.ι (((List.range 128).flatMap (syms i)).getD b 0)) (2 ^ 15),
       show 2 ^ 15 = 128 * 256 by norm_num, sum_range_mul _ 256 128]
     refine (Finset.sum_congr rfl fun j hj => Finset.sum_congr rfl fun e he => ?_).trans (hdot i hi')

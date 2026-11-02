@@ -30,7 +30,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 /-- `da_row_shape`'s meaning gives its core IR, on a memory image. -/
 def da_row_shape_complete_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ gsq : E, SquaresAt rd gsq → ∀ r L : ℕ, 1 ≤ r →
-    r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.nPad r →
+    r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r →
       coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
 
 theorem core26_body : Fn.body Data.core26 = [
@@ -51,8 +51,8 @@ theorem core26_body : Fn.body Data.core26 = [
   stmtsEqb_sound (by decide +kernel)
 
 /-- The padded count is between `r` and `2r`. -/
-theorem nPad_bounds {r : ℕ} (hr : 1 ≤ r) : r ≤ LeanDa.nPad r ∧ LeanDa.nPad r < 2 * r := by
-  unfold LeanDa.nPad LeanDa.logPad
+theorem nPad_bounds {r : ℕ} (hr : 1 ≤ r) : r ≤ LeanDa.paddedRowCount r ∧ LeanDa.paddedRowCount r < 2 * r := by
+  unfold LeanDa.paddedRowCount LeanDa.logPaddedRowCount
   refine ⟨Nat.le_pow_clog (by norm_num) r, ?_⟩
   rcases Nat.lt_or_ge 1 r with h | h
   · have h1 := Nat.pow_pred_clog_lt_self (b := 2) (by norm_num) h
@@ -69,7 +69,7 @@ set_option maxRecDepth 10000 in
 `g_squares·g^L`. -/
 theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq : E) (r L : ℕ)
     (hsq : LoadHolds rd gsq L (gen ^ 2 ^ L)) (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows)
-    (hL : 2 ^ L = LeanDa.nPad r) :
+    (hL : 2 ^ L = LeanDa.paddedRowCount r) :
     coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)] := by
   unfold LeanDa.maxRows at hr
   obtain ⟨hlo, hhi⟩ := nPad_bounds hr1

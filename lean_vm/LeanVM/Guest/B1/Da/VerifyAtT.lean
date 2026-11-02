@@ -85,7 +85,7 @@ set_option maxRecDepth 20000 in
 /-- **`da_verify` is complete, placed, by a tree of its honest shape** (`dvNH r L`). -/
 theorem dvT_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hcv : cert "da_vector_cell" (.n 1) + 256 ≤ fs "da_vector_cell") {r L : ℕ}
-    (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.nPad r)
+    (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
     {syms : ℕ → ℕ → List K} {ws : ℕ → List E} (hsl : ∀ i j, (syms i j).length = 256)
     (hwl : ∀ j, (ws j).length = 256) (hdot : ∀ i < r, accSum syms ws i 128 = 0) (s : ℕ) :
     CompleteAtDT fs cert 16 "da_verify" [(s + L, [gen ^ 2 ^ L])] [gen ^ s]

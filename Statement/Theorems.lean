@@ -76,10 +76,10 @@ instance : MachineEncoding LeanXmss.LayerSignature :=
 instance : MachineEncoding LeanXmss.Signature :=
   ⟨fun σ ↦ .ctor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
 
-instance : MachineEncoding Sphincs.SubOpening :=
+instance : MachineEncoding Sphincs.SubtreeOpening :=
   ⟨fun o ↦ .ctor 0 [encodeValue o.values, encodeValue o.path]⟩
 
-instance : MachineEncoding Sphincs.CoordOpening :=
+instance : MachineEncoding Sphincs.CoordinateOpening :=
   ⟨fun o ↦ .ctor 0 [encodeValue o.sub, encodeValue o.top]⟩
 
 instance : MachineEncoding Sphincs.Signature :=

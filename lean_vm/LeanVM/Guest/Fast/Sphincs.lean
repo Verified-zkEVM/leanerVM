@@ -36,7 +36,7 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1.Sig
 /-- **A sub-tree's opening** from its base `b`, its fold's base and its two top cells
 (`subOpening`): the chain values of the forest key its dispatch takes, the fold's siblings and the
 other top cell. -/
-def subOpeningN (σ : Val) (b fold p0 p1 : ℕ) : Sphincs.SubOpening :=
+def subOpeningN (σ : Val) (b fold p0 p1 : ℕ) : Sphincs.SubtreeOpening :=
   let t := logGT (σ (.n (b + 6))) 256
   let a := logGT (σ (.n b)) 8
   ⟨fun i ↦ sv (σ (.n (b + 12 + offAt fkOff t i.val))),
@@ -44,7 +44,7 @@ def subOpeningN (σ : Val) (b fold p0 p1 : ℕ) : Sphincs.SubOpening :=
       else σ (.n (if a / 4 = 0 then p0 else p1)))⟩
 
 /-- **A coordinate's opening** at its positions `r` (`coordOpening`). -/
-def coordOpeningN (σ : Val) (r : SCoord) : Sphincs.CoordOpening :=
+def coordOpeningN (σ : Val) (r : SCoord) : Sphincs.CoordinateOpening :=
   let s := logGT (σ (.n r.b)) 16
   ⟨fun j ↦ if j.val = 0 then subOpeningN σ (r.b + 10) r.f0 r.p00 r.p01
       else subOpeningN σ r.s1 r.f1 r.p10 r.p11,
@@ -67,7 +67,7 @@ theorem subOpening_eq (σ : Val) (c j : ℕ) (enc : Option V) {b fold p0 p1 : �
     subOpening σ c j enc b = subOpeningN σ b fold p0 p1 := by
   have ht := logG_lt (σ (.n (b + 6))) (bound := 256) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at ht
-  have hv (i : Sphincs.FChain) : subVal σ c j b i.val =
+  have hv (i : Sphincs.ForestChainIndex) : subVal σ c j b i.val =
       σ (.n (b + 12 + offAt fkOff (logGT (σ (.n (b + 6))) 256) i.val)) := by
     have hi : i.val < 6 := i.isLt
     unfold subVal subT
@@ -89,7 +89,7 @@ theorem coordOpening_eq (σ : Val) {c : ℕ} (hc : c < 8) :
   simp only [coordCheck, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hf0⟩, hp00⟩, hp01⟩, hs1⟩, hf1⟩, hp10⟩, hp11⟩, htop⟩, hq0⟩, hq1⟩ := hok
   rw [hb]
-  have hsub (j : Sphincs.SubIdx) : subOpening σ c j.val
+  have hsub (j : Sphincs.SubtreeIndex) : subOpening σ c j.val
       (if j.val = 0 then (cSt c).1 else some (coordS0 c (cSt c).1 (cSt c).2.1 r.b).2.2.1)
       (if j.val = 0 then r.b + 10 else (coordS0 c (cSt c).1 (cSt c).2.1 r.b).2.1) =
       if j.val = 0 then subOpeningN σ (r.b + 10) r.f0 r.p00 r.p01
@@ -113,7 +113,7 @@ theorem coordOpening_eq (σ : Val) {c : ℕ} (hc : c < 8) :
 /-- **The readers are equal.** -/
 theorem sphincsSigOfN_eq (σ : Val) : sphincsSigOfN σ = sphincsSigOf σ := by
   obtain ⟨hfb, henc, hleaf⟩ := sStatic
-  have hc (c : Sphincs.Coord) : coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 =
+  have hc (c : Sphincs.ForestCoordinate) : coordOpening σ c.val (cSt c.val).1 (cSt c.val).2.1 (cSt c.val).2.2 =
       coordOpeningN σ (sCoordTab.getD c.val sCoord0) := coordOpening_eq σ c.isLt
   have hw (i : Sphincs.ChainIndex) : cwStart sW 21 (sEnc.2.1 + 10) σ i.val =
       .n (cwCell 21 sSel sFirst sRest sLast σ i.val) := by
@@ -149,21 +149,21 @@ def sphincsTabs : SphincsTabs :=
 
 /-- A sub-tree's opening, the forest key `t` its dispatch takes and its fold's arm `a` given
 (`subOpeningN`). -/
-def subOpeningAt (fk : Array (Array ℕ)) (σ : Val) (b fold p0 p1 t a : ℕ) : Sphincs.SubOpening :=
+def subOpeningAt (fk : Array (Array ℕ)) (σ : Val) (b fold p0 p1 t a : ℕ) : Sphincs.SubtreeOpening :=
   ⟨fun i ↦ sv (σ (.n (b + 12 + offAtA fk t i.val))),
     fun l ↦ sv (if l.val < 2 then σ (.n (foldPos 35 32 fold a + 16 * l.val))
       else σ (.n (if a / 4 = 0 then p0 else p1)))⟩
 
 /-- **A sub-tree's opening, off the tables** (`subOpeningN`): its key and arm read once. -/
 def subOpeningA (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (b fold p0 p1 : ℕ) :
-    Sphincs.SubOpening :=
+    Sphincs.SubtreeOpening :=
   subOpeningAt fk σ b fold p0 p1 (logGTWith lanes (σ (.n (b + 6))) 256)
     (logGTWith lanes (σ (.n b)) 8)
 
 /-- A coordinate's opening at its positions `r`, its top fold's arm `s` given
 (`coordOpeningN`). -/
 def coordOpeningAt (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (r : SCoord) (s : ℕ) :
-    Sphincs.CoordOpening :=
+    Sphincs.CoordinateOpening :=
   ⟨fun j ↦ if j.val = 0 then subOpeningA lanes fk σ (r.b + 10) r.f0 r.p00 r.p01
       else subOpeningA lanes fk σ r.s1 r.f1 r.p10 r.p11,
     fun l ↦ sv (if l.val < 3 then σ (.n (foldPos 54 51 r.top s + 17 * l.val))
@@ -171,7 +171,7 @@ def coordOpeningAt (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (r : S
 
 /-- **A coordinate's opening, off the tables** (`coordOpeningN`): its arm read once. -/
 def coordOpeningA (lanes : List ℕ) (fk : Array (Array ℕ)) (σ : Val) (r : SCoord) :
-    Sphincs.CoordOpening :=
+    Sphincs.CoordinateOpening :=
   coordOpeningAt lanes fk σ r (logGTWith lanes (σ (.n r.b)) 16)
 
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks, off the tables `T`**

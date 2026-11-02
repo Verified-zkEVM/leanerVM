@@ -50,10 +50,10 @@ theorem basis_ofNat {c : ℕ} (hc : c < 16) : basis (Fin.ofNat 16 c) = point (2 
   simp [basis, point, Nat.mod_eq_of_lt hc]
 
 /-- `normW j` is `Ŵ_j`. -/
-theorem normW_eval (j : Fin 14) (x : K) : (normW j).eval x = wHat j x := by
+theorem normW_eval (j : Fin 14) (x : K) : (normalizedSubspacePolynomial j).eval x = wHat j x := by
   have h : Fin.castLE (by omega) j = Fin.ofNat 16 j :=
     Fin.ext (by simp [Nat.mod_eq_of_lt (by omega : (j : ℕ) < 16)])
-  rw [normW, wHat, h]
+  rw [normalizedSubspacePolynomial, wHat, h]
 
 /-- `Ŵ_s` as an additive map. -/
 noncomputable def wHatHom (s : ℕ) : K →+ K :=

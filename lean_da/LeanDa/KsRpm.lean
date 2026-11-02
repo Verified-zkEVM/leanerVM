@@ -233,7 +233,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Chall
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The permutation calls of the relation's check: `3217` per padded row and one. -/
-abbrev relCalls (r : ℕ) : ℕ := 3217 * nPad r + 1
+abbrev relCalls (r : ℕ) : ℕ := 3217 * paddedRowCount r + 1
 
 theorem isWeightBound_ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × Challenges) × Proof) :
     QueryCostAtMost (ksPost r ps ext crs out) rCalls (relCalls r) := by

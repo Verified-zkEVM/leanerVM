@@ -106,10 +106,10 @@ instance : MachineDecoding LeanXmss.LayerSignature where
 instance : MachineDecoding LeanXmss.Signature where
   decodeValue | .ctor 0 [i, l] => do pure ⟨← decodeValue i, ← decodeValue l⟩ | _ => none
 
-instance : MachineDecoding Sphincs.SubOpening where
+instance : MachineDecoding Sphincs.SubtreeOpening where
   decodeValue | .ctor 0 [v, p] => do pure ⟨← decodeValue v, ← decodeValue p⟩ | _ => none
 
-instance : MachineDecoding Sphincs.CoordOpening where
+instance : MachineDecoding Sphincs.CoordinateOpening where
   decodeValue | .ctor 0 [s, t] => do pure ⟨← decodeValue s, ← decodeValue t⟩ | _ => none
 
 instance : MachineDecoding Sphincs.Signature where
@@ -261,11 +261,11 @@ instance : LawfulMachineDecoding LeanXmss.LayerSignature := ⟨fun ⟨r, c, p⟩
 instance : LawfulMachineDecoding LeanXmss.Signature := ⟨fun ⟨i, l⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue i), ← decodeValue (encodeValue l)⟩ : Option LeanXmss.Signature) = _; simp⟩
 
-instance : LawfulMachineDecoding Sphincs.SubOpening := ⟨fun ⟨v, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue v), ← decodeValue (encodeValue p)⟩ : Option Sphincs.SubOpening) = _; simp⟩
+instance : LawfulMachineDecoding Sphincs.SubtreeOpening := ⟨fun ⟨v, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue v), ← decodeValue (encodeValue p)⟩ : Option Sphincs.SubtreeOpening) = _; simp⟩
 
-instance : LawfulMachineDecoding Sphincs.CoordOpening := ⟨fun ⟨s, t⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue t)⟩ : Option Sphincs.CoordOpening) = _; simp⟩
+instance : LawfulMachineDecoding Sphincs.CoordinateOpening := ⟨fun ⟨s, t⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue t)⟩ : Option Sphincs.CoordinateOpening) = _; simp⟩
 
 instance : LawfulMachineDecoding Sphincs.Signature := ⟨fun ⟨r, f, c, v, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue f), ← decodeValue (encodeValue c), ← decodeValue (encodeValue v),

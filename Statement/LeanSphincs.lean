@@ -88,7 +88,7 @@ abbrev Encoding := ChainIndex → Digit
 /-! #### Forest parameters and types -/
 
 /-- The forest's coordinates: `8` trees under each leaf. -/
-def forestCoords : Nat := 8
+def forestCoordinates : Nat := 8
 /-- Height of a coordinate's top tree (16 super-children). -/
 def topHeight : Nat := 4
 /-- Height of a sub-tree (8 children). -/
@@ -99,25 +99,25 @@ def childChains : Nat := 6
 def chainTop : Nat := 4
 
 /-- `c`, a coordinate: one of the forest's trees. -/
-abbrev Coord := Fin forestCoords
+abbrev ForestCoordinate := Fin forestCoordinates
 /-- `s`, a super-child: a leaf of a coordinate's top tree. -/
-abbrev SuperIdx := Fin (2 ^ topHeight)
+abbrev SuperChildIndex := Fin (2 ^ topHeight)
 /-- `j`, one of a super-child's two sub-trees. -/
-abbrev SubIdx := Fin 2
+abbrev SubtreeIndex := Fin 2
 /-- `a`, a child: a leaf of a sub-tree, a forest WOTS key. -/
-abbrev ChildIdx := Fin (2 ^ subHeight)
+abbrev ChildIndex := Fin (2 ^ subHeight)
 /-- `i`, a chain of a forest WOTS key. -/
-abbrev FChain := Fin childChains
+abbrev ForestChainIndex := Fin childChains
 /-- A pair of chains `(2t, 2t + 1)` of a forest WOTS key, `t < 3`: one seed derivation. -/
-abbrev FPair := Fin 3
+abbrev ForestChainPair := Fin 3
 /-- A forest chain position, `0 .. 4`. -/
-abbrev FPos := Fin (chainTop + 1)
+abbrev ForestChainPosition := Fin (chainTop + 1)
 /-- A forest chain step, from position `t` to `t + 1`, `t < 4`. -/
-abbrev FStep := Fin chainTop
+abbrev ForestChainStep := Fin chainTop
 /-- A codeword: the deficit `d_i ∈ {0..4}` of every chain. -/
-abbrev Codeword := FChain → FPos
+abbrev Codeword := ForestChainIndex → ForestChainPosition
 /-- A codeword index, 8 digest bits. -/
-abbrev LutIdx := Fin 256
+abbrev CodewordIndex := Fin 256
 
 /-! #### The codeword table -/
 
@@ -147,19 +147,19 @@ def codewordCodes : List Nat :=
    12505, 12525, 12625, 13125, 13, 17, 53, 65, 77, 85, 253, 265, 325, 377, 385, 425]
 
 /-- Digit `i` (`i = 0` most significant) of a base-5 code with 6 digits. -/
-def codeDigit (code : Nat) (i : FChain) : FPos :=
+def codeDigit (code : Nat) (i : ForestChainIndex) : ForestChainPosition :=
   ⟨code / 5 ^ (5 - i.val) % 5, Nat.mod_lt _ (by decide)⟩
 
 /-- `lut t`: entry `t` of the table. -/
-def lut (t : LutIdx) : Codeword := codeDigit (codewordCodes.getD t.val 0)
+def lut (t : CodewordIndex) : Codeword := codeDigit (codewordCodes.getD t.val 0)
 
 /-! #### The message digest: one call, 234 bits -/
 
 /-- Digest bits of one coordinate: super-child 4, and child 3 and codeword 8 for each sub-tree. -/
-def coordBits : Nat := 26
+def coordinateBits : Nat := 26
 
 /-- The message digest is `h + 8 · 26 = 234` bits: an index and the fields of 8 coordinates. -/
-def messageDigestBits : Nat := totalHeight + forestCoords * coordBits
+def messageDigestBits : Nat := totalHeight + forestCoordinates * coordinateBits
 
 /-- The message digest's `234` bits. -/
 abbrev MessageDigest := BitVec messageDigestBits
@@ -170,31 +170,31 @@ def truncateMessageDigest (first : HashOutput) : MessageDigest :=
 
 /-- What a digest selects in one coordinate: the super-child, and per sub-tree a child and a
 codeword index. -/
-structure CoordMark where
+structure CoordinateSelection where
   /-- The super-child `s`. -/
-  super : SuperIdx
+  super : SuperChildIndex
   /-- The child `a` of each sub-tree. -/
-  child : SubIdx → ChildIdx
+  child : SubtreeIndex → ChildIndex
   /-- The codeword index of each sub-tree's child. -/
-  word : SubIdx → LutIdx
+  word : SubtreeIndex → CodewordIndex
 deriving DecidableEq
 
 /-- The forest key of an instance: the two level-3 nodes of every tree, `(t_c[0], t_c[1])`. It is
 not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Concrete.encode`). -/
-abbrev ForestKey := Coord → Digest × Digest
+abbrev ForestKey := ForestCoordinate → Digest × Digest
 
 /-- The opening of one sub-tree: the 6 revealed chain values and the 3 auth nodes. -/
-structure SubOpening where
+structure SubtreeOpening where
   /-- The child's chains, each opened to position `4 - d_i`. -/
-  values : FChain → Digest
+  values : ForestChainIndex → Digest
   /-- The sub-tree's siblings, the last the other level-2 node. -/
   path : Fin subHeight → Digest
 deriving DecidableEq
 
 /-- The opening of one coordinate: both sub-trees, then the 4 auth nodes of the top tree. -/
-structure CoordOpening where
+structure CoordinateOpening where
   /-- Each sub-tree's opening. -/
-  sub : SubIdx → SubOpening
+  sub : SubtreeIndex → SubtreeOpening
   /-- The top tree's siblings, the last the other level-3 node. -/
   top : Fin topHeight → Digest
 deriving DecidableEq
@@ -205,7 +205,7 @@ structure Signature where
   /-- The randomizer `ρ`, which grinds the leaf index into the kept subtree. -/
   randomness : Randomness
   /-- The forest's opening, one per coordinate. -/
-  forest : Coord → CoordOpening
+  forest : ForestCoordinate → CoordinateOpening
   /-- The WOTS+C counter `c` that makes the forest key's encoding a codeword. -/
   counter : Counter
   /-- Chain `i` opened to its codeword digit. -/
@@ -217,14 +217,14 @@ deriving DecidableEq
 /-! #### Forest addresses -/
 
 /-- `c + 8 s + 128 j`, a sub-tree of the instance (3 + 4 + 1 bits). -/
-def subSlot (c : Coord) (s : SuperIdx) (j : SubIdx) : Nat := c.val + 8 * s.val + 128 * j.val
+def subSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) : Nat := c.val + 8 * s.val + 128 * j.val
 
 /-- `c + 8 s + 128 j + 256 a`, a child of the instance (11 bits). -/
-def childSlot (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) : Nat :=
+def childSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) : Nat :=
   subSlot c s j + 256 * a.val
 
 /-- `c + 8 s + 128 j + 256 a + 2048 i`, a chain of the instance. -/
-def chainSlot (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain) : Nat :=
+def chainSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex) : Nat :=
   childSlot c s j a + 2048 * i.val
 
 /-- The verification hash domains. Seed derivation uses `KeygenDomain`. Forest levels count from the
@@ -241,17 +241,17 @@ inductive HashDomain where
   /-- The WOTS+C encoding of the forest key at `leaf`. -/
   | encoding (leaf : Index)
   /-- Step `t` of chain `i` of child `(c, s, j, a)` of forest instance `index`. -/
-  | fchain (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
-      (t : FStep)
+  | forestChain (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex)
+      (t : ForestChainStep)
   /-- A child's leaf, the hash of its chain tops. -/
-  | childLeaf (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx)
+  | childLeaf (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
   /-- A sub-tree's node. -/
-  | subNode (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (level : Fin subHeight)
-      (node : ChildIdx)
+  | subNode (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (level : Fin subHeight)
+      (node : ChildIndex)
   /-- A super-child, the hash of its sub-trees' level-2 nodes. -/
-  | superChild (index : Index) (c : Coord) (s : SuperIdx)
+  | superChild (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
   /-- A top tree's node. -/
-  | topNode (index : Index) (c : Coord) (level : Fin topHeight) (node : SuperIdx)
+  | topNode (index : Index) (c : ForestCoordinate) (level : Fin topHeight) (node : SuperChildIndex)
   /-- No algorithm's: a label of the proofs. -/
   | roots (index : Index)
   /-- The message digest. -/
@@ -269,7 +269,7 @@ def hashDomainFields : HashDomain → TweakFields
   | .leaf leaf => tweakFields 2 0 0 leaf
   | .node level nodeIdx => tweakFields 3 0 level nodeIdx
   | .encoding leaf => tweakFields 4 0 0 leaf
-  | .fchain index c s j a i t => tweakFields 15 t (chainSlot c s j a i) index
+  | .forestChain index c s j a i t => tweakFields 15 t (chainSlot c s j a i) index
   | .childLeaf index c s j a => tweakFields 16 0 (childSlot c s j a) index
   | .subNode index c s j level node =>
       tweakFields 17 0 (subSlot c s j + 256 * (level.val + 1) + 1024 * node.val) index
@@ -283,11 +283,11 @@ def chainPair (chain : ChainIndex) : ChainPair :=
   ⟨chain.val / 2, by have h : chain.val < 64 := chain.isLt; omega⟩
 
 /-- The pair of chains a chain of a forest WOTS key belongs to. -/
-def fchainPair (i : FChain) : FPair :=
+def forestChainPair (i : ForestChainIndex) : ForestChainPair :=
   ⟨i.val / 2, by have h : i.val < 6 := i.isLt; omega⟩
 
 /-- `c + 8 s + 128 j + 256 a + 2048 t`, a pair of chains of the instance. -/
-def pairSlot (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (pair : FPair) : Nat :=
+def pairSlot (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (pair : ForestChainPair) : Nat :=
   childSlot c s j a + 2048 * pair.val
 
 /-- The seed derivations, one hash each. `ots` gives the starts of chains `2t` and `2t + 1` of the
@@ -300,7 +300,7 @@ inductive KeygenDomain where
   /-- The starts of chains `2t` and `2t + 1` of the one-time key at `leaf`, `t = pair`. -/
   | ots (leaf : Index) (pair : ChainPair)
   /-- The starts of chains `2t` and `2t + 1` of child `(c, s, j, a)`, `t = pair`. -/
-  | forest (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (pair : FPair)
+  | forest (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (pair : ForestChainPair)
   /-- The surrogate sibling at `level`. -/
   | surrogate (level : Fin totalHeight)
 deriving DecidableEq
@@ -427,42 +427,42 @@ def treeFold (parameter : PublicParameter) (leaf : Index) (path : Nat → Digest
 /-! #### The forest -/
 
 /-- Forest chain `i` of a child; the step onto position `t + 1` carries step `t`. -/
-def forestWalk (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (i : FChain) : Nat → Nat → Digest → m Digest :=
+def forestWalk (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (i : ForestChainIndex) : Nat → Nat → Digest → m Digest :=
   walkChain fun step value ↦
-    tweakableHash π parameter (.fchain index c s j a i step) (bytesLE 16 value)
+    tweakableHash π parameter (.forestChain index c s j a i step) (bytesLE 16 value)
 
 /-- The verifier's half of a forest chain: from position `4 - d` walk `d` steps. -/
-def forestRecoverChain (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (i : FChain) (deficit : FPos) (value : Digest) : m Digest :=
+def forestRecoverChain (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (i : ForestChainIndex) (deficit : ForestChainPosition) (value : Digest) : m Digest :=
   forestWalk π parameter index c s j a i (chainTop - deficit.val) deficit.val value
 
 /-- `x_{0,4} || ... || x_{5,4}`. -/
-def childPayload (ends : FChain → Digest) : HashInput :=
+def childPayload (ends : ForestChainIndex → Digest) : HashInput :=
   (List.ofFn ends).flatMap (bytesLE 16)
 
 /-- The child leaf: the hash of the 6 chain tops. -/
-def childLeafHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (ends : FChain → Digest) : m Digest :=
+def childLeafHash (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (ends : ForestChainIndex → Digest) : m Digest :=
   tweakableHash π parameter (.childLeaf index c s j a) (childPayload ends)
 
 /-- The child leaf an opening at codeword `word` reaches. -/
-def childRecover (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (word : Codeword) (values : FChain → Digest) : m Digest := do
+def childRecover (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (word : Codeword) (values : ForestChainIndex → Digest) : m Digest := do
   let ends ← sequenceFin fun i => forestRecoverChain π parameter index c s j a i (word i) (values i)
   childLeafHash π parameter index c s j a ends
 
 /-- The node hash of a sub-tree: at level `l + 1 ≤ 3`, node `i < 8` (`0` above). -/
-def subNodeHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
-    (j : SubIdx) (level node : Nat) (payload : HashInput) : m Digest :=
+def subNodeHash (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
+    (j : SubtreeIndex) (level node : Nat) (payload : HashInput) : m Digest :=
   if h : level < subHeight then
     tweakableHash π parameter (.subNode index c s j ⟨level, h⟩
       ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) payload
   else pure 0
 
 /-- Fold a child leaf and a sub-tree path into the sub-tree root. -/
-def subFold (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (path : Fin subHeight → Digest) : Nat → Digest → m Digest :=
+def subFold (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (path : Fin subHeight → Digest) : Nat → Digest → m Digest :=
   foldPath (subNodeHash π parameter index c s j) a.val
     fun level ↦ if h : level < subHeight then path ⟨level, h⟩ else 0
 
@@ -472,17 +472,17 @@ def orderTops (bit : Bool) (current sibling : Digest) : Digest × Digest :=
   if bit then (sibling, current) else (current, sibling)
 
 /-- `m_0[0] || m_0[1] || m_1[0] || m_1[1]`, the level-2 nodes of the two sub-trees. -/
-def superPayload (tops : SubIdx → Digest × Digest) : HashInput :=
+def superPayload (tops : SubtreeIndex → Digest × Digest) : HashInput :=
   nodePayload (tops 0).1 (tops 0).2 ++ nodePayload (tops 1).1 (tops 1).2
 
 /-- The super-child `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])`: the hash of the
 two level-2 nodes of each of its sub-trees. A sub-tree has no root hash. -/
-def superHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
-    (tops : SubIdx → Digest × Digest) : m Digest :=
+def superHash (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
+    (tops : SubtreeIndex → Digest × Digest) : m Digest :=
   tweakableHash π parameter (.superChild index c s) (superPayload tops)
 
 /-- The node hash of a coordinate's top tree: at level `l + 1 ≤ 4`, node `i < 16` (`0` above). -/
-def topNodeHash (parameter : PublicParameter) (index : Index) (c : Coord) (level node : Nat)
+def topNodeHash (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (level node : Nat)
     (payload : HashInput) : m Digest :=
   if h : level < topHeight then
     tweakableHash π parameter (.topNode index c ⟨level, h⟩
@@ -490,7 +490,7 @@ def topNodeHash (parameter : PublicParameter) (index : Index) (c : Coord) (level
   else pure 0
 
 /-- Fold a super-child and a top path into the coordinate root. -/
-def topFold (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
+def topFold (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
     (path : Fin topHeight → Digest) : Nat → Digest → m Digest :=
   foldPath (topNodeHash π parameter index c) s.val
     fun level ↦ if h : level < topHeight then path ⟨level, h⟩ else 0
@@ -505,8 +505,8 @@ def topTopLevel : Fin topHeight := ⟨topHeight - 1, by decide⟩
 child leaf is folded 2 levels and the last path element is the other level-2 node; the four level-2
 nodes hash into the super-child, which is folded 3 levels, and the last top path element is the
 other level-3 node. -/
-def coordRecover (parameter : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)
-    (opening : CoordOpening) : m (Digest × Digest) := do
+def coordinateRecover (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (mark : CoordinateSelection)
+    (opening : CoordinateOpening) : m (Digest × Digest) := do
   let tops ← sequenceFin fun j => do
     let leaf ← childRecover π parameter index c mark.super j (mark.child j) (lut (mark.word j))
       (opening.sub j).values
@@ -519,9 +519,9 @@ def coordRecover (parameter : PublicParameter) (index : Index) (c : Coord) (mark
 
 /-- `Fts.recover`: the forest key an opening reaches, the sixteen level-3 nodes. A top tree has no
 root hash, and the key has no hash: the WOTS+C encoding absorbs it. -/
-def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord → CoordMark)
-    (opening : Coord → CoordOpening) : m ForestKey :=
-  sequenceFin fun c => coordRecover π parameter index c (marks c) (opening c)
+def forestRecover (parameter : PublicParameter) (index : Index) (marks : ForestCoordinate → CoordinateSelection)
+    (opening : ForestCoordinate → CoordinateOpening) : m ForestKey :=
+  sequenceFin fun c => coordinateRecover π parameter index c (marks c) (opening c)
 
 /-! #### The message digest -/
 
@@ -550,16 +550,16 @@ def messageDigest (parameter : PublicParameter) (message : Message)
 
 /-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest.
 -/
-def wordOffset (c : Coord) (j : SubIdx) : Nat := 8 * (2 * c.val + j.val)
+def wordOffset (c : ForestCoordinate) (j : SubtreeIndex) : Nat := 8 * (2 * c.val + j.val)
 
 /-- Bit offset of coordinate `c`'s super-child (4 bits), after the index. -/
-def superOffset (c : Coord) : Nat := 154 + 4 * c.val
+def superOffset (c : ForestCoordinate) : Nat := 154 + 4 * c.val
 
 /-- Bit offset of the child of sub-tree `j` of coordinate `c` (3 bits), after the super-children. -/
-def childOffset (c : Coord) (j : SubIdx) : Nat := 186 + 3 * (2 * c.val + j.val)
+def childOffset (c : ForestCoordinate) (j : SubtreeIndex) : Nat := 186 + 3 * (2 * c.val + j.val)
 
 /-- The coordinate fields of a digest. -/
-def digestMarks (digest : MessageDigest) : Coord → CoordMark := fun c =>
+def digestMarks (digest : MessageDigest) : ForestCoordinate → CoordinateSelection := fun c =>
   { super := (digest.extractLsb' (superOffset c) topHeight).toFin
     child := fun j => (digest.extractLsb' (childOffset c j) subHeight).toFin
     word := fun j => (digest.extractLsb' (wordOffset c j) 8).toFin }
@@ -650,28 +650,28 @@ def treeNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → Nat →
 
 /-- The starts `x_{i,0}` of the 6 chains of a child, from 3 seed derivations. Chains `2t` and
 `2t + 1` start at the two halves of derivation `t`. -/
-def forestSecrets (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
-    (j : SubIdx) (a : ChildIdx) (seed : MasterSeed) : m (FChain → Digest) := do
-  let outputs ← sequenceFin fun pair : FPair =>
+def forestSecrets (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
+    (j : SubtreeIndex) (a : ChildIndex) (seed : MasterSeed) : m (ForestChainIndex → Digest) := do
+  let outputs ← sequenceFin fun pair : ForestChainPair =>
     thPair π parameter (keygenDomainFields (.forest index c s j a pair)) (bytesLE 32 seed)
-  return fun i => hashHalf i.val (outputs (fchainPair i))
+  return fun i => hashHalf i.val (outputs (forestChainPair i))
 
 /-- The leaf of a child, from its 6 chain tops. -/
-def childLeaf (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
-    (a : ChildIdx) (seed : MasterSeed) : m Digest := do
+def childLeaf (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
+    (a : ChildIndex) (seed : MasterSeed) : m Digest := do
   let secrets ← forestSecrets π parameter index c s j a seed
   let ends ← sequenceFin fun i => forestWalk π parameter index c s j a i 0 chainTop (secrets i)
   childLeafHash π parameter index c s j a ends
 
 /-- A node of a sub-tree at tree level `level`. -/
-def subNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx) (j : SubIdx)
+def subNode (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex)
     (seed : MasterSeed) : Nat → Nat → m Digest :=
   buildTree (fun node ↦ childLeaf π parameter index c s j
       ⟨node % 2 ^ subHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
     (subNodeHash π parameter index c s j)
 
 /-- A super-child, from the two level-2 nodes of each of its two sub-trees. -/
-def superNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
+def superNode (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (s : SuperChildIndex)
     (seed : MasterSeed) : m Digest := do
   let tops ← sequenceFin fun j => do
     let left ← subNode π parameter index c s j seed (subHeight - 1) 0
@@ -680,7 +680,7 @@ def superNode (parameter : PublicParameter) (index : Index) (c : Coord) (s : Sup
   superHash π parameter index c s tops
 
 /-- A node of a coordinate's top tree at tree level `level`. -/
-def topNode (parameter : PublicParameter) (index : Index) (c : Coord) (seed : MasterSeed) :
+def topNode (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (seed : MasterSeed) :
     Nat → Nat → m Digest :=
   buildTree (fun node ↦ superNode π parameter index c
       ⟨node % 2 ^ topHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩ seed)
@@ -695,8 +695,8 @@ def forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) 
 
 /-- The opening of one coordinate at a mark. The last element of each path (level 2 of a sub-tree,
 level 3 of the top tree) is the top node the verifier does not compute. -/
-def coordOpen (parameter : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)
-    (seed : MasterSeed) : m CoordOpening := do
+def coordinateOpen (parameter : PublicParameter) (index : Index) (c : ForestCoordinate) (mark : CoordinateSelection)
+    (seed : MasterSeed) : m CoordinateOpening := do
   let sub ← sequenceFin fun j => do
     let secrets ← forestSecrets π parameter index c mark.super j (mark.child j) seed
     let values ← sequenceFin fun i =>
@@ -705,15 +705,15 @@ def coordOpen (parameter : PublicParameter) (index : Index) (c : Coord) (mark : 
     let path ← sequenceFin fun level : Fin subHeight =>
       subNode π parameter index c mark.super j seed level.val
         (Nat.xor ((mark.child j).val / 2 ^ level.val) 1)
-    return (⟨values, path⟩ : SubOpening)
+    return (⟨values, path⟩ : SubtreeOpening)
   let top ← sequenceFin fun level : Fin topHeight =>
     topNode π parameter index c seed level.val (Nat.xor (mark.super.val / 2 ^ level.val) 1)
   return ⟨sub, top⟩
 
 /-- `Fts.sign`: the opening of every coordinate. -/
-def forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → CoordMark)
-    (seed : MasterSeed) : m (Coord → CoordOpening) :=
-  sequenceFin fun c => coordOpen π parameter index c (marks c) seed
+def forestOpen (parameter : PublicParameter) (index : Index) (marks : ForestCoordinate → CoordinateSelection)
+    (seed : MasterSeed) : m (ForestCoordinate → CoordinateOpening) :=
+  sequenceFin fun c => coordinateOpen π parameter index c (marks c) seed
 
 variable [Params]
 

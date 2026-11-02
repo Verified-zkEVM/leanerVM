@@ -25,12 +25,12 @@ namespace Concrete
 
 variable (parameter : PublicParameter) (leaf index : Index) (chainIdx : ChainIndex) (digit : Digit)
   (value : Digest) (start steps : ℕ) (endpoints : ChainIndex → Digest) (message : ForestKey)
-  (counter : Counter) (values : ChainIndex → Digest) (path : ℕ → Digest) (c : Coord) (s : SuperIdx)
-  (j : SubIdx) (a : ChildIdx) (i : FChain) (deficit : FPos) (ends : FChain → Digest)
-  (word : Codeword) (fvalues : FChain → Digest) (level node : ℕ) (payload : HashInput)
-  (subPath : Fin subHeight → Digest) (tops : SubIdx → Digest × Digest)
-  (topPath : Fin topHeight → Digest) (mark : CoordMark) (opening : CoordOpening)
-  (marks : Coord → CoordMark) (openings : Coord → CoordOpening) (msg : Message)
+  (counter : Counter) (values : ChainIndex → Digest) (path : ℕ → Digest) (c : ForestCoordinate) (s : SuperChildIndex)
+  (j : SubtreeIndex) (a : ChildIndex) (i : ForestChainIndex) (deficit : ForestChainPosition) (ends : ForestChainIndex → Digest)
+  (word : Codeword) (fvalues : ForestChainIndex → Digest) (level node : ℕ) (payload : HashInput)
+  (subPath : Fin subHeight → Digest) (tops : SubtreeIndex → Digest × Digest)
+  (topPath : Fin topHeight → Digest) (mark : CoordinateSelection) (opening : CoordinateOpening)
+  (marks : ForestCoordinate → CoordinateSelection) (openings : ForestCoordinate → CoordinateOpening) (msg : Message)
   (randomness : Randomness) (domain : HashDomain)
 
 theorem simulateQ_tweakableHashWithHash :
@@ -125,8 +125,8 @@ theorem simulateQ_topFoldWithHash :
 
 theorem simulateQ_coordRecoverWithHash :
     simulateQ σ (coordRecoverWithHash (m := OracleComp HashSpec) parameter index c mark opening) =
-      coordRecover queryPermutation parameter index c mark opening := by
-  simp only [coordRecoverWithHash, coordRecover, simulateQ_bind, simulateQ_pure,
+      coordinateRecover queryPermutation parameter index c mark opening := by
+  simp only [coordRecoverWithHash, coordinateRecover, simulateQ_bind, simulateQ_pure,
     simulateQ_sequenceFin, simulateQ_childRecoverWithHash, simulateQ_subFoldWithHash,
     simulateQ_superHashWithHash, simulateQ_topFoldWithHash]
 
@@ -168,8 +168,8 @@ open Concrete
 
 variable (parameter : PublicParameter) (leaf index : Index) (seed : MasterSeed)
   (message : ForestKey)
-  (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (mark : CoordMark)
-  (marks : Coord → CoordMark) (level node : ℕ)
+  (c : ForestCoordinate) (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex) (mark : CoordinateSelection)
+  (marks : ForestCoordinate → CoordinateSelection) (level node : ℕ)
 
 theorem simulateQ_otsSecretsWithHash :
     simulateQ σ (otsSecretsWithHash (m := OracleComp HashSpec) parameter leaf seed) =
@@ -247,8 +247,8 @@ theorem simulateQ_forestKeyWithHash :
 
 theorem simulateQ_coordOpenWithHash :
     simulateQ σ (coordOpenWithHash (m := OracleComp HashSpec) parameter index c mark seed) =
-      coordOpen queryPermutation parameter index c mark seed := by
-  simp only [coordOpenWithHash, coordOpen, simulateQ_bind, simulateQ_pure, simulateQ_sequenceFin,
+      coordinateOpen queryPermutation parameter index c mark seed := by
+  simp only [coordOpenWithHash, coordinateOpen, simulateQ_bind, simulateQ_pure, simulateQ_sequenceFin,
     simulateQ_forestSecretsWithHash, simulateQ_forestWalkWithHash, simulateQ_subNodeWithHash,
     simulateQ_topNodeWithHash]
 
