@@ -11,8 +11,10 @@ lists, on a word of a degree-`< 4` polynomial with errors:
 * 16 points, multiplicity 1: on `pmSolver` (additive-FFT products, the ordered-weak-Popov PM-basis
   on evaluation-domain products) and on `pmSolverKaratsuba`.
 
-At 32 points, multiplicity 3, the runners take minutes interpreted (the Mulders–Storjohann runner
-a fraction of a second), so the larger shape is only checked to list `msg`.
+At 32 points, multiplicity 3 (14 rows, maximal order 130), the interpreter takes about 70 s for
+the approximant runner and 30 s for Mulders–Storjohann's (≈ 8 µs per multiply-add in `K`
+interpreted; the PM-basis's 130 leaves at `8r³` operations each and its 129 nodes' products, as
+its price model counts them), so the larger shape is only checked to list `msg`.
 -/
 
 namespace LeanVMTests.Extraction.LanePM

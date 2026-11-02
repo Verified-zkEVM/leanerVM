@@ -10,8 +10,8 @@ The data a cost proof of the lanes' approximant-basis interpolation (`Fast/LaneP
 The interpolation builds the Guruswami–Sudan modular equations (`buildGSModularDataWithRG`): the
 moduli `M_b = G^(m−b)`, `b < m` (`G` the vanishing polynomial of the `n` points, `m` the
 multiplicity), and the relation matrix, `ℓ + 1` rows (`interpolationWidth`) and `m` columns, its
-column `b` reduced modulo `M_b`. The solver (`windowedFilteredSolutionBasis`, at the bound
-`W`, `solveWindow_some`) runs the PM-basis once, on `fullWindowExactNullspaceProblem` at `W`:
+column `b` reduced modulo `M_b`. The solver (`certifiedSolutionBasis`, at the bound `W`,
+`solveWindow_some`) runs the PM-basis once, on `fullWindowExactNullspaceProblem` at `W`:
 
 * `ℓ + 1 + m` rows of width `m` (`gsProblem_matrix_size`, `gsProblem_row_size`);
 * the orders `deg M_b + W + 2 = (m − b)·n + W + 2` (`gsProblem_order`), the largest

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Protocol.Extraction.Fast.WindowedSolve
+public import LeanVM.Protocol.Extraction.Fast.CertifiedSolve
 public import LeanVM.Protocol.Extraction.Fast.DecodeAdmissible
 public import LeanVM.Protocol.Extraction.Fast.FFT.Additive
 
@@ -21,7 +21,7 @@ equal (`laneListWith_eq`) and so the decoded stacks: **`decodeStacksDistinctWith
 admissible shape, for every solver.
 
 `decodeStacksDistinctPM` is the chain on the non-adaptive solver (`pmSolver`:
-`windowedModularSolutionBasisContext` on the additive-FFT products, the ordered-weak-Popov PM-basis
+`certifiedModularSolutionBasisContext` on the additive-FFT products, the ordered-weak-Popov PM-basis
 at leaf cutoff `1` with evaluation-domain matrix products), proved
 equal to `decodeStacksDistinct` (**`decodeStacksDistinctPM_eq`**) and to `decodeStacksFast`
 (`decodeStacksDistinctPM_eq_fast`, the rewrite `extractorTop_eq_full` uses), ready to replace it
@@ -192,17 +192,18 @@ theorem decodeStacksDistinctWith_eq (S : ModularSolutionBasisContext K) {μ R : 
 
 /-! ## On the non-adaptive solver -/
 
-/-- **The lanes' solver**: the non-adaptive certified solve (`windowedModularSolutionBasisContext`)
-on the additive-FFT products and remainders (`FFT.fftMulContext`, `FFT.fftModContext`), the
+/-- **The lanes' solver**: the non-adaptive certified solve, its rows selected by degree
+(`certifiedModularSolutionBasisContext`: no modular filter, `CertifiedSolve.lean`), on the
+additive-FFT products and remainders (`FFT.fftMulContext`, `FFT.fftModContext`), the
 ordered-weak-Popov PM-basis at leaf cutoff `1` with its matrix products on the additive-FFT
 evaluation domain, each product's plan built once (`popovEvalPMBasisContext FFT.novelTransform`). -/
 @[expose] def pmSolver : ModularSolutionBasisContext K :=
-  windowedModularSolutionBasisContext FFT.fftMulContext FFT.fftModContext
+  certifiedModularSolutionBasisContext FFT.fftMulContext FFT.fftModContext
     (popovEvalPMBasisContext FFT.novelTransform FFT.fftMulContext FFT.fftMulLowContext 1)
 
 /-- The same solver on Karatsuba's products (Strassen's matrix products), for tests. -/
 @[expose] def pmSolverKaratsuba : ModularSolutionBasisContext K :=
-  windowedModularSolutionBasisContext karatsubaMulContext karatsubaModContext pmContextKaratsuba
+  certifiedModularSolutionBasisContext karatsubaMulContext karatsubaModContext pmContextKaratsuba
 
 /-- **The decoded stacks, the lanes by the approximant-basis interpolation on `pmSolver`.** -/
 @[expose] def decodeStacksDistinctPM (μ R : ℕ) (W : ℕ → List K) : List (Vector K (2 ^ μ)) :=
