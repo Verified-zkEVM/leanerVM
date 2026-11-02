@@ -17,7 +17,7 @@ public import LeanVM.Cost.Bounds.PMBasis.Values
 | a lane's run (`gsRunBoundPM`; Roth–Ruckenstein `≈ 2^87.98`) | `≈ 2^88.024` | `≈ 2^88.07` |
 | **the decoder, `64` lanes (`decoderBoundPM 28 4 0 0`)** | **`≈ 2^94.024`** | **`≈ 2^94.07`** |
 
-against `≈ 2^117.67` today (`decoderBound 28 4 0 0`, Mulders–Storjohann's interpolation).
+against `≈ 2^117.67` with Mulders–Storjohann's interpolation (`decoderBound 28 4 0 0`, the former decoder).
 Roth–Ruckenstein's search (proved, `rrBound_28_4`) is now `95%` of each lane; the
 interpolation `3%`.
 -/

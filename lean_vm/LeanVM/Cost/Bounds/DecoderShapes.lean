@@ -9,9 +9,9 @@ public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 word-sized (`DecoderLaneSizes`). Here, at each of the `56` admissible shapes (`15 ≤ μ ≤ 28`,
 `1 ≤ R ≤ 4`), one `decide +kernel` each (a single `decide` over all shapes at once outgrows the
 memory): the lanes are word-sized and the decoder's bound beyond the word's prices is at most the
-one at `(28, 4)` (`listDecoderWorstPrice ≈ 2^117.67`):
+one at `(28, 4)` (`msDecoderWorstPrice ≈ 2^117.67`):
 
-* **`decoderShape_ok`**: `DecoderLaneSizes` and `decoderBound μ R 0 0 ≤ listDecoderWorstPrice` at every
+* **`decoderShape_ok`**: `DecoderLaneSizes` and `decoderBound μ R 0 0 ≤ msDecoderWorstPrice` at every
   admissible `(μ, R)`, which `decodeStacksDistinctC_cost_worst` (`Bounds/Decoder/Decode.lean`)
   reads;
 * at `(28, 4)`: a lane `decoderLaneBound_28_4` (`≈ 2^111.67`), Roth–Ruckenstein's search

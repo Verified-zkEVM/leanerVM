@@ -33,7 +33,7 @@ states it for the extractor that a cost-machine program of bounded size computes
 per shape (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
 (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound, which leaves
 no room for a useful table of witnesses beside the compiled extractor's code, and its budget,
-about `2^117.67 + 2^14.7·N·log²N` for `N` permutation queries. A run out of budget extracts
+about `2^94.07 + 2^14.7·N·log²N` for `N` permutation queries. A run out of budget extracts
 nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`

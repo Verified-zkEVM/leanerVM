@@ -134,15 +134,15 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `786000`, the
-compiled decoder's size (`785617`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
-and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `383`. That
+compiled decoder's size (`785615`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
+and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `385`. That
 size counts in full the guest program's per-function tables, which the decoder's replay of the run
 reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by its
 size; the frame cells of the guest's functions are `749835` of it). The slack bounds a table of
 witnesses the compiled decoder could carry beside its code (hard-coded signatures, matrices or
 proofs that would mask a bug of the guest program on finitely many statements): it is room for one
 leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as the extractor's
-`14400` against its `13905`). It does not bound what a program written differently could hold: the
+`14400` against its `13895`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
 cells to a limb, freeing room for about `1600` signatures' encodings. -/
 def guestDecoderSizeBound : ℕ := 786000
@@ -200,7 +200,7 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, which counts as
   breaking knowledge soundness; the machine's prices are trusted to be honest,
   `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`
-  queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^118` up to `2^80`
+  queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^95` up to `2^64`
   permutation queries and `O(N·log³N)` for `N`. -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable

@@ -68,8 +68,8 @@ a program of the same machine, with a size bound and a budget of its own (`Guest
 `Theorems.lean`).
 
 **The budget** (`extractorBudgetFor`) is a closed formula in the number `N` of the adversary's
-permutation queries: `2^118` and `O(N·log³N)`, polylogarithmic per query, so about `2^118` for
-`N ≤ 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries the soundness bound
+permutation queries: `2^95` and `O(N·log³N)`, polylogarithmic per query, so about `2^95` for
+`N ≤ 2^64`, `2^107.76` at `N = 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries the soundness bound
 (`KnowledgeSoundness`) is already trivial.
 -/
 
@@ -461,17 +461,18 @@ namespace LeanVM.Cost
 
 @[expose] public section
 
-/-- **The extractor's budget** for `N` permutation queries: `2^118 + (N + 2^30)·(D + 2)²·(2^15 +
+/-- **The extractor's budget** for `N` permutation queries: `2^95 + (N + 2^30)·(D + 2)²·(2^15 +
 2D)`, with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`):
-`2^118` bounds the list decoder (about `2^117.67`, its `64` lanes' Guruswami–Sudan decoding at the
-worst shape) and the runs of the candidate executions (about `2^71.8`); the second term bounds
+`2^95` bounds the list decoder (about `2^94.07`, its `64` lanes' Guruswami–Sudan decoding at the
+worst shape, each lane interpolated by an approximant basis) and the runs of the candidate
+executions (about `2^71.8`); the second term bounds
 the transcript's index (about `2^14.7` per query and level squared, a level's positions growing by
-a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`). So about `2^118`
-for at most `2^80` queries and `2^157.08` for `2^128`. -/
+a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`). So about `2^95`
+for at most `2^64` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
 def extractorBudgetFor (N : ℕ) : ℕ :=
-  2 ^ 118 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
+  2 ^ 95 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
 
@@ -487,8 +488,8 @@ open Common
 @[expose] public section
 
 /-- **The bound on the extractor program's size** (`MachineProgram.size`): `14400`, the compiled
-extractor's size (`13905`: its `698` compiled bodies and the entry, at `753` indices, `54` of
-them holes, a literal `0` each) and a slack of `495`, room for one leanXMSS signature's encoding
+extractor's size (`13895`: its `697` compiled bodies and the entry, at `752` indices, `54` of
+them holes, a literal `0` each) and a slack of `505`, room for one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
 its code. -/

@@ -98,7 +98,7 @@ per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` b
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
 `extractorProgram` (`Cost/ExtractorProgram.lean`) of the end statement: `extractorOf
 extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is proved
-(`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^117.67` at the worst shape for at most
+(`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at most
 `2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
 queries, the transcript's index dominating (`extractorPrice_28_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder

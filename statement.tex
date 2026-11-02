@@ -131,12 +131,12 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorOf}~$P$, \lean{Statement/CostMachine.lean}): the program
-$P$, of size at most $14400$ (\lean{extractorSizeBound}: the compiled extractor's $13905$ and a
+$P$, of size at most $14400$ (\lean{extractorSizeBound}: the compiled extractor's $13895$ and a
 slack of about one leanXMSS signature's encoding), run on the encoded statement, transcript
 and proof within a budget, wherever the proof announces a shape (\lean{extractorBudgetFor}:
-$2^{118} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
+$2^{95} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
 above the price \lean{lean_vm} proves of the compiled extractor at every shape;
-polylogarithmic per query: about $2^{118}$ for $N \le 2^{80}$, the list decoder dominating, and
+polylogarithmic per query: about $2^{95}$ for $N \le 2^{64}$, the list decoder dominating, and
 $2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
@@ -543,8 +543,8 @@ determined by $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop with
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestDecoderSizeBound}, $786000$)
-limits any program; it is the compiled decoder's size, $785617$ (proved at most that, measured
-exactly), and a slack of $383$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
+limits any program; it is the compiled decoder's size, $785615$ (proved at most that, measured
+exactly), and a slack of $385$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
 guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
@@ -754,7 +754,7 @@ written differently could pack the guest's frame-cell table about three times ti
 room for about $1600$ signatures' encodings).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
-\item A tight extractor budget: it is $2^{118} + O(N\log^3 N)$, priced at the worst shape.
+\item A tight extractor budget: it is $2^{95} + O(N\log^3 N)$, priced at the worst shape.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the prover differential (the Lean prover's proofs byte-identical to the
 Rust prover's, accepted by both verifiers, every mutation rejected by both), which does not yet

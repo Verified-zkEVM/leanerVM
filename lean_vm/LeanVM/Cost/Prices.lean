@@ -15,9 +15,10 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^117.67 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^117.67` for at most `2^80` queries (the
-list decoder dominating) and `2^156.69` for `2^128` queries (the transcript's index dominating). -/
+About `2^94.07 + 2^14.7·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
+worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^94.07` for at most `2^40` queries (the
+list decoder dominating), `2^94.21` for `2^64`, `2^107.36` for `2^80` and `2^156.69` for `2^128`
+queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
 
@@ -74,12 +75,13 @@ binary searches. -/
 def committedLeavesPrice (D h W : ℕ) : ℕ :=
   2 ^ h * (2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h)
 
-/-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, and the
-pruning), beyond the word's reads, at the worst admissible shape `(28, 4)`: about `2^117.67`. It
-is `lean_vm`'s `decoderBound 28 4 0 0` (`Cost/Bounds/Decoder/Decode.lean`, the list decoder's
-price beyond the word's reads), evaluated, and bounds `decoderBound μ R 0 0` at every admissible
-shape `(μ, R)` (`decoderShape_ok`, `Cost/Bounds/DecoderShapes.lean`). -/
-def listDecoderWorstPrice : ℕ := 263752671977657870662169418088819162
+/-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
+interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
+the worst admissible shape `(28, 4)`: about `2^94.07`. It is `lean_vm`'s `pmDecoderWorstPrice`
+(`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 4 0 0`), evaluated
+(`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
+(`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
+def listDecoderWorstPrice : ℕ := 20790986008017779583761482458
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/

@@ -9,7 +9,7 @@ public import LeanVM.Cost.Prices
 
 The bounds the decoder's proofs (`Bounds/Decoder/*.lean`) establish, from Roth–Ruckenstein's
 nodes and the roots in `K` up to `decoderBound`, and `DecoderShapeOk` (`DecoderLaneSizes` and the
-decoder's bound at most `listDecoderWorstPrice`), which `Bounds/DecoderShapes.lean` decides at each
+decoder's bound at most `msDecoderWorstPrice`), which `Bounds/DecoderShapes.lean` decides at each
 admissible shape by kernel evaluation. They are here, apart from their proofs, so that those
 checks import only what they evaluate (the extractor's parameter search and these numbers): an
 edit of a proof rebuilds no check (`Bounds/DecoderShapesFirewall.lean` guards it).
@@ -213,10 +213,16 @@ most `2^18` survivors), a stack per survivor. -/
       (2 ^ 18) +
     ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 34) * 2 ^ 18 + 16330
 
+/-- The Mulders–Storjohann decoder's bound at the worst admissible shape `(28, 4)`,
+`decoderBound 28 4 0 0` (`≈ 2^117.67`): the former extractor's decoder, still compiled and
+bounded, no longer the extractor's (`decOf` runs `decodeStacksDistinctPM`, `listDecoderWorstPrice`
+its worst, `Cost/Prices.lean`). -/
+@[expose] def msDecoderWorstPrice : ℕ := 263752671977657870662169418088819162
+
 /-- What the decoder's bound needs at a shape, and its value at most the worst. -/
 @[expose] def DecoderShapeOk (μ R : ℕ) : Prop :=
   DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBound μ R 0 0 ≤ listDecoderWorstPrice
+    decoderBound μ R 0 0 ≤ msDecoderWorstPrice
 
 instance (μ R : ℕ) : Decidable (DecoderShapeOk μ R) := by
   unfold DecoderShapeOk; infer_instance
