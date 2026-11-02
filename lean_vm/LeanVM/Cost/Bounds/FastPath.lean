@@ -465,9 +465,9 @@ theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c220.cost
 theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 14 := by
   rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
 
-theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 975 := by
+theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 22794 := by
   unfold johnsonSlackOf
-  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 975 := by
+  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 22794 := by
     intro i
     rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
   rw [List.getD_eq_getElem?_getD]
@@ -515,7 +515,7 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have hsl' := johnsonSlackOf_le μ R
   have hcsv : ceilSqrt X ≤ X + 1 := by
     unfold ceilSqrt; have := Nat.sqrt_le_self X; split_ifs <;> omega
-  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 975 * 2 ^ 80 :=
+  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 :=
     Nat.mul_le_mul hsl' hN
   have l1 := hL μ (by omega)
   have l2 := hL κ (by omega)
@@ -584,7 +584,7 @@ theorem johnsonThreshold_lt (μ R : ℕ) (hκR : 2 * (μ - Whir.initialFold) + R
   have hcs : ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) ≤
       2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) + 1 := by
     unfold ceilSqrt; have := Nat.sqrt_le_self (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)); split_ifs <;> omega
-  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 975 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
+  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
   refine lt_of_le_of_lt (Nat.div_le_self _ _) ?_
   generalize ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) = cs at hcs ⊢
   generalize johnsonSlackOf μ R * 2 ^ (κ + R) = y at hsl ⊢
