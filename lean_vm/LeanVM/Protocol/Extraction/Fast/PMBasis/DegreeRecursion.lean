@@ -1,41 +1,44 @@
 module
 
 public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeLeaf
+public import LeanVM.Protocol.Extraction.Fast.PMBasis.PopovCore
 import all CompPoly.Univariate.Basic
 
 /-!
 # Degree at most the order through the PM-basis recursion, and the residuals' sizes
 
-CompPoly's PM-basis driver `pmBasisWithFuelCore` (`Approximant/PMBasis/Recursion.lean`) on the
-kernel-leaf runtime `kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff c`: at a problem
-of maximal order `o` it calls the leaf when `o ≤ leafCutoff` or `o ≤ 1` (or the fuel is out), and
-otherwise, with `d₁ = o / 2`, computes `P₁` on the orders capped at `d₁` (same matrix), the
-residual `R = (P₁·A) div X^d₁` truncated to the orders `oⱼ − d₁` (`residualMatrixWithProduct`, by
-the column-truncated product `mulTruncColumnStrassenWith lowCtx c` at the orders
-`(oⱼ − d₁) + d₁`), `P₂` on `R` under the shift `updateShiftByRows P₁ shift`, and returns
-`compactNonzeroRows (P₂·P₁)` (`mulStrassenWith lowCtx c`, the exact product).
+CompPoly's PM-basis driver `pmBasisWithFuelCore` (`Approximant/PMBasis/Recursion.lean`) on
+`leafRuntime mulCtx lowCtx leafCutoff c leaf` (`PopovCore.lean`: CompPoly's runtime with any leaf;
+CompPoly's kernel-leaf runtime is the one on `kernelLeafBasis`, the target `popovRuntime` the one
+on `popovLeafBasis`): at a problem of maximal order `o` it calls the leaf when `o ≤ leafCutoff` or
+`o ≤ 1` (or the fuel is out), and otherwise, with `d₁ = o / 2`, computes `P₁` on the orders capped
+at `d₁` (same matrix), the residual `R = (P₁·A) div X^d₁` truncated to the orders `oⱼ − d₁`
+(`residualMatrixWithProduct`, by the column-truncated product `mulTruncColumnStrassenWith lowCtx c`
+at the orders `(oⱼ − d₁) + d₁`), `P₂` on `R` under the shift `updateShiftByRows P₁ shift`, and
+returns `compactNonzeroRows (P₂·P₁)` (`mulStrassenWith lowCtx c`, the exact product).
 
 At `leafCutoff ≤ 1` and fuel at least `maxOrder − 1` (`pmBasisFuel = maxOrder + 1` is more than
-enough), every leaf is at order at most one (`DegreeLeaf.lean`: degree at most one), and
+enough), every leaf is at order at most one, and on a leaf of degree at most one there
+(`LeafDegreeOne`: both leaves, `DegreeLeaf.lean`; Track popov's rows are rows of CompPoly's)
 `deg(P₂·P₁) ≤ (o − d₁) + d₁ = o`, so every entry of every basis the recursion returns has degree
-at most `max 1 o` (**`pmBasisWithFuelCore_natDegree_le`**; `o ≥ 2` at every split, so both halves
-have order at least one). The hypotheses are only these: the multiplication contexts carry their
-laws as fields (`MulContext.mul_eq_mul`, `MulLowContext.mulLow_eq`), so the composition is the
-exact product (`mulStrassenWith_eq_mulWith`) whatever context is plugged in, and no hypothesis on
-the matrix, the shift or the orders is needed. With too little fuel a leaf runs at a cap `c > 1`,
-where a cancellation multiplies by `X^Δ` with `Δ` up to about `c` and degrees can reach about `2c`.
+at most `max 1 o` (**`leafRuntime_core_natDegree_le`**; `o ≥ 2` at every split, so both halves have
+order at least one). The hypotheses are only these: the multiplication contexts carry their laws
+as fields (`MulContext.mul_eq_mul`, `MulLowContext.mulLow_eq`), so the composition is the exact
+product (`mulStrassenWith_eq_mulWith`) whatever context is plugged in, and no hypothesis on the
+matrix, the shift or the orders is needed. With too little fuel a leaf runs at a cap `c > 1`, where
+a cancellation multiplies by `X^Δ` with `Δ` up to about `c` and degrees can reach about `2c`.
 
-Sizes (**`pmBasisWithFuelCore_node`**, for the cost proof): at a node, with `m` the problem's
-rows and `A` its matrix, `P₁` has at most `m` rows, each of width `m`, entries of degree at most
-`d₁`; `R` has exactly `P₁.size ≤ m` rows, each of width `MatrixWidth A` (when `P₁` is nonempty;
-`R` is empty otherwise), entry `(i, j)` with at most `oⱼ − d₁` coefficients (`val.size`; zero for
-`j` beyond the orders); `P₂` has at most `R.size` rows, each of width `R.size`, entries of degree
-at most `o − d₁`; the result has at most `P₂.size` rows of width `m`, entries of degree at most `o`.
-Every basis the recursion returns has at most `m` rows (**`pmBasisWithFuelCore_size_le`**), each
-of width `m` (CompPoly's `pmBasisWithFuelCore_kernelLeaf_rows`); whether it has exactly `m` (no row
-of `P₂·P₁` is zero) needs `P₁`'s rows independent, which the leaf's weak Popov form gives at a
-leaf but which an internal node's product does not carry without the composition lemma of the
-plan's change (d).
+Sizes (**`leafRuntime_core_node`**, for the cost proof): at a node, with `m` the problem's rows and
+`A` its matrix, `P₁` has at most `m` rows, each of width `m`, entries of degree at most `d₁`; `R` has
+exactly `P₁.size` rows, each of width `MatrixWidth A`, entry `(i, j)` with at most `oⱼ − d₁`
+coefficients (`val.size`; zero for `j` beyond the orders); `P₂` has at most `R.size` rows, each of
+width `R.size`, entries of degree at most `o − d₁`. Every core has at most `m` rows
+(**`leafRuntime_core_size_le`**). On the target runtime the counts are exact
+(**`popovRuntime_core_node`**: `P₁`, `R`, `P₂` with `m` rows; **`popovRuntime_core_spec`**,
+**`pmBasis_popovRuntime_spec`**: `m` rows of width `m`, ordered weak Popov, degree at most
+`max 1 o`, and `pmBasis` is the core, no root pass). On CompPoly's kernel-leaf runtime,
+exactly `m` at an internal node would need `P₁`'s rows independent, which only the leaf's weak
+Popov form gives (Track popov's composition lemma carries it on the sorted leaf).
 
 Credits: the recursion and the lemmas used here are CompPoly's (github.com/Verified-zkEVM/CompPoly,
 Apache-2.0, "Copyright (c) 2026 CompPoly Contributors"; `LinearAlgebra/PolynomialMatrix/`, Valerii
@@ -45,6 +48,8 @@ Huhnin); the node's unfolding follows `pmBasisWithFuelCore_kernelLeaf_rows`.
 namespace LeanVM.Extraction.Fast.PMDegree
 
 open CompPoly CompPoly.PolynomialMatrix CompPoly.PolynomialMatrix.Approximant
+open LeanVM.Extraction.Fast.Popov (leafRuntime LeafRows leafRuntime_core_rows popovRuntime
+  popovLeafBasis)
 open DenseMatrix (array_getD_of_lt' array_getD_of_le')
 
 public section
@@ -168,18 +173,29 @@ theorem residualMatrix_shape (lowCtx : MulLowContext F) (c : Nat) (P A : Polynom
     · exact val_size_divXTrunc_le _ _ _
     · exact Nat.zero_le _
 
-/-! ## The recursion -/
+/-! ## The recursion, on a leaf of degree at most one at order one -/
 
-/-- **Degree at most the order through the recursion.** On the kernel-leaf runtime at
-`leafCutoff ≤ 1`, with fuel at least `maxOrder problem − 1`, every entry of every row of the
+/-- The leaf has entries of degree at most one at order at most one. -/
+@[expose] def LeafDegreeOne (leaf : XAdicProblem F → Array Nat → PolynomialMatrix F) : Prop :=
+  ∀ (problem : XAdicProblem F) (shift : Array Nat), maxOrder problem ≤ 1 →
+    ∀ row ∈ MatrixRows (leaf problem shift), ∀ j, (rowGet row j).natDegree ≤ 1
+
+/-- The leaf has at most `problem.matrix.size` rows. -/
+@[expose] def LeafSizeLe (leaf : XAdicProblem F → Array Nat → PolynomialMatrix F) : Prop :=
+  ∀ (problem : XAdicProblem F) (shift : Array Nat), (leaf problem shift).size ≤ problem.matrix.size
+
+/-- **Degree at most the order through the recursion.** On CompPoly's runtime with a leaf of
+degree at most one at order one (`leafRuntime`, Track popov's; CompPoly's kernel-leaf runtime is
+the one on `kernelLeafBasis`), at `leafCutoff ≤ 1`, with fuel at least `maxOrder problem − 1`, every entry of every row of the
 returned basis has degree at most `max 1 (maxOrder problem)`. -/
-theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
+theorem leafRuntime_core_natDegree_le (mulCtx : CPolynomial.MulContext F)
     (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    {leaf : XAdicProblem F → Array Nat → PolynomialMatrix F} (hdeg : LeafDegreeOne leaf)
     (hcut : leafCutoff ≤ 1) :
     ∀ (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat),
       maxOrder problem ≤ fuel + 1 →
       ∀ row ∈ MatrixRows (pmBasisWithFuelCore
-        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
+        (leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff leaf)
           fuel problem shift),
         ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) := by
   intro fuel
@@ -187,8 +203,8 @@ theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
   | zero =>
       intro problem shift hfuel row hrow j
       rw [pmBasisWithFuelCore] at hrow
-      exact (kernelLeafBasis_natDegree_le_one problem shift (by omega) row
-        (compactNonzeroRows_subset hrow) j).trans (Nat.le_max_left _ _)
+      exact (hdeg problem shift (by omega) row (compactNonzeroRows_subset hrow) j).trans
+        (Nat.le_max_left _ _)
   | succ fuel ih =>
       intro problem shift hfuel row hrow j
       rw [pmBasisWithFuelCore] at hrow
@@ -198,8 +214,8 @@ theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
           simp only [Bool.or_eq_true, decide_eq_true_eq] at hleaf
           exact hleaf
         have hle : maxOrder problem ≤ 1 := by omega
-        exact (kernelLeafBasis_natDegree_le_one problem shift hle row
-          (compactNonzeroRows_subset hrow) j).trans (Nat.le_max_left _ _)
+        exact (hdeg problem shift hle row (compactNonzeroRows_subset hrow) j).trans
+          (Nat.le_max_left _ _)
       · rename_i hnode
         have hnode' : ¬(maxOrder problem ≤ leafCutoff ∨ maxOrder problem ≤ 1) := by
           simp only [Bool.or_eq_true, decide_eq_true_eq] at hnode
@@ -209,8 +225,7 @@ theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
         set lower : XAdicProblem F :=
           { orders := lowerOrders problem d₁, matrix := problem.matrix } with hlower
         set P₁ := pmBasisWithFuelCore
-          (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff
-            composeLeafCutoff) fuel lower shift with hP₁def
+          (leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff leaf) fuel lower shift with hP₁def
         set resOrders := residualOrders problem d₁ with hresOrders
         set Rmat := residualMatrixWithProduct
           (mulTruncColumnStrassenWith lowCtx composeLeafCutoff) P₁
@@ -219,8 +234,7 @@ theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
           { orders := resOrders, matrix := Rmat } with hresidual
         set shifted := updateShiftByRows P₁ shift with hshifted
         set P₂ := pmBasisWithFuelCore
-          (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff
-            composeLeafCutoff) fuel residual shifted with hP₂def
+          (leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff leaf) fuel residual shifted with hP₂def
         have hrow2 : row ∈ MatrixRows (compactNonzeroRows
             (mulStrassenWith lowCtx composeLeafCutoff P₂ P₁)) := hrow
         have hmem := compactNonzeroRows_subset hrow2
@@ -245,38 +259,26 @@ theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
           omega
         · omega
 
-/-- The recursion's degree bound at its default fuel `pmBasisFuel`. -/
-theorem pmBasisCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
-    (hcut : leafCutoff ≤ 1) (problem : XAdicProblem F) (shift : Array Nat) :
-    ∀ row ∈ MatrixRows (pmBasisWithFuelCore
-        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
-          (pmBasisFuel problem) problem shift),
-      ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) :=
-  pmBasisWithFuelCore_natDegree_le mulCtx lowCtx composeLeafCutoff hcut _ problem shift
-    (by rw [pmBasisFuel]; omega)
-
-/-- **At most `m` rows.** Every basis the recursion returns has at most `problem.matrix.size`
-rows (at any cutoff and fuel; a leaf has exactly that many, `kernelLeafBasis_shape`). -/
-theorem pmBasisWithFuelCore_size_le (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : MulLowContext F) (leafCutoff composeLeafCutoff : Nat) :
+/-- At most `m` rows, on a leaf with at most `m` rows (any cutoff and fuel). -/
+theorem leafRuntime_core_size_le (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) (leafCutoff composeLeafCutoff : Nat)
+    {leaf : XAdicProblem F → Array Nat → PolynomialMatrix F} (hleaf : LeafSizeLe leaf) :
     ∀ (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat),
-      (pmBasisWithFuelCore
-        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
+      (pmBasisWithFuelCore (leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff leaf)
           fuel problem shift).size ≤ problem.matrix.size := by
   intro fuel
   induction fuel with
   | zero =>
       intro problem shift
       rw [pmBasisWithFuelCore, compactNonzeroRows]
-      exact Array.size_filter_le.trans (kernelLeafBasis_shape problem shift).1.le
+      exact Array.size_filter_le.trans (hleaf problem shift)
   | succ fuel ih =>
       intro problem shift
       rw [pmBasisWithFuelCore]
       split
       · rw [compactNonzeroRows]
-        exact Array.size_filter_le.trans (kernelLeafBasis_shape problem shift).1.le
-      · simp only [kernelLeafRuntimeWithLowAndCompose]
+        exact Array.size_filter_le.trans (hleaf problem shift)
+      · simp only [leafRuntime]
         rw [compactNonzeroRows]
         refine Array.size_filter_le.trans ?_
         rw [mulStrassenWith_size]
@@ -292,17 +294,20 @@ theorem residualOrders_getD [Zero F] (problem : XAdicProblem F) (d j : Nat) :
   · exact natArray_map_getD (fun o ↦ o - d) problem.orders hj
   · rw [array_getD_of_le' _ _ (by simpa using hj), array_getD_of_le' _ _ hj, Nat.zero_sub]
 
-/-- **A node of the recursion, with the sizes the cost proof needs.** On the kernel-leaf runtime
-at `leafCutoff ≤ 1`, at a problem of maximal order `o ≥ 2` with fuel `fuel + 1 ≥ o − 1`: the
-result is `compactNonzeroRows (P₂·P₁)`; both halves have order at least one and within the fuel
-left; `P₁` has at most `m` rows of width `m`, entries of degree at most `d₁`; the residual `R` has
-`P₁.size` rows of width `MatrixWidth A`, entry `(i, j)` with at most `oⱼ − d₁` coefficients; `P₂`
-has at most `R.size` rows of width `R.size`, entries of degree at most `o − d₁`. -/
-theorem pmBasisWithFuelCore_node (mulCtx : CPolynomial.MulContext F)
+/-- **A node of the recursion, with the sizes the cost proof needs.** On `leafRuntime` with a
+sound leaf (`LeafRows`) of at most `m` rows and degree at most one at order one, at
+`leafCutoff ≤ 1`, at a problem of maximal order `o ≥ 2` with fuel `fuel + 1 ≥ o − 1`: the result is
+`compactNonzeroRows (P₂·P₁)`; both halves have order at least one and within the fuel left; `P₁`
+has at most `m` rows of width `m`, entries of degree at most `d₁`; the residual `R` has `P₁.size`
+rows of width `MatrixWidth A`, entry `(i, j)` with at most `oⱼ − d₁` coefficients; `P₂` has at
+most `R.size` rows of width `R.size`, entries of degree at most `o − d₁`. -/
+theorem leafRuntime_core_node (mulCtx : CPolynomial.MulContext F)
     (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    {leaf : XAdicProblem F → Array Nat → PolynomialMatrix F} (hrows : LeafRows mulCtx leaf)
+    (hsize : LeafSizeLe leaf) (hdeg : LeafDegreeOne leaf)
     (hcut : leafCutoff ≤ 1) (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat)
     (hge : 2 ≤ maxOrder problem) (hfuel : maxOrder problem ≤ fuel + 2) :
-    let RT := kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff
+    let RT := leafRuntime mulCtx lowCtx leafCutoff composeLeafCutoff leaf
     let o := maxOrder problem
     let d₁ := o / 2
     let lower : XAdicProblem F := { orders := lowerOrders problem d₁, matrix := problem.matrix }
@@ -340,24 +345,153 @@ theorem pmBasisWithFuelCore_node (mulCtx : CPolynomial.MulContext F)
       omega
     rw [ite_eq_right_iff.mpr (fun h ↦ absurd h hnode)]
     rfl
-  · exact pmBasisWithFuelCore_size_le mulCtx lowCtx leafCutoff composeLeafCutoff fuel lower shift
-  · exact (pmBasisWithFuelCore_kernelLeaf_rows mulCtx lowCtx leafCutoff composeLeafCutoff fuel
+  · exact leafRuntime_core_size_le mulCtx lowCtx leafCutoff composeLeafCutoff hsize fuel lower
+      shift
+  · exact (leafRuntime_core_rows mulCtx lowCtx leafCutoff composeLeafCutoff leaf hrows fuel
       lower shift r hr).2
   · intro j
-    have h := pmBasisWithFuelCore_natDegree_le mulCtx lowCtx composeLeafCutoff hcut fuel lower
+    have h := leafRuntime_core_natDegree_le mulCtx lowCtx composeLeafCutoff hdeg hcut fuel lower
       shift (by omega) r hr j
     rw [hlowmax] at h
     omega
   · rw [← residualOrders_getD]
     exact hRshape.2.2.2 i j
-  · exact pmBasisWithFuelCore_size_le mulCtx lowCtx leafCutoff composeLeafCutoff fuel residual _
-  · exact (pmBasisWithFuelCore_kernelLeaf_rows mulCtx lowCtx leafCutoff composeLeafCutoff fuel
+  · exact leafRuntime_core_size_le mulCtx lowCtx leafCutoff composeLeafCutoff hsize fuel
+      residual _
+  · exact (leafRuntime_core_rows mulCtx lowCtx leafCutoff composeLeafCutoff leaf hrows fuel
       residual _ r hr).2
   · intro j
-    have h := pmBasisWithFuelCore_natDegree_le mulCtx lowCtx composeLeafCutoff hcut fuel residual
-      _ (by omega) r hr j
+    have h := leafRuntime_core_natDegree_le mulCtx lowCtx composeLeafCutoff hdeg hcut fuel
+      residual _ (by omega) r hr j
     rw [hresmax] at h
     omega
+
+/-! ## CompPoly's kernel leaf -/
+
+theorem kernelLeafBasis_leafDegreeOne : LeafDegreeOne (kernelLeafBasis (F := F)) :=
+  fun problem shift h ↦ kernelLeafBasis_natDegree_le_one problem shift h
+
+theorem kernelLeafBasis_leafSizeLe : LeafSizeLe (kernelLeafBasis (F := F)) :=
+  fun problem shift ↦ (kernelLeafBasis_shape problem shift).1.le
+
+theorem pmBasisWithFuelCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    (hcut : leafCutoff ≤ 1) :
+    ∀ (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat),
+      maxOrder problem ≤ fuel + 1 →
+      ∀ row ∈ MatrixRows (pmBasisWithFuelCore
+        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
+          fuel problem shift),
+        ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) :=
+  leafRuntime_core_natDegree_le mulCtx lowCtx composeLeafCutoff kernelLeafBasis_leafDegreeOne hcut
+
+/-- The recursion's degree bound at its default fuel `pmBasisFuel`. -/
+theorem pmBasisCore_natDegree_le (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    (hcut : leafCutoff ≤ 1) (problem : XAdicProblem F) (shift : Array Nat) :
+    ∀ row ∈ MatrixRows (pmBasisWithFuelCore
+        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
+          (pmBasisFuel problem) problem shift),
+      ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) :=
+  pmBasisWithFuelCore_natDegree_le mulCtx lowCtx composeLeafCutoff hcut _ problem shift
+    (by rw [pmBasisFuel]; omega)
+
+theorem pmBasisWithFuelCore_size_le (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) (leafCutoff composeLeafCutoff : Nat) :
+    ∀ (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat),
+      (pmBasisWithFuelCore
+        (kernelLeafRuntimeWithLowAndCompose mulCtx lowCtx leafCutoff composeLeafCutoff)
+          fuel problem shift).size ≤ problem.matrix.size :=
+  leafRuntime_core_size_le mulCtx lowCtx leafCutoff composeLeafCutoff kernelLeafBasis_leafSizeLe
+
+/-! ## Track popov's leaf sorted by pivot: the target runtime -/
+
+theorem popovLeafBasis_leafDegreeOne : LeafDegreeOne (popovLeafBasis (F := F)) :=
+  fun problem shift h row hrow ↦ kernelLeafBasis_natDegree_le_one problem shift h row
+    (Popov.mem_kernelLeafBasis_of_mem_popovLeafBasis problem shift hrow)
+
+theorem popovLeafBasis_leafSizeLe : LeafSizeLe (popovLeafBasis (F := F)) :=
+  fun problem shift ↦ (Popov.fillPivotSlots_size problem shift _).le
+
+/-- **The target runtime** (`popovRuntime` at `leafCutoff ≤ 1`, any composition cutoff), at fuel
+at least `maxOrder − 1`: exactly `m` rows, ordered weak Popov, every entry of degree at most
+`max 1 (maxOrder problem)`. At CompPoly's fuel `pmBasisFuel` this core is `pmBasis` itself
+(`pmBasis_popovRuntime_eq_core`) and the basis of `popovCorePMBasisContext`. -/
+theorem popovRuntime_core_spec (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    (hcut : leafCutoff ≤ 1) (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat)
+    (hfuel : maxOrder problem ≤ fuel + 1) :
+    let B := pmBasisWithFuelCore (popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff) fuel
+      problem shift
+    B.size = problem.matrix.size ∧ Popov.OrderedWeakPopov B shift problem.matrix.size ∧
+      ∀ row ∈ MatrixRows B, row.size = problem.matrix.size ∧
+        ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) := by
+  intro B
+  have hP := Popov.popovRuntime_core_orderedWeakPopov mulCtx lowCtx leafCutoff composeLeafCutoff
+    fuel problem shift
+  refine ⟨hP.1, hP, fun row hrow ↦ ⟨(leafRuntime_core_rows mulCtx lowCtx leafCutoff
+    composeLeafCutoff popovLeafBasis (Popov.popovLeafBasis_leafRows mulCtx) fuel problem shift
+    row hrow).2, leafRuntime_core_natDegree_le mulCtx lowCtx composeLeafCutoff
+      popovLeafBasis_leafDegreeOne hcut fuel problem shift hfuel row hrow⟩⟩
+
+/-- **The target's `pmBasis`** (no root pass: it is the core at `pmBasisFuel`): exactly `m` rows,
+ordered weak Popov, entries of degree at most `max 1 (maxOrder problem)`. -/
+theorem pmBasis_popovRuntime_spec (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    (hcut : leafCutoff ≤ 1) (problem : XAdicProblem F) (shift : Array Nat) :
+    let B := pmBasis (popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff) problem shift
+    B.size = problem.matrix.size ∧ Popov.OrderedWeakPopov B shift problem.matrix.size ∧
+      ∀ row ∈ MatrixRows B, row.size = problem.matrix.size ∧
+        ∀ j, (rowGet row j).natDegree ≤ max 1 (maxOrder problem) := by
+  intro B
+  have hB : B = pmBasisWithFuelCore (popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff)
+      (pmBasisFuel problem) problem shift :=
+    Popov.pmBasis_popovRuntime_eq_core mulCtx lowCtx leafCutoff composeLeafCutoff problem shift
+  rw [hB]
+  exact popovRuntime_core_spec mulCtx lowCtx composeLeafCutoff hcut _ problem shift
+    (by rw [pmBasisFuel]; omega)
+
+/-- **A node of the target runtime**, with exact sizes: `leafRuntime_core_node` on `popovRuntime`,
+where every core has exactly `m` rows (`P₁`: `m`; `R`: `m` rows; `P₂`: `m` rows of width `m`). -/
+theorem popovRuntime_core_node (mulCtx : CPolynomial.MulContext F)
+    (lowCtx : MulLowContext F) {leafCutoff : Nat} (composeLeafCutoff : Nat)
+    (hcut : leafCutoff ≤ 1) (fuel : Nat) (problem : XAdicProblem F) (shift : Array Nat)
+    (hge : 2 ≤ maxOrder problem) (hfuel : maxOrder problem ≤ fuel + 2) :
+    let RT := popovRuntime mulCtx lowCtx leafCutoff composeLeafCutoff
+    let o := maxOrder problem
+    let d₁ := o / 2
+    let lower : XAdicProblem F := { orders := lowerOrders problem d₁, matrix := problem.matrix }
+    let P₁ := pmBasisWithFuelCore RT fuel lower shift
+    let R := residualMatrixWithProduct (mulTruncColumnStrassenWith lowCtx composeLeafCutoff) P₁
+      problem.matrix d₁ (residualOrders problem d₁)
+    let residual : XAdicProblem F := { orders := residualOrders problem d₁, matrix := R }
+    let P₂ := pmBasisWithFuelCore RT fuel residual (updateShiftByRows P₁ shift)
+    pmBasisWithFuelCore RT (fuel + 1) problem shift =
+        compactNonzeroRows (mulStrassenWith lowCtx composeLeafCutoff P₂ P₁) ∧
+      1 ≤ d₁ ∧ 1 ≤ o - d₁ ∧ d₁ ≤ fuel + 1 ∧ o - d₁ ≤ fuel + 1 ∧
+      maxOrder lower = d₁ ∧ maxOrder residual = o - d₁ ∧
+      P₁.size = problem.matrix.size ∧
+      (∀ r ∈ MatrixRows P₁, r.size = problem.matrix.size ∧ ∀ j, (rowGet r j).natDegree ≤ d₁) ∧
+      R.size = problem.matrix.size ∧ (∀ r ∈ MatrixRows R, r.size = MatrixWidth problem.matrix) ∧
+      (∀ i j, (rowGet (R.getD i #[]) j).val.size ≤ problem.orders.getD j 0 - d₁) ∧
+      P₂.size = problem.matrix.size ∧
+      (∀ r ∈ MatrixRows P₂, r.size = problem.matrix.size ∧
+        ∀ j, (rowGet r j).natDegree ≤ o - d₁) := by
+  intro RT o d₁ lower P₁ R residual P₂
+  have h := leafRuntime_core_node mulCtx lowCtx composeLeafCutoff
+    (Popov.popovLeafBasis_leafRows mulCtx) popovLeafBasis_leafSizeLe popovLeafBasis_leafDegreeOne
+    hcut fuel problem shift hge hfuel
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6, _, h8, h9, h10, h11, _, h13⟩ := h
+  have hP₁ : P₁.size = problem.matrix.size :=
+    (Popov.popovRuntime_core_orderedWeakPopov mulCtx lowCtx leafCutoff composeLeafCutoff fuel
+      lower shift).1
+  have hP₂ : P₂.size = R.size :=
+    (Popov.popovRuntime_core_orderedWeakPopov mulCtx lowCtx leafCutoff composeLeafCutoff fuel
+      residual _).1
+  have hR : R.size = problem.matrix.size := h9.trans hP₁
+  refine ⟨h0, h1, h2, h3, h4, h5, h6, hP₁, h8, hR, h10, h11, hP₂.trans hR, fun r hr ↦ ?_⟩
+  obtain ⟨hs, hd⟩ := h13 r hr
+  exact ⟨hs.trans hR, hd⟩
 
 end
 
