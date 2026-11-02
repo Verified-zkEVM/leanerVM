@@ -49,7 +49,7 @@ public section
 @[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
 
 /-- The price of one step of the pivot table on rows of width `r`. -/
-@[expose] def stepPrice (r : ℕ) : ℕ := 2700 * r + 21400
+@[expose] def stepPrice (r : ℕ) : ℕ := 1774 * r + 3567
 
 /-- The price of one incremental insertion beyond the rank potential, `r` rows wide. -/
 @[expose] def incPrice (r : ℕ) : ℕ :=
