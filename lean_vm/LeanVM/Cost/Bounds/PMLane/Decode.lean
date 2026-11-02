@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Bounds.PMLane.Run
 public import LeanVM.Cost.Bounds.PMLane.Shapes
 public import LeanVM.Cost.Bounds.Decoder.Decode
+public import LeanVM.Cost.Bounds.PMSolve.Final
 import all LeanVM.Cost.InitLib
 
 /-!
@@ -25,7 +26,12 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
   prices with their margin, at most `(BW + 10·Lw)·2^26 + pmDecoderWorstPrice`
   (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^94.07`).
 
-Each takes the interpolation's price as the hypothesis `InterpPMCost P p` (track solve's lemma).
+Each lane's interpolation is priced by track solve's `interpolatePMC_cost_price`
+(`Bounds/PMSolve/Final.lean`), at prices fitting the proved transforms (`FFTPricesOK p`) and where
+its per-shape conditions hold (`LaneInterpOKPM p κ R A`, decided per shape at `marginPrices` in
+`Bounds/PMLane/Shapes.lean` through the copies of `Bounds/PMLane/InterpDefs.lean`, proved equal
+to the originals here, `copy_PMInterpOK`, `copy_interpPMModel`): `decodeStacksPMC_cost_worst`
+has no hypothesis on the interpolation.
 The functions the compiler outlined on demand are named by their terms (`cost_const%`,
 `Bounds/PMLane/Names.lean`), not by their numbered names.
 -/
@@ -39,6 +45,12 @@ open CompPoly.GuruswamiSudan LeanVM.Cost.Bounds.PMBasis
 public section
 
 variable (P : MachineProgram)
+
+/-! ## The copies of the interpolation's price definitions -/
+
+theorem copy_PMInterpOK : @Copy.PMInterpOK = @PMSolve.PMInterpOK := rfl
+
+theorem copy_interpPMModel : @Copy.interpPMModel = @PMSolve.interpPMModel := rfl
 
 /-! ## Sizes -/
 
@@ -71,7 +83,7 @@ theorem laneEncodedWith_eq {κ R A : ℕ} (h : checkRedundant κ R (gsParamsFor 
 /-- **A lane's run on the new solver** (`gsLaneWith pmSolver κ R A S u`): at most
 `decoderLaneRunBoundPM p κ R A BS`, `BS` the price of a symbol `S u v`. -/
 theorem gsLaneWithC_cost (hP : Includes P (cost_const% (gsLaneWith pmSolver) costDeps))
-    {p : PMPrices} (hI : InterpPMCost P p) (κ R A : ℕ)
+    {p : PMPrices} (hp : PMFFT.FFTPricesOK p) (κ R A : ℕ) (hI : LaneInterpOKPM p κ R A)
     (S : ℕ → ℕ → K) (SVal : MachineValue)
     (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b)))
     {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [encodeValue a, encodeValue b] ≤ BS) (u : ℕ)
@@ -105,8 +117,13 @@ theorem gsLaneWithC_cost (hP : Includes P (cost_const% (gsLaneWith pmSolver) cos
       omega) 0 (Nat.zero_le _)
   -- the run
   have hd := lanePointsS_distinct (by omega : κ + R ≤ 64) S u
-  have h4 := gsRunPMC_cost P (by includes_sub) hI (lanePointsS (2 ^ (κ + R)) S u)
-    (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius
+  have hi := PMSolve.interpolatePMC_cost_price P (by includes_sub) p hp
+    (lanePointsS (2 ^ (κ + R)) S u) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp
+    (by rw [lanePointsS_size, ← copy_PMInterpOK]; exact hI.1)
+    (by rw [lanePointsS_size, ← copy_interpPMModel]; exact hI.2)
+    (by rwa [lanePointsS_size]) hk1
+  have h4 := gsRunPMC_cost P (by includes_sub) (lanePointsS (2 ^ (κ + R)) S u)
+    (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius hi
     (by rwa [lanePointsS_size]) hk1 hd
     (by simp only [gsParamsFor, gsParamsAt]; omega) hX hY
     (by simp only [gsParamsFor, gsParamsAt]; omega)
@@ -207,7 +224,7 @@ theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmS
 /-- **A lane's candidates on the new solver** (`laneEncodedWith pmSolver κ R A S u`): at most
 `decoderLaneBoundPM p κ R A BS`. -/
 theorem decoderLanePMC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSolver) costDeps))
-    {p : PMPrices} (hI : InterpPMCost P p) (κ R A : ℕ)
+    {p : PMPrices} (hp : PMFFT.FFTPricesOK p) (κ R A : ℕ) (hI : LaneInterpOKPM p κ R A)
     (S : ℕ → ℕ → K) (SVal : MachineValue)
     (hS : ∀ a b, RunsApp P SVal [encodeValue a, encodeValue b] (encodeValue (S a b)))
     {BS : ℕ} (hBS : ∀ a b : ℕ, appCost P SVal [encodeValue a, encodeValue b] ≤ BS) (u : ℕ)
@@ -215,7 +232,7 @@ theorem decoderLanePMC_cost (hP : Includes P (cost_const% (laneEncodedWith pmSol
     machineCost P (cost_const% (laneEncodedWith pmSolver) costIdx)
         [encodeValue κ, encodeValue R, encodeValue A, SVal, encodeValue u] ≤
       decoderLaneBoundPM p κ R A BS := by
-  have hrun := gsLaneWithC_cost P (by includes_sub) hI κ R A S SVal hS hBS u h
+  have hrun := gsLaneWithC_cost P (by includes_sub) hp κ R A hI S SVal hS hBS u h
   obtain ⟨hκR, -, -, hs, hk1, -, hY⟩ := h
   have := laneEncodedWithC_cost P hP κ R A (by omega) S SVal hS u
     (L := max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
@@ -338,8 +355,9 @@ theorem pruneUpToPMC_cost (hP : Includes P pruneUpToPMC.costDeps) (κ R A U : �
 (`DecoderLaneSizes`), `BW` the price of a column `W v` and `Lw` its length, the interpolation
 within `interpPMPrice p`. -/
 theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMPrices}
-    (hI : InterpPMCost P p) (μ R : ℕ) (hadm : Whir.Admissible μ R)
+    (hp : PMFFT.FFTPricesOK p) (μ R : ℕ) (hadm : Whir.Admissible μ R)
     (hsz : DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R))
+    (hI : LaneInterpOKPM p (μ - Whir.initialFold) R (johnsonThreshold μ R))
     (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
     {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
@@ -375,7 +393,7 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
   have hpr := pruneUpToPMC_cost P (by includes_sub) κ R A (2 ^ Whir.initialFold) hcr (by omega)
     (by rw [hf]; norm_num) (by omega) W WVal hW hBW hLw
     (G := decoderLaneBoundPM p κ R A 12)
-    (fun u _ ↦ decoderLanePMC_cost P (by includes_sub) hI κ R A (tableSymbol T)
+    (fun u _ ↦ decoderLanePMC_cost P (by includes_sub) hp κ R A hI (tableSymbol T)
       (.closure pruneUpToDistinctC.lam1.lam0.costIdx [encodeValue T]) hSV
       (fun a b ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append]
@@ -421,17 +439,20 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 
 /-- **The decoder on the new solver at every admissible shape**, at the model's prices with
 their margin: at most `(BW + 10·Lw)·2^26 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 20790986008017779583761482458 ≈ 2^94.07`), the interpolation within
-`interpPMPrice marginPrices`. -/
+`pmDecoderWorstPrice = 20790986008017779583761482458 ≈ 2^94.07`): no hypothesis but the word's
+prices, each lane's interpolation priced by track solve's `interpolatePMC_cost_price` at the shape's
+decided conditions (`LaneInterpOKPM marginPrices`) and `FFTPricesOK marginPrices`
+(`PMCore.fftPricesOK_margin`). -/
 theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
-    (hI : InterpPMCost P marginPrices) {μ R : ℕ} (hadm : Whir.Admissible μ R)
+    {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
     {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksPMC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
       (BW + 10 * Lw) * 2 ^ 26 + pmDecoderWorstPrice := by
-  obtain ⟨hsz, hle⟩ := decoderShapePM_ok hadm
-  have h := decodeStacksPMC_cost P hP hI μ R hadm hsz W WVal hW hBW hLw
+  obtain ⟨hsz, hI, hle⟩ := decoderShapePM_ok hadm
+  have h := decodeStacksPMC_cost P hP PMCore.fftPricesOK_margin μ R hadm hsz hI W WVal hW hBW
+    hLw
   rw [decoderBoundPM_eq] at h
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'

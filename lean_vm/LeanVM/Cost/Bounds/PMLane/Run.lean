@@ -14,9 +14,9 @@ import all CompPoly.Univariate.Basic
 lane run `gsRunDistinctNF` with the interpolation `interpolateDistinctWith pmSolver`
 (`interpolatePMC`): the interpolation, the truncation, Roth–Ruckenstein's search
 (`prefixesNFC_cost`), the candidates filtered. **`gsRunPMC_cost`**: at most `gsRunBoundPM p`,
-`gsRunDistinctNFC_cost`'s proof with the interpolation's price swapped, for every program whose
-interpolation is within the model's price `interpPMPrice p` (`InterpPMCost P p`, track solve's
-lemma, a hypothesis until it lands; `/root/x-briefs/INTERFACES.md`).
+`gsRunDistinctNFC_cost`'s proof with the interpolation's price swapped, given the interpolation
+within the model's price `interpPMPrice p` on its input (`hi`: track solve's
+`interpolatePMC_cost_price`, applied per lane in `Bounds/PMLane/Decode.lean`).
 
 The sizes the run needs of the interpolated polynomial (`ℓ + 1` rows of at most `W + 1`
 coefficients, at most `max 1 ℓ` prefixes) follow, as for the extractor's interpolation, from its
@@ -31,14 +31,6 @@ open LeanVM.Cost.Extractor LeanVM.Parameters CompPoly LeanVM.Extraction LeanVM.E
 open CompPoly.GuruswamiSudan
 
 public section
-
-/-- **The new interpolation within the model's price** `interpPMPrice p`, on the lanes' inputs:
-track solve's `interpolatePMC_cost` (at `marginPrices`), a hypothesis until it lands. -/
-@[expose] def InterpPMCost (P : MachineProgram) (p : PMBasis.PMPrices) : Prop :=
-  ∀ (points : Array (K × K)) (params : GSInterpParams),
-    InterpSizes points.size params → 1 < params.messageDegree → DistinctXCoordinates points →
-    machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
-      PMBasis.interpPMPrice p points.size params
 
 /-! ## The interpolated polynomial -/
 
@@ -111,8 +103,9 @@ variable (P : MachineProgram)
 Roth–Ruckenstein's search, the candidates filtered): at most `gsRunBoundPM p`, the interpolation
 within `interpPMPrice p`. -/
 theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
-    (hI : InterpPMCost P p)
     (points : Array (K × K)) (params : GSInterpParams) (radius : ℕ)
+    (hi : machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
+      PMBasis.interpPMPrice p points.size params)
     (hs : InterpSizes points.size params) (hk1 : 1 < params.messageDegree)
     (hd : DistinctXCoordinates points) (hr : radius < 2 ^ 64)
     (hX : params.weightedDegreeBound + 1 < 2 ^ 56) (hY : interpolationYCap params + 2 < 2 ^ 28)
@@ -121,7 +114,6 @@ theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
       PMBasis.gsRunBoundPM p points.size params := by
   have ⟨hn, hW, hk, hyW, hw, _⟩ := hs
   rw [gsRunPMC.costEq P hP]
-  have hi := hI points params hs hk1 hd
   generalize hQ : interpolateDistinctWith pmSolver points params = oQ at hi
   cases oQ with
   | none => dsimp only; unfold PMBasis.gsRunBoundPM; omega
