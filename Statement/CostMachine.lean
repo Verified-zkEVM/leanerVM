@@ -15,8 +15,9 @@ counts them in full (`MachineProgram.size`); its only runtime data is its input.
 `run P fuel x` runs function `0` of `P` on `x`: its value and its price, the sum of its steps'
 prices, or `none` when the run misuses a value (a primitive on the wrong kind of value, a missing
 variable, field, alternative or function) or nests more than `fuel` calls. A misuse is a failure,
-never undefined behavior. `outputWithin P x b` is the value if the price is at most `b`; each call
-costs at least `1`, so the fuel never fails a run of price at most `b`.
+never undefined behavior. `outputWithin P s x b` is the value if `P`'s size is at most `s` and the
+price at most `b`: a program's two resources, in one place. Each call costs at least `1`, so the
+fuel never fails a run of price at most `b`.
 
 **Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
 `KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is priced by
@@ -243,11 +244,15 @@ end
 def run (P : MachineProgram) (fuel : ℕ) (x : MachineValue) : Option (MachineValue × ℕ) :=
   evaluateFunctionBody P (fuel + 1) 0 [x]
 
-/-- **The output within a budget**: `P`'s value on `x` if its run costs at most `b`. -/
-def outputWithin (P : MachineProgram) (x : MachineValue) (b : ℕ) : Option MachineValue :=
-  match run P b x with
-  | some (v, c) => if c ≤ b then some v else none
-  | none => none
+/-- **The output within a size bound and a budget**: `P`'s value on `x` if `P`'s size is at most
+`sizeBound` (`MachineProgram.size`, below) and its run costs at most `budget`; `none` otherwise. -/
+def outputWithin (P : MachineProgram) (sizeBound : ℕ) (x : MachineValue) (budget : ℕ) :
+    Option MachineValue :=
+  if P.size ≤ sizeBound then
+    match run P budget x with
+    | some (v, c) => if c ≤ budget then some v else none
+    | none => none
+  else none
 
 /-! ## Size
 
@@ -440,13 +445,15 @@ def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Pro
   | some _ => Cost.extractorBudgetFor (permutationQueries T).length
   | none => 0
 
-/-- **The extractor a program computes**: the program run within the budget on the encoded
-statement, transcript and proof (`encodeExtractorInput`, `extractorBudget`), its output parsed
-as an execution (`decodeExecution`); `none` if the run fails, exceeds its budget, or outputs no
-execution's encoding. -/
+/-- **The extractor a program computes**: the program, of size at most `extractorSizeBound`, run
+within the budget on the encoded statement, transcript and proof (`encodeExtractorInput`,
+`extractorBudget`), its output parsed as an execution (`decodeExecution`); `none` if the program is
+larger, or the run fails, exceeds its budget, or outputs no execution's encoding. A larger program
+extracts nothing, so `KnowledgeSoundness (extractorOf P)` fails for it: an adversary running the
+honest prover is accepted. -/
 def extractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
   fun prog input T proof ↦
-    (Cost.outputWithin P (Cost.encodeExtractorInput prog input T proof)
+    (Cost.outputWithin P extractorSizeBound (Cost.encodeExtractorInput prog input T proof)
       (extractorBudget prog T proof)).bind (Cost.decodeExecution prog)
 
 end

@@ -54,8 +54,8 @@ def AggregateSound (guest : Program) (decoderProgram : LeanVM.Cost.MachineProgra
       publicDigest z.input = statementDigest (deployedSeed guest) s ∧
       s.deferredClaim.HasBytecodeShape (bytecodeWords guest) ∧
       ¬ ∃ t, ∃ d : Decoded, extractor z.program z.input z.transcript z.proof = some t ∧
-        Cost.outputWithin decoderProgram (Cost.encodeDecoderInput z.program t)
-          (guestDecoderBudget t) = some (Cost.encodeValue d) ∧
+        Cost.outputWithin decoderProgram guestDecoderSizeBound
+          (Cost.encodeDecoderInput z.program t) (guestDecoderBudget t) = some (Cost.encodeValue d) ∧
         ExplainsStatement guest s d] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256

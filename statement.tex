@@ -45,10 +45,8 @@ compiled decoder \lean{LeanVM.Cost.decoderProgram}.
 \begin{tabular}{lll}
 \toprule
 Field & End statement & Section\\\midrule
-\lean{extractorSize} & \lean{P.size} $\le$ \lean{LeanVM.extractorSizeBound} & \ref{sec:zkvm}\\
 \lean{knowledgeSoundness} & \lean{LeanVM.KnowledgeSoundness (extractorOf P)} & \ref{sec:zkvm}\\
 \lean{completeness} & \lean{LeanVM.Completeness} & \ref{sec:zkvm}\\
-\lean{decoderSize} & \lean{D.size} $\le$ \lean{LeanVM.Node.guestDecoderSizeBound} & \ref{sec:guest}\\
 \lean{guestKnowledge} & \texttt{LeanVM.Node.GuestKnowledge guest D} & \ref{sec:guest}\\
 \lean{digestBinds} & \lean{LeanVM.Node.DigestBinds} & \ref{sec:guest}\\
 \lean{guestCompleteCovered} & \lean{LeanVM.Guest.Budget.GuestCompleteCovered} & \ref{sec:guest}\\

@@ -173,16 +173,17 @@ def guestDecoderBudget {prog : Program} (t : Execution prog) : ℕ :=
     (70 * t.logMemorySize + 374) * 2 ^ t.logMemorySize + 2 ^ 37 * (Nat.log2 (t.steps + 1) + 16)
 
 /-- **Knowledge soundness of the leanISA guest program, its witness named**: on every valid
-execution `t` of `guest` on a public input, the decoder program `decoderProgram`, run on the
-encoded program and execution within its budget (`encodeDecoderInput`, `guestDecoderBudget`),
+execution `t` of `guest` on a public input, the decoder program `decoderProgram`, of size at most
+`guestDecoderSizeBound`, run on the encoded program and execution within its budget
+(`encodeDecoderInput`, `guestDecoderBudget`),
 outputs the encoding of a decoding `d`: a seed, the node statement the input commits to under that
-seed, and a witness proving it (`ExplainsInput`, `LeanVmGuest.lean`). A run that fails or exceeds
-its budget outputs nothing, so `GuestKnowledge` fails at that execution. Its `guest` is only ever
+seed, and a witness proving it (`ExplainsInput`, `LeanVmGuest.lean`). A larger program, or a run
+that fails or exceeds its budget, outputs nothing, so `GuestKnowledge` fails at that execution. Its `guest` is only ever
 `LeanVM.Guest.guest`, whose program the budget's constants are. -/
 def GuestKnowledge (guest : Program) (decoderProgram : Cost.MachineProgram) : Prop :=
   ∀ input (t : Execution guest), ValidExecution guest input t →
-    ∃ d : Decoded, Cost.outputWithin decoderProgram (Cost.encodeDecoderInput guest t)
-        (guestDecoderBudget t) = some (Cost.encodeValue d) ∧
+    ∃ d : Decoded, Cost.outputWithin decoderProgram guestDecoderSizeBound
+        (Cost.encodeDecoderInput guest t) (guestDecoderBudget t) = some (Cost.encodeValue d) ∧
       ExplainsInput guest input d
 
 end
@@ -196,13 +197,10 @@ namespace Statement
 /-- **The end theorems**, for the extractor program and the guest decoder program (two parameters
 of the same type: every use names them). -/
 structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram) : Prop where
-  /-- The extractor program's size is at most `extractorSizeBound` (`14400`): the slack over the
-  compiled extractor's size is room for one leanXMSS signature's encoding, so the compiled
-  extractor could carry no useful table of witnesses beside its code (`CostMachine.lean`). -/
-  extractorSize : extractorProgram.size ≤ LeanVM.extractorSizeBound
   /-- leanVM is knowledge sound for the straight-line extractor the program computes within its
-  budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, which counts as
-  breaking knowledge soundness; the machine's prices are trusted to be honest,
+  size bound and budget, `extractorOf extractorProgram` (a program larger than
+  `extractorSizeBound` or a run out of budget extracts nothing, which counts as breaking knowledge
+  soundness, so this bounds the program's size; the machine's prices are trusted to be honest,
   `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`
   queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^95` up to `2^60`
   permutation queries and `O(N·log³N)` for `N`. -/
@@ -213,13 +211,9 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
 
-  /-- The guest decoder program's size is at most `guestDecoderSizeBound` (`786000`), its literals
-  counted in full: the slack over the compiled decoder's size is room for one leanXMSS
-  signature's encoding, so the compiled decoder could carry no useful table of witnesses beside its
-  code; a program written differently could (`guestDecoderSizeBound`). -/
-  decoderSize : decoderProgram.size ≤ LeanVM.Node.guestDecoderSizeBound
   /-- Every valid execution of the leanISA guest program proves the node statement its public input
-  commits to: the decoder program outputs, within its budget, the encoding of a seed, a statement
+  commits to: the decoder program, of size at most `guestDecoderSizeBound`, outputs, within its
+  budget, the encoding of a seed, a statement
   whose digest under that seed is the input's digest, and a witness for it: each signature claim
   of the statement is held, by a signature or a child whose proof the deferring verifier accepts,
   the bytecode's value at the child's point taken from the witness and checked only at the root,
