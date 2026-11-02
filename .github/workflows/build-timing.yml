@@ -21,6 +21,13 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.6"
+          enable-cache: false
+
       - name: Set up Lean
         uses: leanprover/lean-action@v1.6.2
         with:
@@ -37,21 +44,21 @@ jobs:
       - name: Measure clean build
         run: |
           rm -rf .lake/build
-          python3 scripts/build_timing.py run \
+          uv run --no-project --python 3.12 python scripts/build_timing.py run \
             --label clean-build \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             --log "$RUNNER_TEMP/leanerVM-build-timing/logs/clean-build.log" \
             -- lake build
       - name: Measure warm build
         run: |
-          python3 scripts/build_timing.py run \
+          uv run --no-project --python 3.12 python scripts/build_timing.py run \
             --label warm-build \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             --log "$RUNNER_TEMP/leanerVM-build-timing/logs/warm-build.log" \
             -- lake build
       - name: Measure test path
         run: |
-          python3 scripts/build_timing.py run \
+          uv run --no-project --python 3.12 python scripts/build_timing.py run \
             --label lake-test \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             --log "$RUNNER_TEMP/leanerVM-build-timing/logs/lake-test.log" \
@@ -59,7 +66,7 @@ jobs:
       - name: Publish timing summary
         if: always()
         run: |
-          python3 scripts/build_timing.py render \
+          uv run --no-project --python 3.12 python scripts/build_timing.py render \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             > "$RUNNER_TEMP/leanerVM-build-timing/report.md"
           cat "$RUNNER_TEMP/leanerVM-build-timing/report.md"

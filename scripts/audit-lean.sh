@@ -19,6 +19,6 @@ else
 fi
 
 # Lean also permits line comments and nested block comments between these tokens.
-python3 ./scripts/check-lean-options.py "${paths[@]}"
+uv run --no-project --python 3.12 python ./scripts/check-lean-options.py "${paths[@]}"
 
 echo "First-party Lean source policy passed."

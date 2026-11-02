@@ -8,14 +8,14 @@ cd "$REPO_ROOT"
 ./scripts/check-repository.sh
 ./scripts/check-imports.sh
 ./scripts/check-layers.sh
-python3 ./scripts/check-docs.py
-python3 ./scripts/test-policy-checks.py
-python3 ./scripts/test-build-timing.py
-python3 ./scripts/test-warning-policy.py
+uv run --no-project --python 3.12 python ./scripts/check-docs.py
+uv run --no-project --python 3.12 python ./scripts/test-policy-checks.py
+uv run --no-project --python 3.12 python ./scripts/test-build-timing.py
+uv run --no-project --python 3.12 python ./scripts/test-warning-policy.py
 # Plain `lake build`, as in CI: no `--wfail`, so dependency release lookups may warn and
 # Lake's caches stay enabled. Package-level `warningAsError` still rejects
 # every first-party elaboration warning, including imported leaves. See docs/dependencies.md.
 lake build
 lake test
-python3 ./scripts/test-axiom-audit.py
+uv run --no-project --python 3.12 python ./scripts/test-axiom-audit.py
 lake env lean -E warning tests/Main.lean

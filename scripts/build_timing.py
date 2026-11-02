@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Measure commands into a small, portable JSONL benchmark record."""
 
 from __future__ import annotations
