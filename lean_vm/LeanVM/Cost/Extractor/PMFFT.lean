@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Top
+public import LeanVM.Cost.Extractor.Replay
 public import LeanVM.Cost.ProbeLib
 public import LeanVM.Protocol.Extraction.Fast.LanePM
 import all CompPoly.Univariate.Basic
@@ -16,6 +16,11 @@ import all LeanVM.Cost.FastLib
 
 /-!
 # The lanes' new interpolation, compiled (stage 1): the additive-FFT product
+
+The extractor's decoder (`decOf`, `decodeStacksDistinctPM`) in five stages on the chain, after the
+replay and before the top (`Top.lean`): this module, `PMEval`, `PMCore`, `PMSolve`, `PMLane`.
+Mulders–Storjohann's interpolation stays compiled earlier in the chain (`MsReduce.lean`,
+`Interp.lean`, …), out of the extractor's program (no function of it is called), its bounds kept.
 
 The conversions monomial ↔ novel basis, level by level (`FFT.toNovelFast`, `FFT.fromNovelFast`),
 the planned transforms' butterflies (`FFT.planFwd`, `FFT.planInv`), the plan of size `2^j`

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Extractor.Replay
+public import LeanVM.Cost.Extractor.PMLane
 public import LeanVM.Protocol.Extraction.Fast.Compiled
 import all LeanVM.Protocol.Extraction.Fast.Compiled
 import all LeanVM.Protocol.Extraction.Extractor

@@ -142,7 +142,7 @@ size; the frame cells of the guest's functions are `749835` of it). The slack bo
 witnesses the compiled decoder could carry beside its code (hard-coded signatures, matrices or
 proofs that would mask a bug of the guest program on finitely many statements): it is room for one
 leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as the extractor's
-`11000` against its `10471`). It does not bound what a program written differently could hold: the
+`14400` against its `13905`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
 cells to a limb, freeing room for about `1600` signatures' encodings. -/
 def guestDecoderSizeBound : ℕ := 785500
@@ -192,7 +192,7 @@ namespace Statement
 /-- **The end theorems**, for the extractor program and the guest decoder program (two parameters
 of the same type: every use names them). -/
 structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram) : Prop where
-  /-- The extractor program's size is at most `extractorSizeBound` (`11000`): the slack over the
+  /-- The extractor program's size is at most `extractorSizeBound` (`14400`): the slack over the
   compiled extractor's size is room for one leanXMSS signature's encoding, so the compiled
   extractor could carry no useful table of witnesses beside its code (`CostMachine.lean`). -/
   extractorSize : extractorProgram.size ≤ LeanVM.extractorSizeBound

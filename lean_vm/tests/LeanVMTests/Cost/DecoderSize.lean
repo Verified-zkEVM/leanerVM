@@ -14,7 +14,7 @@ namespace LeanVMTests.Cost.DecoderSize
 
 open LeanVM.Cost LeanVM.Cost.Decoder
 
-#guard decoderProgram.size == 785159
+#guard decoderProgram.size == 785617
 #guard decTopC.costIdx == 848
 #guard 784277 + 2 * (decTopC.costIdx - decTopC.costDeps.length) == 785159
 #guard decoderProgram.size ≤ LeanVM.Node.guestDecoderSizeBound

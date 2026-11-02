@@ -486,13 +486,13 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size** (`MachineProgram.size`): `11000`, the compiled
-extractor's size (`10471`: its `511` compiled bodies and the entry, at `524` indices, `12` of
-them holes, a literal `0` each) and a slack of `529`, room for one leanXMSS signature's encoding
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): `14400`, the compiled
+extractor's size (`13905`: its `698` compiled bodies and the entry, at `753` indices, `54` of
+them holes, a literal `0` each) and a slack of `495`, room for one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside
 its code. -/
-def extractorSizeBound : ℕ := 11000
+def extractorSizeBound : ℕ := 14400
 
 /-- **The extractor's budget**: `extractorBudgetFor` at the transcript's number of permutation
 queries, where the proof's stream announces a shape (`announced`, `LeanVmVerifier.lean`: a layout

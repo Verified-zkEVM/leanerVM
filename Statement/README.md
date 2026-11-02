@@ -133,7 +133,7 @@ theorems, then read the files in this order.
     and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run within the budget, its
     output parsed; `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and
     does not name it (`lean_vm` names its knowledge extractor, compiled). That the machine's prices
-    are honest is trusted. The size bound is `11000`: the compiled extractor's `10471` and a slack
+    are honest is trusted. The size bound is `14400`: the compiled extractor's `13905` and a slack
     of about one leanXMSS signature's encoding, so the compiled extractor could carry no useful
     table of witnesses beside its code; the budget (`extractorBudgetFor`, wherever the proof
     announces a shape) is a short formula in the number `N` of queries, `2^118 + (N + 2^30)·(D +
@@ -214,7 +214,7 @@ the challenges the verifier's program samples (`Run.lean` gives the script nothi
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
-(`11000`, the compiled `10471` and a slack of about one leanXMSS signature) leaves the compiled
+(`14400`, the compiled `13905` and a slack of about one leanXMSS signature) leaves the compiled
 extractor no room for a useful table of witnesses; and its budget is `2^118 + O(N·log³N)` for
 `N` permutation queries (polylogarithmic per query: about `2^118` for `N ≤ 2^80`, `2^157.08` at
 `N = 2^128`, where the soundness bound is already trivial). `lean_vm` names the program (`LeanVM.Cost.extractorProgram`, its extractor

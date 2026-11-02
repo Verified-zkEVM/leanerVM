@@ -4,6 +4,7 @@ public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 public import LeanVM.Protocol.Extraction.Fast.RunVec
 public import LeanVM.Protocol.Extraction.Fast.Transcript
 public import LeanVM.Protocol.Extraction.Fast.DecodeAdmissible
+public import LeanVM.Protocol.Extraction.Fast.LanePM
 
 /-!
 # The extractor the cost machine runs
@@ -23,11 +24,12 @@ application, so that the cost compiler compiles each separately (`Cost/Extractor
 * `runBoth`: the runner's tables built once (`runnerTables`), a run per fast stack, then, only if
   none gives an execution, a run per decoded stack (`runWithTables`).
 
-The decoder is `decodeStacksDistinct` (`Fast/DecodeAdmissible.lean`): the lanes by
-`gsRunDistinctNF` only (`gsRunDistinct` with Roth–Ruckenstein's fallback removed,
-`Fast/TruncNoFallback.lean`), with no branch to the full decoder. The replay returns only
+The decoder is `decodeStacksDistinctPM` (`Fast/LanePM.lean`): the lanes interpolated by
+CompPoly's approximant-basis interpolation on `pmSolver` (the certified solve on the
+ordered-weak-Popov PM-basis with additive-FFT products), then Roth–Ruckenstein truncated without
+the fallback (`prefixesNF`), with no branch to the full decoder. The replay returns only
 admissible layouts (`admissible_of_afterRootDirect`), and at admissible shapes it is
-`decodeStacksFast` (`decodeStacksDistinct_eq`): `extractorTop_eq_full`, `extractorTop` is
+`decodeStacksFast` (`decodeStacksDistinctPM_eq_fast`): `extractorTop_eq_full`, `extractorTop` is
 `extractorTopFull`, the same written in one `do` block on the full layout, with
 `decodeStacksFast` and `candidateRunner`.
 
@@ -57,9 +59,10 @@ the extractor passes only data). -/
 @[expose] def fastOf (μ R : ℕ) (leaves : Array (List K)) (h w : ℕ) : List (Vector K (2 ^ μ)) :=
   fastStacksFast μ R (leafAt leaves h w)
 
-/-- The decoder's stacks from the committed leaves. -/
+/-- The decoder's stacks from the committed leaves: the lanes by the approximant-basis
+interpolation on `pmSolver` (`decodeStacksDistinctPM`, `Fast/LanePM.lean`). -/
 @[expose] def decOf (μ R : ℕ) (leaves : Array (List K)) (h w : ℕ) : List (Vector K (2 ^ μ)) :=
-  decodeStacksDistinct μ R (leafAt leaves h w)
+  decodeStacksDistinctPM μ R (leafAt leaves h w)
 
 /-- The committed leaves: the transcript's index, then the subtree under the root. -/
 @[expose] def leavesOf (qs : List (PermutationQuery KeccakState × KeccakState)) (w h : ℕ)
@@ -120,7 +123,7 @@ theorem extractorTop_eq_full (prog : Program) (input : PublicInput)
   obtain ⟨⟨layout, R⟩, st⟩ := r
   have hadm : Whir.Admissible layout.stackLog R := admissible_of_afterRootDirect h
   simp only [Function.comp_apply, liteResult]
-  simp only [layoutLite_stackLog, decodeStacksDistinct_eq hadm, runWithTables_runnerTables]
+  simp only [layoutLite_stackLog, decodeStacksDistinctPM_eq_fast hadm, runWithTables_runnerTables]
 
 /-- **The extractor the cost machine runs is `transcriptExtractor`.** -/
 theorem extractorTop_eq (prog : Program) (input : PublicInput) (T : OracleQueryLog) (π : Proof) :
