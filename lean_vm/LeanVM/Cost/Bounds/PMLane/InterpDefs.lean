@@ -46,14 +46,14 @@ open LeanVM.Cost.Bounds.PMBasis
 public section
 
 /-- The price of one pivot of the RREF on `E` rows of at most `r` entries. -/
-@[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
+@[expose] def pivotPrice (E r : ℕ) : ℕ := 2871 * r + (69 * r + E + 87) * E + 3 * E + 100
 
 /-- The price of one step of the pivot table on rows of width `r`. -/
-@[expose] def stepPrice (r : ℕ) : ℕ := 2700 * r + 21400
+@[expose] def stepPrice (r : ℕ) : ℕ := 1774 * r + 3567
 
 /-- The price of one incremental insertion beyond the rank potential, `r` rows wide. -/
 @[expose] def incPrice (r : ℕ) : ℕ :=
-  (r + 1) * (stepPrice r + 14) + (90 * r + 76) * (r + 1) + (29 * r + 24) * (r + 1) + 40 * r + 300
+  (r + 1) * (stepPrice r + 18) + (84 * r + 66) * (r + 1) + (39 * r + 30) * r + 23 * r + 110
 
 /-- **The leaf's price**, `n` rows, `m` orders, at order at most one. -/
 @[expose] def leafBound (n m : ℕ) : ℕ :=
