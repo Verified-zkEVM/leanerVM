@@ -4,9 +4,10 @@
 Usage (from formal/lean_sphincs):
     python3 scripts/forest_certificates.py check B N LX   # check one parameter set (exit status 1 if it fails)
     python3 scripts/forest_certificates.py emit           # write Sphincs/LifetimeCertificates{.lean,/B<b>.lean} and Lifetimes.lean
+    python3 scripts/forest_certificates.py check-emit     # those files are what emit writes, byte for byte (exit status 1 if not)
     python3 scripts/forest_certificates.py maxn B N0 [STEP LXLO LXHI]   # search the largest N above N0, over a grid of lx
     python3 scripts/forest_certificates.py scan B N LX...  # the terms of the small route at several lx
-    python3 scripts/forest_certificates.py emit1 B N LX   # debugging: write the two Lean files for that set only
+    python3 scripts/forest_certificates.py emit1 B N LX   # debugging: write the Lean files for that set only
 then  lake build Sphincs.LifetimeCertificates  (the kernel re-checks every certificate, one module per height). `maxn` is a search:
 its result counts only once `check` accepts it and it is in PARAMS.
 
@@ -462,16 +463,31 @@ rebuilt from their scalars (`fillPoisT`, `fillOpt`, `fillOptN`, `H0Fill.lean`), 
 cover are checked one by one (`checkOptB`, `checkCoverW_of`). -/
 '''
 
-def emit(certs, root):
-    """Write `Sphincs/LifetimeCertificates/B<b>.lean`, one per parameter set, and
-    `Sphincs/LifetimeCertificates.lean`, which imports them."""
-    os.makedirs(os.path.join(root, 'LifetimeCertificates'), exist_ok=True)
-    for c in certs:
-        emit_height(c, os.path.join(root, 'LifetimeCertificates', 'B%d.lean' % c['b']))
+def render(certs):
+    """The Lean files of the certificates, by path under `Sphincs/`: `LifetimeCertificates/B<b>.lean`,
+    one per parameter set, `LifetimeCertificates.lean`, which imports them, and `Lifetimes.lean`."""
+    files = {os.path.join('LifetimeCertificates', 'B%d.lean' % c['b']): render_height(c) for c in certs}
     imports = '\n'.join('import Sphincs.LifetimeCertificates.B%d' % c['b'] for c in certs)
-    open(os.path.join(root, 'LifetimeCertificates.lean'), 'w').write(INDEX % imports)
+    files['LifetimeCertificates.lean'] = INDEX % imports
+    files['Lifetimes.lean'] = render_lifetimes(certs)
+    return files
 
-def emit_height(c, path):
+def emit(certs, root):
+    """Write the files of `render` under `root` (`Sphincs/`)."""
+    os.makedirs(os.path.join(root, 'LifetimeCertificates'), exist_ok=True)
+    for path, text in render(certs).items():
+        open(os.path.join(root, path), 'w').write(text)
+
+def check_emitted(certs, root):
+    """The files under `root` are those `emit` writes, byte for byte: the names of the differing ones."""
+    differ = []
+    for path, text in render(certs).items():
+        full = os.path.join(root, path)
+        if not os.path.exists(full) or open(full).read() != text:
+            differ.append(path)
+    return differ
+
+def render_height(c):
     out = [HEADER % c['b']]
     b, N = c['b'], c['N']
     tag = 'b%d' % b
@@ -521,11 +537,11 @@ def emit_height(c, path):
         out.append('  simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]')
         out.append('  exact ⟨%s, by decide +kernel⟩\n' % lems)
     out.append('end SphincsLayered.Security.H0\n')
-    open(path, 'w').write('\n'.join(out))
+    return '\n'.join(out)
 
 def pname(b): return 'full' if b == 26 else 'pruned%d' % b
 
-def emit_lifetimes(certs, path):
+def render_lifetimes(certs):
     out = ['''import Sphincs.LifetimeCertificates
 import Sphincs.Layered
 import Sphincs.BridgeHeavyCert
@@ -534,11 +550,13 @@ import Sphincs.StatementDet
 /-! **Proved lifetimes of the forest variant** for the deterministic signer (seed-derived
 randomizers): 127 classical bits against any adversary. Small budgets use the linear potential, the
 one-coin cover potential at baseline `ρ / 2^128` and the contact bound A4 of the forest; large
-budgets use the one-coin covers at the survival-weighted baseline. -/
+budgets use the one-coin covers at the survival-weighted baseline. Every lifetime is at least the
+proved lifetime of the FORS variant (`LeanSphincs.Lifetimes.requestedSecurity` in
+leanXMSS-leanSPHINCS-candidates). -/
 
 open OracleComp OracleSpec ENNReal
 
-namespace Sphincs.Lifetimes
+namespace SphincsLayered.Lifetimes
 
 open Security ForsPotential
 ''']
@@ -546,8 +564,6 @@ open Security ForsPotential
         b, N = c['b'], c['N']
         tag = 'b%d' % b
         name = pname(b)
-        out.append('/-- Subtree height %d, %d signatures. -/' % (b, N))
-        out.append('abbrev %s : Params := ⟨%d, %d, by decide⟩\n' % (name, b, N))
         out.append('/-- **127 bits for the deterministic signer** at subtree height %d and %d signatures. -/' % (b, N))
         if not c['complete']:
             out.append('-- The covers of this height stop below 2^127: no theorem yet.\n')
@@ -561,12 +577,13 @@ open Security ForsPotential
     order = [26, 20, 14, 13, 12, 10, 8]
     have = {c['b'] for c in certs if c['complete']}
     if all(b in have for b in order):
-        out.append('/-- **The forest lifetimes**: 127 bits at every subtree height. -/')
+        out.append('/-- **The forest lifetimes**: 127 bits at each proved subtree height (`b` = %s,\n%s). -/'
+                   % (', '.join(str(b) for b in order[:-1]), order[-1]))
         out.append('theorem requestedSecurity :\n    ' + ' ∧\n    '.join(
             '@Det.HasClassicalSecurityBitsDet %s 127' % pname(b) for b in order) + ' :=')
         out.append('  ⟨' + ', '.join('%s_bits' % pname(b) for b in order) + '⟩\n')
-    out.append('end Sphincs.Lifetimes\n')
-    open(path, 'w').write('\n'.join(out))
+    out.append('end SphincsLayered.Lifetimes\n')
+    return '\n'.join(out)
 
 # Parameter sets: (b, N, lx).
 PARAMS = [
@@ -591,7 +608,6 @@ if __name__ == '__main__':
         c = certify(b, N, lx)
         assert c is not None
         emit([c], os.path.join(ROOT, 'Sphincs'))
-        emit_lifetimes([c], os.path.join(ROOT, 'Sphincs', 'Lifetimes.lean'))
         print('written')
     elif cmd == 'maxn':
         # maxn B N0 [STEP LXLO LXHI]: the largest N (to 1 part in 20000) that both routes certify at some
@@ -638,14 +654,19 @@ if __name__ == '__main__':
             print('lx %s: rho %.6f 2^128B %.5f coin %.5f near %.5f lhs %.6f rate ok %s' % (
                 lx, float(rho), float(2 ** 128 * o.B), float(Fr((2 * scanMb(b) - 1) * qh, scanMb(b) * 2 ** 129)), float(near),
                 float(small_lhs(b, N, qh, rho, o.B, c)), rate <= rho - 1 - x), flush=True)
-    elif cmd == 'emit':
+    elif cmd in ('emit', 'check-emit'):
         certs = []
         for (b, N, lx) in PARAMS:
             c = certify(b, N, lx)
             assert c is not None, (b, N, lx)
             certs.append(c)
-        emit(certs, os.path.join(ROOT, 'Sphincs'))
-        emit_lifetimes(certs, os.path.join(ROOT, 'Sphincs', 'Lifetimes.lean'))
-        print('written')
+        if cmd == 'emit':
+            emit(certs, os.path.join(ROOT, 'Sphincs'))
+            print('written')
+        else:
+            differ = check_emitted(certs, os.path.join(ROOT, 'Sphincs'))
+            if differ:
+                sys.exit('not what emit writes: %s' % ', '.join('Sphincs/' + d for d in differ))
+            print('the Lean files are what emit writes')
     else:
         sys.exit(__doc__)

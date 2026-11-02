@@ -107,7 +107,7 @@ lake exe cache get
 lake build
 ```
 
-Table: `python3 scripts/forest_table.py info` (composition), `check` (the Lean sources hold the tables of the script), `write` (rewrite them). Certificates: `python3 scripts/forest_certificates.py emit` (writes `Sphincs/LifetimeCertificates/B<b>.lean`, `Sphincs/LifetimeCertificates.lean` and `Sphincs/Lifetimes.lean`; checking the first is most of the build); `python3 scripts/forest_certificates.py check B N LX` checks one set in Python with the same exact arithmetic; `maxn B N0 [STEP LXLO LXHI]` searches the largest `N` over a grid of splits `lx`. Axiom guards: `lake env lean scripts/ForestTheorems.lean` then `python3 scripts/forest_axioms.py` (`prepare`, then `emit`; see the script).
+Table: `python3 scripts/forest_table.py info` (composition), `check` (the Lean sources hold the tables of the script), `write` (rewrite them). Certificates: `python3 scripts/forest_certificates.py emit` (writes `Sphincs/LifetimeCertificates/B<b>.lean`, `Sphincs/LifetimeCertificates.lean` and `Sphincs/Lifetimes.lean`; checking the first is most of the build), and `check-emit` checks that these files are what `emit` writes, byte for byte; `python3 scripts/forest_certificates.py check B N LX` checks one set in Python with the same exact arithmetic; `maxn B N0 [STEP LXLO LXHI]` searches the largest `N` over a grid of splits `lx`. Axiom guards: `lake env lean scripts/ForestTheorems.lean` then `python3 scripts/forest_axioms.py` (`prepare`, then `emit`; see the script).
 
 ### Hash inputs
 
