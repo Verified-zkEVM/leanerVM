@@ -91,7 +91,7 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
       refine ⟨choiceInv_step hbest hdeg (by omega), ?_⟩
       · simp only [appCost_fn, List.cons_append, List.nil_append]
         rw [leastShiftedDegreeChoiceC.lam0.costEq P (by includes),
-          Auto.CompPoly.PolynomialMatrix.leastShiftedDegreeRowStep?.c1058.costEq P (by includes)]
+          Auto.CompPoly.PolynomialMatrix.leastShiftedDegreeRowStep?.c701.costEq P (by includes)]
         have := rowShiftedDegree_cost P (by includes) hC (by omega) (M.getD i #[]) (hrw i) shift hS
         generalize M.getD i #[] = row at this hdeg ⊢
         generalize hd : rowShiftedDegree? row shift = o
@@ -104,7 +104,7 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
           | some cur =>
             have := hbest cur rfl
             dsimp only
-            rw [Auto.CompPoly.PolynomialMatrix.betterRowChoice.c1059.costEq P (by includes)]
+            rw [Auto.CompPoly.PolynomialMatrix.betterRowChoice.c702.costEq P (by includes)]
             cost_simp
             split_ifs <;> omega)
   simp only [List.length_range] at hf
@@ -388,8 +388,8 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
     cost_simp
     split <;> omega
   -- the assembly
-  rw [Auto.CompPoly.GuruswamiSudan.ApproximantBasis.modularEquation.c1062.costEq P (by includes),
-    Auto.LeanVM.Extraction.Fast.solveWindow.c1063.costEq P (by includes)]
+  rw [Auto.CompPoly.GuruswamiSudan.ApproximantBasis.modularEquation.c705.costEq P (by includes),
+    Auto.LeanVM.Extraction.Fast.solveWindow.c706.costEq P (by includes)]
   have hGn' := Nat.mul_le_mul_right points.size hGs
   have hMs' := Nat.mul_le_mul_left (90 * GuruswamiSudan.interpolationWidth params + 130) hMs
   have hopt : Option.casesOn (motive := fun _ ↦ ℕ)
