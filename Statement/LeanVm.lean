@@ -130,20 +130,19 @@ access to `π` and `π⁻¹` that outputs a statement and a proof. -/
 abbrev RandomPermutationAdversary : Type :=
   OracleComp RandomPermutationOracles (ProgramAndInput × Proof)
 
-/-- An outcome of the experiment: the statement (`program`, `input`) and the `proof`, the
-verdict (`accepted`), and the adversary's `transcript`, its queries and their answers in order. -/
-abbrev ExperimentOutcome : Type := ((ProgramAndInput × Proof) × Bool) × OracleQueryLog
-
-/-- The outcome's program. -/
-abbrev ExperimentOutcome.program (z : ExperimentOutcome) : Program := z.1.1.1.1
-/-- The outcome's public input. -/
-abbrev ExperimentOutcome.input (z : ExperimentOutcome) : PublicInput := z.1.1.1.2
-/-- The outcome's proof. -/
-abbrev ExperimentOutcome.proof (z : ExperimentOutcome) : Proof := z.1.1.2
-/-- The verifier accepted. -/
-abbrev ExperimentOutcome.accepted (z : ExperimentOutcome) : Prop := z.1.2 = true
-/-- The adversary's queries and their answers, in order. -/
-abbrev ExperimentOutcome.transcript (z : ExperimentOutcome) : OracleQueryLog := z.2
+/-- **An outcome of the experiment**: the statement and proof the adversary outputs, the
+verifier's verdict, and the adversary's transcript. -/
+structure ExperimentOutcome where
+  /-- The adversary's program. -/
+  program : Program
+  /-- Its public input. -/
+  input : PublicInput
+  /-- Its proof. -/
+  proof : Proof
+  /-- The verifier accepted the proof. -/
+  accepted : Bool
+  /-- The adversary's queries and their answers, in order. -/
+  transcript : OracleQueryLog
 
 /-- **The random-permutation experiment**: the adversary, its queries recorded
 (`Common.loggedOracles`), then the verifier over `π` (`Common.queryPermutation`) on its statement
@@ -152,9 +151,9 @@ and proof, the whole game run against the lazily sampled permutation from no edg
 noncomputable def soundnessExperiment (A : RandomPermutationAdversary) :
     ProbComp ExperimentOutcome :=
   Common.runWithRandomPermutation do
-    let (z, transcript) ← (simulateQ Common.loggedOracles A).run []
-    let accepted ← verifier queryPermutation z.1.1 z.1.2 z.2
-    return ((z, accepted), transcript)
+    let (((program, input), proof), transcript) ← (simulateQ Common.loggedOracles A).run []
+    let accepted ← verifier queryPermutation program input proof
+    return ⟨program, input, proof, accepted, transcript⟩
 
 /-! ### The extractor -/
 
