@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Protocol.Extraction.Fast.FFT.Basis
+public import LeanVM.Protocol.Extraction.Fast.FFT.Plan
 public import LeanVM.Protocol.Extraction.Fast.FFT.Transform
 public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 import all CompPoly.Univariate.Basic
@@ -8,27 +8,34 @@ import all CompPoly.Univariate.Basic
 /-!
 # The additive FFT over `K`: transform, product, contexts
 
-**The transform** (`novelTransform : PointTransform K`, `maxLog = 64`, points `x_v = K.ofBits v`):
-`fwd j p` converts `p`'s monomial coefficients to the novel basis (`toNovel j`, `Fast/FFT/Basis`)
-and evaluates on `U_j = {x_v | v < 2^j}` by lean_vm's additive NTT (`novelFwd j 0`);
-`inv j y` interpolates (`novelInv j`) and converts back (`fromNovel j`). Its laws (`fwd_getD`,
-`inv_eq`, `size_inv`, `fwd_inv`) come from `novelFwd_getD`, `novelInv_eval`,
+**The transform** (`novelTransform : PointTransform K FFTPlan`, `maxLog = 64`, points
+`x_v = K.ofBits v`), through the plan `mkPlan j` (`Fast/FFT/Plan.lean`, built once per size):
+`fwdP P p` (`planFwdPoly`) converts `p`'s monomial coefficients to the novel basis
+(`toNovelRec` on the plan's table, `Fast/FFT/Basis`) and evaluates on `U_j = {x_v | v < 2^j}` by
+the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`) interpolates
+(`planInv`) and converts back (`fromNovelRec`). By the plan they are the unplanned
+`novelFwdPoly j` (`toNovel j`, `novelFwd j 0`) and `novelInvPoly j` (`novelInv j`, `fromNovel j`)
+(`planFwdPoly_eq`, `planInvPoly_eq`), whose laws come from `novelFwd_getD`, `novelInv_eval`,
 `novelFwd_novelInv` and the conversions' `toNovel_spec`, `fromNovel_spec`.
-`fftTransform : EvalMat.EvalTransform K` is the same transform for the evaluation-domain matrix
-products (`EvalMat/Runtime.lean`'s `evalRuntime`).
+`fftTransform : EvalMat.EvalTransform K` is the transform for EvalMat's interface (a plan per
+call); `FFT/PlannedEval.lean`'s products build it once per matrix product.
 
 **The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
 at most `32` coefficients, Karatsuba's when both have at most `1024`, else on the least
-`2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else Karatsuba's); `mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`,
-`fftMulLowContext` (the truncated product as one product of truncated factors),
-`fftRawMulLowContext`, and `fftModContext` (monic remainders by reversal on it).
+`2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else Karatsuba's), the plan built once;
+`mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`, `fftMulLowContext` (the
+truncated product as one product of truncated factors), `fftRawMulLowContext`, and
+`fftModContext` (monic remainders by reversal on it).
 
-**Cost** (`K` products, `N = 2^j`, counted on the definitions): `toNovel j` and `fromNovel j`
-exactly `N·j(j+1)/4` (the division by `W_i`, or the product by it, at level `i` is `(i+1)·2^i`
-per block of `2^(i+1)`) plus their tables' `O(j²)`; `novelFwd j 0` `≈ N·(3j/2 + 1)` (`N`
-butterfly products and `≈ N/2` twiddle products per stage), `novelInv j` `≈ N·(j + 1)`; the
-product `2·toNovel + 2·novelFwd + N + novelInv + fromNovel ≈ N·(3j²/4 + 19j/4 + 7)`, and `4j`
-inversions (`j` for `fromNovel`'s table, one per stage of the three NTTs).
+**Cost** (`K` products, `N = 2^j`, counted on the definitions, every `*` executed): the
+conversions `toNovelRec`, `fromNovelRec` exactly `N·j(j+1)/4` each (the division by `W_i`, or
+the product by it, at level `i` is `(i+1)·2^i` per block of `2^(i+1)`); `planFwd` and `planInv`
+`N·j/2` each (one product per butterfly and stage, `fwdStageFast`, `invStageFast`); so `fwdP`
+and `invP` `N·(j² + 3j)/4` each, no inversion, and no power of two computed per entry (the
+plan's `pows`, the stages' `2^i` once per stage); the product
+`2·fwdP + N + invP = N·(3j² + 9j + 4)/4`. The plan:
+the table `2 + Σ_{1≤J<j} (4J + 3)`, the batched inverses `3j` and one inversion, the twiddles
+`Σ_{i<j} (j−i−1)(2i+3)` products and `< N` additions (`17464` products at `j = 35`).
 -/
 
 namespace LeanVM.Extraction.Fast.FFT
@@ -91,31 +98,63 @@ theorem size_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) :
     (novelInvPoly j y).val.size ≤ 2 ^ j :=
   (size_ofArray_le _).trans (fromNovel_spec hj _).1.le
 
-/-- **The novel-basis transform** over `K`: `2^j` points `x_v`, `j ≤ 64`. -/
-@[expose] def novelTransform : PointTransform K where
+theorem novelInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) (p : CPolynomial K)
+    (hy : y.size = 2 ^ j) (hp : p.val.size ≤ 2 ^ j)
+    (hval : ∀ v < 2 ^ j, y.getD v 0 = p.eval (K.ofBits v)) : novelInvPoly j y = p := by
+  have hc := (toNovel_spec hj p.val).1
+  have hinv : novelInv j y = toNovel j p.val := by
+    rw [novelInv_eval hj (fun t ↦ (toNovel j p.val).getD t 0) y hy fun v hv ↦ by
+      rw [hval v hv, CPolynomial.eval_toPoly, ← polyN_val p hp, ← (toNovel_spec hj _).2,
+        eval_novelSum], ofFn_getD_self _ hc]
+  apply CPolynomial.toPoly_injective
+  rw [toPoly_novelInvPoly hj y, hinv, (toNovel_spec hj _).2, polyN_val p hp]
+
+theorem novelFwdPoly_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) (hy : y.size = 2 ^ j) :
+    novelFwdPoly j (novelInvPoly j y) = y := by
+  have hsz : (novelFwdPoly j (novelInvPoly j y)).size = 2 ^ j := by
+    rw [novelFwdPoly, size_novelFwd, Nat.add_zero]
+  apply array_eq_of_getD (by rw [hsz, hy])
+  intro v hv
+  rw [hsz] at hv
+  rw [novelFwdPoly_getD hj _ (size_novelInvPoly hj y) hv, CPolynomial.eval_toPoly,
+    toPoly_novelInvPoly hj y, ← getD_novelFwd_eval hj _ hv, novelFwd_novelInv y hy]
+
+/-! ## The planned transform -/
+
+/-- The evaluations by the plan: `toNovel` on the plan's table, then `planFwd`. -/
+@[expose] def planFwdPoly (P : FFTPlan) (p : CPolynomial K) : Array K :=
+  planFwd P (toNovelRecP P.pows P.table p.val)
+
+/-- The interpolation by the plan: `planInv`, then `fromNovel` on the plan's table. -/
+@[expose] def planInvPoly (P : FFTPlan) (y : Array K) : CPolynomial K :=
+  CPolynomial.ofArray (fromNovelRecP P.pows P.tableInv (planInv P y))
+
+theorem planFwdPoly_eq {j : ℕ} (hj : j ≤ 64) (p : CPolynomial K) :
+    planFwdPoly (mkPlan j) p = novelFwdPoly j p := by
+  rw [planFwdPoly, toNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
+      rwa [mkPlan_table, length_tableUpTo] at ht), mkPlan_table, planFwd_eq hj]
+  rfl
+
+theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
+    planInvPoly (mkPlan j) y = novelInvPoly j y := by
+  rw [planInvPoly, fromNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
+      rwa [mkPlan_tableInv hj, length_tableInvUpTo] at ht), mkPlan_tableInv hj, planInv_eq hj]
+  rfl
+
+/-- **The novel-basis transform** over `K`: `2^j` points `x_v`, `j ≤ 64`, through the plan
+`mkPlan j`. -/
+@[expose] def novelTransform : PointTransform K FFTPlan where
   maxLog := 64
   point v := K.ofBits v
-  fwd := novelFwdPoly
-  inv := novelInvPoly
-  size_fwd j p := by rw [novelFwdPoly, size_novelFwd, Nat.add_zero]
-  fwd_getD p hj hp _ hv := novelFwdPoly_getD hj p hp hv
-  inv_eq {j} y p hj hy hp hval := by
-    have hc := (toNovel_spec hj p.val).1
-    have hinv : novelInv j y = toNovel j p.val := by
-      rw [novelInv_eval hj (fun t ↦ (toNovel j p.val).getD t 0) y hy fun v hv ↦ by
-        rw [hval v hv, CPolynomial.eval_toPoly, ← polyN_val p hp, ← (toNovel_spec hj _).2,
-          eval_novelSum], ofFn_getD_self _ hc]
-    apply CPolynomial.toPoly_injective
-    rw [toPoly_novelInvPoly hj y, hinv, (toNovel_spec hj _).2, polyN_val p hp]
-  size_inv y hj _ := size_novelInvPoly hj y
-  fwd_inv {j} y hj hy := by
-    have hsz : (novelFwdPoly j (novelInvPoly j y)).size = 2 ^ j := by
-      rw [novelFwdPoly, size_novelFwd, Nat.add_zero]
-    apply array_eq_of_getD (by rw [hsz, hy])
-    intro v hv
-    rw [hsz] at hv
-    rw [novelFwdPoly_getD hj _ (size_novelInvPoly hj y) hv, CPolynomial.eval_toPoly,
-      toPoly_novelInvPoly hj y, ← getD_novelFwd_eval hj _ hv, novelFwd_novelInv y hy]
+  plan := mkPlan
+  fwdP := planFwdPoly
+  invP := planInvPoly
+  size_fwd p hj := by rw [planFwdPoly_eq hj, novelFwdPoly, size_novelFwd, Nat.add_zero]
+  fwd_getD p hj hp _ hv := by rw [planFwdPoly_eq hj]; exact novelFwdPoly_getD hj p hp hv
+  inv_eq y p hj hy hp hval := by rw [planInvPoly_eq hj]; exact novelInvPoly_eq hj y p hy hp hval
+  size_inv y hj _ := by rw [planInvPoly_eq hj]; exact size_novelInvPoly hj y
+  fwd_inv y hj hy := by
+    rw [planInvPoly_eq hj, planFwdPoly_eq hj]; exact novelFwdPoly_novelInvPoly hj y hy
 
 /-- The transform for the evaluation-domain matrix products (`EvalMat`). -/
 @[expose] def fftTransform : EvalMat.EvalTransform K := novelTransform.toEvalMat
