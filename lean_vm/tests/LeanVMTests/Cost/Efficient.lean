@@ -9,7 +9,7 @@ import LeanVM.Cost.Efficient
   Mulders–Storjohann step, the extractor's) and the entry: its bodies held (`includes_ofList`, the indices' distinctness decided) and its size
   bounded by evaluating its bodies' sizes (`size_ofList_le`, decided by the kernel);
 * the extractor's program (`extractorProgram`): `512` bodies, the entry's and the compiled
-  extractor's, the largest index `523`, its size `10489` (`Cost/ExtractorSize.lean` proves at
+  extractor's, the largest index `523`, its size `10479` (`Cost/ExtractorSize.lean` proves at
   most `11000`, `extractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
   transcriptExtractor`.
@@ -50,8 +50,8 @@ theorem msProgram_size : (MachineProgram.ofList msProgramBodies).size ≤ 2 ^ 10
 
 #guard extractorProgramBodies.length == 512
 #guard (extractorProgramBodies.map (·.1)).foldr max 0 == 523
-#guard extractorProgram.size == 10489
-#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 10465
+#guard extractorProgram.size == 10479
+#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 10455
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

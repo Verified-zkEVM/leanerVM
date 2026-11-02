@@ -21,12 +21,15 @@ open LeanVM.Parameters CompPoly CompPoly.GuruswamiSudan LeanVM.Extraction
 
 public section
 
-/-- The bound of one Taylor coefficient, `Y` rows of at most `X` coefficients, `L = log₂ Y + 1`. -/
-@[expose] def taylorBound (X Y L : ℕ) : ℕ := (1700 * L + 960 * X + 329) * Y + 21 * Y + 30
+/-- The bound of `L` levels of the butterfly Taylor shift on at most `Y` rows of at most `X`
+coefficients: per level a power by squaring and `Y` entries, each at most a scaled sum of rows. -/
+@[expose] def bfLoopBound (X Y L : ℕ) : ℕ :=
+  L * ((324 * X + 160) * Y + 535 * (Nat.log2 Y + 1) + 100) + 20
 
-/-- The bound of the substitution on `Y` rows of at most `X` coefficients. -/
+/-- The bound of the substitution on `Y` rows of at most `X` coefficients: the butterfly's
+`log₂ Y + 1` levels, then each row shifted. -/
 @[expose] def substBound (X Y : ℕ) : ℕ :=
-  (taylorBound X Y (Nat.log2 Y + 1) + 28 * (X + Y) + 100) * Y + 40
+  bfLoopBound X Y (Nat.log2 Y + 1) + (28 * (X + Y) + 90) * Y + 50
 
 /-- The bound of a product modulo `u`, operands and `u` of at most `B` coefficients. -/
 @[expose] def mulModBound (B : ℕ) : ℕ := 2500 * (B * B) + 1000 * B + 20000
@@ -49,15 +52,27 @@ public section
 /-- The bound of one base constant's child. -/
 @[expose] def refineLamBound (B : ℕ) : ℕ := gcdBound B + 520 * B + 20300
 
-/-- The bound of one factor's refinement, the cache of at most `L` entries. -/
-@[expose] def refineFactorBound (B L : ℕ) : ℕ :=
-  450 * B + 20000 + (18 * B + 20) * L + frobBound B 64 + traceBound B +
+/-- The bound of one factor's refinement, the factor of at most `B` coefficients, the cache of at
+most `L` entries of at most `C` coefficients. -/
+@[expose] def refineFactorBound (B C L : ℕ) : ℕ :=
+  450 * B + 20000 + (15 * B + 3 * C + 20) * L + frobBound B 64 + traceBound B +
     2 * (refineLamBound B + 9) + 300
 
+/-- The slope of a factor's refinement in its size, factors of at most `B` coefficients:
+`refineFactorBound b C L ≤ b·refineSlope B + 2846718 + (15·b + 3·C + 20)·L` for `b ≤ B`. -/
+@[expose] def refineSlope (B : ℕ) : ℕ := 1600 * (B * B) + 329444 * B + 367394
+
+/-- The bound of one trace coordinate over the factors (`refineFactorsFast`), at most `F` factors
+of at most `B` coefficients, their sizes summing to at most `S`, the cache of at most `L`
+entries: each factor priced at its own size. -/
+@[expose] def refineFactorsBound (B S F L : ℕ) : ℕ :=
+  S * refineSlope B + (2846718 + 2 * F + 33) * F + 15 * S * L + (3 * B + 20) * F * L + 15
+
 /-- The bound of the splitter on a polynomial of at most `B` coefficients: `64` trace
-coordinates, each over at most `B` factors. -/
+coordinates, each over factors of sizes summing to at most `2·B`, at most `B` of them, the cache
+of at most `64·B` entries. -/
 @[expose] def splitBound (B : ℕ) : ℕ :=
-  64 * ((refineFactorBound B (64 * B) + 2 * B + 30) * B + 3 * B + 40) + 450 * B + 23000
+  64 * (refineFactorsBound B (2 * B) B (64 * B) + 40) + 450 * B + 23000
 
 /-- The bound of the root product, `p` of at most `B` coefficients. -/
 @[expose] def rootProductBound (B : ℕ) : ℕ :=

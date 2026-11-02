@@ -36,7 +36,11 @@ import all CompPoly.Bivariate.GuruswamiSudan.PolynomialCorrectness
 
 `gsRunDistinctNF` (`Fast/TruncNoFallback.lean`): the interpolation (`Interp.lean`, reused), then
 Roth–Ruckenstein's search truncated at precision `W + 1` (`prefixesNF` with the root finder of
-`Roots.lean`, reused), the candidates of degree below `k` within the radius.
+`Roots.lean`, reused), the candidates of degree below `k` within the radius. The substitution is
+the butterfly Taylor shift (`substituteBF`, `Fast/TaylorShift.lean`), compiled on demand as seven
+bodies (`substituteBF.c192`, `bfLoop.c193`, `bfLevel.c194` and its closure, `powSq.c196`, the
+row shift's closure and `shiftX.c198`), the indices the former substitution's seven held: the
+functions compiled after them keep theirs.
 -/
 
 namespace LeanVM.Cost.Extractor

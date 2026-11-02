@@ -38,7 +38,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `extractorBudgetFor` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
   through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder (`listDecoderWorstPrice ≈ 2^117.67`) all
+  `263752671977661956293665069228836183 ≈ 2^117.67`, the decoder (`listDecoderWorstPrice ≈ 2^117.67`) all
   but `≈ 2^71.79` of it (the `1 + 2^18` runs `≈ 2^71.77`, the transcript's index `≈ 2^65.44`);
   **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.69`, the transcript's index
   dominating.
@@ -621,9 +621,9 @@ theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN
   gcongr
 
 /-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `263761295154143991480110948970664343 ≈ 2^117.67`, the decoder's `2^117.67` dominating. -/
+most `263752671977661956293665069228836183 ≈ 2^117.67`, the decoder's `2^117.67` dominating. -/
 theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 263761295154143991480110948970664343 := by
+    extractorPrice 28 4 32 32 N ≤ 263752671977661956293665069228836183 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
@@ -636,10 +636,10 @@ theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
   norm_num
 
 /-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
-adversaries), `κ = ℓ = 32`: at most `147716036133091578597140471578787535450535415925 ≈ 2^156.69`,
+adversaries), `κ = ℓ = 32`: at most `147716036133091569973963989543601089570793587765 ≈ 2^156.69`,
 the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
 theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
-    extractorPrice 28 4 32 32 N ≤ 147716036133091578597140471578787535450535415925 := by
+    extractorPrice 28 4 32 32 N ≤ 147716036133091569973963989543601089570793587765 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
     have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
     omega
