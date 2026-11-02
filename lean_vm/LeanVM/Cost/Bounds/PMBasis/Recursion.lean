@@ -33,7 +33,7 @@ The node's hypotheses are what `popovRuntime_core_node` (`Fast/PMBasis/DegreeRec
 gives: `P₁`, `R`, `P₂` of exactly `m` rows, `P₁` of degree `≤ d₁`, `P₂` of degree `≤ o − d₁`, the
 residual's entry `(i, j)` of at most `oⱼ − d₁` coefficients. With them the evaluation-domain
 products' transform sizes are at most the model's (**`clog2_eq_ceilLog`**: the model's exponent is
-`mulEval`'s `ceilLog`; `ceilLog_le_clog2`): the composition at `2^clog2 (o + 1)`, the residual's
+`mulEval`'s `ceilLog`): the composition at `2^clog2 (o + 1)`, the residual's
 truncated product at `2^clog2 (d₁ + o)`.
 -/
 

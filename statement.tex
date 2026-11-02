@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7346$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7314$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -523,8 +523,8 @@ $\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_v
 compiled decoder (within $0.16$ bits of it below $2^{19 + \kappa}$ steps, so on every valid
 execution as argued below; $0.18$ bits up to $2^{60}$ steps, $0.21$ up to $2^{127}$): per step
 $2^{20.9}$ to $2^{21.1}$ (the replay and the filing of the state in a sorted array, its share of
-one sort, growing as $\log$ of the steps); the sorted table of the memory's addresses at the execution's $\kappa$; and about $2^{41}$ for the
-witness read at the counts and the cursors a valid execution bounds, with about $2^{26.57}$ frame
+one sort, growing as $\log$ of the steps); the sorted table of the memory's addresses at the
+execution's $\kappa$; and $2^{37}(\lambda + 16)$, about $2^{42}$ to $2^{43}$, for the witness read at the counts and the cursors a valid execution bounds, with about $2^{26.57}$ frame
 lookups: $G$'s own asserts give at most $16$ children, $65535$ claims of each scheme and $65535$
 coverage slots (\lean{valid_counts}); each child's cursor is at most $8192$ words, as the stream of
 its proof is, which the deferring verifier accepts on a valid execution (\lean{valid_cursor}, from

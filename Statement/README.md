@@ -128,7 +128,8 @@ theorems, then read the files in this order.
     `1` and, but for a `case`'s fields and a closure's captured values, at least the words it
     writes, its operations priced by their algorithms), the encoding of the extractor's input and
     output (`encodeExtractorInput`, `decodeExecution`, a linear parse), the budget
-    (`extractorBudget`, read off the shape a proof announces: `announced`, `LeanVmVerifier.lean`)
+    (`extractorBudget`: `extractorBudgetFor` at the transcript's number of queries, the same for
+    every shape, wherever a proof announces one, `announced`, `LeanVmVerifier.lean`; `0` otherwise)
     and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run within the budget, its
     output parsed; `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and
     does not name it (`lean_vm` names its knowledge extractor, compiled). That the machine's prices
@@ -298,7 +299,7 @@ it below `2^(19 + κ)` steps, so on every valid execution as argued below; `0.18
 steps, `0.21` up to `2^127`): a price per step of the run (the replay and the filing of the state in the table of function
 entries, its share of one sort, `2^20.9` to `2^21.1`, growing as `log(steps)`); the sorted table of
 the memory's addresses, at the execution's `κ`; and the witness read at the counts and the cursors
-a valid execution bounds (about `2^41`: the guest's own asserts give at most `16` children, `65535`
+a valid execution bounds (`2^37·(lg + 16)`, about `2^42` to `2^43`: the guest's own asserts give at most `16` children, `65535`
 claims of each scheme and `65535` coverage slots, `valid_counts`; each child's cursor, a prefix of
 its proof's stream, is at most `8192` words, since the deferring verifier accepts that proof on a
 valid execution (`valid_cursor`); the decoder clamps `da_verify`'s row count at `1024`), with about

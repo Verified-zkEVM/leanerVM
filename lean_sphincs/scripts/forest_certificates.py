@@ -21,7 +21,7 @@ For each parameter set (b, N, lx), with qh = floor(2^(128 + lx)):
 Everything below mirrors the Lean checkers exactly (Fractions); floats only choose parameters.
 The Lean file stores the scalars of each table, option and near certificate; H0Fill.lean rebuilds
 their lists (fillPoisT, fillOpt, fillOptN) as fill_poisT, fill_opt and make_optN do here.
-The moment tables P1tab, P2tab (H0PTab.lean) and PHtab (H0NTab.lean) come from scripts/forest_table.py
+The moment tables P1tab, P2tab (H0PTab/P1.lean, H0PTab/P2Tab.lean) and PHtab (H0NTab/PH.lean) come from scripts/forest_table.py
 (the codeword table) and are compared with the Lean sources.
 """
 
@@ -61,7 +61,7 @@ def betaWQ(qb): return Fr(2 * (2 ** 128 - qb) + 1, 2 ** 256)
 # ---------------- the moment tables ----------------
 
 # The tables are computed from the codeword table (scripts/forest_table.py) and must be the ones of the
-# Lean sources (H0PTab.lean, H0NTab.lean), which the kernel checks against the same table.
+# Lean sources (H0PTab/P1.lean, H0PTab/P2Tab.lean, H0NTab/PH.lean), which the kernel checks against the same table.
 import forest_table
 
 LIT = 123   # the reveal-rate constant of the Lean proof (BridgeRevealRate.litCount_le_all, checkSmallF)

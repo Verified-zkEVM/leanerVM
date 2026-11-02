@@ -30,7 +30,7 @@ run against the lazily sampled permutation from no edge (`Common.runWithRandomPe
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither
 queries `π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems`
 states it for the extractor that a cost-machine program of bounded size computes within a budget
-per shape (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
+in the number of permutation queries (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
 (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound, which leaves
 no room for a useful table of witnesses beside the compiled extractor's code, and its budget,
 `extractorBudgetFor`, `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for

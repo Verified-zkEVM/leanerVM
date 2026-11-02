@@ -24,17 +24,22 @@ constant-time CPU primitive or is priced by the algorithm that computes it, at l
 for two steps, at least the words it writes. The two: a `case` puts the constructor's fields in
 front of the environment, and a closure's application puts its captured values in front of the
 arguments, each at `1`, honest for an environment kept as a frame pointer into the constructor or
-the closure (its fields read in place, not copied). A word operation is one instruction, at `1`. A
-`GF(2^64)` product is at `256`: one carry-less multiplication (PCLMULQDQ, PMULL) and its reduction
-by the sparse modulus, about `21` word operations (`Statement/Fast/FieldWords.lean`). Natural
-numbers are priced by their limbs of 64 bits (`limbCount`): linear for sums, comparisons and
-bitwise operations, the product of the limb counts for `·`, `/` and `%` (schoolbook). A new array
-or constructor is priced by its entries.
+the closure (its fields read in place, not copied). A variable, a field and an array's entry
+(`arrayGet`) are at `1`: values are immutable, so they are shared, not copied. A word operation is
+one instruction, at `1`. A `GF(2^64)` product is at `256`: above the about `21` word operations of
+a hardware carry-less multiplication (PCLMULQDQ, PMULL) and its reduction by the sparse modulus,
+below a software loop's about `800`, so its honesty rests on that hardware. Natural numbers are
+priced by their limbs of 64 bits (`limbCount`): linear for sums, comparisons and bitwise
+operations, the product of the limb counts for `·`, `/` and `%` (schoolbook), the shifts by the
+limbs (a left shift by the result's). A new array, constructor or closure is priced by its entries
+(a closure of `n` captured values at `n + 1`).
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): `P` run on the encoded statement,
 transcript and proof (`encodeExtractorInput`; the transcript without the adversary's coin flips)
-within the budget of the shape the proof announces (`extractorBudget`), its output parsed as an
-execution (`decodeExecution`, a linear parse: no search, no run). A run that fails or exceeds its
+within its budget (`extractorBudget`: `extractorBudgetFor` at the transcript's number of
+permutation queries wherever the proof announces a shape, the same for every shape, and `0` where
+it announces none), its output parsed as an execution (`decodeExecution`, a linear parse: no
+search, no run). A run that fails or exceeds its
 budget extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a parameter
 with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge extractor,
 compiled. What excludes a vacuous statement: `P` is a program (no classical choice), its size
@@ -84,9 +89,9 @@ def binaryFieldMultiplyWords (a b : UInt64) : UInt64 :=
   UInt64.ofBitVec (BF64.mul ⟨a.toBitVec⟩ ⟨b.toBitVec⟩).toBitVec
 
 /-- The primitive operations. None reads a constructor's tag or a closure's function index as a
-number (see `MachineValue.size`): their operands are words, natural numbers, arrays and lists. -/
+number (see the section *Size* below): their operands are words, natural numbers, arrays and lists. -/
 inductive PrimitiveOperation where
-  /-- On words: `and`, `or`, `xor`, `not`, the shifts modulo `2^64`, `=`, `<`. -/
+  /-- On words: `and`, `or`, `xor`, `not`, the shifts (the amount modulo `64`), `=`, `<`. -/
   | wordAnd | wordOr | wordXor | wordNot
   | wordShiftLeft | wordShiftRight | wordEqual | wordLessThan
   /-- The `GF(2^64)` product of two words. -/

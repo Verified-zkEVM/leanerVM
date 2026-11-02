@@ -17,7 +17,8 @@ Three tiers:
   implemented (`LeanVM/Protocol/Extraction/Fast/`), the substitution untruncated; "2 as built":
   the approximant-basis interpolation on Karatsuba's products, a model of an earlier build (the
   compiled extractor now multiplies by the additive FFT, its price proved in `lean_vm`:
-  `decoderBoundPM`, about `2^94.07` at the worst shape, Roth-Ruckenstein dominating);
+  `decoderBoundPM`, about `2^94.07` at the worst shape, Roth-Ruckenstein dominating: `rrBound`,
+  about `2^87.98` per lane, `tests/LeanVMTests/Cost/RrBound.lean`);
 * tier 2 (E2): tier 1 with a fast interpolation (Chowdhury et al. 2015) in place of
   Lee-O'Sullivan and Mulders-Storjohann.
 

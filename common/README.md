@@ -60,6 +60,24 @@ the files below keep their proofs and the definitions only the proofs use.
   simulator with lazily sampled challenges, `Table.lean`, `Inv.lean`, `Chal.lean`, `Budget.lean`
   against a table of challenges, `Main.lean` the lemma, `Vec.lean` the challenges as one random
   oracle of vectors and the order of random oracles).
+- `Common/Game2.lean`: the two-oracle form of a game (`rpmGame2`) and its real world
+  (`realGame2`), the form `keccak256_transfer2` takes.
+- `Common/SimDefs.lean`: the simulators of the two-oracle random-oracle model (`simulator2`,
+  `advS2`) and the duplex's (`Duplex.DuplexSpec`, `Duplex.simImpl`, `Duplex.GSpec`, `Duplex.toV`).
+- `Common/HashOracle.lean`: the model with a Keccak-256 oracle over the same permutation, a proof
+  device (`KSpecH`, `runKH`, `permCallsH`, `SufCma.rpmGameH`).
+- `Common/PiOnly.lean`: a game of that model with each hash call expanded into its permutation
+  calls is a game of the statement's model, with the same distribution and cost (`runK_expand`,
+  `isWeightBound_expand_iff`, `SufCma.rpmSecure_of_rpmSecureH`).
+- `Common/WithHash.lean`: the SUF-CMA game and leanXMSS with the hash a query of its own
+  (`SufCma.SchemeWithHash`, `LeanXmss.Rpm.schemeWithHash`); `Common/WithHashBridge.lean`: the
+  statement's are these with the hash Keccak-256 over `π` (`LeanXmss.Rpm.scheme_eq`).
+- `Common/Linear.lean`: a transfer term `q² / 2^n` linear under a query cap, and the folds of the
+  transfer terms into the end statements' bounds (`bits_add_sq_le`, `sq_add_sq_le`).
+- `Common/Prob.lean`: game-playing lemmas for stateful simulations: identical until bad
+  (`prEvent_run_le_add_bad`), state projection, the bad-event budget (`prEvent_run_bad_le`).
+- `Common/RomComm.lean`: random-oracle queries commute (`run_query_bind_evalDistEq`).
+- `Common/Fold.lean`: a random oracle's cache folded into the state (`foldRO`).
 
 ## Results
 
@@ -98,8 +116,8 @@ at most `q² / 2^508` for Keccak-256, provided the honest direct calls follow th
 discipline (`Duplex`): each call `F x` absorbs a non-final block into the initial state or into
 the answer of an earlier direct call. For Keccak-256 a block is non-final when byte 135 has its
 top bit clear (`keccakNF`); the last padded block never is (`not_keccakNF_of_pad`), and a
-duplexing that overwrites lanes `0..16` and keeps the rest absorbs a non-final block
-(`keccakNF_blockTo`).
+duplexing that overwrites lanes `0..15` and keeps lanes `16..24` (byte 135 and the capacity)
+absorbs a non-final block (`keccakNF_blockTo`).
 
 The two-oracle statement needs both restrictions. The ideal `F` cannot answer like the
 simulator at the end of a sponge path, where the simulator answers with `H`; and if the

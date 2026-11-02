@@ -23,7 +23,7 @@ guest program establishes; the guest program's completeness on recursion nodes a
 
 `Theorems` takes two programs of the cost machine (`CostMachine.lean`) as parameters, of the same
 type, so every use names them: `extractorProgram`, the extractor leanVM's knowledge soundness is
-stated for (`LeanVM.extractorOf`, run within a budget per shape, of size at most
+stated for (`LeanVM.extractorOf`, run within a budget in the number of queries, of size at most
 `extractorSizeBound`), and `decoderProgram`, the decoder that names the guest program's witness
 (`GuestKnowledge`, below; `LeanVmGuest.lean` says why its content is in that decoder). A program's
 size is `MachineProgram.size`: one per term node, a literal by its size. `lean_vm` names both
@@ -161,8 +161,8 @@ step and files the state in its sorted table of function entries (`2^20.9` to `2
 growing as `log(steps)`); the second term builds the sorted table of the memory's addresses; the
 third reads the witness at the counts and cursors the guest program's own asserts bound on every
 valid execution (`16` children, `65535` claims of each scheme and coverage slots, a child's cursor
-at most `8192` words, `da_verify`'s rows at most `1024`), about `2^41`, and its frame lookups
-(about `2^26.6`, each a binary search over the entries). So about `2^42.7` at `κ = 20` and `2^20`
+at most `8192` words, `da_verify`'s rows at most `1024`) and its frame lookups (about `2^26.6`,
+each a binary search over the entries), `2^37·(lg + 16)`, about `2^42` to `2^43`. So about `2^42.7` at `κ = 20` and `2^20`
 steps, `2^49.2` at `κ = 28` and `2^28`, `2^51.2` at `κ = 32` and `2^30`, `2^72.3` at `κ = 32` and
 `2^51` steps; a valid execution of the guest program has fewer than `2^51` steps (`2^ℓ·2^κ`
 states, `ℓ = 19`, `κ ≤ 32`, no state repeated in a halting run; argued, not a Lean theorem). The
