@@ -218,7 +218,8 @@ end PointTransform
 theorem lt_two_pow_logAbove (n : ℕ) : n < 2 ^ logAbove n := Nat.lt_log2_self
 
 /-- When to use the transform: the schoolbook product when a factor has at most `small`
-coefficients (`≤ small·n` products), the `fallback` context's when both have at most `mid`. -/
+coefficients (`≤ small·n` products, folding over the small factor), the `fallback` context's when
+both have at most `mid`. -/
 structure MulSchedule (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
   small : ℕ
   mid : ℕ
@@ -228,7 +229,8 @@ structure MulSchedule (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
 points, `j` least with `2^j ≥ |p| + |q| − 1`, if `j ≤ maxLog` (else `S.fallback`). -/
 @[expose] def mulVia (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolynomial F) :
     CPolynomial F :=
-  if p.val.size ≤ S.small ∨ q.val.size ≤ S.small then p * q
+  if q.val.size ≤ S.small then q * p
+  else if p.val.size ≤ S.small then p * q
   else if p.val.size ≤ S.mid ∧ q.val.size ≤ S.mid then S.fallback.mul p q
   else
     let j := logAbove (p.val.size + q.val.size - 2)
@@ -242,8 +244,10 @@ theorem mulVia_eq (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolyno
     mulVia T S p q = p * q := by
   unfold mulVia
   split
+  · exact mul_comm q p
+  split
   · rfl
-  · rename_i hc
+  · rename_i hc' hc
     split
     · exact S.fallback.mul_eq_mul p q
     · dsimp only
