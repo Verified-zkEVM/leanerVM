@@ -37,3 +37,39 @@ r=2077; s=2077; t=2077
 for j in [5,10,20,35]:
     N=2**j
     print("j=%d  square r=2077: transforms 2^%.2f, pointwise 2^%.2f, plan %d mults"%(j, math.log2((r*s+s*t)*fwdP(j)+r*t*invP(j)), math.log2(r*s*t*N), plan(j)[0]))
+
+# ---- the in-place conversions (Fast/FFT/Convert.lean): array entries and loop iterations per
+# level, against the recursive ones (toNovelRecP, fromNovelRecP) they replace.
+def asc_sum(i, n):        # over e < n: sumAsc's iterations (from t = 0, i terms, stop at 2^t > e)
+    prod = sum(max(0, n - 2**t) for t in range(i))
+    stops = min(n, 2**(i-1)) if i >= 1 else 0      # e < 2^(i-1): one failing check
+    return prod + stops
+def desc_sum(i, n):       # over x < n: sumDesc's iterations (from t = i-1 down, stop at 2^t <= x)
+    prod = sum(min(n, 2**t) for t in range(i))
+    stops = (n - 1) if (i >= 1 and n >= 1) else 0   # x >= 1: one failing check
+    return prod + stops
+def to_level(i):          # per block of 2^(i+1): (array entries, loop iterations, K products)
+    H = 2**i; h = H//2
+    return H + 2*H, desc_sum(i, h) + asc_sum(i, H), (i+1)*H
+def from_level(i):
+    H = 2**i
+    return 2*H, asc_sum(i, H) + desc_sum(i, H), (i+1)*H
+def old_to_level(i):      # qtop, qlo, ++, divRem, scaleArr, the recursion's ++ ; linCoeffP: i per entry
+    H = 2**i; h = H//2
+    return 6*H, i*(h + H), (i+1)*H
+def old_from_level(i):    # two slices, scaleArr, mulAddW ; linCoeffP: i per entry of mulAddW
+    H = 2**i
+    return 5*H, i*2*H, (i+1)*H
+def per_conv(level, j):
+    N = 2**j; tot = [0, 0, 0]
+    for i in range(j):
+        e, it, m = level(i); blocks = N // 2**(i+1)
+        tot = [tot[0]+blocks*e, tot[1]+blocks*it, tot[2]+blocks*m]
+    return [x / (j*N) for x in tot]
+print()
+print("conversions, per j*2^j:   entries  iterations  K-products   (old: entries iterations)")
+for j in [6, 10, 16, 20, 30, 36]:
+    a = per_conv(to_level, j); b = per_conv(old_to_level, j)
+    c = per_conv(from_level, j); d = per_conv(old_from_level, j)
+    print("j=%2d toNovel   %5.2f  %8.2f  %8.2f      (%5.2f  %8.2f)" % (j, a[0], a[1], a[2], b[0], b[1]))
+    print("     fromNovel %5.2f  %8.2f  %8.2f      (%5.2f  %8.2f)" % (c[0], c[1], c[2], d[0], d[1]))
