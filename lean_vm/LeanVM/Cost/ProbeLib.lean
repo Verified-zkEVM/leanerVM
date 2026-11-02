@@ -1,6 +1,8 @@
 module
 
-public import LeanVM.Cost.Library
+public import LeanVM.Cost.CompPolyLib
+import all CompPoly.Univariate.Raw.Ops
+import all CompPoly.Univariate.Raw.Core
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
 
@@ -13,6 +15,12 @@ Generic additions found while compiling CompPoly's PM-basis over `K` (track prob
   `Std.Legacy.Range.forIn'` loops with a membership proof per index (not data, so not compiled). It is
   compiled through `listForInId` over `List.range' start size step` (`forIn_range_id`, from Init's
   `Std.Legacy.Range.forIn_eq_forIn_range'`): one call of the body per index, an early exit at `.done`.
+* Products and sums of polynomials trimmed once: `CPolynomial.Raw.mul p q` is
+  `(mulRaw p q).trim`, and CompPolyLib's `trim_eq` (`p.trim = p.extract 0 (trimLen p p.size)`) names
+  its argument three times, so the compiled product computed `mulRaw p q` three times (a factor of 3
+  on every product and sum, as Phase 3 found). `rawMul_shared`, `rawAdd_shared` bind the untrimmed
+  result by a `let` (evaluated once, then read from the environment): the same values, a third of
+  the work. A rewrite only: no compiler change, so nothing compiled before changes.
 * The encodings of `ForInStep`, `MProd` (a loop's several mutable variables), and CompPoly's
   `XAdicProblem`, `ScalarRrefResult`, `ModularEquation`.
 
@@ -55,6 +63,22 @@ theorem forIn_range_id {β : Type} (r : Std.Legacy.Range) (init : β) (f : ℕ �
   rw [Std.Legacy.Range.forIn_eq_forIn_range', forIn_list_id]
 
 cost_rewrite forIn_range_id
+
+/-- **A product trimmed once.** -/
+theorem rawMul_shared {R : Type} [Semiring R] [BEq R] (p q : CompPoly.CPolynomial.Raw R) :
+    CompPoly.CPolynomial.Raw.mul p q =
+      (let r := CompPoly.CPolynomial.Raw.mulRaw p q; r.extract 0 (CompPolyLib.trimLen r r.size)) := by
+  rw [CompPoly.CPolynomial.Raw.mul, CompPolyLib.trim_eq]
+
+cost_rewrite rawMul_shared
+
+/-- **A sum trimmed once.** -/
+theorem rawAdd_shared {R : Type} [Zero R] [Add R] [BEq R] (p q : CompPoly.CPolynomial.Raw R) :
+    CompPoly.CPolynomial.Raw.add p q =
+      (let r := CompPoly.CPolynomial.Raw.addRaw p q; r.extract 0 (CompPolyLib.trimLen r r.size)) := by
+  rw [CompPoly.CPolynomial.Raw.add, CompPolyLib.trim_eq]
+
+cost_rewrite rawAdd_shared
 
 cost_enc CompPoly.PolynomialMatrix.Approximant.XAdicProblem
 cost_enc CompPoly.DenseMatrix.ScalarRrefResult

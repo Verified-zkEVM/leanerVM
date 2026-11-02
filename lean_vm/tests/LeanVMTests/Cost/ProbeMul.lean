@@ -1,6 +1,7 @@
 import LeanVM.Cost.Extractor.Decode
 import LeanVM.Protocol.Extraction.Fast.Karatsuba
 import CompPoly.LinearAlgebra.PolynomialMatrix.Operations
+import LeanVM.Cost.ProbeLib
 
 /-!
 # Probe: CompPoly's Strassen products of polynomial matrices over `K`, compiled
