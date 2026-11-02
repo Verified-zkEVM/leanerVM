@@ -92,7 +92,7 @@ public section
 
 /-- The lift's price: `w·m` entries reduced on the first branch, `−diag(M)`, the orders. -/
 @[expose] def liftPrice (Q w m : ℕ) : ℕ :=
-  w * (m * (120 * Q + 203) + 48) + m * (m * (16 * Q + 53) + 48) + w + 40 * m + 90
+  w * (m * (123 * Q + 113) + 49) + m * (m * (18 * Q + 52) + 49) + w + 39 * m + 78
 
 /-- **The certified solve's price** (`certifiedSolveC_cost`): the lift twice, the PM-basis core
 (`pmTreeEval`), the basis rows' certificates and principal parts, the guard and the shifts. -/
