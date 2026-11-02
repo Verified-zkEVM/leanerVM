@@ -11,6 +11,8 @@ import LeanVMTests.Extraction.Toy
 * `mulFFT` (proved equal to `p * q`) agrees with CompPoly's schoolbook product on pseudo-random
   polynomials of various sizes, above and below the cutoff, and the low-product contexts with the
   truncated products;
+* the plan (`mkPlan j`): its twiddles by additivity are `novelTwiddles`, its batched inverses
+  give `tableInvUpTo`, and `planFwd`/`planInv` are `novelFwd j 0`/`novelInv j`, `j ≤ 9`;
 * the evaluation-domain matrix product (`EvalMat.mulEval`) on `fftTransform` agrees with the
   naive one;
 * the axiom footprints of the end theorems.
@@ -30,6 +32,13 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
 #guard (List.range 8).all fun J ↦
   let a := randomArray (J + 3) (2 ^ J)
   fromNovel J (toNovel J a) == a && toNovel J (fromNovel J a) == a
+
+-- The plan.
+#guard (List.range 10).all fun j ↦
+  let P := mkPlan j
+  let c := randomArray (j + 60) (2 ^ j)
+  (List.range j).all (fun i ↦ P.twiddles.getD i #[] == novelTwiddles j i) &&
+    P.tableInv == tableInvUpTo j && planFwd P c == novelFwd j 0 c && planInv P c == novelInv j c
 
 -- The forward transform evaluates.
 #guard (List.range 7).all fun j ↦
@@ -92,7 +101,11 @@ def randomMatrix (seed r c n : ℕ) : PolynomialMatrix K :=
   let A := randomMatrix 1 3 4 20
   let B := randomMatrix 2 4 2 13
   EvalMat.mulEval fftTransform fftMulContext A B ==
-    PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B
+    PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B &&
+  mulEvalP novelTransform fftMulContext A B ==
+    PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B &&
+  mulTruncEvalP novelTransform fftMulContext #[5, 30] A B ==
+    PolynomialMatrix.truncateColumns #[5, 30] (PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B)
 
 /-- info: 'LeanVM.Extraction.Fast.FFT.mulFFT_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

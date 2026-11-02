@@ -105,44 +105,62 @@ theorem array_ext_getD' {a b : Array F} (h : a.size = b.size)
 
 /-! ## The transforms -/
 
-/-- **An evaluation transform** on `2^j` points, `j ≤ maxLog`: `fwd j` evaluates a polynomial of
-at most `2^j` coefficients at `point 0, …, point (2^j − 1)`, `inv j` interpolates. -/
-structure PointTransform (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
+/-- **A point transform** on `2^j` points, `j ≤ maxLog`: `fwd j` evaluates a polynomial of at
+most `2^j` coefficients at `point 0, …, point (2^j − 1)`, `inv j` interpolates. Both go through a
+**plan** (`plan j : Plan`, the precomputations of size `2^j`): `fwd j = fwdP (plan j)`, so a
+caller transforming many polynomials of one size builds the plan once (`fwdP P`, `invP P`). -/
+structure PointTransform (F : Type*) [Field F] [BEq F] [LawfulBEq F] (Plan : Type) where
   /-- The largest `j` the laws hold at. -/
   maxLog : ℕ
   /-- The evaluation points. -/
   point : ℕ → F
-  /-- The evaluations on `2^j` points. -/
-  fwd : ℕ → CPolynomial F → Array F
-  /-- The interpolation from `2^j` values. -/
-  inv : ℕ → Array F → CPolynomial F
-  size_fwd : ∀ j p, (fwd j p).size = 2 ^ j
+  /-- The precomputations of size `2^j`. -/
+  plan : ℕ → Plan
+  /-- The evaluations on `2^j` points, by the plan of size `2^j`. -/
+  fwdP : Plan → CPolynomial F → Array F
+  /-- The interpolation from `2^j` values, by the plan of size `2^j`. -/
+  invP : Plan → Array F → CPolynomial F
+  size_fwd : ∀ {j : ℕ} (p : CPolynomial F), j ≤ maxLog → (fwdP (plan j) p).size = 2 ^ j
   /-- `fwd` evaluates. -/
   fwd_getD : ∀ {j : ℕ} (p : CPolynomial F), j ≤ maxLog → p.val.size ≤ 2 ^ j →
-    ∀ {v : ℕ}, v < 2 ^ j → (fwd j p).getD v 0 = p.eval (point v)
+    ∀ {v : ℕ}, v < 2 ^ j → (fwdP (plan j) p).getD v 0 = p.eval (point v)
   /-- `inv` interpolates: the polynomial of at most `2^j` coefficients with the values. -/
   inv_eq : ∀ {j : ℕ} (y : Array F) (p : CPolynomial F), j ≤ maxLog → y.size = 2 ^ j →
-    p.val.size ≤ 2 ^ j → (∀ v < 2 ^ j, y.getD v 0 = p.eval (point v)) → inv j y = p
-  size_inv : ∀ {j : ℕ} (y : Array F), j ≤ maxLog → y.size = 2 ^ j → (inv j y).val.size ≤ 2 ^ j
+    p.val.size ≤ 2 ^ j → (∀ v < 2 ^ j, y.getD v 0 = p.eval (point v)) → invP (plan j) y = p
+  size_inv : ∀ {j : ℕ} (y : Array F), j ≤ maxLog → y.size = 2 ^ j →
+    (invP (plan j) y).val.size ≤ 2 ^ j
   /-- Every `2^j` values are interpolated. -/
-  fwd_inv : ∀ {j : ℕ} (y : Array F), j ≤ maxLog → y.size = 2 ^ j → fwd j (inv j y) = y
+  fwd_inv : ∀ {j : ℕ} (y : Array F), j ≤ maxLog → y.size = 2 ^ j →
+    fwdP (plan j) (invP (plan j) y) = y
+
+variable {Plan : Type}
 
 namespace PointTransform
 
-variable (T : PointTransform F)
+/-- The evaluations on `2^j` points. -/
+abbrev fwd (T : PointTransform F Plan) (j : ℕ) : CPolynomial F → Array F := T.fwdP (T.plan j)
+
+/-- The interpolation from `2^j` values. -/
+abbrev inv (T : PointTransform F Plan) (j : ℕ) : Array F → CPolynomial F := T.invP (T.plan j)
+
+end PointTransform
+
+namespace PointTransform
+
+variable (T : PointTransform F Plan)
 
 /-- **Interpolation inverts evaluation.** -/
 theorem inv_fwd {j : ℕ} (hj : j ≤ T.maxLog) (p : CPolynomial F) (hp : p.val.size ≤ 2 ^ j) :
     T.inv j (T.fwd j p) = p :=
-  T.inv_eq _ p hj (T.size_fwd j p) hp fun _ hv ↦ T.fwd_getD p hj hp hv
+  T.inv_eq _ p hj (T.size_fwd p hj) hp fun _ hv ↦ T.fwd_getD p hj hp hv
 
 /-- **Evaluation is multiplicative** when the product fits. -/
 theorem fwd_mul {j : ℕ} (hj : j ≤ T.maxLog) (p q : CPolynomial F) (hp : p.val.size ≤ 2 ^ j)
     (hq : q.val.size ≤ 2 ^ j) (hpq : (p * q).val.size ≤ 2 ^ j) :
     T.fwd j (p * q) = pmul (2 ^ j) (T.fwd j p) (T.fwd j q) := by
-  apply array_ext_getD' (by rw [T.size_fwd, pmul, Array.size_ofFn])
+  apply array_ext_getD' (by rw [T.size_fwd _ hj, pmul, Array.size_ofFn])
   intro v hv
-  rw [T.size_fwd] at hv
+  rw [T.size_fwd _ hj] at hv
   rw [pmul, getD_ofFn' _ hv, T.fwd_getD _ hj hpq hv, T.fwd_getD _ hj hp hv, T.fwd_getD _ hj hq hv,
     CPolynomial.eval_mul]
 
@@ -155,9 +173,9 @@ theorem fwd_add {j : ℕ} (hj : j ≤ T.maxLog) (p q : CPolynomial F) (hp : p.va
     intro i hi
     rw [CPolynomial.coeff_add, CPolynomial.coeff_eq_zero_of_size_le _ (by omega),
       CPolynomial.coeff_eq_zero_of_size_le _ (by omega), add_zero]
-  apply array_ext_getD' (by rw [T.size_fwd, padd, Array.size_ofFn])
+  apply array_ext_getD' (by rw [T.size_fwd _ hj, padd, Array.size_ofFn])
   intro v hv
-  rw [T.size_fwd] at hv
+  rw [T.size_fwd _ hj] at hv
   rw [padd, getD_ofFn' _ hv, T.fwd_getD _ hj hpq hv, T.fwd_getD _ hj hp hv, T.fwd_getD _ hj hq hv,
     CPolynomial.eval_toPoly, CPolynomial.eval_toPoly, CPolynomial.eval_toPoly,
     CPolynomial.toPoly_add, Polynomial.eval_add]
@@ -180,12 +198,12 @@ namespace PointTransform
 
 /-- **The evaluation-domain interface** (`EvalMat.EvalTransform`) of a point transform, at the
 points `point j v = T.point v`. -/
-@[expose] def toEvalMat (T : PointTransform F) : EvalMat.EvalTransform F where
+@[expose] def toEvalMat (T : PointTransform F Plan) : EvalMat.EvalTransform F where
   maxLog := T.maxLog
   point _ v := T.point v
   fwd := T.fwd
   inv := T.inv
-  size_fwd j p _ _ := T.size_fwd j p
+  size_fwd _ p hj _ := T.size_fwd p hj
   fwd_getD _ p hj hp _ hv :=
     T.fwd_getD p hj (le_trans (size_le_natDegree_succ p) (by omega)) hv
   inv_fwd _ p hj hp := T.inv_fwd hj p (le_trans (size_le_natDegree_succ p) (by omega))
@@ -208,16 +226,19 @@ structure MulSchedule (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
 
 /-- **The product by a point transform**: by the schedule `S` for small factors, else on `2^j`
 points, `j` least with `2^j ≥ |p| + |q| − 1`, if `j ≤ maxLog` (else `S.fallback`). -/
-@[expose] def mulVia (T : PointTransform F) (S : MulSchedule F) (p q : CPolynomial F) :
+@[expose] def mulVia (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolynomial F) :
     CPolynomial F :=
   if p.val.size ≤ S.small ∨ q.val.size ≤ S.small then p * q
   else if p.val.size ≤ S.mid ∧ q.val.size ≤ S.mid then S.fallback.mul p q
   else
     let j := logAbove (p.val.size + q.val.size - 2)
-    if j ≤ T.maxLog then T.inv j (pmul (2 ^ j) (T.fwd j p) (T.fwd j q)) else S.fallback.mul p q
+    if j ≤ T.maxLog then
+      let P := T.plan j
+      T.invP P (pmul (2 ^ j) (T.fwdP P p) (T.fwdP P q))
+    else S.fallback.mul p q
 
 /-- **The transform's product is CompPoly's.** -/
-theorem mulVia_eq (T : PointTransform F) (S : MulSchedule F) (p q : CPolynomial F) :
+theorem mulVia_eq (T : PointTransform F Plan) (S : MulSchedule F) (p q : CPolynomial F) :
     mulVia T S p q = p * q := by
   unfold mulVia
   split
@@ -234,18 +255,18 @@ theorem mulVia_eq (T : PointTransform F) (S : MulSchedule F) (p q : CPolynomial 
       · exact S.fallback.mul_eq_mul p q
 
 /-- CompPoly's multiplication context for the transform's product. -/
-@[expose] def mulContextOf (T : PointTransform F) (S : MulSchedule F) : CPolynomial.MulContext F where
+@[expose] def mulContextOf (T : PointTransform F Plan) (S : MulSchedule F) : CPolynomial.MulContext F where
   mul := mulVia T S
   mul_eq_mul := mulVia_eq T S
 
 /-- **The truncated product**: the low `order` coefficients of `p·q`, as the truncation of one
 product of the truncated factors (at most `2·order − 1` coefficients). -/
-@[expose] def mulLowVia (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
+@[expose] def mulLowVia (T : PointTransform F Plan) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
     CPolynomial F :=
   PolynomialMatrix.truncateX order
     (mulVia T S (PolynomialMatrix.truncateX order p) (PolynomialMatrix.truncateX order q))
 
-theorem mulLowVia_eq (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
+theorem mulLowVia_eq (T : PointTransform F Plan) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
     mulLowVia T S order p q = PolynomialMatrix.truncateX order (p * q) := by
   rw [mulLowVia, mulVia_eq]
   apply CPolynomial.eq_iff_coeff.2
@@ -258,7 +279,7 @@ theorem mulLowVia_eq (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p
   · rfl
 
 /-- CompPoly's polynomial-matrix low-product context for the transform's product. -/
-@[expose] def mulLowContextOf (T : PointTransform F) (S : MulSchedule F) :
+@[expose] def mulLowContextOf (T : PointTransform F Plan) (S : MulSchedule F) :
     PolynomialMatrix.MulLowContext F where
   mulContext := mulContextOf T S
   mulLow := mulLowVia T S
@@ -266,7 +287,7 @@ theorem mulLowVia_eq (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p
 
 /-- The low `k` coefficients of a product of raw polynomials, by the transform's product of the
 truncated factors. -/
-@[expose] def rawMulLowVia (T : PointTransform F) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) :
+@[expose] def rawMulLowVia (T : PointTransform F Plan) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) :
     CPolynomial.Raw F :=
   (mulVia T S (CPolynomial.ofArray (p.extract 0 k)) (CPolynomial.ofArray (q.extract 0 k))).val.extract
     0 k
@@ -280,7 +301,7 @@ theorem coeff_ofArray_extract (p : CPolynomial.Raw F) {k a : ℕ} (ha : a < k) :
   · have : p.size ≤ a := by omega
     simp [h, Array.getElem?_eq_none this]
 
-theorem coeff_rawMulLowVia (T : PointTransform F) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) (i : ℕ)
+theorem coeff_rawMulLowVia (T : PointTransform F Plan) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) (i : ℕ)
     (hi : i < k) : (rawMulLowVia T S k p q).coeff i = (p * q).coeff i := by
   have hext : (rawMulLowVia T S k p q).coeff i =
       (CPolynomial.ofArray (p.extract 0 k) * CPolynomial.ofArray (q.extract 0 k)).coeff i := by
@@ -299,7 +320,7 @@ theorem coeff_rawMulLowVia (T : PointTransform F) (S : MulSchedule F) (k : ℕ) 
   rw [coeff_ofArray_extract p (by omega), coeff_ofArray_extract q (by omega)]
 
 /-- CompPoly's raw low-product context for the transform's product. -/
-@[expose] def rawMulLowContextOf (T : PointTransform F) (S : MulSchedule F) :
+@[expose] def rawMulLowContextOf (T : PointTransform F Plan) (S : MulSchedule F) :
     CPolynomial.Raw.MulLowContext F where
   mulLow := rawMulLowVia T S
   size_le k p q := by simp [rawMulLowVia]
