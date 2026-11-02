@@ -188,26 +188,31 @@ theorem extractorProgram_entry : extractorProgram[0]? = some (entryBody extracto
 
 /-- **The compiled extractor's price is within the budget** (`extractorC_within`,
 `Cost/Bounds/Top.lean`): wherever the proof announces a shape, the price in `extractorProgram` and
-the entry's `9` are within `extractorBudgetFor`. -/
-theorem extractorPrice_within_budget : ∀ prog input T π layout logInverseRate st (t : Execution prog),
+the entry's `9` are within `extractorBudgetFor`. **Given** the new decoder's interpolation price
+(`hInterp`, `Bounds.PMLane.InterpPMCost`, being proved). -/
+theorem extractorPrice_within_budget
+    (hInterp : Bounds.PMLane.InterpPMCost extractorProgram Bounds.PMBasis.marginPrices) :
+    ∀ prog input T π layout logInverseRate st (t : Execution prog),
     afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st) →
     extractorTop prog input (permutationQueries T) π = some t →
     machineCost extractorProgram extractorC.costIdx
         [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
       extractorBudgetFor (permutationQueries T).length :=
   fun prog input T π layout logInverseRate st _ ha _ ↦
-    Bounds.extractorC_within extractorProgram extractorProgram_includes prog input T π layout
+    Bounds.extractorC_within extractorProgram extractorProgram_includes hInterp prog input T π layout
       logInverseRate st ha
 
 /-- **The extractor `extractorProgram` computes is `transcriptExtractor`**: its spec and its price
-within the budget. -/
-theorem extractorOf_extractorProgram : LeanVM.extractorOf extractorProgram = transcriptExtractor :=
+within the budget. **Given** the new decoder's interpolation price (`hInterp`, being proved). -/
+theorem extractorOf_extractorProgram
+    (hInterp : Bounds.PMLane.InterpPMCost extractorProgram Bounds.PMBasis.marginPrices) :
+    LeanVM.extractorOf extractorProgram = transcriptExtractor :=
   extractorOf_eq_of_spec extractorProgram extractorC.costIdx extractorProgram_entry
     (fun prog input qs π ↦ machineCost extractorProgram extractorC.costIdx
       [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π])
     (fun prog input qs π ↦ extractorC.costSpec extractorProgram extractorProgram_includes
       prog input qs π)
-    extractorPrice_within_budget
+    (extractorPrice_within_budget hInterp)
 
 end
 

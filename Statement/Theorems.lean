@@ -133,9 +133,9 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `785500`, the
-compiled decoder's size (`785159`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
-and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `341`. That
+/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `786000`, the
+compiled decoder's size (`785617`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
+and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `383`. That
 size counts in full the guest program's per-function tables, which the decoder's replay of the run
 reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by its
 size; the frame cells of the guest's functions are `749835` of it). The slack bounds a table of
@@ -145,7 +145,7 @@ leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as t
 `14400` against its `13905`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
 cells to a limb, freeing room for about `1600` signatures' encodings. -/
-def guestDecoderSizeBound : ℕ := 785500
+def guestDecoderSizeBound : ℕ := 786000
 
 /-! ### The guest decoder's budget -/
 
@@ -209,7 +209,7 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   completeness : LeanVM.Completeness
 
-  /-- The guest decoder program's size is at most `guestDecoderSizeBound` (`785500`), its literals
+  /-- The guest decoder program's size is at most `guestDecoderSizeBound` (`786000`), its literals
   counted in full: the slack over the compiled decoder's size is room for one leanXMSS
   signature's encoding, so the compiled decoder could carry no useful table of witnesses beside its
   code; a program written differently could (`guestDecoderSizeBound`). -/

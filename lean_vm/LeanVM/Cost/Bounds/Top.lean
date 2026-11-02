@@ -3,6 +3,8 @@ module
 public import LeanVM.Cost.Bounds.Assembly
 public import LeanVM.Cost.Bounds.TopIncludes
 public import LeanVM.Cost.Bounds.Decoder.Decode
+public import LeanVM.Cost.Bounds.PMLane.Decode
+public import LeanVM.Cost.Bounds.PMLane.Shapes
 public import LeanVM.Cost.Extractor.Top
 import all Statement.LeanIsa
 import all LeanVM.Protocol.Extraction.Extractor
@@ -361,26 +363,28 @@ theorem fastOfC_cost (hP : Includes P fastOfC.costDeps) (μ R : ℕ) (hμ : μ �
   simp only [show Whir.initialFold = 6 from rfl] at this
   omega
 
-set_option maxRecDepth 8000 in
-/-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape.
-**Awaits** the new decoder's bound (`decodeStacksDistinctPM`, compiled `decodeStacksPMC`):
-`Decoder.decodeStacksPMC_cost_worst`, the statement of `Decoder.decodeStacksDistinctC_cost_worst`
-(`Bounds/Decoder/Decode.lean`) with `decodeStacksPMC` and the new `listDecoderWorstPrice`. -/
-theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
+/-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
+lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
+≈ 2^94.03` beyond the word's reads), within the former decoder's `listDecoderWorstPrice`. **Given
+the interpolation's price** (`hInterp`, `PMLane.InterpPMCost`, being proved). -/
+theorem decOfC_cost (hP : Includes P decOfC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
       1752 * 2 ^ 26 + listDecoderWorstPrice + 10 := by
   rw [decOfC.costEq P hP]
-  have := Decoder.decodeStacksPMC_cost_worst P (by includes) hadm _
+  have := PMLane.decodeStacksPMC_cost_worst P (by includes_sub) hInterp hadm _
     (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
-    (fun a ↦ RunsApp.of_spec (fastOfC.lam0.costSpec P (by includes) leaves h 64 a))
+    (fun a ↦ RunsApp.of_spec (fastOfC.lam0.costSpec P (by includes_sub) leaves h 64 a))
     (BW := 17 * 64 + 24) (Lw := 64)
     (fun v hv ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [fastOfC.lam0.costEq P (by includes)]
-      have := leafAt_cost P (by includes) leaves h 64 v hh hv (by norm_num)
+      rw [fastOfC.lam0.costEq P (by includes_sub)]
+      have := leafAt_cost P (by includes_sub) leaves h 64 v hh hv (by norm_num)
       omega)
     (fun v ↦ leafAt_length_le leaves h 64 v hl)
+  rw [PMLane.pmDecoderWorstPrice_eq] at this
+  unfold listDecoderWorstPrice
   omega
 
 /-- A stack's run on `afterRootLite`'s layouts: at most `stackRunPrice κ ℓ`. -/
@@ -445,12 +449,9 @@ theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Prog
 
 /-! ## The stages -/
 
--- The inclusions of `decOfC`'s and `runBothC`'s lists (about `700` bodies) recurse deeper than
--- the default.
-set_option maxRecDepth 8000 in
-set_option maxHeartbeats 8000000 in
 /-- **The candidate runs from the committed leaves** (`runFromLeavesC`, width `64`). -/
-theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Semantics.Program)
+theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) (prog : Semantics.Program)
     (input : PublicInput) (L : LayoutLite) (R : ℕ) (hf : LayoutFacts L)
     (hadm : Whir.Admissible L.stackLog R) (leaves : Array (List K)) (h : ℕ) (hh : h < 64)
     (hl : ∀ l ∈ leaves, l.length ≤ 64) :
@@ -461,18 +462,18 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
   obtain ⟨-, h2, -, h4⟩ := hadm'
   simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
   rw [runFromLeavesC.costEq P hP]
-  have hF := fastOfC_cost P (by includes) L.stackLog R (by omega) (by omega) leaves h hh hl
+  have hF := fastOfC_cost P (by includes_sub) L.stackLog R (by omega) (by omega) leaves h hh hl
   have hslow : ∀ x : Unit, RunsApp P (.closure runFromLeavesC.lam0.costIdx
       [encodeValue L, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64]) [encodeValue x]
       (encodeValue ((fun _ : Unit ↦ decOf L.stackLog R leaves h 64) x)) := fun x ↦
-    RunsApp.of_spec (runFromLeavesC.lam0.costSpec P (by includes) L R leaves h 64 x)
-  have hB := runBothC_cost P (by includes) prog input L hf (fastOf L.stackLog R leaves h 64)
+    RunsApp.of_spec (runFromLeavesC.lam0.costSpec P (by includes_sub) L R leaves h 64 x)
+  have hB := runBothC_cost P (by includes_sub) prog input L hf (fastOf L.stackLog R leaves h 64)
     (fastStacksFast_length_le _ _ _) (fun _ ↦ decOf L.stackLog R leaves h 64) _ hslow
     (1752 * 2 ^ 26 + listDecoderWorstPrice + 17)
     (by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [runFromLeavesC.lam0.costEq P (by includes)]
-      have := decOfC_cost P (by includes) hadm leaves h hh hl
+      rw [runFromLeavesC.lam0.costEq P (by includes_sub)]
+      have := decOfC_cost P (by includes_sub) hInterp hadm leaves h hh hl
       omega)
     (by
       show (decodeStacksDistinctPM L.stackLog R (leafAt leaves h 64)).length ≤ 2 ^ 18
@@ -481,9 +482,9 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
   unfold listDecoderPrice
   omega
 
-set_option maxHeartbeats 2000000 in
 /-- **A stage** (`stageTC`) at the root `afterRootLite` returns: the committed leaves, the runs. -/
-theorem stageTC_cost (hP : Includes P stageTC.costDeps) (prog : Semantics.Program)
+theorem stageTC_cost (hP : Includes P stageTC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
     (D W : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
     {bytecode : List K} {π : Proof}
@@ -496,15 +497,16 @@ theorem stageTC_cost (hP : Includes P stageTC.costDeps) (prog : Semantics.Progra
   have hadm := admissible_of_afterRootLite har
   rw [stageTC.costEq P hP]
   dsimp only
-  have hL := leavesOfC_cost P (by includes) qs D W hW hN (L.stackLog - 6 + R) root
-  have hR := runFromLeavesC_cost P (by includes) prog input L R hf hadm
+  have hL := leavesOfC_cost P (by includes_sub) qs D W hW hN (L.stackLog - 6 + R) root
+  have hR := runFromLeavesC_cost P (by includes_sub) hInterp prog input L R hf hadm
     (leavesOf qs 64 (L.stackLog - 6 + R) root) (L.stackLog - 6 + R) (by omega)
     (fun l hl ↦ (subtreeLeavesWith_mem_length _ _ _ _ l hl).le)
   unfold afterRootStagePrice
   omega
 
 /-- **After the replay** (`afterRootStageC`): the root, then the stage. -/
-theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : Semantics.Program)
+theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
     (D W : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
     {bytecode : List K} {π : Proof}
@@ -523,7 +525,7 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
     _ hk
   have hlam := afterRootStageC.lam0.costEq P hI prog input qs R L
     (root, L.stackLog - 6 + R, 64)
-  have hst := stageTC_cost P hI2 prog input qs D W hW hN har root
+  have hst := stageTC_cost P hI2 hInterp prog input qs D W hW hN har root
   rw [afterRootStageC.costEq P hP]
   simp only [hroots, List.head?_cons] at hb ⊢
   simp only [appCost_fn, List.cons_append, List.nil_append] at hb
@@ -536,7 +538,8 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
 
 /-- **The compiled extractor's price** (`extractorC`), on every input: at most `extractorPrice` at the shape `afterRootLite` announces, or
 `replayPrice` when the replay fails. -/
-theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
+theorem extractorC_cost (hP : Includes P extractorC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) (prog : Semantics.Program)
     (input : PublicInput) (qs : List (Common.PermutationQuery KeccakState × KeccakState))
     (π : Proof) :
     machineCost P extractorC.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue π] ≤
@@ -572,7 +575,7 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
     simp only [appCost_fn, List.cons_append, List.nil_append]
     have hl := extractorC.lam0.costEq P hI0 prog input qs ((L, R), st)
     have hN : qs.length + 2 ≤ 2 ^ (Nat.log2 (qs.length + 2) + 1) := Nat.le_of_lt Nat.lt_log2_self
-    have hs := afterRootStageC_cost P (includes_afterRootStageC P hP) prog input qs _ _
+    have hs := afterRootStageC_cost P (includes_afterRootStageC P hP) hInterp prog input qs _ _
       limbs_le_wl_two hN har
     omega
 
@@ -608,13 +611,14 @@ theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ 
 `Cost/Efficient.lean`): wherever `afterRoot` announces a shape, the compiled extractor's price and the
 entry's `9` are within `extractorBudgetFor`, on every transcript (`extractorC_cost` at the shape
 `afterRootLite_facts` bounds, `extractorPrice_le_worst`, `extractorPrice_worst_le`). -/
-theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
+theorem extractorC_within (hP : Includes P extractorC.costDeps)
+    (hInterp : PMLane.InterpPMCost P PMBasis.marginPrices) (prog : Semantics.Program)
     (input : PublicInput) (T : Common.OracleQueryLog) (π : Proof) (layout : Layout)
     (logInverseRate : ℕ) (st : ProgState)
     (ha : afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st)) :
     machineCost P extractorC.costIdx [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
       extractorBudgetFor (permutationQueries T).length := by
-  have h := extractorC_cost P hP prog input (permutationQueries T) π
+  have h := extractorC_cost P hP hInterp prog input (permutationQueries T) π
   have hl : afterRootLite (bytecodeWords prog) π = some ((layoutLite layout, logInverseRate), st) := by
     rw [afterRootLite_eq, ha]; rfl
   rw [hl] at h

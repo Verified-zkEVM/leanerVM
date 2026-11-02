@@ -279,8 +279,8 @@ execution within its budget. The program is that decoder compiled (`LeanVM.Cost.
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestDecoderSizeBound`, `785500`) limits any program; it is the compiled
-decoder's size, `785159` (proved at most that and measured exactly), and a slack of `341`: room for
+**The size bound** (`guestDecoderSizeBound`, `786000`) limits any program; it is the compiled
+decoder's size, `785617` (proved at most that and measured exactly), and a slack of `383`: room for
 one leanXMSS signature's encoding (`309`) beside its code but not two, so no useful table of
 witnesses (hard-coded signatures masking a bug of the guest program on finitely many statements)
 fits there. That size counts the guest program's per-function tables, literals of the program, in

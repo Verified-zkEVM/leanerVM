@@ -30,11 +30,17 @@ theorem extractorProgram_indices_increasing :
     increasingFrom 0 (extractorC.costDeps.map (·.1)) = true := by
   decide +kernel
 
--- The kernel builds the program's array: deeper than the default recursion depth.
-set_option maxRecDepth 100000 in
-/-- **The program's size**, evaluated: at most `14400` (exactly `13905`). -/
+/-- **The program's size**, from its bodies (`size_ofList_add_length`: the bodies' sizes and two
+per index without a body), each count evaluated: at most `14400` (exactly `13905`). -/
 theorem extractorProgram_size_le_measured : extractorProgram.size ≤ 14400 := by
-  decide +kernel
+  have h := size_ofList_add_length extractorProgramBodies (by
+    rw [extractorProgramBodies, List.map_cons]
+    exact nodup_of_increasing extractorProgram_indices_increasing)
+  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 13797 := by decide +kernel
+  have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 752 := by decide +kernel
+  have h3 : extractorProgramBodies.length = 699 := by decide +kernel
+  unfold extractorProgram
+  omega
 
 end
 
