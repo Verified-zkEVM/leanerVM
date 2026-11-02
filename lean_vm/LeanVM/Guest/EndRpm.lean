@@ -92,8 +92,8 @@ theorem aggregate_knowledge_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledge 
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   refine le_trans (prEvent_mono _ _ _ ?_) (knowledgeSoundness_holds A Q hA hQ)
-  rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, T⟩ ⟨hb, hprog, hno⟩
-  dsimp only [ExperimentOutcome.program] at hprog
+  rintro ⟨prog, input, π, b, T⟩ ⟨hb, hprog, hno⟩
+  dsimp only at hprog
   subst hprog
   refine ⟨hb, ?_⟩
   rintro ⟨t, hx, hv⟩
