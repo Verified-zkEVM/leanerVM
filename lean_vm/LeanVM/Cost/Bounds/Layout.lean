@@ -133,7 +133,7 @@ structure LayoutFacts (L : LayoutLite) : Prop where
   index_lt : ∀ c, (L.placement c).index < 2 ^ 48
 
 theorem LayoutFacts.index_lt_word {L : LayoutLite} (h : LayoutFacts L) (c : ℕ) :
-    (L.placement c).index < 2 ^ 64 :=
+    (L.placement c).index < 2 ^ 63 :=
   lt_trans (h.index_lt c) (by norm_num)
 
 /-- **`buildLayoutLite`'s layouts** meet `LayoutFacts`, and the bytecode has `2^(ℓ + 4)` words. -/

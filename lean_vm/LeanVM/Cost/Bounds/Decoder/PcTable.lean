@@ -10,9 +10,9 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 their entry pc, built once by the decoder's top. Its shape and prices:
 
 * `pcTableT_good`: a good map of word-sized keys, `879` insertions (below `2^10`);
-* **`pcTableT_cost`**: built at most `17047343` (each insertion amortized: a power `g^e`, `e < 2^19`,
+* **`pcTableT_cost`**: built at most `7188478` (each insertion amortized: a power `g^e`, `e < 2^19`,
   a lookup and the carry);
-* **`pcTableT_get_cost`**: a lookup at most `8339` (`10` levels, a binary search each), the `Gpc` of
+* **`pcTableT_get_cost`**: a lookup at most `5969` (`10` levels, a binary search each), the `Gpc` of
   `entryArrayT_cost` (`EntryArray.lean`);
 * **`pcTableT_getD_length`**: at most two functions at one pc (the entry pcs repeat at most twice,
   `GuestTablesBounds.lean`; `gpow` is injective below the order of `g`), the `M` of
@@ -72,9 +72,9 @@ theorem pcTableT_good :
 /-- The pc table's positions and weights are words. -/
 theorem wl_ten : wl 10 = 1 := rfl
 
-/-- **A lookup in the pc table** (`getPcC`): at most `8339`. -/
+/-- **A lookup in the pc table** (`getPcC`): at most `5969`. -/
 theorem pcTableT_get_cost (hP : Includes P getPcC.costDeps) (k : ℕ) (hk : NatKey k) :
-    machineCost P getPcC.costIdx [encodeValue pcTableT, encodeValue k] ≤ 8339 := by
+    machineCost P getPcC.costIdx [encodeValue pcTableT, encodeValue k] ≤ 5969 := by
   obtain ⟨hg, hQ, hw⟩ := pcTableT_good
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := 10) (by rw [hw]; norm_num)
   have := getPc_cost P hP 10 pcTableT hQ hlev
@@ -167,12 +167,12 @@ theorem pcTableT_getD_length (k : ℕ) : (pcTableT.getD k []).length ≤ 2 := by
   smGood m ∧ KeysIn NatKey m.levels ∧ smWeightSum m + r ≤ 2 ^ 10
 
 set_option maxRecDepth 100000 in
-/-- One function filed (`addEntryC`), amortized: at most `19365`. -/
+/-- One function filed (`addEntryC`), amortized: at most `8149`. -/
 theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap ℕ (List ℕ)) (r : ℕ)
     (hm : PcInv m (r + 1)) (j : ℕ) :
     PcInv (addEntry m j) r ∧
       machineCost P addEntryC.costIdx [encodeValue m, encodeValue j] +
-          35 * potential 10 (addEntry m j).levels ≤ 35 * potential 10 m.levels + 19365 := by
+          37 * potential 10 (addEntry m j).levels ≤ 37 * potential 10 m.levels + 8149 := by
   obtain ⟨hg, hQ, hw⟩ := hm
   have hN : smWeightSum m < 2 ^ 10 := by omega
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hN
@@ -195,21 +195,21 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
 
 set_option maxRecDepth 100000 in
-/-- **The pc table** (`pcTableTC`), built once: at most `17047343`. -/
+/-- **The pc table** (`pcTableTC`), built once: at most `7188478`. -/
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
-    machineCost P pcTableTC.costIdx [] ≤ 17047343 := by
+    machineCost P pcTableTC.costIdx [] ≤ 7188478 := by
   rw [pcTableTC.costEq P hP]
   have hn : nFns = 879 := rfl
   have hr := rangeLoop_cost P (by includes) nFns [] (by rw [hn]; norm_num)
   obtain ⟨-, hF⟩ := listFoldl_amortized' P (by includes) _ (.closure pcTableTC.lam0.costIdx [])
     (fun m j ↦ RunsApp.of_spec (pcTableTC.lam0.costSpec P (by includes) m j))
-    19368 (fun m ↦ 35 * potential 10 m.levels) PcInv (List.range nFns) SortedMap.empty
+    8152 (fun m ↦ 37 * potential 10 m.levels) PcInv (List.range nFns) SortedMap.empty
     ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h, by
       simp [smWeightSum_empty, hn]⟩
     (fun acc r hacc j _ ↦ by
       obtain ⟨h1, h2⟩ := addEntry_amortized P (by includes) acc r hacc j
       refine ⟨h1, ?_⟩
-      rw [appCost_fn, List.nil_append, pcTableTC.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, pcTableTC.lam0.costEq P (by includes), List.length_nil]
       omega)
   have h0 : potential 10 (SortedMap.empty : SortedMap ℕ (List ℕ)).levels = 0 := rfl
   rw [h0, Nat.mul_zero, Nat.zero_add, List.length_range] at hF
