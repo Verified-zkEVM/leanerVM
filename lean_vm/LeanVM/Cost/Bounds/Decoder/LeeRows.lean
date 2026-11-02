@@ -174,7 +174,7 @@ theorem mulBBound_mono {rp rq a s rp' rq' a' s' : ℕ} (h1 : rp ≤ rp') (h2 : r
   unfold mulBBound
   gcongr
 
-/-- **The product over `K[X]`** (`mul`: `mulRaw` thrice, the trim), entries of different sizes:
+/-- **The product over `K[X]`** (`mul`: `mulRaw`, the trim; bounded as when computed thrice), entries of different sizes:
 at most `mulBBound rp rq a s`. -/
 theorem mulB_cost_ab (hP : Includes P mul.c43.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (a b s rp rq : ℕ) (hs : a + b ≤ s) (hs' : s < 2 ^ 57) (hp : InnerLe p a) (hq : InnerLe q b)

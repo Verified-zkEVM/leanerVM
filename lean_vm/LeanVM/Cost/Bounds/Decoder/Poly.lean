@@ -16,10 +16,10 @@ The prices of CompPoly's raw polynomial operations as the decoder compiles them
 * the schoolbook product (`mulRaw`: for each coefficient `a_i` of `p`, `acc + X^i·(a_i·q)`;
   `mul`: then trim), `O(|p|·(|p| + |q|))` operations on coefficients.
 
-**Honest-cost note.** `Raw.add` and `Raw.mul` compute their raw result three times: the
-compiler's rewrite of `trim` (`CompPolyLib.trim_eq`, `p.trim = p.extract 0 (trimLen p p.size)`)
-names `p` three times and the compiler unfolds it with `p := addRaw a b` (or `mulRaw a b`)
-unshared. A factor 3 on every sum and product, not an order.
+**Honest-cost note.** `Raw.add` and `Raw.mul` compute their raw result once
+(`CompPolyLib.trim_addRaw_shared`, `trim_mulRaw_shared`: the untrimmed sum or product bound by a
+`let` before `trim_eq`, which names its argument three times). The bounds here were proved when it
+was computed thrice, and are kept: they still hold, about three times loose on sums and products.
 -/
 
 namespace LeanVM.Cost.Bounds.Decoder
@@ -110,7 +110,7 @@ theorem addRawK_cost (hP : Includes P addRaw.c50.costDeps) (p q : CPolynomial.Ra
     List.length_zipWith] at hz ⊢
   omega
 
-/-- **`add` over `K`** (`addRaw`, three times, and the trim): at most `110·max(|p|, |q|) + 160`. -/
+/-- **`add` over `K`** (`addRaw` and the trim; the bound from when `addRaw` was computed thrice): at most `110·max(|p|, |q|) + 160`. -/
 theorem addK_cost (hP : Includes P add.c49.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 62) (hq : q.size < 2 ^ 62) :
     machineCost P add.c49.costIdx [encodeValue p, encodeValue q] ≤ 110 * max p.size q.size + 160 := by
@@ -184,7 +184,7 @@ theorem mulRawK_cost (hP : Includes P mulRaw.c56.costDeps) (p q : CPolynomial.Ra
   simp only [Array.length_toList, Array.size_zipIdx, List.length_zipIdx] at hz hf e ⊢
   omega
 
-/-- **The product over `K`** (`mul`: `mulRaw` three times, the trim): at most
+/-- **The product over `K`** (`mul`: `mulRaw`, the trim; the bound from when it was computed thrice): at most
 `906·|q|·|p| + 90·|p|² + 330·|p| + 23·|q| + 90`. -/
 theorem mulK_cost (hP : Includes P mul.c55.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 61) (hq : q.size < 2 ^ 61) :
@@ -306,7 +306,7 @@ theorem addRawB_cost (hP : Includes P addRaw.c46.costDeps) (p q : CPolynomial.Ra
     rw [Nat.max_comm q.size, Nat.min_self]; ring
   omega
 
-/-- **`add` over `K[X]`** (`addRaw` thrice, the trim): at most `333·A·m + 615·m + 170`. -/
+/-- **`add` over `K[X]`** (`addRaw`, the trim; the bound from when it was computed thrice): at most `333·A·m + 615·m + 170`. -/
 theorem addB_cost (hP : Includes P add.c66.costDeps) (p q : CPolynomial.Raw (CPolynomial K))
     (A : ℕ) (hA : A < 2 ^ 60) (hp : InnerLe p A) (hq : InnerLe q A) (hps : p.size < 2 ^ 60)
     (hqs : q.size < 2 ^ 60) :

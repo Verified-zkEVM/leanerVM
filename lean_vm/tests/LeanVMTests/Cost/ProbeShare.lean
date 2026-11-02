@@ -3,7 +3,7 @@ import LeanVM.Protocol.Extraction.Fast.Karatsuba
 import CompPoly.LinearAlgebra.PolynomialMatrix.Operations
 
 /-!
-# Probe: products and sums trimmed once (`rawMul_shared`, `rawAdd_shared`)
+# Probe: products and sums trimmed once (`trim_mulRaw_shared`, `trim_addRaw_shared`)
 
 Off the chain: nothing compiled on the extractor's chain is imported, so CompPoly's `Raw.mul` and
 `Raw.add` are compiled here through `ProbeLib`'s shared rewrites (the chain compiled them through
