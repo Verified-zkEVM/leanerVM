@@ -16,8 +16,11 @@ public import LeanVM.Protocol.Extraction.Fast.FFT.Basis
   (`W_i` linearized, `evalLin`: `2i + 3` products each), by doubling: additions only.
 
 `planFwd P`, `planInv P`: lean_vm's additive NTT (`novelFwd j 0`, `novelInv j`) with the plan's
-twiddles (`fwdStageWith`, `invStageWith`: the stages of `Extractor.lean` §4 with their twiddles
-given). **Proved** for `j ≤ 64`: `planFwd_eq : planFwd (mkPlan j) c = novelFwd j 0 c`,
+twiddles, by `fwdStageFast` (the products `t·hi` first, each read by both outputs of its
+butterfly: `N/2` products per stage, not `N`; `fwdStageFast_eq`) and `invStageFast`, the powers
+`2^i`, `2^(i+1)` once per stage. The conversions read the powers `2^t` from the plan
+(`pows`; `toNovelRecP`, `fromNovelRecP`, proved equal to `toNovelRec`, `fromNovelRec`), none
+computed per entry. **Proved** for `j ≤ 64`: `planFwd_eq : planFwd (mkPlan j) c = novelFwd j 0 c`,
 `planInv_eq : planInv (mkPlan j) y = novelInv j y`, `mkPlan_tableInv`, and
 `mkPlan_twiddles : (mkPlan j).twiddles[i] = novelTwiddles j i`; so the transform's laws carry
 over unchanged.
@@ -55,6 +58,57 @@ theorem novelFwdStage_eq_with (m i : ℕ) (b : Array K) :
 
 theorem novelInvStage_eq_with (m i : ℕ) (b : Array K) :
     novelInvStage m i b = invStageWith m i (novelTwiddles m i) b := rfl
+
+/-- **The forward stage, one product per butterfly**: the products `t·hi` first (at the low
+positions), each read by both outputs `lo + t·hi` and `lo + t·hi + hi`; the powers `2^i`,
+`2^(i+1)` once per stage. -/
+@[expose] def fwdStageFast (m i : ℕ) (tw b : Array K) : Array K :=
+  let H := 2 ^ i
+  let H2 := 2 ^ (i + 1)
+  let prod := Array.ofFn fun p : Fin (2 ^ m) ↦
+    if p.val.testBit i then 0 else tw.getD (p.val / H2) 0 * b.getD (p.val + H) 0
+  Array.ofFn fun p : Fin (2 ^ m) ↦
+    if p.val.testBit i then
+      let lo := p.val - H
+      b.getD lo 0 + prod.getD lo 0 + b.getD p.val 0
+    else
+      b.getD p.val 0 + prod.getD p.val 0
+
+/-- The inverse stage (one product per butterfly already), the powers once per stage. -/
+@[expose] def invStageFast (m i : ℕ) (tw b : Array K) : Array K :=
+  let H := 2 ^ i
+  let H2 := 2 ^ (i + 1)
+  Array.ofFn fun p : Fin (2 ^ m) ↦
+    let t := tw.getD (p.val / H2) 0
+    if p.val.testBit i then
+      b.getD (p.val - H) 0 + b.getD p.val 0
+    else
+      b.getD p.val 0 + t * (b.getD p.val 0 + b.getD (p.val + H) 0)
+
+theorem invStageFast_eq (m i : ℕ) (tw b : Array K) : invStageFast m i tw b = invStageWith m i tw b :=
+  rfl
+
+theorem fwdStageFast_eq (m i : ℕ) (tw b : Array K) : fwdStageFast m i tw b = fwdStageWith m i tw b := by
+  apply array_eq_of_getD (by simp [fwdStageFast, fwdStageWith])
+  intro p hp
+  have hp' : p < 2 ^ m := by simpa [fwdStageFast] using hp
+  rw [fwdStageWith, getD_ofFn _ hp', fwdStageFast]
+  dsimp only
+  rw [getD_ofFn _ hp']
+  obtain ⟨q, s', bit, hs, hbit, rfl⟩ := decompose i p
+  interval_cases bit
+  · simp only [nf_testBit0 hs, Bool.false_eq_true, ite_false]
+    rw [getD_ofFn _ hp']
+    simp only [nf_testBit0 hs, Bool.false_eq_true, ite_false]
+  · have hm1 : 2 ^ (i + 1) * q + 2 ^ i * 1 + s' - 2 ^ i = 2 ^ (i + 1) * q + 2 ^ i * 0 + s' := by
+      omega
+    have hlo : 2 ^ (i + 1) * q + 2 ^ i * 0 + s' < 2 ^ m := by omega
+    simp only [nf_testBit1 hs, ite_true]
+    rw [hm1, getD_ofFn _ hlo]
+    simp only [nf_testBit0 hs, Bool.false_eq_true, ite_false]
+    rw [nf_div2 hs (by norm_num : 0 < 2), nf_div2 hs (by norm_num : 1 < 2),
+      show 2 ^ (i + 1) * q + 2 ^ i * 0 + s' + 2 ^ i = 2 ^ (i + 1) * q + 2 ^ i * 1 + s' by ring]
+    ring
 
 /-! ## Subset sums by doubling -/
 
@@ -115,6 +169,91 @@ theorem batchInvAux_eq (l : List K) {p : K} (hp : p ≠ 0) (hl : ∀ b ∈ l, b 
 theorem batchInv_eq (l : List K) (hl : ∀ b ∈ l, b ≠ 0) : batchInv l = l.map (·⁻¹) := by
   rw [batchInv, batchInvAux_eq l one_ne_zero hl]
 
+/-! ## The conversions with the powers of two precomputed -/
+
+/-- `linCoeff` with `2^t` read from `pw` (`pw[t] = 2^t`). -/
+@[expose] def linCoeffP (pw : Array ℕ) (s q : Array K) (n d : ℕ) : ℕ → K
+  | 0 => 0
+  | t + 1 => linCoeffP pw s q n d t +
+      let e := pw.getD t 0
+      if e ≤ d ∧ d - e < n then s.getD t 0 * q.getD (d - e) 0 else 0
+
+theorem linCoeffP_eq {pw : Array ℕ} {T : ℕ} (hpw : ∀ t < T, pw.getD t 0 = 2 ^ t)
+    (s q : Array K) (n d : ℕ) : linCoeffP pw s q n d T = linCoeff s q n d T := by
+  induction T with
+  | zero => rfl
+  | succ T ih =>
+    rw [linCoeffP, linCoeff, ih fun t ht ↦ hpw t (by omega), hpw T (by omega)]
+
+/-- `divQuot` with `H = 2^i` given and `pw`. -/
+@[expose] def divQuotP (pw : Array ℕ) (s : Array K) (i H : ℕ) (a : Array K) : Array K :=
+  let h := H / 2
+  let qtop := Array.ofFn fun e : Fin (H - h) ↦ a.getD (H + h + e.val) 0
+  let qlo := Array.ofFn fun e : Fin h ↦
+    a.getD (H + e.val) 0 - linCoeffP pw s qtop (H - h) (H + e.val - h) i
+  qlo ++ qtop
+
+/-- `divRem` with `H = 2^i` given and `pw`. -/
+@[expose] def divRemP (pw : Array ℕ) (s : Array K) (i H : ℕ) (a q : Array K) : Array K :=
+  Array.ofFn fun e : Fin H ↦ a.getD e.val 0 - linCoeffP pw s q H e.val i
+
+/-- `mulAddW` with `H = 2^i` given and `pw`. -/
+@[expose] def mulAddWP (pw : Array ℕ) (s : Array K) (i H : ℕ) (r q : Array K) : Array K :=
+  Array.ofFn fun d : Fin (2 * H) ↦
+    (if d.val < H then r.getD d.val 0 else q.getD (d.val - H) 0) + linCoeffP pw s q H d.val i
+
+/-- `toNovelRec` with the powers of two from `pw`. -/
+@[expose] def toNovelRecP (pw : Array ℕ) : List (Array K × K) → Array K → Array K
+  | [], a => #[a.getD 0 0]
+  | (s, β) :: tab, a =>
+    let i := tab.length
+    let H := pw.getD i 0
+    let q := divQuotP pw s i H a
+    toNovelRecP pw tab (divRemP pw s i H a q) ++ toNovelRecP pw tab (scaleArr H β q)
+
+/-- `fromNovelRec` with the powers of two from `pw`. -/
+@[expose] def fromNovelRecP (pw : Array ℕ) : List (Array K × K) → Array K → Array K
+  | [], c => #[c.getD 0 0]
+  | (s, βinv) :: tab, c =>
+    let i := tab.length
+    let H := pw.getD i 0
+    let r := fromNovelRecP pw tab (sliceArr H 0 c)
+    let qh := fromNovelRecP pw tab (sliceArr H H c)
+    mulAddWP pw s i H r (scaleArr H βinv qh)
+
+theorem mulAddWP_eq {pw : Array ℕ} {i : ℕ} (hpw : ∀ t < i, pw.getD t 0 = 2 ^ t) (s r q : Array K) :
+    mulAddWP pw s i (2 ^ i) r q = mulAddW s i r q := by
+  simp only [mulAddWP, mulAddW, linCoeffP_eq hpw]
+
+theorem toNovelRecP_eq {pw : Array ℕ} (tab : List (Array K × K))
+    (hpw : ∀ t < tab.length, pw.getD t 0 = 2 ^ t) (a : Array K) :
+    toNovelRecP pw tab a = toNovelRec tab a := by
+  induction tab generalizing a with
+  | nil => rfl
+  | cons d tab ih =>
+    obtain ⟨s, β⟩ := d
+    have hlt : ∀ t < tab.length, pw.getD t 0 = 2 ^ t :=
+      fun t ht ↦ hpw t (by simp; omega)
+    have hH : pw.getD tab.length 0 = 2 ^ tab.length := hpw _ (by simp)
+    have hq : divQuotP pw s tab.length (2 ^ tab.length) a = divQuot s tab.length a := by
+      simp only [divQuotP, divQuot, linCoeffP_eq hlt]
+    rw [toNovelRecP, toNovelRec]
+    simp only [hH, hq, ih hlt]
+    congr 2
+    simp only [divRemP, divRem, linCoeffP_eq hlt]
+
+theorem fromNovelRecP_eq {pw : Array ℕ} (tab : List (Array K × K))
+    (hpw : ∀ t < tab.length, pw.getD t 0 = 2 ^ t) (c : Array K) :
+    fromNovelRecP pw tab c = fromNovelRec tab c := by
+  induction tab generalizing c with
+  | nil => rfl
+  | cons d tab ih =>
+    obtain ⟨s, β⟩ := d
+    have hlt : ∀ t < tab.length, pw.getD t 0 = 2 ^ t :=
+      fun t ht ↦ hpw t (by simp; omega)
+    have hH : pw.getD tab.length 0 = 2 ^ tab.length := hpw _ (by simp)
+    rw [fromNovelRecP, fromNovelRec, hH, ih hlt, ih hlt, mulAddWP_eq hlt]
+
 /-! ## The plan -/
 
 /-- **The precomputations of the additive FFT of size `2^log`.** -/
@@ -127,6 +266,8 @@ structure FFTPlan where
   tableInv : List (Array K × K)
   /-- Stage `i`'s twiddles, `novelTwiddles j i`. -/
   twiddles : Array (Array K)
+  /-- The powers `2^t`, `t < j`. -/
+  pows : Array ℕ
 
 /-- Stage `i`'s twiddles of size `2^j` from `(s_{i,·}, β_i^{-1})`: the subset sums of
 `Ŵ_i(x^{i+1+b}) = W_i(x^{i+1+b})·β_i^{-1}`, `b < j − i − 1`. -/
@@ -142,7 +283,11 @@ structure FFTPlan where
     table := tab
     tableInv := tabInv
     twiddles := Array.ofFn fun i : Fin j ↦
-      stageTwiddles j i.val (tabInv.getD (j - 1 - i.val) (#[], 0)) }
+      stageTwiddles j i.val (tabInv.getD (j - 1 - i.val) (#[], 0))
+    pows := Array.ofFn fun t : Fin j ↦ 2 ^ t.val }
+
+theorem mkPlan_pows {j t : ℕ} (ht : t < j) : (mkPlan j).pows.getD t 0 = 2 ^ t := by
+  simp [mkPlan, Array.getD, ht]
 
 theorem mkPlan_log (j : ℕ) : (mkPlan j).log = j := rfl
 
@@ -212,12 +357,12 @@ theorem mkPlan_twiddles {j i : ℕ} (hj : j ≤ 64) (hi : i < j) :
 
 /-- **The forward transform by the plan**: `novelFwd j 0` with the plan's twiddles. -/
 @[expose] def planFwd (P : FFTPlan) (c : Array K) : Array K :=
-  (List.range P.log).foldr (fun i b ↦ fwdStageWith P.log i (P.twiddles.getD i #[]) b)
+  (List.range P.log).foldr (fun i b ↦ fwdStageFast P.log i (P.twiddles.getD i #[]) b)
     (Array.ofFn fun p : Fin (2 ^ P.log) ↦ c.getD p.val 0)
 
 /-- **The inverse transform by the plan**: `novelInv j` with the plan's twiddles. -/
 @[expose] def planInv (P : FFTPlan) (y : Array K) : Array K :=
-  (List.range P.log).foldl (fun b i ↦ invStageWith P.log i (P.twiddles.getD i #[]) b) y
+  (List.range P.log).foldl (fun b i ↦ invStageFast P.log i (P.twiddles.getD i #[]) b) y
 
 theorem foldr_range_congr {f g : ℕ → Array K → Array K} {n : ℕ} (h : ∀ i < n, f i = g i)
     (init : Array K) : (List.range n).foldr f init = (List.range n).foldr g init := by
@@ -244,12 +389,12 @@ theorem planFwd_eq {j : ℕ} (hj : j ≤ 64) (c : Array K) : planFwd (mkPlan j) 
     congrArg Array.ofFn (funext fun p ↦ by rw [Nat.mod_eq_of_lt p.isLt])]
   refine foldr_range_congr (fun i hi ↦ ?_) _
   funext b
-  rw [novelFwdStage_eq_with, mkPlan_twiddles hj hi]
+  rw [fwdStageFast_eq, novelFwdStage_eq_with, mkPlan_twiddles hj hi]
 
 theorem planInv_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) : planInv (mkPlan j) y = novelInv j y := by
   rw [planInv, novelInv, mkPlan_log]
   refine foldl_range_congr (fun i hi b ↦ ?_) _
-  rw [novelInvStage_eq_with, mkPlan_twiddles hj hi]
+  rw [invStageFast_eq, novelInvStage_eq_with, mkPlan_twiddles hj hi]
 
 end
 

@@ -29,9 +29,11 @@ truncated product as one product of truncated factors), `fftRawMulLowContext`, a
 
 **Cost** (`K` products, `N = 2^j`, counted on the definitions, every `*` executed): the
 conversions `toNovelRec`, `fromNovelRec` exactly `N·j(j+1)/4` each (the division by `W_i`, or
-the product by it, at level `i` is `(i+1)·2^i` per block of `2^(i+1)`); `planFwd` `N·j` (one
-product per entry and stage), `planInv` `N·j/2`; so `fwdP` `N·(j² + 5j)/4`, `invP`
-`N·(j² + 3j)/4`, no inversion; the product `2·fwdP + N + invP = N·(3j² + 13j + 4)/4`. The plan:
+the product by it, at level `i` is `(i+1)·2^i` per block of `2^(i+1)`); `planFwd` and `planInv`
+`N·j/2` each (one product per butterfly and stage, `fwdStageFast`, `invStageFast`); so `fwdP`
+and `invP` `N·(j² + 3j)/4` each, no inversion, and no power of two computed per entry (the
+plan's `pows`, the stages' `2^i` once per stage); the product
+`2·fwdP + N + invP = N·(3j² + 9j + 4)/4`. The plan:
 the table `2 + Σ_{1≤J<j} (4J + 3)`, the batched inverses `3j` and one inversion, the twiddles
 `Σ_{i<j} (j−i−1)(2i+3)` products and `< N` additions (`17464` products at `j = 35`).
 -/
@@ -121,20 +123,22 @@ theorem novelFwdPoly_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) (hy : 
 
 /-- The evaluations by the plan: `toNovel` on the plan's table, then `planFwd`. -/
 @[expose] def planFwdPoly (P : FFTPlan) (p : CPolynomial K) : Array K :=
-  planFwd P (toNovelRec P.table p.val)
+  planFwd P (toNovelRecP P.pows P.table p.val)
 
 /-- The interpolation by the plan: `planInv`, then `fromNovel` on the plan's table. -/
 @[expose] def planInvPoly (P : FFTPlan) (y : Array K) : CPolynomial K :=
-  CPolynomial.ofArray (fromNovelRec P.tableInv (planInv P y))
+  CPolynomial.ofArray (fromNovelRecP P.pows P.tableInv (planInv P y))
 
 theorem planFwdPoly_eq {j : ℕ} (hj : j ≤ 64) (p : CPolynomial K) :
     planFwdPoly (mkPlan j) p = novelFwdPoly j p := by
-  rw [planFwdPoly, mkPlan_table, planFwd_eq hj]
+  rw [planFwdPoly, toNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
+      rwa [mkPlan_table, length_tableUpTo] at ht), mkPlan_table, planFwd_eq hj]
   rfl
 
 theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
     planInvPoly (mkPlan j) y = novelInvPoly j y := by
-  rw [planInvPoly, mkPlan_tableInv hj, planInv_eq hj]
+  rw [planInvPoly, fromNovelRecP_eq _ fun t ht ↦ mkPlan_pows (by
+      rwa [mkPlan_tableInv hj, length_tableInvUpTo] at ht), mkPlan_tableInv hj, planInv_eq hj]
   rfl
 
 /-- **The novel-basis transform** over `K`: `2^j` points `x_v`, `j ≤ 64`, through the plan

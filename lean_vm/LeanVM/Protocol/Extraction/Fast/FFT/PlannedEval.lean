@@ -9,7 +9,7 @@ public import LeanVM.Protocol.Extraction.Fast.EvalMat.Runtime
 EvalMat's products (`mulEval T mulCtx`, `mulTruncEval T mulCtx`, `EvalMat/Product.lean`) call
 `T.fwd j` per entry and `T.inv j` per output entry; for a point transform `T`
 (`T.toEvalMat`), each such call builds the plan `T.plan j` again. `mulEvalP T mulCtx` and
-`mulTruncEvalP T mulCtx` are the same products with `let P := T.plan j` hoisted: the plan is
+`mulTruncEvalP T mulCtx` are the same products with `let P := T.plan j` (and `2^j`) hoisted: the plan is
 built once per matrix product. They are EvalMat's products **by definition**
 (`mulEvalP_eq`, `mulTruncEvalP_eq`: `rfl`), so CompPoly's Strassen-product equalities and the
 PM-basis runtime's (`evalRuntimeP_eq`: `evalRuntimeP T = evalRuntime T.toEvalMat`) carry over.
@@ -37,9 +37,10 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] {Plan : Type}
   let j := ceilLog (maxEntryDegree A r s + maxEntryDegree B s t + 1)
   if j ≤ T.maxLog then
     let P := T.plan j
+    let N := 2 ^ j
     let FA := transformEntriesP T P r s fun i k ↦ rowGet (A.getD i #[]) k
     let FB := transformEntriesP T P s t fun k c ↦ rowGet (B.getD k #[]) c
-    ofFn r t fun i c ↦ T.invP P (evalDot (2 ^ j) s (FA.getD i #[]) FB c)
+    ofFn r t fun i c ↦ T.invP P (evalDot N s (FA.getD i #[]) FB c)
   else mulWith mulCtx A B
 
 theorem mulEvalP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext F)
@@ -55,9 +56,10 @@ theorem mulEvalP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext
   let j := ceilLog (min (maxEntryDegree A r s) (O - 1) + min (maxEntryDegree B s t) (O - 1) + 1)
   if j ≤ T.maxLog then
     let P := T.plan j
+    let N := 2 ^ j
     let FA := transformEntriesP T P r s fun i k ↦ truncateX O (rowGet (A.getD i #[]) k)
     let FB := transformEntriesP T P s t fun k c ↦ truncateX O (rowGet (B.getD k #[]) c)
-    ofFn r t fun i c ↦ truncateX (orders.getD c 0) (T.invP P (evalDot (2 ^ j) s (FA.getD i #[]) FB c))
+    ofFn r t fun i c ↦ truncateX (orders.getD c 0) (T.invP P (evalDot N s (FA.getD i #[]) FB c))
   else truncateColumns orders (mulWith mulCtx A B)
 
 theorem mulTruncEvalP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext F)

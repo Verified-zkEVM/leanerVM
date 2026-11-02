@@ -17,7 +17,7 @@ def plan(j): return table(j)+batchInv(j)+twiddles(j), (1 if j>0 else 0)
 def plan_adds(j): return sum(2**(j-i-1)-1 for i in range(j))  # spanTable additions
 def conv(j):                                # toNovelRec / fromNovelRec (exact, see count.py)
     return sum(2**(j-i-1)*(i+1)*2**i for i in range(j))   # = N j(j+1)/4
-def fwdNTT(j): return j*2**j                # fwdStageWith: one product per entry per stage
+def fwdNTT(j): return j*2**(j-1)            # fwdStageFast: one product per butterfly per stage
 def invNTT(j): return j*2**(j-1)            # invStageWith: one product per pair per stage
 def fwdP(j): return conv(j)+fwdNTT(j)
 def invP(j): return conv(j)+invNTT(j)
@@ -27,10 +27,11 @@ for j in [1,2,4,6,8,10,12,16,20,24,28,30,32,35,36,40]:
     N=2**j; pm,pi=plan(j)
     assert conv(j)==N*j*(j+1)//4
     print("%2d %9d %3d  %8.2f %8.2f %9.2f"%(j,pm,pi,fwdP(j)/N,invP(j)/N,product(j)/N))
-print("closed forms: conv = N*j*(j+1)/4; fwdP = N*(j^2+5j)/4; invP = N*(j^2+3j)/4;")
-print("  product = N*(3j^2+13j+4)/4 (+ plan); plan = table + 3j + twiddles, 1 inversion")
+print("closed forms: conv = N*j*(j+1)/4; fwdP = invP = N*(j^2+3j)/4;")
+print("  product = N*(3j^2+9j+4)/4 (+ plan); plan = table + 3j + twiddles, 1 inversion")
 for j in [1,4,10,36]:
-    assert product(j)==2**j*(3*j*j+13*j+4)//4, j
+    assert product(j)==2**j*(3*j*j+9*j+4)//4, j
+    assert fwdP(j)==invP(j)==2**j*(j*j+3*j)//4, j
 # matrix product (evalmat): (r*s + s*t) fwdP + r*t invP + r*s*t*N pointwise, + 1 plan
 r=2077; s=2077; t=2077
 for j in [5,10,20,35]:
