@@ -11,13 +11,13 @@ application of `main`'s valuation `σ`, the declared claims at most `2^34` of ea
 
 * **`decSeed_cost`**: `2·S + 45`;
 * a slot's claims off its address's low limb (`mulK_cost`, `readCellsK_cost`, `xmssAtK_cost`,
-  `sphincsAtK_cost`: `4·R + 87169`), `n` consecutive slots (`xmssRun_cost`, `sphincsRun_cost`:
-  `(4·R + 87447)·n + 6`), a DA digest (`daDigestAtP_cost`);
+  `sphincsAtK_cost`: `4·R + 12320`), `n` consecutive slots (`xmssRun_cost`, `sphincsRun_cost`:
+  `(4·R + 12367)·n + 5`), a DA digest (`daDigestAtP_cost`);
 * **`decStmtAt_cost`**: the statement, its counts given, linear in them (`decStmtAtPrice R n0 n3`);
   **`decStmt_cost`** (the logarithm's tables `D` given, `GLogBound P D G`): the two counts at
   most `X` (`2^34` always, `65535` on a valid run), `decStmtPrice G R S X = 7·S + 3·G +
   decStmtAtPrice R X X + 71`;
-* `aggRounds_cost`, **`aggHints_cost`**: `47·S + 46·R + 998693`.
+* `aggRounds_cost`, **`aggHints_cost`**: `47·S + 46·R + 138055`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -37,25 +37,25 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
 
 omit hrd hR in
-/-- `p · x` limb by limb (`mulKC`): `781`. -/
+/-- `p · x` limb by limb (`mulKC`): `94`. -/
 theorem mulK_cost (hP : Includes P Decoder.mulKC.costDeps) (p : E) (x : K) :
-    machineCost P Decoder.mulKC.costIdx [encodeValue p, encodeValue x] = 781 :=
+    machineCost P Decoder.mulKC.costIdx [encodeValue p, encodeValue x] = 94 :=
   Decoder.mulKC.costEq P hP p x |>.trans (by norm_num)
 
 include hrd hR
 
-/-- `n ≤ 2^40` cells off an address's low limb (`readCellsKC`): `(R + 21710)·n + 28`. -/
+/-- `n ≤ 2^40` cells off an address's low limb (`readCellsKC`): `(R + 3003)·n + 27`. -/
 theorem readCellsK_cost (hP : Includes P Decoder.readCellsKC.costDeps) (x : K) (n : ℕ)
     (hn : n ≤ 2 ^ 40) :
     machineCost P Decoder.readCellsKC.costIdx [rdV, encodeValue x, encodeValue n] ≤
-      (R + 21710) * n + 28 := by
+      (R + 3003) * n + 27 := by
   rw [Decoder.readCellsKC.costEq P hP rd rdV hrd]
   have := readCells_cost P hrd hR (by includes) (E.ofLimbs x 0 0) n hn
   omega
 
-/-- **A leanXMSS claim off its slot's address** (`xmssAtKC`): `4·R + 87169`. -/
+/-- **A leanXMSS claim off its slot's address** (`xmssAtKC`): `4·R + 12320`. -/
 theorem xmssAtK_cost (hP : Includes P Decoder.xmssAtKC.costDeps) (x : K) :
-    machineCost P Decoder.xmssAtKC.costIdx [rdV, encodeValue x] ≤ 4 * R + 87169 := by
+    machineCost P Decoder.xmssAtKC.costIdx [rdV, encodeValue x] ≤ 4 * R + 12320 := by
   rw [Decoder.xmssAtKC.costEq P hP rd rdV hrd]
   have := readCellsK_cost P hrd hR (by includes) x 4 (by norm_num)
   have := getD_cost_idx P (by includes) (Decoder.readCellsK rd x 4) 0 0 (by norm_num)
@@ -65,9 +65,9 @@ theorem xmssAtK_cost (hP : Includes P Decoder.xmssAtKC.costDeps) (x : K) :
   cost_facts [xmssClaimOf_cost P]
   omega
 
-/-- **A leanSPHINCS claim off its slot's address** (`sphincsAtKC`): `4·R + 87169`. -/
+/-- **A leanSPHINCS claim off its slot's address** (`sphincsAtKC`): `4·R + 12320`. -/
 theorem sphincsAtK_cost (hP : Includes P Decoder.sphincsAtKC.costDeps) (x : K) :
-    machineCost P Decoder.sphincsAtKC.costIdx [rdV, encodeValue x] ≤ 4 * R + 87169 := by
+    machineCost P Decoder.sphincsAtKC.costIdx [rdV, encodeValue x] ≤ 4 * R + 12320 := by
   rw [Decoder.sphincsAtKC.costEq P hP rd rdV hrd]
   have := readCellsK_cost P hrd hR (by includes) x 4 (by norm_num)
   have := getD_cost_idx P (by includes) (Decoder.readCellsK rd x 4) 0 0 (by norm_num)
@@ -78,11 +78,11 @@ theorem sphincsAtK_cost (hP : Includes P Decoder.sphincsAtKC.costDeps) (x : K) :
   omega
 
 /-- **`n` consecutive leanXMSS claims** (`xmssRunC`):
-`(4·R + 87447)·n + 6`. -/
+`(4·R + 12367)·n + 5`. -/
 theorem xmssRun_cost (hP : Includes P Decoder.xmssRunC.costDeps) (step : K) :
     ∀ (n : ℕ) (x : K), n < 2 ^ 64 →
       machineCost P Decoder.xmssRunC.costIdx [rdV, encodeValue step, encodeValue x,
-        encodeValue n] ≤ (4 * R + 87447) * n + 6
+        encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.xmssRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
     rw [Decoder.xmssRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
@@ -90,11 +90,11 @@ theorem xmssRun_cost (hP : Includes P Decoder.xmssRunC.costDeps) (step : K) :
     have := xmssAtK_cost P hrd hR (by includes) x
     nlinarith
 
-/-- **`n` consecutive leanSPHINCS claims** (`sphincsRunC`): `(4·R + 87447)·n + 6`. -/
+/-- **`n` consecutive leanSPHINCS claims** (`sphincsRunC`): `(4·R + 12367)·n + 5`. -/
 theorem sphincsRun_cost (hP : Includes P Decoder.sphincsRunC.costDeps) (step : K) :
     ∀ (n : ℕ) (x : K), n < 2 ^ 64 →
       machineCost P Decoder.sphincsRunC.costIdx [rdV, encodeValue step, encodeValue x,
-        encodeValue n] ≤ (4 * R + 87447) * n + 6
+        encodeValue n] ≤ (4 * R + 12367) * n + 5
   | 0, x, _ => by rw [Decoder.sphincsRunC.costEq_zero P hP rd rdV hrd]; omega
   | n + 1, x, h => by
     rw [Decoder.sphincsRunC.costEq_succ P hP rd rdV hrd, limbs_of_lt h]
@@ -102,11 +102,11 @@ theorem sphincsRun_cost (hP : Includes P Decoder.sphincsRunC.costDeps) (step : K
     have := sphincsAtK_cost P hrd hR (by includes) x
     nlinarith
 
-/-- A DA digest off the digests' address (`daDigestAtPC`), `2·k + 1 < 2^40`: `2·R + 43400`. -/
+/-- A DA digest off the digests' address (`daDigestAtPC`), `2·k + 1 < 2^40`: `2·R + 5979`. -/
 theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E) (k : ℕ)
     (hk : 2 * k + 1 < 2 ^ 40) :
     machineCost P Decoder.daDigestAtPC.costIdx [rdV, encodeValue p, encodeValue k] ≤
-      2 * R + 43400 := by
+      2 * R + 5979 := by
   rw [Decoder.daDigestAtPC.costEq P hP rd rdV hrd, digestOfCells_cost P (by includes)]
   have := cellAt_cost P hrd hR (by includes) p (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) p (2 * k + 1) hk
@@ -115,8 +115,8 @@ theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E)
 
 /-- The statement's price at `n0`, `n3` declared claims. -/
 @[expose] def decStmtAtPrice (R n0 n3 : ℕ) : ℕ :=
-  2 * 1611 + ((4 * R + 87447) * n0 + 6) + ((4 * R + 87447) * n3 + 6) + (2 * R + 43400) +
-    ((R + 21710) * 24 + 18) + 819 + 34
+  2 * 224 + ((4 * R + 12367) * n0 + 5) + ((4 * R + 12367) * n3 + 5) + (2 * R + 5979) +
+    ((R + 3003) * 24 + 17) + 820 + 36
 
 /-- **The statement, its counts given** (`decStmtAtC`): linear in the declared claims,
 `decStmtAtPrice R n0 n3`, the DA digest's slot `pick < 2^39`. -/
@@ -164,7 +164,7 @@ include hrd hR
 
 /-- **The statement** (`decStmtC`), the logarithm's tables `D` given: the counts (three
 logarithms, the leanXMSS and leanSPHINCS counts at most `X`) and `decStmtAtC`: at most
-`decStmtPrice G R S X = 8·R·X + 174894·X + 3·G + 7·S + …`. -/
+`decStmtPrice G R S X = 8·R·X + 24734·X + 3·G + 7·S + …`. -/
 theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.decStmtC.costDeps) (hG : GLogBound P D G) (X : ℕ)
     (hX0 : Decoder.gLogD D (σ (.n 0)) ≤ X) (hX3 : Decoder.gLogD D (σ (.n 3)) ≤ X) :
@@ -180,23 +180,24 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   have : decStmtAtPrice R (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) ≤
       decStmtAtPrice R X X := by
     unfold decStmtAtPrice
-    have := Nat.mul_le_mul_left (4 * R + 87447) hX0
-    have := Nat.mul_le_mul_left (4 * R + 87447) hX3
+    have := Nat.mul_le_mul_left (4 * R + 12367) hX0
+    have := Nat.mul_le_mul_left (4 * R + 12367) hX3
     omega
   cost_facts [hS]
   unfold decStmtPrice
   omega
 
-/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `46·S + 46·R + 998678`. -/
+/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `46·S + 46·R + 138040`. -/
 theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
-    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 46 * S + 46 * R + 998678 := by
+    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 46 * S + 46 * R + 138040 := by
   rw [Decoder.aggRoundsC.costEq P hP rd rdV hrd σ σV hσ]
   have m := rangeMap_le P (by includes) (by includes) _
     (.closure Decoder.aggRoundsC.lam0.costIdx [rdV, σV])
     (fun k ↦ RunsApp.of_spec (Decoder.aggRoundsC.lam0.costSpec P (by includes) rd rdV hrd σ σV hσ k))
-    (2 * S + 2 * R + 43392) 23 23 le_rfl (by norm_num) (fun k hk ↦ by
+    (2 * S + 2 * R + 5973) 23 23 le_rfl (by norm_num) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.aggRoundsC.lam0.costEq P (by includes) rd rdV hrd σ σV hσ]
+        Decoder.aggRoundsC.lam0.costEq P (by includes) rd rdV hrd σ σV hσ, List.length_cons,
+        List.length_cons, List.length_nil]
       have := memAt_cost P hrd hR (by includes) (σ (.n 5)) (2 * k) (by omega)
       have := memAt_cost P hrd hR (by includes) (σ (.n 5)) (2 * k + 1) (by omega)
       have := hS (.n 5)
@@ -204,9 +205,9 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
       omega)
   omega
 
-/-- **The batching's hints** (`aggHintsC`): at most `47·S + 46·R + 998693`. -/
+/-- **The batching's hints** (`aggHintsC`): at most `47·S + 46·R + 138055`. -/
 theorem aggHints_cost (hP : Includes P Decoder.aggHintsC.costDeps) :
-    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 47 * S + 46 * R + 998693 := by
+    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 47 * S + 46 * R + 138055 := by
   rw [Decoder.aggHintsC.costEq P hP rd rdV hrd σ σV hσ]
   have := aggRounds_cost P hσ hS hrd hR (by includes)
   have := hS (.n 6)

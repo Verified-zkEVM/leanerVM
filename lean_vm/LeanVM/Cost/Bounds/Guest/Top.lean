@@ -21,7 +21,7 @@ valuation `S`, of the frame map `F`, of a logarithm `G` (`GLogBound`), of the cu
 * `decWitTab_cost` (`decWitTabPrice`), `decWitAt_cost` (`decWitAtPrice`), **`decWitC_cost`**
   (`decWitPrice G R S WX WS WD WV WA K N X`, the callees' witness functions' prices given);
 * **`decWitN_cost`**: `decWitNC` at most `decWitNPrice G R S F C L DW K N X`;
-* `mainVal_cost`: `main`'s valuation, at most `R + 10990`, for every value.
+* `mainVal_cost`: `main`'s valuation, at most `R + 1521`, for every value.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -93,13 +93,13 @@ theorem aggArgs_cost (hP : Includes P Decoder.aggArgsC.costDeps) :
   omega
 
 /-- **The DA claim and matrix** (`daWitnessC`), the DA witness function's price at most `WD`:
-`10·S + G + WD + 183`. -/
+`10·S + G + WD + 181`. -/
 theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnessC.costDeps)
     (hG : GLogBound P D G) {wD : List E → List E → LeanVM.Da.MatrixWitness} {wDV : MachineValue}
     (hwD : ∀ a b : List E, RunsApp P wDV [encodeValue a, encodeValue b] (encodeValue (wD a b)))
     {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 16 →
       appCost P wDV [encodeValue a, encodeValue b] ≤ WD) :
-    machineCost P Decoder.daWitnessC.costIdx [encodeValue D, σV, wDV] ≤ 10 * S + G + WD + 183 := by
+    machineCost P Decoder.daWitnessC.costIdx [encodeValue D, σV, wDV] ≤ 10 * S + G + WD + 181 := by
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
@@ -166,7 +166,7 @@ include hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA
 most `X` declared claims of each scheme. -/
 @[expose] def decWitTabPrice (G R S WX WS WD WV WA K N X : ℕ) : ℕ :=
   kidsTPrice G R S WV N K + xmssHoldersTPrice G R WX X + 1 + sphincsHoldersTPrice G R WS X +
-    (10 * S + G + WD + 183) + (5 * S + 61) + WA + 11 + 41
+    (10 * S + G + WD + 181) + (5 * S + 61) + WA + 11 + 40
 
 /-- **The witness off the tables** (`decWitTabC`), the tables good and of at most `N` marks, `nk ≤
 K`, `nx, ns ≤ X` (`K, N, X ≤ 2^34`), the others below `2^34`: at most
@@ -295,11 +295,11 @@ include hrd hR hσ hS hVn hF hcl hC hL32
 /-- **The guest decoder's witness's price**: `decWitC` at the five callees' witness functions'
 prices. -/
 @[expose] def decWitNPrice (G R S F C L DW K N X : ℕ) : ℕ :=
-  decWitPrice G R S (458 * F + 214110) (S + 450 * F + 244110) (DW + 15)
-    (vsPiPrice R (F + 6) F C L + 30) (47 * F + 46 * R + 998988) K N X + 35
+  decWitPrice G R S (458 * F + 214422) (S + 450 * F + 224149) (DW + 17)
+    (vsPiPrice R (F + 9) F C L + 23) (47 * F + 46 * R + 138493) K N X + 35
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
-tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 6`),
+tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 9`),
 the counts within `K N X`, each child's cursor length (at `verify_sub`'s frame of its arguments,
 `subArgsK`) at most `L`: at most `decWitNPrice G R S F C L DW K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
@@ -345,11 +345,11 @@ theorem mainLoc_lt (i : ℕ) : (Decoder.guestLocs.getD 1 #[]).getD i 0 < 2 ^ 20 
     exact mainLocs_lt x (Array.mem_toList_iff.2 (Array.mem_of_getElem? h))
 
 /-- **`main`'s valuation** (`mainValC`, the cells' locations a literal of the program): a word of
-`main`'s frame, for every value, at most `R + 10990`. -/
+`main`'s frame, for every value, at most `R + 1521`. -/
 theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {rdV : MachineValue}
     (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
     {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R) (v : V) :
-    machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 10990 := by
+    machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 1521 := by
   rw [Decoder.mainValC.costEq P hP rd rdV hrd]
   have := wordWith_cost (P := P) (rd := rd) (rdVal := rdV) (hrd := hrd) (R := R) (hR := hR)
     (hW := (by norm_num : 0 < 20)) (hW64 := (by norm_num : 20 < 64)) (by includes) 1
