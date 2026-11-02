@@ -6,7 +6,6 @@ import Sphincs.H0MomCert
 namespace SphincsLayered.Security.H0
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
 
 /-- Upper bounds of `Ψ1(n)`, `n ≤ 150` (`P1Q n`). -/
 def P1tab : List ℚ := [

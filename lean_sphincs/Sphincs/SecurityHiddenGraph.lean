@@ -11,7 +11,6 @@ open OracleComp OracleSpec ENNReal
 namespace SphincsLayered.Security.HiddenGraph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 200000
 attribute [local instance] Classical.propDecidable
 
 inductive Coordinate where

@@ -16,7 +16,6 @@ namespace SphincsLayered.Security.MaterialGameCoupling
 open SeedModel SeedCoupling PreparedScheme Completeness
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 50000
 attribute [local irreducible] programCache
 
 /-- An already present material table is unchanged by programming it again. -/

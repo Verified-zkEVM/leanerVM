@@ -13,7 +13,6 @@ namespace SphincsLayered.Security.PreparedScheme
 open SeedModel SeedCoupling Completeness Concrete
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 30000
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] programCache digestAttemptLimit encodingAttemptLimit
   sequenceFin Seeded.treeNode Seeded.spineNode Seeded.subNode Seeded.topNode chainWalk forestWalk
@@ -487,7 +486,6 @@ end SphincsLayered.Security.PreparedScheme
 namespace SphincsLayered.Security.PreparedScheme
 open SeedModel SeedCoupling Completeness Concrete
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 30000
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] programCache
 

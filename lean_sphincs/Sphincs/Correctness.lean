@@ -5,7 +5,6 @@ import Common.WithHash
 
 open OracleComp
 
-set_option maxHeartbeats 250000
 
 namespace SphincsLayered.Completeness
 
