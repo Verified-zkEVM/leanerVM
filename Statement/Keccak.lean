@@ -5,31 +5,22 @@ public import Mathlib.Data.Nat.Notation
 /-!
 # Keccak
 
-Read first: Keccak-f[1600] as leanVM computes it, and
-Keccak-256 over any permutation of its state (`keccak256With`), the deployed one over
-Keccak-f[1600] (`keccak256`). Every party hashes with Keccak-256 over the permutation it is given,
-`π` in the model (`RandomPermutation.lean`). The permutation's state is one type throughout,
-`KeccakState`, `25` lanes of `64` bits.
--/
-
-@[expose] public section
-
-set_option linter.unusedSectionVars false
-
-/-!
-## Keccak
+Keccak-f[1600] as leanVM computes it, and Keccak-256 over any permutation of its state, in any
+monad (`keccak256With`), the deployed one over Keccak-f[1600] (`keccak256`). Every party hashes with
+Keccak-256 over the permutation it is given, `π` in the model (`RandomPermutation.lean`). The
+permutation's state is one type throughout, `KeccakState`: `25` lanes of `64` bits, lane `x + 5y`
+at index `x + 5y`.
 
 Transcribed from `python-verifier/verifier.py` at leanVM
 `c445e3d51a5a85031df47240595698f3b24897bf` (branch `main`): the round constants, rotation
 offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`),
-the permutation `keccak_f` (`verifier.py:360-375`), and the hash `keccak_hash`
-(`verifier.py:191-209`) over any permutation `π` in any monad (`keccak256With`), the deployed one
-over Keccak-f[1600] (`keccak256`): Keccak-256 as Ethereum computes it, rate `136` bytes, the
-message padded with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
+the permutation `keccak_f` (`verifier.py:360-375`) and the hash `keccak_hash`
+(`verifier.py:191-209`): Keccak-256 as Ethereum computes it, rate `136` bytes, the message padded
+with `0x01 ‖ 0^* ‖ 0x80` (FIPS 202's SHA3-256 would put `0x06` first). The Rust is
 `crates/verifier/src/hash.rs` and `crates/primitives/src/hash.rs`.
-
-A state is `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
 -/
+
+@[expose] public section
 
 namespace LeanVM.Parameters
 

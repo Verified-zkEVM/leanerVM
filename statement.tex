@@ -131,7 +131,8 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 machine computes (\lean{LeanVM.extractorOf}~$P$, \lean{Statement/CostMachine.lean}): the program
 $P$, of size at most $14400$ (\lean{extractorSizeBound}: the compiled extractor's $13811$ and a
 slack of about one leanXMSS signature's encoding), run on the encoded statement, transcript
-and proof within a budget, wherever the proof announces a shape (\lean{extractorBudgetFor}:
+and proof within a budget (\lean{extractorBudget}: the most its run may cost in the machine's
+price, so also the most steps it may execute,
 $2^{95} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
 above the price \lean{lean_vm} proves of the compiled extractor at every shape;
 polylogarithmic per query: about $2^{95}$ for $N \le 2^{60}$, the list decoder dominating, and

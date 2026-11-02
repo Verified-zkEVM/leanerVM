@@ -38,15 +38,14 @@ more limbs, a constant number per limb or pair of limbs.
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): `P` run on the encoded statement,
 transcript and proof (`encodeExtractorInput`; the transcript without the adversary's coin flips)
-within its budget (`extractorBudget`: `extractorBudgetFor` at the transcript's number of
-permutation queries wherever the proof announces a shape, the same for every shape, and `0` where
-it announces none), its output parsed as an execution (`decodeExecution`, a linear parse: no
+within its budget (`extractorBudget`, at the transcript's number of permutation queries: the most
+its run may cost, so also the most steps it may execute), its output parsed as an execution (`decodeExecution`, a linear parse: no
 search, no run). A run that fails or exceeds its budget extracts nothing, which counts as a break.
 `Statement.Theorems` takes `P` as a parameter with its size at most `extractorSizeBound`; `lean_vm`
 proves it for its knowledge extractor, compiled. What excludes a vacuous statement: `P` is a
 program (no classical choice), its size bound leaves no room for a useful table of witnesses
 beside the compiled extractor, its only runtime data is its input, and its budget is a closed
-formula, polylogarithmic per query (`extractorBudgetFor`). The guest decoder is a program of the
+formula, polylogarithmic per query (`extractorBudget`). The guest decoder is a program of the
 same machine, with a size bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
 -/
 
@@ -402,8 +401,9 @@ def decodeExecution (prog : Semantics.Program) : MachineValue → Option (Execut
 
 /-! ## The extractor's budget -/
 
-/-- **The extractor's budget** for `N` permutation queries: `2^95 + (N + 2^30)·(D + 2)²·(2^15 +
-2D)`, with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
+/-- **The extractor's budget**, for a transcript of `N` permutation queries: the most the
+extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
+so also the most steps it may execute), `2^95 + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`):
 `2^95` bounds the list decoder (about `2^94.07`, its `64` lanes' Guruswami–Sudan decoding at the
@@ -412,7 +412,7 @@ executions (about `2^71.8`); the second term bounds
 the transcript's index (about `2^14.7` per query and level squared, a level's positions growing by
 a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`). So about `2^95`
 for at most `2^60` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
-def extractorBudgetFor (N : ℕ) : ℕ :=
+def extractorBudget (N : ℕ) : ℕ :=
   2 ^ 95 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 
 end
@@ -436,25 +436,16 @@ two limbs) but not two, so the compiled extractor could carry no useful table of
 its code. -/
 def extractorSizeBound : ℕ := 14400
 
-/-- **The extractor's budget**: `extractorBudgetFor` at the transcript's number of permutation
-queries, where the proof's stream announces a shape (`announced`, `LeanVmVerifier.lean`: a layout
-and a rate exponent); `0` when it announces none (the run is then out of budget: nothing is
-extracted). -/
-def extractorBudget (prog : Semantics.Program) (T : OracleQueryLog) (proof : Proof) : ℕ :=
-  match announced (bytecodeWords prog) proof.stream with
-  | some _ => Cost.extractorBudgetFor (permutationQueries T).length
-  | none => 0
-
 /-- **The extractor a program computes**: the program, of size at most `extractorSizeBound`, run
-within the budget on the encoded statement, transcript and proof (`encodeExtractorInput`,
-`extractorBudget`), its output parsed as an execution (`decodeExecution`); `none` if the program is
+on the encoded statement, transcript and proof (`encodeExtractorInput`) within the budget at the
+transcript's number of permutation queries (`extractorBudget`), its output parsed as an execution (`decodeExecution`); `none` if the program is
 larger, or the run fails, exceeds its budget, or outputs no execution's encoding. A larger program
 extracts nothing, so `KnowledgeSoundness (extractorOf P)` fails for it: an adversary running the
 honest prover is accepted. -/
 def extractorOf (P : Cost.MachineProgram) : StraightLineExtractor :=
   fun prog input T proof ↦
     (Cost.outputWithin P extractorSizeBound (Cost.encodeExtractorInput prog input T proof)
-      (extractorBudget prog T proof)).bind (Cost.decodeExecution prog)
+      (Cost.extractorBudget (permutationQueries T).length)).bind (Cost.decodeExecution prog)
 
 end
 

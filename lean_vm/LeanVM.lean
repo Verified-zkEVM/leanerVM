@@ -47,7 +47,7 @@ whose decodings explain the input by `guest_knowledge`.
 (`Cost/ExtractorProgram.lean`). Its size is within `extractorSizeBound`
 (`Cost/ExtractorSize.lean`), and the extractor it computes within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `extractorBudgetFor`
+`knowledgeSoundness_holds` is proved; its price is within `extractorBudget`
 (`Cost/Bounds/Top.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`Statement/README.md`), in the

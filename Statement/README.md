@@ -123,24 +123,23 @@ theorems, then read the files in this order.
    given extractor; it asks for some valid execution, not necessarily the one the proof commits to),
    **`LeanVM.Completeness`**.
 12. [`CostMachine.lean`](CostMachine.lean): the cost machine (`MachineValue`, `PrimitiveOperation`,
-    `Term`, `MachineProgram`, `evaluateTerm`, `run`, `outputWithin`, a program's `size`: a
-    first-order functional language on words, natural numbers and arrays, each step priced at least
-    `1` and, but for a `case`'s fields and a closure's captured values, at least the words it
-    writes, its operations priced by their algorithms), the encoding of the extractor's input and
-    output (`encodeExtractorInput`, `decodeExecution`, a linear parse), the budget
-    (`extractorBudget`: `extractorBudgetFor` at the transcript's number of queries, the same for
-    every shape, wherever a proof announces one, `announced`, `LeanVmVerifier.lean`; `0` otherwise)
-    and **`LeanVM.extractorOf P`**: the extractor a program `P` computes, run within the budget, its
-    output parsed; `Statement.Theorems` takes `P` with its size at most `extractorSizeBound` and
-    does not name it (`lean_vm` names its knowledge extractor, compiled). That the machine's prices
-    are honest is trusted. The size bound is `14400`: the compiled extractor's `13811` and a slack
-    of about one leanXMSS signature's encoding, so the compiled extractor could carry no useful
-    table of witnesses beside its code; the budget (`extractorBudgetFor`, wherever the proof
-    announces a shape) is a short formula in the number `N` of queries, `2^95 + (N + 2^30)·(D +
-    2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^95` for `N ≤ 2^60` (the list decoder,
-    about `2^94.07` at the worst shape) and `2^157.08` at `N = 2^128` (the transcript's index),
-    where the soundness bound is already trivial; `lean_vm` proves the compiled extractor's price
-    below it at every shape the replay admits.
+    `Term`, `MachineProgram`, `evaluateTerm`, `run`, a program's `size`, and `outputWithin`, a
+    program's output within a size bound and a budget): a first-order functional language on
+    natural numbers and arrays, each step priced by its algorithm, at least `1` and at least the
+    words it writes; the encoding of the extractor's input and output (`encodeExtractorInput`,
+    `decodeExecution`, a linear parse); the extractor's size bound (`extractorSizeBound`) and budget
+    (`extractorBudget N`, for `N` permutation queries in the transcript: the most its run may cost,
+    so also the most steps it may execute); and **`LeanVM.extractorOf P`**: the extractor a program
+    `P` computes, its output parsed, if `P`'s size and its run's price are within them.
+    `Statement.Theorems` takes `P` as a parameter and does not name it (`lean_vm` names its
+    knowledge extractor, compiled). That the machine's prices are honest is trusted. The size bound
+    is `14400`: the compiled extractor's `13811` and a slack of about one leanXMSS signature's
+    encoding, so the compiled extractor could carry no useful table of witnesses beside its code.
+    The budget is a short formula, `2^95 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with
+    `D = log₂(N + 2) + 1`: about `2^95` for `N ≤ 2^60` (the list decoder, about `2^94.07` at the
+    worst shape) and `2^157.08` at `N = 2^128` (the transcript's index), where the soundness bound
+    is already trivial; `lean_vm` proves the compiled extractor's price below it at every shape the
+    replay admits.
 13. [`LeanVmGuest.lean`](LeanVmGuest.lean): the leanISA guest program's specification (aggregation):
     DA claims and their digest, a node's statement, its digest (Keccak-256 of a preimage), witness
     and relation (`NodeRelation`: leanXMSS and leanSPHINCS claims, a DA digest, children verified by
