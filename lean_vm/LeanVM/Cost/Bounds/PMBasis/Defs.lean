@@ -20,7 +20,7 @@ numbers' checks (`Bounds/PMBasis/Values.lean`) import only what they evaluate.
 * `pmLevels N K o = Σ_{k<K} 2^k·N(⌈o/2^k⌉)`, the per-level closed form
   (`pmTree_le_levels`: `pmTree ≤ pmLevels + L·o` for a monotone `N`, `o ≤ 2^K`);
 * the price model of the FFT-based recursion (`evalMatPrice`, `pmNodePrice`, `pmLeafPrice`,
-  `pmRootPrice`): stated per-operation prices, not yet a compiled function's.
+  `pmBasisPrice`): stated per-operation prices, not yet a compiled function's.
 -/
 
 namespace LeanVM.Cost.Bounds.PMBasis
@@ -59,13 +59,15 @@ tree are two consecutive numbers, so the tree is evaluated in `log₂ q` steps. 
 
 /-! ## The price model -/
 
-/-- The least `j` with `x ≤ 2^j` (`fuel ≥ x`). -/
-@[expose] def clog2Aux : ℕ → ℕ → ℕ
-  | 0, _ => 0
-  | f + 1, x => if x ≤ 1 then 0 else clog2Aux f ((x + 1) / 2) + 1
+/-- The search for the least `j ≥ j₀` with `e ≤ 2^j`, in `fuel` steps: `ceilLogLoop` of
+`Fast/EvalMat/Product.lean`, copied so that this file imports no product (`clog2_eq_ceilLog`). -/
+@[expose] def clog2Loop (e : ℕ) : ℕ → ℕ → ℕ
+  | 0, j => j
+  | fuel + 1, j => if e ≤ 2 ^ j then j else clog2Loop e fuel (j + 1)
 
-/-- The least `j` with `x ≤ 2^j` (`le_two_pow_clog2`). -/
-@[expose] def clog2 (x : ℕ) : ℕ := clog2Aux x x
+/-- `⌈log₂ e⌉`, the least `j` with `e ≤ 2^j`: the transform size's exponent `ceilLog` of
+`mulEval`/`mulTruncEval` (`Fast/EvalMat/Product.lean`; `clog2_eq_ceilLog`). -/
+@[expose] def clog2 (e : ℕ) : ℕ := clog2Loop e e 0
 
 /-- **The forward additive NTT over `2^j` points**: `novelFwd_cost` (`Bounds/FastPath.lean`) at
 `κ = j`, `R = 0`, as `lean_vm` proves it of its compiled `novelFwd`. -/
@@ -101,14 +103,11 @@ node for the rest (orders, folds). -/
 /-- **A leaf's price** (model): an order-`1` leaf of `r` rows, `8·r³` multiply-adds. -/
 @[expose] def pmLeafPrice (mac r : ℕ) : ℕ := 8 * r ^ 3 * mac
 
-/-- **The root pass** (model; `pmBasisNormalizeRoot` once weak Popov form is kept through the
-compositions): `O(r²)` row scans of `r` rows of degree `≤ o`, `ovh` per coefficient. -/
-@[expose] def pmRootPrice (ovh r o : ℕ) : ℕ := ovh * (r * r * (o + 1))
-
-/-- **PM-basis's whole price** (model): the fuel's fold over the `m` orders, the recursion
-(`pmTree`, cutoff `1`), the root pass. -/
-@[expose] def pmBasisPrice (mac ovh rootOvh r m o : ℕ) : ℕ :=
-  (64 * m + 100) + pmTree 1 (pmLeafPrice mac r) (pmNodePrice mac ovh r m) o + pmRootPrice rootOvh r o
+/-- **PM-basis's whole price** (model) on the target runtime (`popovRuntime`, cutoff `1`; its
+`pmBasis` is its core at `pmBasisFuel`, no root pass: `pmBasis_popovRuntime_eq_core`): the fuel's
+fold over the `m` orders and the recursion (`pmTree`). -/
+@[expose] def pmBasisPrice (mac ovh r m o : ℕ) : ℕ :=
+  (64 * m + 100) + pmTree 1 (pmLeafPrice mac r) (pmNodePrice mac ovh r m) o
 
 end
 

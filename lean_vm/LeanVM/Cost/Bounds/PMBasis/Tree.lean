@@ -5,6 +5,7 @@ public import Mathlib.Order.MinMax
 public import Mathlib.Algebra.BigOperators.Ring.Finset
 public import Mathlib.Tactic.Ring
 public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.GCongr
 
 /-!
 # PM-basis's price: the divide-and-conquer recursion, solved
@@ -18,9 +19,11 @@ For a price `T` on the recursion's states `x` (fuel, problem, shift) whose maxim
 * **`pmTree_le_levels`**: for a monotone `N` and `1 ≤ o ≤ 2^K`,
   `pmTree c L N o ≤ pmLevels N K o + L·o` (`o` leaves at most, a level `k` at most
   `2^k·N(⌈o/2^k⌉)`), and **`pmLevels_eq_sum`**: `pmLevels N K o = Σ_{k<K} 2^k·N(⌈o/2^k⌉)`;
+* **`pmTree_mono`**: monotone in the order for a monotone `N`;
 * **`pmTreePair_eq`**: `pmTreePair c L N f q = (pmTree c L N q, pmTree c L N (q + 1))` for
   `q + 1 ≤ 2^f` (the evaluation in `f` steps);
-* **`le_two_pow_clog2`**, **`two_pow_clog2_le`**: `x ≤ 2^(clog2 x) < 2·x` (`x ≥ 1`).
+* **`le_two_pow_clog2`**, **`clog2_le`**, **`two_pow_clog2_lt`**: `clog2 e` is the least `j` with
+  `e ≤ 2^j`, and `2^(clog2 e) < 2·e` (`e ≥ 1`); `clog2_mono`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMBasis
@@ -168,43 +171,110 @@ theorem pmTreePair_eq (c L : ℕ) (N : ℕ → ℕ) :
 
 /-! ## `clog2` -/
 
-theorem le_two_pow_clog2Aux : ∀ f x, x ≤ 2 ^ f → x ≤ 2 ^ clog2Aux f x := by
-  intro f
-  induction f with
-  | zero => intro x hx; simpa [clog2Aux] using hx
-  | succ f ih =>
-    intro x hx
-    unfold clog2Aux
-    split_ifs with h
-    · simp; omega
-    · have hp : 2 ^ (f + 1) = 2 * 2 ^ f := by ring
-      have := ih ((x + 1) / 2) (by omega)
-      rw [pow_succ]
+theorem le_two_pow_clog2Loop (e : ℕ) :
+    ∀ fuel j, e ≤ j + fuel → e ≤ 2 ^ clog2Loop e fuel j
+  | 0, j, h => by
+    rw [clog2Loop]
+    exact (Nat.le_of_lt_succ (by omega : e < j + 1)).trans (Nat.lt_two_pow_self).le
+  | fuel + 1, j, h => by
+    rw [clog2Loop]
+    split
+    · assumption
+    · exact le_two_pow_clog2Loop e fuel (j + 1) (by omega)
+
+theorem le_two_pow_clog2 (e : ℕ) : e ≤ 2 ^ clog2 e :=
+  le_two_pow_clog2Loop e e 0 (by omega)
+
+theorem clog2Loop_le (e : ℕ) {j : ℕ} (hj : e ≤ 2 ^ j) :
+    ∀ fuel j₀, j₀ ≤ j → clog2Loop e fuel j₀ ≤ j
+  | 0, _, h => h
+  | fuel + 1, j₀, h => by
+    rw [clog2Loop]
+    split
+    · exact h
+    · rename_i hlt
+      have : j₀ < j := by
+        by_contra hc
+        exact hlt (hj.trans (Nat.pow_le_pow_right (by omega) (by omega)))
+      exact clog2Loop_le e hj fuel (j₀ + 1) this
+
+/-- `clog2 e` is the least: `e ≤ 2^j` gives `clog2 e ≤ j`. -/
+theorem clog2_le {e j : ℕ} (hj : e ≤ 2 ^ j) : clog2 e ≤ j :=
+  clog2Loop_le e hj e 0 (Nat.zero_le _)
+
+theorem clog2_mono {a b : ℕ} (h : a ≤ b) : clog2 a ≤ clog2 b :=
+  clog2_le (h.trans (le_two_pow_clog2 b))
+
+/-- The transform size is below twice the degree bound: `2^clog2 e < 2·e` (`e ≥ 1`). -/
+theorem two_pow_clog2_lt {e : ℕ} (he : 1 ≤ e) : 2 ^ clog2 e < 2 * e := by
+  rcases Nat.eq_zero_or_pos (clog2 e) with h0 | hpos
+  · rw [h0]; omega
+  · obtain ⟨k, hk⟩ : ∃ k, clog2 e = k + 1 := ⟨clog2 e - 1, by omega⟩
+    have : ¬ e ≤ 2 ^ k := fun h ↦ by have := clog2_le h; omega
+    rw [hk, pow_succ]
+    omega
+
+/-! ## Monotone in the order -/
+
+theorem le_pmTree_self (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : L ≤ pmTree c L N o := by
+  rcases Nat.lt_or_ge 1 o with h1 | h1
+  · by_cases hc : o ≤ c
+    · rw [pmTree_leaf (Or.inl hc)]
+    · rw [pmTree_node (by omega) h1]
+      have := le_pmTree_self c L N (o - o / 2)
+      omega
+  · rw [pmTree_leaf (Or.inr h1)]
+termination_by o
+decreasing_by omega
+
+/-- **`pmTree` is monotone in the order** for a monotone node price. -/
+theorem pmTree_mono (c L : ℕ) {N : ℕ → ℕ} (hN : Monotone N) :
+    ∀ b a, a ≤ b → pmTree c L N a ≤ pmTree c L N b := by
+  intro b
+  induction b using Nat.strong_induction_on with
+  | _ b ih =>
+    intro a hab
+    by_cases ha : a ≤ c ∨ a ≤ 1
+    · rw [pmTree_leaf ha]; exact le_pmTree_self c L N b
+    · rw [pmTree_node (c := c) (L := L) (N := N) (o := a) (by omega) (by omega),
+        pmTree_node (c := c) (L := L) (N := N) (o := b) (by omega) (by omega)]
+      have := hN hab
+      have := ih (b / 2) (by omega) (a / 2) (by omega)
+      have := ih (b - b / 2) (by omega) (a - a / 2) (by omega)
       omega
 
-theorem two_pow_clog2Aux_le : ∀ f x, 1 ≤ x → 2 ^ clog2Aux f x + 1 ≤ 2 * x := by
-  intro f
-  induction f with
-  | zero => intro x hx; simp [clog2Aux]; omega
-  | succ f ih =>
-    intro x hx
-    unfold clog2Aux
-    split_ifs with h
-    · simp; omega
-    · have := ih ((x + 1) / 2) (by omega)
-      generalize clog2Aux f ((x + 1) / 2) = e at this ⊢
-      rcases e with _ | e
-      · simp; omega
-      · rw [pow_succ, pow_succ] at *
-        omega
+/-! ## The model is monotone -/
 
-theorem le_two_pow_clog2 (x : ℕ) : x ≤ 2 ^ clog2 x :=
-  le_two_pow_clog2Aux x x (Nat.lt_two_pow_self).le
+theorem nttFwdPrice_mono {j j' : ℕ} (h : j ≤ j') : nttFwdPrice j ≤ nttFwdPrice j' := by
+  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
+  unfold nttFwdPrice; gcongr
 
-theorem two_pow_clog2_le {x : ℕ} (hx : 1 ≤ x) : 2 ^ clog2 x < 2 * x := by
-  have := two_pow_clog2Aux_le x x hx
-  unfold clog2
-  omega
+theorem nttInvPrice_mono {j j' : ℕ} (h : j ≤ j') : nttInvPrice j ≤ nttInvPrice j' := by
+  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
+  unfold nttInvPrice; gcongr
+
+theorem basisConvPrice_mono (mac : ℕ) {j j' : ℕ} (h : j ≤ j') :
+    basisConvPrice mac j ≤ basisConvPrice mac j' := by
+  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
+  unfold basisConvPrice; gcongr
+
+/-- A product of larger degrees costs no less (its transform size `clog2` is monotone). -/
+theorem evalMatPrice_mono (mac R S T : ℕ) {dA dB dA' dB' : ℕ} (hA : dA ≤ dA') (hB : dB ≤ dB') :
+    evalMatPrice mac R S T dA dB ≤ evalMatPrice mac R S T dA' dB' := by
+  have hj := clog2_mono (show dA + dB + 1 ≤ dA' + dB' + 1 by omega)
+  have := nttFwdPrice_mono hj
+  have := nttInvPrice_mono hj
+  have := basisConvPrice_mono mac hj
+  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hj
+  unfold evalMatPrice; gcongr
+
+/-- **The model's node price is monotone in the order**, so `pmTree_le_levels` applies to it. -/
+theorem pmNodePrice_mono (mac ovh r m : ℕ) : Monotone (pmNodePrice mac ovh r m) := by
+  intro a b h
+  have := evalMatPrice_mono mac r r r (show a - a / 2 ≤ b - b / 2 by omega)
+    (show a / 2 ≤ b / 2 by omega)
+  have := evalMatPrice_mono mac r r m (show a / 2 ≤ b / 2 by omega) (show a - 1 ≤ b - 1 by omega)
+  unfold pmNodePrice; gcongr
 
 end
 
