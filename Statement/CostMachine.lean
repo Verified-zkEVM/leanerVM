@@ -20,17 +20,20 @@ costs at least `1`, so the fuel never fails a run of price at most `b`.
 
 **Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
 `KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is priced by
-the algorithm that computes it on a 64-bit machine, at least `1` and at least the words it
-writes. A structural step costs `1` and the words it writes: a constructor, a closure and a new
-array their entries, a `case` the fields it puts in front of the environment, a closure's
-application the captured values it puts in front of the arguments. A variable, a literal, a field
-and an array's entry cost `1`: values are immutable, so they are shared, not copied (and an
-array's update copies it). A natural number is held in limbs of 64 bits (`limbCount`): an
-operation on natural numbers costs the limbs it reads or writes, the larger count
-(`linearOperation`), and a product, quotient, remainder or carry-less product the product of its
-operands' limb counts, at least the limbs it writes (`quadraticOperation`, schoolbook). On
-one-limb operands each is one instruction of a 64-bit CPU, the carry-less product that of
-x86-64's PCLMULQDQ or ARMv8's PMULL.
+the algorithm that computes it on a 64-bit machine, at least `1`. The environment is a stack frame,
+read in place: a position costs `1`; a `let` pushes one value, a `case` the fields it binds and a
+closure's application the captured values it puts in front of the arguments, each at `1` per
+value; a call's frame is written by its argument terms, each of price at least `1`. A constructor,
+a closure and a new array cost `1` and their entries; a field and an array's entry cost `1`, read
+in place: values are immutable, so they are shared, not copied (an array's update copies it). A
+natural number is held in limbs of 64 bits (`limbCount`) and knows their count: an operation on
+natural numbers costs the limbs it reads or writes, the larger count (`linearlyPricedResult`), and
+a product, quotient, remainder or carry-less product the product of its operands' limb counts, at
+least the limbs it writes (`quadraticallyPricedResult`, schoolbook); an array index of more than
+one limb is out of bounds. The unit is a word operation: on one-limb operands each operation is a
+few instructions of a 64-bit CPU (one, and a comparison for a shift by `64` or more, a truncated
+subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or ARMv8's PMULL; on
+more limbs, a constant number per limb or pair of limbs.
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): `P` run on the encoded statement,
 transcript and proof (`encodeExtractorInput`; the transcript without the adversary's coin flips)
@@ -79,18 +82,14 @@ def MachineValue.toList? : MachineValue → Option (List MachineValue)
 /-- The limbs of 64 bits of a natural number, at least one. -/
 def limbCount (n : ℕ) : ℕ := n.log2 / 64 + 1
 
-/-- The carry-less product: `a` and `b` read as polynomials over `GF(2)`, their bits the
-coefficients, multiplied. -/
-def carrylessProduct (a b : ℕ) : ℕ :=
-  (List.range (a.log2 + 1)).foldl (fun acc i ↦ if a.testBit i then acc ^^^ (b <<< i) else acc) 0
-
 /-- The primitive operations, on natural numbers and arrays. None reads a constructor's tag or a
 closure's function index as a number (see the section *Size* below). -/
 inductive PrimitiveOperation where
   /-- `and`, `or`, `xor`, the shifts, `+`, truncated `−`, `=`, `<`. -/
-  | bitwiseAnd | bitwiseOr | bitwiseXor | shiftLeft | shiftRight | add | subtract
+  | bitwiseAnd | bitwiseOr | bitwiseXor | shiftLeft | shiftRight | add | truncatedSubtract
   | equal | lessThan
-  /-- `·`, `/`, `%`, the carry-less product. -/
+  /-- `·`, `/`, `%` (by `0`: `0` and `a`, as Lean's), the carry-less product (the product of
+  `a` and `b` read as polynomials over `GF(2)`, the verifier's `carryless`). -/
   | multiply | divide | modulo | carrylessMultiply
   /-- An array's size; its entry `i` or a default. -/
   | arraySize | arrayGet
@@ -103,29 +102,29 @@ inductive PrimitiveOperation where
 
 /-- The result `r` of an operation reading `a` and `b` once: the limbs it reads or writes, the
 larger count. -/
-def linearOperation (r a b : ℕ) : Option (MachineValue × ℕ) :=
+def linearlyPricedResult (r a b : ℕ) : Option (MachineValue × ℕ) :=
   some (.nat r, max (limbCount r) (max (limbCount a) (limbCount b)))
 
 /-- The result `r` of an operation pairing each limb of `a` with each limb of `b`: the product of
 their counts, at least the limbs it writes. -/
-def quadraticOperation (r a b : ℕ) : Option (MachineValue × ℕ) :=
+def quadraticallyPricedResult (r a b : ℕ) : Option (MachineValue × ℕ) :=
   some (.nat r, max (limbCount r) (limbCount a * limbCount b))
 
 /-- A primitive's value and price on its arguments, or `none` on a misuse. -/
 def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Option (MachineValue × ℕ)
-  | .bitwiseAnd, [.nat a, .nat b] => linearOperation (a &&& b) a b
-  | .bitwiseOr, [.nat a, .nat b] => linearOperation (a ||| b) a b
-  | .bitwiseXor, [.nat a, .nat b] => linearOperation (a ^^^ b) a b
-  | .shiftLeft, [.nat a, .nat k] => linearOperation (a <<< k) a k
-  | .shiftRight, [.nat a, .nat k] => linearOperation (a >>> k) a k
-  | .add, [.nat a, .nat b] => linearOperation (a + b) a b
-  | .subtract, [.nat a, .nat b] => linearOperation (a - b) a b
-  | .equal, [.nat a, .nat b] => some (.ofBool (a == b), max (limbCount a) (limbCount b))
+  | .bitwiseAnd, [.nat a, .nat b] => linearlyPricedResult (a &&& b) a b
+  | .bitwiseOr, [.nat a, .nat b] => linearlyPricedResult (a ||| b) a b
+  | .bitwiseXor, [.nat a, .nat b] => linearlyPricedResult (a ^^^ b) a b
+  | .shiftLeft, [.nat a, .nat k] => linearlyPricedResult (a <<< k) a k
+  | .shiftRight, [.nat a, .nat k] => linearlyPricedResult (a >>> k) a k
+  | .add, [.nat a, .nat b] => linearlyPricedResult (a + b) a b
+  | .truncatedSubtract, [.nat a, .nat b] => linearlyPricedResult (a - b) a b
+  | .equal, [.nat a, .nat b] => some (.ofBool (decide (a = b)), max (limbCount a) (limbCount b))
   | .lessThan, [.nat a, .nat b] => some (.ofBool (decide (a < b)), max (limbCount a) (limbCount b))
-  | .multiply, [.nat a, .nat b] => quadraticOperation (a * b) a b
-  | .divide, [.nat a, .nat b] => quadraticOperation (a / b) a b
-  | .modulo, [.nat a, .nat b] => quadraticOperation (a % b) a b
-  | .carrylessMultiply, [.nat a, .nat b] => quadraticOperation (carrylessProduct a b) a b
+  | .multiply, [.nat a, .nat b] => quadraticallyPricedResult (a * b) a b
+  | .divide, [.nat a, .nat b] => quadraticallyPricedResult (a / b) a b
+  | .modulo, [.nat a, .nat b] => quadraticallyPricedResult (a % b) a b
+  | .carrylessMultiply, [.nat a, .nat b] => quadraticallyPricedResult (Protocol.Verifier.carryless a b) a b
   | .arraySize, [.arr xs] => some (.nat xs.size, 1)
   | .arrayGet, [.arr xs, .nat i, d] => some (xs.getD i d, 1)
   | .arraySet, [.arr xs, .nat i, v] => some (.arr (xs.setIfInBounds i v), xs.size + 1)
@@ -188,8 +187,8 @@ def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → O
     let (v, c) ← evaluateTerm P n env t
     match v with
     | .ctor k fs =>
-      match alts.attach[k]? with
-      | some ⟨a, _⟩ => do
+      match _h : alts[k]? with
+      | some a => do
         let (w, d) ← evaluateTerm P n (fs ++ env) a
         pure (w, c + d + fs.length + 1)
       | none => none
@@ -215,9 +214,9 @@ def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → O
     | _ => none
 termination_by n _ t => (n, sizeOf t)
 decreasing_by
-  all_goals first
-    | (apply Prod.Lex.right; have := List.sizeOf_lt_of_mem ‹_ ∈ alts›; simp_all; omega)
-    | decreasing_tactic
+  all_goals
+    (try have := List.sizeOf_lt_of_mem (List.mem_of_getElem? ‹_[_]? = some _›))
+    decreasing_tactic
 
 /-- The terms' values, in order, and their total price. -/
 def evaluateTerms (P : MachineProgram) :
