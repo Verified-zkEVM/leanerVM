@@ -170,7 +170,8 @@ may execute), with `lg = log₂(steps + 1)`,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)`. `lean_vm` proves the compiled
 decoder's price at most this on every valid execution (`Cost/Prices.lean` has the exact price, part
 by part). Per step, the decoder replays the step and files the state in its sorted table of function
-entries (`2^20.9` to `2^21.1` a step, growing as `log(steps)`); the second term builds the sorted
+entries (`2^20.41` to `2^20.75` a step, against the budget's `2^21` to `2^21.3`, growing as
+`log(steps)`); the second term builds the sorted
 table of the memory's addresses; the third reads the witness at the counts and cursors the guest
 program's own asserts bound on every valid execution (`16` children, `65535` claims of each scheme
 and coverage slots, a child's cursor at most `8192` words, `da_verify`'s rows at most `1024`) and
@@ -266,7 +267,8 @@ structure Theorems
   nodes checking one DA matrix of at most `32` rows among them, under the deployed seed and within
   the deployed limits, wherever every child carries the honest prover's proof (`HonestChild`: its
   fresh claim true, its proof the honest one with the deployed Keccak of an execution of the guest
-  program, accepted by the verifier refusing a zero challenge) (`LeanVmGuestCompleteness.lean`). -/
+  program of committed size at least `2^22`, accepted by the verifier refusing a zero challenge)
+  (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
   makes none, or the verifier refusing a zero challenge rejects it, with probability at most

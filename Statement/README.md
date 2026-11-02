@@ -34,21 +34,21 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 **What is trusted.** That the deployed Keccak-f[1600] behaves as a random permutation; that no one
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
 honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
-operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL);
-and that the leanVM definitions transcribe their sources. Accepted trade-offs: the statement does
-not name the extractor or decoder program (only their sizes and budgets); the decoder computes the
-witness from the execution; the extracted execution need not be the committed one; the decoder's
-budget has no cap on steps, grows as `steps·log steps`, and its constant (`2^42.17` to `2^44.30` at
-the points below, the address tables at the execution's `κ` included) prices the witness at the
-bounds a valid execution's asserts and its children's accepted proofs give (`16` children, each
-with `65535` claims of each scheme and a cursor of `8192` words, `65535` declared claims of each
-scheme, `1024` rows of the DA matrix), not at the run's, so with fewer children and claims, at `κ ≤ 28` and well below `2^21`
-steps, the budget is several times the compiled decoder's price (at `κ = 32` the address tables,
-priced at the run's `κ`, are most of it); that
-a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not proved in
-Lean; literal tables count toward size; the size bounds limit programs written like the compiled
-ones (a decoder written differently could pack the guest's tables tighter, about `1600` signatures'
-room); the extractor's budget is `2^81 + O(N·log³N)` for `N` queries.
+operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); and that the leanVM definitions
+transcribe their sources. Accepted trade-offs: the statement does not name the extractor or decoder
+program (only their sizes and budgets); the decoder computes the witness from the execution; the
+extracted execution need not be the committed one; the decoder's budget has no cap on steps, grows
+as `steps·log steps`, and its constant (`2^42.17` to `2^44.30` at the points below, the address
+tables at the execution's `κ` included) prices the witness at the bounds a valid execution's asserts
+and its children's accepted proofs give (`16` children, each with `65535` claims of each scheme and
+a cursor of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA matrix), not
+at the run's, so with fewer children and claims, at `κ ≤ 28` and well below `2^22` steps, the budget
+is several times the compiled decoder's price (at `κ = 32` the address tables, priced at the run's
+`κ`, are most of it); that a valid execution of the guest program has fewer than `2^51` steps is
+argued in prose, not proved in Lean; literal tables count toward size; the size bounds limit
+programs written like the compiled ones (a decoder written differently could pack the guest's tables
+tighter, about `1600` signatures' room); the extractor's budget is `2^81 + O(N·log³N)` for `N`
+queries.
 
 ## Reading order
 
@@ -311,25 +311,26 @@ extractor's compiled functions; renumbered compactly, the same program would lea
 signatures' encodings ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the
 measurements).
 
-**The budget** (`guestWitnessDecoderBudget`) is a short formula, `(steps + 1)·(2^21 + 2^13·lg) +
-(70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above the closed-form price
-`lean_vm` proves of the compiled decoder (`lean_vm/LeanVM/Cost/Prices.lean`, within `0.16` bits of
-it below `2^(19 + κ)` steps, so on every valid execution as argued below; `0.18` bits up to `2^60`
-steps, `0.21` up to `2^127`): a price per step of the run (the replay and the filing of the state in the table of function
-entries, its share of one sort, `2^20.9` to `2^21.1`, growing as `log(steps)`); the sorted table of
-the memory's addresses, at the execution's `κ`; and the witness read at the counts and the cursors
-a valid execution bounds (`2^37·(lg + 16)`, about `2^42` to `2^43`: the guest's own asserts give at most `16` children, `65535`
-claims of each scheme and `65535` coverage slots, `valid_counts`; each child's cursor, a prefix of
-its proof's stream, is at most `8192` words, since the deferring verifier accepts that proof on a
-valid execution (`valid_cursor`); the decoder clamps `da_verify`'s row count at `1024`), with about
-`2^26.57` frame lookups. It is `2^42.74` at `κ = 20` and `2^20` steps, `2^45.32` at `κ = 24` and
-`2^24`, `2^49.17` at `κ = 28` and `2^28`, `2^51.17` at `κ = 32` and `2^30`, `2^72.26` at `κ = 32`
-and `2^51`, `2^81.30` at `κ = 32` and `2^60`. A valid execution of the guest program has fewer than
-`2^51` steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o`
-fixed by `pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is
-determined by `(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states,
-`ℓ = 19`, `κ ≤ 32`; argued, not a Lean theorem; `lean_vm` proves fewer than `2^128`,
-`steps_lt_replayFuel`).
+**The budget** (`guestWitnessDecoderBudget`) is a short formula,
+`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above
+the closed-form price `lean_vm` proves of the compiled decoder (`lean_vm/LeanVM/Cost/Prices.lean`,
+within `0.21` to `1.23` bits of it, about `0.55` to `0.65` at the six points below): a price per
+step of the run (the replay and the filing of the state in the table of function entries, its share
+of one sort, `2^20.41` to `2^20.75` against the budget's `2^21` to `2^21.3`, growing as
+`log(steps)`); the sorted table of the memory's addresses, at the execution's `κ`; and the witness
+read at the counts and the cursors a valid execution bounds (`2^37·(lg + 16)`, about `2^42` to
+`2^43`: the guest's own asserts give at most `16` children, `65535` claims of each scheme and
+`65535` coverage slots, `valid_counts`; each child's cursor, a prefix of its proof's stream, is at
+most `8192` words, since the deferring verifier accepts that proof on a valid execution
+(`valid_cursor`); the decoder clamps `da_verify`'s row count at `1024`), with about `2^26.57` frame
+lookups. It is `2^42.74` at `κ = 20` and `2^20` steps, `2^45.32` at `κ = 24` and `2^24`, `2^49.17`
+at `κ = 28` and `2^28`, `2^51.17` at `κ = 32` and `2^30`, `2^72.26` at `κ = 32` and `2^51`,
+`2^81.30` at `κ = 32` and `2^60` (the price there: `2^42.09`, `2^44.74`, `2^48.60`, `2^50.61`,
+`2^71.71`, `2^80.75`). A valid execution of the guest program has fewer than `2^51` steps: the
+memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`, so at
+each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by `(pc, fp)`, and
+a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a
+Lean theorem; `lean_vm` proves fewer than `2^128`, `steps_lt_replayFuel`).
 
 ## Building
 
