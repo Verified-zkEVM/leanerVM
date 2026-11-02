@@ -139,14 +139,14 @@ most `max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -
 /-- **The decoder on `pmSolver`** (`decodeStacksDistinctPM μ R`) at the shape `(μ, R)`
 (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson threshold `A`): the `2^6` lanes pruned (`pruneBound`: the
 word's table, `BW` per column and `Lw` symbols per column; a lane `decoderLaneBoundPM`, at most
-`max 1 ℓ` candidates, at most `2^18` survivors), a stack per survivor. -/
+`max 1 ℓ` candidates, at most `2^12` survivors), a stack per survivor. -/
 @[expose] def decoderBoundPM (p : PMPrices) (μ R BW Lw : ℕ) : ℕ :=
   pruneBound (μ - Whir.initialFold) R (2 ^ Whir.initialFold) BW Lw
       (decoderLaneBoundPM p (μ - Whir.initialFold) R (johnsonThreshold μ R) 13)
       (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold))
         (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
-      (2 ^ 18) +
-    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 18 + 14098
+      (2 ^ 12) +
+    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14098
 
 end
 

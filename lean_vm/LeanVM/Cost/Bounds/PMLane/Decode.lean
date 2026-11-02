@@ -24,7 +24,7 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
 * **`decodeStacksPMC_cost`** `≤ decoderBoundPM p μ R BW Lw` at an admissible shape whose lanes
   are word-sized, and **`decodeStacksPMC_cost_worst`**: at every admissible shape, at the model's
   prices with their margin, at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice`
-  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^92.47`).
+  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^80.49`).
 
 Each lane's interpolation is priced by `interpolatePMC_cost_price` (`Bounds/PMSolve/Final.lean`),
 at prices fitting the proved transforms (`FFTPricesOK p`) and where its per-shape conditions hold
@@ -383,7 +383,7 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [fastStacksFastC.lam1.lam2.costEq P (by includes_sub),
           (cost_const% tableSymbol costEq) P (by includes_sub)]) u hsz)
-    hLc (Smax := 2 ^ 18) (fun u _ ↦ by
+    hLc (Smax := 2 ^ 12) (fun u _ ↦ by
       rcases Nat.eq_zero_or_pos u with rfl | hu
       · simp [pruneUpToDistinct]
       · exact pruneUpToDistinct_length_le_johnson hadm W hu)
@@ -408,7 +408,7 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
       omega)
   have hm2 : ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 21 + 13) *
       (pruneUpToDistinct κ R A W (2 ^ Whir.initialFold)).length ≤
-      ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 18 := Nat.mul_le_mul_left _ hsurv
+      ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 := Nat.mul_le_mul_left _ hsurv
   unfold decoderBoundPM
   rw [← hκ, ← hAdef]
   omega
@@ -424,7 +424,7 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 
 /-- **The decoder on `pmSolver` at every admissible shape**, at the model's prices with
 their margin: at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 6863287173660331409669053008 ≈ 2^92.47`): no hypothesis but the word's
+`pmDecoderWorstPrice = 1696768204877294467202512 ≈ 2^80.49`): no hypothesis but the word's
 prices, each lane's interpolation priced by `interpolatePMC_cost_price` at the shape's
 decided conditions (`LaneInterpOKPM marginPrices`) and `FFTPricesOK marginPrices`
 (`PMSolve.fftPricesOK_margin`). -/

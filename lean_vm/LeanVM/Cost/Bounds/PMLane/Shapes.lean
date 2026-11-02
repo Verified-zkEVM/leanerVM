@@ -9,7 +9,7 @@ At each of the `56` admissible shapes (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`), one
 (a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the decoder's bound beyond the word's prices, at the model's prices
 with their margin, is at most the one at `(28, 4)` (`pmDecoderWorstPrice`,
-`6863287173660331409669053008 ≈ 2^92.47`): **`decoderShapePM_ok`**, which
+`1696768204877294467202512 ≈ 2^80.49`): **`decoderShapePM_ok`**, which
 `decodeStacksPMC_cost_worst` (`Bounds/PMLane/Decode.lean`) reads.
 
 The checks evaluate only the extractor's parameter search and the bounds' definitions, none of
@@ -145,8 +145,8 @@ theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShape
   · exact decoderShapeOkPM_28_3
   · exact decoderShapeOkPM_28_4
 
-/-- **The worst price**: `6863287173660331409669053008 ≈ 2^92.47`, below `2^92.471`. -/
-theorem pmDecoderWorstPrice_eq : pmDecoderWorstPrice = 6863287173660331409669053008 := by
+/-- **The worst price**: `1696768204877294467202512 ≈ 2^80.49`, below `2^80.49`. -/
+theorem pmDecoderWorstPrice_eq : pmDecoderWorstPrice = 1696768204877294467202512 := by
   decide +kernel
 
 end
