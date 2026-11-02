@@ -7,7 +7,7 @@ import LeanVM.Cost.Encoding
 * misuse fails: a primitive on the wrong kind of value, a variable or a field that does not exist,
   a call of a missing function, too little fuel;
 * Keccak-f[1600] written in the language (one function per round, a recursive loop over the 24
-  round constants) equals the statement's `keccakF1600`, at `23745 ≈ 2^14.5` per permutation.
+  round constants) equals the statement's `keccakF1600`, at `26648 ≈ 2^14.7` per permutation.
 -/
 
 namespace LeanVMTests.Cost
@@ -16,60 +16,68 @@ open LeanVM.Cost LeanVM.Semantics LeanVM.Parameters
 
 /-! ## Primitives -/
 
-#guard PrimitiveOperation.wordAnd.apply [.word 12, .word 10] == some (.word 8, 1)
-#guard PrimitiveOperation.wordOr.apply [.word 12, .word 10] == some (.word 14, 1)
-#guard PrimitiveOperation.wordXor.apply [.word 12, .word 10] == some (.word 6, 1)
-#guard PrimitiveOperation.wordNot.apply [.word 0] == some (.word (2 ^ 64 - 1), 1)
-#guard PrimitiveOperation.wordShiftLeft.apply [.word 1, .word 65] == some (.word 2, 1)
-#guard PrimitiveOperation.wordShiftRight.apply [.word 8, .word 3] == some (.word 1, 1)
-#guard PrimitiveOperation.wordEqual.apply [.word 8, .word 8] == some (.ofBool true, 1)
-#guard PrimitiveOperation.wordLessThan.apply [.word 9, .word 8] == some (.ofBool false, 1)
-#guard PrimitiveOperation.binaryFieldMultiply.apply [.word 2, .word 3] == some (.word 6, 256)
-#guard PrimitiveOperation.wordToNatural.apply [.word 7] == some (.nat 7, 1)
-#guard PrimitiveOperation.wordOfNatural.apply [.nat (2 ^ 64 + 5)] == some (.word 5, 1)
--- Natural numbers: priced by 64-bit limbs.
-#guard PrimitiveOperation.naturalAdd.apply [.nat (2 ^ 64), .nat 1] == some (.nat (2 ^ 64 + 1), 3)
-#guard PrimitiveOperation.naturalSubtract.apply [.nat 3, .nat 5] == some (.nat 0, 2)
-#guard PrimitiveOperation.naturalMultiply.apply [.nat (2 ^ 64), .nat (2 ^ 128)] == some (.nat (2 ^ 192), 7)
-#guard PrimitiveOperation.naturalDivide.apply [.nat 17, .nat 5] == some (.nat 3, 2)
-#guard PrimitiveOperation.naturalModulo.apply [.nat 17, .nat 5] == some (.nat 2, 2)
-#guard PrimitiveOperation.naturalEqual.apply [.nat 5, .nat 5] == some (.ofBool true, 2)
-#guard PrimitiveOperation.naturalLessThan.apply [.nat 5, .nat 5] == some (.ofBool false, 2)
-#guard PrimitiveOperation.naturalLessOrEqual.apply [.nat 5, .nat 5] == some (.ofBool true, 2)
-#guard PrimitiveOperation.naturalShiftLeft.apply [.nat 1, .nat 128] == some (.nat (2 ^ 128), 5)
-#guard PrimitiveOperation.naturalShiftRight.apply [.nat (2 ^ 128), .nat 127] == some (.nat 2, 5)
+-- Natural numbers: priced by 64-bit limbs, the larger count read or written (`1` on words).
+#guard PrimitiveOperation.bitwiseAnd.apply [.nat 12, .nat 10] == some (.nat 8, 1)
+#guard PrimitiveOperation.bitwiseOr.apply [.nat 12, .nat 10] == some (.nat 14, 1)
+#guard PrimitiveOperation.bitwiseXor.apply [.nat 12, .nat 10] == some (.nat 6, 1)
+#guard PrimitiveOperation.bitwiseXor.apply [.nat 0, .nat (2 ^ 64 - 1)] == some (.nat (2 ^ 64 - 1), 1)
+#guard PrimitiveOperation.shiftLeft.apply [.nat 1, .nat 65] == some (.nat (2 ^ 65), 2)
+#guard PrimitiveOperation.shiftRight.apply [.nat 8, .nat 3] == some (.nat 1, 1)
+#guard PrimitiveOperation.equal.apply [.nat 8, .nat 8] == some (.ofBool true, 1)
+#guard PrimitiveOperation.lessThan.apply [.nat 9, .nat 8] == some (.ofBool false, 1)
+#guard PrimitiveOperation.add.apply [.nat (2 ^ 64), .nat 1] == some (.nat (2 ^ 64 + 1), 2)
+#guard PrimitiveOperation.add.apply [.nat (2 ^ 64 - 1), .nat 1] == some (.nat (2 ^ 64), 2)
+#guard PrimitiveOperation.truncatedSubtract.apply [.nat 3, .nat 5] == some (.nat 0, 1)
+#guard PrimitiveOperation.multiply.apply [.nat (2 ^ 64), .nat (2 ^ 128)] == some (.nat (2 ^ 192), 6)
+#guard PrimitiveOperation.multiply.apply [.nat (2 ^ 63), .nat 2] == some (.nat (2 ^ 64), 2)
+#guard PrimitiveOperation.divide.apply [.nat 17, .nat 5] == some (.nat 3, 1)
+#guard PrimitiveOperation.modulo.apply [.nat 17, .nat 5] == some (.nat 2, 1)
+#guard PrimitiveOperation.equal.apply [.nat 5, .nat 5] == some (.ofBool true, 1)
+#guard PrimitiveOperation.lessThan.apply [.nat 5, .nat 5] == some (.ofBool false, 1)
+#guard PrimitiveOperation.shiftLeft.apply [.nat 1, .nat 128] == some (.nat (2 ^ 128), 3)
+#guard PrimitiveOperation.shiftRight.apply [.nat (2 ^ 128), .nat 127] == some (.nat 2, 3)
+-- The carry-less product: `(x + 1)·(x + 1) = x^2 + 1`; two limbs written at `2`.
+#guard PrimitiveOperation.carrylessMultiply.apply [.nat 3, .nat 3] == some (.nat 5, 1)
+#guard PrimitiveOperation.carrylessMultiply.apply [.nat (2 ^ 63), .nat 2] == some (.nat (2 ^ 64), 2)
 -- Arrays: a new array of `n` entries costs `n + 1`.
-#guard PrimitiveOperation.arraySize.apply [.arr #[.word 1, .word 2]] == some (.nat 2, 1)
-#guard PrimitiveOperation.arrayGet.apply [.arr #[.word 1, .word 2], .nat 1, .word 0] == some (.word 2, 1)
-#guard PrimitiveOperation.arrayGet.apply [.arr #[.word 1, .word 2], .nat 5, .word 0] == some (.word 0, 1)
-#guard PrimitiveOperation.arraySet.apply [.arr #[.word 1, .word 2], .nat 0, .word 7] == some (.arr #[.word 7, .word 2], 3)
-#guard PrimitiveOperation.arrayPush.apply [.arr #[.word 1], .word 7] == some (.arr #[.word 1, .word 7], 3)
-#guard PrimitiveOperation.arrayOfList.apply [.ofList [.word 1, .word 2]] == some (.arr #[.word 1, .word 2], 3)
-#guard PrimitiveOperation.arrayToList.apply [.arr #[.word 1, .word 2]] == some (.ofList [.word 1, .word 2], 7)
-#guard PrimitiveOperation.arrayAppend.apply [.arr #[.word 1], .arr #[.word 2]] == some (.arr #[.word 1, .word 2], 3)
-#guard PrimitiveOperation.arrayExtract.apply [.arr #[.word 1, .word 2, .word 3], .nat 1, .nat 9] ==
-  some (.arr #[.word 2, .word 3], 3)
-#guard PrimitiveOperation.arrayReplicate.apply [.nat 2, .word 0] == some (.arr #[.word 0, .word 0], 3)
+#guard PrimitiveOperation.arraySize.apply [.arr #[.nat 1, .nat 2]] == some (.nat 2, 1)
+#guard PrimitiveOperation.arrayGet.apply [.arr #[.nat 1, .nat 2], .nat 1, .nat 0] == some (.nat 2, 1)
+#guard PrimitiveOperation.arrayGet.apply [.arr #[.nat 1, .nat 2], .nat 5, .nat 0] == some (.nat 0, 1)
+#guard PrimitiveOperation.arraySet.apply [.arr #[.nat 1, .nat 2], .nat 0, .nat 7] == some (.arr #[.nat 7, .nat 2], 3)
+#guard PrimitiveOperation.arrayPush.apply [.arr #[.nat 1], .nat 7] == some (.arr #[.nat 1, .nat 7], 3)
+#guard PrimitiveOperation.arrayOfList.apply [.ofList [.nat 1, .nat 2]] == some (.arr #[.nat 1, .nat 2], 3)
+#guard PrimitiveOperation.arrayToList.apply [.arr #[.nat 1, .nat 2]] == some (.ofList [.nat 1, .nat 2], 7)
+#guard PrimitiveOperation.arrayAppend.apply [.arr #[.nat 1], .arr #[.nat 2]] == some (.arr #[.nat 1, .nat 2], 3)
+#guard PrimitiveOperation.arrayExtract.apply [.arr #[.nat 1, .nat 2, .nat 3], .nat 1, .nat 9] ==
+  some (.arr #[.nat 2, .nat 3], 3)
+#guard PrimitiveOperation.arrayReplicate.apply [.nat 2, .nat 0] == some (.arr #[.nat 0, .nat 0], 3)
 
 /-! ## Misuse fails -/
 
-#guard PrimitiveOperation.wordAnd.apply [.nat 1, .word 2] == none
-#guard PrimitiveOperation.wordAnd.apply [.word 1] == none
-#guard PrimitiveOperation.arrayGet.apply [.word 1, .nat 0, .word 0] == none
-#guard PrimitiveOperation.arrayOfList.apply [.ctor 1 [.word 1, .word 2]] == none
+#guard PrimitiveOperation.bitwiseAnd.apply [.ctor 0 [], .nat 2] == none
+#guard PrimitiveOperation.bitwiseAnd.apply [.nat 1] == none
+#guard PrimitiveOperation.arrayGet.apply [.nat 1, .nat 0, .nat 0] == none
+#guard PrimitiveOperation.arrayOfList.apply [.ctor 1 [.nat 1, .nat 2]] == none
 #guard evaluateTerm #[] 5 [] (.var 0) == none
-#guard evaluateTerm #[] 5 [] (.field 2 (.ctor 0 [.val (.word 1)])) == none
-#guard evaluateTerm #[] 5 [] (.case (.val (.word 1)) [.val (.word 2)]) == none
-#guard evaluateTerm #[] 5 [] (.case (.ctor 3 []) [.val (.word 2)]) == none
+#guard evaluateTerm #[] 5 [] (.field 2 (.ctor 0 [.val (.nat 1)])) == none
+#guard evaluateTerm #[] 5 [] (.case (.val (.nat 1)) [.val (.nat 2)]) == none
+#guard evaluateTerm #[] 5 [] (.case (.ctor 3 []) [.val (.nat 2)]) == none
 #guard evaluateTerm #[] 5 [] (.call 0 []) == none
-#guard evaluateTerm #[] 5 [] (.applyClosure (.val (.word 0)) []) == none
+#guard evaluateTerm #[] 5 [] (.applyClosure (.val (.nat 0)) []) == none
 -- A function that calls itself forever runs out of fuel.
-#guard run #[.call 0 [.var 0]] 1000 (.word 0) == none
+#guard run #[.call 0 [.var 0]] 1000 (.nat 0) == none
 -- Prices: a variable `1`, a constructor of `n` values `n + 1`, a field `1`, a `let` `1`.
-#guard run #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 1 (.word 9) == some (.word 9, 8)
-#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] (.word 9) 8 ==
-  some (.word 9)
-#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] (.word 9) 7 == none
+#guard run #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 1 (.nat 9) == some (.nat 9, 8)
+-- A `case` costs `1` and the fields it puts in front of the environment; a closure's application
+-- `1` and its captured values.
+#guard run #[.case (.ctor 4 [.var 0, .var 0]) [.var 9, .var 9, .var 9, .var 9, .var 1]] 1 (.nat 9) ==
+  some (.nat 9, 9)
+#guard run #[.applyClosure (.closure 1 [.var 0, .var 0]) [.var 0], .var 2] 1 (.nat 9) == some (.nat 9, 10)
+-- The output within a budget and a size bound (the program's size is `6`).
+#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 6 (.nat 9) 8 ==
+  some (.nat 9)
+#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 6 (.nat 9) 7 == none
+#guard outputWithin #[.letIn (.ctor 4 [.var 0, .var 0]) (.field 1 (.var 0))] 5 (.nat 9) 8 == none
 
 /-! ## Keccak-f[1600] in the language -/
 
@@ -90,15 +98,16 @@ def letsB : List B → (List B → B) → B
 
 def opB (o : PrimitiveOperation) (args : List B) : B := fun d ↦ .op o (args.map (· d))
 
-def wlit (x : UInt64) : B := fun _ ↦ .val (.word x)
+def wlit (x : UInt64) : B := fun _ ↦ .val (.nat x.toNat)
 
 def nlit (n : ℕ) : B := fun _ ↦ .val (.nat n)
 
-def xorB (a b : B) : B := opB .wordXor [a, b]
+def xorB (a b : B) : B := opB .bitwiseXor [a, b]
 
-/-- `rot(x, n)`. -/
+/-- `rot(x, n)` on a word: `((x &&& (2^(64-n) - 1)) <<< n) ||| (x >>> (64 - n))`. -/
 def rotB (x : B) (n : ℕ) : B :=
-  if n = 0 then x else opB .wordOr [opB .wordShiftLeft [x, wlit n.toUInt64], opB .wordShiftRight [x, wlit (64 - n).toUInt64]]
+  if n = 0 then x else opB .bitwiseOr [opB .shiftLeft [opB .bitwiseAnd [x, nlit (2 ^ (64 - n) - 1)], nlit n],
+    opB .shiftRight [x, nlit (64 - n)]]
 
 /-- A list value of the terms. -/
 def listB : List B → B
@@ -115,7 +124,7 @@ def roundB : B :=
   let src := fun j ↦ ((List.range 25).find? fun i ↦ keccakPi i = j).getD 0
   letsB ((List.range 25).map fun j ↦ rotB (a[src j]!) (keccakRho.getD (src j) 0)) fun b ↦
   letsB ((List.range 25).map fun i ↦
-      xorB (b[i]!) (opB .wordAnd [opB .wordNot [b[i - i % 5 + (i + 1) % 5]!],
+      xorB (b[i]!) (opB .bitwiseAnd [xorB (b[i - i % 5 + (i + 1) % 5]!) (nlit (2 ^ 64 - 1)),
         b[i - i % 5 + (i + 2) % 5]!])) fun a ↦
   opB .arrayOfList [listB ((a.set 0 (xorB (a[0]!) (arg 2 1))))]
 
@@ -123,10 +132,10 @@ def roundB : B :=
 `2` one round. -/
 def keccakProgram : LeanVM.Cost.MachineProgram := #[
   .call 1 [.var 0, .val (.nat 0)],
-  .case (.op .naturalLessThan [.var 1, .val (.nat 24)]) [
+  .case (.op .lessThan [.var 1, .val (.nat 24)]) [
     .var 0,
-    .call 1 [.call 2 [.var 0, .op .arrayGet [.val (.arr (keccakRC.toArray.map .word)), .var 1,
-      .val (.word 0)]], .op .naturalAdd [.var 1, .val (.nat 1)]]],
+    .call 1 [.call 2 [.var 0, .op .arrayGet [.val (.arr (keccakRC.toArray.map (.nat ·.toNat))), .var 1,
+      .val (.nat 0)]], .op .add [.var 1, .val (.nat 1)]]],
   roundB 2]
 
 def stateA : KeccakState := Vector.ofFn fun i ↦ (i.val * 0x9E3779B97F4A7C15 + 7).toUInt64
@@ -134,7 +143,7 @@ def stateA : KeccakState := Vector.ofFn fun i ↦ (i.val * 0x9E3779B97F4A7C15 + 
 #guard (run keccakProgram 100 (MachineEncoding.encodeValue (0 : KeccakState))).map (·.1) ==
   some (MachineEncoding.encodeValue (keccakF1600 0))
 #guard (run keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.1) == some (MachineEncoding.encodeValue (keccakF1600 stateA))
--- The price of one permutation: `23745`, between `2^14` and `2^15`.
-#guard (run keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.2) == some 23745
+-- The price of one permutation: `26648`, between `2^14` and `2^15`.
+#guard (run keccakProgram 100 (MachineEncoding.encodeValue stateA)).map (·.2) == some 26648
 
 end LeanVMTests.Cost

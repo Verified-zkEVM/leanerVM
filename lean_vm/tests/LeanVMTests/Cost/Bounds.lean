@@ -17,7 +17,7 @@ def price (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : Opt
   (evaluateFunctionBody (MachineProgram.ofList deps) 100000 i args).map (·.2)
 
 /-! The field inverse (`invK_cost`, Itoh–Tsujii): `19674` on `7`, the bound `19676`. -/
-#guard price LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costDeps LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costIdx
+#guard price LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costDeps LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costIdx
     [MachineEncoding.encodeValue (K.ofBits 7)] == some 19674
 
 end LeanVMTests.Cost

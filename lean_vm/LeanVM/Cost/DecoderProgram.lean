@@ -14,8 +14,9 @@ memory vector `memoryVector t.memory`, whose encoding is the memory's
 (`encodeValue_memoryVector`): the entry passes the input's words as they are.
 
 * `decoderEntryBody j`: function `0`, destructuring the input and calling function `j` on the
-  program, `κ` and the memory's array; **`runsBody_decoderEntry`**: at `8` steps more than the
-  call; **`outputWithin_decoderEntry`**: the output within a budget `b` covering them;
+  program, `κ` and the memory's array; **`runsBody_decoderEntry`**: at `13` more than the
+  call (two `case`s and their five fields, three variables, the call); **`outputWithin_decoderEntry`**: the output within a budget `b` covering them, of a program
+  within the size bound;
 * `decoderProgramOf j deps`: the entry at `0`, then the compiled top's bodies `deps`
   (`j`'s `costDeps`); `decoderProgramOf_includes`, `decoderProgramOf_entry`: given its indices
   increasing (`increasingFrom 0`, a linear check by evaluation), it holds its bodies and its
@@ -37,13 +38,13 @@ passed to function `j`, whose output is the program's. -/
 @[expose] def decoderEntryBody (j : ℕ) : Term :=
   .case (.var 0) [.case (.var 1) [.call j [.var 3, .var 0, .var 1]]]
 
-/-- **The entry runs the top** on the input's fields: at `8` steps more than the call. -/
+/-- **The entry runs the top** on the input's fields: at `13` more than the call. -/
 theorem runsBody_decoderEntry {P : MachineProgram} {j : ℕ}
     (hentry : P[0]? = some (decoderEntryBody j)) (prog : Program) (t : Execution prog)
     {v : MachineValue} {e : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
       encodeValue (memoryVector t.memory)] v e) :
-    RunsBody P 0 [encodeGuestWitnessDecoderInput prog t] v (e + 8) := by
+    RunsBody P 0 [encodeGuestWitnessDecoderInput prog t] v (e + 13) := by
   rw [encodeValue_memoryVector] at h
   let x := encodeGuestWitnessDecoderInput prog t
   let env1 : List MachineValue := [encodeValue prog, encodeValue t, x]
@@ -61,17 +62,17 @@ theorem runsBody_decoderEntry {P : MachineProgram} {j : ℕ}
   have hx : Runs P [x] (.var 0) (.ctor 0 [encodeValue prog, encodeValue t]) 1 := Runs.var rfl
   have houter := Runs.case (alts := [.case (.var 1) [.call j [.var 3, .var 0, .var 1]]]) hx rfl
     hinner
-  exact RunsBody.intro hentry (houter.cost_eq (by omega))
+  exact RunsBody.intro hentry (houter.cost_eq (by simp only [List.length_cons, List.length_nil]; omega))
 
 /-- **The program's output is the top's**, within a budget covering the top's price and the
-entry's `8`. -/
-theorem outputWithin_decoderEntry {P : MachineProgram} {j : ℕ}
+entry's `13`, of a program within the size bound `s`. -/
+theorem outputWithin_decoderEntry {P : MachineProgram} {j s : ℕ} (hs : MachineProgram.size P ≤ s)
     (hentry : P[0]? = some (decoderEntryBody j)) (prog : Program) (t : Execution prog)
     {v : MachineValue} {e b : ℕ}
     (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
-      encodeValue (memoryVector t.memory)] v e) (hb : e + 8 ≤ b) :
-    outputWithin P (encodeGuestWitnessDecoderInput prog t) b = some v :=
-  outputWithin_of_runs (runsBody_decoderEntry hentry prog t h) hb
+      encodeValue (memoryVector t.memory)] v e) (hb : e + 13 ≤ b) :
+    outputWithin P s (encodeGuestWitnessDecoderInput prog t) b = some v :=
+  outputWithin_of_runs hs (runsBody_decoderEntry hentry prog t h) hb
 
 /-! ## The program of a compiled top -/
 

@@ -53,12 +53,12 @@ theorem size_one_K : (1 : CPolynomial K).val.size ≤ 1 := by
   exact this
 
 /-- `ofArray` over `K[X]`, entries of at most `A` coefficients: at most `(3·A + 41)·n + 15`. -/
-theorem ofArrayB_cost (hP : Includes P Auto.CompPoly.CPolynomial.ofArray.c87.costDeps)
+theorem ofArrayB_cost (hP : Includes P Auto.CompPoly.CPolynomial.ofArray.c88.costDeps)
     (coeffs : Array (CPolynomial K)) (A : ℕ) (hA : ∀ x ∈ coeffs, x.val.size ≤ A)
     (hs : coeffs.size < 2 ^ 63) :
-    machineCost P Auto.CompPoly.CPolynomial.ofArray.c87.costIdx [encodeValue coeffs] ≤
+    machineCost P Auto.CompPoly.CPolynomial.ofArray.c88.costIdx [encodeValue coeffs] ≤
       (3 * A + 41) * coeffs.size + 15 := by
-  rw [Auto.CompPoly.CPolynomial.ofArray.c87.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.ofArray.c88.costEq P hP]
   have := trimLenB_cost P (by includes) coeffs A hA coeffs.size hs
   have : (coeffs.extract 0 (CompPolyLib.trimLen coeffs coeffs.size)).size ≤ coeffs.size := by
     simp

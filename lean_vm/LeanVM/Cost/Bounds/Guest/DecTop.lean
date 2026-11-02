@@ -61,12 +61,12 @@ theorem babyTable_cost (hP : Includes P Decoder.babyTableC.costDeps) (b : K) (s 
       70 * (s * Nat.clog 2 s) + 374 * s + 17 := by
   rw [Decoder.babyTableC.costEq P hP, List.length_mergeSort, length_powPairsBy]
   have h1 := powPairsBy_cost P (by includes) b s 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c236.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c236.lam0.costSpec P (by includes) a b)) 6
+  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c237.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (powTable.c237.lam0.costSpec P (by includes) a b)) 6
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append]
-      rw [powTable.c236.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.c237.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairsBy b s 0 1) (by rw [length_powPairsBy]; omega)
     (fun e he ↦ (mem_powPairsBy_lt b s 0 1 e he).1)

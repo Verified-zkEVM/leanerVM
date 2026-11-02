@@ -20,44 +20,44 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `Nat.testBit` (`testBit.c210`): `13` on words. -/
-theorem testBit_cost' (hP : Includes P Auto.Nat.testBit.c210.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
-    (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.c210.costIdx [encodeValue a, encodeValue b] ≤ 13 := by
-  rw [Auto.Nat.testBit.c210.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
+/-- `Nat.testBit` (`testBit.c211`): `13` on words. -/
+theorem testBit_cost' (hP : Includes P Auto.Nat.testBit.c211.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
+    (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.c211.costIdx [encodeValue a, encodeValue b] ≤ 13 := by
+  rw [Auto.Nat.testBit.c211.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
     limbs_of_lt (lt_of_le_of_lt (Nat.shiftRight_le a b) ha),
     limbs_of_lt (lt_of_le_of_lt (Nat.and_le_left (n := 1) (m := a >>> b)) (by norm_num))]
 
-/-- **A forward stage** over `2^m` (`fwdStageFast.c381`): at most `390·2^m + 100`. -/
-theorem fwdStage_cost (hP : Includes P fwdStageFast.c381.costDeps) {m i : ℕ} (hi : i < m)
+/-- **A forward stage** over `2^m` (`fwdStageFast.c382`): at most `390·2^m + 100`. -/
+theorem fwdStage_cost (hP : Includes P fwdStageFast.c382.costDeps) {m i : ℕ} (hi : i < m)
     (hm : m ≤ 40) (tw b : Array K) :
-    machineCost P fwdStageFast.c381.costIdx [encodeValue m, encodeValue i, encodeValue tw,
+    machineCost P fwdStageFast.c382.costIdx [encodeValue m, encodeValue i, encodeValue tw,
       encodeValue b] ≤ 390 * 2 ^ m + 100 := by
-  rw [fwdStageFast.c381.costEq P hP]
+  rw [fwdStageFast.c382.costEq P hP]
   have hN : 2 ^ m ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hm
   have hHi : 2 ^ (i + 1) ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hH : 2 ^ i ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have h0 := ofFnFrom_cost P (by includes) (n := 2 ^ m) (by omega) _
-    (.closure fwdStageFast.c381.lam0.costIdx [encodeValue m, encodeValue i, encodeValue tw,
+    (.closure fwdStageFast.c382.lam0.costIdx [encodeValue m, encodeValue i, encodeValue tw,
       encodeValue b, encodeValue (2 ^ i), encodeValue (2 ^ (i + 1))])
-    (fun p ↦ RunsApp.of_spec (fwdStageFast.c381.lam0.costSpec P (by includes) m i tw b _ _ p)) 300
+    (fun p ↦ RunsApp.of_spec (fwdStageFast.c382.lam0.costSpec P (by includes) m i tw b _ _ p)) 300
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       have hp : p.val < 2 ^ 40 := by have := p.isLt; omega
       have := testBit_cost' P (by includes) p.val i (by omega) (by omega)
-      rw [fwdStageFast.c381.lam0.costEq P (by includes)]
+      rw [fwdStageFast.c382.lam0.costEq P (by includes)]
       cost_simp
       split_ifs <;> omega) 0 (Nat.zero_le _)
   have h1 := ofFnFrom_cost P (by includes) (n := 2 ^ m) (by omega) _
-    (.closure fwdStageFast.c381.lam1.costIdx [encodeValue m, encodeValue i, encodeValue b,
+    (.closure fwdStageFast.c382.lam1.costIdx [encodeValue m, encodeValue i, encodeValue b,
       encodeValue (Array.ofFn fun p : Fin (2 ^ m) ↦
         if p.val.testBit i = true then 0 else tw.getD (p.val / 2 ^ (i + 1)) 0 * b.getD (p.val + 2 ^ i) 0),
       encodeValue (2 ^ i), encodeValue (2 ^ (i + 1))])
-    (fun p ↦ RunsApp.of_spec (fwdStageFast.c381.lam1.costSpec P (by includes) m i b _ _ _ p)) 50
+    (fun p ↦ RunsApp.of_spec (fwdStageFast.c382.lam1.costSpec P (by includes) m i b _ _ _ p)) 50
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       have hp : p.val < 2 ^ 40 := by have := p.isLt; omega
       have := testBit_cost' P (by includes) p.val i (by omega) (by omega)
-      rw [fwdStageFast.c381.lam1.costEq P (by includes)]
+      rw [fwdStageFast.c382.lam1.costEq P (by includes)]
       cost_simp
       split_ifs <;> omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length, ofFnFrom_length, limbs_shift (by omega), limbs_shift (by omega),
@@ -66,24 +66,24 @@ theorem fwdStage_cost (hP : Includes P fwdStageFast.c381.costDeps) {m i : ℕ} (
   simp only [Nat.sub_zero] at h0 h1
   omega
 
-/-- **An inverse stage** over `2^m` (`invStageFast.c386`): at most `330·2^m + 80`. -/
-theorem invStage_cost (hP : Includes P invStageFast.c386.costDeps) {m i : ℕ} (hi : i < m)
+/-- **An inverse stage** over `2^m` (`invStageFast.c387`): at most `330·2^m + 80`. -/
+theorem invStage_cost (hP : Includes P invStageFast.c387.costDeps) {m i : ℕ} (hi : i < m)
     (hm : m ≤ 40) (tw b : Array K) :
-    machineCost P invStageFast.c386.costIdx [encodeValue m, encodeValue i, encodeValue tw,
+    machineCost P invStageFast.c387.costIdx [encodeValue m, encodeValue i, encodeValue tw,
       encodeValue b] ≤ 330 * 2 ^ m + 80 := by
-  rw [invStageFast.c386.costEq P hP]
+  rw [invStageFast.c387.costEq P hP]
   have hN : 2 ^ m ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hm
   have hHi : 2 ^ (i + 1) ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hH : 2 ^ i ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have h0 := ofFnFrom_cost P (by includes) (n := 2 ^ m) (by omega) _
-    (.closure invStageFast.c386.lam0.costIdx [encodeValue m, encodeValue i, encodeValue tw,
+    (.closure invStageFast.c387.lam0.costIdx [encodeValue m, encodeValue i, encodeValue tw,
       encodeValue b, encodeValue (2 ^ i), encodeValue (2 ^ (i + 1))])
-    (fun p ↦ RunsApp.of_spec (invStageFast.c386.lam0.costSpec P (by includes) m i tw b _ _ p)) 310
+    (fun p ↦ RunsApp.of_spec (invStageFast.c387.lam0.costSpec P (by includes) m i tw b _ _ p)) 310
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       have hp : p.val < 2 ^ 40 := by have := p.isLt; omega
       have := testBit_cost' P (by includes) p.val i (by omega) (by omega)
-      rw [invStageFast.c386.lam0.costEq P (by includes)]
+      rw [invStageFast.c387.lam0.costEq P (by includes)]
       cost_simp
       split_ifs <;> omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length, limbs_shift (by omega), limbs_shift (by omega), limbs_shift (by omega)]

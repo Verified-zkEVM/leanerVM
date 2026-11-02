@@ -135,10 +135,10 @@ theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmS
   -- the novel basis
   have hf1 := fun p ↦ RunsApp.of_spec (us := [encodeValue κ]) (vs := [encodeValue p])
     ((cost_const% (laneListWith pmSolver) lam1.costSpec) P (by includes_sub) κ p)
-  have hm1 := listMap_le P Auto.List.map.c29.costIdx
+  have hm1 := listMap_le P Auto.List.map.c30.costIdx
     (.closure (cost_const% (laneListWith pmSolver) lam1.costIdx) [encodeValue κ])
-    (Auto.List.map.c29.costEq_nil P (by includes_sub) _ _ hf1)
-    (Auto.List.map.c29.costEq_cons P (by includes_sub) _ _ hf1)
+    (Auto.List.map.c30.costEq_nil P (by includes_sub) _ _ hf1)
+    (Auto.List.map.c30.costEq_cons P (by includes_sub) _ _ hf1)
     ((272 * k + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 43) cands.toList
     (fun p hp ↦ by
       rw [appCost_fn, List.singleton_append,
@@ -180,10 +180,10 @@ theorem laneEncodedWithC_cost (hP : Includes P (cost_const% (laneEncodedWith pmS
     rw [laneListWith, List.length_mergeSort, hC]; exact hdl
   have hf2 := fun c ↦ RunsApp.of_spec (us := [encodeValue κ, encodeValue R]) (vs := [encodeValue c])
     ((cost_const% (laneEncodedWith pmSolver) lam0.costSpec) P (by includes_sub) κ R c)
-  have hm2 := listMap_le P Auto.List.map.c29.costIdx
+  have hm2 := listMap_le P Auto.List.map.c30.costIdx
     (.closure (cost_const% (laneEncodedWith pmSolver) lam0.costIdx) [encodeValue κ, encodeValue R])
-    (Auto.List.map.c29.costEq_nil P (by includes_sub) _ _ hf2)
-    (Auto.List.map.c29.costEq_cons P (by includes_sub) _ _ hf2)
+    (Auto.List.map.c30.costEq_nil P (by includes_sub) _ _ hf2)
+    (Auto.List.map.c30.costEq_cons P (by includes_sub) _ _ hf2)
     (κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 50) (laneListWith pmSolver κ R A S u)
     (fun c _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
@@ -391,10 +391,10 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
   have hmem := (pruneUpToDistinct_bounds W hLc (2 ^ Whir.initialFold)).2
   have hfm := fun s ↦ RunsApp.of_spec (us := [encodeValue μ]) (vs := [encodeValue s])
     (fastStacksFastC.lam2.costSpec P (by includes_sub) μ s)
-  have hm := listMap_le P Auto.List.map.c29.costIdx
+  have hm := listMap_le P Auto.List.map.c30.costIdx
     (.closure fastStacksFastC.lam2.costIdx [encodeValue μ])
-    (Auto.List.map.c29.costEq_nil P (by includes_sub) _ _ hfm)
-    (Auto.List.map.c29.costEq_cons P (by includes_sub) _ _ hfm)
+    (Auto.List.map.c30.costEq_nil P (by includes_sub) _ _ hfm)
+    (Auto.List.map.c30.costEq_cons P (by includes_sub) _ _ hfm)
     ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 23)
     (pruneUpToDistinct κ R A W (2 ^ Whir.initialFold))
     (fun s hs ↦ by

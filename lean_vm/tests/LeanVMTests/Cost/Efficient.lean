@@ -5,7 +5,7 @@ import LeanVM.Cost.Efficient
 
 * the entry body (`entryBody`) destructures its input, calls its function on the four fields and
   unwraps the optional output, at `9` steps more than the call, here with a stand-in callee;
-* a program built from a compiled function's bodies (`invItohTsujii.c9`, the inverse in `K`, the
+* a program built from a compiled function's bodies (`invItohTsujii.c10`, the inverse in `K`, the
   extractor's) and the entry: its size bounded by evaluating its bodies' sizes (`size_ofList_le`,
   decided by the kernel);
 * the extractor's program (`extractorProgram`): `698` bodies, the entry's and the compiled
@@ -33,7 +33,7 @@ def entryProgram : MachineProgram := MachineProgram.ofList [(0, entryBody 1), (1
 
 /-- The bodies of the inverse in `K`, and the entry calling it. -/
 def invProgramBodies : List (ℕ × Term) :=
-  (0, entryBody 1) :: LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costDeps
+  (0, entryBody 1) :: LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costDeps
 
 theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 10 :=
   (size_ofList_le invProgramBodies).trans (by decide +kernel)

@@ -9,7 +9,7 @@ import all CompPoly.Univariate.Basic
 # Bound: Roth–Ruckenstein's recursion, compiled
 
 The price of `prefixesNF fieldRootCtxFast` (`Fast/TruncNoFallback.lean`, compiled on demand in
-`Cost/Extractor/GsRun.lean` as `prefixesNF.c92`, its fold closure `prefixesNF.c92.lam0`) on a
+`Cost/Extractor/GsRun.lean` as `prefixesNF.c93`, its fold closure `prefixesNF.c93.lam0`) on a
 node of at most `Y` rows of at most `M ≤ X` coefficients, at most `k` levels deep:
 
 * a node pays its `X`-adic order, the division by `X^s`, the initial coefficient polynomial and
@@ -121,28 +121,28 @@ theorem prefixesSum_map_add_mul {α : Type} (l : List α) (c G : ℕ) (f : α �
 @[expose] def rrChildCore (X Y k : ℕ) : ℕ :=
   substBound X Y + (27 * (X + Y) + 80) * Y + 222 * k + 391
 
-/-- **Roth–Ruckenstein's recursion** (`prefixesNF.c92`, on `fieldRootCtxFast`), on a node of at
+/-- **Roth–Ruckenstein's recursion** (`prefixesNF.c93`, on `fieldRootCtxFast`), on a node of at
 most `Y` rows of at most `M ≤ X` coefficients, its prefix of at most `depth` coefficients,
 `depth + fuel ≤ k`: with the child price `rrChildPrice X Y k` (paid by the parent), at most
 `rrNodePrice X Y + rrChildPrice X Y k + Y·fuel` per node. -/
-theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k : ℕ}
+theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c93.costDeps) {X Y k : ℕ}
     (hX : X < 2 ^ 56) (hY : Y < 2 ^ 28) (hY2 : 2 ≤ Y) (hk : k < 2 ^ 56) (fuel : ℕ) :
     ∀ (q : CBivariate K) (M depth : ℕ) (pref : CPolynomial K),
       YLenLe q Y → XLenLe q M → M ≤ X → pref.val.size ≤ depth → depth + fuel ≤ k →
-      machineCost P prefixesNF.c92.costIdx [encodeValue fuel, encodeValue q, encodeValue M, encodeValue depth, encodeValue pref] +
+      machineCost P prefixesNF.c93.costIdx [encodeValue fuel, encodeValue q, encodeValue M, encodeValue depth, encodeValue pref] +
           rrChildPrice X Y k ≤
         (rrNodePrice X Y + rrChildPrice X Y k + Y * fuel) *
           rrNodesNF fieldRootCtxFast fuel q M := by
   induction fuel with
   | zero =>
     intro q M depth pref _ _ _ _ _
-    rw [prefixesNF.c92.costEq_zero P hP]
+    rw [prefixesNF.c93.costEq_zero P hP]
     simp only [rrNodesNF, Nat.mul_zero, Nat.add_zero, Nat.mul_one]
     unfold rrNodePrice
     omega
   | succ fuel ih =>
     intro q M depth pref hqY hqX hMX hpref hdk
-    rw [prefixesNF.c92.costEq_succ P hP]
+    rw [prefixesNF.c93.costEq_succ P hP]
     have hqs := hqY.val_size_le
     have hqi := prefixesInnerLe_of_xLenLe (hqX.mono hMX)
     have hxa := xAdicOrderBC_cost P (by includes) q (X := X) (by omega) hqi (by omega)
@@ -181,7 +181,7 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k 
         set S := (roots.toList.map fun a ↦ rrNodesNF fieldRootCtxFast fuel
           (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s)).sum with hS
         set G := rrNodePrice X Y + rrChildPrice X Y k + Y * fuel with hG
-        have hT : ∀ a, machineCost P prefixesNF.c92.costIdx
+        have hT : ∀ a, machineCost P prefixesNF.c93.costIdx
             [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
               encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] +
               rrChildPrice X Y k ≤
@@ -192,13 +192,13 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k 
             (by have := extendPrefix_size_le pref depth a; omega) (by omega)
         have hf := fun out a ↦ RunsApp.of_spec
           (us := [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn]) (vs := [encodeValue out, encodeValue a])
-          (prefixesNF.c92.lam0.costSpec P (by includes) s fuel M depth pref Qn out a)
-        have h202 : prefixesNF.c92.lam0.costIdx = 106 := rfl
+          (prefixesNF.c93.lam0.costSpec P (by includes) s fuel M depth pref Qn out a)
+        have h202 : prefixesNF.c93.lam0.costIdx = 107 := rfl
         have hfold := prefixesFoldl_le P (by includes) _
-          (.closure prefixesNF.c92.lam0.costIdx [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn])
+          (.closure prefixesNF.c93.lam0.costIdx [encodeValue s, encodeValue fuel, encodeValue M, encodeValue depth, encodeValue pref, encodeValue Qn])
           hf Array.size (fun a ↦ rrNodesNF fieldRootCtxFast fuel
             (CBivariate.truncateX (substituteBF Qn a) (M - s)) (M - s))
-          (fun a ↦ rrChildCore X Y k + S + machineCost P prefixesNF.c92.costIdx
+          (fun a ↦ rrChildCore X Y k + S + machineCost P prefixesNF.c93.costIdx
             [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
               encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)]) S
           (fun out a hout ↦ by
@@ -207,7 +207,7 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k 
               (depth + 1) (GuruswamiSudan.extendPrefix pref depth a)
             refine ⟨by simp only [Array.size_append]; exact Nat.add_le_add_left hres _, ?_⟩
             simp only [appCost_fn, List.cons_append, List.nil_append]
-            rw [prefixesNF.c92.lam0.costEq P (by includes)]
+            rw [prefixesNF.c93.lam0.costEq P (by includes)]
             have hsb := substituteBFC_cost P (by includes) Qn a (X := X) (Y := Y) (by omega)
               (by omega) hQni hQns
             obtain ⟨hss, hsi⟩ := substituteBF_sizes hQni a
@@ -225,13 +225,13 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k 
         rw [h202] at hfold
         -- the sum over the children
         have hsum : (roots.toList.map fun a ↦ rrChildCore X Y k + S +
-            machineCost P prefixesNF.c92.costIdx
+            machineCost P prefixesNF.c93.costIdx
               [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
                 encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9).sum ≤
             roots.size * S + G * S := by
           have := list_sum_map_le (l := roots.toList)
             (f := fun a ↦ rrChildCore X Y k + S +
-              machineCost P prefixesNF.c92.costIdx
+              machineCost P prefixesNF.c93.costIdx
                 [encodeValue fuel, encodeValue (CBivariate.truncateX (substituteBF Qn a) (M - s)), encodeValue (M - s),
                   encodeValue (depth + 1), encodeValue (GuruswamiSudan.extendPrefix pref depth a)] + 9)
             (g := fun a ↦ S + G * rrNodesNF fieldRootCtxFast fuel
@@ -256,14 +256,14 @@ theorem prefixesNFC_cost_nodes (hP : Includes P prefixesNF.c92.costDeps) {X Y k 
 /-! ## On the interpolated polynomial -/
 
 open CompPoly.GuruswamiSudan in
-/-- **Roth–Ruckenstein's search on the interpolated polynomial** (`prefixesNF.c92`, the call
+/-- **Roth–Ruckenstein's search on the interpolated polynomial** (`prefixesNF.c93`, the call
 `gsRunDistinctNF` makes): at most `rrBound (W + 1) (ℓ + 2) k ℓ`, at most `1 + k·ℓ` nodes
 (`gsRunNF_nodes_le`) of at most `ℓ + 1` rows of at most `W + 1` coefficients. -/
-theorem prefixesNFC_cost (hP : Includes P prefixesNF.c92.costDeps) {points : Array (K × K)}
+theorem prefixesNFC_cost (hP : Includes P prefixesNF.c93.costDeps) {points : Array (K × K)}
     {params : GSInterpParams} {Q : CBivariate K} (hQ : ValidInterpolationWitness points params Q)
     (hk1 : 1 < params.messageDegree) (hX : params.weightedDegreeBound + 1 < 2 ^ 56)
     (hY : interpolationYCap params + 2 < 2 ^ 28) (hk : params.messageDegree < 2 ^ 56) :
-    machineCost P prefixesNF.c92.costIdx
+    machineCost P prefixesNF.c93.costIdx
         [encodeValue params.messageDegree, encodeValue (CBivariate.truncateX Q (params.weightedDegreeBound + 1)),
           encodeValue (params.weightedDegreeBound + 1), encodeValue 0, encodeValue (default : CPolynomial K)] ≤
       rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2)

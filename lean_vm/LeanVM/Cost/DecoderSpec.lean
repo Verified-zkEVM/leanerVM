@@ -41,10 +41,10 @@ theorem decoderProgram_size_le : decoderProgram.size ≤ guestWitnessDecoderSize
   decoderProgram_size_le_measured.trans (by unfold guestWitnessDecoderSizeBound; decide +kernel)
 
 /-- **The program's price** on an execution: the top's on the program, `κ` and the memory vector,
-and the entry's `8`. -/
+and the entry's `13`. -/
 @[expose] noncomputable def decoderProgramPrice (prog : Program) (t : Execution prog) : ℕ :=
   machineCost decoderProgram decTopC.costIdx
-    [encodeValue prog, encodeValue t.logMemorySize, encodeValue (memoryVector t.memory)] + 8
+    [encodeValue prog, encodeValue t.logMemorySize, encodeValue (memoryVector t.memory)] + 13
 
 /-- **The deployed decoder, on executions**: `End.decode` of the memory. A constant, so that the
 specification's field reads `memoryDecoder t` as stated here (the kernel, matching
@@ -56,12 +56,12 @@ noncomputable def memoryDecoder (t : Execution LeanVM.Guest.guest) : Decoded :=
 /-- **The program computes the deployed decoder**, within any budget covering its price. -/
 theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guest) {b : ℕ}
     (hb : decoderProgramPrice LeanVM.Guest.guest t ≤ b) :
-    outputWithin decoderProgram (encodeGuestWitnessDecoderInput LeanVM.Guest.guest t) b =
+    outputWithin decoderProgram guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput LeanVM.Guest.guest t) b =
       some (encodeValue (memoryDecoder t)) := by
   have h : memoryDecoder t = decTop LeanVM.Guest.guest t.logMemorySize (memoryVector t.memory) :=
     (decTop_eq t.memory).symm
   rw [h]
-  exact outputWithin_decoderEntry decoderProgram_entry LeanVM.Guest.guest t
+  exact outputWithin_decoderEntry decoderProgram_size_le decoderProgram_entry LeanVM.Guest.guest t
     (decTopC.costSpec decoderProgram decoderProgram_includes LeanVM.Guest.guest t.logMemorySize
       (memoryVector t.memory)) hb
 

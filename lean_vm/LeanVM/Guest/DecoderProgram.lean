@@ -38,8 +38,8 @@ structure DecoderProgramSpec (decoderProgram : Cost.MachineProgram) (decoder : E
   size : decoderProgram.size ≤ guestWitnessDecoderSizeBound
   /-- The program computes `decoder` within its budget on every valid execution. -/
   computes : ∀ input (t : Execution guest), ValidExecution guest input t →
-    outputWithin decoderProgram (encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
-      some (encodeValue (decoder t))
+    outputWithin decoderProgram guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput guest t)
+        (guestWitnessDecoderBudget t) = some (encodeValue (decoder t))
 
 /-- **The decoder's decodings explain the public input**: on every valid execution of the guest
 on a public input, `decoder`'s decoding explains it (`ExplainsInput`). -/

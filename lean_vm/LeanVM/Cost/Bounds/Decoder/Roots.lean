@@ -58,19 +58,19 @@ theorem size_X_raw : (CPolynomial.Raw.X : CPolynomial.Raw K).size = 2 := by
   simp [CPolynomial.Raw.X]
 
 /-- `getLastD`: at most `8`. -/
-theorem getLastDC_cost (hP : Includes P Auto.Array.getLastD.c31.costDeps) (a : Array K) (v : K)
-    (ha : a.size < 2 ^ 64) : machineCost P Auto.Array.getLastD.c31.costIdx [encodeValue a, encodeValue v] ≤ 8 := by
-  rw [Auto.Array.getLastD.c31.costEq P hP]
+theorem getLastDC_cost (hP : Includes P Auto.Array.getLastD.c32.costDeps) (a : Array K) (v : K)
+    (ha : a.size < 2 ^ 64) : machineCost P Auto.Array.getLastD.c32.costIdx [encodeValue a, encodeValue v] ≤ 8 := by
+  rw [Auto.Array.getLastD.c32.costEq P hP]
   cost_simp
   omega
 
 theorem trim_size_le' (p : CPolynomial.Raw K) : p.trim.size ≤ p.size := raw_trim_size_le p
 
 /-- **`monicNormalize`** (raw): at most `340·|p| + 19800`. -/
-theorem monicNormalizeRawC_cost (hP : Includes P monicNormalize.c27.costDeps)
+theorem monicNormalizeRawC_cost (hP : Includes P monicNormalize.c28.costDeps)
     (p : CPolynomial.Raw K) (hp : p.size < 2 ^ 60) :
-    machineCost P monicNormalize.c27.costIdx [encodeValue p] ≤ 340 * p.size + 19800 := by
-  rw [monicNormalize.c27.costEq P hP]
+    machineCost P monicNormalize.c28.costIdx [encodeValue p] ≤ 340 * p.size + 19800 := by
+  rw [monicNormalize.c28.costEq P hP]
   have ht := trim_size_le' p
   have := trimLen_cost P (by includes) p p.size (by omega)
   have := trimLen_cost P (by includes) p.trim p.trim.size (by omega)
@@ -85,28 +85,28 @@ theorem monicNormalizeRawC_cost (hP : Includes P monicNormalize.c27.costDeps)
   split_ifs <;> omega
 
 /-- One coefficient of `p − scale·X^shift·q`: at most `284`. -/
-theorem subScaledShiftLamC_cost (hP : Includes P subScaledShift.c44.lam0.costDeps)
+theorem subScaledShiftLamC_cost (hP : Includes P subScaledShift.c45.lam0.costDeps)
     (p q : CPolynomial.Raw K) (scale : K) (shift : ℕ) (j : Fin p.size) (hp : p.size < 2 ^ 64)
     (hq : q.size < 2 ^ 64) (hs : shift < 2 ^ 64) :
-    machineCost P subScaledShift.c44.lam0.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift, encodeValue j] ≤
+    machineCost P subScaledShift.c45.lam0.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift, encodeValue j] ≤
       284 := by
-  rw [subScaledShift.c44.lam0.costEq P hP]
+  rw [subScaledShift.c45.lam0.costEq P hP]
   have := j.isLt
   cost_simp
   split_ifs <;> omega
 
 /-- **`p − scale·X^shift·q`** (`subScaledShift`, the array rebuilt then trimmed): at most
 `326·|p| + 34`. -/
-theorem subScaledShiftC_cost (hP : Includes P subScaledShift.c44.costDeps)
+theorem subScaledShiftC_cost (hP : Includes P subScaledShift.c45.costDeps)
     (p q : CPolynomial.Raw K) (scale : K) (shift : ℕ) (hp : p.size < 2 ^ 60)
     (hq : q.size < 2 ^ 64) (hs : shift < 2 ^ 64) :
-    machineCost P subScaledShift.c44.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift] ≤
+    machineCost P subScaledShift.c45.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift] ≤
       326 * p.size + 34 := by
-  rw [subScaledShift.c44.costEq P hP]
+  rw [subScaledShift.c45.costEq P hP]
   have hf := fun j ↦ RunsApp.of_spec (us := [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift]) (vs := [encodeValue j])
-    (subScaledShift.c44.lam0.costSpec P (by includes) p q scale shift j)
+    (subScaledShift.c45.lam0.costSpec P (by includes) p q scale shift j)
   have := ofFnFrom_cost P (by includes) (n := p.size) (by omega) _
-    (.closure subScaledShift.c44.lam0.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift]) hf 284
+    (.closure subScaledShift.c45.lam0.costIdx [encodeValue p, encodeValue q, encodeValue scale, encodeValue shift]) hf 284
     (fun j ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       exact subScaledShiftLamC_cost P (by includes) p q scale shift j (by omega) hq hs)
@@ -122,17 +122,17 @@ theorem subScaledShiftC_cost (hP : Includes P subScaledShift.c44.costDeps)
 
 /-- **The remainder-only long division** (`modByMonicRemainderOnly.go`, `n` steps, remainders of
 at most `A` coefficients): at most `(360·A + 100)·n + 6`. -/
-theorem modGoC_cost (hP : Includes P modByMonicRemainderOnly.go.c43.costDeps)
+theorem modGoC_cost (hP : Includes P modByMonicRemainderOnly.go.c44.costDeps)
     (q : CPolynomial.Raw K) (A : ℕ) (hA : A < 2 ^ 60) (hq : q.size < 2 ^ 64) :
     ∀ (n : ℕ) (a : CPolynomial.Raw K), n < 2 ^ 63 → a.size ≤ A →
-      machineCost P modByMonicRemainderOnly.go.c43.costIdx [encodeValue n, encodeValue a, encodeValue q] ≤
+      machineCost P modByMonicRemainderOnly.go.c44.costIdx [encodeValue n, encodeValue a, encodeValue q] ≤
         (360 * A + 100) * n + 6 := by
   intro n
   induction n with
-  | zero => intro a _ _; rw [modByMonicRemainderOnly.go.c43.costEq_zero P hP]; omega
+  | zero => intro a _ _; rw [modByMonicRemainderOnly.go.c44.costEq_zero P hP]; omega
   | succ n ih =>
     intro a hn ha
-    rw [modByMonicRemainderOnly.go.c43.costEq_succ P hP]
+    rw [modByMonicRemainderOnly.go.c44.costEq_succ P hP]
     have hsub := subScaledShift_size_le a q a.leadingCoeff (a.size - q.size)
     have := ih (a.subScaledShift q a.leadingCoeff (a.size - q.size)) (by omega) (by omega)
     have := subScaledShiftC_cost P (by includes) a q a.leadingCoeff (a.size - q.size) (by omega)
@@ -150,10 +150,10 @@ theorem naive_mul_size_le (p q : CPolynomial.Raw K) :
 
 /-- **A product modulo `u`** (`mulModWith`: the schoolbook product, then the remainder by
 `monicNormalize u`): at most `mulModBound B`. -/
-theorem mulModWithC_cost (hP : Includes P mulModWith.c53.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
+theorem mulModWithC_cost (hP : Includes P mulModWith.c54.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
     (u p q : CPolynomial.Raw K) (hu : u.size ≤ B) (hp : p.size ≤ B) (hq : q.size ≤ B) :
-    machineCost P mulModWith.c53.costIdx [encodeValue u, encodeValue p, encodeValue q] ≤ mulModBound B := by
-  rw [mulModWith.c53.costEq P hP]
+    machineCost P mulModWith.c54.costIdx [encodeValue u, encodeValue p, encodeValue q] ≤ mulModBound B := by
+  rw [mulModWith.c54.costEq P hP]
   have := mulK_cost P (by includes) p q (by omega) (by omega)
   have h1 : q.size * p.size ≤ B * B := Nat.mul_le_mul hq hp
   have h2 : p.size * p.size ≤ B * B := Nat.mul_le_mul hp hp
@@ -174,10 +174,10 @@ theorem mulModWithC_cost (hP : Includes P mulModWith.c53.costDeps) {B : ℕ} (hB
   unfold mulModBound
   split_ifs <;> omega
 
-theorem sqModC_cost (hP : Includes P sqMod.c70.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
+theorem sqModC_cost (hP : Includes P sqMod.c71.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
     (u c : CPolynomial.Raw K) (hu : u.size ≤ B) (hc : c.size ≤ B) :
-    machineCost P sqMod.c70.costIdx [encodeValue u, encodeValue c] ≤ mulModBound B + 4 := by
-  rw [sqMod.c70.costEq P hP]
+    machineCost P sqMod.c71.costIdx [encodeValue u, encodeValue c] ≤ mulModBound B + 4 := by
+  rw [sqMod.c71.costEq P hP]
   have := mulModWithC_cost P (by includes) hB u c c hu hc hc
   omega
 
@@ -191,23 +191,23 @@ theorem mulModWith_size_le {u a b : CPolynomial.Raw K} {B : ℕ} (hu : u.trim �
 
 /-- **The binary powering modulo `u`** (`powModBinaryAuxWith`: per bit of `n` a squaring and at
 most one product): at most `6 + (2·mulModBound B + 50)·(log₂ n + 1)`, `n < 2^65`. -/
-theorem powModBinaryAuxC_cost (hP : Includes P powModBinaryAuxWith.c52.costDeps) {B : ℕ}
+theorem powModBinaryAuxC_cost (hP : Includes P powModBinaryAuxWith.c53.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (u : CPolynomial.Raw K) (hu : u.trim ≠ 0) (huB : u.size ≤ B)
     (n : ℕ) (acc c : CPolynomial.Raw K) (hn : n < 2 ^ 65) (hacc : acc.size ≤ B)
     (hc : c.size ≤ B) :
-    machineCost P powModBinaryAuxWith.c52.costIdx [encodeValue u, encodeValue n, encodeValue acc, encodeValue c] ≤
+    machineCost P powModBinaryAuxWith.c53.costIdx [encodeValue u, encodeValue n, encodeValue acc, encodeValue c] ≤
       6 + (2 * mulModBound B + 50) * (Nat.log2 n + 1) := by
   have key := le_of_halving
     (fun x : ℕ × CPolynomial.Raw K × CPolynomial.Raw K ↦
       x.2.1.size ≤ B ∧ x.2.2.size ≤ B ∧ x.1 < 2 ^ 65)
     (fun x ↦ x.1)
-    (fun x ↦ machineCost P powModBinaryAuxWith.c52.costIdx [encodeValue u, encodeValue x.1, encodeValue x.2.1, encodeValue x.2.2])
+    (fun x ↦ machineCost P powModBinaryAuxWith.c53.costIdx [encodeValue u, encodeValue x.1, encodeValue x.2.1, encodeValue x.2.2])
     (2 * mulModBound B + 50) 6
     (fun x _ h0 ↦ by
       obtain ⟨n, acc, c⟩ := x
       dsimp only at h0 ⊢
       subst h0
-      rw [powModBinaryAuxWith.c52.costEq_zero P hP])
+      rw [powModBinaryAuxWith.c53.costEq_zero P hP])
     (fun x hI hpos ↦ by
       obtain ⟨n, acc, c⟩ := x
       obtain ⟨hacc, hc, hn⟩ := hI
@@ -227,7 +227,7 @@ theorem powModBinaryAuxC_cost (hP : Includes P powModBinaryAuxWith.c52.costDeps)
       · exact mulModWith_size_le hu huB
       · dsimp only; omega
       · dsimp only
-        rw [powModBinaryAuxWith.c52.costEq_succ P hP]
+        rw [powModBinaryAuxWith.c53.costEq_succ P hP]
         have := mulModWithC_cost P (by includes) hB u acc c huB hacc hc
         have := mulModWithC_cost P (by includes) hB u c c huB hc hc
         have := limbs_le_two (x := k + 1) (by omega)
@@ -259,12 +259,12 @@ theorem xModWith_size_le {u : CPolynomial.Raw K} {B : ℕ} (hu : u.trim ≠ 0) (
 
 /-- **`base^e mod u`** (`powModWith`): at most
 `400·B + 20800 + (2·mulModBound B + 50)·(log₂ e + 1)`. -/
-theorem powModWithC_cost (hP : Includes P powModWith.c51.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
+theorem powModWithC_cost (hP : Includes P powModWith.c52.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
     (hB1 : 1 ≤ B) (u base : CPolynomial.Raw K) (hu : u.trim ≠ 0) (huB : u.size ≤ B)
     (hbase : base.size ≤ B) (e : ℕ) (he : e < 2 ^ 65) :
-    machineCost P powModWith.c51.costIdx [encodeValue u, encodeValue base, encodeValue e] ≤
+    machineCost P powModWith.c52.costIdx [encodeValue u, encodeValue base, encodeValue e] ≤
       400 * B + 20800 + (2 * mulModBound B + 50) * (Nat.log2 e + 1) := by
-  rw [powModWith.c51.costEq P hP]
+  rw [powModWith.c52.costEq P hP]
   have ht := trim_size_le' u
   have := trimLen_cost P (by includes) u u.size (by omega)
   have : (Array.extract u 0 (CompPolyLib.trimLen u u.size)).size ≤ u.size := by simp
@@ -282,10 +282,10 @@ theorem powModWithC_cost (hP : Includes P powModWith.c51.costDeps) {B : ℕ} (hB
   omega
 
 /-- **`X mod u`** (`xModWith`): at most `400·B + 22000`. -/
-theorem xModWithC_cost (hP : Includes P xModWith.c55.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
+theorem xModWithC_cost (hP : Includes P xModWith.c56.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
     (u : CPolynomial.Raw K) (huB : u.size ≤ B) :
-    machineCost P xModWith.c55.costIdx [encodeValue u] ≤ 400 * B + 22000 := by
-  rw [xModWith.c55.costEq P hP, X.c54.costEq P (by includes)]
+    machineCost P xModWith.c56.costIdx [encodeValue u] ≤ 400 * B + 22000 := by
+  rw [xModWith.c56.costEq P hP, X.c55.costEq P (by includes)]
   have ht := trim_size_le' u
   have := trimLen_cost P (by includes) u u.size (by omega)
   have : (Array.extract u 0 (CompPolyLib.trimLen u u.size)).size ≤ u.size := by simp
@@ -298,16 +298,16 @@ theorem xModWithC_cost (hP : Includes P xModWith.c55.costDeps) {B : ℕ} (hB : B
   split_ifs <;> omega
 
 /-- **`p − q`** (raw): at most `126·max(|p|, |q|) + 170`. -/
-theorem subRawC_cost (hP : Includes P sub.c48.costDeps) (p q : CPolynomial.Raw K)
+theorem subRawC_cost (hP : Includes P sub.c49.costDeps) (p q : CPolynomial.Raw K)
     (hp : p.size < 2 ^ 60) (hq : q.size < 2 ^ 60) :
-    machineCost P sub.c48.costIdx [encodeValue p, encodeValue q] ≤ 126 * max p.size q.size + 170 := by
-  rw [sub.c48.costEq P hP]
+    machineCost P sub.c49.costIdx [encodeValue p, encodeValue q] ≤ 126 * max p.size q.size + 170 := by
+  rw [sub.c49.costEq P hP]
   have hf := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
-    (sub.c48.lam0.costSpec P (by includes) a)
-  have hm := listMap_le P Auto.List.map.c29.costIdx (.closure sub.c48.lam0.costIdx [])
-    (Auto.List.map.c29.costEq_nil P (by includes) _ _ hf)
-    (Auto.List.map.c29.costEq_cons P (by includes) _ _ hf) 1 q.toList
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, sub.c48.lam0.costEq P (by includes)])
+    (sub.c49.lam0.costSpec P (by includes) a)
+  have hm := listMap_le P Auto.List.map.c30.costIdx (.closure sub.c49.lam0.costIdx [])
+    (Auto.List.map.c30.costEq_nil P (by includes) _ _ hf)
+    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) 1 q.toList
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, sub.c49.lam0.costEq P (by includes)])
   have hn : q.neg.size = q.size := by simp [CPolynomial.Raw.neg]
   have := addK_cost P (by includes) p q.neg (by omega) (by omega)
   rw [hn] at this
@@ -315,12 +315,12 @@ theorem subRawC_cost (hP : Includes P sub.c48.costDeps) (p q : CPolynomial.Raw K
   omega
 
 /-- **`X^q − X mod u`** (`xPowSubXModWith`, `q < 2^65`). -/
-theorem xPowSubXModC_cost (hP : Includes P xPowSubXModWith.c47.costDeps) {B : ℕ}
+theorem xPowSubXModC_cost (hP : Includes P xPowSubXModWith.c48.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (u : CPolynomial.Raw K) (hu : u.trim ≠ 0) (huB : u.size ≤ B)
     (q : ℕ) (hq : q < 2 ^ 65) :
-    machineCost P xPowSubXModWith.c47.costIdx [encodeValue q, encodeValue u] ≤
+    machineCost P xPowSubXModWith.c48.costIdx [encodeValue q, encodeValue u] ≤
       950 * B + 43000 + (2 * mulModBound B + 50) * (Nat.log2 q + 1) := by
-  rw [xPowSubXModWith.c47.costEq P hP, X.c54.costEq P (by includes)]
+  rw [xPowSubXModWith.c48.costEq P hP, X.c55.costEq P (by includes)]
   have := powModWithC_cost P (by includes) hB (by omega) u CPolynomial.Raw.X hu huB
     (by rw [size_X_raw]; omega) q hq
   have := xModWithC_cost P (by includes) hB u huB
@@ -337,10 +337,10 @@ theorem raw_C_smul_size_le (c : K) (p : CPolynomial.Raw K) :
 
 /-- **`p mod q`** (`rawModFast`: both scaled by `q`'s leading inverse, the long division): at
 most `rawModBound B`. -/
-theorem rawModFastC_cost (hP : Includes P rawModFast.c34.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
+theorem rawModFastC_cost (hP : Includes P rawModFast.c35.costDeps) {B : ℕ} (hB : B < 2 ^ 28)
     (p q : CPolynomial.Raw K) (hp : p.size ≤ B) (hq : q.size ≤ B) :
-    machineCost P rawModFast.c34.costIdx [encodeValue p, encodeValue q] ≤ rawModBound B := by
-  rw [rawModFast.c34.costEq P hP]
+    machineCost P rawModFast.c35.costIdx [encodeValue p, encodeValue q] ≤ rawModBound B := by
+  rw [rawModFast.c35.costEq P hP]
   have ht := trim_size_le' q
   have := trimLen_cost P (by includes) q q.size (by omega)
   have : (Array.extract q 0 (CompPolyLib.trimLen q q.size)).size ≤ q.size := by simp
@@ -365,21 +365,21 @@ theorem rawModFastC_cost (hP : Includes P rawModFast.c34.costDeps) {B : ℕ} (hB
 
 /-- **The Euclidean chain** (`rawGcdMonicWithFuelFast`, `fuel` steps): at most
 `gcdStepBound B·fuel + 400·B + 20000`. -/
-theorem rawGcdWithFuelC_cost (hP : Includes P rawGcdMonicWithFuelFast.c33.costDeps) {B : ℕ}
+theorem rawGcdWithFuelC_cost (hP : Includes P rawGcdMonicWithFuelFast.c34.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) :
     ∀ (fuel : ℕ) (p q : CPolynomial.Raw K), fuel < 2 ^ 63 → p.size ≤ B → q.size ≤ B →
-      machineCost P rawGcdMonicWithFuelFast.c33.costIdx [encodeValue fuel, encodeValue p, encodeValue q] ≤
+      machineCost P rawGcdMonicWithFuelFast.c34.costIdx [encodeValue fuel, encodeValue p, encodeValue q] ≤
         gcdStepBound B * fuel + 400 * B + 20000 := by
   intro fuel
   induction fuel with
   | zero =>
     intro p q _ hp _
-    rw [rawGcdMonicWithFuelFast.c33.costEq_zero P hP]
+    rw [rawGcdMonicWithFuelFast.c34.costEq_zero P hP]
     have := monicNormalizeRawC_cost P (by includes) p (by omega)
     omega
   | succ n ih =>
     intro p q hn hp hq
-    rw [rawGcdMonicWithFuelFast.c33.costEq_succ P hP]
+    rw [rawGcdMonicWithFuelFast.c34.costEq_succ P hP]
     have ⟨hq', hr'⟩ := rawGcdStep_size_le hp hq
     have hpt := trim_size_le' p
     have := trimLen_cost P (by includes) p p.size (by omega)
@@ -397,11 +397,11 @@ theorem rawGcdWithFuelC_cost (hP : Includes P rawGcdMonicWithFuelFast.c33.costDe
     split_ifs <;> omega
 
 /-- **The monic gcd** (raw, `|p| + |q| + 1` steps of fuel): at most `gcdBound B − 30·B − 70`. -/
-theorem rawGcdMonicFastC_cost (hP : Includes P rawGcdMonicFast.c32.costDeps) {B : ℕ}
+theorem rawGcdMonicFastC_cost (hP : Includes P rawGcdMonicFast.c33.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (p q : CPolynomial.Raw K) (hp : p.size ≤ B) (hq : q.size ≤ B) :
-    machineCost P rawGcdMonicFast.c32.costIdx [encodeValue p, encodeValue q] ≤
+    machineCost P rawGcdMonicFast.c33.costIdx [encodeValue p, encodeValue q] ≤
       gcdStepBound B * (2 * B + 1) + 400 * B + 20020 := by
-  rw [rawGcdMonicFast.c32.costEq P hP]
+  rw [rawGcdMonicFast.c33.costEq P hP]
   have := rawGcdWithFuelC_cost P (by includes) hB (p.size + q.size + 1) p q (by omega) hp hq
   have h1 : gcdStepBound B * (p.size + q.size + 1) ≤ gcdStepBound B * (2 * B + 1) :=
     Nat.mul_le_mul_left _ (by omega)
@@ -409,10 +409,10 @@ theorem rawGcdMonicFastC_cost (hP : Includes P rawGcdMonicFast.c32.costDeps) {B 
   omega
 
 /-- **The monic gcd** (`gcdMonicFast`): at most `gcdBound B`. -/
-theorem gcdMonicFastC_cost (hP : Includes P gcdMonicFast.c76.costDeps) {B : ℕ}
+theorem gcdMonicFastC_cost (hP : Includes P gcdMonicFast.c77.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (p q : CPolynomial K) (hp : p.val.size ≤ B) (hq : q.val.size ≤ B) :
-    machineCost P gcdMonicFast.c76.costIdx [encodeValue p, encodeValue q] ≤ gcdBound B := by
-  rw [gcdMonicFast.c76.costEq P hP]
+    machineCost P gcdMonicFast.c77.costIdx [encodeValue p, encodeValue q] ≤ gcdBound B := by
+  rw [gcdMonicFast.c77.costEq P hP]
   have := rawGcdMonicFastC_cost P (by includes) hB p.val q.val hp hq
   have hs := rawGcdMonicWithFuelFast_size_le (p.val.size + q.val.size + 1) hp hq
   have hs' : (rawGcdMonicFast p.val q.val).size ≤ B := hs
@@ -441,10 +441,10 @@ theorem monic_trim_ne_zero (u : CPolynomial.Raw K) (hu : u.trim ≠ 0) :
 
 /-- **The root product** (`rootProductFast`: `gcd(p, X^(2^64) − X mod p)`): at most
 `rootProductBound B`. -/
-theorem rootProductFastC_cost (hP : Includes P rootProductFast.c24.costDeps) {B : ℕ}
+theorem rootProductFastC_cost (hP : Includes P rootProductFast.c25.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (p : CPolynomial K) (hp : p.val.size ≤ B) :
-    machineCost P rootProductFast.c24.costIdx [encodeValue p] ≤ rootProductBound B := by
-  rw [rootProductFast.c24.costEq P hP]
+    machineCost P rootProductFast.c25.costIdx [encodeValue p] ≤ rootProductBound B := by
+  rw [rootProductFast.c25.costEq P hP]
   have ht := trim_size_le' p.val
   have := trimLen_cost P (by includes) p.val p.val.size (by omega)
   have : (Array.extract p.val 0 (CompPolyLib.trimLen p.val p.val.size)).size ≤ p.val.size := by
@@ -498,17 +498,17 @@ theorem length_squaringsFrom (u : CPolynomial.Raw K) :
 
 /-- **The squarings modulo `u`** (`squaringsFrom`, `n` of them): at most
 `(mulModBound B + 30)·n + 6`. -/
-theorem squaringsFromC_cost (hP : Includes P squaringsFrom.c69.costDeps) {B : ℕ}
+theorem squaringsFromC_cost (hP : Includes P squaringsFrom.c70.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (u : CPolynomial K) (hu : u ≠ 0) (huB : u.val.size ≤ B) :
     ∀ (n : ℕ) (c : CPolynomial.Raw K), n < 2 ^ 63 → c.size ≤ B →
-      machineCost P squaringsFrom.c69.costIdx [encodeValue u.val, encodeValue n, encodeValue c] ≤
+      machineCost P squaringsFrom.c70.costIdx [encodeValue u.val, encodeValue n, encodeValue c] ≤
         (mulModBound B + 30) * n + 6 := by
   intro n
   induction n with
-  | zero => intro c _ _; rw [squaringsFrom.c69.costEq_zero P hP]; omega
+  | zero => intro c _ _; rw [squaringsFrom.c70.costEq_zero P hP]; omega
   | succ n ih =>
     intro c hn hc
-    rw [squaringsFrom.c69.costEq_succ P hP]
+    rw [squaringsFrom.c70.costEq_succ P hP]
     have := sqModC_cost P (by includes) hB u.val c huB hc
     have := ih (sqMod u.val c) (by omega) (by have := sqMod_size_lt hu c; omega)
     cost_simp
@@ -518,11 +518,11 @@ theorem squaringsFromC_cost (hP : Includes P squaringsFrom.c69.costDeps) {B : �
 
 /-- **The Frobenius powers** (`frobeniusPowersFast u k`: `k` squarings, each then reduced
 `mod u`): at most `frobBound B k`. -/
-theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c67.costDeps) {B : ℕ}
+theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c68.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (u : CPolynomial K) (hu : u ≠ 0) (huB : u.val.size ≤ B)
     (k : ℕ) (hk : k < 2 ^ 63) :
-    machineCost P frobeniusPowersFast.c67.costIdx [encodeValue u, encodeValue k] ≤ frobBound B k := by
-  rw [frobeniusPowersFast.c67.costEq P hP, X.c54.costEq P (by includes)]
+    machineCost P frobeniusPowersFast.c68.costIdx [encodeValue u, encodeValue k] ≤ frobBound B k := by
+  rw [frobeniusPowersFast.c68.costEq P hP, X.c55.costEq P (by includes)]
   have hu' := cpoly_trim_ne_zero hu
   have hz : (u.val.trim == 0) = false := by simpa using hu'
   simp only [hz, Bool.false_eq_true, ↓reduceIte]
@@ -541,17 +541,17 @@ theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c67.costD
   have hf := fun c ↦ RunsApp.of_spec
     (us := [encodeValue u, encodeValue (CPolynomial.Raw.ModContext.remainderOnly.modByMonic 1
       u.val.monicNormalize)]) (vs := [encodeValue c])
-    (frobeniusPowersFast.c67.lam0.costSpec P (by includes) u
+    (frobeniusPowersFast.c68.lam0.costSpec P (by includes) u
       (CPolynomial.Raw.ModContext.remainderOnly.modByMonic 1 u.val.monicNormalize) c)
-  have hm := listMap_le P Auto.List.map.c29.costIdx
-    (.closure frobeniusPowersFast.c67.lam0.costIdx [encodeValue u, encodeValue (CPolynomial.Raw.ModContext.remainderOnly.modByMonic 1
+  have hm := listMap_le P Auto.List.map.c30.costIdx
+    (.closure frobeniusPowersFast.c68.lam0.costIdx [encodeValue u, encodeValue (CPolynomial.Raw.ModContext.remainderOnly.modByMonic 1
       u.val.monicNormalize)])
-    (Auto.List.map.c29.costEq_nil P (by includes) _ _ hf)
-    (Auto.List.map.c29.costEq_cons P (by includes) _ _ hf) (mulModBound B + 23 * B + 21)
+    (Auto.List.map.c30.costEq_nil P (by includes) _ _ hf)
+    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) (mulModBound B + 23 * B + 21)
     (squaringsFrom u.val k CPolynomial.Raw.X)
     (fun c hc ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [frobeniusPowersFast.c67.lam0.costEq P (by includes)]
+      rw [frobeniusPowersFast.c68.lam0.costEq P (by includes)]
       have hcs : c.size ≤ B := by
         rcases squaringsFrom_size_lt hu k CPolynomial.Raw.X c hc with rfl | h
         · rw [size_X_raw]; omega
@@ -578,11 +578,11 @@ theorem frobeniusPowersFastC_cost (hP : Includes P frobeniusPowersFast.c67.costD
 
 /-- **The trace polynomial** (`traceCoordFast`: `Σ_{i<64} β^(2^i)·powers[i]`): at most
 `traceBound B`, its value of at most `B + 1` coefficients. -/
-theorem traceCoordFastC_cost (hP : Includes P traceCoordFast.c71.costDeps) {B : ℕ}
+theorem traceCoordFastC_cost (hP : Includes P traceCoordFast.c72.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (beta : K) (powers : Array (CPolynomial K))
     (hpw : ∀ q ∈ powers, q.val.size ≤ B) :
-    machineCost P traceCoordFast.c71.costIdx [encodeValue beta, encodeValue powers] ≤ traceBound B := by
-  rw [traceCoordFast.c71.costEq P hP]
+    machineCost P traceCoordFast.c72.costIdx [encodeValue beta, encodeValue powers] ≤ traceBound B := by
+  rw [traceCoordFast.c72.costEq P hP]
   have := rangeLoop_cost P (by includes) 64 [] (by norm_num)
   have hg : ∀ i, (powers.getD i 0).val.size ≤ B := by
     intro i
@@ -590,9 +590,9 @@ theorem traceCoordFastC_cost (hP : Includes P traceCoordFast.c71.costDeps) {B : 
     cases h : powers[i]? with
     | none => simp [size_zero_val]
     | some q => exact hpw q (Array.mem_of_getElem? h)
-  have hf := listFoldl_le P (by includes) _ (.closure traceCoordFast.c71.lam0.costIdx [encodeValue powers])
+  have hf := listFoldl_le P (by includes) _ (.closure traceCoordFast.c72.lam0.costIdx [encodeValue powers])
     (fun st i ↦ RunsApp.of_spec (us := [encodeValue powers]) (vs := [encodeValue st, encodeValue i])
-      (traceCoordFast.c71.lam0.costSpec P (by includes) powers st i))
+      (traceCoordFast.c72.lam0.costSpec P (by includes) powers st i))
     (1040 * B + 1150) (fun st : CPolynomial K × K ↦ st.1.val.size ≤ B + 1) (List.range 64)
     (0, beta) (by show (0 : CPolynomial K).val.size ≤ _; simp [size_zero_val])
     (fun st hst i _ ↦ by
@@ -605,7 +605,7 @@ theorem traceCoordFastC_cost (hP : Includes P traceCoordFast.c71.costDeps) {B : 
         dsimp only
         omega
       · simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [traceCoordFast.c71.lam0.costEq P (by includes)]
+        rw [traceCoordFast.c72.lam0.costEq P (by includes)]
         have := cK_cost P (by includes) st.2
         have := hg i
         have h1 := mulK_cost P (by includes) (CPolynomial.C st.2).val (powers.getD i 0).val
@@ -652,18 +652,18 @@ theorem lookup_mem (u : CPolynomial K) :
 
 /-- **The cache lookup** (`lookupTracePowers`: the factor compared with each entry's), the factor
 of at most `B` coefficients, the entries of at most `C`: at most `(15·B + 3·C + 20)·|cache| + 3`. -/
-theorem lookupC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c66.costDeps) {B C : ℕ}
+theorem lookupC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c67.costDeps) {B C : ℕ}
     (u : CPolynomial K) (hu : u.val.size ≤ B) :
     ∀ cache : ShoupTracePowerCache K, CacheInv C cache →
-      machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c66.costIdx [encodeValue u, encodeValue cache] ≤
+      machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c67.costIdx [encodeValue u, encodeValue cache] ≤
         (15 * B + 3 * C + 20) * cache.length + 3 := by
   intro cache
   induction cache with
-  | nil => intro _; rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c66.costEq_nil P hP]; omega
+  | nil => intro _; rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c67.costEq_nil P hP]; omega
   | cons e rest ih =>
     intro hc
     obtain ⟨v, pw⟩ := e
-    rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c66.costEq_cons P hP]
+    rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.lookupTracePowers.c67.costEq_cons P hP]
     have hv := (hc (v, pw) (by simp)).1
     have := ih (fun e he ↦ hc e (by simp [he]))
     have := listBeqK_cost P (by includes) u.val.toList v.val.toList
@@ -690,12 +690,12 @@ theorem tracePowersFast_props {C : ℕ} (u : CPolynomial K) (hu0 : u ≠ 0) (hu 
 
 /-- **The Frobenius powers of a factor, cached** (`tracePowersFast`): at most
 `(15·B + 3·C + 20)·|cache| + frobBound B 64 + 24`. -/
-theorem tracePowersFastC_cost (hP : Includes P tracePowersFast.c65.costDeps) {B C : ℕ}
+theorem tracePowersFastC_cost (hP : Includes P tracePowersFast.c66.costDeps) {B C : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (u : CPolynomial K) (hu0 : u ≠ 0) (hu : u.val.size ≤ B)
     (cache : ShoupTracePowerCache K) (hc : CacheInv C cache) :
-    machineCost P tracePowersFast.c65.costIdx [encodeValue u, encodeValue cache] ≤
+    machineCost P tracePowersFast.c66.costIdx [encodeValue u, encodeValue cache] ≤
       (15 * B + 3 * C + 20) * cache.length + frobBound B 64 + 24 := by
-  rw [tracePowersFast.c65.costEq P hP]
+  rw [tracePowersFast.c66.costEq P hP]
   have := lookupC_cost P (by includes) u hu cache hc
   have := frobeniusPowersFastC_cost P (by includes) hB hB2 u hu0 hu 64 (by norm_num)
   cases lookupTracePowers u cache <;> dsimp only <;> omega
@@ -706,11 +706,11 @@ theorem size_C_le' (c : K) : (CPolynomial.C c : CPolynomial K).val.size ≤ 1 :=
 theorem size_one_cpoly : (1 : CPolynomial K).val.size ≤ 1 := size_one_K
 
 /-- **A child pushed** (`pushNontrivialChild`): at most `30·|child| + |children| + 40`. -/
-theorem pushChildC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c77.costDeps)
+theorem pushChildC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c78.costDeps)
     (children : Array (CPolynomial K)) (child : CPolynomial K) :
-    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c77.costIdx [encodeValue children, encodeValue child] ≤
+    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c78.costIdx [encodeValue children, encodeValue child] ≤
       30 * child.val.size + children.size + 40 := by
-  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c77.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.pushNontrivialChild.c78.costEq P hP]
   have := listBeqK_cost P (by includes) child.val.toList (↑(0 : CPolynomial K) : Array K).toList
   have := listBeqK_cost P (by includes) child.val.toList (↑(1 : CPolynomial K) : Array K).toList
   have := size_one_cpoly
@@ -722,11 +722,11 @@ theorem cpoly_monicNormalize_size_le (p : CPolynomial K) :
   (raw_trim_size_le _).trans (raw_monicNormalize_size_le _)
 
 /-- `monicNormalize` of a polynomial: at most `363·|p| + 19820`. -/
-theorem monicNormalizeC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monicNormalize.c60.costDeps)
+theorem monicNormalizeC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monicNormalize.c61.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 60) :
-    machineCost P Auto.CompPoly.CPolynomial.monicNormalize.c60.costIdx [encodeValue p] ≤
+    machineCost P Auto.CompPoly.CPolynomial.monicNormalize.c61.costIdx [encodeValue p] ≤
       363 * p.val.size + 19820 := by
-  rw [Auto.CompPoly.CPolynomial.monicNormalize.c60.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.monicNormalize.c61.costEq P hP]
   have := monicNormalizeRawC_cost P (by includes) p.val hp
   have := raw_monicNormalize_size_le p.val
   have := ofArray_cost P (by includes) p.val.monicNormalize (by omega)
@@ -746,20 +746,20 @@ theorem cpoly_sub_C_size_le (T : CPolynomial K) (c : K) {B : ℕ} (hT : T.val.si
   omega
 
 /-- **One child** (`gcd(u, T − c)`, normalized, pushed): at most `refineLamBound B`. -/
-theorem refineLamC_cost (hP : Includes P refineFactorFast.c64.lam0.costDeps) {B : ℕ}
+theorem refineLamC_cost (hP : Includes P refineFactorFast.c65.lam0.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB1 : 1 ≤ B) (u T : CPolynomial K) (hu : u.val.size ≤ B)
     (hT : T.val.size ≤ B) (children : Array (CPolynomial K)) (hch : children.size ≤ 2) (c : K) :
-    machineCost P refineFactorFast.c64.lam0.costIdx [encodeValue u, encodeValue T, encodeValue children, encodeValue c] ≤
+    machineCost P refineFactorFast.c65.lam0.costIdx [encodeValue u, encodeValue T, encodeValue children, encodeValue c] ≤
       refineLamBound B := by
-  rw [refineFactorFast.c64.lam0.costEq P hP]
+  rw [refineFactorFast.c65.lam0.costEq P hP]
   have hC := size_C_le' c
   have := cK_cost P (by includes) c
   have hf := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
-    (sub.c48.lam0.costSpec P (by includes) a)
-  have hm := listMap_le P Auto.List.map.c29.costIdx (.closure sub.c48.lam0.costIdx [])
-    (Auto.List.map.c29.costEq_nil P (by includes) _ _ hf)
-    (Auto.List.map.c29.costEq_cons P (by includes) _ _ hf) 1 (CPolynomial.C c).val.toList
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, sub.c48.lam0.costEq P (by includes)])
+    (sub.c49.lam0.costSpec P (by includes) a)
+  have hm := listMap_le P Auto.List.map.c30.costIdx (.closure sub.c49.lam0.costIdx [])
+    (Auto.List.map.c30.costEq_nil P (by includes) _ _ hf)
+    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) 1 (CPolynomial.C c).val.toList
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, sub.c49.lam0.costEq P (by includes)])
   have hn : (-CPolynomial.C c).val.size ≤ 1 := by rw [neg_val_size]; exact hC
   have := addK_cost P (by includes) T.val (-CPolynomial.C c).val (by omega) (by omega)
   have hs := cpoly_sub_C_size_le T c hT hB1
@@ -784,11 +784,11 @@ theorem basis_size' : LeanVM.Extraction.traceCtx.basis.size = 64 := by
 
 /-- `isRepresentedLinearFactor`: at most `14`. -/
 theorem isReprC_cost
-    (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c58.costDeps)
+    (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c59.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c58.costIdx
+    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c59.costIdx
       [encodeValue p] ≤ 14 := by
-  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c58.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.isRepresentedLinearFactor.c59.costEq P hP]
   cost_simp
   split_ifs <;> omega
 
@@ -817,12 +817,12 @@ theorem natDegree_le_of_size_le {p : CPolynomial K} {B : ℕ} (h : p.val.size �
 trivial or linear, its Frobenius powers from the cache, its trace polynomial, a gcd per base
 constant), the factor of at most `B` coefficients, the cache's entries of at most `C`: at most
 `refineFactorBound B C |cache|`. -/
-theorem refineFactorFastC_cost (hP : Includes P refineFactorFast.c64.costDeps) {B : ℕ}
+theorem refineFactorFastC_cost (hP : Includes P refineFactorFast.c65.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (beta : K) {C : ℕ} (cache : ShoupTracePowerCache K)
     (hc : CacheInv C cache) (u : CPolynomial K) (hu : u.val.size ≤ B) (huC : u.val.size ≤ C) :
-    machineCost P refineFactorFast.c64.costIdx [encodeValue beta, encodeValue cache, encodeValue u] ≤
+    machineCost P refineFactorFast.c65.costIdx [encodeValue beta, encodeValue cache, encodeValue u] ≤
       refineFactorBound B C cache.length := by
-  rw [refineFactorFast.c64.costEq P hP]
+  rw [refineFactorFast.c65.costEq P hP]
   have hmn := cpoly_monicNormalize_size_le u
   have := monicNormalizeC_cost P (by includes) u (by omega)
   have := listBeqK_cost P (by includes) (CPolynomial.monicNormalize u).val.toList
@@ -854,11 +854,11 @@ theorem refineFactorFastC_cost (hP : Includes P refineFactorFast.c64.costDeps) {
     have hf := listFoldl_le_idx P (by includes)
       (fun ch c ↦ pushNontrivialChild ch (CPolynomial.monicNormalize (gcdMonicFast
         (CPolynomial.monicNormalize u) (traceCoordFast beta pw - CPolynomial.C c))))
-      (.closure refineFactorFast.c64.lam0.costIdx [encodeValue (CPolynomial.monicNormalize u),
+      (.closure refineFactorFast.c65.lam0.costIdx [encodeValue (CPolynomial.monicNormalize u),
         encodeValue (traceCoordFast beta pw)])
       (fun ch c ↦ RunsApp.of_spec (us := [encodeValue (CPolynomial.monicNormalize u),
         encodeValue (traceCoordFast beta pw)]) (vs := [encodeValue ch, encodeValue c])
-        (refineFactorFast.c64.lam0.costSpec P (by includes) (CPolynomial.monicNormalize u)
+        (refineFactorFast.c65.lam0.costSpec P (by includes) (CPolynomial.monicNormalize u)
           (traceCoordFast beta pw) ch c))
       (refineLamBound B) (fun k ch ↦ ch.size + k ≤ 2) LeanVM.Extraction.traceCtx.baseConstants.toList
       (fun k ch hch c _ ↦ by
@@ -943,18 +943,18 @@ theorem sum_map_affine {α : Type} (l : List α) (s : α → ℕ) (c1 c0 : ℕ) 
 /-- **The factors refined by one trace coordinate** (`refineFactorsFast`), each factor priced at
 its own size: factors of `2` to `B` coefficients, at most `F` of them, their sizes summing to at
 most `S`, the cache's length plus `F` at most `L`: at most `refineFactorsBound B S F L`. -/
-theorem refineFactorsFastC_cost (hP : Includes P refineFactorsFast.c62.costDeps) {B : ℕ}
+theorem refineFactorsFastC_cost (hP : Includes P refineFactorsFast.c63.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (beta : K) (cache : ShoupTracePowerCache K)
     (hc : CacheInv B cache) (factors : Array (CPolynomial K))
     (hf : ∀ u ∈ factors, 2 ≤ u.val.size ∧ u.val.size ≤ B) {S F L : ℕ}
     (hS : (factors.toList.map fun u ↦ u.val.size).sum ≤ S) (hF : factors.size ≤ F)
     (hL : cache.length + F ≤ L) :
-    machineCost P refineFactorsFast.c62.costIdx [encodeValue beta, encodeValue cache, encodeValue factors] ≤
+    machineCost P refineFactorsFast.c63.costIdx [encodeValue beta, encodeValue cache, encodeValue factors] ≤
       refineFactorsBound B S F L := by
-  rw [refineFactorsFast.c62.costEq P hP]
+  rw [refineFactorsFast.c63.costEq P hP]
   have hspec := fun st f ↦ RunsApp.of_spec (us := [encodeValue beta]) (vs := [encodeValue st, encodeValue f])
-    (refineFactorsFast.c62.lam0.costSpec P (by includes) beta st f)
-  have hfold := listFoldl_le_sum P (by includes) _ (.closure refineFactorsFast.c62.lam0.costIdx
+    (refineFactorsFast.c63.lam0.costSpec P (by includes) beta st f)
+  have hfold := listFoldl_le_sum P (by includes) _ (.closure refineFactorsFast.c63.lam0.costIdx
     [encodeValue beta]) hspec (fun u ↦ u.val.size * refineSlope B + 2846718 +
       (15 * u.val.size + 3 * B + 20) * L + 2 * F + 21)
     (fun st l ↦ CacheInv B st.1 ∧ st.1.length + l.length ≤ L ∧ st.2.size + 2 * l.length ≤ 2 * F ∧
@@ -976,7 +976,7 @@ theorem refineFactorsFastC_cost (hP : Includes P refineFactorsFast.c62.costDeps)
         rw [Array.size_append]
         omega
       · simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [refineFactorsFast.c62.lam0.costEq_mk P (by includes)]
+        rw [refineFactorsFast.c63.lam0.costEq_mk P (by includes)]
         have := refineFactorFastC_cost P (by includes) (B := f.val.size) (by omega) hfs.1 beta c0 hc0
           f le_rfl hfs.2
         have hmono : refineFactorBound f.val.size B c0.length ≤ refineFactorBound f.val.size B L := by
@@ -1018,10 +1018,10 @@ theorem facInv_size_le {P : Polynomial K} (hP : P ≠ 0) {F : List (CPolynomial 
   omega
 
 /-- **Shoup's splitter, cached** (`splitCandidatesFast`): at most `splitBound B`. -/
-theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c59.costDeps) {B : ℕ}
+theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c60.costDeps) {B : ℕ}
     (hB : B < 2 ^ 28) (hB2 : 2 ≤ B) (p : CPolynomial K) (hp : p.val.size ≤ B) :
-    machineCost P splitCandidatesFast.c59.costIdx [encodeValue p] ≤ splitBound B := by
-  rw [splitCandidatesFast.c59.costEq P hP]
+    machineCost P splitCandidatesFast.c60.costIdx [encodeValue p] ≤ splitBound B := by
+  rw [splitCandidatesFast.c60.costEq P hP]
   have hmn := cpoly_monicNormalize_size_le p
   have := monicNormalizeC_cost P (by includes) p (by omega)
   have := listBeqK_cost P (by includes) (CPolynomial.monicNormalize p).val.toList
@@ -1040,11 +1040,11 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c59.costD
     obtain ⟨hm0, hm1⟩ := h2
     -- the basis
     have hl1 := fun i ↦ RunsApp.of_spec (us := []) (vs := [encodeValue i])
-      (splitCandidatesFast.c59.lam1.costSpec P (by includes) i)
+      (splitCandidatesFast.c60.lam1.costSpec P (by includes) i)
     have hob := ofFnFrom_cost P (by includes) (n := 64) (by norm_num) _
-      (.closure splitCandidatesFast.c59.lam1.costIdx []) hl1 6 (fun i ↦ by
+      (.closure splitCandidatesFast.c60.lam1.costIdx []) hl1 6 (fun i ↦ by
         simp only [appCost_fn, List.nil_append]
-        rw [splitCandidatesFast.c59.lam1.costEq P (by includes)]
+        rw [splitCandidatesFast.c60.lam1.costEq P (by includes)]
         have hi := i.isLt
         have : (1 <<< (i : ℕ) : ℕ) < 2 ^ 64 := by
           rw [Nat.one_shiftLeft]; exact Nat.pow_lt_pow_right (by norm_num) hi
@@ -1062,8 +1062,8 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c59.costD
       omega
     have hdeg : m.toPoly.natDegree = m.natDegree := (CPolynomial.natDegree_toPoly m).symm
     have hspec := fun st b ↦ RunsApp.of_spec (us := []) (vs := [encodeValue st, encodeValue b])
-      (splitCandidatesFast.c59.lam0.costSpec P (by includes) st b)
-    have hfold := listFoldl_le_idx P (by includes) _ (.closure splitCandidatesFast.c59.lam0.costIdx [])
+      (splitCandidatesFast.c60.lam0.costSpec P (by includes) st b)
+    have hfold := listFoldl_le_idx P (by includes) _ (.closure splitCandidatesFast.c60.lam0.costIdx [])
       hspec (refineFactorsBound B (2 * B) B (64 * B) + 6)
       (fun k st ↦ FacInv m.toPoly st.2.toList ∧ CacheInv B st.1 ∧
         st.1.length + k * m.natDegree ≤ 64 * m.natDegree)
@@ -1104,7 +1104,7 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c59.costD
           have e : (k + 1) * m.natDegree = k * m.natDegree + m.natDegree := by ring
           omega
         · simp only [appCost_fn, List.nil_append]
-          rw [splitCandidatesFast.c59.lam0.costEq_mk P (by includes)]
+          rw [splitCandidatesFast.c60.lam0.costEq_mk P (by includes)]
           have e : (k + 1) * m.natDegree = k * m.natDegree + m.natDegree := by ring
           have hcl : c0.length + B ≤ 64 * B := by
             have := Nat.mul_le_mul_left 64 (show m.natDegree ≤ B by omega)
@@ -1125,43 +1125,43 @@ theorem splitCandidatesFastC_cost (hP : Includes P splitCandidatesFast.c59.costD
 
 /-! ## The roots read off the linear factors -/
 
-/-- `List.any` (`any.c14`): `9` per element and the predicate's price, `3`. -/
-theorem anyC_cost (hP : Includes P Auto.List.any.c14.costDeps) {α : Type} [MachineEncoding α]
+/-- `List.any` (`any.c15`): `9` per element and the predicate's price, `3`. -/
+theorem anyC_cost (hP : Includes P Auto.List.any.c15.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.any.c14.costIdx [encodeValue l, pVal] ≤ (B + 9) * l.length + 3 := by
+      machineCost P Auto.List.any.c15.costIdx [encodeValue l, pVal] ≤ (B + 9) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.any.c14.costEq_nil P hP p pVal hp]; omega
+  | nil => intro _; rw [Auto.List.any.c15.costEq_nil P hP p pVal hp]; omega
   | cons a l ih =>
     intro hB
-    rw [Auto.List.any.c14.costEq_cons P hP a l p pVal hp]
+    rw [Auto.List.any.c15.costEq_cons P hP a l p pVal hp]
     have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
     have h2 := hB a (by simp)
     simp only [List.length_cons]
     split_ifs <;> nlinarith
 
 /-- `Array.contains` over `K`: at most `15·|as| + 9`. -/
-theorem containsC_cost (hP : Includes P Auto.Array.contains.c13.costDeps) (as : Array K)
-    (a : K) : machineCost P Auto.Array.contains.c13.costIdx [encodeValue as, encodeValue a] ≤ 15 * as.size + 9 := by
-  rw [Auto.Array.contains.c13.costEq P hP]
+theorem containsC_cost (hP : Includes P Auto.Array.contains.c14.costDeps) (as : Array K)
+    (a : K) : machineCost P Auto.Array.contains.c14.costIdx [encodeValue as, encodeValue a] ≤ 15 * as.size + 9 := by
+  rw [Auto.Array.contains.c14.costEq P hP]
   have hp := fun x ↦ RunsApp.of_spec (us := [encodeValue a]) (vs := [encodeValue x])
-    (Auto.Array.contains.c13.lam0.costSpec P (by includes) a x)
-  have := anyC_cost P (by includes) _ (.closure Auto.Array.contains.c13.lam0.costIdx [encodeValue a]) hp 3
+    (Auto.Array.contains.c14.lam0.costSpec P (by includes) a x)
+  have := anyC_cost P (by includes) _ (.closure Auto.Array.contains.c14.lam0.costIdx [encodeValue a]) hp 3
     as.toList (fun x _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.Array.contains.c13.lam0.costEq P (by includes)])
+      rw [Auto.Array.contains.c14.lam0.costEq P (by includes)])
   simp only [Array.length_toList] at this
   omega
 
 /-- `Array.eraseDups` over `K` (each element looked up in the output): at most
 `(16·n + 30)·n + 10`, `n` elements. -/
-theorem eraseDupsC_cost (hP : Includes P Auto.Array.eraseDups.c11.costDeps) (xs : Array K) :
-    machineCost P Auto.Array.eraseDups.c11.costIdx [encodeValue xs] ≤ (16 * xs.size + 30) * xs.size + 10 := by
-  rw [Auto.Array.eraseDups.c11.costEq P hP]
+theorem eraseDupsC_cost (hP : Includes P Auto.Array.eraseDups.c12.costDeps) (xs : Array K) :
+    machineCost P Auto.Array.eraseDups.c12.costIdx [encodeValue xs] ≤ (16 * xs.size + 30) * xs.size + 10 := by
+  rw [Auto.Array.eraseDups.c12.costEq P hP]
   have hspec := fun out x ↦ RunsApp.of_spec (us := []) (vs := [encodeValue out, encodeValue x])
-    (Auto.Array.eraseDups.c11.lam0.costSpec P (by includes) out x)
-  have := listFoldl_le_idx P (by includes) _ (.closure Auto.Array.eraseDups.c11.lam0.costIdx [])
+    (Auto.Array.eraseDups.c12.lam0.costSpec P (by includes) out x)
+  have := listFoldl_le_idx P (by includes) _ (.closure Auto.Array.eraseDups.c12.lam0.costIdx [])
     hspec (16 * xs.size + 17) (fun k out ↦ out.size + k ≤ xs.size) xs.toList
     (fun k out hout x _ ↦ by
       refine ⟨?_, ?_⟩
@@ -1169,7 +1169,7 @@ theorem eraseDupsC_cost (hP : Includes P Auto.Array.eraseDups.c11.costDeps) (xs 
         · omega
         · simp only [Array.size_push]; omega
       · simp only [appCost_fn, List.nil_append]
-        rw [Auto.Array.eraseDups.c11.lam0.costEq P (by includes)]
+        rw [Auto.Array.eraseDups.c12.lam0.costEq P (by includes)]
         have := containsC_cost P (by includes) out x
         split_ifs <;> omega)
     xs.toList #[] (fun _ h ↦ h) (by simp)
@@ -1179,41 +1179,41 @@ theorem eraseDupsC_cost (hP : Includes P Auto.Array.eraseDups.c11.costDeps) (xs 
   omega
 
 /-- A factor's root (`linearRootOfFactor?`): at most `19990`. -/
-theorem linearRootC_cost (hP : Includes P Auto.CompPoly.CPolynomial.linearRootOfFactor?.c8.costDeps)
+theorem linearRootC_cost (hP : Includes P Auto.CompPoly.CPolynomial.linearRootOfFactor?.c9.costDeps)
     (f : CPolynomial K) (hf : f.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.linearRootOfFactor?.c8.costIdx [encodeValue f] ≤ 19990 := by
-  rw [Auto.CompPoly.CPolynomial.linearRootOfFactor?.c8.costEq P hP]
+    machineCost P Auto.CompPoly.CPolynomial.linearRootOfFactor?.c9.costIdx [encodeValue f] ≤ 19990 := by
+  rw [Auto.CompPoly.CPolynomial.linearRootOfFactor?.c9.costEq P hP]
   have := invK_cost P (by includes) (f.coeff 1)
   cost_simp
   split_ifs <;> omega
 
 theorem rootsFromLinearFactorsC_cost
-    (hP : Includes P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.costDeps)
+    (hP : Includes P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.costDeps)
     (p : CPolynomial K) (factors : Array (CPolynomial K)) {B F : ℕ} (hp : p.val.size ≤ B)
     (hF : factors.size ≤ F) (hfs : ∀ f ∈ factors, f.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.costIdx
+    machineCost P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.costIdx
       [encodeValue p, encodeValue factors] ≤ rootsFromBound B F := by
-  rw [Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.costEq P hP]
   have hf := fun f ↦ RunsApp.of_spec (us := []) (vs := [encodeValue f])
-    (Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.lam0.costSpec P (by includes) f)
+    (Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.lam0.costSpec P (by includes) f)
   have h1 := filterMap_cost P (by includes) _
-    (.closure Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.lam0.costIdx []) hf 19992
+    (.closure Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.lam0.costIdx []) hf 19992
     factors.toList (fun f hfm ↦ by
       simp only [appCost_fn, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.lam0.costEq P (by includes)]
+      rw [Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.lam0.costEq P (by includes)]
       have := linearRootC_cost P (by includes) f (hfs f (by simpa using hfm))
       omega)
   generalize hc : List.filterMap CPolynomial.linearRootOfFactor? factors.toList = cands
   have hcl : cands.length ≤ factors.size := by
     rw [← hc, ← Array.length_toList]; exact List.length_filterMap_le _ _
-  rw [Auto.CompPoly.CPolynomial.validateRootCandidates.c16.costEq P (by includes)]
+  rw [Auto.CompPoly.CPolynomial.validateRootCandidates.c17.costEq P (by includes)]
   have hv := fun a ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue a])
-    (Auto.CompPoly.CPolynomial.validateRootCandidates.c16.lam0.costSpec P (by includes) p a)
+    (Auto.CompPoly.CPolynomial.validateRootCandidates.c17.lam0.costSpec P (by includes) p a)
   have h2 := filter_cost P (by includes) _
-    (.closure Auto.CompPoly.CPolynomial.validateRootCandidates.c16.lam0.costIdx [encodeValue p]) hv
+    (.closure Auto.CompPoly.CPolynomial.validateRootCandidates.c17.lam0.costIdx [encodeValue p]) hv
     (272 * B + 21) cands.toArray.toList (fun a _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.validateRootCandidates.c16.lam0.costEq P (by includes)]
+      rw [Auto.CompPoly.CPolynomial.validateRootCandidates.c17.lam0.costEq P (by includes)]
       have := evalHornerC_cost P (by includes) a p
       omega)
   have hval : (p.validateRootCandidates cands.toArray).size ≤ cands.length := by
@@ -1268,13 +1268,13 @@ theorem representedLinearFactorsOnly_props (fs : Array (CPolynomial K)) :
 /-- **The linear factors kept** (`representedLinearFactorsOnly`, `F` factors): at most
 `(F + 30)·F + 3·F + 9`. -/
 theorem representedLinearFactorsOnlyC_cost
-    (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.costDeps) (fs : Array (CPolynomial K))
+    (hP : Includes P Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.costDeps) (fs : Array (CPolynomial K))
     {F : ℕ} (hF : fs.size ≤ F) (hfs : ∀ f ∈ fs, f.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.costIdx [encodeValue fs] ≤ (F + 30) * F + 3 * F + 9 := by
-  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.costEq P hP]
+    machineCost P Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.costIdx [encodeValue fs] ≤ (F + 30) * F + 3 * F + 9 := by
+  rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.costEq P hP]
   have hspec := fun out f ↦ RunsApp.of_spec (us := []) (vs := [encodeValue out, encodeValue f])
-    (Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.lam0.costSpec P (by includes) out f)
-  have := listFoldl_le_idx P (by includes) _ (.closure Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.lam0.costIdx [])
+    (Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.lam0.costSpec P (by includes) out f)
+  have := listFoldl_le_idx P (by includes) _ (.closure Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.lam0.costIdx [])
     hspec (F + 21) (fun k out ↦ out.size + k ≤ fs.size) fs.toList
     (fun k out hout f hf ↦ by
       refine ⟨?_, ?_⟩
@@ -1282,7 +1282,7 @@ theorem representedLinearFactorsOnlyC_cost
         · simp only [Array.size_push]; omega
         · omega
       · simp only [appCost_fn, List.nil_append]
-        rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.lam0.costEq P (by includes)]
+        rw [Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.lam0.costEq P (by includes)]
         have := isReprC_cost P (by includes) f (hfs f (by simpa using hf))
         split_ifs <;> omega)
     fs.toList #[] (fun _ h ↦ h) (by simp)
@@ -1307,12 +1307,12 @@ theorem rootsInFieldC_cost (hP : Includes P rootsInFieldC.costDeps) {B : ℕ} (h
   have hA := rootsFromLinearFactorsC_cost P (by includes) p #[p] (B := B) (F := 1) hp (by simp)
     (by simp; omega)
   have hBig : p ≠ 0 →
-      machineCost P rootProductFast.c24.costIdx [encodeValue p] +
-        machineCost P splitCandidatesFast.c59.costIdx [encodeValue (rootProductFast p)] +
+      machineCost P rootProductFast.c25.costIdx [encodeValue p] +
+        machineCost P splitCandidatesFast.c60.costIdx [encodeValue (rootProductFast p)] +
         machineCost P
-          Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c56.costIdx
+          Auto.CompPoly.CPolynomial.Roots.FiniteField.representedLinearFactorsOnly.c57.costIdx
           [encodeValue (splitCandidatesFast (rootProductFast p))] +
-        machineCost P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c5.costIdx
+        machineCost P Auto.CompPoly.CPolynomial.rootsFromLinearFactors.c6.costIdx
           [encodeValue p, encodeValue (representedLinearFactorsOnly (splitCandidatesFast (rootProductFast p)))] ≤
       rootProductBound B + splitBound B + ((B + 30) * B + 3 * B + 9) + rootsFromBound B B := by
     intro hp0

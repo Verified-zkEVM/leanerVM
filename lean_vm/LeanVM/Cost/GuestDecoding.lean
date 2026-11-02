@@ -36,8 +36,9 @@ class MachineDecoding (α : Type) where
 
 export MachineDecoding (decodeValue)
 
+/-- A word: its number modulo `2^64`. -/
 instance : MachineDecoding UInt64 where
-  decodeValue | .word x => some x | _ => none
+  decodeValue | .nat n => some n.toUInt64 | _ => none
 
 instance : MachineDecoding ℕ where
   decodeValue | .nat n => some n | _ => none
@@ -51,8 +52,9 @@ instance : MachineDecoding Bool where
 instance {w : ℕ} : MachineDecoding (BitVec w) where
   decodeValue | .nat n => some (BitVec.ofNat w n) | _ => none
 
+/-- An element of `K`: the word of its number modulo `2^64`. -/
 instance : MachineDecoding K where
-  decodeValue | .word a => some (K.ofLane a) | _ => none
+  decodeValue | .nat a => some (K.ofLane a.toUInt64) | _ => none
 
 instance : MachineDecoding E := ⟨decodeExtensionElement⟩
 
@@ -177,7 +179,8 @@ export LawfulMachineDecoding (decodeValue_encodeValue)
 
 attribute [simp] decodeValue_encodeValue
 
-instance : LawfulMachineDecoding UInt64 := ⟨fun _ ↦ rfl⟩
+instance : LawfulMachineDecoding UInt64 := ⟨fun x ↦ by
+  show some x.toNat.toUInt64 = some x; simp [Nat.toUInt64_eq]⟩
 instance : LawfulMachineDecoding ℕ := ⟨fun _ ↦ rfl⟩
 instance {n : ℕ} : LawfulMachineDecoding (Fin n) := ⟨fun i ↦ by
   show (if h : i.val < n then some (⟨i.val, h⟩ : Fin n) else none) = some i
@@ -187,7 +190,9 @@ instance : LawfulMachineDecoding Bool := ⟨fun b ↦ by cases b <;> rfl⟩
 instance {w : ℕ} : LawfulMachineDecoding (BitVec w) :=
   ⟨fun v ↦ by show some (BitVec.ofNat w v.toNat) = some v; simp⟩
 
-instance : LawfulMachineDecoding K := ⟨fun _ ↦ rfl⟩
+instance : LawfulMachineDecoding K := ⟨fun a ↦ by
+  show some (K.ofLane a.lane.toNat.toUInt64) = some a
+  simp only [Nat.toUInt64_eq, UInt64.ofNat_toNat]; rfl⟩
 instance : LawfulMachineDecoding E := ⟨decodeE_enc⟩
 
 theorem mapM_decodeValue_map_encodeValue {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDecoding α] (l : List α) :

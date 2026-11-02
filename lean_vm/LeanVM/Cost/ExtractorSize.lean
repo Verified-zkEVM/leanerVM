@@ -11,12 +11,10 @@ rebuilds them.
 
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
-* **`extractorProgram_size_le_measured`**: the program's size is at most `14400`, evaluated on the
-  program itself. Its exact size is `13811` (`LeanVMTests/Cost/Efficient.lean`): the bodies' sizes
-  (`13787`: `697` compiled bodies and the entry, each natural literal counted by its limbs) and
-  `12` indices without a body, a literal `0` of size `2` each, `710` indices in all. The bound of
-  `size_ofList_le`, two per index on top of the bodies' sizes (`15207`), is too loose for
-  `LeanVM.knowledgeExtractorSizeBound` (`14400`, `Statement/CostMachine.lean`).
+* **`extractorProgram_size_le_measured`**: the program's size is at most `14125`, evaluated on the
+  program itself; that is its exact size: the bodies' sizes (`14101`: `698` compiled bodies and the
+  entry, each natural literal counted by its limbs) and `12` indices without a body, a literal `0`
+  of size `2` each, `711` indices in all.
 -/
 
 namespace LeanVM.Cost
@@ -31,14 +29,14 @@ theorem extractorProgram_indices_increasing :
   decide +kernel
 
 /-- **The program's size**, from its bodies (`size_ofList_add_length`: the bodies' sizes and two
-per index without a body), each count evaluated: at most `14400` (exactly `13811`). -/
-theorem extractorProgram_size_le_measured : extractorProgram.size ≤ 14400 := by
+per index without a body), each count evaluated: at most (exactly) `14125`. -/
+theorem extractorProgram_size_le_measured : extractorProgram.size ≤ 14125 := by
   have h := size_ofList_add_length extractorProgramBodies (by
     rw [extractorProgramBodies, List.map_cons]
     exact nodup_of_increasing extractorProgram_indices_increasing)
-  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 13787 := by decide +kernel
-  have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 709 := by decide +kernel
-  have h3 : extractorProgramBodies.length = 698 := by decide +kernel
+  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14101 := by decide +kernel
+  have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 710 := by decide +kernel
+  have h3 : extractorProgramBodies.length = 699 := by decide +kernel
   unfold extractorProgram
   omega
 

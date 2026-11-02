@@ -28,16 +28,33 @@ def RunsBody (P : MachineProgram) (f : ℕ) (vs : List MachineValue) (v : Machin
 
 /-! ## More fuel -/
 
+/-- The `case` step on a constructor: the alternative's run, if there is one. -/
+theorem evaluateTerm_case (P : MachineProgram) (n : ℕ) (env : List MachineValue) (t : Term)
+    (alts : List Term) :
+    evaluateTerm P n env (.case t alts) = (evaluateTerm P n env t).bind fun (v, c) ↦
+      match v with
+      | .ctor k fs => (alts[k]?).bind fun a ↦
+          (evaluateTerm P n (fs ++ env) a).map fun (w, d) ↦ (w, c + d + fs.length + 1)
+      | _ => none := by
+  rw [evaluateTerm]
+  simp only [Option.bind_eq_bind, Option.pure_def]
+  congr 1
+  funext ⟨v, c⟩
+  cases v with
+  | ctor k fs =>
+    simp only
+    split
+    · next a h => simp only [h, Option.bind_some]; cases evaluateTerm P n (fs ++ env) a <;> rfl
+    · next h => simp [h]
+  | _ => rfl
+
 theorem eval_mono (P : MachineProgram) :
     (∀ n env t r, evaluateTerm P n env t = some r → evaluateTerm P (n + 1) env t = some r) ∧
     (∀ n env ts r, evaluateTerms P n env ts = some r → evaluateTerms P (n + 1) env ts = some r) ∧
-    (∀ n env fs k as r, evaluateAlternative P n env fs k as = some r → evaluateAlternative P (n + 1) env fs k as = some r) ∧
     (∀ n f vs r, evaluateFunctionBody P n f vs = some r → evaluateFunctionBody P (n + 1) f vs = some r) := by
   have h := evaluateTerm.mutual_induct P
     (fun n env t ↦ ∀ r, evaluateTerm P n env t = some r → evaluateTerm P (n + 1) env t = some r)
     (fun n f vs ↦ ∀ r, evaluateFunctionBody P n f vs = some r → evaluateFunctionBody P (n + 1) f vs = some r)
-    (fun n env fs k as ↦ ∀ r, evaluateAlternative P n env fs k as = some r →
-      evaluateAlternative P (n + 1) env fs k as = some r)
     (fun n env ts ↦ ∀ r, evaluateTerms P n env ts = some r → evaluateTerms P (n + 1) env ts = some r)
     (fun _ _ _ _ h ↦ by simpa [evaluateTerm] using h)
     (fun _ _ _ _ h ↦ by simpa [evaluateTerm] using h)
@@ -60,15 +77,16 @@ theorem eval_mono (P : MachineProgram) :
       simp only [Option.bind_eq_bind, Option.bind_some]
       simpa using h)
     (fun n env t alts ih iha r h ↦ by
-      simp only [evaluateTerm] at h ⊢
+      rw [evaluateTerm_case] at h ⊢
       obtain ⟨⟨v, c⟩, hl, h⟩ := Option.bind_eq_some_iff.1 h
       rw [ih _ hl]
-      simp only [Option.bind_eq_bind, Option.bind_some]
+      simp only [Option.bind_some]
       cases v with
       | ctor k fs =>
         simp only at h ⊢
-        obtain ⟨⟨w, d⟩, ha, h⟩ := Option.bind_eq_some_iff.1 h
-        rw [iha k fs _ ha]
+        obtain ⟨a, ha, h⟩ := Option.bind_eq_some_iff.1 h
+        obtain ⟨⟨w, d⟩, hb, h⟩ := Option.map_eq_some_iff.1 h
+        rw [ha, Option.bind_some, iha k fs a ha _ hb]
         simpa using h
       | _ => simp at h)
     (fun n env t b ih ihb r h ↦ by
@@ -113,13 +131,6 @@ theorem eval_mono (P : MachineProgram) :
       simp only [evaluateFunctionBody, hb] at h ⊢
       exact ih _ h)
     (fun n f vs hb r h ↦ by simp [evaluateFunctionBody, hb] at h)
-    (fun _ _ _ _ r h ↦ by simp [evaluateAlternative] at h)
-    (fun n env fs a tail ih r h ↦ by
-      simp only [evaluateAlternative] at h ⊢
-      exact ih _ h)
-    (fun n env fs k head as ih r h ↦ by
-      simp only [evaluateAlternative] at h ⊢
-      exact ih _ h)
     (fun _ _ r h ↦ by simpa [evaluateTerms] using h)
     (fun n env t ts ih ihl r h ↦ by
       simp only [evaluateTerms] at h ⊢
@@ -130,7 +141,7 @@ theorem eval_mono (P : MachineProgram) :
       rw [ihl _ hl]
       simp only [Option.bind_some]
       simpa using h)
-  exact ⟨h.1, h.2.2.2, h.2.2.1, h.2.1⟩
+  exact ⟨h.1, h.2.2, h.2.1⟩
 
 section Mono
 
@@ -152,7 +163,7 @@ theorem evalBody_le {n m : ℕ} (h : n ≤ m) {f : ℕ} {vs : List MachineValue}
     (he : evaluateFunctionBody P n f vs = some r) : evaluateFunctionBody P m f vs = some r := by
   induction m, h using Nat.le_induction with
   | base => exact he
-  | succ m _ ih => exact (eval_mono P).2.2.2 _ _ _ _ ih
+  | succ m _ ih => exact (eval_mono P).2.2 _ _ _ _ ih
 
 end Mono
 
@@ -184,23 +195,27 @@ theorem field {i k : ℕ} {t : Term} {fs : List MachineValue} {v : MachineValue}
   obtain ⟨n, h⟩ := h
   exact ⟨n, by simp [evaluateTerm, h, hi]⟩
 
-theorem evalAlt_of {n : ℕ} {fs : List MachineValue} :
-    ∀ {k : ℕ} {alts : List Term} {a : Term}, alts[k]? = some a →
-      evaluateAlternative P n env fs k alts = evaluateTerm P n (fs ++ env) a
-  | 0, a' :: _, a, h => by simp at h; subst h; simp [evaluateAlternative]
-  | k + 1, _ :: as, a, h => by
-    simp only [List.getElem?_cons_succ] at h
-    simp only [evaluateAlternative]
-    exact evalAlt_of h
-  | _, [], _, h => by simp at h
-
 theorem case {t : Term} {alts : List Term} {k : ℕ} {fs : List MachineValue} {a : Term} {v : MachineValue}
     {c d : ℕ} (h : Runs P env t (.ctor k fs) c) (ha : alts[k]? = some a)
-    (hb : Runs P (fs ++ env) a v d) : Runs P env (.case t alts) v (c + d + 1) := by
+    (hb : Runs P (fs ++ env) a v d) : Runs P env (.case t alts) v (c + d + fs.length + 1) := by
   obtain ⟨n, h⟩ := h
   obtain ⟨m, hb⟩ := hb
   refine ⟨max n m, ?_⟩
-  simp [evaluateTerm, eval_le (le_max_left n m) h, evalAlt_of ha, eval_le (le_max_right n m) hb]
+  simp [evaluateTerm_case, eval_le (le_max_left n m) h, ha, eval_le (le_max_right n m) hb]
+
+/-- `case` on a constructor without fields. -/
+theorem case0 {t : Term} {alts : List Term} {k : ℕ} {a : Term} {v : MachineValue}
+    {c d : ℕ} (h : Runs P env t (.ctor k []) c) (ha : alts[k]? = some a)
+    (hb : Runs P env a v d) : Runs P env (.case t alts) v (c + d + 1) :=
+  case h ha hb
+
+/-- `case`, the fields' count `m` added to the alternative's price. -/
+theorem caseAt {t : Term} {alts : List Term} {k : ℕ} {fs : List MachineValue} {a : Term} {v : MachineValue}
+    {c d m : ℕ} (h : Runs P env t (.ctor k fs) c) (ha : alts[k]? = some a)
+    (hb : Runs P (fs ++ env) a v d) (hm : fs.length = m) : Runs P env (.case t alts) v (c + (d + m) + 1) := by
+  have := case h ha hb
+  rw [hm] at this
+  rw [show c + (d + m) + 1 = c + d + m + 1 by omega]; exact this
 
 theorem letIn {t b : Term} {v w : MachineValue} {c d : ℕ} (h : Runs P env t v c)
     (hb : Runs P (v :: env) b w d) : Runs P env (.letIn t b) w (c + d + 1) := by
@@ -224,7 +239,7 @@ theorem closure {f : ℕ} {ts : List Term} {vs : List MachineValue} {c : ℕ} (h
 
 theorem applyClosure {t : Term} {ts : List Term} {f : ℕ} {us vs : List MachineValue} {w : MachineValue} {c d e : ℕ}
     (h : Runs P env t (.closure f us) c) (hl : RunsList P env ts vs d)
-    (hb : RunsBody P f (us ++ vs) w e) : Runs P env (.applyClosure t ts) w (c + d + e + 1) := by
+    (hb : RunsBody P f (us ++ vs) w e) : Runs P env (.applyClosure t ts) w (c + d + e + us.length + 1) := by
   obtain ⟨n, h⟩ := h
   obtain ⟨m, hl⟩ := hl
   obtain ⟨k, hb⟩ := hb
@@ -287,14 +302,10 @@ theorem RunsBody.cost_eq {P : MachineProgram} {f : ℕ} {vs : List MachineValue}
 theorem eval_fuel (P : MachineProgram) :
     (∀ n env t v c, evaluateTerm P n env t = some (v, c) → evaluateTerm P c env t = some (v, c)) ∧
     (∀ n env ts vs c, evaluateTerms P n env ts = some (vs, c) → evaluateTerms P c env ts = some (vs, c)) ∧
-    (∀ n env fs k as v c, evaluateAlternative P n env fs k as = some (v, c) →
-      evaluateAlternative P c env fs k as = some (v, c)) ∧
     (∀ n f vs v c, evaluateFunctionBody P n f vs = some (v, c) → evaluateFunctionBody P (c + 1) f vs = some (v, c)) := by
   have h := evaluateTerm.mutual_induct P
     (fun n env t ↦ ∀ v c, evaluateTerm P n env t = some (v, c) → evaluateTerm P c env t = some (v, c))
     (fun n f vs ↦ ∀ v c, evaluateFunctionBody P n f vs = some (v, c) → evaluateFunctionBody P (c + 1) f vs = some (v, c))
-    (fun n env fs k as ↦ ∀ v c, evaluateAlternative P n env fs k as = some (v, c) →
-      evaluateAlternative P c env fs k as = some (v, c))
     (fun n env ts ↦ ∀ vs c, evaluateTerms P n env ts = some (vs, c) → evaluateTerms P c env ts = some (vs, c))
     (fun _ _ _ v c h ↦ by simpa [evaluateTerm] using h)
     (fun _ _ _ v c h ↦ by simpa [evaluateTerm] using h)
@@ -318,23 +329,19 @@ theorem eval_fuel (P : MachineProgram) :
         simp [evaluateTerm, eval_le (m := c₁ + 1) (by omega) (ih _ _ hl), hx]
       | _ => simp at h)
     (fun n env t alts ih iha v c h ↦ by
-      simp only [evaluateTerm, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists] at h
-      obtain ⟨w, c₁, hl, h⟩ := h
+      rw [evaluateTerm_case] at h
+      obtain ⟨⟨w, c₁⟩, hl, h⟩ := Option.bind_eq_some_iff.1 h
       cases w with
       | ctor k fs =>
-        simp only [Option.bind_eq_some_iff, Prod.exists, Option.pure_def, Option.some.injEq,
-          Prod.mk.injEq] at h
-        obtain ⟨w', d, ha, rfl, rfl⟩ := h
-        have ha' := iha k fs _ _ ha
-        have ha'' : evaluateAlternative P (c₁ + d + 1) env fs k alts = some (w', d) := by
-          clear * - ha'
-          induction alts generalizing k with
-          | nil => simp [evaluateAlternative] at ha'
-          | cons a as ih =>
-            cases k with
-            | zero => simp only [evaluateAlternative] at ha' ⊢; exact eval_le (by omega) ha'
-            | succ k => simp only [evaluateAlternative] at ha' ⊢; exact ih k ha'
-        simp [evaluateTerm, eval_le (m := c₁ + d + 1) (by omega) (ih _ _ hl), ha'']
+        simp only at h
+        obtain ⟨a, ha, h⟩ := Option.bind_eq_some_iff.1 h
+        obtain ⟨⟨w', d⟩, hb, h⟩ := Option.map_eq_some_iff.1 h
+        simp only [Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl⟩ := h
+        have hb' := iha k fs a ha _ _ hb
+        rw [evaluateTerm_case]
+        simp [eval_le (m := c₁ + d + fs.length + 1) (by omega) (ih _ _ hl), ha,
+          eval_le (m := c₁ + d + fs.length + 1) (by omega) hb']
       | _ => simp at h)
     (fun n env t b ih ihb v c h ↦ by
       simp only [evaluateTerm, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
@@ -361,22 +368,15 @@ theorem eval_fuel (P : MachineProgram) :
         simp only [Option.bind_eq_some_iff, Prod.exists, Option.pure_def, Option.some.injEq,
           Prod.mk.injEq] at h
         obtain ⟨w, e, hb, rfl, rfl⟩ := h
-        simp [evaluateTerm, eval_le (m := c₁ + d + e + 1) (by omega) (ih _ _ hg),
-          evalList_le (m := c₁ + d + e + 1) (by omega) (ihl _ _ hl),
-          evalBody_le (m := c₁ + d + e + 1) (by omega) (ihb vs f us _ _ hb)]
+        simp [evaluateTerm, eval_le (m := c₁ + d + e + us.length + 1) (by omega) (ih _ _ hg),
+          evalList_le (m := c₁ + d + e + us.length + 1) (by omega) (ihl _ _ hl),
+          evalBody_le (m := c₁ + d + e + us.length + 1) (by omega) (ihb vs f us _ _ hb)]
       | _ => simp at h)
     (fun _ _ _ _ h ↦ by simp [evaluateFunctionBody] at h)
     (fun n f vs b hb ih v c h ↦ by
       simp only [evaluateFunctionBody, hb] at h ⊢
       exact ih _ _ h)
     (fun n f vs hb v c h ↦ by simp [evaluateFunctionBody, hb] at h)
-    (fun _ _ _ _ v c h ↦ by simp [evaluateAlternative] at h)
-    (fun n env fs a tail ih v c h ↦ by
-      simp only [evaluateAlternative] at h ⊢
-      exact ih _ _ h)
-    (fun n env fs k head as ih v c h ↦ by
-      simp only [evaluateAlternative] at h ⊢
-      exact ih _ _ h)
     (fun _ _ vs c h ↦ by simpa [evaluateTerms] using h)
     (fun n env t ts ih ihl vs c h ↦ by
       simp only [evaluateTerms, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
@@ -384,14 +384,14 @@ theorem eval_fuel (P : MachineProgram) :
       obtain ⟨v, c₁, hv, vs', d, hl, rfl, rfl⟩ := h
       simp [evaluateTerms, eval_le (m := c₁ + d) (by omega) (ih _ _ hv),
         evalList_le (m := c₁ + d) (by omega) (ihl _ _ hl)])
-  exact ⟨h.1, h.2.2.2, h.2.2.1, h.2.1⟩
+  exact ⟨h.1, h.2.2, h.2.1⟩
 
-/-- **A run within the budget outputs its value.** -/
-theorem outputWithin_of_runs {P : MachineProgram} {x v : MachineValue} {c b : ℕ} (h : RunsBody P 0 [x] v c)
-    (hc : c ≤ b) : outputWithin P x b = some v := by
+/-- **A run within the budget, of a program within the size bound, outputs its value.** -/
+theorem outputWithin_of_runs {P : MachineProgram} {s : ℕ} {x v : MachineValue} {c b : ℕ}
+    (hs : MachineProgram.size P ≤ s) (h : RunsBody P 0 [x] v c) (hc : c ≤ b) : outputWithin P s x b = some v := by
   obtain ⟨n, h⟩ := h
-  have := evalBody_le (show c + 1 ≤ b + 1 by omega) ((eval_fuel P).2.2.2 _ _ _ _ _ h)
-  simp [outputWithin, run, this, hc]
+  have := evalBody_le (show c + 1 ≤ b + 1 by omega) ((eval_fuel P).2.2 _ _ _ _ _ h)
+  simp [outputWithin, run, this, hc, hs]
 
 end
 

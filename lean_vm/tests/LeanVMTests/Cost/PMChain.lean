@@ -97,8 +97,8 @@ def priceOf (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : �
   ((run deps i args).map (·.2)).getD 0
 
 -- `(j, mkPlan, planFwdPoly, planInvPoly, j·2^j)` at `2^j` points.
-/-- info: [(4, 43402, 44345, 40392, 64), (6, 77686, 318625, 296848, 384), (8, 135742, 2001929, 1889092, 2048),
-  (10, 233530, 11551217, 10993608, 10240)] -/
+/-- info: [(4, 8342, 18646, 14613, 64), (6, 15901, 120856, 98465, 384), (8, 30760, 713814, 597513, 2048),
+  (10, 65623, 3943012, 3367809, 10240)] -/
 #guard_msgs in
 #eval [4, 6, 8, 10].map fun j ↦
   (j, priceOf mkPlanC.costDeps mkPlanC.costIdx [encodeValue j],
@@ -107,9 +107,8 @@ def priceOf (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : �
       [encodeValue (mkPlan j), encodeValue (planFwdPoly (mkPlan j) (poly 1 (2 ^ j)))],
     j * 2 ^ j)
 
--- `(j, toNovelInPlace, fromNovelInPlace, planFwd, planInv)` at `2^j` points (measured once at `j = 12`:
--- `51902123, 51028000, 10982697, 9192390`).
-/-- info: [(6, 231413, 224446, 87207, 72300), (8, 1541511, 1505172, 460413, 383626), (10, 9258393, 9076858, 2292819, 1915688)] -/
+-- `(j, toNovelInPlace, fromNovelInPlace, planFwd, planInv)` at `2^j` points.
+/-- info: [(6, 78252, 70845, 42599, 27521), (8, 491048, 452245, 222761, 144977), (10, 2838132, 2644093, 1104875, 722657)] -/
 #guard_msgs in
 #eval [6, 8, 10].map fun j ↦
   (j, priceOf toNovelInPlaceC.costDeps toNovelInPlaceC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
@@ -118,21 +117,21 @@ def priceOf (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : �
     priceOf planInvC.costDeps planInvC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val])
 
 -- `(n, d, mulEvalP, n³·2^j)`, `n × n` matrices of `d` coefficients.
-/-- info: [(2, 8, 603506, 128), (4, 8, 2437658, 1024), (4, 32, 16319930, 4096), (8, 8, 10862930, 8192)] -/
+/-- info: [(2, 8, 231229, 128), (4, 8, 939103, 1024), (4, 32, 5840146, 4096), (8, 8, 4056427, 8192)] -/
 #guard_msgs in
 #eval [(2, 8), (4, 8), (4, 32), (8, 8)].map fun (n, d) ↦
   (n, d, priceOf mulEvalPC.costDeps mulEvalPC.costIdx [encodeValue (mat 1 n n d), encodeValue (mat 2 n n d)],
     n ^ 3 * 2 ^ (Nat.log2 (2 * d - 2) + 1))
 
 -- `(r, c, popovLeaf at order 1, r³)`.
-/-- info: [(4, 1, 264722, 64), (8, 2, 1023061, 512), (16, 4, 4639563, 4096)] -/
+/-- info: [(4, 1, 92415, 64), (8, 2, 437197, 512), (16, 4, 2499482, 4096)] -/
 #guard_msgs in
 #eval [(4, 1), (8, 2), (16, 4)].map fun (r, c) ↦
   (r, c, priceOf popovLeafC.costDeps popovLeafC.costIdx
     [encodeValue (prob 1 r c 2 (Array.replicate c 1)), encodeValue (Array.replicate r 0)], r ^ 3)
 
 -- `(r, c, order, the PM-basis core)`.
-/-- info: [(2, 1, 4, 972314), (4, 2, 4, 3555699), (4, 2, 8, 9635885), (4, 2, 16, 25939006)] -/
+/-- info: [(2, 1, 4, 340692), (4, 2, 4, 1344850), (4, 2, 8, 3702601), (4, 2, 16, 9950676)] -/
 #guard_msgs in
 #eval [(2, 1, 4), (4, 2, 4), (4, 2, 8), (4, 2, 16)].map fun (r, c, o) ↦
   (r, c, o, priceOf pmCoreC.costDeps pmCoreC.costIdx
