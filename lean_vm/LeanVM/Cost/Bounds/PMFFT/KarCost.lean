@@ -282,20 +282,20 @@ theorem mulViaFFTC_cost (hP : Includes P mulViaFFTC.costDeps) (p : PMPrices) (hp
     have hs : FFT.fftSchedule.small = 32 := rfl
     have hm : FFT.fftSchedule.mid = 4096 := rfl
     rw [hs, hm]
-    by_cases hf : f.val.size ≤ 32
-    · rw [ite_eq_left hf]
-      have := schoolbookSmall_cost P (by includes) f g hf (by omega)
-      have := schoolbook_fit p hp hcj (b := g.val.size) (by omega)
+    by_cases hg : g.val.size ≤ 32
+    · rw [ite_eq_left hg]
+      have := schoolbookSmall_cost P (by includes) g f hg (by omega)
+      have := schoolbook_fit p hp hcj (b := f.val.size) (by omega)
       cost_simp
       omega
-    · rw [ite_eq_right hf]
-      by_cases hg : g.val.size ≤ 32
-      · rw [ite_eq_left hg]
-        have := schoolbookSmall_cost P (by includes) g f hg (by omega)
-        have := schoolbook_fit p hp hcj (b := f.val.size) (by omega)
+    · rw [ite_eq_right hg]
+      by_cases hf : f.val.size ≤ 32
+      · rw [ite_eq_left hf]
+        have := schoolbookSmall_cost P (by includes) f g hf (by omega)
+        have := schoolbook_fit p hp hcj (b := g.val.size) (by omega)
         cost_simp
         omega
-      · rw [ite_eq_right hg]
+      · rw [ite_eq_right hf]
         have hk : f.val.size ≤ 4096 ∧ g.val.size ≤ 4096 := by omega
         rw [ite_eq_left hk]
         have := karatsuba64_cost P (by includes) f g hk.1 hk.2
