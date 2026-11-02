@@ -3,8 +3,8 @@
 # does, one after another, each in its own directory with its own manifest, then lean_vm against
 # leanVM at `leanvm-rev` (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
-#   ./check-all.sh [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
-#   (default: all seven)
+#   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
+#   (default: all seven; `lean` is the first six, `vectors` is `leanvm`)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
@@ -162,7 +162,15 @@ leanvm() {
   rm -rf "$pd"
 }
 
-projects=("$@")
+# `lean`: the six Lean projects; `vectors`: the checks against leanVM's Rust.
+projects=()
+for p in "$@"; do
+  case $p in
+    lean) projects+=(statement common lean_xmss lean_sphincs lean_da lean_vm) ;;
+    vectors) projects+=(leanvm) ;;
+    *) projects+=("$p") ;;
+  esac
+done
 [ ${#projects[@]} -gt 0 ] || projects=(statement common lean_xmss lean_sphincs lean_da lean_vm leanvm)
 for p in "${projects[@]}"; do
   case $p in
