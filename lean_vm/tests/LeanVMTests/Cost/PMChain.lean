@@ -51,15 +51,15 @@ def meq (s r c d : ℕ) : ModularEquation K :=
 #guard (check planInvPolyC.costDeps planInvPolyC.costIdx
   [encodeValue (mkPlan 4), encodeValue (planFwdPoly (mkPlan 4) (poly 1 16))]
   (encodeValue (poly 1 16))).1
-#guard (check toNovelFastC.costDeps toNovelFastC.costIdx [encodeValue (mkPlan 4), encodeValue (poly 1 16).val]
-  (encodeValue (toNovelFast (mkPlan 4) (poly 1 16).val))).1
-#guard (check fromNovelFastC.costDeps fromNovelFastC.costIdx [encodeValue (mkPlan 4), encodeValue (poly 1 16).val]
-  (encodeValue (fromNovelFast (mkPlan 4) (poly 1 16).val))).1
+#guard (check toNovelInPlaceC.costDeps toNovelInPlaceC.costIdx [encodeValue (mkPlan 4), encodeValue (poly 1 16).val]
+  (encodeValue (toNovelInPlace (mkPlan 4) (poly 1 16).val))).1
+#guard (check fromNovelInPlaceC.costDeps fromNovelInPlaceC.costIdx [encodeValue (mkPlan 4), encodeValue (poly 1 16).val]
+  (encodeValue (fromNovelInPlace (mkPlan 4) (poly 1 16).val))).1
 -- below the schedule's `4096`, Karatsuba's product; above, the transform
-#guard (check mulFFTC.costDeps mulFFTC.costIdx [encodeValue (poly 1 100), encodeValue (poly 2 90)]
+#guard (check mulViaFFTC.costDeps mulViaFFTC.costIdx [encodeValue (poly 1 100), encodeValue (poly 2 90)]
   (encodeValue (poly 1 100 * poly 2 90))).1
 -- the transform's branch at its least size: a factor above `4096`, the other above `32`, `2^13` points
-#guard (check mulFFTC.costDeps mulFFTC.costIdx [encodeValue (poly 1 4097), encodeValue (poly 2 33)]
+#guard (check mulViaFFTC.costDeps mulViaFFTC.costIdx [encodeValue (poly 1 4097), encodeValue (poly 2 33)]
   (encodeValue (poly 1 4097 * poly 2 33))).1
 #guard (check mulEvalPC.costDeps mulEvalPC.costIdx [encodeValue (mat 1 3 2 3), encodeValue (mat 2 2 4 5)]
   (encodeValue (mulEvalP novelTransform fftMulContext (mat 1 3 2 3) (mat 2 2 4 5)))).1
@@ -107,13 +107,13 @@ def priceOf (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : �
       [encodeValue (mkPlan j), encodeValue (planFwdPoly (mkPlan j) (poly 1 (2 ^ j)))],
     j * 2 ^ j)
 
--- `(j, toNovelFast, fromNovelFast, planFwd, planInv)` at `2^j` points (measured once at `j = 12`:
+-- `(j, toNovelInPlace, fromNovelInPlace, planFwd, planInv)` at `2^j` points (measured once at `j = 12`:
 -- `51902123, 51028000, 10982697, 9192390`).
 /-- info: [(6, 231413, 224446, 87207, 72300), (8, 1541511, 1505172, 460413, 383626), (10, 9258393, 9076858, 2292819, 1915688)] -/
 #guard_msgs in
 #eval [6, 8, 10].map fun j ↦
-  (j, priceOf toNovelFastC.costDeps toNovelFastC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
-    priceOf fromNovelFastC.costDeps fromNovelFastC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
+  (j, priceOf toNovelInPlaceC.costDeps toNovelInPlaceC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
+    priceOf fromNovelInPlaceC.costDeps fromNovelInPlaceC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
     priceOf planFwdC.costDeps planFwdC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val],
     priceOf planInvC.costDeps planInvC.costIdx [encodeValue (mkPlan j), encodeValue (poly 1 (2 ^ j)).val])
 

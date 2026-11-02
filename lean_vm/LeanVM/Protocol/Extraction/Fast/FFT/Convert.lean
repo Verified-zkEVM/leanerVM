@@ -19,8 +19,8 @@ terms. Here the same conversions on the whole buffer of `N = 2^j` coefficients, 
   ascending, `2^t > e` descending), the level's table entry and powers read once per pass.
 
 The `K` products are the recursive ones' (`N·j(j+1)/4` each way). **Proved**, for `j ≤ 64`:
-`toNovelFast_eq : toNovelFast (mkPlan j) a = toNovel j a` and
-`fromNovelFast_eq : fromNovelFast (mkPlan j) c = fromNovel j c`, through the block lemmas
+`toNovelInPlace_eq : toNovelInPlace (mkPlan j) a = toNovel j a` and
+`fromNovelInPlace_eq : fromNovelInPlace (mkPlan j) c = fromNovel j c`, through the block lemmas
 `toLevel_getD`, `fromLevel_getD` (each block of a pass is one step of the recursion) and the
 composition lemmas `toLevels_getD`, `fromLevels_getD`.
 -/
@@ -376,12 +376,12 @@ theorem fromLevel_getD {pw : Array ℕ} {N i : ℕ} (hpw : ∀ t ≤ i, pw.getD 
   (List.range L).foldl (fun B i ↦ fromLevel pw N i (D.getD i (#[], 0)) B) B
 
 /-- **Monomial → novel by the plan**, in place, level by level. -/
-@[expose] def toNovelFast (P : FFTPlan) (a : Array K) : Array K :=
+@[expose] def toNovelInPlace (P : FFTPlan) (a : Array K) : Array K :=
   let N := 2 ^ P.log
   toLevels P.pows N P.convFwd P.log (Array.ofFn fun p : Fin N ↦ a.getD p.val 0)
 
 /-- **Novel → monomial by the plan**, in place, level by level. -/
-@[expose] def fromNovelFast (P : FFTPlan) (c : Array K) : Array K :=
+@[expose] def fromNovelInPlace (P : FFTPlan) (c : Array K) : Array K :=
   let N := 2 ^ P.log
   fromLevels P.pows N P.convInv P.log (Array.ofFn fun p : Fin N ↦ c.getD p.val 0)
 
@@ -529,8 +529,9 @@ theorem polyN_congr {n : ℕ} {c c' : Array K} (h : ∀ t < n, c.getD t 0 = c'.g
   Finset.sum_congr rfl fun t ht ↦ by rw [h t (Finset.mem_range.mp ht)]
 
 /-- **The in-place monomial → novel conversion is `toNovel`.** -/
-theorem toNovelFast_eq {j : ℕ} (hj : j ≤ 64) (a : Array K) : toNovelFast (mkPlan j) a = toNovel j a := by
-  have hsz : (toNovelFast (mkPlan j) a).size = 2 ^ j :=
+theorem toNovelInPlace_eq {j : ℕ} (hj : j ≤ 64) (a : Array K) :
+    toNovelInPlace (mkPlan j) a = toNovel j a := by
+  have hsz : (toNovelInPlace (mkPlan j) a).size = 2 ^ j :=
     size_toLevels _ _ _ _ (by rw [mkPlan_log, Array.size_ofFn])
   set init := (Array.ofFn fun p : Fin (2 ^ j) ↦ a.getD p.val 0) with hinit
   have hslice : toNovel j (sliceArr (2 ^ j) 0 init) = toNovel j a := by
@@ -549,9 +550,9 @@ theorem toNovelFast_eq {j : ℕ} (hj : j ≤ 64) (a : Array K) : toNovelFast (mk
   rfl
 
 /-- **The in-place novel → monomial conversion is `fromNovel`.** -/
-theorem fromNovelFast_eq {j : ℕ} (hj : j ≤ 64) (c : Array K) :
-    fromNovelFast (mkPlan j) c = fromNovel j c := by
-  have hsz : (fromNovelFast (mkPlan j) c).size = 2 ^ j :=
+theorem fromNovelInPlace_eq {j : ℕ} (hj : j ≤ 64) (c : Array K) :
+    fromNovelInPlace (mkPlan j) c = fromNovel j c := by
+  have hsz : (fromNovelInPlace (mkPlan j) c).size = 2 ^ j :=
     size_fromLevels _ _ _ _ (by rw [mkPlan_log, Array.size_ofFn])
   set init := (Array.ofFn fun p : Fin (2 ^ j) ↦ c.getD p.val 0) with hinit
   have hslice : fromNovel j (sliceArr (2 ^ j) 0 init) = fromNovel j c := by

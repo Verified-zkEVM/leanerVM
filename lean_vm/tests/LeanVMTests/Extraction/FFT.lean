@@ -15,7 +15,7 @@ import LeanVMTests.Extraction.Toy
 * the plan (`mkPlan j`): its twiddles by additivity are `novelTwiddles`, its batched inverses
   give `tableInvUpTo`, `planFwd`/`planInv` (one product per butterfly) are
   `novelFwd j 0`/`novelInv j`, and the conversions with the plan's powers and in place
-  (`toNovelFast`, `fromNovelFast`) are `toNovel`, `fromNovel`, `j ≤ 9`;
+  (`toNovelInPlace`, `fromNovelInPlace`) are `toNovel`, `fromNovel`, `j ≤ 9`;
 * the evaluation-domain matrix products (`mulEvalP`, `mulTruncEvalP`) on the additive FFT agree
   with the naive ones;
 * the axiom footprints of the end theorems.
@@ -42,7 +42,7 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
   let c := randomArray (j + 60) (2 ^ j)
   (List.range j).all (fun i ↦ P.twiddles.getD i #[] == novelTwiddles j i) &&
     P.tableInv == tableInvUpTo j && planFwd P c == novelFwd j 0 c && planInv P c == novelInv j c &&
-    toNovelFast P c == toNovel j c && fromNovelFast P c == fromNovel j c
+    toNovelInPlace P c == toNovel j c && fromNovelInPlace P c == fromNovel j c
 
 -- The forward transform evaluates.
 #guard (List.range 7).all fun j ↦

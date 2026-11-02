@@ -36,11 +36,11 @@ public section
 variable (P : MachineProgram)
 
 /-- `monic` of a polynomial of word-sized size: at most `15`. -/
-theorem monicC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monic.c548.costDeps)
+theorem monicC_cost (hP : Includes P Auto.CompPoly.CPolynomial.monic.c547.costDeps)
     (p : CPolynomial K) (hp : p.val.size < 2 ^ 64) :
-    machineCost P Auto.CompPoly.CPolynomial.monic.c548.costIdx [encodeValue p] ≤ 15 := by
-  rw [Auto.CompPoly.CPolynomial.monic.c548.costEq P hP,
-    Auto.CompPoly.CPolynomial.leadingCoeff.c549.costEq P (by includes)]
+    machineCost P Auto.CompPoly.CPolynomial.monic.c547.costIdx [encodeValue p] ≤ 15 := by
+  rw [Auto.CompPoly.CPolynomial.monic.c547.costEq P hP,
+    Auto.CompPoly.CPolynomial.leadingCoeff.c548.costEq P (by includes)]
   have := getLastDC_cost P (by includes) p.val 0 hp
   omega
 
@@ -53,7 +53,7 @@ theorem certifiedGuardC_cost (hP : Includes P certifiedGuardC.costDeps)
     (hq : ∀ b, (equation.moduli.getD b 0).val.size < 2 ^ 64) :
     machineCost P certifiedGuardC.costIdx [encodeValue equation, encodeValue shift] ≤
       50 * equation.moduli.size + 80 := by
-  rw [certifiedGuardC.costEq P hP, ModularEquation.solutionWidth.c546.costEq P (by includes)]
+  rw [certifiedGuardC.costEq P hP, ModularEquation.solutionWidth.c545.costEq P (by includes)]
   have := matrixWidthC_cost P (by includes) equation.matrix hM
   have := rangeLoop_cost P (by includes) equation.moduli.size [] (by omega)
   have hl := fun b ↦ RunsApp.of_spec (us := [encodeValue equation]) (vs := [encodeValue b])

@@ -173,7 +173,7 @@ theorem extractorProgram_includes_all : Includes extractorProgram extractorProgr
   exact h
 
 /-- **The program's size is within `extractorSizeBound`** (`14400`), evaluated
-(`Cost/ExtractorSize.lean`; exactly `13813`). -/
+(`Cost/ExtractorSize.lean`; exactly `13811`). -/
 theorem extractorProgram_size_le : extractorProgram.size ≤ extractorSizeBound :=
   extractorProgram_size_le_measured.trans (by decide)
 

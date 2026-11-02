@@ -167,11 +167,11 @@ theorem updateShiftByRowsC_cost (hP : Includes P updateShiftByRowsC.costDeps)
   nlinarith
 
 /-- The zero test of one entry: at most `3·|p| + 11`. -/
-theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costDeps)
+theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.lam0.costDeps)
     (p : CPolynomial K) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [encodeValue p] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.lam0.costIdx [encodeValue p] ≤
       3 * p.val.size + 11 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.lam0.costEq P hP]
   have h0 : (0 : CPolynomial K).val.size = 0 := rfl
   have hl : (0 : CPolynomial K).val.toList = [] := rfl
   rw [h0, hl]
@@ -181,15 +181,15 @@ theorem rowIsZeroLam_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZ
 
 /-- **`rowIsZero`**: a row of at most `C` entries of at most `D` coefficients, at most
 `(3·D + 23)·C + 7`. -/
-theorem rowIsZeroC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costDeps)
+theorem rowIsZeroC_cost (hP : Includes P Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.costDeps)
     {C D : ℕ} (row : PolynomialRow K) (h : RowWithin C D row) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costIdx [encodeValue row] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.costIdx [encodeValue row] ≤
       (3 * D + 23) * C + 7 := by
-  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.costEq P hP]
   have ha := all_cost P (by includes) (fun p : CPolynomial K ↦ p == 0)
-    (.closure Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costIdx [])
+    (.closure Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.rowIsZero.c474.lam0.costSpec P (by includes) a))
+      (Auto.CompPoly.PolynomialMatrix.rowIsZero.c473.lam0.costSpec P (by includes) a))
     (3 * D + 11) row.toList (fun a ha ↦ by
       rw [appCost_fn, List.nil_append]
       have := rowIsZeroLam_cost P (by includes) a

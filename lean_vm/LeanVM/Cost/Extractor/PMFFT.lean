@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Extractor.Replay
-public import LeanVM.Cost.ProbeLib
+public import LeanVM.Cost.LoopLib
 public import LeanVM.Protocol.Extraction.Fast.LanePM
 import all CompPoly.Univariate.Basic
 import all CompPoly.Univariate.Raw.Core
@@ -20,10 +20,11 @@ import all LeanVM.Cost.FastLib
 The extractor's decoder (`decOf`, `decodeStacksDistinctPM`) in five stages on the chain, after the
 replay and before the top (`Top.lean`): this module, `PMEval`, `PMCore`, `PMSolve`, `PMLane`.
 
-The conversions monomial ↔ novel basis, level by level (`FFT.toNovelFast`, `FFT.fromNovelFast`),
-the planned transforms' butterflies (`FFT.planFwd`, `FFT.planInv`), the plan of size `2^j`
-(`FFT.mkPlan`), the polynomial transforms (`FFT.planFwdPoly`, `FFT.planInvPoly`), the product by
-the transform (`FFT.mulFFT`, the schedule's schoolbook and Karatsuba products below it) and the
+The conversions monomial ↔ novel basis, level by level (`FFT.toNovelInPlace`,
+`FFT.fromNovelInPlace`), the planned transforms' butterflies (`FFT.planFwd`, `FFT.planInv`), the
+plan of size `2^j` (`FFT.mkPlan`), the polynomial transforms (`FFT.planFwdPoly`,
+`FFT.planInvPoly`), the product by the transform (`FFT.mulVia`, the schedule's schoolbook and
+Karatsuba products below it) and the
 low products the remainders use (`FFT.rawMulLowVia`). Each a function of its own, compiled first
 under its own name.
 -/
@@ -36,9 +37,9 @@ public section
 
 cost_enc LeanVM.Extraction.Fast.FFT.FFTPlan
 
-cost_compile toNovelFastC := FFT.toNovelFast
+cost_compile toNovelInPlaceC := FFT.toNovelInPlace
 
-cost_compile fromNovelFastC := FFT.fromNovelFast
+cost_compile fromNovelInPlaceC := FFT.fromNovelInPlace
 
 cost_compile planFwdC := FFT.planFwd
 
@@ -52,8 +53,6 @@ cost_compile planInvPolyC := FFT.planInvPoly
 
 -- `fftMulContext`'s product.
 cost_compile mulViaFFTC := FFT.mulVia novelTransform fftSchedule
-
-cost_compile mulFFTC := FFT.mulFFT
 
 -- `fftRawMulLowContext`'s low product.
 cost_compile rawMulLowFFTC := FFT.rawMulLowVia novelTransform fftSchedule

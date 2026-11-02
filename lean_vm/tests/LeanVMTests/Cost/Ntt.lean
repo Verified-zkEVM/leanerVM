@@ -6,7 +6,7 @@ import LeanVM.Cost.Extractor.PMLane
 `novelFwd` and `novelInv` (`Protocol/Extraction/Extractor.lean` §4) are compiled on demand in
 `Cost/Extractor/PMLane.lean` (`laneEncodedWith pmSolver`): `novelFwd.c227` (its stages
 `novelFwdStage.c229`, twiddles `novelTwiddles.c204`), and `novelInv` inlined into
-`toNovelFast.c665` (its fold's closure `fastStacksFastC.lam1.lam0`, stages `novelInvStage.c203`);
+`toNovelFast.c664` (its fold's closure `fastStacksFastC.lam1.lam0`, stages `novelInvStage.c203`);
 bounded in `Cost/Bounds/FastPath.lean`
 (`novelFwd_cost`, `novelInv_cost`). Here: their values on small inputs.
 -/

@@ -34,10 +34,10 @@ theorem decoderMul_lt {a b i j : ℕ} (ha : a < 2 ^ i) (hb : b < 2 ^ j) : a * b 
   exact Nat.mul_lt_mul'' ha hb
 
 /-- `gsParamsAt k n A m`: at most `20`, the sizes word-sized. -/
-theorem decoderParamsAtC_cost (hP : Includes P gsParamsAt.c668.costDeps) {k n A m : ℕ}
+theorem decoderParamsAtC_cost (hP : Includes P gsParamsAt.c667.costDeps) {k n A m : ℕ}
     (hn : n < 2 ^ 32) (hA : A ≤ n) (hm : m < 2 ^ 20) :
-    machineCost P gsParamsAt.c668.costIdx [encodeValue k, encodeValue n, encodeValue A, encodeValue m] ≤ 20 := by
-  rw [gsParamsAt.c668.costEq P hP]
+    machineCost P gsParamsAt.c667.costIdx [encodeValue k, encodeValue n, encodeValue A, encodeValue m] ≤ 20 := by
+  rw [gsParamsAt.c667.costEq P hP]
   have hmA : m * A < 2 ^ 52 := decoderMul_lt (i := 20) (j := 32) hm (by omega)
   rw [limbs_of_lt (show m < 2 ^ 64 by omega), limbs_of_lt (show A < 2 ^ 64 by omega),
     limbs_of_lt (show m * A < 2 ^ 64 by omega), limbs_of_lt (show n < 2 ^ 64 by omega)]
@@ -45,12 +45,12 @@ theorem decoderParamsAtC_cost (hP : Includes P gsParamsAt.c668.costDeps) {k n A 
 
 /-- **One parameter check** (`gsPass k n (n − A) (gsParamsAt k n A m)`): at most `120`, the sizes
 word-sized. -/
-theorem decoderPassC_cost (hP : Includes P gsPass.c671.costDeps) {k n A m : ℕ}
+theorem decoderPassC_cost (hP : Includes P gsPass.c670.costDeps) {k n A m : ℕ}
     (hk : k < 2 ^ 32) (hn : n < 2 ^ 32) (hA : A ≤ n) (hm : m < 2 ^ 20) :
-    machineCost P gsPass.c671.costIdx [encodeValue k, encodeValue n, encodeValue (n - A), encodeValue (gsParamsAt k n A m)] ≤
+    machineCost P gsPass.c670.costIdx [encodeValue k, encodeValue n, encodeValue (n - A), encodeValue (gsParamsAt k n A m)] ≤
       120 := by
-  rw [gsPass.c671.costEq P (by includes), gsNumConstraints.c672.costEq P (by includes),
-    gsNumVars.c673.costEq P (by includes)]
+  rw [gsPass.c670.costEq P (by includes), gsNumConstraints.c671.costEq P (by includes),
+    gsNumVars.c672.costEq P (by includes)]
   dsimp only [gsParamsAt]
   have hmA : m * A < 2 ^ 52 := decoderMul_lt (i := 20) (j := 32) hm (by omega)
   have hmm : m * (m + 1) < 2 ^ 41 := decoderMul_lt (i := 20) (j := 21) hm (by omega)
@@ -74,10 +74,10 @@ theorem decoderPassC_cost (hP : Includes P gsPass.c671.costDeps) {k n A m : ℕ}
   split_ifs <;> omega
 
 /-- `gsMultiplicityBoundAt k n A`: at most `30`, the sizes word-sized. -/
-theorem decoderMultBoundC_cost (hP : Includes P gsMultiplicityBoundAt.c674.costDeps) {k n A : ℕ}
+theorem decoderMultBoundC_cost (hP : Includes P gsMultiplicityBoundAt.c673.costDeps) {k n A : ℕ}
     (hk : k < 2 ^ 31) (hn : n < 2 ^ 32) (hA : A ≤ n) :
-    machineCost P gsMultiplicityBoundAt.c674.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤ 30 := by
-  rw [gsMultiplicityBoundAt.c674.costEq P hP]
+    machineCost P gsMultiplicityBoundAt.c673.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤ 30 := by
+  rw [gsMultiplicityBoundAt.c673.costEq P hP]
   have h1 : (k - 1) * n < 2 ^ 63 := decoderMul_lt (i := 31) (j := 32) (by omega) hn
   have h2 : A * A < 2 ^ 64 := decoderMul_lt (i := 32) (j := 32) (by omega) (by omega)
   have h3 : ((k - 1) * n + 1) / (A * A - (k - 1) * n) ≤ (k - 1) * n + 1 := Nat.div_le_self _ _
@@ -98,21 +98,21 @@ theorem decoderMultiplicity_le (k n A : ℕ) :
 
 /-- **The parameter search** (`gsMultiplicityAt k n A`: a check per multiplicity below
 `b = gsMultiplicityBoundAt k n A`): at most `190·b + 100`, the sizes word-sized, `b < 2^20`. -/
-theorem decoderSearchC_cost (hP : Includes P gsMultiplicityAt.c669.costDeps) {k n A : ℕ}
+theorem decoderSearchC_cost (hP : Includes P gsMultiplicityAt.c668.costDeps) {k n A : ℕ}
     (hk : k < 2 ^ 31) (hn : n < 2 ^ 32) (hA : A ≤ n) (hb : gsMultiplicityBoundAt k n A < 2 ^ 20) :
-    machineCost P gsMultiplicityAt.c669.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤
+    machineCost P gsMultiplicityAt.c668.costIdx [encodeValue k, encodeValue n, encodeValue A] ≤
       190 * gsMultiplicityBoundAt k n A + 100 := by
-  rw [gsMultiplicityAt.c669.costEq P hP]
+  rw [gsMultiplicityAt.c668.costEq P hP]
   have h1 := decoderMultBoundC_cost P (by includes) hk hn hA
   have h2 := rangeC_cost P (by includes) (gsMultiplicityBoundAt k n A) 1 (by omega)
   have hf := fun m ↦ RunsApp.of_spec (us := [encodeValue k, encodeValue n, encodeValue A]) (vs := [encodeValue m])
-    (gsMultiplicityAt.c669.lam0.costSpec P (by includes) k n A m)
+    (gsMultiplicityAt.c668.lam0.costSpec P (by includes) k n A m)
   have h3 := findNat_cost P (by includes) _
-    (.closure gsMultiplicityAt.c669.lam0.costIdx [encodeValue k, encodeValue n, encodeValue A]) hf 152
+    (.closure gsMultiplicityAt.c668.lam0.costIdx [encodeValue k, encodeValue n, encodeValue A]) hf 152
     (List.range' 1 (gsMultiplicityBoundAt k n A)) (fun m hm ↦ by
       have hm' := List.mem_range'.1 hm
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [gsMultiplicityAt.c669.lam0.costEq P (by includes),
+      rw [gsMultiplicityAt.c668.lam0.costEq P (by includes),
         limbs_of_lt (show n < 2 ^ 64 by omega), limbs_of_lt (show A < 2 ^ 64 by omega)]
       have := decoderParamsAtC_cost P (by includes) (k := k) hn hA (m := m) (by omega)
       have := decoderPassC_cost P (by includes) (k := k) (by omega) hn hA (m := m) (by omega)

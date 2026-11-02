@@ -45,7 +45,7 @@ theorem modByMonicFFTC_first_cost (hP : Includes P modByMonicFFTC.costDeps) (p q
     (hq : q.monic = true) (hpq : p.val.size < q.val.size) (hqs : q.val.size < 2 ^ 60) :
     machineCost P modByMonicFFTC.costIdx [encodeValue p, encodeValue q] ≤
       41 * p.val.size + 64 * q.val.size + 130 := by
-  rw [modByMonicFFTC.costEq P hP, Auto.CompPoly.CPolynomial.Raw.modByMonicByReversal.c418.costEq P
+  rw [modByMonicFFTC.costEq P hP, Auto.CompPoly.CPolynomial.Raw.modByMonicByReversal.c417.costEq P
     (by includes)]
   have hpt := cpoly_trim_eq p
   have hqt := cpoly_trim_eq q
@@ -67,17 +67,17 @@ theorem modByMonicFFTC_first_cost (hP : Includes P modByMonicFFTC.costDeps) (p q
   rw [limbs_of_lt hp64, limbs_of_lt hq64]
   omega
 
-/-- The lift's entry (`reducedExactNullspaceLift.c554.lam0`): an entry read and reduced on the
+/-- The lift's entry (`reducedExactNullspaceLift.c553.lam0`): an entry read and reduced on the
 first branch, at most `120·Q + 170` for moduli of at most `Q` coefficients. -/
-theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c554.lam0.costDeps)
+theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c553.lam0.costDeps)
     (equation : ModularEquation K) (i j : ℕ) {Q : ℕ} (hQ : Q < 2 ^ 60)
     (hq : (equation.moduli.getD j 0).monic = true)
     (hqQ : (equation.moduli.getD j 0).val.size ≤ Q)
     (hred : (rowGet (equation.matrix.getD i #[]) j).val.size <
       (equation.moduli.getD j 0).val.size) :
-    machineCost P reducedExactNullspaceLift.c554.lam0.costIdx
+    machineCost P reducedExactNullspaceLift.c553.lam0.costIdx
         [encodeValue equation, encodeValue i, encodeValue j] ≤ 120 * Q + 170 := by
-  rw [reducedExactNullspaceLift.c554.lam0.costEq P hP, modByMonicWith.c556.costEq P (by includes)]
+  rw [reducedExactNullspaceLift.c553.lam0.costEq P hP, modByMonicWith.c555.costEq P (by includes)]
   have := rowGet_cost P (by includes) (equation.matrix.getD i #[]) j
   have := listBeqK_cost P (by includes) (equation.moduli.getD j 0).val.toList
     (↑(0 : CPolynomial K) : Array K).toList
@@ -87,12 +87,12 @@ theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c554.lam0.cos
   split <;> omega
 
 /-- `−diag(M)`'s entry: at most `16·Q + 20`. -/
-theorem negDiagEntryC_cost (hP : Includes P negativeDiagonalRows.c558.lam0.costDeps)
+theorem negDiagEntryC_cost (hP : Includes P negativeDiagonalRows.c557.lam0.costDeps)
     (moduli : Array (CPolynomial K)) (i j : ℕ) (hi : i < 2 ^ 64) (hj : j < 2 ^ 64) {Q : ℕ}
     (hqQ : (moduli.getD i 0).val.size ≤ Q) :
-    machineCost P negativeDiagonalRows.c558.lam0.costIdx
+    machineCost P negativeDiagonalRows.c557.lam0.costIdx
         [encodeValue moduli, encodeValue i, encodeValue j] ≤ 16 * Q + 20 := by
-  rw [negativeDiagonalRows.c558.lam0.costEq P hP]
+  rw [negativeDiagonalRows.c557.lam0.costEq P hP]
   have hl := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
     (Auto.CompPoly.CPolynomial.Raw.sub.c48.lam0.costSpec P (by includes) a)
   have := map_cost P (by includes) _ (.closure Auto.CompPoly.CPolynomial.Raw.sub.c48.lam0.costIdx [])
@@ -118,22 +118,22 @@ theorem ofFn_size_eq (rows width : ℕ) (e : ℕ → ℕ → CPolynomial K) :
 
 /-- **The lift** (`reducedExactNullspaceLift`): at most
 `w·(m·(120·Q + 203) + 48) + m·(m·(16·Q + 53) + 48) + w + m + 70`. -/
-theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c554.costDeps)
+theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c553.costDeps)
     (equation : ModularEquation K) {w m Q : ℕ} (hs : LiftSizes equation w m Q) :
-    machineCost P reducedExactNullspaceLift.c554.costIdx [encodeValue equation] ≤
+    machineCost P reducedExactNullspaceLift.c553.costIdx [encodeValue equation] ≤
       w * (m * (120 * Q + 203) + 48) + m * (m * (16 * Q + 53) + 48) + w + m + 70 := by
   obtain ⟨hw, hm, hw30, hm30, hQ, hmod, hred⟩ := hs
-  rw [reducedExactNullspaceLift.c554.costEq P hP,
-    ModularEquation.solutionWidth.c546.costEq P (by includes),
-    ModularEquation.modularWidth.c557.costEq P (by includes),
-    negativeDiagonalRows.c558.costEq P (by includes)]
+  rw [reducedExactNullspaceLift.c553.costEq P hP,
+    ModularEquation.solutionWidth.c545.costEq P (by includes),
+    ModularEquation.modularWidth.c556.costEq P (by includes),
+    negativeDiagonalRows.c557.costEq P (by includes)]
   have hsW : equation.solutionWidth = w := hw
   have hmW : equation.modularWidth = m := hm
   have he1 := fun i j ↦ RunsApp.of_spec (us := [encodeValue equation])
     (vs := [encodeValue i, encodeValue j])
-    (reducedExactNullspaceLift.c554.lam0.costSpec P (by includes) equation i j)
+    (reducedExactNullspaceLift.c553.lam0.costSpec P (by includes) equation i j)
   have h1 := ofFnC_cost P (by includes) equation.solutionWidth equation.modularWidth
-    (by omega) (by omega) _ (.closure reducedExactNullspaceLift.c554.lam0.costIdx
+    (by omega) (by omega) _ (.closure reducedExactNullspaceLift.c553.lam0.costIdx
       [encodeValue equation]) he1 (120 * Q + 170) (fun i hi j hj ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       rw [hsW] at hi
@@ -142,9 +142,9 @@ theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c554.costDe
         (hred i hi j hj))
   have he2 := fun i j ↦ RunsApp.of_spec (us := [encodeValue equation.moduli])
     (vs := [encodeValue i, encodeValue j])
-    (negativeDiagonalRows.c558.lam0.costSpec P (by includes) equation.moduli i j)
+    (negativeDiagonalRows.c557.lam0.costSpec P (by includes) equation.moduli i j)
   have h2 := ofFnC_cost P (by includes) equation.moduli.size equation.moduli.size
-    (by omega) (by omega) _ (.closure negativeDiagonalRows.c558.lam0.costIdx
+    (by omega) (by omega) _ (.closure negativeDiagonalRows.c557.lam0.costIdx
       [encodeValue equation.moduli]) he2 (16 * Q + 20) (fun i hi j hj ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
       exact negDiagEntryC_cost P (by includes) equation.moduli i j (by omega) (by omega)

@@ -20,7 +20,6 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 import all CompPoly.LinearAlgebra.Dense
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearization
-import all CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
 import all CompPoly.Univariate.Vanishing
 import all CompPoly.Univariate.Roots.Backend
 import all CompPoly.Univariate.Roots.Context

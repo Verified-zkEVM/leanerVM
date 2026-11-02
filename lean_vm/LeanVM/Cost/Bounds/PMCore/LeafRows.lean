@@ -18,7 +18,7 @@ namespace LeanVM.Cost.Bounds.PMCore
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Cost.Extractor LeanVM.Parameters
 open LeanVM.Cost.Bounds.Decoder CompPoly CompPoly.PolynomialMatrix CompPoly.PolynomialMatrix.Approximant
-open LeanVM.Cost.ProbeLib
+open LeanVM.Cost.LoopLib
 
 public section
 
@@ -47,21 +47,22 @@ variable (P : MachineProgram)
 
 /-- **A `for` loop in `Id`** (`listForInId`): each step at most `sz acc + C`, growing `sz` by at
 most `g`: at most `|l|·(sz acc + g·|l| + C + 11) + 3`. -/
-theorem listForInIdC_cost (hP : Includes P Auto.LeanVM.Cost.ProbeLib.listForInId.c517.costDeps)
+theorem listForInIdC_cost (hP : Includes P Auto.LeanVM.Cost.LoopLib.listForInId.c516.costDeps)
     {β : Type} [MachineEncoding β] (f : ℕ → β → ForInStep β) (fVal : MachineValue)
     (hf : ∀ (a : ℕ) (b : β), RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
     (sz : β → ℕ) (g C : ℕ)
     (hg : ∀ a s, sz (match f a s with | .done y => y | .yield y => y) ≤ sz s + g)
     (hC : ∀ (a : ℕ) (s : β), appCost P fVal [encodeValue a, encodeValue s] ≤ sz s + C) :
     ∀ (l : List ℕ) (s : β),
-      machineCost P Auto.LeanVM.Cost.ProbeLib.listForInId.c517.costIdx [fVal, encodeValue l, encodeValue s] ≤
+      machineCost P Auto.LeanVM.Cost.LoopLib.listForInId.c516.costIdx
+        [fVal, encodeValue l, encodeValue s] ≤
         l.length * (sz s + g * l.length + C + 11) + 3 := by
   intro l
   induction l with
-  | nil => intro s; rw [Auto.LeanVM.Cost.ProbeLib.listForInId.c517.costEq P hP f fVal hf]; simp
+  | nil => intro s; rw [Auto.LeanVM.Cost.LoopLib.listForInId.c516.costEq P hP f fVal hf]; simp
   | cons a l ih =>
     intro s
-    rw [Auto.LeanVM.Cost.ProbeLib.listForInId.c517.costEq P hP f fVal hf]
+    rw [Auto.LeanVM.Cost.LoopLib.listForInId.c516.costEq P hP f fVal hf]
     have h1 := hC a s
     have h2 := hg a s
     simp only [List.length_cons]
@@ -82,10 +83,10 @@ theorem listForInIdC_cost (hP : Includes P Auto.LeanVM.Cost.ProbeLib.listForInId
 
 /-! ## The equation indices -/
 
-theorem rangeSize_cost (hP : Includes P Auto.Std.Legacy.Range.size.c520.costDeps) (n : ℕ)
+theorem rangeSize_cost (hP : Includes P Auto.Std.Legacy.Range.size.c519.costDeps) (n : ℕ)
     (hn : n < 2 ^ 62) :
-    machineCost P Auto.Std.Legacy.Range.size.c520.costIdx [encodeValue [:n]] ≤ 17 := by
-  rw [Auto.Std.Legacy.Range.size.c520.costEq P hP]
+    machineCost P Auto.Std.Legacy.Range.size.c519.costIdx [encodeValue [:n]] ≤ 17 := by
+  rw [Auto.Std.Legacy.Range.size.c519.costEq P hP]
   rw [limbs_of_lt (by omega : n < 2 ^ 64), limbs_of_lt (by omega : n - 0 < 2 ^ 64),
     limbs_of_lt (by omega : n - 0 + 1 < 2 ^ 64), limbs_of_lt (by omega : n - 0 + 1 - 1 < 2 ^ 64)]
   simp
@@ -126,19 +127,19 @@ theorem coefficientEquationIndices_size_le (orders : Array ℕ) (h : ∀ j, orde
 /-- **The equation indices** (`coefficientEquationIndices`), orders at most one: at most
 `m² + 160·m + 64`, `m` the orders. -/
 theorem coefficientEquationIndicesC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.costDeps)
     (orders : Array ℕ) (h : ∀ j, orders.getD j 0 ≤ 1) (hm : orders.size < 2 ^ 30) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.costIdx
         [encodeValue orders] ≤ orders.size * orders.size + 160 * orders.size + 64 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.costEq P hP]
   have hs := rangeSize_cost P (by includes) orders.size (by omega)
   simp only [rangeSize_eq]
   have hr := rangeC_cost P (by includes) orders.size 0 (by omega)
   have hfo := fun a b ↦ RunsApp.of_spec (us := [encodeValue orders]) (vs := [encodeValue a, encodeValue b])
-    (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.costSpec P
+    (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.costSpec P
       (by includes) orders a b)
   have hloop := listForInIdC_cost P (by includes) _
-    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.costIdx
+    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.costIdx
       [encodeValue orders]) hfo
     Array.size 1 120 (fun j s ↦ by
       have hj := h j
@@ -148,21 +149,21 @@ theorem coefficientEquationIndicesC_cost
       simp
       omega) (fun j s ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.costEq P
+      rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.costEq P
         (by includes)]
       have hj := h j
       have hs' := rangeSize_cost P (by includes) (orders.getD j 0) (by omega)
       simp only [rangeSize_eq]
       have hr' := rangeC_cost P (by includes) (orders.getD j 0) 0 (by omega)
       have hfi := fun a b ↦ RunsApp.of_spec (us := [encodeValue j]) (vs := [encodeValue a, encodeValue b])
-        (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.lam0.costSpec P
+        (Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.lam0.costSpec P
           (by includes) j a b)
       have hin := listForInIdC_cost P (by includes) _
-        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.lam0.costIdx
+        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.lam0.costIdx
           [encodeValue j]) hfi
         Array.size 1 14 (fun a s ↦ by simp only [pure]; simp) (fun a s ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append]
-          rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c516.lam0.lam0.costEq P
+          rw [Auto.CompPoly.PolynomialMatrix.Approximant.coefficientEquationIndices.c515.lam0.lam0.costEq P
             (by includes)])
         (List.range' 0 (orders.getD j 0) 1) s
       simp only [List.length_range'] at hin

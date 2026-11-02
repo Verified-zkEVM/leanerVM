@@ -9,7 +9,7 @@ import LeanVM.Cost.Efficient
   extractor's) and the entry: its size bounded by evaluating its bodies' sizes (`size_ofList_le`,
   decided by the kernel);
 * the extractor's program (`extractorProgram`): `698` bodies, the entry's and the compiled
-  extractor's, the largest index `710`, its size `13813` (`Cost/ExtractorSize.lean` proves at
+  extractor's, the largest index `709`, its size `13811` (`Cost/ExtractorSize.lean` proves at
   most `14400`, `extractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `extractorOf extractorProgram =
   transcriptExtractor`.
@@ -45,8 +45,8 @@ theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 
 /-! ## The extractor's program -/
 
 #guard extractorProgramBodies.length == 698
-#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 710
-#guard extractorProgram.size == 13813
+#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 709
+#guard extractorProgram.size == 13811
 #guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 13787
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/

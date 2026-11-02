@@ -99,14 +99,14 @@ theorem planFwdC_cost (hP : Includes P planFwdC.costDeps) {j : ℕ} (hj : j ≤ 
   rw [planFwdC.costEq P hP, FFT.mkPlan_log]
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hof := ofFnFrom_cost P (by includes) (n := 2 ^ j) (by omega) _
-    (.closure toNovelFastC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue c])
+    (.closure toNovelInPlaceC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue c])
     (fun p ↦ RunsApp.of_spec (by
-      have := toNovelFastC.lam0.costSpec P (by includes) (FFT.mkPlan j) c
+      have := toNovelInPlaceC.lam0.costSpec P (by includes) (FFT.mkPlan j) c
       rw [FFT.mkPlan_log] at this
       exact this p)) 4
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      have := toNovelFastC.lam0.costEq P (by includes) (FFT.mkPlan j) c
+      have := toNovelInPlaceC.lam0.costEq P (by includes) (FFT.mkPlan j) c
       rw [FFT.mkPlan_log] at this
       rw [this p]) 0 (Nat.zero_le _)
   have hr := rangeLoop_cost P (by includes) j [] (by omega)
