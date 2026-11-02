@@ -317,11 +317,11 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
   cases LeanVM.Protocol.KeccakHash.digestOfScalars (a, b) <;> dsimp only <;> split_ifs <;> omega
 
 omit hrd hR in
-/-- A bit (`testBit.c225`), of a word: at most `13`. -/
-theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c225.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
+/-- A bit (`testBit.c210`), of a word: at most `13`. -/
+theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c210.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
     (hl : l < 2 ^ 64) :
-    machineCost P Auto.Nat.testBit.c225.costIdx [encodeValue q, encodeValue l] ≤ 13 := by
-  rw [Auto.Nat.testBit.c225.costEq P hP]
+    machineCost P Auto.Nat.testBit.c210.costIdx [encodeValue q, encodeValue l] ≤ 13 := by
+  rw [Auto.Nat.testBit.c210.costEq P hP]
   have h1 : q >>> l ≤ q := Nat.shiftRight_le q l
   have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
   limbs_one

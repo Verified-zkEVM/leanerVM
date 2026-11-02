@@ -64,18 +64,18 @@ theorem mulFFTC_cost (hP : Includes P mulFFTC.costDeps) (p : PMPrices) (hp : FFT
   have := mulViaFFTC_cost P (by includes) p hp f g hj
   omega
 
-/-- **A subtraction of raw polynomials** (`Raw.sub.c152`): at most `126·max(|x|, |y|) + 170`. -/
-theorem subC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.sub.c152.costDeps)
+/-- **A subtraction of raw polynomials** (`Raw.sub.c48`): at most `126·max(|x|, |y|) + 170`. -/
+theorem subC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.sub.c48.costDeps)
     (x y : CompPoly.CPolynomial.Raw K) (hx : x.size < 2 ^ 40) (hy : y.size < 2 ^ 40) :
-    machineCost P Auto.CompPoly.CPolynomial.Raw.sub.c152.costIdx [encodeValue x, encodeValue y] ≤
+    machineCost P Auto.CompPoly.CPolynomial.Raw.sub.c48.costIdx [encodeValue x, encodeValue y] ≤
       126 * max x.size y.size + 170 := by
-  rw [Auto.CompPoly.CPolynomial.Raw.sub.c152.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Raw.sub.c48.costEq P hP]
   have hm := map_cost P (by includes) (fun a : K ↦ -a)
-    (.closure Auto.CompPoly.CPolynomial.Raw.sub.c152.lam0.costIdx [])
-    (fun a ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.sub.c152.lam0.costSpec P (by includes) a)) 1
+    (.closure Auto.CompPoly.CPolynomial.Raw.sub.c48.lam0.costIdx [])
+    (fun a ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.sub.c48.lam0.costSpec P (by includes) a)) 1
     y.toList (fun a _ ↦ by
       simp only [appCost_fn, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.Raw.sub.c152.lam0.costEq P (by includes)])
+      rw [Auto.CompPoly.CPolynomial.Raw.sub.c48.lam0.costEq P (by includes)])
   have hn : (CompPoly.CPolynomial.Raw.neg y).size = y.size := by
     simp [CompPoly.CPolynomial.Raw.neg]
   have ha := Decoder.addK_cost P (by includes) x (CompPoly.CPolynomial.Raw.neg y) (by omega) (by omega)
@@ -119,14 +119,14 @@ theorem polyMulPrice_newton (p : PMPrices) {i k' : ℕ} (h : 2 ^ i < k') :
   have := polyMulPrice_mono p h2
   omega
 
-/-- **Newton's loop** (`inverseModX.go.c546`) from precision `a ≤ k` with `k ≤ a·2^m`, `a` a power
+/-- **Newton's loop** (`inverseModX.go.c416`) from precision `a ≤ k` with `k ≤ a·2^m`, `a` a power
 of two or `k`: its price and four products at precision `a` within four at `k` and
 `m · newtonExtra k + k + 20`. -/
-theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c546.costDeps)
+theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costDeps)
     (p : PMPrices) (hp : FFTPricesOK p) (k : ℕ) (hk : k ≤ 2 ^ 35) (f : CompPoly.CPolynomial.Raw K) :
     ∀ m fuel a (acc : CompPoly.CPolynomial.Raw K), 1 ≤ a → a ≤ k → k ≤ a * 2 ^ m → fuel < 2 ^ 64 →
       (a = k ∨ ∃ i, a = 2 ^ i) →
-      machineCost P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c546.costIdx [encodeValue k,
+      machineCost P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costIdx [encodeValue k,
         encodeValue f, encodeValue fuel, encodeValue a, encodeValue acc] +
           4 * polyMulPrice p (clog2 (2 * a - 1)) ≤
         4 * polyMulPrice p (clog2 (2 * k - 1)) + m * newtonExtra k + k + 20 := by
@@ -136,7 +136,7 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
     intro fuel a acc ha hak hkm hf _
     have hs : (acc.extract 0 k).size ≤ k := by simp
     have hmono := polyMulPrice_mono p (clog2_mono (show 2 * a - 1 ≤ 2 * k - 1 by omega))
-    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c546.costEq P hP]
+    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costEq P hP]
     cases fuel with
     | zero => cost_simp; omega
     | succ n =>
@@ -147,7 +147,7 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
     intro fuel a acc ha hak hkm hf hpow
     have hs : (acc.extract 0 k).size ≤ k := by simp
     have hmono := polyMulPrice_mono p (clog2_mono (show 2 * a - 1 ≤ 2 * k - 1 by omega))
-    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c546.costEq P hP]
+    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costEq P hP]
     cases fuel with
     | zero => cost_simp; omega
     | succ n =>
@@ -209,19 +209,19 @@ theorem inverseModXFFTC_cost (hP : Includes P inverseModXFFTC.costDeps) (p : PMP
     cost_simp
     omega
 
-/-- **A reversal** (`Raw.reverse.c549`) of `n < 2^40` coefficients: at most `30·n + 20`. -/
-theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c549.costDeps) (n : ℕ)
+/-- **A reversal** (`Raw.reverse.c419`) of `n < 2^40` coefficients: at most `30·n + 20`. -/
+theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c419.costDeps) (n : ℕ)
     (hn : n < 2 ^ 40) (f : CompPoly.CPolynomial.Raw K) :
-    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c549.costIdx [encodeValue n, encodeValue f] ≤
+    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c419.costIdx [encodeValue n, encodeValue f] ≤
       30 * n + 20 := by
-  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c549.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c419.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) (n := n) (by omega) _
-    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c549.lam0.costIdx [encodeValue n, encodeValue f])
-    (fun i ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.reverse.c549.lam0.costSpec P (by includes)
+    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costIdx [encodeValue n, encodeValue f])
+    (fun i ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costSpec P (by includes)
       n f i)) 11
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c549.lam0.costEq P (by includes)]
+      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costEq P (by includes)]
       have := i.isLt
       cost_simp
       omega) 0 (Nat.zero_le _)
@@ -278,7 +278,7 @@ theorem modByMonicFFTC_cost (hP : Includes P modByMonicFFTC.costDeps) (p : PMPri
     (hp : FFTPricesOK p) (f g : CompPoly.CPolynomial K) (N : ℕ) (hN : N ≤ 2 ^ 35)
     (hf : f.val.size ≤ N) (hgN : g.val.size ≤ N) (hg1 : 0 < g.val.size) (hg : g.leadingCoeff = 1) :
     machineCost P modByMonicFFTC.costIdx [encodeValue f, encodeValue g] ≤ modBound p N := by
-  rw [modByMonicFFTC.costEq P hP, Auto.CompPoly.CPolynomial.Raw.modByMonicByReversal.c548.costEq P
+  rw [modByMonicFFTC.costEq P hP, Auto.CompPoly.CPolynomial.Raw.modByMonicByReversal.c418.costEq P
     (by includes)]
   have hlc : (CompPoly.CPolynomial.Raw.leadingCoeff g.val == 1) = true := by
     unfold CompPoly.CPolynomial.Raw.leadingCoeff

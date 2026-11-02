@@ -1,5 +1,5 @@
 import LeanVMTests.Cost.Samples
-import LeanVM.Cost.Bounds.Decoder.MsReduce
+import LeanVM.Cost.Bounds.FieldLib
 
 /-!
 # Tests: the proved bounds against measured prices
@@ -16,14 +16,8 @@ open LeanVM.Cost LeanVM.Cost.Library LeanVM.Parameters
 def price (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : Option ℕ :=
   (evaluateFunctionBody (MachineProgram.ofList deps) 100000 i args).map (·.2)
 
-/-! One Mulders–Storjohann step (`stepFastC_cost`) on a `2 × 2` matrix of entries of at most `3`
-coefficients: `23028`, the bound `2 + 740·6 + 970·2 + 30·3 + 21100 = 27572`; its field inverse
-alone `19674` (the bound `invK_cost`, `19676`). -/
-#guard price msStepDeps msStepIdx
-    [MachineEncoding.encodeValue msMatrix, MachineEncoding.encodeValue #[(0 : ℕ), 0], MachineEncoding.encodeValue (0 : ℕ), MachineEncoding.encodeValue (1 : ℕ)] == some 23028
-#guard msMatrix.all fun row ↦ row.size ≤ 2 && row.all (·.val.size ≤ 3)
-#guard 23028 ≤ msMatrix.size + 740 * (3 * 2) + 970 * 2 + 30 * 3 + 21100
-#guard price msStepDeps LeanVM.Cost.Auto.BF64.invItohTsujii.c33.costIdx
+/-! The field inverse (`invK_cost`, Itoh–Tsujii): `19674` on `7`, the bound `19676`. -/
+#guard price LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costDeps LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costIdx
     [MachineEncoding.encodeValue (K.ofBits 7)] == some 19674
 
 end LeanVMTests.Cost

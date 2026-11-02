@@ -92,11 +92,11 @@ theorem maxOrder_lt (problem : XAdicProblem K) (B : ℕ)
   exact this _ 0 (Nat.zero_le _) ho
 
 /-- `pmBasisFuel`: at most `18·|orders| + 14`. -/
-theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c688.costDeps) (problem : XAdicProblem K)
+theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c567.costDeps) (problem : XAdicProblem K)
     (ho : ∀ x ∈ problem.orders.toList, x < 2 ^ 62) :
-    machineCost P pmBasisFuel.c688.costIdx [encodeValue problem] ≤
+    machineCost P pmBasisFuel.c567.costIdx [encodeValue problem] ≤
       18 * problem.orders.size + 14 := by
-  rw [pmBasisFuel.c688.costEq P hP]
+  rw [pmBasisFuel.c567.costEq P hP]
   have := maxOrderC_cost P (by includes) problem ho
   have := maxOrder_lt problem (2 ^ 62) (fun x hx ↦ (ho x hx).le)
   cost_simp
@@ -305,8 +305,8 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
   unfold certSolveCost
   split
   · rename_i hguard
-    rw [ModularEquation.solutionWidth.c667.costEq P (by includes),
-      certShift.c687.costEq P (by includes)]
+    rw [ModularEquation.solutionWidth.c546.costEq P (by includes),
+      certShift.c566.costEq P (by includes)]
     have hsh := exactNullspaceShiftC_cost P (by includes) shift equation.moduli.size bound
       (by omega) (by omega) hsv
     have hfw := fullWindowProblemC_cost P (by includes) equation bound (by omega) hs

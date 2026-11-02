@@ -32,15 +32,12 @@ import all CompPoly.Bivariate.GuruswamiSudan.Root.RothRuckenstein.Algorithm
 import all CompPoly.Bivariate.GuruswamiSudan.PolynomialCorrectness
 
 /-!
-# The extractor, compiled: one lane's Guruswami–Sudan run
+# The extractor, compiled: Roth–Ruckenstein's search
 
-`gsRunDistinctNF` (`Fast/TruncNoFallback.lean`): the interpolation (`Interp.lean`, reused), then
-Roth–Ruckenstein's search truncated at precision `W + 1` (`prefixesNF` with the root finder of
-`Roots.lean`, reused), the candidates of degree below `k` within the radius. The substitution is
-the butterfly Taylor shift (`substituteBF`, `Fast/TaylorShift.lean`), compiled on demand as seven
-bodies (`substituteBF.c192`, `bfLoop.c193`, `bfLevel.c194` and its closure, `powSq.c196`, the
-row shift's closure and `shiftX.c198`), the indices the former substitution's seven held: the
-functions compiled after them keep theirs.
+`prefixesNF` (`Fast/TruncNoFallback.lean`): Roth–Ruckenstein's search truncated at precision
+`W + 1`, with the root finder of `Roots.lean` (reused), the substitution by the butterfly Taylor
+shift (`substituteBF`, `Fast/TaylorShift.lean`, its bodies compiled on demand). The lanes' runs
+(`gsRunDistinctWith pmSolver`) are compiled in `PMLane.lean`, after the interpolation's stages.
 -/
 
 namespace LeanVM.Cost.Extractor
@@ -51,7 +48,6 @@ public section
 
 cost_compile prefixesNFC := prefixesNF fieldRootCtxFast
 
-cost_compile gsRunDistinctNFC := gsRunDistinctNF
 
 end
 

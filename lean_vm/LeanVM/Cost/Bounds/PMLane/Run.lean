@@ -14,8 +14,7 @@ import all CompPoly.Univariate.Basic
 lane run `gsRunDistinctNF` with the interpolation `interpolateDistinctWith pmSolver`
 (`interpolatePMC`): the interpolation, the truncation, Roth–Ruckenstein's search
 (`prefixesNFC_cost`), the candidates filtered. **`gsRunPMC_cost`**: at most `gsRunBoundPM p`,
-`gsRunDistinctNFC_cost`'s proof with the interpolation's price swapped, given the interpolation
-within the model's price `interpPMPrice p` on its input (`hi`: track solve's
+given the interpolation within the model's price `interpPMPrice p` on its input (`hi`: track solve's
 `interpolatePMC_cost_price`, applied per lane in `Bounds/PMLane/Decode.lean`).
 
 The sizes the run needs of the interpolated polynomial (`ℓ + 1` rows of at most `W + 1`
@@ -146,16 +145,16 @@ theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
         (by show (default : CPolynomial K).val.size ≤ 0; rfl) p hp
       omega
     have hfv := fun p ↦ RunsApp.of_spec (us := [encodeValue points, encodeValue params, encodeValue radius]) (vs := [encodeValue p])
-      (gsRunDistinctNFC.lam0.costSpec P (by includes) points params radius p)
+      (gsRunPMC.lam0.costSpec P (by includes) points params radius p)
     generalize hR : prefixesNF fieldRootCtxFast params.messageDegree
       (CBivariate.truncateX Q (params.weightedDegreeBound + 1)) (params.weightedDegreeBound + 1) 0
       default = res at hres hmem
     have hfil := filter_cost P (by includes) _
-      (.closure gsRunDistinctNFC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius]) hfv
+      (.closure gsRunPMC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius]) hfv
       ((272 * params.messageDegree + 34) * points.size + 30) res.toList (fun p hp ↦ by
         have hps := hmem p (by simpa using hp)
         simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [gsRunDistinctNFC.lam0.costEq P (by includes),
+        rw [gsRunPMC.lam0.costEq P (by includes),
           (cost_const% (degreeLtBool (F := K)) costEq) P (by includes)]
         cost_simp
         split_ifs with hdeg

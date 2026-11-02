@@ -85,13 +85,13 @@ variable (P : MachineProgram)
 /-- **The table built from a list of rows** (the fold of `reduceKernelLeafRowsByPivots`):
 `15 + c` per row (`c = stepPrice r`), the potential. -/
 theorem foldInsertC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 40) (hS40 : S < 2 ^ 60) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (fuel : ℕ) (hfuel : fuel < 2 ^ 128) :
     ∀ (l : List (PolynomialRow K)) (T : Array (Option (PolynomialRow K))), TableInv r shift T →
       RowsInv r l →
       machineCost P listFoldl.costIdx
-          [.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.lam0.costIdx
+          [.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.lam0.costIdx
             [encodeValue shift, encodeValue fuel], encodeValue T, encodeValue l] +
           stepPrice r * phi r shift
             (l.foldl (fun pivots row ↦ insertKernelLeafPivotRowWithFuel fuel pivots shift row) T) ≤
@@ -100,7 +100,7 @@ theorem foldInsertC_cost
         (l.foldl (fun pivots row ↦ insertKernelLeafPivotRowWithFuel fuel pivots shift row) T) := by
   have hf := fun a b ↦ RunsApp.of_spec (us := [encodeValue shift, encodeValue fuel])
     (vs := [encodeValue a, encodeValue b])
-    (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.lam0.costSpec P
+    (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.lam0.costSpec P
       (by includes) shift fuel a b)
   intro l
   induction l with
@@ -108,7 +108,7 @@ theorem foldInsertC_cost
     intro T hT _
     rw [listFoldl.costEq_nil P (by includes)
       (fun pivots row ↦ insertKernelLeafPivotRowWithFuel fuel pivots shift row)
-      (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.lam0.costIdx
+      (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.lam0.costIdx
         [encodeValue shift, encodeValue fuel]) hf]
     simp [psi]
     exact ⟨by omega, hT⟩
@@ -116,7 +116,7 @@ theorem foldInsertC_cost
     intro T hT hl
     rw [listFoldl.costEq_cons P (by includes)
       (fun pivots row ↦ insertKernelLeafPivotRowWithFuel fuel pivots shift row)
-      (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.lam0.costIdx
+      (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.lam0.costIdx
         [encodeValue shift, encodeValue fuel]) hf]
     obtain ⟨hqs, hqh⟩ := hl q (by simp)
     obtain ⟨h1, hT'⟩ := insertPivotC_cost P (by includes) hr hS40 shift hS fuel T q hfuel hT hqs hqh
@@ -124,7 +124,7 @@ theorem foldInsertC_cost
     refine ⟨?_, hT''⟩
     simp only [appCost_fn, List.cons_append, List.nil_append, List.foldl_cons, List.length_cons,
       psi, List.map_cons, List.sum_cons] at h2 ⊢
-    rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.lam0.costEq P
+    rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.lam0.costEq P
       (by includes)]
     have e1 : stepPrice r * (phi r shift T + (rk r shift q + (List.map (rk r shift) l).sum)) =
         stepPrice r * (phi r shift T + rk r shift q) + stepPrice r * (List.map (rk r shift) l).sum := by
@@ -205,20 +205,20 @@ variable (P : MachineProgram)
 
 /-- **The fuel** (`reduceKernelLeafFuel`): `n ≤ r + 1` rows: at most `(90·r + 71)·n + 54`. -/
 theorem reduceKernelLeafFuelC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 30) (hS40 : S < 2 ^ 60) (rows : PolynomialMatrix K)
     (h : RowsInv r rows.toList) (hn : rows.size ≤ r + 1) (shift : Array ℕ)
     (hS : ∀ j, shift.getD j 0 ≤ S) (hw : MatrixWidth rows ≤ r) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.costIdx
         [encodeValue rows, encodeValue shift] ≤ (90 * r + 71) * rows.size + 54 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.costEq P hP]
   have hr' := rangeLoop_cost P (by includes) rows.size [] (by omega)
   have hmw := matrixWidthC_cost P (by includes) rows (by omega)
   have hf := listFoldl_le P (by includes) _
-    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.lam0.costIdx
+    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.lam0.costIdx
       [encodeValue rows, encodeValue shift])
     (fun a b ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.lam0.costSpec P
+      (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.lam0.costSpec P
         (by includes) rows shift a b))
     (90 * r + 45) (fun acc ↦ acc ≤ 2 + S) (List.range rows.size) 0 (by omega)
     (fun acc hacc i _ ↦ ⟨by
@@ -228,7 +228,7 @@ theorem reduceKernelLeafFuelC_cost
         have := rowShiftedDegree?_le (rowWithin_of_rowsInv h i) hS hv
         simp only; omega, by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c648.lam0.costEq P
+      rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafFuel.c526.lam0.costEq P
         (by includes)]
       have := rowShiftedDegree_cost P (by includes) (C := r) (D := 2) (S := S) (by omega) (by omega)
         (rows.getD i #[]) (rowWithin_of_rowsInv h i) shift hS
@@ -255,18 +255,18 @@ theorem reduceKernelLeafFuelC_cost
 
 /-- **`pivotRows`**: at most `19·|T| + 8`. -/
 theorem pivotRowsC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.costDeps)
     (T : Array (Option (PolynomialRow K))) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.costIdx [encodeValue T] ≤
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.costIdx [encodeValue T] ≤
       19 * T.size + 8 := by
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.costEq P hP]
   have hf := filterMap_cost P (by includes) (id : Option (PolynomialRow K) → Option (PolynomialRow K))
-    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.lam0.costIdx [])
+    (.closure Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec
-      (Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.lam0.costSpec P (by includes) a))
+      (Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.lam0.costSpec P (by includes) a))
     1 T.toList (fun a _ ↦ by
       rw [appCost_fn, List.nil_append,
-        Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c661.lam0.costEq P (by includes)])
+        Auto.CompPoly.PolynomialMatrix.Approximant.pivotRows.c540.lam0.costEq P (by includes)])
   have := List.length_filterMap_le id T.toList
   simp only [Array.length_toList] at hf this
   omega
@@ -297,11 +297,11 @@ theorem phi_eq_psi_pivotRows (r : ℕ) (shift : Array ℕ) (T : Array (Option (P
 
 /-- **The table rebuilt** (`reduceKernelLeafRowsByPivots`), `n ≤ r + 1` rows, the potential. -/
 theorem byPivotsC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 30) (hS40 : S < 2 ^ 60) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (rows : PolynomialMatrix K) (h : RowsInv r rows.toList) (hn1 : 1 ≤ rows.size)
     (hn : rows.size ≤ r + 1) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.costIdx
         [encodeValue rows, encodeValue shift] +
         stepPrice r * psi r shift (reduceKernelLeafRowsByPivots rows shift).toList ≤
       stepPrice r * psi r shift rows.toList + (stepPrice r + 14) * rows.size +
@@ -310,7 +310,7 @@ theorem byPivotsC_cost
       (reduceKernelLeafRowsByPivots rows shift).size ≤ r := by
   have hw := matrixWidth_of_rowsInv h hn1
   have hfuel := reduceKernelLeafFuel_lt hr hS40 h hn hS (by omega)
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c647.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsByPivots.c525.costEq P hP]
   have hfc := reduceKernelLeafFuelC_cost P (by includes) hr hS40 rows h hn shift hS (by omega)
   have hmw := matrixWidthC_cost P (by includes) rows (by omega)
   obtain ⟨hfold, hT⟩ := foldInsertC_cost P (by includes) (r := r) (S := S) (by omega) hS40 shift hS
@@ -334,11 +334,11 @@ theorem byPivotsC_cost
 /-- **One incremental insertion** (`insertKernelLeafRowIncremental`): a basis of at most `r` rows
 and a new row, the potential. -/
 theorem insertIncrementalC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c645.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c523.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 30) (hS40 : S < 2 ^ 60) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (basis : PolynomialMatrix K) (hb : RowsInv r basis.toList) (hbs : basis.size ≤ r)
     (row : PolynomialRow K) (hrs : row.size = r) (hrh : HomRowLe 1 row) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c645.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c523.costIdx
         [encodeValue basis, encodeValue shift, encodeValue row] +
         stepPrice r * psi r shift (insertKernelLeafRowIncremental basis shift row).toList ≤
       stepPrice r * (psi r shift basis.toList + rk r shift row) + incPrice r ∧
@@ -350,8 +350,8 @@ theorem insertIncrementalC_cost
     rcases hq with hq | hq
     · exact hb q hq
     · rw [List.mem_singleton] at hq; subst hq; exact ⟨hrs, hrh⟩
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c645.costEq P hP,
-    Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRows.c646.costEq P (by includes)]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafRowIncremental.c523.costEq P hP,
+    Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRows.c524.costEq P (by includes)]
   obtain ⟨hbp, hinv, hsz⟩ := byPivotsC_cost P (by includes) hr hS40 shift hS (basis.push row) hpush
     (by simp) (by simp; omega)
   have hred : reduceKernelLeafRows (basis.push row) shift =
@@ -395,21 +395,21 @@ theorem insertIncrementalC_cost
 width `r`: at most `stepPrice r·2r·n + (incPrice r + 16)·n + 11`; its rows are at most `r` such
 rows. -/
 theorem reduceIncrementalC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 30) (hS40 : S < 2 ^ 60) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S)
     (rows : PolynomialMatrix K) (h : RowsInv r rows.toList) :
-    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.costIdx
+    machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.costIdx
         [encodeValue rows, encodeValue shift] ≤
       stepPrice r * (2 * r * rows.size) + (incPrice r + 16) * rows.size + 11 ∧
       RowsInv r (reduceKernelLeafRowsIncremental rows shift).toList ∧
       (reduceKernelLeafRowsIncremental rows shift).size ≤ r := by
   have hf := fun a b ↦ RunsApp.of_spec (us := [encodeValue shift]) (vs := [encodeValue a, encodeValue b])
-    (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.lam0.costSpec P
+    (Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.lam0.costSpec P
       (by includes) shift a b)
   have key : ∀ (l : List (PolynomialRow K)) (basis : PolynomialMatrix K), RowsInv r basis.toList →
       basis.size ≤ r → RowsInv r l →
       machineCost P listFoldl.costIdx
-          [.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.lam0.costIdx
+          [.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.lam0.costIdx
             [encodeValue shift], encodeValue basis, encodeValue l] +
           stepPrice r * psi r shift
             (l.foldl (fun basis row ↦ insertKernelLeafRowIncremental basis shift row) basis).toList ≤
@@ -422,7 +422,7 @@ theorem reduceIncrementalC_cost
       intro basis hb hbs _
       rw [listFoldl.costEq_nil P (by includes)
         (fun basis row ↦ insertKernelLeafRowIncremental basis shift row)
-        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.lam0.costIdx
+        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.lam0.costIdx
           [encodeValue shift]) hf]
       simp only [List.foldl_nil, psi, List.map_nil, List.sum_nil, Nat.add_zero, List.length_nil,
         Nat.mul_zero]
@@ -431,7 +431,7 @@ theorem reduceIncrementalC_cost
       intro basis hb hbs hl
       rw [listFoldl.costEq_cons P (by includes)
         (fun basis row ↦ insertKernelLeafRowIncremental basis shift row)
-        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.lam0.costIdx
+        (.closure Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.lam0.costIdx
           [encodeValue shift]) hf]
       obtain ⟨hqs, hqh⟩ := hl q (by simp)
       obtain ⟨h1, hb', hbs'⟩ := insertIncrementalC_cost P (by includes) hr hS40 shift hS basis hb hbs
@@ -439,7 +439,7 @@ theorem reduceIncrementalC_cost
       obtain ⟨h2, hfin, hfs⟩ := ih _ hb' hbs' (fun x hx ↦ hl x (by simp [hx]))
       refine ⟨?_, hfin, hfs⟩
       simp only [appCost_fn, List.cons_append, List.nil_append, List.foldl_cons, List.length_cons] at h2 ⊢
-      rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.lam0.costEq P
+      rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.lam0.costEq P
         (by includes)]
       have e1 : psi r shift (q :: l) = rk r shift q + psi r shift l := by simp [psi]
       rw [e1]
@@ -451,7 +451,7 @@ theorem reduceIncrementalC_cost
       have e4 : (incPrice r + 13) * (l.length + 1) = (incPrice r + 13) * l.length + incPrice r + 13 := by
         ring
       omega
-  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c643.costEq P hP]
+  rw [Auto.CompPoly.PolynomialMatrix.Approximant.reduceKernelLeafRowsIncremental.c521.costEq P hP]
   obtain ⟨h1, h2, h3⟩ := key rows.toList #[] (by simp [RowsInv]) (by simp) h
   have hred : reduceKernelLeafRowsIncremental rows shift =
       rows.toList.foldl (fun basis row ↦ insertKernelLeafRowIncremental basis shift row) #[] := by

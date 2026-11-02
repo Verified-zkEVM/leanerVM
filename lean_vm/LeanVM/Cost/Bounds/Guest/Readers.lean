@@ -29,14 +29,14 @@ variable (P : MachineProgram)
 
 /-! ## Counts and limbs -/
 
-/-- `List.range n` and a `List.map` over it (`range.loop.c20`, `map.c12`), the closure's price at
+/-- `List.range n` and a `List.map` over it (`range.loop.c74`, `map.c29`), the closure's price at
 most `B` on `k < n`, `n ≤ M`: at most `(B + 28)·M + 9`. -/
 theorem rangeMap_le {β : Type} [MachineEncoding β]
-    (hr : Includes P Auto.List.range.loop.c20.costDeps) (hm : Includes P Auto.List.map.c12.costDeps)
+    (hr : Includes P Auto.List.range.loop.c74.costDeps) (hm : Includes P Auto.List.map.c29.costDeps)
     (f : ℕ → β) (fV : MachineValue) (hf : ∀ a, RunsApp P fV [encodeValue a] (encodeValue (f a)))
     (B n M : ℕ) (hn : n ≤ M) (hM : M < 2 ^ 64) (hB : ∀ k < n, appCost P fV [encodeValue k] ≤ B) :
-    machineCost P Auto.List.range.loop.c20.costIdx [encodeValue n, encodeValue ([] : List ℕ)] +
-      machineCost P Auto.List.map.c12.costIdx [fV, encodeValue (List.range n)] ≤
+    machineCost P Auto.List.range.loop.c74.costIdx [encodeValue n, encodeValue ([] : List ℕ)] +
+      machineCost P Auto.List.map.c29.costIdx [fV, encodeValue (List.range n)] ≤
         (B + 28) * M + 9 := by
   have h1 := rangeLoop_cost P hr n [] (by omega)
   have h2 := map_cost P hm f fV hf B (List.range n) (fun k hk ↦ hB k (List.mem_range.1 hk))

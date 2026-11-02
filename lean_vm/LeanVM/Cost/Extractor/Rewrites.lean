@@ -15,7 +15,7 @@ compiled, not copied), each proved:
 * `shiftedEntryDegree?_eq`: an entry's shifted degree tests the entry for zero by its size (one
   word operation), not by `==` on polynomials, which the compiler otherwise reaches through the
   arrays' `==` (`Rewrite.arrBEq`): the coefficients listed and compared with the empty list,
-  `O(|p|)` for every entry, at every step of Mulders–Storjohann (a factor of the entries' size
+  `O(|p|)` for every entry, at every shifted-degree read of a row (a factor of the entries' size
   on the cost of the rows' leading positions).
 -/
 
