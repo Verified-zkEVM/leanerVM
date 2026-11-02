@@ -147,7 +147,9 @@ theorem modByMonicCached_eq (M : Raw.MulLowContext F) (K : Nat) (p q : CPolynomi
 /-! ## The relation column, the inverse once per column -/
 
 /-- CompPoly's `gsRelationColumn` with the remainder by reversal on `M`, the reversed modulus's
-inverse computed once at precision `|R mod M_b|`. -/
+inverse computed once at precision `|R mod M_b|`, and the binomials `C(j, b)` carried along the
+column (`C(j + 1, b) = C(j, b)·(j + 1)/(j + 1 − b)`) instead of `Nat.choose`'s recursion, whose
+compiled price is the binomial itself. -/
 @[expose] def gsRelationColumnCached (mulCtx : CPolynomial.MulContext F) (M : Raw.MulLowContext F)
     (R modulus : CPolynomial F) (width b : Nat) : Array (CPolynomial F) :=
   let reducedR := PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R modulus
@@ -155,10 +157,36 @@ inverse computed once at precision `|R mod M_b|`. -/
   let inv := Raw.inverseModX M K (Raw.reverse modulus.val.size modulus.val)
   ((List.range' b (width - b)).foldl
     (fun st j ↦
-      (st.1.setIfInBounds j (CPolynomial.C ((j.choose b : F)) * st.2),
-       if modulus == 0 then mulCtx.mul st.2 reducedR
-       else modByMonicCached M inv K (mulCtx.mul st.2 reducedR) modulus))
-    (Array.replicate width (0 : CPolynomial F), 1)).1
+      ((st.1.1.setIfInBounds j (CPolynomial.C ((st.2 : F)) * st.1.2),
+        if modulus == 0 then mulCtx.mul st.1.2 reducedR
+        else modByMonicCached M inv K (mulCtx.mul st.1.2 reducedR) modulus),
+       st.2 * (j + 1) / (j + 1 - b)))
+    ((Array.replicate width (0 : CPolynomial F), 1), 1)).1.1
+
+/-- The binomial carried: `C(j + 1, b) = C(j, b)·(j + 1)/(j + 1 − b)` for `b ≤ j`. -/
+theorem choose_succ_div {j b : Nat} (h : b ≤ j) :
+    j.choose b * (j + 1) / (j + 1 - b) = (j + 1).choose b := by
+  rw [Nat.choose_mul_succ_eq]
+  exact Nat.mul_div_cancel _ (by omega)
+
+omit [BEq F] [LawfulBEq F] in
+/-- Carrying the binomial: the fold with `C(j, b)` carried is the fold with `Nat.choose`. -/
+theorem foldl_carry_choose {α : Type*} (f : α → Nat → α) (g : α → Nat → F → α) (b : Nat)
+    (hfg : ∀ a j, f a j = g a j ((j.choose b : Nat) : F)) :
+    ∀ (n j₀ : Nat) (a : α), b ≤ j₀ →
+      (List.range' j₀ n).foldl
+          (fun st j ↦ (g st.1 j ((st.2 : Nat) : F), st.2 * (j + 1) / (j + 1 - b)))
+          (a, j₀.choose b) =
+        ((List.range' j₀ n).foldl f a, (j₀ + n).choose b) := by
+  intro n
+  induction n with
+  | zero => intro j₀ a _; rfl
+  | succ n ih =>
+    intro j₀ a hb
+    rw [List.range'_succ, List.foldl_cons, List.foldl_cons, choose_succ_div hb, ← hfg,
+      ih (j₀ + 1) (f a j₀) (by omega)]
+    congr 2
+    omega
 
 /-- CompPoly's `gsRelationColumn`'s loop, as a fold. -/
 private theorem gsRelationColumn_eq_fold (mulCtx : CPolynomial.MulContext F)
@@ -190,6 +218,37 @@ theorem gsRelationColumnCached_eq (mulCtx : CPolynomial.MulContext F) (M : Raw.M
       GuruswamiSudan.ApproximantBasis.gsRelationColumn mulCtx modCtx R modulus width b := by
   rw [gsRelationColumn_eq_fold, gsRelationColumnCached,
     modByMonicWith_congr modCtx (CPolynomial.ModContext.reversal M)]
+  rw [show ((Array.replicate width (0 : CPolynomial F), (1 : CPolynomial F)), (1 : Nat)) =
+      ((Array.replicate width (0 : CPolynomial F), (1 : CPolynomial F)), b.choose b) by
+    rw [Nat.choose_self]]
+  have h := foldl_carry_choose
+    (fun (st : Array (CPolynomial F) × CPolynomial F) j ↦
+      (st.1.setIfInBounds j (CPolynomial.C ((j.choose b : Nat) : F) * st.2),
+        if (modulus == 0) = true then
+          mulCtx.mul st.2 (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R
+            modulus)
+        else
+          modByMonicCached M (Raw.inverseModX M (PolynomialMatrix.modByMonicWith
+              (CPolynomial.ModContext.reversal M) R modulus).val.size
+              (Raw.reverse modulus.val.size modulus.val))
+            (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R modulus).val.size
+            (mulCtx.mul st.2 (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R
+              modulus)) modulus))
+    (fun st j c ↦
+      (st.1.setIfInBounds j (CPolynomial.C c * st.2),
+        if (modulus == 0) = true then
+          mulCtx.mul st.2 (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R
+            modulus)
+        else
+          modByMonicCached M (Raw.inverseModX M (PolynomialMatrix.modByMonicWith
+              (CPolynomial.ModContext.reversal M) R modulus).val.size
+              (Raw.reverse modulus.val.size modulus.val))
+            (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R modulus).val.size
+            (mulCtx.mul st.2 (PolynomialMatrix.modByMonicWith (CPolynomial.ModContext.reversal M) R
+              modulus)) modulus)) b (fun _ _ ↦ rfl) (width - b) b
+    (Array.replicate width (0 : CPolynomial F), 1) le_rfl
+  rw [h]
+  simp only []
   congr 1
   congr 1
   funext st j
