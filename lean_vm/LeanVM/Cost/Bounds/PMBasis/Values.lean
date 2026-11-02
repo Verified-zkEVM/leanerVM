@@ -38,10 +38,14 @@ coefficient moved (stated, not measured). -/
   { mac := 305, fwd := 520, inv := 413, toNovel := 944, fromNovel := 1037, leafCube := 444,
     leafSquare := 12350, coeff := 316, ovh := 64 }
 
-/-- **The measured prices with a margin**: each `5/4` of the measured one, rounded up. -/
+/-- **The measured prices with a margin**: each `5/4` of the measured one, rounded up, except
+where track fft's proved transform prices ask for more (`FFTPricesOK marginPrices`,
+`Bounds/PMFFT/EvalCost.lean`): the conversions to and from the novel basis (`4100`, `5490` per
+`j·2^j`, which holds for `j ≤ 36`) and a coefficient moved (`600`); and the leaf's proved price
+(`PMCore.leafBound`, `≈ 16550·r³` at `r = 2077`: `16600·r³ + 100000·r²`). -/
 @[expose] def marginPrices : PMPrices :=
-  { mac := 382, fwd := 650, inv := 517, toNovel := 1180, fromNovel := 1297, leafCube := 555,
-    leafSquare := 15438, coeff := 395, ovh := 80 }
+  { mac := 382, fwd := 650, inv := 517, toNovel := 4100, fromNovel := 5490, leafCube := 16600,
+    leafSquare := 100000, coeff := 395, ovh := 600 }
 
 theorem pmOrder_28_4_eq : pmOrder_28_4 = 34819023731 := by decide +kernel
 
@@ -49,28 +53,28 @@ theorem pmOrder_28_4_eq : pmOrder_28_4 = 34819023731 := by decide +kernel
 theorem pmOrder_28_4_bounds : 2 ^ 35 < pmOrder_28_4 ∧ pmOrder_28_4 + 1 ≤ 2 ^ 36 := by decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, measured prices**, evaluated in `36` halvings:
-`9302876550647705753132734 ≈ 2^82.94`. -/
+`9303084148594118146442494 ≈ 2^82.94`. -/
 theorem pmTreePair_28_4_measured :
     pmTreePair 1 (pmLeafPrice measuredPrices pmRows_28_4)
       (pmNodePrice measuredPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (9302876550647705753132734, 9302876550665102314051400) := by
+      (9303084148594118146442494, 9303084148611520996184840) := by
   decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, the prices with their margin**:
-`11648357710241051051664063 ≈ 2^83.27`. -/
+`19532624819874717385344824 ≈ 2^84.01`. -/
 theorem pmTreePair_28_4 :
     pmTreePair 1 (pmLeafPrice marginPrices pmRows_28_4)
       (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (11648357710241051051664063, 11648357710262829067226740) := by
+      (19532624819874717385344824, 19532624820041405914588560) := by
   decide +kernel
 
 /-- **The per-level closed form at `(28, 4)`**, the prices with their margin:
-`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 12214926787638934272559823 ≈ 2^83.34` (`pmTree_le_levels`;
+`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 20118211812944507931745704 ≈ 2^84.05` (`pmTree_le_levels`;
 `0.07` bit above the tree's exact value). -/
 theorem pmLevels_28_4 :
     pmLevels (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 +
         pmLeafPrice marginPrices pmRows_28_4 * pmOrder_28_4 =
-      12214926787638934272559823 := by
+      20118211812944507931745704 := by
   decide +kernel
 
 end

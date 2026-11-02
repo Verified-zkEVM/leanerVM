@@ -122,10 +122,11 @@ columns, the degree ≤ order invariant (`popovRuntime_core_node`): the composit
 (`r × r` of degree `≤ o − d₁` by `r × r` of degree `≤ d₁`), the residual product `P₁·A`
 (`r × r` of degree `≤ d₁` by `r × m` truncated to degree `< o`), and `ovh` per coefficient of the
 node's matrices read or written besides (the residual's `divXTrunc`, the shift update, the row
-compaction), `2^20` per node for the rest (orders, folds). -/
+compaction, the residual product's truncation of its `r² + 2·r·m` entries at the order), `2^20` per
+node for the rest (orders, folds). -/
 @[expose] def pmNodePrice (p : PMPrices) (r m o : ℕ) : ℕ :=
   evalMatPrice p r r r (o - o / 2) (o / 2) + evalMatPrice p r r m (o / 2) (o - 1) +
-    p.ovh * (r * (2 * r + m) * (o + 1)) + 2 ^ 20
+    p.ovh * (r * (2 * r + 4 * m) * (o + 1)) + 2 ^ 20
 
 /-- **A leaf's price** (model): an order-one leaf of `r` rows. -/
 @[expose] def pmLeafPrice (p : PMPrices) (r : ℕ) : ℕ := p.leafCube * r ^ 3 + p.leafSquare * r ^ 2
