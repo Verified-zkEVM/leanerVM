@@ -9,44 +9,41 @@ public import Mathlib.Data.Nat.Notation
 **The machine.** A first-order functional language with prices. A program is an array of
 function bodies; a body reads its arguments and the values it binds by position, calls functions
 by index, applies closures, builds and inspects constructors, and runs priced primitive operations
-on 64-bit words, natural numbers and arrays. Values are immutable. A program carries its literals,
-and its size counts them in full (`MachineProgram.size`); its only runtime data is its input.
+on natural numbers and arrays. Values are immutable. A program carries its literals, and its size
+counts them in full (`MachineProgram.size`); its only runtime data is its input.
 
 `run P fuel x` runs function `0` of `P` on `x`: its value and its price, the sum of its steps'
 prices, or `none` when the run misuses a value (a primitive on the wrong kind of value, a missing
-variable, field or function) or nests more than `fuel` calls. A misuse is a failure, never
-undefined behavior. `outputWithin P x b` is the value if the price is at most `b`; each call costs
-at least `1`, so the fuel never fails a run of price at most `b`.
+variable, field, alternative or function) or nests more than `fuel` calls. A misuse is a failure,
+never undefined behavior. `outputWithin P x b` is the value if the price is at most `b`; each call
+costs at least `1`, so the fuel never fails a run of price at most `b`.
 
 **Why the prices are honest** (trusted, not a hypothesis: they give the budgets of
-`KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is a
-constant-time CPU primitive or is priced by the algorithm that computes it, at least `1` and, but
-for two steps, at least the words it writes. The two: a `case` puts the constructor's fields in
-front of the environment, and a closure's application puts its captured values in front of the
-arguments, each at `1`, honest for an environment kept as a frame pointer into the constructor or
-the closure (its fields read in place, not copied). A variable, a field and an array's entry
-(`arrayGet`) are at `1`: values are immutable, so they are shared, not copied. A word operation is
-one instruction, at `1`. A `GF(2^64)` product is at `256`: above the about `21` word operations of
-a hardware carry-less multiplication (PCLMULQDQ, PMULL) and its reduction by the sparse modulus,
-below a software loop's about `800`, so its honesty rests on that hardware. Natural numbers are
-priced by their limbs of 64 bits (`limbCount`): linear for sums, comparisons and bitwise
-operations, the product of the limb counts for `·`, `/` and `%` (schoolbook), the shifts by the
-limbs (a left shift by the result's). A new array, constructor or closure is priced by its entries
-(a closure of `n` captured values at `n + 1`).
+`KnowledgeSoundness (extractorOf P)` and `GuestKnowledge` their meaning). Each step is priced by
+the algorithm that computes it on a 64-bit machine, at least `1` and at least the words it
+writes. A structural step costs `1` and the words it writes: a constructor, a closure and a new
+array their entries, a `case` the fields it puts in front of the environment, a closure's
+application the captured values it puts in front of the arguments. A variable, a literal, a field
+and an array's entry cost `1`: values are immutable, so they are shared, not copied (and an
+array's update copies it). A natural number is held in limbs of 64 bits (`limbCount`): an
+operation on natural numbers costs the limbs it reads or writes, the larger count
+(`linearOperation`), and a product, quotient, remainder or carry-less product the product of its
+operands' limb counts, at least the limbs it writes (`quadraticOperation`, schoolbook). On
+one-limb operands each is one instruction of a 64-bit CPU, the carry-less product that of
+x86-64's PCLMULQDQ or ARMv8's PMULL.
 
 **The extractor a program computes** (`LeanVM.extractorOf P`): `P` run on the encoded statement,
 transcript and proof (`encodeExtractorInput`; the transcript without the adversary's coin flips)
 within its budget (`extractorBudget`: `extractorBudgetFor` at the transcript's number of
 permutation queries wherever the proof announces a shape, the same for every shape, and `0` where
 it announces none), its output parsed as an execution (`decodeExecution`, a linear parse: no
-search, no run). A run that fails or exceeds its
-budget extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a parameter
-with its size at most `extractorSizeBound`; `lean_vm` proves it for its knowledge extractor,
-compiled. What excludes a vacuous statement: `P` is a program (no classical choice), its size
-bound leaves no room for a useful table of witnesses beside the compiled extractor, its only
-runtime data is its input, and its budget is a closed formula, polylogarithmic per query
-(`extractorBudgetFor`). The guest decoder is a program of the same machine, with a size bound and
-a budget of its own (`GuestKnowledge`, `Theorems.lean`).
+search, no run). A run that fails or exceeds its budget extracts nothing, which counts as a break.
+`Statement.Theorems` takes `P` as a parameter with its size at most `extractorSizeBound`; `lean_vm`
+proves it for its knowledge extractor, compiled. What excludes a vacuous statement: `P` is a
+program (no classical choice), its size bound leaves no room for a useful table of witnesses
+beside the compiled extractor, its only runtime data is its input, and its budget is a closed
+formula, polylogarithmic per query (`extractorBudgetFor`). The guest decoder is a program of the
+same machine, with a size bound and a budget of its own (`GuestKnowledge`, `Theorems.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -55,8 +52,6 @@ namespace LeanVM.Cost
 
 /-- The machine's values. -/
 inductive MachineValue where
-  /-- A 64-bit word. -/
-  | word (x : UInt64)
   /-- A natural number, of any size. -/
   | nat (n : ℕ)
   /-- A constructor: its tag and its fields. -/
@@ -84,24 +79,19 @@ def MachineValue.toList? : MachineValue → Option (List MachineValue)
 /-- The limbs of 64 bits of a natural number, at least one. -/
 def limbCount (n : ℕ) : ℕ := n.log2 / 64 + 1
 
-/-- `GF(2^64)` multiplication on words, as `BF64` multiplies. -/
-def binaryFieldMultiplyWords (a b : UInt64) : UInt64 :=
-  UInt64.ofBitVec (BF64.mul ⟨a.toBitVec⟩ ⟨b.toBitVec⟩).toBitVec
+/-- The carry-less product: `a` and `b` read as polynomials over `GF(2)`, their bits the
+coefficients, multiplied. -/
+def carrylessProduct (a b : ℕ) : ℕ :=
+  (List.range (a.log2 + 1)).foldl (fun acc i ↦ if a.testBit i then acc ^^^ (b <<< i) else acc) 0
 
-/-- The primitive operations. None reads a constructor's tag or a closure's function index as a
-number (see the section *Size* below): their operands are words, natural numbers, arrays and lists. -/
+/-- The primitive operations, on natural numbers and arrays. None reads a constructor's tag or a
+closure's function index as a number (see the section *Size* below). -/
 inductive PrimitiveOperation where
-  /-- On words: `and`, `or`, `xor`, `not`, the shifts (the amount modulo `64`), `=`, `<`. -/
-  | wordAnd | wordOr | wordXor | wordNot
-  | wordShiftLeft | wordShiftRight | wordEqual | wordLessThan
-  /-- The `GF(2^64)` product of two words. -/
-  | binaryFieldMultiply
-  /-- A word as a natural number, and a natural number modulo `2^64` as a word. -/
-  | wordToNatural | wordOfNatural
-  /-- On natural numbers: `+`, truncated `−`, `·`, `/`, `%`, `=`, `<`, `≤`, `and`, the shifts. -/
-  | naturalAdd | naturalSubtract | naturalMultiply | naturalDivide | naturalModulo
-  | naturalEqual | naturalLessThan | naturalLessOrEqual | naturalAnd
-  | naturalShiftLeft | naturalShiftRight
+  /-- `and`, `or`, `xor`, the shifts, `+`, truncated `−`, `=`, `<`. -/
+  | bitwiseAnd | bitwiseOr | bitwiseXor | shiftLeft | shiftRight | add | subtract
+  | equal | lessThan
+  /-- `·`, `/`, `%`, the carry-less product. -/
+  | multiply | divide | modulo | carrylessMultiply
   /-- An array's size; its entry `i` or a default. -/
   | arraySize | arrayGet
   /-- A copy with entry `i` set (unchanged out of bounds), with one entry appended. -/
@@ -111,43 +101,31 @@ inductive PrimitiveOperation where
   | arrayOfList | arrayToList | arrayAppend | arrayExtract | arrayReplicate
   deriving DecidableEq, Repr
 
-/-- A word operation of price `1`. -/
-def wordOperation (f : UInt64 → UInt64 → MachineValue) (x y : UInt64) :
-    Option (MachineValue × ℕ) :=
-  some (f x y, 1)
+/-- The result `r` of an operation reading `a` and `b` once: the limbs it reads or writes, the
+larger count. -/
+def linearOperation (r a b : ℕ) : Option (MachineValue × ℕ) :=
+  some (.nat r, max (limbCount r) (max (limbCount a) (limbCount b)))
 
-/-- An operation on natural numbers of price `max m m' + 1`. -/
-def naturalOperation (f : ℕ → ℕ → ℕ) (a b : ℕ) : Option (MachineValue × ℕ) :=
-  some (.nat (f a b), max (limbCount a) (limbCount b) + 1)
+/-- The result `r` of an operation pairing each limb of `a` with each limb of `b`: the product of
+their counts, at least the limbs it writes. -/
+def quadraticOperation (r a b : ℕ) : Option (MachineValue × ℕ) :=
+  some (.nat r, max (limbCount r) (limbCount a * limbCount b))
 
 /-- A primitive's value and price on its arguments, or `none` on a misuse. -/
 def PrimitiveOperation.apply : PrimitiveOperation → List MachineValue → Option (MachineValue × ℕ)
-  | .wordAnd, [.word x, .word y] => wordOperation (fun x y ↦ .word (x &&& y)) x y
-  | .wordOr, [.word x, .word y] => wordOperation (fun x y ↦ .word (x ||| y)) x y
-  | .wordXor, [.word x, .word y] => wordOperation (fun x y ↦ .word (x ^^^ y)) x y
-  | .wordNot, [.word x] => some (.word (~~~x), 1)
-  | .wordShiftLeft, [.word x, .word y] => wordOperation (fun x y ↦ .word (x <<< y)) x y
-  | .wordShiftRight, [.word x, .word y] => wordOperation (fun x y ↦ .word (x >>> y)) x y
-  | .wordEqual, [.word x, .word y] => wordOperation (fun x y ↦ .ofBool (x == y)) x y
-  | .wordLessThan, [.word x, .word y] => wordOperation (fun x y ↦ .ofBool (decide (x < y))) x y
-  | .binaryFieldMultiply, [.word x, .word y] => some (.word (binaryFieldMultiplyWords x y), 256)
-  | .wordToNatural, [.word x] => some (.nat x.toNat, 1)
-  | .wordOfNatural, [.nat n] => some (.word n.toUInt64, 1)
-  | .naturalAdd, [.nat a, .nat b] => naturalOperation (· + ·) a b
-  | .naturalSubtract, [.nat a, .nat b] => naturalOperation (· - ·) a b
-  | .naturalMultiply, [.nat a, .nat b] => some (.nat (a * b), limbCount a * limbCount b + 1)
-  | .naturalDivide, [.nat a, .nat b] => some (.nat (a / b), limbCount a * limbCount b + 1)
-  | .naturalModulo, [.nat a, .nat b] => some (.nat (a % b), limbCount a * limbCount b + 1)
-  | .naturalEqual, [.nat a, .nat b] =>
-    some (.ofBool (a == b), max (limbCount a) (limbCount b) + 1)
-  | .naturalLessThan, [.nat a, .nat b] =>
-    some (.ofBool (decide (a < b)), max (limbCount a) (limbCount b) + 1)
-  | .naturalLessOrEqual, [.nat a, .nat b] =>
-    some (.ofBool (decide (a ≤ b)), max (limbCount a) (limbCount b) + 1)
-  | .naturalAnd, [.nat a, .nat b] => naturalOperation (· &&& ·) a b
-  | .naturalShiftLeft, [.nat a, .nat k] =>
-    some (.nat (a <<< k), limbCount (a <<< k) + limbCount k + 1)
-  | .naturalShiftRight, [.nat a, .nat k] => some (.nat (a >>> k), limbCount a + limbCount k + 1)
+  | .bitwiseAnd, [.nat a, .nat b] => linearOperation (a &&& b) a b
+  | .bitwiseOr, [.nat a, .nat b] => linearOperation (a ||| b) a b
+  | .bitwiseXor, [.nat a, .nat b] => linearOperation (a ^^^ b) a b
+  | .shiftLeft, [.nat a, .nat k] => linearOperation (a <<< k) a k
+  | .shiftRight, [.nat a, .nat k] => linearOperation (a >>> k) a k
+  | .add, [.nat a, .nat b] => linearOperation (a + b) a b
+  | .subtract, [.nat a, .nat b] => linearOperation (a - b) a b
+  | .equal, [.nat a, .nat b] => some (.ofBool (a == b), max (limbCount a) (limbCount b))
+  | .lessThan, [.nat a, .nat b] => some (.ofBool (decide (a < b)), max (limbCount a) (limbCount b))
+  | .multiply, [.nat a, .nat b] => quadraticOperation (a * b) a b
+  | .divide, [.nat a, .nat b] => quadraticOperation (a / b) a b
+  | .modulo, [.nat a, .nat b] => quadraticOperation (a % b) a b
+  | .carrylessMultiply, [.nat a, .nat b] => quadraticOperation (carrylessProduct a b) a b
   | .arraySize, [.arr xs] => some (.nat xs.size, 1)
   | .arrayGet, [.arr xs, .nat i, d] => some (xs.getD i d, 1)
   | .arraySet, [.arr xs, .nat i, v] => some (.arr (xs.setIfInBounds i v), xs.size + 1)
@@ -209,9 +187,12 @@ def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → O
   | n, env, .case t alts => do
     let (v, c) ← evaluateTerm P n env t
     match v with
-    | .ctor k fs => do
-      let (w, d) ← evaluateAlternative P n env fs k alts
-      pure (w, c + d + 1)
+    | .ctor k fs =>
+      match alts.attach[k]? with
+      | some ⟨a, _⟩ => do
+        let (w, d) ← evaluateTerm P n (fs ++ env) a
+        pure (w, c + d + fs.length + 1)
+      | none => none
     | _ => none
   | n, env, .letIn t b => do
     let (v, c) ← evaluateTerm P n env t
@@ -230,9 +211,13 @@ def evaluateTerm (P : MachineProgram) : ℕ → List MachineValue → Term → O
     match g with
     | .closure f us => do
       let (w, e) ← evaluateFunctionBody P n f (us ++ vs)
-      pure (w, c + d + e + 1)
+      pure (w, c + d + e + us.length + 1)
     | _ => none
-termination_by n _ t => (n, sizeOf t, 0)
+termination_by n _ t => (n, sizeOf t)
+decreasing_by
+  all_goals first
+    | (apply Prod.Lex.right; have := List.sizeOf_lt_of_mem ‹_ ∈ alts›; simp_all; omega)
+    | decreasing_tactic
 
 /-- The terms' values, in order, and their total price. -/
 def evaluateTerms (P : MachineProgram) :
@@ -242,15 +227,7 @@ def evaluateTerms (P : MachineProgram) :
     let (v, c) ← evaluateTerm P n env t
     let (vs, d) ← evaluateTerms P n env ts
     pure (v :: vs, c + d)
-termination_by n _ ts => (n, sizeOf ts, 0)
-
-/-- Alternative `k` of `alts`, with the fields `fs` in front of the environment. -/
-def evaluateAlternative (P : MachineProgram) :
-    ℕ → List MachineValue → List MachineValue → ℕ → List Term → Option (MachineValue × ℕ)
-  | _, _, _, _, [] => none
-  | n, env, fs, 0, a :: _ => evaluateTerm P n (fs ++ env) a
-  | n, env, fs, k + 1, _ :: as => evaluateAlternative P n env fs k as
-termination_by n _ _ _ as => (n, sizeOf as, 0)
+termination_by n _ ts => (n, sizeOf ts)
 
 /-- Function `f`'s body on the arguments `vs`, one call deeper. -/
 def evaluateFunctionBody (P : MachineProgram) :
@@ -259,7 +236,7 @@ def evaluateFunctionBody (P : MachineProgram) :
   | n + 1, f, vs => match P[f]? with
     | some b => evaluateTerm P n vs b
     | none => none
-termination_by n _ _ => (n, 0, 0)
+termination_by n _ _ => (n, 0)
 
 end
 
@@ -285,10 +262,9 @@ a number. -/
 
 mutual
 
-/-- A value's size: one per word, constructor, array and closure, and a natural number's limbs
-(a literal counts in full; a tag or a function index counts with its node). -/
+/-- A value's size: one per constructor, array and closure, and a natural number's limbs (a
+literal counts in full; a tag or a function index counts with its node). -/
 def MachineValue.size : MachineValue → ℕ
-  | .word _ => 1
   | .nat n => limbCount n
   | .ctor _ fs => MachineValue.sizeList fs + 1
   | .arr xs => MachineValue.sizeList xs.toList + 1
@@ -335,11 +311,11 @@ export MachineEncoding (encodeValue)
 
 open LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 
-instance : MachineEncoding UInt64 := ⟨.word⟩
+instance : MachineEncoding UInt64 := ⟨fun x ↦ .nat x.toNat⟩
 instance : MachineEncoding ℕ := ⟨.nat⟩
 instance {n : ℕ} : MachineEncoding (Fin n) := ⟨fun i ↦ .nat i.val⟩
 instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩
-instance : MachineEncoding K := ⟨fun a ↦ .word a.lane⟩
+instance : MachineEncoding K := ⟨fun a ↦ .nat a.lane.toNat⟩
 instance : MachineEncoding E :=
   ⟨fun x ↦ .ctor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
 
@@ -402,9 +378,10 @@ def encodeExtractorInput (prog : Semantics.Program) (input : PublicInput) (T : O
   .ctor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
     encodeValue proof]
 
-/-- A word of `E` from its encoding. -/
+/-- A word of `E` from its encoding (each limb modulo `2^64`). -/
 def decodeExtensionElement : MachineValue → Option E
-  | .ctor 0 [.word a, .word b, .word c] => some (E.ofLimbs (K.ofLane a) (K.ofLane b) (K.ofLane c))
+  | .ctor 0 [.nat a, .nat b, .nat c] =>
+    some (E.ofLimbs (K.ofLane a.toUInt64) (K.ofLane b.toUInt64) (K.ofLane c.toUInt64))
   | _ => none
 
 /-- **An execution from its encoding**: the memory's log-size `κ`, its `2^κ` words, the steps;
@@ -419,15 +396,7 @@ def decodeExecution (prog : Semantics.Program) : MachineValue → Option (Execut
     | none => none
   | _ => none
 
-end
-
-end LeanVM.Cost
-
 /-! ## The extractor's budget -/
-
-namespace LeanVM.Cost
-
-@[expose] public section
 
 /-- **The extractor's budget** for `N` permutation queries: `2^95 + (N + 2^30)·(D + 2)²·(2^15 +
 2D)`, with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
