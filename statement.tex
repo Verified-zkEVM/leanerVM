@@ -29,7 +29,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: fifteen files
-of definitions and end statements ($7530$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($7346$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2524$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -520,9 +520,10 @@ is known.
 \paragraph{The decoder's budget.} The budget (\lean{guestDecoderBudget}) is
 $(\mathit{steps} + 1)(2^{21} + 2^{13}\lambda) + (70\kappa + 374)\cdot 2^\kappa + 2^{37}(\lambda + 16)$,
 $\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_vm} proves of the
-compiled decoder (within $0.16$ bits of it): per step $2^{20.9}$ to $2^{21.1}$ (the replay and the
-filing of the state in a sorted array, its share of one sort, growing as $\log$ of the steps); the
-sorted table of the memory's addresses at the execution's $\kappa$; and about $2^{41}$ for the
+compiled decoder (within $0.16$ bits of it below $2^{19 + \kappa}$ steps, so on every valid
+execution as argued below; $0.18$ bits up to $2^{60}$ steps, $0.21$ up to $2^{127}$): per step
+$2^{20.9}$ to $2^{21.1}$ (the replay and the filing of the state in a sorted array, its share of
+one sort, growing as $\log$ of the steps); the sorted table of the memory's addresses at the execution's $\kappa$; and about $2^{41}$ for the
 witness read at the counts and the cursors a valid execution bounds, with about $2^{26.57}$ frame
 lookups: $G$'s own asserts give at most $16$ children, $65535$ claims of each scheme and $65535$
 coverage slots (\lean{valid_counts}); each child's cursor is at most $8192$ words, as the stream of
@@ -549,10 +550,10 @@ useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on
 statements) fits there. It does not bound what a program written differently could hold: the
 guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
 three cells to a limb, freeing room for about $1600$ signatures' encodings. Nor is the compiled
-program compact: its bodies are $784277$, and its size counts $628$ indices without a body
-($1256$, a literal $0$ each), left by the numbering it shares with the extractor's compiled
-functions; the same program renumbered compactly would leave about $1723$ free, about five
-signatures' encodings.
+program compact: its size also counts, a literal $0$ each, the indices without a body left by the
+numbering it shares with the extractor's compiled functions; renumbered compactly, the same
+program would leave room for a few signatures' encodings (\lean{lean_vm}'s README has the
+measurements).
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it within its size bound and budget gives \lean{GuestKnowledge}

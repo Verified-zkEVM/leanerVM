@@ -37,12 +37,11 @@ honest (among them a `GF(2^64)` product at `256`, on the basis of a hardware car
 and that the leanVM definitions transcribe their sources. Accepted trade-offs: the statement does
 not name the extractor or decoder program (only their sizes and budgets); the decoder computes the
 witness from the execution; the extracted execution need not be the committed one; the decoder's
-budget has no cap on steps, grows as `steps·log steps` below `2^61` steps (`steps·log² steps` as
-they grow), and its constant (`2^42.0` to `2^44.2` at the points below, the address tables at the
-execution's `κ` and the program's `ℓ` included) prices the witness at the bounds a valid execution's
-asserts and its children's accepted proofs give (`16` children, each with `65535` claims of each
-scheme and a cursor of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA
-matrix), not at the run's, so with fewer children and claims, at `κ ≤ 28` and well below `2^21`
+budget has no cap on steps, grows as `steps·log steps`, and its constant (`2^42.17` to `2^44.30` at
+the points below, the address tables at the execution's `κ` included) prices the witness at the
+bounds a valid execution's asserts and its children's accepted proofs give (`16` children, each
+with `65535` claims of each scheme and a cursor of `8192` words, `65535` declared claims of each
+scheme, `1024` rows of the DA matrix), not at the run's, so with fewer children and claims, at `κ ≤ 28` and well below `2^21`
 steps, the budget is several times the compiled decoder's price (at `κ = 32` the address tables,
 priced at the run's `κ`, are most of it); that
 a valid execution of the guest program has fewer than `2^51` steps is argued in prose, not proved in
@@ -251,9 +250,9 @@ proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
 | `LeanVM.Guest.Batch.BatchingSound` | `LeanVM.Guest.Batch.batch_sound_holds` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
 | `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
 | `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
-| `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/RpmComplete.lean`](../lean_da/LeanDa/RpmComplete.lean) |
-| `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |
-| `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa/RpmArg.lean`](../lean_da/LeanDa/RpmArg.lean) |
+| `LeanDa.PerfectlyCompleteRpm` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |
+| `LeanDa.PositionBindingRpm` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |
+| `LeanDa.CodeBindingRpm` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |
 
 The corollaries, [`Corollaries.lean`](Corollaries.lean), the fields of `Statement.Corollaries`:
 `lean_vm/LeanVM.lean` proves them from `Statement.Theorems` alone
@@ -286,15 +285,17 @@ witnesses (hard-coded signatures masking a bug of the guest program on finitely 
 fits there. That size counts the guest program's per-function tables, literals of the program, in
 full. It does not bound what a program written differently could hold: the guest's frame-cell table
 (`749835` of the size, cells below `2^20`) packs to about a third, three cells to a limb, freeing
-room for about `1600` signatures' encodings. Nor is the compiled program compact: its bodies are
-`784277`, and its size counts `628` indices without a body (`1256`, a literal `0` each), left by
-the numbering it shares with the extractor's compiled functions; the same program renumbered
-compactly would leave about `1723` free, about five signatures' encodings.
+room for about `1600` signatures' encodings. Nor is the compiled program compact: its size also
+counts, a literal `0` each, the indices without a body left by the numbering it shares with the
+extractor's compiled functions; renumbered compactly, the same program would leave room for a few
+signatures' encodings ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the
+measurements).
 
 **The budget** (`guestDecoderBudget`) is a short formula, `(steps + 1)·(2^21 + 2^13·lg) +
 (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above the closed-form price
 `lean_vm` proves of the compiled decoder (`lean_vm/LeanVM/Cost/Prices.lean`, within `0.16` bits of
-it): a price per step of the run (the replay and the filing of the state in the table of function
+it below `2^(19 + κ)` steps, so on every valid execution as argued below; `0.18` bits up to `2^60`
+steps, `0.21` up to `2^127`): a price per step of the run (the replay and the filing of the state in the table of function
 entries, its share of one sort, `2^20.9` to `2^21.1`, growing as `log(steps)`); the sorted table of
 the memory's addresses, at the execution's `κ`; and the witness read at the counts and the cursors
 a valid execution bounds (about `2^41`: the guest's own asserts give at most `16` children, `65535`

@@ -8,7 +8,7 @@ import Common.WithHash
 `XmssSecurity.leanXmss_rpm_security` (`XmssSecurity/Rpm.lean`) proves
 `LeanXmss.Rpm.LeanXmssStronglyUnforgeable` (`Statement/LeanXmss.lean`): in the
 random-permutation model, an adversary whose game makes at most `Q` permutation calls,
-`1 ≤ Q ≤ 2^128`, forges with probability at most `(Q + 1) · 2^-127` (from
+for every `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (from
 `Q / 2^127 + Q² / 2^509`, the sponge's indifferentiability added). Its proof passes through the random-oracle
 model (`leanXmss_has_127_bits_of_classical_security`, a step). -/
 

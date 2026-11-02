@@ -6,7 +6,7 @@ import Sphincs.TablesFirewall
 
 `Sphincs.Lifetimes.requestedSecurityRpm` proves `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable`
 (`Statement/LeanSphincs.lean`): in the random-permutation model, at every proved lifetime, an
-adversary whose game makes at most `Q` permutation calls, `1 ≤ Q ≤ 2^128`, forges with probability
+adversary whose game makes at most `Q` permutation calls, for every `Q ≥ 1`, forges with probability
 at most `(Q + 1) · 2^-127` (from `Q / 2^127 + Q² / 2^509`, the sponge's indifferentiability
 added). Its proof passes through the random-oracle model
 (`SphincsLayered.Lifetimes.requestedSecurity`, a step) and the layered presentation of the scheme,

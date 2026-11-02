@@ -30,7 +30,7 @@ deployed duplex over `π`, the adversary and the argument's prover and verifier 
 model's oracles, the argument's extractor reading the adversary's transcript), LeanDA is perfectly
 complete for every permutation `π`, by Wagner's completeness proof
 (`leanDa_perfectlyComplete_rpm`, `LeanDa.RpmComplete`); position binding holds with the bound
-`(Q + 1)² · 2^-256` for `Q ≤ 2^128` permutation calls (`leanDa_positionBinding_rpm`, from
+`(Q + 1)² · 2^-256` for every number `Q` of permutation calls (`leanDa_positionBinding_rpm`, from
 `Q² / 2^256 + Q² / 2^508`, `LeanDa.RpmArg`); and code binding holds for an argument knowledge
 sound there (`leanDa_codeBinding_rpm_bound`, `LeanDa.RpmArg`) by a straight-line argument built
 on Wagner's framework and games (`LeanDa.StraightBound`): a code-binding win is a break of the
@@ -51,10 +51,10 @@ which implies it (`codeBindingRpmFork_of_codeBindingRpm`).
 
 /-! ## The end theorems
 
-Each proves a proposition of `Statement/LeanDa.lean`: `leanDa_perfectlyComplete_rpm :
-PerfectlyCompleteRpm` in `LeanDa/RpmComplete.lean`, `leanDa_positionBinding_rpm :
-PositionBindingRpm` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm` in `LeanDa/RpmArg.lean`;
-the axioms are pinned at the end of this file. -/
+Each proves a proposition of `Statement/LeanDa.lean`, all three in `LeanDa/PiOnly.lean`:
+`leanDa_perfectlyComplete_rpm : PerfectlyCompleteRpm`, `leanDa_positionBinding_rpm :
+PositionBindingRpm` and `leanDa_codeBinding_rpm_bound : CodeBindingRpm`; the axioms are pinned at
+the end of this file. -/
 
 example : LeanDa.PerfectlyCompleteRpm := LeanDa.leanDa_perfectlyComplete_rpm
 

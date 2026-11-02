@@ -31,9 +31,10 @@ the files below keep their proofs and the definitions only the proofs use.
   lazily sampled permutation is the same on either side (`lazyPerm_relabel`), and a game of the
   statement's model is the game with its permutation queries read on bytes (`relabel`), with the
   same distribution (`runK_relabel`) and the same permutation calls (`isWeightBound_relabel_iff`).
-- `Common/Model.lean`: the permutation oracle (`permutationOracleSpec`: `π` and `π⁻¹`), the lazily sampled
-  random permutation (`lazyRandomPermutation`) and its validity (a partial permutation, extendable to a
-  permutation), the lazily sampled random function (`lazyFun`).
+- `Common/Model.lean`: the validity of the lazily sampled random permutation (`lazyRandomPermutation`
+  over the permutation oracle `permutationOracleSpec`, `π` and `π⁻¹`, both defined in
+  [`Statement/RandomPermutation.lean`](../Statement/RandomPermutation.lean)): a partial permutation,
+  extendable to a permutation; and the lazily sampled random function (`lazyFun`).
 - `Common/Sponge.lean`: the sponge over an arbitrary `π : S → m S` (`spongeWith`), the laws the
   proofs need of its XOR and padding (`XorCancel`, `Padding.Lawful`; the statement uses only `^^^`,
   `pad` and `unpad`), Keccak-256's padding's laws (its six lemmas, the instance for

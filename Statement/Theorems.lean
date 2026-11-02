@@ -145,10 +145,10 @@ leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as t
 `14400` against its `13813`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
 cells to a limb, freeing room for about `1600` signatures' encodings. Nor is the compiled program
-compact: its bodies are `784277`, and its size counts `628` indices without a body (`1256`, a
-literal `0` each), left by the numbering it shares with the extractor's compiled functions; the
-same program renumbered compactly would leave about `1723` free, about five signatures'
-encodings. -/
+compact: its size also counts, a literal `0` each, the indices without a body left by the
+numbering it shares with the extractor's compiled functions; renumbered compactly, the same
+program would leave room for a few signatures' encodings (`lean_vm/README.md` has the
+measurements). -/
 def guestDecoderSizeBound : ℕ := 786000
 
 /-! ### The guest decoder's budget -/
