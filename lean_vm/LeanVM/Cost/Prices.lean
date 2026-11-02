@@ -50,8 +50,8 @@ def fastPathPrice (μ R w cW : ℕ) : ℕ :=
 `8`-word keys, three insertions into sorted maps below `2^D` entries, a block's `B` bytes; `W` the
 limbs of positions and weights. -/
 def replayStepPrice (B D W : ℕ) : ℕ :=
-  2 * (D * (17 + (60 + 23 * 25 + 11 * W) * (D + 2))) + D * (17 + (60 + 23 * 8 + 11 * W) * (D + 2)) +
-    2 * ((23 * 25 + 31) * D) + (23 * 8 + 31) * D + 3 * ((40 + 2 * W) * D) + 6 * W + 16 * B + 10000
+  2 * (D * (20 + (40 + 26 * 25 + 9 * W) * (D + 2))) + D * (20 + (40 + 26 * 8 + 9 * W) * (D + 2)) +
+    2 * ((26 * 25 + 37) * D) + (26 * 8 + 37) * D + 3 * ((32 + 2 * W) * D) + 6 * W + 19 * B + 10342
 
 /-- One step of the first answers, amortized: a lookup and an insertion of a key of at most `L`
 bytes. -/
@@ -66,10 +66,10 @@ def preimageStepPrice (L D W : ℕ) : ℕ :=
 /-- The transcript's index: `N` permutation queries, `N + 2 ≤ 2^D`, evaluations of at most `L`
 bytes kept. -/
 def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
-  (23 * 8 + 31) * D + (replayStepPrice (L + 136) D W + 13) * N +
-    (114 * (L + 136) + 12313) * (N + 1) + 470 +
-    (N + 1) * ((firstAnswersStepPrice L D W + 9) + (preimageStepPrice L D W + 9) +
-      D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + 60) + 50
+  (26 * 8 + 37) * D + (replayStepPrice (L + 136) D W + 16) * N +
+    (120 * (L + 136) + 9363) * (N + 1) + 442 +
+    (N + 1) * ((firstAnswersStepPrice L D W + 11) + (preimageStepPrice L D W + 11) +
+      D * (20 + (40 + 26 * L + 9 * W) * (D + 2)) + 67) + 44
 
 /-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
 binary searches. -/
