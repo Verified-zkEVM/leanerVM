@@ -22,7 +22,7 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   insertions: their `limbCount` at most `limbsBelowTwoPow (D + 1) = (D + 1)/64 + 1` (`limbs_le_wl`), the tactic
   `limbs_bound hW` adding a bound for every `limbCount t` of the goal;
 * **`listFoldl_amortized`**: a fold whose step pays at most `A` amortized (its price plus the
-  potential after, at most the potential before plus `A`) pays `(A + 9)·n + 3` from a start of
+  potential after, at most the potential before plus `A`) pays `(A + 11)·n + 3` from a start of
   potential `0`.
 
 The compiled maps (one `carry` per key and value type) instantiate them: the preimage index and
@@ -279,14 +279,14 @@ variable (P : MachineProgram) {α β : Type} [MachineEncoding α] [MachineEncodi
 
 /-- **`List.foldl`, amortized** (`listFoldl`): a step at an accumulator of invariant `I acc r`
 (`r` the elements left) pays at most `A` plus the drop of a potential `Φ`; then the fold pays at
-most `Φ init + (A + 9)·n + 3`. -/
+most `Φ init + (A + 11)·n + 3`. -/
 theorem listFoldl_amortized (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (A : ℕ) (Φ : α → ℕ)
     (I : α → ℕ → Prop) :
     ∀ (l : List β) (init : α), I init l.length →
       (∀ acc r, I acc (r + 1) → ∀ b ∈ l, I (f acc b) r ∧
         appCost P fVal [encodeValue acc, encodeValue b] + Φ (f acc b) ≤ Φ acc + A) →
-      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ Φ init + (A + 9) * l.length + 3 := by
+      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ Φ init + (A + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
