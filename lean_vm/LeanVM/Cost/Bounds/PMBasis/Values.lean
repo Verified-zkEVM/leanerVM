@@ -38,10 +38,13 @@ coefficient moved (stated, not measured). -/
   { mac := 305, fwd := 520, inv := 413, toNovel := 944, fromNovel := 1037, leafCube := 444,
     leafSquare := 12350, coeff := 316, ovh := 64 }
 
-/-- **The measured prices with a margin**: each `5/4` of the measured one, rounded up. -/
+/-- **The measured prices with a margin**: each `5/4` of the measured one, rounded up, except
+where track fft's proved transform prices ask for more (`FFTPricesOK marginPrices`,
+`Bounds/PMFFT/EvalCost.lean`): the conversions to and from the novel basis (`4100`, `5490` per
+`j·2^j`, which holds for `j ≤ 36`) and a coefficient moved (`600`). -/
 @[expose] def marginPrices : PMPrices :=
-  { mac := 382, fwd := 650, inv := 517, toNovel := 1180, fromNovel := 1297, leafCube := 555,
-    leafSquare := 15438, coeff := 395, ovh := 80 }
+  { mac := 382, fwd := 650, inv := 517, toNovel := 4100, fromNovel := 5490, leafCube := 555,
+    leafSquare := 15438, coeff := 395, ovh := 600 }
 
 theorem pmOrder_28_4_eq : pmOrder_28_4 = 34819023731 := by decide +kernel
 
@@ -57,20 +60,20 @@ theorem pmTreePair_28_4_measured :
   decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, the prices with their margin**:
-`11648617207674066543301263 ≈ 2^83.27`. -/
+`14514211702419010916829151 ≈ 2^83.59`. -/
 theorem pmTreePair_28_4 :
     pmTreePair 1 (pmLeafPrice marginPrices pmRows_28_4)
       (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (11648617207674066543301263, 11648617207695852419893540) := by
+      (14514211702419010916829151, 14514211702441570961706804) := by
   decide +kernel
 
 /-- **The per-level closed form at `(28, 4)`**, the prices with their margin:
-`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 12215213791106017278355823 ≈ 2^83.34` (`pmTree_le_levels`;
+`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 15099798695488801463230031 ≈ 2^83.64` (`pmTree_le_levels`;
 `0.07` bit above the tree's exact value). -/
 theorem pmLevels_28_4 :
     pmLevels (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 +
         pmLeafPrice marginPrices pmRows_28_4 * pmOrder_28_4 =
-      12215213791106017278355823 := by
+      15099798695488801463230031 := by
   decide +kernel
 
 end

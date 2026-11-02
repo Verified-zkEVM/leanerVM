@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.PMCore.Glue
 public import LeanVM.Cost.Bounds.PMCore.Products
+public import LeanVM.Cost.Bounds.PMFFT.EvalCost
 public import LeanVM.Cost.Bounds.PMBasis.Recursion
 public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRecursion
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.XAdicSoundness
@@ -20,9 +21,9 @@ leaf at order one, the evaluation-domain products). Its price, by its two equati
 (`pmBasisWithFuelCore_price_le`, `Bounds/PMBasis/Recursion.lean`):
 
 * **`residualMatrixC_cost`**: the residual `(P₁·A) div X^d`: the column-truncated product
-  (`MulTruncEvalPCost`, track fft's) and `R·W` entries of at most `59·O + 87` each;
+  (track fft's `mulTruncEvalPC_cost`) and `R·W` entries of at most `59·O + 87` each;
 * **`pmCoreC_node`**: a node's own price at maximal order `o` is at most
-  `pmNodePrice p r m o` (`p.ovh ≥ 80`), the products within `evalMatPrice`, the sizes from
+  `pmNodePrice p r m o` (`FFTPricesOK p`), the products within `evalMatPrice` (track fft's), the sizes from
   `popovRuntime_core_node` (exactly `r` rows, degrees at most the halves' orders);
 * **`pmCoreC_cost`**: on a problem of `r ≥ m` rows of width `m` (`CoreInv`: shifts plus twice the
   maximal order at most `SB < 2^60`), at the fuel `pmBasisFuel = maxOrder + 1`, the price is at
@@ -171,7 +172,7 @@ orders, word-sized entries, the shifts plus twice the maximal order at most `SB`
 order at most `2^37/3` (every transform of at most `2^36` points). -/
 @[expose] def CoreInv (r m SB : ℕ) (problem : XAdicProblem K) (shift : Array ℕ) : Prop :=
   problem.matrix.size = r ∧ (∀ row ∈ problem.matrix.toList, row.size = m) ∧
-    problem.orders.size ≤ m ∧ SizeLe problem.matrix (2 ^ 62) ∧
+    problem.orders.size ≤ m ∧ SizeLe problem.matrix (2 ^ 40) ∧
     (∀ j, shift.getD j 0 + 2 * maxOrder problem ≤ SB) ∧ 3 * maxOrder problem ≤ 2 ^ 37
 
 /-- **The leaf's price**: the ordered-weak-Popov leaf at order at most one and its compaction,
@@ -203,6 +204,10 @@ theorem le_maxOrder (problem : XAdicProblem K) : ∀ x ∈ problem.orders, x ≤
     · exact ih _ h
 
 theorem natDegree_le_size' (q : CPolynomial K) : q.natDegree ≤ q.val.size := by
+  unfold CPolynomial.natDegree
+  split <;> omega
+
+theorem natDegree_le_size_sub_one' (q : CPolynomial K) : q.natDegree ≤ q.val.size - 1 := by
   unfold CPolynomial.natDegree
   split <;> omega
 
@@ -271,8 +276,8 @@ theorem popovRuntime_leafCutoff :
 
 /-- **A node of the compiled core**: at maximal order `o ≥ 2` (fuel at least `o − 1`), its price
 is at most `pmNodePrice p r m o` and its two children's. -/
-theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : MulEvalPCost P p)
-    (hMT : MulTruncEvalPCost P p) (hovh : 80 ≤ p.ovh) {r m SB : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)
+theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMFFT.FFTPricesOK p)
+    {r m SB : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)
     (hr30 : r < 2 ^ 30) (hSB : SB < 2 ^ 39) (problem : XAdicProblem K) (shift : Array ℕ)
     (hI : CoreInv r m SB problem shift) (n : ℕ) (hn : n + 1 < 2 ^ 62)
     (hge : 2 ≤ maxOrder problem) (hfuel : maxOrder problem ≤ n + 2) :
@@ -325,20 +330,23 @@ theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : Mu
       have := hord y hy; omega
   have hRM := residualMatrixC_cost P (by includes) P₁ problem.matrix d (residualOrders problem d)
     hRO' (by omega) (by omega) (by omega)
-  have hBD : DegLe problem.matrix (2 ^ 62) := fun i j ↦ by
-    have := natDegree_le_size' (rowGet (problem.matrix.getD i #[]) j)
+  have hBD : DegLe problem.matrix (2 ^ 40 - 1) := fun i j ↦ by
+    have := natDegree_le_size_sub_one' (rowGet (problem.matrix.getD i #[]) j)
     have := hIsz i j
     omega
-  have hMTb := hMT ((residualOrders problem d).map fun order ↦ order + d) P₁ problem.matrix d
-    (2 ^ 62) o hP1D hBD (fun c ↦ getD_le_of_mem fun x hx ↦ by
+  have hP1pos : 0 < P₁.size := by omega
+  have hMTb := PMFFT.mulTruncEvalPC_cost P (by includes) p hp
+    ((residualOrders problem d).map fun order ↦ order + d) P₁ problem.matrix d (2 ^ 40 - 1) o hP1D hBD
+    (fun c ↦ getD_le_of_mem fun x hx ↦ by
       simp only [residualOrders, Array.mem_map] at hx
       obtain ⟨y, ⟨z, hz, rfl⟩, rfl⟩ := hx
-      have := hord z hz; omega)
+      have := hord z hz; omega) (by omega) (by omega) (by omega)
     (by
-      rw [Nat.min_eq_left (by omega : d ≤ o - 1), Nat.min_eq_right (by omega : o - 1 ≤ 2 ^ 62)]
+      rw [Nat.min_eq_left (by omega : d ≤ o - 1), Nat.min_eq_right (by omega : o - 1 ≤ 2 ^ 40 - 1)]
       exact clog2_le (by omega))
-    (by omega) (by omega) (by omega) (by omega)
-  rw [Nat.min_eq_left (by omega : d ≤ o - 1), Nat.min_eq_right (by omega : o - 1 ≤ 2 ^ 62)] at hMTb
+    hP1pos (by omega) (by omega) (by omega) (by omega)
+  rw [Nat.min_eq_left (by omega : d ≤ o - 1), Nat.min_eq_right (by omega : o - 1 ≤ 2 ^ 40 - 1)]
+    at hMTb
   have hUS := updateShiftByRowsC_cost P (by includes) (C := r) (D := d + 1) (S := SB) (by omega)
     (by omega) P₁ (by omega) (fun i ↦ by
       rcases Nat.lt_or_ge i P₁.size with hi | hi
@@ -351,8 +359,8 @@ theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : Mu
         exact le_trans h2 (by simpa using Nat.add_le_add_right h1 1)
       · rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none (by omega)]
         exact rowWithin_empty _ _) shift (fun j ↦ by have := hIsh j; omega)
-  have hMEb := hME P₂ P₁ (o - d) d hP2D hP1D (clog2_le (by omega)) (by omega) (by omega)
-    (by omega)
+  have hMEb := PMFFT.mulEvalPC_cost P (by includes) p hp P₂ P₁ (o - d) d hP2D hP1D
+    (clog2_le (by omega)) (by omega) (by omega) hP1pos (by omega) (by omega)
   have hshape := mulWith_shape fftMulLowContext.mulContext P₂ P₁ hP2D hP1D
   have hcomp : RT.composeBasis P₂ P₁ = mulWith fftMulLowContext.mulContext P₂ P₁ :=
     mulStrassenWith_eq_mulWith _ _ _ _
@@ -371,6 +379,7 @@ theorem pmCoreC_node (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : Mu
   rw [hmw] at hRM
   rw [hP2s', hP1s, hP1w] at hMEb
   rw [hP1s, hIs, hmw] at hMTb
+  have hovh : 80 ≤ p.ovh := le_trans (by norm_num) (PMFFT.ovh_of_ok hp)
   have hglue := glue_le r m o p.ovh d hr hge hovh (by omega)
   have hl1 : limbCount (n + 1) = 1 := limbs_of_lt (by omega)
   have hl2 : limbCount o = 1 := limbs_of_lt (by omega)
@@ -435,11 +444,12 @@ theorem coreInv_children {r m SB : ℕ} (hr : 1 ≤ r) (hSB : SB < 2 ^ 62) (prob
 
 /-- **The compiled PM-basis core's price** (`pmCoreC`, at CompPoly's fuel `pmBasisFuel`): on a
 problem of the invariant (`r ≥ m` rows of width `m`, shifts plus twice the maximal order at most
-`SB < 2^39`), with the products within the model (`MulEvalPCost`, `MulTruncEvalPCost`, track fft's)
+`SB < 2^39`), with the products within the model (track fft's `mulEvalPC_cost`, `mulTruncEvalPC_cost`)
 and the leaf within `Lc` (`LeafCost`), at most the model's tree with the node price
-`pmNodePrice p r m` (`p.ovh ≥ 80`) and the leaf price `Lc + 18·m + 60`. -/
-theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : MulEvalPCost P p)
-    (hMT : MulTruncEvalPCost P p) (hovh : 80 ≤ p.ovh) {r m SB Lc : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)
+`pmNodePrice p r m` and the leaf price `Lc + 18·m + 60`, at prices `p` track fft's products fit
+(`FFTPricesOK p`). -/
+theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMFFT.FFTPricesOK p)
+    {r m SB Lc : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)
     (hr30 : r < 2 ^ 30) (hSB : SB < 2 ^ 39) (hL : LeafCost P r m SB Lc)
     (problem : XAdicProblem K) (shift : Array ℕ) (hI : CoreInv r m SB problem shift) :
     machineCost P pmCoreC.costIdx
@@ -491,7 +501,7 @@ theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hME : Mu
       show (if fuel + 1 < 2 ^ 61 then _ else 0) ≤ _ + (if fuel < 2 ^ 61 then _ else 0) +
         (if fuel < 2 ^ 61 then _ else 0)
       split_ifs with h1 h3
-      · exact pmCoreC_node P hP hME hMT hovh hr hm hr30 hSB prob sh hIp fuel (by omega) h2 hf
+      · exact pmCoreC_node P hP hp hr hm hr30 hSB prob sh hIp fuel (by omega) h2 hf
       · omega
       · omega
       · omega)

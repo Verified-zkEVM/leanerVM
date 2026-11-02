@@ -23,7 +23,7 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
 * **`decodeStacksPMC_cost`** `≤ decoderBoundPM p μ R BW Lw` at an admissible shape whose lanes
   are word-sized, and **`decodeStacksPMC_cost_worst`**: at every admissible shape, at the model's
   prices with their margin, at most `(BW + 10·Lw)·2^26 + pmDecoderWorstPrice`
-  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^94.034`).
+  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^94.047`).
 
 Each takes the interpolation's price as the hypothesis `InterpPMCost P p` (track solve's lemma).
 The functions the compiler outlined on demand are named by their terms (`cost_const%`,
@@ -421,7 +421,7 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 
 /-- **The decoder on the new solver at every admissible shape**, at the model's prices with
 their margin: at most `(BW + 10·Lw)·2^26 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 20283179056875633683000507034 ≈ 2^94.034`), the interpolation within
+`pmDecoderWorstPrice = 20469807568500614369776479386 ≈ 2^94.047`), the interpolation within
 `interpPMPrice marginPrices`. -/
 theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
     (hI : InterpPMCost P marginPrices) {μ R : ℕ} (hadm : Whir.Admissible μ R)
