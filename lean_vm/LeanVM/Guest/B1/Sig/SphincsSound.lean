@@ -82,7 +82,7 @@ def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
       (signaturePath sig) totalHeight leaf = root
 
 theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
-    Node.sphincsVerify pk m sig = true ↔ SRoot pk.parameter m sig pk.root :=
+    Node.leanSphincsVerifyWithKeccak pk m sig = true ↔ SRoot pk.parameter m sig pk.root :=
   sphincsVerify_iff pk m sig
 
 variable {C : CallRel} {rd : Reader} {kret : List E → Prop}
@@ -291,7 +291,7 @@ theorem verify_sig_lean_sphincs_sound_holds : verify_sig_lean_sphincs_sound_Spec
   rw [sEnd_split] at h
   obtain ⟨-, -, hR⟩ := sphincs_root h (hcp.trans hNc) hNc32 hNu h161
   refine ⟨σ (.n sMk.2.1), σ sPP, σ (.n 5), σ (.n 6), ⟨hld0, hpre.ldP, hpre.ld2, hpre.ld3⟩, ?_⟩
-  show Node.sphincsVerify ⟨sv (σ (.n sMk.2.1)), spp (σ sPP)⟩ (smsg (σ (.n 5)) (σ (.n 6)))
+  show Node.leanSphincsVerifyWithKeccak ⟨sv (σ (.n sMk.2.1)), spp (σ sPP)⟩ (smsg (σ (.n 5)) (σ (.n 6)))
     (sphincsSigOf σ) = true
   rw [sphincsVerify_SRoot]
   have hr : σ sMk.2.2 = σ (.n sMk.2.1) := e_add_eq_zero_iff.mp hroot

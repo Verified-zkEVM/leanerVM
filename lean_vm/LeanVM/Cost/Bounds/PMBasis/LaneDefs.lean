@@ -15,7 +15,7 @@ interpolation's part `interpPMPrice`, the rest the bounds of `Bounds/Decoder/Sha
 * **the interpolation** (`interpPMPrice`), `n` points, multiplicity `m`, `w = ℓ + 1` columns,
   weighted degree `W`:
   - `G` and `R` (`vanishingFast`, `interpolateCoefficientFormWithVanishing` by Horner):
-    `3720·n² + 1700·(n+1)·n + 30000·n + 1000` (`vanishingC_cost`, `interpolateC_cost`);
+    `362·n² + 309·(n+1)·n + 4146·n + 299` (`vanishingC_cost`, `interpolateC_cost`);
   - the GS data (`buildGSModularDataWithRG`, `gsDataPrice`): the `m` moduli `G^(m−b)` by `m − 1`
     products, the relation matrix's `m` columns by at most `m·w` multiply-reduce steps
     (`gsRelationColumn`), every product and remainder at the largest size `(m + 1)·n + 1`
@@ -29,7 +29,7 @@ interpolation's part `interpPMPrice`, the rest the bounds of `Bounds/Decoder/Sha
   - the least row (`leastShiftedDegreeChoice?`) and the normalization (`normBound`, existing, and
     the row as a bivariate polynomial);
 * **the rest of the lane's run** (`gsRunBoundPM`): the truncation, Roth–Ruckenstein's search
-  (`rrBound`, `≈ 2^87.98` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
+  (`rrBound`, `≈ 2^86.38` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
 * **the lane and the decoder** (`decoderLaneRunBoundPM`, `decoderLaneBoundPM`, `decoderBoundPM`),
   on `gsRunBoundPM`: the parameter search, the lane's points, its candidates encoded (`laneExtraBound`), the `64` lanes pruned
   (`pruneBound`), a stack per survivor.
@@ -82,7 +82,7 @@ full precision about three, the quotient, the back-product). -/
 
 /-- **`G` and `R`**: the chain's vanishing polynomial and Horner interpolation on `n` points
 (`vanishingC_cost`, `interpolateC_cost`). -/
-@[expose] def grPrice (n : ℕ) : ℕ := 3720 * (n * n) + 1700 * ((n + 1) * n) + 30000 * n + 1000
+@[expose] def grPrice (n : ℕ) : ℕ := 362 * (n * n) + 309 * ((n + 1) * n) + 4146 * n + 299
 
 /-- **The GS modular data** (`buildGSModularDataWithRG`), `n` points, multiplicity `m`, `w`
 columns: `m` products for the moduli, `m` reductions of `R`, at most `m·w` multiply-reduce steps
@@ -118,16 +118,16 @@ normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` 
 `interpPMPrice`, the truncation, Roth–Ruckenstein's search (`rrBound`), the candidates' filter. -/
 @[expose] def gsRunBoundPM (p : PMPrices) (n : ℕ) (params : GSInterpParams) : ℕ :=
   interpPMPrice p n params + 10 +
-    ((27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) + 40) +
+    ((25 * (params.weightedDegreeBound + 1) + 72) * (interpolationYCap params + 1) + 25) +
     rrBound (params.weightedDegreeBound + 1) (interpolationYCap params + 2) params.messageDegree
       (interpolationYCap params) +
-    ((272 * params.messageDegree + 34) * n + 50) * max 1 (interpolationYCap params) + 40
+    ((46 * params.messageDegree + 36) * n + 54) * max 1 (interpolationYCap params) + 40
 
 /-- **A lane's run on `pmSolver`** (`gsLaneWith pmSolver κ R A`): the parameter search, the
 lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBoundPM`). -/
 @[expose] def decoderLaneRunBoundPM (p : PMPrices) (κ R A BS : ℕ) : ℕ :=
-  190 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 28) * 2 ^ (κ + R) +
-    gsRunBoundPM p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 200
+  138 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 30) * 2 ^ (κ + R) +
+    gsRunBoundPM p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 131
 
 /-- **A lane's candidates on `pmSolver`** (`laneEncodedWith pmSolver κ R A`): the run, then at
 most `max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -/
@@ -139,14 +139,14 @@ most `max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -
 /-- **The decoder on `pmSolver`** (`decodeStacksDistinctPM μ R`) at the shape `(μ, R)`
 (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson threshold `A`): the `2^6` lanes pruned (`pruneBound`: the
 word's table, `BW` per column and `Lw` symbols per column; a lane `decoderLaneBoundPM`, at most
-`max 1 ℓ` candidates, at most `2^18` survivors), a stack per survivor. -/
+`max 1 ℓ` candidates, at most `2^12` survivors), a stack per survivor. -/
 @[expose] def decoderBoundPM (p : PMPrices) (μ R BW Lw : ℕ) : ℕ :=
   pruneBound (μ - Whir.initialFold) R (2 ^ Whir.initialFold) BW Lw
-      (decoderLaneBoundPM p (μ - Whir.initialFold) R (johnsonThreshold μ R) 12)
+      (decoderLaneBoundPM p (μ - Whir.initialFold) R (johnsonThreshold μ R) 13)
       (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold))
         (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
-      (2 ^ 18) +
-    ((15 * 2 ^ Whir.initialFold + 56) * 2 ^ μ + 34) * 2 ^ 18 + 16330
+      (2 ^ 12) +
+    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14098
 
 end
 

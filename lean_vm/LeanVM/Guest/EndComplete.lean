@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Complete
 public import LeanVM.Guest.Memory.HonestMain
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Completeness, the `honest` piece
@@ -43,7 +44,7 @@ on every memory holding which with the statement's digest as its header `main` h
 placed at `0`, of `N` words, loading from its own data or its header, within the budget's
 instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -74,12 +75,12 @@ structure CompleteParts : Prop where
   /-- The checker: `CompletePiecesWithin.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guest)
+      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Registers.final guestProgram)
   /-- The checker: `CompletePiecesWithin.count`. -/
   count : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guest (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guest) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guest).count op ≤ cnt T op
+      run guestProgram (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).count op ≤ cnt T op
 
 variable {fs H C cert cnt b}
 
@@ -87,7 +88,7 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by

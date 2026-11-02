@@ -13,7 +13,7 @@ The products of at most `N` coefficients, the truncated products and Newton's in
 precision `≤ N` (`mulViaFFTC_cost`, `rawMulLowFFTC_cost`, `inverseModXFFTC_cost`):
 `mulBound_fft`, `lowBound_fft`, `invBound_fft`, at the prices `fftMB`, `fftLB`, `fftIB`; the
 PM-basis core (`pmCoreC_cost`, the leaf's `leafCost`) at the leaf's proved price
-`leafBound r m + 18·m + 60`: `pmCoreCostAt_leaf`.
+`leafBound r m + 21·m + 32`: `pmCoreCostAt_leaf`.
 
 **`interpolatePMC_cost_model`**: the lanes' interpolation at most `interpPMModel p n params`, on
 the shapes `PMInterpOK n params` (decidable: the sizes, the transforms within `2^36` points, the
@@ -61,11 +61,11 @@ theorem invBound_fft (hP : Includes P inverseModXFFTC.costDeps) (p : PMPrices)
   omega
 
 /-- **The PM-basis core at the leaf's proved price** (`pmCoreC_cost` and
-`leafCost`): the tree at the leaf price `leafBound r m + 18·m + 60`. -/
+`leafCost`): the tree at the leaf price `leafBound r m + 21·m + 32`. -/
 theorem pmCoreCostAt_leaf (hP : Includes P pmCoreC.costDeps) (p : PMPrices)
     (hp : PMFFT.FFTPricesOK p) {r m SB : ℕ} (hr : 2 ≤ r) (hm : m ≤ r) (hr28 : r < 2 ^ 28)
     (hSB : SB < 2 ^ 39) :
-    PMCoreCostAt P p (PMCore.leafBound r m + 18 * m + 60) r m SB := fun problem shift hI ↦
+    PMCoreCostAt P p (PMCore.leafBound r m + 21 * m + 32) r m SB := fun problem shift hI ↦
   PMCore.pmCoreC_cost P hP hp hr hm (by omega) hSB
     (PMCore.leafCost P hP (r := r) (m := m) (SB := SB) hr28 (by omega) hSB) problem shift hI
 

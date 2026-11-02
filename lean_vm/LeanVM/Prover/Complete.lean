@@ -2,7 +2,7 @@
   LeanVM.Prover.Complete
 
   The completeness end statements for any honest prover that is the specification's honest
-  prover at some witness: `LeanVM.Completeness` and `LeanVM.Guest.Budget.GuestChildComplete` with
+  prover at some witness: `LeanVM.Completeness` and `LeanVM.Guest.Completeness.GuestChildComplete` with
   that prover.
 -/
 
@@ -27,7 +27,7 @@ honest prover (`Rom.honestComp?` at leanVM's seed and program, with the strategy
   the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`);
 * `guestChildComplete_of_spec`: if moreover the witness is a child's, and everywhere `A` is the
   specification at a child's witness or makes no proof (`ChildSpec`), then both parts of
-  `LeanVM.Guest.Budget.GuestChildComplete` hold for `A`, with the same bound `2^-126`
+  `LeanVM.Guest.Completeness.GuestChildComplete` hold for `A`, with the same bound `2^-126`
   (`rpmChild_at`, `rpmChild_le`, `childOk_of_verifierRZ_of`).
 
 The prover may make no proof (`none`); the experiments count that a rejection. The verifier
@@ -145,16 +145,16 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
             Guest.Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input
               proof)).run' []}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-    ∀ (s : NodeStatement) (t : Execution Guest.guest) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
-      s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guest) →
-      let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guest) s)
-      ∀ proof, Guest.Budget.honestProofWithDeployedKeccakWithHash A Guest.guest input t ρ
+    ∀ (s : NodeStatement) (t : Execution Guest.guestProgram) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
+      s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guestProgram) →
+      let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guestProgram) s)
+      ∀ proof, Guest.Budget.honestProofWithDeployedKeccakWithHash A Guest.guestProgram input t ρ
           (2 ^ 25) = some proof →
-      Guest.Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 Guest.guest input
+      Guest.Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 Guest.guestProgram input
           proof = true →
-      ∃ fresh, fresh.Holds (bytecodeWords Guest.guest) ∧
-        LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guest)
-          (deployedSeed Guest.guest) ⟨s, fresh, proof⟩ := by
+      ∃ fresh, fresh.Holds (bytecodeWords Guest.guestProgram) ∧
+        LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guestProgram)
+          (deployedSeed Guest.guestProgram) ⟨s, fresh, proof⟩ := by
   refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h22 hsh _ hsome hacc ↦
     childOk_of_verifierRZ_of (hA' _ _ _ _ _) h22 hsh hsome hacc⟩
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ

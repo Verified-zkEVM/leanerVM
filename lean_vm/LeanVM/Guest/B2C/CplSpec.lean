@@ -97,7 +97,7 @@ def KidsRun {κ : ℕ} (L : MemoryImage κ) (σ : Val) (es : List Ev) (kfps : Li
     Prop :=
   ck.length = (calls es).length ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
     c.taken = true → (∃ r, retRegs L (gpow kfp) = some r ∧
-      RunC guest L ⟨gpow (entryOf c.f), gpow kfp⟩ r (ck.getD i 0)) ∧
+      RunC guestProgram L ⟨gpow (entryOf c.f), gpow kfp⟩ r (ck.getD i 0)) ∧
       ∀ k (hk : k < c.rets.length), L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])
 
 
@@ -112,8 +112,8 @@ def CplRun (j : ℕ) : Prop :=
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ (coreOf j).body = .ret es vs →
     (∀ e ∈ es, e.Holds L.read σ) → ∀ (kfps : List ℕ) (hdr : E × E),
     FrameHolds L j fp σ es vs kfps hdr → ∀ ck : List (Opcode → ℕ), KidsRun L σ es kfps ck →
-    ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
-      RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
+    ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
+      RunC guestProgram L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
       (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
       ∀ k (hk : k < vs.length),
         L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])

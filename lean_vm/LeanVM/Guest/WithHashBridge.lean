@@ -12,6 +12,7 @@ public import LeanVM.Guest.WithHash
 public import LeanDa.WithHashBridge
 public import Common.WithHash
 public import Sphincs.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The guest's deployed definitions are the forms with a hash
@@ -69,17 +70,17 @@ namespace Node
 /-- leanXMSS verification over Keccak-f[1600] is the hash-query verification with `keccakBits`. -/
 theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
-    xmssVerify pk message σ =
+    leanXmssVerifyWithKeccak pk message σ =
       Id.run (@LeanXmss.Concrete.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [xmssVerify, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
+  rw [leanXmssVerifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 /-- leanSPHINCS verification over Keccak-f[1600] is the hash-query verification with
 `keccakBits`. -/
 theorem sphincsVerify_eq_withHash (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    sphincsVerify pk message σ =
+    leanSphincsVerifyWithKeccak pk message σ =
       Id.run (@Sphincs.Concrete.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [sphincsVerify, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
+  rw [leanSphincsVerifyWithKeccak, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 end Node
 
@@ -109,9 +110,9 @@ theorem Batch.runBatching_deployed (prog : Prog Bool) (proof : Proof) :
 
 theorem Budget.verifierRefusingZero_deployed (prog : Program) (input : PublicInput)
     (proof : Proof) :
-    Budget.verifierRefusingZero (m := Id) keccakF1600 prog input proof =
+    Completeness.verifierRefusingZero (m := Id) keccakF1600 prog input proof =
       Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input proof := by
-  simp only [Budget.verifierRefusingZero, Budget.verifierRefusingZeroWithHash, seedWith_eq_withHash,
+  simp only [Completeness.verifierRefusingZero, Budget.verifierRefusingZeroWithHash, seedWith_eq_withHash,
     runProof_eq_withHash, keccak256With_keccakF1600]
 
 theorem Limits.verifyDeferredRefusingZero_eq_withHash (bytecode : List K) (iv publicInput : Digest)

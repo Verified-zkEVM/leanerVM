@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Opening.QueriesComplete1
 `oqLeaf_complete`: with `σ` honest on the query's range and the padding run `1, 0, 0, 0, 0`, every
 `XOR` and `KECCAK` of the leaf hash holds (the blocks' inputs canonical, their outputs the
 permutation's by the honest values' definition); `oqLeaf_digest`: its digest cells are then
-`digestScalars (hashWords row)` (`oqLeaf_sound`).
+`digestScalars (merkleLeafDigest row)` (`oqLeaf_sound`).
 -/
 
 namespace LeanVM.Guest.B1

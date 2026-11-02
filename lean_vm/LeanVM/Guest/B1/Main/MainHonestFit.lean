@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.Basic
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s honest run fits
@@ -24,7 +25,8 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (heldDirectly claimCells cellsOfBytes coveragePlan daPick)
+open LeanVM.Guest.Hints (claimCells cellsOfBytes daPick)
+open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
 open LeanVM.Guest.Value.Keccak (cellsBytes)
 
 @[expose] public section
@@ -46,7 +48,7 @@ theorem length_daCells (c : DaClaim) : (daCells c).length = 4 := by
   simp [daCells, B1.Digest.digestCells]
 
 theorem length_claimCells (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
-  simp [claimCells, cellsOfBytes, claimBytes, bytes16, HashSig.bytesLE]
+  simp [claimCells, cellsOfBytes, claimBytes, littleEndianBytes16, HashSig.bytesLE]
 
 theorem length_flatMap_const {α : Type} (l : List α) (f : α → List E) (k : ℕ)
     (h : ∀ a ∈ l, (f a).length = k) : (l.flatMap f).length = k * l.length := by
@@ -66,13 +68,13 @@ theorem length_hCover : (hCover s w).length = (hData seed s w).T := by
 /-- **The honest buffers have their sizes.** -/
 theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hf : FreshShaped w) : (hOwn seed s w).map List.length = mSizes (hData seed s w) := by
-  obtain ⟨hsd, hch, -, -, -, -⟩ := hr
+  obtain ⟨-, -, hch, -, hsd⟩ := hr
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
-  · rw [length_flatMap_const _ (fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2) 4
+  · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.X]
-  · rw [length_flatMap_const _ (fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2) 4
+  · rw [length_flatMap_const _ (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.Y]
   · exact length_hCover
@@ -117,7 +119,7 @@ theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length +
 theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = l.length := by simp
 
 /-- **After the last child, the running count is the coverage table's size.** -/
-theorem hW_total (hl : Limits s w) : hW s w w.children.length = coverageSlots s w := by
+theorem hW_total (hl : DeployedLimits s w) : hW s w w.children.length = coverageSlots s w := by
   rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made]
   simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
@@ -138,7 +140,7 @@ theorem daPick_le : daPick s w ≤ w.children.length := by
   unfold daPick
   split
   · exact le_rfl
-  · cases h : w.children.findIdx? (fun c ↦ c.statement.claims.da == s.claims.da) with
+  · cases h : w.children.findIdx? (fun c ↦ c.statement.claims.daDigest == s.claims.daDigest) with
     | none => exact le_rfl
     | some i => exact (List.findIdx?_eq_some_iff_getElem.mp h).1.le
 
@@ -147,27 +149,27 @@ theorem daPick_da (h : w.daMatrix.isSome = true) : daPick s w = w.children.lengt
 
 /-- **The picked slot holds the published digest**: the children's DA digests, then the own. -/
 theorem daPick_digest (hr : NodeRelation bytecode seed s w) :
-    (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).getD (daPick s w) 0 = s.claims.da := by
-  obtain ⟨-, -, -, -, hda, -⟩ := hr
+    (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).getD (daPick s w) 0 = s.claims.daDigest := by
+  obtain ⟨-, hda, -, -, -⟩ := hr
   have hown : daPick s w = w.children.length →
-      (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).getD (daPick s w) 0 = hOwnDa w := by
+      (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).getD (daPick s w) 0 = hOwnDa w := by
     intro e
     rw [e, List.getD_eq_getElem _ _ (by simp), List.getElem_append_right (by simp)]
     simp
   unfold daPick at hown ⊢
   cases hw : w.daMatrix with
   | some p =>
-    rw [hw] at hda
+    rw [DaClaimCovered, hw] at hda
     simp only [hw, Option.isSome_some, Bool.true_or, ↓reduceIte] at hown ⊢
     rw [hown (by simp), hOwnDa, hw, hda.1]
   | none =>
-    rw [hw] at hda
+    rw [DaClaimCovered, hw] at hda
     simp only [hw, Option.isSome_none, Bool.false_or] at hown ⊢
-    by_cases hz : (s.claims.da == zeroDigest) = true
+    by_cases hz : (s.claims.daDigest == zeroDigest) = true
     · simp only [hz, ↓reduceIte] at hown ⊢
       rw [hown (by simp), hOwnDa, hw, (beq_iff_eq.mp hz)]
     · simp only [hz, Bool.false_eq_true, ↓reduceIte] at hown ⊢
-      cases hf : w.children.findIdx? (fun c ↦ c.statement.claims.da == s.claims.da) with
+      cases hf : w.children.findIdx? (fun c ↦ c.statement.claims.daDigest == s.claims.daDigest) with
       | none =>
         exfalso
         rcases hda with h | ⟨c, hc, hcd⟩
@@ -207,23 +209,23 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
   exact h.2.1
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
-theorem hData_bounds (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) :
+theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) :
     MainBounds ((hData seed s w).toIn fs fp) := by
-  have hc := hl.coverage
+  have hc := hl.coverageSlotsBelow2Pow16
   rw [coverage_eq] at hc
-  have hx : (heldDirectly s.claims.xmss w.xmss).length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
-    raw_le_table s.claims.xmss (heldDirectly s.claims.xmss w.xmss) _ (xPlan_held hl)
-  have hs : (heldDirectly s.claims.sphincs w.sphincs).length ≤
+  have hx : (heldDirectly s.claims.xmss w.xmssHolders).length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
+    raw_le_table s.claims.xmss (heldDirectly s.claims.xmss w.xmssHolders) _ (xPlan_held hl)
+  have hs : (heldDirectly s.claims.sphincs w.sphincsHolders).length ≤
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
-    raw_le_table s.claims.sphincs (heldDirectly s.claims.sphincs w.sphincs) _ (sPlan_held hl)
+    raw_le_table s.claims.sphincs (heldDirectly s.claims.sphincs w.sphincsHolders) _ (sPlan_held hl)
   simp only [List.length_append] at hc hx hs
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.children, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
   · show s.claims.xmss.length ≤ 65535; omega
   · show (xPlan s w).duplicates.length ≤ 65535; omega
-  · show (heldDirectly s.claims.xmss w.xmss).length ≤ 65535; omega
+  · show (heldDirectly s.claims.xmss w.xmssHolders).length ≤ 65535; omega
   · show s.claims.sphincs.length ≤ 65535; omega
   · show (sPlan s w).duplicates.length ≤ 65535; omega
-  · show (heldDirectly s.claims.sphincs w.sphincs).length ≤ 65535; omega
+  · show (heldDirectly s.claims.sphincs w.sphincsHolders).length ≤ 65535; omega
   · show (w.daMatrix.map fun _ => 1).getD 0 ≤ 1
     cases w.daMatrix <;> simp
   · show s.claims.xmss.length + (xPlan s w).duplicates.length +
@@ -255,7 +257,7 @@ theorem mem_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} (hlen :
 
 /-- **`main`'s header-free reads hold on a memory holding its honest buffers.** -/
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
-    (hf : FreshShaped w) (hl : Limits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
+    (hf : FreshShaped w) (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
     (hM : B1.Main.MemL rd (bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w)))
     (h0 : LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1)
     (h1 : LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2) :
@@ -266,10 +268,10 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
       ((hOwn seed s w).getD i []) := fun i hi =>
     by rw [gen_pow_eq_ofK]; exact hM _ (mem_bufL_getD hlen (by simp [mSizes]; omega))
   have hD : ReadsAt rd (gen ^ ((mPos (hData seed s w) (fp + fs "main")).getD 4 0))
-      ((w.children.map (·.statement.claims.da) ++ [hOwnDa w]).flatMap B1.Digest.digestCells) :=
+      ((w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells) :=
     hR 4 (by omega)
   have hdig := daPick_digest hr
-  obtain ⟨-, -, -, -, hda, hz⟩ := hr
+  obtain ⟨-, hda, -, hz, -⟩ := hr
   refine ⟨hR 3 (by omega), ?_, ?_, ?_, ?_, ?_, h0, h1⟩
   · have := hR 8 (by omega) 0 (by simp [hOwn])
     simpa [hOwn, MainData.toIn, hData, hW] using this
@@ -284,7 +286,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
     simp only [List.length_append] at this
     exact this
   · have := readsAt_digests hD (k := w.children.length) (by simp)
-    have e : (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).getD w.children.length 0 =
+    have e : (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).getD w.children.length 0 =
         hOwnDa w := by
       simp [List.getD_eq_getElem?_getD]
     rw [e] at this
@@ -295,7 +297,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
       have e2 : MainIn.ownDa ((hData seed s w).toIn fs fp) =
           B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1))) := by
         simp [MainIn.ownDa, hData, MainData.toIn, hw]
-      rw [e1, daClaimDigest, daPreimage, ← daCells_bytes] at this
+      rw [e1, daClaimDigest, daClaimPreimage, ← daCells_bytes] at this
       rw [e2]; exact this
     | none =>
       have e1 : hOwnDa w = zeroDigest := by simp [hOwnDa, hw]
@@ -308,7 +310,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
     exact this
   · intro hnc
     have hc : w.children = [] := List.eq_nil_of_length_eq_zero hnc
-    simp only [hc, ↓reduceIte] at hz
+    simp only [DeferredClaimBatched, hc, ↓reduceIte] at hz
     have hz' : s.deferredClaim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0 := hz
     rw [hlog] at hz'
     have := hR 9 (by omega)

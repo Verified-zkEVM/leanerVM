@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainAtDefs
 public import LeanVM.Guest.B1.Main.Plan
 public import LeanVM.Guest.Hints
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s honest run
@@ -33,7 +34,8 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (heldDirectly claimCells daPick)
+open LeanVM.Guest.Hints (claimCells daPick)
+open LeanVM.Guest.Coverage (heldDirectly)
 
 @[expose] public section
 
@@ -42,8 +44,8 @@ variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 /-! ## Counts -/
 
 /-- The raw claims, held by witnesses. -/
-def hRawX : List (XmssClaim × LeanXmss.Signature) := heldDirectly s.claims.xmss w.xmss
-def hRawS : List (SphincsClaim × Sphincs.Signature) := heldDirectly s.claims.sphincs w.sphincs
+def hRawX : List (LeanXmssClaim × LeanXmss.Signature) := heldDirectly s.claims.xmss w.xmssHolders
+def hRawS : List (LeanSphincsClaim × Sphincs.Signature) := heldDirectly s.claims.sphincs w.sphincsHolders
 
 /-- Child `c`'s claims' counts. -/
 def hEx (c : ℕ) : ℕ := (w.children.map (·.statement.claims.xmss.length)).getD c 0
@@ -107,7 +109,7 @@ def hData : MainData where
   sd := claimListDigest s.claims.sphincs
   sdg := statementDigest seed s
   daR := (w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]
-  dap := s.claims.da
+  dap := s.claims.daDigest
   leaf := s.deferredClaim.bytecodeValue
 
 /-- **`main`'s honest buffers' words**, in allocation order. -/
@@ -116,7 +118,7 @@ def hOwn : List (List E) :=
     (s.claims.sphincs ++ (sPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
     hCover s w,
     (List.range 256).map fun v => word v 0 0,
-    (w.children.map (·.statement.claims.da) ++ [hOwnDa w]).flatMap B1.Digest.digestCells,
+    (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells,
     w.children.flatMap (fun c => B1.Digest.digestCells (statementDigest seed c.statement)),
     w.children.flatMap (fun c => DeferredClaim.cells c.freshClaim),
     w.children.flatMap (fun c => c.statement.deferredClaim.cells),

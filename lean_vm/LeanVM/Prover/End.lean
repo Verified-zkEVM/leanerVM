@@ -9,6 +9,7 @@ import LeanVM.Prover.Assemble
 import LeanVM.Protocol.WithHash
 import LeanVM.Guest.WithHash
 import LeanVM.Guest.ExperimentBridge
+import LeanVM.Guest.AcceptableChild
 
 /-!
 # The completeness end theorems
@@ -42,7 +43,7 @@ theorem Guest.Budget.guestChildCompleteWithHash_holds : Guest.Budget.GuestChildC
 
 /-- **The honest prover's proofs of guest executions are children the guest accepts**: both parts
 of `GuestChildComplete` for `LeanVM.prover`. -/
-theorem Guest.Budget.guest_child_complete : Guest.Budget.GuestChildComplete :=
+theorem Guest.Budget.guest_child_complete : Guest.Completeness.GuestChildComplete :=
   Guest.Budget.guestChildComplete_of_withHash Guest.Budget.guestChildCompleteWithHash_holds
 
 end LeanVM

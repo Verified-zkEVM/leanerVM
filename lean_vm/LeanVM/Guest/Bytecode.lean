@@ -32,12 +32,12 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-theorem guest_logSize : guest.logSize = 19 := rfl
+theorem guest_logSize : guestProgram.logSize = 19 := rfl
 
 /-- `guest` with its slots computed once (`assembleArray`), for compiled code reading them all. -/
 def guestArray : Program := assembleArray Data.functions 19 (by decide)
 
-theorem guestArray_eq : guestArray = guest := assembleArray_eq _ _ _
+theorem guestArray_eq : guestArray = guestProgram := assembleArray_eq _ _ _
 
 /-- The functions lie one after another from pc `0` to `codeLen`. -/
 theorem functions_consecutive : consecutive 0 Data.functions Data.codeLen = true := by
@@ -51,14 +51,14 @@ theorem CompiledFn.wellChunked_of_mem {f : CompiledFn} (hf : f ∈ Data.function
 
 /-- **The fetch lemma**: pc `entry + i` of a guest function holds its instruction `i`. -/
 theorem guest_fetch {f : CompiledFn} (hf : f ∈ Data.functions) {i : ℕ} (hi : i < f.len) :
-    guest.fetch (gpow (f.entry + i)) = some (f.instrAt i).toInstr :=
+    guestProgram.fetch (gpow (f.entry + i)) = some (f.instrAt i).toInstr :=
   assemble_fetch functions_consecutive (by have := codeLen_lt; omega) hf hi
 
 /-- `guest_fetch` at a pc and an instruction given as literals: each side condition is one
 small evaluation (`decide +kernel`). -/
 theorem guest_fetch_of {f : CompiledFn} (hf : f ∈ Data.functions) {i pc : ℕ} {ins : OInstr}
     (hi : i < f.len) (hpc : f.entry + i = pc) (hins : f.instrAt i = ins) :
-    guest.fetch (gpow pc) = some ins.toInstr :=
+    guestProgram.fetch (gpow pc) = some ins.toInstr :=
   assemble_fetch_of functions_consecutive (by have := codeLen_lt; omega) hf hi hpc hins
 
 /-- Function `j` of the table is a guest function. -/
@@ -68,12 +68,12 @@ theorem mem_functions {j : ℕ} {f : CompiledFn} (h : Data.functions[j]? = some 
 
 /-- Every pc of a guest function is before the last slot. -/
 theorem guest_pc_lt {f : CompiledFn} (hf : f ∈ Data.functions) {i : ℕ} (hi : i < f.len) :
-    f.entry + i < 2 ^ guest.logSize - 1 :=
+    f.entry + i < 2 ^ guestProgram.logSize - 1 :=
   Nat.lt_of_lt_of_le (lookup_of_mem functions_consecutive hf hi).2.2 (Nat.le_of_lt codeLen_lt)
 
 /-- Past the functions, the guest holds the padding. -/
 theorem guest_fetch_pad {pc : ℕ} (hpc : Data.codeLen ≤ pc) (hpc' : pc < 2 ^ 19) :
-    guest.fetch (gpow pc) = some OInstr.pad.toInstr :=
+    guestProgram.fetch (gpow pc) = some OInstr.pad.toInstr :=
   assemble_fetch_pad functions_consecutive hpc hpc'
 
 end

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Batch.Prog
 public import LeanVM.Protocol.Compile.SpecRules.Cert
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.ToCompPoly.PowerBatching
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The batching's doom specification
@@ -254,7 +255,7 @@ challenge `λ` and the rounds tracked, then a fixed fact. -/
 noncomputable def restSpec {M : ℕ} {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hg : SomeGap bytecode cs) :
-    Spec (batchingAfterChildren (DeferredClaim.HoldsShaped bytecode) bytecode cs) (fun h ↦ h = [])
+    Spec (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) (fun h ↦ h = [])
       (fun b _ ↦ b = false) (batchε M) (batchε M) 0 :=
   ((lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
     ((roundsSpec M (bytecode_quadraticIn hb (bytecodePoints hs) (lambdaPowers lam cs.length)) _

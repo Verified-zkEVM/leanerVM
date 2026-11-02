@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
 public import LeanVM.Guest.Complete
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s words, linear in the work
@@ -284,13 +285,13 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     (hr : NodeRelation bytecode seed s w) :
     hDvB fs SB SK w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SK +
       (End.work s w).rawDaPad * dvP SB SK := by
-  obtain ⟨-, -, -, -, hda, -⟩ := hr
+  obtain ⟨-, hda, -, -, -⟩ := hr
   unfold hDvB
   simp only [End.work]
   cases hw : w.daMatrix with
   | none => simp
   | some p =>
-    rw [hw] at hda
+    rw [DaClaimCovered, hw] at hda
     have hw' : p.2.Opens p.1.daRoot p.1.membershipVectorDigest := hda.2
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
@@ -380,7 +381,7 @@ theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
 /-- **`main`'s words on the honest run within the budget**, child `c`'s `verify_sub` within
 `childBv Bvf w c`. -/
 theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} (hr : NodeRelation bytecode seed s w) (hl : Limits s w) :
+    {w : NodeWitness} (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w) :
     Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ (mainWords fs SB SK Bvf).eval (End.work s w) := by
   have hmsz := mSizes_sum seed s w
   have hX := clB_le fs SB SK s.claims.xmss.length

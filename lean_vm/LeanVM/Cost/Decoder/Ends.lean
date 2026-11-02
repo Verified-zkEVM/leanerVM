@@ -68,13 +68,13 @@ def memReader (memT : Array (ℕ × ℕ)) {κ : ℕ} (mem : Vector E (2 ^ κ)) (
 /-- A decoding of its three fields. Compiled as a function of its own: the caller passes the
 fields as values. -/
 def decodedOf (s : LeanVM.Protocol.Digest) (st : NodeStatement) (w : NodeWitness) :
-    Decoded :=
+    SeedStatementAndWitness :=
   ⟨s, st, w⟩
 
 /-- **The decoding**: the seed and the statement off `main`'s valuation `σ` and the reader `rd`
 (the statement's counts by the logarithm's tables `D`), the witness `w` given. -/
 noncomputable def decoderOutput (D : DiscreteLogTables) (σ : LeanVM.Guest.Core.Val)
-    (rd : LeanVM.Guest.Core.Reader) (w : NodeWitness) : Decoded :=
+    (rd : LeanVM.Guest.Core.Reader) (w : NodeWitness) : SeedStatementAndWitness :=
   decodedOf (Main.decSeed σ) (decStmtD D σ rd) w
 
 cost_compile decoderTablesC := decoderTables

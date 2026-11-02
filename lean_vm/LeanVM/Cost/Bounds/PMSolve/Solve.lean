@@ -73,12 +73,12 @@ theorem maxOrder_lt (problem : XAdicProblem K) (B : ℕ)
       exact ih _ (max_le h (hl a (by simp))) (fun x hx ↦ hl x (by simp [hx]))
   exact this _ 0 (Nat.zero_le _) ho
 
-/-- `pmBasisFuel`: at most `18·|orders| + 14`. -/
-theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c566.costDeps) (problem : XAdicProblem K)
+/-- `pmBasisFuel`: at most `21·|orders| + 13`. -/
+theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c567.costDeps) (problem : XAdicProblem K)
     (ho : ∀ x ∈ problem.orders.toList, x < 2 ^ 62) :
-    machineCost P pmBasisFuel.c566.costIdx [encodeValue problem] ≤
-      18 * problem.orders.size + 14 := by
-  rw [pmBasisFuel.c566.costEq P hP]
+    machineCost P pmBasisFuel.c567.costIdx [encodeValue problem] ≤
+      21 * problem.orders.size + 13 := by
+  rw [pmBasisFuel.c567.costEq P hP]
   have := PMCore.maxOrderC_cost P (by includes) problem (fun x hx ↦ by
     have := ho x (Array.mem_toList_iff.2 hx); omega)
   have := maxOrder_lt problem (2 ^ 62) (fun x hx ↦ (ho x hx).le)
@@ -282,10 +282,10 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
   unfold certSolveCost
   split
   · rename_i hguard
-    rw [ModularEquation.solutionWidth.c545.costEq P (by includes),
-      certShift.c565.costEq P (by includes)]
+    rw [ModularEquation.solutionWidth.c546.costEq P (by includes),
+      certShift.c566.costEq P (by includes)]
     have hsh := exactNullspaceShiftC_cost P (by includes) shift equation.moduli.size bound
-      (by omega) (by omega) hsv
+      (by omega) hsv
     have hfw := fullWindowProblemC_cost P (by includes) equation bound (by omega) hs
     have hfuel := pmBasisFuelC_cost P (by includes) prob (fun x hx ↦ by have := hord x hx; omega)
     have heS : ∀ j, eShift.getD j 0 ≤ Sh + bound + 1 := certShift_getD_le equation shift bound hSh
@@ -332,8 +332,8 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
       (certifiedRow (equation.solutionWidth + equation.moduli.size) eShift bound)
       (.closure certifiedSolveC.lam0.costIdx [encodeValue bound,
         encodeValue (equation.solutionWidth + equation.moduli.size), encodeValue eShift]) hl
-      (90 * (w + m) + 65) B.toList (fun row hr ↦ by
-        simp only [appCost_fn, List.cons_append, List.nil_append]
+      (84 * (w + m) + 48) B.toList (fun row hr ↦ by
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [certifiedSolveC.lam0.costEq P (by includes)]
         have := certifiedRowC_cost P (by includes) (C := w + m) (D := o + 2) (S := Sh + bound + 1)
           (by omega) (by omega) (equation.solutionWidth + equation.moduli.size) (by omega)
@@ -345,15 +345,14 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
         bound)).size ≤ w + m := Array.size_filter_le.trans (by omega)
     have hfl : (B.toList.filter (certifiedRow (equation.solutionWidth + equation.moduli.size)
         eShift bound)).length ≤ w + m := (List.length_filter_le _ _).trans (by simp; omega)
-    have hpr' := Nat.mul_le_mul_left (37 * equation.solutionWidth + 32) hfs
+    have hpr' := Nat.mul_le_mul_left (38 * equation.solutionWidth + 34) hfs
     simp only [Array.length_toList] at hfil
     rw [hBsize, hpsize] at hfil
     have hk : B.size = w + m := by rw [hBsize, hpsize, hsW, hm]
     rw [← ho] at hcore'
     rw [hsW] at hpr hpr'
     rw [hsW, hm] at hfil
-    have e1 : (90 * (w + m) + 65 + 13) * (w + m) = (w + m) * (90 * (w + m) + 78) := by ring
-    have e2 : (37 * w + 32) * (w + m) = (37 * w + 32) * (w + m) := rfl
+    have e1 : (84 * (w + m) + 48 + 15) * (w + m) = (w + m) * (84 * (w + m) + 63) := by ring
     simp only [hsW, hm] at *
     cost_simp
     omega

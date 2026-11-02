@@ -8,8 +8,8 @@ public import LeanVM.Cost.Extractor.PMEval
 
 Bounds by sums of per-element prices (the passes' entries and the levels cost differently):
 
-* `ofFnFrom_cost_sum`: `Array.ofFn` (`ofFnFrom`) at `Σ_a (B a + 18) + 6`;
-* `foldr_cost_sum`, `listFoldl_cost_sum`: folds at `Σ_x (B x + 9) + 3`;
+* `ofFnFrom_cost_sum`: `Array.ofFn` (`ofFnFrom`) at `Σ_a (B a + 16) + 5`;
+* `foldr_cost_sum`, `listFoldl_cost_sum`: folds at `Σ_x (B x + 11) + 3`;
 * `sum_mod_block`, `sum_range_ite_lt`: the sums of a price periodic in the index.
 -/
 
@@ -21,66 +21,67 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `Array.ofFn` through `ofFnFrom`, entry `a` at most `B a`: `Σ_{i ≤ a < n} (B a + 18) + 6`. -/
-theorem ofFnFrom_cost_sum (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costDeps)
+/-- `Array.ofFn` through `ofFnFrom`, entry `a` at most `B a`: `Σ_{i ≤ a < n} (B a + 16) + 5`. -/
+theorem ofFnFrom_cost_sum (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costDeps)
     {α : Type} [MachineEncoding α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : MachineValue)
     (hf : ∀ a : Fin n, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ → ℕ)
     (hB : ∀ a : Fin n, appCost P fVal [encodeValue a] ≤ B a) :
-    ∀ i, i ≤ n → machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costIdx
-        [encodeValue n, fVal, encodeValue i] ≤ (∑ a ∈ Finset.Ico i n, (B a + 18)) + 6 := by
+    ∀ i, i ≤ n → machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costIdx
+        [encodeValue n, fVal, encodeValue i] ≤ (∑ a ∈ Finset.Ico i n, (B a + 16)) + 5 := by
   intro i hi
   induction hk : n - i generalizing i with
   | zero =>
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costEq P hP f fVal hf i,
+    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costEq P hP f fVal hf i,
       limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn]
     simp only [show ¬i < n by omega, ↓reduceDIte]
     omega
   | succ k ih =>
-    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costEq P hP f fVal hf i]
+    rw [Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costEq P hP f fVal hf i]
     simp only [show i < n by omega, ↓reduceDIte]
     have h1 := ih (i + 1) (by omega) (by omega)
     have h2 := hB ⟨i, by omega⟩
     simp only at h2
-    rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn, Finset.sum_eq_sum_Ico_succ_bot (by omega)]
+    rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt hn, limbs_of_lt (by omega : i + 1 < 2 ^ 64),
+      Finset.sum_eq_sum_Ico_succ_bot (by omega)]
     simp only [max_self]
     omega
 
-theorem ofFnFrom_cost_sum0 (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costDeps)
+theorem ofFnFrom_cost_sum0 (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costDeps)
     {α : Type} [MachineEncoding α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : MachineValue)
     (hf : ∀ a : Fin n, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ → ℕ)
     (hB : ∀ a : Fin n, appCost P fVal [encodeValue a] ≤ B a) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c45.costIdx [encodeValue n, fVal, encodeValue 0] ≤
-      (∑ a ∈ Finset.range n, (B a + 18)) + 6 := by
+    machineCost P Auto.LeanVM.Cost.Rewrite.ofFnFrom.c46.costIdx [encodeValue n, fVal, encodeValue 0] ≤
+      (∑ a ∈ Finset.range n, (B a + 16)) + 5 := by
   have := ofFnFrom_cost_sum P hP hn f fVal hf B hB 0 (Nat.zero_le _)
   rwa [Finset.range_eq_Ico]
 
-/-- `List.foldr` (`foldr.c22`), element `x` at most `B x` whatever the accumulator:
-`Σ_x (B x + 9) + 3`. -/
-theorem foldr_cost_sum (hP : Includes P Auto.List.foldr.c22.costDeps) {α β : Type} [MachineEncoding α]
+/-- `List.foldr` (`foldr.c23`), element `x` at most `B x` whatever the accumulator:
+`Σ_x (B x + 11) + 3`. -/
+theorem foldr_cost_sum (hP : Includes P Auto.List.foldr.c23.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → β → β) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : α → ℕ)
     (init : β) : ∀ l : List α, (∀ a ∈ l, ∀ b : β, appCost P fVal [encodeValue a, encodeValue b] ≤ B a) →
-      machineCost P Auto.List.foldr.c22.costIdx [fVal, encodeValue init, encodeValue l] ≤
-        (l.map fun a ↦ B a + 9).sum + 3 := by
+      machineCost P Auto.List.foldr.c23.costIdx [fVal, encodeValue init, encodeValue l] ≤
+        (l.map fun a ↦ B a + 11).sum + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.foldr.c22.costEq_nil P hP f fVal hf]; simp
+  | nil => intro _; rw [Auto.List.foldr.c23.costEq_nil P hP f fVal hf]; simp
   | cons x l ih =>
     intro hB
-    rw [Auto.List.foldr.c22.costEq_cons P hP f fVal hf]
+    rw [Auto.List.foldr.c23.costEq_cons P hP f fVal hf]
     have h1 := ih fun a ha b ↦ hB a (by simp [ha]) b
     have h2 := hB x (by simp) (l.foldr f init)
     simp only [List.map_cons, List.sum_cons]
     omega
 
 /-- `List.foldl` (`listFoldl`), element `x` at most `B x` whatever the accumulator:
-`Σ_x (B x + 9) + 3`. -/
+`Σ_x (B x + 11) + 3`. -/
 theorem listFoldl_cost_sum (hP : Includes P listFoldl.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → β → α) (fVal : MachineValue)
     (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : β → ℕ) :
     ∀ (l : List β) (init : α), (∀ acc : α, ∀ b ∈ l, appCost P fVal [encodeValue acc, encodeValue b] ≤ B b) →
       machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤
-        (l.map fun b ↦ B b + 9).sum + 3 := by
+        (l.map fun b ↦ B b + 11).sum + 3 := by
   intro l
   induction l with
   | nil => intro init _; rw [listFoldl.costEq_nil P hP f fVal hf]; simp

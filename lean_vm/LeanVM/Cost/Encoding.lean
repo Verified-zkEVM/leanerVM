@@ -21,7 +21,8 @@ open LeanVM LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 
 @[expose] public section
 
-instance : MachineEncoding UInt8 := ⟨fun x ↦ .word x.toUInt64⟩
+/-- A byte: its number. -/
+instance : MachineEncoding UInt8 := ⟨fun x ↦ .nat x.toNat⟩
 instance : MachineEncoding Unit := ⟨fun _ ↦ .ctor 0 []⟩
 
 /-- A character: its code point. -/
@@ -47,7 +48,8 @@ instance {α : Type} [Zero α] [MachineEncoding α] : MachineEncoding (CompPoly.
   inferInstanceAs (MachineEncoding { p : CompPoly.CPolynomial.Raw α // CompPoly.CPolynomial.Raw.IsCanonical p })
 
 theorem decodeE_enc (x : E) : decodeExtensionElement (encodeValue x) = some x := by
-  simp only [encodeValue, decodeExtensionElement, show ∀ a : K, K.ofLane a.lane = a from fun _ ↦ rfl, ofLimbs_limb]
+  simp only [encodeValue, decodeExtensionElement, Nat.toUInt64_eq, UInt64.ofNat_toNat,
+    show ∀ a : K, K.ofLane a.lane = a from fun _ ↦ rfl, ofLimbs_limb]
 
 theorem mapM_decodeE (l : List E) : (l.map encodeValue).mapM decodeExtensionElement = some l := by
   induction l with

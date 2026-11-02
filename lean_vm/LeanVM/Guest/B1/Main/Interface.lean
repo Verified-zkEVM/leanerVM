@@ -170,12 +170,12 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signat
 noncomputable def slotCells (rd : Reader) (p : E) (s : ℕ) : List E := readCells rd (p * gen ^ (4 * s)) 4
 
 /-- The leanXMSS claim of slot `s` of the table at `p`. -/
-noncomputable def xmssAt (rd : Reader) (p : E) (s : ℕ) : XmssClaim :=
+noncomputable def xmssAt (rd : Reader) (p : E) (s : ℕ) : LeanXmssClaim :=
   let c := slotCells rd p s
   Sig.xmssClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
 
 /-- The leanSPHINCS claim of slot `s` of the table at `p`. -/
-noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : SphincsClaim :=
+noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : LeanSphincsClaim :=
   let c := slotCells rd p s
   Sig.sphincsClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
 

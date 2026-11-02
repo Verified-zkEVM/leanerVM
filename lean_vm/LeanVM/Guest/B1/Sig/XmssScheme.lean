@@ -104,7 +104,7 @@ theorem verify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
 theorem idRun {α : Type} (x : Id α) : Id.run x = x := rfl
 
 theorem xmssVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    Node.xmssVerify pk msg σ = true ↔
+    Node.leanXmssVerifyWithKeccak pk msg σ = true ↔
       ∃ r0, @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter bottomLayer
           (keyAt σ.leafIndex bottomLayer) (bytesLE 32 msg) (σ.layers bottomLayer) = some r0 ∧
         @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyAt σ.leafIndex topLayer)

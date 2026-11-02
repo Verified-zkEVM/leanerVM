@@ -126,10 +126,10 @@ index (`Guest.Fast.decode_eq_numbered`), the cursor's length by any discrete log
 theorem decode_eq_ends {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {κ : ℕ}
     (L : MemoryImage κ) :
     LeanVM.Guest.End.decode L =
-      let tabs := decoderTables LeanVM.Guest.guest κ
+      let tabs := decoderTables LeanVM.Guest.guestProgram κ
       let mem := memoryVector L
       let rd := memReader tabs.1 mem
-      let states := replayStatesOf tabs.1 tabs.2 LeanVM.Guest.guest mem
+      let states := replayStatesOf tabs.1 tabs.2 LeanVM.Guest.guestProgram mem
       let σ := mainVal rd
       decoderOutput discreteLogTables σ rd
         (decWitN σ rd (frameVFastN (preTest rd) states rd) (cursorLenWith dl)) := by

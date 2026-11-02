@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Batch.Rounds
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The batching is sound, challenge by challenge
@@ -126,7 +127,7 @@ theorem claimB_sub (bytecode : List K) (cs : List ChildClaims) (l : List (E × E
 theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
     (hz : ∀ g ∈ gapsB bytecode cs, g = 0) (hpow : 2 ^ Nat.log2 bytecode.length = bytecode.length)
     (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
-    ∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsShaped bytecode := by
+    ∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsWithShape bytecode := by
   intro c hc'
   have g := fun g hg ↦ hz g (List.mem_flatMap.mpr ⟨c, hc', hg⟩)
   have e1 := sub_eq_zero.mp (g _ (List.mem_cons_self ..))
@@ -138,10 +139,10 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
 holds, of children whose claims have the bytecode's shape, makes every child's claims true, or
 one of its challenges is bad. -/
 theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredClaim} (hb : batch cs h = some d) (hd : d.HoldsShaped bytecode)
+    {d : DeferredClaim} (hb : batch cs h = some d) (hd : d.HoldsWithShape bytecode)
     (hf : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length)
     (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
-    (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsShaped bytecode) ∨ BatchBad bytecode cs h := by
+    (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsWithShape bytecode) ∨ BatchBad bytecode cs h := by
   rw [batch_eq'] at hb
   split_ifs at hb with hfin
   injection hb with hd'

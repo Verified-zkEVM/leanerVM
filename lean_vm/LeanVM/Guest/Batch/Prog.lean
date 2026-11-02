@@ -9,13 +9,14 @@ module
 
 public import LeanVM.Guest.Batch.Sound
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The batching as a verifier program
 
 `Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
 absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
-`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.Prog`; defined in `Statement/LeanVmGuest.lean`,
+`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.Prog`; defined in `Statement/LeanVmGuestCompleteness.lean`,
 with the batching's end statement `BatchingSound`) whose prover sends the count `g^n` and
 three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
 messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
@@ -298,7 +299,7 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     Id.run (runProofWithHash keccak256 keccakF1600 (boundedBatchingProgram M bytecode) batchSeed
         ⟨batchingStream cs h, []⟩) = true ↔
-      ∃ d, batch cs h = some d ∧ d.HoldsShaped bytecode := by
+      ∃ d, batch cs h = some d ∧ d.HoldsWithShape bytecode := by
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++
       (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [h.finalBytecodeValue])) := by
     simp only [batchingStream, cellsBeforeChallenge, List.append_assoc]

@@ -61,24 +61,24 @@ theorem rowsInv_slot {n : ℕ} {shift : Array ℕ} {rows : PolynomialMatrix K} :
 
 variable (P : MachineProgram)
 
-/-- The slot table (`slotTable`) of `R` rows of width `n`: at most `n + (191·n + 126)·R + 12`. -/
+/-- The slot table (`slotTable`) of `R` rows of width `n`: at most `n + (169·n + 79)·R + 12`. -/
 theorem slotTableC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.costDeps)
     {n S : ℕ} (hn : n < 2 ^ 30) (hS : S < 2 ^ 60) (shift : Array ℕ) (hs : ∀ j, shift.getD j 0 ≤ S)
     (rows : PolynomialMatrix K) (h : RowsInv n rows.toList) :
-    machineCost P Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.costIdx
-        [encodeValue n, encodeValue shift, encodeValue rows] ≤ n + (191 * n + 126) * rows.size + 12 := by
-  rw [Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.costEq P hP]
+    machineCost P Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.costIdx
+        [encodeValue n, encodeValue shift, encodeValue rows] ≤ n + (169 * n + 79) * rows.size + 12 := by
+  rw [Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.costEq P hP]
   have hf := listFoldl_le P (by includes) (LeanVM.Extraction.Fast.Popov.slotStep shift)
-    (.closure Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.lam0.costIdx [encodeValue shift])
-    (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.lam0.costSpec P
-      (by includes) shift a b)) (191 * n + 114) (fun T ↦ T.size = n) rows.toList
+    (.closure Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.lam0.costIdx [encodeValue shift])
+    (fun a b ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.lam0.costSpec P
+      (by includes) shift a b)) (169 * n + 65) (fun T ↦ T.size = n) rows.toList
     (Array.replicate n none) (by simp) (fun T hT row hrow ↦ ⟨by
       simp only [LeanVM.Extraction.Fast.Popov.slotStep]
       split <;> simp [hT], by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.LeanVM.Extraction.Fast.Popov.slotTable.c477.lam0.costEq P (by includes),
-        Auto.LeanVM.Extraction.Fast.Popov.slotStep.c479.costEq P (by includes)]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [Auto.LeanVM.Extraction.Fast.Popov.slotTable.c478.lam0.costEq P (by includes),
+        Auto.LeanVM.Extraction.Fast.Popov.slotStep.c480.costEq P (by includes)]
       obtain ⟨hrs, hrh⟩ := h row hrow
       have := rowShiftedLeadingPosition_cost P (by includes) (C := n) (D := 2) (S := S) (by omega)
         (by omega) row (rowWithin_of_homRow hrs hrh) shift hs
@@ -88,43 +88,43 @@ theorem slotTableC_cost
 
 /-- **The slots filled** (`fillPivotSlots`), `R ≤ n` rows. -/
 theorem fillPivotSlotsC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.costDeps)
     (problem : XAdicProblem K) {S : ℕ} (hS : S < 2 ^ 60) (shift : Array ℕ)
     (hs : ∀ j, shift.getD j 0 ≤ S) (h1 : maxOrder problem ≤ 1) (hn : problem.matrix.size < 2 ^ 30)
     (hm : problem.orders.size < 2 ^ 30)
     (rows : PolynomialMatrix K) (h : RowsInv problem.matrix.size rows.toList)
     (hR : rows.size ≤ problem.matrix.size) :
-    machineCost P Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.costIdx
         [encodeValue problem, encodeValue shift, encodeValue rows] ≤
-      (problem.matrix.size + (191 * problem.matrix.size + 126) * problem.matrix.size + 12) +
-        ((36 * problem.orders.size + 108 * problem.matrix.size + 75) * problem.matrix.size + 6) +
+      (problem.matrix.size + (169 * problem.matrix.size + 79) * problem.matrix.size + 12) +
+        ((42 * problem.orders.size + 103 * problem.matrix.size + 75) * problem.matrix.size + 5) +
         problem.matrix.size + 18 := by
-  rw [Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.costEq P hP]
+  rw [Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.costEq P hP]
   have hord : ∀ x ∈ problem.orders, x ≤ 1 := fun x hx ↦ (le_maxOrder problem x hx).trans h1
   have hcap : leafDegreeCap problem = 1 := LeanVM.Extraction.Fast.PMDegree.leafDegreeCap_eq_one h1
   have hst := slotTableC_cost P (by includes) hn hS shift hs rows h
-  have : (191 * problem.matrix.size + 126) * rows.size ≤
-      (191 * problem.matrix.size + 126) * problem.matrix.size := Nat.mul_le_mul_left _ hR
+  have : (169 * problem.matrix.size + 79) * rows.size ≤
+      (169 * problem.matrix.size + 79) * problem.matrix.size := Nat.mul_le_mul_left _ hR
   have hof := ofFnFrom_cost P (by includes) (by omega : problem.matrix.size < 2 ^ 64) _
-    (.closure Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.lam0.costIdx
+    (.closure Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.lam0.costIdx
       [encodeValue problem,
         encodeValue (LeanVM.Extraction.Fast.Popov.slotTable problem.matrix.size shift rows)])
-    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.lam0.costSpec P
-      (by includes) problem _ a)) (36 * problem.orders.size + 108 * problem.matrix.size + 57)
+    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.lam0.costSpec P
+      (by includes) problem _ a)) (42 * problem.orders.size + 103 * problem.matrix.size + 59)
     (fun i ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c476.lam0.costEq P (by includes)]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [Auto.LeanVM.Extraction.Fast.Popov.fillPivotSlots.c477.lam0.costEq P (by includes)]
       have := leafDegreeCapC_cost P (by includes) problem (fun x hx ↦ by have := hord x hx; omega)
       have := monomialUnitRowC_cost P (by includes) problem.matrix.size i (leafDegreeCap problem)
         (by omega) (by have := i.isLt; omega) (by omega)
-      have e2 : (25 * leafDegreeCap problem + 83) * problem.matrix.size = 108 * problem.matrix.size := by
+      have e2 : (23 * leafDegreeCap problem + 80) * problem.matrix.size = 103 * problem.matrix.size := by
         rw [hcap]
       cases (LeanVM.Extraction.Fast.Popov.slotTable problem.matrix.size shift rows).getD i none <;>
         dsimp only <;> omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
   simp only [Nat.sub_zero] at hof
-  have e3 : (36 * problem.orders.size + 108 * problem.matrix.size + 57 + 18) * problem.matrix.size =
-      (36 * problem.orders.size + 108 * problem.matrix.size + 75) * problem.matrix.size := by ring
+  have e3 : (42 * problem.orders.size + 103 * problem.matrix.size + 59 + 16) * problem.matrix.size =
+      (42 * problem.orders.size + 103 * problem.matrix.size + 75) * problem.matrix.size := by ring
   omega
 
 theorem rowsInv_leafRows (problem : XAdicProblem K) (h1 : maxOrder problem ≤ 1) :
@@ -150,31 +150,31 @@ theorem rowsInv_leafRows (problem : XAdicProblem K) (h1 : maxOrder problem ≤ 1
 /-- **The reduced kernel rows** (`kernelLeafReduced`) at order at most one: within the first part
 of `leafBound`; at most `n` rows `X^e·v` of width `n`. -/
 theorem kernelLeafReducedC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.costDeps)
     (problem : XAdicProblem K) {S : ℕ} (hS : S < 2 ^ 60) (shift : Array ℕ)
     (hs : ∀ j, shift.getD j 0 ≤ S) (h1 : maxOrder problem ≤ 1) (hn : problem.matrix.size < 2 ^ 28)
     (hm : problem.orders.size < 2 ^ 28) :
-    machineCost P Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.costIdx
         [encodeValue problem, encodeValue shift] ≤
-      (36 * problem.orders.size + 26) +
-        (36 * problem.orders.size + 26 +
-          (problem.orders.size * problem.orders.size + 160 * problem.orders.size + 64) +
-          (69 * problem.matrix.size + 45) * problem.orders.size + 20) + 1 +
-        ((problem.matrix.size + 1) * (42 * problem.orders.size + 80) +
+      (42 * problem.orders.size + 27) +
+        (42 * problem.orders.size + 27 +
+          (problem.orders.size * problem.orders.size + 151 * problem.orders.size + 63) +
+          (70 * problem.matrix.size + 47) * problem.orders.size + 17) + 1 +
+        ((problem.matrix.size + 1) * (43 * problem.orders.size + 56) +
           problem.orders.size * pivotPrice problem.orders.size problem.matrix.size +
-          (33 * problem.matrix.size + 55) * problem.matrix.size * problem.matrix.size +
-          (16 * problem.matrix.size + 90) * problem.matrix.size + 70) +
-        3 * problem.matrix.size + ((129 * problem.matrix.size + 34) * problem.matrix.size + 3) +
+          (34 * problem.matrix.size + 56) * problem.matrix.size * problem.matrix.size +
+          (18 * problem.matrix.size + 91) * problem.matrix.size + 62) +
+        3 * problem.matrix.size + ((127 * problem.matrix.size + 37) * problem.matrix.size + 3) +
         problem.matrix.size +
-        (36 * problem.orders.size + ((25 + 83) * problem.matrix.size + 36) * problem.matrix.size +
-          18 * problem.matrix.size + 50) + 2 * problem.matrix.size +
+        (42 * problem.orders.size + ((23 + 80) * problem.matrix.size + 39) * problem.matrix.size +
+          16 * problem.matrix.size + 50) + 2 * problem.matrix.size +
         (stepPrice problem.matrix.size * (2 * problem.matrix.size * (2 * problem.matrix.size)) +
-          (incPrice problem.matrix.size + 16) * (2 * problem.matrix.size) + 11) + 28 ∧
+          (incPrice problem.matrix.size + 19) * (2 * problem.matrix.size) + 11) + 27 ∧
       RowsInv problem.matrix.size (LeanVM.Extraction.Fast.Popov.kernelLeafReduced problem shift).toList ∧
       (LeanVM.Extraction.Fast.Popov.kernelLeafReduced problem shift).size ≤ problem.matrix.size := by
   have hord : ∀ x ∈ problem.orders, x ≤ 1 := fun x hx ↦ (le_maxOrder problem x hx).trans h1
   have hcap : leafDegreeCap problem = 1 := LeanVM.Extraction.Fast.PMDegree.leafDegreeCap_eq_one h1
-  rw [Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.costEq P hP]
+  rw [Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.costEq P hP]
   have hcl : (kernelLeafCompletionRows problem).size = problem.matrix.size := by
     simp [kernelLeafCompletionRows]
   set n := problem.matrix.size with hndef
@@ -192,13 +192,13 @@ theorem kernelLeafReducedC_cost
   have hkbs : (DenseMatrix.homogeneousKernelBasisRows (coefficientMatrixRows problem) n).size ≤ n := by
     rw [DenseMatrix.homogeneousKernelBasisRows_size_eq]; exact hfree
   have hmap := map_cost P (by includes) (vectorToPolynomialRow 1 n)
-    (.closure Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.lam0.costIdx
+    (.closure Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.lam0.costIdx
       [encodeValue n, encodeValue 1])
-    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.lam0.costSpec P
-      (by includes) n 1 a)) (129 * n + 23)
+    (fun a ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.lam0.costSpec P
+      (by includes) n 1 a)) (127 * n + 24)
     (DenseMatrix.homogeneousKernelBasisRows (coefficientMatrixRows problem) n).toList (fun v _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c487.lam0.costEq P (by includes)]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [Auto.LeanVM.Extraction.Fast.Popov.kernelLeafReduced.c488.lam0.costEq P (by includes)]
       have := vectorToPolynomialRowC_cost P (by includes) 1 n v (by omega) (by omega)
       omega)
   have hcomp := completionRowsC_cost P (by includes) problem (fun x hx ↦ by have := hord x hx; omega)
@@ -216,15 +216,15 @@ theorem kernelLeafReducedC_cost
         (DenseMatrix.homogeneousKernelBasisRows (coefficientMatrixRows problem) (n * leafDegreeCap problem))) ++
         kernelLeafCompletionRows problem).size) ≤ stepPrice n * (2 * n * (2 * n)) :=
       Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ hrs)
-    have e2 : (incPrice n + 16) * ((Array.map (vectorToPolynomialRow (leafDegreeCap problem) n)
+    have e2 : (incPrice n + 19) * ((Array.map (vectorToPolynomialRow (leafDegreeCap problem) n)
         (DenseMatrix.homogeneousKernelBasisRows (coefficientMatrixRows problem) (n * leafDegreeCap problem))) ++
-        kernelLeafCompletionRows problem).size ≤ (incPrice n + 16) * (2 * n) := Nat.mul_le_mul_left _ hrs
-    have e3 : (n + 1) * (42 * E0 + 80) ≤ (n + 1) * (42 * mo + 80) := Nat.mul_le_mul_left _ (by omega)
+        kernelLeafCompletionRows problem).size ≤ (incPrice n + 19) * (2 * n) := Nat.mul_le_mul_left _ hrs
+    have e3 : (n + 1) * (43 * E0 + 56) ≤ (n + 1) * (43 * mo + 56) := Nat.mul_le_mul_left _ (by omega)
     have e4 : E0 * pivotPrice E0 n ≤ mo * pivotPrice mo n :=
       Nat.mul_le_mul hE (pivotPrice_mono hE)
-    have e5 : (129 * n + 23 + 11) *
+    have e5 : (127 * n + 24 + 13) *
         (DenseMatrix.homogeneousKernelBasisRows (coefficientMatrixRows problem) n).size ≤
-        (129 * n + 34) * n := Nat.mul_le_mul_left _ hkbs
+        (127 * n + 37) * n := Nat.mul_le_mul_left _ hkbs
     simp only [Array.length_toList, List.length_map, Array.size_map] at hmap ⊢
     simp only [hcap, Nat.mul_one] at *
     simp only [← hndef, ← hmo] at *
@@ -266,8 +266,8 @@ theorem popovLeafC_cost (hP : Includes P pmCoreC.costDeps) (problem : XAdicProbl
   have e : LeanVM.Extraction.Fast.Popov.popovLeafBasis problem shift =
       LeanVM.Extraction.Fast.Popov.fillPivotSlots problem shift
         (LeanVM.Extraction.Fast.Popov.kernelLeafReduced problem shift) := rfl
-  have e1 : ((3 * 2 + 23) * problem.matrix.size + 28) * problem.matrix.size =
-      (29 * problem.matrix.size + 28) * problem.matrix.size := by norm_num
+  have e1 : ((3 * 2 + 33) * problem.matrix.size + 30) * problem.matrix.size =
+      (39 * problem.matrix.size + 30) * problem.matrix.size := by norm_num
   unfold leafBound
   omega
 

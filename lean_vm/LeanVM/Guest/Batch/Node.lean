@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Verifier.DeferredShape
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # A node's batching
@@ -167,13 +168,14 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
   s.deferredClaim.HasBytecodeShape bytecode ∧
   (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss
-    w.children) s.claims.xmss w.xmss ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs
-    w.children) s.claims.sphincs w.sphincs ∧
+  List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true)
+    NodeClaims.xmss w.children) s.claims.xmss w.xmssHolders ∧
+  List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦
+      leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children)
+    s.claims.sphincs w.sphincsHolders ∧
   (match w.daMatrix with
-    | some (c, m) => s.claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
-    | none => s.claims.da = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.da = s.claims.da) ∧
+    | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
+    | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
   if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
   else batch (w.children.map fun c ↦
     ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩) w.batchingHints = some s.deferredClaim
@@ -182,20 +184,35 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
 exactly where the guest program's transcript defers the node's claim. -/
 theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}
     {w : NodeWitness} : NodeRelation bytecode seed s w ↔ NodeRelB bytecode seed s w := by
-  unfold NodeRelation NodeRelB
-  refine and_congr_right fun h1 ↦ and_congr_right fun h2 ↦ and_congr_right fun _ ↦
-    and_congr_right fun _ ↦ and_congr_right fun _ ↦ ?_
-  split
-  · exact Iff.rfl
-  · have hs : ∀ c ∈ w.children.map (fun c : Child ↦ (⟨statementDigest seed c.statement, c.freshClaim,
-        c.statement.deferredClaim⟩ : ChildClaims)), ChildHasBytecodeShape bytecode c := by
-      intro c hc
-      obtain ⟨c', hc', rfl⟩ := List.mem_map.mp hc
-      exact ⟨verifyDeferred_shaped (h2 c' hc').2, (h2 c' hc').1⟩
-    have e := batchRun_batchOf_iff (h := w.batchingHints) hs h1
-    rw [List.length_map] at e
-    rw [LeanVM.Guest.Batch.runBatching_deployed]
-    exact e
+  unfold NodeRelation NodeRelB ClaimsCovered DaClaimCovered ChildrenProven
+  have key : s.deferredClaim.HasBytecodeShape bytecode →
+      (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
+        verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof =
+          true) →
+      (DeferredClaimBatched bytecode seed s w ↔
+        if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
+        else batch (w.children.map fun c ↦
+          ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩)
+            w.batchingHints = some s.deferredClaim) := by
+    intro h1 h2
+    unfold DeferredClaimBatched
+    split
+    · exact Iff.rfl
+    · have hs : ∀ c ∈ w.children.map (fun c : Child ↦ (⟨statementDigest seed c.statement,
+          c.freshClaim, c.statement.deferredClaim⟩ : ChildClaims)),
+          ChildHasBytecodeShape bytecode c := by
+        intro c hc
+        obtain ⟨c', hc', rfl⟩ := List.mem_map.mp hc
+        exact ⟨verifyDeferred_shaped (h2 c' hc').2, (h2 c' hc').1⟩
+      have e := batchRun_batchOf_iff (h := w.batchingHints) hs h1
+      rw [List.length_map] at e
+      rw [LeanVM.Guest.Batch.runBatching_deployed]
+      exact e
+  constructor
+  · rintro ⟨⟨hx, hsp⟩, hda, h2, hb, h1⟩
+    exact ⟨h1, h2, hx, hsp, hda, (key h1 h2).mp hb⟩
+  · rintro ⟨h1, h2, hx, hsp, hda, hb⟩
+    exact ⟨⟨hx, hsp⟩, hda, h2, (key h1 h2).mpr hb, h1⟩
 
 end
 end LeanVM.Guest.Batch

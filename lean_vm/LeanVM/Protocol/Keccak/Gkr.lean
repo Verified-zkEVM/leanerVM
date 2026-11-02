@@ -33,8 +33,8 @@ challenges, `committed`, twelve layers, the committed outputs' opening and the i
 **Escape bounds** (each group, `|E| = 2^192`): the start's six challenges `L₀/|E|` each (lead
 `L₀·6/|E|`); per layer, `s` at `L₀·46/|E|`, each of the `P + 1` pack rounds and `11` position
 rounds at `L₀·3/|E|`, `β` at `L₀·2/|E|`; the openings' `6 + 4 + 6` rounds at `L₀·2/|E|`. The
-largest is `L₀·46/|E|`, which is the hypothesis `h46 : L₀·46/|E| ≤ εmax`; for `L₀ ≤ 2^18` it is
-below `2^-168 < 2^-128` (`errE_46_le`).
+largest is `L₀·46/|E|`, which is the hypothesis `h46 : L₀·46/|E| ≤ εmax`; for `L₀ ≤ 2^12` it is
+below `2^-174 < 2^-128` (`EndToEnd.Sound.phase_errors`).
 
 `gkrSpec` states it with `Pre := Doomed C (outClaimsTrueMid ∧ midAgree ∧ R)`. The statement in
 terms of `keccakF` of the inputs needs `RegionValid` (the committed middle state is twelve

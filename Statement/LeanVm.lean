@@ -34,8 +34,8 @@ permutation queries (`LeanVM.knowledgeExtractorOf`, `CostMachine.lean`). The sta
 the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound,
 which leaves no room for a useful table of witnesses beside the compiled extractor's code, and its
 budget, `knowledgeExtractorBudget` (the most its run may cost, so also the most steps it may
-execute), `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for `N ≤ 2^60`), `lean_vm`'s
-proved price of the compiled extractor being about `2^94.07 + 2^14.7·N·log²N`. A run out of budget
+execute), `2^81 + O(N·log³N)` for `N` permutation queries (about `2^81` for `N ≤ 2^50`), `lean_vm`'s
+proved price of the compiled extractor being about `2^80.49 + 2^14.85·N·log²N`. A run out of budget
 extracts nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`

@@ -82,6 +82,8 @@ def rules : List (Name × Name) := [
   (``HAnd.hAnd, ``Rule.wAnd),
   (``HAnd.hAnd, ``Rule.u8And),
   (``HAnd.hAnd, ``Rule.natAnd),
+  (``HOr.hOr, ``Rule.natOr),
+  (``HXor.hXor, ``Rule.natXor),
   (``HOr.hOr, ``Rule.wOr),
   (``HOr.hOr, ``Rule.u8Or),
   (``Complement.complement, ``Rule.wNot),
@@ -630,18 +632,24 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
     let pf ← mkAppOptM ``Rule.natLit #[ctx.P, ctx.env, mkNatLit n]
     let code ← mkAppM ``Term.val #[← mkAppM ``MachineValue.nat #[mkNatLit n]]
     return (code, mkNatLit 1, pf)
-  -- a literal of `K` or `UInt64`
+  -- a literal of `K`, `UInt64` or `UInt8`: the natural number it encodes as, evaluated
   if e.isAppOfArity ``OfNat.ofNat 3 && !e.hasFVar then
     let ty ← inferType e
+    let lit (rule : Name) (num : Expr) : MetaM (Expr × Expr × Expr) := do
+      let r ← withTransparency .all <| reduce num
+      let n := match r.rawNatLit? with
+        | some k => mkNatLit k
+        | none => match r.nat? with
+          | some k => mkNatLit k
+          | none => num
+      let hn ← mkExpectedTypeHint (← mkEqRefl n) (← mkEq num n)
+      parts (← mkAppOptM rule #[ctx.P, ctx.env, e, n, hn])
     if ← isDefEq ty (mkConst ``LeanVM.Parameters.K) then
-      let pf ← mkAppOptM ``Rule.kLit #[ctx.P, ctx.env, e]
-      return ← parts pf
+      return ← lit ``Rule.kLit (← mkAppM ``UInt64.toNat #[← mkAppM ``LeanVM.Parameters.K.lane #[e]])
     if ← isDefEq ty (mkConst ``UInt64) then
-      let pf ← mkAppOptM ``Rule.wordLit #[ctx.P, ctx.env, e]
-      return ← parts pf
+      return ← lit ``Rule.wordLit (← mkAppM ``UInt64.toNat #[e])
     if ← isDefEq ty (mkConst ``UInt8) then
-      let pf ← mkAppOptM ``Rule.u8Lit #[ctx.P, ctx.env, e]
-      return ← parts pf
+      return ← lit ``Rule.u8Lit (← mkAppM ``UInt8.toNat #[e])
   -- `let`: the body with the value itself, read from the environment where it occurs
   if let .letE _ ty v b _ := e then
     -- a function, a type, a proof, an instance: substituted
@@ -734,6 +742,8 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         let (t, c, p) ← translate ctx (← Core.betaReduce e')
         return (t, c, ← mkExpectedTypeHint p (runsAt ctx t (← mkAppM ``MachineEncoding.encodeValue #[e]) c))
       | none => throwError "translate: cannot unfold the match {e}"
+  -- a product in `K`: a call of its compiled body (`Rule.kMulCall`), once it is compiled
+  if let some r ← translateKMul ctx e then return r
   -- a rule
   let fn := e.getAppFn
   if let .const f _ := fn then
@@ -776,6 +786,30 @@ partial def translate (ctx : Ctx) (e : Expr) : MetaM (Expr × Expr × Expr) := d
         let (_, _, p) ← translate ctx (← mkAppM ``Array.ofFn #[e])
         return ← parts (← mkAppM ``Rule.finFunOfArray #[p])
   throwError "translate: no rule for {e} (head {e.getAppFn})"
+
+/-- A product in `K`, `a * b`: a call of the product's compiled body (`kMulC`, `Cost/Library.lean`)
+at a constant price (`Rule.kMulCall`); `none` before it is compiled (its own body, by
+`Rule.kMul`), or if `e` is no product in `K`. -/
+partial def translateKMul (ctx : Ctx) (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  unless e.isAppOfArity ``HMul.hMul 6 do return none
+  let kTy := mkConst ``LeanVM.Parameters.K
+  unless ← isDefEq (← inferType e) kTy do return none
+  let some cands := (compiledExt.getState (← getEnv)).find? ``Rule.kMulFn | return none
+  let some cf := cands[0]? | return none
+  let a := e.getArg! 4
+  let b := e.getArg! 5
+  unless (← isDefEq (← inferType a) kTy) && (← isDefEq (← inferType b) kTy) do return none
+  let prod ← mkAppM ``HMul.hMul #[a, b]
+  unless ← withTransparency .instances (isDefEq prod e) do return none
+  let (_, _, pa) ← translate ctx a
+  let (_, _, pb) ← translate ctx b
+  let hInc ← ctx.premise cf.deps
+  let hbody ← mkEqRefl (mkConst cf.body)
+  let pf ← mkAppOptM ``Rule.kMulCall #[ctx.P, ctx.env, none, none, a, b, none, none, mkNatLit cf.index,
+    mkConst cf.body, hInc, ← mkExpectedTypeHint hbody (← mkEq (mkConst cf.body) (mkConst ``Rule.kMulBody)),
+    pa, pb]
+  let (t, c, pf) ← parts pf
+  return some (t, c, ← mkExpectedTypeHint pf (runsAt ctx t (← mkAppM ``MachineEncoding.encodeValue #[e]) c))
 
 /-- Unify a rule's value `encodeValue pat` with `encodeValue e`: argument by argument when `pat` and `e` have the
 same head constant (so that a `casesOn` is not unfolded first, structure eta turning it into
@@ -946,7 +980,9 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
         let (tj, cj, pj) ← translate ctx' body
         if tj.hasFVar then throwError "translate: code depends on a field: {tj}"
         if cj.containsFVar hx.fvarId! then throwError "translate: a price depends on a match"
-        return some (tj, ← mkLambdaFVars fields cj, ← mkLambdaFVars (fields.push hx) pj)
+        -- the branch's price and the fields `case` puts in front of the environment
+        let cj' ← if dataFs.isEmpty then pure cj else mkAppM ``HAdd.hAdd #[cj, mkNatLit dataFs.size]
+        return some (tj, ← mkLambdaFVars fields cj', ← mkLambdaFVars (fields.push hx) pj)
     let some (tj, cj, pj) := r | return none
     alts := alts.push tj
     costLams := costLams.push cj
@@ -983,8 +1019,14 @@ partial def translateCasesCore (ctx : Ctx) (major : Expr) (bodyOf : Nat → Arra
         let some (_, _, _, w, d) := runsParts? pjTy | throwError "alternative: not a run"
         let env' ← mkAppM ``HAppend.hAppend #[fs, ctx.env]
         let pj ← mkExpectedTypeHint pj (mkAppN (mkConst ``Runs) #[ctx.P, env', alts[j]!, w, d])
-        let pf := mkAppN (mkConst ``Runs.case) #[ctx.P, ctx.env, t0, altsE, mkNatLit j, fs, alts[j]!,
-          w, c0, d, h0, ha, pj]
+        let pf ← if dataFs.isEmpty then
+            pure (mkAppN (mkConst ``Runs.case0) #[ctx.P, ctx.env, t0, altsE, mkNatLit j, alts[j]!,
+              w, c0, d, h0, ha, pj])
+          else
+            let m := mkNatLit dataFs.size
+            let hm ← mkExpectedTypeHint (← mkEqRefl m) (← mkEq (← mkAppM ``List.length #[fs]) m)
+            pure (mkAppN (mkConst ``Runs.caseAt) #[ctx.P, ctx.env, t0, altsE, mkNatLit j, fs, alts[j]!,
+              w, c0, d, m, h0, ha, pj, hm])
         mkLambdaFVars (fields.push hx) pf
     minorPfs := minorPfs.push mp
   let pf := mkApp (mkAppN (mkConst casesOn (Level.zero :: lvls)) (params ++ #[pmotive, major] ++ minorPfs))

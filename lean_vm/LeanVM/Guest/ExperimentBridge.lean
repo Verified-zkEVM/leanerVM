@@ -1,5 +1,6 @@
 import LeanVM.Protocol.ExperimentBridge
 import LeanVM.Guest.WithHash
+import LeanVM.Guest.AcceptableChild
 
 /-!
 # The guest's statements over `π` are the statements with the two calls
@@ -91,6 +92,8 @@ theorem batchingSound_of_withHash (h : BatchingSoundWithHash) : BatchingSound :=
 end Batch
 
 namespace Budget
+
+open LeanVM.Guest.Completeness
 
 theorem verifierRefusingZero_eq_withHash {m : Type → Type} [Monad m]
     (F : KeccakState → m KeccakState)

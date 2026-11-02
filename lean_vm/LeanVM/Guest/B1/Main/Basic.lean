@@ -53,12 +53,12 @@ theorem length_cellBytes' (c : E) : (cellBytes c).length = 16 := by
   simp [cellBytes, length_kBytes]
 
 /-- The bytes of a cell are its 128-bit value's (`Sig.cellVal`). -/
-theorem bytes16_cellVal (a : E) : bytes16 (Sig.cellVal a) = cellBytes a := by
-  apply List.ext_getElem (by simp [bytes16, HashSig.bytesLE])
+theorem bytes16_cellVal (a : E) : littleEndianBytes16 (Sig.cellVal a) = cellBytes a := by
+  apply List.ext_getElem (by simp [littleEndianBytes16, HashSig.bytesLE])
   intro i h1 h2
-  have hi : i < 16 := by simpa [bytes16, HashSig.bytesLE] using h1
+  have hi : i < 16 := by simpa [littleEndianBytes16, HashSig.bytesLE] using h1
   apply UInt8.toNat_inj.mp
-  simp only [bytes16, HashSig.bytesLE, List.getElem_ofFn]
+  simp only [littleEndianBytes16, HashSig.bytesLE, List.getElem_ofFn]
   rw [toNat_byteOfBitVec]
   have hv : (Sig.cellVal a).toNat = kToNat (a.limb 1) * 2 ^ 64 + kToNat (a.limb 0) := by
     simp only [Sig.cellVal, BitVec.toNat_append]

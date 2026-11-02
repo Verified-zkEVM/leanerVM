@@ -36,8 +36,9 @@ class MachineDecoding (α : Type) where
 
 export MachineDecoding (decodeValue)
 
+/-- A word: its number modulo `2^64`. -/
 instance : MachineDecoding UInt64 where
-  decodeValue | .word x => some x | _ => none
+  decodeValue | .nat n => some n.toUInt64 | _ => none
 
 instance : MachineDecoding ℕ where
   decodeValue | .nat n => some n | _ => none
@@ -51,8 +52,9 @@ instance : MachineDecoding Bool where
 instance {w : ℕ} : MachineDecoding (BitVec w) where
   decodeValue | .nat n => some (BitVec.ofNat w n) | _ => none
 
+/-- An element of `K`: the word of its number modulo `2^64`. -/
 instance : MachineDecoding K where
-  decodeValue | .word a => some (K.ofLane a) | _ => none
+  decodeValue | .nat a => some (K.ofLane a.toUInt64) | _ => none
 
 instance : MachineDecoding E := ⟨decodeExtensionElement⟩
 
@@ -127,7 +129,7 @@ instance : MachineDecoding DaClaim where
 instance : MachineDecoding Da.MatrixWitness where
   decodeValue | .ctor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
 
-instance : MachineDecoding Claims where
+instance : MachineDecoding NodeClaims where
   decodeValue
     | .ctor 0 [x, s, d] =>
       do pure ⟨← decodeValue x, ← decodeValue s, ← decodeValue d⟩
@@ -157,7 +159,7 @@ instance : MachineDecoding NodeWitness where
       do pure ⟨← decodeValue c, ← decodeValue x, ← decodeValue s, ← decodeValue d, ← decodeValue h⟩
     | _ => none
 
-instance : MachineDecoding Decoded where
+instance : MachineDecoding SeedStatementAndWitness where
   decodeValue
     | .ctor 0 [s, t, w] =>
       do pure ⟨← decodeValue s, ← decodeValue t, ← decodeValue w⟩
@@ -165,7 +167,7 @@ instance : MachineDecoding Decoded where
 
 /-- **A decoding from its encoding**: a seed, a statement and a witness; `none` on anything
 else. -/
-def decodeDecoded : MachineValue → Option Decoded := decodeValue
+def decodeDecoded : MachineValue → Option SeedStatementAndWitness := decodeValue
 
 /-! ## The parse inverts the encoding -/
 
@@ -177,7 +179,8 @@ export LawfulMachineDecoding (decodeValue_encodeValue)
 
 attribute [simp] decodeValue_encodeValue
 
-instance : LawfulMachineDecoding UInt64 := ⟨fun _ ↦ rfl⟩
+instance : LawfulMachineDecoding UInt64 := ⟨fun x ↦ by
+  show some x.toNat.toUInt64 = some x; simp [Nat.toUInt64_eq]⟩
 instance : LawfulMachineDecoding ℕ := ⟨fun _ ↦ rfl⟩
 instance {n : ℕ} : LawfulMachineDecoding (Fin n) := ⟨fun i ↦ by
   show (if h : i.val < n then some (⟨i.val, h⟩ : Fin n) else none) = some i
@@ -187,7 +190,9 @@ instance : LawfulMachineDecoding Bool := ⟨fun b ↦ by cases b <;> rfl⟩
 instance {w : ℕ} : LawfulMachineDecoding (BitVec w) :=
   ⟨fun v ↦ by show some (BitVec.ofNat w v.toNat) = some v; simp⟩
 
-instance : LawfulMachineDecoding K := ⟨fun _ ↦ rfl⟩
+instance : LawfulMachineDecoding K := ⟨fun a ↦ by
+  show some (K.ofLane a.lane.toNat.toUInt64) = some a
+  simp only [Nat.toUInt64_eq, UInt64.ofNat_toNat]; rfl⟩
 instance : LawfulMachineDecoding E := ⟨decodeE_enc⟩
 
 theorem mapM_decodeValue_map_encodeValue {α : Type} [MachineEncoding α] [MachineDecoding α] [LawfulMachineDecoding α] (l : List α) :
@@ -281,8 +286,8 @@ instance : LawfulMachineDecoding DaClaim := ⟨fun ⟨r, v⟩ ↦ by
 instance : LawfulMachineDecoding Da.MatrixWitness := ⟨fun ⟨r, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue v)⟩ : Option Da.MatrixWitness) = _; simp⟩
 
-instance : LawfulMachineDecoding Claims := ⟨fun ⟨x, s, d⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue x), ← decodeValue (encodeValue s), ← decodeValue (encodeValue d)⟩ : Option Claims) = _
+instance : LawfulMachineDecoding NodeClaims := ⟨fun ⟨x, s, d⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue x), ← decodeValue (encodeValue s), ← decodeValue (encodeValue d)⟩ : Option NodeClaims) = _
   simp⟩
 
 instance : LawfulMachineDecoding NodeStatement := ⟨fun ⟨c, d⟩ ↦ by
@@ -296,7 +301,7 @@ instance {W : Type} [MachineEncoding W] [MachineDecoding W] [LawfulMachineDecodi
   ⟨fun h ↦ by
     cases h with
     | direct w => show (decodeValue (encodeValue w)).map ClaimHolder.direct = _; simp
-    | child i => show (decodeValue (encodeValue i)).map (ClaimHolder.child (W := W)) = _; simp⟩
+    | child i => show (decodeValue (encodeValue i)).map (ClaimHolder.child (Witness := W)) = _; simp⟩
 
 instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨m, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue m), ← decodeValue (encodeValue v)⟩ : Option BatchingHints) = _; simp⟩
@@ -306,16 +311,16 @@ instance : LawfulMachineDecoding NodeWitness := ⟨fun ⟨c, x, s, d, h⟩ ↦ b
     ← decodeValue (encodeValue d), ← decodeValue (encodeValue h)⟩ : Option NodeWitness) = _
   simp⟩
 
-instance : LawfulMachineDecoding Decoded := ⟨fun ⟨s, t, w⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue t), ← decodeValue (encodeValue w)⟩ : Option Decoded) = _
+instance : LawfulMachineDecoding SeedStatementAndWitness := ⟨fun ⟨s, t, w⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue t), ← decodeValue (encodeValue w)⟩ : Option SeedStatementAndWitness) = _
   simp⟩
 
 /-- **Decoding a decoding inverts its encoding.** -/
-theorem decodeDecoded_enc (d : Decoded) : decodeDecoded (encodeValue d) = some d := decodeValue_encodeValue d
+theorem decodeDecoded_enc (d : SeedStatementAndWitness) : decodeDecoded (encodeValue d) = some d := decodeValue_encodeValue d
 
 /-- **The encoding of a decoding is injective**: the guest decoder program's output determines the
 decoding `GuestKnowledge` names. -/
-theorem encodeValue_decoded_injective : Function.Injective (encodeValue : Decoded → MachineValue) :=
+theorem encodeValue_decoded_injective : Function.Injective (encodeValue : SeedStatementAndWitness → MachineValue) :=
   fun a b h ↦ Option.some.inj (by rw [← decodeDecoded_enc a, h, decodeDecoded_enc])
 
 end

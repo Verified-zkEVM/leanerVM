@@ -18,22 +18,8 @@ namespace LeanVM.Cost
 
 @[expose] public section
 
-/-- A word-sized number is one limb. -/
-theorem limbs_of_lt {n : ℕ} (h : n < 2 ^ 64) : limbCount n = 1 := by
-  unfold limbCount
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · rfl
-  · have := (Nat.log2_lt (Nat.pos_iff_ne_zero.1 hn)).2 h
-    omega
-
-theorem one_le_limbs (n : ℕ) : 1 ≤ limbCount n := by unfold limbCount; omega
-
 /-- Sums nested to the left. -/
 theorem add_left_nest (a b c : ℕ) : a + (b + c) = a + b + c := (Nat.add_assoc a b c).symm
-
-theorem max_limbs_one (n : ℕ) : max (limbCount n) 1 = limbCount n := Nat.max_eq_left (one_le_limbs n)
-
-theorem max_one_limbs (n : ℕ) : max 1 (limbCount n) = limbCount n := Nat.max_eq_right (one_le_limbs n)
 
 end
 

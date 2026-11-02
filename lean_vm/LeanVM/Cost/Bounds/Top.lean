@@ -22,27 +22,27 @@ first root, then `stageTC`: the committed leaves (`leavesOfC`), then `runFromLea
 path's stacks (`fastOfC`), and `runBothC`: the runner's tables, a run per fast stack, else the
 decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their price equations:
 
-* the committed leaves on the chain: `bytesWordC_cost` (`310`),
-  `bytesLanesC_cost` (`460` per word), `leafOfWithC_cost`, `bytesDigestC_cost` (`7800`: its four
+* the committed leaves on the chain: `bytesWordC_cost` (`296`),
+  `bytesLanesC_cost` (`439` per word), `leafOfWithC_cost`, `bytesDigestC_cost` (`7428`: its four
   words each through `bytesLanes 4`), `subtreeLeavesWithC_cost` (by doubling), a lookup in the
-  transcript's index `preimageLookup_cost` (`D·(17 + 192·(D + 2)) + 40`, its keys `PreKey`:
+  transcript's index `preimageLookup_cost` (`D·(20 + (162 + 9W)·(D + 2)) + 42`, its keys `PreKey`:
   `transcriptIndex_keys`), **`leavesOfC_cost`** (`transcriptIndexPrice` and `committedLeavesPrice`);
-* the bytecode's words: **`bytecodeWordsC_cost`** (`bytecodeWordsPrice ℓ = 4700·2^ℓ + 1100`);
+* the bytecode's words: **`bytecodeWordsC_cost`** (`bytecodeWordsPrice ℓ = 4320·2^ℓ + 947`);
 * **`fastOfC_cost`** (`fastPathPrice`), **`decOfC_cost`** (`PMLane.decodeStacksPMC_cost_worst`, at every
-  admissible shape: `1752·2^26 + listDecoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
+  admissible shape: `1751·2^26 + listDecoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
   **`stageTC_cost`** (`afterRootStagePrice`), **`afterRootStageC_cost`**;
 * **`extractorC_cost`**: on every input, at most `extractorPrice μ R κ ℓ N` at the shape
   `afterRootLite` announces (`replayPrice ℓ` if it fails), `N` the permutation queries, any number:
   the sorted maps' positions and weights priced by their limbs (`limbsBelowTwoPow (D + 1)`,
   `D = log₂(N + 2) + 1`), so the price grows like `N·D²·(D/64 + 1)`; the closed forms
   (`extractorPrice`, `afterRootStagePrice`, …) are `Cost/Prices.lean`'s;
-* **`extractorC_within`**: the price and the entry's `9` within the statement's
+* **`extractorC_within`**: the price and the entry's `14` within the statement's
   `knowledgeExtractorBudget` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
   through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `20790990093649275234901499479 ≈ 2^94.07`, the decoder (`listDecoderWorstPrice ≈ 2^94.07`) all
-  but `≈ 2^71.8` of it (the `1 + 2^18` runs `≈ 2^71.77`, the transcript's index `≈ 2^65.44`);
-  **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.69`, the transcript's index
+  `1696880209620196960798846 ≈ 2^80.49`, the decoder (`listDecoderWorstPrice ≈ 2^80.49`) all
+  but `≈ 2^66.6` of it (the `1 + 2^12` runs `≈ 2^65.60`, the transcript's index `≈ 2^65.61`);
+  **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
   dominating.
 
 The `includes` between the top functions' lists of about `500` bodies takes seconds each: those
@@ -71,54 +71,58 @@ theorem foldr_bytes_lt' (l : List UInt8) :
     simp only [List.foldr_cons, List.length_cons, pow_succ]
     nlinarith
 
-/-- **A word of bytes** (`bytesWord.c697`): at most `310`. -/
-theorem bytesWordC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesWord.c697.costDeps)
+/-- **A word of bytes** (`bytesWord.c698`): at most `296`. -/
+theorem bytesWordC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesWord.c698.costDeps)
     (b : List UInt8) :
-    machineCost P Auto.LeanVM.Extraction.bytesWord.c697.costIdx [encodeValue b] ≤ 310 := by
-  rw [Auto.LeanVM.Extraction.bytesWord.c697.costEq P hP]
+    machineCost P Auto.LeanVM.Extraction.bytesWord.c698.costIdx [encodeValue b] ≤ 296 := by
+  rw [Auto.LeanVM.Extraction.bytesWord.c698.costEq P hP]
   have ht := take_cost P (by includes) 8 b (by norm_num)
   have hl : (b.take 8).length ≤ 8 := List.length_take_le _ _
   have hf := foldrSuffix_cost P (by includes) _
-    (.closure Auto.LeanVM.Extraction.bytesWord.c697.lam0.costIdx [])
+    (.closure Auto.LeanVM.Extraction.bytesWord.c698.lam0.costIdx [])
     (fun a acc ↦ RunsApp.of_spec
-      (Auto.LeanVM.Extraction.bytesWord.c697.lam0.costSpec P (by includes) a acc)) 8 0 (b.take 8)
+      (Auto.LeanVM.Extraction.bytesWord.c698.lam0.costSpec P (by includes) a acc)) 5 0 (b.take 8)
     (fun x tl h ↦ by
       have hlen : tl.length ≤ 7 := by have := h.length_le; simp at this; omega
       have hacc := foldr_bytes_lt' tl
       have : 256 ^ tl.length ≤ 256 ^ 7 := Nat.pow_le_pow_right (by norm_num) hlen
       have hx := x.toNat_lt
       rw [appCost_fn, List.nil_append,
-        Auto.LeanVM.Extraction.bytesWord.c697.lam0.costEq P (by includes),
-        limbs_of_lt (by omega), limbs_of_lt (by omega), limbs_of_lt (by omega)]
-      simp)
+        Auto.LeanVM.Extraction.bytesWord.c698.lam0.costEq P (by includes),
+        limbs_of_lt (by omega), limbs_of_lt (by omega), limbs_of_lt (by omega),
+        limbs_of_lt (by omega : x.toNat < 2 ^ 64), List.length_nil]
+      omega)
+  have hv := foldr_bytes_lt' (b.take 8)
+  have h8 : 256 ^ (b.take 8).length ≤ 256 ^ 8 := Nat.pow_le_pow_right (by norm_num) hl
+  rw [limbs_of_lt (lt_of_lt_of_le hv (h8.trans (by norm_num)))]
   nlinarith
 
-/-- **The first `n` words of bytes** (`bytesLanes.c696`): at most `460·n + 6`. -/
-theorem bytesLanesC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesLanes.c696.costDeps) :
+/-- **The first `n` words of bytes** (`bytesLanes.c697`): at most `439·n + 5`. -/
+theorem bytesLanesC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesLanes.c697.costDeps) :
     ∀ (n : ℕ) (b : List UInt8), n < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Extraction.bytesLanes.c696.costIdx [encodeValue n, encodeValue b] ≤ 460 * n + 6 := by
+      machineCost P Auto.LeanVM.Extraction.bytesLanes.c697.costIdx [encodeValue n, encodeValue b] ≤ 439 * n + 5 := by
   intro n
   induction n with
-  | zero => intro b _; rw [Auto.LeanVM.Extraction.bytesLanes.c696.costEq P hP]; simp [limbs_of_lt]
+  | zero => intro b _; rw [Auto.LeanVM.Extraction.bytesLanes.c697.costEq P hP]; simp [limbs_of_lt]
   | succ k ih =>
     intro b hk
-    rw [Auto.LeanVM.Extraction.bytesLanes.c696.costEq P hP, limbs_of_lt hk]
+    rw [Auto.LeanVM.Extraction.bytesLanes.c697.costEq P hP, limbs_of_lt hk]
     have := ih (b.drop 8) (by omega)
     have := bytesWordC_cost P (by includes) b
     have := drop_cost P (by includes) 8 b (by norm_num)
     dsimp only
     omega
 
-/-- **A leaf** (`leafOfWith.c694`): at most `L + 480·w + 30`, `L` the lookup's price. -/
-theorem leafOfWithC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leafOfWith.c694.costDeps)
+/-- **A leaf** (`leafOfWith.c695`): at most `L + 453·w + 21`, `L` the lookup's price. -/
+theorem leafOfWithC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leafOfWith.c695.costDeps)
     (pre : LeanVM.Protocol.Digest → ℕ → Option (List UInt8)) (preVal : MachineValue)
     (hpre : ∀ d n, RunsApp P preVal [encodeValue d, encodeValue n] (encodeValue (pre d n))) (L : ℕ)
     (hL : ∀ (d : LeanVM.Protocol.Digest) (n : ℕ), n < 2 ^ 64 → appCost P preVal [encodeValue d, encodeValue n] ≤ L)
     (w : ℕ) (hw : w < 2 ^ 61) (d : LeanVM.Protocol.Digest) :
-    machineCost P Auto.LeanVM.Extraction.Fast.leafOfWith.c694.costIdx [preVal, encodeValue w, encodeValue d] ≤
-      L + 480 * w + 30 := by
-  rw [Auto.LeanVM.Extraction.Fast.leafOfWith.c694.costEq P hP pre preVal hpre,
-    limbs_of_lt (by omega : w < 2 ^ 64)]
+    machineCost P Auto.LeanVM.Extraction.Fast.leafOfWith.c695.costIdx [preVal, encodeValue w, encodeValue d] ≤
+      L + 453 * w + 21 := by
+  rw [Auto.LeanVM.Extraction.Fast.leafOfWith.c695.costEq P hP pre preVal hpre,
+    limbs_of_lt (by omega : w < 2 ^ 64), limbs_of_lt (by omega : 8 * w < 2 ^ 64), max_self]
   have := hL d (8 * w) (by omega)
   have := replicate_cost P (by includes) (0 : K) w (by omega)
   generalize pre d (8 * w) = o
@@ -127,30 +131,30 @@ theorem leafOfWithC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.leafOfWith
   | some val =>
     have := bytesLanesC_cost P (by includes) w val (by omega)
     have := map_cost P (by includes) _
-      (.closure Auto.LeanVM.Extraction.Fast.leafOfWith.c694.lam0.costIdx [])
+      (.closure Auto.LeanVM.Extraction.Fast.leafOfWith.c695.lam0.costIdx [])
       (fun a ↦ RunsApp.of_spec
-        (Auto.LeanVM.Extraction.Fast.leafOfWith.c694.lam0.costSpec P (by includes) a)) 1
+        (Auto.LeanVM.Extraction.Fast.leafOfWith.c695.lam0.costSpec P (by includes) a)) 1
       (LeanVM.Extraction.bytesLanes w val)
       (fun a _ ↦ by
         rw [appCost_fn, List.nil_append,
-          Auto.LeanVM.Extraction.Fast.leafOfWith.c694.lam0.costEq P (by includes)])
+          Auto.LeanVM.Extraction.Fast.leafOfWith.c695.lam0.costEq P (by includes), List.length_nil])
     rw [bytesLanes_length] at this
     dsimp only
     omega
 
-/-- **A digest of bytes** (`bytesDigest.c699`, its four words each through `bytesLanes 4`): at
-most `7800`. -/
-theorem bytesDigestC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesDigest.c699.costDeps)
+/-- **A digest of bytes** (`bytesDigest.c700`, its four words each through `bytesLanes 4`): at
+most `7428`. -/
+theorem bytesDigestC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesDigest.c700.costDeps)
     (b : List UInt8) :
-    machineCost P Auto.LeanVM.Extraction.bytesDigest.c699.costIdx [encodeValue b] ≤ 7800 := by
-  rw [Auto.LeanVM.Extraction.bytesDigest.c699.costEq P hP]
+    machineCost P Auto.LeanVM.Extraction.bytesDigest.c700.costIdx [encodeValue b] ≤ 7428 := by
+  rw [Auto.LeanVM.Extraction.bytesDigest.c700.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) (n := 4) (by norm_num) _
-    (.closure Auto.LeanVM.Extraction.bytesDigest.c699.lam0.costIdx [encodeValue b])
+    (.closure Auto.LeanVM.Extraction.bytesDigest.c700.lam0.costIdx [encodeValue b])
     (fun i ↦ RunsApp.of_spec
-      (Auto.LeanVM.Extraction.bytesDigest.c699.lam0.costSpec P (by includes) b i)) 1920
+      (Auto.LeanVM.Extraction.bytesDigest.c700.lam0.costSpec P (by includes) b i)) 1837
     (fun i ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.LeanVM.Extraction.bytesDigest.c699.lam0.costEq P (by includes)]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [Auto.LeanVM.Extraction.bytesDigest.c700.lam0.costEq P (by includes)]
       have := bytesLanesC_cost P (by includes) 4 b (by norm_num)
       have := getD_cost P (by includes) (LeanVM.Extraction.bytesLanes 4 b) i 0 (by omega)
       rw [bytesLanes_length] at this
@@ -158,32 +162,32 @@ theorem bytesDigestC_cost (hP : Includes P Auto.LeanVM.Extraction.bytesDigest.c6
   rw [ofFnFrom_length]
   omega
 
-/-- **The subtree's leaves** (`subtreeLeavesWith.c693`): with `T` its price,
-`T + a ≤ 2^h·(a + b + 8·h)`, `a = L + 17·w + 33000` (an inner node) and `b = L + 480·w + 45` (a
+/-- **The subtree's leaves** (`subtreeLeavesWith.c694`): with `T` its price,
+`T + a ≤ 2^h·(a + b + 5·h)`, `a = L + 15·w + 30725` (an inner node) and `b = L + 453·w + 35` (a
 leaf), `L` the lookup's price. -/
 theorem subtreeLeavesWithC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c693.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c694.costDeps)
     (pre : LeanVM.Protocol.Digest → ℕ → Option (List UInt8)) (preVal : MachineValue)
     (hpre : ∀ d n, RunsApp P preVal [encodeValue d, encodeValue n] (encodeValue (pre d n))) (L : ℕ)
     (hL : ∀ (d : LeanVM.Protocol.Digest) (n : ℕ), n < 2 ^ 64 → appCost P preVal [encodeValue d, encodeValue n] ≤ L)
     (w : ℕ) (hw : w < 2 ^ 61) :
     ∀ (h : ℕ) (d : LeanVM.Protocol.Digest),
-      machineCost P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c693.costIdx
-          [preVal, encodeValue w, encodeValue h, encodeValue d] + (L + 17 * w + 33000) ≤
-        2 ^ h * ((L + 17 * w + 33000) + (L + 480 * w + 45) + 8 * h) := by
+      machineCost P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c694.costIdx
+          [preVal, encodeValue w, encodeValue h, encodeValue d] + (L + 15 * w + 30725) ≤
+        2 ^ h * ((L + 15 * w + 30725) + (L + 453 * w + 35) + 5 * h) := by
   have hleaf := leafOfWithC_cost P (by includes) pre preVal hpre L hL w hw
   have hrep := replicate_cost P (by includes) (0 : K) w (by omega)
   have hdig := fun (b : List UInt8) ↦ bytesDigestC_cost P (by includes) b
   have hd32 := fun (b : List UInt8) ↦ drop_cost P (by includes) 32 b (by norm_num)
   apply le_of_doubling (fun (h : ℕ) (d : LeanVM.Protocol.Digest) ↦
-    machineCost P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c693.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c694.costIdx
       [preVal, encodeValue w, encodeValue h, encodeValue d])
   · intro d
-    rw [Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c693.costEq_zero P hP pre preVal hpre]
+    rw [Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c694.costEq_zero P hP pre preVal hpre]
     have := hleaf d
     omega
   · intro k d
-    rw [Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c693.costEq_succ P hP pre preVal hpre]
+    rw [Auto.LeanVM.Extraction.Fast.subtreeLeavesWith.c694.costEq_succ P hP pre preVal hpre]
     have := hL d 64 (by norm_num)
     have hk1 := Nat.lt_two_pow_self (n := k + 1)
     have hk2 : 2 ^ (k + 1) = 2 * 2 ^ k := by ring
@@ -231,17 +235,17 @@ theorem transcriptIndex_keys (T : List (Common.PermutationQuery KeccakState × K
   have := keccakEvaluationsFast_mem_length_le he
   omega
 
-/-- **A preimage lookup** in the transcript's index (`leavesOfC.lam0`, `preimageIn.c702`): a
-binary search per level, at most `D·(17 + 192·(D + 2)) + 40`. -/
+/-- **A preimage lookup** in the transcript's index (`leavesOfC.lam0`, `preimageIn.c703`): a
+binary search per level, at most `D·(20 + (162 + 9·W)·(D + 2)) + 42`. -/
 theorem preimageLookup_cost (hP : Includes P leavesOfC.lam0.costDeps)
     (qs : List (Common.PermutationQuery KeccakState × KeccakState)) (L D W : ℕ) (hL : L < 2 ^ 64)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W) (hN : qs.length + 2 ≤ 2 ^ D)
     (d : LeanVM.Protocol.Digest) (len : ℕ) (hlen : len < 2 ^ 64) :
     appCost P (.closure leavesOfC.lam0.costIdx [encodeValue (transcriptIndex qs L)]) [encodeValue d, encodeValue len] ≤
-      D * (17 + (192 + 11 * W) * (D + 2)) + 40 := by
-  simp only [appCost_fn, List.cons_append, List.nil_append]
+      D * (20 + (162 + 9 * W) * (D + 2)) + 42 := by
+  simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
   rw [leavesOfC.lam0.costEq P hP,
-    Auto.LeanVM.Extraction.Fast.preimageIn.c702.costEq P (by includes)]
+    Auto.LeanVM.Extraction.Fast.preimageIn.c703.costEq P (by includes)]
   obtain ⟨hg, hw⟩ := transcriptIndex_bounds qs L
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg (D := D)
     (lt_of_le_of_lt hw (Nat.lt_of_lt_of_le (Nat.lt_succ_self _) hN))
@@ -249,8 +253,8 @@ theorem preimageLookup_cost (hP : Includes P leavesOfC.lam0.costDeps)
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) (transcriptIndex_keys qs L hL)
     (d.toList, len) ⟨by simp, hlen⟩
   rw [Nat.log2_two_pow] at hget
-  have hlv : (transcriptIndex qs L).levels.length * (17 + (192 + 11 * W) * (D + 2)) ≤
-      D * (17 + (192 + 11 * W) * (D + 2)) := Nat.mul_le_mul_right _ hlev
+  have hlv : (transcriptIndex qs L).levels.length * (20 + (162 + 9 * W) * (D + 2)) ≤
+      D * (20 + (162 + 9 * W) * (D + 2)) := Nat.mul_le_mul_right _ hlev
   simp only [Vector.size_toArray]
   generalize (transcriptIndex qs L).get? (d.toList, len) = o1
   generalize (transcriptIndex qs L).getD (d.toList, len) Hits.none = o2
@@ -262,20 +266,20 @@ theorem leavesOfC_cost (hP : Includes P leavesOfC.costDeps)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (hN : qs.length + 2 ≤ 2 ^ D) (h : ℕ) (root : LeanVM.Protocol.Digest) :
     machineCost P leavesOfC.costIdx [encodeValue qs, encodeValue 64, encodeValue h, encodeValue root] ≤
-      20 + transcriptIndexPrice D 512 qs.length W + committedLeavesPrice D h W := by
+      19 + transcriptIndexPrice D 512 qs.length W + committedLeavesPrice D h W := by
   rw [leavesOfC.costEq P hP]
   rw [show max 64 (8 * 64) = 512 by norm_num]
   have hT := transcriptIndex_cost P (by includes) D 512 W hW (by norm_num) qs hN
   have hS := subtreeLeavesWithC_cost P (by includes) _
     (.closure leavesOfC.lam0.costIdx [encodeValue (transcriptIndex qs 512)])
     (fun d n ↦ RunsApp.of_spec (leavesOfC.lam0.costSpec P (by includes) _ d n))
-    (D * (17 + (192 + 11 * W) * (D + 2)) + 40)
+    (D * (20 + (162 + 9 * W) * (D + 2)) + 42)
     (fun d n hn ↦ preimageLookup_cost P (by includes) qs 512 D W (by norm_num) hW hN d n hn)
     64 (by norm_num) h root
   rw [limbs_of_lt (by norm_num : (64 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 8 * 64 < 2 ^ 64)]
-  have e : D * (17 + (192 + 11 * W) * (D + 2)) + 40 + 17 * 64 + 33000 +
-      (D * (17 + (192 + 11 * W) * (D + 2)) + 40 + 480 * 64 + 45) + 8 * h =
-      2 * (D * (17 + (192 + 11 * W) * (D + 2)) + 40) + 64853 + 8 * h := by ring
+  have e : D * (20 + (162 + 9 * W) * (D + 2)) + 42 + 15 * 64 + 30725 +
+      (D * (20 + (162 + 9 * W) * (D + 2)) + 42 + 453 * 64 + 35) + 5 * h =
+      2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h := by ring
   rw [e] at hS
   unfold transcriptIndexPrice committedLeavesPrice
   simp only [show (64 : ℕ) ≤ 8 * 64 from by norm_num, ↓reduceIte]
@@ -283,27 +287,27 @@ theorem leavesOfC_cost (hP : Includes P leavesOfC.costDeps)
 
 /-! ## The bytecode's words -/
 
-/-- An instruction's entry (`entry.c682`): at most `120`. -/
-theorem entryC_cost (hP : Includes P Auto.LeanVM.Arithmetization.entry.c682.costDeps) (i : Instr) :
-    machineCost P Auto.LeanVM.Arithmetization.entry.c682.costIdx [encodeValue i] ≤ 120 := by
-  rw [Auto.LeanVM.Arithmetization.entry.c682.costEq P hP]
+/-- An instruction's entry (`entry.c683`): at most `104`. -/
+theorem entryC_cost (hP : Includes P Auto.LeanVM.Arithmetization.entry.c683.costDeps) (i : Instr) :
+    machineCost P Auto.LeanVM.Arithmetization.entry.c683.costIdx [encodeValue i] ≤ 104 := by
+  rw [Auto.LeanVM.Arithmetization.entry.c683.costEq P hP]
   cases i with
   | deref o1 o2 o3 mode =>
     dsimp only
-    rw [Auto.LeanVM.Arithmetization.derefFlags.c683.costEq P (by includes)]
+    rw [Auto.LeanVM.Arithmetization.derefFlags.c684.costEq P (by includes)]
     cases mode <;> dsimp only <;> omega
   | keccak om otail ob8 ocap oout inOdd outOdd =>
     dsimp only
-    rw [Auto.Fin.ofNat.c251.costEq P (by includes), Auto.Fin.ofNat.c251.costEq P (by includes),
-      Auto.Fin.ofNat.c251.costEq P (by includes), Auto.Fin.ofNat.c251.costEq P (by includes),
-      Auto.LeanVM.Arithmetization.flagK.c684.costEq P (by includes),
-      Auto.LeanVM.Arithmetization.flagK.c684.costEq P (by includes)]
+    rw [Auto.Fin.ofNat.c252.costEq P (by includes), Auto.Fin.ofNat.c252.costEq P (by includes),
+      Auto.Fin.ofNat.c252.costEq P (by includes), Auto.Fin.ofNat.c252.costEq P (by includes),
+      Auto.LeanVM.Arithmetization.flagK.c685.costEq P (by includes),
+      Auto.LeanVM.Arithmetization.flagK.c685.costEq P (by includes)]
     simp only [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
       limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
     split_ifs <;> omega
   | _ => dsimp only; omega
 
-/-- **The bytecode's words** (`bytecodeWordsC`): at most `4700·2^ℓ + 1100`. -/
+/-- **The bytecode's words** (`bytecodeWordsC`): at most `4320·2^ℓ + 947`. -/
 theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog : Semantics.Program) :
     machineCost P bytecodeWordsC.costIdx [encodeValue prog] ≤ bytecodeWordsPrice prog.logSize := by
   have hls : prog.logSize ≤ 32 := prog.logSize_le
@@ -311,18 +315,18 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog : Se
   rw [bytecodeWordsC.costEq P hP]
   have h1 := finRangeFrom_cost P (by includes) 16 (by norm_num) 0 (by norm_num)
   have hin : ∀ s : Fin 16, appCost P (.closure bytecodeWordsC.lam0.costIdx [encodeValue prog]) [encodeValue s] ≤
-      280 * 2 ^ prog.logSize + 30 := by
+      259 * 2 ^ prog.logSize + 21 := by
     intro s
-    simp only [appCost_fn, List.cons_append, List.nil_append]
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
     rw [bytecodeWordsC.lam0.costEq P (by includes), Nat.one_shiftLeft, limbs_of_lt h2,
       limbs_of_lt (lt_of_le_of_lt hls (by norm_num) : prog.logSize < 2 ^ 64)]
     have hf := finRangeFrom_cost P (by includes) (2 ^ prog.logSize) h2 0 (Nat.zero_le _)
     have hm := map_cost P (by includes) _ (.closure bytecodeWordsC.lam0.lam0.costIdx [encodeValue prog, encodeValue s])
-      (fun i ↦ RunsApp.of_spec (bytecodeWordsC.lam0.lam0.costSpec P (by includes) prog s i)) 247
+      (fun i ↦ RunsApp.of_spec (bytecodeWordsC.lam0.lam0.costSpec P (by includes) prog s i)) 233
       (List.finRange (2 ^ prog.logSize)) (fun i _ ↦ by
-        simp only [appCost_fn, List.cons_append, List.nil_append]
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [bytecodeWordsC.lam0.lam0.costEq P (by includes),
-          Auto.LeanVM.Arithmetization.encodeSlots.c681.costEq P (by includes)]
+          Auto.LeanVM.Arithmetization.encodeSlots.c682.costEq P (by includes)]
         have := entryC_cost P (by includes) (prog.code i)
         omega)
     rw [List.length_finRange] at hm
@@ -330,7 +334,7 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog : Se
     omega
   have hm := map_cost P (by includes) _ (.closure bytecodeWordsC.lam0.costIdx [encodeValue prog])
     (fun s ↦ RunsApp.of_spec (bytecodeWordsC.lam0.costSpec P (by includes) prog s))
-    (280 * 2 ^ prog.logSize + 30) (List.finRange 16) (fun s _ ↦ hin s)
+    (259 * 2 ^ prog.logSize + 21) (List.finRange 16) (fun s _ ↦ hin s)
   have hfl := flatten_cost P (by includes) (2 ^ prog.logSize)
     ((List.finRange 16).map fun s ↦ (List.finRange (2 ^ prog.logSize)).map fun i ↦
       (LeanVM.Arithmetization.encodeSlots (prog.code i))[s])
@@ -347,42 +351,20 @@ theorem bytecodeWordsC_cost (hP : Includes P bytecodeWordsC.costDeps) (prog : Se
 theorem fastOfC_cost (hP : Includes P fastOfC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40) (hR : R ≤ 8)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P fastOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
-      fastPathPrice μ R 64 24 + 10 := by
+      fastPathPrice μ R 64 23 + 10 := by
   rw [fastOfC.costEq P hP]
   have := fastStacksFast_cost P (by includes) μ R hμ hR _
     (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
     (fun a ↦ RunsApp.of_spec (fastOfC.lam0.costSpec P (by includes) leaves h 64 a))
-    (17 * 64 + 24) 64
+    (15 * 64 + 23) 64
     (fun v hv ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [fastOfC.lam0.costEq P (by includes)]
       have := leafAt_cost P (by includes) leaves h 64 v hh hv (by norm_num)
       omega)
     (fun v ↦ leafAt_length_le leaves h 64 v hl)
   unfold fastPathPrice
   simp only [show Whir.initialFold = 6 from rfl] at this
-  omega
-
-/-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
-lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
-≈ 2^94.07` beyond the word's reads), `listDecoderWorstPrice`. -/
-theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
-    (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
-    machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
-      1752 * 2 ^ 26 + listDecoderWorstPrice + 10 := by
-  rw [decOfC.costEq P hP]
-  have := PMLane.decodeStacksPMC_cost_worst P (by includes_sub) hadm _
-    (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
-    (fun a ↦ RunsApp.of_spec (fastOfC.lam0.costSpec P (by includes_sub) leaves h 64 a))
-    (BW := 17 * 64 + 24) (Lw := 64)
-    (fun v hv ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [fastOfC.lam0.costEq P (by includes_sub)]
-      have := leafAt_cost P (by includes_sub) leaves h 64 v hh hv (by norm_num)
-      omega)
-    (fun v ↦ leafAt_length_le leaves h 64 v hl)
-  rw [PMLane.pmDecoderWorstPrice_eq] at this
-  unfold listDecoderWorstPrice
   omega
 
 /-- A stack's run on `afterRootLite`'s layouts: at most `stackRunPrice κ ℓ`. -/
@@ -394,21 +376,21 @@ theorem runWithTables_le (hP : Includes P runWithTablesC.costDeps) (prog : Seman
   have h2 := runWithTables_cost P hP prog input L hf.logMemory_le hf.logBytecode_le
     hf.heights_le hf.heights_length hf.index_lt_word q
   have h3 := stepCapLite_le L hf.logMemory_le hf.logBytecode_le hf.heights_le hf.heights_length
-  have h4 := Nat.mul_le_mul_left (runnerStepPrice L.logMemory prog.logSize + 45) h3
+  have h4 := Nat.mul_le_mul_left (runnerStepPrice L.logMemory prog.logSize + 41) h3
   unfold stackRunPrice
   omega
 
 /-- **The candidate runs** (`runBothC`): the tables, at most one fast stack, then the decoder's
-stacks (`S` their price, at most `2^18` of them). -/
+stacks (`S` their price, at most `2^12` of them). -/
 theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (L : LayoutLite) (hf : LayoutFacts L)
     (fastSts : List (Vector K (2 ^ L.stackLog))) (hfs : fastSts.length ≤ 1)
     (slow : Unit → List (Vector K (2 ^ L.stackLog))) (slowVal : MachineValue)
     (hslow : ∀ a, RunsApp P slowVal [encodeValue a] (encodeValue (slow a))) (S : ℕ)
-    (hS : appCost P slowVal [encodeValue ()] ≤ S) (hsl : (slow ()).length ≤ 2 ^ 18) :
+    (hS : appCost P slowVal [encodeValue ()] ≤ S) (hsl : (slow ()).length ≤ 2 ^ 12) :
     machineCost P runBothC.costIdx [encodeValue prog, encodeValue input, encodeValue L, encodeValue fastSts, slowVal] ≤
-      runnerTablesPrice L.logMemory prog.logSize + (stackRunPrice L.logMemory prog.logSize + 15) * (2 ^ 18 + 1) +
-        S + 60 := by
+      runnerTablesPrice L.logMemory prog.logSize + (stackRunPrice L.logMemory prog.logSize + 21) * (2 ^ 12 + 1) +
+        S + 56 := by
   rw [runBothC.costEq P hP prog input L fastSts slow slowVal hslow]
   have hT : machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] ≤
       runnerTablesPrice L.logMemory prog.logSize :=
@@ -421,29 +403,51 @@ theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Prog
     (runBothC.lam0.lam0.costSpec P (by includes) prog input L (runnerTables prog L) q)
   have hrun : ∀ q : Vector K (2 ^ L.stackLog), appCost P (.closure runBothC.lam0.lam0.costIdx
       [encodeValue prog, encodeValue input, encodeValue L, encodeValue (runnerTables prog L)]) [encodeValue q] ≤
-      stackRunPrice L.logMemory prog.logSize + 6 := by
+      stackRunPrice L.logMemory prog.logSize + 10 := by
     intro q
-    simp only [appCost_fn, List.cons_append, List.nil_append]
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
     rw [runBothC.lam0.lam0.costEq P (by includes)]
     have := runWithTables_le P (by includes) prog input L hf q
     omega
   have hF1 := findSome_cost P (by includes) _ _ hspec _ fastSts (fun q _ ↦ hrun q)
   have hF2 := findSome_cost P (by includes) _ _ hspec _ (slow ()) (fun q _ ↦ hrun q)
-  have hm1 := Nat.mul_le_mul_left (stackRunPrice L.logMemory prog.logSize + 6 + 9) hfs
-  have hm2 := Nat.mul_le_mul_left (stackRunPrice L.logMemory prog.logSize + 6 + 9) hsl
-  rw [Auto.Option.orElse.c686.costEq P (by includes) _
+  have hm1 := Nat.mul_le_mul_left (stackRunPrice L.logMemory prog.logSize + 10 + 11) hfs
+  have hm2 := Nat.mul_le_mul_left (stackRunPrice L.logMemory prog.logSize + 10 + 11) hsl
+  rw [Auto.Option.orElse.c687.costEq P (by includes) _
     (fun _ ↦ (slow ()).findSome? (runWithTables (runnerTables prog L) prog input L))
     (.closure runBothC.lam0.costIdx [encodeValue prog, encodeValue input, encodeValue L, slowVal, encodeValue (runnerTables prog L)])
     (fun x ↦ RunsApp.of_spec (runBothC.lam0.costSpec P (by includes) prog input L slow slowVal hslow
       (runnerTables prog L) x))]
   have hlam : appCost P (.closure runBothC.lam0.costIdx
       [encodeValue prog, encodeValue input, encodeValue L, slowVal, encodeValue (runnerTables prog L)]) [encodeValue ()] ≤
-      S + (stackRunPrice L.logMemory prog.logSize + 6 + 9) * 2 ^ 18 + 16 := by
-    simp only [appCost_fn, List.cons_append, List.nil_append]
+      S + (stackRunPrice L.logMemory prog.logSize + 10 + 11) * 2 ^ 12 + 21 := by
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
     rw [runBothC.lam0.costEq P (by includes) prog input L slow slowVal hslow]
     omega
   generalize List.findSome? (runWithTables (runnerTables prog L) prog input L) fastSts = o
   cases o <;> dsimp only <;> nlinarith
+
+/-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
+lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
+≈ 2^80.49` beyond the word's reads), `listDecoderWorstPrice`. -/
+theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
+    (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
+    machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
+      1751 * 2 ^ 26 + listDecoderWorstPrice + 10 := by
+  rw [decOfC.costEq P hP]
+  have := PMLane.decodeStacksPMC_cost_worst P (by includes_sub) hadm _
+    (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
+    (fun a ↦ RunsApp.of_spec (fastOfC.lam0.costSpec P (by includes_sub) leaves h 64 a))
+    (BW := 15 * 64 + 23) (Lw := 64)
+    (fun v hv ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [fastOfC.lam0.costEq P (by includes_sub)]
+      have := leafAt_cost P (by includes_sub) leaves h 64 v hh hv (by norm_num)
+      omega)
+    (fun v ↦ leafAt_length_le leaves h 64 v hl)
+  rw [PMLane.pmDecoderWorstPrice_eq] at this
+  unfold listDecoderWorstPrice
+  omega
 
 /-! ## The stages -/
 
@@ -453,8 +457,8 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
     (hadm : Whir.Admissible L.stackLog R) (leaves : Array (List K)) (h : ℕ) (hh : h < 64)
     (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P runFromLeavesC.costIdx [encodeValue prog, encodeValue input, encodeValue L, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
-      fastPathPrice L.stackLog R 64 24 + runnerTablesPrice L.logMemory prog.logSize +
-        (stackRunPrice L.logMemory prog.logSize + 15) * (2 ^ 18 + 1) + listDecoderPrice + 92 := by
+      fastPathPrice L.stackLog R 64 23 + runnerTablesPrice L.logMemory prog.logSize +
+        (stackRunPrice L.logMemory prog.logSize + 21) * (2 ^ 12 + 1) + listDecoderPrice + 92 := by
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
   simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
@@ -466,14 +470,14 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog : Se
     RunsApp.of_spec (runFromLeavesC.lam0.costSpec P (by includes_sub) L R leaves h 64 x)
   have hB := runBothC_cost P (by includes_sub) prog input L hf (fastOf L.stackLog R leaves h 64)
     (fastStacksFast_length_le _ _ _) (fun _ ↦ decOf L.stackLog R leaves h 64) _ hslow
-    (1752 * 2 ^ 26 + listDecoderWorstPrice + 17)
+    (1751 * 2 ^ 26 + listDecoderWorstPrice + 22)
     (by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [runFromLeavesC.lam0.costEq P (by includes_sub)]
       have := decOfC_cost P (by includes_sub) hadm leaves h hh hl
       omega)
     (by
-      show (decodeStacksDistinctPM L.stackLog R (leafAt leaves h 64)).length ≤ 2 ^ 18
+      show (decodeStacksDistinctPM L.stackLog R (leafAt leaves h 64)).length ≤ 2 ^ 12
       rw [decodeStacksDistinctPM_eq hadm]
       exact decodeStacksDistinct_length_le_johnson hadm _)
   unfold listDecoderPrice
@@ -507,7 +511,7 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
     {bytecode : List K} {π : Proof}
     {L : LayoutLite} {R : ℕ} {st : ProgState} (har : afterRootLite bytecode π = some ((L, R), st)) :
     machineCost P afterRootStageC.costIdx [encodeValue prog, encodeValue input, encodeValue qs, encodeValue ((L, R), st)] ≤
-      afterRootStagePrice L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) W + 35 := by
+      afterRootStagePrice L.stackLog R L.logMemory prog.logSize D qs.length (L.stackLog - 6 + R) W + 43 := by
   obtain ⟨root, hroots⟩ := afterRootLite_roots har
   have hI := includes_afterRootStageLam P hP
   have hI2 := includes_stageTC P hP
@@ -516,20 +520,20 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog : 
       (encodeValue (stageT prog input L R qs t)) := fun t ↦
     RunsApp.of_spec (us := [encodeValue prog, encodeValue input, encodeValue qs, encodeValue R, encodeValue L]) (vs := [encodeValue t])
       (afterRootStageC.lam0.costSpec P hI prog input qs R L t)
-  have hb := Auto.Option.bind.c153.costEq P (by includes) st.roots.head? (stageT prog input L R qs)
+  have hb := Auto.Option.bind.c154.costEq P (by includes) st.roots.head? (stageT prog input L R qs)
     _ hk
   have hlam := afterRootStageC.lam0.costEq P hI prog input qs R L
     (root, L.stackLog - 6 + R, 64)
   have hst := stageTC_cost P hI2 prog input qs D W hW hN har root
   rw [afterRootStageC.costEq P hP]
   simp only [hroots, List.head?_cons] at hb ⊢
-  simp only [appCost_fn, List.cons_append, List.nil_append] at hb
+  simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil] at hb
   omega
 
 /-! ## The extractor -/
 
 /-- The price where the replay fails: the bytecode's words and the replay. -/
-@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (144 * 2 ^ ℓ + 1004514000) + 15
+@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128025) + 15
 
 /-- **The compiled extractor's price** (`extractorC`), on every input: at most `extractorPrice` at the shape `afterRootLite` announces, or
 `replayPrice` when the replay fails. -/
@@ -554,19 +558,19 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
       (encodeValue (afterRootStage prog input qs r)) := fun r ↦
     RunsApp.of_spec (us := [encodeValue prog, encodeValue input, encodeValue qs]) (vs := [encodeValue r])
       (extractorC.lam0.costSpec P hI0 prog input qs r)
-  rw [extractorC.costEq P hP, Auto.Option.bind.c153.costEq P (includes_bindC P hP)
+  rw [extractorC.costEq P hP, Auto.Option.bind.c154.costEq P (includes_bindC P hP)
     (afterRootLite (bytecodeWords prog) π) (afterRootStage prog input qs) _ hk]
   cases har : afterRootLite (bytecodeWords prog) π with
   | none =>
-    show _ ≤ bytecodeWordsPrice prog.logSize + (144 * 2 ^ prog.logSize + 1004514000) + 15
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128025) + 15
     dsimp only
     omega
   | some r =>
     obtain ⟨⟨L, R⟩, st⟩ := r
-    show _ ≤ bytecodeWordsPrice prog.logSize + (144 * 2 ^ prog.logSize + 1004514000) +
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128025) +
       afterRootStagePrice L.stackLog R L.logMemory prog.logSize (Nat.log2 (qs.length + 2) + 1) qs.length
-        (L.stackLog - 6 + R) (limbsBelowTwoPow (Nat.log2 (qs.length + 2) + 1 + 1)) + 60
-    simp only [appCost_fn, List.cons_append, List.nil_append]
+        (L.stackLog - 6 + R) (limbsBelowTwoPow (Nat.log2 (qs.length + 2) + 1 + 1)) + 69
+    simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
     have hl := extractorC.lam0.costEq P hI0 prog input qs ((L, R), st)
     have hN : qs.length + 2 ≤ 2 ^ (Nat.log2 (qs.length + 2) + 1) := Nat.le_of_lt Nat.lt_log2_self
     have hs := afterRootStageC_cost P (includes_afterRootStageC P hP) prog input qs _ _
@@ -584,9 +588,9 @@ theorem extractorPrice_le_worst {μ R κ ℓ N : ℕ} (hμ : μ ≤ 28) (hR : R 
   gcongr
 
 /-- **The worst shape's price within the statement's budget** (`knowledgeExtractorBudget`), the entry's
-`9` included, for every number of queries: monomial by monomial in `N` and the levels `D`, the
+`14` included, for every number of queries: monomial by monomial in `N` and the levels `D`, the
 positions' limbs `W` at most `(D + 65)/64`. -/
-theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ knowledgeExtractorBudget N := by
+theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 14 ≤ knowledgeExtractorBudget N := by
   unfold knowledgeExtractorBudget extractorPrice extractorSortedMapLevels
   have hW : 64 * limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) ≤ Nat.log2 (N + 2) + 1 + 65 := by
     unfold limbsBelowTwoPow; omega
@@ -603,13 +607,13 @@ theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 9 ≤ 
 
 /-- **The price within the budget** (the hypothesis `hcost` of `extractorTop_output`,
 `Cost/Efficient.lean`): wherever `afterRoot` announces a shape, the compiled extractor's price and the
-entry's `9` are within `knowledgeExtractorBudget`, on every transcript (`extractorC_cost` at the shape
+entry's `14` are within `knowledgeExtractorBudget`, on every transcript (`extractorC_cost` at the shape
 `afterRootLite_facts` bounds, `extractorPrice_le_worst`, `extractorPrice_worst_le`). -/
 theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantics.Program)
     (input : PublicInput) (T : Common.OracleQueryLog) (π : Proof) (layout : Layout)
     (logInverseRate : ℕ) (st : ProgState)
     (ha : afterRoot (bytecodeWords prog) π = some ((layout, logInverseRate), st)) :
-    machineCost P extractorC.costIdx [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 9 ≤
+    machineCost P extractorC.costIdx [encodeValue prog, encodeValue input, encodeValue (permutationQueries T), encodeValue π] + 14 ≤
       knowledgeExtractorBudget (permutationQueries T).length := by
   have h := extractorC_cost P hP prog input (permutationQueries T) π
   have hl : afterRootLite (bytecodeWords prog) π = some ((layoutLite layout, logInverseRate), st) := by
@@ -630,9 +634,9 @@ theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN
   gcongr
 
 /-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `20790990093649275234901499479 ≈ 2^94.07`, the decoder's `2^94.07` dominating. -/
+most `1696880209620196960798846 ≈ 2^80.49`, the decoder's `2^80.49` dominating. -/
 theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 20790990093649275234901499479 := by
+    extractorPrice 28 4 32 32 N ≤ 1696880209620196960798846 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
@@ -645,10 +649,10 @@ theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
   norm_num
 
 /-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
-adversaries), `κ = ℓ = 32`: at most `147716036132827817322777317680956699736466251061 ≈ 2^156.69`,
+adversaries), `κ = ℓ = 32`: at most `165504966199035608965493564522764142534226361880 ≈ 2^156.86`,
 the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
 theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
-    extractorPrice 28 4 32 32 N ≤ 147716036132827817322777317680956699736466251061 := by
+    extractorPrice 28 4 32 32 N ≤ 165504966199035608965493564522764142534226361880 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
     have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
     omega

@@ -13,8 +13,11 @@ module
 public import LeanVM.Guest.Budget.ClosedN
 public import LeanVM.Guest.Count.Deployed
 public import Statement.Corollaries
+public import LeanVM.Guest.AcceptableChild
 
 namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest.Completeness
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Node LeanVM.Protocol
 open LeanVM.Protocol.KeccakHash
@@ -138,20 +141,39 @@ every seed, statement `s` and witness `w` with `NodeRelation`, within the deploy
 where the guest divides, holding no raw leanXMSS or leanSPHINCS signature and no blob directly,
 with at most `2048` declared claims, coverage slots and children's claims, there is a valid
 execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. -/
-theorem guest_complete_recursion : GuestCompleteRecursion := by
-  intro seed s w hrel hlim hok hx hs hd hdecl hcov hcc
+theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
+    (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
+    (hx : (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length = 0)
+    (hs : (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length = 0)
+    (hd : w.daMatrix = none) (hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ 2048)
+    (hcov : coverageSlots s w ≤ 2048)
+    (hcc : (w.children.map fun c ↦ c.statement.claims.xmss.length +
+      c.statement.claims.sphincs.length).sum ≤ 2048) :
+    ∃ t : Execution guestProgram,
+      ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
+      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
   refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs
     (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl hcov hcc ?_ ?_)
-  · simpa [work] using hlim.children
-  · simpa [work] using hlim.children
+  · simpa [work] using hlim.atMostSixteenChildren
+  · simpa [work] using hlim.atMostSixteenChildren
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest**: for every
 seed, statement `s` and witness `w` with `NodeRelation`, within the deployed limits, with no child and
 no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures together and at most
 `2048` declared claims and coverage slots, there is a valid execution of the guest on the
 statement's digest of committed size in `[2^22, 2^28]`. -/
-theorem guest_complete_leaf : GuestCompleteLeaf := by
-  intro seed s w hrel hlim hok hch hd hxs hdecl hcov
+theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
+    (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
+    (hch : w.children = []) (hd : w.daMatrix = none)
+    (hxs : (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length +
+      (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length ≤ 2048)
+    (hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ 2048)
+    (hcov : coverageSlots s w ≤ 2048) :
+    ∃ t : Execution guestProgram,
+      ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
+      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
   refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs (by simp [work, hd])
     (by simp [work, hd]) (by simp [work, hd]) hdecl hcov ?_ ?_ ?_)
   · simp [work, hch]

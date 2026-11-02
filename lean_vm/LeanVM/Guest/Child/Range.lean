@@ -14,6 +14,7 @@ public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Guest.Child.Reads
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Query positions in range

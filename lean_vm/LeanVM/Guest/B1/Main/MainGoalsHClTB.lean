@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.MainGoalsHClT
 public import LeanVM.Guest.B1.Main.ChildListGoalsTB
 public import LeanVM.Guest.B1.Digest.ClaimListsAtTB
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The children's claim lists, within bounds
@@ -24,8 +25,9 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (Limits coverageSlots)
-open LeanVM.Guest.Hints (claimCells heldDirectly coveragePlan CoverageRegion)
+open LeanVM.Guest (DeployedLimits coverageSlots)
+open LeanVM.Guest.Hints (claimCells)
+open LeanVM.Guest.Coverage (heldDirectly coveragePlan CoverageRegion)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB Returns bufL)
 open LeanVM.Guest.B1.Digest (ccB)
 
@@ -34,7 +36,7 @@ open LeanVM.Guest.B1.Digest (ccB)
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
 /-- **Child `c`'s leanXMSS list is complete.** -/
-theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
+theorem kidTB_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
@@ -43,12 +45,12 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (ccHonest (hKid s w c).ex)
       (ccB fs SB (hKid s w c).ex) := by
   have hcov := cover_bound hl
-  have hlen := (hl.lists _ (List.getElem_mem hc)).1
-  have hT := kid_length_flatMap_const (f := fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
+  have hlen := (hl.childClaimListsBelow2Pow16 _ (List.getElem_mem hc)).1
+  have hT := kid_length_flatMap_const (f := fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (s.claims.xmss ++ (xPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.xmss.length) =>
-    plan_slot s.claims.xmss ((heldDirectly s.claims.xmss w.xmss).map (·.1))
+    plan_slot s.claims.xmss ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1))
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl
@@ -115,7 +117,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
   rwa [pow_zero] at this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
-theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
+theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
@@ -125,12 +127,12 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (ccHonest (hKid s w c).es)
       (ccB fs SB (hKid s w c).es) := by
   have hcov := cover_bound hl
-  have hlen := (hl.lists _ (List.getElem_mem hc)).2
-  have hT := kid_length_flatMap_const (f := fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
+  have hlen := (hl.childClaimListsBelow2Pow16 _ (List.getElem_mem hc)).2
+  have hT := kid_length_flatMap_const (f := fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2)
     (s.claims.sphincs ++ (sPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.sphincs.length) =>
-    plan_slot s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
+    plan_slot s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl
@@ -203,7 +205,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : Limits s w) {c : ℕ}
 /-- **The children's claim lists' digests on the honest run, by trees of honest shape, within
 `ccB`.** -/
 theorem childListGoalsTB_honest (cert : String → V → ℕ)
-    (hl : Limits s w) {SB : String → ℕ}
+    (hl : DeployedLimits s w) {SB : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
     ChildListGoalsTB fs cert fp seed s w (fun c => ccHonest (hKid s w c).ex)
       (fun c => ccHonest (hKid s w c).es) (fun c => ccB fs SB (hKid s w c).ex)

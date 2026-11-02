@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Main.Basic
 public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Protocol.Verifier.Load
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Reading `main`'s honest words
@@ -36,7 +37,8 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (heldDirectly claimCells cellsOfBytes cellOfBytes coveragePlan)
+open LeanVM.Guest.Hints (claimCells cellsOfBytes cellOfBytes)
+open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
 open LeanVM.Guest.Value.Keccak (cellBytes cellsBytes)
 open LeanVM.Guest.B1 (bufL)
 open LeanVM.Guest.B1.Da (reads_of_memL regionL_of_mem)
@@ -246,7 +248,7 @@ theorem coverS_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ
   cover_load h (hCover_takerS s w hk)
 
 /-- The leanXMSS table holds the claim at slot `t`. -/
-theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : XmssClaim}
+theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : LeanXmssClaim}
     (ht : (s.claims.xmss ++ (xPlan s w).duplicates)[t]? = some c) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
@@ -254,7 +256,7 @@ theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : �
   have hc4 : claimCells c.1.root c.1.parameter c.2 = _ := claimCells_eq _ _ _
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
   have hr := B1.Main.readsAt_flatMap_of (w := 4) _
-    (fun (c : XmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
+    (fun (c : LeanXmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
     (hOwn_reads h (i := 0) (by omega)) t htl
   rw [← pow_add, hc4] at hr
   exact ⟨hr 0 (by simp), hr 1 (by simp), hr 2 (by simp), hr 3 (by simp)⟩
@@ -264,12 +266,12 @@ theorem tableX_region {t k : ℕ} (ht : t < rX s w) (hk : k < 4) :
   rw [Nat.add_assoc]
   refine hOwn_region (i := 0) (by omega) ?_
   show 4 * t + k < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap _).length
-  rw [length_flatMap_of _ fun (c : XmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
+  rw [length_flatMap_of _ fun (c : LeanXmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rX] at ht
   omega
 
 /-- The leanSPHINCS table holds the claim at slot `t`. -/
-theorem tableS_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : SphincsClaim}
+theorem tableS_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : LeanSphincsClaim}
     (ht : (s.claims.sphincs ++ (sPlan s w).duplicates)[t]? = some c) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * t)) (Sig.cellOf128 c.1.root)
       (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
@@ -277,7 +279,7 @@ theorem tableS_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : �
   have hc4 : claimCells c.1.root c.1.parameter c.2 = _ := claimCells_eq _ _ _
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
   have hr := B1.Main.readsAt_flatMap_of (w := 4) _
-    (fun (c : SphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
+    (fun (c : LeanSphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
     (hOwn_reads h (i := 1) (by omega)) t htl
   rw [← pow_add, hc4] at hr
   exact ⟨hr 0 (by simp), hr 1 (by simp), hr 2 (by simp), hr 3 (by simp)⟩
@@ -287,7 +289,7 @@ theorem tableS_region {t k : ℕ} (ht : t < rY s w) (hk : k < 4) :
   rw [Nat.add_assoc]
   refine hOwn_region (i := 1) (by omega) ?_
   show 4 * t + k < ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap _).length
-  rw [length_flatMap_of _ fun (c : SphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
+  rw [length_flatMap_of _ fun (c : LeanSphincsClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
   simp only [rY] at ht
   omega
 

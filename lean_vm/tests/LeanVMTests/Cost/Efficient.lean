@@ -4,13 +4,14 @@ import LeanVM.Cost.Efficient
 # Tests: the entry of the extractor's program, and a program's size by evaluation
 
 * the entry body (`entryBody`) destructures its input, calls its function on the four fields and
-  unwraps the optional output, at `9` steps more than the call, here with a stand-in callee;
-* a program built from a compiled function's bodies (`invItohTsujii.c9`, the inverse in `K`, the
+  unwraps the optional output, at `14` more than the call (`13` on `none`), here with a stand-in
+  callee;
+* a program built from a compiled function's bodies (`invItohTsujii.c10`, the inverse in `K`, the
   extractor's) and the entry: its size bounded by evaluating its bodies' sizes (`size_ofList_le`,
   decided by the kernel);
-* the extractor's program (`extractorProgram`): `698` bodies, the entry's and the compiled
-  extractor's, the largest index `709`, its size `13811` (`Cost/ExtractorSize.lean` proves at
-  most `14400`, `knowledgeExtractorSizeBound`, by evaluating the program itself);
+* the extractor's program (`extractorProgram`): `699` bodies, the entry's and the compiled
+  extractor's, the largest index `710`, its size `14125` (`Cost/ExtractorSize.lean` proves at
+  most `14500`, `knowledgeExtractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `knowledgeExtractorOf extractorProgram =
   transcriptExtractor`.
 -/
@@ -25,15 +26,17 @@ def standIn : Term := .ctor 1 [.var 0]
 /-- The entry calling the stand-in. -/
 def entryProgram : MachineProgram := MachineProgram.ofList [(0, entryBody 1), (1, standIn)]
 
-#guard (run entryProgram 10 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.1) == some (.nat 5)
--- the stand-in's body costs `3` (a variable, a constructor of one field), the entry `9` more
-#guard (run entryProgram 10 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.2) == some 12
-#guard outputWithin entryProgram (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 12 == some (.nat 5)
-#guard outputWithin entryProgram (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 11 == none
+#guard (run entryProgram 20 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.1) == some (.nat 5)
+-- the stand-in's body costs `3` (a variable, a constructor of one field), the entry `14` more
+#guard (run entryProgram 20 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8])).map (·.2) == some 17
+#guard outputWithin entryProgram 100 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == some (.nat 5)
+#guard outputWithin entryProgram 100 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 16 == none
+-- a program above the size bound outputs nothing
+#guard outputWithin entryProgram 1 (.ctor 0 [.nat 5, .nat 6, .nat 7, .nat 8]) 17 == none
 
 /-- The bodies of the inverse in `K`, and the entry calling it. -/
 def invProgramBodies : List (ℕ × Term) :=
-  (0, entryBody 1) :: LeanVM.Cost.Auto.BF64.invItohTsujii.c9.costDeps
+  (0, entryBody 1) :: LeanVM.Cost.Auto.BF64.invItohTsujii.c10.costDeps
 
 theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 10 :=
   (size_ofList_le invProgramBodies).trans (by decide +kernel)
@@ -44,10 +47,10 @@ theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 
 
 /-! ## The extractor's program -/
 
-#guard extractorProgramBodies.length == 698
-#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 709
-#guard extractorProgram.size == 13811
-#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 13787
+#guard extractorProgramBodies.length == 699
+#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 710
+#guard extractorProgram.size == 14125
+#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 14101
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

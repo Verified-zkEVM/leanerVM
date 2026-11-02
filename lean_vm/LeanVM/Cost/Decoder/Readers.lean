@@ -109,12 +109,12 @@ theorem readCells_mul_gen_pow (rd : Reader) (p : E) (k n : ℕ) :
   rfl
 
 /-- The leanXMSS claim of the slot at the address of low limb `x` (`xmssAt`). -/
-noncomputable def xmssAtK (rd : Reader) (x : K) : XmssClaim :=
+noncomputable def xmssAtK (rd : Reader) (x : K) : LeanXmssClaim :=
   let c := readCellsK rd x 4
   Sig.xmssClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
 
 /-- The leanSPHINCS claim of the slot at the address of low limb `x` (`sphincsAt`). -/
-noncomputable def sphincsAtK (rd : Reader) (x : K) : SphincsClaim :=
+noncomputable def sphincsAtK (rd : Reader) (x : K) : LeanSphincsClaim :=
   let c := readCellsK rd x 4
   Sig.sphincsClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
 
@@ -130,12 +130,12 @@ theorem sphincsAt_eq_K (rd : Reader) (p : E) (s : ℕ) :
 
 /-- The leanXMSS claims of `n` consecutive slots from the address of low limb `x`, the address
 advanced by `step`. -/
-noncomputable def xmssRun (rd : Reader) (step x : K) : ℕ → List XmssClaim
+noncomputable def xmssRun (rd : Reader) (step x : K) : ℕ → List LeanXmssClaim
   | 0 => []
   | n + 1 => xmssAtK rd x :: xmssRun rd step (x * step) n
 
 /-- The leanSPHINCS claims of `n` consecutive slots (`xmssRun`). -/
-noncomputable def sphincsRun (rd : Reader) (step x : K) : ℕ → List SphincsClaim
+noncomputable def sphincsRun (rd : Reader) (step x : K) : ℕ → List LeanSphincsClaim
   | 0 => []
   | n + 1 => sphincsAtK rd x :: sphincsRun rd step (x * step) n
 

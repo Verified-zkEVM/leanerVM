@@ -24,72 +24,72 @@ public section
 variable (P : MachineProgram)
 
 /-- **The pointwise dot products** (`evalDotC`), `N` points, `s` terms: at most
-`304·N·s + 44·N + 21`. -/
+`80·N·s + 46·N + 20`. -/
 theorem evalDotC_cost (hP : Includes P evalDotC.costDeps) (N s : ℕ) (hN : N ≤ 2 ^ 40)
     (hs : s < 2 ^ 40) (a : Array (Array K)) (B : Array (Array (Array K))) (c : ℕ) :
     machineCost P evalDotC.costIdx [encodeValue N, encodeValue s, encodeValue a, encodeValue B,
-      encodeValue c] ≤ 304 * (N * s) + 44 * N + 21 := by
+      encodeValue c] ≤ 80 * (N * s) + 46 * N + 20 := by
   rw [evalDotC.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) (n := N) (by omega) _
     (.closure evalDotC.lam0.costIdx [encodeValue N, encodeValue s, encodeValue a, encodeValue B,
       encodeValue c])
-    (fun v ↦ RunsApp.of_spec (evalDotC.lam0.costSpec P (by includes) N s a B c v)) (304 * s + 25)
+    (fun v ↦ RunsApp.of_spec (evalDotC.lam0.costSpec P (by includes) N s a B c v)) (80 * s + 29)
     (fun v ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [evalDotC.lam0.costEq P (by includes)]
       have h1 := rangeLoop_cost P (by includes) s [] (by omega)
       have h2 := listFoldl_le P (by includes) _
         (.closure evalDotC.lam0.lam0.costIdx [encodeValue N, encodeValue a, encodeValue B,
           encodeValue c, encodeValue v])
         (fun acc k ↦ RunsApp.of_spec (evalDotC.lam0.lam0.costSpec P (by includes) N a B c v acc k))
-        278 (fun _ ↦ True) (List.range s) (0 : K) trivial
+        54 (fun _ ↦ True) (List.range s) (0 : K) trivial
         (fun acc _ k _ ↦ ⟨trivial, by
-          simp only [appCost_fn, List.cons_append, List.nil_append]
+          simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
           rw [evalDotC.lam0.lam0.costEq P (by includes)]⟩)
       rw [List.length_range] at h2
       omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
   simp only [Nat.sub_zero] at hof
-  have : (304 * s + 25 + 18) * N = 304 * (N * s) + 43 * N := by ring
+  have : (80 * s + 29 + 16) * N = 80 * (N * s) + 45 * N := by ring
   omega
 
 /-- The proved price of a forward transform of size `2^j` (`planFwdPolyC_cost`). -/
 @[expose] def fwdBound (j : ℕ) : ℕ :=
-  115 * (2 ^ j * (j * j)) + 620 * (2 ^ j * j) + 60 * 2 ^ j + 300 * j + 145
+  29 * (2 ^ j * (j * j)) + 230 * (2 ^ j * j) + 46 * 2 ^ j + 231 * j + 85
 
 /-- The proved price of an inverse transform of size `2^j` (`planInvPolyC_cost`). -/
 @[expose] def invBound (j : ℕ) : ℕ :=
-  152 * (2 ^ j * (j * j)) + 540 * (2 ^ j * j) + 53 * 2 ^ j + 220 * j + 142
+  37 * (2 ^ j * (j * j)) + 167 * (2 ^ j * j) + 44 * 2 ^ j + 156 * j + 84
 
 /-- The proved price of the plan of size `2^j` (`mkPlanC_cost`). -/
 @[expose] def planBound (j : ℕ) : ℕ :=
-  27 * 2 ^ j + 540 * (j * j * j) + 1300 * (j * j) + 2000 * j + 21000
+  28 * 2 ^ j + 76 * (j * j * j) + 276 * (j * j) + 468 * j + 2934
 
 /-- **Every entry transformed by the plan** (`transformEntriesPC`), `rows × cols` entries, each
-read at most `E`: at most `rows·cols·(E + fwdBound j + 25) + 40·rows + 19`. -/
+read at most `E`: at most `rows·cols·(E + fwdBound j + 28) + 41·rows + 18`. -/
 theorem transformEntriesPC_cost (hP : Includes P transformEntriesPC.costDeps) {j : ℕ} (hj : j ≤ 40)
     (rows cols : ℕ) (hr : rows < 2 ^ 40) (hc : cols < 2 ^ 40)
     (entry : ℕ → ℕ → CompPoly.CPolynomial K) (eVal : MachineValue)
     (he : ∀ a b : ℕ, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b)))
     (E : ℕ) (hE : ∀ a b : ℕ, appCost P eVal [encodeValue a, encodeValue b] ≤ E) :
     machineCost P transformEntriesPC.costIdx [encodeValue (FFT.mkPlan j), encodeValue rows,
-      encodeValue cols, eVal] ≤ rows * cols * (E + fwdBound j + 25) + 40 * rows + 19 := by
+      encodeValue cols, eVal] ≤ rows * cols * (E + fwdBound j + 28) + 41 * rows + 18 := by
   rw [transformEntriesPC.costEq P hP (FFT.mkPlan j) rows cols entry eVal he]
   have hof := ofFnFrom_cost P (by includes) (n := rows) (by omega) _
     (.closure transformEntriesPC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue rows,
       encodeValue cols, eVal])
     (fun i ↦ RunsApp.of_spec (transformEntriesPC.lam0.costSpec P (by includes) (FFT.mkPlan j) rows
-      cols entry eVal he i)) ((E + fwdBound j + 24) * cols + cols + 21)
+      cols entry eVal he i)) ((E + fwdBound j + 27) * cols + cols + 24)
     (fun i ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [transformEntriesPC.lam0.costEq P (by includes) (FFT.mkPlan j) rows cols entry eVal he i]
       have h1 := ofFnFrom_cost P (by includes) (n := cols) (by omega) _
         (.closure transformEntriesPC.lam0.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue rows,
           encodeValue cols, eVal, encodeValue i])
         (fun k ↦ RunsApp.of_spec (transformEntriesPC.lam0.lam0.costSpec P (by includes)
-          (FFT.mkPlan j) rows cols entry eVal he i k)) (E + fwdBound j + 6)
+          (FFT.mkPlan j) rows cols entry eVal he i k)) (E + fwdBound j + 11)
         (fun k ↦ by
-          simp only [appCost_fn, List.cons_append, List.nil_append]
+          simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
           rw [transformEntriesPC.lam0.lam0.costEq P (by includes) (FFT.mkPlan j) rows cols entry
             eVal he i k]
           have := planFwdPolyC_cost P (by includes) hj (entry i k)
@@ -98,12 +98,12 @@ theorem transformEntriesPC_cost (hP : Includes P transformEntriesPC.costDeps) {j
           omega) 0 (Nat.zero_le _)
       rw [ofFnFrom_length]
       simp only [Nat.sub_zero] at h1
-      rw [show E + fwdBound j + 6 + 18 = E + fwdBound j + 24 by ring] at h1
+      rw [show E + fwdBound j + 11 + 16 = E + fwdBound j + 27 by ring] at h1
       omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
   simp only [Nat.sub_zero] at hof
-  have : ((E + fwdBound j + 24) * cols + cols + 21 + 18) * rows =
-      rows * cols * (E + fwdBound j + 25) + 39 * rows := by ring
+  have : ((E + fwdBound j + 27) * cols + cols + 24 + 16) * rows =
+      rows * cols * (E + fwdBound j + 28) + 40 * rows := by ring
   omega
 
 theorem foldl_max_lt (g : ℕ → ℕ) (B : ℕ) (hg : ∀ k, g k < B) :
@@ -118,31 +118,31 @@ theorem cpoly_size_lt {f : CompPoly.CPolynomial K} {d : ℕ} (h : f.natDegree �
   have := FFT.size_le_natDegree_succ f
   omega
 
-/-- **The entries' largest degree** (`maxEntryDegree.c428`), `rows × cols` entries of degree
-below `2^40`: at most `82·rows·cols + 45·rows + 19`. -/
-theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c428.costDeps)
+/-- **The entries' largest degree** (`maxEntryDegree.c429`), `rows × cols` entries of degree
+below `2^40`: at most `81·rows·cols + 46·rows + 18`. -/
+theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c429.costDeps)
     (M : CompPoly.PolynomialMatrix K) (rows cols : ℕ) (hr : rows < 2 ^ 40) (hc : cols < 2 ^ 40)
     (d : ℕ) (hd : d < 2 ^ 40)
     (hM : ∀ i k, (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k).natDegree ≤ d) :
-    machineCost P maxEntryDegree.c428.costIdx [encodeValue M, encodeValue rows, encodeValue cols] ≤
-      82 * (rows * cols) + 45 * rows + 19 := by
-  rw [maxEntryDegree.c428.costEq P hP]
+    machineCost P maxEntryDegree.c429.costIdx [encodeValue M, encodeValue rows, encodeValue cols] ≤
+      81 * (rows * cols) + 46 * rows + 18 := by
+  rw [maxEntryDegree.c429.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) rows [] (by omega)
-  have hinner : ∀ i acc : ℕ, acc < 2 ^ 40 → machineCost P maxEntryDegree.c428.lam0.costIdx
-      [encodeValue M, encodeValue cols, encodeValue acc, encodeValue i] ≤ 82 * cols + 19 := by
+  have hinner : ∀ i acc : ℕ, acc < 2 ^ 40 → machineCost P maxEntryDegree.c429.lam0.costIdx
+      [encodeValue M, encodeValue cols, encodeValue acc, encodeValue i] ≤ 81 * cols + 18 := by
     intro i acc hacc
-    rw [maxEntryDegree.c428.lam0.costEq P (by includes)]
+    rw [maxEntryDegree.c429.lam0.costEq P (by includes)]
     have h2 := rangeLoop_cost P (by includes) cols [] (by omega)
     have h3 := listFoldl_le P (by includes) _
-      (.closure maxEntryDegree.c428.lam0.lam0.costIdx [encodeValue M, encodeValue i])
-      (fun a k ↦ RunsApp.of_spec (maxEntryDegree.c428.lam0.lam0.costSpec P (by includes) M i a k))
-      56 (fun a ↦ a < 2 ^ 40) (List.range cols) acc hacc
+      (.closure maxEntryDegree.c429.lam0.lam0.costIdx [encodeValue M, encodeValue i])
+      (fun a k ↦ RunsApp.of_spec (maxEntryDegree.c429.lam0.lam0.costSpec P (by includes) M i a k))
+      55 (fun a ↦ a < 2 ^ 40) (List.range cols) acc hacc
       (fun a ha k _ ↦ ⟨by
         have := hM i k
         show max a _ < 2 ^ 40
         omega, by
-        simp only [appCost_fn, List.cons_append, List.nil_append]
-        rw [maxEntryDegree.c428.lam0.lam0.costEq P (by includes)]
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+        rw [maxEntryDegree.c429.lam0.lam0.costEq P (by includes)]
         have e1 := hM i k
         have e2 := Decoder.natDegree_cost P (by includes)
           (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k) (by
@@ -153,30 +153,31 @@ theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c428.costDeps)
     rw [List.length_range] at h3
     omega
   have h4 := listFoldl_le P (by includes) _
-    (.closure maxEntryDegree.c428.lam0.costIdx [encodeValue M, encodeValue cols])
-    (fun a i ↦ RunsApp.of_spec (maxEntryDegree.c428.lam0.costSpec P (by includes) M cols a i))
-    (82 * cols + 19) (fun a ↦ a < 2 ^ 40) (List.range rows) 0 (by norm_num)
+    (.closure maxEntryDegree.c429.lam0.costIdx [encodeValue M, encodeValue cols])
+    (fun a i ↦ RunsApp.of_spec (maxEntryDegree.c429.lam0.costSpec P (by includes) M cols a i))
+    (81 * cols + 20) (fun a ↦ a < 2 ^ 40) (List.range rows) 0 (by norm_num)
     (fun a ha i _ ↦ ⟨by
       exact foldl_max_lt _ _ (fun k ↦ (hM i k).trans_lt hd) _ _ ha, by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      exact hinner i a ha⟩)
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      have := hinner i a ha
+      omega⟩)
   rw [List.length_range] at h4
-  have : (82 * cols + 19 + 9) * rows = 82 * (rows * cols) + 28 * rows := by ring
+  have : (81 * cols + 20 + 11) * rows = 81 * (rows * cols) + 31 * rows := by ring
   omega
 
-/-- **The size's search** (`ceilLogLoop.c433`) from `a`, `e ≤ 2^K`, `K ≤ 40`: at most
-`30·(K − a) + 20`. -/
-theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c433.costDeps) (e K : ℕ) (he : e ≤ 2 ^ K)
+/-- **The size's search** (`ceilLogLoop.c434`) from `a`, `e ≤ 2^K`, `K ≤ 40`: at most
+`22·(K − a) + 17`. -/
+theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c434.costDeps) (e K : ℕ) (he : e ≤ 2 ^ K)
     (hK : K ≤ 40) : ∀ fuel a, fuel < 2 ^ 64 → a ≤ K →
-      machineCost P ceilLogLoop.c433.costIdx [encodeValue e, encodeValue fuel, encodeValue a] ≤
-        30 * (K - a) + 20 := by
+      machineCost P ceilLogLoop.c434.costIdx [encodeValue e, encodeValue fuel, encodeValue a] ≤
+        22 * (K - a) + 17 := by
   have hpK : 2 ^ K ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hK
   intro fuel
   induction fuel with
-  | zero => intro a _ _; rw [ceilLogLoop.c433.costEq P hP]; cost_simp; omega
+  | zero => intro a _ _; rw [ceilLogLoop.c434.costEq P hP]; cost_simp; omega
   | succ n ih =>
     intro a hn ha
-    rw [ceilLogLoop.c433.costEq P hP]
+    rw [ceilLogLoop.c434.costEq P hP]
     cost_simp
     rw [limbs_shift (by omega), limbs_two_pow (by omega)]
     split_ifs with h
@@ -189,38 +190,38 @@ theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c433.costDeps) (e K : ℕ
       cost_simp
       omega
 
-/-- **A matrix of entries** (`PolynomialMatrix.ofFn.c435`), each at most `E`: at most
-`rows·width·(E + 33) + 48·rows + 19`. -/
-theorem matrixOfFnC_cost (hP : Includes P ofFn.c435.costDeps) (rows width : ℕ)
+/-- **A matrix of entries** (`PolynomialMatrix.ofFn.c436`), each at most `E`: at most
+`rows·width·(E + 35) + 49·rows + 18`. -/
+theorem matrixOfFnC_cost (hP : Includes P ofFn.c436.costDeps) (rows width : ℕ)
     (hr : rows < 2 ^ 40) (hw : width < 2 ^ 40) (entry : ℕ → ℕ → CompPoly.CPolynomial K)
     (eVal : MachineValue)
     (he : ∀ a b : ℕ, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b)))
     (E : ℕ) (hE : ∀ a b : ℕ, appCost P eVal [encodeValue a, encodeValue b] ≤ E) :
-    machineCost P ofFn.c435.costIdx [encodeValue rows, encodeValue width, eVal] ≤
-      rows * width * (E + 33) + 48 * rows + 19 := by
-  rw [ofFn.c435.costEq P hP rows width entry eVal he]
+    machineCost P ofFn.c436.costIdx [encodeValue rows, encodeValue width, eVal] ≤
+      rows * width * (E + 35) + 49 * rows + 18 := by
+  rw [ofFn.c436.costEq P hP rows width entry eVal he]
   have h1 := rangeLoop_cost P (by includes) rows [] (by omega)
-  have h2 := map_cost P (by includes) _ (.closure ofFn.c435.lam0.costIdx [encodeValue width, eVal])
-    (fun i ↦ RunsApp.of_spec (ofFn.c435.lam0.costSpec P (by includes) width entry eVal he i))
-    ((E + 15) * width + width + 19 + 17 * width) (List.range rows)
+  have h2 := map_cost P (by includes) _ (.closure ofFn.c436.lam0.costIdx [encodeValue width, eVal])
+    (fun i ↦ RunsApp.of_spec (ofFn.c436.lam0.costSpec P (by includes) width entry eVal he i))
+    ((E + 19) * width + width + 20 + 15 * width) (List.range rows)
     (fun i _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [ofFn.c435.lam0.costEq P (by includes) width entry eVal he i]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [ofFn.c436.lam0.costEq P (by includes) width entry eVal he i]
       have h3 := rangeLoop_cost P (by includes) width [] (by omega)
-      have h4 := map_cost P (by includes) _ (.closure ofFn.c435.lam0.lam0.costIdx [eVal, encodeValue i])
-        (fun k ↦ RunsApp.of_spec (ofFn.c435.lam0.lam0.costSpec P (by includes) entry eVal he i k))
-        (E + 4) (List.range width)
+      have h4 := map_cost P (by includes) _ (.closure ofFn.c436.lam0.lam0.costIdx [eVal, encodeValue i])
+        (fun k ↦ RunsApp.of_spec (ofFn.c436.lam0.lam0.costSpec P (by includes) entry eVal he i k))
+        (E + 6) (List.range width)
         (fun k _ ↦ by
-          simp only [appCost_fn, List.cons_append, List.nil_append]
-          rw [ofFn.c435.lam0.lam0.costEq P (by includes) entry eVal he i k]
+          simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [ofFn.c436.lam0.lam0.costEq P (by includes) entry eVal he i k]
           have := hE i k
           omega)
       simp only [List.length_map, List.length_range] at h4 ⊢
-      have : (E + 4 + 11) * width = (E + 15) * width := by ring
+      have : (E + 6 + 13) * width = (E + 19) * width := by ring
       omega)
   simp only [List.length_map, List.length_range] at h2 ⊢
-  have : ((E + 15) * width + width + 19 + 17 * width + 11) * rows =
-      rows * width * (E + 33) + 30 * rows := by ring
+  have : ((E + 19) * width + width + 20 + 15 * width + 13) * rows =
+      rows * width * (E + 35) + 33 * rows := by ring
   omega
 
 theorem maxEntryDegree_le (M : CompPoly.PolynomialMatrix K) (rows cols d : ℕ)
@@ -253,9 +254,9 @@ theorem mulEvalPC_cost_explicit (hP : Includes P mulEvalPC.costDeps)
     (hjm : dA + dB + 1 ≤ 2 ^ jm) (hj : jm ≤ 36) (hR : A.size < 2 ^ 32) (hS : B.size < 2 ^ 32)
     (hT : B.MatrixWidth < 2 ^ 32) :
     ∃ J ≤ jm, machineCost P mulEvalPC.costIdx [encodeValue A, encodeValue B] ≤
-      A.size * B.size * (fwdBound J + 119) + B.size * B.MatrixWidth * (fwdBound J + 119) +
-        A.size * B.MatrixWidth * (304 * (2 ^ J * B.size) + 44 * 2 ^ J + invBound J + 66) +
-        133 * A.size + 85 * B.size + planBound J + 1300 := by
+      A.size * B.size * (fwdBound J + 122) + B.size * B.MatrixWidth * (fwdBound J + 122) +
+        A.size * B.MatrixWidth * (80 * (2 ^ J * B.size) + 46 * 2 ^ J + invBound J + 75) +
+        136 * A.size + 87 * B.size + planBound J + 989 := by
   rw [mulEvalPC.costEq P hP]
   have hW := Decoder.matrixWidthC_cost P (by includes) B (by omega)
   have hlog : limbCount FFT.novelTransform.maxLog = 1 := limbs_of_lt (show 64 < 2 ^ 64 by norm_num)
@@ -282,16 +283,16 @@ theorem mulEvalPC_cost_explicit (hP : Includes P mulEvalPC.costDeps)
   have h5 := transformEntriesPC_cost P (by includes) hJ40 R S (by omega) (by omega)
     (fun i k ↦ CompPoly.PolynomialMatrix.rowGet (A.getD i #[]) k)
     (.closure mulEvalPC.lam0.costIdx [encodeValue A])
-    (fun i k ↦ RunsApp.of_spec (mulEvalPC.lam0.costSpec P (by includes) A i k)) 12
+    (fun i k ↦ RunsApp.of_spec (mulEvalPC.lam0.costSpec P (by includes) A i k)) 13
     (fun i k ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [mulEvalPC.lam0.costEq P (by includes), Decoder.rowGet_cost P (by includes)])
   have h6 := transformEntriesPC_cost P (by includes) hJ40 S T (by omega) (by omega)
     (fun k c ↦ CompPoly.PolynomialMatrix.rowGet (B.getD k #[]) c)
     (.closure mulEvalPC.lam0.costIdx [encodeValue B])
-    (fun k c ↦ RunsApp.of_spec (mulEvalPC.lam0.costSpec P (by includes) B k c)) 12
+    (fun k c ↦ RunsApp.of_spec (mulEvalPC.lam0.costSpec P (by includes) B k c)) 13
     (fun k c ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [mulEvalPC.lam0.costEq P (by includes), Decoder.rowGet_cost P (by includes)])
   have hN : 2 ^ J ≤ 2 ^ 36 := Nat.pow_le_pow_right (by norm_num) (by omega)
   set FA := FFT.transformEntriesP FFT.novelTransform (FFT.mkPlan J) R S fun i k ↦
@@ -303,9 +304,9 @@ theorem mulEvalPC_cost_explicit (hP : Includes P mulEvalPC.costDeps)
       encodeValue (FFT.mkPlan J), encodeValue (2 ^ J), encodeValue J, encodeValue R, encodeValue S,
       encodeValue T])
     (fun i c ↦ RunsApp.of_spec (mulEvalPC.lam1.costSpec P (by includes) _ _ _ _ _ _ _ _ i c))
-    (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 12)
+    (80 * (2 ^ J * S) + 46 * 2 ^ J + 20 + invBound J + 20)
     (fun i c ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [mulEvalPC.lam1.costEq P (by includes)]
       have e1 := evalDotC_cost P (by includes) (2 ^ J) S (by omega) (by omega) (FA.getD i #[]) FB c
       have e2 := planInvPolyC_cost P (by includes) hJ40
@@ -314,12 +315,12 @@ theorem mulEvalPC_cost_explicit (hP : Includes P mulEvalPC.costDeps)
       omega)
   rw [limbs_shift (k := J) (by omega)]
   cost_simp
-  have e3 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 12 + 33) =
-      R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 66) := by ring
-  have e4 : R * S * (12 + fwdBound J + 25) = R * S * (fwdBound J + 37) := by ring
-  have e5 : S * T * (12 + fwdBound J + 25) = S * T * (fwdBound J + 37) := by ring
-  have e6 : R * S * (fwdBound J + 119) = R * S * (fwdBound J + 37) + 82 * (R * S) := by ring
-  have e7 : S * T * (fwdBound J + 119) = S * T * (fwdBound J + 37) + 82 * (S * T) := by ring
+  have e3 : R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + 20 + invBound J + 20 + 35) =
+      R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 75) := by ring
+  have e4 : R * S * (13 + fwdBound J + 28) = R * S * (fwdBound J + 41) := by ring
+  have e5 : S * T * (13 + fwdBound J + 28) = S * T * (fwdBound J + 41) := by ring
+  have e6 : R * S * (fwdBound J + 122) = R * S * (fwdBound J + 41) + 81 * (R * S) := by ring
+  have e7 : S * T * (fwdBound J + 122) = S * T * (fwdBound J + 41) + 81 * (S * T) := by ring
   rw [planBound]
   omega
 
@@ -328,22 +329,22 @@ theorem mulEvalPC_cost_explicit (hP : Includes P mulEvalPC.costDeps)
 open LeanVM.Cost.Bounds.PMBasis
 
 /-- The plan's price beyond its twiddle tables. -/
-@[expose] def planPoly (j : ℕ) : ℕ := 540 * (j * j * j) + 1300 * (j * j) + 2000 * j + 21000
+@[expose] def planPoly (j : ℕ) : ℕ := 76 * (j * j * j) + 276 * (j * j) + 468 * j + 2934
 
 /-- **What one forward transform of size `2^j` needs of the model** (`fwdPrice`): the proved
 transform, the plan's tables (and for `j ≥ 12` the rest of the plan; below, `2^20` holds it), an
 entry's reads (its degree, its closure, the rows'). -/
 @[expose] def fwdNeed (j : ℕ) : ℕ :=
-  fwdBound j + 27 * 2 ^ j + (if j ≤ 11 then 0 else planPoly j) + 340
+  fwdBound j + 28 * 2 ^ j + (if j ≤ 11 then 0 else planPoly j) + 345
 
 /-- **What one inverse transform of size `2^j` needs of the model** (`invPrice`): the proved
 transform, the dot products' entry overheads, the output's closure. -/
-@[expose] def invNeed (j : ℕ) : ℕ := invBound j + 44 * 2 ^ j + 66
+@[expose] def invNeed (j : ℕ) : ℕ := invBound j + 46 * 2 ^ j + 75
 
 /-- **The prices the proved bounds fit** (decidable: `decide` on numbers): a multiply-add at least
-`304`, and for every `j ≤ 36` the transforms' needs within the model's `fwdPrice`, `invPrice`. -/
+`80`, and for every `j ≤ 36` the transforms' needs within the model's `fwdPrice`, `invPrice`. -/
 @[expose] def FFTPricesOK (p : PMPrices) : Prop :=
-  304 ≤ p.mac ∧ ∀ j < 37, fwdNeed j ≤ fwdPrice p j ∧ invNeed j ≤ invPrice p j
+  80 ≤ p.mac ∧ ∀ j < 37, fwdNeed j ≤ fwdPrice p j ∧ invNeed j ≤ invPrice p j
 
 instance (p : PMPrices) : Decidable (FFTPricesOK p) := by
   unfold FFTPricesOK; infer_instance
@@ -368,7 +369,7 @@ theorem dist3 (x a b c : ℕ) : x * (a + b + 0 + c) = x * (a + c) + x * b := by 
 
 theorem dist4 (x a b d c : ℕ) : x * (a + b + d + c) = x * (a + c) + x * b + x * d := by ring
 
-theorem planPoly_le_11 {j : ℕ} (h : j ≤ 11) : planPoly j ≤ 919040 := by
+theorem planPoly_le_11 {j : ℕ} (h : j ≤ 11) : planPoly j ≤ 142634 := by
   unfold planPoly
   have : j * j ≤ 121 := Nat.mul_le_mul h h
   have : j * j * j ≤ 1331 := Nat.mul_le_mul this h
@@ -376,43 +377,42 @@ theorem planPoly_le_11 {j : ℕ} (h : j ≤ 11) : planPoly j ≤ 919040 := by
 
 /-- The plan within one transform (and `2^20` below `j = 12`). -/
 theorem plan_fit (x J : ℕ) (hx0 : 1 ≤ x) :
-    x * (fwdBound J + 340) + planBound J ≤ x * fwdNeed J + 919040 := by
-  have hN27 : 27 * 2 ^ J ≤ x * (27 * 2 ^ J) := Nat.le_mul_of_pos_left _ hx0
-  have hpb : planBound J = 27 * 2 ^ J + planPoly J := by unfold planBound planPoly; ring
+    x * (fwdBound J + 345) + planBound J ≤ x * fwdNeed J + 142634 := by
+  have hN27 : 28 * 2 ^ J ≤ x * (28 * 2 ^ J) := Nat.le_mul_of_pos_left _ hx0
+  have hpb : planBound J = 28 * 2 ^ J + planPoly J := by unfold planBound planPoly; ring
   rw [hpb]
   unfold fwdNeed
   split_ifs with h12
-  · have e := dist3 x (fwdBound J) (27 * 2 ^ J) 340
+  · have e := dist3 x (fwdBound J) (28 * 2 ^ J) 345
     have := planPoly_le_11 h12
     linarith
   · have hpp : planPoly J ≤ x * planPoly J := Nat.le_mul_of_pos_left _ hx0
-    have e := dist4 x (fwdBound J) (27 * 2 ^ J) (planPoly J) 340
+    have e := dist4 x (fwdBound J) (28 * 2 ^ J) (planPoly J) 345
     linarith
 
 /-- The explicit price within `evalMatPrice`'s form. -/
 theorem evalMat_fit (R S T J jm mac F I : ℕ) (hR0 : 0 < R) (hS0 : 0 < S)
-    (hN : 2 ^ J ≤ 2 ^ jm) (hmac : 304 ≤ mac) (hf : fwdNeed J ≤ F) (hi : invNeed J ≤ I) :
-    R * S * (fwdBound J + 119) + S * T * (fwdBound J + 119) +
-        R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 66) +
-        133 * R + 85 * S + planBound J + 1300 ≤
+    (hN : 2 ^ J ≤ 2 ^ jm) (hmac : 80 ≤ mac) (hf : fwdNeed J ≤ F) (hi : invNeed J ≤ I) :
+    R * S * (fwdBound J + 122) + S * T * (fwdBound J + 122) +
+        R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 75) +
+        136 * R + 87 * S + planBound J + 989 ≤
       (R * S + S * T) * F + R * T * I + R * S * T * 2 ^ jm * mac + 2 ^ 20 := by
   have hx1 : R ≤ R * S := Nat.le_mul_of_pos_right _ hS0
   have hx2 : S ≤ R * S := Nat.le_mul_of_pos_left _ hR0
   have hx0 : 1 ≤ R * S := Nat.mul_pos hR0 hS0
   have hplan := plan_fit (R * S) J hx0
   have h1 : R * S * fwdNeed J ≤ R * S * F := Nat.mul_le_mul_left _ hf
-  have h2 : S * T * (fwdBound J + 119) ≤ S * T * F :=
+  have h2 : S * T * (fwdBound J + 122) ≤ S * T * F :=
     Nat.mul_le_mul_left _ (by unfold fwdNeed at hf; omega)
-  have e1 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 66) =
-      R * T * invNeed J + 304 * (R * S * T * 2 ^ J) := by unfold invNeed; ring
+  have e1 : R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 75) =
+      R * T * invNeed J + 80 * (R * S * T * 2 ^ J) := by unfold invNeed; ring
   have e2 : R * T * invNeed J ≤ R * T * I := Nat.mul_le_mul_left _ hi
-  have e3 : 304 * (R * S * T * 2 ^ J) ≤ R * S * T * 2 ^ jm * mac := by
-    have := Nat.mul_le_mul (Nat.mul_le_mul_left (R * S * T) hN) hmac
+  have e3 : 80 * (R * S * T * 2 ^ J) ≤ R * S * T * 2 ^ jm * mac := by
     rw [mul_comm (R * S * T * 2 ^ jm) mac]
-    calc 304 * (R * S * T * 2 ^ J) ≤ mac * (R * S * T * 2 ^ J) := Nat.mul_le_mul_right _ hmac
+    calc 80 * (R * S * T * 2 ^ J) ≤ mac * (R * S * T * 2 ^ J) := Nat.mul_le_mul_right _ hmac
       _ ≤ mac * (R * S * T * 2 ^ jm) := Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ hN)
-  have e4 : R * S * (fwdBound J + 119) + 133 * R + 85 * S ≤ R * S * (fwdBound J + 340) := by
-    have : R * S * (fwdBound J + 340) = R * S * (fwdBound J + 119) + 221 * (R * S) := by ring
+  have e4 : R * S * (fwdBound J + 122) + 136 * R + 87 * S ≤ R * S * (fwdBound J + 345) := by
+    have : R * S * (fwdBound J + 345) = R * S * (fwdBound J + 122) + 223 * (R * S) := by ring
     omega
   have e5 : (R * S + S * T) * F = R * S * F + S * T * F := by ring
   omega
@@ -449,38 +449,38 @@ theorem mulEvalPC_cost (hP : Includes P mulEvalPC.costDeps) (p : PMPrices) (hp :
 
 /-! ## The column-truncated product -/
 
-/-- **An X-adic truncation** (`truncateX.c448`) at `order`: at most `56·order + 34`. -/
-theorem truncateXC_cost (hP : Includes P truncateX.c448.costDeps) (order : ℕ) (ho : order < 2 ^ 40)
+/-- **An X-adic truncation** (`truncateX.c449`) at `order`: at most `55·order + 31`. -/
+theorem truncateXC_cost (hP : Includes P truncateX.c449.costDeps) (order : ℕ) (ho : order < 2 ^ 40)
     (f : CompPoly.CPolynomial K) :
-    machineCost P truncateX.c448.costIdx [encodeValue order, encodeValue f] ≤ 56 * order + 34 := by
-  rw [truncateX.c448.costEq P hP]
+    machineCost P truncateX.c449.costIdx [encodeValue order, encodeValue f] ≤ 55 * order + 31 := by
+  rw [truncateX.c449.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) order [] (by omega)
-  have h2 := map_cost P (by includes) _ (.closure truncateX.c448.lam0.costIdx [encodeValue f])
-    (fun i ↦ RunsApp.of_spec (truncateX.c448.lam0.costSpec P (by includes) f i)) 4 (List.range order)
+  have h2 := map_cost P (by includes) _ (.closure truncateX.c449.lam0.costIdx [encodeValue f])
+    (fun i ↦ RunsApp.of_spec (truncateX.c449.lam0.costSpec P (by includes) f i)) 5 (List.range order)
     (fun i _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [truncateX.c448.lam0.costEq P (by includes)])
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [truncateX.c449.lam0.costEq P (by includes)])
   have h3 := Decoder.ofArray_cost P (by includes)
     ((List.map (fun i ↦ f.coeff i) (List.range order)).toArray) (by simp; omega)
   simp only [List.size_toArray, List.length_map, List.length_range] at h2 h3 ⊢
   omega
 
-/-- **The largest order** (`maxOrderOf.c445`), `cols` orders at most `O < 2^40`: at most
-`40·cols + 20`. -/
-theorem maxOrderOfC_cost (hP : Includes P maxOrderOf.c445.costDeps) (orders : Array ℕ) (cols O : ℕ)
+/-- **The largest order** (`maxOrderOf.c446`), `cols` orders at most `O < 2^40`: at most
+`40·cols + 16`. -/
+theorem maxOrderOfC_cost (hP : Includes P maxOrderOf.c446.costDeps) (orders : Array ℕ) (cols O : ℕ)
     (hc : cols < 2 ^ 40) (hO : O < 2 ^ 40) (ho : ∀ c, orders.getD c 0 ≤ O) :
-    machineCost P maxOrderOf.c445.costIdx [encodeValue orders, encodeValue cols] ≤ 40 * cols + 20 := by
-  rw [maxOrderOf.c445.costEq P hP]
+    machineCost P maxOrderOf.c446.costIdx [encodeValue orders, encodeValue cols] ≤ 40 * cols + 16 := by
+  rw [maxOrderOf.c446.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) cols [] (by omega)
-  have h2 := listFoldl_le P (by includes) _ (.closure maxOrderOf.c445.lam0.costIdx [encodeValue orders])
-    (fun a c ↦ RunsApp.of_spec (maxOrderOf.c445.lam0.costSpec P (by includes) orders a c)) 13
+  have h2 := listFoldl_le P (by includes) _ (.closure maxOrderOf.c446.lam0.costIdx [encodeValue orders])
+    (fun a c ↦ RunsApp.of_spec (maxOrderOf.c446.lam0.costSpec P (by includes) orders a c)) 14
     (fun a ↦ a < 2 ^ 40) (List.range cols) 0 (by norm_num)
     (fun a ha c _ ↦ ⟨by
       have := ho c
       show max a _ < 2 ^ 40
       omega, by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [maxOrderOf.c445.lam0.costEq P (by includes)]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [maxOrderOf.c446.lam0.costEq P (by includes)]
       have := ho c
       cost_simp
       split_ifs <;> omega⟩)
@@ -507,10 +507,10 @@ theorem mulTruncEvalPC_cost_explicit (hP : Includes P mulTruncEvalPC.costDeps)
     (hdA' : dA < 2 ^ 40) (hdB' : dB < 2 ^ 40)
     (hR : A.size < 2 ^ 32) (hS : B.size < 2 ^ 32) (hT : B.MatrixWidth < 2 ^ 32) :
     ∃ J ≤ jm, machineCost P mulTruncEvalPC.costIdx [encodeValue orders, encodeValue A, encodeValue B] ≤
-      A.size * B.size * (fwdBound J + 56 * O + 237) +
-        B.size * B.MatrixWidth * (fwdBound J + 56 * O + 237) +
-        A.size * B.MatrixWidth * (304 * (2 ^ J * B.size) + 44 * 2 ^ J + invBound J + 56 * O + 105) +
-        178 * A.size + 130 * B.size + 40 * B.MatrixWidth + planBound J + 1400 := by
+      A.size * B.size * (fwdBound J + 55 * O + 238) +
+        B.size * B.MatrixWidth * (fwdBound J + 55 * O + 238) +
+        A.size * B.MatrixWidth * (80 * (2 ^ J * B.size) + 46 * 2 ^ J + invBound J + 55 * O + 113) +
+        182 * A.size + 133 * B.size + 40 * B.MatrixWidth + planBound J + 1079 := by
   rw [mulTruncEvalPC.costEq P hP]
   have hW := Decoder.matrixWidthC_cost P (by includes) B (by omega)
   have hlog : limbCount FFT.novelTransform.maxLog = 1 := limbs_of_lt (show 64 < 2 ^ 64 by norm_num)
@@ -541,9 +541,9 @@ theorem mulTruncEvalPC_cost_explicit (hP : Includes P mulTruncEvalPC.costDeps)
   have hJ40 : J ≤ 40 := by omega
   have h4 := mkPlanC_cost P (by includes) hJ40
   have hE : ∀ (M : CompPoly.PolynomialMatrix K) (i k : ℕ), appCost P (.closure mulTruncEvalPC.lam0.costIdx
-      [encodeValue M, encodeValue O', encodeValue T]) [encodeValue i, encodeValue k] ≤ 56 * O + 48 :=
+      [encodeValue M, encodeValue O', encodeValue T]) [encodeValue i, encodeValue k] ≤ 55 * O + 48 :=
     fun M i k ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [mulTruncEvalPC.lam0.costEq P (by includes), Decoder.rowGet_cost P (by includes)]
       have := truncateXC_cost P (by includes) O' (by omega) (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k)
       omega
@@ -565,9 +565,9 @@ theorem mulTruncEvalPC_cost_explicit (hP : Includes P mulTruncEvalPC.costDeps)
       encodeValue (2 ^ J), encodeValue (FFT.mkPlan J), encodeValue J, encodeValue R, encodeValue O',
       encodeValue S, encodeValue T])
     (fun i c ↦ RunsApp.of_spec (mulTruncEvalPC.lam1.costSpec P (by includes) _ _ _ _ _ _ _ _ _ _ i c))
-    (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 56 * O + 34 + 17)
+    (80 * (2 ^ J * S) + 46 * 2 ^ J + 20 + invBound J + 55 * O + 31 + 27)
     (fun i c ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [mulTruncEvalPC.lam1.costEq P (by includes)]
       have e1 := evalDotC_cost P (by includes) (2 ^ J) S (by omega) (by omega) (FA.getD i #[]) FB c
       have e2 := planInvPolyC_cost P (by includes) hJ40
@@ -579,27 +579,27 @@ theorem mulTruncEvalPC_cost_explicit (hP : Includes P mulTruncEvalPC.costDeps)
       omega)
   rw [limbs_shift (k := J) (by omega)]
   cost_simp
-  have e3 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 56 * O + 34 + 17 + 33) =
-      R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) := by ring
-  have e4 : R * S * (56 * O + 48 + fwdBound J + 25) + 164 * (R * S) =
-      R * S * (fwdBound J + 56 * O + 237) := by ring
-  have e5 : S * T * (56 * O + 48 + fwdBound J + 25) + 164 * (S * T) =
-      S * T * (fwdBound J + 56 * O + 237) := by ring
+  have e3 : R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + 20 + invBound J + 55 * O + 31 + 27 + 35) =
+      R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 55 * O + 113) := by ring
+  have e4 : R * S * (55 * O + 48 + fwdBound J + 28) + 162 * (R * S) =
+      R * S * (fwdBound J + 55 * O + 238) := by ring
+  have e5 : S * T * (55 * O + 48 + fwdBound J + 28) + 162 * (S * T) =
+      S * T * (fwdBound J + 55 * O + 238) := by ring
   rw [planBound]
   split_ifs <;> omega
 
-theorem ovh_of_ok {p : PMPrices} (hp : FFTPricesOK p) : 572 ≤ p.ovh := by
+theorem ovh_of_ok {p : PMPrices} (hp : FFTPricesOK p) : 504 ≤ p.ovh := by
   have := (hp.2 0 (by norm_num)).1
   simp [fwdNeed, fwdBound, fwdPrice] at this
   omega
 
 /-- The explicit truncated price within `evalMatPrice` and the truncations' `ovh` per order. -/
 theorem evalMatTrunc_fit (R S T J jm mac F I ovh O : ℕ) (hR0 : 0 < R) (hS0 : 0 < S)
-    (hN : 2 ^ J ≤ 2 ^ jm) (hmac : 304 ≤ mac) (hf : fwdNeed J ≤ F) (hi : invNeed J ≤ I)
-    (hovh : 572 ≤ ovh) :
-    R * S * (fwdBound J + 56 * O + 237) + S * T * (fwdBound J + 56 * O + 237) +
-        R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) +
-        178 * R + 130 * S + 40 * T + planBound J + 1400 ≤
+    (hN : 2 ^ J ≤ 2 ^ jm) (hmac : 80 ≤ mac) (hf : fwdNeed J ≤ F) (hi : invNeed J ≤ I)
+    (hovh : 504 ≤ ovh) :
+    R * S * (fwdBound J + 55 * O + 238) + S * T * (fwdBound J + 55 * O + 238) +
+        R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 55 * O + 113) +
+        182 * R + 133 * S + 40 * T + planBound J + 1079 ≤
       (R * S + S * T) * F + R * T * I + R * S * T * 2 ^ jm * mac + 2 ^ 20 +
         ovh * ((R * S + S * T + R * T) * (O + 1)) := by
   have hx1 : R ≤ R * S := Nat.le_mul_of_pos_right _ hS0
@@ -608,25 +608,25 @@ theorem evalMatTrunc_fit (R S T J jm mac F I ovh O : ℕ) (hR0 : 0 < R) (hS0 : 0
   have hx0 : 1 ≤ R * S := Nat.mul_pos hR0 hS0
   have hplan := plan_fit (R * S) J hx0
   have h1 : R * S * fwdNeed J ≤ R * S * F := Nat.mul_le_mul_left _ hf
-  have h2 : S * T * (fwdBound J + 340) ≤ S * T * F :=
+  have h2 : S * T * (fwdBound J + 345) ≤ S * T * F :=
     Nat.mul_le_mul_left _ (by unfold fwdNeed at hf; omega)
-  have e1 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) =
-      R * T * invNeed J + 304 * (R * S * T * 2 ^ J) + R * T * (56 * O + 39) := by unfold invNeed; ring
+  have e1 : R * T * (80 * (2 ^ J * S) + 46 * 2 ^ J + invBound J + 55 * O + 113) =
+      R * T * invNeed J + 80 * (R * S * T * 2 ^ J) + R * T * (55 * O + 38) := by unfold invNeed; ring
   have e2 : R * T * invNeed J ≤ R * T * I := Nat.mul_le_mul_left _ hi
-  have e3 : 304 * (R * S * T * 2 ^ J) ≤ R * S * T * 2 ^ jm * mac := by
+  have e3 : 80 * (R * S * T * 2 ^ J) ≤ R * S * T * 2 ^ jm * mac := by
     rw [mul_comm (R * S * T * 2 ^ jm) mac]
-    calc 304 * (R * S * T * 2 ^ J) ≤ mac * (R * S * T * 2 ^ J) := Nat.mul_le_mul_right _ hmac
+    calc 80 * (R * S * T * 2 ^ J) ≤ mac * (R * S * T * 2 ^ J) := Nat.mul_le_mul_right _ hmac
       _ ≤ mac * (R * S * T * 2 ^ jm) := Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ hN)
-  have hO1 : 56 * O + 205 ≤ ovh * (O + 1) := by nlinarith
+  have hO1 : 55 * O + 208 ≤ ovh * (O + 1) := by nlinarith
   have e4 : ovh * ((R * S + S * T + R * T) * (O + 1)) =
       R * S * (ovh * (O + 1)) + S * T * (ovh * (O + 1)) + R * T * (ovh * (O + 1)) := by ring
-  have f1 : R * S * (56 * O + 205) ≤ R * S * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
-  have f2 : S * T * (56 * O + 205) ≤ S * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
-  have f3 : R * T * (56 * O + 39) ≤ R * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ (by omega)
-  have g1 : R * S * (fwdBound J + 340) + R * S * (56 * O + 205) =
-      R * S * (fwdBound J + 56 * O + 237) + 308 * (R * S) := by ring
-  have g2 : S * T * (fwdBound J + 340) + S * T * (56 * O + 205) =
-      S * T * (fwdBound J + 56 * O + 237) + 308 * (S * T) := by ring
+  have f1 : R * S * (55 * O + 208) ≤ R * S * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
+  have f2 : S * T * (55 * O + 208) ≤ S * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
+  have f3 : R * T * (55 * O + 38) ≤ R * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ (by omega)
+  have g1 : R * S * (fwdBound J + 345) + R * S * (55 * O + 208) =
+      R * S * (fwdBound J + 55 * O + 238) + 315 * (R * S) := by ring
+  have g2 : S * T * (fwdBound J + 345) + S * T * (55 * O + 208) =
+      S * T * (fwdBound J + 55 * O + 238) + 315 * (S * T) := by ring
   have e5 : (R * S + S * T) * F = R * S * F + S * T * F := by ring
   linarith
 

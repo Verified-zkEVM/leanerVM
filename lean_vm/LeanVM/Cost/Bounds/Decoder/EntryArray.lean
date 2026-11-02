@@ -12,18 +12,18 @@ Parameters as `Bounds/Decoder/EntryTable.lean`'s: `R` a memory read, `Pr` the pr
 `Gpc` a pc lookup, `M` the functions entered at one pc; the pairs below `2^E`, any `E`, numbers
 up to `2·2^E` of at most `W = wl E` limbs.
 
-* `keyCmp_cost`: two keys compared, at most `keyCmpPrice b + 7` (`b` the second);
+* `keyCmp_cost`: two keys compared, at most `keyCmpPrice b + 6` (`b` the second);
 * `mergeSortList_cost_wl`: the extractor's merge sort on any number `n` of elements, the lengths
-  of at most `W` limbs: `(B + 57 + 5W)·n·⌈log₂ n⌉ + (7W + 89)·n + 3` (`mergeSortList_cost` at
+  of at most `W` limbs: `(B + 62 + 5W)·n·⌈log₂ n⌉ + (7W + 77)·n + 3` (`mergeSortList_cost` at
   `W = 1`, any length);
 * `statePairs_cost`, `entryPairs_cost`: the pairs filed, per state at most
-  `pairsStatePrice Gpc M Pr R = Gpc + (Pr + 32R + 113721)·M + 9M + 32`;
-* `dedupFirst_cost`: `(134L + 65)` per pair, `9`;
+  `pairsStatePrice Gpc M Pr R = Gpc + (Pr + 32R + 17734)·M + 36`;
+* `dedupFirst_cost`: `2887` per pair, `11`;
 * **`entryArrayT_cost`**: the states' table, `M·|states| < 2^E`: at most
-  `(entryArrayStatePrice Gpc M Pr R E + 2)·|states| + 30`, per state the pairs and, per pair, the
-  sort's `(3070 + 5·wl E)·E + 7·wl E + 89` and the dedup's `3013`;
+  `entryArrayStatePrice Gpc M Pr R E·|states| + 26`, per state the pairs and, per pair, the
+  sort's `(2935 + 5·wl E)·E + 7·wl E + 77`, the dedup's `2887` and `1`;
 * **`frameAtA_cost`**: one binary search of the call's key (`w = |args| + |rets|` words), at most
-  `(67w + 89 + 9·wl E)·(E + 2) + 28w + R + 11056`.
+  `(64w + 78 + 9·wl E)·(E + 2) + 27w + R + 1584`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -40,10 +40,10 @@ variable (P : MachineProgram)
 
 /-! ## Two keys compared -/
 
-/-- **Two keys compared** (`keyCmpC`), word-sized: at most `keyCmpPrice b + 7`. -/
+/-- **Two keys compared** (`keyCmpC`), word-sized: at most `keyCmpPrice b + 6`. -/
 theorem keyCmp_cost (hP : Includes P keyCmpC.costDeps) (a b : CallKey) {L L' : ℕ}
     (ha : KeyOK L a) (hb : KeyOK L' b) :
-    machineCost P keyCmpC.costIdx [encodeValue a, encodeValue b] ≤ keyCmpPrice b + 7 := by
+    machineCost P keyCmpC.costIdx [encodeValue a, encodeValue b] ≤ keyCmpPrice b + 6 := by
   obtain ⟨ha1, -, -, haa, har⟩ := ha
   obtain ⟨hb1, -, -, hba, hbr⟩ := hb
   have hcmp := compareCodes_cost P (by includes) (by includes)
@@ -52,23 +52,24 @@ theorem keyCmp_cost (hP : Includes P keyCmpC.costDeps) (a b : CallKey) {L L' : �
   rw [keyCmpC.costEq P hP, limbs_of_lt ha1, limbs_of_lt hb1]
   simp only [max_self]
   unfold keyCmpPrice
-  generalize machineCost P Auto.List.compareLex.c111.costIdx
+  generalize machineCost P Auto.List.compareLex.c112.costIdx
     [.closure searchInKeyC.lam0.costIdx [], encodeValue a.2.1, encodeValue b.2.1] = c1 at hc1 ⊢
-  generalize machineCost P Auto.List.compareLex.c111.costIdx
+  generalize machineCost P Auto.List.compareLex.c112.costIdx
     [.closure searchInKeyC.lam0.costIdx [], encodeValue a.2.2, encodeValue b.2.2] = c2 at hc2 ⊢
   generalize compareOn (fun x ↦ x.1) a b = o1
   generalize compareOn (fun x ↦ x.1) a.2 b.2 = o3
   cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
 
 /-- The pairs' order (`keyLeC`'s closure in `entryArrayTC`), keys of at most `22` codes: at most
-`134·22 + 55`. -/
+`128·22 + 57`. -/
 theorem keyLeLam_cost (hP : Includes P entryArrayTC.lam0.costDeps) (a b : CallKey × K)
     (ha : KeyOK 22 a.1) (hb : KeyOK 22 b.1) :
     appCost P (.closure entryArrayTC.lam0.costIdx []) [encodeValue a, encodeValue b] ≤
-      134 * 22 + 55 := by
-  rw [appCost_fn, List.nil_append, entryArrayTC.lam0.costEq P hP, keyLeC.costEq P (by includes)]
+      128 * 22 + 57 := by
+  rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, entryArrayTC.lam0.costEq P hP,
+    keyLeC.costEq P (by includes)]
   have := keyCmp_cost P (by includes) a.1 b.1 ha hb
-  have hk : keyCmpPrice b.1 ≤ 134 * 22 + 38 := by
+  have hk : keyCmpPrice b.1 ≤ 128 * 22 + 41 := by
     unfold keyCmpPrice; have := hb.2.1; have := hb.2.2.1; omega
   generalize keyCmp a.1 b.1 = o
   cases o <;> dsimp only <;> omega
@@ -80,55 +81,56 @@ section MergeSortWl
 variable {α : Type} [MachineEncoding α] (W N : ℕ) (hW : ∀ x, x ≤ N → limbCount x ≤ W)
 
 include hW in
-/-- `List.length` (`length.c127`), the counts of at most `W` limbs: `6 + W` per element, `3`. -/
-theorem length_cost_wl (hP : Includes P Auto.List.length.c127.costDeps) :
+/-- `List.length` (`length.c128`), the counts of at most `W` limbs: `7 + W` per element, `3`. -/
+theorem length_cost_wl (hP : Includes P Auto.List.length.c128.costDeps) :
     ∀ l : List α, l.length ≤ N →
-      machineCost P Auto.List.length.c127.costIdx [encodeValue l] ≤ (6 + W) * l.length + 3 := by
+      machineCost P Auto.List.length.c128.costIdx [encodeValue l] ≤ (7 + W) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.length.c127.costEq_nil P hP]; omega
+  | nil => intro _; rw [Auto.List.length.c128.costEq_nil P hP]; omega
   | cons x l ih =>
     intro hl
     simp only [List.length_cons] at hl
-    rw [Auto.List.length.c127.costEq_cons P hP]
+    rw [Auto.List.length.c128.costEq_cons P hP]
     have := ih (by omega)
-    have := hW l.length (by omega)
+    have hm : max (limbCount (l.length + 1)) (limbCount l.length) ≤ W :=
+      max_le (hW (l.length + 1) (by omega)) (hW l.length (by omega))
     simp only [List.length_cons]
     nlinarith
 
 include hW in
-/-- `List.take n` (`take.c172`), `n ≤ N`: `17 + 2W` per element, `11 + 2W`. -/
-theorem take_cost_wl (hP : Includes P Auto.List.take.c172.costDeps) :
+/-- `List.take n` (`take.c173`), `n ≤ N`: `17 + 2W` per element, `9 + 2W`. -/
+theorem take_cost_wl (hP : Includes P Auto.List.take.c173.costDeps) :
     ∀ (n : ℕ) (l : List α), n ≤ N →
-      machineCost P Auto.List.take.c172.costIdx [encodeValue n, encodeValue l] ≤
-        (17 + 2 * W) * l.length + 11 + 2 * W
-  | 0, l, _ => by rw [Auto.List.take.c172.costEq_zero P hP]; omega
+      machineCost P Auto.List.take.c173.costIdx [encodeValue n, encodeValue l] ≤
+        (17 + 2 * W) * l.length + 9 + 2 * W
+  | 0, l, _ => by rw [Auto.List.take.c173.costEq_zero P hP]; omega
   | n + 1, [], h => by
-    rw [Auto.List.take.c172.costEq_succ P hP]
+    rw [Auto.List.take.c173.costEq_succ P hP]
     have := hW (n + 1) h
     simp only [List.length_nil]
     omega
   | n + 1, x :: l, h => by
-    rw [Auto.List.take.c172.costEq_succ P hP]
+    rw [Auto.List.take.c173.costEq_succ P hP]
     have := take_cost_wl hP n l (by omega)
     have := hW (n + 1) h
     simp only [List.length_cons]
     nlinarith
 
 include hW in
-/-- `List.drop n` (`drop.c148`), `n ≤ N`: `13 + 2W` per element, `11 + 2W`. -/
-theorem drop_cost_wl (hP : Includes P Auto.List.drop.c148.costDeps) :
+/-- `List.drop n` (`drop.c149`), `n ≤ N`: `13 + 2W` per element, `9 + 2W`. -/
+theorem drop_cost_wl (hP : Includes P Auto.List.drop.c149.costDeps) :
     ∀ (n : ℕ) (l : List α), n ≤ N →
-      machineCost P Auto.List.drop.c148.costIdx [encodeValue n, encodeValue l] ≤
-        (13 + 2 * W) * l.length + 11 + 2 * W
-  | 0, l, _ => by rw [Auto.List.drop.c148.costEq_zero P hP]; omega
+      machineCost P Auto.List.drop.c149.costIdx [encodeValue n, encodeValue l] ≤
+        (13 + 2 * W) * l.length + 9 + 2 * W
+  | 0, l, _ => by rw [Auto.List.drop.c149.costEq_zero P hP]; omega
   | n + 1, [], h => by
-    rw [Auto.List.drop.c148.costEq_succ P hP]
+    rw [Auto.List.drop.c149.costEq_succ P hP]
     have := hW (n + 1) h
     simp only [List.length_nil]
     omega
   | n + 1, x :: l, h => by
-    rw [Auto.List.drop.c148.costEq_succ P hP]
+    rw [Auto.List.drop.c149.costEq_succ P hP]
     have := drop_cost_wl hP n l (by omega)
     have := hW (n + 1) h
     simp only [List.length_cons]
@@ -149,26 +151,26 @@ theorem nlogn_halves_wl (c K d a b L T1 T2 Wk : ℕ) (hab : b ≤ a)
   omega
 
 include hW in
-/-- **Merge sort** (`mergeSortList.c237`), `n log n`, the lengths of at most `W` limbs. -/
+/-- **Merge sort** (`mergeSortList.c238`), `n log n`, the lengths of at most `W` limbs. -/
 theorem mergeSortList_cost_wl_nlogn
-    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costDeps)
+    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costDeps)
     (le : α → α → Bool) (leVal : MachineValue)
     (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
     (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (l : List α), l.length ≤ n → l.length + 1 ≤ N → (∀ a ∈ l, Q a) → l ≠ [] →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costIdx [encodeValue l, leVal] +
-          (7 * W + 80) ≤
-        (B + 57 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 89) * l.length := by
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costIdx [encodeValue l, leVal] +
+          (7 * W + 66) ≤
+        (B + 62 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 77) * l.length := by
   intro n
   induction n using Nat.strong_induction_on with
   | _ n ih =>
   intro l hn hN hS hne
   rcases l with _ | ⟨x, _ | ⟨y, t⟩⟩
   · exact absurd rfl hne
-  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costEq_cons P hP x [] le leVal hle]
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costEq_cons P hP x [] le leVal hle]
     simp
     omega
-  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costEq_cons P hP x (y :: t) le leVal hle]
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costEq_cons P hP x (y :: t) le leVal hle]
     dsimp only
     simp only [List.length_cons] at hn hN ⊢
     set h1 := (t.length + 2 + 1) / 2 with hh1
@@ -197,17 +199,20 @@ theorem mergeSortList_cost_wl_nlogn
     simp only [length_mergeSortList, hlt, hld, List.length_cons] at ih1 ih2 hmerge htake hdrop
     have hsum : h1 + (t.length + 2 - h1) = t.length + 2 := by omega
     have hL := clog_half (n := t.length + 2) (by omega)
-    have hwork : (6 + W) * t.length ≤ (6 + W) * (t.length + 2) :=
+    have hwork : (7 + W) * t.length ≤ (7 + W) * (t.length + 2) :=
       Nat.mul_le_mul_left _ (by omega)
-    have := nlogn_halves_wl (B + 57 + 5 * W) (7 * W + 80) (7 * W + 89) h1 (t.length + 2 - h1)
+    have hm1 : max (limbCount (t.length + 2)) (limbCount t.length) ≤ W := max_le l2 l1
+    have hm2 : max (limbCount (t.length + 2 + 1)) (limbCount (t.length + 2)) ≤ W := max_le l3 l2
+    have := nlogn_halves_wl (B + 62 + 5 * W) (7 * W + 66) (7 * W + 77) h1 (t.length + 2 - h1)
       (Nat.clog 2 (t.length + 2)) _ _
-      (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c238.costIdx
+      (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c239.costIdx
         [encodeValue (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
           encodeValue (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
-        machineCost P Auto.List.length.c127.costIdx [encodeValue t] + limbCount t.length +
-        limbCount (t.length + 2) + limbCount (t.length + 2 + 1) +
-        machineCost P Auto.List.take.c172.costIdx [encodeValue h1, encodeValue (x :: y :: t)] +
-        machineCost P Auto.List.drop.c148.costIdx [encodeValue h1, encodeValue (x :: y :: t)] + 41)
+        machineCost P Auto.List.length.c128.costIdx [encodeValue t] +
+        max (limbCount (t.length + 2)) (limbCount t.length) +
+        max (limbCount (t.length + 2 + 1)) (limbCount (t.length + 2)) + limbCount (t.length + 2 + 1) +
+        machineCost P Auto.List.take.c173.costIdx [encodeValue h1, encodeValue (x :: y :: t)] +
+        machineCost P Auto.List.drop.c149.costIdx [encodeValue h1, encodeValue (x :: y :: t)] + 42)
       (by omega) (by rw [← hL, hh1]) ih1 ih2 (by rw [hsum]; nlinarith)
     rw [hsum] at this
     rw [show t.length + 1 + 1 = t.length + 2 by omega]
@@ -215,17 +220,17 @@ theorem mergeSortList_cost_wl_nlogn
 
 include hW in
 /-- **Merge sort**, any number `n` of elements, the lengths of at most `W` limbs (`n + 1 ≤ N`):
-at most `(B + 57 + 5W)·n·⌈log₂ n⌉ + (7W + 89)·n + 3`. -/
+at most `(B + 62 + 5W)·n·⌈log₂ n⌉ + (7W + 77)·n + 3`. -/
 theorem mergeSortList_cost_wl
-    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costDeps)
+    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costDeps)
     (le : α → α → Bool) (leVal : MachineValue)
     (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
     (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B)
     (l : List α) (hN : l.length + 1 ≤ N) (hS : ∀ a ∈ l, Q a) :
-    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costIdx [encodeValue l, leVal] ≤
-      (B + 57 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 89) * l.length + 3 := by
+    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costIdx [encodeValue l, leVal] ≤
+      (B + 62 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 77) * l.length + 3 := by
   cases l with
-  | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c237.costEq_nil P hP le leVal hle]; omega
+  | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c238.costEq_nil P hP le leVal hle]; omega
   | cons x l =>
     have := mergeSortList_cost_wl_nlogn P W N hW hP le leVal hle B Q hB _ (x :: l) le_rfl hN hS
       (by simp)
@@ -245,17 +250,17 @@ theorem length_dedupFirst_le : ∀ l : List (CallKey × K), (dedupFirst l).lengt
     cases keyCmp a.1 b.1 <;> simp only [List.length_cons] at h1 h2 ⊢ <;> omega
 termination_by l => l.length
 
-/-- **Of each run, the first** (`dedupFirstC`), keys of at most `22` codes: `3013` per pair, `9`. -/
+/-- **Of each run, the first** (`dedupFirstC`), keys of at most `22` codes: `2887` per pair, `11`. -/
 theorem dedupFirst_cost (hP : Includes P dedupFirstC.costDeps) :
     ∀ l : List (CallKey × K), (∀ e ∈ l, KeyOK 22 e.1) →
-      machineCost P dedupFirstC.costIdx [encodeValue l] ≤ 3013 * l.length + 9
+      machineCost P dedupFirstC.costIdx [encodeValue l] ≤ 2887 * l.length + 11
   | [], _ => by rw [dedupFirstC.costEq P hP]; simp
   | [_], _ => by rw [dedupFirstC.costEq P hP]; simp
   | a :: b :: l, hl => by
     rw [dedupFirstC.costEq P hP]
     dsimp only
     have hk := keyCmp_cost P (by includes) a.1 b.1 (hl a (by simp)) (hl b (by simp))
-    have hkb : keyCmpPrice b.1 ≤ 134 * 22 + 38 := by
+    have hkb : keyCmpPrice b.1 ≤ 128 * 22 + 41 := by
       unfold keyCmpPrice; have := (hl b (by simp)).2.1; have := (hl b (by simp)).2.2.1; omega
     have h1 := dedupFirst_cost hP (a :: l) (fun e he ↦ hl e (by
       rcases List.mem_cons.1 he with rfl | he
@@ -280,17 +285,17 @@ variable (rd : Reader) (rdVal : MachineValue)
 
 /-- The price of the pairs one state files: the pc lookup, per function entered there its
 precondition's test and its key. -/
-@[expose] def pairsStatePrice (Gpc M Pr R : ℕ) : ℕ := Gpc + (Pr + 32 * R + 113729) * M + 34
+@[expose] def pairsStatePrice (Gpc M Pr R : ℕ) : ℕ := Gpc + (Pr + 32 * R + 17734) * M + 36
 
 /-- The price per state of the sorted entry array: its pairs, and per pair the sort and the dedup. -/
 @[expose] def entryArrayStatePrice (Gpc M Pr R E : ℕ) : ℕ :=
-  pairsStatePrice Gpc M Pr R + M * ((3060 + 5 * wl E) * E + 7 * wl E + 3103)
+  pairsStatePrice Gpc M Pr R + M * ((2935 + 5 * wl E) * E + 7 * wl E + 2965)
 
 include hrd hR hpre hPr in
 /-- The pair state `s` files for function `j` (`pairOfC`): its precondition's test and its key. -/
 theorem pairOf_cost (hP : Includes P pairOfC.costDeps) (s : Registers K) (j : ℕ) (hj : j < 2 ^ 64) :
     machineCost P pairOfC.costIdx [preVal, rdVal, encodeValue s, encodeValue j] ≤
-      Pr + 32 * R + 113702 := by
+      Pr + 32 * R + 17699 := by
   rw [pairOfC.costEq P hP pre preVal hpre rd rdVal hrd]
   have h1 := hPr j s.fp hj
   have h2 := entryKeyT_cost P rd rdVal hrd R hR (by includes) s j
@@ -313,26 +318,27 @@ theorem length_statePairs (pcT : SortedMap ℕ (List ℕ)) (s : Registers K) :
 
 include hrd hR hpre hPr in
 /-- **The pairs a state files** (`statePairsC`), at most `M` functions per pc, a pc lookup at most
-`Gpc`: at most `Gpc + (Pr + 32R + 113720)·M + 18`. -/
+`Gpc`: at most `Gpc + (Pr + 32R + 17723)·M + 18`. -/
 theorem statePairs_cost (hP : Includes P statePairsC.costDeps) (pcT : SortedMap ℕ (List ℕ))
     (M Gpc : ℕ) (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64) (hM : ∀ k, (pcT.getD k []).length ≤ M)
     (hG : ∀ k, NatKey k → machineCost P getPcC.costIdx [encodeValue pcT, encodeValue k] ≤ Gpc)
     (s : Registers K) :
     machineCost P statePairsC.costIdx [encodeValue pcT, preVal, rdVal, encodeValue s] ≤
-      Gpc + (Pr + 32 * R + 113720) * M + 18 := by
+      Gpc + (Pr + 32 * R + 17723) * M + 18 := by
   rw [statePairsC.costEq P hP pcT pre preVal hpre rd rdVal hrd]
   have hg := hG (laneCode s.pc) (UInt64.toNat_lt _)
   have hf := filterMap_cost P (by includes) _
     (.closure statePairsC.lam0.costIdx [preVal, rdVal, encodeValue s])
     (fun j ↦ RunsApp.of_spec (statePairsC.lam0.costSpec P (by includes) pre preVal hpre rd rdVal
       hrd s j))
-    (Pr + 32 * R + 113707) (pcT.getD (laneCode s.pc) []) (fun j hj ↦ by
+    (Pr + 32 * R + 17707) (pcT.getD (laneCode s.pc) []) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         statePairsC.lam0.costEq P (by includes) pre preVal hpre rd rdVal hrd]
+      simp only [List.length_cons, List.length_nil]
       have := pairOf_cost P rd rdVal hrd R hR pre preVal hpre Pr hPr (by includes) s j
         (hpc _ j hj)
       omega)
-  have hm := Nat.mul_le_mul_left (Pr + 32 * R + 113707 + 13) (hM (laneCode s.pc))
+  have hm := Nat.mul_le_mul_left (Pr + 32 * R + 17707 + 16) (hM (laneCode s.pc))
   generalize pcT.get? (laneCode s.pc) = o
   cases o <;> dsimp only <;> nlinarith
 
@@ -377,7 +383,7 @@ theorem entryPairs_cost (hP : Includes P entryPairsC.costDeps) (pcT : SortedMap 
     have h4 := length_statePairs rd pre pcT s
     have h5 := hM (laneCode s.pc)
     unfold pairsStatePrice at h2 ⊢
-    have e : (Pr + 32 * R + 113729) * M = (Pr + 32 * R + 113720) * M + 9 * M := by ring
+    have e : (Pr + 32 * R + 17734) * M = (Pr + 32 * R + 17723) * M + 11 * M := by ring
     simp only [List.length_cons, Nat.mul_succ]
     omega
 
@@ -400,14 +406,14 @@ theorem entryArrayT_ok (pcT : SortedMap ℕ (List ℕ)) (M : ℕ)
 
 include hrd hR hpre hPr in
 /-- **The entry table as one sorted array** (`entryArrayTC`), `M·|states| < 2^E`: the pairs filed,
-their stable sort and the dedup, at most `entryArrayStatePrice Gpc M Pr R E · |states| + 24`. -/
+their stable sort and the dedup, at most `entryArrayStatePrice Gpc M Pr R E · |states| + 26`. -/
 theorem entryArrayT_cost (hP : Includes P entryArrayTC.costDeps) (pcT : SortedMap ℕ (List ℕ))
     (M Gpc E : ℕ) (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64)
     (hM : ∀ k, (pcT.getD k []).length ≤ M)
     (hG : ∀ k, NatKey k → machineCost P getPcC.costIdx [encodeValue pcT, encodeValue k] ≤ Gpc)
     (states : List (Registers K)) (hn : M * states.length < 2 ^ E) :
     machineCost P entryArrayTC.costIdx [encodeValue pcT, preVal, encodeValue states, rdVal] ≤
-      entryArrayStatePrice Gpc M Pr R E * states.length + 24 := by
+      entryArrayStatePrice Gpc M Pr R E * states.length + 26 := by
   rw [entryArrayTC.costEq P hP pcT pre preVal hpre states rd rdVal hrd]
   have hok := entryPairs_ok rd pre pcT hpc states
   have hlen := length_entryPairs rd pre pcT M hM states
@@ -416,7 +422,7 @@ theorem entryArrayT_cost (hP : Includes P entryArrayTC.costDeps) (pcT : SortedMa
   have h2 := mergeSortList_cost_wl P (wl E) (2 * 2 ^ E) (fun x hx ↦ limbs_le_wl' hx)
     (by includes) keyLe (.closure entryArrayTC.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (entryArrayTC.lam0.costSpec P (by includes) a b))
-    (134 * 22 + 55) (fun e ↦ KeyOK 22 e.1)
+    (128 * 22 + 57) (fun e ↦ KeyOK 22 e.1)
     (fun a b ha hb ↦ keyLeLam_cost P (by includes) a b ha hb)
     (entryPairs pcT pre rd states) (by omega) hok
   have h3 := dedupFirst_cost P (by includes) ((entryPairs pcT pre rd states).mergeSort keyLe)
@@ -428,10 +434,10 @@ theorem entryArrayT_cost (hP : Includes P entryArrayTC.costDeps) (pcT : SortedMa
   -- `⌈log₂ n⌉ ≤ E`
   have hclog : Nat.clog 2 n ≤ E := Nat.clog_le_of_le_pow (by omega)
   have hnE : n * Nat.clog 2 n ≤ n * E := Nat.mul_le_mul_left _ hclog
-  have hc1 := Nat.mul_le_mul_left (134 * 22 + 55 + 57 + 5 * wl E) hnE
+  have hc1 := Nat.mul_le_mul_left (128 * 22 + 57 + 62 + 5 * wl E) hnE
   have hpos := wl_pos E
-  have hMs : ((3060 + 5 * wl E) * E + 7 * wl E + 3103) * n ≤
-      ((3060 + 5 * wl E) * E + 7 * wl E + 3103) * (M * states.length) :=
+  have hMs : ((2935 + 5 * wl E) * E + 7 * wl E + 2965) * n ≤
+      ((2935 + 5 * wl E) * E + 7 * wl E + 2965) * (M * states.length) :=
     Nat.mul_le_mul_left _ hlen
   unfold entryArrayStatePrice
   nlinarith
@@ -442,7 +448,7 @@ end Pairs
 
 /-- **The frame map on the sorted array** (`frameAtAC`): one binary search of the call's key
 (`w = |args| + |rets|` words) in a table of keys of at most `22` codes and at most `2^E` pairs,
-two frame reads: at most `(67w + 89 + 9·wl E)·(E + 2) + 28w + R + 11056`. -/
+two frame reads: at most `(64w + 78 + 9·wl E)·(E + 2) + 27w + R + 1584`. -/
 theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
     (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
     (R : ℕ) (hR : ∀ a : K, appCost P rdVal [encodeValue a] ≤ R)
@@ -451,8 +457,8 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
     (j : ℕ) (hj : j < 2 ^ 64) (args rets : List LeanVM.Parameters.E) (v : V) :
     machineCost P frameAtAC.costIdx [encodeValue table, rdVal, encodeValue j, encodeValue args,
         encodeValue rets, encodeValue v] ≤
-      (67 * (args.length + rets.length) + 89 + 9 * wl E) * (E + 2) +
-        28 * (args.length + rets.length) + R + 11056 := by
+      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) +
+        27 * (args.length + rets.length) + R + 1584 := by
   rw [frameAtAC.costEq P hP table rd rdVal hrd]
   have h1 := isFunctionIndex_cost P (by includes) j hj
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
@@ -461,17 +467,17 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
   have h3 := searchInKey_cost P (by includes) 22 table ht _ hk (2 ^ E) (wl E)
     (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
   have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
-      67 * (args.length + rets.length) + 38 := by
+      64 * (args.length + rets.length) + 41 := by
     simp [keyCmpPrice, callKey]
   have hlog : Nat.log2 (table.size - 0) ≤ E := by
     have := log2_mono (show table.size - 0 ≤ 2 ^ E by omega)
     rwa [Nat.log2_two_pow] at this
-  have h3' : (keyCmpPrice (callKey (canonIndex j) args rets) + 51 + 9 * wl E) *
+  have h3' : (keyCmpPrice (callKey (canonIndex j) args rets) + 37 + 9 * wl E) *
       (Nat.log2 (table.size - 0) + 2) ≤
-      (67 * (args.length + rets.length) + 89 + 9 * wl E) * (E + 2) := by
+      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) := by
     rw [hkc]
     exact Nat.mul_le_mul (by omega) (by omega)
-  generalize (67 * (args.length + rets.length) + 89 + 9 * wl E) * (E + 2) = X at h3' ⊢
+  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3' ⊢
   generalize searchIn table (callKey (canonIndex j) args rets) 0 table.size = o
   cases o with
   | none => dsimp only; split_ifs <;> omega

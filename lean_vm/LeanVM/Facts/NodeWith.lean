@@ -55,11 +55,11 @@ def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
 /-! ### The statement's digest -/
 
 /-- `claimListDigest` with the hash `H`. -/
-def xmssListDigestWith (claims : List XmssClaim) : m Digest :=
+def xmssListDigestWith (claims : List LeanXmssClaim) : m Digest :=
   H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
 /-- `claimListDigest` with the hash `H`. -/
-def sphincsListDigestWith (claims : List SphincsClaim) : m Digest :=
+def sphincsListDigestWith (claims : List LeanSphincsClaim) : m Digest :=
   H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
 /-- **`statementDigest` with the hash `H`.** -/
@@ -67,7 +67,7 @@ def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
   let xd ← xmssListDigestWith H s.claims.xmss
   let sd ← sphincsListDigestWith H s.claims.sphincs
   let cells := s.deferredClaim.cells ++ if s.deferredClaim.cells.length % 2 = 1 then [0] else []
-  H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.da ++
+  H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.daDigest ++
     cells.flatMap extensionElementBytes)
 
 /-! ### The batching -/
@@ -122,17 +122,17 @@ theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (kecc
 
 end With
 
-/-- leanXMSS verification with Keccak-256 is `xmssVerify`. -/
+/-- leanXMSS verification with Keccak-256 is `leanXmssVerifyWithKeccak`. -/
 theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
-    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = xmssVerify pk message σ := by
+    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = leanXmssVerifyWithKeccak pk message σ := by
   rw [xmssVerify_eq_withHash]
   rfl
 
-/-- leanSPHINCS verification with Keccak-256 is `sphincsVerify`. -/
+/-- leanSPHINCS verification with Keccak-256 is `leanSphincsVerifyWithKeccak`. -/
 theorem sphincsVerifyWith_id (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = sphincsVerify pk message σ := by
+    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = leanSphincsVerifyWithKeccak pk message σ := by
   rw [sphincsVerify_eq_withHash]
   rfl
 

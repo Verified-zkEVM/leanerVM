@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesRow
 public import LeanVM.Guest.B1.Main.Frames
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `opening_queries`' witness, named
@@ -99,16 +100,16 @@ def QueryOpensS (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : �
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
       IsInK pp ∧
       (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.gpow k) = some x →
-        x = pathCell (hashWords row) q sibs k) ∧
+        x = pathCell (merkleLeafDigest row) q sibs k) ∧
       (∀ l < depth - cd,
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestScalars (climbNode (hashWords row) q sibs l)).1 ∧
+          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
         LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestScalars (climbNode (hashWords row) q sibs l)).2) ∧
+          (digestScalars (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
-        (digestScalars (climbD (hashWords row) q sibs)).1 ∧
+        (digestScalars (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (hashWords row) q sibs)).2 ∧
+        (digestScalars (climbD (merkleLeafDigest row) q sibs)).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1 ∧
       d = rowDot base I row w
 

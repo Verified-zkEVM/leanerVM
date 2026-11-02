@@ -47,25 +47,25 @@ open Air.Flat (EnsembleWitness)
 /-- **An accepted proof of a prover that is the specification at a child's witness (or makes no
 proof) is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
-    {t : Execution guest} {ρ : ℕ}
-    (hA : ChildSpec A guest (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25))
+    {t : Execution guestProgram} {ρ : ℕ}
+    (hA : ChildSpec A guestProgram (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25))
     (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
-    (hsome : Budget.honestProofWithDeployedKeccakWithHash A guest
-      (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25) = some proof)
-    (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest
-      (publicInputOf (statementDigest (deployedSeed guest) s)) proof = true) :
+    (hsome : Budget.honestProofWithDeployedKeccakWithHash A guestProgram
+      (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
+    (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram
+      (publicInputOf (statementDigest (deployedSeed guestProgram) s)) proof = true) :
     ∃ fresh, fresh.Holds bytecode ∧
-      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ := by
-  set d := statementDigest (deployedSeed guest) s with hd
+      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guestProgram) ⟨s, fresh, proof⟩ := by
+  set d := statementDigest (deployedSeed guestProgram) s with hd
   have hpd : publicDigest (publicInputOf d) = d := publicDigest_publicInputOf d
   -- the claim the run evaluates
   have hacc' := hacc
   rw [verifierRZ_eq] at hacc'
   obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF1600
-    verifyStackedOpening (bytecodeWords guest) (publicDigest (publicInputOf d)) hacc'
+    verifyStackedOpening (bytecodeWords guestProgram) (publicDigest (publicInputOf d)) hacc'
   rw [hpd] at hrz
-  have hRZ : Limits.verifyDeferredRefusingZero bytecode (deployedSeed guest) d c proof = true := by
+  have hRZ : Limits.verifyDeferredRefusingZero bytecode (deployedSeed guestProgram) d c proof = true := by
     rw [Limits.verifyDeferredRefusingZero_eq_withHash, deferredProgram_eq]
     exact hrz
   have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rz hRZ)
@@ -102,15 +102,15 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
     exact batchAgrees_honest hps
 
 /-- **The child prover's accepted proof is a child the guest accepts.** -/
-theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guest} {ρ : ℕ}
+theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guestProgram} {ρ : ℕ}
     (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
-    (hsome : Budget.honestProofWithDeployedKeccakWithHash childProver guest
-      (publicInputOf (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 25) = some proof)
-    (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guest
-      (publicInputOf (statementDigest (deployedSeed guest) s)) proof = true) :
+    (hsome : Budget.honestProofWithDeployedKeccakWithHash childProver guestProgram
+      (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
+    (hacc : Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram
+      (publicInputOf (statementDigest (deployedSeed guestProgram) s)) proof = true) :
     ∃ fresh, fresh.Holds bytecode ∧
-      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guest) ⟨s, fresh, proof⟩ :=
+      LeanVM.Guest.AcceptableChild bytecode (deployedSeed guestProgram) ⟨s, fresh, proof⟩ :=
   childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hsome hacc
 
 end

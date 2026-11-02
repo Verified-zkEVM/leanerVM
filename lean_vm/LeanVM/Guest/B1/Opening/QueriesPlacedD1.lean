@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlacedL
 public import LeanVM.Guest.B1.Opening.QueriesMainW
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `opening_queries` at level 0, `CompleteAtB`
@@ -43,9 +44,9 @@ def OqLinMem (rd : Reader) (s : Oq) (cap flags wp qptrs : E) (w : ℕ → E) (eb
     ∀ k < Q, LoadHolds rd qptrs k (ofK (Parameters.gpow (eb k))) ∧
       (∀ l < s.pd + s.cd, LoadHolds rd (ofK (Parameters.gpow (eb k))) l (bitE ((qs k).testBit l))) ∧
       LoadHolds rd cap (2 * (2 ^ s.cd + qs k / 2 ^ s.pd))
-        (digestScalars (climbD (hashWords (rows k)) (qs k) (sibs k))).1 ∧
+        (digestScalars (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).1 ∧
       LoadHolds rd cap (2 * (2 ^ s.cd + qs k / 2 ^ s.pd) + 1)
-        (digestScalars (climbD (hashWords (rows k)) (qs k) (sibs k))).2 ∧
+        (digestScalars (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
       LoadHolds rd flags (2 ^ (s.cd - 1) + qs k / 2 ^ (s.pd + 1)) 1
 
 /-- **Where those words lie**: in the region `R`. -/

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesMain
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # One query's honest values
@@ -152,7 +153,7 @@ def leafV (i : ℕ) : E :=
       (if r < 9 then d.leafI k (Fin.ofNat 13 r) else d.leafO (k + 1) (Fin.ofNat 13 (r - 9)))
 
 /-- The leaf's digest. -/
-def leaf : Digest := hashWords d.row
+def leaf : Digest := merkleLeafDigest d.row
 
 /-- Path cell `k`. -/
 def pc (k : ℕ) : E := pathCell d.leaf d.q d.sibs k

@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.MainHonestAt
 public import LeanVM.Guest.B1.Main.MainGoalsFCl
 public import LeanVM.Guest.B1.Main.MainGoalsG
 public import LeanVM.Guest.B1.Main.MainGoalsHL5
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main` on an honest run, its callees discharged
@@ -42,7 +43,7 @@ theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytec
 
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
 theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
-    (hl : Limits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
     (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
     MainGoals fs cert fp seed s w where

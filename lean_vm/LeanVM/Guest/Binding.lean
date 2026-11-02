@@ -27,7 +27,7 @@ deferred claim's cells, an odd count paired with a zero cell (`statement_digest`
 way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytes`, 64; `eBytes`, 24). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs
-`collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : DigestBinds`).
+`collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : StatementDigestBinds`).
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
@@ -101,23 +101,23 @@ theorem bytesLE_inj {n : ℕ} {v v' : BitVec (8 * n)}
 
 theorem claimBytes_inj {r p r' p' : BitVec 128} {m m' : BitVec 256}
     (h : claimBytes r p m = claimBytes r' p' m') : r = r' ∧ p = p' ∧ m = m' := by
-  obtain ⟨h12, h3⟩ := List.append_inj h (by simp [bytes16, length_bytesLE])
-  obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [bytes16, length_bytesLE])
+  obtain ⟨h12, h3⟩ := List.append_inj h (by simp [littleEndianBytes16, length_bytesLE])
+  obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [littleEndianBytes16, length_bytesLE])
   exact ⟨bytesLE_inj (n := 16) h1, bytesLE_inj (n := 16) h2, bytesLE_inj (n := 32) h3⟩
 
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) :
     (claimBytes r p m).length = 64 := by
-  simp [claimBytes, bytes16, length_bytesLE]
+  simp [claimBytes, littleEndianBytes16, length_bytesLE]
 
-theorem xmssPreimage_inj {l l' : List XmssClaim} (h : claimsPreimage l = claimsPreimage l') :
+theorem xmssPreimage_inj {l l' : List LeanXmssClaim} (h : claimListPreimage l = claimListPreimage l') :
     l = l' :=
   flatMap_inj (n := 64) (by decide) (fun _ ↦ length_claimBytes _ _ _)
     (fun ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ h ↦ by
       obtain ⟨rfl, rfl, rfl⟩ := claimBytes_inj h
       rfl) h
 
-theorem sphincsPreimage_inj {l l' : List SphincsClaim}
-    (h : claimsPreimage l = claimsPreimage l') : l = l' :=
+theorem sphincsPreimage_inj {l l' : List LeanSphincsClaim}
+    (h : claimListPreimage l = claimListPreimage l') : l = l' :=
   flatMap_inj (n := 64) (by decide) (fun _ ↦ length_claimBytes _ _ _)
     (fun ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ h ↦ by
       obtain ⟨rfl, rfl, rfl⟩ := claimBytes_inj h
@@ -141,7 +141,7 @@ theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
     (h : statementPreimage seed s = statementPreimage seed' s') :
     seed = seed' ∧ claimListDigest s.claims.xmss = claimListDigest s'.claims.xmss ∧
       claimListDigest s.claims.sphincs = claimListDigest s'.claims.sphincs ∧
-      s.claims.da = s'.claims.da ∧ s.deferredClaim = s'.deferredClaim := by
+      s.claims.daDigest = s'.claims.daDigest ∧ s.deferredClaim = s'.deferredClaim := by
   have hc : s.deferredClaim.cells.length = s'.deferredClaim.cells.length := by
     simp [DeferredClaim.cells, hb]
   unfold statementPreimage at h
@@ -150,7 +150,7 @@ theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
   obtain ⟨h12, h3⟩ := List.append_inj h123 (by simp [digestBytes_length])
   obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [digestBytes_length])
   have hp := flatMap_inj (n := 24) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
-  unfold paddedCells at hp
+  unfold paddedDeferredClaimCells at hp
   obtain ⟨hcells, -⟩ := List.append_inj hp hc
   exact ⟨digestBytes_injective h1, digestBytes_injective h2, digestBytes_injective h3,
     digestBytes_injective h4, cells_inj hb hcells⟩
@@ -168,13 +168,13 @@ theorem statementDigest_binds_of_length {seed seed' : Digest} {s s' : NodeStatem
   · exact Or.inr ⟨(statementPreimage seed s, statementPreimage seed' s'),
       by simp [collisionCandidates], h0, h⟩
   obtain ⟨hseed, hx, hp, hda, hdef⟩ := statementPreimage_inj hb h0
-  by_cases h2 : claimsPreimage s.claims.xmss = claimsPreimage s'.claims.xmss
+  by_cases h2 : claimListPreimage s.claims.xmss = claimListPreimage s'.claims.xmss
   swap
-  · exact Or.inr ⟨(claimsPreimage s.claims.xmss, claimsPreimage s'.claims.xmss),
+  · exact Or.inr ⟨(claimListPreimage s.claims.xmss, claimListPreimage s'.claims.xmss),
       by simp [collisionCandidates], h2, hx⟩
-  by_cases h3 : claimsPreimage s.claims.sphincs = claimsPreimage s'.claims.sphincs
+  by_cases h3 : claimListPreimage s.claims.sphincs = claimListPreimage s'.claims.sphincs
   swap
-  · exact Or.inr ⟨(claimsPreimage s.claims.sphincs, claimsPreimage s'.claims.sphincs),
+  · exact Or.inr ⟨(claimListPreimage s.claims.sphincs, claimListPreimage s'.claims.sphincs),
       by simp [collisionCandidates], h3, hp⟩
   left
   refine ⟨hseed, ?_⟩
@@ -196,8 +196,8 @@ theorem statementDigest_binds {b : List K} {seed seed' : Digest} {s s' : NodeSta
     (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s') :=
   statementDigest_binds_of_length (hs.trans hs'.symm) h
 
-/-- **`DigestBinds`** (`Statement/LeanVmGuest.lean`): `statementDigest_binds`. -/
-theorem digest_binds : DigestBinds :=
+/-- **`StatementDigestBinds`** (`Statement/LeanVmGuest.lean`): `statementDigest_binds`. -/
+theorem digest_binds : StatementDigestBinds :=
   fun _ _ _ _ _ hs hs' h ↦ statementDigest_binds hs hs' h
 
 /-! ## What a consumer learns -/
@@ -222,7 +222,7 @@ theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s 
     (hpub : publicDigest input = statementDigest iv s₀)
     (hdec : statementDigest seed s = publicDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
-  decoded_binds hs₀ hrel.1 hpub hdec
+  decoded_binds hs₀ hrel.2.2.2.2 hpub hdec
 
 end
 end LeanVM.Guest.Binding

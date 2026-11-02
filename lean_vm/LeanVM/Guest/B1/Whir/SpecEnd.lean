@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.SpecTrace
 public import LeanVM.Guest.B1.Whir.SpecCaps
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The levels' caps
@@ -90,10 +91,10 @@ theorem cap_writes {R : List (Digest × ℕ × ℕ)} {d : Digest} (hOk : L.Ok R 
     (hfl : ∀ k, 2 ≤ k → k < 2 ^ cd → LoadHolds rd flags k (capFl L.height L.batch cd k))
     (k : ℕ) (hk : k < L.qs.length) (ho : k < L.os.length) :
     LoadHolds rd cap (2 * (2 ^ cd + L.qs[k] / 2 ^ (L.height - cd)))
-        (digestScalars (climbD (hashWords L.os[k].leaf) L.qs[k]
+        (digestScalars (climbD (merkleLeafDigest L.os[k].leaf) L.qs[k]
           (L.os[k].path.take (L.height - cd)))).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + L.qs[k] / 2 ^ (L.height - cd)) + 1)
-        (digestScalars (climbD (hashWords L.os[k].leaf) L.qs[k]
+        (digestScalars (climbD (merkleLeafDigest L.os[k].leaf) L.qs[k]
           (L.os[k].path.take (L.height - cd)))).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + L.qs[k] / 2 ^ (L.height - cd + 1)) 1 :=
   Whir.cap_writes (a := (L.qs[k], L.os[k])) hcd hcdd (L.batchOpens hOk hh) hag hcap hfl

@@ -470,7 +470,7 @@ holds there, and the run from `(g^0, 1)` reaches `j`'s entry at `fp`. The guest'
 run at such frames (`Post`, `RL P L cert (EnteredAt G L)`). -/
 def EnteredAt (f : String) (fp : K) (args rets : List E) : Prop :=
   InMem κ fp ∧ ∃ j, (G.sig j).name = f ∧ Pre G L j fp ∧
-    Reach guest L ⟨gpow 0, 1⟩ ⟨gpow (G.sig j).entry, fp⟩ ∧
+    Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow (G.sig j).entry, fp⟩ ∧
     frameWords L fp 2 (G.sig j).nargs = args ∧ frameWords L fp (2 + (G.sig j).nargs) (G.sig j).nret = rets
 
 /-- **The body of `f` holds at frame `fp`** on the argument words `args` and the return words
@@ -529,19 +529,19 @@ structure PosOk (K : ℕ) (st : CS) (k : ℕ) : Prop where
   psi : EnvHolds L fp st.psi
   bnd : BndHolds L fp st.bnd
   run : ∃ k₀, k₀ ≤ K ∧ k ≤ k₀ ∧
-    RunK L fp guest f.entry k₀ (st.seg.exit.Reached L fp guest f.entry k₀) st.its k
+    RunK L fp guestProgram f.entry k₀ (st.seg.exit.Reached L fp guestProgram f.entry k₀) st.its k
   exits : ∀ x, x = st.seg.exit ∨ x ∈ branchExits st.its → x ∈ st.seg.exits
   fresh : ∀ t, st.fresh = some t →
     X.idx.get t = some st.seg ∧ st.seg.start = t ∧ st.its = st.seg.items ∧ st.psi = st.seg.env ∧
-      SafeReached guest L k ⟨gpow (f.entry + t), fp⟩
+      SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩
 
 /-- **The run is at the start of the segment at offset `t`**, with `k` steps left; at the
 window's end, where no segment of it starts, in its environment `wenv`. -/
 def SegRun (K t k : ℕ) : Prop :=
-  SafeReached guest L k ⟨gpow (f.entry + t), fp⟩ ∧
+  SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩ ∧
   (∀ s, X.idx.get t = some s → s.start = t → s ∈ X.segs ∧ EnvHolds L fp s.env ∧
     ∃ k₀, k₀ ≤ K ∧ k ≤ k₀ ∧
-      RunK L fp guest f.entry k₀ (s.exit.Reached L fp guest f.entry k₀) s.items k) ∧
+      RunK L fp guestProgram f.entry k₀ (s.exit.Reached L fp guestProgram f.entry k₀) s.items k) ∧
   (t = X.wJ → X.idx.get t = none → EnvHolds L fp X.wenv)
 
 /-- At a window's end `J`, what it hands on holds. -/
@@ -561,8 +561,8 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx}
 
 theorem fwdL_ok {test : Book → Bool} {e k₀ : ℕ} {Q : ℕ → Prop} :
     ∀ (its : List Exec.Item) (B : Book) (k : ℕ), BookHolds L fp B →
-      RunK L fp guest e k₀ Q its k →
-      ∃ k' ≤ k, BookHolds L fp (fwdL test its B).2.1 ∧ RunK L fp guest e k₀ Q (fwdL test its B).1 k' ∧
+      RunK L fp guestProgram e k₀ Q its k →
+      ∃ k' ≤ k, BookHolds L fp (fwdL test its B).2.1 ∧ RunK L fp guestProgram e k₀ Q (fwdL test its B).1 k' ∧
         ((fwdL test its B).2.2 = true → test (fwdL test its B).2.1 = true) ∧
         ∃ pre, pre ++ (fwdL test its B).1 = its
   | [], B, k, hB, h => ⟨k, le_rfl, hB, h, fun h ↦ h, [], rfl⟩
@@ -636,7 +636,7 @@ theorem toEnd_ok {K : ℕ} {st : CS} {k : ℕ} (h : PosOk L fp f X K st k) :
 theorem endAt_ok {K : ℕ} {st se : CS} {k : ℕ} (h : PosOk L fp f X K st k)
     (he : endAt st = some se) :
     ∃ k' ≤ k, PosOk L fp f X K se k' ∧ se.seg = st.seg ∧ se.psi = st.psi ∧ se.bnd = st.bnd ∧
-      ∃ k₀ ≤ K, se.seg.exit.Reached L fp guest f.entry k₀ k' := by
+      ∃ k₀ ≤ K, se.seg.exit.Reached L fp guestProgram f.entry k₀ k' := by
   obtain ⟨k', hk', hp, hs, hψ, hb⟩ := toEnd_ok h
   unfold endAt at he
   split at he
@@ -654,7 +654,7 @@ theorem branchAt_ok {K : ℕ} {st st' : CS} {oc : ℕ} {x : Exec.Exit} {k : ℕ}
     ∃ k' < k, ∃ c, L.read (fp * gpow oc) = some c ∧ IsInK c ∧ x ∈ st.seg.exits ∧
       st'.seg = st.seg ∧ st'.psi = st.psi ∧ st'.bnd = st.bnd ∧ BookHolds L fp st'.book ∧
       ((c = 0 ∧ PosOk L fp f X K st' k') ∨
-        (c ≠ 0 ∧ ∃ k₀ ≤ K, x.Reached L fp guest f.entry k₀ k')) := by
+        (c ≠ 0 ∧ ∃ k₀ ≤ K, x.Reached L fp guestProgram f.entry k₀ k')) := by
   obtain ⟨k₁, hk₁, hp, hs, hψ, hbd⟩ := toEnd_ok h
   unfold branchAt at hb
   split at hb
@@ -691,9 +691,9 @@ program's, the segments are good (an executor's, `exec_good`, `execWin_good`), a
 links are theirs. -/
 structure WalkHyp (L : MemoryImage κ) (fp : K) (f : CompiledFn) (X : Fx) : Prop where
   ctx : Exec.Ctx X.F κ fp
-  fetch : Fetches guest f.entry f.code
+  fetch : Fetches guestProgram f.entry f.code
   entry : X.entry = f.entry
-  good : ∀ s ∈ X.segs, SegGood L fp guest f.entry s
+  good : ∀ s ∈ X.segs, SegGood L fp guestProgram f.entry s
   idx : X.idx = index X.segs
   linked : linkedWeak X.idx X.segs X.wJ X.wenv = true
 
@@ -719,7 +719,7 @@ theorem linkedWeak_none {idx : Trie Exec.Seg} {segs : List Exec.Seg} {wJ : ℕ} 
 of the segment there. -/
 theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ) (he : EnvHolds L fp x.env)
-    {K k : ℕ} (hk : k ≤ K) (h : SafeReached guest L k ⟨gpow (f.entry + t), fp⟩) :
+    {K k : ℕ} (hk : k ≤ K) (h : SafeReached guestProgram L k ⟨gpow (f.entry + t), fp⟩) :
     SegRun L fp f X K t k := by
   refine ⟨h, fun s' hs' hst ↦ ?_, fun htJ hn ↦ ?_⟩
   swap
@@ -736,7 +736,7 @@ theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
 /-- A local jump to `t` leaves into the segment at `t`. -/
 theorem segRun_of_next (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (hk : x.kind = .next t) (ht : x.succ = [t])
-    {K k₀ k : ℕ} (hk₀ : k₀ ≤ K) (h : x.Reached L fp guest f.entry k₀ k) :
+    {K k₀ k : ℕ} (hk₀ : k₀ ≤ K) (h : x.Reached L fp guestProgram f.entry k₀ k) :
     SegRun L fp f X K t k := by
   obtain ⟨hlt, he, -, r, hr, hsafe⟩ := h
   rw [hk] at hr
@@ -1507,7 +1507,7 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K} {f : CompiledFn} {X : Fx} {Pro
 the caller with fewer than `Kb` steps left (but `main`), its bounds after. -/
 def RetWords (L : MemoryImage κ) (fp : K) (X : Fx) (Kb : ℕ) (rs : List E) : Prop :=
   rs = frameWords L fp (2 + X.nargs) X.nret ∧
-    (X.main = false → ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ SafeReached guest L k' r) ∧
+    (X.main = false → ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ SafeReached guestProgram L k' r) ∧
     BndHolds L fp X.post
 
 /-- What a walk of runs with at most `K` steps assumes: its context, the jump table, and every
@@ -1519,7 +1519,7 @@ structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (A : String →
   mem : MemPre L fp X.mem
   known : MemKnown L fp X.known
   sems : SemHolds X.G L fp X.sems
-  callees : ∀ j, FunSpecLtReached guest L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L cert A j)
+  callees : ∀ j, FunSpecLtReached guestProgram L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L cert A j)
 
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
 check's valuation, with any continuation the run's arrival at the join gives; the pending atoms;
@@ -1704,8 +1704,8 @@ theorem call_ok (W : WalkEnv Prog cert A L fp f X Kb) {B : Book} {bnd : List (�
     (hco : callOk X B bnd (X.G.sig j) f' q ca nr = true) {pv : E}
     (hq : L.read (fp * gpow q) = some pv) (hpK : IsInK pv)
     (hret : retRegs L (pv.limb 0) = some ⟨gpow r, fp⟩) (hk1 : k1 < Kb)
-    (hsafe : SafeReached guest L k1 ⟨gpow (X.G.sig j).entry, pv.limb 0⟩) :
-    ∃ k2 < k1, Post Prog X.G L cert A j (pv.limb 0) ∧ SafeReached guest L k2 ⟨gpow r, fp⟩ ∧
+    (hsafe : SafeReached guestProgram L k1 ⟨gpow (X.G.sig j).entry, pv.limb 0⟩) :
+    ∃ k2 < k1, Post Prog X.G L cert A j (pv.limb 0) ∧ SafeReached guestProgram L k2 ⟨gpow r, fp⟩ ∧
       f' = (X.G.sig j).name ∧ ca.length = (X.G.sig j).nargs ∧ nr = (X.G.sig j).nret ∧
       ca.map (wd L fp) = frameWords L (pv.limb 0) 2 (X.G.sig j).nargs ∧
       (∀ p ∈ (X.G.sig j).post, 2 ≤ p.1 ∧ p.1 < 2 + (X.G.sig j).nargs + (X.G.sig j).nret) ∧
@@ -1888,7 +1888,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
       atomOk_sound W.hyp.ctx.pows hB' (hpsi ▸ hp.psi) (List.all_eq_true.mp hpend a ha)
     have hrw : RetWords L fp X Kb [] → Core.Stmt.HoldsList (RL Prog L cert A) L.read
         (val L fp X.loc) [.ret []] N (RetWords L fp X Kb) := id
-    have hwords : ∀ (h : ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ SafeReached guest L k' r),
+    have hwords : ∀ (h : ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ SafeReached guestProgram L k' r),
         RetWords L fp X Kb [] := fun h ↦
       ⟨by rw [hxnr]; rfl, fun _ ↦ h, by rw [hxpost]; intro p hp; simp at hp⟩
     rcases hcase with ⟨rfl, hp'⟩ | ⟨hc0, k₀, hk₀, hr⟩
@@ -2243,7 +2243,7 @@ end Congr
 /-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
 and bounds handed on hold. -/
 def WinStart (L : MemoryImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
-  SafeReached guest L k ⟨gpow (f.entry + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
+  SafeReached guestProgram L k ⟨gpow (f.entry + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
     (∀ p ∈ (C.cutAt i).facts, p.2.Holds L fp) ∧ BndHolds L fp (C.cutAt i).bnd
 
 /-- What a function's return does, in every window's context. -/
@@ -2276,7 +2276,7 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
     (hcont : Cont C C.cuts.length) (hiN : i ≤ C.cuts.length)
     (hf : f ∈ Data.functions) (hpows : C.facts.pows.Ok) (hκ : κ ≤ 32) {fp : K}
     (hfp : C.facts.fpOne = true → fp = 1) {Kb : ℕ}
-    (hC : ∀ j, FunSpecLtReached guest L Kb (G.sig j).entry (Pre G L j) (Post Prog G L cert A j))
+    (hC : ∀ j, FunSpecLtReached guestProgram L Kb (G.sig j).entry (Pre G L j) (Post Prog G L cert A j))
     (hjt : JTHolds G L) (hmem : MemPre L fp C.mem) (hknown : MemKnown L fp (C.cutAt i).known)
     (hsems : SemHolds G L fp (C.cutAt i).sems) {k : ℕ} (hk : k ≤ Kb) (hs : WinStart L fp f C i k) :
     (i = 0 → ∀ m (hm : m < cf.params.length), C.locs.getD cf.params[m].idx 0 = 2 + m) ∧
@@ -2402,16 +2402,16 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     (hf : f ∈ Data.functions) (hfind : Prog.find? cf.name = some cf) (hpows : C.facts.pows.Ok)
     (hκ : κ ≤ 32) {fp : K} (hfp : C.facts.fpOne = true → fp = 1) {k : ℕ}
     (hcert : cert cf.name = C)
-    (hC : ∀ i, FunSpecLtReached guest L k (G.sig i).entry (Pre G L i) (Post Prog G L cert A i))
+    (hC : ∀ i, FunSpecLtReached guestProgram L k (G.sig i).entry (Pre G L i) (Post Prog G L cert A i))
     (hjt : JTHolds G L) (henv : EnvHolds L fp C.facts.entryEnv) (hpre : BndHolds L fp C.pre)
     (hmem : MemPre L fp C.mem) (hsem : SemHolds G L fp C.sem)
     (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (RL Prog L cert A) L.read
       (valG L fp C) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
         MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems)
-    (hsafe : SafeReached guest L k ⟨gpow f.entry, fp⟩) :
+    (hsafe : SafeReached guestProgram L k ⟨gpow f.entry, fp⟩) :
     BodyHoldsAt Prog L cert A cf.name fp (frameWords L fp 2 cf.params.length)
         (frameWords L fp (2 + cf.params.length) C.nret) ∧ BndHolds L fp C.post ∧
-      (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ SafeReached guest L k' r) ∧
+      (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ SafeReached guestProgram L k' r) ∧
       InMem κ fp ∧ cf.params.map (valG L fp C) = frameWords L fp 2 cf.params.length ∧
       Core.Stmt.HoldsList (RL Prog L cert A) L.read (valG L fp C) cf.body False
         (fun rs ↦ rs = frameWords L fp (2 + cf.params.length) C.nret) := by

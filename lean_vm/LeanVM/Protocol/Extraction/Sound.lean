@@ -30,7 +30,7 @@ public import LeanVM.Protocol.Extraction.Extract
 * so the extractor, which decodes every candidate (`ExtractProofs.extract_of_candidate`), returns
   a valid execution.
 
-`decodeStacks_length_le`: the stacks the list decoder returns are at most `2^18`.
+`decodeStacks_length_le`: the stacks the list decoder returns are at most `2^12`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -115,9 +115,9 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
   · simp at hx
 
 /-- **The extractor's list is short**: at every admissible shape, the stacks the list decoder
-returns are distinct candidates of the word, so at most `2^18` (`spec_candidates_ncard_le`). -/
+returns are distinct candidates of the word, so at most `2^12` (`spec_candidates_ncard_le`). -/
 theorem decodeStacks_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.decodeStacks μ R W).length ≤ 2 ^ 18 := by
+    (Extraction.decodeStacks μ R W).length ≤ 2 ^ 12 := by
   have h1 := h.1
   have h2 := h.2.1
   unfold Whir.minLogStack at h1
@@ -126,7 +126,7 @@ theorem decodeStacks_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ 
     (by show μ - 6 ≤ 64; omega) W).trans (spec_candidates_ncard_le h W)
 
 /-- **The pruning keeps few prefixes**: at every admissible shape, after any `U ≥ 1` lanes at most
-`2^18` prefixes survive. The survivors' encodings are distinct interleaved Reed–Solomon codewords
+`2^12` prefixes survive. The survivors' encodings are distinct interleaved Reed–Solomon codewords
 on `U` lanes, close to the word's first `U` lanes at the extractor's threshold
 (`length_pruneUpTo_le`, `evalTuple_mem_code`), so the Johnson bound for the interleaved code on
 `U` lanes caps them by level 0's `listMax` (`card_iList_johnsonAgreement_le_floor`), as
@@ -134,7 +134,7 @@ on `U` lanes, close to the word's first `U` lanes at the extractor's threshold
 theorem pruneUpTo_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ → List K) {U : ℕ}
     (hU : 0 < U) :
     (Extraction.pruneUpTo (μ - LeanVM.Parameters.Whir.initialFold) R (Extraction.johnsonThreshold μ R) W U).length ≤
-      2 ^ 18 := by
+      2 ^ 12 := by
   classical
   obtain ⟨level, rest, hc⟩ := exists_ladder h
   obtain ⟨-, hμ, hκ, hR, hL, -, -⟩ := Whir.Params.deployed_spec_hyps h hc
@@ -181,7 +181,7 @@ theorem pruneUpTo_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ →
         exact Extraction.PruneProofs.length_pruneUpTo_le (by omega) W hU T hT
     _ ≤ P.listMax := Whir.card_iList_johnsonAgreement_le_floor _
         (by have := P.one_le_D; omega) (Nat.two_pow_pos _) P.hη O
-    _ ≤ 2 ^ 18 := hL
+    _ ≤ 2 ^ 12 := hL
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

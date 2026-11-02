@@ -169,9 +169,9 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
   · rw [leanVmQueryBound_eq, div_eq_mul_inv, verifierQueries]
 
 /-- **The extractor's list is short**: at every admissible stack size and rate, the candidates of
-any word at the Johnson threshold are at most `2^18` (level 0's list bound). -/
+any word at the Johnson threshold are at most `2^12` (level 0's list bound). -/
 theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 18 :=
+    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 :=
   Sound.spec_candidates_ncard_le h W
 
 /-- **The numbers**: against `2^64` queries, the soundness error is at most `2^-63`. -/

@@ -21,8 +21,8 @@ once (Newton, `InvBound`), then per entry `j ∈ [b, width)`: the binomial `C(j,
 limbs), the entry `C(j, b)·power` (a schoolbook product by a constant), the next power
 `power·R mod M_b` (a product, `MulBound`, and the cached remainder, `modByMonicCachedC_cost`).
 
-**`gsRelationColumnC_cost`**: at most `colPrice = IB + width·(colStep + 9) + 150·N + 30·width +
-300`, `colStep = MB + LB + LBq + 1350·N + 4·width + 1500`, on a monic modulus of at least `2` and
+**`gsRelationColumnC_cost`**: at most `colPrice = IB + width·(colStep + 9) + 110·N + 19·width +
+174`, `colStep = MB + LB + LBq + 419·N + 4·width + 719`, on a monic modulus of at least `2` and
 a dividend `R` shorter than it, `|M| + |R| ≤ N`: the product within `MB` (its result at most `N`
 coefficients), the back-product within `LB` (precision `|M| − 1 ≤ Nb`), the quotient within `LBq`
 and the inverse within `IB` (precision at most `|R| ≤ Nq`).
@@ -155,7 +155,7 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
         _ = 2 ^ (w + 20) := by rw [← Nat.pow_add]
         _ ≤ 2 ^ (64 * (w + 1)) := Nat.pow_le_pow_right (by norm_num) (by omega))
     have hL3 : limbCount (j₀.choose b % 2) = 1 := limbs_of_lt (by omega)
-    have hnc := Auto.BF64.natCast.c573.costEq P (by includes) (j₀.choose b)
+    have hnc := Auto.BF64.natCast.c574.costEq P (by includes) (j₀.choose b)
     rw [ite_self] at hnc
     have := cK_cost P (by includes) (j₀.choose b : K)
     have hC := size_C_le (j₀.choose b : K)
@@ -202,7 +202,7 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
       rw [limbs_of_lt (by omega : j₀ + 1 < 2 ^ 64)]; omega
     have hmono2 : limbCount (j₀.choose b * (j₀ + 1)) * limbCount (j₀ + 1 - b) ≤ w + 1 := by
       rw [limbs_of_lt (by omega : j₀ + 1 - b < 2 ^ 64)]; omega
-    have hcs : colStep N w MB LB LBq = MB + LB + LBq + 1350 * N + 4 * w + 1500 := rfl
+    have hcs : colStep N w MB LB LBq = MB + LB + LBq + 419 * N + 4 * w + 719 := rfl
     have he : (colStep N w MB LB LBq + 9) * (n + 1) =
         (colStep N w MB LB LBq + 9) * n + colStep N w MB LB LBq + 9 := by ring
     rw [he]
@@ -274,9 +274,9 @@ theorem gsRelationMatrixC_cost (hP : Includes P gsRelationMatrixC.costDeps)
       RunsApp P (.closure gsRelationMatrixC.lam0.costIdx [encodeValue R, encodeValue moduli,
         encodeValue w]) _ _)
   have hcols := map_cost P (by includes) _ (.closure gsRelationMatrixC.lam0.costIdx
-    [encodeValue R, encodeValue moduli, encodeValue w]) hl (colPrice N w MB LB LBq IB + 14)
+    [encodeValue R, encodeValue moduli, encodeValue w]) hl (colPrice N w MB LB LBq IB + 17)
     (List.range m) (fun b hb ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [gsRelationMatrixC.lam0.costEq P (by includes)]
       have hb' := List.mem_range.1 hb
       obtain ⟨h1, h2, h3, h4, h5⟩ := hmod b hb'
@@ -290,19 +290,21 @@ theorem gsRelationMatrixC_cost (hP : Includes P gsRelationMatrixC.costDeps)
       j b) : RunsApp P (.closure gsRelationMatrixC.lam1.costIdx [encodeValue cols, encodeValue w])
         _ _)
   have hof := ofFnC_cost P (by includes) w m (by omega) (by omega) _
-    (.closure gsRelationMatrixC.lam1.costIdx [encodeValue cols, encodeValue w]) he 9
+    (.closure gsRelationMatrixC.lam1.costIdx [encodeValue cols, encodeValue w]) he 11
     (fun j _ b _ ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [gsRelationMatrixC.lam1.costEq P (by includes)])
   simp only [List.length_range, List.length_map] at *
   have hy : GuruswamiSudan.yWeight params < 2 ^ 64 := by
     unfold GuruswamiSudan.yWeight; omega
   have hcap : GuruswamiSudan.interpolationYCap params < 2 ^ 64 := by
     unfold GuruswamiSudan.interpolationYCap; exact lt_of_le_of_lt (Nat.div_le_self _ _) hpar.2
+  obtain ⟨hp1, hp2⟩ := hpar
+  have hq2 := limbs_le_two (show GuruswamiSudan.interpolationYCap params + 1 < 2 ^ 128 by omega)
   unfold matPrice
   cost_simp
-  have e1 : w * (m * (9 + 33) + 48) = w * (m * 42 + 48) := by ring
-  have e2 : (colPrice N w MB LB LBq IB + 14 + 11) * m = m * (colPrice N w MB LB LBq IB + 25) := by ring
+  have e1 : w * (m * (11 + 35) + 49) = w * (m * 46 + 49) := by ring
+  have e2 : (colPrice N w MB LB LBq IB + 17 + 13) * m = m * (colPrice N w MB LB LBq IB + 30) := by ring
   omega
 
 end

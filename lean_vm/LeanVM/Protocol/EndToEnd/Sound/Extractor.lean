@@ -479,12 +479,12 @@ theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
     match config, hl with
     | level :: rest, _ => exact ⟨level, rest, rfl⟩
 
-/-- **The specification's candidates are at most `2^18`**: at every admissible shape, the
+/-- **The specification's candidates are at most `2^12`**: at every admissible shape, the
 stacks whose encoding agrees with a word on at least the Johnson threshold of columns are among
-the proof's candidates, at most level 0's list bound `listMax ≤ 2^18` (`candidates_ncard_le`,
+the proof's candidates, at most level 0's list bound `listMax ≤ 2^12` (`candidates_ncard_le`,
 `Whir.Params.deployed_spec_hyps`). -/
 theorem spec_candidates_ncard_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : Word) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 18 := by
+    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 := by
   obtain ⟨level, rest, hc⟩ := exists_ladder h
   obtain ⟨-, hμ, hκ, hR, hL, -, -⟩ := Whir.Params.deployed_spec_hyps h hc
   have hthr : (Whir.Params.deployedCodes μ R 0).thr = Extraction.johnsonThreshold μ R :=

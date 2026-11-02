@@ -13,6 +13,7 @@ public import Statement.LeanVmGuest
 public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest prover of a child

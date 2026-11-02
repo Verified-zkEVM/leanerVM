@@ -13,6 +13,9 @@ namespace LeanVM.Cost.Library
 
 open LeanVM.Cost
 
+-- The product in `K`, one body every product calls (`Rule.kMulCall`).
+cost_compile kMulC := @Rule.kMulFn
+
 cost_compile listZipWith measure fun _ _ _ _ as _ ↦ as.length := @List.zipWith.{0, 0, 0}
 
 cost_measure Rewrite.ofFnFrom := fun _ n _ i ↦ n - i

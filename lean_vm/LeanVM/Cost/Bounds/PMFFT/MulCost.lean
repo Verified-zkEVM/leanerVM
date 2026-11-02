@@ -20,20 +20,20 @@ public section
 
 variable (P : MachineProgram)
 
-/-- **The pointwise product** (`pmul.c411`) of `n` entries: at most `283·n + 17`. -/
-theorem pmulC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.costDeps) (n : ℕ)
+/-- **The pointwise product** (`pmul.c412`) of `n` entries: at most `55·n + 16`. -/
+theorem pmulC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.costDeps) (n : ℕ)
     (hn : n < 2 ^ 64) (a b : Array K) :
-    machineCost P Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.costIdx [encodeValue n, encodeValue a,
-      encodeValue b] ≤ 283 * n + 17 := by
-  rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.costEq P hP]
+    machineCost P Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.costIdx [encodeValue n, encodeValue a,
+      encodeValue b] ≤ 55 * n + 16 := by
+  rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) hn _
-    (.closure Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.lam0.costIdx [encodeValue n, encodeValue a,
+    (.closure Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.lam0.costIdx [encodeValue n, encodeValue a,
       encodeValue b])
-    (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.lam0.costSpec P (by includes)
-      n a b v)) 264
+    (fun v ↦ RunsApp.of_spec (Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.lam0.costSpec P (by includes)
+      n a b v)) 38
     (fun v ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c411.lam0.costEq P (by includes)]) 0 (Nat.zero_le _)
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [Auto.LeanVM.Extraction.Fast.FFT.pmul.c412.lam0.costEq P (by includes)]) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
   simp only [Nat.sub_zero] at hof
   omega
@@ -92,7 +92,7 @@ theorem mulViaFFTC_cost_fft (hP : Includes P mulViaFFTC.costDeps) (p : PMPrices)
   obtain ⟨hfw, hiv⟩ := hneed J (by omega)
   rw [← hJ, polyMulPrice]
   have hpl := plan_fit 1 J (le_refl 1)
-  have hmacN : 304 * 2 ^ J ≤ p.mac * 2 ^ J := Nat.mul_le_mul_right _ hmac
+  have hmacN : 80 * 2 ^ J ≤ p.mac * 2 ^ J := Nat.mul_le_mul_right _ hmac
   have hfw' : fwdBound J ≤ fwdNeed J := by unfold fwdNeed; omega
   unfold invNeed at hiv
   simp only [Nat.one_mul] at hpl

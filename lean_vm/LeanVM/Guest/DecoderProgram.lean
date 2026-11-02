@@ -8,13 +8,13 @@ public import Statement.Theorems
 
 `GuestKnowledge guest D` (`Statement/Theorems.lean`) takes the decoder as a cost-machine
 program `D`, run within `guestWitnessDecoderBudget` on the encoded execution, its output the encoding of
-a decoding. The proofs read a decoding off an execution (`decoder : Execution guest → Decoded`;
+a decoding. The proofs read a decoding off an execution (`decoder : Execution guest → SeedStatementAndWitness`;
 `guest_knowledge` for `decode`, which reads it off the memory). Two facts relate them:
 
 * **`DecoderProgramSpec D decoder`**: `D`'s size is within `guestWitnessDecoderSizeBound`, and on
   every valid execution `D` outputs, within its budget, the encoding of `decoder`'s decoding;
 * **`DecoderExplains decoder`**: on every valid execution, `decoder`'s decoding explains the public
-  input (`ExplainsInput`); for `decode` it is `guest_knowledge` (`decoderExplains_decode`).
+  input (`ExplainsPublicInput`); for `decode` it is `guest_knowledge` (`decoderExplains_decode`).
 
 From them, **`guestKnowledge_of_spec : GuestKnowledge guest D`**, the decoding `decoder t`. For
 the compiled decoder `LeanVM.Cost.decoderProgram` and `decode`, both are proved
@@ -32,19 +32,19 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Node LeanVM.Cost
 /-- **What the guest decoder program must satisfy**, for a decoder of executions
 `decoder`: its size is within `guestWitnessDecoderSizeBound`, and on every valid execution of the guest
 it outputs, within its budget, the encoding of `decoder`'s decoding. -/
-structure DecoderProgramSpec (decoderProgram : Cost.MachineProgram) (decoder : Execution guest → Decoded) :
+structure DecoderProgramSpec (decoderProgram : Cost.MachineProgram) (decoder : Execution guestProgram → SeedStatementAndWitness) :
     Prop where
   /-- The size bound. -/
   size : decoderProgram.size ≤ guestWitnessDecoderSizeBound
   /-- The program computes `decoder` within its budget on every valid execution. -/
-  computes : ∀ input (t : Execution guest), ValidExecution guest input t →
-    outputWithin decoderProgram (encodeGuestWitnessDecoderInput guest t) (guestWitnessDecoderBudget t) =
-      some (encodeValue (decoder t))
+  computes : ∀ input (t : Execution guestProgram), ValidExecution guestProgram input t →
+    outputWithin decoderProgram guestWitnessDecoderSizeBound (encodeGuestWitnessDecoderInput guestProgram t)
+        (guestWitnessDecoderBudget t) = some (encodeValue (decoder t))
 
 /-- **The decoder's decodings explain the public input**: on every valid execution of the guest
-on a public input, `decoder`'s decoding explains it (`ExplainsInput`). -/
-def DecoderExplains (decoder : Execution guest → Decoded) : Prop :=
-  ∀ input (t : Execution guest), ValidExecution guest input t → ExplainsInput guest input (decoder t)
+on a public input, `decoder`'s decoding explains it (`ExplainsPublicInput`). -/
+def DecoderExplains (decoder : Execution guestProgram → SeedStatementAndWitness) : Prop :=
+  ∀ input (t : Execution guestProgram), ValidExecution guestProgram input t → ExplainsPublicInput guestProgram input (decoder t)
 
 /-- `decode`, read off the memory, explains the public input: `guest_knowledge`. -/
 theorem decoderExplains_decode : DecoderExplains fun t ↦ decode t.memory := guest_knowledge
@@ -52,14 +52,14 @@ theorem decoderExplains_decode : DecoderExplains fun t ↦ decode t.memory := gu
 /-- **`GuestKnowledge` of the decoder program**, from its spec and its decoder's decodings
 explaining the input. -/
 theorem guestKnowledge_of_spec {decoderProgram : Cost.MachineProgram}
-    {decoder : Execution guest → Decoded} (h : DecoderProgramSpec decoderProgram decoder)
-    (hx : DecoderExplains decoder) : GuestKnowledge guest decoderProgram :=
+    {decoder : Execution guestProgram → SeedStatementAndWitness} (h : DecoderProgramSpec decoderProgram decoder)
+    (hx : DecoderExplains decoder) : GuestKnowledge guestProgram decoderProgram :=
   fun input t hv ↦ ⟨decoder t, h.computes input t hv, hx input t hv⟩
 
 /-- **`GuestKnowledge` of a program that computes `decode`**: its spec alone. -/
 theorem guestKnowledge_of_decode {decoderProgram : Cost.MachineProgram}
     (h : DecoderProgramSpec decoderProgram fun t ↦ decode t.memory) :
-    GuestKnowledge guest decoderProgram :=
+    GuestKnowledge guestProgram decoderProgram :=
   guestKnowledge_of_spec h decoderExplains_decode
 
 end

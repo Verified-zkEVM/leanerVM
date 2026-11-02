@@ -23,15 +23,15 @@ def run (deps : List (ℕ × Term)) (i : ℕ) (args : List MachineValue) : Optio
   some (MachineEncoding.encodeValue (rootsInFieldFast rootPoly))
 
 /-! Roth–Ruckenstein's substitution by the butterfly (`substituteBF`, compiled on demand as
-`substituteBF.c96`): its value is `substituteFast`'s, and its price, measured. One more
-coefficient per row costs `≈ 290` steps per scaled row addition (`axpyRow`: the scaling, the raw
+`substituteBF.c97`): its value is `substituteFast`'s, and its price, measured. One more
+coefficient per row costs `≈ 68` steps per scaled row addition (`axpyRow`: the scaling, the raw
 sum, one trim) and `28` per row (the shift by `X^t`); the proved bound (`substituteBFC_cost`)
-charges `324` per row and level. -/
+charges a constant per row and level. -/
 
 /-- The butterfly's price on `ny` rows of `nx` random coefficients. -/
 def bfPrice (nx ny : ℕ) : Option ℕ :=
-  (run LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c96.costDeps
-    LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c96.costIdx
+  (run LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c97.costDeps
+    LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c97.costIdx
     [MachineEncoding.encodeValue (randomBivariate 7 nx ny), MachineEncoding.encodeValue (K.ofBits 5)]).map
     Prod.snd
 
@@ -40,13 +40,13 @@ def bfOps (n : ℕ) : ℕ := ((List.range n).map fun y ↦ (Nat.toDigits 2 y).co
 
 #guard (List.range 3).all fun s ↦
   let Q := randomBivariate s 30 33
-  (run LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c96.costDeps
-    LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c96.costIdx
+  (run LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c97.costDeps
+    LeanVM.Cost.Auto.LeanVM.Extraction.Fast.substituteBF.c97.costIdx
     [MachineEncoding.encodeValue Q, MachineEncoding.encodeValue (K.ofBits (lcg s))]).map (·.1) ==
     some (MachineEncoding.encodeValue (substituteFast Q (K.ofBits (lcg s))))
-#guard bfPrice 100 33 == some 2472528
-#guard bfPrice 200 33 == some 4917528
--- per extra coefficient: `81` additions (`bfOps 33`) at `≈ 290`, `33` rows at `28`
-#guard bfOps 33 == 81 && (4917528 - 2472528) / 100 == 24450 && (24450 - 28 * 33) / 81 == 290
+#guard bfPrice 100 33 == some 666967
+#guard bfPrice 200 33 == some 1313767
+-- per extra coefficient: `81` additions (`bfOps 33`) at `≈ 68`, `33` rows at `28`
+#guard bfOps 33 == 81 && (1313767 - 666967) / 100 == 6468 && (6468 - 28 * 33) / 81 == 68
 
 end LeanVMTests.Cost.Decoder
