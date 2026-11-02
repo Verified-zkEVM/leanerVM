@@ -17,8 +17,10 @@ Three tiers:
   implemented (`LeanVM/Protocol/Extraction/Fast/`), the substitution untruncated; "2 as built":
   the approximant-basis interpolation on Karatsuba's products, a model of an earlier build (the
   compiled extractor now multiplies by the additive FFT, its price proved in `lean_vm`:
-  `decoderBoundPM`, about `2^94.07` at the worst shape, Roth-Ruckenstein dominating: `rrBound`,
-  about `2^87.98` per lane, `tests/LeanVMTests/Cost/RrBound.lean`);
+  `decoderBoundPM`, about `2^94.07` at the worst shape at level 0's earlier, balanced slacks,
+  Roth-Ruckenstein dominating: `rrBound`, about `2^87.98` per lane,
+  `tests/LeanVMTests/Cost/RrBound.lean`; at the largest slacks the same model gives about
+  `2^82.05`);
 * tier 2 (E2): tier 1 with a fast interpolation (Chowdhury et al. 2015) in place of
   Lee-O'Sullivan and Mulders-Storjohann.
 
@@ -30,7 +32,7 @@ import math
 import sys
 
 LANES = 6  # log2 of the 2^6 lanes
-LIST = 18  # log2 of the candidates (`candidates_ncard_le`) and the pruning survivors
+LIST = 12  # log2 of the candidates (`candidates_ncard_le`) and the pruning survivors
            # (`pruneUpTo_length_le`)
 KECCAK = 12  # log2 of Keccak-f[1600]'s word operations, 24 rounds of about 170
 

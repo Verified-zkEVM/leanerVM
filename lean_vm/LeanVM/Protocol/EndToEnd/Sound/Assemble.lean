@@ -48,7 +48,7 @@ The deployed table sumcheck's computations are the model's at leanISA (`tableFid
 bus read with four fingerprint challenges, which `busTableSpec_leanIsa` carries); nothing is
 assumed.
 
-The errors are those of `phase_errors` (`L₀ = 2^18` candidates, the level-0 list bound of
+The errors are those of `phase_errors` (`L₀ = 2^12` candidates, the level-0 list bound of
 `deployed_spec_hyps`): every group's escape is at most `2^-128`.
 -/
 
@@ -121,14 +121,14 @@ variable (prog : Program) (input : PublicInput) (s : Sizes) (ρ : ℕ)
 abbrev Cs : List Ev → Set (Column (verifierLayout prog s).stackLog) := candsL prog s ρ thrOf
 
 /-- The candidates of the deployed level-0 code at an admissible shape: finite, at most
-`2^18`. -/
+`2^12`. -/
 theorem candidates_bound {μ R : ℕ} (hw : Whir.Admissible μ R) (W : Word) :
     (Candidates μ R (thrOf μ R) W).Finite ∧ (Candidates μ R (thrOf μ R) W).ncard ≤ L₀ := by
   obtain ⟨q₀, rest, hc, -⟩ := Whir.Complete.exists_ladder hw
   obtain ⟨-, hμ, hκ, hR, hL, -⟩ := Whir.Params.deployed_spec_hyps hw hc
   exact ⟨candidates_finite _ hκ hR hμ W, (candidates_ncard_le _ hκ hR hμ W).trans hL⟩
 
-/-- The deployed level-0 list bound is at most `2^18`. -/
+/-- The deployed level-0 list bound is at most `2^12`. -/
 theorem listMax_le {μ R : ℕ} (hw : Whir.Admissible μ R) : (code₀ μ R).listMax ≤ L₀ := by
   obtain ⟨q₀, rest, hc, -⟩ := Whir.Complete.exists_ladder hw
   exact (Whir.Params.deployed_spec_hyps hw hc).2.2.2.2.1
@@ -153,7 +153,7 @@ theorem cs_stable : Stable (Cs prog s ρ) := by
   ext q
   simp only [Cs, candsL, Set.mem_ofPred_eq, firstWord, commits_append_hist, hl, List.append_nil]
 
-/-- The history's candidates are at most `2^18`. -/
+/-- The history's candidates are at most `2^12`. -/
 theorem cs_ncard (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ) (h : List Ev) :
     (Cs prog s ρ h).ncard ≤ L₀ := by
   rcases hW : firstWord h with _ | W
@@ -305,7 +305,7 @@ noncomputable def pubPartAt (hw : Whir.Admissible (verifierLayout prog s).stackL
   else Spec.dead.mono (fun _ hp ↦ hout hp.1.1) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 /-- The candidates of the stack's word, as oracles of the instance, are finite and at most
-`2^18`. -/
+`2^12`. -/
 theorem candsOf_bound (hw : Whir.Admissible (verifierLayout prog s).stackLog ρ) (W : Word) :
     (candsOf prog s ρ thrOf W).Finite ∧ (candsOf prog s ρ thrOf W).ncard ≤ L₀ := by
   rw [stackLog_verifierLayout] at hw

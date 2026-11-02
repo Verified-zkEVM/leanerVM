@@ -26,7 +26,7 @@ into one specification:
 * `thrOf μ R`: the Johnson threshold of level `0` of the deployed ladder; the stack's doom
   (`CommitDoom`) and the opening's (`StackedPre`) are stated at it.
 * `candidates_finite`, `candidates_ncard_le`: the candidates of a level-0 word are the level-0
-  Johnson list (`mem_iList_of_candidate`), so there are at most `listMax ≤ 2^18` of them.
+  Johnson list (`mem_iList_of_candidate`), so there are at most `listMax ≤ 2^12` of them.
 * `stackedPre_of_ringPost`: **ring switching's postcondition is the opening's precondition**.
   If no candidate of the stack's word satisfies the program's column claims and the ring claim,
   and the stack's commitment is the only one with level 0's shape, then every candidate violates
@@ -208,12 +208,12 @@ theorem le_eps_of_nat {x : ℝ≥0∞} {n : ℕ} (hx : x ≤ (n : ℝ≥0∞) / 
 theorem eps_lt_one : (2 : ℝ≥0∞)⁻¹ ^ 128 < 1 :=
   pow_lt_one₀ (by simp) (ENNReal.inv_lt_one.2 (by norm_num)) (by norm_num)
 
-/-! ## The phases' errors at `L₀ = 2^18` -/
+/-! ## The phases' errors at `L₀ = 2^12` -/
 
 section PhaseErrors
 
 /-- The number of candidates of the stack's word the phases are charged for. -/
-abbrev L₀ : ℕ := 2 ^ 18
+abbrev L₀ : ℕ := 2 ^ 12
 
 /-- `L·(c/|E|)` as a natural number over `|E|`. -/
 theorem mul_overE (L c : ℕ) :
@@ -272,9 +272,9 @@ theorem pubLead_le (L : ℕ) :
   rw [mul_overE, mul_overE, mul_errE, div_E_add]
   exact ENNReal.div_le_div_right (Nat.cast_le.2 (by nlinarith)) _
 
-/-- **Every error hypothesis of the phases**, at `L₀ = 2^18` candidates, `|E| = 2^192`, a bus
+/-- **Every error hypothesis of the phases**, at `L₀ = 2^12` candidates, `|E| = 2^192`, a bus
 of depth at most `38`, `B ≤ 2^20`, at most `551` opening claims with a level-0 list of at most
-`2^18`, and the lead after the table sumcheck at most `L₀ · 7/|E|` (the public input's challenge
+`2^12`, and the lead after the table sumcheck at most `L₀ · 7/|E|` (the public input's challenge
 and the Keccak reduction's six first challenges, `pubLead_le`): each is at most `2^-128`. -/
 theorem phase_errors (I : M3Instance) (hμ : I.μBus ≤ 38) (hB : I.B ≤ 2 ^ 20) :
     abError I L₀ + 0 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 ∧ abError I L₀ < 1 ∧

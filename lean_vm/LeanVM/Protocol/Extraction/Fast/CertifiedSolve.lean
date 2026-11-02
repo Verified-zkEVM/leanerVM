@@ -11,8 +11,8 @@ public import LeanVM.Protocol.Extraction.Fast.WindowedSolve
 
 CompPoly's solver keeps the PM-basis rows whose principal part satisfies the modular equations
 (`filterModularSolutionRows`), a test that multiplies each
-candidate row by the relation matrix: at `(28, 4)` about `2077 · 1662 · 415 ≈ 2^30.4` univariate
-products of degree up to `≈ 2^35`, a price of the order of the PM-basis's own, outside its model.
+candidate row by the relation matrix: at `(28, 4)` about `152 · 122 · 30 ≈ 2^19.1` univariate
+products of degree up to `≈ 2^31`, a price of the order of the PM-basis's own, outside its model.
 
 The test is not needed. The certified problem's orders are `deg M_b + W + 2`: a row of the lifted
 problem of expanded shifted degree at most `2W + 1` has principal entries of shifted degree at most
