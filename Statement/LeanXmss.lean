@@ -23,9 +23,9 @@ open OracleComp OracleSpec ENNReal
 /-!
 ## leanXMSS
 
-The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS
-of height 16 over WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a leaf index
-`idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
+The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of
+height 16 over WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a
+leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 
 * WOTS+C: 58 chains of 4 positions. A 16-byte digest is read as 64 base-4 digits, little endian; it
   is a codeword when the last 6 digits are zero and the other 58 sum to 106.
@@ -83,7 +83,8 @@ def keyAt (index : LeafIndex) (lay : Layer) : KeyIndex :=
   ⟨index.val / 2 ^ (layerHeight * lay.val),
     Nat.lt_of_le_of_lt (Nat.div_le_self _ _) index.isLt⟩
 
-/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication path. -/
+/-- One layer's signature: the randomizer, the `v` revealed chain values and the authentication
+path. -/
 structure LayerSignature where
   /-- The randomizer `R0 + c` that makes the message digest a codeword. -/
   randomness : Randomness
@@ -313,8 +314,9 @@ def otsSign (parameter : PublicParameter) (lay : Layer) (key : KeyIndex) (seed :
   let base ← th π parameter (tweakFields 7 0 (layerHi lay 0) key) (bytesLE 32 seed ++ message)
   otsSignFrom π parameter lay key seed message base randomizerAttemptLimit 0
 
-/-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the bottom
-layer node indices are global: node `j` at level `level` is in bottom tree `j / 2^(16 - level)`. -/
+/-- Node `nodeIdx` at tree level `level` of layer `l`, from the one-time keys below it. On the
+bottom layer node indices are global: node `j` at level `level` is in bottom tree
+`j / 2^(16 - level)`. -/
 def treeNode (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) : Nat → Nat → m Digest :=
   buildTree (fun nodeIdx ↦ do
       let key : KeyIndex := ⟨nodeIdx % lifetime, Nat.mod_lt _ (by decide)⟩
@@ -343,8 +345,8 @@ def signLayer (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : 
   let path ← treePath π secretKey.parameter lay secretKey.seed key
   return some ⟨randomness, values, path⟩
 
-/-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs the
-root of bottom tree `idx / 2^16`. -/
+/-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
+the root of bottom tree `idx / 2^16`. -/
 def sign (secretKey : SecretKey) (index : LeafIndex) (message : Message) : m (Option Signature) := do
   let bottomKey := keyAt index bottomLayer
   let topKey := keyAt index topLayer

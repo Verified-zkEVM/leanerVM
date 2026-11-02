@@ -14,9 +14,9 @@ over `F`, `keccak256With F`), and the verifier (Part 3), ending with
 `verifyWith F bytecode publicInput proof`.
 
 The verifier takes the value of the polynomial the statement fixes (the bytecode's multilinear
-extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The deferring
-verifier (`verifyDeferred`), which has no counterpart in the Python, takes it from a claim, as an
-aggregate's in-circuit verifier of its children does
+extension) from a parameter `ev : List K → List E → Prog E`. The deployed verifier computes it. The
+deferring verifier (`verifyDeferred`), which has no counterpart in the Python, takes it from a
+claim, as an aggregate's in-circuit verifier of its children does
 (`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
 -/
 
@@ -1323,10 +1323,10 @@ def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlo
   (forms, treeValue + known + onesPadding + paddingRows)
 
 /-- `verify_bus_balance(layout)` (`verifier.py:581-643`). **Where the verifier gets the value of the
-fixed polynomial**, the stacked bytecode's multilinear extension at the bus point (`verifier.py:605`),
-which the statement fixes and the proof does not: from `ev`, which the deployed verifier computes
-(`computedValue`) and the verifier inside an aggregate takes from a claim it hands on
-(`claimedValue`). -/
+fixed polynomial**, the stacked bytecode's multilinear extension at the bus point
+(`verifier.py:605`), which the statement fixes and the proof does not: from `ev`, which the deployed
+verifier computes (`computedValue`) and the verifier inside an aggregate takes from a claim it hands
+on (`claimedValue`). -/
 def verifyBusBalance (ev : List K → List E → Prog E) (layout : Layout) : Prog BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
@@ -1408,14 +1408,13 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-!
 ## The WHIR opening (`verifier.py:1017-1203, 1454-1460`)
 
-**Commitments.** The Python reads a Merkle root as two scalars (`Digest.from_halves(*next_scalars(2))`) and opens
-it a level later with `merkle(root, block_length, queries, leaf_words)`. The language's
-`commit height width` fixes the matrix shape when the root is read, so the shape is computed from
-the ladder there:
+**Commitments.** The Python reads a Merkle root as two scalars
+(`Digest.from_halves(*next_scalars(2))`) and opens it a level later with
+`merkle(root, block_length, queries, leaf_words)`. The language's `commit height width` fixes the
+matrix shape when the root is read, so the shape is computed from the ladder there:
 
-* the stack's root (commitment `0`, read by `verify_execution` before the bus phase,
-  `commitStack`) is opened at level `0`: `2^(log_n − folds[0] + rate_0)` leaves of
-  `2^folds[0]` words;
+* the stack's root (commitment `0`, read by `verify_execution` before the bus phase, `commitStack`)
+  is opened at level `0`: `2^(log_n − folds[0] + rate_0)` leaves of `2^folds[0]` words;
 * the root read at level `ℓ` (commitment `ℓ + 1`) is opened at level `ℓ + 1`:
   `2^(message_log_ℓ − folds[ℓ+1] + rate_{ℓ+1})` leaves of `3 · 2^folds[ℓ+1]` words.
 
@@ -1424,9 +1423,8 @@ the level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are
 
 **Interpretation.**
 
-* `derive_config` is `LeanVM.Parameters.Whir.ladder`, whose `shape` is the Python's loop and
-  whose table is `WHIR_QUERIES` verbatim; the tests compare all 56 admissible pairs with the
-  Python.
+* `derive_config` is `LeanVM.Parameters.Whir.ladder`, whose `shape` is the Python's loop and whose
+  table is `WHIR_QUERIES` verbatim; the tests compare all 56 admissible pairs with the Python.
 * `sample_queries` takes the block's log-length `depth` (the Python takes the length and recovers
   `depth` by `log2_strict`, which cannot fail: the length is `2^depth`). Its loop is bounded by
   `count` rounds of fuel; each round yields `min(192 / depth, remaining) ≥ 1` positions since
@@ -1626,10 +1624,10 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 ## Keccak, by GKR over its rounds (`verifier.py:1206-1406`)
 
 The protocol is `doc/leanvm/body/c-keccak-gkr.tex`; `KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI` are
-`keccakRC`, `keccakRho`, `keccakPi` of `Keccak.lean`. A claim is a weighted sum of the
-bits of one state per segment, the weight of bit `j` of instance `i` of pack `y` (sixteen
-consecutive steps) in segment `m` being `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns
-a claim on the states after a round into one on the states before it.
+`keccakRC`, `keccakRho`, `keccakPi` of `Keccak.lean`. A claim is a weighted sum of the bits of one
+state per segment, the weight of bit `j` of instance `i` of pack `y` (sixteen consecutive steps) in
+segment `m` being `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns a claim on the states
+after a round into one on the states before it.
 
 **Representation.**
 
@@ -1638,10 +1636,10 @@ a claim on the states after a round into one on the states before it.
   fuel: `carryless a b` by `b` (each step halves `b`), `carrylessDivmod a f` by the bit length of
   `a` plus one (each step lowers the bit length of the remainder when `f ≠ 0`; the Python loops
   forever at `f = 0`, which it never passes).
-* The Python's `next(g for g in range(1, 2**degree) if …)` is `List.find?`, `0` if none (the
-  Python raises; every factor of `RMFE_FACTORS` is irreducible, so one is found).
-* The mutable arrays of `keccak_linear_transpose` and of `_keccak_open`'s slot weights are arrays here,
-  set where the Python sets them.
+* The Python's `next(g for g in range(1, 2**degree) if …)` is `List.find?`, `0` if none (the Python
+  raises; every factor of `RMFE_FACTORS` is irreducible, so one is found).
+* The mutable arrays of `keccak_linear_transpose` and of `_keccak_open`'s slot weights are arrays
+  here, set where the Python sets them.
 -/
 
 /-! ### Constants (`verifier.py:1224-1228`) -/
@@ -1839,9 +1837,9 @@ def keccakLayers (logSteps : ℕ) : List ℕ → KeccakClaim → Prog KeccakClai
 /-! ### Opening `q_keccak` (`verifier.py:1358-1406`) -/
 
 /-- The weights of `_keccak_open` (`verifier.py:1363-1367`): the weight a claim puts on each
-`(slot, z)`, its position weights on the slots of the states it speaks of, scaled by the segment; `first` is the state segment `0` claims, and only the first `count`
-segments' states are committed. The slots above the states (`qkeccakSlots …`), which carry
-`KECCAK` columns, weigh nothing. -/
+`(slot, z)`, its position weights on the slots of the states it speaks of, scaled by the segment;
+`first` is the state segment `0` claims, and only the first `count` segments' states are committed.
+The slots above the states (`qkeccakSlots …`), which carry `KECCAK` columns, weigh nothing. -/
 def keccakSlotWeights (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) : List (List E) :=
   let segments := eqKernel (claim.point.drop (logSteps - 4))
   let weights := claim.weights.toArray
@@ -1906,8 +1904,9 @@ The 64 claims `s[i] = z(i, point)` on `q_keccak`'s bit slices become one dense c
 `Σ_u W(u) q_keccak(u) = target` on the committed column.
 -/
 
-/-- `RING_MAP_SHIFTS` (`verifier.py:1412`; `COMPOSITION_SHIFTS`, `crates/pcs/src/ring_switch.rs:80`):
-the Frobenius shifts of the six stages composing `Φ`, one challenge each. -/
+/-- `RING_MAP_SHIFTS` (`verifier.py:1412`; `COMPOSITION_SHIFTS`,
+`crates/pcs/src/ring_switch.rs:80`): the Frobenius shifts of the six stages composing `Φ`, one
+challenge each. -/
 def ringMapShifts : List ℕ := [32, 16, 8, 4, 2, 1]
 
 /-- `_phi(value, challenges)`: `a ↦ a + f_p · a^(2^shift)`, stage by stage
@@ -1948,13 +1947,12 @@ open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 function per phase of the Python (the steps of `verifyExecution`). The program returns `true` where
 the Python returns; `Transcript.finish`, the check that the proof is consumed, is `runProof`'s.
 
-**The seed.** The sponge starts at Keccak-f of `IV ‖ public_input ‖ 0^17`, `IV` the Keccak-256
-hash of `TAG ‖ bytecode`, the tag `"leanvm-v1"` naming the proof system's version and the bytecode
-as its little-endian words. The seed's input has the capacity lanes zero, Keccak-256's initial state, and
+**The seed.** The sponge starts at Keccak-f of `IV ‖ public_input ‖ 0^17`, `IV` the Keccak-256 hash
+of `TAG ‖ bytecode`, the tag `"leanvm-v1"` naming the proof system's version and the bytecode as its
+little-endian words. The seed's input has the capacity lanes zero, Keccak-256's initial state, and
 nothing separates its domain from a Keccak-256 block: in the random-permutation model the
-transcript's duplex calls and Keccak-256's sponge calls query the one permutation from states of
-the same kind. This is harmless for the end statements, which are proved for exactly this
-experiment.
+transcript's duplex calls and Keccak-256's sponge calls query the one permutation from states of the
+same kind. This is harmless for the end statements, which are proved for exactly this experiment.
 -/
 
 /-- The announced sizes, read and checked, and the layout they give

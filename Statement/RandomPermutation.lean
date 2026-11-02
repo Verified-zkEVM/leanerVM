@@ -14,9 +14,10 @@ public import Statement.Keccak
 # The random-permutation model
 
 Read second (`Statement/README.md` states the model): the model (namespace `Common`): `π` and
-`π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model and a game's run (`RandomPermutationOracles`: coins, `π` and
-`π⁻¹`, nothing else; `permutationCallCost`, `runWithRandomPermutation`; a computation's queries
-recorded, `loggedOracles`), over the state of Keccak-f[1600] (`KeccakState`, `Keccak.lean`).
+`π⁻¹` lazily sampled, a cost bounded on every path, the oracles of the model and a game's run
+(`RandomPermutationOracles`: coins, `π` and `π⁻¹`, nothing else; `permutationCallCost`,
+`runWithRandomPermutation`; a computation's queries recorded, `loggedOracles`), over the state of
+Keccak-f[1600] (`KeccakState`, `Keccak.lean`).
 -/
 
 @[expose] public section

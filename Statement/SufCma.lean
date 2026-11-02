@@ -6,8 +6,8 @@ public import Statement.RandomPermutation
 # The SUF-CMA game
 
 Read third: the SUF-CMA game of a hash-based signature scheme in the random-permutation model
-(`SufCma`): a scheme over `π`, its signing oracle logged, the forgery game and experiment, and `bits`
-bits of security (`StronglyUnforgeable`). leanXMSS and leanSPHINCS are stated with it.
+(`SufCma`): a scheme over `π`, its signing oracle logged, the forgery game and experiment, and
+`bits` bits of security (`StronglyUnforgeable`). leanXMSS and leanSPHINCS are stated with it.
 -/
 
 @[expose] public section

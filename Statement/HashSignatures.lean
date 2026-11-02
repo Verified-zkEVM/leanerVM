@@ -56,7 +56,8 @@ def truncateHash (output : HashOutput) : Digest :=
 def upperHash (output : HashOutput) : Digest :=
   output.extractLsb' digestBits digestBits
 
-/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`. -/
+/-- The half of a hash output that starts chain `n`: the first for even `n`, the second for odd `n`.
+-/
 def hashHalf (n : Nat) (output : HashOutput) : Digest :=
   if n % 2 = 0 then truncateHash output else upperHash output
 

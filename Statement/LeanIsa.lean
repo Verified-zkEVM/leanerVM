@@ -48,10 +48,12 @@ def Opcode.code : Opcode → K
   | .jump => gpow 4
   | .keccak => gpow 5
 
-/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`). -/
+/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`).
+-/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`, `MAX_LOG_MEM`). -/
+/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`,
+`MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
 /-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:490`;
@@ -150,7 +152,8 @@ noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr :=
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
-`_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`, `crates/leanvm_core/src/keccak.rs:59-80`):
+`_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`,
+`crates/leanvm_core/src/keccak.rs:59-80`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
@@ -374,7 +377,8 @@ def derefFlags : DerefMode → K × K
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`, `crates/leanvm_core/src/cpu/layout.rs:297`). -/
+/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
+`crates/leanvm_core/src/cpu/layout.rs:297`). -/
 def flagK (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification

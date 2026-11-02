@@ -123,10 +123,10 @@ abbrev LutIdx := Fin 256
 
 /-- The 256 entries of the codeword table as base-5 numbers with `d_0` the most significant digit; a
 codeword listed twice is chosen by two digest values. The table is `codewordRule`
-(`codewordCodes_eq_rule`): the codewords sorted by decreasing `Σ d_i²`, then lexicographically, entry
-`t` being codeword number `t mod 214`. By digit pattern: the 30 codewords with digits `{4,1}` twice
-each; of the 30 with `{3,2}`, 12 twice and 18 once; the 60 with `{3,1,1}` and the 60 with `{2,2,1}`
-once; 34 of the 60 with `{2,1,1,1}` once; none of the 6 with `{1,1,1,1,1}`. Written by
+(`codewordCodes_eq_rule`): the codewords sorted by decreasing `Σ d_i²`, then lexicographically,
+entry `t` being codeword number `t mod 214`. By digit pattern: the 30 codewords with digits `{4,1}`
+twice each; of the 30 with `{3,2}`, 12 twice and 18 once; the 60 with `{3,1,1}` and the 60 with
+`{2,2,1}` once; 34 of the 60 with `{2,1,1,1}` once; none of the 6 with `{1,1,1,1,1}`. Written by
 `scripts/forest_table.py`. -/
 def codewordCodes : List Nat :=
   [9, 21, 29, 45, 101, 105, 129, 145, 225, 501, 505, 525, 629, 645, 725, 1125,
@@ -168,8 +168,8 @@ abbrev MessageDigest := BitVec messageDigestBits
 def truncateMessageDigest (first : HashOutput) : MessageDigest :=
   first.extractLsb' 0 messageDigestBits
 
-/-- What a digest selects in one coordinate: the super-child, and per sub-tree a child and a codeword
-index. -/
+/-- What a digest selects in one coordinate: the super-child, and per sub-tree a child and a
+codeword index. -/
 structure CoordMark where
   /-- The super-child `s`. -/
   super : SuperIdx
@@ -261,9 +261,9 @@ deriving DecidableEq
 /-- The address of a hash domain: types `TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`, forest types 15 to
 19 (`lean_sphincs/hash.rs`); type 20 (`roots`) is not the crate's, a label of the proofs under which
 no algorithm hashes. In the tree `lo` is the leaf (or the node index) and `hi` the chain (or the
-node level); a chain step carries its step. In a forest instance `lo` is `idx` and `hi` the packed position; a forest chain
-step from position `t` carries step `t`. An address has no layer and no tree field (`Tweak`,
-`tweak.rs`). -/
+node level); a chain step carries its step. In a forest instance `lo` is `idx` and `hi` the packed
+position; a forest chain step from position `t` carries step `t`. An address has no layer and no
+tree field (`Tweak`, `tweak.rs`). -/
 def hashDomainFields : HashDomain → TweakFields
   | .chain leaf chainIdx step => tweakFields 1 step chainIdx leaf
   | .leaf leaf => tweakFields 2 0 0 leaf
@@ -393,14 +393,14 @@ def leafHash (parameter : PublicParameter) (leaf : Index) (endpoints : ChainInde
     m Digest :=
   tweakableHash π parameter (.leaf leaf) (leafPayload endpoints)
 
-/-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the 8
-top trees. -/
+/-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the
+8 top trees. -/
 def rootsPayload (tops : ForestKey) : HashInput :=
   (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
 
-/-- `Enc(P, e, K, c)`: hash the forest key's sixteen nodes, then the counter, under the leaf's encoding
-tweak, and decode. There is no forest-key hash: the counter falls in the last block of this one
-(`P || A || K || c`, 292 bytes). -/
+/-- `Enc(P, e, K, c)`: hash the forest key's sixteen nodes, then the counter, under the leaf's
+encoding tweak, and decode. There is no forest-key hash: the counter falls in the last block of this
+one (`P || A || K || c`, 292 bytes). -/
 def encode (parameter : PublicParameter) (leaf : Index) (message : ForestKey) (counter : Counter) :
     m (Option Encoding) := do
   let digest ← tweakableHash π parameter (.encoding leaf)
@@ -475,8 +475,8 @@ def orderTops (bit : Bool) (current sibling : Digest) : Digest × Digest :=
 def superPayload (tops : SubIdx → Digest × Digest) : HashInput :=
   nodePayload (tops 0).1 (tops 0).2 ++ nodePayload (tops 1).1 (tops 1).2
 
-/-- The super-child `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])`: the hash of the two
-level-2 nodes of each of its sub-trees. A sub-tree has no root hash. -/
+/-- The super-child `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])`: the hash of the
+two level-2 nodes of each of its sub-trees. A sub-tree has no root hash. -/
 def superHash (parameter : PublicParameter) (index : Index) (c : Coord) (s : SuperIdx)
     (tops : SubIdx → Digest × Digest) : m Digest :=
   tweakableHash π parameter (.superChild index c s) (superPayload tops)
@@ -548,7 +548,8 @@ def messageDigest (parameter : PublicParameter) (message : Message)
   let first ← messageDigestCall π parameter message randomness
   return truncateMessageDigest first
 
-/-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest. -/
+/-- Bit offset of the codeword index of sub-tree `j` of coordinate `c`: byte `2c + j` of the digest.
+-/
 def wordOffset (c : Coord) (j : SubIdx) : Nat := 8 * (2 * c.val + j.val)
 
 /-- Bit offset of coordinate `c`'s super-child (4 bits), after the index. -/
@@ -874,14 +875,14 @@ abbrev pruned8 : Params := ⟨8, 8830, by decide⟩
 /-! ### The end statement -/
 
 /-- **leanSPHINCS in the random-permutation model, at every proved lifetime**: at each subtree
-height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with
-their signature limits), an adversary whose game makes at most `Q` permutation calls,
-`Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127` (`StronglyUnforgeable` at 127 bits).
-`Q` counts every call on the game's worst path, the honest signer's included (`QueryCostAtMost` is
-structural): a signature costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three
-calls, `2^33.6`; `treePath` rebuilding the kept subtree, `2^33.9`; the grinding into the kept
-subtree is one call at `b = 26` and up to `2^32` below), so at the largest lifetime,
-`N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the bound is about `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
+height (`b` = 26, 20, 14, 13, 12, 10, 8, the instances `full`, `pruned20`, …, `pruned8` with their
+signature limits), an adversary whose game makes at most `Q` permutation calls, `Q ≥ 1`, forges with
+probability at most `(Q + 1) · 2^-127` (`StronglyUnforgeable` at 127 bits). `Q` counts every call on
+the game's worst path, the honest signer's included (`QueryCostAtMost` is structural): a signature
+costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three calls, `2^33.6`; `treePath`
+rebuilding the kept subtree, `2^33.9`; the grinding into the kept subtree is one call at `b = 26`
+and up to `2^32` below), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the
+bound is about `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
 abbrev LeanSphincsStronglyUnforgeable : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
     StronglyUnforgeable (@Rpm.scheme P) 127
