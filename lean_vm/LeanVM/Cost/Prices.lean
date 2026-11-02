@@ -56,12 +56,12 @@ def replayStepPrice (B D W : ℕ) : ℕ :=
 /-- One step of the first answers, amortized: a lookup and an insertion of a key of at most `L`
 bytes. -/
 def firstAnswersStepPrice (L D W : ℕ) : ℕ :=
-  D * (17 + (60 + 23 * L + 11 * W) * (D + 2)) + (23 * L + 31) * D + (40 + 2 * W) * D + 85 + 2 * W
+  D * (20 + (40 + 26 * L + 9 * W) * (D + 2)) + (26 * L + 37) * D + (32 + 2 * W) * D + 78 + 2 * W
 
 /-- One step of the preimage index, amortized: a key of at most `L` bytes, a lookup, an
 insertion. -/
 def preimageStepPrice (L D W : ℕ) : ℕ :=
-  25 * L + 192 * (D * D) + 595 * D + 152 + W * (11 * (D * (D + 2)) + 2 * (D + 1))
+  31 * L + 162 * (D * D) + 537 * D + 145 + W * (9 * (D * (D + 2)) + 2 * (D + 1))
 
 /-- The transcript's index: `N` permutation queries, `N + 2 ≤ 2^D`, evaluations of at most `L`
 bytes kept. -/
