@@ -22,6 +22,8 @@ Generic additions found while compiling CompPoly's PM-basis over `K` (track prob
   on every product and sum, as Phase 3 found). `rawMul_shared`, `rawAdd_shared` bind the untrimmed
   result by a `let` (evaluated once, then read from the environment): the same values, a third of
   the work. A rewrite only: no compiler change, so nothing compiled before changes.
+* `Array.reverse` through `List.reverse` (`arrayReverse_list`; CompPoly's `gsModuli`).
+* The measure of CompPoly's `adaptiveSolutionLoop` (its fuel).
 * The encodings of `ForInStep`, `MProd` (a loop's several mutable variables), and CompPoly's
   `XAdicProblem`, `ScalarRrefResult`, `ModularEquation`, the
   partial-linearization plans and the adaptive solver's state, `GSModularData`.
@@ -82,6 +84,15 @@ theorem rawAdd_shared {R : Type} [Zero R] [Add R] [BEq R] (p q : CompPoly.CPolyn
 
 cost_rewrite rawAdd_shared
 
+/-- **An array reversed through its list** (Init's `Array.reverse.loop` swaps in place under a
+proof of bounds: its array changes at each call, which the compiler's on-demand recursion keeps
+fixed). -/
+theorem arrayReverse_list {α : Type} (a : Array α) : a.reverse = a.toList.reverse.toArray := by
+  apply Array.toList_inj.1
+  simp
+
+cost_rewrite arrayReverse_list
+
 cost_enc CompPoly.PolynomialMatrix.Approximant.XAdicProblem
 cost_enc CompPoly.DenseMatrix.ScalarRrefResult
 cost_enc CompPoly.PolynomialMatrix.Approximant.ModularEquation
@@ -90,6 +101,12 @@ cost_enc CompPoly.PolynomialMatrix.Approximant.PartialLinearizationPlan
 cost_enc CompPoly.PolynomialMatrix.Approximant.PivotDegreeProfile
 cost_enc CompPoly.PolynomialMatrix.Approximant.AdaptiveSolveState
 cost_enc CompPoly.GuruswamiSudan.ApproximantBasis.GSModularData
+
+/- The adaptive solver's loop decreases its fuel (the compiler's default measures, tried in the
+order of the parameters, start with the size of `degreeBound?`: its decrease's `simp_all` on the
+loop's large context exhausts the command's heartbeats instead of failing). -/
+cost_measure CompPoly.PolynomialMatrix.Approximant.adaptiveSolutionLoop :=
+  fun _ _ _ _ _ _ _ _ _ _ _ fuel _ ↦ fuel
 
 end
 
