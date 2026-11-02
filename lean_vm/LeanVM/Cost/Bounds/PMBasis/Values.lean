@@ -49,28 +49,28 @@ theorem pmOrder_28_4_eq : pmOrder_28_4 = 34819023731 := by decide +kernel
 theorem pmOrder_28_4_bounds : 2 ^ 35 < pmOrder_28_4 ∧ pmOrder_28_4 + 1 ≤ 2 ^ 36 := by decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, measured prices**, evaluated in `36` halvings:
-`9302876550647705753132734 ≈ 2^82.94`. -/
+`9303084148594118146442494 ≈ 2^82.94`. -/
 theorem pmTreePair_28_4_measured :
     pmTreePair 1 (pmLeafPrice measuredPrices pmRows_28_4)
       (pmNodePrice measuredPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (9302876550647705753132734, 9302876550665102314051400) := by
+      (9303084148594118146442494, 9303084148611520996184840) := by
   decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, the prices with their margin**:
-`11648357710241051051664063 ≈ 2^83.27`. -/
+`11648617207674066543301263 ≈ 2^83.27`. -/
 theorem pmTreePair_28_4 :
     pmTreePair 1 (pmLeafPrice marginPrices pmRows_28_4)
       (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (11648357710241051051664063, 11648357710262829067226740) := by
+      (11648617207674066543301263, 11648617207695852419893540) := by
   decide +kernel
 
 /-- **The per-level closed form at `(28, 4)`**, the prices with their margin:
-`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 12214926787638934272559823 ≈ 2^83.34` (`pmTree_le_levels`;
+`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 12215213791106017278355823 ≈ 2^83.34` (`pmTree_le_levels`;
 `0.07` bit above the tree's exact value). -/
 theorem pmLevels_28_4 :
     pmLevels (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 +
         pmLeafPrice marginPrices pmRows_28_4 * pmOrder_28_4 =
-      12214926787638934272559823 := by
+      12215213791106017278355823 := by
   decide +kernel
 
 end

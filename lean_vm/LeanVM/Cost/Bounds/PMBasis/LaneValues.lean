@@ -31,42 +31,42 @@ public section
 
 /-- The PM-basis inside the certified solve at `(28, 4)`, measured prices: `≈ 2^82.944`. -/
 theorem pmBasisPrice_28_4_measured :
-    pmBasisPrice measuredPrices 2077 415 34819023731 = 9302876550647705753159394 := by
+    pmBasisPrice measuredPrices 2077 415 34819023731 = 9303084148594118146469154 := by
   decide +kernel
 
 /-- **The interpolation at `(28, 4)`, measured prices**: `≈ 2^82.947`. -/
 theorem interpPMPrice_28_4_measured :
     interpPMPrice measuredPrices (2 ^ 26) (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp =
-      9324783432086912877324745 := by
+      9324991030033325270634505 := by
   decide +kernel
 
 /-- **The interpolation at `(28, 4)`, the prices with their margin**: `≈ 2^83.272`. -/
 theorem interpPMPrice_28_4 :
     interpPMPrice marginPrices (2 ^ 26) (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp =
-      11675742727952720216896888 := by
+      11676002225385735708534088 := by
   decide +kernel
 
 /-- **A lane at `(28, 4)`, measured prices**: `≈ 2^88.024` (Roth–Ruckenstein `≈ 2^87.98`). -/
 theorem decoderLaneBoundPM_28_4_measured :
-    decoderLaneBoundPM measuredPrices 22 4 16792398 12 = 314573712268653125478286830 := by
+    decoderLaneBoundPM measuredPrices 22 4 16792398 12 = 314573919866599537871596590 := by
   decide +kernel
 
 /-- **The decoder at `(28, 4)`, `64` lanes, measured prices**:
-`20132717661940222013267889882 ≈ 2^94.024`. -/
+`20132730948208792406439714522 ≈ 2^94.024`. -/
 theorem decoderBoundPM_28_4_measured :
-    decoderBoundPM measuredPrices 28 4 0 0 = 20132717661940222013267889882 := by
+    decoderBoundPM measuredPrices 28 4 0 0 = 20132730948208792406439714522 := by
   decide +kernel
 
 /-- **The decoder at `(28, 4)`, `64` lanes, the prices with their margin**:
-`20283179056875633683000507034 ≈ 2^94.034`. -/
+`20283195664711346674465287834 ≈ 2^94.034`. -/
 theorem decoderBoundPM_28_4 :
-    decoderBoundPM marginPrices 28 4 0 0 = 20283179056875633683000507034 := by
+    decoderBoundPM marginPrices 28 4 0 0 = 20283195664711346674465287834 := by
   decide +kernel
 
 /-- Both between `2^94` and `2^94·1.025` (`≈ 2^94.036`). -/
 theorem decoderBoundPM_28_4_range :
-    2 ^ 94 < 20132717661940222013267889882 ∧
-      20283179056875633683000507034 * 1000 < 2 ^ 94 * 1025 := by
+    2 ^ 94 < 20132730948208792406439714522 ∧
+      20283195664711346674465287834 * 1000 < 2 ^ 94 * 1025 := by
   decide +kernel
 
 end

@@ -9,7 +9,7 @@ public import LeanVM.Cost.Bounds.PMBasis.Values
 The model (`Bounds/PMBasis/Defs.lean`) at `(28, 4)` (`Bounds/PMBasis/Values.lean`):
 
 * **`pmTree_28_4`**: the recursion's tree at the measured prices with their margin
-  (`marginPrices`), `11648357710241051051664063 ≈ 2^83.27` steps per lane (at the measured prices
+  (`marginPrices`), `11648617207674066543301263 ≈ 2^83.27` steps per lane (at the measured prices
   themselves `≈ 2^82.94`, `pmTree_28_4_measured`);
   **`pmBasisPrice_28_4`** with the fuel's fold; **`pmTree_28_4_le_levels`**: the per-level closed
   form `≈ 2^83.34` above it (`pmTree_le_levels`);
@@ -27,7 +27,7 @@ public section
 /-- **The recursion's tree at `(28, 4)`**: `≈ 2^83.27` steps per lane. -/
 theorem pmTree_28_4 :
     pmTree 1 (pmLeafPrice marginPrices pmRows_28_4) (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4)
-      pmOrder_28_4 = 11648357710241051051664063 := by
+      pmOrder_28_4 = 11648617207674066543301263 := by
   have h := pmTreePair_eq 1 (pmLeafPrice marginPrices pmRows_28_4)
     (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 pmOrder_28_4_bounds.2
   rw [pmTreePair_28_4] at h
@@ -37,7 +37,7 @@ theorem pmTree_28_4 :
 theorem pmTree_28_4_measured :
     pmTree 1 (pmLeafPrice measuredPrices pmRows_28_4)
       (pmNodePrice measuredPrices pmRows_28_4 pmCols_28_4) pmOrder_28_4 =
-      9302876550647705753132734 := by
+      9303084148594118146442494 := by
   have h := pmTreePair_eq 1 (pmLeafPrice measuredPrices pmRows_28_4)
     (pmNodePrice measuredPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 pmOrder_28_4_bounds.2
   rw [pmTreePair_28_4_measured] at h
@@ -46,13 +46,13 @@ theorem pmTree_28_4_measured :
 /-- **PM-basis's whole price at `(28, 4)`** (model): `≈ 2^83.27` steps per lane. -/
 theorem pmBasisPrice_28_4 :
     pmBasisPrice marginPrices pmRows_28_4 pmCols_28_4 pmOrder_28_4 =
-      64 * pmCols_28_4 + 100 + 11648357710241051051664063 := by
+      64 * pmCols_28_4 + 100 + 11648617207674066543301263 := by
   rw [pmBasisPrice, pmTreeEval_eq, pmTree_28_4]
 
 /-- The per-level closed form at `(28, 4)` bounds the tree (`0.07` bit looser). -/
 theorem pmTree_28_4_le_levels :
     pmTree 1 (pmLeafPrice marginPrices pmRows_28_4) (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4)
-      pmOrder_28_4 ≤ 12214926787638934272559823 := by
+      pmOrder_28_4 ≤ 12215213791106017278355823 := by
   rw [← pmLevels_28_4]
   have := pmOrder_28_4_bounds
   exact pmTree_le_levels 1 _ (pmNodePrice_mono marginPrices pmRows_28_4 pmCols_28_4) 36
@@ -65,7 +65,7 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F]
 nodes are within `pmNodePrice` and their children's (the hypotheses of
 `pmBasisWithFuelCore_price_le`), on a problem of maximal order at most `415·2^26 + W + 2`, at
 CompPoly's fuel `pmBasisFuel` (where the target's core is its `pmBasis`): at most
-`11648357710241051051664063 ≈ 2^83.27`. -/
+`11648617207674066543301263 ≈ 2^83.27`. -/
 theorem pmBasisFuel_price_28_4 (rt : PMBasisRuntime F) (hcut : rt.leafCutoff = 1)
     (T : ℕ → XAdicProblem F → Array ℕ → ℕ) (Inv : XAdicProblem F → Array ℕ → Prop)
     (hleaf : ∀ fuel problem shift, Inv problem shift → maxOrder problem ≤ fuel + 1 →
@@ -81,7 +81,7 @@ theorem pmBasisFuel_price_28_4 (rt : PMBasisRuntime F) (hcut : rt.leafCutoff = 1
             T fuel (pmResidual rt fuel problem shift) (pmShifted rt fuel problem shift))
     (problem : XAdicProblem F) (shift : Array ℕ) (hI : Inv problem shift)
     (ho : maxOrder problem ≤ pmOrder_28_4) :
-    T (pmBasisFuel problem) problem shift ≤ 11648357710241051051664063 := by
+    T (pmBasisFuel problem) problem shift ≤ 11648617207674066543301263 := by
   have h := pmBasisFuel_price_le rt T _ _ Inv hleaf hnode problem shift hI
   rw [hcut] at h
   rw [← pmTree_28_4]
