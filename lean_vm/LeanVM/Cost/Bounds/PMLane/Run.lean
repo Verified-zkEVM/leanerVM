@@ -131,8 +131,8 @@ theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
       exact this.trans (Nat.sub_le _ _)
     have := truncateXC_cost P (by includes) Q (params.weightedDegreeBound + 1) (by omega) hQi
       (by omega)
-    have h1 : (27 * (params.weightedDegreeBound + 1) + 80) * Q.val.size ≤
-        (27 * (params.weightedDegreeBound + 1) + 80) * (interpolationYCap params + 1) :=
+    have h1 : (25 * (params.weightedDegreeBound + 1) + 72) * Q.val.size ≤
+        (25 * (params.weightedDegreeBound + 1) + 72) * (interpolationYCap params + 1) :=
       Nat.mul_le_mul_left _ hsz.1
     have hres := prefixesNF_size_le_PM hd hQ hk1
     have hmem : ∀ p ∈ prefixesNF fieldRootCtxFast params.messageDegree
@@ -152,9 +152,9 @@ theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
       default = res at hres hmem
     have hfil := filter_cost P (by includes) _
       (.closure gsRunPMC.lam0.costIdx [encodeValue points, encodeValue params, encodeValue radius]) hfv
-      ((272 * params.messageDegree + 34) * points.size + 30) res.toList (fun p hp ↦ by
+      ((46 * params.messageDegree + 36) * points.size + 35) res.toList (fun p hp ↦ by
         have hps := hmem p (by simpa using hp)
-        simp only [appCost_fn, List.cons_append, List.nil_append]
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [gsRunPMC.lam0.costEq P (by includes),
           (cost_const% (degreeLtBool (F := K)) costEq) P (by includes)]
         cost_simp
@@ -163,19 +163,19 @@ theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}
           rw [(cost_const% (passesDistanceFast (F := K)) costEq) P (by includes)]
           have := mismatchCountC_cost P (by includes) points p (by omega)
           have := mismatchCountFast_le points p
-          have := Nat.mul_le_mul_right points.size (show 272 * p.val.size + 34 ≤
-            272 * params.messageDegree + 34 by omega)
+          have := Nat.mul_le_mul_right points.size (show 46 * p.val.size + 36 ≤
+            46 * params.messageDegree + 36 by omega)
           cost_simp
           omega
         · omega)
     have hfl := List.length_filter_le (fun p ↦ degreeLtBool p params.messageDegree &&
       passesDistanceFast points radius p) res.toList
     simp only [Array.length_toList] at hfil hfl
-    have h2 : ((272 * params.messageDegree + 34) * points.size + 50) * res.size ≤
-        ((272 * params.messageDegree + 34) * points.size + 50) * max 1 (interpolationYCap params) :=
+    have h2 : ((46 * params.messageDegree + 36) * points.size + 54) * res.size ≤
+        ((46 * params.messageDegree + 36) * points.size + 54) * max 1 (interpolationYCap params) :=
       Nat.mul_le_mul_left _ hres
-    have e2 : ((272 * params.messageDegree + 34) * points.size + 50) * res.size =
-        ((272 * params.messageDegree + 34) * points.size + 30 + 13) * res.size + 7 * res.size := by
+    have e2 : ((46 * params.messageDegree + 36) * points.size + 54) * res.size =
+        ((46 * params.messageDegree + 36) * points.size + 35 + 15) * res.size + 4 * res.size := by
       ring
     unfold PMBasis.gsRunBoundPM
     cost_simp
