@@ -105,7 +105,7 @@ coefficients, `k` levels. -/
 
 /-- The bound of the normalization on `rows` rows. -/
 @[expose] def normBound (W rows : ℕ) : ℕ :=
-  (20057 * (W + 1) + 265) * rows + 121
+  (2953 * (W + 1) + 221) * rows + 119
 
 /-- The sizes the interpolation's bound needs, all word-sized. -/
 @[expose] def InterpSizes (n : ℕ) (params : GSInterpParams) : Prop :=
