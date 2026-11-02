@@ -86,10 +86,14 @@ of `2^133` operations, or `N³` for an adversary of `N` queries, makes a reducti
 generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
-`transcriptExtractorFast`, proved equal to `transcriptExtractor` (`transcriptExtractorFast_eq`),
-interpolates by Lee and O'Sullivan's algorithm with Mulders and Storjohann's reduction at every
-shape (CompPoly's approximant-basis interpolation is proved but not used, its code admitting no
-lower bound), substitutes in Roth–Ruckenstein by a
+`transcriptExtractorFast`, proved equal to `transcriptExtractor` (`transcriptExtractorFast_eq`);
+the compiled program's list decoder (`decOf`, `Fast/Compiled.lean`) is `decodeStacksDistinctPM`
+(`Fast/LanePM.lean`), which interpolates each lane by CompPoly's approximant basis (the certified
+solve of the Guruswami–Sudan modular equations by an ordered-weak-Popov PM-basis, its polynomial
+products by the additive FFT) and is proved to list the same stacks
+(`decodeStacksDistinctPM_eq`; the proof side's reference interpolation, Lee and O'Sullivan's
+algorithm with Mulders and Storjohann's reduction, is no longer compiled). It substitutes in
+Roth–Ruckenstein by a
 Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
 roots (`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,

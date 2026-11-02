@@ -8,8 +8,9 @@ public import LeanVM.Protocol.Extraction.Fast.GSData
 /-!
 # The lanes by the approximant-basis interpolation
 
-The extractor's decoder (`decodeStacksDistinct`, `Fast/DecodeAdmissible.lean`) interpolates each
-lane by Lee–O'Sullivan's basis reduced by Mulders–Storjohann (`interpolateDistinct`). Here the
+The proof side's reference decoder (`decodeStacksDistinct`, `Fast/DecodeAdmissible.lean`)
+interpolates each lane by Lee–O'Sullivan's basis reduced by Mulders–Storjohann
+(`interpolateDistinct`). Here the
 lanes interpolate by CompPoly's approximant-basis interpolation (Chowdhury, Jeannerod, Neiger,
 Schost, Villard) on a modular-equation solver `S` (`interpolateDistinctWith`), and the chain up to
 the decoded stacks is copied with it (`gsRunDistinctWith`, …, `decodeStacksDistinctWith`).
@@ -25,8 +26,8 @@ admissible shape, for every solver.
 `certifiedModularSolutionBasisContext` on the additive-FFT products, the ordered-weak-Popov PM-basis
 at leaf cutoff `1` with evaluation-domain matrix products), proved
 equal to `decodeStacksDistinct` (**`decodeStacksDistinctPM_eq`**) and to `decodeStacksFast`
-(`decodeStacksDistinctPM_eq_fast`, the rewrite `extractorTop_eq_full` uses), ready to replace it
-in `decOf` (`Fast/Compiled.lean`).
+(`decodeStacksDistinctPM_eq_fast`, the rewrite `extractorTop_eq_full` uses): the compiled
+extractor's list decoder (`decOf`, `Fast/Compiled.lean`).
 -/
 
 namespace LeanVM.Extraction.Fast

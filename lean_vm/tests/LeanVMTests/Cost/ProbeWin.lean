@@ -38,10 +38,16 @@ def winRun (E : ModularEquation K) (shift : Array ℕ) (bound : ℕ) : Bool × �
 #guard (winRun (meq 2 3 2 2) #[0, 1, 2] 3).1
 
 -- Prices: `(r, c, d, bound, price)`.
+/-- info: [(2, 1, 2, 2, 2470033), (3, 1, 3, 2, 3805105), (3, 2, 4, 4, 25019902), (4, 2, 4, 4, 27216303)] -/
+#guard_msgs in
 #eval [(2, 1, 2, 2), (3, 1, 3, 2), (3, 2, 4, 4), (4, 2, 4, 4)].map fun (r, c, d, b) ↦
   (r, c, d, b, (winRun (meq 1 r c d) (Array.replicate r 0) b).2)
 
+/-- info: 201 -/
+#guard_msgs in
 #eval windowedK.costDeps.length
+/-- info: true -/
+#guard_msgs in
 #eval windowedK.costDeps.map (·.1) |>.contains pmBasisK.costIdx
 
 end LeanVMTests.Cost.ProbeWin

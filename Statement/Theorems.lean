@@ -144,7 +144,11 @@ proofs that would mask a bug of the guest program on finitely many statements): 
 leanXMSS signature's encoding (`309`) but not two, so no useful table fits (as the extractor's
 `14400` against its `13813`). It does not bound what a program written differently could hold: the
 guest's frame-cell table (`749835` of the size, cells below `2^20`) packs to about a third, three
-cells to a limb, freeing room for about `1600` signatures' encodings. -/
+cells to a limb, freeing room for about `1600` signatures' encodings. Nor is the compiled program
+compact: its bodies are `784277`, and its size counts `628` indices without a body (`1256`, a
+literal `0` each), left by the numbering it shares with the extractor's compiled functions; the
+same program renumbered compactly would leave about `1723` free, about five signatures'
+encodings. -/
 def guestDecoderSizeBound : ℕ := 786000
 
 /-! ### The guest decoder's budget -/
@@ -200,7 +204,7 @@ structure Theorems (extractorProgram decoderProgram : LeanVM.Cost.MachineProgram
   budget, `extractorOf extractorProgram` (a run out of budget extracts nothing, which counts as
   breaking knowledge soundness; the machine's prices are trusted to be honest,
   `CostMachine.lean`): at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128`
-  queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^95` up to `2^64`
+  queries (`LeanVm.lean`). The budget, `extractorBudgetFor`, is about `2^95` up to `2^60`
   permutation queries and `O(N·log³N)` for `N`. -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness (LeanVM.extractorOf extractorProgram)
   /-- leanVM is complete: the honest prover's (`LeanVM.prover`, the executable

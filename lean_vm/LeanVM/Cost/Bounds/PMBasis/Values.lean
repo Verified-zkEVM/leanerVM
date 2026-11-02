@@ -33,7 +33,9 @@ public section
 mumbai `f7997a4e`): `305` per pointwise multiply-add (`evalDot`); `520`/`413` per element and
 stage of the forward/inverse NTT; `944`/`1037` per `j·2^j` of the conversions to/from the novel
 basis; the order-one leaf `444·r³ + 12350·r²`; `316` per schoolbook coefficient product; `64` per
-coefficient moved (stated, not measured). -/
+coefficient moved (stated, not measured). They do not satisfy `FFTPricesOK`
+(`Bounds/PMFFT/EvalCost.lean`), so the totals at them (the decoder `≈ 2^94.024`,
+`LaneValues.lean`) are informational, not bounds; the proved bounds are at `marginPrices`. -/
 @[expose] def measuredPrices : PMPrices :=
   { mac := 305, fwd := 520, inv := 413, toNovel := 944, fromNovel := 1037, leafCube := 444,
     leafSquare := 12350, coeff := 316, ovh := 64 }

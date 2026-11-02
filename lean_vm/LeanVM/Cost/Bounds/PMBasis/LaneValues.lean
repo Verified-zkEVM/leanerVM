@@ -13,13 +13,15 @@ public import LeanVM.Cost.Bounds.PMBasis.Values
 |---|---|---|
 | PM-basis (`pmBasisPrice`) | `≈ 2^82.944` | `≈ 2^84.014` |
 | GS data (`gsDataPrice`) | `≈ 2^74.21` | `≈ 2^76.04` |
-| interpolation (`interpPMPrice`) | `≈ 2^82.947` | `≈ 2^84.013` |
+| interpolation (`interpPMPrice`) | `≈ 2^82.947` | `≈ 2^84.020` |
 | a lane's run (`gsRunBoundPM`; Roth–Ruckenstein `≈ 2^87.98`) | `≈ 2^88.024` | `≈ 2^88.07` |
 | **the decoder, `64` lanes (`decoderBoundPM 28 4 0 0`)** | **`≈ 2^94.024`** | **`≈ 2^94.07`** |
 
 against `≈ 2^117.67` with Mulders–Storjohann's interpolation (the former decoder, no longer compiled).
-Roth–Ruckenstein's search (proved, `rrBound_28_4`) is now `95%` of each lane; the
-interpolation `3%`.
+Roth–Ruckenstein's search (`rrBound_28_4`) is now `≈ 97%` of each lane and the interpolation
+`≈ 3%` at the measured prices; at the margin prices `≈ 94%` and `≈ 6%`. The measured column is
+informational (`measuredPrices` does not satisfy `FFTPricesOK`, `Values.lean`); the proved
+bounds are at `marginPrices`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMBasis
@@ -40,7 +42,7 @@ theorem interpPMPrice_28_4_measured :
       9324991030033325270634505 := by
   decide +kernel
 
-/-- **The interpolation at `(28, 4)`, the prices with their margin**: `≈ 2^84.013`. -/
+/-- **The interpolation at `(28, 4)`, the prices with their margin**: `≈ 2^84.020`. -/
 theorem interpPMPrice_28_4 :
     interpPMPrice marginPrices (2 ^ 26) (gsParamsFor (2 ^ 22) (2 ^ (22 + 4)) 16792398).interp =
       19610226339548749916287129 := by

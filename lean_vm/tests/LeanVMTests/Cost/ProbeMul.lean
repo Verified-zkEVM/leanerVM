@@ -67,18 +67,27 @@ def truncRun (cut : ℕ) (orders : Array ℕ) (A B : PolynomialMatrix K) : Bool 
 #guard (truncRun 2 #[4, 1, 3, 2] (mat 1 4 4 3) (mat 2 4 4 3)).1
 
 -- Prices: `(n, d, cut, price, K-products of the schoolbook entry products n³d²)`.
+/-- info: [(2, 4, 1, 55940, 128), (4, 4, 1, 420330, 1024), (4, 4, 4, 396823, 1024), (8, 4, 1, 3048892, 8192),
+  (8, 4, 8, 3164523, 8192), (4, 16, 4, 5367319, 16384), (4, 64, 4, 63887255, 262144)] -/
+#guard_msgs in
 #eval [(2, 4, 1), (4, 4, 1), (4, 4, 4), (8, 4, 1), (8, 4, 8), (4, 16, 4), (4, 64, 4)].map fun (n, d, cut) ↦
   (n, d, cut, (strassenRun cut (mat 1 n n d) (mat 2 n n d)).2, n ^ 3 * d ^ 2)
 
+/-- info: [(4, 4, 1, 407424, 1024), (8, 4, 1, 2961714, 8192), (4, 16, 4, 5313495, 16384)] -/
+#guard_msgs in
 #eval [(4, 4, 1), (8, 4, 1), (4, 16, 4)].map fun (n, d, cut) ↦
   (n, d, cut, (truncRun cut (Array.replicate n d) (mat 1 n n d) (mat 2 n n d)).2, n ^ 3 * d ^ 2)
 
 
 -- Schoolbook `Raw.mul` and Karatsuba: `(d, price, price / d², price / (258·d²))`.
+/-- info: [(4, 5448, 340, 131), (16, 82218, 321, 124), (32, 325922, 318, 123), (64, 1297938, 316, 122)] -/
+#guard_msgs in
 #eval [4, 16, 32, 64].map fun d ↦
   let c := ((run rawMulK.costDeps rawMulK.costIdx
     [MachineEncoding.encodeValue (poly 1 d).val, MachineEncoding.encodeValue (poly 2 d).val]).map (·.2)).getD 0
   (d, c, c / d ^ 2, c * 100 / (258 * d ^ 2))
+/-- info: [(32, 325950), (64, 993044), (128, 3008886)] -/
+#guard_msgs in
 #eval [32, 64, 128].map fun d ↦
   let c := ((run karatsubaK.costDeps karatsubaK.costIdx
     [MachineEncoding.encodeValue (64 : ℕ), MachineEncoding.encodeValue (poly 1 d), MachineEncoding.encodeValue (poly 2 d)]).map (·.2)).getD 0

@@ -69,8 +69,8 @@ a program of the same machine, with a size bound and a budget of its own (`Guest
 
 **The budget** (`extractorBudgetFor`) is a closed formula in the number `N` of the adversary's
 permutation queries: `2^95` and `O(N·log³N)`, polylogarithmic per query, so about `2^95` for
-`N ≤ 2^64`, `2^107.76` at `N = 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries the soundness bound
-(`KnowledgeSoundness`) is already trivial.
+`N ≤ 2^60`, `2^107.76` at `N = 2^80` and `2^157.08` at `N = 2^128`. Near `Q = 2^128` queries
+the soundness bound (`KnowledgeSoundness`) is already trivial.
 -/
 
 namespace LeanVM.Cost
@@ -470,7 +470,7 @@ worst shape, each lane interpolated by an approximant basis) and the runs of the
 executions (about `2^71.8`); the second term bounds
 the transcript's index (about `2^14.7` per query and level squared, a level's positions growing by
 a limb per `64` levels) and the committed leaves (`2^26` at most, the `2^30`). So about `2^95`
-for at most `2^64` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
+for at most `2^60` queries, `2^107.76` for `2^80` and `2^157.08` for `2^128`. -/
 def extractorBudgetFor (N : ℕ) : ℕ :=
   2 ^ 95 + (N + 2 ^ 30) * (Nat.log2 (N + 2) + 3) ^ 2 * (2 ^ 15 + 2 * (Nat.log2 (N + 2) + 1))
 

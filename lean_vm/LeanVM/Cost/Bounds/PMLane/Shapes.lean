@@ -5,8 +5,8 @@ public import LeanVM.Cost.Bounds.PMLane.ShapeDefs
 /-!
 # Bounds: the decoder on the new solver at every admissible shape
 
-At each of the `56` admissible shapes (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`), one `decide +kernel` each, as
-`Bounds/DecoderShapes.lean` does for the extractor's decoder: the lanes are word-sized
+At each of the `56` admissible shapes (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`), one `decide +kernel` each
+(a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the new decoder's bound beyond the word's prices, at the model's prices
 with their margin, is at most the one at `(28, 4)` (`pmDecoderWorstPrice`,
 `20790986008017779583761482458 ≈ 2^94.07`): **`decoderShapePM_ok`**, which

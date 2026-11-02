@@ -33,8 +33,9 @@ states it for the extractor that a cost-machine program of bounded size computes
 per shape (`LeanVM.extractorOf`, `CostMachine.lean`). The statement does not name the program
 (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound, which leaves
 no room for a useful table of witnesses beside the compiled extractor's code, and its budget,
-about `2^94.07 + 2^14.7·N·log²N` for `N` permutation queries. A run out of budget extracts
-nothing, which counts as a break.
+`extractorBudgetFor`, `2^95 + O(N·log³N)` for `N` permutation queries (about `2^95` for
+`N ≤ 2^60`), `lean_vm`'s proved price of the compiled extractor being about
+`2^94.07 + 2^14.7·N·log²N`. A run out of budget extracts nothing, which counts as a break.
 
 **Completeness** is stated for one honest prover, `prover`: `LeanVM.Prover.prove`
 (`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is

@@ -274,10 +274,10 @@ theorem foldl_congr_inv {α β : Type*} (P : β → Prop) {f g : β → α → �
 
 /-- `gsLaneAt`, fast: without the final root check where it is redundant (and then without the
 interpolation's distinctness check), with the fast substitution, the symbols read from `S`. The
-interpolation is Lee–O'Sullivan's (Mulders–Storjohann) at every shape: `approxInterpContext` is
-measured slower at every runnable size, and its code admits no cost bound below
-Mulders–Storjohann's (the kernel leaf can raise degrees, the low products recompute each product
-per coefficient). A choice of speed only: what the lane lists hold does not depend on it
+interpolation here is Lee–O'Sullivan's (Mulders–Storjohann), the proof side's reference; the
+compiled extractor's decoder (`decOf`, `Fast/Compiled.lean`) interpolates by the approximant basis
+instead (`decodeStacksDistinctPM`, `Fast/LanePM.lean`: the certified solve on a PM-basis, the
+products by the additive FFT). What the lane lists hold does not depend on the interpolation
 (`mem_gsRunNoCheck`). -/
 @[expose] def gsLaneAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : Array (CPolynomial K) :=
   let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A

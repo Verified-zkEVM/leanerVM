@@ -137,7 +137,7 @@ theorems, then read the files in this order.
     of about one leanXMSS signature's encoding, so the compiled extractor could carry no useful
     table of witnesses beside its code; the budget (`extractorBudgetFor`, wherever the proof
     announces a shape) is a short formula in the number `N` of queries, `2^95 + (N + 2^30)·(D +
-    2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^95` for `N ≤ 2^64` (the list decoder,
+    2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^95` for `N ≤ 2^60` (the list decoder,
     about `2^94.07` at the worst shape) and `2^157.08` at `N = 2^128` (the transcript's index),
     where the soundness bound is already trivial; `lean_vm` proves the compiled extractor's price
     below it at every shape the replay admits.
@@ -216,7 +216,7 @@ The knowledge extractor is not part of the statement: `Statement.Theorems` takes
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
 (`14400`, the compiled `13813` and a slack of about one leanXMSS signature) leaves the compiled
 extractor no room for a useful table of witnesses; and its budget is `2^95 + O(N·log³N)` for
-`N` permutation queries (polylogarithmic per query: about `2^95` for `N ≤ 2^64`, `2^157.08` at
+`N` permutation queries (polylogarithmic per query: about `2^95` for `N ≤ 2^60`, `2^157.08` at
 `N = 2^128`, where the soundness bound is already trivial). `lean_vm` names the program (`LeanVM.Cost.extractorProgram`, its extractor
 `transcriptExtractor` compiled, `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address
 indices and the public boundary it shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`,
@@ -286,7 +286,10 @@ witnesses (hard-coded signatures masking a bug of the guest program on finitely 
 fits there. That size counts the guest program's per-function tables, literals of the program, in
 full. It does not bound what a program written differently could hold: the guest's frame-cell table
 (`749835` of the size, cells below `2^20`) packs to about a third, three cells to a limb, freeing
-room for about `1600` signatures' encodings.
+room for about `1600` signatures' encodings. Nor is the compiled program compact: its bodies are
+`784277`, and its size counts `628` indices without a body (`1256`, a literal `0` each), left by
+the numbering it shares with the extractor's compiled functions; the same program renumbered
+compactly would leave about `1723` free, about five signatures' encodings.
 
 **The budget** (`guestDecoderBudget`) is a short formula, `(steps + 1)·(2^21 + 2^13·lg) +
 (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above the closed-form price

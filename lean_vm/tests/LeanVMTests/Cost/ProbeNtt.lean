@@ -41,6 +41,8 @@ def invPrice (κ : ℕ) : ℕ :=
       MachineEncoding.encodeValue (coeffs 4), MachineEncoding.encodeValue (List.range 4)]).map (·.1) ==
   some (MachineEncoding.encodeValue (novelInv 4 (coeffs 4)))
 
+/-- info: [(4, 152700, 109286, 128), (6, 534000, 284226, 768), (8, 2296068, 994414, 4096), (10, 10647960, 4232666, 20480)] -/
+#guard_msgs in
 #eval (List.range 4).map fun j ↦ let κ := 4 + 2 * j; (κ, fwdPrice κ, invPrice κ, κ * 2 ^ (κ + 1))
 
 end LeanVMTests.Cost.ProbeNtt

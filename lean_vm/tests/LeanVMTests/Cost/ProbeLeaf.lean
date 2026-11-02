@@ -34,6 +34,8 @@ def leafRun (P : XAdicProblem K) (shift : Array ℕ) : Bool × ℕ :=
 #guard (leafRun (prob 3 4 2 3 #[1, 1]) #[5, 0, 2, 1]).1
 
 -- Prices at order 1 (the report's leaf cutoff 1): `(r, c, price, r³)`.
+/-- info: [(4, 1, 267874, 64), (8, 2, 1047672, 512), (16, 4, 4831528, 4096), (32, 8, 26108052, 32768)] -/
+#guard_msgs in
 #eval [(4, 1), (8, 2), (16, 4), (32, 8)].map fun (r, c) ↦
   (r, c, (leafRun (prob 1 r c 2 (Array.replicate c 1)) (Array.replicate r 0)).2, r ^ 3)
 

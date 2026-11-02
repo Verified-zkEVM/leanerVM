@@ -6,8 +6,10 @@ public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 # Bounds: Roth–Ruckenstein's search at the worst shape
 
 At `(28, 4)`, the worst admissible shape, Roth–Ruckenstein's search per lane, `rrBound_28_4`
-(`≈ 2^87.98`), evaluated; the decoder's checks at every admissible shape are
-`Bounds/PMLane/Shapes.lean`'s.
+(`≈ 2^87.98`), evaluated. **A documentation value**: no end proof uses it (the decoder's bound
+at every admissible shape, Roth–Ruckenstein's term included, is decided in
+`Bounds/PMLane/Shapes.lean`); it records the share of the search that the docs cite
+(`Bounds/PMBasis/LaneValues.lean`).
 
 The check evaluates only the extractor's parameter search and the bounds' definitions
 (`Bounds/Decoder/ShapeDefs.lean`), none of their proofs: an edit of a proof does not rebuild it

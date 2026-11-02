@@ -18,14 +18,13 @@ step() { printf '\n==> %s\n' "$*"; }
 fail() { echo "error: $*" >&2; exit 1; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 
-# No `sorry`, `admit`, `native_decide`, `unsafe`, `implemented_by` or `#exit` outside comments, and
-# none of the ways to skip the kernel that `#print axioms` cannot see (`skipKernelTC`, `addDeclCore`,
-# `addDeclWithoutChecking`, `doCheck`, `ofReduceBool`, `trustCompiler`); `.lean` files only, so
-# `lake-build.py`'s `--dev`, which names `skipKernelTC`, is exempt.
+# No proof escape outside comments (`tools/escape-scan.py`: `sorry`, `admit`, `native_decide`,
+# `+native`, `unsafe`, `implemented_by`, `#exit`, an `axiom` declaration, and the ways to skip the
+# kernel that `#print axioms` cannot see); `.lean` files only, so `lake-build.py`'s `--dev`, which
+# names `skipKernelTC`, is exempt. The CI runs the same script.
 no_escapes() {
   step "$1: forbid proof escapes"
-  if grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler)\b|#exit' \
-      --include='*.lean' --exclude-dir=.lake "$1" | grep -vE ':[0-9]+: *(--|/-)'; then
+  if ! python3 -I tools/escape-scan.py "$1"; then
     fail "$1: proof escape"
   fi
 }

@@ -136,7 +136,7 @@ slack of about one leanXMSS signature's encoding), run on the encoded statement,
 and proof within a budget, wherever the proof announces a shape (\lean{extractorBudgetFor}:
 $2^{95} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
 above the price \lean{lean_vm} proves of the compiled extractor at every shape;
-polylogarithmic per query: about $2^{95}$ for $N \le 2^{64}$, the list decoder dominating, and
+polylogarithmic per query: about $2^{95}$ for $N \le 2^{60}$, the list decoder dominating, and
 $2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating, where the soundness bound is
 already trivial), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
@@ -170,7 +170,7 @@ candidates lane by lane with the Guruswami--Sudan list decoder over $\mathbb{F}_
 splitting for the field roots), and it is proved to list every candidate. It runs each
 candidate for at most as many steps as the announced tables have rows (\lean{stepCap}), which a
 valid execution never exceeds (proved). Its running time, as the compiled program, is proved
-within the budget above (\lean{LeanVM.Cost.Bounds.extractorC_cost}, \lean{lean_vm}): the compiled decoder
+within the budget above (\lean{LeanVM.Cost.Bounds.extractorC_cost}, \lean{lean_vm}): the compiled list decoder
 interpolates by CompPoly's approximant basis (it lists the same candidates, proved), and
 Roth--Ruckenstein's search dominates, with $O(\log^2 N)$ comparisons per lookup in the evaluations (sorted maps). It gives straight-line knowledge with a
 concrete reduction cost for the collision clauses below.
@@ -548,7 +548,11 @@ exactly), and a slack of $467$: room for one leanXMSS signature's encoding ($309
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
 guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
-three cells to a limb, freeing room for about $1600$ signatures' encodings.
+three cells to a limb, freeing room for about $1600$ signatures' encodings. Nor is the compiled
+program compact: its bodies are $784277$, and its size counts $628$ indices without a body
+($1256$, a literal $0$ each), left by the numbering it shares with the extractor's compiled
+functions; the same program renumbered compactly would leave about $1723$ free, about five
+signatures' encodings.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it within its size bound and budget gives \lean{GuestKnowledge}

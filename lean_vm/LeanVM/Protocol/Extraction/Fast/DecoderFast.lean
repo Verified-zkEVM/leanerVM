@@ -21,7 +21,9 @@ import all CompPoly.Univariate.Basic
 # The lane decoder's CompPoly steps, restated
 
 The fast lane decoder (`Fast/Extract.lean`: `interpContext`, Lee–O'Sullivan with
-Mulders–Storjohann; `gsRunNoCheck`, Roth–Ruckenstein over `fieldRootCtx`) calls CompPoly functions
+Mulders–Storjohann, the proof side's reference; `gsRunNoCheck`, Roth–Ruckenstein over
+`fieldRootCtx`; the compiled decoder's interpolation is the approximant basis, `Fast/LanePM.lean`,
+with the normalization below) calls CompPoly functions
 whose code is asymptotically wasteful, so that a cost machine pricing the code honestly would
 charge more than the algorithm needs. Each is restated here, self-contained, and proved equal to
 CompPoly's, so its callers can be restated in turn.

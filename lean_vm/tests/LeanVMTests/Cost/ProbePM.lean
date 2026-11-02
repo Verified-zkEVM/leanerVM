@@ -39,6 +39,9 @@ def coreRun (P : XAdicProblem K) (shift : Array ℕ) : Bool × ℕ :=
 #guard (pmRun (prob 2 4 1 5 #[6]) #[0, 2, 4, 6]).1
 
 -- Prices: `(r, c, order, core price, pmBasis price)`, the matrix's entries of `order` coefficients.
+/-- info: [(2, 1, 4, 526663, 530027), (4, 2, 4, 2598271, 2611708), (4, 2, 8, 6069952, 6083437), (4, 2, 16, 14367042, 14380623),
+  (8, 4, 8, 35070948, 35139475)] -/
+#guard_msgs in
 #eval [(2, 1, 4), (4, 2, 4), (4, 2, 8), (4, 2, 16), (8, 4, 8)].map fun (r, c, o) ↦
   (r, c, o, (coreRun (prob 1 r c o (Array.replicate c o)) (Array.replicate r 0)).2,
     (pmRun (prob 1 r c o (Array.replicate c o)) (Array.replicate r 0)).2)

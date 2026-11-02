@@ -10,8 +10,9 @@ at the shapes where `PMInterpOK n params` and `interpPMModel marginPrices n para
 interpPMPrice marginPrices n params`, both decided per shape in `Bounds/PMLane/Shapes.lean`. Their
 definitions (and those they unfold to: tracks fft's, pmcost's and solve's price formulas) live in
 modules with proofs; the shape checks import none (`Bounds/PMLane/ShapesFirewall.lean`), so the
-definitions are copied here verbatim, each proved equal to its original by `rfl` in
-`Bounds/PMLane/Decode.lean` (`interpDefs_eq`): an edit of an original fails that proof.
+definitions are copied here verbatim. The two entry points are proved equal to their originals by
+`rfl` in `Bounds/PMLane/Decode.lean` (`copy_PMInterpOK`, `copy_interpPMModel`), so every copy
+below them is checked too: an edit of an original fails that proof.
 
 Sources: `karMax` (`PMFFT/KarCost.lean`), `newtonExtra`, `newtonBound` (`PMFFT/InvCost.lean`),
 `pivotPrice` (`PMCore/LeafKernel.lean`), `stepPrice` (`PMCore/LeafPivot.lean`), `incPrice`

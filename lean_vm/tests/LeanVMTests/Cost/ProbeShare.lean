@@ -46,15 +46,21 @@ def mat (s r c d : ℕ) : PolynomialMatrix K :=
   MachineEncoding.encodeValue (poly 2 7)]).map (·.1) == some (MachineEncoding.encodeValue (poly 1 9 + poly 2 7))
 
 -- `(d, price, price / d²)` of the schoolbook product.
+/-- info: [(4, 5451, 340), (16, 82221, 321), (32, 325925, 318), (64, 1297941, 316)] -/
+#guard_msgs in
 #eval [4, 16, 32, 64].map fun d ↦
   let c := ((run cmulS.costDeps cmulS.costIdx
     [MachineEncoding.encodeValue (poly 1 d), MachineEncoding.encodeValue (poly 2 d)]).map (·.2)).getD 0
   (d, c, c / d ^ 2)
 -- `(d, price, price / d)` of the sum.
+/-- info: [(4, 191, 47), (64, 1871, 29)] -/
+#guard_msgs in
 #eval [4, 64].map fun d ↦
   let c := ((run caddS.costDeps caddS.costIdx
     [MachineEncoding.encodeValue (poly 1 d), MachineEncoding.encodeValue (poly 2 d)]).map (·.2)).getD 0
   (d, c, c / d)
+/-- info: [(32, 325950), (64, 993044), (128, 3008886)] -/
+#guard_msgs in
 #eval [32, 64, 128].map fun d ↦
   let c := ((run karatsubaS.costDeps karatsubaS.costIdx
     [MachineEncoding.encodeValue (64 : ℕ), MachineEncoding.encodeValue (poly 1 d), MachineEncoding.encodeValue (poly 2 d)]).map (·.2)).getD 0
@@ -67,6 +73,8 @@ def strassenRun (cut : ℕ) (A B : PolynomialMatrix K) : Bool × ℕ :=
 
 #guard (strassenRun 1 (mat 1 3 3 2) (mat 2 3 3 2)).1
 
+/-- info: [(4, 4, 1, 420330), (8, 4, 1, 3048892), (4, 64, 4, 63887255)] -/
+#guard_msgs in
 #eval [(4, 4, 1), (8, 4, 1), (4, 64, 4)].map fun (n, d, cut) ↦
   (n, d, cut, (strassenRun cut (mat 1 n n d) (mat 2 n n d)).2)
 
