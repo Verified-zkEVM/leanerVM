@@ -25,12 +25,12 @@ public section
 /-- The bound of `L` levels of the butterfly Taylor shift on at most `Y` rows of at most `X`
 coefficients: per level a power by squaring and `Y` entries, each at most a scaled sum of rows. -/
 @[expose] def bfLoopBound (X Y L : ℕ) : ℕ :=
-  L * ((324 * X + 160) * Y + 535 * (Nat.log2 Y + 1) + 100) + 20
+  L * ((100 * X + 121) * Y + 73 * (Nat.log2 Y + 1) + 47) + 14
 
 /-- The bound of the substitution on `Y` rows of at most `X` coefficients: the butterfly's
 `log₂ Y + 1` levels, then each row shifted. -/
 @[expose] def substBound (X Y : ℕ) : ℕ :=
-  bfLoopBound X Y (Nat.log2 Y + 1) + (28 * (X + Y) + 90) * Y + 50
+  bfLoopBound X Y (Nat.log2 Y + 1) + (26 * (X + Y) + 78) * Y + 39
 
 /-- The bound of a product modulo `u`, operands and `u` of at most `B` coefficients. -/
 @[expose] def mulModBound (B : ℕ) : ℕ := 582 * (B * B) + 430 * B + 2960
