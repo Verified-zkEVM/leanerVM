@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Child.Range
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest proof's query steps

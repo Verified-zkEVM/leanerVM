@@ -44,8 +44,8 @@ structure ValidCounts (D : DiscreteLogTables) (σ : Val) : Prop where
   slots : lxSlotsD D σ + lsSlotsD D σ ≤ 65535
 
 /-- The decoder's reader of a valid execution's memory is the memory's. -/
-theorem memReader_valid {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) :
+theorem memReader_valid {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
     memReader (powTable t.logMemorySize) (memoryVector t.memory) = t.memory.read := by
   have hκ : t.logMemorySize < 64 := by
     have := hv.1.2.1
@@ -54,16 +54,16 @@ theorem memReader_valid {input : PublicInput} {t : Execution guest}
   rw [memReader_memoryVector, Located.readTable_powTable hκ]
 
 /-- **The decoder's valuation is `main`'s at its frame** (`fp = 1`, `main`'s certificate). -/
-theorem mainVal_valid {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) :
+theorem mainVal_valid {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
     mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)) =
       valG t.memory 1 (certOf 1) := by
   rw [memReader_valid hv, mainVal_eq]
   rfl
 
 /-- **`main`'s facts on a valid execution**, at the decoder's valuation. -/
-theorem mainFacts_valid {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) :
+theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
     MainFacts (Located.RLg t.memory) t.memory.read
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
@@ -97,8 +97,8 @@ theorem validCounts_of {C : CallRel} {rd : Reader} {σ : Val} (MF : MainFacts C 
 /-- **On a valid execution of the guest, the counts the decoder reads are small**: at its
 valuation `mainVal rd` of `main`'s frame, `rd` the reader of the memory vector (`decTop`'s), in
 the logarithm's tables built. -/
-theorem valid_counts {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) :
+theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
     ValidCounts discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) :=
   validCounts_of (mainFacts_valid hv)
@@ -119,29 +119,29 @@ theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast
 /-- **On a valid execution of the guest, each child's cursor length is at most `8192`**: at the
 decoder's reader, valuation and table of entries (`decTop`'s), for every child `c` below the
 count it reads. -/
-theorem valid_cursor {input : PublicInput} {t : Execution guest}
-    (hv : ValidExecution guest input t) (c : ℕ)
+theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) (c : ℕ)
     (hc : c < nKidsD discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))) :
     let rd := memReader (powTable t.logMemorySize) (memoryVector t.memory)
     let σ := mainVal rd
     let fr := frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
-      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+      (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
     cursorLength discreteLogTables (fr (.n 27)) (fr (.n 868)) ≤ 8192 := by
   intro rd σ fr
-  have hk : Node.ExplainsInput guest input (End.decode t.memory) := End.guest_knowledge input t hv
+  have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
   rw [← decTop_eq] at hk
-  have hrel := hk.2.2.1
+  have hrel := hk.2.2.2.1
   let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd
     (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
-      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+      (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables)
-  have hw : (decTop guest t.logMemorySize (memoryVector t.memory)).witness = w := rfl
+  have hw : (decTop guestProgram t.logMemorySize (memoryVector t.memory)).witness = w := rfl
   rw [hw] at hrel
   have hmem : decKidT discreteLogTables rd σ (proofAtFrame Fast.readerTabs rd
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
-        (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+        (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
       (σ (.n 380)) (σ (.n 53)) (σ (.n 56)) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
@@ -151,7 +151,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guest}
   have hs := LeanVM.Guest.Child.stream_le_of_verifyDeferred hacc
   have hl := cursor_le_stream Fast.readerTabs.whir rd fr
     (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
-      (replayStatesOf (powTable t.logMemorySize) (powTable guest.logSize) guest
+      (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables)
   exact hl.trans hs
 

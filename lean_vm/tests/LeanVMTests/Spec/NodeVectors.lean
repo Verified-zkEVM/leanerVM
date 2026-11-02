@@ -27,7 +27,7 @@ def e (c0 c1 c2 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1) (K.ofBits c2
 def seed : Digest := #v[0x273bd74dce0d4896, 0x04a19561799e8f2f, 0x70db61eebd3690f2, 0x31e8d235afb333f4]
 
 /-- leanXMSS claims. -/
-def xmss : List XmssClaim :=
+def xmss : List LeanXmssClaim :=
   [(⟨BitVec.ofNat 128 0xc92bfcbbace8b0b44d612508b92729f8, BitVec.ofNat 128 0xfa4626b25f519e1519ed4c498418a3c2⟩, BitVec.ofNat 256 0x098daca4e3af8521de97f9bd3b2503ff4b0f54d3073a9622082e901b4f0ca826),
   (⟨BitVec.ofNat 128 0xe483aa1aaab3d860f99d2e1d67aac3c6, BitVec.ofNat 128 0x0c7962beedf8a554ae08e5bfb33dfba3⟩, BitVec.ofNat 256 0xde28f8ad4bfa3ea4065cb306ddde2e0502a10715ca2920d7c642283ceedfbc41),
   (⟨BitVec.ofNat 128 0xadfbcda12effa6e0936934dccae36bea, BitVec.ofNat 128 0xa7d5da4f4a926488d734322bfb4e53a5⟩, BitVec.ofNat 256 0x77607d60b4acb59c0c037a968094ee26942ef5ee2c3a4309b3886257210e2f0d)]
@@ -35,7 +35,7 @@ def xmss : List XmssClaim :=
 def xmssListDigest : Digest := #v[0x1d635b410ba05fb9, 0x17a9b97399dccc74, 0x08a35d820726d74e, 0xe14db00a6d45ad0f]
 
 /-- leanSPHINCS claims. -/
-def sphincs : List SphincsClaim :=
+def sphincs : List LeanSphincsClaim :=
   [(⟨BitVec.ofNat 128 0xcb32402f9165e30c7bc1d7f07a218cca, BitVec.ofNat 128 0x4f1cfd8ed6ff3cf8ad5eccad6e6be52f⟩, BitVec.ofNat 256 0xc30ac3dd9358962165360c8a5f3684e1a5738461c6e24a734fd255394b4963b3),
   (⟨BitVec.ofNat 128 0x5949569e357e3450ac1bd2f68527a377, BitVec.ofNat 128 0x721df851a940c56f78c228ea5fcf37cb⟩, BitVec.ofNat 256 0xf236dca8e11cfb5b4f9ade0bb83876c260a4e7947a7bf9b3bb2b2c8d0eecad15)]
 

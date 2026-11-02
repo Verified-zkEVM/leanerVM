@@ -13,6 +13,7 @@ import Common.Linear
 import LeanVM.Protocol.WithHash
 import LeanVM.Guest.ExperimentBridge
 import LeanVM.Guest.WithHash
+import LeanVM.Guest.AcceptableChild
 
 /-!
 # The batching in the random-permutation model
@@ -26,7 +27,7 @@ inverse (`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `b
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
 `QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_bound_le`: for `QA ≤ 2^128` and
 `QV ≤ 2^96`, at most `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`; `batch_sound_holds` is it as
-the end statement `BatchingSound` of `Statement/LeanVmGuest.lean` states it: the verifier written out
+the end statement `BatchingSound` of `Statement/LeanVmGuestCompleteness.lean` states it: the verifier written out
 (`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
@@ -244,7 +245,7 @@ theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
 theorem not_falseChildren_zero (bytecode : List K) (π : Proof) : ¬ SomeChildClaimFalse bytecode 0 π :=
   fun ⟨_, hlt, _⟩ ↦ Nat.not_lt_zero _ hlt
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuest.lean`): no false children below `M = 0`; else the
+/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): no false children below `M = 0`; else the
 adversary's coins do not help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
 theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
   intro M bytecode hb hM B QA hB hQA hQV
@@ -256,7 +257,7 @@ theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
     (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
   exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV hM1))
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuest.lean`): the game over `π` is the experiment with
+/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the game over `π` is the experiment with
 the two calls (`batchingSound_of_withHash`). -/
 theorem batch_sound_holds : BatchingSound :=
   batchingSound_of_withHash batchingSoundWithHash_holds

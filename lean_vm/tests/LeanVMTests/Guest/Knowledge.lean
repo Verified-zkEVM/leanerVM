@@ -70,11 +70,11 @@ example {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) :
 /-! ## The named form implies the existential one -/
 
 example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (input : PublicInput)
-    (t : Execution guest) (hv : ValidExecution guest input t) :
+    (t : Execution guestProgram) (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact ⟨_, _, hd, hrel.1, _, hrel⟩
+  exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
 
 /-! ## The existential one is nearly vacuous -/
 
@@ -87,7 +87,9 @@ ranges over a seed and a field element, so almost every public input is one's. -
 example (seed : Digest) (v : E) (hints : BatchingHints) :
     ∃ w, NodeRelation bytecode seed (emptyStatement v) w := by
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
-  refine ⟨⟨[], [], [], none, hints⟩, ⟨?_, by simp, by simp [emptyStatement],
-    by simp [emptyStatement], by simp [emptyStatement], ?_⟩⟩
-  · simp [emptyStatement, DeferredClaim.HasBytecodeShape, hlog]
+  refine ⟨⟨[], [], [], none, hints⟩, ?_⟩
+  unfold NodeRelation ClaimsCovered DaClaimCovered ChildrenProven DeferredClaimBatched
+  refine ⟨⟨by simp [emptyStatement], by simp [emptyStatement]⟩, by simp [emptyStatement], by simp,
+    ?_, ?_⟩
   · simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]
+  · simp [emptyStatement, DeferredClaim.HasBytecodeShape, hlog]

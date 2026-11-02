@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.H.Match
 public import LeanVM.Guest.Lift.OqFitsAll
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `verify_sub` is complete
@@ -37,7 +38,7 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- **The own buffers fit their sizes.** -/
-theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length ≤ Hints.childStreamCap) :
+theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length ≤ Coverage.childStreamCap) :
     List.Forall₂ (fun c s ↦ c.length ≤ s) S.ownW (vsSizes S.μ) := by
   have hpl := (S.runG' hbl).2.2.1
   have hτ := S.τ_bounds hbl
@@ -53,7 +54,7 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
     by simp [vsDimsW, S.hs_length], by simp [vsKbW, S.hs_length],
     by simp [vsBkW, Tables.blockKappaWords], hpl.le, S.alphas_length.le, ?_, ?_, ?_, hsll.le,
     S.rchs_length.le, by simp [ringCoefficients, kBits], (lamW_length _).le⟩
-  · simp only [vsStreamW, List.length_append, List.length_replicate, Hints.childStreamCap] at hst ⊢
+  · simp only [vsStreamW, List.length_append, List.length_replicate, Coverage.childStreamCap] at hst ⊢
     omega
   · rw [KeccakGkr.eqKernel_length, S.alphas_length]
     norm_num

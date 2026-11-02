@@ -19,6 +19,7 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest hint generator
@@ -40,7 +41,7 @@ deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
 the query positions are those of the compiled run itself, recorded by `recordQueries`, which
 rewrites a program to return its queries and changes nothing else. The bytecode enters only through its
 length, as in `verifyDeferred`. A signature's hints are its scheme's own definitions, over
-Keccak-f[1600] (as `xmssVerify` and `sphincsVerify` take them).
+Keccak-f[1600] (as `leanXmssVerifyWithKeccak` and `leanSphincsVerifyWithKeccak` take them).
 
 Choices the witness does not fix, made as the Rust makes them:
 
@@ -56,6 +57,8 @@ What the bump allocator hands out is not a hint: the interpreter's allocator cho
 -/
 
 namespace LeanVM.Guest.Hints
+
+open LeanVM.Guest.Coverage
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
@@ -100,7 +103,7 @@ def cellsOfBytes (b : List UInt8) : List E :=
   (List.range (b.length / 16)).map fun i ↦ cellOfBytes (b.drop (16 * i))
 
 /-- A 128-bit value as its cell. -/
-def cell128 (v : BitVec 128) : E := cellOfBytes (bytes16 v)
+def cell128 (v : BitVec 128) : E := cellOfBytes (littleEndianBytes16 v)
 
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestScalars d).1, (digestScalars d).2]
@@ -237,7 +240,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphi
 every row's cells, column by column (`aggregation.rs:1846-1866`). -/
 def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
   (List.range LeanDa.cellsPerRow).map (fun j ↦
-      ("da_weights", (w.vector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
+      ("da_weights", (w.orthogonalVector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
     [("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
     (List.range LeanDa.cellsPerRow).flatMap fun j ↦
       w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
@@ -288,7 +291,7 @@ def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
   let capDepth := min (log2Ceil positions.length) depth
   let pathDepth := depth - capDepth
   let climbs := (positions.zip openings).map fun (q, o) ↦
-    (o, climbSteps (2 ^ depth + q) (hashWords o.leaf) o.path)
+    (o, climbSteps (2 ^ depth + q) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
     [("merkle_leaf_rows", o.leaf.map ofK),
       ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
@@ -361,18 +364,18 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
 `aggregation.rs:1683-1696`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
-  if w.daMatrix.isSome || s.claims.da == zeroDigest then w.children.length
-  else (w.children.findIdx? fun c ↦ c.statement.claims.da == s.claims.da).getD w.children.length
+  if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length
+  else (w.children.findIdx? fun c ↦ c.statement.claims.daDigest == s.claims.daDigest).getD w.children.length
 
 /-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
-  let rawX := heldDirectly s.claims.xmss w.xmss
-  let rawS := heldDirectly s.claims.sphincs w.sphincs
+  let rawX := heldDirectly s.claims.xmss w.xmssHolders
+  let rawS := heldDirectly s.claims.sphincs w.sphincsHolders
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
-  let xCells := fun (c : XmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
-  let sCells := fun (c : SphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
+  let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
+  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
   let slots := fun (offsets : List ℕ) ↦ listPushes "child_claim_index" (offsets.map ([count ·]))
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
@@ -387,7 +390,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   ((w.children.zip xr.childSlots).zip sr.childSlots).flatMap (fun ((c, xs), ss) ↦
     ("child_meta", [count c.statement.claims.xmss.length, count c.statement.claims.sphincs.length]) ::
       slots xs ++ slots ss ++
-      [("child_defer", c.statement.deferredClaim.cells), ("child_da", digestCells c.statement.claims.da)] ++
+      [("child_defer", c.statement.deferredClaim.cells), ("child_da", digestCells c.statement.claims.daDigest)] ++
       childHints bytecode seed c) ++
   (if w.children = [] then [("leaf_defer", [s.deferredClaim.bytecodeValue])] else batchPushes w.batchingHints) ++
   (w.daMatrix.map (fun c ↦ daHints c.2)).getD [] ++

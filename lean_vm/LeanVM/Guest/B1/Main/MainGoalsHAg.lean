@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.AggAt
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import LeanVM.Guest.Batch.Node
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `aggregate_claims` on an honest run
@@ -25,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (Limits)
+open LeanVM.Guest (DeployedLimits)
 open LeanVM.Guest.B1 (CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -62,7 +63,7 @@ theorem kid_shapes {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars
         c.statement.deferredClaim.bytecodePoint.length = bytecodeVars := by
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   intro c hc
-  obtain ⟨hsh, hv⟩ := hrel.2.1 c hc
+  obtain ⟨hsh, hv⟩ := hrel.2.2.1 c hc
   exact ⟨by rw [verifyDeferred_shaped hv, hlog], by rw [← hlog]; exact hsh⟩
 
 /-- The children's claims as `aggregate_claims` batches them. -/

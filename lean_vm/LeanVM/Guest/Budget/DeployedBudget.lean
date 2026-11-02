@@ -16,8 +16,11 @@ public import LeanVM.Guest.Count.Instances
 public import LeanVM.Guest.Budget.MvCount
 public import LeanVM.Guest.B2C.ArmBound
 public import LeanVM.Guest.Budget.L5Count
+public import LeanVM.Guest.AcceptableChild
 
 namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest.Completeness
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node
@@ -35,7 +38,7 @@ noncomputable def deployedBudget (Bvf : ℕ → ℕ → ℕ) : Budget :=
 /-- **The guest is complete within the deployed budget**, each child's `verify_sub` complete within
 `Bvf` words at its announced stack log and rate, by a tree of `vsCnt op` instructions at it. -/
 theorem guest_complete_deployed {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
-    (hV : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (hPv : ∀ op (w : NodeWitness) c (hc : c < w.children.length) (rd : Reader) (t : Tree)

@@ -77,11 +77,11 @@ theorem f0_instr {i : ℕ} (hi : i < Data.f0.len) :
   exact ⟨o, k0, k1, k2, rfl, tableCells_eq ▸ List.mem_filterMap.mpr ⟨_, hmem, rfl⟩⟩
 
 theorem f0_fetch {i : ℕ} (hi : i < Data.f0.len) :
-    guest.fetch (gpow i) = some (Data.f0.instrAt i).toInstr := by
+    guestProgram.fetch (gpow i) = some (Data.f0.instrAt i).toInstr := by
   have := guest_fetch f0_mem hi
   rwa [f0_entry, Nat.zero_add] at this
 
-theorem f0_pc_lt {i : ℕ} (hi : i < Data.f0.len) : i < 2 ^ guest.logSize - 1 := by
+theorem f0_pc_lt {i : ℕ} (hi : i < Data.f0.len) : i < 2 ^ guestProgram.logSize - 1 := by
   have := guest_pc_lt f0_mem hi
   rwa [f0_entry, Nat.zero_add] at this
 
@@ -89,10 +89,10 @@ theorem gpow_mul_one (o : ℕ) : (1 : K) * gpow o = gpow o := one_mul _
 
 /-- **The run's start, soundly**: a halting run from `(g^0, 1)` writes the jump table and halts
 from `main`'s entry at `fp = 1`. -/
-theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe guest L k ⟨gpow 0, 1⟩) :
-    JumpTables L ∧ ∃ k', Safe guest L k' ⟨gpow mainEntry, 1⟩ := by
+theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe guestProgram L k ⟨gpow 0, 1⟩) :
+    JumpTables L ∧ ∃ k', Safe guestProgram L k' ⟨gpow mainEntry, 1⟩ := by
   have hwalk : ∀ i ≤ Data.f0.len, (∀ j < i, Holds L j 1 (Data.f0.instrAt j)) ∧
-      ∃ k', Safe guest L k' ⟨gpow i, 1⟩ := by
+      ∃ k', Safe guestProgram L k' ⟨gpow i, 1⟩ := by
     intro i
     induction i with
     | zero => exact fun _ ↦ ⟨fun _ hj ↦ absurd hj (Nat.not_lt_zero _), k, h⟩
@@ -126,8 +126,8 @@ theorem safe_jumpTables {κ : ℕ} {L : MemoryImage κ} {k : ℕ} (h : Safe gues
 /-- **The run's start, completely**: on a memory holding the jump table, `__jump_tables` runs
 from `(g^0, 1)` to `main`'s entry at `fp = 1`. -/
 theorem reach_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
-    Reach guest L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ := by
-  have hwalk : ∀ i ≤ Data.f0.len, Reach guest L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩ := by
+    Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow mainEntry, 1⟩ := by
+  have hwalk : ∀ i ≤ Data.f0.len, Reach guestProgram L ⟨gpow 0, 1⟩ ⟨gpow i, 1⟩ := by
     intro i
     induction i with
     | zero => exact fun _ ↦ Reach.refl _

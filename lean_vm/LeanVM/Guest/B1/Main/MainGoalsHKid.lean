@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHAg
 public import LeanVM.Guest.B1.Main.KidsAt
 public import LeanVM.Guest.B1.Main.Digests
 public import LeanVM.Protocol.Verifier.Load
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest children
@@ -26,7 +27,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (Limits)
+open LeanVM.Guest (DeployedLimits)
 open LeanVM.Guest.Hints (claimCells cellOfBytes cellsOfBytes)
 open LeanVM.Guest.B1 (CompleteAtD Returns bufL)
 
@@ -41,7 +42,7 @@ theorem cellBytes_cellOfBytes {b : List UInt8} (h : 16 ≤ b.length) :
   exact (List.take_add (l := b) (i := 8) (j := 8)).symm
 
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, bytes16, HashSig.bytesLE]
+  simp [claimBytes, littleEndianBytes16, HashSig.bytesLE]
 
 theorem kid_claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
     claimCells r p m = [cellOfBytes (claimBytes r p m), cellOfBytes ((claimBytes r p m).drop 16),
@@ -79,19 +80,19 @@ theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
 
 /-! ## The lists' digests are their cells' -/
 
-theorem xmssList_cells (l : List XmssClaim) :
+theorem xmssList_cells (l : List LeanXmssClaim) :
     claimListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold claimListDigest claimsPreimage
+  unfold claimListDigest claimListPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
   funext c
   exact (cellsBytes_claimCells _ _ _).symm
 
-theorem sphincsList_cells (l : List SphincsClaim) :
+theorem sphincsList_cells (l : List LeanSphincsClaim) :
     claimListDigest l =
       keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  unfold claimListDigest claimsPreimage
+  unfold claimListDigest claimListPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
   congr 1
@@ -149,7 +150,7 @@ def hKid (c : ℕ) : KidH where
   cx := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
   cs := (w.children.map fun ch => digestScalars (claimListDigest ch.statement.claims.sphincs)).getD c
     (0, 0)
-  da := (w.children.map fun ch => digestScalars ch.statement.claims.da).getD c (0, 0)
+  da := (w.children.map fun ch => digestScalars ch.statement.claims.daDigest).getD c (0, 0)
   defer := (w.children.map fun ch => ch.statement.deferredClaim.cells).getD c []
 
 variable {s w}
@@ -173,7 +174,7 @@ theorem hKid_cs {c : ℕ} (hc : c < w.children.length) :
   getD_map_lt _ _ _ hc
 
 theorem hKid_da {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).da = digestScalars w.children[c].statement.claims.da := getD_map_lt _ _ _ hc
+    (hKid s w c).da = digestScalars w.children[c].statement.claims.daDigest := getD_map_lt _ _ _ hc
 
 theorem hKid_defer {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).defer = w.children[c].statement.deferredClaim.cells := getD_map_lt _ _ _ hc

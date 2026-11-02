@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.Child.Queries
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Honest openings agree
@@ -104,7 +105,7 @@ theorem leaves_nodeAt (ht : ℕ) (word : Word) :
 
 /-- **An honest opening's climb** reaches the tree's node. -/
 theorem climbTo_openingAt {ht : ℕ} {word : Word} {q : ℕ} (hq : q < 2 ^ ht) {l : ℕ} (hl : l ≤ ht) :
-    Limits.climbTo (hashWords (openingAt keccak256 ht word q).leaf) q
+    Limits.climbTo (merkleLeafDigest (openingAt keccak256 ht word q).leaf) q
       ((openingAt keccak256 ht word q).path.take l) = nodeAt word l (q / 2 ^ l) := by
   have hmod : q % 2 ^ ht = q := Nat.mod_eq_of_lt hq
   have := climb_pathOfLevel_take (nodeHash keccak256) (nodeAt word) (nodeAt_succ word) ht
@@ -164,7 +165,7 @@ theorem nodeIs_honest {ht : ℕ} {word : Word} {q : ℕ} (hq : q < 2 ^ ht) {v : 
       generalize 2 ^ (ht - (l + 1)) = e at hlt ⊢
       unfold sibling
       split <;> omega
-    · simp only [Limits.siblingHeapIndex, Limits.heapIndex]
+    · simp only [Limits.siblingHeapIndex, Limits.merkleHeapIndex]
       rw [hbit, hdiv, h2]
       generalize q / 2 ^ l = x
       generalize 2 ^ (ht - (l + 1)) = e

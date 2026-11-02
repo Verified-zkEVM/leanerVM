@@ -216,12 +216,12 @@ cost_compile kidMaxC := kidMax
 
 /-- Claim `j` of a child's leanXMSS claims from the mark `a`: the claim of the slot holding mark
 `a + j` (`slotIn` of the region's table `tm`, `ts`), the table at `p53`. -/
-noncomputable def xmssKidClaim (rd : Reader) (p53 : E) (tm ts : Array ℕ) (a j : ℕ) : XmssClaim :=
+noncomputable def xmssKidClaim (rd : Reader) (p53 : E) (tm ts : Array ℕ) (a j : ℕ) : LeanXmssClaim :=
   xmssAtK rd (p53.limb 0 * Parameters.g ^ (4 * slotIn tm ts (a + j)))
 
 /-- Claim `j` of a child's leanSPHINCS claims from the mark `a` (`xmssKidClaim`). -/
 noncomputable def sphincsKidClaim (rd : Reader) (p56 : E) (tm ts : Array ℕ) (a j : ℕ) :
-    SphincsClaim :=
+    LeanSphincsClaim :=
   sphincsAtK rd (p56.limb 0 * Parameters.g ^ (4 * slotIn tm ts (a + j)))
 
 /-- Child `c`'s statement, its segment's start `a` and its claims' counts `nx`, `ns` given. -/

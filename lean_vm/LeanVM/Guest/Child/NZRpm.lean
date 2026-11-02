@@ -12,6 +12,7 @@ import LeanVM.Guest.Child.Honest
 import LeanVM.Protocol.LeanVMRpm
 import LeanVM.Protocol.WithHash
 import LeanVM.Guest.WithHash
+import LeanVM.Guest.AcceptableChild
 
 /-!
 # Refusing a zero challenge, in the random-permutation model

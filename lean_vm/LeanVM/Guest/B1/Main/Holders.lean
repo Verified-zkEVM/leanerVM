@@ -89,8 +89,8 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
 theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
-      (decWit σ rd wX wS wD wV wA).xmss := by
+    List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
+      (decWit σ rd wX wS wD wV wA).xmssHolders := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
@@ -111,7 +111,7 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
     have hsk : s = k := by rw [hC.uniq s (by omega) m hmT hl, hslm]
     subst hsk
     obtain ⟨a, b, c, d, hat, hv⟩ := cw.xmss _ hcall
-    show xmssVerify (xmssAt rd (σ (.n 53)) s).1 (xmssAt rd (σ (.n 53)) s).2 _ = true
+    show leanXmssVerifyWithKeccak (xmssAt rd (σ (.n 53)) s).1 (xmssAt rd (σ (.n 53)) s).2 _ = true
     unfold xmssAt
     rw [slot_claimAt hat]
     exact hv
@@ -140,8 +140,8 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
 theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
-      (decWit σ rd wX wS wD wV wA).sphincs := by
+    List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
+      (decWit σ rd wX wS wD wV wA).sphincsHolders := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
@@ -167,7 +167,7 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
     have hsk : s = k := by have := hC.uniq _ (by omega) m hmT hl; omega
     subst hsk
     obtain ⟨a, b, c, d, hat, hv⟩ := cw.sphincs _ hcall MF.bytes
-    show sphincsVerify (sphincsAt rd (σ (.n 56)) s).1 (sphincsAt rd (σ (.n 56)) s).2 _ = true
+    show leanSphincsVerifyWithKeccak (sphincsAt rd (σ (.n 56)) s).1 (sphincsAt rd (σ (.n 56)) s).2 _ = true
     unfold sphincsAt
     rw [slot_claimAt hat]
     exact hv
@@ -196,11 +196,11 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
     (∀ c m, (decWit σ rd wX wS wD wV wA).daMatrix = some (c, m) →
-      (decStmt σ rd).claims.da = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest) ∧
-    ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.da = zeroDigest ∨
+      (decStmt σ rd).claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest) ∧
+    ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.daDigest = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
-        c.statement.claims.da = (decStmt σ rd).claims.da) := by
-  have eD : (decStmt σ rd).claims.da = daDigestAt rd σ (lg σ 387) := by
+        c.statement.claims.daDigest = (decStmt σ rd).claims.daDigest) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 387) := by
     unfold decStmt; simp only [gLog_lg]
   obtain ⟨-, hpl, hp1⟩ := MF.pick
   have h7 := MF.direct.2
@@ -222,7 +222,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
       unfold dvClaim; rw [r0, r1, r2, r3, digestOfCells_scalars, digestOfCells_scalars]
     refine ⟨?_, by rw [hdv]; exact hop⟩
     rw [eD, hp1 hd, (daDigestAt_of_loads l0 l1).1, digestOfCells_scalars]
-    unfold daClaimDigest daPreimage
+    unfold daClaimDigest daClaimPreimage
     rw [hdv, ← digestOfCells_scalars root, ← digestOfCells_scalars vd, digestBytes_ofCells,
       digestBytes_ofCells, ← r0, ← r1, ← r2, ← r3]
     simp [cellsBytes]

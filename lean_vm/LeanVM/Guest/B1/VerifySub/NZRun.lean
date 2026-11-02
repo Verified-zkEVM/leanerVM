@@ -14,6 +14,7 @@ public import LeanVM.Guest.Limits
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # Carried runs, for completeness

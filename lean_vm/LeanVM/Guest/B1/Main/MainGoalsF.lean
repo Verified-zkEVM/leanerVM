@@ -133,7 +133,7 @@ theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonic
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, bytes16, HashSig.bytesLE]
+  simp [claimBytes, littleEndianBytes16, HashSig.bytesLE]
 
 theorem mf_claimCells_length (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
   simp [claimCells, cellsOfBytes, mf_claimBytes_length]
@@ -149,18 +149,18 @@ theorem mf_claimCells_bytes (r p : BitVec 128) (m : BitVec 256) :
   mf_cellsBytes_ofBytes (n := 4) (by rw [mf_claimBytes_length])
 
 /-- **The leanXMSS list's digest is its cells'.** -/
-theorem mf_xmss_digest (l : List XmssClaim) :
+theorem mf_xmss_digest (l : List LeanXmssClaim) :
     claimListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  rw [claimListDigest, claimsPreimage, mf_cellsBytes_flatMap]
+  rw [claimListDigest, claimListPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
   exact (mf_claimCells_bytes _ _ _).symm
 
 /-- **The leanSPHINCS list's digest is its cells'.** -/
-theorem mf_sphincs_digest (l : List SphincsClaim) :
+theorem mf_sphincs_digest (l : List LeanSphincsClaim) :
     claimListDigest l =
       keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
-  rw [claimListDigest, claimsPreimage, mf_cellsBytes_flatMap]
+  rw [claimListDigest, claimListPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
   exact (mf_claimCells_bytes _ _ _).symm
@@ -213,7 +213,7 @@ theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
 theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) : MainGoalSt fs cert fp seed s w := by
   have hlen : s.deferredClaim.cells.length = 24 := by
-    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.1
+    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.2.2.2.2
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_

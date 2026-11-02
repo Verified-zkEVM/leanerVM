@@ -37,9 +37,9 @@ open LeanVM LeanVM.Guest LeanVM.Guest.End LeanVM.Node LeanVM.Semantics
 
 /-! ## The statements, as the specification states them -/
 
-example : MemoryGuestKnowledge guest decode := guest_knowledge
+example : MemoryGuestKnowledge guestProgram decode := guest_knowledge
 
-example : MemoryAggregateSound guest decode transcriptExtractor := aggregate_sound_outer
+example : MemoryAggregateSound guestProgram decode transcriptExtractor := aggregate_sound_outer
 
 /-- The decoder reads the seed and the statement off `main`'s frame, through the index of the
 memory's addresses (on fewer than `2^64` words, the memory's own reads). -/

@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CompleteIface
 public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The honest cap
@@ -41,12 +42,12 @@ open LeanVM.Guest.Value.Keccak
 root. -/
 theorem openOne_facts {root : Digest} {height width q : ℕ} {o : Opening}
     (h : Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width q o) = true) :
-    o.leaf.length = width ∧ o.path.length = height ∧ climbD (hashWords o.leaf) q o.path = root := by
+    o.leaf.length = width ∧ o.path.length = height ∧ climbD (merkleLeafDigest o.leaf) q o.path = root := by
   unfold Compile.openOneWithHash at h
   split at h
   · rename_i hs
     refine ⟨hs.1, hs.2, ?_⟩
-    have h' : decide ((climbD (hashWords o.leaf) q o.path).toList = root.toList) = true := h
+    have h' : decide ((climbD (merkleLeafDigest o.leaf) q o.path).toList = root.toList) = true := h
     exact Vector.toList_inj.mp (of_decide_eq_true h')
   · simp [Id.run, pure] at h
 
@@ -151,7 +152,7 @@ theorem capCell_odd (k : ℕ) :
 
 /-- The climb's node of an opening `l` levels up. -/
 theorem nodeIs_climb {a : ℕ × Opening} {l : ℕ} (hl : l ≤ depth) :
-    NodeIs depth a (heapNode depth a.1 l) (climbD (hashWords a.2.leaf) a.1 (a.2.path.take l)) :=
+    NodeIs depth a (heapNode depth a.1 l) (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take l)) :=
   Or.inl ⟨l, hl, rfl, rfl⟩
 
 theorem nodeIs_sib {a : ℕ × Opening} {l : ℕ} (hl : l < depth) :
@@ -166,10 +167,10 @@ theorem climb_hashes (hag : BatchAgrees depth batch) {a : ℕ × Opening} (ha : 
       (capCell depth batch (4 * k + 2)) (capCell depth batch (4 * k + 3))
       (capCell depth batch (2 * k)) (capCell depth batch (2 * k + 1)) := by
   intro k
-  have hk : nodeD depth batch k = climbD (hashWords a.2.leaf) a.1 (a.2.path.take (l + 1)) :=
+  have hk : nodeD depth batch k = climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (l + 1)) :=
     nodeD_eq hag ha (nodeIs_climb (by omega))
   have hc : nodeD depth batch (heapNode depth a.1 l) =
-      climbD (hashWords a.2.leaf) a.1 (a.2.path.take l) := nodeD_eq hag ha (nodeIs_climb (by omega))
+      climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take l) := nodeD_eq hag ha (nodeIs_climb (by omega))
   have hs : nodeD depth batch (sibNode depth a.1 l) = a.2.path.getD l default :=
     nodeD_eq hag ha (nodeIs_sib hl)
   have htake : a.2.path.take (l + 1) = a.2.path.take l ++ [a.2.path.getD l default] := by
@@ -213,7 +214,7 @@ theorem isInK_one : IsInK (1 : E) := by
 /-- The openings of a query step, each at a position below `2^depth` climbing to `root`. -/
 def BatchOpens (depth : ℕ) (root : Digest) (batch : List (ℕ × Opening)) : Prop :=
   ∀ a ∈ batch, a.1 < 2 ^ depth ∧ a.2.path.length = depth ∧
-    climbD (hashWords a.2.leaf) a.1 a.2.path = root
+    climbD (merkleLeafDigest a.2.leaf) a.1 a.2.path = root
 
 theorem nodeD_root {root : Digest} (hq : BatchOpens depth root batch)
     (hag : BatchAgrees depth batch) {a : ℕ × Opening} (ha : a ∈ batch) :
@@ -281,9 +282,9 @@ theorem cap_writes {cd : ℕ} (hcd : 2 ≤ cd) (hcdd : cd ≤ depth) {root : Dig
     (hfl : ∀ k, 2 ≤ k → k < 2 ^ cd → LoadHolds rd flags k (capFl depth batch cd k))
     {a : ℕ × Opening} (ha : a ∈ batch) :
     LoadHolds rd cap (2 * (2 ^ cd + a.1 / 2 ^ (depth - cd)))
-        (digestScalars (climbD (hashWords a.2.leaf) a.1 (a.2.path.take (depth - cd)))).1 ∧
+        (digestScalars (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + a.1 / 2 ^ (depth - cd)) + 1)
-        (digestScalars (climbD (hashWords a.2.leaf) a.1 (a.2.path.take (depth - cd)))).2 ∧
+        (digestScalars (climbD (merkleLeafDigest a.2.leaf) a.1 (a.2.path.take (depth - cd)))).2 ∧
       LoadHolds rd flags (2 ^ (cd - 1) + a.1 / 2 ^ (depth - cd + 1)) 1 := by
   have hlt := (hq a ha).1
   have hv : 2 ^ cd + a.1 / 2 ^ (depth - cd) = heapNode depth a.1 (depth - cd) := by

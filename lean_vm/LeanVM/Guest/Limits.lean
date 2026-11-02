@@ -12,6 +12,7 @@ public import LeanVM.Guest.Hints
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.NZProgram
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The limits of the guest's completeness
@@ -21,11 +22,11 @@ public import LeanVM.Guest.NZProgram
 not run to completion. Completeness assumes two hypotheses beside `NodeRelation`, each a precise
 predicate on the witness:
 
-* **`Limits s w`, the deployed limits** of the node: the guest's fixed capacities and range
+* **`DeployedLimits s w`, the deployed limits** of the node: the guest's fixed capacities and range
   checks, which the Spec does not have (at most `16` children, ...; listed at the structure). An
   honest prover within them is never refused, and `aggregate_with_stats` refuses to aggregate
   outside most of them.
-* **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`): besides
+* **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`): besides
   `NodeRelation`'s conditions, a child's stack log at least `22` and its proof stream at most `8192`
   scalars; its openings agree in the guest's Merkle caps (the guest writes each level's Merkle
   cap once, so two openings of one query step meeting at a node of the tree must give it one
@@ -34,7 +35,7 @@ predicate on the witness:
   computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1246, and the basis
   coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1553, G:1558).
 
-The coverage table's size (`coverage`) is `Hints.coveragePlan`'s, as an honest run lays it out.
+The coverage table's size (`coverageSlotsBelow2Pow16`) is `Coverage.coveragePlan`'s, as an honest run lays it out.
 -/
 
 namespace LeanVM.Guest

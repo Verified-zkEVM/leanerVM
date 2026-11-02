@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.C.Flat
 public import LeanVM.Guest.Hints
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The own buffers
@@ -48,7 +49,7 @@ def vsSizes (μ : ℕ) : List ℕ :=
 
 /-- The stream buffer's words: the stream, padded to `childStreamCap` (`Hints.childHints`' `"stream"`). -/
 def vsStreamW (stream : List E) : List E :=
-  stream ++ List.replicate (Hints.childStreamCap - stream.length) 0
+  stream ++ List.replicate (Coverage.childStreamCap - stream.length) 0
 
 /-- `dims_g`'s words: `g^logMem`, then the tables' heights as `count` (`"table_logs"`). -/
 noncomputable def vsDimsW (logMem : ℕ) (heights : List ℕ) : List E :=

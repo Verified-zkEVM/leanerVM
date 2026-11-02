@@ -74,7 +74,7 @@ the functions that checked it at, indexed once, `Located.frameVFast`). -/
 noncomputable def decode : MemoryDecoder := fun {κ} L ↦
   let memT := Extraction.Fast.powTable κ
   let rd := Located.readTable memT L
-  let states := Located.statesTable memT (Extraction.Fast.powTable guest.logSize) guest L
+  let states := Located.statesTable memT (Extraction.Fast.powTable guestProgram.logSize) guestProgram L
     Located.replayFuel ⟨gpow 0, 1⟩
   let σ := mainValWith rd
   ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
@@ -87,7 +87,7 @@ theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
       B1.Main.decStmt (valG L 1 (certOf 1)) L.read,
       B1.Main.decWitV (valG L 1 (certOf 1)) L.read (Located.replayFrameV L) VerifySub.vsPiOf⟩ := by
   have hV : Located.frameVFast (Located.preTest L.read)
-      (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guest.logSize) guest L
+      (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guestProgram.logSize) guestProgram L
         Located.replayFuel ⟨gpow 0, 1⟩) L.read = Located.replayFrameV L := by
     rw [Located.replayFrameV, Located.readIn_powIndex hκ, Located.frameVWith_eq_frameVFast]
   simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
@@ -100,13 +100,13 @@ theorem subSoundW : B1.Main.SubSoundW bytecode VerifySub.vsPiOf :=
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge : MemoryGuestKnowledge guest decode := by
+theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode := by
   intro input t hv
   have hκ : t.logMemorySize < 64 := by
     have := hv.1.2.1
     unfold maxLogMem at this
     omega
-  show ExplainsInput guest input (decode t.memory)
+  show ExplainsPublicInput guestProgram input (decode t.memory)
   rw [decode_eq hκ]
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of b2SoundL hv
   have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
@@ -118,18 +118,18 @@ theorem guest_knowledge : MemoryGuestKnowledge guest decode := by
 coordinates, which the outer verifier's check that it holds implies) decodes to
 `iv` and `s₀`, or its memory and `s₀` give a Keccak-256 collision among the explicit
 candidates. -/
-theorem decode_binds {input : PublicInput} {t : Execution guest} (hv : ValidExecution guest input t)
+theorem decode_binds {input : PublicInput} {t : Execution guestProgram} (hv : ValidExecution guestProgram input t)
     {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
     (hpub : publicDigest input = statementDigest iv s₀) :
     ((decode t.memory).seed = iv ∧ (decode t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decode t.memory).seed (decode t.memory).statement iv s₀) :=
   by
     obtain ⟨hd, hrel⟩ := guest_knowledge input t hv
-    exact Binding.decoded_binds hs₀ hrel.1 hpub hd
+    exact Binding.decoded_binds hs₀ hrel.2.2.2.2 hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
 a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRelation`). -/
-theorem guest_sound (input : PublicInput) (t : Execution guest) (hv : ValidExecution guest input t) :
+theorem guest_sound (input : PublicInput) (t : Execution guestProgram) (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w :=
   guest_sound_of (soundHyps_of_sub b2SoundL subSoundW) input t hv

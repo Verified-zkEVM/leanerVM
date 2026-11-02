@@ -109,9 +109,9 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp :
 shorter than `n`. -/
 theorem b2_step (hvs : VsKnown) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
-      (∀ j, FunSpecLtReached guest L n (glob.sig j).entry (Check.Pre glob L j)
+      (∀ j, FunSpecLtReached guestProgram L n (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
-      ∀ i, FunSpecLtReached guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
+      ∀ i, FunSpecLtReached guestProgram L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
         (Check.Post coreProgram glob L certByName (EnteredAt glob L) i) := by
   intro κ L h16 h32 n hlt j fp k hk hpre hsafe
   have hpre' := hpre
@@ -140,9 +140,9 @@ written and every contract holding for runs shorter than it, gives `main`'s body
 valuation, its calls located. -/
 theorem b2_mainL (hexp : ExpTablesSound) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
-      (∀ j, FunSpecLtReached guest L k (glob.sig j).entry (Check.Pre glob L j)
+      (∀ j, FunSpecLtReached guestProgram L k (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
-      SafeReached guest L k ⟨gpow mainEntry, 1⟩ →
+      SafeReached guestProgram L k ⟨gpow mainEntry, 1⟩ →
         Stmt.HoldsList (RL coreProgram L certByName (EnteredAt glob L)) L.read (valG L 1 (certOf 1)) (coreOf 1).body
           False (fun rs ↦ rs = []) := by
   intro κ L _ h32 hjtab k hlt hsafe

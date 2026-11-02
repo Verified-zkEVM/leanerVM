@@ -173,7 +173,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
     (ck : List (Opcode → ℕ)) : Prop where
   hX : CXOk L fp X
   ctx : Exec.Ctx X.F κ (gpow fp)
-  segz : ∀ s ∈ segs, SegZ L (gpow fp) guest X.entry s
+  segz : ∀ s ∈ segs, SegZ L (gpow fp) guestProgram X.entry s
   exits : ∀ s ∈ segs, ∀ x, x = s.exit ∨ x ∈ branchExits s.items → x ∈ s.exits
   idx : X.idx = index segs
   linked : linkedWeak X.idx segs wJ wenv = true
@@ -206,7 +206,7 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
   seg : st.seg ∈ segs
   ok : CWOk L fp X st
   run : ∃ pre c, pre ++ st.its = st.seg.items ∧ Fall L (gpow fp) pre ∧
-    RunC guest L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
+    RunC guestProgram L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + x op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
   nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
@@ -233,7 +233,7 @@ def EnvAt (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) 
 callees'. -/
 def Arr (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck : List (Opcode → ℕ))
     (W0 : Registers K) (J : ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
-  (∃ cr, RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
+  (∃ cr, RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
     EnvAt L fp X wJ wenv J
 
 /-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
@@ -241,7 +241,7 @@ counts `c` and the first `n` callees'. -/
 def ArrMid (L : MemoryImage κ) (fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Registers K) (J m : ℕ)
     (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
   ∃ s, getF X.idx J = some s ∧ s.start = J ∧ m ≤ s.items.length ∧ EnvHolds L (gpow fp) s.env ∧
-    ∃ cr, Fall L (gpow fp) (s.items.take m) ∧ RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧
+    ∃ cr, Fall L (gpow fp) (s.items.take m) ∧ RunC guestProgram L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧
       ∀ op, cr op + itemOps (s.items.take m) op ≤ c.get op + x op + ksum ck n op
 
 /-! ## Moves -/
@@ -263,7 +263,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     (h : segAtC X t st = some sn) (hb : BookOk L fp st.book) (hfr : FrOk L fp st.fr)
     (htg : TgOk L fp st.tg) (hnx : NxOk L fp X.fs st.nx) (he : EnvAt L fp X wJ wenv t)
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
-    (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
     (hc : ∀ op, c op ≤ st.cnt.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H sn W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
@@ -306,7 +306,7 @@ theorem endAtC_reach (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st se 
     {n : ℕ} {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) (he : endAtC X st = .ok se) :
     se.seg = st.seg ∧ se.book = st.book ∧ se.fr = st.fr ∧ se.tg = st.tg ∧ se.nx = st.nx ∧
       se.uq = st.uq ∧
-      ∀ r, st.seg.exit.kind.Regs L (gpow fp) X.entry r → ∃ cr, RunC guest L W0 r cr ∧
+      ∀ r, st.seg.exit.kind.Regs L (gpow fp) X.entry r → ∃ cr, RunC guestProgram L W0 r cr ∧
         (∀ op, cr op ≤ se.cnt.get op + xc op + ksum ck n op) ∧ EnvHolds L (gpow fp) st.seg.exit.env := by
   obtain ⟨c, hpl, rfl⟩ := endAtC_eq he
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun r hr ↦ ?_⟩
@@ -357,7 +357,7 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
       st'.uq = st.uq ∧ st'.fresh = none ∧ x ∈ st.seg.exits ∧ CWOk L fp X st' ∧
       ((Atom.jump oc od of).Holds L (gpow fp) → rdc L fp oc = some 0 → PosZ H st' W0 n xc) ∧
       (Taken L (gpow fp) oc od of → ∀ r, x.kind.Regs L (gpow fp) X.entry r → ∃ cr,
-        RunC guest L W0 r cr ∧ (∀ op, cr op ≤ st'.cnt.get op + xc op + ksum ck n op) ∧
+        RunC guestProgram L W0 r cr ∧ (∀ op, cr op ≤ st'.cnt.get op + xc op + ksum ck n op) ∧
         EnvHolds L (gpow fp) x.env) := by
   obtain ⟨its, c, hpl, rfl⟩ := brAtC_eq hb
   obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok st.its st.cnt hpl
@@ -394,8 +394,8 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
 returned values at the cells after its parameters. -/
 def FinZ (L : MemoryImage κ) (j fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Registers K) (n : ℕ)
     (x : Opcode → ℕ) (vs' : List V) : Prop :=
-  (∃ r cr, (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
-    RunC guest L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + x op + ksum ck n op) ∧
+  (∃ r cr, (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
+    RunC guestProgram L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + x op + ksum ck n op) ∧
   ∀ k (hk : k < vs'.length), X.loc.cell vs'[k] = 2 + X.nargs + k ∧ 2 ≤ X.loc.cell vs'[k] ∧
     X.loc.cell vs'[k] < X.fs
 
@@ -712,7 +712,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
   have hent : entryOf f = e := by rw [hfn, entryOf_callee hj1 hj2, he]
   rw [hent] at hrun
   have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
-  have hrun2 : RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
+  have hrun2 : RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
     rw [← hgr]
     exact hcr.trans hrun
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
@@ -763,7 +763,7 @@ theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} 
 theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
     (h : segAtC X t st = some sn) (hok : CWOk L fp X st) (he : EnvAt L fp X wJ wenv t)
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
-    (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    (hr : RunC guestProgram L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
     {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sn with cnt := C, uq := U } W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
@@ -1003,7 +1003,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
       ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
     have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
     obtain ⟨cr, hcr, hcle, henvR⟩ : ∃ cr,
-        RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ cr ∧
+        RunC guestProgram L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ cr ∧
         (∀ op, cr op ≤ (Cnt.max se.cnt st'.cnt).get op + xc op + ksum ck (n + 1) op) ∧
         EnvAt L fp X wJ wenv (r - X.entry) := by
       by_cases h0 : σ c = 0
@@ -1104,7 +1104,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
       ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
     have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
       retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
-    obtain ⟨cr, hcr, hcle⟩ : ∃ cr, RunC guest L W0 ⟨hdr.1.limb 0, hdr.2.limb 0⟩ cr ∧
+    obtain ⟨cr, hcr, hcle⟩ : ∃ cr, RunC guestProgram L W0 ⟨hdr.1.limb 0, hdr.2.limb 0⟩ cr ∧
         ∀ op, cr op ≤ X.pmax.get op + xc op + ksum ck (n + 1) op := by
       by_cases h0 : σ c = 0
       · have hp' := hfall hjump (h0 ▸ hcell)
@@ -1155,7 +1155,7 @@ theorem runCells_get : ∀ {base : ℕ} {cs : List ℕ}, runCells base cs = true
       rw [runCells_get h.2 k (by simpa using hk)]
       omega
 
-theorem final_guest : Registers.final guest = ⟨gpow (2 ^ 19 - 1), gpow 0⟩ := by
+theorem final_guest : Registers.final guestProgram = ⟨gpow (2 ^ 19 - 1), gpow 0⟩ := by
   simp [Registers.final, Program.pcFinal, guest_logSize]
 
 theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
@@ -1174,7 +1174,7 @@ theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : Lis
   rw [gpow_addC] at hd0 hd1
   have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
     retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
-  obtain ⟨r, hrg, hregs⟩ : ∃ r, (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
+  obtain ⟨r, hrg, hregs⟩ : ∃ r, (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
       st.seg.exit.kind.Regs L (gpow fp) X.entry r := by
     by_cases hj1 : j = 1
     · have hm : X.main = true := by rw [H.main, hj1]; rfl

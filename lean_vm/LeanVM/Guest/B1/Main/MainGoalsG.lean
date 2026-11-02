@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Main.MainCoverLemmas
 public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.B1.Main.KidCoverAt
 public import LeanVM.Guest.B1.Da.WitnessAt
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s raw signatures and checked DA claim, honestly
@@ -33,7 +34,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Hints (heldDirectly coveragePlan)
+open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD Returns)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
@@ -44,8 +45,8 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 /-! ## Bounds -/
 
 /-- The coverage table is below `2^16`. -/
-theorem regions_lt (hl : Limits s w) : rX s w + rY s w < 2 ^ 16 := by
-  have := hl.coverage
+theorem regions_lt (hl : DeployedLimits s w) : rX s w + rY s w < 2 ^ 16 := by
+  have := hl.coverageSlotsBelow2Pow16
   rw [coverage_eq] at this
   simp only [List.length_append] at this
   simp only [rX, rY]
@@ -92,13 +93,13 @@ theorem xs_lt {i : ℕ} (hi : i < (hRawX s w).length) : (slotsOf (xPlan s w)).ge
   rw [List.getD_eq_getElem _ _ hk]
   exact slotX_lt s w hk
 
-theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : XmssClaim × LeanXmss.Signature) {i : ℕ}
+theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.Signature) {i : ℕ}
     (hi : i < (hRawX s w).length) :
-    xmssVerify ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
+    leanXmssVerifyWithKeccak ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hi]
-  exact direct_held (H := ClaimIsHeld (fun (c : XmssClaim) σ ↦ xmssVerify c.1 c.2 σ = true) Claims.xmss w.children) (P := fun c σ => xmssVerify c.1 c.2 σ = true)
-    (fun _ _ h => h) hn.2.2.1 _ (List.getElem_mem hi)
+  exact direct_held (H := ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss w.children) (P := fun c σ => leanXmssVerifyWithKeccak c.1 c.2 σ = true)
+    (fun _ _ h => h) hn.1.1 _ (List.getElem_mem hi)
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
     (hi : i < (hRawX s w).length) :
@@ -110,7 +111,7 @@ theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
   exact this
 
 theorem xs_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
-    (d0 : XmssClaim × LeanXmss.Signature) {i : ℕ} (hi : i < (hRawX s w).length) :
+    (d0 : LeanXmssClaim × LeanXmss.Signature) {i : ℕ} (hi : i < (hRawX s w).length) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * (slotsOf (xPlan s w)).getD i 0))
       (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.root)
       (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.parameter)
@@ -131,7 +132,7 @@ theorem xs_regClaim {i : ℕ} (hi : i < (hRawX s w).length) {k : ℕ} (hk : k < 
 end
 
 /-- **The raw leanXMSS signatures' honest data.** -/
-def rawXD (hn : NodeRelation bytecode seed s w) (d0 : XmssClaim × LeanXmss.Signature) :
+def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.Signature) :
     RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 2) (hPos seed s w fs fp 0)
       (hLmain fs fp seed s w) where
   slot i := (slotsOf (xPlan s w)).getD i 0
@@ -146,7 +147,7 @@ def rawXD (hn : NodeRelation bytecode seed s w) (d0 : XmssClaim × LeanXmss.Sign
   regClaim _ hi _ hk := xs_regClaim hi hk
 
 /-- **`__loop2` on an honest run.** -/
-theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : Limits s w)
+theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) : MainGoalL3 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
@@ -167,13 +168,13 @@ theorem ss_lt {j : ℕ} (hj : j < (hRawS s w).length) : (slotsOf (sPlan s w)).ge
   rw [List.getD_eq_getElem _ _ hk]
   exact slotS_lt s w hk
 
-theorem ss_verify (hn : NodeRelation bytecode seed s w) (d0 : SphincsClaim × Sphincs.Signature) {j : ℕ}
+theorem ss_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphincs.Signature) {j : ℕ}
     (hj : j < (hRawS s w).length) :
-    sphincsVerify ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
+    leanSphincsVerifyWithKeccak ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hj]
-  exact direct_held (H := ClaimIsHeld (fun (c : SphincsClaim) σ ↦ sphincsVerify c.1 c.2 σ = true) Claims.sphincs w.children) (P := fun c σ => sphincsVerify c.1 c.2 σ = true)
-    (fun _ _ h => h) hn.2.2.2.1 _ (List.getElem_mem hj)
+  exact direct_held (H := ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children) (P := fun c σ => leanSphincsVerifyWithKeccak c.1 c.2 σ = true)
+    (fun _ _ h => h) hn.1.2 _ (List.getElem_mem hj)
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
     (hj : j < (hRawS s w).length) :
@@ -186,7 +187,7 @@ theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
   exact this
 
 theorem ss_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
-    (d0 : SphincsClaim × Sphincs.Signature) {j : ℕ} (hj : j < (hRawS s w).length) :
+    (d0 : LeanSphincsClaim × Sphincs.Signature) {j : ℕ} (hj : j < (hRawS s w).length) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * (slotsOf (sPlan s w)).getD j 0))
       (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.root)
       (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.parameter)
@@ -208,7 +209,7 @@ theorem ss_regClaim {j : ℕ} (hj : j < (hRawS s w).length) {k : ℕ} (hk : k < 
 end
 
 /-- **The raw leanSPHINCS signatures' honest data.** -/
-def rawSD (hn : NodeRelation bytecode seed s w) (d0 : SphincsClaim × Sphincs.Signature) :
+def rawSD (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphincs.Signature) :
     RawSData (hRawS s w).length (rY s w) (rX s w) (hRawX s w).length (hPos seed s w fs fp 2)
       (hPos seed s w fs fp 1) (hPos seed s w fs fp 3) (hLmain fs fp seed s w) where
   slot j := (slotsOf (sPlan s w)).getD j 0
@@ -225,7 +226,7 @@ def rawSD (hn : NodeRelation bytecode seed s w) (d0 : SphincsClaim × Sphincs.Si
   regBytes _ hv := bytes_region hv
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : Limits s w)
+theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) : MainGoalL4 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
@@ -243,12 +244,12 @@ digest, `da_verify`'s returns its cells. -/
 theorem checked_da (hn : NodeRelation bytecode seed s w) (h1 : (hm fs fp seed s w).nd = 1) :
     ∃ p, w.daMatrix = some p ∧ (hm fs fp seed s w).daR = daCells p.1 ∧
       p.2.Opens p.1.daRoot p.1.membershipVectorDigest := by
-  obtain ⟨-, -, -, -, hda, -⟩ := hn
+  obtain ⟨-, hda, -, -, -⟩ := hn
   obtain ⟨p, hw⟩ : ∃ p, w.daMatrix = some p := by
     cases hw : w.daMatrix with
     | none => simp [hm, hData, MainData.toIn, hw] at h1
     | some p => exact ⟨p, rfl⟩
-  rw [hw] at hda
+  rw [DaClaimCovered, hw] at hda
   exact ⟨p, hw, by simp [hm, hData, MainData.toIn, hw], hda.2⟩
 
 /-- **`da_verify` on an honest run.** -/

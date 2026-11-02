@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Limits
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The coverage plan
@@ -29,7 +30,7 @@ duplicate slot. With `made := R ++ Cs.flatten` and `slots` the slots in taking o
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Node LeanVM.Guest LeanVM.Guest.Hints LeanVM.Parameters
+open LeanVM.Node LeanVM.Guest LeanVM.Guest.Hints LeanVM.Guest.Coverage LeanVM.Parameters
 
 @[expose] public section
 
@@ -512,12 +513,12 @@ section Node
 variable (s : NodeStatement) (w : NodeWitness)
 
 /-- The leanXMSS region's plan, as `honestPushes` makes it. -/
-def xPlan : CoverageRegion XmssClaim :=
-  coveragePlan s.claims.xmss ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))
+def xPlan : CoverageRegion LeanXmssClaim :=
+  coveragePlan s.claims.xmss ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1)) (w.children.map (·.statement.claims.xmss))
 
 /-- The leanSPHINCS region's plan. -/
-def sPlan : CoverageRegion SphincsClaim :=
-  coveragePlan s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
+def sPlan : CoverageRegion LeanSphincsClaim :=
+  coveragePlan s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
     (w.children.map (·.statement.claims.sphincs))
 
 /-- **The coverage table's slots** are the two regions' tables'. -/
@@ -532,19 +533,19 @@ theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x :
 
 variable {bytecode : List K} {s w}
 
-theorem xPlan_held (hl : Limits s w) : ∀ x, s.claims.xmss.count x ≤
-    (made ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
-  fun x => by rw [made_count, List.map_map]; exact hl.xmssHeld x
+theorem xPlan_held (hl : DeployedLimits s w) : ∀ x, s.claims.xmss.count x ≤
+    (made ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
+  fun x => by rw [made_count, List.map_map]; exact hl.xmssClaimsHeldWithMultiplicity x
 
-theorem sPlan_held (hl : Limits s w) : ∀ x, s.claims.sphincs.count x ≤
-    (made ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
+theorem sPlan_held (hl : DeployedLimits s w) : ∀ x, s.claims.sphincs.count x ≤
+    (made ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).count x :=
-  fun x => by rw [made_count, List.map_map]; exact hl.sphincsHeld x
+  fun x => by rw [made_count, List.map_map]; exact hl.sphincsClaimsHeldWithMultiplicity x
 
 /-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
-theorem coverage_made (hl : Limits s w) : coverageSlots s w =
-    (made ((heldDirectly s.claims.xmss w.xmss).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
-    (made ((heldDirectly s.claims.sphincs w.sphincs).map (·.1))
+theorem coverage_made (hl : DeployedLimits s w) : coverageSlots s w =
+    (made ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
+    (made ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
       (w.children.map (·.statement.claims.sphincs))).length := by
   rw [coverage_eq, xPlan, sPlan, plan_table_length _ _ _ (xPlan_held hl),
     plan_table_length _ _ _ (sPlan_held hl)]

@@ -76,10 +76,10 @@ def cellOf128 (v : BitVec 128) : E :=
 def cellPairVal (lo hi : E) : BitVec 256 := cellVal hi ++ cellVal lo
 
 /-- The leanXMSS claim of four cells: the key's root and parameter, the message's halves. -/
-def xmssClaimOf (a b c d : E) : Node.XmssClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
+def xmssClaimOf (a b c d : E) : Node.LeanXmssClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
 
 /-- The leanSPHINCS claim of four cells. -/
-def sphincsClaimOf (a b c d : E) : Node.SphincsClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
+def sphincsClaimOf (a b c d : E) : Node.LeanSphincsClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
 
 /-- The four words at `p`: `a`, `b`, `c`, `d` at offsets `0` to `3`. -/
 def ClaimAt (rd : Reader) (p a b c d : E) : Prop :=
@@ -91,13 +91,13 @@ def ClaimAt (rd : Reader) (p a b c d : E) : Prop :=
 leanXMSS claim that `sig` verifies under Keccak-256. -/
 def XmssOut (rd : Reader) (p : E) (sig : LeanXmss.Signature) : Prop :=
   ∃ a b c d, ClaimAt rd p a b c d ∧
-    Node.xmssVerify (xmssClaimOf a b c d).1 (xmssClaimOf a b c d).2 sig = true
+    Node.leanXmssVerifyWithKeccak (xmssClaimOf a b c d).1 (xmssClaimOf a b c d).2 sig = true
 
 /-- **What `verify_sig_lean_sphincs(p, _)` establishes for the signature `sig`**: the four words at
 `p` are a leanSPHINCS claim that `sig` verifies under Keccak-256. -/
 def SphincsOut (rd : Reader) (p : E) (sig : Sphincs.Signature) : Prop :=
   ∃ a b c d, ClaimAt rd p a b c d ∧
-    Node.sphincsVerify (sphincsClaimOf a b c d).1 (sphincsClaimOf a b c d).2 sig = true
+    Node.leanSphincsVerifyWithKeccak (sphincsClaimOf a b c d).1 (sphincsClaimOf a b c d).2 sig = true
 
 /-- Some leanXMSS signature verifies the claim at `p`. -/
 def XmssSigned (rd : Reader) (p : E) : Prop := ∃ sig, XmssOut rd p sig
@@ -142,7 +142,7 @@ def verify_lean_xmss_complete_Spec : Prop :=
     (sig : LeanXmss.Signature), MemOK rd 64 →
     ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) →
-    Node.xmssVerify pk m sig = true →
+    Node.leanXmssVerifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = [])
 
 /-- **`verify_sig_lean_sphincs` is complete**: for a claim held at `p` in its canonical cells and a
@@ -153,7 +153,7 @@ def verify_sig_lean_sphincs_complete_Spec : Prop :=
     (sig : Sphincs.Signature), MemOK rd 256 → ByteBits rd bb →
     ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) →
-    Node.sphincsVerify pk m sig = true →
+    Node.leanSphincsVerifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
         Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = [])
 
@@ -209,7 +209,7 @@ theorem verify_lean_xmss_rel (hc : verify_lean_xmss_complete_Spec) {p : E}
     {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss.Signature} (hrd : MemOK rd 64)
     (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.xmssVerify pk m sig = true) :
+    (hv : Node.leanXmssVerifyWithKeccak pk m sig = true) :
     coreProgram.Rel rd "verify_lean_xmss" [p] [] := by
   obtain ⟨σ, hσ, hb⟩ := hc _ rd p pk m sig hrd hat hv
   exact (rel_iff_body find_verify_lean_xmss [p] []).mpr ⟨σ, by simp [core19_params, hσ], hb⟩

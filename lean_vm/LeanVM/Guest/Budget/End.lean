@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.EndComplete
 public import LeanVM.Guest.B1.Main.KidsT
 public import LeanVM.Guest.Budget.Static
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main` within the budget
@@ -24,6 +25,8 @@ The layout is consistent by disjointness, at least `2` since `main`'s frame is.
 -/
 
 namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest.Completeness
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
@@ -51,17 +54,17 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
     (cnt : Tree → Opcode → ℕ) (b : Budget)
     (T : Digest → NodeStatement → NodeWitness → Reader → Tree → Prop) (Bm : Digest → NodeStatement → NodeWitness → ℕ)
     (hfs : 2 ≤ fs "main")
-    (hmain : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w → ChildrenOk bytecode seed w →
+    (hmain : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w →
       ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm seed s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
         DisjL L ∧ ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
           LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
           LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
           RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 n "main" [] []
             (T seed s w rd))
-    (hcnt : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
+    (hcnt : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] →
         t.BufsOk coreProgram → ∀ op, cnt t op ≤ (b.instrs op).eval (work s w))
-    (hwords : ∀ seed s w, NodeRelation bytecode seed s w → Limits s w →
+    (hwords : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       Bm seed s w ≤ b.words.eval (work s w)) :
     MainComplete fs cert cnt b := by
   intro seed s w hrel hlim hok hbs

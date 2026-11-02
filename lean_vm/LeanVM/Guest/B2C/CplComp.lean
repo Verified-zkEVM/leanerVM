@@ -55,8 +55,8 @@ def PartReach {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List
 /-- What `CplRun` concludes of one path. -/
 def CplGoal {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
     Prop :=
-  ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guest else retRegs L (gpow fp) = some r) ∧
-    RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
+  ∃ (r : Registers K) (c : Opcode → ℕ), (if j = 1 then r = Registers.final guestProgram else retRegs L (gpow fp) = some r) ∧
+    RunC guestProgram L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
     (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
     ∀ k (hk : k < vs.length),
       L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])

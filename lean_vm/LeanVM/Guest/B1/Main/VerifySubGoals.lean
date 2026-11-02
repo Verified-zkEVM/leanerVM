@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.B1.VerifySub.CompleteBT
 public import LeanVM.Guest.B1.Main.MainGoalsDvTB
 public import LeanVM.Guest.Child.RefuseZero
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The children's `verify_sub` calls, bounded
@@ -28,7 +29,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (Limits ChildrenOk)
+open LeanVM.Guest (DeployedLimits ChildrenOk)
 open LeanVM.Guest.B1 (CompleteAtDTB Returns log2Lin)
 open LeanVM.Guest.B1.VerifySub (VsWords vsBoundAt vsTs VkCompleteAtB verify_sub_completeBT)
 
@@ -48,7 +49,7 @@ theorem childShape_bounds (hbl : bytecode.length = 2 ^ 23)
     (hch : ch ∈ w.children) :
     22 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 28 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 := by
-  obtain ⟨S⟩ := VerifySub.child_segments hbl seed ch (hok _ hch).stackLog
+  obtain ⟨S⟩ := VerifySub.child_segments hbl seed ch (hok _ hch).stackLogAtLeastMinimum
     (Limits.verifyDeferredNZ_of_childOk (hok _ hch)) (hok _ hch).capsAgree
   rw [childShape_of S.hann]
   exact ⟨S.hmu22, S.hmu28, S.hr1, S.hr4⟩
@@ -73,7 +74,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
     w.children[c] e (e + 34) outE
     (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
-    (hok _ hmem).stackLog (hok _ hmem).stream (Limits.verifyDeferredNZ_of_childOk (hok _ hmem))
+    (hok _ hmem).stackLogAtLeastMinimum (hok _ hmem).streamWithinCap (Limits.verifyDeferredNZ_of_childOk (hok _ hmem))
     (hok _ hmem).capsAgree
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : vsBoundAt W Bvk (childShape bytecode w.children[c]).1

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Budget.Covered
 public import Statement.LeanVmGuest
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The covered nodes
@@ -34,6 +35,8 @@ A matrix of `r ≤ 32` rows is charged at its padded height `nPad r ≤ 32` too 
 -/
 
 namespace LeanVM.Guest.Budget
+
+open LeanVM.Guest.Completeness
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Node LeanVM.Protocol
 open LeanVM.Protocol.KeccakHash
@@ -201,7 +204,7 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   intro seed s w hrel hlim hok hcov
   replace hcov := (covered_iff s w).1 hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
-  have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.children
+  have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.atMostSixteenChildren
   have hda : (work s w).rawDa ≤ 1 := by
     simp only [work]; cases w.daMatrix <;> simp
   have hrows : (work s w).rawDa = 0 → (work s w).rawDaRows = 0 := by

@@ -69,7 +69,7 @@ theorem own_digest (MF : MainFacts C rd σ) :
   have eS : (decStmt σ rd).claims.sphincs =
       (List.range (lg σ 3)).map (sphincsAt rd (σ (.n 56))) := by
     unfold decStmt; simp only [gLog_lg]
-  have eD : (decStmt σ rd).claims.da = daDigestAt rd σ (lg σ 387) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 387) := by
     unfold decStmt; simp only [gLog_lg]
   have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
@@ -79,7 +79,7 @@ theorem own_digest (MF : MainFacts C rd σ) :
   have hsd : digestBytes (claimListDigest (decStmt σ rd).claims.sphincs) =
       cellsBytes [σ (.n 59), σ (.n 60)] := by
     rw [eS, hs]; exact digestBytes_of_cells hds
-  have hda : digestBytes (decStmt σ rd).claims.da = cellsBytes [σ (.n 429), σ (.n 430)] := by
+  have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 429), σ (.n 430)] := by
     rw [eD]; exact (daDigestAt_of_loads p0 p1).2
   rw [hrets, statementDigest_parts (digestBytes_decSeed σ) hxd hsd hda hdef hlen]
 

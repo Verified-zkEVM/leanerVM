@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced10
 public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The function's own words, as layouts
@@ -33,7 +34,7 @@ def oqChainVals (odd base : ℕ) (lam : E) (ds : ℕ → E) (N : ℕ) : List E :
 
 /-- A query's frame run's first `4·pd` cells. -/
 def oqRunCells (pd : ℕ) (row : List K) (q : ℕ) (sibs : List Digest) : List E :=
-  (List.range (4 * pd)).map (pathCell (hashWords row) q sibs)
+  (List.range (4 * pd)).map (pathCell (merkleLeafDigest row) q sibs)
 
 theorem pathCell_node (leaf : Digest) (q : ℕ) (sibs : List Digest) (l e : ℕ) (he : e < 2) :
     pathCell leaf q sibs (4 * l + (if q.testBit l then 2 else 0) + e) =
@@ -54,9 +55,9 @@ theorem qdOk_of_run {rd : Reader} {s : Oq} {b : ℕ} {emit : Bool} {pr : ℕ} {r
     (hrun : ReadsAt rd (ofK (Parameters.gpow c)) (oqRunCells s.pd row q sibs))
     (hw : ∀ l < s.lo + s.I / s.lo, LoadHolds rd wp l (w l))
     (hc0 : LoadHolds rd cap (2 * (2 ^ s.cd + q / 2 ^ s.pd))
-      (digestScalars (climbD (hashWords row) q sibs)).1)
+      (digestScalars (climbD (merkleLeafDigest row) q sibs)).1)
     (hc1 : LoadHolds rd cap (2 * (2 ^ s.cd + q / 2 ^ s.pd) + 1)
-      (digestScalars (climbD (hashWords row) q sibs)).2)
+      (digestScalars (climbD (merkleLeafDigest row) q sibs)).2)
     (hfl : LoadHolds rd flags (2 ^ (s.cd - 1) + q / 2 ^ (s.pd + 1)) 1) :
     (⟨s, b, emit, pr, row, w, q, sibs, ofK (Parameters.gpow c), cap, flags, rd⟩ : QD).Ok rd wp := by
   have hlen : (oqRunCells s.pd row q sibs).length = 4 * s.pd := by simp [oqRunCells]
@@ -80,8 +81,8 @@ theorem qdOk_of_run {rd : Reader} {s : Oq} {b : ℕ} {emit : Bool} {pr : ℕ} {r
     simp only [oqRunCells, Nat.add_zero] at h0 h1
     rw [List.getD_eq_getElem _ _ (by simp; split <;> omega)] at h0 h1
     simp only [List.getElem_map, List.getElem_range] at h0 h1
-    have p0 := pathCell_node (hashWords row) q sibs l 0 (by omega)
-    have p1 := pathCell_node (hashWords row) q sibs l 1 (by omega)
+    have p0 := pathCell_node (merkleLeafDigest row) q sibs l 0 (by omega)
+    have p1 := pathCell_node (merkleLeafDigest row) q sibs l 1 (by omega)
     simp only [Nat.add_zero, ↓reduceIte, one_ne_zero] at p0 p1
     rw [p0] at h0
     rw [p1] at h1

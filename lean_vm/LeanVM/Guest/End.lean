@@ -45,7 +45,7 @@ theorem loadHolds_one {rd : Reader} {i : ℕ} {d : E} (h : rd (gpow i) = some d)
 
 /-- **The public input's cells**: a valid execution's memory holds the two cells of the public
 input's digest at `g^0` and `g^1`. -/
-theorem pub_loads {input : PublicInput} {t : Execution guest} (hv : ValidExecution guest input t) :
+theorem pub_loads {input : PublicInput} {t : Execution guestProgram} (hv : ValidExecution guestProgram input t) :
     LoadHolds t.memory.read 1 0 (digestScalars (publicDigest input)).1 ∧
       LoadHolds t.memory.read 1 1 (digestScalars (publicDigest input)).2 := by
   obtain ⟨⟨-, -, h0, h1⟩, -⟩ := hv

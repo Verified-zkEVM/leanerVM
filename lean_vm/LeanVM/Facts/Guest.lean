@@ -10,6 +10,7 @@
 module
 
 public import Statement.LeanVmGuest
+public import LeanVM.Guest.AcceptableChild
 
 namespace LeanVM.Guest
 
@@ -30,7 +31,7 @@ def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=
 namespace End
 
 /-- The guest's bytecode, as the verifier and `NodeRelation` read it. -/
-abbrev bytecode : List K := bytecodeWords guest
+abbrev bytecode : List K := bytecodeWords guestProgram
 
 /-- The public input a digest is: its four words, the digest's halves in memory words `0` and `1`
 (`PublicInput.ofDigest`). -/
@@ -63,8 +64,8 @@ structure Work where
 def work (s : NodeStatement) (w : NodeWitness) : Work where
   declared := s.claims.xmss.length + s.claims.sphincs.length
   coverage := coverageSlots s w
-  rawXmss := (Hints.heldDirectly s.claims.xmss w.xmss).length
-  rawSphincs := (Hints.heldDirectly s.claims.sphincs w.sphincs).length
+  rawXmss := (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length
+  rawSphincs := (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length
   rawDa := (w.daMatrix.map fun _ ↦ 1).getD 0
   rawDaRows := (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0
   rawDaPad := (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0

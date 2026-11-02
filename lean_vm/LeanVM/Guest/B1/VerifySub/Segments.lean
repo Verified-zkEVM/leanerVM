@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.CompleteSpec
 public import LeanVM.Guest.B1.VerifySub.Sizes
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.AcceptableChild
 
 /-!
 # The segments of an honest child's run
@@ -496,12 +497,12 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
 theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
     (c : Node.Child)
     (hmu : ∀ layout r, Verifier.announced bytecode c.proof.stream = some (layout, r) →
-      Hints.minChildStackLog ≤ layout.stackLog)
+      Coverage.minChildStackLog ≤ layout.stackLog)
     (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf
       (deferredProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
-      (Hints.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
+      (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     Nonempty (ChildSegs bytecode seed c) := by
   obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnzW, hcapsW, hacc⟩ :=
     child_open seed c hnz hcaps
@@ -517,7 +518,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
     have := hsA.symm.trans hxs1
     exact (List.append_cancel_right this).symm
   subst exs1
-  have hmu22 : Hints.minChildStackLog ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF1600 (seedInput seed
+  have hmu22 : Coverage.minChildStackLog ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF1600 (seedInput seed
     (Node.statementDigest seed c.statement)), []⟩) ⟨rfl, rfl⟩ hA)
   obtain ⟨rA, oA⟩ := NoCommit.runF (noCommit_readSizes _) hA
   -- the stack's root

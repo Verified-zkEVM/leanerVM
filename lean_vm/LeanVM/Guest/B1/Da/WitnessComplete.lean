@@ -37,7 +37,7 @@ def wSyms (w : LeanVM.Da.MatrixWitness) (i j : ℕ) : List K :=
 
 /-- A witness's columns of weights, padded outside the vector. -/
 def wWs (w : LeanVM.Da.MatrixWitness) (j : ℕ) : List E :=
-  if j < 128 then (w.vector.drop (256 * j)).take 256 else List.replicate 256 0
+  if j < 128 then (w.orthogonalVector.drop (256 * j)).take 256 else List.replicate 256 0
 
 /-- The padded count's log. -/
 def wLog (w : LeanVM.Da.MatrixWitness) : ℕ := LeanDa.logPaddedRowCount w.rows.length
@@ -68,7 +68,7 @@ theorem wSyms_length (w : LeanVM.Da.MatrixWitness) (hrow : ∀ row ∈ w.rows, r
     omega
   · rw [List.length_replicate]
 
-theorem wWs_length (w : LeanVM.Da.MatrixWitness) (hv : w.vector.length = 2 ^ LeanDa.logM) (j : ℕ) :
+theorem wWs_length (w : LeanVM.Da.MatrixWitness) (hv : w.orthogonalVector.length = 2 ^ LeanDa.logM) (j : ℕ) :
     (wWs w j).length = 256 := by
   unfold wWs
   split

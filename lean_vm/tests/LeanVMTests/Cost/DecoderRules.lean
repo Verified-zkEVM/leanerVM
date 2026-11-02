@@ -42,7 +42,7 @@ cost_compile mkKey := mkKey
 def keyRoot (k : HashSig.PublicKey) : ℕ := k.root.toNat
 cost_compile keyRoot := keyRoot
 
-def mkStatement (xs : List XmssClaim) (ss : List SphincsClaim) (d : LeanVM.Protocol.Digest)
+def mkStatement (xs : List LeanXmssClaim) (ss : List LeanSphincsClaim) (d : LeanVM.Protocol.Digest)
     (c : DeferredClaim) : NodeStatement := ⟨⟨xs, ss, d⟩, c⟩
 cost_compile mkStatement := mkStatement
 
@@ -64,7 +64,7 @@ def mkWitness (cs : List Child) (xs : List (ClaimHolder LeanXmss.Signature))
 cost_compile mkWitness := mkWitness
 
 def mkDecoded (seed : LeanVM.Protocol.Digest) (s : NodeStatement) (w : NodeWitness) :
-    Decoded := ⟨seed, s, w⟩
+    SeedStatementAndWitness := ⟨seed, s, w⟩
 cost_compile mkDecoded := mkDecoded
 
 def layerSwap (r : BitVec 128) (σ : LeanXmss.LayerSignature) : LeanXmss.LayerSignature :=
@@ -128,7 +128,7 @@ def witness : NodeWitness := mkWitness [child] (holders 3 xsig) [] da [(x, x)] x
   [encodeValue [child], encodeValue (holders 3 xsig), encodeValue ([] : List (ClaimHolder Sphincs.Signature)),
   encodeValue da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
 
-def decoded : Decoded := mkDecoded digest stmt witness
+def decoded : SeedStatementAndWitness := mkDecoded digest stmt witness
 #guard runOn mkDecoded.costDeps mkDecoded.costIdx
   [encodeValue digest, encodeValue stmt, encodeValue witness] == some (encodeValue decoded)
 

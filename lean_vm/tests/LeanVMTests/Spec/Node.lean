@@ -90,7 +90,7 @@ example : zeroClaim.HasBytecodeShape bytecode ∧ zeroClaim.HasZeroPoint bytecod
   simp [DeferredClaim.HasBytecodeShape, DeferredClaim.HasZeroPoint, zeroClaim, bytecode]; decide
 
 /-- No claims. -/
-def noClaims : Claims := ⟨[], [], zeroDigest⟩
+def noClaims : NodeClaims := ⟨[], [], zeroDigest⟩
 
 -- Mutation: a bytecode point one coordinate short has the same digest (its five cells are paired
 -- with a zero cell, the six zero cells of `zeroClaim`), and `Shaped` is what rejects it.
@@ -106,7 +106,7 @@ example (seed : Digest) (s : NodeStatement) :
 /-! ## The statement's encodings: known answers -/
 
 /-- The leanXMSS claims. -/
-def xmss : List XmssClaim :=
+def xmss : List LeanXmssClaim :=
   [(⟨BitVec.ofNat 128 0x0123456789abcdef0011223344556677,
       BitVec.ofNat 128 0x8899aabbccddeeff0f1e2d3c4b5a6978⟩,
     BitVec.ofNat 256 0xdeadbeef00112233445566778899aabbccddeeff102132435465768798a9bacb),
@@ -114,7 +114,7 @@ def xmss : List XmssClaim :=
       BitVec.ofNat 128 0x0f0e0d0c0b0a09080706050403020100⟩, BitVec.ofNat 256 1)]
 
 /-- The leanSPHINCS claims. -/
-def sphincs : List SphincsClaim :=
+def sphincs : List LeanSphincsClaim :=
   [(⟨BitVec.ofNat 128 0xfedcba98765432100123456789abcdef, BitVec.ofNat 128 1⟩,
     BitVec.ofNat 256 (2 ^ 256 - 1))]
 
