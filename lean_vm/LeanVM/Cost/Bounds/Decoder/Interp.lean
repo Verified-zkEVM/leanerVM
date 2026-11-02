@@ -12,11 +12,11 @@ The prices of the pieces of a lane's interpolation that compute `G` and `R` (com
 `Cost/Extractor/PMLane.lean`), on `n` points:
 
 * the vanishing polynomial (`vanishingC_cost`: `n` products by a linear factor,
-  `3720·n² + 4050·n + 20`);
+  `362·n² + 501·n + 14`);
 * Horner's evaluations (`evalHornerC_cost`, `evalBatchC_cost`), the derivative
   (`derivativeC_cost`), synthetic division by `X − x` (`divByLinearFactorC_cost`), one term
   (`interpTermC_cost`: an inverse, a division, a scaling), and the interpolating polynomial
-  (`interpolateC_cost`: `1700·|G|·n + 22600·n + 400·|G| + 100`).
+  (`interpolateC_cost`: `309·|G|·n + 3529·n + 97·|G| + 74`).
 
 The least row's normalization is bounded in `Bounds/Decoder/Interpolate.lean`, the interpolation
 in `Bounds/PMSolve/Interp.lean`.
@@ -39,9 +39,9 @@ variable (P : MachineProgram)
 theorem size_linearFactor_le (x : K) : (CPolynomial.linearFactor x).val.size ≤ 2 :=
   (val_size_le_natDegree_add_one _).trans (by have := natDegree_linearFactor x; omega)
 
-/-- `C r` over `K`: at most `55`. -/
+/-- `C r` over `K`: at most `51`. -/
 theorem cK_cost (hP : Includes P C.c74.costDeps) (r : K) :
-    machineCost P C.c74.costIdx [encodeValue r] ≤ 55 := by
+    machineCost P C.c74.costIdx [encodeValue r] ≤ 51 := by
   rw [C.c74.costEq P hP]
   have hs : (CPolynomial.Raw.C r).size = 1 := rfl
   have := trimLen_cost P (by includes) (CPolynomial.Raw.C r) (CPolynomial.Raw.C r).size
@@ -54,9 +54,9 @@ theorem cK_cost (hP : Includes P C.c74.costDeps) (r : K) :
 theorem xK_cost (hP : Includes P X.c609.costDeps) : machineCost P X.c609.costIdx [] = 13 := by
   rw [X.c609.costEq P hP, Raw.X.c55.costEq P (by includes)]
 
-/-- A linear factor `X − x`: at most `460`. -/
+/-- A linear factor `X − x`: at most `236`. -/
 theorem linearFactorC_cost (hP : Includes P linearFactor.c608.costDeps) (x : K) :
-    machineCost P linearFactor.c608.costIdx [encodeValue x] ≤ 460 := by
+    machineCost P linearFactor.c608.costIdx [encodeValue x] ≤ 236 := by
   rw [linearFactor.c608.costEq P hP]
   have := cK_cost P (by includes) (-x)
   have := xK_cost P (by includes)
@@ -71,21 +71,22 @@ theorem linearFactorC_cost (hP : Includes P linearFactor.c608.costDeps) (x : K) 
   omega
 
 /-- **The vanishing polynomial of `n` points** (`vanishingFast`, `n` products by a linear
-factor): at most `3720·n² + 4050·n + 20`, written with `n·n` an atom. -/
+factor): at most `362·n² + 501·n + 14`, written with `n·n` an atom. -/
 theorem vanishingC_cost (hP : Includes P vanishingFast.c606.costDeps) (xs : Array K)
     (hn : xs.size < 2 ^ 58) :
     machineCost P vanishingFast.c606.costIdx [encodeValue xs] ≤
-      3720 * (xs.size * xs.size) + 4050 * xs.size + 20 := by
+      362 * (xs.size * xs.size) + 501 * xs.size + 14 := by
   rw [vanishingFast.c606.costEq P hP]
   have hf := listFoldl_le_idx P (by includes) _ (.closure vanishingFast.c606.lam0.costIdx [])
     (fun acc x ↦ RunsApp.of_spec (vanishingFast.c606.lam0.costSpec P (by includes) acc x))
-    (3720 * xs.size + 4030) (fun k acc ↦ acc.val.size + 2 * k ≤ 2 * xs.size + 1) xs.toList
+    (362 * xs.size + 487) (fun k acc ↦ acc.val.size + 2 * k ≤ 2 * xs.size + 1) xs.toList
     (fun k acc hacc x _ ↦ by
       refine ⟨?_, ?_⟩
       · have := cpoly_mul_size_le (CPolynomial.linearFactor x) acc
         have := size_linearFactor_le x
         omega
-      · rw [appCost_fn, List.nil_append, vanishingFast.c606.lam0.costEq P (by includes)]
+      · rw [appCost_fn, List.nil_append, List.length_nil,
+          vanishingFast.c606.lam0.costEq P (by includes)]
         have := linearFactorC_cost P (by includes) x
         have hl := size_linearFactor_le x
         have := mulK_cost P (by includes) (CPolynomial.linearFactor x).val acc.val
@@ -98,57 +99,58 @@ theorem vanishingC_cost (hP : Includes P vanishingFast.c606.costDeps) (xs : Arra
     xs.toList 1 (fun _ h ↦ h)
     (by show (CPolynomial.Raw.C (1 : K)).size + _ ≤ _
         simp [CPolynomial.Raw.C]; omega)
-  have e : (3720 * xs.size + 4030 + 9) * xs.toList.length =
-      3720 * (xs.size * xs.size) + 4039 * xs.size := by
+  have e : (362 * xs.size + 487 + 11) * xs.toList.length =
+      362 * (xs.size * xs.size) + 498 * xs.size := by
     simp only [Array.length_toList]; ring
   omega
 
 /-! ## The interpolating polynomial -/
 
-/-- A natural number in `K`: at most `9`. -/
+/-- A natural number in `K`: at most `7`. -/
 theorem natCastC_cost (hP : Includes P Auto.BF64.natCast.c574.costDeps) (n : ℕ) (hn : n < 2 ^ 64) :
-    machineCost P Auto.BF64.natCast.c574.costIdx [encodeValue n] ≤ 9 := by
+    machineCost P Auto.BF64.natCast.c574.costIdx [encodeValue n] ≤ 7 := by
   rw [Auto.BF64.natCast.c574.costEq P hP]
   cost_simp
   split_ifs <;> omega
 
-/-- **Horner's evaluation** (`evalHorner`): at most `272·|p| + 16`. -/
+/-- **Horner's evaluation** (`evalHorner`): at most `46·|p| + 16`. -/
 theorem evalHornerC_cost (hP : Includes P evalHorner.c20.costDeps) (x : K) (p : CPolynomial K) :
-    machineCost P evalHorner.c20.costIdx [encodeValue x, encodeValue p] ≤ 272 * p.val.size + 16 := by
+    machineCost P evalHorner.c20.costIdx [encodeValue x, encodeValue p] ≤ 46 * p.val.size + 16 := by
   rw [evalHorner.c20.costEq P hP, eval₂Horner.c21.costEq P (by includes),
     Raw.eval₂Horner.c22.costEq P (by includes)]
   have := foldr_cost P (by includes) _ (.closure Raw.eval₂Horner.c22.lam0.costIdx [encodeValue x])
     (fun a acc ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a, encodeValue acc])
-      (Raw.eval₂Horner.c22.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
+      (Raw.eval₂Horner.c22.lam0.costSpec P (by includes) x a acc)) 32 (0 : K) p.val.toList
     (fun a _ acc ↦ by
-      rw [appCost_fn, List.singleton_append, Raw.eval₂Horner.c22.lam0.costEq P (by includes)])
+      rw [appCost_fn, List.singleton_append, Raw.eval₂Horner.c22.lam0.costEq P (by includes)]; simp)
   simp only [Array.length_toList] at this
   omega
 
-/-- **Horner at every point** (`evalBatchHorner`): at most `272·|p|·|xs| + 34·|xs| + 10`. -/
+/-- **Horner at every point** (`evalBatchHorner`): at most `46·|p|·|xs| + 37·|xs| + 10`. -/
 theorem evalBatchC_cost (hP : Includes P evalBatchHorner.c612.costDeps) (p : CPolynomial K)
     (xs : Array K) :
     machineCost P evalBatchHorner.c612.costIdx [encodeValue p, encodeValue xs] ≤
-      272 * (p.val.size * xs.size) + 34 * xs.size + 10 := by
+      46 * (p.val.size * xs.size) + 37 * xs.size + 10 := by
   rw [evalBatchHorner.c612.costEq P hP]
   have hf := fun x ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue x])
     (evalBatchHorner.c612.lam0.costSpec P (by includes) p x)
   have := listMap_le P Auto.List.map.c30.costIdx (.closure evalBatchHorner.c612.lam0.costIdx [encodeValue p])
     (Auto.List.map.c30.costEq_nil P (by includes) _ _ hf)
-    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) (272 * p.val.size + 19) xs.toList
+    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) (46 * p.val.size + 20) xs.toList
     (fun x _ ↦ by
-      rw [appCost_fn, List.singleton_append, evalBatchHorner.c612.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.singleton_append, List.length_singleton,
+        evalBatchHorner.c612.lam0.costEq P (by includes)]
       have := evalHornerC_cost P (by includes) x p
       omega)
-  have e : (272 * p.val.size + 19 + 11) * xs.toList.length =
-      272 * (p.val.size * xs.size) + 30 * xs.size := by simp only [Array.length_toList]; ring
+  have e : (46 * p.val.size + 20 + 13) * xs.toList.length =
+      46 * (p.val.size * xs.size) + 33 * xs.size := by simp only [Array.length_toList]; ring
   simp only [Array.length_toList, List.length_map] at this e ⊢
   omega
 
-/-- **The derivative** (`derivative`): at most `330·|p| + 35`. -/
+/-- **The derivative** (`derivative`): at most `97·|p| + 30`. -/
 theorem derivativeC_cost (hP : Includes P derivative.c614.costDeps) (p : CPolynomial K)
     (hp : p.val.size < 2 ^ 58) :
-    machineCost P derivative.c614.costIdx [encodeValue p] ≤ 330 * p.val.size + 35 := by
+    machineCost P derivative.c614.costIdx [encodeValue p] ≤ 97 * p.val.size + 30 := by
   rw [derivative.c614.costEq P hP]
   have hsz : (Array.extract p.val 1).size ≤ p.val.size := by simp
   have := zipIdx_cost P (by includes) (Array.extract p.val 1).toList 0 (by simp; omega)
@@ -156,12 +158,12 @@ theorem derivativeC_cost (hP : Includes P derivative.c614.costDeps) (p : CPolyno
     (derivative.c614.lam0.costSpec P (by includes) q)
   have hm := listMap_le P Auto.List.map.c30.costIdx (.closure derivative.c614.lam0.costIdx [])
     (Auto.List.map.c30.costEq_nil P (by includes) _ _ hf)
-    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) 274
+    (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) 41
     (Array.extract p.val 1).toList.zipIdx
     (fun q hq ↦ by
       have := List.mem_zipIdx hq
       simp only [Array.length_toList] at this
-      rw [appCost_fn, List.nil_append, derivative.c614.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, List.length_nil, derivative.c614.lam0.costEq P (by includes)]
       have := natCastC_cost P (by includes) (q.2 + 1) (by omega)
       cost_simp
       omega)
@@ -182,21 +184,22 @@ theorem divFold_length (g : K × List K → ℕ → K) :
   | nil => intro st; simp
   | cons j l ih => intro st; rw [List.foldl_cons, ih]; simp; omega
 
-/-- **Division by `X − x`** (`divByLinearFactor`, synthetic division): at most `341·|p| + 60`. -/
+/-- **Division by `X − x`** (`divByLinearFactor`, synthetic division): at most `109·|p| + 51`. -/
 theorem divByLinearFactorC_cost (hP : Includes P divByLinearFactor.c618.costDeps)
     (p : CPolynomial K) (x : K) (hp : p.val.size < 2 ^ 58) :
-    machineCost P divByLinearFactor.c618.costIdx [encodeValue p, encodeValue x] ≤ 341 * p.val.size + 60 := by
+    machineCost P divByLinearFactor.c618.costIdx [encodeValue p, encodeValue x] ≤ 109 * p.val.size + 51 := by
   rw [divByLinearFactor.c618.costEq P hP]
   have := rangeLoop_cost P (by includes) (p.val.size - 1) [] (by omega)
   have := reverseAux_cost P (by includes) (List.range (p.val.size - 1)) []
   have hf := listFoldl_le P (by includes) _ (.closure divByLinearFactor.c618.lam0.costIdx [encodeValue p, encodeValue x])
     (fun st j ↦ RunsApp.of_spec (us := [encodeValue p, encodeValue x]) (vs := [encodeValue st, encodeValue j])
       (divByLinearFactor.c618.lam0.costSpec P (by includes) p x st j))
-    278 (fun _ ↦ True) (List.range (p.val.size - 1)).reverse (0, []) trivial
+    50 (fun _ ↦ True) (List.range (p.val.size - 1)).reverse (0, []) trivial
     (fun st _ j hj ↦ ⟨trivial, by
       simp only [List.mem_reverse, List.mem_range] at hj
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         divByLinearFactor.c618.lam0.costEq P (by includes)]
+      simp only [List.length_cons, List.length_nil]
       cost_simp
       omega⟩)
   generalize hL : List.foldl _ ((0 : K), ([] : List K)) (List.range (p.val.size - 1)).reverse = L
@@ -218,11 +221,11 @@ theorem size_divByLinearFactor_le (p : CPolynomial K) (x : K) :
   omega
 
 /-- **One interpolation term** (`interpolationTermWithVanishing`: an inverse, a division by
-`X − x`, a scaling): at most `1271·|G| + 22000`. -/
+`X − x`, a scaling): at most `210·|G| + 3260`. -/
 theorem interpTermC_cost (hP : Includes P interpolationTermWithVanishing.c617.costDeps)
     (G : CPolynomial K) (pt : K × K) (dv : K) (hG : G.val.size < 2 ^ 58) :
     machineCost P interpolationTermWithVanishing.c617.costIdx [encodeValue G, encodeValue pt, encodeValue dv] ≤
-      1271 * G.val.size + 22000 := by
+      210 * G.val.size + 3260 := by
   rw [interpolationTermWithVanishing.c617.costEq P hP]
   have := invK_cost P (by includes) dv
   have := cK_cost P (by includes) (pt.2 / dv)
@@ -250,12 +253,12 @@ theorem size_interpTerm_le (G : CPolynomial K) (pt : K × K) (dv : K) :
   omega
 
 /-- **The interpolating polynomial** (`interpolateCoefficientFormWithVanishing`, `n` points,
-the vanishing polynomial `G`): at most `1700·|G|·n + 22600·n + 400·|G| + 100`. -/
+the vanishing polynomial `G`): at most `309·|G|·n + 3529·n + 97·|G| + 74`. -/
 theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishing.c611.costDeps)
     (G : CPolynomial K) (points : Array (K × K)) (hG : G.val.size < 2 ^ 58)
     (hn : points.size < 2 ^ 58) :
     machineCost P interpolateCoefficientFormWithVanishing.c611.costIdx [encodeValue G, encodeValue points] ≤
-      1700 * (G.val.size * points.size) + 22600 * points.size + 400 * G.val.size + 100 := by
+      309 * (G.val.size * points.size) + 3529 * points.size + 97 * G.val.size + 74 := by
   rw [interpolateCoefficientFormWithVanishing.c611.costEq P hP]
   have := derivativeC_cost P (by includes) G hG
   have hdG : G.derivative.val.size ≤ G.val.size := by
@@ -269,7 +272,7 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
     (Auto.List.map.c30.costEq_cons P (by includes) _ _ hf) 2 points.toList
     (fun pt _ ↦ by
       rw [appCost_fn, List.nil_append,
-        LeanVM.Cost.Extractor.interpolatePMC.lam0.costEq P (by includes)])
+        LeanVM.Cost.Extractor.interpolatePMC.lam0.costEq P (by includes)]; simp)
   have he := evalBatchC_cost P (by includes) G.derivative
     (Array.map (fun point : K × K ↦ point.1) points)
   have := rangeLoop_cost P (by includes) points.size [] (by omega)
@@ -281,7 +284,7 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
       (us := [encodeValue G, encodeValue points, encodeValue ((CPolynomial.BatchEvalContext.horner K).evalBatchWith
         G.derivative (Array.map (fun point : K × K ↦ point.1) points))]) (vs := [encodeValue acc, encodeValue i])
       (interpolateCoefficientFormWithVanishing.c611.lam0.costSpec P (by includes) G points _ acc i))
-    (1381 * G.val.size + 22400) (fun acc ↦ acc.val.size ≤ G.val.size + 2)
+    (263 * G.val.size + 3447) (fun acc ↦ acc.val.size ≤ G.val.size + 2)
     (List.range points.size) 0 (by show (#[] : Array K).size ≤ _; simp)
     (fun acc hacc i _ ↦ by
       refine ⟨?_, ?_⟩
@@ -293,6 +296,7 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
         omega
       · rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
           interpolateCoefficientFormWithVanishing.c611.lam0.costEq P (by includes)]
+        simp only [List.length_cons, List.length_nil]
         have := interpTermC_cost P (by includes) G (points.getD i (0, 0))
           (((CPolynomial.BatchEvalContext.horner K).evalBatchWith G.derivative
             (Array.map (fun point : K × K ↦ point.1) points)).getD i 0) hG
@@ -305,8 +309,8 @@ theorem interpolateC_cost (hP : Includes P interpolateCoefficientFormWithVanishi
         omega)
   have : G.derivative.val.size * (Array.map (fun point : K × K ↦ point.1) points).size ≤
       G.val.size * points.size := by simp only [Array.size_map]; exact Nat.mul_le_mul_right _ hdG
-  have e : (1381 * G.val.size + 22400 + 9) * (List.range points.size).length =
-      1381 * (G.val.size * points.size) + 22409 * points.size := by
+  have e : (263 * G.val.size + 3447 + 11) * (List.range points.size).length =
+      263 * (G.val.size * points.size) + 3458 * points.size := by
     simp only [List.length_range]; ring
   simp only [Array.length_toList, List.length_map, Array.size_map] at *
   omega
