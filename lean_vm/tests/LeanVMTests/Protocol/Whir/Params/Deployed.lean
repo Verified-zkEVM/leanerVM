@@ -2,8 +2,9 @@
   LeanVMTests.Protocol.Whir.Params.Deployed
 
   Controls for the certified codes of the deployed WHIR ladders: the certificates check, the
-  bound is tight at `2^-128` for the weakest shapes, a halved slack or a dropped query breaks it,
-  a wrong square-root bracket is rejected, and the result feeds `stackedSpec`.
+  bound is tight at `2^-128`, level 0's slack is the largest that checks, a halved slack or a
+  dropped query breaks it, a wrong square-root bracket is rejected, and the result feeds
+  `stackedSpec`.
 -/
 
 import LeanVM.Protocol.Whir.Params.Deployed
@@ -13,12 +14,14 @@ import LeanVM.Protocol.Whir.Params.Deployed
 
 * **Inhabitant.** `defaultCert` and the table's certificates check (`Cert.OK`), so
   `deployedCodes` is built from the certificates and not from the fallback.
-* **Tightness.** The weakest shape `(μ, R) = (15, 2)` (about `2^-128.16`, level 0's query group)
-  checks at `2^-128` and fails at `2^-129`; so does `(16, 3)` (about `2^-128.43`, level 1's fold
-  group), the weakest before the query counts of leanVM `127510d1` (`b977f5fa`).
+* **Tightness.** Every shape checks at `2^-128` and fails at `2^-129` (level 0's query group, at
+  its limit): `(15, 2)` (about `2^-128.16`), `(16, 3)` and the largest, `(28, 4)`.
+* **Level 0's slack is the largest.** One unit more at level 0 of `(15, 2)` (`e = 2049 → 2050`)
+  or of `(28, 4)` (`e = 13059 → 13060`) breaks its query group. Level 0's list bound at `(15, 2)`
+  is `2049`, the largest, so the survivor bound of `shapeOK` is `2^12`, not `2^11`.
 * **Slack.** Halving the slack of level 1 of `(16, 3)` (`e = 16 → 8`) breaks its fold group:
-  ArkLib's exception count grows like `η^-3`; halving that of level 0 of `(15, 2)` (`e = 34 → 17`)
-  breaks its fold group too.
+  ArkLib's exception count grows like `η^-3`; at level 0 of `(15, 2)` a slack of `17` breaks its
+  fold group too.
 * **Queries.** Dropping one of the 111 queries of level 0 of `(15, 2)`, or one of the 37 of
   level 1 of `(16, 3)`, breaks its query group.
 * **Bracket.** Moving the bracket of `√ρ₋` up by one step is rejected.
@@ -51,6 +54,26 @@ example : shapeOK 128 16 3 = true := by decide +kernel
 
 example : shapeOK 129 16 3 = false := by decide +kernel
 
+example : shapeOK 128 28 4 = true := by decide +kernel
+
+example : shapeOK 129 28 4 = false := by decide +kernel
+
+/-! ## Level 0's slack is the largest -/
+
+example : certOf 28 4 0 = ⟨22, 4, 13059, 274877874175⟩ := rfl
+
+/-- The query group of level 0 of `(28, 4)` with its 56 queries, at the table's slack. -/
+example : (certOf 28 4 0).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
+
+/-- One unit of slack more breaks it. -/
+example : ¬ (Cert.mk 22 4 13060 274877874175).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
+
+/-- At `(15, 2)` too. -/
+example : ¬ (Cert.mk 9 2 2050 549218680575).QueryOK 128 (certOf 15 2 1) 111 := by decide +kernel
+
+/-- Level 0's list bound at `(15, 2)` is above `2^11`. -/
+example : (certOf 15 2 0).listHi = 2049 := by decide +kernel
+
 /-! ## Load-bearing slack and query count -/
 
 /-- The fold group of level 1 of `(16, 3)` at the table's slack `16 / 2^22`. -/
@@ -65,12 +88,12 @@ example : (certOf 16 3 1).QueryOK 128 (certOf 16 3 2) 37 := by decide +kernel
 /-- One query fewer breaks it. -/
 example : ¬ (certOf 16 3 1).QueryOK 128 (certOf 16 3 2) 36 := by decide +kernel
 
-/-- The fold group of level 0 of `(15, 2)` at the table's slack `34 / 2^22`. -/
-example : certOf 15 2 0 = ⟨9, 2, 34, 549218680575⟩ := rfl
+/-- The fold group of level 0 of `(15, 2)` at the table's slack `2049 / 2^22`. -/
+example : certOf 15 2 0 = ⟨9, 2, 2049, 549218680575⟩ := rfl
 
 example : (certOf 15 2 0).FoldOK 128 6 := by decide +kernel
 
-/-- Halving the slack breaks it. -/
+/-- A slack of `17` breaks it. -/
 example : ¬ (Cert.mk 9 2 17 549218680575).FoldOK 128 6 := by decide +kernel
 
 /-- The query group of level 0 of `(15, 2)` with its 111 queries (`verifier.py:912` at leanVM

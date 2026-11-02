@@ -57,6 +57,40 @@ def best(l,nxtL=2**18):
   # local search around
   cands=range(max(1,lo-3),hi+4)
   return max(cands,key=lambda e:lvmin(l,k,R,e,nxtL))
+# Level 0 is the level the extractor list-decodes (`LeanVM.Extraction.johnsonThreshold`): its
+# decoding cost falls with the slack (the Guruswami–Sudan multiplicity is about
+# sqrt(rho)/(2 eta), the list at most 1/(2 eta sqrt(rho))), while a larger slack only hurts the
+# query group, ((thrHi - 1)/n)^t 2^-17, and helps the fold group, eBatch and listMax. So level 0
+# does not balance: it takes the largest slack whose checks all pass at 2^-128 (`chkLevels` at
+# level 0 in `LeanVM.Protocol.Whir.Params.Check`, exact in integers below), the next level's
+# certificate fixed. The soundness is unchanged: every group stays at most 2^-128, the query
+# group at its limit. The query check and the agreement bound `agr` are monotone in the slack
+# (`thrHi` does not decrease), so a bisection finds their largest slack; the remaining checks
+# are then confirmed downwards. The checks are exact: in floating point the query group at (15, 2)
+# rounds to 2^-128.0 one step of `thrHi` too far (e = 4097, where the exact check fails; 2049).
+# Level 0's list bound is then at most 2049, at (15, 2) (at most 642 elsewhere): `shapeOK`'s 2^12.
+def lvl0ok(l,c,nxt,B=128):
+  k,R,e,s=c; v=vals(c); n=v['n']; t=l['t']; f=l['fold']
+  fold=(2*v['listHi']+2**(f-1)*v['excHi'])*2**B<=2**192
+  query=((v['thrHi']-1)**t*2**192+(t+1)*vals(nxt)['listHi']*n**t)*2**(B-17)<=n**t*2**192
+  ood=vals(nxt)['listHi']**2*k*2**B<=2**192
+  return v['ok'] and fold and query and ood
+def best0(l,nxt,B=128):
+  k,R=l['kappa'],l['R']; s=sqrtcert(k,R)
+  def mono(e):
+    v=vals((k,R,e,s)); n=v['n']; t=l['t']
+    return ((s+1)*N+e*S<=S*N and
+      ((v['thrHi']-1)**t*2**192+(t+1)*vals(nxt)['listHi']*n**t)*2**(B-17)<=n**t*2**192)
+  lo,hi=1,N
+  assert mono(lo) and not mono(hi)
+  while hi-lo>1:
+    m=(lo+hi)//2
+    if mono(m): lo=m
+    else: hi=m
+  e=lo
+  while not lvl0ok(l,(k,R,e,s),nxt,B): e-=1
+  assert e>=1
+  return e
 table={}
 worst=999
 for R in range(1,5):
@@ -65,6 +99,7 @@ for R in range(1,5):
     certs=[]
     for l in lv:
       e=best(l); certs.append((l['kappa'],l['R'],e,sqrtcert(l['kappa'],l['R'])))
+    l0=lv[0]; certs[0]=(l0['kappa'],l0['R'],best0(l0,certs[1]),certs[0][3])
     bs=shapebits(mu,R,certs); worst=min(worst,min(bs))
     table[(mu,R)]=certs
     print(mu,R,'%.3f'%min(bs),' '.join('%.2f'%b for b in bs), 'L0=%.2f'%log2(vals(certs[0])['listHi']),flush=True)

@@ -49,7 +49,7 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    binary Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
    and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). The candidates are
    the stacks whose encoding agrees with the word on at least the Johnson threshold of columns
-   (`johnsonThreshold`), at most `2^18` at every admissible shape. The extractor lists them: it
+   (`johnsonThreshold`), at most `2^12` at every admissible shape. The extractor lists them: it
    decodes each lane with the Guruswami–Sudan list decoder over `K` (`gsLaneAt`), and extends
    prefixes of lanes one lane at a time, keeping a prefix while its lanes agree with the word on at
    least the threshold of common columns (`pruneUpTo`). Every candidate is listed (proved). A word
@@ -62,8 +62,8 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
 
 **Cost**, in operations of `K`, 64-bit words and byte comparisons; `N` the number of evaluations
 given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ`, `L` the list size (at most
-`2^18` candidates, `LeanVM.candidates_ncard_le`, and at most `2^18` prefixes kept after any number
-of lanes, `pruneUpTo_length_le`), `m ≤ 4096` the decoder's multiplicity, `ℓ ≤ 12291` its
+`2^12` candidates, `LeanVM.candidates_ncard_le`, and at most `2^12` prefixes kept after any number
+of lanes, `pruneUpTo_length_le`), `m ≤ 256` the decoder's multiplicity, `ℓ ≤ 513` its
 `Y`-degree, `w = m·A − 1` its weighted degree and `|Q| ≈ n·m(m+1)/2` its coefficients
 (`gsMultiplicityAt`), `M = 2^logMemory`, `B = 2^logBytecode`. The figures are at the worst shape
 over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, not a proof):
@@ -73,16 +73,16 @@ over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, n
 | sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length | |
 | the evaluations (`keccakEvaluationsOfTranscript`, `lookupEvaluation`) | linear lookups on byte strings: a chain of `N` padded blocks makes `136·N³/6` byte comparisons | in `N` |
 | Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs | `2^27·N` |
-| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^107.5` |
-| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^122.5` to `2^133.2` |
-| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^94.8` |
-| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `κ·2^(κ+R)` butterflies | `2^64.7` |
-| pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^68` |
-| a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^58` for all |
+| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^88.6` |
+| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^103.6` to `2^110.6` |
+| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^79.7` |
+| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `κ·2^(κ+R)` butterflies | `2^60.9` |
+| pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^56` |
+| a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^52` for all |
 
 The whole is dominated by Roth–Ruckenstein's substitution as implemented, then the interpolation,
 and, in `N`, by the lookups, cubic. Polynomial, but not a meaningful concrete bound: an extractor
-of `2^133` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
+of `2^111` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
 generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
@@ -95,7 +95,7 @@ products by the additive FFT) and is proved to list the same stacks
 algorithm with Mulders and Storjohann's reduction, is no longer compiled). It substitutes in
 Roth–Ruckenstein by a
 Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
-roots (`ℓ²·k/2` per substitution, `2^80.1` in all), skips the final root check where the
+roots (`ℓ²·k/2` per substitution, `2^68.8` in all), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
@@ -232,15 +232,20 @@ def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K
 
 /-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 15]` for the stack size `μ` and
 the rate exponent `R`. The soundness proof certifies the opening's `2^-128` per query at these
-slacks (chosen offline to balance the fold and query groups); a larger slack means a smaller list
-of candidates. The table is copied from the proof's certificates, and the proof checks the copy
-against them for every admissible shape (`certOf_e_eq`, `thrOf_eq_johnsonThreshold` in
-`LeanVM.Protocol.EndToEnd.Sound`). -/
+slacks, each the largest at which every group of level 0 is at most `2^-128` (chosen offline by
+`lean_vm/scripts/whir-params/gen.py`): a larger slack means a smaller list of candidates and a
+smaller multiplicity, so a cheaper decoder. The table is copied from the proof's certificates,
+and the proof checks the copy against them for every admissible shape (`certOf_e_eq`,
+`thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
 def johnsonSlack : List (List ℕ) := [
-  [34, 45, 55, 68, 85, 107, 134, 189, 237, 298, 375, 471, 663, 832],
-  [34, 52, 65, 81, 102, 128, 161, 203, 255, 321, 404, 508, 639, 802],
-  [51, 63, 79, 99, 124, 156, 196, 247, 311, 391, 492, 618, 776, 975],
-  [49, 61, 77, 96, 121, 152, 191, 240, 303, 381, 478, 602, 756, 949]]
+  [6676, 7275, 5527, 5165, 4984, 4765, 4720,
+    9241, 9214, 9200, 9198, 9194, 13737, 13737],
+  [2049, 14336, 13824, 13312, 13184, 13120, 13056,
+    13040, 13032, 13024, 13022, 13021, 13020, 13019],
+  [22794, 21557, 21195, 20886, 20796, 20750, 20728,
+    20716, 20707, 20704, 20703, 20701, 20701, 20700],
+  [14336, 13824, 13440, 13248, 13152, 13104, 13080,
+    13068, 13064, 13062, 13061, 13060, 13059, 13059]]
 
 /-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0

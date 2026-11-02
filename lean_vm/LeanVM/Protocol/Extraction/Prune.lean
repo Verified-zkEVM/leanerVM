@@ -25,7 +25,7 @@ encodings of `cs[0], …, cs[U−1]` agree with the word's lanes `0, …, U − 
 For the running time (not needed for soundness):
 * `decodeStacksAt_sound`, `nodup_decodeStacksAt`: the decoded stacks are candidates
   (`lanesOf_stackOf`: a stack's lanes are its survivor's arrays) and pairwise distinct, so their
-  number is at most the number of candidates (`2^18` at the deployed shapes,
+  number is at most the number of candidates (`2^12` at the deployed shapes,
   `Sound.decodeStacks_length_le`);
 
 * `nodup_pruneUpTo`: the survivors' prefixes are pairwise distinct (the lane lists are
@@ -37,7 +37,7 @@ For the running time (not needed for soundness):
   coefficient arrays (of size `2^κ`) whose encodings agree with the word's first `U` lanes on at
   least `A` common columns. Such encodings are interleaved Reed–Solomon codewords close to the
   word, so `T` can be lean_vm's `iList` and the Johnson bound
-  `card_iList_johnsonAgreement_le_floor` caps the survivors by `listMax ≤ 2^18`.
+  `card_iList_johnsonAgreement_le_floor` caps the survivors by `listMax ≤ 2^12`.
 * `length_laneListAt_le`: the same for each lane's list (one lane, `ρ = Unit`), from the
   decoder's soundness (`laneListAt_sound`);
 * `encoding_mem_code`, `evalTuple_mem_code`: every encoding is a codeword of ArkLib's
