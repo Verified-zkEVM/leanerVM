@@ -183,40 +183,6 @@ within `Lc`, on the invariant's problems. -/
       machineCost P compactNonzeroRowsC.costIdx [encodeValue (Popov.popovLeafBasis problem shift)] ≤
         Lc
 
-theorem le_maxOrder (problem : XAdicProblem K) : ∀ x ∈ problem.orders, x ≤ maxOrder problem := by
-  intro x hx
-  unfold maxOrder
-  rw [← Array.foldl_toList]
-  have hx' : x ∈ problem.orders.toList := by simpa using hx
-  suffices h : ∀ (l : List ℕ) (a : ℕ), x ∈ l → x ≤ l.foldl max a from h _ 0 hx'
-  intro l
-  induction l with
-  | nil => intro a h; simp at h
-  | cons y l ih =>
-    intro a h
-    simp only [List.foldl_cons]
-    rcases List.mem_cons.1 h with rfl | h
-    · have : ∀ (l : List ℕ) (b : ℕ), b ≤ l.foldl max b := by
-        intro l; induction l with
-        | nil => intro b; simp
-        | cons z l ih' => intro b; exact (le_max_left b z).trans (ih' _)
-      exact (le_max_right a x).trans (this l _)
-    · exact ih _ h
-
-theorem natDegree_le_size' (q : CPolynomial K) : q.natDegree ≤ q.val.size := by
-  unfold CPolynomial.natDegree
-  split <;> omega
-
-theorem natDegree_le_size_sub_one' (q : CPolynomial K) : q.natDegree ≤ q.val.size - 1 := by
-  unfold CPolynomial.natDegree
-  split <;> omega
-
-theorem getD_le_of_mem {a : Array ℕ} {B j : ℕ} (h : ∀ x ∈ a, x ≤ B) : a.getD j 0 ≤ B := by
-  rw [Array.getD_eq_getD_getElem?]
-  cases hj : a[j]? with
-  | none => simp
-  | some x => exact h x (Array.mem_of_getElem? hj)
-
 theorem rowWithin_of_rows {M : PolynomialMatrix K} {C D : ℕ}
     (hsz : ∀ row ∈ M.toList, row.size ≤ C) (hD : SizeLe M D) (i : ℕ) : RowWithin C D (M.getD i #[]) := by
   rcases Nat.lt_or_ge i M.size with hi | hi

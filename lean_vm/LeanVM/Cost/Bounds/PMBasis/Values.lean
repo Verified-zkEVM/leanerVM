@@ -41,10 +41,11 @@ coefficient moved (stated, not measured). -/
 /-- **The measured prices with a margin**: each `5/4` of the measured one, rounded up, except
 where track fft's proved transform prices ask for more (`FFTPricesOK marginPrices`,
 `Bounds/PMFFT/EvalCost.lean`): the conversions to and from the novel basis (`4100`, `5490` per
-`j·2^j`, which holds for `j ≤ 36`) and a coefficient moved (`600`). -/
+`j·2^j`, which holds for `j ≤ 36`) and a coefficient moved (`600`); and the leaf's proved price
+(`PMCore.leafBound`, `≈ 16550·r³` at `r = 2077`: `16600·r³ + 100000·r²`). -/
 @[expose] def marginPrices : PMPrices :=
-  { mac := 382, fwd := 650, inv := 517, toNovel := 4100, fromNovel := 5490, leafCube := 555,
-    leafSquare := 15438, coeff := 395, ovh := 600 }
+  { mac := 382, fwd := 650, inv := 517, toNovel := 4100, fromNovel := 5490, leafCube := 16600,
+    leafSquare := 100000, coeff := 395, ovh := 600 }
 
 theorem pmOrder_28_4_eq : pmOrder_28_4 = 34819023731 := by decide +kernel
 
@@ -60,20 +61,20 @@ theorem pmTreePair_28_4_measured :
   decide +kernel
 
 /-- **The recursion's tree at `(28, 4)`, the prices with their margin**:
-`14514211702419010916829151 ≈ 2^83.59`. -/
+`19532624819874717385344824 ≈ 2^84.01`. -/
 theorem pmTreePair_28_4 :
     pmTreePair 1 (pmLeafPrice marginPrices pmRows_28_4)
       (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 =
-      (14514211702419010916829151, 14514211702441570961706804) := by
+      (19532624819874717385344824, 19532624820041405914588560) := by
   decide +kernel
 
 /-- **The per-level closed form at `(28, 4)`**, the prices with their margin:
-`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 15099798695488801463230031 ≈ 2^83.64` (`pmTree_le_levels`;
+`Σ_{k<36} 2^k·N(⌈o/2^k⌉) + L·o = 20118211812944507931745704 ≈ 2^84.05` (`pmTree_le_levels`;
 `0.07` bit above the tree's exact value). -/
 theorem pmLevels_28_4 :
     pmLevels (pmNodePrice marginPrices pmRows_28_4 pmCols_28_4) 36 pmOrder_28_4 +
         pmLeafPrice marginPrices pmRows_28_4 * pmOrder_28_4 =
-      15099798695488801463230031 := by
+      20118211812944507931745704 := by
   decide +kernel
 
 end
