@@ -1,5 +1,13 @@
 # Development
 
+## Python tooling
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for
+repository Python checks. CI uses uv 0.13.6. The uv commands below select Python
+3.12; uv downloads it if needed. Run them from the repository root.
+These checks use only the standard library. `--no-project` runs them without
+installing a Python package or creating a project environment.
+
 ## Validation
 
 Run the full local gate:
@@ -17,7 +25,7 @@ lake test
 ./scripts/check-repository.sh
 ./scripts/check-imports.sh
 ./scripts/check-layers.sh
-python3 ./scripts/check-docs.py
+uv run --no-project --python 3.12 python ./scripts/check-docs.py
 python3 ./scripts/test-policy-checks.py
 python3 ./scripts/test-build-timing.py
 lake env lean -E warning tests/Main.lean
