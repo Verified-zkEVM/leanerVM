@@ -447,6 +447,217 @@ theorem mulEvalPC_cost (hP : Includes P mulEvalPC.costDeps) (p : PMPrices) (hp :
   have hx0 : 1 ≤ R * S := Nat.mul_pos hR0 hS0
   exact hcost.trans (evalMat_fit R S T J jm p.mac F I hR0 hS0 hN hmac hf' hi')
 
+/-! ## The column-truncated product -/
+
+/-- **An X-adic truncation** (`truncateX.c933`) at `order`: at most `56·order + 34`. -/
+theorem truncateXC_cost (hP : Includes P truncateX.c933.costDeps) (order : ℕ) (ho : order < 2 ^ 40)
+    (f : CompPoly.CPolynomial K) :
+    machineCost P truncateX.c933.costIdx [encodeValue order, encodeValue f] ≤ 56 * order + 34 := by
+  rw [truncateX.c933.costEq P hP]
+  have h1 := rangeLoop_cost P (by includes) order [] (by omega)
+  have h2 := map_cost P (by includes) _ (.closure truncateX.c933.lam0.costIdx [encodeValue f])
+    (fun i ↦ RunsApp.of_spec (truncateX.c933.lam0.costSpec P (by includes) f i)) 4 (List.range order)
+    (fun i _ ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [truncateX.c933.lam0.costEq P (by includes)])
+  have h3 := Decoder.ofArray_cost P (by includes)
+    ((List.map (fun i ↦ f.coeff i) (List.range order)).toArray) (by simp; omega)
+  simp only [List.size_toArray, List.length_map, List.length_range] at h2 h3 ⊢
+  omega
+
+/-- **The largest order** (`maxOrderOf.c930`), `cols` orders at most `O < 2^40`: at most
+`40·cols + 20`. -/
+theorem maxOrderOfC_cost (hP : Includes P maxOrderOf.c930.costDeps) (orders : Array ℕ) (cols O : ℕ)
+    (hc : cols < 2 ^ 40) (hO : O < 2 ^ 40) (ho : ∀ c, orders.getD c 0 ≤ O) :
+    machineCost P maxOrderOf.c930.costIdx [encodeValue orders, encodeValue cols] ≤ 40 * cols + 20 := by
+  rw [maxOrderOf.c930.costEq P hP]
+  have h1 := rangeLoop_cost P (by includes) cols [] (by omega)
+  have h2 := listFoldl_le P (by includes) _ (.closure maxOrderOf.c930.lam0.costIdx [encodeValue orders])
+    (fun a c ↦ RunsApp.of_spec (maxOrderOf.c930.lam0.costSpec P (by includes) orders a c)) 13
+    (fun a ↦ a < 2 ^ 40) (List.range cols) 0 (by norm_num)
+    (fun a ha c _ ↦ ⟨by
+      have := ho c
+      show max a _ < 2 ^ 40
+      omega, by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [maxOrderOf.c930.lam0.costEq P (by includes)]
+      have := ho c
+      cost_simp
+      split_ifs <;> omega⟩)
+  rw [List.length_range] at h2
+  omega
+
+theorem maxOrderOf_le (orders : Array ℕ) (cols O : ℕ) (ho : ∀ c, orders.getD c 0 ≤ O) :
+    EvalMat.maxOrderOf orders cols ≤ O := by
+  have := foldl_max_lt (fun c ↦ orders.getD c 0) (O + 1) (fun c ↦ Nat.lt_succ_of_le (ho c))
+    (List.range cols) 0 (by omega)
+  rw [EvalMat.maxOrderOf]
+  omega
+
+theorem min_sub_le {m d O O' : ℕ} (hm : m ≤ d) (hO : O' ≤ O) : min m (O' - 1) ≤ min d (O - 1) := by
+  omega
+
+/-- **The column-truncated product, explicitly** (`mulTruncEvalPC`). -/
+theorem mulTruncEvalPC_cost_explicit (hP : Includes P mulTruncEvalPC.costDeps)
+    (orders : Array ℕ) (A B : CompPoly.PolynomialMatrix K) (dA dB O jm : ℕ)
+    (hdA : ∀ i k, (CompPoly.PolynomialMatrix.rowGet (A.getD i #[]) k).natDegree ≤ dA)
+    (hdB : ∀ k c, (CompPoly.PolynomialMatrix.rowGet (B.getD k #[]) c).natDegree ≤ dB)
+    (ho : ∀ c, orders.getD c 0 ≤ O) (hO : O < 2 ^ 40)
+    (hjm : min dA (O - 1) + min dB (O - 1) + 1 ≤ 2 ^ jm) (hj : jm ≤ 36)
+    (hdA' : dA < 2 ^ 40) (hdB' : dB < 2 ^ 40)
+    (hR : A.size < 2 ^ 32) (hS : B.size < 2 ^ 32) (hT : B.MatrixWidth < 2 ^ 32) :
+    ∃ J ≤ jm, machineCost P mulTruncEvalPC.costIdx [encodeValue orders, encodeValue A, encodeValue B] ≤
+      A.size * B.size * (fwdBound J + 56 * O + 237) +
+        B.size * B.MatrixWidth * (fwdBound J + 56 * O + 237) +
+        A.size * B.MatrixWidth * (304 * (2 ^ J * B.size) + 44 * 2 ^ J + invBound J + 56 * O + 105) +
+        178 * A.size + 130 * B.size + 40 * B.MatrixWidth + planBound J + 1400 := by
+  rw [mulTruncEvalPC.costEq P hP]
+  have hW := Decoder.matrixWidthC_cost P (by includes) B (by omega)
+  have hlog : limbCount FFT.novelTransform.maxLog = 1 := limbs_of_lt (show 64 < 2 ^ 64 by norm_num)
+  set R := A.size with hRdef
+  set S := B.size with hSdef
+  set T := B.MatrixWidth with hTdef
+  have hpj : 2 ^ jm ≤ 2 ^ 36 := Nat.pow_le_pow_right (by norm_num) hj
+  have hmA := maxEntryDegree_le A R S dA hdA
+  have hmB := maxEntryDegree_le B S T dB hdB
+  have hOO := maxOrderOf_le orders T O ho
+  set mA := EvalMat.maxEntryDegree A R S
+  set mB := EvalMat.maxEntryDegree B S T
+  set O' := EvalMat.maxOrderOf orders T
+  set J := EvalMat.ceilLog (min mA (O' - 1) + min mB (O' - 1) + 1) with hJdef
+  have hJ : J ≤ jm := EvalMat.ceilLog_le (by have := min_sub_le hmA hOO; have := min_sub_le hmB hOO; omega)
+  refine ⟨J, hJ, ?_⟩
+  have hJ64 : J ≤ FFT.novelTransform.maxLog := by show J ≤ 64; omega
+  rw [ite_eq_left hJ64]
+  simp only [novelTransform_plan]
+  have hmo := maxOrderOfC_cost P (by includes) orders T O (by omega) hO ho
+  have h1 := maxEntryDegreeC_cost P (by includes) A R S (by omega) (by omega) dA hdA' hdA
+  have h2 := maxEntryDegreeC_cost P (by includes) B S T (by omega) (by omega) dB hdB' hdB
+  have hm1 := min_le_left mA (O' - 1)
+  have hm2 := min_le_left mB (O' - 1)
+  have h3 := ceilLogLoopC_cost P (by includes) (min mA (O' - 1) + min mB (O' - 1) + 1) jm
+    (by have := min_sub_le hmA hOO; have := min_sub_le hmB hOO; omega) (by omega)
+    (min mA (O' - 1) + min mB (O' - 1) + 1) 0 (by omega) (by omega)
+  have hJ40 : J ≤ 40 := by omega
+  have h4 := mkPlanC_cost P (by includes) hJ40
+  have hE : ∀ (M : CompPoly.PolynomialMatrix K) (i k : ℕ), appCost P (.closure mulTruncEvalPC.lam0.costIdx
+      [encodeValue M, encodeValue O', encodeValue T]) [encodeValue i, encodeValue k] ≤ 56 * O + 48 :=
+    fun M i k ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [mulTruncEvalPC.lam0.costEq P (by includes), Decoder.rowGet_cost P (by includes)]
+      have := truncateXC_cost P (by includes) O' (by omega) (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k)
+      omega
+  have h5 := transformEntriesPC_cost P (by includes) hJ40 R S (by omega) (by omega)
+    (fun i k ↦ CompPoly.PolynomialMatrix.truncateX O' (CompPoly.PolynomialMatrix.rowGet (A.getD i #[]) k))
+    (.closure mulTruncEvalPC.lam0.costIdx [encodeValue A, encodeValue O', encodeValue T])
+    (fun i k ↦ RunsApp.of_spec (mulTruncEvalPC.lam0.costSpec P (by includes) A O' T i k)) _ (hE A)
+  have h6 := transformEntriesPC_cost P (by includes) hJ40 S T (by omega) (by omega)
+    (fun k c ↦ CompPoly.PolynomialMatrix.truncateX O' (CompPoly.PolynomialMatrix.rowGet (B.getD k #[]) c))
+    (.closure mulTruncEvalPC.lam0.costIdx [encodeValue B, encodeValue O', encodeValue T])
+    (fun k c ↦ RunsApp.of_spec (mulTruncEvalPC.lam0.costSpec P (by includes) B O' T k c)) _ (hE B)
+  have hN : 2 ^ J ≤ 2 ^ 36 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  set FA := FFT.transformEntriesP FFT.novelTransform (FFT.mkPlan J) R S fun i k ↦
+    CompPoly.PolynomialMatrix.truncateX O' (CompPoly.PolynomialMatrix.rowGet (A.getD i #[]) k) with hFA
+  set FB := FFT.transformEntriesP FFT.novelTransform (FFT.mkPlan J) S T fun k c ↦
+    CompPoly.PolynomialMatrix.truncateX O' (CompPoly.PolynomialMatrix.rowGet (B.getD k #[]) c) with hFB
+  have h7 := matrixOfFnC_cost P (by includes) R T (by omega) (by omega) _
+    (.closure mulTruncEvalPC.lam1.costIdx [encodeValue orders, encodeValue FA, encodeValue FB,
+      encodeValue (2 ^ J), encodeValue (FFT.mkPlan J), encodeValue J, encodeValue R, encodeValue O',
+      encodeValue S, encodeValue T])
+    (fun i c ↦ RunsApp.of_spec (mulTruncEvalPC.lam1.costSpec P (by includes) _ _ _ _ _ _ _ _ _ _ i c))
+    (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 56 * O + 34 + 17)
+    (fun i c ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append]
+      rw [mulTruncEvalPC.lam1.costEq P (by includes)]
+      have e1 := evalDotC_cost P (by includes) (2 ^ J) S (by omega) (by omega) (FA.getD i #[]) FB c
+      have e2 := planInvPolyC_cost P (by includes) hJ40
+        (EvalMat.evalDot (2 ^ J) S (FA.getD i #[]) FB c)
+      have e3 := truncateXC_cost P (by includes) (orders.getD c 0) (by have := ho c; omega)
+        (FFT.novelTransform.invP (FFT.mkPlan J) (EvalMat.evalDot (2 ^ J) S (FA.getD i #[]) FB c))
+      have := ho c
+      rw [invBound]
+      omega)
+  rw [limbs_shift (k := J) (by omega)]
+  cost_simp
+  have e3 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + 21 + invBound J + 56 * O + 34 + 17 + 33) =
+      R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) := by ring
+  have e4 : R * S * (56 * O + 48 + fwdBound J + 25) + 164 * (R * S) =
+      R * S * (fwdBound J + 56 * O + 237) := by ring
+  have e5 : S * T * (56 * O + 48 + fwdBound J + 25) + 164 * (S * T) =
+      S * T * (fwdBound J + 56 * O + 237) := by ring
+  rw [planBound]
+  split_ifs <;> omega
+
+theorem ovh_of_ok {p : PMPrices} (hp : FFTPricesOK p) : 572 ≤ p.ovh := by
+  have := (hp.2 0 (by norm_num)).1
+  simp [fwdNeed, fwdBound, fwdPrice] at this
+  omega
+
+/-- The explicit truncated price within `evalMatPrice` and the truncations' `ovh` per order. -/
+theorem evalMatTrunc_fit (R S T J jm mac F I ovh O : ℕ) (hR0 : 0 < R) (hS0 : 0 < S)
+    (hN : 2 ^ J ≤ 2 ^ jm) (hmac : 304 ≤ mac) (hf : fwdNeed J ≤ F) (hi : invNeed J ≤ I)
+    (hovh : 572 ≤ ovh) :
+    R * S * (fwdBound J + 56 * O + 237) + S * T * (fwdBound J + 56 * O + 237) +
+        R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) +
+        178 * R + 130 * S + 40 * T + planBound J + 1400 ≤
+      (R * S + S * T) * F + R * T * I + R * S * T * 2 ^ jm * mac + 2 ^ 20 +
+        ovh * ((R * S + S * T + R * T) * (O + 1)) := by
+  have hx1 : R ≤ R * S := Nat.le_mul_of_pos_right _ hS0
+  have hx2 : S ≤ R * S := Nat.le_mul_of_pos_left _ hR0
+  have hx3 : T ≤ S * T := Nat.le_mul_of_pos_left _ hS0
+  have hx0 : 1 ≤ R * S := Nat.mul_pos hR0 hS0
+  have hplan := plan_fit (R * S) J hx0
+  have h1 : R * S * fwdNeed J ≤ R * S * F := Nat.mul_le_mul_left _ hf
+  have h2 : S * T * (fwdBound J + 340) ≤ S * T * F :=
+    Nat.mul_le_mul_left _ (by unfold fwdNeed at hf; omega)
+  have e1 : R * T * (304 * (2 ^ J * S) + 44 * 2 ^ J + invBound J + 56 * O + 105) =
+      R * T * invNeed J + 304 * (R * S * T * 2 ^ J) + R * T * (56 * O + 39) := by unfold invNeed; ring
+  have e2 : R * T * invNeed J ≤ R * T * I := Nat.mul_le_mul_left _ hi
+  have e3 : 304 * (R * S * T * 2 ^ J) ≤ R * S * T * 2 ^ jm * mac := by
+    rw [mul_comm (R * S * T * 2 ^ jm) mac]
+    calc 304 * (R * S * T * 2 ^ J) ≤ mac * (R * S * T * 2 ^ J) := Nat.mul_le_mul_right _ hmac
+      _ ≤ mac * (R * S * T * 2 ^ jm) := Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ hN)
+  have hO1 : 56 * O + 205 ≤ ovh * (O + 1) := by nlinarith
+  have e4 : ovh * ((R * S + S * T + R * T) * (O + 1)) =
+      R * S * (ovh * (O + 1)) + S * T * (ovh * (O + 1)) + R * T * (ovh * (O + 1)) := by ring
+  have f1 : R * S * (56 * O + 205) ≤ R * S * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
+  have f2 : S * T * (56 * O + 205) ≤ S * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ hO1
+  have f3 : R * T * (56 * O + 39) ≤ R * T * (ovh * (O + 1)) := Nat.mul_le_mul_left _ (by omega)
+  have g1 : R * S * (fwdBound J + 340) + R * S * (56 * O + 205) =
+      R * S * (fwdBound J + 56 * O + 237) + 308 * (R * S) := by ring
+  have g2 : S * T * (fwdBound J + 340) + S * T * (56 * O + 205) =
+      S * T * (fwdBound J + 56 * O + 237) + 308 * (S * T) := by ring
+  have e5 : (R * S + S * T) * F = R * S * F + S * T * F := by ring
+  linarith
+
+/-- **The column-truncated product within the model** (`mulTruncEvalPC`): at most `evalMatPrice`
+at the truncated degrees and `ovh` per order of every entry (the truncations at the largest order
+`O`), for `R, S ≥ 1` rows, `clog2 (min dA (O − 1) + min dB (O − 1) + 1) ≤ 36`. -/
+theorem mulTruncEvalPC_cost (hP : Includes P mulTruncEvalPC.costDeps) (p : PMPrices)
+    (hp : FFTPricesOK p) (orders : Array ℕ) (A B : CompPoly.PolynomialMatrix K) (dA dB O : ℕ)
+    (hdA : ∀ i k, (CompPoly.PolynomialMatrix.rowGet (A.getD i #[]) k).natDegree ≤ dA)
+    (hdB : ∀ k c, (CompPoly.PolynomialMatrix.rowGet (B.getD k #[]) c).natDegree ≤ dB)
+    (ho : ∀ c, orders.getD c 0 ≤ O) (hO : O < 2 ^ 40) (hdA' : dA < 2 ^ 40) (hdB' : dB < 2 ^ 40)
+    (hj : clog2 (min dA (O - 1) + min dB (O - 1) + 1) ≤ 36) (hR0 : 0 < A.size)
+    (hR : A.size < 2 ^ 32) (hS0 : 0 < B.size) (hS : B.size < 2 ^ 32)
+    (hT : B.MatrixWidth < 2 ^ 32) :
+    machineCost P mulTruncEvalPC.costIdx [encodeValue orders, encodeValue A, encodeValue B] ≤
+      evalMatPrice p A.size B.size B.MatrixWidth (min dA (O - 1)) (min dB (O - 1)) +
+        p.ovh * ((A.size * B.size + B.size * B.MatrixWidth + A.size * B.MatrixWidth) * (O + 1)) := by
+  set jm := clog2 (min dA (O - 1) + min dB (O - 1) + 1) with hjmdef
+  have hjm : min dA (O - 1) + min dB (O - 1) + 1 ≤ 2 ^ jm := by
+    rw [hjmdef, clog2_eq_ceilLog]; exact EvalMat.le_two_pow_ceilLog _
+  obtain ⟨J, hJ, hcost⟩ := mulTruncEvalPC_cost_explicit P hP orders A B dA dB O jm hdA hdB ho hO hjm
+    hj hdA' hdB' hR hS hT
+  have hovh := ovh_of_ok hp
+  obtain ⟨hmac, hneed⟩ := hp
+  obtain ⟨hf, hi⟩ := hneed J (by omega)
+  have hf' := hf.trans (fwdPrice_mono p hJ)
+  have hi' := hi.trans (invPrice_mono p hJ)
+  have hN : 2 ^ J ≤ 2 ^ jm := Nat.pow_le_pow_right (by norm_num) hJ
+  rw [evalMatPrice, ← hjmdef]
+  exact hcost.trans (evalMatTrunc_fit _ _ _ J jm p.mac _ _ p.ovh O hR0 hS0 hN hmac hf' hi' hovh)
+
 end
 
 end LeanVM.Cost.Bounds.PMFFT
