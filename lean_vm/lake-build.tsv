@@ -209,7 +209,10 @@ LeanVMTests.Guest.CoreData	130.0	120.0	3400	700
 LeanVMTests.Guest.Expand	90.0	80.0	3100	500
 LeanVMTests.Protocol.LeanIsaSound	90.0	90.0	4000	300
 LeanVMTests.Prover.Keccak	340.0	320.0	2500	200
-Sphincs.H0FTab	610.0	580.0	13600	6800
-Sphincs.H0NTab	50.0	50.0	16800	10000
-Sphincs.H0PTab	140.0	140.0	24200	17300
-Sphincs.LifetimeCertificates	520.0	520.0	8600	1700
+Sphincs.LifetimeCertificates.B10	80.0	80.0	7900	1600
+Sphincs.LifetimeCertificates.B12	80.0	80.0	7900	1600
+Sphincs.LifetimeCertificates.B13	80.0	80.0	7900	1600
+Sphincs.LifetimeCertificates.B14	80.0	80.0	7900	1600
+Sphincs.LifetimeCertificates.B20	90.0	90.0	7900	1600
+Sphincs.LifetimeCertificates.B26	70.0	70.0	7900	1600
+Sphincs.LifetimeCertificates.B8	70.0	70.0	7900	1600

@@ -70,45 +70,15 @@ theorem f2R_le_f2Q (u : ℕ) : f2R u ≤ (f2Q u : ℝ) := by
     rfl
   · exact_mod_cast (f2R_unit u).2
 
-/-! ### Binomial rows -/
+/-! ### Binomial coefficients -/
 
-/-- The rows of Pascal's triangle. -/
-def pascal : ℕ → List ℕ
-  | 0 => [1]
-  | n + 1 => List.zipWith (· + ·) (0 :: pascal n) (pascal n ++ [0])
+/-- `C(n, k)` as the kernel evaluates it fast: `n (n - 1) ⋯ (n - k + 1) / k!`, products of numerals
+(the rows of Pascal's triangle as lists cost the kernel's tables several times more: every entry
+walks its row). -/
+def chooseF (n k : ℕ) : ℕ := n.descFactorial k / k.factorial
 
-theorem length_pascal : ∀ n, (pascal n).length = n + 1
-  | 0 => rfl
-  | n + 1 => by simp [pascal, List.length_zipWith, length_pascal n]
-
-theorem pascal_getD : ∀ n k, (pascal n).getD k 0 = n.choose k
-  | 0, k => by cases k <;> simp [pascal]
-  | n + 1, k => by
-      have hl := length_pascal n
-      rcases lt_or_ge k (n + 2) with hk | hk
-      · rw [List.getD_eq_getElem _ _ (by simp [pascal, List.length_zipWith, hl]; omega)]
-        simp only [pascal, List.getElem_zipWith]
-        cases k with
-        | zero =>
-            have h0 := pascal_getD n 0
-            rw [List.getD_eq_getElem _ _ (by omega)] at h0
-            rw [List.getElem_cons_zero, List.getElem_append_left (by omega), h0]
-            simp
-        | succ k =>
-            rw [List.getElem_cons_succ, Nat.choose_succ_succ]
-            have h1 := pascal_getD n k
-            have h2 := pascal_getD n (k + 1)
-            rw [List.getD_eq_getElem _ _ (by omega)] at h1
-            rw [← h1]
-            rcases lt_or_ge (k + 1) (n + 1) with hk' | hk'
-            · rw [List.getElem_append_left (by omega)]
-              rw [List.getD_eq_getElem _ _ (by omega)] at h2
-              rw [h2]
-            · rw [List.getElem_append_right (by omega)]
-              have : k + 1 - (pascal n).length = 0 := by omega
-              simp only [this, List.getElem_singleton, Nat.choose_eq_zero_of_lt (by omega : n < k + 1)]
-      · rw [List.getD_eq_default _ _ (by simp [pascal, List.length_zipWith, hl]; omega),
-          Nat.choose_eq_zero_of_lt (by omega)]
+theorem chooseF_eq (n k : ℕ) : chooseF n k = n.choose k :=
+  (Nat.choose_eq_descFactorial_div_factorial n k).symm
 
 /-- A sum over `range` as a list sum. -/
 theorem list_sum_range {M : Type} [AddCommMonoid M] (f : ℕ → M) : ∀ n,
@@ -120,7 +90,7 @@ theorem list_sum_range {M : Type} [AddCommMonoid M] (f : ℕ → M) : ∀ n,
 /-! ### The rational bounds -/
 
 /-- A binomial weight `C(n,i) a^i b^(n-i)`. -/
-def binQ (n i : ℕ) (a b : ℚ) : ℚ := ((pascal n).getD i 0 : ℚ) * a ^ i * b ^ (n - i)
+def binQ (n i : ℕ) (a b : ℚ) : ℚ := (chooseF n i : ℚ) * a ^ i * b ^ (n - i)
 
 /-- The bound of `μ_i`. -/
 def μQ (i : ℕ) : ℚ := rup (((List.range (i + 1)).map fun u => binQ i u (1 / 8) (7 / 8) * fQ u).sum) 128
@@ -130,7 +100,7 @@ def μL : List ℚ := (List.range 151).map μQ
 
 /-- The bound of `Σ_u C(s,u) f(u) f(s-u)`. -/
 def hQ (s : ℕ) : ℚ :=
-  rup (((List.range (s + 1)).map fun u => ((pascal s).getD u 0 : ℚ) * fQ u * fQ (s - u)).sum) 128
+  rup (((List.range (s + 1)).map fun u => (chooseF s u : ℚ) * fQ u * fQ (s - u)).sum) 128
 
 def hL : List ℚ := (List.range 151).map hQ
 
@@ -143,7 +113,7 @@ def νL : List ℚ := (List.range 151).map νQ
 
 /-- The bound of `Σ_i C(s,i) μ_i^2 μ_(s-i)^2`. -/
 def gQ (s : ℕ) : ℚ :=
-  rup (((List.range (s + 1)).map fun i => ((pascal s).getD i 0 : ℚ) * μL.getD i 0 ^ 2 * μL.getD (s - i) 0 ^ 2).sum) 128
+  rup (((List.range (s + 1)).map fun i => (chooseF s i : ℚ) * μL.getD i 0 ^ 2 * μL.getD (s - i) 0 ^ 2).sum) 128
 
 def gL : List ℚ := (List.range 151).map gQ
 
@@ -165,7 +135,7 @@ theorem getD_map_range {α : Type} (f : ℕ → α) (d : α) (N i : ℕ) (hi : i
 theorem binQ_cast (n i : ℕ) (a b : ℚ) :
     ((binQ n i a b : ℚ) : ℝ) = (a : ℝ) ^ i * (b : ℝ) ^ (n - i) * (n.choose i : ℝ) := by
   unfold binQ
-  rw [pascal_getD]
+  rw [chooseF_eq]
   push_cast
   ring
 
@@ -203,7 +173,7 @@ theorem hR_le (s : ℕ) :
   rw [list_sum_range]
   push_cast
   refine Finset.sum_le_sum fun u _ => ?_
-  rw [pascal_getD]
+  rw [chooseF_eq]
   have h1 := fR_unit u
   have h2 := fR_unit (s - u)
   have h3 := fR_le_fQ u
@@ -241,7 +211,7 @@ theorem gR_le (s : ℕ) (hs : s ≤ 150) :
   push_cast
   refine Finset.sum_le_sum fun i hi => ?_
   have hi' := Finset.mem_range.1 hi
-  rw [pascal_getD, μL_getD i (by omega), μL_getD (s - i) (by omega)]
+  rw [chooseF_eq, μL_getD i (by omega), μL_getD (s - i) (by omega)]
   have h1 := μR_bounds i
   have h2 := μR_bounds (s - i)
   gcongr

@@ -4,7 +4,7 @@
 Usage (from formal/lean_sphincs):
     python3 scripts/forest_table.py info     # composition of the table, f(1..6), digit counts
     python3 scripts/forest_table.py check    # the Lean sources hold exactly the tables computed here
-    python3 scripts/forest_table.py write    # rewrite the literals in Scheme.lean, H0FTab.lean, H0PTab.lean, H0NTab.lean
+    python3 scripts/forest_table.py write    # rewrite the literals in LayeredForest.lean, H0FTab/, H0PTab/, H0NTab/
 
 CODES is the table: entry `t` (the 8-bit digest field) is the codeword `d ∈ {0..4}^6`, digit sum 5,
 written as the base-5 number with `d_0` the most significant digit. The table is a rule (`rule_codes`):
@@ -12,9 +12,15 @@ the codewords sorted by decreasing sum of squared digits, then lexicographically
 codeword number `t mod 214`. `scripts/forest_certificates.py` imports this module.
 
 The tables mirror the Lean definitions exactly (Fractions):
-  fTab, f2Tab    H0Tables.lean (`sumTL … KT DK`, `sumTL … KT DK2`), `u ≤ 40`
-  P1tab, P2tab   H0MomCert.lean (`P1Q`, `P2Q`), `n ≤ 150`
-  PHtab          H0NTab.lean (`PHQ`), `n ≤ 150`
+  fTab, f2Tab    H0Tables.lean (`sumTL … KT DK`, `sumTL … KT DK2`), `u ≤ 40`; in H0FTab/F.lean, F2.lean, and
+                 f2Tab's sums over the grid points of first coordinate j, f2Part0 … f2Part4, in F2_0.lean, F2_1.lean
+  μTab … gTab    H0MomCert.lean's stages (`μL`, `hL`, `νL`, `gL`), `n ≤ 150`; in H0PTab/Mu.lean, H.lean,
+                 NuTab.lean, G.lean (H0MomTabs.lean: each stage is checked once, the next reads its literal)
+  P1tab, P2tab   H0MomCert.lean (`P1Q`, `P2Q`), `n ≤ 150`; in H0PTab/P1.lean, P2Tab.lean
+  PHtab          H0NTab.lean (`PHQ`), `n ≤ 150`; in H0NTab/PH.lean
+A table whose check needs more than about 3 GB of the kernel's memory is checked in ranges of rows
+(`νTab`: H0PTab/Nu0.lean, Nu1.lean; `P2tab`: H0PTab/P2_0.lean, P2_1.lean), joined by `map_range_chunks`;
+the ranges are written in those modules, not here.
 """
 
 from fractions import Fraction as Fr
@@ -56,8 +62,9 @@ def validate(codes=CODES):
 
 # ---------------- the codeword-level numerators (H0Tables.lean) ----------------
 
-def f_tabs(codes=CODES, U=UMAX):
-    """fTab[u] = sum_m K(m)^u (Delta* K)(m), f2Tab[u] = sum_m K(m)^u (Delta* K^2)(m), K(m) = #{w : lut w <= m}."""
+def f_tabs(codes=CODES, U=UMAX, parts=False):
+    """fTab[u] = sum_m K(m)^u (Delta* K)(m), f2Tab[u] = sum_m K(m)^u (Delta* K^2)(m), K(m) = #{w : lut w <= m};
+    with `parts`, the five sums of f2Tab over the grid points of first coordinate 0, …, 4 (f2Part0 … f2Part4)."""
     grid = list(itertools.product(range(5), repeat=D))
     K = dict.fromkeys(grid, 0)
     for w in table(codes):
@@ -77,6 +84,8 @@ def f_tabs(codes=CODES, U=UMAX):
     DK2 = delta({m: k * k for m, k in K.items()})
     f = [sum(K[m] ** u * DK[m] for m in grid) for u in range(U + 1)]
     f2 = [sum(K[m] ** u * DK2[m] for m in grid) for u in range(U + 1)]
+    if parts:                                 # f2Tab by the first grid coordinate (H0FTab/F2_0.lean, F2_1.lean)
+        return [[sum(K[m] ** u * DK2[m] for m in grid if m[0] == j) for u in range(U + 1)] for j in range(5)]
     return f, f2
 
 
@@ -108,6 +117,23 @@ def moment_tabs(f, f2, N=NMAX, U=UMAX):
     return P1, P2, PH
 
 
+def moment_stages(f, f2, N=NMAX, U=UMAX):
+    """The stages `μL`, `hL`, `νL`, `gL` of H0MomCert.lean, which the kernel checks once each (H0PTab/)."""
+    def fQ(u): return Fr(f[u], 256 ** (u + 1)) if u <= U else Fr(1)
+    def f2Q(u): return Fr(f2[u], 256 ** (u + 2)) if u <= U else Fr(1)
+    def binQ(n, i, a, b): return comb(n, i) * a ** i * b ** (n - i)
+    fq = [fQ(u) for u in range(N + 1)]
+    f2q = [f2Q(u) for u in range(N + 1)]
+    e8, s8, t8 = Fr(1, 8), Fr(7, 8), Fr(6, 8)
+    mu = [rup(sum(binQ(i, u, e8, s8) * fq[u] for u in range(i + 1)), 128) for i in range(N + 1)]
+    h = [rup(sum(comb(s, u) * fq[u] * fq[s - u] for u in range(s + 1)), 128) for s in range(N + 1)]
+    nu = [rup(e8 * sum(binQ(i, u, e8, s8) * f2q[u] for u in range(i + 1)) +
+              s8 * sum(binQ(i, s, e8, t8) * h[s] for s in range(i + 1)), 128) for i in range(N + 1)]
+    mu2 = [x * x for x in mu]
+    g = [rup(sum(comb(s, i) * mu2[i] * mu2[s - i] for i in range(s + 1)), 128) for s in range(N + 1)]
+    return mu, h, nu, g
+
+
 def lit_counts(codes=CODES):
     """codewords with digit i at least one (BridgeRevealRate.litCount)"""
     return [sum(1 for w in table(codes) if w[i] >= 1) for i in range(D)]
@@ -136,12 +162,21 @@ def lean_rats(xs):
 
 
 FILES = {
-    'codewordCodes': ('Scheme.lean', 'def codewordCodes : List Nat :=\n  '),
-    'fTab': ('H0FTab.lean', 'def fTab : List ℤ := '),
-    'f2Tab': ('H0FTab.lean', 'def f2Tab : List ℤ := '),
-    'P1tab': ('H0PTab.lean', 'def P1tab : List ℚ := '),
-    'P2tab': ('H0PTab.lean', 'def P2tab : List ℚ := '),
-    'PHtab': ('H0NTab.lean', 'def PHtab : List ℚ := '),
+    'codewordCodes': ('LayeredForest.lean', 'def codewordCodes : List Nat :=\n  '),
+    'fTab': ('H0FTab/F.lean', 'def fTab : List ℤ := '),
+    'f2Tab': ('H0FTab/F2.lean', 'def f2Tab : List ℤ := '),
+    'f2Part0': ('H0FTab/F2_0.lean', 'def f2Part0 : List ℤ := '),
+    'f2Part1': ('H0FTab/F2_0.lean', 'def f2Part1 : List ℤ := '),
+    'f2Part2': ('H0FTab/F2_0.lean', 'def f2Part2 : List ℤ := '),
+    'f2Part3': ('H0FTab/F2_1.lean', 'def f2Part3 : List ℤ := '),
+    'f2Part4': ('H0FTab/F2_1.lean', 'def f2Part4 : List ℤ := '),
+    'μTab': ('H0PTab/Mu.lean', 'def μTab : List ℚ := '),
+    'hTab': ('H0PTab/H.lean', 'def hTab : List ℚ := '),
+    'νTab': ('H0PTab/NuTab.lean', 'def νTab : List ℚ := '),
+    'gTab': ('H0PTab/G.lean', 'def gTab : List ℚ := '),
+    'P1tab': ('H0PTab/P1.lean', 'def P1tab : List ℚ := '),
+    'P2tab': ('H0PTab/P2Tab.lean', 'def P2tab : List ℚ := '),
+    'PHtab': ('H0NTab/PH.lean', 'def PHtab : List ℚ := '),
 }
 
 
@@ -149,7 +184,11 @@ def literals(codes=CODES):
     validate(codes)
     f, f2 = f_tabs(codes)
     P1, P2, PH = moment_tabs(f, f2)
-    return {'codewordCodes': lean_codes(codes), 'fTab': lean_ints(f), 'f2Tab': lean_ints(f2),
+    mu, h, nu, g = moment_stages(f, f2)
+    parts = f_tabs(codes, parts=True)
+    assert [sum(col) for col in zip(*parts)] == f2
+    return {**{'f2Part%d' % j: lean_ints(parts[j]) for j in range(5)},'codewordCodes': lean_codes(codes), 'fTab': lean_ints(f), 'f2Tab': lean_ints(f2),
+            'μTab': lean_rats(mu), 'hTab': lean_rats(h), 'νTab': lean_rats(nu), 'gTab': lean_rats(g),
             'P1tab': lean_rats(P1), 'P2tab': lean_rats(P2), 'PHtab': lean_rats(PH)}
 
 
