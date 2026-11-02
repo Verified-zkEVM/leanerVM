@@ -214,6 +214,10 @@ theorem two_pow_clog2_lt {e : ℕ} (he : 1 ≤ e) : 2 ^ clog2 e < 2 * e := by
     rw [hk, pow_succ]
     omega
 
+/-- **`pmTreeEval` is `pmTree`.** -/
+theorem pmTreeEval_eq (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : pmTreeEval c L N o = pmTree c L N o := by
+  rw [pmTreeEval, pmTreePair_eq c L N _ o (le_two_pow_clog2 (o + 1))]
+
 /-! ## Monotone in the order -/
 
 theorem le_pmTree_self (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : L ≤ pmTree c L N o := by
@@ -245,35 +249,29 @@ theorem pmTree_mono (c L : ℕ) {N : ℕ → ℕ} (hN : Monotone N) :
 
 /-! ## The model is monotone -/
 
-theorem nttFwdPrice_mono {j j' : ℕ} (h : j ≤ j') : nttFwdPrice j ≤ nttFwdPrice j' := by
+theorem fwdPrice_mono (p : PMPrices) {j j' : ℕ} (h : j ≤ j') : fwdPrice p j ≤ fwdPrice p j' := by
   have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
-  unfold nttFwdPrice; gcongr
+  unfold fwdPrice; gcongr
 
-theorem nttInvPrice_mono {j j' : ℕ} (h : j ≤ j') : nttInvPrice j ≤ nttInvPrice j' := by
+theorem invPrice_mono (p : PMPrices) {j j' : ℕ} (h : j ≤ j') : invPrice p j ≤ invPrice p j' := by
   have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
-  unfold nttInvPrice; gcongr
-
-theorem basisConvPrice_mono (mac : ℕ) {j j' : ℕ} (h : j ≤ j') :
-    basisConvPrice mac j ≤ basisConvPrice mac j' := by
-  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
-  unfold basisConvPrice; gcongr
+  unfold invPrice; gcongr
 
 /-- A product of larger degrees costs no less (its transform size `clog2` is monotone). -/
-theorem evalMatPrice_mono (mac R S T : ℕ) {dA dB dA' dB' : ℕ} (hA : dA ≤ dA') (hB : dB ≤ dB') :
-    evalMatPrice mac R S T dA dB ≤ evalMatPrice mac R S T dA' dB' := by
+theorem evalMatPrice_mono (p : PMPrices) (R S T : ℕ) {dA dB dA' dB' : ℕ} (hA : dA ≤ dA')
+    (hB : dB ≤ dB') : evalMatPrice p R S T dA dB ≤ evalMatPrice p R S T dA' dB' := by
   have hj := clog2_mono (show dA + dB + 1 ≤ dA' + dB' + 1 by omega)
-  have := nttFwdPrice_mono hj
-  have := nttInvPrice_mono hj
-  have := basisConvPrice_mono mac hj
+  have := fwdPrice_mono p hj
+  have := invPrice_mono p hj
   have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hj
   unfold evalMatPrice; gcongr
 
 /-- **The model's node price is monotone in the order**, so `pmTree_le_levels` applies to it. -/
-theorem pmNodePrice_mono (mac ovh r m : ℕ) : Monotone (pmNodePrice mac ovh r m) := by
+theorem pmNodePrice_mono (p : PMPrices) (r m : ℕ) : Monotone (pmNodePrice p r m) := by
   intro a b h
-  have := evalMatPrice_mono mac r r r (show a - a / 2 ≤ b - b / 2 by omega)
+  have := evalMatPrice_mono p r r r (show a - a / 2 ≤ b - b / 2 by omega)
     (show a / 2 ≤ b / 2 by omega)
-  have := evalMatPrice_mono mac r r m (show a / 2 ≤ b / 2 by omega) (show a - 1 ≤ b - 1 by omega)
+  have := evalMatPrice_mono p r r m (show a / 2 ≤ b / 2 by omega) (show a - 1 ≤ b - 1 by omega)
   unfold pmNodePrice; gcongr
 
 end
