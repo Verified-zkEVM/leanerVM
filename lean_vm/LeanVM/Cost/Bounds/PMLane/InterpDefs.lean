@@ -118,9 +118,9 @@ public section
 /-- **The interpolation's price** (`interpolatePMC_cost`): `G` and `R` (the chain's), the GS data,
 the certified solve, the least row, the row read and normalized. -/
 @[expose] def interpPMCost (p : PMPrices) (L N n m w W MB LB LBq IB : ℕ) : ℕ :=
-  3720 * (n * n) + 1700 * ((n + 1) * n) + 27100 * n + 1000 + dataPrice N m w MB LB LBq IB +
-    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (90 * w + 130) * (w + m) +
-    (3 * (m * n + W + 2 + 2) + 41) * w + normBound W w + 200
+  362 * (n * n) + 309 * ((n + 1) * n) + 4146 * n + 299 + dataPrice N m w MB LB LBq IB +
+    certSolveCost p L (m * n + 1) w m (m * n + W + 2) + (84 * w + 98) * (w + m) +
+    (3 * (m * n + W + 2 + 2) + 32) * w + normBound W w
 
 /-- The sizes the interpolation's price reads, besides the chain's `InterpSizes`. -/
 @[expose] def PMInterpSizes (n : ℕ) (params : GuruswamiSudan.GSInterpParams) : Prop :=
