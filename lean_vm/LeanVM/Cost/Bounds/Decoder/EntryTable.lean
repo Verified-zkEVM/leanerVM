@@ -15,10 +15,10 @@ Parameters: `R` a memory read (the reader closure).
 * the guest's tables' maxima (`argCount_le`, `retCount_le`, `loc_lt`, from
   `GuestTablesBounds.lean`);
 * `wordsWith_cost`, `callKey_cost`, **`entryKeyT_cost`**: a state's key, its `22 + 10` words read
-  (`guestArgCounts`, `guestRetCounts`), at most `32R + 113685`, of at most `22` codes per list
+  (`guestArgCounts`, `guestRetCounts`), at most `32R + 17682`, of at most `22` codes per list
   (`entryKeyT_ok`);
-* `isFunctionIndex_cost` (`9`), **`frameWordAt_cost`**: a frame's word, the table of frame cells
-  and a read, at most `R + 11010`.
+* `isFunctionIndex_cost` (`11`), **`frameWordAt_cost`**: a frame's word, the table of frame cells
+  and a read, at most `R + 1535`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -45,7 +45,7 @@ theorem listFoldl_amortized' {α β : Type} [MachineEncoding α] [MachineEncodin
         appCost P fVal [encodeValue acc, encodeValue b] + Φ (f acc b) ≤ Φ acc + A) →
       I (l.foldl f init) 0 ∧
         machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] +
-          Φ (l.foldl f init) ≤ Φ init + (A + 9) * l.length + 3 := by
+          Φ (l.foldl f init) ≤ Φ init + (A + 11) * l.length + 3 := by
   intro l
   induction l with
   | nil =>
@@ -110,25 +110,25 @@ theorem loc_lt (j i : ℕ) : (guestLocs.getD j #[]).getD i 0 < 2 ^ 20 := by
 
 /-! ## A state's key -/
 
-/-- A word's code (`wordCodeC`): `15`. -/
+/-- A word's code (`wordCodeC`): `12`. -/
 theorem wordCode_cost (hP : Includes P wordCodeC.costDeps) (x : E) :
-    machineCost P wordCodeC.costIdx [encodeValue x] = 15 := by
+    machineCost P wordCodeC.costIdx [encodeValue x] = 12 := by
   rw [wordCodeC.costEq P hP]
 
-/-- A call's key (`callKeyC`): `28` per word, `19`. -/
+/-- A call's key (`callKeyC`): `27` per word, `19`. -/
 theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : List E) :
     machineCost P callKeyC.costIdx [encodeValue j, encodeValue args, encodeValue rets] ≤
-      28 * (args.length + rets.length) + 19 := by
+      27 * (args.length + rets.length) + 19 := by
   rw [callKeyC.costEq P hP]
-  have hlam : ∀ x : E, appCost P (.closure callKeyC.lam0.costIdx []) [encodeValue x] ≤ 17 := by
+  have hlam : ∀ x : E, appCost P (.closure callKeyC.lam0.costIdx []) [encodeValue x] ≤ 14 := by
     intro x
     rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P (by includes),
-      wordCode_cost P (by includes)]
+      wordCode_cost P (by includes), List.length_nil]
   have h1 := map_cost P (by includes) _ (.closure callKeyC.lam0.costIdx [])
-    (fun x ↦ RunsApp.of_spec (callKeyC.lam0.costSpec P (by includes) x)) 17 args
+    (fun x ↦ RunsApp.of_spec (callKeyC.lam0.costSpec P (by includes) x)) 14 args
     (fun x _ ↦ hlam x)
   have h2 := map_cost P (by includes) _ (.closure callKeyC.lam0.costIdx [])
-    (fun x ↦ RunsApp.of_spec (callKeyC.lam0.costSpec P (by includes) x)) 17 rets
+    (fun x ↦ RunsApp.of_spec (callKeyC.lam0.costSpec P (by includes) x)) 14 rets
     (fun x _ ↦ hlam x)
   omega
 
@@ -156,22 +156,22 @@ variable (rd : Reader) (rdVal : MachineValue)
 
 include hrd hR in
 /-- `n` words of a frame from cell `o` (`wordsWithC`), `o + n ≤ 2^W`: at most
-`(psAt W + R + 306)·n + 20`. -/
+`(psAt W + R + 80)·n + 19`. -/
 theorem wordsWith_cost (hP : Includes P wordsWithC.costDeps) {W : ℕ} (hW : 0 < W) (hW64 : W < 64)
     (fp : K) (o n : ℕ) (hon : o + n ≤ 2 ^ W) :
     machineCost P wordsWithC.costIdx [rdVal, encodeValue fp, encodeValue o, encodeValue n] ≤
-      (psAt W + R + 306) * n + 20 := by
+      (psAt W + R + 80) * n + 19 := by
   have h64 : 2 ^ W < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hW64
   rw [wordsWithC.costEq P hP rd rdVal hrd]
   have hr := rangeLoop_cost P (by includes) n [] (by omega)
   have hm := map_cost P (by includes) _
     (.closure wordsWithC.lam0.costIdx [rdVal, encodeValue fp, encodeValue o])
     (fun i ↦ RunsApp.of_spec (wordsWithC.lam0.costSpec P (by includes) rd rdVal hrd fp o i))
-    (psAt W + R + 278) (List.range n) (fun i hi ↦ by
+    (psAt W + R + 52) (List.range n) (fun i hi ↦ by
       have hi' := List.mem_range.mp hi
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [wordsWithC.lam0.costEq P (by includes) rd rdVal hrd, limbs_of_lt (by omega : o < 2 ^ 64),
-        limbs_of_lt (by omega : i < 2 ^ 64)]
+        limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : o + i < 2 ^ 64)]
       have := wordWith_cost P rd rdVal hrd R hR hW hW64 (by includes) fp (o + i) (by omega)
       simp only [max_self]
       omega)
@@ -180,12 +180,13 @@ theorem wordsWith_cost (hP : Includes P wordsWithC.costDeps) {W : ℕ} (hW : 0 <
 
 include hrd hR in
 /-- **A state's key** (`entryKeyTC`): its `≤ 22` argument and `≤ 10` return words read, at most
-`32R + 113685`. -/
+`32R + 17682`. -/
 theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (j : ℕ) :
-    machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 32 * R + 113685 := by
+    machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 32 * R + 17682 := by
   have ha := argCount_le j
   have hr := retCount_le j
-  rw [entryKeyTC.costEq P hP rd rdVal hrd, limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64)]
+  rw [entryKeyTC.costEq P hP rd rdVal hrd, limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64),
+    limbs_of_lt (by omega : 2 + guestArgCounts.getD j 0 < 2 ^ 64)]
   have h1 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 6) (by norm_num) (by norm_num)
     s.fp 2 (guestArgCounts.getD j 0) (show 2 + guestArgCounts.getD j 0 ≤ 2 ^ 6 by omega)
   have h2 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 6) (by norm_num) (by norm_num)
@@ -195,6 +196,7 @@ theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (
     (wordsWith rd s.fp (2 + guestArgCounts.getD j 0) (guestRetCounts.getD j 0))
   rw [length_wordsWith, length_wordsWith] at h3
   unfold psAt at h1 h2
+  simp only [max_self]
   generalize guestArgCounts.getD j 0 = a at *
   generalize guestRetCounts.getD j 0 = b at *
   nlinarith
@@ -206,19 +208,19 @@ theorem entryKeyT_ok (s : Registers K) {j : ℕ} (hj : j < 2 ^ 64) : KeyOK 22 (e
 
 /-! ## The frame map -/
 
-/-- Whether `j` is a function's index (`isFunctionIndexC`), `j` word-sized: at most `9`. -/
+/-- Whether `j` is a function's index (`isFunctionIndexC`), `j` word-sized: at most `11`. -/
 theorem isFunctionIndex_cost (hP : Includes P isFunctionIndexC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
-    machineCost P isFunctionIndexC.costIdx [encodeValue j] ≤ 9 := by
+    machineCost P isFunctionIndexC.costIdx [encodeValue j] ≤ 11 := by
   rw [isFunctionIndexC.costEq P hP, limbs_of_lt hj]
   split_ifs <;> omega
 
 include hrd hR in
 /-- A frame's word (`frameWordAtC`): the table of frame cells (`guestLocsTableC`, a literal), a
-read, at most `R + 11010`. -/
+read, at most `R + 1535`. -/
 theorem frameWordAt_cost (hP : Includes P frameWordAtC.costDeps) (fp : K) (j : ℕ)
     (hj : j < 2 ^ 64) (v : V) :
     machineCost P frameWordAtC.costIdx [rdVal, encodeValue fp, encodeValue j, encodeValue v] ≤
-      R + 11010 := by
+      R + 1535 := by
   rw [frameWordAtC.costEq P hP rd rdVal hrd]
   have h0 := guestLocsTableC.costEq P (by includes)
   have h1 := isFunctionIndex_cost P (by includes) j hj
