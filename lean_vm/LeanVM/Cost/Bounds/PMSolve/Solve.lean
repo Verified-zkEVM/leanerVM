@@ -285,7 +285,7 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
     rw [ModularEquation.solutionWidth.c546.costEq P (by includes),
       certShift.c566.costEq P (by includes)]
     have hsh := exactNullspaceShiftC_cost P (by includes) shift equation.moduli.size bound
-      (by omega) (by omega) hsv
+      (by omega) hsv
     have hfw := fullWindowProblemC_cost P (by includes) equation bound (by omega) hs
     have hfuel := pmBasisFuelC_cost P (by includes) prob (fun x hx ↦ by have := hord x hx; omega)
     have heS : ∀ j, eShift.getD j 0 ≤ Sh + bound + 1 := certShift_getD_le equation shift bound hSh
