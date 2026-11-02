@@ -12,12 +12,12 @@ The searches of `Guest/Fast/Search.lean`, compiled in `Cost/Decoder/Kids.lean`, 
 sizes (every count, mark and slot below `2^34`):
 
 * **`lowerBound_cost`**: a binary search over at most `2^34` entries, at most `lowerBoundPrice =
-  1406`; `slotIn_cost`, `countIn_cost`, `kidIn_cost`: one or two of them;
-* `prefixMax_cost`: `16` per entry;
+  915`; `slotIn_cost`, `countIn_cost`, `kidIn_cost`: one or two of them;
+* `prefixMax_cost`: `17` per entry;
 * the coverage table's sorted map at keys `(mark, slot)` (`mergeNewerCover_cost`,
   `levelMergeCover_cost`, `carryCover_amortized`: `Bounds/SortedMap.lean`'s amortized insertion),
   its insertions (`coverFold_cost`), its levels merged (`flattenLevels_cost`), **`coverTable_cost`**:
-  at most `coverTablePrice N = 5600·N + 1000` for `N ≤ 2^34` pairs;
+  at most `coverTablePrice N = 5405·N + 813` for `N ≤ 2^34` pairs;
 * `TableGood`: what the searches need of a table (its marks sorted, both arrays of one size at
   most `2^34`, the entries below `2^34`); `coverTable_good` gives it for every list of fewer
   than `2^34` pairs below `2^34`.
@@ -53,12 +53,12 @@ theorem lowerBound_le (t : Array ℕ) (e : ℕ) :
 theorem lowerBound_le_size (t : Array ℕ) (e : ℕ) : lowerBound t e 0 t.size ≤ t.size :=
   (lowerBound_le t e _ 0 t.size rfl (Nat.zero_le _)).2
 
-/-- **The binary search's price**: `40` per halving of `[lo, hi)`, `6` at the end. -/
+/-- **The binary search's price**: `26` per halving of `[lo, hi)`, `5` at the end. -/
 theorem lowerBound_cost_lt (hP : Includes P lowerBoundC.costDeps)
     (t : Array ℕ) (ht : ∀ i, t.getD i 0 < 2 ^ 64) (e : ℕ) (he : e < 2 ^ 64) :
     ∀ k lo hi, lo ≤ hi → hi ≤ 2 ^ 35 → hi - lo < 2 ^ k →
       machineCost P lowerBoundC.costIdx
-        [encodeValue t, encodeValue e, encodeValue lo, encodeValue hi] ≤ 6 + 40 * k := by
+        [encodeValue t, encodeValue e, encodeValue lo, encodeValue hi] ≤ 5 + 26 * k := by
   intro k
   induction k with
   | zero =>
@@ -82,10 +82,10 @@ theorem lowerBound_cost_lt (hP : Includes P lowerBoundC.costDeps)
       omega
 
 /-- The binary search's price over a whole array of at most `2^34` entries. -/
-@[expose] def lowerBoundPrice : ℕ := 1406
+@[expose] def lowerBoundPrice : ℕ := 915
 
 /-- **A binary search over at most `2^34` entries below `2^64`** (`lowerBoundC`, the search `slotInC`,
-`countInC`, `kidInC` call): at most `lowerBoundPrice = 1406`. -/
+`countInC`, `kidInC` call): at most `lowerBoundPrice = 915`. -/
 theorem lowerBound_cost (hP : Includes P lowerBoundC.costDeps)
     (t : Array ℕ) (ht : ∀ i, t.getD i 0 < 2 ^ 64) (hs : t.size ≤ 2 ^ 34) (e : ℕ) (he : e < 2 ^ 64) :
     machineCost P lowerBoundC.costIdx
@@ -94,10 +94,10 @@ theorem lowerBound_cost (hP : Includes P lowerBoundC.costDeps)
   unfold lowerBoundPrice
   omega
 
-/-- **The first slot holding a mark** (`slotInC`): one search, at most `1425`. -/
+/-- **The first slot holding a mark** (`slotInC`): one search, at most `933`. -/
 theorem slotIn_cost (hP : Includes P slotInC.costDeps) (tm ts : Array ℕ)
     (ht : ∀ i, tm.getD i 0 < 2 ^ 64) (hs : tm.size ≤ 2 ^ 34) (e : ℕ) (he : e < 2 ^ 64) :
-    machineCost P slotInC.costIdx [encodeValue tm, encodeValue ts, encodeValue e] ≤ 1425 := by
+    machineCost P slotInC.costIdx [encodeValue tm, encodeValue ts, encodeValue e] ≤ 933 := by
   rw [slotInC.costEq P hP]
   have h1 := lowerBound_cost P (by includes) tm ht hs e he
   have h2 := ht (lowerBound tm e 0 tm.size)
@@ -105,11 +105,11 @@ theorem slotIn_cost (hP : Includes P slotInC.costDeps) (tm ts : Array ℕ)
   limbs_one
   split <;> omega
 
-/-- **The slots whose marks lie in `[a, b)`** (`countInC`): two searches, at most `2826`. -/
+/-- **The slots whose marks lie in `[a, b)`** (`countInC`): two searches, at most `1843`. -/
 theorem countIn_cost (hP : Includes P countInC.costDeps) (tm : Array ℕ)
     (ht : ∀ i, tm.getD i 0 < 2 ^ 64) (hs : tm.size ≤ 2 ^ 34) (a b : ℕ) (ha : a < 2 ^ 64)
     (hb : b < 2 ^ 64) :
-    machineCost P countInC.costIdx [encodeValue tm, encodeValue a, encodeValue b] ≤ 2826 := by
+    machineCost P countInC.costIdx [encodeValue tm, encodeValue a, encodeValue b] ≤ 1843 := by
   rw [countInC.costEq P hP]
   have := lowerBound_cost P (by includes) tm ht hs a ha
   have := lowerBound_cost P (by includes) tm ht hs b hb
@@ -120,10 +120,10 @@ theorem countIn_cost (hP : Includes P countInC.costDeps) (tm : Array ℕ)
   omega
 
 /-- **The first child whose running maximum passes a mark** (`kidInC`): one search, at most
-`1423`. -/
+`930`. -/
 theorem kidIn_cost (hP : Includes P kidInC.costDeps) (M : Array ℕ)
     (ht : ∀ i, M.getD i 0 < 2 ^ 64) (hs : M.size ≤ 2 ^ 34) (e : ℕ) (he : e < 2 ^ 63) :
-    machineCost P kidInC.costIdx [encodeValue M, encodeValue e] ≤ 1423 := by
+    machineCost P kidInC.costIdx [encodeValue M, encodeValue e] ≤ 930 := by
   rw [kidInC.costEq P hP]
   have := lowerBound_cost P (by includes) M ht hs (e + 1) (by omega)
   have := lowerBound_le_size M (e + 1)
@@ -133,11 +133,11 @@ theorem kidIn_cost (hP : Includes P kidInC.costDeps) (M : Array ℕ)
 
 /-! ## The running maxima -/
 
-/-- **The running maxima** (`prefixMaxC`) of entries below `2^64`: `16` per entry and `3`. -/
+/-- **The running maxima** (`prefixMaxC`) of entries below `2^64`: `17` per entry and `3`. -/
 theorem prefixMax_cost (hP : Includes P prefixMaxC.costDeps) :
     ∀ (xs : List ℕ) (acc : ℕ), acc < 2 ^ 64 → (∀ x ∈ xs, x < 2 ^ 64) →
       machineCost P prefixMaxC.costIdx [encodeValue acc, encodeValue xs] ≤
-        16 * xs.length + 3 := by
+        17 * xs.length + 3 := by
   intro xs
   induction xs with
   | nil => intro acc _ _; rw [prefixMaxC.costEq_nil P hP]; omega
@@ -160,11 +160,11 @@ attribute [local instance] lexOrd
 @[expose] def CoverKey (k : ℕ × ℕ) : Prop := k.1 < 2 ^ 64 ∧ k.2 < 2 ^ 64
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- `mergeNewer` on the coverage keys (`mergeNewerCoverC`): at most `53` per entry and `9`. -/
+/-- `mergeNewer` on the coverage keys (`mergeNewerCoverC`): at most `53` per entry and `3`. -/
 theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
     ∀ (n : ℕ) (a b : List ((ℕ × ℕ) × ℕ)), a.length + b.length = n →
       (∀ e ∈ a, CoverKey e.1) → (∀ e ∈ b, CoverKey e.1) →
-      machineCost P mergeNewerCoverC.costIdx [encodeValue a, encodeValue b] ≤ 53 * n + 9 := by
+      machineCost P mergeNewerCoverC.costIdx [encodeValue a, encodeValue b] ≤ 53 * n + 3 := by
   intro n
   induction n using Nat.strong_induction_on with
   | _ n ih =>
@@ -174,7 +174,7 @@ theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
   | cons x a =>
     rw [mergeNewerCoverC.costEq_cons P hP]
     cases b with
-    | nil => simp
+    | nil => simp only [List.length_cons, List.length_nil] at hn; simp; omega
     | cons y b =>
       dsimp only
       have hx := ha x (by simp)
@@ -193,33 +193,34 @@ theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
       cases o1 <;> cases o2 <;> dsimp only <;> (try split_ifs) <;> omega
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- Two levels merged (`levelMergeCoverC`), weights word-sized: at most `57` per entry and `26`. -/
+/-- Two levels merged (`levelMergeCoverC`), weights word-sized: at most `60` per entry and `20`. -/
 theorem levelMergeCover_cost (hP : Includes P levelMergeCoverC.costDeps)
     (l l' : Level (ℕ × ℕ) ℕ) (hQ : KeysIn CoverKey [l, l'])
     (hw : l.weight < 2 ^ 64) (hw' : l'.weight < 2 ^ 64) :
     machineCost P levelMergeCoverC.costIdx [encodeValue l, encodeValue l'] ≤
-      26 + 57 * (l.entries.size + l'.entries.size) := by
+      20 + 60 * (l.entries.size + l'.entries.size) := by
   rw [levelMergeCoverC.costEq P hP, limbs_of_lt hw, limbs_of_lt hw']
   have hm := mergeNewerCover_cost P (by includes) _ l.entries.toList l'.entries.toList rfl
     (fun e he ↦ hQ l (by simp) e (by simpa using he))
     (fun e he ↦ hQ l' (by simp) e (by simpa using he))
   have hlen := length_mergeNewer_le l.entries.toList l'.entries.toList
   simp only [Array.length_toList] at hm hlen
+  have := limbs_le_two (x := l.weight + l'.weight) (by omega)
   omega
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- **An insertion into the coverage map, amortized** (`carryCoverC`), below `2^D ≤ 2^63`
-insertions: `57·D + 40·(levels + 1)` plus the drop of `57` times the potential. -/
+insertions: `60·D + 35·(levels + 1)` plus the drop of `60` times the potential. -/
 theorem carryCover_amortized (hP : Includes P carryCoverC.costDeps) (D : ℕ) (hD : D ≤ 63)
     (m : SortedMap (ℕ × ℕ) ℕ) (hm : smGood m) (hQ : KeysIn CoverKey m.levels)
     (hN : smWeightSum m < 2 ^ D) (l : Level (ℕ × ℕ) ℕ) (hw : l.weight = 1)
     (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, CoverKey e.1) :
     machineCost P carryCoverC.costIdx [encodeValue l, encodeValue m.levels] +
-        57 * potential D (carry l m.levels) ≤
-      57 * potential D m.levels + 57 * D + 40 * (m.levels.length + 1) := by
+        60 * potential D (carry l m.levels) ≤
+      60 * potential D m.levels + 60 * D + 35 * (m.levels.length + 1) := by
   have h2D : 2 ^ D ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) hD
   refine insert_amortized CoverKey
-    (fun l ls ↦ machineCost P carryCoverC.costIdx [encodeValue l, encodeValue ls]) 40 57
+    (fun l ls ↦ machineCost P carryCoverC.costIdx [encodeValue l, encodeValue ls]) 35 60
     D ?_ ?_ ?_ m hm hQ hN l hw hs hk
   · intro l _; rw [carryCoverC.costEq_nil P hP]; omega
   · intro l l' ls h1 h2 hne
@@ -241,13 +242,13 @@ theorem carryCover_amortized (hP : Includes P carryCoverC.costDeps) (D : ℕ) (h
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- **One insertion into the coverage map, amortized** (`coverKeysC.lam1`, `coverInsert`): at
-most `57·D + 40·(D + 1) + 27` plus the drop of `57` times the potential. -/
+most `60·D + 35·(D + 1) + 27` plus the drop of `60` times the potential. -/
 theorem coverStep_amortized (hP : Includes P coverKeysC.lam1.costDeps) (D : ℕ) (hD : D ≤ 63)
     (m : SortedMap (ℕ × ℕ) ℕ) (r : ℕ) (hm : CoverInv D m (r + 1)) (p : ℕ × ℕ) (hp : CoverKey p) :
     CoverInv D (coverInsert m p) r ∧
       machineCost P coverKeysC.lam1.costIdx [encodeValue m, encodeValue p] +
-          57 * potential D (coverInsert m p).levels ≤
-        57 * potential D m.levels + (57 * D + 40 * (D + 1) + 27) := by
+          60 * potential D (coverInsert m p).levels ≤
+        60 * potential D m.levels + (60 * D + 35 * (D + 1) + 27) := by
   obtain ⟨hg, hQ, hw⟩ := hm
   have hN : smWeightSum m < 2 ^ D := by omega
   obtain ⟨hlev, -⟩ := smGood_levels_le hg hN
@@ -260,23 +261,23 @@ theorem coverStep_amortized (hP : Includes P coverKeysC.lam1.costDeps) (D : ℕ)
       ⟨1, #[(p, 0)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by simp at he; rw [he]; exact hp)
     have hins : (coverInsert m p).levels = carry ⟨1, #[(p, 0)], by simp [Ascending]⟩ m.levels := rfl
     rw [hins]
-    have := Nat.mul_le_mul_left 40 (show m.levels.length + 1 ≤ D + 1 by omega)
+    have := Nat.mul_le_mul_left 35 (show m.levels.length + 1 ≤ D + 1 by omega)
     omega
 
 /-- **The insertions** (`listFoldl` of `coverKeysC.lam1` from the empty map): `n ≤ 2^D` keys, at
-most `(57·D + 40·(D + 1) + 36)·n + 3`. -/
+most `(60·D + 35·(D + 1) + 38)·n + 3`. -/
 theorem coverFold_cost (hP : Includes P coverKeysC.costDeps) (D : ℕ) (hD : D ≤ 63)
     (ps : List (ℕ × ℕ)) (hn : ps.length ≤ 2 ^ D) (hp : ∀ p ∈ ps, CoverKey p) :
     machineCost P listFoldl.costIdx [.closure coverKeysC.lam1.costIdx [],
         encodeValue (SortedMap.empty : SortedMap (ℕ × ℕ) ℕ), encodeValue ps] ≤
-      (57 * D + 40 * (D + 1) + 36) * ps.length + 3 := by
+      (60 * D + 35 * (D + 1) + 38) * ps.length + 3 := by
   have := listFoldl_amortized P (by includes) coverInsert (.closure coverKeysC.lam1.costIdx [])
     (fun a b ↦ RunsApp.of_spec (coverKeysC.lam1.costSpec P (by includes) a b))
-    (57 * D + 40 * (D + 1) + 27) (fun m ↦ 57 * potential D m.levels) (CoverInv D)
+    (60 * D + 35 * (D + 1) + 27) (fun m ↦ 60 * potential D m.levels) (CoverInv D)
     ps SortedMap.empty ⟨smGood_empty, fun _ h ↦ by simp [SortedMap.empty] at h,
       by simp [smWeightSum_empty]; omega⟩
     (fun acc r hacc p hpm ↦ by
-      rw [appCost_fn, List.nil_append]
+      rw [appCost_fn, List.nil_append, List.length_nil]
       exact coverStep_amortized P (by includes) D hD acc r hacc p (hp p hpm))
   have h0 : potential D (SortedMap.empty : SortedMap (ℕ × ℕ) ℕ).levels = 0 := rfl
   simp only [h0, Nat.mul_zero, Nat.zero_add] at this
@@ -315,12 +316,12 @@ theorem coverWeight_foldl : ∀ (ps : List (ℕ × ℕ)) (m : SortedMap (ℕ × 
 /-! ### The levels merged -/
 
 /-- A level merged into the accumulator (`flattenLevelsC.lam0`, `mergeLevel`): at most
-`56·(|acc| + |l|) + 17`. -/
+`56·(|acc| + |l|) + 11`. -/
 theorem mergeLevel_cost (hP : Includes P flattenLevelsC.lam0.costDeps)
     (acc : List ((ℕ × ℕ) × ℕ)) (l : Level (ℕ × ℕ) ℕ) (ha : ∀ e ∈ acc, CoverKey e.1)
     (hl : ∀ e ∈ l.entries, CoverKey e.1) :
     machineCost P flattenLevelsC.lam0.costIdx [encodeValue acc, encodeValue l] ≤
-      56 * (acc.length + l.entries.size) + 17 := by
+      56 * (acc.length + l.entries.size) + 11 := by
   rw [flattenLevelsC.lam0.costEq P hP, mergeLevelC.costEq P (by includes)]
   have := mergeNewerCover_cost P (by includes) _ acc l.entries.toList rfl ha
     (fun e he ↦ hl e (by simpa using he))
@@ -328,14 +329,14 @@ theorem mergeLevel_cost (hP : Includes P flattenLevelsC.lam0.costDeps)
   omega
 
 /-- **The levels merged** (`listFoldl` of `flattenLevelsC.lam0`), the accumulator and the levels
-holding at most `N` entries: at most `(56·N + 26)` per level and `3`. -/
+holding at most `N` entries: at most `(56·N + 22)` per level and `3`. -/
 theorem flattenFold_cost (hP : Includes P flattenLevelsC.costDeps) (N : ℕ) :
     ∀ (ls : List (Level (ℕ × ℕ) ℕ)) (acc : List ((ℕ × ℕ) × ℕ)),
       acc.length + (ls.map (·.entries.size)).sum ≤ N → (∀ e ∈ acc, CoverKey e.1) →
       KeysIn CoverKey ls →
       machineCost P listFoldl.costIdx
           [.closure flattenLevelsC.lam0.costIdx [], encodeValue acc, encodeValue ls] ≤
-        (56 * N + 26) * ls.length + 3 := by
+        (56 * N + 22) * ls.length + 3 := by
   have hf : ∀ a b, RunsApp P (.closure flattenLevelsC.lam0.costIdx []) [encodeValue a, encodeValue b]
       (encodeValue (mergeLevel a b)) :=
     fun a b ↦ RunsApp.of_spec (flattenLevelsC.lam0.costSpec P (by includes) a b)
@@ -356,11 +357,11 @@ theorem flattenFold_cost (hP : Includes P flattenLevelsC.costDeps) (N : ℕ) :
         · exact ha e h
         · exact hl e (by simpa using h))
       (fun l' hl' ↦ hQ l' (by simp [hl']))
-    rw [appCost_fn, List.nil_append]
+    rw [appCost_fn, List.nil_append, List.length_nil]
     simp only [List.length_cons]
     rw [Nat.mul_add, Nat.mul_one]
     have : acc.length + l.entries.size ≤ N := by omega
-    generalize (56 * N + 26) * ls.length = X at *
+    generalize (56 * N + 22) * ls.length = X at *
     omega
 
 theorem length_flatten_le : ∀ (ls : List (Level (ℕ × ℕ) ℕ)) (acc : List ((ℕ × ℕ) × ℕ)),
@@ -375,10 +376,10 @@ theorem length_flatten_le : ∀ (ls : List (Level (ℕ × ℕ) ℕ)) (acc : List
     have h3 : (mergeLevel acc l).length = (mergeNewer acc l.entries.toList).length := rfl
     omega
 
-/-- **The coverage keys sorted** (`coverKeysC`): `N ≤ 2^34` pairs, at most `5550·N + 950`. -/
+/-- **The coverage keys sorted** (`coverKeysC`): `N ≤ 2^34` pairs, at most `5373·N + 793`. -/
 theorem coverKeys_cost (hP : Includes P coverKeysC.costDeps) (ps : List (ℕ × ℕ))
     (hn : ps.length ≤ 2 ^ 34) (hp : ∀ p ∈ ps, CoverKey p) :
-    machineCost P coverKeysC.costIdx [encodeValue ps] ≤ 5550 * ps.length + 950 := by
+    machineCost P coverKeysC.costIdx [encodeValue ps] ≤ 5373 * ps.length + 793 := by
   rw [coverKeysC.costEq P hP]
   have h1 := coverFold_cost P (by includes) 35 (by norm_num) ps (by omega) hp
   have hinv := coverInv_foldl 35 ps SortedMap.empty 0
@@ -403,8 +404,8 @@ theorem coverKeys_cost (hP : Includes P coverKeysC.costDeps) (ps : List (ℕ × 
     (.closure coverKeysC.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (coverKeysC.lam0.costSpec P (by includes) a)) 2
     (flattenLevels (ps.foldl coverInsert SortedMap.empty).levels)
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverKeysC.lam0.costEq P (by includes)])
-  have := Nat.mul_le_mul_right (56 * ps.length + 26) hlev
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverKeysC.lam0.costEq P (by includes), List.length_nil])
+  have := Nat.mul_le_mul_right (56 * ps.length + 22) hlev
   nlinarith
 
 theorem length_coverKeys_le (ps : List (ℕ × ℕ)) : (coverKeys ps).length ≤ ps.length := by
@@ -419,10 +420,10 @@ theorem length_coverKeys_le (ps : List (ℕ × ℕ)) : (coverKeys ps).length ≤
   omega
 
 /-- **The coverage table's price** for `N` pairs. -/
-@[expose] def coverTablePrice (N : ℕ) : ℕ := 5600 * N + 1000
+@[expose] def coverTablePrice (N : ℕ) : ℕ := 5405 * N + 813
 
 /-- **The coverage table** (`coverTableC`): `N ≤ 2^34` pairs of word-sized marks and slots, at
-most `coverTablePrice N = 5600·N + 1000`. -/
+most `coverTablePrice N = 5405·N + 813`. -/
 theorem coverTable_cost (hP : Includes P coverTableC.costDeps) (ps : List (ℕ × ℕ))
     (hn : ps.length ≤ 2 ^ 34) (hp : ∀ p ∈ ps, CoverKey p) :
     machineCost P coverTableC.costIdx [encodeValue ps] ≤ coverTablePrice ps.length := by
@@ -431,10 +432,10 @@ theorem coverTable_cost (hP : Includes P coverTableC.costDeps) (ps : List (ℕ �
   have hK := length_coverKeys_le ps
   have h2 := map_cost P (by includes) (Prod.fst : ℕ × ℕ → ℕ) (.closure coverTableC.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (coverTableC.lam0.costSpec P (by includes) a)) 2 (coverKeys ps)
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverTableC.lam0.costEq P (by includes)])
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverTableC.lam0.costEq P (by includes), List.length_nil])
   have h3 := map_cost P (by includes) (Prod.snd : ℕ × ℕ → ℕ) (.closure coverTableC.lam1.costIdx [])
     (fun a ↦ RunsApp.of_spec (coverTableC.lam1.costSpec P (by includes) a)) 2 (coverKeys ps)
-    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverTableC.lam1.costEq P (by includes)])
+    (fun a _ ↦ by rw [appCost_fn, List.nil_append, coverTableC.lam1.costEq P (by includes), List.length_nil])
   simp only [List.length_map]
   unfold coverTablePrice
   omega
