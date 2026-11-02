@@ -9,7 +9,6 @@ namespace SphincsLayered.Security.H0
 open SphincsFors.Security.H0
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
 
 /-- The bound of `ΨH(n)`. -/
 def PHQ (n : ℕ) : ℚ :=

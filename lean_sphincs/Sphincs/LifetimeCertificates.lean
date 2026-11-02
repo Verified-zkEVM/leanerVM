@@ -11,7 +11,6 @@ cover are checked one by one (`checkOptB`, `checkCoverW_of`). -/
 namespace SphincsLayered.Security.H0
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
 -- one check at a time: with asynchronous elaboration the memory of the finished checks is kept
 set_option Elab.async false
 

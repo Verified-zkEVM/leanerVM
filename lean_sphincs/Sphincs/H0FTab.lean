@@ -7,7 +7,6 @@ import Sphincs.H0Tables
 namespace SphincsLayered.Security.H0
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
 -- One slice at a time: the kernel's cache is freed between declarations, and checking all of them
 -- at once needs more memory than a CI runner has.
 set_option Elab.async false
