@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Protocol.Extraction.Fast.FFT.Basis
 public import LeanVM.Protocol.Extraction.Fast.FFT.Transform
+public import LeanVM.Protocol.Extraction.Fast.Karatsuba
 import all CompPoly.Univariate.Basic
 
 /-!
@@ -16,16 +17,18 @@ and evaluates on `U_j = {x_v | v < 2^j}` by lean_vm's additive NTT (`novelFwd j 
 `fftTransform : EvalMat.EvalTransform K` is the same transform for the evaluation-domain matrix
 products (`EvalMat/Runtime.lean`'s `evalRuntime`).
 
-**The product** `mulFFT p q` (`mulVia novelTransform fftCutoff`): schoolbook when a factor has at
-most `fftCutoff` coefficients, else on the least `2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else
-schoolbook); `mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`,
+**The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
+at most `32` coefficients, Karatsuba's when both have at most `1024`, else on the least
+`2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else Karatsuba's); `mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`,
 `fftMulLowContext` (the truncated product as one product of truncated factors),
 `fftRawMulLowContext`, and `fftModContext` (monic remainders by reversal on it).
 
-**Cost** (`K` products, `N = 2^j`): `toNovel j` `≈ N·j(j+1)/4` (the division by `W_i` at level `i`
-`≈ (i+1)·2^i` per block of `2^(i+1)`), `fromNovel j` the same, `novelFwd j 0` `≈ 3N·j/2`
-(`N` butterflies' products and `N/2` twiddle products per stage), `novelInv j` `≈ N·j`; the product
-`2 toNovel + 2 novelFwd + N + novelInv + fromNovel ≈ 3N·j²/4 + 5N·j`, and `≈ 3j` inversions.
+**Cost** (`K` products, `N = 2^j`, counted on the definitions): `toNovel j` and `fromNovel j`
+exactly `N·j(j+1)/4` (the division by `W_i`, or the product by it, at level `i` is `(i+1)·2^i`
+per block of `2^(i+1)`) plus their tables' `O(j²)`; `novelFwd j 0` `≈ N·(3j/2 + 1)` (`N`
+butterfly products and `≈ N/2` twiddle products per stage), `novelInv j` `≈ N·(j + 1)`; the
+product `2·toNovel + 2·novelFwd + N + novelInv + fromNovel ≈ N·(3j²/4 + 19j/4 + 7)`, and `4j`
+inversions (`j` for `fromNovel`'s table, one per stage of the three NTTs).
 -/
 
 namespace LeanVM.Extraction.Fast.FFT
@@ -119,24 +122,29 @@ theorem size_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) :
 
 /-! ## The product and CompPoly's contexts -/
 
-/-- Below this many coefficients in a factor, the schoolbook product. -/
-@[expose] def fftCutoff : ℕ := 32
+/-- The schedule: schoolbook when a factor has at most `32` coefficients, Karatsuba's product
+when both have at most `1024` (below `≈ 2^11` coefficients Karatsuba's `3^⌈log₂(n/32)⌉·32²`
+products are fewer than the transform's `≈ 2^j·(3j²/4 + 19j/4 + 7)`). -/
+@[expose] def fftSchedule : MulSchedule K where
+  small := 32
+  mid := 1024
+  fallback := karatsubaMulContext
 
 /-- **The additive-FFT product** over `K`. -/
-@[expose] def mulFFT (p q : CPolynomial K) : CPolynomial K := mulVia novelTransform fftCutoff p q
+@[expose] def mulFFT (p q : CPolynomial K) : CPolynomial K := mulVia novelTransform fftSchedule p q
 
 theorem mulFFT_eq (p q : CPolynomial K) : mulFFT p q = p * q := mulVia_eq _ _ p q
 
 /-- CompPoly's multiplication context for the additive-FFT product. -/
-@[expose] def fftMulContext : CPolynomial.MulContext K := mulContextOf novelTransform fftCutoff
+@[expose] def fftMulContext : CPolynomial.MulContext K := mulContextOf novelTransform fftSchedule
 
 /-- CompPoly's polynomial-matrix low-product context for the additive-FFT product. -/
 @[expose] def fftMulLowContext : PolynomialMatrix.MulLowContext K :=
-  mulLowContextOf novelTransform fftCutoff
+  mulLowContextOf novelTransform fftSchedule
 
 /-- CompPoly's raw low-product context for the additive-FFT product. -/
 @[expose] def fftRawMulLowContext : CPolynomial.Raw.MulLowContext K :=
-  rawMulLowContextOf novelTransform fftCutoff
+  rawMulLowContextOf novelTransform fftSchedule
 
 /-- CompPoly's monic-remainder context by reversal, on the additive-FFT low products. -/
 @[expose] def fftModContext : CPolynomial.ModContext K :=

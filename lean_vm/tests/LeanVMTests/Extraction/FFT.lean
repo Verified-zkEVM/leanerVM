@@ -1,4 +1,4 @@
-import LeanVM.Protocol.Extraction.Fast.FFT.Additive
+import LeanVM.Protocol.Extraction.Fast.FFT.PMBasis
 import LeanVMTests.Extraction.Toy
 
 /-!
@@ -11,12 +11,14 @@ import LeanVMTests.Extraction.Toy
 * `mulFFT` (proved equal to `p * q`) agrees with CompPoly's schoolbook product on pseudo-random
   polynomials of various sizes, above and below the cutoff, and the low-product contexts with the
   truncated products;
+* the evaluation-domain matrix product (`EvalMat.mulEval`) on `fftTransform` agrees with the
+  naive one;
 * the axiom footprints of the end theorems.
 -/
 
 namespace LeanVMTests.Extraction.FFT
 
-open CompPoly LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast.FFT
+open CompPoly LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Extraction.Fast.FFT
 
 /-- `n` pseudo-random elements of `K`. -/
 def randomArray (seed n : ℕ) : Array K := (randoms seed n).map K.ofBits
@@ -46,11 +48,21 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
   let p := randomPoly (j + 40) (2 ^ j - j / 2)
   novelInvPoly j (novelFwdPoly j p) == p
 
--- The product, against the schoolbook one.
-#guard [(40, 50), (33, 33), (100, 37), (64, 65), (1, 300), (129, 128), (250, 7)].all fun (m, n) ↦
+/-- The transform from three coefficients on (schoolbook below). -/
+def testSchedule : MulSchedule K := ⟨2, 2, CPolynomial.MulContext.naive⟩
+
+-- The transform's product, against the schoolbook one.
+#guard [(40, 50), (33, 33), (100, 37), (64, 65), (3, 300), (129, 128), (250, 7), (3, 3)].all
+  fun (m, n) ↦
   let p := randomPoly (m + 1) m
   let q := randomPoly (n + 1000) n
-  mulFFT p q == p * q
+  mulVia novelTransform testSchedule p q == p * q
+
+-- `mulFFT`'s schedule: schoolbook, Karatsuba, then the transform (`2^12` points).
+#guard [(1, 300), (40, 50), (1100, 1030)].all fun (m, n) ↦
+  let p := randomPoly (m + 1) m
+  let q := randomPoly (n + 1000) n
+  mulFFT p q == karatsubaMulContext.mul p q
 
 -- Zero factors and constants.
 #guard mulFFT 0 (randomPoly 5 100) == 0
@@ -60,15 +72,27 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
 #guard
   let p := randomPoly 77 500
   let q := randomPoly 78 400
-  mulFFT p q == p * q
+  mulVia novelTransform testSchedule p q == p * q
 
 -- The truncated products.
 #guard [(10, 50, 60), (70, 50, 60), (200, 50, 60), (45, 45, 45)].all fun (o, m, n) ↦
   let p := randomPoly (m + 7) m
   let q := randomPoly (n + 9) n
-  fftMulLowContext.mulLow o p q == PolynomialMatrix.truncateX o (p * q) &&
-    CPolynomial.ofArray (fftRawMulLowContext.mulLow o p.val q.val) ==
-      PolynomialMatrix.truncateX o (p * q)
+  mulLowVia novelTransform testSchedule o p q == PolynomialMatrix.truncateX o (p * q) &&
+    CPolynomial.ofArray (rawMulLowVia novelTransform testSchedule o p.val q.val) ==
+      PolynomialMatrix.truncateX o (p * q) &&
+    fftMulLowContext.mulLow o p q == PolynomialMatrix.truncateX o (p * q)
+
+/-- A pseudo-random `r × c` polynomial matrix, entries of `n` coefficients. -/
+def randomMatrix (seed r c n : ℕ) : PolynomialMatrix K :=
+  Array.ofFn fun i : Fin r ↦ Array.ofFn fun k : Fin c ↦ randomPoly (seed + 100 * i.val + k.val) n
+
+-- The evaluation-domain matrix product on the additive FFT.
+#guard
+  let A := randomMatrix 1 3 4 20
+  let B := randomMatrix 2 4 2 13
+  EvalMat.mulEval fftTransform fftMulContext A B ==
+    PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B
 
 /-- info: 'LeanVM.Extraction.Fast.FFT.mulFFT_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -77,5 +101,9 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
 /-- info: 'LeanVM.Extraction.Fast.FFT.fftTransform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms fftTransform
+
+/-- info: 'LeanVM.Extraction.Fast.FFT.fftRuntime_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms fftRuntime_eq
 
 end LeanVMTests.Extraction.FFT

@@ -24,7 +24,7 @@ Derived here: `inv_fwd` (interpolation inverts evaluation), `fwd_mul` and `fwd_a
 is pointwise multiplicative and additive below `2^j` coefficients), and the product through the
 evaluation domain, `inv_pmul_fwd`: `inv j (fwd j p ⊙ fwd j q) = p·q` when `p·q` fits.
 
-`mulVia T c`: CompPoly's product by the transform `T`, at the least `j` with `2^j` points for
+`mulVia T S`: CompPoly's product by the transform `T`, at the least `j` with `2^j` points for
 `p·q`, schoolbook when a factor has at most `c` coefficients or `j > maxLog`; **`mulVia_eq`**:
 it is `p * q`. Contexts for CompPoly: `mulContextOf` (`CPolynomial.MulContext`),
 `mulLowContextOf` (`PolynomialMatrix.MulLowContext`: the truncated product as one product of the
@@ -199,43 +199,54 @@ end PointTransform
 
 theorem lt_two_pow_logAbove (n : ℕ) : n < 2 ^ logAbove n := Nat.lt_log2_self
 
-/-- **The product by an evaluation transform**: schoolbook when a factor has at most `c`
-coefficients, else on `2^j` points, `j` least with `2^j ≥ |p| + |q| − 1`, if `j ≤ maxLog`. -/
-@[expose] def mulVia (T : PointTransform F) (c : ℕ) (p q : CPolynomial F) : CPolynomial F :=
-  if p.val.size ≤ c ∨ q.val.size ≤ c then p * q
+/-- When to use the transform: the schoolbook product when a factor has at most `small`
+coefficients (`≤ small·n` products), the `fallback` context's when both have at most `mid`. -/
+structure MulSchedule (F : Type*) [Field F] [BEq F] [LawfulBEq F] where
+  small : ℕ
+  mid : ℕ
+  fallback : CPolynomial.MulContext F
+
+/-- **The product by a point transform**: by the schedule `S` for small factors, else on `2^j`
+points, `j` least with `2^j ≥ |p| + |q| − 1`, if `j ≤ maxLog` (else `S.fallback`). -/
+@[expose] def mulVia (T : PointTransform F) (S : MulSchedule F) (p q : CPolynomial F) :
+    CPolynomial F :=
+  if p.val.size ≤ S.small ∨ q.val.size ≤ S.small then p * q
+  else if p.val.size ≤ S.mid ∧ q.val.size ≤ S.mid then S.fallback.mul p q
   else
     let j := logAbove (p.val.size + q.val.size - 2)
-    if j ≤ T.maxLog then T.inv j (pmul (2 ^ j) (T.fwd j p) (T.fwd j q)) else p * q
+    if j ≤ T.maxLog then T.inv j (pmul (2 ^ j) (T.fwd j p) (T.fwd j q)) else S.fallback.mul p q
 
 /-- **The transform's product is CompPoly's.** -/
-theorem mulVia_eq (T : PointTransform F) (c : ℕ) (p q : CPolynomial F) :
-    mulVia T c p q = p * q := by
+theorem mulVia_eq (T : PointTransform F) (S : MulSchedule F) (p q : CPolynomial F) :
+    mulVia T S p q = p * q := by
   unfold mulVia
   split
   · rfl
   · rename_i hc
-    dsimp only
     split
-    · rename_i hj
-      have h2 := lt_two_pow_logAbove (p.val.size + q.val.size - 2)
-      have hpq := size_mul_le p q (by omega) (by omega)
-      exact T.inv_pmul_fwd hj p q (by omega) (by omega) (by omega)
-    · rfl
+    · exact S.fallback.mul_eq_mul p q
+    · dsimp only
+      split
+      · rename_i hj
+        have h2 := lt_two_pow_logAbove (p.val.size + q.val.size - 2)
+        have hpq := size_mul_le p q (by omega) (by omega)
+        exact T.inv_pmul_fwd hj p q (by omega) (by omega) (by omega)
+      · exact S.fallback.mul_eq_mul p q
 
 /-- CompPoly's multiplication context for the transform's product. -/
-@[expose] def mulContextOf (T : PointTransform F) (c : ℕ) : CPolynomial.MulContext F where
-  mul := mulVia T c
-  mul_eq_mul := mulVia_eq T c
+@[expose] def mulContextOf (T : PointTransform F) (S : MulSchedule F) : CPolynomial.MulContext F where
+  mul := mulVia T S
+  mul_eq_mul := mulVia_eq T S
 
 /-- **The truncated product**: the low `order` coefficients of `p·q`, as the truncation of one
 product of the truncated factors (at most `2·order − 1` coefficients). -/
-@[expose] def mulLowVia (T : PointTransform F) (c order : ℕ) (p q : CPolynomial F) :
+@[expose] def mulLowVia (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
     CPolynomial F :=
   PolynomialMatrix.truncateX order
-    (mulVia T c (PolynomialMatrix.truncateX order p) (PolynomialMatrix.truncateX order q))
+    (mulVia T S (PolynomialMatrix.truncateX order p) (PolynomialMatrix.truncateX order q))
 
-theorem mulLowVia_eq (T : PointTransform F) (c order : ℕ) (p q : CPolynomial F) :
-    mulLowVia T c order p q = PolynomialMatrix.truncateX order (p * q) := by
+theorem mulLowVia_eq (T : PointTransform F) (S : MulSchedule F) (order : ℕ) (p q : CPolynomial F) :
+    mulLowVia T S order p q = PolynomialMatrix.truncateX order (p * q) := by
   rw [mulLowVia, mulVia_eq]
   apply CPolynomial.eq_iff_coeff.2
   intro i
@@ -247,17 +258,17 @@ theorem mulLowVia_eq (T : PointTransform F) (c order : ℕ) (p q : CPolynomial F
   · rfl
 
 /-- CompPoly's polynomial-matrix low-product context for the transform's product. -/
-@[expose] def mulLowContextOf (T : PointTransform F) (c : ℕ) :
+@[expose] def mulLowContextOf (T : PointTransform F) (S : MulSchedule F) :
     PolynomialMatrix.MulLowContext F where
-  mulContext := mulContextOf T c
-  mulLow := mulLowVia T c
-  mulLow_eq := mulLowVia_eq T c
+  mulContext := mulContextOf T S
+  mulLow := mulLowVia T S
+  mulLow_eq := mulLowVia_eq T S
 
 /-- The low `k` coefficients of a product of raw polynomials, by the transform's product of the
 truncated factors. -/
-@[expose] def rawMulLowVia (T : PointTransform F) (c k : ℕ) (p q : CPolynomial.Raw F) :
+@[expose] def rawMulLowVia (T : PointTransform F) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) :
     CPolynomial.Raw F :=
-  (mulVia T c (CPolynomial.ofArray (p.extract 0 k)) (CPolynomial.ofArray (q.extract 0 k))).val.extract
+  (mulVia T S (CPolynomial.ofArray (p.extract 0 k)) (CPolynomial.ofArray (q.extract 0 k))).val.extract
     0 k
 
 theorem coeff_ofArray_extract (p : CPolynomial.Raw F) {k a : ℕ} (ha : a < k) :
@@ -269,9 +280,9 @@ theorem coeff_ofArray_extract (p : CPolynomial.Raw F) {k a : ℕ} (ha : a < k) :
   · have : p.size ≤ a := by omega
     simp [h, Array.getElem?_eq_none this]
 
-theorem coeff_rawMulLowVia (T : PointTransform F) (c k : ℕ) (p q : CPolynomial.Raw F) (i : ℕ)
-    (hi : i < k) : (rawMulLowVia T c k p q).coeff i = (p * q).coeff i := by
-  have hext : (rawMulLowVia T c k p q).coeff i =
+theorem coeff_rawMulLowVia (T : PointTransform F) (S : MulSchedule F) (k : ℕ) (p q : CPolynomial.Raw F) (i : ℕ)
+    (hi : i < k) : (rawMulLowVia T S k p q).coeff i = (p * q).coeff i := by
+  have hext : (rawMulLowVia T S k p q).coeff i =
       (CPolynomial.ofArray (p.extract 0 k) * CPolynomial.ofArray (q.extract 0 k)).coeff i := by
     rw [rawMulLowVia, mulVia_eq]
     simp only [CPolynomial.Raw.coeff, CPolynomial.coeff, Array.getD_eq_getD_getElem?,
@@ -288,11 +299,11 @@ theorem coeff_rawMulLowVia (T : PointTransform F) (c k : ℕ) (p q : CPolynomial
   rw [coeff_ofArray_extract p (by omega), coeff_ofArray_extract q (by omega)]
 
 /-- CompPoly's raw low-product context for the transform's product. -/
-@[expose] def rawMulLowContextOf (T : PointTransform F) (c : ℕ) :
+@[expose] def rawMulLowContextOf (T : PointTransform F) (S : MulSchedule F) :
     CPolynomial.Raw.MulLowContext F where
-  mulLow := rawMulLowVia T c
+  mulLow := rawMulLowVia T S
   size_le k p q := by simp [rawMulLowVia]
-  coeff_of_lt := coeff_rawMulLowVia T c
+  coeff_of_lt := coeff_rawMulLowVia T S
 
 end
 
