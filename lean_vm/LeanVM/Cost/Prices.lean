@@ -31,14 +31,14 @@ def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
 /-- One step of a leanISA run replayed (the extractor's candidate runs, the guest decoder's
 replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
 tables. -/
-def runnerStepPrice (κ ℓ : ℕ) : ℕ := 411697 + 42 * ℓ + 1092 * κ
+def runnerStepPrice (κ ℓ : ℕ) : ℕ := 365466 + 36 * ℓ + 936 * κ
 
 /-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
-def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 45) * 2 ^ 35 + 44 * 2 ^ κ + 1796
+def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 41) * 2 ^ 35 + 45 * 2 ^ κ + 1738
 
 /-- The runner's tables: the sorted address tables of the memory and the program. -/
 def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
-  (70 * κ + 374) * 2 ^ κ + (70 * ℓ + 374) * 2 ^ ℓ + 535 * ℓ + 830
+  (74 * κ + 121) * 2 ^ κ + (74 * ℓ + 121) * 2 ^ ℓ + 73 * ℓ + 357
 
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
 `17·w + cW`. -/
