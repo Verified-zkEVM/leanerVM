@@ -142,7 +142,9 @@ theorem logged_run {α : Type} (A : OracleComp RandomPermutationOracles α) :
 /-- **The statement's soundness experiment, its transcript's coins left out, is the two-call
 experiment.** -/
 theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
-    (fun z : ExperimentOutcome ↦ (z.1, permutationQueries z.2)) <$> soundnessExperiment A =
+    (fun z : ExperimentOutcome ↦
+        ((((z.program, z.input), z.proof), z.accepted), permutationQueries z.transcript)) <$>
+      soundnessExperiment A =
       soundnessExperimentWithHash A := by
   have hA : (simulateQ loggedRandomPermutationOracles A).run ([], []) =
       (fun p : ((ProgramAndInput × Proof) × OracleQueryLog) × PermutationEdges KeccakState ↦

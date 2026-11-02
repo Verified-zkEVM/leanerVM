@@ -21,14 +21,14 @@ public section
 variable (P : MachineProgram)
 
 /-- **`List.foldl` over `List.range' s n`, the closure's price bounded on the states the fold
-reaches**: `9` per element and the closure's price, `3`. -/
+reaches**: `11` per element and the closure's price, `3`. -/
 theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [MachineEncoding α]
     (f : α → ℕ → α) (fVal : MachineValue) (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
     (B : ℕ) :
     ∀ (n s : ℕ) (st : α),
       (∀ j, s ≤ j → j < s + n →
         appCost P fVal [encodeValue ((List.range' s (j - s)).foldl f st), encodeValue j] ≤ B) →
-      machineCost P listFoldl.costIdx [fVal, encodeValue st, encodeValue (List.range' s n)] ≤ (B + 9) * n + 3 := by
+      machineCost P listFoldl.costIdx [fVal, encodeValue st, encodeValue (List.range' s n)] ≤ (B + 11) * n + 3 := by
   intro n
   induction n with
   | zero => intro s st _; rw [List.range'_zero, listFoldl.costEq_nil P hP f fVal hf]; omega
@@ -42,7 +42,7 @@ theorem listFoldl_range'_le (hP : Includes P listFoldl.costDeps) {α : Type} [Ma
       have e : j - s = (j - (s + 1)) + 1 := by omega
       rw [e, List.range'_succ, List.foldl_cons] at this
       exact this)
-    have e : (B + 9) * (n + 1) = (B + 9) * n + B + 9 := by ring
+    have e : (B + 11) * (n + 1) = (B + 11) * n + B + 11 := by ring
     omega
 
 end

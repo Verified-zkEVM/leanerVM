@@ -20,9 +20,9 @@ The prices of the root finder's arithmetic (`Cost/Extractor/Roots.lean`) on poly
 most `B` coefficients, `B` word-sized:
 
 * `monicNormalize` (an inverse and a scaling), the remainder-only long division
-  (`modByMonicRemainderOnly.go`: each step rebuilds the remainder, `≤ 360·A + 100` for a
+  (`modByMonicRemainderOnly.go`: each step rebuilds the remainder, `≤ 117·A + 82` for a
   remainder of `≤ A` coefficients);
-* the product modulo `u` (`mulModWithC_cost`: `≤ mulModBound B = 2500·B² + 1000·B + 20000`), the
+* the product modulo `u` (`mulModWithC_cost`: `≤ mulModBound B = 582·B² + 430·B + 2960`), the
   binary powering (`powModBinaryAuxC_cost`: `log₂ n + 1` steps of two products), `X^q − X mod u`
   (`xPowSubXModC_cost`);
 * the remainder `p mod q` (`rawModFastC_cost`) and the monic gcd (`rawGcdMonicWithFuelC_cost`,

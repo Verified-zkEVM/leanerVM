@@ -91,12 +91,12 @@ deduplicated: at most `rootsFromBound B F`. -/
 /-- The price of a node of `Y` rows of at most `X` coefficients, beyond its children: the
 `X`-adic order, the division by `X^s`, the initial coefficient polynomial, its roots. -/
 @[expose] def rrNodePrice (X Y : ℕ) : ℕ :=
-  (65 * X + 220) * Y + rootsBound Y + 200
+  (63 * X + 188) * Y + rootsBound Y + 125
 
 /-- The price of a child in its parent's fold, `k` the depth bound: the substitution, the
 truncation, the prefix extended. -/
 @[expose] def rrChildPrice (X Y k : ℕ) : ℕ :=
-  substBound X Y + (27 * (X + Y) + 80) * Y + 222 * k + 400
+  substBound X Y + (25 * (X + Y) + 72) * Y + 108 * k + 202
 
 /-- The bound of Roth–Ruckenstein's search on `1 + k·ℓ` nodes of `Y` rows of at most `X`
 coefficients, `k` levels. -/
@@ -122,16 +122,16 @@ coefficients, `k` levels. -/
 /-- The price of one lane beyond its Guruswami–Sudan run: at most `L` candidates of at most `k`
 coefficients, `N = 2^κ`, `M = 2^(κ+R)`. -/
 @[expose] def laneExtraBound (κ R L k : ℕ) : ℕ :=
-  ((272 * k + 33) * 2 ^ κ + κ * (760 * 2 ^ κ + 19790) + 57) * L +
-    ((17 * 2 ^ κ + 22) * L + 30) * L + (50 * 2 ^ κ + 124) * (L * L) +
-    (κ * (760 * 2 ^ (κ + R) + 19793) + 30 * 2 ^ (κ + R) + 61) * L + 60
+  ((46 * k + 34) * 2 ^ κ + κ * (174 * 2 ^ κ + 2921) + 51) * L +
+    ((21 * 2 ^ κ + 26) * L + 25) * L + (53 * 2 ^ κ + 95) * (L * L) +
+    (κ * (171 * 2 ^ (κ + R) + 2924) + 28 * 2 ^ (κ + R) + 60) * L + 44
 
 /-- The bound of the pruning over `U` lanes of `n = 2^(κ+R)` columns: the word's table (a column
 price `BW`, columns of at most `Lw` symbols), per lane its candidates (`G`) and the pruning step
 (`Smax` survivors, `Lc` candidates). -/
 @[expose] def pruneBound (κ R U BW Lw G Lc Smax : ℕ) : ℕ :=
-  (BW + 10 * Lw + 28) * 2 ^ (κ + R) + 17 * 2 ^ (κ + R) +
-    (G + Smax * (Lc * (41 * 2 ^ (κ + R) + 9 * U + 62) + 32) + 60) * U + 17 * U + 80
+  (BW + 12 * Lw + 28) * 2 ^ (κ + R) + 16 * 2 ^ (κ + R) +
+    (G + Smax * (Lc * (48 * 2 ^ (κ + R) + 11 * U + 71) + 39) + 53) * U + 15 * U + 62
 
 /-- The sizes at which a lane is bounded: word-sized parameters (`InterpSizes`, …), `k > 1`, at
 most `2^20` multiplicities tried. -/
