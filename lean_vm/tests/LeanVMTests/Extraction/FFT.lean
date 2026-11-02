@@ -1,4 +1,5 @@
-import LeanVM.Protocol.Extraction.Fast.FFT.PMBasis
+import LeanVM.Protocol.Extraction.Fast.FFT.Additive
+import LeanVM.Protocol.Extraction.Fast.FFT.PlannedEval
 import LeanVMTests.Extraction.Toy
 
 /-!
@@ -14,9 +15,9 @@ import LeanVMTests.Extraction.Toy
 * the plan (`mkPlan j`): its twiddles by additivity are `novelTwiddles`, its batched inverses
   give `tableInvUpTo`, `planFwd`/`planInv` (one product per butterfly) are
   `novelFwd j 0`/`novelInv j`, and the conversions with the plan's powers and in place
-  (`toNovelFast`, `fromNovelFast`) are `toNovel`, `fromNovel`, `j ≤ 9`;
-* the evaluation-domain matrix product (`EvalMat.mulEval`) on `fftTransform` agrees with the
-  naive one;
+  (`toNovelInPlace`, `fromNovelInPlace`) are `toNovel`, `fromNovel`, `j ≤ 9`;
+* the evaluation-domain matrix products (`mulEvalP`, `mulTruncEvalP`) on the additive FFT agree
+  with the naive ones;
 * the axiom footprints of the end theorems.
 -/
 
@@ -41,8 +42,7 @@ def randomPoly (seed n : ℕ) : CPolynomial K := CPolynomial.ofArray (randomArra
   let c := randomArray (j + 60) (2 ^ j)
   (List.range j).all (fun i ↦ P.twiddles.getD i #[] == novelTwiddles j i) &&
     P.tableInv == tableInvUpTo j && planFwd P c == novelFwd j 0 c && planInv P c == novelInv j c &&
-    toNovelRecP P.pows P.table c == toNovel j c && fromNovelRecP P.pows P.tableInv c == fromNovel j c &&
-    toNovelFast P c == toNovel j c && fromNovelFast P c == fromNovel j c
+    toNovelInPlace P c == toNovel j c && fromNovelInPlace P c == fromNovel j c
 
 -- The forward transform evaluates.
 #guard (List.range 7).all fun j ↦
@@ -104,8 +104,6 @@ def randomMatrix (seed r c n : ℕ) : PolynomialMatrix K :=
 #guard
   let A := randomMatrix 1 3 4 20
   let B := randomMatrix 2 4 2 13
-  EvalMat.mulEval fftTransform fftMulContext A B ==
-    PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B &&
   mulEvalP novelTransform fftMulContext A B ==
     PolynomialMatrix.mulWith CPolynomial.MulContext.naive A B &&
   mulTruncEvalP novelTransform fftMulContext #[5, 30] A B ==
@@ -114,13 +112,5 @@ def randomMatrix (seed r c n : ℕ) : PolynomialMatrix K :=
 /-- info: 'LeanVM.Extraction.Fast.FFT.mulFFT_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms mulFFT_eq
-
-/-- info: 'LeanVM.Extraction.Fast.FFT.fftTransform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms fftTransform
-
-/-- info: 'LeanVM.Extraction.Fast.FFT.fftRuntime_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms fftRuntime_eq
 
 end LeanVMTests.Extraction.FFT

@@ -5,7 +5,7 @@ public import LeanVM.Cost.Bounds.PMFFT.Lib
 /-!
 # Bounds of the PM decoder's FFT: the conversions monomial ↔ novel basis
 
-`toNovelFast` and `fromNovelFast` by the plan of size `N = 2^j` (`j ≤ 36`), level by level:
+`toNovelInPlace` and `fromNovelInPlace` by the plan of size `N = 2^j` (`j ≤ 36`), level by level:
 level `i` is `toLevel` (the quotients `toQuot`, `N/2` entries, then the output, `N`) or
 `fromLevel` (`N` entries); an entry's sparse sum runs at most `i` terms (`sumAsc`, `sumDesc`,
 one product each). Half the entries of each pass run no sum (`sum_mod_block`), so level `i` costs
@@ -278,23 +278,23 @@ theorem mkPlan_pows_lt {j : ℕ} (hj : j ≤ 40) (t : ℕ) : (FFT.mkPlan j).pows
   · rw [FFT.mkPlan_pows ht]; exact Nat.pow_lt_pow_right (by norm_num) (by omega)
   · simp [FFT.mkPlan, Array.getD_eq_getD_getElem?, ht]
 
-/-- **Monomial → novel by the plan of size `N = 2^j`** (`toNovelFastC`), `j ≤ 40`: at most
+/-- **Monomial → novel by the plan of size `N = 2^j`** (`toNovelInPlaceC`), `j ≤ 40`: at most
 `115·N·j² + 230·N·j + 30·N + 160·j + 80`. -/
-theorem toNovelFastC_cost (hP : Includes P toNovelFastC.costDeps) {j : ℕ} (hj : j ≤ 40)
+theorem toNovelInPlaceC_cost (hP : Includes P toNovelInPlaceC.costDeps) {j : ℕ} (hj : j ≤ 40)
     (a : Array K) :
-    machineCost P toNovelFastC.costIdx [encodeValue (FFT.mkPlan j), encodeValue a] ≤
+    machineCost P toNovelInPlaceC.costIdx [encodeValue (FFT.mkPlan j), encodeValue a] ≤
       115 * (2 ^ j * (j * j)) + 230 * (2 ^ j * j) + 30 * 2 ^ j + 160 * j + 80 := by
-  rw [toNovelFastC.costEq P hP, FFT.mkPlan_log]
+  rw [toNovelInPlaceC.costEq P hP, FFT.mkPlan_log]
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hof := ofFnFrom_cost P (by includes) (n := 2 ^ j) (by omega) _
-    (.closure toNovelFastC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue a])
+    (.closure toNovelInPlaceC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue a])
     (fun p ↦ RunsApp.of_spec (by
-      have := toNovelFastC.lam0.costSpec P (by includes) (FFT.mkPlan j) a
+      have := toNovelInPlaceC.lam0.costSpec P (by includes) (FFT.mkPlan j) a
       rw [FFT.mkPlan_log] at this
       exact this p)) 4
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      have := toNovelFastC.lam0.costEq P (by includes) (FFT.mkPlan j) a
+      have := toNovelInPlaceC.lam0.costEq P (by includes) (FFT.mkPlan j) a
       rw [FFT.mkPlan_log] at this
       rw [this p]) 0 (Nat.zero_le _)
   have hl := toLevels_cost P (by includes) _ (mkPlan_pows_lt hj) le_rfl hj
@@ -401,23 +401,23 @@ theorem fromLevels_cost (hP : Includes P fromLevels.c375.costDeps) (pw : Array �
   have e2 : (210 * 2 ^ j + 74 + 9) * L = 210 * (2 ^ j * L) + 83 * L := by ring
   omega
 
-/-- **Novel → monomial by the plan of size `N = 2^j`** (`fromNovelFastC`), `j ≤ 40`: at most
+/-- **Novel → monomial by the plan of size `N = 2^j`** (`fromNovelInPlaceC`), `j ≤ 40`: at most
 `152·N·j² + 210·N·j + 30·N + 100·j + 80`. -/
-theorem fromNovelFastC_cost (hP : Includes P fromNovelFastC.costDeps) {j : ℕ} (hj : j ≤ 40)
+theorem fromNovelInPlaceC_cost (hP : Includes P fromNovelInPlaceC.costDeps) {j : ℕ} (hj : j ≤ 40)
     (c : Array K) :
-    machineCost P fromNovelFastC.costIdx [encodeValue (FFT.mkPlan j), encodeValue c] ≤
+    machineCost P fromNovelInPlaceC.costIdx [encodeValue (FFT.mkPlan j), encodeValue c] ≤
       152 * (2 ^ j * (j * j)) + 210 * (2 ^ j * j) + 30 * 2 ^ j + 100 * j + 80 := by
-  rw [fromNovelFastC.costEq P hP, FFT.mkPlan_log]
+  rw [fromNovelInPlaceC.costEq P hP, FFT.mkPlan_log]
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hof := ofFnFrom_cost P (by includes) (n := 2 ^ j) (by omega) _
-    (.closure toNovelFastC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue c])
+    (.closure toNovelInPlaceC.lam0.costIdx [encodeValue (FFT.mkPlan j), encodeValue c])
     (fun p ↦ RunsApp.of_spec (by
-      have := toNovelFastC.lam0.costSpec P (by includes) (FFT.mkPlan j) c
+      have := toNovelInPlaceC.lam0.costSpec P (by includes) (FFT.mkPlan j) c
       rw [FFT.mkPlan_log] at this
       exact this p)) 4
     (fun p ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      have := toNovelFastC.lam0.costEq P (by includes) (FFT.mkPlan j) c
+      have := toNovelInPlaceC.lam0.costEq P (by includes) (FFT.mkPlan j) c
       rw [FFT.mkPlan_log] at this
       rw [this p]) 0 (Nat.zero_le _)
   have hl := fromLevels_cost P (by includes) _ (mkPlan_pows_lt hj) le_rfl hj

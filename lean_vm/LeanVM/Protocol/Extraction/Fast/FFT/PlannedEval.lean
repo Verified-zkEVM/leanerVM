@@ -1,7 +1,8 @@
 module
 
 public import LeanVM.Protocol.Extraction.Fast.FFT.Transform
-public import LeanVM.Protocol.Extraction.Fast.EvalMat.Runtime
+public import LeanVM.Protocol.Extraction.Fast.EvalMat.Product
+public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis
 
 /-!
 # Evaluation-domain matrix products with the plan built once
@@ -11,8 +12,8 @@ EvalMat's products (`mulEval T mulCtx`, `mulTruncEval T mulCtx`, `EvalMat/Produc
 (`T.toEvalMat`), each such call builds the plan `T.plan j` again. `mulEvalP T mulCtx` and
 `mulTruncEvalP T mulCtx` are the same products with `let P := T.plan j` (and `2^j`) hoisted: the plan is
 built once per matrix product. They are EvalMat's products **by definition**
-(`mulEvalP_eq`, `mulTruncEvalP_eq`: `rfl`), so CompPoly's Strassen-product equalities and the
-PM-basis runtime's (`evalRuntimeP_eq`: `evalRuntimeP T = evalRuntime T.toEvalMat`) carry over.
+(`mulEvalP_eq`, `mulTruncEvalP_eq`: `rfl`), so CompPoly's Strassen-product equalities carry
+over.
 -/
 
 namespace LeanVM.Extraction.Fast.FFT
@@ -65,21 +66,6 @@ theorem mulEvalP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext
 theorem mulTruncEvalP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext F)
     (orders : Array ℕ) (A B : PolynomialMatrix F) :
     mulTruncEvalP T mulCtx orders A B = mulTruncEval T.toEvalMat mulCtx orders A B := rfl
-
-/-- **The PM-basis runtime on evaluation-domain products, plans built once per product.** -/
-@[expose] def evalRuntimeP (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : MulLowContext F) (leafCutoff : ℕ) : PMBasisRuntime F where
-  mulContext := mulCtx
-  lowMulContext := lowCtx
-  composeBasis := mulEvalP T mulCtx
-  residualProduct := mulTruncEvalP T mulCtx
-  leafCutoff := leafCutoff
-  leafBasis := kernelLeafBasis
-
-theorem evalRuntimeP_eq (T : PointTransform F Plan) (mulCtx : CPolynomial.MulContext F)
-    (lowCtx : MulLowContext F) (leafCutoff : ℕ) :
-    evalRuntimeP T mulCtx lowCtx leafCutoff = evalRuntime T.toEvalMat mulCtx lowCtx leafCutoff :=
-  rfl
 
 end
 

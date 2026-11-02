@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.PMBasis.Tree
 public import LeanVM.Protocol.Extraction.Fast.EvalMat.Product
+public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRecursion
 public import CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 
 /-!
@@ -12,8 +13,7 @@ runtime `rt` (the target, `popovRuntime mulCtx lowCtx 1 c` of `Fast/PMBasis/Popo
 among them): at fuel `0`, or at a maximal order `o ≤ rt.leafCutoff` or `o ≤ 1`, the leaf;
 otherwise, with `d₁ = o / 2`, `P₁` on the lower orders `min oⱼ d₁` (`pmLower`), the residual
 problem on the orders `oⱼ − d₁` and the matrix `(P₁·A) div X^d₁` (`pmResidual`), `P₂` on it under
-the shift `updateShiftByRows P₁ shift` (`pmShifted`), and `compactNonzeroRows (P₂·P₁)`
-(**`pmBasisWithFuelCore_node`**: these three are the recursion's own children).
+the shift `updateShiftByRows P₁ shift` (`pmShifted`), and `compactNonzeroRows (P₂·P₁)`.
 
 **`pmBasisWithFuelCore_price_le`**: a price `T fuel problem shift` (the compiled core's
 `machineCost`, once compiled) with
@@ -55,11 +55,6 @@ theorem clog2Loop_eq_ceilLogLoop (e : ℕ) :
 theorem clog2_eq_ceilLog (e : ℕ) : clog2 e = LeanVM.Extraction.Fast.EvalMat.ceilLog e :=
   clog2Loop_eq_ceilLogLoop e e 0
 
-/-- A product of smaller degrees uses a transform no larger. -/
-theorem ceilLog_le_clog2 {a b : ℕ} (h : a ≤ b) :
-    LeanVM.Extraction.Fast.EvalMat.ceilLog a ≤ clog2 b := by
-  rw [← clog2_eq_ceilLog]; exact clog2_mono h
-
 /-! ## The recursion's children -/
 
 variable {F : Type*} [Field F] [BEq F] [LawfulBEq F]
@@ -82,44 +77,12 @@ at them (`residualMatrixWithProduct`, by the runtime's residual product). -/
     (shift : Array ℕ) : Array ℕ :=
   updateShiftByRows (pmBasisWithFuelCore rt fuel (pmLower problem) shift) shift
 
-/-- **The recursion's node** is on these children: `compactNonzeroRows (P₂·P₁)`. -/
-theorem pmBasisWithFuelCore_node (rt : PMBasisRuntime F) (fuel : ℕ) (problem : XAdicProblem F)
-    (shift : Array ℕ) (hc : rt.leafCutoff < maxOrder problem) (h1 : 1 < maxOrder problem) :
-    pmBasisWithFuelCore rt (fuel + 1) problem shift =
-      compactNonzeroRows (rt.composeBasis
-        (pmBasisWithFuelCore rt fuel (pmResidual rt fuel problem shift)
-          (pmShifted rt fuel problem shift))
-        (pmBasisWithFuelCore rt fuel (pmLower problem) shift)) := by
-  have h : (decide (maxOrder problem ≤ rt.leafCutoff) || decide (maxOrder problem ≤ 1)) = false := by
-    simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not]; omega
-  rw [pmBasisWithFuelCore]
-  simp only [h, Bool.false_eq_true, ↓reduceIte]
-  rfl
-
-theorem foldl_max_map {f : ℕ → ℕ} (hf : Monotone f) :
-    ∀ (l : List ℕ) (acc : ℕ), (l.map f).foldl max (f acc) = f (l.foldl max acc) := by
-  intro l
-  induction l with
-  | nil => intro acc; rfl
-  | cons a l ih =>
-    intro acc
-    rw [List.map_cons, List.foldl_cons, List.foldl_cons, ← hf.map_max, ih]
-
-omit [Field F] [BEq F] [LawfulBEq F] in
-theorem maxOrder_map [Zero F] (orders : Array ℕ) {f : ℕ → ℕ} (hf : Monotone f) (h0 : f 0 = 0)
-    (A : PolynomialMatrix F) :
-    maxOrder ({ orders := orders.map f, matrix := A } : XAdicProblem F) =
-      f (orders.foldl max 0) := by
-  simp only [maxOrder]
-  rw [← Array.foldl_toList, ← Array.foldl_toList, Array.toList_map]
-  have h := foldl_max_map hf orders.toList 0
-  rwa [h0] at h
-
 omit [BEq F] [LawfulBEq F] in
 /-- The lower problem's maximal order is `⌊o/2⌋`. -/
 theorem maxOrder_pmLower (problem : XAdicProblem F) :
     maxOrder (pmLower problem) = maxOrder problem / 2 := by
-  have := maxOrder_map (F := F) problem.orders (f := fun o ↦ min o (maxOrder problem / 2))
+  have := LeanVM.Extraction.Fast.PMDegree.maxOrder_map (F := F) problem.orders
+    (f := fun o ↦ min o (maxOrder problem / 2))
     (fun _ _ h ↦ min_le_min_right _ h) (Nat.zero_min _) problem.matrix
   rw [pmLower, lowerOrders, this]
   change min (maxOrder problem) _ = _
@@ -129,7 +92,8 @@ theorem maxOrder_pmLower (problem : XAdicProblem F) :
 theorem maxOrder_pmResidual (rt : PMBasisRuntime F) (fuel : ℕ) (problem : XAdicProblem F)
     (shift : Array ℕ) :
     maxOrder (pmResidual rt fuel problem shift) = maxOrder problem - maxOrder problem / 2 :=
-  maxOrder_map problem.orders (f := fun o ↦ o - maxOrder problem / 2)
+  LeanVM.Extraction.Fast.PMDegree.maxOrder_map problem.orders
+    (f := fun o ↦ o - maxOrder problem / 2)
     (fun _ _ h ↦ Nat.sub_le_sub_right h _) (Nat.zero_sub _) _
 
 /-! ## The price -/

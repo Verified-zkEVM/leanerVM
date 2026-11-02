@@ -20,8 +20,8 @@ values back to the polynomial of at most `2^j` coefficients taking them (`inv j`
 * `fwd_inv`, `size_inv`: every `2^j` values are taken by `inv j y`, of at most `2^j`
   coefficients.
 
-Derived here: `inv_fwd` (interpolation inverts evaluation), `fwd_mul` and `fwd_add` (evaluation
-is pointwise multiplicative and additive below `2^j` coefficients), and the product through the
+Derived here: `inv_fwd` (interpolation inverts evaluation), `fwd_mul` (evaluation is pointwise
+multiplicative below `2^j` coefficients), and the product through the
 evaluation domain, `inv_pmul_fwd`: `inv j (fwd j p ⊙ fwd j q) = p·q` when `p·q` fits.
 
 `mulVia T S`: CompPoly's product by the transform `T`, at the least `j` with `2^j` points for
@@ -84,10 +84,6 @@ theorem coeff_mul_of_agree {p q p' q' : CPolynomial F} {k : ℕ}
 /-- The pointwise product of the first `n` entries. -/
 @[expose] def pmul (n : ℕ) (a b : Array F) : Array F :=
   Array.ofFn fun v : Fin n ↦ a.getD v.val 0 * b.getD v.val 0
-
-/-- The pointwise sum of the first `n` entries. -/
-@[expose] def padd (n : ℕ) (a b : Array F) : Array F :=
-  Array.ofFn fun v : Fin n ↦ a.getD v.val 0 + b.getD v.val 0
 
 omit [BEq F] [LawfulBEq F] in
 theorem getD_ofFn' {n p : ℕ} (f : Fin n → F) (hp : p < n) :
@@ -163,22 +159,6 @@ theorem fwd_mul {j : ℕ} (hj : j ≤ T.maxLog) (p q : CPolynomial F) (hp : p.va
   rw [T.size_fwd _ hj] at hv
   rw [pmul, getD_ofFn' _ hv, T.fwd_getD _ hj hpq hv, T.fwd_getD _ hj hp hv, T.fwd_getD _ hj hq hv,
     CPolynomial.eval_mul]
-
-/-- **Evaluation is additive.** -/
-theorem fwd_add {j : ℕ} (hj : j ≤ T.maxLog) (p q : CPolynomial F) (hp : p.val.size ≤ 2 ^ j)
-    (hq : q.val.size ≤ 2 ^ j) :
-    T.fwd j (p + q) = padd (2 ^ j) (T.fwd j p) (T.fwd j q) := by
-  have hpq : (p + q).val.size ≤ 2 ^ j := by
-    apply size_le_of_coeff_eq_zero
-    intro i hi
-    rw [CPolynomial.coeff_add, CPolynomial.coeff_eq_zero_of_size_le _ (by omega),
-      CPolynomial.coeff_eq_zero_of_size_le _ (by omega), add_zero]
-  apply array_ext_getD' (by rw [T.size_fwd _ hj, padd, Array.size_ofFn])
-  intro v hv
-  rw [T.size_fwd _ hj] at hv
-  rw [padd, getD_ofFn' _ hv, T.fwd_getD _ hj hpq hv, T.fwd_getD _ hj hp hv, T.fwd_getD _ hj hq hv,
-    CPolynomial.eval_toPoly, CPolynomial.eval_toPoly, CPolynomial.eval_toPoly,
-    CPolynomial.toPoly_add, Polynomial.eval_add]
 
 /-- **The product through the evaluation domain.** -/
 theorem inv_pmul_fwd {j : ℕ} (hj : j ≤ T.maxLog) (p q : CPolynomial F) (hp : p.val.size ≤ 2 ^ j)

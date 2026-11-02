@@ -3,18 +3,18 @@ module
 public import LeanVM.Cost.Bounds.Decoder.Prefixes
 public import LeanVM.Cost.Bounds.PMBasis.LaneDefs
 public import LeanVM.Cost.Extractor.PMLane
-public import LeanVM.Cost.Bounds.PMLane.Names
+public import LeanVM.Cost.Bounds.CostConst
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Univariate.Basic
 
 /-!
-# Bound: one lane's run on the new solver, compiled
+# Bound: one lane's run on `pmSolver`, compiled
 
 `gsRunPMC` (`gsRunDistinctWith pmSolver`, `Cost/Extractor/PMLane.lean`) is the extractor's
 lane run `gsRunDistinctNF` with the interpolation `interpolateDistinctWith pmSolver`
 (`interpolatePMC`): the interpolation, the truncation, Roth–Ruckenstein's search
 (`prefixesNFC_cost`), the candidates filtered. **`gsRunPMC_cost`**: at most `gsRunBoundPM p`,
-given the interpolation within the model's price `interpPMPrice p` on its input (`hi`: track solve's
+given the interpolation within the model's price `interpPMPrice p` on its input (`hi`:
 `interpolatePMC_cost_price`, applied per lane in `Bounds/PMLane/Decode.lean`).
 
 The sizes the run needs of the interpolated polynomial (`ℓ + 1` rows of at most `W + 1`
@@ -33,7 +33,8 @@ public section
 
 /-! ## The interpolated polynomial -/
 
-/-- The new interpolation's polynomial is an interpolation witness (on distinct points). -/
+/-- The approximant-basis interpolation's polynomial is an interpolation witness (on distinct
+points). -/
 theorem interpolatePM_valid {points : Array (K × K)} (h : DistinctXCoordinates points)
     {params : GSInterpParams} {Q : CBivariate K}
     (hQ : interpolateDistinctWith pmSolver points params = some Q) :
@@ -72,7 +73,7 @@ theorem prefixesNF_size_le_PM {points : Array (K × K)} (h : DistinctXCoordinate
   simp only [replayPath, List.foldl_nil, Nat.add_sub_cancel] at hd ⊢
   omega
 
-/-- **The lane returns at most `max 1 ℓ` polynomials** on the new solver. -/
+/-- **The lane returns at most `max 1 ℓ` polynomials** on `pmSolver`. -/
 theorem gsRunDistinctWith_size_le {points : Array (K × K)} (h : DistinctXCoordinates points)
     (params : GSInterpParams) (radius : ℕ) (hk : 1 < params.messageDegree) :
     (gsRunDistinctWith pmSolver points params radius).size ≤ max 1 (interpolationYCap params) := by
@@ -82,7 +83,7 @@ theorem gsRunDistinctWith_size_le {points : Array (K × K)} (h : DistinctXCoordi
   · rename_i Q hQ
     exact Array.size_filter_le.trans (prefixesNF_size_le_PM h hQ hk)
 
-/-- Each polynomial the lane returns on the new solver has at most `k` coefficients. -/
+/-- Each polynomial the lane returns on `pmSolver` has at most `k` coefficients. -/
 theorem gsRunDistinctWith_mem_size_le {points : Array (K × K)} {params : GSInterpParams}
     {radius : ℕ} {p : CPolynomial K} (hp : p ∈ gsRunDistinctWith pmSolver points params radius) :
     p.val.size ≤ params.messageDegree := by
@@ -98,7 +99,7 @@ theorem gsRunDistinctWith_mem_size_le {points : Array (K × K)} {params : GSInte
 
 variable (P : MachineProgram)
 
-/-- **One lane's run on the new solver** (`gsRunDistinctWith pmSolver`: the interpolation,
+/-- **One lane's run on `pmSolver`** (`gsRunDistinctWith pmSolver`: the interpolation,
 Roth–Ruckenstein's search, the candidates filtered): at most `gsRunBoundPM p`, the interpolation
 within `interpPMPrice p`. -/
 theorem gsRunPMC_cost (hP : Includes P gsRunPMC.costDeps) {p : PMBasis.PMPrices}

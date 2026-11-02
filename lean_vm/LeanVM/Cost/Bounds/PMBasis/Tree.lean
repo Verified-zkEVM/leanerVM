@@ -16,14 +16,10 @@ For a price `T` on the recursion's states `x` (fuel, problem, shift) whose maxim
 * **`le_pmTree`**: a leaf (maximal order `≤ c` or `≤ 1`) priced at most `L`, an inner node at
   most `N (ord x)` and its two children's prices, the children at the maximal orders
   `ord x / 2` and `ord x − ord x / 2` (exactly), give `T x ≤ pmTree c L N (ord x)`;
-* **`pmTree_le_levels`**: for a monotone `N` and `1 ≤ o ≤ 2^K`,
-  `pmTree c L N o ≤ pmLevels N K o + L·o` (`o` leaves at most, a level `k` at most
-  `2^k·N(⌈o/2^k⌉)`), and **`pmLevels_eq_sum`**: `pmLevels N K o = Σ_{k<K} 2^k·N(⌈o/2^k⌉)`;
-* **`pmTree_mono`**: monotone in the order for a monotone `N`;
 * **`pmTreePair_eq`**: `pmTreePair c L N f q = (pmTree c L N q, pmTree c L N (q + 1))` for
   `q + 1 ≤ 2^f` (the evaluation in `f` steps);
-* **`le_two_pow_clog2`**, **`clog2_le`**, **`two_pow_clog2_lt`**: `clog2 e` is the least `j` with
-  `e ≤ 2^j`, and `2^(clog2 e) < 2·e` (`e ≥ 1`); `clog2_mono`.
+* **`le_two_pow_clog2`**, **`clog2_le`**: `clog2 e` is the least `j` with `e ≤ 2^j`;
+  `clog2_mono`.
 -/
 
 namespace LeanVM.Cost.Bounds.PMBasis
@@ -70,70 +66,6 @@ theorem le_pmTree {α : Type*} (I : α → Prop) (ord T : α → ℕ) (c L : ℕ
       have := ih (ord z) (by omega) z hz rfl
       rw [hoy] at *; rw [hoz] at *
       omega
-
-/-! ## The closed form by levels -/
-
-theorem pmLevels_mono {N : ℕ → ℕ} (hN : Monotone N) :
-    ∀ K {a b : ℕ}, a ≤ b → pmLevels N K a ≤ pmLevels N K b := by
-  intro K
-  induction K with
-  | zero => intro a b _; simp [pmLevels]
-  | succ K ih =>
-    intro a b hab
-    simp only [pmLevels]
-    have := hN hab
-    have := ih (show (a + 1) / 2 ≤ (b + 1) / 2 by omega)
-    omega
-
-/-- **The per-level closed form**: for a monotone node price and `1 ≤ o ≤ 2^K` (`K` levels),
-`pmTree c L N o ≤ pmLevels N K o + L·o`: at most `o` leaves, and level `k` at most `2^k` nodes of
-maximal order at most `⌈o/2^k⌉`. -/
-theorem pmTree_le_levels (c L : ℕ) {N : ℕ → ℕ} (hN : Monotone N) :
-    ∀ K o, 1 ≤ o → o ≤ 2 ^ K → pmTree c L N o ≤ pmLevels N K o + L * o := by
-  intro K
-  induction K with
-  | zero =>
-    intro o h1 hK
-    rw [pmTree_leaf (by simp at hK; omega)]
-    simp [pmLevels]; nlinarith
-  | succ K ih =>
-    intro o h1 hK
-    by_cases h : o ≤ c ∨ o ≤ 1
-    · rw [pmTree_leaf h]; nlinarith
-    · rw [pmTree_node (by omega) (by omega)]
-      have hp : 2 ^ (K + 1) = 2 * 2 ^ K := by ring
-      have e : o - o / 2 = (o + 1) / 2 := by omega
-      rw [e]
-      have h2 := ih (o / 2) (by omega) (by omega)
-      have h3 := ih ((o + 1) / 2) (by omega) (by omega)
-      have h4 := pmLevels_mono hN K (show o / 2 ≤ (o + 1) / 2 by omega)
-      have h5 : L * (o / 2) + L * ((o + 1) / 2) = L * o := by
-        rw [← Nat.mul_add]; congr 1; omega
-      simp only [pmLevels]
-      omega
-
-theorem ceil_half_div (o P : ℕ) (hP : 0 < P) :
-    ((o + 1) / 2 + P - 1) / P = (o + 2 * P - 1) / (2 * P) := by
-  rw [← Nat.div_div_eq_div_mul]
-  congr 1
-  omega
-
-/-- **`pmLevels` as a sum**: `Σ_{k<K} 2^k·N(⌈o/2^k⌉)`. -/
-theorem pmLevels_eq_sum (N : ℕ → ℕ) :
-    ∀ K o, pmLevels N K o =
-      ∑ k ∈ Finset.range K, 2 ^ k * N ((o + 2 ^ k - 1) / 2 ^ k) := by
-  intro K
-  induction K with
-  | zero => intro o; simp [pmLevels]
-  | succ K ih =>
-    intro o
-    rw [Finset.sum_range_succ', pmLevels, ih, Finset.mul_sum]
-    simp only [pow_zero, one_mul, Nat.add_sub_cancel, Nat.div_one]
-    rw [add_comm]
-    congr 1
-    refine Finset.sum_congr rfl fun k _ ↦ ?_
-    rw [ceil_half_div o (2 ^ k) (Nat.two_pow_pos k), pow_succ]
-    ring_nf
 
 /-! ## The evaluation in `log₂ o` steps -/
 
@@ -205,87 +137,9 @@ theorem clog2_le {e j : ℕ} (hj : e ≤ 2 ^ j) : clog2 e ≤ j :=
 theorem clog2_mono {a b : ℕ} (h : a ≤ b) : clog2 a ≤ clog2 b :=
   clog2_le (h.trans (le_two_pow_clog2 b))
 
-/-- The transform size is below twice the degree bound: `2^clog2 e < 2·e` (`e ≥ 1`). -/
-theorem two_pow_clog2_lt {e : ℕ} (he : 1 ≤ e) : 2 ^ clog2 e < 2 * e := by
-  rcases Nat.eq_zero_or_pos (clog2 e) with h0 | hpos
-  · rw [h0]; omega
-  · obtain ⟨k, hk⟩ : ∃ k, clog2 e = k + 1 := ⟨clog2 e - 1, by omega⟩
-    have : ¬ e ≤ 2 ^ k := fun h ↦ by have := clog2_le h; omega
-    rw [hk, pow_succ]
-    omega
-
 /-- **`pmTreeEval` is `pmTree`.** -/
 theorem pmTreeEval_eq (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : pmTreeEval c L N o = pmTree c L N o := by
   rw [pmTreeEval, pmTreePair_eq c L N _ o (le_two_pow_clog2 (o + 1))]
-
-/-! ## Monotone in the order -/
-
-theorem le_pmTree_self (c L : ℕ) (N : ℕ → ℕ) (o : ℕ) : L ≤ pmTree c L N o := by
-  rcases Nat.lt_or_ge 1 o with h1 | h1
-  · by_cases hc : o ≤ c
-    · rw [pmTree_leaf (Or.inl hc)]
-    · rw [pmTree_node (by omega) h1]
-      have := le_pmTree_self c L N (o - o / 2)
-      omega
-  · rw [pmTree_leaf (Or.inr h1)]
-termination_by o
-decreasing_by omega
-
-/-- **`pmTree` is monotone in the order** for a monotone node price. -/
-theorem pmTree_mono (c L : ℕ) {N : ℕ → ℕ} (hN : Monotone N) :
-    ∀ b a, a ≤ b → pmTree c L N a ≤ pmTree c L N b := by
-  intro b
-  induction b using Nat.strong_induction_on with
-  | _ b ih =>
-    intro a hab
-    by_cases ha : a ≤ c ∨ a ≤ 1
-    · rw [pmTree_leaf ha]; exact le_pmTree_self c L N b
-    · rw [pmTree_node (c := c) (L := L) (N := N) (o := a) (by omega) (by omega),
-        pmTree_node (c := c) (L := L) (N := N) (o := b) (by omega) (by omega)]
-      have := hN hab
-      have := ih (b / 2) (by omega) (a / 2) (by omega)
-      have := ih (b - b / 2) (by omega) (a - a / 2) (by omega)
-      omega
-
-/-- **`pmTree` is monotone in the leaf price.** -/
-theorem pmTree_mono_leaf (c : ℕ) {L L' : ℕ} (N : ℕ → ℕ) (hL : L ≤ L') :
-    ∀ o, pmTree c L N o ≤ pmTree c L' N o := by
-  intro o
-  induction o using Nat.strong_induction_on with
-  | _ o ih =>
-    by_cases h : o ≤ c ∨ o ≤ 1
-    · rw [pmTree_leaf h, pmTree_leaf h]; exact hL
-    · rw [pmTree_node (L := L) (by omega) (by omega), pmTree_node (L := L') (by omega) (by omega)]
-      have := ih (o / 2) (by omega)
-      have := ih (o - o / 2) (by omega)
-      omega
-
-/-! ## The model is monotone -/
-
-theorem fwdPrice_mono (p : PMPrices) {j j' : ℕ} (h : j ≤ j') : fwdPrice p j ≤ fwdPrice p j' := by
-  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
-  unfold fwdPrice; gcongr
-
-theorem invPrice_mono (p : PMPrices) {j j' : ℕ} (h : j ≤ j') : invPrice p j ≤ invPrice p j' := by
-  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h
-  unfold invPrice; gcongr
-
-/-- A product of larger degrees costs no less (its transform size `clog2` is monotone). -/
-theorem evalMatPrice_mono (p : PMPrices) (R S T : ℕ) {dA dB dA' dB' : ℕ} (hA : dA ≤ dA')
-    (hB : dB ≤ dB') : evalMatPrice p R S T dA dB ≤ evalMatPrice p R S T dA' dB' := by
-  have hj := clog2_mono (show dA + dB + 1 ≤ dA' + dB' + 1 by omega)
-  have := fwdPrice_mono p hj
-  have := invPrice_mono p hj
-  have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hj
-  unfold evalMatPrice; gcongr
-
-/-- **The model's node price is monotone in the order**, so `pmTree_le_levels` applies to it. -/
-theorem pmNodePrice_mono (p : PMPrices) (r m : ℕ) : Monotone (pmNodePrice p r m) := by
-  intro a b h
-  have := evalMatPrice_mono p r r r (show a - a / 2 ≤ b - b / 2 by omega)
-    (show a / 2 ≤ b / 2 by omega)
-  have := evalMatPrice_mono p r r m (show a / 2 ≤ b / 2 by omega) (show a - 1 ≤ b - 1 by omega)
-  unfold pmNodePrice; gcongr
 
 end
 

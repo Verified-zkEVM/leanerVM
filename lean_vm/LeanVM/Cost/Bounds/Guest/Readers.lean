@@ -11,8 +11,7 @@ of an application of the memory's reader `rd` and the price `S` of an applicatio
 valuation `σ`, at positions below `2^40` (the decoder's counts are below `2^34`):
 
 * a cell (`cellAt_cost`, `memAt_cost`, `memRead_cost`, `wordWith_cost`: `R + 21678`), `n` cells
-  (`readCells_cost`), a table's slot (`slotCells_cost`, `xmssAt_cost`, `sphincsAt_cost`), a DA
-  digest (`daDigestAt_cost`), the cells' digests and claims;
+  (`readCells_cost`), a DA digest (`daDigestAt_cost`), the cells' digests and claims;
 * **the seed** (`decSeed_cost`) and **the statement** (`decStmt_cost`: its declared claims, at most
   `2^34` of each kind, the DA digest, the deferred claim);
 * the batching's hints (`aggRounds_cost`, `aggHints_cost`).
@@ -178,48 +177,6 @@ theorem readCells_cost (hP : Includes P Decoder.readCellsC.costDeps) (p : E) (n 
       omega)
   rw [List.length_range] at h2
   nlinarith
-
-/-- The four cells of a table's slot (`slotCellsC`), `4·s < 2^40`: at most `4·R + 657131`. -/
-theorem slotCells_cost (hP : Includes P Decoder.slotCellsC.costDeps) (p : E) (s : ℕ)
-    (hs : 4 * s < 2 ^ 40) :
-    machineCost P Decoder.slotCellsC.costIdx [rdV, encodeValue p, encodeValue s] ≤
-      4 * R + 657131 := by
-  rw [Decoder.slotCellsC.costEq P hP rd rdV hrd, limbs_of_lt (by omega : s < 2 ^ 64)]
-  have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen (4 * s) 40 (by norm_num)
-    (by norm_num) hs
-  have := readCells_cost P hrd hR (by includes) (p * LeanVM.Protocol.Verifier.gen ^ (4 * s)) 4
-    (by norm_num)
-  omega
-
-/-- **A leanXMSS claim of a slot** (`xmssAtC`), `4·s < 2^40`: at most `4·R + 657432`. -/
-theorem xmssAt_cost (hP : Includes P Decoder.xmssAtC.costDeps) (p : E) (s : ℕ)
-    (hs : 4 * s < 2 ^ 40) :
-    machineCost P Decoder.xmssAtC.costIdx [rdV, encodeValue p, encodeValue s] ≤
-      4 * R + 657432 := by
-  rw [Decoder.xmssAtC.costEq P hP rd rdV hrd]
-  have := slotCells_cost P hrd hR (by includes) p s hs
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 0 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 1 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 2 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 3 0 (by norm_num)
-  have := xmssClaimOf_cost P (by includes) ((slotCells rd p s).getD 0 0)
-    ((slotCells rd p s).getD 1 0) ((slotCells rd p s).getD 2 0) ((slotCells rd p s).getD 3 0)
-  omega
-
-/-- **A leanSPHINCS claim of a slot** (`sphincsAtC`), `4·s < 2^40`: at most `4·R + 657432`. -/
-theorem sphincsAt_cost (hP : Includes P Decoder.sphincsAtC.costDeps) (p : E) (s : ℕ)
-    (hs : 4 * s < 2 ^ 40) :
-    machineCost P Decoder.sphincsAtC.costIdx [rdV, encodeValue p, encodeValue s] ≤
-      4 * R + 657432 := by
-  rw [Decoder.sphincsAtC.costEq P hP rd rdV hrd]
-  have := slotCells_cost P hrd hR (by includes) p s hs
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 0 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 1 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 2 0 (by norm_num)
-  have := getD_cost_idx P (by includes) (slotCells rd p s) 3 0 (by norm_num)
-  have := sphincsClaimOf_cost P (by includes) ((slotCells rd p s).getD 0 0)
-    ((slotCells rd p s).getD 1 0) ((slotCells rd p s).getD 2 0) ((slotCells rd p s).getD 3 0)
-  omega
 
 section Val
 

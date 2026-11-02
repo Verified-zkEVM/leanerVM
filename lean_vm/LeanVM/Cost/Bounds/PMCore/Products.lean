@@ -6,7 +6,7 @@ public import LeanVM.Cost.Bounds.PMBasis.Defs
 /-!
 # The PM-basis's matrices: degree and size bounds
 
-`DegLe M d`: every entry of `M` of degree at most `d`, the form of track fft's product lemmas'
+`DegLe M d`: every entry of `M` of degree at most `d`, the form of the product lemmas'
 hypotheses (`Bounds/PMFFT/EvalCost.lean`: `mulEvalPC_cost`, `mulTruncEvalPC_cost`); `SizeLe M D`:
 every entry of at most `D` coefficients.
 -/

@@ -3,27 +3,18 @@ module
 public import LeanVM.Cost.Bounds.PMBasis.LaneDefs
 
 /-!
-# The interpolation's proved price, as definitions (copies, for the shape checks)
+# The interpolation's proved price, as definitions
 
-Track solve's interpolation bound (`interpolatePMC_cost_price`, `Bounds/PMSolve/Final.lean`) holds
-at the shapes where `PMInterpOK n params` and `interpPMModel marginPrices n params ≤
-interpPMPrice marginPrices n params`, both decided per shape in `Bounds/PMLane/Shapes.lean`. Their
-definitions (and those they unfold to: tracks fft's, pmcost's and solve's price formulas) live in
-modules with proofs; the shape checks import none (`Bounds/PMLane/ShapesFirewall.lean`), so the
-definitions are copied here verbatim. The two entry points are proved equal to their originals by
-`rfl` in `Bounds/PMLane/Decode.lean` (`copy_PMInterpOK`, `copy_interpPMModel`), so every copy
-below them is checked too: an edit of an original fails that proof.
-
-Sources: `karMax` (`PMFFT/KarCost.lean`), `newtonExtra`, `newtonBound` (`PMFFT/InvCost.lean`),
-`pivotPrice` (`PMCore/LeafKernel.lean`), `stepPrice` (`PMCore/LeafPivot.lean`), `incPrice`
-(`PMCore/LeafReduce.lean`), `leafBound` (`PMCore/Leaf.lean`), `liftPrice` (`PMSolve/Lift.lean`),
-`certSolveCost` (`PMSolve/Solve.lean`), `colStep`, `colPrice`, `matPrice`
-(`PMSolve/GSColumn.lean`), `dataPrice` (`PMSolve/GSData.lean`), `interpPMCost`, `PMInterpSizes`
-(`PMSolve/Interp.lean`), `fftMB`, `fftLB`, `fftIB`, `PMInterpOK`, `interpPMModel`
-(`PMSolve/Final.lean`).
+The price formulas of the lanes' interpolation bound (`interpolatePMC_cost_price`,
+`Bounds/PMSolve/Final.lean`), which holds at the shapes where `PMInterpOK n params` and
+`interpPMModel marginPrices n params ≤ interpPMPrice marginPrices n params`, both decided per shape
+in `Bounds/PMLane/Shapes.lean`. Definitions only, in the namespaces of the proofs that use them
+(`PMFFT`: the transforms' Newton inverse; `PMCore`: the PM-basis leaf; `PMSolve`: the lift, the
+certified solve, the GS data, the interpolation), so that the shape checks import no proof
+(`Bounds/PMLane/ShapesFirewall.lean`).
 -/
 
-namespace LeanVM.Cost.Bounds.PMLane.Copy
+namespace LeanVM.Cost.Bounds.PMFFT
 
 open LeanVM.Parameters LeanVM.Extraction CompPoly LeanVM.Cost.Bounds.Decoder
 open LeanVM.Cost.Bounds.PMBasis
@@ -43,15 +34,16 @@ two products a step) and `⌈log₂ k⌉` times `newtonExtra k`, the inversion o
 @[expose] def newtonBound (p : PMPrices) (k : ℕ) : ℕ :=
   4 * polyMulPrice p (clog2 (2 * k - 1)) + clog2 k * newtonExtra k + k + 19740
 
-/-- A product of at most `N` coefficients. -/
-@[expose] def fftMB (p : PMPrices) (N : ℕ) : ℕ := polyMulPrice p (clog2 N) + 2 ^ 32
+end
 
-/-- A truncated product at precision `≤ N`. -/
-@[expose] def fftLB (p : PMPrices) (N : ℕ) : ℕ :=
-  polyMulPrice p (clog2 (2 * N)) + 2 ^ 32 + 49 * N + 46
+end LeanVM.Cost.Bounds.PMFFT
 
-/-- Newton's inverse at precision `≤ N` (track fft's telescoped `newtonBound`). -/
-@[expose] def fftIB (p : PMPrices) (N : ℕ) : ℕ := newtonBound p N
+namespace LeanVM.Cost.Bounds.PMCore
+
+open LeanVM.Parameters LeanVM.Extraction CompPoly LeanVM.Cost.Bounds.Decoder
+open LeanVM.Cost.Bounds.PMBasis
+
+public section
 
 /-- The price of one pivot of the RREF on `E` rows of at most `r` entries. -/
 @[expose] def pivotPrice (E r : ℕ) : ℕ := 19950 * r + (295 * r + E + 85) * E + 3 * E + 130
@@ -76,6 +68,27 @@ two products a step) and `⌈log₂ k⌉` times `newtonExtra k`, the inversion o
     (n + (191 * n + 126) * n + 12) + ((36 * m + 108 * n + 75) * n + 6) + n + 18 + 6 +
   -- the compaction
     ((29 * n + 28) * n + 8)
+
+end
+
+end LeanVM.Cost.Bounds.PMCore
+
+namespace LeanVM.Cost.Bounds.PMSolve
+
+open LeanVM.Parameters LeanVM.Extraction CompPoly LeanVM.Cost.Bounds.Decoder
+open LeanVM.Cost.Bounds.PMBasis
+
+public section
+
+/-- A product of at most `N` coefficients. -/
+@[expose] def fftMB (p : PMPrices) (N : ℕ) : ℕ := polyMulPrice p (clog2 N) + 2 ^ 32
+
+/-- A truncated product at precision `≤ N`. -/
+@[expose] def fftLB (p : PMPrices) (N : ℕ) : ℕ :=
+  polyMulPrice p (clog2 (2 * N)) + 2 ^ 32 + 49 * N + 46
+
+/-- Newton's inverse at precision `≤ N` (the telescoped `PMFFT.newtonBound`). -/
+@[expose] def fftIB (p : PMPrices) (N : ℕ) : ℕ := PMFFT.newtonBound p N
 
 /-- The lift's price: `w·m` entries reduced on the first branch, `−diag(M)`, the orders. -/
 @[expose] def liftPrice (Q w m : ℕ) : ℕ :=
@@ -136,9 +149,9 @@ inverses at precision `n`, the PM-basis leaf at its proved price. -/
   let m := params.multiplicity
   let w := GuruswamiSudan.interpolationWidth params
   let N := (m + 1) * n + 1
-  interpPMCost p (leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
+  interpPMCost p (PMCore.leafBound (w + m) m + 18 * m + 60) N n m w params.weightedDegreeBound
     (fftMB p N) (fftLB p (m * n)) (fftLB p n) (fftIB p n)
 
 end
 
-end LeanVM.Cost.Bounds.PMLane.Copy
+end LeanVM.Cost.Bounds.PMSolve

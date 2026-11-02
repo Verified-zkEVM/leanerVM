@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Cost.Library
-public import CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
+public import CompPoly.LinearAlgebra.PolynomialMatrix.ShiftedReduction
 import all CompPoly.Univariate.Basic
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Data.Array.Lemmas
@@ -71,14 +71,13 @@ theorem trim_eq {R : Type} [Zero R] [BEq R] (p : CPolynomial.Raw R) :
 
 /-- **A sum trimmed once**: `trim_eq` names its argument three times, so a compound argument
 would be computed thrice; bound by a `let`, `addRaw p q` is computed once (tried before
-`trim_eq`). From probe's `rawAdd_shared` (`ProbeLib.lean`), at the trim, so that `Raw.add` stays
-a function of its own and no index moves. -/
+`trim_eq`), at the trim, so that `Raw.add` stays a function of its own. -/
 theorem trim_addRaw_shared {R : Type} [Zero R] [Add R] [BEq R] (p q : CPolynomial.Raw R) :
     (CPolynomial.Raw.addRaw p q).trim =
       (let r := CPolynomial.Raw.addRaw p q; r.extract 0 (trimLen r r.size)) :=
   trim_eq _
 
-/-- **A product trimmed once** (as `trim_addRaw_shared`; probe's `rawMul_shared`). -/
+/-- **A product trimmed once** (as `trim_addRaw_shared`). -/
 theorem trim_mulRaw_shared {R : Type} [Semiring R] [BEq R] (p q : CPolynomial.Raw R) :
     (CPolynomial.Raw.mulRaw p q).trim =
       (let r := CPolynomial.Raw.mulRaw p q; r.extract 0 (trimLen r r.size)) :=

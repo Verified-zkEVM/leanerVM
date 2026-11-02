@@ -20,11 +20,11 @@ the compiler itself finds it: so a proof about an on-demand function survives it
 `includes_sub` closes `Includes P l'` from an `Includes P l` of the context by a sublist proof
 (`Includes.ofSublist`: the compiler sorts the bodies by index, so a callee's list is a sublist of
 its caller's), one constructor per body of `l`, where `includes` builds a membership proof per
-body of `l'` (quadratic: too slow on the new decoder's lists of about a thousand bodies); it falls
+body of `l'` (quadratic: too slow on the decoder's lists of about a thousand bodies); it falls
 back to `includes`.
 -/
 
-namespace LeanVM.Cost.Bounds.PMLane
+namespace LeanVM.Cost.Bounds.CostConst
 
 open Lean Elab Term Meta LeanVM.Cost.Compiler
 
@@ -80,4 +80,4 @@ elab "includes_sub" : tactic => do
       throwError "includes_sub: no hypothesis holds these bodies"
   Tactic.replaceMainGoal []
 
-end LeanVM.Cost.Bounds.PMLane
+end LeanVM.Cost.Bounds.CostConst

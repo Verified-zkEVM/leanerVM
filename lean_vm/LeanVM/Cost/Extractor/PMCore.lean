@@ -22,7 +22,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 import all CompPoly.LinearAlgebra.Dense
 
 /-!
-# The lanes' new interpolation, compiled (stage 3): the PM-basis
+# The lanes' approximant-basis interpolation, compiled (stage 3): the PM-basis
 
 The ordered-weak-Popov PM-basis's recursion (`pmBasisWithFuelCore` at `popovEvalRuntime
 novelTransform fftMulContext fftMulLowContext 1`: the leaf sorted by pivot, `Popov.popovLeafBasis`,

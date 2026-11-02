@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Cost.Extractor.Rewrites
 public import LeanVM.Protocol.Extraction.Fast.RootFinder
-import all CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Shifted
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
 import all CompPoly.Univariate.Basic

@@ -17,7 +17,7 @@ The GS data's remainders: the reversal remainder with the reversed modulus's inv
 modulus: the guard only) or on its cached branch (precision `k ≤ K`: two truncated products, two
 reversals, a subtraction, no Newton iteration): **`modByMonicCachedC_cost`**, at most
 `100·|p| + 200·|q| + LBq + LB + 600`, `LBq`, `LB` the two truncated products' prices
-(`LowBound`: track fft's `rawMulLowFFTC`, a hypothesis). Also: `reverseC_cost`,
+(`LowBound`: `rawMulLowFFTC`, a hypothesis). Also: `reverseC_cost`,
 `modByMonicWithC_first_cost` (CompPoly's `modByMonicWith` on `fftModContext`'s first branch),
 `limbCount_le_of_lt`.
 -/
@@ -32,19 +32,19 @@ open LeanVM.Cost.Auto.CompPoly.PolynomialMatrix
 
 public section
 
-/-- **The truncated product's price** (track fft's `rawMulLowFFTC`, a hypothesis): at precision
+/-- **The truncated product's price** (`rawMulLowFFTC`, a hypothesis): at precision
 `k ≤ N`, at most `LB` (the factors are truncated to `k` first). -/
 @[expose] def LowBound (P : MachineProgram) (N LB : ℕ) : Prop :=
   ∀ (k : ℕ) (a b : CPolynomial.Raw K), k ≤ N →
     machineCost P rawMulLowFFTC.costIdx [encodeValue k, encodeValue a, encodeValue b] ≤ LB
 
-/-- **The product's price** (track fft's `mulViaFFTC`, `fftMulContext.mul`, a hypothesis): on
+/-- **The product's price** (`mulViaFFTC`, `fftMulContext.mul`, a hypothesis): on
 factors whose product has at most `N` coefficients (`|f| + |g| ≤ N + 1`), at most `MB`. -/
 @[expose] def MulBound (P : MachineProgram) (N MB : ℕ) : Prop :=
   ∀ f g : CPolynomial K, f.val.size + g.val.size ≤ N + 1 →
     machineCost P mulViaFFTC.costIdx [encodeValue f, encodeValue g] ≤ MB
 
-/-- **Newton's inverse's price** (track fft's `inverseModXFFTC`, a hypothesis): at precision
+/-- **Newton's inverse's price** (`inverseModXFFTC`, a hypothesis): at precision
 `k ≤ N`, at most `IB`. -/
 @[expose] def InvBound (P : MachineProgram) (N IB : ℕ) : Prop :=
   ∀ (k : ℕ) (a : CPolynomial.Raw K), k ≤ N →
@@ -62,18 +62,18 @@ theorem limbCount_le_of_lt {n L : ℕ} (hL : 1 ≤ L) (h : n < 2 ^ (64 * L)) : l
     omega
 
 /-- `Raw.reverse n p`: at most `29·n + 15`. -/
-theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c419.costDeps)
+theorem reverseC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.reverse.c418.costDeps)
     (n : ℕ) (hn : n < 2 ^ 62) (p : CPolynomial.Raw K) :
-    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c419.costIdx [encodeValue n, encodeValue p] ≤
+    machineCost P Auto.CompPoly.CPolynomial.Raw.reverse.c418.costIdx [encodeValue n, encodeValue p] ≤
       29 * n + 15 := by
-  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c419.costEq P hP]
+  rw [Auto.CompPoly.CPolynomial.Raw.reverse.c418.costEq P hP]
   have hf := fun i ↦ RunsApp.of_spec (us := [encodeValue n, encodeValue p]) (vs := [encodeValue i])
-    (Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costSpec P (by includes) n p i)
+    (Auto.CompPoly.CPolynomial.Raw.reverse.c418.lam0.costSpec P (by includes) n p i)
   have := ofFnFrom_cost P (by includes) (n := n) (by omega) _
-    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costIdx [encodeValue n, encodeValue p])
+    (.closure Auto.CompPoly.CPolynomial.Raw.reverse.c418.lam0.costIdx [encodeValue n, encodeValue p])
     hf 10 (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c419.lam0.costEq P (by includes)]
+      rw [Auto.CompPoly.CPolynomial.Raw.reverse.c418.lam0.costEq P (by includes)]
       have := i.isLt
       cost_simp
       omega) 0 (by omega)
@@ -86,12 +86,12 @@ theorem size_reverse (n : ℕ) (p : CPolynomial.Raw K) : (CPolynomial.Raw.revers
 
 /-- `modByMonicWith fftModContext p M`, `M` monic and longer than `p`: the first branch, at most
 `41·|p| + 79·|M| + 150`. -/
-theorem modByMonicWithC_first_cost (hP : Includes P modByMonicWith.c556.costDeps)
+theorem modByMonicWithC_first_cost (hP : Includes P modByMonicWith.c555.costDeps)
     (p M : CPolynomial K) (hM : M.monic = true) (hpM : p.val.size < M.val.size)
     (hMs : M.val.size < 2 ^ 60) :
-    machineCost P modByMonicWith.c556.costIdx [encodeValue p, encodeValue M] ≤
+    machineCost P modByMonicWith.c555.costIdx [encodeValue p, encodeValue M] ≤
       41 * p.val.size + 79 * M.val.size + 150 := by
-  rw [modByMonicWith.c556.costEq P hP]
+  rw [modByMonicWith.c555.costEq P hP]
   have := listBeqK_cost P (by includes) M.val.toList (↑(0 : CPolynomial K) : Array K).toList
   have := modByMonicFFTC_first_cost P (by includes) _ _ hM hpM hMs
   have hz : (↑(0 : CPolynomial K) : Array K).size = 0 := rfl
@@ -103,17 +103,17 @@ monic: on the first branch, or on the cached branch (`k ≤ K ≤ Nq`, the suppl
 size: it is truncated): at most `100·|p| + 200·|q| + LBq + LB + 600`, `LBq` the quotient's
 truncated product (precision `k ≤ Nq`), `LB` the back-product's (precision `|q| − 1 ≤ Nb`). -/
 theorem rawModByMonicCachedC_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c571.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c570.costDeps)
     {N Nb Nq LB LBq : ℕ} (hLB : LowBound P Nb LB) (hLq : LowBound P Nq LBq)
     (inv : CPolynomial.Raw K) (Kp : ℕ)
     (p q : CPolynomial K) (hq : q.monic = true) (hN : N < 2 ^ 58) (hKp : Kp < 2 ^ 64) (hKq : Kp ≤ Nq)
     (hpN : p.val.size ≤ N)
     (hqN : q.val.size ≤ N) (hqb : q.val.size ≤ Nb + 1)
     (hk : p.val.size < q.val.size ∨ p.val.size - q.val.size + 1 ≤ Kp) :
-    machineCost P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c571.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c570.costIdx
         [encodeValue inv, encodeValue Kp, encodeValue p.val, encodeValue q.val] ≤
       100 * p.val.size + 200 * q.val.size + LBq + LB + 600 := by
-  rw [Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c571.costEq P hP]
+  rw [Auto.LeanVM.Extraction.Fast.rawModByMonicCached.c570.costEq P hP]
   have hpt := cpoly_trim_eq p
   have hqt := cpoly_trim_eq q
   have hlc : (CPolynomial.Raw.leadingCoeff q.val == 1) = true := by

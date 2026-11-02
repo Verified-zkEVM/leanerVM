@@ -20,7 +20,6 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.Recursion
 import all CompPoly.LinearAlgebra.Dense
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.ModularEquation.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearization
-import all CompPoly.LinearAlgebra.PolynomialMatrix.MuldersStorjohann
 import all CompPoly.Univariate.Vanishing
 import all CompPoly.Univariate.Roots.Backend
 import all CompPoly.Univariate.Roots.Context
@@ -41,7 +40,7 @@ import all CompPoly.Bivariate.GuruswamiSudan.Interpolation.ApproximantBasis.Basi
 import all CompPoly.Univariate.CoefficientInterpolation
 
 /-!
-# The lanes' new interpolation, compiled (stage 5): the lanes and the decoded stacks
+# The lanes' approximant-basis interpolation, compiled (stage 5): the lanes and the decoded stacks
 
 The approximant-basis interpolation on `pmSolver` (`interpolateDistinctWith`: the vanishing
 polynomial and the interpolant, the modular data, the windowed solve of stage 4, the least shifted

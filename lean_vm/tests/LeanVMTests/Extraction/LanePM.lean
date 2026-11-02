@@ -22,6 +22,20 @@ namespace LeanVMTests.Extraction.LanePM
 open CompPoly CompPoly.GuruswamiSudan LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast
 open LeanVMTests.Extraction
 
+/-- CompPoly's low-product context on Karatsuba's low products (`MulLowContext.raw`: one low
+product, not the full product per coefficient as `MulLowContext.fromMulContext`). -/
+def karatsubaMatrixLowContext : PolynomialMatrix.MulLowContext K :=
+  PolynomialMatrix.MulLowContext.raw karatsubaMulContext karatsubaMulLowContext
+
+/-- The ordered-weak-Popov PM-basis on Karatsuba's products (Strassen's matrix products), leaf
+cutoff `1`. -/
+def pmContextKaratsuba : PolynomialMatrix.Approximant.PMBasisContext K :=
+  Popov.popovCorePMBasisContextWithLowAndCompose karatsubaMulContext karatsubaMatrixLowContext 1 1
+
+/-- The lanes' solver on Karatsuba's products. -/
+def pmSolverKaratsuba : PolynomialMatrix.Approximant.ModularSolutionBasisContext K :=
+  certifiedModularSolutionBasisContext karatsubaMulContext karatsubaModContext pmContextKaratsuba
+
 /-- A message polynomial of degree `3`. -/
 def msg : CPolynomial K := CPolynomial.ofArray #[K.ofBits 7, K.ofBits 123456, K.ofBits 99, K.ofBits 5]
 

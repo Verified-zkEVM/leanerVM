@@ -18,9 +18,9 @@ public import LeanVM.Protocol.Extraction.Fast.FFT.Basis
 `planFwd P`, `planInv P`: lean_vm's additive NTT (`novelFwd j 0`, `novelInv j`) with the plan's
 twiddles, by `fwdStageFast` (the products `t·hi` first, each read by both outputs of its
 butterfly: `N/2` products per stage, not `N`; `fwdStageFast_eq`) and `invStageFast`, the powers
-`2^i`, `2^(i+1)` once per stage. The conversions read the powers `2^t` from the plan
-(`pows`; `toNovelRecP`, `fromNovelRecP`, proved equal to `toNovelRec`, `fromNovelRec`), none
-computed per entry. **Proved** for `j ≤ 64`: `planFwd_eq : planFwd (mkPlan j) c = novelFwd j 0 c`,
+`2^i`, `2^(i+1)` once per stage. The conversions read the powers `2^t` from the plan (`pows`;
+`FFT/Convert.lean`), none computed per entry. **Proved** for `j ≤ 64`:
+`planFwd_eq : planFwd (mkPlan j) c = novelFwd j 0 c`,
 `planInv_eq : planInv (mkPlan j) y = novelInv j y`, `mkPlan_tableInv`, and
 `mkPlan_twiddles : (mkPlan j).twiddles[i] = novelTwiddles j i`; so the transform's laws carry
 over unchanged.
@@ -171,89 +171,6 @@ theorem batchInv_eq (l : List K) (hl : ∀ b ∈ l, b ≠ 0) : batchInv l = l.ma
 
 /-! ## The conversions with the powers of two precomputed -/
 
-/-- `linCoeff` with `2^t` read from `pw` (`pw[t] = 2^t`). -/
-@[expose] def linCoeffP (pw : Array ℕ) (s q : Array K) (n d : ℕ) : ℕ → K
-  | 0 => 0
-  | t + 1 => linCoeffP pw s q n d t +
-      let e := pw.getD t 0
-      if e ≤ d ∧ d - e < n then s.getD t 0 * q.getD (d - e) 0 else 0
-
-theorem linCoeffP_eq {pw : Array ℕ} {T : ℕ} (hpw : ∀ t < T, pw.getD t 0 = 2 ^ t)
-    (s q : Array K) (n d : ℕ) : linCoeffP pw s q n d T = linCoeff s q n d T := by
-  induction T with
-  | zero => rfl
-  | succ T ih =>
-    rw [linCoeffP, linCoeff, ih fun t ht ↦ hpw t (by omega), hpw T (by omega)]
-
-/-- `divQuot` with `H = 2^i` given and `pw`. -/
-@[expose] def divQuotP (pw : Array ℕ) (s : Array K) (i H : ℕ) (a : Array K) : Array K :=
-  let h := H / 2
-  let qtop := Array.ofFn fun e : Fin (H - h) ↦ a.getD (H + h + e.val) 0
-  let qlo := Array.ofFn fun e : Fin h ↦
-    a.getD (H + e.val) 0 - linCoeffP pw s qtop (H - h) (H + e.val - h) i
-  qlo ++ qtop
-
-/-- `divRem` with `H = 2^i` given and `pw`. -/
-@[expose] def divRemP (pw : Array ℕ) (s : Array K) (i H : ℕ) (a q : Array K) : Array K :=
-  Array.ofFn fun e : Fin H ↦ a.getD e.val 0 - linCoeffP pw s q H e.val i
-
-/-- `mulAddW` with `H = 2^i` given and `pw`. -/
-@[expose] def mulAddWP (pw : Array ℕ) (s : Array K) (i H : ℕ) (r q : Array K) : Array K :=
-  Array.ofFn fun d : Fin (2 * H) ↦
-    (if d.val < H then r.getD d.val 0 else q.getD (d.val - H) 0) + linCoeffP pw s q H d.val i
-
-/-- `toNovelRec` with the powers of two from `pw`. -/
-@[expose] def toNovelRecP (pw : Array ℕ) : List (Array K × K) → Array K → Array K
-  | [], a => #[a.getD 0 0]
-  | (s, β) :: tab, a =>
-    let i := tab.length
-    let H := pw.getD i 0
-    let q := divQuotP pw s i H a
-    toNovelRecP pw tab (divRemP pw s i H a q) ++ toNovelRecP pw tab (scaleArr H β q)
-
-/-- `fromNovelRec` with the powers of two from `pw`. -/
-@[expose] def fromNovelRecP (pw : Array ℕ) : List (Array K × K) → Array K → Array K
-  | [], c => #[c.getD 0 0]
-  | (s, βinv) :: tab, c =>
-    let i := tab.length
-    let H := pw.getD i 0
-    let r := fromNovelRecP pw tab (sliceArr H 0 c)
-    let qh := fromNovelRecP pw tab (sliceArr H H c)
-    mulAddWP pw s i H r (scaleArr H βinv qh)
-
-theorem mulAddWP_eq {pw : Array ℕ} {i : ℕ} (hpw : ∀ t < i, pw.getD t 0 = 2 ^ t) (s r q : Array K) :
-    mulAddWP pw s i (2 ^ i) r q = mulAddW s i r q := by
-  simp only [mulAddWP, mulAddW, linCoeffP_eq hpw]
-
-theorem toNovelRecP_eq {pw : Array ℕ} (tab : List (Array K × K))
-    (hpw : ∀ t < tab.length, pw.getD t 0 = 2 ^ t) (a : Array K) :
-    toNovelRecP pw tab a = toNovelRec tab a := by
-  induction tab generalizing a with
-  | nil => rfl
-  | cons d tab ih =>
-    obtain ⟨s, β⟩ := d
-    have hlt : ∀ t < tab.length, pw.getD t 0 = 2 ^ t :=
-      fun t ht ↦ hpw t (by simp; omega)
-    have hH : pw.getD tab.length 0 = 2 ^ tab.length := hpw _ (by simp)
-    have hq : divQuotP pw s tab.length (2 ^ tab.length) a = divQuot s tab.length a := by
-      simp only [divQuotP, divQuot, linCoeffP_eq hlt]
-    rw [toNovelRecP, toNovelRec]
-    simp only [hH, hq, ih hlt]
-    congr 2
-    simp only [divRemP, divRem, linCoeffP_eq hlt]
-
-theorem fromNovelRecP_eq {pw : Array ℕ} (tab : List (Array K × K))
-    (hpw : ∀ t < tab.length, pw.getD t 0 = 2 ^ t) (c : Array K) :
-    fromNovelRecP pw tab c = fromNovelRec tab c := by
-  induction tab generalizing c with
-  | nil => rfl
-  | cons d tab ih =>
-    obtain ⟨s, β⟩ := d
-    have hlt : ∀ t < tab.length, pw.getD t 0 = 2 ^ t :=
-      fun t ht ↦ hpw t (by simp; omega)
-    have hH : pw.getD tab.length 0 = 2 ^ tab.length := hpw _ (by simp)
-    rw [fromNovelRecP, fromNovelRec, hH, ih hlt, ih hlt, mulAddWP_eq hlt]
-
 /-! ## The plan -/
 
 /-- **The precomputations of the additive FFT of size `2^log`.** -/
@@ -298,8 +215,6 @@ theorem mkPlan_pows {j t : ℕ} (ht : t < j) : (mkPlan j).pows.getD t 0 = 2 ^ t 
   simp [mkPlan, Array.getD, ht]
 
 theorem mkPlan_log (j : ℕ) : (mkPlan j).log = j := rfl
-
-theorem mkPlan_table (j : ℕ) : (mkPlan j).table = tableUpTo j := rfl
 
 theorem zipWith_map_self (l : List (Array K × K)) (g : K → K) :
     List.zipWith (fun d b ↦ (d.1, b)) l ((l.map fun d ↦ d.2).map g) = l.map fun d ↦ (d.1, g d.2) := by

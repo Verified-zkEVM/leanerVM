@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.PMFFT.MulCost
 public import LeanVM.Cost.Bounds.Decoder.Poly
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 
 /-!
 # Bounds of the PM decoder's FFT: Karatsuba's product
@@ -25,9 +26,6 @@ variable (P : MachineProgram)
 @[expose] def karBound : ℕ → ℕ
   | 0 => 1031400
   | k + 1 => 3 * karBound k + 1800 * (32 * 2 ^ k) + 1400
-
-/-- The schedule's Karatsuba branch's price. -/
-@[expose] def karMax : ℕ := 2 ^ 32
 
 theorem karBound_7 : karBound 7 ≤ karMax := by decide
 
@@ -73,15 +71,6 @@ theorem coeffsBetweenC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.coeffsB
   rw [Auto.LeanVM.Extraction.Fast.coeffsBetween.c410.costEq P hP]
   have hs : (p.val.extract lo hi).size ≤ hi - lo := by simp only [Array.size_extract]; omega
   have := Decoder.ofArray_cost P (by includes) (p.val.extract lo hi) (by omega)
-  omega
-
-theorem shiftXC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.shiftX.c102.costDeps) (t : ℕ)
-    (x : CompPoly.CPolynomial K) (ht : t < 2 ^ 40) (hx : x.val.size < 2 ^ 40) :
-    machineCost P Auto.LeanVM.Extraction.Fast.shiftX.c102.costIdx [encodeValue t, encodeValue x] ≤
-      25 * t + 24 * x.val.size + 22 := by
-  rw [Auto.LeanVM.Extraction.Fast.shiftX.c102.costEq P hP]
-  have := Decoder.ofArray_cost P (by includes) (Array.replicate t 0 ++ x.val) (by simp; omega)
-  simp only [Array.size_append, Array.size_replicate] at this ⊢
   omega
 
 theorem negMapC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.c409.costDeps) (x : CompPoly.CPolynomial K) :
@@ -175,12 +164,12 @@ theorem karatsubaC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.karatsuba.c
         (by omega) (by omega)
       have a4 := Decoder.addK_cost P (by includes) ((p0 + p1) * (q0 + q1) - p0 * q0).val
         (-(p1 * q1)).val (by omega) (by omega)
-      have sh1 := shiftXC_cost P (by includes) H ((p0 + p1) * (q0 + q1) - p0 * q0 - p1 * q1)
-        (by omega) (by omega)
+      have sh1 := Decoder.shiftXC_cost P (by includes) H
+        ((p0 + p1) * (q0 + q1) - p0 * q0 - p1 * q1) (by omega)
       have sz1 := shiftX_size H ((p0 + p1) * (q0 + q1) - p0 * q0 - p1 * q1)
       have a5 := Decoder.addK_cost P (by includes) (p0 * q0).val
         (shiftX H ((p0 + p1) * (q0 + q1) - p0 * q0 - p1 * q1)).val (by omega) (by omega)
-      have sh2 := shiftXC_cost P (by includes) (2 * H) (p1 * q1) (by omega) (by omega)
+      have sh2 := Decoder.shiftXC_cost P (by includes) (2 * H) (p1 * q1) (by omega)
       have sz2 := shiftX_size (2 * H) (p1 * q1)
       have sz3 := Decoder.cpoly_add_size_le (p0 * q0)
         (shiftX H ((p0 + p1) * (q0 + q1) - p0 * q0 - p1 * q1))
@@ -263,9 +252,6 @@ theorem schoolbook_fit (p : PMPrices) (hp : FFTPricesOK p) {j b : ℕ} (hj : j �
     unfold polyMulPrice karMax
     omega
 
-theorem le_two_pow_clog2 (e : ℕ) : e ≤ 2 ^ clog2 e := by
-  rw [clog2_eq_ceilLog]; exact EvalMat.le_two_pow_ceilLog _
-
 /-- **`fftMulContext`'s product, every branch** (`mulViaFFTC`): the schoolbook product over the
 small factor, Karatsuba's below `4096`, the transform above; within
 `polyMulPrice p (clog2 (|f| + |g| − 1)) + karMax`, `|f| + |g| − 1 ≤ 2^36`. -/
@@ -276,7 +262,7 @@ theorem mulViaFFTC_cost (hP : Includes P mulViaFFTC.costDeps) (p : PMPrices) (hp
   by_cases hfft : 32 < f.val.size ∧ 32 < g.val.size ∧ (4096 < f.val.size ∨ 4096 < g.val.size)
   · have := mulViaFFTC_cost_fft P hP p hp f g hfft.1 hfft.2.1 hfft.2.2 hj
     omega
-  · have hc := le_two_pow_clog2 (f.val.size + g.val.size - 1)
+  · have hc := PMBasis.le_two_pow_clog2 (f.val.size + g.val.size - 1)
     have hcj : clog2 (f.val.size + g.val.size - 1) ≤ 36 := clog2_le hj
     rw [mulViaFFTC.costEq P hP]
     have hs : FFT.fftSchedule.small = 32 := rfl

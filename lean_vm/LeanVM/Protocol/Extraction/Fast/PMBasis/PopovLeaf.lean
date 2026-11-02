@@ -46,10 +46,6 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F]
     (vectorToPolynomialRow degreeCap problem.matrix.size)
   reduceKernelLeafRowsIncremental (scalarRows ++ kernelLeafCompletionRows problem) shift
 
-theorem kernelLeafBasis_eq (problem : XAdicProblem F) (shift : Array Nat) :
-    kernelLeafBasis problem shift =
-      completeMissingPivotRows problem shift (kernelLeafReduced problem shift) := rfl
-
 /-- One insertion into the slot table: a row goes to the slot of its leading position. -/
 @[expose] def slotStep (shift : Array Nat) (T : Array (Option (PolynomialRow F)))
     (row : PolynomialRow F) : Array (Option (PolynomialRow F)) :=
@@ -82,15 +78,6 @@ theorem slotStep_size (shift : Array Nat) (T : Array (Option (PolynomialRow F)))
     (row : PolynomialRow F) : (slotStep shift T row).size = T.size := by
   unfold slotStep
   split <;> simp
-
-omit [LawfulBEq F] in
-theorem foldl_slotStep_size (shift : Array Nat) :
-    ∀ (l : List (PolynomialRow F)) (T : Array (Option (PolynomialRow F))),
-      (l.foldl (slotStep shift) T).size = T.size := by
-  intro l
-  induction l with
-  | nil => intro T; rfl
-  | cons a l ih => intro T; rw [List.foldl_cons, ih, slotStep_size]
 
 omit [LawfulBEq F] in
 /-- A slot after the fold holds what it held, or the last row of the list with that position. -/

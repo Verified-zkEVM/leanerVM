@@ -342,15 +342,6 @@ theorem bfLoopC_cost (hP : Includes P bfLoop.c97.costDeps) (a : K) {X Y : ℕ} (
       · unfold bfLoopBound
         omega
 
-/-- `X^t·p` (`shiftX`): at most `25·(t + |p|) + 22`. -/
-theorem shiftXC_cost (hP : Includes P shiftX.c102.costDeps) (t : ℕ) (p : CPolynomial K)
-    (h : t + p.val.size < 2 ^ 60) :
-    machineCost P shiftX.c102.costIdx [encodeValue t, encodeValue p] ≤ 25 * (t + p.val.size) + 22 := by
-  rw [shiftX.c102.costEq P hP]
-  have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
-  simp only [Array.size_append, Array.size_replicate] at this ⊢
-  omega
-
 theorem taylorShiftBF_innerLe {Q : CBivariate K} {X : ℕ} (hQ : InnerLe Q.val X) (a : K) :
     InnerLe (taylorShiftBF Q.val a) X :=
   bfLoop_innerLe a _ _ _ hQ
@@ -484,32 +475,32 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
 /-! ## The lane filter -/
 
 /-- `p(x)` by Horner's rule (`hornerEval`): at most `272·|p| + 10`. -/
-theorem hornerEvalC_cost (hP : Includes P hornerEval.c647.costDeps) (x : K) (p : CPolynomial K) :
-    machineCost P hornerEval.c647.costIdx [encodeValue x, encodeValue p] ≤ 272 * p.val.size + 10 := by
-  rw [hornerEval.c647.costEq P hP]
-  have := foldr_cost P (by includes) _ (.closure hornerEval.c647.lam0.costIdx [encodeValue x])
+theorem hornerEvalC_cost (hP : Includes P hornerEval.c646.costDeps) (x : K) (p : CPolynomial K) :
+    machineCost P hornerEval.c646.costIdx [encodeValue x, encodeValue p] ≤ 272 * p.val.size + 10 := by
+  rw [hornerEval.c646.costEq P hP]
+  have := foldr_cost P (by includes) _ (.closure hornerEval.c646.lam0.costIdx [encodeValue x])
     (fun a acc ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a, encodeValue acc])
-      (hornerEval.c647.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
+      (hornerEval.c646.lam0.costSpec P (by includes) x a acc)) 260 (0 : K) p.val.toList
     (fun a _ acc ↦ by
-      rw [appCost_fn, List.singleton_append, hornerEval.c647.lam0.costEq P (by includes)])
+      rw [appCost_fn, List.singleton_append, hornerEval.c646.lam0.costEq P (by includes)])
   simp only [Array.length_toList] at this
   omega
 
 /-- **The mismatch count** (`mismatchCountFast`: `p` evaluated at each of `n` points): at most
 `(272·|p| + 34)·n + 10`. -/
-theorem mismatchCountC_cost (hP : Includes P mismatchCountFast.c645.costDeps)
+theorem mismatchCountC_cost (hP : Includes P mismatchCountFast.c644.costDeps)
     (points : Array (K × K)) (p : CPolynomial K) (hn : points.size < 2 ^ 63) :
-    machineCost P mismatchCountFast.c645.costIdx [encodeValue points, encodeValue p] ≤
+    machineCost P mismatchCountFast.c644.costIdx [encodeValue points, encodeValue p] ≤
       (272 * p.val.size + 34) * points.size + 10 := by
-  rw [mismatchCountFast.c645.costEq P hP]
-  have := listFoldl_le_idx P (by includes) _ (.closure mismatchCountFast.c645.lam0.costIdx [encodeValue p])
+  rw [mismatchCountFast.c644.costEq P hP]
+  have := listFoldl_le_idx P (by includes) _ (.closure mismatchCountFast.c644.lam0.costIdx [encodeValue p])
     (fun c pt ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue c, encodeValue pt])
-      (mismatchCountFast.c645.lam0.costSpec P (by includes) p c pt)) (272 * p.val.size + 22)
+      (mismatchCountFast.c644.lam0.costSpec P (by includes) p c pt)) (272 * p.val.size + 22)
     (fun k c ↦ c + k ≤ points.size) points.toList
     (fun k c hc pt _ ↦ by
       refine ⟨by split_ifs <;> omega, ?_⟩
       simp only [appCost_fn, List.cons_append, List.nil_append]
-      rw [mismatchCountFast.c645.lam0.costEq P (by includes)]
+      rw [mismatchCountFast.c644.lam0.costEq P (by includes)]
       have := hornerEvalC_cost P (by includes) pt.1 p
       cost_simp
       split_ifs <;> omega)

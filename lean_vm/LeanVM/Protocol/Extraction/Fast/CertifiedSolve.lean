@@ -9,8 +9,8 @@ public import LeanVM.Protocol.Extraction.Fast.WindowedSolve
 /-!
 # The certified solve without the modular filter
 
-`windowedFilteredSolutionBasis` (`WindowedSolve.lean`) keeps the PM-basis rows whose principal
-part satisfies the modular equations (`filterModularSolutionRows`), a test that multiplies each
+CompPoly's solver keeps the PM-basis rows whose principal part satisfies the modular equations
+(`filterModularSolutionRows`), a test that multiplies each
 candidate row by the relation matrix: at `(28, 4)` about `2077 · 1662 · 415 ≈ 2^30.4` univariate
 products of degree up to `≈ 2^35`, a price of the order of the PM-basis's own, outside its model.
 

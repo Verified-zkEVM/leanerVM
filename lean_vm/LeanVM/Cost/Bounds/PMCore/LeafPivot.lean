@@ -6,6 +6,7 @@ public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRecursion
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeafSpan
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PMBasis.KernelLeaf
 
+public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
 # Bounds: the leaf's pivot table, by the rank potential
 
@@ -25,9 +26,6 @@ open LeanVM.Cost.Bounds.Decoder CompPoly CompPoly.PolynomialMatrix CompPoly.Poly
 open LeanVM.Extraction.Fast.PMDegree (HomRowLe homRowLe_cancel)
 
 public section
-
-/-- The price of one step of the pivot table on rows of width `r`. -/
-@[expose] def stepPrice (r : ℕ) : ℕ := 2700 * r + 21400
 
 /-- The rank of a slot: `0` when empty. -/
 @[expose] def rkOpt (r : ℕ) (shift : Array ℕ) (o : Option (PolynomialRow K)) : ℕ :=
@@ -88,11 +86,11 @@ variable (P : MachineProgram)
 /-- **One insertion into the pivot table** (`insertKernelLeafPivotRowWithFuel`, any fuel): rows
 `X^e·v` of width `r`, shifts at most `S`. -/
 theorem insertPivotC_cost
-    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c529.costDeps)
+    (hP : Includes P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c528.costDeps)
     {r S : ℕ} (hr : r < 2 ^ 40) (hS40 : S < 2 ^ 60) (shift : Array ℕ) (hS : ∀ j, shift.getD j 0 ≤ S) :
     ∀ (fuel : ℕ) (T : Array (Option (PolynomialRow K))) (row : PolynomialRow K), fuel < 2 ^ 128 →
       TableInv r shift T → row.size = r → HomRowLe 1 row →
-      machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c529.costIdx
+      machineCost P Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c528.costIdx
           [encodeValue fuel, encodeValue T, encodeValue shift, encodeValue row] +
           stepPrice r * phi r shift (insertKernelLeafPivotRowWithFuel fuel T shift row) ≤
         stepPrice r * (phi r shift T + rk r shift row) + stepPrice r ∧
@@ -101,7 +99,7 @@ theorem insertPivotC_cost
   induction fuel with
   | zero =>
     intro T row _ hT _ _
-    rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c529.costEq P hP]
+    rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c528.costEq P hP]
     simp only [insertKernelLeafPivotRowWithFuel, limbs_zero, Nat.rec_zero]
     refine ⟨?_, hT⟩
     have : stepPrice r * phi r shift T ≤ stepPrice r * (phi r shift T + rk r shift row) :=
@@ -110,7 +108,7 @@ theorem insertPivotC_cost
     omega
   | succ k ih =>
     intro T row hk hT hrs hrh
-    rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c529.costEq P hP]
+    rw [Auto.CompPoly.PolynomialMatrix.Approximant.insertKernelLeafPivotRowWithFuel.c528.costEq P hP]
     have hl := limbs_le_two (show k + 1 < 2 ^ 128 by omega)
     have hRw := rowWithin_of_homRow hrs hrh
     have hLTr := rowShiftedLeadingTerm_cost P (by includes) (C := r) (D := 2) (S := S) (by omega)

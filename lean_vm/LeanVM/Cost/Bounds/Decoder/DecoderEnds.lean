@@ -6,20 +6,19 @@ public import LeanVM.Cost.DecoderProgram
 /-!
 # Bound: the decoder top's two ends and its entry, compiled
 
-The prices of `Cost/Decoder/Ends.lean`'s functions and of the entry (`Cost/DecoderProgram.lean`):
+The prices of `Cost/Decoder/Ends.lean`'s functions and of the decoder's output
+(`Cost/DecoderProgram.lean`):
 
 * **`decoderTables_cost`**: the two address tables (`decoderTablesC`, the extractor's `powTable`
-  twice), at most `(70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48`; at `κ, ℓ ≤ 32`
-  (`decoderTables_cost_deployed`), at most `2614·2^33 + 48` (≈ `2^44.35`);
+  twice), at most `(70κ + 374)·2^κ + (70ℓ + 374)·2^ℓ + 48`;
 * **`memReader_cost`**: one memory read (`memReaderC`, the binary search in the table and the
   vector's entry), at most `123 + 42·log₂|memT|`; on the table `powTable κ`, `κ ≤ 32`, at most
-  `123 + 42κ ≤ 1467` (`memReader_cost_deployed`), the price `R` of the reader closure
-  (`memReaderClosure_cost`) the readers and the precondition's test take;
+  `123 + 42κ ≤ 1467` (`memReader_cost_deployed`), the price `R` of the reader closure the readers
+  and the precondition's test take;
 * `decodedOf_cost`: `7`;
 * **`decoderOutput_cost`**: the seed (`decSeedC`, at most `A`) and the statement (`decStmtC`, the
-  logarithm's tables given, at most `S`, the bounds of the chain `Log … Witness`), then `decodedOf`: at most `A + S + 15`;
-* **`decoderEntry_output`**: the entry (`decoderEntryBody`) costs `8` past the top: a top whose
-  price is at most `C` gives the program's output within the budget `C + 8`.
+  logarithm's tables given, at most `S`, the bounds of the chain `Log … Witness`), then
+  `decodedOf`: at most `A + S + 15`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -43,21 +42,6 @@ theorem decoderTables_cost (hP : Includes P decoderTablesC.costDeps) (prog : Pro
   rw [decoderTablesC.costEq P hP]
   have h1 := powTable_cost P (by includes) κ hκ
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
-  omega
-
-/-- `(70κ + 374)·2^κ` at `κ ≤ 32`: at most `2614·2^32`. -/
-theorem powTablePrice_le {κ : ℕ} (hκ : κ ≤ 32) : (70 * κ + 374) * 2 ^ κ ≤ 2614 * 2 ^ 32 :=
-  Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hκ)
-
-/-- **The address tables at the deployed shape** (`κ, ℓ ≤ 32`): at most `2614·2^33 + 48`. -/
-theorem decoderTables_cost_deployed (hP : Includes P decoderTablesC.costDeps) (prog : Program)
-    (κ : ℕ) (hκ : κ ≤ 32) :
-    machineCost P decoderTablesC.costIdx [encodeValue prog, encodeValue κ] ≤
-      2614 * 2 ^ 33 + 48 := by
-  have := decoderTables_cost P hP prog κ (by omega)
-  have h1 := powTablePrice_le hκ
-  have h2 := powTablePrice_le prog.logSize_le
-  rw [show 2614 * 2 ^ 33 = 2614 * 2 ^ 32 + 2614 * 2 ^ 32 by norm_num]
   omega
 
 open Auto.LeanVM.Extraction.Fast in
@@ -87,16 +71,6 @@ theorem memReader_cost_deployed (hP : Includes P memReaderC.costDeps) {κ : ℕ}
   have := memReader_cost P hP (powTable κ) (wordTable_powTable (by omega)) (by omega) mem a
   rwa [powTable_size, Nat.log2_two_pow] at this
 
-/-- **The reader closure** (`memReader memT mem`, partially applied): each read at most
-`123 + 42κ ≤ 1467` on the table `powTable κ`, `κ ≤ 32`: the price `R` of a read. -/
-theorem memReaderClosure_cost (hP : Includes P memReaderC.costDeps) {κ : ℕ} (hκ : κ ≤ 32)
-    (mem : Vector E (2 ^ κ)) (a : K) :
-    appCost P (.closure memReaderC.costIdx [encodeValue (powTable κ), encodeValue κ,
-      encodeValue mem]) [encodeValue a] ≤ 1467 := by
-  simp only [appCost_fn, List.cons_append, List.nil_append]
-  have := memReader_cost_deployed P hP hκ mem a
-  omega
-
 /-! ## The output side -/
 
 /-- A decoding of its fields (`decodedOfC`): `7`. -/
@@ -119,19 +93,6 @@ theorem decoderOutput_cost (hP : Includes P decoderOutputC.costDeps) (D : Discre
   omega
 
 /-! ## The entry -/
-
-/-- **The program's output within the top's price and the entry's `8`**: in a program whose
-function `0` is `decoderEntryBody j`, a top `j` computing `v` on the input's fields at its
-machine price, at most `C`, gives `v` within the budget `C + 8`. -/
-theorem decoderEntry_output {j : ℕ} (hentry : P[0]? = some (decoderEntryBody j)) (prog : Program)
-    (t : Execution prog) {v : MachineValue}
-    (h : RunsBody P j [encodeValue prog, encodeValue t.logMemorySize,
-      encodeValue (memoryVector t.memory)] v (machineCost P j [encodeValue prog,
-        encodeValue t.logMemorySize, encodeValue (memoryVector t.memory)]))
-    {C : ℕ} (hC : machineCost P j [encodeValue prog, encodeValue t.logMemorySize,
-      encodeValue (memoryVector t.memory)] ≤ C) :
-    outputWithin P (encodeDecoderInput prog t) (C + 8) = some v :=
-  outputWithin_decoderEntry hentry prog t h (by omega)
 
 end
 

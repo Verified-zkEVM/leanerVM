@@ -11,14 +11,14 @@ import all CompPoly.Univariate.Basic
 **The transform** (`novelTransform : PointTransform K FFTPlan`, `maxLog = 64`, points
 `x_v = K.ofBits v`), through the plan `mkPlan j` (`Fast/FFT/Plan.lean`, built once per size):
 `fwdP P p` (`planFwdPoly`) converts `p`'s monomial coefficients to the novel basis
-(`toNovelFast`, in place level by level, `Fast/FFT/Convert`) and evaluates on `U_j = {x_v | v < 2^j}` by
-the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`) interpolates
-(`planInv`) and converts back (`fromNovelFast`). By the plan they are the unplanned
+(`toNovelInPlace`, in place level by level, `Fast/FFT/Convert`) and evaluates on
+`U_j = {x_v | v < 2^j}` by the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`) interpolates
+(`planInv`) and converts back (`fromNovelInPlace`). By the plan they are the unplanned
 `novelFwdPoly j` (`toNovel j`, `novelFwd j 0`) and `novelInvPoly j` (`novelInv j`, `fromNovel j`)
 (`planFwdPoly_eq`, `planInvPoly_eq`), whose laws come from `novelFwd_getD`, `novelInv_eval`,
 `novelFwd_novelInv` and the conversions' `toNovel_spec`, `fromNovel_spec`.
-`fftTransform : EvalMat.EvalTransform K` is the transform for EvalMat's interface (a plan per
-call); `FFT/PlannedEval.lean`'s products build it once per matrix product.
+`FFT/PlannedEval.lean`'s evaluation-domain matrix products use it, the plan built once per
+matrix product.
 
 **The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
 at most `32` coefficients, Karatsuba's when both have at most `4096`, else on the least
@@ -28,7 +28,7 @@ truncated product as one product of truncated factors), `fftRawMulLowContext`, a
 `fftModContext` (monic remainders by reversal on it).
 
 **Cost** (`K` products, `N = 2^j`, counted on the definitions, every `*` executed): the
-conversions `toNovelFast`, `fromNovelFast` exactly `N·j(j+1)/4` each (`1.5·N` and `N` array
+conversions `toNovelInPlace`, `fromNovelInPlace` exactly `N·j(j+1)/4` each (`1.5·N` and `N` array
 entries per level, the sparse sums stopping at the first vanishing term) (the division by `W_i`, or
 the product by it, at level `i` is `(i+1)·2^i` per block of `2^(i+1)`); `planFwd` and `planInv`
 `N·j/2` each (one product per butterfly and stage, `fwdStageFast`, `invStageFast`); so `fwdP`
@@ -122,22 +122,23 @@ theorem novelFwdPoly_novelInvPoly {j : ℕ} (hj : j ≤ 64) (y : Array K) (hy : 
 
 /-! ## The planned transform -/
 
-/-- The evaluations by the plan: monomial → novel in place (`toNovelFast`), then `planFwd`. -/
+/-- The evaluations by the plan: monomial → novel in place (`toNovelInPlace`), then `planFwd`. -/
 @[expose] def planFwdPoly (P : FFTPlan) (p : CPolynomial K) : Array K :=
-  planFwd P (toNovelFast P p.val)
+  planFwd P (toNovelInPlace P p.val)
 
-/-- The interpolation by the plan: `planInv`, then novel → monomial in place (`fromNovelFast`). -/
+/-- The interpolation by the plan: `planInv`, then novel → monomial in place
+(`fromNovelInPlace`). -/
 @[expose] def planInvPoly (P : FFTPlan) (y : Array K) : CPolynomial K :=
-  CPolynomial.ofArray (fromNovelFast P (planInv P y))
+  CPolynomial.ofArray (fromNovelInPlace P (planInv P y))
 
 theorem planFwdPoly_eq {j : ℕ} (hj : j ≤ 64) (p : CPolynomial K) :
     planFwdPoly (mkPlan j) p = novelFwdPoly j p := by
-  rw [planFwdPoly, toNovelFast_eq hj, planFwd_eq hj]
+  rw [planFwdPoly, toNovelInPlace_eq hj, planFwd_eq hj]
   rfl
 
 theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
     planInvPoly (mkPlan j) y = novelInvPoly j y := by
-  rw [planInvPoly, planInv_eq hj, fromNovelFast_eq hj]
+  rw [planInvPoly, planInv_eq hj, fromNovelInPlace_eq hj]
   rfl
 
 /-- **The novel-basis transform** over `K`: `2^j` points `x_v`, `j ≤ 64`, through the plan
@@ -155,13 +156,10 @@ theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
   fwd_inv y hj hy := by
     rw [planInvPoly_eq hj, planFwdPoly_eq hj]; exact novelFwdPoly_novelInvPoly hj y hy
 
-/-- The transform for the evaluation-domain matrix products (`EvalMat`). -/
-@[expose] def fftTransform : EvalMat.EvalTransform K := novelTransform.toEvalMat
-
 /-! ## The product and CompPoly's contexts -/
 
 /-- The schedule: schoolbook when a factor has at most `32` coefficients, Karatsuba's product
-when both have at most `4096` (the compiled prices measured by track probe: at `1100`
+when both have at most `4096` (the compiled prices measured: at `1100`
 coefficients the transform's product `238M` steps against Karatsuba's `76M`, at `2100` `540M`
 against `214M`; the crossover near `4096`). -/
 @[expose] def fftSchedule : MulSchedule K where

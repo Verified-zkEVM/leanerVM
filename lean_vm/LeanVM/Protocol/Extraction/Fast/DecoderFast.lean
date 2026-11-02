@@ -39,7 +39,7 @@ CompPoly's, so its callers can be restated in turn.
   `coeff_ofMonomialCoeffs_map_of_mem`, `coeff_ofMonomialCoeffs_of_not_mem` for CompPoly's), with no
   hypothesis on `Q`. Lee–O'Sullivan's interpolation with it: `leeOSullivanInterpolateFast`,
   `leeOSullivanInterpContextFast` (**`leeOSullivanInterpContextFast_eq`**).
-* **Monic remainders** (`rawModContext_remainderOnly_eq_naive`, `modContext_remainderOnly_eq_naive`).
+* **Monic remainders** (`rawModContext_remainderOnly_eq_naive`).
   The root finder (`finiteFieldRootContext`, Shoup's splitter, the `X^q mod p` powers) reduces with
   `CPolynomial.Raw.ModContext.naive`, `modByMonic = (divModByMonicAux p q).2`: long division
   computing the quotient too, each step a general product `C(c)·(q·X^k)`. CompPoly's
@@ -512,21 +512,6 @@ theorem rawModContext_remainderOnly_eq_naive {F : Type*} [Field F] [BEq F] [Lawf
   apply rawModContext_ext
   funext p q
   exact CPolynomial.Raw.modByMonicRemainderOnly_eq_modByMonic p q
-
-theorem modContext_ext {F : Type*} [Field F] [BEq F] [LawfulBEq F]
-    {A B : CPolynomial.ModContext F} (h : A.modByMonic = B.modByMonic) : A = B := by
-  obtain ⟨f, _⟩ := A
-  obtain ⟨g, _⟩ := B
-  obtain rfl : f = g := h
-  rfl
-
-/-- The same for canonical polynomials. -/
-theorem modContext_remainderOnly_eq_naive {F : Type*} [Field F] [BEq F] [LawfulBEq F] :
-    (CPolynomial.ModContext.remainderOnly : CPolynomial.ModContext F) =
-      CPolynomial.ModContext.naive := by
-  apply modContext_ext
-  funext p q
-  exact CPolynomial.modByMonicRemainderOnly_eq_modByMonic p q
 
 theorem fieldRootContext_ext {F : Type*} [Field F] [BEq F] [LawfulBEq F]
     {A B : FieldRootContext F} (h : A.rootsInField = B.rootsInField) : A = B := by

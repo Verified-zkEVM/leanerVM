@@ -326,33 +326,6 @@ theorem orderedWeakPopov_mulWith (mulCtx : CPolynomial.MulContext F)
   ⟨by rw [mulWith_size, h₂.1], fun _ hk ↦
     ⟨(mulWith_row mulCtx h₁ h₂ hk).1, (mulWith_row mulCtx h₁ h₂ hk).2.1⟩⟩
 
-/-- **The degrees compose**: `rdeg_s(P₂ · P₁) = rdeg_t(P₂)`, `t = rdeg_s(P₁)`, row by row. -/
-theorem rowShiftedDegree?_mulWith (mulCtx : CPolynomial.MulContext F)
-    {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
-    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n)
-    {k : Nat} (hk : k < n) :
-    rowShiftedDegree? ((mulWith mulCtx P₂ P₁).getD k #[]) s =
-      rowShiftedDegree? (P₂.getD k #[]) (updateShiftByRows P₁ s) := by
-  rw [rowShiftedDegree?_of_leadingPosition (mulWith_row mulCtx h₁ h₂ hk).2.1,
-    rowShiftedDegree?_of_leadingPosition (h₂.2 k hk).2, (mulWith_row mulCtx h₁ h₂ hk).2.2]
-
-/-- The shift update composes: `rdeg_s(P₂ · P₁) = rdeg_{rdeg_s(P₁)}(P₂)`. -/
-theorem updateShiftByRows_mulWith (mulCtx : CPolynomial.MulContext F)
-    {P₁ P₂ : PolynomialMatrix F} {s : Array Nat} {n : Nat}
-    (h₁ : OrderedWeakPopov P₁ s n) (h₂ : OrderedWeakPopov P₂ (updateShiftByRows P₁ s) n) :
-    updateShiftByRows (mulWith mulCtx P₂ P₁) s =
-      updateShiftByRows P₂ (updateShiftByRows P₁ s) := by
-  have h := orderedWeakPopov_mulWith mulCtx h₁ h₂
-  apply Array.ext
-  · simp [updateShiftByRows, mulWith_size]
-  · intro k hk₁ hk₂
-    have hk : k < n := by simpa [updateShiftByRows, mulWith_size, h₂.1] using hk₁
-    have e₁ := updateShiftByRows_getD h hk
-    have e₂ := updateShiftByRows_getD h₂ hk
-    rw [DenseMatrix.array_getD_of_lt' _ _ hk₁] at e₁
-    rw [DenseMatrix.array_getD_of_lt' _ _ hk₂] at e₂
-    rw [e₁, e₂, (mulWith_row mulCtx h₁ h₂ hk).2.2]
-
 omit [LawfulBEq F] in
 /-- An ordered weak Popov matrix is shifted weak Popov (distinct leading positions). -/
 theorem OrderedWeakPopov.shiftedWeakPopov {M : PolynomialMatrix F} {s : Array Nat} {n : Nat}

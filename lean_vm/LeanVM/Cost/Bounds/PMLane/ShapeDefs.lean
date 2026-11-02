@@ -5,12 +5,12 @@ public import LeanVM.Cost.Bounds.PMBasis.Values
 public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 
 /-!
-# Bounds: the decoder on the new solver at every admissible shape, as definitions
+# Bounds: the decoder on `pmSolver` at every admissible shape, as definitions
 
-`DecoderShapeOkPM μ R`: what the new decoder's bound needs at a shape (the lanes word-sized,
+`DecoderShapeOkPM μ R`: what the decoder's bound needs at a shape (the lanes word-sized,
 `DecoderLaneSizes`, as for the extractor's decoder; the lanes' interpolation within the model's
-price, `LaneInterpOKPM`: track solve's `PMInterpOK` and `interpPMModel ≤ interpPMPrice`, through
-the copies of `Bounds/PMLane/InterpDefs.lean`) and its value, at the model's prices with their
+price, `LaneInterpOKPM`: `PMInterpOK` and `interpPMModel ≤ interpPMPrice`,
+`Bounds/PMLane/InterpDefs.lean`) and its value, at the model's prices with their
 margin (`marginPrices`), at most the one at `(28, 4)`, which
 `Bounds/PMLane/Shapes.lean` decides at each of the `56` admissible shapes. Definitions only, so
 that the checks import no proof (`Bounds/PMLane/ShapesFirewall.lean`).
@@ -22,22 +22,22 @@ open LeanVM.Parameters LeanVM.Extraction LeanVM.Cost.Bounds.Decoder LeanVM.Cost.
 
 public section
 
-/-- **The new decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 4)`, the
+/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 4)`, the
 model's prices with their margin. -/
 @[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 28 4 0 0
 
 /-- **The lanes' interpolation within the model's price**, at prices `p`, a lane of `2^κ`
-symbols, `2^(κ+R)` points, threshold `A`: track solve's per-shape conditions
-(`PMSolve.PMInterpOK`, `PMSolve.interpPMModel ≤ interpPMPrice`), by their copies. -/
+symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape conditions
+(`PMSolve.PMInterpOK`, `PMSolve.interpPMModel ≤ interpPMPrice`). -/
 @[expose] def LaneInterpOKPM (p : PMPrices) (κ R A : ℕ) : Prop :=
-  Copy.PMInterpOK (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ∧
-    Copy.interpPMModel p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ≤
+  PMSolve.PMInterpOK (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ∧
+    PMSolve.interpPMModel p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ≤
       interpPMPrice p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp
 
 instance (p : PMPrices) (κ R A : ℕ) : Decidable (LaneInterpOKPM p κ R A) := by
   unfold LaneInterpOKPM; infer_instance
 
-/-- What the new decoder's bound needs at a shape, and its value at most the worst. -/
+/-- What the decoder's bound needs at a shape, and its value at most the worst. -/
 @[expose] def DecoderShapeOkPM (μ R : ℕ) : Prop :=
   DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
     LaneInterpOKPM marginPrices (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧

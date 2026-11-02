@@ -23,6 +23,8 @@ namespace LeanVM.Cost.Bounds
 open CompPoly CompPoly.GuruswamiSudan CompPoly.PolynomialMatrix LeanVM.Extraction.Fast
 open LeanVM.Extraction LeanVM.Parameters
 
+open LeanVM.Extraction.Fast.PMDegree (val_size_le_natDegree_add_one)
+
 public section
 
 variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F]

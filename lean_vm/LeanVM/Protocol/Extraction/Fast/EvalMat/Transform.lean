@@ -11,7 +11,7 @@ coefficients, and `inv j` recovers such a `p` from its values. Over `K = GF(2^64
 NTT is one (`maxLog = 64`, the points `x_v`); over any field, multipoint evaluation and
 interpolation at `2^j` distinct points.
 
-Consequences: values add and multiply pointwise (`fwd_add_getD`, `fwd_mul_getD`), so a sum of
+Consequences: values multiply pointwise (`fwd_mul_getD`), so a sum of
 products of polynomials whose degree stays below `2^j` is the inverse transform of the sum of the
 pointwise products of their transforms (`inv_sum_mul`): the evaluation-domain product.
 -/
@@ -44,12 +44,6 @@ namespace EvalTransform
 
 variable {F : Type*} [Field F] [BEq F] [LawfulBEq F] (T : EvalTransform F)
 
-theorem natDegree_add_le' (p q : CPolynomial F) :
-    (p + q).natDegree ≤ max p.natDegree q.natDegree := by
-  rw [CPolynomial.natDegree_toPoly, CPolynomial.natDegree_toPoly, CPolynomial.natDegree_toPoly,
-    CPolynomial.toPoly_add]
-  exact Polynomial.natDegree_add_le _ _
-
 theorem natDegree_mul_le' (p q : CPolynomial F) :
     (p * q).natDegree ≤ p.natDegree + q.natDegree := by
   rw [CPolynomial.natDegree_toPoly, CPolynomial.natDegree_toPoly, CPolynomial.natDegree_toPoly,
@@ -68,16 +62,6 @@ theorem eval_sum (x : F) (s : ℕ) (f : ℕ → CPolynomial F) :
     (∑ k ∈ Finset.range s, f k).eval x = ∑ k ∈ Finset.range s, (f k).eval x := by
   rw [CPolynomial.eval_toPoly, CPolynomial.toPoly_sum, Polynomial.eval_finsetSum]
   simp only [CPolynomial.eval_toPoly]
-
-/-- Values add pointwise. -/
-theorem fwd_add_getD {j : ℕ} (hj : j ≤ T.maxLog) {p q : CPolynomial F}
-    (hp : p.natDegree < 2 ^ j) (hq : q.natDegree < 2 ^ j) {v : ℕ} (hv : v < 2 ^ j) :
-    (T.fwd j (p + q)).getD v 0 = (T.fwd j p).getD v 0 + (T.fwd j q).getD v 0 := by
-  have hpq : (p + q).natDegree < 2 ^ j :=
-    lt_of_le_of_lt (natDegree_add_le' p q) (max_lt hp hq)
-  rw [T.fwd_getD j _ hj hpq v hv, T.fwd_getD j _ hj hp v hv, T.fwd_getD j _ hj hq v hv,
-    CPolynomial.eval_toPoly, CPolynomial.toPoly_add, Polynomial.eval_add,
-    ← CPolynomial.eval_toPoly, ← CPolynomial.eval_toPoly]
 
 /-- **Values multiply pointwise** while the product has fewer than `2^j` coefficients. -/
 theorem fwd_mul_getD {j : ℕ} (hj : j ≤ T.maxLog) {p q : CPolynomial F}

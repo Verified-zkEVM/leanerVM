@@ -4,7 +4,7 @@ public import LeanVM.Cost.Bounds.PMBasis.Defs
 public import LeanVM.Cost.Bounds.Decoder.ShapeDefs
 
 /-!
-# The lane decoder on the new solver: the price model
+# The lane decoder on `pmSolver`: the price model
 
 The decoder `decodeStacksDistinctPM` (`Fast/LanePM.lean`) is the extractor's decoder
 (`decodeStacksDistinct`) with each lane interpolated by the approximant-basis interpolation on the
@@ -43,9 +43,9 @@ program including their bodies, at a `PMPrices` `p`):
 1. the PM-basis core (`pmBasisWithFuelCore` on the target runtime): its `costEq` at fuel `0` and
    `fuel + 1`; a leaf (`popovLeafBasis`, order `≤ 1`, `r` rows) at most `pmLeafPrice p r`; a
    node's own price at most `pmNodePrice p r m o` from `popovRuntime_core_node`'s facts, i.e.
-   `mulEvalP`/`mulTruncEvalP` at most `evalMatPrice` (`planFwd`/`toNovelRecP` within
-   `fwdPrice`, `planInv`/`fromNovelRecP` within `invPrice`, `evalDot` within `mac` per
-   multiply-add, `mkPlan` within `2^20`, the transform within `maxLog`), and `maxOrder`,
+   `mulEvalP`/`mulTruncEvalP` at most `evalMatPrice` (`planFwd` and the conversion to the novel
+   basis within `fwdPrice`, `planInv` and the conversion back within `invPrice`, `evalDot` within
+   `mac` per multiply-add, `mkPlan` within `2^20`, the transform within `maxLog`), and `maxOrder`,
    `lowerOrders`, `residualOrders`, `divXTrunc`, `updateShiftByRows`, `compactNonzeroRows`
    within `ovh·r·(2r + m)·(o + 1) + 2^20`; then `pmBasisFuel_price_le` gives `pmTree`;
 2. `fftMulContext`'s product within `polyMulPrice p (clog2 (deg + deg + 1))`, `fftModContext`'s
@@ -102,7 +102,7 @@ copied, the orders, the PM-basis (`pmBasisPrice`, `w + m` rows, `m` columns, max
     pmBasisPrice p (w + m) m (m * n + W + 2) + p.ovh * ((w + m) * (w + m)) +
     p.ovh * ((w + m) * w)
 
-/-- **The interpolation on the new solver** (`interpolateDistinctWith pmSolver`), `n` points:
+/-- **The interpolation on `pmSolver`** (`interpolateDistinctWith pmSolver`), `n` points:
 `G` and `R`, the GS data, the certified solve, the least row (a degree read per entry), the
 normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` of glue. -/
 @[expose] def interpPMPrice (p : PMPrices) (n : ℕ) (params : GSInterpParams) : ℕ :=
@@ -114,7 +114,7 @@ normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` 
     normBound params.weightedDegreeBound (interpolationWidth params) +
     p.ovh * (interpolationWidth params * (params.weightedDegreeBound + 2)) + 2 ^ 20
 
-/-- **One lane's run on the new solver** (`gsRunDistinctWith pmSolver`): the interpolation
+/-- **One lane's run on `pmSolver`** (`gsRunDistinctWith pmSolver`): the interpolation
 `interpPMPrice`, the truncation, Roth–Ruckenstein's search (`rrBound`), the candidates' filter. -/
 @[expose] def gsRunBoundPM (p : PMPrices) (n : ℕ) (params : GSInterpParams) : ℕ :=
   interpPMPrice p n params + 10 +
@@ -123,20 +123,20 @@ normalization (`normBound`, and the row read as a bivariate polynomial), `2^20` 
       (interpolationYCap params) +
     ((272 * params.messageDegree + 34) * n + 50) * max 1 (interpolationYCap params) + 40
 
-/-- **A lane's run on the new solver** (`gsLaneWith pmSolver κ R A`): the parameter search, the
+/-- **A lane's run on `pmSolver`** (`gsLaneWith pmSolver κ R A`): the parameter search, the
 lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBoundPM`). -/
 @[expose] def decoderLaneRunBoundPM (p : PMPrices) (κ R A BS : ℕ) : ℕ :=
   190 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 28) * 2 ^ (κ + R) +
     gsRunBoundPM p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 200
 
-/-- **A lane's candidates on the new solver** (`laneEncodedWith pmSolver κ R A`): the run, then at
+/-- **A lane's candidates on `pmSolver`** (`laneEncodedWith pmSolver κ R A`): the run, then at
 most `max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -/
 @[expose] def decoderLaneBoundPM (p : PMPrices) (κ R A BS : ℕ) : ℕ :=
   decoderLaneRunBoundPM p κ R A BS +
     laneExtraBound κ R (max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
       (2 ^ κ)
 
-/-- **The decoder on the new solver** (`decodeStacksDistinctPM μ R`) at the shape `(μ, R)`
+/-- **The decoder on `pmSolver`** (`decodeStacksDistinctPM μ R`) at the shape `(μ, R)`
 (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson threshold `A`): the `2^6` lanes pruned (`pruneBound`: the
 word's table, `BW` per column and `Lw` symbols per column; a lane `decoderLaneBoundPM`, at most
 `max 1 ℓ` candidates, at most `2^18` survivors), a stack per survivor. -/

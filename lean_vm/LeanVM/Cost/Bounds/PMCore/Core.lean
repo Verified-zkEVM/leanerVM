@@ -21,9 +21,9 @@ leaf at order one, the evaluation-domain products). Its price, by its two equati
 (`pmBasisWithFuelCore_price_le`, `Bounds/PMBasis/Recursion.lean`):
 
 * **`residualMatrixC_cost`**: the residual `(P₁·A) div X^d`: the column-truncated product
-  (track fft's `mulTruncEvalPC_cost`) and `R·W` entries of at most `59·O + 87` each;
+  (`mulTruncEvalPC_cost`) and `R·W` entries of at most `59·O + 87` each;
 * **`pmCoreC_node`**: a node's own price at maximal order `o` is at most
-  `pmNodePrice p r m o` (`FFTPricesOK p`), the products within `evalMatPrice` (track fft's), the sizes from
+  `pmNodePrice p r m o` (`FFTPricesOK p`), the products within `evalMatPrice` , the sizes from
   `popovRuntime_core_node` (exactly `r` rows, degrees at most the halves' orders);
 * **`pmCoreC_cost`**: on a problem of `r ≥ m` rows of width `m` (`CoreInv`: shifts plus twice the
   maximal order at most `SB < 2^60`), at the fuel `pmBasisFuel = maxOrder + 1`, the price is at
@@ -150,6 +150,9 @@ theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
         (rowGet (prod.getD i #[]) j) (by have := hO j; omega)
       have := hO j
       omega)
+  have hof2 : prod.size * (MatrixWidth prod * (59 * O + 54 + 33) + 48) ≤
+      prod.size * ((59 * O + 54 + 33) * MatrixWidth prod + 66) :=
+    Nat.mul_le_mul_left _ (by rw [Nat.mul_comm (MatrixWidth prod)]; omega)
   have h1 : (59 * O + 54 + 33) * MatrixWidth prod ≤ (59 * O + 87) * MatrixWidth matrix :=
     Nat.mul_le_mul_left _ hpw
   have h2 : prod.size * ((59 * O + 54 + 33) * MatrixWidth prod + 66) ≤
@@ -163,9 +166,6 @@ theorem residualMatrixC_cost (hP : Includes P residualMatrixC.costDeps)
 
 /-- The target runtime: the ordered-weak-Popov PM-basis on evaluation-domain products, cutoff `1`. -/
 abbrev targetRT : PMBasisRuntime K := popovEvalRuntime novelTransform fftMulContext fftMulLowContext 1
-
-theorem targetRT_eq : targetRT = Popov.popovRuntime fftMulContext fftMulLowContext 1 1 :=
-  popovEvalRuntime_eq _ _ _ 1 1
 
 /-- **The invariant** of the problems the recursion visits: `r` rows of width `m`, at most `m`
 orders, word-sized entries, the shifts plus twice the maximal order at most `SB`, the maximal
@@ -410,9 +410,9 @@ theorem coreInv_children {r m SB : ℕ} (hr : 1 ≤ r) (hSB : SB < 2 ^ 62) (prob
 
 /-- **The compiled PM-basis core's price** (`pmCoreC`, at CompPoly's fuel `pmBasisFuel`): on a
 problem of the invariant (`r ≥ m` rows of width `m`, shifts plus twice the maximal order at most
-`SB < 2^39`), with the products within the model (track fft's `mulEvalPC_cost`, `mulTruncEvalPC_cost`)
+`SB < 2^39`), with the products within the model (`mulEvalPC_cost`, `mulTruncEvalPC_cost`)
 and the leaf within `Lc` (`LeafCost`), at most the model's tree with the node price
-`pmNodePrice p r m` and the leaf price `Lc + 18·m + 60`, at prices `p` track fft's products fit
+`pmNodePrice p r m` and the leaf price `Lc + 18·m + 60`, at prices `p` the products fit
 (`FFTPricesOK p`). -/
 theorem pmCoreC_cost (hP : Includes P pmCoreC.costDeps) {p : PMPrices} (hp : PMFFT.FFTPricesOK p)
     {r m SB Lc : ℕ} (hr : 2 ≤ r) (hm : m ≤ r)

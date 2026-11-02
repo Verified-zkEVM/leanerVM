@@ -253,6 +253,16 @@ theorem trimLenB_cost (hP : Includes P Auto.LeanVM.Cost.CompPolyLib.trimLen.c88.
 theorem InnerLe.mono {p : CPolynomial.Raw (CPolynomial K)} {A B : ℕ} (h : InnerLe p A)
     (hAB : A ≤ B) : InnerLe p B := fun x hx ↦ (h x hx).trans hAB
 
+/-- `X^t·p` (`shiftX`): at most `25·t + 24·|p| + 22`. -/
+theorem shiftXC_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.shiftX.c102.costDeps) (t : ℕ)
+    (p : CPolynomial K) (h : t + p.val.size < 2 ^ 60) :
+    machineCost P Auto.LeanVM.Extraction.Fast.shiftX.c102.costIdx [encodeValue t, encodeValue p] ≤
+      25 * t + 24 * p.val.size + 22 := by
+  rw [Auto.LeanVM.Extraction.Fast.shiftX.c102.costEq P hP]
+  have := ofArray_cost P (by includes) (Array.replicate t 0 ++ p.val) (by simp; omega)
+  simp only [Array.size_append, Array.size_replicate] at this ⊢
+  omega
+
 end
 
 end LeanVM.Cost.Bounds.Decoder
