@@ -4,7 +4,7 @@ public import LeanVM.Cost.Bounds.PMFFT.KarCost
 import all CompPoly.Univariate.Raw.Ops
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Univariate.Basic
-public import LeanVM.Cost.Bounds.Decoder.Roots
+public import LeanVM.Cost.Bounds.Decoder.Poly
 
 public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 /-!
@@ -33,11 +33,11 @@ theorem polyMulPrice_mono (p : PMPrices) {a b : ℕ} (h : a ≤ b) : polyMulPric
   omega
 
 /-- **The low product** (`rawMulLowFFTC`, `fftRawMulLowContext.mulLow k`), `1 ≤ k ≤ 2^35`: at most
-`polyMulPrice p (clog2 (2k − 1)) + karMax + 49·k + 46`. -/
+`polyMulPrice p (clog2 (2k − 1)) + karMax + 45·k + 42`. -/
 theorem rawMulLowFFTC_cost (hP : Includes P rawMulLowFFTC.costDeps) (p : PMPrices) (hp : FFTPricesOK p)
     (k : ℕ) (hk : k ≤ 2 ^ 35) (a b : CompPoly.CPolynomial.Raw K) :
     machineCost P rawMulLowFFTC.costIdx [encodeValue k, encodeValue a, encodeValue b] ≤
-      polyMulPrice p (clog2 (2 * k - 1)) + karMax + 49 * k + 46 := by
+      polyMulPrice p (clog2 (2 * k - 1)) + karMax + 45 * k + 42 := by
   rw [rawMulLowFFTC.costEq P hP]
   have ha : (a.extract 0 k).size ≤ k := by simp
   have hb : (b.extract 0 k).size ≤ k := by simp
@@ -55,17 +55,17 @@ theorem rawMulLowFFTC_cost (hP : Includes P rawMulLowFFTC.costDeps) (p : PMPrice
       0 k).size ≤ k := by simp
   omega
 
-/-- **A subtraction of raw polynomials** (`Raw.sub.c49`): at most `126·max(|x|, |y|) + 170`. -/
+/-- **A subtraction of raw polynomials** (`Raw.sub.c49`): at most `71·max(|x|, |y|) + 72`. -/
 theorem subC_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.sub.c49.costDeps)
     (x y : CompPoly.CPolynomial.Raw K) (hx : x.size < 2 ^ 40) (hy : y.size < 2 ^ 40) :
     machineCost P Auto.CompPoly.CPolynomial.Raw.sub.c49.costIdx [encodeValue x, encodeValue y] ≤
-      126 * max x.size y.size + 170 := by
+      71 * max x.size y.size + 72 := by
   rw [Auto.CompPoly.CPolynomial.Raw.sub.c49.costEq P hP]
   have hm := map_cost P (by includes) (fun a : K ↦ -a)
     (.closure Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costIdx [])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costSpec P (by includes) a)) 1
     y.toList (fun a _ ↦ by
-      simp only [appCost_fn, List.nil_append]
+      simp only [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero]
       rw [Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costEq P (by includes)])
   have hn : (CompPoly.CPolynomial.Raw.neg y).size = y.size := by
     simp [CompPoly.CPolynomial.Raw.neg]
@@ -102,7 +102,7 @@ theorem polyMulPrice_newton (p : PMPrices) {i k' : ℕ} (h : 2 ^ i < k') :
 
 /-- **Newton's loop** (`inverseModX.go.c416`) from precision `a ≤ k` with `k ≤ a·2^m`, `a` a power
 of two or `k`: its price and four products at precision `a` within four at `k` and
-`m · newtonExtra k + k + 20`. -/
+`m · newtonExtra k + k + 18`. -/
 theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costDeps)
     (p : PMPrices) (hp : FFTPricesOK p) (k : ℕ) (hk : k ≤ 2 ^ 35) (f : CompPoly.CPolynomial.Raw K) :
     ∀ m fuel a (acc : CompPoly.CPolynomial.Raw K), 1 ≤ a → a ≤ k → k ≤ a * 2 ^ m → fuel < 2 ^ 64 →
@@ -110,7 +110,7 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
       machineCost P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c416.costIdx [encodeValue k,
         encodeValue f, encodeValue fuel, encodeValue a, encodeValue acc] +
           4 * polyMulPrice p (clog2 (2 * a - 1)) ≤
-        4 * polyMulPrice p (clog2 (2 * k - 1)) + m * newtonExtra k + k + 20 := by
+        4 * polyMulPrice p (clog2 (2 * k - 1)) + m * newtonExtra k + k + 18 := by
   intro m
   induction m with
   | zero =>
@@ -166,8 +166,8 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
         have hmax : max (CompPoly.CPolynomial.Raw.C (2 : K)).size
             (FFT.fftRawMulLowContext.mulLow k' f acc).size ≤ k' := by rw [hC]; omega
         unfold newtonExtra at hrec ⊢
-        have e : (m + 1) * (2 * karMax + 224 * k + 2 ^ 21 + 500) =
-            m * (2 * karMax + 224 * k + 2 ^ 21 + 500) + (2 * karMax + 224 * k + 2 ^ 21 + 500) := by
+        have e : (m + 1) * (2 * karMax + 161 * k + 2 ^ 21 + 207) =
+            m * (2 * karMax + 161 * k + 2 ^ 21 + 207) + (2 * karMax + 161 * k + 2 ^ 21 + 207) := by
           ring
         rw [e]
         split_ifs <;> omega

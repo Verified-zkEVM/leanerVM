@@ -15,14 +15,15 @@ namespace LeanVM.Cost.Bounds.PMBasis
 
 public section
 
-/-- **The decoder's prices**: `382` per pointwise multiply-add (`evalDot`); `650`/`517` per element
-and stage of the forward/inverse NTT; `4100`/`5490` per `j·2^j` of the conversions to/from the
-novel basis (for `j ≤ 36`); the order-one leaf `16600·r³ + 100000·r²` (above its proved price
-`PMCore.leafBound`, `≈ 16550·r³` at `r = 2077`); `395` per schoolbook coefficient product; `600`
-per coefficient moved. The transforms' and products' proved prices fit them
+/-- **The decoder's prices**: `80` per pointwise multiply-add (`evalDot`); `129`/`87` per element
+and stage of the forward/inverse NTT; `1134`/`1401` per `j·2^j` of the conversions to/from the
+novel basis (for `j ≤ 36`; with the stages, the transforms' proved prices `fwdNeed`/`invNeed` at
+`j = 36` less `ovh` per point); the order-one leaf `16600·r³ + 100000·r²` (above its proved price
+`PMCore.leafBound`); `395` per schoolbook coefficient product; `600` per coefficient moved (at
+least `fwdNeed 0 = 504`). The transforms' and products' proved prices fit them
 (`FFTPricesOK marginPrices`, `PMSolve.fftPricesOK_margin`). -/
 @[expose] def marginPrices : PMPrices :=
-  { mac := 382, fwd := 650, inv := 517, toNovel := 4100, fromNovel := 5490, leafCube := 16600,
+  { mac := 80, fwd := 129, inv := 87, toNovel := 1134, fromNovel := 1401, leafCube := 16600,
     leafSquare := 100000, coeff := 395, ovh := 600 }
 
 end

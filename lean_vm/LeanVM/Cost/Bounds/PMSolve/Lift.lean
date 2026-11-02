@@ -17,8 +17,8 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 `deg M_b + bound + 2`, and the lift `reducedExactNullspaceLift`: each relation entry reduced modulo
 its column's modulus, then `−diag(M)`. On the Guruswami–Sudan data the entries are reduced already
 (`natDegree_gsRelationMatrix_entry_lt`, `Fast/PMShape.lean`), so each remainder takes the reversal
-remainder's first branch: its guard reads both operands (`modByMonicFFTC_first_cost`, `≤ 41·|p| +
-64·|q| + 130`), no product.
+remainder's first branch: its guard reads both operands (`modByMonicFFTC_first_cost`, `≤ 42·|p| +
+63·|q| + 82`), no product.
 
 **`fullWindowProblemC_cost`**: on `w` relation rows, `m` monic moduli of at most `Q` coefficients,
 entries shorter than their column's modulus: at most `liftPrice Q w m`.
@@ -40,11 +40,11 @@ theorem cpoly_trim_eq (p : CPolynomial K) : p.val.trim = p.val :=
   CPolynomial.Raw.Trim.trim_eq_of_isCanonical p.property
 
 /-- **The reversal remainder's first branch** (`modByMonicFFTC`, the dividend shorter than the
-monic modulus): the guard reads both, at most `41·|p| + 64·|q| + 130`. -/
+monic modulus): the guard reads both, at most `42·|p| + 63·|q| + 82`. -/
 theorem modByMonicFFTC_first_cost (hP : Includes P modByMonicFFTC.costDeps) (p q : CPolynomial K)
     (hq : q.monic = true) (hpq : p.val.size < q.val.size) (hqs : q.val.size < 2 ^ 60) :
     machineCost P modByMonicFFTC.costIdx [encodeValue p, encodeValue q] ≤
-      41 * p.val.size + 64 * q.val.size + 130 := by
+      42 * p.val.size + 63 * q.val.size + 82 := by
   rw [modByMonicFFTC.costEq P hP, Auto.CompPoly.CPolynomial.Raw.modByMonicByReversal.c418.costEq P
     (by includes)]
   have hpt := cpoly_trim_eq p
@@ -68,7 +68,7 @@ theorem modByMonicFFTC_first_cost (hP : Includes P modByMonicFFTC.costDeps) (p q
   omega
 
 /-- The lift's entry (`reducedExactNullspaceLift.c554.lam0`): an entry read and reduced on the
-first branch, at most `120·Q + 170` for moduli of at most `Q` coefficients. -/
+first branch, at most `123·Q + 77` for moduli of at most `Q` coefficients. -/
 theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c554.lam0.costDeps)
     (equation : ModularEquation K) (i j : ℕ) {Q : ℕ} (hQ : Q < 2 ^ 60)
     (hq : (equation.moduli.getD j 0).monic = true)
@@ -76,7 +76,7 @@ theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c554.lam0.cos
     (hred : (rowGet (equation.matrix.getD i #[]) j).val.size <
       (equation.moduli.getD j 0).val.size) :
     machineCost P reducedExactNullspaceLift.c554.lam0.costIdx
-        [encodeValue equation, encodeValue i, encodeValue j] ≤ 120 * Q + 170 := by
+        [encodeValue equation, encodeValue i, encodeValue j] ≤ 123 * Q + 77 := by
   rw [reducedExactNullspaceLift.c554.lam0.costEq P hP, modByMonicWith.c556.costEq P (by includes)]
   have := rowGet_cost P (by includes) (equation.matrix.getD i #[]) j
   have := listBeqK_cost P (by includes) (equation.moduli.getD j 0).val.toList
@@ -86,18 +86,18 @@ theorem liftEntryC_cost (hP : Includes P reducedExactNullspaceLift.c554.lam0.cos
   simp only [Array.length_toList, hz] at *
   split <;> omega
 
-/-- `−diag(M)`'s entry: at most `16·Q + 20`. -/
+/-- `−diag(M)`'s entry: at most `18·Q + 16`. -/
 theorem negDiagEntryC_cost (hP : Includes P negativeDiagonalRows.c558.lam0.costDeps)
     (moduli : Array (CPolynomial K)) (i j : ℕ) (hi : i < 2 ^ 64) (hj : j < 2 ^ 64) {Q : ℕ}
     (hqQ : (moduli.getD i 0).val.size ≤ Q) :
     machineCost P negativeDiagonalRows.c558.lam0.costIdx
-        [encodeValue moduli, encodeValue i, encodeValue j] ≤ 16 * Q + 20 := by
+        [encodeValue moduli, encodeValue i, encodeValue j] ≤ 18 * Q + 16 := by
   rw [negativeDiagonalRows.c558.lam0.costEq P hP]
   have hl := fun a ↦ RunsApp.of_spec (us := []) (vs := [encodeValue a])
     (Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costSpec P (by includes) a)
   have := map_cost P (by includes) _ (.closure Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costIdx [])
     hl 1 (↑(moduli.getD i 0) : Array K).toList (fun a _ ↦ by
-      simp only [appCost_fn, List.nil_append]
+      simp only [appCost_fn, List.nil_append, List.length_nil]
       rw [Auto.CompPoly.CPolynomial.Raw.sub.c49.lam0.costEq P (by includes)])
   simp only [Array.length_toList, List.length_map] at *
   cost_simp
@@ -117,11 +117,11 @@ theorem ofFn_size_eq (rows width : ℕ) (e : ℕ → ℕ → CPolynomial K) :
   simp [PolynomialMatrix.ofFn]
 
 /-- **The lift** (`reducedExactNullspaceLift`): at most
-`w·(m·(120·Q + 203) + 48) + m·(m·(16·Q + 53) + 48) + w + m + 70`. -/
+`w·(m·(123·Q + 113) + 49) + m·(m·(18·Q + 52) + 49) + w + m + 62`. -/
 theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c554.costDeps)
     (equation : ModularEquation K) {w m Q : ℕ} (hs : LiftSizes equation w m Q) :
     machineCost P reducedExactNullspaceLift.c554.costIdx [encodeValue equation] ≤
-      w * (m * (120 * Q + 203) + 48) + m * (m * (16 * Q + 53) + 48) + w + m + 70 := by
+      w * (m * (123 * Q + 113) + 49) + m * (m * (18 * Q + 52) + 49) + w + m + 62 := by
   obtain ⟨hw, hm, hw30, hm30, hQ, hmod, hred⟩ := hs
   rw [reducedExactNullspaceLift.c554.costEq P hP,
     ModularEquation.solutionWidth.c546.costEq P (by includes),
@@ -134,21 +134,23 @@ theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c554.costDe
     (reducedExactNullspaceLift.c554.lam0.costSpec P (by includes) equation i j)
   have h1 := ofFnC_cost P (by includes) equation.solutionWidth equation.modularWidth
     (by omega) (by omega) _ (.closure reducedExactNullspaceLift.c554.lam0.costIdx
-      [encodeValue equation]) he1 (120 * Q + 170) (fun i hi j hj ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      [encodeValue equation]) he1 (123 * Q + 78) (fun i hi j hj ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [hsW] at hi
       rw [hmW] at hj
-      exact liftEntryC_cost P (by includes) equation i j (by omega) (hmod j hj).1 (hmod j hj).2
-        (hred i hi j hj))
+      have := liftEntryC_cost P (by includes) equation i j (by omega) (hmod j hj).1 (hmod j hj).2
+        (hred i hi j hj)
+      omega)
   have he2 := fun i j ↦ RunsApp.of_spec (us := [encodeValue equation.moduli])
     (vs := [encodeValue i, encodeValue j])
     (negativeDiagonalRows.c558.lam0.costSpec P (by includes) equation.moduli i j)
   have h2 := ofFnC_cost P (by includes) equation.moduli.size equation.moduli.size
     (by omega) (by omega) _ (.closure negativeDiagonalRows.c558.lam0.costIdx
-      [encodeValue equation.moduli]) he2 (16 * Q + 20) (fun i hi j hj ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
-      exact negDiagEntryC_cost P (by includes) equation.moduli i j (by omega) (by omega)
-        (hmod i (by omega)).2)
+      [encodeValue equation.moduli]) he2 (18 * Q + 17) (fun i hi j hj ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      have := negDiagEntryC_cost P (by includes) equation.moduli i j (by omega) (by omega)
+        (hmod i (by omega)).2
+      omega)
   simp only [hsW, hmW] at h1 ⊢
   simp only [hm] at h2 ⊢
   have hz1 := ofFn_size_eq equation.solutionWidth equation.modularWidth
@@ -159,8 +161,8 @@ theorem reducedLiftC_cost (hP : Includes P reducedExactNullspaceLift.c554.costDe
   rw [hsW, hmW] at hz1
   rw [hm] at hz2
   rw [hz1, hz2]
-  have e1 : w * (m * (120 * Q + 170 + 33) + 48) = w * (m * (120 * Q + 203) + 48) := by ring
-  have e2 : m * (m * (16 * Q + 20 + 33) + 48) = m * (m * (16 * Q + 53) + 48) := by ring
+  have e1 : w * (m * (123 * Q + 78 + 35) + 49) = w * (m * (123 * Q + 113) + 49) := by ring
+  have e2 : m * (m * (18 * Q + 17 + 35) + 49) = m * (m * (18 * Q + 52) + 49) := by ring
   omega
 
 /-- **The certified problem** (`fullWindowExactNullspaceProblem fftModContext`): the orders and
@@ -178,7 +180,7 @@ theorem fullWindowProblemC_cost (hP : Includes P fullWindowProblemC.costDeps)
     (fullWindowProblemC.lam0.costSpec P (by includes) bound M)
   have := map_cost P (by includes) _ (.closure fullWindowProblemC.lam0.costIdx [encodeValue bound])
     hl 21 equation.moduli.toList (fun M hM ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [fullWindowProblemC.lam0.costEq P (by includes)]
       obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hM
       have hj' : j < m := by simpa [hm] using hj

@@ -10,13 +10,13 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 # Bounds: the leaf's scalar kernel (row-array RREF), compiled
 
 CompPoly's row-array RREF (`scalarRrefRows`, `Dense/RowArray.lean`) on `E` rows of at most `r`
-entries: per column a pivot search (`42·E`), and per pivot a swap, a normalization (`r`
-inverses) and an elimination of every other row (`295·r + E` each, a row written into the array).
+entries: per column a pivot search (`43·E`), and per pivot a swap, a normalization (`r`
+inverses) and an elimination of every other row (`69·r + E` each, a row written into the array).
 
-* `findScalarPivotRowC_cost` (`42·(E − start) + 23`), `swapScalarRowsC_cost` (`2·E + 19`),
-  `normalizeScalarRowC_cost` (`19950·r + 19`), `addScaledScalarRowC_cost` (`295·r + 29`);
+* `findScalarPivotRowC_cost` (`43·(E − start) + 21`), `swapScalarRowsC_cost` (`2·E + 19`),
+  `normalizeScalarRowC_cost` (`2871·r + 19`), `addScaledScalarRowC_cost` (`69·r + 29`);
 * **`eliminateC_cost`** (`normalizeAndEliminateScalarRows`): at most
-  `19950·r + (295·r + E + 85)·E + 67`, the rows keeping their count and widths.
+  `2871·r + (69·r + E + 87)·E + 66`, the rows keeping their count and widths.
 -/
 
 namespace LeanVM.Cost.Bounds.PMCore
@@ -72,20 +72,21 @@ theorem rowsWithin_normalizeAndEliminate {E r : ℕ} {rows : Array (Array K)} (h
 
 variable (P : MachineProgram)
 
-/-- The pivot search from `start`: at most `42·(E − start) + 23`. -/
+/-- The pivot search from `start`: at most `43·(E − start) + 21`. -/
 theorem findScalarPivotRowC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.costDeps)
     (rows : Array (Array K)) (start col : ℕ) (hE : rows.size < 2 ^ 62) (hs : start ≤ rows.size) :
     machineCost P Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.costIdx
-        [encodeValue rows, encodeValue start, encodeValue col] ≤ 42 * (rows.size - start) + 23 := by
+        [encodeValue rows, encodeValue start, encodeValue col] ≤ 43 * (rows.size - start) + 21 := by
   rw [Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.costEq P hP]
   have hr := rangeC_cost P (by includes) (rows.size - start) start (by omega)
   have hf := findNat_cost P (by includes) _
     (.closure Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.lam0.costIdx [encodeValue rows, encodeValue col])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.lam0.costSpec P
-      (by includes) rows col a)) 12 (List.range' start (rows.size - start))
+      (by includes) rows col a)) 14 (List.range' start (rows.size - start))
     (fun a _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-        Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.lam0.costEq P (by includes)])
+        Auto.CompPoly.DenseMatrix.findScalarPivotRow.c496.lam0.costEq P (by includes)]
+      simp)
   rw [limbs_of_lt (by omega : rows.size < 2 ^ 64), limbs_of_lt (by omega : start < 2 ^ 64)]
   simp only [List.length_range'] at hf
   omega
@@ -98,39 +99,40 @@ theorem swapScalarRowsC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.swapScal
   rw [Auto.CompPoly.DenseMatrix.swapScalarRows.c498.costEq P hP]
   simp; omega
 
-/-- The normalization of a row of at most `r` entries: at most `19950·r + 19`. -/
+/-- The normalization of a row of at most `r` entries: at most `2871·r + 19`. -/
 theorem normalizeScalarRowC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.costDeps)
     (row : Array K) (c r : ℕ) (hr : row.size ≤ r) :
     machineCost P Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.costIdx
-        [encodeValue row, encodeValue c] ≤ 19950 * r + 19 := by
+        [encodeValue row, encodeValue c] ≤ 2871 * r + 19 := by
   rw [Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.costEq P hP]
   split_ifs
   · omega
   · have hm := map_cost P (by includes) (fun x ↦ x / row.getD c 0)
       (.closure Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.lam0.costIdx [encodeValue (row.getD c 0)])
       (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.lam0.costSpec P
-        (by includes) (row.getD c 0) a)) 19935 row.toList (fun a _ ↦ by
-        rw [appCost_fn, List.singleton_append,
+        (by includes) (row.getD c 0) a)) 2854 row.toList (fun a _ ↦ by
+        rw [appCost_fn, List.singleton_append, List.length_singleton,
           Auto.CompPoly.DenseMatrix.normalizeScalarRow.c500.lam0.costEq P (by includes)]
         have := invK_cost P (by includes) (row.getD c 0)
         omega)
     simp only [Array.length_toList, List.length_map] at hm ⊢
     omega
 
-/-- `target + factor·source`, rows of at most `r` entries: at most `295·r + 29`. -/
+/-- `target + factor·source`, rows of at most `r` entries: at most `69·r + 29`. -/
 theorem addScaledScalarRowC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.costDeps)
     (t s : Array K) (f : K) (r : ℕ) (hr : r < 2 ^ 62) (ht : t.size ≤ r) (hs : s.size ≤ r) :
     machineCost P Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.costIdx
-        [encodeValue t, encodeValue s, encodeValue f] ≤ 295 * r + 29 := by
+        [encodeValue t, encodeValue s, encodeValue f] ≤ 69 * r + 29 := by
   rw [Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.costEq P hP]
   have hR := rangeLoop_cost P (by includes) (max t.size s.size) [] (by omega)
   have hm := map_cost P (by includes) (fun col ↦ t.getD col 0 + f * s.getD col 0)
     (.closure Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.lam0.costIdx
       [encodeValue t, encodeValue s, encodeValue f])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.lam0.costSpec P
-      (by includes) t s f a)) 266 (List.range (max t.size s.size)) (fun a _ ↦ by
+      (by includes) t s f a)) 40 (List.range (max t.size s.size)) (fun a _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.lam0.costEq P (by includes)])
+        Auto.CompPoly.DenseMatrix.addScaledScalarRow.c503.lam0.costEq P (by includes)]
+      simp)
   rw [limbs_of_lt (by omega : t.size < 2 ^ 64), limbs_of_lt (by omega : s.size < 2 ^ 64)]
   simp only [List.length_range, List.length_map, max_self] at hm ⊢
   have : max t.size s.size ≤ r := by omega
@@ -138,13 +140,13 @@ theorem addScaledScalarRowC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.addS
 
 /-- **The normalization of the pivot row and the elimination of its column**
 (`normalizeAndEliminateScalarRows`), `E` rows of at most `r` entries: at most
-`19950·r + (295·r + E + 85)·E + 67`. -/
+`2871·r + (69·r + E + 87)·E + 66`. -/
 theorem eliminateC_cost
     (hP : Includes P Auto.CompPoly.DenseMatrix.normalizeAndEliminateScalarRows.c499.costDeps)
     {E r : ℕ} (hr : r < 2 ^ 62) (hE : E < 2 ^ 62) (rows : Array (Array K)) (h : RowsWithin E r rows)
     (p c : ℕ) (hp : p < 2 ^ 62) :
     machineCost P Auto.CompPoly.DenseMatrix.normalizeAndEliminateScalarRows.c499.costIdx
-        [encodeValue rows, encodeValue p, encodeValue c] ≤ 19950 * r + (295 * r + E + 85) * E + 67 := by
+        [encodeValue rows, encodeValue p, encodeValue c] ≤ 2871 * r + (69 * r + E + 87) * E + 66 := by
   rw [Auto.CompPoly.DenseMatrix.normalizeAndEliminateScalarRows.c499.costEq P hP]
   split_ifs
   · omega
@@ -158,14 +160,14 @@ theorem eliminateC_cost
         [encodeValue p, encodeValue c, encodeValue pv])
       (fun a b ↦ RunsApp.of_spec
         (Auto.CompPoly.DenseMatrix.normalizeAndEliminateScalarRows.c499.lam0.costSpec P (by includes)
-          p c pv a b)) (295 * r + E + 58) (RowsWithin E r) (List.range (rows.setIfInBounds p pv).size)
+          p c pv a b)) (69 * r + E + 60) (RowsWithin E r) (List.range (rows.setIfInBounds p pv).size)
       (rows.setIfInBounds p pv) h1 (fun acc hacc b hb ↦ ⟨by
         dsimp only
         split_ifs
         · exact hacc
         · exact hacc
         · exact rowsWithin_set hacc b (by rw [size_addScaledScalarRow]; have := hacc.2 b; omega), by
-        simp only [appCost_fn, List.cons_append, List.nil_append]
+        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [Auto.CompPoly.DenseMatrix.normalizeAndEliminateScalarRows.c499.lam0.costEq P (by includes),
           limbs_of_lt (by have := List.mem_range.1 hb; rw [h1.1] at this; omega : b < 2 ^ 64),
           limbs_of_lt (by omega : p < 2 ^ 64)]
@@ -175,13 +177,13 @@ theorem eliminateC_cost
         split_ifs <;> simp only [max_self] <;> omega⟩)
     simp only [List.length_range] at hf
     have hsz := h1.1
-    have e1 : (295 * r + E + 58 + 9) * (rows.setIfInBounds p pv).size = (295 * r + E + 58 + 9) * E := by
+    have e1 : (69 * r + E + 60 + 11) * (rows.setIfInBounds p pv).size = (69 * r + E + 60 + 11) * E := by
       rw [hsz]
     rw [h.1]
-    have e : (295 * r + E + 58 + 9) * E + 18 * E = (295 * r + E + 85) * E := by ring
+    have e : (69 * r + E + 60 + 11) * E + 16 * E = (69 * r + E + 87) * E := by ring
     omega
 
-/-- **The RREF loop** (`scalarRrefRowsLoop`): `42·E + 80` per column, `pivotPrice E r` per pivot
+/-- **The RREF loop** (`scalarRrefRowsLoop`): `43·E + 56` per column, `pivotPrice E r` per pivot
 (at most `E − row` of them). -/
 theorem rrefLoopC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.scalarRrefRowsLoop.c495.costDeps)
     {E r : ℕ} (hr : r < 2 ^ 60) (hE : E < 2 ^ 60) (cols : ℕ) (hc : cols < 2 ^ 60) :
@@ -189,7 +191,7 @@ theorem rrefLoopC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.scalarRrefRows
       row ≤ E → pivots.size ≤ row → fuel + col < 2 ^ 60 →
       machineCost P Auto.CompPoly.DenseMatrix.scalarRrefRowsLoop.c495.costIdx
           [encodeValue cols, encodeValue fuel, encodeValue col, encodeValue row, encodeValue rows,
-            encodeValue pivots] ≤ fuel * (42 * E + 80) + (E - row) * pivotPrice E r + 15 := by
+            encodeValue pivots] ≤ fuel * (43 * E + 56) + (E - row) * pivotPrice E r + 15 := by
   intro fuel
   induction fuel with
   | zero =>
@@ -204,10 +206,12 @@ theorem rrefLoopC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.scalarRrefRows
     rw [limbs_of_lt (by omega : k + 1 < 2 ^ 64), limbs_of_lt (by omega : cols < 2 ^ 64),
       limbs_of_lt (by omega : col < 2 ^ 64), limbs_of_lt (by omega : rows.size < 2 ^ 64),
       limbs_of_lt (by omega : row < 2 ^ 64)]
-    simp only [max_self]
+    have hc1 : limbCount (col + 1) = 1 := limbs_of_lt (by omega)
+    have hr1 : limbCount (row + 1) = 1 := limbs_of_lt (by omega)
+    simp only [max_self, hc1, hr1]
     have hmono : ∀ a b, a ≤ b → a * pivotPrice E r ≤ b * pivotPrice E r :=
       fun a b hab ↦ Nat.mul_le_mul_right _ hab
-    have hk : (k + 1) * (42 * E + 80) = k * (42 * E + 80) + 42 * E + 80 := by ring
+    have hk : (k + 1) * (43 * E + 56) = k * (43 * E + 56) + 43 * E + 56 := by ring
     have h0 := hmono 0 (E - row) (by omega)
     by_cases hdone : col ≥ cols ∨ row ≥ rows.size
     · have hd : (decide (col ≥ cols) || decide (row ≥ rows.size)) = true := by
@@ -235,7 +239,7 @@ theorem rrefLoopC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.scalarRrefRows
         have e : (E - row) * pivotPrice E r = (E - (row + 1)) * pivotPrice E r + pivotPrice E r := by
           rw [show E - row = E - (row + 1) + 1 by omega]; ring
         simp only
-        have hpp : pivotPrice E r = 19950 * r + (295 * r + E + 85) * E + 3 * E + 130 := rfl
+        have hpp : pivotPrice E r = 2871 * r + (69 * r + E + 87) * E + 3 * E + 100 := rfl
         omega
 
 /-- **The RREF** (`scalarRrefRows`) of `E` rows of at most `r` entries over `cols` columns. -/
@@ -243,24 +247,25 @@ theorem scalarRrefRowsC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.scalarRr
     {E r : ℕ} (hr : r < 2 ^ 60) (hE : E < 2 ^ 60) (cols : ℕ) (hc : cols < 2 ^ 58)
     (rows : Array (Array K)) (h : RowsWithin E r rows) :
     machineCost P Auto.CompPoly.DenseMatrix.scalarRrefRows.c494.costIdx [encodeValue rows, encodeValue cols] ≤
-      (cols + 1) * (42 * E + 80) + E * pivotPrice E r + 26 := by
-  rw [Auto.CompPoly.DenseMatrix.scalarRrefRows.c494.costEq P hP, limbs_of_lt (by omega : cols < 2 ^ 64)]
+      (cols + 1) * (43 * E + 56) + E * pivotPrice E r + 25 := by
+  rw [Auto.CompPoly.DenseMatrix.scalarRrefRows.c494.costEq P hP, limbs_of_lt (by omega : cols < 2 ^ 64),
+    limbs_of_lt (by omega : cols + 1 < 2 ^ 64)]
   have := rrefLoopC_cost P (by includes) hr hE cols (by omega) (cols + 1) 0 0 rows #[] h (by omega)
     (by simp) (by omega)
   simp only [Nat.sub_zero] at this
   omega
 
-/-- `containsNat xs x`: at most `16·|xs| + 9`. -/
+/-- `containsNat xs x`: at most `18·|xs| + 9`. -/
 theorem containsNatC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.containsNat.c511.costDeps)
     (xs : Array ℕ) (x : ℕ) (hx : x < 2 ^ 64) (hxs : ∀ y ∈ xs, y < 2 ^ 64) :
     machineCost P Auto.CompPoly.DenseMatrix.containsNat.c511.costIdx [encodeValue xs, encodeValue x] ≤
-      16 * xs.size + 9 := by
+      18 * xs.size + 9 := by
   rw [Auto.CompPoly.DenseMatrix.containsNat.c511.costEq P hP]
   have hf := fun a ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a])
     (placementsOfC.lam2.lam0.costSpec P (by includes) x a)
   have key : ∀ l : List ℕ, (∀ y ∈ l, y < 2 ^ 64) →
       machineCost P Auto.List.any.c15.costIdx
-          [encodeValue l, .closure placementsOfC.lam2.lam0.costIdx [encodeValue x]] ≤ 13 * l.length + 3 := by
+          [encodeValue l, .closure placementsOfC.lam2.lam0.costIdx [encodeValue x]] ≤ 15 * l.length + 3 := by
     intro l
     induction l with
     | nil =>
@@ -275,24 +280,24 @@ theorem containsNatC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.containsNat
       have h1 := ih fun y hy ↦ hl y (by simp [hy])
       rw [appCost_fn, List.singleton_append, placementsOfC.lam2.lam0.costEq P (by includes),
         limbs_of_lt (hl a (by simp)), limbs_of_lt hx]
-      simp only [List.length_cons, max_self]
+      simp only [List.length_cons, List.length_nil, max_self]
       split_ifs <;> omega
   have := key xs.toList (fun y hy ↦ hxs y (by simpa using hy))
   simp only [Array.length_toList] at this
   omega
 
-/-- `pivotRowOfColumn? pivots col`: at most `33·|pivots| + 19`. -/
+/-- `pivotRowOfColumn? pivots col`: at most `34·|pivots| + 18`. -/
 theorem pivotRowOfColumnC_cost (hP : Includes P Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.costDeps)
     (pivots : Array ℕ) (col : ℕ) (hc : col < 2 ^ 64) (hp : ∀ i, pivots.getD i 0 < 2 ^ 64)
     (hs : pivots.size < 2 ^ 62) :
     machineCost P Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.costIdx [encodeValue pivots, encodeValue col] ≤
-      33 * pivots.size + 19 := by
+      34 * pivots.size + 18 := by
   rw [Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.costEq P hP]
   have hr := rangeLoop_cost P (by includes) pivots.size [] (by omega)
   have hf := findNat_cost P (by includes) _
     (.closure Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.lam0.costIdx [encodeValue pivots, encodeValue col])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.lam0.costSpec P
-      (by includes) pivots col a)) 7 (List.range pivots.size) (fun a _ ↦ by
+      (by includes) pivots col a)) 8 (List.range pivots.size) (fun a _ ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Auto.CompPoly.DenseMatrix.pivotRowOfColumn?.c508.lam0.costEq P (by includes),
         limbs_of_lt (hp a), limbs_of_lt hc]
@@ -314,7 +319,7 @@ theorem rref_pivots (rows : Array (Array K)) (cols : ℕ) :
   · exact Or.inl (hs.pivots_lt i hi)
   · right; rw [Array.getD_eq_getD_getElem?, Array.getElem?_eq_none hi]; rfl
 
-/-- One kernel vector (`basisVectorForFreeColumnRows`): at most `(33·p + 55)·cols + 19`, `p` the
+/-- One kernel vector (`basisVectorForFreeColumnRows`): at most `(34·p + 56)·cols + 18`, `p` the
 pivots. -/
 theorem basisVectorC_cost
     (hP : Includes P Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.costDeps)
@@ -322,14 +327,14 @@ theorem basisVectorC_cost
     (hf : free < 2 ^ 64) (hp : ∀ i, pivots.getD i 0 < 2 ^ 64) (hps : pivots.size < 2 ^ 60) :
     machineCost P Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.costIdx
         [encodeValue rows, encodeValue pivots, encodeValue cols, encodeValue free] ≤
-      (33 * pivots.size + 55) * cols + 19 := by
+      (34 * pivots.size + 56) * cols + 18 := by
   rw [Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) (by omega : cols < 2 ^ 64) _
     (.closure Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.lam0.costIdx
       [encodeValue rows, encodeValue pivots, encodeValue cols, encodeValue free])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.lam0.costSpec P
-      (by includes) rows pivots cols free a)) (33 * pivots.size + 36) (fun a ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      (by includes) rows pivots cols free a)) (34 * pivots.size + 39) (fun a ↦ by
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.DenseMatrix.basisVectorForFreeColumnRows.c506.lam0.costEq P (by includes),
         limbs_of_lt (by have := a.isLt; omega : (a : ℕ) < 2 ^ 64), limbs_of_lt hf]
       have := pivotRowOfColumnC_cost P (by includes) pivots a (by have := a.isLt; omega) hp (by omega)
@@ -349,8 +354,8 @@ theorem kernelBasisC_cost
     (rows : Array (Array K)) (h : RowsWithin E r rows) :
     machineCost P Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.costIdx
         [encodeValue rows, encodeValue cols] ≤
-      (cols + 1) * (42 * E + 80) + E * pivotPrice E r + (33 * cols + 55) * cols * cols +
-        (16 * cols + 90) * cols + 70 := by
+      (cols + 1) * (43 * E + 56) + E * pivotPrice E r + (34 * cols + 56) * cols * cols +
+        (18 * cols + 91) * cols + 62 := by
   rw [Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.costEq P hP]
   obtain ⟨hpl, hps, hfs⟩ := rref_pivots rows cols
   set R := scalarRrefRows rows cols with hR
@@ -361,8 +366,8 @@ theorem kernelBasisC_cost
   have hfilt := filter_cost P (by includes) (fun col ↦ !containsNat R.pivots col)
     (.closure Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam1.costIdx [encodeValue R])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam1.costSpec P
-      (by includes) R a)) (16 * cols + 15) (List.range cols) (fun a ha ↦ by
-      rw [appCost_fn, List.singleton_append,
+      (by includes) R a)) (18 * cols + 16) (List.range cols) (fun a ha ↦ by
+      rw [appCost_fn, List.singleton_append, List.length_singleton,
         Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam1.costEq P (by includes)]
       have := containsNatC_cost P (by includes) R.pivots a (by have := List.mem_range.1 ha; omega)
         (fun y hy ↦ by
@@ -374,25 +379,25 @@ theorem kernelBasisC_cost
     (.closure Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam0.costIdx
       [encodeValue cols, encodeValue R.pivots, encodeValue R.rows, encodeValue R])
     (fun a ↦ RunsApp.of_spec (Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam0.costSpec P
-      (by includes) cols R.pivots R.rows R a)) ((33 * cols + 55) * cols + 24)
+      (by includes) cols R.pivots R.rows R a)) ((34 * cols + 56) * cols + 27)
     (freeColumns cols R.pivots).toList (fun a ha ↦ by
-      simp only [appCost_fn, List.cons_append, List.nil_append]
+      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [Auto.CompPoly.DenseMatrix.homogeneousKernelBasisRows.c493.lam0.costEq P (by includes)]
       have ha' : a < cols := by
         simp only [freeColumns, List.toList_toArray, List.mem_filter, List.mem_range] at ha
         exact ha.1
       have := basisVectorC_cost P (by includes) R.rows R.pivots cols a (by omega) (by omega) hpw
         (by omega)
-      have : (33 * R.pivots.size + 55) * cols ≤ (33 * cols + 55) * cols :=
+      have : (34 * R.pivots.size + 56) * cols ≤ (34 * cols + 56) * cols :=
         Nat.mul_le_mul_right _ (by omega)
       omega)
   have hfl := List.length_filter_le (fun col ↦ !containsNat R.pivots col) (List.range cols)
   simp only [List.length_range, Array.length_toList, List.length_map] at hfilt hm hfl ⊢
-  have e1 : ((33 * cols + 55) * cols + 24 + 11) * (freeColumns cols R.pivots).size ≤
-      ((33 * cols + 55) * cols + 35) * cols := Nat.mul_le_mul_left _ hfs
-  have e3 : ((33 * cols + 55) * cols + 35) * cols = (33 * cols + 55) * cols * cols + 35 * cols := by
+  have e1 : ((34 * cols + 56) * cols + 27 + 13) * (freeColumns cols R.pivots).size ≤
+      ((34 * cols + 56) * cols + 40) * cols := Nat.mul_le_mul_left _ hfs
+  have e3 : ((34 * cols + 56) * cols + 40) * cols = (34 * cols + 56) * cols * cols + 40 * cols := by
     ring
-  have e4 : (16 * cols + 15 + 13) * cols + 62 * cols = (16 * cols + 90) * cols := by ring
+  have e4 : (18 * cols + 16 + 15) * cols + 60 * cols = (18 * cols + 91) * cols := by ring
   omega
 
 end
