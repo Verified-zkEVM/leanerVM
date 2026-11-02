@@ -47,11 +47,11 @@ variable {F : Type*} [Field F] [BEq F] [LawfulBEq F]
 /-! ## Homogeneous rows -/
 
 /-- Every entry of `row` is `a·X^e` (the zero entries with `a = 0`). -/
-def HomRow (e : Nat) (row : PolynomialRow F) : Prop :=
+@[expose] def HomRow (e : Nat) (row : PolynomialRow F) : Prop :=
   ∀ j, ∃ a : F, (rowGet row j).toPoly = Polynomial.C a * Polynomial.X ^ e
 
 /-- `row` is homogeneous of some degree `e ≤ B`. -/
-def HomRowLe (B : Nat) (row : PolynomialRow F) : Prop :=
+@[expose] def HomRowLe (B : Nat) (row : PolynomialRow F) : Prop :=
   ∃ e, e ≤ B ∧ HomRow e row
 
 theorem HomRow.natDegree_le {e : Nat} {row : PolynomialRow F} (h : HomRow e row) (j : Nat) :
@@ -140,16 +140,17 @@ theorem homRowLe_cancel {B : Nat} {target reducer : PolynomialRow F} {shift : Ar
 
 /-! ## The pivot table's invariants, for the cancellations it performs -/
 
-/-- `Q` is closed under the cancellations the pivot table performs: of a target by a reducer of no
-larger shifted degree. -/
-def CancelClosed (Q : PolynomialRow F → Prop) : Prop :=
-  ∀ (target reducer : PolynomialRow F) (shift : Array Nat), Q target → Q reducer →
+/-- `Q` is closed under the cancellations the pivot table performs under `shift`: of a target by
+a reducer of no larger shifted degree. -/
+@[expose] def CancelClosed (Q : PolynomialRow F → Prop) (shift : Array Nat) : Prop :=
+  ∀ (target reducer : PolynomialRow F), Q target → Q reducer →
     (∀ t r, rowShiftedLeadingTerm? target shift = some t →
       rowShiftedLeadingTerm? reducer shift = some r → r.shiftedDegree ≤ t.shiftedDegree) →
     Q (cancelKernelLeafLeadingTerm target reducer shift)
 
-theorem homRowLe_cancelClosed (B : Nat) : CancelClosed (F := F) (HomRowLe B) :=
-  fun _ _ _ ht hr hle ↦ homRowLe_cancel ht hr hle
+theorem homRowLe_cancelClosed (B : Nat) (shift : Array Nat) :
+    CancelClosed (F := F) (HomRowLe B) shift :=
+  fun _ _ ht hr hle ↦ homRowLe_cancel ht hr hle
 
 omit [BEq F] [LawfulBEq F] in
 private theorem setIfInBounds_invariant (Q : PolynomialRow F → Prop)
@@ -166,9 +167,9 @@ private theorem setIfInBounds_invariant (Q : PolynomialRow F → Prop)
 
 /-- Pivot-table insertion keeps a predicate closed under the table's cancellations (CompPoly's
 `insertKernelLeafPivotRowWithFuel_invariant`, for `CancelClosed`). -/
-theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (hclosed : CancelClosed Q) :
-    ∀ (fuel : Nat) (pivots : Array (Option (PolynomialRow F)))
-      (shift : Array Nat) (row : PolynomialRow F),
+theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (shift : Array Nat)
+    (hclosed : CancelClosed Q shift) :
+    ∀ (fuel : Nat) (pivots : Array (Option (PolynomialRow F))) (row : PolynomialRow F),
       (∀ p r, pivots.getD p none = some r → Q r) → Q row →
       ∀ p r,
         (insertKernelLeafPivotRowWithFuel fuel pivots shift row).getD p none =
@@ -176,10 +177,10 @@ theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (hclosed : CancelCl
   intro fuel
   induction fuel with
   | zero =>
-      intro pivots shift row hpivots _hrow p r hget
+      intro pivots row hpivots _hrow p r hget
       exact hpivots p r hget
   | succ fuel ih =>
-      intro pivots shift row hpivots hrow p r hget
+      intro pivots row hpivots hrow p r hget
       rw [insertKernelLeafPivotRowWithFuel] at hget
       cases hterm : rowShiftedLeadingTerm? row shift with
       | none =>
@@ -202,10 +203,10 @@ theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (hclosed : CancelCl
                   have hpivotrow : Q pivot := hpivots target.position pivot hpivot
                   split at hget
                   · rename_i hlt
-                    refine ih (pivots.setIfInBounds target.position (some row)) shift
+                    refine ih (pivots.setIfInBounds target.position (some row))
                       (cancelKernelLeafLeadingTerm pivot row shift)
                       (setIfInBounds_invariant Q hpivots target.position row hrow)
-                      (hclosed _ _ _ hpivotrow hrow ?_) p r hget
+                      (hclosed _ _ hpivotrow hrow ?_) p r hget
                     intro t' r' h1 h2
                     rw [hpterm] at h1
                     rw [hterm] at h2
@@ -213,8 +214,8 @@ theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (hclosed : CancelCl
                     cases h2
                     omega
                   · rename_i hlt
-                    refine ih pivots shift (cancelKernelLeafLeadingTerm row pivot shift) hpivots
-                      (hclosed _ _ _ hrow hpivotrow ?_) p r hget
+                    refine ih pivots (cancelKernelLeafLeadingTerm row pivot shift) hpivots
+                      (hclosed _ _ hrow hpivotrow ?_) p r hget
                     intro t' r' h1 h2
                     rw [hterm] at h1
                     rw [hpterm] at h2
@@ -224,7 +225,7 @@ theorem insertPivot_invariant (Q : PolynomialRow F → Prop) (hclosed : CancelCl
 
 /-- The pivot reduction keeps a `CancelClosed` predicate. -/
 theorem reduceKernelLeafRowsByPivots_invariant' (Q : PolynomialRow F → Prop)
-    (hclosed : CancelClosed Q) {rows : PolynomialMatrix F} (shift : Array Nat)
+    {rows : PolynomialMatrix F} (shift : Array Nat) (hclosed : CancelClosed Q shift)
     (hrows : ∀ row ∈ MatrixRows rows, Q row) {row : PolynomialRow F}
     (hrow : row ∈ MatrixRows (reduceKernelLeafRowsByPivots rows shift)) : Q row := by
   rw [reduceKernelLeafRowsByPivots] at hrow
@@ -243,7 +244,7 @@ theorem reduceKernelLeafRowsByPivots_invariant' (Q : PolynomialRow F → Prop)
         intro pivots hl hpivots p r hget
         rw [List.foldl_cons] at hget
         refine ih _ (fun r hr ↦ hl r (List.mem_cons_of_mem head hr)) ?_ p r hget
-        exact insertPivot_invariant Q hclosed _ pivots shift head hpivots
+        exact insertPivot_invariant Q shift hclosed _ pivots head hpivots
           (hl head List.mem_cons_self)
   rw [← Array.foldl_toList]
   refine hfold rows.toList _ (fun r hr ↦ hrows r hr) ?_
@@ -257,7 +258,7 @@ theorem reduceKernelLeafRowsByPivots_invariant' (Q : PolynomialRow F → Prop)
 
 /-- The incremental pivot reduction keeps a `CancelClosed` predicate. -/
 theorem reduceKernelLeafRowsIncremental_invariant' (Q : PolynomialRow F → Prop)
-    (hclosed : CancelClosed Q) {rows : PolynomialMatrix F} (shift : Array Nat)
+    {rows : PolynomialMatrix F} (shift : Array Nat) (hclosed : CancelClosed Q shift)
     (hrows : ∀ row ∈ MatrixRows rows, Q row) {row : PolynomialRow F}
     (hrow : row ∈ MatrixRows (reduceKernelLeafRowsIncremental rows shift)) : Q row := by
   rw [reduceKernelLeafRowsIncremental, ← Array.foldl_toList] at hrow
@@ -283,7 +284,7 @@ theorem reduceKernelLeafRowsIncremental_invariant' (Q : PolynomialRow F → Prop
             simpa using hx
           simpa using hmem.1
         rw [reduceKernelLeafRows] at hx'
-        refine reduceKernelLeafRowsByPivots_invariant' Q hclosed shift ?_ hx'
+        refine reduceKernelLeafRowsByPivots_invariant' Q shift hclosed ?_ hx'
         intro y hy
         rcases mem_matrixRows_push hy with hy | rfl
         · exact hbasis y hy
@@ -323,7 +324,8 @@ theorem kernelLeafBasis_homRowLe_one (problem : XAdicProblem F) (shift : Array N
   simp only [kernelLeafBasis] at hrow
   rw [MatrixRows, completeMissingPivotRows, Array.toList_append] at hrow
   rcases List.mem_append.mp hrow with hmem | hmem
-  · refine reduceKernelLeafRowsIncremental_invariant' _ (homRowLe_cancelClosed 1) shift ?_ hmem
+  · refine reduceKernelLeafRowsIncremental_invariant' _ shift (homRowLe_cancelClosed 1 shift) ?_
+      hmem
     intro r hr
     rw [MatrixRows, Array.toList_append] at hr
     rcases List.mem_append.mp hr with hr | hr
@@ -353,7 +355,7 @@ theorem kernelLeafBasis_natDegree_le_one (problem : XAdicProblem F) (shift : Arr
 
 /-- Rows of width `n`, each with a shifted leading position (so nonzero), the positions pairwise
 distinct. -/
-def PivotShape (n : Nat) (shift : Array Nat) (rows : PolynomialMatrix F) : Prop :=
+@[expose] def PivotShape (n : Nat) (shift : Array Nat) (rows : PolynomialMatrix F) : Prop :=
   (∀ r ∈ rows.toList, r.size = n ∧ (rowShiftedLeadingPosition? r shift).isSome) ∧
     (rows.toList.map fun r ↦ rowShiftedLeadingPosition? r shift).Nodup
 
