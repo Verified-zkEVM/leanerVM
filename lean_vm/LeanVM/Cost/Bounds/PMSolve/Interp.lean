@@ -252,13 +252,19 @@ set_option maxHeartbeats 4000000 in
 /-- **The lanes' interpolation, compiled** (`interpolatePMC`, `interpolateDistinctWith pmSolver`):
 on `n` points, `k > 1`, at most `interpPMCost p N n m w W MB LB IB`, `N = (m + 1)·n + 1`, given
 track fft's product, truncated product and Newton inverse prices at sizes `≤ N` and track
-pmcost's PM-basis core price. -/
+pmcost's PM-basis core price (`PMCoreCostAt`). -/
 theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPrices)
     {MB LB IB : ℕ} (points : Array (K × K)) (params : GuruswamiSudan.GSInterpParams)
     (hMB : MulBound P ((params.multiplicity + 1) * points.size + 1) MB)
     (hLB : LowBound P ((params.multiplicity + 1) * points.size + 1) LB)
     (hIB : InvBound P ((params.multiplicity + 1) * points.size + 1) IB)
-    (hcore : PMCoreCost P p) (hsz : InterpSizes points.size params)
+    {SB : ℕ}
+    (hcore : PMCoreCostAt P p (GuruswamiSudan.interpolationWidth params + params.multiplicity)
+      params.multiplicity SB)
+    (hSB : params.weightedDegreeBound + params.weightedDegreeBound + 1 +
+      2 * (params.multiplicity * points.size + 1 + params.weightedDegreeBound + 2) ≤ SB)
+    (h37 : 3 * (params.multiplicity * points.size + 1 + params.weightedDegreeBound + 2) ≤ 2 ^ 37)
+    (hsz : InterpSizes points.size params)
     (hpm : PMInterpSizes points.size params) (hk : 1 < params.messageDegree) :
     machineCost P interpolatePMC.costIdx [encodeValue points, encodeValue params] ≤
       interpPMCost p ((params.multiplicity + 1) * points.size + 1) points.size
@@ -330,7 +336,7 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
   rw [hshift, solveWindow_some]
   have hsolve := certifiedSolveC_cost P (by includes) p hcore _ (GuruswamiSudan.interpolationShifts
     params) params.weightedDegreeBound hL (by rw [hMW]; omega) (interpolationShifts_size params)
-    (interpolationShifts_le params) (by omega) (by omega) (by omega)
+    (interpolationShifts_le params) (by omega) (by omega) (by omega) hSB h37
   rw [ho] at hsolve
   -- the least row
   set eqn := GuruswamiSudan.ApproximantBasis.modularEquation (buildGSModularDataCached

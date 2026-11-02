@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.PMSolve.Lift
 public import LeanVM.Cost.Bounds.PMBasis.Defs
 public import LeanVM.Protocol.Extraction.Fast.PMShape
 public import LeanVM.Protocol.Extraction.Fast.PMBasis.DegreeRoot
+public import LeanVM.Cost.Bounds.PMCore.Core
 import all CompPoly.Univariate.Raw.Core
 import all CompPoly.Univariate.Basic
 import all CompPoly.LinearAlgebra.PolynomialMatrix.Basic
@@ -20,7 +21,7 @@ import all CompPoly.LinearAlgebra.PolynomialMatrix.Approximant.PartialLinearizat
 fftMulLowContext 1)` (`certifiedSolveC`, `Cost/Extractor/PMSolve.lean`): the guard, the
 expanded shift and the certified problem (the compiled code evaluates both twice: the context's
 `basis` reads its problem argument twice), the fuel (`maxOrder`), **the PM-basis core**
-(`pmCoreC`, its price a hypothesis, `PMCoreCost`: track pmcost's bound), each basis row's
+(`pmCoreC`, its price a hypothesis, `PMCoreCostAt`: track pmcost's bound), each basis row's
 certificate (a size and a shifted degree read), the principal parts.
 
 The basis's sizes come from popov's core (`popovRuntime_core_spec`: as many rows as the problem,
@@ -45,19 +46,15 @@ public section
 /-! ## The PM-basis core's price: a hypothesis (track pmcost) -/
 
 /-- **The PM-basis core's price** (`pmCoreC`, `pmBasisWithFuelCore` on the target runtime at
-`pmBasisFuel`), as the certified solve needs it: on a problem of `r` rows of width `m`, `m`
-orders, maximal order `o`, entries of at most `o` coefficients, a word-sized shift of `r` entries,
-at most the model's tree `pmTreeEval 1 (pmLeafPrice p r) (pmNodePrice p r m) o`. -/
-@[expose] def PMCoreCost (P : MachineProgram) (p : PMPrices) : Prop :=
-  ∀ (problem : XAdicProblem K) (shift : Array ℕ),
-    (∀ row ∈ problem.matrix.toList, row.size = problem.orders.size) →
-    (∀ row ∈ problem.matrix.toList, ∀ e ∈ row, e.val.size ≤ maxOrder problem) →
-    shift.size = problem.matrix.size → (∀ j, shift.getD j 0 < 2 ^ 62) →
-    problem.matrix.size < 2 ^ 30 → problem.orders.size < 2 ^ 30 → maxOrder problem < 2 ^ 50 →
+`pmBasisFuel`), as the certified solve needs it: on a problem of `r` rows of width `m` with
+pmcost's invariant (`PMCore.CoreInv r m SB`), at most the model's tree
+`pmTree 1 (pmLeafPrice p r) (pmNodePrice p r m) (maxOrder problem)` (track pmcost's
+`pmCoreC_cost_le_model`). -/
+@[expose] def PMCoreCostAt (P : MachineProgram) (p : PMPrices) (r m SB : ℕ) : Prop :=
+  ∀ (problem : XAdicProblem K) (shift : Array ℕ), PMCore.CoreInv r m SB problem shift →
     machineCost P pmCoreC.costIdx
         [encodeValue (pmBasisFuel problem), encodeValue problem, encodeValue shift] ≤
-      pmTreeEval 1 (pmLeafPrice p problem.matrix.size) (pmNodePrice p problem.matrix.size
-        problem.orders.size) (maxOrder problem)
+      pmTree 1 (pmLeafPrice p r) (pmNodePrice p r m) (maxOrder problem)
 
 variable (P : MachineProgram)
 
@@ -252,12 +249,14 @@ variable (P : MachineProgram)
 /-- **The certified solve, compiled** (`certifiedSolveC`): on `w` relation rows, `m` monic moduli
 of at most `Q` coefficients, entries shorter than their modulus, a shift of `w` entries at most
 `Sh`, at most `certSolveCost p Q w m o`, `o` the certified problem's maximal order, given the
-PM-basis core's price (`PMCoreCost P p`). -/
+PM-basis core's price (`PMCoreCostAt P p (w + m) m SB`). -/
 theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMPrices)
-    (hcore : PMCoreCost P p) (equation : ModularEquation K) (shift : Array ℕ) (bound : ℕ)
-    {w m Q Sh : ℕ} (hs : LiftSizes equation w m Q) (hMW : MatrixWidth equation.matrix < 2 ^ 64)
+    {w m Q Sh SB : ℕ} (hcore : PMCoreCostAt P p (w + m) m SB) (equation : ModularEquation K)
+    (shift : Array ℕ) (bound : ℕ) (hs : LiftSizes equation w m Q)
+    (hMW : MatrixWidth equation.matrix < 2 ^ 64)
     (hshift : shift.size = w) (hSh : ∀ j, shift.getD j 0 ≤ Sh) (hb : bound < 2 ^ 40)
-    (hSh40 : Sh < 2 ^ 40) (hQ45 : Q < 2 ^ 45) :
+    (hSh40 : Sh < 2 ^ 40) (hQ45 : Q < 2 ^ 45)
+    (hSB : Sh + bound + 1 + 2 * (Q + bound + 2) ≤ SB) (h37 : 3 * (Q + bound + 2) ≤ 2 ^ 37) :
     machineCost P certifiedSolveC.costIdx [encodeValue equation, encodeValue shift,
         encodeValue bound] ≤
       certSolveCost p Q w m (maxOrder (fullWindowExactNullspaceProblem FFT.fftModContext equation
@@ -316,9 +315,29 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
     have hesz : eShift.size = prob.matrix.size := by
       rw [hpsize, heShift]
       simp [certShift, exactNullspaceShift, liftedPrincipalShift, hshift, hsW]
-    have hcore' := hcore prob eShift (fun row hr ↦ by rw [hprow row hr, hpo]) hpent hesz
-      (fun j ↦ by have := heS j; omega) (by omega) (by omega) (by omega)
-    rw [hpsize, hpo] at hcore'
+    have hsizeLe : PMCore.SizeLe prob.matrix (2 ^ 40) := by
+      intro i j
+      rw [Array.getD_eq_getD_getElem?]
+      cases hi : prob.matrix[i]? with
+      | none =>
+        simp only [Option.getD_none]
+        rw [rowGet_of_size_le (by simp), size_zero_val]
+        norm_num
+      | some row =>
+        simp only [Option.getD_some]
+        have hrow := Array.mem_toList_iff.2 (Array.mem_of_getElem? hi)
+        rw [rowGet, Array.getD_eq_getD_getElem?]
+        cases hj : row[j]? with
+        | none => simp only [Option.getD_none, size_zero_val]; norm_num
+        | some e =>
+          have := hpent row hrow e (Array.mem_of_getElem? hj)
+          simp only [Option.getD_some]
+          omega
+    have hinv : PMCore.CoreInv (w + m) m SB prob eShift :=
+      ⟨by rw [hpsize, hsW, hm], fun row hr ↦ by rw [hprow row hr, hm], by rw [hpo, hm], hsizeLe,
+        fun j ↦ by have := heS j; omega, by omega⟩
+    have hcore' := hcore prob eShift hinv
+    rw [← pmTreeEval_eq] at hcore'
     obtain ⟨hBsize, hBrows⟩ := certBasis_spec prob eShift
     set B := (popovEvalPMBasisContext FFT.novelTransform FFT.fftMulContext FFT.fftMulLowContext
       1).basis prob eShift with hBdef
