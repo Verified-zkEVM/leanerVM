@@ -10,8 +10,8 @@ import LeanVMTests.Spec.NodeVectors
 `scripts/guest-export` writes from the deployed Rust:
 
 * the seed of the node vectors (`NodeVectors.seed`) and the guest's Fiat-Shamir IV the Rust
-  reports (`Manifest.fsSeed`, `fs_seed`) are `deployedSeed guest`, the Keccak-256 IV of the assembled
-  guest's `2^23` bytecode words: so the Lean `guest` is the bytecode the Rust proves, every
+  reports (`Manifest.fsSeed`, `fs_seed`) are `deployedSeed guestProgram`, the Keccak-256 IV of the assembled
+  guest's `2^23` bytecode words: so the Lean `guestProgram` is the bytecode the Rust proves, every
   instruction (it is evaluated as `guestArray`, the same program, `guestArray_eq`);
 * the DA root's vector digest is the Rust's (`LeanVM.Da.vectorDigestOf`).
 
@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Node LeanVM.Guest
 /-- The guest's seed, evaluated once. -/
 def guestSeed : Digest := deployedSeed guestArray
 
-example : guestSeed = deployedSeed guest := by rw [guestSeed, guestArray_eq]
+example : guestSeed = deployedSeed guestProgram := by rw [guestSeed, guestArray_eq]
 
 /-- `Manifest.fsSeed`, two canonical cells, as a digest; `none` if a cell has a `y²` limb. -/
 def manifestSeed : Option Digest :=
@@ -35,8 +35,8 @@ def manifestSeed : Option Digest :=
 
 /-- The checks, each by name. -/
 def checks : List (String × (Unit → Bool)) := [
-  ("seed: the vectors' seed is deployedSeed guest", fun _ ↦ guestSeed == Spec.NodeVectors.seed),
-  ("seed: the manifest's fs_seed is deployedSeed guest", fun _ ↦ manifestSeed == some guestSeed),
+  ("seed: the vectors' seed is deployedSeed guestProgram", fun _ ↦ guestSeed == Spec.NodeVectors.seed),
+  ("seed: the manifest's fs_seed is deployedSeed guestProgram", fun _ ↦ manifestSeed == some guestSeed),
   ("vectorDigest: the DA root's vector digest is the Rust's", fun _ ↦
     let c := Spec.NodeVectors.daClaim
     LeanVM.Da.vectorDigestOf c.daRoot == LeanVM.Protocol.Digest.toBytes c.membershipVectorDigest)]
