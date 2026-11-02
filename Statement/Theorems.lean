@@ -215,7 +215,7 @@ structure Theorems
   `knowledgeExtractorSizeBound`; otherwise the extractor extracts nothing (`none`). Extracting
   nothing from an accepted proof breaks knowledge soundness (`BreaksKnowledgeSoundness`). So this
   statement implies that, but with the probability above, the program extracts a valid execution of
-  an accepted proof within the budget: at most that many steps, about `2^95` up to `2^60`
+  an accepted proof within the budget: at most that many steps, about `2^81` up to `2^50`
   permutation queries and `O(N·log³N)` for `N`. That a price unit is a constant number of
   instructions of a 64-bit CPU is trusted (`CostMachine.lean`, *Why the prices are honest*). -/
   knowledgeSoundness : LeanVM.KnowledgeSoundness

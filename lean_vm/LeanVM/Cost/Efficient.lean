@@ -177,7 +177,7 @@ theorem extractorProgram_includes_all : Includes extractorProgram extractorProgr
   rw [extractorProgramBodies_eq, List.map_cons]
   exact h
 
-/-- **The program's size is within `knowledgeExtractorSizeBound`** (`14400`), evaluated
+/-- **The program's size is within `knowledgeExtractorSizeBound`** (`14500`), evaluated
 (`Cost/ExtractorSize.lean`; exactly `14125`). -/
 theorem extractorProgram_size_le : extractorProgram.size ≤ knowledgeExtractorSizeBound :=
   extractorProgram_size_le_measured.trans (by decide)
