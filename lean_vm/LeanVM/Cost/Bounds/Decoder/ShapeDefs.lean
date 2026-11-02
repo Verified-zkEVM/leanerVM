@@ -33,60 +33,60 @@ coefficients: per level a power by squaring and `Y` entries, each at most a scal
   bfLoopBound X Y (Nat.log2 Y + 1) + (28 * (X + Y) + 90) * Y + 50
 
 /-- The bound of a product modulo `u`, operands and `u` of at most `B` coefficients. -/
-@[expose] def mulModBound (B : ℕ) : ℕ := 2500 * (B * B) + 1000 * B + 20000
+@[expose] def mulModBound (B : ℕ) : ℕ := 582 * (B * B) + 430 * B + 2960
 
 /-- The bound of a remainder, operands of at most `B` coefficients. -/
-@[expose] def rawModBound (B : ℕ) : ℕ := 400 * (B * B) + 2100 * B + 41000
+@[expose] def rawModBound (B : ℕ) : ℕ := 117 * (B * B) + 326 * B + 6110
 
 /-- The bound of a monic gcd's step, operands of at most `B` coefficients. -/
-@[expose] def gcdStepBound (B : ℕ) : ℕ := rawModBound B + 61 * B + 60
+@[expose] def gcdStepBound (B : ℕ) : ℕ := rawModBound B + 45 * B + 54
 
 /-- The bound of a monic gcd, operands of at most `B` coefficients. -/
-@[expose] def gcdBound (B : ℕ) : ℕ := gcdStepBound B * (2 * B + 1) + 430 * B + 20100
+@[expose] def gcdBound (B : ℕ) : ℕ := gcdStepBound B * (2 * B + 1) + 158 * B + 2962
 
 /-- The bound of `k` Frobenius powers modulo `u`, `u` of at most `B` coefficients. -/
-@[expose] def frobBound (B k : ℕ) : ℕ := (2 * mulModBound B + 23 * B + 70) * k + 450 * B + 21000
+@[expose] def frobBound (B k : ℕ) : ℕ := (2 * mulModBound B + 21 * B + 57) * k + 116 * B + 3163
 
 /-- The bound of the trace polynomial over `64` powers of at most `B` coefficients. -/
-@[expose] def traceBound (B : ℕ) : ℕ := (1040 * B + 1200) * 64 + 1200
+@[expose] def traceBound (B : ℕ) : ℕ := (154 * B + 421) * 64 + 982
 
 /-- The bound of one base constant's child. -/
-@[expose] def refineLamBound (B : ℕ) : ℕ := gcdBound B + 520 * B + 20300
+@[expose] def refineLamBound (B : ℕ) : ℕ := gcdBound B + 187 * B + 3092
 
 /-- The bound of one factor's refinement, the factor of at most `B` coefficients, the cache of at
 most `L` entries of at most `C` coefficients. -/
 @[expose] def refineFactorBound (B C L : ℕ) : ℕ :=
-  450 * B + 20000 + (15 * B + 3 * C + 20) * L + frobBound B 64 + traceBound B +
-    2 * (refineLamBound B + 9) + 300
+  134 * B + 2728 + (18 * B + 3 * C + 24) * L + frobBound B 64 + traceBound B +
+    2 * (refineLamBound B + 13) + 300
 
 /-- The slope of a factor's refinement in its size, factors of at most `B` coefficients:
-`refineFactorBound b C L ≤ b·refineSlope B + 2846718 + (15·b + 3·C + 20)·L` for `b ≤ B`. -/
-@[expose] def refineSlope (B : ℕ) : ℕ := 1600 * (B * B) + 329444 * B + 367394
+`refineFactorBound b C L ≤ b·refineSlope B + 441107 + (18·b + 3·C + 24)·L` for `b ≤ B`. -/
+@[expose] def refineSlope (B : ℕ) : ℕ := 468 * (B * B) + 76214 * B + 92578
 
 /-- The bound of one trace coordinate over the factors (`refineFactorsFast`), at most `F` factors
 of at most `B` coefficients, their sizes summing to at most `S`, the cache of at most `L`
 entries: each factor priced at its own size. -/
 @[expose] def refineFactorsBound (B S F L : ℕ) : ℕ :=
-  S * refineSlope B + (2846718 + 2 * F + 33) * F + 15 * S * L + (3 * B + 20) * F * L + 15
+  S * refineSlope B + (441107 + 2 * F + 33) * F + 18 * S * L + (3 * B + 24) * F * L + 15
 
 /-- The bound of the splitter on a polynomial of at most `B` coefficients: `64` trace
 coordinates, each over factors of sizes summing to at most `2·B`, at most `B` of them, the cache
 of at most `64·B` entries. -/
 @[expose] def splitBound (B : ℕ) : ℕ :=
-  64 * (refineFactorsBound B (2 * B) B (64 * B) + 40) + 450 * B + 23000
+  64 * (refineFactorsBound B (2 * B) B (64 * B) + 19) + 134 * B + 4586
 
 /-- The bound of the root product, `p` of at most `B` coefficients. -/
 @[expose] def rootProductBound (B : ℕ) : ℕ :=
-  gcdBound B + 1500 * B + 65000 + (2 * mulModBound B + 50) * 65
+  gcdBound B + 419 * B + 9728 + (2 * mulModBound B + 41) * 65
 
 /-- **The roots of `F` linear factors**, validated against `p` (of at most `B` coefficients),
 deduplicated: at most `rootsFromBound B F`. -/
-@[expose] def rootsFromBound (B F : ℕ) : ℕ := (272 * B + 20100) * F + (16 * F + 30) * F + 40
+@[expose] def rootsFromBound (B F : ℕ) : ℕ := (46 * B + 2940) * F + (19 * F + 31) * F + 32
 
 /-- The bound of the roots in `K` of a polynomial of at most `B` coefficients. -/
 @[expose] def rootsBound (B : ℕ) : ℕ :=
-  20 * B + 60 + rootsFromBound B 1 + rootProductBound B + splitBound B + (B + 30) * B + 3 * B +
-    10 + rootsFromBound B B
+  3 * B + 54 + rootsFromBound B 1 + rootProductBound B + splitBound B + (B + 33) * B + 3 * B +
+    9 + rootsFromBound B B
 
 /-- The price of a node of `Y` rows of at most `X` coefficients, beyond its children: the
 `X`-adic order, the division by `X^s`, the initial coefficient polynomial, its roots. -/
