@@ -91,12 +91,12 @@ deduplicated: at most `rootsFromBound B F`. -/
 /-- The price of a node of `Y` rows of at most `X` coefficients, beyond its children: the
 `X`-adic order, the division by `X^s`, the initial coefficient polynomial, its roots. -/
 @[expose] def rrNodePrice (X Y : ℕ) : ℕ :=
-  (65 * X + 220) * Y + rootsBound Y + 200
+  (63 * X + 188) * Y + rootsBound Y + 125
 
 /-- The price of a child in its parent's fold, `k` the depth bound: the substitution, the
 truncation, the prefix extended. -/
 @[expose] def rrChildPrice (X Y k : ℕ) : ℕ :=
-  substBound X Y + (27 * (X + Y) + 80) * Y + 222 * k + 400
+  substBound X Y + (25 * (X + Y) + 72) * Y + 108 * k + 202
 
 /-- The bound of Roth–Ruckenstein's search on `1 + k·ℓ` nodes of `Y` rows of at most `X`
 coefficients, `k` levels. -/
