@@ -244,16 +244,6 @@ end
 def run (P : MachineProgram) (fuel : ℕ) (x : MachineValue) : Option (MachineValue × ℕ) :=
   evaluateFunctionBody P (fuel + 1) 0 [x]
 
-/-- **The output within a size bound and a budget**: `P`'s value on `x` if `P`'s size is at most
-`sizeBound` (`MachineProgram.size`, below) and its run costs at most `budget`; `none` otherwise. -/
-def outputWithin (P : MachineProgram) (sizeBound : ℕ) (x : MachineValue) (budget : ℕ) :
-    Option MachineValue :=
-  if P.size ≤ sizeBound then
-    match run P budget x with
-    | some (v, c) => if c ≤ budget then some v else none
-    | none => none
-  else none
-
 /-! ## Size
 
 A constructor's tag and a closure's function index count one with their node, whatever their
@@ -303,6 +293,16 @@ end
 
 /-- A program's size: the sizes of its bodies. -/
 def MachineProgram.size (P : MachineProgram) : ℕ := (P.toList.map Term.size).sum
+
+/-- **The output within a size bound and a budget**: `P`'s value on `x` if `P`'s size is at most
+`sizeBound` (`MachineProgram.size`) and its run costs at most `budget`; `none` otherwise. -/
+def outputWithin (P : MachineProgram) (sizeBound : ℕ) (x : MachineValue) (budget : ℕ) :
+    Option MachineValue :=
+  if MachineProgram.size P ≤ sizeBound then
+    match run P budget x with
+    | some (v, c) => if c ≤ budget then some v else none
+    | none => none
+  else none
 
 /-! ## The encoding -/
 
