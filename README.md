@@ -2,8 +2,9 @@
 
 Lean 4 proofs about [leanVM](https://github.com/leanEthereum/leanVM) at the commit in
 [`leanvm-rev`](leanvm-rev): its verifier is knowledge sound and complete, its aggregation guest
-program proves what it claims, and the schemes it checks (leanXMSS, leanSPHINCS, LeanDA) are secure,
-all in the random-permutation model (Keccak-f[1600] modeled as a random permutation).
+program proves what it claims, and the schemes it checks are secure (leanXMSS, leanSPHINCS; LeanDA's
+code binding given a knowledge-sound argument), all in the random-permutation model (Keccak-f[1600]
+modeled as a random permutation).
 
 **What is proved** is in [`Statement/`](Statement/README.md): definitions and end statements only,
 the one folder a reviewer reads. Everything else is proof.
