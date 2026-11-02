@@ -26,13 +26,13 @@ public section
 
 /-- Newton's price per step beyond its two products, at precision `≤ k`: the `karMax` and the
 `2^20` of each product (the latter left over from the products' telescoping), the subtraction. -/
-@[expose] def newtonExtra (k : ℕ) : ℕ := 2 * karMax + 224 * k + 2 ^ 21 + 500
+@[expose] def newtonExtra (k : ℕ) : ℕ := 2 * karMax + 161 * k + 2 ^ 21 + 207
 
 /-- **Newton's inverse modulo `X^k`, proved price**: four products at the last precision (the
 precisions `2, 4, …, k` double, so do the products' prices: their sum is at most twice the last's,
 two products a step) and `⌈log₂ k⌉` times `newtonExtra k`, the inversion of the constant term. -/
 @[expose] def newtonBound (p : PMPrices) (k : ℕ) : ℕ :=
-  4 * polyMulPrice p (clog2 (2 * k - 1)) + clog2 k * newtonExtra k + k + 19740
+  4 * polyMulPrice p (clog2 (2 * k - 1)) + clog2 k * newtonExtra k + k + 2863
 
 end
 
