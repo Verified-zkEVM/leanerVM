@@ -21,7 +21,7 @@ the additive NTT with the plan's twiddles (`planFwd`); `invP P y` (`planInvPoly`
 call); `FFT/PlannedEval.lean`'s products build it once per matrix product.
 
 **The product** `mulFFT p q` (`mulVia novelTransform fftSchedule`): schoolbook when a factor has
-at most `32` coefficients, Karatsuba's when both have at most `1024`, else on the least
+at most `32` coefficients, Karatsuba's when both have at most `4096`, else on the least
 `2^j ≥ |p| + |q| − 1` points (`j ≤ 64`, else Karatsuba's), the plan built once;
 `mulFFT_eq : mulFFT p q = p * q`. CompPoly's contexts: `fftMulContext`, `fftMulLowContext` (the
 truncated product as one product of truncated factors), `fftRawMulLowContext`, and
@@ -162,11 +162,12 @@ theorem planInvPoly_eq {j : ℕ} (hj : j ≤ 64) (y : Array K) :
 /-! ## The product and CompPoly's contexts -/
 
 /-- The schedule: schoolbook when a factor has at most `32` coefficients, Karatsuba's product
-when both have at most `1024` (below `≈ 2^11` coefficients Karatsuba's `3^⌈log₂(n/32)⌉·32²`
-products are fewer than the transform's `≈ 2^j·(3j²/4 + 19j/4 + 7)`). -/
+when both have at most `4096` (the compiled prices measured by track probe: at `1100`
+coefficients the transform's product `238M` steps against Karatsuba's `76M`, at `2100` `540M`
+against `214M`; the crossover near `4096`). -/
 @[expose] def fftSchedule : MulSchedule K where
   small := 32
-  mid := 1024
+  mid := 4096
   fallback := karatsubaMulContext
 
 /-- **The additive-FFT product** over `K`. -/

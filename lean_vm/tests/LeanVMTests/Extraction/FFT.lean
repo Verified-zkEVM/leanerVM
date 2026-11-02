@@ -70,8 +70,8 @@ def testSchedule : MulSchedule K := ⟨2, 2, CPolynomial.MulContext.naive⟩
   let q := randomPoly (n + 1000) n
   mulVia novelTransform testSchedule p q == p * q
 
--- `mulFFT`'s schedule: schoolbook, Karatsuba, then the transform (`2^12` points).
-#guard [(1, 300), (40, 50), (1100, 1030)].all fun (m, n) ↦
+-- `mulFFT`'s schedule: schoolbook, Karatsuba, then the transform (`2^13` points).
+#guard [(1, 300), (40, 50), (1100, 1030), (4200, 40)].all fun (m, n) ↦
   let p := randomPoly (m + 1) m
   let q := randomPoly (n + 1000) n
   mulFFT p q == karatsubaMulContext.mul p q
