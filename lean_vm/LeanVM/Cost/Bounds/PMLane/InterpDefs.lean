@@ -58,16 +58,16 @@ public section
 /-- **The leaf's price**, `n` rows, `m` orders, at order at most one. -/
 @[expose] def leafBound (n m : ℕ) : ℕ :=
   -- the reduced kernel rows
-  (36 * m + 26) +
-    (36 * m + 26 + (m * m + 160 * m + 64) + (69 * n + 45) * m + 20) + 1 +
-    ((n + 1) * (42 * m + 80) + m * pivotPrice m n + (33 * n + 55) * n * n + (16 * n + 90) * n + 70) +
-    3 * n + ((129 * n + 34) * n + 3) + n +
-    (36 * m + ((25 + 83) * n + 36) * n + 18 * n + 50) + 2 * n +
-    (stepPrice n * (2 * n * (2 * n)) + (incPrice n + 16) * (2 * n) + 11) + 28 +
+  (42 * m + 27) +
+    (42 * m + 27 + (m * m + 151 * m + 63) + (70 * n + 47) * m + 17) + 1 +
+    ((n + 1) * (43 * m + 56) + m * pivotPrice m n + (34 * n + 56) * n * n + (18 * n + 91) * n + 62) +
+    3 * n + ((127 * n + 37) * n + 3) + n +
+    (42 * m + ((23 + 80) * n + 39) * n + 16 * n + 50) + 2 * n +
+    (stepPrice n * (2 * n * (2 * n)) + (incPrice n + 19) * (2 * n) + 11) + 27 +
   -- the slots filled
-    (n + (191 * n + 126) * n + 12) + ((36 * m + 108 * n + 75) * n + 6) + n + 18 + 6 +
+    (n + (169 * n + 79) * n + 12) + ((42 * m + 103 * n + 75) * n + 5) + n + 18 + 6 +
   -- the compaction
-    ((29 * n + 28) * n + 8)
+    ((39 * n + 30) * n + 8)
 
 end
 
