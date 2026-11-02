@@ -7,8 +7,8 @@
 #   (default: all seven)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
-# `lake` itself cannot, as it reserves about 1 GB of address space per job: the statement's and
-# lean_vm's builds run in `lake-build.py`, which admits their modules by memory within a systemd scope.
+# `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
+# `lake-build.py`, which admits its modules by memory within a systemd scope.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 log=$(mktemp -d)
@@ -29,11 +29,12 @@ no_escapes() {
   fi
 }
 
-# `lake build` in $1, then no deprecation warning from the modules matching $2. Lake replays a
-# cached module's warnings, so the log lists every one.
+# `lake build` in $1, its modules admitted by memory (`lake-build.py`), then no deprecation warning
+# from the modules matching $2. Its last step, a plain `lake build`, replays a cached module's
+# warnings, so the log lists every one.
 build() {
-  step "$1: lake build"
-  (cd "$1" && lake build 2>&1) | tee "$log/build.txt"
+  step "$1: build, its modules admitted by memory"
+  python3 -I lake-build.py "$1" 2>&1 | tee "$log/build.txt"
   if grep -E "^warning: $2.*has been deprecated" "$log/build.txt"; then
     fail "$1: deprecated API"
   fi
@@ -90,12 +91,7 @@ lean_xmss() {
 lean_sphincs() {
   no_escapes lean_sphincs
   (cd lean_sphincs && lake exe cache get)
-  # The kernel-checked tables (`decide +kernel`) one at a time: the largest takes most of the memory.
-  local m
-  for m in Sphincs.H0FTab Sphincs.H0PTab Sphincs.H0NTab Sphincs.LifetimeCertificates; do
-    step "lean_sphincs: lake build $m"
-    (cd lean_sphincs && lake build "$m")
-  done
+  # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs 'Sphincs(Fors|Base)?/'
   axioms lean_sphincs Sphincs SphincsLayered.Lifetimes.requestedSecurity \
     Sphincs.Lifetimes.requestedSecurityRpm SphincsLayered.Lifetimes.requestedSecurityRpmCalls \
