@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{c445e3d5}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{1e9d8cff}}
 \date{1 November 2026}
 \begin{document}
 \maketitle
@@ -26,7 +26,7 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{c445e3d5} of its \texttt{main} branch.
+leanVM at commit \texttt{1e9d8cff} of its \texttt{main} branch.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements ($7645$ lines with their documentation), which import Mathlib,
@@ -268,10 +268,11 @@ payload of $2^{14}$ field elements, Reed--Solomon encoded to $2^{15}$
 (\texttt{leanDaErasureCode r}). Each encoded row is cut into $128$ \emph{cells}, so the matrix has
 $128\,r$ positions.
 
-\paragraph{The commitment.} The committer hashes the cells into two Merkle trees, one over rows
-and one over columns, and publishes $\mathit{root} = H(\mathit{rowRoot} \,\|\, \mathit{colRoot})$
-(\lean{commitCells}). To \emph{open} a position, it gives the cell, the row root, and the cell's
-path in the column tree; the opening verifies if they hash back to the root (\lean{verifyCellWith}).
+\paragraph{The commitment.} The committer hashes each row's $128$ cells into a Merkle tree, the
+row's \emph{blob root} (\lean{blobRootWith}), and publishes the root of the Merkle tree over the
+blob roots, the rows padded to a power of two with zero codewords (\lean{commitCells}). To
+\emph{open} a position, it gives the cell and its path, in its blob's tree and then in the tree over
+the blob roots; the opening verifies if they hash back to the root (\lean{verifyCellWith}).
 
 \paragraph{The proof that the rows are codewords.} A Merkle root alone does not show that the rows
 are codewords. So the committer also gives a proof, from some \emph{argument} (\lean{OracleArgument}: a
@@ -279,9 +280,11 @@ prover and a verifier that may query the oracles), that the cells satisfy LeanDA
 (\lean{relationWith}):
 \begin{itemize}
 \item the cells hash to the root, and
-\item every row passes the \emph{membership test}: from the root, the duplex derives $14$
-challenges, which define a codeword $L$ of the dual code; every row must be orthogonal to $L$. A
-row that is not a codeword passes with probability at most $14/2^{192}$.
+\item every row passes the \emph{membership test}: from the root, the duplex derives one
+challenge $z$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
+dual code (\lean{dualCodewordAt}); every row must be orthogonal to $L$. A row that is not a codeword
+passes with probability at most $(2^{14}-1)/2^{192} < 2^{-178}$: its inner product with $L$ is a
+nonzero polynomial in $z$ of degree below $2^{14}$.
 \end{itemize}
 
 \paragraph{Completeness} (\lean{LeanDa.LeanDaPerfectlyComplete}). If the argument is perfectly
@@ -319,17 +322,17 @@ probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{22})\cdot 2^{-188} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{22})\cdot 2^{-178} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
-$2^{-124}$ and $2^{-119}$.
+$2^{-114}$ and $2^{-119}$.
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}
 \item $c^*$ fails the relation. Then the adversary breaks the argument's knowledge soundness:
 the first term.
 \item $c^*$ satisfies the relation but has a row that is not a codeword. Then it passed the
-membership test by luck, $14/2^{192}$ per root: the second term.
+membership test by luck, $(2^{14}-1)/2^{192}$ per root: the second term.
 \item $c^*$ is a codeword. Every opened cell hashes to the same root as $c^*$, so unless Keccak-256
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
@@ -361,7 +364,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{c445e3d5}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{1e9d8cff}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -378,14 +381,15 @@ the Fiat--Shamir initial value prover and verifier derive from the bytecode; a t
 \begin{itemize}
 \item a list $\Cx$ of leanXMSS claims and a list $\Cs$ of leanSPHINCS claims, each a pair $(pk, m)$
 meaning ``$pk$ signed $m$'';
-\item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, \delta)$ of one
+\item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, z)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
-(\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$, or $32$
-zero bytes without one (\lean{zeroDigest}; \texttt{da\_digest}, \texttt{aggregation.rs:550-548}).
-The claim: some matrix of $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to
-some $u$ with digest $\delta$ (\lean{Da.MatrixWitness.Opens}). The outer verifier holds $\rho$, derives
-$\delta$ from $\rho$'s membership vector (Section~\ref{sec:schemes}), which makes the rows codewords
-except with probability $14/2^{192}$, and checks $\mathit{da} = H(\rho \,\|\, \delta)$;
+(\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
+three limbs and a zero word), or $32$ zero bytes without one (\lean{zeroDigest};
+\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:19-26}). The claim: some matrix of
+$1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
+(\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds
+$\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}), which makes the rows codewords except
+with probability $(2^{14}-1)/2^{192}$, and checks $\mathit{da} = H(\rho \,\|\, z)$;
 \item a \emph{deferred claim} $c = (z, v)$, $z \in \mathbb{E}^{23}$, $v \in \mathbb{E}$, meaning
 that the multilinear extension $\widehat{B}$ of the bytecode, as a function on $\{0,1\}^{23}$,
 satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.HoldsWithShape}).
@@ -453,13 +457,13 @@ run on the real Keccak, accepts its proof. Whether that makes them true is the s
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
 \paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:659-676})
-additionally checks that the DA digest is that of its root with the digest of the root's
-membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
+additionally checks that the DA digest is that of its root with the root's membership
+challenge, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
 assumes only that the deferred claim holds (\lean{DeferredClaim.HoldsWithShape}); no end statement
 models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
-nothing of the blob: \lean{MatrixWitness.Opens} accepts any vector whose digest is committed, the
-zero vector included, which every row is orthogonal to.
+nothing of the blob: \lean{MatrixWitness.Opens} accepts any challenge the digest binds, $z = 0$
+included, whose dual codeword is all ones.
 
 \subsection{Soundness}
 
@@ -754,7 +758,7 @@ unit: a few instructions of a 64-bit CPU).
 \item Security against quantum adversaries (a quantum random-permutation model), for the
 signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
 \item LeanDA's code binding for an argument without access to $\pi$, and the link from the guest
-program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's membership-vector check to
+program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's derivation of the challenge to
 LeanDA's code binding.
 \item That a parent can always form its witness from honest children (the batching hints exist),
 that batching true claims gives a true deferred claim, and that the deployed outer verifier
