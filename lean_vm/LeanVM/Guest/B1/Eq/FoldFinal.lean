@@ -71,13 +71,13 @@ def ffBody (L fin : ℕ) : List Stmt :=
     (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
 
-theorem core439_body : Fn.body Data.core439 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
+theorem core439_body : Fn.body Data.core450 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core458_body : Fn.body Data.core458 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
+theorem core458_body : Fn.body Data.core469 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
 
-theorem core405_body : Fn.body Data.core405 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
+theorem core405_body : Fn.body Data.core416 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
 
-theorem core421_body : Fn.body Data.core421 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
+theorem core421_body : Fn.body Data.core432 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## What it asks -/
 

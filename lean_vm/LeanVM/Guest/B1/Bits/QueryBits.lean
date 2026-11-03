@@ -113,31 +113,31 @@ def dqBody (d : ℕ) : List Stmt :=
   [.atom (.hint (.bits (.n 0) 0 192 (.stack dqRun))), .atom (.frameAddr (.n 195) dqRun)] ++ g.1 ++
     l.1 ++ [.atom (.assertEq l.2 (.n 0)), .ret []]
 
-theorem core811_body : Fn.body Data.core811 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
+theorem core811_body : Fn.body Data.core820 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
 
-theorem core805_body : Fn.body Data.core805 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
+theorem core805_body : Fn.body Data.core814 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
 
-theorem core807_body : Fn.body Data.core807 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
+theorem core807_body : Fn.body Data.core816 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
 
-theorem core809_body : Fn.body Data.core809 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core809_body : Fn.body Data.core818 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
 
-theorem core813_body : Fn.body Data.core813 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
+theorem core813_body : Fn.body Data.core822 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
 
-theorem core817_body : Fn.body Data.core817 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
+theorem core817_body : Fn.body Data.core826 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
 
-theorem core821_body : Fn.body Data.core821 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
+theorem core821_body : Fn.body Data.core830 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
 
-theorem core825_body : Fn.body Data.core825 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
+theorem core825_body : Fn.body Data.core834 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
 
-theorem core829_body : Fn.body Data.core829 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
+theorem core829_body : Fn.body Data.core838 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core833_body : Fn.body Data.core833 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
+theorem core833_body : Fn.body Data.core842 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
 
-theorem core847_body : Fn.body Data.core847 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
+theorem core847_body : Fn.body Data.core856 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
 
-theorem core858_body : Fn.body Data.core858 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
+theorem core858_body : Fn.body Data.core867 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
 
-theorem core870_body : Fn.body Data.core870 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
+theorem core870_body : Fn.body Data.core879 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## Sums and bit runs -/
 

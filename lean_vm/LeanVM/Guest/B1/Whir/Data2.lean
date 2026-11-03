@@ -23,49 +23,49 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem os_run_2_0 : stmtsEqb ((Data.core294.body.drop 0).take 1100)
+theorem os_run_2_0 : stmtsEqb ((Data.core296.body.drop 0).take 1100)
     (((osBody (osCfg 2)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_2_1 : stmtsEqb ((Data.core294.body.drop 1100).take 1100)
+theorem os_run_2_1 : stmtsEqb ((Data.core296.body.drop 1100).take 1100)
     (((osBody (osCfg 2)).drop 1100).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_2_2 : stmtsEqb ((Data.core294.body.drop 2200).take 1100)
+theorem os_run_2_2 : stmtsEqb ((Data.core296.body.drop 2200).take 1100)
     (((osBody (osCfg 2)).drop 2200).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem osData_2 : OsData 2 := by
   have hl : (osCfg 2).levels.length = 5 := by decide +kernel
-  have hb : Data.core294.body.drop 0 = (osBody (osCfg 2)).drop 0 :=
+  have hb : Data.core296.body.drop 0 = (osBody (osCfg 2)).drop 0 :=
     run_step 1100 0 os_run_2_0 <|
     run_step 1100 1100 os_run_2_1 <|
     run_step 1100 2200 os_run_2_2 <|
     drop_end (o := 3300) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core294, Program.find?_of_indexOf? (j := 294) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core296, Program.find?_of_indexOf? (j := 294) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl
-  · exact ⟨⟨Data.core427, Program.find?_of_indexOf? (j := 427) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core438, Program.find?_of_indexOf? (j := 427) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core440, Program.find?_of_indexOf? (j := 440) (by decide +kernel) rfl,
+      ⟨Data.core451, Program.find?_of_indexOf? (j := 440) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core430, Program.find?_of_indexOf? (j := 430) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core441, Program.find?_of_indexOf? (j := 430) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core441, Program.find?_of_indexOf? (j := 441) (by decide +kernel) rfl,
+      ⟨Data.core452, Program.find?_of_indexOf? (j := 441) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core433, Program.find?_of_indexOf? (j := 433) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core444, Program.find?_of_indexOf? (j := 433) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core442, Program.find?_of_indexOf? (j := 442) (by decide +kernel) rfl,
+      ⟨Data.core453, Program.find?_of_indexOf? (j := 442) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core436, Program.find?_of_indexOf? (j := 436) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core447, Program.find?_of_indexOf? (j := 436) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core443, Program.find?_of_indexOf? (j := 443) (by decide +kernel) rfl,
+      ⟨Data.core454, Program.find?_of_indexOf? (j := 443) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core438, Program.find?_of_indexOf? (j := 438) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core449, Program.find?_of_indexOf? (j := 438) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core444, Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl,
+      ⟨Data.core455, Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 end

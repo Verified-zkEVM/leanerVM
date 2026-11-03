@@ -37,10 +37,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 @[expose] public section
 
 /-- `aggregate_claims`' block: its body without the final `ret []`. -/
-noncomputable def aggP : List Stmt := (Fn.body Data.core29).dropLast
+noncomputable def aggP : List Stmt := (Fn.body Data.core31).dropLast
 
 set_option maxRecDepth 100000 in
-theorem agg_shape : Fn.body Data.core29 = aggP ++ [Stmt.ret []] :=
+theorem agg_shape : Fn.body Data.core31 = aggP ++ [Stmt.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The seed's constants `(lo, hi)`. -/
@@ -61,7 +61,7 @@ def aggKo : List V := (List.range 13).map fun i => .n (87 + i)
 noncomputable def aggOk : Bool :=
   let P := aggP
   let A := atomsIn P
-  P.all Stmt.flat && decide (Data.core29.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) &&
+  P.all Stmt.flat && decide (Data.core31.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) &&
   (List.range 5).all (fun i => A.any (isConstAt (.n (9 + i)) (seedLo.getD i (0, 0)).1
     (seedLo.getD i (0, 0)).2) && A.any (isLoadAt (.n (9 + i)) (.n 60) i)) &&
   packIn A (.n 0) 14 && A.any (isConstAt (.n 23) 0 0) && packIn A (.n 23) 24 &&

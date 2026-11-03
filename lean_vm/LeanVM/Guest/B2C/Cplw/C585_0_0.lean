@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `opening_queries__L0_L0_L16_L24_L20_L4`, window 0, part 0. -/
+/-- `__loop158`, window 0, part 0. -/
 theorem cw585_0_0 : cplWin 585 0 0 = true := by decide +kernel
 
-/-- `__loop161`, window 0, part 0. -/
+/-- `__loop159`, window 0, part 0. -/
 theorem cw586_0_0 : cplWin 586 0 0 = true := by decide +kernel
 
-/-- `__loop162`, window 0, part 0. -/
+/-- `__loop160`, window 0, part 0. -/
 theorem cw587_0_0 : cplWin 587 0 0 = true := by decide +kernel
 
-/-- `__loop163`, window 0, part 0. -/
+/-- `__loop161`, window 0, part 0. -/
 theorem cw588_0_0 : cplWin 588 0 0 = true := by decide +kernel
 
-/-- `__loop164`, window 0, part 0. -/
+/-- `opening_queries__L0_L1_L64_L32_L24_L7`, window 0, part 0. -/
 theorem cw589_0_0 : cplWin 589 0 0 = true := by decide +kernel
 
-/-- `__loop165`, window 0, part 0. -/
+/-- `__loop162`, window 0, part 0. -/
 theorem cw590_0_0 : cplWin 590 0 0 = true := by decide +kernel
 
-/-- `__loop166`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L16_L24_L23_L6`, window 0, part 0. -/
 theorem cw591_0_0 : cplWin 591 0 0 = true := by decide +kernel
 
-/-- `__loop167`, window 0, part 0. -/
+/-- `__loop163`, window 0, part 0. -/
 theorem cw592_0_0 : cplWin 592 0 0 = true := by decide +kernel
 
 theorem ok585 : CplOk 585 := by

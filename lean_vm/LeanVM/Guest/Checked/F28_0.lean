@@ -17,31 +17,41 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `da_verify_cell`, window 0. -/
+/-- `da_verify_column`, window 0. -/
 theorem w28_0 : WinOk 28 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_verify_cell`, window 1. -/
-theorem w28_1 : WinOk 28 1 := winOk_of_C (by decide +kernel)
-
-/-- `da_vector_cell`, window 0. -/
+/-- `da_verify_cell`, window 0. -/
 theorem w29_0 : WinOk 29 0 := winOk_of_C (by decide +kernel)
 
-/-- `da_vector_cell`, window 1. -/
+/-- `da_verify_cell`, window 1. -/
 theorem w29_1 : WinOk 29 1 := winOk_of_C (by decide +kernel)
 
-/-- `da_vector_cell`, window 2. -/
-theorem w29_2 : WinOk 29 2 := winOk_of_C (by decide +kernel)
-
-/-- `da_vector_cell`, window 3. -/
-theorem w29_3 : WinOk 29 3 := winOk_of_C (by decide +kernel)
-
-/-- `da_vector_cell`, window 4. -/
-theorem w29_4 : WinOk 29 4 := winOk_of_C (by decide +kernel)
-
-/-- `aggregate_claims`, window 0. -/
+/-- `da_vector`, window 0. -/
 theorem w30_0 : WinOk 30 0 := winOk_of_C (by decide +kernel)
 
+/-- `da_column_offsets`, window 0. -/
+theorem w31_0 : WinOk 31 0 := winOk_of_C (by decide +kernel)
+
+/-- `aggregate_claims`, window 0. -/
+theorem w32_0 : WinOk 32 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop0`, window 0. -/
+theorem w33_0 : WinOk 33 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop1`, window 0. -/
+theorem w34_0 : WinOk 34 0 := winOk_of_C (by decide +kernel)
+
+theorem ok28 : CheckOk 28 := checkOk_one (by decide +kernel) w28_0
+
 theorem ok30 : CheckOk 30 := checkOk_one (by decide +kernel) w30_0
+
+theorem ok31 : CheckOk 31 := checkOk_one (by decide +kernel) w31_0
+
+theorem ok32 : CheckOk 32 := checkOk_one (by decide +kernel) w32_0
+
+theorem ok33 : CheckOk 33 := checkOk_one (by decide +kernel) w33_0
+
+theorem ok34 : CheckOk 34 := checkOk_one (by decide +kernel) w34_0
 
 end
 end LeanVM.Guest.Checked

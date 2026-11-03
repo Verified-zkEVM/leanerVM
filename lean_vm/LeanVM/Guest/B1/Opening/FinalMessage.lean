@@ -818,13 +818,13 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
 
 
 set_option maxRecDepth 100000 in
-theorem core437_body : Fn.body Data.core437 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core437_body : Fn.body Data.core448 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core456_body : Fn.body Data.core456 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core456_body : Fn.body Data.core467 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core402_body : Fn.body Data.core402 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem core402_body : Fn.body Data.core413 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core419_body : Fn.body Data.core419 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core419_body : Fn.body Data.core430 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
 
 theorem ofm_iff {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤ 8)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = ofmParams)

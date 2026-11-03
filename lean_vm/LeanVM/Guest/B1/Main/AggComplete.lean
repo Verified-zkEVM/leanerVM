@@ -165,7 +165,7 @@ sumcheck's returns `aggOrc`'s. -/
 noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
     (cs : List ChildClaims) (h : BatchingHints) : Val :=
   B1.Val.ofArgs (ev rd (aggOrc P h (aggRun cs h)) [gen ^ m, cpi, cfresh, ccarried, dst]
-    (Fn.body Data.core29))
+    (Fn.body Data.core31))
 
 /-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words. -/
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
@@ -235,11 +235,11 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
   let args : List E := [gen ^ cs.length, cpi, cfresh, ccarried, dst]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = aggσ rd cs.length cpi cfresh ccarried dst P cs h := ⟨_, rfl⟩
   rw [← hσ]
-  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body Data.core29)) := hσ
+  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body Data.core31)) := hσ
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ']; rfl
-  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core29) args hchk
+  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core31) args hchk
   rw [show args.length = 5 from rfl, ← hσ', hS] at hgs
-  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body Data.core29 := fun s hs => by
+  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body Data.core31 := fun s hs => by
     rw [hbody]; exact List.mem_append_left _ hs
   have hg : ∀ a ∈ atomsIn aggP, Good rd aggStores w σ a := fun a ha =>
     hgs (.atom a) (hmemP _ (atom_mem_of_atomsIn ha))

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F510_0
+public import LeanVM.Guest.Checked.F520_0
 
 namespace LeanVM.Guest.Checked
 
@@ -36,17 +36,7 @@ theorem plain510 : Plain 510 := plain_of_nil (by decide +kernel)
 
 theorem plain511 : Plain 511 := plain_of_nil (by decide +kernel)
 
-theorem ok512 : CheckOk 512 := fun i hi ↦ by
-  have h : (certOf 512).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w512_0
-  · exact w512_1
-  · exact w512_2
-
-theorem plain512 : Plain 512 := by
-  unfold Plain
-  decide +kernel
+theorem plain512 : Plain 512 := plain_of_nil (by decide +kernel)
 
 theorem plain513 : Plain 513 := plain_of_nil (by decide +kernel)
 
@@ -68,7 +58,17 @@ theorem plain521 : Plain 521 := plain_of_nil (by decide +kernel)
 
 theorem plain522 : Plain 522 := plain_of_nil (by decide +kernel)
 
-theorem plain523 : Plain 523 := plain_of_nil (by decide +kernel)
+theorem ok523 : CheckOk 523 := fun i hi ↦ by
+  have h : (certOf 523).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w523_0
+  · exact w523_1
+  · exact w523_2
+
+theorem plain523 : Plain 523 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain524 : Plain 524 := plain_of_nil (by decide +kernel)
 

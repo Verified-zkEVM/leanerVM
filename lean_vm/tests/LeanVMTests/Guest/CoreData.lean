@@ -160,7 +160,7 @@ example : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core429 :=
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core440 :=
   Program.find?_of_indexOf? (j := 429) (by decide +kernel) rfl
 
 example : coreProgram.find? "__loop418" = some Data.core877 :=

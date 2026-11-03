@@ -16,16 +16,16 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop396`, window 0, part 0. -/
+/-- `__loop393`, window 0, part 0. -/
 theorem cw854_0_0 : cplWin 854 0 0 = true := by decide +kernel
 
-/-- `__loop396`, window 0, part 1. -/
+/-- `__loop393`, window 0, part 1. -/
 theorem cw854_0_1 : cplWin 854 0 1 = true := by decide +kernel
 
-/-- `__loop397`, window 0, part 0. -/
+/-- `__loop394`, window 0, part 0. -/
 theorem cw855_0_0 : cplWin 855 0 0 = true := by decide +kernel
 
-/-- `__loop397`, window 0, part 1. -/
+/-- `__loop394`, window 0, part 1. -/
 theorem cw855_0_1 : cplWin 855 0 1 = true := by decide +kernel
 
 theorem ok854 : CplOk 854 := by

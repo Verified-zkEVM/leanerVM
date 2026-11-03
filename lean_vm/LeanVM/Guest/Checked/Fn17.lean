@@ -69,5 +69,15 @@ theorem plain877 : Plain 877 := plain_of_nil (by decide +kernel)
 
 theorem plain878 : Plain 878 := plain_of_nil (by decide +kernel)
 
+theorem plain879 : Plain 879 := plain_of_nil (by decide +kernel)
+
+theorem plain880 : Plain 880 := plain_of_nil (by decide +kernel)
+
+theorem plain881 : Plain 881 := plain_of_nil (by decide +kernel)
+
+theorem plain882 : Plain 882 := plain_of_nil (by decide +kernel)
+
+theorem plain883 : Plain 883 := plain_of_nil (by decide +kernel)
+
 end
 end LeanVM.Guest.Checked

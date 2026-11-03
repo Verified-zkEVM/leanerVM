@@ -115,9 +115,9 @@ def vlBody (fl : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n 3) 35)), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 3) 0)] ++ ((List.range 34).map vlBlk).flatten ++ vlTail fl
 
-theorem core385_body : Fn.body Data.core385 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core385_body : Fn.body Data.core396 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core386_body : Fn.body Data.core386 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core386_body : Fn.body Data.core397 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The bits, the prefix sums, the product -/
 
@@ -617,12 +617,12 @@ theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L0_L34 :
-    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core385 :=
+    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core396 :=
   Program.find?_of_indexOf? (j := 385) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :
-    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core386 :=
+    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core397 :=
   Program.find?_of_indexOf? (j := 386) (by decide +kernel) rfl
 
 theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)

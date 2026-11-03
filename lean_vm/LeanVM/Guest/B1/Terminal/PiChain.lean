@@ -38,9 +38,9 @@ def loop15T : List Stmt :=
     .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop15_body : Data.core260.body = loop15T := stmtsEqb_sound (by decide +kernel)
+theorem loop15_body : Data.core262.body = loop15T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core260 :=
+theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core262 :=
   Program.find?_of_indexOf? (j := 260) (by decide +kernel) rfl
 
 /-- One step of the chain at `x`: `chain[x·g] = chain[x]·p1[x]`. -/
@@ -56,7 +56,7 @@ theorem loop15_step (d : ℕ) (x N chain p1 : E)
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop15] at hf
   cases hf
-  simp only [Data.core260, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [Data.core262, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   rw [loop15_body] at hb
   simp only [loop15T, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb

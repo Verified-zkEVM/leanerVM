@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Plain
 # The pack rounds' loop (`keccak_layer`, G:2633-2664)
 
 `for x2 in mul_range(1, half_g)` in `keccak_layer` is lowered to a helper of parameters
-`[x2, half_g, rounds, prev_point, point]` (`Data.core381` .. `Data.core384`, the same body but
+`[x2, half_g, rounds, prev_point, point]` (`Data.core392` .. `Data.core395`, the same body but
 for the self-call's name, `packLoopT`). At `x = g^j` it reads the record `rounds·x`, the two
 coordinates `prev_point[2j], [2j + 1]` (`prev_point·x²`), runs two equality-mode rounds
 (`eqRound`, as `keccak_round`), stores their challenges at `point[2j], [2j + 1]` and writes the
@@ -187,18 +187,18 @@ def packLoopName : ℕ → ℕ → String
   | _, 0 => "__loop30"
   | _, _ => "__loop31"
 
-theorem packLoop_body30 : Data.core381.body = packLoopT "__loop28" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body31 : Data.core382.body = packLoopT "__loop29" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body32 : Data.core383.body = packLoopT "__loop30" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body33 : Data.core384.body = packLoopT "__loop31" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body30 : Data.core392.body = packLoopT "__loop28" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body31 : Data.core393.body = packLoopT "__loop29" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body32 : Data.core394.body = packLoopT "__loop30" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body33 : Data.core395.body = packLoopT "__loop31" := stmtsEqb_sound (by decide +kernel)
 
-theorem find_packLoop30 : coreProgram.find? "__loop28" = some Data.core381 :=
+theorem find_packLoop30 : coreProgram.find? "__loop28" = some Data.core392 :=
   Program.find?_of_indexOf? (j := 381) (by decide +kernel) rfl
-theorem find_packLoop31 : coreProgram.find? "__loop29" = some Data.core382 :=
+theorem find_packLoop31 : coreProgram.find? "__loop29" = some Data.core393 :=
   Program.find?_of_indexOf? (j := 382) (by decide +kernel) rfl
-theorem find_packLoop32 : coreProgram.find? "__loop30" = some Data.core383 :=
+theorem find_packLoop32 : coreProgram.find? "__loop30" = some Data.core394 :=
   Program.find?_of_indexOf? (j := 383) (by decide +kernel) rfl
-theorem find_packLoop33 : coreProgram.find? "__loop31" = some Data.core384 :=
+theorem find_packLoop33 : coreProgram.find? "__loop31" = some Data.core395 :=
   Program.find?_of_indexOf? (j := 384) (by decide +kernel) rfl
 
 /-- **One iteration's meaning at `x`**: the record `rounds·x` holds a canonical capacity, a cursor,
