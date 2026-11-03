@@ -190,12 +190,12 @@ makes at most `q ≤ 2^128` permutation calls (`permCallsH`) wins it with probab
 `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications included, makes at
 most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
 its transcript handed to the extractor (at most `Q + 2^22` calls with the relation's check). The
-second is the membership test's soundness, `14 / 2^192` for each of at most `Q + 14` roots whose
-challenges are drawn. The third gathers the transfer to the two-oracle model and the duplex
+second is the membership test's soundness, `(2^14 - 1) / 2^192` for each of at most `Q + 2` roots
+whose challenge is drawn. The third gathers the transfer to the two-oracle model and the duplex
 lemma, of the two games, and the hash's bad events among at most `2 Q + 2^20` hash and challenge
 queries: a collision, or a fresh answer that is a digest an earlier input or a root with drawn
 challenges already carries; it exceeds one before `Q = 2^124`.
@@ -215,7 +215,7 @@ abbrev CodeBindingRpmH : Prop :=
     ∀ (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q →
         Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

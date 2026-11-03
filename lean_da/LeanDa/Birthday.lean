@@ -41,8 +41,9 @@ section Hash
 variable {ι : Type} {Ψ : OracleSpec ι}
 
 /-- **`H` as an oracle** among `Ψ + XS`: a query on a short string, `default` on a long one (the
-value `Hh h` gives it). -/
-def hS (a : List UInt8) : OracleComp (Ψ + XS) Common.DigestBytes :=
+value `Hh h` gives it). Irreducible: unification never decides `shortP` of a concrete string (a
+cell's `2048` bytes would be computed). -/
+@[irreducible] def hS (a : List UInt8) : OracleComp (Ψ + XS) Common.DigestBytes :=
   if ha : shortP a then FreeM.lift (P := (Ψ + XS).toPFunctor) (.inr ⟨a, ha⟩) else pure default
 
 theorem simulateQ_col_hS (h : HTab) (a : List UInt8) :

@@ -36,14 +36,36 @@ namespace LeanDa
 
 open PqDas
 
-/-- The challenge of the membership test: one element of `E` (`membership_challenge`). -/
-abbrev MembershipChallenge : Type := E
+/-- **The challenges of the duplex**: its two samples, the first state's and the second's. The
+deployed challenge of the membership test (`membership_challenge`) is component `1`, the second
+sample (`membershipChallengePairM`, `pairM_one`); the checker and the relation read it alone. -/
+abbrev MembershipChallenge : Type := Fin 2 → E
+
+/-- **The duplex's two samples of a root**, in any monad: the transcript's sponge seeded with the
+label's hash and the root (`Sponge::new`), its state read as a challenge, then one sample
+(`sample`), which is the deployed challenge (`membershipChallengeMWithHash`). -/
+def membershipChallengePairM {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestBytes)
+    (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState) (root : Common.DigestBytes) :
+    m MembershipChallenge := do
+  let iv ← H membershipLabel
+  let s ← Sponge.newWith P iv root
+  let (z, _) ← Sponge.sampleWith P s
+  pure ![ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), z]
+
+/-- The pair's component `1` is the deployed challenge. -/
+theorem pairM_one {m : Type → Type} [Monad m] [LawfulMonad m]
+    (H : List UInt8 → m Common.DigestBytes)
+    (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState) (root : Common.DigestBytes) :
+    (fun z : MembershipChallenge ↦ z 1) <$> membershipChallengePairM H P root =
+      membershipChallengeMWithHash H P root := by
+  simp only [membershipChallengePairM, membershipChallengeMWithHash, map_bind, map_pure]
+  rfl
 
 /-- **Wagner's relation for LeanDA**: the cells commit to the root and pass the membership test on
 the challenge the statement carries. -/
 noncomputable def Relation (r : ℕ) (H : List UInt8 → Common.DigestBytes) (stmt : Unit × Common.DigestBytes × MembershipChallenge)
     (c : Fin (r * 128) → Cell) : Bool :=
-  decide (commitCellsWithHash H c = stmt.2.1) && membershipCheck stmt.2.2 c
+  decide (commitCellsWithHash H c = stmt.2.1) && membershipCheck (stmt.2.2 1) c
 
 /-- An argument of knowledge for `Relation r H`. -/
 abbrev Argument (r : ℕ) (H : List UInt8 → Common.DigestBytes) (Crs Proof : Type) :=
@@ -59,7 +81,7 @@ def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestB
     (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : m
         Bool := do
-  let z ← membershipChallengeMWithHash H P com.1
+  let z ← membershipChallengePairM H P com.1
   let v ← verifyCellMWithHash H r com.1 p x τ
   pure (ps.verify crs ((), com.1, z) com.2 && v)
 
@@ -136,9 +158,9 @@ theorem toBytes_eq_shift (a : K) :
   rw [Nat.mod_eq_of_lt (show 8 * t < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 8 * t < 64 by omega)]
   rfl
 
-/-- **LeanDA's code checker**: the membership test on one challenge `z ∈ E`. -/
+/-- **LeanDA's code checker**: the membership test on the deployed challenge, component `1`. -/
 noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) MembershipChallenge :=
-    ⟨membershipCheck⟩
+    ⟨fun z c ↦ membershipCheck (z 1) c⟩
 
 /-- **LeanDA's vector commitment** with hash `H`: the root of the tree of blob trees, cells
 opened by their paths in it. It needs no key. -/
@@ -294,7 +316,7 @@ noncomputable def ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × Membe
     OracleComp Rom2 Bool := do
   let root ← commitCellsMWithHash hR (ext crs out.1 out.2)
   pure (ps.verify crs out.1 out.2 &&
-    !(decide (root = out.1.2.1) && membershipCheck out.1.2.2 (ext crs out.1 out.2)))
+    !(decide (root = out.1.2.1) && membershipCheck (out.1.2.2 1) (ext crs out.1 out.2)))
 
 /-- The knowledge-soundness game in the two-oracle form. -/
 noncomputable def ksGame2 (B : KsAdvB Crs Proof) :
@@ -619,7 +641,7 @@ noncomputable def tImpl (h : HTab) : QueryImpl (unifSpec + TSpec) (StateT HCache
 
 /-- The simulated world's oracles from a table `h` of `H`. -/
 noncomputable def phiG (h : HTab) :
-    QueryImpl (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) (StateT HCache (OracleComp WSpec)) :=
+    QueryImpl (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) (StateT HCache (OracleComp WSpec)) :=
   tImpl h ∘ₛ (swapImpl ∘ₛ toV)
 
 section Adversary
@@ -637,7 +659,7 @@ noncomputable def fixCrs (crs : Crs) : Crs := by
 /-- The adversary in the simulated world: `H` queried at the label, then the RPM adversary with
 its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
 noncomputable def advSim (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
-    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14)
+    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2)
       ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :=
   (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
     advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init

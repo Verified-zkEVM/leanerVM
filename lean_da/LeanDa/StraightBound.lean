@@ -15,7 +15,7 @@ knowledge-soundness break and a true straight-line verdict are three events of o
 and the first is at most the other two (`prT_cbIdealG_le`, by `postP_imp`). The straight-line
 verdict is a bad cache of the world with the challenges one random oracle of vectors
 (`run'_romImpl_evalDistEq_vec`, `not_good_of_tail`), whose probability is bounded by the
-world's queries (`prob_not_good_le`): at most `2 Q + 2^20` queries, `Q + 14` of them of the
+world's queries (`prob_not_good_le`): at most `2 Q + 2^20` queries, `Q + 2` of them of the
 challenges, for an adversary of `Q` permutation calls and `r ≤ 1024` rows
 (`codeBindingExpG_le`).
 
@@ -71,7 +71,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 noncomputable def idealT (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
     (T : CbOut r Proof → MembershipChallenge → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
     ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).romImpl
+  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).romImpl
     (advSim r A crs >>= fun out ↦ readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
       simulateQ embG (T out l))).run' ∅
 
@@ -204,7 +204,7 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     QueryCostAtMost (verifyCellMWithHash H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
-    (hH _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
+    isWeightBound_pure _ _ 0).mono (by omega)
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
@@ -212,8 +212,8 @@ theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipCha
   classical
   have h1 : ∀ a, QueryCostAtMost (LeanDa.hH a) tCount 1 := fun a ↦
     isWeightBound_query (spec := unifSpec + roSpec (List UInt8) DigestBytes) tCount (.inr a)
-  have hc := isWeightBound_commitCellsM LeanDa.hH tCount 1 1 1 (fun a b ↦ h1 _) (fun x ↦ h1 _)
-    (fun _ _ ↦ h1 _) (ext crs ((), out.1.1, l) out.1.2)
+  have hc := isWeightBound_commitCellsM LeanDa.hH tCount 1 1 (fun a b ↦ h1 _) (fun x ↦ h1 _)
+    (ext crs ((), out.1.1, l) out.1.2)
   have hc' : QueryCostAtMost (commitCellsMWithHash LeanDa.hH (ext crs ((), out.1.1, l) out.1.2)) tCount
       (commitCalls r) := hc.mono (le_of_eq (by ring))
   unfold tailH
@@ -229,42 +229,42 @@ theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipCha
 
 theorem isWeightBound_embG_h {α : Type} {Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α}
     {N : ℕ} (h : QueryCostAtMost Y tCount N) :
-    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 14)) Y) hgCalls N :=
+    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 2)) Y) hgCalls N :=
   isWeightBound_simulateQ _ tCount hgCalls (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query hgCalls (.inl k)
     · exact isWeightBound_query hgCalls (.inr (.inl a))) h
 
 theorem isWeightBound_embG_g {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α) :
-    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 14)) Y)
+    QueryCostAtMost (simulateQ (embG (Root := Common.DigestBytes) (Z := E) (n := 2)) Y)
       (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := E) (n := 14)) 0 :=
+      (Z := E) (n := 2)) 0 :=
   isWeightBound_simulateQ _ (fun _ ↦ 0) _ (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query gCalls (.inl k)
     · exact isWeightBound_query gCalls (.inr (.inl a))) (isWeightBound_zero Y)
 
-theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain → ℕ)
+theorem isWeightBound_readVec (w : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).Domain → ℕ)
     (hw : ∀ d j, w (.inr (.inr (d, j))) = 1) (d : Common.DigestBytes) :
-    QueryCostAtMost (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 14) d) w 14 := by
+    QueryCostAtMost (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 2) d) w 2 := by
   refine isWeightBound_map _ ((isWeightBound_mapM _ w 1 (fun j ↦ ?_) _).mono (by simp))
-  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) w
+  have := isWeightBound_query (spec := unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) w
     (.inr (.inr (d, j)))
   rwa [hw] at this
 
 theorem isWeightBound_tailV_hg (crs : Crs) (out : CbOut r Proof) :
-    QueryCostAtMost (tailV r ps ext crs out) hgCalls (14 + (commitCalls r + (9 + logPaddedRowCount r))) :=
+    QueryCostAtMost (tailV r ps ext crs out) hgCalls (2 + (commitCalls r + (9 + logPaddedRowCount r))) :=
   (isWeightBound_readVec hgCalls (fun _ _ ↦ rfl) _).bind fun l ↦
     isWeightBound_embG_h (isWeightBound_tailH r ps ext crs out l)
 
 theorem isWeightBound_tailV_g (crs : Crs) (out : CbOut r Proof) :
     QueryCostAtMost (tailV r ps ext crs out)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) 14 :=
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) 2 :=
   ((isWeightBound_readVec gCalls (fun _ _ ↦ rfl) _).bind fun _ ↦ isWeightBound_embG_g _).mono
     (by omega)
 
 theorem hgCalls_eq : (fun t ↦ hCallsG t + gCalls (Msg := List UInt8) (Dg := DigestBytes)
-    (Root := Common.DigestBytes) (Z := E) (n := 14) t) = hgCalls := by
+    (Root := Common.DigestBytes) (Z := E) (n := 2) t) = hgCalls := by
   funext t
   rcases t with k | m | x <;> rfl
 
@@ -275,7 +275,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hcrs : crs ∈ support ps.setup) :
     QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1) ∧
       QueryCostAtMost (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q := by
+        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
   have hBh := isWeightBound_advS2_h r ps A Q hQ crs hcrs
   have hPh : QueryCostAtMost (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), crs))) hCalls (1 + Q) :=
@@ -291,14 +291,14 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
   have h1 : QueryCostAtMost (advSim r A crs) hCallsG (1 + Q) := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSh
   have h2 : QueryCostAtMost (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q := by
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSf
   refine ⟨?_, h2⟩
   have := h1.add h2
   rw [hgCalls_eq] at this
   exact this.mono (by omega)
 
-theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α}
+theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α}
     {N : ℕ} (h : QueryCostAtMost X hgCalls N) : QueryCostAtMost (simulateQ toV X) vCalls N :=
   isWeightBound_simulateQ _ hgCalls vCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
@@ -306,9 +306,9 @@ theorem isWeightBound_toV_v {α : Type} {X : OracleComp (unifSpec + GSpec (List 
     · exact isWeightBound_query vCalls (.inr (.inl m))
     · exact isWeightBound_map _ (isWeightBound_query vCalls (.inr (.inr d)))) h
 
-theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α}
+theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α}
     {N : ℕ} (h : QueryCostAtMost X (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := E) (n := 14)) N) : QueryCostAtMost (simulateQ toV X) gvCalls N :=
+      (Z := E) (n := 2)) N) : QueryCostAtMost (simulateQ toV X) gvCalls N :=
   isWeightBound_simulateQ _ gCalls gvCalls (fun t ↦ by
     rcases t with k | m | ⟨d, j⟩
     · exact isWeightBound_query gvCalls (.inl k)
@@ -316,14 +316,14 @@ theorem isWeightBound_toV_g {α : Type} {X : OracleComp (unifSpec + GSpec (List 
     · exact isWeightBound_map _ (isWeightBound_query gvCalls (.inr (.inr d)))) h
 
 /-- **The straight-line verdict's probability**, for an adversary of `Q` permutation calls and
-`r ≤ 1024` rows: at most `N · 65 N / 2^256 + (Q + 14) · 14 / 2^192` for `N = 2 Q + 2^20`. -/
+`r ≤ 1024` rows: at most `N · 65 N / 2^256 + (Q + 2) · (2^14 - 1) / 2^192` for `N = 2 Q + 2^20`. -/
 theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (crs : Crs) (ha : QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1))
     (hg : QueryCostAtMost (advSim r A crs)
-      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q) :
+      (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q) :
     prT (idealT r A crs (tailH r ps ext crs)) ≤
       ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-        ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192) := by
+        ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192) := by
   have hL : logPaddedRowCount r ≤ 10 := by
     unfold logPaddedRowCount
     exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hr)
@@ -334,10 +334,10 @@ theorem prT_idealT_tailH_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r 
   have h1 : QueryCostAtMost (worldV r ps ext A crs) vCalls (2 * Q + 2 ^ 20) :=
     (isWeightBound_toV_v (ha.bind fun out ↦ isWeightBound_tailV_hg r ps ext crs out)).mono
       (by unfold commitCalls; omega)
-  have h2 : QueryCostAtMost (worldV r ps ext A crs) gvCalls (Q + 14) :=
+  have h2 : QueryCostAtMost (worldV r ps ext A crs) gvCalls (Q + 2) :=
     isWeightBound_toV_g (hg.bind fun out ↦ isWeightBound_tailV_g r ps ext crs out)
   exact (prT_idealT_le r ps ext A crs).trans
-    (prob_not_good_le r _ (2 * Q + 2 ^ 20) (Q + 14) h1 h2)
+    (prob_not_good_le r _ (2 * Q + 2 ^ 20) (Q + 2) h1 h2)
 
 /-- **The simulated code-binding experiment**: the knowledge-soundness one plus the straight-line
 verdict's bound, for a simulated adversary of at most `2 Q + 1` queries of `H` or the challenges,
@@ -345,10 +345,10 @@ verdict's bound, for a simulated adversary of at most `2 Q + 1` queries of `H` o
 theorem codeBindingExpG_le (A : CodeBindingAdvB r Crs Proof) (Q : ℕ) (hr : r ≤ maxRows)
     (hA : ∀ crs ∈ support ps.setup, QueryCostAtMost (advSim r A crs) hgCalls (2 * Q + 1) ∧
       QueryCostAtMost (advSim r A crs)
-        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q) :
+        (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q) :
     prT (codeBindingExpG r ps A) ≤ prT (ps.setup >>= ksIdealG r ps ext A) +
       (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-        ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192)) :=
+        ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192)) :=
   (prT_codeBindingExpG_le r ps ext A).trans (add_le_add le_rfl
     (prEvent_bind_le_of_support _ _ _ _ fun crs hcrs ↦
       prT_idealT_tailH_le r ps ext A Q hr crs (hA crs hcrs).1 (hA crs hcrs).2))
@@ -363,18 +363,25 @@ namespace LeanDa
 
 /-- The duplex lemma's term for `Q` calls of `F`. -/
 noncomputable abbrev dupTerm (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹)
+  ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹)
 
 /-- **The terms besides the argument's knowledge soundness**: the two transfers, the two duplex
-lemmas and the straight-line verdict, at most `(Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247` for
+lemmas and the straight-line verdict, at most `(Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247` for
 `K ≤ Q + 2^22` calls of the knowledge-soundness game. -/
 theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 22) :
     (K : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
         (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-          ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192)) +
+          ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192)) +
         ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q) ≤
-      ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+      ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
+  calc _ ≤ (K : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
+        (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+          ((Q + 2 : ℕ) : ℝ≥0∞) * (2 ^ 14 / 2 ^ 192)) +
+        ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q) := by
+        gcongr
+        exact tsub_le_self
+    _ ≤ _ := ?_
   unfold dupTerm
   rw [← ENNReal.toReal_le_toReal (by finiteness) (by finiteness)]
   simp only [ENNReal.toReal_mul, ENNReal.toReal_add, ENNReal.toReal_pow, ENNReal.toReal_div,
@@ -387,7 +394,7 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 22) :
   have hB : (2 : ℝ) * 2 ^ 256 ≤ 2 ^ 576 := by
     rw [← pow_succ']; exact pow_le_pow_right₀ (by norm_num) (by norm_num)
   have hc : (264 : ℝ) / 2 ^ 256 ≤ (2 : ℝ)⁻¹ ^ 247 := by norm_num
-  have hd : (14 : ℝ) / 2 ^ 192 ≤ (2 : ℝ)⁻¹ ^ 188 := by norm_num
+  have hd : (2 : ℝ) ^ 14 / 2 ^ 192 ≤ (2 : ℝ)⁻¹ ^ 178 := by norm_num
   have hC0 : (0 : ℝ) < 2 ^ 256 := by positivity
   generalize (2 : ℝ) ^ 508 = A at hA ⊢
   generalize (2 : ℝ) ^ 576 = B at hB ⊢
@@ -409,8 +416,8 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 22) :
   have e2 := hdivA Q hQ0 hQy
   -- the terms over `B`
   have hBC : 2 / B ≤ 1 / C := by rw [div_le_div_iff₀ hB0 hC0]; linarith
-  have e3 : ((Q : ℝ) + 14 + 1) * (2 * ((Q : ℝ) + 14 + 1) * B⁻¹) ≤ y ^ 2 * (1 / C) := by
-    calc ((Q : ℝ) + 14 + 1) * (2 * ((Q : ℝ) + 14 + 1) * B⁻¹) ≤ y * (2 * y * B⁻¹) := by
+  have e3 : ((Q : ℝ) + 2 + 1) * (2 * ((Q : ℝ) + 2 + 1) * B⁻¹) ≤ y ^ 2 * (1 / C) := by
+    calc ((Q : ℝ) + 2 + 1) * (2 * ((Q : ℝ) + 2 + 1) * B⁻¹) ≤ y * (2 * y * B⁻¹) := by
           gcongr <;> (rw [hy]; linarith)
       _ = y ^ 2 * (2 / B) := by ring
       _ ≤ y ^ 2 * (1 / C) := mul_le_mul_of_nonneg_left hBC hy2
@@ -419,9 +426,9 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 22) :
     calc (2 * (Q : ℝ) + 2 ^ 20) * (65 * (2 * (Q : ℝ) + 2 ^ 20) / C) ≤
           (2 * y) * (65 * (2 * y) / C) := by gcongr <;> (rw [hy]; linarith)
       _ = y ^ 2 * (260 / C) := by ring
-  have e5 : ((Q : ℝ) + 14) * (14 / 2 ^ 192) ≤ y * (2 : ℝ)⁻¹ ^ 188 := by
-    calc ((Q : ℝ) + 14) * (14 / 2 ^ 192) ≤ y * (14 / 2 ^ 192) := by gcongr; rw [hy]; linarith
-      _ ≤ y * (2 : ℝ)⁻¹ ^ 188 := mul_le_mul_of_nonneg_left hd hy0
+  have e5 : ((Q : ℝ) + 2) * (2 ^ 14 / 2 ^ 192) ≤ y * (2 : ℝ)⁻¹ ^ 178 := by
+    calc ((Q : ℝ) + 2) * (2 ^ 14 / 2 ^ 192) ≤ y * (2 ^ 14 / 2 ^ 192) := by gcongr; rw [hy]; linarith
+      _ ≤ y * (2 : ℝ)⁻¹ ^ 178 := mul_le_mul_of_nonneg_left hd hy0
   have e6 : y ^ 2 * (264 / C) ≤ y ^ 2 * (2 : ℝ)⁻¹ ^ 247 := mul_le_mul_of_nonneg_left hc hy2
   have hsplit : y ^ 2 / C + y ^ 2 * (1 / C) + y ^ 2 * (260 / C) + (y ^ 2 / C + y ^ 2 * (1 / C)) =
       y ^ 2 * (264 / C) := by ring
@@ -429,21 +436,21 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 22) :
 
 /-- **The straight-line bound is below the forking route's** for every `Q`. -/
 theorem straight_le_fork (Q c k : ℕ) :
-    ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+    ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 +
+      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 88 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 := by
-  have hlin : ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 ≤
-      ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 93 := by
+  have hlin : ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 ≤
+      ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 88 := by
     rw [← ENNReal.toReal_le_toReal (by finiteness) (by finiteness)]
     simp only [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_inv, ENNReal.toReal_ofNat]
     have hQ0 : (0 : ℝ) ≤ Q := Nat.cast_nonneg Q
     have h1 : ((Q : ℝ) + 2 ^ 22) ≤ 4 * ((Q : ℝ) + 2 ^ 20) := by linarith
-    have h2 : (4 : ℝ) * (2 : ℝ)⁻¹ ^ 188 ≤ (2 : ℝ)⁻¹ ^ 93 := by norm_num
-    calc ((Q : ℝ) + 2 ^ 22) * (2 : ℝ)⁻¹ ^ 188 ≤ 4 * ((Q : ℝ) + 2 ^ 20) * (2 : ℝ)⁻¹ ^ 188 := by
+    have h2 : (4 : ℝ) * (2 : ℝ)⁻¹ ^ 178 ≤ (2 : ℝ)⁻¹ ^ 88 := by norm_num
+    calc ((Q : ℝ) + 2 ^ 22) * (2 : ℝ)⁻¹ ^ 178 ≤ 4 * ((Q : ℝ) + 2 ^ 20) * (2 : ℝ)⁻¹ ^ 178 := by
           gcongr
-      _ = ((Q : ℝ) + 2 ^ 20) * (4 * (2 : ℝ)⁻¹ ^ 188) := by ring
-      _ ≤ ((Q : ℝ) + 2 ^ 20) * (2 : ℝ)⁻¹ ^ 93 := by gcongr
+      _ = ((Q : ℝ) + 2 ^ 20) * (4 * (2 : ℝ)⁻¹ ^ 178) := by ring
+      _ ≤ ((Q : ℝ) + 2 ^ 20) * (2 : ℝ)⁻¹ ^ 88 := by gcongr
   have hquad : ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 ≤
       ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 :=
     mul_le_mul_of_nonneg_left (pow_le_pow_of_le_one zero_le (by norm_num) (by norm_num)) zero_le

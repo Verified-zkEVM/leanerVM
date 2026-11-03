@@ -27,8 +27,8 @@ or else whether the first opening that disagrees with `w` verifies.
   one matrix committed to it was not a codeword and passes, or `H` collides (the disagreeing
   opening verifies, `verifyCell_agree`), or a fresh answer of `H` hit a digest already carried
   (the matrix's tree completed after its challenges).
-* **The bad cache's probability** is `N · 65 N / 2^256 + Q_G · 14 / 2^192` for the world's `N`
-  queries and `Q_G` queries of `G` (`prob_not_good_le`): `N ≤ 2 Q + 2^20` and `Q_G ≤ Q + 14`
+* **The bad cache's probability** is `N · 65 N / 2^256 + Q_G · (2^14 - 1) / 2^192` for the world's `N`
+  queries and `Q_G` queries of `G` (`prob_not_good_le`): `N ≤ 2 Q + 2^20` and `Q_G ≤ Q + 2`
   (`codeBindingExpG_le`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -71,7 +71,7 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallen
     OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
-      membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
+      membershipCheck (l 1) (ext crs ((), out.1.1, l) out.1.2) = true then
     if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
@@ -87,7 +87,7 @@ noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Member
     Bool :=
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧
       commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
-      membershipCheck l (ext crs ((), out.1.1, l) out.1.2) = true then
+      membershipCheck (l 1) (ext crs ((), out.1.1, l) out.1.2) = true then
     if ext crs ((), out.1.1, l) out.1.2 ∈ (leanDaErasureCode r).code then
       match firstBad r (ext crs ((), out.1.1, l) out.1.2) out.2 with
       | some o =>
@@ -127,7 +127,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Members
   unfold tailP
   set w := ext crs ((), out.1.1, l) out.1.2
   by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ commitCellsWithHash (Hh h) w = out.1.1 ∧
-      membershipCheck l w = true
+      membershipCheck (l 1) w = true
   · rw [ite_eq_left hc, ite_eq_left hc]
     by_cases hw : w ∈ (leanDaErasureCode r).code
     · rw [ite_eq_left hw, ite_eq_left hw]
@@ -207,9 +207,7 @@ theorem noCoins_merkleRootM (d : ℕ) :
     exact ih _ fun i ↦ noCoins_bind (hL _) fun _ ↦ noCoins_bind (hL _) fun _ ↦ hHc _
 
 theorem noCoins_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : NoCoins (commitCellsMWithHash H c) :=
-  noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦
-      noCoins_bind (noCoins_mapM _ (fun _ ↦ hHc _) _) fun _ ↦ hHc _) fun _ ↦
-    noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _) fun _ ↦ hHc _
+  noCoins_merkleRootM H hHc _ _ fun _ ↦ noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _
 
 theorem noCoins_walkM (path : List Common.DigestBytes) :
     ∀ (idx : ℕ) (node : Common.DigestBytes), NoCoins (walkMWithHash H idx node path) := by
@@ -219,8 +217,7 @@ theorem noCoins_walkM (path : List Common.DigestBytes) :
 
 theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     NoCoins (verifyCellMWithHash H r com p x τ) :=
-  noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦
-    noCoins_bind (hHc _) fun _ ↦ noCoins_pure _
+  noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦ noCoins_pure _
 
 omit hHc
 
@@ -247,14 +244,14 @@ end Tail
 section World
 
 /-- Queries of `H` or of the challenges in the simulated world, one each. -/
-def hgCalls : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain → ℕ
+def hgCalls : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
 /-- `H` as the simulated world queries it, the challenges one oracle of vectors. -/
 theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) α)
     (hY : NoCoins Y) : NoCoins (simulateQ (toV (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes)
-      (Z := E) (n := 14)) (simulateQ embG Y)) := by
+      (Z := E) (n := 2)) (simulateQ embG Y)) := by
   induction Y using OracleComp.inductionOn with
   | pure a => exact noCoins_pure _
   | query_bind t k ih =>
@@ -266,7 +263,7 @@ theorem noCoins_toV_embG {α : Type} (Y : OracleComp (unifSpec + roSpec (List UI
     exact (noCoins_hq_bind (hs := VS) (.inl a) _).mpr fun u ↦ ih u (hk u)
 
 theorem noCoins_toV_readVec (d : Common.DigestBytes) :
-    NoCoins (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 14) d)) := by
+    NoCoins (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes) (Z := E) (n := 2) d)) := by
   rw [readVec, simulateQ_map]
   refine noCoins_map _ ?_
   rw [mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
@@ -295,13 +292,13 @@ theorem replay_toV_embG (c : VCache) {α : Type}
 
 theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : MembershipChallenge)
     (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes)
-      (n := 14) d)) = some l) : c (.inr d) = some l := by
+      (n := 2) d)) = some l) : c (.inr d) = some l := by
   rw [readVec, simulateQ_map, simulateQ_map,
     mapM_map (fun x ↦ simulateQ toV x) (fun a ↦ simulateQ_pure _ a)
       (fun x f ↦ simulateQ_bind _ x f),
     mapM_map (fun x ↦ simulateQ (replayImpl c) x) (fun a ↦ simulateQ_pure _ a)
       (fun x f ↦ simulateQ_bind _ x f)] at h
-  have hq : ∀ j : Fin 14, simulateQ (replayImpl c) (simulateQ toV
+  have hq : ∀ j : Fin 2, simulateQ (replayImpl c) (simulateQ toV
       (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : MembershipChallenge ↦ v j) <$> c (.inr d) := by
     intro j
     simp only [gaP, simulateQ_spec_query, toV, simulateQ_map]
@@ -311,7 +308,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Membership
   · rw [hd] at h
     simp [List.finRange_succ] at h
   · rw [hd] at h
-    have hm : ∀ l : List (Fin 14), l.mapM (fun j : Fin 14 ↦ (fun v : MembershipChallenge ↦ v j) <$>
+    have hm : ∀ l : List (Fin 2), l.mapM (fun j : Fin 2 ↦ (fun v : MembershipChallenge ↦ v j) <$>
         some v) =
         some (l.map fun j ↦ v j) := by
       intro l
@@ -324,7 +321,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Membership
     congr 1
     funext j
     dsimp only
-    rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_finRange]
+    rw [List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_finRange]; omega), List.getElem_map, List.getElem_finRange]
     rfl
 
 variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
@@ -335,7 +332,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 
 /-- The tail of the simulated world: the challenges of the root, then the straight-line verdict. -/
 noncomputable def tailV (crs : Crs) (out : CbOut r Proof) :
-    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) Bool :=
+    OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) Bool :=
   readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
     simulateQ embG (tailH r ps ext crs out l)
 
@@ -375,7 +372,7 @@ theorem not_good_of_tail (crs : Crs) (out : CbOut r Proof) (c : VCache) {z : Boo
   obtain ⟨hroot', hin⟩ := commitCellsM_some (fOf z.2) hg w root hroot
   have hin' : commitIn (fOf z.2) w ⊆ domH z.2 := fun a ha ↦ hin a ha
   by_cases hc : ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
-      membershipCheck l w = true
+      membershipCheck (l 1) w = true
   · rw [ite_eq_left hc] at hrep
     have hcode := hgood.2 out.1.1 l hd w hin' (hroot'.symm.trans hc.2.1) hc.2.2
     rw [ite_eq_left hcode] at hrep

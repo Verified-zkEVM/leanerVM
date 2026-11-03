@@ -15,7 +15,7 @@ public import LeanDa.WithHash
 Position binding and code binding of LeanDA (`LeanDa.Security`, Benedikt Wagner's framework
 `PqDas`) with Keccak-f[1600] idealized as a uniformly random permutation `π` (`Common`): the hash
 `H` is Keccak-256, the sponge over `π`, and the membership challenges are the deployed duplex over
-`π` (`membershipChallengesWith`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
+`π` (`membershipChallengeWith`), while the adversary queries Keccak-256, `π` and `π⁻¹`. The
 verifier (`verifyRpm`) is the scheme's: the challenges of the root, the argument's verification,
 and the opening's climb hashed with Keccak-256 (`verifyCellWith`). Its permutation calls in the
 challenges' duplex follow the duplex discipline, so the two-oracle transfer
@@ -72,16 +72,14 @@ theorem walk_cons (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (node s : 
       walk H (idx / 2) (H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)) rest := by
   rw [walk, apply_ite H]
 
-/-- The inputs of an opening's climb are the cell's bytes, the climb's, and the root's. -/
-theorem hashInputs_eq (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (a : List UInt8) (path : List Common.DigestBytes)
-    (rr : Common.DigestBytes) :
-    hashInputs H idx a path rr =
-      a :: (walkInputs H idx (H a) path ++ [pairBytes rr (walk H idx (H a) path)]) := by
+/-- The inputs of an opening's climb are the cell's bytes and the climb's. -/
+theorem hashInputs_eq (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (a : List UInt8)
+    (path : List Common.DigestBytes) :
+    hashInputs H idx a path = a :: walkInputs H idx (H a) path := by
   induction path generalizing idx a with
   | nil => rfl
   | cons s rest ih =>
-    rw [hashInputs, ih, walkInputs, walk_cons]
-    simp [apply_ite H]
+    rw [hashInputs, ih, walkInputs]
 
 /-- **A climb's run**: the cache grows, and in every later cache the climb's result and inputs
 are those of the cache's hash function, its inputs cached. -/
@@ -120,27 +118,22 @@ theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128))
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyCellMWithHash hR r com p x τ)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = verifyCell (hOf c') r com p x τ ∧
-      ∀ a ∈ hashInputs (hOf c') (columnTreeIndex p) (cellBytes x) τ.path τ.rowRoot,
-        c' (.inl a) ≠ none := by
+      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) τ.path, c' (.inl a) ≠ none := by
   simp only [verifyCellMWithHash, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-  obtain ⟨w₁, hw₁, w₂, hw₂, w₃, hw₃, rfl⟩ := hz
+  obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
   obtain ⟨hc1, hd⟩ := mem_support_run_hR _ c hw₁
   obtain ⟨hc2, hwalk⟩ := run_walkM _ _ _ _ hw₂
-  obtain ⟨hc3, hroot⟩ := mem_support_run_hR _ _ hw₃
-  refine ⟨hc1.trans (hc2.trans hc3), fun c' hc' ↦ ?_⟩
-  obtain ⟨hw, hin⟩ := hwalk c' (hc3.trans hc')
-  have hval1 := hOf_of_le (hc2.trans (hc3.trans hc')) hd
-  have hval3 := hOf_of_le hc' hroot
+  refine ⟨hc1.trans hc2, fun c' hc' ↦ ?_⟩
+  obtain ⟨hw, hin⟩ := hwalk c' hc'
+  have hval1 := hOf_of_le (hc2.trans hc') hd
   refine ⟨?_, ?_⟩
-  · simp only [verifyCell, cellDigestWithHash, hval1, ← hw, hval3]
+  · simp only [verifyCell, cellDigestWithHash, hval1, ← hw]
   · intro a ha
     rw [hashInputs_eq, hval1] at ha
     rcases List.mem_cons.mp ha with rfl | ha
-    · rw [(hc2.trans (hc3.trans hc')) hd]; simp
-    rcases List.mem_append.mp ha with ha | ha
+    · rw [(hc2.trans hc') hd]; simp
     · exact hin a ha
-    · rw [List.mem_singleton.mp ha, ← hw, hc' hroot]; simp
 
 /-- `findCollision` returns inputs of its two lists, unless it returns two equal ones. -/
 theorem findCollision_mem (H : List UInt8 → Common.DigestBytes) (l₁ l₂ : List (List UInt8))
@@ -185,8 +178,7 @@ theorem run_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyRpm hR pR r ps crs com p x τ)).run c)) :
     c ≤ z.2 ∧ (z.1 = true → ∀ c', z.2 ≤ c' → verifyCell (hOf c') r com.1 p x τ = true ∧
-      ∀ a ∈ hashInputs (hOf c') (columnTreeIndex p) (cellBytes x) τ.path τ.rowRoot,
-        c' (.inl a) ≠ none) := by
+      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) τ.path, c' (.inl a) ≠ none) := by
   simp only [verifyRpm, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
   obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
@@ -239,13 +231,13 @@ theorem duplexP_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Commo
 theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ :
     CellOpening)
     (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellMWithHash hR r com p x τ) hist :=
-  duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ hist' _ ↦
-    duplexP_hR_bind _ _ hist' fun _ ↦ duplexP_pure trivial
+  duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ _ _ ↦
+    duplexP_pure trivial
 
 theorem duplexP_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell)
     (τ : CellOpening) (hist : List KState) :
     DuplexP (fun _ _ ↦ True) (verifyRpm hR pR r ps crs com p x τ) hist :=
-  duplexP_bind (duplexP_membershipChallengesR com.1 hist) fun _ hist' _ ↦
+  duplexP_bind (duplexP_membershipChallengePairR com.1 hist) fun _ hist' _ ↦
     duplexP_bind (duplexP_verifyCellM r com.1 p x τ hist') fun _ _ _ ↦ duplexP_pure trivial
 
 /-- **The position-binding verifier follows the duplex discipline.** -/

@@ -170,8 +170,6 @@ theorem verifyCellM_congr {H₁ H₂ : List UInt8 → m Common.DigestBytes} (hH 
   rw [hH _ (by simp [shortP, length_cellBytes])]
   refine bind_congr fun d ↦ ?_
   rw [walkM_congr hH]
-  refine bind_congr fun w ↦ ?_
-  rw [hH _ (by simp [shortP, length_pairBytes])]
 
 theorem walkM_pure (H : List UInt8 → Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkMWithHash (m := m) (fun a ↦ pure (H a)) idx node path = pure (walk H idx node path) := by
@@ -209,14 +207,14 @@ theorem wQ_eq (d : Common.DigestBytes) : wQ d = liftM (WSpec.query (.inr d)) := 
 
 /-- The challenges of a root read component by component from Wagner's random oracle. -/
 noncomputable def readVecW (d : Common.DigestBytes) : OracleComp WSpec MembershipChallenge :=
-  (fun l j ↦ l.getD j default) <$> (List.finRange 14).mapM fun j ↦ (fun v : MembershipChallenge ↦ v j) <$> wQ d
+  (fun l j ↦ l.getD j default) <$> (List.finRange 2).mapM fun j ↦ (fun v : MembershipChallenge ↦ v j) <$> wQ d
 
 theorem simulateQ_phiG (h : HTab) {α : Type}
-    (X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α) :
+    (X : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α) :
     simulateQ (tImpl h) (simulateQ swapImpl (simulateQ toV X)) = simulateQ (phiG h) X := by
   rw [phiG, QueryImpl.simulateQ_compose, QueryImpl.simulateQ_compose]
 
-theorem phiG_G_run (h : HTab) (d : Common.DigestBytes) (j : Fin 14) (s : HCache) :
+theorem phiG_G_run (h : HTab) (d : Common.DigestBytes) (j : Fin 2) (s : HCache) :
     (phiG h (.inr (.inr (d, j)))).run s = (fun v : MembershipChallenge ↦ (v j, s)) <$> wQ d := by
   simp only [phiG, QueryImpl.apply_compose, toV, simulateQ_map, simulateQ_spec_query, swapImpl,
     tImpl, StateT.run_map, StateT.run_mk, Functor.map_map]
@@ -228,14 +226,14 @@ theorem phiG_H_run (h : HTab) (a : List UInt8) (ha : shortP a) (s : HCache) :
     ↓reduceDIte, StateT.run_mk, Hh]
 
 theorem run_readVec_phiG (h : HTab) (d : Common.DigestBytes) (s : HCache) :
-    (simulateQ (phiG h) (readVec (Msg := List UInt8) (Dg := DigestBytes) (n := 14) d)).run s =
+    (simulateQ (phiG h) (readVec (Msg := List UInt8) (Dg := DigestBytes) (n := 2) d)).run s =
       (·, s) <$> readVecW d := by
   rw [readVec, simulateQ_map, StateT.run_map]
   have hp : ∀ {α} (a : α), simulateQ (phiG h) (pure a :
-      OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α) = pure a :=
+      OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α) = pure a :=
     fun a ↦ simulateQ_pure _ a
-  have hb : ∀ {α β} (x : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) α)
-      (f : α → OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) β),
+  have hb : ∀ {α β} (x : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) α)
+      (f : α → OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) β),
       simulateQ (phiG h) (x >>= f) = simulateQ (phiG h) x >>= fun a ↦ simulateQ (phiG h) (f a) :=
     fun x f ↦ simulateQ_bind _ x f
   rw [mapM_map (fun x ↦ simulateQ (phiG h) x) hp hb,
@@ -420,7 +418,7 @@ theorem prob_postP_eq_verifyW {rel : Unit × Common.DigestBytes × MembershipCha
       Pr{let b ← (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl
         (verifyW r (Hh h) (argH r ps (Hh h)) crs out)).run' c}[b = true] := by
   obtain ⟨com, l⟩ := out
-  have hfin : List.finRange 14 = (0 : Fin 14) :: (List.finRange 13).map Fin.succ :=
+  have hfin : List.finRange 2 = (0 : Fin 2) :: (List.finRange 1).map Fin.succ :=
     List.finRange_succ
   have hread : (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl
       (postP r ps h crs (com, l) <$> readVecW com.1)).run' c =ᵈ
@@ -429,12 +427,12 @@ theorem prob_postP_eq_verifyW {rel : Unit × Common.DigestBytes × MembershipCha
       Functor.map_map]
     refine ((run_mapM_wQ com.1 (fun j v ↦ v j) 0 _ c).map _).trans ?_
     rw [Functor.map_map]
-    have hv : ∀ v : MembershipChallenge, (fun j : Fin 14 ↦
-        (List.map (fun b ↦ v b) (0 :: List.map Fin.succ (List.finRange 13))).getD j default) = v := by
+    have hv : ∀ v : MembershipChallenge, (fun j : Fin 2 ↦
+        (List.map (fun b ↦ v b) (0 :: List.map Fin.succ (List.finRange 1))).getD j default) = v := by
       intro v
       rw [← hfin]
       funext j
-      rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_finRange]
+      rw [List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_finRange]; omega), List.getElem_map, List.getElem_finRange]
       rfl
     simp only [hv]
     exact EvalDistEq.rfl
@@ -493,7 +491,7 @@ theorem hashQueryBound_of_isWeightBound {α : Type} {X : OracleComp WSpec α} {Q
 
 /-- **Each step of the oracles from a table makes at most one query of the challenges**, and only
 for one of `G`. -/
-theorem isWeightBound_phiG (h : HTab) (t : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain)
+theorem isWeightBound_phiG (h : HTab) (t : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).Domain)
     (s : HCache) : QueryCostAtMost ((phiG h t).run s) wCalls (gCalls t) := by
   rcases t with k | m | ⟨d, j⟩
   · simp only [phiG, QueryImpl.apply_compose, toV, simulateQ_spec_query, swapImpl, tImpl,

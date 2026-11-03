@@ -175,7 +175,8 @@ theorem relabel_ksGame (A : CodeBindingAdvRpmH r Crs Proof) :
     bind_map_left, map_bind, bind_assoc, simulateQ_pure, pure_bind, map_pure]
   refine bind_congr fun p ↦ ?_
   refine bind_congr fun ok ↦ ?_
-  simp only [relationMWithHash, simulateQ_bind, relabel_membershipChallengesM, bind_assoc]
+  simp only [relationMWithHash, simulateQ_bind, ← pairM_one,
+    bind_map_left, bind_assoc]
   refine bind_congr fun zs ↦ ?_
   simp only [ksPost, simulateQ_bind, toK_commitCellsM, relabel_commitCellsM, simulateQ_pure,
     pure_bind]
@@ -462,7 +463,7 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
     (hrM : r ≤ maxRows) (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q) :
     Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
   swap
@@ -501,7 +502,7 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
   have hA : ∀ crs ∈ support (psV r ps).setup,
       QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs) hgCalls (2 * Q + 1) ∧
         QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs)
-          (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q := by
+          (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 2)) Q := by
     intro crs hcrs
     obtain ⟨h1, h2⟩ := isWeightBound_advSim r (psV r ps) _ Q hQ0 crs hcrs
     rw [relabelAdv_advV0, advSim_map] at h1 h2
@@ -525,13 +526,13 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
             (ksAdv r (relabelAdv (advV0 r ps A)))) +
           ((((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
             (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-              ((Q + 14 : ℕ) : ℝ≥0∞) * (14 / 2 ^ 192))) +
+              ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192))) +
             ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q)) := by
         refine (add_le_add (add_le_add (hS.trans (add_le_add hKS le_rfl)) le_rfl) le_rfl).trans
           (le_of_eq ?_)
         ring
     _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k +
-          (((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 188 +
+          (((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
     _ = _ := by ring
 

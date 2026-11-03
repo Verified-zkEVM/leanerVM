@@ -14,9 +14,9 @@ public import LeanDa.WithHash
 The random-permutation model (`Common`) instantiates LeanDA's hash `H` with Keccak-256, the
 sponge over a permutation `π` of the 200-byte Keccak-f[1600] state, and the challenges' duplex
 sponge `P` with `π` itself. The definitions of `LeanDa.Scheme` take `H` and `P` as functions; here
-they are transcribed for oracles, in any monad (`Sponge.newWith`, …, `membershipChallengesWith`,
-`climbWith`, `verifyCellWith`), and are the scheme's own for pure ones (`membershipChallengesM_id`,
-`verifyCellM_id`).
+they are transcribed for oracles, in any monad (`Sponge.newWith`, `Sponge.sampleWith`,
+`membershipChallengeMWithHash`, `walkMWithHash`, `verifyCellMWithHash`), and are the scheme's own
+for pure ones (`membershipChallengeM_id`, `verifyCellM_id`).
 
 **Lanes and bytes.** The sponge's state is the statement's `KState`, `25` lanes of `u64`, read
 on the permutation's `200` bytes: lane `i` is bytes `8 i … 8 i + 7`, little endian
@@ -25,7 +25,8 @@ an element of `K` has the bytes `laneBytes` gives it (`laneBytes_toList`). `lane
 `stateToLanes` convert, and a duplexing writes the rate lanes `0 … 15` and keeps lanes `16 … 24`, that is bytes
 `128 … 199`: the capacity and the last rate byte `135`, whose top bit no padded block has clear
 (`Common.keccakNF`). So every permutation call of the challenges' sponge absorbs a non-final
-block into the zero state or into an earlier answer (`duplexP_membershipChallengesR`): the duplex
+block into the zero state or into an earlier answer (`duplexP_membershipChallengeR`,
+`duplexP_membershipChallengePairR`): the duplex
 discipline of the two-oracle transfer (`Common.keccak256_transfer2`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -69,10 +70,10 @@ section Pure
 
 variable (H : List UInt8 → Common.DigestBytes) (P : Lanes → Lanes)
 
-/-- **Over pure functions, the challenges are the crate's.** -/
-theorem membershipChallengesM_id (root : Common.DigestBytes) :
-    membershipChallengesMWithHash (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
-      membershipChallenges H P root := rfl
+/-- **Over pure functions, the challenge is the crate's.** -/
+theorem membershipChallengeM_id (root : Common.DigestBytes) :
+    membershipChallengeMWithHash (m := Id) (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root =
+      membershipChallenge H P root := rfl
 
 theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     walkMWithHash (m := Id) (fun a ↦ pure (H a)) idx node path = walk H idx node path := by
@@ -85,9 +86,7 @@ theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Dig
 /-- **Over a pure function, the verification is `verifyCell`.** -/
 theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     verifyCellMWithHash (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
-  simp only [verifyCellMWithHash, verifyCell]
-  change (decide _ && decide (H (pairBytes τ.rowRoot (walkMWithHash (m := Id) _ _ _ _)) = com)) = _
-  rw [walkM_id]
+  simp only [verifyCellMWithHash, verifyCell, walkM_id, cellDigestWithHash]
   rfl
 
 end Pure
@@ -224,37 +223,28 @@ theorem duplexP_duplexM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s)
 theorem SpongePost.trans {h₀ h₁ h₂ : List KState} {s : Sponge} (h01 : h₀ ⊆ h₁)
     (h : SpongePost h₁ s h₂) : SpongePost h₀ s h₂ := ⟨h.1, fun _ ha ↦ h.2 (h01 ha)⟩
 
-theorem duplexP_absorbM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) (x : E)
-    (tag : K) : DuplexP (SpongePost hist) (Sponge.absorbWith pR s x tag) hist := by
-  unfold Sponge.absorbWith
-  have h1 : DuplexP (SpongePost hist)
-      (if s.pending.length = rateScalars then Sponge.duplexWith pR s else pure s) hist := by
-    split
-    · exact duplexP_duplexM hs
-    · exact duplexP_pure ⟨hs, List.Subset.refl _⟩
-  exact duplexP_bind h1 fun s' hist' h ↦ duplexP_pure ⟨h.1, h.2⟩
+theorem duplexP_sampleM {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
+    DuplexP (fun p hist' ↦ SpongePost hist p.2 hist') (Sponge.sampleWith pR s) hist := by
+  unfold Sponge.sampleWith
+  exact duplexP_bind (duplexP_duplexM hs) fun s' hist' h ↦ duplexP_pure h
 
-theorem duplexP_samplesM (n : ℕ) {hist : List KState} {s : Sponge} (hs : SpongeOK hist s) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (Sponge.samplesWith pR n s) hist := by
-  induction n generalizing hist s with
-  | zero => exact duplexP_pure (List.Subset.refl _)
-  | succ n ih =>
-    unfold Sponge.samplesWith Sponge.sampleWith
-    rw [bind_assoc]
-    refine duplexP_bind (duplexP_duplexM hs) fun s' hist' h ↦ ?_
-    simp only [pure_bind]
-    exact duplexP_bind (ih h.1) fun zs hist'' h' ↦ duplexP_pure fun _ ha ↦ h' (h.2 ha)
-
-/-- **The challenges' sponge follows the duplex discipline.** -/
-theorem duplexP_membershipChallengesR (root : Common.DigestBytes) (hist : List KState) :
-    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengesMWithHash hR pR root) hist := by
-  unfold membershipChallengesMWithHash Sponge.fromLabelMWithHash
-  rw [bind_assoc]
+/-- **The challenge's sponge follows the duplex discipline**: its first call permutes a fresh
+sponge, a non-final block into the zero state, and its sample an earlier answer's lanes. -/
+theorem duplexP_membershipChallengeR (root : Common.DigestBytes) (hist : List KState) :
+    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengeMWithHash hR pR root) hist := by
+  unfold membershipChallengeMWithHash
   refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
   refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
-  refine duplexP_bind (duplexP_absorbM hs₁.1 _ _) fun s₂ h₂ hs₂ ↦ ?_
-  refine duplexP_bind (duplexP_absorbM hs₂.1 _ _) fun s₃ h₃ hs₃ ↦ ?_
-  exact duplexP_mono (duplexP_samplesM logK hs₃.1) fun _ h₄ h _ ha ↦
-    h (hs₃.2 (hs₂.2 (hs₁.2 ha)))
+  refine duplexP_bind (duplexP_sampleM hs₁.1) fun p h₂ hs₂ ↦ ?_
+  exact duplexP_pure fun _ ha ↦ hs₂.2 (hs₁.2 ha)
+
+/-- The duplex discipline of the pair of samples (`membershipChallengePairM`). -/
+theorem duplexP_membershipChallengePairR (root : Common.DigestBytes) (hist : List KState) :
+    DuplexP (fun _ hist' ↦ hist ⊆ hist') (membershipChallengePairM hR pR root) hist := by
+  unfold membershipChallengePairM
+  refine duplexP_hR_bind _ _ hist fun iv ↦ ?_
+  refine duplexP_bind (duplexP_newM hist iv _) fun s₁ h₁ hs₁ ↦ ?_
+  refine duplexP_bind (duplexP_sampleM hs₁.1) fun p h₂ hs₂ ↦ ?_
+  exact duplexP_pure fun _ ha ↦ hs₂.2 (hs₁.2 ha)
 
 end LeanDa

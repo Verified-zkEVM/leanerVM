@@ -81,19 +81,36 @@ theorem mem_code_iff {r : ℕ} (c : Fin (r * 128) → Cell) :
 /-! ## The code checker -/
 
 theorem checker_check_iff {r : ℕ} (z : MembershipChallenge) (c : Fin (r * 128) → Cell) :
-    (checker r).check z c = true ↔ ∀ i, innerProduct (dualCodewordAt z) (matrixRow c i) = 0 :=
+    (checker r).check z c = true ↔ ∀ i, innerProduct (dualCodewordAt (z 1)) (matrixRow c i) = 0 :=
   decide_eq_true_iff
 
 theorem checker_complete (r : ℕ) : (checker r).Complete (leanDaErasureCode r) := by
   intro c hc z
   rw [mem_code_iff] at hc
-  exact (checker_check_iff z c).mpr fun i ↦ dot_dual_eq_zero (hc i) z
+  exact (checker_check_iff z c).mpr fun i ↦ dot_dual_eq_zero (hc i) (z 1)
 
-theorem card_challenges : Fintype.card MembershipChallenge = 2 ^ 192 := by
+theorem card_E : Fintype.card E = 2 ^ 192 := by
   rw [← Nat.card_eq_fintype_card, BF64.nat_card_ext3]
 
+/-- The challenges: `|E|² = 2^384`. -/
+theorem card_challenges : Fintype.card MembershipChallenge = 2 ^ 192 * 2 ^ 192 := by
+  rw [Fintype.card_fun, card_E, Fintype.card_fin, sq]
+
+/-- The pairs whose component `1` satisfies `f`: `|F|` times as many as the values. Generic in
+`F`: at `E`, a hypothesis `l ∈ Finset.univ.filter _` would unfold `Finset.univ`. -/
+theorem card_filter_one {F : Type*} [Fintype F] [DecidableEq F] (f : F → Prop) [DecidablePred f] :
+    (Finset.univ.filter fun l : Fin 2 → F ↦ f (l 1)).card =
+      Fintype.card F * (Finset.univ.filter f).card := by
+  have h : (Finset.univ.filter fun l : Fin 2 → F ↦ f (l 1)) =
+      Fintype.piFinset fun j : Fin 2 ↦ if j = 1 then Finset.univ.filter f else Finset.univ := by
+    ext l
+    simp [Fintype.mem_piFinset, Fin.forall_fin_two]
+  rw [h, Fintype.card_piFinset, Fin.prod_univ_two]
+  simp
+
 /-- **The membership test is `(2^14 - 1) / 2^192`-sound**: a fixed matrix that is not a codeword
-passes for at most `2^14 - 1` of the `|E| = 2^192` challenges (`membership.rs:11-14`). -/
+passes for at most `2^14 - 1` of the `|E| = 2^192` values of the deployed challenge
+(`membership.rs:11-14`), component `1` of the pair: the marginal of a uniform pair. -/
 theorem checker_sound (r : ℕ) :
     (checker r).Sound (leanDaErasureCode r) ((2 ^ 14 - 1) / 2 ^ 192) := by
   intro c hc
@@ -103,16 +120,22 @@ theorem checker_sound (r : ℕ) :
   have hcard := card_acceptSet_le hi
   calc Pr{let x ← (fun l ↦ (checker r).check l c) <$> ($ᵗ MembershipChallenge)}[x = true]
       = Pr{let l ← $ᵗ MembershipChallenge}[(checker r).check l c = true] := prEvent_map _ _ _
-    _ ≤ Pr{let l ← $ᵗ MembershipChallenge}[innerProduct (dualCodewordAt l) (matrixRow c i) = 0] :=
+    _ ≤ Pr{let l ← $ᵗ MembershipChallenge}[
+          innerProduct (dualCodewordAt (l 1)) (matrixRow c i) = 0] :=
         prEvent_mono _ _ _ fun l hl ↦ (checker_check_iff l c).mp hl i
-    _ = (acceptSet (matrixRow c i)).card / (Fintype.card MembershipChallenge : ℝ≥0∞) :=
+    _ = (Finset.univ.filter fun l : MembershipChallenge ↦
+          innerProduct (dualCodewordAt (l 1)) (matrixRow c i) = 0).card /
+          (Fintype.card MembershipChallenge : ℝ≥0∞) :=
         SampleableType.prEvent_uniformSample _
     _ ≤ (2 ^ 14 - 1) / 2 ^ 192 := by
-        rw [card_challenges, Nat.cast_pow, Nat.cast_ofNat]
+        rw [card_filter_one (fun z ↦ innerProduct (dualCodewordAt z) (matrixRow c i) = 0),
+          ← acceptSet, card_challenges, card_E, Nat.cast_mul, Nat.cast_mul, Nat.cast_pow,
+          Nat.cast_ofNat, ENNReal.mul_div_mul_left _ _ (pow_ne_zero _ two_ne_zero)
+            (ENNReal.pow_ne_top ENNReal.ofNat_ne_top)]
         gcongr
         calc ((acceptSet (matrixRow c i)).card : ℝ≥0∞) ≤ ((2 ^ 14 - 1 : ℕ) : ℝ≥0∞) :=
               Nat.cast_le.mpr hcard
-          _ = 2 ^ 14 - 1 := by norm_num
+          _ = 2 ^ 14 - 1 := by rw [ENNReal.natCast_sub]; norm_num
 
 /-! ## The vector commitment -/
 

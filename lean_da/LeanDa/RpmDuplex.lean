@@ -132,31 +132,15 @@ theorem daDuplex_out (y : KState) :
       (K.ofLane (stateToLanes y)[2]) :=
   daBuild_symm_fst_eq y
 
-theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
-    Sponge.samplesWith pR k ⟨stateToLanes y, []⟩ = chainP daDuplex k y := by
-  induction k generalizing y with
-  | zero => rfl
-  | succ k ih =>
-    simp only [Sponge.samplesWith, Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm, chainP,
-      map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
-    refine bind_congr fun y' ↦ ?_
-    rw [ih, daDuplex_out]
-
-/-- **Over `F`, LeanDA's challenges are the duplex's.** -/
-theorem membershipChallengesM_eq_chalP (root : Common.DigestBytes) :
-    membershipChallengesMWithHash hR pR root = chalP daDuplex root := by
-  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newWith,
-      Sponge.observeWith,
-    Sponge.absorbWith, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,
-    Function.comp_apply]
-  refine bind_congr fun iv ↦ bind_congr fun y₀ ↦ ?_
-  have h0 : ¬ ([] : List (E × K)).length = rateScalars := by simp [rateScalars]
-  simp only [h0, ↓reduceIte, pure_bind, List.nil_append]
-  show Sponge.samplesWith pR (13 + 1) ⟨stateToLanes y₀, rootScalars root⟩ = _
-  rw [Sponge.samplesWith]
-  simp only [Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm,
-    map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
-  refine bind_congr fun y₁ ↦ ?_
-  rw [samplesM_eq_chainP, daDuplex_out]
+/-- **Over `F`, the pair of LeanDA's samples is the duplex's challenges** (`n = 2`): the fresh
+sponge's answer at `daFirst root iv`, then the sample's at `daNext`. -/
+theorem membershipChallengePairM_eq_chalP (root : Common.DigestBytes) :
+    membershipChallengePairM hR pR root = toVec <$> chalP daDuplex root := by
+  simp only [membershipChallengePairM, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith, pR,
+    lanePerm, chalP, chainP, map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
+  refine bind_congr fun iv ↦ bind_congr fun y₁ ↦ bind_congr fun y₂ ↦ ?_
+  congr 1
+  funext j
+  fin_cases j <;> simp [toVec, daDuplex_out]
 
 end LeanDa

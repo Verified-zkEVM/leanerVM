@@ -43,18 +43,16 @@ def merklePathM : ℕ → (ℕ → m Common.DigestBytes) → ℕ → m (List Com
 
 /-- The honest opening of a position over an oracle (`openCell`). -/
 def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
-  let rr ← rowRootMWithHash H c
-  let path ← merklePathM H (7 + logPaddedRowCount r) (colLeavesMWithHash H c) (columnTreeIndex p)
-  pure ⟨rr, path⟩
+  let low ← merklePathM H 7 (cellLeavesMWithHash H c (positionRow p)) (positionCell p)
+  let high ← merklePathM H (logPaddedRowCount r) (blobRootMWithHash H c) (positionRow p)
+  pure ⟨low ++ high⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/
-def hashInputsM : ℕ → List UInt8 → List Common.DigestBytes → Common.DigestBytes → m (List (List UInt8))
-  | _, a, [], rr => do
+def hashInputsM : ℕ → List UInt8 → List Common.DigestBytes → m (List (List UInt8))
+  | _, a, [] => pure [a]
+  | idx, a, s :: rest => do
     let d ← H a
-    pure [a, pairBytes rr d]
-  | idx, a, s :: rest, rr => do
-    let d ← H a
-    let tl ← hashInputsM (idx / 2) (if idx % 2 = 0 then pairBytes d s else pairBytes s d) rest rr
+    let tl ← hashInputsM (idx / 2) (if idx % 2 = 0 then pairBytes d s else pairBytes s d) rest
     pure (a :: tl)
 
 /-- The first colliding pair of two climbs over an oracle (`findCollision`). -/
@@ -104,38 +102,32 @@ theorem merklePathM_eval (d : ℕ) : ∀ (f : ℕ → m Common.DigestBytes) (f' 
     simp only [merklePathM, merklePathWithHash, hbind, hf, pure_bind,
       ih _ _ (upM_eval φ hpure hbind H H' hH f f' hf), hpure]
 
-theorem rowLeavesM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    φ (rowLeavesMWithHash H c i) = pure (rowLeavesWithHash H' c i) := by
-  simp only [rowLeavesMWithHash, hbind, mapM_map φ hpure hbind, hH, List.mapM_pure, pure_bind]
-  rw [rowLeavesWithHash, ofFn_val_eq_map_range (g := fun j ↦ cellDigestWithHash H' (paddedCell c i j))]
-  rfl
-
-theorem colLeavesM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (l : ℕ) :
-    φ (colLeavesMWithHash H c l) = pure (colLeavesWithHash H' c l) :=
+theorem cellLeavesM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) :
+    φ (cellLeavesMWithHash H c i j) = pure (cellLeavesWithHash H' c i j) :=
   hH _
 
+theorem blobRootM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
+    φ (blobRootMWithHash H c i) = pure (blobRootWithHash H' c i) :=
+  merkleRootM_eval φ hpure hbind H H' hH _ _ _ (cellLeavesM_eval φ hpure hbind H H' hH c i)
+
 theorem commitCellsM_eval {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) := by
-  simp only [commitCellsMWithHash, rowRootMWithHash, colRootMWithHash, hbind,
-    merkleRootM_eval φ hpure hbind H H' hH _ _ _ (rowLeavesM_eval φ hpure hbind H H' hH c),
-    merkleRootM_eval φ hpure hbind H H' hH _ _ _ (colLeavesM_eval φ hpure hbind H H' hH c),
-    pure_bind, hH]
-  rfl
+    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) :=
+  merkleRootM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c)
 
 theorem openCellM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     φ (openCellM H c p) = pure (openCellWithHash H' c p) := by
-  simp only [openCellM, rowRootMWithHash, hbind,
-    merkleRootM_eval φ hpure hbind H H' hH _ _ _ (rowLeavesM_eval φ hpure hbind H H' hH c),
-    merklePathM_eval φ hpure hbind H H' hH _ _ _ (colLeavesM_eval φ hpure hbind H H' hH c),
+  simp only [openCellM, hbind,
+    merklePathM_eval φ hpure hbind H H' hH _ _ _ (cellLeavesM_eval φ hpure hbind H H' hH c _),
+    merklePathM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c),
     pure_bind, hpure]
   rfl
 
-theorem hashInputsM_eval (path : List Common.DigestBytes) : ∀ (idx : ℕ) (a : List UInt8) (rr : Common.DigestBytes),
-    φ (hashInputsM H idx a path rr) = pure (hashInputs H' idx a path rr) := by
+theorem hashInputsM_eval (path : List Common.DigestBytes) : ∀ (idx : ℕ) (a : List UInt8),
+    φ (hashInputsM H idx a path) = pure (hashInputs H' idx a path) := by
   induction path with
-  | nil => intro idx a rr; simp only [hashInputsM, hashInputs, hbind, hH, pure_bind, hpure]
+  | nil => intro idx a; exact hpure _
   | cons s rest ih =>
-    intro idx a rr
+    intro idx a
     simp only [hashInputsM, hashInputs, hbind, hH, pure_bind, ih, hpure]
 
 theorem findCollisionM_eval (l₁ : List (List UInt8)) : ∀ l₂ : List (List UInt8),
@@ -197,10 +189,9 @@ theorem isWeightBound_mapM {γ : Type} (f : γ → OracleComp spec β) (w : ι �
     exact ((hf a).bind fun _ ↦ ih.bind fun _ ↦ isWeightBound_pure _ _ 0).mono
       (by simp only [List.length_cons]; ring_nf; omega)
 
-variable (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (cP cC cR : ℕ)
+variable (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (cP cC : ℕ)
   (hP : ∀ a b, QueryCostAtMost (H (pairBytes a b)) w cP)
   (hC : ∀ x, QueryCostAtMost (H (cellBytes x)) w cC)
-  (hR : ∀ ds : List Common.DigestBytes, ds.length = 64 → QueryCostAtMost (H (ds.flatMap Vector.toList)) w cR)
 
 include hP in
 theorem isWeightBound_upM (f : ℕ → OracleComp spec Common.DigestBytes) (c : ℕ)
@@ -241,53 +232,49 @@ theorem isWeightBound_merklePathM (d : ℕ) : ∀ (f : ℕ → OracleComp spec C
     rw [show (k + 1) * 2 - 1 = 2 * k + 1 by omega, show k + 1 - 1 = k by omega]
     nlinarith
 
-include hC hR in
-theorem isWeightBound_rowLeavesM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    QueryCostAtMost (rowLeavesMWithHash H c i) w (64 * cC + cR) := by
-  unfold rowLeavesMWithHash
-  refine IsWeightBound.bind_of_mem_support ((isWeightBound_mapM
-    (fun j : ℕ ↦ H (cellBytes (paddedCell c i j))) w cC (fun j ↦ hC (paddedCell c i j))
-    (List.range 64)).mono (by rw [List.length_range])) fun ds hds ↦ ?_
-  exact hR ds (by simpa using length_of_mem_support_mapM _ _ hds)
+include hP hC in
+theorem isWeightBound_blobRootM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
+    QueryCostAtMost (blobRootMWithHash H c i) w (128 * cC + 127 * cP) := by
+  unfold blobRootMWithHash
+  exact (isWeightBound_merkleRootM H w cP hP 7 _ cC fun _ ↦ hC _).mono (by norm_num)
 
-include hP hC hR in
+include hP hC in
+/-- The commitment's hash calls: `128` cells and `127` pairs per blob tree, and `2^⌈log₂ r⌉ - 1`
+pairs over the blob roots, at most `2^⌈log₂ r⌉ · 128 (cC + cP)`. -/
 theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
-    QueryCostAtMost (commitCellsMWithHash H c) w
-      (paddedRowCount r * (64 * cC + cR + cP) + 128 * paddedRowCount r * (cC + cP) + cP) := by
-  unfold commitCellsMWithHash rowRootMWithHash colRootMWithHash
-  refine (((isWeightBound_merkleRootM H w cP hP _ _ _
-    (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
-      (isWeightBound_merkleRootM H w cP hP _ _ _ fun _ ↦ hC _).bind fun _ ↦ hP _ _)).mono ?_
+    QueryCostAtMost (commitCellsMWithHash H c) w (paddedRowCount r * (128 * cC + 128 * cP)) := by
+  unfold commitCellsMWithHash
+  refine (isWeightBound_merkleRootM H w cP hP _ _ _
+    (isWeightBound_blobRootM H w cP cC hP hC c)).mono ?_
   have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
-  have e : 2 ^ (7 + logPaddedRowCount r) = 128 * paddedRowCount r := by rw [pow_add]; rfl
-  rw [e]
   unfold paddedRowCount
-  zify [h1, show 1 ≤ 128 * 2 ^ logPaddedRowCount r by omega]
+  generalize 2 ^ logPaddedRowCount r = n at h1 ⊢
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+  rw [show k + 1 - 1 = k by omega]
   nlinarith
 
-include hP hC hR in
+include hP hC in
 theorem isWeightBound_openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    QueryCostAtMost (openCellM H c p) w (paddedRowCount r * (64 * cC + cR + cP) + 128 * paddedRowCount r * (cC + cP)) := by
-  unfold openCellM rowRootMWithHash
-  refine (((isWeightBound_merkleRootM H w cP hP _ _ _
-    (isWeightBound_rowLeavesM H w cC cR hC hR c)).bind fun _ ↦
-      (isWeightBound_merklePathM H w cP hP _ _ _ (fun _ ↦ hC _) _).bind fun _ ↦
-        isWeightBound_pure _ _ 0)).mono ?_
+    QueryCostAtMost (openCellM H c p) w (paddedRowCount r * (128 * cC + 128 * cP)) := by
+  unfold openCellM
+  refine ((isWeightBound_merklePathM H w cP hP 7 _ cC (fun _ ↦ hC _) _).bind fun _ ↦
+    (isWeightBound_merklePathM H w cP hP _ _ _ (isWeightBound_blobRootM H w cP cC hP hC c) _).bind
+      fun _ ↦ isWeightBound_pure _ _ 0).mono ?_
   have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
-  have e : 2 ^ (7 + logPaddedRowCount r) = 128 * paddedRowCount r := by rw [pow_add]; rfl
-  rw [e]
   unfold paddedRowCount
-  zify [h1, show 1 ≤ 128 * 2 ^ logPaddedRowCount r by omega]
+  generalize 2 ^ logPaddedRowCount r = n at h1 ⊢
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+  rw [show k + 1 - 1 = k by omega]
+  norm_num
   nlinarith
 
 theorem isWeightBound_hashInputsM (h1 : ∀ a, QueryCostAtMost (H a) w 1) (path : List Common.DigestBytes) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.DigestBytes),
-      QueryCostAtMost (hashInputsM H idx a path rr) w (path.length + 1) := by
+    ∀ (idx : ℕ) (a : List UInt8), QueryCostAtMost (hashInputsM H idx a path) w path.length := by
   induction path with
-  | nil => intro idx a rr; exact ((h1 a).bind fun _ ↦ isWeightBound_pure _ _ 0)
+  | nil => intro idx a; exact isWeightBound_pure _ _ _
   | cons s rest ih =>
-    intro idx a rr
-    exact ((h1 a).bind fun _ ↦ (ih _ _ rr).bind fun _ ↦ isWeightBound_pure _ _ 0).mono
+    intro idx a
+    exact ((h1 a).bind fun _ ↦ (ih _ _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono
       (by simp only [List.length_cons]; omega)
 
 theorem isWeightBound_findCollisionM (h1 : ∀ a, QueryCostAtMost (H a) w 1)

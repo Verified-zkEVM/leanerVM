@@ -105,7 +105,7 @@ theorem walk_mod : ∀ (path : List Common.DigestBytes) (idx : ℕ) (node : Comm
     have h2 : idx % 2 ^ (rest.length + 1) % 2 = idx % 2 := by
       rw [pow_succ, Nat.mod_mul_left_mod]
     have hd : idx % 2 ^ (rest.length + 1) / 2 % 2 ^ rest.length = idx / 2 % 2 ^ rest.length := by
-      rw [pow_succ, Nat.mod_mul_right_div_self, Nat.mod_mod]
+      rw [pow_succ', Nat.mod_mul_right_div_self, Nat.mod_mod]
     rw [List.length_cons, walk, walk, h2, walk_mod rest (idx / 2), walk_mod rest (idx % _ / 2), hd]
 
 /-- A climb along two paths in turn. -/
@@ -113,7 +113,7 @@ theorem walk_append : ∀ (l₁ l₂ : List Common.DigestBytes) (idx : ℕ) (nod
     walk H idx node (l₁ ++ l₂) = walk H (idx / 2 ^ l₁.length) (walk H idx node l₁) l₂
   | [], _, _, _ => by simp [walk]
   | s :: rest, l₂, idx, node => by
-    rw [List.cons_append, walk, walk, walk_append rest l₂, List.length_cons, pow_succ,
+    rw [List.cons_append, walk, walk, walk_append rest l₂, List.length_cons, pow_succ',
       Nat.div_div_eq_div_mul]
 
 theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
@@ -135,10 +135,10 @@ theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
     lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
   refine ⟨by simp only [openCellWithHash, List.length_append, length_merklePath], ?_⟩
   simp only [openCellWithHash]
-  rw [walk_append, length_merklePath, walk_mod, length_merklePath,
+  rw [walk_append, length_merklePath, walk_mod H (merklePathWithHash H 7 _ _) (p : ℕ), length_merklePath,
     show (p : ℕ) % 2 ^ 7 = positionCell p from rfl, ← cellLeaves_position H c p,
     walk_merklePath H _ _ _ (positionCell p).isLt, show (p : ℕ) / 2 ^ 7 = positionRow p from rfl]
-  exact walk_merklePath H _ _ _ hrow
+  exact walk_merklePath H _ (blobRootWithHash H c) _ hrow
 
 /-! ## Collisions from two openings -/
 

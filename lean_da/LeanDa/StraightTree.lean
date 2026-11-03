@@ -10,9 +10,9 @@ public import LeanDa.WithHash
 # The commitment's tree, read off the hash calls
 
 For the straight-line proof of code binding (`LeanDa.Straight`): the hash inputs of a commitment
-(`commitIn`, the cells' bytes, the rows' leaves, the two trees' nodes and the root's
-`rowRoot ‖ columnRoot`) and of an opening's check (`verifyIn`), for a hash function `f`, and what
-they give when `f` is injective on a set holding them.
+(`commitIn`, the cells' bytes, the blob trees' nodes and the nodes of the tree over the blob roots)
+and of an opening's check (`verifyIn`, the cell's bytes and its climb), for a hash function `f`,
+and what they give when `f` is injective on a set holding them.
 
 * **Every input but the root's hashes to a digest the commitment's inputs carry**
   (`commitIn_parent`): a node's digest is a 32-byte block (`chunks`) of its parent's input.
@@ -214,9 +214,30 @@ theorem walk_eq_leaf {S : Set (List UInt8)} (hinj : Set.InjOn f S) (path : List 
       simp only [h2', ↓reduceIte] at hp
       rw [(pairBytes_injective hp).2, show 2 * (idx / 2) + 1 = idx by omega]
 
-/-! ## The inputs of a commitment -/
-
 variable (f)
+
+/-- A climb's inputs along two paths in turn. -/
+theorem walkIn_append : ∀ (l₁ l₂ : List Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes),
+    walkIn f idx node (l₁ ++ l₂) =
+      walkIn f idx node l₁ ∪ walkIn f (idx / 2 ^ l₁.length) (walk f idx node l₁) l₂
+  | [], l₂, idx, node => by simp [walkIn, walk]
+  | s :: rest, l₂, idx, node => by
+    rw [List.cons_append, walkIn, walkIn, walkIn_append rest l₂, walk_cons, List.length_cons,
+      pow_succ', Nat.div_div_eq_div_mul, Set.insert_union]
+
+/-- A climb's inputs read the index's low bits only, one per sibling. -/
+theorem walkIn_mod : ∀ (path : List Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes),
+    walkIn f idx node path = walkIn f (idx % 2 ^ path.length) node path
+  | [], _, _ => rfl
+  | s :: rest, idx, node => by
+    have h2 : idx % 2 ^ (rest.length + 1) % 2 = idx % 2 := by
+      rw [pow_succ, Nat.mod_mul_left_mod]
+    have hd : idx % 2 ^ (rest.length + 1) / 2 % 2 ^ rest.length = idx / 2 % 2 ^ rest.length := by
+      rw [pow_succ', Nat.mod_mul_right_div_self, Nat.mod_mod]
+    rw [List.length_cons, walkIn, walkIn, h2, walkIn_mod rest (idx / 2),
+      walkIn_mod rest (idx % _ / 2), hd]
+
+/-! ## The inputs of a commitment -/
 
 section Commit
 
@@ -226,138 +247,75 @@ variable {r : ℕ}
 def cellIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
   {a | ∃ i < paddedRowCount r, ∃ j < 128, a = cellBytes (paddedCell c i j)}
 
-/-- The input of row `i`'s leaf: its first `64` cell digests. -/
-def rowInput (c : Fin (r * 128) → Cell) (i : ℕ) : List UInt8 :=
-  (List.ofFn fun j : Fin 64 ↦ cellDigestWithHash f (paddedCell c i j)).flatMap Vector.toList
+/-- The blob trees' inputs: the nodes of each padded row's tree over its cell digests. -/
+def blobIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
+  {a | ∃ i < paddedRowCount r, a ∈ merkleIn f 7 (cellLeavesWithHash f c i)}
 
-/-- The rows' leaves' inputs. -/
-def rowIn (c : Fin (r * 128) → Cell) : Set (List UInt8) := {a | ∃ i < paddedRowCount r, a = rowInput f c i}
-
-/-- The root's input: `rowRoot ‖ columnRoot`. -/
-def rootInput (c : Fin (r * 128) → Cell) : List UInt8 := pairBytes (rowRootWithHash f c) (colRootWithHash f c)
-
-/-- **The inputs a commitment hashes**: the cells', the rows' leaves', the two trees' and the
-root's. -/
+/-- **The inputs a commitment hashes**: the cells', the blob trees' and the tree's over the blob
+roots. -/
 def commitIn (c : Fin (r * 128) → Cell) : Set (List UInt8) :=
-  cellIn c ∪ rowIn f c ∪ merkleIn f (logPaddedRowCount r) (rowLeavesWithHash f c) ∪
-    merkleIn f (7 + logPaddedRowCount r) (colLeavesWithHash f c) ∪ {rootInput f c}
-
-theorem rowLeaves_eq_input (c : Fin (r * 128) → Cell) (i : ℕ) : rowLeavesWithHash f c i = f (rowInput f c i) :=
-  rfl
-
-theorem commitCells_eq (c : Fin (r * 128) → Cell) : commitCellsWithHash f c = f (rootInput f c) := rfl
+  cellIn c ∪ blobIn f c ∪ merkleIn f (logPaddedRowCount r) (blobRootWithHash f c)
 
 theorem nPad_eq : paddedRowCount r = 2 ^ logPaddedRowCount r := rfl
 
-theorem two_pow_col : 2 ^ (7 + logPaddedRowCount r) = 128 * paddedRowCount r := by rw [pow_add]; rfl
-
 theorem cellIn_sub (c : Fin (r * 128) → Cell) : cellIn c ⊆ commitIn f c :=
-  fun _ h ↦ Or.inl (Or.inl (Or.inl (Or.inl h)))
+  fun _ h ↦ Or.inl (Or.inl h)
 
-theorem rowIn_sub (c : Fin (r * 128) → Cell) : rowIn f c ⊆ commitIn f c :=
-  fun _ h ↦ Or.inl (Or.inl (Or.inl (Or.inr h)))
+theorem blobTree_sub (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < paddedRowCount r) :
+    merkleIn f 7 (cellLeavesWithHash f c i) ⊆ commitIn f c :=
+  fun _ h ↦ Or.inl (Or.inr ⟨i, hi, h⟩)
 
-theorem rowTree_sub (c : Fin (r * 128) → Cell) :
-    merkleIn f (logPaddedRowCount r) (rowLeavesWithHash f c) ⊆ commitIn f c :=
-  fun _ h ↦ Or.inl (Or.inl (Or.inr h))
+theorem topTree_sub (c : Fin (r * 128) → Cell) :
+    merkleIn f (logPaddedRowCount r) (blobRootWithHash f c) ⊆ commitIn f c :=
+  fun _ h ↦ Or.inr h
 
-theorem colTree_sub (c : Fin (r * 128) → Cell) :
-    merkleIn f (7 + logPaddedRowCount r) (colLeavesWithHash f c) ⊆ commitIn f c :=
-  fun _ h ↦ Or.inl (Or.inr h)
-
-theorem rootInput_mem (c : Fin (r * 128) → Cell) : rootInput f c ∈ commitIn f c :=
-  Or.inr rfl
-
-theorem colIdx_mod {i j : ℕ} (hi : i < paddedRowCount r) : (j * paddedRowCount r + i) % paddedRowCount r = i := by
-  rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]
-
-theorem colIdx_div {i j : ℕ} (hi : i < paddedRowCount r) : (j * paddedRowCount r + i) / paddedRowCount r = j := by
-  have hpos : 0 < paddedRowCount r := by unfold paddedRowCount; positivity
-  rw [Nat.add_comm, Nat.add_mul_div_right _ _ hpos, Nat.div_eq_of_lt hi, Nat.zero_add]
-
-theorem colLeaves_eq_cell (c : Fin (r * 128) → Cell) (i j : ℕ) (hi : i < paddedRowCount r) :
-    colLeavesWithHash f c (j * paddedRowCount r + i) = f (cellBytes (paddedCell c i j)) := by
-  simp only [colLeavesWithHash, cellDigestWithHash, colIdx_mod hi, colIdx_div hi]
-
-theorem colLeaves_mem (c : Fin (r * 128) → Cell) (l : ℕ) (hl : l < 2 ^ (7 + logPaddedRowCount r)) :
-    cellBytes (paddedCell c (l % paddedRowCount r) (l / paddedRowCount r)) ∈ cellIn c := by
-  have hpos : 0 < paddedRowCount r := by unfold paddedRowCount; positivity
-  rw [two_pow_col] at hl
-  exact ⟨_, Nat.mod_lt _ hpos, _, by rw [Nat.div_lt_iff_lt_mul hpos]; omega, rfl⟩
+theorem cellLeaves_eq (c : Fin (r * 128) → Cell) (i j : ℕ) :
+    cellLeavesWithHash f c i j = f (cellBytes (paddedCell c i j)) := rfl
 
 /-- **The commitment depends on the hash only on its inputs.** -/
 theorem commitIn_congr (f' : List UInt8 → Common.DigestBytes) (c : Fin (r * 128) → Cell)
     (h : ∀ a ∈ commitIn f c, f a = f' a) :
     commitIn f' c = commitIn f c ∧ commitCellsWithHash f' c = commitCellsWithHash f c := by
-  have hcell : ∀ i < paddedRowCount r, ∀ j < 128,
-      f (cellBytes (paddedCell c i j)) = f' (cellBytes (paddedCell c i j)) :=
-    fun i hi j hj ↦ h _ (cellIn_sub f c ⟨i, hi, j, hj, rfl⟩)
-  have hrowIn : ∀ i < paddedRowCount r, rowInput f c i = rowInput f' c i := fun i hi ↦ by
-    simp only [rowInput, cellDigestWithHash]
-    congr 1
-    exact List.ofFn_inj.mpr (funext fun j ↦ hcell i hi j (by omega))
-  have hrowIn' : rowIn f' c = rowIn f c := by
+  have hblob : ∀ i < paddedRowCount r,
+      merkleIn f' 7 (cellLeavesWithHash f' c i) = merkleIn f 7 (cellLeavesWithHash f c i) ∧
+        blobRootWithHash f' c i = blobRootWithHash f c i := fun i hi ↦
+    merkleIn_congr f f' 7 _ _
+      (fun j hj ↦ h _ (cellIn_sub f c ⟨i, hi, j, by simpa using hj, rfl⟩))
+      fun a ha ↦ h a (blobTree_sub f c hi ha)
+  have htop := merkleIn_congr f f' (logPaddedRowCount r) (blobRootWithHash f c)
+    (blobRootWithHash f' c) (fun i hi ↦ (hblob i hi).2.symm) fun a ha ↦ h a (topTree_sub f c ha)
+  have hblobIn : blobIn f' c = blobIn f c := by
     ext a
-    simp only [rowIn, Set.mem_ofPred_eq]
+    simp only [blobIn, Set.mem_ofPred_eq]
     constructor
-    · rintro ⟨i, hi, rfl⟩; exact ⟨i, hi, (hrowIn i hi).symm⟩
-    · rintro ⟨i, hi, rfl⟩; exact ⟨i, hi, hrowIn i hi⟩
-  have hrow := merkleIn_congr f f' (logPaddedRowCount r) (rowLeavesWithHash f c) (rowLeavesWithHash f' c)
-    (fun i hi ↦ by
-      rw [rowLeaves_eq_input, rowLeaves_eq_input, ← hrowIn i hi]
-      exact h _ (rowIn_sub f c ⟨i, hi, rfl⟩))
-    fun a ha ↦ h a (rowTree_sub f c ha)
-  have hcol := merkleIn_congr f f' (7 + logPaddedRowCount r) (colLeavesWithHash f c) (colLeavesWithHash f' c)
-    (fun l hl ↦ by
-      have hm := colLeaves_mem c l hl
-      simp only [colLeavesWithHash, cellDigestWithHash]
-      exact h _ (cellIn_sub f c hm))
-    fun a ha ↦ h a (colTree_sub f c ha)
-  have hroot : rootInput f' c = rootInput f c := by
-    simp only [rootInput, rowRootWithHash, colRootWithHash, hrow.2, hcol.2]
-  refine ⟨?_, ?_⟩
-  · simp only [commitIn, hrowIn', hrow.1, hcol.1, hroot]
-  · rw [commitCells_eq, commitCells_eq, hroot]
-    exact (h _ (rootInput_mem f c)).symm
+    · rintro ⟨i, hi, ha⟩; exact ⟨i, hi, (hblob i hi).1 ▸ ha⟩
+    · rintro ⟨i, hi, ha⟩; exact ⟨i, hi, (hblob i hi).1.symm ▸ ha⟩
+  exact ⟨by simp only [commitIn, hblobIn, htop.1], htop.2⟩
 
-theorem rowRoot_mem_chunks (c : Fin (r * 128) → Cell) : rowRootWithHash f c ∈ chunks (rootInput f c) :=
-  mem_chunks_pairBytes_left _ _
-
-theorem colRoot_mem_chunks (c : Fin (r * 128) → Cell) : colRootWithHash f c ∈ chunks (rootInput f c) :=
-  mem_chunks_pairBytes_right _ _
+/-- **A cell's digest is its blob root or a digest an input carries; a blob root is the
+commitment or a digest an input carries.** -/
+theorem blobRoot_parent (c : Fin (r * 128) → Cell) {i : ℕ} (hi : i < paddedRowCount r) :
+    blobRootWithHash f c i = commitCellsWithHash f c ∨
+      ∃ b ∈ commitIn f c, blobRootWithHash f c i ∈ chunks b := by
+  rcases leaf_mem f _ (blobRootWithHash f c) i hi with h | ⟨b, hb, h⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨b, topTree_sub f c hb, h⟩
 
 /-- **Every input of a commitment but the root's hashes to a digest one of its inputs carries.** -/
 theorem commitIn_parent (c : Fin (r * 128) → Cell) (a : List UInt8) (ha : a ∈ commitIn f c) :
     f a = commitCellsWithHash f c ∨ ∃ b ∈ commitIn f c, f a ∈ chunks b := by
-  have hrowT : ∀ v, (v = merkleRootWithHash f (logPaddedRowCount r) (rowLeavesWithHash f c) ∨
-      ∃ b ∈ merkleIn f (logPaddedRowCount r) (rowLeavesWithHash f c), v ∈ chunks b) →
-        ∃ b ∈ commitIn f c, v ∈ chunks b := by
-    rintro v (rfl | ⟨b, hb, h⟩)
-    · exact ⟨_, rootInput_mem f c, rowRoot_mem_chunks f c⟩
-    · exact ⟨b, rowTree_sub f c hb, h⟩
-  have hcolT : ∀ v, (v = merkleRootWithHash f (7 + logPaddedRowCount r) (colLeavesWithHash f c) ∨
-      ∃ b ∈ merkleIn f (7 + logPaddedRowCount r) (colLeavesWithHash f c), v ∈ chunks b) →
-        ∃ b ∈ commitIn f c, v ∈ chunks b := by
-    rintro v (rfl | ⟨b, hb, h⟩)
-    · exact ⟨_, rootInput_mem f c, colRoot_mem_chunks f c⟩
-    · exact ⟨b, colTree_sub f c hb, h⟩
-  rcases ha with (((⟨i, hi, j, hj, rfl⟩ | ⟨i, hi, rfl⟩) | ha) | ha) | ha
-  · refine Or.inr (hcolT _ ?_)
-    rw [← colLeaves_eq_cell f c i j hi]
-    refine leaf_mem f _ _ _ ?_
-    rw [two_pow_col]
-    nlinarith
-  · refine Or.inr (hrowT _ ?_)
-    rw [← rowLeaves_eq_input f c i]
-    exact leaf_mem f _ _ _ hi
-  · rcases merkleIn_parent f _ _ a ha with h | h
-    · exact Or.inr (hrowT _ (Or.inl h))
-    · exact Or.inr (hrowT _ (Or.inr h))
-  · rcases merkleIn_parent f _ _ a ha with h | h
-    · exact Or.inr (hcolT _ (Or.inl h))
-    · exact Or.inr (hcolT _ (Or.inr h))
-  · rw [Set.mem_singleton_iff.mp ha]
-    exact Or.inl rfl
+  have hblobT : ∀ i < paddedRowCount r, ∀ v, (v = merkleRootWithHash f 7 (cellLeavesWithHash f c i) ∨
+      ∃ b ∈ merkleIn f 7 (cellLeavesWithHash f c i), v ∈ chunks b) →
+        v = commitCellsWithHash f c ∨ ∃ b ∈ commitIn f c, v ∈ chunks b := by
+    rintro i hi v (rfl | ⟨b, hb, h⟩)
+    · exact blobRoot_parent f c hi
+    · exact Or.inr ⟨b, blobTree_sub f c hi hb, h⟩
+  rcases ha with ((⟨i, hi, j, hj, rfl⟩ | ⟨i, hi, ha⟩) | ha)
+  · exact hblobT i hi _ (leaf_mem f 7 (cellLeavesWithHash f c i) j (by simpa using hj))
+  · exact hblobT i hi _ (merkleIn_parent f 7 _ a ha)
+  · rcases merkleIn_parent f _ _ a ha with h | ⟨b, hb, h⟩
+    · exact Or.inl h
+    · exact Or.inr ⟨b, topTree_sub f c hb, h⟩
 
 variable {f}
 
@@ -375,47 +333,53 @@ theorem paddedCell_pos (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
 theorem commit_unique {S : Set (List UInt8)} (hinj : Set.InjOn f S) {c c' : Fin (r * 128) → Cell}
     (h1 : commitIn f c ⊆ S) (h2 : commitIn f c' ⊆ S) (he : commitCellsWithHash f c = commitCellsWithHash f c') :
     c = c' := by
-  have hp := pairBytes_injective (hinj (h1 (rootInput_mem f c)) (h2 (rootInput_mem f c')) he)
-  have hl := merkleRoot_inj hinj (7 + logPaddedRowCount r) _ _ (fun a ha ↦ h1 (colTree_sub f c ha))
-    (fun a ha ↦ h2 (colTree_sub f c' ha)) hp.2
+  have hb := merkleRoot_inj hinj (logPaddedRowCount r) _ _ (fun a ha ↦ h1 (topTree_sub f c ha))
+    (fun a ha ↦ h2 (topTree_sub f c' ha)) he
   funext p
   have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
-  have hidx : (positionCell p : ℕ) * paddedRowCount r + positionRow p < 2 ^ (7 + logPaddedRowCount r) := by
-    have := (positionCell p).isLt
-    rw [two_pow_col]
-    nlinarith
-  have h := hl _ hidx
-  rw [colLeaves_eq_cell f c _ _ hrow, colLeaves_eq_cell f c' _ _ hrow] at h
+  have hl := merkleRoot_inj hinj 7 _ _ (fun a ha ↦ h1 (blobTree_sub f c hrow ha))
+    (fun a ha ↦ h2 (blobTree_sub f c' hrow ha)) (hb _ hrow) (positionCell p)
+    (by simp)
+  rw [cellLeaves_eq, cellLeaves_eq] at hl
   have hc := cellBytes_injective (hinj (h1 (cellIn_sub f c ⟨_, hrow, _, (positionCell p).isLt, rfl⟩))
-    (h2 (cellIn_sub f c' ⟨_, hrow, _, (positionCell p).isLt, rfl⟩)) h)
+    (h2 (cellIn_sub f c' ⟨_, hrow, _, (positionCell p).isLt, rfl⟩)) hl)
   rwa [paddedCell_pos, paddedCell_pos] at hc
 
 variable (f)
 
-/-- **The inputs an opening's check hashes**: the cell's bytes, the climb's and the root's. -/
+/-- **The inputs an opening's check hashes**: the cell's bytes and the climb's. -/
 def verifyIn (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Set (List UInt8) :=
-  insert (cellBytes x) (insert (pairBytes τ.rowRoot (walk f (columnTreeIndex p) (cellDigestWithHash f x) τ.path))
-    (walkIn f (columnTreeIndex p) (cellDigestWithHash f x) τ.path))
+  insert (cellBytes x) (walkIn f p (cellDigestWithHash f x) τ.path)
 
 variable {f}
 
 /-- **An opening that verifies against a matrix's root opens the matrix's cell**, over a hash
-injective on a set holding the commitment's and the check's inputs. -/
+injective on a set holding the commitment's and the check's inputs: its climb meets the tree
+over the blob roots at the cell's blob root, and the cell's blob tree at the cell's digest. -/
 theorem verifyCell_agree {S : Set (List UInt8)} (hinj : Set.InjOn f S)
     {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : CellOpening}
     (hc : commitIn f c ⊆ S) (hv : verifyIn f p x τ ⊆ S)
     (hver : verifyCell f r (commitCellsWithHash f c) p x τ = true) : x = c p := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hver
   obtain ⟨hlen, hroot⟩ := hver
-  have hp := pairBytes_injective (hinj (hv (Set.mem_insert_of_mem _ (Set.mem_insert _ _)))
-    (hc (rootInput_mem f c)) hroot)
-  have hleaf := walk_eq_leaf hinj τ.path (7 + logPaddedRowCount r) (colLeavesWithHash f c) (columnTreeIndex p)
-    (cellDigestWithHash f x) hlen (colIndex_lt p)
-    (fun a ha ↦ hv (Set.mem_insert_of_mem _ (Set.mem_insert_of_mem _ ha)))
-    (fun a ha ↦ hc (colTree_sub f c ha)) hp.2
   have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
-  rw [show columnTreeIndex p = (positionCell p : ℕ) * paddedRowCount r + positionRow p from rfl,
-    colLeaves_eq_cell f c _ _ hrow] at hleaf
+  have hl1 : (τ.path.take 7).length = 7 := by rw [List.length_take]; omega
+  have hl2 : (τ.path.drop 7).length = logPaddedRowCount r := by rw [List.length_drop]; omega
+  have hin := walkIn_append f (τ.path.take 7) (τ.path.drop 7) p (cellDigestWithHash f x)
+  rw [List.take_append_drop, hl1] at hin
+  rw [← List.take_append_drop 7 τ.path, walk_append, hl1] at hroot
+  have hblob := walk_eq_leaf hinj (τ.path.drop 7) (logPaddedRowCount r) (blobRootWithHash f c)
+    ((p : ℕ) / 2 ^ 7) _ hl2 hrow
+    (fun a ha ↦ hv (Set.mem_insert_of_mem _ (hin ▸ Or.inr ha)))
+    (fun a ha ↦ hc (topTree_sub f c ha)) hroot
+  rw [walk_mod, hl1] at hblob
+  have hin1 := walkIn_mod f (τ.path.take 7) p (cellDigestWithHash f x)
+  rw [hl1] at hin1
+  have hleaf := walk_eq_leaf hinj (τ.path.take 7) 7 (cellLeavesWithHash f c (positionRow p))
+    ((p : ℕ) % 2 ^ 7) _ hl1 (Nat.mod_lt _ (by norm_num))
+    (fun a ha ↦ hv (Set.mem_insert_of_mem _ (hin ▸ Or.inl (hin1 ▸ ha))))
+    (fun a ha ↦ hc (blobTree_sub f c hrow ha)) hblob
+  rw [show (p : ℕ) % 2 ^ 7 = positionCell p from rfl, cellLeaves_eq] at hleaf
   have hx := cellBytes_injective (hinj (hv (Set.mem_insert _ _))
     (hc (cellIn_sub f c ⟨_, hrow, _, (positionCell p).isLt, rfl⟩)) hleaf)
   rwa [paddedCell_pos] at hx
@@ -489,37 +453,22 @@ the hash's domain. -/
 theorem commitCellsM_some {r : ℕ} (c : Fin (r * 128) → Cell) (v : Common.DigestBytes)
     (hv : commitCellsMWithHash g c = some v) :
     v = commitCellsWithHash f c ∧ ∀ a ∈ commitIn f c, g a ≠ none := by
-  simp only [commitCellsMWithHash, Option.bind_eq_bind', Option.bind_eq_some_iff] at hv
-  obtain ⟨ra, hra, ca, hca, hroot⟩ := hv
-  -- the row leaves
-  have hrowM : ∀ i u, rowLeavesMWithHash g c i = some u → u = rowLeavesWithHash f c i ∧
-      (∀ j < 64, g (cellBytes (paddedCell c i j)) ≠ none) ∧ g (rowInput f c i) ≠ none := by
-    intro i u hu
-    simp only [rowLeavesMWithHash, Option.bind_eq_bind', Option.bind_eq_some_iff] at hu
-    obtain ⟨ds, hds, hu⟩ := hu
-    obtain ⟨h1, h2⟩ := mapM_some f hg (β := ℕ) (fun j : ℕ ↦ g (cellBytes (paddedCell c i j)))
-      (fun j : ℕ ↦ cellDigestWithHash f (paddedCell c i j)) (fun j u hu ↦ hg _ _ hu) _ ds hds
-    have hin : ds.flatMap Vector.toList = rowInput f c i := by
-      rw [h1, rowInput, ofFn_val_eq_map_range (g := fun j ↦ cellDigestWithHash f (paddedCell c i j))]
-    rw [hin] at hu
-    exact ⟨hg _ _ hu, fun j hj ↦ h2 j (List.mem_range.mpr hj), by simp [hu]⟩
-  obtain ⟨hra', hrl, hrin⟩ := merkleRootM_some f hg (logPaddedRowCount r) (rowLeavesMWithHash g c) (rowLeavesWithHash f c)
-    (fun i u hu ↦ (hrowM i u hu).1) ra hra
-  obtain ⟨hca', hcl, hcin⟩ := merkleRootM_some f hg (7 + logPaddedRowCount r) (colLeavesMWithHash g c)
-    (colLeavesWithHash f c) (fun l u hu ↦ hg _ _ hu) ca hca
-  rw [hra', hca'] at hroot
-  refine ⟨hg _ _ hroot, fun a ha ↦ ?_⟩
-  rcases ha with (((⟨i, hi, j, hj, rfl⟩ | ⟨i, hi, rfl⟩) | ha) | ha) | ha
-  · have hidx : j * paddedRowCount r + i < 2 ^ (7 + logPaddedRowCount r) := by rw [two_pow_col]; nlinarith
-    have h := hcl _ hidx
-    simp only [colLeavesMWithHash] at h
-    rwa [colIdx_mod hi, colIdx_div hi] at h
-  · obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp (hrl i hi)
-    exact (hrowM i u hu).2.2
-  · exact hrin a ha
-  · exact hcin a ha
-  · rw [Set.mem_singleton_iff.mp ha]
-    simp [rootInput, rowRootWithHash, colRootWithHash, hroot]
+  have hblob : ∀ i u, blobRootMWithHash g c i = some u →
+      u = blobRootWithHash f c i ∧ (∀ j < 2 ^ 7, cellLeavesMWithHash g c i j ≠ none) ∧
+        ∀ a ∈ merkleIn f 7 (cellLeavesWithHash f c i), g a ≠ none := fun i u hu ↦
+    merkleRootM_some f hg 7 (cellLeavesMWithHash g c i) (cellLeavesWithHash f c i)
+      (fun j u hu ↦ hg _ _ hu) u hu
+  obtain ⟨hv', hbl, htop⟩ := merkleRootM_some f hg (logPaddedRowCount r) (blobRootMWithHash g c)
+    (blobRootWithHash f c) (fun i u hu ↦ (hblob i u hu).1) v hv
+  have hblob' : ∀ i < paddedRowCount r, (∀ j < 2 ^ 7, cellLeavesMWithHash g c i j ≠ none) ∧
+      ∀ a ∈ merkleIn f 7 (cellLeavesWithHash f c i), g a ≠ none := fun i hi ↦ by
+    obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp (hbl i hi)
+    exact (hblob i u hu).2
+  refine ⟨hv', fun a ha ↦ ?_⟩
+  rcases ha with ((⟨i, hi, j, hj, rfl⟩ | ⟨i, hi, ha⟩) | ha)
+  · exact (hblob' i hi).1 j (by simpa using hj)
+  · exact (hblob' i hi).2 a ha
+  · exact htop a ha
 
 theorem walkM_some (path : List Common.DigestBytes) :
     ∀ (idx : ℕ) (node v : Common.DigestBytes), walkMWithHash g idx node path = some v →
@@ -547,18 +496,14 @@ theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)
     (b : Bool) (hb : verifyCellMWithHash g r com p x τ = some b) :
     b = verifyCell f r com p x τ ∧ ∀ a ∈ verifyIn f p x τ, g a ≠ none := by
   simp only [verifyCellMWithHash, Option.bind_eq_bind', Option.pure_def, Option.bind_eq_some_iff, Option.some.injEq] at hb
-  obtain ⟨d, hd, w, hw, root, hroot, rfl⟩ := hb
+  obtain ⟨d, hd, w, hw, rfl⟩ := hb
   have hd' : d = cellDigestWithHash f x := hg _ _ hd
   subst hd'
   obtain ⟨hw1, hw2⟩ := walkM_some f hg τ.path _ _ w hw
   subst hw1
-  have hroot' := hg _ _ hroot
-  subst hroot'
   refine ⟨rfl, fun a ha ↦ ?_⟩
   rcases Set.mem_insert_iff.mp ha with rfl | ha
   · simp [cellDigestWithHash] at hd; simp [hd]
-  rcases Set.mem_insert_iff.mp ha with rfl | ha
-  · simp [hroot]
   · exact hw2 a ha
 
 end Partial

@@ -15,10 +15,10 @@ two openings' climbs collide under the hash of a uniformly random table `h`. Wit
 queries (`forkX`, `Z₂`), the experiment for `h` is this computation answered by `h`
 (`forkCollExpH_le_col`): the fork commutes with answering `H` by `h` (`contextFork_collapse`), so
 both runs see the same `h`. The fork makes at most twice the queries of one run
-(`isQueryBoundP_contextFork`), each run at most `Q + 1` for the adversary and `322 · nPad r + 1`
-for the commitment its win checks, and the openings and climbs at most `644 · nPad r + 4 d + 6`
+(`isQueryBoundP_contextFork`), each run at most `Q + 1` for the adversary and `256 · nPad r`
+for the commitment its win checks, and the openings and climbs at most `512 · nPad r + 4 d + 6`
 more (`d = 7 + logPad r`). So the term is at most `(N + 2)² / 2^256` for
-`N = 2 Q + 1288 · nPad r + 4 d + 10` (`forkColl_le`).
+`N = 2 Q + 1024 · nPad r + 4 d + 8` (`forkColl_le`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA: it bounds his
@@ -152,50 +152,48 @@ def colPair (r : ℕ) [NeZero r] (H : List UInt8 → Common.DigestBytes)
     let i := Fin.find (fun j ↦ vv.1 j ≠ vv.2 j) (Function.ne_iff.mp hv)
     openingsCollision H r i (vv.1 i) (openCellWithHash H vv.1 i) (vv.2 i) (openCellWithHash H vv.2 i)
 
+/-- The climbs of two vectors' honest openings at a position, with `H` as queries. -/
+def colPairAt (r : ℕ) (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
+    OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
+  let τ ← openCellM hS c i
+  let τ' ← openCellM hS c' i
+  let l₁ ← hashInputsM hS i (cellBytes (c i)) (τ.path.take (7 + logPaddedRowCount r))
+  let l₂ ← hashInputsM hS i (cellBytes (c' i)) (τ'.path.take (7 + logPaddedRowCount r))
+  findCollisionM hS l₁ (l₂.take (8 + logPaddedRowCount r))
+
 /-- The same with `H` as queries. -/
 def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
     OracleComp (unifSpec + XS) (List UInt8 × List UInt8) :=
   if hv : vv.1 = vv.2 then pure ([], [])
-  else
-    let i := Fin.find (fun j ↦ vv.1 j ≠ vv.2 j) (Function.ne_iff.mp hv)
-    do
-      let τ ← openCellM hS vv.1 i
-      let τ' ← openCellM hS vv.2 i
-      let l₁ ← hashInputsM hS (columnTreeIndex i) (cellBytes (vv.1 i)) (τ.path.take (7 + logPaddedRowCount r))
-        τ.rowRoot
-      let l₂ ← hashInputsM hS (columnTreeIndex i) (cellBytes (vv.2 i)) (τ'.path.take (7 + logPaddedRowCount r))
-        τ'.rowRoot
-      findCollisionM hS l₁ (l₂.take (9 + logPaddedRowCount r))
+  else colPairAt r vv.1 vv.2 (Fin.find (fun j ↦ vv.1 j ≠ vv.2 j) (Function.ne_iff.mp hv))
 
 theorem length_hashInputs (H : List UInt8 → Common.DigestBytes) (path : List Common.DigestBytes) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.DigestBytes), (hashInputs H idx a path rr).length = path.length + 2 := by
+    ∀ (idx : ℕ) (a : List UInt8), (hashInputs H idx a path).length = path.length + 1 := by
   induction path with
-  | nil => intro idx a rr; rfl
-  | cons s rest ih => intro idx a rr; simp [hashInputs, ih]
+  | nil => intro idx a; rfl
+  | cons s rest ih => intro idx a; simp [hashInputs, ih]
 
 theorem mem_hashInputs (H : List UInt8 → Common.DigestBytes) (path : List Common.DigestBytes) :
-    ∀ (idx : ℕ) (a : List UInt8) (rr : Common.DigestBytes) (x : List UInt8), x ∈ hashInputs H idx a path rr →
+    ∀ (idx : ℕ) (a : List UInt8) (x : List UInt8), x ∈ hashInputs H idx a path →
       x = a ∨ ∃ d₁ d₂, x = pairBytes d₁ d₂ := by
   induction path with
   | nil =>
-    intro idx a rr x hx
+    intro idx a x hx
     simp only [hashInputs, List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl
-    · exact Or.inl rfl
-    · exact Or.inr ⟨_, _, rfl⟩
+    exact Or.inl hx
   | cons s rest ih =>
-    intro idx a rr x hx
+    intro idx a x hx
     simp only [hashInputs, List.mem_cons] at hx
     rcases hx with rfl | hx
     · exact Or.inl rfl
-    · rcases ih _ _ rr x hx with rfl | h
+    · rcases ih _ _ x hx with rfl | h
       · split <;> exact Or.inr ⟨_, _, rfl⟩
       · exact Or.inr h
 
 theorem shortP_of_mem_hashInputs (H : List UInt8 → Common.DigestBytes) (path : List Common.DigestBytes) (idx : ℕ)
-    (x : Cell) (rr : Common.DigestBytes) (y : List UInt8) (hy : y ∈ hashInputs H idx (cellBytes x) path rr) :
+    (x : Cell) (y : List UInt8) (hy : y ∈ hashInputs H idx (cellBytes x) path) :
     shortP y := by
-  rcases mem_hashInputs H path idx _ rr y hy with rfl | ⟨d₁, d₂, rfl⟩
+  rcases mem_hashInputs H path idx _ y hy with rfl | ⟨d₁, d₂, rfl⟩
   · simp [shortP, length_cellBytes]
   · simp [shortP, length_pairBytes]
 
@@ -210,7 +208,7 @@ theorem shortP_colPair (r : ℕ) [NeZero r] (H : List UInt8 → Common.DigestByt
   · next hv =>
     simp only [hv, ↓reduceDIte] at hne ⊢
     obtain ⟨h1, h2⟩ := findCollision_mem H _ _ hne
-    exact ⟨shortP_of_mem_hashInputs H _ _ _ _ _ h1, shortP_of_mem_hashInputs H _ _ _ _ _ h2⟩
+    exact ⟨shortP_of_mem_hashInputs H _ _ _ _ h1, shortP_of_mem_hashInputs H _ _ _ _ h2⟩
 
 theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
     (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
@@ -222,7 +220,7 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
   unfold colPairX colPair
   split
   · rfl
-  · simp only [hb, openCellM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h),
+  · simp only [colPairAt, hb, openCellM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h),
       hashInputsM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h),
       findCollisionM_eval (fun x ↦ simulateQ (col h) x) hp hb hS (Hh h) (simulateQ_col_hS h),
       pure_bind]
@@ -231,7 +229,7 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
         (openCellWithHash (Hh h) c i).path.take (7 + logPaddedRowCount r) = (openCellWithHash (Hh h) c i).path := fun c i ↦
       List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
     simp only [openingsCollision, e1]
-    rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath]; omega)]
+    rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath])]
 
 section Fork2
 
@@ -297,29 +295,27 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
       Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
-/-- The hash calls of an honest opening over `H` as queries. -/
-abbrev openCalls (r : ℕ) : ℕ := 322 * paddedRowCount r
+/-- The hash calls of an honest opening over `H` as queries (at most). -/
+abbrev openCalls (r : ℕ) : ℕ := 256 * paddedRowCount r
 
-/-- The hash calls of the commitment over `H` as queries. -/
-abbrev commitCalls (r : ℕ) : ℕ := 322 * paddedRowCount r + 1
+/-- The hash calls of the commitment over `H` as queries (at most). -/
+abbrev commitCalls (r : ℕ) : ℕ := 256 * paddedRowCount r
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_commitCellsM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r * 128) → Cell) :
     QueryCostAtMost (commitCellsMWithHash (hS (Ψ := Ψ)) c) xCalls (commitCalls r) := by
-  have := isWeightBound_commitCellsM (hS (Ψ := Ψ)) xCalls 1 1 1
+  have := isWeightBound_commitCellsM (hS (Ψ := Ψ)) xCalls 1 1
     (fun a b ↦ isWeightBound_hS (Ψ := Ψ) (pairBytes a b))
-    (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x))
-    (fun _ _ ↦ isWeightBound_hS (Ψ := Ψ) _) c
+    (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x)) c
   exact this.mono (le_of_eq (by ring))
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_openCellM_hS {ι : Type} {Ψ : OracleSpec ι} (c : Fin (r * 128) → Cell)
     (i : Fin (r * 128)) : QueryCostAtMost (openCellM (hS (Ψ := Ψ)) c i) xCalls (openCalls r) := by
-  have := isWeightBound_openCellM (hS (Ψ := Ψ)) xCalls 1 1 1
+  have := isWeightBound_openCellM (hS (Ψ := Ψ)) xCalls 1 1
     (fun a b ↦ isWeightBound_hS (Ψ := Ψ) (pairBytes a b))
-    (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x))
-    (fun _ _ ↦ isWeightBound_hS (Ψ := Ψ) _) c i
-  exact this.mono (le_of_eq (by ring))
+    (fun x ↦ isWeightBound_hS (Ψ := Ψ) (cellBytes x)) c i
+  rwa [show paddedRowCount r * (128 * 1 + 128 * 1) = openCalls r by unfold openCalls; ring] at this
 
 theorem isWeightBound_winX (out : Common.DigestBytes × (Fin (r * 128) → Cell) ×
     MembershipChallenge) :
@@ -345,6 +341,23 @@ theorem isWeightBound_mainX (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r 
   exact (hrun.bind fun p ↦ ((isWeightBound_winX r p.1).bind fun w ↦
     isWeightBound_pure _ _ 0)).mono le_rfl
 
+set_option maxRecDepth 4000 in
+theorem isWeightBound_colPairAt (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
+    QueryCostAtMost (colPairAt r c c' i) xCalls
+      (2 * openCalls r + 2 * (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by
+  have hI : ∀ idx a (path : List Common.DigestBytes), QueryCostAtMost
+      (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take (7 + logPaddedRowCount r))) xCalls
+        (7 + logPaddedRowCount r + 1) :=
+    fun idx a path ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
+      (fun _ ↦ isWeightBound_hS _) _ idx a).mono (by simp only [List.length_take]; omega)
+  have hF : ∀ l₁ (l₂ : List (List UInt8)), QueryCostAtMost
+      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (8 + logPaddedRowCount r)))
+        xCalls (2 * (9 + logPaddedRowCount r)) :=
+    fun l₁ l₂ ↦ (isWeightBound_findCollisionM (hS (Ψ := unifSpec)) xCalls
+      (fun _ ↦ isWeightBound_hS _) l₁ _).mono (by simp only [List.length_take]; omega)
+  unfold colPairAt
+  exact ((isWeightBound_openCellM_hS r c i).bind fun _ ↦ (isWeightBound_openCellM_hS r c' i).bind
+    fun _ ↦ (hI _ _ _).bind fun _ ↦ (hI _ _ _).bind fun _ ↦ hF _ _).mono (by omega)
 
 theorem isWeightBound_colPairX [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
     QueryCostAtMost (colPairX r vv) xCalls
@@ -352,18 +365,7 @@ theorem isWeightBound_colPairX [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin
   unfold colPairX
   split
   · exact isWeightBound_pure _ _ _
-  · have hO : ∀ c i, QueryCostAtMost (openCellM (hS (Ψ := unifSpec)) c i) xCalls (openCalls r) :=
-      fun c i ↦ isWeightBound_openCellM_hS r c i
-    have hI : ∀ idx a (path : List Common.DigestBytes) rr, QueryCostAtMost
-        (hashInputsM hS idx a (path.take (7 + logPaddedRowCount r)) rr) xCalls (7 + logPaddedRowCount r + 1) :=
-      fun idx a path rr ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
-        (fun _ ↦ isWeightBound_hS _) _ idx a rr).mono (by simp only [List.length_take]; omega)
-    have hF : ∀ l₁ (l₂ : List (List UInt8)), QueryCostAtMost (findCollisionM hS l₁ (l₂.take (9 + logPaddedRowCount r)))
-        xCalls (2 * (9 + logPaddedRowCount r)) :=
-      fun l₁ l₂ ↦ (isWeightBound_findCollisionM (hS (Ψ := unifSpec)) xCalls
-        (fun _ ↦ isWeightBound_hS _) l₁ _).mono (by simp only [List.length_take]; omega)
-    exact ((hO _ _).bind fun _ ↦ (hO _ _).bind fun _ ↦ (hI _ _ _ _).bind fun _ ↦
-      (hI _ _ _ _).bind fun _ ↦ hF _ _).mono (by omega)
+  · exact isWeightBound_colPairAt r _ _ _
 
 /-- **The forking reduction's collision search with `H` as queries.** -/
 noncomputable def forkZ [NeZero r] (Q : ℕ) :
