@@ -3,12 +3,12 @@ module
 public import Statement.Prover.Witness
 
 /-!
-# The columns, the sizes and the stack of an execution, executable
+# The columns and the stack of an execution, executable
 
 From the rows of a run (`rowsOf`, `Witness.lean`) and the verifier's layout of its sizes
 (`buildLayout`): every column of the instance as an array, by the verifier's global column number
 (`colsOf`), the `KECCAK` states computed once per row for `QKECCAK` and the output lanes; and the
-stack, the committed columns end to end in `stack_offsets`' order, zeros up to `2^μ`.
+stack, each column written at its placement.
 `witness?` puts them together.
 -/
 
@@ -99,23 +99,15 @@ def colsOf {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) : Ar
 
 /-! ## The stack -/
 
-/-- The committed columns' global numbers, in global order (`block_cols`, `verifier.py:998`). -/
-def blockColumns : List ℕ :=
-  (List.range 163).filter fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
-
-/-- `stack_offsets`' order of blocks of the given log-sizes (`verifier.py:320-326`): the stable
-sort of the indices by size, larger first. -/
-def blockOrder (sizes : List ℕ) : List ℕ :=
-  (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)
-
-/-- The committed columns' global numbers in stacking order, from every column's log-size. -/
-def stackOrderOf (kappas : List ℕ) : List ℕ :=
-  (blockOrder (blockColumns.map (kappas.getD · 0))).map (blockColumns.getD · 0)
-
-/-- **The stack**: the columns `order` end to end, then zeros up to `2^μ`. -/
-def stackArray (μ : ℕ) (cols : Array (Array K)) (order : List ℕ) : Array K :=
-  let a := order.foldl (fun acc c ↦ acc ++ cols.getD c #[]) (Array.emptyWithCapacity (2 ^ μ))
-  a ++ Array.replicate (2 ^ μ - a.size) 0
+/-- **The stack**: every placed column written from its placement's index on, over `2 ^ stackLog`
+zeros (`Placement.stack_point`'s cells); a column with a `q_keccak` slot writes again cells of
+`QKECCAK`. -/
+def stackArray (layout : Layout) (cols : Array (Array K)) : Array K :=
+  (layout.placements.zip cols.toList).foldl (init := Array.replicate (2 ^ layout.stackLog) 0)
+    fun stack (placement?, col) ↦ match placement? with
+      | some placement =>
+        Nat.fold col.size (fun i _ stack ↦ stack.set! (placement.index + i) col[i]) stack
+      | none => stack
 
 /-! ## The witness -/
 
@@ -134,9 +126,7 @@ structure Witness where
 /-- The prover's data of the rows `acc` of a run on the memory `img`, at the layout `layout`. -/
 def buildWitness {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (layout : Layout) : Witness :=
   let cols := colsOf img acc layout.tableLogHeights
-  let order :=
-    stackOrderOf (columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights)
-  ⟨acc.tabs.toList.map (·.size), layout, cols, stackArray layout.stackLog cols order⟩
+  ⟨acc.tabs.toList.map (·.size), layout, cols, stackArray layout cols⟩
 
 /-- **The prover's data of an execution**: `none` unless the trace has the public boundary of
 `input`, its run ends in the final state, its committed size is at most `2^28`, and its sizes pass

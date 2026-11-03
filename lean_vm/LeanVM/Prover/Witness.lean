@@ -153,18 +153,8 @@ theorem buildWitness_spec (hv : ValidExecution prog input t) :
     WitnessSpec prog input t
       (buildWitness t.memory (traceRows t) (verifierLayout prog (traceSizes prog input t))) := by
   refine ⟨rowsList_trace hv, rfl, cols_trace hv, ?_, fun ρ ↦ ?_⟩
-  · show stackArray (verifierLayout prog (traceSizes prog input t)).stackLog
-      (colsOf t.memory (traceRows t) (tableLogs (traceSizes prog input t)))
-      (stackOrderOf (pyKappas prog (traceSizes prog input t))) = _
-    rw [stackLog_verifierLayout, stackOrderOf_pyKappas]
-    refine stackArray_eq _ _ _ fun c hc ↦ ?_
-    have hmem : c ∈ committedColumns := List.mem_mergeSort.mp hc
-    have hnv : ¬ IsVirtual c := by
-      simp only [committedColumns, List.mem_filter, Bool.not_eq_true', decide_eq_false_iff_not]
-        at hmem
-      exact hmem.2
-    rw [cols_trace hv, traceSizes_eq hv]
-    exact column_toArray_committed _ _ c hnv
+  · refine stackArray_eq prog _ _ _ (Array.size_ofFn) (cols_trace hv) fun x hx h ↦ ?_
+    exact Blocks.stackAt_getElem_of_total_le _ _ _ hx h
   · show (((traceSizes prog input t).logMem :: (traceRows t).tabs.toList.map (·.size)) ++
       [ρ]).map eOfNat = _
     rw [rowsList_trace hv]

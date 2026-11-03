@@ -21,6 +21,11 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier
 
 /-! ## Stacking -/
 
+/-- `stack_offsets`' order of blocks of the given log-sizes (`verifier.py:320-326`): the stable
+sort of the indices by size, larger first. -/
+def blockOrder (sizes : List ℕ) : List ℕ :=
+  (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)
+
 /-- A side's leaves: the blocks' tables `tab b` in `stack_offsets`' order, padded with ones to
 `2^D` entries. -/
 def stackA (sizes : List ℕ) (tab : ℕ → Array E) (D : ℕ) : Array E :=
