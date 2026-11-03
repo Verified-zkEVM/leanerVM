@@ -27,7 +27,7 @@ open LeanVM.Guest.Check
 kernel_lit preTable : Array (Option FnPre) :=
   ((List.range nFns).map fun j ↦ fnPreOf (glob.sig j)).toArray
 
-/-- Entry `j < 879` of the table is function `j`'s precondition. -/
+/-- Entry `j < 884` of the table is function `j`'s precondition. -/
 theorem preTable_getD {j : ℕ} (hj : j < nFns) : preTable.getD j none = fnPreOf (glob.sig j) := by
   rw [← preTable_eq]
   simp [Array.getD, hj]
