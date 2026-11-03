@@ -15,8 +15,8 @@ import Common.Linear
 random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
 transfer of SUF-CMA signature games, the statement's model (`π` and `π⁻¹` alone) as the model with
 a Keccak-256 oracle whose calls are expanded into permutation calls (`Common.PiOnly`), and the duplex lemma: challenges derived by a duplex over
-the random function `F` are a random oracle of the absorbed roots, up to capacity collisions
-(`Common.Duplex.duplex_le`). The build
+the random function `F` are a random oracle of the roots, up to capacity collisions
+(`Common.SeedDuplex.duplex_le`). The build
 fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
 axioms. -/
 
@@ -114,15 +114,15 @@ axioms. -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.SufCma.rpmSecure_of_rpmSecureH
 
-/-- info: 'Common.Duplex.duplex_le' depends on axioms:
+/-- info: 'Common.SeedDuplex.duplex_le' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Common.Duplex.duplex_le
+#print axioms Common.SeedDuplex.duplex_le
 
-/-- info: 'Common.Duplex.run'_romImpl_evalDistEq_vec' depends on axioms:
+/-- info: 'Common.SeedDuplex.run'_romImpl_evalDistEq_vec' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Common.Duplex.run'_romImpl_evalDistEq_vec
+#print axioms Common.SeedDuplex.run'_romImpl_evalDistEq_vec
 
 /-- info: 'Common.run'_romImpl_evalDistEq_eager' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

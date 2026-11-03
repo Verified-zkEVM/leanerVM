@@ -21,6 +21,8 @@ same uniform table up to currying. The order of the random oracles of a sum does
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace Common
@@ -98,7 +100,7 @@ end Swap
 
 end Common
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg Root Z : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq Root] [SampleableType Dg] [SampleableType Z]
@@ -208,9 +210,8 @@ theorem noCoins_chainP (k : ℕ) (y : St) :
 theorem noCoins_chalP (r : Root) : NoCoins (hs := hfSpec Msg Dg St) (chalP D r) := by
   unfold chalP
   exact (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inl D.label) _).mpr fun iv ↦
-    (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.init iv)) _).mpr fun y₀ ↦
-      (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.first r y₀)) _).mpr fun y₁ ↦
-        noCoins_bind (noCoins_chainP (n - 1) y₁) fun _ ↦ trivial
+    (noCoins_hq_bind (hs := hfSpec Msg Dg St) (.inr (D.first r iv)) _).mpr fun y₁ ↦
+      noCoins_bind (noCoins_chainP (n - 1) y₁) fun _ ↦ trivial
 
 /-- Queries of the challenges `G`, one each. -/
 def gCalls : (unifSpec + GSpec Msg Dg Root Z n).Domain → ℕ
@@ -218,7 +219,7 @@ def gCalls : (unifSpec + GSpec Msg Dg Root Z n).Domain → ℕ
   | _ => 0
 
 /-- **Each step of the simulator makes at most one query of `G`**, and only for a call of `F`. -/
-theorem isWeightBound_simImpl (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n) :
+theorem isWeightBound_simImpl (t : (Rom2 Msg Dg St).Domain) (s : SimSt Dg St Root n) :
     QueryCostAtMost ((simImpl D hP gaP t).run s) (gCalls (Msg := Msg) (Dg := Dg) (Root := Root)
       (Z := Z) (n := n)) (fCalls (Msg := Msg) (Dg := Dg) (St := St) t) := by
   have hu : ∀ {β : Type} (p : ProbComp β),
@@ -244,4 +245,4 @@ theorem isWeightBound_simImpl (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n
 
 end Weights
 
-end Common.Duplex
+end Common.SeedDuplex

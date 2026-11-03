@@ -17,8 +17,10 @@ by the simulator is running it with `F` a random function (`run'_simImpl_evalDis
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -27,15 +29,15 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   (D : DuplexSpec Msg Dg St Root Z W Cp n)
 
 /-- The two-oracle cache a simulated state shows: `H` from the cache, `F` from the log. -/
-def mergeCache (c : (GSpec Msg Dg Root Z n).QueryCache) (s : SimSt St Root n) :
+def mergeCache (c : (GSpec Msg Dg Root Z n).QueryCache) (s : SimSt Dg St Root n) :
     (hfSpec Msg Dg St).QueryCache :=
   QueryCache.ofFn fun
     | .inl m => c (.inl m)
     | .inr x => s.answer x
 
-end Common.Duplex
+end Common.SeedDuplex
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -44,21 +46,21 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   (D : DuplexSpec Msg Dg St Root Z W Cp n)
 
 /-- The projection of the simulated world's state. -/
-def projSC (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
+def projSC (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
     (hfSpec Msg Dg St).QueryCache := mergeCache sc.2 sc.1
 
-theorem projSC_log {s s' : SimSt St Root n} (h : s'.log = s.log)
+theorem projSC_log {s s' : SimSt Dg St Root n} (h : s'.log = s.log)
     (c : (GSpec Msg Dg Root Z n).QueryCache) : projSC (s', c) = projSC (s, c) := by
   refine QueryCache.ext fun t ↦ ?_
   rcases t with m | x
   · rfl
   · simp [projSC, mergeCache, SimSt.answer, h]
 
-@[simp] theorem projSC_x0 (s : SimSt St Root n) (o : Option St)
+@[simp] theorem projSC_x0 (s : SimSt Dg St Root n) (o : Option St) (d : Option Dg)
     (c : (GSpec Msg Dg Root Z n).QueryCache) :
-    projSC ({ s with x0 := o }, c) = projSC (s, c) := projSC_log rfl c
+    projSC ({ s with x0 := o, iv := d }, c) = projSC (s, c) := projSC_log rfl c
 
-theorem projSC_cacheQuery_inl (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
+theorem projSC_cacheQuery_inl (s : SimSt Dg St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
     (m : Msg) (u : Dg) :
     projSC (s, c.cacheQuery (.inl m) u) = (projSC (s, c)).cacheQuery (.inl m) u := by
   refine QueryCache.ext fun t ↦ ?_
@@ -71,7 +73,7 @@ theorem projSC_cacheQuery_inl (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n)
   · rw [QueryCache.cacheQuery_of_ne _ _ (by simp)]
     rfl
 
-theorem projSC_cacheQuery_inr (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
+theorem projSC_cacheQuery_inr (s : SimSt Dg St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
     (rj : Root × Fin n) (z : Z) :
     projSC (s, c.cacheQuery (.inr rj) z) = projSC (s, c) := by
   refine QueryCache.ext fun t ↦ ?_
@@ -80,7 +82,7 @@ theorem projSC_cacheQuery_inr (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n)
     rw [QueryCache.cacheQuery_of_ne _ _ (by simp)]
   · rfl
 
-theorem projSC_record (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
+theorem projSC_record (s : SimSt Dg St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache)
     (x y : St) (lbl : Option (Root × Fin n)) :
     projSC (s.record D x y lbl, c) = (projSC (s, c)).cacheQuery (.inr x) y := by
   refine QueryCache.ext fun t ↦ ?_
@@ -115,7 +117,7 @@ theorem uniform_build :
 
 /-- The fresh answers of the simulator: the cache changes only in the challenges, and the answer
 is uniform when the challenges in the cache are used ones. -/
-theorem freshAns_run (s : SimSt St Root n) (x : St) (c : (GSpec Msg Dg Root Z n).QueryCache)
+theorem freshAns_run (s : SimSt Dg St Root n) (x : St) (c : (GSpec Msg Dg Root Z n).QueryCache)
     (hinv : ∀ r j, c (.inr (r, j)) ≠ none → (r, j) ∈ s.used) :
     (fun z ↦ (z.1.1, projSC (s, z.2))) <$>
         (simulateQ (GSpec Msg Dg Root Z n).romImpl (freshAns D gaP s x)).run c =ᵈ
@@ -136,7 +138,7 @@ theorem freshAns_run (s : SimSt St Root n) (x : St) (c : (GSpec Msg Dg Root Z n)
       simpa [map_bind] using this
   · simp [simulateQ_map, OracleSpec.simulateQ_romImpl_liftM_run, Functor.map_map]
 
-theorem sim_step (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n)
+theorem sim_step (t : (Rom2 Msg Dg St).Domain) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache)
     (hinv : ∀ r j, c (.inr (r, j)) ≠ none → (r, j) ∈ s.used) :
     Prod.map id projSC <$> ((foldRO (simImpl D hP gaP)) t).run (s, c) =ᵈ
@@ -176,9 +178,9 @@ theorem sim_step (t : (Rom2 Msg Dg St).Domain) (s : SimSt St Root n)
     · rw [roStep_of_some (hp.trans h)]
       simp
 
-end Common.Duplex
+end Common.SeedDuplex
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -187,14 +189,14 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   (D : DuplexSpec Msg Dg St Root Z W Cp n)
 
 /-- The simulator's invariant: a cached challenge is a used one. -/
-def CacheUsed (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) : Prop :=
+def CacheUsed (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) : Prop :=
   ∀ r j, sc.2 (.inr (r, j)) ≠ none → (r, j) ∈ sc.1.used
 
-theorem used_record (s : SimSt St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
+theorem used_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
     (s.record D x y lbl).used = lbl.toList ++ s.used := by
   cases lbl <;> simp [SimSt.used, SimSt.record]
 
-theorem freshAns_cache (s : SimSt St Root n) (x : St) (c : (GSpec Msg Dg Root Z n).QueryCache)
+theorem freshAns_cache (s : SimSt Dg St Root n) (x : St) (c : (GSpec Msg Dg Root Z n).QueryCache)
     {z} (hz : z ∈ support ((simulateQ (GSpec Msg Dg Root Z n).romImpl
       (freshAns D gaP s x)).run c)) (r : Root) (j : Fin n)
     (hrj : z.2 (.inr (r, j)) ≠ none) : c (.inr (r, j)) ≠ none ∨ z.1.2 = some (r, j) := by
@@ -228,7 +230,7 @@ theorem freshAns_cache (s : SimSt St Root n) (x : St) (c : (GSpec Msg Dg Root Z 
     exact Or.inl hrj
 
 theorem cacheUsed_step (t : (Rom2 Msg Dg St).Domain)
-    (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) (h : CacheUsed sc)
+    (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) (h : CacheUsed sc)
     {z} (hz : z ∈ support (((foldRO (simImpl D hP gaP)) t).run sc)) : CacheUsed z.2 := by
   obtain ⟨s, c⟩ := sc
   rw [foldRO_run] at hz
@@ -279,7 +281,7 @@ theorem run'_simImpl_evalDistEq {α : Type} (X : OracleComp (Rom2 Msg Dg St) α)
         ((simulateQ (simImpl D hP gaP) X).run' SimSt.init)).run' ∅ =ᵈ
       (simulateQ (hfSpec Msg Dg St).romImpl X).run' ∅ := by
   rw [run'_simulateQ_foldRO]
-  have h0 : projSC ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache)) =
+  have h0 : projSC ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache)) =
       ∅ := by
     refine QueryCache.ext fun t ↦ ?_
     rcases t with m | x <;> rfl
@@ -289,4 +291,4 @@ theorem run'_simImpl_evalDistEq {α : Type} (X : OracleComp (Rom2 Msg Dg St) α)
     (fun t sc h ↦ by obtain ⟨s, c⟩ := sc; exact sim_step D t s c h) X _
     (fun r j h ↦ absurd rfl h)
 
-end Common.Duplex
+end Common.SeedDuplex

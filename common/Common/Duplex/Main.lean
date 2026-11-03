@@ -26,6 +26,8 @@ challenges are the table's (`chal_ok`), and a collision occurs with probability 
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec MeasureTheory
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace Common
@@ -116,7 +118,7 @@ theorem run'_hq_bind_evalDistEq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0
 
 end Common
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -134,7 +136,7 @@ def embG : QueryImpl (unifSpec + roSpec Msg Dg) (OracleComp (unifSpec + GSpec Ms
   | .inl k => liftM ((unifSpec + GSpec Msg Dg Root Z n).query (.inl k))
   | .inr m => hP m
 
-theorem tab_coin_run (g : Tab Root Z n) (k : ℕ) (s : SimSt St Root n)
+theorem tab_coin_run (g : Tab Root Z n) (k : ℕ) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) :
     (tabImpl D g (.inl k)).run (s, c) =
       (fun u ↦ (u, (s, c))) <$> (unifSpec.query k : ProbComp (Fin (k + 1))) := by
@@ -144,10 +146,10 @@ theorem tab_coin_run (g : Tab Root Z n) (k : ℕ) (s : SimSt St Root n)
   erw [simulateQ_eagerImpl_liftM]
   simp [Functor.map_map]
 
-theorem tab_H_run (g : Tab Root Z n) (m : Msg) (s : SimSt St Root n)
+theorem tab_H_run (g : Tab Root Z n) (m : Msg) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) :
     (tabImpl D g (.inr (.inl m))).run (s, c) =
-      (fun dc ↦ (dc.1, ((if m = D.label then { s with x0 := some (D.init dc.1) } else s), dc.2))) <$>
+      (fun dc ↦ (dc.1, ((if m = D.label then { s with x0 := some (D.init dc.1), iv := some dc.1 } else s), dc.2))) <$>
         roStep (hs := GSpec Msg Dg Root Z n) (.inl m) c := by
   rw [tabImpl, foldWith_run]
   simp only [simImpl, StateT.run_mk, simulateQ_bind, StateT.run_bind, simulateQ_pure,
@@ -162,7 +164,7 @@ theorem tabOuter_coin_run (g : Tab Root Z n) (k : ℕ) (c : (GSpec Msg Dg Root Z
 
 /-- **A computation with coins and `H` sees only the cache.** -/
 theorem post_indep (g : Tab Root Z n) {γ : Type} (P : OracleComp (unifSpec + roSpec Msg Dg) γ)
-    (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache) :
+    (s : SimSt Dg St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache) :
     (fun z ↦ (z.1, z.2.2)) <$> (simulateQ (tabImpl D g) (simulateQ embH P)).run (s, c) =ᵈ
       (simulateQ (tabOuter g) (simulateQ embG P)).run c := by
   rw [← QueryImpl.simulateQ_compose, ← QueryImpl.simulateQ_compose]
@@ -207,10 +209,9 @@ theorem isWeightBound_chalP (r : Root) :
   unfold chalP
   have := D.n_pos
   exact ((isWeightBound_hQ (Dg := Dg) (St := St) D.label).bind fun iv ↦
-    (isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.init iv)).bind fun y₀ ↦
-      (isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.first r y₀)).bind fun y₁ ↦
-        (isWeightBound_chainP (D := D) (n - 1) y₁).bind fun zs ↦
-          isWeightBound_pure (D.out y₁ :: zs) _ 0).mono (by omega)
+    (isWeightBound_fQ (Msg := Msg) (Dg := Dg) (D.first r iv)).bind fun y₁ ↦
+      (isWeightBound_chainP (D := D) (n - 1) y₁).bind fun zs ↦
+        isWeightBound_pure (D.out y₁ :: zs) _ 0).mono (by omega)
 
 /-! ## The challenges read from the table -/
 
@@ -248,10 +249,11 @@ theorem readVec_run [Inhabited Z] (g : Tab Root Z n) (r : Root)
 /-! ## The table world, the label hashed first -/
 
 theorem good_init (g : Tab Root Z n) (iv : Dg) :
-    Good D g iv (({ (SimSt.init : SimSt St Root n) with x0 := some (D.init iv) }),
+    Good D g iv (({ (SimSt.init : SimSt Dg St Root n) with x0 := some (D.init iv), iv := some iv }),
       (∅ : (GSpec Msg Dg Root Z n).QueryCache).cacheQuery (.inl D.label) iv) := by
-  refine ⟨⟨rfl, by simp [SimSt.init], by simp [SimSt.init, SimSt.answer], by simp [SimSt.init],
-    by simp [SimSt.init], by simp [SimSt.init], by simp [SimSt.init], by simp [SimSt.init],
+  refine ⟨⟨rfl, by simp [SimSt.init], rfl, by simp [SimSt.init],
+    by simp [SimSt.init], by simp [SimSt.init], by simp [SimSt.init],
+    fun r ↦ ⟨fun _ ↦ by simp [efflab, (D.dec_iff iv _ r).mpr rfl], by simp [SimSt.init]⟩,
     by simp [SimSt.init]⟩, fun d ↦ ?_, by simp⟩
   rw [QueryCache.cacheQuery_of_ne _ _ (by simp)]
   rfl
@@ -259,7 +261,7 @@ theorem good_init (g : Tab Root Z n) (iv : Dg) :
 /-- Along the computation, the label hashed first: no collision, or a good state. -/
 theorem prefix_inv (g : Tab Root Z n) {β : Type} (B : OracleComp (Rom2 Msg Dg St) β) :
     ∀ w ∈ support ((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run
-      ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))),
+      ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))),
       GFree w.2.2 ∧ (w.2.1.bad = true ∨ ∃ iv, Good D g iv w.2) := by
   intro w hw
   rw [run_hQ_bind] at hw
@@ -305,23 +307,23 @@ theorem tab_le [Inhabited Z] {εc : ℝ≥0∞}
     (post : β → (Fin n → Z) → OracleComp (unifSpec + roSpec Msg Dg) Bool) :
     Pr{let b ← (simulateQ (tabImpl D g) ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦
         chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run'
-        ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))}[b = true] ≤
+        ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))}[b = true] ≤
       Pr{let b ← (simulateQ (tabOuter g) ((simulateQ (simImpl D hP gaP)
         (hQ (St := St) D.label >>= fun _ ↦ B)).run' SimSt.init >>= fun b ↦
           readVec (Msg := Msg) (Dg := Dg) (root b) >>= fun l ↦ simulateQ embG (post b l))).run' ∅}[
           b = true] +
         (NB + n + 1 : ℕ) * (2 * (NB + n + 1 : ℕ) * εc) := by
   have hL : (simulateQ (tabImpl D g) ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦
-        chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run' ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache)) =
-      Prod.fst <$> (((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabImpl D g) (chalP D (root p.1) >>= fun zs ↦
+        chalP D (root b) >>= fun zs ↦ simulateQ embH (post b (toVec zs)))).run' ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache)) =
+      Prod.fst <$> (((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabImpl D g) (chalP D (root p.1) >>= fun zs ↦
         simulateQ embH (post p.1 (toVec zs)))).run p.2) := by
     rw [StateT.run'_eq, simulateQ_bind, StateT.run_bind]
   have hR : (simulateQ (tabOuter g) ((simulateQ (simImpl D hP gaP) (hQ (St := St) D.label >>= fun _ ↦ B)).run' SimSt.init >>= fun b ↦
           readVec (Msg := Msg) (Dg := Dg) (root b) >>= fun l ↦ simulateQ embG (post b l))).run' ∅ =
-      Prod.fst <$> (((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabOuter g) (readVec (Msg := Msg) (Dg := Dg)
+      Prod.fst <$> (((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabOuter g) (readVec (Msg := Msg) (Dg := Dg)
         (root p.1) >>= fun l ↦ simulateQ embG (post p.1 l))).run p.2.2) := by
     rw [StateT.run'_eq, simulateQ_bind, StateT.run_bind, run_prefix, bind_map_left]
-  have hBad : Pr{let z ← ((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabImpl D g) (chalP D (root p.1))).run p.2}[
+  have hBad : Pr{let z ← ((simulateQ (tabImpl D g) (hQ (St := St) D.label >>= fun _ ↦ B)).run ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))) >>= fun p ↦ (simulateQ (tabImpl D g) (chalP D (root p.1))).run p.2}[
       z.2.1.bad = true] ≤ (NB + n + 1 : ℕ) * (2 * (NB + n + 1 : ℕ) * εc) := by
     have hX : QueryCostAtMost ((hQ (St := St) D.label >>= fun _ ↦ B) >>= fun b ↦ chalP D (root b))
         (fCalls (Msg := Msg) (Dg := Dg) (St := St)) (NB + n + 1) :=
@@ -387,9 +389,9 @@ theorem duplex_le [Inhabited Z] {εc : ℝ≥0∞}
   rw [run'_simulateQ_foldWith]
   exact tab_le hcap g B NB hB root post
 
-end Common.Duplex
+end Common.SeedDuplex
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -434,4 +436,4 @@ theorem duplex_ge [Inhabited Z] {εc : ℝ≥0∞}
   refine le_add_of_compl ?_
   simpa only [StateT.run'_eq, prEvent_map, Function.comp_def, Bool.not_eq_true'] using h
 
-end Common.Duplex
+end Common.SeedDuplex
