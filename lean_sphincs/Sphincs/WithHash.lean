@@ -20,6 +20,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace Sphincs
 
+open HashSig HashSig.OverPermutation
+
 export LeanXmss (HashSpec)
 
 namespace Verification
@@ -50,7 +52,7 @@ def recoverChainWithHash (parameter : PublicParameter) (leaf : LeafIndex) (chain
 def leafHashWithHash (parameter : PublicParameter) (leaf : LeafIndex)
     (endpoints : ChainIndex → Digest) :
     m Digest :=
-  tweakableHashWithHash parameter (.leaf leaf) (leafPayload endpoints)
+  tweakableHashWithHash parameter (.leaf leaf) (digestsPayload endpoints)
 
 /-- `Enc(P, e, K, c)`: hash the forest key's sixteen nodes, then the counter, under the leaf's
 encoding tweak, and decode. There is no forest-key hash: the counter falls in the last block of this
@@ -97,7 +99,7 @@ def forestRecoverChainWithHash (parameter : PublicParameter) (index : LeafIndex)
 def childLeafHashWithHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
     (j : SubtreeIndex)
     (a : ChildIndex) (ends : ForestChainIndex → Digest) : m Digest :=
-  tweakableHashWithHash parameter (.childLeaf index c s j a) (childPayload ends)
+  tweakableHashWithHash parameter (.childLeaf index c s j a) (digestsPayload ends)
 
 /-- The child leaf an opening at codeword `word` reaches. -/
 def childRecoverWithHash (parameter : PublicParameter) (index : LeafIndex) (c : ForestCoordinate) (s : SuperChildIndex)
@@ -419,7 +421,7 @@ variable [KeyShape]
 the verifier, and the winning condition: a valid transcript without the forgery
 (`SignerReturnedForgery`). -/
 noncomputable def schemeWithHash :
-    SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey Message (Option Signature)
+    SchemeWithHash MasterSeed PublicKey HashSig.SecretKey Message (Option Signature)
       Forgery where
   sample := sampleMasterSeed
   keygen := KeyGenerationAndSigning.keygenFromSeedWithHash

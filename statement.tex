@@ -227,7 +227,8 @@ above one says nothing).
 \subsection*{The signature schemes}
 
 \paragraph{leanXMSS} (\lean{LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable},
-\lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack.
+\lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack
+(for $k$ keys, guessing the attacked one loses a factor $k$; not proved here).
 The game samples the key's seed, generates the keys, and runs the adversary with $\pi$,
 $\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
 only if no index is requested twice, and its forgery wins if it verifies and is not a pair the
@@ -243,7 +244,9 @@ randomizers in each of its two layers, so one request alone may cost over $2^{33
 $Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable},
 \lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number
 of signing requests, at each of the seven proved lifetimes (subtree heights
-$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about
+$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}); other heights, which the
+crate also allows, are not covered, and staying within the lifetime's number of signatures is the
+key holder's duty (the signer does not count them). A signature costs about
 $2^{35}$ calls in the worst case, so with every request of the largest lifetime used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.

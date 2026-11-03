@@ -28,7 +28,7 @@ structure Adversary where
   main : PublicKey → OracleComp (OracleWorld + SigningOracleSpec) Forgery
 
 /-- Record each signing request and its answer. -/
-def signingOracle (sk : KeyGenerationAndSigning.SecretKey) :
+def signingOracle (sk : HashSig.SecretKey) :
     QueryImpl SigningOracleSpec (WriterT (QueryLog SigningOracleSpec) (OracleComp OracleWorld)) :=
   QueryImpl.withLogging fun request =>
     liftM (KeyGenerationAndSigning.signWithHash sk request.leafIndex request.message : OracleComp

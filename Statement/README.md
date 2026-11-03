@@ -68,8 +68,7 @@ theorems, then read the files in this order.
    (`permutationCallCost`), its run against the lazy permutation (`runWithRandomPermutation`) and a
    computation's queries recorded (`loggedOracles`, its transcript `OracleQueryLog`).
 3. [`SufCma.lean`](SufCma.lean): the SUF-CMA game of a hash-based signature scheme over `π`
-   (`SufCma.forgeryGame`, `forgeryExperiment`) and its security notion
-   (`SufCma.StronglyUnforgeable`).
+   (`SufCma.forgeryGame`) and its security notion (`SufCma.StronglyUnforgeable`), for one key.
 4. [`HashSignatures.lean`](HashSignatures.lean): what leanXMSS and leanSPHINCS share (namespace
    `HashSig`): the tweakable hash's types, bytes and address (`crates/signatures/src/tweak.rs`),
    the hash `H`, Keccak-256 over a permutation `π` (`OverPermutation.keccakHash π`), and a hash
@@ -79,11 +78,12 @@ theorems, then read the files in this order.
    part, and `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at
    127 bits, `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
-6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
-   into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
-   and chain values and the path) with the deterministic signer, the proved lifetimes, and
+6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; one tree,
+   its signature the randomizer, the forest opening, the WOTS+C counter and chain values and the
+   path) with the deterministic signer, the proved lifetimes, and
    `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each
-   lifetime, `Q` counting the honest signer's worst-case grinding too).
+   lifetime, `Q` counting the honest signer's worst-case grinding too; other subtree heights, and a
+   key used past its signature limit, are not covered).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
@@ -205,9 +205,8 @@ runs it). It needs no review beyond that check.
 [`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
 lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
 degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written out
-and Keccak-256 over any permutation with its blocks read from arrays (`Keccak`), a digest's bytes
-read as a number by a fold (`SufCma`), and the signature schemes' verifiers with a constant-depth
-lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here,
+and Keccak-256 over any permutation with its blocks read from arrays (`Keccak`), and the signature
+schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here,
 imported by `Field.lean`, `HashSignatures.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the
 statement's own compiled definitions (the verifier, the prover, the signature schemes, the guest
 program's specification, LeanDA) and every module after them. They need no review: a `@[csimp]`

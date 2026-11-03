@@ -36,6 +36,8 @@ open OracleComp OracleSpec ENNReal Common Common.SufCma
 
 namespace Sphincs.OneLayer
 
+open HashSig HashSig.OverPermutation
+
 /-! ## A SUF-CMA game through maps of the answers and the forgeries -/
 
 section Transport
@@ -232,14 +234,14 @@ omit [HasQuery HashSpec m] in
 /-- `sequenceFin` through a map of its entries. -/
 theorem sequenceFin_map {α β : Type} (g : α → β) :
     ∀ (n : Nat) (f : Fin n → m α),
-      Verification.sequenceFin (fun i ↦ g <$> f i) = (fun v ↦ g ∘ v) <$> Verification.sequenceFin f
+      HashSig.OverPermutation.sequenceFin (fun i ↦ g <$> f i) = (fun v ↦ g ∘ v) <$> HashSig.OverPermutation.sequenceFin f
   | 0, f => by
-    simp only [Verification.sequenceFin, map_pure]
+    simp only [HashSig.OverPermutation.sequenceFin, map_pure]
     congr 1
     funext i
     exact i.elim0
   | n + 1, f => by
-    simp only [Verification.sequenceFin, map_bind, bind_map_left, map_pure]
+    simp only [HashSig.OverPermutation.sequenceFin, map_bind, bind_map_left, map_pure]
     refine bind_congr fun head ↦ ?_
     rw [sequenceFin_map g n (fun i : Fin n ↦ f i.succ), bind_map_left]
     refine bind_congr fun tail ↦ ?_
@@ -252,7 +254,7 @@ omit [HasQuery HashSpec m] in
 theorem bind_sequenceFin_map {α β γ : Type} (g : α → β) {n : Nat} (f : Fin n → m α)
     (f' : Fin n → m β) (k : (Fin n → β) → m γ) (k' : (Fin n → α) → m γ)
     (hf : ∀ i, f' i = g <$> f i) (hk : ∀ v, k (g ∘ v) = k' v) :
-    Verification.sequenceFin f' >>= k = Verification.sequenceFin f >>= k' := by
+    HashSig.OverPermutation.sequenceFin f' >>= k = HashSig.OverPermutation.sequenceFin f >>= k' := by
   rw [show f' = fun i ↦ g <$> f i from funext hf, sequenceFin_map, bind_map_left]
   exact bind_congr hk
 
@@ -284,7 +286,7 @@ theorem forestOpen_eq (parameter : PublicParameter) (index : LeafIndex) (digest 
         (Verification.digestCoordinateSelections digest) seed =
       (fun opening ↦ coordOpeningEquiv ∘ opening) <$> SphincsLayered.Seeded.forestOpen parameter
         index (SphincsLayered.Concrete.digestMarks digest) seed :=
-  (congrArg Verification.sequenceFin
+  (congrArg HashSig.OverPermutation.sequenceFin
     (funext fun c ↦ coordOpen_eq parameter index c digest seed)).trans (sequenceFin_map _ _ _)
 
 /-- An index as a layered leaf. -/
@@ -392,7 +394,7 @@ theorem digestIndex_truncate (first : HashOutput) :
 
 omit [LawfulMonad m] in
 /-- One grinding attempt, the same hash. -/
-theorem signAttempt_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message)
+theorem signAttempt_eq (secretKey : HashSig.SecretKey) (message : Message)
     (randomness : Randomizer) :
     KeyGenerationAndSigning.signAttemptWithHash (m := m) secretKey message randomness =
       SphincsLayered.Seeded.signAttempt secretKey message randomness := by
@@ -403,7 +405,7 @@ theorem signAttempt_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) 
 
 omit [LawfulMonad m] in
 /-- The grinding loop, the same hashes. -/
-theorem signDigestLoop_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message :
+theorem signDigestLoop_eq (secretKey : HashSig.SecretKey) (message :
     Message) :
     ∀ attempts randomness,
       KeyGenerationAndSigning.signDigestLoopWithHash (m := m) secretKey message attempts
@@ -420,7 +422,7 @@ theorem signDigestLoop_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKe
 
 /-- The layered signer, written as the statement's: no loop over the layers, the encoding
 counter's search the statement's. -/
-theorem sign_layered (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message) :
+theorem sign_layered (secretKey : HashSig.SecretKey) (message : Message) :
     SphincsLayered.Seeded.sign (m := m) secretKey message = (do
       let base ← SphincsLayered.deriveRandomizer secretKey.parameter secretKey.schemeSeed message
       let some (randomness, _) ← SphincsLayered.Seeded.signDigestLoop secretKey message
@@ -453,7 +455,7 @@ theorem sign_layered (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (m
       rfl
 
 /-- **The signer, through the bijection.** -/
-theorem sign_eq (secretKey : LeanXmss.KeyGenerationAndSigning.SecretKey) (message : Message) :
+theorem sign_eq (secretKey : HashSig.SecretKey) (message : Message) :
     KeyGenerationAndSigning.signWithHash (m := m) secretKey message =
       Option.map signatureEquiv <$> SphincsLayered.Seeded.sign secretKey message := by
   rw [sign_layered, KeyGenerationAndSigning.signWithHash]

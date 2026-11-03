@@ -355,14 +355,15 @@ theorem cellVal_lit (N : Nat) : cellVal (lit N) = BitVec.ofNat 128 N := by
 
 theorem xv_lit (N : Nat) : xv (lit N) = BitVec.ofNat 128 N := cellVal_lit N
 
-theorem digit_ofNat (N i : Nat) :
-    (Codeword.digit (BitVec.ofNat 128 N) i).val = N % 2 ^ 128 / 4 ^ i % 4 := by
-  show (BitVec.extractLsb' (2 * i) 2 (BitVec.ofNat 128 N)).toNat = _
+theorem digit_ofNat {n : Nat} (N : Nat) (i : Fin n) :
+    (digestDigits (BitVec.ofNat 128 N) i).val = N % 2 ^ 128 / 4 ^ i.val % 4 := by
+  show (BitVec.extractLsb' (2 * i.val) 2 (BitVec.ofNat 128 N)).toNat = _
   rw [BitVec.extractLsb'_toNat, BitVec.toNat_ofNat, Nat.shiftRight_eq_div_pow, pow_mul]
   norm_num
 
-theorem digit_val (d : HashSig.Digest) (i : Nat) : (Codeword.digit d i).val = d.toNat / 4 ^ i % 4 := by
-  show (BitVec.extractLsb' (2 * i) 2 d).toNat = _
+theorem digit_val {n : Nat} (d : HashSig.Digest) (i : Fin n) :
+    (digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
+  show (BitVec.extractLsb' (2 * i.val) 2 d).toNat = _
   rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, pow_mul]
   norm_num
 
@@ -377,11 +378,10 @@ theorem decode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
     have : (4 : Nat) ^ chainCount = 2 ^ 116 := by norm_num [chainCount]
     omega
   rw [xv_lit]
-  have henc : Codeword.encoding (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) =
-      fun i => ⟨dig i.val, hd _⟩ := by
+  have henc : (digestDigits (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) :
+      Encoding) = fun i => ⟨dig i.val, hd _⟩ := by
     funext i
     apply Fin.ext
-    show (Codeword.digit _ i.val).val = dig i.val
     rw [digit_ofNat, Nat.mod_eq_of_lt (a := ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)
         (by omega)]
     exact base4_digit hd _ _ i.isLt
@@ -395,7 +395,9 @@ theorem decode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
       rw [ht]
       exact Nat.div_eq_of_lt (by norm_num at hlt' ⊢; omega)
     · rw [henc, Codeword.sum, ← hs, ← Fin.sum_univ_eq_sum_range]
-  simp only [Codeword.decode, hv, ↓reduceIte, henc]
+  simp only [Codeword.decode]
+  split_ifs
+  rw [henc]
 
 theorem base4_expand : ∀ n N, N < 4 ^ n → ∑ j ∈ Finset.range n, N / 4 ^ j % 4 * 4 ^ j = N
   | 0, N, h => by simp only [pow_zero, Nat.lt_one_iff] at h; simp [h]
@@ -422,9 +424,9 @@ theorem decode_some {d : HashSig.Digest} {enc : Encoding} (h : Codeword.decode d
   split at h
   next hv =>
     cases h
-    refine ⟨fun i => digit_val d i.val, ?_, ?_⟩
+    refine ⟨fun i => digit_val d i, ?_, ?_⟩
     · rw [← hv.2, Codeword.sum, ← Fin.sum_univ_eq_sum_range]
-      exact Finset.sum_congr rfl fun i _ => (digit_val d i.val).symm
+      exact Finset.sum_congr rfl fun i _ => (digit_val d i).symm
     · have h1 := hv.1
       have hlt : d.toNat < 4 ^ chainCount := by
         simp only [winternitzBits, chainCount] at h1

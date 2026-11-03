@@ -1,6 +1,7 @@
 module
 
 public import Statement.LeanXmss
+public import Common.Defs
 
 /-!
 # The SUF-CMA game and leanXMSS with a hash oracle
@@ -155,7 +156,7 @@ def recoverChainWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyI
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
 def leafHashWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
     (endpoints : ChainIndex → Digest) : m Digest :=
-  tweakableHashWithHash parameter (.leaf lay key) (leafPayload endpoints)
+  tweakableHashWithHash parameter (.leaf lay key) (digestsPayload endpoints)
 
 /-- `D = Th(P, A_msg(l, e), M || rho)` (`message_digest`). -/
 def messageDigestWithHash (parameter : PublicParameter) (lay : Layer) (key : KeyIndex)
@@ -314,7 +315,7 @@ open Common Common.SufCma
 verifier, and the winning condition: a valid transcript without the forgery
 (`SignerReturnedForgery`). -/
 noncomputable def schemeWithHash :
-    SchemeWithHash MasterSeed PublicKey KeyGenerationAndSigning.SecretKey SigningRequest
+    SchemeWithHash MasterSeed PublicKey SecretKey SigningRequest
       (Option Signature) Forgery where
   sample := sampleMasterSeed
   keygen := KeyGenerationAndSigning.keygenFromSeedWithHash

@@ -31,6 +31,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat gen)
 open Sphincs Sphincs.Verification
+open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -113,7 +114,7 @@ theorem sBack_stage (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (sig : S
     fun j hj => by
       rw [he4.apply (Or.inl (by obtain ⟨e1, -⟩ := sEnc_ge; omega))]; exact m4' j hj⟩, hh4⟩
 
-theorem sCellPairVal_cellOf128 (m : Sphincs.Message) :
+theorem sCellPairVal_cellOf128 (m : HashSig.Message) :
     cellPairVal (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m := by
   apply BitVec.eq_of_toNat_eq
   have hm : m.toNat < 2 ^ 256 := m.isLt
@@ -124,16 +125,16 @@ theorem sCellPairVal_cellOf128 (m : Sphincs.Message) :
   exact Nat.div_add_mod _ _
 
 /-- The message's bytes, as its two cells'. -/
-theorem sphincs_msg_bytes (m : Sphincs.Message) :
-    Sphincs.littleEndianBytes 32 m = cellBytes (cellOf128 (m.extractLsb' 0 128)) ++
+theorem sphincs_msg_bytes (m : HashSig.Message) :
+    HashSig.littleEndianBytes 32 m = cellBytes (cellOf128 (m.extractLsb' 0 128)) ++
       cellBytes (cellOf128 (m.extractLsb' 128 128)) := by
   rw [← sphincs_bytesLE_cellPairVal]
   congr 1
   exact (sCellPairVal_cellOf128 m).symm
 
 /-- **The stages complete**, from a valuation holding the claim's pointer and the byte table. -/
-theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey)
-    (m : Sphincs.Message) (sig : Sphincs.Signature) (hv : SRoot pk.parameter m sig pk.root)
+theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : HashSig.PublicKey)
+    (m : HashSig.Message) (sig : Sphincs.Signature) (hv : SRoot pk.parameter m sig pk.root)
     (σ0 : Val) (h0 : σ0 (.n 0) = p) (h1 : σ0 (.n 1) = bb)
     (hldP : LoadHolds rd p 1 (cellOf128 pk.parameter))
     (hld2 : LoadHolds rd p 2 (cellOf128 (m.extractLsb' 0 128)))
@@ -195,10 +196,10 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   have hE : cellBytes (σ2 (.n 164)) = tweakBytes (.encoding
       (digestLeafIndex (BitVec.ofNat messageDigestBits (N17 + 2 ^ 128 * N18)))) := by
     rw [hpre2.top1, sNode0_eq hpre2]
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 4 0 0 _)
+    show _ = HashSig.addressBytes (HashSig.tweakFields 4 0 0 _)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hc : Sphincs.littleEndianBytes 4 sig.counter = (cellBytes (eOfNat ctr)).take 4 := by
+  have hc : HashSig.littleEndianBytes 4 sig.counter = (cellBytes (eOfNat ctr)).take 4 := by
     have hc32 : ctr < 2 ^ 32 := sig.counter.isLt
     have e : BitVec.ofNat (8 * 4) (cellNat (eOfNat ctr)) = sig.counter := by
       apply BitVec.eq_of_toNat_eq
@@ -222,7 +223,7 @@ theorem sStages (hm : MemOK rd 256) {p bb : E} (hbb : ByteBits rd bb) (pk : Sphi
   exact ⟨hp12.frame (hag4.mono hB), fun k hk => ⟨_, _, hp2 σ4 hag4 k hk⟩, k0, ⟨_, k1, k2⟩, k3, k4, k5⟩
 
 /-- **The root the final valuation reaches is the key's.** -/
-theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphincs.Signature}
+theorem sRoot_final {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature}
     (hv : SRoot pk.parameter m sig pk.root) {σ : Val} {N17 N18 : Nat}
     (hf : SFinal rd σ (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomizer) sig N17 N18
@@ -272,8 +273,8 @@ theorem sRoot_final {pk : Sphincs.PublicKey} {m : Sphincs.Message} {sig : Sphinc
 
 /-- **The valuation completeness builds**: its arguments, the body holding, and what the final
 valuation holds (for the loads' addresses, `SphincsLoads`). -/
-theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey)
-    (m : Sphincs.Message) (sig : Sphincs.Signature) (hm : MemOK rd 256) (hbb : ByteBits rd bb)
+theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : HashSig.PublicKey)
+    (m : HashSig.Message) (sig : Sphincs.Signature) (hm : MemOK rd 256) (hbb : ByteBits rd bb)
     (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)))
     (hv : Sphincs.verifyWithKeccak pk m sig = true) :

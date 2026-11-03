@@ -2,7 +2,6 @@ module
 
 public import Statement.SufCma
 public import Statement.Fast.Keccak
-public import Statement.Fast.SufCma
 
 /-!
 # Hash-based signatures: what leanXMSS and leanSPHINCS share
@@ -12,7 +11,7 @@ Read before the two schemes: the tweakable hash `Th(P, A, M) = Truncate_n(H(P �
 (namespace `HashSig`); the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any
 monad (`keccakHash`), and the hash chains, Merkle paths and Merkle trees every chain, path and tree
 of both schemes instantiates (`walkChain`, `foldPath`, `buildTree`, namespace
-`HashSig.OverPermutation`). `Statement/LeanSphincs.lean` exports them into `Sphincs`.
+`HashSig.OverPermutation`).
 -/
 
 @[expose] public section
@@ -69,10 +68,27 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
+/-- The signer's key: the scheme seed `S = H(seedTag ‖ S_0)`, from which every secret derives
+(`seedTag` the scheme's name, `leanXMSS` or `leanSPHINCS`), and the parameter. -/
+structure SecretKey where
+  /-- `S`, the scheme seed. -/
+  schemeSeed : MasterSeed
+  /-- The public parameter `P`. -/
+  parameter : PublicParameter
+
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def littleEndianBytes (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
+
+/-- `d_0 || ... || d_{n-1}`, 16 bytes each: a one-time key's chain ends, which its leaf hashes. -/
+def digestsPayload {n : Nat} (digests : Fin n → Digest) : HashInput :=
+  (List.ofFn digests).flatMap (littleEndianBytes 16)
+
+/-- The first `n` base-`2^w` digits of a digest, little endian: digit `i` is bits `w i` to
+`w i + w - 1`, how far a WOTS+C signature opens chain `i`. -/
+def digestDigits {n : Nat} (digest : Digest) (i : Fin n) : WinternitzDigit :=
+  (digest.extractLsb' (winternitzBits * i.val) winternitzBits).toFin
 
 /-- The address of a hash call (`Tweak`, `crates/signatures/src/tweak.rs`): its type `tag < 32`, a
 chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
@@ -110,6 +126,7 @@ noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
 namespace OverPermutation
 
 open LeanVM.Semantics (KeccakState)
+open LeanVM.Protocol.KeccakHash (digestBytes keccak256With)
 
 /-! ## Chains, Merkle paths and trees, and the hash, over a permutation `π` -/
 
@@ -162,10 +179,10 @@ def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- **The hash `H`**: Keccak-256 over the permutation `π` (`keccak256With`), its digest's 32 bytes
-read as a little-endian number (`Common.SufCma.digestBytesEquivBitVec`). -/
+(`digestBytes`) read as a little-endian number. -/
 def keccakHash (input : HashInput) : m HashOutput :=
-  (fun d ↦ Common.SufCma.digestBytesEquivBitVec d.toBytes) <$>
-    LeanVM.Protocol.KeccakHash.keccak256With π input
+  (fun digest ↦ BitVec.ofNat 256 ((digestBytes digest).foldr (fun b acc ↦ b.toNat + 256 * acc) 0))
+    <$> keccak256With π input
 
 /-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs`). -/
 def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
