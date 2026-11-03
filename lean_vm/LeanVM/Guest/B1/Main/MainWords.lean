@@ -285,7 +285,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     (hr : NodeRelation bytecode seed s w) :
     hDvB fs SB SK w ≤ (End.work s w).rawDa * dvC fs SB + (End.work s w).rawDaRows * dvS SK +
       (End.work s w).rawDaPad * dvP SB SK := by
-  obtain ⟨-, hda, -, -, -⟩ := hr
+  obtain ⟨-, hda, -, -⟩ := hr
   unfold hDvB
   simp only [End.work]
   cases hw : w.daMatrix with

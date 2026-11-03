@@ -152,8 +152,8 @@ theorems, then read the files in this order.
     defined right after it (`SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim held by a
     raw signature or a child; `DaDigestHeld`: the DA digest that of the blob matrix the node checks,
     zeros or a child's; `ChildrenProven`: every child's proof accepted by the deferring verifier;
-    `DeferredClaimBatched`: the deferred claim the batching of the children's), and the deferred
-    claim's shape; then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and
+    `DeferredClaimBatched`: the deferred claim the batching of the children's, and so of the
+    bytecode's shape); then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and
     what it explains of a public input (`ExplainsPublicInput`), the candidate collisions of two
     statements' digests and **`LeanVM.Node.StatementDigestBinds`** (a digest binds the seed and a
     statement of a given shape, up to a Keccak-256 collision), and the deployed leanISA guest
