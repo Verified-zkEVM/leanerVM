@@ -16,7 +16,7 @@ public import LeanVM.Arithmetization.Soundness.Walk
 /-!
 # The state channel
 
-At leanVM pin `c445e3d51a5a85031df47240595698f3b24897bf` and Clean pin `42fe4b26`. Specification
+At leanVM pin `1e9d8cffd6df7d5210e70a33664a6cd6f569918e` and Clean pin `42fe4b26`. Specification
 Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), as `exists_run_of_balanced`. It
 assumes the constraint statement `SatisfiedBy` alone, nothing of the program, and serves
 `constraintSoundness`.
@@ -48,7 +48,7 @@ rows that are steps of a semantics `S` of `KECCAK`: the deployed one under the `
   except through the walk; the rows not on the run are closed walks.
 * No row is excluded at the last slot: the machine halts in the final state, `(g^(N_prog - 1), 1)`,
   and a row at the last slot in another frame is a step of the program, which a valid execution
-  may take (leanVM's `halts_in_the_final_state`, `crates/leanvm_core/src/cpu/mod.rs:878-916`).
+  may take (leanVM's `halts_in_the_final_state`, `crates/leanvm_core/src/cpu/mod.rs:769-807`).
 -/
 
 namespace LeanVM.Arithmetization

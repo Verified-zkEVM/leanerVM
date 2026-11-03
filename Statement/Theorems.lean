@@ -55,8 +55,8 @@ structure Theorems
   children's. A child's proof is accepted with the bytecode's value at the child's point taken from
   the witness, which no end statement requires true, so a child's claims carry knowledge only
   through the root's deferred claim and a batching sound in the circuit (`LeanVmGuest.lean`). The
-  blob matrix opens a vector the witness chooses: only the outer verifier's derivation of the
-  root's membership vector, not modelled, makes its rows codewords. -/
+  blob matrix opens the membership challenge the witness chooses: only the outer verifier's
+  derivation of the root's challenge, not modelled, makes its rows codewords. -/
   guestKnowledgeSoundness : LeanVM.Node.GuestKnowledgeSoundness guestWitnessDecoder
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among the
   candidates (`LeanVmGuest.lean`). With `leanVmKnowledgeSoundness` and `guestKnowledgeSoundness` it

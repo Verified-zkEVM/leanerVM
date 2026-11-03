@@ -72,7 +72,7 @@ impl Out {
         self.e(c.bytecode_value);
     }
 
-    /// `NodeStatement`: the claims, the DA digest (`da_digest`), and the deferred claim.
+    /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
     fn statement(&mut self, p: &EthereumProof) {
         self.tag("xmss");
         self.n(p.xmss_signers.len());
@@ -87,7 +87,7 @@ impl Out {
             self.bytes(m);
         }
         self.tag("da");
-        self.bytes(&da_digest(p.da_root));
+        self.bytes(&verifier::da::digest(p.da_root));
         self.deferred(&p.defer);
     }
 
@@ -144,7 +144,7 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.statement(da_digest(node.da_root)));
+    out.es(&node.statement(verifier::da::digest(node.da_root)));
     out.tag("statement");
     out.statement(&node);
 
@@ -154,7 +154,7 @@ fn export(
     for child in &children {
         out.tag("child");
         out.statement(child);
-        let pi = child.statement(da_digest(child.da_root));
+        let pi = child.statement(verifier::da::digest(child.da_root));
         let summary = verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar_proof(&child.proof))
             .expect("the child replays");
         let openings: Vec<(Vec<u64>, Vec<[u8; 32]>)> = summary
@@ -180,7 +180,7 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation.rs:1703-1707`).
+    // deduplicated (`aggregation.rs:1689-1693`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
@@ -201,15 +201,14 @@ fn export(
         out.bytes(m);
         out.sphincs_signature(sig);
     }
-    // The directly held matrix: its root, its vector digest, its rows and its membership vector.
+    // The directly held matrix: its root, its membership challenge and its rows.
     let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs));
     out.tag("da_witness");
     match &direct {
-        Some((commitment, witness)) => {
-            let root = commitment.root;
+        Some((root, witness)) => {
             out.0.push_str("direct ");
-            out.bytes(&root);
-            out.bytes(&lean_da::vector_digest(&lean_da::membership_vector(&root)));
+            out.bytes(root);
+            out.e(from_scalar(verifier::da::membership_challenge(root)));
             let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
             out.n(rows.len());
             for row in rows {
@@ -218,7 +217,6 @@ fn export(
                     write!(out.0, "{w:x} ").unwrap();
                 }
             }
-            out.es(&lean_da::membership_vector(&root));
         }
         None => out.0.push_str("none "),
     }

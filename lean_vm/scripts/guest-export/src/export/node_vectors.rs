@@ -96,8 +96,8 @@ pub fn file() -> File {
     let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
     let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
     let root = bytes32(&mut rng);
-    let vector_digest = lean_da::vector_digest(&lean_da::membership_vector(&root));
-    let da = da_digest(Some(root));
+    let challenge = verifier::da::membership_challenge(&root);
+    let da = verifier::da::digest(Some(root));
 
     // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
     let defer = DeferredClaim {
@@ -159,13 +159,13 @@ pub fn file() -> File {
     writeln!(out, "def sphincsListDigest : Digest := {}\n", cells_digest(&sphincs_digest)).unwrap();
     writeln!(
         out,
-        "/-- A DA claim: a root with the vector digest the Rust derives from it. -/\ndef daClaim : DaClaim := ⟨{}, {}⟩\n",
+        "/-- A DA claim: a root with the membership challenge the Rust derives from it. -/\ndef daClaim : DaClaim := ⟨{}, {}⟩\n",
         digest(&root),
-        digest(&vector_digest)
+        e(from_scalar(challenge))
     )
     .unwrap();
-    writeln!(out, "/-- The statement's DA field for it (`da_digest`). -/\ndef daDigest : Digest := {}\n", digest(&da)).unwrap();
-    writeln!(out, "/-- The statement's DA field without a root. -/\ndef daNone : Digest := {}\n", digest(&da_digest(None))).unwrap();
+    writeln!(out, "/-- The statement's DA field for it (`verifier::da::digest`). -/\ndef daDigest : Digest := {}\n", digest(&da)).unwrap();
+    writeln!(out, "/-- The statement's DA field without a root. -/\ndef daNone : Digest := {}\n", digest(&verifier::da::digest(None))).unwrap();
     writeln!(
         out,
         "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredClaim :=\n  ⟨{},\n   {}⟩\n",

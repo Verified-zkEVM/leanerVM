@@ -381,7 +381,7 @@ meaning ``$pk$ signed $m$'';
 \item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, \delta)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
 (\lean{daRoot}) and the digest $\delta$ (\lean{membershipVectorDigest}) of a vector $u$, or $32$
-zero bytes without one (\lean{zeroDigest}; \texttt{da\_digest}, \texttt{aggregation.rs:550-562}).
+zero bytes without one (\lean{zeroDigest}; \texttt{da\_digest}, \texttt{aggregation.rs:550-548}).
 The claim: some matrix of $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to
 some $u$ with digest $\delta$ (\lean{Da.MatrixWitness.Opens}). The outer verifier holds $\rho$, derives
 $\delta$ from $\rho$'s membership vector (Section~\ref{sec:schemes}), which makes the rows codewords
@@ -452,7 +452,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:673-690})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:659-676})
 additionally checks that the DA digest is that of its root with the digest of the root's
 membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below

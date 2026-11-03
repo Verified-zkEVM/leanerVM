@@ -22,7 +22,7 @@ says there are as many writers as slots, so the writers fill every slot exactly 
 (`cover_of_writeOnce`). This is the coverage table of `main` (G:4136-4200, with
 `child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:3859-3906), `sort_order` in
 `verify_tables` (G:1953-1979) and `col_sort_order` in `certify_placement` (G:2982-3006) (G for
-`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `c445e3d`).
+`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `1e9d8cf`).
 
 The corollaries: a bijection's ranks list `List.range n` up to order
 (`perm_range_of_bijective`); a list of ranks that is a permutation and adjacent-sorted by the

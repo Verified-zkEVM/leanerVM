@@ -1795,7 +1795,7 @@ The 64 claims `s[i] = z(i, point)` on `q_keccak`'s bit slices become one dense c
 -/
 
 /-- `RING_MAP_SHIFTS` (`verifier.py:1412`; `COMPOSITION_SHIFTS`,
-`crates/pcs/src/ring_switch.rs:80`): the Frobenius shifts of the six stages composing `Φ`, one
+`crates/pcs/src/ring_switch.rs:82`): the Frobenius shifts of the six stages composing `Φ`, one
 challenge each. -/
 def ringMapShifts : List ℕ := [32, 16, 8, 4, 2, 1]
 

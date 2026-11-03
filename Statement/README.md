@@ -26,7 +26,7 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`c445e3d51a5a85031df47240595698f3b24897bf` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
+`1e9d8cffd6df7d5210e70a33664a6cd6f569918e` (branch `main`, [`../leanvm-rev`](../leanvm-rev)): each
 cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
@@ -39,11 +39,12 @@ transcribe their sources; that the Rust verifier's expansion of the pruned Merkl
 prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
 formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation.rs:673-692`) checks of a root more than any end
+verifier** (`EthereumProof::verify`, `aggregation.rs:659-678`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
-`DeferredClaim.HoldsWithShape`), derives the DA digest from the root's membership vector (no end
-statement does: `MatrixWitness.Opens` accepts any vector whose digest is committed, the zero vector
-included, so the DA part of a node's relation says nothing of the blob without that derivation),
+`DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
+end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one
+included, whose dual codeword is all ones, so the DA part of a node's relation says nothing of the
+blob without that derivation),
 and checks that the signer lists are sorted, without repeats and shorter than `2^16` (not
 modelled). Even with these, a claim held through a child carries knowledge only if the children's
 fresh claims are true, which needs the batching sound inside the circuit at every level: no end
@@ -102,12 +103,12 @@ theorems, then read the files in this order.
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements; the Fiat-Shamir duplex sponge over a
    permutation (`Sponge`, `absorb`, `squeeze`), which leanVM's verifier and LeanDA's membership
-   challenges share.
-8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
-   membership test), the parts of Benedikt Wagner's framework the end statements name (the
-   consistency of opened cells), the relation of LeanDA's argument (the root's challenges drawn by
+   challenge share.
+8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, a tree
+   per row over its cells then one over the rows' roots, the membership test on one challenge), the parts of Benedikt Wagner's framework the end statements name (the
+   consistency of opened cells), the relation of LeanDA's argument (the root's challenge drawn by
    the deployed duplex over a permutation), arguments that query the model's oracles, the commitment
-   and the challenges over a permutation (the challenges by `Field.lean`'s sponge), LeanDA's games in the random-permutation model,
+   and the challenge over a permutation (the challenge by `Field.lean`'s sponge), LeanDA's games in the random-permutation model,
    where the adversary, the argument (`OracleArgument`, its extractor reading the adversary's
    transcript) and the verifier query the same oracles (`RandomPermutationOracles`, hashing with
    Keccak-256 over `π`, `keccakDigestBytes queryPermutation`; position binding, code binding, the
@@ -115,7 +116,7 @@ theorems, then read the files in this order.
    and `LeanDa.LeanDaPerfectlyComplete`, `LeanDa.LeanDaPositionBinding`, `LeanDa.LeanDaCodeBinding`.
    Code binding is conditional: if the argument is knowledge sound in the random-permutation model
    with error `(q + c) · 2^-k`, LeanDA is code binding with error
-   `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-188 + (Q + 2^22)² · 2^-247` for every `Q` and `r ≤ 1024`
+   `(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247` for every `Q` and `r ≤ 1024`
    rows (a straight-line proof on Wagner's framework); the last term passes 1 at about
    `Q = 2^123.5`. `LeanDaCodeBinding`'s docstring says which arguments satisfy the hypothesis.
 9. [`LeanIsa.lean`](LeanIsa.lean): leanISA (memory, the six instructions, programs, one step, `run`,
@@ -183,8 +184,8 @@ theorems, then read the files in this order.
     extractor program may compute an execution by any algorithm. Two caveats, in the module's
     docstring and `MatrixWitness.Opens`': a claim held through a child carries no knowledge by
     itself (the child's fresh claim, its proof's claim on the bytecode, comes from the witness), and
-    the blob matrix opens a vector of the witness's choosing (only the outer verifier's derivation of
-    the root's membership vector, not modelled, makes its rows codewords).
+    the blob matrix opens a membership challenge of the witness's choosing (only the outer verifier's
+    derivation of the root's challenge, not modelled, makes its rows codewords).
 14. [`LeanVmGuestBatching.lean`](LeanVmGuestBatching.lean): the reference material
     `LeanVmGuest.lean` imports, transcribed with its citations: the deferred claim
     (`DeferredClaim`), and the batching of the children's deferred claims as a verifier program
