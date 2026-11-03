@@ -185,7 +185,7 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
 exactly where the guest program's transcript defers the node's claim. -/
 theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}
     {w : NodeWitness} : NodeRelation bytecode seed s w ↔ NodeRelB bytecode seed s w := by
-  unfold NodeRelation NodeRelB ClaimsCovered DaClaimCovered ChildrenProven
+  unfold NodeRelation NodeRelB SignatureClaimsHeld DaDigestHeld ChildrenProven
   have key : s.deferredClaim.HasBytecodeShape bytecode →
       (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
         verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof =

@@ -41,7 +41,7 @@ theorem nDirectD_tables : nDirectD discreteLogTables = nDirect := by
 counted: a raw signature (`wX` at the slot) if `e < n`, else the child the mark falls in. -/
 noncomputable def xmssHolderAt (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : E → LeanXmss.Signature) (k e n : ℕ) : ClaimHolder LeanXmss.Signature :=
-  if e < n then .direct (wX (σ (.n 53) * gen ^ (4 * k))) else .child (kidOfStaged D rd σ e)
+  if e < n then .signature (wX (σ (.n 53) * gen ^ (4 * k))) else .child (kidOfStaged D rd σ e)
 
 /-- **The holder of declared leanXMSS claim `k`**: its mark and the raw count (logarithms)
 computed here and passed to `xmssHolderAt`, whose spec holds at every mark and count. -/
@@ -53,7 +53,7 @@ noncomputable def xmssHolder (D : DiscreteLogTables) (rd : Reader) (σ : Val)
 counted. -/
 noncomputable def sphincsHolderAt (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (k e n : ℕ) : ClaimHolder Sphincs.Signature :=
-  if e < n then .direct (wS (σ (.n 56) * gen ^ (4 * k))) else .child (kidOfStaged D rd σ e)
+  if e < n then .signature (wS (σ (.n 56) * gen ^ (4 * k))) else .child (kidOfStaged D rd σ e)
 
 /-- **The holder of declared leanSPHINCS claim `k`**, staged as `xmssHolder`. -/
 noncomputable def sphincsHolder (D : DiscreteLogTables) (rd : Reader) (σ : Val)
@@ -89,7 +89,7 @@ values built they are `xmssHolder`, `sphincsHolder`. -/
 /-- The holder of declared leanXMSS claim `k` at its slot's mark `e` (`xmssHolderAt`). -/
 def xmssHolderM (p53 : E) (wX : E → LeanXmss.Signature) (M : Array ℕ) (k e n : ℕ) :
     ClaimHolder LeanXmss.Signature :=
-  if e < n then .direct (wX (mulK p53 (Parameters.g ^ (4 * k)))) else .child (kidIn M e)
+  if e < n then .signature (wX (mulK p53 (Parameters.g ^ (4 * k)))) else .child (kidIn M e)
 
 /-- **The holder of declared leanXMSS claim `k`** (`xmssHolder`): its mark read here. -/
 noncomputable def xmssHolderT (D : DiscreteLogTables) (rd : Reader) (cover p53 : E)
@@ -99,7 +99,7 @@ noncomputable def xmssHolderT (D : DiscreteLogTables) (rd : Reader) (cover p53 :
 /-- The holder of declared leanSPHINCS claim `k` at its slot's mark `e` (`sphincsHolderAt`). -/
 def sphincsHolderM (p56 : E) (wS : E → Sphincs.Signature) (M : Array ℕ) (k e n : ℕ) :
     ClaimHolder Sphincs.Signature :=
-  if e < n then .direct (wS (mulK p56 (Parameters.g ^ (4 * k)))) else .child (kidIn M e)
+  if e < n then .signature (wS (mulK p56 (Parameters.g ^ (4 * k)))) else .child (kidIn M e)
 
 /-- **The holder of declared leanSPHINCS claim `k`** (`sphincsHolder`): its mark, at slot
 `lx + k` of the coverage table, read here. -/

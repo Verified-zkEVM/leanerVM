@@ -249,7 +249,7 @@ theorem checked_da (hn : NodeRelation bytecode seed s w) (h1 : (hm fs fp seed s 
     cases hw : w.daMatrix with
     | none => simp [hm, hData, MainData.toIn, hw] at h1
     | some p => exact ⟨p, rfl⟩
-  rw [DaClaimCovered, hw] at hda
+  rw [DaDigestHeld, hw] at hda
   exact ⟨p, hw, by simp [hm, hData, MainData.toIn, hw], hda.2⟩
 
 /-- **`da_verify` on an honest run.** -/

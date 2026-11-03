@@ -264,10 +264,10 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature
   ⟨(List.range (nKids σ)).map (decKid rd σ wV),
     (List.range (gLog (σ (.n 0)))).map fun k =>
       let e := markOf rd σ k
-      if e < nRawX σ then .direct (wX (σ (.n 53) * gen ^ (4 * k))) else .child (kidOf rd σ e),
+      if e < nRawX σ then .signature (wX (σ (.n 53) * gen ^ (4 * k))) else .child (kidOf rd σ e),
     (List.range (gLog (σ (.n 3)))).map fun k =>
       let e := markOf rd σ (lxSlots σ + k)
-      if e < nRawX σ + nRawS σ then .direct (wS (σ (.n 56) * gen ^ (4 * k)))
+      if e < nRawX σ + nRawS σ then .signature (wS (σ (.n 56) * gen ^ (4 * k)))
       else .child (kidOf rd σ e),
     if nDirect σ = 1 then
       some (dvClaim σ, wD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])

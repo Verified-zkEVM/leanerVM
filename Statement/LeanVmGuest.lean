@@ -13,11 +13,11 @@ public import Statement.Fast.Schemes
 A node of the aggregation has claims (`NodeStatement`: leanXMSS and leanSPHINCS claims, a DA
 digest, and a claim on the guest program's bytecode it defers) and witnesses (`NodeWitness`: raw
 signatures, a blob matrix, children carrying proofs, the batching's hints). What a valid execution
-of the guest program establishes is that the witnesses cover the claims, `NodeRelation`:
+of the guest program establishes is that the witnesses hold the claims, `NodeRelation`:
 
-* `ClaimsCovered`: every leanXMSS and leanSPHINCS claim is held by a raw signature that verifies,
-  or by a child whose statement lists it;
-* `DaClaimCovered`: the DA digest is that of the blob matrix the node checks, zeros, or a child's;
+* `SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim is held by a raw signature that
+  verifies, or by a child whose statement lists it;
+* `DaDigestHeld`: the DA digest is that of the blob matrix the node checks, zeros, or a child's;
 * `ChildrenProven`: every child's proof is accepted, for the child's statement, by the deferring
   verifier, which takes the bytecode's value at the child's point from the witness;
 * `DeferredClaimBatched`: the node's claim on the bytecode batches its children's (that value is
@@ -173,10 +173,10 @@ structure Child where
   /-- Its proof. -/
   proof : Proof
 
-/-- How a node holds a claim: directly, by a witness, or through its `childIndex`-th child. -/
-inductive ClaimHolder (Witness : Type) where
-  /-- Directly, by the witness. -/
-  | direct (witness : Witness)
+/-- How a node holds a signature claim: by a raw signature, or through its `childIndex`-th child. -/
+inductive ClaimHolder (Signature : Type) where
+  /-- By a raw signature. -/
+  | signature (signature : Signature)
   /-- Through a child. -/
   | child (childIndex : ℕ)
 
@@ -217,14 +217,14 @@ program's bytecode `bytecode` and under the seed `seed`: the witnesses cover the
 conditions below), and the statement's deferred claim has the bytecode's shape. -/
 def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
-  ClaimsCovered statement witness ∧ DaClaimCovered statement witness ∧
+  SignatureClaimsHeld statement witness ∧ DaDigestHeld statement witness ∧
     ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness ∧
     statement.deferredClaim.HasBytecodeShape bytecode
 
-/-- **Every signature claim is covered**: the `i`-th leanXMSS claim by the `i`-th leanXMSS
+/-- **Every signature claim is held**: the `i`-th leanXMSS claim by the `i`-th leanXMSS
 holder, a raw signature that verifies at any leaf index or a child whose statement lists the
-claim; likewise for leanSPHINCS. Two equal claims may share a holder. -/
-def ClaimsCovered (statement : NodeStatement) (witness : NodeWitness) : Prop :=
+claim; likewise for leanSPHINCS. Holders need not differ: one child may hold several claims. -/
+def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   List.Forall₂ (ClaimIsHeld (fun (claim : LeanXmssClaim) signature ↦
       leanXmssVerifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.xmss witness.children)
     statement.claims.xmss witness.xmssHolders ∧
@@ -233,12 +233,12 @@ def ClaimsCovered (statement : NodeStatement) (witness : NodeWitness) : Prop :=
       witness.children)
     statement.claims.sphincs witness.sphincsHolders
 
-/-- **A claim is held** by a holder: a witness that `holds` it, or a child whose claims of the
-kind (`claimsOf`) list it. -/
-def ClaimIsHeld {Claim Witness : Type} (holds : Claim → Witness → Prop)
+/-- **A claim is held** by a holder: a raw signature that `holds` it, or a child whose claims of
+the kind (`claimsOf`) list it. -/
+def ClaimIsHeld {Claim Signature : Type} (holds : Claim → Signature → Prop)
     (claimsOf : NodeClaims → List Claim) (children : List Child) (claim : Claim) :
-    ClaimHolder Witness → Prop
-  | .direct witness => holds claim witness
+    ClaimHolder Signature → Prop
+  | .signature signature => holds claim signature
   | .child childIndex =>
     ∃ child, children[childIndex]? = some child ∧ claim ∈ claimsOf child.statement.claims
 
@@ -253,10 +253,10 @@ def leanSphincsVerifyWithKeccak (publicKey : Sphincs.PublicKey) (message : Sphin
     (signature : Sphincs.Signature) : Bool :=
   Id.run (Sphincs.Verification.verify (m := Id) keccakF1600 publicKey message signature)
 
-/-- **The DA digest is covered**: it is the digest of the DA claim that the matrix checked here
+/-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,
 `lean_ethereum.py:4202-4206`). -/
-def DaClaimCovered (statement : NodeStatement) (witness : NodeWitness) : Prop :=
+def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   match witness.daMatrix with
   | some (claim, matrix) =>
     statement.claims.daDigest = daClaimDigest claim ∧
@@ -323,7 +323,7 @@ structure SeedStatementAndWitness where
   witness : NodeWitness
 
 /-- **The decoding explains the public input `input`**: its seed and statement have the input's
-digest (the statement is the one the input commits to), and its witness covers that statement's
+digest (the statement is the one the input commits to), and its witness holds that statement's
 claims (`NodeRelation`). `GuestKnowledgeSoundness` (`Theorems.lean`) says this of what the decoder
 program outputs on every valid execution. -/
 def ExplainsPublicInput (guest : LeanIsaProgram) (input : PublicInput)

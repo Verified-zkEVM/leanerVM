@@ -51,7 +51,7 @@ def mkChild (s : NodeStatement) (f : LeanVM.Protocol.Verifier.BytecodeClaim)
 cost_compile mkChild := mkChild
 
 def holders (i : ℕ) (σ : LeanXmss.Signature) : List (ClaimHolder LeanXmss.Signature) :=
-  [.child i, .direct σ]
+  [.child i, .signature σ]
 cost_compile holders := holders
 
 def mkDa (r v : LeanVM.Protocol.Digest) (rows : List (List K)) (vec : List E) :

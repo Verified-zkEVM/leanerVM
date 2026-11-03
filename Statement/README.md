@@ -148,9 +148,9 @@ theorems, then read the files in this order.
     program's bytecode) and the statement's digest under a seed (`statementDigest`, Keccak-256 of
     `statementPreimage`, the node's public input); its witnesses (`NodeWitness`: children carrying
     proofs, a holder for each signature claim, the blob matrix it checks, the batching's hints),
-    **`LeanVM.Node.NodeRelation`**, the witnesses covering the claims, as four conditions, each
-    defined right after it (`ClaimsCovered`: every leanXMSS and leanSPHINCS claim held by a raw
-    signature or a child; `DaClaimCovered`: the DA digest that of the blob matrix the node checks,
+    **`LeanVM.Node.NodeRelation`**, the witnesses holding the claims, as four conditions, each
+    defined right after it (`SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim held by a
+    raw signature or a child; `DaDigestHeld`: the DA digest that of the blob matrix the node checks,
     zeros or a child's; `ChildrenProven`: every child's proof accepted by the deferring verifier;
     `DeferredClaimBatched`: the deferred claim the batching of the children's), and the deferred
     claim's shape; then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and

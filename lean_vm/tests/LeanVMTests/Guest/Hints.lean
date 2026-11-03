@@ -30,7 +30,7 @@ def seed : Digest := keccak256 [1, 2, 3]
 
 def leaf : NodeStatement := ⟨⟨[(key, message)], [], zeroDigest⟩, ⟨List.replicate 23 0, 5⟩⟩
 
-def witness : NodeWitness := ⟨[], [.direct signature], [], none, ⟨[], 0⟩⟩
+def witness : NodeWitness := ⟨[], [.signature signature], [], none, ⟨[], 0⟩⟩
 
 def streams : Streams := honestStreams [] seed leaf witness
 

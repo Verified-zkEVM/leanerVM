@@ -159,11 +159,11 @@ theorem daPick_digest (hr : NodeRelation bytecode seed s w) :
   unfold daPick at hown ⊢
   cases hw : w.daMatrix with
   | some p =>
-    rw [DaClaimCovered, hw] at hda
+    rw [DaDigestHeld, hw] at hda
     simp only [hw, Option.isSome_some, Bool.true_or, ↓reduceIte] at hown ⊢
     rw [hown (by simp), hOwnDa, hw, hda.1]
   | none =>
-    rw [DaClaimCovered, hw] at hda
+    rw [DaDigestHeld, hw] at hda
     simp only [hw, Option.isSome_none, Bool.false_or] at hown ⊢
     by_cases hz : (s.claims.daDigest == zeroDigest) = true
     · simp only [hz, ↓reduceIte] at hown ⊢

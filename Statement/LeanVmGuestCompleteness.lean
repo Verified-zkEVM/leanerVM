@@ -71,9 +71,11 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- The claims held directly, with their witnesses, in the statement's order. -/
-def heldDirectly {α Witness : Type} : List α → List (ClaimHolder Witness) → List (α × Witness)
-  | claim :: claims, .direct witness :: holders => (claim, witness) :: heldDirectly claims holders
+/-- The claims held by raw signatures, with their signatures, in the statement's order. -/
+def heldDirectly {α Signature : Type} :
+    List α → List (ClaimHolder Signature) → List (α × Signature)
+  | claim :: claims, .signature signature :: holders =>
+    (claim, signature) :: heldDirectly claims holders
   | _ :: claims, .child _ :: holders => heldDirectly claims holders
   | _, _ => []
 

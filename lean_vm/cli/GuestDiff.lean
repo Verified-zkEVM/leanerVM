@@ -145,7 +145,7 @@ def sphincsSigR : R Sphincs.Signature := do
 
 def holderR {W : Type} (direct : R W) : R (ClaimHolder W) := do
   match ← tok with
-  | "direct" => return .direct (← direct)
+  | "direct" => return .signature (← direct)
   | "child" => return .child (← nat)
   | t => throw s!"`{t}` is no holder"
 
@@ -222,7 +222,7 @@ def held {α W : Type} (children : List Child) (kind : String) (claims : List α
     List (String × Bool) :=
   (s!"{kind} holders", claims.length == holders.length) ::
     ((claims.zip holders).zipIdx.map fun ((claim, h), i) => match h with
-      | .direct σ => (s!"{kind} claim {i} held directly", direct claim σ)
+      | .signature σ => (s!"{kind} claim {i} held directly", direct claim σ)
       | .child j => (s!"{kind} claim {i} held by child {j}",
           (children[j]?.map (inChild · claim)).getD false))
 

@@ -413,12 +413,12 @@ leanSPHINCS) or the index of a child;
 \subsection{What one node establishes}
 
 $\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRelation}) is the conjunction of four conditions,
-the witnesses covering the claims, and the shape of $s$'s deferred claim:
+the witnesses holding the claims, and the shape of $s$'s deferred claim:
 \begin{enumerate}
-\item Every signature claim of $s$ is held (\lean{ClaimsCovered}): a direct signature verifies under
+\item Every signature claim of $s$ is held (\lean{SignatureClaimsHeld}): a direct signature verifies under
 the claim's key and message (Keccak-256 as the schemes' hash, at any leaf index); a child holder $i$
 means the claim occurs in the corresponding list of $s_i$.
-\item The DA digest is accounted for (\lean{DaClaimCovered}): with a direct matrix,
+\item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, \delta)$ of the claim it opens; without one, $\mathit{da}$ is zero or
 some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4202-4206}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,

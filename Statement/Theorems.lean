@@ -110,10 +110,10 @@ instance : MachineEncoding NodeStatement :=
 instance : MachineEncoding Child :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
 
-/-- `direct` the constructor of tag `0`, `child` of tag `1`. -/
+/-- `signature` the constructor of tag `0`, `child` of tag `1`. -/
 instance {W : Type} [MachineEncoding W] : MachineEncoding (ClaimHolder W) where
   encodeValue
-    | .direct w => .constructor 0 [encodeValue w]
+    | .signature w => .constructor 0 [encodeValue w]
     | .child i => .constructor 1 [encodeValue i]
 
 instance : MachineEncoding BatchingHints :=

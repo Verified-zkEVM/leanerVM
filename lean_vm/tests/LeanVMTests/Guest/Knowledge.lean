@@ -89,7 +89,7 @@ example (seed : Digest) (v : E) (hints : BatchingHints) :
     ∃ w, NodeRelation bytecode seed (emptyStatement v) w := by
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
   refine ⟨⟨[], [], [], none, hints⟩, ?_⟩
-  unfold NodeRelation ClaimsCovered DaClaimCovered ChildrenProven DeferredClaimBatched
+  unfold NodeRelation SignatureClaimsHeld DaDigestHeld ChildrenProven DeferredClaimBatched
   refine ⟨⟨by simp [emptyStatement], by simp [emptyStatement]⟩, by simp [emptyStatement], by simp,
     ?_, ?_⟩
   · simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]

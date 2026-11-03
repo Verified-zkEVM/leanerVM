@@ -291,7 +291,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   cases hw : w.daMatrix with
   | none => simp
   | some p =>
-    rw [DaClaimCovered, hw] at hda
+    rw [DaDigestHeld, hw] at hda
     have hw' : p.2.Opens p.1.daRoot p.1.membershipVectorDigest := hda.2
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1

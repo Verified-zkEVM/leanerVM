@@ -147,7 +147,7 @@ instance : MachineDecoding Child where
 
 instance {W : Type} [MachineDecoding W] : MachineDecoding (ClaimHolder W) where
   decodeValue
-    | .constructor 0 [w] => (decodeValue w).map .direct
+    | .constructor 0 [w] => (decodeValue w).map .signature
     | .constructor 1 [i] => (decodeValue i).map .child
     | _ => none
 
@@ -301,8 +301,8 @@ instance : LawfulMachineDecoding Child := ⟨fun ⟨s, f, p⟩ ↦ by
 instance {W : Type} [MachineEncoding W] [MachineDecoding W] [LawfulMachineDecoding W] : LawfulMachineDecoding (ClaimHolder W) :=
   ⟨fun h ↦ by
     cases h with
-    | direct w => show (decodeValue (encodeValue w)).map ClaimHolder.direct = _; simp
-    | child i => show (decodeValue (encodeValue i)).map (ClaimHolder.child (Witness := W)) = _; simp⟩
+    | signature w => show (decodeValue (encodeValue w)).map ClaimHolder.signature = _; simp
+    | child i => show (decodeValue (encodeValue i)).map (ClaimHolder.child (Signature := W)) = _; simp⟩
 
 instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨m, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue m), ← decodeValue (encodeValue v)⟩ : Option BatchingHints) = _; simp⟩
