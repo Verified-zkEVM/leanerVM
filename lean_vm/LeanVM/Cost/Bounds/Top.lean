@@ -464,7 +464,7 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog :
         (stackRunPrice L.logMemory prog.logSize + 21) * (2 ^ 12 + 1) + listDecoderPrice + 92 := by
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
-  simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
+  simp only [Whir.maxLogStack] at h2
   rw [runFromLeavesC.costEq P hP]
   have hF := fastOfC_cost P (by includes_sub) L.stackLog R (by omega) (by omega) leaves h hh hl
   have hslow : ∀ x : Unit, RunsApp P (.closure runFromLeavesC.lam0.costIdx

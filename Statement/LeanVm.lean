@@ -10,54 +10,30 @@ public import VCVio.EvalDist.ProbabilityNotation
 # leanVM: knowledge soundness and completeness
 
 A statement (a program and a public input), the verifier on it, and the end statements in the
-random-permutation model (`RandomPermutation.lean`), `LeanVM.KnowledgeSoundness` and
-`LeanVM.Completeness`, proved by `LeanVM.knowledgeSoundness_holds` and `completeness_holds`
-(`lean_vm/README.md` says how they reach this model).
+random-permutation model (`RandomPermutation.lean`; `Statement/README.md`, **The model**),
+`LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`, proved by `LeanVM.knowledgeSoundness_holds`
+and `completeness_holds` (`lean_vm/README.md` says how they reach this model).
 
-The model has one random object, the permutation `π` of the Keccak state, lazily sampled
-(`Common.lazyRandomPermutation`); its oracles are coins, `π` and `π⁻¹`
-(`Common.RandomPermutationOracles`), and nothing else. The verifier (`leanVmVerifier π`) and the
-honest prover are written over a permutation `π` in any monad, Keccak-256 the sponge over `π`
-(`keccak256With π`); in the model `π` is `Common.queryPermutation`, with Keccak-f[1600] in `Id`
-they are the deployed ones. The adversary (`RandomPermutationAdversary`) flips private coins
-and queries `π` and `π⁻¹`, every query and its answer recorded in order (`Common.loggedOracles`,
-`Common.OracleQueryLog`), its coins not counted (`Common.permutationCallCost`); a Keccak-256
-evaluation is a sequence of forward queries, which it makes itself. The experiment
-(`knowledgeSoundnessExperiment`) is one game: the adversary, then the verifier on its statement and
-proof, run against the lazily sampled permutation from no edge (`Common.runWithRandomPermutation`).
+The verifier (`leanVmVerifier π`) and the honest prover are written over a permutation `π` in any
+monad, Keccak-256 the sponge over `π` (`keccak256With π`); in the model `π` is
+`Common.queryPermutation`, and with Keccak-f[1600] in `Id` they are the deployed ones. The
+adversary (`RandomPermutationAdversary`) flips private coins and queries `π` and `π⁻¹`, every query
+and its answer recorded in order (`Common.loggedOracles`, `Common.OracleQueryLog`), its coins not
+counted (`Common.permutationCallCost`); a Keccak-256 evaluation is a sequence of forward queries,
+which it makes itself. The experiment (`knowledgeSoundnessExperiment`) is one game: the adversary,
+then the verifier on its statement and proof, run against the lazily sampled permutation from no
+edge (`Common.runWithRandomPermutation`).
 
 **Knowledge soundness** is stated for a straight-line extractor (`StraightLineExtractor`), which
 reads the statement, the proof and the adversary's transcript, and nothing else (it neither queries
-`π` nor rewinds the adversary): `KnowledgeSoundness extractor`. `Statement.Theorems` states it for
-the extractor that a cost-machine program of bounded size computes within a budget in the number of
-permutation queries (`LeanVM.extractorComputedBy`, `CostMachine.lean`). The statement does not name
-the program (`lean_vm` supplies its extractor, compiled); it constrains it only by its size bound,
-which leaves no room for a useful table of witnesses beside the compiled extractor's code, and its
-budget, `leanVmKnowledgeExtractorBudget` (the most its run may cost, so also the most steps it may
-execute), `2^81 + O(N·log³N)` for `N` permutation queries (about `2^81` for `N ≤ 2^50`), `lean_vm`'s
-proved price of the compiled extractor being about `2^80.49 + 2^14.85·N·log²N`. A run out of budget
-extracts nothing, which counts as a break.
+`π` nor rewinds the adversary); `Statement.Theorems` states it for the extractor a cost-machine
+program of bounded size computes within its budget (`LeanVM.extractorComputedBy`,
+`CostMachine.lean`, which gives the bound and the budget). **Completeness** is stated for one honest
+prover, `leanVmHonestProver`: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`), an executable
+program (`Statement/README.md` says what a reviewer checks of it).
 
-**Completeness** is stated for one honest prover, `leanVmHonestProver`: `LeanVM.Prover.prove`
-(`Statement/Prover/Prove.lean`), an executable program (over Keccak-f[1600] it is
-`lake exe leanvm-prove`; `Statement/README.md` says what a reviewer checks of it). Given a valid
-execution whose committed size is at most `2^28`, the most the verifier admits, at an inverse rate
-`2^ρ` with `1 ≤ ρ ≤ 4`, trying `2^25` nonces per proof of work, its proof is rejected with
-probability at most `2^-256`.
+**Scope and trust**, beyond the model's assumption (`Statement/README.md`):
 
-**Scope and trust.**
-
-* The deployed Keccak-f[1600] is a fixed permutation; that it behaves as a random one is the
-  assumption of this model. Inside the executed program the `KECCAK` instruction computes the
-  deployed Keccak-f[1600], not `π`: in the model the transcript's permutation and the one a proved
-  program computes are independent, while deployed they are the same function. The model so
-  excludes, by construction, programs that evaluate their own proof's Fiat-Shamir duplex, the
-  setting of the known attacks on Fiat-Shamir for GKR-based systems (Khovratovich, Rothblum and
-  Soukhanov, 2025): the assumption is that the deployed Keccak-f[1600] behaves as a random
-  permutation even to programs that compute it. The adversary's code is fixed before `π` is sampled
-  (no advice that depends on the permutation).
-* The adversary is classical: no statement covers quantum adversaries (a quantum random-permutation
-  model).
 * A proof is the Python verifier's format: the scalar stream and one full Merkle path per query. The
   Rust prover ships pruned paths, which the deployed Rust verifier expands into these paths; that
   expansion is not formalized.
@@ -187,9 +163,11 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (outcome : Expe
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
 probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the verifier's
-own oracle calls, at most `12006` (in the `Q + 12006` of `lean_vm`'s `soundnessError`), its
-`12006 · 2^-256` for a fresh hash answer equal to a stack root the adversary announced without
-computing it, and the transfer from two random oracles to one permutation. `Statement.Theorems`
+own Keccak-256 evaluations and duplex permutations, at most `12006` (the `Q + 12006` of `lean_vm`'s
+`soundnessError`; as calls of `π` they are up to `12006 · 2^32`, the IV hashing a bytecode of up to
+`2^32` instructions, which the transfer below pays), its `12006 · 2^-256` for a fresh hash answer
+equal to a stack root the adversary announced without computing it, and the transfer from two
+random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
 (`LeanVM.extractorComputedBy`, `CostMachine.lean`). The extractor must output some valid execution
 of the program on the input; nothing requires it to be the execution the proof commits to (its

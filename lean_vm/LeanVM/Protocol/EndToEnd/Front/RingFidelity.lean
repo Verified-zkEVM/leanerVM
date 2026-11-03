@@ -276,8 +276,8 @@ theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 
   have hoff : off / 2 ^ v < 2 ^ (μ - v) :=
     Nat.div_lt_of_lt_mul (by rw [← hpow]; have := Nat.two_pow_pos v; omega)
   have hxv : x / 2 ^ v < 2 ^ (μ - v) := Nat.div_lt_of_lt_mul (by rw [← hpow]; exact hx)
-  simp only [Placement.eqAbove, zero_add, length_boolPoint, Nat.sub_zero,
-    selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow, drop_boolPoint]
+  simp only [Placement.eqAbove, length_boolPoint, selectorPoint_eq_boolPoint,
+    Nat.shiftRight_eq_div_pow, drop_boolPoint]
   rw [Complete.eqEval_boolPoint_boolPoint _ _ _ hoff hxv, take_boolPoint μ v x hv, ← hp,
     ← boolPoint_mod, eqEval_boolPoint_eqAt, hp]
   by_cases h : x / 2 ^ v = off / 2 ^ v

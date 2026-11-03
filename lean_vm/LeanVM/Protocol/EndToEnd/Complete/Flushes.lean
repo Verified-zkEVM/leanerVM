@@ -439,17 +439,17 @@ def flushesKeccakC : FlushesC :=
     else if cell < 8 then FormC.prod fp (c "o_tail") (cell - 4)
     else if cell = 8 then FormC.prod fp (c "o_b8")
     else FormC.prod fp (c "o_cap") (cell - 9)
-  let sides : List (String × ℕ × Option ℕ) := [("in", c "odd_in", some (c "free")),
-    ("out", c "odd_out", none)]
-  sides.zipIdx.foldl (fun f ((pre, flag, missing), side) ↦
-    let lane := fun (l : Option ℕ) ↦ l.map fun l ↦ c (pre ++ "_" ++ decimalNumeral l)
+  let sides : List (ℕ × ℕ × Option ℕ) := [(keccakIn, c "odd_in", some (c "free")),
+    (keccakOut, c "odd_out", none)]
+  sides.zipIdx.foldl (fun f ((lanes, flag, missing), side) ↦
+    let lane := fun (l : Option ℕ) ↦ l.map (lanes + ·)
     (List.range 13).foldl (fun f cell ↦
       let values := ([0, 1] : List ℕ).map (fun h ↦
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimbC (lane (pick (LeanVM.Semantics.cellLanes false cell)))
           (lane (pick (LeanVM.Semantics.cellLanes true cell))) flag missing) ++ [FormC.const .zero]
       f.memory (if side = 0 then address cell else FormC.prod fp (c "o_out") cell)
-        (c ("cnt_" ++ decimalNumeral (13 * side + cell))) values) f) f
+        (keccakCnt + 13 * side + cell) values) f) f
 
 /-- The tables' flushes, symbolically, in opcode order. -/
 def flushesC : Fin 6 → FlushesC

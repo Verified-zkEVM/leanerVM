@@ -124,6 +124,12 @@ theorem keccakIns_getD (m0 m1 m2 m3 tail b8 cap : ℕ) {c : ℕ} (hc : c < 13) :
 theorem keccakOuts_getD (out : ℕ) {k : ℕ} (hk : k < 13) : (keccakOuts out).getD k 0 = out + k := by
   simp [keccakOuts, hk]
 
+/-- Instruction `i` of code in chunks of `chunkLength`, the padding past the end:
+`CompiledFunction.instructionAt` at any chunk length. -/
+def chunkedInstructionAt (chunkLength : ℕ) (chunks : List (List OffsetInstruction)) (i : ℕ) :
+    OffsetInstruction :=
+  listElementOrDefault (listElementOrDefault chunks (i / chunkLength) []) (i % chunkLength) .padding
+
 theorem nth_eq_getElem? {α : Type} {l : List α} {n : ℕ} (d : α) (h : n < l.length) :
     l[n]? = some (listElementOrDefault l n d) := by
   induction l generalizing n with

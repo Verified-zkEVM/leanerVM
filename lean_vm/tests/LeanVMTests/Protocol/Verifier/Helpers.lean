@@ -56,8 +56,8 @@ def kTable : List E := (List.range 16).map fun i ↦ ofK (K.ofBits (fw i 5))
 def kRows : List (List E) :=
   (List.range 3).map fun q ↦ (List.range 4).map fun j ↦ ofK (K.ofBits (fw (10 * q + j) 7))
 
-/-- A placement with a low window. -/
-def samplePlacement : Placement := { variableCount := 3, index := 0b1011001, low := 2 }
+/-- A sample placement (its two checks printed at the pin, `../leanvm-rev`). -/
+def samplePlacement : Placement := { variableCount := 3, index := 0b1011001 }
 
 /-- The sample bytecode: 32 words, so `log_bytecode = 1`. -/
 def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
@@ -345,13 +345,13 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
     ([96, 0, 32, 110, 104, 64, 108], 7)
 
 #guard (samplePlacement.stackPoint [fe 90, fe 91, fe 92] 9) =
-    [(e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0xa0e42a8c192efb90 0x729974beeac1e893 0x444ebef1bc54d596),
+    [(e 0xa0e42a8c192efb90 0x729974beeac1e893 0x444ebef1bc54d596),
      (e 0x3f1ba445987977a5 0x10d0ee786a0c64a8 0xe28638ab3b9f51ab),
-     (e 0xdd531dff17c3f3ba 0xaf086831e956e0bd 0x80bdb264bae9cdc0), (e 0x0 0x0 0x0), (e 0x1 0x0 0x0),
-     (e 0x0 0x0 0x0), (e 0x0 0x0 0x0)]
+     (e 0xdd531dff17c3f3ba 0xaf086831e956e0bd 0x80bdb264bae9cdc0), (e 0x1 0x0 0x0), (e 0x1 0x0 0x0),
+     (e 0x0 0x0 0x0), (e 0x1 0x0 0x0), (e 0x0 0x0 0x0), (e 0x0 0x0 0x0)]
 
 #guard (samplePlacement.eqAbove (fes 93 9)) =
-    (e 0xde054c747e1b6da3 0x6695c3146656e56c 0xa8e74e9510e94f3b)
+    (e 0xb55551000c96060f 0x491ccd354400b340 0x66d12dcfc1d3da0a)
 
 /-! ## The tables (`verifier.py:776-971`) -/
 
@@ -462,43 +462,43 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard (sampleLayout.logBytecode) =
     1
 
-#guard (sampleLayout.placements.map (·.map fun p ↦ (p.variableCount, p.index, p.low))) =
-    [some (16, 0, 0), some (16, 65536, 0), some (16, 131072, 0), some (16, 196608, 0),
-     some (1, 308400, 0), some (15, 262144, 0), some (2, 308224, 0), some (2, 308228, 0),
-     some (2, 308232, 0), some (2, 308236, 0), some (2, 308240, 0), some (2, 308244, 0),
-     some (2, 308248, 0), some (2, 308252, 0), some (2, 308256, 0), some (2, 308260, 0),
-     some (2, 308264, 0), some (2, 308268, 0), some (2, 308272, 0), some (2, 308276, 0),
-     some (2, 308280, 0), some (1, 308402, 0), some (1, 308404, 0), some (1, 308406, 0),
-     some (1, 308408, 0), some (1, 308410, 0), some (1, 308412, 0), some (1, 308414, 0),
-     some (1, 308416, 0), some (1, 308418, 0), some (1, 308420, 0), some (1, 308422, 0),
-     some (1, 308424, 0), some (1, 308426, 0), some (1, 308428, 0), some (1, 308430, 0),
-     some (1, 308432, 0), some (1, 308434, 0), some (1, 308436, 0), some (1, 308438, 0),
-     some (1, 308440, 0), some (1, 308442, 0), some (1, 308444, 0), some (1, 308446, 0),
-     some (2, 308284, 0), some (2, 308288, 0), some (2, 308292, 0), some (2, 308296, 0),
-     some (2, 308300, 0), some (2, 308304, 0), some (2, 308308, 0), some (2, 308312, 0),
-     some (2, 308316, 0), some (2, 308320, 0), some (2, 308324, 0), some (2, 308328, 0),
-     some (2, 308332, 0), some (2, 308336, 0), some (2, 308340, 0), some (2, 308344, 0),
-     some (2, 308348, 0), some (2, 308352, 0), some (2, 308356, 0), some (2, 308360, 0),
-     some (2, 308364, 0), some (2, 308368, 0), some (2, 308372, 0), some (2, 308376, 0),
-     some (2, 308380, 0), some (2, 308384, 0), some (2, 308388, 0), some (2, 308392, 0),
-     some (2, 308396, 0), some (9, 287744, 0), some (9, 288256, 0), some (9, 288768, 0),
-     some (9, 289280, 0), some (9, 289792, 0), some (9, 290304, 0), some (9, 290816, 0),
-     some (9, 291328, 0), some (9, 291840, 0), some (9, 292352, 0), some (9, 292864, 0),
-     some (9, 293376, 0), some (9, 293888, 0), some (9, 262144, 0), some (9, 262656, 0),
-     some (9, 263168, 0), some (9, 263680, 0), some (9, 264192, 0), some (9, 264704, 0),
-     some (9, 265216, 0), some (9, 265728, 0), some (9, 266240, 0), some (9, 266752, 0),
-     some (9, 267264, 0), some (9, 267776, 0), some (9, 268288, 0), some (9, 268800, 0),
-     some (9, 269312, 0), some (9, 269824, 0), some (9, 270336, 0), some (9, 270848, 0),
-     some (9, 271360, 0), some (9, 271872, 0), some (9, 272384, 0), some (9, 272896, 0),
-     some (9, 273408, 0), some (9, 273920, 0), some (9, 274432, 0), none, none, none, none, none,
+#guard (sampleLayout.placements.map (·.map fun p ↦ (p.variableCount, p.index))) =
+    [some (16, 0), some (16, 65536), some (16, 131072), some (16, 196608),
+     some (1, 308400), some (15, 262144), some (2, 308224), some (2, 308228),
+     some (2, 308232), some (2, 308236), some (2, 308240), some (2, 308244),
+     some (2, 308248), some (2, 308252), some (2, 308256), some (2, 308260),
+     some (2, 308264), some (2, 308268), some (2, 308272), some (2, 308276),
+     some (2, 308280), some (1, 308402), some (1, 308404), some (1, 308406),
+     some (1, 308408), some (1, 308410), some (1, 308412), some (1, 308414),
+     some (1, 308416), some (1, 308418), some (1, 308420), some (1, 308422),
+     some (1, 308424), some (1, 308426), some (1, 308428), some (1, 308430),
+     some (1, 308432), some (1, 308434), some (1, 308436), some (1, 308438),
+     some (1, 308440), some (1, 308442), some (1, 308444), some (1, 308446),
+     some (2, 308284), some (2, 308288), some (2, 308292), some (2, 308296),
+     some (2, 308300), some (2, 308304), some (2, 308308), some (2, 308312),
+     some (2, 308316), some (2, 308320), some (2, 308324), some (2, 308328),
+     some (2, 308332), some (2, 308336), some (2, 308340), some (2, 308344),
+     some (2, 308348), some (2, 308352), some (2, 308356), some (2, 308360),
+     some (2, 308364), some (2, 308368), some (2, 308372), some (2, 308376),
+     some (2, 308380), some (2, 308384), some (2, 308388), some (2, 308392),
+     some (2, 308396), some (9, 287744), some (9, 288256), some (9, 288768),
+     some (9, 289280), some (9, 289792), some (9, 290304), some (9, 290816),
+     some (9, 291328), some (9, 291840), some (9, 292352), some (9, 292864),
+     some (9, 293376), some (9, 293888), some (9, 262144), some (9, 262656),
+     some (9, 263168), some (9, 263680), some (9, 264192), some (9, 264704),
+     some (9, 265216), some (9, 265728), some (9, 266240), some (9, 266752),
+     some (9, 267264), some (9, 267776), some (9, 268288), some (9, 268800),
+     some (9, 269312), some (9, 269824), some (9, 270336), some (9, 270848),
+     some (9, 271360), some (9, 271872), some (9, 272384), some (9, 272896),
+     some (9, 273408), some (9, 273920), some (9, 274432), none, none, none, none, none,
      none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
-     none, none, none, none, some (9, 294400, 0), some (9, 294912, 0), some (9, 295424, 0),
-     some (9, 295936, 0), some (9, 296448, 0), some (9, 296960, 0), some (9, 297472, 0),
-     some (9, 297984, 0), some (9, 298496, 0), some (9, 299008, 0), some (9, 299520, 0),
-     some (9, 300032, 0), some (9, 300544, 0), some (9, 301056, 0), some (9, 301568, 0),
-     some (9, 302080, 0), some (9, 302592, 0), some (9, 303104, 0), some (9, 303616, 0),
-     some (9, 304128, 0), some (9, 304640, 0), some (9, 305152, 0), some (9, 305664, 0),
-     some (9, 306176, 0), some (9, 306688, 0), some (9, 307200, 0), some (9, 307712, 0)]
+     none, none, none, none, some (9, 294400), some (9, 294912), some (9, 295424),
+     some (9, 295936), some (9, 296448), some (9, 296960), some (9, 297472),
+     some (9, 297984), some (9, 298496), some (9, 299008), some (9, 299520),
+     some (9, 300032), some (9, 300544), some (9, 301056), some (9, 301568),
+     some (9, 302080), some (9, 302592), some (9, 303104), some (9, 303616),
+     some (9, 304128), some (9, 304640), some (9, 305152), some (9, 305664),
+     some (9, 306176), some (9, 306688), some (9, 307200), some (9, 307712)]
 
 #guard (blockProbe sampleLayout.push) =
     [(2, 0, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),

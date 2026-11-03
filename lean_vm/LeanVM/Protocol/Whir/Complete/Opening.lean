@@ -654,7 +654,7 @@ end Levels
 /-! ## The ladder -/
 
 private theorem admissible_bounded {μ R : ℕ} (h : Whir.Admissible μ R) :
-    μ < Whir.maxLogStack + 1 ∧ R < Whir.maxLogInvRate + 1 := by
+    μ < Whir.maxLogStack + 1 ∧ R < 5 := by
   obtain ⟨_, h2, _, h4⟩ := h
   exact ⟨Nat.lt_succ_of_le h2, Nat.lt_succ_of_le h4⟩
 
@@ -664,7 +664,7 @@ theorem ladder_head_sum {μ R : ℕ} (h : Whir.Admissible μ R) :
     ∀ levels, Whir.ladder μ R = some levels →
       levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, R) ∧
         (levels.map (·.fold)).sum ≤ μ := by
-  have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < Whir.maxLogInvRate + 1, Whir.Admissible μ r →
+  have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
       ∀ levels, Whir.ladder μ r = some levels →
         levels.head?.map (fun l ↦ (l.fold, l.logInvRate)) = some (laneBits, r) ∧
           (levels.map (·.fold)).sum ≤ μ := by decide +kernel

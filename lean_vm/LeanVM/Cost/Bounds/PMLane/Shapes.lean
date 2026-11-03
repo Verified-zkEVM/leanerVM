@@ -83,7 +83,7 @@ theorem decoderShapeOkPM_28_4 : DecoderShapeOkPM 28 4 := by decide +kernel
 /-- **The decoder's hypotheses at every admissible shape.** -/
 theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOkPM μ R := by
   obtain ⟨h1, h2, h3, h4⟩ := h
-  simp only [Whir.minLogStack, Whir.maxLogStack, Whir.minLogInvRate, Whir.maxLogInvRate] at h1 h2 h3 h4
+  simp only [Whir.minLogStack, Whir.maxLogStack] at h1 h2
   have hR : R = 1 ∨ R = 2 ∨ R = 3 ∨ R = 4 := by omega
   rcases (show μ = 15 ∨ μ = 16 ∨ μ = 17 ∨ μ = 18 ∨ μ = 19 ∨ μ = 20 ∨ μ = 21 ∨ μ = 22 ∨ μ = 23 ∨ μ = 24 ∨ μ = 25 ∨ μ = 26 ∨ μ = 27 ∨ μ = 28 by omega) with
       rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>

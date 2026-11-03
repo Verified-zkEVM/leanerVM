@@ -191,7 +191,7 @@ theorem claimTerm_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List �
     have hpl' : layout.placement (claims.getD j default).column =
         Placement.mk (layout.tableLogHeights.getD opKeccak 0)
           ((stackOffsets (Tables.committedKappas kappas)).1.getD 5 0 +
-            termSlot j * 2 ^ layout.tableLogHeights.getD opKeccak 0) 0 := by
+            termSlot j * 2 ^ layout.tableLogHeights.getD opKeccak 0) := by
       have e1 : claimColOf j = j + 1 := by simp [claimColOf, show ¬ j < 5 by omega, show j < 162 by omega]
       have es : slotOfCol (j + 1) = some (termSlot j) := by
         unfold slotOfCol termSlot; split_ifs <;> first | rfl | omega

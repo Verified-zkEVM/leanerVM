@@ -669,7 +669,7 @@ theorem reads_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List St
 theorem ladder_reads (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) : whirReads μ levels ≤ whirReadsBound := by
   by_cases hadm : Whir.Admissible μ logInvRate
-  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < Whir.maxLogInvRate + 1, Whir.Admissible μ r →
+  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
         ∀ levels, Whir.ladder μ r = some levels → whirReads μ levels ≤ whirReadsBound := by
       decide +kernel
     exact key μ (Nat.lt_succ_of_le hadm.2.1) logInvRate (Nat.lt_succ_of_le hadm.2.2.2)

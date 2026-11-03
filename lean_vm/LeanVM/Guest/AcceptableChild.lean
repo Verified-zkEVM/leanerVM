@@ -9,6 +9,7 @@
 module
 
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Protocol.Compile.RunPure
 
 /-!
 # A child the guest program accepts

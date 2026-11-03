@@ -4,7 +4,7 @@
   Facts about the verifier's definitions (`Statement/LeanVmVerifier.lean`), proved:
   the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`; and the verifier's
   definitions no end statement reaches, moved here from the statement, names kept: `yE`,
-  `keccakOut`, `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
+  `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
 -/
 
 module
@@ -34,13 +34,24 @@ theorem keccakSlotOf_disjoint :
     ∀ l ∈ keccakCommitted.take qkeccakSpare, ¬ (keccakIn ≤ l ∧ l < keccakIn + 25) := by
   decide +kernel
 
+/-- Dropping the low `v` coordinates of a selector point leaves the selector point of the
+selector shifted by `v`. -/
+theorem selectorPoint_drop (selector length v : ℕ) :
+    (selectorPoint selector length).drop v = selectorPoint (selector >>> v) (length - v) := by
+  apply List.ext_getElem (by simp [selectorPoint])
+  intro i _ _
+  simp [selectorPoint, Nat.shiftRight_add]
+
+/-- `stack_point` as the point, then the selector point's coordinates above the window. -/
+theorem Placement.stackPoint_eq_drop (p : Placement) (point : List E) (stackLog : ℕ) :
+    p.stackPoint point stackLog =
+      point ++ (selectorPoint p.index stackLog).drop p.variableCount := by
+  rw [selectorPoint_drop, Placement.stackPoint]
+
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 
 /-- `E(0, 1)`, the tower generator `y` with `y^3 = y + 1`. -/
 def yE : E := E.ofLimbs 0 1 0
-
-/-- `KECCAK_OUT` (`verifier.py:942`): the local column of output lane `0`. -/
-def keccakOut : ℕ := columnIndexByName keccakColumns "out_0"
 
 /-- `PACK_BITS` (`verifier.py:1224`): a pack is `2 ^ PACK_BITS` consecutive steps. -/
 def packBits : ℕ := 4

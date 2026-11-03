@@ -11,8 +11,8 @@ rebuilds them.
 
 * `extractorProgram_indices_increasing`: the bodies' indices are distinct (they increase from the
   entry's `0`: the compiler allocates indices from `1`, and sorts each dependency list);
-* **`extractorProgram_size_le_measured`**: the program's size is at most `14125`, evaluated on the
-  program itself; that is its exact size: the bodies' sizes (`14101`: `698` compiled bodies and the
+* **`extractorProgram_size_le_measured`**: the program's size is at most `14109`, evaluated on the
+  program itself; that is its exact size: the bodies' sizes (`14085`: `698` compiled bodies and the
   entry, each natural literal counted by its limbs) and `12` indices without a body, a literal `0`
   of size `2` each, `711` indices in all.
 -/
@@ -29,12 +29,12 @@ theorem extractorProgram_indices_increasing :
   decide +kernel
 
 /-- **The program's size**, from its bodies (`size_ofList_add_length`: the bodies' sizes and two
-per index without a body), each count evaluated: at most (exactly) `14125`. -/
-theorem extractorProgram_size_le_measured : compiledKnowledgeExtractor.size ≤ 14125 := by
+per index without a body), each count evaluated: at most (exactly) `14109`. -/
+theorem extractorProgram_size_le_measured : compiledKnowledgeExtractor.size ≤ 14109 := by
   have h := size_ofList_add_length extractorProgramBodies (by
     rw [extractorProgramBodies, List.map_cons]
     exact nodup_of_increasing extractorProgram_indices_increasing)
-  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14101 := by decide +kernel
+  have h1 : (extractorProgramBodies.map fun p ↦ p.2.size).sum = 14085 := by decide +kernel
   have h2 : (extractorProgramBodies.map (·.1)).foldr max 0 = 710 := by decide +kernel
   have h3 : extractorProgramBodies.length = 699 := by decide +kernel
   unfold compiledKnowledgeExtractor

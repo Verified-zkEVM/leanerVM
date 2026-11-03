@@ -50,7 +50,7 @@ Each fact below is decided over the 56 admissible pairs; the general statement f
 bounding the quantifiers. -/
 
 private theorem admissible_bounded {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    μ < maxLogStack + 1 ∧ logInvRate < maxLogInvRate + 1 := by
+    μ < maxLogStack + 1 ∧ logInvRate < 5 := by
   obtain ⟨_, h2, _, h4⟩ := h
   exact ⟨Nat.lt_succ_of_le h2, Nat.lt_succ_of_le h4⟩
 
@@ -58,7 +58,7 @@ private theorem admissible_bounded {μ logInvRate : ℕ} (h : Admissible μ logI
 window. -/
 theorem ladder_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     (ladder μ logInvRate).isSome := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r → (ladder μ r).isSome :=
+  have key : ∀ μ < maxLogStack + 1, ∀ r < 5, Admissible μ r → (ladder μ r).isSome :=
     by decide +kernel
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 logInvRate h2 h
@@ -66,7 +66,7 @@ theorem ladder_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
 /-- Every ladder has at least two levels (`whir_config.rs:281-283`). -/
 theorem ladder_length {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     ∀ levels, ladder μ logInvRate = some levels → 2 ≤ levels.length := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
+  have key : ∀ μ < maxLogStack + 1, ∀ r < 5, Admissible μ r →
       ∀ levels, ladder μ r = some levels → 2 ≤ levels.length := by decide +kernel
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 logInvRate h2 h

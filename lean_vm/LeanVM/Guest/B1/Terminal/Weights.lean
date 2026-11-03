@@ -33,23 +33,22 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 theorem stack_eqEval {p : List E} {κ o L : ℕ} {x : List E} (hp : p.length = κ) (hx : x.length = L)
     (hκ : κ ≤ L) :
-    eqEval ((selectorPoint o L).take 0 ++ p ++ (selectorPoint o L).drop (0 + κ)) x =
-      eqEval p (x.take κ) * selProd o κ (L - κ) x := by
-  rw [List.take_zero, List.nil_append, zero_add, ← List.take_append_drop κ x,
+    eqEval (p ++ (selectorPoint o L).drop κ) x = eqEval p (x.take κ) * selProd o κ (L - κ) x := by
+  rw [← List.take_append_drop κ x,
     eqEval_append (by rw [hp, List.length_take]; omega), List.take_append_drop,
     eqEval_sel o hx hκ]
 
 /-- **A committed column's claim.** -/
 theorem wOf_committed {layout : Layout} {x : List E} {c : ColumnClaim} {κ o : ℕ}
-    (hpl : layout.placement c.column = Placement.mk κ o 0) (hp : c.point.length = κ)
+    (hpl : layout.placement c.column = Placement.mk κ o) (hp : c.point.length = κ)
     (hx : x.length = layout.stackLog) (hκ : κ ≤ layout.stackLog) :
     wOf layout x c = eqEval c.point (x.take κ) * selProd o κ (layout.stackLog - κ) x := by
-  simp only [wOf, ColumnClaim.stackClaim, Placement.stackPoint, hpl]
+  simp only [wOf, ColumnClaim.stackClaim, Placement.stackPoint_eq_drop, hpl]
   exact stack_eqEval hp hx hκ
 
 /-- **A `q_keccak` lane's claim.** -/
 theorem wOf_lane {layout : Layout} {x : List E} {c : ColumnClaim} {τ oq s : ℕ}
-    (hpl : layout.placement c.column = Placement.mk τ (oq + s * 2 ^ τ) 0) (hp : c.point.length = τ)
+    (hpl : layout.placement c.column = Placement.mk τ (oq + s * 2 ^ τ)) (hp : c.point.length = τ)
     (hx : x.length = layout.stackLog) (hκ : τ + 6 ≤ layout.stackLog) (hq : 2 ^ (τ + 6) ∣ oq)
     (hs : s < 64) :
     wOf layout x c = eqEval c.point (x.take τ) *
@@ -66,10 +65,10 @@ theorem selProd_shift (o κ n : ℕ) (x : List E) :
 
 /-- **The ring switch's claim.** -/
 theorem ringClaim_eq {layout : Layout} {x : List E} {κ o : ℕ} {ringPoint coeffs : List E}
-    (hpl : layout.placement qkeccak = Placement.mk κ o 0) (hx : x.length = layout.stackLog) :
+    (hpl : layout.placement qkeccak = Placement.mk κ o) (hx : x.length = layout.stackLog) :
     (ringSwitchClaim layout 0 (fun rP ↦ ringWeight ringPoint rP coeffs)).1 x =
       selProd o κ (layout.stackLog - κ) x * ringWeight ringPoint (x.take κ) coeffs := by
-  simp only [ringSwitchClaim, Placement.eqAbove, hpl, zero_add, Nat.sub_zero]
+  simp only [ringSwitchClaim, Placement.eqAbove, hpl]
   have h := eqEval_sel (o >>> κ) (x := x.drop κ) (L := layout.stackLog - κ) (κ := 0)
     (by rw [List.length_drop, hx]) (Nat.zero_le _)
   simp only [List.drop_zero, Nat.sub_zero] at h

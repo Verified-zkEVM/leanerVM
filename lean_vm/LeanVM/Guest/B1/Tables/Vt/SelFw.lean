@@ -89,7 +89,7 @@ theorem vt_fwblock {σ : Val} (h : VtH Lm.read σ) {w b pos : ℕ} {prev : Optio
     (hidxc : ∀ t < 34, LoadHolds Lm.read (σ (.n 2732)) t (1 + gen ^ 2 ^ t))
     {κ : ℕ} (hκ : LoadHolds Lm.read (σ (.n 12)) b (gen ^ κ)) (hκb : κ < 34)
     {off : ℕ} (hoff : LoadHolds Lm.read (σ (.n 185)) b (gen ^ off)) (hob : off < 2 ^ 62) :
-    κ ≤ point.length ∧ σ (.n (w + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point ∧
+    κ ≤ point.length ∧ σ (.n (w + 16)) = Placement.eqAbove ⟨κ, off⟩ point ∧
       σ (.n (if prev.isNone then w + 19 else w + 20)) = σ (.n (w + 16)) ∧
       σ (.n (if prev.isNone then w + 16 else w + 19)) =
         (match prev with | none => 0 | some p => σ (.n p)) + σ (.n (w + 16)) := by

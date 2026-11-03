@@ -120,7 +120,6 @@ theorem block_ite {μ v y : ℕ} (index : ℕ) (a : ℕ → E) :
 
 /-- **A column claim's weight on the cube**: the equality kernel of its point on its block. -/
 theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
-    (hlow : (layout.placement c.column).low = 0)
     (hlen : c.point.length = (layout.placement c.column).variableCount)
     (hv : (layout.placement c.column).variableCount ≤ μ) (hμ : layout.stackLog = μ) (hy : y <
         2 ^ μ) :
@@ -136,8 +135,8 @@ theorem onStack_boolPoint {layout : Layout} {c : ColumnClaim} {μ y : ℕ}
       else 0 := by
   set pl := layout.placement c.column with hpl
   rw [← block_ite pl.index (fun j ↦ (eqKernel c.point).getD j 0)]
-  simp only [ColumnClaim.stackClaim, Placement.stackPoint, ← hpl, hlow, hμ, List.take_zero,
-    List.nil_append, zero_add, Front.selectorPoint_eq_boolPoint, Front.drop_boolPoint]
+  simp only [ColumnClaim.stackClaim, Placement.stackPoint_eq_drop, ← hpl, hμ,
+    Front.selectorPoint_eq_boolPoint, Front.drop_boolPoint]
   rw [boolPoint_split hv y, eqEval_append _ _ _ _ (by rw [hlen, length_boolPoint]),
     eqEval_selector hv hy, eqKernel_getD_eqAt _ (by rw [hlen]; exact Nat.mod_lt _ (by positivity)),
     ← Front.eqEval_boolPoint_eqAt, hlen]
@@ -155,7 +154,6 @@ theorem ringWeight_boolPoint {point ch : List E} {v : ℕ} (hlen : point.length 
 
 /-- **The ring claim's weight on the cube**: `Φ(eq(point, ·))` on the block of `q_keccak`. -/
 theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point ch : List E} {μ y : ℕ}
-    (hlow : (layout.placement qkeccak).low = 0)
     (hlen : point.length = (layout.placement qkeccak).variableCount)
     (hv : (layout.placement qkeccak).variableCount ≤ μ) (h6 : ch.length = 6) (hy : y < 2 ^ μ) :
     (ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients ch)).1
@@ -169,9 +167,8 @@ theorem ringSwitchClaim_boolPoint {layout : Layout} {target : E} {point ch : Lis
       else 0 := by
   set pl := layout.placement qkeccak with hpl
   rw [← block_ite pl.index (fun j ↦ phiMap ((eqKernel point).getD j 0) ch)]
-  simp only [ringSwitchClaim, Placement.eqAbove, ← hpl, hlow, zero_add, length_boolPoint,
-    Nat.sub_zero, Front.selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow,
-    Front.drop_boolPoint]
+  simp only [ringSwitchClaim, Placement.eqAbove, ← hpl, length_boolPoint,
+    Front.selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow, Front.drop_boolPoint]
   rw [eqEval_selector hv hy, Front.take_boolPoint μ _ y hv, ← Front.boolPoint_mod,
     ringWeight_boolPoint hlen h6 (Nat.mod_lt _ (by positivity))]
   split <;> simp
@@ -186,14 +183,14 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     simp only [addClaim]
     split
     · rename_i h
-      obtain ⟨hlow, hlen, hv, hμ⟩ := h
+      obtain ⟨hlen, hv, hμ⟩ := h
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement c.column).variableCount
         (layout.placement c.column).index) (eqKernelA c.point) s (eqKernelA c.point).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
         show (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x,
           c.value).1 (boolPoint μ y) = (c.stackClaim layout).1 (boolPoint μ y) from rfl,
-        onStack_boolPoint hlow hlen hv hμ hy,
+        onStack_boolPoint hlen hv hμ hy,
         size_eqKernelA, hlen, mul_ite, mul_zero, eqKernelA_getD]
     · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.column layout c).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩
@@ -201,13 +198,13 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     simp only [addClaim]
     split
     · rename_i h
-      obtain ⟨hlow, hlen, hv, h6⟩ := h
+      obtain ⟨hlen, hv, h6⟩ := h
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement qkeccak).variableCount
         (layout.placement qkeccak).index) ((eqKernelA point).map (phiMap · ch)) s
         ((eqKernelA point).map (phiMap · ch)).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
-        ringSwitchClaim_boolPoint hlow hlen hv h6 hy, Array.size_map, size_eqKernelA, hlen,
+        ringSwitchClaim_boolPoint hlen hv h6 hy, Array.size_map, size_eqKernelA, hlen,
         mul_ite, mul_zero]
       split_ifs with hb
       · rw [getD_map_of_lt _ _ _ 0 _ (by rw [size_eqKernelA, hlen]; omega), eqKernelA_getD]

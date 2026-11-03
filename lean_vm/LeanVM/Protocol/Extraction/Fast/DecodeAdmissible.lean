@@ -69,8 +69,6 @@ theorem checkRedundant_johnson {μ R : ℕ} (h : Whir.Admissible μ R) :
   obtain ⟨h1, h2, h3, h4⟩ := h
   unfold Whir.minLogStack at h1
   unfold Whir.maxLogStack at h2
-  unfold Whir.minLogInvRate at h3
-  unfold Whir.maxLogInvRate at h4
   obtain ⟨hAn, hD⟩ := johnsonThreshold_bounds ⟨h1, h2⟩ ⟨h3, h4⟩
   have hκ : 9 ≤ μ - initialFold := by simp only [initialFold]; omega
   have hD1 : 1 ≤ 2 ^ (μ - initialFold) - 1 := by

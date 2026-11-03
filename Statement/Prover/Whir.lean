@@ -127,15 +127,13 @@ def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
   match d with
   | .column layout c =>
     let pl := layout.placement c.column
-    if pl.low = 0 ∧ c.point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ layout.stackLog
-        = μ then
+    if c.point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ layout.stackLog = μ then
       let vals := eqKernelA c.point
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
   | .ring layout _ point challenges =>
     let pl := layout.placement qkeccak
-    if pl.low = 0 ∧ point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ challenges.length
-        = 6 then
+    if point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ challenges.length = 6 then
       let vals := (eqKernelA point).map (phiMap · challenges)
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc

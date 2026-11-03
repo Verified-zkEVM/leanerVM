@@ -25,7 +25,7 @@ least one variable (`ladder_sum_lt`), so the tail rounds never start from none.
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding addressOfIndex
+open LeanVM.Parameters
 open LeanVM.Semantics LeanVM.Protocol.Compile Claims
 
 @[expose] public section
@@ -224,10 +224,10 @@ theorem ladder_sum_lt {μ r : ℕ} {levels : List Whir.Level} (h : Whir.ladder �
     split at h
     · assumption
     · cases h
-  have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < Whir.maxLogInvRate + 1, Whir.Admissible μ r →
+  have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
       ∀ levels, Whir.ladder μ r = some levels → (levels.map (·.fold)).sum < μ := by
     decide +kernel
-  have hb : μ < Whir.maxLogStack + 1 ∧ r < Whir.maxLogInvRate + 1 := by
+  have hb : μ < Whir.maxLogStack + 1 ∧ r < 5 := by
     unfold Whir.Admissible at hadm
     omega
   exact key μ hb.1 r hb.2 hadm levels h

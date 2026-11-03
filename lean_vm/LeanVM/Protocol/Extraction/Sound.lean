@@ -100,8 +100,6 @@ theorem extractor_of_extracted {X : Type} (σ : Seeds X) {ℓ : Log} {k : ℕ} {
       have hR : 1 ≤ ρ ∧ ρ ≤ 4 := by
         have h1 := hadm.2.2.1
         have h2 := hadm.2.2.2
-        unfold Whir.minLogInvRate at h1
-        unfold Whir.maxLogInvRate at h2
         omega
       have hinj : Extraction.MerkleProofs.AnswersInj (lookH (ℓ.take k)) :=
         answersInj_lookH (not_fail_take hf k)

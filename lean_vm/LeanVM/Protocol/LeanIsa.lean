@@ -512,66 +512,31 @@ def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 3 :=
     ⟨memCol 2, 0, 0, false, s.logMem_pos⟩]
 
 /-- The verifier's padding row of a table, in `K` (`Table.padding`,
-`python-verifier/verifier.py:797-803`): zero, but for the `KECCAK` output lanes, which hold
+`python-verifier/verifier.py:798-804`): zero, but for the `KECCAK` output lanes, which hold
 Keccak-f[1600] of the zero state. -/
 def padRowK (t : Verifier.Table) : List K :=
-  if t.opcode = Verifier.opKeccak then
-    t.columns.map fun name ↦
-      if name ∈ Verifier.keccakOutputs then
-        K.ofBits (Keccak.lane (keccakF1600 (Vector.replicate 25 0))
-          (Verifier.keccakOutputs.idxOf name)).toNat
-      else 0
-  else t.columns.map fun _ ↦ 0
+  (List.range t.width).map fun i ↦
+    if t.opcode = Verifier.opKeccak ∧ Verifier.keccakOut ≤ i ∧ i < Verifier.keccakOut + 25 then
+      K.ofBits (Keccak.lane (keccakF1600 (Vector.replicate 25 0)) (i - Verifier.keccakOut)).toNat
+    else 0
+
+theorem padRowK_length (t : Verifier.Table) : (padRowK t).length = t.width := by
+  simp [padRowK]
 
 /-- The verifier's padding row is `padRowK`, lifted to `E`. -/
 theorem padding_eq_map_ofK (t : Verifier.Table) : t.padding = (padRowK t).map ofK := by
-  simp only [Verifier.Table.padding, padRowK]
-  split_ifs
-  · simp only [List.map_map]
-    refine List.map_congr_left fun name _ ↦ ?_
-    simp only [Function.comp_apply]
-    split_ifs <;> first | rfl | exact (map_zero (algebraMap K E)).symm
-  · simp only [List.map_map]
-    exact List.map_congr_left fun _ _ ↦ (map_zero (algebraMap K E)).symm
+  simp only [Verifier.Table.padding, padRowK, List.map_map]
+  refine List.map_congr_left fun i _ ↦ ?_
+  simp only [Function.comp_apply]
+  split_ifs <;> first | rfl | exact (map_zero (algebraMap K E)).symm
 
 /-! ### The `KECCAK` padding row, by column -/
-
-/-- The output lanes' names are distinct. -/
-theorem keccakOutputs_nodup : Verifier.keccakOutputs.Nodup := by decide +kernel
 
 /-- The `KECCAK` table has ninety column names. -/
 theorem keccakColumns_length : Verifier.keccakColumns.length = 90 := by decide +kernel
 
-/-- There are twenty-five output lanes. -/
-theorem keccakOutputs_length : Verifier.keccakOutputs.length = 25 := by decide +kernel
-
-/-- The `KECCAK` table's column `38 + l` is `KECCAK_OUTPUTS[l]`, and no other column is an output
-lane: checked in the kernel. -/
-theorem keccakColumns_outputs : ∀ i : Fin 90,
-    (Verifier.keccakColumns.getD i "" ∈ Verifier.keccakOutputs ↔ 38 ≤ i.val ∧ i.val < 63) ∧
-      (38 ≤ i.val → i.val < 63 →
-        Verifier.keccakColumns.getD i "" = Verifier.keccakOutputs.getD (i.val - 38) "") := by
-  decide +kernel
-
-/-- Column `38 + l` of the `KECCAK` table is `out_l`, `KECCAK_OUTPUTS[l]`. -/
-theorem keccakColumns_out (l : ℕ) (hl : l < 25) :
-    Verifier.keccakColumns[38 + l]'(by rw [keccakColumns_length]; omega) =
-      Verifier.keccakOutputs[l]'(by rw [keccakOutputs_length]; omega) := by
-  have h := (keccakColumns_outputs ⟨38 + l, by omega⟩).2 (by simp) (by simp; omega)
-  simp only [Nat.add_sub_cancel_left] at h
-  rw [List.getD_eq_getElem _ _ (by rw [keccakColumns_length]; omega),
-    List.getD_eq_getElem _ _ (by rw [keccakOutputs_length]; omega)] at h
-  exact h
-
-/-- No column of the `KECCAK` table outside `38 … 62` is an output lane. -/
-theorem keccakColumns_not_out (i : ℕ) (hi : i < 90) (h : i < 38 ∨ 63 ≤ i) :
-    Verifier.keccakColumns[i]'(by rw [keccakColumns_length]; exact hi) ∉
-      Verifier.keccakOutputs := by
-  have h' := (keccakColumns_outputs ⟨i, hi⟩).1
-  rw [List.getD_eq_getElem _ _ (by rw [keccakColumns_length]; exact hi)] at h'
-  rw [h']
-  show ¬ (38 ≤ i ∧ i < 63)
-  omega
+/-- `KECCAK_OUT` is column `38`. -/
+theorem keccakOut_eq : Verifier.keccakOut = 38 := by decide +kernel
 
 /-- The zero state's lanes. -/
 theorem laneState_zero : laneState (fun _ ↦ 0) = Vector.replicate 25 0 := by
@@ -587,28 +552,17 @@ theorem padRowK_keccak_getD (i : ℕ) (hi : i < 90) :
       if h : 38 ≤ i ∧ i < 63 then
         stateLanes (keccakF1600 (laneState fun _ ↦ 0)) ⟨i - 38, by omega⟩
       else 0 := by
-  have ht : padRowK (Verifier.tables.getD 5 default) = Verifier.keccakColumns.map fun name ↦
-      if name ∈ Verifier.keccakOutputs then
-        K.ofBits (Keccak.lane (keccakF1600 (Vector.replicate 25 0))
-          (Verifier.keccakOutputs.idxOf name)).toNat
-      else 0 := rfl
-  have hlt : i < Verifier.keccakColumns.length := by rw [keccakColumns_length]; exact hi
-  rw [ht, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hlt,
-    Option.map_some, Option.getD_some]
+  have hw : (Verifier.tables.getD 5 default).width = 90 := by decide +kernel
+  have ho : (Verifier.tables.getD 5 default).opcode = Verifier.opKeccak := rfl
+  rw [padRowK, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range (by omega),
+    Option.map_some, Option.getD_some, keccakOut_eq]
   by_cases h : 38 ≤ i ∧ i < 63
-  · obtain ⟨l, rfl⟩ : ∃ l, i = 38 + l := ⟨i - 38, by omega⟩
-    have hl : l < 25 := by omega
-    have hout := keccakColumns_out l hl
-    have hmem : Verifier.keccakColumns[38 + l] ∈ Verifier.keccakOutputs :=
-      hout ▸ List.getElem_mem _
-    rw [ite_eq_left hmem, dite_eq_left h, hout,
-      List.Nodup.idxOf_getElem (xs := Verifier.keccakOutputs) keccakOutputs_nodup l,
-      laneState_zero]
-    simp only [stateLanes, K.ofLane, K.ofBits, Nat.add_sub_cancel_left]
+  · rw [ite_eq_left ⟨ho, h⟩, dite_eq_left h, laneState_zero]
+    simp only [stateLanes, K.ofLane, K.ofBits]
     congr 1
     apply BitVec.eq_of_toNat_eq
     simp
-  · rw [ite_eq_right (keccakColumns_not_out i hi (by omega)), dite_eq_right h]
+  · rw [ite_eq_right (fun h' ↦ h h'.2), dite_eq_right h]
 
 /-- The public row a padding row holds: the verifier's (`padRowK`) for an opcode table, zero for
 the column groups, which have no padding row. -/

@@ -131,7 +131,7 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
 program $P$, of size at most $14500$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $14125$ and a slack of about one leanXMSS signature's encoding), run on the encoded
+extractor's $14109$ and a slack of about one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
 $2^{81} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
@@ -186,8 +186,9 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
 (\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
-calls and two further terms of at most $2^{-128}$ each: the transfer to the RPM, and the
-verifier's own $12006/2^{256}$.
+Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $12006\cdot 2^{32}$, the IV
+hashing a bytecode of up to $2^{32}$ instructions) and two further terms of at most $2^{-128}$ each:
+the transfer to the RPM, which pays for those calls, and the verifier's own $12006/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}

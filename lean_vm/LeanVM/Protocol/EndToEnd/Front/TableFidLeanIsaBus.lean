@@ -1134,8 +1134,7 @@ theorem rowE_padE (t : Fin 6) :
     rowE (padE prog s fl t) = fun i ↦ (tables.getD t default).padding.getD i 0 := by
   funext i
   have hw : (padRowK (tables.getD t default)).length = width (opIdx t) := by
-    rw [width_opIdx, padRowK]
-    split_ifs <;> exact List.length_map _
+    rw [width_opIdx, padRowK_length]
   have h3 : (opIdx t).val - 3 = t.val := by simp [opIdx]
   have hrow : ∀ j : Fin (width (opIdx t)),
       (leanIsaWith prog s fl).padRow (opI prog s fl t) j =

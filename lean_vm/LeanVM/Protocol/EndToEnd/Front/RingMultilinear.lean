@@ -155,20 +155,19 @@ theorem prod_range_lt (f : ℕ → E) {m μ : ℕ} (h : m ≤ μ) :
 two read disjoint coordinates. -/
 theorem affineProd_eqAbove_mul (μ : ℕ) (pl : Placement) (a : List E) :
     AffineProd μ fun y ↦ pl.eqAbove y * eqEval a (y.take pl.variableCount) := by
-  let o := pl.low + pl.variableCount
-  let bits := selectorPoint (pl.index >>> o) (μ - pl.low - pl.variableCount)
+  let o := pl.variableCount
+  let bits := selectorPoint (pl.index >>> o) (μ - pl.variableCount)
   let m := min a.length (min pl.variableCount μ)
   refine ⟨fun i ↦ if i < m then 1 + a.getD i 0 else if o ≤ i then 1 + bits.getD (i - o) 0 else 1,
     fun i ↦ if i < m then 1 else if o ≤ i then 1 else 0, fun y hy ↦ ?_⟩
-  have hbits : bits.length = μ - o := by simp [bits, selectorPoint, o, Nat.sub_sub]
+  have hbits : bits.length = μ - o := by simp [bits, selectorPoint, o]
   have h1 : pl.eqAbove y = ∏ i ∈ Finset.range μ,
       (if o ≤ i then 1 + bits.getD (i - o) 0 + y.getD i 0 else 1) := by
     unfold Placement.eqAbove
     rw [eqEval_eq_prod]
     simp only [hy, List.length_drop]
-    rw [show (selectorPoint (pl.index >>> (pl.low + pl.variableCount)) (μ - pl.low -
-        pl.variableCount)) = bits from
-      rfl, hbits, show μ - (pl.low + pl.variableCount) = μ - o from rfl, min_self]
+    rw [show (selectorPoint (pl.index >>> pl.variableCount) (μ - pl.variableCount)) = bits from
+      rfl, hbits, min_self]
     rw [← prod_range_shift (fun i ↦ 1 + bits.getD (i - o) 0 + y.getD i 0) o μ]
     refine Finset.prod_congr rfl fun i _ ↦ ?_
     simp [List.getD_eq_getElem?_getD]

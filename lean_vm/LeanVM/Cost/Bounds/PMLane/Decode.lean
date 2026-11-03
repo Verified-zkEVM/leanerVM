@@ -351,8 +351,6 @@ theorem decodeStacksPMC_cost (hP : Includes P decodeStacksPMC.costDeps) {p : PMP
   obtain ⟨h1, h2, h3, h4⟩ := hadm'
   unfold Whir.minLogStack at h1
   unfold Whir.maxLogStack at h2
-  unfold Whir.minLogInvRate at h3
-  unfold Whir.maxLogInvRate at h4
   have hf : Whir.initialFold = 6 := rfl
   have hcr := checkRedundant_johnson hadm
   rw [decodeStacksPMC.costEq P hP μ R W WVal hW,
@@ -441,7 +439,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
   rw [decoderBoundPM_eq] at h
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
-  simp only [Whir.maxLogStack, Whir.maxLogInvRate] at h2 h4
+  simp only [Whir.maxLogStack] at h2
   have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 26 :=
     Nat.pow_le_pow_right (by norm_num) (by simp only [Whir.initialFold]; omega)
   have := Nat.mul_le_mul_left (BW + 12 * Lw) hp

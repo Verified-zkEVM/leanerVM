@@ -155,8 +155,8 @@ theorem eqAbove_eq_selectorWeight (B : Blocks) {μ : ℕ} (hμ : B.total ≤ 2 ^
   rw [Blocks.selectorWeight]
   have h := eqEval_boolPoint (B.highPoint hμ b z) (B.selector hμ b)
   rw [← h, toList_highPoint, eqEval_comm, Blocks.selector_val]
-  simp only [Placement.eqAbove, zero_add, Vector.length_toList, Nat.sub_zero,
-    selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow]
+  simp only [Placement.eqAbove, Vector.length_toList, selectorPoint_eq_boolPoint,
+    Nat.shiftRight_eq_div_pow]
 
 /-! ## Sums over the blocks -/
 

@@ -443,7 +443,7 @@ open Common
 @[expose] public section
 
 /-- **The bound on the extractor program's size** (`MachineProgram.size`): `14500`, the compiled
-extractor's size (`14125`: its `698` compiled bodies and the entry, at `711` indices, `12` of
+extractor's size (`14109`: its `698` compiled bodies and the entry, at `711` indices, `12` of
 them holes, a literal `0` each) and a slack of `375`, room for one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs) but not two, so the compiled extractor could carry no useful table of witnesses beside

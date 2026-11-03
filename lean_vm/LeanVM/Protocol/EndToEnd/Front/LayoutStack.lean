@@ -209,12 +209,11 @@ theorem boolPoint_mod (k n : ℕ) : boolPoint k (n % 2 ^ k) = boolPoint k n := b
   simp only [length_boolPoint] at h1
   simp [h1]
 
-/-- **An aligned placement** (`low = 0`): the point, then the bits of the index above the
-window. -/
+/-- **A placed point**: the point, then the bits of the index above the window. -/
 theorem stackPoint_aligned (v off μ : ℕ) (z : List E) :
     ({ variableCount := v, index := off } : Placement).stackPoint z μ =
       z ++ boolPoint (μ - v) (off / 2 ^ v) := by
-  simp [Placement.stackPoint, selectorPoint_eq_boolPoint, drop_boolPoint]
+  simp [Placement.stackPoint, selectorPoint_eq_boolPoint, Nat.shiftRight_eq_div_pow]
 
 /-- The cube point of `x + 2 ^ a · m`, for `x < 2 ^ a`: the bits of `x`, then those of `m`. -/
 theorem boolPoint_add_two_pow_mul (a b x m : ℕ) (hx : x < 2 ^ a) :
@@ -229,7 +228,7 @@ theorem boolPoint_add_two_pow_mul (a b x m : ℕ) (hx : x < 2 ^ a) :
   · simp only [hi, ↓reduceIte, ↓reduceDIte, length_boolPoint, getElem_boolPoint]
 
 /-- **A slice placement** at slot `slot` of an aligned region of `2 ^ (v + k)` cells at `off`
-(`index = off + slot · 2 ^ v`, `low = 0`): the point, the slot's bits, then the region's bits
+(`index = off + slot · 2 ^ v`): the point, the slot's bits, then the region's bits
 above it. -/
 theorem stackPoint_slice (v k off slot μ : ℕ) (hk : v + k ≤ μ) (hoff : 2 ^ (v + k) ∣ off)
     (hslot : slot < 2 ^ k) (z : List E) :

@@ -20,24 +20,19 @@ open LeanVM.Protocol.EndToEnd.Complete (canon pySideC FormC termsEval)
 
 /-- `paddingRow` over `K`. -/
 def paddingRowK (t : Table) : List K :=
-  if t.opcode = opKeccak then
-    t.columns.map fun name ↦
-      if name ∈ keccakOutputs then
-        K.ofBits (Keccak.lane Keccak.keccakFZero (keccakOutputs.idxOf name)).toNat
-      else 0
-  else t.columns.map fun _ ↦ 0
+  (List.range t.width).map fun i ↦
+    if t.opcode = opKeccak ∧ keccakOut ≤ i ∧ i < keccakOut + 25 then
+      K.ofBits (Keccak.lane Keccak.keccakFZero (i - keccakOut)).toNat
+    else 0
 
 theorem paddingRow_eq (t : Table) : paddingRow t = (paddingRowK t).map ofK := by
   unfold paddingRow paddingRowK
+  rw [List.map_map]
+  refine List.map_congr_left fun i _ ↦ ?_
+  simp only [Function.comp_apply]
   split_ifs
-  · rw [List.map_map]
-    refine List.map_congr_left fun name _ ↦ ?_
-    simp only [Function.comp_apply]
-    split_ifs
-    · rfl
-    · exact ofK_zero.symm
-  · rw [List.map_map]
-    exact List.map_congr_left fun _ _ ↦ ofK_zero.symm
+  · rfl
+  · exact ofK_zero.symm
 
 /-- The padding tie of a side, as a boolean. -/
 def vtPadTieCheck (spec : List (List FormC)) (pads : List (List ℕ)) (row : List K) : Bool :=

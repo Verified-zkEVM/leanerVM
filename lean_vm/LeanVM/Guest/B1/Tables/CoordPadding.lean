@@ -27,12 +27,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- `Table.padding` with `keccakF` of zeros evaluated. -/
 def paddingRow (t : Table) : List E :=
-  if t.opcode = opKeccak then
-    t.columns.map fun name ↦
-      if name ∈ keccakOutputs then
-        eOfNat (Keccak.lane Keccak.keccakFZero (keccakOutputs.idxOf name)).toNat
-      else 0
-  else t.columns.map fun _ ↦ 0
+  (List.range t.width).map fun i ↦
+    if t.opcode = opKeccak ∧ keccakOut ≤ i ∧ i < keccakOut + 25 then
+      eOfNat (Keccak.lane Keccak.keccakFZero (i - keccakOut)).toNat
+    else 0
 
 theorem padding_eq (t : Table) : t.padding = paddingRow t := by
   unfold Table.padding paddingRow

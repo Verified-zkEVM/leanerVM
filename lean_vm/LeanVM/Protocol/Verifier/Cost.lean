@@ -862,7 +862,7 @@ theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
     whirHeightsLE costHeight μ levels = true ∧ stackHeightLE costHeight μ levels = true ∧
       queryDepthsLE μ levels = true ∧ whirCost costHeight μ levels ≤ whirBound := by
   by_cases hadm : Whir.Admissible μ logInvRate
-  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < Whir.maxLogInvRate + 1, Whir.Admissible μ r →
+  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
         ∀ levels, Whir.ladder μ r = some levels →
           (whirHeightsLE costHeight μ levels && stackHeightLE costHeight μ levels &&
             queryDepthsLE μ levels && decide (whirCost costHeight μ levels ≤ whirBound)) =

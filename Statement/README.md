@@ -110,10 +110,9 @@ theorems, then read the files in this order.
 10. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
     transcribed section by section, over any permutation in any monad, Keccak-256 the sponge over it
     (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
-    duplex over Keccak-f[1600], the deferring verifier an aggregate runs on its children, and the
-    sizes a stream announces (`announcedLayoutAndRate`). Where the transcription's form differs from
-    the pin's without changing what it computes, its docstring gives the pin's lines and why the two
-    agree.
+    duplex over Keccak-f[1600], and the deferring verifier an aggregate runs on its children. Where
+    the transcription's form differs from the pin's without changing what it computes, its docstring
+    gives the pin's lines and why the two agree.
 11. [`LeanVm.lean`](LeanVm.lean): a statement (a program and a public input), the verifier on it
    over a permutation (`leanVmVerifier π`), the honest prover's type and **the honest prover**,
    `leanVmHonestProver`
@@ -137,7 +136,7 @@ theorems, then read the files in this order.
     output parsed, if `P`'s size and its run's price are within them. `Statement.Theorems` takes `P`
     as a parameter and does not name it (`lean_vm` names its knowledge extractor, compiled). That
     the machine's prices are honest is trusted. The size bound is `14500`: the compiled extractor's
-    `14125` and a slack of about one leanXMSS signature's encoding, so the compiled extractor could
+    `14109` and a slack of about one leanXMSS signature's encoding, so the compiled extractor could
     carry no useful table of witnesses beside its code. The budget is a short formula,
     `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^81` for `N ≤ 2^50`
     (the list decoder, about `2^80.49` at the worst shape) and `2^157.08` at `N = 2^128` (the
@@ -234,7 +233,7 @@ gives the script nothing else).
 
 The knowledge extractor is not part of the statement: `Statement.Theorems` takes it as a
 cost-machine program (`CostMachine.lean`). A program excludes classical choice; its size bound
-(`14500`, the compiled `14125` and a slack of about one leanXMSS signature) leaves the compiled
+(`14500`, the compiled `14109` and a slack of about one leanXMSS signature) leaves the compiled
 extractor no room for a useful table of witnesses; and its budget is `2^81 + O(N·log³N)` for `N`
 permutation queries (polylogarithmic per query: about `2^81` for `N ≤ 2^50`, `2^157.08` at
 `N = 2^128`, where the soundness bound is already trivial). `lean_vm` names the program

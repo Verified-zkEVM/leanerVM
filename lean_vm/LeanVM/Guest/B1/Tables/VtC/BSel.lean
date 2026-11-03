@@ -82,11 +82,11 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
     {off : ℕ} (hoff : LoadHolds rd (vtσ rd wo args (.n 185)) b (gen ^ off)) (hal : 2 ^ τ ∣ off)
     (hob : off < 2 ^ point.length)
     (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
-    (hw0 : wo (vtSelE v t) = Placement.eqAbove ⟨τ, off, 0⟩ point)
+    (hw0 : wo (vtSelE v t) = Placement.eqAbove ⟨τ, off⟩ point)
     (hw1 : wo (vtSelE v t + 1) = gen ^ off)
     (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     (∀ s ∈ vtSelT v b t prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
-      vtσ rd wo args (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off, 0⟩ point ∧
+      vtσ rd wo args (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
       vtσ rd wo args (.n (vtSelCopy v t prev)) = vtσ rd wo args (.n (vtSelE v t)) ∧
       vtσ rd wo args (.n (vtSelSum v t prev)) =
         (match prev with | none => 0 | some p => vtσ rd wo args (.n p)) +
@@ -126,7 +126,7 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
       · rw [m11, c10, vtShC1_word ht]
       · rw [m13, c12, vtShC2_word ht]
   have hrets := vtB_retsM (rd := rd) (w := wo) hl (hmem _ hdm)
-  have e0 : (vtσ rd wo args) (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off, 0⟩ point := by
+  have e0 : (vtσ rd wo args) (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off⟩ point := by
     rw [hrets _ (by simp), ← hw0]
   have e1 : (vtσ rd wo args) (.n (vtSelE v t + 1)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
   -- the callee
@@ -230,10 +230,10 @@ theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
     {off : ℕ} (hoff : LoadHolds rd (vtσ rd wo args (.n 185)) b (gen ^ off)) (hal : 2 ^ κ ∣ off)
     (hob : off < 2 ^ point.length)
     (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
-    (hw0 : wo (v + 16) = Placement.eqAbove ⟨κ, off, 0⟩ point) (hw1 : wo (v + 17) = gen ^ off)
+    (hw0 : wo (v + 16) = Placement.eqAbove ⟨κ, off⟩ point) (hw1 : wo (v + 17) = gen ^ off)
     (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
     (∀ s ∈ vtFwSelT v b prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
-      vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point ∧
+      vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off⟩ point ∧
       vtσ rd wo args (.n (if prev.isNone then v + 19 else v + 20)) = vtσ rd wo args (.n (v + 16)) ∧
       vtσ rd wo args (.n (if prev.isNone then v + 16 else v + 19)) =
         (match prev with | none => 0 | some p => vtσ rd wo args (.n p)) +
@@ -261,7 +261,7 @@ theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
   have hrets := vtB_retsM (rd := rd) (w := wo) hl (hmem _ (by simp [vtFwSelT] :
     Stmt.dispatch (.n (v + 8)) vtBsNames [.n (v + 13), .n (v + 14), .n (v + 15)]
       [.n (v + 16), .n (v + 17)] ∈ vtFwSelT v b prev))
-  have e16 : vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off, 0⟩ point := by
+  have e16 : vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off⟩ point := by
     rw [hrets _ (by simp), ← hw0]
   have e17 : vtσ rd wo args (.n (v + 17)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
   -- the callee
@@ -275,7 +275,7 @@ theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
     rw [g15, r0.1]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
   have hrel := block_selector_complete_holds d (by omega) rd
     [vtσ rd wo args (.n (v + 13)), vtσ rd wo args (.n (v + 14)), vtσ rd wo args (.n (v + 15))]
-    [Placement.eqAbove ⟨κ, off, 0⟩ point, gen ^ off]
+    [Placement.eqAbove ⟨κ, off⟩ point, gen ^ off]
     ⟨selBitsOf off κ d, (point.map (1 + ·)).drop κ, (vtIdxcList.drop κ).take d, hbl,
       by simp; omega, by simp [vtIdxcList]; omega, hsb, hz1', hic, ?_, ?_⟩
   rotate_left

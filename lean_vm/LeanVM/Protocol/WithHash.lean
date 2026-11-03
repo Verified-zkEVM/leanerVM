@@ -115,7 +115,7 @@ end LeanVM.Protocol.Compile
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding addressOfIndex
+open LeanVM.Parameters
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 
 section Hash

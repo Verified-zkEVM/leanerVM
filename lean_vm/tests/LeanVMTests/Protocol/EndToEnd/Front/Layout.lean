@@ -17,8 +17,7 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 * **The announced sizes.** `readAnnouncedSizes` returns on the announcement of admissible sizes, and
   rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `KECCAK` table
   of two rows is accepted, at its floor height `2^9`.
-* **Mutations.** Breaking ties by the higher index, or reading the lanes in the low six
-  coordinates of `QKECCAK`, moves placements: the tie order and the lanes' columns are
+* **Mutations.** Breaking ties by the higher index moves placements: the tie order is
   load-bearing.
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
   Python's in the Python's order, and its count columns the Python's `cnt` columns. This is the
@@ -136,14 +135,6 @@ def stackOffsetsHighTies (sizes : List ℕ) : List ℕ :=
 
 #guard stackOffsetsHighTies (committedColumns.map (kappa prog4 s₁)) ≠
   (stackOffsets (committedColumns.map (kappa prog4 s₁))).1
-
--- The input lanes read in the low six coordinates of `QKECCAK` (slot-major) move off the
--- deployed placement.
-#guard (columns.filter fun c ↦ decide (IsLane c ∧ ¬ IsOut c)).any fun c ↦
-  (verifierLayout prog4 s₁).placements.getD (pyCol c) none ≠
-    some
-      { variableCount := s₁.τ 5, low := 6,
-        index := (blocks prog4 s₁).offset (keccakBlock prog4 s₁) + (c.2.val - 13) }
 
 /-! ## The bus flushes: the `DEREF` order -/
 

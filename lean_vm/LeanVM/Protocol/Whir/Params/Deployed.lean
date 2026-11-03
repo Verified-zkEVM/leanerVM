@@ -189,7 +189,7 @@ theorem deployed_spec_hyps {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir
       whirEps (deployedCodes μ R) (level :: rest) ≤ (2 : ENNReal)⁻¹ ^ 128 := by
   have hc' : Whir.ladder μ R = some (level :: rest) := hc
   have hok := shapeOK_all μ (by have := h.2.1; unfold Whir.maxLogStack at this; omega) R
-    (by have := h.2.2.2; unfold Whir.maxLogInvRate at this; omega) h
+    (by have := h.2.2.2; omega) h
   rw [shapeOK, hc'] at hok
   simp only [Bool.and_eq_true] at hok
   obtain ⟨hchk, hd⟩ := hok

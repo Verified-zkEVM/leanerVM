@@ -37,7 +37,7 @@ theorem vt_selblock {rd : Reader} {σ : Val} (h : VtH rd σ) {w b t pos : ℕ} {
     (hrun : RunTables rd (σ (.n 2769) * gen ^ (288 * t)) (σ (.n 2770) * gen ^ (144 * t)) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : LoadHolds rd (σ (.n 185)) b (gen ^ off)) (hob : off < 2 ^ 62) :
-    σ (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off, 0⟩ point ∧
+    σ (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
       σ (.n (vtSelCopy w t prev)) = σ (.n (vtSelE w t)) ∧
       σ (.n (vtSelSum w t prev)) = (match prev with | none => 0 | some p => σ (.n p)) +
         σ (.n (vtSelE w t)) := by

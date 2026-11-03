@@ -405,7 +405,7 @@ theorem thrOf_eq_johnsonThreshold {μ R : ℕ} (h : Whir.Admissible μ R) {level
   rw [← Extraction.johnsonThreshold_eq_real]
   have hc' : Whir.ladder μ R = some (level :: rest) := hc
   have hμ : μ < 29 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
-  have hR : R < 5 := by have := h.2.2.2; unfold Whir.maxLogInvRate at this; omega
+  have hR : R < 5 := by have := h.2.2.2; omega
   have hok := Whir.Params.shapeOK_all μ hμ R hR h
   rw [Whir.Params.shapeOK, hc'] at hok
   simp only [Bool.and_eq_true] at hok
@@ -472,7 +472,7 @@ theorem candidates_of_values {μ R A : ℕ} {W : Word} {q : Vector K (2 ^ μ)}
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
     ∃ level rest, Whir.ladder μ R = some (level :: rest) := by
   have hμ : μ < 29 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
-  have hR : R < 5 := by have := h.2.2.2; unfold Whir.maxLogInvRate at this; omega
+  have hR : R < 5 := by have := h.2.2.2; omega
   have hok := Whir.Params.shapeOK_all μ hμ R hR h
   rw [Whir.Params.shapeOK] at hok
   rcases hc : Whir.ladder μ R with _ | config

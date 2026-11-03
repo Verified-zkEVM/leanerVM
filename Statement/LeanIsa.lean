@@ -246,7 +246,12 @@ def derefSource : DerefMode → Registers K → E → E
   | .fp, registers, _ => ofK registers.fp
 
 /-- Execute an instruction with the memory reader `read`: read its words, check its relation, and
-return the next registers; `none` if a read or a check fails. -/
+return the next registers; `none` if a read or a check fails. A taken `JUMP` moves to any elements
+`(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
+be powers of `g` with a 32-bit exponent, the target inside the bytecode
+(`crates/leanvm_core/src/cpu/execute.rs:877-915`, `cpu/hints.rs:118`), and stops after `MAX_STEPS`
+(`10^8`, `execute.rs:156`) steps, which nothing here bounds: those are the executor's limits, not
+the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
@@ -504,15 +509,9 @@ structure CompiledFunction where
   /-- Its code, in chunks of `chunkSize` instructions. -/
   chunks : List (List OffsetInstruction)
 
-/-- Instruction `i` of code in chunks of `chunkLength`, the padding past the end. -/
-def chunkedInstructionAt (chunkLength : ℕ) (chunks : List (List OffsetInstruction)) (i : ℕ) :
-    OffsetInstruction :=
-    listElementOrDefault (listElementOrDefault chunks (i / chunkLength) [])
-    (i % chunkLength) .padding
-
 /-- The instruction at offset `i`, the padding past the end. -/
 def CompiledFunction.instructionAt (f : CompiledFunction) (i : ℕ) : OffsetInstruction :=
-    chunkedInstructionAt chunkSize f.chunks i
+  listElementOrDefault (listElementOrDefault f.chunks (i / chunkSize) []) (i % chunkSize) .padding
 
 /-- The instruction at pc `pc` of the functions `functions`, the padding outside them. -/
 def instructionAtPc : List CompiledFunction → ℕ → OffsetInstruction

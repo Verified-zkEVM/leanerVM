@@ -178,7 +178,7 @@ admissible pairs. -/
 theorem ladder_folds (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) : ∀ l ∈ levels, l.fold ≤ 6 := by
   by_cases hadm : Whir.Admissible μ logInvRate
-  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < Whir.maxLogInvRate + 1, Whir.Admissible μ r →
+  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
         ∀ levels, Whir.ladder μ r = some levels →
           (levels.all fun l ↦ decide (l.fold ≤ 6)) = true := by
       decide +kernel

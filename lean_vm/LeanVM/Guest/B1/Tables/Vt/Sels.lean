@@ -134,7 +134,7 @@ theorem vt_stackOffsets_lt (sizes : List ℕ) (hl : sizes.length ≤ 64)
 
 /-- An aligned block's `eqAbove` is its `blockSel`. -/
 theorem vt_eqAbove_blockSel (sizes : List ℕ) (b : ℕ) (point : List E) :
-    Placement.eqAbove ⟨sizes.getD b 0, (stackOffsets sizes).1.getD b 0, 0⟩ point =
+    Placement.eqAbove ⟨sizes.getD b 0, (stackOffsets sizes).1.getD b 0⟩ point =
       blockSel sizes point.length b point := by
   rw [eqAbove_aligned]
   rfl

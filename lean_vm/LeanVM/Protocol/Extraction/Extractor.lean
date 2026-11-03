@@ -1,6 +1,7 @@
 module
 
 public import Statement.LeanVm
+public import LeanVM.Protocol.Compile.RunPure
 public import CompPoly.Univariate.Roots.Shoup.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas

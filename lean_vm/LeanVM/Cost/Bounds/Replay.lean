@@ -267,10 +267,9 @@ open LeanVM.Parameters.Whir in
 theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 2 ^ 64)
     (hR : R < 2 ^ 64) : machineCost P ladderC.costIdx [encodeValue μ, encodeValue R] ≤ 3201 := by
   rw [ladderC.costEq P hP]
-  simp only [minLogStack, maxLogStack, minLogInvRate, maxLogInvRate, Admissible,
+  simp only [minLogStack, maxLogStack, Admissible,
     limbs_of_lt hμ, limbs_of_lt hR, limbs_of_lt (by norm_num : (15 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by norm_num : (28 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64), max_self]
+    limbs_of_lt (by norm_num : (28 : ℕ) < 2 ^ 64), max_self]
   by_cases hadm : 15 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4
   · obtain ⟨h1, h2, h3, h4⟩ := hadm
     have hs := shape_cost P (by includes) μ R (by omega) (by omega)
@@ -312,7 +311,7 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
   split_ifs at h
   obtain h := Option.some.inj h
   rw [ladderShape] at h
-  generalize (queryTable.getD (R - minLogInvRate) []).getD (μ - minLogStack) [] = qs at h
+  generalize (queryTable.getD (R - 1) []).getD (μ - minLogStack) [] = qs at h
   cases qs with
   | nil => simp at h
   | cons q qs =>

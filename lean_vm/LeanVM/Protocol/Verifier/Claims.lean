@@ -26,7 +26,7 @@ takes out are the `KECCAK` row's, and the claims it keeps are those with a place
 
 namespace LeanVM.Protocol.Verifier
 
-open LeanVM.Parameters hiding addressOfIndex
+open LeanVM.Parameters
 open LeanVM.Semantics LeanVM.Protocol.Compile
 
 @[expose] public section
@@ -489,7 +489,7 @@ theorem zipIdx_map_eq {β : Type} (base : ℕ) (pt : List E) (vals : List E)
 theorem lanes_filter : ∀ i < tables.length,
     (List.range (tables.getD i default).width).filter
         (fun j ↦ decide (globalColumnBases.getD i 0 + j ∈ keccakOutputColumns)) =
-      if i = opKeccak then keccakOutputs.map (columnIndexByName keccakColumns) else [] := by
+      if i = opKeccak then (List.range 25).map (keccakOut + ·) else [] := by
   decide +kernel
 
 theorem columns_lt : ∀ i < tables.length,
@@ -512,9 +512,8 @@ theorem tableClaims_range {rows : List (List E × List E)} (hlen : rows.length =
 
 /-- The output lanes' claims of the `KECCAK` row, by lane. -/
 abbrev laneClaims (row : List E × List E) : List ColumnClaim :=
-  keccakOutputs.map fun name ↦
-    ⟨globalColumnBases.getD opKeccak 0 + columnIndexByName keccakColumns name, row.1,
-      row.2.getD (columnIndexByName keccakColumns name) 0⟩
+  (List.range 25).map fun lane ↦
+    ⟨globalColumnBases.getD opKeccak 0 + (keccakOut + lane), row.1, row.2.getD (keccakOut + lane) 0⟩
 
 theorem rowClaims_filter {i : ℕ} (hi : i < tables.length) {row : List E × List E}
     (hrow : row.2.length = (tables.getD i default).width) :
@@ -575,7 +574,7 @@ theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List Co
       ∀ c ∈ laneClaims (rows.getD opKeccak ([], [])),
         c.point = ((laneClaims (rows.getD opKeccak ([], []))).headD default).point) := by
     refine ⟨by simp only [laneClaims, List.map_map]; rfl, fun c hc ↦ ?_⟩
-    obtain ⟨name, -, rfl⟩ := List.mem_map.mp hc
+    obtain ⟨lane, -, rfl⟩ := List.mem_map.mp hc
     rfl
   unfold VerifierProgram.require
   split

@@ -51,8 +51,8 @@ theorem vt_foldl_mul_zipWith {f : E → E → E} : ∀ {n : ℕ} {l1 l2 : List E
 theorem vt_eqAbove {κ n : ℕ} {bs : List Bool} (hbl : bs.length = n) {point : List E}
     (hpl : point.length = κ + n) :
     bitsEq bs (point.drop κ) ((point.map (1 + ·)).drop κ) =
-      Placement.eqAbove ⟨κ, 2 ^ κ * vtBitsV bs n, 0⟩ point := by
-  simp only [Placement.eqAbove, Nat.zero_add, Nat.sub_zero]
+      Placement.eqAbove ⟨κ, 2 ^ κ * vtBitsV bs n⟩ point := by
+  simp only [Placement.eqAbove]
   rw [Nat.shiftRight_eq_div_pow, Nat.mul_div_cancel_left _ (Nat.two_pow_pos κ),
     bitsEq_eq_prod hbl (by simp; omega) (by simp; omega), eqEval,
     vt_foldl_mul_zipWith (n := n) (by simp [selectorPoint]; omega) (by simp; omega)]

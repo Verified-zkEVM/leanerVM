@@ -88,11 +88,11 @@ theorem placementsOf_getD (kappas : List ℕ) {g : ℕ} (hg : g < kappas.length)
       match keccakSlot g with
       | some slot => some (Placement.mk (kappas.getD g 0)
           ((stackOffsets (Tables.committedKappas kappas)).1.getD
-            ((Tables.committedCols kappas.length).idxOf qkeccak) 0 + slot * 2 ^ kappas.getD g 0) 0)
+            ((Tables.committedCols kappas.length).idxOf qkeccak) 0 + slot * 2 ^ kappas.getD g 0))
       | none =>
         if g ∈ keccakOutputColumns then none else some (Placement.mk (kappas.getD g 0)
           ((stackOffsets (Tables.committedKappas kappas)).1.getD
-            ((Tables.committedCols kappas.length).idxOf g) 0) 0) := by
+            ((Tables.committedCols kappas.length).idxOf g) 0)) := by
   unfold placementsOf Tables.committedKappas Tables.committedCols
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_zipIdx,
     List.getElem?_eq_getElem hg, Option.map_some, Option.getD_some, zero_add]
@@ -107,7 +107,7 @@ theorem placement_committed {layout : Layout} {kappas : List ℕ} (hl : kappas.l
     (hP : layout.placements = (placementsOf kappas).1) {cc : ℕ} (hcc : cc < Tables.nCommittedCols) :
     layout.placement ((Tables.committedCols 163).getD cc 0) =
       Placement.mk ((Tables.committedKappas kappas).getD cc 0)
-        ((stackOffsets (Tables.committedKappas kappas)).1.getD cc 0) 0 := by
+        ((stackOffsets (Tables.committedKappas kappas)).1.getD cc 0) := by
   have hg := committedCols_getD hcc
   obtain ⟨hglt, hs, ho⟩ := colOfCommitted_facts hcc
   rw [← hg] at hglt hs ho
@@ -129,7 +129,7 @@ theorem placement_slot {layout : Layout} {kappas : List ℕ} (hl : kappas.length
     (hs : slotOfCol g = some s) :
     layout.placement g =
       Placement.mk (kappas.getD g 0) ((stackOffsets (Tables.committedKappas kappas)).1.getD 5 0 +
-          s * 2 ^ kappas.getD g 0) 0 := by
+          s * 2 ^ kappas.getD g 0) := by
   have h5 := committedCols_idxOf (cc := 5) (by decide)
   rw [committedCols_getD (by decide)] at h5
   rw [Layout.placement, hP, placementsOf_getD _ (by omega), keccakSlot_eq hg, hs, hl]
