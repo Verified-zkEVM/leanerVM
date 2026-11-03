@@ -3,7 +3,7 @@
 
   The aggregation guest's soundness, its witness named: the decoder that reads a statement and
   its witness off a valid execution's memory, and `MemoryGuestKnowledge` (`GuestKnowledgeSoundness`
-  of `Statement/Theorems.lean`, for a decoder of memories) for the deployed bytecode, from B2 and B1's statements
+  of `Statement/LeanVmGuest.lean`, for a decoder of memories) for the deployed bytecode, from B2 and B1's statements
   (`MemoryAggregateSound`, in the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
@@ -59,7 +59,7 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **A decoder of memories**: from a memory, a seed, a statement and a witness. The statement's
-decoder is a cost-machine program (`GuestKnowledgeSoundness`, `Statement/Theorems.lean`); this is
+decoder is a cost-machine program (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`); this is
 the proofs' form, which `LeanVM/Guest/DecoderProgram.lean` relates to it. -/
 abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → SeedStatementAndWitness
 
@@ -124,7 +124,7 @@ theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution g
       HasCollision (collisionCandidates (decodeWith W t.memory).seed
         (decodeWith W t.memory).statement iv s₀) := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact decoded_binds hs₀ hrel.2.2.2.2 hpub hd
+  exact decoded_binds hs₀ hrel.hasBytecodeShape hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
 and a statement of the input's digest of the guest's shape that a witness holds (`NodeRelation`). -/
@@ -133,7 +133,7 @@ theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution gu
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
+  exact ⟨_, _, hd, hrel.hasBytecodeShape, _, hrel⟩
 
 /-! ## With B1's witnesses -/
 

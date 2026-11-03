@@ -10,7 +10,7 @@ part by part (`Cost/Bounds/`), natural-number formulas only. The statement's bud
 upper bounds on them: `leanVmKnowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
 at every shape the replay admits (`extractorPrice_le_worst`, `extractorPrice_worst_le`, and the
 compiled extractor within it, `extractorC_within`, `Cost/Bounds/Top.lean`), and
-`guestWitnessDecoderBudget` (`Statement/Theorems.lean`) above `guestDecoderPrice` on every valid
+`guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`) above `guestDecoderPrice` on every valid
 execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 -/
 

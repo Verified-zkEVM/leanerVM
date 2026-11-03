@@ -215,7 +215,7 @@ theorem nodeHash_top (parameter : PublicParameter) (level : MerkleLevel) (node :
 /-! ## The codeword -/
 
 theorem encoding_eq (digest : Digest) :
-    LeanXmss.Codeword.encoding digest = TargetSum.digestEncoding digest := rfl
+    (HashSig.digestDigits digest : LeanXmss.Encoding) = TargetSum.digestEncoding digest := rfl
 
 theorem digestTop_eq_zero_iff (digest : Digest) :
     TargetSum.digestTop digest = 0 ↔

@@ -189,6 +189,13 @@ abbrev GuestCompleteCovered : Prop :=
         execution ∧
       2 ^ 22 ≤ execution.committedSize ∧ execution.committedSize ≤ 2 ^ 28
 
+/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
+makes one (`HonestChild`'s, `Statement/LeanVmGuestCompleteness.lean`, written out). -/
+def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanIsaProgram)
+    (input : PublicInput) (execution : Execution program) (ρ nonceAttemptsPerProofOfWork : ℕ) :
+    Option Proof :=
+  honestProver (m := Id) keccakF1600 program input execution ρ nonceAttemptsPerProofOfWork
+
 /-- **The honest proof of an execution of the guest program is a child the guest program
 accepts**:
 1. it is rarely refused (`HonestProofRarelyRefused`);

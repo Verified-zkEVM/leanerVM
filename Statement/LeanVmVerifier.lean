@@ -2012,7 +2012,7 @@ def claimedBytecodeValue (claim : BytecodeClaim) (_ : List K) (point : List E) :
   return claim.bytecodeValue
 
 /-- The claim's value is the bytecode's multilinear extension at its point (the value only;
-`DeferredClaim.HoldsWithShape`, `LeanVmGuestCompleteness.lean`, adds the shape and the
+`DeferredClaim.HoldsWithShape`, `LeanVmGuest.lean`, adds the shape and the
 power-of-two length). -/
 def BytecodeClaim.Holds (bytecode : List K) (claim : BytecodeClaim) : Prop :=
   multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue

@@ -23,6 +23,8 @@ local notation "σ" => schemeHashOverPermutation
 
 namespace Sphincs
 
+open HashSig HashSig.OverPermutation
+
 namespace Verification
 
 variable (parameter : PublicParameter) (leaf index : LeafIndex) (chainIdx : ChainIndex) (digit :
@@ -278,7 +280,7 @@ theorem simulateQ_spineNodeWithHash :
     simp only [spineNodeWithHash, spineNode, simulateQ_bind, simulateQ_spineNodeWithHash,
       simulateQ_surrogateWithHash]
     congr 1; funext below; congr 1; funext sibling
-    split <;> simp only [simulateQ_tweakableHashWithHash]
+    split_ifs <;> simp only [simulateQ_tweakableHashWithHash]
 
 theorem simulateQ_treeRootWithHash :
     simulateQ σ (treeRootWithHash (m := OracleComp HashSpec) parameter seed) =
@@ -293,9 +295,12 @@ theorem simulateQ_treePathWithHash :
   split <;> simp only [simulateQ_treeNodeWithHash, simulateQ_surrogateWithHash]
 
 theorem simulateQ_keygenFromMasterWithHash :
-    simulateQ σ (keygenFromMasterWithHash seed) = keygenFromSchemeSeed queryPermutation seed := by
-  simp only [keygenFromMasterWithHash, keygenFromSchemeSeed, simulateQ_bind, simulateQ_pure,
-    simulateQ_thWithHash]
+    simulateQ σ (keygenFromMasterWithHash seed) = (do
+      let parameter ← th queryPermutation 0 (keygenDomainFields .parameter)
+        (littleEndianBytes 32 seed)
+      let root ← treeRoot queryPermutation parameter seed
+      return ((⟨root, parameter⟩, ⟨seed, parameter⟩) : PublicKey × SecretKey)) := by
+  simp only [keygenFromMasterWithHash, simulateQ_bind, simulateQ_pure, simulateQ_thWithHash]
   refine congrArg _ (funext fun parameter ↦ ?_)
   -- `parameter` is a `Digest`, the public parameter's type up to `digestBits = 128`
   rw [simulateQ_treeRootWithHash parameter]
@@ -308,9 +313,12 @@ theorem simulateQ_keygenFromSeedWithHash :
 theorem simulateQ_signAttemptWithHash (secretKey : SecretKey) (msg : Message)
     (randomness : Randomizer) :
     simulateQ σ (signAttemptWithHash (m := OracleComp HashSpec) secretKey msg randomness) =
-      grindingAttempt queryPermutation secretKey msg randomness := by
-  simp only [signAttemptWithHash, grindingAttempt, simulateQ_bind,
-      simulateQ_messageDigestCallWithHash]
+      (do
+        let first ← messageDigestCall queryPermutation secretKey.parameter msg randomness
+        if LandsInKeptSubtree secretKey.parameter (digestLeafIndex (truncateMessageDigest first))
+        then return some (digestLeafIndex (truncateMessageDigest first))
+        else return none) := by
+  simp only [signAttemptWithHash, simulateQ_bind, simulateQ_messageDigestCallWithHash]
   congr 1; funext first
   split <;> simp
 
@@ -321,11 +329,11 @@ theorem simulateQ_signDigestLoopWithHash (secretKey : SecretKey) (msg : Message)
   | 0, _ => by simp [signDigestLoopWithHash, grindRandomizer]
   | attempts + 1, randomness => by
     simp only [signDigestLoopWithHash, grindRandomizer, simulateQ_bind,
-      simulateQ_signAttemptWithHash]
-    congr 1; funext attempt
-    rcases attempt with _ | index
-    · exact simulateQ_signDigestLoopWithHash secretKey msg attempts _
+      simulateQ_signAttemptWithHash, bind_assoc]
+    congr 1; funext first
+    split_ifs
     · simp
+    · simpa using simulateQ_signDigestLoopWithHash secretKey msg attempts _
 
 theorem simulateQ_signWithHash (secretKey : SecretKey) (msg : Message) :
     simulateQ σ (signWithHash (m := OracleComp HashSpec) secretKey msg) =

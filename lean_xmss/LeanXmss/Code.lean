@@ -163,13 +163,14 @@ theorem toNat_pack (x : Encoding) : (pack x).toNat = packNat x := by
   rw [pack, BitVec.toNat_ofNat, digestBits,
     Nat.mod_eq_of_lt (lt_trans (packNat_lt x) (by norm_num))]
 
-theorem digit_val (d : Digest) (i : Nat) : (digit d i).val = d.toNat / 4 ^ i % 4 := by
-  simp [digit, BitVec.extractLsb', winternitzBits, Nat.shiftRight_eq_div_pow, pow_mul]
+theorem digit_val {n : Nat} (d : Digest) (i : Fin n) :
+    (digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
+  simp [digestDigits, BitVec.extractLsb', winternitzBits, Nat.shiftRight_eq_div_pow, pow_mul]
 
-theorem encoding_pack (x : Encoding) : encoding (pack x) = x := by
+theorem encoding_pack (x : Encoding) : (digestDigits (pack x) : Encoding) = x := by
   funext i
   apply Fin.ext
-  rw [encoding, digit_val, toNat_pack, packNat,
+  rw [digit_val, toNat_pack, packNat,
     digit_of_sum 4 (by decide) (wordDigit x) (wordDigit_lt x) chainCount i.val i.isLt,
     wordDigit, dite_eq_left i.isLt]
 
@@ -179,7 +180,7 @@ theorem valid_pack {x : Encoding} (hx : sum x = targetSum) : Valid (pack x) := b
   exact Nat.div_eq_of_lt (by simpa [winternitzBits, chainCount] using packNat_lt x)
 
 /-- A codeword is the digest of its digits. -/
-theorem pack_encoding {d : Digest} (hd : Valid d) : pack (encoding d) = d := by
+theorem pack_encoding {d : Digest} (hd : Valid d) : pack (digestDigits d) = d := by
   apply BitVec.eq_of_toNat_eq
   rw [toNat_pack]
   have hlt : d.toNat < 4 ^ chainCount := by
@@ -190,11 +191,11 @@ theorem pack_encoding {d : Digest} (hd : Valid d) : pack (encoding d) = d := by
   rw [← sum_digits_eq 4 (by decide) chainCount d.toNat hlt, packNat]
   apply Finset.sum_congr rfl
   intro j hj
-  rw [wordDigit, dite_eq_left (Finset.mem_range.mp hj), encoding, digit_val]
+  rw [wordDigit, dite_eq_left (Finset.mem_range.mp hj), digit_val]
 
 /-- Two codewords with the same digits are the same digest. -/
 theorem eq_of_encoding_eq {d d' : Digest} (hd : Valid d) (hd' : Valid d')
-    (h : encoding d = encoding d') : d = d' := by
+    (h : (digestDigits d : Encoding) = digestDigits d') : d = d' := by
   rw [← pack_encoding hd, ← pack_encoding hd', h]
 
 end LeanXmss.Codeword

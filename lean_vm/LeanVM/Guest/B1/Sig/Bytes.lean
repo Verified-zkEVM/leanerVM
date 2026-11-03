@@ -90,7 +90,7 @@ theorem bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.littleEndianBytes k 
     pow_mul]
   norm_num
 
-theorem sphincs_bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : Sphincs.littleEndianBytes k v = leBytes v.toNat k :=
+theorem sphincs_bytesLE_eq (k : Nat) (v : BitVec (8 * k)) : HashSig.littleEndianBytes k v = leBytes v.toNat k :=
   bytesLE_eq k v
 
 /-- A 64-bit word's bytes. -/
@@ -138,7 +138,7 @@ theorem toNat_cellVal (x : E) : (cellVal x).toNat = cellNat x := by
 theorem bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x := by
   rw [bytesLE_eq, toNat_cellVal, cellBytes_eq_leBytes]
 
-theorem sphincs_bytesLE_cellVal (x : E) : Sphincs.littleEndianBytes 16 (cellVal x) = cellBytes x :=
+theorem sphincs_bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x :=
   bytesLE_cellVal x
 
 theorem cellNat_cellOf128 (v : BitVec 128) : cellNat (cellOf128 v) = v.toNat := by
@@ -255,7 +255,7 @@ theorem truncateHash_keccakBits (I : List UInt8) :
   exact (toNat_cellVal _).symm
 
 theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
-    Sphincs.truncateHash (Node.keccakBits I) = cellVal (digestHalves (keccak256 I)).1 :=
+    HashSig.truncateHash (Node.keccakBits I) = cellVal (digestHalves (keccak256 I)).1 :=
   truncateHash_keccakBits I
 
 /-! ## Addresses -/
@@ -295,7 +295,7 @@ theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
   simp only [List.append_assoc]
 
 theorem sphincs_fieldBytes_tweakFields (tag step hi lo : Nat) :
-    Sphincs.addressBytes (Sphincs.tweakFields tag step hi lo) =
+    HashSig.addressBytes (HashSig.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) :=
   fieldBytes_tweakFields tag step hi lo
 

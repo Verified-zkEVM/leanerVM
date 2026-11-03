@@ -3,7 +3,7 @@
 
   The aggregation guest's soundness for the deployed bytecode, with nothing assumed: the decoder
   `decode`, which replays the run, and `MemoryGuestKnowledge` (`GuestKnowledgeSoundness` of
-  `Statement/Theorems.lean` for a decoder of memories; `MemoryAggregateSound`, in the
+  `Statement/LeanVmGuest.lean` for a decoder of memories; `MemoryAggregateSound`, in the
   random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
@@ -125,7 +125,7 @@ theorem decode_binds {input : PublicInput} {t : Execution guestProgram} (hv : Va
       HasCollision (collisionCandidates (decode t.memory).seed (decode t.memory).statement iv s₀) :=
   by
     obtain ⟨hd, hrel⟩ := guest_knowledge input t hv
-    exact Binding.decoded_binds hs₀ hrel.2.2.2.2 hpub hd
+    exact Binding.decoded_binds hs₀ hrel.hasBytecodeShape hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed and
 a statement of the input's digest, of the guest's shape, that a witness holds (`NodeRelation`). -/

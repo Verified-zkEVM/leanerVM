@@ -106,7 +106,7 @@ def statementR : R NodeStatement := do
   expect "xmss"
   let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "sphincs"
-  let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : Sphincs.PublicKey), m)
+  let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "da"
   let da ← digestR
   return ⟨⟨xmss, sphincs, da⟩, ← deferR⟩

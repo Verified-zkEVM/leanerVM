@@ -113,6 +113,9 @@ theorem simulateQ_oracleHashWithHash (input : HashInput) :
       keccakHash queryPermutation input := by
   simp only [oracleHashWithHash, simulateQ_HasQuery_query, schemeHashOverPermutation,
     keccak256OverPermutation, keccakHash, Functor.map_map]
+  refine congrArg (· <$> _) (funext fun digest ↦ ?_)
+  simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes,
+    Vector.toList]
 
 theorem simulateQ_thWithHash (parameter : PublicParameter) (fields : TweakFields)
     (payload : HashInput) :

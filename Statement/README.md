@@ -34,8 +34,20 @@ Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache
 **What is trusted.** That the deployed Keccak-f[1600] behaves as a random permutation; that no one
 finds a Keccak-256 collision (the guest program's statements); that the cost machine's prices are
 honest (each step at least `1` and at least the words it writes; a carry-less product of one-limb
-operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); and that the leanVM definitions
-transcribe their sources. Accepted trade-offs: the statement does not name the extractor or decoder
+operands one instruction, x86-64's PCLMULQDQ or ARMv8's PMULL); that the leanVM definitions
+transcribe their sources; that the Rust verifier's expansion of the pruned Merkle paths the Rust
+prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
+formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
+`guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
+verifier** (`EthereumProof::verify`, `aggregation.rs:673-692`) checks of a root more than any end
+statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
+`DeferredClaim.HoldsWithShape`), derives the DA digest from the root's membership vector (no end
+statement does: `MatrixWitness.Opens` accepts any vector whose digest is committed, the zero vector
+included, so the DA part of a node's relation says nothing of the blob without that derivation),
+and checks that the signer lists are sorted, without repeats and shorter than `2^16` (not
+modelled). Even with these, a claim held through a child carries knowledge only if the children's
+fresh claims are true, which needs the batching sound inside the circuit at every level: no end
+statement gives it (`LeanVmGuest.lean`). Accepted trade-offs: the statement does not name the extractor or decoder
 program (only their sizes and budgets); the decoder computes the witness from the execution; the
 extracted execution need not be the committed one; the decoder's budget has no cap on steps, grows
 as `steps·log steps`, and its constant (`2^42.17` to `2^44.30` at the points below, the address
@@ -47,8 +59,11 @@ is several times the compiled decoder's price (at `κ = 32` the address tables, 
 `κ`, are most of it); that a valid execution of the guest program has fewer than `2^51` steps is
 argued in prose, not proved in Lean; literal tables count toward size; the size bounds limit
 programs written like the compiled ones (a decoder written differently could pack the guest's tables
-tighter, about `1600` signatures' room); the extractor's budget is `2^81 + O(N·log³N)` for `N`
-queries.
+tighter, or derive them from its input, room for between about `1600` and `2400` signatures); the
+extractor's budget is `2^81 + O(N·log³N)` for `N` queries, which passes `2^128` at about `N = 2^100`
+while the soundness bound is still `2^-28` there, and whose constant `2^81` would pay for a search of
+about `2^70` Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low
+entropy) is not what the statement certifies.
 
 ## Reading order
 
@@ -68,8 +83,7 @@ theorems, then read the files in this order.
    (`permutationCallCost`), its run against the lazy permutation (`runWithRandomPermutation`) and a
    computation's queries recorded (`loggedOracles`, its transcript `OracleQueryLog`).
 3. [`SufCma.lean`](SufCma.lean): the SUF-CMA game of a hash-based signature scheme over `π`
-   (`SufCma.forgeryGame`, `forgeryExperiment`) and its security notion
-   (`SufCma.StronglyUnforgeable`).
+   (`SufCma.forgeryGame`) and its security notion (`SufCma.StronglyUnforgeable`), for one key.
 4. [`HashSignatures.lean`](HashSignatures.lean): what leanXMSS and leanSPHINCS share (namespace
    `HashSig`): the tweakable hash's types, bytes and address (`crates/signatures/src/tweak.rs`),
    the hash `H`, Keccak-256 over a permutation `π` (`OverPermutation.keccakHash π`), and a hash
@@ -79,11 +93,12 @@ theorems, then read the files in this order.
    part, and `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at
    127 bits, `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
-6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part, exported
-   into `Sphincs`; one tree, its signature the randomizer, the forest opening, the WOTS+C counter
-   and chain values and the path) with the deterministic signer, the proved lifetimes, and
+6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; one tree,
+   its signature the randomizer, the forest opening, the WOTS+C counter and chain values and the
+   path) with the deterministic signer, the proved lifetimes, and
    `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each
-   lifetime, `Q` counting the honest signer's worst-case grinding too).
+   lifetime, `Q` counting the honest signer's worst-case grinding too; other subtree heights, and a
+   key used past its signature limit, are not covered).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements.
 8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
@@ -140,8 +155,8 @@ theorems, then read the files in this order.
     carry no useful table of witnesses beside its code. The budget is a short formula,
     `2^81 + (N + 2^30)·(D + 2)²·(2^15 + 2D)` with `D = log₂(N + 2) + 1`: about `2^81` for `N ≤ 2^50`
     (the list decoder, about `2^80.49` at the worst shape) and `2^157.08` at `N = 2^128` (the
-    transcript's index), where the soundness bound is already trivial; `lean_vm` proves the compiled
-    extractor's price below it at every shape the replay admits.
+    transcript's index); `lean_vm` proves the compiled extractor's price below it at every shape the
+    replay admits. **What is trusted** says what the budget's regime leaves out.
 13. [`LeanVmGuest.lean`](LeanVmGuest.lean): what a node of the aggregation proves: its statement
     (`NodeStatement`: leanXMSS and leanSPHINCS claims, a DA digest, a claim it defers on the guest
     program's bytecode) and the statement's digest under a seed (`statementDigest`, Keccak-256 of
@@ -151,12 +166,23 @@ theorems, then read the files in this order.
     defined right after it (`SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim held by a
     raw signature or a child; `DaDigestHeld`: the DA digest that of the blob matrix the node checks,
     zeros or a child's; `ChildrenProven`: every child's proof accepted by the deferring verifier;
-    `DeferredClaimBatched`: the deferred claim the batching of the children's), and the deferred
-    claim's shape; then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and
+    `DeferredClaimBatched`: the deferred claim the batching of the children's, and so of the
+    bytecode's shape); then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and
     what it explains of a public input (`ExplainsPublicInput`), the candidate collisions of two
     statements' digests and **`LeanVM.Node.StatementDigestBinds`** (a digest binds the seed and a
-    statement of a given shape, up to a Keccak-256 collision), and the deployed leanISA guest
-    program (`LeanVM.Guest.guestProgram`, from [`Data/`](Data/)).
+    statement of a given shape, up to a Keccak-256 collision), the deployed leanISA guest
+    program (`LeanVM.Guest.guestProgram`, from [`Data/`](Data/)), and the guest decoder as a
+    cost-machine program `D`: the encodings of a decoding (`encodeValue`), `D`'s input
+    (`encodeGuestWitnessDecoderInput`: the guest program and the execution), its size bound
+    (`guestWitnessDecoderSizeBound`) and budget (`guestWitnessDecoderBudget`), and
+    **`LeanVM.Node.GuestKnowledgeSoundness D`** (on every valid execution, `D`, run within its
+    budget, outputs the encoding of a decoding that explains the public input; no parse). `D` may
+    compute the witness by any algorithm (the proofs' decoder reads it off the memory), as the
+    extractor program may compute an execution by any algorithm. Two caveats, in the module's
+    docstring and `MatrixWitness.Opens`': a claim held through a child carries no knowledge by
+    itself (the child's fresh claim, its proof's claim on the bytecode, comes from the witness), and
+    the blob matrix opens a vector of the witness's choosing (only the outer verifier's derivation of
+    the root's membership vector, not modelled, makes its rows codewords).
 14. [`LeanVmGuestBatching.lean`](LeanVmGuestBatching.lean): the reference material
     `LeanVmGuest.lean` imports, transcribed with its citations: the deferred claim
     (`DeferredClaim`), and the batching of the children's deferred claims as a verifier program
@@ -164,8 +190,7 @@ theorems, then read the files in this order.
 15. [`LeanVmGuestCompleteness.lean`](LeanVmGuestCompleteness.lean): the guest program's deployed
     limits (`DeployedLimits`, with the coverage table's slots, `Coverage`), the nodes the deployed
     budget covers (`CoveredNode`), the leanVM verifier refusing a zero challenge
-    (`verifierRefusingZero`, `VerifierProgram.refusingZeroChallenge`), the honest proof with the
-    deployed Keccak (`honestProofWithDeployedKeccak`),
+    (`verifierRefusingZero`, `VerifierProgram.refusingZeroChallenge`),
     **`LeanVM.Guest.Completeness.HonestProofRarelyRefused`** (in the random-permutation model), a
     child carrying an honest proof (`HonestChild`) and
     **`LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren`** (every covered node under the
@@ -177,25 +202,16 @@ theorems, then read the files in this order.
     **`LeanVM.Guest.Batch.BatchingSound`**: the batching run outside the circuit with Keccak-f[1600]
     = `π`, which does not compose with the guest program's in-circuit statements (their `KECCAK` is
     the deployed Keccak-f[1600]), so soundness across recursion levels does not follow from it.
-16. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`;
-    first, the guest decoder as a cost-machine program `D`: the encodings of a decoding (a seed, a
-    statement and a witness, `encodeValue`), `D`'s input (`encodeGuestWitnessDecoderInput`: the guest program
-    and the execution), its size bound (`guestWitnessDecoderSizeBound`) and budget (`guestWitnessDecoderBudget`),
-    and **`LeanVM.Node.GuestKnowledgeSoundness guest D`** (on every valid
-    execution, `D`, run within its budget, outputs the encoding of a decoding that explains the
-    public input, `ExplainsPublicInput`; no parse). `D` may compute the witness from the execution by any
-    algorithm (the proofs' decoder reads it off the memory), as the extractor program may compute an
-    execution by any algorithm. The two programs have the same type, so every use of
-    `Statement.Theorems` names them (`(leanVmKnowledgeExtractor := P) (guestWitnessDecoder := D)`). The decoder's
-    size bound, budget and their limits: see [The guest decoder's size bound and
+16. [`Theorems.lean`](Theorems.lean): every end theorem, as the fields of `Statement.Theorems`,
+    for two cost-machine programs of the same type, so every use of `Statement.Theorems` names them
+    (`(leanVmKnowledgeExtractor := P) (guestWitnessDecoder := D)`). The decoder's size bound,
+    budget and their limits: see [The guest decoder's size bound and
     budget](#the-guest-decoders-size-bound-and-budget) and **What is trusted**.
-17. [`Corollaries.lean`](Corollaries.lean), optional for review: statements that follow from
-    `Theorems` alone, in their composed form (`lean_vm` proves `Corollaries` from `Theorems` at the
-    same two programs): what an accepted proof of the leanISA guest program establishes
-    (`LeanVM.Node.AggregateSound`, with `ExplainsStatement`: `KnowledgeSoundness`,
-    `GuestKnowledgeSoundness` and `StatementDigestBinds` composed) and the completeness on recursion
-    nodes and leaves whose children carry honest proofs (`GuestCompleteRecursion`,
-    `GuestCompleteLeaf`, the first two families of `CoveredNode`).
+17. [`Corollaries.lean`](Corollaries.lean), optional for review: what an accepted proof of the
+    leanISA guest program establishes, `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
+    `StatementDigestBinds` composed (`LeanVM.Node.AggregateSound`, with `ExplainsStatement`), for a
+    root statement whose deferred claim holds, as the outer verifier checks; `lean_vm` proves
+    `Corollaries` from `Theorems` at the same two programs.
 
 [`Data/`](Data/) is the guest program's compiled bytecode, generated from leanVM's sources by
 `lean_vm/scripts/guest-export` (do not edit; `guest-export --check` fails when it is stale, as CI
@@ -204,9 +220,8 @@ runs it). It needs no review beyond that check.
 [`Fast/`](Fast/) makes the compiled definitions fast and changes nothing they mean: `@[csimp]`
 lemmas, each proved, that compile `GF(2^64)` products on machine words (`FieldWords`), the
 degree-three extension's product unrolled (`CubicExt`), Keccak-f[1600] with its lanes written out
-and Keccak-256 over any permutation with its blocks read from arrays (`Keccak`), a digest's bytes
-read as a number by a fold (`SufCma`), and the signature schemes' verifiers with a constant-depth
-lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here,
+and Keccak-256 over any permutation with its blocks read from arrays (`Keccak`), and the signature
+schemes' verifiers with a constant-depth lookup (`Schemes`). A `@[csimp]` lemma acts where a definition is compiled, so they are here,
 imported by `Field.lean`, `HashSignatures.lean`, `LeanDa.lean` and `LeanVmGuest.lean`, for the
 statement's own compiled definitions (the verifier, the prover, the signature schemes, the guest
 program's specification, LeanDA) and every module after them. They need no review: a `@[csimp]`
@@ -236,7 +251,7 @@ cost-machine program (`CostMachine.lean`). A program excludes classical choice; 
 (`14500`, the compiled `14109` and a slack of about one leanXMSS signature) leaves the compiled
 extractor no room for a useful table of witnesses; and its budget is `2^81 + O(N·log³N)` for `N`
 permutation queries (polylogarithmic per query: about `2^81` for `N ≤ 2^50`, `2^157.08` at
-`N = 2^128`, where the soundness bound is already trivial). `lean_vm` names the program
+`N = 2^128`; **What is trusted** says what its regime leaves out). `lean_vm` names the program
 (`LeanVM.Cost.compiledKnowledgeExtractor`, its extractor `transcriptExtractor` compiled,
 `lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`). The address indices and the public boundary it
 shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`) are in
@@ -251,8 +266,9 @@ decidability instances, `Fin` index bounds (`by omega`, `by decide`), and termin
 [`Theorems.lean`](Theorems.lean) lists them all, as the fields of one structure,
 `Statement.Theorems`, each with one line on what it says; `lean_vm/LeanVM.lean` proves it in one
 theorem, `LeanVM.theorems_hold`, whose axioms the build pins to Lean's three. Start there.
-`theorems_hold` is `Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.extractorProgram)
-(guestWitnessDecoder := LeanVM.Cost.decoderProgram)`, the decoder `lean_vm`'s
+`theorems_hold` is `Statement.Theorems (leanVmKnowledgeExtractor :=
+LeanVM.Cost.compiledKnowledgeExtractor) (guestWitnessDecoder :=
+LeanVM.Cost.compiledGuestWitnessDecoder)`, the decoder `lean_vm`'s
 `LeanVM.Guest.End.decode`, compiled
 ([`lean_vm/LeanVM/Cost/Decoder/`](../lean_vm/LeanVM/Cost/Decoder/)), its price within its budget
 proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
@@ -262,7 +278,7 @@ proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
 | --- | --- | --- |
 | `LeanVM.KnowledgeSoundness (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)` (the program's size within `leanVmKnowledgeExtractorSizeBound` included) | `LeanVM.knowledgeSoundness_holds` (for `transcriptExtractor`) and `LeanVM.Cost.extractorOf_extractorProgram` (with `LeanVM.Cost.extractorProgram_size_le`) | [`lean_vm/LeanVM/Protocol/LeanVMRpm.lean`](../lean_vm/LeanVM/Protocol/LeanVMRpm.lean), [`lean_vm/LeanVM/Cost/Efficient.lean`](../lean_vm/LeanVM/Cost/Efficient.lean) |
 | `LeanVM.Completeness` | `LeanVM.completeness_holds` | [`lean_vm/LeanVM/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
-| `LeanVM.Node.GuestKnowledgeSoundness guest guestWitnessDecoder` (the program's size within `guestWitnessDecoderSizeBound` included) | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its size, `LeanVM.Cost.decoderProgram_size_le`; its price within the budget, `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`) and `guest_knowledge`; `guestKnowledge_of_decode` is the same for `decode` | [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean), [`…/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`…/Cost/Bounds/Guest/Budget.lean`](../lean_vm/LeanVM/Cost/Bounds/Guest/Budget.lean), [`…/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
+| `LeanVM.Node.GuestKnowledgeSoundness guestWitnessDecoder` (the program's size within `guestWitnessDecoderSizeBound` included) | `LeanVM.Guest.End.guestKnowledge_of_spec` with `LeanVM.Cost.decoderProgram_spec` (its size, `LeanVM.Cost.decoderProgram_size_le`; its price within the budget, `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`) and `guest_knowledge`; `guestKnowledge_of_decode` is the same for `decode` | [`lean_vm/LeanVM/Guest/DecoderProgram.lean`](../lean_vm/LeanVM/Guest/DecoderProgram.lean), [`…/Cost/DecoderSpec.lean`](../lean_vm/LeanVM/Cost/DecoderSpec.lean), [`…/Cost/Bounds/Guest/Budget.lean`](../lean_vm/LeanVM/Cost/Bounds/Guest/Budget.lean), [`…/Guest/EndFinal.lean`](../lean_vm/LeanVM/Guest/EndFinal.lean) |
 | `LeanVM.Node.StatementDigestBinds` | `LeanVM.Guest.Binding.digest_binds` | [`lean_vm/LeanVM/Guest/Binding.lean`](../lean_vm/LeanVM/Guest/Binding.lean) |
 | `LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren` | `LeanVM.Guest.Completeness.guest_complete_on_honest_children`, from `LeanVM.Guest.Budget.guest_complete_covered` (children the guest program accepts, `AcceptableChild`, every seed), `guest_child_complete` (an honest proof is such a child) and `LeanVM.Guest.Child.freshClaim_unique` (the deferring verifier accepts a proof with at most one true claim) | [`lean_vm/LeanVM/Guest/HonestChildren.lean`](../lean_vm/LeanVM/Guest/HonestChildren.lean), [`…/Guest/Child/Covered.lean`](../lean_vm/LeanVM/Guest/Child/Covered.lean), [`…/Prover/End.lean`](../lean_vm/LeanVM/Prover/End.lean) |
 | `LeanVM.Guest.Completeness.HonestProofRarelyRefused` | `LeanVM.Guest.Completeness.honest_proof_rarely_refused` (`guest_child_complete`'s first part) | [`lean_vm/LeanVM/Guest/HonestChildren.lean`](../lean_vm/LeanVM/Guest/HonestChildren.lean) |
@@ -280,14 +296,12 @@ The corollaries, [`Corollaries.lean`](Corollaries.lean), the fields of `Statemen
 | Statement | Follows from | Also proved directly by |
 | --- | --- | --- |
 | `LeanVM.Node.AggregateSound guest guestWitnessDecoder (extractorComputedBy leanVmKnowledgeExtractor)` | `KnowledgeSoundness`, `GuestKnowledgeSoundness`, `StatementDigestBinds` | its form for a decoder of memories, `MemoryAggregateSound guest decode transcriptExtractor`, by `LeanVM.Guest.End.aggregate_sound_outer` ([`EndRpm.lean`](../lean_vm/LeanVM/Guest/EndRpm.lean)), not `AggregateSound` of a program |
-| `LeanVM.Guest.Completeness.GuestCompleteRecursion` | `GuestCompleteOnHonestChildren` | `LeanVM.Guest.Completeness.guest_complete_recursion` ([`HonestChildren.lean`](../lean_vm/LeanVM/Guest/HonestChildren.lean)) |
-| `LeanVM.Guest.Completeness.GuestCompleteLeaf` | `GuestCompleteOnHonestChildren` | `LeanVM.Guest.Completeness.guest_complete_leaf` (same) |
 
 Each project's root module (`lean_vm/LeanVM.lean`, `lean_xmss/XmssSecurity.lean`,
 `lean_sphincs/Sphincs.lean`, `lean_da/LeanDa.lean`) is its end file: it checks that each end
 theorem proves its statement and pins its axioms to Lean's three (`propext`, `Classical.choice`,
 `Quot.sound`). The guest program's two soundness statements take the decoder as a parameter, a
-cost-machine program within a size bound and a budget (`Theorems.lean`). Their content is in
+cost-machine program within a size bound and a budget (`LeanVmGuest.lean`). Their content is in
 that decoder: one that output another statement of the same digest would satisfy
 `AggregateSound` (`Corollaries.lean`) through a Keccak-256 collision, which it would exhibit; what
 excludes it is that none is known. The proofs' decoder, `LeanVM.Guest.End.decode`
@@ -309,7 +323,9 @@ room for about `1600` signatures' encodings. Nor is the compiled program compact
 counts, a literal `0` each, the indices without a body left by the numbering it shares with the
 extractor's compiled functions; renumbered compactly, the same program would leave room for a few
 signatures' encodings ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the
-measurements).
+measurements). And a program may compute its tables from its input, which holds the guest program:
+one that derived the frame-cell table at run time instead of carrying it would free most of those
+`749835`, room for up to about `2400` signatures' encodings (an estimate, not measured).
 
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above

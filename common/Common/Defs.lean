@@ -229,5 +229,61 @@ each with the digest part of the path's last answer. -/
 def pathsOf (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) : List (Msg × Dg) :=
   simPaths P (replay iv log)
 
+/-! ## A digest's bytes as a number -/
+
+/-- A byte as its residue modulo `256`. -/
+def uInt8EquivFin : UInt8 ≃ Fin 256 where
+  toFun b := b.toFin
+  invFun f := UInt8.ofFin f
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+namespace SufCma
+
+/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
+(`digestBitVec_extract`); the statement's schemes read Keccak-256's digest so
+(`HashSig.OverPermutation.keccakHash`, `digestBytesEquivBitVec_apply`). -/
+def digestBytesEquivBitVec : DigestBytes ≃ BitVec 256 :=
+  (arrayVectorEquivFin UInt8 32).trans <|
+    (Equiv.arrowCongr (Equiv.refl _) uInt8EquivFin).trans <|
+      finFunctionFinEquiv.trans <| (finCongr (show 256 ^ 32 = 2 ^ 256 by norm_num)).trans
+        ⟨BitVec.ofFin, BitVec.toFin, fun _ ↦ rfl, fun _ ↦ rfl⟩
+
+/-- The little-endian number of a list of bytes is the sum of its bytes' weights. -/
+theorem foldr_bytes_eq_sum : ∀ l : List UInt8,
+    l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 =
+      ∑ i ∈ Finset.range l.length, (l.getD i 0).toNat * 256 ^ i
+  | [] => rfl
+  | b :: l => by
+    rw [List.foldr_cons, foldr_bytes_eq_sum l, List.length_cons, Finset.sum_range_succ',
+      Finset.mul_sum]
+    simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, mul_one, pow_succ]
+    rw [add_comm]
+    congr 1
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    ring
+
+/-- **`digestBytesEquivBitVec` is the bytes' little-endian number**, the fold the statement's
+`keccakHash` reads. -/
+theorem digestBytesEquivBitVec_apply (d : DigestBytes) :
+    digestBytesEquivBitVec d =
+      BitVec.ofNat 256 (d.toList.foldr (fun b acc ↦ b.toNat + 256 * acc) 0) := by
+  have hval : (digestBytesEquivBitVec d).toNat =
+      ∑ i : Fin 32, (d[(i : ℕ)]).toNat * 256 ^ (i : ℕ) := by
+    change ((finFunctionFinEquiv
+      (fun i : Fin 32 ↦ uInt8EquivFin (d[(i : ℕ)])) : Fin (256 ^ 32)) : ℕ) = _
+    rw [finFunctionFinEquiv_apply]
+    rfl
+  have hsum : ∑ i : Fin 32, (d[(i : ℕ)]).toNat * 256 ^ (i : ℕ) =
+      ∑ i ∈ Finset.range d.toList.length, (d.toList.getD i 0).toNat * 256 ^ i := by
+    rw [Vector.length_toList,
+      ← Fin.sum_univ_eq_sum_range (fun i ↦ (d.toList.getD i 0).toNat * 256 ^ i)]
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    simp [List.getD_eq_getElem?_getD]
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_ofNat, foldr_bytes_eq_sum, ← hsum, ← hval,
+    Nat.mod_eq_of_lt (digestBytesEquivBitVec d).isLt]
+
+end SufCma
 
 end Common

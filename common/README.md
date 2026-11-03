@@ -130,8 +130,8 @@ the direct calls are made by the honest part after the adversary has finished.
 `H : List UInt8 → D` (`D ≃` the 32 Keccak-256 bytes; leanXMSS and leanSPHINCS read them as the
 little-endian `BitVec 256`, `digestBytesEquivBitVec`), the ROM game (`romGame`, `romExperiment`:
 seed, key generation, the adversary with `H` and a logging signing oracle, verification, every hash
-call counted) and the RPM game (`forgeryGame`, `forgeryExperiment`: the same with `H` Keccak-256
-over `π`, the adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so
+call counted) and the RPM game (`forgeryGame`, run by `runWithRandomPermutation`: the same with `H`
+Keccak-256 over `π`, the adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so
 the transfer's adversary is the RPM adversary with the signing oracle (its key from the honest phase
 before), and the ROM adversary `romAdv A` is `A` with its permutation queries answered by the
 simulator (and its hash answers read through the bijection), against the game's own signing oracle.

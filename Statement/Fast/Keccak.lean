@@ -36,10 +36,8 @@ with its restatement compiles it as the restatement in every module that imports
 (`Statement.Field` and `Statement.LeanDa` do, so the statement's own definitions and every module
 of the repository compile them so). `keccak256With`, over any permutation in any monad, is
 restated with the blocks read from arrays (`keccak256With_eq_keccak256WithArray`): the verifier,
-the prover and the schemes hash with it, over Keccak-f[1600] when run. (A digest's bytes as a
-number, `Common.SufCma.digestBytesEquivBitVec`, compiles fast by `Statement.Fast.SufCma`.) Nothing
-here
-transcribes a source.
+the prover and the schemes hash with it, over Keccak-f[1600] when run. Nothing here transcribes
+a source.
 -/
 
 namespace LeanVM.Fast.Keccak

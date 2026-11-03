@@ -159,9 +159,9 @@ def CoveredNode (statement : NodeStatement) (witness : NodeWitness) : Prop :=
 /-! ### Children carrying honest proofs
 
 The guest program checks a child with the deployed Keccak, so the honest proof is made with it
-(`honestProofWithDeployedKeccak`); what it can fail by (a proof of work without a nonce within its
-fuel, a zero challenge where the guest program divides) is bounded in the random-permutation model
-for the same prover and check (`verifierRefusingZero`).
+(the honest prover in `Id` over `keccakF1600`); what it can fail by (a proof of work without a
+nonce within its fuel, a zero challenge where the guest program divides) is bounded in the
+random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
 and each level's batching challenge `λ`, `lean_ethereum.py:1246, 1553, 1558`), so a zero one makes
@@ -189,13 +189,6 @@ def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m K
     (leanVmVerifierProgram (bytecodeWords program) (publicInputDigest input)).refusingZeroChallenge
         seed proof
 
-/-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
-makes one. -/
-def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanIsaProgram)
-    (input : PublicInput) (execution : Execution program) (ρ nonceAttemptsPerProofOfWork : ℕ) :
-    Option Proof :=
-  honestProver (m := Id) keccakF1600 program input execution ρ nonceAttemptsPerProofOfWork
-
 open OracleComp OracleSpec in
 /-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
@@ -222,8 +215,8 @@ def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
     ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 22 ≤ execution.committedSize ∧
-      honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-          (2 ^ 25) = some child.proof ∧
+      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 25) =
+        some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
 /-- **Every covered node whose children carry honest proofs has a valid execution of the guest
@@ -248,19 +241,10 @@ end Completeness
 
 /-! ## The recursion step: the batching in the random-permutation model
 
-The batching program with the count read below a bound and the check that the deferred claim
-holds of the bytecode (`boundedBatchingProgram`), run on a proof an adversary outputs, querying
-`π` and `π⁻¹`; the batching has no statement of its own. -/
-
-/-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
-the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
-`aggregation.rs:263-295`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
-`Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
-`2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). -/
-def _root_.LeanVM.Node.DeferredClaim.HoldsWithShape (bytecode : List K) (claim : DeferredClaim) :
-    Prop :=
-  claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
-    multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
+The batching program with the count, below a bound, and the children read off the proof's stream
+(a node's batching, `nodeBatchingProgram`, knows its children) and the check that the deferred
+claim holds of the bytecode (`boundedBatchingProgram`), run on a proof an adversary outputs,
+querying `π` and `π⁻¹`; the batching has no statement of its own. -/
 
 namespace Batch
 
@@ -269,6 +253,42 @@ namespace Batch
 def ChildHasBytecodeShape (bytecode : List K) (child : ChildClaims) : Prop :=
   child.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length ∧
     child.carriedClaim.HasBytecodeShape bytecode
+
+/-- The words of a child at `bytecodeVariableCount` bytecode coordinates: its public input's two,
+its proof's claim, its statement's claim. -/
+def childWordCount (bytecodeVariableCount : ℕ) : ℕ :=
+  2 + (bytecodeVariableCount + 1) + (bytecodeVariableCount + 1)
+
+/-- A child read off its words (`ChildClaims.words`); `none` where the public input does not
+decode. -/
+def parseChild (bytecodeVariableCount : ℕ) (words : List E) : Option ChildClaims := do
+  let publicInput ← digestFromHalves (words.getD 0 0, words.getD 1 0)
+  let claimWords := words.drop 2
+  let carriedWords := claimWords.drop (bytecodeVariableCount + 1)
+  return ⟨publicInput,
+    ⟨claimWords.take bytecodeVariableCount, claimWords.getD bytecodeVariableCount 0⟩,
+    ⟨carriedWords.take bytecodeVariableCount, carriedWords.getD bytecodeVariableCount 0⟩⟩
+
+/-- Read a child: its words, then the zeros to a whole rate. -/
+def readChild (bytecodeVariableCount : ℕ) : VerifierProgram ChildClaims := do
+  let wordCount := childWordCount bytecodeVariableCount
+  let words ← VerifierProgram.readScalars (wordCount + zerosToWholeRate wordCount)
+  VerifierProgram.require (words.drop wordCount = List.replicate (zerosToWholeRate wordCount) 0)
+  liftOption (parseChild bytecodeVariableCount words)
+
+/-- Read `childCount` children. -/
+def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → VerifierProgram (List ChildClaims)
+  | 0 => pure []
+  | childCount + 1 => do
+    let child ← readChild bytecodeVariableCount
+    let children ← readChildren bytecodeVariableCount childCount
+    return child :: children
+
+/-- **The batching of `childCount` children read off the stream.** -/
+noncomputable def batchingProgram (deferredClaimCheck : DeferredClaim → Prop) (bytecode : List K)
+    (childCount : ℕ) : VerifierProgram Bool := do
+  let children ← readChildren (Nat.log2 bytecode.length) childCount
+  batchingAfterChildren deferredClaimCheck bytecode children
 
 open Classical in
 /-- The count below `childCountBound` whose power of the generator is `x`, if any. -/
