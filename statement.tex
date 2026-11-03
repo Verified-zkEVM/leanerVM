@@ -344,9 +344,9 @@ program's Keccak to $\pi$ (Section~\ref{sec:notgive}, and the first item of the 
 The guest program aggregates: from signatures, DA matrices and child proofs, it proves one statement
 holding all their claims. This section defines what it proves and states what is proved about it.
 Every definition named here is in \lean{Statement/}: what a node proves in
-\lean{Statement/LeanVmGuest.lean}, the statement, its digest and the batching program in
-\lean{Statement/LeanVmGuestDigest.lean}, the completeness statements and the batching's soundness in
-\lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's in
+\lean{Statement/LeanVmGuest.lean} (with the statement and its digest), the batching program
+in \lean{Statement/LeanVmGuestBatching.lean}, the completeness statements and the batching's
+soundness in \lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's in
 \lean{Statement/Theorems.lean}, the composed statements in \lean{Statement/Corollaries.lean}; names
 marked \lean{lean_vm} are the proofs'.
 

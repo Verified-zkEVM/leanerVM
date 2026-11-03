@@ -1,6 +1,8 @@
 module
 
-public import Statement.LeanVmGuestDigest
+public import Statement.LeanVmGuestBatching
+public import Statement.LeanXmss
+public import Statement.LeanSphincs
 public import Statement.LeanDa
 public import Statement.Data.Bytecode
 public import Statement.Fast.Schemes
@@ -26,9 +28,8 @@ and the node's own claim on the bytecode has the bytecode's shape.
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
 relation: what a decoding of an execution explains (`ExplainsPublicInput`, of which
 `GuestKnowledgeSoundness`, `Theorems.lean`, is the end statement) and the binding of the statement's
-digest (`StatementDigestBinds`). The statement's types, its digest and the batching program
-(`Batch.nodeBatchingProgram`), reference material, are `LeanVmGuestDigest.lean`'s, which Lean needs
-first; the completeness side is `LeanVmGuestCompleteness.lean`.
+digest (`StatementDigestBinds`). The batching program (`Batch.nodeBatchingProgram`), reference
+material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM at the pin (`../leanvm-rev`): `crates/rec_aggregation/src/aggregation.rs`
 (the statement, its digest, the batching) and `crates/rec_aggregation/guests/lean_ethereum.py`
@@ -46,6 +47,108 @@ guest program to behave as the random permutation of `LeanVM.KnowledgeSoundness`
 -/
 
 @[expose] public section
+
+namespace LeanVM.Node
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+/-! ## The claims -/
+
+/-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
+(`LeanXmssClaim`, `aggregation.rs:63`). -/
+abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
+
+/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
+abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
+
+/-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`,
+`aggregation.rs:392-394`) and the digest of the vector its rows are orthogonal to. A statement
+carries the claim's digest (`daClaimDigest`). -/
+structure DaClaim where
+  /-- The matrix's Merkle root: the commitment to its codewords. -/
+  daRoot : Digest
+  /-- The digest of the vector, which the guest program takes from `da_verify`'s run; the deployed
+  outer verifier derives it as `vector_digest(membership_vector(root))` (`da_digest`,
+  `aggregation.rs:553-557`; `crates/verifier/src/da.rs:98-103`). -/
+  membershipVectorDigest : Digest
+  deriving DecidableEq, Inhabited
+
+/-- A node's claims: leanXMSS claims, leanSPHINCS claims, and its DA digest: a DA claim's
+`daClaimDigest`, or `zeroDigest` without one (`da_digest`, `aggregation.rs:550-557`). -/
+structure NodeClaims where
+  /-- The leanXMSS claims. -/
+  xmss : List LeanXmssClaim
+  /-- The leanSPHINCS claims. -/
+  sphincs : List LeanSphincsClaim
+  /-- The DA digest. -/
+  daDigest : Digest
+/-- A node's statement: its claims and its deferred claim. -/
+structure NodeStatement where
+  /-- Its signature and DA claims. -/
+  claims : NodeClaims
+  /-- The claim on the bytecode it defers to its parent. -/
+  deferredClaim : DeferredClaim
+
+/-! ## The statement's digest
+
+Each digest is Keccak-256 of its preimage; the preimages are also the inputs of the candidate
+collisions (`collisionCandidates`, below). -/
+
+/-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
+def littleEndianBytes16 (value : BitVec 128) : List UInt8 := HashSig.littleEndianBytes 16 value
+
+/-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
+(`claim_cells`, `aggregation.rs:217-224`). -/
+def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
+  littleEndianBytes16 root ++ littleEndianBytes16 parameter ++ HashSig.littleEndianBytes 32 message
+
+/-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
+(`LeanXmssClaim` and `LeanSphincsClaim` are one type). -/
+def claimListPreimage (claims : List LeanXmssClaim) : List UInt8 :=
+  claims.flatMap fun claim ↦ claimBytes claim.1.root claim.1.parameter claim.2
+
+/-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
+`aggregation.rs:211-213`, `lean_ethereum.py:3822-3844`). -/
+def claimListDigest (claims : List LeanXmssClaim) : Digest := keccak256 (claimListPreimage claims)
+
+/-- The bytes `daClaimDigest claim` hashes: the root, then the vector digest. -/
+def daClaimPreimage (claim : DaClaim) : List UInt8 :=
+  digestBytes claim.daRoot ++ digestBytes claim.membershipVectorDigest
+
+/-- A DA claim's digest, which a statement carries (`root_vector_digest`,
+`aggregation.rs:559-562`; the guest program's `keccak([root_0, root_1], [vector_0, vector_1])`,
+`lean_ethereum.py:4164`). -/
+def daClaimDigest (claim : DaClaim) : Digest := keccak256 (daClaimPreimage claim)
+
+/-- The DA digest of a statement without a DA claim: zeros (`da_digest(None)`,
+`aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4166-4167`). -/
+def zeroDigest : Digest := Vector.replicate 4 0
+
+/-- The 24 bytes of a field element, its three limbs. -/
+def extensionElementBytes (x : E) : List UInt8 :=
+  K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
+
+/-- The deferred claim's cells, an odd count paired with a zero cell. -/
+def paddedDeferredClaimCells (claim : DeferredClaim) : List E :=
+  claim.cells ++ if claim.cells.length % 2 = 1 then [0] else []
+
+/-- The bytes `statementDigest seed statement` hashes: the seed, the leanXMSS and leanSPHINCS
+claims' digests, the DA digest, then the padded deferred cells. Each list's digest binds its length
+through Keccak's padding. -/
+def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :=
+  digestBytes seed ++ digestBytes (claimListDigest statement.claims.xmss) ++
+    digestBytes (claimListDigest statement.claims.sphincs) ++
+    digestBytes statement.claims.daDigest ++
+    (paddedDeferredClaimCells statement.deferredClaim).flatMap extensionElementBytes
+
+/-- **The statement's digest under `seed`**, a node's public input (`statement_digest`,
+`aggregation.rs:331-360`, `lean_ethereum.py:3759-3790`). The cells carry no lengths: the digest
+tells two deferred claims apart only at one shape. -/
+def statementDigest (seed : Digest) (statement : NodeStatement) : Digest :=
+  keccak256 (statementPreimage seed statement)
+
+end LeanVM.Node
 
 /-! ## The witnesses -/
 
