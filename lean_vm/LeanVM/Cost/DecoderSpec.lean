@@ -69,7 +69,7 @@ theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guestProgram) {b
       (memoryVector t.memory)) hb
 
 /-- **The decoder program's price is within its budget** on every valid execution of the guest
-(`guestWitnessDecoderBudget`, `Statement/Theorems.lean`): the fact the decoder's specification takes,
+(`guestWitnessDecoderBudget`, `Statement/LeanVmGuest.lean`): the fact the decoder's specification takes,
 proved by `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget` (`Cost/Bounds/Guest/Budget.lean`). -/
 @[expose] def DecoderPriceWithinBudget : Prop :=
   ∀ input (t : Execution LeanVM.Guest.guestProgram), ValidExecution LeanVM.Guest.guestProgram input t →

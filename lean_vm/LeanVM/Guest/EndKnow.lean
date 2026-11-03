@@ -3,7 +3,7 @@
 
   The aggregation guest's soundness, its witness named: the decoder that reads a statement and
   its witness off a valid execution's memory, and `MemoryGuestKnowledge` (`GuestKnowledgeSoundness`
-  of `Statement/Theorems.lean`, for a decoder of memories) for the deployed bytecode, from B2 and B1's statements
+  of `Statement/LeanVmGuest.lean`, for a decoder of memories) for the deployed bytecode, from B2 and B1's statements
   (`MemoryAggregateSound`, in the random-permutation model, is composed in `LeanVM/Guest/EndRpm.lean`).
 -/
 
@@ -59,7 +59,7 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **A decoder of memories**: from a memory, a seed, a statement and a witness. The statement's
-decoder is a cost-machine program (`GuestKnowledgeSoundness`, `Statement/Theorems.lean`); this is
+decoder is a cost-machine program (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`); this is
 the proofs' form, which `LeanVM/Guest/DecoderProgram.lean` relates to it. -/
 abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → SeedStatementAndWitness
 

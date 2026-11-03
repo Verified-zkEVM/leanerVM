@@ -10,7 +10,7 @@ import all LeanVM.Guest.B1.Main.Interface
 # The guest decoder's compiled chain: the cell readers, the seed and the statement
 
 `B1.Main`'s readers of `main`'s frame and the memory, compiled bottom-up, each a function of its
-own, under the statement's encodings of their values (`Statement/Theorems.lean`):
+own, under the statement's encodings of their values (`Statement/LeanVmGuest.lean`):
 
 * the cells' digests and claims: `digestOfCells`, `deferOfCells`, `fixedOfCells`, and a
   signature claim's four cells (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`; a bit vector of cells
