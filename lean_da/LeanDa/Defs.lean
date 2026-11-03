@@ -4,6 +4,7 @@ public import PqDas.Defs
 public import Common.SimDefs
 public import Common.Lanes
 public import LeanDa.WithHash
+public import Statement.Field
 
 @[expose] public section
 
@@ -115,8 +116,22 @@ end
 section
 
 open PqDas OracleComp OracleSpec ENNReal Common
+open LeanVM.Parameters (K.toBytes)
 
 namespace LeanDa
+
+/-- A symbol's eight little-endian bytes (`K.toBytes`, `as_bytes`), byte `t` its bits
+`8 t … 8 t + 7`. -/
+theorem toBytes_eq_shift (a : K) :
+    K.toBytes a = (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 * t)).toUInt8 := by
+  unfold LeanVM.Parameters.K.toBytes LeanVM.Protocol.KeccakHash.wordBytes
+  refine List.map_congr_left fun t ht => ?_
+  have ht8 : t < 8 := List.mem_range.mp ht
+  refine UInt8.toNat_inj.mp ?_
+  simp only [Nat.toUInt8, UInt8.toNat_ofNat', UInt64.toNat_toUInt8, UInt64.toNat_shiftRight,
+    Nat.toUInt64, UInt64.toNat_ofNat', LeanVM.Parameters.K.lane]
+  rw [Nat.mod_eq_of_lt (show 8 * t < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 8 * t < 64 by omega)]
+  rfl
 
 /-- **LeanDA's code checker**: the membership test on challenges `z ∈ E^14`. -/
 noncomputable def checker (r : ℕ) : CodeChecker Cell (r * 128) MembershipChallenges :=
@@ -305,6 +320,7 @@ set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec Common Common.Duplex
 open scoped ENNReal
+open LeanVM.Parameters (K.toBytes)
 
 namespace LeanDa
 
@@ -466,51 +482,14 @@ theorem byteAt_duplexInput (y : KState) (pending : List (E × K)) (p : ℕ) (hp 
   simp only at this
   rw [this]
 
-theorem foldr_bytes_lt (l : List UInt8) : l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 < 256 ^ l.length := by
-  induction l with
-  | nil => simp
-  | cons b l ih =>
-    simp only [List.foldr_cons, List.length_cons, pow_succ]
-    have := b.toNat_lt
-    omega
-
-theorem foldr_bytes_digit (l : List UInt8) (t : ℕ) (ht : t < l.length) :
-    (l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 / 256 ^ t) % 256 = l[t].toNat := by
-  induction l generalizing t with
-  | nil => simp at ht
-  | cons b l ih =>
-    have hb := b.toNat_lt
-    simp only [List.foldr_cons]
-    rcases t with _ | t
-    · simp only [pow_zero, Nat.div_one, List.getElem_cons_zero]
-      omega
-    · simp only [List.getElem_cons_succ]
-      rw [pow_succ', ← Nat.div_div_eq_div_mul,
-        show (b.toNat + 256 * l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0) / 256 =
-          l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 by omega]
-      exact ih t (by simpa using ht)
-
-/-- **Eight bytes read as a word and written back.** -/
-theorem kBytes_ofBytes (l : List UInt8) (hl : l.length = 8) : symbolBytes (symbolOfBytes l) =
-    l := by
-  have hN := foldr_bytes_lt l
-  rw [hl] at hN
-  apply List.ext_getElem (by simp [symbolBytes, hl])
-  intro t h1 h2
-  simp only [symbolBytes, List.getElem_map, List.getElem_range, symbolOfBytes, K.ofBits,
-    BF64.toBitVec_ofBitVec, BitVec.toNat_ofNat]
-  apply UInt8.toNat_inj.mp
-  rw [Nat.mod_eq_of_lt (by simpa using hN), Nat.shiftRight_eq_div_pow, pow_mul]
-  simp only [Nat.toUInt8_eq, UInt8.toNat_ofNat']
-  exact foldr_bytes_digit l t h2
-
 theorem word_bytes (d : Common.DigestBytes) (p : ℕ) (hp : p < 32) :
     d.toList[p]'(by simpa using hp) =
-      (symbolBytes (digestWord d (p / 8)))[p % 8]'(by simp [symbolBytes]; omega) := by
-  have hlen : ((d.toList.drop (8 * (p / 8))).take 8).length = 8 := by
-    simp only [List.length_take, List.length_drop, Vector.length_toList]; omega
-  simp only [digestWord]
-  rw [List.getElem_of_eq (kBytes_ofBytes _ hlen), List.getElem_take, List.getElem_drop]
+      (K.toBytes (digestWord d (p / 8)))[p % 8]'(by simp [toBytes_eq_shift]; omega) := by
+  have e : K.toBytes (digestWord d (p / 8)) =
+      (List.range 8).map fun k ↦ d.toList.getD (8 * (p / 8) + k) 0 :=
+    LeanVM.Rpm.wordBytes_leLane d.toList (p / 8)
+  simp only [e, List.getElem_map, List.getElem_range]
+  rw [List.getD_eq_getElem _ _ (by simp; omega)]
   congr 1
   omega
 

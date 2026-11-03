@@ -268,9 +268,10 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **The matrix opens the DA claim `⟨root, vectorDigest⟩`** (`da_verify`,
-`lean_ethereum.py:3915-4053`): `1` to `1024` codewords of `2^15` symbols commit to `root`, each is
-orthogonal to the vector, and the vector's digest is `vectorDigest` (two-level,
-`LeanDa.vectorDigest`, `da_vector_cell`, `lean_ethereum.py:4043-4053`), all over Keccak-f[1600]
+`lean_ethereum.py:3915-4053`): `1` to `1024` codewords of `2^15` symbols commit to `root` (the
+root of the matrix they form, `LeanDa.commitCells`), each is orthogonal to the vector, and the
+vector's digest is `vectorDigest` (two-level, `LeanDa.vectorDigest`, `da_vector_cell`,
+`lean_ethereum.py:4043-4053`), all over Keccak-f[1600]
 with LeanDA's digests as 32 bytes. Only where the vector is the root's membership vector, as the
 deployed outer verifier requires (no end statement here assumes it), are the rows codewords,
 except with the membership test's error (`lean_da`'s `membershipVector_eq_dual`,
@@ -281,7 +282,7 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root vectorDigest : Digest)
     (witness : LeanVM.Da.MatrixWitness) : Prop :=
   1 ≤ witness.rows.length ∧ witness.rows.length ≤ LeanDa.maxRows ∧
     (∀ row ∈ witness.rows, row.length = 2 ^ LeanDa.logM) ∧
-    LeanDa.commitCodewords keccakF1600 witness.rows = root.toBytes ∧
+    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root.toBytes ∧
     witness.orthogonalVector.length = 2 ^ LeanDa.logM ∧
     LeanDa.vectorDigest keccakF1600 witness.orthogonalVector = vectorDigest.toBytes ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (fun b ↦ witness.orthogonalVector.getD b 0)

@@ -19,10 +19,10 @@ proof is the theorem `…_holds` of the family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3920-3982 | `core25` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCodewords`), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
+| `da_verify` | 3920-3982 | `core25` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
 | `da_row_shape` | 3985-3994 | `core26` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 4019-4030 | `core27` | one cell's digest (`LeanDa.listCellDigest`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4033-4041 | `core364`, `core367-376` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRoot`) |
+| `da_verify_cell` | 4019-4030 | `core27` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4033-4041 | `core364`, `core367-376` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 | `da_vector_cell` | 4048-4060 | `core28` | one column's weights, their digest (`LeanDa.columnDigest`) written |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
@@ -30,7 +30,7 @@ proof is the theorem `…_holds` of the family's modules.
 
 The trees: a node is two cells; an internal node's cells are the digest of its children's four
 (`nodeCells`); `cellRoot k leaves` is the root over `2^k` leaves, level by level as `da_levels`
-builds it (`LeanDa.treeLevel`).
+builds it (`LeanDa.treeLevelWithHash`).
 -/
 
 namespace LeanVM.Guest.B1.Da

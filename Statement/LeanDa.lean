@@ -80,8 +80,11 @@ namespace LeanDa
 open PqDas
 
 export LeanVM.Parameters (K E K.ofBits K.ofLane K.lane)
+open LeanVM.Parameters (K.toBytes E.toBytes)
 open LeanVM.Semantics (KeccakState)
-open LeanVM.Protocol.KeccakHash (keccak256With)
+open LeanVM.Protocol (Digest)
+open LeanVM.Protocol.KeccakHash (keccak256With digestHalves littleEndianLane)
+open LeanVM.Protocol.Compile (Sponge absorb squeeze seedInput dsObserve)
 
 /-- An enumeration of `K` through its bits, for proofs only: compiled, it would list `2^64`
 elements when a program starts. -/
@@ -131,8 +134,9 @@ The erasure code commitment of `crates/lean_da` at leanVM
   `Ŵ_j` the normalized subspace polynomial of the span of `e_0 … e_(j-1)`. A matrix passes when
   every row is orthogonal to `L` (`check_membership`, `membership.rs:94-103`; the guest program's
   `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
-  seeded with the label's hash (`membership_challenges`); the end statements draw them by this
-  duplex over the permutation (`membershipChallengesWith`).
+  seeded with the label's hash (`membership_challenges`), the Fiat-Shamir sponge of leanVM's
+  verifier (`verifier/src/transcript.rs`, `Field.lean`'s `Sponge`); the end statements draw them
+  by this duplex over the permutation (`membershipChallengesWith`).
 
 The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
 completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
@@ -202,6 +206,11 @@ noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r 
 def matrixRow {r : ℕ} (cells : Fin (r * 128) → Cell) (i : Fin r) : Row :=
   fun b ↦ cells (cellPosition i ⟨b / 256, by omega⟩) ⟨b % 256, by omega⟩
 
+/-- The cells of the matrix whose rows are `rows`, codewords as lists of symbols: cell `j` of row
+`i` at position `128 i + j`. -/
+def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
+  fun p s ↦ (rows.getD (p / 128) []).getD (256 * (p % 128) + s) 0
+
 /-- **LeanDA's hash** over a permutation `π` of the Keccak state in any monad: Keccak-256 over `π`
 (`keccak256With`), its digest's 32 bytes (`Digest.toBytes`). The crate's is Keccak-256 over
 Keccak-f[1600] (`verifier/src/hash.rs`); the end statements' is over the random permutation. -/
@@ -209,24 +218,17 @@ def keccakDigestBytes {m : Type → Type} [Monad m] (π : KeccakState → m Kecc
     (bytes : List UInt8) : m DigestBytes :=
   LeanVM.Protocol.Digest.toBytes <$> keccak256With π bytes
 
-/-! ### The commitment (`commit.rs`) -/
+/-! ### The commitment (`commit.rs`)
 
-section Pure
+The commitment, the openings and their check, and the membership challenges over a permutation `π`
+in any monad, the hash Keccak-256 over `π`: the games' oracles, or over `Id` the deployed
+algorithms (`commitCells`, `openCell`). -/
 
-variable (π : KeccakState → KeccakState)
-
-/-- The eight little-endian bytes of a symbol (`as_bytes`). -/
-def symbolBytes (a : K) : List UInt8 := (List.range 8).map fun t ↦ (a.toBitVec.toNat >>> (8 *
-    t)).toUInt8
-
-/-- A cell's bytes: its symbols' bytes in order. -/
-def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap symbolBytes
+/-- A cell's bytes: its symbols' eight little-endian bytes in order (`as_bytes`). -/
+def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap K.toBytes
 
 /-- The 64 bytes of a pair of digests (`hash_pair`, `tree_from_leaves`). -/
 def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
-
-/-- The digest of a cell (`hash_cells`). -/
-def cellDigest (cell : Cell) : DigestBytes := Id.run (keccakDigestBytes π (cellBytes cell))
 
 /-- `⌈log₂ r⌉`: the padded row count `2^⌈log₂ r⌉` is `r.next_power_of_two()`. -/
 def logPaddedRowCount (r : ℕ) : ℕ := Nat.clog 2 r
@@ -238,47 +240,8 @@ def paddedRowCount (r : ℕ) : ℕ := 2 ^ logPaddedRowCount r
 def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
   if h : i < r ∧ j < 128 then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
-/-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
-def merkleLevelUp (nodeAt : ℕ → DigestBytes) (i : ℕ) : DigestBytes :=
-  Id.run (keccakDigestBytes π (pairBytes (nodeAt (2 * i)) (nodeAt (2 * i + 1))))
-
-/-- The root of the Merkle tree over the leaves `nodeAt 0 … nodeAt (2^d - 1)`
-(`tree_from_leaves`). -/
-def merkleRoot : ℕ → (ℕ → DigestBytes) → DigestBytes
-  | 0, nodeAt => nodeAt 0
-  | d + 1, nodeAt => merkleRoot d (merkleLevelUp π nodeAt)
-
 /-- The other node of the pair of node `index`. -/
 def sibling (index : ℕ) : ℕ := if index % 2 = 0 then index + 1 else index - 1
-
-/-- The authentication path of leaf `index`, siblings from the bottom. -/
-def merklePath : ℕ → (ℕ → DigestBytes) → ℕ → List DigestBytes
-  | 0, _, _ => []
-  | d + 1, nodeAt, index => nodeAt (sibling index) :: merklePath d (merkleLevelUp π nodeAt)
-      (index / 2)
-
-/-- The row tree's leaves: each padded row's digest of its first `64` cell digests. -/
-def rowLeaves {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
-  Id.run (keccakDigestBytes π
-    ((List.ofFn fun j : Fin 64 ↦ cellDigest π (paddedCell cells i j)).flatMap Vector.toList))
-
-/-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is cell `j` of padded row `i`. -/
-def columnLeaves {r : ℕ} (cells : Fin (r * 128) → Cell) (l : ℕ) : DigestBytes :=
-  cellDigest π (paddedCell cells (l % paddedRowCount r) (l / paddedRowCount r))
-
-/-- The row root (`root_row`). -/
-def rowRoot {r : ℕ} (cells : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRoot π (logPaddedRowCount r) (rowLeaves π cells)
-
-/-- The column root (`root_col`). -/
-def columnRoot {r : ℕ} (cells : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRoot π (7 + logPaddedRowCount r) (columnLeaves π cells)
-
-/-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ columnRoot)`. -/
-def commitCells {r : ℕ} (cells : Fin (r * 128) → Cell) : DigestBytes :=
-  Id.run (keccakDigestBytes π (pairBytes (rowRoot π cells) (columnRoot π cells)))
-
-/-! ### Openings -/
 
 /-- The opening of a cell: the row root and the cell's path in the column tree. -/
 structure CellOpening where
@@ -292,10 +255,121 @@ deriving Inhabited
 def columnTreeIndex {r : ℕ} (p : Fin (r * 128)) : ℕ :=
   (positionCell p : ℕ) * paddedRowCount r + positionRow p
 
-/-- The honest opening of a position. -/
-def openCell {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
-  ⟨rowRoot π cells,
-    merklePath π (7 + logPaddedRowCount r) (columnLeaves π cells) (columnTreeIndex p)⟩
+/-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
+def membershipLabel : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
+
+/-- The digest of 32 bytes: its four little-endian words (`Digest::words`). -/
+def digestOfBytes (bytes : DigestBytes) : Digest :=
+  Vector.ofFn fun i : Fin 4 ↦ littleEndianLane bytes.toList i
+
+section Monadic
+
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+
+/-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
+def merkleLevelUpWith (nodeAt : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
+  let a ← nodeAt (2 * i)
+  let b ← nodeAt (2 * i + 1)
+  keccakDigestBytes π (pairBytes a b)
+
+/-- The root of the Merkle tree over the leaves `nodeAt 0 … nodeAt (2^d - 1)`
+(`tree_from_leaves`). -/
+def merkleRootWith : ℕ → (ℕ → m DigestBytes) → m DigestBytes
+  | 0, nodeAt => nodeAt 0
+  | d + 1, nodeAt => merkleRootWith d (merkleLevelUpWith π nodeAt)
+
+/-- The authentication path of leaf `index`, siblings from the bottom. -/
+def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestBytes)
+  | 0, _, _ => pure []
+  | d + 1, nodeAt, index => do
+    let s ← nodeAt (sibling index)
+    let rest ← merklePathWith d (merkleLevelUpWith π nodeAt) (index / 2)
+    pure (s :: rest)
+
+/-- The row tree's leaves: each padded row's digest of its first `64` cell digests. -/
+def rowLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes := do
+  let ds ← (List.range 64).mapM fun j ↦ keccakDigestBytes π (cellBytes (paddedCell cells i j))
+  keccakDigestBytes π (ds.flatMap Vector.toList)
+
+/-- The column tree's leaves: leaf `j · 2^⌈log₂ r⌉ + i` is the digest of cell `j` of padded row
+`i` (`hash_cells`). -/
+def columnLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
+  keccakDigestBytes π (cellBytes (paddedCell cells (l % paddedRowCount r) (l / paddedRowCount r)))
+
+/-- The row root (`root_row`). -/
+def rowRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
+  merkleRootWith π (logPaddedRowCount r) (rowLeavesWith π cells)
+
+/-- The column root (`root_col`). -/
+def columnRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
+  merkleRootWith π (7 + logPaddedRowCount r) (columnLeavesWith π cells)
+
+/-- **The root of a matrix** (`commit_codewords`): `H(rowRoot ‖ columnRoot)`. -/
+def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes := do
+  let a ← rowRootWith π cells
+  let b ← columnRootWith π cells
+  keccakDigestBytes π (pairBytes a b)
+
+/-- The honest opening of a position: the row root and the cell's path in the column tree. -/
+def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
+  let rowRoot ← rowRootWith π cells
+  let path ← merklePathWith π (7 + logPaddedRowCount r) (columnLeavesWith π cells)
+    (columnTreeIndex p)
+  pure ⟨rowRoot, path⟩
+
+/-- Climb from `node` at index `index` along the siblings `path`. -/
+def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
+  | _, node, [] => pure node
+  | index, node, s :: rest => do
+    let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
+    climbWith (index / 2) d rest
+
+/-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
+cell's digest to a column root, which hashed after the row root gives the commitment. -/
+def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
+    (opening : CellOpening) : m Bool := do
+  let d ← keccakDigestBytes π (cellBytes cell)
+  let w ← climbWith π (columnTreeIndex position) d opening.path
+  let root ← keccakDigestBytes π (pairBytes opening.rowRoot w)
+  pure (decide (opening.path.length = 7 + logPaddedRowCount r) && decide (root = commitment))
+
+/-! ### The membership challenges (`verifier/src/da.rs:15-22`)
+
+Drawn from the root by the duplex sponge of the leanVM verifier (`Field.lean`: `Sponge`, `absorb`,
+`squeeze`), over the permutation `π` (`verifier/src/transcript.rs:32-95`). The crate's membership
+vector, their dual codeword by the additive NTT, is `lean_da`'s (`membershipVector`, which computes
+`dualCodewordAt`: `membershipVector_eq_dual`). -/
+
+/-- `n` challenges squeezed in order (`sample`). -/
+def squeezeChallenges : ℕ → Sponge → m (List E)
+  | 0, _ => pure []
+  | n + 1, sponge => do
+    let (z, sponge) ← squeeze π sponge
+    let zs ← squeezeChallenges n sponge
+    pure (z :: zs)
+
+/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
+a sponge seeded with the label's hash and a zero public input (`Sponge::from_label`), the root
+observed as its two halves `(w_0, w_1, 0)` and `(w_2, w_3, 0)`, then `14` samples. -/
+def membershipChallengesWith (root : DigestBytes) : m (List E) := do
+  let iv ← keccak256With π membershipLabel
+  let state ← π (seedInput iv (Vector.replicate 4 0))
+  let (low, high) := digestHalves (digestOfBytes root)
+  let sponge ← absorb π ⟨state, []⟩ low dsObserve
+  let sponge ← absorb π sponge high dsObserve
+  squeezeChallenges π logK sponge
+
+end Monadic
+
+/-- **The root of a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
+def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell) :
+    DigestBytes :=
+  Id.run (commitCellsWith (fun x ↦ pure (π x)) cells)
+
+/-- The honest opening of a position over a permutation `π` (`openCellWith` over `Id`). -/
+def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell)
+    (p : Fin (r * 128)) : CellOpening :=
+  Id.run (openCellWith (fun x ↦ pure (π x)) cells p)
 
 /-! ### Membership (`membership.rs`, `verifier/src/da.rs`) -/
 
@@ -316,238 +390,15 @@ noncomputable def innerProduct (L : Fin (2 ^ 15) → E) (row : Row) : E := ∑ b
 noncomputable def membershipCheck {r : ℕ} (z : Fin 14 → E) (cells : Fin (r * 128) → Cell) : Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
-/-! ### The deployed commitment (`commit.rs:55-145`)
-
-The commitment as the crate computes it, on codewords given as lists of symbols: the leaves in
-the crate's order, each tree built level by level. It is `commitCells` of the matrix the rows
-form (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). -/
-
-/-- One level of a Merkle tree: the digests of neighbouring pairs (`tree_from_leaves`). -/
-def treeLevel (nodes : List DigestBytes) : List DigestBytes :=
-  (List.range (nodes.length / 2)).map (merkleLevelUp π fun i ↦ nodes.getD i default)
-
-/-- The root of the Merkle tree over a power-of-two number of digests (`tree_from_leaves`; on
-other lengths, which `commitCodewords` never passes, the crate panics). -/
-def treeRoot (nodes : List DigestBytes) : DigestBytes :=
-  if nodes.length ≤ 1 then nodes.headD default else treeRoot (treeLevel π nodes)
-termination_by nodes.length
-decreasing_by simp only [treeLevel, List.length_map, List.length_range]; omega
-
-/-- Cell `j` of a codeword. -/
-def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
-
-/-- The digest of cell `j` of a codeword (`hash_cells`). -/
-def listCellDigest (row : List K) (j : ℕ) : DigestBytes :=
-  Id.run (keccakDigestBytes π ((listCell row j).flatMap symbolBytes))
-
-/-- A row's digest: the hash of its payload cells' digests. -/
-def rowDigest (row : List K) : DigestBytes :=
-  Id.run (keccakDigestBytes π
-    ((List.range payloadCells).flatMap fun j ↦ (listCellDigest π row j).toList))
-
-/-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCellDigest : DigestBytes :=
-  Id.run (keccakDigestBytes π ((List.replicate cellSymbols 0).flatMap symbolBytes))
-
-/-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
-def paddingRowDigest : DigestBytes :=
-  Id.run (keccakDigestBytes π ((List.replicate payloadCells (paddingCellDigest π)).flatMap
-      Vector.toList))
-
-/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`): the
-rows padded to a power of two, the hash of the row tree's root and the column tree's. -/
-def commitCodewords (rows : List (List K)) : DigestBytes :=
-  let n := paddedRowCount rows.length
-  let rowTree := treeRoot π
-    (rows.map (rowDigest π) ++ List.replicate (n - rows.length) (paddingRowDigest π))
-  let columnTree := treeRoot π ((List.range cellsPerRow).flatMap fun j ↦ (List.range n).map fun i ↦
-    if h : i < rows.length then listCellDigest π rows[i] j else paddingCellDigest π)
-  Id.run (keccakDigestBytes π (pairBytes rowTree columnTree))
-
-/-! ### The membership challenges (`verifier/src/da.rs:15-22`)
-
-The challenges, drawn from the root by the duplex sponge (over the permutation `π` in the end
-statements). The crate's membership vector, their dual codeword by the additive NTT, is `lean_da`'s
-(`membershipVector`, which computes `dualCodewordAt`: `membershipVector_eq_dual`). -/
-
-/-- `leanDA/rs-membership/v1`, the label of the challenges' transcript (`LABEL`). -/
-def membershipLabel : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
-
-/-- The symbol of eight little-endian bytes (`u64::from_le_bytes`). -/
-def symbolOfBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 *
-    acc) 0)
-
-/-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Digest::words`). -/
-def digestWord (d : DigestBytes) (i : ℕ) : K := symbolOfBytes ((d.toList.drop (8 * i)).take 8)
-
-/-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
-def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
-
-/-- Limb `i` of an element, the coefficient of `y^i`. -/
-def limb (x : E) (i : Fin 3) : K := CompPoly.Extension.Ext.coeff x i
-
-end Pure
-
-/-! #### The sponge (`verifier/src/transcript.rs:32-95`)
-
-A duplex sponge in overwrite mode over a permutation `P` of the Keccak state (`KeccakState`, `25`
-lanes, `[u64; STATE_LANES]`). The crate's is Keccak-f[1600] (`keccak_f`,
-`verifier/src/hash.rs:50-69`), which `lean_vm` supplies; the definitions hold for every `P`. A
-lane is a `u64`, read as the element of `K` with its bits (`K.ofLane`, `K.lane`), so a scalar's
-limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes `16 … 24`. -/
-
-/-- Lanes of the rate. -/
-def rateLanes : ℕ := 16
-
-/-- Scalars that wait to be absorbed, four rate lanes each (`RATE_SCALARS`). -/
-def rateScalars : ℕ := 4
-
-/-- The tag of an observed scalar (`DS_OBSERVE = 1`). -/
-def dsObserve : K := K.ofBits 1
-
-/-- **The sponge** (`Sponge`): the lanes the last permutation left, and the scalars absorbed
-since with their tags, at most `rateScalars` (`pending[..n_pending]`). -/
-structure Sponge where
-  /-- The lanes the last permutation left (`state`). -/
-  state : KeccakState
-  /-- The waiting scalars and their tags, in order. -/
-  pending : List (E × K)
-
-/-- The rate lanes the waiting scalars fill: scalar `i`'s three limbs and tag in lanes
-`4 i … 4 i + 3`. -/
-def rateWords (pending : List (E × K)) : List K :=
-  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
-
-/-! The sponge, the challenges and the openings' check over a permutation `P` in any monad, the hash
-Keccak-256 over `P`: the games' oracles, or pure functions over `Id`. -/
-
-section Monadic
-
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-
-/-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
-the capacity kept. -/
-def duplexInput (s : Sponge) : KeccakState :=
-  Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < rateLanes then ((rateWords s.pending).getD i 0).lane else s.state[i]
-
-/-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
-def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
-  Vector.ofFn fun i : Fin 25 ↦
-    if (i : ℕ) < 4 then (digestWord iv i).lane
-    else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
-    else 0
-
-/-- A sponge seeded with one permutation of `freshSpongeInput` (`Sponge::new`). -/
-def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
-  let state ← π (freshSpongeInput iv publicInput)
-  pure ⟨state, []⟩
-
-/-- A sponge with no public input of its own, seeded from the hash of `label`
-(`Sponge::from_label`). -/
-def Sponge.fromLabelWith (label : List UInt8) : m Sponge := do
-  let iv ← keccakDigestBytes π label
-  Sponge.newWith π iv (Vector.replicate 32 0)
-
-/-- Permute `duplexInput` (`duplex`). -/
-def Sponge.duplexWith (s : Sponge) : m Sponge := do
-  let state ← π (duplexInput s)
-  pure ⟨state, []⟩
-
-/-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
-def Sponge.absorbWith (s : Sponge) (x : E) (tag : K) : m Sponge :=
-  (if s.pending.length = rateScalars then Sponge.duplexWith π s else pure s) >>= fun s ↦
-    pure ⟨s.state, s.pending ++ [(x, tag)]⟩
-
-/-- Observe a scalar (`observe`). -/
-def Sponge.observeWith (s : Sponge) (x : E) : m Sponge := Sponge.absorbWith π s x dsObserve
-
-/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
-def Sponge.sampleWith (s : Sponge) : m (E × Sponge) := do
-  let s ← Sponge.duplexWith π s
-  pure (ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
-
-/-- `n` challenges, in order. -/
-def Sponge.samplesWith : ℕ → Sponge → m (List E)
-  | 0, _ => pure []
-  | n + 1, s => do
-    let (z, s) ← Sponge.sampleWith π s
-    let zs ← Sponge.samplesWith n s
-    pure (z :: zs)
-
-/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
-a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
-`(w_2, w_3, 0)`, then `14` samples. -/
-def membershipChallengesWith (root : DigestBytes) : m (List E) := do
-  let s ← Sponge.fromLabelWith π membershipLabel
-  let s ← Sponge.observeWith π s (ofLimbs (digestWord root 0) (digestWord root 1) 0)
-  let s ← Sponge.observeWith π s (ofLimbs (digestWord root 2) (digestWord root 3) 0)
-  Sponge.samplesWith π logK s
-
-/-- Climb from `node` at index `index` along the siblings `path`. -/
-def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
-  | _, node, [] => pure node
-  | index, node, s :: rest => do
-    let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
-    climbWith (index / 2) d rest
-
-/-- **Verification of a cell opening**: a path of the column tree's height that climbs from the
-cell's digest to a column root, which hashed after the row root gives the commitment. -/
-def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
-    (opening : CellOpening) : m Bool :=
-  do
-  let d ← keccakDigestBytes π (cellBytes cell)
-  let w ← climbWith π (columnTreeIndex position) d opening.path
-  let root ← keccakDigestBytes π (pairBytes opening.rowRoot w)
-  pure (decide (opening.path.length = 7 + logPaddedRowCount r) && decide (root = commitment))
-
-/-- One level up a Merkle tree over an oracle (`merkleLevelUp`). -/
-def merkleLevelUpWith (f : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
-  let a ← f (2 * i)
-  let b ← f (2 * i + 1)
-  keccakDigestBytes π (pairBytes a b)
-
-/-- The root of a Merkle tree over an oracle (`merkleRoot`). -/
-def merkleRootWith : ℕ → (ℕ → m DigestBytes) → m DigestBytes
-  | 0, f => f 0
-  | d + 1, f => merkleRootWith d (merkleLevelUpWith π f)
-
-/-- The row tree's leaves over an oracle (`rowLeaves`). -/
-def rowLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes := do
-  let ds ← (List.range 64).mapM fun j ↦ keccakDigestBytes π (cellBytes (paddedCell cells i j))
-  keccakDigestBytes π (ds.flatMap Vector.toList)
-
-/-- The column tree's leaves over an oracle (`columnLeaves`). -/
-def columnLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (l : ℕ) : m DigestBytes :=
-  keccakDigestBytes π (cellBytes (paddedCell cells (l % paddedRowCount r) (l / paddedRowCount r)))
-
-/-- The row root over an oracle (`rowRoot`). -/
-def rowRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootWith π (logPaddedRowCount r) (rowLeavesWith π cells)
-
-/-- The column root over an oracle (`columnRoot`). -/
-def columnRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootWith π (7 + logPaddedRowCount r) (columnLeavesWith π cells)
-
-/-- **The root of a matrix over an oracle** (`commitCells`). -/
-def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes := do
-  let a ← rowRootWith π cells
-  let b ← columnRootWith π cells
-  keccakDigestBytes π (pairBytes a b)
-
-end Monadic
-
-/-! #### The vector's digest -/
+/-! ### The vector's digest -/
 
 variable (π : KeccakState → KeccakState)
 
-/-- The bytes of entries: three little-endian limbs each. -/
-def limbBytes (entries : List E) : List UInt8 :=
-  (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap symbolBytes
-
-/-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
+/-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`, each its three limbs'
+little-endian bytes (`E.toBytes`). -/
 def columnDigest (vector : List E) (j : ℕ) : DigestBytes :=
-  Id.run (keccakDigestBytes π (limbBytes ((vector.drop (j * cellSymbols)).take cellSymbols)))
+  Id.run (keccakDigestBytes π (((vector.drop (j * cellSymbols)).take cellSymbols).flatMap
+    E.toBytes))
 
 /-- **The digest of a vector** (`vector_digest`, `verifier/src/da.rs:87-96`): the hash of its
 `128` columns' digests, in order. The crate takes vectors of `2^15` entries and panics on others. -/

@@ -164,16 +164,10 @@ The Python verifier touches the proof through five operations of its `Transcript
 free monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the
 challenges squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
 
-The sponge is the Rust's (`crates/verifier/src/transcript.rs:34-91`, `Sponge`; the prover's
-`crates/fiat_shamir/src/lib.rs`): a duplex over Keccak-f[1600] in overwrite mode, the rate lanes
-`0..16`, the capacity lanes `16..25`, and up to four absorbed scalars waiting, each with a tag,
-`1` for a scalar the prover sent (`DS_OBSERVE`) and `4` for a proof-of-work nonce
-(`DS_POW_NONCE`). A permutation writes waiting scalar `i` over lanes `4i..4i+4` (its three limbs,
-then its tag), zeroes the rest of the rate, keeps the capacity, and empties the queue; absorbing a
-fifth scalar permutes the four waiting first. Merkle openings come from a separate channel that
-the sponge does not absorb: the leaf's words, hashed as bytes, then one sibling per level, the
-position's bit at the level choosing the side. The sponge starts at Keccak-f of the IV's and the
-public input's words, the other lanes zero (`Transcript.__init__`, `verifier.py:379-384`).
+The sponge is the duplex of `Field.lean` (`Sponge`, `absorb`, `squeeze`, `seedInput`), over
+Keccak-f[1600] in the deployed verifier. Merkle openings come from a separate channel that the
+sponge does not absorb: the leaf's words, hashed as bytes, then one sibling per level, the
+position's bit at the level choosing the side.
 
 **Deviation from the Python verifier.** The Python reads the Merkle openings from one byte string,
 and checks the leaf's width and the path's height implicitly by reading exactly that many bytes;
@@ -264,40 +258,7 @@ end VerifierProgram
 /-- Byte strings, the hash's inputs. -/
 abbrev Bytes : Type := List UInt8
 
-/-! ## The sponge (`verifier.py:348-401`) -/
-
-/-- `DS_OBSERVE`: the tag of a scalar the prover sent (`verifier.py:354`). -/
-def dsObserve : ℕ := 1
-
-/-- `DS_POW_NONCE`: the tag of a proof-of-work nonce (`verifier.py:355`). -/
-def dsPowNonce : ℕ := 4
-
-/-- `RATE_SCALARS`: the scalars that wait to be absorbed, four lanes each (`verifier.py:356`). -/
-def rateScalars : ℕ := 4
-
-/-- The duplex sponge: the Keccak state, and the scalars waiting to be absorbed (at most
-`rateScalars`), each with its tag (`Transcript.state`, `Transcript.pending`). -/
-structure Sponge where
-  /-- The Keccak state the last permutation left. -/
-  state : KeccakState
-  /-- The scalars waiting to be absorbed, each with its tag, in order. -/
-  pending : List (E × ℕ)
-
-/-- The rate lanes of the waiting scalars: each its three limbs, then its tag
-(`verifier.py:387`). -/
-def pendingLanes (pending : List (E × ℕ)) : List UInt64 :=
-  pending.flatMap fun (x, tag) ↦ [(x.limb 0).lane, (x.limb 1).lane, (x.limb 2).lane, tag.toUInt64]
-
-/-- The input of a permutation: the waiting scalars' lanes, zeros up to lane `16`, then the
-capacity, lanes `16..25` of the state (`_duplex`, `verifier.py:386-389`). -/
-def duplexInput (sponge : Sponge) : KeccakState :=
-  Vector.ofFn fun i ↦
-    if i.val < 16 then (pendingLanes sponge.pending).getD i 0 else Keccak.lane sponge.state i
-
-/-- The challenge squeezed into a state: its first three lanes (`sample`, `verifier.py:401`). -/
-def challengeOf (state : KeccakState) : E :=
-  E.ofLimbs (K.ofLane (Keccak.lane state 0)) (K.ofLane (Keccak.lane state 1))
-    (K.ofLane (Keccak.lane state 2))
+/-! ## Proofs and the run -/
 
 /-- The proof-of-work predicate on the challenge sampled after the nonce: at `bits = 0` the nonce
 is `0`; otherwise the low `bits` bits of the challenge's first limb are zero
@@ -305,14 +266,6 @@ is `0`; otherwise the low `bits` bits of the challenge's first limb are zero
 def powOk (bits : ℕ) (nonce challenge : E) : Bool :=
   if bits = 0 then decide (nonce.limb 0 = 0 ∧ nonce.limb 1 = 0 ∧ nonce.limb 2 = 0)
   else decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
-
-/-- The initial state's input: the IV's four words, the public input's four words, then zeros
-(`Transcript.__init__`, `verifier.py:381`). -/
-def seedInput (iv publicInput : Digest) : KeccakState :=
-  Vector.ofFn fun i ↦
-    if h : i.val < 4 then iv[i.val] else if h' : i.val < 8 then publicInput[i.val - 4] else 0
-
-/-! ## Proofs and the run -/
 
 /-- One Merkle opening: the leaf's words and the siblings from the leaf up. -/
 structure Opening where
@@ -344,24 +297,6 @@ structure VerifierProgramState where
 section Run
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-
-/-- A permutation: the waiting scalars over the rate, the capacity kept, then Keccak-f; the queue
-empties (`_duplex`, `verifier.py:386-389`). -/
-def duplex (sponge : Sponge) : m Sponge := do
-  let state ← π (duplexInput sponge)
-  pure ⟨state, []⟩
-
-/-- Absorb a scalar with a tag: a full queue is permuted first (`_absorb`,
-`verifier.py:391-394`). -/
-def absorb (sponge : Sponge) (x : E) (tag : ℕ) : m Sponge := do
-  let sponge ← if sponge.pending.length = rateScalars then duplex π sponge else pure sponge
-  pure { sponge with pending := sponge.pending ++ [(x, tag)] }
-
-/-- Squeeze a challenge: a permutation, then the new state's first three lanes (`sample`,
-`verifier.py:399-401`). -/
-def squeeze (sponge : Sponge) : m (E × Sponge) := do
-  let sponge ← duplex π sponge
-  pure (challengeOf sponge.state, sponge)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
 whether `node` is the left child (`verifier.py:439-442`). -/

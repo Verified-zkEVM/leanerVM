@@ -41,11 +41,11 @@ namespace LeanDa
 /-! ## Lanes and bytes -/
 
 /-- A lane's bytes are the crate's (`kBytes`, `as_bytes`). -/
-theorem laneBytes_toList (a : K) : (laneBytes a).toList = symbolBytes a := by
+theorem laneBytes_toList (a : K) : (laneBytes a).toList = LeanVM.Parameters.K.toBytes a := by
   apply List.ext_getElem
-  · simp [symbolBytes]
+  · simp [toBytes_eq_shift]
   intro t h1 h2
-  simp only [Vector.getElem_toList, symbolBytes, List.getElem_map, List.getElem_range]
+  simp only [Vector.getElem_toList, toBytes_eq_shift, List.getElem_map, List.getElem_range]
   apply UInt8.toNat_inj.mp
   simp only [laneBytes, Equiv.trans_apply, arrayVectorEquivFin, Equiv.coe_fn_symm_mk,
     Vector.getElem_ofFn, Equiv.arrowCongr_apply, Function.comp_apply]
