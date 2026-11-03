@@ -39,11 +39,11 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
   the deferred claim at `defer_stmt`;
 * `decWit σ rd wX wS wD wV wA`: the children (child `c`'s statement read off the coverage table:
   its claims are the slots whose marks run from its base `written[c]`, `kidStmt`; its fresh
-  claim at `child_fresh · g^(24c)`; its proof `wV` at its `verify_sub` call's words); for every
-  declared signature claim a holder by the mark in its slot (`markOf`): a raw writer's (below
-  `n_raw_x`, `n_raw_x + n_raw_s`) holds it directly, a child's the child whose segment of the
-  running counts holds the mark (`kidOf`); the matrix `da_verify` checks, with the claim it
-  returns, when `n_direct_da = g`; and the batching's hints `wA`.
+  claim at `child_fresh · g^(24c)`; its proof `wV` at its `verify_sub` call's words); the raw
+  signatures, the `j`-th leanXMSS one at the slot holding the mark `j` (`slotOf`), the `j`-th
+  leanSPHINCS one at the slot holding `n_raw_x + j`, each with its slot's claim (`rawXmss`,
+  `rawSphincs`); the matrix `da_verify` checks, with the claim it returns, when `n_direct_da = g`;
+  and the batching's hints `wA`.
 
 **The statement** (`main_sound_Spec`): on a memory image, given the callees' contracts, a run of
 `main`'s body whose public input cells hold the digest `D` gives `statementDigest (decSeed σ)
@@ -189,10 +189,6 @@ noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cell
 /-- The number of children. -/
 noncomputable def nKids (σ : Val) : ℕ := gLog (σ (.n 6))
 
-/-- The child whose segment of the running counts holds the mark `e`. -/
-noncomputable def kidOf (rd : Reader) (σ : Val) (e : ℕ) : ℕ :=
-  ((List.range (nKids σ)).find? fun c => decide (e < countOf rd σ (c + 1))).getD 0
-
 /-- The slot of the region `[lo, lo + len)` holding the mark `e` (relative to `lo`). -/
 noncomputable def slotOf (rd : Reader) (σ : Val) (lo len e : ℕ) : ℕ :=
   ((List.range len).find? fun s => decide (markOf rd σ (lo + s) = e)).getD 0
@@ -256,19 +252,27 @@ noncomputable def nDirect (σ : Val) : ℕ := gLog (σ (.n 7))
 noncomputable def dvClaim (σ : Val) : DaClaim :=
   ⟨digestOfCells (σ (.n 339)) (σ (.n 340)), digestOfCells (σ (.n 341)) (σ (.n 342))⟩
 
-/-- **The witness**: the children, a holder for every declared signature claim by its slot's
-mark, the matrix `da_verify` checks with the claim it returns, the batching's hints. -/
+/-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
+signature `wX` at the slot. -/
+noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : E → LeanXmss.Signature) (j : ℕ) :
+    LeanXmssClaim × LeanXmss.Signature :=
+  let s := slotOf rd σ 0 (lxSlots σ) j
+  (xmssAt rd (σ (.n 53)) s, wX (σ (.n 53) * gen ^ (4 * s)))
+
+/-- The raw leanSPHINCS signature of mark `n_raw_x + j`, in the leanSPHINCS region (`rawXmss`). -/
+noncomputable def rawSphincs (rd : Reader) (σ : Val) (wS : E → Sphincs.Signature) (j : ℕ) :
+    LeanSphincsClaim × Sphincs.Signature :=
+  let s := slotOf rd σ (lxSlots σ) (lsSlots σ) (nRawX σ + j)
+  (sphincsAt rd (σ (.n 56)) s, wS (σ (.n 56) * gen ^ (4 * s)))
+
+/-- **The witness**: the children, the raw signatures by their marks (`rawXmss`, `rawSphincs`),
+the matrix `da_verify` checks with the claim it returns, the batching's hints. -/
 noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature)
     (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : NodeWitness :=
   ⟨(List.range (nKids σ)).map (decKid rd σ wV),
-    (List.range (gLog (σ (.n 0)))).map fun k =>
-      let e := markOf rd σ k
-      if e < nRawX σ then .signature (wX (σ (.n 53) * gen ^ (4 * k))) else .child (kidOf rd σ e),
-    (List.range (gLog (σ (.n 3)))).map fun k =>
-      let e := markOf rd σ (lxSlots σ + k)
-      if e < nRawX σ + nRawS σ then .signature (wS (σ (.n 56) * gen ^ (4 * k)))
-      else .child (kidOf rd σ e),
+    (List.range (nRawX σ)).map (rawXmss rd σ wX),
+    (List.range (nRawS σ)).map (rawSphincs rd σ wS),
     if nDirect σ = 1 then
       some (dvClaim σ, wD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
     else none,

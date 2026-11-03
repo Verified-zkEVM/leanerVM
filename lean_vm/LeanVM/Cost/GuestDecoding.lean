@@ -145,12 +145,6 @@ instance : MachineDecoding Child where
       do pure ⟨← decodeValue s, ← decodeValue f, ← decodeValue p⟩
     | _ => none
 
-instance {W : Type} [MachineDecoding W] : MachineDecoding (ClaimHolder W) where
-  decodeValue
-    | .constructor 0 [w] => (decodeValue w).map .signature
-    | .constructor 1 [i] => (decodeValue i).map .child
-    | _ => none
-
 instance : MachineDecoding BatchingHints where
   decodeValue | .constructor 0 [m, v] => do pure ⟨← decodeValue m, ← decodeValue v⟩ | _ => none
 
@@ -297,12 +291,6 @@ instance : LawfulMachineDecoding NodeStatement := ⟨fun ⟨c, d⟩ ↦ by
 instance : LawfulMachineDecoding Child := ⟨fun ⟨s, f, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue f), ← decodeValue (encodeValue p)⟩ : Option Child) = _
   simp⟩
-
-instance {W : Type} [MachineEncoding W] [MachineDecoding W] [LawfulMachineDecoding W] : LawfulMachineDecoding (ClaimHolder W) :=
-  ⟨fun h ↦ by
-    cases h with
-    | signature w => show (decodeValue (encodeValue w)).map ClaimHolder.signature = _; simp
-    | child i => show (decodeValue (encodeValue i)).map (ClaimHolder.child (Signature := W)) = _; simp⟩
 
 instance : LawfulMachineDecoding BatchingHints := ⟨fun ⟨m, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue m), ← decodeValue (encodeValue v)⟩ : Option BatchingHints) = _; simp⟩

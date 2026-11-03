@@ -110,19 +110,12 @@ instance : MachineEncoding NodeStatement :=
 instance : MachineEncoding Child :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
 
-/-- `signature` the constructor of tag `0`, `child` of tag `1`. -/
-instance {W : Type} [MachineEncoding W] : MachineEncoding (ClaimHolder W) where
-  encodeValue
-    | .signature w => .constructor 0 [encodeValue w]
-    | .child i => .constructor 1 [encodeValue i]
-
 instance : MachineEncoding BatchingHints :=
   ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
 
 instance : MachineEncoding NodeWitness :=
-  ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssHolders, encodeValue
-      w.sphincsHolders,
-    encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
+  ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssSignatures,
+    encodeValue w.sphincsSignatures, encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
 
 instance : MachineEncoding SeedStatementAndWitness :=
   ⟨fun decoding ↦ .constructor 0 [encodeValue decoding.seed, encodeValue decoding.statement,
@@ -145,8 +138,8 @@ open LeanVM.Parameters LeanVM.Semantics
 @[expose] public section
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `786000`, the
-compiled decoder's size (`785688`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
-and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `312`. That
+compiled decoder's size (`785561`: `lean_vm`'s `Cost/DecoderSize.lean` proves the size at most that,
+and its test `LeanVMTests/Cost/DecoderSize.lean` measures it exactly) and a slack of `439`. That
 size counts in full the guest program's per-function tables, which the decoder's replay of the run
 reads and which are literals of the decoder program (`CostMachine.lean`: a literal counts by its
 size; the frame cells of the guest's functions are `749835` of it). The slack bounds a table of
@@ -245,11 +238,11 @@ structure Theorems
   /-- Every valid execution of the leanISA guest program proves the node statement its public input
   commits to: the decoder program, of size at most `guestWitnessDecoderSizeBound`, outputs, within
   its budget, the encoding of a seed, a statement whose digest under that seed is the input's
-  digest, and a witness for it: each signature claim of the statement is held, by a signature or a
-  child whose proof the deferring verifier accepts, the bytecode's value at the child's point taken
-  from the witness and checked only at the root, and its DA digest is that of the blob matrix it
-  checks, zeros or a child's, and its deferred claim is the batching of its children's
-  (`NodeRelation`, `LeanVmGuest.lean`). -/
+  digest, and a witness for it: each signature claim of the statement is held, by a raw
+  signature that verifies or a child whose proof the deferring verifier accepts, the bytecode's
+  value at the child's point taken from the witness and checked only at the root, and its DA
+  digest is that of the blob matrix it checks, zeros or a child's, and its deferred claim is the
+  batching of its children's (`NodeRelation`, `LeanVmGuest.lean`). -/
   guestKnowledgeSoundness : LeanVM.Node.GuestKnowledgeSoundness LeanVM.Guest.guestProgram
       guestWitnessDecoder
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision among the
@@ -263,7 +256,7 @@ structure Theorems
   its form for the memory decoder `decode`, `MemoryAggregateSound`, is also proved directly
   (`LeanVM.Guest.End.aggregate_sound_outer`). -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
-  /-- The leanISA guest program is complete on the eight families of `CoveredNode`, mixed nodes and
+  /-- The leanISA guest program is complete on the seven families of `CoveredNode`, mixed nodes and
   nodes checking one DA matrix of at most `32` rows among them, under the deployed seed and within
   the deployed limits, wherever every child carries the honest prover's proof (`HonestChild`: its
   fresh claim true, its proof the honest one with the deployed Keccak of an execution of the guest

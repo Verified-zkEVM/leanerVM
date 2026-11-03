@@ -22,7 +22,7 @@ compiled modules (their kernel checks stay small):
   deployed decoder `End.decode L` through `decoderTables`, `memReader`, `replayStatesOf`,
   `mainVal` and `decoderOutput`, the witness `decWitN` at the frame map keyed by index.
 
-The other restated functions' equations at the tables built (`…D_tables`, `kidOfStaged_tables`,
+The other restated functions' equations at the tables built (`…D_tables`,
 `dvWitND_tables`, `cursorLength_tables`, `gLogD_tables`; the readers' off arrays,
 `xmssSigOfA_tabs`, `sphincsSigOfA_tabs`, `vsPiOfA_tabs`, in `Guest/Fast/`) are next to them.
 -/
@@ -38,10 +38,9 @@ open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast
 theorem decWitStaged_eq : decWitStaged discreteLogTables = decWit := by
   funext σ rd wX wS wD wV wA
   rw [decWitStaged_eq_lists]
-  unfold nodeWitnessOf kidsAt xmssHoldersAt sphincsHoldersAt xmssHolder
-    xmssHolderAt sphincsHolder sphincsHolderAt daWitness aggArgs decWit
-  simp only [nKidsD_tables, decKidD_tables, markOfD_tables, nRawXD_tables, nRawSD_tables,
-    lxSlotsD_tables, kidOfStaged_tables, nDirectD_tables, gLogD_tables]
+  unfold nodeWitnessOf kidsAt xmssRawsAt sphincsRawsAt daWitness aggArgs decWit
+  simp only [nKidsD_tables, decKidD_tables, rawXmssD_tables, rawSphincsD_tables, nRawXD_tables,
+    nRawSD_tables, nDirectD_tables]
 
 open LeanVM.Guest.Fast in
 /-- **The staged witness is `decWitN`**, at the tables built. -/

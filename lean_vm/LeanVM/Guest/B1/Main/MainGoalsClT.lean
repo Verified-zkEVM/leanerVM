@@ -66,8 +66,8 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
-    have := hL.coverageSlotsBelow2Pow16
-    simp only [coverageSlots] at this
+    have := hL.planSlotsBelow2Pow16
+    simp only [Coverage.planSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 0 [] =
@@ -95,8 +95,8 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
-    have := hL.coverageSlotsBelow2Pow16
-    simp only [coverageSlots] at this
+    have := hL.planSlotsBelow2Pow16
+    simp only [Coverage.planSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =

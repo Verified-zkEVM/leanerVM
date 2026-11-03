@@ -90,7 +90,7 @@ example (seed : Digest) (v : E) (hints : BatchingHints) :
   have hlog : Nat.log2 bytecode.length = 23 := by rw [bytecode_length, Nat.log2_two_pow]
   refine ⟨⟨[], [], [], none, hints⟩, ?_⟩
   unfold NodeRelation SignatureClaimsHeld DaDigestHeld ChildrenProven DeferredClaimBatched
-  refine ⟨⟨by simp [emptyStatement], by simp [emptyStatement]⟩, by simp [emptyStatement], by simp,
-    ?_, ?_⟩
+  refine ⟨⟨by simp, by simp, by simp [emptyStatement], by simp [emptyStatement]⟩,
+    by simp [emptyStatement], by simp, ?_, ?_⟩
   · simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]
   · simp [emptyStatement, DeferredClaim.HasBytecodeShape, hlog]

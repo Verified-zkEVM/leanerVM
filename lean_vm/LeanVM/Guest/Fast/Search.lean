@@ -10,9 +10,9 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 /-!
 # The decoder's count-driven searches, by sorting and binary search
 
-The guest decoder reads a child's claims off the coverage table by scans (`B1.Main.slotOf`,
-`segCount`, `kidOf`): a `find?` or a `filter` over a whole region per query, quadratic in the
-counts. Here the same answers, on every input (no monotonicity of the memory assumed), from tables
+The guest decoder reads a child's claims and the raw signatures off the coverage table by scans
+(`B1.Main.slotOf`, `segCount`): a `find?` or a `filter` over a whole region per query, quadratic in
+the counts. Here the same answers, on every input (no monotonicity of the memory assumed), from tables
 built once:
 
 * `lowerBound t e lo hi`: binary search in a sorted array, the number of its entries below `e`
@@ -22,10 +22,7 @@ built once:
   * **`slotIn_coverTable`**: `slotIn` (one binary search) is the first slot holding a mark, the
     `find?` of `slotOf`;
   * **`countIn_coverTable`**: `countIn` (two binary searches) is the number of slots whose marks
-    lie in `[a, b)`, the `filter` of `segCount`;
-* `prefixMax acc xs`: the running maxima; **`kidIn_prefixMax`**: the first `c` with
-  `e < xs[c]` is the first with `e < max(xs[0..c])`, one binary search on the monotone maxima
-  (`kidOf`'s `find?`).
+    lie in `[a, b)`, the `filter` of `segCount`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -326,112 +323,6 @@ theorem slotIn_coverTable (mk : ℕ → ℕ) (len e : ℕ) :
   exact slotIn_eq_find _ (coverKeys_fst_sorted _) e
 
 end Cover
-
-/-! ## The first child whose running count passes a mark -/
-
-/-- **The running maxima** of `xs`, from `acc`. -/
-def prefixMax (acc : ℕ) : List ℕ → List ℕ
-  | [] => []
-  | x :: xs => let m := if acc < x then x else acc; m :: prefixMax m xs
-
-theorem length_prefixMax : ∀ (acc : ℕ) (xs : List ℕ), (prefixMax acc xs).length = xs.length
-  | _, [] => rfl
-  | _, _ :: xs => by simp [prefixMax, length_prefixMax _ xs]
-
-theorem prefixMax_sorted : ∀ (acc : ℕ) (xs : List ℕ),
-    (prefixMax acc xs).Pairwise (· ≤ ·) ∧ ∀ y ∈ prefixMax acc xs, acc ≤ y
-  | _, [] => by simp [prefixMax]
-  | acc, x :: xs => by
-    obtain ⟨h1, h2⟩ := prefixMax_sorted (if acc < x then x else acc) xs
-    simp only [prefixMax, List.pairwise_cons, List.mem_cons, forall_eq_or_imp]
-    refine ⟨⟨h2, h1⟩, by split <;> omega, fun y hy ↦ ?_⟩
-    have := h2 y hy
-    split at this <;> omega
-
-/-- **A running maximum passes `e` iff an entry so far does** (or the start). -/
-theorem lt_prefixMax_iff (e : ℕ) : ∀ (acc : ℕ) (xs : List ℕ) (c : ℕ) (hc : c < xs.length),
-    e < (prefixMax acc xs)[c]'(by rw [length_prefixMax]; exact hc) ↔
-      e < acc ∨ ∃ c', ∃ h : c' < xs.length, c' ≤ c ∧ e < xs[c']
-  | _, [], _, hc => absurd hc (Nat.not_lt_zero _)
-  | acc, x :: xs, 0, _ => by
-    simp only [prefixMax, List.getElem_cons_zero]
-    constructor
-    · intro h
-      split at h
-      · exact .inr ⟨0, by simp, Nat.le_refl _, by simpa using h⟩
-      · exact .inl h
-    · rintro (h | ⟨c', hc', h0, h⟩)
-      · split <;> omega
-      · obtain rfl : c' = 0 := by omega
-        simp only [List.getElem_cons_zero] at h
-        split <;> omega
-  | acc, x :: xs, c + 1, hc => by
-    simp only [prefixMax, List.getElem_cons_succ]
-    rw [lt_prefixMax_iff e _ xs c (by simpa using hc)]
-    constructor
-    · rintro (h | ⟨c', hc', h0, h⟩)
-      · split at h
-        · exact .inr ⟨0, by simp, by omega, by simpa using h⟩
-        · exact .inl h
-      · exact .inr ⟨c' + 1, by simpa using hc', by omega, by simpa using h⟩
-    · rintro (h | ⟨c', hc', h0, h⟩)
-      · left; split <;> omega
-      · cases c' with
-        | zero => left; simp only [List.getElem_cons_zero] at h; split <;> omega
-        | succ c' =>
-          exact .inr ⟨c', by simpa using hc', by omega, by simpa using h⟩
-
-/-- **The first index whose running maximum passes `e`**, `0` if none: one binary search. -/
-def kidIn (M : Array ℕ) (e : ℕ) : ℕ :=
-  let i := lowerBound M (e + 1) 0 M.size
-  if i < M.size then i else 0
-
-/-- **The first child by the running maxima**: `kidIn` of the running maxima of the counts
-`cnt (c + 1)` is the first `c < n` with `e < cnt (c + 1)`, `0` if none. -/
-theorem kidIn_prefixMax (cnt : ℕ → ℕ) (n e : ℕ) :
-    kidIn (prefixMax 0 ((List.range n).map fun c ↦ cnt (c + 1))).toArray e =
-      ((List.range n).find? fun c ↦ decide (e < cnt (c + 1))).getD 0 := by
-  set xs := (List.range n).map fun c ↦ cnt (c + 1)
-  have hxs : xs.length = n := by simp [xs]
-  have hxi : ∀ c (h : c < xs.length), xs[c] = cnt (c + 1) := by intro c h; simp [xs]
-  set M := prefixMax 0 xs
-  have hML : M.length = n := by rw [length_prefixMax, hxs]
-  have hmono := monotone_toArray (prefixMax_sorted 0 xs).1
-  obtain ⟨hr, hlt, hge⟩ := lowerBound_full M.toArray hmono (e + 1)
-  simp only [kidIn]
-  set r := lowerBound M.toArray (e + 1) 0 M.toArray.size
-  simp only [List.size_toArray, hML] at hr
-  have hiff : ∀ c (hc : c < n), e < M[c]'(by omega) ↔ ∃ c' < n, c' ≤ c ∧ e < cnt (c' + 1) := by
-    intro c hc
-    rw [lt_prefixMax_iff e 0 xs c (by omega)]
-    constructor
-    · rintro (h | ⟨c', hc', h0, h⟩)
-      · omega
-      · exact ⟨c', by omega, h0, by rwa [hxi] at h⟩
-    · rintro ⟨c', hc', h0, h⟩
-      exact .inr ⟨c', by omega, h0, by rwa [hxi]⟩
-  -- below `r` the maxima are at most `e`
-  have hnot : ∀ c (hc : c < n), c < r → ¬ e < cnt (c + 1) := by
-    intro c hc hcr h
-    have h1 := hlt c (by simp; omega) hcr
-    simp only [List.getElem_toArray] at h1
-    have := (hiff c hc).2 ⟨c, hc, Nat.le_refl _, h⟩
-    omega
-  by_cases hrn : r < n
-  · simp only [List.size_toArray, hML, hrn, ↓reduceIte]
-    have h1 := hge r (by simp; omega) (Nat.le_refl _)
-    simp only [List.getElem_toArray] at h1
-    obtain ⟨c', hc', h0, h⟩ := (hiff r hrn).1 (by omega)
-    have hcr : c' = r := by
-      by_contra hne
-      exact hnot c' hc' (by omega) h
-    subst hcr
-    rw [(List.find?_range_eq_some).2 ⟨by simpa using h, List.mem_range.2 hc', fun j hj ↦ by
-      simpa using hnot j (by omega) hj⟩]
-    rfl
-  · simp only [List.size_toArray, hML, hrn, ↓reduceIte]
-    rw [(List.find?_range_eq_none).2 fun i hi ↦ by simpa using hnot i hi (by omega)]
-    rfl
 
 end
 

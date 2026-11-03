@@ -15,8 +15,8 @@ digest, and a claim on the guest program's bytecode it defers) and witnesses (`N
 signatures, a blob matrix, children carrying proofs, the batching's hints). What a valid execution
 of the guest program establishes is that the witnesses hold the claims, `NodeRelation`:
 
-* `SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim is held by a raw signature that
-  verifies, or by a child whose statement lists it;
+* `SignatureClaimsHeld`: every raw signature verifies, and every leanXMSS and leanSPHINCS claim
+  is a raw signature's or in a child's statement's list;
 * `DaDigestHeld`: the DA digest is that of the blob matrix the node checks, zeros, or a child's;
 * `ChildrenProven`: every child's proof is accepted, for the child's statement, by the deferring
   verifier, which takes the bytecode's value at the child's point from the witness;
@@ -173,22 +173,16 @@ structure Child where
   /-- Its proof. -/
   proof : Proof
 
-/-- How a node holds a signature claim: by a raw signature, or through its `childIndex`-th child. -/
-inductive ClaimHolder (Signature : Type) where
-  /-- By a raw signature. -/
-  | signature (signature : Signature)
-  /-- Through a child. -/
-  | child (childIndex : ℕ)
-
-/-- What a node holds its statement by: its children, a holder for every signature claim, the blob
-matrix it checks directly with the DA claim it opens (if any), and the batching's hints. -/
+/-- What a node holds its statement by: its children, its raw signatures with the claims they
+sign, the blob matrix it checks directly with the DA claim it opens (if any), and the batching's
+hints. -/
 structure NodeWitness where
   /-- The children. -/
   children : List Child
-  /-- A holder for each leanXMSS claim, in order. -/
-  xmssHolders : List (ClaimHolder LeanXmss.Signature)
-  /-- A holder for each leanSPHINCS claim, in order. -/
-  sphincsHolders : List (ClaimHolder Sphincs.Signature)
+  /-- The raw leanXMSS signatures, each with the claim it signs. -/
+  xmssSignatures : List (LeanXmssClaim × LeanXmss.Signature)
+  /-- The raw leanSPHINCS signatures, each with the claim it signs. -/
+  sphincsSignatures : List (LeanSphincsClaim × Sphincs.Signature)
   /-- The blob matrix the node checks directly, with the DA claim it opens. -/
   daMatrix : Option (DaClaim × Da.MatrixWitness)
   /-- The prover's part of the batching of the children's deferred claims. -/
@@ -221,26 +215,17 @@ def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness ∧
     statement.deferredClaim.HasBytecodeShape bytecode
 
-/-- **Every signature claim is held**: the `i`-th leanXMSS claim by the `i`-th leanXMSS
-holder, a raw signature that verifies at any leaf index or a child whose statement lists the
-claim; likewise for leanSPHINCS. Holders need not differ: one child may hold several claims. -/
+/-- **Every signature claim is held**: every raw signature verifies its claim (at any leaf
+index), and every leanXMSS claim is a raw signature's claim or in some child's statement's list;
+likewise for leanSPHINCS. Holders need not differ: one raw signature or one child may hold several
+equal claims. -/
 def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
-  List.Forall₂ (ClaimIsHeld (fun (claim : LeanXmssClaim) signature ↦
-      LeanXmss.verifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.xmss witness.children)
-    statement.claims.xmss witness.xmssHolders ∧
-  List.Forall₂ (ClaimIsHeld (fun (claim : LeanSphincsClaim) signature ↦
-      Sphincs.verifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.sphincs
-      witness.children)
-    statement.claims.sphincs witness.sphincsHolders
-
-/-- **A claim is held** by a holder: a raw signature that `holds` it, or a child whose claims of
-the kind (`claimsOf`) list it. -/
-def ClaimIsHeld {Claim Signature : Type} (holds : Claim → Signature → Prop)
-    (claimsOf : NodeClaims → List Claim) (children : List Child) (claim : Claim) :
-    ClaimHolder Signature → Prop
-  | .signature signature => holds claim signature
-  | .child childIndex =>
-    ∃ child, children[childIndex]? = some child ∧ claim ∈ claimsOf child.statement.claims
+  (∀ raw ∈ witness.xmssSignatures, LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
+  (∀ raw ∈ witness.sphincsSignatures, Sphincs.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
+  (∀ claim ∈ statement.claims.xmss, claim ∈ witness.xmssSignatures.map (·.1) ∨
+    ∃ child ∈ witness.children, claim ∈ child.statement.claims.xmss) ∧
+  (∀ claim ∈ statement.claims.sphincs, claim ∈ witness.sphincsSignatures.map (·.1) ∨
+    ∃ child ∈ witness.children, claim ∈ child.statement.claims.sphincs)
 
 /-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,

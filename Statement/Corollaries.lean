@@ -71,7 +71,7 @@ end LeanVM.Node
 namespace LeanVM.Guest.Completeness
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest LeanVM.Guest.Coverage
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest
 
 /-- **Every recursion node of at most `2048` claims has a valid execution of the leanISA guest
 program**: for every statement `statement` and witness `witness` with `NodeRelation` under the
@@ -84,11 +84,10 @@ abbrev GuestCompleteRecursion : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness → (∀ child ∈ witness.children, HonestChild child) →
-    (heldDirectly statement.claims.xmss witness.xmssHolders).length = 0 →
-      (heldDirectly statement.claims.sphincs witness.sphincsHolders).length = 0 →
+    witness.xmssSignatures.length = 0 → witness.sphincsSignatures.length = 0 →
     witness.daMatrix = none →
     statement.claims.xmss.length + statement.claims.sphincs.length ≤ 2048 →
-    coverageSlots statement witness ≤ 2048 →
+    coverageSlots witness ≤ 2048 →
     (witness.children.map fun child ↦ child.statement.claims.xmss.length +
       child.statement.claims.sphincs.length).sum ≤ 2048 →
     ∃ execution : Execution guestProgram,
@@ -106,10 +105,9 @@ abbrev GuestCompleteLeaf : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness → witness.children = [] → witness.daMatrix = none →
-    (heldDirectly statement.claims.xmss witness.xmssHolders).length +
-      (heldDirectly statement.claims.sphincs witness.sphincsHolders).length ≤ 2048 →
+    witness.xmssSignatures.length + witness.sphincsSignatures.length ≤ 2048 →
     statement.claims.xmss.length + statement.claims.sphincs.length ≤ 2048 →
-    coverageSlots statement witness ≤ 2048 →
+    coverageSlots witness ≤ 2048 →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧

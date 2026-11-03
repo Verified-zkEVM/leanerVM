@@ -41,7 +41,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
   intro hnc
   have hnc' : w.children.length ≠ 0 := hnc
   have hne : w.children ≠ [] := fun h => hnc' (by rw [h, List.length_nil])
-  have hb := (nodeRel_iff.mp hrel).2.2.2.2.2
+  have hb := (nodeRel_iff.mp hrel).2.2.2.2
   simp only [hne, ↓reduceIte] at hb
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   have hrl : w.batchingHints.sumcheckMessages.length = 23 := by

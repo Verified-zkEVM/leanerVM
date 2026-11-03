@@ -27,9 +27,10 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits coverageSlots)
+open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest.Coverage (planSlots)
 open LeanVM.Guest.Hints (claimCells)
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan CoverageRegion)
+open LeanVM.Guest.Coverage (coveragePlan CoverageRegion)
 open LeanVM.Guest.B1 (CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -60,7 +61,7 @@ variable {s : NodeStatement} {w : NodeWitness}
 
 theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.xmss.length) :
-    hMarkX s w (base ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1))
+    hMarkX s w (base (w.xmssSignatures.map (·.1))
       (w.children.map (·.statement.claims.xmss)) c + j) = hW s w c + j := by
   have e := kid_segOf_sum (w.children.map (·.statement.claims.xmss.length)) c j (by simpa using hc)
     (by simpa using hj)
@@ -71,7 +72,7 @@ theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
 
 theorem kid_hMarkS_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.sphincs.length) :
-    hMarkS s w (base ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
+    hMarkS s w (base (w.sphincsSignatures.map (·.1))
       (w.children.map (·.statement.claims.sphincs)) c + j) = hW s w c + hEx w c + j := by
   have e := kid_segOf_sum (w.children.map (·.statement.claims.sphincs.length)) c j (by simpa using hc)
     (by simpa using hj)
@@ -166,7 +167,7 @@ theorem belowLog_of {o L : ℕ} (h : o < L) (hL : L < 2 ^ 32) : B1.Digest.BelowL
 theorem cover_bound (hl : DeployedLimits s w) :
     s.claims.xmss.length + (xPlan s w).duplicates.length +
       (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 16 := by
-  have hcov := hl.coverageSlotsBelow2Pow16
+  have hcov := hl.planSlotsBelow2Pow16
   rw [coverage_eq] at hcov
   simp only [List.length_append] at hcov
   omega
@@ -184,7 +185,7 @@ theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (s.claims.xmss ++ (xPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.xmss.length) =>
-    plan_slot s.claims.xmss ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1))
+    plan_slot s.claims.xmss (w.xmssSignatures.map (·.1))
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAt fs cert (κ := 16) le_rfl
@@ -263,7 +264,7 @@ theorem kid_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (s.claims.sphincs ++ (sPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.sphincs.length) =>
-    plan_slot s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
+    plan_slot s.claims.sphincs (w.sphincsSignatures.map (·.1))
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAt fs cert (κ := 16) le_rfl

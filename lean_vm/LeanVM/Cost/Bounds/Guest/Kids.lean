@@ -13,14 +13,13 @@ valuation and `W` of the child proofs' reader `wV`; every count, mark and slot b
 
 * a mark and its slot (`markPair_cost`), **`regionTable_cost`** (`regionTablePrice G R len`: one
   logarithm and one read per slot, the table sorted, `coverTable_cost`), `regionTable_good`;
-* a running count (`countAtW_cost`, `countNext_cost`), **`kidMax_cost`** (`kidMaxPrice G R n`),
-  `kidMax_good` (`KidMaxGood`: at most `2^34` maxima below `2^34`);
+* a running count (`countAtW_cost`);
 * a child's claim (`xmssKidClaim_cost`, `sphincsKidClaim_cost`: a search, a power in `K`, four
   reads), a child's statement off its claims' counts (`kidStmtAt_cost`), its segment
   (`kidStmtSeg_cost`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
   **`decKid_cost`** (`decKidPrice G R S W N`), the regions' tables of at most `N ≤ 2^34` marks
   (`regionTable_size_le`: a region's slots; `2^34` on any memory, `65535` on a valid run), so
-  at most `N` claims of each scheme a child. The children's list is `Holders.lean`'s
+  at most `N` claims of each scheme a child. The children's list is `Raw.lean`'s
   `kidsT_cost`.
 -/
 
@@ -50,20 +49,6 @@ theorem slotIn_lt {t : Array ℕ × Array ℕ} (ht : TableGood t) (e : ℕ) : sl
 
 theorem lt64_of_good {t : Array ℕ × Array ℕ} (ht : TableGood t) (i : ℕ) : t.1.getD i 0 < 2 ^ 64 :=
   lt_trans (ht.2.2.1 i) (by norm_num)
-
-/-- **What the holders need of the running maxima**: at most `2^34` of them, below `2^34`. -/
-@[expose] def KidMaxGood (M : Array ℕ) : Prop := M.size ≤ 2 ^ 34 ∧ ∀ i, M.getD i 0 < 2 ^ 34
-
-theorem prefixMax_lt {B : ℕ} : ∀ (xs : List ℕ) (acc : ℕ), acc < B → (∀ x ∈ xs, x < B) →
-    ∀ y ∈ prefixMax acc xs, y < B
-  | [], _, _, _ => by simp [prefixMax]
-  | x :: xs, acc, hacc, hx => by
-    intro y hy
-    simp only [prefixMax, List.mem_cons] at hy
-    have hx0 := hx x (by simp)
-    rcases hy with rfl | hy
-    · split <;> omega
-    · exact prefixMax_lt xs _ (by split <;> omega) (fun z hz ↦ hx z (by simp [hz])) y hy
 
 /-! ## The tables -/
 
@@ -140,53 +125,6 @@ theorem countAtW_cost (D : DiscreteLogTables) (hP : Includes P countAtWC.costDep
   have := cellAt_cost P hrd hR (by includes) w c hc
   have := hG (cellAt rd w c)
   omega
-
-/-- A segment's end (`countNextC`), `c + 1 < 2^40`: at most `G + R + 2977`. -/
-theorem countNext_cost (D : DiscreteLogTables) (hP : Includes P countNextC.costDeps)
-    (hG : GLogBound P D G) (w : E) (c : ℕ) (hc : c + 1 < 2 ^ 40) :
-    machineCost P countNextC.costIdx [encodeValue D, rdV, encodeValue w, encodeValue c] ≤
-      G + R + 2977 := by
-  rw [countNextC.costEq P hP D rd rdV hrd]
-  have := cellAt_cost P hrd hR (by includes) w (c + 1) hc
-  have := hG (cellAt rd w (c + 1))
-  limbs_one
-  omega
-
-/-- The running maxima's price for `n` children. -/
-@[expose] def kidMaxPrice (G R n : ℕ) : ℕ := (G + R + 3031) * n + 25
-
-/-- **The running maxima of the children's segments' ends** (`kidMaxC`), `n ≤ 2^34`: one
-logarithm and one read per child: at most `kidMaxPrice G R n = (G + R + 3031)·n + 25`. -/
-theorem kidMax_cost (D : DiscreteLogTables) (hP : Includes P kidMaxC.costDeps)
-    (hG : GLogBound P D G) (w : E) (n : ℕ) (hn : n ≤ 2 ^ 34) :
-    machineCost P kidMaxC.costIdx [encodeValue D, rdV, encodeValue w, encodeValue n] ≤
-      kidMaxPrice G R n := by
-  rw [kidMaxC.costEq P hP D rd rdV hrd]
-  have h1 := rangeMap_le P (by includes) (by includes) (countNext D rd w)
-    (.closure kidMaxC.lam0.costIdx [encodeValue D, rdV, encodeValue w])
-    (fun c ↦ RunsApp.of_spec (kidMaxC.lam0.costSpec P (by includes) D rd rdV hrd w c))
-    (G + R + 2985) n n (le_refl _) (by omega) (fun c hc ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        kidMaxC.lam0.costEq P (by includes) D rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := countNext_cost P hrd hR D (by includes) hG w c (by omega)
-      omega)
-  have h2 := prefixMax_cost P (by includes) ((List.range n).map (countNext D rd w)) 0 (by norm_num)
-    (fun x hx ↦ by
-      obtain ⟨c, -, rfl⟩ := List.mem_map.1 hx
-      exact lt_trans (gLogD_lt D _) (by norm_num))
-  rw [length_prefixMax]
-  simp only [List.length_map, List.length_range] at h2 ⊢
-  unfold kidMaxPrice
-  nlinarith
-
-omit hrd hR in
-/-- **The running maxima are good**, `n ≤ 2^34`. -/
-theorem kidMax_good (D : DiscreteLogTables) (w : E) (n : ℕ) (hn : n ≤ 2 ^ 34) :
-    KidMaxGood (kidMax D rd w n) := by
-  refine ⟨by simp [kidMax, length_prefixMax]; omega, fun i ↦ ?_⟩
-  exact getD_lt_of_mem (prefixMax_lt _ 0 (by norm_num) (fun x hx ↦ by
-    obtain ⟨c, -, rfl⟩ := List.mem_map.1 hx
-    exact gLogD_lt D _)) (by norm_num) i
 
 /-! ## A child -/
 

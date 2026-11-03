@@ -169,11 +169,7 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
   s.deferredClaim.HasBytecodeShape bytecode ∧
   (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true)
-    NodeClaims.xmss w.children) s.claims.xmss w.xmssHolders ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦
-      Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children)
-    s.claims.sphincs w.sphincsHolders ∧
+  SignatureClaimsHeld s w ∧
   (match w.daMatrix with
     | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
     | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
@@ -185,7 +181,7 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
 exactly where the guest program's transcript defers the node's claim. -/
 theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}
     {w : NodeWitness} : NodeRelation bytecode seed s w ↔ NodeRelB bytecode seed s w := by
-  unfold NodeRelation NodeRelB SignatureClaimsHeld DaDigestHeld ChildrenProven
+  unfold NodeRelation NodeRelB DaDigestHeld ChildrenProven
   have key : s.deferredClaim.HasBytecodeShape bytecode →
       (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
         verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof =
@@ -210,10 +206,10 @@ theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : 
       rw [LeanVM.Guest.Batch.runBatching_deployed]
       exact e
   constructor
-  · rintro ⟨⟨hx, hsp⟩, hda, h2, hb, h1⟩
-    exact ⟨h1, h2, hx, hsp, hda, (key h1 h2).mp hb⟩
-  · rintro ⟨h1, h2, hx, hsp, hda, hb⟩
-    exact ⟨⟨hx, hsp⟩, hda, h2, (key h1 h2).mpr hb, h1⟩
+  · rintro ⟨hsig, hda, h2, hb, h1⟩
+    exact ⟨h1, h2, hsig, hda, (key h1 h2).mp hb⟩
+  · rintro ⟨h1, h2, hsig, hda, hb⟩
+    exact ⟨hsig, hda, h2, (key h1 h2).mpr hb, h1⟩
 
 end
 end LeanVM.Guest.Batch

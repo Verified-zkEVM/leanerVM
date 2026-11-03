@@ -355,7 +355,7 @@ def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
   childShape := Bvf
 
 theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
-    (mSizes (hData seed s w)).sum = 5 * coverageSlots s w + 53 * w.children.length + 283 := by
+    (mSizes (hData seed s w)).sum = 5 * Coverage.planSlots s w + 53 * w.children.length + 283 := by
   rw [coverage_eq]
   simp only [mSizes, MainData.T, MainData.X, MainData.Y, hData, List.sum_cons,
     List.sum_nil, List.length_append]
@@ -390,9 +390,9 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hA := aggB_eq fs SB SK w.children.length
   have hcov := coverage_eq (s := s) (w := w)
   simp only [List.length_append] at hcov
-  have c1 : (xPlan s w).duplicates.length * SK "__loop0" ≤ coverageSlots s w * SK "__loop0" :=
+  have c1 : (xPlan s w).duplicates.length * SK "__loop0" ≤ Coverage.planSlots s w * SK "__loop0" :=
     Nat.mul_le_mul_right _ (by omega)
-  have c2 : (sPlan s w).duplicates.length * SK "__loop1" ≤ coverageSlots s w * SK "__loop1" :=
+  have c2 : (sPlan s w).duplicates.length * SK "__loop1" ≤ Coverage.planSlots s w * SK "__loop1" :=
     Nat.mul_le_mul_right _ (by omega)
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
@@ -406,7 +406,7 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hcl : s.claims.xmss.length + s.claims.sphincs.length ≤ (End.work s w).declared := by
     simp only [End.work]; omega
   have hcl2 := Nat.mul_le_mul_right (clS SK) hcl
-  have hcov' : coverageSlots s w = (End.work s w).coverage := rfl
+  have hcov' : Coverage.planSlots s w = (End.work s w).coverage := rfl
   have e1 : (hm fs 0 seed s w).nxd = (xPlan s w).duplicates.length := rfl
   have e2 : (hm fs 0 seed s w).nsd = (sPlan s w).duplicates.length := rfl
   have e3 : (hm fs 0 seed s w).nrx = (End.work s w).rawXmss := rfl

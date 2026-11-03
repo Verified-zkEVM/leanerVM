@@ -14,6 +14,7 @@ public import LeanVM.Guest.Budget.ClosedN
 public import LeanVM.Guest.Count.Deployed
 public import Statement.Corollaries
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.B1.Main.Plan
 
 namespace LeanVM.Guest.Budget
 
@@ -144,17 +145,18 @@ execution of the guest on the statement's digest of committed size in `[2^22, 2^
 theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
     (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
-    (hx : (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length = 0)
-    (hs : (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length = 0)
+    (hx : w.xmssSignatures.length = 0)
+    (hs : w.sphincsSignatures.length = 0)
     (hd : w.daMatrix = none) (hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ 2048)
-    (hcov : coverageSlots s w ≤ 2048)
+    (hcov : coverageSlots w ≤ 2048)
     (hcc : (w.children.map fun c ↦ c.statement.claims.xmss.length +
       c.statement.claims.sphincs.length).sum ≤ 2048) :
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
   refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs
-    (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl hcov hcc ?_ ?_)
+    (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl
+    ((B1.Main.planSlots_eq hlim).trans_le hcov) hcc ?_ ?_)
   · simpa [work] using hlim.atMostSixteenChildren
   · simpa [work] using hlim.atMostSixteenChildren
 
@@ -167,15 +169,16 @@ theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : 
     (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
     (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
     (hch : w.children = []) (hd : w.daMatrix = none)
-    (hxs : (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length +
-      (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length ≤ 2048)
+    (hxs : w.xmssSignatures.length +
+      w.sphincsSignatures.length ≤ 2048)
     (hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ 2048)
-    (hcov : coverageSlots s w ≤ 2048) :
+    (hcov : coverageSlots w ≤ 2048) :
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
       2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
   refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs (by simp [work, hd])
-    (by simp [work, hd]) (by simp [work, hd]) hdecl hcov ?_ ?_ ?_)
+    (by simp [work, hd]) (by simp [work, hd]) hdecl ((B1.Main.planSlots_eq hlim).trans_le hcov) ?_ ?_
+    ?_)
   · simp [work, hch]
   · simp [work, hch]
   · simp [work, hch]

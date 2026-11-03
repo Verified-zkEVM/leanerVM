@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.Hints (claimCells cellsOfBytes daPick)
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
+open LeanVM.Guest.Coverage (coveragePlan planSlots)
 open LeanVM.Guest.Value.Keccak (cellsBytes)
 
 @[expose] public section
@@ -119,7 +119,7 @@ theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length +
 theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = l.length := by simp
 
 /-- **After the last child, the running count is the coverage table's size.** -/
-theorem hW_total (hl : DeployedLimits s w) : hW s w w.children.length = coverageSlots s w := by
+theorem hW_total (hl : DeployedLimits s w) : hW s w w.children.length = planSlots s w := by
   rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made]
   simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
@@ -211,21 +211,21 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
 theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) :
     MainBounds ((hData seed s w).toIn fs fp) := by
-  have hc := hl.coverageSlotsBelow2Pow16
+  have hc := hl.planSlotsBelow2Pow16
   rw [coverage_eq] at hc
-  have hx : (heldDirectly s.claims.xmss w.xmssHolders).length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
-    raw_le_table s.claims.xmss (heldDirectly s.claims.xmss w.xmssHolders) _ (xPlan_held hl)
-  have hs : (heldDirectly s.claims.sphincs w.sphincsHolders).length ≤
+  have hx : w.xmssSignatures.length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
+    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl)
+  have hs : w.sphincsSignatures.length ≤
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
-    raw_le_table s.claims.sphincs (heldDirectly s.claims.sphincs w.sphincsHolders) _ (sPlan_held hl)
+    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl)
   simp only [List.length_append] at hc hx hs
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
   · show s.claims.xmss.length ≤ 65535; omega
   · show (xPlan s w).duplicates.length ≤ 65535; omega
-  · show (heldDirectly s.claims.xmss w.xmssHolders).length ≤ 65535; omega
+  · show w.xmssSignatures.length ≤ 65535; omega
   · show s.claims.sphincs.length ≤ 65535; omega
   · show (sPlan s w).duplicates.length ≤ 65535; omega
-  · show (heldDirectly s.claims.sphincs w.sphincsHolders).length ≤ 65535; omega
+  · show w.sphincsSignatures.length ≤ 65535; omega
   · show (w.daMatrix.map fun _ => 1).getD 0 ≤ 1
     cases w.daMatrix <;> simp
   · show s.claims.xmss.length + (xPlan s w).duplicates.length +

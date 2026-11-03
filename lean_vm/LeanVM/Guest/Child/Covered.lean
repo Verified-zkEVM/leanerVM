@@ -11,11 +11,12 @@ module
 public import LeanVM.Guest.Budget.Covered
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.B1.Main.Plan
 
 /-!
 # The covered nodes
 
-Each family of `Covered` is a size lemma like `recursion_size_le`: the budget's words within
+Each family of `CoveredNode` is a size lemma like `recursion_size_le`: the budget's words within
 `2^24` and each opcode's instructions within a power of two (`sizeOf_le_pow`), the children charged
 at the largest opening arm (`shapes_sum_le_of`), the exponents chosen so that the committed size is
 at most `2^28`:
@@ -27,9 +28,10 @@ at most `2^28`:
 | `≤ 4` children, `32` rows, `8192` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `18` |
 | `≤ 2` children, `256` signatures, `32` rows, `8192` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `18` |
 | `≤ 2` children, `32` rows, `2^14` claims | `≤ 2^24` | `22` | `22` | `19` | `21` | `20` | `17` |
-| no child, `32` rows, `2^15` claims | `≤ 2^24` | `22` | `22` | `20` | `21` | `20` | `17` |
 
-A matrix of `r ≤ 32` rows is charged at its padded height `nPad r ≤ 32` too (`rawDaPad`).
+A matrix of `r ≤ 32` rows is charged at its padded height `nPad r ≤ 32` too (`rawDaPad`). The
+claims are `CoveredNode`'s coverage slots, under `DeployedLimits` the honest run's table
+(`planSlots_eq`) and at least the declared claims and the children's (`coveredW_of`).
 
 `guest_complete_covered`: `GuestCompleteCovered`, from `guest_complete_numeric`.
 -/
@@ -150,21 +152,6 @@ theorem blobWide_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (h
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A node of no child checking a matrix of at most `32` rows, with at most `2^15` declared claims and coverage slots, fits.** -/
-theorem blobLeaf_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
-    (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 2 ^ 15)
-    (hcov : u.coverage ≤ 2 ^ 15) (hcc : u.childClaims = 0) (hch : u.children = 0)
-    (hlen : u.childShapes.length ≤ 0) :
-    (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
-  refine size_le_of u (fun op ↦ match op with
-    | .xor => 22 | .mulNative => 22 | .setConstant => 20 | .deref => 21 | .jump => 20
-    | .keccak => 17) ?_ (fun op ↦ ?_) (by norm_num)
-  · have hb := shapes_sum_le_of deployedBvAt deployedBvAt_le hlen
-    simp only [End.Linear.eval, Count.deployedWords]
-    omega
-  · have hb := instr_shapes hlen op
-    cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
-
 /-- **A matrix's padded height within a power of two**: the matrix checked directly, of at most
 `2^k` rows, is padded to at most `2^k` rows. -/
 theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
@@ -177,7 +164,8 @@ theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
     simp only [Option.map_some, Option.getD_some, LeanDa.paddedRowCount, LeanDa.logPaddedRowCount] at hr ⊢
     exact Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow hr)
 
-/-- `Covered`, by the node's work: `Covered s w` is `CoveredW (work s w)` by definition. -/
+/-- `CoveredNode`'s families by the node's work, each bound on the coverage slots spread over
+the declared claims, the slots and the children's claims, which the size lemmas read. -/
 def CoveredW (u : End.Work) : Prop :=
   (u.rawXmss + u.rawSphincs = 0 ∧ u.rawDa = 0 ∧
     u.declared ≤ 2048 ∧ u.coverage ≤ 2048 ∧ u.childClaims ≤ 2048) ∨
@@ -192,17 +180,53 @@ def CoveredW (u : End.Work) : Prop :=
   (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs ≤ 256 ∧ u.rawDaRows ≤ 32 ∧
     u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
   (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
-    u.declared ≤ 2 ^ 14 ∧ u.coverage ≤ 2 ^ 14 ∧ u.childClaims ≤ 2 ^ 14) ∨
-  (u.children = 0 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
-    u.declared ≤ 2 ^ 15 ∧ u.coverage ≤ 2 ^ 15)
+    u.declared ≤ 2 ^ 14 ∧ u.coverage ≤ 2 ^ 14 ∧ u.childClaims ≤ 2 ^ 14)
 
-theorem covered_iff (s : NodeStatement) (w : NodeWitness) : CoveredNode s w ↔ CoveredW (work s w) :=
-  Iff.rfl
+/-- **Under the deployed limits the declared claims are at most the coverage slots**: each
+declared list is a sub-multiset of the raw signatures' claims and the children's lists. -/
+theorem declared_le_coverageSlots {s : NodeStatement} {w : NodeWitness}
+    (hlim : DeployedLimits s w) : (work s w).declared ≤ coverageSlots w := by
+  have h1 := hlim.claimsHeldWithMultiplicity.1.length_le
+  have h2 := hlim.claimsHeldWithMultiplicity.2.length_le
+  simp only [List.length_append, List.length_map, List.length_flatten, List.map_map] at h1 h2
+  simp only [work, coverageSlots, List.sum_map_add]
+  simp only [Function.comp_def] at h1 h2
+  omega
+
+/-- **A covered node's work is covered**, under the deployed limits: the honest run's coverage
+table is the raw signatures and the children's claims (`planSlots_eq`), at least the declared
+claims (`declared_le_coverageSlots`). -/
+theorem coveredW_of {s : NodeStatement} {w : NodeWitness} (hlim : DeployedLimits s w)
+    (hcov : CoveredNode w) : CoveredW (work s w) := by
+  have hslots : (work s w).coverage = coverageSlots w := B1.Main.planSlots_eq hlim
+  have hcs : coverageSlots w =
+      (work s w).rawXmss + (work s w).rawSphincs + (work s w).childClaims := rfl
+  have hdecl := declared_le_coverageSlots hlim
+  have e1 : (work s w).children = w.children.length := rfl
+  have e2 : (work s w).rawXmss + (work s w).rawSphincs =
+      w.xmssSignatures.length + w.sphincsSignatures.length := rfl
+  have e3 : (work s w).rawDa = (w.daMatrix.map fun _ ↦ 1).getD 0 := rfl
+  have e4 : (work s w).rawDaRows = (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 := rfl
+  unfold CoveredNode at hcov
+  simp only [CoveredW]
+  rcases hcov with ⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ |
+    ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩
+  · exact Or.inl ⟨by omega, by omega, by omega, by omega, by omega⟩
+  · refine Or.inr (Or.inl ⟨by omega, by omega, by omega, by omega, by omega⟩)
+  · refine Or.inr (Or.inr (Or.inl ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩))
+  · refine Or.inr (Or.inr (Or.inr (Or.inl
+      ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩)))
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
+      ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩))))
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl
+      ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩)))))
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+      ⟨by omega, by omega, by omega, by omega, by omega, by omega⟩)))))
 
 /-- **Every covered node has a valid execution of the guest.** -/
 theorem guest_complete_covered : GuestCompleteCovered := by
   intro seed s w hrel hlim hok hcov
-  replace hcov := (covered_iff s w).1 hcov
+  replace hcov := coveredW_of hlim hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.atMostSixteenChildren
   have hda : (work s w).rawDa ≤ 1 := by
@@ -226,7 +250,7 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   rcases hcov with ⟨hraw, hd, hdecl, hcov, hcc⟩ | ⟨h0, hd, hraw, hdecl, hcov⟩ |
     ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ |
     ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ |
-    ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨h0, hraw, hr, hdecl, hcov⟩
+    ⟨hk, hraw, hr, hdecl, hcov, hcc⟩
   · exact recursion_size_le _ (by omega) (by omega) hd (hrows hd) (hpad0 hd) hdecl hcov hcc hch
       (by omega)
   · obtain ⟨hsh, hcc⟩ := hshapes h0
@@ -236,8 +260,6 @@ theorem guest_complete_covered : GuestCompleteCovered := by
   · exact blob_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
   · exact blobMixed_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
   · exact blobWide_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc hk (by omega)
-  · obtain ⟨hsh, hcc⟩ := hshapes h0
-    exact blobLeaf_size_le _ hraw hda hr (hpad hr) hdecl hcov hcc h0 (by simp [hsh])
 
 end
 end LeanVM.Guest.Budget

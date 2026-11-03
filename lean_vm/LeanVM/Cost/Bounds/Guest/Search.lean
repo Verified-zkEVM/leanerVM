@@ -12,8 +12,7 @@ The searches of `Guest/Fast/Search.lean`, compiled in `Cost/Decoder/Kids.lean`, 
 sizes (every count, mark and slot below `2^34`):
 
 * **`lowerBound_cost`**: a binary search over at most `2^34` entries, at most `lowerBoundPrice =
-  915`; `slotIn_cost`, `countIn_cost`, `kidIn_cost`: one or two of them;
-* `prefixMax_cost`: `17` per entry;
+  915`; `slotIn_cost`, `countIn_cost`: one or two of them;
 * the coverage table's sorted map at keys `(mark, slot)` (`mergeNewerCover_cost`,
   `levelMergeCover_cost`, `carryCover_amortized`: `Bounds/SortedMap.lean`'s amortized insertion),
   its insertions (`coverFold_cost`), its levels merged (`flattenLevels_cost`), **`coverTable_cost`**:
@@ -85,7 +84,7 @@ theorem lowerBound_cost_lt (hP : Includes P lowerBoundC.costDeps)
 @[expose] def lowerBoundPrice : ℕ := 915
 
 /-- **A binary search over at most `2^34` entries below `2^64`** (`lowerBoundC`, the search `slotInC`,
-`countInC`, `kidInC` call): at most `lowerBoundPrice = 915`. -/
+`countInC` call): at most `lowerBoundPrice = 915`. -/
 theorem lowerBound_cost (hP : Includes P lowerBoundC.costDeps)
     (t : Array ℕ) (ht : ∀ i, t.getD i 0 < 2 ^ 64) (hs : t.size ≤ 2 ^ 34) (e : ℕ) (he : e < 2 ^ 64) :
     machineCost P lowerBoundC.costIdx
@@ -118,37 +117,6 @@ theorem countIn_cost (hP : Includes P countInC.costDeps) (tm : Array ℕ)
   unfold lowerBoundPrice at *
   limbs_one
   omega
-
-/-- **The first child whose running maximum passes a mark** (`kidInC`): one search, at most
-`930`. -/
-theorem kidIn_cost (hP : Includes P kidInC.costDeps) (M : Array ℕ)
-    (ht : ∀ i, M.getD i 0 < 2 ^ 64) (hs : M.size ≤ 2 ^ 34) (e : ℕ) (he : e < 2 ^ 63) :
-    machineCost P kidInC.costIdx [encodeValue M, encodeValue e] ≤ 930 := by
-  rw [kidInC.costEq P hP]
-  have := lowerBound_cost P (by includes) M ht hs (e + 1) (by omega)
-  have := lowerBound_le_size M (e + 1)
-  unfold lowerBoundPrice at *
-  limbs_one
-  split <;> omega
-
-/-! ## The running maxima -/
-
-/-- **The running maxima** (`prefixMaxC`) of entries below `2^64`: `17` per entry and `3`. -/
-theorem prefixMax_cost (hP : Includes P prefixMaxC.costDeps) :
-    ∀ (xs : List ℕ) (acc : ℕ), acc < 2 ^ 64 → (∀ x ∈ xs, x < 2 ^ 64) →
-      machineCost P prefixMaxC.costIdx [encodeValue acc, encodeValue xs] ≤
-        17 * xs.length + 3 := by
-  intro xs
-  induction xs with
-  | nil => intro acc _ _; rw [prefixMaxC.costEq_nil P hP]; omega
-  | cons x xs ih =>
-    intro acc hacc hx
-    rw [prefixMaxC.costEq_cons P hP]
-    have hx0 := hx x (by simp)
-    have := ih (if acc < x then x else acc) (by split <;> omega) (fun y hy ↦ hx y (by simp [hy]))
-    simp only [List.length_cons]
-    limbs_one
-    by_cases h : acc < x <;> simp only [h, ↓reduceIte] at this ⊢ <;> omega
 
 /-! ## The coverage table's sorted map: keys `(mark, slot)` -/
 

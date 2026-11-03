@@ -375,8 +375,8 @@ def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
 /-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
-  let rawX := heldDirectly s.claims.xmss w.xmssHolders
-  let rawS := heldDirectly s.claims.sphincs w.sphincsHolders
+  let rawX := w.xmssSignatures
+  let rawS := w.sphincsSignatures
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2

@@ -34,7 +34,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
+open LeanVM.Guest.Coverage (coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD Returns)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 
@@ -46,7 +46,7 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 
 /-- The coverage table is below `2^16`. -/
 theorem regions_lt (hl : DeployedLimits s w) : rX s w + rY s w < 2 ^ 16 := by
-  have := hl.coverageSlotsBelow2Pow16
+  have := hl.planSlotsBelow2Pow16
   rw [coverage_eq] at this
   simp only [List.length_append] at this
   simp only [rX, rY]
@@ -98,8 +98,7 @@ theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × L
     LeanXmss.verifyWithKeccak ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hi]
-  exact direct_held (H := ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss w.children) (P := fun c σ => LeanXmss.verifyWithKeccak c.1 c.2 σ = true)
-    (fun _ _ h => h) hn.1.1 _ (List.getElem_mem hi)
+  exact hn.1.1 _ (List.getElem_mem hi)
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
     (hi : i < (hRawX s w).length) :
@@ -152,7 +151,7 @@ theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s 
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ s.claims.xmss.length := direct_length_le _ _
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have h := rawX_completeAt fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) 0 hpos
   rw [pow_zero] at h
@@ -173,8 +172,7 @@ theorem ss_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim �
     Sphincs.verifyWithKeccak ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hj]
-  exact direct_held (H := ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children) (P := fun c σ => Sphincs.verifyWithKeccak c.1 c.2 σ = true)
-    (fun _ _ h => h) hn.1.2 _ (List.getElem_mem hj)
+  exact hn.1.2.1 _ (List.getElem_mem hj)
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
     (hj : j < (hRawS s w).length) :
@@ -231,7 +229,7 @@ theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s 
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ s.claims.sphincs.length := direct_length_le _ _
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAt fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) 0 hpos
   rw [pow_zero] at h

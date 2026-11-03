@@ -11,12 +11,12 @@ import LeanVM.Guest.Code
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
 
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
-(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 2`): a real
+(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 3`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
 through `aggregation.rs`'s test-only `FORGE` hook) and its public input. For each case it checks
 
-* that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every signature
-  claim is held, the DA digest is that of the claim the directly checked matrix opens, else zero or
+* that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every raw
+  signature verifies and every signature claim is a raw signature's or a child's, the DA digest is that of the claim the directly checked matrix opens, else zero or
   a child's, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and
   with no zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts
   every child's proof);
@@ -143,11 +143,15 @@ def sphincsSigR : R Sphincs.Signature := do
   return ⟨randomness, fun c => forest.getD c ⟨fun _ => ⟨fun _ => 0, fun _ => 0⟩, fun _ => 0⟩,
     BitVec.ofNat 32 counter, fn128 values, fn128 path⟩
 
-def holderR {W : Type} (direct : R W) : R (ClaimHolder W) := do
-  match ← tok with
-  | "direct" => return .signature (← direct)
-  | "child" => return .child (← nat)
-  | t => throw s!"`{t}` is no holder"
+/-- A raw leanXMSS signature with its claim. -/
+def rawXmssR : R (LeanXmssClaim × LeanXmss.Signature) := do
+  let ((r, p), m) ← claimR
+  return (((⟨r, p⟩ : HashSig.PublicKey), m), ← xmssSigR)
+
+/-- A raw leanSPHINCS signature with its claim. -/
+def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
+  let ((r, p), m) ← claimR
+  return (((⟨r, p⟩ : Sphincs.PublicKey), m), ← sphincsSigR)
 
 def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR), ← many eR⟩
 
@@ -172,15 +176,15 @@ structure Case where
   streams : Streams
 
 def caseR : R Case := do
-  expect "leanvm-guest-diff"; expect "2"
+  expect "leanvm-guest-diff"; expect "3"
   expect "case"; let name ← tok
   expect "seed"; let seed ← digestR
   expect "log_memory"; let logMemory ← nat
   expect "public_input"; let publicInput ← many eR
   expect "statement"; let statement ← statementR
   expect "children"; let children ← many childR
-  expect "holders_xmss"; let xmss ← many (holderR xmssSigR)
-  expect "holders_sphincs"; let sphincs ← many (holderR sphincsSigR)
+  expect "raw_xmss"; let xmss ← many rawXmssR
+  expect "raw_sphincs"; let sphincs ← many rawSphincsR
   expect "da_witness"; let da ← daR
   expect "batch"
   let pairs := fun (xs : List E) => (List.range (xs.length / 2)).map fun i => (xs[2 * i]!, xs[2 * i + 1]!)
@@ -216,15 +220,14 @@ def daOpens (root vd : Digest) (w : LeanVM.Da.MatrixWitness) : Bool :=
     (LeanDa.vectorDigest keccakF1600 w.orthogonalVector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
     w.rows.all fun row => (w.orthogonalVector.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
 
-/-- Every claim of a kind is held, each by name. -/
-def held {α W : Type} (children : List Child) (kind : String) (claims : List α)
-    (holders : List (ClaimHolder W)) (direct : α → W → Bool) (inChild : Child → α → Bool) :
+/-- Every raw signature of a kind verifies, and every claim of the kind is a raw signature's or in
+a child's list, each by name. -/
+def held {α W : Type} [BEq α] (children : List Child) (kind : String) (claims : List α)
+    (raws : List (α × W)) (verifies : α → W → Bool) (inChild : Child → α → Bool) :
     List (String × Bool) :=
-  (s!"{kind} holders", claims.length == holders.length) ::
-    ((claims.zip holders).zipIdx.map fun ((claim, h), i) => match h with
-      | .signature σ => (s!"{kind} claim {i} held directly", direct claim σ)
-      | .child j => (s!"{kind} claim {i} held by child {j}",
-          (children[j]?.map (inChild · claim)).getD false))
+  raws.zipIdx.map (fun ((claim, σ), i) => (s!"{kind} raw signature {i} verifies", verifies claim σ)) ++
+    claims.zipIdx.map fun (claim, i) => (s!"{kind} claim {i} held",
+      raws.any (·.1 == claim) || children.any (inChild · claim))
 
 def digestEq (a b : Digest) : Bool := a.toList == b.toList
 
@@ -238,10 +241,10 @@ def nodeRel (c : Case) : List (String × Bool) :=
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
       (s!"child {i}'s proof verifies", verifyDeferred bytecode c.seed (statementDigest c.seed ch.statement)
         ch.freshClaim ch.proof)]) ++
-  held w.children "leanXMSS" s.claims.xmss w.xmssHolders (fun cl σ
+  held w.children "leanXMSS" s.claims.xmss w.xmssSignatures (fun cl σ
       => LeanXmss.verifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
-  held w.children "leanSPHINCS" s.claims.sphincs w.sphincsHolders (fun cl σ
+  held w.children "leanSPHINCS" s.claims.sphincs w.sphincsSignatures (fun cl σ
       => Sphincs.verifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
   (match w.daMatrix with
@@ -262,8 +265,8 @@ def nodeRel (c : Case) : List (String × Bool) :=
 def limits (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let rawX := Coverage.heldDirectly s.claims.xmss w.xmssHolders
-  let rawS := Coverage.heldDirectly s.claims.sphincs w.sphincsHolders
+  let rawX := w.xmssSignatures
+  let rawS := w.sphincsSignatures
   w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {minChildStackLog}",
         match announcedLayoutAndRate bytecode ch.proof.stream with
         | some (layout, _) => decide (minChildStackLog ≤ layout.stackLog)
@@ -280,7 +283,7 @@ def limits (c : Case) : List (String × Bool) :=
       s.claims.sphincs.count x ≤ (rawS.map (·.1)).count x +
         (w.children.map fun ch => ch.statement.claims.sphincs.count x).sum),
     ("at most 16 children", w.children.length ≤ 16),
-    ("the coverage table below 2^16", coverageSlots s w < 2 ^ 16)] :
+    ("the coverage table below 2^16", coverageSlots w < 2 ^ 16)] :
     List (String × Bool))
 
 def showLimbs (x : E) : String :=

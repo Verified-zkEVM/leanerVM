@@ -70,7 +70,7 @@ theorem mainCount_le (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → 
   have hd : (hm fs 0 seed s w).nd ≤ 1 := (hData_bounds hl fs 0).nd
   have hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ (work s w).declared := by
     simp only [work]; omega
-  have hcov' : coverageSlots s w = (work s w).coverage := rfl
+  have hcov' : Coverage.planSlots s w = (work s w).coverage := rfl
   have e1 : (hm fs 0 seed s w).nxd = (xPlan s w).duplicates.length := rfl
   have e2 : (hm fs 0 seed s w).nsd = (sPlan s w).duplicates.length := rfl
   have e3 : (hm fs 0 seed s w).nrx = (work s w).rawXmss := rfl

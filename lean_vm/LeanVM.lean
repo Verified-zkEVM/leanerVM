@@ -361,12 +361,12 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     intro s w hrel hlim hok hx hs hd hdecl hcov hkids
     refine h.guestCompleteOnHonestChildren s w hrel hlim ?_ hok
     simp only [LeanVM.Guest.Completeness.CoveredNode]
-    exact Or.inl ⟨by omega, by simp [hd], hdecl, hcov, hkids⟩
+    exact Or.inl ⟨by omega, by simp [hd], hcov⟩
   guestCompleteLeaf := by
     intro s w hrel hlim hch hd hraw hdecl hcov
     refine h.guestCompleteOnHonestChildren s w hrel hlim ?_ (by simp [hch])
     simp only [LeanVM.Guest.Completeness.CoveredNode]
-    exact Or.inr (Or.inl ⟨by simp [hch], by simp [hd], hraw, hdecl, hcov⟩)
+    exact Or.inr (Or.inl ⟨by simp [hch], by simp [hd], hcov⟩)
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
