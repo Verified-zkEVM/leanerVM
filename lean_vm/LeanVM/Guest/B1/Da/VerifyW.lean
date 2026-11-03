@@ -404,7 +404,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   have hws : ∀ j < 128, (ws j).length = 256 ∧
       (∀ k < 256, ∀ w, rd ((lv j).limb 0 * Parameters.addressOfIndex k) = some w → w = (ws
           j).getD k 0) ∧
-      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 ((ws j).flatMap Node.extensionElementBytes))) := by
+      ReadsAt rd (σ (.n 17) * (gen ^ j) ^ 2) (digestCells (keccak256 ((ws j).flatMap E.toBytes))) := by
     intro j hj
     obtain ⟨hp, hbv⟩ := body_ofV hVm find_da_vector_cell (hcol j hj).1
     obtain ⟨dg, hdg, hrv, hl, -, hfr, hrd⟩ := da_vector_cell_val hp hbv
@@ -642,7 +642,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
       have p0 := hrd 0 (by simp [digestCells])
       have p1 := hrd 1 (by simp [digestCells])
       rw [shift2] at p0 p1
-      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap Node.extensionElementBytes) := by
+      have e2 : colD wsP (c / 2) = keccak256 ((ws (c / 2)).flatMap E.toBytes) := by
         rw [colD, hwP (c / 2) (by omega)]
       rcases (show c % 2 = 0 ∨ c % 2 = 1 by omega) with h | h
       · rw [h, memAt_of_load (by simpa using p0), e2]; rfl

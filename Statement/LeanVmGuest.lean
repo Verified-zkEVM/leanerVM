@@ -95,13 +95,11 @@ structure NodeStatement where
 Each digest is Keccak-256 of its preimage; the preimages are also the inputs of the candidate
 collisions (`collisionCandidates`, below). -/
 
-/-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
-def littleEndianBytes16 (value : BitVec 128) : List UInt8 := HashSig.littleEndianBytes 16 value
-
 /-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
 (`claim_cells`, `aggregation.rs:217-224`). -/
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
-  littleEndianBytes16 root ++ littleEndianBytes16 parameter ++ HashSig.littleEndianBytes 32 message
+  HashSig.littleEndianBytes 16 root ++ HashSig.littleEndianBytes 16 parameter ++
+    HashSig.littleEndianBytes 32 message
 
 /-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
 (`LeanXmssClaim` and `LeanSphincsClaim` are one type). -/
@@ -125,10 +123,6 @@ def daClaimDigest (claim : DaClaim) : Digest := keccak256 (daClaimPreimage claim
 `aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4166-4167`). -/
 def zeroDigest : Digest := Vector.replicate 4 0
 
-/-- The 24 bytes of a field element, its three limbs. -/
-def extensionElementBytes (x : E) : List UInt8 :=
-  K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
-
 /-- The deferred claim's cells, an odd count paired with a zero cell. -/
 def paddedDeferredClaimCells (claim : DeferredClaim) : List E :=
   claim.cells ++ if claim.cells.length % 2 = 1 then [0] else []
@@ -140,7 +134,7 @@ def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :
   digestBytes seed ++ digestBytes (claimListDigest statement.claims.xmss) ++
     digestBytes (claimListDigest statement.claims.sphincs) ++
     digestBytes statement.claims.daDigest ++
-    (paddedDeferredClaimCells statement.deferredClaim).flatMap extensionElementBytes
+    (paddedDeferredClaimCells statement.deferredClaim).flatMap E.toBytes
 
 /-- **The statement's digest under `seed`**, a node's public input (`statement_digest`,
 `aggregation.rs:331-360`, `lean_ethereum.py:3759-3790`). The cells carry no lengths: the digest

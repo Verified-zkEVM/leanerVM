@@ -91,7 +91,7 @@ def cellD (i j : ℕ) : Digest := keccak256 ((syms i j).flatMap K.toBytes)
 def rowD (i : ℕ) : Digest := keccak256 ((List.range 64).flatMap fun j => digestBytes (cellD syms i j))
 
 /-- Column `j`'s digest. -/
-def colD (j : ℕ) : Digest := keccak256 ((ws j).flatMap Node.extensionElementBytes)
+def colD (j : ℕ) : Digest := keccak256 ((ws j).flatMap E.toBytes)
 
 /-- The row tree's leaves: the rows' digests, then the padding row's. -/
 def rowLeaf (i : ℕ) : Digest := if i < r then rowD syms i else daPadRowDigest

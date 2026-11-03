@@ -139,7 +139,7 @@ pointer `p` (every readable word at `p·g^k` is weight `k`), and the two cells o
 def MeaningDaVectorCell (rd : Reader) : List E → List E → Prop
   | [dg], [p] => ∃ ws : List E, ws.length = LeanDa.cellSymbols ∧ IsInK p ∧
       (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.addressOfIndex k) = some w → w = ws.getD k 0) ∧
-      ReadsAt rd dg (digestCells (keccak256 (ws.flatMap Node.extensionElementBytes)))
+      ReadsAt rd dg (digestCells (keccak256 (ws.flatMap E.toBytes)))
   | _, _ => False
 
 /-- `da_vector_cell`'s core IR gives its meaning. -/

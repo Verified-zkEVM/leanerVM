@@ -68,7 +68,7 @@ def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
   let sd ← sphincsListDigestWith H s.claims.sphincs
   let cells := s.deferredClaim.cells ++ if s.deferredClaim.cells.length % 2 = 1 then [0] else []
   H (digestBytes seed ++ digestBytes xd ++ digestBytes sd ++ digestBytes s.claims.daDigest ++
-    cells.flatMap extensionElementBytes)
+    cells.flatMap E.toBytes)
 
 /-! ### The batching -/
 

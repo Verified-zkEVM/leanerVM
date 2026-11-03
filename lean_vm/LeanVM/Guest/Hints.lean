@@ -104,7 +104,7 @@ def cellsOfBytes (b : List UInt8) : List E :=
   (List.range (b.length / 16)).map fun i ↦ cellOfBytes (b.drop (16 * i))
 
 /-- A 128-bit value as its cell. -/
-def cell128 (v : BitVec 128) : E := cellOfBytes (littleEndianBytes16 v)
+def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]

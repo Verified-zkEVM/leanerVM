@@ -39,7 +39,7 @@ family's modules.
 **Cells and bytes.** A cell holds sixteen bytes, limbs `0` and `1` (`Value.Keccak.cellsBytes`;
 the `KECCAK` instruction makes every cell it reads canonical, `AllCanonical`). A digest's two
 cells are `digestHalves` (`digestCells`); a deferred cell is a full field element, hashed as its
-three limbs (`Node.extensionElementBytes`, `pack_pair`).
+three limbs (`E.toBytes`, `pack_pair`).
 
 **The memory.** A range check (`assert log x < log b`) is an exact relation on the memory read
 (`RangeChecked`); on a memory image of `2^κ` words, `16 ≤ κ ≤ 32` (`MemOk`, as every valid
@@ -76,7 +76,7 @@ abbrev deferStmtCells : ℕ := 24
 
 /-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
 the DA digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
-def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap Node.extensionElementBytes
+def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap E.toBytes
 
 /-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
 deferred cells at `defer`; the eight header cells are canonical (the `KECCAK` reads them), and the

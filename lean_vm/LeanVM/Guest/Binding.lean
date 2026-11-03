@@ -74,9 +74,9 @@ theorem flatMap_inj {α β : Type} {f : α → List β} {n : ℕ} (hn : 0 < n)
 theorem kBytes_inj {a b : K} (h : K.toBytes a = K.toBytes b) : a = b :=
   K.lane_injective (wordBytes_injective h)
 
-theorem length_eBytes (x : E) : (extensionElementBytes x).length = 24 := rfl
+theorem length_eBytes (x : E) : (E.toBytes x).length = 24 := rfl
 
-theorem eBytes_inj {x y : E} (h : extensionElementBytes x = extensionElementBytes y) : x = y := by
+theorem eBytes_inj {x y : E} (h : E.toBytes x = E.toBytes y) : x = y := by
   obtain ⟨h12, h3⟩ := List.append_inj h rfl
   obtain ⟨h1, h2⟩ := List.append_inj h12 rfl
   apply CompPoly.Extension.Ext.ext
@@ -101,13 +101,13 @@ theorem bytesLE_inj {n : ℕ} {v v' : BitVec (8 * n)}
 
 theorem claimBytes_inj {r p r' p' : BitVec 128} {m m' : BitVec 256}
     (h : claimBytes r p m = claimBytes r' p' m') : r = r' ∧ p = p' ∧ m = m' := by
-  obtain ⟨h12, h3⟩ := List.append_inj h (by simp [littleEndianBytes16, length_bytesLE])
-  obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [littleEndianBytes16, length_bytesLE])
+  obtain ⟨h12, h3⟩ := List.append_inj h (by simp [length_bytesLE])
+  obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [length_bytesLE])
   exact ⟨bytesLE_inj (n := 16) h1, bytesLE_inj (n := 16) h2, bytesLE_inj (n := 32) h3⟩
 
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) :
     (claimBytes r p m).length = 64 := by
-  simp [claimBytes, littleEndianBytes16, length_bytesLE]
+  simp [claimBytes, length_bytesLE]
 
 theorem xmssPreimage_inj {l l' : List LeanXmssClaim} (h : claimListPreimage l = claimListPreimage l') :
     l = l' :=

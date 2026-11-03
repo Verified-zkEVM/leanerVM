@@ -42,7 +42,7 @@ theorem cellBytes_cellOfBytes {b : List UInt8} (h : 16 ≤ b.length) :
   exact (List.take_add (l := b) (i := 8) (j := 8)).symm
 
 theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, littleEndianBytes16, HashSig.littleEndianBytes]
+  simp [claimBytes, HashSig.littleEndianBytes]
 
 theorem kid_claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
     claimCells r p m = [cellOfBytes (claimBytes r p m), cellOfBytes ((claimBytes r p m).drop 16),

@@ -91,6 +91,10 @@ open LeanVM.Parameters LeanVM.Semantics
 /-- The eight little-endian bytes of a `K` word (`K.to_bytes`, `verifier.py:50-52`). -/
 def _root_.LeanVM.Parameters.K.toBytes (a : K) : List UInt8 := wordBytes a.lane
 
+/-- The 24 bytes of an `E` word: its three limbs' bytes, `y^0` first. -/
+def _root_.LeanVM.Parameters.E.toBytes (x : E) : List UInt8 :=
+  K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
+
 /-- A digest as the two field elements a transcript carries it in, its 128-bit halves
 `E(w0, w1)`, `E(w2, w3)` (`Digest.halves`, `verifier.py:225-228`). -/
 def digestHalves (digest : Digest) : E × E :=

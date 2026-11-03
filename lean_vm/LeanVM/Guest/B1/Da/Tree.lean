@@ -51,10 +51,10 @@ theorem kBytes_eq (a : K) : LeanDa.symbolBytes a = K.toBytes a := by
   rw [Nat.mod_eq_of_lt (show 8 * t < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 8 * t < 64 by omega)]
   rfl
 
-theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap Node.extensionElementBytes := by
+theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap E.toBytes := by
   simp only [LeanDa.limbBytes, List.flatMap_assoc]
   refine List.flatMap_congr fun e _ => ?_
-  simp [Node.extensionElementBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
+  simp [E.toBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
 
 theorem keccak_pair (a b : Digest) :
     LeanVM.Da.keccak256Bytes (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
