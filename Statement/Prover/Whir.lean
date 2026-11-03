@@ -23,8 +23,7 @@ query table the queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTa
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile LeanVM.Protocol.Whir
-open LeanVM.Protocol.Whir.Complete
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-! ## Ring switching -/
 

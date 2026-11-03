@@ -87,7 +87,7 @@ example (μ R : ℕ) (target : E) (B : List E → E) :
       Verifier.liftOption (Whir.ladder μ R) >>= fun config ↦ whirRun μ config target B := rfl
 
 /-- The stack's commitment is opened at level `0` with the shape `commitStack` announces. -/
-example : stackCommit 15 1 ⟨Vector.replicate _ 0⟩ = (10, 64, stackWord 15 ⟨Vector.replicate _ 0⟩) :=
+example : stackCommit 15 1 ⟨Vector.replicate _ 0⟩ = (10, 64, stackWord 15 1 ⟨Vector.replicate _ 0⟩) :=
   rfl
 
 /-! ## The honest round polynomials -/
@@ -215,33 +215,33 @@ def toyLadder : List Whir.Level := [⟨6, 1, 1⟩, ⟨1, 1, 1⟩]
 #guard
   let q := toyQ 7 7
   (Strategy.ofScript (toyScript toyLadder q (toyTarget q)) 1).runFrom chal
-    (toyProg toyLadder q (toyTarget q)) [Ev.commit (7 - 6 + 1) 64 (stackWord 7 q)] = some ()
+    (toyProg toyLadder q (toyTarget q)) [Ev.commit (7 - 6 + 1) 64 (stackWord 7 1 q)] = some ()
 
 -- The honest prover wins at `2^8`, with a tail round.
 #guard
   let q := toyQ 8 7
   lockstep chal (toyScript toyLadder q (toyTarget q)) (toyProg toyLadder q (toyTarget q))
-    [Ev.commit (8 - 6 + 1) 64 (stackWord 8 q)] [(8 - 6 + 1, 64, stackWord 8 q)] = some ()
+    [Ev.commit (8 - 6 + 1) 64 (stackWord 8 1 q)] [(8 - 6 + 1, 64, stackWord 8 1 q)] = some ()
 
 -- A first message off by one is rejected.
 #guard
   let q := toyQ 7 7
   lockstep chal (tamperFirst (toyScript toyLadder q (toyTarget q)))
     (toyProg toyLadder q (toyTarget q))
-    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 q)] [(7 - 6 + 1, 64, stackWord 7 q)] = none
+    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 1 q)] [(7 - 6 + 1, 64, stackWord 7 1 q)] = none
 
 -- A claimed value off by one is rejected, the prover otherwise honest.
 #guard
   let q := toyQ 7 7
   lockstep chal (toyScript toyLadder q (toyTarget q + 1)) (toyProg toyLadder q (toyTarget q + 1))
-    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 q)] [(7 - 6 + 1, 64, stackWord 7 q)] = none
+    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 1 q)] [(7 - 6 + 1, 64, stackWord 7 1 q)] = none
 
 -- The word of another stack is rejected.
 #guard
   let q := toyQ 7 7
   let q' := toyQ 7 8
   lockstep chal (toyScript toyLadder q (toyTarget q)) (toyProg toyLadder q (toyTarget q))
-    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 q')] [(7 - 6 + 1, 64, stackWord 7 q')] = none
+    [Ev.commit (7 - 6 + 1) 64 (stackWord 7 1 q')] [(7 - 6 + 1, 64, stackWord 7 1 q')] = none
 
 /-! ## The toy runs are instances of the theorem -/
 
@@ -279,7 +279,7 @@ example : Follows (fun _ _ _ ↦ True) (toyScript toyLadder (toyQ 8 7) (toyTarge
     (toyClaims_multilinear _)
 
 /-- The toy stack is a candidate of its honest word, on every column. -/
-example : toyQ 8 7 ∈ Candidates 8 1 (2 ^ (8 - laneBits + 1)) (stackWord 8 (toyQ 8 7)) :=
+example : toyQ 8 7 ∈ Candidates 8 1 (2 ^ (8 - laneBits + 1)) (stackWord 8 1 (toyQ 8 7)) :=
   ⟨Finset.univ, by simp, stackWord_agrees 8 1 _⟩
 
 end LeanVMTests.Protocol.Whir.Complete.Opening

@@ -1,37 +1,37 @@
 module
 
-public import Statement.Prover.Code
 public import Statement.Prover.Script
 
 /-!
 # The additive NTT and the committed words
 
-The encoder of leanVM's binary Reed-Solomon code in the novel basis (`Code.lean`) for all
+The encoder of leanVM's binary Reed-Solomon code in the novel basis (Annex D,
+`doc/leanvm/body/d-novel-basis.tex:2-46`: `Enc(g)(x_p) = Σ_u g(u)·X_⟨u⟩(x_p)`,
+`X_j = ∏_i Ŵ_i^{j_i}`, `Ŵ_i` the normalized subspace polynomials, `x_p = K.ofBits p`) for all
 `2^(κ+R)` domain points at once, in `O((κ+R)·2^(κ+R))` operations
 (`crates/pcs/src/ntt/additive_ntt_f64.rs`, `AdditiveNttF64::standard`, at leanVM pin
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`). `Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is
-additive and vanishes on `U_i`), so the transform folds the message's variables from the top, a
-stage the butterfly `(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})`
-of the block `b`; the twiddles come by additivity from the table of `Ŵ_c(e_m)`, `c, m < 64`.
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`).
+`Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is additive and vanishes on `U_i`), so the transform
+folds the message's variables from the top, a stage the butterfly
+`(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})` of the block `b`;
+the twiddles come by additivity from the table of `Ŵ_c(e_m)`, `c, m < 64`.
 
-A committed word is a function on every position: these hold the computed codewords below
-`2^height`, the only positions a run reads, and the encoder's formula above, never evaluated, so
-that they are the specification's words at every position.
+A committed word's leaf `p` reads the codewords at `p`; a run reads the leaves below the committed
+height `2^(κ+R)` only.
 -/
 
 @[expose] public section
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Protocol.Whir LeanVM.Protocol.Whir.Complete
-open LeanVM.Protocol.Compile
+open LeanVM.Parameters LeanVM.Protocol.Compile
 
 /-! ## The subspace polynomials on the basis -/
 
 /-- Row `c` of the subspace polynomials on the basis, `W_c(e_m)` for `m < 64`: `W_0(a) = a`,
 `W_{c+1}(a) = W_c(a)^2 + W_c(e_c)·W_c(a)`. -/
 def vanRow : ℕ → Array K
-  | 0 => Array.ofFn (n := 64) fun m ↦ basisVec m
+  | 0 => Array.ofFn (n := 64) fun m ↦ K.ofBits (2 ^ m.val)
   | c + 1 =>
     let r := vanRow c
     let root := r.getD c 0
@@ -102,18 +102,15 @@ def stackCodes (μ R : ℕ) (stack : Array K) : Array (Array K) :=
     ntt tws κ R (Array.ofFn (n := 2 ^ κ) fun v ↦ stack.getD (v.val + 2 ^ κ * u.val) 0)
 
 /-- **The stack's level-0 word**: leaf `p` holds the 64 lanes' codeword entries at `x_p`, in
-reverse lane order; computed below `2^(μ-6+R)`, the encoder's formula above (never read by the
-run). -/
+reverse lane order. -/
 @[macro_inline] def stackWordFast (μ R : ℕ) (stack : Array K) : Word :=
-  stackWordOf μ R stack (stackCodes μ R stack)
+  stackWordOf (stackCodes μ R stack)
 where
   /-- The word from the lanes' codewords `codes`, computed once: the word is a closure over
   them (`stackWordFast` is inlined where it is used, so that `codes` is evaluated before the
   closure is formed). -/
-  stackWordOf (μ R : ℕ) (stack : Array K) (codes : Array (Array K)) (p : ℕ) : List K :=
-    if p < 2 ^ (μ - 6 + R) then ((List.range 64).map fun u ↦ (codes.getD u #[]).getD p 0).reverse
-    else ((List.range 64).map fun u ↦
-      encKAt (μ - 6) (fun x ↦ stack.getD (bitsToNat x + 2 ^ (μ - 6) * u) 0) p).reverse
+  stackWordOf (codes : Array (Array K)) (p : ℕ) : List K :=
+    ((List.range 64).map fun u ↦ (codes.getD u #[]).getD p 0).reverse
 
 /-- The codewords of a level's lanes, limb by limb: entry `3j + l` encodes limb `l` of the lane
 `j`, `x ↦ g[j + 2^k·x]`. -/
@@ -124,17 +121,15 @@ def levelCodes (κ k R : ℕ) (g : Array E) : Array (Array K) :=
       (g.getD (jl.val / 3 + 2 ^ k * v.val) 0).limb ⟨jl.val % 3, Nat.mod_lt _ (by decide)⟩)
 
 /-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
-each; computed below `2^(κ+R)`, the encoder's formula above (never read by the run). -/
+each. -/
 @[macro_inline] def levelWordFast (κ k R : ℕ) (g : Array E) : Word :=
-  levelWordOf κ k R g (levelCodes κ k R g)
+  levelWordOf k (levelCodes κ k R g)
 where
   /-- The word from the lanes' codewords `codes`, computed once (as for `stackWordFast`). -/
-  levelWordOf (κ k R : ℕ) (g : Array E) (codes : Array (Array K)) (p : ℕ) : List K :=
-    if p < 2 ^ (κ + R) then
-      (List.range (2 ^ k)).flatMap fun j ↦
-        [(codes.getD (3 * j) #[]).getD p 0, (codes.getD (3 * j + 1) #[]).getD p 0,
-          (codes.getD (3 * j + 2) #[]).getD p 0]
-    else levelWord κ k g.toList p
+  levelWordOf (k : ℕ) (codes : Array (Array K)) (p : ℕ) : List K :=
+    (List.range (2 ^ k)).flatMap fun j ↦
+      [(codes.getD (3 * j) #[]).getD p 0, (codes.getD (3 * j + 1) #[]).getD p 0,
+        (codes.getD (3 * j + 2) #[]).getD p 0]
 
 end LeanVM.Prover
 

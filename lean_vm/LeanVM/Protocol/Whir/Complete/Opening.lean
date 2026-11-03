@@ -183,7 +183,7 @@ def hLevels (μ : ℕ) (f₀ : List E) : ℕ → List Whir.Level → WhirStateT 
         Script.sendList g
         pure (g, ([] : List (E × List E × (List E → E))), ([] : List (List E)))
       | next :: _ => do
-        Script.commitS (levelWord (messageLog - next.fold) next.fold g)
+        Script.commitS (levelWord (messageLog - next.fold) next.fold next.logInvRate g)
         let oodPoint ← Script.sampleN messageLog
         let oodValue := multilinearEval g oodPoint
         Script.sendE oodValue
@@ -469,10 +469,12 @@ end Rounds
 /-! ## The levels -/
 
 /-- The commitments in place when a level starts: the word it opens sits at its index and reads,
-at every position, as the lanes' codeword entries of the level's message `g` on `m` variables. -/
+at every position of its domain, as the lanes' codeword entries of the level's message `g` on `m`
+variables. -/
 def LevelCommit (cs : Commits) (index m : ℕ) (g : List E) (level : Whir.Level) : Prop :=
   cs.length = index + 1 ∧ ∃ w word, cs[index]? = some (m - level.fold + level.logInvRate, w, word) ∧
-    ∀ p, readRow index (word p) = laneCodes (m - level.fold) level.fold g p
+    ∀ p < 2 ^ (m - level.fold + level.logInvRate),
+      readRow index (word p) = laneCodes (m - level.fold) level.fold g p
 
 section Levels
 
@@ -566,7 +568,7 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
         (Follows.ret_ret ⟨rfl, List.Forall₂.nil, hans0 cs' rfl, rfl⟩) ?_
     on_goal 2 =>
       dsimp only [levelShape]
-      refine Follows.bind_of (Follows.commitS_commitP (wellShaped_levelWord _ _ _) cs) ?_
+      refine Follows.bind_of (Follows.commitS_commitP (wellShaped_levelWord _ _ _ _) cs) ?_
       rintro cs' _ _ rfl
       refine Follows.bind_of (Follows.sampleN_sampleN _ (μ - s1.folds.length)) ?_
       rintro c2 z _ ⟨rfl, rfl, hz⟩
@@ -584,12 +586,12 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
         (Follows.ret_ret ⟨rfl, List.Forall₂.cons (honestClaim_ood hg' z hz) List.Forall₂.nil,
           hans0 _ (List.getElem?_append_left (by omega)), ?_⟩) ?_
       refine ⟨by simp [hcl], 3 * 2 ^ next.fold,
-        levelWord (μ - s1.folds.length - next.fold) next.fold (foldAll f₀ s1.folds), ?_,
-        fun p ↦ ?_⟩
+        levelWord (μ - s1.folds.length - next.fold) next.fold next.logInvRate
+          (foldAll f₀ s1.folds), ?_, fun p hp ↦ ?_⟩
       · rw [List.getElem?_append_right (by omega)]
         simp [hcl]
       · simp only [readRow, Nat.add_one_ne_zero, ite_false]
-        exact extRow_levelWord _ _ _ p
+        exact extRow_levelWord _ _ _ _ hp
     all_goals
       rintro cs2 ⟨residual, pending, tables⟩ b ⟨rfl, hF, hans, hfinal⟩
       dsimp only
@@ -606,9 +608,9 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
           else (queries.map fun p ↦ word p).map extRow) =
             queries.map (laneCodes (μ - s1.folds.length) new.length (foldAll f₀ s.folds)) := by
         rw [readRows_eq, List.map_map]
-        refine List.map_congr_left fun p _ ↦ ?_
+        refine List.map_congr_left fun p hp ↦ ?_
         simp only [Function.comp_apply]
-        rw [hrow p, hm, hnl]
+        rw [hrow p (hm ▸ hq p hp), hm, hnl]
       rw [hrows, queryTable_eq hκ]
       refine Follows.bind_of (follows_round _ _ _ _) ?_
       rintro cs7 _ intro ⟨rfl, rfl⟩
@@ -790,17 +792,17 @@ def honestOpening (μ R : ℕ) (q : Column μ) (claims : List StackClaim) : Scri
 /-- The commitment the opening opens at level `0`: the stack's word, `2^(μ−6+R)` leaves of `64`
 words. -/
 def stackCommit (μ R : ℕ) (q : Column μ) : ℕ × ℕ × Word :=
-  (μ - laneBits + R, 2 ^ laneBits, stackWord μ q)
+  (μ - laneBits + R, 2 ^ laneBits, stackWord μ R q)
 
 /-- **The honest commitment follows `commitStack`.** -/
 theorem follows_commitStack {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Column μ)
     (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs ++ [stackCommit μ R q]) (Script.commitS (stackWord μ q))
+    Follows (fun cs' _ _ ↦ cs' = cs ++ [stackCommit μ R q]) (Script.commitS (stackWord μ R q))
       (commitStack μ R) cs := by
   obtain ⟨q₀, rest, hc, _⟩ := exists_ladder hadm
   simp only [commitStack, hc, Verifier.liftOption, VerifierProgram.bind_eq,
       VerifierProgram.ret_bind, levelShape]
-  exact Follows.commitS_commitP (wellShaped_stackWord μ q) cs
+  exact Follows.commitS_commitP (wellShaped_stackWord μ R q) cs
 
 /-- **Completeness of the WHIR run on any ladder** that starts with the lane fold at rate `R`
 and whose folds fit in the stack: for stack claims that hold of `q` with multilinear weights,
@@ -828,9 +830,9 @@ theorem follows_whirRun {μ R q₀ : ℕ} {rest : List Whir.Level} (hμ6 : laneB
   · intro level hl
     simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hl
     subst hl
-    refine ⟨rfl, 2 ^ laneBits, stackWord μ q, by simp [stackCommit], fun p ↦ ?_⟩
-    simp only [readRow, ite_true, List.length_nil, Nat.sub_zero, foldAll_nil]
-    exact readRow_stackWord hμ6 q p
+    refine ⟨rfl, 2 ^ laneBits, stackWord μ R q, by simp [stackCommit], fun p hp ↦ ?_⟩
+    simp only [readRow, ite_true, List.length_nil, Nat.sub_zero, foldAll_nil] at hp ⊢
+    exact readRow_stackWord hμ6 q hp
 
 /-- **Perfect completeness of the stacked opening, as a simulation.** For an admissible
 `(μ, R)` and stack claims that hold of `q` with multilinear weights, the honest prover follows
@@ -877,7 +879,7 @@ theorem runFrom_verifyStackedOpening {μ R : ℕ} (hadm : Whir.Admissible μ R) 
 /-- The commitment and the opening in sequence, as the honest prover runs them when no other
 phase commits in between. -/
 def honestCommitOpening (μ R : ℕ) (q : Column μ) (claims : List StackClaim) : Script Unit := do
-  Script.commitS (stackWord μ q)
+  Script.commitS (stackWord μ R q)
   honestOpening μ R q claims
 
 /-- The honest commitment followed by the honest opening follows `commitStack` followed by
