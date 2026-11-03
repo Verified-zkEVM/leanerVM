@@ -3,6 +3,7 @@ module
 public import LeanDa.Scheme
 public import LeanDa.Defs
 public import LeanDa.WithHash
+public import LeanDa.Commitment
 
 @[expose] public section
 
@@ -95,7 +96,6 @@ theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ)
   | zero => rfl
   | succ d ih => simp [merklePathWithHash, ih]
 
-theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
 
 theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     colLeavesWithHash H c (columnTreeIndex p) = cellDigestWithHash H (c p) := by
