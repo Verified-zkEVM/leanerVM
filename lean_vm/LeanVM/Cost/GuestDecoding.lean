@@ -6,7 +6,7 @@ public import Statement.Theorems
 /-!
 # The encoding of a guest decoding is injective
 
-`GuestKnowledgeSoundness` (`Statement/Theorems.lean`) asks the guest decoder program to output the
+`GuestKnowledgeSoundness` (`Statement/LeanVmGuest.lean`) asks the guest decoder program to output the
 encoding (`encodeValue`) of a decoding: a seed, a statement and a witness. That the output
 determines the decoding is **`encodeValue_decoded_injective`**, from a left inverse:
 `decodeDecoded`, a parse of each type of a decoding by its `MachineDecoding` instance (here, not in

@@ -75,7 +75,7 @@ example (W : Val → Reader → FrameMap → NodeWitness) (h : SoundHyps W) (inp
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
+  exact ⟨_, _, hd, hrel.hasBytecodeShape, _, hrel⟩
 
 /-! ## The existential one is nearly vacuous -/
 
@@ -91,6 +91,5 @@ example (seed : Digest) (v : E) (hints : BatchingHints) :
   refine ⟨⟨[], [], [], none, hints⟩, ?_⟩
   unfold NodeRelation SignatureClaimsHeld DaDigestHeld ChildrenProven DeferredClaimBatched
   refine ⟨⟨by simp [emptyStatement], by simp [emptyStatement]⟩, by simp [emptyStatement], by simp,
-    ?_, ?_⟩
-  · simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]
-  · simp [emptyStatement, DeferredClaim.HasBytecodeShape, hlog]
+    ?_⟩
+  simp [emptyStatement, DeferredClaim.HasZeroPoint, hlog]

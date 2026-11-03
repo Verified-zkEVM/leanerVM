@@ -1168,7 +1168,7 @@ theorem literalNatArrays (l : List (List ℕ)) :
 
 /-! ### Bit vectors, encoded as their number
 
-The statement's encoding of `BitVec w` (`Statement/Theorems.lean`) is `.nat v.toNat`; it is not
+The statement's encoding of `BitVec w` (`Statement/CostMachine.lean`) is `.nat v.toNat`; it is not
 imported here, so each rule takes the encoding as an instance with its defining equation, which
 the compiler proves by `rfl`. -/
 

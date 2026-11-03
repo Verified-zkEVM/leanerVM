@@ -45,7 +45,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
   simp only [hne, ↓reduceIte] at hb
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   have hrl : w.batchingHints.sumcheckMessages.length = 23 := by
-    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.2.2.2.2, hlog]
+    have hpt : s.deferredClaim.bytecodePoint.length = 23 := by rw [hrel.hasBytecodeShape, hlog]
     rw [(batch_out hb).1, aggOut, aggRun, bsRun_len] at hpt
     exact hpt
   have hdst := mem_hLmain fs fp seed s w (i := 9) (by omega)

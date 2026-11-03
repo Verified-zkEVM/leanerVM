@@ -16,6 +16,8 @@ calls and its seed derivations.
 
 namespace Sphincs
 
+open HashSig HashSig.OverPermutation
+
 /-- The exact 16 address bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : HashInput :=
   addressBytes (hashDomainFields domain)

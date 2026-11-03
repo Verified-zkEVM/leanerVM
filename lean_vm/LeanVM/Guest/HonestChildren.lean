@@ -2,8 +2,7 @@
   LeanVM.Guest.HonestChildren
 
   The guest program's completeness on children carrying honest proofs (`Statement`'s
-  `GuestCompleteOnHonestChildren`, its corollaries `GuestCompleteRecursion` and `GuestCompleteLeaf`)
-  and the honest proof rarely refused (`HonestProofRarelyRefused`), from the completeness on
+  `GuestCompleteOnHonestChildren`) and the honest proof rarely refused (`HonestProofRarelyRefused`), from the completeness on
   children the guest program accepts and the honest proof being such a child.
 -/
 
@@ -21,9 +20,7 @@ the honest proof is an acceptable child, and `NodeRelation`'s `ChildrenProven` h
 verifier accept the proof with the witness's fresh claim, which is true; the deferring verifier
 accepts a proof with at most one true claim (`Child.freshClaim_unique`), so the two claims are one
 (`acceptableChild_of_honestChild`). The completeness on acceptable children
-(`guest_complete_covered`, every seed) then gives `GuestCompleteOnHonestChildren`, and its first
-two families (`guest_complete_recursion_acceptable`, `guest_complete_leaf_acceptable`) the
-corollaries.
+(`guest_complete_covered`, every seed) then gives `GuestCompleteOnHonestChildren`.
 -/
 
 namespace LeanVM.Guest.Completeness
@@ -76,19 +73,5 @@ theorem guest_complete_on_honest_children : GuestCompleteOnHonestChildren := by
 first part. -/
 theorem honest_proof_rarely_refused : HonestProofRarelyRefused :=
   Budget.guest_child_complete.1
-
-/-- **Every recursion node of at most `2048` claims whose children carry honest proofs has a valid
-execution of the guest program** (`GuestCompleteRecursion`), by the budget directly
-(`guest_complete_recursion_acceptable`). -/
-theorem guest_complete_recursion : GuestCompleteRecursion := by
-  intro s w hrel hlim hok
-  exact Budget.guest_complete_recursion_acceptable _ s w hrel hlim
-    (acceptableChildren_of_honest hrel hok)
-
-/-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest program**
-(`GuestCompleteLeaf`), by the budget directly (`guest_complete_leaf_acceptable`). -/
-theorem guest_complete_leaf : GuestCompleteLeaf := by
-  intro s w hrel hlim hch
-  exact Budget.guest_complete_leaf_acceptable _ s w hrel hlim (by simp [hch]) hch
 
 end LeanVM.Guest.Completeness

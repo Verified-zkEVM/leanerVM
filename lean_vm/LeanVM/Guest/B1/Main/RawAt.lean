@@ -60,8 +60,8 @@ structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
 /-- **The raw leanSPHINCS signatures' honest data.** -/
 structure RawSData (nrs Y X nrx cv tb bb : ℕ) (Lin : Layout) where
   slot : ℕ → ℕ
-  pk : ℕ → Sphincs.PublicKey
-  msg : ℕ → Sphincs.Message
+  pk : ℕ → HashSig.PublicKey
+  msg : ℕ → HashSig.Message
   sig : ℕ → Sphincs.Signature
   slot_lt : ∀ j < nrs, slot j < Y
   verify : ∀ j < nrs, Sphincs.verifyWithKeccak (pk j) (msg j) (sig j) = true

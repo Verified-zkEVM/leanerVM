@@ -48,7 +48,7 @@ $D$ the compiled decoder \lean{LeanVM.Cost.compiledGuestWitnessDecoder}.
 Field & End statement & Section\\\midrule
 \lean{leanVmKnowledgeSoundness} & \lean{LeanVM.KnowledgeSoundness (extractorComputedBy P)} & \ref{sec:zkvm}\\
 \lean{leanVmCompleteness} & \lean{LeanVM.Completeness} & \ref{sec:zkvm}\\
-\lean{guestKnowledgeSoundness} & \texttt{LeanVM.Node.GuestKnowledgeSoundness guest D} & \ref{sec:guest}\\
+\lean{guestKnowledgeSoundness} & \texttt{LeanVM.Node.GuestKnowledgeSoundness D} & \ref{sec:guest}\\
 \lean{statementDigestBinds} & \lean{LeanVM.Node.StatementDigestBinds} & \ref{sec:guest}\\
 \lean{guestCompleteOnHonestChildren} & \lean{LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren} & \ref{sec:guest}\\
 \lean{honestProofRarelyRefused} & \lean{LeanVM.Guest.Completeness.HonestProofRarelyRefused} & \ref{sec:guest}\\
@@ -61,9 +61,9 @@ Field & End statement & Section\\\midrule
 \bottomrule
 \end{tabular}
 \end{center}
-The last file, \lean{Statement/Corollaries.lean}, is optional reading: it states three
-consequences of the fields, \lean{AggregateSound}, \lean{GuestCompleteRecursion} and
-\lean{GuestCompleteLeaf} (Section~\ref{sec:guest}), proved from the fields alone by
+The last file, \lean{Statement/Corollaries.lean}, is optional reading: it states one
+consequence of the fields, \lean{AggregateSound} (Section~\ref{sec:guest}), proved from the
+fields alone by
 \lean{LeanVM.corollaries_of_theorems}. Theorems cited below with \lean{lean_vm} or another
 project beside them are proved in the proof projects; their statements are not part of
 \lean{Statement/}.
@@ -137,8 +137,11 @@ run may cost in the machine's price, so also the most steps it may execute,
 $2^{81} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
 above the price \lean{lean_vm} proves of the compiled extractor at every shape; polylogarithmic per
 query: about $2^{81}$ for $N \le 2^{50}$, the list decoder dominating, and $2^{157.08}$ at
-$N = 2^{128}$, the transcript's index dominating, where the soundness bound is already trivial), its
-output parsed as an execution; a run out of budget outputs nothing, which counts as a break. The
+$N = 2^{128}$, the transcript's index dominating), its output parsed as an execution; a run out of
+budget outputs nothing, which counts as a break. The budget passes $2^{128}$ at about
+$N = 2^{100}$, where the soundness bound is still $2^{-28}$, and its constant $2^{81}$ would pay for
+a search of about $2^{70}$ Keccak-f[1600] evaluations: knowledge of a witness such a search finds
+(of low entropy) is not what the statement certifies. The
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only
 by its size and budget: $P$ is a program (no classical choice), the size bound leaves the compiled
 extractor no room for a useful table of witnesses, the budget is the one above, and the machine's
@@ -146,8 +149,9 @@ only runtime data is its input. The machine's prices are trusted to be honest: e
 least $1$ and at least the words it writes (a \texttt{case} pays for the fields it binds, a
 closure's application for its captured values); an operation on natural numbers costs the 64-bit
 limbs it reads or writes, and a product, quotient, remainder or carry-less product the product of
-its operands' limb counts (schoolbook), so one-limb operations, the carry-less product included
-(PCLMULQDQ, PMULL), cost $1$; a $\mathbb{F}_{2^{64}}$ product is compiled code (a carry-less product
+its operands' limb counts (schoolbook), at least the limbs it writes, so one-limb operations, the
+carry-less product included (PCLMULQDQ, PMULL), cost $1$, or $2$ when the result spills into a
+second limb; a $\mathbb{F}_{2^{64}}$ product is compiled code (a carry-less product
 and its reduction, $27$). In a program's size, a constructor's tag and a function index count one:
 the machine reads them only by bounded lookups.
 
@@ -227,7 +231,8 @@ above one says nothing).
 \subsection*{The signature schemes}
 
 \paragraph{leanXMSS} (\lean{LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable},
-\lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack.
+\lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack
+(for $k$ keys, guessing the attacked one loses a factor $k$; not proved here).
 The game samples the key's seed, generates the keys, and runs the adversary with $\pi$,
 $\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
 only if no index is requested twice, and its forgery wins if it verifies and is not a pair the
@@ -243,7 +248,9 @@ randomizers in each of its two layers, so one request alone may cost over $2^{33
 $Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable},
 \lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number
 of signing requests, at each of the seven proved lifetimes (subtree heights
-$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}). A signature costs about
+$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}); other heights, which the
+crate also allows, are not covered, and staying within the lifetime's number of signatures is the
+key holder's duty (the signer does not count them). A signature costs about
 $2^{35}$ calls in the worst case, so with every request of the largest lifetime used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
@@ -346,8 +353,8 @@ holding all their claims. This section defines what it proves and states what is
 Every definition named here is in \lean{Statement/}: what a node proves in
 \lean{Statement/LeanVmGuest.lean} (with the statement and its digest), the batching program
 in \lean{Statement/LeanVmGuestBatching.lean}, the completeness statements and the batching's
-soundness in \lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's in
-\lean{Statement/Theorems.lean}, the composed statements in \lean{Statement/Corollaries.lean}; names
+soundness in \lean{Statement/LeanVmGuestCompleteness.lean}, the decoder program's also in
+\lean{Statement/LeanVmGuest.lean}, the composed statements in \lean{Statement/Corollaries.lean}; names
 marked \lean{lean_vm} are the proofs'.
 
 \subsection{The objects}
@@ -395,8 +402,9 @@ padded with one zero element to an even number. The lists' lengths are bound by 
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
 
-The seed $\sigma$ is the Fiat--Shamir IV with which $G$ verifies its children's proofs, which are
-proofs of $G$ itself. $G$ cannot contain its own IV (a hash of its own bytecode), so it reads
+The seed $\sigma$ is the Fiat--Shamir IV with which $G$ verifies its children's proofs, meant to be
+proofs of $G$ itself (the deferring verifier reads $G$'s bytecode only through its length, so it
+accepts as well a proof of any program of that length: Section~\ref{sec:notgive}). $G$ cannot contain its own IV (a hash of its own bytecode), so it reads
 $\sigma$ as input, and the digest binds it; the outer verifier computes the digest with
 $\sigma = iv_G$.
 
@@ -413,7 +421,7 @@ leanSPHINCS) or the index of a child;
 \subsection{What one node establishes}
 
 $\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRelation}) is the conjunction of four conditions,
-the witnesses holding the claims, and the shape of $s$'s deferred claim:
+the witnesses holding the claims:
 \begin{enumerate}
 \item Every signature claim of $s$ is held (\lean{SignatureClaimsHeld}): a direct signature verifies under
 the claim's key and message (Keccak-256 as the schemes' hash, at any leaf index); a child holder $i$
@@ -437,8 +445,8 @@ digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose po
 claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
-\item $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
-(\lean{DeferredClaim.HasBytecodeShape}).
+Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
+(\lean{DeferredClaim.HasBytecodeShape}), the zero point's or the sumcheck's challenges.
 \end{enumerate}
 \lean{NodeRelation} does \emph{not} say that a child's claims are true, only that the deferring verifier,
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
@@ -447,10 +455,11 @@ with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 \paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:673-690})
 additionally checks that the DA digest is that of its root with the digest of the root's
 membership vector, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
-(sorted, no repeats, fewer than $2^{16}$ signature claims). The soundness
-statements below assume none of this: of the accepted statement they assume only that its deferred
-claim has the bytecode's shape, which makes them stronger than statements about the outer
-verifier.
+(sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
+assumes only that the deferred claim holds (\lean{DeferredClaim.HoldsWithShape}); no end statement
+models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
+nothing of the blob: \lean{MatrixWitness.Opens} accepts any vector whose digest is committed, the
+zero vector included, which every row is orthogonal to.
 
 \subsection{Soundness}
 
@@ -488,7 +497,8 @@ $\mathrm{NodeRel}(B, \sigma', s', w')$ (\lean{lean_vm} proves this for its
 with $(\sigma_0, s_0) = (iv_G, s)$ then gives \lean{AggregateSound} (from the fields alone,
 \lean{LeanVM.corollaries_of_theorems}, \lean{lean_vm}): except with probability $\varepsilon(Q)$, if
 the verifier accepts a proof of $G$ on $\mathrm{dig}_{iv_G}(s)$, for any $s$ whose deferred claim
-has the bytecode's shape, the extracted execution $t$ \emph{explains} $s$
+holds (\lean{DeferredClaim.HoldsWithShape}, as the outer verifier checks), the extracted execution $t$
+\emph{explains} $s$
 (\lean{ExplainsStatement}):
 \begin{itemize}
 \item $D$ decodes $t$ to $(iv_G, s, w')$ with $\mathrm{NodeRel}(B, iv_G, s, w')$, or
@@ -499,7 +509,8 @@ For one execution and \lean{lean_vm}'s decoder \lean{decode}, steps 2 and 3 toge
 \lean{decode_binds} (\lean{lean_vm}).
 
 Two Keccaks meet here. The verifier of step 1 runs on $\pi$: Keccak-256 is the sponge over $\pi$,
-and Keccak-f is $\pi$. The digest, \lean{NodeRelation} (the children's proofs, the signatures, the
+Keccak-f is $\pi$, and its transcript starts from the IV computed over $\pi$, while the digest's
+seed $iv_G$ is the IV over the deployed Keccak. The digest, \lean{NodeRelation} (the children's proofs, the signatures, the
 batching) and the collision use the deployed Keccak, which $G$ executes. The collision is therefore
 not an event of small probability: it is a concrete pair of inputs, read off $t$ and $s$, on which
 the deployed Keccak-256 collides.
@@ -511,7 +522,7 @@ extracted execution knowledge of a witness. But a decoder given as a Lean functi
 choice, and one that simply chose some triple satisfying the conclusion would make
 \lean{GuestKnowledgeSoundness} no stronger than the existential. The statement is only as strong as
 its decoder, so the decoder is a parameter of the same kind as the extractor: a cost-machine program
-$D$ (\lean{Statement/Theorems.lean}) of size at most \lean{guestWitnessDecoderSizeBound} (its
+$D$ (\lean{Statement/LeanVmGuest.lean}) of size at most \lean{guestWitnessDecoderSizeBound} (its
 literals, the guest program's per-function tables, counted in full), run within
 \lean{guestWitnessDecoderBudget} on the encoded program and execution
 (\lean{encodeGuestWitnessDecoderInput}), whose output must be the encoding (\lean{encodeValue}) of a
@@ -598,8 +609,15 @@ a sumcheck round's challenge. For $G$'s $16$ children, $M = 17$.
 
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 
-They speak about one node. To conclude from an accepted root that every claim held at the leaves,
-one would need, at each internal node, the soundness of the children's proofs \emph{as the guest
+They speak about one node. A claim the root holds through a child carries no knowledge by itself:
+the deferring verifier reads the bytecode only through its length and takes the bytecode's value at
+the child's point from the witness (the fresh claim $f_i$), which no end statement requires true, so
+a proof of any program of $G$'s length, under the node's seed, makes a child of any statement. A
+child's claims mean something only once its fresh claim is true. That needs the root's deferred
+claim recomputed, as the outer verifier does (\lean{AggregateSound} assumes it), and the batching
+sound inside the circuit at every level, so that a true batched claim makes the children's fresh and
+carried claims true; and to conclude from an accepted root that every claim held at the leaves, one
+would need, at each internal node, the soundness of the children's proofs \emph{as the guest
 program verifies them}: with the real Keccak-256 and Keccak-f, not with $\pi$. That is the
 Fiat--Shamir heuristic for an instantiated hash, and it is not proved. Likewise \lean{BatchingSound} is
 the batching outside the circuit, with Keccak-f $= \pi$; it does not compose with the in-circuit
@@ -618,7 +636,7 @@ lists; at most $16$ children; each child's signature lists shorter than $2^{16}$
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
-(\lean{honestProofWithDeployedKeccak}, $2^{25}$ nonces per proof of work) of an execution of $G$ of
+($2^{25}$ nonces per proof of work) of an execution of $G$ of
 committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
@@ -691,8 +709,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 \bottomrule
 \end{tabular}
 \end{center}
-Its first two families are the corollaries \lean{GuestCompleteRecursion} and
-\lean{GuestCompleteLeaf}. \lean{DeployedLimits} caps a recursion node at $16$ children, each at
+\lean{DeployedLimits} caps a recursion node at $16$ children, each at
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to

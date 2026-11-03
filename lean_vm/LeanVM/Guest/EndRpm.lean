@@ -124,7 +124,7 @@ theorem aggregate_sound_outer_dec {dec : MemoryDecoder} (h : MemoryGuestKnowledg
   refine ⟨hb, hprog, ?_⟩
   rintro ⟨t, hx, hd, hrel⟩
   refine hno ⟨t, hx, ?_⟩
-  rcases decoded_binds_of_nodeRel hs hrel hpub hd with ⟨h1, h2⟩ | hc
+  rcases decoded_binds hs hrel.hasBytecodeShape hpub hd with ⟨h1, h2⟩ | hc
   · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
   · exact Or.inr hc
 

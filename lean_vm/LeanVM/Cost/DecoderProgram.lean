@@ -6,7 +6,7 @@ public import LeanVM.Cost.Decoder.Ends
 /-!
 # The guest decoder's program: the entry and the program of a compiled top
 
-`GuestKnowledgeSoundness` (`Statement/Theorems.lean`) runs the decoder program's function `0` on
+`GuestKnowledgeSoundness` (`Statement/LeanVmGuest.lean`) runs the decoder program's function `0` on
 `encodeGuestWitnessDecoderInput prog t = .ctor 0 [encodeValue prog, encodeValue t]`, an execution encoded as
 `.ctor 0 [encodeValue κ, encodeFiniteFunction t.memory, encodeValue t.steps]`. The compiled top
 (on `Cost/Decoder/Ends.lean`'s input side) is a function of the program, `κ` and the

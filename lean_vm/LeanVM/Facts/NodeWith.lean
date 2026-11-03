@@ -47,7 +47,7 @@ def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
   LeanXmss.Verification.verifyWithHash pk message σ
 
 /-- leanSPHINCS verification with the hash `H`. -/
-def sphincsVerifyWith (pk : Sphincs.PublicKey) (message : Sphincs.Message)
+def sphincsVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : Sphincs.Signature) : m Bool :=
   letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
   Sphincs.Verification.verifyWithHash pk message σ
@@ -130,7 +130,7 @@ theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
   rfl
 
 /-- leanSPHINCS verification with Keccak-256 is `Sphincs.verifyWithKeccak`. -/
-theorem sphincsVerifyWith_id (pk : Sphincs.PublicKey) (message : Sphincs.Message)
+theorem sphincsVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : Sphincs.Signature) :
     Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = Sphincs.verifyWithKeccak pk message σ := by
   rw [sphincsVerify_eq_withHash]

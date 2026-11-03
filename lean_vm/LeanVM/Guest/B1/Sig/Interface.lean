@@ -149,7 +149,7 @@ def verify_lean_xmss_complete_Spec : Prop :=
 signature that verifies it, on a memory of at least `256` words with the byte table at `bb`, the
 body holds of some valuation whose arguments are `p` and `bb`, under any call relation. -/
 def verify_sig_lean_sphincs_complete_Spec : Prop :=
-  ∀ (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphincs.PublicKey) (m : Sphincs.Message)
+  ∀ (C : CallRel) (rd : Reader) (p bb : E) (pk : HashSig.PublicKey) (m : HashSig.Message)
     (sig : Sphincs.Signature), MemOK rd 256 → ByteBits rd bb →
     ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) →

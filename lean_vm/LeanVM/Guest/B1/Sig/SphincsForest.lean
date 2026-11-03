@@ -26,6 +26,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
 open Sphincs Sphincs.Verification
+open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -91,14 +92,14 @@ theorem subTops_eq (hpre : SPre rd σ) {c : ForestCoordinate} {s : SuperChildInd
       (aL := σ (.n (b + 11)) + word (tw 16) 0 0) (lut t) (subVal σ c.val j.val b)
       (fun i t' => by
         rw [hka]
-        show _ = Sphincs.addressBytes (Sphincs.tweakFields 15 t'.val (chainSlot c s j a i)
+        show _ = HashSig.addressBytes (HashSig.tweakFields 15 t'.val (chainSlot c s j a i)
             index.val)
         rw [hidx, show chainSlot c s j a i = c.val + 8 * s.val + 128 * j.val + 256 * a.val +
           2048 * i.val by simp [chainSlot, childSlot, subtreeSlot]]
         exact fchainAdr_bytes hidx26 c.isLt s.isLt j.isLt a.isLt i.isLt t'.isLt)
       (by
         rw [hka]
-        show _ = Sphincs.addressBytes (Sphincs.tweakFields 16 0 (childSlot c s j a) index.val)
+        show _ = HashSig.addressBytes (HashSig.tweakFields 16 0 (childSlot c s j a) index.val)
         rw [hidx, show childSlot c s j a = c.val + 8 * s.val + 128 * j.val + 256 * a.val by
           simp [childSlot, subtreeSlot]]
         exact childLeafAdr_bytes hidx26 c.isLt s.isLt j.isLt a.isLt), f.leaf]
@@ -118,7 +119,7 @@ theorem subTops_eq (hpre : SPre rd σ) {c : ForestCoordinate} {s : SuperChildInd
       (l.val + 1) →
       cellBytes (A l.val) = tweakBytes (.subtreeNode index c s j l node) := by
     intro l node hn
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 17 0
+    show _ = HashSig.addressBytes (HashSig.tweakFields 17 0
       (subtreeSlot c s j + 256 * (l.val + 1) + 1024 * node.val) index.val)
     rw [hn, hidx, subtreeSlot]
     have hl3 : l.val < 3 := l.isLt
@@ -202,7 +203,7 @@ theorem coordKey_eq (hpre : SPre rd σ) {c : ForestCoordinate} {enc : Option V} 
   rw [coordRecover_id]
   have hS : cellBytes (σ (.n (b + 6)) + word (tw 18) 0 0) = tweakBytes (.superChild index c mark.superChild) := by
     rw [hleaf]
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 18 0 (c.val + 8 * mark.superChild.val)
+    show _ = HashSig.addressBytes (HashSig.tweakFields 18 0 (c.val + 8 * mark.superChild.val)
         index.val)
     rw [hidx]
     exact superAdr_bytes hidx26 hc8 hs16
@@ -223,7 +224,7 @@ theorem coordKey_eq (hpre : SPre rd σ) {c : ForestCoordinate} {enc : Option V} 
   have hAb : ∀ (l : Fin topTreeHeight) (node : SuperChildIndex), node.val = s / 2 ^ (l.val + 1) →
       cellBytes (A l.val) = tweakBytes (.topTreeNode index c l node) := by
     intro l node hn
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 19 0 (c.val + 8 * (l.val + 1) + 64 *
+    show _ = HashSig.addressBytes (HashSig.tweakFields 19 0 (c.val + 8 * (l.val + 1) + 64 *
         node.val)
       index.val)
     rw [hn, hidx]

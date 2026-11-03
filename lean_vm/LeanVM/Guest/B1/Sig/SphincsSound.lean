@@ -33,6 +33,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat gen)
 open Sphincs Sphincs.Verification
+open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ noncomputable def sphincsSigOf (σ : Val) : Sphincs.Signature :=
     fun l => sv (mSib σ sBit l.val (mBase sNodeOf 0 l.val sLeaf.2.1))⟩
 
 /-- A message of two cells. -/
-def smsg (c d : E) : Sphincs.Message := cellPairVal c d
+def smsg (c d : E) : HashSig.Message := cellPairVal c d
 
 theorem cellVal_zero : cellVal 0 = 0 := by
   rw [cellVal, limb_zero, limb_zero]
@@ -69,8 +70,8 @@ theorem bound_cell {σ : Val} (hS : ∀ c < 8, cS σ c < 16) (hA : ∀ w < 16, w
     eOfNat192_add_shift (by rw [hm]; omega)]
 
 /-- **What leanSPHINCS's verification checks**: the tree reaching `root`. -/
-def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
-    (root : Sphincs.Digest) : Prop :=
+def SRoot (pp : PublicParameter) (m : HashSig.Message) (sig : Sphincs.Signature)
+    (root : HashSig.Digest) : Prop :=
   ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ pp
       (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer))
       (@forestRecoverWithHash Id _ ⟨Node.keccakBits⟩ pp
@@ -81,7 +82,7 @@ def SRoot (pp : PublicParameter) (m : Sphincs.Message) (sig : Sphincs.Signature)
       (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pp m sig.randomizer))
       (signaturePath sig) treeHeight leaf = root
 
-theorem sphincsVerify_SRoot (pk : PublicKey) (m : Sphincs.Message) (sig : Sphincs.Signature) :
+theorem sphincsVerify_SRoot (pk : PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) :
     Sphincs.verifyWithKeccak pk m sig = true ↔ SRoot pk.parameter m sig pk.root :=
   sphincsVerify_iff pk m sig
 
@@ -138,7 +139,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     rw [sMessageDigest_cells sq_keccak (a := σ (.n 4)) (m := smsg (σ (.n 5)) (σ (.n 6)))
       (by rw [hpre.msgAdr]; exact msgAdr_bytes)
       (sphincs_bytesLE_cellPairVal (σ (.n 5)) (σ (.n 6)) :
-        Sphincs.littleEndianBytes 32 (smsg (σ (.n 5)) (σ (.n 6))) = _), ← hpre.digest]
+        HashSig.littleEndianBytes 32 (smsg (σ (.n 5)) (σ (.n 6))) = _), ← hpre.digest]
     simp only
     rw [c17, c18]
   unfold SRoot
@@ -193,10 +194,10 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   have hE : cellBytes (σ (.n 164)) =
       tweakBytes (.encoding (digestLeafIndex D)) := by
     rw [hpre.top1, sNode0_eq hpre]
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 4 0 0 (digestLeafIndex D).val)
+    show _ = HashSig.addressBytes (HashSig.tweakFields 4 0 0 (digestLeafIndex D).val)
     rw [hleafI]
     exact encAdr_bytes hidx26
-  have hcnt : Sphincs.littleEndianBytes 4 (sphincsSigOf σ).counter =
+  have hcnt : HashSig.littleEndianBytes 4 (sphincsSigOf σ).counter =
       (cellBytes (σ (.n sFb.2.1))).take 4 :=
     bytesLE_counter (by rw [hx, cellNat_eOfNat (by omega)]; exact hNc32)
   set dig := cwDigit sW 21 (sEnc.2.1 + 10) σ with hdig
@@ -228,7 +229,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     rw [sRecoverChain_cells sq_keccak (pp := σ sPP)
       (adr := fun st => σ (sNode 0) + word (tw 1 + i.val * hiMul + st * stepMul) 0 0) (fun st => by
         rw [sNode0_eq hpre]
-        show _ = Sphincs.addressBytes (Sphincs.tweakFields 1 st.val i.val
+        show _ = HashSig.addressBytes (HashSig.tweakFields 1 st.val i.val
           (digestLeafIndex D).val)
         rw [hleafI]
         exact chainAdr_bytes hidx26 i.isLt st.isLt)]
@@ -236,7 +237,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
   have haL : cellBytes (σ (.n (sCw.2.1 + 1))) =
       tweakBytes (.leaf (digestLeafIndex D)) := by
     rw [hla, sNode0_eq hpre]
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 2 0 0 (digestLeafIndex D).val)
+    show _ = HashSig.addressBytes (HashSig.tweakFields 2 0 0 (digestLeafIndex D).val)
     rw [hleafI]
     exact leafAdr_bytes hidx26
   rw [hrc, sLeafHash_cells sq_keccak (tips := fun i => σ (cwTip sW (sEnc.2.1 + 10) i)) haL,
@@ -258,7 +259,7 @@ theorem sphincs_root {σ : Val} {rest : List Stmt} {next : Prop}
     intro l hl
     have hl26 : l < 26 := hl
     rw [sTree_adr hpre hmkA hl26]
-    show _ = Sphincs.addressBytes (Sphincs.tweakFields 3 0 (l + 1)
+    show _ = HashSig.addressBytes (HashSig.tweakFields 3 0 (l + 1)
       ((digestLeafIndex D).val / 2 ^ (l + 1)))
     rw [hleafI]
     exact nodeAdr_bytes hidx26 hl26

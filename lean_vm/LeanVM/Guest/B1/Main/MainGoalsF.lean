@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Main.Digests
 public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.Limits
 public import LeanVM.Protocol.Verifier.Load
+public import LeanVM.Guest.Batch.Node
 
 /-!
 # `main`'s first callees on an honest run
@@ -213,7 +214,7 @@ theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
 theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (hbl : bytecode.length = 2 ^ bytecodeVars) : MainGoalSt fs cert fp seed s w := by
   have hlen : s.deferredClaim.cells.length = 24 := by
-    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.2.2.2.2
+    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.hasBytecodeShape
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_

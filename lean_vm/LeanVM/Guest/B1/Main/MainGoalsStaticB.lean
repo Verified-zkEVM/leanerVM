@@ -92,7 +92,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     (hT : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")) :
     MainGoalStB fs cert fp seed s w SB := by
   have hlen : s.deferredClaim.cells.length = 24 := by
-    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.2.2.2.2
+    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.hasBytecodeShape
     rw [hbl, Nat.log2_two_pow] at h1
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAtB fs cert _ hT fun rd h => ?_
