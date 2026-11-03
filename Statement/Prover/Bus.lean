@@ -9,8 +9,7 @@ public import Statement.Prover.Columns
 The prover of `verifyBusBalance` (`verifier.py:581-643`) from the instance's columns `cols` (by
 global column number): the three sides' leaves filled straight into arrays, each side's blocks
 end to end in `stack_offsets`' order (`stackA`) and padded with ones; the batched GKR over the three
-trees (`gkrA`); the framework columns' extensions at the point (`mleK`); the verifier's result as
-it computes it from what it read (`busResult`).
+trees (`gkrA`); the framework columns' extensions at the point (`mleK`).
 -/
 
 @[expose] public section
@@ -102,40 +101,11 @@ def pullTabA (cols : Array (Array K)) (layout : Layout) (pows : Array E) (β : E
 def countTabA (cols : Array (Array K)) (layout : Layout) (b : ℕ) : Array E :=
   tableTabA cols 0 [1] (layout.count.getD b default)
 
-/-! ## The result -/
-
-/-- The tail of `verify_bus_balance` after its reads (`verifier.py:623-643`): the claims, the
-point, the forms and the totals. -/
-def busResult (layout : Layout) (alphas : List E) (beta : E) (point treeValues memory : List E)
-    (memoryFinal bytecodeFinal : E) : BusResult :=
-  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
-  let pushLayout := busLayout frameworkLogRows layout.push
-  let pullLayout := busLayout frameworkLogRows layout.pull
-  let countLayout := busLayout [] layout.count
-  let weights := eqKernel alphas
-  let memoryLow := point.take layout.logMemory
-  let bytecodeLow := point.take layout.logBytecode
-  let claims : List ColumnClaim :=
-    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
-      memory) ++
-    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
-      bytecodeFinal⟩]
-  let fp := fingerprints weights memory memoryLow bytecodeLow
-    (multilinearEval (layout.bytecode.map ofK) (bytecodeLow ++ alphas))
-  let pcFinal := Protocol.Verifier.gpow (2 ^ layout.logBytecode - 1)
-  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
-  let r1 := accumulateSide forms0 0 layout.push pushLayout (fp (Protocol.Verifier.gpow 0) 1 1)
-    weights beta point (treeValues.getD 0 0)
-  let r2 := accumulateSide r1.1 1 layout.pull pullLayout
-    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
-  let r3 := accumulateSide r2.1 2 layout.count countLayout [] [1] 0 point (treeValues.getD 2 0)
-  ⟨claims, point, r3.1, [r1.2, r2.2, r3.2]⟩
-
 /-! ## The phase -/
 
 /-- **The bus phase**: the fingerprint challenges `α` and `β`, the leaves, the GKR, the framework
-values at the point, the result. -/
-def busFast (layout : Layout) (cols : Array (Array K)) : Script BusResult :=
+values at the point. -/
+def busFast (layout : Layout) (cols : Array (Array K)) : Script Unit :=
   (Script.sampleN busBits).bind fun alphas ↦ Script.sampleE.bind fun beta ↦
   let w := eqKernel alphas
   let fw := [0, layout.logMemory, layout.logBytecode]
@@ -150,8 +120,7 @@ def busFast (layout : Layout) (cols : Array (Array K)) : Script BusResult :=
       mleK (cols.getD memory2 #[]) low]
     let mf := mleK (cols.getD memoryFinalCounters #[]) low
     let bf := mleK (cols.getD bytecodeFinalCounters #[]) (g.2.1.take layout.logBytecode)
-    (Script.sendList memory).bind fun _ ↦ (Script.sendE mf).bind fun _ ↦
-      (Script.sendE bf).bind fun _ ↦ .ret (busResult layout alphas beta g.2.1 g.2.2 memory mf bf)
+    (Script.sendList memory).bind fun _ ↦ (Script.sendE mf).bind fun _ ↦ Script.sendE bf
 
 end LeanVM.Prover
 

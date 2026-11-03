@@ -252,7 +252,7 @@ def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
       | some layout => do
         let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
         runScriptWithHash H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-          (honestScript W layout ρ) seed fuel
+          (honestScript W layout ρ (publicInputDigest input)) seed fuel
     else pure none
 
 end LeanVM.Prover

@@ -87,6 +87,18 @@ def commitS (word : Word) : Script Unit := commit word (ret ())
 /-- Receive opened rows. -/
 def queryS : Script (List (List K)) := query ret
 
+/-- **The script `S` beside the verifier's program `P`**: `S`'s moves, ending in `P`'s result,
+which `P` computes from them; `default` where they are not `P`'s, which an honest script never
+meets. A phase's prover hands the next phase the verifier's own values (claims, points). -/
+def alongside {α : Type} [Inhabited α] : VerifierProgram α → Script β → Script α
+  | .ret a, _ => ret a
+  | .read k, send x S => send x (alongside (k x) S)
+  | .sample k, sample S => sample fun c ↦ alongside (k c) (S c)
+  | .grind _ k, grind S => grind (alongside k S)
+  | .commit _ _ k, commit w S => commit w (alongside k S)
+  | .query _ _ k, query S => query fun rows ↦ alongside (k rows) (S rows)
+  | _, _ => ret default
+
 end Script
 
 /-! ## A sumcheck prover -/

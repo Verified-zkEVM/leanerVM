@@ -181,7 +181,8 @@ theorem retOK_verifyKeccak_point (logSteps : ℕ) (inst output : List E)
   refine (RetOK.readN _).bind fun slices hs ↦ RetOK.bind_true fun _ ↦ RetOK.ret ⟨?_, ?_⟩
   · simp only [List.length_append, List.length_take] at hr hr' ⊢
     rw [hclaim]
-    simp only [List.length_append, List.length_drop, List.length_replicate] at hr ⊢
+    simp only [keccakFirstClaim, List.length_append, List.length_drop, List.length_replicate]
+      at hr ⊢
     rw [hseg, hr, hr', show qkeccakSlotBits = 6 by decide,
       show keccakSegmentBits = 1 by decide]
     omega

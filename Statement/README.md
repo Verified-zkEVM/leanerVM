@@ -238,9 +238,9 @@ that `Completeness`, `HonestProofRarelyRefused` and `HonestChild` name, and over
 (`lean_vm/README.md`). It is definitions only: the witness from the trace (`Witness.lean`,
 `Columns.lean`: one run of the program; no proof, `none`, unless the trace is a valid execution
 within `2^28` committed cells), a script of the prover's moves (`Script.lean`) for each phase of the
-verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Prove.lean`'s public input,
-`Keccak*.lean`, `Whir.lean`'s ring switching and opening; `Mle.lean`, `Code.lean` their helpers),
-and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
+verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Keccak*.lean`, `Whir.lean`'s ring
+switching and opening; `Mle.lean`, `Code.lean` their helpers), beside the verifier's phase, whose
+result the next phase takes (`Script.alongside`), and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
 sponge, each Merkle tree built once, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
 (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the honest
 strategy the completeness proof follows, at the execution's own witness), so a reviewer need not

@@ -2,7 +2,7 @@
   LeanVM.Prover.Bus
 
   The executable bus phase (`Statement/Prover/Bus.lean`) makes the moves of the specification's
-  honest bus phase `hBus`, to the same result.
+  honest bus phase `hBus`.
 -/
 
 module
@@ -15,10 +15,8 @@ public import LeanVM.Prover.Gkr
 
 * `toList_pushLeaves`, `toList_pullLeaves`, `toList_countLeaves`: at the verifier's layout, the
   leaves filled into arrays from the columns (`ColsOk`) are the specification's honest leaves;
-* `corr_busFast`: **the bus phase makes the moves of `hBus`**, to the same `BusResult`: the
-  challenges, the GKR over the stored layers (`corr_gkrA`), the framework values from the arrays
-  (`mleK_col`), and the verifier's result at the GKR's values, which are the leaves' extensions at
-  its point (so the result is `honestBus`).
+* `corr_busFast`: **the bus phase makes the moves of `hBus`**: the challenges, the GKR over the
+  stored layers (`corr_gkrA`), and the framework values from the arrays (`mleK_col`).
 -/
 
 namespace LeanVM.Prover
@@ -157,11 +155,10 @@ end Sides
 
 /-! ## The phase -/
 
-/-- **The bus phase makes the moves of `hBus`**, to the same result, from the instance's columns
-as arrays. -/
+/-- **The bus phase makes the moves of `hBus`**, from the instance's columns as arrays. -/
 theorem corr_busFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ prog s)}
     {cols : Array (Array K)} (hcols : ColsOk prog s q cols) :
-    Corr (· = ·) (busFast (verifierLayout prog s) cols) (hBus prog s q) := by
+    Corr (fun _ _ ↦ True) (busFast (verifierLayout prog s) cols) (hBus prog s q) := by
   unfold busFast hBus
   refine Corr.bind_same _ fun alphas ↦ ?_
   unfold hBusK1
@@ -176,7 +173,7 @@ theorem corr_busFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ 
       (fun k hk ↦ by rw [getD_treeLayers _ _ k hk, toList_pushLeaves hcols])
       (fun k hk ↦ by rw [getD_treeLayers _ _ k hk, toList_pullLeaves hcols])
       (fun k hk ↦ by rw [getD_treeLayers _ _ k hk, toList_countLeaves hcols]))
-  obtain ⟨rfl, -, hv⟩ := hg
+  obtain ⟨rfl, -, -⟩ := hg
   have hm : ∀ (i : Fin 4) (z : List E),
       mleK (cols.getD (i : ℕ) #[]) z = multilinearEval (colList prog s q (memCol i)) z :=
     fun i z ↦ by rw [← pyCol_memCol]; exact mleK_col hcols _ z
@@ -193,10 +190,8 @@ theorem corr_busFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ 
     rw [← pyCol_bfcntCol]; exact mleK_col hcols _ z
   unfold hBusK3 memVals mfVal bfVal
   rw [h0, h1, h2, h3, hb, layout_logMemory, layout_logBytecode]
-  refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ ?_
-  show _ = _
-  rw [honestBus, treeVals, ← hv]
-  rfl
+  refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ ?_
+  exact ⟨rfl, trivial⟩
 
 end
 end LeanVM.Prover

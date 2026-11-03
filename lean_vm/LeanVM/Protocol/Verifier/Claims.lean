@@ -365,12 +365,6 @@ theorem allRet_tablePhase {layout : Layout} {bus : BusResult} (hl : LayoutOk lay
   simp only [VerifierProgram.bind_eq]
   exact AllRet.bind (fun _ _ ↦ allRet_tableSumcheck hl.1 hb.1 _ _ _ _) _ (allRet_true _)
 
-/-- The tables' column claims, `ColumnClaim(base + local, point, value)` table by table
-(`verifier.py:1491-1493`). -/
-abbrev tableClaims (evaluations : List (List E × List E)) : List ColumnClaim :=
-  (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
-    values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
-
 /-- The claims of one table's evaluations. -/
 abbrev rowClaims (base : ℕ) (row : List E × List E) : List ColumnClaim :=
   row.2.zipIdx.map fun (value, column) ↦ ⟨base + column, row.1, value⟩
@@ -409,7 +403,7 @@ theorem tableSumcheckClaims_eq (heights : List ℕ) (busForms : List (List Form)
     (cP fP eqPt : List E) (target : E) :
     tableSumcheckClaims heights busForms cP fP eqPt target =
       (tableSumcheck heights busForms cP fP eqPt target).bind fun rows ↦
-        VerifierProgram.ret (tableClaims rows) := by
+        VerifierProgram.ret (tableColumnClaims rows) := by
   unfold tableSumcheckClaims tableSumcheck
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   congr 1
@@ -431,7 +425,7 @@ theorem tableSumcheckClaims_eq (heights : List ℕ) (busForms : List (List Form)
 
 theorem tablePhaseClaims_eq (layout : Layout) (bus : BusResult) :
     tablePhaseClaims layout bus =
-      (tablePhase layout bus).bind fun rows ↦ VerifierProgram.ret (bus.claims ++ tableClaims
+      (tablePhase layout bus).bind fun rows ↦ VerifierProgram.ret (bus.claims ++ tableColumnClaims
           rows) := by
   unfold tablePhaseClaims tablePhase
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
@@ -505,7 +499,7 @@ theorem rowsOk_iff {rows : List (List E × List E)} (hr : RowsOk rows) :
   exact hr.get hi hi'
 
 theorem tableClaims_range {rows : List (List E × List E)} (hlen : rows.length = tables.length) :
-    tableClaims rows = (List.range tables.length).flatMap fun i ↦
+    tableColumnClaims rows = (List.range tables.length).flatMap fun i ↦
       rowClaims (globalColumnBases.getD i 0) (rows.getD i ([], [])) := by
   match rows, hlen with
   | [r0, r1, r2, r3, r4, r5], _ => rfl
@@ -537,7 +531,7 @@ theorem rowClaims_filter {i : ℕ} (hi : i < tables.length) {row : List E × Lis
 theorem lanes_eq {busClaims publicClaims : List ColumnClaim} {rows : List (List E × List E)}
     (hb : ∀ c ∈ busClaims, c.column ∈ framework)
     (hp : ∀ c ∈ publicClaims, c.column ∈ [memory0, memory1, memory2]) (hr : RowsOk rows) :
-    (busClaims ++ tableClaims rows ++ publicClaims).filter
+    (busClaims ++ tableColumnClaims rows ++ publicClaims).filter
         (fun c ↦ decide (c.column ∈ keccakOutputColumns)) =
       laneClaims (rows.getD opKeccak ([], [])) := by
   obtain ⟨hlen, hrow⟩ := rowsOk_iff hr
@@ -563,9 +557,9 @@ theorem lanes_eq {busClaims publicClaims : List ColumnClaim} {rows : List (List 
 theorem keccakPhaseClaims_eq {layout : Layout} {busClaims publicClaims : List ColumnClaim}
     {rows : List (List E × List E)} (hb : ∀ c ∈ busClaims, c.column ∈ framework)
     (hp : ∀ c ∈ publicClaims, c.column ∈ [memory0, memory1, memory2]) (hr : RowsOk rows) :
-    keccakPhaseClaims layout (busClaims ++ tableClaims rows ++ publicClaims) =
+    keccakPhaseClaims layout (busClaims ++ tableColumnClaims rows ++ publicClaims) =
       (keccakPhase layout rows).bind fun r ↦
-        VerifierProgram.ret ((busClaims ++ tableClaims rows ++ publicClaims).filter
+        VerifierProgram.ret ((busClaims ++ tableColumnClaims rows ++ publicClaims).filter
           (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1, r.2.2) := by
   unfold keccakPhaseClaims keccakPhase
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
@@ -610,7 +604,7 @@ theorem filterMap_onStack {layout : Layout} (hl : LayoutOk layout) :
     by_cases hm : c.column ∈ keccakOutputColumns <;> simp [hm]
 
 theorem tableClaims_lt {rows : List (List E × List E)} (hr : RowsOk rows) :
-    ∀ c ∈ tableClaims rows, c.column < 163 := by
+    ∀ c ∈ tableColumnClaims rows, c.column < 163 := by
   obtain ⟨hlen, hrow⟩ := rowsOk_iff hr
   intro c hc
   rw [tableClaims_range hlen, List.mem_flatMap] at hc
@@ -643,7 +637,7 @@ theorem verifyExecution_claims (ev : List K → List E → VerifierProgram E) (b
   refine bind_congr (fun r hout ↦ ?_) _ (allRet_keccakPhase x.1 rows)
   rw [VerifierProgram.ret_bind]
   refine bind_congr (Q := fun _ ↦ True) (fun rs _ ↦ ?_) _ (allRet_true _)
-  have hlt : ∀ c ∈ bus.claims ++ tableClaims rows ++ pc ++ r.1, c.column < 163 := by
+  have hlt : ∀ c ∈ bus.claims ++ tableColumnClaims rows ++ pc ++ r.1, c.column < 163 := by
     intro c hc
     simp only [List.mem_append] at hc
     rcases hc with ((hc | hc) | hc) | hc

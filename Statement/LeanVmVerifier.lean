@@ -1175,6 +1175,7 @@ structure BusResult where
   forms : List (List Form)
   /-- The three sides' totals. -/
   totals : List E
+  deriving Inhabited
 
 /-- The three framework fingerprints of a side (`verifier.py:603-615`, `fingerprints`; the
 Python hoists `memory_index` and `bytecode_index`, pure values inlined here; `bytecode_value` is
@@ -1753,6 +1754,16 @@ def keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value
         (rows.getD (2 * i + 1) [])) (keccakSlotWeights logSteps claim first count)
   return (slot, rows.headD [], value)
 
+/-- The first claim of `verify_keccak` (`verifier.py:1383-1389`), on every segment's output at
+`instance` and the segment `segment`: the last segment's output is the permutation's, claimed by
+the table's lanes `output`, the others' `committed`; the lanes are combined as words at
+`lanePoint`, bit `z` of a word weighing `x^z`. -/
+def keccakFirstClaim (inst segment lanePoint output : List E) (committed : E) : KeccakClaim :=
+  let lanes := eqKernel lanePoint
+  let weights := (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
+  let last := (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output
+  ⟨committed + last, eqKernel (inst.take 4), inst.drop 4 ++ segment, weights⟩
+
 /-- `verify_keccak(log_steps, instance, output)` (`verifier.py:1373-1406`): the reduction, a
 random claim on every segment's output at `instance`, `KECCAK_DEPTH` layers down to the committed
 inputs. The last segment's output is the permutation's, claimed by the table's lanes `output` at
@@ -1764,13 +1775,9 @@ def verifyKeccak (logSteps : ℕ) (inst output : List E) : VerifierProgram
   let packBits := logSteps - 4
   let rLow := inst.take 4
   let segment ← VerifierProgram.sampleChallenges keccakSegmentBits
-  let point := inst.drop 4 ++ segment
-  -- The first claim combines the output lanes as words: bit `z` of a word weighs `x^z`.
-  let lanes := eqKernel (← VerifierProgram.sampleChallenges keccakLaneBits)
-  let weights := (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
-  let last := (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output
+  let lanePoint ← VerifierProgram.sampleChallenges keccakLaneBits
   let committed ← if 1 < keccakSegments then VerifierProgram.readScalar else pure 0
-  let first : KeccakClaim := ⟨committed + last, eqKernel rLow, point, weights⟩
+  let first := keccakFirstClaim inst segment lanePoint output committed
   let claim ← keccakLayers logSteps (List.range keccakDepth) first
   -- The committed outputs, whose instance weights are an eq already: slice 0 holds the slot's
   -- weight, the others `x^z` times it.
@@ -1870,6 +1877,12 @@ def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List
   let target := dot formPowers bus.totals
   tableSumcheck layout.tableLogHeights bus.forms constraintPowers formPowers bus.point target
 
+/-- The tables' column claims (`verifier.py:1491-1493`): each table's evaluations at its point,
+on the table's global columns. -/
+def tableColumnClaims (evaluations : List (List E × List E)) : List ColumnClaim :=
+  (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
+    values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
+
 /-- Step 5, binding the public input (`verifier.py:1495-1501`): a challenge, and claims on the
 three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line through that limb of
 the public input's two halves, evaluated at the challenge by the verifier itself. The prover sends
@@ -1913,9 +1926,7 @@ def verifyExecution (bytecodeValue : List K → List E → VerifierProgram E) (b
   let bus ← verifyBusBalance bytecodeValue layout
   -- 4] the table sumcheck, and the tables' column claims
   let evaluations ← tablePhase layout bus
-  let claims := bus.claims ++
-    (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
-    values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
+  let claims := bus.claims ++ tableColumnClaims evaluations
   -- 5] the public input
   let publicClaims ← publicInputPhase layout publicInput
   let claims := claims ++ publicClaims
