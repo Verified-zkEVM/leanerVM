@@ -106,7 +106,7 @@ noncomputable def honestRun (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (q : 
     prog s))
     (P : Phases) : Script Unit :=
   (Script.sendList (announce s ρ)).bind fun _ ↦
-  (Script.commitS (stackWord (leanIsaμ prog s) q)).bind fun _ ↦
+  (Script.commitS (stackWord (leanIsaμ prog s) ρ q)).bind fun _ ↦
   P.bus.bind fun bus ↦
   (P.table bus).bind fun claims ↦
   (hPub prog s q).bind fun pub ↦

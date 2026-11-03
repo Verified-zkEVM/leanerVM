@@ -20,20 +20,19 @@ A WHIR level commits an interleaved Reed-Solomon codeword: the message on `k + �
 cut into `2^k` *lanes* along its first `k` variables, lane `j` being the message
 `x ↦ g[j + 2^k·⟨x⟩]` on the remaining `κ`, and each lane is encoded by `enc κ R`
 (`LeanVM.Protocol.Whir.NovelBasis`). Leaf `p` of the word holds the `2^k` lanes' codeword
-entries at the domain point `x_p = K.ofBits p`.
+entries at the domain point `x_p = K.ofBits p`, for `p < 2^(κ+R)`. A run reads no leaf off the
+domain; there the words hold zeros, as the executable prover's arrays read past their end, so
+that the two words are equal (`LeanVM.Prover.Enc.stackWordFast_eq`).
 
-* `stackWord μ q`: the stack's level-0 word (`verify_execution` step 2, `commitStack`): the
+* `stackWord μ R q`: the stack's level-0 word (`verify_execution` step 2, `commitStack`): the
   lanes are the stack's `64` blocks (`blockOf`, `LeanVM.Protocol.EndToEnd.Candidates`), the
   leaf stores their `K`-valued codeword entries in reverse lane order. `stackWord_agrees`: it is
   the encoding of the stack in the sense of `Agrees`, on every column.
-* `levelWord κ k g`: a deeper level's word, each `E` entry written as its three limbs, the layout
+* `levelWord κ k R g`: a deeper level's word, each `E` entry written as its three limbs, the layout
   `_ext_row` regroups (`verifier.py:961-963`).
 * `stackTable μ q`: the stack as a table in the WHIR variable order: the six lane variables
   first, then the block offset (`f(u, x) = q(x, u)`), i.e. the stack's index rotated by six
   bits.
-
-The formulas `encAt`, `encKAt`, `laneMsg`, `laneCodes`, `limbsOf`, `levelWord` are defined in the
-statement (`Statement/Prover/Code.lean`), where the executable prover's level words use them.
 
 What the verifier computes from an honest opening:
 
@@ -56,6 +55,14 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 @[expose] public section
 
 /-! ## The encoder at a position -/
+
+/-- `Enc(g)` at the domain point `x_p = K.ofBits p`, for every `p`. -/
+def encAt (κ : ℕ) (g : (Fin κ → Bool) → E) (p : ℕ) : E :=
+  ∑ u, g u * ofK (novelAt (bitsToNat u) (K.ofBits p))
+
+/-- The encoder on a `K`-valued message, at a position. -/
+def encKAt (κ : ℕ) (g : (Fin κ → Bool) → K) (p : ℕ) : K :=
+  ∑ u, g u * novelAt (bitsToNat u) (K.ofBits p)
 
 /-- The `K`-valued encoder lifted to `E` is the encoder of the lifted message. -/
 theorem ofK_encKAt (κ : ℕ) (g : (Fin κ → Bool) → K) (p : ℕ) :
@@ -85,6 +92,14 @@ theorem encAt_msgOf (κ : ℕ) (t : List E) (p : ℕ) :
 
 /-! ## Lanes -/
 
+/-- Lane `j` of a table cut along its first `k` variables: `x ↦ t[j + 2^k·⟨x⟩]`. -/
+def laneMsg (κ k : ℕ) (t : List E) (j : ℕ) : (Fin κ → Bool) → E :=
+  fun x ↦ t.getD (j + 2 ^ k * bitsToNat x) 0
+
+/-- The `2^k` lanes' codeword entries at the position `p`. -/
+def laneCodes (κ k : ℕ) (t : List E) (p : ℕ) : List E :=
+  (List.range (2 ^ k)).map fun j ↦ encAt κ (laneMsg κ k t j) p
+
 /-- **Folding commutes with the encoder.** Folding the lanes' entries at a position with the
 equality kernel of `r` gives the entry of the encoding of the table folded at `r`. -/
 theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
@@ -103,6 +118,16 @@ theorem dot_laneCodes_eqKernel (κ : ℕ) (t r : List E) (p : ℕ)
 
 /-! ## The level words -/
 
+/-- The three limbs of an entry, the order `_ext_row` reads them. -/
+def limbsOf (e : E) : List K := [e.limb 0, e.limb 1, e.limb 2]
+
+/-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
+each, on the domain `p < 2^(κ+R)`; zero entries off it, as the executable prover's arrays read
+past their end (the run reads the leaves below the committed height only). -/
+def levelWord (κ k R : ℕ) (g : List E) : Word :=
+  fun p ↦ ((List.range (2 ^ k)).map fun j ↦
+    if p < 2 ^ (κ + R) then encAt κ (laneMsg κ k g j) p else 0).flatMap limbsOf
+
 /-- `_ext_row` regroups limbs written by `limbsOf`. -/
 theorem extRow_flatMap_limbsOf : ∀ l : List E, extRow (l.flatMap limbsOf) = l
   | [] => by simp [extRow]
@@ -118,15 +143,17 @@ theorem length_flatMap_limbsOf : ∀ l : List E, (l.flatMap limbsOf).length = 3 
     simp [limbsOf]; ring
 
 /-- A level word has `3·2^k` words per leaf, the width the verifier announces. -/
-theorem wellShaped_levelWord (κ k : ℕ) (g : List E) : WellShaped (3 * 2 ^ k) (levelWord κ k g) := by
+theorem wellShaped_levelWord (κ k R : ℕ) (g : List E) :
+    WellShaped (3 * 2 ^ k) (levelWord κ k R g) := by
   intro p
   rw [levelWord, length_flatMap_limbsOf]
-  simp [laneCodes]
+  simp
 
-/-- The verifier reads a level word's leaf as the lanes' entries. -/
-theorem extRow_levelWord (κ k : ℕ) (g : List E) (p : ℕ) :
-    extRow (levelWord κ k g p) = laneCodes κ k g p :=
-  extRow_flatMap_limbsOf _
+/-- The verifier reads a level word's leaf on the domain as the lanes' entries. -/
+theorem extRow_levelWord (κ k R : ℕ) (g : List E) {p : ℕ} (hp : p < 2 ^ (κ + R)) :
+    extRow (levelWord κ k R g p) = laneCodes κ k g p := by
+  simp only [levelWord, hp, ite_true, extRow_flatMap_limbsOf]
+  rfl
 
 /-! ## The stack's word -/
 
@@ -135,20 +162,22 @@ def blockK (μ : ℕ) (q : Column μ) (u : ℕ) : (Fin (μ - laneBits) → Bool)
   fun x ↦ q.values.getD (bitsToNat x + 2 ^ (μ - laneBits) * u) 0
 
 /-- **The stack's level-0 word**: leaf `p` holds the `64` blocks' codeword entries at `x_p`, in
-reverse lane order. -/
-def stackWord (μ : ℕ) (q : Column μ) : Word :=
-  fun p ↦ ((List.range (2 ^ laneBits)).map fun u ↦ encKAt (μ - laneBits) (blockK μ q u) p).reverse
+reverse lane order, on the domain `p < 2^(μ−6+R)`; zero entries off it (as `levelWord`). -/
+def stackWord (μ R : ℕ) (q : Column μ) : Word :=
+  fun p ↦ ((List.range (2 ^ laneBits)).map fun u ↦
+    if p < 2 ^ (μ - laneBits + R) then encKAt (μ - laneBits) (blockK μ q u) p else 0).reverse
 
 /-- The stack word has `64` words per leaf, the width `commitStack` announces. -/
-theorem wellShaped_stackWord (μ : ℕ) (q : Column μ) :
-    WellShaped (2 ^ laneBits) (stackWord μ q) := by
+theorem wellShaped_stackWord (μ R : ℕ) (q : Column μ) :
+    WellShaped (2 ^ laneBits) (stackWord μ R q) := by
   intro p
   simp [stackWord]
 
 /-- The stack's word is its encoding: it agrees with the encoding of `q` on every column. -/
-theorem stackWord_agrees (μ R : ℕ) (q : Column μ) : Agrees μ R (stackWord μ q) q Finset.univ := by
+theorem stackWord_agrees (μ R : ℕ) (q : Column μ) :
+    Agrees μ R (stackWord μ R q) q Finset.univ := by
   intro v _ u
-  simp only [laneOf, stackWord, List.reverse_reverse]
+  simp only [laneOf, stackWord, List.reverse_reverse, v.isLt, ite_true]
   rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_range, ofK_encKAt]
   rfl
 
@@ -162,9 +191,11 @@ def stackTable (μ : ℕ) (q : Column μ) : List E :=
 
 /-- The rows the verifier reads from the stack's word (`row.reverse`, lifted to `E`) are the
 lanes' entries of the stack table. -/
-theorem readRow_stackWord {μ : ℕ} (hμ : laneBits ≤ μ) (q : Column μ) (p : ℕ) :
-    (stackWord μ q p).reverse.map ofK = laneCodes (μ - laneBits) laneBits (stackTable μ q) p := by
-  simp only [stackWord, List.reverse_reverse, List.map_map, laneCodes]
+theorem readRow_stackWord {μ R : ℕ} (hμ : laneBits ≤ μ) (q : Column μ) {p : ℕ}
+    (hp : p < 2 ^ (μ - laneBits + R)) :
+    (stackWord μ R q p).reverse.map ofK =
+      laneCodes (μ - laneBits) laneBits (stackTable μ q) p := by
+  simp only [stackWord, hp, ite_true, List.reverse_reverse, List.map_map, laneCodes]
   refine List.map_congr_left fun u hu ↦ ?_
   have hu' : u < 2 ^ laneBits := List.mem_range.mp hu
   simp only [Function.comp_apply, ofK_encKAt]

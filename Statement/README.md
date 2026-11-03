@@ -239,7 +239,7 @@ that `Completeness`, `HonestProofRarelyRefused` and `HonestChild` name, and over
 `Columns.lean`: one run of the program; no proof, `none`, unless the trace is a valid execution
 within `2^28` committed cells), a script of the prover's moves (`Script.lean`) for each phase of the
 verifier (`Ntt.lean`, `Bus.lean`, `Gkr.lean`, `Table.lean`, `Prove.lean`'s public input,
-`Keccak*.lean`, `Whir.lean`'s ring switching and opening; `Mle.lean`, `Code.lean` their helpers),
+`Keccak*.lean`, `Whir.lean`'s ring switching and opening; `Mle.lean` their helper),
 and its run against the verifier's own program (`Run.lean`: the challenges squeezed from the
 sponge, each Merkle tree built once, the proof-of-work nonce searched among the first `fuel`). Its correctness is proved
 (`lean_vm/LeanVM/Prover/`: the prover's proof is, at every permutation, the proof of the honest
