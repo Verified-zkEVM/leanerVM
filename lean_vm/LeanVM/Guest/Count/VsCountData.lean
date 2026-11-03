@@ -19,25 +19,25 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- The core indices of `open_stacked__L{c}`, `c < 28`. -/
-def osJ : List ℕ := [292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319]
+def osJ : List ℕ := [294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321]
 
 /-- `verify_sub`'s statically bounded callees but its opening arm. -/
 def vsStNames : List String := ["g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical", "ring_switch_target", "certify_placement", "log2_ceil_in_the_exponent__L15_L34"]
 
 /-- Their core indices. -/
-def vsStJ : List ℕ := [3, 290, 1, 13, 15, 291]
+def vsStJ : List ℕ := [3, 292, 1, 13, 15, 293]
 
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
-def cclJ : List ℕ := [339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355]
+def cclJ : List ℕ := [341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357]
 
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 22
 
 /-- The core index of `__loop16`. -/
-def l17J : ℕ := 338
+def l17J : ℕ := 340
 
 /-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/
-def omJ : List ℕ := [18, 24, 34]
+def omJ : List ℕ := [18, 24, 36]
 
 /-- Their names. -/
 def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4"]

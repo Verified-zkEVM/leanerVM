@@ -168,20 +168,23 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 
 
 # `main`'s `da_verify` and `claim_list_digest`, counted by their trees' shapes (`Budget/MvCount.lean`)
-# from the `V` certificates: `da_verify`'s statically bounded callees, its row and column loops, the
-# DA levels by their log `L`, the claim lists' last digests by the last group's size, `__loop15`.
-MV_ST = ['da_row_shape', 'da_vector_cell', 'da_levels__L128_L7']
-MV_LP = ['__loop17', '__loop18', '__loop21', '__loop22', '__loop23', '__loop415', '__loop416', '__loop417',
-         '__loop418']
+# from the `V` certificates: `da_verify`'s statically bounded callees, its row loops (the blobs' sums'
+# bases, their trees, the padding blobs) and its columns' row loop, the DA levels by their log `L`,
+# the claim lists' last digests by the last group's size, `__loop15`. `da_verify`'s column loop
+# `__loop18` and `da_verify_column` are counted by their frames: the column loop's 128 iterations,
+# each a column, its weights' expansion and its row loop's `r` iterations.
+MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L7_L8']
+MV_LP = ['__loop17', '__loop19', '__loop20', '__loop21']
 MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(11)]
 MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
-MV_OM = ['da_verify', '__loop19', '__loop20', 'da_verify_column__L1', 'da_verify_column__L0', 'claim_list_digest']
+MV_OM = ['da_verify', '__loop18', 'da_verify_column', 'claim_list_digest']
 MV_MAXROWS = 1024
+MV_COLS = 128  # `DA_CELLS`: the columns `__loop18` runs
 
 
 def main_tables(g):
     """Per opcode index `k`: the tables of `MvCountData` and `dvW(k, r, L)`, `clW(k, n)`, the exact
-    counts `Budget/MvCount.lean` proves, with their affine bounds `(dvA, dvR)`, `(clA, clS)`."""
+    counts `Budget/MvCount.lean` proves, with their affine bounds `(dvA, dvR, dvP)`, `(clA, clS)`."""
     import checker
     S = g.closure(__import__('gen').VROOTS)
     certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
@@ -195,34 +198,30 @@ def main_tables(g):
         T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=[stat(k, n) for n in MV_DL],
                     cl=[stat(k, n) for n in MV_CL], l16=loop(k, '__loop15'), ls=stat(k, 'list_split'),
                     om=[om[k][n] for n in MV_OM])
-    def colW(k, i, r, L):
-        t = T[k]; gp = 2 ** L - r
-        return t['om'][3 + i] + t['st'][1] + r * t['lp'][5 + 2 * i] + gp * t['lp'][6 + 2 * i] + t['dl'][L]
+    def colW(k, r):
+        """A column on `r` rows: its frame, its weights' expansion, its row loop's `r` iterations."""
+        t = T[k]
+        return t['om'][2] + t['st'][2] + r * t['lp'][3]
     def dvW(k, r, L):
         t = T[k]; gp = 2 ** L - r
-        return (t['om'][0] + t['st'][0] + r * (t['lp'][0] + t['lp'][1]) + 64 * (t['om'][1] + colW(k, 0, r, L))
-                + 64 * (t['om'][2] + colW(k, 1, r, L)) + r * t['lp'][2] + t['st'][2] + r * t['lp'][3]
-                + gp * t['lp'][4] + t['dl'][L])
-    def clog(r): return (r - 1).bit_length()
+        return (t['om'][0] + t['st'][0] + t['st'][1] + r * t['lp'][0] + MV_COLS * (t['om'][1] + colW(k, r))
+                + r * t['lp'][1] + gp * t['lp'][2] + t['dl'][L])
     def dv_aff(k):
         """`dvW` within `C + R · r + P · 2^L` on `r ≤ 2^L` rows: the constant, the row loops per
-        row past the padding loops, the padding loops and `⌈levels / 2^L⌉` per padded row (the
-        levels once and per column)."""
+        row past the padding loop, the padding loop and `⌈levels / 2^L⌉` per padded row."""
         t = T[k]
-        C = (t['om'][0] + t['st'][0] + 64 * (t['om'][1] + t['om'][3] + t['st'][1])
-             + 64 * (t['om'][2] + t['om'][4] + t['st'][1]) + t['st'][2])
-        # The padding loops run `2^L - r` times: `r · (a - b) + 2^L · b` charges them exactly.
-        R = (t['lp'][0] + t['lp'][1] + t['lp'][2] + max(0, t['lp'][3] - t['lp'][4])
-             + 64 * max(0, t['lp'][5] - t['lp'][6]) + 64 * max(0, t['lp'][7] - t['lp'][8]))
+        C = t['om'][0] + t['st'][0] + t['st'][1] + MV_COLS * (t['om'][1] + t['om'][2] + t['st'][2])
+        # The padding loop runs `2^L - r` times: `r · (a - b) + 2^L · b` charges it exactly.
+        R = t['lp'][0] + MV_COLS * t['lp'][3] + max(0, t['lp'][1] - t['lp'][2])
         dlP = max(-(-d // 2 ** L) for L, d in enumerate(t['dl']))
-        P = t['lp'][4] + 64 * t['lp'][6] + 64 * t['lp'][8] + 129 * dlP
+        P = t['lp'][2] + dlP
         return C, R, P
     def clW(k, n):
         t = T[k]
-        return t['om'][5] + (0 if n == 0 else t['ls'] + n // 17 * t['l16'] + t['cl'][n % 17])
+        return t['om'][3] + (0 if n == 0 else t['ls'] + n // 17 * t['l16'] + t['cl'][n % 17])
     def cl_aff(k):
         t = T[k]
-        return t['om'][5] + t['ls'] + max(t['cl']), (t['l16'] + 16) // 17
+        return t['om'][3] + t['ls'] + max(t['cl']), (t['l16'] + 16) // 17
     return T, dvW, clW, dv_aff, cl_aff
 
 
@@ -248,7 +247,7 @@ def write_main(g, OPS):
     o = []
     o.append('/-- `da_verify`\'s statically bounded callees but the DA levels by `L`. -/\ndef dvStNames : List String := %s\n' % names(MV_ST))
     o.append('/-- Their core indices. -/\ndef dvStJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_ST))
-    o.append('/-- `da_verify`\'s row loops and its columns\' row and padding loops. -/\ndef dvLpNames : List String := %s\n' % names(MV_LP))
+    o.append('/-- `da_verify`\'s row loops and its columns\' row loop. -/\ndef dvLpNames : List String := %s\n' % names(MV_LP))
     o.append('/-- Their core indices. -/\ndef dvLpJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_LP))
     o.append('/-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/\ndef dlJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_DL))
     o.append('/-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/\ndef clJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_CL))
@@ -272,19 +271,19 @@ def write_main(g, OPS):
 noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 3).all (fun i => kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
-  (List.range 9).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
+  (List.range 4).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
   (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
   kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op &&
-  (List.range 6).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
+  (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
     (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
 ''')
     open(os.path.join(D, 'MvCountData.lean'), 'w', encoding='utf-8').write(
         HDR % ('MvCountData', 'The instruction counts of `main`\'s `da_verify`\'s and `claim_list_digest`\'s callees, per opcode.',
-               'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Da.ColumnDefs\n'
+               'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Da.VerifyDefs\n'
                'public import LeanVM.Guest.B1.Digest.ClaimList\n')
         + '\n'.join(o) + '\nend\nend LeanVM.Guest.Count\n')
     for lop, P, k in OPS:

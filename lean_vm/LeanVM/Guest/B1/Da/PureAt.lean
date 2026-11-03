@@ -14,9 +14,9 @@ public import LeanVM.Guest.B1.Da.VerifyDefs
 /-!
 # The pure callees
 
-`daPureSet`: the cell check, the column's row and padding loops, `da_verify`'s loops over the
-rows, the trees' `da_levels` and their level loops. `daPure`: it places nothing and calls only its
-own members (kernel evaluation).
+`daPureSet`: the cell check, `da_verify`'s loops over the blobs, the columns' row loop, the
+column offsets' doubling loops, the trees' `da_levels` and their level loops. `daPure`: it places
+nothing and calls only its own members (kernel evaluation).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -36,10 +36,12 @@ def lvlLoops : List String :=
   "__loop351", "__loop352", "__loop353", "__loop354", "__loop355", "__loop356", "__loop357",
   "__loop358", "__loop359", "__loop360", "__loop361", "__loop362", "__loop363"]
 
-/-- **The pure callees of `da_verify`.** -/
+/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`__loop17`,
+`__loop19`, `__loop20`), the columns' row loop (`__loop21`), the offsets' doubling loops
+(`__loop22` to `__loop28`), the DA levels and their loops. -/
 def daPureSet : List String :=
-  ["da_verify_cell", "__loop415", "__loop416", "__loop417", "__loop418", "__loop17", "__loop18",
-    "__loop21", "__loop22", "__loop23"] ++ dlNames ++ lvlLoops
+  ["da_verify_cell", "__loop17", "__loop19", "__loop20", "__loop21", "__loop22", "__loop23",
+    "__loop24", "__loop25", "__loop26", "__loop27", "__loop28"] ++ dlNames ++ lvlLoops
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def daPureOk : Bool :=
