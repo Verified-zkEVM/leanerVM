@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.B1.Da.ColumnDefs
+public import LeanVM.Guest.B1.Da.VerifyDefs
 
 /-!
 # The pure callees

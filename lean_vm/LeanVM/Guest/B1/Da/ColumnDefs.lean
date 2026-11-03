@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Da.VecFn
 public import LeanVM.Guest.B1.Da.CellSound
+public import LeanVM.Guest.B1.Main.Frames
 
 namespace LeanVM.Guest.B1.Da
 
@@ -47,16 +48,27 @@ noncomputable def colOk : Bool :=
   isMul A (.n 14) (.n 0) (.n 0) &&
   guardOk P (.n 16) "__loop21" (.n 17) (.n 1) [.n 13, .n 2, .n 0, .n 14]
 
-/-! ## A blob's step -/
+/-! ## A blob's step and the frames -/
 
-/-- **Blob `x`'s cell of the column**: a `da_verify_cell` run on the weights at `lv`, its sum
-added to the running sum of the region at `rowbase[x]` (through `xb`), its digest the region's
-leaf (through `xb2`). -/
-def CellStepC (rd : Reader) (lv rowbase xb xb2 x : E) : Prop :=
-  ∃ d0 d1 s base a : E, coreProgram.Rel rd "da_verify_cell" [lv] [d0, d1, s] ∧
-    LoadHolds rd (rowbase * x) 0 base ∧ LoadHolds rd (base * xb) 512 a ∧
-    LoadHolds rd (base * xb) 513 (a + s) ∧ LoadHolds rd (base * xb2) 0 d0 ∧
-    LoadHolds rd (base * xb2) 1 d1
+/-- **Blob `x`'s cell of the column, at the loop's valuation `σr`**: a `da_verify_cell` call on
+the weights at `lv`, its sum `σr (.n 8)` added to the running sum of the region at `rowbase[x]`
+(through `xb`), its digest `σr (.n 6)`, `σr (.n 7)` the region's leaf (through `xb2`). -/
+def CellStepW (C : CallRel) (rd : Reader) (σr : Val) (lv rowbase xb xb2 x : E) : Prop :=
+  C "da_verify_cell" [lv] [σr (.n 6), σr (.n 7), σr (.n 8)] ∧
+    ∃ base a : E, LoadHolds rd (rowbase * x) 0 base ∧ LoadHolds rd (base * xb) 512 a ∧
+      LoadHolds rd (base * xb) 513 (a + σr (.n 8)) ∧ LoadHolds rd (base * xb2) 0 (σr (.n 6)) ∧
+      LoadHolds rd (base * xb2) 1 (σr (.n 7))
+
+/-- The valuation of blob `i`'s iteration of `__loop21` in the column called with `cargs`
+(`[g^h, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets]`), at the frame map `Vm`. -/
+def colRowV (Vm : FrameMap) (cargs : List E) (i : ℕ) : Val :=
+  Vm "__loop21" [gen ^ i, cargs.getD 1 0, Vm "da_verify_column" cargs [] (.n 13), cargs.getD 2 0,
+    cargs.getD 0 0, Vm "da_verify_column" cargs [] (.n 14)] []
+
+/-- The symbols of blob `i`'s cell in the column called with `cargs`: its cell check's. -/
+def colSyms (Vm : FrameMap) (cargs : List E) (i : ℕ) : List K :=
+  cellSymsOf (Vm "da_verify_cell" [Vm "da_verify_column" cargs [] (.n 13)]
+    [colRowV Vm cargs i (.n 6), colRowV Vm cargs i (.n 7), colRowV Vm cargs i (.n 8)])
 
 end
 end LeanVM.Guest.B1.Da

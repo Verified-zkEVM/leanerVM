@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Da.ColumnDefs
 public import LeanVM.Guest.B1.Da.VectorHolds
+public import LeanVM.Guest.B1.Main.LoopsC
 
 /-!
 # `da_verify_column` (G:3976-3990)
@@ -19,7 +20,9 @@ factors and the column's shifts `offsets·g^(8h)`, are the dual codeword's entri
 (`cellLeaf_eq`); then `__loop21` (`core374`) over the blobs `i < r`: a `da_verify_cell` run on
 `lvals`, its sum added to the blob's running sum (word `512 + h` to `513 + h` of the region at
 `rowbase[i]`), its digest the blob tree's leaf `h` (words `2h`, `2h + 1`). `colOk` and `l21Ok`
-check the bodies (kernel evaluation in `ColumnChk`); `col_step` is a column's run.
+check the bodies (kernel evaluation in `ColumnChk`); `col_stepW` is a column's run under a call
+relation that unfolds at a frame map `Vm`, the symbols those of the cell checks' frames
+(`colSyms`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -34,16 +37,20 @@ variable {rd : Reader}
 
 /-! ## The blob loop -/
 
-theorem l21_step (hok : l21Ok (coreProgram.getD 374 default) = true)
+variable {C : CallRel} {Vm : FrameMap}
+
+theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 374 default) = true)
     (hidx : coreProgram.indexOf? "__loop21" = some 374) {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop21" (x :: ps) []) :
-    (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] → CellStepC rd lv rb xb xb2 x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop21" (x * gen :: ps) []) := by
+    (h : C "__loop21" (x :: ps) []) :
+    (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] →
+      CellStepW C rd (Vm "__loop21" (x :: ps) []) lv rb xb xb2 x) ∧
+      (x * gen + ps.headD 0 ≠ 0 → C "__loop21" (x * gen :: ps) []) := by
   simp only [l21Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hcall⟩, hm9⟩, hl10⟩, hm11⟩, hl12⟩, ha13⟩, hl13⟩, hm14⟩, hl6⟩,
     hl7⟩ := hok
-  obtain ⟨σ, hx, hps, hall, hnext⟩ :=
-    loop_stepF (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
+  obtain ⟨hx, hps, hall, hnext⟩ :=
+    loop_stepV hVm (find_of_idx hidx (by rw [coreProgram_length]; omega)) hshape h
+  set σ := Vm "__loop21" (x :: ps) [] with hσ
   refine ⟨fun N lv rb xb xb2 hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
   have hpar : (coreProgram.getD 374 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
@@ -65,7 +72,7 @@ theorem l21_step (hok : l21Ok (coreProgram.getD 374 default) = true)
   have l6 := load_sound hl6 hat
   have l7 := load_sound hl7 hat
   rw [p14] at l6 l7
-  exact ⟨_, _, _, _, _, c, l10, l12, l13, l6, l7⟩
+  exact ⟨c, _, _, l10, l12, l13, l6, l7⟩
 
 /-! ## A column -/
 
@@ -74,21 +81,27 @@ theorem runAt_load {p : E} {n : ℕ} {f : ℕ → E} (hr : RunAt rd p n f) {k : 
     (h : LoadHolds rd p k v) : v = f k :=
   hr.2 k hk v h.2
 
-/-- **A column's run** at `g^h`, with `da_vector`'s results for `z`: for every blob `i < r`, some
-`256` symbols whose digest is leaf `h` of the region at `rowbase[i]` and whose inner product with
-the dual codeword's entries `256 h + e` steps the region's running sum from word `512 + h` to
-`513 + h`. -/
-theorem col_step (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 374 default) = true)
+/-- **A column's run** at `g^h`, with `da_vector`'s results for `z`, under a call relation that
+unfolds at `Vm` and lies below `coreProgram.Rel`: for every blob `i < r`, the symbols of its cell
+check's frame (`colSyms`), whose digest is leaf `h` of the region at `rowbase[i]` and whose inner
+product with the dual codeword's entries `256 h + e` steps the region's running sum from word
+`512 + h` to `513 + h`. -/
+theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
+    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 374 default) = true)
     (hidx : coreProgram.indexOf? "__loop21" = some 374) {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
-    (hrel : coreProgram.Rel rd "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
-    ∀ i < r, ∃ (sy : List K) (base a : E), sy.length = 256 ∧ LoadHolds rd (rb * gen ^ i) 0 base ∧
-      LoadHolds rd base (2 * h) (digestHalves (keccak256 (sy.flatMap K.toBytes))).1 ∧
-      LoadHolds rd base (2 * h + 1) (digestHalves (keccak256 (sy.flatMap K.toBytes))).2 ∧
+    (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
+    ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 256 ∧
+      ∃ base a : E, LoadHolds rd (rb * gen ^ i) 0 base ∧
+      LoadHolds rd base (2 * h) (digestHalves (keccak256
+        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap K.toBytes))).1 ∧
+      LoadHolds rd base (2 * h + 1) (digestHalves (keccak256
+        ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).flatMap K.toBytes))).2 ∧
       LoadHolds rd base (h + 512) a ∧
-      LoadHolds rd base (h + 513)
-        (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) * ofK (sy.getD e 0)) := by
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify_column _ _).mp hrel
+      LoadHolds rd base (h + 513) (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) *
+        ofK ((colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).getD e 0)) := by
+  obtain ⟨hpar, hb⟩ := body_ofV hVm find_da_verify_column hrel
+  set σ := Vm "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] [] with hσ
   unfold colOk at hcol
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcol
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hm7⟩, hl8⟩, hm12⟩, hce⟩, hm14⟩, hg⟩ := hcol
@@ -105,7 +118,7 @@ theorem col_step (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 374 defaul
   rw [isMul_sound hm7 hat, h4, h0, loadHolds_mul_gen_pow, add_zero] at l8
   have e8 := runAt_load htl hh l8
   -- the weights
-  have ce := call_of_flat hall hce
+  have ce := hle _ _ _ (call_of_flat hall hce)
   simp only [List.map_cons, List.map_nil] at ce
   have hE := (da_expand_holds).2 rd _ _ ce
   simp only [MeaningDaExpand] at hE
@@ -125,33 +138,48 @@ theorem col_step (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 374 defaul
       exact loadHolds_unique this (by
         rw [show h * 8 + (7 - d) = 8 * h + (7 - d) by ring]; exact hoff h hh (7 - d) (by omega))
   -- the blobs
-  have hgs := guardK_sound hg hall
+  have hgs := guard_soundC hg hall
   simp only [List.map_cons, List.map_nil] at hgs
   rw [h1, h2, h0] at hgs
-  have L := loop_sound (f := "__loop21") (ps := [gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)])
-    (B := fun x ↦ CellStepC rd (σ (.n 13)) rb (gen ^ h) (σ (.n 14)) x) hr rfl
+  have L := loop_soundC (C := C) (f := "__loop21") (ps := [gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)])
+    (B := fun x ↦ CellStepW C rd (Vm "__loop21" (x :: [gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)]) [])
+      (σ (.n 13)) rb (gen ^ h) (σ (.n 14)) x) hr rfl
     (fun x hx ↦ by
-      obtain ⟨k1, k2⟩ := l21_step h21 hidx hx
+      obtain ⟨k1, k2⟩ := l21_stepW hVm h21 hidx hx
       exact ⟨k1 _ _ _ _ _ rfl, k2⟩) hgs
   have p14 : σ (.n 14) = (gen ^ h) ^ 2 := by rw [isMul_sound hm14 hat, h0, sq]
   intro i hi
-  obtain ⟨d0, d1, s, base, a, hc, hbase, ha, has, hd0, hd1⟩ := L i hi
-  obtain ⟨sy, ws, hsl, hrd, hwl, hrets⟩ := da_verify_cell_holds rd _ _ hc
+  obtain ⟨hc, base, a, hbase, ha, has, hd0, hd1⟩ := L i hi
+  have hrv : colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
+      Vm "__loop21" [gen ^ i, gen ^ r, σ (.n 13), rb, gen ^ h, σ (.n 14)] [] := rfl
+  have hsy : colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i =
+      cellSymsOf (Vm "da_verify_cell" [σ (.n 13)]
+        [colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 6),
+          colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 7),
+          colRowV Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i (.n 8)]) := rfl
+  rw [hrv] at hsy
+  rw [hsy]
+  obtain ⟨hpc, hbc⟩ := body_ofV hVm find_da_verify_cell hc
+  obtain ⟨lv, hlv0, hsl, hrd, hwl, hrets⟩ := da_verify_cell_val hpc hbc
+  simp only [List.cons.injEq, and_true] at hlv0
+  subst hlv0
   simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
   obtain ⟨e0, e1, es⟩ := hrets
-  rw [p14, shift2] at hd0 hd1
+  have q : ∀ k v, LoadHolds rd (base * σ (.n 14)) k v → LoadHolds rd base (2 * h + k) v :=
+    fun k v hk => by rw [p14, shift2] at hk; exact hk
   rw [loadHolds_mul_gen_pow] at ha has
-  refine ⟨sy, base, a, hsl, hbase, ?_, ?_, ha, ?_⟩
-  · rw [← e0]; simpa using hd0
-  · rw [← e1]; simpa [Nat.mul_comm] using hd1
+  refine ⟨hsl, base, a, hbase, ?_, ?_, ha, ?_⟩
+  · rw [← e0]; simpa using q 0 _ hd0
+  · rw [← e1]; exact q 1 _ hd1
   · rw [es] at has
     convert has using 2
     rw [← list_sum_range]
     unfold LeanDa.cellSymbols
-    have hwl' : ws.length = 256 := hwl
+    have hwl' : (memRun rd (σ (.n 13)) 256).length = 256 := hwl
     refine congrArg _ (List.map_congr_left fun e he ↦ ?_)
     have he' := List.mem_range.mp he
-    rw [List.getD_eq_getElem ws 0 (show e < ws.length by omega), hlv e he' _ (hrd e (by omega)).2]
+    rw [List.getD_eq_getElem (memRun rd (σ (.n 13)) 256) 0 (show e < _ by omega),
+      hlv e he' _ (hrd e (by omega)).2]
 
 end
 end LeanVM.Guest.B1.Da

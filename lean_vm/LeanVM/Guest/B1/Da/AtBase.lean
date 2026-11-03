@@ -181,5 +181,30 @@ theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = ad
     k) := by
   rw [gen_pow_eq_ofK, Main.addr_ofK]
 
+
+/-! ## Shared by the completeness proofs -/
+
+theorem fn_name_of_find {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
+  have := List.find?_some h
+  simpa using this
+
+theorem good_mul {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : x < d)
+    (hy : y < d) (h : Fwd.Good rd S w σ (.mul (.n d) (.n x) (.n y))) :
+    σ (.n d) = σ (.n x) * σ (.n y) := by
+  simp only [Fwd.Good] at h
+  rwa [ite_pos' ⟨hx, hy⟩] at h
+
+theorem good_load {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {o : ℕ}
+    (hS : Atom.load d p o ∉ S) (h : Fwd.Good rd S w σ (.load d p o)) : σ d = Fwd.rdAt rd (σ p) o := by
+  rcases h with h | h
+  · exact absurd h hS
+  · exact h
+
+
+theorem params_of_shape {fn : Fn} {f : String} {n : ℕ} (hs : loopShapeF fn f = true)
+    (hl : fn.params.length = n) : fn.params = (List.range n).map V.n := by
+  simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
+  rw [hs.1.2, hl]
+
 end
 end LeanVM.Guest.B1.Da

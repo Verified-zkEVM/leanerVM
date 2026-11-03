@@ -192,9 +192,11 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
   claim at `p`. -/
   sphincs : ∀ p, C "verify_sig_lean_sphincs" [p, bb0] [] →
     Sig.ByteBits rd bb0 → Sig.SphincsOut rd p (wS p)
-  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim. -/
+  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
+  the root's cells and the challenge's rate cells (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, C "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ root vd : Digest, (wD [gsq] rets).Opens root vd ∧ rets = digestCells root ++ digestCells vd
+    ∃ (root : Digest) (z c2 : E), (wD [gsq] rets).Opens root z ∧ IsInK c2 ∧
+      rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
   /-- A child proof's check with the exponent tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 glp gsq out,
     C "verify_sub" [pi0, pi1, s0, s1, glp, gsq, out] [] → ExpTables rd glp gsq →

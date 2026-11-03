@@ -30,7 +30,7 @@ noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E 
     (fun p ↦ sphincsSigOfN (Vn 21 [p, σ (.n 68)] []))
     (fun args rets ↦ dvWitN (Vn 26 args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
-    (fun args ↦ aggHints rd (Vn 30 args []))
+    (fun args ↦ aggHints rd (Vn 32 args []))
 
 /-- **The witnesses are equal.** -/
 theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :

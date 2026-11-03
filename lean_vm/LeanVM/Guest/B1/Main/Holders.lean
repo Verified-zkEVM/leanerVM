@@ -254,7 +254,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
     (∀ c m, (decWit σ rd wX wS wD wV wA).daMatrix = some (c, m) →
-      (decStmt σ rd).claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest) ∧
+      (decStmt σ rd).claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipChallenge) ∧
     ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.daDigest = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
         c.statement.claims.daDigest = (decStmt σ rd).claims.daDigest) := by
@@ -270,20 +270,32 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    obtain ⟨hcall, -, l0, l1⟩ := MF.da hd
+    obtain ⟨hcall, hcan, l0, l1⟩ := MF.da hd
     rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at l0
     rw [hown, loadHolds_gen_pow_iff] at l1
-    obtain ⟨root, vd, hop, hrets⟩ := cw.da _ _ hcall (fun j hj => (MF.exp j hj).2)
+    obtain ⟨root, z, c2, hop, hc2, hrets⟩ := cw.da _ _ hcall (fun j hj => (MF.exp j hj).2)
     simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
     obtain ⟨r0, r1, r2, r3⟩ := hrets
-    have hdv : dvClaim σ = ⟨root, vd⟩ := by
-      unfold dvClaim; rw [r0, r1, r2, r3, digestOfCells_scalars, digestOfCells_scalars]
+    have hz := (Keccak.fsPack_cells z c2 0 hc2 (by rw [← r2]; exact hcan _ (by simp))).2
+    rw [← r2, ← r3] at hz
+    have hdv : dvClaim σ = ⟨root, z⟩ := by
+      unfold dvClaim
+      rw [r0, r1, digestOfCells_scalars]
+      simp only [Prod.ext_iff] at hz
+      rw [hz.1, hz.2, Da.scalarOfCells, Keccak.scalarCells]
+      simp only [ofLimbs_limb0, ofLimbs_limb1]
+      rw [← eq_ofLimbs]
     refine ⟨?_, by rw [hdv]; exact hop⟩
     rw [eD, hp1 hd, (daDigestAt_of_loads l0 l1).1, digestOfCells_scalars]
     unfold daClaimDigest
-    rw [hdv, ← digestOfCells_scalars root, ← digestOfCells_scalars vd, digestBytes_ofCells,
-      digestBytes_ofCells, ← r0, ← r1, ← r2, ← r3]
-    simp [cellsBytes]
+    rw [hdv]
+    simp only [Prod.ext_iff] at hz
+    congr 1
+    rw [show [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] =
+      [(digestHalves root).1, (digestHalves root).2] ++ [σ (.n 341), σ (.n 342)] by rw [r0, r1]; rfl,
+      cellsBytes, List.flatMap_append, ← cellsBytes, ← digestBytes_eq_cells, hz.1, hz.2]
+    simp [Keccak.scalarCells, cellBytes, E.toBytes, List.append_assoc]
+    rfl
   · have hd0 : lg σ 7 = 0 := by omega
     have hdec : (decWit σ rd wX wS wD wV wA).daMatrix = none := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]

@@ -33,8 +33,8 @@ import LeanVMTests.Spec.NodeVectors
   hints are the Python's honest sumcheck messages; Lean's transcript must squeeze the same
   challenges for the claim to close at the Python's point, which is a true claim on the table.
   Mutations: a wrong final value, or a child's false claim, and the batching rejects.
-* `batch` on no children is inhabited; the outer verifier's vector digest (`vectorDigestOf`)
-  differs from a root's own bytes.
+* `batch` on no children is inhabited; the outer verifier's membership challenge
+  (`membershipChallengeOf`) of a root is not zero.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
   `crates/rec_aggregation/src/aggregation.rs` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked
@@ -118,11 +118,11 @@ def sphincs : List LeanSphincsClaim :=
   [(⟨BitVec.ofNat 128 0xfedcba98765432100123456789abcdef, BitVec.ofNat 128 1⟩,
     BitVec.ofNat 256 (2 ^ 256 - 1))]
 
-/-- A DA claim: a root and a membership vector digest. -/
-def daClaim : DaClaim := ⟨keccak256 (utf8 "root0"), keccak256 (utf8 "vd0")⟩
+/-- A DA claim: a root and a membership challenge. -/
+def daClaim : DaClaim := ⟨keccak256 (utf8 "root0"), e 1 2 3⟩
 
-/-- The statement's DA digest of it. -/
-def da : Digest := daClaimDigest daClaim
+/-- A statement's DA digest (the digest of the earlier, root and vector digest, claim). -/
+def da : Digest := #v[0x12da73668473f030, 0x3b3c425c5e7d748d, 0x039ebf81841b3952, 0xde4718e69830fa95]
 
 /-- A seed. -/
 def seed0 : Digest := keccak256 (utf8 "seed")
@@ -141,8 +141,10 @@ def defer0 : DeferredClaim :=
 #guard claimListDigest [] =
   #v[0x3c23f7860146d2c5, 0xc003c7dcb27d7e92, 0x3b2782ca53b600e5, 0x70a4855d04d8fa7b]
 
-#guard da =
-  #v[0x12da73668473f030, 0x3b3c425c5e7d748d, 0x039ebf81841b3952, 0xde4718e69830fa95]
+/- The DA claim's digest: Keccak-256 of the root, the challenge's three limbs and a zero word
+(computed independently by a Python Keccak-256). -/
+#guard daClaimDigest daClaim =
+  #v[0x54e5caaf0b9df436, 0xe9801627f87d2cbd, 0x008b308358001569, 0xac0e2d12ab54f275]
 
 #guard statementDigest seed0 ⟨⟨xmss, sphincs, da⟩, defer0⟩ =
   #v[0x390bb57c95a72731, 0xc6a7438398ab72ee, 0x42095a68d163c568, 0x172ac4a032779c05]
@@ -260,6 +262,6 @@ def vectorStatement : NodeStatement :=
 /-- A root. -/
 def root : Digest := keccak256 []
 
-#guard LeanVM.Da.vectorDigestOf root != LeanVM.Protocol.Digest.toBytes root
+#guard LeanVM.Da.membershipChallengeOf root != 0
 
 end LeanVMTests.Spec.Node
