@@ -13,10 +13,11 @@ public import LeanVM.Protocol.EndToEnd.Complete.KeccakPhase
 # The Keccak phase
 
 `corr_keccakPhase`: given the instance's columns as arrays indexed by the verifier's column
-numbers (`cols`, the witness's), and claims whose output lanes' point has the `KECCAK` table's
-`τ` coordinates, the executable phase `keccakPhaseProve (s.τ 5) cols claims` makes the moves of
-`hKeccakPhase prog s q claims` and returns its result. `q_keccak`'s column of `cols` agrees with
-the honest stack's `q_keccak` words (`qkH`) on its `2^(τ + 6)` words (`colAgree_qk`).
+numbers (`cols`, the witness's), and claims whose output lanes are the `KECCAK` table's
+evaluations' (`evaluations`), at a point of its `τ` coordinates, the executable phase
+`keccakPhaseProve (s.τ 5) cols evaluations` makes the moves of `hKeccakPhase prog s q claims`.
+`q_keccak`'s column of `cols` agrees with the honest stack's `q_keccak` words (`qkH`) on its
+`2^(τ + 6)` words (`colAgree_qk`).
 
 The modules: `Keccak/Tables` (loops, equality tables, folded tables, coefficient lists, bits),
 `Keccak/States` (the masks are the bits entering χ), `Keccak/Product` (`G`'s coefficients),
@@ -53,17 +54,26 @@ theorem colAgree_qk (cols : Array (Array K))
   rw [← h, ← pyCol_keccakCol, hcols keccakCol]
   rfl
 
-/-- **The executable Keccak phase makes the moves of `hKeccakPhase`**, and returns its result. -/
+/-- **The executable Keccak phase makes the moves of `hKeccakPhase`**, on claims whose output
+lanes are the `KECCAK` table's evaluations'. -/
 theorem corr_keccakPhase (cols : Array (Array K))
     (hcols : ∀ c : Col, cols.getD (pyCol c) #[] = ((inst prog s).column q c).values.toArray)
-    (claims : List ColumnClaim) (hlen : ((lanesOf claims).headD default).point.length = s.τ 5) :
-    Corr (· = ·) (keccakPhaseProve (s.τ 5) cols claims) (hKeccakPhase prog s q claims) := by
+    (claims : List ColumnClaim) (evaluations : List (List E × List E))
+    (hl : lanesOf claims = Claims.laneClaims (evaluations.getD opKeccak ([], [])))
+    (hlen : (evaluations.getD opKeccak ([], [])).1.length = s.τ 5) :
+    Corr (fun _ _ ↦ True) (keccakPhaseProve (s.τ 5) cols evaluations)
+      (hKeccakPhase prog s q claims) := by
   unfold keccakPhaseProve hKeccakPhase
-  rw [Script.ret_bind]
-  refine Corr.bind (fun a b h ↦ ?_) _ _ (corr_keccak (colAgree_qk prog s q cols hcols)
+  dsimp only
+  have hpt : ((Claims.laneClaims (evaluations.getD opKeccak ([], []))).headD default).point =
+      (evaluations.getD opKeccak ([], [])).1 := rfl
+  have hval : (Claims.laneClaims (evaluations.getD opKeccak ([], []))).map (·.value) =
+      (List.range 25).map fun lane ↦ (evaluations.getD opKeccak ([], [])).2.getD (keccakOut + lane) 0 := by
+    simp only [Claims.laneClaims, List.map_map]
+    rfl
+  rw [Script.ret_bind, hl, hpt, hval, ← Script.bind_ret (keccakProve _ _ _ _)]
+  exact Corr.bind (fun _ _ _ ↦ trivial) _ _ (corr_keccak (colAgree_qk prog s q cols hcols)
     (by rw [hlen, tau_sub_add]) _)
-  subst h
-  exact corr_ret rfl
 
 end
 end LeanVM.Prover.KeccakGkr

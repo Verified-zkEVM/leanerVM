@@ -18,7 +18,7 @@ public import LeanVM.Prover.Keccak.States
   of `hSumcheck 3 (Fo …)`;
 * `phiTable_getD`, `sliceTable_getD`: the claim restricted to an instance (`PhiI`) and the
   slices at a point (`sliceMle`), by byte tables and bit loops;
-* `corr_input`: **the inputs' opening makes the moves of `hInput`**, and returns its result.
+* `corr_input`: **the inputs' opening makes the moves of `hInput`**.
 -/
 
 namespace LeanVM.Prover.KeccakGkr
@@ -146,10 +146,10 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n z : ℕ} (hz : z < n) (d 
     ((List.range n).map f).getD z d = f z := by
   simp [List.getD_eq_getElem?_getD, hz]
 
-/-- **The inputs' opening makes the moves of `hInput`**, and returns its result. -/
+/-- **The inputs' opening makes the moves of `hInput`.** -/
 theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
     (hshape : ClaimShape P claim) (outs : List ColumnClaim) :
-    Corr (· = ·) (inputProve col' P claim outs) (hInput P col claim outs) := by
+    Corr (fun _ _ ↦ True) (inputProve col' P claim) (hInput P col claim outs) := by
   have hF : ∀ _ : ℕ, Affine (MuT claim.mu) := fun _ ↦ affine_mle (2 ^ 4) fun i ↦ claim.mu.getD i 0
   have hG : ∀ _ : ℕ, Affine (PhiT P col claim) := fun _ ↦
     affine_mle (2 ^ 4) fun i ↦ PhiI P col claim i
@@ -194,10 +194,8 @@ theorem corr_input (hcol : ColAgree P col' col) (claim : KeccakClaim)
         rw [List.getElem_map, ← List.getD_eq_getElem _ (#[], #[]) (by simpa using hz₁),
           ← List.getD_eq_getElem _ 0 hz₂, slicesOf_getD _ _ _ _ hz, ← h1',
           tabInv_full (h2'.2.2 z hz).2 hx6]
-      refine corr_sendList hsl ?_
-      show (outs, (y.1 ++ claim.point.take P) ++ x.1, x.2.pairs.map fun p ↦ p.2.getD 0 0) =
-        (outs, y.1 ++ claim.point.take P ++ x'.1, slicesOf P col (y.1 ++ claim.point.take P) x'.1)
-      rw [h1', hsl]
+      rw [← Script.bind_ret (Script.sendList (x.2.pairs.map fun p ↦ p.2.getD 0 0))]
+      exact corr_sendList hsl trivial
     · rw [getD_map_range _ hz]
       refine ⟨tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_, tabInv_of _ _ 6 (by simp) fun o ho ↦ ?_⟩
       · beta_reduce

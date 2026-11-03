@@ -249,7 +249,7 @@ def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     if 1 ≤ ρ ∧ ρ ≤ 4 then do
       let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
       runScriptWithHash H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-        (honestScript W ρ) seed fuel
+        (honestScript W ρ (publicInputDigest input)) seed fuel
     else pure none
 
 end LeanVM.Prover

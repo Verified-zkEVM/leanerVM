@@ -29,29 +29,26 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
-/-- **The public-input phase** (`publicInputPhase`, nothing sent): receive `r`; the claims of the
-three memory limbs at `(r, 0, …, 0)`, each the line through the limb's cells `0` and `1`. -/
-def pubFast (layout : Layout) (cols : Array (Array K)) : Script (List ColumnClaim) :=
-  Script.sampleE.bind fun r ↦
-    .ret ([memory0, memory1, memory2].map fun column ↦
-      let col := cols.getD column #[]
-      ⟨column, r :: List.replicate ((layout.placement memory0).variableCount - 1) 0,
-        multilinearEval [ofK (col.getD 0 0), ofK (col.getD 1 0)] [r]⟩)
-
-/-- **The honest script** of an execution's witness `W` at the rate `ρ`: the eight moves of
-`verify_execution` (`verifier.py:1463-1516`), each phase's executable prover. -/
-def honestScript (W : Witness) (ρ : ℕ) : Script Unit :=
+/-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
+`publicInput`: the eight moves of `verify_execution` (`verifier.py:1463-1516`), each phase's
+executable prover beside the verifier's phase (`Script.alongside`), which hands the next phase its
+result. The public-input phase sends nothing; the output lanes' claims, on no committed column, do
+not reach the stack (`ColumnClaim.onStack`). -/
+def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit :=
   let layout := W.layout
   (Script.sendList (W.announce ρ)).bind fun _ ↦
   (Script.commitS (stackWordFast layout.stackLog ρ W.stack)).bind fun _ ↦
-  (busFast layout W.cols).bind fun bus ↦
-  (tableFast W.cols layout.tableLogHeights bus).bind fun claims ↦
-  (pubFast layout W.cols).bind fun pub ↦
-  (KeccakGkr.keccakPhaseProve (layout.tableLogHeights.getD opKeccak 0) W.cols (claims ++ pub)).bind
-    fun kr ↦
-  (ringFast kr.2.1 kr.2.2).bind fun r ↦
-  (openingFast layout.stackLog ρ W.stack
-      (r.claim layout :: kr.1.map (ClaimDesc.column layout))).bind fun _ ↦ .ret ()
+  (Script.alongside (verifyBusBalance computedBytecodeValue layout) (busFast layout W.cols)).bind
+    fun bus ↦
+  (Script.alongside (tablePhase layout bus) (tableFast W.cols layout.tableLogHeights bus)).bind
+    fun evaluations ↦
+  (Script.alongside (publicInputPhase layout publicInput) Script.sampleE).bind fun publicClaims ↦
+  (Script.alongside (keccakPhase layout evaluations) (KeccakGkr.keccakPhaseProve
+    (layout.tableLogHeights.getD opKeccak 0) W.cols evaluations)).bind fun keccak ↦
+  (ringFast keccak.2.1 keccak.2.2).bind fun r ↦
+  let claims := (bus.claims ++ tableColumnClaims evaluations ++ publicClaims).filter
+    (fun c ↦ c.column ∉ keccakOutputColumns) ++ keccak.1
+  openingFast layout.stackLog ρ W.stack (r.claim layout :: claims.map (ClaimDesc.column layout))
 
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
 `2^-ρ`, trying `fuel` nonces per proof of work; `none` for a trace that is no valid execution
@@ -64,7 +61,7 @@ def prove {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState) (pro
     if 1 ≤ ρ ∧ ρ ≤ 4 then do
       let seed ← spongeSeedWith F (bytecodeWords prog) (publicInputDigest input)
       runScript F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-        (honestScript W ρ) seed fuel
+        (honestScript W ρ (publicInputDigest input)) seed fuel
     else pure none
 
 end LeanVM.Prover
