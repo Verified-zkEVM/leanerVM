@@ -317,19 +317,19 @@ execution within its budget. The program is that decoder compiled
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `786000`) limits any program; it is the compiled
-decoder's size, `785561` (proved at most that and measured exactly), and a slack of `439`: room for
-one leanXMSS signature's encoding (`309`) beside its code but not two, so no useful table of
-witnesses (hard-coded signatures masking a bug of the guest program on finitely many statements)
-fits there. That size counts the guest program's per-function tables, literals of the program, in
+decoder's size, `783705` (proved at most that and measured exactly), and a slack of `2295`: room for
+seven leanXMSS signatures' encodings (`309` each) beside its code but not eight (the bound was set
+at leanVM `c445e3d5`, where the slack was `439`, room for one), so no useful table of witnesses
+(hard-coded signatures masking a bug of the guest program on finitely many statements) fits there. That size counts the guest program's per-function tables, literals of the program, in
 full. It does not bound what a program written differently could hold: the guest's frame-cell table
-(`749835` of the size, cells below `2^20`) packs to about a third, three cells to a limb, freeing
+(`748108` of the size, cells below `2^20`) packs to about a third, three cells to a limb, freeing
 room for about `1600` signatures' encodings. Nor is the compiled program compact: its size also
 counts, a literal `0` each, the indices without a body left by the numbering it shares with the
 extractor's compiled functions; renumbered compactly, the same program would leave room for a few
 signatures' encodings ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the
 measurements). And a program may compute its tables from its input, which holds the guest program:
 one that derived the frame-cell table at run time instead of carrying it would free most of those
-`749835`, room for up to about `2400` signatures' encodings (an estimate, not measured).
+`748108`, room for up to about `2400` signatures' encodings (an estimate, not measured).
 
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above

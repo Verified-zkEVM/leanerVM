@@ -565,11 +565,11 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $786000$)
-limits any program; it is the compiled decoder's size, $785561$ (proved at most that, measured
-exactly), and a slack of $439$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
+limits any program; it is the compiled decoder's size, $783705$ (proved at most that, measured
+exactly), and a slack of $2295$: room for seven leanXMSS signatures' encodings ($309$ each) beside its code but not eight, so no
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
-guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
+guest's frame-cell table ($748108$ of the size, cells below $2^{20}$) packs to about a third,
 three cells to a limb, freeing room for about $1600$ signatures' encodings. Nor is the compiled
 program compact: its size also counts, a literal $0$ each, the indices without a body left by the
 numbering it shares with the extractor's compiled functions; renumbered compactly, the same
