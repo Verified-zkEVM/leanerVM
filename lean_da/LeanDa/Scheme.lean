@@ -88,10 +88,6 @@ The commitment as the crate computes it, on codewords given as lists of symbols:
 the crate's order, each tree built level by level. It is `commitCells` of the matrix the rows
 form (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). -/
 
-/-- The cells of the matrix whose rows are `rows`: cell `j` of row `i` at position `128 i + j`. -/
-def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
-  fun p s ↦ (rows.getD (p / 128) []).getD (256 * (p % 128) + s) 0
-
 /-! ## The deployed membership vector (`verifier/src/da.rs:15-96`)
 
 The challenges, drawn from the root by the duplex sponge the security game models as a random

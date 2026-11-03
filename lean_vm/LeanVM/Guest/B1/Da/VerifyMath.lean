@@ -141,8 +141,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     fun i j hj => block_eq (syms i) 256 (hsyms i) hj 0
   have hlcd : ∀ i, ∀ j < 128, LeanDa.listCellDigestWithHash LeanVM.Da.keccak256Bytes
       ((List.range 128).flatMap (syms i)) j = LeanVM.Protocol.Digest.toBytes (cellD syms i j) := fun i j hj => by
-    rw [LeanDa.listCellDigestWithHash, hcell i j hj, keccak_eq, cellD, show LeanDa.symbolBytes = K.toBytes from
-      funext kBytes_eq]
+    rw [LeanDa.listCellDigestWithHash, hcell i j hj, keccak_eq, cellD]
   have hlen : (daRows r syms).length = r := by simp [daRows]
   -- the row tree
   have hrd : ∀ i (hi : i < r), LeanDa.rowDigestWithHash LeanVM.Da.keccak256Bytes
@@ -207,7 +206,9 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     obtain ⟨i, -, rfl⟩ := List.mem_map.mp hrow'
     exact hrow i
   · -- the commitment
-    rw [Da.commitCodewords_keccakF1600]
+    rw [Da.commitCells_keccakF1600 _ fun row hrow' => by
+      obtain ⟨i, -, rfl⟩ := List.mem_map.mp hrow'
+      exact hrow i]
     simp only [LeanDa.commitCodewordsWithHash]
     rw [hRow, hCol, keccak_pair]
     rfl
@@ -218,7 +219,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List K} {ws : ℕ → List 
     refine List.flatMap_congr fun j hj => ?_
     have hj' : j < 128 := List.mem_range.mp hj
     rw [LeanDa.columnDigestWithHash, show LeanDa.cellSymbols = 256 from rfl, daVector,
-      block_eq ws 256 hws hj' 0, limbBytes_eq, keccak_eq, toList_toBytes]
+      block_eq ws 256 hws hj' 0, keccak_eq, toList_toBytes]
     rfl
   · -- orthogonality
     intro row hrow'

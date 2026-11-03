@@ -211,7 +211,9 @@ def readCase (path : System.FilePath) : IO Case := do
 /-- The bytecode the verifier reads the length of: `2^23` words, those of `logSize = 19`. -/
 def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
 
-/-- `MatrixWitness.Opens`, its dot products computed. -/
+/-- `MatrixWitness.Opens`, its dot products computed and its commitment computed level by level as
+the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^15` symbols the statement's
+`commitCells` of the matrix they form: `LeanDa.commitCodewords_eq_commitCells`). -/
 def daOpens (root vd : Digest) (w : LeanVM.Da.MatrixWitness) : Bool :=
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&

@@ -22,8 +22,8 @@ a node as the two cells of its digest (`nodeCells`, `cellRoot`). With `H = Da.ke
   is `merkleRoot keccak d (toBytes ∘ g)`; `cellRoot_mRoot`: as cells it is the guest's `cellRoot`;
 * `merkleRoot_add`: the root over `2^(a + b)` leaves is the root over the `2^a` roots of blocks of
   `2^b` (LeanDA's column tree is the guest's tree of column roots);
-* `kBytes_eq`, `limbBytes_eq`, `toList_toBytes`: LeanDA's byte encodings are this project's;
-* `treeRoot_range`, `flatMap_range_range`: a tree built level by level (`LeanDa.treeRoot`) has the
+* `toList_toBytes`: LeanDA's digest bytes are this project's;
+* `treeRoot_range`, `flatMap_range_range`: a tree built level by level (`LeanDa.treeRootWithHash`) has the
   root `merkleRoot`, and the column leaves listed column by column (the statements of `lean_da`'s
   `treeRoot_map_range`, `flatMap_range_map_range`, whose module this one cannot import).
 -/
@@ -40,21 +40,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 theorem toList_toBytes (d : Digest) : (LeanVM.Protocol.Digest.toBytes d).toList = digestBytes d := by
   simp [LeanVM.Protocol.Digest.toBytes, Vector.toList]
-
-theorem kBytes_eq (a : K) : LeanDa.symbolBytes a = K.toBytes a := by
-  unfold LeanDa.symbolBytes K.toBytes wordBytes
-  refine List.map_congr_left fun t ht => ?_
-  have ht8 : t < 8 := List.mem_range.mp ht
-  refine UInt8.toNat_inj.mp ?_
-  simp only [Nat.toUInt8, UInt8.toNat_ofNat', UInt64.toNat_toUInt8, UInt64.toNat_shiftRight,
-    Nat.toUInt64, UInt64.toNat_ofNat', K.lane]
-  rw [Nat.mod_eq_of_lt (show 8 * t < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show 8 * t < 64 by omega)]
-  rfl
-
-theorem limbBytes_eq (es : List E) : LeanDa.limbBytes es = es.flatMap E.toBytes := by
-  simp only [LeanDa.limbBytes, List.flatMap_assoc]
-  refine List.flatMap_congr fun e _ => ?_
-  simp [E.toBytes, kBytes_eq, LeanDa.limb, List.append_assoc]
 
 theorem keccak_pair (a b : Digest) :
     LeanVM.Da.keccak256Bytes (LeanDa.pairBytes (LeanVM.Protocol.Digest.toBytes a) (LeanVM.Protocol.Digest.toBytes b)) =
