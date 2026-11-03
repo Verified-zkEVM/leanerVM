@@ -756,8 +756,9 @@ def semsOf (body : List Core.Stmt) : List (ℕ × ℕ × ℕ) :=
 `lean_vm/README.md`): before, after, and on memory, and the memory bounds they take from named
 obligations. `verify_tables` dispatches on `g_bus_mu`, `log2_ceil_in_the_exponent`'s (its range
 check in `verify_log2_ceil`); `claim_list_digest` and `child_claim_list_digest` on `list_split`'s
-remainder; `da_verify` on `da_row_shape`'s checked argument; `check_opening_terminal` on the
-`col_kappas` entries, which `verify_sub` knows from an obligation. -/
+remainder; `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s
+checked argument; `check_opening_terminal` on the `col_kappas` entries, which `verify_sub` knows
+from an obligation. -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
@@ -767,8 +768,6 @@ def bounds (name : String) :
     name == "log2_ceil_in_the_exponent__L0_L34" || name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(5, 34)], [], [])
   else if name == "check_opening_terminal" then ([], [], [(13, 99, 29)], [])
-  else if name == "__loop19" || name == "__loop20" || name == "da_verify_column__L0" ||
-    name == "da_verify_column__L1" then ([(6, 11)], [], [], [])
   else ([], [], [], [])
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
