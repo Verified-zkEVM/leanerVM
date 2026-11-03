@@ -102,16 +102,16 @@ theorem corr_foldRoundsA (f₀ : List E) :
   | n + 1, s, lf, W, g, hg => by
     simp only [foldRoundsA, hFoldRounds]
     refine corrW_sampleE fun c ↦ ?_
-    refine Corr.bind' (corr_roundA' (toList_foldPairsW c W) (toList_foldPairsA_foldAll hg c))
+    refine Corr.bind' (corr_roundA' (toList_foldPairsA c W) (toList_foldPairsA_foldAll hg c))
       fun quad _ hq ↦ ?_
     subst hq
     have := corr_foldRoundsA f₀ n
       { s with target := polyEval s.quad c,
                quad := roundQuad (polyEval s.quad c) (foldPairs c W.toList)
                  (foldAll f₀ (s.folds ++ [c])),
-               folds := s.folds ++ [c] } (lf ++ [c]) (foldPairsW c W) (foldPairsW c g)
+               folds := s.folds ++ [c] } (lf ++ [c]) (foldPairsA c W) (foldPairsA c g)
       (toList_foldPairsA_foldAll hg c)
-    rwa [toList_foldPairsW] at this
+    rwa [toList_foldPairsA] at this
 
 /-- **The tail rounds.** -/
 theorem corr_tailRoundsA : ∀ (n : ℕ) (target : E) (quad : List E) (W g : Array E),
@@ -124,13 +124,13 @@ theorem corr_tailRoundsA : ∀ (n : ℕ) (target : E) (quad : List E) (W g : Arr
     by_cases hn : n = 0
     · simp only [hn, ↓reduceIte]; trivial
     · simp only [hn, ↓reduceIte]
-      refine Corr.bind' (corr_roundA' (toList_foldPairsW c W) (toList_foldPairsW c g))
+      refine Corr.bind' (corr_roundA' (toList_foldPairsA c W) (toList_foldPairsA c g))
         fun quad' _ hq ↦ ?_
       subst hq
       have := corr_tailRoundsA n (polyEval quad c)
         (roundQuad (polyEval quad c) (foldPairs c W.toList) (foldPairs c g.toList))
-        (foldPairsW c W) (foldPairsW c g)
-      rw [toList_foldPairsW, toList_foldPairsW] at this
+        (foldPairsA c W) (foldPairsA c g)
+      rw [toList_foldPairsA, toList_foldPairsA] at this
       rw [← Script.bind_ret (tailRoundsA n _ _ _)]
       exact Corr.bind (fun _ _ _ ↦ trivial) _ _ this
 
@@ -204,10 +204,10 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
       refine corrW_commitS (by rw [levelWordFast_eq (by omega), hg₁]) ?_
       refine Corr.bind' (corr_sampleN _) fun z z' hz ↦ ?_
       obtain ⟨rfl, hz⟩ := hz
-      refine corrW_sendE (by rw [multilinearEvalA_eq, hg₁]) ?_
-      rw [multilinearEvalA_eq, hg₁]
+      refine corrW_sendE (by rw [mleA_eq, hg₁]) ?_
+      rw [mleA_eq, hg₁]
       refine Corr.bind' (corr_roundA' (W' := tableOf (μ - sb.folds.length) (eqEval z))
-        (by rw [toList_eqKernelA, eqKernel_eq_tableOf z hz]) hg₁) fun quad _ hq ↦ ?_
+        (by rw [toList_eqTable, eqKernel_eq_tableOf z hz]) hg₁) fun quad _ hq ↦ ?_
       subst hq
       refine corrW_pure ?_
       dsimp only
@@ -222,7 +222,7 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
       subst hq
       refine hih _ (glueT lam sb _) _ _ rfl ?_ (by rw [glue_folds]; exact hg₁)
       rw [toList_glueTablesA]
-      simp [toList_queryTableA hm, toList_eqKernelA, eqKernel_eq_tableOf z hz]
+      simp [toList_queryTableA hm, toList_eqTable, eqKernel_eq_tableOf z hz]
 
 /-! ## The opening -/
 

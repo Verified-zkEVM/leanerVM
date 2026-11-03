@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Prover.Corr
-public import Statement.Prover.Sumcheck
+public import Statement.Prover.Script
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 public import LeanVM.Protocol.Field
 import Mathlib.Algebra.Polynomial.Roots

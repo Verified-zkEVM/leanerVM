@@ -43,6 +43,16 @@ def tableWidth : ℕ → ℕ
 /-- The instance's opcode tables have these widths. -/
 theorem width_opIdx_eq : ∀ j : Fin 6, width (opIdx j) = tableWidth j := by decide +kernel
 
+/-- Each opcode table's first global column (`GLOBAL_COLUMN_BASES`), as numbers. -/
+def tableBase : ℕ → ℕ
+  | 0 => 6
+  | 1 => 21
+  | 2 => 36
+  | 3 => 44
+  | 4 => 59
+  | 5 => 73
+  | _ => 73
+
 /-- The Python's table bases are `tableBase`. -/
 theorem globalColumnBases_getD : ∀ j : Fin 6, globalColumnBases.getD j 0 = tableBase j := by
   decide +kernel
@@ -68,10 +78,11 @@ theorem columnAt_base {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : Lis
   have hidx : tableIndexOf (tableBase j + i) = j := by
     interval_cases j <;> simp only [tableBase, tableWidth] at hi ⊢ <;> unfold tableIndexOf <;>
       split_ifs <;> omega
+  have hg : globalColumnBases.getD j 0 = tableBase j := globalColumnBases_getD ⟨j, hj⟩
   unfold columnAt
   rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
     ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega)]
-  simp only [hidx, Nat.add_sub_cancel_left]
+  simp only [hidx, hg, Nat.add_sub_cancel_left]
 
 /-- The memory's limb columns, by number. -/
 theorem columnAt_limb {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)

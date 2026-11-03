@@ -5,9 +5,7 @@ public import Statement.Prover.Columns
 public import Statement.Prover.Ntt
 public import Statement.Prover.Bus
 public import Statement.Prover.Table
-public import Statement.Prover.Public
 public import Statement.Prover.Keccak
-public import Statement.Prover.Ring
 public import Statement.Prover.Whir
 
 /-!
@@ -18,15 +16,10 @@ monad, Keccak-256 the sponge over `F`. With Keccak-f[1600] in `Id` it is the exe
 (`lake exe leanvm-prove`); with the model's permutation (`Common.queryPermutation`) it is the
 prover the completeness statements name (`LeanVm.lean`, `LeanVmGuestCompleteness.lean`).
 
-From the trace it computes the witness (`witness?`: one run of the program; `none` unless the
-trace is a valid execution on the input within `2^28` committed cells), and, at a valid rate
-`1 ≤ ρ ≤ 4`, runs the honest script against the verifier's own program (`runScript`): the sizes
-announced, the stack committed (its codeword by the additive transform, `stackWordFast`), then
-the bus (`busFast`), the table sumcheck (`tableFast`), the public input (`pubFast`), the Keccak
-reduction (`keccakPhaseProve`), ring switching (`ringFast`) and the stacked opening
-(`openingFast`). Otherwise the proof is empty. Its only search is the proof-of-work nonce search,
-bounded by `fuel`; nothing branches on a permutation answer except through the
-challenges the verifier's program samples.
+It computes the witness from the trace (`witness?`: one run of the program) and runs the honest
+script, one executable prover per phase of `verify_execution`, against the verifier's own program
+(`runScript`). Its only search is the proof-of-work nonce search, bounded by `fuel`; nothing
+branches on a permutation answer except through the challenges the verifier's program samples.
 -/
 
 @[expose] public section
@@ -35,6 +28,15 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
+
+/-- **The public-input phase** (`publicInputPhase`, nothing sent): receive `r`; the claims of the
+three memory limbs at `(r, 0, …, 0)`, each the line through the limb's cells `0` and `1`. -/
+def pubFast (layout : Layout) (cols : Array (Array K)) : Script (List ColumnClaim) :=
+  Script.sampleE.bind fun r ↦
+    .ret ([memory0, memory1, memory2].map fun column ↦
+      let col := cols.getD column #[]
+      ⟨column, r :: List.replicate ((layout.placement memory0).variableCount - 1) 0,
+        multilinearEval [ofK (col.getD 0 0), ofK (col.getD 1 0)] [r]⟩)
 
 /-- **The honest script** of an execution's witness `W` at the layout `layout` and the rate
 `ρ`: the eight moves of `verify_execution` (`verifier.py:1463-1516`), each phase's executable

@@ -250,7 +250,7 @@ theorem getD_tableInit (cols : Array (Array K))
       (((inst prog s).column q ⟨opIdx t, i⟩).values.toArray).map ofK := by
   have hwi : (i : ℕ) < (tables.getD t default).width := by rw [← width_opIdx]; exact i.isLt
   simp only [tableInit]
-  rw [ofFn_getD _ t t.isLt _, tableCols, ofFn_getD _ i hwi _]
+  rw [ofFn_getD _ t t.isLt _, ofFn_getD _ i hwi _]
   simp only
   rw [← pyCol_opIdx t i, hcols]
   rfl
@@ -259,7 +259,7 @@ theorem getD_tableInit (cols : Array (Array K))
 theorem size_tableInit (cols : Array (Array K)) (t : Fin 6) :
     ((tableInit cols).getD t #[]).size = width (opIdx t) := by
   simp only [tableInit]
-  rw [ofFn_getD _ t t.isLt _, tableCols, Array.size_ofFn, width_opIdx]
+  rw [ofFn_getD _ t t.isLt _, Array.size_ofFn, width_opIdx]
 
 /-- **The start**: the tables' columns, lifted, weights one. -/
 theorem tableInit_inv (cols : Array (Array K))

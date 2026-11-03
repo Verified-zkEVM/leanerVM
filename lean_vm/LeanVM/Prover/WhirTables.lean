@@ -8,6 +8,7 @@ module
 
 public import Statement.Prover.Whir
 public import LeanVM.Prover.Ntt
+public import LeanVM.Prover.Mle
 public import LeanVM.Protocol.Whir.Complete.Opening
 
 /-!
@@ -15,9 +16,9 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 
 Each array computation of `Statement/Prover/Whir.lean` is the list computation of the
 specification (`LeanVM.Protocol.Whir.Complete`): the round coefficients (`roundC0A_eq`,
-`roundC2A_eq`), a fold (`toList_foldPairsW`), the multilinear extension
-(`multilinearEvalA_eq`), the equality kernel (`toList_eqKernelA`, and the out-of-domain claim's
-table `eqKernel_eq_tableOf`), gluing (`toList_glueTablesA`), the query table by tensor products
+`roundC2A_eq`), the incremental fold (`toList_foldPairsA_foldAll`; a fold, the multilinear
+extension and the equality table are `LeanVM.Prover.Mle`'s), the out-of-domain claim's table
+(`eqKernel_eq_tableOf`), gluing (`toList_glueTablesA`), the query table by tensor products
 (`toList_queryTableA`) and the stack table (`toList_stackTableA`).
 -/
 
@@ -40,10 +41,6 @@ theorem toList_getD_E (a : Array E) (i : ℕ) : a.toList.getD i 0 = a.getD i 0 :
   array_getD_toList a i 0
 
 /-! ## Sums and round coefficients -/
-
-theorem sumLoop_eq (f : ℕ → E) : ∀ (n : ℕ) (acc : E), sumLoop f n acc = acc + ∑ x ∈ range n, f x
-  | 0, acc => by simp [sumLoop]
-  | n + 1, acc => by rw [sumLoop, sumLoop_eq f n, sum_range_succ]; ring
 
 theorem roundC0_eq_sum : ∀ (l m : List E),
     roundC0 l m = ∑ x ∈ range (min l.length m.length / 2), l.getD (2 * x) 0 * m.getD (2 * x) 0
@@ -73,58 +70,26 @@ theorem roundC2_eq_sum : ∀ (l m : List E),
   | _ :: _ :: _, [_] => by simp [roundC2]
 
 theorem roundC0A_eq (W g : Array E) : roundC0A W g = roundC0 W.toList g.toList := by
-  rw [roundC0A, sumLoop_eq, zero_add, roundC0_eq_sum, Array.length_toList, Array.length_toList]
+  rw [roundC0A, sumRange_eq, roundC0_eq_sum, Array.length_toList, Array.length_toList]
   simp only [toList_getD_E]
 
 theorem roundC2A_eq (W g : Array E) : roundC2A W g = roundC2 W.toList g.toList := by
-  rw [roundC2A, sumLoop_eq, zero_add, roundC2_eq_sum, Array.length_toList, Array.length_toList]
+  rw [roundC2A, sumRange_eq, roundC2_eq_sum, Array.length_toList, Array.length_toList]
   simp only [toList_getD_E]
 
 /-! ## Folds -/
 
-theorem toList_foldPairsW (r : E) (t : Array E) :
-    (foldPairsW r t).toList = foldPairs r t.toList := by
-  refine list_ext_getD (by simp [foldPairsW, length_foldPairs]) fun j hj ↦ ?_
-  have hj' : j < t.size / 2 := by simpa [foldPairsW] using hj
-  rw [toList_getD_E, foldPairsW, getD_ofFn _ _ _ hj',
-    getD_foldPairs r _ j (by rw [Array.length_toList]; omega), toList_getD_E, toList_getD_E]
-
-theorem toList_foldl_foldPairsA : ∀ (z : List E) (t : Array E),
-    (z.foldl (fun cur r ↦ foldPairsW r cur) t).toList =
-      z.foldl (fun cur r ↦ foldPairs r cur) t.toList
-  | [], _ => rfl
-  | r :: z, t => by
-    rw [List.foldl_cons, List.foldl_cons, toList_foldl_foldPairsA z, toList_foldPairsW]
-
-theorem multilinearEvalA_eq (t : Array E) (z : List E) :
-    multilinearEvalA t z = multilinearEval t.toList z := by
-  rw [multilinearEvalA, multilinearEval, ← toList_foldl_foldPairsA, List.headD_eq_getD,
-    toList_getD_E]
-
 /-- The incremental fold is the specification's fold from the stack table. -/
 theorem toList_foldPairsA_foldAll {f₀ : List E} {folds : List E} {g : Array E}
     (hg : g.toList = foldAll f₀ folds) (c : E) :
-    (foldPairsW c g).toList = foldAll f₀ (folds ++ [c]) := by
-  rw [toList_foldPairsW, hg, foldAll_concat]
+    (foldPairsA c g).toList = foldAll f₀ (folds ++ [c]) := by
+  rw [toList_foldPairsA, hg, foldAll_concat]
 
 /-! ## The equality kernel -/
 
-theorem toList_foldl_eqKernel : ∀ (z : List E) (out : Array E),
-    (z.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out).toList =
-      z.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out.toList
-  | [], _ => rfl
-  | r :: z, out => by
-    rw [List.foldl_cons, List.foldl_cons, toList_foldl_eqKernel z]
-    simp
-
-theorem toList_eqKernelA (z : List E) : (eqKernelA z).toList = eqKernel z := by
-  rw [eqKernelA, toList_foldl_eqKernel]; rfl
-
-theorem size_eqKernelA (z : List E) : (eqKernelA z).size = 2 ^ z.length := by
-  rw [← Array.length_toList, toList_eqKernelA, length_eqKernel]
-
-theorem eqKernelA_getD (z : List E) (j : ℕ) : (eqKernelA z).getD j 0 = (eqKernel z).getD j 0 := by
-  rw [← toList_getD_E, toList_eqKernelA]
+theorem getD_eqTable_eqKernel (z : List E) (j : ℕ) :
+    (eqTable z).getD j 0 = (eqKernel z).getD j 0 := by
+  rw [← toList_getD_E, toList_eqTable]
 
 /-- The out-of-domain claim's table is the equality kernel of the point. -/
 theorem eqKernel_eq_tableOf {m : ℕ} (z : List E) (hz : z.length = m) :
@@ -136,17 +101,18 @@ theorem eqKernel_eq_tableOf {m : ℕ} (z : List E) (hz : z.length = m) :
 
 /-! ## Gluing -/
 
-theorem toList_axpyA (s : E) (W T : Array E) : (axpyA s W T).toList = axpy s W.toList T.toList := by
-  simp [axpyA, axpy]
-
 theorem toList_glueTablesA_aux (lam : E) : ∀ (Ts : List (Array E)) (W : Array E) (sc : E),
-    (Ts.foldl (fun (acc : Array E × E) T ↦ (axpyA (acc.2 * lam) acc.1 T, acc.2 * lam)) (W, sc)).1.toList =
-      ((Ts.map Array.toList).foldl (fun (acc : List E × E) T ↦ (axpy (acc.2 * lam) acc.1 T, acc.2 * lam))
-        (W.toList, sc)).1
+    (Ts.foldl (fun (acc : Array E × E) T ↦
+      let s := acc.2 * lam
+      (Array.zipWith (fun a b ↦ a + s * b) acc.1 T, s)) (W, sc)).1.toList =
+      ((Ts.map Array.toList).foldl
+        (fun (acc : List E × E) T ↦ (axpy (acc.2 * lam) acc.1 T, acc.2 * lam)) (W.toList, sc)).1
   | [], _, _ => rfl
   | T :: Ts, W, sc => by
-    rw [List.foldl_cons, List.map_cons, List.foldl_cons, toList_glueTablesA_aux lam Ts,
-      toList_axpyA]
+    have h : (Array.zipWith (fun a b ↦ a + sc * lam * b) W T).toList =
+        axpy (sc * lam) W.toList T.toList := by simp [axpy]
+    rw [List.foldl_cons, List.map_cons, List.foldl_cons]
+    exact (toList_glueTablesA_aux lam Ts _ _).trans (by rw [h])
 
 theorem toList_glueTablesA (lam : E) (W : Array E) (Ts : List (Array E)) :
     (glueTablesA lam W Ts).toList = glueTables lam W.toList (Ts.map Array.toList) :=

@@ -114,8 +114,8 @@ returns, whichever interpolation computes it.
 (`Statement/Extractor.lean`, `Statement/LeanVm.lean`) until the end statement took the extractor
 as a cost-machine program within a size bound and a budget (`LeanVM.extractorComputedBy`,
 `Statement/CostMachine.lean`): moved here verbatim, but for the address indices and the public
-boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which
-the statement keeps for the honest prover. The budget reads the announced shape off the stream
+boundary (`powIndex`, `gLogIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), which the
+statement keeps for the honest prover. The budget reads the announced shape off the stream
 (`announced`, `Statement/LeanVmVerifier.lean`), the shape `afterRoot` returns.
 
 The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
@@ -719,6 +719,14 @@ def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryIma
   fun i ↦
     let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
     E.ofLimbs (limb memory0) (limb memory1) (limb memory2)
+
+/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
+fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
+`memIdx`. -/
+def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
+    (L : MemoryImage κ) (r : Registers K) : Option (Registers K) :=
+  (gLogIn codeIdx prog.logSize r.pc).map prog.instructions >>=
+    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
 
 /-- The halting search from `r`, reached after `n` steps, with at most `fuel` more steps: `some m`
 when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs

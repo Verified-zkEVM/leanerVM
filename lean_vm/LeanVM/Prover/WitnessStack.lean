@@ -60,7 +60,7 @@ theorem getElem?_flatten_offset {α : Type} :
 /-- **The executable stacking order is the instance's**, by Python number. -/
 theorem stackOrderOf_pyKappas (prog : LeanIsaProgram) (s : Sizes) :
     stackOrderOf (pyKappas prog s) = (stackOrder prog s).map pyCol := by
-  unfold stackOrderOf
+  unfold stackOrderOf blockOrder
   have hb : blockColumns = committedColumns.map pyCol := blockCols_eq
   simp only [hb, List.length_map, blockSizes_eq]
   rw [order_eq, List.map_map]

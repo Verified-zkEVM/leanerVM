@@ -8,7 +8,7 @@
 -/
 
 import Statement.Prover.Bus
-import Statement.Prover.Public
+import Statement.Prover.Prove
 
 namespace LeanVMTests.Prover.Bus
 

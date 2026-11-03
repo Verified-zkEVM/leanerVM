@@ -5,23 +5,10 @@ public import Statement.Prover.KeccakTables
 /-!
 # The Keccak prover: a layer
 
-One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1312-1355`), run by an honest
-prover that computes each table once:
-
-* the bits entering χ (`layerMasks`): per segment and step, the state `e` rounds into the
-  segment and its image under the round's linear map `L = π ∘ ρ ∘ θ` (`linearOf`), the sixteen
-  instances of a pack as a mask per position;
-* `G`'s coefficients (`gCoeffs`): per pack and position, χ's product
-  `κ·S_j + (κ + S_{j+1})·S_{j+2}` of the embedded masks as a carry-less product of binary
-  polynomials (`chiProduct`), its bits weighted by the claim's position weights and the pack's
-  equality weight;
-* the pack rounds (`packRound`, `packFold`): the packs' states at the evaluation point `s`,
-  `Ŝ(z, j) = Σ_i emb_i(s)·[bit i of the mask]` (two byte-table reads), folded in place round by
-  round, the round polynomial from the folded rows;
-* the position rounds (`posRound`, `posFold`): the tables `T_0, T_1, T_2` (the last pack row at
-  `j`, `j + 1`, `j + 2` columns along) and the weights over the `11` position bits, folded;
-  the final `t` values are the folded tables' entries;
-* the next claim, through `keccakLinearTranspose` of the batched weights.
+One layer of the Keccak GKR (`verifyKeccakLayer`, `verifier.py:1312-1355`): the bits entering χ,
+the sixteen instances of a pack as a mask per position (`layerMasks`); `G`'s coefficients, χ's
+product of the embedded masks as a carry-less product (`gCoeffs`); the pack rounds and the position
+rounds on tables folded in place; the next claim through `keccakLinearTranspose`.
 -/
 
 @[expose] public section
@@ -45,8 +32,9 @@ def linearOf (a : KeccakState) : KeccakState :=
   let c : Vector UInt64 5 := Vector.ofFn fun x ↦
     Keccak.lane a x ^^^ Keccak.lane a (x + 5) ^^^ Keccak.lane a (x + 10) ^^^
       Keccak.lane a (x + 15) ^^^ Keccak.lane a (x + 20)
-  let t : KeccakState := Vector.ofFn fun i ↦ Keccak.lane a i ^^^ c.toArray.getD ((i.val + 4) % 5) 0 ^^^
-    Keccak.rot (c.toArray.getD ((i.val + 1) % 5) 0) 1
+  let t : KeccakState := Vector.ofFn fun i ↦
+    Keccak.lane a i ^^^ c.toArray.getD ((i.val + 4) % 5) 0 ^^^
+      Keccak.rot (c.toArray.getD ((i.val + 1) % 5) 0) 1
   (List.range 25).foldl
     (fun b i ↦ b.setIfInBounds (keccakPi i) (Keccak.rot (Keccak.lane t i) (keccakRho.getD i 0)))
     (Vector.replicate 25 0)
@@ -206,7 +194,7 @@ def posRound (κ scale : E) (st : PosState) : List E :=
 
 /-- A position round's fold. -/
 def posFold (st : PosState) (c : E) : PosState :=
-  ⟨foldTab c st.t0, foldTab c st.t1, foldTab c st.t2, foldTab c st.wt⟩
+  ⟨foldPairsA c st.t0, foldPairsA c st.t1, foldPairsA c st.t2, foldPairsA c st.wt⟩
 
 /-! ## A layer -/
 

@@ -1,24 +1,17 @@
 module
 
-public import Statement.Prover.Sumcheck
+public import Statement.Prover.Script
 public import Statement.Prover.Mle
 
 /-!
 # The batched GKR over three product trees, executable
 
-The prover of the verifier's `verifyGkrGrandProducts` (`LeanVmVerifier.lean`, `verifier.py:474-497`)
-over three trees of `2^D` leaves, the first two of the same product:
-
-* `treeLayers D t`: every layer of a tree, built once (`mulPairsA`: adjacent pairs multiplied);
-* per step of `h` levels (`gkrStepA`), the three child layers below the current point are folded
-  in place of the point's coordinates, one per round (`foldStride`: the coordinate just above the
-  `h` child bits); each round's polynomial (`gkrRound`), of degree `2^h`, is computed from the
-  folded tables, row by row: the product of the `2^h` lines through each row's child entries
-  (`lineProd`, expanded into coefficients by `mulLine`), batched by the combiner, weighted by the
-  equality weights of the point's coordinates not yet bound (`eqTable`); after the rounds the folded
-  tables are the children sent, and the new values their extensions at the fresh coordinates;
-* the walk (`gkrLayersA`) and the GKR (`gkrA`), as the verifier walks: one level first when the
-  depth is odd, two at a time after.
+The prover of `verifyGkrGrandProducts` (`verifier.py:474-497`) over three trees of `2^D` leaves,
+the first two of the same product, every layer built once (`treeLayers`). In a step of `h` levels
+the three child layers are folded in place, one coordinate per round (`foldStride`), and each
+round's polynomial is computed row by row from the folded layers (`gkrRound`); after the rounds the
+folded layers are the children sent. The walk is the verifier's: one level first when the depth is
+odd, two at a time after.
 -/
 
 @[expose] public section

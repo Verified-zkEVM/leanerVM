@@ -1,26 +1,21 @@
 module
 
-public import Statement.Prover.Sumcheck
+public import Statement.Prover.Script
 public import Statement.Prover.Mle
 
 /-!
 # The table sumcheck, executable
 
-The honest prover of the verifier's table phase (`tablePhase`, `tableSumcheck`,
-`LeanVmVerifier.lean`): receive `ξ`, run the plain sumcheck of four coefficients per round over
-`n = max_t τ_t` coordinates, the first challenge binding the highest coordinate, then send every
-table's column evaluations at the point (the challenges reversed) and return the bus's claims and
-the tables'.
+The prover of `tablePhase` (`tableSumcheck`): receive `ξ`, run the plain sumcheck of four
+coefficients per round over `n = max_t τ_t` coordinates, the highest coordinate bound first, then
+send every table's column evaluations at the point.
 
-The state carries, per table, its columns folded at the challenges drawn so far (`foldHigh`: the
-highest free coordinate fixed, the table halved) and its running weight. A table of log-height
-`τ_t` is *active* in the round binding coordinate `m` when `m < τ_t`; it is *waiting* otherwise,
-and then its weight is `X` times the product of the challenges, so it contributes the line
-`X · ω_t · σ_t`, `σ_t` the equality-weighted sum of its rows, computed once. An active table
-contributes `ω_t · (1 + e_m + X) · Σ_x eq(e_{<m}, x) · P_t(row x at X)`, its rows' values a line
-in `X` between the two halves of the folded columns and `P_t` the table's degree-two polynomial
-(its constraints and its forms, batched by the powers of `ξ`), expanded per row as a quadratic in
-`X` (`formQuad`). Each round costs `O(Σ_t width_t · 2^τ_t)` and no division.
+The state holds per table its columns folded at the challenges so far (`foldHigh`) and its running
+weight. In the round binding coordinate `m` a table of log-height `τ_t ≤ m` *waits*: it
+contributes the line `X·ω_t·σ_t`, `σ_t` its rows summed against the equality weights, computed
+once. An *active* table contributes `ω_t·(1 + e_m + X)·Σ_x eq(e_{<m}, x)·P_t(row x at X)`, each
+row a line in `X` between the folded columns' halves and `P_t` its constraints and forms batched by
+the powers of `ξ`, expanded as a quadratic in `X` (`formQuad`).
 -/
 
 @[expose] public section
@@ -29,7 +24,7 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Protocol.Verifier
 
-/-! ## The high fold (the equality table is `Mle.lean`'s `eqTable`) -/
+/-! ## The high fold -/
 
 /-- Fix a table's highest coordinate at `c`: the table halves, entry `i` becoming
 `a[i]·(1 + c) + a[i + h]·c` for `h` the half. -/
@@ -149,12 +144,6 @@ def tableFold (e : List E) (logs : List ℕ) (st : TableState) (c : E) : TableSt
 
 /-! ## The tables' data -/
 
-/-- Table `t`'s columns, lifted to `E`, from the instance's columns indexed by global column
-(`GLOBAL_COLUMN_BASES[t] + i`). -/
-def tableCols (cols : Array (Array K)) (t : ℕ) : Array (Array E) :=
-  Array.ofFn (n := (tables.getD t default).width) fun i ↦
-    (cols.getD (globalColumnBases.getD t 0 + i.val) #[]).map ofK
-
 /-- A table's rows summed against the equality weights of the point's first `h` coordinates,
 `σ = Σ_y eq(e_{<h}, y)·P(row y)`, needed when the table waits (`h < n`). -/
 def tableSigma (e : List E) (n h : ℕ) (terms : List (List ℕ × E)) (F : Array (Array E)) : E :=
@@ -187,9 +176,10 @@ def xiPowers (xi : E) : List E × List E :=
 def tableTermsOf (xi : E) (bus : BusResult) : Array (List (List ℕ × E)) :=
   Array.ofFn (n := 6) fun t ↦ rowTerms (xiPowers xi).1 (xiPowers xi).2 bus.forms t
 
-/-- Every table's columns, lifted to `E`. -/
+/-- Every table's columns, lifted to `E`, from the instance's columns by global number. -/
 def tableInit (cols : Array (Array K)) : Array (Array (Array E)) :=
-  Array.ofFn (n := 6) fun t ↦ tableCols cols t
+  Array.ofFn (n := 6) fun t ↦ Array.ofFn (n := (tables.getD t default).width) fun i ↦
+    (cols.getD (globalColumnBases.getD t 0 + i.val) #[]).map ofK
 
 /-- Every table's `σ`. -/
 def tableSigmas (e : List E) (logs : List ℕ) (terms : Array (List (List ℕ × E)))

@@ -8,18 +8,11 @@ public import Mathlib.Data.Fintype.Pi
 # The code's formulas
 
 leanVM's binary Reed-Solomon code (Annex D, `doc/leanvm/body/d-novel-basis.tex:2-46` at leanVM
-pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) as the formulas its codewords are defined by, at
-every position: the subspace polynomials `W_i` and their normalizations `Ŵ_i`, the novel basis
-`X_j = ∏_i Ŵ_i^{j_i}`, the encoder `Enc(g)` at the domain point `x_p = K.ofBits p`, and a WHIR
-level's interleaved word. The proofs about them (`LeanVM.Protocol.Whir.Subspace`,
-`LeanVM.Protocol.Whir.NovelBasis`, `LeanVM.Protocol.Whir.Complete.Encoding` in `lean_vm`) keep
-these names.
-
-They are here because a committed word is a function on every position (`Word`): the
-executable prover's words (`Statement/Prover/Ntt.lean`) hold the codeword computed by the
-additive NTT below the commitment's `2^height` leaves, the only positions a run reads, and these
-formulas above it, so that they are the specification's words at every position. The formulas
-cost `O(4^κ)` per position and are never evaluated by the run.
+pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) as the formulas that define its codewords at every
+position: the subspace polynomials `W_i`, their normalizations `Ŵ_i`, the novel basis
+`X_j = ∏_i Ŵ_i^{j_i}`, the encoder `Enc(g)` at `x_p = K.ofBits p`, and a WHIR level's word. The
+committed words (`Ntt.lean`) take these values above the positions a run reads, which they never
+evaluate (`O(4^κ)` per position).
 -/
 
 @[expose] public section

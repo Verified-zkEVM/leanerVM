@@ -1,20 +1,13 @@
 module
 
-public import Statement.Prover.Sumcheck
+public import Statement.Prover.Script
+public import Statement.Prover.Mle
 
 /-!
 # Tables for the Keccak prover
 
-Array helpers of the executable Keccak GKR prover (`KeccakLayer.lean`, `Keccak.lean`):
-
-* `sumRange n f`: `Σ_{i < n} f i` as a loop;
-* `eqTable pt`: the equality weights `eqKernel pt` built on arrays;
-* `foldTab c t`: a table folded on its lowest coordinate at the challenge `c`;
-* `addCoeffs`, `sumCoeffs`, `scaleCoeffs`: coefficient lists (constant first) added and scaled,
-  the round polynomials of the sumchecks assembled from their summands';
-* `packBits f n`: `n` booleans as the bits of a number; `byteSums v`: the `256` subset sums of
-  eight values (a sum of weights selected by a byte is one table read);
-* `addBits x g n acc`: `x` added to the entries of `acc` at the set bits of `g` below `n`.
+Coefficient lists (constant first) added and scaled, and the byte tables by which a sum of
+weights selected by the bits of a word is a few table reads.
 -/
 
 @[expose] public section
@@ -22,20 +15,6 @@ Array helpers of the executable Keccak GKR prover (`KeccakLayer.lean`, `Keccak.l
 namespace LeanVM.Prover.KeccakGkr
 
 open LeanVM.Parameters LeanVM.Protocol.Verifier
-
-/-- `Σ_{i < n} f i`, as a loop. -/
-def sumRange (n : ℕ) (f : ℕ → E) : E := (List.range n).foldl (fun acc i ↦ acc + f i) 0
-
-/-- `eq_kernel(pt)` on arrays: the `2^|pt|` equality weights, the first coordinate the lowest
-bit. -/
-def eqTable (pt : List E) : Array E :=
-  pt.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) #[1]
-
-/-- A table folded on its lowest coordinate at `c`: entry `u` is `t[2u] + c·(t[2u] + t[2u+1])`,
-`(1 + c)·t[2u] + c·t[2u+1]`. -/
-def foldTab (c : E) (t : Array E) : Array E :=
-  Array.ofFn (n := t.size / 2) fun u ↦
-    t.getD (2 * u.val) 0 + c * (t.getD (2 * u.val) 0 + t.getD (2 * u.val + 1) 0)
 
 /-! ## Coefficient lists -/
 

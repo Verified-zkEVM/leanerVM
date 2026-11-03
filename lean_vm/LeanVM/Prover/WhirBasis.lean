@@ -185,13 +185,13 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     · rename_i h
       obtain ⟨hlen, hv, hμ⟩ := h
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement c.column).variableCount
-        (layout.placement c.column).index) (eqKernelA c.point) s (eqKernelA c.point).size acc
+        (layout.placement c.column).index) (eqTable c.point) s (eqTable c.point).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
         show (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x,
           c.value).1 (boolPoint μ y) = (c.stackClaim layout).1 (boolPoint μ y) from rfl,
         onStack_boolPoint hlen hv hμ hy,
-        size_eqKernelA, hlen, mul_ite, mul_zero, eqKernelA_getD]
+        size_eqTable, hlen, mul_ite, mul_zero, getD_eqTable_eqKernel]
     · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.column layout c).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩
   | ring layout target point ch =>
@@ -200,14 +200,14 @@ theorem addClaim_spec {μ : ℕ} (s : E) (d : ClaimDesc) (acc : Array E) (hs : a
     · rename_i h
       obtain ⟨hlen, hv, h6⟩ := h
       obtain ⟨h1, h2⟩ := addSlice_spec (blockOff μ (layout.placement qkeccak).variableCount
-        (layout.placement qkeccak).index) ((eqKernelA point).map (phiMap · ch)) s
-        ((eqKernelA point).map (phiMap · ch)).size acc
+        (layout.placement qkeccak).index) ((eqTable point).map (phiMap · ch)) s
+        ((eqTable point).map (phiMap · ch)).size acc
       refine ⟨by rw [h1, hs], fun y hy ↦ ?_⟩
       rw [h2 y (by rw [hs]; exact hy), ClaimDesc.denote,
-        ringSwitchClaim_boolPoint hlen hv h6 hy, Array.size_map, size_eqKernelA, hlen,
+        ringSwitchClaim_boolPoint hlen hv h6 hy, Array.size_map, size_eqTable, hlen,
         mul_ite, mul_zero]
       split_ifs with hb
-      · rw [getD_map_of_lt _ _ _ 0 _ (by rw [size_eqKernelA, hlen]; omega), eqKernelA_getD]
+      · rw [getD_map_of_lt _ _ _ 0 _ (by rw [size_eqTable, hlen]; omega), getD_eqTable_eqKernel]
       · rfl
     · obtain ⟨h1, h2⟩ := addFull_spec μ (ClaimDesc.ring layout target point ch).denote.1 s acc
       exact ⟨by rw [h1, hs], fun y hy ↦ h2 y (by rw [hs]; exact hy)⟩

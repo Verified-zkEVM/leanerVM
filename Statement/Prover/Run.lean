@@ -5,36 +5,23 @@ public import Statement.Prover.Script
 /-!
 # Running a prover's script against the verifier's program
 
-`runFrom F fuel P S sp cs` runs the script `S` against the verifier program `P`
-(`LeanVmVerifier.lean`) through the Fiat-Shamir sponge `sp`, over the permutation `F` in any monad
-(Keccak-256 the sponge over `F`, `keccak256With F`),
-  and returns the proof's scalar stream and Merkle openings from there on:
-
-* at a `read` of `P` the script's scalar is sent and absorbed with tag `1` (`DS_OBSERVE`);
-* at a `sample` the challenge is squeezed from the sponge and given to the script;
-* at a `grind` the nonce is the first `n < fuel` (as the scalar with limbs `(n, 0, 0)`) whose
-  challenge passes `powOk` (`grind_pow`, `crates/fiat_shamir/src/lib.rs`), at `0` bits the nonce
-  `0`; if none passes, the proof fails (`none`): the search is bounded by `fuel`;
-* at a `commit` the script's matrix is committed by its Merkle tree (`merkle_tree`,
-  `crates/pcs/src/merkle.rs:50-61`: each of the `2^height` rows hashed as the little-endian bytes
-  of its words, each parent the hash of its children's 64 bytes, left first), built once
-  (`buildTreeM`); its root is sent as two scalars (`digestHalves`);
-* at a `query` the rows at the positions' low `height` bits are given to the script and their
-  openings, read off the tree, go into the proof.
-
-Where the script's move does not match the program's (a scalar where the program samples, say),
-the run sends `0`, commits the empty matrix, and gives the script nothing more: a script that
-follows the program never meets this case.
-
-The prover calls `F` only to build Merkle trees, absorb, squeeze and search for nonces;
-nothing branches on an answer except the nonce search, and the script sees the challenges only.
+`runFrom F fuel P S sp cs` runs the script `S` against the verifier's program `P` through the
+Fiat-Shamir sponge `sp`, over the permutation `F` (Keccak-256 the sponge over `F`), and returns the
+proof's scalars and Merkle openings: a script's scalar is absorbed at each `read` of `P`, a
+challenge squeezed at each `sample`; a `grind` takes the first nonce below `fuel` that passes
+(`grind_pow`, `crates/fiat_shamir/src/lib.rs`), the proof failing if none does; a `commit` builds
+the matrix's Merkle tree once (`merkle_tree`, `crates/pcs/src/merkle.rs:50-61`) and sends its root;
+a `query` gives the script the rows at the positions and puts their openings, read off the tree,
+in the proof. Where the script's move is not the program's, the run sends `0`, commits the empty
+matrix and gives the script nothing more; a script that follows the program never meets it.
 -/
 
 @[expose] public section
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile
 
 /-! ## Merkle trees -/
 

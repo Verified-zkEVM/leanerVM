@@ -142,7 +142,7 @@ theorem limbsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) :
 /-- The cells an instruction reads, through the index, are `readAddrs`. -/
 theorem addrsIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (ins : LeanIsaInstruction) :
     addrsIn (powIndex κ) img fp ins = readAddrs img fp ins := by
-  cases ins <;> simp only [addrsIn, readAddrs, limbsIn_powIndex hκ]
+  cases ins <;> first | (simp only [addrsIn, readAddrs, limbsIn_powIndex hκ]; done) | rfl
 
 /-- The cells a `KECCAK` reads, through the index, are `keccakInputCells`. -/
 theorem keccakInputIn_powIndex (hκ : κ < 64) (img : MemoryImage κ) (fp : K) (om : Fin 4 → K)

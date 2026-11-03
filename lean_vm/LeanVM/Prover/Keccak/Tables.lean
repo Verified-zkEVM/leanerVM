@@ -9,17 +9,18 @@
 module
 
 public import LeanVM.Prover.Sumcheck
+public import LeanVM.Prover.Mle
 public import Statement.Prover.Keccak
 public import LeanVM.Protocol.Keccak.Complete
 
 /-!
 # Tables
 
-* `foldl_range_sum`, `sumRange_eq`: a loop adding `f i` is `Σ_i f i`;
+* `foldl_range_sum`: a loop adding `f i` is `Σ_i f i`;
 * `eqTable_eq`, `eqTable_getD`: `eqTable pt` is `eqKernel pt`, entry `w` is `eqAt pt w`;
 * `Affine F`: `F` is affine in each coordinate (`affine_mle`: a multilinear extension is);
   `TabInv t F n acc`: `t` lists `F` at `acc` followed by the remaining cube points;
-  `tabInv_fold`: `foldTab` keeps it, one coordinate further; `tabInv_split`: the next
+  `tabInv_fold`: `foldPairsA` keeps it, one coordinate further; `tabInv_split`: the next
   coordinate's values from the table's rows;
 * `polyEval_sumCoeffs`, `polyEval_scaleCoeffs`, `polyEval_addCoeffs`: coefficient lists add and
   scale as their polynomials do;
@@ -40,9 +41,6 @@ theorem foldl_range_sum (step : E → ℕ → E) (f : ℕ → E) (hstep : ∀ ac
   | n + 1, a => by
     rw [List.range_succ, List.foldl_append, foldl_range_sum step f hstep n a, List.foldl_cons,
       List.foldl_nil, hstep, Finset.sum_range_succ, add_assoc]
-
-theorem sumRange_eq (n : ℕ) (f : ℕ → E) : sumRange n f = ∑ i ∈ range n, f i := by
-  rw [sumRange, foldl_range_sum _ f (fun _ _ ↦ rfl), zero_add]
 
 theorem array_getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (d : α) :
     (Array.ofFn f).getD i d = if h : i < n then f ⟨i, h⟩ else d := by
@@ -120,14 +118,15 @@ theorem tabInv_split {t : Array E} {F : List E → E} {n : ℕ} {acc : List E} (
 /-- **The fold keeps the table**, one coordinate further. -/
 theorem tabInv_fold {t : Array E} {F : List E → E} {n : ℕ} {acc : List E} (hF : Affine F)
     (h : TabInv t F n acc) (hlt : acc.length < n) (c : E) :
-    TabInv (foldTab c t) F n (acc ++ [c]) := by
+    TabInv (foldPairsA c t) F n (acc ++ [c]) := by
   have hm : n - acc.length = n - (acc.length + 1) + 1 := by omega
-  have hsz : (foldTab c t).size = 2 ^ (n - (acc.length + 1)) := by
-    rw [foldTab, Array.size_ofFn, h.2.1, hm, pow_succ]; omega
+  have hsz : (foldPairsA c t).size = 2 ^ (n - (acc.length + 1)) := by
+    rw [foldPairsA, Array.size_ofFn, h.2.1, hm, pow_succ]; omega
   rw [TabInv, List.length_append, List.length_singleton]
   refine ⟨by omega, hsz, fun u hu ↦ ?_⟩
-  rw [foldTab, array_getD_ofFn_lt _ (by rw [h.2.1, hm, pow_succ]; omega), List.append_assoc,
+  rw [getD_foldPairsA _ _ (by rw [h.2.1, hm, pow_succ]; omega), List.append_assoc,
     List.singleton_append, tabInv_split hF h hlt hu]
+  ring
 
 /-- An affine function of a table's next coordinate, summed over the rest. -/
 theorem tabInv_full {t : Array E} {F : List E → E} {n : ℕ} {acc : List E}

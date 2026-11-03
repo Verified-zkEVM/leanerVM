@@ -166,7 +166,7 @@ theorem corr_busFast {prog : LeanIsaProgram} {s : Sizes} {q : Column (leanIsaμ 
   refine Corr.bind_same _ fun alphas ↦ ?_
   unfold hBusK1
   refine Corr.bind_same _ fun beta ↦ ?_
-  unfold busAfter hBusK2
+  unfold hBusK2
   dsimp only
   rw [busLayout_depth_verifier]
   have hD : 0 < busDepth prog s := lt_of_lt_of_le s.logMem_pos (logMem_le_busDepth prog s)

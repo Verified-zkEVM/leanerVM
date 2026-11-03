@@ -388,8 +388,8 @@ theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ}
   congr 1
   funext u
   rw [getD_ofFn _ _ _ (bitsToNat_lt u), laneMsg, array_getD_toList,
-    show (3 * j + (l : ℕ)) / 3 = j by omega, show (3 * j + (l : ℕ)) % 3 = l by omega]
-  fin_cases l <;> rfl
+    show (3 * j + (l : ℕ)) / 3 = j by omega]
+  exact congrArg _ (Fin.ext (show (3 * j + (l : ℕ)) % 3 = l by omega))
 
 /-- **The executable level word is the specification's**, at every position. -/
 theorem levelWordFast_eq {κ : ℕ} (hκ : κ ≤ 64) (k R : ℕ) (g : Array E) :

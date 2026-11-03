@@ -5,27 +5,12 @@ public import Statement.LeanVmVerifier
 /-!
 # The witness of an execution, executable
 
-The executable honest prover's first piece: from a trace, one forward run through the address
-indices (`powIndex`, `gLogIn`, below), then the six opcode tables' rows with their
-read counts, the memory's and the bytecode's finalize counts kept as arrays by index.
-
-* `stepsFrom`, `runSteps`: the run, `step` computed through the two indices (`stepIn`), recording
-  each state stepped from, its bytecode slot and the instruction fetched there; `none` if a step
-  fails, the machine halts early, or it is not in the final state after `t.steps` steps.
-* `checkTrace`: the execution is valid (`ValidExecution`) and its committed size is at most
-  `2^28` (`Execution.committedSize`), decided by that one run; `opCount` the instruction counts
-  (`Execution.opcodeCount`).
-* `rowsOf`: the rows of the run, table by table, each read carrying the count of its cell so far
-  (`g^n` for the `n`-th read of the cell), the counters stepping by `g` in place, and the
-  bytecode slot's count likewise: the raw rows of `rowOf` (lean_vm,
-  `Arithmetization/Completeness/Rows.lean`), written out as arrays (`rowIn`).
-
-The address indices and the public boundary (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`, in
-`LeanVM.Extraction`) are the knowledge extractor's too (`lean_vm`,
+The run of a trace through the address indices (`powIndex`, `gLogIn`: a word's index looked up in a
+hash map), recording each state stepped from, its bytecode slot and the instruction fetched there
+(`runSteps`); then the six opcode tables' rows in one pass over the steps, each read carrying its
+cell's count so far, the counters stepping by `g` in place (`rowsOf`). The address indices and the
+public boundary are the knowledge extractor's too (`lean_vm`,
 `LeanVM/Protocol/Extraction/Extractor.lean`).
-
-The columns, the sizes and the stack of these rows are in `Statement/Prover/Columns.lean`. What
-each definition computes is proved in `lean_vm/LeanVM/Prover/Witness*.lean`.
 -/
 
 @[expose] public section
@@ -51,15 +36,6 @@ def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ 
   match idx[a.lane]? with
   | some i => if h : i < 2 ^ κ then some ⟨i, h⟩ else none
   | none => none
-
-/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
-fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
-`memIdx`. -/
-def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ} (L :
-    MemoryImage κ)
-    (r : Registers K) : Option (Registers K) :=
-  (gLogIn codeIdx prog.logSize r.pc).map prog.instructions >>=
-    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
 
 /-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
 `2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
@@ -138,14 +114,6 @@ def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
 /-- The greatest committed size the verifier admits, `2^28` (`MAX_MU`, `pcs.rs:51`). -/
 def maxCommitted : ℕ := 2 ^ 28
 
-/-- **The check of a trace**: it has the public boundary of `input`, its run ends in the final
-state, and its committed size is at most `2^28`; one run through the address indices. -/
-def checkTrace (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Bool :=
-  boundaryOK input t &&
-    match runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
-    | some steps => decide (committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted)
-    | none => false
-
 /-! ## The rows -/
 
 /-- The limbs of the word at `a`, zero when there is none (`MemoryImage.limbsAt`, computed). -/
@@ -158,38 +126,12 @@ def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) 
 computed). -/
 def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
     LeanIsaInstruction → List K
-  | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
-  | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
+  | .xor oA oB oC | .mulNative oA oB oC | .jump oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
   | .deref o1 o2 o3 _ => [fp * o1, (limbsIn memIdx img (fp * o1))[0] * o2, fp * o3]
-  | .jump oc od of => [fp * oc, fp * od, fp * of]
   | .keccak om otail ob8 ocap oout _ _ =>
-      [fp * om 0,
-        fp * om 1,
-        fp * om 2,
-        fp * om 3,
-        fp * (g ^ 0 * otail),
-        fp * (g ^ 1 * otail),
-        fp * (g ^ 2 * otail),
-        fp * (g ^ 3 * otail),
-        fp * ob8,
-        fp * (g ^ 0 * ocap),
-        fp * (g ^ 1 * ocap),
-        fp * (g ^ 2 * ocap),
-        fp * (g ^ 3 * ocap),
-        fp * (g ^ 0 * oout),
-        fp * (g ^ 1 * oout),
-        fp * (g ^ 2 * oout),
-        fp * (g ^ 3 * oout),
-        fp * (g ^ 4 * oout),
-        fp * (g ^ 5 * oout),
-        fp * (g ^ 6 * oout),
-        fp * (g ^ 7 * oout),
-        fp * (g ^ 8 * oout),
-        fp * (g ^ 9 * oout),
-        fp * (g ^ 10 * oout),
-        fp * (g ^ 11 * oout),
-        fp * (g ^ 12 * oout)]
+      (List.finRange 13).map (fun c ↦ fp * keccakInputCellOffset om otail ob8 ocap c) ++
+        (List.range 13).map fun k ↦ fp * (g ^ k * oout)
 
 /-- The counts of a sequence of reads: each read gets its cell's counter, which then steps by
 `g`, in place; the counts are pushed on `cs`. -/
@@ -214,11 +156,7 @@ def laneK (S : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
 its table as an array, with the read counts `c 0, c 1, …` and the bytecode count `rbc`. -/
 def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (pc fp : K) (c : ℕ → K)
     (rbc : K) : LeanIsaInstruction → Array K
-  | .xor oA oB oC =>
-    let vA := limbsIn memIdx img (fp * oA)
-    let vB := limbsIn memIdx img (fp * oB)
-    #[pc, fp, oA, oB, oC, vA[0], vA[1], vA[2], vB[0], vB[1], vB[2], c 0, c 1, c 2, rbc]
-  | .mulNative oA oB oC =>
+  | .xor oA oB oC | .mulNative oA oB oC =>
     let vA := limbsIn memIdx img (fp * oA)
     let vB := limbsIn memIdx img (fp * oB)
     #[pc, fp, oA, oB, oC, vA[0], vA[1], vA[2], vB[0], vB[1], vB[2], c 0, c 1, c 2, rbc]
@@ -236,9 +174,8 @@ def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (p
     let input := keccakInputIn memIdx img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
     let out := keccakF1600 S
-    #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, layoutFlagWord inOdd, layoutFlagWord
-        outOdd,
-        if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
+    #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, layoutFlagWord inOdd,
+        layoutFlagWord outOdd, if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
       Array.ofFn (fun l : Fin 25 ↦ laneK S l) ++ Array.ofFn (fun l : Fin 25 ↦ laneK out l) ++
       Array.ofFn (fun j : Fin 26 ↦ c j) ++ #[rbc]
 

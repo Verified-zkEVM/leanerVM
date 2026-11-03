@@ -5,16 +5,10 @@ public import Statement.LeanVmVerifier
 /-!
 # The prover's language
 
-An honest prover written as a program of its own moves, in the order the verifier reads them: it
-sends a scalar (`send`), receives a challenge (`sample`), passes a proof of work (`grind`),
-commits a matrix (`commit`) and receives the opened rows (`query`), carrying whatever state it
-needs in ordinary bindings. `Run.lean` runs a script against the verifier's program
-(`VerifierProgram`,
-`LeanVmVerifier.lean`) through the Fiat-Shamir sponge, committing each matrix by its Merkle tree.
-
-A script cannot see a hash or permutation answer other than through the challenges the sponge
-gives it: the run (`Run.lean`) feeds it the challenge at each `sample` and the rows of its own
-matrices at each `query`, nothing else.
+An honest prover written as a program of its own moves, in the order the verifier reads them:
+send a scalar, receive a challenge, pass a proof of work, commit a matrix, receive the opened rows.
+`Run.lean` runs a script against the verifier's program through the Fiat-Shamir sponge; a script
+sees no hash or permutation answer but the challenges and its own matrices' rows.
 -/
 
 @[expose] public section
@@ -23,9 +17,8 @@ namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters
 
-/-- A committed matrix: the row at each position. A matrix of `2^height` rows is read at its first
-`2^height` positions; the Merkle path of a position reads its low `height` bits
-(`verifier.py:396`). -/
+/-- A committed matrix: the row at each position; one of `2^height` rows is read at its first
+`2^height` positions (`verifier.py:396`). -/
 abbrev Word : Type := ℕ → List K
 
 end LeanVM.Protocol.Compile
@@ -95,6 +88,24 @@ def commitS (word : Word) : Script Unit := commit word (ret ())
 def queryS : Script (List (List K)) := query ret
 
 end Script
+
+/-! ## A sumcheck prover -/
+
+/-- The coefficients the wire carries, as the verifier's `sumcheckRoundPoly` rebuilds them: all but
+the linear one in plain mode (`none`), all but the constant one in equality mode (`some r`). -/
+def wire : Option E → List E → List E
+  | none, c => c.headD 0 :: c.drop 2
+  | some _, c => c.drop 1
+
+/-- **A stateful sumcheck prover**: per round the coefficients `round st` (constant first) on the
+wire in the round's mode, then the challenge `c`, the state becoming `fold st c`; the challenges
+in order, and the last state. -/
+def sumcheckBy {σ : Type} (round : σ → List E) (fold : σ → E → σ) :
+    List (Option E) → σ → Script (List E × σ)
+  | [], st => .ret ([], st)
+  | mode :: modes, st =>
+    (Script.sendList (wire mode (round st))).bind fun _ ↦ Script.sampleE.bind fun c ↦
+      (sumcheckBy round fold modes (fold st c)).bind fun r ↦ .ret (c :: r.1, r.2)
 
 end LeanVM.Prover
 

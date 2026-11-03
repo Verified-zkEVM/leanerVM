@@ -157,7 +157,7 @@ theorem openInv_fold {sc : E} {m n : ℕ} {F G : ℕ → List E → E}
   obtain ⟨hsc, hm, hz⟩ := h
   refine ⟨hsc, by simp [openFold, hm], fun z hzm ↦ ?_⟩
   have hget : (openFold st c).pairs.getD z (#[], #[]) =
-      (foldTab c (st.pairs.getD z (#[], #[])).1, foldTab c (st.pairs.getD z (#[], #[])).2) := by
+      (foldPairsA c (st.pairs.getD z (#[], #[])).1, foldPairsA c (st.pairs.getD z (#[], #[])).2) := by
     simp [openFold, List.getD_eq_getElem?_getD, hm, hzm]
   rw [hget]
   exact ⟨tabInv_fold (hF z) (hz z hzm).1 hlt c, tabInv_fold (hG z) (hz z hzm).2 hlt c⟩

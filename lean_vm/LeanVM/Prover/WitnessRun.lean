@@ -159,6 +159,15 @@ theorem committedSizeOf_eq (t : Execution prog) {count : Opcode → ℕ}
     committedSizeOf prog.logSize t.logMemorySize count = t.committedSize := by
   simp only [committedSizeOf, Execution.committedSize, log2Ceil_eq_clog, h]
 
+/-- **The check of a trace**: it has the public boundary of `input`, its run ends in the final
+state, and its committed size is at most `2^28`; one run through the address indices. -/
+def checkTrace (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Bool :=
+  boundaryOK input t &&
+    match runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
+    | some steps =>
+      decide (committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted)
+    | none => false
+
 /-- **The check of a trace decides a valid execution within the cap.** -/
 theorem checkTrace_iff (input : PublicInput) (t : Execution prog) :
     checkTrace prog input t = true ↔ ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 := by

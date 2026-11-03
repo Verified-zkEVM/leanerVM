@@ -49,7 +49,7 @@ above the computed range too. -/
 /- The equality kernel and the folds against the verifier's lists. -/
 #guard
   let z := [E.ofLimbs (K.ofBits 2) 0 1, E.ofLimbs (K.ofBits 5) (K.ofBits 1) 0, ofK (K.ofBits 9)]
-  (eqKernelA z).toList == eqKernel z && multilinearEvalA tab8 z == multilinearEval tab8.toList z &&
-    (foldPairsW (z.headD 0) tab8).toList == foldPairs (z.headD 0) tab8.toList
+  (eqTable z).toList == eqKernel z && mleA tab8 z == multilinearEval tab8.toList z &&
+    (foldPairsA (z.headD 0) tab8).toList == foldPairs (z.headD 0) tab8.toList
 
 end LeanVMTests.Prover.Whir

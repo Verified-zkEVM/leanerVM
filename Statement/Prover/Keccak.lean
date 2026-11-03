@@ -6,17 +6,9 @@ public import Statement.Prover.KeccakLayer
 # The Keccak prover
 
 The honest prover of `verifyKeccak` (`verifier.py:1373-1406`) and of the Keccak phase of
-`verify_execution` (`keccakPhase`), each table computed once:
-
-* the column's slots at the steps' point `inst`, `Σ_x eq(inst, x)·col(x + 2^h·o)` for the `64`
-  slots (`slotWords`), give `committed` (the middle state's lanes, slots `25 .. 49`) and the
-  output opening's word;
-* the twelve layers (`layersProve`, `KeccakLayer.lean`);
-* the openings' sumchecks (`openRound`, `openFold`): sums over the remaining cube of products
-  of two folded tables, `Σ_u A(u)·B(u)`, or of several, scaled: the outputs' slot rounds on the
-  slot weights and the slot words, the inputs' instance rounds on the instance weights and the
-  claim restricted to each instance (`phiTable`), then the slot rounds on the `64` slices' slot
-  weights and the slices at `(λ, r_pack)` (`sliceTable`).
+`verify_execution` (`keccakPhase`): the column's `64` slots at the steps' point (`slotWords`), the
+twelve layers (`KeccakLayer.lean`), and the openings' sumchecks, sums over the remaining cube of
+products of two folded tables (`openRound`, `openFold`).
 -/
 
 @[expose] public section
@@ -48,7 +40,7 @@ def openRound (st : OpenState) : List E :=
 
 /-- An opening round's fold. -/
 def openFold (st : OpenState) (c : E) : OpenState :=
-  ⟨st.scale, st.pairs.map fun p ↦ (foldTab c p.1, foldTab c p.2)⟩
+  ⟨st.scale, st.pairs.map fun p ↦ (foldPairsA c p.1, foldPairsA c p.2)⟩
 
 /-! ## The column at a point -/
 
@@ -57,16 +49,12 @@ def slotWords (col : ℕ → K) (h : ℕ) (inst : List E) : Array E :=
   let eq := eqTable inst
   Array.ofFn (n := 64) fun o ↦ sumRange (2 ^ h) fun x ↦ eq.getD x 0 * ofK (col (x + 2 ^ h * o.val))
 
-/-- The first claim's position weights: `eq(r_lane, ℓ)·x^z` (`verifier.py:1382`). -/
-def firstWeightsOf (lanesPt : List E) : List E :=
-  let e := eqKernel lanesPt
-  (List.range keccakBits).map fun j ↦ e.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
-
-/-- The first claim (`verifier.py:1383-1385`). -/
+/-- The first claim (`verifier.py:1382-1385`), its position weights `eq(r_lane, ℓ)·x^z`. -/
 def firstClaimOf (inst segment lanesPt output : List E) (committed : E) : KeccakClaim :=
-  ⟨committed + (eqKernel segment).getD (keccakSegments - 1) 0 *
-      dot ((eqKernel lanesPt).take 25) output,
-    eqKernel (inst.take 4), inst.drop 4 ++ segment, firstWeightsOf lanesPt⟩
+  let lanes := eqKernel lanesPt
+  ⟨committed + (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output,
+    eqKernel (inst.take 4), inst.drop 4 ++ segment,
+    (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))⟩
 
 /-- The weight `_keccak_slot_weights` puts at slot `o`, slice `z`. -/
 def slotWeightOf (segments : List E) (w : Array E) (first count o z : ℕ) : E :=

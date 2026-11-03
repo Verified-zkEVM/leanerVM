@@ -67,8 +67,8 @@ def foldRoundsA.fast : ℕ → WhirState → List E → Array E → Array E →
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
     let challenge ← Script.sampleE
-    let W' := foldPairsW challenge W
-    let g' := foldPairsW challenge g
+    let W' := foldPairsA challenge W
+    let g' := foldPairsA challenge g
     let quad ← roundA (polyEval s.runningQuad challenge) W' g'
     foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds
         ++ [challenge])
@@ -87,8 +87,8 @@ def tailRoundsA.fast : ℕ → List E → Array E → Array E → Script Unit
     let challenge ← Script.sampleE
     if n = 0 then return ()
     else do
-      let W' := foldPairsW challenge W
-      let g' := foldPairsW challenge g
+      let W' := foldPairsA challenge W
+      let g' := foldPairsA challenge g
       let quad ← roundA (polyEval quad challenge) W' g'
       tailRoundsA.fast n quad W' g'
 
@@ -162,9 +162,9 @@ def levelsA.fast (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E 
       | next :: _ => do
         Script.commitS (levelWordFast (messageLog - next.fold) next.fold next.logInvRate g)
         let oodPoint ← Script.sampleN messageLog
-        let oodValue := multilinearEvalA g oodPoint
+        let oodValue := mleA g oodPoint
         Script.sendE oodValue
-        let T := eqKernelA oodPoint
+        let T := eqTable oodPoint
         let quad ← roundA oodValue T g
         pure (#[], [(quad, fun x ↦ eqEval oodPoint x)], [T])
     Script.grindS

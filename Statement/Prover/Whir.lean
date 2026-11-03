@@ -1,31 +1,22 @@
 module
 
 public import Statement.Prover.Ntt
-public import Statement.Prover.Ring
+public import Statement.Prover.Mle
 
 /-!
-# The WHIR opening
+# Ring switching and the WHIR opening
 
-The honest prover of the stacked opening (`verifyStackedOpening`, then `verify_whir`,
-`verifier.py:1124-1202, 1453-1459` at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`), on
-arrays: `openingFast μ R stack claims`.
+The honest prover of ring switching (`ringSwitch`, `verifier.py:1408-1444` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) and of the stacked opening (`verifyStackedOpening`,
+then `verify_whir`, `verifier.py:1124-1202, 1453-1459` at leanVM
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`), on arrays.
 
-* The claims are descriptions (`ClaimDesc`): the ring-switching claim (`ringSwitchClaim` of the
-  ring's target, point and coefficients) and the column claims (at their placements); their
-  denotations are the specification's stack claims (`ClaimDesc.denote`), whose weights are
-  closures the prover never evaluates on the cube.
-* The weight table of the starting claim, `Σ_k λ^k·w_k` at the rotated cube point, is built by
-  scatter (`basisNat`): a column claim's weight is the equality kernel of its point on its block
-  of the stack, the ring claim's is `Φ` of the equality kernel of the ring's point on the block of
-  `q_keccak` (`ringWeight` on the cube is `Φ ∘ eq`); a claim of any other shape adds its weight's
-  formula at every position.
-* The stack table and the weight table are folded in place round by round (`foldPairsW`), the
-  round polynomials computed by loops over the pairs (`roundC0A`, `roundC2A`).
-* A level's word is the additive NTT of its lanes (`levelWordFast`), the out-of-domain claim's
-  table is the equality kernel (`eqKernelA`), and a level's query table is the sum over the
-  queries of the tensor products `∏_c (1, Ŵ_c(x_q))` (`queryTableA`), `O(t·2^m)`.
-
-Every loop over a table is an `Array.ofFn`, a `foldl` or a tail-recursive loop.
+The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
+weights are closures the prover does not evaluate on the cube: the starting weight table is built
+by scatter, a column claim's equality kernel on its block of the stack and the ring claim's `Φ` of
+the equality kernel on `q_keccak`'s block (`basisTableA`). The stack and weight tables are folded
+in place round by round; a level's word is the additive NTT of its lanes (`levelWordFast`), and its
+query table the queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTableA`).
 -/
 
 @[expose] public section
@@ -34,6 +25,21 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile LeanVM.Protocol.Whir
 open LeanVM.Protocol.Whir.Complete
+
+/-! ## Ring switching -/
+
+/-- What ring switching leaves for the opening: the target `Σ_i x^i Φ(s_i)`, the Keccak
+reduction's point on `q_keccak`, and the six coefficients of the staged map `Φ`. -/
+structure RingOut where
+  target : E
+  point : List E
+  challenges : List E
+
+/-- **The honest prover of ring switching**: it sends nothing; it receives the six coefficients
+and returns the target with the point and the coefficients. -/
+def ringFast (point slices : List E) : Script RingOut := do
+  let challenges ← Script.sampleN ringMapShifts.length
+  return ⟨polyEval (slices.map (phiMap · challenges)) gen, point, challenges⟩
 
 /-! ## The claims -/
 
@@ -59,38 +65,20 @@ def RingOut.claim (r : RingOut) (layout : Layout) : ClaimDesc :=
 
 /-! ## Tables -/
 
-/-- `Σ_{x < n} f x` added to `acc`, tail-recursive. -/
-def sumLoop (f : ℕ → E) : ℕ → E → E
-  | 0, acc => acc
-  | n + 1, acc => sumLoop f n (acc + f n)
-
 /-- The constant coefficient `Σ_x W(0,x)·g(0,x)` of the round polynomial (`roundC0`). -/
 def roundC0A (W g : Array E) : E :=
-  sumLoop (fun x ↦ W.getD (2 * x) 0 * g.getD (2 * x) 0) (min W.size g.size / 2) 0
+  sumRange (min W.size g.size / 2) fun x ↦ W.getD (2 * x) 0 * g.getD (2 * x) 0
 
 /-- The quadratic coefficient `Σ_x (W(0,x) + W(1,x))·(g(0,x) + g(1,x))` (`roundC2`). -/
 def roundC2A (W g : Array E) : E :=
-  sumLoop (fun x ↦ (W.getD (2 * x) 0 + W.getD (2 * x + 1) 0) *
-    (g.getD (2 * x) 0 + g.getD (2 * x + 1) 0)) (min W.size g.size / 2) 0
+  sumRange (min W.size g.size / 2) fun x ↦
+    (W.getD (2 * x) 0 + W.getD (2 * x + 1) 0) * (g.getD (2 * x) 0 + g.getD (2 * x + 1) 0)
 
-/-- Fix the first coordinate at `r`: the pairs `(a, b)` become `a·(1 + r) + b·r` (`foldPairs`). -/
-def foldPairsW (r : E) (t : Array E) : Array E :=
-  Array.ofFn (n := t.size / 2) fun j ↦ t.getD (2 * j.val) 0 * (1 + r) + t.getD (2 * j.val + 1) 0 * r
-
-/-- The multilinear extension of a table at a point (`multilinearEval`). -/
-def multilinearEvalA (t : Array E) (point : List E) : E :=
-  (point.foldl (fun cur r ↦ foldPairsW r cur) t).getD 0 0
-
-/-- The equality kernel of a point (`eqKernel`). -/
-def eqKernelA (point : List E) : Array E :=
-  point.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) #[1]
-
-/-- `W + s·T` (`axpy`). -/
-def axpyA (s : E) (W T : Array E) : Array E := Array.zipWith (fun a b ↦ a + s * b) W T
-
-/-- Gluing the claims' tables into the weight table with the powers of `λ` (`glueTables`). -/
+/-- Gluing the claims' tables into the weight table, `W + Σ_k λ^(k+1)·T_k` (`glueTables`). -/
 def glueTablesA (lam : E) (W : Array E) (Ts : List (Array E)) : Array E :=
-  (Ts.foldl (fun (acc : Array E × E) T ↦ (axpyA (acc.2 * lam) acc.1 T, acc.2 * lam)) (W, 1)).1
+  (Ts.foldl (fun (acc : Array E × E) T ↦
+    let s := acc.2 * lam
+    (Array.zipWith (fun a b ↦ a + s * b) acc.1 T, s)) (W, 1)).1
 
 /-- The tensor product `⊗_c (1, w_c)`: entry `i` is `∏_{c : i_c} w_c`, bit `0` first. -/
 def tensorA (ws : List K) : Array K := ws.foldl (fun v w ↦ v ++ v.map (· * w)) #[1]
@@ -128,13 +116,13 @@ def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
   | .column layout c =>
     let pl := layout.placement c.column
     if c.point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ layout.stackLog = μ then
-      let vals := eqKernelA c.point
+      let vals := eqTable c.point
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
   | .ring layout _ point challenges =>
     let pl := layout.placement qkeccak
     if point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ challenges.length = 6 then
-      let vals := (eqKernelA point).map (phiMap · challenges)
+      let vals := (eqTable point).map (phiMap · challenges)
       addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
     else addFull μ d.denote.1 s acc
 
@@ -178,8 +166,8 @@ def foldRoundsA : ℕ → WhirState → List E → Array E → Array E →
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
     let challenge ← Script.sampleE
-    let W' := foldPairsW challenge W
-    let g' := foldPairsW challenge g
+    let W' := foldPairsA challenge W
+    let g' := foldPairsA challenge g
     let quad ← roundA (polyEval s.runningQuad challenge) W' g'
     foldRoundsA n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds ++
         [challenge]) W' g'
@@ -191,8 +179,8 @@ def tailRoundsA : ℕ → List E → Array E → Array E → Script Unit
     let challenge ← Script.sampleE
     if n = 0 then return ()
     else do
-      let W' := foldPairsW challenge W
-      let g' := foldPairsW challenge g
+      let W' := foldPairsA challenge W
+      let g' := foldPairsA challenge g
       let quad ← roundA (polyEval quad challenge) W' g'
       tailRoundsA n quad W' g'
 
@@ -222,9 +210,9 @@ def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → A
       | next :: _ => do
         Script.commitS (levelWordFast (messageLog - next.fold) next.fold next.logInvRate g)
         let oodPoint ← Script.sampleN messageLog
-        let oodValue := multilinearEvalA g oodPoint
+        let oodValue := mleA g oodPoint
         Script.sendE oodValue
-        let T := eqKernelA oodPoint
+        let T := eqTable oodPoint
         let quad ← roundA oodValue T g
         pure (#[], [(quad, fun x ↦ eqEval oodPoint x)], [T])
     Script.grindS

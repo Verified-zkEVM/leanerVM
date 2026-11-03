@@ -17,6 +17,7 @@ public import LeanVM.Protocol.Whir.Complete.Tables
   `eq(j, p)`;
 * `toList_foldPairsA`: a fold on the array is `foldPairs` on its list;
 * `mleA_eq`, `mleK_eq`: the evaluation on the array is `multilinearEval` on its list;
+* `sumRange_eq`: the loop is the sum;
 * `getD_toList`, `toList_ofFn_range`: arrays read as lists.
 -/
 
@@ -71,6 +72,12 @@ theorem toList_foldPairsA (r : E) (t : Array E) :
   simp [foldPairsA, List.getD_eq_getElem?_getD, show 2 * i < t.size by omega,
     show 2 * i + 1 < t.size by omega]
 
+/-- Entry `u` of a fold. -/
+theorem getD_foldPairsA (r : E) (t : Array E) {u : ℕ} (hu : u < t.size / 2) :
+    (foldPairsA r t).getD u 0 = t.getD (2 * u) 0 * (1 + r) + t.getD (2 * u + 1) 0 * r := by
+  simp [foldPairsA, Array.getD_eq_getD_getElem?, hu, show 2 * u < t.size by omega,
+    show 2 * u + 1 < t.size by omega]
+
 /-- The evaluation on the array is the verifier's `multilinearEval` on its list. -/
 theorem mleA_eq (t : Array E) (p : List E) : mleA t p = multilinearEval t.toList p := by
   have h : ∀ (p : List E) (t : Array E),
@@ -88,6 +95,14 @@ theorem mleA_eq (t : Array E) (p : List E) : mleA t p = multilinearEval t.toList
 /-- The evaluation of a table over `K` is the verifier's `multilinearEval` of its lift. -/
 theorem mleK_eq (t : Array K) (p : List E) : mleK t p = multilinearEval (t.toList.map ofK) p := by
   rw [mleK, mleA_eq, Array.toList_map]
+
+/-- The loop is the sum. -/
+theorem sumRange_eq (n : ℕ) (f : ℕ → E) : sumRange n f = ∑ i ∈ Finset.range n, f i := by
+  induction n with
+  | zero => rw [sumRange, Nat.fold_zero, Finset.sum_range_zero]
+  | succ n ih =>
+    simp only [sumRange] at ih ⊢
+    rw [Nat.fold_succ, ih, Finset.sum_range_succ]
 
 end
 end LeanVM.Prover

@@ -6,30 +6,17 @@ public import Statement.Prover.Script
 /-!
 # The additive NTT and the committed words
 
-The encoder of leanVM's binary Reed-Solomon code in the Lin–Chung–Han novel basis
-(`Statement/Prover/Code.lean`), computed for all `2^(κ+R)` domain points at once in
-`O((κ+R)·2^(κ+R))` operations (the Rust reference: `crates/pcs/src/ntt/additive_ntt_f64.rs`,
-`AdditiveNttF64::standard`, at leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`).
+The encoder of leanVM's binary Reed-Solomon code in the novel basis (`Code.lean`) for all
+`2^(κ+R)` domain points at once, in `O((κ+R)·2^(κ+R))` operations
+(`crates/pcs/src/ntt/additive_ntt_f64.rs`, `AdditiveNttF64::standard`, at leanVM pin
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`). `Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is
+additive and vanishes on `U_i`), so the transform folds the message's variables from the top, a
+stage the butterfly `(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})`
+of the block `b`; the twiddles come by additivity from the table of `Ŵ_c(e_m)`, `c, m < 64`.
 
-`Enc(g)(x_p) = Σ_u g(u)·∏_{i : u_i} Ŵ_i(x_p)`, and `Ŵ_i(x_p)` depends only on `p >>> i` (`Ŵ_i` is
-additive and vanishes on `U_i`). The transform folds the message's variables from the top: after
-the variables `κ-1, …, i` are folded, position `p` holds the fold of the lane `p mod 2^i` of the
-message at the values `Ŵ_{i}(x_p), …, Ŵ_{κ-1}(x_p)`, which depend only on `p >>> i`. A stage is
-the butterfly `(u, v) ↦ (u + t·v, u + (t + 1)·v)` with the twiddle `t = Ŵ_i(x_{b·2^(i+1)})` of
-the block `b`, since `Ŵ_i(e_i) = 1`. The twiddles come from the table of `Ŵ_c(e_m)`, `c, m < 64`,
-by additivity, the table from the recurrence `W_{c+1}(a) = W_c(a)·(W_c(a) + W_c(e_c))`.
-
-* `ntt (nttTwiddles (κ+R) κ) κ R msg`: the codeword of the `K`-valued message `msg` (`2^κ`
-  entries), `2^(κ+R)` entries.
-* `stackWordFast μ R stack`: the stack's level-0 word (`stackWord` in `lean_vm`), the 64 lanes'
-  codewords computed once.
-* `levelWordFast κ k R g`: a deeper level's word (`levelWord`), each `E` lane encoded limb by
-  limb.
-
-A committed word is a function on every position. These words hold the computed codewords below
-`2^height`, the only positions the run reads (`Run.lean`: the Merkle tree of a commitment of
-height `h` reads the positions `p < 2^h`), and the encoder's formula above, never evaluated by the
-run: so they are the specification's words at every position.
+A committed word is a function on every position: these hold the computed codewords below
+`2^height`, the only positions a run reads, and the encoder's formula above, never evaluated, so
+that they are the specification's words at every position.
 -/
 
 @[expose] public section
@@ -128,16 +115,13 @@ where
     else ((List.range 64).map fun u ↦
       encKAt (μ - 6) (fun x ↦ stack.getD (bitsToNat x + 2 ^ (μ - 6) * u) 0) p).reverse
 
-/-- Limb `l` of an entry, `l < 3` (the last limb for larger `l`). -/
-def limbAt (e : E) (l : ℕ) : K := if l = 0 then e.limb 0 else if l = 1 then e.limb 1 else e.limb 2
-
 /-- The codewords of a level's lanes, limb by limb: entry `3j + l` encodes limb `l` of the lane
 `j`, `x ↦ g[j + 2^k·x]`. -/
 def levelCodes (κ k R : ℕ) (g : Array E) : Array (Array K) :=
   let tws := nttTwiddles (κ + R) κ
   Array.ofFn (n := 3 * 2 ^ k) fun jl ↦
     ntt tws κ R (Array.ofFn (n := 2 ^ κ) fun v ↦
-      limbAt (g.getD (jl.val / 3 + 2 ^ k * v.val) 0) (jl.val % 3))
+      (g.getD (jl.val / 3 + 2 ^ k * v.val) 0).limb ⟨jl.val % 3, Nat.mod_lt _ (by decide)⟩)
 
 /-- **A deeper level's word**: leaf `p` holds the `2^k` lanes' entries at `x_p`, three limbs
 each; computed below `2^(κ+R)`, the encoder's formula above (never read by the run). -/

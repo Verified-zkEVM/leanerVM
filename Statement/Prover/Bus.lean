@@ -1,25 +1,16 @@
 module
 
 public import Statement.Prover.Gkr
+public import Statement.Prover.Columns
 
 /-!
 # The bus phase, executable
 
-The prover of the verifier's bus phase (`verifyBusBalance`, `LeanVmVerifier.lean`,
-`verifier.py:581-643`), from the instance's columns `cols` (indexed by the verifier's global column
-number) and the verifier's layout:
-
-* the leaves of the three sides, filled straight into arrays: each side's blocks (the framework's
-  state, memory and bytecode blocks, then one block per flush of every table; the count side one
-  block per count column) laid end to end in `stack_offsets`' order (`blockOrder`, `stackA`),
-  padded with ones to `2^D`; a framework row's leaf is `β` plus the fingerprint of its tuple, the
-  powers of `g` read off one running array (`powsA`); a table row's leaf `β` plus the fingerprint of
-  its flushed tuple (`1` on a padding row), the tuple's weights paired with its coordinates once
-  per block;
-* the batched GKR over the three trees (`gkrA`, `Gkr.lean`), every layer built once;
-* the memory limbs' and the two finalize counts' extensions at the point (`mleK`);
-* the verifier's result, as the verifier computes it from what it read (`busResult`, the tail of
-  `verifyBusBalance`).
+The prover of `verifyBusBalance` (`verifier.py:581-643`) from the instance's columns `cols` (by
+global column number): the three sides' leaves filled straight into arrays, each side's blocks
+end to end in `stack_offsets`' order (`stackA`) and padded with ones; the batched GKR over the three
+trees (`gkrA`); the framework columns' extensions at the point (`mleK`); the verifier's result as
+it computes it from what it read (`busResult`).
 -/
 
 @[expose] public section
@@ -29,11 +20,6 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Protocol.Verifier
 
 /-! ## Stacking -/
-
-/-- `stack_offsets`' order of the blocks of the given log-sizes: the stable sort of the indices by
-size, larger first. -/
-def blockOrder (sizes : List ℕ) : List ℕ :=
-  (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)
 
 /-- A side's leaves: the blocks' tables `tab b` in `stack_offsets`' order, padded with ones to
 `2^D` entries. -/
@@ -147,10 +133,10 @@ def busResult (layout : Layout) (alphas : List E) (beta : E) (point treeValues m
 
 /-! ## The phase -/
 
-/-- **The bus phase**, after the challenges `α, β`: the leaves, the GKR, the framework values at
-the point, the result. -/
-def busAfter (layout : Layout) (cols : Array (Array K)) (alphas : List E) (beta : E) :
-    Script BusResult :=
+/-- **The bus phase**: the fingerprint challenges `α` and `β`, the leaves, the GKR, the framework
+values at the point, the result. -/
+def busFast (layout : Layout) (cols : Array (Array K)) : Script BusResult :=
+  (Script.sampleN busBits).bind fun alphas ↦ Script.sampleE.bind fun beta ↦
   let w := eqKernel alphas
   let fw := [0, layout.logMemory, layout.logBytecode]
   let D := (busLayout fw layout.push).depth
@@ -166,11 +152,6 @@ def busAfter (layout : Layout) (cols : Array (Array K)) (alphas : List E) (beta 
     let bf := mleK (cols.getD bytecodeFinalCounters #[]) (g.2.1.take layout.logBytecode)
     (Script.sendList memory).bind fun _ ↦ (Script.sendE mf).bind fun _ ↦
       (Script.sendE bf).bind fun _ ↦ .ret (busResult layout alphas beta g.2.1 g.2.2 memory mf bf)
-
-/-- **The bus phase**: the fingerprint challenges `α` and `β`, then `busAfter`. -/
-def busFast (layout : Layout) (cols : Array (Array K)) : Script BusResult :=
-  (Script.sampleN busBits).bind fun alphas ↦ Script.sampleE.bind fun beta ↦
-    busAfter layout cols alphas beta
 
 end LeanVM.Prover
 

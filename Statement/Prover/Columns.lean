@@ -5,23 +5,11 @@ public import Statement.Prover.Witness
 /-!
 # The columns, the sizes and the stack of an execution, executable
 
-From the rows of a run (`rowsOf`, `Witness.lean`):
-
-* the announced sizes: the memory log-size and the six tables' row counts, the tables'
-  log-heights as `build_layout` computes them (`tableLogsOf`, `verifier.py:974-1014`), the
-  columns' log-sizes (`columnKappas`) and the stack's log-size (`placementsOf`);
-* every column of the instance as an array, indexed by the verifier's global column number
-  (`colsOf`): the memory's three limbs and finalize counts, the bytecode's finalize counts,
-  `QKECCAK` (each `KECCAK` row's input lanes, its state after twelve rounds, its cells of the
-  spare columns), the opcode tables' columns at their heights (a padding row zero), and the
-  `KECCAK` output lanes derived from the twelve-round states (the last twelve rounds, padding
-  rows those of the zero state). The `KECCAK` states are computed once per row (`midStates`,
-  `outStates`);
-* the stack (`stackArray`): the committed columns end to end in the stacking order
-  (`stackOrderOf`: largest first, ties in global order, as `stack_offsets` sorts them), then
-  zeros up to `2^μ`.
-
-`witness?` puts them together; `none` exactly when `checkTrace` is `false`.
+From the rows of a run (`rowsOf`, `Witness.lean`): the tables' log-heights as `build_layout`
+computes them; every column of the instance as an array, by the verifier's global column number
+(`colsOf`), the `KECCAK` states computed once per row for `QKECCAK` and the output lanes; and the
+stack, the committed columns end to end in `stack_offsets`' order, zeros up to `2^μ`.
+`witness?` puts them together.
 -/
 
 @[expose] public section
@@ -85,17 +73,7 @@ def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : A
     else if k < 50 then laneK (mids.getD x zeroState) (k - 25)
     else cellAt R x (spareCol (k - 50))
 
-/-- The first global column of each opcode table (`GLOBAL_COLUMN_BASES`). -/
-def tableBase : ℕ → ℕ
-  | 0 => 6
-  | 1 => 21
-  | 2 => 36
-  | 3 => 44
-  | 4 => 59
-  | 5 => 73
-  | _ => 73
-
-/-- The opcode table of a global column from `6` on. -/
+/-- The opcode table of a global column from `6` on (by `GLOBAL_COLUMN_BASES`). -/
 def tableIndexOf (c : ℕ) : ℕ :=
   if c < 21 then 0 else if c < 36 then 1 else if c < 44 then 2 else if c < 59 then 3
   else if c < 73 then 4 else 5
@@ -104,8 +82,8 @@ def tableIndexOf (c : ℕ) : ℕ :=
 `QKECCAK` `5`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
 (its columns `38 … 62`) derived from the twelve-round states `mids`, through the twenty-four-round
 states `outs`. -/
-def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (mids outs : Array KeccakState)
-    (c : ℕ) : Array K :=
+def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
+    (mids outs : Array KeccakState) (c : ℕ) : Array K :=
   if c = 0 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 0
   else if c = 1 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 1
   else if c = 2 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 2
@@ -114,7 +92,7 @@ def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) (m
   else if c = 5 then qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids
   else
     let j := tableIndexOf c
-    let i := c - tableBase j
+    let i := c - globalColumnBases.getD j 0
     if j = 5 ∧ 38 ≤ i ∧ i < 63 then
       Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 38)
     else tableColumn (acc.tabs.getD j #[]) (logs.getD j 0) i
@@ -132,12 +110,14 @@ def colsOf {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) : Ar
 def blockColumns : List ℕ :=
   (List.range 163).filter fun c ↦ (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
-/-- The committed columns' global numbers in stacking order, from every column's log-size:
-largest first, ties in global order (`stack_offsets`, `verifier.py:320-326`). -/
+/-- `stack_offsets`' order of blocks of the given log-sizes (`verifier.py:320-326`): the stable
+sort of the indices by size, larger first. -/
+def blockOrder (sizes : List ℕ) : List ℕ :=
+  (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)
+
+/-- The committed columns' global numbers in stacking order, from every column's log-size. -/
 def stackOrderOf (kappas : List ℕ) : List ℕ :=
-  let sizes := blockColumns.map (kappas.getD · 0)
-  ((List.range blockColumns.length).mergeSort fun i j ↦
-    decide (sizes.getD j 0 ≤ sizes.getD i 0)).map (blockColumns.getD · 0)
+  (blockOrder (blockColumns.map (kappas.getD · 0))).map (blockColumns.getD · 0)
 
 /-- **The stack**: the columns `order` end to end, then zeros up to `2^μ`. -/
 def stackArray (μ : ℕ) (cols : Array (Array K)) (order : List ℕ) : Array K :=
@@ -171,9 +151,8 @@ def buildWitness (prog : LeanIsaProgram) (t : Execution prog) (memIdx : Std.Hash
   let cols := colsOf t.memory acc logs
   ⟨t.logMemorySize, rows, μ, cols, stackArray μ cols (stackOrderOf kappas)⟩
 
-/-- **The prover's data of an execution**, after the check of `checkTrace`, from the same run:
-`none` when the trace is no valid execution of `prog` on `input` within `2^28` committed
-cells. -/
+/-- **The prover's data of an execution**: `none` unless the trace has the public boundary of
+`input`, its run ends in the final state, and its committed size is at most `2^28`. -/
 def witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then
     let memIdx := powIndex t.logMemorySize
