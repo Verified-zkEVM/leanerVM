@@ -798,7 +798,7 @@ set_option maxRecDepth 100000 in
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
   have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core387 :=
-    Program.find?_of_indexOf? (j := 376) (by decide +kernel) rfl
+    Program.find?_of_indexOf? (j := 387) (by decide +kernel) rfl
   exact ⟨bs_sound 23 (by decide) hfind rfl core376_body rd args rets,
     bs_complete 23 (by decide) hfind rfl core376_body rd args rets⟩
 

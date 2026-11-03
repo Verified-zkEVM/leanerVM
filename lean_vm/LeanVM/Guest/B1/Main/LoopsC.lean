@@ -226,7 +226,7 @@ theorem l3_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lxs cover lxt hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 32 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
+  have hpar : (coreProgram.getD 34 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -262,7 +262,7 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 33 default).params =
+  have hpar : (coreProgram.getD 35 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -314,7 +314,7 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   refine ⟨fun N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 34 default).params = (List.range 16).map V.n := by
+  have hpar : (coreProgram.getD 36 default).params = (List.range 16).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]

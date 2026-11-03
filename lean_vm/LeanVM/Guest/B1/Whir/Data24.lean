@@ -44,29 +44,29 @@ theorem osData_24 : OsData 24 := by
     run_step 1100 2200 os_run_24_2 <|
     drop_end (o := 3300) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core318, Program.find?_of_indexOf? (j := 316) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core318, Program.find?_of_indexOf? (j := 318) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl
-  · exact ⟨⟨Data.core710, Program.find?_of_indexOf? (j := 699) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core710, Program.find?_of_indexOf? (j := 710) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core716, Program.find?_of_indexOf? (j := 705) (by decide +kernel) rfl,
+      ⟨Data.core716, Program.find?_of_indexOf? (j := 716) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core712, Program.find?_of_indexOf? (j := 701) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core712, Program.find?_of_indexOf? (j := 712) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core717, Program.find?_of_indexOf? (j := 706) (by decide +kernel) rfl,
+      ⟨Data.core717, Program.find?_of_indexOf? (j := 717) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core713, Program.find?_of_indexOf? (j := 702) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core713, Program.find?_of_indexOf? (j := 713) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core718, Program.find?_of_indexOf? (j := 707) (by decide +kernel) rfl,
+      ⟨Data.core718, Program.find?_of_indexOf? (j := 718) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core714, Program.find?_of_indexOf? (j := 703) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core714, Program.find?_of_indexOf? (j := 714) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core719, Program.find?_of_indexOf? (j := 708) (by decide +kernel) rfl,
+      ⟨Data.core719, Program.find?_of_indexOf? (j := 719) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core715, Program.find?_of_indexOf? (j := 704) (by decide +kernel) rfl,
+  · exact ⟨⟨Data.core715, Program.find?_of_indexOf? (j := 715) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core720, Program.find?_of_indexOf? (j := 709) (by decide +kernel) rfl,
+      ⟨Data.core720, Program.find?_of_indexOf? (j := 720) (by decide +kernel) rfl,
       by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 end

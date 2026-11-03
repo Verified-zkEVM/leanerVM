@@ -209,9 +209,9 @@ example (S : KeccakState) (x c2 : E) (I O : Fin 13 → E) (hc2 : IsInK c2)
 #guard_msgs in
 #print axioms keccak_duplex
 
-/-- info: 'LeanVM.Guest.Value.Keccak.paddingRow_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Value.Keccak.paddingBlobRoot_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms paddingRow_eq
+#print axioms paddingBlobRoot_eq
 
 /-- info: 'LeanVM.Guest.Value.Keccak.aggSeed_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

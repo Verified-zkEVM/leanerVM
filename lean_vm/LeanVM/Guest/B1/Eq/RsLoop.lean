@@ -75,7 +75,7 @@ def l6Body : List Stmt :=
 theorem core76_body : Fn.body Data.core78 = l6Body := stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop6 : coreProgram.find? "__loop5" = some Data.core78 :=
-  Program.find?_of_indexOf? (j := 76) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 78) (by decide +kernel) rfl
 
 /-- What coordinate `k` asks. -/
 def L6Ok (rd : Reader) (σ : Val) : ℕ → Prop

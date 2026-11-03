@@ -72,7 +72,7 @@ theorem chal_sound {s0 s1 : V} {b : ℕ} (h : allIn atoms (challA s0 s1 b) = tru
 /-- **`__loop25`'s body, checked.** -/
 def l26Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop25" && decide (fn.params.length = 7) &&
+  loopShapeF fn "__loop30" && decide (fn.params.length = 7) &&
   isMul A (.n 7) (.n 0) (.n 0) && isMul A (.n 8) (.n 2) (.n 7) &&
   A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
@@ -84,10 +84,10 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD 375 default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD 386 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop25" = some 375 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? "__loop30" = some 386 := by decide +kernel
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
 the next record holds the power times `λ²` and the running claim plus the power times
@@ -98,10 +98,10 @@ def L26Step (rd : Reader) (chainT lfT lcT lamSq lam x : E) : Prop :=
     memAt rd (chainT * x ^ 2) 0 * (memAt rd (memAt rd (lfT * x) 0) 23 +
       lam * memAt rd (memAt rd (lcT * x) 0) 23))
 
-theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: ps) []) :
+theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop30" (x :: ps) []) :
     (∀ N chainT lfT lcT lamSq lam, ps = [N, chainT, lfT, lcT, lamSq, lam] →
       L26Step rd chainT lfT lcT lamSq lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop25" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop30" (x * gen :: ps) []) := by
   have hf := find_of_idx l26_idx (by rw [coreProgram_length]; omega)
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -110,7 +110,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop25" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N chainT lfT lcT lamSq lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 375 default).params =
+  have hpar : (coreProgram.getD 386 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -200,7 +200,7 @@ theorem eqChain_sound {pP pR : V} : ∀ {n : ℕ} {out : V}, eqChainOk atoms pP 
 /-- **`__loop26`'s body, checked.** -/
 def l27Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop26" && decide (fn.params.length = 8) &&
+  loopShapeF fn "__loop31" && decide (fn.params.length = 8) &&
   isMul A (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
   eqChainOk A (.n 9) (.n 4) 23 (.n 257) && eqChainOk A (.n 11) (.n 4) 23 (.n 262) &&
@@ -212,10 +212,10 @@ def l27Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 271) (.n 272) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD 377 default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD 388 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop26" = some 377 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? "__loop31" = some 388 := by decide +kernel
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
 power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
@@ -224,10 +224,10 @@ def L27Step (rd : Reader) (lfT lcT pt chainT wT lam x : E) : Prop :=
     (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
       lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23)))
 
-theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: ps) []) :
+theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop31" (x :: ps) []) :
     (∀ N lfT lcT pt chainT wT lam, ps = [N, lfT, lcT, pt, chainT, wT, lam] →
       L27Step rd lfT lcT pt chainT wT lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop26" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop31" (x * gen :: ps) []) := by
   have hf := find_of_idx l27_idx (by rw [coreProgram_length]; omega)
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -236,7 +236,7 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop26" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lfT lcT pt chainT wT lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 377 default).params =
+  have hpar : (coreProgram.getD 388 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs

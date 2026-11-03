@@ -75,7 +75,7 @@ theorem ly62_straight : ly62.all Main.Stmt.straight = true := by decide +kernel
 theorem ly70_straight : ly70.all Main.Stmt.straight = true := by decide +kernel
 
 theorem lyA_calls : lyA.filterMap Main.Stmt.callS =
-    [(some (.n 64), "__loop27", [.n 65, .n 61, .n 52, .n 50], [])] := by decide +kernel
+    [(some (.n 64), "__loop32", [.n 65, .n 61, .n 52, .n 50], [])] := by decide +kernel
 
 theorem lyB_calls : lyB.filterMap Main.Stmt.callS =
     [(some (.n 342), "__loop6", [.n 344, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by decide +kernel
@@ -253,7 +253,7 @@ theorem loop7_relIn {rd : Reader} {R : ℕ → Prop} {dsh gmu layers rounds : E}
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
         subst hc
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have hci := tb_holds_callIf hnr hP 56 (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50]
+        have hci := tb_holds_callIf hnr hP 56 (.n 64) "__loop32" [.n 65, .n 61, .n 52, .n 50]
           (by decide +kernel)
         have hrel := hci.2 ht
         have hK : 0 < j / 2 := by

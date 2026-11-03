@@ -162,7 +162,7 @@ theorem ly_rounds (hC : CallRel.Le C (coreProgram.Rel rd)) (hGR : tb_gkr_rounds_
   have c65 := a 55 (.const (.n 65) (word 1 0 0)) (by decide +kernel)
   have a70 := a 58 (.add (.n 70) (.n 9) (.n 6)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_one] at c63 a64 c65 a70
-  obtain ⟨-, hc29⟩ := tb_holds_callIf hnr h 56 (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50]
+  obtain ⟨-, hc29⟩ := tb_holds_callIf hnr h 56 (.n 64) "__loop32" [.n 65, .n 61, .n 52, .n 50]
     (by decide +kernel)
   simp only [List.map_cons, List.map_nil, c65] at hc29
   have R4 := l29_loop (h := j / 2) e61 (by omega)

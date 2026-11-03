@@ -39,11 +39,11 @@ def aggQ (m : ℕ) (σ : Val) : Prop :=
 
 /-- `aggregate_claims`' calls, in order. -/
 def aggCallList : List Call :=
-  [⟨"__loop24", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
-    ⟨"__loop25", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], [], true⟩,
+  [⟨"__loop29", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
+    ⟨"__loop30", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], [], true⟩,
     ⟨"batch_sumcheck__L23", [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120],
       [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126], true⟩,
-    ⟨"__loop26", [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106], [], true⟩]
+    ⟨"__loop31", [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106], [], true⟩]
 
 /-- No predicate on `aggregate_claims`' callees' trees. -/
 def aggTs : List (Tree → Prop) := [fun _ => True, fun _ => True, fun _ => True, fun _ => True]
@@ -89,13 +89,13 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop24", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨"__loop29", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop25", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
+      ⟨"__loop30", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
         Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true, capOf (aggAbs cs).perm ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
+      ⟨"__loop31", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
         Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _

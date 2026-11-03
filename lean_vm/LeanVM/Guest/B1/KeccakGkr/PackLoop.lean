@@ -182,24 +182,24 @@ def packLoopT (name : String) : List Stmt :=
 
 /-- The four helpers' names, by `keccak_layer` specialization (`first`, `odd`). -/
 def packLoopName : ℕ → ℕ → String
-  | 1, 0 => "__loop28"
-  | 1, _ => "__loop29"
-  | _, 0 => "__loop30"
-  | _, _ => "__loop31"
+  | 1, 0 => "__loop33"
+  | 1, _ => "__loop34"
+  | _, 0 => "__loop35"
+  | _, _ => "__loop36"
 
-theorem packLoop_body30 : Data.core392.body = packLoopT "__loop28" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body31 : Data.core393.body = packLoopT "__loop29" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body32 : Data.core394.body = packLoopT "__loop30" := stmtsEqb_sound (by decide +kernel)
-theorem packLoop_body33 : Data.core395.body = packLoopT "__loop31" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body30 : Data.core392.body = packLoopT "__loop33" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body31 : Data.core393.body = packLoopT "__loop34" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body32 : Data.core394.body = packLoopT "__loop35" := stmtsEqb_sound (by decide +kernel)
+theorem packLoop_body33 : Data.core395.body = packLoopT "__loop36" := stmtsEqb_sound (by decide +kernel)
 
-theorem find_packLoop30 : coreProgram.find? "__loop28" = some Data.core392 :=
-  Program.find?_of_indexOf? (j := 381) (by decide +kernel) rfl
-theorem find_packLoop31 : coreProgram.find? "__loop29" = some Data.core393 :=
-  Program.find?_of_indexOf? (j := 382) (by decide +kernel) rfl
-theorem find_packLoop32 : coreProgram.find? "__loop30" = some Data.core394 :=
-  Program.find?_of_indexOf? (j := 383) (by decide +kernel) rfl
-theorem find_packLoop33 : coreProgram.find? "__loop31" = some Data.core395 :=
-  Program.find?_of_indexOf? (j := 384) (by decide +kernel) rfl
+theorem find_packLoop30 : coreProgram.find? "__loop33" = some Data.core392 :=
+  Program.find?_of_indexOf? (j := 392) (by decide +kernel) rfl
+theorem find_packLoop31 : coreProgram.find? "__loop34" = some Data.core393 :=
+  Program.find?_of_indexOf? (j := 393) (by decide +kernel) rfl
+theorem find_packLoop32 : coreProgram.find? "__loop35" = some Data.core394 :=
+  Program.find?_of_indexOf? (j := 394) (by decide +kernel) rfl
+theorem find_packLoop33 : coreProgram.find? "__loop36" = some Data.core395 :=
+  Program.find?_of_indexOf? (j := 395) (by decide +kernel) rfl
 
 /-- **One iteration's meaning at `x`**: the record `rounds·x` holds a canonical capacity, a cursor,
 a claim and a scale; the coordinates `r₀, r₁` at `prev_point·x²`; the four words at the cursor

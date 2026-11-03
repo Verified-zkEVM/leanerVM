@@ -187,7 +187,7 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
   SignatureClaimsHeld s w ∧
   (match w.daMatrix with
-    | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
+    | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipChallenge
     | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
   if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
   else batch (w.children.map fun c ↦

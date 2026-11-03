@@ -111,14 +111,14 @@ theorem l29_loads : l29PreK.all (loadsViaB [(6, 5177), (7, 46), (13, 16)]) = tru
   decide +kernel
 
 theorem l29_calls : l29PreK.filterMap Main.Stmt.callS =
-    [(some (.n 315), "__loop27", [.n 317, .n 1, .n 2, .n 3], [])] := by decide +kernel
+    [(some (.n 315), "__loop32", [.n 317, .n 1, .n 2, .n 3], [])] := by decide +kernel
 
 /-- **`__loop27` loads from `R`**, every iteration `k < K`. -/
 theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     {head ptrow : E} (hh : PtrIn R head (4 * K + 5173)) (hp : PtrIn R ptrow (4 * K + 42))
     (hcur : ∀ k < K, ∀ c, LoadHolds rd (head * gen ^ (4 * k)) 4310 c → PtrIn R c 16) :
-    ∀ d k, k < K → coreProgram.relN rd d "__loop27" [gen ^ k, gen ^ K, head, ptrow] [] →
-      coreProgram.RelIn rd R "__loop27" [gen ^ k, gen ^ K, head, ptrow] [] := by
+    ∀ d k, k < K → coreProgram.relN rd d "__loop32" [gen ^ k, gen ^ K, head, ptrow] [] →
+      coreProgram.RelIn rd R "__loop32" [gen ^ k, gen ^ K, head, ptrow] [] := by
   intro d
   induction d with
   | zero => intro k _ h; exact h.elim
@@ -151,7 +151,7 @@ theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     have m317 := hS _ (mem_of_slice (i := 264) (s := .atom (.mul (.n 317) (.n 0) (.n 316)))
       (by decide +kernel))
     have hci := hS _ (mem_of_slice (i := 265)
-      (s := .callIf (.n 315) "__loop27" [.n 317, .n 1, .n 2, .n 3]) (by decide +kernel))
+      (s := .callIf (.n 315) "__loop32" [.n 317, .n 1, .n 2, .n 3]) (by decide +kernel))
     simp only [Fwd.SHolds, Atom.Holds] at m4 m5 m6 m7 l13 c313 m314 a315 c316 m317 hci
     rw [tb_word_gen] at c313 c316
     have e6 : σ (.n 6) = head * gen ^ (4 * k) := by rw [m6, m5, m4, p0, p2]; ring

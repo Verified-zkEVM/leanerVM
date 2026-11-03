@@ -37,7 +37,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-- `verify_bus_gkr`'s callees, directly or not. -/
 def vbgKidS : List String :=
-  ["__loop27", "__loop6", "__loop7", "gkr_rounds__L1", "gkr_rounds__L2"]
+  ["__loop32", "__loop6", "__loop7", "gkr_rounds__L1", "gkr_rounds__L2"]
 
 theorem vbg_kids_pure : coreProgram.PureIn vbgKidS := pureIn_of_pureInB (by decide +kernel)
 

@@ -239,12 +239,13 @@ def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphi
 
 /-! ## LeanDA -/
 
-/-- A blob matrix's hints: the vector a cell at a time, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1846-1855`). -/
-def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
-  (List.range LeanDa.cellsPerRow).map (fun j ↦
-      ("da_weights", (w.orthogonalVector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
-    [("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
+/-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
+every row's cells, column by column (`aggregation.rs:1832-1856`). The Rust pushes the root's
+challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
+node. -/
+def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
+  [("da_challenge", [c.membershipChallenge]),
+    ("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
     (List.range LeanDa.cellsPerRow).flatMap fun j ↦
       w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
 
@@ -397,7 +398,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
       [("child_defer", c.statement.deferredClaim.cells), ("child_da", digestCells c.statement.claims.daDigest)] ++
       childHints bytecode seed c) ++
   (if w.children = [] then [("leaf_defer", [s.deferredClaim.bytecodeValue])] else batchPushes w.batchingHints) ++
-  (w.daMatrix.map (fun c ↦ daHints c.2)).getD [] ++
+  (w.daMatrix.map (fun c ↦ daHints c.1 c.2)).getD [] ++
   [("da_pick", [count (daPick s w)])]
 
 /-- **The honest streams**: `honestPushes`, by stream. -/

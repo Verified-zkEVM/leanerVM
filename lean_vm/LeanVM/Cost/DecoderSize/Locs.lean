@@ -30,22 +30,22 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 749834 := by
-  have hl : guestLocsList.length = 879 := by decide +kernel
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 748107 := by
+  have hl : guestLocsList.length = 884 := by decide +kernel
   have hn : guestLocsRow21.length = 93 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_split 0 21 858 21 879 rfl rfl
+  have s0 := rowsSize_split 0 21 863 21 884 rfl rfl
   have c0 := rowsSize_0_21
-  have s1 := rowsSize_split 21 1 857 22 858 rfl rfl
-  have s2 := rowsSize_split 22 280 577 302 857 rfl rfl
-  have c2 := rowsSize_22_280
-  have s3 := rowsSize_split 302 125 452 427 577 rfl rfl
-  have c3 := rowsSize_302_125
-  have s4 := rowsSize_split 427 407 45 834 452 rfl rfl
-  have c4 := rowsSize_427_407
-  have s5 := rowsSize_split 834 45 0 879 45 rfl rfl
-  have c5 := rowsSize_834_45
-  have e := rowsSize_zero 879
+  have s1 := rowsSize_split 21 1 862 22 863 rfl rfl
+  have s2 := rowsSize_split 22 284 578 306 862 rfl rfl
+  have c2 := rowsSize_22_284
+  have s3 := rowsSize_split 306 143 435 449 578 rfl rfl
+  have c3 := rowsSize_306_143
+  have s4 := rowsSize_split 449 395 40 844 435 rfl rfl
+  have c4 := rowsSize_449_395
+  have s5 := rowsSize_split 844 40 0 884 40 rfl rfl
+  have c5 := rowsSize_844_40
+  have e := rowsSize_zero 884
   have g : guestLocsList.getD 21 [] = guestLocsRow21.flatten := rfl
   have r := rowsSize_one (a := 21) (by omega)
   rw [g] at r

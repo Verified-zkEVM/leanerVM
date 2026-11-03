@@ -49,11 +49,11 @@ def l29A : List Stmt := l29Pre ++ Stmt.renameList sh6 (gkBody 4).dropLast ++ l29
 
 set_option maxRecDepth 100000 in
 theorem l29Body_eq' : tbStmtsEqb l29Body
-    (l29A ++ [.callIf (.n 315) "__loop27" [.n 317, .n 1, .n 2, .n 3], .ret []]) = true := by
+    (l29A ++ [.callIf (.n 315) "__loop32" [.n 317, .n 1, .n 2, .n 3], .ret []]) = true := by
   decide +kernel
 
 theorem l29Body_eq : l29Body =
-    l29A ++ [.callIf (.n 315) "__loop27" [.n 317, .n 1, .n 2, .n 3], .ret []] :=
+    l29A ++ [.callIf (.n 315) "__loop32" [.n 317, .n 1, .n 2, .n 3], .ret []] :=
   tbStmtsEqb_sound l29Body_eq'
 
 /-- Every statement of `gkBody 4` but its `ret` is an atom over values `.n k`, `k ≤ 306`. -/
@@ -165,13 +165,13 @@ set_option maxRecDepth 10000 in
 `j < h` give the loop from `1` below `g^h`. -/
 theorem l29_complete {rd : Reader} {head ptrow : E} {h : ℕ} (hpos : 0 < h) (hhb : h < 2 ^ 62)
     (hr : ∀ j < h, TbGkrRoundsOut 4 rd (head * gen ^ (4 * j)) (ptrow * gen ^ (4 * j))) :
-    coreProgram.Rel rd "__loop27" [1, gen ^ h, head, ptrow] [] := by
+    coreProgram.Rel rd "__loop32" [1, gen ^ h, head, ptrow] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := l29Found
   rw [l29Body_eq] at hb
-  have hstep : ∀ d x, coreProgram.relN rd (d + 1) "__loop27" (x :: [gen ^ h, head, ptrow]) [] ↔
+  have hstep : ∀ d x, coreProgram.relN rd (d + 1) "__loop32" (x :: [gen ^ h, head, ptrow]) [] ↔
       AtomsBody rd fn.params l29A (x :: [gen ^ h, head, ptrow]) ∧ IsInK (x * gen + gen ^ h) ∧
         (x * gen + gen ^ h ≠ 0 →
-          coreProgram.relN rd d "__loop27" (x * gen :: [gen ^ h, head, ptrow]) []) := by
+          coreProgram.relN rd d "__loop32" (x * gen :: [gen ^ h, head, ptrow]) []) := by
     intro d x
     refine loop_step_atoms hf hb l29A_atoms (fun σ hpar hall => ?_) d
     rw [hp] at hpar

@@ -44,9 +44,9 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   ls : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")
   l16 : TotalLeOn coreProgram fs "__loop15" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop15")
   cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
-  l25 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24")
-  l26 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25")
-  l27 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26")
+  l25 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop29")
+  l26 : TotalLeOn coreProgram fs "__loop30" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop30")
+  l27 : TotalLeOn coreProgram fs "__loop31" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop31")
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests

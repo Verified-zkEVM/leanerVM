@@ -539,9 +539,9 @@ theorem rw_complete {name : String} {f : Fn} (folds rev : ℕ) (hlo : 0 < rwLo f
 /-- **`opening_row_weights`' core IR is its meaning**, at its two specializations. -/
 theorem opening_row_weights_holds : opening_row_weights_Spec := by
   have h1 : coreProgram.find? "opening_row_weights__L6_L1" = some Data.core401 :=
-    Program.find?_of_indexOf? (j := 390) (by decide +kernel) rfl
+    Program.find?_of_indexOf? (j := 401) (by decide +kernel) rfl
   have h2 : coreProgram.find? "opening_row_weights__L4_L0" = some Data.core406 :=
-    Program.find?_of_indexOf? (j := 395) (by decide +kernel) rfl
+    Program.find?_of_indexOf? (j := 406) (by decide +kernel) rfl
   have l6 : rwLo 6 = 3 := rfl
   have l4 : rwLo 4 = 3 := rfl
   exact ⟨fun rd args rets ↦ ⟨rw_sound 6 1 (by rw [l6]; omega) (by rw [l6]; omega) h1 rfl

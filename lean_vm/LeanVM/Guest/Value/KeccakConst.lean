@@ -19,6 +19,7 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Batch.Def
 public import LeanDa.WithHash
+public import LeanDa.Commitment
 public import LeanVM.Guest.WithHash
 
 /-!
@@ -122,7 +123,7 @@ theorem aggSeed_cells (c : Fin 5) :
   intro i
   fin_cases c <;> fin_cases i <;> rfl
 
-/-! ## LeanDA's padding digests (`DA_PAD_*`) -/
+/-! ## LeanDA's padding blob root (`DA_PAD_BLOB_*`) -/
 
 /-- The digest of the zero cell. -/
 def daPadCellDigest : Digest :=
@@ -134,31 +135,61 @@ theorem paddingCell_eq : LeanDa.paddingCellWithHash Da.keccak256Bytes = LeanVM.P
   refine congrArg LeanVM.Protocol.Digest.toBytes ?_
   rw [keccak256_eq_iff]; decide +kernel
 
-/-- **`DA_PAD_CELL_0`, `DA_PAD_CELL_1`** (`lean_ethereum.py:4008-4009`) are the cell digest's
-two cells. -/
-theorem daPadCell_cells :
-    (LeanVM.Guest.word 15569472805043175342 18354418831448413762 0,
-      LeanVM.Guest.word 11782766640862828499 15718207409690975807 0) =
-      digestHalves daPadCellDigest := by
-  simp only [digestHalves, daPadCellDigest, LeanVM.Guest.word]; rfl
+/-- The zero codeword's blob root, level `7` of its tree. -/
+def daPadBlobDigest : Digest :=
+  #v[8002054802297438051, 4108169256045952147, 12830724869163462953, 1721925254677230945]
 
-/-- The digest of the zero row. -/
-def daPadRowDigest : Digest :=
-  #v[4665334884586258498, 1553031596697948144, 7487832681283088925, 14683883899259534590]
+/-- Level `k` of the zero codeword's blob tree, `k < 7`: every node is the digest of two copies
+of the level below; level `0` is the zero cell's digest. -/
+def daPadLevel : ℕ → Digest
+  | 0 => #v[15569472805043175342, 18354418831448413762, 11782766640862828499, 15718207409690975807]
+  | 1 => #v[14369258901718716213, 1148698013832551171, 11114768001093208614, 4024475884843678426]
+  | 2 => #v[16384331582733952155, 4872841518684838795, 4963418389712070825, 5657312520029772919]
+  | 3 => #v[4325506311329920960, 3990153883492882141, 15991342632079755805, 15556484451381276208]
+  | 4 => #v[14516598363330464605, 6536086711024295040, 16323196108830172471, 1631986071079656599]
+  | 5 => #v[16566772253878538657, 13661756115384085219, 18376426559722138097, 7791538171676559580]
+  | 6 => #v[2520529203033256297, 13966105018950953778, 17342732538992512079, 14513495305663590460]
+  | _ => daPadBlobDigest
 
-/-- **LeanDA's padding row digest.** -/
-theorem paddingRow_eq : LeanDa.paddingRowWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadRowDigest := by
-  rw [LeanDa.paddingRowWithHash, paddingCell_eq, Da.keccak256Bytes]
-  refine congrArg LeanVM.Protocol.Digest.toBytes ?_
-  rw [keccak256_eq_iff]; decide +kernel
+/-- One level up the zero codeword's blob tree. -/
+theorem daPadLevel_succ : ∀ k < 7, keccak256 (digestBytes (daPadLevel k) ++ digestBytes (daPadLevel k)) =
+    daPadLevel (k + 1) := by
+  intro k hk
+  interval_cases k <;> (rw [keccak256_eq_iff]; decide +kernel)
 
-/-- **`DA_PAD_ROW_0`, `DA_PAD_ROW_1`** (`lean_ethereum.py:3956-3968`) are the row digest's two
-cells. -/
-theorem daPadRow_cells :
-    (LeanVM.Guest.word 4665334884586258498 1553031596697948144 0,
-      LeanVM.Guest.word 7487832681283088925 14683883899259534590 0) =
-      digestHalves daPadRowDigest := by
-  simp only [digestHalves, daPadRowDigest, LeanVM.Guest.word]; rfl
+/-- The root of a tree over `2^k` copies of one leaf. -/
+theorem merkleRoot_const (H : List UInt8 → Common.DigestBytes) (d : Common.DigestBytes) :
+    ∀ k, LeanDa.merkleRootWithHash H (k + 1) (fun _ ↦ d) =
+      LeanDa.merkleRootWithHash H k (fun _ ↦ H (LeanDa.pairBytes d d)) := fun _ ↦ rfl
+
+theorem daPadLevel_toBytes_succ {k : ℕ} (hk : k < 7) :
+    Da.keccak256Bytes (LeanDa.pairBytes (daPadLevel k).toBytes (daPadLevel k).toBytes) =
+      (daPadLevel (k + 1)).toBytes := by
+  rw [Da.keccak256Bytes, ← daPadLevel_succ k hk]
+  rfl
+
+/-- **LeanDA's padding blob root** (`padding_root`, `commit.rs:66-74`): the zero codeword's blob
+root is `daPadBlobDigest`. -/
+theorem paddingBlobRoot_eq :
+    LeanDa.paddingBlobRootWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadBlobDigest := by
+  have hrep : List.replicate LeanDa.cellsPerRow (LeanDa.paddingCellWithHash Da.keccak256Bytes) =
+      (List.range (2 ^ 7)).map fun _ ↦ (daPadLevel 0).toBytes := by
+    rw [paddingCell_eq, List.map_const', List.length_range]; rfl
+  rw [LeanDa.paddingBlobRootWithHash, hrep, LeanDa.treeRoot_map_range]
+  rw [merkleRoot_const, daPadLevel_toBytes_succ (by norm_num), merkleRoot_const,
+    daPadLevel_toBytes_succ (by norm_num), merkleRoot_const, daPadLevel_toBytes_succ (by norm_num),
+    merkleRoot_const, daPadLevel_toBytes_succ (by norm_num), merkleRoot_const,
+    daPadLevel_toBytes_succ (by norm_num), merkleRoot_const, daPadLevel_toBytes_succ (by norm_num),
+    merkleRoot_const, daPadLevel_toBytes_succ (by norm_num)]
+  rfl
+
+/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation.rs:2516-2518`, `lean_ethereum.py:3958-3959`)
+are the padding blob root's two cells. -/
+theorem daPadBlob_cells :
+    (LeanVM.Guest.word 8002054802297438051 4108169256045952147 0,
+      LeanVM.Guest.word 12830724869163462953 1721925254677230945 0) =
+      digestHalves daPadBlobDigest := by
+  simp only [digestHalves, daPadBlobDigest, LeanVM.Guest.word]; rfl
 
 end
 end LeanVM.Guest.Value.Keccak

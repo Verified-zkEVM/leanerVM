@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write lean_vm/LeanVM/Cost/Decoder/GuestTables.lean: the guest decoder's literal tables.
 
-For each compiled function `j < nFns`: its entry pc (`(fnOf j).entry`), its number of arguments
+For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its number of arguments
 (`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
 cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i}_{k}`). Read off
 the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entry list
@@ -12,7 +12,7 @@ fails when the file differs.
 """
 import argparse, glob, re, sys
 
-N = 879
+N = 884
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 
@@ -101,7 +101,7 @@ open LeanVM.Guest
 
 @[expose] public section
 
-{nat_array("guestEntries", "Each function's entry pc (`(fnOf j).entry`).", entries)}
+{nat_array("guestEntries", "Each function's entry pc (`(fnOf j).entryPc`).", entries)}
 {nat_array("guestArgCounts", "Each function's number of arguments (`(coreOf j).params.length`).", args)}
 {nat_array("guestRetCounts", "Each function's number of return words (`(certOf j).nret`).", rets)}
 {rowdefs}/-- Each function's frame cells (`(certOf j).locs`), as lists. -/

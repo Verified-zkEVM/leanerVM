@@ -22,7 +22,7 @@ FILE`, of `#eval guestLocsRow21.map List.length`). Every number of the table is 
 import argparse, re, sys, textwrap
 from pathlib import Path
 
-N = 879
+N = 884
 SPLIT = 21
 SIZE_DIR = Path("LeanVM/Cost/DecoderSize")
 CHECK_DIR = Path("LeanVM/Cost/Decoder/GuestTablesCheck")

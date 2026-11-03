@@ -31,11 +31,11 @@ theorem copyLoop_body12 : Data.core258.body = copyLoopT "__loop11" := stmtsEqb_s
 theorem copyLoop_body13 : Data.core260.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
 
 theorem find_copyLoop11 : coreProgram.find? "__loop10" = some Data.core252 :=
-  Program.find?_of_indexOf? (j := 250) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 252) (by decide +kernel) rfl
 theorem find_copyLoop12 : coreProgram.find? "__loop11" = some Data.core258 :=
-  Program.find?_of_indexOf? (j := 256) (by decide +kernel) rfl
-theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core260 :=
   Program.find?_of_indexOf? (j := 258) (by decide +kernel) rfl
+theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core260 :=
+  Program.find?_of_indexOf? (j := 260) (by decide +kernel) rfl
 
 /-- **A copy loop's step.** -/
 theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)

@@ -84,7 +84,7 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
   have hentry : Data.f322.entryPc + s.start = 269652 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 322) rfl)) hs
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 324) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun

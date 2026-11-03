@@ -41,7 +41,7 @@ def loop15T : List Stmt :=
 theorem loop15_body : Data.core262.body = loop15T := stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core262 :=
-  Program.find?_of_indexOf? (j := 260) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 262) (by decide +kernel) rfl
 
 /-- One step of the chain at `x`: `chain[x·g] = chain[x]·p1[x]`. -/
 def PiStep (rd : Reader) (chain p1 x : E) : Prop :=

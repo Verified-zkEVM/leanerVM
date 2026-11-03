@@ -122,7 +122,7 @@ def lyR1 : List Stmt :=
 
 /-- The rounds. -/
 def lyR2 : List Stmt :=
-  [.callIf (.n 64) "__loop27" [.n 65, .n 61, .n 52, .n 50],
+  [.callIf (.n 64) "__loop32" [.n 65, .n 61, .n 52, .n 50],
     .ite (.n 62) [] [.atom (.mul (.n 66) (.n 61) (.n 61)), .atom (.mul (.n 67) (.n 66) (.n 66)),
       .atom (.mul (.n 68) (.n 52) (.n 67)), .atom (.mul (.n 69) (.n 50) (.n 67)),
       .call "gkr_rounds__L2" [.n 68, .n 69] []],

@@ -69,18 +69,18 @@ noncomputable def aggOk : Bool :=
   A.any (isConstAt (.n 43) 0 0) && packIn A (.n 43) 44 &&
   (List.range 4).all (fun j => A.any (isLoadAt (.n (20 + 10 * j)) (.n 60) (5 + 2 * j)) &&
     A.any (isLoadAt (.n (22 + 10 * j)) (.n 60) (6 + 2 * j))) &&
-  guardOk P (.n 62) "__loop24" (.n 63) (.n 0) [.n 60, .n 2, .n 7, .n 3, .n 8, .n 1] &&
+  guardOk P (.n 62) "__loop29" (.n 63) (.n 0) [.n 60, .n 2, .n 7, .n 3, .n 8, .n 1] &&
   monoIs A (.n 69) (.n 60) (.n 0) 13 &&
   A.any (isKeccakAt aggKi aggKo false false) && rowInOk A (.n 69) aggKi &&
   allIn A (challA (.n 87) (.n 88) 100) && isMul A (.n 107) (.n 106) (.n 106) &&
   A.any (isConstAt (.n 112) 1 0) && A.any (isLoadAt (.n 112) (.n 111) 0) &&
   A.any (isConstAt (.n 113) 0 0) && A.any (isLoadAt (.n 113) (.n 111) 1) &&
-  guardOk P (.n 115) "__loop25" (.n 116) (.n 0) [.n 111, .n 7, .n 8, .n 107, .n 106] &&
+  guardOk P (.n 115) "__loop30" (.n 116) (.n 0) [.n 111, .n 7, .n 8, .n 107, .n 106] &&
   monoIs A (.n 118) (.n 111) (.n 0) 2 && A.any (isLoadAt (.n 119) (.n 118) 1) &&
   hasCall P "batch_sumcheck__L23" [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120]
     [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126] &&
   A.any (isConstAt (.n 130) 0 0) && A.any (isLoadAt (.n 130) (.n 129) 0) &&
-  guardOk P (.n 132) "__loop26" (.n 133) (.n 0) [.n 7, .n 8, .n 120, .n 111, .n 129, .n 106] &&
+  guardOk P (.n 132) "__loop31" (.n 133) (.n 0) [.n 7, .n 8, .n 120, .n 111, .n 129, .n 106] &&
   isMul A (.n 134) (.n 129) (.n 0) && A.any (isLoadAt (.n 135) (.n 134) 0) &&
   isMul A (.n 136) (.n 6) (.n 135) && A.any (isAssertEqAt (.n 126) (.n 136)) &&
   (List.range 23).all (fun k => A.any (isLoadAt (.n (137 + k)) (.n 120) k) &&

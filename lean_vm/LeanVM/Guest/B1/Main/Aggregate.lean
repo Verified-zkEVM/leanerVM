@@ -335,7 +335,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   -- the absorbing loop
   have L25 : ∀ c < m, L25Step rd (σ (.n 60)) (σ (.n 2)) (σ (.n 7)) (σ (.n 3)) (σ (.n 8))
       (σ (.n 1)) (gen ^ c) :=
-    loop_sound (f := "__loop24")
+    loop_sound (f := "__loop29")
       (ps := [σ (.n 0), σ (.n 60), σ (.n 2), σ (.n 7), σ (.n 3), σ (.n 8), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
@@ -438,7 +438,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   -- the records
   have L26 : ∀ c < m, L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 106) * σ (.n 106))
       (σ (.n 106)) (gen ^ c) := by
-    have h := loop_sound (f := "__loop25")
+    have h := loop_sound (f := "__loop30")
       (ps := [σ (.n 0), σ (.n 111), σ (.n 7), σ (.n 8), σ (.n 107), σ (.n 106)])
       (B := fun x => L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 107)) (σ (.n 106)) x)
       (by unfold ordG; omega) hN
@@ -465,7 +465,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   -- the weight
   have L27 : ∀ c < m, L27Step rd (σ (.n 7)) (σ (.n 8)) (σ (.n 120)) (σ (.n 111)) (σ (.n 129))
       (σ (.n 106)) (gen ^ c) :=
-    loop_sound (f := "__loop26")
+    loop_sound (f := "__loop31")
       (ps := [σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 120), σ (.n 111), σ (.n 129), σ (.n 106)])
       (by unfold ordG; omega) hN
       (fun y hy => by

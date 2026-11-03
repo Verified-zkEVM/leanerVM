@@ -82,10 +82,10 @@ def l3Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 32 default) = true := by decide +kernel
+theorem l3_ok : l3Ok (coreProgram.getD 34 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop2" = some 32 := by decide +kernel
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 34 := by decide +kernel
 
 /-- **A raw leanXMSS signature** at the counter `x`: a slot `s` below the region's bound holding
 the mark `x`, and the signature check of the claim at slot `s`. -/
@@ -106,10 +106,10 @@ def l4Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 19, .n 7] []
 
 set_option maxRecDepth 100000 in
-theorem l4_ok : l4Ok (coreProgram.getD 33 default) = true := by decide +kernel
+theorem l4_ok : l4Ok (coreProgram.getD 35 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop3" = some 33 := by decide +kernel
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 35 := by decide +kernel
 
 /-- **A raw leanSPHINCS signature** at the counter `x`: a slot `s` below the region's bound
 holding the mark `n_raw_x · x` (at `cover · lx_slots · g^s`), and the signature check of the
@@ -190,10 +190,10 @@ def l5Ok (fn : Fn) : Bool :=
   isLoad A (.n 56) (.n 57) 1
 
 set_option maxRecDepth 100000 in
-theorem l5_ok : l5Ok (coreProgram.getD 34 default) = true := by decide +kernel
+theorem l5_ok : l5Ok (coreProgram.getD 36 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop4" = some 34 := by decide +kernel
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 36 := by decide +kernel
 
 /-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, its two rebuilt claim
 lists' digests, its DA digest's cells at `da_digests · x^2`, its statement's digest at

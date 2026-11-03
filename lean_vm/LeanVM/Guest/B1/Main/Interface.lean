@@ -303,7 +303,7 @@ theorem find_main : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
 theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core31 :=
-  Program.find?_of_indexOf? (j := 29) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 31) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Main

@@ -466,25 +466,25 @@ theorem fold_final_msg_iff {name : String} {f : Fn} (L fin : ℕ)
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L2_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L2" args rets ↔ MeaningFoldFinalMsg 2 rd args rets :=
-  fold_final_msg_iff 1 22 (Program.find?_of_indexOf? (j := 439) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 1 22 (Program.find?_of_indexOf? (j := 450) (by decide +kernel) rfl) rfl
     core439_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L3_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L3" args rets ↔ MeaningFoldFinalMsg 3 rd args rets :=
-  fold_final_msg_iff 2 42 (Program.find?_of_indexOf? (j := 458) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 2 42 (Program.find?_of_indexOf? (j := 469) (by decide +kernel) rfl) rfl
     core458_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets :=
-  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 405) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 416) (by decide +kernel) rfl) rfl
     core405_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L5_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L5" args rets ↔ MeaningFoldFinalMsg 5 rd args rets :=
-  fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 421) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 432) (by decide +kernel) rfl) rfl
     core421_body (by decide) (by decide) rd args rets
 
 /-- **`fold_final_msg`'s core IR is its meaning**, every specialization. -/

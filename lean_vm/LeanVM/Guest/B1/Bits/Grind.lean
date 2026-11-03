@@ -51,7 +51,7 @@ theorem core388_body : Fn.body Data.core399 = gcBody := stmtsEqb_sound (by decid
 
 set_option maxRecDepth 100000 in
 theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core399 :=
-  Program.find?_of_indexOf? (j := 388) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 399) (by decide +kernel) rfl
 
 /-- What bit `17 + j` asks of a valuation. -/
 def GcOk (σ : Val) : ℕ → Prop

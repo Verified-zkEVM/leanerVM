@@ -52,16 +52,16 @@ def l29Body : List Stmt :=
     .atom (.const (.n 313) (word 2 0 0)), .atom (.mul (.n 314) (.n 0) (.n 313)),
     .atom (.add (.n 315) (.n 314) (.n 1)), .atom (.const (.n 316) (word 2 0 0)),
     .atom (.mul (.n 317) (.n 0) (.n 316)),
-    .callIf (.n 315) "__loop27" [.n 317, .n 1, .n 2, .n 3], .ret []]
+    .callIf (.n 315) "__loop32" [.n 317, .n 1, .n 2, .n 3], .ret []]
 
 noncomputable def l29Check : Bool :=
-  match coreProgram.find? "__loop27" with
+  match coreProgram.find? "__loop32" with
   | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3]) && tbStmtsEqb fn.body l29Body
   | none => false
 
 theorem l29Check_eq : l29Check = true := by decide +kernel
 
-theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop27" = some fn ∧
+theorem l29Found : ∃ fn : Fn, coreProgram.find? "__loop32" = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = l29Body := by
   have h := l29Check_eq
   unfold l29Check at h
@@ -91,9 +91,9 @@ theorem l29_round_cap (q : ℕ) (σ : Val) :
 
 /-- **An iteration of `__loop27`**: four rounds from the record at `head·x^4`. -/
 theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) "__loop27" (x :: [N, head, ptrow]) []) :
+    (h : coreProgram.relN rd (d + 1) "__loop32" (x :: [N, head, ptrow]) []) :
     TbGkrRoundsOut 4 rd (head * x ^ 4) (ptrow * x ^ 4) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop27" (x * gen :: [N, head, ptrow]) []) := by
+      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop32" (x * gen :: [N, head, ptrow]) []) := by
   obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
   obtain ⟨fn', hf', hp, hb⟩ := l29Found
   rw [hf] at hf'
@@ -223,7 +223,7 @@ theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim :
 `4h` rounds to the record at `head·g^(4h)`. -/
 theorem l29_loop {rd : Reader} {half head ptrow : E} {h : ℕ} (hh : half = gen ^ h)
     (hhb : h < 2 ^ 62)
-    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop27" [1, half, head, ptrow] [])
+    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop32" [1, half, head, ptrow] [])
     (h0 : TbGkrRoundsOut 0 rd head ptrow) : TbGkrRoundsOut (4 * h) rd head ptrow := by
   rcases Nat.eq_zero_or_pos h with rfl | hpos
   · simpa using h0

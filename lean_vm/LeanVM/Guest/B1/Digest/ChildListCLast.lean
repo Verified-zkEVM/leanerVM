@@ -104,11 +104,11 @@ theorem l17_block {x N chain entries cover base origin limit : E} {n : ℕ} {pre
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 338 default) x N [chain, entries, cover, base, origin, limit] := by
+    LoopBlock rd (coreProgram.getD 340 default) x N [chain, entries, cover, base, origin, limit] := by
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
-  set fn := coreProgram.getD 338 default
+  set fn := coreProgram.getD 340 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 8 fn.body with hSdef
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

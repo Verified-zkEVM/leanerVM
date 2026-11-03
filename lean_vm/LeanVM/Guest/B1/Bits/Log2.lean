@@ -618,12 +618,12 @@ theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L0_L34 :
     coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core396 :=
-  Program.find?_of_indexOf? (j := 385) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :
     coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core397 :=
-  Program.find?_of_indexOf? (j := 386) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 397) (by decide +kernel) rfl
 
 theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
@@ -679,7 +679,7 @@ theorem log2_ceil_in_the_exponent_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 
     (Lm : MemoryImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L0_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 0 Lm.read [gN, lp, sq] rets :=
-  log2_ceil_in_the_exponent_iff 0 (Program.find?_of_indexOf? (j := 290) (by decide +kernel) rfl)
+  log2_ceil_in_the_exponent_iff 0 (Program.find?_of_indexOf? (j := 292) (by decide +kernel) rfl)
     rfl rfl Lm (fun _ rets => verify_log2_ceil_L0_L34_iff hκ hκ6 Lm ht rets) rets
 
 set_option maxRecDepth 100000 in
@@ -687,7 +687,7 @@ theorem log2_ceil_in_the_exponent_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6
     (Lm : MemoryImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets ↔
       MeaningLog2CeilExp 15 Lm.read [gN, lp, sq] rets :=
-  log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 291) (by decide +kernel) rfl)
+  log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 293) (by decide +kernel) rfl)
     rfl rfl Lm (fun _ rets => verify_log2_ceil_L15_L34_iff hκ hκ6 Lm ht rets) rets
 
 /-! ## The statements -/

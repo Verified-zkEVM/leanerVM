@@ -105,7 +105,7 @@ theorem l5Pre_straight : (l5Pre ++ [l5Tail]).all Main.Stmt.straight = true := by
 theorem l5Body_split : l5Body = (l5Pre ++ [l5Tail]) ++ [.ret []] := by
   simp [l5Body]
 
-theorem find_l5 : coreProgram.find? "__loop4" = some (coreProgram.getD 34 default) :=
+theorem find_l5 : coreProgram.find? "__loop4" = some (coreProgram.getD 36 default) :=
   find_of_idx l5_idx (by rw [coreProgram_length]; omega)
 
 theorem l5_loop : coreProgram.loop "__loop4" = true := by
@@ -250,7 +250,7 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
       subst hs
       show IsInK (σ (.n 60))
       rw [hV.v60]; exact gen_pow_add_isInK _ _
-  have hparams : (coreProgram.getD 34 default).params.map σ = args := by
+  have hparams : (coreProgram.getD 36 default).params.map σ = args := by
     rw [l5_params]
     refine List.ext_getElem (by simp [hargs]) fun i h1 h2 => ?_
     simp only [List.getElem_map, List.getElem_range]

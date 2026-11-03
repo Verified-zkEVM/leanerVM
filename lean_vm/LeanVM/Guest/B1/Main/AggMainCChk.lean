@@ -44,11 +44,11 @@ def aggPacks : List (V × ℕ) := [(.n 0, 14), (.n 23, 24), (.n 33, 34), (.n 43,
 
 /-- `aggregate_claims`' calls. -/
 def aggCalls : List Stmt :=
-  [.callIf (.n 62) "__loop24" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1],
-    .callIf (.n 115) "__loop25" [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106],
+  [.callIf (.n 62) "__loop29" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1],
+    .callIf (.n 115) "__loop30" [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106],
     .call "batch_sumcheck__L23" [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120]
       [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126],
-    .callIf (.n 132) "__loop26" [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106]]
+    .callIf (.n 132) "__loop31" [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106]]
 
 /-- `aggregate_claims`' atoms but its stores. -/
 noncomputable def aggA : List Atom := (atomsIn aggP).filter fun a => decide (a ∉ aggStores)

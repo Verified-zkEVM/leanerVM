@@ -44,10 +44,10 @@ theorem packLoop_totalLeOn_fs {first odd : ℕ} (hf : first < 2) (ho : odd < 2) 
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first odd) LoopPre
       fun a ↦ logG (a.getD 1 0) * 294 := by
   interval_cases first <;> interval_cases odd
-  · exact packLoop_totalLeOn_at (j := 383) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 384) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 381) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact packLoop_totalLeOn_at (j := 382) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 394) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 395) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 392) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact packLoop_totalLeOn_at (j := 393) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_round`'s words at `B2C.fs`**: its frame, `80`. -/
 theorem round_totalLe_fs : TotalLe coreProgram LeanVM.Guest.B2C.fs "keccak_round" fun _ ↦ 80 := by

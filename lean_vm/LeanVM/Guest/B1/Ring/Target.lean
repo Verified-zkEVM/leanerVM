@@ -150,7 +150,7 @@ def loop14T : List Stmt :=
 theorem loop14_body : Data.core261.body = loop14T := stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop14 : coreProgram.find? "__loop13" = some Data.core261 :=
-  Program.find?_of_indexOf? (j := 259) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 261) (by decide +kernel) rfl
 
 theorem ltRow_noRet (r : ℕ) : Stmt.noRetList (ltRow r) = true := by
   simp only [ltRow, noRetList_append, rmapT_noRet]; rfl
