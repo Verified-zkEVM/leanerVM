@@ -124,7 +124,7 @@ theorem decode_binds_of (h : SoundHyps W) {input : PublicInput} {t : Execution g
       HasCollision (collisionCandidates (decodeWith W t.memory).seed
         (decodeWith W t.memory).statement iv s₀) := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact decoded_binds hs₀ hrel.2.2.2.2 hpub hd
+  exact decoded_binds hs₀ hrel.hasBytecodeShape hpub hd
 
 /-- **Soundness, the existential form**: a valid execution of the guest on `input` gives a seed
 and a statement of the input's digest of the guest's shape that a witness holds (`NodeRelation`). -/
@@ -133,7 +133,7 @@ theorem guest_sound_of (h : SoundHyps W) (input : PublicInput) (t : Execution gu
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w := by
   obtain ⟨hd, hrel⟩ := guest_knowledge_of h input t hv
-  exact ⟨_, _, hd, hrel.2.2.2.2, _, hrel⟩
+  exact ⟨_, _, hd, hrel.hasBytecodeShape, _, hrel⟩
 
 /-! ## With B1's witnesses -/
 

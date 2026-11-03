@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.Basic
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Batch.Node
 
 /-!
 # `main`'s honest run fits
@@ -68,7 +69,8 @@ theorem length_hCover : (hCover s w).length = (hData seed s w).T := by
 /-- **The honest buffers have their sizes.** -/
 theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hf : FreshShaped w) : (hOwn seed s w).map List.length = mSizes (hData seed s w) := by
-  obtain ⟨-, -, hch, -, hsd⟩ := hr
+  have hsd := hr.hasBytecodeShape
+  obtain ⟨-, -, hch, -⟩ := hr
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
   · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2) 4
@@ -150,7 +152,7 @@ theorem daPick_da (h : w.daMatrix.isSome = true) : daPick s w = w.children.lengt
 /-- **The picked slot holds the published digest**: the children's DA digests, then the own. -/
 theorem daPick_digest (hr : NodeRelation bytecode seed s w) :
     (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).getD (daPick s w) 0 = s.claims.daDigest := by
-  obtain ⟨-, hda, -, -, -⟩ := hr
+  obtain ⟨-, hda, -, -⟩ := hr
   have hown : daPick s w = w.children.length →
       (w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).getD (daPick s w) 0 = hOwnDa w := by
     intro e
@@ -271,7 +273,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
       ((w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells) :=
     hR 4 (by omega)
   have hdig := daPick_digest hr
-  obtain ⟨-, hda, -, hz, -⟩ := hr
+  obtain ⟨-, hda, -, hz⟩ := hr
   refine ⟨hR 3 (by omega), ?_, ?_, ?_, ?_, ?_, h0, h1⟩
   · have := hR 8 (by omega) 0 (by simp [hOwn])
     simpa [hOwn, MainData.toIn, hData, hW] using this

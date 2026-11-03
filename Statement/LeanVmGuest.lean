@@ -21,9 +21,7 @@ of the guest program establishes is that the witnesses hold the claims, `NodeRel
 * `ChildrenProven`: every child's proof is accepted, for the child's statement, by the deferring
   verifier, which takes the bytecode's value at the child's point from the witness;
 * `DeferredClaimBatched`: the node's claim on the bytecode batches its children's (that value is
-  checked only at the root, in the batched claim);
-
-and the node's own claim on the bytecode has the bytecode's shape.
+  checked only at the root, in the batched claim), and so has the bytecode's shape.
 
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
 relation: what a decoding of an execution explains (`ExplainsPublicInput`, of which
@@ -208,12 +206,11 @@ mutual
 
 /-- **What the witness `witness` establishes of the statement `statement`**, for the guest
 program's bytecode `bytecode` and under the seed `seed`: the witnesses cover the claims (the four
-conditions below), and the statement's deferred claim has the bytecode's shape. -/
+conditions below). -/
 def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
   SignatureClaimsHeld statement witness ∧ DaDigestHeld statement witness ∧
-    ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness ∧
-    statement.deferredClaim.HasBytecodeShape bytecode
+    ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness
 
 /-- **Every signature claim is held**: every raw signature verifies its claim (at any leaf
 index), and every leanXMSS claim is a raw signature's claim or in some child's statement's list;
@@ -272,7 +269,8 @@ def ChildrenProven (bytecode : List K) (seed : Digest) (witness : NodeWitness) :
 /-- **The deferred claim batches the children's**: without children, the bytecode at the zero
 point; with children, the batching program (`Batch.nodeBatchingProgram`), over Keccak-f[1600],
 accepts the stream of the children's claims (each child's public input, fresh claim and deferred
-claim) and the hints, with the statement's deferred claim as its outcome. -/
+claim) and the hints, with the statement's deferred claim as its outcome. Either way the deferred
+claim has the bytecode's shape: the zero point's, or the sumcheck's `log₂ |bytecode|` challenges. -/
 def DeferredClaimBatched (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
   if witness.children = [] then statement.deferredClaim.HasZeroPoint bytecode

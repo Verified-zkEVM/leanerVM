@@ -242,7 +242,7 @@ digest, `da_verify`'s returns its cells. -/
 theorem checked_da (hn : NodeRelation bytecode seed s w) (h1 : (hm fs fp seed s w).nd = 1) :
     ∃ p, w.daMatrix = some p ∧ (hm fs fp seed s w).daR = daCells p.1 ∧
       p.2.Opens p.1.daRoot p.1.membershipVectorDigest := by
-  obtain ⟨-, hda, -, -, -⟩ := hn
+  obtain ⟨-, hda, -, -⟩ := hn
   obtain ⟨p, hw⟩ : ∃ p, w.daMatrix = some p := by
     cases hw : w.daMatrix with
     | none => simp [hm, hData, MainData.toIn, hw] at h1

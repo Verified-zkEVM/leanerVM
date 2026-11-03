@@ -36,8 +36,7 @@ itself). Nothing else is assumed of the statements.
 
 A consumer compares the public input's digest with that of its own statement under the deployed
 seed, while the guest's execution decodes a seed and a statement of that digest
-(`decoded_binds`, and `decoded_binds_of_nodeRel` for a decoded statement the guest establishes
-and an expected one whose deferred claim holds).
+(`decoded_binds`; the decoded statement's shape is `NodeRelation.hasBytecodeShape`'s).
 -/
 
 namespace LeanVM.Guest.Binding
@@ -212,17 +211,6 @@ theorem decoded_binds {b : List K} {iv seed : Digest} {s₀ s : NodeStatement}
     (hdec : statementDigest seed s = publicInputDigest input) :
     (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
   statementDigest_binds hs hs₀ (hdec.trans hpub)
-
-/-- `decoded_binds` with the decoded statement's shape from where it comes: one the guest
-`bytecode` establishes (`NodeRelation`); the consumer's deferred claim has the shape of `bytecode`
-(`AggregateSound`, `Statement/Corollaries.lean`, assumes it). -/
-theorem decoded_binds_of_nodeRel {bytecode : List K} {iv seed : Digest} {s₀ s : NodeStatement}
-    {w : NodeWitness} {input : PublicInput} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
-    (hrel : NodeRelation bytecode seed s w)
-    (hpub : publicInputDigest input = statementDigest iv s₀)
-    (hdec : statementDigest seed s = publicInputDigest input) :
-    (seed = iv ∧ s = s₀) ∨ HasCollision (collisionCandidates seed s iv s₀) :=
-  decoded_binds hs₀ hrel.2.2.2.2 hpub hdec
 
 end
 end LeanVM.Guest.Binding

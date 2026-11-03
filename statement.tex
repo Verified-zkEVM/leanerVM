@@ -412,7 +412,7 @@ $f_i = (z_i, v_i)$ on the bytecode, the evaluation the child's proof leaves to b
 \subsection{What one node establishes}
 
 $\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRelation}) is the conjunction of four conditions,
-the witnesses holding the claims, and the shape of $s$'s deferred claim:
+the witnesses holding the claims:
 \begin{enumerate}
 \item Every signature claim of $s$ is held (\lean{SignatureClaimsHeld}): every raw signature verifies
 under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf index), and every
@@ -436,8 +436,8 @@ digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose po
 claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
-\item $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
-(\lean{DeferredClaim.HasBytecodeShape}).
+Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
+(\lean{DeferredClaim.HasBytecodeShape}), the zero point's or the sumcheck's challenges.
 \end{enumerate}
 \lean{NodeRelation} does \emph{not} say that a child's claims are true, only that the deferring verifier,
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
