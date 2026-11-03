@@ -39,7 +39,8 @@ knowledge-soundness reduction and his membership test's soundness.
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -51,10 +52,10 @@ abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (
 
 section Tail
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
 /-- The first opened cell that disagrees with a matrix. -/
@@ -66,7 +67,7 @@ open Classical in
 /-- **The straight-line verdict**, `H` an oracle: the extracted matrix's root; when the proof
 verifies and the matrix satisfies the relation, whether it is not a codeword, or else whether the
 first opening that disagrees with it verifies (with a path of the tree's height). -/
-noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
+noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, l) out.1.2)
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧ root = out.1.1 ∧
@@ -82,7 +83,7 @@ noncomputable def tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallen
 
 open Classical in
 /-- The straight-line verdict with the hash of the table `h`. -/
-noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
+noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     Bool :=
   if ps.verify crs ((), out.1.1, l) out.1.2 = true ∧
       commitCellsWithHash (Hh h) (ext crs ((), out.1.1, l) out.1.2) = out.1.1 ∧
@@ -96,7 +97,7 @@ noncomputable def tailP (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Member
     else true
   else false
 
-theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) (s :
+theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) (s :
     HCache) :
     (simulateQ (phiG h) (simulateQ embG (tailH r ps ext crs out l))).run s =
       pure (tailP r ps ext h crs out l, s) := by
@@ -143,7 +144,7 @@ theorem run_tailH_phiG (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : Members
 
 /-- **A code-binding win is a knowledge-soundness break or a true straight-line verdict**, with
 `H` from a table. -/
-theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges)
+theorem postP_imp (h : HTab) (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge)
     (hwin : postP r ps h crs out l = true) :
     ksP r ps ext h crs out l = true ∨ tailP r ps ext h crs out l = true := by
   classical
@@ -225,7 +226,7 @@ omit hHc
 
 theorem noCoins_hH (a : List UInt8) : NoCoins (LeanDa.hH a) := fun _ ↦ trivial
 
-theorem noCoins_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
+theorem noCoins_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     NoCoins (tailH r ps ext crs out l) := by
   classical
   unfold tailH
@@ -292,7 +293,7 @@ theorem replay_toV_embG (c : VCache) {α : Type}
   · simp only [QueryImpl.apply_compose, embG, hP, simulateQ_spec_query, toV]
     simp [replayImpl, lookupH]
 
-theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : MembershipChallenges)
+theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : MembershipChallenge)
     (h : simulateQ (replayImpl c) (simulateQ toV (readVec (Msg := List UInt8) (Dg := DigestBytes)
       (n := 14) d)) = some l) : c (.inr d) = some l := by
   rw [readVec, simulateQ_map, simulateQ_map,
@@ -301,7 +302,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Membership
     mapM_map (fun x ↦ simulateQ (replayImpl c) x) (fun a ↦ simulateQ_pure _ a)
       (fun x f ↦ simulateQ_bind _ x f)] at h
   have hq : ∀ j : Fin 14, simulateQ (replayImpl c) (simulateQ toV
-      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : MembershipChallenges ↦ v j) <$> c (.inr d) := by
+      (gaP (Msg := List UInt8) (Dg := DigestBytes) (Z := E) d j)) = (fun v : MembershipChallenge ↦ v j) <$> c (.inr d) := by
     intro j
     simp only [gaP, simulateQ_spec_query, toV, simulateQ_map]
     rfl
@@ -310,7 +311,7 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Membership
   · rw [hd] at h
     simp [List.finRange_succ] at h
   · rw [hd] at h
-    have hm : ∀ l : List (Fin 14), l.mapM (fun j : Fin 14 ↦ (fun v : MembershipChallenges ↦ v j) <$>
+    have hm : ∀ l : List (Fin 14), l.mapM (fun j : Fin 14 ↦ (fun v : MembershipChallenge ↦ v j) <$>
         some v) =
         some (l.map fun j ↦ v j) := by
       intro l
@@ -326,10 +327,10 @@ theorem replay_toV_readVec (c : VCache) (d : Common.DigestBytes) (l : Membership
     rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_finRange]
     rfl
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
 /-- The tail of the simulated world: the challenges of the root, then the straight-line verdict. -/

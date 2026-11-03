@@ -11,7 +11,7 @@ public import LeanDa.WithHash
 
 The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenges' sponge
 over an independent random function `F`) is brought to the form of the duplex lemma
-(`Common.Duplex.duplex_le`): the adversary, then the challenges of its root, computed once
+(`Common.SeedDuplex.duplex_le`): the adversary, then the challenges of its root, computed once
 (`chalP daDuplex`), then the verification of the openings with `H` alone (`postV`). The verifier
 recomputes the same challenges for every opening; flipping no coins, they are recomputed from the
 cache (`Common.run_rerun`), so computing them once changes nothing (`prob_codeBindingPost`).
@@ -22,7 +22,8 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -35,8 +36,8 @@ abbrev hH (a : List UInt8) : OracleComp (unifSpec + roSpec (List UInt8) DigestBy
 
 section Post
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
 /-- The win of a code-binding adversary from its openings' verdicts and the argument's. -/
@@ -47,7 +48,7 @@ noncomputable def cbWin (out : (Common.DigestBytes × Proof) × List (Fin (r * 1
 
 /-- **The verification of the openings with the challenges `l`**, hashing with `H`. -/
 noncomputable def postV (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
-    (l : MembershipChallenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
+    (l : MembershipChallenge) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
   pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))
 
@@ -58,7 +59,7 @@ theorem simulateQ_embH_hH (a : List UInt8) :
 
 theorem simulateQ_embH_postV (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (l :
-        MembershipChallenges) :
+        MembershipChallenge) :
     simulateQ (embH (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) (postV r ps crs out l) =
       (do
         let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2
@@ -196,8 +197,8 @@ theorem isWeightBound_shadowImpl_f (t : (dSpec2 (List UInt8) DigestBytes KState)
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,

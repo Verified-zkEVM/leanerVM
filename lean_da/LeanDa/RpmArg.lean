@@ -35,7 +35,8 @@ straight-line argument is built on his framework and games.
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -89,7 +90,7 @@ argument's verdict. -/
 abbrev PrfV (Proof : Type) := Option Proof × TranscriptH × Bool
 
 /-- **The virtual oracle-free argument**: it reads the verdict its proof carries. -/
-def psV : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+def psV : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
     (PrfV Proof)
     (fun _ _ ↦ true) where
   setup := ps.setup
@@ -98,7 +99,7 @@ def psV : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 12
 
 /-- **The virtual extractor**: the extractor on the proof and the transcript the virtual proof
 carries. -/
-def extV : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
+def extV : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs (PrfV Proof) :=
   fun crs stmt p ↦ match p.1 with
     | some proof => ext crs stmt.2.1 proof p.2.1
     | none => fun _ _ ↦ 0

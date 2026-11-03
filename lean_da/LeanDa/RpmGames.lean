@@ -111,8 +111,8 @@ theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyRpm H P r ps crs com p x τ) =
       verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
@@ -137,8 +137,8 @@ theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
 
 /-- The verifier's programs through `toK` are those of the games on byte states. -/
 theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
@@ -202,10 +202,10 @@ theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8)
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
 /-! ### The statement's oracles, read on byte states -/

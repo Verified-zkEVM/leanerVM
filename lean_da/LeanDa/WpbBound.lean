@@ -25,7 +25,8 @@ weak-position-binding collision term.
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex LeanDa.Fork PFunctor PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex LeanDa.Fork PFunctor PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -128,23 +129,23 @@ theorem isWeightBound_wpbColX (r : ℕ) (c : Fin (r * 128) → Cell) (i : Fin (r
 
 section Wpb
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
   (A : CodeBindingAdvB r Crs Proof)
 
 /-- The adversary then the challenges of its root (`runWithChallenge`), `H` as queries. -/
 noncomputable def rwcX (ck : Unit × Crs) :
-    OracleComp (WSpec + XS) (((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) × MembershipChallenges) := do
+    OracleComp (WSpec + XS) (((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) × MembershipChallenge) := do
   let out ← advX r ps A ck
-  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ MembershipChallenges)) (m := OracleComp WSpec) out.1.1)
+  let l ← liftL (HasQuery.query (spec := (Common.DigestBytes →ₒ MembershipChallenge)) (m := OracleComp WSpec) out.1.1)
   pure (out, l)
 
 theorem simulateRom_runWithChallenge_eq (h : HTab) (ck : Unit × Crs) :
     simulateRom (runWithChallenge (advH r ps A h) ck) =
-      simulateQ (col h) ((simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) (rwcX r ps A ck)).run' ∅) := by
+      simulateQ (col h) ((simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenge).romImpl)) (rwcX r ps A ck)).run' ∅) := by
   have e : runWithChallenge (advH r ps A h) ck = simulateQ (col h) (rwcX r ps A ck) := by
     simp only [rwcX, simulateQ_bind, simulateQ_col_liftL, ← advH_eq]
     rfl
@@ -155,7 +156,7 @@ theorem simulateRom_runWithChallenge_eq (h : HTab) (ck : Unit × Crs) :
 /-- The vector, position, cell and opening of Wagner's weak-position-binding reduction from a run. -/
 def wTup [NeZero r] (crs : Crs)
     (p : ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) ×
-        MembershipChallenges) :
+        MembershipChallenge) :
     (Fin (r * 128) → Cell) × Fin (r * 128) × Cell × CellOpening :=
   match p.1.2.find? (fun q ↦ decide (q.2.1 ≠ ext crs ((), p.1.1.1, p.2) p.1.1.2 q.1)) with
   | some q => (ext crs ((), p.1.1.1, p.2) p.1.1.2, q.1, q.2.1, q.2.2)
@@ -177,7 +178,7 @@ theorem wpbReduction_eq [NeZero r] (h : HTab) :
 /-- **Wagner's weak-position-binding collision search with `H` as queries.** -/
 noncomputable def wpbX [NeZero r] : OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let crs ← liftL ps.setup
-  let p ← (simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) (rwcX r ps A ((), crs))).run' ∅
+  let p ← (simulateQ (extImpl ((Common.DigestBytes →ₒ MembershipChallenge).romImpl)) (rwcX r ps A ((), crs))).run' ∅
   let t := wTup r ext crs p
   wpbColX r t.1 t.2.1 t.2.2.1 t.2.2.2
 
@@ -194,8 +195,8 @@ theorem isWeightBound_wpbX [NeZero r] (Q : ℕ)
     ((isWeightBound_advX r ps A Q hQ _).bind fun _ ↦ (isWeightBound_liftL _).bind fun _ ↦
       isWeightBound_pure _ _ 0).mono (by omega)
   have hrun := isWeightBound_run_simulateQ
-    (extImpl (Ψ := unifSpec) ((Common.DigestBytes →ₒ MembershipChallenges).romImpl)) xCalls xCalls
-    (isWeightBound_extImpl _) hr (∅ : (Common.DigestBytes →ₒ MembershipChallenges).QueryCache)
+    (extImpl (Ψ := unifSpec) ((Common.DigestBytes →ₒ MembershipChallenge).romImpl)) xCalls xCalls
+    (isWeightBound_extImpl _) hr (∅ : (Common.DigestBytes →ₒ MembershipChallenge).QueryCache)
   rw [StateT.run'_eq]
   exact (isWeightBound_map _ hrun).bind fun p ↦ isWeightBound_wpbColX r _ _ _ _
 

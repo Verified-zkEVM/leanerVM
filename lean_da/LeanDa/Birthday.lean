@@ -105,10 +105,10 @@ theorem isWeightBound_finalCheck (ab : List UInt8 × List UInt8) :
 /-! ## Sampling the table lazily -/
 
 /-- The lazy world's oracles: coins, a random oracle of the roots (unused), and `H`. -/
-abbrev ESpec := EagerSpec (Common.DigestBytes →ₒ MembershipChallenges) (List UInt8) DigestBytes
+abbrev ESpec := EagerSpec (Common.DigestBytes →ₒ MembershipChallenge) (List UInt8) DigestBytes
 
 /-- Its cache. -/
-abbrev ECache := ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ
+abbrev ECache := ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ
     DigestBytes)).QueryCache
 
 /-- The queries of `XS` as queries of `H`. -/
@@ -148,7 +148,7 @@ theorem run_eagerImpl_embE (g : HTab) {α : Type} (Y : OracleComp (unifSpec + XS
 /-- **Sampling the table in advance is sampling `H` lazily**, for a computation querying `XS`. -/
 theorem uniform_col_evalDistEq {α : Type} (Y : OracleComp (unifSpec + XS) α) :
     (($ᵗ HTab : ProbComp HTab) >>= fun h ↦ simulateQ (col h) Y) =ᵈ
-      (simulateQ ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ
+      (simulateQ ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ
           DigestBytes)).romImpl
         (simulateQ embE Y)).run' ∅ := by
   refine EvalDistEq.symm ((run'_romImpl_evalDistEq_eager shortP _ ∅).trans ?_)
@@ -182,7 +182,7 @@ def HColE (c : ECache) : Prop :=
 def eOf (c : ECache) (a : List UInt8) : DigestBytes := (c (.inr a)).getD default
 
 theorem romE_step (t : ESpec.Domain) (c : ECache) {z} (hz : z ∈ support
-    ((((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl
+    ((((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl
         t).run c)) :
     z.2 = c ∨ (∃ d u, z.2 = c.cacheQuery (.inl d) u) ∨
       (∃ a u, t = .inr (.inr a) ∧ c (.inr a) = none ∧ z.2 = c.cacheQuery (.inr a) u) := by
@@ -204,7 +204,7 @@ theorem romE_step (t : ESpec.Domain) (c : ECache) {z} (hz : z ∈ support
       subst hz
       exact Or.inl rfl
 
-theorem cacheQuery_inl_inrE (c : ECache) (d : Common.DigestBytes) (u : MembershipChallenges) (a : List UInt8) :
+theorem cacheQuery_inl_inrE (c : ECache) (d : Common.DigestBytes) (u : MembershipChallenge) (a : List UInt8) :
     (c.cacheQuery (.inl d) u) (.inr a) = c (.inr a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
@@ -218,10 +218,10 @@ theorem cacheQuery_inr_inrE (c : ECache) (a b : List UInt8) (u : DigestBytes) :
 /-- **The birthday bound in the lazy world**: at most `N` queries of `H` end with a collision in
 the cache with probability at most `N · N / 2^256`. -/
 theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : QueryCostAtMost Y eCalls N) :
-    Pr{let z ← (simulateQ ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl Y).run ∅}[
+    Pr{let z ← (simulateQ ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl Y).run ∅}[
       HColE z.2] ≤ N * ((N : ℝ≥0∞) / 2 ^ 256) := by
   classical
-  have h := prEvent_run_bad_le ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl HColE
+  have h := prEvent_run_bad_le ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl HColE
     (fun c ↦ (eDom c).Finite) eCalls (fun c ↦ (eDom c).ncard) N ((N : ℝ≥0∞) / 2 ^ 256)
     ?_ ?_ ?_ Y N hY ∅ (by simp [eDom]) (by simp [eDom])
   · refine h.trans (le_of_eq ?_)
@@ -306,7 +306,7 @@ theorem prob_hColE_le {α : Type} (Y : OracleComp ESpec α) (N : ℕ) (hY : Quer
 /-- **A winning final check leaves a collision in the cache.** -/
 theorem hColE_of_finalCheck {Z : OracleComp (unifSpec + XS) (List UInt8 × List UInt8)}
     {z : Bool × ECache}
-    (hz : z ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl
+    (hz : z ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl
       (simulateQ embE (Z >>= finalCheck))).run ∅)) (hwin : z.1 = true) : HColE z.2 := by
   rw [simulateQ_bind, simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
   obtain ⟨w, -, hz⟩ := hz
@@ -315,9 +315,9 @@ theorem hColE_of_finalCheck {Z : OracleComp (unifSpec + XS) (List UInt8 × List 
   · next hab =>
     simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨x, hx, y, hy, hz⟩ := hz
-    change x ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl
+    change x ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl
       (liftM (ESpec.query (.inr (.inr w.1.1))))).run w.2) at hx
-    change y ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenges) + (List UInt8 →ₒ DigestBytes)).romImpl
+    change y ∈ support ((simulateQ ((Common.DigestBytes →ₒ MembershipChallenge) + (List UInt8 →ₒ DigestBytes)).romImpl
       (liftM (ESpec.query (.inr (.inr w.1.2))))).run x.2) at hy
     rw [simulateQ_spec_query, romImpl_inr_run] at hx hy
     obtain ⟨-, hx2⟩ := le_of_mem_support_roStep _ _ hx

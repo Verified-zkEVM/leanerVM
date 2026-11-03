@@ -26,7 +26,8 @@ straight-line argument replaces his forking step and is built on his framework a
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -60,15 +61,15 @@ theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α →
 
 section Ideal
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
 /-- **The simulated world with a verdict `T`** after the challenges of the adversary's root. -/
 noncomputable def idealT (A : CodeBindingAdvB r Crs Proof) (crs : Crs)
-    (T : CbOut r Proof → MembershipChallenges → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
+    (T : CbOut r Proof → MembershipChallenge → OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool) :
     ProbComp Bool :=
   (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).romImpl
     (advSim r A crs >>= fun out ↦ readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
@@ -84,12 +85,12 @@ theorem ksIdealG_eq (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
 verdict's pure form.** -/
 theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
     (hcrs : crs ∈ support ps.setup)
-    (T : CbOut r Proof → MembershipChallenges → OracleComp (unifSpec + roSpec (List UInt8)
+    (T : CbOut r Proof → MembershipChallenge → OracleComp (unifSpec + roSpec (List UInt8)
         DigestBytes) Bool)
-    (TP : HTab → CbOut r Proof → MembershipChallenges → Bool)
+    (TP : HTab → CbOut r Proof → MembershipChallenge → Bool)
     (hT : ∀ h out l s, (simulateQ (phiG h) (simulateQ embG (T out l))).run s = pure (TP h out l, s)) :
     idealT r A crs T =ᵈ ($ᵗ HTab >>= fun h ↦
-      (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl (advH r ps A h ((), crs) >>=
+      (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl (advH r ps A h ((), crs) >>=
           fun out ↦
         TP h out <$> readVecW out.1.1)).run' ∅) := by
   rw [idealT]
@@ -114,11 +115,11 @@ theorem idealT_evalDistEq (A : CodeBindingAdvB r Crs Proof) {crs : Crs}
 
 /-- Wagner's world with a pure verdict, as the verdict of one run. -/
 theorem run'_verdict_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (crs : Crs)
-    (F : CbOut r Proof → MembershipChallenges → Bool) :
-    (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl (advH r ps A h ((), crs) >>=
+    (F : CbOut r Proof → MembershipChallenge → Bool) :
+    (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl (advH r ps A h ((), crs) >>=
         fun out ↦
         F out <$> readVecW out.1.1)).run' ∅ =
-      (fun p ↦ F p.1 p.2) <$> (simulateQ (Common.DigestBytes →ₒ MembershipChallenges).romImpl
+      (fun p ↦ F p.1 p.2) <$> (simulateQ (Common.DigestBytes →ₒ MembershipChallenge).romImpl
         (advH r ps A h ((), crs) >>= fun out ↦ (out, ·) <$> readVecW out.1.1)).run' ∅ := by
   have e : (advH r ps A h ((), crs) >>= fun out ↦ F out <$> readVecW out.1.1) =
       (fun p ↦ F p.1 p.2) <$> (advH r ps A h ((), crs) >>= fun out ↦
@@ -206,7 +207,7 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (hH _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)
 
 set_option maxRecDepth 4000 in
-theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenges) :
+theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logPaddedRowCount r)) := by
   classical
   have h1 : ∀ a, QueryCostAtMost (LeanDa.hH a) tCount 1 := fun a ↦
@@ -276,12 +277,12 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
       QueryCostAtMost (advSim r A crs)
         (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := E) (n := 14)) Q := by
   have hBh := isWeightBound_advS2_h r ps A Q hQ crs hcrs
-  have hPh : QueryCostAtMost (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hPh : QueryCostAtMost (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), crs))) hCalls (1 + Q) :=
     (isWeightBound_query hCalls (.inr (.inl daDuplex.label))).bind fun _ ↦ hBh
   have hSh := isWeightBound_run_simulateQ _ _ _ isWeightBound_simImpl_h hPh SimSt.init
   have hBf := isWeightBound_advS2 r ps A Q hQ crs hcrs
-  have hPf : QueryCostAtMost (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hPf : QueryCostAtMost (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), crs)))
       (fCalls (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) Q := by
     simpa using (isWeightBound_hQ (Dg := DigestBytes) (St := KState) daDuplex.label).bind fun _ ↦ hBf
