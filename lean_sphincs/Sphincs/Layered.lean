@@ -593,7 +593,7 @@ namespace Seeded
 
 open Concrete
 
-export LeanXmss.KeyGenerationAndSigning (SecretKey)
+export HashSig (SecretKey)
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 

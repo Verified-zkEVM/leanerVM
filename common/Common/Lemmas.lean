@@ -10,8 +10,8 @@ public import Common.Defs
 # Lemmas for games built on the transfer
 
 Weight bounds (`QueryCostAtMost`) through maps, smaller weights and stateful simulations
-(`isWeightBound_run_simulateQ`), a byte as a residue (`uInt8EquivFin`), and the number of
-permutation calls of a Keccak-256 hash (`keccakPad_length`).
+(`isWeightBound_run_simulateQ`) and the number of permutation calls of a Keccak-256 hash
+(`keccakPad_length`).
 -/
 
 open OracleComp OracleSpec

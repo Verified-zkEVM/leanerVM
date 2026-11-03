@@ -91,7 +91,7 @@ set_option maxRecDepth 100000 in
 /-- **`verify_sig_lean_sphincs` loads only the claim and the byte table**, from B1's completeness
 with its loads. -/
 theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec)
-    {rd : Reader} {R : ℕ → Prop} {p bb : E} {pk : Sphincs.PublicKey} {m : Sphincs.Message}
+    {rd : Reader} {R : ℕ → Prop} {p bb : E} {pk : HashSig.PublicKey} {m : HashSig.Message}
     {sig : Sphincs.Signature} (hrd : B1.Sig.MemOK rd 256) (hbb : B1.Sig.ByteBits rd bb)
     (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
       (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))

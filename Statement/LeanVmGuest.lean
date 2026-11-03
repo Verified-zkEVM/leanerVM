@@ -66,7 +66,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
-abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
+abbrev LeanSphincsClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`,
 `aggregation.rs:392-394`) and the digest of the vector its rows are orthogonal to. A statement

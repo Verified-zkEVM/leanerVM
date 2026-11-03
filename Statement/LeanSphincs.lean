@@ -1,6 +1,6 @@
 module
 
-public import Statement.LeanXmss
+public import Statement.HashSignatures
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
@@ -33,9 +33,7 @@ root is not: `P` binds the key), the randomizer base `S ‖ m`.
 Then the SUF-CMA game of `Statement/SufCma.lean` with the deterministic signer, the
 proved lifetimes (`Lifetimes.full`, `pruned20`, …, `pruned8`), and the end statement
 `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable`, proved by
-`Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`). Its budget `Q` counts the honest signer's
-permutation calls too, at their worst case: about `2^35` per signature, so at the largest lifetime
-the bound is about `2^-62`.
+`Sphincs.Lifetimes.requestedSecurityRpm` (`lean_sphincs`).
 -/
 
 @[expose] public section
@@ -44,12 +42,9 @@ open OracleComp OracleSpec ENNReal
 
 namespace Sphincs
 
-/-! ### The instance: parameters, types, and hash-input layout -/
+open HashSig
 
-export HashSig (digestBits winternitzBits chainLength MasterSeed Digest HashOutput Message
-  PublicParameter Randomizer WinternitzDigit ChainStep HashInput truncateHash upperHalfOfHash
-  hashHalfForChain PublicKey littleEndianBytes TweakFields addressBytes tweakFields thInput
-  sampleMasterSeed)
+/-! ### The instance: parameters, types, and hash-input layout -/
 
 /-- The encoding counter's bits, `32`. -/
 def counterBits : Nat := 32
@@ -338,37 +333,20 @@ namespace TargetSum
 def sum (x : Encoding) : Nat := ∑ i, (x i).val
 
 /-- Membership in the code `C`: digit sum `T`. -/
-def Valid (x : Encoding) : Prop := sum x = targetSum
+abbrev Valid (x : Encoding) : Prop := sum x = targetSum
 
-instance : DecidablePred Valid :=
-  fun x => inferInstanceAs (Decidable (sum x = targetSum))
-
-/-- Offset of a two-bit digit. -/
-def digitOffset (i : ChainIndex) : Nat := winternitzBits * i.val
-
-/-- `x_i`, the two bits of the digest at the digit's offset. -/
-def digestEncoding (digest : Digest) : Encoding :=
-  fun i => (digest.extractLsb' (digitOffset i) winternitzBits).toFin
-
-/-- A digest decodes exactly when its 64 digits reach the target sum. -/
+/-- A digest decodes exactly when its 64 digits (`digestDigits`) reach the target sum. -/
 def decodeDigest (digest : Digest) : Option Encoding :=
-  if Valid (digestEncoding digest) then some (digestEncoding digest) else none
+  if Valid (digestDigits digest) then some (digestDigits digest) else none
 
 end TargetSum
 
-/-! ### The algorithms
-
-`Verification` contains the hash and verification routines; `KeyGenerationAndSigning` contains
-key generation and signing. Hashing routines work over a permutation `π` of the Keccak state in any
-monad, the hash `H` being Keccak-256 over `π` (`keccakHash`). -/
+/-! ### The algorithms, over a permutation `π` of the Keccak state in any monad -/
 
 namespace Verification
 
 open LeanVM.Semantics (KeccakState)
-
-export HashSig.OverPermutation (sequenceFin keccakHash walkChain nodePayload foldPath buildTree
-    th thPair
-  taggedSeed)
+open HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
@@ -395,14 +373,10 @@ def recoverChain (parameter : PublicParameter) (leaf : LeafIndex) (chainIndex : 
     (digit : WinternitzDigit) (value : Digest) : m Digest :=
   chainWalk π parameter leaf chainIndex digit.val (chainLength - 1 - digit.val) value
 
-/-- `pk_0 || ... || pk_{v-1}`. -/
-def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap (littleEndianBytes 16)
-
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
 def leafHash (parameter : PublicParameter) (leaf : LeafIndex) (endpoints : ChainIndex → Digest) :
     m Digest :=
-  tweakableHash π parameter (.leaf leaf) (leafPayload endpoints)
+  tweakableHash π parameter (.leaf leaf) (digestsPayload endpoints)
 
 /-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the
 8 top trees. -/
@@ -451,15 +425,11 @@ def forestRecoverChain (parameter : PublicParameter) (leafIndex : LeafIndex) (c 
     (deficit : ForestChainPosition) (value : Digest) : m Digest :=
   forestChainWalk π parameter leafIndex c s j a i (forestChainTop - deficit.val) deficit.val value
 
-/-- `x_{0,4} || ... || x_{5,4}`. -/
-def childPayload (chainEnds : ForestChainIndex → Digest) : HashInput :=
-  (List.ofFn chainEnds).flatMap (littleEndianBytes 16)
-
-/-- The child leaf: the hash of the 6 chain tops. -/
+/-- The child leaf: the hash of the 6 chain tops `x_{0,4} || ... || x_{5,4}`. -/
 def childLeafHash (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
     (s : SuperChildIndex) (j : SubtreeIndex) (a : ChildIndex)
     (chainEnds : ForestChainIndex → Digest) : m Digest :=
-  tweakableHash π parameter (.childLeaf leafIndex c s j a) (childPayload chainEnds)
+  tweakableHash π parameter (.childLeaf leafIndex c s j a) (digestsPayload chainEnds)
 
 /-- The child leaf an opening at codeword `word` reaches. -/
 def childLeafRecover (parameter : PublicParameter) (leafIndex : LeafIndex) (c : ForestCoordinate)
@@ -630,10 +600,8 @@ end Pruning
 
 namespace KeyGenerationAndSigning
 
-open Verification
+open Verification HashSig.OverPermutation
 open LeanVM.Semantics (KeccakState)
-
-export LeanXmss.KeyGenerationAndSigning (SecretKey)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
@@ -771,12 +739,8 @@ def spineNode (parameter : PublicParameter) (seed : MasterSeed) : Nat → m Dige
       let below ← spineNode parameter seed steps
       let sibling ← surrogate π parameter seed (keptSubtreeHeight + steps)
       let nodeIndex := keptSubtreePosition parameter / 2 ^ steps
-      if nodeIndex.testBit 0 then
-        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIndex / 2))
-          (nodePayload sibling below)
-      else
-        tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIndex / 2))
-          (nodePayload below sibling)
+      tweakableHash π parameter (.node (keptSubtreeHeight + steps + 1) (nodeIndex / 2))
+        (if nodeIndex.testBit 0 then nodePayload sibling below else nodePayload below sibling)
 
 /-- The root: the spine's top. -/
 def treeRoot (parameter : PublicParameter) (seed : MasterSeed) : m Digest :=
@@ -792,38 +756,24 @@ def treePath (parameter : PublicParameter) (seed : MasterSeed) (leaf : LeafIndex
     else
       surrogate π parameter seed level.val
 
-/-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
-subtree, and build the root. -/
-def keygenFromSchemeSeed (schemeSeed : MasterSeed) : m (PublicKey × SecretKey) := do
+/-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, derive the
+public parameter, which places the kept subtree, and build the root. -/
+def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
+  let schemeSeed ← taggedSeed π seedTag masterSeed
   let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
   let root ← treeRoot π parameter schemeSeed
   return (⟨root, parameter⟩, ⟨schemeSeed, parameter⟩)
 
-/-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
-from `S`. -/
-def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let master ← taggedSeed π seedTag masterSeed
-  keygenFromSchemeSeed π master
-
-/-- One grinding attempt: the leaf index of the digest call (the `find_map` of `sign`,
-`scheme.rs`). -/
-def grindingAttempt (secretKey : SecretKey) (message : Message) (randomizer : Randomizer) :
-    m (Option LeafIndex) := do
-  let digestCallOutput ← messageDigestCall π secretKey.parameter message randomizer
-  if LandsInKeptSubtree secretKey.parameter
-      (digestLeafIndex (truncateMessageDigest digestCallOutput)) then
-    return some (digestLeafIndex (truncateMessageDigest digestCallOutput))
-  else
-    return none
-
-/-- Try `randomizer, randomizer + 1, ...`, stopping at the first that lands in the kept subtree. -/
+/-- Try `randomizer, randomizer + 1, ...`, stopping at the first whose digest's leaf index lands in
+the kept subtree (the `find_map` of `sign`, `scheme.rs`). -/
 def grindRandomizer (secretKey : SecretKey) (message : Message) : Nat → Randomizer →
     m (Option (Randomizer × LeafIndex))
   | 0, _ => pure none
   | attempts + 1, randomizer => do
-      match ← grindingAttempt π secretKey message randomizer with
-      | some leafIndex => return some (randomizer, leafIndex)
-      | none => grindRandomizer secretKey message attempts (randomizer + 1)
+      let leafIndex := digestLeafIndex (truncateMessageDigest
+        (← messageDigestCall π secretKey.parameter message randomizer))
+      if LandsInKeptSubtree secretKey.parameter leafIndex then return some (randomizer, leafIndex)
+      else grindRandomizer secretKey message attempts (randomizer + 1)
 
 /-- `Sign` (`sign`, `scheme.rs`): derive the randomizer base `R0` of the message (one hash), scan
 `R0, R0 + 1, ...` into the kept subtree, compute the digest, open the forest, sign its key (the
@@ -880,8 +830,8 @@ variable [KeyShape]
 generation, the deterministic signer, the verifier, and the winning condition: a valid transcript
 without the forgery (`SignerReturnedForgery`).
 -/
-noncomputable def sufCmaScheme : Scheme MasterSeed PublicKey KeyGenerationAndSigning.SecretKey
-    Message (Option Signature) Forgery where
+noncomputable def sufCmaScheme :
+    Scheme MasterSeed PublicKey SecretKey Message (Option Signature) Forgery where
   sampleSeed := sampleMasterSeed
   generateKeys := KeyGenerationAndSigning.keygenFromSeed queryPermutation
   sign sk message := KeyGenerationAndSigning.sign queryPermutation sk message
@@ -923,7 +873,9 @@ the game's worst path, the honest signer's included (`QueryCostAtMost` is struct
 costs about `2^35` calls at `b = 26` (`2^32` encoding counters of three calls, `2^33.6`; `treePath`
 rebuilding the kept subtree, `2^33.9`; the grinding into the kept subtree is one call at `b = 26`
 and up to `2^32` below), so at the largest lifetime, `N ≈ 2^30.4` signatures, `Q ≥ 2^65` and the
-bound is about `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. -/
+bound is about `2^-62`. Proved by `Sphincs.Lifetimes.requestedSecurityRpm`. A key of another
+height `b ≤ 26`, which the crate also generates, is not covered, nor a key past its signature
+limit, which the signer does not count: keeping within it is the key holder's duty. -/
 abbrev LeanSphincsStronglyUnforgeable : Prop :=
   ∀ P ∈ [full, pruned20, pruned14, pruned13, pruned12, pruned10, pruned8],
     StronglyUnforgeable (@RandomPermutationModel.sufCmaScheme P) 127
