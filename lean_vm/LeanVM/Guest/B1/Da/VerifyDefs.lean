@@ -1,26 +1,24 @@
 /-
   LeanVM.Guest.B1.Da.VerifyDefs
 
-  The checks of `da_verify`'s body and of its loops.
+  The checks of `da_verify`'s body and of its loops (G:3921-3961).
 -/
 
 module
 
-public import LeanVM.Guest.B1.Da.Column
+public import LeanVM.Guest.B1.Da.ColumnDefs
 public import LeanVM.Guest.B1.Main.Body
-public import LeanVM.Guest.B1.Da.ChainSplit
 
 /-!
-# `da_verify` (G:3915-3977), checked
+# `da_verify` (G:3921-3961), checked
 
-`da_verify(g_squares)` (`core25`): the shape (`da_row_shape`), the rows' prefix bases
-(`__loop17`: `prefix_bases[x] = prefix_digests·x^128`), the rows' running sums (`__loop18`:
-`rowbase[x] = acc·x^129`, its first word `0`), the columns (`__loop19`, `__loop20`:
-`da_verify_column__L1` on columns `0 … 63`, `__L0` on `64 … 127`), the sums' check (`__loop21`:
-word `128` of every row's sum is `0`), the column tree (`da_levels__L128_L7`), the row tree
-(`__loop22`: each row's digest from its prefix cells; `__loop23`: the padding rows; `da_levels`
-dispatched on `g_log_pad`), the root (`keccak` of the two trees' roots) and the vector's digest
-(`keccak_cells` of the `256` column-digest cells).
+`da_verify(g_squares)` (`core25`): the shape (`da_row_shape`), the challenge `z` and its rate
+cells (`fs_pack` with the tag `0`), the dual codeword's builders (`da_vector`), the blobs' regions
+(`__loop17`: `rowbase[x] = blobs·x^641`, the running sum's first word `0`), the columns
+(`__loop18`: `da_verify_column` on columns `0 … 127`), each blob's sum checked and its tree's
+root (`__loop19`: word `640` of the region is `0`, `da_levels__L128_L7`, the root at
+`roots·x²`), the padding blobs (`__loop20`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), and the tree
+over the blob roots (`da_levels` dispatched on `g_log_pad`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -31,101 +29,91 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 @[expose] public section
 
+/-- The atom `a` is in the list. -/
+def hasAtom (A : List Atom) (a : Atom) : Bool := A.any (atomEqb · a)
+
+theorem hasAtom_sound {rd : Reader} {σ : Val} {A : List Atom} {a : Atom} (h : hasAtom A a = true)
+    (hat : ∀ b ∈ A, b.Holds rd σ) : a.Holds rd σ := by
+  obtain ⟨b, hb, he⟩ := List.any_eq_true.mp h
+  rw [← atomEqb_sound he]
+  exact hat b hb
+
+/-- `da_levels`' specializations, by `k`. -/
+def dlNames : List String := (List.range 11).map daLevelsName
+
 /-! ## The loops -/
 
-/-- `__loop17`: `prefix_bases[x] = prefix_digests·x^128`. -/
-def l18Ok (fn : Fn) : Bool :=
+/-- `__loop17`: `rowbase[x] = blobs·x^641`, the region's word `512` zero. -/
+def l17Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   loopShapeF fn "__loop17" && decide (fn.params.length = 4) &&
-  monoIs A (.n 11) (.n 3) (.n 0) 128 && isMul A (.n 12) (.n 2) (.n 0) &&
-  A.any (isLoadAt (.n 11) (.n 12) 0)
+  monoIs A (.n 15) (.n 2) (.n 0) 641 && isMul A (.n 16) (.n 3) (.n 0) &&
+  A.any (isLoadAt (.n 15) (.n 16) 0) && A.any (isConstAt (.n 17) 0 0) &&
+  A.any (isLoadAt (.n 17) (.n 15) 512)
 
-/-- `__loop18`: `rowbase[x] = acc·x^129`, its word `0` zero. -/
+/-- The body of the column loop `__loop18`: the column at `x`, then the next. -/
+def l18Body : List Stmt :=
+  [.call "da_verify_column" ((List.range 7).map V.n) [],
+    .atom (.const (.n 7) (word 2 0 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
+    .atom (.const (.n 9) (word 325 0 0)), .atom (.add (.n 10) (.n 8) (.n 9)),
+    .atom (.const (.n 11) (word 2 0 0)), .atom (.mul (.n 12) (.n 0) (.n 11)),
+    .callIf (.n 10) "__loop18" (.n 12 :: (List.range 6).map fun k => V.n (k + 1)), .ret []]
+
+/-- `__loop18`, checked. -/
+def l18Ok (fn : Fn) : Bool :=
+  decide (fn.params = (List.range 7).map V.n) && stmtsEqb fn.body l18Body
+
+/-- `__loop19`: the region at `rowbase[x]` has the sum `0` at word `640`; its tree's root, at
+`roots·x²`. -/
 def l19Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop18" && decide (fn.params.length = 4) &&
-  monoIs A (.n 12) (.n 2) (.n 0) 129 && isMul A (.n 13) (.n 3) (.n 0) &&
-  A.any (isLoadAt (.n 12) (.n 13) 0) && A.any (isConstAt (.n 14) 0 0) &&
-  A.any (isLoadAt (.n 14) (.n 12) 0)
-
-/-- `__loop21`: word `128` of `rowbase[x]` is zero. -/
-def l22Ok (fn : Fn) : Bool :=
-  let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop21" && decide (fn.params.length = 3) &&
-  isMul A (.n 3) (.n 2) (.n 0) && A.any (isLoadAt (.n 4) (.n 3) 0) &&
-  A.any (isLoadAt (.n 5) (.n 4) 128) && A.any (isConstAt (.n 6) 0 0) &&
-  A.any (isAssertEqAt (.n 5) (.n 6))
-
-/-- `__loop22`'s chain: the `128` cells loaded through `prefix_bases[x]`. -/
-def rowSpec (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range 128).map fun i => some (.n (6 + i)), 2048, true, none, keccakBlocks atoms⟩
-
-/-- `__loop22`: row `x`'s digest, from the `128` cells at `prefix_bases[x]`, written at
-`rowtree·x²`. -/
-def l23Ok (fn : Fn) : Bool :=
-  let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop22" && decide (fn.params.length = 4) &&
+  loopShapeF fn "__loop19" && decide (fn.params.length = 4) &&
   isMul A (.n 4) (.n 2) (.n 0) && A.any (isLoadAt (.n 5) (.n 4) 0) &&
-  loadsOk A (.n 5) ((List.range 128).map fun i => some (.n (6 + i))) &&
-  (rowSpec A).check A && isMul A (.n 477) (.n 0) (.n 0) && isMul A (.n 478) (.n 3) (.n 477) &&
-  A.any (isLoadAt ((rowSpec A).outV ((rowSpec A).nb - 1) 0) (.n 478) 0) &&
-  A.any (isLoadAt ((rowSpec A).outV ((rowSpec A).nb - 1) 1) (.n 478) 1)
+  A.any (isLoadAt (.n 6) (.n 5) 640) && A.any (isConstAt (.n 7) 0 0) &&
+  A.any (isAssertEqAt (.n 6) (.n 7)) &&
+  hasCall (loopPre fn) "da_levels__L128_L7" [.n 5] [.n 8, .n 9] &&
+  isMul A (.n 10) (.n 0) (.n 0) && isMul A (.n 11) (.n 3) (.n 10) &&
+  A.any (isLoadAt (.n 8) (.n 11) 0) && A.any (isLoadAt (.n 9) (.n 11) 1)
 
-/-- The body of the column loops `__loop19`, `__loop20`: the column at `x`, then the next. -/
-def colLoopBody (col loop : String) (endLo : ℕ) : List Stmt :=
-  [.call col ((List.range 9).map V.n) [],
-    .atom (.const (.n 9) (word 2 0 0)), .atom (.mul (.n 10) (.n 0) (.n 9)),
-    .atom (.const (.n 11) (word endLo 0 0)), .atom (.add (.n 12) (.n 10) (.n 11)),
-    .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
-    .callIf (.n 12) loop (.n 14 :: (List.range 8).map fun k => V.n (k + 1)), .ret []]
-
-/-- A column loop, checked. -/
-def colLoopOk (fn : Fn) (col loop : String) (endLo : ℕ) : Bool :=
-  decide (fn.params = (List.range 9).map V.n) && stmtsEqb fn.body (colLoopBody col loop endLo)
+/-- `__loop20`: the padding blob root's cells at `roots·n_blob²·x²`. -/
+def l20Ok (fn : Fn) : Bool :=
+  let A := atomsIn (loopPre fn)
+  loopShapeF fn "__loop20" && decide (fn.params.length = 4) &&
+  isMul A (.n 4) (.n 3) (.n 3) && isMul A (.n 5) (.n 2) (.n 4) && isMul A (.n 6) (.n 0) (.n 0) &&
+  isMul A (.n 7) (.n 5) (.n 6) &&
+  hasAtom A (.const (.n 8) (word 8002054802297438051 4108169256045952147 0)) &&
+  A.any (isLoadAt (.n 8) (.n 7) 0) &&
+  hasAtom A (.const (.n 9) (word 12830724869163462953 1721925254677230945 0)) &&
+  A.any (isLoadAt (.n 9) (.n 7) 1)
 
 /-! ## The body -/
-
-/-- The root's chain: the row tree's root, then the column tree's, `64` bytes. -/
-def rootSpec (atoms : List Atom) : ChainSpec :=
-  ⟨[some (.n 48), some (.n 49), some (.n 37), some (.n 38)], 64, true, none,
-    (keccakBlocks atoms).take 1⟩
-
-/-- The vector's chain: the `256` column-digest cells, `4096` bytes. -/
-def vdSpec (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range 256).map fun i => some (.n (69 + i)), 4096, true, none, (keccakBlocks atoms).drop 1⟩
 
 /-- `da_verify`'s block (its body but the final `ret`). -/
 noncomputable def dvP : List Stmt := (Fn.body Data.core25).dropLast
 
-/-- **`da_verify`'s block, checked** (but the vector's chain). -/
+/-- **`da_verify`'s block, checked.** -/
 noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
   decide (Data.core25.params = [.n 0]) &&
-  stmtsEqb (Fn.body Data.core25) (P ++ [.ret [.n 993, .n 994, .n 995, .n 996]]) &&
+  stmtsEqb (Fn.body Data.core25) (P ++ [.ret [.n 48, .n 49, .n 50, .n 51]]) &&
   P.all Stmt.flat &&
   hasCall P "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4] &&
-  monoIs A (.n 11) (.n 3) (.n 3) 127 &&
-  guardOk P (.n 15) "__loop17" (.n 16) (.n 1) [.n 13, .n 12] &&
-  monoIs A (.n 25) (.n 1) (.n 1) 128 &&
-  guardOk P (.n 29) "__loop18" (.n 30) (.n 1) [.n 26, .n 27] &&
-  A.any (isConstAt (.n 32) 1 0) &&
-  hasCall P "__loop19" [.n 32, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
-  A.any (isConstAt (.n 33) 27 0) &&
-  hasCall P "__loop20" [.n 33, .n 1, .n 3, .n 4, .n 2, .n 13, .n 31, .n 27, .n 17] [] &&
-  guardOk P (.n 35) "__loop21" (.n 36) (.n 1) [.n 27] &&
-  hasCall P "da_levels__L128_L7" [.n 31] [.n 37, .n 38] &&
-  monoIs A (.n 40) (.n 3) (.n 3) 3 &&
-  guardOk P (.n 43) "__loop22" (.n 44) (.n 1) [.n 13, .n 41] &&
-  guardOk P (.n 46) "__loop23" (.n 47) (.n 4) [.n 41, .n 1] &&
-  P.any (stmtEqb · (.dispatch (.n 2) dlNames [.n 41] [.n 48, .n 49])) &&
-  (rootSpec A).check A &&
-  A.any (isCopyAt (.n 993) ((rootSpec A).outV ((rootSpec A).nb - 1) 0)) &&
-  A.any (isCopyAt (.n 994) ((rootSpec A).outV ((rootSpec A).nb - 1) 1)) &&
-  loadsOk A (.n 17) ((List.range 256).map fun i => some (.n (69 + i))) &&
-  (vdSpec A).shapeOk && decide ((vdSpec A).nb = 31) &&
-  A.any (isCopyAt (.n 995) ((vdSpec A).outV ((vdSpec A).nb - 1) 0)) &&
-  A.any (isCopyAt (.n 996) ((vdSpec A).outV ((vdSpec A).nb - 1) 1))
+  hasAtom A (.const (.n 6) (word 0 0 0)) && hasAtom A (.assertInK (.n 9) (.n 6)) &&
+  hasAtom A (.const (.n 10) (word 0 0 1)) && hasAtom A (.mul (.n 11) (.n 10) (.n 9)) &&
+  hasAtom A (.add (.n 12) (.n 5) (.n 11)) &&
+  hasAtom A (.const (.n 13) (word 0 1 0)) && hasAtom A (.mul (.n 14) (.n 13) (.n 6)) &&
+  hasAtom A (.add (.n 15) (.n 9) (.n 14)) &&
+  hasCall P "da_vector" [.n 5] [.n 16, .n 17, .n 18, .n 19] &&
+  guardOk P (.n 34) "__loop17" (.n 35) (.n 1) [.n 31, .n 32] &&
+  A.any (isConstAt (.n 36) 1 0) &&
+  hasCall P "__loop18" [.n 36, .n 1, .n 32, .n 16, .n 17, .n 18, .n 19] [] &&
+  monoIs A (.n 38) (.n 3) (.n 3) 3 &&
+  guardOk P (.n 41) "__loop19" (.n 42) (.n 1) [.n 32, .n 39] &&
+  guardOk P (.n 44) "__loop20" (.n 45) (.n 4) [.n 39, .n 1] &&
+  P.any (stmtEqb · (.dispatch (.n 2) dlNames [.n 39] [.n 46, .n 47])) &&
+  A.any (isCopyAt (.n 48) (.n 46)) && A.any (isCopyAt (.n 49) (.n 47)) &&
+  A.any (isCopyAt (.n 50) (.n 12)) && A.any (isCopyAt (.n 51) (.n 15))
 
 end
 end LeanVM.Guest.B1.Da

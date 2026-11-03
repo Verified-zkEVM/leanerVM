@@ -24,7 +24,7 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
 
 * the batching's run, the verifier refusing a zero challenge, the deferring verifier refusing a zero
   challenge, the openings' climb (`runBatching_deployed`, …);
-* LeanDA's commitment and vector digest (`commitCells_keccakF1600`, `vectorDigest_keccakF1600`);
+* LeanDA's commitment (`commitCells_keccakF1600`);
 * the signature schemes' verification (`xmssVerify_eq_withHash`, `sphincsVerify_eq_withHash`): the
   schemes read a digest as the little-endian number of its 32 bytes, the guest's reading
   (`keccakHash_keccakF1600`).
@@ -94,10 +94,6 @@ theorem commitCells_keccakF1600 (rows : List (List K))
       LeanDa.commitCodewordsWithHash keccak256Bytes rows := by
   rw [LeanDa.commitCells_eq_withHash, hashOver_keccakF1600,
     LeanDa.commitCodewords_eq_commitCells _ rows hrows]
-
-theorem vectorDigest_keccakF1600 (vector : List E) :
-    LeanDa.vectorDigest keccakF1600 vector = LeanDa.vectorDigestWithHash keccak256Bytes vector := by
-  rw [LeanDa.vectorDigest_eq_withHash, hashOver_keccakF1600]
 
 end Da
 
