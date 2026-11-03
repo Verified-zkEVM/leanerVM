@@ -12,9 +12,7 @@ The leanXMSS scheme (key generation, signing, verification, hashing with Keccak-
 permutation `π`), on what it shares with leanSPHINCS (`Statement/HashSignatures.lean`, namespace
 `HashSig`), the SUF-CMA game of `Statement/SufCma.lean` instantiated with it, and the end statement
 `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable`, proved by
-`XmssSecurity.leanXmss_rpm_security` (`lean_xmss`). Its budget `Q` counts the honest signer's
-permutation calls too, at their worst case: about `2^33` per signing request, so with all `2^32`
-leaves used the bound is about `2^-62`.
+`XmssSecurity.leanXmss_rpm_security` (`lean_xmss`).
 -/
 
 @[expose] public section
@@ -151,34 +149,21 @@ def chainPair (chain : ChainIndex) : ChainPairIndex :=
 
 namespace Codeword
 
-/-- `x_i`, digit `i < 64` of a digest read as a little-endian integer. -/
-def digit (digest : Digest) (i : Nat) : WinternitzDigit :=
-  (digest.extractLsb' (winternitzBits * i) winternitzBits).toFin
-
-/-- The first `v` digits. -/
-def encoding (digest : Digest) : Encoding := fun i => digit digest i.val
-
 /-- The sum of a word's digits. -/
 def sum (x : Encoding) : Nat := ∑ i, (x i).val
 
-/-- A codeword: the last `64 - v` digits are zero and the first `v` sum to `T`. -/
-def Valid (digest : Digest) : Prop :=
-  digest.toNat / 2 ^ (winternitzBits * chainCount) = 0 ∧ sum (encoding digest) = targetSum
+/-- A codeword: of its 64 digits (`digestDigits`), the last `64 - v` are zero and the first `v` sum
+to `T`. -/
+abbrev Valid (digest : Digest) : Prop :=
+  digest.toNat / 2 ^ (winternitzBits * chainCount) = 0 ∧ sum (digestDigits digest) = targetSum
 
-instance : DecidablePred Valid :=
-  fun _ => inferInstanceAs (Decidable (_ ∧ _))
-
-/-- The word a digest encodes, if it is a codeword. -/
+/-- The word a digest encodes, its first `v` digits, if it is a codeword. -/
 def decode (digest : Digest) : Option Encoding :=
-  if Valid digest then some (encoding digest) else none
+  if Valid digest then some (digestDigits digest) else none
 
 end Codeword
 
-/-! ### The algorithms
-
-`Verification` contains the hash and verification routines; `KeyGenerationAndSigning` contains
-key generation and signing. Hashing routines work over a permutation `π` of the Keccak state in any
-monad, the hash `H` being Keccak-256 over `π` (`keccakHash`). -/
+/-! ### The algorithms, over a permutation `π` of the Keccak state in any monad -/
 
 namespace Verification
 
@@ -209,14 +194,10 @@ def recoverChain (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
     (chainIndex : ChainIndex) (digit : WinternitzDigit) (value : Digest) : m Digest :=
   chainWalk π parameter layer key chainIndex digit.val (chainLength - 1 - digit.val) value
 
-/-- `pk_0 || ... || pk_{v-1}`. -/
-def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap (littleEndianBytes 16)
-
 /-- The one-time leaf: the hash of the `v` chain ends (`wots_leaf_hash`). -/
 def leafHash (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
     (endpoints : ChainIndex → Digest) : m Digest :=
-  tweakableHash π parameter (.leaf layer key) (leafPayload endpoints)
+  tweakableHash π parameter (.leaf layer key) (digestsPayload endpoints)
 
 /-- `D = Th(P, A_msg(l, e), M || rho)` (`message_digest`). -/
 def messageDigest (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
@@ -274,13 +255,6 @@ namespace KeyGenerationAndSigning
 
 open Verification HashSig.OverPermutation
 open LeanVM.Semantics (KeccakState)
-
-/-- The signer's key: the scheme's seed `S` and the parameter. -/
-structure SecretKey where
-  /-- `S = H("leanXMSS" ‖ S_0)`, from which every secret derives. -/
-  schemeSeed : MasterSeed
-  /-- The public parameter `P`. -/
-  parameter : PublicParameter
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
@@ -411,8 +385,8 @@ open Common Common.SufCma
 /-- leanXMSS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed, key generation,
 the signer of a request, the verifier, and the winning condition: a valid transcript without the
 forgery (`SignerReturnedForgery`). -/
-noncomputable def sufCmaScheme : Scheme MasterSeed PublicKey KeyGenerationAndSigning.SecretKey
-    SigningRequest (Option Signature) Forgery where
+noncomputable def sufCmaScheme :
+    Scheme MasterSeed PublicKey SecretKey SigningRequest (Option Signature) Forgery where
   sampleSeed := sampleMasterSeed
   generateKeys := KeyGenerationAndSigning.keygenFromSeed queryPermutation
   sign sk request := KeyGenerationAndSigning.sign queryPermutation sk request.leafIndex

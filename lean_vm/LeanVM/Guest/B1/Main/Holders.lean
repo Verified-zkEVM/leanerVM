@@ -280,7 +280,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
       unfold dvClaim; rw [r0, r1, r2, r3, digestOfCells_scalars, digestOfCells_scalars]
     refine ⟨?_, by rw [hdv]; exact hop⟩
     rw [eD, hp1 hd, (daDigestAt_of_loads l0 l1).1, digestOfCells_scalars]
-    unfold daClaimDigest daClaimPreimage
+    unfold daClaimDigest
     rw [hdv, ← digestOfCells_scalars root, ← digestOfCells_scalars vd, digestBytes_ofCells,
       digestBytes_ofCells, ← r0, ← r1, ← r2, ← r3]
     simp [cellsBytes]

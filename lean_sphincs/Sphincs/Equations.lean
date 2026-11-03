@@ -18,6 +18,8 @@ open OracleComp OracleSpec
 
 namespace Sphincs
 
+open HashSig HashSig.OverPermutation
+
 @[expose] public section
 
 namespace Verification

@@ -106,7 +106,7 @@ def statementR : R NodeStatement := do
   expect "xmss"
   let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "sphincs"
-  let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : Sphincs.PublicKey), m)
+  let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "da"
   let da ← digestR
   return ⟨⟨xmss, sphincs, da⟩, ← deferR⟩
@@ -151,7 +151,7 @@ def rawXmssR : R (LeanXmssClaim × LeanXmss.Signature) := do
 /-- A raw leanSPHINCS signature with its claim. -/
 def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
   let ((r, p), m) ← claimR
-  return (((⟨r, p⟩ : Sphincs.PublicKey), m), ← sphincsSigR)
+  return (((⟨r, p⟩ : HashSig.PublicKey), m), ← sphincsSigR)
 
 def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR), ← many eR⟩
 

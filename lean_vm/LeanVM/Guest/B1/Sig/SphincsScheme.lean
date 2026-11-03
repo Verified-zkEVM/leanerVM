@@ -38,6 +38,7 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
 open Sphincs Sphincs.Verification
+open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -50,22 +51,22 @@ theorem sq_keccak : SQ ⟨Node.keccakBits⟩ := fun _ => rfl
 variable {inst : HasQuery Sphincs.HashSpec Id}
 
 /-- A cell as a leanSPHINCS digest. -/
-def sv (x : E) : Sphincs.Digest := cellVal x
+def sv (x : E) : HashSig.Digest := cellVal x
 
 /-- A cell as a leanSPHINCS public parameter. -/
-def spp (x : E) : Sphincs.PublicParameter := cellVal x
+def spp (x : E) : HashSig.PublicParameter := cellVal x
 
-theorem bytesLE_sv (x : E) : Sphincs.littleEndianBytes 16 (sv x) = cellBytes x :=
+theorem bytesLE_sv (x : E) : HashSig.littleEndianBytes 16 (sv x) = cellBytes x :=
     sphincs_bytesLE_cellVal x
 
-theorem bytesLE_spp (x : E) : Sphincs.littleEndianBytes 16 (spp x) = cellBytes x :=
+theorem bytesLE_spp (x : E) : HashSig.littleEndianBytes 16 (spp x) = cellBytes x :=
     sphincs_bytesLE_cellVal x
 
 theorem sflatMap_bytesLE_sv : ∀ (l : List E),
-    List.flatMap (Sphincs.littleEndianBytes 16) (l.map sv) = l.flatMap cellBytes
+    List.flatMap (HashSig.littleEndianBytes 16) (l.map sv) = l.flatMap cellBytes
   | [] => rfl
   | x :: l => by
-      show Sphincs.littleEndianBytes 16 (sv x) ++ List.flatMap (Sphincs.littleEndianBytes 16)
+      show HashSig.littleEndianBytes 16 (sv x) ++ List.flatMap (HashSig.littleEndianBytes 16)
           (l.map sv) =
         cellBytes x ++ l.flatMap cellBytes
       rw [bytesLE_sv, sflatMap_bytesLE_sv l]
@@ -86,10 +87,10 @@ theorem sHash_cells (hq : SQ inst) {P : PublicParameter} {dom : HashDomain}
     @tweakableHashWithHash Id _ inst P dom payload = sv (hcell cs).1 := sHash_bytes hq h
 
 theorem sSequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α),
-    Sphincs.Verification.sequenceFin f = f
+    HashSig.OverPermutation.sequenceFin f = f
   | 0, f => funext fun i => i.elim0
   | n + 1, f => by
-      simp only [Sphincs.Verification.sequenceFin]
+      simp only [HashSig.OverPermutation.sequenceFin]
       have := sSequenceFin_id (fun i : Fin n => f i.succ)
       rw [this]
       funext i
@@ -98,14 +99,14 @@ theorem sSequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α),
 /-! ## Addresses -/
 
 theorem sTweak (tag step hi lo : Nat) :
-    Sphincs.addressBytes (Sphincs.tweakFields tag step hi lo) =
+    HashSig.addressBytes (HashSig.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) :=
   sphincs_fieldBytes_tweakFields tag step hi lo
 
 /-! ## Verification -/
 
 /-- The path a signature carries, as the verifier folds it: zero above the tree's height. -/
-def signaturePath (σ : Signature) (l : Nat) : Sphincs.Digest :=
+def signaturePath (σ : Signature) (l : Nat) : HashSig.Digest :=
   if h : l < treeHeight then σ.authenticationPath ⟨l, h⟩ else 0
 
 /-- **Verification**: the digest selects the forest key, which the one-time signature signs
@@ -161,10 +162,10 @@ theorem encode_id (P : PublicParameter) (leaf : LeafIndex)
     (K : ForestKey) (ctr : EncodingCounter) :
     @encodeWithHash Id _ inst P leaf K ctr =
       TargetSum.decodeDigest (@tweakableHashWithHash Id _ inst P (.encoding leaf)
-        (forestKeyPayload K ++ Sphincs.littleEndianBytes 4 ctr)) := rfl
+        (forestKeyPayload K ++ HashSig.littleEndianBytes 4 ctr)) := rfl
 
 theorem sOtsLeaf_id (P : PublicParameter) (leaf : LeafIndex)
-    (K : ForestKey) (ctr : EncodingCounter) (vals : ChainIndex → Sphincs.Digest) :
+    (K : ForestKey) (ctr : EncodingCounter) (vals : ChainIndex → HashSig.Digest) :
     @otsLeafWithHash Id _ inst P leaf K ctr vals =
       (@encodeWithHash Id _ inst P leaf K ctr).map fun enc =>
         @leafHashWithHash Id _ inst P leaf fun i =>
@@ -179,11 +180,11 @@ theorem sOtsLeaf_id (P : PublicParameter) (leaf : LeafIndex)
     | some enc => exact absurd h' (h enc)
 
 theorem sChainWalk_succ (P : PublicParameter) (leaf : LeafIndex)
-    (i : ChainIndex) (start n : Nat) (v : Sphincs.Digest) :
+    (i : ChainIndex) (start n : Nat) (v : HashSig.Digest) :
     @chainWalkWithHash Id _ inst P leaf i start (n + 1) v =
       if hstep : start + n < chainLength - 1 then
         @tweakableHashWithHash Id _ inst P (.chain leaf i ⟨start + n, hstep⟩)
-          (Sphincs.littleEndianBytes 16 (@chainWalkWithHash Id _ inst P leaf i start n v))
+          (HashSig.littleEndianBytes 16 (@chainWalkWithHash Id _ inst P leaf i start n v))
       else 0 := by
   rw [chainWalk_eq_succ]
   simp only [bind]
@@ -191,12 +192,12 @@ theorem sChainWalk_succ (P : PublicParameter) (leaf : LeafIndex)
 
 theorem sChainWalk_shift (P : PublicParameter) (leaf : LeafIndex)
     (i : ChainIndex) :
-    ∀ (n start : Nat) (v : Sphincs.Digest) (hs : start < chainLength - 1),
+    ∀ (n start : Nat) (v : HashSig.Digest) (hs : start < chainLength - 1),
       start + n + 1 ≤ chainLength - 1 →
       @chainWalkWithHash Id _ inst P leaf i start (n + 1) v =
         @chainWalkWithHash Id _ inst P leaf i (start + 1) n
           (@tweakableHashWithHash Id _ inst P (.chain leaf i ⟨start, hs⟩)
-              (Sphincs.littleEndianBytes 16 v))
+              (HashSig.littleEndianBytes 16 v))
   | 0, start, v, hs, _ => by
       rw [sChainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
       rfl
@@ -212,11 +213,11 @@ theorem sChainWalk_shift (P : PublicParameter) (leaf : LeafIndex)
 theorem sChainStep_cells (hq : SQ inst) {pp a x : E} {leaf : LeafIndex} {i : ChainIndex} {s :
     ChainStep}
     (ha : cellBytes a = tweakBytes (.chain leaf i s)) :
-    @tweakableHashWithHash Id _ inst (spp pp) (.chain leaf i s) (Sphincs.littleEndianBytes 16
+    @tweakableHashWithHash Id _ inst (spp pp) (.chain leaf i s) (HashSig.littleEndianBytes 16
         (sv x)) =
       sv (hcell [pp, a, x]).1 := by
   apply sHash_cells hq
-  show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ Sphincs.littleEndianBytes 16
+  show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ HashSig.littleEndianBytes 16
       (sv x) = _
   rw [bytesLE_spp, bytesLE_sv, ← ha]
   simp
@@ -255,8 +256,8 @@ theorem sLeafHash_cells (hq : SQ inst) {pp a : E} {leaf : LeafIndex} (tips : Nat
     @leafHashWithHash Id _ inst (spp pp) leaf (fun i => sv (tips i.val)) =
       sv (hcell (pp :: a :: (List.range chainCount).map tips)).1 := by
   apply sHash_cells hq
-  show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++
-    (List.ofFn fun i : ChainIndex => sv (tips i.val)).flatMap (Sphincs.littleEndianBytes 16) = _
+  show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++
+    (List.ofFn fun i : ChainIndex => sv (tips i.val)).flatMap (HashSig.littleEndianBytes 16) = _
   rw [bytesLE_spp, ← ha, show (List.ofFn fun i : ChainIndex => sv (tips i.val)) =
       ((List.range chainCount).map tips).map sv
     from (ofFn_val_eq chainCount (fun i => sv (tips i))).trans (List.map_map.symm)]
@@ -278,21 +279,21 @@ theorem sTreeFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {leaf : LeafInde
       rw [sTreeFold_cells hq hA sibs m (by omega) x]
       split
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv (sibs m)) ++
-          Sphincs.littleEndianBytes 16 (sv _)) = _
+          HashSig.littleEndianBytes 16 (sv _)) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA m (by omega)]
         simp_all
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv _) ++
-          Sphincs.littleEndianBytes 16 (sv (sibs m))) = _
+          HashSig.littleEndianBytes 16 (sv (sibs m))) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA m (by omega)]
         simp_all
 
 /-- The counter's four bytes are a cell's first four, for a cell below `2^32`. -/
 theorem bytesLE_counter {x : E} (h : cellNat x < 2 ^ 32) :
-    Sphincs.littleEndianBytes 4 (BitVec.ofNat (8 * 4) (cellNat x)) = (cellBytes x).take 4 := by
+    HashSig.littleEndianBytes 4 (BitVec.ofNat (8 * 4) (cellNat x)) = (cellBytes x).take 4 := by
   rw [sphincs_bytesLE_eq, cellBytes_eq_leBytes, show (16 : Nat) = 4 + 12 from rfl, ← leBytes_append,
     BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega), List.take_left' (by simp)]
 
@@ -301,14 +302,14 @@ the counter's four bytes, the first `292` bytes of the cells. -/
 theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : LeafIndex} {K : ForestKey} {ctr : EncodingCounter} (T : Nat → E)
     (hK : ∀ c : ForestCoordinate, K c = (sv (T (2 * c.val)), sv (T (2 * c.val + 1))))
     (hE : cellBytes aE = tweakBytes (.encoding leaf))
-    (hc : Sphincs.littleEndianBytes 4 ctr = (cellBytes x).take 4) :
+    (hc : HashSig.littleEndianBytes 4 ctr = (cellBytes x).take 4) :
     @encodeWithHash Id _ inst (spp pp) leaf K ctr =
       TargetSum.decodeDigest
         (sv (digestHalves (keccak256 ((cellsBytes
           (pp :: aE :: (List.range 16).map T ++ [x])).take 292))).1) := by
   rw [encode_id, sHash_bytes hq]
-  show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (forestKeyPayload K ++
-      Sphincs.littleEndianBytes 4 ctr) = _
+  show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (forestKeyPayload K ++
+      HashSig.littleEndianBytes 4 ctr) = _
   rw [bytesLE_spp, ← hE, hc]
   have hK' : K = fun c => (sv (T (2 * c.val)), sv (T (2 * c.val + 1))) := funext hK
   subst hK'
@@ -331,14 +332,14 @@ theorem sEncode_cells (hq : SQ inst) {pp aE x : E} {leaf : LeafIndex} {K : Fores
 
 /-! ## The target-sum code -/
 
-theorem sDigit_val (d : Sphincs.Digest) (i : ChainIndex) :
-    (TargetSum.digestEncoding d i).val = d.toNat / 4 ^ i.val % 4 := by
+theorem sDigit_val (d : HashSig.Digest) (i : ChainIndex) :
+    (HashSig.digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
   show (BitVec.extractLsb' (2 * i.val) 2 d).toNat = _
   rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, pow_mul]
   norm_num
 
 theorem sDigit_ofNat (N : Nat) (i : ChainIndex) :
-    (TargetSum.digestEncoding (BitVec.ofNat 128 N) i).val = N % 2 ^ 128 / 4 ^ i.val % 4 := by
+    (HashSig.digestDigits (BitVec.ofNat 128 N) i).val = N % 2 ^ 128 / 4 ^ i.val % 4 := by
   have := sDigit_val (BitVec.ofNat 128 N) i
   simpa [digestBits] using this
 
@@ -354,8 +355,8 @@ theorem sDecode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
     omega
   rw [show sv (lit (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) =
       BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j) from cellVal_lit _]
-  have henc : TargetSum.digestEncoding
-      (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) =
+  have henc : (HashSig.digestDigits
+      (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) : Encoding) =
         fun i => ⟨dig i.val, hd _⟩ := by
     funext i
     apply Fin.ext
@@ -363,14 +364,15 @@ theorem sDecode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
     exact base4_digit hd _ _ i.isLt
   have hv : TargetSum.Valid (fun i : ChainIndex => (⟨dig i.val, hd _⟩ : WinternitzDigit)) := by
     rw [TargetSum.Valid, TargetSum.sum, ← hs, ← Fin.sum_univ_eq_sum_range]
-  simp only [TargetSum.decodeDigest, henc, hv, ↓reduceIte]
+  simp only [TargetSum.decodeDigest, henc]
+  split_ifs <;> rfl
 
 /-- **`decodeDigest`**: a digest decodes exactly when its 64 digits sum to `123`, to its digits. -/
-theorem sDecode_iff {d : Sphincs.Digest} {enc : Encoding} :
+theorem sDecode_iff {d : HashSig.Digest} {enc : Encoding} :
     TargetSum.decodeDigest d = some enc ↔
       ∑ i ∈ Finset.range chainCount, d.toNat / 4 ^ i % 4 = targetSum ∧
         ∀ i : ChainIndex, (enc i).val = d.toNat / 4 ^ i.val % 4 := by
-  have hsum : TargetSum.Valid (TargetSum.digestEncoding d) ↔
+  have hsum : TargetSum.Valid (HashSig.digestDigits d) ↔
       ∑ i ∈ Finset.range chainCount, d.toNat / 4 ^ i % 4 = targetSum := by
     rw [TargetSum.Valid, TargetSum.sum, ← Fin.sum_univ_eq_sum_range]
     exact Eq.congr_left (Finset.sum_congr rfl fun i _ => sDigit_val d i)
@@ -401,14 +403,14 @@ theorem truncateMessageDigest_keccakBits (I : List UInt8) :
 /-- **The message digest over cells**: the two cells of the hash of `P | A | m | ρ`. -/
 theorem sMessageDigest_cells (hq : SQ inst) {pp a m0 m1 rho : E}
     {m : Message} (ha : cellBytes a = tweakBytes .message)
-    (hm : Sphincs.littleEndianBytes 32 m = cellBytes m0 ++ cellBytes m1) :
+    (hm : HashSig.littleEndianBytes 32 m = cellBytes m0 ++ cellBytes m1) :
     @messageDigestWithHash Id _ inst (spp pp) m (sv rho) =
       BitVec.ofNat messageDigestBits (cellNat (hcell [pp, a, m0, m1, rho]).1 +
         2 ^ 128 * cellNat (hcell [pp, a, m0, m1, rho]).2) := by
   have hI : tweakableHashInput (spp pp) .message (messageDigestPayload m (sv rho)) =
       [pp, a, m0, m1, rho].flatMap cellBytes := by
-    show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++
-      (Sphincs.littleEndianBytes 32 m ++ Sphincs.littleEndianBytes 16 (sv rho)) = _
+    show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++
+      (HashSig.littleEndianBytes 32 m ++ HashSig.littleEndianBytes 16 (sv rho)) = _
     rw [bytesLE_spp, bytesLE_sv, ← ha, hm]
     simp
   rw [messageDigestWithHash.eq_def]
@@ -519,7 +521,7 @@ theorem sForestWalk_cells (hq : SQ inst) {pp ka : E} {index : LeafIndex} {c : Fo
       simp only [bind]
       rw [sForestWalk_cells hq hadr start x n (by omega), dite_of (by omega)]
       apply sHash_cells hq
-      show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ Sphincs.littleEndianBytes 16
+      show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ HashSig.littleEndianBytes 16
           (sv _) = _
       rw [bytesLE_spp, bytesLE_sv, ← hadr ⟨start + n, by omega⟩]
       simp
@@ -551,8 +553,8 @@ theorem sChildRecover_cells (hq : SQ inst) {pp ka aL : E} {index : LeafIndex} {c
   rw [childRecoverWithHash.eq_def]
   simp only [bind, sSequenceFin_id]
   apply sHash_cells hq
-  show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (List.ofFn _).flatMap
-      (Sphincs.littleEndianBytes 16) = _
+  show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (List.ofFn _).flatMap
+      (HashSig.littleEndianBytes 16) = _
   rw [bytesLE_spp, ← hL]
   simp only [sForestRecoverChain_cells hq (hadr _)]
   have e : (fun i : ForestChainIndex => sv (fChain pp ka i.val (4 - (word i).val) (vals i.val) (word i).val)) =
@@ -583,15 +585,15 @@ theorem sSubFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : LeafInde
       rw [sSubFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
       split
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv (sibs m)) ++
-          Sphincs.littleEndianBytes 16 (sv _)) = _
+          HashSig.littleEndianBytes 16 (sv _)) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA ⟨m, by omega⟩ _ rfl]
         simp_all
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv _) ++
-          Sphincs.littleEndianBytes 16 (sv (sibs m))) = _
+          HashSig.littleEndianBytes 16 (sv (sibs m))) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA ⟨m, by omega⟩ _ rfl]
         simp_all
 
@@ -612,26 +614,26 @@ theorem sTopFold_cells (hq : SQ inst) {pp : E} {A : Nat → E} {index : LeafInde
       rw [sTopFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
       split
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv (sibs m)) ++
-          Sphincs.littleEndianBytes 16 (sv _)) = _
+          HashSig.littleEndianBytes 16 (sv _)) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA ⟨m, by omega⟩ _ rfl]
         simp_all
       · apply sHash_cells hq
-        show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (Sphincs.littleEndianBytes 16
+        show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ (HashSig.littleEndianBytes 16
             (sv _) ++
-          Sphincs.littleEndianBytes 16 (sv (sibs m))) = _
+          HashSig.littleEndianBytes 16 (sv (sibs m))) = _
         rw [bytesLE_spp, bytesLE_sv, bytesLE_sv, ← hA ⟨m, by omega⟩ _ rfl]
         simp_all
 
 /-- **A super-child over cells**: the hash of the four level-2 nodes. -/
 theorem sSuperHash_cells (hq : SQ inst) {pp aS t00 t01 t10 t11 : E} {index : LeafIndex} {c : ForestCoordinate}
-    {s : SuperChildIndex} {tops : SubtreeIndex → Sphincs.Digest × Sphincs.Digest}
+    {s : SuperChildIndex} {tops : SubtreeIndex → HashSig.Digest × HashSig.Digest}
     (h0 : tops 0 = (sv t00, sv t01)) (h1 : tops 1 = (sv t10, sv t11))
     (hS : cellBytes aS = tweakBytes (.superChild index c s)) :
     @superHashWithHash Id _ inst (spp pp) index c s tops = sv (hcell [pp, aS, t00, t01, t10, t11]).1 := by
   apply sHash_cells hq
-  show Sphincs.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ superChildPayload _ = _
+  show HashSig.littleEndianBytes 16 (spp pp) ++ tweakBytes _ ++ superChildPayload _ = _
   rw [bytesLE_spp, ← hS]
   simp [superChildPayload, nodePayload, bytesLE_sv, h0, h1]
 

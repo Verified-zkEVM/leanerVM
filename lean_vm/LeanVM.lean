@@ -31,7 +31,7 @@ and decoder programs (`LeanVM.Cost.compiledKnowledgeExtractor`,
 `LeanVM.Cost.compiledGuestWitnessDecoder`).
 
 **The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
-program too (`GuestKnowledgeSoundness`, `Statement/Theorems.lean`):
+program too (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`):
 `LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
@@ -70,15 +70,13 @@ random-permutation model where an adversary is involved, except the memory-decod
   with `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
   MemoryAggregateSound guestProgram decode transcriptExtractor`): the leanISA guest program, its
   witness named by the decoder of memories `LeanVM.Guest.End.decode`
-  (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledgeSoundness guestProgram D` of
-  `Statement/Theorems.lean` follows
+  (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledgeSoundness D` of
+  `Statement/LeanVmGuest.lean` follows
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
 * `LeanVM.Guest.Completeness.guest_complete_on_honest_children : GuestCompleteOnHonestChildren`
-  (`Statement/LeanVmGuestCompleteness.lean`; `guest_complete_recursion : GuestCompleteRecursion`
-  and `guest_complete_leaf : GuestCompleteLeaf`, `Statement/Corollaries.lean`, are its first two
-  families): the guest program's completeness on the covered nodes whose children carry honest
+  (`Statement/LeanVmGuestCompleteness.lean`): the guest program's completeness on the covered nodes whose children carry honest
   proofs, from `LeanVM.Guest.Budget.guest_complete_covered` (children the guest accepts,
   `AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`), `guest_child_complete` (an honest proof
   is such a child) and `LeanVM.Guest.Child.freshClaim_unique`;
@@ -110,9 +108,6 @@ example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
 example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
     LeanVM.transcriptExtractor :=
   LeanVM.Guest.End.aggregate_sound_outer
-example : LeanVM.Guest.Completeness.GuestCompleteRecursion :=
-  LeanVM.Guest.Completeness.guest_complete_recursion
-example : LeanVM.Guest.Completeness.GuestCompleteLeaf := LeanVM.Guest.Completeness.guest_complete_leaf
 example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
   LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
@@ -229,14 +224,6 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guest_complete_numeric
 
-/-- info: 'LeanVM.Guest.Completeness.guest_complete_recursion' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Completeness.guest_complete_recursion
-
-/-- info: 'LeanVM.Guest.Completeness.guest_complete_leaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Completeness.guest_complete_leaf
-
 /-- info: 'LeanVM.Guest.Completeness.guest_complete_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Completeness.guest_complete_on_honest_children
@@ -337,8 +324,7 @@ open OracleComp in
 `leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
 whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
 digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
-collision), the completeness on recursion nodes and leaves from `guestCompleteOnHonestChildren` (the
-first two families of `CoveredNode`). -/
+collision). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram)) :
@@ -354,19 +340,9 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rintro ⟨t, hx, hv⟩
     obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.1 (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
-  guestCompleteRecursion := by
-    intro s w hrel hlim hok hx hs hd hdecl hcov hkids
-    refine h.guestCompleteOnHonestChildren s w hrel hlim ?_ hok
-    simp only [LeanVM.Guest.Completeness.CoveredNode]
-    exact Or.inl ⟨by omega, by simp [hd], hcov⟩
-  guestCompleteLeaf := by
-    intro s w hrel hlim hch hd hraw hdecl hcov
-    refine h.guestCompleteOnHonestChildren s w hrel hlim ?_ (by simp [hch])
-    simp only [LeanVM.Guest.Completeness.CoveredNode]
-    exact Or.inr (Or.inl ⟨by simp [hch], by simp [hd], hcov⟩)
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

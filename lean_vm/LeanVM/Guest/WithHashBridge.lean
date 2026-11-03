@@ -25,9 +25,8 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
   challenge, the openings' climb (`runBatching_deployed`, …);
 * LeanDA's commitment and vector digest (`commitCodewords_keccakF1600`, `vectorDigest_keccakF1600`);
 * the signature schemes' verification (`xmssVerify_eq_withHash`, `sphincsVerify_eq_withHash`): the
-  schemes read a digest as a 256-bit number through its 32 bytes
-  (`Common.SufCma.digestBytesEquivBitVec`),
-  which is the guest's little-endian reading (`digestBitVec_toBytes`).
+  schemes read a digest as the little-endian number of its 32 bytes, the guest's reading
+  (`keccakHash_keccakF1600`).
 -/
 
 @[expose] public section
@@ -37,20 +36,12 @@ namespace LeanVM
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-/-- **A digest's bytes read as a number, through `digestBytesEquivBitVec`, are its little-endian
-reading.** -/
-theorem digestBitVec_toBytes (d : Digest) :
-    Common.SufCma.digestBytesEquivBitVec d.toBytes = Node.digestBits d :=
-  Fast.SufCma.digestBitVec_eq_digestBitVecFold d.toBytes
-
 /-- Keccak-256 over Keccak-f[1600], read as the schemes' hash output, is `keccakBits`. -/
 theorem keccakHash_keccakF1600 :
     HashSig.OverPermutation.keccakHash (m := Id) keccakF1600 = Node.keccakBits := by
   funext input
   rw [HashSig.OverPermutation.keccakHash, keccak256With_keccakF1600]
-  change Common.SufCma.digestBytesEquivBitVec (keccak256 input).toBytes = Node.digestBits
-      (keccak256 input)
-  exact digestBitVec_toBytes _
+  rfl
 
 /-- The statement's leanXMSS verification over `π` is the hash-query one with the hash Keccak-256
 over `π`. -/
@@ -64,7 +55,7 @@ theorem xmss_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
 /-- The statement's leanSPHINCS verification over `π` is the hash-query one with the hash
 Keccak-256 over `π`. -/
 theorem sphincs_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
-    (π : KeccakState → m KeccakState) (pk : Sphincs.PublicKey) (message : Sphincs.Message)
+    (π : KeccakState → m KeccakState) (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : Sphincs.Signature) :
     Sphincs.Verification.verify π pk message σ =
       @Sphincs.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
@@ -81,7 +72,7 @@ theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Messa
 
 /-- leanSPHINCS verification over Keccak-f[1600] is the hash-query verification with
 `keccakBits`. -/
-theorem sphincsVerify_eq_withHash (pk : Sphincs.PublicKey) (message : Sphincs.Message)
+theorem sphincsVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : Sphincs.Signature) :
     Sphincs.verifyWithKeccak pk message σ =
       Id.run (@Sphincs.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by

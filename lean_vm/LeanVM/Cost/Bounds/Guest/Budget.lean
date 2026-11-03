@@ -17,7 +17,7 @@ public import LeanVM.Cost.Prices
 
 **`decoderPriceWithinBudget : DecoderPriceWithinBudget`**: on every valid execution of the guest,
 the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
-`decoderPrice_le_exact`), within the statement's `guestWitnessDecoderBudget` (`Statement/Theorems.lean`;
+`decoderPrice_le_exact`), within the statement's `guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`;
 `guestDecoderPrice_le_budget`). The composition (`decTop_cost`, `Bounds/Guest/DecTop.lean`) at:
 
 * the reader at `1271` (`readerClosure_cost`), the replay of at most `steps + 1` states

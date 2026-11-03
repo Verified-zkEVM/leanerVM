@@ -155,7 +155,7 @@ def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
   let siblings := (List.finRange LeanXmss.layerHeight).map fun l ↦
     ("siblings", ordered (key.val.testBit l.val) (fold l.val) (part.authenticationPath l))
   let digits := (List.finRange LeanXmss.chainCount).map fun i ↦
-    (LeanXmss.Codeword.encoding digest i).val
+    (HashSig.digestDigits digest i).val
   let starts := (List.finRange LeanXmss.chainCount).map fun i ↦
     ("chain_starts", [cell128 (part.chainValues i)])
   (siblings ++ [("randomizer", [cell128 part.randomizer])] ++ digitGroups digits ++ starts,
@@ -187,13 +187,13 @@ def sphincsUsedBits : ℕ :=
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
 (`mark`, `aggregation.rs:1576-1579`). -/
 def markEntry (index field : ℕ) : Entry :=
-  [count index, cellOfBytes (Sphincs.addressBytes (Sphincs.tweakFields 0 0 field 0))]
+  [count index, cellOfBytes (HashSig.addressBytes (HashSig.tweakFields 0 0 field 0))]
 
 /-- A leanSPHINCS signature's hints: the randomizer, the forest's chain values, the digest's
 unused bits, its codeword indices, each tree's leaf, each subtree's key and the forest's path
 nodes in signature order, the counter, the codeword's digits, the chain values, and the ordered
 children of every node on the tree's path. -/
-def sphincsHints (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphincs.Signature) :
+def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
   let parameter := pk.parameter
   let call := Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600 parameter message

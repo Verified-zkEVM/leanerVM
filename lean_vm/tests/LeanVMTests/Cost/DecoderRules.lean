@@ -6,7 +6,7 @@ import Statement.Theorems
 
 The rules and rewrites the guest decoder's readers need, each on a small function compiled and
 run: `|||` and `Nat.lor` on `ℕ`, `(1 : E)`, bit vectors (encoded as their number, the statement's
-encoding), and the witness types under the statement's encodings (`Statement/Theorems.lean`:
+encoding), and the witness types under the statement's encodings (`Statement/LeanVmGuest.lean`:
 constructors and fields, so that a compiled decoder's output is the statement's `encodeValue` of its
 value), the guest's value names `V` and `Seg`.
 -/

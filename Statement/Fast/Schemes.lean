@@ -134,7 +134,7 @@ end Xmss
 
 namespace Sphincs
 
-open _root_.Sphincs _root_.Sphincs.Verification
+open HashSig HashSig.OverPermutation _root_.Sphincs _root_.Sphincs.Verification
 open LeanVM.Semantics (KeccakState)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)

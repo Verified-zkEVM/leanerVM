@@ -25,6 +25,7 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat gen)
 open Sphincs Sphincs.Verification
+open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -79,8 +80,8 @@ theorem sKey_eq {σ : Val} (hpre : SPre rd σ)
   · rw [digestIndex_ofNat hN17, hidx]
 
 /-- **What verification reads fixes the root.** -/
-theorem SRoot_unique {pp : PublicParameter} {m : Sphincs.Message}
-    {sig sig' : Sphincs.Signature} {r r' : Sphincs.Digest} (h : SRoot pp m sig r) (h' : SRoot pp m sig' r')
+theorem SRoot_unique {pp : PublicParameter} {m : HashSig.Message}
+    {sig sig' : Sphincs.Signature} {r r' : HashSig.Digest} (h : SRoot pp m sig r) (h' : SRoot pp m sig' r')
     (hr : sig'.randomizer = sig.randomizer) (hf : sig'.forestOpening = sig.forestOpening)
     (hc : sig'.counter = sig.counter) (hv : sig'.chainValues = sig.chainValues)
     (hl : sig'.authenticationPath = sig.authenticationPath) : r' = r := by

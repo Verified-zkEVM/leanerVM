@@ -299,7 +299,7 @@ theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytec
       have e2 : MainIn.ownDa ((hData seed s w).toIn fs fp) =
           B1.Digest.digestCells (keccak256 (cellsBytes (daCells p.1))) := by
         simp [MainIn.ownDa, hData, MainData.toIn, hw]
-      rw [e1, daClaimDigest, daClaimPreimage, ← daCells_bytes] at this
+      rw [e1, daClaimDigest, ← daCells_bytes] at this
       rw [e2]; exact this
     | none =>
       have e1 : hOwnDa w = zeroDigest := by simp [hOwnDa, hw]

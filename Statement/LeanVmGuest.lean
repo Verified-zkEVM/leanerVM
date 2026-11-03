@@ -6,12 +6,13 @@ public import Statement.LeanSphincs
 public import Statement.LeanDa
 public import Statement.Data.Bytecode
 public import Statement.Fast.Schemes
+public import Statement.CostMachine
 
 /-!
 # The leanISA guest program: what a node proves
 
 A node of the aggregation has claims (`NodeStatement`: leanXMSS and leanSPHINCS claims, a DA
-digest, and a claim on the guest program's bytecode it defers) and witnesses (`NodeWitness`: raw
+digest, and a claim it defers on the guest program's bytecode) and witnesses (`NodeWitness`: raw
 signatures, a blob matrix, children carrying proofs, the batching's hints). What a valid execution
 of the guest program establishes is that the witnesses hold the claims, `NodeRelation`:
 
@@ -20,13 +21,13 @@ of the guest program establishes is that the witnesses hold the claims, `NodeRel
 * `DaDigestHeld`: the DA digest is that of the blob matrix the node checks, zeros, or a child's;
 * `ChildrenProven`: every child's proof is accepted, for the child's statement, by the deferring
   verifier, which takes the bytecode's value at the child's point from the witness;
-* `DeferredClaimBatched`: the node's claim on the bytecode batches its children's (that value is
-  checked only at the root, in the batched claim), and so has the bytecode's shape.
+* `DeferredClaimBatched`: the node's claim on the bytecode batches its children's, and so has the
+  bytecode's shape.
 
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
-relation: what a decoding of an execution explains (`ExplainsPublicInput`, of which
-`GuestKnowledgeSoundness`, `Theorems.lean`, is the end statement) and the binding of the statement's
-digest (`StatementDigestBinds`). The batching program (`Batch.nodeBatchingProgram`), reference
+relation: what a decoding of an execution explains (`ExplainsPublicInput`), the binding of the
+statement's digest (`StatementDigestBinds`), and the guest decoder a program computes, with
+**`GuestKnowledgeSoundness`**. The batching program (`Batch.nodeBatchingProgram`), reference
 material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM at the pin (`../leanvm-rev`): `crates/rec_aggregation/src/aggregation.rs`
@@ -35,13 +36,20 @@ Transcribed from leanVM at the pin (`../leanvm-rev`): `crates/rec_aggregation/sr
 pin. The signature schemes are `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their
 hash; LeanDA is `LeanDa.lean`'s.
 
-The witness is the knowledge content: "some signature verifies" says little (some signature
-verifies for almost every key and message). The soundness statement takes the decoder that names
-the witness as a parameter, a program of the cost machine run within a budget
-(`GuestKnowledgeSoundness`). A program that output another statement of the same digest would
-exhibit a Keccak-256 collision; what excludes it is that none is known. That the root's statement
-makes every claim held at the leaves is not proved: it would need the Keccak computed inside the
-guest program to behave as the random permutation of `LeanVM.KnowledgeSoundness`.
+**What the witness gives.** The witness is the knowledge content: "some signature verifies" says
+little (some signature verifies for almost every key and message), so the soundness statement takes
+the decoder that names the witness as a parameter, a program of the cost machine run within a
+budget (`GuestKnowledgeSoundness`). A decoder that output another statement of the same digest
+would exhibit a Keccak-256 collision; what excludes it is that none is known. A claim held through
+a child carries no knowledge by itself: the deferring verifier reads the bytecode only through its
+length and takes the bytecode's value at the child's point from the witness (`Child.freshClaim`),
+which nothing here requires true, so a proof of any program of the guest program's length, under
+the node's seed, is a child of any statement. A child's claims mean something only once its fresh
+claim is true, which needs both the root's deferred claim recomputed, as the deployed outer
+verifier does (`AggregateSound`, `Corollaries.lean`, assumes it), and the batching sound inside the
+circuit at every level, its Keccak behaving as the random permutation of `LeanVM.KnowledgeSoundness`
+(`BatchingSound` is the batching outside the circuit). No end statement gives the latter: that the
+root's statement makes every claim held at the leaves is not proved.
 -/
 
 @[expose] public section
@@ -58,7 +66,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
-abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
+abbrev LeanSphincsClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`,
 `aggregation.rs:392-394`) and the digest of the vector its rows are orthogonal to. A statement
@@ -99,23 +107,21 @@ def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8
   HashSig.littleEndianBytes 16 root ++ HashSig.littleEndianBytes 16 parameter ++
     HashSig.littleEndianBytes 32 message
 
-/-- The bytes `claimListDigest claims` hashes. Both schemes' keys are a root and a parameter
-(`LeanXmssClaim` and `LeanSphincsClaim` are one type). -/
-def claimListPreimage (claims : List LeanXmssClaim) : List UInt8 :=
+/-- The bytes `claimListDigest claims` hashes, for leanXMSS and leanSPHINCS claims alike: both
+schemes' keys are a root and a parameter. -/
+def claimListPreimage (claims : List (HashSig.PublicKey × HashSig.Message)) : List UInt8 :=
   claims.flatMap fun claim ↦ claimBytes claim.1.root claim.1.parameter claim.2
 
 /-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
 `aggregation.rs:211-213`, `lean_ethereum.py:3822-3844`). -/
-def claimListDigest (claims : List LeanXmssClaim) : Digest := keccak256 (claimListPreimage claims)
+def claimListDigest (claims : List (HashSig.PublicKey × HashSig.Message)) : Digest :=
+  keccak256 (claimListPreimage claims)
 
-/-- The bytes `daClaimDigest claim` hashes: the root, then the vector digest. -/
-def daClaimPreimage (claim : DaClaim) : List UInt8 :=
-  digestBytes claim.daRoot ++ digestBytes claim.membershipVectorDigest
-
-/-- A DA claim's digest, which a statement carries (`root_vector_digest`,
-`aggregation.rs:559-562`; the guest program's `keccak([root_0, root_1], [vector_0, vector_1])`,
-`lean_ethereum.py:4164`). -/
-def daClaimDigest (claim : DaClaim) : Digest := keccak256 (daClaimPreimage claim)
+/-- A DA claim's digest, which a statement carries: Keccak-256 of the root, then the vector digest
+(`root_vector_digest`, `aggregation.rs:559-562`; the guest program's
+`keccak([root_0, root_1], [vector_0, vector_1])`, `lean_ethereum.py:4164`). -/
+def daClaimDigest (claim : DaClaim) : Digest :=
+  keccak256 (digestBytes claim.daRoot ++ digestBytes claim.membershipVectorDigest)
 
 /-- The DA digest of a statement without a DA claim: zeros (`da_digest(None)`,
 `aggregation.rs:553-557`; `own_da`'s zero cells, `lean_ethereum.py:4166-4167`). -/
@@ -197,6 +203,16 @@ outer verifier's to check. -/
 def DeferredClaim.HasZeroPoint (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
+/-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
+the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
+`aggregation.rs:263-295`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
+`Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
+`2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
+checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation.rs:673-683`). -/
+def DeferredClaim.HoldsWithShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
+  claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
+    multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
+
 /-! ## What the guest program proves
 
 `NodeRelation` first, then each of its conditions with what it reads. (A `mutual` block only so
@@ -259,8 +275,8 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root vectorDigest : Digest)
 /-- **Every child is proven**: its deferred claim has the bytecode's shape, and the deferring
 verifier (`verifyDeferred`, the guest program's `verify_sub`) accepts its proof for its statement's
 digest under the same seed. The deferring verifier reads only the bytecode's length: it takes the
-bytecode's value at the child's point from the witness (`freshClaim`), which the batching carries
-to the root. -/
+bytecode's value at the child's point from the witness (`freshClaim`), which the batching folds into
+the node's deferred claim and nothing here checks. -/
 def ChildrenProven (bytecode : List K) (seed : Digest) (witness : NodeWitness) : Prop :=
   ∀ child ∈ witness.children, child.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
@@ -274,12 +290,12 @@ claim has the bytecode's shape: the zero point's, or the sumcheck's `log₂ |byt
 def DeferredClaimBatched (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
   if witness.children = [] then statement.deferredClaim.HasZeroPoint bytecode
-  else Guest.Batch.runBatching (m := Id) keccakF1600
-    (Guest.Batch.nodeBatchingProgram (· = statement.deferredClaim) bytecode
-      witness.children.length)
-    ⟨Guest.Batch.batchingStream (witness.children.map fun child ↦
-      ⟨statementDigest seed child.statement, child.freshClaim, child.statement.deferredClaim⟩)
-      witness.batchingHints, []⟩ = true
+  else
+    let children : List ChildClaims := witness.children.map fun child ↦
+      ⟨statementDigest seed child.statement, child.freshClaim, child.statement.deferredClaim⟩
+    Guest.Batch.runBatching (m := Id) keccakF1600
+      (Guest.Batch.nodeBatchingProgram (· = statement.deferredClaim) bytecode children)
+      ⟨Guest.Batch.batchingStream children witness.batchingHints, []⟩ = true
 
 end
 
@@ -296,7 +312,7 @@ structure SeedStatementAndWitness where
 
 /-- **The decoding explains the public input `input`**: its seed and statement have the input's
 digest (the statement is the one the input commits to), and its witness holds that statement's
-claims (`NodeRelation`). `GuestKnowledgeSoundness` (`Theorems.lean`) says this of what the decoder
+claims (`NodeRelation`). `GuestKnowledgeSoundness` (below) says this of what the decoder
 program outputs on every valid execution. -/
 def ExplainsPublicInput (guest : LeanIsaProgram) (input : PublicInput)
     (decoding : SeedStatementAndWitness) : Prop :=
@@ -342,5 +358,134 @@ namespace LeanVM.Guest
 def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions 19 (by decide)
 
 end LeanVM.Guest
+
+/-! ## The guest decoder a program computes
+
+`GuestKnowledgeSoundness` takes the decoder that names the witness as a program `D` of the cost
+machine (`CostMachine.lean`), as `KnowledgeSoundness` takes the extractor: `D`, of size at most
+`guestWitnessDecoderSizeBound`, is run on the encoded program and execution
+(`encodeGuestWitnessDecoderInput`) within `guestWitnessDecoderBudget`, and its output is the
+encoding (`encodeValue`) of a decoding that explains the public input. There is no parse: the
+statement names the decoding, and the encoding is injective (`lean_vm`'s
+`LeanVM.Cost.encodeValue_decoded_injective`). `D` may compute the witness by any algorithm; what
+excludes one that chooses is that it is a program (no classical choice) whose only runtime data is
+its input, of bounded size, run within a proved upper bound on the compiled decoder's price. -/
+
+namespace LeanVM.Cost
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Node
+
+/-! ### The encodings of a decoding: a constructor of tag `0` for each structure, its fields in
+order -/
+
+instance : MachineEncoding HashSig.PublicKey :=
+  ⟨fun k ↦ .constructor 0 [encodeValue k.root, encodeValue k.parameter]⟩
+
+instance : MachineEncoding LeanXmss.LayerSignature :=
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.chainValues,
+    encodeValue σ.authenticationPath]⟩
+
+instance : MachineEncoding LeanXmss.Signature :=
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
+
+instance : MachineEncoding Sphincs.SubtreeOpening :=
+  ⟨fun o ↦ .constructor 0 [encodeValue o.values, encodeValue o.path]⟩
+
+instance : MachineEncoding Sphincs.CoordinateOpening :=
+  ⟨fun o ↦ .constructor 0 [encodeValue o.subtreeOpenings, encodeValue o.topTreePath]⟩
+
+instance : MachineEncoding Sphincs.Signature :=
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.forestOpening,
+    encodeValue σ.counter, encodeValue σ.chainValues, encodeValue σ.authenticationPath]⟩
+
+instance : MachineEncoding BytecodeClaim :=
+  ⟨fun c ↦ .constructor 0 [encodeValue c.bytecodePoint, encodeValue c.bytecodeValue]⟩
+
+instance : MachineEncoding DaClaim :=
+  ⟨fun c ↦ .constructor 0 [encodeValue c.daRoot, encodeValue c.membershipVectorDigest]⟩
+
+instance : MachineEncoding Da.MatrixWitness :=
+  ⟨fun m ↦ .constructor 0 [encodeValue m.rows, encodeValue m.orthogonalVector]⟩
+
+instance : MachineEncoding NodeClaims :=
+  ⟨fun c ↦ .constructor 0 [encodeValue c.xmss, encodeValue c.sphincs, encodeValue c.daDigest]⟩
+
+instance : MachineEncoding NodeStatement :=
+  ⟨fun s ↦ .constructor 0 [encodeValue s.claims, encodeValue s.deferredClaim]⟩
+
+instance : MachineEncoding Child :=
+  ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
+
+instance : MachineEncoding BatchingHints :=
+  ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
+
+instance : MachineEncoding NodeWitness :=
+  ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssSignatures,
+    encodeValue w.sphincsSignatures, encodeValue w.daMatrix, encodeValue w.batchingHints]⟩
+
+instance : MachineEncoding SeedStatementAndWitness :=
+  ⟨fun decoding ↦ .constructor 0 [encodeValue decoding.seed, encodeValue decoding.statement,
+    encodeValue decoding.witness]⟩
+
+/-- **The decoder's input**: the program and its execution (the memory's log-size `κ`, its `2^κ`
+words, the steps). -/
+def encodeGuestWitnessDecoderInput (program : Semantics.LeanIsaProgram)
+    (execution : Execution program) : MachineValue :=
+  .constructor 0 [encodeValue program, encodeValue execution]
+
+end LeanVM.Cost
+
+namespace LeanVM.Node
+
+open LeanVM.Parameters LeanVM.Semantics
+
+/-! ### The guest decoder's size bound and budget
+
+`Statement/README.md` (*The guest decoder's size bound and budget*) has their measurements and
+limits. -/
+
+/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `786000`, the
+compiled decoder's size (`785561`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and
+a slack of `439`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
+of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
+on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
+guest program's per-function tables, literals of the compiled decoder; a program written
+differently could hold more. -/
+def guestWitnessDecoderSizeBound : ℕ := 786000
+
+/-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
+`2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it
+may execute), with `lg = log₂(steps + 1)`,
+`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)`: per step, the step replayed and
+filed in a sorted table of function entries; the sorted table of the memory's addresses; and the
+witness read at the counts and cursors the guest program's asserts bound on every valid execution.
+`lean_vm` proves the compiled decoder's price at most this on every valid execution
+(`Cost/Prices.lean`). The constants are the deployed guest program's, and `program` is only ever
+`LeanVM.Guest.guestProgram`. -/
+def guestWitnessDecoderBudget {program : LeanIsaProgram} (execution : Execution program) : ℕ :=
+  (execution.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (execution.stepCount + 1)) +
+    (70 * execution.logMemorySize + 374) * 2 ^ execution.logMemorySize +
+    2 ^ 37 * (Nat.log2 (execution.stepCount + 1) + 16)
+
+/-- **Knowledge soundness of the leanISA guest program, its witness named**: on every valid
+execution of `LeanVM.Guest.guestProgram` on a public input, the decoder program
+`guestWitnessDecoder`, of size at most `guestWitnessDecoderSizeBound`, run on the encoded program
+and execution within its budget, outputs the encoding of a decoding that explains the input
+(`ExplainsPublicInput`: a seed, the node statement the input commits to under it, and a witness
+holding it). A larger program, or a run that fails or exceeds its budget, outputs nothing, so the
+statement fails at that execution (the completeness statements give the guest program valid
+executions). -/
+def GuestKnowledgeSoundness (guestWitnessDecoder : Cost.MachineProgram) : Prop :=
+  ∀ input (execution : Execution Guest.guestProgram),
+    ValidExecution Guest.guestProgram input execution →
+    ∃ decoding : SeedStatementAndWitness,
+      Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
+          (guestWitnessDecoderBudget execution)
+          (Cost.encodeGuestWitnessDecoderInput Guest.guestProgram execution) =
+        some (Cost.encodeValue decoding) ∧
+      ExplainsPublicInput Guest.guestProgram input decoding
+
+end LeanVM.Node
 
 end

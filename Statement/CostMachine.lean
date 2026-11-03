@@ -38,18 +38,13 @@ each operation is a few instructions of a 64-bit CPU (one, and a comparison for 
 more, a truncated subtraction or a division by `0`), the carry-less product x86-64's PCLMULQDQ or
 ARMv8's PMULL; on more limbs, a constant number per limb or pair of limbs.
 
-**The extractor a program computes** (`LeanVM.extractorComputedBy P`): `P`, if its size is at most
-`leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof
-(`encodeLeanVmKnowledgeExtractorInput`; the transcript without the adversary's coin flips) within
-its budget (`leanVmKnowledgeExtractorBudget`, at the transcript's number of permutation queries: the
-most its run may cost, so also the most steps it may execute), its output parsed as an execution
-(`decodeExecution`, a linear parse: no search, no run). A larger program, or a run that fails or
-exceeds its budget, extracts nothing, which counts as a break. `Statement.Theorems` takes `P` as a
-parameter; `lean_vm` proves it for its knowledge extractor, compiled. What excludes a vacuous
-statement: `P` is a program (no classical choice), its size bound leaves no room for a useful table
-of witnesses beside the compiled extractor, its only runtime data is its input, and its budget is a
-closed formula, polylogarithmic per query. The guest decoder is a program of the same machine, with
-a size bound and a budget of its own (`GuestKnowledgeSoundness`, `Theorems.lean`).
+**The extractor a program computes** (`LeanVM.extractorComputedBy P`, at the end): `P` run on the
+encoded statement, transcript and proof within its size bound and budget, its output parsed as an
+execution (`decodeExecution`, a linear parse). `Statement.Theorems` takes `P` as a parameter. What
+excludes a vacuous statement: `P` is a program (no classical choice), its size bound leaves no room
+for a useful table of witnesses beside the compiled extractor, its only runtime data is its input,
+and its budget is a closed formula, polylogarithmic per query. The guest decoder is a program of the
+same machine (`GuestKnowledgeSoundness`, `LeanVmGuest.lean`).
 -/
 
 namespace LeanVM.Cost
@@ -326,6 +321,8 @@ instance : MachineEncoding UInt64 := ⟨fun x ↦ .nat x.toNat⟩
 instance : MachineEncoding ℕ := ⟨.nat⟩
 instance {n : ℕ} : MachineEncoding (Fin n) := ⟨fun i ↦ .nat i.val⟩
 instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩
+/-- A bit vector: its number. -/
+instance {w : ℕ} : MachineEncoding (BitVec w) := ⟨fun v ↦ .nat v.toNat⟩
 instance : MachineEncoding K := ⟨fun a ↦ .nat a.lane.toNat⟩
 instance : MachineEncoding E :=
   ⟨fun x ↦ .constructor 0 [encodeValue (x.limb 0), encodeValue (x.limb 1), encodeValue (x.limb 2)]⟩
@@ -424,7 +421,9 @@ lane interpolated by an approximant basis) and the runs of the candidate executi
 `2^65.6`); the second term bounds the transcript's index (about `2^14.85` per query and level
 squared, a level's positions growing by a limb per `64` levels) and the committed leaves (`2^26` at
 most, the `2^30`). So about `2^81` for at most `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for
-`2^80` and `2^157.08` for `2^128`. -/
+`2^80` and `2^157.08` for `2^128`: past `2^128` from about `2^100` queries, where the soundness
+bound is still `2^-28` (`Statement/README.md`, *What is trusted*, says what the regime leaves
+out). -/
 def leanVmKnowledgeExtractorBudget (permutationQueryCount : ℕ) : ℕ :=
   2 ^ 81 + (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
     (2 ^ 15 + 2 * (Nat.log2 (permutationQueryCount + 2) + 1))
