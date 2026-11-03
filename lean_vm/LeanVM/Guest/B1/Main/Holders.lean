@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.B1.Main.Holders
 
-  The holders of `main`'s declared claims, by the marks in their slots: a raw signature's check or
-  the child whose segment holds the mark; and the DA digest at the slot `da_pick`.
+  The raw signatures, by their marks, and the holders of `main`'s declared claims, by the marks in
+  their slots: a raw signature's or the child's whose segment holds the mark; and the DA digest at
+  the slot `da_pick`.
 -/
 
 module
@@ -10,13 +11,16 @@ module
 public import LeanVM.Guest.B1.Main.Sound
 
 /-!
-# The holders of the declared claims
+# The raw signatures and the declared claims' holders
 
-`xmss_held`, `sphincs_held`: the decoded holders (`decWit`) hold the decoded claims (`decStmt`),
-`List.Forall₂` as `NodeRelation` asks. The mark `m` in a declared claim's slot has its writer there
-(`Cover`); in the leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, its check at
-the slot: `CalleesW.xmss`) or a child's claim (the child `kidOf m`, whose rebuilt list holds the
-slot's claim, `kidStmt_eq`); likewise for leanSPHINCS.
+`signatures_held`: the decoded witness (`decWit`) holds the decoded claims (`decStmt`), as
+`SignatureClaimsHeld` asks. The `j`-th raw leanXMSS signature is read at the slot holding the mark
+`j` (`slotOf`, the writer's slot `sl j`, `slotOf_lx`): its writer's check is at that slot
+(`CalleesW.xmss`), so it verifies its slot's claim (`xmss_raw_verify`); likewise for leanSPHINCS
+at the mark `n_raw_x + j` (`sphincs_raw_verify`). The mark `m` in a declared claim's slot has its
+writer there (`Cover`); in the leanXMSS region the writer is a raw leanXMSS signature (`m < RX`,
+the `m`-th raw signature, at that slot) or a child's claim (the child `kid m`, whose rebuilt list
+holds the slot's claim, `kidStmt_eq`): `xmss_covered`; likewise for leanSPHINCS.
 
 `da_rel`: the DA digest at the slot `da_pick` (G:4203-4206) is, with the direct DA check, the
 node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
@@ -33,23 +37,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 variable {C : CallRel}
 
-theorem forall₂_map_range {α β : Type} {R : α → β → Prop} :
-    ∀ (n : ℕ) {f : ℕ → α} {g : ℕ → β}, (∀ k < n, R (f k) (g k)) →
-      List.Forall₂ R ((List.range n).map f) ((List.range n).map g)
-  | 0, _, _, _ => by simp
-  | n + 1, f, g, h => by
-    rw [List.range_succ_eq_map, List.map_cons, List.map_cons, List.map_map, List.map_map]
-    exact .cons (h 0 (by omega)) (forall₂_map_range n fun k hk => h (k + 1) (by omega))
-
 variable {rd : Reader} {σ : Val} {Kr : ℕ → KidRec} {sl : ℕ → ℕ}
-
-/-- The children of the decoded witness. -/
-noncomputable abbrev kidsOf (rd : Reader) (σ : Val) (wV : List E → Proof) : List Child :=
-  (List.range (nKids σ)).map (decKid rd σ wV)
-
-theorem kidsOf_get {wV : List E → Proof} {c : ℕ} (hc : c < lg σ 6) :
-    (kidsOf rd σ wV)[c]? = some (decKid rd σ wV c) := by
-  rw [List.getElem?_map, List.getElem?_range (by rw [nKids_eq]; exact hc)]; rfl
 
 /-- Claims at slots: `slotCells` of four loads. -/
 theorem slot_claimAt {p : E} {k : ℕ} {a b c d : E} (h : Sig.ClaimAt rd (p * gen ^ (4 * k)) a b c d) :
@@ -76,9 +64,35 @@ section Held
 variable (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
   (hW : Writers rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ))
   (hC : Cover rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ) sl)
-include MF hK hW hC
+include MF hW hC
 
-omit MF hK hC in
+omit hW in
+/-- The slot of the leanXMSS region holding a mark written there is its writer's. -/
+theorem slotOf_lx {m : ℕ} (hm : m < LXS σ + LSS σ) (hr : sl m < LXS σ) :
+    slotOf rd σ 0 (lxSlots σ) m = sl m := by
+  have hT := MF.total.2
+  have hs : LXS σ + LSS σ < 2 ^ 34 := by unfold LXS LSS; omega
+  unfold slotOf; simp only [markOf_eq]
+  rw [lxSlots_eq MF, slot_search hC hs hm (by omega) (by omega) (by omega), Nat.sub_zero]
+
+omit hW in
+/-- The slot of the leanSPHINCS region holding a mark written there is its writer's, less the
+leanXMSS region. -/
+theorem slotOf_ls {m : ℕ} (hm : m < LXS σ + LSS σ) (h1 : LXS σ ≤ sl m) (h2 : sl m < LXS σ + LSS σ) :
+    slotOf rd σ (lxSlots σ) (lsSlots σ) m = sl m - LXS σ := by
+  have hT := MF.total.2
+  have hs : LXS σ + LSS σ < 2 ^ 34 := by unfold LXS LSS; omega
+  unfold slotOf; simp only [markOf_eq]
+  rw [lxSlots_eq MF, lsSlots_eq MF, slot_search hC hs hm h1 h2 le_rfl]
+
+omit MF hC in
+/-- The raw signatures' marks lie below the table's size. -/
+theorem raw_le_total : lg σ 2 + lg σ 5 ≤ LXS σ + LSS σ := by
+  have h := (segsOf σ Kr).a_mono (Nat.zero_le (segsOf σ Kr).NC)
+  rw [hW.total, Segs.a.eq_1, segsOf_RX, segsOf_RS] at h
+  exact h
+
+omit MF hC in
 /-- The writer of a mark at or past the raw writers is a child's, in its segment. -/
 theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LSS σ) :
     (segsOf σ Kr).kid m < lg σ 6 ∧ (segsOf σ Kr).a ((segsOf σ Kr).kid m) ≤ m ∧
@@ -86,36 +100,83 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
   have := (segsOf σ Kr).kid_spec h0 (by rw [hW.total]; exact hm)
   rwa [segsOf_NC] at this
 
-theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
-    {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
-    (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
-      (decWit σ rd wX wS wD wV wA).xmssHolders := by
+variable {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+  {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof}
+  {wA : List E → BatchingHints}
+
+/-- **Every raw leanXMSS signature verifies its claim.** -/
+theorem xmss_raw_verify (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
+    ∀ raw ∈ (decWit σ rd wX wS wD wV wA).xmssSignatures,
+      LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true := by
+  have hT := MF.total.2
+  have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
+  have hRT := raw_le_total hW
+  intro raw hraw
+  obtain ⟨j, hj, rfl⟩ :=
+    List.mem_map.mp (show raw ∈ (List.range (nRawX σ)).map (rawXmss rd σ wX) from hraw)
+  rw [List.mem_range, nRawX_eq] at hj
+  obtain ⟨s, hbl, hl, hcall⟩ := MF.rawx j hj
+  have hsLXS := belowLog_lt (by omega) MF.lxs hbl
+  have hsj : s = sl j := hC.uniq s (by omega) j (by omega) hl
+  have hslot : slotOf rd σ 0 (lxSlots σ) j = s := by
+    rw [slotOf_lx MF hC (by omega) (by rw [← hsj]; exact hsLXS), hsj]
+  obtain ⟨a, b, c, d, hat, hv⟩ := cw.xmss _ hcall
+  simp only [rawXmss, hslot]
+  unfold xmssAt
+  rw [slot_claimAt hat]
+  exact hv
+
+/-- **Every raw leanSPHINCS signature verifies its claim.** -/
+theorem sphincs_raw_verify (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
+    ∀ raw ∈ (decWit σ rd wX wS wD wV wA).sphincsSignatures,
+      Sphincs.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  unfold decStmt decWit
-  simp only [gLog_lg]
-  refine forall₂_map_range _ fun k hk => ?_
+  have hRT := raw_le_total hW
+  intro raw hraw
+  obtain ⟨j, hj, rfl⟩ :=
+    List.mem_map.mp (show raw ∈ (List.range (nRawS σ)).map (rawSphincs rd σ wS) from hraw)
+  rw [List.mem_range, nRawS_eq] at hj
+  obtain ⟨s, hbl, hl, hcall⟩ := MF.raws j hj
+  have hsLSS := belowLog_lt (by omega) MF.lss hbl
+  rw [MF.lxs, (MF.counts 2 (by simp)).1, ← pow_add, ← pow_add, loadHolds_mul_gen_pow,
+    Nat.add_zero] at hl
+  have hsj := hC.uniq _ (by omega) _ (by omega) hl
+  have hslot : slotOf rd σ (lxSlots σ) (lsSlots σ) (nRawX σ + j) = s := by
+    rw [nRawX_eq, slotOf_ls MF hC (by omega) (by omega) (by omega)]
+    omega
+  obtain ⟨a, b, c, d, hat, hv⟩ := cw.sphincs _ hcall MF.bytes
+  simp only [rawSphincs, hslot]
+  unfold sphincsAt
+  rw [slot_claimAt hat]
+  exact hv
+
+include hK
+
+/-- **Every declared leanXMSS claim is a raw signature's or in a child's list.** -/
+theorem xmss_covered :
+    ∀ claim ∈ (decStmt σ rd).claims.xmss,
+      claim ∈ (decWit σ rd wX wS wD wV wA).xmssSignatures.map (·.1) ∨
+        ∃ child ∈ (decWit σ rd wX wS wD wV wA).children, claim ∈ child.statement.claims.xmss := by
+  have hT := MF.total.2
+  have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
+  have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
+  intro claim hclaim
+  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
+    (show claim ∈ (List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 53))) from hclaim)
+  rw [List.mem_range, gLog_lg] at hk
   have hkT : k < LXS σ + LSS σ := by omega
   obtain ⟨hmT, hslm⟩ := hC.mark k hkT
   rw [← markOf_eq] at hmT hslm
   set m := markOf rd σ k
   have hreg := (inRegion_iff (hC.reg m hmT) (region_le _ _)).1
   have hr0 : (segsOf σ Kr).region m = 0 := hreg.mp (by rw [hslm]; omega)
-  simp only [nRawX_eq]
   by_cases hraw : m < lg σ 2
-  · rw [ite_pos' hraw]
-    obtain ⟨s, hbl, hl, hcall⟩ := MF.rawx m hraw
-    have hsLXS := belowLog_lt (by omega) MF.lxs hbl
-    have hsk : s = k := by rw [hC.uniq s (by omega) m hmT hl, hslm]
-    subst hsk
-    obtain ⟨a, b, c, d, hat, hv⟩ := cw.xmss _ hcall
-    show LeanXmss.verifyWithKeccak (xmssAt rd (σ (.n 53)) s).1 (xmssAt rd (σ (.n 53)) s).2 _ = true
-    unfold xmssAt
-    rw [slot_claimAt hat]
-    exact hv
-  · rw [ite_neg' hraw]
+  · refine Or.inl (List.mem_map.mpr ⟨rawXmss rd σ wX m,
+      List.mem_map.mpr ⟨m, List.mem_range.mpr (by rw [nRawX_eq]; exact hraw), rfl⟩, ?_⟩)
+    simp only [rawXmss, slotOf_lx MF hC hmT (by rw [hslm]; omega), hslm]
+  · refine Or.inr ?_
     have h0 : (segsOf σ Kr).a 0 ≤ m := by
       obtain ⟨-, rr1⟩ := region_raw (segsOf σ Kr) m
       simp only [segsOf_RX, segsOf_RS] at rr1
@@ -125,9 +186,8 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
       omega
     obtain ⟨hc, h1, h2⟩ := mark_kid hW h0 hmT
     set c := (segsOf σ Kr).kid m
-    have hkid : kidOf rd σ m = c := kidOf_eq MF hK hc h1 h2
-    rw [hkid]
-    refine ⟨decKid rd σ wV c, kidsOf_get hc, ?_⟩
+    refine ⟨decKid rd σ wV c,
+      List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).1.mp hr0
     rw [segsOf_ex] at hj
     show xmssAt rd (σ (.n 53)) k ∈ (kidStmt rd σ c).claims.xmss
@@ -137,17 +197,19 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
     rw [Nat.add_sub_cancel' h1] at hl
     rw [hC.uniq _ (by omega) m hmT hl, hslm]
 
-theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
-    {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
-    (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
-      (decWit σ rd wX wS wD wV wA).sphincsHolders := by
+/-- **Every declared leanSPHINCS claim is a raw signature's or in a child's list.** -/
+theorem sphincs_covered :
+    ∀ claim ∈ (decStmt σ rd).claims.sphincs,
+      claim ∈ (decWit σ rd wX wS wD wV wA).sphincsSignatures.map (·.1) ∨
+        ∃ child ∈ (decWit σ rd wX wS wD wV wA).children,
+          claim ∈ child.statement.claims.sphincs := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  unfold decStmt decWit
-  simp only [gLog_lg, lxSlots_eq MF]
-  refine forall₂_map_range _ fun k hk => ?_
+  intro claim hclaim
+  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
+    (show claim ∈ (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 56))) from hclaim)
+  rw [List.mem_range, gLog_lg] at hk
   have hkT : LXS σ + k < LXS σ + LSS σ := by omega
   obtain ⟨hmT, hslm⟩ := hC.mark (LXS σ + k) hkT
   rw [← markOf_eq] at hmT hslm
@@ -157,28 +219,18 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
   obtain ⟨rr0, rr1⟩ := region_raw (segsOf σ Kr) m
   simp only [segsOf_RX, segsOf_RS] at rr0 rr1
   have hRX : lg σ 2 ≤ m := by by_contra h; rw [rr0 (by omega)] at hr1; omega
-  simp only [nRawX_eq, nRawS_eq]
   by_cases hraw : m < lg σ 2 + lg σ 5
-  · rw [ite_pos' hraw]
-    obtain ⟨s, hbl, hl, hcall⟩ := MF.raws (m - lg σ 2) (by omega)
-    have hsLSS := belowLog_lt (by omega) MF.lss hbl
-    rw [MF.lxs, (MF.counts 2 (by simp)).1, ← pow_add, ← pow_add, loadHolds_mul_gen_pow,
-      Nat.add_zero, Nat.add_sub_cancel' hRX] at hl
-    have hsk : s = k := by have := hC.uniq _ (by omega) m hmT hl; omega
-    subst hsk
-    obtain ⟨a, b, c, d, hat, hv⟩ := cw.sphincs _ hcall MF.bytes
-    show Sphincs.verifyWithKeccak (sphincsAt rd (σ (.n 56)) s).1 (sphincsAt rd (σ (.n 56)) s).2 _ = true
-    unfold sphincsAt
-    rw [slot_claimAt hat]
-    exact hv
-  · rw [ite_neg' hraw]
+  · refine Or.inl (List.mem_map.mpr ⟨rawSphincs rd σ wS (m - lg σ 2),
+      List.mem_map.mpr ⟨m - lg σ 2, List.mem_range.mpr (by rw [nRawS_eq]; omega), rfl⟩, ?_⟩)
+    simp only [rawSphincs, nRawX_eq, Nat.add_sub_cancel' hRX,
+      slotOf_ls MF hC hmT (by rw [hslm]; omega) (by rw [hslm]; omega), hslm, Nat.add_sub_cancel_left]
+  · refine Or.inr ?_
     have h0 : (segsOf σ Kr).a 0 ≤ m := by
       rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; omega
     obtain ⟨hc, h1, h2⟩ := mark_kid hW h0 hmT
     set c := (segsOf σ Kr).kid m
-    have hkid : kidOf rd σ m = c := kidOf_eq MF hK hc h1 h2
-    rw [hkid]
-    refine ⟨decKid rd σ wV c, kidsOf_get hc, ?_⟩
+    refine ⟨decKid rd σ wV c,
+      List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).2.mp hr1
     rw [segsOf_ex, segsOf_es] at hj
     show sphincsAt rd (σ (.n 56)) k ∈ (kidStmt rd σ c).claims.sphincs
@@ -188,6 +240,12 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
     rw [show (segsOf σ Kr).a c + (Kr c).ex + (m - (segsOf σ Kr).a c - (Kr c).ex) = m by omega] at hl
     have := hC.uniq _ (by omega) m hmT hl
     rw [show (Kr c).os (m - (segsOf σ Kr).a c - (Kr c).ex) = k by omega]
+
+/-- **The decoded witness holds the decoded signature claims** (`SignatureClaimsHeld`). -/
+theorem signatures_held (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
+    SignatureClaimsHeld (decStmt σ rd) (decWit σ rd wX wS wD wV wA) :=
+  ⟨xmss_raw_verify MF hW hC cw, sphincs_raw_verify MF hW hC cw, xmss_covered MF hK hW hC,
+    sphincs_covered MF hK hW hC⟩
 
 omit hK hW hC in
 /-- **The DA digest**: with the direct DA check, the digest of the claim it returns, which the

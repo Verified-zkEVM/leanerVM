@@ -129,15 +129,16 @@ and its share of one stable sort of at most `2·(steps + 1)` pairs, whose price 
 `log(steps)`). The constant is the price of reading the witness at the counts and the cursors a
 valid execution bounds: the decoder reads its counts off the memory, and the guest program's own
 asserts bound them on every valid execution (`lean_vm`'s `valid_counts`: at most `16` children,
-`65535` declared claims of each scheme and `65535` coverage slots in the two regions together); each
+`65535` declared claims and raw signatures of each scheme and `65535` coverage slots in the two
+regions together); each
 child's cursor, the words of the child proof's stream before its opening, is at most `8192` on every
 valid execution (`valid_cursor`: the decoded witness explains the input, so the deferring verifier
 accepts the child's proof, whose stream has at most `8192` scalars, `stream_le_of_verifyDeferred`);
 and the decoder clamps `da_verify`'s row count at `1024` (`LeanDa.maxRows`; `da_verify` asserts it,
 so the clamp changes nothing on a valid execution) on every input.
-`guestDecoderWitnessPriceAtValidCounts ≈ 2^36.76` is mostly the children's claims (each of the `16`
-children's priced at `65535` claims of each scheme, about `2^35.45`), the declared claims' holders
-(about `2^35.43`) and the two regions' tables (about `2^34.01`); the children's cursors are
+`guestDecoderWitnessPriceAtValidCounts ≈ 2^36.57` is mostly the children's claims (each of the `16`
+children's priced at `65535` claims of each scheme, about `2^35.45`), the raw signatures (`65535`
+of each scheme, about `2^34.91`) and the two regions' tables (about `2^34.01`); the children's cursors are
 `16·8192` words at `1338` each, about `2^27.39`. The address tables of the memory and the program
 are priced at the execution's `κ` and the program's `ℓ`
 (`guestDecoderAddressTablesPrice κ ℓ = (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42`: at the guest's
@@ -153,7 +154,7 @@ step, `2^20.75` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's p
 `runnerStepPrice`). At the guest's `ℓ = 19` it is `2^42.09` at `κ = 20` and `2^20` steps, `2^44.74`
 at `κ = 24` and `2^24`, `2^48.60` at `κ = 28` and `2^28`, `2^50.61` at `κ = 32` and `2^30`,
 `2^71.71` at `κ = 32` and `2^51`, and `2^80.75` at `κ = 32` and `2^60`: the terms besides the steps'
-(the address tables included: `2^41.50` at `κ = 20` and `2^20` steps to `2^44.05` at `κ = 32` and
+(the address tables included: `2^41.49` at `κ = 20` and `2^20` steps to `2^44.05` at `κ = 32` and
 `2^60`) dominate up to about `2^22` steps at `κ ≤ 28` and `2^24` at `κ = 32`, the per-step price
 beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
@@ -166,7 +167,7 @@ stated exactly (`entryArrayStatePrice_eq`; `frameAtAPrice_le`, equal at `16` wor
 only (a memory read at `1271`, its price at `κ = 32`, whatever `κ`; two functions entered at a pc;
 `16` words a frame). The constant prices the witness at the bounds above, not at the run's: `16`
 children, each with `65535` claims of each scheme (the two regions together hold at most `65535`)
-and a cursor of `8192` words, `65535` declared claims of each scheme, `1024` rows of the DA matrix,
+and a cursor of `8192` words, `65535` declared claims and raw signatures of each scheme, `1024` rows of the DA matrix,
 and the frame lookups these take. So on an execution with fewer children and claims, at `κ ≤ 28` and
 well below `2^22` steps, the budget is several times what the compiled decoder spends (at `κ = 32`
 the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
@@ -216,10 +217,10 @@ def guestDecoderAddressTablesPrice (κ ℓ : ℕ) : ℕ :=
 
 /-- The witness's and the decoding's price at the counts and the cursors a valid execution
 bounds, the frame lookups and the address tables apart: `16` children of up to `65535` claims of
-each scheme, each child's cursor at most `8192` words, the declared claims' holders (up to `65535`
-of each scheme), the DA matrix of up to `1024` rows, the children's proofs, the tables built once
-(the discrete logarithm's, the generator's powers', the readers'). About `2^36.76`. -/
-def guestDecoderWitnessPriceAtValidCounts : ℕ := 116077062271
+each scheme, each child's cursor at most `8192` words, the raw signatures (up to `65535` of each
+scheme), the DA matrix of up to `1024` rows, the children's proofs, the tables built once (the
+discrete logarithm's, the generator's powers', the readers'). About `2^36.57`. -/
+def guestDecoderWitnessPriceAtValidCounts : ℕ := 101913582391
 
 /-- How many frame lookups the constant pays for: about `2^26.57`. -/
 def guestDecoderFrameLookupCountAtValidCounts : ℕ := 99702868

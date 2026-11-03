@@ -23,8 +23,8 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
 * the reader at `1271` (`readerClosure_cost`), the replay of at most `steps + 1` states
   (`replayStatesOf_length`);
 * the counts `main`'s range checks bound (`valid_counts`, `Bounds/Guest/Valid.lean`): at most `16`
-  children, `65535` slots in the two regions together, `65535` declared claims a scheme
-  (`CountsWithin`), and `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
+  children, `65535` slots in the two regions together, `65535` declared claims and raw signatures
+  a scheme (`CountsWithin`), and `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
 * the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
   `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
   logarithms' bounds by the lanes' scan, `powBelow_cost`, its powers read off the powers table:
@@ -39,7 +39,7 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
-  `topConstPrice`, at most `116077062271 + 99702868·F` (`2^36.76 + 2^26.57·F`,
+  `topConstPrice`, at most `101913582391 + 99702868·F` (`2^36.57 + 2^26.57·F`,
   `topConst_valid_le`, each child's cursor at most `8192` words by `valid_cursor`), the
   `guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts·F`
   (`topConst_le`).
@@ -56,15 +56,15 @@ public section
 attribute [local instance] lexOrd
 
 /-- The constant's linear form in the frame map's price, the address tables apart, at a valid
-run's counts (`16` children, `65535` slots in the two regions together, `65535` declared claims a
-scheme, each child's cursor at most `8192` words): `116077062271 + 99702868·F`. -/
+run's counts (`16` children, `65535` slots in the two regions together, `65535` declared claims
+and raw signatures a scheme, each child's cursor at most `8192` words): `101913582391 + 99702868·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
       8192 (dvFramePrice gLogPrice (F + 9)) 16 65535 65535) ≤
-      116077062271 + 99702868 * F := by
+      101913582391 + 99702868 * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
-    xmssHoldersTPrice sphincsHoldersTPrice regionTablePrice kidMaxPrice vsPiPrice vsMPrice
+    xmssRawsTPrice sphincsRawsTPrice regionTablePrice vsPiPrice vsMPrice
     vsAtPrice levelPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
     queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice
   omega
@@ -134,7 +134,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
       (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
       16 65535 65535 :=
     ⟨by norm_num, by norm_num, by norm_num, hcv.kids, by have := hcv.slots; omega,
-      by have := hcv.slots; omega, hcv.xClaims, hcv.sClaims⟩
+      by have := hcv.slots; omega, hcv.xClaims, hcv.sClaims, hcv.rawX, hcv.rawS⟩
   set states := Decoder.replayStatesOf (powTable t.logMemorySize) (powTable LeanVM.Guest.guestProgram.logSize)
     LeanVM.Guest.guestProgram (Decoder.memoryVector t.memory) with hstates
   set e := guestDecoderEntryTableKeyExponent t.stepCount

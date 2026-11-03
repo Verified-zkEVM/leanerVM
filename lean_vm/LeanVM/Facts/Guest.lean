@@ -63,9 +63,9 @@ structure Work where
 /-- The work of the node `s` with the witness `w`. -/
 def work (s : NodeStatement) (w : NodeWitness) : Work where
   declared := s.claims.xmss.length + s.claims.sphincs.length
-  coverage := coverageSlots s w
-  rawXmss := (Coverage.heldDirectly s.claims.xmss w.xmssHolders).length
-  rawSphincs := (Coverage.heldDirectly s.claims.sphincs w.sphincsHolders).length
+  coverage := Coverage.planSlots s w
+  rawXmss := w.xmssSignatures.length
+  rawSphincs := w.sphincsSignatures.length
   rawDa := (w.daMatrix.map fun _ ↦ 1).getD 0
   rawDaRows := (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0
   rawDaPad := (w.daMatrix.map fun p ↦ LeanDa.paddedRowCount p.2.rows.length).getD 0

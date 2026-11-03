@@ -13,10 +13,9 @@ public import LeanVM.Guest.B1.Main.World
 # The decoders, read off the coverage table
 
 With the coverage table filled (`Cover`, `cover_bij` of `writers`): `markOf` is the mark of the
-slot's writer (`markOf_sl`), `countOf` the base `a c` (`countOf_eq`), `kidOf` the child whose
-segment holds a mark (`kidOf_eq`), `slotOf` the writer's slot (`slotOf_eq`), and `segCount` a
-child's count in each region (`segCount_x`, `segCount_s`, `segCount_d`); a child's records are
-the writers of its marks (`ox_eq`, `os_eq`, `di_eq`).
+slot's writer (`markOf_sl`), `countOf` the base `a c` (`countOf_eq`), `slotOf` the writer's slot
+(`slot_search`), and `segCount` a
+child's count in each region (`seg_count`); a child's statement is its records' (`kidStmt_eq`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -66,27 +65,6 @@ theorem markAt_sl {cover : E} {S : Segs} {X Y : ℕ} (hC : Cover rd cover S X Y 
   unfold markAt; rw [memAt_of_load (hC.wr m hm), gLog_gen_pow (by omega)]
 
 /-! ## The child of a mark -/
-
-theorem find_first' {A : ℕ → ℕ} {n c e : ℕ} (hc : c < n) (hlow : ∀ j < c, A (j + 1) ≤ e)
-    (h2 : e < A (c + 1)) :
-    ((List.range n).find? fun c' => decide (e < A (c' + 1))).getD 0 = c := by
-  have key : (List.range n).find? (fun c' => decide (e < A (c' + 1))) = some c := by
-    rw [List.find?_eq_some_iff_getElem]
-    refine ⟨by simpa using h2, c, by simpa using hc, by simp, fun j hj => ?_⟩
-    simp only [List.getElem_range, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
-      not_lt]
-    exact hlow j hj
-  rw [key]; rfl
-
-theorem kidOf_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c e : ℕ}
-    (hc : c < lg σ 6) (h1 : (segsOf σ K).a c ≤ e) (h2 : e < (segsOf σ K).a (c + 1)) :
-    kidOf rd σ e = c := by
-  unfold kidOf
-  rw [nKids_eq]
-  have hA : ∀ j ≤ lg σ 6, countOf rd σ j = (segsOf σ K).a j := fun j hj => countOf_eq MF hK hj
-  refine find_first' (A := countOf rd σ) hc (fun j hj => ?_) (by rw [hA _ (by omega)]; exact h2)
-  rw [hA _ (by omega)]
-  exact le_trans ((segsOf σ K).a_mono (show j + 1 ≤ c by omega)) h1
 
 theorem kid_eq {S : Segs} {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h2 : m < S.a (c + 1)) :
     S.kid m = c := find_first S.a_mono hc h1 h2

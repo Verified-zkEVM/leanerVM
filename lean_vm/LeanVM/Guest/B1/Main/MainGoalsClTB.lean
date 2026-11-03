@@ -66,8 +66,8 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
   have hn : s.claims.xmss.length < claimGroup * maxKeys := by
-    have := hL.coverageSlotsBelow2Pow16
-    simp only [coverageSlots] at this
+    have := hL.planSlotsBelow2Pow16
+    simp only [Coverage.planSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 0 [] =
@@ -101,8 +101,8 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
   have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
-    have := hL.coverageSlotsBelow2Pow16
-    simp only [coverageSlots] at this
+    have := hL.planSlotsBelow2Pow16
+    simp only [Coverage.planSlots] at this
     simp only [claimGroup, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =

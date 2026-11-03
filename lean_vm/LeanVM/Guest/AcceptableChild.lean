@@ -10,6 +10,7 @@ module
 
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.Compile.RunPure
+public import LeanVM.Guest.Coverage
 
 /-!
 # A child the guest program accepts
@@ -183,7 +184,7 @@ abbrev GuestCompleteCovered : Prop :=
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
     DeployedLimits statement witness →
     (∀ child ∈ witness.children, AcceptableChild (bytecodeWords guestProgram) seed child) →
-    CoveredNode statement witness →
+    CoveredNode witness →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed statement))
         execution ∧

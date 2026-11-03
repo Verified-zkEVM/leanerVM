@@ -1,6 +1,6 @@
 //! Real aggregations for the Lean differential check of the guest (`lean_vm/cli/GuestDiff.lean`): per case,
 //! the node's statement, its seed and witness (`LeanVM.Node.NodeWitness`: every child's statement, fresh claim and
-//! raw proof, a holder per claim, the batching's hints), the streams `aggregate` installed, the public input and the
+//! raw proof, the raw signatures with their claims, the batching's hints), the streams `aggregate` installed, the public input and the
 //! run's memory size, as whitespace-separated tokens. Ported from the BLAKE2s-era `guest_diff`: Flock's claims are
 //! gone (a deferred and a fresh claim are a point and a value), and the installed streams are read through
 //! `aggregation.rs`'s test-only `FORGE` hook, which hands this module the node's `Hints` before they are installed.
@@ -115,23 +115,6 @@ impl Out {
     }
 }
 
-/// Where a claim is held: its raw witness, else the first child that makes it.
-fn holder<K: PartialEq>(claim: &K, raw: Option<impl FnOnce(&mut Out)>, children: &[&[K]], out: &mut Out) {
-    match raw {
-        Some(write) => {
-            out.0.push_str("direct ");
-            write(out);
-        }
-        None => {
-            let i = children
-                .iter()
-                .position(|c| c.contains(claim))
-                .expect("a claim is held");
-            write!(out.0, "child {i} ").unwrap();
-        }
-    }
-}
-
 /// Aggregate, and write the case: the statement, the witness, the installed streams.
 fn export(
     name: &str,
@@ -154,7 +137,7 @@ fn export(
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
-    let mut out = Out(format!("leanvm-guest-diff 2\ncase {name}"));
+    let mut out = Out(format!("leanvm-guest-diff 3\ncase {name}"));
     out.tag("seed");
     let seed = leanvm_core::cpu::fs_seed(unified_guest());
     out.bytes(&cell_bytes(seed));
@@ -196,30 +179,27 @@ fn export(
         }
     }
 
-    let xmss_children: Vec<&[LeanXmssClaim]> = children.iter().map(|c| c.xmss_signers.as_slice()).collect();
-    out.tag("holders_xmss");
-    out.n(node.xmss_signers.len());
-    for claim in &node.xmss_signers {
-        let raw = raw_xmss.iter().find(|(pk, m, _)| (*pk, *m) == *claim);
-        holder(
-            claim,
-            raw.map(|(_, _, sig)| |out: &mut Out| out.xmss_signature(sig)),
-            &xmss_children,
-            &mut out,
-        );
+    // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
+    // deduplicated (`aggregation.rs:1703-1707`).
+    let mut raw_xmss = raw_xmss;
+    raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
+    raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
+    out.tag("raw_xmss");
+    out.n(raw_xmss.len());
+    for (pk, m, sig) in &raw_xmss {
+        out.bytes(&pk.flatten());
+        out.bytes(m);
+        out.xmss_signature(sig);
     }
-    let sphincs_children: Vec<&[LeanSphincsClaim]> =
-        children.iter().map(|c| c.lean_sphincs_signers.as_slice()).collect();
-    out.tag("holders_sphincs");
-    out.n(node.lean_sphincs_signers.len());
-    for claim in &node.lean_sphincs_signers {
-        let raw = raw_sphincs.iter().find(|(pk, m, _)| (*pk, *m) == *claim);
-        holder(
-            claim,
-            raw.map(|(_, _, sig)| |out: &mut Out| out.sphincs_signature(sig)),
-            &sphincs_children,
-            &mut out,
-        );
+    let mut raw_sphincs = raw_sphincs;
+    raw_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
+    raw_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
+    out.tag("raw_sphincs");
+    out.n(raw_sphincs.len());
+    for (pk, m, sig) in &raw_sphincs {
+        out.bytes(&pk.flatten());
+        out.bytes(m);
+        out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its vector digest, its rows and its membership vector.
     let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs));

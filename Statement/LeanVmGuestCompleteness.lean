@@ -23,138 +23,64 @@ namespace LeanVM.Guest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
-/-! ## Coverage slots (read by `DeployedLimits`, `CoveredNode`) -/
-
-namespace Coverage
-
-/-- A claim takes its declared slot if it is free, else the next duplicate slot (`take_slot`).
-The state is which declared slots are taken, and the duplicates so far. -/
-def takeSlot {α : Type} [BEq α] (declared : List α) (slotState : List Bool × List α) (claim : α) :
-    ℕ × (List Bool × List α) :=
-  match (List.range declared.length).find? fun j ↦
-      declared[j]? == some claim && !(slotState.1.getD j true) with
-  | some j => (j, (slotState.1.set j true, slotState.2))
-  | none => (declared.length + slotState.2.length, (slotState.1, slotState.2 ++ [claim]))
-
-/-- The slots of claims taken in order. -/
-def takeSlots {α : Type} [BEq α] (declared : List α) :
-    List Bool × List α → List α → List ℕ × (List Bool × List α)
-  | slotState, [] => ([], slotState)
-  | slotState, claim :: claims =>
-    let (slot, slotState) := takeSlot declared slotState claim
-    let (slots, slotState) := takeSlots declared slotState claims
-    (slot :: slots, slotState)
-
-/-- The slots of lists of claims taken in order. -/
-def takeSlotsAll {α : Type} [BEq α] (declared : List α) :
-    List Bool × List α → List (List α) → List (List ℕ) × (List Bool × List α)
-  | slotState, [] => ([], slotState)
-  | slotState, claims :: claimLists =>
-    let (slots, slotState) := takeSlots declared slotState claims
-    let (slotLists, slotState) := takeSlotsAll declared slotState claimLists
-    (slots :: slotLists, slotState)
-
-/-- One region of the coverage table: its duplicate claims, in slot order, and the slot of every
-raw claim and of every child's claims. -/
-structure CoverageRegion (α : Type) where
-  /-- The duplicate claims, in slot order. -/
-  duplicates : List α
-  /-- The slot of each claim held directly. -/
-  directSlots : List ℕ
-  /-- The slots of each child's claims. -/
-  childSlots : List (List ℕ)
-
-/-- The region of the declared claims: the raw claims take their slots, then the children's. -/
-def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List (List α)) :
-    CoverageRegion α :=
-  let (raw, slotState) := takeSlots declared (declared.map fun _ ↦ false, []) raw
-  let (children, slotState) := takeSlotsAll declared slotState children
-  ⟨slotState.2, raw, children⟩
-
-/-- The claims held by raw signatures, with their signatures, in the statement's order. -/
-def heldDirectly {α Signature : Type} :
-    List α → List (ClaimHolder Signature) → List (α × Signature)
-  | claim :: claims, .signature signature :: holders =>
-    (claim, signature) :: heldDirectly claims holders
-  | _ :: claims, .child _ :: holders => heldDirectly claims holders
-  | _, _ => []
-
-end Coverage
-
 /-! ## The deployed limits -/
 
-open Coverage in
-/-- The coverage table's slots (`n_total`, `lean_ethereum.py:4097`): each region's declared claims
-and its duplicates, as `coveragePlan` assigns them. -/
-def coverageSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=
-  let claims := statement.claims
-  let children := witness.children
-  claims.xmss.length + (coveragePlan claims.xmss
-      ((heldDirectly claims.xmss witness.xmssHolders).map (·.1))
-      (children.map (·.statement.claims.xmss))).duplicates.length +
-    claims.sphincs.length + (coveragePlan claims.sphincs
-      ((heldDirectly claims.sphincs witness.sphincsHolders).map (·.1))
-      (children.map (·.statement.claims.sphincs))).duplicates.length
+/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4097`): one for each raw
+signature and each entry of a child's signature lists, every slot written once
+(`lean_ethereum.py:4149, 4154, 3866-3867`, counted by `written`, `:4174, 4199-4200`). -/
+def coverageSlots (witness : NodeWitness) : ℕ :=
+  witness.xmssSignatures.length + witness.sphincsSignatures.length +
+    (witness.children.map fun child ↦
+      child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum
 
-open Coverage in
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
 stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4092`), every count of `meta` below `2^16`
-(`lean_ethereum.py:4085-4090`), the bus depth at most `32` (`lean_ethereum.py:1623`), the tables'
-heights at most `28` (`lean_ethereum.py:2003`). -/
+directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4092`), every count of `meta` and of a child's
+lists below `2^16` (`lean_ethereum.py:4085-4090, 4185-4186`: each at most `coverageSlots`), the bus
+depth at most `32` (`lean_ethereum.py:1623`), the tables' heights at most `28`
+(`lean_ethereum.py:2003`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
-  /-- A claim declared `n` times is held `n` times, by witnesses or by distinct entries of the
-  children's lists: each coverage slot is written once
+  /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
+  signatures or by entries of the children's lists, each used once: each coverage slot is written
+  once and the declared claims have one slot each
   (`lean_ethereum.py:3866-3867, 4148-4149, 4153-4154, 4200`), where `NodeRelation` lets two equal
   claims share one holder. -/
-  xmssClaimsHeldWithMultiplicity : ∀ x, statement.claims.xmss.count x ≤
-    ((heldDirectly statement.claims.xmss witness.xmssHolders).map (·.1)).count x +
-      (witness.children.map fun child ↦ child.statement.claims.xmss.count x).sum
-  /-- Likewise for the leanSPHINCS claims. -/
-  sphincsClaimsHeldWithMultiplicity : ∀ x, statement.claims.sphincs.count x ≤
-    ((heldDirectly statement.claims.sphincs witness.sphincsHolders).map (·.1)).count x +
-      (witness.children.map fun child ↦ child.statement.claims.sphincs.count x).sum
+  claimsHeldWithMultiplicity :
+    statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
+      (witness.children.map (·.statement.claims.xmss)).flatten) ∧
+    statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
+      (witness.children.map (·.statement.claims.sphincs)).flatten)
   /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4091`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- Every child's signature lists below `2^16` (`lean_ethereum.py:4185-4186`). -/
-  childClaimListsBelow2Pow16 : ∀ child ∈ witness.children,
-    child.statement.claims.xmss.length < 2 ^ 16 ∧ child.statement.claims.sphincs.length < 2 ^ 16
   /-- The coverage table below `2^16` (`lean_ethereum.py:4098`). -/
-  coverageSlotsBelow2Pow16 : coverageSlots statement witness < 2 ^ 16
+  coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
 
 namespace Completeness
 
-open Coverage
-
-/-- **The nodes the deployed budget covers**, eight families by the node's children, raw
-signatures (leanXMSS and leanSPHINCS held directly), the rows of the blob matrix checked directly,
-and claims (declared, coverage slots, the children's declared claims): a recursion node of `2048`
-claims; a leaf of `2048` raw signatures and claims; `8` children and `2^15` claims; `4` children,
-`1024` raw signatures and `8192` claims; `4` children, a matrix of `32` rows and `8192` claims;
-`2` children, `256` raw signatures, a matrix of `32` rows and `8192` claims; `2` children, a matrix
-of `32` rows and `2^14` claims; no child, a matrix of `32` rows and `2^15` claims. -/
-def CoveredNode (statement : NodeStatement) (witness : NodeWitness) : Prop :=
+/-- **The nodes the deployed budget covers**, seven families by the node's children, raw
+signatures (leanXMSS and leanSPHINCS together), the rows of the blob matrix checked directly, and
+coverage slots (`coverageSlots`: the raw signatures and the children's claims): a recursion node of
+`2048` slots; a leaf of `2048` raw signatures; `8` children and `2^15` slots; `4` children, `1024`
+raw signatures and `8192` slots; `4` children, a matrix of `32` rows and `8192` slots; `2`
+children, `256` raw signatures, a matrix of `32` rows and `8192` slots; `2` children, a matrix of
+`32` rows and `2^14` slots. A node of no child and no raw signature, so of no claim, with a matrix
+of `32` rows, is of the fifth. -/
+def CoveredNode (witness : NodeWitness) : Prop :=
   let n := witness.children.length
-  let raw := (heldDirectly statement.claims.xmss witness.xmssHolders).length +
-    (heldDirectly statement.claims.sphincs witness.sphincsHolders).length
+  let raw := witness.xmssSignatures.length + witness.sphincsSignatures.length
   let blobs := (witness.daMatrix.map fun _ ↦ 1).getD 0
   let rows := (witness.daMatrix.map fun p ↦ p.2.rows.length).getD 0
-  let declared := statement.claims.xmss.length + statement.claims.sphincs.length
-  let kids := (witness.children.map fun child ↦ child.statement.claims.xmss.length +
-    child.statement.claims.sphincs.length).sum
-  let slots := coverageSlots statement witness
-  let claims (b : ℕ) : Prop := declared ≤ b ∧ slots ≤ b ∧ kids ≤ b
-  (raw = 0 ∧ blobs = 0 ∧ claims 2048) ∨
-  (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ declared ≤ 2048 ∧ slots ≤ 2048) ∨
-  (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ claims (2 ^ 15)) ∨
-  (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ claims 8192) ∨
-  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 32 ∧ claims 8192) ∨
-  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 32 ∧ claims 8192) ∨
-  (n ≤ 2 ∧ raw = 0 ∧ rows ≤ 32 ∧ claims (2 ^ 14)) ∨
-  (n = 0 ∧ raw = 0 ∧ rows ≤ 32 ∧ declared ≤ 2 ^ 15 ∧ slots ≤ 2 ^ 15)
+  let slots := coverageSlots witness
+  (raw = 0 ∧ blobs = 0 ∧ slots ≤ 2048) ∨
+  (n = 0 ∧ blobs = 0 ∧ slots ≤ 2048) ∨
+  (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ slots ≤ 2 ^ 15) ∨
+  (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ slots ≤ 8192) ∨
+  (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 32 ∧ slots ≤ 8192) ∨
+  (n ≤ 2 ∧ raw ≤ 256 ∧ rows ≤ 32 ∧ slots ≤ 8192) ∨
+  (n ≤ 2 ∧ raw = 0 ∧ rows ≤ 32 ∧ slots ≤ 2 ^ 14)
 
 /-! ### Children carrying honest proofs
 
@@ -230,7 +156,7 @@ behaves as a random permutation, applied to this prover. Proved by
 def GuestCompleteOnHonestChildren : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
-    DeployedLimits statement witness → CoveredNode statement witness →
+    DeployedLimits statement witness → CoveredNode witness →
     (∀ child ∈ witness.children, HonestChild child) →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram

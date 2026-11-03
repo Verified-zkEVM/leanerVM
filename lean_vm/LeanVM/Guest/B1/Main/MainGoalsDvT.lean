@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
+open LeanVM.Guest.Coverage (coveragePlan)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns)
 open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 

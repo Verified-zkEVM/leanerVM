@@ -185,11 +185,7 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
   s.deferredClaim.HasBytecodeShape bytecode ∧
   (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true)
-    NodeClaims.xmss w.children) s.claims.xmss w.xmssHolders ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦
-      Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children)
-    s.claims.sphincs w.sphincsHolders ∧
+  SignatureClaimsHeld s w ∧
   (match w.daMatrix with
     | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest
     | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
@@ -236,13 +232,13 @@ theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : 
   constructor
   · intro h
     have h1 := h.hasBytecodeShape
-    unfold NodeRelation SignatureClaimsHeld DaDigestHeld at h
+    unfold NodeRelation DaDigestHeld at h
     unfold NodeRelB
-    obtain ⟨⟨hx, hsp⟩, hda, h2, hb⟩ := h
-    exact ⟨h1, h2, hx, hsp, hda, (key h1).mp hb⟩
-  · unfold NodeRelation NodeRelB SignatureClaimsHeld DaDigestHeld
-    rintro ⟨h1, h2, hx, hsp, hda, hb⟩
-    exact ⟨⟨hx, hsp⟩, hda, h2, (key h1).mpr hb⟩
+    obtain ⟨hsig, hda, h2, hb⟩ := h
+    exact ⟨h1, h2, hsig, hda, (key h1).mp hb⟩
+  · unfold NodeRelation NodeRelB DaDigestHeld
+    rintro ⟨h1, h2, hsig, hda, hb⟩
+    exact ⟨hsig, hda, h2, (key h1).mpr hb⟩
 
 end
 end LeanVM.Guest.Batch

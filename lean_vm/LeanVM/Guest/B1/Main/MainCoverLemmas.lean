@@ -18,7 +18,6 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # Reading `main`'s honest words
 
-* `direct_held`, `direct_length_le`: the claims held directly are held, and no more than declared;
 * `idxOf_slot`: the slots are taken once each, so the taker of slot `(slotsOf p)[k]` is `k`;
 * `segOf_sum`, `hMarkX_raw` … `hMarkS_child`: the marks of the raw claims and of child `c`'s
   claim `j` (`hW c + j`, after the child's leanXMSS claims for leanSPHINCS);
@@ -38,37 +37,12 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.Hints (claimCells cellsOfBytes cellOfBytes)
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan)
+open LeanVM.Guest.Coverage (coveragePlan)
 open LeanVM.Guest.Value.Keccak (cellBytes cellsBytes)
 open LeanVM.Guest.B1 (bufL)
 open LeanVM.Guest.B1.Da (reads_of_memL regionL_of_mem)
 
 @[expose] public section
-
-/-! ## The claims held directly -/
-
-/-- **The claims held directly are held by their witnesses.** -/
-theorem direct_held {α W : Type} {H : α → ClaimHolder W → Prop} {P : α → W → Prop}
-    (hH : ∀ c w, H c (.signature w) → P c w) :
-    ∀ {cs : List α} {hs : List (ClaimHolder W)}, List.Forall₂ H cs hs → ∀ p ∈ heldDirectly cs hs, P p.1 p.2
-  | [], [], .nil, p, hp => by simp [heldDirectly] at hp
-  | c :: cs, .signature w :: hs, .cons h hr, p, hp => by
-    rw [heldDirectly, List.mem_cons] at hp
-    rcases hp with rfl | hp
-    · exact hH c w h
-    · exact direct_held hH hr p hp
-  | _ :: cs, .child _ :: hs, .cons _ hr, p, hp => by
-    rw [heldDirectly] at hp
-    exact direct_held hH hr p hp
-
-theorem direct_length_le {α W : Type} : ∀ (cs : List α) (hs : List (ClaimHolder W)),
-    (heldDirectly cs hs).length ≤ cs.length
-  | [], _ => by simp [heldDirectly]
-  | _ :: _, [] => by simp [heldDirectly]
-  | _ :: cs, .signature _ :: hs => by
-    rw [heldDirectly, List.length_cons, List.length_cons]; exact Nat.succ_le_succ (direct_length_le cs hs)
-  | _ :: cs, .child _ :: hs => by
-    rw [heldDirectly, List.length_cons]; exact Nat.le_succ_of_le (direct_length_le cs hs)
 
 /-! ## Takers and marks -/
 

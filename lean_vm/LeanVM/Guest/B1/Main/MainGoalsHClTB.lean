@@ -25,9 +25,10 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits coverageSlots)
+open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest.Coverage (planSlots)
 open LeanVM.Guest.Hints (claimCells)
-open LeanVM.Guest.Coverage (heldDirectly coveragePlan CoverageRegion)
+open LeanVM.Guest.Coverage (coveragePlan CoverageRegion)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB Returns bufL)
 open LeanVM.Guest.B1.Digest (ccB)
 
@@ -50,7 +51,7 @@ theorem kidTB_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
     (s.claims.xmss ++ (xPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.xmss.length) =>
-    plan_slot s.claims.xmss ((heldDirectly s.claims.xmss w.xmssHolders).map (·.1))
+    plan_slot s.claims.xmss (w.xmssSignatures.map (·.1))
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl
@@ -132,7 +133,7 @@ theorem kidTB_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : �
     (s.claims.sphincs ++ (sPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.sphincs.length) =>
-    plan_slot s.claims.sphincs ((heldDirectly s.claims.sphincs w.sphincsHolders).map (·.1))
+    plan_slot s.claims.sphincs (w.sphincsSignatures.map (·.1))
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtTB fs cert (κ := 16) le_rfl

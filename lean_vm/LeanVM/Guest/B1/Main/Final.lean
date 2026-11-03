@@ -18,8 +18,8 @@ public import LeanVM.Guest.Batch.Node
 `D`, given the callees' contracts with witness functions (`CalleesW`), a run of `main`'s body gives
 the decoded seed and statement of digest `D` (`own_digest`), and `NodeRelation` of the decoded witness:
 the deferred claim's shape, every child's proof accepted by the deferring verifier for the child's
-decoded statement (`kid_sub`, `kid_digest`), every declared signature claim held (`xmss_held`,
-`sphincs_held`), the DA digest the direct DA check's, zeros or a child's (`da_rel`), and the
+decoded statement (`kid_sub`, `kid_digest`), every raw signature verifying and every declared
+signature claim held (`signatures_held`), the DA digest the direct DA check's, zeros or a child's (`da_rel`), and the
 deferred claim the leaf's zero point or the batching of the
 children's claims (`aggregate_claims`' contract). `exponent_tables` is B1-a's
 (`exponent_tables_holds`); every other deterministic callee is this family's.
@@ -120,8 +120,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     rw [← hown, loadHolds_unique MF.pub.1 hp0, loadHolds_unique MF.pub.2 hp1]
     rfl
   have hdlen : (readCells rd (σ (.n 402)) 24).length = 24 := length_readCells _ _ _
-  refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, xmss_held MF hK hW hC cw, sphincs_held MF hK hW hC cw,
-    ?_, ?_⟩⟩
+  refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, signatures_held MF hK hW hC cw, ?_, ?_⟩⟩
   · -- the deferred claim's shape
     show (deferOfCells (readCells rd (σ (.n 402)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point hdlen, hlog]

@@ -10,7 +10,7 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 
 A child's statement, read off the coverage table (`kidStmt`), and the child itself (`decKid`, its
 proof by the reader `wV`); the coverage marks and counts (`markOf`, `countOf`, `slotOf`,
-`segCount`), the regions' sizes (`lxSlots`, `lsSlots`) and the child a mark falls in (`kidOf`).
+`segCount`) and the regions' sizes (`lxSlots`, `lsSlots`).
 Each reads its logarithms by `gLogD D` (`Log.lean`), the logarithm's tables `D` given: `…D`
 restates `B1.Main`'s function so, and `…D_tables` is the equation at `D = discreteLogTables`.
 
@@ -21,8 +21,6 @@ tables built once by the caller (`Staged.lean`) answer them, on every input
 * `regionTable D rd cover lo len`: the region's marks (one logarithm per slot) sorted with their
   slots (`coverTable`); `slotIn` of it is `slotOfD` (`slotIn_regionTable`), `countIn` of it
   `segCountD` (`countIn_regionTable`);
-* `kidMax D rd w n`: the running maxima of the children's running counts; `kidIn` of it is
-  `kidOfStaged` (`kidIn_kidMax`);
 * `kidStmtT`, `decKidT`: a child's statement and the child off the two regions' tables, `main`'s
   words the loops read (`written`, the tables' pointers) passed as values, the slots' addresses by
   powers in `K` (`xmssAtK`); `kidStmtT_eq`, `decKidT_eq`: at the tables built they are `kidStmtD`,
@@ -69,28 +67,6 @@ cost_compile countOfC := countOfD
 cost_compile nKidsC := nKidsD
 cost_compile lxSlotsC := lxSlotsD
 cost_compile lsSlotsC := lsSlotsD
-
-/-! ## The child a mark falls in -/
-
-/-- Whether child `c`'s segment of the running counts ends after the mark `e`. -/
-noncomputable def endsAfter (D : DiscreteLogTables) (rd : Reader) (σ : Val) (e c : ℕ) : Bool :=
-  decide (e < countOfD D rd σ (c + 1))
-
-/-- The first of children `0 … n - 1` whose segment ends after the mark `e`, or `0`. -/
-noncomputable def kidOfAt (D : DiscreteLogTables) (rd : Reader) (σ : Val) (e n : ℕ) : ℕ :=
-  ((List.range n).find? (endsAfter D rd σ e)).getD 0
-
-/-- `kidOf`, staged: the number of children (a logarithm) computed by the caller and passed to
-`kidOfAt`, whose spec holds at every count (the kernel then never unfolds the logarithm), the test
-by partial application. -/
-noncomputable def kidOfStaged (D : DiscreteLogTables) (rd : Reader) (σ : Val) (e : ℕ) : ℕ :=
-  kidOfAt D rd σ e (nKidsD D σ)
-
-theorem kidOfStaged_tables : kidOfStaged discreteLogTables = kidOf := by
-  funext rd σ e
-  unfold kidOfStaged kidOfAt endsAfter kidOf
-  rw [countOfD_tables, nKidsD_tables]
-
 
 /-! ## A child -/
 
@@ -153,8 +129,6 @@ cost_compile coverKeysC := coverKeys
 cost_compile coverTableC := coverTable
 cost_compile slotInC := slotIn
 cost_compile countInC := countIn
-cost_compile prefixMaxC measure fun _ xs ↦ xs.length := prefixMax
-cost_compile kidInC := kidIn
 
 end Tables
 
@@ -192,25 +166,10 @@ theorem countIn_regionTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo
 /-- The running count `written[c]` at `w = written` (`countOf`). -/
 noncomputable def countAtW (D : DiscreteLogTables) (rd : Reader) (w : E) (c : ℕ) : ℕ := gLogD D (cellAt rd w c)
 
-/-- Child `c`'s segment's end `written[c + 1]`. -/
-noncomputable def countNext (D : DiscreteLogTables) (rd : Reader) (w : E) (c : ℕ) : ℕ :=
-  gLogD D (cellAt rd w (c + 1))
-
-/-- **The running maxima of the children's segments' ends**, `n` children. -/
-noncomputable def kidMax (D : DiscreteLogTables) (rd : Reader) (w : E) (n : ℕ) : Array ℕ :=
-  (prefixMax 0 ((List.range n).map (countNext D rd w))).toArray
-
-/-- **The child of the running maxima is `kidOf`'s.** -/
-theorem kidIn_kidMax (D : DiscreteLogTables) (rd : Reader) (σ : Val) (e : ℕ) :
-    kidIn (kidMax D rd (σ (.n 380)) (nKidsD D σ)) e = kidOfStaged D rd σ e :=
-  kidIn_prefixMax (fun c ↦ countOfD D rd σ c) (nKidsD D σ) e
-
 cost_compile markPairOfC := markPairOf
 cost_compile markPairC := markPair
 cost_compile regionTableC := regionTable
 cost_compile countAtWC := countAtW
-cost_compile countNextC := countNext
-cost_compile kidMaxC := kidMax
 
 /-! ## A child, off the tables -/
 

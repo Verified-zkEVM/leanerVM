@@ -50,16 +50,16 @@ def mkChild (s : NodeStatement) (f : LeanVM.Protocol.Verifier.BytecodeClaim)
     (π : LeanVM.Protocol.Compile.Proof) : Child := ⟨s, f, π⟩
 cost_compile mkChild := mkChild
 
-def holders (i : ℕ) (σ : LeanXmss.Signature) : List (ClaimHolder LeanXmss.Signature) :=
-  [.child i, .signature σ]
-cost_compile holders := holders
+def raws (c : LeanXmssClaim) (σ : LeanXmss.Signature) : List (LeanXmssClaim × LeanXmss.Signature) :=
+  [(c, σ), (c, σ)]
+cost_compile raws := raws
 
 def mkDa (r v : LeanVM.Protocol.Digest) (rows : List (List K)) (vec : List E) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) := some (⟨r, v⟩, ⟨rows, vec⟩)
 cost_compile mkDa := mkDa
 
-def mkWitness (cs : List Child) (xs : List (ClaimHolder LeanXmss.Signature))
-    (ss : List (ClaimHolder Sphincs.Signature)) (d : Option (DaClaim × LeanVM.Da.MatrixWitness))
+def mkWitness (cs : List Child) (xs : List (LeanXmssClaim × LeanXmss.Signature))
+    (ss : List (LeanSphincsClaim × Sphincs.Signature)) (d : Option (DaClaim × LeanVM.Da.MatrixWitness))
     (m : List (E × E)) (v : E) : NodeWitness := ⟨cs, xs, ss, d, ⟨m, v⟩⟩
 cost_compile mkWitness := mkWitness
 
@@ -117,15 +117,17 @@ def child : Child := mkChild stmt claim proof
 
 def layer : LeanXmss.LayerSignature := ⟨r, fun _ ↦ p, fun i ↦ BitVec.ofNat 128 i.val⟩
 def xsig : LeanXmss.Signature := ⟨⟨12345, by decide⟩, fun _ ↦ layer⟩
-#guard runOn holders.costDeps holders.costIdx [encodeValue (3 : ℕ), encodeValue xsig] == some (encodeValue (holders 3 xsig))
+#guard runOn raws.costDeps raws.costIdx [encodeValue (mkKey r p, m), encodeValue xsig] ==
+  some (encodeValue (raws (mkKey r p, m) xsig))
 
 def da : Option (DaClaim × LeanVM.Da.MatrixWitness) := mkDa digest digest [[K.ofLane 1]] [x]
 #guard runOn mkDa.costDeps mkDa.costIdx [encodeValue digest, encodeValue digest, encodeValue [[K.ofLane 1]], encodeValue [x]] ==
   some (encodeValue da)
 
-def witness : NodeWitness := mkWitness [child] (holders 3 xsig) [] da [(x, x)] x
+def witness : NodeWitness := mkWitness [child] (raws (mkKey r p, m) xsig) [] da [(x, x)] x
 #guard runOn mkWitness.costDeps mkWitness.costIdx
-  [encodeValue [child], encodeValue (holders 3 xsig), encodeValue ([] : List (ClaimHolder Sphincs.Signature)),
+  [encodeValue [child], encodeValue (raws (mkKey r p, m) xsig),
+  encodeValue ([] : List (LeanSphincsClaim × Sphincs.Signature)),
   encodeValue da, encodeValue [(x, x)], encodeValue x] == some (encodeValue witness)
 
 def decoded : SeedStatementAndWitness := mkDecoded digest stmt witness

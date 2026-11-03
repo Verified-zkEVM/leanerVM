@@ -20,8 +20,9 @@ table's writers (`writers`) and its bijection (`cover_bij`):
   statement's (`statementDigest_parts`), and its two cells are the public input's;
 * each child's statement's digest (`kid_digest`), so each child's proof is the deferring
   verifier's on the decoded child's statement (`verify_sub`'s contract);
-* every declared signature claim's holder, by the mark in its slot: a raw signature's check or
-  the child whose segment holds the mark (`xmss_held`, `sphincs_held`);
+* the raw signatures, each at the slot its mark is in, verify; every declared signature claim's
+  holder, by the mark in its slot: a raw signature or the child whose segment holds the mark
+  (`signatures_held`);
 * the DA digest, by the slot `da_pick`: the direct DA check's claim, zeros, or a child's
   (`da_rel`);
 * the deferred claim: the leaf's zero point, or the batching (`aggregate_claims`' contract).

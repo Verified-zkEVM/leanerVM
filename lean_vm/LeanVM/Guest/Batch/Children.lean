@@ -54,7 +54,7 @@ theorem children_sound {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
           true ∧
           c.statement.deferredClaim.HoldsWithShape bytecode) ∨
       BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.batchingHints := by
-  obtain ⟨-, hch, -, -, -, hbat⟩ := nodeRel_iff.mp hN
+  obtain ⟨-, hch, -, -, hbat⟩ := nodeRel_iff.mp hN
   by_cases hw : w.children = []
   · exact Or.inl fun c hc ↦ absurd hc (by simp [hw])
   simp only [hw, ↓reduceIte] at hbat

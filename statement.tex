@@ -413,8 +413,7 @@ $\sigma = iv_G$.
 \begin{itemize}
 \item a list of \emph{children}, each a statement $s_i$, a proof $p_i$, and a \emph{fresh} claim
 $f_i = (z_i, v_i)$ on the bytecode, the evaluation the child's proof leaves to be checked;
-\item for each signature claim of $s$, a \emph{holder}: a direct signature (leanXMSS or
-leanSPHINCS) or the index of a child;
+\item the \emph{raw signatures}, leanXMSS and leanSPHINCS, each with the claim it signs;
 \item optionally, one LeanDA matrix the node checks directly, with the DA claim it opens;
 \item the \emph{batching hints}: the round messages of one sumcheck, and a final value.
 \end{itemize}
@@ -424,9 +423,9 @@ leanSPHINCS) or the index of a child;
 $\mathrm{NodeRel}(B, \sigma, s, w)$ (\lean{NodeRelation}) is the conjunction of four conditions,
 the witnesses holding the claims:
 \begin{enumerate}
-\item Every signature claim of $s$ is held (\lean{SignatureClaimsHeld}): a direct signature verifies under
-the claim's key and message (Keccak-256 as the schemes' hash, at any leaf index); a child holder $i$
-means the claim occurs in the corresponding list of $s_i$.
+\item Every signature claim of $s$ is held (\lean{SignatureClaimsHeld}): every raw signature verifies
+under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf index), and every
+claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, \delta)$ of the claim it opens; without one, $\mathit{da}$ is zero or
 some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4202-4206}).
@@ -537,7 +536,7 @@ exhibit a Keccak-256 collision; what excludes it is that none is known.
 \paragraph{The decoder's budget.} The budget (\lean{guestWitnessDecoderBudget}) is
 $(\mathit{steps} + 1)(2^{21} + 2^{13}\lambda) + (70\kappa + 374)\cdot 2^\kappa + 2^{37}(\lambda + 16)$,
 $\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_vm} proves of the
-compiled decoder (within $0.21$ to $1.23$ bits of it, about $0.55$ to $0.65$ at the six points
+compiled decoder (within $0.22$ to $1.25$ bits of it, about $0.55$ to $0.65$ at the six points
 below): per step $2^{20.41}$ to $2^{20.75}$, against the budget's $2^{21}$ to $2^{21.3}$ (the replay
 and the filing of the state in a sorted array, its share of one sort, growing as $\log$ of the
 steps); the sorted table of the memory's addresses at the execution's $\kappa$; and
@@ -562,8 +561,8 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $786000$)
-limits any program; it is the compiled decoder's size, $785688$ (proved at most that, measured
-exactly), and a slack of $312$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
+limits any program; it is the compiled decoder's size, $785561$ (proved at most that, measured
+exactly), and a slack of $439$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no
 useful table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many
 statements) fits there. It does not bound what a program written differently could hold: the
 guest's frame-cell table ($749835$ of the size, cells below $2^{20}$) packs to about a third,
@@ -630,10 +629,11 @@ across recursion levels does not follow from it.
 \paragraph{The hypotheses,} on a statement $s$ and a witness $w$ with
 $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 \begin{enumerate}
-\item \lean{DeployedLimits}, the limits the guest program enforces on the node: a signature claim
-declared $n$ times is held $n$ times, by direct signatures or by distinct entries of the children's
-lists; at most $16$ children; each child's signature lists shorter than $2^{16}$; the coverage table
-(the declared claims plus the duplicates the guest program records) shorter than $2^{16}$.
+\item \lean{DeployedLimits}, the limits the guest program enforces on the node: each declared list
+is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
+is held $n$ times, each raw signature or child's entry used once); at most $16$ children; the
+coverage table, one slot per raw signature and per entry of a child's lists
+(\lean{coverageSlots}), shorter than $2^{16}$.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
@@ -691,14 +691,16 @@ counted from its code, not measurements.
 $\mathrm{dig}_{iv_G}(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committed size).
 \begin{itemize}
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
-the proof), for every node in one of eight families (\lean{CoveredNode}), by its $\cnt{child}$ children,
-$\cnt{xmss} + \cnt{sphincs}$ raw signatures, $\cnt{rows}$ blobs held directly (the rows of at most
-one matrix), and claim counts $\cnt{decl}$, $\cnt{cover}$, $\cnt{childclaims}$ each at most the
-family's cap:
+the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
+children, $\cnt{xmss} + \cnt{sphincs}$ raw signatures, $\cnt{rows}$ blobs held directly (the rows of
+at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
+\cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
+(a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
+the fifth):
 \begin{center}\small
 \begin{tabular}{lrrrr}
 \toprule
-Family & $\cnt{child}$ & $\cnt{xmss} + \cnt{sphincs}$ & $\cnt{rows}$ & claims\\\midrule
+Family & $\cnt{child}$ & $\cnt{xmss} + \cnt{sphincs}$ & $\cnt{rows}$ & slots\\\midrule
 recursion & any & $0$ & $0$ & $2048$\\
 leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 & $\le 8$ & $0$ & $0$ & $2^{15}$\\
@@ -706,7 +708,6 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 & $\le 4$ & $0$ & $\le 32$ & $8192$\\
 & $\le 2$ & $\le 256$ & $\le 32$ & $8192$\\
 & $\le 2$ & $0$ & $\le 32$ & $2^{14}$\\
-& $0$ & $0$ & $\le 32$ & $2^{15}$\\
 \bottomrule
 \end{tabular}
 \end{center}

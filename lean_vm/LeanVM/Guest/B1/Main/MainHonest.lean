@@ -35,7 +35,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.Hints (claimCells daPick)
-open LeanVM.Guest.Coverage (heldDirectly)
+
 
 @[expose] public section
 
@@ -43,9 +43,12 @@ variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
 /-! ## Counts -/
 
-/-- The raw claims, held by witnesses. -/
-def hRawX : List (LeanXmssClaim × LeanXmss.Signature) := heldDirectly s.claims.xmss w.xmssHolders
-def hRawS : List (LeanSphincsClaim × Sphincs.Signature) := heldDirectly s.claims.sphincs w.sphincsHolders
+/-- The raw signatures with their claims (the statement a parameter, as every name of an honest
+run has one). -/
+def hRawX (_ : NodeStatement) (w : NodeWitness) : List (LeanXmssClaim × LeanXmss.Signature) :=
+  w.xmssSignatures
+def hRawS (_ : NodeStatement) (w : NodeWitness) : List (LeanSphincsClaim × Sphincs.Signature) :=
+  w.sphincsSignatures
 
 /-- Child `c`'s claims' counts. -/
 def hEx (c : ℕ) : ℕ := (w.children.map (·.statement.claims.xmss.length)).getD c 0

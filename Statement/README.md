@@ -163,10 +163,10 @@ theorems, then read the files in this order.
     (`NodeStatement`: leanXMSS and leanSPHINCS claims, a DA digest, a claim it defers on the guest
     program's bytecode) and the statement's digest under a seed (`statementDigest`, Keccak-256 of
     `statementPreimage`, the node's public input); its witnesses (`NodeWitness`: children carrying
-    proofs, a holder for each signature claim, the blob matrix it checks, the batching's hints),
+    proofs, raw signatures with their claims, the blob matrix it checks, the batching's hints),
     **`LeanVM.Node.NodeRelation`**, the witnesses holding the claims, as four conditions, each
-    defined right after it (`SignatureClaimsHeld`: every leanXMSS and leanSPHINCS claim held by a
-    raw signature or a child; `DaDigestHeld`: the DA digest that of the blob matrix the node checks,
+    defined right after it (`SignatureClaimsHeld`: every raw signature verifies, and every leanXMSS
+    and leanSPHINCS claim is a raw signature's or in a child's list; `DaDigestHeld`: the DA digest that of the blob matrix the node checks,
     zeros or a child's; `ChildrenProven`: every child's proof accepted by the deferring verifier;
     `DeferredClaimBatched`: the deferred claim the batching of the children's, and so of the
     bytecode's shape); then a decoding (`SeedStatementAndWitness`: a seed, a statement, a witness) and
@@ -190,7 +190,8 @@ theorems, then read the files in this order.
     (`DeferredClaim`), and the batching of the children's deferred claims as a verifier program
     (`Batch.nodeBatchingProgram`, run from the batching's seed by `runBatching`).
 15. [`LeanVmGuestCompleteness.lean`](LeanVmGuestCompleteness.lean): the guest program's deployed
-    limits (`DeployedLimits`, with the coverage table's slots, `Coverage`), the nodes the deployed
+    limits (`DeployedLimits`: the declared claims a sub-multiset of those made, at most `16`
+    children, the coverage table's slots, `coverageSlots`, below `2^16`), the nodes the deployed
     budget covers (`CoveredNode`), the leanVM verifier refusing a zero challenge
     (`verifierRefusingZero`, `VerifierProgram.refusingZeroChallenge`),
     **`LeanVM.Guest.Completeness.HonestProofRarelyRefused`** (in the random-permutation model), a
@@ -315,7 +316,7 @@ execution within its budget. The program is that decoder compiled
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `786000`) limits any program; it is the compiled
-decoder's size, `785688` (proved at most that and measured exactly), and a slack of `312`: room for
+decoder's size, `785561` (proved at most that and measured exactly), and a slack of `439`: room for
 one leanXMSS signature's encoding (`309`) beside its code but not two, so no useful table of
 witnesses (hard-coded signatures masking a bug of the guest program on finitely many statements)
 fits there. That size counts the guest program's per-function tables, literals of the program, in
@@ -332,7 +333,7 @@ one that derived the frame-cell table at run time instead of carrying it would f
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above
 the closed-form price `lean_vm` proves of the compiled decoder (`lean_vm/LeanVM/Cost/Prices.lean`,
-within `0.21` to `1.23` bits of it, about `0.55` to `0.65` at the six points below): a price per
+within `0.22` to `1.25` bits of it, about `0.55` to `0.65` at the six points below): a price per
 step of the run (the replay and the filing of the state in the table of function entries, its share
 of one sort, `2^20.41` to `2^20.75` against the budget's `2^21` to `2^21.3`, growing as
 `log(steps)`); the sorted table of the memory's addresses, at the execution's `κ`; and the witness

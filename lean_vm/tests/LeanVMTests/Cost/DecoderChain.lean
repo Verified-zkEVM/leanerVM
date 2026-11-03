@@ -183,16 +183,6 @@ open LeanVM.Guest.Fast in
 #guard runOn countInC.costDeps countInC.costIdx [encodeValue (coverTable pairs7).1,
   encodeValue (3 : ℕ), encodeValue (6 : ℕ)] == some (encodeValue (5 : ℕ))
 
--- The first child whose running count passes a mark, by the running maxima.
-open LeanVM.Guest.Fast in
-#guard (List.range 10).all fun e ↦
-  kidIn (prefixMax 0 [2, 1, 5, 4, 7]).toArray e ==
-    (((List.range 5).find? fun c ↦ e < [2, 1, 5, 4, 7].getD c 0).getD 0)
-open LeanVM.Guest.Fast in
-#guard runOn (kidInC.costDeps ++ prefixMaxC.costDeps) kidInC.costIdx
-  [encodeValue (prefixMax 0 [2, 1, 5, 4, 7]).toArray, encodeValue (4 : ℕ)] ==
-  some (encodeValue (2 : ℕ))
-
 -- A region's table off the memory: the mark of slot `s` at `cover = 1` is `gLog (g^(s+1))`.
 #guard runOn (regionTableC.costDeps ++ smallReaderC.costDeps) regionTableC.costIdx
   [dlTables, rdVal, encodeValue (1 : E), encodeValue (2 : ℕ), encodeValue (3 : ℕ)] ==

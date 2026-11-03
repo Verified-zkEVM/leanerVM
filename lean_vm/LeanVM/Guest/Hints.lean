@@ -47,11 +47,10 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 Choices the witness does not fix, made as the Rust makes them:
 
 * **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1508-1518`): the raw signatures
-  first, in the statement's order, then every child's claims, child by child; a claim takes its
+  first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
+  sorted and deduplicated, `aggregation.rs:1703-1707`), then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
   strictly sorted, where the first free match is the slot `binary_search` finds.
-* **Holders**: the raw signatures are the claims held `.signature`; a claim held through a child
-  takes the slot of the first child making it, whichever child its holder names.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
 
 What the bump allocator hands out is not a hint: the interpreter's allocator chooses it.
@@ -375,8 +374,8 @@ def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
 /-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
-  let rawX := heldDirectly s.claims.xmss w.xmssHolders
-  let rawS := heldDirectly s.claims.sphincs w.sphincsHolders
+  let rawX := w.xmssSignatures
+  let rawS := w.sphincsSignatures
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
