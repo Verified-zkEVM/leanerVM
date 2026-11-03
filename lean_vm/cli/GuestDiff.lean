@@ -6,6 +6,7 @@ import LeanVM.Guest.Expand
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
 import LeanVM.Guest.Code
+import LeanVM.Guest.B1.Da.DualMath
 
 /-!
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
