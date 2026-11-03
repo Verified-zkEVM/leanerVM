@@ -95,10 +95,10 @@ theorem xs_lt {i : ℕ} (hi : i < (hRawX s w).length) : (slotsOf (xPlan s w)).ge
 
 theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.Signature) {i : ℕ}
     (hi : i < (hRawX s w).length) :
-    leanXmssVerifyWithKeccak ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
+    LeanXmss.verifyWithKeccak ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hi]
-  exact direct_held (H := ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss w.children) (P := fun c σ => leanXmssVerifyWithKeccak c.1 c.2 σ = true)
+  exact direct_held (H := ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss w.children) (P := fun c σ => LeanXmss.verifyWithKeccak c.1 c.2 σ = true)
     (fun _ _ h => h) hn.1.1 _ (List.getElem_mem hi)
 
 theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
@@ -170,10 +170,10 @@ theorem ss_lt {j : ℕ} (hj : j < (hRawS s w).length) : (slotsOf (sPlan s w)).ge
 
 theorem ss_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphincs.Signature) {j : ℕ}
     (hj : j < (hRawS s w).length) :
-    leanSphincsVerifyWithKeccak ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
+    Sphincs.verifyWithKeccak ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2 =
       true := by
   rw [List.getD_eq_getElem _ _ hj]
-  exact direct_held (H := ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children) (P := fun c σ => leanSphincsVerifyWithKeccak c.1 c.2 σ = true)
+  exact direct_held (H := ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children) (P := fun c σ => Sphincs.verifyWithKeccak c.1 c.2 σ = true)
     (fun _ _ h => h) hn.1.2 _ (List.getElem_mem hj)
 
 theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}

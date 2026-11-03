@@ -276,7 +276,7 @@ theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : Sphinc
     (m : Sphincs.Message) (sig : Sphincs.Signature) (hm : MemOK rd 256) (hbb : ByteBits rd bb)
     (hat : ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)))
-    (hv : Node.leanSphincsVerifyWithKeccak pk m sig = true) :
+    (hv : Sphincs.verifyWithKeccak pk m sig = true) :
     ∃ σf : Val, σf (.n 0) = p ∧ σf (.n 1) = bb ∧
       Stmt.HoldsList C rd σf Data.core20.body False (fun rs => rs = []) ∧
       SFinal rd σf (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))

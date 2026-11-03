@@ -119,6 +119,15 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
   unfold LeanXmss.Verification.verify
   rfl
 
+/-- `LeanXmss.verifyWithKeccak`, restated, so that it compiles with `verify` above. -/
+def verifyWithKeccak (publicKey : HashSig.PublicKey) (message : HashSig.Message)
+    (signature : LeanXmss.Signature) : Bool :=
+  Id.run (LeanXmss.Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey message
+    signature)
+
+/-- `LeanXmss.verifyWithKeccak` compiles as its restatement. -/
+@[csimp] theorem verifyWithKeccak_eq : @LeanXmss.verifyWithKeccak = @verifyWithKeccak := rfl
+
 end Xmss
 
 /-! ## leanSPHINCS -/
@@ -160,6 +169,15 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
 @[csimp] theorem verify_eq : @_root_.Sphincs.Verification.verify = @verify := by
   unfold _root_.Sphincs.Verification.verify
   rfl
+
+/-- `Sphincs.verifyWithKeccak`, restated, so that it compiles with `verify` above. -/
+def verifyWithKeccak (publicKey : HashSig.PublicKey) (message : HashSig.Message)
+    (signature : _root_.Sphincs.Signature) : Bool :=
+  Id.run (_root_.Sphincs.Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey
+    message signature)
+
+/-- `Sphincs.verifyWithKeccak` compiles as its restatement. -/
+@[csimp] theorem verifyWithKeccak_eq : @_root_.Sphincs.verifyWithKeccak = @verifyWithKeccak := rfl
 
 end Sphincs
 

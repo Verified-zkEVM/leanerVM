@@ -122,17 +122,17 @@ theorem keccakBits_eq (input : List UInt8) : keccakBits input = digestBits (kecc
 
 end With
 
-/-- leanXMSS verification with Keccak-256 is `leanXmssVerifyWithKeccak`. -/
+/-- leanXMSS verification with Keccak-256 is `LeanXmss.verifyWithKeccak`. -/
 theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
-    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = leanXmssVerifyWithKeccak pk message σ := by
+    Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = LeanXmss.verifyWithKeccak pk message σ := by
   rw [xmssVerify_eq_withHash]
   rfl
 
-/-- leanSPHINCS verification with Keccak-256 is `leanSphincsVerifyWithKeccak`. -/
+/-- leanSPHINCS verification with Keccak-256 is `Sphincs.verifyWithKeccak`. -/
 theorem sphincsVerifyWith_id (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = leanSphincsVerifyWithKeccak pk message σ := by
+    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = Sphincs.verifyWithKeccak pk message σ := by
   rw [sphincsVerify_eq_withHash]
   rfl
 

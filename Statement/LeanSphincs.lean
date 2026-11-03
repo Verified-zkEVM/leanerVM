@@ -606,6 +606,10 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
 
 end Verification
 
+/-- **leanSPHINCS verification as deployed**: over Keccak-f[1600], the hash Keccak-256. -/
+def verifyWithKeccak (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
+  Id.run (Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey message signature)
+
 /-! #### Pruning -/
 
 section Pruning

@@ -139,7 +139,7 @@ theorem sVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
     exact absurd hv (h v)
 
 theorem sphincsVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    Node.leanSphincsVerifyWithKeccak pk msg σ = true ↔
+    Sphincs.verifyWithKeccak pk msg σ = true ↔
       ∃ leaf, @otsLeafWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter
           (digestLeafIndex (@messageDigestWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter msg
             σ.randomizer))

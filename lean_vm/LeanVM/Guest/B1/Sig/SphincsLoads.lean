@@ -216,7 +216,7 @@ def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
     (sig : Sphincs.Signature), MemOK rd 256 → ByteBits rd bb →
     ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
       (cellOf128 (m.extractLsb' 128 128)) →
-    Node.leanSphincsVerifyWithKeccak pk m sig = true →
+    Sphincs.verifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
         Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = []) ∧
         ∀ es vs, walk σ Data.core20.body = .ret es vs → ∀ A ∈ loadAddrs σ es,

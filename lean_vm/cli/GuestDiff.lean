@@ -239,10 +239,10 @@ def nodeRel (c : Case) : List (String × Bool) :=
       (s!"child {i}'s proof verifies", verifyDeferred bytecode c.seed (statementDigest c.seed ch.statement)
         ch.freshClaim ch.proof)]) ++
   held w.children "leanXMSS" s.claims.xmss w.xmssHolders (fun cl σ
-      => leanXmssVerifyWithKeccak cl.1 cl.2 σ)
+      => LeanXmss.verifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
   held w.children "leanSPHINCS" s.claims.sphincs w.sphincsHolders (fun cl σ
-      => leanSphincsVerifyWithKeccak cl.1 cl.2 σ)
+      => Sphincs.verifyWithKeccak cl.1 cl.2 σ)
     (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
   (match w.daMatrix with
     | some (cl, m) =>

@@ -75,17 +75,17 @@ namespace Node
 /-- leanXMSS verification over Keccak-f[1600] is the hash-query verification with `keccakBits`. -/
 theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
-    leanXmssVerifyWithKeccak pk message σ =
+    LeanXmss.verifyWithKeccak pk message σ =
       Id.run (@LeanXmss.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [leanXmssVerifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
+  rw [LeanXmss.verifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 /-- leanSPHINCS verification over Keccak-f[1600] is the hash-query verification with
 `keccakBits`. -/
 theorem sphincsVerify_eq_withHash (pk : Sphincs.PublicKey) (message : Sphincs.Message)
     (σ : Sphincs.Signature) :
-    leanSphincsVerifyWithKeccak pk message σ =
+    Sphincs.verifyWithKeccak pk message σ =
       Id.run (@Sphincs.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [leanSphincsVerifyWithKeccak, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
+  rw [Sphincs.verifyWithKeccak, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 end Node
 

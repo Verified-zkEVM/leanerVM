@@ -169,10 +169,10 @@ def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeSta
   s.deferredClaim.HasBytecodeShape bytecode ∧
   (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
-  List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true)
+  List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true)
     NodeClaims.xmss w.children) s.claims.xmss w.xmssHolders ∧
   List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦
-      leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children)
+      Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs w.children)
     s.claims.sphincs w.sphincsHolders ∧
   (match w.daMatrix with
     | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipVectorDigest

@@ -89,7 +89,7 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
 theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ leanXmssVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
+    List.Forall₂ (ClaimIsHeld (fun (c : LeanXmssClaim) σ ↦ LeanXmss.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.xmss (kidsOf rd σ wV)) (decStmt σ rd).claims.xmss
       (decWit σ rd wX wS wD wV wA).xmssHolders := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -111,7 +111,7 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
     have hsk : s = k := by rw [hC.uniq s (by omega) m hmT hl, hslm]
     subst hsk
     obtain ⟨a, b, c, d, hat, hv⟩ := cw.xmss _ hcall
-    show leanXmssVerifyWithKeccak (xmssAt rd (σ (.n 53)) s).1 (xmssAt rd (σ (.n 53)) s).2 _ = true
+    show LeanXmss.verifyWithKeccak (xmssAt rd (σ (.n 53)) s).1 (xmssAt rd (σ (.n 53)) s).2 _ = true
     unfold xmssAt
     rw [slot_claimAt hat]
     exact hv
@@ -140,7 +140,7 @@ theorem xmss_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E �
 theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
-    List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ leanSphincsVerifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
+    List.Forall₂ (ClaimIsHeld (fun (c : LeanSphincsClaim) σ ↦ Sphincs.verifyWithKeccak c.1 c.2 σ = true) NodeClaims.sphincs (kidsOf rd σ wV)) (decStmt σ rd).claims.sphincs
       (decWit σ rd wX wS wD wV wA).sphincsHolders := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
@@ -167,7 +167,7 @@ theorem sphincs_held {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E
     have hsk : s = k := by have := hC.uniq _ (by omega) m hmT hl; omega
     subst hsk
     obtain ⟨a, b, c, d, hat, hv⟩ := cw.sphincs _ hcall MF.bytes
-    show leanSphincsVerifyWithKeccak (sphincsAt rd (σ (.n 56)) s).1 (sphincsAt rd (σ (.n 56)) s).2 _ = true
+    show Sphincs.verifyWithKeccak (sphincsAt rd (σ (.n 56)) s).1 (sphincsAt rd (σ (.n 56)) s).2 _ = true
     unfold sphincsAt
     rw [slot_claimAt hat]
     exact hv

@@ -226,10 +226,10 @@ holder, a raw signature that verifies at any leaf index or a child whose stateme
 claim; likewise for leanSPHINCS. Holders need not differ: one child may hold several claims. -/
 def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   List.Forall₂ (ClaimIsHeld (fun (claim : LeanXmssClaim) signature ↦
-      leanXmssVerifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.xmss witness.children)
+      LeanXmss.verifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.xmss witness.children)
     statement.claims.xmss witness.xmssHolders ∧
   List.Forall₂ (ClaimIsHeld (fun (claim : LeanSphincsClaim) signature ↦
-      leanSphincsVerifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.sphincs
+      Sphincs.verifyWithKeccak claim.1 claim.2 signature = true) NodeClaims.sphincs
       witness.children)
     statement.claims.sphincs witness.sphincsHolders
 
@@ -241,17 +241,6 @@ def ClaimIsHeld {Claim Signature : Type} (holds : Claim → Signature → Prop)
   | .signature signature => holds claim signature
   | .child childIndex =>
     ∃ child, children[childIndex]? = some child ∧ claim ∈ claimsOf child.statement.claims
-
-/-- leanXMSS verification over Keccak-f[1600], the hash Keccak-256. The leaf index is the
-signature's. -/
-def leanXmssVerifyWithKeccak (publicKey : HashSig.PublicKey) (message : HashSig.Message)
-    (signature : LeanXmss.Signature) : Bool :=
-  Id.run (LeanXmss.Verification.verify (m := Id) keccakF1600 publicKey message signature)
-
-/-- leanSPHINCS verification over Keccak-f[1600], the hash Keccak-256. -/
-def leanSphincsVerifyWithKeccak (publicKey : Sphincs.PublicKey) (message : Sphincs.Message)
-    (signature : Sphincs.Signature) : Bool :=
-  Id.run (Sphincs.Verification.verify (m := Id) keccakF1600 publicKey message signature)
 
 /-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,

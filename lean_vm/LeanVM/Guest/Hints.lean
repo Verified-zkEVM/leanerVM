@@ -41,8 +41,8 @@ deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
 (`Verifier.announcedLayoutAndRate`), and the query positions are those of the compiled run itself,
 recorded by `recordQueries`, which rewrites a program to return its queries and changes nothing
 else. The bytecode enters only through its length, as in `verifyDeferred`. A signature's hints are
-its scheme's own definitions, over Keccak-f[1600] (as `leanXmssVerifyWithKeccak` and
-`leanSphincsVerifyWithKeccak` take them).
+its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak` and
+`Sphincs.verifyWithKeccak` take them).
 
 Choices the witness does not fix, made as the Rust makes them:
 

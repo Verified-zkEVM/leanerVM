@@ -265,6 +265,11 @@ def verify (publicKey : PublicKey) (message : Message) (signature : Signature) :
 
 end Verification
 
+/-- **leanXMSS verification as deployed**: over Keccak-f[1600], the hash Keccak-256. The leaf index
+is the signature's. -/
+def verifyWithKeccak (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
+  Id.run (Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey message signature)
+
 namespace KeyGenerationAndSigning
 
 open Verification HashSig.OverPermutation
