@@ -21,9 +21,9 @@ skeletons) and `traceSizes prog input t` (the sizes it carries, `witnessSizes`),
 `stackOf prog s w`. The executable prover runs `witness?` (`Statement/Prover/Columns.lean`).
 
 * `checkTrace_iff` (`WitnessRun.lean`): `checkTrace` is a valid execution whose committed size is
-  at most `2^28`; `isSome_witness?`: `witness?` returns exactly when it holds.
-* `witness?_spec`: then `witness?` returns data meeting `WitnessSpec`: the memory log-size and
-  row counts of `traceSizes`, `μ = leanIsaμ`, every column at its Python number the instance's
+  at most `2^28`; `isSome_witness?_iff`: `witness?` returns exactly when it holds.
+* `witness?_spec`: then `witness?` returns data meeting `WitnessSpec`: the row counts of
+  `traceSizes`, the verifier's layout of them, every column at its Python number the instance's
   column of `stackOf` (the `KECCAK` output lanes included), the stack `stackOf`'s cells, and the
   announcement `announce`.
 * `childFor_trace`: the specification witness at its sizes is a child's witness at every valid
@@ -129,18 +129,15 @@ theorem childFor_trace (hv : ValidExecution prog input t)
 
 /-! ## The executable data -/
 
-/-- **What the executable data of an execution is**: the sizes of the specification witness
-(`traceSizes`), its stack's number of variables, every column of the instance read off its stack
-by Python column number, the stack's cells, and the announcement. -/
-structure WitnessSpec (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (W :
-    Witness) :
-    Prop where
-  /-- The memory log-size. -/
-  logMem : W.logMem = (traceSizes prog input t).logMem
+/-- **What the executable data of an execution is**: the row counts of the specification
+witness (`traceSizes`), the verifier's layout of its sizes, every column of the instance read off
+its stack by Python column number, the stack's cells, and the announcement. -/
+structure WitnessSpec (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
+    (W : Witness) : Prop where
   /-- The six row counts. -/
   rows : W.rows = List.ofFn (traceSizes prog input t).rows
-  /-- The stack's number of variables. -/
-  μ : W.μ = leanIsaμ prog (traceSizes prog input t)
+  /-- The verifier's layout. -/
+  layout : W.layout = verifierLayout prog (traceSizes prog input t)
   /-- Every column, the `KECCAK` output lanes included. -/
   cols : ∀ c : Col, W.cols.getD (pyCol c) #[] =
     ((inst prog (traceSizes prog input t)).column
@@ -151,28 +148,15 @@ structure WitnessSpec (prog : LeanIsaProgram) (input : PublicInput) (t : Executi
   /-- The announced sizes and rate. -/
   announce : ∀ ρ, W.announce ρ = LeanVM.Protocol.EndToEnd.Front.announce (traceSizes prog input t) ρ
 
-/-- The executable column log-sizes are the instance's. -/
-theorem kappas_trace (hv : ValidExecution prog input t) :
-    columnKappas t.logMemorySize prog.logSize (tableLogsOf ((traceRows t).tabs.toList.map (·.size))) =
-      pyKappas prog (traceSizes prog input t) := by
-  rw [logs_trace hv, ← logMem_trace hv]
-  rfl
-
-/-- **The data built from a valid run is the specification's.** -/
+/-- **The data built from a valid run at the verifier's layout is the specification's.** -/
 theorem buildWitness_spec (hv : ValidExecution prog input t) :
-    WitnessSpec prog input t (buildWitness prog t (powIndex t.logMemorySize) (traceSteps t).toArray) := by
-  have hk := kappas_trace hv
-  have hμ : (placementsOf (columnKappas t.logMemorySize prog.logSize
-      (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))).2 =
-      leanIsaμ prog (traceSizes prog input t) := by
-    rw [hk]; exact placementsOf_snd prog _
-  refine ⟨logMem_trace hv |>.symm, rowsList_trace hv, hμ, cols_trace hv, ?_, fun ρ ↦ ?_⟩
-  · show stackArray (placementsOf (columnKappas t.logMemorySize prog.logSize
-        (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))).2
-      (colsOf t.memory (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))
-      (stackOrderOf (columnKappas t.logMemorySize prog.logSize
-        (tableLogsOf ((traceRows t).tabs.toList.map (·.size))))) = _
-    rw [hμ, hk, stackOrderOf_pyKappas]
+    WitnessSpec prog input t
+      (buildWitness t.memory (traceRows t) (verifierLayout prog (traceSizes prog input t))) := by
+  refine ⟨rowsList_trace hv, rfl, cols_trace hv, ?_, fun ρ ↦ ?_⟩
+  · show stackArray (verifierLayout prog (traceSizes prog input t)).stackLog
+      (colsOf t.memory (traceRows t) (tableLogs (traceSizes prog input t)))
+      (stackOrderOf (pyKappas prog (traceSizes prog input t))) = _
+    rw [stackLog_verifierLayout, stackOrderOf_pyKappas]
     refine stackArray_eq _ _ _ fun c hc ↦ ?_
     have hmem : c ∈ committedColumns := List.mem_mergeSort.mp hc
     have hnv : ¬ IsVirtual c := by
@@ -181,42 +165,61 @@ theorem buildWitness_spec (hv : ValidExecution prog input t) :
       exact hmem.2
     rw [cols_trace hv, traceSizes_eq hv]
     exact column_toArray_committed _ _ c hnv
-  · show ((t.logMemorySize :: (traceRows t).tabs.toList.map (·.size)) ++ [ρ]).map eOfNat = _
-    rw [rowsList_trace hv, ← logMem_trace hv]
+  · show (((traceSizes prog input t).logMem :: (traceRows t).tabs.toList.map (·.size)) ++
+      [ρ]).map eOfNat = _
+    rw [rowsList_trace hv]
     rfl
 
-/-- **The executable witness of a valid execution within the cap** is built from its run. -/
+/-- The verifier's layout of a valid execution's sizes within the cap is built. -/
+theorem buildLayout_trace (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
+    buildLayout (bytecodeWords prog) t.logMemorySize ((traceRows t).tabs.toList.map (·.size)) =
+      some (verifierLayout prog (traceSizes prog input t)) := by
+  obtain ⟨⟨-, -, -, hadm, -⟩, -⟩ := childFor_trace hv hcap (ρ := 1) ⟨le_rfl, by decide⟩
+  rw [← logMem_trace hv, rowsList_trace hv]
+  have e := buildLayout_eq prog (traceSizes prog input t)
+  rw [tableRows] at e
+  have hok : LayoutOk (traceSizes prog input t) := ⟨hadm.1, hadm.2.1, hadm.2.2.1⟩
+  simp only [e, hok, ↓reduceIte]
+
+/-- **The executable witness of a valid execution within the cap** is built from its run, at the
+verifier's layout. -/
 theorem witness?_eq (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
-    witness? prog input t = some (buildWitness prog t (powIndex t.logMemorySize) (traceSteps t).toArray) := by
+    witness? prog input t =
+      some (buildWitness t.memory (traceRows t) (verifierLayout prog (traceSizes prog input t))) := by
   unfold witness?
   rw [ite_eq_left ((boundaryOK_iff input t).mpr hv.1)]
   simp only
   rw [runSteps_eq t (κ_lt_of_valid hv), ite_eq_left hv.2]
   simp only
   rw [committedSizeOf_eq t (opCount_traceSteps hv.2), ite_eq_left (show _ ≤ maxCommitted from hcap)]
+  exact congrArg (Option.map _) (buildLayout_trace hv hcap)
 
 /-- **The executable witness** of a valid execution within the cap meets `WitnessSpec`. -/
 theorem witness?_spec (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
     ∃ W, witness? prog input t = some W ∧ WitnessSpec prog input t W :=
   ⟨_, witness?_eq hv hcap, buildWitness_spec hv⟩
 
-/-- `witness?` returns exactly when `checkTrace` holds. -/
-theorem isSome_witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
-    (witness? prog input t).isSome = checkTrace prog input t := by
-  unfold witness? checkTrace
+/-- `witness?` returns only where `checkTrace` holds. -/
+theorem checkTrace_of_isSome (h : (witness? prog input t).isSome = true) :
+    checkTrace prog input t = true := by
+  unfold witness? at h
+  unfold checkTrace
   by_cases hb : boundaryOK input t = true
-  · simp only [hb, Bool.true_and, ↓reduceIte]
-    cases runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
-    | none => rfl
+  · simp only [hb, Bool.true_and, ↓reduceIte] at h ⊢
+    cases hr : runSteps (powIndex t.logMemorySize) (powIndex prog.logSize) prog t with
+    | none => simp [hr] at h
     | some steps =>
-      by_cases h : committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted <;> simp [h]
-  · simp [hb]
+      by_cases hc : committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted
+      · simp [hc]
+      · simp [hr, hc] at h
+  · simp [hb] at h
 
 /-- `witness?` returns exactly on a valid execution within the cap. -/
 theorem isSome_witness?_iff (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) :
     (witness? prog input t).isSome = true ↔
-      ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 := by
-  rw [isSome_witness?, checkTrace_iff]
+      ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 :=
+  ⟨fun h ↦ (checkTrace_iff input t).mp (checkTrace_of_isSome h),
+    fun ⟨hv, hcap⟩ ↦ by rw [witness?_eq hv hcap]; rfl⟩
 
 end
 

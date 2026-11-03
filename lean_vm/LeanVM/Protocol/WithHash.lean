@@ -246,13 +246,10 @@ def proveWithHash {m : Type → Type} [Monad m] (H : Bytes → m Digest)
   match witness? prog input t with
   | none => pure none
   | some W =>
-    if 1 ≤ ρ ∧ ρ ≤ 4 then
-      match buildLayout (bytecodeWords prog) W.logMem W.rows with
-      | none => pure none
-      | some layout => do
-        let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
-        runScriptWithHash H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-          (honestScript W layout ρ) seed fuel
+    if 1 ≤ ρ ∧ ρ ≤ 4 then do
+      let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
+      runScriptWithHash H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
+        (honestScript W ρ) seed fuel
     else pure none
 
 end LeanVM.Prover

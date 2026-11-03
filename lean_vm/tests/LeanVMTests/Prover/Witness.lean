@@ -37,7 +37,8 @@ def toyTrace2 : Execution toyProg := ⟨16, toyImage, 2⟩
   toyTrace).map (fun st ↦ opCount st .setConstant) == some 1
 #guard
   match witness? toyProg toyInput toyTrace with
-  | some W => W.rows == [0, 0, 1, 0, 0, 0] && W.logMem == 16 && W.stack.size == 2 ^ W.μ &&
+  | some W => W.rows == [0, 0, 1, 0, 0, 0] && W.layout.logMemory == 16 &&
+      W.stack.size == 2 ^ W.layout.stackLog &&
       W.cols.size == 163 && (W.cols.getD 3 #[]).getD 2 0 == g &&
       (W.cols.getD 3 #[]).getD 3 0 == 1
   | none => false

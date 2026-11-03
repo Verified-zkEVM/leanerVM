@@ -5,8 +5,8 @@ public import Statement.Prover.Witness
 /-!
 # The columns, the sizes and the stack of an execution, executable
 
-From the rows of a run (`rowsOf`, `Witness.lean`): the tables' log-heights as `build_layout`
-computes them; every column of the instance as an array, by the verifier's global column number
+From the rows of a run (`rowsOf`, `Witness.lean`) and the verifier's layout of its sizes
+(`buildLayout`): every column of the instance as an array, by the verifier's global column number
 (`colsOf`), the `KECCAK` states computed once per row for `QKECCAK` and the output lanes; and the
 stack, the committed columns end to end in `stack_offsets`' order, zeros up to `2^μ`.
 `witness?` puts them together.
@@ -18,13 +18,6 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Extraction
 open LeanVM.Protocol.Verifier
-
-/-! ## Sizes -/
-
-/-- The tables' log-heights from their row counts: the least `h` with `rows ≤ 2^h`, at least the
-table's floor (`build_layout`, `verifier.py:977-979`). -/
-def tableLogsOf (rows : List ℕ) : List ℕ :=
-  List.zipWith (fun r floor ↦ max (log2Ceil r) floor) rows tableLogFloors
 
 /-! ## Columns -/
 
@@ -126,47 +119,45 @@ def stackArray (μ : ℕ) (cols : Array (Array K)) (order : List ℕ) : Array K 
 
 /-! ## The witness -/
 
-/-- The prover's data of an execution: the announced memory log-size and row counts, the
-stack's log-size, every column by global number, and the stack. -/
+/-- The prover's data of an execution: the announced row counts, the verifier's layout, every
+column by global number, and the stack. -/
 structure Witness where
-  /-- The memory log-size. -/
-  logMem : ℕ
   /-- The six opcode tables' row counts, in the ensemble's order. -/
   rows : List ℕ
-  /-- The stack's log-size. -/
-  μ : ℕ
+  /-- The verifier's layout of the announced sizes. -/
+  layout : Layout
   /-- Every column, by global column number. -/
   cols : Array (Array K)
-  /-- The stack, `2^μ` cells. -/
+  /-- The stack, `2 ^ layout.stackLog` cells. -/
   stack : Array K
 
-/-- The prover's data of the run `steps` of `t`. -/
-def buildWitness (prog : LeanIsaProgram) (t : Execution prog) (memIdx : Std.HashMap UInt64 ℕ)
-    (steps : Array Step) : Witness :=
-  let acc := rowsOf memIdx t.memory prog.logSize steps
-  let rows := acc.tabs.toList.map (·.size)
-  let logs := tableLogsOf rows
-  let kappas := columnKappas t.logMemorySize prog.logSize logs
-  let μ := (placementsOf kappas).2
-  let cols := colsOf t.memory acc logs
-  ⟨t.logMemorySize, rows, μ, cols, stackArray μ cols (stackOrderOf kappas)⟩
+/-- The prover's data of the rows `acc` of a run on the memory `img`, at the layout `layout`. -/
+def buildWitness {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (layout : Layout) : Witness :=
+  let cols := colsOf img acc layout.tableLogHeights
+  let order :=
+    stackOrderOf (columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights)
+  ⟨acc.tabs.toList.map (·.size), layout, cols, stackArray layout.stackLog cols order⟩
 
 /-- **The prover's data of an execution**: `none` unless the trace has the public boundary of
-`input`, its run ends in the final state, and its committed size is at most `2^28`. -/
+`input`, its run ends in the final state, its committed size is at most `2^28`, and its sizes pass
+`build_layout`. -/
 def witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then
     let memIdx := powIndex t.logMemorySize
     match runSteps memIdx (powIndex prog.logSize) prog t with
     | some steps =>
       if committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted then
-        some (buildWitness prog t memIdx steps)
+        let acc := rowsOf memIdx t.memory prog.logSize steps
+        (buildLayout (bytecodeWords prog) t.logMemorySize (acc.tabs.toList.map (·.size))).map
+          (buildWitness t.memory acc)
       else none
     | none => none
   else none
 
 /-- The eight scalars announcing the sizes and the rate `ρ` (`announce`): the memory log-size,
 the six row counts, the rate, each the Python's `E(n)`. -/
-def Witness.announce (W : Witness) (ρ : ℕ) : List E := (W.logMem :: W.rows ++ [ρ]).map eOfNat
+def Witness.announce (W : Witness) (ρ : ℕ) : List E :=
+  (W.layout.logMemory :: W.rows ++ [ρ]).map eOfNat
 
 end LeanVM.Prover
 

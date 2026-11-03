@@ -240,22 +240,24 @@ attribute [local irreducible] Corr Script.bind Script.NoQuery Script.AllRet hBus
 sizes and its stack. -/
 theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
     {ρ : ℕ} (hρ : validRate ρ) {W : Witness} (hW : WitnessSpec prog input t W) :
-    Corr (fun _ _ ↦ True) (honestScript W (verifierLayout prog (traceSizes prog input t)) ρ)
+    Corr (fun _ _ ↦ True) (honestScript W ρ)
       (LeanVM.Protocol.EndToEnd.Complete.honestProver prog (traceSizes prog input t) ρ
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t))
         (leanVmPhases prog (traceSizes prog input t)
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t)))) := by
   obtain ⟨⟨-, hw, hs, hadm, -⟩, -⟩ := childFor_trace hv hcap hρ
-  obtain ⟨-, -, hWμ, hWcols, hWstack, hWann⟩ := hW
-  generalize traceSizes prog input t = s at hWμ hWcols hWstack hWann hw hs hadm ⊢
+  obtain ⟨-, hWL, hWcols, hWstack, hWann⟩ := hW
+  unfold honestScript
+  rw [hWL]
+  generalize traceSizes prog input t = s at hWcols hWstack hWann hw hs hadm ⊢
   generalize traceWitness prog input t = w at hWcols hWstack hw hs ⊢
   have hq := m3Honest_stackOf hw hs
   generalize stackOf prog s w = q at hWcols hWstack hq ⊢
   have hP := leanVmPhases_honest hadm hq
   have hμ : leanIsaμ prog s ≤ 64 := by have := hadm.2.2.2; unfold maxMu at this; omega
   have hcols : ColsOk prog s q W.cols := hWcols
-  unfold honestScript LeanVM.Protocol.EndToEnd.Complete.honestProver honestRun
-  simp only [Script.bind_eq, Script.bind_assoc', hWann, hWμ, hWstack,
+  unfold LeanVM.Protocol.EndToEnd.Complete.honestProver honestRun
+  simp only [Script.bind_eq, Script.bind_assoc', hWann, stackLog_verifierLayout, hWstack,
     Enc.stackWordFast_eq hμ]
   refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ ?_
   -- the bus
@@ -310,18 +312,6 @@ section Prove
 
 variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 
-/-- The prover's layout is the verifier's, at the execution's sizes. -/
-theorem buildLayout_witness (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
-    {W : Witness} (hW : WitnessSpec prog input t W) :
-    buildLayout (bytecodeWords prog) W.logMem W.rows =
-      some (verifierLayout prog (traceSizes prog input t)) := by
-  obtain ⟨⟨-, -, -, hadm, -⟩, -⟩ := childFor_trace hv hcap (ρ := 1) ⟨le_rfl, by decide⟩
-  rw [hW.logMem, hW.rows]
-  have e := buildLayout_eq prog (traceSizes prog input t)
-  rw [tableRows] at e
-  have hok : LayoutOk (traceSizes prog input t) := ⟨hadm.1, hadm.2.1, hadm.2.2.1⟩
-  simp only [e, hok, ↓reduceIte]
-
 /-- **The prover with the oracle calls is the specification** at the execution's witness: on a
 valid execution within the cap at a valid rate, `proveWithHash callKeccak256 callKeccakF1600` is
 `Rom.honestComp?` of the specification's honest strategy at `skelWitness`, its sizes and its
@@ -334,8 +324,7 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
         (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
   obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
-  have hL := buildLayout_witness hv hcap hspec
-  simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, hL, Rom.honestComp?,
+  simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, Rom.honestComp?,
     seedRun_leanVmSeed]
   refine congrArg (fun k : KeccakState → OracleComp KeccakCalls (Option Proof) ↦
     seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) >>= k)

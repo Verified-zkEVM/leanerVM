@@ -235,18 +235,17 @@ Python number of an instance column are that column of the stack of the specific
 at its sizes: the committed columns, the `KECCAK` input lanes and spare columns, and the derived
 `KECCAK` output lanes. -/
 theorem cols_trace (hv : ValidExecution prog input t) (c : Col) :
-    (colsOf t.memory (traceRows t) (tableLogsOf ((traceRows t).tabs.toList.map (·.size)))).getD
-        (pyCol c) #[] =
+    (colsOf t.memory (traceRows t) (tableLogs (traceSizes prog input t))).getD (pyCol c) #[] =
       ((inst prog (traceSizes prog input t)).column
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t)) c).values.toArray := by
-  rw [colsOf_getD _ _ _ _ (pyCol_lt c)]
-  have hl : ∀ j (hj : j < 6), (tableLogsOf ((traceRows t).tabs.toList.map (·.size))).getD j 0 =
-      (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).τ ⟨j, hj⟩ := by
+  rw [colsOf_getD _ _ _ _ (pyCol_lt c), traceSizes_eq hv]
+  have hl : ∀ j (hj : j < 6),
+      (tableLogs (witnessSizes (traceWitness prog input t) (traceWitness_pos hv))).getD j 0 =
+        (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)).τ ⟨j, hj⟩ := by
     intro j hj
-    rw [← traceSizes_eq hv]
-    exact logs_getD hv ⟨j, hj⟩
-  generalize tableLogsOf ((traceRows t).tabs.toList.map (·.size)) = logs at hl
-  rw [traceSizes_eq hv]
+    rw [tableLogs, List.getD_eq_getElem?_getD, List.getElem?_ofFn]
+    simp [hj]
+  generalize tableLogs (witnessSizes (traceWitness prog input t) (traceWitness_pos hv)) = logs at hl
   have hI := rowsInv_trace hv
   rcases c with ⟨⟨j, hj⟩, i⟩
   match j, hj, i with
