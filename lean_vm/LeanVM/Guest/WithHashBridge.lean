@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Guest.WithHash
 public import LeanDa.WithHashBridge
+public import LeanDa.Commitment
 public import Common.WithHash
 public import Sphincs.WithHash
 public import LeanVM.Guest.AcceptableChild
@@ -23,7 +24,7 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
 
 * the batching's run, the verifier refusing a zero challenge, the deferring verifier refusing a zero
   challenge, the openings' climb (`runBatching_deployed`, …);
-* LeanDA's commitment and vector digest (`commitCodewords_keccakF1600`, `vectorDigest_keccakF1600`);
+* LeanDA's commitment and vector digest (`commitCells_keccakF1600`, `vectorDigest_keccakF1600`);
 * the signature schemes' verification (`xmssVerify_eq_withHash`, `sphincsVerify_eq_withHash`): the
   schemes read a digest as a 256-bit number through its 32 bytes
   (`Common.SufCma.digestBytesEquivBitVec`),
@@ -94,10 +95,14 @@ namespace Da
 /-- LeanDA's hash over Keccak-f[1600] is Keccak-256 as LeanDA's hash. -/
 theorem hashOver_keccakF1600 : LeanDa.hashOver keccakF1600 = keccak256Bytes := rfl
 
-theorem commitCodewords_keccakF1600 (rows : List (List K)) :
-    LeanDa.commitCodewords keccakF1600 rows = LeanDa.commitCodewordsWithHash keccak256Bytes rows :=
-      by
-  rw [LeanDa.commitCodewords_eq_withHash, hashOver_keccakF1600]
+/-- The statement's commitment to the matrix of codewords `rows` is the crate's, computed level by
+level (`LeanDa.commitCodewords_eq_commitCells`). -/
+theorem commitCells_keccakF1600 (rows : List (List K))
+    (hrows : ∀ row ∈ rows, row.length = 2 ^ LeanDa.logM) :
+    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows rows) =
+      LeanDa.commitCodewordsWithHash keccak256Bytes rows := by
+  rw [LeanDa.commitCells_eq_withHash, hashOver_keccakF1600,
+    LeanDa.commitCodewords_eq_commitCells _ rows hrows]
 
 theorem vectorDigest_keccakF1600 (vector : List E) :
     LeanDa.vectorDigest keccakF1600 vector = LeanDa.vectorDigestWithHash keccak256Bytes vector := by

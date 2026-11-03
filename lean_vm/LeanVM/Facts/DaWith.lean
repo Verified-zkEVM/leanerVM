@@ -42,21 +42,21 @@ variable {m : Type → Type} [Monad m] (HD : List UInt8 → m Common.DigestBytes
 
 /-! ### The commitment -/
 
-/-- `LeanDa.listCellDigest` with the hash `HD`. -/
+/-- `LeanDa.listCellDigestWithHash` with the hash `HD`. -/
 def listCellDigestWith (row : List K) (j : ℕ) : m Common.DigestBytes :=
-  HD ((LeanDa.listCell row j).flatMap LeanDa.symbolBytes)
+  HD ((LeanDa.listCell row j).flatMap K.toBytes)
 
-/-- `LeanDa.rowDigest` with the hash `HD`. -/
+/-- `LeanDa.rowDigestWithHash` with the hash `HD`. -/
 def rowDigestWith (row : List K) : m Common.DigestBytes := do
   let ds ← (List.range LeanDa.payloadCells).mapM fun j ↦ listCellDigestWith HD row j
   HD (ds.flatMap fun d ↦ d.toList)
 
-/-- `LeanDa.treeLevel` with the hash `HD`. -/
+/-- `LeanDa.treeLevelWithHash` with the hash `HD`. -/
 def treeLevelWith (nodes : List Common.DigestBytes) : m (List Common.DigestBytes) :=
   (List.range (nodes.length / 2)).mapM fun i ↦
     HD (LeanDa.pairBytes (nodes.getD (2 * i) default) (nodes.getD (2 * i + 1) default))
 
-/-- `LeanDa.treeRoot` with the hash `HD`, at most `fuel` levels. -/
+/-- `LeanDa.treeRootWithHash` with the hash `HD`, at most `fuel` levels. -/
 def treeRootFuel : ℕ → List Common.DigestBytes → m Common.DigestBytes
   | 0, nodes => pure (nodes.headD default)
   | fuel + 1, nodes =>
@@ -64,7 +64,7 @@ def treeRootFuel : ℕ → List Common.DigestBytes → m Common.DigestBytes
       let next ← treeLevelWith HD nodes
       treeRootFuel fuel next
 
-/-- `LeanDa.treeRoot` with the hash `HD`. -/
+/-- `LeanDa.treeRootWithHash` with the hash `HD`. -/
 def treeRootWith (nodes : List Common.DigestBytes) : m Common.DigestBytes :=
   treeRootFuel HD nodes.length nodes
 
@@ -89,7 +89,7 @@ def spongeNewWith (iv publicInput : Common.DigestBytes) : m LeanDa.Sponge := do
     else if (i : ℕ) < 8 then (LeanDa.digestWord publicInput (i - 4)).lane else 0)
   pure ⟨state, []⟩
 
-/-- `LeanDa.Sponge.fromLabelWith` with the hash `HD` and the permutation `PD`. -/
+/-- `LeanDa.Sponge.fromLabelMWithHash` with the hash `HD` and the permutation `PD`. -/
 def spongeFromLabelWith (label : List UInt8) : m LeanDa.Sponge := do
   spongeNewWith PD (← HD label) (Vector.replicate 32 0)
 
@@ -137,9 +137,9 @@ def membershipVectorWith (root : Common.DigestBytes) : m (List E) :=
 
 /-! ### The vector digest -/
 
-/-- `LeanDa.columnDigest` with the hash `HD`. -/
+/-- `LeanDa.columnDigestWithHash` with the hash `HD`. -/
 def columnDigestWith (vector : List E) (j : ℕ) : m Common.DigestBytes :=
-  HD (LeanDa.limbBytes ((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols))
+  HD (((vector.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols).flatMap E.toBytes)
 
 /-- `LeanDa.vectorDigest` with the hash `HD`: the hash of the column digests. -/
 def vectorDigestWith (vector : List E) : m Common.DigestBytes := do
@@ -169,7 +169,7 @@ section Id
 
 variable (H : List UInt8 → Common.DigestBytes) (P : KeccakState → KeccakState)
 
-/-- A tree level with the pure hash is `LeanDa.treeLevel`. -/
+/-- A tree level with the pure hash is `LeanDa.treeLevelWithHash`. -/
 theorem treeLevelWith_id (nodes : List Common.DigestBytes) :
     Id.run (treeLevelWith (m := Id) H nodes) = LeanDa.treeLevelWithHash H nodes := by
   simp only [treeLevelWith, mapM_id, LeanDa.treeLevelWithHash]
@@ -196,7 +196,7 @@ theorem treeRootFuel_id : ∀ (fuel : ℕ) (nodes : List Common.DigestBytes), no
       show Id.run (treeRootFuel (m := Id) H fuel (Id.run (treeLevelWith (m := Id) H nodes))) = _
       rw [treeLevelWith_id, treeRootFuel_id fuel _ (by omega)]
 
-/-- The tree's root with the pure hash is `LeanDa.treeRoot`. -/
+/-- The tree's root with the pure hash is `LeanDa.treeRootWithHash`. -/
 theorem treeRootWith_id (nodes : List Common.DigestBytes) :
     Id.run (treeRootWith (m := Id) H nodes) = LeanDa.treeRootWithHash H nodes :=
   treeRootFuel_id H _ nodes le_rfl

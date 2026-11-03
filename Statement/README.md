@@ -85,12 +85,14 @@ theorems, then read the files in this order.
    `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each
    lifetime, `Q` counting the honest signer's worst-case grinding too).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
-   `g`; Keccak lanes, bytes and digests as field elements.
+   `g`; Keccak lanes, bytes and digests as field elements; the Fiat-Shamir duplex sponge over a
+   permutation (`Sponge`, `absorb`, `squeeze`), which leanVM's verifier and LeanDA's membership
+   challenges share.
 8. [`LeanDa.lean`](LeanDa.lean): LeanDA (fields, Reed–Solomon rows, the Merkle commitment, the
    membership test), the parts of Benedikt Wagner's framework the end statements name (the
    consistency of opened cells), the relation of LeanDA's argument (the root's challenges drawn by
    the deployed duplex over a permutation), arguments that query the model's oracles, the commitment
-   and the challenges' duplex over a permutation, LeanDA's games in the random-permutation model,
+   and the challenges over a permutation (the challenges by `Field.lean`'s sponge), LeanDA's games in the random-permutation model,
    where the adversary, the argument (`OracleArgument`, its extractor reading the adversary's
    transcript) and the verifier query the same oracles (`RandomPermutationOracles`, hashing with
    Keccak-256 over `π`, `keccakDigestBytes queryPermutation`; position binding, code binding, the
@@ -110,7 +112,7 @@ theorems, then read the files in this order.
 10. [`LeanVmVerifier.lean`](LeanVmVerifier.lean): the verifier, `python-verifier/verifier.py`
     transcribed section by section, over any permutation in any monad, Keccak-256 the sponge over it
     (`verifyWith`), with the WHIR constants it reads, the Keccak GKR reduction, the Fiat-Shamir
-    duplex over Keccak-f[1600], the deferring verifier an aggregate runs on its children, and the
+    transcript (`Field.lean`'s duplex sponge, Merkle openings), the deferring verifier an aggregate runs on its children, and the
     sizes a stream announces (`announcedLayoutAndRate`). Where the transcription's form differs from
     the pin's without changing what it computes, its docstring gives the pin's lines and why the two
     agree.
@@ -245,7 +247,7 @@ shares with the honest prover (`powIndex`, `gLogIn`, `stepIn`, `boundaryOK`) are
 
 A few definitions carry small proofs, which are here because the definitions need them:
 decidability instances, `Fin` index bounds (`by omega`, `by decide`), and termination arguments
-(the cost machine's evaluator, `LeanDa.lean`'s tree levels).
+(the cost machine's evaluator).
 
 ## The end theorems
 

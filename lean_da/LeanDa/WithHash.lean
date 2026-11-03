@@ -28,8 +28,108 @@ set_option linter.unusedSectionVars false
 namespace LeanDa
 
 open PqDas
+open LeanVM.Parameters (K.toBytes E.toBytes)
 open LeanVM.Semantics (KeccakState)
-open LeanVM.Protocol.KeccakHash (keccak256With)
+open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
+
+/-! ## The challenges' sponge as the proofs read it
+
+`lean_da`'s proofs read the membership challenges' duplex (`verifier/src/transcript.rs:32-95`) in
+this form, LeanDA's own transcription: the tags in `K`, the root's words as symbols of its bytes.
+The statement draws the challenges with the leanVM verifier's sponge (`Field.lean`'s `Sponge`,
+`absorb`, `squeeze`); `membershipChallengesM_eq_withHash` (`LeanDa.WithHashBridge`) proves the two
+the same. -/
+
+/-- Lanes of the rate. -/
+def rateLanes : ℕ := 16
+
+/-- Scalars that wait to be absorbed, four rate lanes each (`RATE_SCALARS`). -/
+def rateScalars : ℕ := 4
+
+/-- The tag of an observed scalar (`DS_OBSERVE = 1`). -/
+def dsObserve : K := K.ofBits 1
+
+/-- Word `i` of a digest, its little-endian bytes `8 i … 8 i + 7` (`Digest::words`). -/
+def digestWord (d : DigestBytes) (i : ℕ) : K := K.ofLane (littleEndianLane d.toList i)
+
+/-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
+def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
+
+/-- Limb `i` of an element, the coefficient of `y^i`. -/
+def limb (x : E) (i : Fin 3) : K := CompPoly.Extension.Ext.coeff x i
+
+/-- **The sponge** (`Sponge`): the lanes the last permutation left, and the scalars absorbed
+since with their tags, at most `rateScalars` (`pending[..n_pending]`). -/
+structure Sponge where
+  /-- The lanes the last permutation left (`state`). -/
+  state : KeccakState
+  /-- The waiting scalars and their tags, in order. -/
+  pending : List (E × K)
+
+/-- The rate lanes the waiting scalars fill: scalar `i`'s three limbs and tag in lanes
+`4 i … 4 i + 3`. -/
+def rateWords (pending : List (E × K)) : List K :=
+  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
+
+/-- The lanes a duplexing permutes: the waiting scalars over the rate, the rest of the rate zero,
+the capacity kept. -/
+def duplexInput (s : Sponge) : KeccakState :=
+  Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < rateLanes then ((rateWords s.pending).getD i 0).lane else s.state[i]
+
+/-- The lanes of a fresh sponge: the IV's words in lanes `0 … 3`, the public input's in `4 … 7`. -/
+def freshSpongeInput (iv publicInput : DigestBytes) : KeccakState :=
+  Vector.ofFn fun i : Fin 25 ↦
+    if (i : ℕ) < 4 then (digestWord iv i).lane
+    else if (i : ℕ) < 8 then (digestWord publicInput (i - 4)).lane
+    else 0
+
+section Duplex
+
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+
+/-- A sponge seeded with one permutation of `freshSpongeInput` (`Sponge::new`). -/
+def Sponge.newWith (iv publicInput : DigestBytes) : m Sponge := do
+  let state ← π (freshSpongeInput iv publicInput)
+  pure ⟨state, []⟩
+
+/-- Permute `duplexInput` (`duplex`). -/
+def Sponge.duplexWith (s : Sponge) : m Sponge := do
+  let state ← π (duplexInput s)
+  pure ⟨state, []⟩
+
+/-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
+def Sponge.absorbWith (s : Sponge) (x : E) (tag : K) : m Sponge :=
+  (if s.pending.length = rateScalars then Sponge.duplexWith π s else pure s) >>= fun s ↦
+    pure ⟨s.state, s.pending ++ [(x, tag)]⟩
+
+/-- Observe a scalar (`observe`). -/
+def Sponge.observeWith (s : Sponge) (x : E) : m Sponge := Sponge.absorbWith π s x dsObserve
+
+/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
+def Sponge.sampleWith (s : Sponge) : m (E × Sponge) := do
+  let s ← Sponge.duplexWith π s
+  pure (ofLimbs (K.ofLane s.state[0]) (K.ofLane s.state[1]) (K.ofLane s.state[2]), s)
+
+/-- `n` challenges, in order. -/
+def Sponge.samplesWith : ℕ → Sponge → m (List E)
+  | 0, _ => pure []
+  | n + 1, s => do
+    let (z, s) ← Sponge.sampleWith π s
+    let zs ← Sponge.samplesWith n s
+    pure (z :: zs)
+
+end Duplex
+
+/-! ## The commitment with a hash of its own -/
+
+/-- Keccak-256 over `π`, LeanDA's 32 bytes: the hash of the deployed algorithms over a
+permutation. -/
+abbrev hashOver (π : KeccakState → KeccakState) (bytes : List UInt8) : DigestBytes :=
+  Id.run (keccakDigestBytes π bytes)
+
+/-- Cell `j` of a codeword given as a list of symbols. -/
+def listCell (row : List K) (j : ℕ) : List K := (row.drop (j * cellSymbols)).take cellSymbols
 
 section Pure
 
@@ -89,14 +189,14 @@ decreasing_by simp only [treeLevelWithHash, List.length_map, List.length_range];
 
 /-- The digest of cell `j` of a codeword (`hash_cells`). -/
 def listCellDigestWithHash (row : List K) (j : ℕ) : DigestBytes :=
-  H ((listCell row j).flatMap symbolBytes)
+  H ((listCell row j).flatMap K.toBytes)
 
 /-- A row's digest: the hash of its payload cells' digests. -/
 def rowDigestWithHash (row : List K) : DigestBytes :=
   H ((List.range payloadCells).flatMap fun j ↦ (listCellDigestWithHash H row j).toList)
 
 /-- The digest of the zero cell, which pads the columns (`padding_digests`). -/
-def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap symbolBytes)
+def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatMap K.toBytes)
 
 /-- The digest of the zero row, which pads the row tree (`padding_digests`). -/
 def paddingRowWithHash : DigestBytes :=
@@ -114,6 +214,13 @@ def commitCodewordsWithHash (rows : List (List K)) : DigestBytes :=
   H (pairBytes rowTree columnTree)
 
 end Pure
+
+/-- **The root of a matrix of codewords, as the crate computes it** (`commit_codewords`,
+`commit.rs:55-145`), over a permutation `π`: on codewords of `2^15` symbols it is the statement's
+`commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
+leaves in the crate's order, each tree built level by level, as compiled code computes it fast. -/
+def commitCodewords (π : KeccakState → KeccakState) (rows : List (List K)) : DigestBytes :=
+  commitCodewordsWithHash (hashOver π) rows
 
 section Monadic
 
@@ -195,7 +302,7 @@ variable (H : List UInt8 → DigestBytes)
 
 /-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
 def columnDigestWithHash (vector : List E) (j : ℕ) : DigestBytes :=
-  H (limbBytes ((vector.drop (j * cellSymbols)).take cellSymbols))
+  H (((vector.drop (j * cellSymbols)).take cellSymbols).flatMap E.toBytes)
 
 /-- **The digest of a vector** (`vector_digest`, `verifier/src/da.rs:87-96`): the hash of its
 `128` columns' digests, in order. The crate takes vectors of `2^15` entries and panics on others. -/

@@ -31,15 +31,15 @@ theorem pairBytes_injective {a b c d : Common.DigestBytes} (h : pairBytes a b = 
   obtain ⟨h1, h2⟩ := List.append_inj h (by simp)
   exact ⟨Vector.toList_inj.mp h1, Vector.toList_inj.mp h2⟩
 
-theorem length_kBytes (a : K) : (symbolBytes a).length = 8 := by simp [symbolBytes]
+theorem length_kBytes (a : K) : (LeanVM.Parameters.K.toBytes a).length = 8 := by simp [toBytes_eq_shift]
 
 theorem testBit_kBytes (a : K) {t j : ℕ} (ht : t < 8) (hj : j < 8) :
-    ((((symbolBytes a)[t]'(by simp [symbolBytes, ht])).toNat).testBit j) = a.toBitVec.toNat.testBit (8 * t + j) := by
-  simp only [symbolBytes, List.getElem_map, List.getElem_range, Nat.toUInt8_eq, UInt8.toNat_ofNat']
+    ((((LeanVM.Parameters.K.toBytes a)[t]'(by simp [toBytes_eq_shift, ht])).toNat).testBit j) = a.toBitVec.toNat.testBit (8 * t + j) := by
+  simp only [toBytes_eq_shift, List.getElem_map, List.getElem_range, Nat.toUInt8_eq, UInt8.toNat_ofNat']
   rw [Nat.testBit_mod_two_pow, Nat.testBit_shiftRight]
   simp [hj]
 
-theorem kBytes_injective : Function.Injective symbolBytes := by
+theorem kBytes_injective : Function.Injective LeanVM.Parameters.K.toBytes := by
   intro a b h
   apply BF64.ext
   apply BitVec.eq_of_toNat_eq
@@ -48,14 +48,14 @@ theorem kBytes_injective : Function.Injective symbolBytes := by
   · have ht : i / 8 < 8 := by omega
     have hj : i % 8 < 8 := by omega
     have hab := congrArg (fun l ↦ ((l[i / 8]?).getD 0).toNat.testBit (i % 8)) h
-    rw [List.getElem?_eq_getElem (by simp [symbolBytes, ht]), List.getElem?_eq_getElem (by simp [symbolBytes, ht]),
+    rw [List.getElem?_eq_getElem (by simp [toBytes_eq_shift, ht]), List.getElem?_eq_getElem (by simp [toBytes_eq_shift, ht]),
       Option.getD_some, Option.getD_some, testBit_kBytes a ht hj, testBit_kBytes b ht hj] at hab
     rwa [show 8 * (i / 8) + i % 8 = i by omega] at hab
   · rw [Nat.testBit_eq_false_of_lt (lt_of_lt_of_le a.toBitVec.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))),
       Nat.testBit_eq_false_of_lt (lt_of_lt_of_le b.toBitVec.isLt (Nat.pow_le_pow_right (by norm_num) (by omega)))]
 
 theorem flatMap_kBytes_injective {l₁ l₂ : List K} (hl : l₁.length = l₂.length)
-    (h : l₁.flatMap symbolBytes = l₂.flatMap symbolBytes) : l₁ = l₂ := by
+    (h : l₁.flatMap LeanVM.Parameters.K.toBytes = l₂.flatMap LeanVM.Parameters.K.toBytes) : l₁ = l₂ := by
   induction l₁ generalizing l₂ with
   | nil => cases l₂ <;> simp_all
   | cons a as ih =>

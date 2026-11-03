@@ -63,7 +63,7 @@ theorem ofFn_eq_ofLimbs (g : Fin 3 → K) :
   simp only [CompPoly.Extension.Ext.ofFn, ofLimbs]
   congr 1
 
-theorem kBytes_ofLane (w : UInt64) : symbolBytes (K.ofLane w) =
+theorem kBytes_ofLane (w : UInt64) : LeanVM.Parameters.K.toBytes (K.ofLane w) =
     LeanVM.Protocol.KeccakHash.wordBytes w :=
   rfl
 
