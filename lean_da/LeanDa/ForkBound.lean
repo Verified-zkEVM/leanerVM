@@ -341,7 +341,6 @@ theorem isWeightBound_mainX (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r 
   exact (hrun.bind fun p ↦ ((isWeightBound_winX r p.1).bind fun w ↦
     isWeightBound_pure _ _ 0)).mono le_rfl
 
-set_option maxRecDepth 4000 in
 theorem isWeightBound_colPairAt (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
     QueryCostAtMost (colPairAt r c c' i) xCalls
       (2 * openCalls r + 2 * (7 + logPaddedRowCount r + 1) + 2 * (9 + logPaddedRowCount r)) := by

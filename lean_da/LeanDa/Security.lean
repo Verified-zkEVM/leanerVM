@@ -110,7 +110,7 @@ theorem card_filter_one {F : Type*} [Fintype F] [DecidableEq F] (f : F → Prop)
 
 /-- **The membership test is `(2^14 - 1) / 2^192`-sound**: a fixed matrix that is not a codeword
 passes for at most `2^14 - 1` of the `|E| = 2^192` values of the deployed challenge
-(`membership.rs:11-14`), component `1` of the pair: the marginal of a uniform pair. -/
+(`membership.rs:12-14`), component `1` of the pair: the marginal of a uniform pair. -/
 theorem checker_sound (r : ℕ) :
     (checker r).Sound (leanDaErasureCode r) ((2 ^ 14 - 1) / 2 ^ 192) := by
   intro c hc

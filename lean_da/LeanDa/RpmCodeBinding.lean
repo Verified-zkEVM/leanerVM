@@ -9,7 +9,7 @@ public import LeanDa.WithHash
 /-!
 # Code binding in the random-permutation model, through the duplex lemma
 
-The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenges' sponge
+The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenge's sponge
 over an independent random function `F`) is brought to the form of the duplex lemma
 (`Common.SeedDuplex.duplex_le`): the adversary, then the challenges of its root, computed once
 (`chalP daDuplex`), then the verification of the openings with `H` alone (`postV`). The verifier
