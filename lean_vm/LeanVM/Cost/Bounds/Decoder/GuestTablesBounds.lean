@@ -81,7 +81,7 @@ theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = t
   rw [← List.drop_zero (l := guestLocsList)]
   refine all_of_drop _ _ 0 16 guestLocsChunk0_lt ?_
   refine all_of_drop _ _ 16 4 guestLocsChunk1_lt ?_
-  refine all_of_drop _ _ 20 2 guestLocsChunk2_lt ?_
+  refine all_of_drop _ _ 20 1 guestLocsChunk2_lt ?_
   refine all_of_drop _ _ 21 1 guestLocs21_lt ?_
   refine all_of_drop _ _ 22 146 guestLocsChunk3_lt ?_
   refine all_of_drop _ _ 168 88 guestLocsChunk4_lt ?_

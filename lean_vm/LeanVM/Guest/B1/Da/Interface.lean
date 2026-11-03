@@ -58,6 +58,10 @@ def cellRoot : ℕ → List (E × E) → E × E
   | 0, nodes => nodes.headD 0
   | k + 1, nodes => cellRoot k (cellLevel nodes)
 
+/-- The scalar of its two rate cells `(z_0, z_1, 0)`, `(z_2, tag, 0)` (`fs_pack`,
+`Keccak.scalarCells`): `z`. -/
+def scalarOfCells (c0 c1 : E) : E := E.ofLimbs (c0.limb 0) (c0.limb 1) (c1.limb 0)
+
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
