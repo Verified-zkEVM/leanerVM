@@ -618,7 +618,7 @@ theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L0_L34 :
     coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core397 :=
-  Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 397) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :

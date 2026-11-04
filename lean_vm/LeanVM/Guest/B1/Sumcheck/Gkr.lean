@@ -823,7 +823,7 @@ theorem gkr_rounds_holds : gkr_rounds_Spec := by
   have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core392 :=
     Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
   have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core391 :=
-    Program.find?_of_indexOf? (j := 390) (by decide +kernel) rfl
+    Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
   exact ⟨fun rd args rets ↦ ⟨gk_sound 1 (by decide) (by decide) h1 rfl core380_body rd args rets,
       gk_complete 1 (by decide) (by decide) h1 rfl core380_body rd args rets⟩,
     fun rd args rets ↦ ⟨gk_sound 2 (by decide) (by decide) h2 rfl core379_body rd args rets,

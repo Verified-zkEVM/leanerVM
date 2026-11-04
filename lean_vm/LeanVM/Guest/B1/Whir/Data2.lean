@@ -39,9 +39,9 @@ theorem osLv_2_0 : FnIs ((osCfg 2).sqLoop 0) (osParams 5)
       (sqLoopBody (osLv 2 0) ((osCfg 2).sqLoop 0)) ∧
     FnIs ((osCfg 2).resLoop 0) (osParams 6)
       (resLoopBody (osCfg 2) 0 (osLv 2 0) ((osCfg 2).resLoop 0)) :=
-  ⟨⟨Data.core439, Program.find?_of_indexOf? (j := 438) (by decide +kernel) rfl,
+  ⟨⟨Data.core439, Program.find?_of_indexOf? (j := 439) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core452, Program.find?_of_indexOf? (j := 451) (by decide +kernel) rfl,
+    ⟨Data.core452, Program.find?_of_indexOf? (j := 452) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -49,9 +49,9 @@ theorem osLv_2_1 : FnIs ((osCfg 2).sqLoop 1) (osParams 5)
       (sqLoopBody (osLv 2 1) ((osCfg 2).sqLoop 1)) ∧
     FnIs ((osCfg 2).resLoop 1) (osParams 6)
       (resLoopBody (osCfg 2) 1 (osLv 2 1) ((osCfg 2).resLoop 1)) :=
-  ⟨⟨Data.core442, Program.find?_of_indexOf? (j := 441) (by decide +kernel) rfl,
+  ⟨⟨Data.core442, Program.find?_of_indexOf? (j := 442) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core453, Program.find?_of_indexOf? (j := 452) (by decide +kernel) rfl,
+    ⟨Data.core453, Program.find?_of_indexOf? (j := 453) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -59,9 +59,9 @@ theorem osLv_2_2 : FnIs ((osCfg 2).sqLoop 2) (osParams 5)
       (sqLoopBody (osLv 2 2) ((osCfg 2).sqLoop 2)) ∧
     FnIs ((osCfg 2).resLoop 2) (osParams 6)
       (resLoopBody (osCfg 2) 2 (osLv 2 2) ((osCfg 2).resLoop 2)) :=
-  ⟨⟨Data.core445, Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl,
+  ⟨⟨Data.core445, Program.find?_of_indexOf? (j := 445) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core454, Program.find?_of_indexOf? (j := 453) (by decide +kernel) rfl,
+    ⟨Data.core454, Program.find?_of_indexOf? (j := 454) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -69,9 +69,9 @@ theorem osLv_2_3 : FnIs ((osCfg 2).sqLoop 3) (osParams 5)
       (sqLoopBody (osLv 2 3) ((osCfg 2).sqLoop 3)) ∧
     FnIs ((osCfg 2).resLoop 3) (osParams 6)
       (resLoopBody (osCfg 2) 3 (osLv 2 3) ((osCfg 2).resLoop 3)) :=
-  ⟨⟨Data.core448, Program.find?_of_indexOf? (j := 447) (by decide +kernel) rfl,
+  ⟨⟨Data.core448, Program.find?_of_indexOf? (j := 448) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core455, Program.find?_of_indexOf? (j := 454) (by decide +kernel) rfl,
+    ⟨Data.core455, Program.find?_of_indexOf? (j := 455) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -79,9 +79,9 @@ theorem osLv_2_4 : FnIs ((osCfg 2).sqLoop 4) (osParams 5)
       (sqLoopBody (osLv 2 4) ((osCfg 2).sqLoop 4)) ∧
     FnIs ((osCfg 2).resLoop 4) (osParams 6)
       (resLoopBody (osCfg 2) 4 (osLv 2 4) ((osCfg 2).resLoop 4)) :=
-  ⟨⟨Data.core450, Program.find?_of_indexOf? (j := 449) (by decide +kernel) rfl,
+  ⟨⟨Data.core450, Program.find?_of_indexOf? (j := 450) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core456, Program.find?_of_indexOf? (j := 455) (by decide +kernel) rfl,
+    ⟨Data.core456, Program.find?_of_indexOf? (j := 456) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -93,7 +93,7 @@ theorem osData_2 : OsData 2 := by
     run_step 1100 2200 os_run_2_2 <|
     drop_end (o := 3300) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core297, Program.find?_of_indexOf? (j := 296) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core297, Program.find?_of_indexOf? (j := 297) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl

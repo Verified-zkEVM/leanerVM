@@ -21,7 +21,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 theorem find_layer254 : coreProgram.find? "keccak_layer__L1_L0" = some Data.core254 :=
-  Program.find?_of_indexOf? (j := 253) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 254) (by decide +kernel) rfl
 theorem find_layer255 : coreProgram.find? "keccak_layer__L1_L1" = some Data.core255 :=
   Program.find?_of_indexOf? (j := 254) (by decide +kernel) rfl
 theorem find_layer256 : coreProgram.find? "keccak_layer__L0_L0" = some Data.core256 :=

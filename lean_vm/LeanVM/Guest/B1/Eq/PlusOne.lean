@@ -109,7 +109,7 @@ theorem po_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (plusOneRunNames.ge
 set_option maxRecDepth 100000 in
 theorem plus_one_run_L0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd (plusOneRunNames.getD 0 "") args rets ↔ MeaningPlusOneRun 0 rd args rets :=
-  po_iff 0 (f := Data.core116) (Program.find?_of_indexOf? (j := 115) (by decide +kernel) rfl) rfl
+  po_iff 0 (f := Data.core116) (Program.find?_of_indexOf? (j := 116) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in

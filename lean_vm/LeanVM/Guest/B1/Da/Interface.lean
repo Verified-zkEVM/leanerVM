@@ -139,7 +139,7 @@ def da_levels_sound_Spec : Prop :=
 /-! ## The functions, found -/
 
 theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core26 :=
-  Program.find?_of_indexOf? (j := 25) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
 
 theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core27 :=
   Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
@@ -158,12 +158,12 @@ theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Da
 
 set_option maxRecDepth 100000 in
 theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core374 :=
-  Program.find?_of_indexOf? (j := 373) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 374) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L14_L7_L0 :
     coreProgram.find? "da_factors__L14_L7_L0" = some Data.core376 :=
-  Program.find?_of_indexOf? (j := 375) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 376) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core377 :=

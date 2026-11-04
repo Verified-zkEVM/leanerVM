@@ -163,7 +163,7 @@ theorem ep_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunNames.g
 set_option maxRecDepth 100000 in
 theorem eq_prefix_run_L0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd (eqPrefixRunNames.getD 0 "") args rets ↔ MeaningEqPrefixRun 0 rd args rets :=
-  ep_iff 0 (f := Data.core38) (Program.find?_of_indexOf? (j := 37) (by decide +kernel) rfl) rfl
+  ep_iff 0 (f := Data.core38) (Program.find?_of_indexOf? (j := 38) (by decide +kernel) rfl) rfl
     (stmtsEqb_sound (by decide +kernel)) rd args rets
 
 set_option maxRecDepth 100000 in

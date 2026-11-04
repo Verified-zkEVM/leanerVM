@@ -173,7 +173,7 @@ def child_claim_list_digest_sound_Spec : Prop :=
 /-! ## The functions, found -/
 
 theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data.core22 :=
-  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl
 
 theorem find_list_split : coreProgram.find? "list_split" = some Data.core23 :=
   Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl

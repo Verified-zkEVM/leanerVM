@@ -39,9 +39,9 @@ theorem osLv_23_0 : FnIs ((osCfg 23).sqLoop 0) (osParams 5)
       (sqLoopBody (osLv 23 0) ((osCfg 23).sqLoop 0)) ∧
     FnIs ((osCfg 23).resLoop 0) (osParams 6)
       (resLoopBody (osCfg 23) 0 (osLv 23 0) ((osCfg 23).resLoop 0)) :=
-  ⟨⟨Data.core700, Program.find?_of_indexOf? (j := 699) (by decide +kernel) rfl,
+  ⟨⟨Data.core700, Program.find?_of_indexOf? (j := 700) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core706, Program.find?_of_indexOf? (j := 705) (by decide +kernel) rfl,
+    ⟨Data.core706, Program.find?_of_indexOf? (j := 706) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -49,9 +49,9 @@ theorem osLv_23_1 : FnIs ((osCfg 23).sqLoop 1) (osParams 5)
       (sqLoopBody (osLv 23 1) ((osCfg 23).sqLoop 1)) ∧
     FnIs ((osCfg 23).resLoop 1) (osParams 6)
       (resLoopBody (osCfg 23) 1 (osLv 23 1) ((osCfg 23).resLoop 1)) :=
-  ⟨⟨Data.core702, Program.find?_of_indexOf? (j := 701) (by decide +kernel) rfl,
+  ⟨⟨Data.core702, Program.find?_of_indexOf? (j := 702) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core707, Program.find?_of_indexOf? (j := 706) (by decide +kernel) rfl,
+    ⟨Data.core707, Program.find?_of_indexOf? (j := 707) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -59,9 +59,9 @@ theorem osLv_23_2 : FnIs ((osCfg 23).sqLoop 2) (osParams 5)
       (sqLoopBody (osLv 23 2) ((osCfg 23).sqLoop 2)) ∧
     FnIs ((osCfg 23).resLoop 2) (osParams 6)
       (resLoopBody (osCfg 23) 2 (osLv 23 2) ((osCfg 23).resLoop 2)) :=
-  ⟨⟨Data.core703, Program.find?_of_indexOf? (j := 702) (by decide +kernel) rfl,
+  ⟨⟨Data.core703, Program.find?_of_indexOf? (j := 703) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core708, Program.find?_of_indexOf? (j := 707) (by decide +kernel) rfl,
+    ⟨Data.core708, Program.find?_of_indexOf? (j := 708) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -69,9 +69,9 @@ theorem osLv_23_3 : FnIs ((osCfg 23).sqLoop 3) (osParams 5)
       (sqLoopBody (osLv 23 3) ((osCfg 23).sqLoop 3)) ∧
     FnIs ((osCfg 23).resLoop 3) (osParams 6)
       (resLoopBody (osCfg 23) 3 (osLv 23 3) ((osCfg 23).resLoop 3)) :=
-  ⟨⟨Data.core704, Program.find?_of_indexOf? (j := 703) (by decide +kernel) rfl,
+  ⟨⟨Data.core704, Program.find?_of_indexOf? (j := 704) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core709, Program.find?_of_indexOf? (j := 708) (by decide +kernel) rfl,
+    ⟨Data.core709, Program.find?_of_indexOf? (j := 709) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -79,9 +79,9 @@ theorem osLv_23_4 : FnIs ((osCfg 23).sqLoop 4) (osParams 5)
       (sqLoopBody (osLv 23 4) ((osCfg 23).sqLoop 4)) ∧
     FnIs ((osCfg 23).resLoop 4) (osParams 6)
       (resLoopBody (osCfg 23) 4 (osLv 23 4) ((osCfg 23).resLoop 4)) :=
-  ⟨⟨Data.core705, Program.find?_of_indexOf? (j := 704) (by decide +kernel) rfl,
+  ⟨⟨Data.core705, Program.find?_of_indexOf? (j := 705) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-    ⟨Data.core710, Program.find?_of_indexOf? (j := 709) (by decide +kernel) rfl,
+    ⟨Data.core710, Program.find?_of_indexOf? (j := 710) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
@@ -93,7 +93,7 @@ theorem osData_23 : OsData 23 := by
     run_step 1100 2200 os_run_23_2 <|
     drop_end (o := 3300) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core318, Program.find?_of_indexOf? (j := 317) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core318, Program.find?_of_indexOf? (j := 318) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl

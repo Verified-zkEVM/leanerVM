@@ -228,7 +228,7 @@ def plain41T : List Stmt :=
 theorem body41 : Data.core260.body = plain41T := stmtsEqb_sound (by decide +kernel)
 
 theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some Data.core258 :=
-  Program.find?_of_indexOf? (j := 257) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 258) (by decide +kernel) rfl
 
 theorem plain60_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L6_L0" args rets) :
@@ -324,7 +324,7 @@ theorem plain60_sound (rd : Reader) (args rets : List E)
         List.cons_append, List.nil_append, word_4096]
 
 theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some Data.core260 :=
-  Program.find?_of_indexOf? (j := 259) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 260) (by decide +kernel) rfl
 
 theorem plain41_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L4_L1" args rets) :
