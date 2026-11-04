@@ -78,7 +78,7 @@ theorem osHead_sound {c : OsCfg} {fs : List E} {target root0 root1 cur : E} {roo
     refine RunsTo.of_eq this rfl rfl rfl ?_
     simp [Fs.absorbAll, Fs.absorb, rateScalars]
   · refine ⟨rfl, by simp [osHead], trivial, ?_, by simp [osHead, e5], by rw [hoff]; rfl,
-      fun j hj ↦ by simp at hj, rfl, by simp [hshape, lvWidth], ?_, ?_⟩
+      fun j hj ↦ by simp at hj, rfl, by simp [hshape, lvWidth], ?_, ?_, ?_⟩
     · simp [OsSt.quad, osHead, a11, e5]
     · rw [← hroot]; simpa [e6] using s6
     · rw [← hroot]; simpa [e7] using s7

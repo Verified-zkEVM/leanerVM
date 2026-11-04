@@ -36,22 +36,24 @@ variable {rd : Reader} {σ : Val}
 def osLevelB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List Stmt × OsSt :=
   let sq := osSqueezes c lvl lv st
   let lam := sq.2.k - 1
-  let lp := osLamPows lam (lvl * c.maxQ) sq.2.k lv.queries
-  let lamN := if lv.queries ≤ 1 then lam else sq.2.k + lv.queries - 1
-  let q := osQueries c lvl lv lam lamN { sq.2 with k := sq.2.k + lv.queries }
+  let lp := osLamPow lvl lam lv.queries sq.2.k
+  let lamN := lp.2.1
+  let q := osQueries c lvl lv lam lamN { sq.2 with k := lp.2.2 }
   let s1 : OsSt := { sq.2 with k := q.2.1, w0 := q.2.2.2.1, w1 := q.2.2.2.2.2,
-                               co := sq.2.co + 2 }
+                               co := sq.2.co + 2, mats := osQueriesMats c lv { sq.2 with k := lp.2.2 } }
   let o := if lvl = c.yrLevel then (([] : List Stmt), s1, lam) else
     let g := osOodGlue lvl lam s1
     (g.1, g.2, s1.k + 12)
   let beta := o.2.2
-  let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 o.2.1
-  (sq.1 ++ lp ++ q.1 ++ o.1 ++ [.atom (.load (.n beta) (.n osBetas) lvl)] ++ gl.1, gl.2)
+  let bk := o.2.1.k
+  let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 { o.2.1 with k := bk + 1 }
+  (sq.1 ++ lp.1 ++ q.1 ++ o.1 ++
+    [.atom (.mul (.n bk) (.n beta) (.n lamN)), .atom (.load (.n bk) (.n osBetas) lvl)] ++ gl.1, gl.2)
 
 /-- The part of a level up to its grinding check. -/
 def osLevelA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt × ℕ :=
   let f := osFolds osFch lv.foldsOff lv.folds s
-  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit lvl lv f.2
+  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   (f.1 ++ m.1 ++ [.call ("grind_check__L" ++ natStr lv.grind) [.n m.2.2] []], m.2.1, m.2.2)
 
 theorem osLevel_split (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
@@ -74,6 +76,7 @@ structure LvB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (level : Whir.Level) (ml : ℕ
   depth : lv.depth = ml + level.logInvRate
   queries : level.queries = lv.queries
   q2 : 2 ≤ lv.queries
+  qdigits : digitsVal (osPowDigits lv.queries) 1 = lv.queries
   per : 1 ≤ 192 / lv.depth
   squeezes : lv.squeezes = ceilDiv lv.queries (192 / lv.depth)
   digits : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth
@@ -83,19 +86,23 @@ structure LvB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (level : Whir.Level) (ml : ℕ
   sq5 : lv.squeezes * 5 < u128Bound
   row : RowShape lvl lv
   cd : 2 ≤ lv.capDepth
+  cd8 : lv.capDepth ≤ 8
   cdd : lv.capDepth ≤ lv.depth
   bounds : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
     lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧
     lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound
 
-/-- What a level leaves for the terminal's weights: its positions, weights, batching scalar. -/
+/-- What a level leaves for the terminal's weights: its positions, the batching challenge's
+inverse `μ` (the residual chain's factor), its scalar times `λ^n`. -/
 structure LvRec (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam : E)
     (qs : List ℕ) : Prop where
   qlen : qs.length = lv.queries
   qlt : ∀ k < lv.queries, qs.getD k 0 < 2 ^ lv.depth
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (eOfNat (qs.getD k 0))
-  weights : ∀ i < lv.queries, LoadHolds rd (σ (.n osQw)) (lvl * c.maxQ + i) (lam ^ i)
-  beta : LoadHolds rd (σ (.n osBetas)) lvl (if lvl = c.yrLevel then lam else lam * lam)
+  lam0 : lam ≠ 0
+  mu : LoadHolds rd (σ (.n osMus)) lvl lam⁻¹
+  beta : LoadHolds rd (σ (.n osBetas)) lvl
+    ((if lvl = c.yrLevel then lam else lam * lam) * lam ^ lv.queries)
   ood : lvl ≠ c.yrLevel → LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots) lam
 
 end
