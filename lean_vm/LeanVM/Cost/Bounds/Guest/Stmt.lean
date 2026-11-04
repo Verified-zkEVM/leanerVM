@@ -174,7 +174,7 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   have n0 := gLogD_lt D (σ (.n 0))
   have n3 := gLogD_lt D (σ (.n 3))
   have n387 := gLogD_lt D (σ (.n 387))
-  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n 53)) (σ (.n 56)) (σ (.n 334)) (σ (.n 402))
+  have h := decStmtAt_cost P hrd hR (by includes) (σ (.n 52)) (σ (.n 55)) (σ (.n 334)) (σ (.n 398))
     (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) (Decoder.gLogD D (σ (.n 387)))
     (by omega) (by omega) (by omega)
   have : decStmtAtPrice R (Decoder.gLogD D (σ (.n 0))) (Decoder.gLogD D (σ (.n 3))) ≤

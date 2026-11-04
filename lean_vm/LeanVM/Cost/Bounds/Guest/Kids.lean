@@ -257,7 +257,7 @@ theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^
   have h3 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
   have h4 := mulK_cost P (by includes) (σ (.n 371)) (Parameters.g ^ (24 * c))
   have := hS (.n 365); have := hS (.n 47); have := hS (.n 48); have := hS (.n 49)
-  have := hS (.n 50); have := hS (.n 371)
+  have := hS (.n 371)
   limbs_one
   omega
 
