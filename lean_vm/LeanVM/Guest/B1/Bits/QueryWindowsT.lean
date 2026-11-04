@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.WalkWindows
 
 /-!
 # The template of `decode_query_windows` (lean_ethereum.py:757-868 at c4f4bc92)
@@ -36,19 +37,6 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest
 
 /-- `COORD_BASIS[i]` as the data writes it. -/
 def cbWord (i : ℕ) : E := word (2 ^ i % 2 ^ 64) (2 ^ i / 2 ^ 64 % 2 ^ 64) (2 ^ i / 2 ^ 128)
-
-/-- The path windows of a position: `⌈(d - cd) / 6⌉`. -/
-def qwNp (d cd : ℕ) : ℕ := (d - cd + 5) / 6
-
-/-- The windows of a position: the path's, the cap child bit, the cap parent index. -/
-def qwN (d cd : ℕ) : ℕ := qwNp d cd + 2
-
-/-- Window `i` of a position: its offset and width. -/
-def qwWin (d cd i : ℕ) : ℕ × ℕ :=
-  if i = qwNp d cd then (d - cd, 1)
-  else if i = qwNp d cd + 1 then (d - cd + 1, cd - 1)
-  else if i + 1 = qwNp d cd then (6 * i, d - cd - 6 * i)
-  else (6 * i, 6)
 
 /-- Window `i`'s value of the position `q`: its bits at the window's place. -/
 def qwVal (d cd q i : ℕ) : ℕ := (q >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2
