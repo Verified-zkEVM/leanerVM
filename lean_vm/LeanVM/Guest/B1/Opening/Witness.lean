@@ -22,10 +22,11 @@ and the frame map `V`, reading words only (no hash, no verifier function, no cho
 * `winPosOf rd bp D cd`: the position whose windows `g^v` the run at `bp` holds (`memRead`, the
   memory's word, `0` where it has none; `gLog7`, the exponent of a small power of `g`), bit `l`
   read from the window holding it (`qwAt`);
-* `oqSibsOf pd ch q σ`: the siblings below the cap, read off the children cells `ch ..` of the
+* `oqSibsOf pd ch q σ`: the siblings below the cap, read off the children cells `ch ..` of a
   frame: at level `l` the pair off the walk's side (`sibOff`);
-* `oqQueryW s rd bp b emit σ`: the query hinted at `b`, its window pointer `bp` (`oqRow` its row);
-* `oqIterOf s rd σ`: a loop iteration's queries (two at level 0, one deeper), from its frame;
+* `oqQueryW s rd bp cap flags b emit σ V`: the query hinted at `b`, its window pointer `bp` (`oqRow`
+  its row), its siblings off its `walk_path` call's frame (b7a8d0cb: the walk is a function);
+* `oqIterOf s rd σ V`: a loop iteration's queries (two at level 0, one deeper), from its frame;
 * `oqsOf s odd loop N rd σ V`: the function's queries, from its frame `σ` (the odd first query at
   level 0) and the frames `V loop (g^j :: ps) []` of its `N` iterations, `ps` the loop's other
   arguments (`oqLoopArgs σ`).
@@ -79,16 +80,27 @@ def oqSibsOf (pd ch q : ℕ) (σ : Val) : List Digest :=
     digestOfCells (σ (.n (ch + 4 * l + (if q.testBit l then 0 else 2))))
       (σ (.n (ch + 4 * l + (if q.testBit l then 0 else 2) + 1)))
 
-/-- The query hinted at `b` (window pointer `bp`), from its frame `σ`. -/
-def oqQueryW (s : Oq) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) : QW :=
+/-- The arguments of a query's `walk_path` call (`oqQueryT`): the leaf digest's cells, the window
+pointer, the cap and the flags. -/
+def oqWalkArgs (s : Oq) (b : ℕ) (emit : Bool) (bp cap flags : E) (σ : Val) : List E :=
+  [σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 1)), bp, cap,
+    flags]
+
+/-- The query hinted at `b` (window pointer `bp`, cap `cap`, flags `flags`), from its frame `σ`
+and its walk's frame (`V (oqWalkOf s) (oqWalkArgs …) []`, whose children cells hold the
+siblings). -/
+def oqQueryW (s : Oq) (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool) (σ : Val)
+    (V : FrameMap) : QW :=
   (winPosOf rd bp (s.pd + s.cd) s.cd, oqRow b s.R σ,
-    oqSibsOf s.pd (oqCh s b emit) (winPosOf rd bp (s.pd + s.cd) s.cd) σ)
+    oqSibsOf s.pd wpCh (winPosOf rd bp (s.pd + s.cd) s.cd)
+      (V (oqWalkOf s) (oqWalkArgs s b emit bp cap flags σ) []))
 
 /-- A loop iteration's queries, from its frame: two at level 0 (`base = 1`), one deeper. -/
-def oqIterOf (s : Oq) (rd : Reader) (σ : Val) : List QW :=
+def oqIterOf (s : Oq) (rd : Reader) (σ : Val) (V : FrameMap) : List QW :=
   if s.base = 1 then
-    [oqQueryW s rd (σ (.n 10)) 11 true σ, oqQueryW s rd (σ (.n (oqE1 s))) (oqE1 s + 1) false σ]
-  else [oqQueryW s rd (σ (.n 9)) 10 true σ]
+    [oqQueryW s rd (σ (.n 10)) (σ (.n 3)) (σ (.n 4)) 11 true σ V,
+      oqQueryW s rd (σ (.n (oqE1 s))) (σ (.n 3)) (σ (.n 4)) (oqE1 s + 1) false σ V]
+  else [oqQueryW s rd (σ (.n 9)) (σ (.n 3)) (σ (.n 4)) 10 true σ V]
 
 /-- The loop's arguments after its counter (`oqMainT`'s call). -/
 def oqLoopArgs (σ : Val) : List E :=
@@ -97,8 +109,8 @@ def oqLoopArgs (σ : Val) : List E :=
 /-- **The queries of `opening_queries`**, from its frame `σ` and its `N` iterations' frames. -/
 def oqsOf (s : Oq) (odd : ℕ) (loop : String) (N : ℕ) (rd : Reader) (σ : Val) (V : FrameMap) :
     List QW :=
-  (if odd = 1 then [oqQueryW s rd (σ (.n 12)) 13 true σ] else []) ++
-    (List.range N).flatMap fun j ↦ oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) [])
+  (if odd = 1 then [oqQueryW s rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ V] else []) ++
+    (List.range N).flatMap fun j ↦ oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) []) V
 
 /-! ## What the witness satisfies -/
 

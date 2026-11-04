@@ -309,6 +309,59 @@ node `n0, n1` (`.n 0`, `.n 1`) by the windows at `wins` (`.n 2`), the cap leaf i
 def wpBodyT (s : Oq) : List Stmt :=
   oqPathT s (.n 2) (wpPr s) 0 wpCh ++ oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh ++ [.ret []]
 
+/-- The deployed specializations of `walk_path`, `(pd, cd, name)` (a name built by `++ toString`
+does not reduce in a `module`'s kernel). -/
+def walkPathNames : List (ℕ × ℕ × String) :=
+  [(9, 5, "walk_path__L9_L5"),
+    (9, 8, "walk_path__L9_L8"),
+    (10, 5, "walk_path__L10_L5"),
+    (10, 6, "walk_path__L10_L6"),
+    (10, 8, "walk_path__L10_L8"),
+    (11, 5, "walk_path__L11_L5"),
+    (11, 6, "walk_path__L11_L6"),
+    (11, 7, "walk_path__L11_L7"),
+    (11, 8, "walk_path__L11_L8"),
+    (12, 4, "walk_path__L12_L4"),
+    (12, 5, "walk_path__L12_L5"),
+    (12, 6, "walk_path__L12_L6"),
+    (12, 7, "walk_path__L12_L7"),
+    (12, 8, "walk_path__L12_L8"),
+    (13, 4, "walk_path__L13_L4"),
+    (13, 5, "walk_path__L13_L5"),
+    (13, 6, "walk_path__L13_L6"),
+    (13, 7, "walk_path__L13_L7"),
+    (13, 8, "walk_path__L13_L8"),
+    (14, 4, "walk_path__L14_L4"),
+    (14, 5, "walk_path__L14_L5"),
+    (14, 6, "walk_path__L14_L6"),
+    (14, 7, "walk_path__L14_L7"),
+    (14, 8, "walk_path__L14_L8"),
+    (15, 4, "walk_path__L15_L4"),
+    (15, 5, "walk_path__L15_L5"),
+    (15, 6, "walk_path__L15_L6"),
+    (15, 7, "walk_path__L15_L7"),
+    (15, 8, "walk_path__L15_L8"),
+    (16, 4, "walk_path__L16_L4"),
+    (16, 5, "walk_path__L16_L5"),
+    (16, 6, "walk_path__L16_L6"),
+    (16, 7, "walk_path__L16_L7"),
+    (17, 4, "walk_path__L17_L4"),
+    (17, 5, "walk_path__L17_L5"),
+    (17, 6, "walk_path__L17_L6"),
+    (17, 7, "walk_path__L17_L7"),
+    (18, 4, "walk_path__L18_L4"),
+    (18, 5, "walk_path__L18_L5"),
+    (18, 6, "walk_path__L18_L6"),
+    (18, 7, "walk_path__L18_L7"),
+    (19, 5, "walk_path__L19_L5"),
+    (19, 6, "walk_path__L19_L6"),
+    (20, 5, "walk_path__L20_L5"),
+    (20, 6, "walk_path__L20_L6")]
+
+/-- The specialization of `walk_path` a shape's queries call. -/
+def oqWalkOf (s : Oq) : String :=
+  ((walkPathNames.find? fun p ↦ p.1 == s.pd && p.2.1 == s.cd).map (·.2.2)).getD ""
+
 /-! ## One query -/
 
 /-- The first value of the leaf hash: after the dot product, and the padding run if emitted. -/
@@ -320,9 +373,6 @@ def oqPr (s : Oq) (b : ℕ) (emit : Bool) (pr : ℕ) : ℕ := if emit then oqK1 
 /-- The first value after the leaf hash. -/
 def oqCh (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqKL s b emit + s.chainLen
 
-/-- The leaf digest's first cell (the leaf hash's last state's first cell). -/
-def oqLf (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqOut s (oqKL s b emit) (s.B - 1) 0
-
 /-- **One query** from the value `b`, its windows at `bp`, emitting the padding run (`emit`) or
 reusing the one at `pr`: the row, its dot product, the leaf hash, and the call of `walk`
 (`walk_path__L{pd}_L{cd}`) on the leaf digest, the windows, the cap and the flags. -/
@@ -330,7 +380,8 @@ def oqQueryT (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) (
     List Stmt :=
   oqRowT b s.R ++ oqPacksT b s.R ++ oqDotT s wp b ++ (if emit then oqPadT (oqK1 b s.R + s.D) else []) ++
     oqLeafT s b (oqPr s b emit pr) (oqKL s b emit) ++
-    [.call walk [.n (oqLf s b emit), .n (oqLf s b emit + 1), bp, cap, flags] []]
+    [.call walk [.n (oqOut s (oqKL s b emit) (s.B - 1) 0), .n (oqOut s (oqKL s b emit) (s.B - 1) 1), bp,
+      cap, flags] []]
 
 /-- The first value after a query. -/
 def oqEnd (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqCh s b emit
