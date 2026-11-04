@@ -37,28 +37,22 @@ theorem cw435_13_0 : cplWin 435 13 0 = true := by decide +kernel
 /-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 0, part 0. -/
 theorem cw436_0_0 : cplWin 436 0 0 = true := by decide +kernel
 
-/-- `opening_ood_point__L12`, window 0, part 0. -/
-theorem cw437_0_0 : cplWin 437 0 0 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 1, part 0. -/
+theorem cw436_1_0 : cplWin 436 1 0 = true := by decide +kernel
 
 theorem ok436 : CplOk 436 := by
   intro i hi k hk
-  have hc : (certOf 436).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 436).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 436 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw436_0_0
-
-theorem ok437 : CplOk 437 := by
-  intro i hi k hk
-  have hc : (certOf 437).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 437 0 = 1 := by decide +kernel
+  · have hn : nParts 436 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw437_0_0
+    · exact cw436_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

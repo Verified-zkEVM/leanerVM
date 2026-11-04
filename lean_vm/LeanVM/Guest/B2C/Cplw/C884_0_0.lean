@@ -25,6 +25,9 @@ theorem cw884_1_0 : cplWin 884 1 0 = true := by decide +kernel
 /-- `__loop386`, window 2, part 0. -/
 theorem cw884_2_0 : cplWin 884 2 0 = true := by decide +kernel
 
+/-- `__loop386`, window 3, part 0. -/
+theorem cw884_3_0 : cplWin 884 3 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L23_L8`, window 0, part 0. -/
 theorem cw885_0_0 : cplWin 885 0 0 = true := by decide +kernel
 
@@ -37,12 +40,9 @@ theorem cw886_1_0 : cplWin 886 1 0 = true := by decide +kernel
 /-- `__loop387`, window 2, part 0. -/
 theorem cw886_2_0 : cplWin 886 2 0 = true := by decide +kernel
 
-/-- `__loop387`, window 3, part 0. -/
-theorem cw886_3_0 : cplWin 886 3 0 = true := by decide +kernel
-
 theorem ok884 : CplOk 884 := by
   intro i hi k hk
-  have hc : (certOf 884).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 884).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 884 0 = 1 := by decide +kernel
@@ -57,6 +57,10 @@ theorem ok884 : CplOk 884 := by
     rw [hn] at hk
     interval_cases k
     · exact cw884_2_0
+  · have hn : nParts 884 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw884_3_0
 
 theorem ok885 : CplOk 885 := by
   intro i hi k hk

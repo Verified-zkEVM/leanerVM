@@ -38,12 +38,10 @@ theorem w874_4 : WinOk 874 4 := winOk_of_C (by decide +kernel)
 /-- `__loop381`, window 5. -/
 theorem w874_5 : WinOk 874 5 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L20_L6`, window 0. -/
-theorem w875_0 : WinOk 875 0 := winOk_of_C (by decide +kernel)
+/-- `__loop381`, window 6. -/
+theorem w874_6 : WinOk 874 6 := winOk_of_C (by decide +kernel)
 
 theorem ok873 : CheckOk 873 := checkOk_one (by decide +kernel) w873_0
-
-theorem ok875 : CheckOk 875 := checkOk_one (by decide +kernel) w875_0
 
 end
 end LeanVM.Guest.Checked
