@@ -383,15 +383,18 @@ instance : MachineEncoding LeanXmss.LayerSignature :=
 instance : MachineEncoding LeanXmss.Signature :=
   ⟨fun σ ↦ .constructor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
 
-instance : MachineEncoding Sphincs.SubtreeOpening :=
-  ⟨fun o ↦ .constructor 0 [encodeValue o.values, encodeValue o.path]⟩
+instance : MachineEncoding Sphincs.ForsTreeOpening :=
+  ⟨fun o ↦ .constructor 0 [encodeValue o.secret, encodeValue o.path]⟩
 
-instance : MachineEncoding Sphincs.CoordinateOpening :=
-  ⟨fun o ↦ .constructor 0 [encodeValue o.subtreeOpenings, encodeValue o.topTreePath]⟩
+instance (layer : Sphincs.Layer) : MachineEncoding (Sphincs.LayerSignature layer) :=
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.counter, encodeValue σ.chainValues,
+    encodeValue σ.authenticationPath]⟩
 
+/-- A signature; its layers, a dependent function of the layer, as the array of their values,
+bottom first. -/
 instance : MachineEncoding Sphincs.Signature :=
-  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.forestOpening,
-    encodeValue σ.counter, encodeValue σ.chainValues, encodeValue σ.authenticationPath]⟩
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.forsOpening,
+    .array (Array.ofFn fun layer ↦ encodeValue (σ.layers layer))]⟩
 
 instance : MachineEncoding BytecodeClaim :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.bytecodePoint, encodeValue c.bytecodeValue]⟩

@@ -140,29 +140,80 @@ open LeanVM.Semantics (KeccakState)
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- `Sphincs.Verification.otsLeaf`. -/
-def otsLeaf (parameter : PublicParameter) (leaf : LeafIndex) (message : ForestKey) (counter :
-    EncodingCounter)
+def otsLeaf (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
+    (leaf : TreeLeafIndex) (message : HashInput) (counter : EncodingCounter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
-  let some encoding ← encode π parameter leaf message counter | return none
-  let endpoints ← HashSig.OverPermutation.sequenceFin fun chainIdx =>
-    recoverChain π parameter leaf chainIdx (encoding chainIdx) (values chainIdx)
-  let value ← leafHash π parameter leaf endpoints
+  let some encoding ← encode π parameter layer tree leaf message counter | return none
+  let endpoints ← HashSig.OverPermutation.sequenceFin fun chainIndex =>
+    recoverChain π parameter layer tree leaf chainIndex (encoding chainIndex) (values chainIndex)
+  let value ← leafHash π parameter layer tree leaf endpoints
   return some value
 
 /-- `Sphincs.Verification.otsLeaf` compiles as its restatement. -/
 @[csimp] theorem otsLeaf_eq : @_root_.Sphincs.Verification.otsLeaf = @otsLeaf := rfl
 
-/-- `Sphincs.Verification.verify`, with `otsLeaf`. -/
+/-- `Sphincs.Verification.forsRecover`. -/
+def forsRecover (parameter : PublicParameter) (index : Index)
+    (leaves : ForsTreeIndex → ForsLeafIndex) (opening : ForsTreeIndex → ForsTreeOpening) :
+    m ForsKey :=
+  HashSig.OverPermutation.sequenceFin fun forsTree =>
+    forsTreeRecover π parameter index forsTree (leaves forsTree) (opening forsTree)
+
+/-- `Sphincs.Verification.forsRecover` compiles as its restatement. -/
+@[csimp] theorem forsRecover_eq : @_root_.Sphincs.Verification.forsRecover = @forsRecover := rfl
+
+/-- `Sphincs.Verification.messageDigest`. -/
+def messageDigest (parameter : PublicParameter) (message : Message) (randomizer : Randomizer) :
+    m MessageDigest := do
+  let outputs ← HashSig.OverPermutation.sequenceFin fun call =>
+    messageDigestCall π parameter message randomizer call
+  return truncateMessageDigest outputs
+
+/-- `Sphincs.Verification.messageDigest` compiles as its restatement. -/
+@[csimp] theorem messageDigest_eq :
+    @_root_.Sphincs.Verification.messageDigest = @messageDigest := rfl
+
+/-- `Sphincs.Verification.verifyLayers`, with `otsLeaf`. -/
+def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
+    Nat → HashInput → m (Option Digest)
+  | 0, _ => pure none
+  | layersLeft + 1, message => do
+      if hlayer : layersLeft < layerCount then
+        let layer : Layer := ⟨layerCount - 1 - layersLeft, by omega⟩
+        let tree := treeOfIndex layer index
+        let leaf := leafOfIndex layer index
+        let some value ← _root_.Sphincs.Verification.otsLeaf π parameter layer tree leaf message
+            (signature.layers layer).counter (signature.layers layer).chainValues
+          | return none
+        let root ← treeFold π parameter layer tree leaf (layerPath signature layer)
+          (layerHeight layer) value
+        if layersLeft = 0 then
+          return some root
+        else
+          verifyLayers parameter index signature layersLeft (littleEndianBytes 16 root)
+      else
+        pure none
+
+/-- `Sphincs.Verification.verifyLayers` compiles as its restatement. -/
+@[csimp] theorem verifyLayers_eq :
+    @_root_.Sphincs.Verification.verifyLayers = @verifyLayers := by
+  funext m _ π parameter index signature layersLeft message
+  induction layersLeft generalizing message with
+  | zero => rfl
+  | succ layersLeft ih =>
+    simp only [_root_.Sphincs.Verification.verifyLayers, verifyLayers, ih]
+    rfl
+
+/-- `Sphincs.Verification.verify`, with `messageDigest`, `forsRecover` and `verifyLayers`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest π publicKey.parameter message signature.randomizer
-  let index := digestLeafIndex digest
-  let forestKey ← forestRecover π publicKey.parameter index (digestCoordinateSelections digest)
-      signature.forestOpening
-  let some leaf ← _root_.Sphincs.Verification.otsLeaf π publicKey.parameter index forestKey
-    signature.counter signature.chainValues | return false
-  let root ← treeFold π publicKey.parameter index
-    (fun level ↦ if h : level < treeHeight
-        then signature.authenticationPath ⟨level, h⟩ else 0) treeHeight leaf
+  let digest ← _root_.Sphincs.Verification.messageDigest π publicKey.parameter message
+    signature.randomizer
+  let index := digestIndex digest
+  let forsKey ← _root_.Sphincs.Verification.forsRecover π publicKey.parameter index
+    (digestForsLeaves digest) signature.forsOpening
+  let some root ← _root_.Sphincs.Verification.verifyLayers π publicKey.parameter index signature
+      layerCount (forsKeyPayload forsKey)
+    | return false
   return decide (root = publicKey.root)
 
 /-- `Sphincs.Verification.verify` compiles as its restatement. -/

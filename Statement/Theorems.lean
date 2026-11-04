@@ -79,10 +79,11 @@ structure Theorems
   calls of the whole game (`LeanXmss.lean`), key generation and the honest signer's worst-case
   grinding, about `2^33` calls per signing request, included: about `2^-62` at a full lifetime. -/
   leanXmssStronglyUnforgeable : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable
-  /-- leanSPHINCS is strongly unforgeable at every proved lifetime: at most `(Q + 1) · 2^-127` for
-  `Q ≥ 1` permutation calls of the whole game (`LeanSphincs.lean`), key generation and the honest
-  signer's worst-case grinding, up to about `2^35` calls per signing request, included. -/
-  leanSphincsStronglyUnforgeable : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable
+  /-- leanSPHINCS is strongly unforgeable up to `1,182,000,000` signatures: at most
+  `(Q + 1) · 2^-127` for `Q ≥ 1` permutation calls of the whole game (`LeanSphincs.lean`), key
+  generation and the honest signer's worst-case grinding, up to about `2^35` calls per signing
+  request, included. -/
+  leanSphincsStronglyUnforgeable : Sphincs.LeanSphincsStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.LeanDaPerfectlyComplete

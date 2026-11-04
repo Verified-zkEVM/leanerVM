@@ -4,6 +4,9 @@ defaultTargets = ["Sphincs"]
 
 [leanOptions]
 warningAsError = true
+# Every module of `FORS` carries the `[Params]` instance (the height, the layers, the FORS shape),
+# which some of its declarations do not use.
+weak.linter.unusedSectionVars = false
 
 # The statement: definitions and end statements only (`Statement/`).
 [[require]]
@@ -40,3 +43,8 @@ name = "SphincsFors"
 
 [[lean_lib]]
 name = "SphincsBase"
+
+[[lean_lib]]
+name = "FORS"
+# `FORS.lean` imports every module; `FORS/Axioms.lean` checks their axioms.
+roots = ["FORS", "FORS.Axioms"]

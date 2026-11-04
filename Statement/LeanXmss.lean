@@ -29,13 +29,15 @@ leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`
 * WOTS+C: 58 chains of 4 positions. A 16-byte digest is read as 64 base-4 digits, little endian; it
   is a codeword when the last 6 digits are zero and the other 58 sum to 106.
 * Every hash input is `P || A || payload`: the 16-byte public parameter, the 16-byte address
-  `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || 0^8`, then the payload. The top layer sets
+  `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || layer || tree (4 bytes) || 0^24`, its layer
+  and tree zero (leanSPHINCS's hypertree fills them), then the payload. The top layer sets
   bit 23 of `hi`. A chain step's address carries the step but not the chain, whose index follows the
   value in the payload.
 * `H` is the leanVM hash, Keccak-256 on the bytes of its input, over a permutation `π` of the Keccak
   state (`keccakHash`): in the end statement (the last section) the random permutation.
 * The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
-  32 bytes, and the signer keeps `S`.
+  32 bytes. The crate's signer derives `S` from `S_0` again at each signature; the game's signer is
+  handed `S` (`HashSig.SecretKey`).
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
