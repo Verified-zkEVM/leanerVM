@@ -75,7 +75,7 @@ theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (
 
 theorem name_main : decoderFunctionName 1 = "main" := by decide +kernel
 theorem name_verify_sub : decoderFunctionName 19 = "verify_sub" := by decide +kernel
-theorem name_verify_lean_xmss : decoderFunctionName 20 = "verify_lean_xmss" := by decide +kernel
+theorem name_loop2 : decoderFunctionName 37 = "__loop2" := by decide +kernel
 theorem name_sp_wots : decoderFunctionName 20 = "sp_wots" := by decide +kernel
 theorem name_verify_sig_lean_sphincs : decoderFunctionName 21 = "verify_sig_lean_sphincs" := by
   decide +kernel
@@ -86,8 +86,8 @@ theorem name_aggregate_claims : decoderFunctionName 34 = "aggregate_claims" := b
 theorem name_da_expand_L7_L8 : decoderFunctionName 403 = "da_expand__L7_L8" := by decide +kernel
 theorem name_loop25 : decoderFunctionName 404 = "__loop25" := by decide +kernel
 
-/-- `open_stacked__L{m}` is function `304 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 304 + m
+/-- `open_stacked__L{m}` is function `303 + m`. -/
+def openStackedIdx (m : ℕ) : ℕ := 303 + m
 
 end
 end LeanVM.Guest.Fast

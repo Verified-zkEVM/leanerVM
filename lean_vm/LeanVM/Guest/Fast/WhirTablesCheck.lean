@@ -9,8 +9,8 @@ public import LeanVM.Guest.B1.Whir.InterfaceW
 
 * `callMatch r c`: the `OsCall` `r` is the `opening_queries` call `c` of the template
   (`osQCalls`) in numbers: its shape, its odd query and iterations, its depth, its arguments' and
-  returns' cells (cells all), its callee and its loop the functions of `r`'s indices
-  (`decoderFunctionName`, `Fast/FunctionNames.lean`);
+  returns' cells (cells all), its callee, its loop and its queries' `walk_path` the functions of
+  `r`'s indices (`decoderFunctionName`, `Fast/FunctionNames.lean`);
 * `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's,
   by kernel evaluation, a candidate at a time (`callsOK_m`).
 -/
@@ -34,7 +34,8 @@ noncomputable def callMatch (r : OsCall) : ℕ × OsLv × String × List V × Li
       r.cd == (lvOq lvl lv).cd && r.odd == lv.queries % 2 * (if lvl = 0 then 1 else 0) &&
       r.N == lv.queries / (1 + if lvl = 0 then 1 else 0) && r.depth == lv.depth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN &&
-      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name
+      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name &&
+      decoderFunctionName r.walk == oqWalkOf (lvOq lvl lv)
 
 /-- Candidate `m`'s `opening_queries` calls. -/
 def osCallsOf (m : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
