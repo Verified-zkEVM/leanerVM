@@ -249,7 +249,7 @@ def derefSource : DerefMode → Registers K → E → E
 return the next registers; `none` if a read or a check fails. A taken `JUMP` moves to any elements
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
 be powers of `g` with a 32-bit exponent, the target inside the bytecode
-(`crates/leanvm_core/src/cpu/execute.rs:869-907`, `cpu/hints.rs:131`), and stops after `MAX_STEPS`
+(`crates/leanvm_core/src/cpu/execute.rs:926-964`, `cpu/hints.rs:131`), and stops after `MAX_STEPS`
 (`10^8`, `execute.rs:156`) steps, which nothing here bounds: those are the executor's limits, not
 the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :

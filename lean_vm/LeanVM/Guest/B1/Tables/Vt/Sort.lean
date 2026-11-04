@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SortT
 public import LeanVM.Guest.B1.Placement.StackCert
 
 /-!
-# A side's block offsets (G:1942-1975)
+# A side's block offsets (G:2113-2160)
 
 `vt_rank0`, `vt_rank`: what a rank's template gives (`VtRankFacts`). `vt_side_cert`: when every
 block's `block_kappa` cell holds `g^κ` with `κ < 34`, the ranks of a side whose blocks are

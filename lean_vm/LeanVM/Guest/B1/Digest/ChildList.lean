@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_digest` (G:3852-3899; TRIAGE #89): a child's claim list rebuilt from
+  B1 for `child_claim_list_digest` (G:4041-4184; TRIAGE #89): a child's claim list rebuilt from
   this node's table through hinted slots, each marked in the coverage table, and its digest.
 -/
 

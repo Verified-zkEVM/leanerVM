@@ -23,17 +23,17 @@ tables (`sel_eq_nibble`, `sel_g_nibble`, `selector_tables`), or a bit at a time
   `zs` with their complements `zs1` (the guest holds `1 + z` in a buffer of its own); at
   `zs1 = 1 + zs` it is `eqKernel zs` (V:642).
 * `eqLevels zs zs1`: the tables over the first `1, 2, …, |zs|` coordinates, end to end
-  (`sel_eq_nibble`, G:1783-1797: level `t` at `2^(t+1) - 2`).
-* `gTable gs`: entry `u` is `Π_t gs_t^(bit t of u)` (`sel_g_nibble`, G:1801-1812).
+  (`sel_eq_nibble`, G:1938-1952: level `t` at `2^(t+1) - 2`).
+* `gTable gs`: entry `u` is `Π_t gs_t^(bit t of u)` (`sel_g_nibble`, G:1956-1967).
 * `nib l j`: the `j`-th nibble of a run, `l[4j .. 4j+4]`.
 
 Statements (`…_Spec`, proved as `…_holds`):
 
-* `index_mle_Spec`: `index_mle__L{n}(zeta)` (G:1770-1779) is `indexMle` (V:692) of the first `n`
+* `index_mle_Spec`: `index_mle__L{n}(zeta)` (G:1925-1934) is `indexMle` (V:692) of the first `n`
   words at `zeta`, `n < 34`;
-* `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` (G:1815-1819) writes the nibble tables of
+* `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` (G:1970-1974) writes the nibble tables of
   width `w < 4`;
-* `shared_selector_tables_Spec`: `shared_selector_tables` (G:1822-1845) writes, for `len_g = g^n`
+* `shared_selector_tables_Spec`: `shared_selector_tables` (G:1977-2000) writes, for `len_g = g^n`
   (`n < 64`), every nibble's tables of the run of `n` coordinates;
 * `block_selector_tab_Spec`: `block_selector_tab__L{n}` (G:1848-1865) reads `n` pinned bits and,
   from those tables, returns their eq weight and `g`-power product;
@@ -91,7 +91,7 @@ def IndexMleOut (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [zeta], [v] => ∃ zs : List E, zs.length = n ∧ TbReadsAt rd zeta zs ∧ v = indexMle zs
   | _, _ => False
 
-/-- **`index_mle`** (G:1770-1779; TRIAGE #44) computes `indexMle`: soundness. -/
+/-- **`index_mle`** (G:1925-1934; TRIAGE #44) computes `indexMle`: soundness. -/
 def index_mle_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "index_mle" n) args rets → IndexMleOut n rd args rets
@@ -113,7 +113,7 @@ def SelPartialOut (w : ℕ) (rd : Reader) : List E → List E → Prop
         TbReadsAt rd eqo (eqLevels zs zs1) ∧ TbReadsAt rd go (if w = 0 then [] else gTable gl)
   | _, _ => False
 
-/-- **`sel_partial_nibble`** (G:1783-1819; TRIAGE #45-47) writes its nibble's tables: soundness. -/
+/-- **`sel_partial_nibble`** (G:1938-1974; TRIAGE #45-47) writes its nibble's tables: soundness. -/
 def sel_partial_nibble_Spec : Prop :=
   ∀ n < 4, ∀ rd args rets,
     coreProgram.Rel rd (lName "sel_partial_nibble" n) args rets → SelPartialOut n rd args rets
@@ -140,7 +140,7 @@ def SharedSelOut (rd : Reader) : List E → List E → Prop
         RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 
-/-- **`shared_selector_tables`** (G:1822-1845; TRIAGE #48) is sound. -/
+/-- **`shared_selector_tables`** (G:1977-2000; TRIAGE #48) is sound. -/
 def shared_selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 

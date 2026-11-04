@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `assert_canonical` (G:475-482, TRIAGE #2) -/
+/-! ## `assert_canonical` (G:512-519, TRIAGE #2) -/
 
 /-- **`assert_canonical(word)`**: the word has no `y²` term; it returns `0`. -/
 def MeaningAssertCanonical : List E → List E → Prop
@@ -63,7 +63,7 @@ def exponent_tables_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (G:652-665, TRIAGE #17) -/
+/-! ## `g_power_of_word` (G:685-712, TRIAGE #17) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Base
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
 `verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`, G
-below, G:2755-2927) runs the specification's `verifyKeccak` (V:2061), then draws the first
+below, G:2905-3072) runs the specification's `verifyKeccak` (V:2061), then draws the first
 challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 
 | function | G | meaning |
@@ -26,12 +26,12 @@ challenge of `ringSwitch` (V:2124), which the last slices wait for. Its callees:
 | `verify_keccak` | 2773-2945 | `verifyKeccak`, then one sample |
 
 The inline helpers (`carry_step`, `carry_wrap`, `keccak_shifts_eq`, `fold_node`,
-`fold_shifts`, `keccak_form`, `keccak_slot_lanes`, G:2300-2435, 2741-2754, TRIAGE #53-58, #62)
+`fold_shifts`, `keccak_form`, `keccak_slot_lanes`, G:2521-2663, 2891-2904, TRIAGE #53-58, #62)
 have no core function of their own: they are lemmas of `B1/KeccakGkr/`.
 
-**Records.** A round record (`KR_*`, G:227-234) holds a sponge's capacity, a cursor, a claim
+**Records.** A round record (`KR_*`, G:246-256) holds a sponge's capacity, a cursor, a claim
 and a scale, its fields `KR_CAP = 16` words apart (`RoundRec`). A claim record (`KC_*`,
-G:218-225) holds a `KeccakClaim` (V:1926) in the guest's factored form (`ClaimRec`): its value,
+G:237-244) holds a `KeccakClaim` (V:1926) in the guest's factored form (`ClaimRec`): its value,
 `κ = Σ μ`, a pointer to its point, its sixteen instance weights `μ`, and its position weights as
 a lane table times a slice table, `firstWeights lanes` for the first claim (a word's bits, `x^z`)
 and `laterWeights lanes slices` after a layer (through the transpose of θ, ρ, π,
@@ -181,7 +181,7 @@ def laterWeights (lanes slices : List E) : List E :=
   keccakLinearTranspose
     ((List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * slices.getD (j % 64) 0)
 
-/-- **The claim record at `rec`** (`KC_*`, G:218-225) of the claim `c` on `y`-coordinate points:
+/-- **The claim record at `rec`** (`KC_*`, G:237-244) of the claim `c` on `y`-coordinate points:
 `KC_VALUE = 0` the value, `KC_KAPPA = 1` the sum of the instance weights, `KC_POINT = 2` a pointer
 to the point, `KC_MU = 6..21` the sixteen instance weights, `KC_LANES = 3` a pointer to the
 twenty-five lane weights; the first claim's position weights are `firstWeights`; a later claim's
@@ -252,7 +252,7 @@ def keccakSeg (logSteps : ℕ) (inst output : List E) :
   return (r, m)
 
 /-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices)`**
-(G:2755-2927; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
+(G:2905-3072; TRIAGE #63): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`,
 which `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
 coordinates) and the table's twenty-five output lane values `outs` at `output_lanes`: from the
 carried capacity, the stream words `xs` at the cursor run `keccakSeg τ (chis.take τ) outs` to the

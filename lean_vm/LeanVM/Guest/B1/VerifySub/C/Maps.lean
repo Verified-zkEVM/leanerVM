@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Maps
 
-  `verify_sub`'s ring map challenges (G:3246-3252), honestly.
+  `verify_sub`'s ring map challenges (G:3419-3425), honestly.
 -/
 
 module

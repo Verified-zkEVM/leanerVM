@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# The query weights (G:1432-1435)
+# The query weights (G:1581-1584)
 
 `osLamPows lam base k Q` stores `query_weights[base + i] = lam^i`, `i < Q`, and leaves `lam^Q` (at
 `k + Q - 1`) for `opening_queries`' `lam_n` (`osLamPows_sound`, `2 ≤ Q`).

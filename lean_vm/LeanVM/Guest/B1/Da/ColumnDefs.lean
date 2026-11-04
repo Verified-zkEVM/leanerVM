@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColumnDefs
 
-  The checks of `da_verify_column`'s body and of its blob loop `__loop21` (G:3969-3983).
+  The checks of `da_verify_column`'s body and of its blob loop `__loop21` (G:4254-4268).
 -/
 
 module

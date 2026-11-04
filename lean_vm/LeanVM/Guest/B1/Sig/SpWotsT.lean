@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsT
 
   The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py:3600-3631` at leanVM ed7d2b9c) with the values numbered as the renumbered
+  (`lean_ethereum.py:3777-3808` at leanVM c4f4bc92) with the values numbered as the renumbered
   expansion numbers them.
 -/
 
@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.Sig.WotsT
 /-!
 # `sp_wots` as a template
 
-`sp_wots(pp, at, encoding)` (`G:3600-3631`; `G` is `lean_ethereum.py`) has the parameters `pp = n0`,
+`sp_wots(pp, at, encoding)` (`G:3777-3808`; `G` is `lean_ethereum.py`) has the parameters `pp = n0`,
 `at = n1` (the one-time key's address: its leaf in the low lane, its layer and tree in the high one)
 and `encoding = n2`; the powers `g^s` are `n(3 + s)`, `s < 10`.
 
-Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3389-3398`, `lx = 0`): 21 groups of
+Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3566-3575`, `lx = 0`): 21 groups of
 three digits and the last chain's, each a hinted digit word, its range check and a `match` over its
 `4^n` arms, written with the shared templates (`WotsT`, `armT`). One thing differs: no `KECCAK`
 precedes the codeword, so the compiler allocates the padding run `[0x01, 0, 0, 0, 0]` where an arm
@@ -25,12 +25,12 @@ first needs it, in its first chain step, and again in every arm (an arm's consta
 The templates therefore write each arm with its padding run at a virtual base `spVPad` above every
 value (`spW`), and `withPad` moves it where the compiler puts it: it renames the arm's values
 (`padShift`: the virtual run to the real one, every value from the real run on five up) and inserts
-the run's five constants. The leaf's `keccak_cells` (`wots_leaf`, `G:3412-3415`, 66 cells, 1056
+the run's five constants. The leaf's `keccak_cells` (`wots_leaf`, `G:3589-3592`, 66 cells, 1056
 bytes) is the shared Keccak message (`kMsg`) moved the same way, its run allocated at its first
 block's `KECCAK`.
 
 * `k48At`, `spW`: the chain step, the address `at + (TW_CHAIN + i·2^32 + s·2^61)` and
-  `keccak([pp, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `G:3381-3386`);
+  `keccak([pp, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `G:3558-3563`);
 * `padRun`, `padShift`, `withPad`: the padding run where the compiler allocates it;
 * `spArmT`, `spArmK`, `spArmsT`, `spGroupT`, `spGroupsT`: an arm, arm `k` of a group, a group's arms (arm `0` lays out the
   chains' slots and the group's outputs, the others write them), a group, the groups;
@@ -98,7 +98,7 @@ def k48At (pp : V) (pad : Nat) (a v : V) (c o : Nat) : List Stmt :=
     false false]
 
 /-- `sp_wots`'s chain step `s` of chain `i`: the address `at + (TW_CHAIN + i·2^32 + s·2^61)`, then
-the 48-byte hash of `pp`, it and the value, its padding run virtual (`walk`, `G:3381-3386`). -/
+the 48-byte hash of `pp`, it and the value, its padding run virtual (`walk`, `G:3558-3563`). -/
 def spW : WotsT where
   step i s v c o := cst c (word (tw 1 + i * hiMul + s * stepMul) 0 0) ::
     addS (.n (c + 1)) (.n 1) (.n c) :: k48At (.n 0) spVPad (.n (c + 1)) v (c + 2) o

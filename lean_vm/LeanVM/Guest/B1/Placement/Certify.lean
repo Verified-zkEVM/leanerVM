@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Placement.Common
 /-!
 # `certify_placement` (TRIAGE G #67)
 
-`certify_placement(kappa_base, g_squares)` (G:2971-3004) builds each committed column's `g^κ`
+`certify_placement(kappa_base, g_squares)` (G:3116-3138) builds each committed column's `g^κ`
 from its source in `kappa_base` (`COL_KAPPA_SRC`, `COL_KAPPA_ADJ`: `colKappaSrc`, `colKappaAdj`),
 reads the hinted order `col_sort_order`, range-checks each entry into the 99 columns and its
 size below 34, checks that the sizes do not increase and that ties ascend, stores the running

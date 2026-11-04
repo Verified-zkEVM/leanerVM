@@ -88,7 +88,7 @@ def hCover : List E :=
 /-! ## The oracle and the buffers -/
 
 /-- A DA claim's four cells: its root's, then its challenge's rate cells with the tag `0`
-(`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py:3927`). -/
+(`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py:4212`). -/
 def daCells (c : DaClaim) : List E :=
   B1.Digest.digestCells c.daRoot ++
     [(Keccak.scalarCells c.membershipChallenge 0).1, (Keccak.scalarCells c.membershipChallenge 0).2]

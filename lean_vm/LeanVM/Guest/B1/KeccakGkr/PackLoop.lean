@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Plain
 
 /-!
-# The pack rounds' loop (`keccak_layer`, G:2622-2653)
+# The pack rounds' loop (`keccak_layer`, G:2743-2776)
 
 `for x2 in mul_range(1, half_g)` in `keccak_layer` is lowered to a helper of parameters
 `[x2, half_g, rounds, prev_point, point]` (`Data.core393` .. `Data.core396`, the same body but

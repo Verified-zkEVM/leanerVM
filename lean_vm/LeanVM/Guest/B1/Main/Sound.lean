@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Sound
 
-  B1 for `main` (G:4051-4219; TRIAGE #96): a run of `main`'s body establishes `NodeRelation` of the
+  B1 for `main` (G:4336-4506; TRIAGE #96): a run of `main`'s body establishes `NodeRelation` of the
   seed, the statement and the witness its decoders read.
 -/
 

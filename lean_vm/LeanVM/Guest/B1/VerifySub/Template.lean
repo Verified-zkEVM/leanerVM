@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Template
 
-  `verify_sub`'s body as a template (G:3129-3318), section by section.
+  `verify_sub`'s body as a template (G:3303-3495), section by section.
 -/
 
 module
@@ -17,23 +17,23 @@ public import LeanVM.Guest.B1.Whir.Names
 The sections, in order (G = `lean_ethereum.py` at leanVM `3375f7a13`):
 
 * `vsHeadT`: the pool and the lengths allocated, the seed's permutation (`keccak_cells`), the
-  stream (G:3141-3150);
+  stream (G:3315-3323);
 * `vsReadsT`: the eight announced words read (`fs_next`), the table rows stored, the first four
-  absorbed (G:3158-3170);
+  absorbed (G:3331-3343);
 * `vsSizesT`: the rate and the memory's log-size as `g`-powers, their range checks, `dims_g`,
-  `kappa_base` (G:3171-3182);
-* `vsKappaT`: `block_kappa` (G:3183-3187);
-* `vsPushT`: the push blocks' total and the bus depth `g^μ`, `zeta` (G:3188-3193);
+  `kappa_base` (G:3344-3355);
+* `vsKappaT`: `block_kappa` (G:3356-3360);
+* `vsPushT`: the push blocks' total and the bus depth `g^μ`, `zeta` (G:3361-3367);
 * `vsRootsT`: the last four announced words absorbed, the root's two words read and checked
   (G:3195-3207);
-* `vsAlphasT`: the four bus challenges (G:3213-3219);
-* `vsFpwT`: their equality weights, then `β` (G:3220-3223);
-* `vsCallsT`: `verify_bus_gkr`, `verify_tables`, `verify_keccak` (G:3225-3237);
-* `vsMapsT`: the ring map's challenges (G:3246-3252);
-* `vsCtabT`: their Frobenius coefficients `c_table`, and `ring_switch_target` (G:3253-3262);
-* `vsLamT`: the batching challenge and the target (G:3263-3281);
+* `vsAlphasT`: the four bus challenges (G:3386-3392);
+* `vsFpwT`: their equality weights, then `β` (G:3393-3396);
+* `vsCallsT`: `verify_bus_gkr`, `verify_tables`, `verify_keccak` (G:3398-3410);
+* `vsMapsT`: the ring map's challenges (G:3419-3425);
+* `vsCtabT`: their Frobenius coefficients `c_table`, and `ring_switch_target` (G:3426-3435);
+* `vsLamT`: the batching challenge and the target (G:3436-3454);
 * `vsTailT`: `certify_placement`, the stack's log, the candidate, the dispatch to `open_stacked`,
-  the terminal, the deferred claim (G:3283-3318).
+  the terminal, the deferred claim (G:3456-3495).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -77,7 +77,7 @@ def vsSqzT (capb o : ℕ) : List Stmt :=
 
 /-! ## The sections -/
 
-/-- The pool and the lengths, the seed, the stream (G:3141-3150). -/
+/-- The pool and the lengths, the seed, the stream (G:3315-3323). -/
 def vsHeadT : List Stmt :=
   [vsAlloc 7 165, vsAlloc 8 165, vsConst 9 (word 1 0 0), vsConst 10 (word 0 0 0),
     vsConst 11 (word 0 0 0), vsConst 12 (word 0 0 0), vsConst 13 (word 0 0 0),
@@ -86,7 +86,7 @@ def vsHeadT : List Stmt :=
     vsAlloc 27 8192, .atom (.hint (.witness "stream" (.heap (.n 27) 0 8192))), vsAlloc 28 6]
 
 /-- The eight announced words: `x_i` at `29 + 10 i` (`i < 4`) and `82 + 10 (i - 4)`, rows `1 .. 6`
-stored in `table_rows`, the first four absorbed after the fourth (G:3158-3170). -/
+stored in `table_rows`, the first four absorbed after the fourth (G:3331-3343). -/
 def vsReadsT : List Stmt :=
   fsNextT (.n 27) 0 29 ++ fsNextT (.n 27) 1 39 ++ [vsLd 39 28 0] ++ fsNextT (.n 27) 2 49 ++
     [vsLd 49 28 1] ++ fsNextT (.n 27) 3 59 ++ [vsLd 59 28 2] ++
@@ -95,7 +95,7 @@ def vsReadsT : List Stmt :=
     fsNextT (.n 27) 4 82 ++ [vsLd 82 28 3] ++ fsNextT (.n 27) 5 92 ++ [vsLd 92 28 4] ++
     fsNextT (.n 27) 6 102 ++ [vsLd 102 28 5] ++ fsNextT (.n 27) 7 112
 
-/-- The rate and the memory's log as `g`-powers, `dims_g`, `kappa_base` (G:3171-3182). -/
+/-- The rate and the memory's log as `g`-powers, `dims_g`, `kappa_base` (G:3344-3355). -/
 def vsSizesT : List Stmt :=
   [vsCall "g_power_of_word" [112] [122], vsConst 123 (word 2 0 0), vsMul 122 124 123,
     vsConst 125 (word 8 0 0), vsRange 124 126 127 128 125, vsAlloc 129 7,
@@ -117,7 +117,7 @@ def vsKappaStep (b : ℕ) : List Stmt :=
     [vsLd (vsKV b) 141 (Tables.blockKappaSrc.getD b 0), vsConst (vsKV b + 1) (word (2 ^ 19) 0 0),
       vsMul (vsKV b + 2) (vsKV b) (vsKV b + 1), vsLd (vsKV b + 2) 149 b]
 
-/-- `block_kappa` (G:3183-3187). -/
+/-- `block_kappa` (G:3356-3360). -/
 def vsKappaT : List Stmt := vsAlloc 149 153 :: (List.range Tables.nBlocks).flatMap vsKappaStep
 
 /-- The running product after push block `b`. -/
@@ -129,7 +129,7 @@ def vsPushStep (b : ℕ) : List Stmt :=
   else [vsLd (306 + 4 * b) 149 b, vsMul (307 + 4 * b) 5 (306 + 4 * b),
     vsLd (308 + 4 * b) (307 + 4 * b) 0, vsMul (vsPV b) (vsPV (b - 1)) (308 + 4 * b)]
 
-/-- The push blocks' total, the bus depth, `zeta` (G:3188-3193). -/
+/-- The push blocks' total, the bus depth, `zeta` (G:3361-3367). -/
 def vsPushT : List Stmt :=
   (List.range 54).flatMap vsPushStep ++
     [vsCall "log2_ceil_in_the_exponent__L0_L34" [521, 4, 5] [522],
@@ -142,7 +142,7 @@ def vsRootsT : List Stmt :=
   fsNextT (.n 27) 8 537 ++ fsNextT (.n 27) 9 547 ++
   [vsCall "assert_canonical" [537] [557], vsCall "assert_canonical" [547] [558], vsAlloc 559 4]
 
-/-- The four bus challenges, the first with the root waiting (G:3213-3219). -/
+/-- The four bus challenges, the first with the root waiting (G:3386-3392). -/
 def vsAlphasT : List Stmt :=
   keccakA [.n 544, .n 546, .n 554, .n 556, .n 10, .n 11, .n 12, .n 13, .n 532, .n 533, .n 534,
     .n 535, .n 536] (vsRun 560 13) :: challengeT (.n 560) (.n 561) 573 ++ [vsLd 579 559 0] ++
@@ -173,12 +173,12 @@ def vsFpwStart : ℕ → ℕ
   | 0 => 641
   | x + 1 => (vsEqwT x (vsFpwStart x)).2.2
 
-/-- `fp_w`, then `β` (G:3220-3223). -/
+/-- `fp_w`, then `β` (G:3393-3396). -/
 def vsFpwT : List Stmt :=
   vsAlloc 640 16 :: (List.range 16).flatMap (fun x ↦
     (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 640 x]) ++ vsSqzT 628 817
 
-/-- The bus's GKR, the tables, the Keccak reduction (G:3225-3237). -/
+/-- The bus's GKR, the tables, the Keccak reduction (G:3398-3410). -/
 def vsCallsT : List Stmt :=
   [vsConst 837 (word 1024 0 0), vsMul 838 27 837,
     vsCall "verify_bus_gkr" [825, 826, 827, 828, 829, 838, 522, 523] ((List.range 9).map (839 + ·)),
@@ -191,7 +191,7 @@ def vsCallsT : List Stmt :=
       ((List.range 8).map (863 + ·))] ++
   (List.range 5).map fun i ↦ .atom (.copy (.n (871 + i)) (.n (863 + i)))
 
-/-- The ring map's challenges: the first from `verify_keccak`, five squeezed (G:3246-3252). -/
+/-- The ring map's challenges: the first from `verify_keccak`, five squeezed (G:3419-3425). -/
 def vsMapsT : List Stmt :=
   [vsAlloc 876 6, vsAlloc 877 64, vsLd 870 876 0] ++
   vsSqzT 871 878 ++ [vsLd 897 876 1] ++ vsSqzT 886 898 ++ [vsLd 917 876 2] ++
@@ -211,7 +211,7 @@ def vsSlotT (mc s slot v : ℕ) : List Stmt :=
 def vsStageT (st s b : ℕ) : List Stmt :=
   vsLd b 876 st :: (List.range (32 / s)).flatMap fun slot ↦ vsSlotT b s slot (b + 1 + slot * (s + 2))
 
-/-- `c_table`, then `ring_switch_target` (G:3253-3262). -/
+/-- `c_table`, then `ring_switch_target` (G:3426-3435). -/
 def vsCtabT : List Stmt :=
   [vsConst 978 (word 1 0 0), vsLd 978 877 0] ++ vsStageT 0 32 979 ++ vsStageT 1 16 1014 ++
     vsStageT 2 8 1051 ++ vsStageT 3 4 1092 ++ vsStageT 4 2 1141 ++ vsStageT 5 1 1206 ++
@@ -232,7 +232,7 @@ def vsLamStep (i : ℕ) : List Stmt :=
     vsMul (1326 + 4 * i) (vsPw i) (1325 + 4 * i), vsAdd (1327 + 4 * i) (vsTg i) (1326 + 4 * i),
     vsMul (1328 + 4 * i) (vsPw i) 1323]
 
-/-- The batching challenge, the target (G:3263-3281). -/
+/-- The batching challenge, the target (G:3436-3454). -/
 def vsLamT : List Stmt :=
   vsSqzT 966 1304 ++ [vsAlloc 1324 165] ++ (List.range 140).flatMap vsLamStep ++
     [vsMul 1885 1884 869, vsAdd 1886 1883 1885]
@@ -244,7 +244,7 @@ theorem vsOpenNames_eq : vsOpenNames = B1.Whir.openNames := by
   simp only [vsOpenNames, B1.Whir.openNames, B1.Whir.natStr_eq]
 
 /-- The placement, the stack's log, the dispatch, the terminal, the deferred claim
-(G:3283-3318). -/
+(G:3456-3495). -/
 def vsTailT : List Stmt :=
   [vsCall "certify_placement" [141, 5] [1887, 1888, 1889],
     vsCall "log2_ceil_in_the_exponent__L15_L34" [1887, 4, 5] [1890],

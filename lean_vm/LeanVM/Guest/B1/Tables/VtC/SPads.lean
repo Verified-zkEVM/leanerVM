@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The tables' heights (G:1986-2000)
+# The tables' heights (G:2171-2185)
 
 `pad_ok` (`t < 5`, floor `0`) and `pad5_ok` (`KECCAK`, floor `9`): from the template's equations,
 its two reads not stores, a memory holding `g^τ` and the rows `n` with `τ = max (log2Ceil n)

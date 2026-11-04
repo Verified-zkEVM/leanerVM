@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkT
 
-  `verify_keccak`'s body as a template (G:2755-2926), section by section.
+  `verify_keccak`'s body as a template (G:2905-3071), section by section.
 -/
 
 module
@@ -266,7 +266,7 @@ def vkFirstT : List Stmt :=
 
 /-- An opening's lane weights at the slot point `slot` and segment point `segp` from `b`: the
 slot's equality weights (`eqfT`, the first 50), the segment's, and per lane the segments'
-`first .. first + count` weighted (`keccak_slot_lanes`, G:2739-2752). -/
+`first .. first + count` weighted (`keccak_slot_lanes`, G:2889-2902). -/
 def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
   eqfT (.n slot) 0 6 50 b ++ eqfLevel0T (.n segp) 0 (b + 129) ++
   ((List.range 25).map fun lane ↦
@@ -301,7 +301,7 @@ def slCap (capb b g : ℕ) : ℕ := if g = 0 then capb else slP b g + 8
 def slCells (b g : ℕ) : List V :=
   ((List.range 4).map fun j ↦ [V.n (slB b (4 * g + j) + 7), .n (slB b (4 * g + j) + 9)]).flatten
 
-/-- **The 64 slices** (G:2906-2913): read at the cursor and stored, four to a permutation, then the
+/-- **The 64 slices** (G:3051-3058): read at the cursor and stored, four to a permutation, then the
 ring map's first challenge squeezed (at `b + 854`). -/
 def slicesT (cur : V) (capb b : ℕ) : List Stmt :=
   ((List.range 16).map fun g ↦
@@ -327,7 +327,7 @@ where
   foldPos' (t q : ℕ) : ℕ := ((List.range (2 ^ (t + 1))).filter fun q' ↦
     t + 1 < 6 || shiftUsed.contains (q' / 2 + 2 ^ t * (q' % 2))).idxOf (q % 2 ^ t * 2 + q / 2 ^ t)
 
-/-- **`fold_shifts`, level `t`** (G:2377-2405) from `B`, the coordinate at `a·g^t`. -/
+/-- **`fold_shifts`, level `t`** (G:2603-2633) from `B`, the coordinate at `a·g^t`. -/
 def foldLevelT (src : ℕ → ℕ) (b : ℕ) (a : V) (t : ℕ) : List Stmt :=
   let n := 2 ^ (6 - t)
   let B := b + 193 * t
@@ -398,7 +398,7 @@ def vkInT : List Stmt :=
 /-- The shifts of the slices' values. -/
 def vkSh (r : ℕ) : ℕ := foldVal (fun j ↦ 5213 + j) 5277 6 r
 
-/-- The inputs' check, the copy of their pack coordinates, the return (G:2915-2927). -/
+/-- The inputs' check, the copy of their pack coordinates, the return (G:3060-3072). -/
 def vkFinT : List Stmt :=
   [.atom (.load (.n 4977) (.n 201) 266), .atom (.mul (.n 4978) (.n 4977) (.n 17))] ++
   slotLanesT 4107 4978 4979 0 2 ++ [.atom (.load (.n 5212) (.n 201) 268)] ++

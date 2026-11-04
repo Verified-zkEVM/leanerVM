@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.Loops
 public import LeanVM.Guest.B1.Whir.ResQuery
 
 /-!
-# The residual loop (G:1562-1572)
+# The residual loop (G:1715-1722)
 
 At `x = g^j` the iteration reads the positions `2j, 2j + 1` at `qpos·g^po·x²` and their
 weights at `qw·g^wo·x²`, evaluates both queries' `residual_query` on the level's `basis_d` row,

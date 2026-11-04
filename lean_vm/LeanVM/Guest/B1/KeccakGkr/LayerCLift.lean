@@ -69,7 +69,7 @@ def L (CL : ClaimLay) (first : ℕ) (c : KeccakClaim) : Main.Layout :=
   [(CL.bclaim, CL.cw), (CL.bpp, c.point), (CL.blp, CL.lanes)] ++
     if first = 1 then [] else [(CL.blc, CL.locC), (CL.bsl, eqKernel (CL.locC.take 6))]
 
-/-- What the record holds (`KC_*`, G:218-225). -/
+/-- What the record holds (`KC_*`, G:237-244). -/
 def Ok (CL : ClaimLay) (first : ℕ) (c : KeccakClaim) (y : ℕ) : Prop :=
   CL.cw.length = 22 ∧ c.mu.length = 16 ∧ c.point.length = y ∧ CL.cw.getD 0 0 = c.value ∧
     CL.cw.getD 1 0 = sumE c.mu ∧ CL.cw.getD 2 0 = ptr CL.bpp ∧ CL.cw.getD 3 0 = ptr CL.blp ∧

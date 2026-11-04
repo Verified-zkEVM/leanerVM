@@ -73,7 +73,7 @@ def termHeadT : List Stmt :=
     .atom (.mul (.n 32) (.n 25) (.n 5)), .atom (.load (.n 33) (.n 32) 0),
     .call "selector_tables" [.n 14, .n 15] [.n 34, .n 35]]
 
-/-- Committed column `c`'s selector (G:3079-3082). -/
+/-- Committed column `c`'s selector (G:3235-3238). -/
 def selBlockT (c : ℕ) : List Stmt :=
   [.atom (.load (.n (36 + 3 * c)) (.n 10) c), .atom (.load (.n (37 + 3 * c)) (.n 11) c),
     .dispatch (.n (37 + 3 * c)) colSelNames [.n (36 + 3 * c), .n 34, .n 35] [.n (selV c)]]

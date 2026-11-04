@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Factors
 
-  `da_factors`' template and its meaning (G:4032-4040).
+  `da_factors`' template and its meaning (G:4317-4325).
 -/
 
 module
@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Da.Cell
 public import LeanVM.Guest.B1.Da.VectorMath
 
 /-!
-# `da_factors` (G:4032-4040)
+# `da_factors` (G:4317-4325)
 
 `da_factors(zs, top, D, at)` (`da_factors__L14_L7_L0`, `core376`; `da_factors__L7_L8_L128`,
 `core378`): a heap run `factors` (`.n 1`, `256` words); at each depth `d < D` the power

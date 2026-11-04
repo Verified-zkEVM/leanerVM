@@ -206,7 +206,7 @@ theorem flipOf_mem {s b i : ℕ} (hi : i ∈ iotaUsed s) :
   refine ⟨rfl, List.idxOf_lt_length_of_mem hi, ?_⟩
   rw [List.getD_eq_getElem _ _ (List.idxOf_lt_length_of_mem hi), List.getElem_idxOf]
 
-/-- **The first claim's flips** (G:2848-2849): lane `0`'s weight times `x^(2^i - 1)`. -/
+/-- **The first claim's flips** (G:2999-3000): lane `0`'s weight times `x^(2^i - 1)`. -/
 theorem flipsT_holds0 {b : ℕ} {L0 : E} (hL : ∀ v, LoadHolds rd (σ (.n 274)) 30 v → v = L0)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (flipsT 0 b) next kret) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 b i)) = L0 * gen ^ (2 ^ i - 1)) ∧ next := by
@@ -376,7 +376,7 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
 
 /-! ## The first step -/
 
-/-- **Step `0`** (G:2835-2866): the first claim, its `ι` term, and `keccak_layer` with the
+/-- **Step `0`** (G:2986-3012): the first claim, its `ι` term, and `keccak_layer` with the
 committed outputs' value waiting in the sponge. -/
 theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
     (h43 : σ (.n 43) = gen ^ ((τ - 3) / 2)) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2))

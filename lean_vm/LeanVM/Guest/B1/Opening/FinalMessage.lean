@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `opening_final_message` (G:1114-1133, TRIAGE #37)
+# `opening_final_message` (G:1227-1246, TRIAGE #37)
 
 Its body at `n = 4m` words (`ofmBody m`): the capacity copied into `9 .. 13`, the waiting `w0`,
 `w1` packed (`fsPackT` from `14`, `23`); message word `i` read, packed and stored

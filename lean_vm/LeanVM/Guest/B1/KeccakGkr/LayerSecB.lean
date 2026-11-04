@@ -106,7 +106,7 @@ theorem packSetupT_holds {first odd : ℕ} {next : Prop} {kret : List E → Prop
     · simp only [ho, ↓reduceIte, Stmt.HoldsList] at h
       exact ⟨fun h' ↦ absurd h' ho, h⟩
 
-/-- **The last record** (G:2639-2643): `rounds·y_last` (value `1317 + d`) and its capacity, cursor
+/-- **The last record** (G:2762-2766): `rounds·y_last` (value `1317 + d`) and its capacity, cursor
 and claim. -/
 theorem lastT_holds {d : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (lastT d) next kret) :

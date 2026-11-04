@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.WotsT
 
   The WOTS+C codeword check and the Merkle path both signature verifiers share, as templates
-  (`walk`, `walk_group`, the digit dispatch, `merkle_path`, `lean_ethereum.py:3326-3434`).
+  (`walk`, `walk_group`, the digit dispatch, `merkle_path`, `lean_ethereum.py:3503-3611`).
 -/
 
 module
