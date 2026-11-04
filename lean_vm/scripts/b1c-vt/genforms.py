@@ -4,30 +4,26 @@ import os, sys
 import sys,re,json,ast
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import *
-# vtEvalData (EvalsT.lean): evaluation k's first statement, its value, its table's tau value.
+# vtEvalData (EvalsT.lean): evaluation k's first statement and its value (copied to value + 10).
 _ed = open(os.path.join(VT_LEAN, 'EvalsT.lean')).read()
 _ed = _ed[_ed.index('def vtEvalData'):]
 _ed = _ed[_ed.index(':=') + 2:_ed.index('\n\n')]
-EV = [(p, b, k, str(t)) for k, (p, b, t) in enumerate(ast.literal_eval(' '.join(_ed.split())))]
+EV = [(p, b, k) for k, (p, b) in enumerate(ast.literal_eval(' '.join(_ed.split())))]
 evvar={}   # copy var -> k
-for (p,b,k,tau) in EV: evvar[b+10]=k
+for (p,b,k) in EV: evvar[b+10]=k
 BASE=[0,15,30,38,53,67]; WIDTH=[15,15,8,15,14,90]
-# Each table's form values per side: the operands of its sum's `ξ²·F0 + ξ³·F1 + ξ⁴·F2` (5898-5900).
-CE = [6382, 6887, 7150, 7650, 8121, 11189]
+# The forms' window, the ξ powers multiplying the push/pull/count forms (G:2508), W's and β's variables.
+WLO, WHI = 2672, 6250
+XI = (2575, 2576, 2577)
+WV, BV = 13, 14
+# Each table's form values per side: the operands of its `ξ²·F0`, `ξ³·F1`, `ξ⁴·F2`, in table order.
 def _formvals():
-    d = defs_window(5400, 10251)
-    res = {}
-    for t, ce in enumerate(CE):
-        def find(v, xi):
-            stack = [v]; seen = set()
-            while stack:
-                x = stack.pop()
-                if x in seen or x not in d: continue
-                seen.add(x)
-                p, o, a = d[x]
-                if o == 'mul' and a[0] == xi: return a[1]
-                if o == 'add': stack += a
-        res[str(t)] = [find(ce, x) for x in (5898, 5899, 5900)]
+    res = {str(t): [] for t in range(6)}
+    for sd, xi in enumerate(XI):
+        ms = [parse_atom(IR[p])[1] for p in range(WLO, WHI + 1)
+              if parse_atom(IR[p]) and parse_atom(IR[p])[0] == 'mul' and parse_atom(IR[p])[1][1] == xi]
+        assert len(ms) == 6, (sd, ms)
+        for t in range(6): res[str(t)].append(ms[t][2])
     return res
 # defs over whole IR, first def wins but only for positions in a window
 def defs_window(lo,hi):
@@ -71,7 +67,7 @@ for line in open(IRF).read().splitlines():
     s=s.strip()
     if s.endswith(' ::'): s=s[:-3]
     RAW[int(k)]=s
-D=defs_window(5400,10251)
+D=defs_window(WLO,WHI)
 def bterms_lit(sd,t):
     src=open(os.path.join(VT_LEAN, 'FormsData.lean')).read()
     m=re.search(r'def vtBTerms%d%d : [^\n]*:=\n(.*?)\n\n'%(sd,t),src,re.S)
@@ -89,7 +85,7 @@ def wrapl(text,ind='      ',width=98):
         else: line=(line+', '+tok) if line.strip() else (line+tok)
     out.append(line)
     return '\n'.join(out)
-def block_lemma(t,sd,bi,s,B,blk,ch):
+def block_lemma(t,sd,bi,s,B,blk,ch,diff=False):
     acc=set(); deps_stop(B,D,acc,set(evvar))
     lo,hi0=min(acc),max(acc)
     mv=ch[bi][2]
@@ -100,15 +96,16 @@ def block_lemma(t,sd,bi,s,B,blk,ch):
         pb=ch[bi-1]; a2=set(); deps_stop(pb[1],D,a2,set(evvar)); ph=max(a2)
         prev=pb[2] if bi==1 else parse_atom(RAW[ph+2])[1][0]
     stmts=[RAW[q] for q in range(lo,hi+1)]
-    name=f'vtB{sd}{t}_{bi}'
+    name=f'vtD{t}_{bi}' if diff else f'vtB{sd}{t}_{bi}'
+    val=(lambda b: f'vtSlots W ev 0 {b}') if diff else (lambda b: f'vtBlockVal (σ (.n {BV})) W ev {b}')
     L=[]
     L.append(f'theorem {name} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) {{W ev : ℕ → E}}')
-    L.append(f'    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))')
+    L.append(f'    (hw : ∀ i < 16, LoadHolds rd (σ (.n {WV})) i (W i))')
     L.append(f'    (hev : ∀ c < {WIDTH[t]}, σ (.n (vtEvB ({BASE[t]} + c))) = ev c) :')
-    lhs=f'σ (.n {accv}) = ' + (f'σ (.n {prev}) + ' if bi>=1 else '') + f'σ (.n {s}) * vtBlockVal (σ (.n 15)) W ev'
+    lhs=f'σ (.n {accv}) = ' + (f'σ (.n {prev}) + ' if bi>=1 else '') + f'σ (.n {s}) * '+val('').rstrip()
     L.append(f'    {lhs}')
     L.append(f'      {pylit(blk)} := by')
-    L.append(f'  obtain ⟨_, hs⟩ := h.slice {lo} [')
+    L.append(f'  obtain ⟨_, hs⟩ := h.sliceAt {lo} [')
     L.append(',\n'.join('    '+x for x in stmts)+'] (by decide +kernel)')
     L.append(f'  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs')
     names=[f'a{q}' for q in range(lo,hi+1)]
@@ -127,14 +124,14 @@ def block_lemma(t,sd,bi,s,B,blk,ch):
         k=evvar[x]; c=k-BASE[t]
         assert 0<=c<WIDTH[t]
         L.append(f'  have v{x} : σ (.n {x}) = ev {c} := by')
-        L.append(f'    rw [← hev {c} (by norm_num)]; exact (vt_eval h (k := {k}) (by norm_num)).2.2.1')
+        L.append(f'    rw [← hev {c} (by norm_num)]; exact (vt_eval h (k := {k}) (by norm_num)).2.2')
         rws.append(f'v{x}')
-    L.append(f'  have hB : σ (.n {B}) = vtBlockVal (σ (.n 15)) W ev {pylit(blk)} := by')
+    L.append(f'  have hB : σ (.n {B}) = {val(pylit(blk))} := by')
     L.append('    simp only ['+wrapl(', '.join(reversed(rws)),'      ',94)+']')
     consts=set(parse_atom(RAW[q])[1][1][0] for q in range(lo,hi0+1) if parse_atom(RAW[q])[0]=='const')
     coefs=set(v for c in blk for m,v in c)
     extra=(['vt_word_ofK'] if consts else [])+(['vt_ofK_ofBits_zero'] if (0 in consts or 0 in coefs) else [])+(['vt_ofK_ofBits_one'] if (1 in consts or 1 in coefs) else [])
-    L.append('    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,')
+    L.append('    simp only ['+('' if diff else 'vtBlockVal_eq, ')+'vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,')
     L.append('      List.map_nil, List.prod_cons, List.prod_nil'+''.join(', '+x for x in extra)+']')
     L.append('    ring')
     L.append(f'  rw [{"a"+str(hi)+", " if bi>=1 else ""}a{hi0+1}, hB]')
@@ -145,9 +142,9 @@ def side_lemma(t,sd,blocks_lits,ch,bnames):
     L=[]
     sels='['+', '.join(f'σ (.n {s})' for s,B,mv in ch)+']'
     L.append(f'theorem {name} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) {{'+('W ' if sd<2 else '')+'ev : ℕ → E}')
-    if sd<2: L.append(f'    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))')
+    if sd<2: L.append(f'    (hw : ∀ i < 16, LoadHolds rd (σ (.n {WV})) i (W i))')
     L.append(f'    (hev : ∀ c < {WIDTH[t]}, σ (.n (vtEvB ({BASE[t]} + c))) = ev c) :')
-    beta='σ (.n 15)' if sd<2 else '0'
+    beta=f'σ (.n {BV})' if sd<2 else '0'
     Wn='W' if sd<2 else '(fun _ ↦ 1)'
     L.append(f'    σ (.n {F}) =')
     L.append('      vtSideVal '+wrapl(sels,'        ',90)+f'\n        ({beta}) {Wn} ev vtBTerms{sd}{t} := by')
@@ -167,7 +164,7 @@ def side_lemma(t,sd,blocks_lits,ch,bnames):
     walk(F)
     cp=sorted(set(p for p,_,_,_ in chainpos)); lo=cp[0]; hi=cp[-1]
     assert hi-lo+1==len(cp)
-    L.append(f'  obtain ⟨_, hs⟩ := h.slice {lo} [')
+    L.append(f'  obtain ⟨_, hs⟩ := h.sliceAt {lo} [')
     L.append(',\n'.join('    '+RAW[q] for q in range(lo,hi+1))+'] (by decide +kernel)')
     L.append(f'  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs')
     L.append('  obtain ⟨'+wrapl(', '.join([f'a{q}' for q in cp]+['-']),'    ',96)+'⟩ := hs')
@@ -175,7 +172,7 @@ def side_lemma(t,sd,blocks_lits,ch,bnames):
     for s,B,mv in ch:
         k=evvar[B]; c=k-BASE[t]
         L.append(f'  have v{B} : σ (.n {B}) = ev {c} := by')
-        L.append(f'    rw [← hev {c} (by norm_num)]; exact (vt_eval h (k := {k}) (by norm_num)).2.2.1')
+        L.append(f'    rw [← hev {c} (by norm_num)]; exact (vt_eval h (k := {k}) (by norm_num)).2.2')
         evs.append(f'v{B}')
     rws=[f'a{p}' for p,_,_,_ in chainpos]+evs
     L.append('  rw ['+wrapl(', '.join(rws),'    ',96)+']')
@@ -210,6 +207,8 @@ def gen_table(t,sides=(0,1,2),blocks=None,with_side=True):
     out=[]
     for sd in sides:
         data,lit=bterms_lit(sd,t)
+        if sd==1:
+            out.append(pull_side(t,with_side)); continue
         F=FV[str(t)][sd]; ch,_=chain(F,D)
         assert len(ch)==len(data)
         bn=[]
@@ -221,4 +220,37 @@ def gen_table(t,sides=(0,1,2),blocks=None,with_side=True):
                     out.append('set_option maxRecDepth 10000 in\n'+txt)
         if with_side:
             n,txt=side_lemma(t,sd,data,ch,bn); out.append('set_option maxRecDepth 10000 in\n'+txt)
+    return '\n\n'.join(out)
+
+import gendiff
+def pull_side(t,with_side=True,blocks=None):
+    """Table t's pull form: `F1 = F0 + Σ_b sel_b · Σ_i W_i · diff_i` (G:2446-2475, 2501-2502)."""
+    F0,F1=FV[str(t)][0],FV[str(t)][1]
+    p1,op,a=D[F1]; assert op=='add' and a[0]==F0,(t,F1,op,a)
+    Fd=a[1]; ch,_=chain(Fd,D); dt=gendiff.DT[t]
+    assert len(ch)==len(dt) and all(any(c) for c in dt),(t,len(ch),len(dt))
+    out=[]; bn=[]
+    for bi,(s,B,mv) in enumerate(ch):
+        n=f'vtD{t}_{bi}'; bn.append(n)
+        if blocks is None or bi in blocks:
+            n,txt=block_lemma(t,1,bi,s,B,dt[bi],ch,diff=True)
+            out.append('set_option maxRecDepth 10000 in\n'+txt)
+    if with_side:
+        chP,_=chain(F0,D)
+        sels='['+', '.join(f'σ (.n {s})' for s,B,mv in ch)+']'
+        L=[f'theorem vtSide1{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) {{W ev : ℕ → E}}']
+        L.append(f'    (hw : ∀ i < 16, LoadHolds rd (σ (.n {WV})) i (W i))')
+        L.append(f'    (hev : ∀ c < {WIDTH[t]}, σ (.n (vtEvB ({BASE[t]} + c))) = ev c) :')
+        L.append(f'    σ (.n {F1}) =')
+        L.append('      vtSideVal '+wrapl(sels,'        ',90)+f'\n        (σ (.n {BV})) W ev vtBTerms1{t} := by')
+        L.append(f'  have hF0 : σ (.n {F0}) =')
+        L.append('      vtSideVal '+wrapl(sels,'        ',90)+f'\n        (σ (.n {BV})) W ev vtBTerms0{t} := by')
+        L.append(f'    rw [vtPullSels{t} h]; exact vtSide0{t} h hw hev')
+        L.append(f'  have a{p1} := h.atomAt {p1} {RAW[p1][len(".atom "):]} (by decide +kernel)')
+        L.append(f'  simp only [Atom.Holds] at a{p1}')
+        L.append(f'  rw [vtSideVal_pull _ _ _ _ _ _ _ vtPull{t}, ← hF0, a{p1}, '+wrapl(', '.join(f'{b} h hw hev' for b in reversed(bn)),'    ',96)+']')
+        assoc=', add_assoc' if len(ch)>=3 else ''
+        L.append(f'  simp only [vtDiffSum, vtDTerms{t}, List.zipWith_cons_cons, List.zipWith_nil_left,')
+        L.append(f'    List.sum_cons, List.sum_nil, add_zero{assoc}]')
+        out.append('set_option maxRecDepth 10000 in\n'+'\n'.join(L))
     return '\n\n'.join(out)

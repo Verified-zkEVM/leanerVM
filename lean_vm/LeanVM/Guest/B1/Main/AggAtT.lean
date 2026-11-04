@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 /-!
 # `aggregate_claims`, its tree exposed
 
-`aggQ m`: the children's count `g^m` (`v0`) and the sizes' words (`v59`, `v110`, `v128`).
+`aggQ m`: the children's count `g^m` (`v0`) and the sizes' words (`v59`, `v110`, `v198`).
 `aggCallList`: its four calls, every one entered. `aggHonest m`: its honest shape, no predicate on
 its callees' trees. `aggregate_claims_completeAtT`.
 -/
@@ -35,15 +35,15 @@ open LeanVM.Guest.Budget (NodeHonest)
 /-- `aggregate_claims`' honest words: the children's count, its buffers' sizes. -/
 def aggQ (m : ℕ) (σ : Val) : Prop :=
   σ (.n 0) = gen ^ m ∧ σ (.n 59) = gen ^ (13 * (m + 1)) ∧ σ (.n 110) = gen ^ (2 * (m + 1)) ∧
-    σ (.n 128) = gen ^ (m + 1)
+    σ (.n 198) = gen ^ (m + 1)
 
 /-- `aggregate_claims`' calls, in order. -/
 def aggCallList : List Call :=
-  [⟨"__loop29", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
-    ⟨"__loop30", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], [], true⟩,
+  [⟨"__loop33", [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1], [], true⟩,
+    ⟨"__loop34", [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106], [], true⟩,
     ⟨"batch_sumcheck__L23", [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120],
       [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126], true⟩,
-    ⟨"__loop31", [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106], [], true⟩]
+    ⟨"__loop35", [.n 203, .n 0, .n 7, .n 8, .n 127, .n 111, .n 199, .n 106], [], true⟩]
 
 /-- No predicate on `aggregate_claims`' callees' trees. -/
 def aggTs : List (Tree → Prop) := [fun _ => True, fun _ => True, fun _ => True, fun _ => True]
@@ -89,13 +89,13 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop29", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨"__loop33", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop30", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
+      ⟨"__loop34", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
         Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true, capOf (aggAbs cs).perm ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop31", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
+      ⟨"__loop35", true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs], Own ++ Lin,
         Returns []⟩]
   have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
     intro k hk _
@@ -111,7 +111,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet])
         (fun rd hm => agg_bs hrl (hbm rd hm)) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
-        (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt, P.chain, P.w, lamA cs])
+        (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs])
           (agg_l27 (hcw' rd hm) hrl (hbm rd hm))).2 hne) 16
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
     kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 ks aggTs (kidsDT_true ks hok) (b0 + (aggSizes m).sum)
@@ -157,12 +157,12 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
       rcases hk with rfl | rfl | rfl
       · rw [hV.g62, ← pow_zero gen]; exact gen_pow_add_isInK _ _
       · rw [hV.g115, ← pow_zero gen]; exact gen_pow_add_isInK _ _
-      · rw [hV.g132, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+      · rw [hV.g202, ← pow_zero gen]; exact gen_pow_add_isInK _ _
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ aggP_straight
-  obtain ⟨s59, s110, s128⟩ := agg_sizes hV.atoms hV.e0
+  obtain ⟨s59, s110, s198⟩ := agg_sizes hV.atoms hV.e0
   have hal : allocs σ es = aggSizes m := by
     rw [hes, hpa, aggP_allocs]
-    simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, hV.e0, s59, s110, s128,
+    simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, hV.e0, s59, s110, s198,
       logG_gen_pow (show cs.length < 2 ^ 64 - 1 by omega),
       logG_gen_pow (show 13 * (cs.length + 1) < 2 ^ 64 - 1 by omega),
       logG_gen_pow (show 2 * (cs.length + 1) < 2 ^ 64 - 1 by omega),
@@ -173,7 +173,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
   have hcalls : calls es = aggCallList := by
     unfold aggCallList
     rw [hes, hpc, aggP_calls]
-    simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g62, hT hV.g115, hT hV.g132]
+    simp only [List.map_cons, List.map_nil, Main.mkCall, hT hV.g62, hT hV.g115, hT hV.g202]
   -- the walk
   have hown : ∀ i, Main.RegionL Own i → ownData cert fp b0 "aggregate_claims" (aggSizes m) es i :=
     fun i hi => Or.inl (bufL_region _ _ _ hfit i hi)
@@ -190,7 +190,7 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     (by
       rw [hal, hes, hpd, aggP_allocs]
       simp only [List.map_cons, List.map_nil, hV.v5, hV.v7, hV.v8, hV.v60, hV.v111, hV.v120,
-        hV.v129, hP, aggPtrsAt, gen_pow_eq_ofK]
+        hV.v127, hV.v199, hP, aggPtrsAt, gen_pow_eq_ofK]
       rfl)
     (fun q hq => by
       rw [hes, hpad, aggP_addrs] at hq
@@ -212,9 +212,9 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
       · rw [(h2 rfl).1]; rfl
       · exact hV.bsArgs
       · rw [(h3 rfl).1]; exact hV.bsRets
-      · show [σ (.n 133), σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 120), σ (.n 111), σ (.n 129),
+      · show [σ (.n 203), σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 127), σ (.n 111), σ (.n 199),
           σ (.n 106)] = _
-        rw [hV.g133, hV.e0, hV.v7, hV.v8, hV.v120, hV.v111, hV.v129, hV.v106]
+        rw [hV.g203, hV.e0, hV.v7, hV.v8, hV.v127, hV.v111, hV.v199, hV.v106]
       · rw [(h4 rfl).1]; rfl
     · intro q hq
       apply hmK
@@ -237,8 +237,8 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     have zl := agg_zip m b0
     simp only [aggLoadSet, List.mem_append, List.mem_map, List.mem_range, List.mem_cons,
       List.not_mem_nil, or_false] at hq'
-    rcases hq' with ((((((⟨i, hi, rfl⟩ | (rfl | rfl)) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
-      rfl) | rfl) | ⟨k, hk, rfl⟩
+    rcases hq' with (((((((⟨i, hi, rfl⟩ | (rfl | rfl)) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) |
+      rfl) | rfl) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩
     · refine ⟨axAbs m b0 + i, ?_, Or.inl (hz (s := 13 * (m + 1)) (x := axAbs m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
@@ -255,8 +255,8 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     · refine ⟨axW m b0 + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 129)).limb 0 * addressOfIndex 0 = _
-      rw [hV.v129]; exact limb0_gen_pow_mul _ _
+      show (σ (.n 199)).limb 0 * addressOfIndex 0 = _
+      rw [hV.v199]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
         simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
@@ -277,11 +277,15 @@ theorem aggregate_claims_completeAtT (fs : String → ℕ) (cert : String → V 
     · refine ⟨axW m b0 + m + 0, ?_, Or.inl (hz (s := m + 1) (x := axW m b0)
         (by rw [zl]; simp) (by omega)
         (by omega))⟩
-      show (σ (.n 134)).limb 0 * addressOfIndex 0 = _
-      rw [hV.p134, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
+      show (σ (.n 204)).limb 0 * addressOfIndex 0 = _
+      rw [hV.p204, show P.w = gen ^ axW m b0 from rfl, ← pow_add, limb0_gen_pow_mul]
     · refine ⟨axPt m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt m b0) (by rw [zl]; simp) (by omega)
         (by omega))⟩
       show (σ (.n 120)).limb 0 * addressOfIndex k = _
       rw [hV.v120]; exact limb0_gen_pow_mul _ _
+    · refine ⟨axPt1 m b0 + k, ?_, Or.inl (hz (s := 23) (x := axPt1 m b0) (by rw [zl]; simp) (by omega)
+        (by omega))⟩
+      show (σ (.n 127)).limb 0 * addressOfIndex k = _
+      rw [hV.v127]; exact limb0_gen_pow_mul _ _
 end
 end LeanVM.Guest.B1.Main

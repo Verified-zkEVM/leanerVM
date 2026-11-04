@@ -57,12 +57,12 @@ theorem resid_ldIn {B : List Stmt} {ps : List (V × ℕ)}
 /-! ## `t` -/
 
 /-- **`t`, completely.** -/
-theorem tReads_complete {d : ℕ} (hg : ∀ s ∈ tReadsT d, GoodS rd S w σ s)
-    (hS : ∀ d' off, Atom.load d' (.n (d + 1323)) off ∉ S) {t0 t1 t2 : E}
-    (h0 : LoadHolds rd (σ (.n (d + 1323))) 33 t0) (h1 : LoadHolds rd (σ (.n (d + 1323))) 34 t1)
-    (h2 : LoadHolds rd (σ (.n (d + 1323))) 35 t2) :
-    σ (.n (d + 1986)) = t0 ∧ σ (.n (d + 1996)) = t1 ∧ σ (.n (d + 2006)) = t2 ∧
-      ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ (tReadsT d) next kret := by
+theorem tReads_complete (hg : ∀ s ∈ tReadsT, GoodS rd S w σ s)
+    (hS : ∀ d' off, Atom.load d' (.n 1078) off ∉ S) {t0 t1 t2 : E}
+    (h0 : LoadHolds rd (σ (.n 1078)) 33 t0) (h1 : LoadHolds rd (σ (.n 1078)) 34 t1)
+    (h2 : LoadHolds rd (σ (.n 1078)) 35 t2) :
+    σ (.n 1742) = t0 ∧ σ (.n 1752) = t1 ∧ σ (.n 1762) = t2 ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ tReadsT next kret := by
   have g0 := fun s hs ↦ hg s (List.mem_append_left _ (List.mem_append_left _ hs))
   have g1 := fun s hs ↦ hg s (List.mem_append_left _ (List.mem_append_right _ hs))
   have g2 := fun s hs ↦ hg s (List.mem_append_right _ hs)
@@ -76,23 +76,21 @@ theorem tReads_complete {d : ℕ} (hg : ∀ s ∈ tReadsT d, GoodS rd S w σ s)
 /-! ## The lane weights -/
 
 /-- The lane weights' section. -/
-def eqfS (d : ℕ) : List Stmt := eqfT (.n (d + 1325)) 6 5 25 (d + 2016)
+def eqfS : List Stmt := eqfT (.n 1081) 6 5 25 1772
 
-theorem eqf_kernel {odd : ℕ} (ho : odd < 2) :
-    (eqfS (4 * odd)).all isAtom = true ∧ canonChk [] (atomsL ([] ++ eqfS (4 * odd))) = true ∧
-      (resid (atomsL (eqfS (4 * odd)))).all (ldIn [(.n (4 * odd + 1325), 11)]) = true := by
-  interval_cases odd
-  · exact ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
-  · exact ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
+theorem eqf_kernel :
+    eqfS.all isAtom = true ∧ canonChk [] (atomsL ([] ++ eqfS)) = true ∧
+      (resid (atomsL eqfS)).all (ldIn [(.n 1081, 11)]) = true :=
+  ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
 
 /-- **The lane weights, completely.** -/
-theorem eqf_complete {odd : ℕ} (ho : odd < 2) (hσ : ∀ v, σ v = σ (.n v.idx))
-    (hg : ∀ s ∈ eqfS (4 * odd), GoodS rd S w σ s)
-    (hS : ∀ a ∈ resid (atomsL (eqfS (4 * odd))), a ∉ S) {locPt : List E} (hl : locPt.length = 11)
-    (hloc : ReadsAt rd (σ (.n (4 * odd + 1325))) locPt) :
+theorem eqf_complete (hσ : ∀ v, σ v = σ (.n v.idx))
+    (hg : ∀ s ∈ eqfS, GoodS rd S w σ s)
+    (hS : ∀ a ∈ resid (atomsL eqfS), a ∉ S) {locPt : List E} (hl : locPt.length = 11)
+    (hloc : ReadsAt rd (σ (.n 1081)) locPt) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (eqfS (4 * odd)) next kret := by
-  obtain ⟨hall, hk, hr⟩ := eqf_kernel ho
+      Stmt.HoldsList C rd σ eqfS next kret := by
+  obtain ⟨hall, hk, hr⟩ := eqf_kernel
   exact block_holdsP (P := []) hall hσ hk (by simpa using hg) (A := []) (by simp)
     (resid_ldIn hr hS fun q hq ↦ by
       simp only [List.mem_singleton] at hq
@@ -102,39 +100,39 @@ theorem eqf_complete {odd : ℕ} (ho : odd < 2) (hσ : ∀ v, σ v = σ (.n v.id
 /-! ## The weights -/
 
 /-- The pointers the weight section loads through. -/
-def weightPs (first d : ℕ) : List (V × ℕ) :=
-  [(.n 11, 22), (.n (d + 2085), 25), (.n (d + 1325), 11)] ++
-    if first = 1 then [] else [(.n (d + 2086), 11)]
+def weightPs (first : ℕ) : List (V × ℕ) :=
+  [(.n 11, 22), (.n 1841, 25), (.n 1081, 11)] ++
+    if first = 1 then [] else [(.n 1842, 11)]
 
-theorem weight_kernel {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
-    (weightT first (4 * odd)).all isAtom = true ∧
-      canonChk [] (atomsL ([] ++ weightT first (4 * odd))) = true ∧
-      (resid (atomsL (weightT first (4 * odd)))).all (ldIn (weightPs first (4 * odd))) = true := by
-  interval_cases first <;> interval_cases odd
+theorem weight_kernel {first : ℕ} (hf : first < 2) :
+    (weightT first).all isAtom = true ∧
+      canonChk [] (atomsL ([] ++ weightT first)) = true ∧
+      (resid (atomsL (weightT first))).all (ldIn (weightPs first)) = true := by
+  interval_cases first
   all_goals exact ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
 
 /-- **The weight section, completely**: the claim's record (`22` words), its lanes at `lp` and,
 for a later claim, its local point at `lc`, and the local point at `loc`. -/
-theorem weight_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)
-    (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ weightT first (4 * odd), GoodS rd S w σ s)
-    (hS : ∀ a ∈ resid (atomsL (weightT first (4 * odd))), a ∉ S)
+theorem weight_complete {first : ℕ} (hf : first < 2)
+    (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ weightT first, GoodS rd S w σ s)
+    (hS : ∀ a ∈ resid (atomsL (weightT first)), a ∉ S)
     {cw : List E} (hcw : ReadsAt rd (σ (.n 11)) cw) (hcwl : 22 ≤ cw.length)
     {lanes : List E} (hll : lanes.length = 25) (hlanes : ReadsAt rd (cw.getD 3 0) lanes)
-    {locPt : List E} (hl : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (4 * odd + 1325))) locPt)
+    {locPt : List E} (hl : locPt.length = 11) (hloc : ReadsAt rd (σ (.n 1081)) locPt)
     {locC : List E} (hlc : first = 0 → locC.length = 11 ∧ ReadsAt rd (cw.getD 4 0) locC) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (weightT first (4 * odd)) next kret := by
-  obtain ⟨hall, hk, hr⟩ := weight_kernel hf ho
+      Stmt.HoldsList C rd σ (weightT first) next kret := by
+  obtain ⟨hall, hk, hr⟩ := weight_kernel hf
   have hcw3 : LoadHolds rd (σ (.n 11)) 3 (cw.getD 3 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 3 (by omega)
   have hcw4 : LoadHolds rd (σ (.n 11)) 4 (cw.getD 4 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 4 (by omega)
-  have g85 : Good rd S w σ (.load (.n (4 * odd + 2085)) (.n 11) 3) := by
-    have := hg (.atom (.load (.n (4 * odd + 2085)) (.n 11) 3)) (by
+  have g85 : Good rd S w σ (.load (.n 1841) (.n 11) 3) := by
+    have := hg (.atom (.load (.n 1841) (.n 11) 3)) (by
       unfold weightT; split <;> simp)
     exact this
-  have hS85 : Atom.load (.n (4 * odd + 2085)) (.n 11) 3 ∉ S := hS _ (by
-    interval_cases first <;> interval_cases odd <;> decide +kernel)
+  have hS85 : Atom.load (.n 1841) (.n 11) 3 ∉ S := hS _ (by
+    interval_cases first <;> decide +kernel)
   have e85 := load_val g85 hS85 hcw3
   intro next kret hn
   refine block_holdsP (P := []) hall hσ hk (by simpa using hg) (A := []) (by simp)
@@ -150,12 +148,12 @@ theorem weight_complete {first odd : ℕ} (hf : first < 2) (ho : odd < 2)
       have hf0 : first = 0 := by omega
       simp only [List.mem_singleton] at hq
       subst hq
-      have g86 : Good rd S w σ (.load (.n (4 * odd + 2086)) (.n 11) 4) := by
-        have := hg (.atom (.load (.n (4 * odd + 2086)) (.n 11) 4)) (by
+      have g86 : Good rd S w σ (.load (.n 1842) (.n 11) 4) := by
+        have := hg (.atom (.load (.n 1842) (.n 11) 4)) (by
           unfold weightT; simp [hf1])
         exact this
-      have hS86 : Atom.load (.n (4 * odd + 2086)) (.n 11) 4 ∉ S := hS _ (by
-        subst hf0; interval_cases odd <;> decide +kernel)
+      have hS86 : Atom.load (.n 1842) (.n 11) 4 ∉ S := hS _ (by
+        subst hf0; decide +kernel)
       have e86 := load_val g86 hS86 hcw4
       obtain ⟨hlcl, hlcr⟩ := hlc hf0
       exact ⟨locC, by rw [e86]; exact hlcr, by simp [hlcl]⟩

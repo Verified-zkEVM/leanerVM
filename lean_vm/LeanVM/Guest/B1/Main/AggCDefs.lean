@@ -17,8 +17,8 @@ For `m` children `cs` and the hints `h`: a row's thirteen words (`rowW`: the cap
 the rate cells of the waiting scalars), the absorbing rows' sponges (`absSt`), the running claim
 (`claimAt`) and weight (`weightAt`) after `c` children, the lambdas the powers of the challenge
 `λ` (`lamA`). `AggPtrs`: `aggregate_claims`' buffers (the rounds `bc_sumcheck_msgs`, the pointer
-tables `lf`, `lc`, the absorbing rows, the records of `bc_chain`, the sumcheck's point, the
-weights). `AggMem rd P …`: the memory an honest run leaves at them and at `defer_stmt`.
+tables `lf`, `lc`, the absorbing rows, the records of `bc_chain`, the sumcheck's point,
+`bc_point1`, the weights). `AggMem rd P …`: the memory an honest run leaves at them and at `defer_stmt`.
 
 `rowRel_of_reads`: a row of honest words carries its sponge (`RowRel`); `absSt_ok`: the honest
 sponges' capacity cells are a state's, their scalars tagged `1`.
@@ -65,6 +65,7 @@ structure AggPtrs where
   absorb : E
   chain : E
   pt : E
+  pt1 : E
   w : E
 
 /-- **The memory an honest run of `aggregate_claims` leaves** at the pointers `P` and at
@@ -79,6 +80,7 @@ structure AggMem (rd : Reader) (cfresh ccarried dst : E) (cs : List ChildClaims)
     [lamA cs ^ (2 * c), claimAt cs c]
   msgs : ReadsAt rd P.msgs (h.sumcheckMessages.flatMap fun g => [g.1, g.2])
   pt : ReadsAt rd P.pt (aggRun cs h).1.1
+  pt1 : ReadsAt rd P.pt1 ((aggRun cs h).1.1.map (1 + ·))
   w : ∀ c ≤ cs.length, LoadHolds rd (P.w * gen ^ c) 0 (weightAt cs h c)
   dst : ReadsAt rd dst (aggOut cs h).cells
 

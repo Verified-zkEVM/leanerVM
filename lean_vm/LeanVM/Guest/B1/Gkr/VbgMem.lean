@@ -67,7 +67,7 @@ theorem gkSlotWords_length {s : Fs} {cur : E} {st : GkrState} {row pos half par 
   simp [gkSlotWords, hcl, hvl, rateOf]
 
 section
-variable {depth : ℕ} {cap0 xs : List E} {cur : E} {eL eR eP ePa eD : ℕ}
+variable {depth : ℕ} {cap0 xs : List E} {cur : E} {eL eR eP eK ePa eD : ℕ}
 
 theorem vbgLayBlock_length (hcl : cap0.length = 5) (hcan : AllCanonical cap0) (l : ℕ) :
     (vbgLayBlock depth cap0 xs cur eP l).length = 17 := by
@@ -119,9 +119,10 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     (hL : TbReadsAt rd (ofK (addressOfIndex eL)) (vbgLayersW depth cap0 xs cur eP))
     (hR : TbReadsAt rd (ofK (addressOfIndex eR)) (vbgRoundsW depth cap0 xs cur))
     (hP : TbReadsAt rd (ofK (addressOfIndex eP)) (vbgRowsW depth cap0 xs))
+    (hK : TbReadsAt rd (ofK (addressOfIndex eK)) kmnWords)
     (hPa : TbReadsAt rd (ofK (addressOfIndex ePa)) vbgPairsW) (hD : TbReadsAt rd (ofK
         (addressOfIndex eD)) vbgDshW) :
-    MemLay rd (vbgLay depth cap0 xs cur eL eR eP ePa eD) := by
+    MemLay rd (vbgLay depth cap0 xs cur eL eR eP eK ePa eD) := by
   have hLb := tbReadsAt_flatMap_eq (w := 17) _ (depth + 2)
     (fun c _ ↦ vbgLayBlock_length hcl hcan c) hL
   have hPb := tbReadsAt_flatMap_eq (w := 40) _ 41 (fun c _ ↦ vbgRowBlock_length hd hpl c) hP
@@ -186,9 +187,10 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
   · -- the tables
     intro q hq
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl
+    rcases hq with rfl | rfl | rfl
     · exact hPa
     · exact hD
+    · exact hK
 
 end
 

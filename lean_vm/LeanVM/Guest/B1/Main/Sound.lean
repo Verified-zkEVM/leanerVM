@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.Digests
 
 `main_sound_w`: `main_sound_Spec bytecode` (`Main/Interface`), given `exponent_tables`' statement
 (B1-a). From a run of the body (`main_facts`), the children's records (`kid_rec`), the coverage
-table's writers (`writers`) and its bijection (`cover_bij`):
+table's writers (`writers`), every slot its writer's (`Writers.onto`):
 
 * the statement's digest (`own_digest`): the bytes `statement_digest` hashes are the decoded
   statement's (`statementDigest_parts`), and its two cells are the public input's;
@@ -38,7 +38,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 variable {C : CallRel}
 
-variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
+variable {rd : Reader} {σ : Val} {K : ℕ → KidRec}
 
 theorem digestBytes_decSeed (σ : Val) :
     digestBytes (decSeed σ) = cellsBytes [σ (.n 47), σ (.n 48)] := digestBytes_ofCells _ _
@@ -97,18 +97,18 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 variable {C : CallRel}
 
-variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
+variable {rd : Reader} {σ : Val} {K : ℕ → KidRec}
 
 /-! ## A child's statement's digest -/
 
 /-- **Child `c`'s statement's digest** is the one its `statement_digest` call computes. -/
 theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
-    (hW : Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ))
-    (hC : Cover rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) sl) {c : ℕ}
+    {rx rs : ℕ → ℕ} (hW : Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs))
+    {c : ℕ}
     (hc : c < lg σ 6) :
     [(K c).p0, (K c).p1] = digestCells (statementDigest (decSeed σ) (kidStmt rd σ c)) := by
   have k := hK c hc
-  rw [kidStmt_eq MF hK hW hC hc]
+  rw [kidStmt_eq MF hK hW hc]
   have hx := xmss_digest (o := (K c).ox) (n := (K c).ex) (p := σ (.n 52))
     ⟨k.xlen, fun j hj i hi => (k.xrec j hj).2.2 i hi⟩
   have hs := sphincs_digest (o := (K c).os) (n := (K c).es) (p := σ (.n 55))
