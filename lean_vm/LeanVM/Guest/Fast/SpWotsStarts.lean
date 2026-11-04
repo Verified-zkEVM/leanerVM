@@ -21,9 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
 
 /-- Arm `k`'s starts, its base `b`, in group `p` from the state `st` (`spStartAt`). -/
 def spArmStarts (p : Nat) (st : V × V × Nat) (k b : Nat) : List V :=
-  (List.range (spN p)).map fun r =>
-    padRenOf spVPad isTopConst (spArmV (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k b).1
-      (armStart spW (spSlots (p == 0) st.2.2 k) (p == 0) k b r)
+  (List.range (spN p)).map fun r => armStart spW (spSlot (p == 0) st.2.2) (p == 0) k b r
 
 /-- Arms `k ..< k + m`' starts of group `p` from the state `st`, from base `b`. -/
 def spArmsStarts (p : Nat) (st : V × V × Nat) : Nat → Nat → Nat → List (List V)
@@ -43,19 +41,19 @@ theorem spArmsStarts_getD (p : Nat) (st : V × V × Nat) :
       (spArmsStarts p st m k b).getD j [] =
         spArmStarts p st (k + j) (spArmBase (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k j b)
   | 0, _, _, j, hj => absurd hj (by omega)
-  | m + 1, k, b, 0, _ => by simp [spArmsStarts, spArmBase]
+  | m + 1, k, b, 0, _ => by simp [spArmsStarts, spArmBase, armBase]
   | m + 1, k, b, j + 1, hj => by
       simp only [spArmsStarts, List.getD_cons_succ]
       rw [spArmsStarts_getD p st m (k + 1) _ j (by omega)]
-      simp only [spArmBase, show k + 1 + j = k + (j + 1) by omega]
+      simp only [spArmBase, armBase, spArmK, show k + 1 + j = k + (j + 1) by omega]
 
 /-- **Chain `i`'s start**, off its group's list of arms' starts: entry `K (i / 3)`, row `i % 3`. -/
 theorem spStartAt_eq_getD (K : Nat → Nat) (i : Nat) (hK : K (i / 3) < 4 ^ spN (i / 3))
     (hr : i % 3 < spN (i / 3)) :
     spStartAt K i =
       ((spArmsStarts (i / 3) (spState (i / 3)) (4 ^ spN (i / 3)) 0
-        ((spState (i / 3)).2.2 + 5)).getD (K (i / 3)) []).getD (i % 3) (.n 0) := by
-  rw [spArmsStarts_getD _ _ _ _ _ _ hK, Nat.zero_add, spArmBase_eq]
+        (spL (i / 3 == 0) (spState (i / 3)).2.2 + 6)).getD (K (i / 3)) []).getD (i % 3) (.n 0) := by
+  rw [spArmsStarts_getD _ _ _ _ _ _ hK, Nat.zero_add, ← spArmB_eq]
   simp [spArmStarts, spStartAt, List.getD_eq_getElem?_getD, hr]
 
 end

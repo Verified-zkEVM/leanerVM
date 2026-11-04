@@ -35,22 +35,22 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- The body, checked by the kernel in slices. -/
 theorem xBody_eq : Data.core19.body = xBody := by
-  have h594 := xBody_drop_594
-  have h589 := drop_eq_of_take xBody_slice_589 h594
-  have h577 := drop_eq_of_take xBody_slice_577 h589
-  have h565 := drop_eq_of_take xBody_slice_565 h577
-  have h553 := drop_eq_of_take xBody_slice_553 h565
-  have h541 := drop_eq_of_take xBody_slice_541 h553
-  have h529 := drop_eq_of_take xBody_slice_529 h541
-  have h517 := drop_eq_of_take xBody_slice_517 h529
-  have h298 := drop_eq_of_take xBody_slice_298 h517
-  have h290 := drop_eq_of_take xBody_slice_290 h298
-  have h278 := drop_eq_of_take xBody_slice_278 h290
-  have h266 := drop_eq_of_take xBody_slice_266 h278
-  have h254 := drop_eq_of_take xBody_slice_254 h266
-  have h242 := drop_eq_of_take xBody_slice_242 h254
-  have h230 := drop_eq_of_take xBody_slice_230 h242
-  have h218 := drop_eq_of_take xBody_slice_218 h230
+  have h634 := xBody_drop_634
+  have h624 := drop_eq_of_take xBody_slice_624 h634
+  have h609 := drop_eq_of_take xBody_slice_609 h624
+  have h594 := drop_eq_of_take xBody_slice_594 h609
+  have h579 := drop_eq_of_take xBody_slice_579 h594
+  have h564 := drop_eq_of_take xBody_slice_564 h579
+  have h549 := drop_eq_of_take xBody_slice_549 h564
+  have h534 := drop_eq_of_take xBody_slice_534 h549
+  have h318 := drop_eq_of_take xBody_slice_318 h534
+  have h308 := drop_eq_of_take xBody_slice_308 h318
+  have h293 := drop_eq_of_take xBody_slice_293 h308
+  have h278 := drop_eq_of_take xBody_slice_278 h293
+  have h263 := drop_eq_of_take xBody_slice_263 h278
+  have h248 := drop_eq_of_take xBody_slice_248 h263
+  have h233 := drop_eq_of_take xBody_slice_233 h248
+  have h218 := drop_eq_of_take xBody_slice_218 h233
   have h0 := drop_eq_of_take xBody_slice_0 h218
   rwa [List.drop_zero, List.drop_zero] at h0
 

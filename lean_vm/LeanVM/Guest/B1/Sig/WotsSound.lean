@@ -254,6 +254,30 @@ theorem armsT_getElem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) 
         (by simp [armsT, armsT_length] at hj ⊢; omega)]
       simp only [armBase, show k + 1 + j = k + (j + 1) by omega]
 
+/-- **A group's dispatch takes one arm**: the statements `pre` hold, and some `k < 4^n` is the
+selector's exponent at `d` and arm `k`'s atoms hold, from its base. -/
+theorem groupD_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
+    {d : Nat} {pre : List Stmt} (hpre : atomsOnly pre = true) {b : Nat} {rest : List Stmt} {next : Prop}
+    (h : Stmt.HoldsList C rd σ ((groupD W first n fold prodIn encIn d pre b).1 ++ rest) next kret) :
+    Stmt.HoldsList C rd σ rest next kret ∧ AtomsHold rd σ pre ∧ ∃ k < 4 ^ n,
+      σ (.n d) = ofK (addressOfIndex k) ∧
+      AtomsHold rd σ (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
+        (encT W fold n b) k (armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
+          (encT W fold n b) 0 k (b + 6))).1 := by
+  simp only [groupD, rangeS, List.cons_append, List.nil_append, List.append_assoc] at h
+  have h1 := holdsList_split_atoms hpre h.2.2.2
+  have hm : Stmt.Holds C rd σ (.match_ (.n d) _) (Stmt.HoldsList C rd σ rest next kret) kret :=
+    h1.2.2
+  rw [holds_match_iff] at hm
+  obtain ⟨j, hj, hx, ha⟩ := hm
+  simp only [groupArmsT] at hj ha
+  rw [armsT_length] at hj
+  rw [armsT_getElem] at ha
+  simp only [Nat.zero_add] at ha
+  have ha' := (holdsList_noRet _ (noRetList_of_atomsOnly (armT_atoms hW _ _ _ _ _ _ _ _ _ _)) _ _).mp ha
+  exact ⟨ha'.2, atomsHold_of_holdsList hpre h1.1, j, hj, hx,
+    atomsHold_of_holdsList (armT_atoms hW _ _ _ _ _ _ _ _ _ _) ha'.1⟩
+
 /-- **A group's dispatch takes one arm**: some `k < 4^n` is the selector's exponent, and arm `k`'s
 atoms hold, from its base. -/
 theorem groupT_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
@@ -262,17 +286,9 @@ theorem groupT_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool
     Stmt.HoldsList C rd σ rest next kret ∧ ∃ k < 4 ^ n, σ (.n b) = ofK (addressOfIndex k) ∧
       AtomsHold rd σ (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
         (encT W fold n b) k (armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
-          (encT W fold n b) 0 k (b + 5))).1 := by
-  simp only [groupT, rangeS, List.cons_append, List.nil_append] at h
-  have hm : Stmt.Holds C rd σ (.match_ (.n b) _) (Stmt.HoldsList C rd σ rest next kret) kret :=
-    h.2.2.2
-  rw [holds_match_iff] at hm
-  obtain ⟨j, hj, hx, ha⟩ := hm
-  rw [armsT_length] at hj
-  rw [armsT_getElem] at ha
-  simp only [Nat.zero_add] at ha
-  have ha' := (holdsList_noRet _ (noRetList_of_atomsOnly (armT_atoms hW _ _ _ _ _ _ _ _ _ _)) _ _).mp ha
-  exact ⟨ha'.2, j, hj, hx, atomsHold_of_holdsList (armT_atoms hW _ _ _ _ _ _ _ _ _ _) ha'.1⟩
+          (encT W fold n b) 0 k (b + 6))).1 :=
+  let r := groupD_sound (pre := []) hW rfl h
+  ⟨r.1, r.2.2⟩
 
 end
 end LeanVM.Guest.B1.Sig

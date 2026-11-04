@@ -1,20 +1,19 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsStepComplete
 
-  `sp_wots`'s chain step with its padding run at a base of our choice, for completeness: in
-  single-assignment form, reading and writing canonical cells.
+  `sp_wots`'s chain step, for completeness: in single-assignment form, reading and writing
+  canonical cells.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Sig.SpWotsPadComplete
+public import LeanVM.Guest.B1.Sig.SpWotsT
 public import LeanVM.Guest.B1.Sig.XmssStep
+public import LeanVM.Guest.B1.Sig.KMsgComplete
 
 /-!
 # `sp_wots`'s chain step, complete
 
-* `spWp X`: `spW` with its padding run at `X` (`spWp spVPad = spW`); for completeness the run is
-  put at a group's digit cells `b ..< b + 5`, below the arms' values;
 * `k48At_ssa`, `k48At_fwd_canon`: the 48-byte `keccak` is in single-assignment form and reads and
   writes canonical cells;
 * `SpGood b σ`: the values the step reads: `pp`, the key's address, the run at `b`;
@@ -26,15 +25,6 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 
 @[expose] public section
-
-/-- `spW` with its padding run at `X`. -/
-def spWp (X : Nat) : WotsT where
-  step i s v c o := cst c (word (tw 1 + i * hiMul + s * stepMul) 0 0) ::
-    addS (.n (c + 1)) (.n 1) (.n c) :: k48At (.n 0) X (.n (c + 1)) v (c + 2) o
-  size := 3
-  power s := .n (3 + s)
-
-theorem spWp_virtual : spWp spVPad = spW := rfl
 
 theorem k48_ins (pad : Nat) (m0 m1 m2 : V) (c : Nat) (x : V) :
     x ∈ [m0, m1, m2, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4), .n c, .n (pad + 1),

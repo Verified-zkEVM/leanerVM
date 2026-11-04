@@ -41,51 +41,25 @@ theorem atomsOnly_iff : ∀ {L : List Stmt}, atomsOnly L = true ↔ ∀ x ∈ L,
   | .ite .. :: _ | .match_ .. :: _ | .call .. :: _ | .callIf .. :: _ | .dispatch .. :: _
   | .ret _ :: _ => by simp [atomsOnly]
 
-theorem atomsOnly_withPad {X : Nat} {sel : Stmt → Bool} {L : List Stmt} (h : atomsOnly L = true) :
-    atomsOnly (withPad X sel L).1 = true := by
-  rw [atomsOnly_iff] at h ⊢
-  have hr : ∀ r : V → V, ∀ x ∈ Stmt.renameList r L, ∃ a, x = .atom a := fun r x hx => by
-    rw [renameList_eq_map] at hx
-    obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hx
-    obtain ⟨a, rfl⟩ := h y hy
-    exact ⟨a.rename r, rfl⟩
-  unfold withPad
-  split
-  · exact h
-  · intro x hx
-    simp only [List.mem_append] at hx
-    rcases hx with (hx | hx) | hx
-    · exact hr _ x (List.mem_of_mem_take hx)
-    · simp only [padRun, cst, List.mem_map, List.mem_range] at hx
-      obtain ⟨k, -, rfl⟩ := hx
-      exact ⟨_, rfl⟩
-    · exact hr _ x (List.mem_of_mem_drop hx)
-
 theorem spW_atoms : StepAtoms spW := fun _ _ _ _ _ => rfl
 
 theorem spArmK_atoms (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) :
-    atomsOnly (spArmK first n fold B prodIn encIn k b).1 = true := by
-  rw [spArmK_eq]
-  exact atomsOnly_withPad (armT_atoms spW_atoms _ _ _ _ _ _ _ _ _ _)
+    atomsOnly (spArmK first n fold B prodIn encIn k b).1 = true :=
+  armT_atoms spW_atoms _ _ _ _ _ _ _ _ _ _
+
+theorem spPre_atoms (fold : Bool) (B : Nat) : atomsOnly (spPre fold B) = true := by
+  cases fold <;> rfl
 
 /-! ## The groups -/
 
-/-- **A group's dispatch takes one arm**: some `k < 4^n` is the selector's exponent, and arm `k`'s
-atoms hold, from its base. -/
+/-- **A group's dispatch takes one arm**: what it sets before holds, and some `k < 4^n` is the
+selector's exponent, and arm `k`'s atoms hold, from its base. -/
 theorem spGroupT_sound {first n : Nat} {fold : Bool} {prodIn encIn : V} {B : Nat} {rest : List Stmt}
     {next : Prop} (h : Stmt.HoldsList C rd σ ((spGroupT first n fold prodIn encIn B).1 ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧ ∃ k < 4 ^ n, σ (.n B) = ofK (addressOfIndex k) ∧
-      AtomsHold rd σ (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 := by
-  simp only [spGroupT, rangeS, List.cons_append, List.nil_append] at h
-  have hm : Stmt.Holds C rd σ (.match_ (.n B) _) (Stmt.HoldsList C rd σ rest next kret) kret :=
-    h.2.2.2
-  rw [holds_match_iff] at hm
-  obtain ⟨j, hj, hx, ha⟩ := hm
-  have hj' := hj
-  rw [spArmsT_length] at hj'
-  rw [spGroupArm _ _ _ _ _ _ _ hj] at ha
-  have ha' := (holdsList_noRet _ (noRetList_of_atomsOnly (spArmK_atoms _ _ _ _ _ _ _ _)) _ _).mp ha
-  exact ⟨ha'.2, j, hj', hx, atomsHold_of_holdsList (spArmK_atoms _ _ _ _ _ _ _ _) ha'.1⟩
+    Stmt.HoldsList C rd σ rest next kret ∧ AtomsHold rd σ (spPre fold B) ∧ ∃ k < 4 ^ n,
+      σ (.n B) = ofK (addressOfIndex k) ∧
+      AtomsHold rd σ (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 :=
+  groupD_sound spW_atoms (spPre_atoms fold B) h
 
 /-- **What group `p` establishes**: its digit word `k < 4^n` and its arm's atoms. -/
 def SpGroupOK (rd : Reader) (σ : Val) (p : Nat) : Prop :=
@@ -99,18 +73,22 @@ theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]
 theorem spGroupsT_sound {rest : List Stmt} {next : Prop} : ∀ (m p : Nat), p + m ≤ 21 →
     Stmt.HoldsList C rd σ ((spGroupsT m p (spState p).1 (spState p).2.1 (spState p).2.2).1 ++ rest)
       next kret →
-      Stmt.HoldsList C rd σ rest next kret ∧ ∀ j < m, SpGroupOK rd σ (p + j)
-  | 0, p, _, h => ⟨by simpa [spGroupsT] using h, fun j hj => absurd hj (by omega)⟩
+      Stmt.HoldsList C rd σ rest next kret ∧ (p = 0 → 0 < m → PadOK σ spPad) ∧
+        ∀ j < m, SpGroupOK rd σ (p + j)
+  | 0, p, _, h => ⟨by simpa [spGroupsT] using h, fun _ h => absurd h (by omega),
+      fun j hj => absurd hj (by omega)⟩
   | m + 1, p, hm, h => by
       rw [spGroupsT_succ, List.append_assoc] at h
-      obtain ⟨h1, k, hk, hx, ha⟩ := spGroupT_sound h
+      obtain ⟨h1, hpre, k, hk, hx, ha⟩ := spGroupT_sound h
       have ih := spGroupsT_sound m (p + 1) (by omega) (by rw [spState_succ]; exact h1)
-      refine ⟨ih.1, fun j hj => ?_⟩
+      refine ⟨ih.1, fun hp _ => ?_, fun j hj => ?_⟩
+      · subst hp
+        exact padRun_ok (P := 13 + 5) (by simpa [spPre, spState_zero] using hpre)
       rcases j with _ | j
       · refine ⟨k, by rw [Nat.add_zero, spN_of_lt (by omega)]; exact hk, by simpa using hx, ?_⟩
         rw [Nat.add_zero, spN_of_lt (by omega)]
         exact ha
-      · have := ih.2 j (by omega)
+      · have := ih.2.2 j (by omega)
         rwa [show p + 1 + j = p + (j + 1) by omega] at this
 
 /-! ## The digits and the starts -/
