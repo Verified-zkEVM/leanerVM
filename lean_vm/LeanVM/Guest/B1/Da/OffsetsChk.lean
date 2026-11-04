@@ -20,7 +20,7 @@ theorem offLoop_ok : ∀ b < 7, offLoopOk (coreProgram.getD (408 + b) default) b
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (379 + b) := by
+theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (408 + b) := by
   decide +kernel
 
 end
