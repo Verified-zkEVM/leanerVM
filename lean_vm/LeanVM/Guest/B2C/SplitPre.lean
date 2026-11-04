@@ -63,6 +63,7 @@ noncomputable def winPre (j i : ℕ) : WinPre :=
 /-- `cplWinS` from the window's common part `p`. -/
 noncomputable def cplWinSP (p : WinPre) (j i lo hi gm gn am an : ℕ) : Bool :=
   Nat.beq (nParts j i) 1 && Nat.beq (partM j i 0) 0 && Nat.blt i (certOf j).cuts.length &&
+  (partEnt j i 0).isNone &&
   match p.pst with
   | [.match_ v (a0 :: as)] =>
     matchAtoms lo hi [.match_ v (a0 :: as)] && (armKeyD (listElementOrDefault Data.cplArms j [])
@@ -108,7 +109,7 @@ open LeanVM.Guest.B2C
 /-- `checkWinS` of function `j`'s window `i` from the window's common part `p`. -/
 noncomputable def checkWinSP (p : WinPre) (j : ℕ) (main : Bool) (i lo hi : ℕ) (rs : List (ℕ × ℕ)) :
     Bool :=
-  matchAtoms lo hi p.wst &&
+  matchAtoms lo hi p.wst && ((certOf j).succAt i).isEmpty &&
   ((certOf j).locAtR i rs).seq fun loc ↦
     !(i == 0) && (certOf j).rsFit i rs &&
     covOk loc (selStmts lo hi p.wst) && p.lw &&
