@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FWin
 
-  The honest window `5259 ..< 10208`: on a memory holding the evaluations at the cursor, `fp_w`,
-  the tables' `g^τ` in `dims`, the challenges' products and the equality prefix, and the pooled
-  words, every statement of the window holds of the honest valuation.
+  The honest window `2672 ..< 6250`: on a memory holding the evaluations at the cursor, `fp_w`,
+  the challenges' products and the equality prefix, every statement of the window holds of the
+  honest valuation.
 -/
 
 module
@@ -15,11 +15,11 @@ public import LeanVM.Guest.B1.Tables.VtC.FEvals
 # The honest window
 
 By kind (`vtF_cover`): what evaluation settles (`vsh_auto`); a read of `fp_w` (`vt_bufLoad`); an
-evaluation's read at the cursor, its limb check and its two stores (`vtF_ev`), from the
-evaluation's equations (`vtF_evalGood`: its limb, tag and cells, the cells canonical); a
-permutation (`vtF_perm`: its inputs canonical, the cells' and the carried capacity's, the latter
-a permutation's outputs or `hcap`); a table's `dims` read (`vtF_dim`) and weight block
-(`vtF_air`: `g^n = g^(n-τ)·g^τ`, `cprod[n-τ]`, `peq[τ]`). `vtF_window`: all of them.
+evaluation's read at the cursor and its limb check (`vtF_ev`), from the evaluation's equations
+(`vtF_evalGood`: its limb, tag and cells, the cells canonical); a permutation (`vtF_perm`: its
+inputs canonical, the cells' and the carried capacity's, the latter a permutation's outputs or
+`hcap`); a table's weight block (`vtF_air`: `g^n = g^(n-τ)·g^τ` with `g^τ` the `kappa_base` frame
+variable `σ (30 + t)`, `cprod[n-τ]`, `peq[τ]`). `vtF_window`: all of them.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -35,12 +35,6 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 theorem vtF_mem {s : Stmt} (hs : s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo)) : s ∈ vtPre :=
   List.mem_of_mem_drop (List.mem_of_mem_take hs)
-
-/-- The equations of the statement at position `n`. -/
-theorem vt_goodAt (hl : args.length = 20) (n : ℕ) {s : Stmt}
-    (heq : tbStmtsEqb [s] ((vtPre.drop n).take 1) = true) :
-    GoodS rd vtSL w (vtσ rd w args) (fixNe s) :=
-  (vt_goodL (rd := rd) (w := w) hl n [s] heq).1
 
 /-- A read of a word the memory holds, by membership. -/
 theorem vt_readM (hl : args.length = 20) {d p : V} {off : ℕ}
@@ -63,9 +57,9 @@ theorem vtF_evalGood (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
       vtσ rd w args (.n (vtEvB k + 7)) = fsPackVals (vtσ rd w args (.n (vtEvB k))) dsObserve 6 ∧
       vtσ rd w args (.n (vtEvB k + 9)) =
         fsPackVals (vtσ rd w args (.n (vtEvB k))) dsObserve 8 := by
-  have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtEval_check k hk)
+  have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ vtEval_check k hk)
   simp only [vtEvB] at g ⊢
-  generalize (vtEvalData.getD k (0, 0, 0)).2.1 = b at g ⊢
+  generalize (vtEvalData.getD k (0, 0)).2 = b at g ⊢
   generalize vtσ rd w args = σ at g ⊢
   simp only [vtEvalT, fsNextT, fsPackT, List.cons_append, List.nil_append, GoodL, fixNe, GoodS,
     Good, Nat.add_assoc, Nat.reduceAdd] at g
@@ -92,48 +86,40 @@ theorem vtF_cellsCanon (hl : args.length = 20) {k : ℕ} (hk : k < 157) :
 
 /-- The cursor's read. -/
 theorem vtF_evRead (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 5932)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
     (hk : k < 157) :
-    LoadHolds rd (vtσ rd w args (.n 5932)) k (evs.getD k 0) ∧
+    LoadHolds rd (vtσ rd w args (.n 2609)) k (evs.getD k 0) ∧
       vtσ rd w args (.n (vtEvB k)) = evs.getD k 0 := by
   have heq := vtEval_check k hk
-  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 5932) k) ∈ vtPre :=
-    vt_mem_slice heq (by simp [vtEvalT, fsNextT, vtEvB])
-  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 5932) (b := 157) hl vtF_loadsBelow (by simp) hcur hevl
+  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2609) k) ∈ vtPre :=
+    vt_mem_slice (vtPre_drop _ ▸ heq) (by simp [vtEvalT, fsNextT, vtEvB])
+  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2609) (b := 157) hl vtF_loadsBelow (by simp) hcur hevl
     (vtEvL_mem hs (fun _ _ _ h ↦ by cases h))
   exact ⟨hm, hr (not_mem_vtSL vtF_noStore.2.1 _ _)⟩
 
-/-! ## The tables' `dims` reads and weights -/
+/-! ## The tables' weights -/
 
 /-- Table `t`'s weight block's statements evaluation does not settle. -/
 def vtAirRest (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 5817) (.n (vtAirX t)) (.n (vtTauV t))),
+  [.atom (.mul (.n 2500) (.n (vtAirX t)) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
-theorem vtAirT_rest : ∀ t < 6, tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
+theorem vtAirT_rest : ∀ t < 6,
+    tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
-theorem vtAirX_gt : ∀ t < 6, 5936 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
+theorem vtAirX_gt : ∀ t < 6, 2613 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
 
-/-- **Table `t`'s `dims` read.** -/
-theorem vtF_dim (hl : args.length = 20) {τs : ℕ → ℕ}
-    (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t)) {t : ℕ}
-    (ht : t < 6) :
-    vtσ rd w args (.n (vtTauV t)) = gen ^ τs t ∧
-      VSH (coreProgram.Rel rd) rd (vtσ rd w args) (vtDimT t) :=
-  vt_readH hl _ (vtAirT_check t ht).1 (vtF_dimsRead t ht) (hdim t ht)
-
-/-- **Table `t`'s weight block**: `g^n = x·g^τ`, and `cprod`, `peq` read at `x`, `g^τ`. -/
-theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
-    (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t)) {n : ℕ}
-    (hgn : vtσ rd w args (.n 5817) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
-    (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 5915)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 5936)) j (pe j)) {t : ℕ} (ht : t < 6) :
-    ∀ s ∈ (vtAirT t).filter (fun s ↦ !autoB s), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
-  have hτ := (vtF_dim (w := w) hl hdim ht).1
-  have hchk := (vtAirT_check t ht).2
-  have g := vt_goodL (rd := rd) (w := w) hl _ _ hchk
+/-- Table `t`'s weight block's equations: `x = g^n/g^τ`, the pointers `cprod·x`, `peq·g^τ`. -/
+theorem vtF_airGood (hl : args.length = 20) {t : ℕ} (ht : t < 6) :
+    vtσ rd w args (.n (vtAirX t)) =
+        vtσ rd w args (.n 2500) * (vtσ rd w args (.n (vtTauV t)))⁻¹ ∧
+      vtσ rd w args (.n (vtAirX t + 1)) =
+        vtσ rd w args (.n 2592) * vtσ rd w args (.n (vtAirX t)) ∧
+      vtσ rd w args (.n (vtAirX t + 3)) =
+        vtσ rd w args (.n 2613) * vtσ rd w args (.n (vtTauV t)) := by
+  have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ vtAirT_check t ht)
   obtain ⟨hx, hτx⟩ := vtAirX_gt t ht
   set σ := vtσ rd w args with hσ
   simp only [vtAirT, GoodL, fixNe, GoodS, Good] at g
@@ -145,6 +131,20 @@ theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
   swap; · exact absurd ⟨by omega, by omega⟩ hc
   split_ifs at gq with hc
   swap; · exact absurd ⟨by omega, by omega⟩ hc
+  exact ⟨gd, gp, gq⟩
+
+/-- **Table `t`'s weight block**: `g^n = x·g^τ`, and `cprod`, `peq` read at `x`, `g^τ`. -/
+theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
+    (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t) {n : ℕ}
+    (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
+    (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2592)) j (cp j))
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2613)) j (pe j)) {t : ℕ} (ht : t < 6) :
+    ∀ s ∈ (vtAirT t).filter (fun s ↦ !autoB s),
+      VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
+  have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
+  have hchk := vtPre_drop _ ▸ vtAirT_check t ht
+  obtain ⟨gd, gp, gq⟩ := vtF_airGood (rd := rd) (w := w) hl ht
+  set σ := vtσ rd w args with hσ
   have hτ0 : gen ^ τs t ≠ 0 := pow_ne_zero _ gen_ne_zero
   have ex : σ (.n (vtAirX t)) = gen ^ (n - τs t) := by
     rw [gd, hgn, hτ, ← pow_sub₀ _ gen_ne_zero (hτn t ht)]
@@ -158,7 +158,7 @@ theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
   intro s hs'
   simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false] at hs'
   rcases hs' with rfl | rfl | rfl
-  · show σ (.n 5817) = σ (.n (vtAirX t)) * σ (.n (vtTauV t))
+  · show σ (.n 2500) = σ (.n (vtAirX t)) * σ (.n (vtTauV t))
     rw [gd, hτ, mul_assoc, inv_mul_cancel₀ hτ0, mul_one]
   · have hm := hs _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
     have hS := not_mem_vtSL (vtF_noStore.2.2 t ht).1 (.n (vtAirX t + 2)) 0
@@ -170,53 +170,32 @@ theorem vtF_air (hl : args.length = 20) {τs : ℕ → ℕ}
 
 /-- Table `t`'s weight pointers: `cprod·g^(n-τ)` and `peq·g^τ`. -/
 theorem vtF_airVals (hl : args.length = 20) {τs : ℕ → ℕ}
-    (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t)) {n : ℕ}
-    (hgn : vtσ rd w args (.n 5817) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
-    vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 5915) * gen ^ (n - τs t) ∧
-      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 5936) * gen ^ τs t := by
-  have hτ := (vtF_dim (w := w) hl hdim ht).1
-  have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtAirT_check t ht).2
-  obtain ⟨hx, hτx⟩ := vtAirX_gt t ht
-  set σ := vtσ rd w args with hσ
-  simp only [vtAirT, GoodL, fixNe, GoodS, Good] at g
-  obtain ⟨gd, gp, -, gq, -, -⟩ := g
-  simp only [V.n] at gd gp gq
-  split_ifs at gd with hc
-  · exact absurd hc.1 (by omega)
-  split_ifs at gp with hc
-  swap; · exact absurd ⟨by omega, by omega⟩ hc
-  split_ifs at gq with hc
-  swap; · exact absurd ⟨by omega, by omega⟩ hc
+    (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t) {n : ℕ}
+    (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
+    vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 2592) * gen ^ (n - τs t) ∧
+      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 2613) * gen ^ τs t := by
+  have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
+  obtain ⟨gd, gp, gq⟩ := vtF_airGood (rd := rd) (w := w) hl ht
   refine ⟨?_, by rw [gq, hτ]⟩
   rw [gp, gd, hgn, hτ, ← pow_sub₀ _ gen_ne_zero (hτn t ht)]
 
 /-! ## An evaluation's statements -/
 
-/-- **Evaluation `k`'s read, limb check and stores hold.** -/
+/-- **Evaluation `k`'s read and limb check hold.** -/
 theorem vtF_ev (hl : args.length = 20) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 5932)) evs) (hevl : 157 ≤ evs.length) {τs : ℕ → ℕ}
-    (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t))
-    (hpool : ∀ k < 157, LoadHolds rd (vtσ rd w args (.n 16)) (5 + k) (evs.getD k 0))
-    (hcpl : ∀ k < 157, LoadHolds rd (vtσ rd w args (.n 17)) (5 + k) (gen ^ τs (vtEvTab k)))
-    {k : ℕ} (hk : k < 157) :
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs) (hevl : 157 ≤ evs.length) {k : ℕ}
+    (hk : k < 157) :
     ∀ s ∈ vtEvRest k, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   obtain ⟨hm, hb⟩ := vtF_evRead (w := w) hl hcur hevl hk
   obtain ⟨e3, e4, -, -⟩ := vtF_evalGood (rd := rd) (w := w) hl hk
-  obtain ⟨ht, hτ⟩ := vtEvTab_spec k hk
-  have eτ := (vtF_dim (w := w) hl hdim ht).1
-  rw [hτ] at eτ
   intro s hs
   simp only [vtEvRest, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl
+  rcases hs with rfl | rfl
   · show LoadHolds rd _ _ _
     rw [hb]; exact hm
   · show IsInK _ ∧ IsInK _
     rw [e3, e4, word_eOfNat]
     exact ⟨ofK_isInK _, eOfNat_isInK _⟩
-  · show LoadHolds rd _ _ _
-    rw [hb]; exact hpool k hk
-  · show LoadHolds rd _ _ _
-    rw [eτ]; exact hcpl k hk
 
 /-! ## The permutations -/
 
@@ -224,7 +203,7 @@ set_option maxRecDepth 100000 in
 /-- Permutation `j`'s outputs are canonical. -/
 theorem vtF_permOut (hl : args.length = 20) {j : ℕ} (hj : j < 39) {i : ℕ} (hi : i < 13) :
     IsCanonical128 (vtσ rd w args (.n ((vtPermData.getD j (0, 0)).2 + i))) := by
-  have g := vt_goodAt (rd := rd) (w := w) hl _ (vtPerm_check j hj)
+  have g := vt_goodAt (rd := rd) (w := w) hl _ _ (vtPerm_check j hj)
   simp only [vtPermT, keccakA, fixNe, GoodS, Good] at g
   generalize (vtPermData.getD j (0, 0)).2 = o at g ⊢
   have := g.2.2 ⟨i, hi⟩
@@ -235,9 +214,9 @@ theorem vtF_permOut (hl : args.length = 20) {j : ℕ} (hj : j < 39) {i : ℕ} (h
 
 /-- **Permutation `j` holds**, on canonical carried capacity. -/
 theorem vtF_perm (hl : args.length = 20)
-    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (5927 + i)))) {j : ℕ} (hj : j < 39) :
+    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2604 + i)))) {j : ℕ} (hj : j < 39) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args) (vtPermT j) := by
-  have g := vt_goodAt (rd := rd) (w := w) hl _ (vtPerm_check j hj)
+  have g := vt_goodAt (rd := rd) (w := w) hl _ _ (vtPerm_check j hj)
   simp only [vtPermT, keccakA, fixNe, GoodS] at g
   have hcan : ∀ v ∈ ((List.range 4).flatMap fun i ↦ [V.n (vtEvB (4 * j + i) + 7),
       .n (vtEvB (4 * j + i) + 9)]) ++ vtPermCap j, IsCanonical128 (vtσ rd w args v) := by
@@ -267,23 +246,22 @@ theorem vtF_perm (hl : args.length = 20)
 /-! ## The window -/
 
 /-- **The honest window**: on a memory holding the evaluations `evs` at the cursor, `fp_w`'s first
-14 words, the tables' `g^τ` in `dims`, `n ≥ τ` with `g^n`, the challenges' products `cp` and the
-equality prefix `pe` up to `n`, the pooled evaluations and their tables' `g^τ`, and a canonical
-carried capacity, every statement of `5259 ..< 10208` holds. -/
+14 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, the
+challenges' products `cp` and the equality prefix `pe` up to `n`, and a canonical carried
+capacity, every statement of `2672 ..< 6250` holds. -/
 theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 157 ≤ evs.length)
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 5932)) evs)
-    {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 14)) W) (hWl : 14 ≤ W.length)
-    {τs : ℕ → ℕ} (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t))
-    {n : ℕ} (hgn : vtσ rd w args (.n 5817) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 5915)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 5936)) j (pe j))
-    (hpool : ∀ k < 157, LoadHolds rd (vtσ rd w args (.n 16)) (5 + k) (evs.getD k 0))
-    (hcpl : ∀ k < 157, LoadHolds rd (vtσ rd w args (.n 17)) (5 + k) (gen ^ τs (vtEvTab k)))
-    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (5927 + i)))) :
-    ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2609)) evs)
+    {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 14 ≤ W.length)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
+    {n : ℕ} (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2592)) j (cp j))
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2613)) j (pe j))
+    (hcap : ∀ i < 5, IsCanonical128 (vtσ rd w args (.n (2604 + i)))) :
+    ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo),
+      VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   intro s hs
   cases ha : autoB s
-  · cases hr : rd14 s
+  · cases hr : rdFpw s
     · have hf : s ∈ vtFTags.flatMap vtFTagT := by
         rw [← tbStmtsEqb_sound vtF_cover]
         exact List.mem_filter.mpr ⟨hs, by simp [ha, hr]⟩
@@ -292,7 +270,7 @@ theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 157 ≤ evs.le
       · obtain ⟨a, k⟩ := q
         simp only at h0 hk
         subst h0
-        exact vtF_ev hl hcur hevl hdim hpool hcpl hk s hsq
+        exact vtF_ev hl hcur hevl hk s hsq
       · obtain ⟨a, j⟩ := q
         simp only at h1 hj
         subst h1
@@ -301,14 +279,11 @@ theorem vtF_window (hl : args.length = 20) {evs : List E} (hevl : 157 ≤ evs.le
         exact vtF_perm hl hcap hj
       · obtain ⟨a, t⟩ := q
         simp only at h23 ht
-        rcases h23 with rfl | rfl
-        · simp only [vtFTagT, List.mem_cons, List.not_mem_nil, or_false] at hsq
-          subst hsq
-          exact (vtF_dim hl hdim ht).2
-        · exact vtF_air hl hdim hgn hτn hcp hpe ht s hsq
+        subst h23
+        exact vtF_air hl hkbt hgn hτn hcp hpe ht s hsq
     · match s, hr with
-      | .atom (.load d (.n 14) off), _ =>
-        obtain ⟨hm, hrd⟩ := vt_bufLoad (p := 14) (b := 14) hl vtF_loadsBelow (by simp) hW hWl
+      | .atom (.load d (.n 13) off), _ =>
+        obtain ⟨hm, hrd⟩ := vt_bufLoad (p := 13) (b := 14) hl vtF_loadsBelow (by simp) hW hWl
           (vtEvL_mem (vtF_mem hs) (fun _ _ _ h ↦ by cases h))
         show LoadHolds rd _ _ _
         rw [hrd (not_mem_vtSL vtF_noStore.1 _ _)]

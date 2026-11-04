@@ -1,25 +1,29 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BSel
 
-  `verify_tables`' block selectors complete: a table block's (`vtSelT`, `block_selector_tab`) and
-  a framework block's (`vtFwSelT`, `block_selector`), on an aligned offset whose bits the memory
-  holds, the callee returning the honest eq weight and `g^offset`.
+  `verify_tables`' block selectors complete: a table block's (`vtSelT`, hinted `g`-power digits,
+  `block_selector_tab`) and a framework block's (`vtFwSelT`, hinted bits, `block_selector`), on an
+  aligned offset whose digits or bits the memory holds, the callee returning the honest eq weight
+  and `g^offset`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Tables.VtC.BBase
-public import LeanVM.Guest.B1.Tables.Vt.SelBlock
+public import LeanVM.Guest.B1.Tables.VtC.SBase
+public import LeanVM.Guest.B1.Tables.Vt.SelBlocks
 public import LeanVM.Guest.B1.Tables.Vt.SelFw
+public import LeanVM.Guest.B1.Tables.Vt.SelMath
 public import LeanVM.Guest.B1.Selectors.BlockSelectorTabComplete
 public import LeanVM.Guest.B1.Selectors.BlockSelectorComplete
 
 /-!
-# The block selectors, complete
+# The block selectors, complete (G:2216-2262)
 
 `offBits off`: the `34` bits of an offset, as the `bitsExp` hint writes them; `selBitsOf off τ d`:
 its bits `τ ..< τ + d`, whose value shifted by `τ` is the offset when it is aligned to `2^τ` and
-below `2^(τ + d)` (`selBitsOf_val`).
+below `2^(τ + d)` (`selBitsOf_val`); `offDigits off τ`: the `9` `g`-power digits of `off >> τ`, as
+the `digitsExp` hint writes them, whose first `⌈d/4⌉` are `nibDigits (selBitsOf off τ d)`
+(`offDigits_reads`).
 
 `vtc_selblock`: a table block's statements hold, its eq weight is `eqAbove ⟨τ, off⟩` at the bus
 point, its copy is it, its running sum grows by it. `vtc_fwblock`: the same for a framework block.
@@ -38,7 +42,15 @@ def offBits (off : ℕ) : List E := (List.range 34).map fun j ↦ bitE (off.test
 /-- Bits `τ ..< τ + d` of an offset. -/
 def selBitsOf (off τ d : ℕ) : List Bool := (List.range d).map fun i ↦ off.testBit (τ + i)
 
+/-- The `9` `g`-power digits of `off >> τ`. -/
+def offDigits (off τ : ℕ) : List E := nibDigits (selBitsOf off τ 36)
+
 theorem selBitsOf_length (off τ d : ℕ) : (selBitsOf off τ d).length = d := by simp [selBitsOf]
+
+theorem offBits_length (off : ℕ) : (offBits off).length = 34 := by simp [offBits]
+
+theorem offDigits_length (off τ : ℕ) : (offDigits off τ).length = 9 := by
+  simp [offDigits, nibDigits, selBitsOf]
 
 theorem selBitsOf_val {off τ d : ℕ} (hal : 2 ^ τ ∣ off) (hob : off < 2 ^ (τ + d)) :
     2 ^ τ * vtBitsV (selBitsOf off τ d) d = off := by
@@ -62,269 +74,277 @@ theorem selBits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : τ + d ≤ 34
   rw [e]
   exact tbReadsAt_take (tbReadsAt_drop h τ) d
 
+/-- **The digits the table block's selector reads**: the first `⌈d/4⌉` of `off >> τ`'s, when
+`off < 2^(τ + d)`. -/
+theorem offDigits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : d ≤ 36)
+    (hob : off < 2 ^ (τ + d)) (h : TbReadsAt rd p (offDigits off τ)) :
+    TbReadsAt rd p (nibDigits (selBitsOf off τ d)) := by
+  have e : nibDigits (selBitsOf off τ d) = (offDigits off τ).take ((d + 3) / 4) := by
+    apply List.ext_getElem (by simp [offDigits, nibDigits, selBitsOf]; omega)
+    intro j h1 _
+    simp only [nibDigits, selBitsOf_length, List.length_map, List.length_range] at h1
+    simp only [offDigits, nibDigits, List.getElem_map, List.getElem_range, List.getElem_take,
+      selBitsOf_length]
+    congr 1
+    refine bitsVal_congr fun t ht ↦ ?_
+    simp only [selBitsOf, List.getD_eq_getElem?_getD, List.getElem?_map]
+    by_cases hlt : 4 * j + t < d
+    · simp [hlt, show 4 * j + t < 36 by omega]
+    · have hz : off.testBit (τ + (4 * j + t)) = false :=
+        Nat.testBit_lt_two_pow (lt_of_lt_of_le hob (Nat.pow_le_pow_right (by norm_num) (by omega)))
+      simp [hlt, show 4 * j + t < 36 by omega, hz]
+  rw [e]
+  exact tbReadsAt_take h _
+
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
+local notation "σv" => vtσ rd wo args
+
+/-- A slice read at `vtAt` holds when its statements beyond evaluation do. -/
+theorem vt_blockAt (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
+    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true)
+    (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd σv s) :
+    ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd σv s := by
+  intro s hs
+  cases ha : autoB s
+  · exact h s hs ha
+  · exact vsh_auto hl (vt_mem_slice (vtPre_drop n ▸ heq) hs) ha
+
+theorem vshB_eq {σ : Val} {x y : V} (h : σ x = σ y) :
+    VSH (coreProgram.Rel rd) rd σ (.atom (.assertEq x y)) := by
+  exact e_add_eq_zero_iff.mpr h
+
+/-- **A dispatch**, its arm `j` named by `g^j`. -/
+theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V} {j : ℕ}
+    (hj : j < fs.length) (hx : σ x = gen ^ j)
+    (hr : coreProgram.Rel rd fs[j] (args'.map σ) (rets.map σ)) :
+    VSH (coreProgram.Rel rd) rd σ (.dispatch x fs args' rets) :=
+  ⟨j, hj, by rw [hx, gen_pow_eq_ofK], hr⟩
+
 /-- **A table block's selector, complete.** -/
-theorem vtc_selblock (hl : args.length = 20) {v b t pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtSelT v b t prev) ((vtPre.drop pos).take (vtSelT v b t prev).length) =
-      true) (ht : t < 6) (hv : 2770 < v)
-    (hS : Atom.load (.n v) (.n 12) b ∉ vtSL ∧ Atom.load (.n (v + 7)) (.n 185) b ∉ vtSL ∧
-      Atom.load (.n (v + 8)) (.n 10) (t + 1) ∉ vtSL ∧
-      Atom.load (.n (vtSelE v t + 2)) (.n 185) b ∉ vtSL)
-    {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33) (hτ : τ < 29)
-    (hdv : vtσ rd wo args (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables rd (vtσ rd wo args (.n 2769) * gen ^ (288 * t))
-      (vtσ rd wo args (.n 2770) * gen ^ (144 * t)) d
+theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option ℕ} {es gs gw : ℕ}
+    (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
+      ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
+    (hes : es < w + 2) (hgs : gs < w + 4)
+    (hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 705) * gen ^ (288 * t) ∧
+      σv (.n gs) * word gw 0 0 = σv (.n 706) * gen ^ (144 * t))
+    {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33)
+    (hdv : σv (.n (vtShLen t)) = gen ^ d)
+    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * t)) (σv (.n 706) * gen ^ (144 * t)) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
-    (hbk : LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ τ))
-    (hdim : LoadHolds rd (vtσ rd wo args (.n 10)) (t + 1) (gen ^ τ))
-    {off : ℕ} (hoff : LoadHolds rd (vtσ rd wo args (.n 185)) b (gen ^ off)) (hal : 2 ^ τ ∣ off)
+    {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ τ ∣ off)
     (hob : off < 2 ^ point.length)
-    (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
-    (hw0 : wo (vtSelE v t) = Placement.eqAbove ⟨τ, off⟩ point)
-    (hw1 : wo (vtSelE v t + 1) = gen ^ off)
-    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
-    (∀ s ∈ vtSelT v b t prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
-      vtσ rd wo args (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
-      vtσ rd wo args (.n (vtSelCopy v t prev)) = vtσ rd wo args (.n (vtSelE v t)) ∧
-      vtσ rd wo args (.n (vtSelSum v t prev)) =
-        (match prev with | none => 0 | some p => vtσ rd wo args (.n p)) +
-          vtσ rd wo args (.n (vtSelE v t)) := by
-  have hmem : ∀ s ∈ vtSelT v b t prev, s ∈ vtPre := fun s hs ↦ vt_mem_slice hcheck hs
-  have hd34 : d + τ ≤ 32 := by omega
-  obtain ⟨hS0, hS7, hS8, hSE⟩ := hS
-  -- the reads
-  have r0 := vtB_readM hl (hmem _ (by simp [vtSelT])) hS0 hbk
-  have r7 := vtB_readM hl (hmem _ (by simp [vtSelT])) hS7 hoff
-  have r8 := vtB_readM hl (hmem _ (by simp [vtSelT])) hS8 hdim
-  have rE := vtB_readM hl (hmem _ (by simp [vtSelT])) hSE hoff
-  -- the equations
-  have hG : ∀ s ∈ vtSelT v b t prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+    (hdig : TbReadsAt rd (wo w) (offDigits off τ))
+    (hw0 : wo (vtSelE w t) = Placement.eqAbove ⟨τ, off⟩ point)
+    (hw1 : wo (vtSelE w t + 1) = gen ^ off)
+    (hlow : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome) :
+    (∀ s ∈ vtSelT w b t prev es gs gw, VSH (coreProgram.Rel rd) rd σv s) ∧
+      σv (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
+      σv (.n (vtSelCopy w t prev)) = σv (.n (vtSelE w t)) ∧
+      σv (.n (vtSelSum w t prev)) =
+        (match prev with | none => 0 | some p => σv (.n p)) + σv (.n (vtSelE w t)) := by
+  have hmem : ∀ s ∈ vtSelT w b t prev es gs gw, s ∈ vtPre :=
+    fun s hs ↦ vt_mem_slice (vtPre_drop pos ▸ hcheck) hs
+  have hG : ∀ s ∈ vtSelT w b t prev es gs gw, GoodS rd vtSL wo σv (fixNe s) :=
     fun s hs ↦ vt_goodS hl (hmem s hs)
-  have g1 := hG (.atom (.const (.n (v + 1)) vtW33)) (by simp [vtSelT])
-  have g9 := hG (.atom (.mul (.n (v + 9)) (.n (v + 6)) (.n (v + 8)))) (by simp [vtSelT])
-  simp only [fixNe, GoodS, Good] at g1 g9
-  rw [ite_pos' (by simp)] at g9
+  have hd33 : d < 34 := by omega
+  -- the digits' buffer
+  have g0 := hG (.atom (.hint (.alloc (.n w) 9))) (by simp [vtSelT])
+  simp only [fixNe, GoodS, Good] at g0
   -- the table pointers
-  obtain ⟨eqt, gt, heqt, hgt, hdm⟩ : ∃ eqt gt : V,
-      (vtσ rd wo args) eqt = (vtσ rd wo args) (.n 2769) * gen ^ (288 * t) ∧ (vtσ rd wo args) gt = (vtσ rd wo args) (.n 2770) * gen ^ (144 * t) ∧
-      Stmt.dispatch (.n (vtShLen t)) vtBstNames [.n (v + 9), eqt, gt]
-        [.n (vtSelE v t), .n (vtSelE v t + 1)] ∈ vtSelT v b t prev := by
+  set eqt : V := .n (if t = 0 then 705 else w + 2) with heqt_def
+  set gt : V := .n (if t = 0 then 706 else w + 4) with hgt_def
+  have hdm : Stmt.dispatch (.n (vtShLen t)) vtBstNames [.n w, eqt, gt]
+      [.n (vtSelE w t), .n (vtSelE w t + 1)] ∈ vtSelT w b t prev es gs gw := by
+    simp [vtSelT, eqt, gt]
+  have heqt : σv eqt = σv (.n 705) * gen ^ (288 * t) ∧ σv gt = σv (.n 706) * gen ^ (144 * t) := by
     rcases Nat.eq_zero_or_pos t with rfl | ht0
-    · exact ⟨.n 2769, .n 2770, by simp, by simp, by simp [vtSelT]⟩
+    · simp [eqt, gt]
     · have ht' : t ≠ 0 := by omega
-      have c10 := hG (.atom (.const (.n (v + 10)) (word (vtShC1.getD t 0) 0 0)))
-        (by simp [vtSelT, ht'])
-      have m11 := hG (.atom (.mul (.n (v + 11)) (.n 2769) (.n (v + 10)))) (by simp [vtSelT, ht'])
-      have c12 := hG (.atom (.const (.n (v + 12)) (word (vtShC2.getD t 0) 0 0)))
-        (by simp [vtSelT, ht'])
-      have m13 := hG (.atom (.mul (.n (v + 13)) (.n 2770) (.n (v + 12)))) (by simp [vtSelT, ht'])
-      simp only [fixNe, GoodS, Good] at c10 m11 c12 m13
-      rw [ite_pos' (by simp; omega)] at m11 m13
-      refine ⟨.n (v + 11), .n (v + 13), ?_, ?_, by simp [vtSelT, ht']⟩
-      · rw [m11, c10, vtShC1_word ht]
-      · rw [m13, c12, vtShC2_word ht]
-  have hrets := vtB_retsM (rd := rd) (w := wo) hl (hmem _ hdm)
-  have e0 : (vtσ rd wo args) (.n (vtSelE v t)) = Placement.eqAbove ⟨τ, off⟩ point := by
+      have c1 := hG (.atom (.const (.n (w + 1)) vtW288)) (by simp [vtSelT, ht'])
+      have m2 := hG (.atom (.mul (.n (w + 2)) (.n es) (.n (w + 1)))) (by simp [vtSelT, ht'])
+      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0 0))) (by simp [vtSelT, ht'])
+      have m4 := hG (.atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))) (by simp [vtSelT, ht'])
+      simp only [fixNe, GoodS, Good, show es < w + 2 ∧ w + 1 < w + 2 from ⟨hes, by omega⟩,
+        show gs < w + 4 ∧ w + 3 < w + 4 from ⟨hgs, by omega⟩] at c1 m2 c3 m4
+      obtain ⟨p1, p2⟩ := hptr ht0
+      simp only [eqt, gt, ht', ↓reduceIte]
+      exact ⟨by rw [m2, c1, p1], by rw [m4, c3, p2]⟩
+  obtain ⟨heqt, hgt⟩ := heqt
+  have hrets : ∀ v ∈ [V.n (vtSelE w t), .n (vtSelE w t + 1)], σv v = wo v.idx :=
+    vt_goodS (rd := rd) (w := wo) hl (hmem _ hdm)
+  have e0 : σv (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point := by
     rw [hrets _ (by simp), ← hw0]
-  have e1 : (vtσ rd wo args) (.n (vtSelE v t + 1)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
+  have e1 : σv (.n (vtSelE w t + 1)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
   -- the callee
   set bs := selBitsOf off τ d with hbs
   have hbl : bs.length = d := selBitsOf_length off τ d
   have hval := selBitsOf_val hal (by rw [Nat.add_comm, ← hpl]; exact hob)
-  have hsb : TbReadsAt rd ((vtσ rd wo args) (.n (v + 9))) (bs.map bitE) := by
-    rw [g9, r8.1]; exact selBits_reads (by omega) hbits
-  have hrel := block_selector_tab_complete_holds d (by omega) rd ((vtσ rd wo args) (.n (v + 9))) ((vtσ rd wo args) eqt) ((vtσ rd wo args) gt)
+  have hsb : TbReadsAt rd (σv (.n w)) (nibDigits bs) := by
+    rw [g0]; exact offDigits_reads (by omega) (by rw [Nat.add_comm, ← hpl]; exact hob) hdig
+  have hrel := block_selector_tab_complete_holds d hd33 rd (σv (.n w)) (σv eqt) (σv gt)
     bs (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) hbl
-    (by simp; omega) (by simp; omega) (by simp [gSquaresList]; omega) hsb
+    (by simp; omega) (by simp; omega) (by simp [gSquaresList]; omega) hsb hlow
     (by rw [heqt, hgt]; exact hrun)
-  rw [vt_eqAbove (κ := τ) hbl (by omega), hval, vt_bitsPow_sq (κ := τ) hbl (by omega), hval] at hrel
+  rw [vt_eqAbove (κ := τ) hbl (by omega), hval, vt_bitsPow_sq (κ := τ) hbl (by omega), hval]
+    at hrel
   -- the tail
-  have hT : ∀ s ∈ vtSelTail v t prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+  have hT : ∀ s ∈ vtSelTail w t prev, GoodS rd vtSL wo σv (fixNe s) :=
     fun s hs ↦ hG s (by simp only [vtSelT, List.mem_append]; exact Or.inr hs)
-  have hcopy : (vtσ rd wo args) (.n (vtSelCopy v t prev)) = (vtσ rd wo args) (.n (vtSelE v t)) := by
+  have hcopy : σv (.n (vtSelCopy w t prev)) = σv (.n (vtSelE w t)) := by
     cases prev with
     | none =>
-      have := hT (.atom (.copy (.n (vtSelE v t + 3)) (.n (vtSelE v t)))) (by simp [vtSelTail])
+      have := hT (.atom (.copy (.n (vtSelE w t + 2)) (.n (vtSelE w t)))) (by simp [vtSelTail])
       simpa [vtSelCopy, fixNe, GoodS, Good] using this
     | some p =>
-      have := hT (.atom (.copy (.n (vtSelE v t + 4)) (.n (vtSelE v t)))) (by simp [vtSelTail])
+      have := hT (.atom (.copy (.n (vtSelE w t + 3)) (.n (vtSelE w t)))) (by simp [vtSelTail])
       simpa [vtSelCopy, fixNe, GoodS, Good] using this
   refine ⟨?_, e0, hcopy, ?_⟩
   swap
   · cases prev with
     | none =>
-      show vtσ rd wo args (.n (vtSelE v t)) = 0 + _
+      show σv (.n (vtSelE w t)) = 0 + _
       rw [zero_add]
     | some p =>
-      have := hT (.atom (.add (.n (vtSelE v t + 3)) (.n p) (.n (vtSelE v t)))) (by simp [vtSelTail])
+      have := hT (.atom (.add (.n (vtSelE w t + 2)) (.n p) (.n (vtSelE w t)))) (by simp [vtSelTail])
       simpa [vtSelSum, fixNe, GoodS, Good] using this
   -- every statement
-  refine vtB_blockA hl pos _ hcheck fun s hs ha ↦ ?_
-  have hd34' : d < vtBstNames.length := by simp [vtBstNames]; omega
+  refine vt_blockAt hl pos _ hcheck fun s hs ha ↦ ?_
+  have hdl : d < vtBstNames.length := by simp [vtBstNames]; omega
+  have hdisp : VSH (coreProgram.Rel rd) rd σv (.dispatch (.n (vtShLen t)) vtBstNames [.n w, eqt, gt]
+      [.n (vtSelE w t), .n (vtSelE w t + 1)]) := by
+    refine vshB_dispatch hdl hdv ?_
+    simp only [vtBstNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
+    rw [e0, e1]
+    exact hrel
+  have hasrt : VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))) :=
+    vshB_eq (by rw [e1, hoff])
   rcases Nat.eq_zero_or_pos t with rfl | ht0
   · simp only [vtSelT, ↓reduceIte, List.nil_append, List.cons_append, List.mem_cons] at hs
-    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hs
-    · exact r0.2
-    · simp [autoB, pureB, hintB] at ha
-    · exact vshB_rcM hl (hmem _ (by simp [vtSelT])) (by simp) (K := 34) r0.1 (by rw [g1]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
+    simp only [eqt, gt, ↓reduceIte] at hdisp
+    rcases hs with rfl | rfl | rfl | rfl | hs
     · simp [autoB, pureB, hintB] at ha
     · simp [autoB, pureB, hintB] at ha
-    · exact r7.2
-    · simp [autoB, pureB, hintB] at ha
-    · exact r8.2
-    · simp [autoB, pureB, hintB] at ha
-    · refine vshB_dispatch hd34' hdv ?_
-      simp only [vtBstNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
-      rw [e0, e1]
-      simpa [heqt, hgt] using hrel
-    · exact rE.2
-    · exact vshB_eq (by rw [e1, rE.1])
+    · exact hdisp
+    · exact hasrt
     · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
-        rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
+        (try rcases hs with rfl | rfl) <;> simp [autoB, pureB, hintB] at ha
   · have ht' : t ≠ 0 := by omega
     simp only [vtSelT, ht', ↓reduceIte, List.cons_append, List.mem_cons, List.nil_append] at hs
-    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | hs
-    · exact r0.2
+    simp only [eqt, gt, ht', ↓reduceIte] at hdisp
+    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hs
     · simp [autoB, pureB, hintB] at ha
-    · exact vshB_rcM hl (hmem _ (by simp [vtSelT])) (by simp) (K := 34) r0.1 (by rw [g1]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
-    · simp [autoB, pureB, hintB] at ha
-    · simp [autoB, pureB, hintB] at ha
-    · exact r7.2
-    · simp [autoB, pureB, hintB] at ha
-    · exact r8.2
     · simp [autoB, pureB, hintB] at ha
     · simp [autoB, pureB, hintB] at ha
     · simp [autoB, pureB, hintB] at ha; omega
     · simp [autoB, pureB, hintB] at ha
     · simp [autoB, pureB, hintB] at ha; omega
-    · refine vshB_dispatch hd34' hdv ?_
-      simp only [vtBstNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
-      have c10 := hG (.atom (.const (.n (v + 10)) (word (vtShC1.getD t 0) 0 0)))
-        (by simp [vtSelT, ht'])
-      have m11 := hG (.atom (.mul (.n (v + 11)) (.n 2769) (.n (v + 10)))) (by simp [vtSelT, ht'])
-      have c12 := hG (.atom (.const (.n (v + 12)) (word (vtShC2.getD t 0) 0 0)))
-        (by simp [vtSelT, ht'])
-      have m13 := hG (.atom (.mul (.n (v + 13)) (.n 2770) (.n (v + 12)))) (by simp [vtSelT, ht'])
-      simp only [fixNe, GoodS, Good] at c10 m11 c12 m13
-      rw [ite_pos' (by simp; omega)] at m11 m13
-      rw [e0, e1, m11, c10, vtShC1_word ht, m13, c12, vtShC2_word ht, ← heqt, ← hgt]
-      exact hrel
-    · exact rE.2
-    · exact vshB_eq (by rw [e1, rE.1])
+    · exact hdisp
+    · exact hasrt
     · cases prev <;> simp only [vtSelTail, List.mem_cons, List.not_mem_nil, or_false] at hs <;>
-        rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
+        (try rcases hs with rfl | rfl) <;> simp [autoB, pureB, hintB] at ha
 
 /-- **A framework block's selector, complete.** -/
-theorem vtc_fwblock (hl : args.length = 20) {v b pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtFwSelT v b prev) ((vtPre.drop pos).take (vtFwSelT v b prev).length) =
-      true) (hv : 2767 < v)
-    (hS : Atom.load (.n v) (.n 12) b ∉ vtSL ∧ Atom.load (.n (v + 7)) (.n 185) b ∉ vtSL ∧
-      Atom.load (.n (v + 18)) (.n 185) b ∉ vtSL)
-    {point : List E} (hmu : vtσ rd wo args (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt rd (vtσ rd wo args (.n 2767)) (point.map (1 + ·)))
-    (hidxc : TbReadsAt rd (vtσ rd wo args (.n 2732)) vtIdxcList)
-    {κ : ℕ} (hκ : LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ)) (hκμ : κ ≤ point.length)
-    {off : ℕ} (hoff : LoadHolds rd (vtσ rd wo args (.n 185)) b (gen ^ off)) (hal : 2 ^ κ ∣ off)
+theorem vtc_fwblock (hl : args.length = 20) {w b kv pos : ℕ} {prev : Option ℕ}
+    (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
+      true) (hw : 703 < w) (hkv : kv < w)
+    {point : List E} (hmu : σv (.n 9) = gen ^ point.length) (hml : point.length < 33)
+    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hidxc : TbReadsAt rd (σv (.n 668)) vtIdxcList)
+    {κ : ℕ} (hκ : σv (.n kv) = gen ^ κ) (hκμ : κ ≤ point.length)
+    {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ κ ∣ off)
     (hob : off < 2 ^ point.length)
-    (hbits : TbReadsAt rd (vtσ rd wo args (.n (v + 6))) (offBits off))
-    (hw0 : wo (v + 16) = Placement.eqAbove ⟨κ, off⟩ point) (hw1 : wo (v + 17) = gen ^ off)
-    (hlow : ∀ i < 34, (rd (Parameters.addressOfIndex i)).isSome) :
-    (∀ s ∈ vtFwSelT v b prev, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧
-      vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off⟩ point ∧
-      vtσ rd wo args (.n (if prev.isNone then v + 19 else v + 20)) = vtσ rd wo args (.n (v + 16)) ∧
-      vtσ rd wo args (.n (if prev.isNone then v + 16 else v + 19)) =
-        (match prev with | none => 0 | some p => vtσ rd wo args (.n p)) +
-          vtσ rd wo args (.n (v + 16)) := by
-  have hmem : ∀ s ∈ vtFwSelT v b prev, s ∈ vtPre := fun s hs ↦ vt_mem_slice hcheck hs
-  obtain ⟨hS0, hS7, hSE⟩ := hS
+    (hbits : TbReadsAt rd (wo (w + 6)) (offBits off))
+    (hw0 : wo (w + 10) = Placement.eqAbove ⟨κ, off⟩ point) (hw1 : wo (w + 11) = gen ^ off)
+    (hlow : LowDefB 14 rd) :
+    (∀ s ∈ vtFwSelT w b kv prev, VSH (coreProgram.Rel rd) rd σv s) ∧
+      σv (.n (w + 10)) = Placement.eqAbove ⟨κ, off⟩ point ∧
+      σv (.n (if prev.isNone then w + 12 else w + 13)) = σv (.n (w + 10)) ∧
+      σv (.n (if prev.isNone then w + 10 else w + 12)) =
+        (match prev with | none => 0 | some p => σv (.n p)) + σv (.n (w + 10)) := by
+  have hmem : ∀ s ∈ vtFwSelT w b kv prev, s ∈ vtPre :=
+    fun s hs ↦ vt_mem_slice (vtPre_drop pos ▸ hcheck) hs
   obtain ⟨d, hpl⟩ : ∃ d, point.length = κ + d := ⟨point.length - κ, by omega⟩
-  have r0 := vtB_readM hl (hmem _ (by simp [vtFwSelT])) hS0 hκ
-  have r7 := vtB_readM hl (hmem _ (by simp [vtFwSelT])) hS7 hoff
-  have rE := vtB_readM hl (hmem _ (by simp [vtFwSelT])) hSE hoff
-  have hG : ∀ s ∈ vtFwSelT v b prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+  have hG : ∀ s ∈ vtFwSelT w b kv prev, GoodS rd vtSL wo σv (fixNe s) :=
     fun s hs ↦ vt_goodS hl (hmem s hs)
-  have g1 := hG (.atom (.const (.n (v + 1)) vtW33)) (by simp [vtFwSelT])
-  have g8 := hG (.atom (.mul (.n 9) (.n (v + 8)) (.n v))) (by simp [vtFwSelT])
-  have g9 := hG (.atom (.const (.n (v + 9)) vtW33)) (by simp [vtFwSelT])
-  have g13 := hG (.atom (.mul (.n (v + 13)) (.n (v + 6)) (.n v))) (by simp [vtFwSelT])
-  have g14 := hG (.atom (.mul (.n (v + 14)) (.n 2767) (.n v))) (by simp [vtFwSelT])
-  have g15 := hG (.atom (.mul (.n (v + 15)) (.n 2732) (.n v))) (by simp [vtFwSelT])
-  simp only [fixNe, GoodS, Good] at g1 g8 g9 g13 g14 g15
-  rw [ite_neg' (by omega)] at g8
-  rw [ite_pos' (by simp)] at g13
-  rw [ite_pos' (by simp; omega)] at g14 g15
-  have e8 : vtσ rd wo args (.n (v + 8)) = gen ^ d := by
-    rw [g8, hmu, r0.1, hpl, ← pow_sub₀ _ gen_ne_zero (by omega : κ ≤ κ + d), Nat.add_sub_cancel_left]
-  have hrets := vtB_retsM (rd := rd) (w := wo) hl (hmem _ (by simp [vtFwSelT] :
-    Stmt.dispatch (.n (v + 8)) vtBsNames [.n (v + 13), .n (v + 14), .n (v + 15)]
-      [.n (v + 16), .n (v + 17)] ∈ vtFwSelT v b prev))
-  have e16 : vtσ rd wo args (.n (v + 16)) = Placement.eqAbove ⟨κ, off⟩ point := by
+  have g0 := hG (.atom (.mul (.n 9) (.n w) (.n kv))) (by simp [vtFwSelT])
+  have g1 := hG (.atom (.const (.n (w + 1)) vtW33)) (by simp [vtFwSelT])
+  have g2 := hG (.atom (.rangeCheck (.n w) (.n (w + 2)) (.n (w + 3)) (.n (w + 4)) (.n (w + 1))))
+    (by simp [vtFwSelT])
+  have g6 := hG (.atom (.hint (.allocDyn (.n (w + 6)) (.n (w + 5))))) (by simp [vtFwSelT])
+  have g7 := hG (.atom (.mul (.n (w + 7)) (.n (w + 6)) (.n kv))) (by simp [vtFwSelT])
+  have g8 := hG (.atom (.mul (.n (w + 8)) (.n 703) (.n kv))) (by simp [vtFwSelT])
+  have g9 := hG (.atom (.mul (.n (w + 9)) (.n 668) (.n kv))) (by simp [vtFwSelT])
+  simp only [fixNe, GoodS, Good, show ¬ (w < 9 ∧ kv < 9) from fun h ↦ by omega,
+    show w + 6 < w + 7 ∧ kv < w + 7 from ⟨by omega, by omega⟩,
+    show (703 : ℕ) < w + 8 ∧ kv < w + 8 from ⟨by omega, by omega⟩,
+    show (668 : ℕ) < w + 9 ∧ kv < w + 9 from ⟨by omega, by omega⟩,
+    show w + 1 < w + 2 by omega, ↓reduceIte] at g0 g1 g2 g6 g7 g8 g9
+  have ew : σv (.n w) = gen ^ d := by
+    rw [g0, hmu, hκ, hpl, ← pow_sub₀ _ gen_ne_zero (by omega : κ ≤ κ + d), Nat.add_sub_cancel_left]
+  have hrets : ∀ v ∈ [V.n (w + 10), .n (w + 11)], σv v = wo v.idx :=
+    vt_goodS (rd := rd) (w := wo) hl (hmem _ (by simp [vtFwSelT] :
+      Stmt.dispatch (.n w) vtBsNames [.n (w + 7), .n (w + 8), .n (w + 9)]
+        [.n (w + 10), .n (w + 11)] ∈ vtFwSelT w b kv prev))
+  have e10 : σv (.n (w + 10)) = Placement.eqAbove ⟨κ, off⟩ point := by
     rw [hrets _ (by simp), ← hw0]
-  have e17 : vtσ rd wo args (.n (v + 17)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
+  have e11 : σv (.n (w + 11)) = gen ^ off := by rw [hrets _ (by simp), ← hw1]
   -- the callee
   have hbl : (selBitsOf off κ d).length = d := selBitsOf_length off κ d
   have hval := selBitsOf_val hal (by rw [← hpl]; exact hob)
-  have hsb : TbReadsAt rd (vtσ rd wo args (.n (v + 13))) ((selBitsOf off κ d).map bitE) := by
-    rw [g13, r0.1]; exact selBits_reads (by omega) hbits
-  have hz1' : TbReadsAt rd (vtσ rd wo args (.n (v + 14))) ((point.map (1 + ·)).drop κ) := by
-    rw [g14, r0.1]; exact tbReadsAt_drop hz1 κ
-  have hic : TbReadsAt rd (vtσ rd wo args (.n (v + 15))) ((vtIdxcList.drop κ).take d) := by
-    rw [g15, r0.1]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
+  have hsb : TbReadsAt rd (σv (.n (w + 7))) ((selBitsOf off κ d).map bitE) := by
+    rw [g7, g6, hκ]; exact selBits_reads (by omega) hbits
+  have hz1' : TbReadsAt rd (σv (.n (w + 8))) ((point.map (1 + ·)).drop κ) := by
+    rw [g8, hκ]; exact tbReadsAt_drop hz1 κ
+  have hic : TbReadsAt rd (σv (.n (w + 9))) ((vtIdxcList.drop κ).take d) := by
+    rw [g9, hκ]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
   have hrel := block_selector_complete_holds d (by omega) rd
-    [vtσ rd wo args (.n (v + 13)), vtσ rd wo args (.n (v + 14)), vtσ rd wo args (.n (v + 15))]
+    [σv (.n (w + 7)), σv (.n (w + 8)), σv (.n (w + 9))]
     [Placement.eqAbove ⟨κ, off⟩ point, gen ^ off]
     ⟨selBitsOf off κ d, (point.map (1 + ·)).drop κ, (vtIdxcList.drop κ).take d, hbl,
       by simp; omega, by simp [vtIdxcList]; omega, hsb, hz1', hic, ?_, ?_⟩
   rotate_left
   · rw [← List.map_drop, vt_eq_plusOne, List.map_drop, vt_eqAbove (κ := κ) hbl hpl, hval]
   · rw [vt_idxcProd (κ := κ) hbl (by omega), hval]
-  have hT : ∀ s ∈ vtFwTail v prev, GoodS rd vtSL wo (vtσ rd wo args) (fixNe s) :=
+  have hT : ∀ s ∈ vtFwTail w prev, GoodS rd vtSL wo σv (fixNe s) :=
     fun s hs ↦ hG s (by simp only [vtFwSelT, List.cons_append, List.mem_cons]; simp [hs])
-  refine ⟨?_, e16, ?_, ?_⟩
+  refine ⟨?_, e10, ?_, ?_⟩
   rotate_left
   · cases prev with
     | none =>
-      have := hT (.atom (.copy (.n (v + 19)) (.n (v + 16)))) (by simp [vtFwTail])
+      have := hT (.atom (.copy (.n (w + 12)) (.n (w + 10)))) (by simp [vtFwTail])
       simpa [fixNe, GoodS, Good] using this
     | some p =>
-      have := hT (.atom (.copy (.n (v + 20)) (.n (v + 16)))) (by simp [vtFwTail])
+      have := hT (.atom (.copy (.n (w + 13)) (.n (w + 10)))) (by simp [vtFwTail])
       simpa [fixNe, GoodS, Good] using this
   · cases prev with
     | none =>
-      show vtσ rd wo args (.n (v + 16)) = 0 + _
+      show σv (.n (w + 10)) = 0 + _
       rw [zero_add]
     | some p =>
-      have := hT (.atom (.add (.n (v + 19)) (.n p) (.n (v + 16)))) (by simp [vtFwTail])
+      have := hT (.atom (.add (.n (w + 12)) (.n p) (.n (w + 10)))) (by simp [vtFwTail])
       simpa [fixNe, GoodS, Good] using this
-  refine vtB_blockA hl pos _ hcheck fun s hs ha ↦ ?_
+  obtain ⟨r1, r2, r3⟩ := g2
+  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ew (by rw [g1, vtW33_gen]) (by omega)
+    (by norm_num)
+  refine vt_blockAt hl pos _ hcheck fun s hs ha ↦ ?_
   simp only [vtFwSelT, List.cons_append, List.mem_cons] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl | hs
-  · exact r0.2
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hs
+  · exact mulDiv_holds (rd := rd) g0 (by rw [hκ]; exact gen_pow_ne_zero _)
   · simp [autoB, pureB, hintB] at ha
-  · exact vshB_rcM hl (hmem _ (by simp [vtFwSelT])) (by simp) (K := 34) r0.1
-      (by rw [g1]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
+  · exact hrc
   · simp [autoB, pureB, hintB] at ha
   · simp [autoB, pureB, hintB] at ha
-  · exact r7.2
-  · simp [autoB, pureB, hintB] at ha
-  · show vtσ rd wo args (.n 9) = vtσ rd wo args (.n (v + 8)) * vtσ rd wo args (.n v)
-    rw [hmu, e8, r0.1, hpl, ← pow_add, Nat.add_comm]
-  · simp [autoB, pureB, hintB] at ha
-  · exact vshB_rcM hl (hmem _ (by simp [vtFwSelT])) (by simp) (K := 34) e8
-      (by rw [g9]; exact word_g33.trans (gen_pow_eq_ofK 33).symm) (by omega) hlow
   · simp [autoB, pureB, hintB] at ha
   · simp [autoB, pureB, hintB] at ha; omega
   · simp [autoB, pureB, hintB] at ha; omega
-  · refine vshB_dispatch (j := d) (by simp [vtBsNames]; omega) e8 ?_
+  · simp [autoB, pureB, hintB] at ha; omega
+  · refine vshB_dispatch (j := d) (by simp [vtBsNames]; omega) ew ?_
     simp only [vtBsNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil]
-    rw [e16, e17]
+    rw [e10, e11]
     exact hrel
-  · exact rE.2
-  · exact vshB_eq (by rw [e17, rE.1])
+  · exact vshB_eq (by rw [e11, hoff])
   · cases prev with
     | none =>
       simp [vtFwTail] at hs

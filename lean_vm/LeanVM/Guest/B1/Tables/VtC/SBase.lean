@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
 public import LeanVM.Guest.B1.Tables.Vt.Shared
+public import LeanVM.Guest.B1.Tables.Vt.SortT
 public import LeanVM.Guest.B1.Placement.CertifyComplete
 
 /-!
@@ -84,13 +85,23 @@ theorem mulDiv_holds {d x y : V} (h : σ x = σ d * (σ y)⁻¹) (hy : σ y ≠ 
   show σ d = σ x * σ y
   rw [h, mul_assoc, inv_mul_cancel₀ hy, mul_one]
 
-theorem vtW152_gen : vtW152 = gen ^ 152 := by rw [vtW152_eq, gen_pow_eq_ofK]
-
-theorem vtW33_gen : vtW33 = gen ^ 33 := by rw [vtW33, word_g33, gen_pow_eq_ofK]
-
+theorem vtW23_gen : vtW23 = gen ^ 23 := by rw [vtW23_eq, gen_pow_eq_ofK]
+theorem vtW8567_gen : vtW8567 = gen ^ 8567 := by rw [vtW8567_eq, gen_pow_eq_ofK]
+theorem vtW33_gen : vtW33 = gen ^ 33 := by rw [vt_word_g33, gen_pow_eq_ofK]
 theorem vtW28_gen : vtW28 = gen ^ 28 := by rw [vtW28_eq, gen_pow_eq_ofK]
-
 theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := tb_gen_pow_isInK a
+
+/-- An `ite`'s branches' equations. -/
+theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {c : V}
+    {z nb : List Stmt} (hm : Stmt.ite c z nb ∈ vtPre) : GoodL rd w (vtσ rd w args) (z ++ nb) := by
+  have h : ∀ t ∈ z ++ nb, GoodS rd vtSL w (vtσ rd w args) (fixNe t) :=
+    fun t ht ↦ vt_good hl _ (vtEvL_mem_ite hm ht)
+  clear hm
+  generalize z ++ nb = l at h
+  induction l with
+  | nil => trivial
+  | cons s ss ih =>
+    exact ⟨h s List.mem_cons_self, ih fun t ht ↦ h t (List.mem_cons_of_mem _ ht)⟩
 
 end
 end LeanVM.Guest.B1.Tables
