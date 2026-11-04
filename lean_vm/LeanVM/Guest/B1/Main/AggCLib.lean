@@ -30,6 +30,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
+-- `Fwd`'s `Side`/`Good` decide membership with the core `DecidableEq Atom`; `Sig.Decide`'s (reaching
+-- here through `Sig.Interface`) would elaborate the `if`s below differently
+attribute [local instance high] LeanVM.Guest.Core.instDecidableEqAtom
+
 variable {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 /-- An `assert_in_k` of an `fs_pack`'s top limb and tag constant, of one of the packs `ps`. -/

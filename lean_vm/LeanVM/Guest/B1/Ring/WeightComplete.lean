@@ -377,7 +377,8 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
       | _ => simp at h
   have hat : ∀ a ∈ rswA, a.Holds rd σ := by
     have hσv : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσdef]; rfl
-    refine atoms_holds_stores (S := S) (w := rswW bb (rswH count)) (A := []) hσv ?_ hg
+    refine atoms_holds_stores (S := S) (w := rswW bb (rswH count)) (A := [])
+      (dec := fun _ => inferInstance) hσv ?_ hg
       (fun i hi => absurd hi (by simp)) hside ?_
     · have := rsw_canon; rw [rsw_stores, ← hS] at this; exact this
     · intro _ a _ haS

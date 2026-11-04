@@ -103,6 +103,14 @@ theorem mem_walksT (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : N
       refine Or.inr (mem_walksT W slots first k stride m (r + 1) _ j (by omega) x ?_)
       simpa [walkBase, show r + 1 + j = r + (j + 1) by omega] using hx
 
+theorem word_two : word 2 0 0 = LeanVM.Protocol.Verifier.gen := by
+  simp only [word, LeanVM.Protocol.Verifier.gen, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
+  exact (ofK_eq_ofLimbs _).symm
+
+theorem word_eq_eOfNat (n : Nat) : word n 0 0 = LeanVM.Protocol.Verifier.eOfNat n := by
+  simp only [word, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
+  exact (ofK_eq_ofLimbs _).symm
+
 theorem word_zero : word 0 0 0 = 0 := by
   simp only [word, Value.ofBits_zero]
   exact Value.zero_eq_ofLimbs.symm

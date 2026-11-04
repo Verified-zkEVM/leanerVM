@@ -50,7 +50,7 @@ def MainGoalL2B : Prop :=
 def MainGoalL3B : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
     CompleteAtDTB fs cert 16 "__loop2" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] (Returns []) (fun _ => True)
+      ([1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] ++ lxTagWords) (Returns []) (fun _ => True)
       ((hm fs fp seed s w).nrx * SK "__loop2")
 
 def MainGoalL4B : Prop :=

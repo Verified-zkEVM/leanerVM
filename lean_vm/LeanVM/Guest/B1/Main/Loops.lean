@@ -17,8 +17,9 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`)
 `x` gives one iteration's facts (`LoopsC`: `RawXStepC`, `RawSStepC`, `KidStepC`) and the run at
 `x·g` (`loop_stepF`).
 
-* `__loop2` (G:4134-4143): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
-  `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
+* `__loop2` (lean_ethereum.py:4497-4507): a raw leanXMSS signature `i`: a slot `s` below the
+  leanXMSS region, `cover[g^s] = g^i`, the leanXMSS segment (`verify_lean_xmss(lx_table · g^(4s),
+  lx_tags)`, inline) on the signer `lx_table · g^(4s)` and the carried tags;
 * `__loop3` (G:4144-4148): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
   `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
@@ -75,15 +76,20 @@ theorem guard_sound {rd : Reader} {σ : Val} {P : List Stmt} {gc : V} {f : Strin
 
 /-! ## `__loop2`: raw leanXMSS signatures -/
 
+/-- `__loop2` with the leanXMSS segment cut out (`Sig.loop2_split`): its prelude (the slot `s`
+hinted, range-checked below the region, `cover[g^s] = x`, the signer `lx_table · g^(4s)` at
+`.n 65`), then its counter's self-call. -/
+noncomputable def l2Fn : Fn := { Data.core36 with body := Sig.l2Pre ++ Sig.l2Post }
+
 def l3Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop2" && decide (fn.params.length = 5) &&
-    rcBoundOk (atomsIn (loopPre fn)) (.n 5) (.n 2) && isMul (atomsIn (loopPre fn)) (.n 11) (.n 3) (.n 5) &&
-    (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 11) 0) &&
-    monoIs (atomsIn (loopPre fn)) (.n 14) (.n 4) (.n 5) 4 &&
-    hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
+  loopShapeF fn "__loop2" && decide (fn.params.length = 56) &&
+    rcBoundOk (atomsIn (loopPre fn)) (.n 56) (.n 2) &&
+    isMul (atomsIn (loopPre fn)) (.n 62) (.n 3) (.n 56) &&
+    (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 62) 0) &&
+    monoIs (atomsIn (loopPre fn)) (.n 65) (.n 4) (.n 56) 4
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 36 default) = true := by decide +kernel
+theorem l3_ok : l3Ok l2Fn = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem l3_idx : coreProgram.indexOf? "__loop2" = some 36 := by decide +kernel
