@@ -219,6 +219,56 @@ theorem rows_of_chunks {rd : Reader} {chain z p : E} {q r : ℕ} (hr8 : r < 8) (
       rw [min_eq_left (by omega), show 64 * (h' + 1) + k = 64 * h' + (64 + k) by ring]
       exact b
 
+theorem take_min_length {xs : List E} {n a : ℕ} (h : xs.length = n) :
+    xs.take (min a n) = xs.take a := by
+  rcases Nat.le_total a n with ha | ha
+  · rw [min_eq_left ha]
+  · rw [min_eq_right ha, List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
+
+theorem getD_map_range (f : ℕ → E) {n k : ℕ} (hk : k < n) :
+    ((List.range n).map f).getD k 0 = f k := by
+  simp [List.getD_eq_getElem?_getD, hk]
+
+/-- The words from `a·g^(8t)`: eight from `8t`, or the rest. -/
+theorem readsAt_drop_take {rd : Reader} {a : E} {xs : List E} (h : ReadsAt rd a xs) (t : ℕ) :
+    ReadsAt rd (a * gen ^ (8 * t)) ((xs.drop (8 * t)).take 8) := by
+  refine readsAt_mul_gen_pow.mpr fun i hi ↦ ?_
+  simp only [List.length_take, List.length_drop] at hi
+  have := readsAt_getD h (i := 8 * t + i) (by omega)
+  rwa [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt (by omega), List.getElem?_drop,
+    ← List.getD_eq_getElem?_getD]
+
+/-- **The chunks from the rows**: chunk `t` (`8t < count`) is the coordinates from `8t` (eight,
+or the remainder's) and the honest row `t` (`rsR`). -/
+theorem chunks_of_rows {rd : Reader} {chain z p : E} {count : ℕ} {zs ps c : List E}
+    (lz : zs.length = count) (lp : ps.length = count) (lc : c.length = 64)
+    (hz : ReadsAt rd z zs) (hp : ReadsAt rd p ps) (hc : 0 < count → ReadsAt rd chain c)
+    (hr : ∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64,
+      LoadHolds rd chain (64 * h + k)
+        (ringRow (c.getD k 0) (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k))
+    (t : ℕ) (ht : 8 * t < count) :
+    ChunkOk rd chain z p t ((zs.drop (8 * t)).take 8) ((ps.drop (8 * t)).take 8)
+      ((List.range 64).map (rsR c zs ps t)) := by
+  have hrow : ∀ k < 64, LoadHolds rd chain (64 * t + k) (rsR c zs ps t k) := by
+    intro k hk
+    rcases Nat.eq_zero_or_pos t with h0 | h0
+    · subst h0
+      have := readsAt_getD (hc (by omega)) (i := k) (by omega)
+      rwa [rsR, Nat.mul_zero, ringRow_nil, Nat.zero_add]
+    · have := hr t h0 (by omega) k hk
+      rwa [min_eq_left (by omega)] at this
+  have hlen : (zs.take (8 * t)).length = (ps.take (8 * t)).length := by
+    simp only [List.length_take, lz, lp]
+  refine ⟨readsAt_drop_take hz t, readsAt_drop_take hp t, by simp, ?_, fun k hk ↦ ?_⟩
+  · refine readsAt_mul_gen_pow.mpr fun k hk ↦ ?_
+    simp only [List.length_map, List.length_range] at hk
+    rw [getD_map_range _ hk]
+    exact hrow k hk
+  · rw [getD_map_range _ hk, rsR, ← ringRow_append _ _ _ _ _ _ hlen, ← List.take_add,
+      ← List.take_add, loadHolds_mul_gen_pow, show 64 * t + (64 + k) = 64 * (t + 1) + k by ring]
+    have := hr (t + 1) (by omega) (by omega) k hk
+    rwa [take_min_length lz, take_min_length lp, show 8 * (t + 1) = 8 * t + 8 by ring] at this
+
 /-! ## The theorem -/
 
 theorem rsNames_get (j : ℕ) (hj : j < 8) :
@@ -328,6 +378,119 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (fun h ↦ by simp only [Z, P, C, ite_neg' (lt_irrefl q)]; exact hl h)
   refine ⟨8 * q + r, by omega, hcg, _, _, _, lz, lp, lc, rz, rp, rc, rows, ?_⟩
   rw [← hret, h58, h57]
+
+/-- `g^(Σ bits)` from the three hinted bits, as the template multiplies them. -/
+theorem prod_three_bits (r : ℕ) (hr : r < 8) :
+    (1 + bitE (r.testBit 0) * (gen ^ 2 ^ 0 + 1)) * (1 + bitE (r.testBit 1) * (gen ^ 2 ^ 1 + 1)) *
+      (1 + bitE (r.testBit 2) * (gen ^ 2 ^ 2 + 1)) = gen ^ r := by
+  have := prod_bitE_gen_pow r.testBit 3
+  rw [bitsVal_testBit (show r < 2 ^ 3 by omega), Finset.prod_range_succ, Finset.prod_range_succ,
+    Finset.prod_range_succ, Finset.prod_range_zero, one_mul] at this
+  exact this
+
+/-- **`rs_eq_run`'s meaning gives its core IR**: the loop over the `count / 8` full chunks, the
+remainder's call (`chunks_of_rows`). -/
+theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
+    coreProgram.Rel rd "rs_eq_run" args rets := by
+  obtain ⟨chain, z, p, cg, rfl⟩ : ∃ chain z p cg, args = [chain, z, p, cg] := by
+    match args, hm with
+    | [a, b, c, d], _ => exact ⟨a, b, c, d, rfl⟩
+  obtain ⟨count, hcount, rfl, zs, ps, c, lz, lp, lc, hz, hpp, hc, hr, rfl⟩ := hm
+  obtain ⟨w3, w5, w17⟩ := rs_consts
+  have hch := chunks_of_rows lz lp lc hz hpp hc hr
+  obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
+  obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
+  -- the loop over the full chunks
+  have hbody : ∀ j < q, L5Body rd chain z p (gen ^ j) := by
+    intro j hj
+    have hok := hch j (by omega)
+    show ∃ x, coreProgram.Rel rd "rs_eq_rows__L8"
+      [chain * (gen ^ j) ^ 64, z * (gen ^ j) ^ 8, p * (gen ^ j) ^ 8] [x]
+    rw [← pow_mul, ← pow_mul, Nat.mul_comm j 64, Nat.mul_comm j 8]
+    exact ⟨_, (rs_eq_rows_holds 8 le_rfl rd _ _).2 (Or.inr ⟨by norm_num, _, _, _,
+      by simp only [List.length_take, List.length_drop, lz]; omega,
+      by simp only [List.length_take, List.length_drop, lp]; omega,
+      hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, rfl⟩)⟩
+  have hloop := (guarded_loop_rel_iff (B := L5Body rd chain z p)
+    (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
+    (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mpr
+    ⟨q, by show q < 2 ^ 64 - 1; omega, rfl, hbody⟩
+  -- the remainder
+  have hdisp : coreProgram.Rel rd (rsEqRowsNames.getD r "")
+      [chain * gen ^ (64 * q), z * gen ^ (8 * q), p * gen ^ (8 * q)]
+      [chain * gen ^ (64 * ((count + 7) / 8))] := by
+    refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
+    rcases Nat.eq_zero_or_pos r with h0 | h0
+    · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
+    · have hok := hch q (by omega)
+      refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
+      · simp only [List.length_take, List.length_drop, lz]; omega
+      · simp only [List.length_take, List.length_drop, lp]; omega
+      · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
+        ring_nf
+  -- the valuation
+  let b : ℕ → E := fun j ↦ bitE (r.testBit j)
+  let b' : ℕ → E := fun j ↦ bitE (q.testBit j)
+  let u13 := word 1 0 0 + b 0 * word 3 0 0
+  let u17 := word 1 0 0 + b 1 * word 5 0 0
+  let u22 := word 1 0 0 + b 2 * word 17 0 0
+  let u23 := u13 * u17 * u22
+  let u27 := word 1 0 0 + b' 0 * word 3 0 0
+  let u31 := word 1 0 0 + b' 1 * word 5 0 0
+  let u36 := word 1 0 0 + b' 2 * word 17 0 0
+  let u37 := u27 * u31 * u36
+  let s40 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
+  let t47 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
+  let t50 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
+  let t53 := t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50))
+  let res := chain * gen ^ (64 * ((count + 7) / 8))
+  let w : List E := [chain, z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
+    word 1 0 0, word 3 0 0, b 0 * word 3 0 0, u13, word 1 0 0, word 5 0 0, b 1 * word 5 0 0, u17,
+    u13 * u17, word 1 0 0, word 17 0 0, b 2 * word 17 0 0, u22, u23,
+    word 1 0 0, word 3 0 0, b' 0 * word 3 0 0, u27, word 1 0 0, word 5 0 0, b' 1 * word 5 0 0, u31,
+    u27 * u31, word 1 0 0, word 17 0 0, b' 2 * word 17 0 0, u36, u37,
+    u37 * u37, u37 * u37 * (u37 * u37), s40, s40 * u23, word 1 0 0, word 1 0 0 + u37, word 1 0 0,
+    u37 * u37, u37 * u37 * (u37 * u37), t47, u37 * u37, u37 * u37 * (u37 * u37), t50, t50 * t50,
+    t50 * t50 * (t50 * t50), t53, chain * t53, z * t47, p * t47, res, res]
+  have e23 : u23 = gen ^ r := by
+    rw [← prod_three_bits r (by omega), ← w3, ← w5, ← w17, ← word_one]
+  have e37 : u37 = gen ^ q := by
+    rw [← prod_three_bits q (by omega), ← w3, ← w5, ← w17, ← word_one]
+  have e47 : t47 = gen ^ (8 * q) := by
+    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
+    rw [e37]; ring
+  have e50 : t50 = gen ^ (8 * q) := by
+    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
+    rw [e37]; ring
+  have e53 : t53 = gen ^ (64 * q) := by
+    show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
+    rw [e50]; ring
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+    core6_body, rsBody]
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
+  refine ⟨Val.ofArgs w, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,
+    rfl, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
+    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
+    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, rfl, ?_, ?_,
+    rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+    ⟨r, by simp only [List.length_cons, List.length_nil]; omega, ?_, ?_⟩, rfl, rfl⟩
+  · show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) * u23 + gen ^ count = 0
+    rw [e_add_eq_zero_iff, e23, e37, show count = 8 * q + r by omega]
+    ring
+  · show IsInK (word 1 0 0 + u37)
+    rw [word_one, e37]; exact hloop.1
+  · show word 1 0 0 + u37 ≠ 0 → coreProgram.Rel rd "__loop5" [word 1 0 0, u37, chain, z, p] []
+    rw [word_one, e37]; exact hloop.2
+  · show u23 = _
+    rw [e23, gen_pow_eq_ofK]
+  · rw [rsNames_get r (by omega)]
+    show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
+    rw [e53, e47]
+    exact hdisp
+
+/-- **`rs_eq_run`'s core IR is its meaning.** -/
+theorem rs_eq_run_holds : rs_eq_run_Spec := fun rd args rets ↦
+  ⟨rs_eq_run_sound rd args rets, rs_eq_run_complete rd args rets⟩
 
 end
 end LeanVM.Guest.B1
