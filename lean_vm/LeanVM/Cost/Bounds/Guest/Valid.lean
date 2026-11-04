@@ -136,7 +136,11 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
   let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd
     (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
-        (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables)
+        (memoryVector t.memory)) rd) rd)
+    (sphincsAtFrameT Fast.readerTabs (entryArrayT pcTableT
+      (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+      (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
+        (memoryVector t.memory)) rd) rd σ) (cursorLength discreteLogTables)
   have hw : (decTop guestProgram t.logMemorySize (memoryVector t.memory)).witness = w := rfl
   rw [hw] at hrel
   have hmem : decKidT discreteLogTables rd σ (proofAtFrame Fast.readerTabs rd
