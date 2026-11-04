@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.XmssSegStepC
 public import LeanVM.Guest.B1.Sig.WotsGroupComplete
+public import LeanVM.Guest.B1.Sig.XmssSegArms
 
 /-!
 # The codeword's dispatches, complete
@@ -62,12 +63,6 @@ theorem armsM_append (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (
       rw [armsM_append W slots first n fold prodIn encIn prodOut encOut m j (k + 1),
         show k + 1 + j = k + (j + 1) by omega]
       rfl
-
-theorem armsM_length (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) :
-    ∀ m k b, (armsM W slots first n fold prodIn encIn prodOut encOut m k b).1.length = m
-  | 0, _, _ => rfl
-  | m + 1, k, b => by simp [armsM, armsM_length W slots first n fold prodIn encIn prodOut encOut m]
 
 /-! ## A group's dispatch -/
 
