@@ -52,8 +52,8 @@ theorem vtWB_eq (op : Opcode) : B1.VerifySub.vtWB vsWords op = kcVtW op := by
   show B2C.ωArm B2C.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
     (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op "__loop8" + kSpW op)
     (28 * kuSK op "__loop9")).sum = kcVtW op
-  rw [ωArm_idx (j := 10) (by decide +kernel) (by decide),
-    ωArm_idx (j := 9) (by decide +kernel) (by decide)]
+  rw [ωArm_idx (j := 11) (by decide +kernel) (by decide),
+    ωArm_idx (j := 10) (by decide +kernel) (by decide)]
   unfold kSpW
   rw [← kuSBFast_eq, ← kuSKFast_eq]
   cases op <;> decide +kernel
