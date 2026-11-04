@@ -54,8 +54,9 @@ structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) 
   r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestHalves L.root).2
   rows : ∀ j ≤ lv.squeezes, ∀ i < 5, LoadHolds rd sqz (5 * j + i)
     ((L.F2.squeezeN j).2.cap.getD i 0)
-  qw : ∀ i < lv.queries, LoadHolds rd P.qw (lvl * c.maxQ + i) (L.lam ^ i)
-  beta : LoadHolds rd P.betas lvl (if lvl = c.yrLevel then L.lam else L.lam * L.lam)
+  mu : LoadHolds rd P.mus lvl L.lam⁻¹
+  beta : LoadHolds rd P.betas lvl
+    ((if lvl = c.yrLevel then L.lam else L.lam * L.lam) * L.lam ^ lv.queries)
   r0' : lvl ≠ c.yrLevel → LoadHolds rd P.roots (2 * lvl + 2) L.ra
   r1' : lvl ≠ c.yrLevel → LoadHolds rd P.roots (2 * lvl + 3) L.rb
   oodz : lvl ≠ c.yrLevel →
@@ -67,7 +68,7 @@ structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) 
 theorem LvMemB.withWords {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv}
     {sqz cur : E} (h : LvMemB rd P c lvl lv L sqz) (hw : ReadsAt rd cur L.words) :
     LvMem rd P c lvl lv L sqz cur :=
-  ⟨hw, h.fch, h.r0, h.r1, h.rows, h.qw, h.beta, h.r0', h.r1', h.oodz, h.ood, h.fmsg⟩
+  ⟨hw, h.fch, h.r0, h.r1, h.rows, h.mu, h.beta, h.r0', h.r1', h.oodz, h.ood, h.fmsg⟩
 
 /-- What the levels leave: the last level's sponge, quadratic and claim, the cursor at the tail's
 words, the run's end. -/

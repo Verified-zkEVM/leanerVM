@@ -39,7 +39,7 @@ structure OsSpecialsB (fs : String → ℕ) (cert : String → V → ℕ) (κ : 
     (osLk c tr b0 Lin ++ osW fs cert c b0 l p ++ osS fs cert c tr l p) (osQArgs c tr (osAtOf c b0) l)
     (Returns [(tr.L l).enforced]) (Bk (osQueriesName l (lvAt c l)))
   res : ∀ l < c.levels.length, CompleteAtB fs cert κ (c.resLoop l) (osLk c tr b0 Lin)
-    (osResArgs c (osAtOf c b0) l) (Returns []) (Bk (c.resLoop l))
+    (osResArgs c tr (osAtOf c b0) l) (Returns []) (Bk (c.resLoop l))
 
 /-- **The callees, placed within their bounds.** -/
 theorem os_kids_atB {Bk : String → ℕ} (hT : OsLeafBounds fs Bk) {c : OsCfg} (hN : OsNames c) {tr : OsTr}
@@ -66,7 +66,7 @@ theorem os_kids_atB {Bk : String → ℕ} (hT : OsLeafBounds fs Bk) {c : OsCfg} 
       c' ∈ ((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) := fun c' h ↦ by
     rw [hcs, List.mem_append]; exact h
   have hksl : (osLvKOf σ c 0 c.levels (osHead c).2).length = c.levels.length := osLvKOf_length σ c 0 c.levels (osHead c).2
-  have hlenS : (osSizesL c).length = 17 + 3 * c.levels.length := osSizesL_length c
+  have hlenS : (osSizesL c).length = 18 + 3 * c.levels.length := osSizesL_length c
   -- the special callees' arguments, by their kinds
   have hspecial : ∀ c' ∈ ((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall σ),
       c'.taken = true → osKindOf c'.f = none →
@@ -97,15 +97,15 @@ theorem os_kids_atB {Bk : String → ℕ} (hT : OsLeafBounds fs Bk) {c : OsCfg} 
       simp only [Main.mkCall, sqCallS, decide_eq_true_eq, hkA]
       rw [hσ, osVal_guard hlen hi (t := 2) (by omega)]
       simp only [sqGuardVals, List.getD_cons_succ, List.getD_cons_zero, word_one,
-        gw_eq (show (lvAt c i).squeezes < u128Bound by have := hb.sq5; omega)]
+        Whir.gw_eq (show (lvAt c i).squeezes < u128Bound by have := hb.sq5; omega)]
       exact one_add_gen_pow_ne_zero hb.sq0 hb.sqOrd
     · -- the squeeze loop, placed
       have hargs : (Main.mkCall σ (sqCallS c i (osAj c i).k)).args.map σ = osSqArgs c A i := by
         simp only [Main.mkCall, sqCallS, List.map_cons, List.map_nil]
         rw [hσ, osVal_guard hlen hi (t := 3) (by omega), osVal_guard hlen hi (t := 4) (by omega),
-          osVal_sqz hlen hi, osVal_qpos, osVal_qbp]
+          osVal_sqz hlen hi, osVal_qpos, osVal_qbp, osVal_win]
         simp only [sqGuardVals, List.getD_cons_succ, List.getD_cons_zero, word_one,
-          gw_eq (show (lvAt c i).squeezes < u128Bound by have := hb.sq5; omega), osSqArgs]
+          Whir.gw_eq (show (lvAt c i).squeezes < u128Bound by have := hb.sq5; omega), osSqArgs]
         rfl
       rw [hkA, hargs]
       exact hsp.sq i hi
@@ -163,11 +163,11 @@ theorem os_kids_atB {Bk : String → ℕ} (hT : OsLeafBounds fs Bk) {c : OsCfg} 
         obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc'
         have hfx : (Main.mkCall σ x).f = x.2.1 := by obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
         have hax : (Main.mkCall σ x).args = x.2.2.1 := by obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
-        have h6 := finish_rescall hN hx (by rw [← hfx]; exact hK)
+        obtain ⟨⟨j, hj, hnm⟩, h6⟩ := finish_rescall hN hx (by rw [← hfx]; exact hK)
         obtain ⟨l, hl, hsp'⟩ := hspecial _ hin ht hK
         have hlen6 : ((Main.mkCall σ x).args.map σ).length = 6 := by rw [List.length_map, hax, h6]
-        rcases hsp' with ⟨-, ha, -⟩ | ⟨-, ha, -⟩ | ⟨hf, ha, hr⟩
-        · rw [ha] at hlen6; simp [osSqArgs] at hlen6
+        rcases hsp' with ⟨hf, -, -⟩ | ⟨-, ha, -⟩ | ⟨hf, ha, hr⟩
+        · rw [hfx, hnm] at hf; exact absurd hf.symm (hN.sqres l hl j hj)
         · rw [ha] at hlen6; simp [osQArgs] at hlen6
         · rw [hf, ha, hr]; exact hsp.res l hl
   obtain ⟨N2, L2, hW2, hD2, hN2, hK2⟩ := os_kids_blockB κ Lk σ cs2 Bk hc2 (bk + N1)

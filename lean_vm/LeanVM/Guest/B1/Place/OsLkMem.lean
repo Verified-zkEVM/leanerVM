@@ -32,7 +32,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {c : OsCfg} {tr : OsTr}
 
 theorem bufL_os_length (c : OsCfg) (tr : OsTr) (b : ℕ) (bp : ℕ → ℕ → E) :
-    (bufL b (osSizesL c) (osOwnL c tr bp)).length = 17 + 3 * c.levels.length := by
+    (bufL b (osSizesL c) (osOwnL c tr bp)).length = 18 + 3 * c.levels.length := by
   simp only [bufL, List.length_zip, os_length_bases, osSizesL_length, osOwnL_length, Nat.min_self]
 
 theorem bufL_os_get_ne8 (c : OsCfg) (tr : OsTr) (b : ℕ) (bp bp' : ℕ → ℕ → E) {i : ℕ} (hne : i ≠ 8)
@@ -45,10 +45,10 @@ theorem bufL_os_get_ne8 (c : OsCfg) (tr : OsTr) (b : ℕ) (bp bp' : ℕ → ℕ 
   rw [List.getElem?_eq_getElem hi2, List.getElem?_eq_getElem hi3, Option.some.injEq] at h1
   simp only [bufL, List.getElem_zip, h1]
 
-/-- **A memory holding the callees' words holds each own buffer but the bit pointers.** -/
+/-- **A memory holding the callees' words holds each own buffer but the window pointers.** -/
 theorem osLk_readsAt {rd : Reader} {b : ℕ} {Lin : Layout}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
-    (hm : MemL rd (osLk c tr b Lin)) {j : ℕ} (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8) :
+    (hm : MemL rd (osLk c tr b Lin)) {j : ℕ} (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8) :
     ReadsAt rd (osPtrAt c b j) ((osOwnL c tr fun _ _ ↦ 0).getD j []) := by
   have hf := osOwnL_fit c tr (fun _ _ ↦ 0) hpt htl
   have hjs : j < (osSizesL c).length := by rw [osSizesL_length]; exact hj
@@ -66,17 +66,18 @@ theorem osLk_readsAt {rd : Reader} {b : ℕ} {Lin : Layout}
 theorem osMem_of_memLk {rd : Reader} {b : ℕ} {Lin : Layout}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     (hm : MemL rd (osLk c tr b Lin)) : OsMem rd (osAtOf c b) c tr := by
-  have R := fun j (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8) ↦ osLk_readsAt hpt htl hm hj hne
-  obtain ⟨-, -, g2, g3, g4, g5, g6, g7, -, g9, g10⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+  have R := fun j (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8) ↦ osLk_readsAt hpt htl hm hj hne
+  obtain ⟨-, -, g2, g3, g4, g5, g6, g7, -, g9, g10, g11⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
   obtain ⟨gT, gP, gP1, gB, gL, gI⟩ := osOwnL_getD_fin c tr fun _ _ ↦ 0
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ ?_⟩
   · rw [← g4]; exact R 4 (by omega) (by omega)
   · rw [← g3]; exact R 3 (by omega) (by omega)
   · rw [← g5]; exact R 5 (by omega) (by omega)
   · rw [← g6]; exact R 6 (by omega) (by omega)
-  · rw [← g7]; exact R 7 (by omega) (by omega)
   · rw [← g9]; exact R 9 (by omega) (by omega)
+  · rw [← g7]; exact R 7 (by omega) (by omega)
   · rw [← g10]; exact R 10 (by omega) (by omega)
+  · rw [← g11]; exact R 11 (by omega) (by omega)
   · rw [← g2]; exact R 2 (by omega) (by omega)
   · rw [← gT]; exact R _ (by unfold osIxT; omega) (by unfold osIxT; omega)
   · rw [← gP]; exact R _ (by unfold osIxPT; omega) (by unfold osIxPT; omega)
@@ -118,7 +119,7 @@ theorem regionL_osLk {b : ℕ} {Lin : Layout} (bp : ℕ → ℕ → E) {i : ℕ}
       rw [← bufL_os_get_ne8 c tr b (fun _ _ ↦ 0) bp hne hj hj'] <;> assumption
   · exact Or.inl ⟨q, hq, h1, h2⟩
 
-/-- **Level `l`'s bit pointers lie in `query_bit_ptrs`.** -/
+/-- **Level `l`'s window pointers lie in `query_win_ptrs`.** -/
 theorem regionL_osW {fs : String → ℕ} {cert : String → V → ℕ} {b : ℕ} (bp : ℕ → ℕ → E)
     (hs : OsSizes c) {l p : ℕ} (hl : l < c.levels.length) {i : ℕ}
     (h : RegionL (osW fs cert c b l p) i) : RegionL (bufL b (osSizesL c) (osOwnL c tr bp)) i := by

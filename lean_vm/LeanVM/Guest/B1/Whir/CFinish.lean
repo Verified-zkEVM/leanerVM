@@ -123,7 +123,7 @@ theorem osOodWeights_acc_lt (c : OsCfg) (tch : ℕ) : ∀ (levels : List OsLv) (
 
 /-- The values of the body after the tail. -/
 def finishF (c : OsCfg) (st : OsSt) (tch : ℕ) (Y PT PT1 BD LS ICH In : E) (Pp β : ℕ → E)
-    (X : ℕ → ℕ → E) (RC acc Pq W I L : ℕ → E) (D : ℕ → ℕ → E) (Λ : ℕ → E) (Z Yo : ℕ → ℕ → E)
+    (X : ℕ → ℕ → E) (RC acc M I L : ℕ → E) (Pq D : ℕ → ℕ → E) (Λ : ℕ → E) (Z Yo : ℕ → ℕ → E)
     (σ : Val) : ℕ → E :=
   let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
   let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4)
@@ -139,7 +139,7 @@ def finishF (c : OsCfg) (st : OsSt) (tch : ℕ) (Y PT PT1 BD LS ICH In : E) (Pp 
   seqF σ4 (pts.2 + 4) bs.2 (basesF c tch (pts.2 + 1) β X 0 c.levels (pts.2 + 4) σ4) fun σ5 ↦
   seqF σ5 bs.2 (bs.2 + 2) (fun i ↦ [gw (c.levels.length + 1), ICH].getD (i - bs.2) 0) fun σ6 ↦
   seqF σ6 (bs.2 + 2) (bs.2 + 2 + 1) (fun _ ↦ 0) fun σ7 ↦
-  seqF σ7 (bs.2 + 3) rs.2 (residualsF c (pts.2 + 1) RC acc Pq W I L D 0 c.levels (bs.2 + 3) σ7)
+  seqF σ7 (bs.2 + 3) rs.2 (residualsF c (pts.2 + 1) RC acc M I L Pq D 0 c.levels (bs.2 + 3) σ7)
     fun σ8 ↦
   seqF σ8 rs.2 od.2.2
     (oodWeightsF c tch Λ Z Yo ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2 σ8)
@@ -185,10 +185,10 @@ theorem osFinEnd_ge (c : OsCfg) (st : OsSt) (tch : ℕ) : st.k + 6 ≤ osFinEnd 
   omega
 
 /-- **The body after the tail, honestly.** -/
-theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 34 ≤ st.k)
+theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 164 ≤ st.k)
     (htch : tch < st.k) (ht : st.t < st.k) (htail : c.levels.tail ≠ [])
-    {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc Pq W I L : ℕ → E}
-    {D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
+    {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc M I L : ℕ → E}
+    {Pq D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
     (hC : C ("fold_final_msg__L" ++ natStr c.yrLog) [σ (.n osFmsg), σ (.n tch)] [Y])
     (hpt : ∀ j < pointCap, PtSrcP rd (ptrsOf σ) (σ (.n tch)) c j (Pp j) ∧ LoadHolds rd PT j (Pp j) ∧
       LoadHolds rd PT1 j (1 + Pp j))
@@ -196,12 +196,12 @@ theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 
       BasisMemP rd (ptrsOf σ) (σ (.n tch)) BD LS c i c.levels[i] (β i) (X i))
     (hich0 : LoadHolds rd ICH 0 0)
     (hrs : ∀ i (hi : i < c.levels.length), ResMemP C rd (ptrsOf σ) BD ICH LS c i c.levels[i]
-      (RC i) (acc i) (Pq i) (W i) (I i) (L i) (D i))
+      (RC i) (acc i) (M i) (I i) (L i) (Pq i) (D i))
     (hIn : LoadHolds rd ICH c.levels.length In)
     (hood : OodAllP rd (ptrsOf σ) (σ (.n tch)) c Λ Z Yo ((c.levels.headD default).logCols) 1
       c.levels.tail) :
     BlkF C rd σ st.k (osFinEnd c st tch)
-      (finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ)
+      (finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo σ)
       (osFinishA c st tch)
       (fun σ' ↦ (osFinishRet c st tch).map σ' = [σ (.n st.t), PT, PT1,
         In + oodSum c Λ Z Yo ((c.levels.headD default).logCols) 1 c.levels.tail, Y] ∧
@@ -286,7 +286,7 @@ theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 
   have hP7 := ptrsOf_agree hk A7
   -- the residual sums
   refine BlkF.then (k1 := rs.2) o3 (by omega)
-    (osResiduals_complete (C := C) (rd := rd) RC acc Pq W I L D c.levels 0 (bs.2 + 3) σ7 (by omega)
+    (osResiduals_complete (C := C) (rd := rd) RC acc M I L Pq D c.levels 0 (bs.2 + 3) σ7 (by omega)
       (by omega) (by omega) (by omega) fun i hi ↦ ?_) fun σ8 ha8 _ ↦ ?_
   · have g := hrs i hi
     rw [← hP7, ← hbd7, ← hich7, ← hls7] at g

@@ -83,16 +83,16 @@ def osAj (c : OsCfg) (j : ℕ) : OsSt :=
   (osLevelA c j (lvAt c j) (osLevels c 0 (c.levels.take j) (osHead c).2).2).2.1
 
 theorem osAj_bounds (c : OsCfg) {j : ℕ} (hj : j < c.levels.length) :
-    34 ≤ (osAj c j).k ∧ wpVar c j (lvAt c j) (osAj c j) + 6 ≤ (osLvSt c).k := by
+    164 ≤ (osAj c j).k ∧ wpVar c j (lvAt c j) (osAj c j) + 6 ≤ (osLvSt c).k := by
   have h := osLevel_in_levels c c.levels (osHead c).2 j hj
   have e : c.levels[j] = lvAt c j := (List.getD_eq_getElem _ _ hj).symm
   rw [e] at h
   exact ⟨h.1, h.2⟩
 
-theorem osSigma_lvs {i : ℕ} (h1 : 34 ≤ i)
+theorem osSigma_lvs {i : ℕ} (h1 : 164 ≤ i)
     (h2 : i < (osLvSt c).k) :
     osSigma c tr σ0 c0 c2 b0 (.n i) = lvsF c 0 c.levels (tr.Ds (osAtOf c b0)) (osHead c).2
-      (fill σ0 9 34 (headF c σ0 (osAtOf c b0).P c0 c2)) i := by
+      (fill σ0 9 164 (headF c σ0 (osAtOf c b0).P c0 c2)) i := by
   have ht : (osLvSt c).k + 2 ≤ (osTlSt c).2.1.k := osTail_k2 c (osLvSt c)
   have hfe : (osTlSt c).2.1.k + 6 ≤ osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2 := osFinEnd_ge c _ _
   unfold osSigma
@@ -117,7 +117,7 @@ theorem osVal_sqz (hlen : tr.Ls.length = c.levels.length) {j : ℕ} (hj : j < c.
   rw [osSigma_lvs (by omega) (by omega)]
   obtain ⟨hD, hs, -⟩ := osDs_get (b0 := b0) hlen hj
   have hB := (lvsF_bufs c c.levels (tr.Ds (osAtOf c b0)) 0 (osHead c).2
-    (fill σ0 9 34 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD).2.1
+    (fill σ0 9 164 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD).2.1
   simp only [Nat.zero_add] at hB
   rw [← hs, ← hB]
   unfold osAj lvAt
@@ -131,7 +131,7 @@ theorem osVal_wp (hlen : tr.Ls.length = c.levels.length) {j : ℕ} (hj : j < c.l
   rw [osSigma_lvs (by unfold wpVar; omega) (by omega)]
   obtain ⟨hD, -, hp⟩ := osDs_get (b0 := b0) hlen hj
   have hB := (lvsF_bufs c c.levels (tr.Ds (osAtOf c b0)) 0 (osHead c).2
-    (fill σ0 9 34 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD).2.2.2
+    (fill σ0 9 164 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD).2.2.2
   simp only [Nat.zero_add] at hB
   rw [← hp, ← hB]
   unfold osAj lvAt
@@ -147,15 +147,15 @@ theorem osVal_guard (hlen : tr.Ls.length = c.levels.length) {j : ℕ} (hj : j < 
   rw [osSigma_lvs (by omega) (by omega)]
   obtain ⟨hD, -, -⟩ := osDs_get (b0 := b0) hlen hj
   have hB := lvsF_guard c c.levels (tr.Ds (osAtOf c b0)) 0 (osHead c).2
-    (fill σ0 9 34 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD ht
+    (fill σ0 9 164 (headF c σ0 (osAtOf c b0).P c0 c2)) j hj hD ht
   simp only [Nat.zero_add] at hB
   have e : c.levels[j] = lvAt c j := (List.getD_eq_getElem _ _ hj).symm
   rw [e] at hB
   exact hB
 
-theorem osSigma_head {i : ℕ} (h1 : 9 ≤ i) (h2 : i < 34) :
+theorem osSigma_head {i : ℕ} (h1 : 9 ≤ i) (h2 : i < 164) :
     osSigma c tr σ0 c0 c2 b0 (.n i) = headF c σ0 (osAtOf c b0).P c0 c2 i := by
-  have hk : 34 ≤ (osLvSt c).k := osLevels_k_ge c 0 c.levels (osHead c).2
+  have hk : 164 ≤ (osLvSt c).k := osLevels_k_ge c 0 c.levels (osHead c).2
   have ht : (osLvSt c).k + 2 ≤ (osTlSt c).2.1.k := osTail_k2 c (osLvSt c)
   have hfe : (osTlSt c).2.1.k + 6 ≤ osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2 := osFinEnd_ge c _ _
   unfold osSigma
@@ -166,6 +166,9 @@ theorem osVal_qpos : osSigma c tr σ0 c0 c2 b0 (.n osQpos) = (osAtOf c b0).P.qpo
   rw [osSigma_head (by decide) (by decide)]; rfl
 
 theorem osVal_qbp : osSigma c tr σ0 c0 c2 b0 (.n osQbp) = (osAtOf c b0).P.qbp := by
+  rw [osSigma_head (by decide) (by decide)]; rfl
+
+theorem osVal_win : osSigma c tr σ0 c0 c2 b0 (.n osWin) = (osAtOf c b0).P.win := by
   rw [osSigma_head (by decide) (by decide)]; rfl
 
 theorem osSigma_arg {j : ℕ} (hj : j < 9) : osSigma c tr σ0 c0 c2 b0 (.n j) = σ0 (.n j) := by

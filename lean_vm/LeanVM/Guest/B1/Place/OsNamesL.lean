@@ -64,10 +64,14 @@ theorem cnames_osFolds (p : ℕ) : ∀ (n off : ℕ) (s : OsSt),
     rw [e, cnames_append, cnames_osFold, cnames_osFolds p n, List.replicate_succ]
     rfl
 
-theorem cnames_osCommit (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    cnames (osCommit lvl lv s).1 =
+theorem cnames_osMatP (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    cnames (osMatP plan mats base off k).1 = [] := by
+  unfold osMatP; split_ifs <;> rfl
+
+theorem cnames_osCommit (plan : List (ℕ × ℕ × ℕ)) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    cnames (osCommit plan lvl lv s).1 =
       ["assert_canonical", "assert_canonical", "opening_ood_point__L" ++ natStr lv.logCols] := by
-  simp [osCommit, fsPackT, fsNextT, keccakA]
+  simp [osCommit, fsPackT, fsNextT, keccakA, cnames_osMatP]
 
 theorem cnames_osFinal (c : OsCfg) (s : OsSt) :
     cnames (osFinal c s).1 = ["opening_final_message__L" ++ natStr c.yrLen] := by
@@ -88,13 +92,16 @@ theorem lvA_cnames (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
   · rw [cnames_osFinal]; simp
   · rw [cnames_osCommit]; simp
 
-theorem cnames_osLamPows (lam base k : ℕ) : ∀ q, cnames (osLamPows lam base k q) = []
-  | 0 => rfl
-  | q + 1 => by
-    simp only [osLamPows]
-    split_ifs
-    · simp
-    · simp [List.map_map]
+theorem cnames_osPowSteps (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ),
+    cnames (osPowSteps x ds acc k).1 = []
+  | [], _, _ => rfl
+  | true :: ds, acc, k => by
+    simp [osPowSteps, cnames_osPowSteps x ds]
+  | false :: ds, acc, k => by
+    simp [osPowSteps, cnames_osPowSteps x ds]
+
+theorem cnames_osLamPow (lvl lam n k : ℕ) : cnames (osLamPow lvl lam n k).1 = [] := by
+  simp [osLamPow, cnames_osPowSteps]
 
 /-- The names a level calls after its squeezes. -/
 def lvBNames (lvl : ℕ) (lv : OsLv) : List String :=
@@ -103,13 +110,13 @@ def lvBNames (lvl : ℕ) (lv : OsLv) : List String :=
 
 theorem cnames_osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
     cnames (osQueries c lvl lv lam lamN s).1 = lvBNames lvl lv := by
-  simp [osQueries, osHeap, lvBNames]
+  simp [osQueries, osHeap, lvBNames, cnames_osMatP]
 
 theorem lvB_cnames (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     cnames (lvB c lvl lv s) = lvBNames lvl lv := by
   unfold lvB
   dsimp only
-  rw [cnames_append, cnames_append, cnames_append, cnames_append, cnames_osLamPows,
+  rw [cnames_append, cnames_append, cnames_append, cnames_append, cnames_osLamPow,
     cnames_osQueries]
   split_ifs <;> simp [osOodGlue, osGlue]
 
@@ -150,11 +157,17 @@ theorem cnames_osResQ (pos bd row vo : ℕ) : ∀ (n t pe k : ℕ), cnames (osRe
   | n + 1, t, pe, k => by
     simp [osResQ, cnames_osResQ pos bd row vo n]
 
+theorem cnames_osResSteps (pp bd row vo ncols mu : ℕ) : ∀ (js : List ℕ) (h k : ℕ),
+    cnames (osResSteps pp bd row vo ncols mu js h k).1 = []
+  | [], _, _ => rfl
+  | j :: js, h, k => by
+    simp [osResSteps, osResStep, osResQuery, cnames_osResQ, cnames_osResSteps pp bd row vo ncols mu js]
+
 theorem cnames_osResidual (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
     cnames (osResidual c ich bd ls lvl lv k).1 = [c.resLoop lvl] := by
   unfold osResidual
   dsimp only
-  split_ifs <;> simp [osResQuery, cnames_osResQ, osHeap, osLoopCall]
+  simp [cnames_osResSteps, osHeap, osLoopCall]
 
 theorem cnames_osResiduals (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
     cnames (osResiduals c ich bd ls lvl levels k).1 =

@@ -7,13 +7,14 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CFold
+public import LeanVM.Guest.B1.Whir.CSqLoop
 public import LeanVM.Guest.B1.Whir.LamPows
 public import LeanVM.Guest.B1.Whir.Glue
 
 /-!
 # The query weights and the glue, honestly
 
-`osLamPows_complete`: the powers of `λ` in `query_weights` make the block hold, `λ^Q` left.
+`osLamPow_complete`: `λ^n` by square and multiply, `μ = λ⁻¹` stored in `level_mus`.
 `osOodGlue_complete`: the out-of-domain value and intro in `ood` (and the slot of `λ`), the claim
 glued with `λ`. `osGlue_complete`: the level's batch glued with `β`.
 -/
@@ -27,36 +28,68 @@ open LeanVM.Guest.Value LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader}
 
-/-- The values of the query weights' block: `1`, then `λ^(j + 1)` at `k + j`. -/
-def lamVals (lv : E) (k i : ℕ) : E := if i = k then 1 else lv ^ (i - k + 1)
+/-- The values of `osLamPow`'s block: the square-and-multiply chain of `λ^n`, then `1` and
+`μ = λ⁻¹`. -/
+def lamPowVals (X : E) (n k i : ℕ) : E :=
+  if i < k + osPowLen n then (powVals X (osPowDigits n) 1).getD (i - k) 0
+  else if i = k + osPowLen n then 1 else X⁻¹
 
-/-- **The query weights, honestly.** -/
-theorem osLamPows_complete {lam base k Q : ℕ} (hQ : 2 ≤ Q) (σ : Val) (hl : lam < k)
-    (hqw : osQw < k) (hmem : ∀ i < Q, LoadHolds rd (σ (.n osQw)) (base + i) (σ (.n lam) ^ i)) :
-    BlkF C rd σ k (k + Q) (lamVals (σ (.n lam)) k) (osLamPows lam base k Q)
-      (fun σ' ↦ σ' (.n (k + Q - 1)) = σ (.n lam) ^ Q ∧ AgreeBelow k σ σ') := by
+/-- **`λ^n` and `level_mus[lvl] = 1/λ`, honestly**: `λ ≠ 0`, `μ = λ⁻¹` in `level_mus`. -/
+theorem osLamPow_complete {lvl lam n k : ℕ} (hd : digitsVal (osPowDigits n) 1 = n) (σ : Val)
+    (hl : lam < k) (hmu : osMus < k) (h0 : σ (.n lam) ≠ 0)
+    (hmem : LoadHolds rd (σ (.n osMus)) lvl (σ (.n lam))⁻¹) :
+    BlkF C rd σ k (k + osPowLen n + 2) (lamPowVals (σ (.n lam)) n k) (osLamPow lvl lam n k).1
+      (fun σ' ↦ σ' (.n (osLamPow lvl lam n k).2.1) = σ (.n lam) ^ n ∧ AgreeBelow k σ σ') := by
   intro σ' ha hv
-  obtain ⟨q, rfl⟩ : ∃ q, Q = q + 2 := ⟨Q - 2, by omega⟩
   have el : σ' (.n lam) = σ (.n lam) := ha _ hl
-  have eq : σ' (.n osQw) = σ (.n osQw) := ha _ hqw
-  have vk : σ' (.n k) = 1 := by rw [hv k le_rfl (by omega)]; simp [lamVals]
-  have vj : ∀ j, 1 ≤ j → j < q + 2 → σ' (.n (k + j)) = σ (.n lam) ^ (j + 1) := fun j h1 h2 ↦ by
-    rw [hv _ (by omega) (by omega)]
-    simp only [lamVals, show k + j ≠ k by omega, ↓reduceIte, Nat.add_sub_cancel_left]
+  have em : σ' (.n osMus) = σ (.n osMus) := ha _ hmu
+  have hp := osPowSteps_complete (C := C) (rd := rd) (σ := σ') lam (osPowDigits n) lam k 1
+    (by rw [pow_one]) (fun j hj ↦ by
+      rw [powVals_length] at hj
+      rw [hv (k + j) (by omega) (by unfold osPowLen; omega), el]
+      simp only [lamPowVals, show k + j < k + osPowLen n by unfold osPowLen; omega, ↓reduceIte,
+        Nat.add_sub_cancel_left])
+  set k' := k + osPowLen n
+  have v0 : σ' (.n k') = 1 := by
+    rw [hv k' (by omega) (by omega)]; simp [lamPowVals, k']
+  have v1 : σ' (.n (k' + 1)) = (σ (.n lam))⁻¹ := by
+    rw [hv (k' + 1) (by omega) (by omega)]; simp [lamPowVals, k']
   refine ⟨?_, ?_, ha⟩
-  · simp only [osLamPows, Nat.add_one_ne_zero, ↓reduceIte, allOk_append, allOk_cons, allOk_nil,
-      and_true, allOk_flatten, StmtOk, Atom.Holds, List.mem_map, List.mem_range,
-      forall_exists_index, and_imp, forall_apply_eq_imp_iff₂, Nat.add_sub_cancel]
-    refine ⟨⟨by rw [vk, word_one], by rw [vk, eq]; simpa using hmem 0 (by omega)⟩,
-      by rw [el, eq]; simpa using hmem 1 (by omega), by rw [vj 1 le_rfl (by omega), el]; ring,
-      fun i hi ↦ ⟨?_, ?_⟩⟩
-    · rw [show k + 1 + i = k + (i + 1) by ring, vj (i + 1) (by omega) (by omega), eq]
-      rw [show base + 2 + i = base + (i + 2) by ring]
-      exact hmem (i + 2) (by omega)
-    · rw [show k + 2 + i = k + (i + 2) by ring, show k + 1 + i = k + (i + 1) by ring,
-        vj (i + 2) (by omega) (by omega), vj (i + 1) (by omega) (by omega), el]
-      ring
-  · rw [show k + (q + 2) - 1 = k + (q + 1) by omega, vj (q + 1) (by omega) (by omega)]
+  · simp only [osLamPow, allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
+    refine ⟨hp.1, by rw [v0, word_one], by rw [v0, v1, el, inv_mul_cancel₀ h0], by rw [v1, em]; exact hmem⟩
+  · simp only [osLamPow]
+    rw [hp.2, hd, el]
+
+theorem osPowSteps_lt (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), acc < k →
+    (osPowSteps x ds acc k).2 < k + ds.length + (ds.filter id).length
+  | [], _, _, h => by simp [osPowSteps]; omega
+  | true :: ds, acc, k, _ => by
+    have := osPowSteps_lt x ds (k + 1) (k + 2) (by omega)
+    simp only [osPowSteps, ↓reduceIte, List.length_cons, List.filter_cons_of_pos (show id true = true from rfl)]
+    omega
+  | false :: ds, acc, k, _ => by
+    have := osPowSteps_lt x ds k (k + 1) (by omega)
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, List.length_cons,
+      List.filter_cons_of_neg (show ¬ id false = true by decide)]
+    omega
+
+/-- `λ^n`'s value lies below the block's `1`. -/
+theorem osLamPow_lt {lvl lam n k : ℕ} (h : lam < k) : (osLamPow lvl lam n k).2.1 < k + osPowLen n := by
+  have := osPowSteps_lt lam (osPowDigits n) lam k h
+  simp only [osLamPow, osPowLen]
+  omega
+
+/-- **`β·λ^n` stored in `level_betas`, honestly.** -/
+theorem osBeta_complete {σ : Val} {bk beta lamN lvl : ℕ} (hbe : beta < bk) (hn : lamN < bk)
+    (hB : osBetas < bk) (hmem : LoadHolds rd (σ (.n osBetas)) lvl (σ (.n beta) * σ (.n lamN))) :
+    BlkF C rd σ bk (bk + 1) (fun _ ↦ σ (.n beta) * σ (.n lamN))
+      [.atom (.mul (.n bk) (.n beta) (.n lamN)), .atom (.load (.n bk) (.n osBetas) lvl)]
+      (fun σ' ↦ AgreeBelow bk σ σ') := by
+  intro σ' ha hv
+  have v := hv bk le_rfl (by omega)
+  refine ⟨?_, ha⟩
+  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
+  exact ⟨by rw [v, ha _ hbe, ha _ hn], by rw [v, ha _ hB]; exact hmem⟩
 
 /-- The out-of-domain glue's values. -/
 def oodGlueVals (σ : Val) (s : OsSt) (lam : ℕ) (y c0 c2 : E) : List E :=
@@ -66,7 +99,7 @@ def oodGlueVals (σ : Val) (s : OsSt) (lam : ℕ) (y c0 c2 : E) : List E :=
 
 /-- **The out-of-domain claim glued, honestly.** -/
 theorem osOodGlue_complete {lvl lam : ℕ} {s : OsSt} (σ : Val) (hb : s.Below) (hl : lam < s.k)
-    (hk : 34 ≤ s.k) {y c0 c2 : E}
+    (hk : 164 ≤ s.k) {y c0 c2 : E}
     (hy : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y)
     (hc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0)
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)

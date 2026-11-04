@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.BrFin1
 
 `ownerOf_eq`: in a buffer split at increasing offsets, a word in level `i`'s slots is level `i`'s.
 `qpos_get`: the positions buffer holds each level's query positions. `fin_res`: level `i`'s
-residual's memory (`ResMemP`) at the finish's honest data. `fin_ood`: the out-of-domain weights'
+residual's memory (`ResMemP`) at the finish's honest data (the chain `rcC`, `μ = λ⁻¹`). `fin_ood`: the out-of-domain weights'
 memory (`OodAllP`) at the soundness proof's choices.
 -/
 
@@ -116,59 +116,36 @@ theorem qpos_get (h : TrFit c tr)
     omega, ↓reduceIte] at this
   rwa [posAt_eq h hi hj] at this
 
-theorem resSum_eq (lv : OsLv) (hq : 1 ≤ lv.queries) (W P : ℕ → E) (D : ℕ → E) :
-    resSum lv (∑ j ∈ Finset.range (2 * (lv.queries / 2)), W j * lvRes lv D (P j)) (W (lv.queries - 1))
-      D (P (lv.queries - 1)) = ∑ j ∈ Finset.range lv.queries, W j * lvRes lv D (P j) := by
-  unfold resSum
-  split_ifs with ho
-  · have e : lv.queries = 2 * (lv.queries / 2) + 1 := by omega
-    conv_rhs => rw [e]
-    rw [Finset.sum_range_succ, show 2 * (lv.queries / 2) = lv.queries - 1 by omega]
-  · rw [show 2 * (lv.queries / 2) = lv.queries by omega]
-
-/-- The residual's callee fact. -/
-def ResCallOk (C : CallRel) (P : OsPtrs) (c : OsCfg) (i : ℕ) (BD RC : E) : Prop :=
-  1 + gen ^ ((lvAt c i).queries / 2) ≠ 0 →
-    C (c.resLoop i) [1, gen ^ ((lvAt c i).queries / 2), P.qpos, P.qw, BD, RC] []
+/-- The residual's callee fact: the level's loop at its honest arguments, `μ = λ⁻¹`. -/
+def ResCallOk (C : CallRel) (P : OsPtrs) (c : OsCfg) (i : ℕ) (BD RC M : E) : Prop :=
+  1 + gen ^ ((lvAt c i).queries / resBatch) ≠ 0 →
+    C (c.resLoop i) [1, gen ^ ((lvAt c i).queries / resBatch), P.qpos, BD, RC, M] []
 
 /-- **Level `i`'s residual's memory.** -/
 theorem fin_res {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr)
     (hs : OsSizes c) {C : CallRel} {rd : Reader} {P : OsPtrs} (hm : FixedMem rd P c tr)
     {BD LS ICH RC : E} (hBD : ReadsAt rd BD (bdC c tr)) (hLS : ReadsAt rd LS (lsC c tr))
     (hICH : ReadsAt rd ICH (ichC c tr)) {i : ℕ} (hi : i < c.levels.length)
-    (hRC : ReadsAt rd RC (rcC c tr i)) (hcall : ResCallOk C P c i BD RC) :
-    ResMemP C rd P BD ICH LS c i c.levels[i] RC (finAcc c tr i) (finPq c tr i) (finW c tr i)
-      (finI c tr i) (finL c tr i) (finD c tr i) := by
+    (hRC : ReadsAt rd RC (rcC c tr i)) (hcall : ResCallOk C P c i BD RC (finM tr i)) :
+    ResMemP C rd P BD ICH LS c i c.levels[i] RC (finAcc c tr i) (finM tr i) (finI c tr i)
+      (finL c tr i) (finPq c tr i) (finD c tr i) := by
   have hst := hF.lv i hi
   have hg : c.levels[i] = lvAt c i := (List.getD_eq_getElem _ _ hi).symm
   rw [hg]
-  have hq : (lvAt c i).queries ≤ c.maxQ := hs.q i hi
-  have hq2 : 2 ≤ (lvAt c i).queries := hst.q2
-  refine ⟨hst.ml1, hst.qu, ⟨isInK_add isInK_one (gen_pow_isInK _), hcall⟩, ?_, ?_, fun _ ↦ ?_,
-    fun _ s hs' ↦ ?_, fun _ ↦ ?_, ?_, ?_, ?_⟩
-  · have := readsAt_map_range hRC (k := 0) (by omega)
-    simpa using this
-  · have := readsAt_map_range hRC (k := (lvAt c i).queries / 2) (by omega)
-    simpa [finAcc] using this
-  · rw [show (lvAt c i).posOff + (lvAt c i).queries - 1 = (lvAt c i).posOff + ((lvAt c i).queries - 1)
-      by omega, finPq]
-    exact qpos_get h hs hm hi (by omega)
+  refine ⟨hst.ml1, hst.qu, ?_, ⟨isInK_add isInK_one (gen_pow_isInK _), hcall⟩, ?_, ?_,
+    fun j hj ↦ ?_, fun s hs' ↦ ?_, ?_, ?_, ?_⟩
+  · have := readsAt_map_range hm.mus hi
+    rw [finM, rs_get h hi]
+    simpa [recOf, OsTr.L] using this
+  · have := readsAt_map_range hRC (k := 0) (Nat.succ_pos _)
+    simpa [finChain, resFold] using this
+  · exact readsAt_map_range hRC (k := (lvAt c i).queries / resBatch) (Nat.lt_succ_self _)
+  · rw [finPq, Nat.add_assoc]
+    exact qpos_get h hs hm hi (by have := Nat.mod_le (lvAt c i).queries resBatch; omega)
   · have hc : (lvAt c i).logCols ≤ 22 := hs.cols i hi
     have := readsAt_map_range hBD (k := i * ligColsCap + s) (by simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this
     simp only [show (i * 22 + s) / 22 = i by omega, show (i * 22 + s) % 22 = s by omega] at this
-    exact this
-  · have := readsAt_map_range hm.qw (k := i * c.maxQ + ((lvAt c i).queries - 1)) (by
-      have h2 := Nat.mul_le_mul_right c.maxQ (show i + 1 ≤ c.levels.length by omega)
-      rw [Nat.add_mul, one_mul] at h2
-      omega)
-    simp only [show (i * c.maxQ + ((lvAt c i).queries - 1)) / c.maxQ = i by
-        rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by omega), Nat.div_eq_of_lt (by omega)]; simp,
-      show (i * c.maxQ + ((lvAt c i).queries - 1)) % c.maxQ = (lvAt c i).queries - 1 by
-        rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega)],
-      show (lvAt c i).queries - 1 < (lvAt c i).queries by omega, ↓reduceIte] at this
-    rw [show i * c.maxQ + (lvAt c i).queries - 1 = i * c.maxQ + ((lvAt c i).queries - 1) by omega,
-      finW, Wof, rs_get h hi]
     exact this
   · exact readsAt_map_range hICH (k := i) (by omega)
   · exact readsAt_map_range hLS hi
