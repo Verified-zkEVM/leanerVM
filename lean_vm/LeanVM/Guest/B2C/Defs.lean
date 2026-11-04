@@ -25,7 +25,7 @@ cell (`frameE`): its range checks' temporaries, its frame runs, its fixed cells 
 constants and frame-pointer products), every value its path names (`namedOf`: parameters, the
 events' values, the returned values), the callee frame pointer and dispatch target of each call
 on its path (`siteE`), the target of each table jump (`armWord`, the jump table's word at the
-selector), and in `main` the jump table. A phantom's cells are its parameters and its self frame
+selector; a chained `match`'s on the arm the path takes, `chainE`), and in `main` the jump table. A phantom's cells are its parameters and its self frame
 pointer cells, which its caller writes. A callee's header (`H`) is the return pc of its call site
 and the caller's frame, or, for a loop's tail call, the caller's own header.
 
@@ -119,6 +119,13 @@ noncomputable def armWord (σ : Val) (x base : ℕ) : E :=
     ((tableCells.find? fun q => q.1 == base + Nat.find h).map Prod.snd).getD 0
   else 0
 
+/-- The table target a chained `match`'s arm reads its jump into, on the arm `σ` picks: for the
+`k` with `σ (V.n x) = g^k`, cell `ts[k]` holds the jump table's word at the next selector `y`'s
+slot from base `b` (`Plumb.chains`). -/
+noncomputable def chainE (σ : Val) (ch : ℕ × ℕ × List ℕ × ℕ × ℕ) : List (ℕ × E) :=
+  ch.2.2.1.zipIdx.filterMap fun q => if σ (V.n ch.2.1) = ofK (addressOfIndex q.2) then
+    some (q.1, armWord σ ch.2.2.2.1 ch.2.2.2.2) else none
+
 /-- One cell per offset, the first, within `[2, n)`. -/
 def dedupC : List (ℕ × E) → List (ℕ × E)
   | [] => []
@@ -135,6 +142,7 @@ noncomputable def nodeE (j : ℕ) (f : String) (σ : Val) (I : Inst) : List (ℕ
     valE f σ (namedOf (coreOf j).params (I.t.events coreProgram) (pathRets I.t)) ++
     siteE j I (I.t.events coreProgram) ++
     (plumbOf j).arms.map (fun a => (a.2.1, armWord σ a.1 a.2.2)) ++
+    (plumbOf j).chains.flatMap (chainE σ) ++
     (if j = 1 then tableCells else [])
 
 /-- The candidate cells of a phantom of function `j`: what its caller writes. -/

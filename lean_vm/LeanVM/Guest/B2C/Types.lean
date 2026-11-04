@@ -44,8 +44,10 @@ structure Site where
 /-- What a function's frame holds beyond its core values: the fixed cells `stat`, the call sites,
 the table jumps `(selector value, target cell, table base)`, the range checks' temporaries and
 the frame runs' values with their cells `(value, cell)`, the most instructions of each opcode
-(in `Opcode`'s order) a path through the function's code runs (`pmax`), and the cells holding
-several values (`sh`). -/
+(in `Opcode`'s order) a path through the function's code runs (`pmax`), the cells holding
+several values (`sh`), and the chained `match`es `(p, x, ts, y, b)`: top-level statement `p` of the
+body is a `match` on `V.n x` whose arm `k` ends in the table jump through cell `ts[k]`, from the
+table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`). -/
 structure Plumb where
   stat : List (ℕ × PC) := []
   sites : List Site := []
@@ -54,6 +56,7 @@ structure Plumb where
   runs : List (ℕ × ℕ) := []
   pmax : List ℕ := []
   sh : List ℕ := []
+  chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ) := []
   deriving Repr
 
 /-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window

@@ -200,6 +200,7 @@ noncomputable def nodeRest (j : ℕ) (f : String) (σ : Val) (I : Inst) : List (
     valE f σ (namedOf (coreOf j).params (I.t.events coreProgram) (pathRets I.t)) ++
     siteE j I (I.t.events coreProgram) ++
     (plumbOf j).arms.map (fun a => (a.2.1, armWord σ a.1 a.2.2)) ++
+    (plumbOf j).chains.flatMap (chainE σ) ++
     (if j = 1 then tableCells else [])
 
 theorem nodeE_split (j : ℕ) (f : String) (σ : Val) (I : Inst) :

@@ -148,7 +148,8 @@ noncomputable def mainRest (σ : Val) (I : Inst) : List (ℕ × E) :=
     (plumbOf 1).stat.map (fun q => (q.1, q.2.word I.fp)) ++
     valE "main" σ (namedOf (coreOf 1).params (I.t.events coreProgram) (pathRets I.t)) ++
     siteE 1 I (I.t.events coreProgram) ++
-    (plumbOf 1).arms.map (fun a => (a.2.1, armWord σ a.1 a.2.2))
+    (plumbOf 1).arms.map (fun a => (a.2.1, armWord σ a.1 a.2.2)) ++
+    (plumbOf 1).chains.flatMap (chainE σ)
 
 theorem nodeE_main (σ : Val) (I : Inst) : nodeE 1 "main" σ I = mainRest σ I ++ tableCells := rfl
 
