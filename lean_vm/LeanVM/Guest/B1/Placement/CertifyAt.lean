@@ -141,12 +141,12 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
         addressOfIndex i ∧
       (RegionL (cpLin lm hs ekb esq) i ∨ RegionL (cpOwn lm hs e10 e11 e138 e139 e295) i) := by
   set σ := cpσ lm hs ekb esq e10 e11 e138 e139 e295 rd with hσ
-  have hKb : ∀ s < 8, RegionL (cpLin lm hs ekb esq) (ekb + s) := fun s hs ↦
+  have hKb : ∀ s < 8, RegionL (cpLin lm hs ekb esq) (ekb + s) := fun s h8 ↦
     cp_regionL (q := (ekb, 1 :: gen ^ lm :: hs.map (gen ^ ·))) (by simp [cpLin])
       (by simp [hl]; omega)
-  have hSq : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + s) := fun s hs ↦
+  have hSq : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + s) := fun s h8 ↦
     cp_regionL (q := (esq, gSquaresList)) (by simp [cpLin]) (by simp [gSquaresList]; omega)
-  have hRk : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + 178 + s) := fun s hs ↦
+  have hRk : ∀ s < 34, RegionL (cpLin lm hs ekb esq) (esq + 178 + s) := fun s h8 ↦
     cp_regionL (q := (esq + 178, rankKeysList)) (by simp [cpLin]) (by simp [rankKeysList]; omega)
   have h10 : ∀ g < 9, RegionL (cpOwn lm hs e10 e11 e138 e139 e295) (e10 + g) := fun g hg ↦
     cp_regionL (q := (e10, (List.range 9).map (cpKey lm hs))) (by simp [cpOwn]) (by simp; omega)
@@ -164,48 +164,61 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
       (by simp [tb_stackOffsets_length, cpKs_length]; omega)
   have hκ : ∀ gi, cpKg lm hs gi < 34 := fun gi ↦ cpKc_lt hl hlm hhs h5 _
   have hp0 := cpPi_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
+  have hptr : ∀ gi < 9, σ (.n (cpQ gi + 4)) = ofK (addressOfIndex esq) * gen ^ cpKg lm hs gi ∧
+      σ (.n (cpZ gi)) = ofK (addressOfIndex esq) * gen ^ cpKg lm hs gi := fun gi hgi ↦
+    cpσ_grp_ptrs lm hs ekb esq e10 e11 e138 e139 e295 rd hgi
   rcases cp_loads hq with ⟨i, hi, rfl⟩ | ⟨gi, hgi, rfl | rfl | rfl | rfl⟩ | rfl | rfl | rfl | rfl |
     ⟨r, hr, rfl | rfl | rfl | rfl⟩ | ⟨gi, hgi, rfl | rfl | ⟨j, hj, rfl⟩⟩
   · exact ⟨ekb + i, tb_addr_ofK _ _, Or.inl (hKb i hi)⟩
   · refine ⟨esq + 178 + cpKg lm hs gi, ?_, Or.inl (hRk _ (hκ gi))⟩
-    rw [(cpσ_grp_ptrs lm hs ekb esq e10 e11 e138 e139 e295 rd hgi).1, cp_limb_mul]
+    show (σ (.n (cpQ gi + 4))).limb 0 * addressOfIndex 178 = _
+    rw [(hptr gi hgi).1, cp_limb_mul]
     congr 1; omega
   · exact ⟨e10 + gi, tb_addr_ofK _ _, Or.inr (h10 gi hgi)⟩
   · refine ⟨esq + cpKg lm hs gi, ?_, Or.inl (hSq _ (hκ gi))⟩
-    rw [(cpσ_grp_ptrs lm hs ekb esq e10 e11 e138 e139 e295 rd hgi).2, cp_limb_mul]
+    show (σ (.n (cpZ gi))).limb 0 * addressOfIndex 0 = _
+    rw [(hptr gi hgi).2, cp_limb_mul, Nat.add_zero]
   · exact ⟨e11 + gi, tb_addr_ofK _ _, Or.inr (h11 gi hgi)⟩
   · exact ⟨e138 + 0, tb_addr_ofK _ _, Or.inr (h138 0 (by norm_num))⟩
   · refine ⟨e10 + cpPi lm hs 0, ?_, Or.inr (h10 _ hp0)⟩
     rw [show σ (.n 145) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 5) (by norm_num), cp_limb_mul]
+    rfl
   · refine ⟨e139 + cpPi lm hs 0, ?_, Or.inr (h139 _ hp0)⟩
     rw [show σ (.n 148) = ofK (addressOfIndex e139) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 8) (by norm_num), cp_limb_mul]
+    rfl
   · refine ⟨e11 + cpPi lm hs 0, ?_, Or.inr (h11 _ hp0)⟩
     rw [show σ (.n 149) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from
       cpσ_rank0 lm hs ekb esq _ _ _ _ _ rd (j := 9) (by norm_num), cp_limb_mul]
+    rfl
   · exact ⟨e138 + (r + 1), tb_addr_ofK _ _, Or.inr (h138 _ (by omega))⟩
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e10 + cpPi lm hs (r + 1), ?_, Or.inr (h10 _ hp)⟩
     rw [show σ (.n (133 + 18 * (r + 1) + 5)) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 5) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
+    rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e139 + cpPi lm hs (r + 1), ?_, Or.inr (h139 _ hp)⟩
     rw [show σ (.n (133 + 18 * (r + 1) + 14)) =
         ofK (addressOfIndex e139) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 14) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
+    rfl
   · have hp := cpPi_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
     refine ⟨e11 + cpPi lm hs (r + 1), ?_, Or.inr (h11 _ hp)⟩
     rw [show σ (.n (133 + 18 * (r + 1) + 15)) =
         ofK (addressOfIndex e11) * gen ^ cpPi lm hs (r + 1)
       from cpσ_rank lm hs ekb esq _ _ _ _ _ rd (r := r + 1) (j := 15) (by omega) (by omega)
         (by norm_num), cp_limb_mul]
+    rfl
   · obtain ⟨g1, g2, -⟩ := cp_col_geom gi hgi
     refine ⟨esq + cpKg lm hs gi, ?_, Or.inl (hSq _ (hκ gi))⟩
-    rw [cpσ_col lm hs ekb esq e10 e11 e138 e139 e295 rd hgi le_rfl (by omega), cpColV,
-      tb_ite_pos rfl, cp_limb_mul]
+    have hc : σ (.n (cpD gi)) = cpColV lm hs esq gi (cpD gi) :=
+      cpσ_col lm hs ekb esq e10 e11 e138 e139 e295 rd hgi le_rfl (by omega)
+    show (σ (.n (cpD gi))).limb 0 * addressOfIndex (cpAdj gi) = _
+    rw [hc, cpColV, tb_ite_pos rfl, cp_limb_mul, Nat.add_assoc]
     rfl
   · exact ⟨e139 + gi, tb_addr_ofK _ _, Or.inr (h139 gi hgi)⟩
   · refine ⟨e295 + (cpC0 gi + j), tb_addr_ofK _ _, Or.inr (h295 _ ?_)⟩
