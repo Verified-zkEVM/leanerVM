@@ -50,30 +50,38 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args re
     (h : MeaningListSplit args rets) : coreProgram.Rel rd "list_split" args rets := by
   match args, h with
   | [ng], h =>
-    obtain ⟨a, ha, b, hb, hng, hrets⟩ := h
+    obtain ⟨a, ha, b, hb, c, hc, hng, hrets⟩ := h
     simp only [maxKeys] at ha
-    simp only [claimGroup] at hb hng
-    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm (k := b) (K := 16) (by omega) (by norm_num)
+    simp only [bigGroups] at hb
+    simp only [claimGroup] at hc
+    simp only [claimBig, claimGroup] at hng
+    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm (k := c) (K := 16) (by omega) (by norm_num)
+    obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm (k := b) (K := 7) (by omega) (by norm_num)
     obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds' hm (k := a) (K := 65535) (by omega) (by norm_num)
-    refine (rel_iff_sem find_list_split _ _).mpr ⟨Val.ofArgs [ng, gen ^ a, gen ^ b, word 65536 0 0,
-      gen ^ (16 - b), t1, t2, word 9272771591053052074 0 0, gen ^ (65535 - a), t3, t4, gen ^ (2 * a),
-      gen ^ (4 * a), gen ^ (8 * a), gen ^ (16 * a), gen ^ (17 * a), gen ^ (17 * a + b), gen ^ a,
-      gen ^ b], rfl, ?_⟩
+    refine (rel_iff_sem find_list_split _ _).mpr ⟨Val.ofArgs [ng, gen ^ a, gen ^ b, gen ^ c,
+      word 65536 0 0, gen ^ (16 - c), t1, t2, word 128 0 0, gen ^ (7 - b), t5, t6,
+      word 9272771591053052074 0 0, gen ^ (65535 - a), t3, t4, gen ^ (2 * a), gen ^ (4 * a),
+      gen ^ (8 * a), gen ^ (16 * a), gen ^ (17 * a), gen ^ (34 * a), gen ^ (68 * a),
+      gen ^ (136 * a), gen ^ (2 * b), gen ^ (4 * b), gen ^ (8 * b), gen ^ (16 * b),
+      gen ^ (17 * b), gen ^ (136 * a + 17 * b), gen ^ (136 * a + 17 * b + c), gen ^ a, gen ^ b,
+      gen ^ c], rfl, ?_⟩
     rw [core22_body]
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n]
     simp only [List.getD_cons_succ, List.getD_cons_zero]
-    refine ⟨trivial, trivial, ⟨h1, by rw [word_g16, e1], h2⟩, trivial, ⟨h3, by rw [word_gmax, e2], h4⟩,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial, trivial, ?_⟩
-    · rw [← pow_add]; congr 1; ring
-    · rw [← pow_add]; congr 1; ring
-    · rw [← pow_add]; congr 1; ring
-    · rw [← pow_add]; congr 1; ring
-    · rw [← pow_add]; congr 1; ring
-    · rw [← pow_add]
-    · rw [hng]; exact e_add_eq_zero_iff.mpr rfl
-    · exact hrets.symm
+    refine ⟨trivial, trivial, ⟨h1, by rw [word_g16, e1], h2⟩, trivial, ⟨h5, by rw [word_g7, e3], h6⟩,
+      trivial, ⟨h3, by rw [word_gmax, e2], h4⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      ?_, ?_, ?_, trivial, trivial, trivial, ?_⟩
+    all_goals first
+      | exact hrets.symm
+      | (rw [hng]; exact e_add_eq_zero_iff.mpr rfl)
+      | (rw [← pow_add]; congr 1; ring)
+      | (rw [← pow_add])
   | [], h => exact h.elim
   | _ :: _ :: _, h => exact h.elim
+
+/-- **`list_split` is complete**, on a memory image. -/
+theorem list_split_complete : list_split_complete_Spec := fun rd hm =>
+  list_split_complete' rd (memOK_of_memOk hm)
 
 end
 end LeanVM.Guest.B1.Digest

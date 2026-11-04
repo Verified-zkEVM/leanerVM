@@ -78,9 +78,10 @@ theorem list_split_pure : coreProgram.PureIn ["list_split"] :=
   Lift.pureIn_of_leafOk find_list_split list_split_leafOk
 
 /-- **`list_split` is complete, placed**: its split's returns, no caller's word read. -/
-theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {a b : ℕ}
-    (ha : a < maxKeys) (hb : b < claimGroup) :
-    CompleteAtD fs cert 16 "list_split" [] [gen ^ (claimGroup * a + b)] (Returns [gen ^ a, gen ^ b]) :=
+theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {a b c : ℕ}
+    (ha : a < maxKeys) (hb : b < bigGroups) (hc : c < claimGroup) :
+    CompleteAtD fs cert 16 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
+      (Returns [gen ^ a, gen ^ b, gen ^ c]) :=
   Lift.completeAtD_of_relIn list_split_pure (List.mem_singleton_self _) fun rd hl _ =>
     Lift.relIn_of_leaf find_list_split list_split_leafOk
       (fun σ es vs _ hw A hA => by
@@ -89,7 +90,7 @@ theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ
           exact (show walk σ Data.core23.body = .ret es vs from hw) ▸ this
         rw [loads_none hall] at hA
         exact absurd hA List.not_mem_nil)
-      (list_split_complete' rd hl _ _ ⟨a, ha, b, hb, rfl, rfl⟩)
+      (list_split_complete' rd hl _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
 
 /-! ## The events of a branch with a dispatch -/
 
