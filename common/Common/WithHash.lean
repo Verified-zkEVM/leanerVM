@@ -57,6 +57,31 @@ structure SchemeWithHash (Seed PK SK Req Resp F : Type) where
 
 variable {Seed PK SK Req Resp F : Type}
 
+/-- **A seed-keyed form of a scheme**: key generation derives `D` from the seed (`derive`, hash
+queries only) and continues (`rest`); the signer of a key that key generation gives signs as
+`signWith` of the derived value. The crates' secret key is the key's seed, from which the signer
+derives what it signs with again at each signature: `scheme`. (`Common.SeedKey` moves a
+random-oracle bound from the scheme to `scheme`.) -/
+structure SeedKeyed (S : SchemeWithHash Seed PK SK Req Resp F) (D : Type) where
+  /-- What the signer needs, derived from the seed. -/
+  derive : Seed → OracleComp SchemeHashSpec D
+  /-- The rest of key generation. -/
+  rest : Seed → D → OracleComp SchemeHashSpec (PK × SK)
+  /-- The signer, from the derived value. -/
+  signWith : D → Req → OracleComp SchemeHashSpec Resp
+  keygen_eq : ∀ seed, S.keygen seed = derive seed >>= rest seed
+  sign_eq : ∀ seed d, ∀ keys ∈ support (rest seed d), S.sign keys.2 = signWith d
+
+/-- The scheme whose secret key is the seed: key generation as `S`'s, the seed kept as the key, the
+signer deriving its value from the seed first. -/
+def SeedKeyed.scheme {S : SchemeWithHash Seed PK SK Req Resp F} {D : Type} (K : SeedKeyed S D) :
+    SchemeWithHash Seed PK Seed Req Resp F where
+  sample := S.sample
+  keygen seed := (fun keys ↦ (keys.1, seed)) <$> S.keygen seed
+  sign seed request := K.derive seed >>= fun d ↦ K.signWith d request
+  verify := S.verify
+  win := S.win
+
 /-- The hash in the random-permutation model: Keccak-256 over `π` (`keccak256OverPermutation`), its
 digest read as a bit vector (`digestBytesEquivBitVec`). -/
 def schemeHashOverPermutation : QueryImpl SchemeHashSpec (OracleComp RandomPermutationOracles) :=
@@ -106,6 +131,14 @@ end Common
 namespace LeanXmss
 
 open HashSig
+
+/-- What leanXMSS's signer derives from the key's seed `S_0` and signs with: the scheme seed
+`S = H(leanXMSS ‖ S_0)` and the public parameter of `S`; the secret key of the proofs' game. -/
+structure SchemeSeedKey where
+  /-- `S`, the scheme seed. -/
+  schemeSeed : MasterSeed
+  /-- The public parameter `P`. -/
+  parameter : PublicParameter
 
 /-- A hash query takes an arbitrary byte string and returns 32 bytes (the SUF-CMA game's
 `Common.SufCma.SchemeHashSpec`). -/
@@ -274,7 +307,8 @@ def treePathWithHash (parameter : PublicParameter) (lay : Layer) (seed : MasterS
 
 /-- `Gen` (`key_gen`): hash the key's seed `S_0` into `S`, derive the public parameter and build the
 top tree. -/
-def keygenFromSeedWithHash (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
+def keygenFromSeedWithHash (keySeed : MasterSeed) :
+    OracleComp HashSpec (PublicKey × SchemeSeedKey) :=
   do
   let seed ← taggedSeedWithHash seedTag keySeed
   let parameter ← thWithHash 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
@@ -282,7 +316,7 @@ def keygenFromSeedWithHash (keySeed : MasterSeed) : OracleComp HashSpec (PublicK
   return (⟨root, parameter⟩, ⟨seed, parameter⟩)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
-def signLayerWithHash (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (message : HashInput) :
+def signLayerWithHash (secretKey : SchemeSeedKey) (lay : Layer) (key : KeyIndex) (message : HashInput) :
     m (Option LayerSignature) := do
   let some (randomness, values) ← otsSignWithHash secretKey.parameter lay key secretKey.schemeSeed
       message
@@ -292,7 +326,7 @@ def signLayerWithHash (secretKey : SecretKey) (lay : Layer) (key : KeyIndex) (me
 
 /-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
 the root of bottom tree `idx / 2^16`. -/
-def signWithHash (secretKey : SecretKey) (index : LeafIndex) (message : Message) :
+def signWithHash (secretKey : SchemeSeedKey) (index : LeafIndex) (message : Message) :
     m (Option Signature) := do
   let bottomKey := keyIndexOnLayer index bottomLayer
   let topKey := keyIndexOnLayer index topLayer
@@ -303,6 +337,12 @@ def signWithHash (secretKey : SecretKey) (index : LeafIndex) (message : Message)
   let some top ← signLayerWithHash secretKey topLayer topKey (littleEndianBytes 16
       bottomRoot) | return none
   return some ⟨index, fun lay => if lay = bottomLayer then bottom else top⟩
+
+/-- `S` and `P` from the key's seed `S_0`, as key generation derives them. -/
+def deriveSchemeSeedKey (keySeed : MasterSeed) : OracleComp HashSpec SchemeSeedKey := do
+  let seed ← taggedSeedWithHash seedTag keySeed
+  let parameter ← thWithHash 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
+  return ⟨seed, parameter⟩
 
 end KeyGenerationAndSigning
 
@@ -315,7 +355,7 @@ open Common Common.SufCma
 verifier, and the winning condition: a valid transcript without the forgery
 (`SignerReturnedForgery`). -/
 noncomputable def schemeWithHash :
-    SchemeWithHash MasterSeed PublicKey SecretKey SigningRequest
+    SchemeWithHash MasterSeed PublicKey SchemeSeedKey SigningRequest
       (Option Signature) Forgery where
   sample := sampleMasterSeed
   keygen := KeyGenerationAndSigning.keygenFromSeedWithHash
@@ -328,6 +368,41 @@ noncomputable def schemeWithHash :
     decide (SigningTranscript.NoLeafIndexReused log ∧
       ¬SignerReturnedForgery SigningRequest.message log forgery.message forgery.signature)
 
+attribute [local irreducible] KeyGenerationAndSigning.treeNodeWithHash
+  KeyGenerationAndSigning.signWithHash
+
+/-- The rest of leanXMSS's key generation once `S` and `P` are derived: the top tree's root. -/
+def keygenRest (key : SchemeSeedKey) : OracleComp HashSpec (PublicKey × SchemeSeedKey) := do
+  let root ← KeyGenerationAndSigning.treeNodeWithHash key.parameter topLayer key.schemeSeed
+    layerHeight 0
+  return (⟨root, key.parameter⟩, key)
+
+theorem keygen_eq_derive (seed : MasterSeed) :
+    schemeWithHash.keygen seed =
+      KeyGenerationAndSigning.deriveSchemeSeedKey seed >>= keygenRest := by
+  simp only [schemeWithHash, KeyGenerationAndSigning.keygenFromSeedWithHash,
+    KeyGenerationAndSigning.deriveSchemeSeedKey, keygenRest, bind_assoc, pure_bind]
+
+theorem keygenRest_key (key : SchemeSeedKey) :
+    ∀ keys ∈ support (keygenRest key), keys.2 = key := by
+  intro keys hkeys
+  simp only [keygenRest, support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at hkeys
+  obtain ⟨_, _, rfl⟩ := hkeys
+  rfl
+
+/-- leanXMSS's key generation derives `S` and `P` first; its signer signs with them. -/
+noncomputable def seedKeyed : SeedKeyed schemeWithHash SchemeSeedKey where
+  derive := KeyGenerationAndSigning.deriveSchemeSeedKey
+  rest _ := keygenRest
+  signWith key request := schemeWithHash.sign key request
+  keygen_eq := keygen_eq_derive
+  sign_eq _ key keys hkeys := by rw [keygenRest_key key keys hkeys]
+
+/-- leanXMSS with the crate's secret key, the seed `S_0`: the signer derives `S` and `P` first. -/
+noncomputable abbrev schemeWithHashFromSeed :
+    SchemeWithHash MasterSeed PublicKey MasterSeed SigningRequest (Option Signature) Forgery :=
+  seedKeyed.scheme
+
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
 permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`
 (`StronglyUnforgeable` at 127 bits). `Q` counts every call on the game's worst path, the honest
@@ -335,7 +410,7 @@ signer's included (`QueryCostAtMost` is structural): a signing request costs abo
 (each layer's `2^32` grinding trials, and the paths and the bottom root rebuilt, about `2^25`), so
 `Q ≥ 2^65` once the adversary uses all `2^32` leaves, where the bound is about `2^-62`. -/
 abbrev LeanXmssStronglyUnforgeableWithHash : Prop :=
-  StronglyUnforgeableWithHash schemeWithHash 127
+  StronglyUnforgeableWithHash schemeWithHashFromSeed 127
 
 end RandomPermutationModel
 

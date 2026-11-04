@@ -10,6 +10,8 @@ import Common.Lanes
 import Common.PiOnly
 import Common.Duplex.Vec
 import Common.Linear
+import Common.SeedKey
+import Common.WithHashBridge
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
 random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
@@ -138,3 +140,8 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.run_rerun
+
+/-- info: 'Common.SufCma.SeedKeyed.romBound' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.SufCma.SeedKeyed.romBound

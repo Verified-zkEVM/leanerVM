@@ -15,8 +15,8 @@ answered by Keccak-256 over `π` (`SufCma.schemeHashOverPermutation`):
 * `SufCma.SchemeWithHash.overPermutation`: a hash-query scheme with its queries so answered, a
   scheme of the statement's game, whose game is the hash-query one
   (`SufCma.stronglyUnforgeable_overPermutation`);
-* `LeanXmss.RandomPermutationModel.scheme_eq`: the statement's leanXMSS is `schemeWithHash` so
-answered, each
+* `LeanXmss.RandomPermutationModel.scheme_eq`: the statement's leanXMSS is `schemeWithHashFromSeed`
+  (`schemeWithHash` with the seed as the key) so answered, each
   algorithm by its simulation lemma (`simulateQ_verifyWithHash`, …).
 -/
 
@@ -259,28 +259,30 @@ theorem simulateQ_treePathWithHash (parameter : PublicParameter) (lay : Layer) (
       treePath queryPermutation parameter lay seed key := by
   simp only [treePathWithHash, treePath, simulateQ_sequenceFin, simulateQ_treeNodeWithHash]
 
-theorem simulateQ_keygenFromSeedWithHash (keySeed : MasterSeed) :
-    simulateQ σ (keygenFromSeedWithHash keySeed) = keygenFromSeed queryPermutation keySeed := by
-  simp only [keygenFromSeedWithHash, keygenFromSeed, simulateQ_bind, simulateQ_pure,
+theorem simulateQ_deriveSchemeSeedKey (keySeed : MasterSeed) :
+    simulateQ σ (deriveSchemeSeedKey keySeed) = (do
+      let seed ← taggedSeed queryPermutation seedTag keySeed
+      let parameter ← publicParameterOf queryPermutation seed
+      return (⟨seed, parameter⟩ : SchemeSeedKey)) := by
+  simp only [deriveSchemeSeedKey, publicParameterOf, simulateQ_bind, simulateQ_pure,
     simulateQ_taggedSeedWithHash, simulateQ_thWithHash]
-  refine congrArg _ (funext fun seed ↦ congrArg _ (funext fun parameter ↦ ?_))
-  -- `parameter` is a `Digest`, the public parameter's type up to `digestBits = 128`
-  rw [simulateQ_treeNodeWithHash parameter]
+  rfl
 
-theorem simulateQ_signLayerWithHash (secretKey : SecretKey) (lay : Layer) (key : KeyIndex)
+theorem simulateQ_signLayerWithHash (secretKey : SchemeSeedKey) (lay : Layer) (key : KeyIndex)
     (message : HashInput) :
     simulateQ σ (signLayerWithHash (m := OracleComp HashSpec) secretKey lay key message) =
-      signLayer queryPermutation secretKey lay key message := by
+      signLayer queryPermutation secretKey.schemeSeed secretKey.parameter lay key message := by
   simp only [signLayerWithHash, signLayer, simulateQ_bind, simulateQ_otsSignWithHash]
   congr 1; funext signed
   rcases signed with _ | ⟨randomness, values⟩
   · simp
   · simp only [simulateQ_bind, simulateQ_pure, simulateQ_treePathWithHash]
 
-theorem simulateQ_signWithHash (secretKey : SecretKey) (index : LeafIndex) (message : Message) :
+theorem simulateQ_signWithHash (secretKey : SchemeSeedKey) (index : LeafIndex)
+    (message : Message) :
     simulateQ σ (signWithHash (m := OracleComp HashSpec) secretKey index message) =
-      sign queryPermutation secretKey index message := by
-  simp only [signWithHash, sign, simulateQ_bind, simulateQ_signLayerWithHash]
+      signWithSchemeSeed queryPermutation secretKey.schemeSeed secretKey.parameter index message := by
+  simp only [signWithHash, signWithSchemeSeed, simulateQ_bind, simulateQ_signLayerWithHash]
   congr 1; funext bottom
   rcases bottom with _ | bottom
   · simp
@@ -292,12 +294,23 @@ end KeyGenerationAndSigning
 
 namespace RandomPermutationModel
 
-/-- **The statement's leanXMSS is the hash-query scheme over `π`.** -/
-theorem scheme_eq : sufCmaScheme = schemeWithHash.overPermutation := by
-  simp only [sufCmaScheme, schemeWithHash, SchemeWithHash.overPermutation,
-    KeyGenerationAndSigning.simulateQ_keygenFromSeedWithHash,
-        KeyGenerationAndSigning.simulateQ_signWithHash,
-    Verification.simulateQ_verifyWithHash]
+/-- **The statement's leanXMSS is the hash-query scheme with the seed as the key, over `π`.** -/
+theorem scheme_eq : sufCmaScheme = schemeWithHashFromSeed.overPermutation := by
+  simp only [sufCmaScheme, schemeWithHashFromSeed, SeedKeyed.scheme, seedKeyed,
+    SchemeWithHash.overPermutation]
+  congr 1
+  · funext keySeed
+    rw [keygen_eq_derive, simulateQ_map, simulateQ_bind,
+      KeyGenerationAndSigning.simulateQ_deriveSchemeSeedKey]
+    simp only [KeyGenerationAndSigning.keygenFromSeed, keygenRest, bind_assoc, pure_bind,
+      map_bind, simulateQ_bind, simulateQ_pure, KeyGenerationAndSigning.simulateQ_treeNodeWithHash,
+      map_pure]
+  · funext keySeed request
+    simp only [simulateQ_bind, KeyGenerationAndSigning.simulateQ_deriveSchemeSeedKey,
+      KeyGenerationAndSigning.sign, bind_assoc, pure_bind, schemeWithHash,
+      KeyGenerationAndSigning.simulateQ_signWithHash]
+  · funext publicKey forgery
+    simp only [schemeWithHash, Verification.simulateQ_verifyWithHash]
 
 /-- **leanXMSS in the random-permutation model, from its hash-query form.** -/
 theorem leanXmssStronglyUnforgeable_of_withHash (h : LeanXmssStronglyUnforgeableWithHash) :

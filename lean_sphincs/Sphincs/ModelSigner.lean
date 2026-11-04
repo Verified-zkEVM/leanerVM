@@ -4,13 +4,14 @@ import Sphincs.Model
 # Key generation and signing: the model's are the statement's
 
 `Sphincs/Model.lean` for the other two algorithms: the model's key generation
-(`FORS.Seeded.keygen`) and signer (`FORS.Seeded.sign`), their queries answered by Keccak-256 over
-`π`, are the statement's (`simulateQ_keygen`, `simulateQ_sign`). The model's signer is written for
-every shape: at this configuration every index lands in the kept part of the top tree
-(`landed`), so its search over randomizers stops at the first, after one digest call, which the
-statement's signer makes too; each tree's kept part is the whole tree (`keptHeight_eq`,
-`keptPosition_eq`), so no surrogate node is derived; and its secret key's root is not hashed
-(`sign_root`).
+(`FORS.Seeded.keygen`) and signer, their queries answered by Keccak-256 over `π`, are the
+statement's (`simulateQ_keygen`, `simulateQ_sign`). Both take the crate's secret key, the seed
+`S0`: the model's key generation keeps it (`ofModelKeys`), and its signer derives the scheme seed
+and the parameter from it (`deriveSeeded`) and signs with `FORS.Seeded.sign`, the crate's signer,
+whose trees and FORS trees are built once (`simulateQ_treeNodeWithPath`, `simulateQ_forsOpenOnce`)
+and whose layers run from the bottom up, as the statement's do. At this configuration each tree's
+kept part is the whole tree (`keptHeight_eq`, `keptPosition_eq`), and the secret key's root is not
+hashed (`sign_root`).
 -/
 
 open OracleComp OracleSpec
@@ -181,184 +182,122 @@ theorem simulateQ_treePath_statement (lay : FORS.Layer) (tree : TreeIndex) (leaf
 
 end Hypertree
 
-/-! ## FORS -/
 
-section Fors
+/-! ## The crate's signer: trees and FORS built once -/
+
+section Once
 
 open Verification KeyGenerationAndSigning
 
-variable (parameter : FORS.PublicParameter) (index : FORS.Index) (forsTree : FORS.FTree)
-  (seed : FORS.MasterSeed)
+variable (parameter : FORS.PublicParameter) (seed : FORS.MasterSeed)
 
-theorem simulateQ_forsSecret (leaf : FORS.FLeaf) :
-    simulateQ σ (FORS.Seeded.forsSecret (m := OracleComp FORS.HashSpec) parameter index forsTree
-      leaf seed) = forsSecret queryPermutation parameter index forsTree leaf seed := by
-  simp only [FORS.Seeded.forsSecret, forsSecret, sim_bind, sim_pure, simulateQ_deriveOutput_fors]
-  rfl
+theorem simulateQ_treeNodeWithPath (lay : FORS.Layer) (tree : FORS.TreeIndex)
+    (leaf : TreeLeafIndex) : ∀ (level nodeIndex : ℕ),
+      simulateQ σ (FORS.Seeded.treeNodeWithPath (m := OracleComp FORS.HashSpec) parameter lay tree
+        seed leaf.val level nodeIndex) =
+        treeNodeWithPath queryPermutation parameter (toLayer lay) tree seed leaf level nodeIndex
+  | 0, nodeIndex => by
+    simp only [FORS.Seeded.treeNodeWithPath, treeNodeWithPath, buildTreeWithPath, sim_bind,
+      sim_pure, simulateQ_oneTimePublicKey, simulateQ_leafHash, bind_assoc]
+    rfl
+  | level + 1, nodeIndex => by
+    simp only [FORS.Seeded.treeNodeWithPath, sim_bind, sim_pure,
+      simulateQ_treeNodeWithPath lay tree leaf level, simulateQ_tweakableHash]
+    rfl
 
-theorem simulateQ_forsNode :
-    ∀ (level node : ℕ),
-      simulateQ σ (FORS.Seeded.forsNode (m := OracleComp FORS.HashSpec) parameter index forsTree
-        seed level node) = forsNode queryPermutation parameter index forsTree seed level node
+variable (index : FORS.Index) (forsTree : FORS.FTree)
+
+theorem simulateQ_forsSubtree (leaf : FORS.FLeaf) : ∀ (height node : ℕ),
+    simulateQ σ (FORS.Seeded.forsSubtree (m := OracleComp FORS.HashSpec) parameter index forsTree
+      seed leaf height node) = forsSubtree queryPermutation parameter index forsTree seed leaf height node
   | 0, node => by
-    simp only [FORS.Seeded.forsNode, forsNode, sim_bind, simulateQ_forsSecret,
-      FORS.Concrete.forsLeafHash, simulateQ_tweakableHash]
+    simp only [FORS.Seeded.forsSubtree, forsSubtree, sim_bind, sim_pure,
+      simulateQ_deriveOutput_fors, FORS.Concrete.forsLeafHash, simulateQ_tweakableHash]
     rfl
-  | 1, node => by
-    simp only [FORS.Seeded.forsNode, forsNode, sim_bind, simulateQ_deriveOutput_fors,
-      FORS.Concrete.forsLeafHash, simulateQ_tweakableHash]
-    rfl
-  | level + 2, node => by
-    simp only [FORS.Seeded.forsNode, forsNode, sim_bind, simulateQ_forsNode (level + 1)]
+  | height + 1, node => by
+    simp only [FORS.Seeded.forsSubtree, forsSubtree, sim_bind, sim_pure,
+      simulateQ_forsSubtree leaf height]
     refine bind_eq_of rfl fun left ↦ bind_eq_of rfl fun right ↦ ?_
-    by_cases hlevel : level + 1 < 10
-    · rw [dite_eq_left (show level + 1 < FORS.forsHeight from hlevel),
-        dite_eq_left (show level + 1 < forsTreeHeight from hlevel), simulateQ_tweakableHash]
+    by_cases hheight : height + 1 < 10
+    · rw [dite_eq_left (show height + 1 < FORS.forsHeight from hheight),
+        dite_eq_left (show height + 1 < forsTreeHeight from hheight), simulateQ_tweakableHash]
       rfl
-    · rw [dite_eq_right (show ¬level + 1 < FORS.forsHeight from hlevel),
-        dite_eq_right (show ¬level + 1 < forsTreeHeight from hlevel), sim_pure]
+    · rw [dite_eq_right (show ¬height + 1 < FORS.forsHeight from hheight),
+        dite_eq_right (show ¬height + 1 < forsTreeHeight from hheight), sim_pure]
       rfl
 
-theorem simulateQ_forsKey :
-    simulateQ σ (FORS.Seeded.forsKey (m := OracleComp FORS.HashSpec) parameter index seed) =
-      forsKey queryPermutation parameter index seed := by
-  simp only [FORS.Seeded.forsKey, forsKey, simulateQ_sequenceFin, sim_bind, sim_pure,
-    simulateQ_forsNode]
-  rfl
-
-theorem simulateQ_forsTreeOpen (leaf : FORS.FLeaf) :
-    Functor.map ofModelTreeOpening (simulateQ σ (FORS.Seeded.treeOpen
-      (m := OracleComp FORS.HashSpec) parameter index forsTree leaf seed)) =
+theorem simulateQ_treeOpenOnce (leaf : FORS.FLeaf) :
+    (fun r ↦ (r.1, ofModelTreeOpening r.2)) <$> simulateQ σ (FORS.Seeded.treeOpenOnce
+      (m := OracleComp FORS.HashSpec) parameter index forsTree leaf seed) =
       forsTreeOpen queryPermutation parameter index forsTree leaf seed := by
-  simp only [FORS.Seeded.treeOpen, sim_bind, sim_pure, simulateQ_deriveOutput_fors,
-    FORS.Concrete.forsLeafHash, simulateQ_tweakableHash, simulateQ_sequenceFin, sim_ite,
-    simulateQ_forsNode]
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun output ↦ ?_)
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun siblingLeaf ↦ ?_)
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun path ↦ ?_)
+  simp only [FORS.Seeded.treeOpenOnce, forsTreeOpen, sim_bind, sim_pure, simulateQ_forsSubtree]
+  refine (map_bind _ _ _).trans (bind_eq_of rfl fun left ↦ ?_)
+  refine (map_bind _ _ _).trans (bind_eq_of rfl fun right ↦ ?_)
   exact map_pure _ _
 
-theorem simulateQ_forsOpen (leaves : FORS.FTree → FORS.FLeaf) :
-    (fun opening forsTree ↦ ofModelTreeOpening (opening forsTree)) <$>
-      simulateQ σ (FORS.Seeded.forsOpen (m := OracleComp FORS.HashSpec) parameter index leaves
+theorem simulateQ_forsOpenOnce (leaves : FORS.FTree → FORS.FLeaf) :
+    (fun r ↦ (r.1, fun forsTree ↦ ofModelTreeOpening (r.2 forsTree))) <$>
+      simulateQ σ (FORS.Seeded.forsOpenOnce (m := OracleComp FORS.HashSpec) parameter index leaves
         seed) = forsOpen queryPermutation parameter index leaves seed := by
-  simp only [FORS.Seeded.forsOpen, simulateQ_sequenceFin]
-  exact (sequenceFin_map ofModelTreeOpening _ _).symm.trans
-    (congrArg _ (funext fun forsTree ↦ simulateQ_forsTreeOpen parameter index forsTree seed
-      (leaves forsTree)))
+  simp only [FORS.Seeded.forsOpenOnce, forsOpen, sim_bind, sim_pure, simulateQ_sequenceFin]
+  have h : (fun forsTree ↦ forsTreeOpen queryPermutation parameter index forsTree (leaves forsTree)
+      seed) = fun forsTree ↦ (fun r ↦ (r.1, ofModelTreeOpening r.2)) <$> simulateQ σ
+        (FORS.Seeded.treeOpenOnce (m := OracleComp FORS.HashSpec) parameter index forsTree
+          (leaves forsTree) seed) :=
+    funext fun forsTree ↦ (simulateQ_treeOpenOnce parameter seed index forsTree (leaves forsTree)).symm
+  rw [h]
+  erw [sequenceFin_map]
+  rw [bind_map_left, map_bind]
+  exact bind_eq_of rfl fun trees ↦ map_pure _ _
 
-end Fors
+end Once
 
 /-! ## Key generation -/
 
-/-- A model secret key as the statement's: its root, which the signer does not hash, dropped. -/
-def toStatementSecretKey (secretKey : FORS.Seeded.SecretKey) : SecretKey :=
-  ⟨secretKey.seed, secretKey.parameter⟩
+/-- The model's public key as the statement's. -/
+def ofModelKeys (keys : FORS.PublicKey × MasterSeed) : PublicKey × SecretKey :=
+  (ofModelPublicKey keys.1, keys.2)
 
-/-- The model's keys as the statement's. -/
-def ofModelKeys (keys : FORS.PublicKey × FORS.Seeded.SecretKey) : PublicKey × SecretKey :=
-  (ofModelPublicKey keys.1, toStatementSecretKey keys.2)
+/-- What the model's key generation derives from the seed first: the scheme seed and the
+parameter. -/
+def deriveSeeded (seed : FORS.MasterSeed) :
+    OracleComp FORS.HashSpec (FORS.MasterSeed × FORS.PublicParameter) := do
+  let schemeSeed ← FORS.schemeSeed seed
+  let parameter ← FORS.deriveKey 0 .parameter schemeSeed
+  return (schemeSeed, parameter)
+
+/-- The rest of the model's key generation: the top tree's root. -/
+def keygenRest (derived : FORS.MasterSeed × FORS.PublicParameter) :
+    OracleComp FORS.HashSpec (FORS.PublicKey × FORS.Seeded.SecretKey) := do
+  let root ← FORS.Seeded.treeRoot derived.2 FORS.topLayer FORS.Concrete.rootTree derived.1
+  return (⟨root, derived.2⟩, ⟨derived.1, derived.2, root⟩)
+
+theorem simulateQ_deriveSeeded (seed : FORS.MasterSeed) :
+    simulateQ σ (deriveSeeded seed) = (do
+      let schemeSeed ← taggedSeed queryPermutation seedTag seed
+      let parameter ← th queryPermutation 0 (keygenDomainFields .parameter)
+        (littleEndianBytes 32 schemeSeed)
+      return (schemeSeed, parameter)) := by
+  simp only [deriveSeeded, sim_bind, sim_pure, simulateQ_schemeSeed, simulateQ_deriveKey_parameter]
+  rfl
+
+theorem keygen_eq (seed : FORS.MasterSeed) :
+    FORS.Seeded.keygen seed = deriveSeeded seed >>= keygenRest := by
+  simp only [FORS.Seeded.keygen, FORS.Seeded.keygenFromSeed, deriveSeeded, keygenRest, bind_assoc,
+    pure_bind]
 
 theorem simulateQ_keygen (seed : FORS.MasterSeed) :
-    ofModelKeys <$> simulateQ σ (FORS.Seeded.keygen seed) =
+    (fun keys ↦ (ofModelPublicKey keys.1, seed)) <$>
+      simulateQ σ (FORS.Seeded.keygen seed : OracleComp FORS.HashSpec _) =
       KeyGenerationAndSigning.keygenFromSeed queryPermutation seed := by
   simp only [FORS.Seeded.keygen, FORS.Seeded.keygenFromSeed, sim_bind, sim_pure,
-    simulateQ_schemeSeed, simulateQ_deriveKey_parameter, simulateQ_treeRoot_digest]
+    simulateQ_schemeSeed, simulateQ_deriveKey_parameter, simulateQ_treeRoot_digest,
+    KeyGenerationAndSigning.keygenFromSeed, KeyGenerationAndSigning.publicKeyOf, bind_assoc,
+    pure_bind]
   refine (map_bind _ _ _).trans (bind_eq_of rfl fun schemeSeed ↦ ?_)
   refine (map_bind _ _ _).trans (bind_eq_of rfl fun parameter ↦ ?_)
   refine (map_bind _ _ _).trans (bind_eq_of rfl fun root ↦ ?_)
   exact map_pure _ _
-
-/-! ## The layers' messages and signatures -/
-
-section Layers
-
-open Verification KeyGenerationAndSigning
-
-theorem childTree_top (index : FORS.Index) :
-    FORS.Concrete.childTree ⟨0, by decide⟩ (FORS.Concrete.treeIndexAt index ⟨0, by decide⟩)
-      (FORS.Concrete.leafIndexAt index ⟨0, by decide⟩) = treeOfIndex ⟨1, by decide⟩ index := by
-  have := index.isLt
-  change index.val < 67108864 at this
-  apply Fin.ext
-  show (index.val / 67108864 * 1024 + index.val / 65536 % 1024) % 67108864 = index.val / 65536
-  omega
-
-theorem childTree_middle (index : FORS.Index) :
-    FORS.Concrete.childTree ⟨1, by decide⟩ (FORS.Concrete.treeIndexAt index ⟨1, by decide⟩)
-      (FORS.Concrete.leafIndexAt index ⟨1, by decide⟩) = treeOfIndex ⟨0, by decide⟩ index := by
-  have := index.isLt
-  change index.val < 67108864 at this
-  apply Fin.ext
-  show (index.val / 65536 * 256 + index.val / 256 % 256) % 67108864 = index.val / 256
-  omega
-
-theorem childTree_bottom (index : FORS.Index) :
-    FORS.Concrete.childTree ⟨2, by decide⟩ (FORS.Concrete.treeIndexAt index ⟨2, by decide⟩)
-      (FORS.Concrete.leafIndexAt index ⟨2, by decide⟩) = index := by
-  have := index.isLt
-  change index.val < 67108864 at this
-  apply Fin.ext
-  show (index.val / 256 * 256 + index.val / 1 % 256) % 67108864 = index.val
-  omega
-
-theorem simulateQ_layerMessage (secretKey : FORS.Seeded.SecretKey) (index : FORS.Index)
-    (lay : FORS.Layer) :
-    simulateQ σ (FORS.Seeded.layerMessage (m := OracleComp FORS.HashSpec) secretKey index lay) =
-      layerMessage queryPermutation secretKey.parameter secretKey.seed (toLayer lay) index := by
-  fin_cases lay
-  · simp only [FORS.Seeded.layerMessage, FORS.Seeded.keyMessage]
-    rw [dite_eq_left (show (0 : ℕ) + 1 < FORS.numLayers by decide), sim_bind, simulateQ_treeRoot,
-      childTree_top]
-    unfold layerMessage
-    rw [dite_eq_right (show ¬(toLayer ⟨0, by decide⟩).val = 0 by decide)]
-    exact bind_eq_of rfl fun root ↦ sim_pure _
-  · simp only [FORS.Seeded.layerMessage, FORS.Seeded.keyMessage]
-    rw [dite_eq_left (show (1 : ℕ) + 1 < FORS.numLayers by decide), sim_bind, simulateQ_treeRoot,
-      childTree_middle]
-    unfold layerMessage
-    rw [dite_eq_right (show ¬(toLayer ⟨1, by decide⟩).val = 0 by decide)]
-    exact bind_eq_of rfl fun root ↦ sim_pure _
-  · simp only [FORS.Seeded.layerMessage, FORS.Seeded.keyMessage]
-    rw [dite_eq_right (show ¬(2 : ℕ) + 1 < FORS.numLayers by decide), childTree_bottom, sim_bind,
-      simulateQ_forsKey]
-    unfold layerMessage
-    rw [dite_eq_left (show (toLayer ⟨2, by decide⟩).val = 0 from rfl)]
-    exact bind_eq_of rfl fun key ↦ sim_pure _
-
-/-- A model layer signature as the statement's: its path read through its length's equality. -/
-def ofModelLayerSignature (lay : FORS.Layer) (layerSignature : FORS.LayerSignature lay) :
-    LayerSignature (toLayer lay) :=
-  ⟨layerSignature.counter, layerSignature.chainValues,
-    fun level ↦ layerSignature.path (Fin.cast (layerHeight_toLayer lay) level)⟩
-
-/-- A `sequenceFin` over `Fin n'`, through an equality `n = n'`, then a continuation. -/
-theorem sequenceFin_cast {m : Type → Type} [Monad m] {α β : Type} {n n' : ℕ} (h : n = n')
-    (g : Fin n' → m α) (k : (Fin n' → α) → m β) :
-    sequenceFin g >>= k = sequenceFin (fun i ↦ g (Fin.cast h i)) >>= fun v ↦ k (fun i ↦ v (Fin.cast h.symm i)) := by
-  subst h
-  rfl
-
-theorem simulateQ_signLayer (secretKey : FORS.Seeded.SecretKey) (index : FORS.Index)
-    (lay : FORS.Layer) :
-    Option.map (ofModelLayerSignature lay) <$>
-      simulateQ σ (FORS.Seeded.signLayer (m := OracleComp FORS.HashSpec) secretKey index lay) =
-      signLayer queryPermutation (toStatementSecretKey secretKey) index (toLayer lay) := by
-  simp only [FORS.Seeded.signLayer, sim_bind, simulateQ_layerMessage, simulateQ_otsSign]
-  rw [treeIndexAt_eq, leafIndexAt_eq]
-  unfold signLayer
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun message ↦ ?_)
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun found ↦ ?_)
-  rcases found with _ | ⟨counter, values⟩
-  · exact (congrArg _ (sim_pure _)).trans (map_pure _ _)
-  · rw [sim_bind, simulateQ_treePath_statement]
-    unfold treePath
-    dsimp only
-    rw [sequenceFin_cast (layerHeight_toLayer lay).symm]
-    refine (map_bind _ _ _).trans (bind_eq_of rfl fun path ↦ ?_)
-    exact (congrArg _ (sim_pure _)).trans (map_pure _ _)
-
-end Layers
 
 /-! ## Signing -/
 
@@ -366,41 +305,11 @@ section Signing
 
 open Verification KeyGenerationAndSigning
 
-/-- The model's layered loop of three layers, flattened: each layer's signature, top first, then the
-continuation on the three. -/
-theorem sequenceLayers_bind {m : Type → Type} [Monad m] [LawfulMonad m] {β : Type}
-    (c : (lay : FORS.Layer) → m (Option (FORS.LayerSignature lay)))
-    (k : Option ((lay : FORS.Layer) → FORS.LayerSignature lay) → m (Option β))
-    (hk : k none = pure none) :
-    FORS.Concrete.sequenceLayers c >>= k =
-    (do
-      let some top ← c ⟨0, by decide⟩ | return none
-      let some middle ← c ⟨1, by decide⟩ | return none
-      let some bottom ← c ⟨2, by decide⟩ | return none
-      k (some (Fin.cases top (Fin.cases middle (Fin.cases bottom fun i ↦ Fin.elim0 i))))) := by
-  simp only [FORS.Concrete.sequenceLayers, FORS.Concrete.sequenceDep, bind_assoc]
-  refine bind_congr fun r0 ↦ ?_
-  rcases r0 with _ | top
-  · simp [hk]
-  · simp only [bind_assoc]
-    refine bind_congr fun r1 ↦ ?_
-    rcases r1 with _ | middle
-    · simp [hk]
-    · simp only [bind_assoc]
-      refine bind_congr fun r2 ↦ ?_
-      rcases r2 with _ | bottom
-      · simp [hk]
-      · simp
-
-theorem signDigestLoop_succ (secretKey : FORS.Seeded.SecretKey) (message : FORS.Message)
-    (step randomness : FORS.Randomness) (attempts : ℕ) :
-    FORS.Seeded.signDigestLoop (m := OracleComp FORS.HashSpec) secretKey message step (attempts + 1)
-      randomness =
-      (fun first ↦ some (randomness, FORS.Concrete.blockIndex first)) <$>
-        FORS.Concrete.messageDigestCall secretKey.parameter secretKey.root message randomness
-          FORS.firstCall := by
-  simp only [FORS.Seeded.signDigestLoop, FORS.Seeded.signAttempt, landed, ↓reduceIte, bind_pure_comp,
-    bind_map_left]
+/-- The crate signer's root is not hashed: the digest's payload is `m ‖ ρ`. -/
+theorem sign_root (schemeSeed : FORS.MasterSeed) (parameter : FORS.PublicParameter)
+    (root : FORS.Digest) (message : FORS.Message) :
+    FORS.Seeded.sign (m := OracleComp FORS.HashSpec) ⟨schemeSeed, parameter, root⟩ message =
+      FORS.Seeded.sign (m := OracleComp FORS.HashSpec) ⟨schemeSeed, parameter, 0⟩ message := rfl
 
 theorem randomizerHashInput_eq (parameter : FORS.PublicParameter) (seed : FORS.MasterSeed)
     (message : FORS.Message) :
@@ -416,85 +325,87 @@ theorem simulateQ_deriveRandomizer (parameter : FORS.PublicParameter) (seed : FO
   simp only [FORS.deriveRandomizer, sim_bind, sim_pure, simulateQ_oracleHash]
   rfl
 
-/-- The model's layer signatures as the statement's, bottom first. -/
-theorem ofModelSignature_layers (randomness : FORS.Randomness)
-    (opening : FORS.FTree → FORS.TreeOpening) (top : FORS.LayerSignature ⟨0, by decide⟩)
-    (middle : FORS.LayerSignature ⟨1, by decide⟩) (bottom : FORS.LayerSignature ⟨2, by decide⟩) :
-    ofModelSignature ⟨randomness, opening,
-      Fin.cases top (Fin.cases middle (Fin.cases bottom fun i ↦ Fin.elim0 i))⟩ =
+/-- One layer of the crate's signer: the model's one-time signature and tree, at the statement's
+layer `toLayer lay`. -/
+theorem simulateQ_layerOtsSign (parameter : FORS.PublicParameter) (seed : FORS.MasterSeed)
+    (index : FORS.Index) (lay : FORS.Layer) (message : FORS.HashInput) :
+    simulateQ σ (FORS.Seeded.otsSign (m := OracleComp FORS.HashSpec) parameter lay
+      (FORS.Concrete.treeIndexAt index lay) (FORS.Concrete.leafIndexAt index lay) seed message) =
+      otsSign queryPermutation parameter (toLayer lay) (treeOfIndex (toLayer lay) index)
+        (leafOfIndex (toLayer lay) index) seed message := by
+  rw [simulateQ_otsSign, treeIndexAt_eq, leafIndexAt_eq]
+
+theorem simulateQ_layerTree (parameter : FORS.PublicParameter) (seed : FORS.MasterSeed)
+    (index : FORS.Index) (lay : FORS.Layer) :
+    simulateQ σ (FORS.Seeded.treeNodeWithPath (m := OracleComp FORS.HashSpec) parameter lay
+      (FORS.Concrete.treeIndexAt index lay) seed (FORS.Concrete.leafIndexAt index lay).val
+      (FORS.layerHeight lay) 0) =
+      treeNodeWithPath queryPermutation parameter (toLayer lay) (treeOfIndex (toLayer lay) index)
+        seed (leafOfIndex (toLayer lay) index) (layerHeight (toLayer lay)) 0 := by
+  rw [treeIndexAt_eq, leafIndexAt_eq, layerHeight_toLayer]
+  exact simulateQ_treeNodeWithPath parameter seed lay _ _ _ _
+
+/-- The three layers' data of the crate's signer as the statement's signature. -/
+theorem ofModelSignature_layersOfData (randomness : FORS.Randomness)
+    (opening : FORS.FTree → FORS.TreeOpening) (bottom middle top : FORS.Seeded.LayerData) :
+    ofModelSignature ⟨randomness, opening, FORS.Seeded.layersOfData
+      (Function.update (Function.update (Function.update (fun _ ↦ (0, fun _ ↦ 0, fun _ ↦ 0))
+        ⟨0, by decide⟩ top) ⟨1, by decide⟩ middle) ⟨2, by decide⟩ bottom)⟩ =
       ⟨randomness, fun forsTree ↦ ofModelTreeOpening (opening forsTree),
-        layerSignatures (ofModelLayerSignature ⟨2, by decide⟩ bottom)
-          (ofModelLayerSignature ⟨1, by decide⟩ middle) (ofModelLayerSignature ⟨0, by decide⟩ top)⟩ := by
+        layerSignatures ⟨bottom.1, bottom.2.1, fun level ↦ bottom.2.2 level.val⟩
+          ⟨middle.1, middle.2.1, fun level ↦ middle.2.2 level.val⟩
+          ⟨top.1, top.2.1, fun level ↦ top.2.2 level.val⟩⟩ := by
   simp only [ofModelSignature]
   congr 1
   funext layer
   fin_cases layer <;> rfl
 
-theorem signLayer_top (secretKey : FORS.Seeded.SecretKey) (index : Index) :
-    signLayer queryPermutation (toStatementSecretKey secretKey) index 2 =
-      Option.map (ofModelLayerSignature ⟨0, by decide⟩) <$>
-        simulateQ σ (FORS.Seeded.signLayer (m := OracleComp FORS.HashSpec) secretKey index ⟨0, by decide⟩) :=
-  (simulateQ_signLayer secretKey index ⟨0, by decide⟩).symm
+theorem forsKeyPayload_eq (key : FORS.ForsKey) :
+    FORS.Concrete.rootsPayload key = Verification.forsKeyPayload key := rfl
 
-theorem signLayer_middle (secretKey : FORS.Seeded.SecretKey) (index : Index) :
-    signLayer queryPermutation (toStatementSecretKey secretKey) index 1 =
-      Option.map (ofModelLayerSignature ⟨1, by decide⟩) <$>
-        simulateQ σ (FORS.Seeded.signLayer (m := OracleComp FORS.HashSpec) secretKey index ⟨1, by decide⟩) :=
-  (simulateQ_signLayer secretKey index ⟨1, by decide⟩).symm
-
-theorem signLayer_bottom (secretKey : FORS.Seeded.SecretKey) (index : Index) :
-    signLayer queryPermutation (toStatementSecretKey secretKey) index 0 =
-      Option.map (ofModelLayerSignature ⟨2, by decide⟩) <$>
-        simulateQ σ (FORS.Seeded.signLayer (m := OracleComp FORS.HashSpec) secretKey index ⟨2, by decide⟩) :=
-  (simulateQ_signLayer secretKey index ⟨2, by decide⟩).symm
-
-theorem forsOpen_eq (parameter : PublicParameter) (index : Index)
-    (leaves : ForsTreeIndex → ForsLeafIndex) (seed : MasterSeed) :
-    forsOpen queryPermutation parameter index leaves seed =
-      (fun opening forsTree ↦ ofModelTreeOpening (opening forsTree)) <$>
-        simulateQ σ (FORS.Seeded.forsOpen (m := OracleComp FORS.HashSpec) parameter index leaves seed) :=
-  (simulateQ_forsOpen parameter index seed leaves).symm
-
-theorem simulateQ_sign (secretKey : FORS.Seeded.SecretKey) (message : FORS.Message) :
-    Option.map ofModelSignature <$>
-      simulateQ σ (FORS.Seeded.sign (m := OracleComp FORS.HashSpec) secretKey message) =
-      sign queryPermutation (toStatementSecretKey secretKey) message := by
+/-- **The crate's signer, simulated, is the statement's**: the derivation of the scheme seed and
+the parameter, then `sign_with`. -/
+theorem simulateQ_sign (secretKey : MasterSeed) (message : FORS.Message) :
+    Option.map ofModelSignature <$> simulateQ σ ((deriveSeeded secretKey >>= fun derived ↦
+      FORS.Seeded.sign (m := OracleComp FORS.HashSpec) ⟨derived.1, derived.2, 0⟩ message :
+        OracleComp FORS.HashSpec _)) =
+      sign queryPermutation secretKey message := by
+  rw [sim_bind, simulateQ_deriveSeeded]
+  simp only [bind_assoc, pure_bind]
+  unfold sign signWithSchemeSeed
+  refine (map_bind _ _ _).trans (bind_eq_of rfl fun schemeSeed ↦ ?_)
+  refine (map_bind _ _ _).trans (bind_eq_of rfl fun parameter ↦ ?_)
   rw [FORS.Seeded.sign, sim_bind, simulateQ_deriveRandomizer, bind_assoc]
-  unfold sign
   simp only [th, bind_assoc, pure_bind]
-  rw [randomizerHashInput_eq]
+  erw [randomizerHashInput_eq]
   refine (map_bind _ _ _).trans (bind_eq_of rfl fun output ↦ ?_)
-  rw [show FORS.digestAttemptLimit = (2 ^ 32 - 1) + 1 from rfl, sim_bind,
-    signDigestLoop_succ, sim_map, simulateQ_messageDigestCall]
-  refine (congrArg _ (bind_map_left _ _ _)).trans ?_
-  refine (map_bind _ _ _).trans (bind_eq_of rfl fun first ↦ ?_)
-  dsimp only
-  rw [sim_bind, simulateQ_messageDigest]
+  erw [sim_bind, simulateQ_messageDigest]
   refine (map_bind _ _ _).trans (bind_eq_of rfl fun digest ↦ ?_)
-  rw [sim_bind, forsOpen_eq]
-  refine (map_bind _ _ _).trans (Eq.trans ?_ (bind_map_left _ _ _).symm)
-  refine bind_eq_of rfl fun opening ↦ ?_
-  rw [sequenceLayers_bind _ _ (by rfl)]
-  rw [signLayer_top, signLayer_middle, signLayer_bottom, sim_bind]
-  refine (map_bind _ _ _).trans (Eq.trans ?_ (bind_map_left _ _ _).symm)
-  refine bind_eq_of rfl fun r0 ↦ ?_
-  rcases r0 with _ | top
-  · exact (congrArg _ (sim_pure _)).trans (map_pure _ _)
-  dsimp only
-  rw [sim_bind]
-  refine (map_bind _ _ _).trans (Eq.trans ?_ (bind_map_left _ _ _).symm)
-  refine bind_eq_of rfl fun r1 ↦ ?_
-  rcases r1 with _ | middle
-  · exact (congrArg _ (sim_pure _)).trans (map_pure _ _)
-  dsimp only
-  rw [sim_bind]
-  refine (map_bind _ _ _).trans (Eq.trans ?_ (bind_map_left _ _ _).symm)
-  refine bind_eq_of rfl fun r2 ↦ ?_
-  rcases r2 with _ | bottom
-  · exact (congrArg _ (sim_pure _)).trans (map_pure _ _)
-  dsimp only
-  refine (congrArg _ (sim_pure _)).trans ((map_pure _ _).trans ?_)
-  rw [Option.map_some, ofModelSignature_layers]
+  erw [sim_bind, ← simulateQ_forsOpenOnce, bind_map_left]
+  refine (map_bind _ _ _).trans (bind_eq_of rfl fun fors ↦ ?_)
+  rw [show FORS.numLayers = 3 from rfl]
+  simp only [FORS.Seeded.signLayersUp, signLayer, sim_bind, bind_assoc]
+  rw [show FORS.Seeded.layerFromBottom 0 = (⟨2, by decide⟩ : FORS.Layer) from rfl,
+    show FORS.Seeded.layerFromBottom (0 + 1) = (⟨1, by decide⟩ : FORS.Layer) from rfl,
+    show FORS.Seeded.layerFromBottom (0 + 1 + 1) = (⟨0, by decide⟩ : FORS.Layer) from rfl]
+  refine (map_bind _ _ _).trans
+    (bind_eq_of (simulateQ_layerOtsSign parameter schemeSeed _ ⟨2, by decide⟩ _) fun r0 ↦ ?_)
+  rcases r0 with _ | ⟨counter0, values0⟩
+  · rw [sim_pure, pure_bind]; simp [sim_pure]
+  simp only [sim_bind, sim_pure, map_bind, bind_assoc, pure_bind]
+  refine bind_eq_of (simulateQ_layerTree parameter schemeSeed _ ⟨2, by decide⟩) fun built0 ↦ ?_
+  refine bind_eq_of (simulateQ_layerOtsSign parameter schemeSeed _ ⟨1, by decide⟩ _) fun r1 ↦ ?_
+  rcases r1 with _ | ⟨counter1, values1⟩
+  · simp [sim_pure]
+  simp only [sim_bind, sim_pure, bind_assoc, pure_bind]
+  refine bind_eq_of (simulateQ_layerTree parameter schemeSeed _ ⟨1, by decide⟩) fun built1 ↦ ?_
+  refine bind_eq_of (simulateQ_layerOtsSign parameter schemeSeed _ ⟨0, by decide⟩ _) fun r2 ↦ ?_
+  rcases r2 with _ | ⟨counter2, values2⟩
+  · simp [sim_pure]
+  simp only [sim_bind, sim_pure, bind_assoc, pure_bind]
+  refine bind_eq_of (simulateQ_layerTree parameter schemeSeed _ ⟨0, by decide⟩) fun built2 ↦ ?_
+  simp only [Option.map_some]
+  rw [sim_pure, map_pure, Option.map_some, ofModelSignature_layersOfData]
   rfl
 
 end Signing

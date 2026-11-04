@@ -9,8 +9,9 @@ Keccak-f[1600], on the EthLib test vectors of `crates/signatures` (`DIR` is
 `sign` and `verify` cases of `sphincs` and `xmss`) and on leanSPHINCS's known answer
 (`crates/signatures/src/lean_sphincs/known_answer.hex`, beside `DIR`'s crate, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case
-prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--skip-xmss-sign` leaves out
-leanXMSS's signing cases, three tree builds of `2^16` leaves each.
+prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--sphincs` and `--xmss` run
+one scheme's cases; `--skip-xmss-sign` leaves out leanXMSS's signing cases, three tree builds of
+`2^16` leaves each.
 -/
 
 /-!
@@ -275,6 +276,12 @@ open HashSig
 
 namespace SignatureKat
 
+/-- Keccak-f[1600] as a computation of the state monad: under `Id` the compiler duplicates the pure
+bindings of the schemes' `do` blocks (each derivation recomputed at each use), so the
+cases run the statement's definitions over `StateM Unit`, whose binds it keeps. -/
+def keccak (state : LeanVM.Semantics.KeccakState) : StateM Unit LeanVM.Semantics.KeccakState :=
+  pure (LeanVM.Semantics.keccakF1600 state)
+
 /-! ## Bytes -/
 
 def hexDigit (c : Char) : Option Nat :=
@@ -368,10 +375,13 @@ def publicKeyOf (bytes : List UInt8) : Option PublicKey :=
   else none
 
 def keygen (seed : MasterSeed) : PublicKey :=
-  (Id.run (KeyGenerationAndSigning.keygenFromSeed (m := Id) LeanVM.Semantics.keccakF1600 seed)).1
+  ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
 
 def sign (seed : MasterSeed) (message : Message) : Option Signature :=
-  Id.run (KeyGenerationAndSigning.sign (m := Id) LeanVM.Semantics.keccakF1600 seed message)
+  (KeyGenerationAndSigning.sign (m := StateM Unit) keccak seed message).run' ()
+
+def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
+  (Verification.verify (m := StateM Unit) keccak publicKey message signature).run' ()
 
 end Sphincs
 
@@ -411,10 +421,13 @@ def signatureOf (bytes : List UInt8) : Option Signature :=
   | _ => none
 
 def keygen (seed : MasterSeed) : PublicKey :=
-  (Id.run (KeyGenerationAndSigning.keygenFromSeed (m := Id) LeanVM.Semantics.keccakF1600 seed)).1
+  ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
 
 def sign (seed : MasterSeed) (leafIndex : LeafIndex) (message : Message) : Option Signature :=
-  Id.run (KeyGenerationAndSigning.sign (m := Id) LeanVM.Semantics.keccakF1600 seed leafIndex message)
+  (KeyGenerationAndSigning.sign (m := StateM Unit) keccak seed leafIndex message).run' ()
+
+def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
+  (Verification.verify (m := StateM Unit) keccak publicKey message signature).run' ()
 
 end Xmss
 
@@ -453,7 +466,7 @@ def runCase (scheme kind : String) (lines : List String) : Option String :=
       let publicKey ← (bytes "public_key").bind Sphincs.publicKeyOf
       let message ← (bytes "message").bind (bitVecOf 32)
       let signature ← (bytes "signature").bind Sphincs.signatureOf
-      bool (some (_root_.Sphincs.verifyWithKeccak publicKey message signature))
+      bool (some (Sphincs.verify publicKey message signature))
   | "xmss", "key_gen" => do
       let seed ← (bytes "seed").bind (bitVecOf 32)
       return hexOf (Xmss.publicKeyBytes (Xmss.keygen seed))
@@ -469,7 +482,7 @@ def runCase (scheme kind : String) (lines : List String) : Option String :=
       let publicKey ← (bytes "public_key").bind Sphincs.publicKeyOf
       let message ← (bytes "message").bind (bitVecOf 32)
       let signature ← (bytes "signature").bind Xmss.signatureOf
-      bool (some (LeanXmss.verifyWithKeccak publicKey message signature))
+      bool (some (Xmss.verify publicKey message signature))
   | _, _ => none
 
 /-- leanSPHINCS's known answer (`known_answer`, `lean_sphincs/scheme.rs`): the public key and the
@@ -483,13 +496,13 @@ def knownAnswer (path : System.FilePath) : IO Bool := do
   let messageBytes : List UInt8 := (List.range 32).map fun i => UInt8.ofNat (b * i + 3)
   let seed : MasterSeed := BitVec.ofNat 256 (leNat seedBytes)
   let message : Message := BitVec.ofNat 256 (leNat messageBytes)
-  let publicKey := Id.run (_root_.Sphincs.KeyGenerationAndSigning.publicKeyOf (m := Id)
-    LeanVM.Semantics.keccakF1600 seed)
-  let signature := Id.run (_root_.Sphincs.KeyGenerationAndSigning.signWithSchemeSeed (m := Id)
-    LeanVM.Semantics.keccakF1600 seed message)
+  let publicKey := (_root_.Sphincs.KeyGenerationAndSigning.publicKeyOf (m := StateM Unit)
+    keccak seed).run' ()
+  let signature := (_root_.Sphincs.KeyGenerationAndSigning.signWithSchemeSeed (m := StateM Unit)
+    keccak seed message).run' ()
   let publicKeyOk := hexOf (Sphincs.publicKeyBytes publicKey) == "0x" ++ lines[0]!
   let signatureOk := (signature.map fun s => hexOf (Sphincs.signatureBytes s)) == some ("0x" ++ lines[1]!)
-  let verifyOk := signature.map (_root_.Sphincs.verifyWithKeccak publicKey message) == some true
+  let verifyOk := signature.map (Sphincs.verify publicKey message) == some true
   IO.println s!"sphincs known_answer: public key {publicKeyOk}, signature {signatureOk}, verify {verifyOk}"
   return publicKeyOk && signatureOk && verifyOk
 
@@ -498,7 +511,9 @@ end SignatureKat
 open SignatureKat in
 def main (args : List String) : IO UInt32 := do
   let skipXmssSign := args.contains "--skip-xmss-sign"
-  let args := args.filter (· ≠ "--skip-xmss-sign")
+  let onlySphincs := args.contains "--sphincs"
+  let onlyXmss := args.contains "--xmss"
+  let args := args.filter fun arg => !arg.startsWith "--"
   let some (dir : String) := args.head? | do
     IO.eprintln "usage: signature-kat ETHLIB_DIR [KNOWN_ANSWER_HEX] [--skip-xmss-sign]"
     return 2
@@ -506,6 +521,8 @@ def main (args : List String) : IO UInt32 := do
   for scheme in ["sphincs", "xmss"] do
     for kind in ["key_gen", "sign", "verify"] do
       if skipXmssSign && scheme == "xmss" && kind == "sign" then continue
+      if onlySphincs && scheme != "sphincs" then continue
+      if onlyXmss && scheme != "xmss" then continue
       let kindDir : System.FilePath := System.FilePath.mk dir / scheme / kind
       unless ← kindDir.isDir do continue
       let cases := ((← kindDir.readDir).map (·.path)).qsort (·.toString < ·.toString)
@@ -513,14 +530,13 @@ def main (args : List String) : IO UInt32 := do
         let file := case / "data.yaml"
         unless ← file.pathExists do continue
         let lines := (← IO.FS.readFile file).splitOn "\n"
-        let start ← IO.monoMsNow
         let got := runCase scheme kind lines
         let ok := got == expected lines
-        let time := (← IO.monoMsNow) - start
-        IO.println s!"{scheme} {kind} {case.fileName.getD ""}: {if ok then "ok" else "MISMATCH"} ({time} ms)"
+        IO.println s!"{scheme} {kind} {case.fileName.getD ""}: {if ok then "ok" else "MISMATCH"}"
         unless ok do
           mismatches := mismatches + 1
           IO.println s!"  expected {expected lines}\n  got      {got}"
+        (← IO.getStdout).flush
   if let some (hex : String) := args[1]? then
     unless ← knownAnswer (System.FilePath.mk hex) do mismatches := mismatches + 1
   IO.println s!"{mismatches} mismatches"
