@@ -69,13 +69,6 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- The secret key: the key's seed `S_0`, all of the key (`LeanXmssSecretKey`,
-`lean_xmss/scheme.rs:122-130`, which also caches what key generation derived from it, and
-`LeanSphincsSecretKey`, `lean_sphincs/scheme.rs:43-45`). Every secret derives from the scheme seed
-`S = H(seedTag ‖ S_0)` (`seedTag` the scheme's name, `leanXMSS` or `leanSPHINCS`), which the signer
-derives again at each signature, as the crates' do (`scheme_seed`). -/
-abbrev SecretKey := MasterSeed
-
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def littleEndianBytes (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>

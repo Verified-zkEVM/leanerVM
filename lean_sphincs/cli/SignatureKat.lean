@@ -237,7 +237,7 @@ def keygenFromSeedFast (masterSeed : MasterSeed) : m (PublicKey × SecretKey) :=
   let seed ← taggedSeed π seedTag masterSeed
   let parameter ← publicParameterOf π seed
   let root ← treeNode π parameter topLayer seed layerHeight 0
-  return (⟨root, parameter⟩, masterSeed)
+  return (⟨root, parameter⟩, ⟨masterSeed, parameter⟩)
 
 @[csimp] theorem keygenFromSeed_eq_fast : @keygenFromSeed = @keygenFromSeedFast := rfl
 
@@ -264,9 +264,8 @@ def signWithSchemeSeedFast (seed : MasterSeed) (parameter : PublicParameter) (le
 
 def signFast (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     m (Option Signature) := do
-  let seed ← taggedSeed π seedTag secretKey
-  let parameter ← publicParameterOf π seed
-  signWithSchemeSeed π seed parameter leafIndex message
+  let seed ← taggedSeed π seedTag secretKey.keySeed
+  signWithSchemeSeed π seed secretKey.parameter leafIndex message
 
 @[csimp] theorem sign_eq_fast : @sign = @signFast := rfl
 

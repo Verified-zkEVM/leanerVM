@@ -35,9 +35,10 @@ leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`
   value in the payload.
 * `H` is the leanVM hash, Keccak-256 on the bytes of its input, over a permutation `π` of the Keccak
   state (`keccakHash`): in the end statement (the last section) the random permutation.
-* The secret key is a 32-byte seed `S_0` (`HashSig.SecretKey`). Every secret derives from
-  `S = H("leanXMSS" || S_0)`, all 32 bytes, which the signer derives again at each signature, as the
-  crate's does, and the public parameter from `S`, which the crate's key keeps from key generation.
+* The secret key is the crate's: the 32-byte seed `S_0` and the public parameter `P`
+  (`SecretKey`). Every secret derives from `S = H("leanXMSS" || S_0)`, all 32 bytes, and `P` from
+  `S`; key generation keeps `P` in the key, and the signer derives `S` again at each signature, as
+  the crate's does.
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
@@ -73,6 +74,16 @@ abbrev ChainIndex := Fin chainCount
 abbrev ChainPairIndex := Fin (chainCount / 2)
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
+
+/-- The secret key (`LeanXmssSecretKey`, `scheme.rs:122-130`): the key's seed `S_0`, which the
+crate's key serializes and from which it derives every secret, and the public parameter `P`, which
+key generation derived from it. The crate's key also holds the top tree and the bottom tree it
+last signed in, hashes that this signer computes again. -/
+structure SecretKey where
+  /-- `S_0` (`key_seed`). -/
+  keySeed : MasterSeed
+  /-- `P` (`public_param`). -/
+  parameter : PublicParameter
 
 /-- The bottom layer, whose keys sign messages. -/
 def bottomLayer : Layer := ⟨0, by decide⟩
@@ -321,14 +332,14 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
 def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
   th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
 
-/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:173-191`): the secret key is the seed `S_0`;
-hash it into `S` (`scheme_seed`, `hash.rs:27-29`), derive the public parameter and build the top
-tree. -/
+/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:173-191`): hash the seed `S_0` into `S`
+(`scheme_seed`, `hash.rs:27-29`), derive the public parameter and build the top tree; the secret
+key is `S_0` and the public parameter. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
   let seed ← taggedSeed π seedTag masterSeed
   let parameter ← publicParameterOf π seed
   let root ← treeNode π parameter topLayer seed layerHeight 0
-  return (⟨root, parameter⟩, masterSeed)
+  return (⟨root, parameter⟩, ⟨masterSeed, parameter⟩)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
 def signLayer (seed : MasterSeed) (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
@@ -351,13 +362,12 @@ def signWithSchemeSeed (seed : MasterSeed) (parameter : PublicParameter) (leafIn
   return some ⟨leafIndex, fun layer => if layer = bottomLayer then bottom else top⟩
 
 /-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:196-248`): the scheme seed
-`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:27-29`), the public parameter
-of `S`, then the two layers' signatures. -/
+`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:27-29`, `scheme.rs:236`), then
+the two layers' signatures with `S` and the key's public parameter. -/
 def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     m (Option Signature) := do
-  let seed ← taggedSeed π seedTag secretKey
-  let parameter ← publicParameterOf π seed
-  signWithSchemeSeed π seed parameter leafIndex message
+  let seed ← taggedSeed π seedTag secretKey.keySeed
+  signWithSchemeSeed π seed secretKey.parameter leafIndex message
 
 end KeyGenerationAndSigning
 

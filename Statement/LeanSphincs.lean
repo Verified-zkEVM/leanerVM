@@ -101,6 +101,11 @@ abbrev ChainPairIndex := Fin 32
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
 
+/-- The secret key: the key's seed `S0`, all of the key (`LeanSphincsSecretKey`,
+`scheme.rs:43-45`). Every secret derives from the scheme seed `S = H(leanSPHINCS ‖ S0)`, which the
+signer derives again at each signature, as the crate's does (`scheme_seed`). -/
+abbrev SecretKey := MasterSeed
+
 /-- `κ`, a tree of a FORS instance. -/
 abbrev ForsTreeIndex := Fin forsTreeCount
 /-- `s`, a leaf of a FORS tree, or a node index at any of its levels. -/
