@@ -29,7 +29,7 @@ theorem kwdstaticRange_261 : kwdStaticRange 261 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_291 : kwdStaticRange 291 11 := by
+theorem kwdstaticRange_291 : kwdStaticRange 291 19 := by
   unfold kwdStaticRange; decide +kernel
 
 end

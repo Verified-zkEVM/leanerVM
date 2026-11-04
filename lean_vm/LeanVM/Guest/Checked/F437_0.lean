@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop51`, window 0. -/
+/-- `opening_ood_point__L12`, window 0. -/
 theorem w437_0 : WinOk 437 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop52`, window 0. -/
+/-- `__loop42`, window 0. -/
 theorem w438_0 : WinOk 438 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L18`, window 0. -/
+/-- `opening_row_weights__L4_L0`, window 0. -/
 theorem w439_0 : WinOk 439 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop53`, window 0. -/
+/-- `verify_merkle_cap__L6`, window 0. -/
 theorem w440_0 : WinOk 440 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L1_L64_L32_L19_L8`, window 0. -/
+/-- `opening_queries__L0_L0_L16_L24_L16_L6`, window 0. -/
 theorem w441_0 : WinOk 441 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L14`, window 0. -/
+/-- `opening_ood_point__L8`, window 0. -/
 theorem w442_0 : WinOk 442 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop54`, window 0. -/
+/-- `__loop43`, window 0. -/
 theorem w443_0 : WinOk 443 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L18_L6`, window 0. -/
+/-- `verify_merkle_cap__L5`, window 0. -/
 theorem w444_0 : WinOk 444 0 := winOk_of_C (by decide +kernel)
 
 theorem ok437 : CheckOk 437 := checkOk_one (by decide +kernel) w437_0

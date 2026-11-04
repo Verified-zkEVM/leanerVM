@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop27`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L13`, window 0, part 0. -/
 theorem cw385_0_0 : cplWin 385 0 0 = true := by decide +kernel
 
-/-- `__loop28`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L14`, window 0, part 0. -/
 theorem cw386_0_0 : cplWin 386 0 0 = true := by decide +kernel
 
-/-- `__loop29`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L15`, window 0, part 0. -/
 theorem cw387_0_0 : cplWin 387 0 0 = true := by decide +kernel
 
-/-- `__loop30`, window 0, part 0. -/
+/-- `child_claim_list_mono_last__L16`, window 0, part 0. -/
 theorem cw388_0_0 : cplWin 388 0 0 = true := by decide +kernel
 
-/-- `batch_sumcheck__L23`, window 0, part 0. -/
+/-- `__loop21`, window 0, part 0. -/
 theorem cw389_0_0 : cplWin 389 0 0 = true := by decide +kernel
 
-/-- `__loop31`, window 0, part 0. -/
+/-- `__loop22`, window 0, part 0. -/
 theorem cw390_0_0 : cplWin 390 0 0 = true := by decide +kernel
 
-/-- `__loop32`, window 0, part 0. -/
+/-- `__loop23`, window 0, part 0. -/
 theorem cw391_0_0 : cplWin 391 0 0 = true := by decide +kernel
 
-/-- `gkr_rounds__L2`, window 0, part 0. -/
+/-- `__loop24`, window 0, part 0. -/
 theorem cw392_0_0 : cplWin 392 0 0 = true := by decide +kernel
 
 theorem ok385 : CplOk 385 := by
