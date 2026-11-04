@@ -21,10 +21,13 @@ values before the outputs, `size = 3`).
 * `walkT`: chain `i` from digit `d`: the hinted start at the base, then steps `d, …, 2`, step `s`
   writing slot `s` of the chain in `walks`; the step's constants `stride` apart (`size + 13` in the
   arm that lays out the slots, `size` elsewhere); at `d = 3` the start is hinted into the tip;
-* `armT`, `armsT`, `groupT`: arm `k` of a group's dispatch (the walks at the base-4 digits of `k`,
-  then the digit sum folded into the product, in the exponent, and the digits into the encoding),
-  the `4^n` arms, and the group with its hint, its range check and the `match`; `fold` marks the
-  first group, whose running encoding is a literal `0` set in each arm;
+* `armT`, `armsT`, `groupArmsT`, `groupD`, `groupT`: arm `k` of a group's dispatch (the walks at the
+  base-4 digits of `k`, then the digit sum folded into the product, in the exponent, and the digits
+  into the encoding), the `4^n` arms laid out from `b + 6`, and the group with its hint, its range
+  check, what it sets before its dispatch (`pre`: `sp_wots`'s padding run), the `2^63` the compiler
+  hoists above an all-`@inline` `match` (`closeLane`, unread: each arm sets its own) and the
+  `match`; `groupT` has its digit word at its base and sets nothing before; `fold` marks the first
+  group, whose running encoding is a literal `0` set in each arm;
 * `groupsT`, `codewordT`: `G` groups of three and the last chain's, the digits stored where the
   digest's first cell is, and the target sum asserted;
 * `merkleT`: `merkle_path`, the children hinted, the child checked, each parent hashed.
