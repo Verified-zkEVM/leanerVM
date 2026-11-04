@@ -52,7 +52,7 @@ theorem digitSum_mod (k : Nat) {n : Nat} (hn : n = 2 ∨ n = 4) : digitSum (k % 
   · rw [digitSum_four, digitSum_two]; norm_num; omega
   · rw [digitSum_four, digitSum_four]; norm_num; omega
 
-theorem digitSum_le (k n : Nat) : digitSum k n ≤ 3 * n := by
+theorem lx_digitSum_le (k n : Nat) : digitSum k n ≤ 3 * n := by
   induction n with
   | zero => simp [digitSum]
   | succ n ih =>
