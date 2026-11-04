@@ -39,7 +39,7 @@ theorem Completes.withHolds {lo hi : Nat} {ss : List Stmt} {σ : Val} {P : Val �
 theorem groupT_end (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
     groupStart fold b + chainStride W * n + 2 ≤ (groupT W first n fold prodIn encIn b).2 := by
   have : (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
-    simp only [groupT]; rw [armsT_snd]; rfl
+    simp only [groupT, groupD, groupArmsT]; rw [armsT_snd]; rfl
   rw [this, ← armB_one W first n fold prodIn encIn b]
   exact armB_mono W first n fold prodIn encIn b (Nat.one_le_two_pow.trans
     (Nat.pow_le_pow_left (by norm_num) n))
@@ -83,7 +83,7 @@ theorem cwState_le (W : WotsT) (b p : Nat) : ∀ m, (cwState W b p).2.2 ≤ (cwS
 
 theorem groupT_snd_eq (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
     (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
-  simp only [groupT]; rw [armsT_snd]; rfl
+  simp only [groupT, groupD, groupArmsT]; rw [armsT_snd]; rfl
 
 /-- **A group completes from any valuation**, its digits `k` and its arm's starts `vals` loaded. -/
 theorem groupT_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
@@ -380,7 +380,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     rfl
   have heo : (encT W false 1 (cwState W b G).2.2) = .n (groupStart false (cwState W b G).2.2 + chainStride W * 1 + 1) :=
     rfl
-  have hgs : groupStart false (cwState W b G).2.2 = (cwState W b G).2.2 + 5 := by simp [groupStart]
+  have hgs : groupStart false (cwState W b G).2.2 = (cwState W b G).2.2 + 6 := by simp [groupStart]
   have hpv : upds σ1 [(c, target)] (prodT W false 1 (cwState W b G).2.2) = target := by
     rw [hpo, hext.apply (Or.inl (by rw [hgs]; omega)), ← hpo, hprod]
   have hev : upds σ1 [(c, target)] (encT W false 1 (cwState W b G).2.2) = σ d0 := by

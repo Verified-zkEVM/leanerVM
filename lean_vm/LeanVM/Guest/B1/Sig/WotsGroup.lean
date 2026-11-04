@@ -62,7 +62,7 @@ theorem armsT_snd (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fol
   | m + 1, k, _ => armsT_snd W slots first n fold prodIn encIn prodOut encOut m (k + 1) _
 
 /-- The group's start, as a number. -/
-theorem groupStart_eq (fold : Bool) (b : Nat) : groupStart fold b = b + 5 + (if fold then 1 else 0) := rfl
+theorem groupStart_eq (fold : Bool) (b : Nat) : groupStart fold b = b + 6 + (if fold then 1 else 0) := rfl
 
 theorem chainStride_eq (W : WotsT) : chainStride W = 1 + 3 * (W.size + 13) := rfl
 
@@ -100,23 +100,23 @@ theorem walkSize_zero (S t : Nat) : walkSize S (dig 0 t) = 1 + 3 * S := by
   simp [walkSize, dig]
 
 /-- **Arm `0`'s walks are laid out.** -/
-theorem arm0_lay (W : WotsT) {B : Nat} (fold : Bool) {b n : Nat} (hB : B ≤ b) :
+theorem arm0_lay (W : WotsT) {B : Nat} (fold : Bool) {b n : Nat} (hB : B ≤ b + 6) :
     (∀ t < n, WalkLay W B (slotsT W fold b t) (W.size + 13) (dig 0 t)
-      (walkBase (W.size + 13) 0 0 t (if fold then b + 5 + 1 else b + 5))) ∧
+      (walkBase (W.size + 13) 0 0 t (if fold then b + 6 + 1 else b + 6))) ∧
     (∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
       WalkR (slotsT W fold b t) (W.size + 13) (dig 0 t)
-        (walkBase (W.size + 13) 0 0 t (if fold then b + 5 + 1 else b + 5)) x →
+        (walkBase (W.size + 13) 0 0 t (if fold then b + 6 + 1 else b + 6)) x →
       ¬ WalkR (slotsT W fold b t') (W.size + 13) (dig 0 t')
-        (walkBase (W.size + 13) 0 0 t' (if fold then b + 5 + 1 else b + 5)) x) ∧
-    (∀ x, WalksR (slotsT W fold b) (W.size + 13) 0 n (if fold then b + 5 + 1 else b + 5) x →
+        (walkBase (W.size + 13) 0 0 t' (if fold then b + 6 + 1 else b + 6)) x) ∧
+    (∀ x, WalksR (slotsT W fold b) (W.size + 13) 0 n (if fold then b + 6 + 1 else b + 6) x →
       ∃ j, x = .n j ∧ groupStart fold b ≤ j ∧ j < groupStart fold b + chainStride W * n) := by
-  have hgs : (if fold then b + 5 + 1 else b + 5) = groupStart fold b := by cases fold <;> rfl
-  have hwb : ∀ t, walkBase (W.size + 13) 0 0 t (if fold then b + 5 + 1 else b + 5) =
+  have hgs : (if fold then b + 6 + 1 else b + 6) = groupStart fold b := by cases fold <;> rfl
+  have hwb : ∀ t, walkBase (W.size + 13) 0 0 t (if fold then b + 6 + 1 else b + 6) =
       groupStart fold b + chainStride W * t := by
     intro t; rw [walkBase_zero, hgs, chainStride_eq, mul_comm]
   -- region of chain t
   have hreg : ∀ t x, WalkR (slotsT W fold b t) (W.size + 13) (dig 0 t)
-      (walkBase (W.size + 13) 0 0 t (if fold then b + 5 + 1 else b + 5)) x →
+      (walkBase (W.size + 13) 0 0 t (if fold then b + 6 + 1 else b + 6)) x →
       ∃ j, x = .n j ∧ groupStart fold b + chainStride W * t ≤ j ∧
         j < groupStart fold b + chainStride W * (t + 1) := by
     rintro t x (⟨u, hu, rfl⟩ | ⟨s, hs, u, hu, rfl⟩)
@@ -165,7 +165,7 @@ theorem walkBase_le (S k b : Nat) {t t' : Nat} (h : t ≤ t') : walkBase S k 0 t
   omega
 
 /-- **A later arm's walks are laid out**, above the product and the encoding. -/
-theorem armPos_lay (W : WotsT) {B : Nat} (fold : Bool) {b n k a : Nat} (hB : B ≤ b)
+theorem armPos_lay (W : WotsT) {B : Nat} (fold : Bool) {b n k a : Nat} (hB : B ≤ b + 6)
     (ha : groupStart fold b + chainStride W * n + 2 ≤ a) :
     (∀ t < n, WalkLay W B (slotsT W fold b t) W.size (dig k t)
       (walkBase W.size k 0 t (if fold then a + 1 else a))) ∧
@@ -244,10 +244,10 @@ theorem armPos_lay (W : WotsT) {B : Nat} (fold : Bool) {b n k a : Nat} (hB : B �
 
 /-- The base of arm `k` of a group from base `b`. -/
 def armB (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) : Nat :=
-  armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) 0 k (b + 5)
+  armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) 0 k (b + 6)
 
 theorem armB_zero (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
-    armB W first n fold prodIn encIn b 0 = b + 5 := rfl
+    armB W first n fold prodIn encIn b 0 = b + 6 := rfl
 
 theorem armB_succ (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) :
     armB W first n fold prodIn encIn b (k + 1) =

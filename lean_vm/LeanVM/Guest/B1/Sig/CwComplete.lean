@@ -102,6 +102,98 @@ theorem start_ge {W : WotsT} {fold : Bool} {b k t lo : Nat} {base : Nat}
   · exact ⟨_, rfl, h2⟩
   · exact ⟨_, rfl, h1⟩
 
+/-- **A group completes**, its digits `k` hinted at `d`, its statements `pre` a sequential block on
+`d + 5 ..< b + 5` after which `good` holds, its arms laid out from `b`. -/
+theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {d : Nat}
+    {pre : List Stmt} {b k : Nat}
+    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hdb : d ≤ b) (hB : B ≤ b + 5)
+    (hpre : SeqOK (d + 5) pre (b + 5)) (hpi : NBv B prodIn)
+    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (σ : Val)
+    (hg : ∀ σ', Ext (d + 1) (b + 5) σ σ' → AtomsHold rd σ' pre → good σ')
+    (hb : σ (.n d) = ofK (addressOfIndex k))
+    (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
+      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
+    Completes C rd d (groupD W first n fold prodIn encIn d pre b).2 (groupD W first n fold prodIn encIn d pre b).1 σ
+      (fun σ' => σ' (.n d) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+        (∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) ∧
+        good σ') := by
+  have h4n : 4 ^ n ≤ 64 := by
+    calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
+      _ = 64 := by norm_num
+  have hend : (groupD W first n fold prodIn encIn d pre b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
+    simp only [groupD, groupArmsT]
+    rw [armsT_snd]
+    rfl
+  have hge : b + 6 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
+    rw [← armB_zero W first n fold prodIn encIn b]
+    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+  have hpl := hpre.le
+  rw [hend]
+  simp only [groupD, List.cons_append, List.append_assoc]
+  show Completes C rd d _ ([hintW "digits" [.n d]] ++
+    (rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0 0) (d + 1) ++ (pre ++ ([cst (b + 5) closeLane] ++
+      [.match_ (.n d) _])))) σ _
+  refine Completes.append (m := d + 1) (by omega) (by omega)
+    (by rw [valsList_hint]; exact .cons ⟨d, by omega, rfl⟩ (.nil _)) (hintKeep_complete σ _ _ _ _)
+    (fun σ1 he1 hp1 => ?_)
+  rw [hp1, word_two_pow_eq (by omega)]
+  refine Completes.append (m := d + 5) (by omega) (by omega) ?_
+    (rangeS_complete (n := 64) (K := 4 ^ n) hm h4n hk σ (.n d) ⟨d, by omega, rfl⟩ hb)
+    (fun σ2 he2 _ => ?_)
+  · simp only [rangeS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
+      List.cons_append, List.nil_append]
+    repeat (first | exact .nil _ | (refine .cons ⟨_, ?_, rfl⟩ ?_; omega))
+  refine Completes.append hpl (by omega) hpre.numBelow (seq_completes hpre σ2) (fun σ3 he3 hh3 => ?_)
+  have he23 : Ext (d + 1) (b + 5) σ σ3 := he2.trans he3 (by omega) (by omega)
+  have hg3 : good σ3 := hg σ3 he23 hh3
+  refine Completes.append (m := b + 6) (by omega) (by omega) ?_ (cst_complete σ3 (b + 5) closeLane)
+    (fun σ4 he4 _ => ?_)
+  · simp only [cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+    exact .cons ⟨b + 5, by omega, rfl⟩ (.nil _)
+  have he4' : Ext (d + 1) (b + 6) σ σ4 := he23.trans he4 (by omega) (by omega)
+  have hag : AgreeBelow (d + 1) σ σ4 := he4'.agree
+  have hb4 : σ4 (.n d) = ofK (addressOfIndex k) := by rw [← hag d (by omega)]; exact hb
+  have hg4 : good σ4 := hc.1 _ _ (fun j hj => he4.agree j (by omega)) hg3
+  have hk' : k < (groupArmsT W first n fold prodIn encIn b).1.length := by
+    simp only [groupArmsT]; rw [armsT_length]; exact hk
+  refine match_complete hk' ⟨d, by omega, rfl⟩ hb4 ?_
+  simp only [groupArmsT]
+  rw [armsT_getElem]
+  simp only [Nat.zero_add]
+  obtain ⟨σ', he', hp', hh'⟩ := groupArm_complete (C := C) (rd := rd) (first := first) (n := n) (fold := fold)
+    (prodIn := prodIn) (encIn := encIn) (b := b) (k := k) hW hc hk (by omega) hpi hei (hpw _) σ4 hg4
+    (fun t ht => by
+      have := hs t ht
+      unfold StartCanon at this ⊢
+      have hbase : b + 6 ≤ armB W first n fold prodIn encIn b k := by
+        rw [← armB_zero W first n fold prodIn encIn b]
+        exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+      have hwb := walkBase_le (if k = 0 then W.size + 13 else W.size) k
+        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+        (Nat.zero_le t)
+      simp only [walkBase] at hwb
+      have hb0 : armB W first n fold prodIn encIn b k ≤
+          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) := by
+        split <;> omega
+      have hsl := slot_bounds W fold b t 2 (by norm_num)
+      have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
+      obtain ⟨j, e, hj⟩ := start_ge (W := W) (fold := fold) (b := b) (k := k) (t := t) (lo := b + 6)
+        (base := walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))
+        (by omega) (by omega)
+      rw [e] at this ⊢
+      rw [he4'.apply (Or.inr hj)]
+      exact this)
+  refine ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb4, hp'.2.1, fun t ht => ?_,
+    hc.1 _ _ (fun j hj => he'.agree j (by omega)) hg4⟩, hh'⟩
+  obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
+  rw [hp'.1, ej, fwd_hint_keep _ σ4 hp'.2.2
+    (armStart_mem W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
+      (armB W first n fold prodIn encIn b k) ht) (.n j) (by rw [← ej]; exact List.mem_singleton_self _),
+    he4'.apply (Or.inr (by omega))]
+
 /-- **A group completes**, its digits `k` hinted. -/
 theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
     (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
@@ -113,68 +205,10 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
       (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
-        ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) := by
-  have h4n : 4 ^ n ≤ 64 := by
-    calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
-      _ = 64 := by norm_num
-  have hend : (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
-    simp only [groupT]
-    rw [armsT_snd]
-    rfl
-  have hge : b + 5 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
-    rw [← armB_zero W first n fold prodIn encIn b]
-    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
-  rw [hend]
-  simp only [groupT, List.cons_append]
-  show Completes C rd b _ ([hintW "digits" [.n b]] ++
-    (rangeS (.n b) (word (2 ^ (4 ^ n - 1)) 0 0) (b + 1) ++ [.match_ (.n b) _])) σ _
-  refine Completes.append (m := b + 1) (by omega) (by omega)
-    (by rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.nil _)) (hintKeep_complete σ _ _ _ _)
-    (fun σ1 he1 hp1 => ?_)
-  rw [hp1, word_two_pow_eq (by omega)]
-  refine Completes.append (m := b + 5) (by omega) hge ?_
-    (rangeS_complete (n := 64) (K := 4 ^ n) hm h4n hk σ (.n b) ⟨b, by omega, rfl⟩ hb)
-    (fun σ2 he2 _ => ?_)
-  · simp only [rangeS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
-      List.cons_append, List.nil_append]
-    repeat (first | exact .nil _ | (refine .cons ⟨_, ?_, rfl⟩ ?_; omega))
-  have hag : AgreeBelow (b + 1) σ σ2 := he2.agree
-  have hb2 : σ2 (.n b) = ofK (addressOfIndex k) := by rw [← hag b (by omega)]; exact hb
-  have hk' : k < (armsT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b)
-      (4 ^ n) 0 (b + 5)).1.length := by rw [armsT_length]; exact hk
-  refine match_complete hk' ⟨b, by omega, rfl⟩ hb2 ?_
-  rw [armsT_getElem]
-  simp only [Nat.zero_add]
-  obtain ⟨σ', he', hp', hh'⟩ := groupArm_complete (C := C) (rd := rd) (first := first) hW hc hk hB hpi hei
-    (hpw _) σ2 (hc.1 _ _ (fun j hj => hag j (by omega)) hg)
-    (fun t ht => by
-      have := hs t ht
-      unfold StartCanon at this ⊢
-      have hbase : b + 5 ≤ armB W first n fold prodIn encIn b k := by
-        rw [← armB_zero W first n fold prodIn encIn b]
-        exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
-      have hwb := walkBase_le (if k = 0 then W.size + 13 else W.size) k
-        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
-        (Nat.zero_le t)
-      simp only [walkBase] at hwb
-      have hb0 : armB W first n fold prodIn encIn b k ≤
-          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) := by
-        split <;> omega
-      have hsl := slot_bounds W fold b t 2 (by norm_num)
-      have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
-      obtain ⟨j, e, hj⟩ := start_ge (W := W) (fold := fold) (b := b) (k := k) (t := t) (lo := b + 5)
-        (base := walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
-          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))
-        (by omega) (by omega)
-      rw [e] at this ⊢
-      rw [he2.apply (Or.inr hj)]
-      exact this)
-  refine ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb2, hp'.2.1, fun t ht => ?_⟩, hh'⟩
-  obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
-  rw [hp'.1, ej, fwd_hint_keep _ σ2 hp'.2.2
-    (armStart_mem W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
-      (armB W first n fold prodIn encIn b k) ht) (.n j) (by rw [← ej]; exact List.mem_singleton_self _),
-    he2.apply (Or.inr hj)]
+        ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) :=
+  (groupD_complete (pre := []) hW hc hn hk hm le_rfl (by omega) rfl hpi hei hpw σ
+    (fun σ' he _ => hc.1 _ _ (fun j hj => (he.agree j (by omega))) hg) hb hs).mono le_rfl le_rfl
+    (fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩)
 
 end
 end LeanVM.Guest.B1.Sig

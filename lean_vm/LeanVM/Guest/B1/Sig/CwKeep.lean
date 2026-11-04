@@ -110,13 +110,13 @@ theorem walkBase_lt_succ (S k a t : Nat) (hd : k / 4 ^ t % 4 ≠ 3) :
 at digit `3`, else the walk's base. -/
 theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k t : Nat)
     (hk : k < 4 ^ n) (ht : t < n) :
-    ∃ j, grpPos W first n fold prodIn encIn b k t = .n j ∧ b + 5 ≤ j ∧
+    ∃ j, grpPos W first n fold prodIn encIn b k t = .n j ∧ b + 6 ≤ j ∧
       j < armB W first n fold prodIn encIn b (4 ^ n) ∧
       (k / 4 ^ t % 4 = 3 → k ≠ 0 ∧ slotsT W fold b t 2 + 13 ≤ groupStart fold b + chainStride W * n ∧
         j = slotsT W fold b t 2) ∧
       (k / 4 ^ t % 4 ≠ 3 → j = walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)) := by
-  have ha : b + 5 ≤ armB W first n fold prodIn encIn b k := by
+  have ha : b + 6 ≤ armB W first n fold prodIn encIn b k := by
     rw [← armB_zero W first n fold prodIn encIn b]
     exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
   have hend : armB W first n fold prodIn encIn b (k + 1) ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
@@ -126,7 +126,7 @@ theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
   rw [armB_one] at h1
   have hsl := slot_bounds W fold b t 2 (by norm_num)
   have hst : chainStride W * (t + 1) ≤ chainStride W * n := Nat.mul_le_mul_left _ ht
-  have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
+  have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
   have hwe := walkEnd_lt W first n fold prodIn encIn b k
   have hwl := walkBase_le (if k = 0 then W.size + 13 else W.size) k
     (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
@@ -237,7 +237,7 @@ theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) 
     rw [ej] at e
     simp only [V.mk.injEq, true_and] at e
     omega
-  have hb5 : b + 5 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
+  have hb5 : b + 6 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
     rw [← armB_zero W first n fold prodIn encIn b]
     exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
   refine ⟨fun v hv => ?_, Function.update_self .., fun t ht => ?_⟩
