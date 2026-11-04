@@ -241,5 +241,221 @@ theorem stages_cells (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : Sphin
   · rw [← bytes16_cell, hx]; exact o1
   · rw [← bytes16_cell, hx]; exact o2
 
+theorem sUpperM_end : (sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165).2.1 = 7388 ∧
+    (sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165).2.2 = .n 7375 := by
+  rw [← sUpperM_eq]; exact sUpperM_snd
+
+theorem sUpperT_end : (sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389).2.1 = 7654 ∧
+    (sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389).2.2 = .n 7641 := by
+  rw [← sUpperT_eq]; exact sUpperT_snd
+
+theorem sPathB_end : (sPath (.n 6821) 0 (7 + 1) 0 (.n 6997) (6997 + 1)).2.2 = .n 7152 := by
+  rw [← sPathB_eq]; exact sPathB_snd.2
+
+theorem mem_sPtrs {q : Nat} (h : q ∈ sPtrs) :
+    (∃ k ≤ 6, q = fbPtr 1158 k) ∨ (∃ k ≤ 3, q = fbPtr 6836 k) ∨ (∃ k ≤ 3, q = fbPtr 7169 k) ∨
+      ∃ k ≤ 3, q = fbPtr 7393 k := by
+  simp only [sPtrs, List.mem_append, List.mem_map, List.mem_range] at h
+  rcases h with ((⟨k, hk, rfl⟩ | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩) | ⟨k, hk, rfl⟩
+  · exact Or.inl ⟨k, by omega, rfl⟩
+  · exact Or.inr (Or.inl ⟨k, by omega, rfl⟩)
+  · exact Or.inr (Or.inr (Or.inl ⟨k, by omega, rfl⟩))
+  · exact Or.inr (Or.inr (Or.inr ⟨k, by omega, rfl⟩))
+
+theorem fbPtr_lt {b k : Nat} (hk : k ≤ 6) : b ≤ fbPtr b k ∧ fbPtr b k < b + 56 := by
+  simp only [fbPtr]; split <;> omega
+
+/-- **`verify_sig_lean_sphincs` is complete, loading the claim and the byte table.** -/
+theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complete_loads_Spec := by
+  intro C rd p bb pk m sig hC hm hbb hat hv
+  obtain ⟨hldR, hldP, hld2, hld3⟩ := hat
+  obtain ⟨hidx, r0, r1, v0, v1, v2, o0, f0, o1, f1, o2, f2⟩ := stages_cells pk m sig hv
+  generalize hidxd : Sphincs.digestIndex (sDigestOf pk m sig) = idx at hidx o0 f0 o1 f1 o2 f2
+  generalize hPc : cellOf128 pk.parameter = Pc at hidx o0 o1 o2 hldP
+  have hPcc : IsCanonical128 Pc := hPc ▸ isCanonical128_cellOf128 _
+  set m0 := cellOf128 (m.extractLsb' 0 128) with hm0
+  set m1 := cellOf128 (m.extractLsb' 128 128) with hm1
+  set ρc := cellOf128 sig.randomizer with hρc
+  set Dn := digestD (hcell [Pc, digestAdr 0, m0, m1, ρc]).1 (hcell [Pc, digestAdr 0, m0, m1, ρc]).2
+    (hcell [Pc, digestAdr 1, m0, m1, ρc]).1 with hDn
+  set I := eOfNat (Dn % 2 ^ 26) with hI
+  set tops : Nat → E × E := fun k => fTops Pc I k (fieldNat Dn (3 + k)) (fSecretOf sig k) (fSibOf sig k) with htopsd
+  obtain ⟨fl0, fl1, fl2, ft0, ft1, ft2⟩ := idx_fields idx hidx
+  have hσ0 := sInit_vals p bb (cellOf128 pk.root)
+  -- the statements before the root's check
+  have hPre : Completes C rd 2 7654 sPre (sInit p bb (cellOf128 pk.root)) (fun σ' =>
+      σ' (.n 7641) = cellOf128 pk.root ∧ ∀ q ∈ sPtrs, BytePtr bb (σ' (.n q))) := by
+    unfold sPre
+    -- the digest calls
+    refine Completes.append (m := 51) (by norm_num) (by norm_num) sDigests_nb
+      (sDigests_complete (C := C) (rd := rd) (rho := ρc) _ hσ0.1 hldP hld2 hld3 hPcc (isCanonical128_cellOf128 _)
+        (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _))
+      (fun σA heA hA => ?_)
+    obtain ⟨hA2, -, hApad, hA17, hA38⟩ := hA
+    have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact hσ0.2.1
+    have e17 : σA (.n 17) = (hcell [Pc, digestAdr 0, m0, m1, ρc]).1 := congrArg Prod.fst hA17
+    have e18 : σA (.n 18) = (hcell [Pc, digestAdr 0, m0, m1, ρc]).2 := congrArg Prod.snd hA17
+    have e38 : σA (.n 38) = (hcell [Pc, digestAdr 1, m0, m1, ρc]).1 := congrArg Prod.fst hA38
+    -- the fields
+    refine Completes.append (m := 1225) (by norm_num) (by norm_num) sFieldsBlock_nb
+      (sFields_complete (C := C) hm hbb σA hA1 (by rw [e17]; exact canon_hcell _)
+        (by rw [e18]; exact canon_hcell_snd _) (by rw [e38]; exact canon_hcell _))
+      (fun σB heB ⟨hB, hB1224⟩ => ?_)
+    rw [e17, e18, e38, ← hDn] at hB
+    obtain ⟨hBbits, hBvals, hBidx, hBptr⟩ := hB
+    have tB : ∀ k < 51, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
+    have hB2 : σB sPP = Pc := by rw [show sPP = .n 2 from rfl, tB 2 (by norm_num)]; exact hA2
+    have hBpad : PadOK σB sPad := hApad.congr (b := 51) (by unfold sPad; omega) (fun j hj => (tB j hj).symm)
+    have hB1 : σB (.n 1) = bb := by rw [tB 1 (by norm_num)]; exact hA1
+    -- the FORS trees
+    have hsec : ∀ k, IsCanonical128 (fSecretOf sig k) := fun _ => isCanonical128_cellOf128 _
+    have hsib : ∀ k l, IsCanonical128 (fSibOf sig k l) := fun _ _ => isCanonical128_cellOf128 _
+    have hIc : IsCanonical128 I := canon_eOfNat _
+    refine Completes.append (m := 6817) (by norm_num) (by norm_num)
+      (by rw [sFors_eq]; exact sForsTrees_nb 24 0 1225 (by norm_num) le_rfl)
+      (by rw [sFors_eq]
+          exact (sForsTrees_complete (C := C) (rd := rd) hsec hsib hIc hPcc 24 0 1225 σB (by norm_num) le_rfl hBpad hB2
+            hBidx hBbits hBvals).mono le_rfl (by norm_num) (fun _ h => h))
+      (fun σC heC hCt => ?_)
+    have tC : ∀ k < 1225, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
+    have htops : ∀ k < 24, σC (.n (1454 + 233 * k)) = (tops k).1 ∧ σC (.n (1455 + 233 * k)) = (tops k).2 := by
+      intro k hk
+      have := hCt k hk
+      rw [show 1454 + 233 * k = 1225 + 233 * k + 229 by ring, show 1455 + 233 * k = 1225 + 233 * k + 230 by ring]
+      refine ⟨(congrArg Prod.fst this).trans ?_, (congrArg Prod.snd this).trans ?_⟩ <;> simp [htopsd]
+    have htc : ∀ k, IsCanonical128 (tops k).1 ∧ IsCanonical128 (tops k).2 := fun k => by
+      simp only [htopsd, fTops, mPair]
+      split
+      · exact ⟨hsib k 9, canon_hcell _⟩
+      · exact ⟨canon_hcell _, hsib k 9⟩
+    have hCpad : PadOK σC sPad := hBpad.congr (b := 1225) (by unfold sPad; omega) (fun j hj => (tC j hj).symm)
+    -- the addresses and the bottom encoding
+    refine Completes.append (m := 6997) (by norm_num) (by norm_num) sBotPre_nb
+      (sBotPre_complete (C := C) hm hbb (P := pk.parameter) idx hidx (sig.layers 0).counter tops htc σC hCpad
+        (by rw [tC 1 (by norm_num)]; exact hB1) (by rw [tC 1224 (by norm_num), hB1224, hA2, ← hPc])
+        (valsAt_congr hBvals (fun k hk => (tC k (by omega)).symm)) htops)
+      (fun σD heD ⟨hDl0, hDl1, hDa0, hDa1, hDa2, hDenc, hDptr⟩ => ?_)
+    have tD : ∀ k < 1225, σD (.n k) = σB (.n k) := fun k hk => by
+      rw [heD.apply (Or.inl (by omega)), heC.apply (Or.inl hk)]
+    have hDpad : PadOK σD sPad := hBpad.congr (b := 1225) (by unfold sPad; omega) (fun j hj => (tD j hj).symm)
+    have hDpp : σD sPP = cellOf128 pk.parameter := by rw [show sPP = .n 2 from rfl, tD 2 (by norm_num), hPc]; exact hB2
+    have hDbits := bitsAt_congr hBbits (fun k hk => (tD k (by omega)).symm)
+    have hDvals := valsAt_congr hBvals (fun k hk => (tD k (by omega)).symm)
+    have hD1 : σD (.n 1) = bb := by rw [tD 1 (by norm_num)]; exact hB1
+    -- the bottom layer's call and path
+    have hl0 : (Sphincs.leafOfIndex 0 idx).val < 2 ^ (7 + 1) := by rw [← fl0]; exact fieldNat_lt Dn 0
+    refine Completes.append (m := 7165) (by norm_num) (by norm_num) sTail0_nb
+      (by rw [sPathB_eq]
+          exact layerTail_complete (C := C) (rd := rd) hC o0 (path := Sphincs.Verification.layerPath sig 0)
+            (by norm_num) hl0 (adr := .n 6826) (lane := .n 6821) (off := 0) (o := 6984) (d := 6997) (by norm_num)
+            (by norm_num) (by norm_num) ⟨6826, by norm_num, rfl⟩ ⟨6821, by norm_num, rfl⟩ σD hDpad hDpp hDa0
+            (by rw [hDenc, hPc]) hDl0
+            (fun j hj => by rw [← fl0]; exact path_bits hDbits (f := 0) (by norm_num) j hj)
+            (fun j hj => by rw [← fl0]; exact path_vals hDvals (f := 0) (by norm_num) j hj))
+      (fun σE heE hE => ?_)
+    obtain ⟨hE0, hEc⟩ := hE
+    rw [sPathB_end, f0] at hE0
+    rw [sPathB_end] at hEc
+    have tE : ∀ k < 6997, σE (.n k) = σD (.n k) := fun k hk => heE.apply (Or.inl hk)
+    -- the middle layer
+    have hl1 : (Sphincs.leafOfIndex 1 idx).val < 2 ^ (7 + 1) := by rw [← fl1]; exact fieldNat_lt Dn 1
+    have hEpad : PadOK σE sPad := hDpad.congr (b := 6997) (by unfold sPad; omega) (fun j hj => (tE j hj).symm)
+    refine Completes.append (m := 7388) (by norm_num) (by norm_num) sUpperM_nb
+      (by rw [sUpperM_eq, ← sUpperM_end.1]
+          exact (sUpper_complete (C := C) hm hbb hC (P := pk.parameter) (o1 _ hE0)
+            (path := Sphincs.Verification.layerPath sig 1) (by norm_num) hl1 (adr := .n 6827) (below := .n 7152)
+            (lane := .n 6825) (off := 8) (b := 7165) (by norm_num) (by norm_num) ⟨6827, by norm_num, rfl⟩
+            ⟨7152, by norm_num, rfl⟩ ⟨6825, by norm_num, rfl⟩ σE hEpad (by rw [tE 1 (by norm_num)]; exact hD1)
+            (by rw [show sPP = .n 2 from rfl, tE 2 (by norm_num)]; exact hDpp)
+            (by rw [tE 6827 (by norm_num)]; exact hDa1) rfl hEc (by rw [tE 6825 (by norm_num)]; exact hDl1)
+            (fun j hj => by
+              rw [← fl1, show sBit (8 + j) = .n (51 + (8 + j)) from rfl, tE _ (by omega),
+                ← show sBit (8 + j) = .n (51 + (8 + j)) from rfl]
+              exact path_bits hDbits (f := 1) (by norm_num) j hj)
+            (fun j hj => by
+              obtain ⟨k, hk, ek⟩ := sVal_nb (i := 8 + j + 1) (by omega)
+              rw [← fl1, ek, tE _ (by omega), ← ek]
+              exact path_vals hDvals (f := 1) (by norm_num) j hj)))
+      (fun σF heF hF => ?_)
+    obtain ⟨hF0, hFc, hFptr⟩ := hF
+    rw [sUpperM_end.2, f1] at hF0
+    rw [sUpperM_end.2] at hFc
+    have tF : ∀ k < 7165, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
+    -- the top layer's lane
+    refine Completes.append (m := 7389) (by norm_num) (by norm_num) (nb_cst 7388 _) (cst_complete σF 7388 _)
+      (fun σG heG hG => ?_)
+    have tG : ∀ k < 7388, σG (.n k) = σF (.n k) := fun k hk => heG.apply (Or.inl hk)
+    have hlane2 : σG (.n 7388) = laneCell 2 (Sphincs.treeOfIndex 2 idx) := by
+      rw [hG, laneCell_val, word0_eq, ft2]; rfl
+    -- the top layer
+    have hl2 : (Sphincs.leafOfIndex 2 idx).val < 2 ^ (9 + 1) := by rw [← fl2]; exact fieldNat_lt Dn 2
+    have tGE : ∀ k < 7165, σG (.n k) = σE (.n k) := fun k hk => by rw [tG k (by omega), tF k hk]
+    have tGD : ∀ k < 6997, σG (.n k) = σD (.n k) := fun k hk => by rw [tGE k (by omega), tE k hk]
+    have hlowG : (∀ k ≤ 6, BytePtr bb (σG (.n (fbPtr 1158 k)))) ∧ (∀ k ≤ 3, BytePtr bb (σG (.n (fbPtr 6836 k)))) ∧
+        (∀ k ≤ 3, BytePtr bb (σG (.n (fbPtr 7169 k)))) := by
+      refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_⟩
+      · obtain ⟨b1, b2⟩ := fbPtr_lt (b := 1158) hk
+        rw [tGD _ (by omega), tD _ (by omega)]; exact hBptr k hk
+      · obtain ⟨b1, b2⟩ := fbPtr_lt (b := 6836) (k := k) (by omega)
+        rw [tGD _ (by omega)]; exact hDptr k hk
+      · obtain ⟨b1, b2⟩ := fbPtr_lt (b := 7169) (k := k) (by omega)
+        rw [tG _ (by omega)]; exact hFptr k hk
+    have hH := (sUpper_complete (C := C) hm hbb hC (P := pk.parameter) (o2 _ hF0)
+                (path := Sphincs.Verification.layerPath sig 2) (by norm_num) hl2 (adr := .n 6829) (below := .n 7375)
+                (lane := .n 7388) (off := 16) (b := 7389) (by norm_num) (by norm_num) ⟨6829, by norm_num, rfl⟩
+                ⟨7375, by norm_num, rfl⟩ ⟨7388, by norm_num, rfl⟩ σG
+                (hDpad.congr (b := 6997) (by unfold sPad; omega) (fun j hj => (tGD j hj).symm))
+                (by rw [tGD 1 (by norm_num)]; exact hD1)
+                (by rw [show sPP = .n 2 from rfl, tGD 2 (by norm_num)]; exact hDpp)
+                (by rw [tGD 6829 (by norm_num)]; exact hDa2) (tG 7375 (by norm_num)) hFc hlane2
+                (fun j hj => by
+                  rw [← fl2, show sBit (16 + j) = .n (51 + (16 + j)) from rfl, tGD _ (by omega),
+                    ← show sBit (16 + j) = .n (51 + (16 + j)) from rfl]
+                  exact path_bits hDbits (f := 2) (by norm_num) j hj)
+                (fun j hj => by
+                  obtain ⟨k, hk, ek⟩ := sVal_nb (i := 16 + j + 1) (by omega)
+                  rw [← fl2, ek, tGD _ (by omega), ← ek]
+                  exact path_vals hDvals (f := 2) (by norm_num) j hj))
+    rw [sUpperT_end.1, ← sUpperT_eq] at hH
+    refine (hH.keep (Q := fun σ' => (∀ k ≤ 6, BytePtr bb (σ' (.n (fbPtr 1158 k)))) ∧
+        (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 6836 k)))) ∧ (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 7169 k)))))
+      (Q' := fun σ' => (∀ k ≤ 6, BytePtr bb (σ' (.n (fbPtr 1158 k)))) ∧
+        (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 6836 k)))) ∧ (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 7169 k)))))
+      hlowG (fun σ' he ⟨q1, q2, q3⟩ => ⟨fun k hk => by
+          obtain ⟨b1, b2⟩ := fbPtr_lt (b := 1158) hk; rw [he.apply (Or.inl (by omega))]; exact q1 k hk,
+        fun k hk => by
+          obtain ⟨b1, b2⟩ := fbPtr_lt (b := 6836) (k := k) (by omega); rw [he.apply (Or.inl (by omega))]; exact q2 k hk,
+        fun k hk => by
+          obtain ⟨b1, b2⟩ := fbPtr_lt (b := 7169) (k := k) (by omega); rw [he.apply (Or.inl (by omega))]
+          exact q3 k hk⟩)).mono le_rfl le_rfl (fun σH hH' => ?_)
+    obtain ⟨⟨hH0, hHc, hHptr⟩, hl1', hl2', hl3'⟩ := hH'
+    rw [sUpperT_snd.2, f2] at hH0
+    rw [sUpperT_snd.2] at hHc
+    refine ⟨by rw [← hH0, cellOf128_cellVal hHc], fun q hq => ?_⟩
+    rcases mem_sPtrs hq with ⟨k, hk, rfl⟩ | ⟨k, hk, rfl⟩ | ⟨k, hk, rfl⟩ | ⟨k, hk, rfl⟩
+    · exact hl1' k hk
+    · exact hl2' k hk
+    · exact hl3' k hk
+    · exact hHptr k hk
+  -- the root's check and the loads
+  obtain ⟨σf, hef, ⟨hroot, hptrs⟩, hhf⟩ := hPre
+  have f0' : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact hσ0.1
+  have f1' : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact hσ0.2.1
+  have f7654 : σf (.n 7654) = cellOf128 pk.root := by rw [hef.apply (Or.inr le_rfl)]; exact hσ0.2.2
+  refine ⟨σf, f0', f1', ?_, ?_⟩
+  · rw [sBody_eq, sBody_split2, holdsList_append]
+    refine hhf _ _ ⟨?_, ?_, rfl⟩
+    · show LoadHolds rd (σf (.n 0)) 0 (σf (.n 7654))
+      rw [f0', f7654]; exact hldR
+    · show σf (.n 7641) + σf (.n 7654) = 0
+      rw [hroot, f7654]; exact e_add_self _
+  · intro es vs hw A hA
+    have hok := loads_of_walk sBody_loads hw
+    rcases loadAddrs_of_loadOk hok A hA with ⟨k, hk, e⟩ | ⟨q, hq, e⟩
+    · exact Or.inl ⟨k, hk, by rw [e, f0']⟩
+    · obtain ⟨v, hv256, ev⟩ := hptrs q hq
+      refine Or.inr ⟨v, hv256, ?_⟩
+      rw [e, ev, limb_mul_ofK (hbb 0 (by norm_num)).1]
+
 end
 end LeanVM.Guest.B1.Sig
