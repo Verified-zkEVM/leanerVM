@@ -201,9 +201,11 @@ theorem pure_holds {σ : Val} {atoms : List Atom} (hg : ∀ a ∈ atoms, Good rd
 
 /-- **An evaluated block with stores holds**: the atoms but the stores `S` hold as in
 `atoms_holds` (their canonical inputs checked without the stores), then the stores, given the
-rest. -/
+rest. The membership test is any decision procedure (`Sig.Decide`'s `Atom` equality reaches some
+importers as an instance). -/
 theorem atoms_holds_stores {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List Nat}
-    {atoms : List Atom} (hk : canonChk A (atoms.filter (fun a => decide (a ∉ S))) = true)
+    {atoms : List Atom} {dec : ∀ a : Atom, Decidable (a ∉ S)}
+    (hk : canonChk A (atoms.filter (fun a => @decide (a ∉ S) (dec a))) = true)
     (hg : ∀ a ∈ atoms, Good rd S w σ a) (hA : ∀ i ∈ A, IsCanonical128 (σ (.n i)))
     (hn : ∀ a ∈ atoms, a ∉ S → needsSide a = true → a.Holds rd σ ∨ Side rd S σ a)
     (hs : (∀ a ∈ atoms, a ∉ S → a.Holds rd σ) → ∀ a ∈ atoms, a ∈ S → a.Holds rd σ) :
