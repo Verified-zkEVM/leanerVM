@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FEvals
 
-  `Vt/Evals.lean` on the window `VtF`: an evaluation's read, packing and pooled words, and the
-  sponge after the evaluations.
+  `Vt/Evals.lean` on the window `VtF`: an evaluation's read, packing and copy, and the sponge
+  after the evaluations.
 -/
 
 module
@@ -18,10 +18,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The evaluations' and permutations' statements lie in the window. -/
-theorem vtEval_inF : ∀ k < 157, vtFLo ≤ (vtEvalData.getD k (0, 0, 0)).1 ∧
-    (vtEvalData.getD k (0, 0, 0)).1 +
-      (vtEvalT (vtEvalData.getD k (0, 0, 0)).2.1 k (vtEvalData.getD k (0, 0, 0)).2.2).length ≤
-        vtFHi := by
+theorem vtEval_inF : ∀ k < 157, vtFLo ≤ (vtEvalData.getD k (0, 0)).1 ∧
+    (vtEvalData.getD k (0, 0)).1 + (vtEvalT (vtEvalData.getD k (0, 0)).2 k).length ≤ vtFHi := by
   decide +kernel
 
 theorem vtPerm_inF : ∀ j < 39, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
@@ -30,17 +28,15 @@ theorem vtPerm_inF : ∀ j < 39, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
 
 /-- **Evaluation `k`**, on the window. -/
 theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 157) :
-    LoadHolds rd (σ (.n 5932)) k (σ (.n (vtEvB k))) ∧
+    LoadHolds rd (σ (.n 2609)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
-      σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) ∧
-      LoadHolds rd (σ (.n 16)) (5 + k) (σ (.n (vtEvB k))) ∧
-      LoadHolds rd (σ (.n 17)) (5 + k) (σ (.n (vtEvalData.getD k (0, 0, 0)).2.2)) := by
-  obtain ⟨_, hs⟩ := h.slice _ _ (vtEval_check k hk) (vtEval_inF k hk)
+      σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) := by
+  obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk) (vtEval_inF k hk)
   unfold vtEvalT at hs
   rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hr⟩ := hs
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr
-  exact ⟨hl, hp, hr.1, hr.2.1, hr.2.2⟩
+  exact ⟨hl, hp, hr⟩
 
 /-- **Permutation `j`'s state**, on the window. -/
 theorem vt_evals_fsF {rd : Reader} {σ : Val} (h : VtF rd σ) :
@@ -51,7 +47,7 @@ theorem vt_evals_fsF {rd : Reader} {σ : Val} (h : VtF rd σ) :
   have hperm : ∀ j < 39, vtCapV σ (j + 1) = capOf (Fs.perm ⟨vtCapV σ j,
       (((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)⟩) := by
     intro j hj
-    have hk := h.atom _ _ (vtPerm_check j hj) (vtPerm_inF j hj)
+    have hk := h.atomAt _ _ (vtPerm_check j hj) (vtPerm_inF j hj)
     obtain ⟨hcan, -, hC⟩ := ly_keccak hk
     have cell : ∀ i < 4, σ (.n (vtEvB (4 * j + i) + 7)) =
         (Keccak.scalarCells (σ (.n (vtEvB (4 * j + i)))) dsObserve).1 ∧
