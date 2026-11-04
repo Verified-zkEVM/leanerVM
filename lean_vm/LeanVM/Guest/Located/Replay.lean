@@ -273,7 +273,7 @@ theorem bndTest_iff {bnd : List (ℕ × ℕ)} : bndTest L.read fp bnd = true ↔
 
 theorem memTest_iff {mem : List (ℕ × ℕ × ℕ)} : memTest L.read fp mem = true ↔ MemPre L fp mem := by
   unfold memTest MemPre
-  simp only [List.all_eq_true, List.mem_range]
+  simp only [List.all_eq_true]
   refine forall_congr' fun m ↦ forall_congr' fun _ ↦ ?_
   split
   · rename_i p hp
@@ -287,7 +287,7 @@ theorem loadTest_iff {rd : Reader} {q : E} {o : ℕ} {v : E} :
 
 theorem expTablesTest_iff {rd : Reader} {q : E} : expTablesTest rd q = true ↔ ExpTables rd q := by
   simp only [expTablesTest, ExpTables, Bool.and_eq_true, List.all_eq_true, List.mem_range,
-    loadTest_iff, Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, not_le]
+    loadTest_iff, Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, not_le, and_assoc]
   refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr Iff.rfl
     (forall_congr' fun s ↦ forall_congr' fun _ ↦ ⟨fun h gi h1 h2 ↦ ?_, fun h gi h2 ↦ ?_⟩)))
   · exact (h gi h2).resolve_left (by omega)
