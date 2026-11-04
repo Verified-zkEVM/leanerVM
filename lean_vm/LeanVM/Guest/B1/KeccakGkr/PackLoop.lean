@@ -195,11 +195,11 @@ theorem packLoop_body33 : Data.core396.body = packLoopT "__loop36" := stmtsEqb_s
 theorem find_packLoop30 : coreProgram.find? "__loop33" = some Data.core393 :=
   Program.find?_of_indexOf? (j := 393) (by decide +kernel) rfl
 theorem find_packLoop31 : coreProgram.find? "__loop34" = some Data.core394 :=
-  Program.find?_of_indexOf? (j := 393) (by decide +kernel) rfl
-theorem find_packLoop32 : coreProgram.find? "__loop35" = some Data.core395 :=
   Program.find?_of_indexOf? (j := 394) (by decide +kernel) rfl
-theorem find_packLoop33 : coreProgram.find? "__loop36" = some Data.core396 :=
+theorem find_packLoop32 : coreProgram.find? "__loop35" = some Data.core395 :=
   Program.find?_of_indexOf? (j := 395) (by decide +kernel) rfl
+theorem find_packLoop33 : coreProgram.find? "__loop36" = some Data.core396 :=
+  Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
 
 /-- **One iteration's meaning at `x`**: the record `rounds·x` holds a canonical capacity, a cursor,
 a claim and a scale; the coordinates `r₀, r₁` at `prev_point·x²`; the four words at the cursor

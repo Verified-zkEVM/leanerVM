@@ -142,19 +142,19 @@ theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core26 :=
   Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
 
 theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core27 :=
-  Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
-
-theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core28 :=
   Program.find?_of_indexOf? (j := 27) (by decide +kernel) rfl
 
-theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core29 :=
+theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core28 :=
   Program.find?_of_indexOf? (j := 28) (by decide +kernel) rfl
 
-theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core30 :=
+theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core29 :=
   Program.find?_of_indexOf? (j := 29) (by decide +kernel) rfl
 
-theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core31 :=
+theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core30 :=
   Program.find?_of_indexOf? (j := 30) (by decide +kernel) rfl
+
+theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core31 :=
+  Program.find?_of_indexOf? (j := 31) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core374 :=
@@ -167,12 +167,12 @@ theorem find_da_factors_L14_L7_L0 :
 
 set_option maxRecDepth 100000 in
 theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core377 :=
-  Program.find?_of_indexOf? (j := 376) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 377) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L7_L8_L128 :
     coreProgram.find? "da_factors__L7_L8_L128" = some Data.core378 :=
-  Program.find?_of_indexOf? (j := 377) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 378) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Da

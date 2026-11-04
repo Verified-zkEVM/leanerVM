@@ -623,7 +623,7 @@ theorem find_verify_log2_ceil_L0_L34 :
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :
     coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core398 :=
-  Program.find?_of_indexOf? (j := 397) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 398) (by decide +kernel) rfl
 
 theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)
     {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :

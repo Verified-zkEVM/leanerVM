@@ -33,7 +33,7 @@ theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = so
 
 set_option maxRecDepth 100000 in
 theorem find_lce_L15 : coreProgram.find? "log2_ceil_in_the_exponent__L15_L34" = some Data.core294 :=
-  Program.find?_of_indexOf? (j := 293) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 294) (by decide +kernel) rfl
 
 theorem loop_lce_L0 : coreProgram.loop "log2_ceil_in_the_exponent__L0_L34" = false := by
   rw [Program.loop_of_find? find_lce_L0]; decide +kernel

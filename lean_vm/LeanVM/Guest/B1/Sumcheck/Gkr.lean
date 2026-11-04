@@ -821,7 +821,7 @@ set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one and two rounds. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
   have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core392 :=
-    Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
+    Program.find?_of_indexOf? (j := 392) (by decide +kernel) rfl
   have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core391 :=
     Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
   exact ⟨fun rd args rets ↦ ⟨gk_sound 1 (by decide) (by decide) h1 rfl core380_body rd args rets,

@@ -176,14 +176,14 @@ theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data
   Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl
 
 theorem find_list_split : coreProgram.find? "list_split" = some Data.core23 :=
-  Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 23) (by decide +kernel) rfl
 
 theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some Data.core24 :=
-  Program.find?_of_indexOf? (j := 23) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 24) (by decide +kernel) rfl
 
 theorem find_child_claim_list_digest :
     coreProgram.find? "child_claim_list_digest" = some Data.core25 :=
-  Program.find?_of_indexOf? (j := 24) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 25) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Digest
