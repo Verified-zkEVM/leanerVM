@@ -222,7 +222,7 @@ bounds, the frame lookups and the address tables apart: `16` children of up to `
 each scheme, each child's cursor at most `8192` words, the raw signatures (up to `65535` of each
 scheme), the DA matrix of up to `1024` rows, the children's proofs, the tables built once (the
 discrete logarithm's, the generator's powers', the readers'). About `2^38.50`. -/
-def guestDecoderWitnessPriceAtValidCounts : ℕ := 387933533474
+def guestDecoderWitnessPriceAtValidCounts : ℕ := 388093697138
 
 /-- How many frame lookups the constant pays for: about `2^26.07`. -/
 def guestDecoderFrameLookupCountAtValidCounts : ℕ := 70441362

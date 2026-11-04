@@ -202,8 +202,8 @@ theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p52 p55 : E)
   rw [kidStmtSegC.costEq P hP rd rdV hrd σ σV hσ]
   have h0 := countIn_le tx.1 a b
   have h1 := countIn_cost P (by includes) tx.1 (lt64_of_good htx) htx.2.1 a b (by omega) (by omega)
-  have h2 := kidSlotsIn_cost P (by includes) tx htx a b (by omega) (by omega) N htxN
-  have h3 := kidSlotsIn_cost P (by includes) ts hts (a + countIn tx.1 a b) b (by omega) (by omega)
+  have h2 := kidSlotsIn_cost P (by includes) htx a b (by omega) (by omega) N htxN
+  have h3 := kidSlotsIn_cost P (by includes) hts (a + countIn tx.1 a b) b (by omega) (by omega)
     N htsN
   have h4 := kidStmtAt_cost P hrd hR hσ hS (by includes) p52 p55 c
     (kidSlotsIn tx.1 tx.2 a b) (kidSlotsIn ts.1 ts.2 (a + countIn tx.1 a b) b) hc N

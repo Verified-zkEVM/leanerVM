@@ -168,7 +168,7 @@ theorem kidSlotsIn_lt (ht : TableGood t) (a b : ℕ) : ∀ s ∈ kidSlotsIn t.1 
 /-- **The slots of mark `a`, by the table** (`slotsInC` on `[a, a + 1)`), at most `N` marks: a
 count, then a search and a read a slot: at most `967·N + 1876`. -/
 theorem slotsIn_cost (hP : Includes P slotsInC.costDeps) (ht : TableGood t) (a : ℕ)
-    (ha : a < 2 ^ 34) (N : ℕ) (hN : t.1.size ≤ N) :
+    (ha : a < 2 ^ 40) (N : ℕ) (hN : t.1.size ≤ N) :
     machineCost P slotsInC.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a,
       encodeValue (a + 1)] ≤ 967 * N + 1876 := by
   rw [slotsInC.costEq P hP]
@@ -195,11 +195,11 @@ theorem slotsIn_cost (hP : Includes P slotsInC.costDeps) (ht : TableGood t) (a :
   have := Nat.mul_le_mul_left 15 (hc.trans hN)
   omega
 
-/-- **A child's list's slots, by the table** (`kidSlotsInC`), at most `N` marks, `a, b < 2^34`:
+/-- **A child's list's slots, by the table** (`kidSlotsInC`), at most `N` marks, `a, b < 2^40`:
 two counts, then the slots of the mark `a` (`slotsIn_cost`) or a search a mark: at most
 `kidSlotsInPrice N = 1000·N + 6000`. -/
 theorem kidSlotsIn_cost (hP : Includes P kidSlotsInC.costDeps) (ht : TableGood t) (a b : ℕ)
-    (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (N : ℕ) (hN : t.1.size ≤ N) :
+    (ha : a < 2 ^ 40) (hb : b < 2 ^ 40) (N : ℕ) (hN : t.1.size ≤ N) :
     machineCost P kidSlotsInC.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a,
       encodeValue b] ≤ kidSlotsInPrice N := by
   rw [kidSlotsInC.costEq P hP]
