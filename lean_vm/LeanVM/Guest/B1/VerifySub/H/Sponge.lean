@@ -20,7 +20,7 @@ The honest valuation `vsσ rd w args` carries the Spec's sponge as the soundness
 (`Front.lean`, `Tail.lean`), with no store of `verify_sub` involved: the stores only check what the
 evaluation computed. So the challenges are known before the memory's own buffers are.
 
-* `vs_zero`: the zero cells `10 .. 13`;
+* `vs_zero`: the zero cells `8 .. 11`;
 * `vs_kecOut`: a `KECCAK` atom's outputs are canonical;
 * `vs_sqz`: a squeeze (`vsSqzT`) on canonical capacity cells: its challenge and capacity;
 * `vsH_front`: from the stream's first ten words in memory, the seed's capacity, the announced
@@ -40,16 +40,16 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The zero cells.** -/
-theorem vs_zero (hl : args.length = 6) : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0 := by
+theorem vs_zero (hl : args.length = 6) : ∀ i ∈ [8, 9, 10, 11], vsσ rd w args (.n i) = 0 := by
   intro i hi
-  have hmc : ∀ i ∈ [10, 11, 12, 13], vsConst i (word 0 0 0) ∈ vsCPre := by
+  have hmc : ∀ i ∈ [8, 9, 10, 11], vsConst i (word 0 0 0) ∈ vsCPre := by
     intro i hi
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
     rcases hi with rfl | rfl | rfl | rfl
+    · exact vs_mem_slice (n := 2) (blk := [_]) (by decide +kernel) List.mem_cons_self
     · exact vs_mem_slice (n := 3) (blk := [_]) (by decide +kernel) List.mem_cons_self
     · exact vs_mem_slice (n := 4) (blk := [_]) (by decide +kernel) List.mem_cons_self
     · exact vs_mem_slice (n := 5) (blk := [_]) (by decide +kernel) List.mem_cons_self
-    · exact vs_mem_slice (n := 6) (blk := [_]) (by decide +kernel) List.mem_cons_self
   have h := vs_goodS (rd := rd) (w := w) hl (hmc i hi)
   simp only [vsConst, fixNe, GoodS, Good] at h
   rw [h, word_zero]
@@ -82,21 +82,21 @@ theorem vs_sqzIn (hl : args.length = 6) {capb : ℕ}
     AllCanonical (([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++
       vsRun capb 5).map (vsσ rd w args)) := by
   have hz := vs_zero (rd := rd) (w := w) hl
-  have hz' : ∀ i ∈ [10, 11, 12, 13], IsCanonical128 (vsσ rd w args (.n i)) :=
+  have hz' : ∀ i ∈ [8, 9, 10, 11], IsCanonical128 (vsσ rd w args (.n i)) :=
     fun i hi ↦ by rw [hz i hi]; exact canonical_zero
   intro x hx
   obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
   simp only [vsRun, List.cons_append, List.nil_append, List.mem_cons, List.mem_map,
     List.mem_range] at hv
   rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | ⟨i, hi, rfl⟩
-  · exact hz' 10 (by simp)
-  · exact hz' 10 (by simp)
-  · exact hz' 10 (by simp)
-  · exact hz' 10 (by simp)
+  · exact hz' 8 (by simp)
+  · exact hz' 8 (by simp)
+  · exact hz' 8 (by simp)
+  · exact hz' 8 (by simp)
+  · exact hz' 8 (by simp)
+  · exact hz' 9 (by simp)
   · exact hz' 10 (by simp)
   · exact hz' 11 (by simp)
-  · exact hz' 12 (by simp)
-  · exact hz' 13 (by simp)
   · exact hc i hi
 
 /-- **A squeeze, honestly**: on canonical capacity cells, its challenge and capacity, its outputs
@@ -110,7 +110,7 @@ theorem vs_sqz (hl : args.length = 6) {capb o : ℕ} (hmem : ∀ s ∈ vsSqzT ca
   have hz := vs_zero (rd := rd) (w := w) hl
   have h := vsSqzT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl hmem
     hz hc trivial
-  refine ⟨(vsSqzT_holds (hz 10 (by simp)) (hz 11 (by simp)) (hz 12 (by simp)) (hz 13 (by simp))
+  refine ⟨(vsSqzT_holds (hz 8 (by simp)) (hz 9 (by simp)) (hz 10 (by simp)) (hz 11 (by simp))
     h).1, ?_⟩
   exact (kc_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl hmem
     (vs_sqzIn hl hc) trivial).1
@@ -119,17 +119,17 @@ theorem vs_sqz (hl : args.length = 6) {capb o : ℕ} (hmem : ∀ s ∈ vsSqzT ca
 
 /-- **What the honest valuation's front computes**, the stream's first ten words `ws` in memory. -/
 structure VsFrontS (rd : Reader) (σ : Val) (ws : List E) : Prop where
-  hz : ∀ i ∈ [10, 11, 12, 13], σ (.n i) = 0
+  hz : ∀ i ∈ [8, 9, 10, 11], σ (.n i) = 0
   hseed : vsSeedAtom.Holds rd σ
-  hcap22 : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (σ (.n i))
+  hcap22 : ∀ i ∈ [20, 21, 22, 23, 24], IsCanonical128 (σ (.n i))
   hx : ∀ i < 8, σ (.n (vsX i)) = ws.getD i 0
   hw : ∀ i < 8, WordAt rd σ i (vsX i)
   e537 : σ (.n 324) = ws.getD 8 0
   e547 : σ (.n 334) = ws.getD 9 0
-  hin : ∀ i ∈ [89, 91, 99, 101, 109, 111, 119, 121, 77, 78, 79, 80, 81],
+  hin : ∀ i ∈ [87, 89, 97, 99, 107, 109, 117, 119, 75, 76, 77, 78, 79],
     IsCanonical128 (σ (.n i))
-  hc532 : ∀ i < 5, IsCanonical128 (σ (.n (532 + i)))
-  hc628 : ∀ i < 5, IsCanonical128 (σ (.n (628 + i)))
+  hc532 : ∀ i < 5, IsCanonical128 (σ (.n (319 + i)))
+  hc628 : ∀ i < 5, IsCanonical128 (σ (.n (415 + i)))
   hab8 : (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).absorbAll
       (vsWords σ) dsObserve =
     ⟨[σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)],
@@ -146,7 +146,7 @@ structure VsFrontS (rd : Reader) (σ : Val) (ws : List E) : Prop where
     (vsAlphas σ, ⟨[σ (.n 415), σ (.n 416), σ (.n 417), σ (.n 418), σ (.n 419)], []⟩)
   hbeta : (⟨[σ (.n 415), σ (.n 416), σ (.n 417), σ (.n 418), σ (.n 419)], []⟩ : Fs).squeeze =
     (σ (.n 623), ⟨[σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616)], []⟩)
-  hc825 : ∀ i < 5, IsCanonical128 (σ (.n (825 + i)))
+  hc825 : ∀ i < 5, IsCanonical128 (σ (.n (612 + i)))
 
 set_option maxRecDepth 100000 in
 /-- **The front, honestly**: with the statement's and the seed's cells canonical and the stream's
@@ -158,12 +158,12 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
   -- the seed
   have hseed : vsSeedAtom.Holds rd (vsσ rd w args) := by
     have h := vsHeadT_complete (rd := rd) (w := w) hl hc4 (keccakA [.n 2, .n 3, .n 0, .n 1, .n 8,
-      .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11] (vsRun 14 13)) (by simp [vsHeadT])
+      .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11] (vsRun 12 13)) (by simp [vsHeadT])
     exact h
   have hc14 := vs_kecOut (rd := rd) (w := w) hl (ins := [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9,
-    .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]) (o := 14)
-    (vs_mem_slice (n := 7) (blk := [_]) (by decide +kernel) List.mem_cons_self)
-  have hcap22 : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (vsσ rd w args (.n i)) := by
+    .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]) (o := 12)
+    (vs_mem_slice (n := 6) (blk := [_]) (by decide +kernel) List.mem_cons_self)
+  have hcap22 : ∀ i ∈ [20, 21, 22, 23, 24], IsCanonical128 (vsσ rd w args (.n i)) := by
     intro i hi
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
     rcases hi with rfl | rfl | rfl | rfl | rfl
@@ -181,9 +181,9 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
     ((holds_fsNextT (C := fun _ _ _ ↦ True) _ _ _ True (fun _ ↦ True)).1
       ((W i hi).2.2.2 trivial)).1
   have mR : ∀ s ∈ vsReadsT, s ∈ vsCPre :=
-    fun s hs ↦ vs_mem_slice (n := 11) (blk := vsReadsT) (by decide +kernel) hs
+    fun s hs ↦ vs_mem_slice (n := 10) (blk := vsReadsT) (by decide +kernel) hs
   have m50 : keccakA [.n 34, .n 36, .n 44, .n 46, .n 54, .n 56, .n 64, .n 66, .n 20, .n 21, .n 22,
-      .n 23, .n 24] (vsRun 69 13) ∈ vsCPre := mR _ (by
+      .n 23, .n 24] (vsRun 67 13) ∈ vsCPre := mR _ (by
     simp only [vsReadsT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false]; tauto)
   have hc69 := vs_kecOut (rd := rd) (w := w) hl m50
   have hk50 : vsAtom50.Holds rd (vsσ rd w args) := by
@@ -200,12 +200,12 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
     · exact (W 2 (by norm_num)).2.2.1
     · exact (W 3 (by norm_num)).2.1
     · exact (W 3 (by norm_num)).2.2.1
+    · exact hcap22 20 (by simp)
+    · exact hcap22 21 (by simp)
     · exact hcap22 22 (by simp)
     · exact hcap22 23 (by simp)
     · exact hcap22 24 (by simp)
-    · exact hcap22 25 (by simp)
-    · exact hcap22 26 (by simp)
-  have hin : ∀ i ∈ [89, 91, 99, 101, 109, 111, 119, 121, 77, 78, 79, 80, 81],
+  have hin : ∀ i ∈ [87, 89, 97, 99, 107, 109, 117, 119, 75, 76, 77, 78, 79],
       IsCanonical128 (vsσ rd w args (.n i)) := by
     intro i hi
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
@@ -229,31 +229,31 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
   obtain ⟨e537, e547, hcR, hRoH⟩ := hRo
   obtain ⟨hk649, w8, w9, -, -, -⟩ := vsRootsT_holds hRoH
   have mRo : ∀ s ∈ vsRootsT, s ∈ vsCPre :=
-    fun s hs ↦ vs_mem_slice (n := 649) (blk := vsRootsT) (by decide +kernel) hs
+    fun s hs ↦ vs_mem_slice (n := 284) (blk := vsRootsT) (by decide +kernel) hs
   have hc524 := vs_kecOut (rd := rd) (w := w) hl (ins := [V.n 87, V.n 89, V.n 97, V.n 99, V.n 107,
-    V.n 109, V.n 117, V.n 119, V.n 75, V.n 76, V.n 77, V.n 78, V.n 79]) (o := 524)
+    V.n 109, V.n 117, V.n 119, V.n 75, V.n 76, V.n 77, V.n 78, V.n 79]) (o := 311)
     (mRo _ (by simp [vsRootsT]))
-  have hc532 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (532 + i))) := fun i hi ↦ by
+  have hc532 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (319 + i))) := fun i hi ↦ by
     have := hc524 (8 + i) (by omega); rwa [← Nat.add_assoc] at this
   -- the bus challenges
   have mA : ∀ s ∈ vsAlphasT, s ∈ vsCPre :=
-    fun s hs ↦ vs_mem_slice (n := 671) (blk := vsAlphasT) (by decide +kernel) hs
+    fun s hs ↦ vs_mem_slice (n := 306) (blk := vsAlphasT) (by decide +kernel) hs
   have hc1 : AllCanonical ([V.n 331, V.n 333, V.n 341, V.n 343, V.n 8, V.n 9, V.n 10, V.n 11,
       V.n 319, V.n 320, V.n 321, V.n 322, V.n 323].map (vsσ rd w args)) := by
-    have hz' : ∀ i ∈ [10, 11, 12, 13], IsCanonical128 (vsσ rd w args (.n i)) :=
+    have hz' : ∀ i ∈ [8, 9, 10, 11], IsCanonical128 (vsσ rd w args (.n i)) :=
       fun i hi ↦ by rw [hz i hi]; exact canonical_zero
     intro x hx'
     obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx'
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
     rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact hcR 544 (by simp)
-    · exact hcR 546 (by simp)
-    · exact hcR 554 (by simp)
-    · exact hcR 556 (by simp)
+    · exact hcR 331 (by simp)
+    · exact hcR 333 (by simp)
+    · exact hcR 341 (by simp)
+    · exact hcR 343 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 9 (by simp)
     · exact hz' 10 (by simp)
     · exact hz' 11 (by simp)
-    · exact hz' 12 (by simp)
-    · exact hz' 13 (by simp)
     · exact hc532 0 (by norm_num)
     · exact hc532 1 (by norm_num)
     · exact hc532 2 (by norm_num)
@@ -261,37 +261,37 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
     · exact hc532 4 (by norm_num)
   obtain ⟨o1, h1⟩ := kc_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True)
     (rd := rd) (w := w) hl (ins := [V.n 331, V.n 333, V.n 341, V.n 343, V.n 8, V.n 9, V.n 10,
-      V.n 11, V.n 319, V.n 320, V.n 321, V.n 322, V.n 323]) (o := 560)
+      V.n 11, V.n 319, V.n 320, V.n 321, V.n 322, V.n 323]) (o := 347)
     (fun s hs ↦ mA s (by rw [vsAlphasT]; exact List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ hs)))))))) hc1 trivial
   simp only [Stmt.HoldsList, Stmt.Holds, keccakA] at h1
   obtain ⟨hk1, hch1⟩ := h1
   have hch1' := ((holds_challengeT (C := fun _ _ _ ↦ True) _ _ _ True (fun _ ↦ True)).1 hch1).1
-  have c8 := wordAt_cells w8 (hcR 544 (by simp))
-  have c9 := wordAt_cells w9 (hcR 554 (by simp))
+  have c8 := wordAt_cells w8 (hcR 331 (by simp))
+  have c9 := wordAt_cells w9 (hcR 341 (by simp))
   have hs := squeeze_atom (s := ⟨[vsσ rd w args (.n 319), vsσ rd w args (.n 320),
     vsσ rd w args (.n 321), vsσ rd w args (.n 322), vsσ rd w args (.n 323)],
-    [(vsσ rd w args (.n 324), dsObserve), (vsσ rd w args (.n 334), dsObserve)]⟩) (b := 573) hk1
-    (by simp only [List.map_cons, List.map_nil, hz 10 (by simp), hz 11 (by simp),
-      hz 12 (by simp), hz 13 (by simp), rateOf_two, ← c8, ← c9]; rfl) hch1'
+    [(vsσ rd w args (.n 324), dsObserve), (vsσ rd w args (.n 334), dsObserve)]⟩) (b := 360) hk1
+    (by simp only [List.map_cons, List.map_nil, hz 8 (by simp), hz 9 (by simp),
+      hz 10 (by simp), hz 11 (by simp), rateOf_two, ← c8, ← c9]; rfl) hch1'
   rw [vsRun_drop8] at hs
   have sub : ∀ capb o, vsSqzT capb o ⊆ vsAlphasT → ∀ s ∈ vsSqzT capb o, s ∈ vsCPre :=
     fun capb o hsub s hs ↦ mA s (hsub hs)
-  have q1 := vs_sqz (rd := rd) (w := w) hl (capb := 568) (o := 580)
+  have q1 := vs_sqz (rd := rd) (w := w) hl (capb := 355) (o := 367)
     (sub _ _ (by intro s hs; rw [vsAlphasT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))))))
     (fun i hi ↦ by have := o1 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have q2 := vs_sqz (rd := rd) (w := w) hl (capb := 588) (o := 600)
+  have q2 := vs_sqz (rd := rd) (w := w) hl (capb := 375) (o := 387)
     (sub _ _ (by intro s hs; rw [vsAlphasT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))))
     (fun i hi ↦ by have := q1.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have q3 := vs_sqz (rd := rd) (w := w) hl (capb := 608) (o := 620)
+  have q3 := vs_sqz (rd := rd) (w := w) hl (capb := 395) (o := 407)
     (sub _ _ (by intro s hs; rw [vsAlphasT]; exact List.mem_append_left _ (List.mem_append_right _ hs)))
     (fun i hi ↦ by have := q2.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have hc628 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (628 + i))) := fun i hi ↦ by
+  have hc628 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (415 + i))) := fun i hi ↦ by
     have := q3.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this
   -- `β`
-  have qb := vs_sqz (rd := rd) (w := w) hl (capb := 628) (o := 817)
-    (fun s hs ↦ vs_mem_slice (n := 711) (blk := vsFpwT) (by decide +kernel)
+  have qb := vs_sqz (rd := rd) (w := w) hl (capb := 415) (o := 604)
+    (fun s hs ↦ vs_mem_slice (n := 346) (blk := vsFpwT) (by decide +kernel)
       (by rw [vsFpwT]; exact List.mem_append_right _ hs)) hc628
   refine ⟨hz, hseed, hcap22, hx, hw, by rw [e537], by rw [e547], hin, hc532, hc628,
     vs_absorb8 hw hk50, vs_absorbRoot hw hk649, ?_, qb.1, fun i hi ↦ by
@@ -320,10 +320,10 @@ theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.
 /-! ## The ring map and the batching -/
 
 theorem vsMaps_sub (capb o : ℕ)
-    (h : (capb, o) ∈ [(871, 878), (886, 898), (906, 918), (926, 938), (946, 958)]) :
+    (h : (capb, o) ∈ [(659, 666), (674, 686), (694, 706), (714, 726), (734, 746)]) :
     ∀ s ∈ vsSqzT capb o, s ∈ vsCPre := by
   intro s hs
-  refine vs_mem_slice (n := 929) (blk := vsMapsT) (by decide +kernel) ?_
+  refine vs_mem_slice (n := 564) (blk := vsMapsT) (by decide +kernel) ?_
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at h
   rw [vsMapsT]
   simp only [List.mem_append]
@@ -332,20 +332,20 @@ theorem vsMaps_sub (capb o : ℕ)
 set_option maxRecDepth 100000 in
 /-- **The ring map's five squeezed challenges, honestly**, from canonical capacity cells. -/
 theorem vsH_maps (hl : args.length = 6)
-    (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i)))) :
+    (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (659 + i)))) :
     (⟨[vsσ rd w args (.n 659), vsσ rd w args (.n 660), vsσ rd w args (.n 661),
         vsσ rd w args (.n 662), vsσ rd w args (.n 663)], []⟩ : Fs).squeezeN 5 =
       (vsChs (vsσ rd w args), ⟨[vsσ rd w args (.n 754), vsσ rd w args (.n 755),
         vsσ rd w args (.n 756), vsσ rd w args (.n 757), vsσ rd w args (.n 758)], []⟩) ∧
-      ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i))) := by
-  have q1 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 871 878 (by simp)) hc
-  have q2 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 886 898 (by simp))
+      ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (754 + i))) := by
+  have q1 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 659 666 (by simp)) hc
+  have q2 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 674 686 (by simp))
     (fun i hi ↦ by have := q1.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have q3 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 906 918 (by simp))
+  have q3 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 694 706 (by simp))
     (fun i hi ↦ by have := q2.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have q4 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 926 938 (by simp))
+  have q4 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 714 726 (by simp))
     (fun i hi ↦ by have := q3.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
-  have q5 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 946 958 (by simp))
+  have q5 := vs_sqz (rd := rd) (w := w) hl (vsMaps_sub 734 746 (by simp))
     (fun i hi ↦ by have := q4.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)
   generalize vsσ rd w args = σ at q1 q2 q3 q4 q5 ⊢
   have e1 : (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs).squeeze =
@@ -363,13 +363,13 @@ theorem vsH_maps (hl : args.length = 6)
 
 /-- **The batching challenge, honestly**, from canonical capacity cells. -/
 theorem vsH_lam (hl : args.length = 6)
-    (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))) :
+    (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (754 + i)))) :
     (⟨[vsσ rd w args (.n 754), vsσ rd w args (.n 755), vsσ rd w args (.n 756),
         vsσ rd w args (.n 757), vsσ rd w args (.n 758)], []⟩ : Fs).squeeze =
       (vsσ rd w args (.n 1111), ⟨[vsσ rd w args (.n 1100), vsσ rd w args (.n 1101),
         vsσ rd w args (.n 1102), vsσ rd w args (.n 1103), vsσ rd w args (.n 1104)], []⟩) := by
-  have q := vs_sqz (rd := rd) (w := w) hl (capb := 966) (o := 1304)
-    (fun s hs ↦ vs_mem_slice (n := 1372) (blk := vsLamT) (by decide +kernel)
+  have q := vs_sqz (rd := rd) (w := w) hl (capb := 754) (o := 1092)
+    (fun s hs ↦ vs_mem_slice (n := 1007) (blk := vsLamT) (by decide +kernel)
       (by rw [vsLamT]; simp only [List.mem_append]; tauto)) hc
   generalize vsσ rd w args = σ at q ⊢
   exact q.1

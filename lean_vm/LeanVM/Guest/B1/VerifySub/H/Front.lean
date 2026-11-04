@@ -150,8 +150,8 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hp : ∀ i < 7, σ (.n i) = args.getD i 0 := fun i hi ↦ by rw [← hσ]; exact vsC_param hl hi
   obtain ⟨hw8, hx8, hx9⟩ := S.stream_getD
   -- the seed
-  obtain ⟨seed', pi', es, ep, hcap0⟩ := vs_seed F.hseed (F.hz 10 (by simp)) (F.hz 11 (by simp))
-    (F.hz 12 (by simp)) (F.hz 13 (by simp))
+  obtain ⟨seed', pi', es, ep, hcap0⟩ := vs_seed F.hseed (F.hz 8 (by simp)) (F.hz 9 (by simp))
+    (F.hz 10 (by simp)) (F.hz 11 (by simp))
   have es' : seed' = seed := by
     apply digest_inj
     rw [← es, hp 2 (by norm_num), hp 3 (by norm_num), hargs]; rfl

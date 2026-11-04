@@ -25,7 +25,7 @@ public import LeanVM.Guest.B1.Main.SoundV
 
 `verify_sub_sound_w`: for a bytecode of `2^23` words, on a memory image of at most `2^32` words,
 under any call relation below `coreProgram.Rel` that unfolds at the frame map `V`, a run of
-`verify_sub`'s body with the exponent tables at its arguments `4`, `5` returns nothing, and the
+`verify_sub`'s body with the exponent table at its argument `4` returns nothing, and the
 deferring verifier accepts the child proof `vsPiOf L.read σ V` for the statement at its
 arguments: `Main.SubSoundW bytecode vsPiOf`.
 -/
@@ -72,11 +72,19 @@ theorem runsWith_whirOpen_target {μ r : ℕ} {t t' : E} (h : t = t') {s s' : Fs
     (hr : B1.Whir.RunsWith (B1.Whir.whirOpen μ r t) s xs os roots w s' roots') :
     B1.Whir.RunsWith (B1.Whir.whirOpen μ r t') s xs os roots w s' roots' := h ▸ hr
 
+/-- The exponent table's nibble shares, as `check_opening_terminal` reads them at `g_squares·g^34`. -/
+theorem gTabs_of_exp {rd : Reader} {sq : E} (h : ExpTables rd sq) :
+    Tables.GTabsAt rd (sq * gen ^ 34) := by
+  intro j hj u hu
+  rw [loadHolds_mul_gen_pow]
+  have := h.2.1 j (by simp only [Tables.selNibbles] at hj; simp only [selTabNibbles]; omega) u hu
+  simpa only [sizeBits, Nat.add_assoc] using this
+
 /-- **`verify_sub` is sound**, its child proof read off its valuation, the memory and the frame
 map. -/
 theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf := by
   intro hbl κ L hκ C V hU hLe σ rets hb hpre
-  have hexp : ExpTables L.read (σ (.n XGLP)) (σ (.n 4)) := by
+  have hexp : ExpTables L.read (σ (.n 4)) := by
     simpa [VerifySubPre, vs_params] using hpre
   rw [show Fn.body Data.core18 = vsT from vs_body, vsT_split, holdsList_append] at hb
   obtain ⟨hF0, hR⟩ := (holdsList_noRet vsFrontT vsFrontT_noRet _ _).1 hb
@@ -99,8 +107,9 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
   have hctx := F.hctx
   simp only [Tables.TCtx] at hctx
   obtain ⟨chis0, hbp, hgmu, -, -, -, hcl, hcol, -⟩ := hctx
-  obtain ⟨hmaps, hchR, hct, hrstC, hlam, hpw, h1884, h1886, hcp, hl2, e1892, r1, e1901, r2, hdisp,
-    hterm, hd1, hd2, hd3, hkret⟩ := vs_back h10 h11 h12 h13 hcol F.hpool hR
+  obtain ⟨hmaps, hchR, hct, hrstC, hlam, h1884, h1886, hcp, hl2, e1892, r1, e1901, r2, hdisp,
+    hterm, hd1, hd2, hd3, hkret⟩ :=
+    vs_back h10 h11 h12 h13 hcol (claimAt_reads hcl F.hpool F.hcew F.hpoolPI) hR
   refine ⟨hkret.symm, ?_⟩
   -- the output lanes
   obtain ⟨chis, hchiR, hτc, hlcol, hlpt, hout, hl25⟩ := vs_lanes hbl F
@@ -125,7 +134,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
   obtain ⟨xsK, op, point, slices, capK, word, m0, hxsK, hrunK, hop, hpoint, hsl, hopL, hpointL,
     hslL, hretK⟩ :=
     hk (vsTau F.rowsN) chis ((lanesOf F.claims).map (·.value)) hτ9 hτ28 htg hτc hchiR
-      (by simp [hl25]) (by rw [F.e862, word_g110]; exact hout)
+      (by simp [hl25]) (by rw [F.e862, word_g105]; exact hout)
   have hretK' : [σ (.n 651), σ (.n 652), σ (.n 653), σ (.n 654), σ (.n 655)] ++
       [σ (.n 656), σ (.n 657), σ (.n 658)] = capK ++ [σ (.n 641) * gen ^ xsK.length, word, m0] :=
     hretK
@@ -140,7 +149,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
   simp only [List.cons.injEq, and_true] at hr1303
   -- the stack
   obtain ⟨hμ22, hμ28, hcand, hP, hKB⟩ :=
-    vs_stack hκ hκ6 L hLe hbl F hexp hcp hl2 e1892 r1 e1901 r2
+    vs_stack hκ hκ6 L hLe (Tables.certify_placement_holds hκ L) hbl F hexp hcp hl2 e1892 r1 e1901 r2
   -- the opening
   obtain ⟨root, hroot⟩ := digest_of_canonical F.hc537 F.hc547
   obtain ⟨w, s10, roots', hxsW, hrunW, hwL, pt, pt1, hretsW, hptR, hpt1R⟩ :=
@@ -155,13 +164,14 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
     omega
   -- the terminal
   obtain ⟨-, hTacc⟩ := check_opening_terminal_holds Tables.column_selector_holds
-    Tables.selector_tables_holds L.read _ _ (hLe _ _ _ hterm)
+    Tables.selector_tables_holds hκ L _ _ (hLe _ _ _ hterm)
   have hacc := hTacc (Tables.layoutOf bytecode F.logMem F.rowsN) F.bus F.claims
     ⟨qkeccak, op, word⟩ (σ (.n 1111)) point (ringCoefficients (σ (.n 658) :: vsChs σ)) w.point (by
       simp only [TermPre]
       refine ⟨F.hctx, by rw [logBytecode_eq hbl]; exact hP, hKB, rfl, rfl, hμ28,
-        show 1 ≤ F.logMem by have := F.hm16; omega, F.hm32, hbpL, hsL, F.hh29, F.e130, htg, hpw, h1884, trivial, hopL,
-        hop, hpointL, hpoint, by simp [ringCoefficients, kBits], hct, hwL, ?_, ?_⟩
+        show 1 ≤ F.logMem by have := F.hm16; omega, F.hm32, hbpL, hsL, F.hh29, F.e130, htg, F.hkb,
+        gTabs_of_exp hexp, rfl, rfl, hopL, hop, hpointL, hpoint, by simp [ringCoefficients, kBits],
+        hct, hwL, ?_, ?_⟩
       · rw [padPoint, hwL, e1907]; exact hptR
       · rw [padPoint, hwL, List.map_append, List.map_replicate, add_zero, e1908]; exact hpt1R)
   simp only [List.getD_cons_succ, List.getD_cons_zero] at hacc
@@ -243,7 +253,7 @@ theorem verify_sub_sound_w (bytecode : List K) : Main.SubSoundW bytecode vsPiOf 
     simp only [vsPiOf, piOfW, hidx]
     rw [vs_stream hκ L F hxsK e868]
   -- the statement
-  refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n XGLP), σ (.n 4), σ (.n 5), rfl, F.seed, F.pi,
+  refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), rfl, F.seed, F.pi,
     vsFixed σ F.r.2.1, F.hseed, F.hpi, ?_, ?_, ?_⟩
   · have := F.hptL
     have := depth_ge (logMem := F.logMem) hsL
