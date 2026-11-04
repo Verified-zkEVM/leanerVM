@@ -28,11 +28,11 @@ with its bodies `deps`:
   `18` GB), its body picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the
   other bodies' sizes by `decide +kernel`, which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`1488693`: the frame
-cells' `1459583` and the others', the entry's among them, `29110`, each exact) plus two per index
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`1488639`: the frame
+cells' `1459583` and the others', the entry's among them, `29056`, each exact) plus two per index
 without a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
-it in the chain gains a function): `1489949` at index `1037` with `409` bodies besides the entry, the
+it in the chain gains a function): `1489895` at index `1037` with `409` bodies besides the entry, the
 program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
 (`guestLocs`, a literal held once, `guestLocsTable`) are `1459582`. The frame cells (below `2^20`
 each), packed three to a limb, would take about a third of their `1459582`. -/
@@ -90,9 +90,9 @@ per index without a body: the indices up to the top's, `decTopC.costIdx + 1`, le
 the entry and `decTopC.costDeps`. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      1488693 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
+      1488639 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
   decoderProgramOf_size_le_of_increasing decoderProgram_indices_increasing
-    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 1459583 29110 1488693
+    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 1459583 29056 1488639
       decTopC.costDeps.length _ decoderProgramBodies_filter_locs guestLocsTable_size
       (by decide +kernel) (by decide +kernel) rfl (by decide +kernel))
 
