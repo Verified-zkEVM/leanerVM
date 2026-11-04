@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Interface
+public import LeanVM.Guest.B1.Placement.Interface
+public import LeanVM.Guest.B1.KeccakGkr.Interface
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
 public import Statement.LeanVmGuest

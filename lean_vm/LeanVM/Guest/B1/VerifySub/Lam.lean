@@ -1,14 +1,13 @@
 /-
   LeanVM.Guest.B1.VerifySub.Lam
 
-  `verify_sub`'s batching (G:3263-3281): the challenge `λ`, the powers stored for the terminal, and
-  the batched target.
+  `verify_sub`'s batching (G:3459-3472): the challenge `λ` and the batched target.
 -/
 
 module
 
 public import LeanVM.Guest.B1.VerifySub.Front
-public import LeanVM.Guest.B1.Terminal.Interface
+public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Protocol.Keccak.Multilinear
 public import LeanVM.Protocol.Keccak.Rmfe
 
@@ -16,10 +15,10 @@ public import LeanVM.Protocol.Keccak.Rmfe
 # The batching
 
 After `λ`'s squeeze, `vsLamT` walks the `140` claims the opening batches (the pool's `165` but
-the `25` output lanes', at `110 .. 134`; `vsKept`): claim `i`'s power `λ^(i+1)` is stored at its
-pool slot, its value read, and the target accumulates `λ^(i+1)·value`; then `λ^141` times the
-output lanes' claim. `kept_eq`: the skipped slots are exactly the claims whose column is an output
-lane, so claim `j`'s power is `λ^(1 + poolRank j)`, and the target is the specification's
+the `25` output lanes', at `110 .. 134`; `vsKept`): claim `i`'s value is read where `verify_tables`
+left it (`vsClaimAt`: `claim_pool` for the bus's and the public input's, `col_eval_words` for the
+tables'), and the target accumulates `λ^(i+1)·value`; then `λ^141` times the output lanes' claim. `kept_eq`: the skipped slots are exactly the claims whose column is an output
+lane, so the target is the specification's
 `dot (powers λ (n + 2)) (ring target :: values ++ [outputs' value])`.
 -/
 
@@ -40,10 +39,6 @@ lane are `vsKept 0, …, vsKept 139`. -/
 theorem kept_eq : (List.range Tables.nClaims).filter
     (fun j ↦ Tables.claimColumns.getD j 0 ∉ keccakOutputColumns) = (List.range 140).map vsKept := by
   decide +kernel
-
-theorem poolRank_kept : ∀ i < 140, poolRank (vsKept i) = i := by decide +kernel
-
-theorem poolRank_end : poolRank Tables.nClaims = 140 := by decide +kernel
 
 theorem vsKept_lt {i : ℕ} (hi : i < 140) : vsKept i < Tables.nClaims := by
   unfold vsKept; show _ < 165; split <;> omega
@@ -104,97 +99,114 @@ theorem dot_powers_batch (lam T x : E) (m : ℕ) (f : ℕ → E) :
     one_mul]
   ring
 
+/-! ## Where the batched values are -/
+
+/-- **The pooled values where the batching reads them**: claim `j`'s at `vsClaimAt j`, from
+`verify_tables`' three reads (the bus's in `claim_pool`, the tables' at `col_eval_words`, the
+public input's at `claim_pool·g^162`). -/
+theorem claimAt_reads {claims : List ColumnClaim} (hl : claims.length = Tables.nClaims)
+    (hp : ReadsAt rd (σ (.n 6)) ((claims.take Tables.nBusClaims).map (·.value)))
+    (hc : ReadsAt rd (σ (.n 645))
+      (((claims.drop Tables.nBusClaims).take Tables.nColEvals).map (·.value)))
+    (hq : ReadsAt rd (σ (.n 6) * gen ^ Tables.nPooled) ((claims.drop Tables.nPooled).map (·.value))) :
+    ∀ j < Tables.nClaims, LoadHolds rd (σ (.n (vsClaimAt j).1)) (vsClaimAt j).2
+      ((claims.map (·.value)).getD j 0) := by
+  have e1 : Tables.nClaims = 165 := rfl
+  have e2 : Tables.nBusClaims = 5 := rfl
+  have e3 : Tables.nColEvals = 157 := rfl
+  have e4 : Tables.nPooled = 162 := rfl
+  rw [e1] at hl ⊢
+  rw [e2, e3] at hc
+  rw [e2] at hp
+  rw [e4] at hq
+  intro j hj
+  have hj' : j < claims.length := by rw [hl]; exact hj
+  rw [List.getD_eq_getElem _ _ (by simpa using hj'), List.getElem_map]
+  unfold vsClaimAt
+  split_ifs with h
+  · have := hc (j - 5) (by simp only [List.length_map, List.length_take, List.length_drop, hl]; omega)
+    simp only [List.getElem_map, List.getElem_take, List.getElem_drop] at this
+    have e : claims[5 + (j - 5)]'(by omega) = claims[j] := by congr 1; omega
+    rwa [e] at this
+  · by_cases h5 : j < 5
+    · have := hp j (by simp only [List.length_map, List.length_take, hl]; omega)
+      simpa only [List.getElem_map, List.getElem_take] using this
+    · obtain ⟨k, rfl⟩ : ∃ k, j = 162 + k := ⟨j - 162, by omega⟩
+      have := hq k (by simp only [List.length_map, List.length_drop, hl]; omega)
+      rw [loadHolds_mul_gen_pow] at this
+      simpa only [List.getElem_map, List.getElem_drop, show 162 + k - 162 = k by omega] using this
+
 /-! ## The walk -/
 
-theorem vsPw_succ (n : ℕ) : vsPw (n + 1) = 1328 + 4 * n := by
+theorem vsPw_succ (n : ℕ) : vsPw (n + 1) = 1115 + 4 * n := by
   simp only [vsPw, Nat.add_one_ne_zero, ↓reduceIte]; omega
 
-theorem vsTg_succ (n : ℕ) : vsTg (n + 1) = 1327 + 4 * n := by
+theorem vsTg_succ (n : ℕ) : vsTg (n + 1) = 1114 + 4 * n := by
   simp only [vsTg, Nat.add_one_ne_zero, ↓reduceIte]; omega
 
-/-- The first `n` batched claims: their powers stored, the power `λ^(n+1)`, the target. -/
+/-- The first `n` batched claims: the power `λ^(n+1)`, the target. -/
 theorem lam_loop {lam T : E} {vals : List E} (hlam : σ (.n 1111) = lam) (hT : σ (.n 1091) = T)
-    (hval : ReadsAt rd (σ (.n 6)) vals) (hvl : vals.length = Tables.nClaims) :
+    (hval : ∀ j < Tables.nClaims, LoadHolds rd (σ (.n (vsClaimAt j).1)) (vsClaimAt j).2
+      (vals.getD j 0)) :
     ∀ n ≤ 140, ∀ {nx : Prop}, Stmt.HoldsList C rd σ ((List.range n).flatMap vsLamStep) nx kret →
-      (∀ i < n, LoadHolds rd (σ (.n XLAMPOOL)) (vsKept i) (lam ^ (i + 1))) ∧
       σ (.n (vsPw n)) = lam ^ (n + 1) ∧
       σ (.n (vsTg n)) = T + ∑ i ∈ range n, lam ^ (i + 1) * vals.getD (vsKept i) 0 ∧ nx
-  | 0, _, nx, h => ⟨fun i hi ↦ absurd hi (by omega), by simp [vsPw, hlam], by simp [vsTg, hT], h⟩
+  | 0, _, nx, h => ⟨by simp [vsPw, hlam], by simp [vsTg, hT], h⟩
   | n + 1, hn, nx, h => by
     rw [List.range_succ, List.flatMap_append, holdsList_append] at h
-    obtain ⟨hs, hp, ht, h⟩ := lam_loop hlam hT hval hvl n (by omega) h
+    obtain ⟨hp, ht, h⟩ := lam_loop hlam hT hval n (by omega) h
     simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, vsLamStep, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds, vsLd, vsMul, vsAdd] at h
-    obtain ⟨st, ld, m1, a1, m2, h⟩ := h
-    have hk := vsKept_lt (by omega : n < 140)
-    have hv : σ (.n (1325 + 4 * n)) = vals.getD (vsKept n) 0 := by
-      rw [List.getD_eq_getElem _ _ (by omega)]
-      exact loadHolds_unique ld (hval _ (by omega))
-    refine ⟨fun i hi ↦ ?_, ?_, ?_, h⟩
-    · rcases Nat.lt_succ_iff_lt_or_eq.1 hi with hi | rfl
-      · exact hs i hi
-      · rw [← hp]; exact st
+    obtain ⟨ld, m1, a1, m2, h⟩ := h
+    have hv : σ (.n (1112 + 4 * n)) = vals.getD (vsKept n) 0 :=
+      loadHolds_unique ld (hval _ (vsKept_lt (by omega)))
+    refine ⟨?_, ?_, h⟩
     · rw [vsPw_succ, m2, hp, hlam]; ring
     · rw [vsTg_succ, a1, ht, m1, hp, hv, Finset.sum_range_succ]; ring
 
-/-- **The batching** (G:3263-3281), after `λ`'s squeeze (`hsq`, the squeeze's facts `SQ`):
-claim `j`'s power `λ^(1 + poolRank j)` stored for every batched claim, `λ^141` at `1884`, and
-the batched target at `1886`. -/
+/-- **The batching** (G:3459-3472), after `λ`'s squeeze (`hsq`, the squeeze's facts `SQ`):
+`λ^141` at `1671`, and the batched target at `1673`. -/
 theorem vsLamT_holds_of {SQ : Prop}
-    (hsq : ∀ {nx : Prop}, Stmt.HoldsList C rd σ (vsSqzT 966 1304) nx kret → SQ ∧ nx)
+    (hsq : ∀ {nx : Prop}, Stmt.HoldsList C rd σ (vsSqzT 754 1092) nx kret → SQ ∧ nx)
     {claims : List ColumnClaim} (hcol : claims.map (·.column) = Tables.claimColumns)
-    (hval : ReadsAt rd (σ (.n 6)) (claims.map (·.value)))
+    (hval : ∀ j < Tables.nClaims, LoadHolds rd (σ (.n (vsClaimAt j).1)) (vsClaimAt j).2
+      ((claims.map (·.value)).getD j 0))
     (h : Stmt.HoldsList C rd σ vsLamT next kret) :
-    SQ ∧
-    (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
-      LoadHolds rd (σ (.n XLAMPOOL)) j (σ (.n 1111) ^ (1 + poolRank j))) ∧
-    σ (.n 1671) = σ (.n 1111) ^ (1 + poolRank Tables.nClaims) ∧
+    SQ ∧ σ (.n 1671) = σ (.n 1111) ^ 141 ∧
     σ (.n 1673) = dot (powers (σ (.n 1111))
       ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length + 2))
       (σ (.n 1091) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
         [σ (.n 657)])) ∧ next := by
-  have hvl : (claims.map (·.value)).length = Tables.nClaims := by
-    rw [List.length_map, ← List.length_map (f := (·.column)), hcol]; decide +kernel
   unfold vsLamT at h
-  rw [holdsList_append, holdsList_append, holdsList_append] at h
+  rw [holdsList_append, holdsList_append] at h
   obtain ⟨hS, h⟩ := hsq h
-  simp only [Stmt.HoldsList, Stmt.Holds, vsAlloc, Atom.Holds, true_and] at h
-  obtain ⟨hs, hp, ht, h⟩ := lam_loop rfl rfl hval hvl 140 le_rfl h
-  simp only [Stmt.Holds, Atom.Holds, vsMul, vsAdd] at h
+  obtain ⟨hp, ht, h⟩ := lam_loop rfl rfl hval 140 le_rfl h
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, vsMul, vsAdd] at h
   obtain ⟨m, a, h⟩ := h
   have hv := kept_values hcol
   have hfl : (claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length = 140 := by
     rw [← List.length_map (f := (·.value)), hv, List.length_map, List.length_range]
-  refine ⟨hS, fun j hj hout ↦ ?_, ?_, ?_, h⟩
-  · have hm : j ∈ (List.range 140).map vsKept := by
-      rw [← kept_eq]; exact List.mem_filter.2 ⟨List.mem_range.2 hj, by simpa using hout⟩
-    obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hm
-    have hi' := List.mem_range.1 hi
-    rw [poolRank_kept i hi', add_comm]
-    exact hs i hi'
-  · rw [poolRank_end]; exact hp
-  · rw [hv, hfl, dot_powers_batch, a, m]
-    rw [show vsTg 140 = 1883 from rfl] at ht
-    rw [show vsPw 140 = 1884 from rfl] at hp
-    rw [ht, hp]
+  rw [show vsTg 140 = 1670 from rfl] at ht
+  rw [show vsPw 140 = 1671 from rfl] at hp
+  refine ⟨hS, hp, ?_, h⟩
+  rw [hv, hfl, dot_powers_batch, a, m, ht, hp]
 
-/-- **The batching** (G:3263-3281): `λ`'s squeeze, claim `j`'s power `λ^(1 + poolRank j)` stored
-for every batched claim, `λ^141` at `1884`, and the batched target at `1886`. -/
+/-- **The batching** (G:3459-3472): `λ`'s squeeze, `λ^141` at `1671`, and the batched target at
+`1673`. -/
 theorem vsLamT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
     (h13 : σ (.n 11) = 0) {claims : List ColumnClaim}
     (hcol : claims.map (·.column) = Tables.claimColumns)
-    (hval : ReadsAt rd (σ (.n 6)) (claims.map (·.value)))
+    (hval : ∀ j < Tables.nClaims, LoadHolds rd (σ (.n (vsClaimAt j).1)) (vsClaimAt j).2
+      ((claims.map (·.value)).getD j 0))
     (h : Stmt.HoldsList C rd σ vsLamT next kret) :
     (⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩ : Fs).squeeze =
       (σ (.n 1111), ⟨[σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)], []⟩) ∧
-    (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
-      LoadHolds rd (σ (.n XLAMPOOL)) j (σ (.n 1111) ^ (1 + poolRank j))) ∧
-    σ (.n 1671) = σ (.n 1111) ^ (1 + poolRank Tables.nClaims) ∧
+    σ (.n 1671) = σ (.n 1111) ^ 141 ∧
     σ (.n 1673) = dot (powers (σ (.n 1111))
       ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length + 2))
       (σ (.n 1091) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
         [σ (.n 657)])) ∧ next :=
-  vsLamT_holds_of (fun hs ↦ vsSqzT_holds (capb := 966) (o := 1304) h10 h11 h12 h13 hs) hcol hval h
+  vsLamT_holds_of (fun hs ↦ vsSqzT_holds (capb := 754) (o := 1092) h10 h11 h12 h13 hs) hcol hval h
 
 end
 end LeanVM.Guest.B1.VerifySub
