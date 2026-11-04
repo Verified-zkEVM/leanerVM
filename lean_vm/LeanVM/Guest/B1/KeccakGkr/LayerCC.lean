@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCB
 # The pack rounds' setup and the last record, completely
 
 * `packSetup_complete`: with the claim's point pointer in its record, the first round record in
-  memory, and the pack loop's (and with `odd` the last round's) relations, the setup holds.
+  memory, and the eight-round and remainder loops' relations, the setup holds.
 * `last_complete`: with the last record in memory, `lastT` reads it and holds.
 -/
 
@@ -33,104 +33,103 @@ theorem capAt_get {rec : E} {k : ℕ} {cap : List E} (h : CapAt rd rec k krCap c
   rw [List.getD_eq_getElem _ _ (by omega), show k + 16 * j = k + j * krCap by simp [krCap]; ring]
   exact this
 
-/-- **The pack rounds' setup, completely.** -/
-theorem packSetup_complete {first odd : ℕ} (hg : ∀ s ∈ packSetupT first odd, GoodS rd S w σ s)
-    (hS : Atom.load (.n 1308) (.n 11) 2 ∉ S) {pp : E} (hpp : LoadHolds rd (σ (.n 11)) 2 pp)
-    (hrec : RoundRec rd (σ (.n 1310)) 0 ((cap5 1078).map σ) (σ (.n 7) * gen ^ 47) (σ (.n 1307)) 1)
+/-- **The pack rounds' setup, completely**: with the claim's point pointer in its record, the
+first round record in memory, and the two loops' relations, the setup holds. -/
+theorem packSetup_complete {first : ℕ} (hg : ∀ s ∈ packSetupT first, GoodS rd S w σ s)
+    (hS : Atom.load (.n 1051) (.n 11) 2 ∉ S) {pp : E} (hpp : LoadHolds rd (σ (.n 11)) 2 pp)
+    (hrec : RoundRec rd (σ (.n 1053)) 0 ((cap5 866).map σ) (σ (.n 7) * gen ^ 47) (σ (.n 1050)) 1)
     (hik : IsInK (1 + σ (.n 9)))
     (hcall : 1 + σ (.n 9) ≠ 0 →
-      C (packLoopName first odd) [1, σ (.n 9), σ (.n 1310), pp, σ (.n 1309)] [])
-    (hodd : odd = 1 → C "keccak_round" [σ (.n 1310) * σ (.n 9), pp * σ (.n 9) ^ 2,
-        σ (.n 1309) * σ (.n 9) ^ 2] []) :
-    σ (.n 1308) = pp ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (packSetupT first odd) next kret := by
-  have hg0 := fun s hs ↦ hg s (by rw [packSetupT]; exact List.mem_append_left _ hs)
-  simp only [List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true,
-    GoodS, Good] at hg0
-  obtain ⟨g1308, -, -, -, -, -, -, -, e1311, e1312, -, -, e1313, -, e1314, e1315, e1316⟩ := hg0
-  have epp := load_val (w := w) g1308 hS hpp
-  simp only [V.n] at e1312
-  rw [ite_pos' (by simp)] at e1312
+      C (packLoopName first) [1, σ (.n 9), σ (.n 1053), pp, σ (.n 1052)] [])
+    (hik' : IsInK (1 + σ (.n 10)))
+    (hcall' : 1 + σ (.n 10) ≠ 0 →
+      C (remLoopName first) [1, σ (.n 10), σ (.n 1053) * σ (.n 9), pp * σ (.n 9) ^ 8,
+        σ (.n 1052) * σ (.n 9) ^ 8] []) :
+    σ (.n 1051) = pp ∧ σ (.n 1060) = σ (.n 1053) * σ (.n 9) ∧
+      ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ (packSetupT first) next kret := by
+  have gs : ∀ a, Stmt.atom a ∈ packSetupT first → Good rd S w σ a := fun a ha ↦ hg _ ha
+  have epp := load_val (w := w) (gs _ (by simp [packSetupT])) hS hpp
+  have e1054 : σ (.n 1054) = word 140737488355328 0 0 := gs (.const (.n 1054) _) (by simp [packSetupT])
+  have e1055 : σ (.n 1055) = σ (.n 7) * σ (.n 1054) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1056 : σ (.n 1056) = word 1 0 0 := gs (.const (.n 1056) _) (by simp [packSetupT])
+  have e1057 : σ (.n 1057) = word 1 0 0 := gs (.const (.n 1057) _) (by simp [packSetupT])
+  have e1058 : σ (.n 1058) = σ (.n 1057) + σ (.n 9) := gs (.add (.n 1058) _ _) (by simp [packSetupT])
+  have e1059 : σ (.n 1059) = word 1 0 0 := gs (.const (.n 1059) _) (by simp [packSetupT])
+  have e1060 : σ (.n 1060) = σ (.n 1053) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1061 : σ (.n 1061) = σ (.n 9) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1062 : σ (.n 1062) = σ (.n 1061) * σ (.n 1061) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1063 : σ (.n 1063) = σ (.n 1062) * σ (.n 1062) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1064 : σ (.n 1064) = σ (.n 1051) * σ (.n 1063) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1065 : σ (.n 1065) = σ (.n 9) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1066 : σ (.n 1066) = σ (.n 1065) * σ (.n 1065) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1067 : σ (.n 1067) = σ (.n 1066) * σ (.n 1066) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1068 : σ (.n 1068) = σ (.n 1052) * σ (.n 1067) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1069 : σ (.n 1069) = word 1 0 0 := gs (.const (.n 1069) _) (by simp [packSetupT])
+  have e1070 : σ (.n 1070) = σ (.n 1069) + σ (.n 10) := gs (.add (.n 1070) _ _) (by simp [packSetupT])
+  have e1071 : σ (.n 1071) = word 1 0 0 := gs (.const (.n 1071) _) (by simp [packSetupT])
   obtain ⟨hcap, lcur, lcl, lsc⟩ := hrec
-  have c : ∀ j < 5, LoadHolds rd (σ (.n 1310)) (16 * j) (σ (.n (1078 + j))) := by
+  have c : ∀ j < 5, LoadHolds rd (σ (.n 1053)) (16 * j) (σ (.n (866 + j))) := by
     intro j hj
     have := capAt_get hcap hj
     rw [zero_add] at this
     interval_cases j <;> simpa [cap5] using this
-  have e1315' : σ (.n 1315) = 1 + σ (.n 9) := by rw [e1315, e1314, word_one]
-  refine ⟨epp, fun {next kret} hn ↦ ?_⟩
-  rw [packSetupT, holdsList_append]
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
+  have e1058' : σ (.n 1058) = 1 + σ (.n 9) := by rw [e1058, e1057, word_one]
+  have e1070' : σ (.n 1070) = 1 + σ (.n 10) := by rw [e1070, e1069, word_one]
+  refine ⟨epp, e1060, fun {next kret} hn ↦ ?_⟩
+  simp only [packSetupT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   refine ⟨by rw [epp]; exact hpp, trivial, trivial, c 0 (by norm_num), c 1 (by norm_num),
-    c 2 (by norm_num), c 3 (by norm_num), c 4 (by norm_num), e1311, e1312, ?_, ?_, e1313, ?_,
-    e1314, e1315, e1316, by rw [e1315']; exact hik, fun hne ↦ ?_, ?_⟩
-  · simpa [krCap, e1312, e1311, gen47] using lcur
+    c 2 (by norm_num), c 3 (by norm_num), c 4 (by norm_num), e1054, e1055, ?_, ?_, e1056, ?_,
+    e1057, e1058, e1059, by rw [e1058']; exact hik, fun hne ↦ ?_, e1060, e1061, e1062, e1063,
+    e1064, e1065, e1066, e1067, e1068, e1069, e1070, e1071, by rw [e1070']; exact hik',
+    fun hne ↦ ?_, hn⟩
+  · simpa [krCap, e1055, e1054, gen47] using lcur
   · simpa [krCap] using lcl
-  · simpa [krCap, e1313, word_one] using lsc
-  · rw [e1316, word_one, epp]
-    exact hcall (by rw [← e1315']; exact hne)
-  · by_cases ho : odd = 1
-    · have hg1 := fun s hs ↦ hg s (by rw [packSetupT]; exact List.mem_append_right _ hs)
-      simp only [ho, ↓reduceIte, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
-        implies_true, and_true, GoodS, Good, V.n] at hg1
-      obtain ⟨e17, e18, e19, e20⟩ := hg1
-      rw [ite_pos' (by simp)] at e17 e18 e19 e20
-      simp only [ho, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
-        List.map_nil]
-      refine ⟨e17, e18, e19, e20, ?_, hn⟩
-      rw [e18, e19, e20, e17, epp]
-      simpa [sq] using hodd ho
-    · simp only [ho, ↓reduceIte, Stmt.HoldsList]
-      exact hn
+  · simpa [krCap, e1056, word_one] using lsc
+  · rw [e1059, word_one, epp]
+    exact hcall (by rw [← e1058']; exact hne)
+  · have h8 : σ (.n 1063) = σ (.n 9) ^ 8 := gen_pow_eight_of _ _ _ _ e1061 e1062 e1063
+    have h8' : σ (.n 1067) = σ (.n 9) ^ 8 := gen_pow_eight_of _ _ _ _ e1065 e1066 e1067
+    rw [e1071, word_one, e1060, e1064, e1068, h8, h8', epp]
+    exact hcall' (by rw [← e1070']; exact hne)
 
-theorem last_kernel {odd : ℕ} (ho : odd < 2) :
-    (lastT (4 * odd)).all isAtom = true ∧ canonChk [] (atomsL ([] ++ lastT (4 * odd))) = true ∧
-      resid (atomsL (lastT (4 * odd))) =
-        (List.range 5).map (fun j ↦ .load (.n (4 * odd + 1318 + j)) (.n (4 * odd + 1317)) (16 * j)) ++
-          [.load (.n (4 * odd + 1323)) (.n (4 * odd + 1317)) 80,
-            .load (.n (4 * odd + 1324)) (.n (4 * odd + 1317)) 96] := by
-  interval_cases odd
-  · exact ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
-  · exact ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
+theorem last_kernel :
+    lastT.all isAtom = true ∧ canonChk [] (atomsL ([] ++ lastT)) = true ∧
+      resid (atomsL lastT) = (List.range 8).map (fun j ↦ .load (.n (1073 + j)) (.n 1072) (16 * j)) :=
+  ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
 
 set_option maxRecDepth 20000 in
-/-- **The last record, completely**: with the record `rounds·y_last` in memory, its capacity,
-cursor and claim are read, and `lastT` holds. -/
-theorem last_complete {odd : ℕ} (ho : odd < 2) (hσ : ∀ v, σ v = σ (.n v.idx))
-    (hg : ∀ s ∈ lastT (4 * odd), GoodS rd S w σ s)
-    (hS : ∀ d off, Atom.load d (.n (4 * odd + 1317)) off ∉ S) {capL : List E} {curL vL scL : E}
-    (hrec : RoundRec rd (σ (.n 1310) * σ (.n 10)) 0 capL curL vL scL) :
-    σ (.n (4 * odd + 1317)) = σ (.n 1310) * σ (.n 10) ∧
-      (cap5 (4 * odd + 1318)).map σ = capL ∧ σ (.n (4 * odd + 1323)) = curL ∧
-      σ (.n (4 * odd + 1324)) = vL ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
-        Stmt.HoldsList C rd σ (lastT (4 * odd)) next kret := by
-  obtain ⟨hall, hk, hr⟩ := last_kernel ho
-  have g17 := hg (.atom (.mul (.n (4 * odd + 1317)) (.n 1310) (.n 10)))
-      (by unfold lastT; exact List.mem_append_left _ (List.mem_append_left _ List.mem_cons_self))
-  simp only [GoodS, Good, V.n] at g17
-  rw [ite_pos' (by simp)] at g17
-  obtain ⟨⟨hcl, hcap⟩, lcur, lv, -⟩ := hrec
-  rw [← g17] at hcap lcur lv
-  have gl : ∀ j < 5, Good rd S w σ (.load (.n (4 * odd + 1318 + j)) (.n (4 * odd + 1317)) (16 * j)) :=
+/-- **The last record, completely**: with the record `rounds·step_g·rem_g` in memory, its
+capacity, cursor, claim and scale are read, and `lastT` holds. -/
+theorem last_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ lastT, GoodS rd S w σ s)
+    (hS : ∀ d off, Atom.load d (.n 1072) off ∉ S) {capL : List E} {curL vL scL : E}
+    (hrec : RoundRec rd (σ (.n 1060) * σ (.n 10)) 0 capL curL vL scL) :
+    σ (.n 1072) = σ (.n 1060) * σ (.n 10) ∧ (cap5 1073).map σ = capL ∧ σ (.n 1078) = curL ∧
+      σ (.n 1079) = vL ∧ σ (.n 1080) = scL ∧ ∀ {next : Prop} {kret : List E → Prop}, next →
+        Stmt.HoldsList C rd σ lastT next kret := by
+  obtain ⟨hall, hk, hr⟩ := last_kernel
+  have g72 : σ (.n 1072) = σ (.n 1060) * σ (.n 10) :=
+    good_mul (by decide) (show Good rd S w σ (.mul (.n 1072) (.n 1060) (.n 10)) from
+      hg (.atom (.mul (.n 1072) (.n 1060) (.n 10))) (by simp [lastT]))
+  obtain ⟨⟨hcl, hcap⟩, lcur, lv, lsc⟩ := hrec
+  rw [← g72] at hcap lcur lv lsc
+  have gl : ∀ j < 8, Good rd S w σ (.load (.n (1073 + j)) (.n 1072) (16 * j)) :=
     fun j hj ↦ hg (.atom (.load _ _ _))
       (by
         unfold lastT
         exact List.mem_append_left _ (List.mem_append_right _
           (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)))
-  have hcapj : ∀ j (hj : j < 5), LoadHolds rd (σ (.n (4 * odd + 1317))) (16 * j)
+  have hcapj : ∀ j (hj : j < 5), LoadHolds rd (σ (.n 1072)) (16 * j)
       (capL[j]'(by omega)) := fun j hj ↦ by
     have := hcap j (by omega)
     rwa [zero_add, show j * krCap = 16 * j by simp [krCap]; ring] at this
-  have ecap : ∀ j (hj : j < 5), σ (.n (4 * odd + 1318 + j)) = capL[j]'(by omega) :=
-    fun j hj ↦ load_val (gl j hj) (hS _ _) (hcapj j hj)
-  have g23 : Good rd S w σ (.load (.n (4 * odd + 1323)) (.n (4 * odd + 1317)) 80) :=
-    hg (.atom (.load _ _ _)) (by unfold lastT; exact List.mem_append_right _ List.mem_cons_self)
-  have g24 : Good rd S w σ (.load (.n (4 * odd + 1324)) (.n (4 * odd + 1317)) 96) :=
-    hg (.atom (.load _ _ _))
-      (by unfold lastT; exact List.mem_append_right _ (List.mem_cons_of_mem _ List.mem_cons_self))
-  have lcur' : LoadHolds rd (σ (.n (4 * odd + 1317))) 80 curL := by simpa [krCap] using lcur
-  have lv' : LoadHolds rd (σ (.n (4 * odd + 1317))) 96 vL := by simpa [krCap] using lv
-  refine ⟨g17, ?_, load_val g23 (hS _ _) lcur', load_val g24 (hS _ _) lv', ?_⟩
+  have ecap : ∀ j (hj : j < 5), σ (.n (1073 + j)) = capL[j]'(by omega) :=
+    fun j hj ↦ load_val (gl j (by omega)) (hS _ _) (hcapj j hj)
+  have lcur' : LoadHolds rd (σ (.n 1072)) (16 * 5) curL := by simpa [krCap] using lcur
+  have lv' : LoadHolds rd (σ (.n 1072)) (16 * 6) vL := by simpa [krCap] using lv
+  have lsc' : LoadHolds rd (σ (.n 1072)) (16 * 7) scL := by simpa [krCap] using lsc
+  refine ⟨g72, ?_, load_val (gl 5 (by norm_num)) (hS _ _) lcur',
+    load_val (gl 6 (by norm_num)) (hS _ _) lv', load_val (gl 7 (by norm_num)) (hS _ _) lsc', ?_⟩
   · obtain ⟨c0, c1, c2, c3, c4, rfl⟩ : ∃ c0 c1 c2 c3 c4, capL = [c0, c1, c2, c3, c4] := by
       match capL, hcl with
       | [c0, c1, c2, c3, c4], _ => exact ⟨c0, c1, c2, c3, c4, rfl⟩
@@ -145,13 +144,13 @@ theorem last_complete {odd : ℕ} (ho : odd < 2) (hσ : ∀ v, σ v = σ (.n v.i
     rw [hr]
     intro a ha
     right
-    rcases List.mem_append.mp ha with ha | ha
-    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp ha
-      exact side_load (hS _ _) (hcapj j (List.mem_range.mp hj))
-    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
-      rcases ha with rfl | rfl
-      · exact side_load (hS _ _) lcur'
-      · exact side_load (hS _ _) lv'
+    obtain ⟨j, hj, rfl⟩ := List.mem_map.mp ha
+    have hj' := List.mem_range.mp hj
+    rcases (show j < 5 ∨ j = 5 ∨ j = 6 ∨ j = 7 by omega) with hj5 | rfl | rfl | rfl
+    · exact side_load (hS _ _) (hcapj j hj5)
+    · exact side_load (hS _ _) lcur'
+    · exact side_load (hS _ _) lv'
+    · exact side_load (hS _ _) lsc'
 
 end
 end LeanVM.Guest.B1.VerifySub
