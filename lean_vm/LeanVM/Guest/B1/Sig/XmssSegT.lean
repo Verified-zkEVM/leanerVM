@@ -41,10 +41,10 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 /-! ## Values -/
 
 /-- The padding run of the check, set by the bottom layer's message digest. -/
-def sPad : Nat := 98
+def sLxPad : Nat := 98
 /-- The claim's pointer, `lx_table · idx^4`. -/
 def sSigner : V := .n 65
-def sPP : V := .n 66
+def sLxPP : V := .n 66
 /-- `his[w] = leaf_index >> 8w`, hinted. -/
 def sHis (w : Nat) : V := .n (67 + w)
 /-- Window `w` in the exponent, hinted. -/
@@ -56,7 +56,7 @@ def sTagParam (j : Nat) : V := .n (5 + j)
 
 /-- Chain `i`'s index cell (`walk`): the zero cell, `powers[log₂ i]` or the carried tag. -/
 def sTag (i : Nat) : V :=
-  if i = 0 then .n (sPad + 1) else if lxTagCarried i then sTagParam (lxTagSlot i - 1)
+  if i = 0 then .n (sLxPad + 1) else if lxTagCarried i then sTagParam (lxTagSlot i - 1)
   else sPower (lxTagLog i)
 
 /-- The range bound `g^255` of an `8`-bit dispatch, a reduced word. -/
@@ -65,13 +65,13 @@ def bound255 : E := word 9223372036854810629 0 0
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, tag i], walks[o:o + 13])` (`walk`,
 `lean_ethereum.py:3566-3570`), its constant at `c`. -/
 def sWots (steps : Nat → V) : WotsT where
-  step i s v c o := k64 sPad sPP (steps s) v (sTag i) c o
+  step i s v c o := k64 sLxPad sLxPP (steps s) v (sTag i) c o
   size := 1
   power := sPower
 
 /-- The prologue (`lean_ethereum.py:3656-3676`). -/
 def sPrologue : List Stmt :=
-  [loadS sPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ++
+  [loadS sLxPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ++
     (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0 0))
 
 /-! ## The codeword -/
@@ -147,16 +147,16 @@ def lxLevelT (w k r : Nat) (cur : V) (outO : Option Nat) (b : Nat) : List Stmt �
     let o := if r + 1 = 8 then outO.getD (b + 3) else b + 3
     let nb := if r + 1 = 8 ∧ outO.isSome then b + 3 else b + 16
     ([hintW "lx_path" [.n b], cst (b + 1) c] ++
-      k64 sPad sPP (.n (b + 1)) (ord (.n b)).1 (ord (.n b)).2 (b + 2) o, nb, .n o)
+      k64 sLxPad sLxPP (.n (b + 1)) (ord (.n b)).1 (ord (.n b)).2 (b + 2) o, nb, .n o)
   else if r + 1 = 8 then
     let o := outO.getD (b + 4)
     let nb := if outO.isSome then b + 4 else b + 17
     ([cst b c, addS (.n (b + 1)) (sHis (w + 1)) (.n b), hintW "lx_path" [.n (b + 2)]] ++
-      k64 sPad sPP (.n (b + 1)) (ord (.n (b + 2))).1 (ord (.n (b + 2))).2 (b + 3) o, nb, .n o)
+      k64 sLxPad sLxPP (.n (b + 1)) (ord (.n (b + 2))).1 (ord (.n (b + 2))).2 (b + 3) o, nb, .n o)
   else
     ([mulS (.n b) (sHis (w + 1)) (sPower (7 - r)), cst (b + 1) c, addS (.n (b + 2)) (.n b) (.n (b + 1)),
       hintW "lx_path" [.n (b + 3)]] ++
-      k64 sPad sPP (.n (b + 2)) (ord (.n (b + 3))).1 (ord (.n (b + 3))).2 (b + 4) (b + 5),
+      k64 sLxPad sLxPP (.n (b + 2)) (ord (.n (b + 3))).1 (ord (.n (b + 3))).2 (b + 4) (b + 5),
       b + 18, .n (b + 5))
 
 /-- Levels `r ..< r + m` of window `w` in arm `k`. -/
@@ -204,25 +204,25 @@ def sDigest0 (b : Nat) : List Stmt :=
     cst (b + 6) (word 1 0 0), cst (b + 7) (word 0 0 0), cst (b + 8) (word 0 0 0),
     cst (b + 9) (word (2 ^ 63) 0 0)] ++
   (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0)) ++
-  [kecS [sPP, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
+  [kecS [sLxPP, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
     .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 13) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def sDigest1 (b : Nat) (root : V) : List Stmt :=
   [cst b (word lxTop 0 0), addS (.n (b + 1)) (sHis 2) (.n b), hintW "randomizer" [.n (b + 2)],
     cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
-  k64 sPad sPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
+  k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
 def sA (layer b : Nat) : Nat := if layer = 0 then b + 28 else b + 19
-def sIdx (layer b : Nat) : V := if layer = 0 then sHis 0 else .n (b + 1)
+def sLxIdx (layer b : Nat) : V := if layer = 0 then sHis 0 else .n (b + 1)
 def sD0 (layer b : Nat) : V := if layer = 0 then .n (b + 15) else .n (b + 6)
 def sRho (layer b : Nat) : V := if layer = 0 then .n b else .n (b + 2)
 def sW (layer b : Nat) : WotsT := sWots fun s => .n (sA layer b + 2 * s + 1)
 def sCw (layer b : Nat) : List Stmt × Nat × List V :=
   sCodewordT (sW layer b) xTarget (sD0 layer b) (sA layer b + 6)
-def sLeafCells (layer b : Nat) : List V := sPP :: V.n ((sCw layer b).2.1 + 1) :: (sCw layer b).2.2
+def sLeafCells (layer b : Nat) : List V := sLxPP :: V.n ((sCw layer b).2.1 + 1) :: (sCw layer b).2.2
 def sLeafK (layer b : Nat) : List Stmt × Nat × Nat :=
-  kMsg sPad ((sLeafCells layer b).map KC.cell) 960 false none ((sCw layer b).2.1 + 2)
+  kMsg sLxPad ((sLeafCells layer b).map KC.cell) 960 false none ((sCw layer b).2.1 + 2)
 def sWin0 (layer b : Nat) : List Stmt × Nat × Nat :=
   lxWindowT (2 * layer) (.n (sLeafK layer b).2.2) (sLeafK layer b).2.1
 def sWin1 (layer b : Nat) : List Stmt × Nat × Nat :=
@@ -232,9 +232,9 @@ def sWin1 (layer b : Nat) : List Stmt × Nat × Nat :=
 step addresses, its codeword, its one-time leaf and its two windows; the statements, the next base
 and its root. -/
 def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
-  ((if layer = 0 then sDigest0 b else sDigest1 b root) ++ xStepAddrs (sIdx layer b) (sA layer b) ++
+  ((if layer = 0 then sDigest0 b else sDigest1 b root) ++ xStepAddrs (sLxIdx layer b) (sA layer b) ++
     (sCw layer b).1 ++ [cst (sCw layer b).2.1 (word (tw 2) 0 0),
-      addS (.n ((sCw layer b).2.1 + 1)) (sIdx layer b) (.n (sCw layer b).2.1)] ++
+      addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)] ++
     (sLeafK layer b).1 ++ (sWin0 layer b).1 ++ (sWin1 layer b).1, (sWin1 layer b).2.1,
     .n (sWin1 layer b).2.2)
 
