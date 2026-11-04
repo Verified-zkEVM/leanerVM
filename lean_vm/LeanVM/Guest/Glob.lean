@@ -37,7 +37,7 @@ def nFns : ℕ := 992
 
 instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
-instance : Inhabited Cert := ⟨⟨{}, [], [], [], 0, [], [], [], [], [], [], []⟩⟩
+instance : Inhabited Cert := ⟨⟨{}, [], [], [], 0, [], [], [], [], [], [], [], []⟩⟩
 
 /-- Compiled function `j`. -/
 def fnOf (j : ℕ) : CompiledFunction := listElementOrDefault Data.functions j default
@@ -49,9 +49,10 @@ noncomputable def coreOf (j : ℕ) : Core.Fn := listElementOrDefault coreProgram
 checked once) as its executor's. -/
 noncomputable def certOf (j : ℕ) : Cert :=
   match listElementOrDefault Data.certs j default with
-  | ⟨⟨env, fpOne, _, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts, ends⟩ =>
+  | ⟨⟨env, fpOne, _, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts, ends,
+      entered⟩ =>
     ⟨⟨env, fpOne, Data.powTree, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts,
-      ends⟩
+      ends, entered⟩
 
 /-- What a caller knows of function `j`. -/
 noncomputable def sigOf (j : ℕ) : Sig :=
