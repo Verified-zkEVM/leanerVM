@@ -357,18 +357,24 @@ noncomputable def VtHonest.retsH (H : VtHonest) (B : VtBases) : List E :=
   H.s3.squeeze.2.cap ++ [ofK (addressOfIndex B.cur) * gen ^ 5 * gen ^ (3 * H.n) * gen ^ 157,
     gen ^ H.n, H.bv, H.rm, ofK (addressOfIndex B.cur) * gen ^ 5 * gen ^ (3 * H.n)]
 
+/-- What the calls' placement reads of the valuation: `kappa_base` and the shared lengths. -/
+def VtKbSh (H : VtHonest) (σ : Val) : Prop :=
+  (∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, H.lm] ++ vtTauList H.τ).getD i 0) ∧
+    ∀ t < 6, σ (.n (vtShLen t)) = gen ^ (H.μ - H.τ t)
+
 set_option maxRecDepth 20000 in
-/-- **`verify_tables` is complete at the `Rel` level.** -/
-theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases) {w : ℕ → E}
+/-- **`verify_tables` is complete at the `Rel` level**, with `kappa_base` and the shared
+lengths. -/
+theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases) {w : ℕ → E}
     (hw : VtWOk H B w) {rd : Reader} (hlow : LowDefB 14 rd)
     (hm : MemLay rd (H.linL B ++ H.ownL B)) :
-    (∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd w (H.args B)) s) ∧
+    ((∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd w (H.args B)) s) ∧
       LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) vtPre ∧
       (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
         (fun x ↦ x.2.elim id fun s ↦ LeanVM.Guest.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
       ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
         (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
-      vtRets.map (vtσ rd w (H.args B)) = H.retsH B := by
+      vtRets.map (vtσ rd w (H.args B)) = H.retsH B) ∧ VtKbSh H (vtσ rd w (H.args B)) := by
   obtain ⟨hlm, hlmμ, h19, hμ33, hr, hτ29, hτμ, hal, hf, hfcan, hfitP, hfitC, hbc⟩ := hs
   have hl : (H.args B).length = 20 := rfl
   have p : ∀ i < 20, (vtσ rd w (H.args B)) (.n i) = (H.args B).getD i 0 := fun i hi ↦ vt_param hl hi
@@ -619,7 +625,7 @@ theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
       exact this)
   obtain ⟨-, tCap, t6862, t6863, t6864, t6865, t6866⟩ := tOut
   -- every statement
-  refine ⟨forall_vtPre sV bV (z_slice_tail zV) fV tV, ?_, ?_, ?_, ?_⟩
+  refine ⟨⟨forall_vtPre sV bV (z_slice_tail zV) fV tV, ?_, ?_, ?_, ?_⟩, skb, sSh⟩
   rotate_left
   · -- the sizes
     have hm1 : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
@@ -743,6 +749,19 @@ theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
     exact forall_vtPre (P := fun s ↦ ∀ d p' off, s = .atom (.load d p' off) →
       InBuf (vtσ rd w (H.args B)) (H.bufs B) p' off) (conv LS) (conv LB) LZ (conv LF)
       (conv LT) _ hs d p' off rfl
+
+/-- **`verify_tables` is complete at the `Rel` level.** -/
+theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases) {w : ℕ → E}
+    (hw : VtWOk H B w) {rd : Reader} (hlow : LowDefB 14 rd)
+    (hm : MemLay rd (H.linL B ++ H.ownL B)) :
+    (∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd w (H.args B)) s) ∧
+      LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) vtPre ∧
+      (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map
+        (fun x ↦ x.2.elim id fun s ↦ LeanVM.Guest.Memory.logG (vtσ rd w (H.args B) s)) = H.sizes ∧
+      ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
+        (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
+      vtRets.map (vtσ rd w (H.args B)) = H.retsH B :=
+  (vt_rel_completeF h hs B hw hlow hm).1
 
 /-- **`vt_rel_complete` with the explicit oracle** `vtW`. -/
 theorem vt_rel_complete_vtW {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
