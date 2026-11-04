@@ -41,16 +41,17 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **A level's callees**, from B1-a's theorems and the names' facts. -/
-theorem lvCallees_of {rd : Reader} {c : OsCfg} {lvl : ℕ} {lv : OsLv}
-    (hsq : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
-    (hn : NamesOk c lvl lv) : LvCallees rd c lvl lv := by
+theorem lvCallees_of {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {c : OsCfg} {lvl : ℕ} {lv : OsLv}
+    (hsq : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
+    (hn : NamesOk c lvl lv) : LvCallees L.read c lvl lv := by
+  let rd := L.read
   obtain ⟨hood, hfm, hgr, hdec, hcap, -, hrw, hfo⟩ := hn
   refine ⟨fun a r h ↦ (opening_fold_holds rd a r).mp h,
     fun a r h ↦ (assert_canonical_holds rd a r).mp h,
     fun hnf a r h ↦ (opening_ood_point_holds _ (hood hnf) rd a r).mp h,
     fun a r h ↦ (opening_final_message_holds _ hfm rd a r).mp h,
     fun a r h ↦ by rw [hgr] at h; exact (grind_check_holds rd a r).mp h, hsq,
-    fun a r h ↦ (decode_query_bits_all_holds _ hdec rd a r).mp h, fun a r h ↦ ?_,
+    fun a r hw h ↦ decode_query_windows_all_holds _ hdec hκ L a r hw h, fun a r h ↦ ?_,
     fun a r h ↦ (verify_merkle_cap_holds _ hcap rd a r).mp h⟩
   rw [hrw] at h
   by_cases h0 : lvl = 0
@@ -112,7 +113,9 @@ theorem osQCalls_name (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (st : OsSt
 
 /-- **`open_stacked` is sound with its witness named**, at every candidate. -/
 theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
-  intro rd C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur rets fn σ hfs hroot hfind hp hh
+  intro κ hκ L C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur rets fn σ hfs hroot hfind
+    hp hh
+  set rd := L.read
   have hm : candidate μ r < 28 := by unfold candidate; omega
   obtain ⟨cfg, hF, hnames, hffm⟩ := candB_sound (candB_all μ r h1 h2 h3 h4)
   have hdata := osData_all _ hm
@@ -150,7 +153,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
     rw [Nat.zero_add, osCfg_levels_getElem _ _ hi]
     have hn := hnames i hi
     rw [lv_getD hi, osCfg_levels_getElem _ _ hi] at hn
-    exact lvCallees_of (hdata.2 i hi).1 hn
+    exact lvCallees_of hκ L (hdata.2 i hi).1 hn
   · refine qwOk_of (c := osCfg (candidate μ r)) _ 0 fun i hi ↦ ?_
     rw [Nat.zero_add]
     have hn := hnames i hi

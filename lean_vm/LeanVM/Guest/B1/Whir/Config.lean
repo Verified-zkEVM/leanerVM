@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.B1.Whir.MatPlan
 
 /-!
 # The `LIG_*` tables and a candidate's configuration (TRIAGE G #42)
@@ -114,6 +115,8 @@ structure OsCfg where
   capLen : Nat
   /-- The first loop helper's number. -/
   loopBase : Nat
+  /-- The compiler's choices of a shifted pointer's source (`osMatPlan`). -/
+  plan : List (Nat × Nat × Nat)
   deriving Repr, Inhabited
 
 /-- Level `lvl`'s row of candidate `m`. -/
@@ -145,7 +148,7 @@ def osCfg (m : Nat) : OsCfg :=
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
     maxQ := lig Data.arr_LIG_MAX_QUERIES m, maxSq := lig Data.arr_LIG_MAX_SQUEEZES m,
     maxIl := lig Data.arr_LIG_MAX_INTERLEAVE m, posLen := lig Data.arr_LIG_POSITIONS_LEN m,
-    capLen := lig Data.arr_LIG_CAP_LEN m, loopBase := loopBase m }
+    capLen := lig Data.arr_LIG_CAP_LEN m, loopBase := loopBase m, plan := osMatPlan m }
 
 /-- The vanishing value `LIG_VANISH_VALS[i]` (a word of `K`, its low limb). -/
 def vanishVal (i : Nat) : Nat := lig Data.arr_LIG_VANISH_VALS i

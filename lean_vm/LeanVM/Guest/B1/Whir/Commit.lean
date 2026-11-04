@@ -180,6 +180,7 @@ structure CommitOut (rd : Reader) (σ : Val) (lvl m : ℕ) (st st' : OsSt) (F : 
   sponge : F = ⟨st'.fsv σ, []⟩
   cur : st'.cur σ = st.cur σ * gen ^ 6
   fs : st'.fs.length = 5
+  mats : MatsOk σ st'.mats
 
 /-- **A level's next commitment** (G:1331-1390), with the grinding check after it: the root's two
 halves, the out-of-domain point, its value and intro, the nonce read at the cursor; they run the
@@ -191,14 +192,14 @@ theorem osCommit_sound
       MeaningOpeningOodPoint lv.logCols rd args rets)
     (hGr : ∀ args rets, C ("grind_check__L" ++ natStr lv.grind) args rets →
       MeaningGrindCheck Whir.queryGrindingBits args rets)
-    {st : OsSt} (hfs : st.fs.length = 5) (hm : 1 ≤ lv.logCols)
-    (hlvl : (lvl + 1) * ligColsCap < u128Bound)
-    (hok : AllOk C rd σ ((osCommit lvl lv st).1 ++
-      [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit lvl lv st).2.2] []]))
+    {plan : List (ℕ × ℕ × ℕ)} {st : OsSt} (hfs : st.fs.length = 5) (hmats : MatsOk σ st.mats)
+    (hm : 1 ≤ lv.logCols) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
+    (hok : AllOk C rd σ ((osCommit plan lvl lv st).1 ++
+      [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit plan lvl lv st).2.2] []]))
     (next : Whir.Level) (rest : List Whir.Level) (roots : List (Digest × ℕ × ℕ)) :
     ∃ (ra rb y c0 c2 nonce : E) (d : Digest) (z : List E) (F' : Fs),
       ReadsAt rd (st.cur σ) [ra, rb, y, c0, c2, nonce] ∧
-      CommitOut rd σ lvl lv.logCols st (osCommit lvl lv st).2.1 F' ra rb y c0 c2 nonce d z ∧
+      CommitOut rd σ lvl lv.logCols st (osCommit plan lvl lv st).2.1 F' ra rb y c0 c2 nonce d z ∧
       RunsWith (do
           let r ← levelMid lv.logCols (next :: rest)
           VerifierProgram.grindProofOfWork Whir.queryGrindingBits
@@ -212,7 +213,7 @@ theorem osCommit_sound
     allOk_fsNextT, StmtOk, Atom.Holds, List.zipIdx_cons, List.zipIdx_nil, List.map_cons,
     List.map_nil, List.range_succ, List.range_zero, List.nil_append, List.cons_append, osRun,
     and_assoc, Nat.add_assoc, Nat.reduceAdd, Nat.add_zero, Nat.zero_add] at hok
-  obtain ⟨-, -, -, -, -, P0, P1, L23, P23, L33, P33, can23, can33, R23, R33, c45, m46, hood, L52,
+  obtain ⟨-, -, -, -, -, P0, P1, L23, P23, L33, P33, can23, can33, R23, R33, hozA, hood, L52,
     P52, L62, P62, L72, P72, S52, S62, S72, L82, e83, e84, e85, e86, e87, P82, hK, hgr⟩ := hok
   set k := st.k
   -- the root's halves are canonical: a digest
@@ -283,9 +284,13 @@ theorem osCommit_sound
     (σ (.n (k + 62))) (σ (.n (k + 72))) (σ (.n (k + 82))) hdd hm next rest roots
     (by rw [hF1, hsq]; exact hpow)
   have hoz : σ (.n (k + 46)) = σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap) := by
-    rw [m46, c45, gw_eq hlvl]
+    have h46 := (osMatP_shape plan st.mats osOodz ((lvl + 1) * ligColsCap) (k + 45)).2
+      (by unfold ligColsCap; omega)
+    have := osMatP_val hmats hlvl hozA
+    rw [h46] at this
+    exact this
   refine ⟨_, _, _, _, _, _, d, _, _, ?_, ⟨hd, R23, R33, squeezeN_length _ _, ?_, S52, S62, S72, ?_,
-    ?_, rfl⟩, hrun⟩
+    ?_, rfl, osMatsAfter_ok hmats hlvl hozA⟩, hrun⟩
   · refine readsAt_cur fun i hi ↦ ?_
     rcases i with _ | _ | _ | _ | _ | _ | i
     · simpa using L23
