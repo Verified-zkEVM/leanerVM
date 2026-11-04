@@ -23,13 +23,12 @@ public import LeanVM.Guest.B2C.Cplw.C13_0_0
 public import LeanVM.Guest.B2C.Cplw.C13_3_0
 public import LeanVM.Guest.B2C.Cplw.C15_0_0
 public import LeanVM.Guest.B2C.Cplw.C18_2_0
-public import LeanVM.Guest.B2C.Cplw.C19_0_0
-public import LeanVM.Guest.B2C.Cplw.C19_1_0
-public import LeanVM.Guest.B2C.Cplw.C20_7_0
-public import LeanVM.Guest.B2C.Cplw.C20_15_0
-public import LeanVM.Guest.B2C.Cplw.C20_23_0
-public import LeanVM.Guest.B2C.Cplw.C20_31_0
-public import LeanVM.Guest.B2C.Cplw.C20_39_0
+public import LeanVM.Guest.B2C.Cplw.C19_1_1
+public import LeanVM.Guest.B2C.Cplw.C20_6_0
+public import LeanVM.Guest.B2C.Cplw.C20_14_0
+public import LeanVM.Guest.B2C.Cplw.C20_22_0
+public import LeanVM.Guest.B2C.Cplw.C20_30_0
+public import LeanVM.Guest.B2C.Cplw.C20_38_0
 public import LeanVM.Guest.B2C.Cplw.C21_5_0
 public import LeanVM.Guest.B2C.Cplw.C21_11_0
 public import LeanVM.Guest.B2C.Cplw.C21_17_0
@@ -354,17 +353,22 @@ theorem ok18 : CplOk 18 := by
 
 theorem ok19 : CplOk 19 := by
   intro i hi k hk
-  have hc : (certOf 19).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 19).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 19 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw19_0_0
-  · have hn : nParts 19 1 = 1 := by decide +kernel
+  · have hn : nParts 19 1 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw19_1_0
+    · exact cw19_1_1
+  · have hn : nParts 19 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw19_2_0
 
 theorem ok20 : CplOk 20 := by
   intro i hi k hk

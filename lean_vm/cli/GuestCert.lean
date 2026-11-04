@@ -578,7 +578,10 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
   let mut loads : Option (ℕ × ℕ × ℕ) := none
   for (s, idx) in ss.zipIdx do
     if top then modify fun st => { st with marks := st.marks.push (idx, p, facts.size, loads), curTop := idx }
-    loads := none
+    -- a hint runs no code: the statement after it still starts after the returned words' loads
+    match s with
+    | .atom (.hint _) => pure ()
+    | _ => loads := none
     match s with
     | .atom a =>
       let (p', f') ← try atom a p facts
@@ -877,7 +880,9 @@ def winObligations (body : List Core.Stmt) : List (ℕ × ℕ × List (ℕ × �
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
 `lean_vm/README.md`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
-(argument 9), `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
+(argument 9) and on the tables' certified logs `dims_g[g^t]`, `t < 7` (argument 10, cell 12:
+`kb[1 + t]`, an unadjusted `kappa_g`, `lean_ethereum.py:2118-2121, 2218-2221`),
+`log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
 `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument;
@@ -889,7 +894,7 @@ def bounds (name : String) :
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
   else if name == "list_split" then ([], [(5, 17)], [], [])
   else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
-  else if name == "verify_tables" then ([(11, 34)], [], [], [])
+  else if name == "verify_tables" then ([(11, 34)], [], (List.range 7).map (fun t => (12, t, 34)), [])
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
     name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(4, 34)], [], [])
@@ -1061,8 +1066,13 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
   let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
   let mut forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ)) := []
+  -- a forced cut avoids the start right after a call's returns (the window before would end
+  -- before reading them back)
+  let afterRets (k : ℕ) : Bool := k > 0 && match cf.body[k - 1]? with
+    | some (.call _ _ (_ :: _)) | some (.dispatch _ _ _ (_ :: _)) => true
+    | _ => false
   for (i, lo, kn, ki, sm) in forced0 do
-    match (cands.filter fun c => lo ≤ c.1 && c.1 ≤ i).back? with
+    match (cands.filter fun c => lo ≤ c.1 && c.1 ≤ i && (c.1 == lo || !afterRets c.1)).back? with
     | some c => forced := forced ++ [(c.1, kn, ki, sm)]
     | none => throw s!"{f.name}: no window can start at statements {lo}..{i} (near: {(cands.filter fun c => c.1 + 40 ≥ lo && c.1 ≤ i + 40).toList.map (·.1)}, marks {(marks.filter fun m => m.1 + 40 ≥ lo && m.1 ≤ i + 40).toList.map (·.1)})"
   let mw := maxWin coarse f.name
@@ -1140,7 +1150,12 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
       (cf.body.findIdx? fun
         | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
         | _ => false).bind fun d => if d < idx then some (cellOf (.n v), 2) else none
-    out := out.push ⟨J, envL, idx, handed, pre ++ held, known, knownIf, sems, b⟩
+    -- the bounds earlier top-level calls return (`bounds`' after), handed on as bounds
+    let posts := (cf.body.take idx).flatMap fun
+      | .call g args rets => ((bounds g).2.1).filterMap fun (o, n) =>
+          ((args ++ rets)[o - 2]?).map fun v => (cellOf v, n)
+      | _ => []
+    out := out.push ⟨J, envL, idx, handed, (pre ++ held ++ posts).eraseDups, known, knownIf, sems, b⟩
     a := J
     env := envL
   return out.toList

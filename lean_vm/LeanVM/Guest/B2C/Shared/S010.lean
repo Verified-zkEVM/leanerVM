@@ -43,5 +43,9 @@ set_option maxRecDepth 100000 in
 /-- `verify_sub`, window 2. -/
 theorem w19_2 : shareWin 19 (snapsOf 19) 2 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `verify_sub`, window 3. -/
+theorem w19_3 : shareWin 19 (snapsOf 19) 3 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

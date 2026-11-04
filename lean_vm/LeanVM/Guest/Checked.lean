@@ -12,11 +12,11 @@ public import LeanVM.Guest.Checked.F8_0
 public import LeanVM.Guest.Checked.F12_4
 public import LeanVM.Guest.Checked.F13_3
 public import LeanVM.Guest.Checked.F18_1
-public import LeanVM.Guest.Checked.F20_4
-public import LeanVM.Guest.Checked.F20_12
-public import LeanVM.Guest.Checked.F20_20
-public import LeanVM.Guest.Checked.F20_28
-public import LeanVM.Guest.Checked.F20_36
+public import LeanVM.Guest.Checked.F20_3
+public import LeanVM.Guest.Checked.F20_11
+public import LeanVM.Guest.Checked.F20_19
+public import LeanVM.Guest.Checked.F20_27
+public import LeanVM.Guest.Checked.F20_35
 public import LeanVM.Guest.Checked.F21_2
 public import LeanVM.Guest.Checked.F21_7
 public import LeanVM.Guest.Checked.F21_12

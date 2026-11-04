@@ -759,7 +759,7 @@ theorem ok18 : ShareOk 18 := ⟨st18, fun i hi ↦ by
 ⟩
 
 theorem ok19 : ShareOk 19 := ⟨st19, fun i hi ↦ by
-  have h : (snapsOf 19).length = 4 := by decide +kernel
+  have h : (snapsOf 19).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w19_0
@@ -767,6 +767,7 @@ theorem ok19 : ShareOk 19 := ⟨st19, fun i hi ↦ by
   · exact w19_2
   · exact w19_3
   · exact w19_4
+  · exact w19_5
 ⟩
 
 theorem ok20 : ShareOk 20 := ⟨st20, fun i hi ↦ by

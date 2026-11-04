@@ -751,12 +751,16 @@ noncomputable def boundScaled (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ 
   | some k => Nat.ble k n && boundBase mem B bnd x (n - k)
   | none => false
 
-/-- A bound `e < n` on `fp[c]`: `boundBase`, or a product `fp[c] = fp[x]·g^k` by a known power
-of `g` with `fp[x]` bounded by `n - k` (`boundScaled`): the guest shifts a bounded exponent by a
+/-- A bound `e < n` on `fp[c]`: `boundBase`, a known power `g^k`, `k < n` (`gpAt`: `verify_tables`'
+`kappa_g = kb[0]·g^adj`, a constant), or a product `fp[c] = fp[x]·g^k` by a known power of `g`
+with `fp[x]` bounded by `n - k` (`boundScaled`): the guest shifts a bounded exponent by a
 constant (`check_opening_terminal`'s `kb[i]·g^adj`). -/
 noncomputable def boundOk0 (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ × ℕ × ℕ)) (B : Book)
     (bnd : List (ℕ × ℕ)) (c n : ℕ) : Bool :=
   boundBase mem B bnd c n ||
+  (match gpAt F B ψ c with
+    | some k => Nat.blt k n
+    | none => false) ||
   (look B c).any (fun a ↦ match a with
     | .instr _ (.mul x y z) => z == c &&
         (boundScaled F ψ mem B bnd x y n || boundScaled F ψ mem B bnd y x n)

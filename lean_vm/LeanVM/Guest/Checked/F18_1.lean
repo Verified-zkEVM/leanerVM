@@ -29,6 +29,9 @@ theorem w19_0 : WinOk 19 0 := winOk_of_C (by decide +kernel)
 /-- `verify_sub`, window 1. -/
 theorem w19_1 : WinOk 19 1 := winOk_of_C (by decide +kernel)
 
+/-- `verify_sub`, window 2. -/
+theorem w19_2 : WinOk 19 2 := winOk_of_C (by decide +kernel)
+
 /-- `verify_lean_xmss`, window 0. -/
 theorem w20_0 : WinOk 20 0 := winOk_of_C (by decide +kernel)
 
@@ -37,9 +40,6 @@ theorem w20_1 : WinOk 20 1 := winOk_of_C (by decide +kernel)
 
 /-- `verify_lean_xmss`, window 2. -/
 theorem w20_2 : WinOk 20 2 := winOk_of_C (by decide +kernel)
-
-/-- `verify_lean_xmss`, window 3. -/
-theorem w20_3 : WinOk 20 3 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

@@ -17,12 +17,12 @@ public import LeanVM.Guest.Checked.F13_3
 public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F18_1
-public import LeanVM.Guest.Checked.F20_4
-public import LeanVM.Guest.Checked.F20_12
-public import LeanVM.Guest.Checked.F20_20
-public import LeanVM.Guest.Checked.F20_28
-public import LeanVM.Guest.Checked.F20_36
-public import LeanVM.Guest.Checked.F20_36
+public import LeanVM.Guest.Checked.F20_3
+public import LeanVM.Guest.Checked.F20_11
+public import LeanVM.Guest.Checked.F20_19
+public import LeanVM.Guest.Checked.F20_27
+public import LeanVM.Guest.Checked.F20_35
+public import LeanVM.Guest.Checked.F20_35
 public import LeanVM.Guest.Checked.F21_2
 public import LeanVM.Guest.Checked.F21_7
 public import LeanVM.Guest.Checked.F21_12
@@ -117,11 +117,12 @@ theorem plain18 : Plain 18 := by
   decide +kernel
 
 theorem ok19 : CheckOk 19 := fun i hi ↦ by
-  have h : (certOf 19).cuts.length = 1 := by decide +kernel
+  have h : (certOf 19).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w19_0
   · exact w19_1
+  · exact w19_2
 
 theorem ok20 : CheckOk 20 := fun i hi ↦ by
   have h : (certOf 20).cuts.length = 39 := by decide +kernel
