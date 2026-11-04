@@ -31,6 +31,10 @@ open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns bufL)
 
 @[expose] public section
 
+/-- **`child_claim_list_digest`'s honest shape** on `n` claims. -/
+def ccHonest (n : ℕ) : Tree → Prop :=
+  NodeHonest coreProgram "child_claim_list_digest" (ccQ n) (ccCalls n) (clBufs n) clTs
+
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
 /-- **Child `c`'s leanXMSS list is complete.** -/

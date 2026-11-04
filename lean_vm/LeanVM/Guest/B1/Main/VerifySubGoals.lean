@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.VerifySubGoals
 
   Each child's `verify_sub` call on `main`'s honest run, within its own words: B1-d's
-  `verify_sub_completeBT` at the child (its announced stack log and rate), its exponent tables
+  `verify_sub_completeBT` at the child (its announced stack log and rate), its exponent table
   `exponent_tables`' and its fresh claim's slot in `main`'s children's fresh claims, moved to
   `main`'s words.
 -/
@@ -38,9 +38,9 @@ open LeanVM.Guest.B1.VerifySub (VsWords vsBoundAt vsTs VkCompleteAtB verify_sub_
 variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
   {w : NodeWitness} {bytecode : List K}
 
-/-- `exponent_tables`' tables are `log2Lin`'s. -/
+/-- `exponent_tables`' table is `log2Lin`'s. -/
 theorem etL_eq (fs : String → ℕ) (fp : ℕ) (d : MainData) :
-    log2Lin (etB fs (mK0 d fs fp)) (etB fs (mK0 d fs fp) + 34) = etL d fs fp := rfl
+    log2Lin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
 
 /-- **Every child's announced shape is an opening arm of the guest**: its stack log in
 `[22, 28]`, its rate in `[1, 4]`. -/
@@ -72,8 +72,8 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   set e := etB fs (mK0 (hData seed s w) fs fp) with he
   set outE := hP fs fp seed s w 6 + 24 * c with hout
   have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
-    w.children[c] e (e + 34) outE
-    (log2Lin e (e + 34) ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
+    w.children[c] e outE
+    (log2Lin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
     (hok _ hmem).stackLogAtLeastMinimum (hok _ hmem).streamWithinCap (Limits.verifyDeferredNZ_of_childOk (hok _ hmem))
     (hok _ hmem).capsAgree
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
@@ -90,11 +90,10 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
     le_rfl fun t ht _ => ⟨by unfold B1.Whir.candidate; omega, ht⟩
   have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
     simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
-  have e1 : (hm fs fp seed s w).et1 = ofK (addressOfIndex e) := gen_pow_eq_ofK _
-  have e2 : (hm fs fp seed s w).et2 = ofK (addressOfIndex (e + 34)) := gen_pow_eq_ofK _
+  have e1 : (hm fs fp seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
   have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
     rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl
-  rw [e1, e2, e3]
+  rw [e1, e3]
   refine completeAtDTB_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) h
   · rcases List.mem_append.mp hq with hq | hq
     · rw [etL_eq] at hq
