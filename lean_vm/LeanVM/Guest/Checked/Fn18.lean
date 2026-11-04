@@ -76,10 +76,6 @@ theorem ok902 : CheckOk 902 := fun i hi ↦ by
   · exact w902_5
   · exact w902_6
 
-theorem plain902 : Plain 902 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain903 : Plain 903 := plain_of_nil (by decide +kernel)
 
 theorem ok904 : CheckOk 904 := fun i hi ↦ by
@@ -90,10 +86,6 @@ theorem ok904 : CheckOk 904 := fun i hi ↦ by
   · exact w904_1
   · exact w904_2
   · exact w904_3
-
-theorem plain904 : Plain 904 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain905 : Plain 905 := plain_of_nil (by decide +kernel)
 
@@ -108,10 +100,6 @@ theorem ok906 : CheckOk 906 := fun i hi ↦ by
   · exact w906_4
   · exact w906_5
   · exact w906_6
-
-theorem plain906 : Plain 906 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain907 : Plain 907 := plain_of_nil (by decide +kernel)
 
@@ -128,10 +116,6 @@ theorem ok908 : CheckOk 908 := fun i hi ↦ by
   · exact w908_6
   · exact w908_7
 
-theorem plain908 : Plain 908 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain909 : Plain 909 := plain_of_nil (by decide +kernel)
 
 theorem ok910 : CheckOk 910 := fun i hi ↦ by
@@ -142,10 +126,6 @@ theorem ok910 : CheckOk 910 := fun i hi ↦ by
   · exact w910_1
   · exact w910_2
   · exact w910_3
-
-theorem plain910 : Plain 910 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain911 : Plain 911 := plain_of_nil (by decide +kernel)
 
@@ -162,10 +142,6 @@ theorem ok912 : CheckOk 912 := fun i hi ↦ by
   · exact w912_6
   · exact w912_7
 
-theorem plain912 : Plain 912 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain913 : Plain 913 := plain_of_nil (by decide +kernel)
 
 theorem ok914 : CheckOk 914 := fun i hi ↦ by
@@ -177,10 +153,6 @@ theorem ok914 : CheckOk 914 := fun i hi ↦ by
   · exact w914_2
   · exact w914_3
   · exact w914_4
-
-theorem plain914 : Plain 914 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain915 : Plain 915 := plain_of_nil (by decide +kernel)
 
@@ -194,10 +166,6 @@ theorem ok916 : CheckOk 916 := fun i hi ↦ by
   · exact w916_3
   · exact w916_4
 
-theorem plain916 : Plain 916 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain917 : Plain 917 := plain_of_nil (by decide +kernel)
 
 theorem ok918 : CheckOk 918 := fun i hi ↦ by
@@ -208,10 +176,6 @@ theorem ok918 : CheckOk 918 := fun i hi ↦ by
   · exact w918_1
   · exact w918_2
   · exact w918_3
-
-theorem plain918 : Plain 918 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok919 : CheckOk 919 := fun i hi ↦ by
   have h : (certOf 919).cuts.length = 6 := by decide +kernel
@@ -225,10 +189,6 @@ theorem ok919 : CheckOk 919 := fun i hi ↦ by
   · exact w919_5
   · exact w919_6
 
-theorem plain919 : Plain 919 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok920 : CheckOk 920 := fun i hi ↦ by
   have h : (certOf 920).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -240,10 +200,6 @@ theorem ok920 : CheckOk 920 := fun i hi ↦ by
   · exact w920_4
   · exact w920_5
   · exact w920_6
-
-theorem plain920 : Plain 920 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok921 : CheckOk 921 := fun i hi ↦ by
   have h : (certOf 921).cuts.length = 6 := by decide +kernel
@@ -257,10 +213,6 @@ theorem ok921 : CheckOk 921 := fun i hi ↦ by
   · exact w921_5
   · exact w921_6
 
-theorem plain921 : Plain 921 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok922 : CheckOk 922 := fun i hi ↦ by
   have h : (certOf 922).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -272,10 +224,6 @@ theorem ok922 : CheckOk 922 := fun i hi ↦ by
   · exact w922_4
   · exact w922_5
   · exact w922_6
-
-theorem plain922 : Plain 922 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok923 : CheckOk 923 := fun i hi ↦ by
   have h : (certOf 923).cuts.length = 7 := by decide +kernel
@@ -290,10 +238,6 @@ theorem ok923 : CheckOk 923 := fun i hi ↦ by
   · exact w923_6
   · exact w923_7
 
-theorem plain923 : Plain 923 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok924 : CheckOk 924 := fun i hi ↦ by
   have h : (certOf 924).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -306,10 +250,6 @@ theorem ok924 : CheckOk 924 := fun i hi ↦ by
   · exact w924_5
   · exact w924_6
   · exact w924_7
-
-theorem plain924 : Plain 924 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain925 : Plain 925 := plain_of_nil (by decide +kernel)
 
@@ -327,10 +267,6 @@ theorem ok926 : CheckOk 926 := fun i hi ↦ by
   · exact w926_7
   · exact w926_8
 
-theorem plain926 : Plain 926 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain927 : Plain 927 := plain_of_nil (by decide +kernel)
 
 theorem ok928 : CheckOk 928 := fun i hi ↦ by
@@ -342,10 +278,6 @@ theorem ok928 : CheckOk 928 := fun i hi ↦ by
   · exact w928_2
   · exact w928_3
   · exact w928_4
-
-theorem plain928 : Plain 928 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain929 : Plain 929 := plain_of_nil (by decide +kernel)
 
@@ -359,10 +291,6 @@ theorem ok930 : CheckOk 930 := fun i hi ↦ by
   · exact w930_3
   · exact w930_4
 
-theorem plain930 : Plain 930 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain931 : Plain 931 := plain_of_nil (by decide +kernel)
 
 theorem ok932 : CheckOk 932 := fun i hi ↦ by
@@ -374,10 +302,6 @@ theorem ok932 : CheckOk 932 := fun i hi ↦ by
   · exact w932_2
   · exact w932_3
   · exact w932_4
-
-theorem plain932 : Plain 932 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok933 : CheckOk 933 := fun i hi ↦ by
   have h : (certOf 933).cuts.length = 6 := by decide +kernel
@@ -391,10 +315,6 @@ theorem ok933 : CheckOk 933 := fun i hi ↦ by
   · exact w933_5
   · exact w933_6
 
-theorem plain933 : Plain 933 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok934 : CheckOk 934 := fun i hi ↦ by
   have h : (certOf 934).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -406,10 +326,6 @@ theorem ok934 : CheckOk 934 := fun i hi ↦ by
   · exact w934_4
   · exact w934_5
   · exact w934_6
-
-theorem plain934 : Plain 934 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok935 : CheckOk 935 := fun i hi ↦ by
   have h : (certOf 935).cuts.length = 7 := by decide +kernel
@@ -424,10 +340,6 @@ theorem ok935 : CheckOk 935 := fun i hi ↦ by
   · exact w935_6
   · exact w935_7
 
-theorem plain935 : Plain 935 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok936 : CheckOk 936 := fun i hi ↦ by
   have h : (certOf 936).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -440,10 +352,6 @@ theorem ok936 : CheckOk 936 := fun i hi ↦ by
   · exact w936_5
   · exact w936_6
   · exact w936_7
-
-theorem plain936 : Plain 936 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok937 : CheckOk 937 := fun i hi ↦ by
   have h : (certOf 937).cuts.length = 8 := by decide +kernel
@@ -458,10 +366,6 @@ theorem ok937 : CheckOk 937 := fun i hi ↦ by
   · exact w937_6
   · exact w937_7
   · exact w937_8
-
-theorem plain937 : Plain 937 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain938 : Plain 938 := plain_of_nil (by decide +kernel)
 
@@ -479,10 +383,6 @@ theorem ok939 : CheckOk 939 := fun i hi ↦ by
   · exact w939_7
   · exact w939_8
 
-theorem plain939 : Plain 939 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain940 : Plain 940 := plain_of_nil (by decide +kernel)
 
 theorem ok941 : CheckOk 941 := fun i hi ↦ by
@@ -494,10 +394,6 @@ theorem ok941 : CheckOk 941 := fun i hi ↦ by
   · exact w941_2
   · exact w941_3
   · exact w941_4
-
-theorem plain941 : Plain 941 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain942 : Plain 942 := plain_of_nil (by decide +kernel)
 
@@ -515,10 +411,6 @@ theorem ok943 : CheckOk 943 := fun i hi ↦ by
   · exact w943_7
   · exact w943_8
 
-theorem plain943 : Plain 943 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain944 : Plain 944 := plain_of_nil (by decide +kernel)
 
 theorem ok945 : CheckOk 945 := fun i hi ↦ by
@@ -531,10 +423,6 @@ theorem ok945 : CheckOk 945 := fun i hi ↦ by
   · exact w945_3
   · exact w945_4
 
-theorem plain945 : Plain 945 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain946 : Plain 946 := plain_of_nil (by decide +kernel)
 
 theorem ok947 : CheckOk 947 := fun i hi ↦ by
@@ -546,10 +434,6 @@ theorem ok947 : CheckOk 947 := fun i hi ↦ by
   · exact w947_2
   · exact w947_3
   · exact w947_4
-
-theorem plain947 : Plain 947 := by
-  unfold Plain
-  decide +kernel
 
 end
 end LeanVM.Guest.Checked

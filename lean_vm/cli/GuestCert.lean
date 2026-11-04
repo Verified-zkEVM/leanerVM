@@ -1014,22 +1014,26 @@ def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
   | _ => none
 
 /-- What later statements look up beyond the facts they find: the cells of frame addresses,
-selectors and bounded call arguments, and the constants' cells and limbs. -/
-partial def laterNeeds (cellOf : Core.V → ℕ) : List Core.Stmt → List ℕ × List (ℕ × ℕ × ℕ × ℕ)
+selectors and bounded call arguments, the arguments and guard of a call to a function with walk
+obligations (`walk`: `Check.neAt`, a conditional tag's constant), and the constants' cells and
+limbs. -/
+partial def laterNeeds (walk : String → Bool) (cellOf : Core.V → ℕ) :
+    List Core.Stmt → List ℕ × List (ℕ × ℕ × ℕ × ℕ)
   | [] => ([], [])
   | s :: ss =>
     let preCells (g : String) (args : List Core.V) : List ℕ :=
       (bounds g).1.filterMap fun (o, _) => (args[o - 2]?).map cellOf
-    let (a, b) := laterNeeds cellOf ss
+    let (a, b) := laterNeeds walk cellOf ss
     let (a', b') : List ℕ × List (ℕ × ℕ × ℕ × ℕ) := match s with
       | .atom (.frameAddr q _) => ([cellOf q], [])
       | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; ([], [(cellOf v, k0, k1, k2)])
-      | .match_ x arms => arms.foldl (fun (a, b) arm => let (a2, b2) := laterNeeds cellOf arm; (a ++ a2, b ++ b2))
+      | .match_ x arms => arms.foldl (fun (a, b) arm => let (a2, b2) := laterNeeds walk cellOf arm; (a ++ a2, b ++ b2))
           ([cellOf x], [])
-      | .ite _ z n => let (a1, b1) := laterNeeds cellOf z; let (a2, b2) := laterNeeds cellOf n; (a1 ++ a2, b1 ++ b2)
+      | .ite _ z n => let (a1, b1) := laterNeeds walk cellOf z; let (a2, b2) := laterNeeds walk cellOf n; (a1 ++ a2, b1 ++ b2)
       | .dispatch x fs args _ => (cellOf x :: fs.flatMap (preCells · args), [])
-      | .call g args _ => (preCells g args, [])
-      | .callIf c g args => (cellOf c :: args.map cellOf ++ preCells g args, [])
+      | .call g args _ => ((if walk g then args.map cellOf else []) ++ preCells g args, [])
+      | .callIf c g args =>
+          ((if walk g then cellOf c :: args.map cellOf else []) ++ preCells g args, [])
       | _ => ([], [])
     (a' ++ a, b' ++ b)
 
@@ -1040,7 +1044,7 @@ three times `maxWin`), wherever the next window would grow past it. -/
 def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) (locs : List ℕ)
     (marks : Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ))) (spine : Array Exec.Atom)
     (uses : Array (ℕ × ℕ)) (segMap : Std.HashMap ℕ GSeg)
-    (pre : List (ℕ × ℕ))
+    (pre : List (ℕ × ℕ)) (walk : String → Bool)
     (forced0 : List (ℕ × ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ))) :
     Except String (List CutG) := do
   let locA := locs.toArray
@@ -1102,7 +1106,7 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     -- the passed facts later statements found, and those under the cells of later frame
     -- addresses and selectors
     let later := cf.body.drop idx
-    let (selL, consts) := laterNeeds cellOf later
+    let (selL, consts) := laterNeeds walk cellOf later
     let sel : Std.HashSet ℕ := selL.foldl (·.insert ·) {}
     let constSet : Std.HashSet (ℕ × ℕ × ℕ × ℕ) := consts.foldl (·.insert ·) {}
     let isConst : Exec.Atom → Bool
@@ -1168,6 +1172,29 @@ def certMark : String := "--@cert\n"
 /-- The values per definition of a certificate's cells. -/
 def locChunk : ℕ := 2000
 
+/-- The cuts a function's obligations force, as `planCuts` takes them, over the values' cells
+`cell`: the memory bounds its calls need (`knownOf`), the exponent table after `exponent_tables`
+(`semsOf`), the walk tuples of its calls (`callObligations`), and in a walk function the windows
+it dispatches on (`winObligations`). -/
+def forcedOf (semMap : Std.HashMap String (List (ℕ × List ℕ))) (cf : Core.Fn) (cell : ℕ → ℕ) :
+    Except String (List (ℕ × ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ))) := do
+  let none3 : List (ℕ × ℕ × ℕ) := []
+  let noneS : List (ℕ × List ℕ) := []
+  let walkFn := (semMap.getD cf.name []).any (·.1 ≥ 2)
+  return (knownOf cf.body (fun g => (bounds g).2.2.1)).map (fun (i, v, c, n) =>
+      (i, i, [(cell v, c, n)], none3, noneS)) ++
+    (semsOf cf.body).map (fun (i, q) => (i, i, none3, none3, [(0, [cell q])])) ++
+    (← callObligations semMap cf.body).map (fun (i, lo, tu) =>
+      (i, lo, none3, none3, tu.map fun (t, vs) => (t, vs.map cell))) ++
+    (if walkFn then (winObligations cf.body).map fun (i, lo, ws) =>
+      (i, lo, none3, ws.map (fun (w, o, n) => (cell w, o, n)), noneS) else [])
+
+/-- The functions whose windows take obligations (`forcedOf`), by index. -/
+def oblFnsOf (semMap : Std.HashMap String (List (ℕ × List ℕ))) (P : List Core.Fn) : List ℕ :=
+  P.zipIdx.filterMap fun (cf, i) => match forcedOf semMap cf id with
+    | .ok (_ :: _) => some (i + 1)
+    | _ => none
+
 /-- The certificate of function `j`, its windows `coarse` or not (`planCuts`). -/
 def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : Std.HashMap String ℕ)
     (semMap : Std.HashMap String (List (ℕ × List ℕ))) (j : ℕ) (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg ×
@@ -1181,18 +1208,10 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
   let (pre, post, mem, _) := bounds f.name
   let locA := locs.toArray
   let cell (v : ℕ) : ℕ := locA.getD v 0
-  let none3 : List (ℕ × ℕ × ℕ) := []
-  let noneS : List (ℕ × List ℕ) := []
-  let walkFn := (semMap.getD cf.name []).any (·.1 ≥ 2)
-  let forced := (knownOf cf.body (fun g => (bounds g).2.2.1)).map (fun (i, v, c, n) =>
-      (i, i, [(cell v, c, n)], none3, noneS)) ++
-    (semsOf cf.body).map (fun (i, q) => (i, i, none3, none3, [(0, [cell q])])) ++
-    (← (callObligations semMap cf.body).mapError (s!"{f.name}: " ++ ·)).map (fun (i, lo, tu) =>
-      (i, lo, none3, none3, tu.map fun (t, vs) => (t, vs.map cell))) ++
-    (if walkFn then (winObligations cf.body).map fun (i, lo, ws) =>
-      (i, lo, none3, ws.map (fun (w, o, n) => (cell w, o, n)), noneS) else [])
+  let forced ← (forcedOf semMap cf cell).mapError (s!"{f.name}: " ++ ·)
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
-  let cuts ← planCuts coarse F f cf locs marks spine uses segMap pre forced
+  let cuts ← planCuts coarse F f cf locs marks spine uses segMap pre
+    (fun g => (semMap.getD g []).any (·.1 ≥ 2)) forced
   let cutT := listText (cuts.map fun c =>
     s!"⟨{c.J}, {listText (c.env.map fun (o, s) => s!"({o}, {symText s})")}, {c.start},\n      " ++
     s!"{listText (c.facts.map fun (k, a) => s!"({k}, {atomText a})")},\n      " ++
@@ -2521,7 +2540,7 @@ def fnBlock : ℕ := 50
 
 /-- The modules deciding the checks: each window's (`(function, window, instructions)`), in
 modules of consecutive windows, and each subtree of the power tree's. -/
-def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (nPow : ℕ)
+def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (nPow : ℕ)
     (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ)))) :
     List (String × String) := Id.run do
   let fns := Data.functions.toArray
@@ -2605,7 +2624,7 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
     s!"  have h : (certOf {j}).cuts.length = {ws.length - 1} := by decide +kernel\n" ++
     s!"  rw [h] at hi\n  interval_cases i\n" ++
     String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "\n" ++
-    (if j == 1 || j == vsIdx then "" else s!"theorem plain{j} : Plain {j} := by\n  unfold Plain\n  decide +kernel\n\n")
+    (if obl.contains j then "" else s!"theorem plain{j} : Plain {j} := by\n  unfold Plain\n  decide +kernel\n\n")
   -- each function's `CheckOk` and `Plain`, in modules of `fnBlock` consecutive functions
   let modsOf (j : ℕ) : List String :=
     (groups.toList.filter fun js => js.any (·.1 == j)).map key
@@ -2619,7 +2638,7 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
       "\nnamespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (js.map fun j =>
         if cutFns.contains j then cutOk j
-        else if j == 1 || j == vsIdx then ""
+        else if obl.contains j then ""
         else s!"theorem plain{j} : Plain {j} := plain_of_nil (by decide +kernel)\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")
   let index := ("Checked", checkedHeader "" "Every compiled function checked, and the powers of `g`." ++
@@ -2629,10 +2648,13 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
     "theorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j := fun j h1 h2 ↦\n  " ++
     s!"have h2 : j < {fns.size} := h2\n  " ++
     okTree (fun k => s!"ok{k}") 1 (fns.size - 1) ++ "\n\n" ++
-    "/-- No function but `main` and `verify_sub` takes anything from obligations. -/\n" ++
-    s!"theorem all_plain : ∀ j, 1 ≤ j → j < nFns → j ≠ 1 → j ≠ {vsIdx} → Plain j := fun j h1 h2 n1 nvs ↦\n  " ++
+    "/-- The functions whose windows take obligations (`Cut.known`, `Cut.knownIf`, `Cut.sems`): `main`,\n" ++
+    "`verify_sub`, the windowed Merkle walk's (`opening_queries`, its loops, `open_stacked`). -/\n" ++
+    s!"def oblFns : List ℕ := {listText (obl.map toString)}\n\n" ++
+    "/-- No other function takes anything from obligations. -/\n" ++
+    "theorem all_plain : ∀ j, 1 ≤ j → j < nFns → j ∉ oblFns → Plain j := fun j h1 h2 hn ↦\n  " ++
     s!"have h2 : j < {fns.size} := h2\n  " ++
-    okTree (fun k => if k == 1 then "absurd rfl n1" else if k == vsIdx then "absurd rfl nvs" else s!"plain{k}")
+    okTree (fun k => if obl.contains k then "absurd (by decide) hn" else s!"plain{k}")
       1 (fns.size - 1) ++ "\n\n" ++
     "/-- Every power of `g` the guest names is one. -/\ntheorem powTree_ok : Data.powTree.OkW :=\n  " ++
     (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
@@ -3308,7 +3330,7 @@ noncomputable def certs : List Check.Cert :=
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
       [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
-    (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
+    (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
         else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length shareSplits bigStatics ++
     (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)]
