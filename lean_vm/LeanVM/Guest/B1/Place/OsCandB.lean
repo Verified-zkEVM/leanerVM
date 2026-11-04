@@ -18,7 +18,7 @@ given the named callees' words bounds `Bnd` (`OsLeafBounds`, constants by name) 
 loops' words an iteration `Kr` (`OsLoopBounds`, G7-cnt's `LoopTotalLe.totalLeOn`). The bound is the
 frame, the buffers, and for each call statement of the body the larger of its callee's frame and
 bound (`osBk`: `Bnd`, each squeeze loop's `sqTot`, each `opening_queries`' `oqBound`, each residual
-loop's `queries / 2 * Kr`).
+loop's `queries / 8 * Kr`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -39,7 +39,7 @@ def osBosAt (fs Bnd Kr : String → ℕ) (μ r : ℕ) : ℕ :=
 def open_stacked_completeAtB_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd Kr : String → ℕ),
-      Lift.RunsFit fs cert → OsFitsAt fs cert (osCfg (candidate μ r)) →
+      Lift.RunsFit fs cert → RunsConsec cert → 7 ≤ κ → OsFitsAt fs cert (osCfg (candidate μ r)) →
       OsLeafBounds fs Bnd → OsLoopBounds fs Kr (osCfg (candidate μ r)) →
       ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
         (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
@@ -52,8 +52,8 @@ def open_stacked_completeAtB_Spec : Prop :=
 
 /-- **`open_stacked` is complete placed at every candidate, within `osBosAt` words.** -/
 theorem open_stacked_completeAtB : open_stacked_completeAtB_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ Bnd Kr hk hfits hT hL S root target cur xs os w s' roots' hrun
-    hnz hcaps Lin hLin
+  intro μ r h1 h2 h3 h4 fs cert κ Bnd Kr hk hcons hκ hfits hT hL S root target cur xs os w s'
+    roots' hrun hnz hcaps Lin hLin
   have hm : candidate μ r < 28 := by unfold candidate; omega
   obtain ⟨cfg, hF, hnames, -⟩ := candB_sound (candB_all μ r h1 h2 h3 h4)
   have hdata := osData_all _ hm
@@ -64,8 +64,8 @@ theorem open_stacked_completeAtB : open_stacked_completeAtB_Spec := by
     refine cfgPlaced_of (placedP_all _ hm) (fun l hl ↦ hnames l hl) (fun l hl ↦ ?_) (fun l hl ↦ ?_) hfits
     · rw [osCfg_lvAt _ _ hl]; exact (hdata.2 l hl).1
     · rw [osCfg_lvAt _ _ hl]; exact (hdata.2 l hl).2
-  exact os_completeAtB_cfg hk hF hP (osCalleeBounds_of hT hL) hf hps hb (osBody_notLoop hf hb) hrun
-    hnz hcaps hLin
+  exact os_completeAtB_cfg hk hcons hκ hF hP (osCalleeBounds_of hT hL) hf hps hb
+    (osBody_notLoop hf hb) hrun hnz hcaps hLin
 
 end
 end LeanVM.Guest.B1

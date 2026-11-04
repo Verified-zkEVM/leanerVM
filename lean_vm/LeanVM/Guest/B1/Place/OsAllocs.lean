@@ -190,7 +190,8 @@ theorem osResidual_allocs (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ
 /-- The residual chains' hints. -/
 def resAllocs (c : OsCfg) (ich bd ls : ℕ) : ℕ → List OsLv → ℕ → List (V × (ℕ ⊕ V))
   | _, [], _ => []
-  | lvl, lv :: rest, k => osHeapA (k + 1) :: resAllocs c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
+  | lvl, lv :: rest, k =>
+    osHeapA (k + 1) :: resAllocs c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
 
 theorem osResiduals_allocs (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
     (osResiduals c ich bd ls lvl levels k).1.filterMap Main.Stmt.allocSz = resAllocs c ich bd ls lvl levels k

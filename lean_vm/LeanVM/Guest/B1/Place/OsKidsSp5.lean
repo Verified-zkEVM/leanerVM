@@ -20,8 +20,8 @@ weights, `g^N`), is `CompleteAtB`, by a tree of at most `oqBound` words, on the 
 `osLk`, the window pointers `osW … l p` and the decoders' runs `osS … l p`, for every placement
 `p` of the level's squeeze loop, returning the level's enforced sum; `os_q_completeAtD`, its
 `CompleteAtD`. From `OqCompleteDB` (`OqFits` is `True`): the positions decoded, their windows in
-the decoders' `wins` runs (`osS_wins`), the row weights, the cap's cells and flags the honest cap holds at the openings' climbs
-(`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
+the decoders' `wins` runs (`osS_wins`), the row weights, the cap's cells and flags the honest cap
+holds at the openings' climbs (`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
 -/
 
 namespace LeanVM.Guest.B1

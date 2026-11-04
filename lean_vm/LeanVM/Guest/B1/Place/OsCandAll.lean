@@ -17,13 +17,14 @@ public import LeanVM.Guest.B1.Whir.Sound
 
 `placedP_all`: every candidate's decided placed facts. **`open_stacked_completeAtD`** proves
 `open_stacked_completeAtD_Spec`: for every stack log `μ ∈ [22, 28]` and rate `r ∈ [1, 4]`, with the
-frame runs fitting their frames, their cells consecutive (`Lift.RunsFit`, `RunsConsec`), on memories
-defined below `2^κ`, `7 ≤ κ` (`decode_query_windows`' range checks), and the frame certificates of the candidate's
-`opening_queries` frames (`OsFitsAt`), on every accepting run of `whirOpen μ r target` from
-`⟨capOf S, []⟩` with no zero challenge and openings that agree in the caps, the words at the cursor
-among the caller's words, the candidate's specialization is complete placed (`CompleteAtD`),
-returning the run's claim, its two point buffers' pointers, its glued weight and its residual's
-value, the buffers the run's point zero-padded and one plus each coordinate one-padded (`OsOut`).
+frame runs fitting their frames, their cells consecutive (`Lift.RunsFit`, `RunsConsec`), on
+memories defined below `2^κ`, `7 ≤ κ` (`decode_query_windows`' range checks), and the frame
+certificates of the candidate's `opening_queries` frames (`OsFitsAt`, now `True`), on every
+accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings
+that agree in the caps, the words at the cursor among the caller's words, the candidate's
+specialization is complete placed (`CompleteAtD`), returning the run's claim, its two point
+buffers' pointers, its glued weight and its residual's value, the buffers the run's point
+zero-padded and one plus each coordinate one-padded (`OsOut`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -86,8 +87,8 @@ theorem osCfg_lvAt (m i : ℕ) (h : i < (osCfg m).levels.length) : lvAt (osCfg m
 
 /-- **`open_stacked` is complete placed at every candidate.** -/
 theorem open_stacked_completeAtD : open_stacked_completeAtD_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ hk hcons hκ hfits S root target cur xs os w s' roots' hrun hnz hcaps
-    Lin hLin
+  intro μ r h1 h2 h3 h4 fs cert κ hk hcons hκ hfits S root target cur xs os w s' roots' hrun hnz
+    hcaps Lin hLin
   have hm : candidate μ r < 28 := by unfold candidate; omega
   obtain ⟨cfg, hF, hnames, -⟩ := candB_sound (candB_all μ r h1 h2 h3 h4)
   have hdata := osData_all _ hm

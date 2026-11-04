@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.Place.OsKidsSp1
 /-!
 # The squeeze loops, placed
 
-**`os_sq_rel`, `os_sq_completeAtP`**: level `l`'s squeeze loop (`c.sqLoop l`), at its honest arguments
-`[1, g^n, sqz, qpos, qbp, tabs]` (the pointers `osAtOf c b`), placed at `p`, reads the callees'
-words `osLk` and its window pointers `osW … l p` and returns its decoders' `wins` runs
+**`os_sq_rel`, `os_sq_completeAtP`**: level `l`'s squeeze loop (`c.sqLoop l`), at its honest
+arguments `[1, g^n, sqz, qpos, qbp, tabs]` (the pointers `osAtOf c b`), placed at `p`, reads the
+callees' words `osLk` and its window pointers `osW … l p` and returns its decoders' `wins` runs
 `osS … l p` (`OsCompleteAtP`), from `sqLoop_relAtIn`: the squeeze run from `sqzC`, the window
 table from `winC`, the decoded positions from `qposC`, the window pointers from `osW`.
 -/
