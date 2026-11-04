@@ -3,7 +3,7 @@
 
   The executable table phase (`Statement/Prover/Table.lean`, `tableFast`) makes the moves of the
   specification's (`hTable`): its state's invariant along the rounds, its round messages the
-  specification's, its final evaluations and claims the specification's.
+  specification's, its final evaluations the specification's.
 -/
 
 module
@@ -20,8 +20,7 @@ public import LeanVM.Prover.Sumcheck
 * `tableRound_eq`: the round's message evaluates as the specification's running claim
   (`claimOf_snoc_split`, the active tables' rows as lines between the halves,
   `multilinearEval_line`).
-* `corr_tableFast`: **the executable table phase makes the specification's moves**, ending in the
-  same claims.
+* `corr_tableFast`: **the executable table phase makes the specification's moves**.
 -/
 
 namespace LeanVM.Prover
@@ -362,53 +361,32 @@ theorem tableEvals_eq (bus : BusResult) (pre : List E) (st : TableState)
     hfin 4 (by norm_num), hfin 5 (by norm_num)]
   rfl
 
-/-- The claims returned at the end are the specification's. -/
-theorem tableClaims_eq (bus : BusResult) (cp fp : List E) (pre : List E) (st : TableState)
-    (hI : TInv prog s q bus pre st) (hlen : pre.length = nRounds s) :
-    tableClaims (tableLogs s) pre.reverse st =
-      (termsPure cp fp pre.reverse (pairsAt prog s q bus pre.reverse) 0 0 []).2 := by
-  have hfin : ∀ t (ht : t < 6), finalEvals (st.cols.getD t #[]) =
-      evalsAt prog s q ⟨t, ht⟩ pre.reverse := fun t ht ↦
-    finalEvals_eq bus pre st hI hlen ⟨t, ht⟩
-  have hl : ∀ t (ht : t < 6), (tableLogs s).getD t 0 = s.τ ⟨t, ht⟩ := fun t ht ↦
-    getD_tableLogs s ⟨t, ht⟩
-  have hr : List.range 6 = [0, 1, 2, 3, 4, 5] := rfl
-  rw [termsPure_snd, List.nil_append, tableClaims, hr]
-  simp only [List.flatMap_cons, List.flatMap_nil]
-  rw [hfin 0 (by norm_num), hfin 1 (by norm_num), hfin 2 (by norm_num), hfin 3 (by norm_num),
-    hfin 4 (by norm_num), hfin 5 (by norm_num), hl 0 (by norm_num), hl 1 (by norm_num),
-    hl 2 (by norm_num), hl 3 (by norm_num), hl 4 (by norm_num), hl 5 (by norm_num)]
-  rfl
-
-/-- **The executable table phase makes the specification's moves**, ending in the same claims:
-from the instance's columns (`cols`, by global column), the announced log-heights and a true bus
-result. -/
+/-- **The executable table phase makes the specification's moves**: from the instance's columns
+(`cols`, by global column), the announced log-heights and a true bus result. -/
 theorem corr_tableFast (cols : Array (Array K))
     (hcols : ∀ c : Col, cols.getD (pyCol c) #[] = ((inst prog s).column q c).values.toArray)
     (logs : List ℕ) (hlogs : logs = tableLogs s) (bus : BusResult)
     (hb : BusGood prog s q bus) :
-    Corr (· = ·) (tableFast cols logs bus) (hTable prog s q bus) := by
+    Corr (fun _ _ ↦ True) (tableFast cols logs bus) (hTable prog s q bus) := by
   subst hlogs
   show Corr _ (Script.sampleE.bind fun xi ↦
       (sumcheckBy (tableRound bus.point (tableLogs s) (tableTermsOf xi bus)
           (tableSigmas bus.point (tableLogs s) (tableTermsOf xi bus) (tableInit cols)))
         (tableFold bus.point (tableLogs s)) (List.replicate (nRounds s) none)
         ⟨tableInit cols, Array.replicate 6 1, nRounds s⟩).bind fun r ↦
-      (Script.sendList (tableEvals r.2)).bind fun _ ↦
-        .ret (bus.claims ++ tableClaims (tableLogs s) r.1.reverse r.2))
+      Script.sendList (tableEvals r.2))
     (Script.sampleE.bind fun xi ↦
       (hSumcheck 4 (claimOf prog s q (cpOf xi) (fpOf xi) bus) (List.replicate (nRounds s) none)
         []).bind fun r ↦
       (Script.sendList ((pairsAt prog s q bus r.1.reverse).flatMap (·.2))).bind fun _ ↦
         .ret (bus.claims ++
           (termsPure (cpOf xi) (fpOf xi) r.1.reverse (pairsAt prog s q bus r.1.reverse) 0 0 []).2))
-  have key : ∀ xi : E, Corr (· = ·)
+  have key : ∀ xi : E, Corr (fun _ _ ↦ True)
       ((sumcheckBy (tableRound bus.point (tableLogs s) (tableTermsOf xi bus)
           (tableSigmas bus.point (tableLogs s) (tableTermsOf xi bus) (tableInit cols)))
         (tableFold bus.point (tableLogs s)) (List.replicate (nRounds s) none)
         ⟨tableInit cols, Array.replicate 6 1, nRounds s⟩).bind fun r ↦
-      (Script.sendList (tableEvals r.2)).bind fun _ ↦
-        .ret (bus.claims ++ tableClaims (tableLogs s) r.1.reverse r.2))
+      Script.sendList (tableEvals r.2))
       ((hSumcheck 4 (claimOf prog s q (cpOf xi) (fpOf xi) bus) (List.replicate (nRounds s) none)
         []).bind fun r ↦
       (Script.sendList ((pairsAt prog s q bus r.1.reverse).flatMap (·.2))).bind fun _ ↦
@@ -444,9 +422,8 @@ theorem corr_tableFast (cols : Array (Array K))
         (a.1 = b.1 ∧ a.1.length = (List.replicate (nRounds s) (none : Option E)).length ∧
           TInv prog s q bus ([] ++ a.1) a.2 ∧
           b.2 = claimOf prog s q (cpOf xi) (fpOf xi) bus ([] ++ b.1)) →
-        Corr (· = ·)
-          ((Script.sendList (tableEvals a.2)).bind fun _ ↦
-            .ret (bus.claims ++ tableClaims (tableLogs s) a.1.reverse a.2))
+        Corr (fun _ _ ↦ True)
+          (Script.sendList (tableEvals a.2))
           ((Script.sendList ((pairsAt prog s q bus b.1.reverse).flatMap (·.2))).bind fun _ ↦
             .ret (bus.claims ++ (termsPure (cpOf xi) (fpOf xi) b.1.reverse
               (pairsAt prog s q bus b.1.reverse) 0 0 []).2)) := by
@@ -455,8 +432,10 @@ theorem corr_tableFast (cols : Array (Array K))
       rw [← h1]
       simp only [List.length_replicate] at h2
       simp only [List.nil_append] at h3
-      rw [tableEvals_eq bus a.1 a.2 h3 h2, tableClaims_eq bus (cpOf xi) (fpOf xi) a.1 a.2 h3 h2]
-      exact Corr.refl _
+      have e : Script.sendList (tableEvals a.2) =
+          (Script.sendList (tableEvals a.2)).bind Script.ret := (Script.bind_ret _).symm
+      rw [e, tableEvals_eq bus a.1 a.2 h3 h2]
+      exact Corr.bind_same _ fun _ ↦ trivial
     -- `nRounds s` made opaque: unifying the scripts must not evaluate the rounds' count
     generalize nRounds s = n at hs hk ⊢
     exact Corr.bind hk _ _ hs

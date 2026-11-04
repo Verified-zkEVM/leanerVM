@@ -25,8 +25,7 @@ fast_copy_modules Statement.Prover
 
 namespace LeanVM.Prover
 
-open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile LeanVM.Protocol.Whir
-open LeanVM.Protocol.Whir.Complete
+open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-- `addSlice`, copied. -/
 def addSlice.fast (off : ℕ) (vals : Array E) (s : E) : ℕ → Array E → Array E
@@ -119,8 +118,7 @@ fast_copy_modules Statement.Prover
 
 namespace LeanVM.Prover
 
-open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile LeanVM.Protocol.Whir
-open LeanVM.Protocol.Whir.Complete
+open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-- `gkrLayersA`, copied. -/
 def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Script GkrState

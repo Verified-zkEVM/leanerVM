@@ -536,7 +536,7 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
                 Reads.seq (Reads.readN kBits) (fun slices _ ↦
                   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial)
                     (Nat.zero_le _)) ?_) ?_) ?_) (Nat.zero_le _)) (Nat.zero_le _)) ?_) ?_) ?_
-    all_goals simp only [keccakReads, List.length_range, List.length_replicate,
+    all_goals simp only [keccakReads, keccakFirstClaim, List.length_range, List.length_replicate,
       show max 3 2 - 1 = 2 from rfl] at hlay ⊢
     all_goals omega
   all_goals simp only [keccakReads]; omega

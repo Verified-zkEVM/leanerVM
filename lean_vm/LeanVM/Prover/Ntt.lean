@@ -20,9 +20,11 @@ public import LeanVM.Protocol.Whir.Complete.Encoding
   `p mod 2^i` of the message folded at `Ŵ_i(x_p), …, Ŵ_{κ-1}(x_p)` in the monomial basis
   (`mono`); a stage keeps it (`stageVal_step`) because `Ŵ_m` is additive and vanishes on `U_m`,
   and `Ŵ_i(e_i) = 1`.
-* `stackWordFast_eq`: the executable stack word is `stackWord μ q` at every position, for the
+* `ntt_getD'`: past the domain, the transform's array reads `0`, as the specification's words
+  hold there.
+* `stackWordFast_eq`: the executable stack word is `stackWord μ R q` at every position, for the
   stack array `q.values.toArray`; `levelWordFast_eq`: the executable level word is
-  `levelWord κ k g` at every position.
+  `levelWord κ k R g` at every position.
 -/
 
 namespace LeanVM.Prover.Enc
@@ -53,6 +55,7 @@ theorem vanishingAt_zero_left (a : K) : vanishingAt 0 a = a := by simp [vanishin
 theorem vanRow_getD : ∀ c, c < 64 → ∀ m, m < 64 → (vanRow c).getD m 0 = vanishingAt c (basisVec m)
   | 0, _, m, hm => by
     rw [vanRow, getD_ofFn _ _ _ hm, vanishingAt_zero_left]
+    rfl
   | c + 1, hc, m, hm => by
     simp only [vanRow]
     rw [getD_map_of_lt _ _ _ 0 _ (by rw [size_vanRow]; exact hm), vanRow_getD c (by omega) m hm,
@@ -333,27 +336,41 @@ theorem ntt_getD {κ R : ℕ} (hκ : κ ≤ 64) (msg : Array K) {p : ℕ} (hp : 
     stageVal_bottom hκ]
   rw [getD_ofFn _ _ _ hq, stageVal_top]
 
+theorem size_ntt_go (tws : Array (Array K)) (κ R : ℕ) :
+    ∀ i (a : Array K), a.size = 2 ^ (κ + R) → (ntt.go tws κ R i a).size = 2 ^ (κ + R)
+  | 0, _, h => by rw [ntt.go]; exact h
+  | i + 1, _, _ => by rw [ntt.go]; exact size_ntt_go tws κ R i _ (size_nttStage _ _ _ _)
+
+/-- The transform's entry at every `p`: the encoder on the domain, `0` past the array's end. -/
+theorem ntt_getD' {κ R : ℕ} (hκ : κ ≤ 64) (msg : Array K) (p : ℕ) :
+    (ntt (nttTwiddles (κ + R) κ) κ R msg).getD p 0 =
+      if p < 2 ^ (κ + R) then encKAt κ (fun u ↦ msg.getD (bitsToNat u) 0) p else 0 := by
+  split
+  · exact ntt_getD hκ msg (by assumption)
+  · rename_i hp
+    rw [ntt, Array.getD_eq_getD_getElem?, Array.getElem?_eq_none]
+    · rfl
+    · rw [size_ntt_go _ _ _ _ _ Array.size_ofFn]
+      omega
+
 /-! ## The stack's word -/
 
 theorem vector_getD {n : ℕ} (v : Vector K n) (i : ℕ) : v.getD i 0 = v.toArray.getD i 0 := rfl
 
 /-- **The executable stack word is the specification's**, at every position. -/
 theorem stackWordFast_eq {μ : ℕ} (hμ : μ ≤ 64) (R : ℕ) (q : Column μ) :
-    stackWordFast μ R q.values.toArray = stackWord μ q := by
+    stackWordFast μ R q.values.toArray = stackWord μ R q := by
   funext p
   simp only [stackWordFast, stackWordFast.stackWordOf, stackWord, laneBits]
-  split
-  · rename_i hp
-    congr 1
-    refine List.map_congr_left fun u hu ↦ ?_
-    have hu' : u < 64 := by simpa using hu
-    rw [stackCodes, getD_ofFn _ _ _ hu']
-    simp only
-    rw [ntt_getD (by omega) _ hp]
-    congr 1
-    funext x
-    rw [getD_ofFn _ _ _ (bitsToNat_lt x), blockK, vector_getD]
-  · rfl
+  congr 1
+  refine List.map_congr_left fun u hu ↦ ?_
+  have hu' : u < 64 := by simpa using hu
+  rw [stackCodes, getD_ofFn _ _ _ hu']
+  simp only
+  rw [ntt_getD' (by omega)]
+  congr 2
+  funext x
+  rw [getD_ofFn _ _ _ (bitsToNat_lt x), blockK, vector_getD]
 
 /-! ## The level words -/
 
@@ -379,13 +396,13 @@ theorem array_getD_toList {α : Type} (a : Array α) (i : ℕ) (d : α) :
   simp [List.getD_eq_getElem?_getD]
 
 theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ} (hj : j < 2 ^ k)
-    (l : Fin 3) {p : ℕ} (hp : p < 2 ^ (κ + R)) :
+    (l : Fin 3) (p : ℕ) :
     ((levelCodes κ k R g).getD (3 * j + l) #[]).getD p 0 =
-      (encAt κ (laneMsg κ k g.toList j) p).limb l := by
+      (if p < 2 ^ (κ + R) then encAt κ (laneMsg κ k g.toList j) p else 0).limb l := by
   rw [levelCodes, getD_ofFn _ _ _ (by omega)]
   simp only
-  rw [ntt_getD hκ _ hp, limb_encAt]
-  congr 1
+  rw [ntt_getD' hκ, apply_ite (E.limb · l), limb_encAt, limb_zero]
+  congr 2
   funext u
   rw [getD_ofFn _ _ _ (bitsToNat_lt u), laneMsg, array_getD_toList,
     show (3 * j + (l : ℕ)) / 3 = j by omega]
@@ -393,18 +410,14 @@ theorem levelCodes_getD {κ k R : ℕ} (hκ : κ ≤ 64) (g : Array E) {j : ℕ}
 
 /-- **The executable level word is the specification's**, at every position. -/
 theorem levelWordFast_eq {κ : ℕ} (hκ : κ ≤ 64) (k R : ℕ) (g : Array E) :
-    levelWordFast κ k R g = levelWord κ k g.toList := by
+    levelWordFast κ k R g = levelWord κ k R g.toList := by
   funext p
-  simp only [levelWordFast, levelWordFast.levelWordOf]
-  split
-  · rename_i hp
-    rw [levelWord, laneCodes, List.flatMap_map]
-    refine List.flatMap_congr fun j hj ↦ ?_
-    have hj' : j < 2 ^ k := List.mem_range.mp hj
-    rw [limbsOf, ← levelCodes_getD hκ g hj' 0 hp, ← levelCodes_getD hκ g hj' 1 hp,
-      ← levelCodes_getD hκ g hj' 2 hp]
-    rfl
-  · rfl
+  rw [levelWordFast, levelWordFast.levelWordOf, levelWord, List.flatMap_map]
+  refine List.flatMap_congr fun j hj ↦ ?_
+  have hj' : j < 2 ^ k := List.mem_range.mp hj
+  rw [limbsOf, ← levelCodes_getD hκ g hj' 0 p, ← levelCodes_getD hκ g hj' 1 p,
+    ← levelCodes_getD hκ g hj' 2 p]
+  rfl
 
 end
 end LeanVM.Prover.Enc

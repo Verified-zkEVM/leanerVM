@@ -1,8 +1,8 @@
 /-
   LeanVM.Prover.WitnessStack
 
-  The executable stack is the specification's: the committed columns end to end in the stacking
-  order, zeros after, is `stackOf`.
+  The executable stack is the specification's: each placed column written at its placement,
+  zeros elsewhere, is the stack the columns are read off.
 -/
 
 module
@@ -12,147 +12,256 @@ public import LeanVM.Prover.WitnessColumns
 /-!
 # The stack
 
-`stackOrderOf_pyKappas`: the executable stacking order, from the Python's column log-sizes, is
-the instance's (`stackOrder`) by Python number. `stackArray_eq`: the columns laid end to end in
-that order, then zeros up to `2^μ`, are `stackOf`, given each committed column's array is the
-witness's column: the blocks' offsets are the sums of the heights before them
-(`offsetNat_eq`), so a cell in a block's window is that block's cell (`getElem_flatten_offset`,
-`stackAt_getElem_of_inWindow`), and past the total both are zero.
+`stackArray_eq`: the stack the prover writes (`stackArray`: each column with a placement written
+from its placement's index on, over zeros) is the stack `q` its columns are read off, given each
+column's array is the instance's column of `q` and `q` is zero past the blocks: a committed
+column sits at its block's offset (`placement_committed`, `column_committed`), a column with a
+slot at its slot of `QKECCAK` (`placement_slot`, the cells `QKECCAK` holds), and every cell below
+the blocks' total lies in a committed column's block (`exists_inWindow`).
 -/
 
 namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization
 open LeanVM.Protocol LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd.Front
-open LeanVM.Protocol.Verifier
+open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Verifier
 open Air.Flat (EnsembleWitness)
 
 @[expose] public section
 
-/-! ## Lists laid end to end -/
+/-! ## Writes -/
 
-/-- Appending arrays in a fold is flattening their lists. -/
-theorem foldl_append_toList {α : Type} (f : ℕ → Array α) :
-    ∀ (l : List ℕ) (a : Array α),
-      (l.foldl (fun acc c ↦ acc ++ f c) a).toList = a.toList ++ (l.map fun c ↦ (f c).toList).flatten
-  | [], a => by simp
-  | c :: l, a => by
-    rw [List.foldl_cons, foldl_append_toList f l, Array.toList_append, List.map_cons,
-      List.flatten_cons, List.append_assoc]
+/-- Writing the first `n` cells of `col` from `idx` on keeps the size. -/
+theorem size_write (col : Array K) (idx : ℕ) :
+    ∀ n (hn : n ≤ col.size) (a : Array K),
+      (Nat.fold n (fun i h stack ↦ stack.set! (idx + i) (col[i]'(by omega))) a).size = a.size
+  | 0, _, a => by simp
+  | n + 1, hn, a => by
+    rw [Nat.fold_succ, Array.set!_eq_setIfInBounds, Array.size_setIfInBounds]
+    exact size_write col idx n (by omega) a
 
-/-- An entry of lists laid end to end: entry `y` of list `b` sits past the lengths of the lists
-before it. -/
-theorem getElem?_flatten_offset {α : Type} :
-    ∀ (Ls : List (List α)) (b : ℕ) (hb : b < Ls.length) (y : ℕ) (hy : y < Ls[b].length),
-      Ls.flatten[((Ls.take b).map List.length).sum + y]? = some Ls[b][y]
-  | [], _, hb, _, _ => absurd hb (by simp)
-  | L :: Ls, 0, _, y, hy => by
-    simp only [List.take_zero, List.map_nil, List.sum_nil, Nat.zero_add, List.flatten_cons]
-    rw [List.getElem?_append_left (show y < L.length from hy)]
+/-- Writing the first `n` cells of `col` from `idx` on: cell `x` is `col`'s cell `x - idx` in the
+window, the old cell elsewhere. -/
+theorem getElem?_write (col : Array K) (idx : ℕ) :
+    ∀ n (hn : n ≤ col.size) (a : Array K) (x : ℕ),
+      (Nat.fold n (fun i h stack ↦ stack.set! (idx + i) (col[i]'(by omega))) a)[x]? =
+        if idx ≤ x ∧ x < idx + n ∧ x < a.size then col[x - idx]? else a[x]?
+  | 0, _, a, x => by
+    simp only [Nat.fold_zero, Nat.add_zero]
+    split <;> first | rfl | omega
+  | n + 1, hn, a, x => by
+    rw [Nat.fold_succ, Array.set!_eq_setIfInBounds, Array.getElem?_setIfInBounds,
+      size_write col idx n (by omega), getElem?_write col idx n (by omega) a x]
+    split_ifs <;> first
+      | rfl
+      | omega
+      | (subst_vars; rw [Nat.add_sub_cancel_left, Array.getElem?_eq_getElem (by omega)])
+      | (subst_vars; rw [Array.getElem?_eq_none (by omega)])
+
+/-- **Writes that agree with `T`, covering every cell of `T` the start does not hold, give `T`.**
+Each step `f acc a` sets the cells of its window `win a` to `T`'s and keeps the others. -/
+theorem foldl_eq_of_writes {α : Type} (T : Array K) (f : Array K → α → Array K)
+    (win : α → ℕ → Prop) :
+    ∀ (L : List α) (acc : Array K),
+      (∀ a ∈ L, ∀ acc : Array K, acc.size = T.size → (f acc a).size = T.size ∧
+        ∀ x, (win a x → (f acc a)[x]? = T[x]?) ∧ (¬ win a x → (f acc a)[x]? = acc[x]?)) →
+      acc.size = T.size → (∀ x, acc[x]? = T[x]? ∨ ∃ a ∈ L, win a x) →
+      L.foldl f acc = T
+  | [], acc, _, _, hx => Array.ext_getElem? fun x ↦ (hx x).resolve_right (by simp)
+  | a :: L, acc, hf, hs, hx => by
+    rw [List.foldl_cons]
+    obtain ⟨hs', hw⟩ := hf a List.mem_cons_self acc hs
+    refine foldl_eq_of_writes T f win L _ (fun a' ha' ↦ hf a' (List.mem_cons_of_mem a ha')) hs'
+      fun x ↦ ?_
+    by_cases h : win a x
+    · exact .inl ((hw x).1 h)
+    · rw [(hw x).2 h]
+      rcases hx x with e | ⟨a', ha', hwin⟩
+      · exact .inl e
+      · rcases List.mem_cons.mp ha' with rfl | ha'
+        · exact absurd hwin h
+        · exact .inr ⟨a', ha', hwin⟩
+
+/-! ## The placements -/
+
+/-- The global numbers are distinct. -/
+theorem nodup_columns : columns.Nodup := by decide +kernel
+
+/-- The global number of the column at a global number is that number. -/
+theorem pyCol_getElem_columns (i : ℕ) (hi : i < columns.length) : pyCol columns[i] = i :=
+  nodup_columns.idxOf_getElem i hi
+
+variable (prog : LeanIsaProgram) (s : Sizes)
+
+/-- A column but an output lane has its placement. -/
+theorem placements_getD_some (c : Col) (h : ¬ IsOut c) :
+    (verifierLayout prog s).placements.getD (pyCol c) none =
+      some ((verifierLayout prog s).placement (pyCol c)) := by
+  have hno : pyCol c ∉ keccakOutputColumns := (mem_keccakOutputColumns_pyCol c).not.mpr h
+  unfold Verifier.Layout.placement
+  rw [placements_getD, keccakSlot_pyCol]
+  split_ifs <;> rfl
+
+/-- A cell of a column read off the stack, as an entry of the stack's array. -/
+theorem getElem?_column {q : Column (leanIsaμ prog s)} {c : Col} {i y : ℕ}
+    (hi : i < 2 ^ kappa prog s c) (hy : y < 2 ^ leanIsaμ prog s)
+    (e : ((inst prog s).column q c).values[i] = q.values[y]) :
+    ((inst prog s).column q c).values.toArray[i]? = q.values.toArray[y]? := by
+  rw [Array.getElem?_eq_getElem (by rw [Vector.size_toArray]; exact hi),
+    Array.getElem?_eq_getElem (by rw [Vector.size_toArray]; exact hy), Vector.getElem_toArray,
+    Vector.getElem_toArray]
+  exact congrArg some e
+
+/-- A column with a slot is the stack's cells at its slot of `QKECCAK`. -/
+theorem column_slot (q : Column (leanIsaμ prog s)) (c : Col) (h : IsVirtual c ∧ ¬ IsOut c)
+    (i : ℕ) (hi : i < 2 ^ s.τ 5) :
+    i + 2 ^ s.τ 5 * (qSlot c).val + (blocks prog s).offset (keccakBlock prog s) <
+        2 ^ leanIsaμ prog s ∧
+      ((inst prog s).column q c).values.toArray[i]? =
+        q.values.toArray[i + 2 ^ s.τ 5 * (qSlot c).val +
+          (blocks prog s).offset (keccakBlock prog s)]? := by
+  have hfit := blocks_fits prog s
+  have hoff := (blocks prog s).offset_add_pow_le_total (keccakBlock prog s)
+  rw [size_keccakBlock] at hoff
+  have hcube : i + 2 ^ s.τ 5 * (qSlot c).val < 2 ^ (s.τ 5 + 6) :=
+    slot_lt (⟨i, hi⟩ : Fin (2 ^ s.τ 5)) (qSlot c) (qSlot c).isLt
+  have hx : i + 2 ^ s.τ 5 * (qSlot c).val + (blocks prog s).offset (keccakBlock prog s) <
+      2 ^ leanIsaμ prog s := by omega
+  refine ⟨hx, ?_⟩
+  have hk : i < 2 ^ kappa prog s c := by rw [kappa_of_isVirtual prog s h.1]; exact hi
+  refine getElem?_column prog s hk hx ?_
+  rcases c with ⟨j, k⟩
+  obtain ⟨hj, -⟩ := h.1
+  subst hj
+  by_cases hsp : IsSpare ⟨opIdx 5, k⟩
+  · have e := column_spare prog s q _ hsp ⟨i, hi⟩
+    rw [word_keccakColumn prog s q _ (qSlot _).isLt ⟨i, hi⟩] at e
+    exact e
+  · have hb : 13 ≤ k.val ∧ k.val < 38 := by
+      have h1 : k.val < 64 := h.1.2
+      have h2 : ¬ (38 ≤ k.val ∧ k.val < 63) := fun hh ↦ h.2 ⟨rfl, hh⟩
+      have h3 : ¬ (k.val < 13 ∨ k.val = 63) := fun hh ↦ hsp ⟨rfl, hh⟩
+      omega
+    obtain ⟨l, rfl⟩ : ∃ l : Fin 25, k = (inCol l).2 :=
+      ⟨⟨k.val - 13, by omega⟩, Fin.ext (by simp only [inCol]; omega)⟩
+    have hq : (qSlot (⟨opIdx 5, (inCol l).2⟩ : Col)).val = l.val :=
+      congrArg Fin.val (qSlot_inCol l)
+    simp only [hq]
+    exact column_inCol_stack prog s q l ⟨i, hi⟩
+
+/-- **A column at its placement is the stack's cells there**: cell `i` of a column but an output
+lane is the stack's cell `i` past its placement's index. -/
+theorem column_at_placement (q : Column (leanIsaμ prog s)) (c : Col) (h : ¬ IsOut c) (i : ℕ)
+    (hi : i < 2 ^ kappa prog s c) :
+    ((verifierLayout prog s).placement (pyCol c)).index + i < 2 ^ leanIsaμ prog s ∧
+      ((inst prog s).column q c).values.toArray[i]? =
+        q.values.toArray[((verifierLayout prog s).placement (pyCol c)).index + i]? := by
+  by_cases hv : IsVirtual c
+  · rw [placement_slot prog s c ⟨hv, h⟩]
+    have e := column_slot prog s q c ⟨hv, h⟩ i (kappa_of_isVirtual prog s hv ▸ hi)
+    rwa [show (blocks prog s).offset (keccakBlock prog s) + (qSlot c).val * 2 ^ s.τ 5 + i =
+      i + 2 ^ s.τ 5 * (qSlot c).val + (blocks prog s).offset (keccakBlock prog s) by ring]
+  · rw [placement_committed prog s c hv]
+    dsimp only
+    have hfit := blocks_fits prog s
+    have hoff := (blocks prog s).offset_add_pow_le_total (blockOf c hv)
+    rw [size_blockOf] at hoff
+    have hx : (blocks prog s).offset (blockOf c hv) + i < 2 ^ leanIsaμ prog s := by omega
+    refine ⟨hx, ?_⟩
+    rw [Nat.add_comm]
+    exact getElem?_column prog s hi (by omega) (column_committed prog s q c hv ⟨i, hi⟩)
+
+/-- The writes of the prover's stack: the placements of the instance's columns, with their
+arrays. -/
+theorem mem_zip_placements {cols : Array (Array K)} (hsize : cols.size = 163) :
+    ∀ a, a ∈ (verifierLayout prog s).placements.zip cols.toList ↔ ∃ c : Col,
+      a = ((verifierLayout prog s).placements.getD (pyCol c) none, cols.getD (pyCol c) #[]) := by
+  have hlen : (verifierLayout prog s).placements.length = 163 := by
+    show (placementsOf (pyKappas prog s)).1.length = 163
+    rw [placementsOf_pyKappas]
+    simp [length_pyKappas]
+  have hz : ((verifierLayout prog s).placements.zip cols.toList).length = 163 := by
+    simp [hlen, hsize]
+  have hget : ∀ i (hi : i < 163),
+      ((verifierLayout prog s).placements.zip cols.toList)[i]'(hz ▸ hi) =
+        ((verifierLayout prog s).placements.getD i none, cols.getD i #[]) := by
+    intro i hi
+    rw [List.getElem_zip, List.getD_eq_getElem _ _ (by omega), Array.getD_eq_getD_getElem?,
+      Array.getElem?_eq_getElem (by omega)]
     simp
-  | L :: Ls, b + 1, hb, y, hy => by
-    simp only [List.take_succ_cons, List.map_cons, List.sum_cons, List.flatten_cons]
-    rw [Nat.add_assoc, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
-    exact getElem?_flatten_offset Ls b (by simpa using hb) y hy
+  intro a
+  constructor
+  · intro ha
+    obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem ha
+    rw [hz] at hi
+    refine ⟨columns[i]'(by rw [length_columns]; exact hi), ?_⟩
+    rw [pyCol_getElem_columns, hget i hi]
+  · rintro ⟨c, rfl⟩
+    rw [← hget _ (pyCol_lt c)]
+    exact List.getElem_mem _
 
-/-! ## The stacking order -/
-
-/-- **The executable stacking order is the instance's**, by Python number. -/
-theorem stackOrderOf_pyKappas (prog : LeanIsaProgram) (s : Sizes) :
-    stackOrderOf (pyKappas prog s) = (stackOrder prog s).map pyCol := by
-  unfold stackOrderOf blockOrder
-  have hb : blockColumns = committedColumns.map pyCol := blockCols_eq
-  simp only [hb, List.length_map, blockSizes_eq]
-  rw [order_eq, List.map_map]
-  refine List.map_congr_left fun c hc ↦ ?_
-  have hmem : c ∈ committedColumns := List.mem_mergeSort.mp hc
-  have hlt : committedColumns.idxOf c < (committedColumns.map pyCol).length := by
-    rw [List.length_map]; exact List.idxOf_lt_length_of_mem hmem
-  simp only [Function.comp_apply]
-  rw [List.getD_eq_getElem _ _ hlt, List.getElem_map, List.getElem_idxOf]
-
-/-- The executable stack's log-size is the instance's `μ`. -/
-theorem placementsOf_snd (prog : LeanIsaProgram) (s : Sizes) :
-    (placementsOf (pyKappas prog s)).2 = leanIsaμ prog s :=
-  stackLog_verifierLayout prog s
-
-/-! ## The stack -/
-
-variable {prog : LeanIsaProgram} (s : Sizes) (w : EnsembleWitness (leanIsaEnsemble prog))
-
-/-- The stacked total is the heights of the committed columns in stacking order. -/
-theorem total_eq_sum_stackOrder :
-    (blocks prog s).total = ((stackOrder prog s).map fun c ↦ 2 ^ kappa prog s c).sum := by
-  rw [Blocks.total, offsetNat_eq prog s _ le_rfl, List.take_of_length_le (by simp [blocks])]
-
-/-- **The stack, laid end to end.** Given each committed column's array, at its Python number,
-is the witness's column, the columns laid end to end in the stacking order, then zeros up to
-`2^μ`, are the stack of the witness. -/
-theorem stackArray_eq (cols : Array (Array K))
-    (hcols : ∀ c ∈ stackOrder prog s, cols.getD (pyCol c) #[] = (witnessColumn prog s w c).toArray) :
-    stackArray (leanIsaμ prog s) cols ((stackOrder prog s).map pyCol) =
-      (stackOf prog s w).values.toArray := by
+/-- **The stack the prover writes is the stack its columns are read off**: given each column's
+array is the instance's column of `q`, and `q` is zero past the blocks. -/
+theorem stackArray_eq (q : Column (leanIsaμ prog s)) (cols : Array (Array K))
+    (hsize : cols.size = 163)
+    (hcols : ∀ c : Col, cols.getD (pyCol c) #[] = ((inst prog s).column q c).values.toArray)
+    (hzero : ∀ x (hx : x < 2 ^ leanIsaμ prog s), (blocks prog s).total ≤ x → q.values[x] = 0) :
+    stackArray (verifierLayout prog s) cols = q.values.toArray := by
+  have hmem := mem_zip_placements prog s hsize
   unfold stackArray
-  simp only
-  set a := ((stackOrder prog s).map pyCol).foldl (fun acc c ↦ acc ++ cols.getD c #[])
-    (Array.emptyWithCapacity (2 ^ leanIsaμ prog s)) with ha
-  set Ls : List (List K) := (stackOrder prog s).map fun c ↦ (witnessColumn prog s w c).toList
-    with hLs
-  have hlen : ∀ (b : ℕ) (hb : b < Ls.length),
-      Ls[b].length = 2 ^ kappa prog s ((stackOrder prog s)[b]'(by simpa [hLs] using hb)) := by
-    intro b hb
-    simp [hLs]
-  have hfold : a.toList = Ls.flatten := by
-    rw [ha, foldl_append_toList, List.map_map]
-    simp only [Array.emptyWithCapacity_eq, Array.toList_empty, List.nil_append, hLs]
-    congr 1
-    refine List.map_congr_left fun c hc ↦ ?_
-    simp only [Function.comp_apply, hcols c hc, Vector.toList_toArray]
-  have hsumtake : ∀ b ≤ (stackOrder prog s).length,
-      ((Ls.take b).map List.length).sum = (blocks prog s).offsetNat b := by
-    intro b hb
-    rw [offsetNat_eq prog s b (by simpa [blocks] using hb), hLs, ← List.map_take, List.map_map]
-    congr 1
-    refine List.map_congr_left fun c _ ↦ ?_
-    simp
-  have htotal : Ls.flatten.length = (blocks prog s).total := by
-    rw [List.length_flatten, total_eq_sum_stackOrder, hLs, List.map_map]
-    congr 1
-    refine List.map_congr_left fun c _ ↦ ?_
-    simp
-  have hasize : a.size = (blocks prog s).total := by
-    rw [← Array.length_toList, hfold, htotal]
-  have hfits := blocks_fits prog s
-  apply Array.ext
-  · simp only [Array.size_append, Array.size_replicate, Vector.size_toArray, hasize]
-    omega
-  · intro x h1 h2
-    have hx : x < 2 ^ leanIsaμ prog s := by simpa using h2
-    rw [Vector.getElem_toArray]
-    show _ = ((blocks prog s).stackAt (fun b ↦ witnessColumn prog s w (stackOrder prog s)[b])
-      (leanIsaμ prog s) 0)[x]
-    by_cases hxt : x < (blocks prog s).total
-    · obtain ⟨b, hb⟩ := (blocks prog s).exists_inWindow hxt
-      refine Eq.trans ?_ (Blocks.stackAt_getElem_of_inWindow _ _ _ hx hb).symm
-      have hsz : x < a.size := by rw [hasize]; exact hxt
-      rw [Array.getElem_append_left hsz]
-      have hbL : b.val < Ls.length := by simpa [hLs, blocks] using b.isLt
-      have hy : x - (blocks prog s).offset b < Ls[b.val].length := by
-        rw [hlen b.val hbL]
-        have h2 := hb.2
-        have h1 := hb.1
-        change x < (blocks prog s).offset b + 2 ^ kappa prog s ((stackOrder prog s)[b.val]) at h2
-        omega
-      have e := getElem?_flatten_offset Ls b.val hbL (x - (blocks prog s).offset b) hy
-      rw [hsumtake b.val (by simpa [blocks] using b.isLt.le), ← Blocks.offset,
-        Nat.add_sub_cancel' hb.1, ← hfold, Array.getElem?_toList,
-        Array.getElem?_eq_getElem hsz] at e
-      refine (Option.some_inj.mp e).trans ?_
-      simp only [hLs, List.getElem_map, Vector.getElem_toList]
-      rfl
-    · refine Eq.trans ?_ (Blocks.stackAt_getElem_of_total_le _ _ _ hx (Nat.le_of_not_lt hxt)).symm
-      rw [Array.getElem_append_right (by rw [hasize]; omega)]
-      simp
+  rw [stackLog_verifierLayout]
+  refine foldl_eq_of_writes _ _
+    (fun a x ↦ ∃ pl, a.1 = some pl ∧ pl.index ≤ x ∧ x < pl.index + a.2.size) _ _ ?_
+    (by simp) ?_
+  · intro a ha acc hacc
+    obtain ⟨c, rfl⟩ := (hmem a).mp ha
+    have hcs : (cols.getD (pyCol c) #[]).size = 2 ^ kappa prog s c := by
+      rw [hcols, Vector.size_toArray]; rfl
+    have hT : q.values.toArray.size = 2 ^ leanIsaμ prog s := Vector.size_toArray _
+    by_cases ho : IsOut c
+    · rw [placements_outLane prog s c ho]
+      dsimp only
+      refine ⟨hacc, fun x ↦ ⟨?_, fun _ ↦ rfl⟩⟩
+      rintro ⟨_, hpl, -⟩
+      exact absurd hpl (by simp)
+    · rw [placements_getD_some prog s c ho]
+      dsimp only
+      refine ⟨(size_write _ _ _ le_rfl acc).trans hacc, fun x ↦ ⟨?_, ?_⟩⟩
+      · rintro ⟨pl, hpl, h1, h2⟩
+        cases hpl
+        rw [hcs] at h2
+        obtain ⟨hx, e⟩ := column_at_placement prog s q c ho
+          (x - ((verifierLayout prog s).placement (pyCol c)).index) (by omega)
+        rw [getElem?_write _ _ _ le_rfl, ite_eq_left ⟨h1, by rw [hcs]; exact h2, by omega⟩,
+          hcols, e, Nat.add_sub_cancel' h1]
+      · intro hw
+        rw [getElem?_write _ _ _ le_rfl, ite_eq_right fun h' ↦ hw ⟨_, rfl, h'.1, h'.2.1⟩]
+  · intro x
+    by_cases hx : x < 2 ^ leanIsaμ prog s
+    · by_cases ht : x < (blocks prog s).total
+      · right
+        obtain ⟨b, hb⟩ := (blocks prog s).exists_inWindow ht
+        have hc : (stackOrder prog s)[b.val] ∈ committedColumns :=
+          List.mem_mergeSort.mp (List.getElem_mem _)
+        have hv : ¬ IsVirtual (stackOrder prog s)[b.val] := by
+          simp only [committedColumns, List.mem_filter, Bool.not_eq_true',
+            decide_eq_false_iff_not] at hc
+          exact hc.2
+        have hnd : (stackOrder prog s).Nodup :=
+          (List.mergeSort_perm _ _).nodup_iff.mpr nodup_committedColumns
+        have hbo : blockOf (prog := prog) (s := s) _ hv = b := Fin.ext (hnd.idxOf_getElem _ _)
+        refine ⟨_, (hmem _).mpr ⟨_, rfl⟩, _,
+          placements_getD_some prog s _ fun ho ↦ hv ho.isVirtual, ?_⟩
+        rw [placement_committed prog s _ hv, hbo, hcols]
+        simp only [Vector.size_toArray]
+        have := hb.2
+        exact ⟨hb.1, this⟩
+      · left
+        rw [Array.getElem?_eq_getElem (by simpa using hx),
+          Array.getElem?_eq_getElem (by simpa using hx), Array.getElem_replicate,
+          Vector.getElem_toArray, hzero x hx (Nat.le_of_not_lt ht)]
+    · left
+      rw [Array.getElem?_eq_none (by simpa using hx), Array.getElem?_eq_none (by simpa using hx)]
 
 end
 

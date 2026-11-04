@@ -11,7 +11,6 @@ import LeanVM.Prover.Complete
 import LeanVM.Prover.Refine
 import LeanVM.Prover.Witness
 import LeanVM.Prover.Bus
-import LeanVM.Prover.Public
 import LeanVM.Prover.Table
 import LeanVM.Prover.Keccak
 import LeanVM.Prover.Ring
@@ -27,10 +26,12 @@ import LeanVM.Protocol.WithHash
   specification's honest script `honestProver prog s ρ q (leanVmPhases prog s q)` at the
   witness `skelWitness prog input t.image t.runSkels`, its sizes and its stack: the announcement,
   the stack's commitment (`stackWordFast_eq`), the bus (`corr_busFast`), the table sumcheck
-  (`corr_tableFast`, which needs the bus's result true: `BusGood`, from the bus phase's
-  simulation), the public input (`corr_pubFast`), the Keccak phase (`corr_keccakPhase`, which
-  needs the output lanes' point of the table's height, from the table phase's simulation),
-  ring switching (`corr_ringFast`) and the opening (`corr_openingFast`).
+  (`corr_tableFast`, which needs the bus's result true: `BusGood`), the public input, the Keccak
+  phase (`corr_keccakPhase`, which needs the output lanes' point of the table's height), ring
+  switching (`corr_ringFast`) and the opening (`corr_openingFast`). Each of the first four runs
+  beside the verifier's phase (`Script.alongside`), whose result the specification's phase
+  returns too, by its simulation (`corr_alongside`: the `Phases.Honest` facts, the bus's and the
+  table's through the claim-list form, `follows_of_bind_ret`).
 * `prove_eq_honestComp`: so the prover with the oracle calls is `Rom.honestComp?` of the
   specification's strategy there (`runScript_corr`, `runScript_eq_proveM`).
 * `specOnValid_prove`, `childSpec_prove`: the hypotheses of `completeness_of_spec` and
@@ -175,41 +176,160 @@ theorem noQuery_hPub (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ 
   unfold hPub
   exact noQuery_sampleE_bind fun _ ↦ trivial
 
-/-- A script with no opening that follows a program returns only results the simulation's
-relation relates to some result of the program. -/
-theorem follows_allRet {α β : Type} {R : Commits → α → β → Prop} :
-    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Script.NoQuery H → Follows R H P cs →
-      Script.AllRet (fun a ↦ ∃ cs' b, R cs' a b) H := by
+/-! ## The Keccak phase's honest script opens nothing -/
+
+section KeccakNoQuery
+
+open LeanVM.Protocol.KeccakGkr
+
+theorem noQuery_hPack (F : List E → E) :
+    ∀ (rs acc : List E) (scale : E), Script.NoQuery (hPack F rs acc scale)
+  | [], _, _ => trivial
+  | _ :: rs, acc, _ => by
+    simp only [hPack]
+    exact Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun c ↦
+      Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hPack F rs (acc ++ [c]) _)) _
+      (noQuery_sendList _)
+
+theorem noQuery_hLayer (T : States) (P : ℕ) (claim : KeccakClaim) :
+    Script.NoQuery (hLayer T P claim) := by
+  unfold hLayer
+  simp only [Script.bind_eq, Script.ret_bind]
+  refine Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun _ ↦ ?_) _ (noQuery_sendList _)
+  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hPack _ _ _ _)
+  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hSumcheck _ _ _ _)
+  exact Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun _ ↦ trivial) _ (noQuery_sendList _)
+
+theorem noQuery_keccakLayers (P : ℕ) (col : ℕ → K) :
+    ∀ (ds : List ℕ) (claim : KeccakClaim), Script.NoQuery (hLayers P col ds claim)
+  | [], _ => trivial
+  | _ :: ds, _ => Script.NoQuery.bind (fun c ↦ noQuery_keccakLayers P col ds c) _
+      (noQuery_hLayer _ _ _)
+
+theorem noQuery_hOpen (F : List E → E) : Script.NoQuery (hOpen F) :=
+  Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hSumcheck _ _ _ _)
+
+theorem noQuery_hInput (P : ℕ) (col : ℕ → K) (claim : KeccakClaim) (outs : List ColumnClaim) :
+    Script.NoQuery (hInput P col claim outs) := by
+  unfold hInput
+  simp only [Script.bind_eq, Script.ret_bind]
+  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hSumcheck _ _ _ _)
+  exact Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sendList _))
+    _ (noQuery_hOpen _)
+
+theorem noQuery_hKeccak (P : ℕ) (col : ℕ → K) (inst output : List E) :
+    Script.NoQuery (hKeccak P col inst output) := by
+  unfold hKeccak
+  simp only [Script.bind_eq, Script.ret_bind]
+  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sampleN _)
+  refine Script.NoQuery.bind (fun _ ↦ noQuery_sendE_bind _ ?_) _ (noQuery_sampleN _)
+  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_keccakLayers _ _ _ _)
+  exact Script.NoQuery.bind (fun _ ↦ noQuery_sendE_bind _ (noQuery_hInput _ _ _ _)) _
+    (noQuery_hOpen _)
+
+theorem noQuery_hKeccakPhase (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
+    (claims : List ColumnClaim) : Script.NoQuery (hKeccakPhase prog s q claims) :=
+  Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hKeccak _ _ _ _))
+    _ trivial
+
+end KeccakNoQuery
+
+/-! ## A phase's script beside the verifier's phase -/
+
+/-- **A script beside the program another script follows** makes that script's moves where it
+does, and ends in the program's result, related to the other's result as the simulation relates
+them. -/
+theorem corr_alongside {α β γ : Type} [Inhabited β] {R : Commits → α → β → Prop} :
+    ∀ (S : Script γ) (H : Script α) (P : VerifierProgram β) (cs : Commits), Script.NoQuery H →
+      Corr (fun _ _ ↦ True) S H → Follows R H P cs →
+      Corr (fun b a ↦ ∃ cs', R cs' a b) (Script.alongside P S) H := by
+  intro S
+  induction S with
+  | ret c =>
+    intro H P cs _ hc hf
+    cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
+    exact ⟨cs, hf⟩
+  | send x k ih =>
+    intro H P cs hn hc hf
+    cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
+    obtain ⟨rfl, hc⟩ := hc
+    exact ⟨rfl, ih _ _ _ hn hc hf⟩
+  | sample k ih =>
+    intro H P cs hn hc hf
+    cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
+    exact fun c ↦ ih c _ _ _ (hn c) (hc c) (hf c)
+  | grind k ih =>
+    intro H P cs hn hc hf
+    cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
+    exact ih _ _ _ hn hc hf
+  | commit w k ih =>
+    intro H P cs hn hc hf
+    cases H <;> cases P <;> simp only [Corr, Follows, Script.alongside] at hc hf ⊢
+    exact ⟨hc.1, ih _ _ _ hn hc.2 hf.2⟩
+  | query k _ =>
+    intro H P cs hn hc hf
+    cases H <;> simp only [Corr] at hc
+    exact hn.elim
+
+/-- A simulation of a program whose result is then mapped is a simulation of the program, the
+relation read at the mapped result. -/
+theorem follows_of_bind_ret {α β γ : Type} {R : Commits → α → γ → Prop} {f : β → γ} :
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits),
+      Follows R H (P.bind fun b ↦ .ret (f b)) cs → Follows (fun cs a b ↦ R cs a (f b)) H P cs := by
   intro H
   induction H with
-  | ret a => intro P cs _ h; cases P <;> simp only [Follows] at h; exact ⟨_, _, h⟩
-  | send x k ih => intro P cs hn h; cases P <;> simp only [Follows] at h; exact ih _ _ hn h
+  | ret a => intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢; exact h
+  | send x k ih =>
+    intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢; exact ih _ _ h
   | sample k ih =>
-    intro P cs hn h; cases P <;> simp only [Follows] at h; exact fun c ↦ ih c _ _ (hn c) (h c)
-  | grind k ih => intro P cs hn h; cases P <;> simp only [Follows] at h; exact ih _ _ hn h
-  | commit W k ih => intro P cs hn h; cases P <;> simp only [Follows] at h; exact ih _ _ hn h.2
-  | query k _ => intro _ _ hn; exact hn.elim
+    intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢
+    exact fun c ↦ ih c _ _ (h c)
+  | grind k ih =>
+    intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢; exact ih _ _ h
+  | commit W k ih =>
+    intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢
+    exact ⟨h.1, ih _ _ h.2⟩
+  | query k ih =>
+    intro P cs h; cases P <;> simp only [Follows, VerifierProgram.bind] at h ⊢
+    obtain ⟨rows, h1, h2⟩ := h
+    exact ⟨rows, h1, ih _ _ _ h2⟩
 
-/-- A relation on two scripts, strengthened by a property of every result of the second. -/
-theorem Corr.and_allRet {α β : Type} {R : α → β → Prop} {P : β → Prop} :
-    ∀ (H₁ : Script α) (H₂ : Script β), Corr R H₁ H₂ → Script.AllRet P H₂ →
-      Corr (fun a b ↦ R a b ∧ P b) H₁ H₂
-  | .ret _, .ret _, h, hp => ⟨h, hp⟩
-  | .send _ k, .send _ k', h, hp => ⟨h.1, Corr.and_allRet k k' h.2 hp⟩
-  | .sample k, .sample k', h, hp => fun c ↦ Corr.and_allRet (k c) (k' c) (h c) (hp c)
-  | .grind k, .grind k', h, hp => Corr.and_allRet k k' h hp
-  | .commit _ k, .commit _ k', h, hp => ⟨h.1, Corr.and_allRet k k' h.2 hp⟩
-  | .query k, .query k', h, hp => fun rows ↦ Corr.and_allRet (k rows) (k' rows) (h rows) (hp rows)
-  | .ret _, .send _ _, h, _ | .ret _, .sample _, h, _ | .ret _, .grind _, h, _
-  | .ret _, .commit _ _, h, _ | .ret _, .query _, h, _ | .send _ _, .ret _, h, _
-  | .send _ _, .sample _, h, _ | .send _ _, .grind _, h, _ | .send _ _, .commit _ _, h, _
-  | .send _ _, .query _, h, _ | .sample _, .ret _, h, _ | .sample _, .send _ _, h, _
-  | .sample _, .grind _, h, _ | .sample _, .commit _ _, h, _ | .sample _, .query _, h, _
-  | .grind _, .ret _, h, _ | .grind _, .send _ _, h, _ | .grind _, .sample _, h, _
-  | .grind _, .commit _ _, h, _ | .grind _, .query _, h, _ | .commit _ _, .ret _, h, _
-  | .commit _ _, .send _ _, h, _ | .commit _ _, .sample _, h, _ | .commit _ _, .grind _, h, _
-  | .commit _ _, .query _, h, _ | .query _, .ret _, h, _ | .query _, .send _ _, h, _
-  | .query _, .sample _, h, _ | .query _, .grind _, h, _ | .query _, .commit _ _, h, _ => h.elim
+/-- A simulation's results satisfy what every result of the program does. -/
+theorem follows_and_allRet {α β : Type} {R : Commits → α → β → Prop} {Q : β → Prop} :
+    ∀ (H : Script α) (P : VerifierProgram β) (cs : Commits), Follows R H P cs →
+      Claims.AllRet P Q → Follows (fun cs a b ↦ R cs a b ∧ Q b) H P cs := by
+  intro H
+  induction H with
+  | ret a =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    cases hq with | ret hb => exact ⟨h, hb⟩
+  | send x k ih =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    cases hq with | read hk => exact ih _ _ h (hk x)
+  | sample k ih =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    cases hq with | sample hk => exact fun c ↦ ih c _ _ (h c) (hk c)
+  | grind k ih =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    cases hq with | grind hk => exact ih _ _ h hk
+  | commit W k ih =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    cases hq with | commit hk => exact ⟨h.1, ih _ _ h.2 hk⟩
+  | query k ih =>
+    intro P cs h hq; cases P <;> simp only [Follows] at h ⊢
+    obtain ⟨rows, h1, h2⟩ := h
+    cases hq with | query hk => exact ⟨rows, h1, ih _ _ _ h2 (hk rows)⟩
+
+/-- The public-input phase's executable script receives the challenge `hPub` receives. -/
+theorem corr_sampleE_hPub (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
+    Corr (fun _ _ ↦ True) Script.sampleE (hPub prog s q) := fun _ ↦ trivial
+
+/-- The verifier's layout satisfies what the claim-list form of the verifier uses. -/
+theorem layoutOk_verifierLayout {prog : LeanIsaProgram} {s : Sizes} (h : LayoutOk s) :
+    Claims.LayoutOk (verifierLayout prog s) := by
+  have e := buildLayout_eq prog s
+  simp only [h, ↓reduceIte] at e
+  exact Claims.buildLayout_ok e
 
 /-! ## The honest script makes the specification's moves -/
 
@@ -233,74 +353,83 @@ theorem tableLogHeights_verifierLayout (s : Sizes) :
 theorem getD_tableLogs_keccak (s : Sizes) : (tableLogs s).getD opKeccak 0 = s.τ 5 := by
   simp [tableLogs, opKeccak]
 
-attribute [local irreducible] Corr Script.bind Script.NoQuery Script.AllRet hBus hTable hPub
-  hKeccakPhase hRing honestOpening busFast tableFast pubFast KeccakGkr.keccakPhaseProve ringFast
+attribute [local irreducible] Corr Script.bind Script.NoQuery Script.alongside hBus hTable hPub
+  hKeccakPhase hRing honestOpening busFast tableFast KeccakGkr.keccakPhaseProve ringFast
   openingFast in
 /-- **The honest script makes the specification's moves** at the execution's witness, its
 sizes and its stack. -/
 theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
     {ρ : ℕ} (hρ : validRate ρ) {W : Witness} (hW : WitnessSpec prog input t W) :
-    Corr (fun _ _ ↦ True) (honestScript W (verifierLayout prog (traceSizes prog input t)) ρ)
+    Corr (fun _ _ ↦ True) (honestScript W ρ (publicInputDigest input))
       (LeanVM.Protocol.EndToEnd.Complete.honestProver prog (traceSizes prog input t) ρ
         (stackOf prog (traceSizes prog input t) (traceWitness prog input t))
         (leanVmPhases prog (traceSizes prog input t)
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t)))) := by
   obtain ⟨⟨-, hw, hs, hadm, -⟩, -⟩ := childFor_trace hv hcap hρ
-  obtain ⟨-, -, hWμ, hWcols, hWstack, hWann⟩ := hW
-  generalize traceSizes prog input t = s at hWμ hWcols hWstack hWann hw hs hadm ⊢
+  obtain ⟨-, hWL, hWcols, hWstack, hWann⟩ := hW
+  unfold honestScript
+  rw [hWL]
+  generalize traceSizes prog input t = s at hWcols hWstack hWann hw hs hadm ⊢
   generalize traceWitness prog input t = w at hWcols hWstack hw hs ⊢
   have hq := m3Honest_stackOf hw hs
   generalize stackOf prog s w = q at hWcols hWstack hq ⊢
   have hP := leanVmPhases_honest hadm hq
   have hμ : leanIsaμ prog s ≤ 64 := by have := hadm.2.2.2; unfold maxMu at this; omega
   have hcols : ColsOk prog s q W.cols := hWcols
-  unfold honestScript LeanVM.Protocol.EndToEnd.Complete.honestProver honestRun
-  simp only [Script.bind_eq, Script.bind_assoc', hWann, hWμ, hWstack,
+  have hl : Claims.LayoutOk (verifierLayout prog s) :=
+    layoutOk_verifierLayout ⟨hadm.1, hadm.2.1, hadm.2.2.1⟩
+  unfold LeanVM.Protocol.EndToEnd.Complete.honestProver honestRun
+  simp only [Script.bind_eq, Script.bind_assoc', hWann, stackLog_verifierLayout, hWstack,
     Enc.stackWordFast_eq hμ]
   refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ ?_
-  -- the bus
-  have hbusRet : Script.AllRet (fun b : BusResult ↦ BusGood prog s q b ∧ ∀ c ∈ b.claims,
-      c.column < 6) (hBus prog s q) :=
-    Script.AllRet.mono (fun _ ⟨_, _, ⟨_, h1, h2⟩, h3⟩ ↦ h1 ▸ ⟨h2, h3⟩) _
-      (follows_allRet _ _ _ (noQuery_hBus prog s q)
-        (follows_retOK _ _ _ (hP.bus []) (retOK_busColumns _)))
-  refine Corr.bind (fun bus bus' hb ↦ ?_) _ _ (Corr.and_allRet _ _ (corr_busFast hcols) hbusRet)
-  obtain ⟨rfl, hbg, hbcol⟩ := hb
-  -- the table sumcheck
-  have htabRet : Script.AllRet (fun b : List ColumnClaim ↦ ∃ tc, b = bus.claims ++ tc ∧
-      ∃ z : Vector E (s.τ 5), tc.filter (fun c ↦ c.column ∈ keccakOutputColumns) =
-        honestLanes prog s q z) (hTable prog s q bus) :=
-    Script.AllRet.mono (fun _ ⟨_, _, ⟨_, h1, _, h2⟩⟩ ↦ h1 ▸ h2) _
-      (follows_allRet _ _ _ (noQuery_hTable prog s q bus) (hP.table bus hbg []))
-  refine Corr.bind (fun cl cl' hc ↦ ?_) _ _ (Corr.and_allRet _ _
-    (corr_tableFast W.cols hcols _ (tableLogHeights_verifierLayout s) bus hbg) htabRet)
-  obtain ⟨rfl, tc, rfl, z, hz⟩ := hc
-  -- the public input
-  have hpubRet : Script.AllRet (fun b : List ColumnClaim ↦ ∀ c ∈ b, c.column < 6)
-      (hPub prog s q) :=
-    Script.AllRet.mono (fun _ ⟨_, _, ⟨_, h1, _⟩, h2⟩ ↦ h1 ▸ h2) _
-      (follows_allRet _ _ _ (noQuery_hPub prog s q)
-        (follows_retOK _ _ _ (follows_publicInputPhase hq.1 []) (retOK_publicColumns _ _)))
-  refine Corr.bind (fun pb pb' hp ↦ ?_) _ _ (Corr.and_allRet _ _ (corr_pubFast hcols) hpubRet)
-  obtain ⟨rfl, hpcol⟩ := hp
-  -- the Keccak phase
+  -- the bus, beside `verifyBusBalance`
+  refine Corr.bind (fun _ bus hb ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hBus prog s q)
+    (corr_busFast hcols) (follows_and_allRet _ _ _
+      (follows_retOK _ _ _ (hP.bus []) (retOK_busColumns _)) (Claims.allRet_verifyBusBalance _ _)))
+  obtain ⟨_, ⟨⟨-, rfl, hbg⟩, hbcol⟩, hbok⟩ := hb
+  -- the table sumcheck, beside `tablePhase`
+  have htab := hP.table bus hbg []
+  rw [Claims.tablePhaseClaims_eq] at htab
+  refine Corr.bind (fun rows cl hc ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hTable prog s q bus)
+    (corr_tableFast W.cols hcols _ (tableLogHeights_verifierLayout s) bus hbg)
+    (follows_and_allRet _ _ _ (follows_of_bind_ret _ _ _ htab) (Claims.allRet_tablePhase hl hbok)))
+  obtain ⟨_, ⟨-, rfl, htrue, tc, htc, z, hz⟩, hrows⟩ := hc
+  obtain rfl := List.append_cancel_left htc
+  -- the public input, beside `publicInputPhase`
+  refine Corr.bind (fun _ pub hp ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hPub prog s q)
+    (corr_sampleE_hPub prog s q) (follows_and_allRet _ _ _ (follows_retOK _ _ _
+      (follows_publicInputPhase hq.1 []) (retOK_publicColumns _ _))
+      (Claims.allRet_publicInputPhase _ _)))
+  obtain ⟨_, ⟨⟨-, rfl, hpub⟩, hpcol⟩, hpmem⟩ := hp
+  -- the Keccak phase, beside `keccakPhase`
+  have hlanes : lanesOf (bus.claims ++ tableColumnClaims rows ++ pub) =
+      Claims.laneClaims (rows.getD opKeccak ([], [])) := Claims.lanes_eq hbok.2 hpmem hrows
+  have hlen : (rows.getD opKeccak ([], [])).1.length = s.τ 5 := by
+    have h := lanes_point_length hbcol hpcol z hz
+    rw [hlanes] at h
+    exact h
+  have hk := hP.keccak _ (trueClaims_append htrue hpub) z
+    (lanesOf_honest prog s q hbcol hpcol z hz) []
+  rw [Claims.keccakPhaseClaims_eq hbok.2 hpmem hrows] at hk
   rw [tableLogHeights_verifierLayout, getD_tableLogs_keccak]
-  refine Corr.bind (fun kr kr' hk ↦ ?_) _ _
-    (KeccakGkr.corr_keccakPhase prog s q W.cols hcols _ (lanes_point_length hbcol hpcol z hz))
-  subst hk
+  refine Corr.bind (fun kr kr' hk' ↦ ?_) _ _ (corr_alongside _ _ _ []
+    (noQuery_hKeccakPhase prog s q _)
+    (KeccakGkr.corr_keccakPhase prog s q W.cols hcols _ rows hlanes hlen)
+    (follows_of_bind_ret _ _ _ hk))
+  obtain ⟨_, -, rfl, -⟩ := hk'
   -- ring switching, then the opening
   refine Corr.bind (fun r rs hr ↦ ?_) _ _ (corr_ringFast kr.2.1 kr.2.2)
   obtain ⟨rfl, -, -⟩ := hr
-  have hcl : (RingOut.claim r (verifierLayout prog s) ::
-      kr.1.map (ClaimDesc.column (verifierLayout prog s))).map ClaimDesc.denote =
+  have hcl : ∀ L : List ColumnClaim, (RingOut.claim r (verifierLayout prog s) ::
+      L.map (ClaimDesc.column (verifierLayout prog s))).map ClaimDesc.denote =
       openingClaims prog s (r.target, fun rPrime ↦ ringWeight r.point rPrime
-        (ringCoefficients r.challenges)) kr.1 := by
+        (ringCoefficients r.challenges)) L := by
+    intro L
     simp only [openingClaims, RingOut.claim, ClaimDesc.denote, List.map_cons, List.map_map,
       Function.comp_def]
     rfl
-  refine Corr.bind (R := fun _ _ ↦ True) (fun _ _ _ ↦ by unfold Corr; trivial) _ _ ?_
-  rw [← hcl]
-  exact corr_openingFast hμ ρ q _
+  rw [← hcl, ← Script.bind_ret (openingFast _ _ _ _)]
+  exact Corr.bind (fun _ _ _ ↦ by unfold Corr; trivial) _ _ (corr_openingFast hμ ρ q _)
 
 end Honest
 
@@ -309,18 +438,6 @@ end Honest
 section Prove
 
 variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-
-/-- The prover's layout is the verifier's, at the execution's sizes. -/
-theorem buildLayout_witness (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
-    {W : Witness} (hW : WitnessSpec prog input t W) :
-    buildLayout (bytecodeWords prog) W.logMem W.rows =
-      some (verifierLayout prog (traceSizes prog input t)) := by
-  obtain ⟨⟨-, -, -, hadm, -⟩, -⟩ := childFor_trace hv hcap (ρ := 1) ⟨le_rfl, by decide⟩
-  rw [hW.logMem, hW.rows]
-  have e := buildLayout_eq prog (traceSizes prog input t)
-  rw [tableRows] at e
-  have hok : LayoutOk (traceSizes prog input t) := ⟨hadm.1, hadm.2.1, hadm.2.2.1⟩
-  simp only [e, hok, ↓reduceIte]
 
 /-- **The prover with the oracle calls is the specification** at the execution's witness: on a
 valid execution within the cap at a valid rate, `proveWithHash callKeccak256 callKeccakF1600` is
@@ -334,8 +451,7 @@ theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committ
         (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
   obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
-  have hL := buildLayout_witness hv hcap hspec
-  simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, hL, Rom.honestComp?,
+  simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, Rom.honestComp?,
     seedRun_leanVmSeed]
   refine congrArg (fun k : KeccakState → OracleComp KeccakCalls (Option Proof) ↦
     seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) >>= k)

@@ -85,9 +85,7 @@ theorem simulateQ_proveWithHash (prog : LeanIsaProgram) (input : PublicInput) (t
   split
   · simp
   · split
-    · split
-      · simp
-      · exact Prover.simulateQ_seedRunScript impl _ _ _ _ _
+    · exact Prover.simulateQ_seedRunScript impl _ _ _ _ _
     · simp
 
 end Commute

@@ -21,7 +21,7 @@ run's skeletons, the witness `exists_childFor` builds), `traceSizes` the sizes i
 * the pass's tables are the witness's opcode tables, row for row (`tabs_trace`), its counters the
   memory and bytecode blocks' finalize counts;
 * the sizes are the trace's memory log-size and the pass's row counts (`logMem_trace`,
-  `rows_trace`), and the executable log-heights the instance's (`logs_trace`);
+  `rows_trace`);
 * **every column** (`cols_trace`): `colsOf` at the Python number of an instance column is that
   column of the stack of the witness, the `KECCAK` output lanes the instance's derived columns.
 -/
@@ -127,18 +127,6 @@ theorem rowsList_trace (hv : ValidExecution prog input t) :
   have hi : i < 6 := by simpa [h6] using h1
   rw [List.getElem_map, List.getElem_ofFn, rows_trace hv ⟨i, hi⟩, Array.getElem_toList]
   simp [Array.getD_eq_getD_getElem?, Array.getElem?_eq_getElem (h6 ▸ hi)]
-
-/-- **The executable log-heights are the instance's.** -/
-theorem logs_trace (hv : ValidExecution prog input t) :
-    tableLogsOf ((traceRows t).tabs.toList.map (·.size)) = List.ofFn (traceSizes prog input t).τ := by
-  rw [rowsList_trace hv]
-  exact logHeights_tableRows _
-
-theorem logs_getD (hv : ValidExecution prog input t) (j : Fin 6) :
-    (tableLogsOf ((traceRows t).tabs.toList.map (·.size))).getD j 0 =
-      (traceSizes prog input t).τ j := by
-  rw [logs_trace hv]
-  fin_cases j <;> rfl
 
 /-! ## Cells -/
 

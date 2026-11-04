@@ -161,12 +161,6 @@ def finalEvals (F : Array (Array E)) : List E :=
 def tableEvals (st : TableState) : List E :=
   (List.range 6).flatMap fun t ↦ finalEvals (st.cols.getD t #[])
 
-/-- The tables' column claims at the point `pt`: each evaluation on its global column at the
-point's first `τ_t` coordinates (`tableTerms`). -/
-def tableClaims (logs : List ℕ) (pt : List E) (st : TableState) : List ColumnClaim :=
-  (List.range 6).flatMap fun t ↦ (finalEvals (st.cols.getD t #[])).zipIdx.map
-    fun (value, column) ↦ ⟨globalColumnBases.getD t 0 + column, pt.take (logs.getD t 0), value⟩
-
 /-- The constraint powers of `ξ` and its form powers, one per side (`verifier.py:1383-1385`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
@@ -189,17 +183,15 @@ def tableSigmas (e : List E) (logs : List ℕ) (terms : Array (List (List ℕ ×
 
 /-- **The table phase, executable.** From the instance's columns `cols` (indexed by global
 column), the tables' log-heights `logs` and the bus's result: receive `ξ`, run the rounds, send
-every table's evaluations, and return the bus's claims and the tables' column claims. -/
-def tableFast (cols : Array (Array K)) (logs : List ℕ) (bus : BusResult) :
-    Script (List ColumnClaim) :=
+every table's evaluations. -/
+def tableFast (cols : Array (Array K)) (logs : List ℕ) (bus : BusResult) : Script Unit :=
   let F0 := tableInit cols
   Script.sampleE.bind fun xi ↦
     let terms := tableTermsOf xi bus
     let sigma := tableSigmas bus.point logs terms F0
     (sumcheckBy (tableRound bus.point logs terms sigma) (tableFold bus.point logs)
       (List.replicate (logs.foldl max 0) none) ⟨F0, Array.replicate 6 1, logs.foldl max 0⟩).bind
-      fun r ↦ (Script.sendList (tableEvals r.2)).bind fun _ ↦
-        .ret (bus.claims ++ tableClaims logs r.1.reverse r.2)
+      fun r ↦ Script.sendList (tableEvals r.2)
 
 end LeanVM.Prover
 

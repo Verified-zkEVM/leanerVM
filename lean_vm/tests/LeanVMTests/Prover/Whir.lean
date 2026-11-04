@@ -8,6 +8,7 @@
 -/
 
 import Statement.Prover.Whir
+import LeanVM.Protocol.Whir.Complete.Encoding
 
 namespace LeanVMTests.Prover.Whir
 
@@ -37,7 +38,7 @@ def tab8 : Array E :=
 
 /- The level word at `κ = 2`, `k = 1`, `R = 1` is the specification's at every position, and
 above the computed range too. -/
-#guard (List.range 10).all fun p ↦ levelWordFast 2 1 1 tab8 p == levelWord 2 1 tab8.toList p
+#guard (List.range 10).all fun p ↦ levelWordFast 2 1 1 tab8 p == levelWord 2 1 1 tab8.toList p
 
 /- The query table: entry `i` is `Σ_q w_q·X_i(x_q)`. -/
 #guard

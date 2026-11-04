@@ -49,13 +49,6 @@ def slotWords (col : ℕ → K) (h : ℕ) (inst : List E) : Array E :=
   let eq := eqTable inst
   Array.ofFn (n := 64) fun o ↦ sumRange (2 ^ h) fun x ↦ eq.getD x 0 * ofK (col (x + 2 ^ h * o.val))
 
-/-- The first claim (`verifier.py:1382-1385`), its position weights `eq(r_lane, ℓ)·x^z`. -/
-def firstClaimOf (inst segment lanesPt output : List E) (committed : E) : KeccakClaim :=
-  let lanes := eqKernel lanesPt
-  ⟨committed + (eqKernel segment).getD (keccakSegments - 1) 0 * dot (lanes.take 25) output,
-    eqKernel (inst.take 4), inst.drop 4 ++ segment,
-    (List.range keccakBits).map fun j ↦ lanes.getD (j / 64) 0 * eOfNat (2 ^ (j % 64))⟩
-
 /-- The weight `_keccak_slot_weights` puts at slot `o`, slice `z`. -/
 def slotWeightOf (segments : List E) (w : Array E) (first count o z : ℕ) : E :=
   if 25 * first ≤ o ∧ o < 25 * (first + count) ∧ z < 64 then
@@ -83,8 +76,7 @@ def sliceTable (col : ℕ → K) (h : ℕ) (a : List E) : Array (Array E) :=
     addBits (eq.getD x 0) (col (x + 2 ^ h * o.val)).toBitVec.toNat 64 acc) (Array.replicate 64 0)
 
 /-- **The inputs' opening**: the instance rounds, the slot rounds, the `64` slices. -/
-def inputProve (col : ℕ → K) (P : ℕ) (claim : KeccakClaim) (outs : List ColumnClaim) :
-    Script (List ColumnClaim × List E × List E) :=
+def inputProve (col : ℕ → K) (P : ℕ) (claim : KeccakClaim) : Script Unit :=
   let mu : Array E := Array.ofFn (n := 16) fun i ↦ claim.mu.getD i.val 0
   (sumcheckBy openRound openFold (List.replicate 4 none) ⟨1, [(mu, phiTable col P claim)]⟩).bind
     fun y ↦
@@ -97,16 +89,13 @@ def inputProve (col : ℕ → K) (P : ℕ) (claim : KeccakClaim) (outs : List Co
       Array.ofFn (n := 64) fun o ↦ (sl.getD o.val #[]).getD z 0)
   let muLow := (y.2.pairs.headD (#[], #[])).1.getD 0 0
   (sumcheckBy openRound openFold (List.replicate 6 none) ⟨muLow, pairs⟩).bind fun x ↦
-  let slices := x.2.pairs.map fun p ↦ p.2.getD 0 0
-  (Script.sendList slices).bind fun _ ↦
-  Script.ret (outs, a ++ x.1, slices)
+  Script.sendList (x.2.pairs.map fun p ↦ p.2.getD 0 0)
 
 /-! ## The reduction -/
 
 /-- **The honest prover of `verifyKeccak`** on the column `col` (`2^(P + 4)` steps), the output
 lanes' claims `output` at `inst`. -/
-def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) :
-    Script (List ColumnClaim × List E × List E) :=
+def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit :=
   let V := slotWords col (P + 4) inst
   (Script.sampleN 1).bind fun segment ↦
   (Script.sampleN 5).bind fun lanesPt ↦
@@ -115,24 +104,22 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) :
   let committed := eS.getD 0 0 * sumRange 25 fun l ↦ eL.getD l 0 * V.getD (25 + l) 0
   (Script.sendE committed).bind fun _ ↦
   (layersProve col P (List.range' 0 12)
-      (firstClaimOf inst segment lanesPt output committed)).bind fun claim ↦
+      (keccakFirstClaim inst segment lanesPt output committed)).bind fun claim ↦
   let wo : Array E := Array.ofFn (n := 64) fun o ↦
     if 25 ≤ o.val ∧ o.val < 50 then eS.getD 0 0 * eL.getD (o.val - 25) 0 else 0
   (sumcheckBy openRound openFold (List.replicate 6 none) ⟨1, [(wo, V)]⟩).bind fun x ↦
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
-  (Script.sendE word).bind fun _ ↦
-  inputProve col P claim [⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ x.1, word⟩]
+  (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
 /-- **The honest prover of the Keccak phase** (`keccakPhase`, `verifier.py:1503-1507`): the
-output lanes' claims leave the batch and become the reduction's, on `q_keccak`'s words (the
-column `qkeccak` of `cols`), the `KECCAK` table of log-height `τ`. -/
-def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (claims : List ColumnClaim) :
-    Script (List ColumnClaim × List E × List E) :=
+reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of log-height
+`τ`, at its point and output lanes (`evaluations`). -/
+def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :
+    Script Unit :=
   let qk := cols.getD qkeccak #[]
-  let lanes := claims.filter fun c ↦ c.column ∈ keccakOutputColumns
-  (keccakProve (fun n ↦ qk.getD n 0) (τ - 4) (lanes.headD default).point
-      (lanes.map (·.value))).bind fun r ↦
-    Script.ret (claims.filter (fun c ↦ c.column ∉ keccakOutputColumns) ++ r.1, r.2.1, r.2.2)
+  let table := evaluations.getD opKeccak ([], [])
+  keccakProve (fun n ↦ qk.getD n 0) (τ - 4) table.1
+    ((List.range 25).map fun lane ↦ table.2.getD (keccakOut + lane) 0)
 
 end LeanVM.Prover.KeccakGkr
 
