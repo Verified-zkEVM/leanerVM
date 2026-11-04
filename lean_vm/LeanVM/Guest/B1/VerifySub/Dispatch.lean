@@ -58,20 +58,20 @@ specialization of `open_stacked`, whose returns are `OpenOutW` at the witness. -
 theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
     {osW : ℕ → List E → List E → List E × List Opening} (hos : OsSoundW C rd osW) {μ r : ℕ}
     (hμ1 : 22 ≤ μ) (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
-    (h1901 : σ (.n 1901) = gen ^ B1.Whir.candidate μ r)
-    (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
-      C vsOpenNames[j] [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316),
-        σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
-        [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)])
-    {root : Digest} (hroot : (σ (.n 537), σ (.n 547)) = digestHalves root) :
-    B1.Whir.OpenOutW rd μ r root [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)]
-      (σ (.n 1886)) (σ (.n 868)) [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]
-      (osW (B1.Whir.candidate μ r) [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315),
-        σ (.n 1316), σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
-        [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]).1
-      (osW (B1.Whir.candidate μ r) [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315),
-        σ (.n 1316), σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
-        [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]).2 := by
+    (h1901 : σ (.n 1687) = gen ^ B1.Whir.candidate μ r)
+    (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1687) = ofK (addressOfIndex j) ∧
+      C vsOpenNames[j] [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104),
+        σ (.n 1673), σ (.n 324), σ (.n 334), σ (.n 656)]
+        [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)])
+    {root : Digest} (hroot : (σ (.n 324), σ (.n 334)) = digestHalves root) :
+    B1.Whir.OpenOutW rd μ r root [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)]
+      (σ (.n 1673)) (σ (.n 656)) [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)]
+      (osW (B1.Whir.candidate μ r) [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
+        σ (.n 1104), σ (.n 1673), σ (.n 324), σ (.n 334), σ (.n 656)]
+        [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)]).1
+      (osW (B1.Whir.candidate μ r) [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
+        σ (.n 1104), σ (.n 1673), σ (.n 324), σ (.n 334), σ (.n 656)]
+        [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)]).2 := by
   obtain ⟨j, hj, hj1901, hc⟩ := hd
   have hlen : vsOpenNames.length = 28 := by simp [vsOpenNames]
   have hcand := candidate_lt hμ2 hr1 hr2
@@ -84,8 +84,8 @@ theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
     rw [B1.Whir.openName, List.getD_eq_getElem _ _ (by rw [← vsOpenNames_eq]; omega)]
     simp only [vsOpenNames_eq]
   rw [hname] at hc
-  exact hos μ r hμ1 hμ2 hr1 hr2 root [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315),
-    σ (.n 1316)] (σ (.n 1886)) (σ (.n 537)) (σ (.n 547)) (σ (.n 868)) _ rfl hroot hc
+  exact hos μ r hμ1 hμ2 hr1 hr2 root [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
+    σ (.n 1104)] (σ (.n 1673)) (σ (.n 324)) (σ (.n 334)) (σ (.n 656)) _ rfl hroot hc
 
 end
 end LeanVM.Guest.B1.VerifySub

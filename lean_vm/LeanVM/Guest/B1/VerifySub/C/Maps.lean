@@ -29,7 +29,7 @@ set_option maxRecDepth 100000 in
 theorem vsMapsT_complete (hl : args.length = 7)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap0 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i))))
-    (hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 876)) k
+    (hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 664)) k
       (vsσ rd w args (.n ([870, 897, 917, 937, 957, 977][k]'(by simp; omega)))))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) vsMapsT next kret := by
@@ -39,7 +39,7 @@ theorem vsMapsT_complete (hl : args.length = 7)
   have hz' : ∀ i ∈ [10, 11, 12, 13], IsCanonical128 (vsσ rd w args (.n i)) :=
     fun i hi ↦ by rw [hz i hi]; exact c0
   have hsq : ∀ capb, (∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i)))) →
-      AllCanonical (([V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++
+      AllCanonical (([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++
         vsRun capb 5).map (vsσ rd w args)) := by
     intro capb hc x hx
     obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
@@ -66,7 +66,7 @@ theorem vsMapsT_complete (hl : args.length = 7)
       simp only [List.mem_append] <;> tauto
   have K := fun capb o (h : (capb, o) ∈ [(871, 878), (886, 898), (906, 918), (926, 938),
       (946, 958)]) hc ↦ kc_complete (C := C) (next := True) (kret := kret) hl (o := o)
-    (ins := [V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++ vsRun capb 5)
+    (ins := [V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++ vsRun capb 5)
     (mem capb o (sub capb o h)) (hsq capb hc) trivial
   have nx : ∀ o, (∀ k < 13, IsCanonical128 (vsσ rd w args (.n (o + k)))) →
       ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (o + 8 + i))) :=

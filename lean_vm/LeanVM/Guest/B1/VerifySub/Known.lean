@@ -87,17 +87,17 @@ theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : �
 /-- **The tail of `VsKnown`**: the placement and the stack's log check put every committed
 column's log in `col_kappas` below `29`. -/
 theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
-    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
+    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n XGLP)) (σ (.n 4)))
     {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29)
-    (hkb : ReadsAt L.read (σ (.n 141)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))
+    (hkb : ReadsAt L.read (σ (.n 139)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))
     (h : Stmt.HoldsList C L.read σ (vsTailT.take 14) next kret) :
-    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (addressOfIndex
+    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n XCOLKAPPAS)) c (ofK (addressOfIndex
         e)) := by
   simp only [vsTailT, List.cons_append, List.take_succ_cons, Stmt.HoldsList, Stmt.Holds, vsCall,
     vsConst, vsMul, vsRange, List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨c1, c2, e1891, m1892, e1893, r1892, -⟩ := h
   -- the placement
-  have hsq : Tables.TbReadsAt L.read (σ (.n 5)) Tables.gSquaresList := by
+  have hsq : Tables.TbReadsAt L.read (σ (.n 4)) Tables.gSquaresList := by
     intro k hk
     simp only [Tables.gSquaresList, List.length_map, List.length_range] at hk
     simp only [Tables.gSquaresList, List.getElem_map, List.getElem_range]

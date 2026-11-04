@@ -45,10 +45,10 @@ theorem noRet_mid : Stmt.noRetList (vsMapsT ++ vsCtabT ++ vsLamT) = true := by d
 
 /-- **`VsKnown`** (G5's obligation on `verify_sub`). -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
-    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)))
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n XGLP)) (σ (.n 4)))
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 2098) True
       (fun _ ↦ True)) :
-    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (addressOfIndex
+    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n XCOLKAPPAS)) c (ofK (addressOfIndex
         e)) := by
   have hκ : κ ≤ 32 := h32
   have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega

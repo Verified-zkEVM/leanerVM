@@ -31,11 +31,11 @@ def vsPushPtr (b : ℕ) : ℕ := if b = 0 then 308 else 307 + 4 * b
 
 /-- The loads' pointers and offsets. -/
 def vsLoadOk (q : V × ℕ) : Bool :=
-  (q.1 == .n 27 && q.2 < 10) || (q.1 == .n 28 && q.2 < 6) || (q.1 == .n 129 && q.2 < 7) ||
-    (q.1 == .n 141 && q.2 < 8) || (q.1 == .n 149 && q.2 < 153) || (q.1 == .n 640 && q.2 < 16) ||
-    (q.1 == .n 876 && q.2 < 6) || (q.1 == .n 877 && q.2 < 64) || (q.1 == .n 1324 && q.2 < 165) ||
-    (q.1 == .n 7 && q.2 < 165) || (q.1 == .n 523 && q.2 < 19) || (q.1 == .n 559 && q.2 < 4) ||
-    (q.1 == .n 6 && q.2 < 24) ||
+  (q.1 == .n 25 && q.2 < 10) || (q.1 == .n 26 && q.2 < 6) || (q.1 == .n 127 && q.2 < 7) ||
+    (q.1 == .n 139 && q.2 < 8) || (q.1 == .n XBK && q.2 < 153) || (q.1 == .n 427 && q.2 < 16) ||
+    (q.1 == .n 664 && q.2 < 6) || (q.1 == .n 665 && q.2 < 64) || (q.1 == .n XLAMPOOL && q.2 < 165) ||
+    (q.1 == .n 6 && q.2 < 165) || (q.1 == .n 310 && q.2 < 19) || (q.1 == .n 346 && q.2 < 4) ||
+    (q.1 == .n 5 && q.2 < 24) ||
     (((List.range 54).map fun b ↦ V.n (vsPushPtr b)).contains q.1 && q.2 == 0)
 
 theorem vs_loads_class : (vsCPre.filterMap Stmt.loadS).all vsLoadOk = true := by decide +kernel
@@ -44,11 +44,11 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **A push block's square pointer.** -/
 theorem vs_push_ptr (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
-    (hbk : ReadsAt rd (vsσ rd w args (.n 149))
+    (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))) {b : ℕ} (hb : b < 54) :
-    vsσ rd w args (.n (vsPushPtr b)) = vsσ rd w args (.n 5) * gen ^ pushKappa logMem hs b := by
+    vsσ rd w args (.n (vsPushPtr b)) = vsσ rd w args (.n 4) * gen ^ pushKappa logMem hs b := by
   have hG := vsPushT_good (rd := rd) (w := w) hl
-  have hbL : LoadHolds rd (vsσ rd w args (.n 149)) b (gen ^ pushKappa logMem hs b) := by
+  have hbL : LoadHolds rd (vsσ rd w args (.n XBK)) b (gen ^ pushKappa logMem hs b) := by
     rw [← bkw_getD hsl (by show b < 153; omega), List.getD_eq_getElem _ _
       (by simp only [Tables.blockKappaWords, List.length_map, List.length_range]; show b < 153; omega)]
     exact hbk _ _
@@ -57,9 +57,9 @@ theorem vs_push_ptr (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl :
   have hm : vsMul (vsPushPtr b) 5 (if b = 0 then 307 else 306 + 4 * b) ∈ vsPushStep b := by
     by_cases h0 : b = 0 <;> simp [vsPushStep, vsPushPtr, h0]
   have g1 : Good rd vsSL w (vsσ rd w args) (.load (.n (if b = 0 then 307 else 306 + 4 * b))
-      (.n 149) b) := hG _ (vsPushStep_mem hb h1)
+      (.n XBK) b) := hG _ (vsPushStep_mem hb h1)
   have r1 := good_read g1 (vsPush_notS b hb).1 hbL
-  have gm : Good rd vsSL w (vsσ rd w args) (.mul (.n (vsPushPtr b)) (.n 5)
+  have gm : Good rd vsSL w (vsσ rd w args) (.mul (.n (vsPushPtr b)) (.n 4)
       (.n (if b = 0 then 307 else 306 + 4 * b))) := hG _ (vsPushStep_mem hb hm)
   simp only [Good] at gm
   rw [ite_eq_left_of_eq_true _ _ (eq_true (by
@@ -77,7 +77,7 @@ theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List
       6 ≤ (ownW.getD 13 []).length ∧ 64 ≤ (ownW.getD 14 []).length ∧
       165 ≤ (ownW.getD 15 []).length)
     {outE sqE : ℕ} {cells : List E} (houtL : (outE, cells) ∈ Lin) (hcl : 24 ≤ cells.length)
-    (h6 : σ (.n 6) = ofK (addressOfIndex outE))
+    (h6 : σ (.n 5) = ofK (addressOfIndex outE))
     (hsqL : (sqE, Tables.gSquaresList) ∈ Lin)
     (hpush : ∀ b < 54, ∃ κ < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + κ))) {X : ℕ →
         Prop} :

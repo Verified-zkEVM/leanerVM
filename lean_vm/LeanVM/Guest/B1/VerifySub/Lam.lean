@@ -113,10 +113,10 @@ theorem vsTg_succ (n : ℕ) : vsTg (n + 1) = 1327 + 4 * n := by
   simp only [vsTg, Nat.add_one_ne_zero, ↓reduceIte]; omega
 
 /-- The first `n` batched claims: their powers stored, the power `λ^(n+1)`, the target. -/
-theorem lam_loop {lam T : E} {vals : List E} (hlam : σ (.n 1323) = lam) (hT : σ (.n 1303) = T)
-    (hval : ReadsAt rd (σ (.n 7)) vals) (hvl : vals.length = Tables.nClaims) :
+theorem lam_loop {lam T : E} {vals : List E} (hlam : σ (.n 1111) = lam) (hT : σ (.n 1091) = T)
+    (hval : ReadsAt rd (σ (.n 6)) vals) (hvl : vals.length = Tables.nClaims) :
     ∀ n ≤ 140, ∀ {nx : Prop}, Stmt.HoldsList C rd σ ((List.range n).flatMap vsLamStep) nx kret →
-      (∀ i < n, LoadHolds rd (σ (.n 1324)) (vsKept i) (lam ^ (i + 1))) ∧
+      (∀ i < n, LoadHolds rd (σ (.n XLAMPOOL)) (vsKept i) (lam ^ (i + 1))) ∧
       σ (.n (vsPw n)) = lam ^ (n + 1) ∧
       σ (.n (vsTg n)) = T + ∑ i ∈ range n, lam ^ (i + 1) * vals.getD (vsKept i) 0 ∧ nx
   | 0, _, nx, h => ⟨fun i hi ↦ absurd hi (by omega), by simp [vsPw, hlam], by simp [vsTg, hT], h⟩
@@ -143,16 +143,16 @@ the batched target at `1886`. -/
 theorem vsLamT_holds_of {SQ : Prop}
     (hsq : ∀ {nx : Prop}, Stmt.HoldsList C rd σ (vsSqzT 966 1304) nx kret → SQ ∧ nx)
     {claims : List ColumnClaim} (hcol : claims.map (·.column) = Tables.claimColumns)
-    (hval : ReadsAt rd (σ (.n 7)) (claims.map (·.value)))
+    (hval : ReadsAt rd (σ (.n 6)) (claims.map (·.value)))
     (h : Stmt.HoldsList C rd σ vsLamT next kret) :
     SQ ∧
     (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
-      LoadHolds rd (σ (.n 1324)) j (σ (.n 1323) ^ (1 + poolRank j))) ∧
-    σ (.n 1884) = σ (.n 1323) ^ (1 + poolRank Tables.nClaims) ∧
-    σ (.n 1886) = dot (powers (σ (.n 1323))
+      LoadHolds rd (σ (.n XLAMPOOL)) j (σ (.n 1111) ^ (1 + poolRank j))) ∧
+    σ (.n 1671) = σ (.n 1111) ^ (1 + poolRank Tables.nClaims) ∧
+    σ (.n 1673) = dot (powers (σ (.n 1111))
       ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length + 2))
-      (σ (.n 1303) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
-        [σ (.n 869)])) ∧ next := by
+      (σ (.n 1091) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
+        [σ (.n 657)])) ∧ next := by
   have hvl : (claims.map (·.value)).length = Tables.nClaims := by
     rw [List.length_map, ← List.length_map (f := (·.column)), hcol]; decide +kernel
   unfold vsLamT at h
@@ -180,20 +180,20 @@ theorem vsLamT_holds_of {SQ : Prop}
 
 /-- **The batching** (G:3263-3281): `λ`'s squeeze, claim `j`'s power `λ^(1 + poolRank j)` stored
 for every batched claim, `λ^141` at `1884`, and the batched target at `1886`. -/
-theorem vsLamT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
-    (h13 : σ (.n 13) = 0) {claims : List ColumnClaim}
+theorem vsLamT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
+    (h13 : σ (.n 11) = 0) {claims : List ColumnClaim}
     (hcol : claims.map (·.column) = Tables.claimColumns)
-    (hval : ReadsAt rd (σ (.n 7)) (claims.map (·.value)))
+    (hval : ReadsAt rd (σ (.n 6)) (claims.map (·.value)))
     (h : Stmt.HoldsList C rd σ vsLamT next kret) :
-    (⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩ : Fs).squeeze =
-      (σ (.n 1323), ⟨[σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)], []⟩) ∧
+    (⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩ : Fs).squeeze =
+      (σ (.n 1111), ⟨[σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)], []⟩) ∧
     (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
-      LoadHolds rd (σ (.n 1324)) j (σ (.n 1323) ^ (1 + poolRank j))) ∧
-    σ (.n 1884) = σ (.n 1323) ^ (1 + poolRank Tables.nClaims) ∧
-    σ (.n 1886) = dot (powers (σ (.n 1323))
+      LoadHolds rd (σ (.n XLAMPOOL)) j (σ (.n 1111) ^ (1 + poolRank j))) ∧
+    σ (.n 1671) = σ (.n 1111) ^ (1 + poolRank Tables.nClaims) ∧
+    σ (.n 1673) = dot (powers (σ (.n 1111))
       ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).length + 2))
-      (σ (.n 1303) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
-        [σ (.n 869)])) ∧ next :=
+      (σ (.n 1091) :: ((claims.filter fun c ↦ c.column ∉ keccakOutputColumns).map (·.value) ++
+        [σ (.n 657)])) ∧ next :=
   vsLamT_holds_of (fun hs ↦ vsSqzT_holds (capb := 966) (o := 1304) h10 h11 h12 h13 hs) hcol hval h
 
 end

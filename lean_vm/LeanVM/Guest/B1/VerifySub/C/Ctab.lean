@@ -32,9 +32,9 @@ def ctStepH (S : List Atom) (st : CtSt) : Stmt → Option CtSt
   | .atom (.const d c) =>
       if eEqb c (word 1 0 0) then some ⟨(d, List.replicate 6 0) :: st.vars, st.mem⟩ else none
   | .atom (.load d p off) =>
-      if p = .n 876 then
+      if p = .n 664 then
         if off < 6 ∧ Atom.load d p off ∉ S then some ⟨(d, evUnit off) :: st.vars, st.mem⟩ else none
-      else if p = .n 877 then
+      else if p = .n 665 then
         match st.mem.lookup off with
         | some e => if Atom.load d p off ∉ S then some ⟨(d, e) :: st.vars, st.mem⟩ else none
         | none =>
@@ -69,8 +69,8 @@ def CtOkH (chs : List E) (σ : Val) (st : CtSt) : Prop :=
 variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
 theorem ctStepH_good {S : List Atom} {chs : List E} (hcl : chs.length = 6)
-    (hc : ReadsAt rd (σ (.n 876)) chs)
-    (hW : ∀ k < 64, LoadHolds rd (σ (.n 877)) k (evVal chs (specEV k)))
+    (hc : ReadsAt rd (σ (.n 664)) chs)
+    (hW : ∀ k < 64, LoadHolds rd (σ (.n 665)) k (evVal chs (specEV k)))
     {st st' : CtSt} {a : Atom} (hs : ctStepH S st (.atom a) = some st') (hok : CtOkH chs σ st)
     (hg : Good rd S w σ a) : CtOkH chs σ st' ∧ a.Holds rd σ := by
   obtain ⟨hv, hm⟩ := hok
@@ -160,8 +160,8 @@ theorem ctStepH_good {S : List Atom} {chs : List E} (hcl : chs.length = 6)
 
 /-- **The honest pass is sound**: every statement of the block holds. -/
 theorem ctRunH_good {S : List Atom} {chs : List E} (hcl : chs.length = 6)
-    (hc : ReadsAt rd (σ (.n 876)) chs)
-    (hW : ∀ k < 64, LoadHolds rd (σ (.n 877)) k (evVal chs (specEV k))) {C : CallRel}
+    (hc : ReadsAt rd (σ (.n 664)) chs)
+    (hW : ∀ k < 64, LoadHolds rd (σ (.n 665)) k (evVal chs (specEV k))) {C : CallRel}
     {kret : List E → Prop} :
     ∀ {st st' : CtSt} {ss : List Stmt}, ctRunH S st ss = some st' → CtOkH chs σ st →
       (∀ s ∈ ss, GoodS rd S w σ s) → ∀ {next : Prop}, next → Stmt.HoldsList C rd σ ss next kret
@@ -188,13 +188,13 @@ variable {args : List E}
 
 /-- **`c_table` and `ring_switch_target`'s call, honestly.** -/
 theorem vsCtabT_complete (hl : args.length = 7) {chs : List E} (hcl : chs.length = 6)
-    (hc : ReadsAt rd (vsσ rd w args (.n 876)) chs)
-    (hW : ReadsAt rd (vsσ rd w args (.n 877)) (ringCoefficients chs)) {C : CallRel}
-    (hC : C "ring_switch_target" [vsσ rd w args (.n 860), vsσ rd w args (.n 876)]
-      [vsσ rd w args (.n 1303)])
+    (hc : ReadsAt rd (vsσ rd w args (.n 664)) chs)
+    (hW : ReadsAt rd (vsσ rd w args (.n 665)) (ringCoefficients chs)) {C : CallRel}
+    (hC : C "ring_switch_target" [vsσ rd w args (.n 648), vsσ rd w args (.n 664)]
+      [vsσ rd w args (.n 1091)])
     {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) vsCtabT next kret := by
-  have hW' : ∀ k < 64, LoadHolds rd (vsσ rd w args (.n 877)) k (evVal chs (specEV k)) := by
+  have hW' : ∀ k < 64, LoadHolds rd (vsσ rd w args (.n 665)) k (evVal chs (specEV k)) := by
     intro k hk
     rw [← ringCoefficients_getElem hcl hk]
     exact hW k _

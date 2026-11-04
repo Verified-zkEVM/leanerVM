@@ -39,7 +39,7 @@ def vsAllocVars : List ℕ := [7, 8, 27, 28, 129, 141, 149, 523, 559, 640, 848, 
 
 /-- **The allocations, by the kernel**: their values and sizes (the dynamic one by `522`). -/
 theorem vs_allocs : vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz =
-    (vsAllocVars.zip [.inl 165, .inl 165, .inl 8192, .inl 6, .inl 7, .inl 8, .inl 153, .inr (.n 522),
+    (vsAllocVars.zip [.inl 165, .inl 165, .inl 8192, .inl 6, .inl 7, .inl 8, .inl 153, .inr (.n 309),
       .inl 4, .inl 16, .inl 34, .inl 78, .inl 64, .inl 6, .inl 64, .inl 165]).map
       (fun x ↦ (V.n x.1, x.2)) := by decide +kernel
 

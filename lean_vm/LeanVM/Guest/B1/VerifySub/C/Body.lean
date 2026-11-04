@@ -53,8 +53,8 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0)
   -- the announced words
   ws : List E
-  hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 27)) i (ws.getD i 0)
-  hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 28)) i (ws.getD (i + 1) 0)
+  hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0)
+  hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 26)) i (ws.getD (i + 1) 0)
   hcap22 : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (vsσ rd w args (.n i))
   -- the sizes
   κ : ℕ
@@ -66,55 +66,55 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hl4 : lir ≤ 4
   hm16 : 16 ≤ logMem
   hm32 : logMem ≤ 32
-  e112 : vsσ rd w args (.n 112) = eOfNat lir
-  e29 : vsσ rd w args (.n 29) = eOfNat logMem
-  e122 : vsσ rd w args (.n 122) = gen ^ lir
-  e130 : vsσ rd w args (.n 130) = gen ^ logMem
+  e112 : vsσ rd w args (.n 110) = eOfNat lir
+  e29 : vsσ rd w args (.n 27) = eOfNat logMem
+  e122 : vsσ rd w args (.n 120) = gen ^ lir
+  e130 : vsσ rd w args (.n 128) = gen ^ logMem
   hs : List ℕ
   hsl : hs.length = 6
   hh : ∀ x ∈ hs, x < 29
-  hdims : ReadsAt rd (vsσ rd w args (.n 129)) (gen ^ logMem :: hs.map Hints.count)
-  hkb : ReadsAt rd (vsσ rd w args (.n 141)) (1 :: gen ^ logMem :: hs.map Hints.count)
+  hdims : ReadsAt rd (vsσ rd w args (.n 127)) (gen ^ logMem :: hs.map Hints.count)
+  hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: gen ^ logMem :: hs.map Hints.count)
   hcount : hs.map Hints.count = hs.map (gen ^ ·)
-  hbk : ReadsAt rd (vsσ rd w args (.n 149))
+  hbk : ReadsAt rd (vsσ rd w args (.n XBK))
     (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))
-  hexp : B1.ExpTables rd (vsσ rd w args (.n 4)) (vsσ rd w args (.n 5))
+  hexp : B1.ExpTables rd (vsσ rd w args (.n XGLP)) (vsσ rd w args (.n 4))
   -- the root
   hin : ∀ i ∈ [89, 91, 99, 101, 109, 111, 119, 121, 77, 78, 79, 80, 81],
     IsCanonical128 (vsσ rd w args (.n i))
   x0 : E
   x1 : E
-  hw8 : LoadHolds rd (vsσ rd w args (.n 27)) 8 x0
-  hw9 : LoadHolds rd (vsσ rd w args (.n 27)) 9 x1
+  hw8 : LoadHolds rd (vsσ rd w args (.n 25)) 8 x0
+  hw9 : LoadHolds rd (vsσ rd w args (.n 25)) 9 x1
   -- the bus challenges and their weights
   hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0
   hcap532 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (532 + i)))
-  hA : ∀ k (hk : k < 4), LoadHolds rd (vsσ rd w args (.n 559)) k
+  hA : ∀ k (hk : k < 4), LoadHolds rd (vsσ rd w args (.n 346)) k
     (vsσ rd w args (.n ([579, 599, 619, 639][k]'(by simp; omega))))
   a0 : E
   a1 : E
   a2 : E
   a3 : E
-  ha : ReadsAt rd (vsσ rd w args (.n 559)) [a0, a1, a2, a3]
-  hfp : ReadsAt rd (vsσ rd w args (.n 640)) (eqKernel [a0, a1, a2, a3])
+  ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3]
+  hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3])
   hcap628 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (628 + i)))
   -- the three calls
   τg : E
-  hd6 : LoadHolds rd (vsσ rd w args (.n 129)) 6 τg
+  hd6 : LoadHolds rd (vsσ rd w args (.n 127)) 6 τg
   -- the ring map
   hcap871 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i)))
-  hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 876)) k
+  hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 664)) k
     (vsσ rd w args (.n ([870, 897, 917, 937, 957, 977][k]'(by simp; omega))))
   chs : List E
   hcl : chs.length = 6
-  hchs : ReadsAt rd (vsσ rd w args (.n 876)) chs
-  hct : ReadsAt rd (vsσ rd w args (.n 877)) (ringCoefficients chs)
+  hchs : ReadsAt rd (vsσ rd w args (.n 664)) chs
+  hct : ReadsAt rd (vsσ rd w args (.n 665)) (ringCoefficients chs)
   -- the batching
   hcap966 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))
   vals : ℕ → E
-  hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 7)) (vsKept i) (vals i)
-  hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 1324)) (vsKept i)
-    (vsσ rd w args (.n 1323) ^ (i + 1))
+  hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i)
+  hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n XLAMPOOL)) (vsKept i)
+    (vsσ rd w args (.n 1111) ^ (i + 1))
   -- the tail
   m : ℕ
   r : ℕ
@@ -122,15 +122,15 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hm28 : m ≤ 28
   hr1 : 1 ≤ r
   hr4 : r ≤ 4
-  e1890 : vsσ rd w args (.n 1890) = gen ^ m
-  e124 : vsσ rd w args (.n 124) = gen ^ (r - 1)
+  e1890 : vsσ rd w args (.n 1676) = gen ^ m
+  e124 : vsσ rd w args (.n 122) = gen ^ (r - 1)
   zs : ℕ → E
   al : ℕ → E
-  hzeta : ∀ k < 19, LoadHolds rd (vsσ rd w args (.n 523)) k (zs k)
-  halpha : ∀ k < 4, LoadHolds rd (vsσ rd w args (.n 559)) k (al k)
-  hout : ∀ k < 19, LoadHolds rd (vsσ rd w args (.n 6)) k (zs k)
-  hout' : ∀ k < 4, LoadHolds rd (vsσ rd w args (.n 6)) (19 + k) (al k)
-  hout23 : LoadHolds rd (vsσ rd w args (.n 6)) 23 (vsσ rd w args (.n 856))
+  hzeta : ∀ k < 19, LoadHolds rd (vsσ rd w args (.n 310)) k (zs k)
+  halpha : ∀ k < 4, LoadHolds rd (vsσ rd w args (.n 346)) k (al k)
+  hout : ∀ k < 19, LoadHolds rd (vsσ rd w args (.n 5)) k (zs k)
+  hout' : ∀ k < 4, LoadHolds rd (vsσ rd w args (.n 5)) (19 + k) (al k)
+  hout23 : LoadHolds rd (vsσ rd w args (.n 5)) 23 (vsσ rd w args (.n 643))
 
 /-- **`verify_sub`'s statements hold on its honest valuation**, from the sections' data, under the
 trivial call relation. -/

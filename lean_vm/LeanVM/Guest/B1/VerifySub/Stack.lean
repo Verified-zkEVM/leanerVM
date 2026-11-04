@@ -46,21 +46,21 @@ candidate `g^((μ - 22) + 7·(r - 1))` dispatched on, and the committed columns'
 theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ 23) {σ : Val} (F : VsFront bytecode C L.read σ)
-    (hexp : ExpTables L.read (σ (.n 4)) (σ (.n 5)))
-    (hcp : C "certify_placement" [σ (.n 141), σ (.n 5)] [σ (.n 1887), σ (.n 1888), σ (.n 1889)])
-    (hl2 : C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1887), σ (.n 4), σ (.n 5)] [σ (.n 1890)])
-    (e1892 : σ (.n 1892) = σ (.n 1890) * word 8198552432976855044 0 0)
-    (r1 : LoadHolds L.read (σ (.n 1892)) 0 (σ (.n 1895)) ∧ word 64 0 0 = σ (.n 1892) * σ (.n 1894) ∧
-      LoadHolds L.read (σ (.n 1894)) 0 (σ (.n 1896)))
-    (e1901 : σ (.n 1901) = σ (.n 1892) * (σ (.n 124) * σ (.n 124) * σ (.n 124) *
-      (σ (.n 124) * σ (.n 124) * σ (.n 124)) * σ (.n 124)))
-    (r2 : LoadHolds L.read (σ (.n 1901)) 0 (σ (.n 1904)) ∧
-      word 134217728 0 0 = σ (.n 1901) * σ (.n 1903) ∧ LoadHolds L.read (σ (.n 1903)) 0 (σ (.n 1905))) :
+    (hexp : ExpTables L.read (σ (.n XGLP)) (σ (.n 4)))
+    (hcp : C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1674), σ (.n 1675), σ (.n XCOLKAPPAS)])
+    (hl2 : C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1674), σ (.n XGLP), σ (.n 4)] [σ (.n 1676)])
+    (e1892 : σ (.n 1678) = σ (.n 1676) * word 8198552432976855044 0 0)
+    (r1 : LoadHolds L.read (σ (.n 1678)) 0 (σ (.n 1681)) ∧ word 64 0 0 = σ (.n 1678) * σ (.n 1680) ∧
+      LoadHolds L.read (σ (.n 1680)) 0 (σ (.n 1682)))
+    (e1901 : σ (.n 1687) = σ (.n 1678) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
+      (σ (.n 122) * σ (.n 122) * σ (.n 122)) * σ (.n 122)))
+    (r2 : LoadHolds L.read (σ (.n 1687)) 0 (σ (.n 1690)) ∧
+      word 134217728 0 0 = σ (.n 1687) * σ (.n 1689) ∧ LoadHolds L.read (σ (.n 1689)) 0 (σ (.n 1691))) :
     22 ≤ (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ∧
       (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ≤ 28 ∧
-      σ (.n 1901) = gen ^ B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir ∧
-      Tables.PCtx L.read (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) (σ (.n 1888))
-        (σ (.n 1889)) ∧ Tables.KappasBelow L.read (σ (.n 1889)) := by
+      σ (.n 1687) = gen ^ B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir ∧
+      Tables.PCtx L.read (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) (σ (.n 1675))
+        (σ (.n XCOLKAPPAS)) ∧ Tables.KappasBelow L.read (σ (.n XCOLKAPPAS)) := by
   have hsL := tableHeights_length _ F.hrowsL
   -- the placement
   obtain ⟨off, kap, hrets, hP⟩ := Tables.certify_placement_holdsC hκ L hLe F.logMem
@@ -82,7 +82,7 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
   have hμe : μ = e + 22 := size_sel_eq hm34 he (by rw [← hret, ← e1892, hx])
   -- the candidate
   obtain ⟨c, hc, hcx⟩ := rc_lt28 hκ hκ6 L r2.1 (by simpa using r2.2.1) r2.2.2
-  have hcand : σ (.n 1901) = gen ^ B1.Whir.candidate μ F.lir := by
+  have hcand : σ (.n 1687) = gen ^ B1.Whir.candidate μ F.lir := by
     rw [e1901, hx, F.e124]
     simp only [← pow_add]
     congr 1

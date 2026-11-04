@@ -76,11 +76,11 @@ theorem vsSizesT_good (hl : args.length = 7) :
 /-- **The sizes, honestly.** -/
 theorem vsSizesT_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
     {lir logMem : ℕ} (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) (hm16 : 16 ≤ logMem) (hm32 : logMem ≤ 32)
-    (e112 : vsσ rd w args (.n 112) = eOfNat lir) (e29 : vsσ rd w args (.n 29) = eOfNat logMem)
-    (e122 : vsσ rd w args (.n 122) = gen ^ lir) (e130 : vsσ rd w args (.n 130) = gen ^ logMem)
+    (e112 : vsσ rd w args (.n 110) = eOfNat lir) (e29 : vsσ rd w args (.n 27) = eOfNat logMem)
+    (e122 : vsσ rd w args (.n 120) = gen ^ lir) (e130 : vsσ rd w args (.n 128) = gen ^ logMem)
     {hs : List ℕ} (hsl : hs.length = 6)
-    (hdims : ReadsAt rd (vsσ rd w args (.n 129)) (gen ^ logMem :: hs.map Hints.count))
-    (hkb : ReadsAt rd (vsσ rd w args (.n 141)) (1 :: gen ^ logMem :: hs.map Hints.count))
+    (hdims : ReadsAt rd (vsσ rd w args (.n 127)) (gen ^ logMem :: hs.map Hints.count))
+    (hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: gen ^ logMem :: hs.map Hints.count))
     {C : CallRel} (hC1 : C "g_power_of_word" [eOfNat lir] [gen ^ lir])
     (hC2 : C "g_power_of_word" [eOfNat logMem] [gen ^ logMem])
     {next : Prop} {kret : List E → Prop} (hn : next) :
@@ -91,7 +91,7 @@ theorem vsSizesT_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (h
       vsCall "g_power_of_word" [29] [130], vsConst 131 (word (2 ^ 32) 0 0),
       vsRange 130 132 133 134 131, vsConst 135 (word (2 ^ 32) 0 0), vsConst 136 (word 65536 0 0),
       vsMul 130 137 136, vsRange 137 138 139 140 135, vsLd 130 129 0,
-      .atom (.hint (.witness "table_logs" (.heap (.n 129) 1 6))), vsAlloc 141 8,
+      .atom (.hint (.witness "table_logs" (.heap (.n 127) 1 6))), vsAlloc 141 8,
       vsConst 142 (word 1 0 0), vsLd 142 141 0, vsLd 130 141 1], s ∈ vsSizesT :=
     fun s hs ↦ by rw [vsSizesT]; exact List.mem_append_left _ hs
   have m2 : ∀ t < 6, vsLd (143 + t) 129 (1 + t) ∈ vsSizesT ∧ vsLd (143 + t) 141 (2 + t) ∈ vsSizesT :=
@@ -103,77 +103,77 @@ theorem vsSizesT_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (h
   have g : ∀ a, Stmt.atom a ∈ vsSizesT → Good rd vsSL w σ a := fun a h ↦ hG _ h
   have mm := fun s (h : s ∈ _) ↦ m1 s h
   -- the constants
-  have v123 : σ (.n 123) = gen := by
+  have v123 : σ (.n 121) = gen := by
     have := g _ (mm (vsConst 123 (word 2 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_gen]
-  have v125 : σ (.n 125) = gen ^ 3 := by
+  have v125 : σ (.n 123) = gen ^ 3 := by
     have := g _ (mm (vsConst 125 (word 8 0 0)) (by simp)); simp only [Good] at this
     rw [this, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]
-  have v131 : σ (.n 131) = gen ^ 32 := by
+  have v131 : σ (.n 129) = gen ^ 32 := by
     have := g _ (mm (vsConst 131 (word (2 ^ 32) 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_two_pow (by norm_num)]
-  have v135 : σ (.n 135) = gen ^ 32 := by
+  have v135 : σ (.n 133) = gen ^ 32 := by
     have := g _ (mm (vsConst 135 (word (2 ^ 32) 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_two_pow (by norm_num)]
-  have v136 : σ (.n 136) = gen ^ 16 := by
+  have v136 : σ (.n 134) = gen ^ 16 := by
     have := g _ (mm (vsConst 136 (word 65536 0 0)) (by simp)); simp only [Good] at this
     rw [this, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by norm_num)]
-  have v142 : σ (.n 142) = 1 := by
+  have v142 : σ (.n 140) = 1 := by
     have := g _ (mm (vsConst 142 (word 1 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_one]
   have hκ : 64 ≤ 2 ^ κ := by
     calc 64 = 2 ^ 6 := rfl
       _ ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ6
   -- the rate
-  have v124 : σ (.n 124) = gen ^ (lir - 1) := by
+  have v124 : σ (.n 122) = gen ^ (lir - 1) := by
     rw [good_mul_old (by decide) (g _ (mm (vsMul 122 124 123) (by simp))), e122, v123]
     have : gen ^ lir = gen ^ (lir - 1) * gen := by rw [← pow_succ]; congr 1; omega
     rw [this, mul_assoc, mul_inv_cancel₀ gen_ne_zero, mul_one]
-  have v126 : σ (.n 126) = gen ^ (3 - (lir - 1)) := by
+  have v126 : σ (.n 124) = gen ^ (3 - (lir - 1)) := by
     rw [good_rc_y (by decide) (g _ (mm (vsRange 124 126 127 128 125) (by simp))), v125, v124,
       gen_pow_div (by omega)]
   have r1 := rc_holds hlow (by decide) (by omega) (by omega) v124 v126
     (g _ (mm (vsRange 124 126 127 128 125) (by simp)))
   -- the memory's log
-  have v132 : σ (.n 132) = gen ^ (32 - logMem) := by
+  have v132 : σ (.n 130) = gen ^ (32 - logMem) := by
     rw [good_rc_y (by decide) (g _ (mm (vsRange 130 132 133 134 131) (by simp))), v131, e130,
       gen_pow_div hm32]
   have r2 := rc_holds hlow (by decide) (by omega) (by omega) e130 v132
     (g _ (mm (vsRange 130 132 133 134 131) (by simp)))
-  have v137 : σ (.n 137) = gen ^ (logMem - 16) := by
+  have v137 : σ (.n 135) = gen ^ (logMem - 16) := by
     rw [good_mul_old (by decide) (g _ (mm (vsMul 130 137 136) (by simp))), e130, v136,
       gen_pow_div hm16]
-  have v138 : σ (.n 138) = gen ^ (32 - (logMem - 16)) := by
+  have v138 : σ (.n 136) = gen ^ (32 - (logMem - 16)) := by
     rw [good_rc_y (by decide) (g _ (mm (vsRange 137 138 139 140 135) (by simp))), v135, v137,
       gen_pow_div (by omega)]
   have r3 := rc_holds hlow (by decide) (by omega) (by omega) v137 v138
     (g _ (mm (vsRange 137 138 139 140 135) (by simp)))
   -- the products
-  have p122 : σ (.n 122) = σ (.n 124) * σ (.n 123) := by
+  have p122 : σ (.n 120) = σ (.n 122) * σ (.n 121) := by
     rw [e122, v124, v123, ← pow_succ]; congr 1; omega
-  have p130 : σ (.n 130) = σ (.n 137) * σ (.n 136) := by
+  have p130 : σ (.n 128) = σ (.n 135) * σ (.n 134) := by
     rw [e130, v137, v136, ← pow_add]; congr 1; omega
   -- the stores and the reads
-  have hd : ∀ k (hk : k < 7), LoadHolds rd (σ (.n 129)) k
+  have hd : ∀ k (hk : k < 7), LoadHolds rd (σ (.n 127)) k
       ((gen ^ logMem :: hs.map Hints.count)[k]'(by simp [hsl]; omega)) := fun k hk ↦ hdims k _
-  have hb : ∀ k (hk : k < 8), LoadHolds rd (σ (.n 141)) k
+  have hb : ∀ k (hk : k < 8), LoadHolds rd (σ (.n 139)) k
       ((1 :: gen ^ logMem :: hs.map Hints.count)[k]'(by simp [hsl]; omega)) := fun k hk ↦ hkb k _
-  have s14 : LoadHolds rd (σ (.n 129)) 0 (σ (.n 130)) := by rw [e130]; exact hd 0 (by norm_num)
-  have s18 : LoadHolds rd (σ (.n 141)) 0 (σ (.n 142)) := by rw [v142]; exact hb 0 (by norm_num)
-  have s19 : LoadHolds rd (σ (.n 141)) 1 (σ (.n 130)) := by rw [e130]; exact hb 1 (by norm_num)
-  have notS : ∀ t < 6, Atom.load (.n (143 + t)) (.n 129) (1 + t) ∉ vsSL := by decide +kernel
+  have s14 : LoadHolds rd (σ (.n 127)) 0 (σ (.n 128)) := by rw [e130]; exact hd 0 (by norm_num)
+  have s18 : LoadHolds rd (σ (.n 139)) 0 (σ (.n 140)) := by rw [v142]; exact hb 0 (by norm_num)
+  have s19 : LoadHolds rd (σ (.n 139)) 1 (σ (.n 128)) := by rw [e130]; exact hb 1 (by norm_num)
+  have notS : ∀ t < 6, Atom.load (.n (143 + t)) (.n 127) (1 + t) ∉ vsSL := by decide +kernel
   have hv : ∀ t (ht : t < 6), σ (.n (143 + t)) = Hints.count (hs[t]'(by omega)) := by
     intro t ht
     have hgl := g _ (m2 t ht).1
     simp only [Good] at hgl
     rw [hgl.resolve_left (notS t ht), rdAt, (hd (1 + t) (by omega)).2]
     simp [List.getElem_cons, show 1 + t - 1 = t by omega]
-  have lt : ∀ t (ht : t < 6), LoadHolds rd (σ (.n 129)) (1 + t) (σ (.n (143 + t))) := by
+  have lt : ∀ t (ht : t < 6), LoadHolds rd (σ (.n 127)) (1 + t) (σ (.n (143 + t))) := by
     intro t ht
     rw [hv t ht]
     have := hd (1 + t) (by omega)
     simpa [List.getElem_cons, show 1 + t ≠ 0 by omega, show 1 + t - 1 = t by omega] using this
-  have st : ∀ t (ht : t < 6), LoadHolds rd (σ (.n 141)) (2 + t) (σ (.n (143 + t))) := by
+  have st : ∀ t (ht : t < 6), LoadHolds rd (σ (.n 139)) (2 + t) (σ (.n (143 + t))) := by
     intro t ht
     rw [hv t ht]
     have := hb (2 + t) (by omega)

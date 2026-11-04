@@ -111,18 +111,18 @@ theorem seed_carries (seed pi : Digest) :
 /-- **What the honest front is, against the run.** -/
 structure VsFrontH {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (rd : Reader) (σ : Val) : Prop extends VsFrontS rd σ c.proof.stream where
-  hcap0 : [σ (.n 22), σ (.n 23), σ (.n 24), σ (.n 25), σ (.n 26)] =
+  hcap0 : [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
     capOf (keccakF1600 (seedInput seed (statementDigest seed c.statement)))
   hwords : vsWords σ = S.words
-  h537 : σ (.n 537) = S.x0
-  h547 : σ (.n 547) = S.x1
-  hs1 : S.s1 = ⟨[σ (.n 77), σ (.n 78), σ (.n 79), σ (.n 80), σ (.n 81)],
-      [(σ (.n 82), dsObserve), (σ (.n 92), dsObserve), (σ (.n 102), dsObserve),
-        (σ (.n 112), dsObserve)]⟩
+  h537 : σ (.n 324) = S.x0
+  h547 : σ (.n 334) = S.x1
+  hs1 : S.s1 = ⟨[σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)],
+      [(σ (.n 80), dsObserve), (σ (.n 90), dsObserve), (σ (.n 100), dsObserve),
+        (σ (.n 110), dsObserve)]⟩
   halphas : vsAlphas σ = S.alphas
-  hs3 : S.s3 = ⟨[σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631), σ (.n 632)], []⟩
-  hβ : σ (.n 836) = S.s3.squeeze.1
-  hs4 : S.s3.squeeze.2 = ⟨[σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829)], []⟩
+  hs3 : S.s3 = ⟨[σ (.n 415), σ (.n 416), σ (.n 417), σ (.n 418), σ (.n 419)], []⟩
+  hβ : σ (.n 623) = S.s3.squeeze.1
+  hs4 : S.s3.squeeze.2 = ⟨[σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616)], []⟩
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
@@ -132,7 +132,7 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
       (digestHalves seed).2, lp, sq, out])
-    (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 27)) i (c.proof.stream.getD i 0)) :
+    (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 25)) i (c.proof.stream.getD i 0)) :
     VsFrontH S rd (vsσ rd w args) := by
   have hl : args.length = 7 := by rw [hargs]; rfl
   have hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0) := by
@@ -168,22 +168,22 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     rw [hw8 i hi, List.getD_eq_getElem _ _ h2] at e
     rw [← e]
     interval_cases i <;> rfl
-  have e537 : σ (.n 537) = S.x0 := by rw [F.e537, hx8]
-  have e547 : σ (.n 547) = S.x1 := by rw [F.e547, hx9]
+  have e537 : σ (.n 324) = S.x0 := by rw [F.e537, hx8]
+  have e547 : σ (.n 334) = S.x1 := by rw [F.e547, hx9]
   -- the announced sizes' run
   have hh := vsH_heights hbl S.hrowsL (by rw [← S.hlayout]; exact S.hmu28)
   have hr := readSizes_runsTo hbl S.h16 S.h32 S.hrowsL hh S.hr1 S.hr4 (by rw [← S.hlayout]; exact S.hmu28)
     (⟨capOf (keccakF1600 (seedInput seed (statementDigest seed c.statement))), []⟩ : Fs)
   rw [← S.hlayout] at hr
   obtain ⟨-, es1, -⟩ := Tables.runsTo_det S.runS hr (seed_carries _ _) (r1 := []) (r2 := []) rfl
-  have hs1 : S.s1 = ⟨[σ (.n 77), σ (.n 78), σ (.n 79), σ (.n 80), σ (.n 81)],
-      [(σ (.n 82), dsObserve), (σ (.n 92), dsObserve), (σ (.n 102), dsObserve),
-        (σ (.n 112), dsObserve)]⟩ := by
+  have hs1 : S.s1 = ⟨[σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)],
+      [(σ (.n 80), dsObserve), (σ (.n 90), dsObserve), (σ (.n 100), dsObserve),
+        (σ (.n 110), dsObserve)]⟩ := by
     rw [es1, ← hcap0, ← F.hab8, hwords, ChildSegs.words]
   -- the bus challenges and `β`
   have hab : (S.s1.absorb S.x0 dsObserve).absorb S.x1 dsObserve =
-      ⟨[σ (.n 532), σ (.n 533), σ (.n 534), σ (.n 535), σ (.n 536)],
-        [(σ (.n 537), dsObserve), (σ (.n 547), dsObserve)]⟩ := by
+      ⟨[σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323)],
+        [(σ (.n 324), dsObserve), (σ (.n 334), dsObserve)]⟩ := by
     rw [hs1, ← e537, ← e547]; exact F.habR
   have ha := S.halphas
   rw [hab, show busBits = 4 from rfl, F.halpha] at ha

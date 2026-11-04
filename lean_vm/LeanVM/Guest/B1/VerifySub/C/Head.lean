@@ -32,13 +32,13 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 theorem vsHeadT_complete (hl : args.length = 7) (hc : ∀ i < 4, IsCanonical128 (args.getD i 0)) :
     ∀ s ∈ vsHeadT, VSH (coreProgram.Rel rd) rd (vsσ rd w args) s := by
   refine vs_block hl 0 vsHeadT (by decide +kernel)
-    [keccakA [.n 2, .n 3, .n 0, .n 1, .n 10, .n 11, .n 12, .n 13, .n 10, .n 10, .n 11, .n 12, .n 13]
+    [keccakA [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]
       (vsRun 14 13)] (by decide +kernel) ?_
   intro s hs
   rw [List.mem_singleton] at hs
   subst hs
-  have hm : keccakA [.n 2, .n 3, .n 0, .n 1, .n 10, .n 11, .n 12, .n 13, .n 10, .n 10, .n 11,
-      .n 12, .n 13] (vsRun 14 13) ∈ vsCPre :=
+  have hm : keccakA [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9,
+      .n 10, .n 11] (vsRun 14 13) ∈ vsCPre :=
     vs_mem_slice (n := 7) (blk := [_]) (by decide +kernel) List.mem_cons_self
   have hg := vs_goodS (rd := rd) (w := w) hl hm
   -- the constants `0` at `10 .. 13`

@@ -35,7 +35,7 @@ theorem good_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p 
 theorem vsKappaT_noNe : vsKappaT.all noNeB = true := by decide +kernel
 
 theorem vsKappa_notS : ∀ b < Tables.nBlocks,
-    Atom.load (.n (vsKV b)) (.n 141) (Tables.blockKappaSrc.getD b 0) ∉ vsSL := by decide +kernel
+    Atom.load (.n (vsKV b)) (.n 139) (Tables.blockKappaSrc.getD b 0) ∉ vsSL := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
@@ -51,17 +51,17 @@ theorem vsKappaStep_mem {b : ℕ} (hb : b < Tables.nBlocks) {s : Stmt} (hs : s �
 
 /-- One block, honestly. -/
 theorem vsKappaStep_complete (hl : args.length = 7) {g : E} {ds : List E} (hds : ds.length = 6)
-    (hkb : ReadsAt rd (vsσ rd w args (.n 141)) (1 :: g :: ds))
-    (hbk : ReadsAt rd (vsσ rd w args (.n 149)) (Tables.blockKappaWords g ds))
+    (hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: g :: ds))
+    (hbk : ReadsAt rd (vsσ rd w args (.n XBK)) (Tables.blockKappaWords g ds))
     {b : ℕ} (hb : b < Tables.nBlocks) {C : CallRel} {next : Prop} {kret : List E → Prop}
     (hn : next) : Stmt.HoldsList C rd (vsσ rd w args) (vsKappaStep b) next kret := by
   have hG := vsKappaT_good (rd := rd) (w := w) hl
   have hsrc := blockKappaSrc_lt b hb
-  have hsrcL : LoadHolds rd (vsσ rd w args (.n 141)) (Tables.blockKappaSrc.getD b 0)
+  have hsrcL : LoadHolds rd (vsσ rd w args (.n 139)) (Tables.blockKappaSrc.getD b 0)
       ((1 :: g :: ds).getD (Tables.blockKappaSrc.getD b 0) 0) := by
     rw [List.getD_eq_getElem (1 :: g :: ds) _ (by simp only [List.length_cons, hds]; omega)]
     exact hkb _ _
-  have hbkL : LoadHolds rd (vsσ rd w args (.n 149)) b ((Tables.blockKappaWords g ds).getD b 0) := by
+  have hbkL : LoadHolds rd (vsσ rd w args (.n XBK)) b ((Tables.blockKappaWords g ds).getD b 0) := by
     rw [List.getD_eq_getElem _ _ (by simp [Tables.blockKappaWords]; exact hb)]
     exact hbk _ _
   have hbw : (Tables.blockKappaWords g ds).getD b 0 =
@@ -69,7 +69,7 @@ theorem vsKappaStep_complete (hl : args.length = 7) {g : E} {ds : List E} (hds :
     rw [Tables.blockKappaWords, List.getD_eq_getElem _ _ (by simpa using hb), List.getElem_map,
       List.getElem_range]
   have hr0 : Good rd vsSL w (vsσ rd w args)
-      (.load (.n (vsKV b)) (.n 141) (Tables.blockKappaSrc.getD b 0)) :=
+      (.load (.n (vsKV b)) (.n 139) (Tables.blockKappaSrc.getD b 0)) :=
     hG _ (vsKappaStep_mem hb (s := vsLd (vsKV b) 141 _) (by unfold vsKappaStep; split <;> simp))
   have hr := good_read hr0 (vsKappa_notS b hb) hsrcL
   unfold vsKappaStep
@@ -100,8 +100,8 @@ theorem vsKappaStep_complete (hl : args.length = 7) {g : E} {ds : List E} (hds :
 
 /-- **`block_kappa`, honestly.** -/
 theorem vsKappaT_complete (hl : args.length = 7) {g : E} {ds : List E} (hds : ds.length = 6)
-    (hkb : ReadsAt rd (vsσ rd w args (.n 141)) (1 :: g :: ds))
-    (hbk : ReadsAt rd (vsσ rd w args (.n 149)) (Tables.blockKappaWords g ds))
+    (hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: g :: ds))
+    (hbk : ReadsAt rd (vsσ rd w args (.n XBK)) (Tables.blockKappaWords g ds))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) vsKappaT next kret := by
   unfold vsKappaT
