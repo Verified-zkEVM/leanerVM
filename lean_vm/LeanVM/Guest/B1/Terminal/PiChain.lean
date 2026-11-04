@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3070-3075): `__loop14` and the products
+  The public input's chain of `check_opening_terminal` (G:3232-3237): `__loop14` and the products
   it writes.
 -/
 
@@ -38,10 +38,23 @@ def loop15T : List Stmt :=
     .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop15_body : Data.core263.body = loop15T := stmtsEqb_sound (by decide +kernel)
+/-- `__loop14`, found by name, has four parameters and the body `loop15T`. -/
+noncomputable def loop15Check : Bool :=
+  match coreProgram.find? "__loop14" with
+  | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3]) && stmtsEqb fn.body loop15T
+  | none => false
 
-theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core263 :=
-  Program.find?_of_indexOf? (j := 263) (by decide +kernel) rfl
+theorem loop15Check_eq : loop15Check = true := by decide +kernel
+
+theorem loop15Found : ∃ fn : Fn, coreProgram.find? "__loop14" = some fn ∧
+    fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = loop15T := by
+  have h := loop15Check_eq
+  unfold loop15Check at h
+  split at h
+  · rename_i fn hf
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
+  · exact absurd h (by simp)
 
 /-- One step of the chain at `x`: `chain[x·g] = chain[x]·p1[x]`. -/
 def PiStep (rd : Reader) (chain p1 x : E) : Prop :=
@@ -54,11 +67,13 @@ theorem loop15_step (d : ℕ) (x N chain p1 : E)
     PiStep rd chain p1 x ∧
       (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop14" [x * gen, N, chain, p1] []) := by
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
-  rw [find_loop15] at hf
+  obtain ⟨fn', hf', hp', hb'⟩ := loop15Found
+  rw [hf'] at hf
   cases hf
-  simp only [Data.core263, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  rw [hp'] at hpar
+  rw [hb'] at hb
+  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
-  rw [loop15_body] at hb
   simp only [loop15T, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨e4, l5, e6, l7, e8, e9, l8, e10, e11, e12, e13, e14, ⟨-, hcall, -⟩⟩ := hb
   refine ⟨⟨σ (.n 5), σ (.n 7), by rw [← e4]; exact l5, by rw [← e6]; exact l7, ?_⟩, fun hne ↦ ?_⟩

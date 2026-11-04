@@ -485,13 +485,13 @@ def snapsOk (C : Cert) (snaps : List Snap) : Bool :=
   (List.range snaps.length).all fun k ↦
     Nat.ble (startW snaps k) (startW snaps (k + 1)) && Nat.ble (winW snaps (k + 1)) C.cuts.length
 
-/-- **What the sharing check says once of function `j`**: the frame's bounds, the lists, the
-windows' order, the cells apart, the parameters numbered in the first window's cells. -/
+/-- **What the sharing check says once of function `j`**: the first window's cells' bound, the
+lists, the windows' order, the cells apart, the parameters numbered in the first window's cells. -/
 noncomputable def shareStatic (j : ℕ) : Bool :=
   (locW (certOf j) 0).seq fun loc ↦ natSeq (tmpCells (plumbOf j)) fun tc ↦
   natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
-  Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
+  listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
     apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
 
 /-- **Window `k` of function `j`**, starting from the snapshots `snaps`: its values numbered, in

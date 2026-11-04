@@ -17,7 +17,9 @@ public import LeanVM.Guest.B1.Placement.Kappas
 `KECCAK` columns with a `q_keccak` slot and its output lanes) at `stackOffsets`'s offsets and each
 slotted column at `q_keccak`'s offset plus its slot's `2^κ` words (`placement_committed`,
 `placement_slot`). Every offset is below
-`2^stackLog` (`stackOffsets_lt`) and every size at most `stackLog` (`size_le_stackLog`).
+`2^stackLog` (`stackOffsets_lt`), every size at most `stackLog` (`size_le_stackLog`), and every
+offset a multiple of its block's `2^κ` (`stackOffsets_dvd`: the blocks lie largest first, the
+order `mergeSort` sorts, `List.pairwise_mergeSort`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -207,6 +209,57 @@ theorem size_le_stackOffsets (sizes : List ℕ) {i : ℕ} (hi : i < sizes.length
   have : 2 ^ (stackOffsets sizes).2 < 2 ^ sizes.getD i 0 :=
     Nat.pow_lt_pow_right (by decide) (by omega)
   omega
+
+
+/-! ## Alignment -/
+
+/-- Along an order of non-increasing sizes, the fold of `stackOffsets` keeps every entry a
+multiple of its block's size, and the running total a multiple of every block still to come. -/
+theorem stackOffsets_fold_dvd (size : ℕ → ℕ) (le : ℕ → ℕ → Bool)
+    (hle : ∀ a b, le a b = true → size b ≤ size a) :
+    ∀ (order : List ℕ) (acc : List ℕ × ℕ), order.Pairwise (fun a b ↦ le a b = true) →
+      (∀ i, 2 ^ size i ∣ acc.1.getD i 0) → (∀ k ∈ order, 2 ^ size k ∣ acc.2) →
+      ∀ i, 2 ^ size i ∣ (order.foldl
+        (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ size i)) acc).1.getD i 0
+  | [], acc, _, h1, _ => h1
+  | k :: order, acc, hp, h1, h2 => by
+    rw [List.foldl_cons]
+    obtain ⟨hk, hp⟩ := List.pairwise_cons.mp hp
+    refine stackOffsets_fold_dvd size le hle order _ hp (fun i ↦ ?_) (fun k' hk' ↦ ?_)
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_set]
+      split
+      · rename_i hki
+        subst hki
+        split
+        · exact h2 _ List.mem_cons_self
+        · exact dvd_zero _
+      · rw [← List.getD_eq_getElem?_getD]; exact h1 i
+    · exact dvd_add (h2 k' (List.mem_cons_of_mem _ hk'))
+        (Nat.pow_dvd_pow 2 (hle k k' (hk k' hk')))
+
+/-- **Every offset is a multiple of its block's size**: `stackOffsets` lays the blocks out
+largest first. -/
+theorem stackOffsets_dvd (sizes : List ℕ) (i : ℕ) :
+    2 ^ sizes.getD i 0 ∣ (stackOffsets sizes).1.getD i 0 := by
+  let le : ℕ → ℕ → Bool := fun i j ↦ decide (sizes.getD j 0 < sizes.getD i 0) ||
+    (decide (sizes.getD i 0 = sizes.getD j 0) && decide (i ≤ j))
+  have hle : ∀ a b, le a b = true → sizes.getD b 0 ≤ sizes.getD a 0 := by
+    intro a b h
+    simp only [le, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at h
+    omega
+  have hs := List.pairwise_mergeSort (le := le)
+    (fun a b c h1 h2 ↦ by
+      simp only [le, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at h1 h2 ⊢; omega)
+    (fun a b ↦ by
+      simp only [le, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true]; omega)
+    (List.range sizes.length)
+  exact stackOffsets_fold_dvd (fun i ↦ sizes.getD i 0) le hle _ _ hs
+    (fun i ↦ by
+      have h0 : (List.replicate sizes.length 0).getD i 0 = 0 := by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> rfl
+      show 2 ^ _ ∣ (List.replicate sizes.length 0).getD i 0
+      rw [h0]; exact dvd_zero _)
+    (fun _ _ ↦ dvd_zero _) i
 
 end
 end LeanVM.Guest.B1.VerifySub

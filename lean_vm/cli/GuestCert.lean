@@ -766,12 +766,12 @@ partial def calleesOf : List Core.Stmt → List String
     | _ => []) ++ calleesOf ss
 
 /-- The memory bounds a function's top-level calls need of their arguments, `(statement, value,
-len, n)`: obligations its proof takes from the statements before the call. -/
+offset, n)`: obligations its proof takes from the statements before the call. -/
 def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)) :
     List (ℕ × ℕ × ℕ × ℕ) :=
   body.zipIdx.flatMap fun
-    | (.call g args _, i) => (memOf g).filterMap fun (o, len, n) =>
-        (args[o - 2]?).map fun v => (i, v.idx, len, n)
+    | (.call g args _, i) => (memOf g).filterMap fun (o, c, n) =>
+        (args[o - 2]?).map fun v => (i, v.idx, c, n)
     | _ => []
 
 /-- `verify_sub`'s compiled index: its windows take a memory bound from an obligation. -/
@@ -791,21 +791,26 @@ def semsOf (body : List Core.Stmt) : List (ℕ × ℕ × ℕ) :=
     | _ => none
 
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
-`lean_vm/README.md`): before, after, and on memory, and the memory bounds they take from named
-obligations. `verify_tables` dispatches on `g_bus_mu`, `log2_ceil_in_the_exponent`'s (its range
-check in `verify_log2_ceil`); `claim_list_digest` and `child_claim_list_digest` on `list_split`'s
-remainder; `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s
-checked argument; `check_opening_terminal` on the `col_kappas` entries, which `verify_sub` knows
-from an obligation. -/
+`lean_vm/README.md`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
+memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
+(argument 9), `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
+`child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
+`CLAIM_GROUP = 17`; their argument 6);
+`da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument;
+`check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
+`kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^29`,
+`kb[7] < g^23` (`lean_ethereum.py:3242-3250`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
-  else if name == "list_split" then ([], [(4, 17)], [], [])
+  else if name == "list_split" then ([], [(5, 17)], [], [])
+  else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
   else if name == "verify_tables" then ([(11, 34)], [], [], [])
-  else if name == "verify_log2_ceil__L0_L34" || name == "verify_log2_ceil__L15_L34" ||
-    name == "log2_ceil_in_the_exponent__L0_L34" || name == "log2_ceil_in_the_exponent__L15_L34" then
-    ([], [(5, 34)], [], [])
-  else if name == "check_opening_terminal" then ([], [], [(13, 99, 29)], [])
+  else if name == "log2_ceil_in_the_exponent__L0_L34" ||
+    name == "log2_ceil_in_the_exponent__L15_L34" then
+    ([], [(4, 34)], [], [])
+  else if name == "check_opening_terminal" then
+    ([], [], [(10, 0, 1)] ++ (List.range 6).map (fun i => (10, i + 1, 29)) ++ [(10, 7, 23)], [])
   else ([], [], [], [])
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
@@ -978,7 +983,10 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
   let mut prevHanded : Std.HashSet String := {}
   for k in [0:cands.size] do
     let (idx, J, b, extra) := cands[k]!
-    let force := forced.find? (·.1 == idx)
+    let force : Option (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ)) :=
+      match forced.filter (·.1 == idx) with
+      | [] => none
+      | fs => some (idx, fs.flatMap (·.2.1), fs.flatMap (·.2.2))
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.instructionCount
     -- a `match` of many arms is a window of its own, which `Check.checkWinS` splits by arms
     let isBig (i : ℕ) : Bool := match cf.body[i]? with
@@ -1079,8 +1087,8 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
   let (pre, post, mem, _) := bounds f.name
   let locA := locs.toArray
   let cell (v : ℕ) : ℕ := locA.getD v 0
-  let forced := (knownOf cf.body (fun g => (bounds g).2.2.1)).map (fun (i, v, len, n) =>
-      (i, [(cell v, len, n)], ([] : List (ℕ × ℕ)))) ++
+  let forced := (knownOf cf.body (fun g => (bounds g).2.2.1)).map (fun (i, v, c, n) =>
+      (i, [(cell v, c, n)], ([] : List (ℕ × ℕ)))) ++
     (semsOf cf.body).map fun (i, p, q) => (i, ([] : List (ℕ × ℕ × ℕ)), [(cell p, cell q)])
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cuts ← planCuts coarse F f cf locs marks spine uses segMap pre forced

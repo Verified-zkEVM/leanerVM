@@ -77,7 +77,8 @@ def gkBody (n : ℕ) : List Stmt :=
     .atom (.mul (.n (10 + 74 * n)) (.n 7) (.n (9 + 74 * n))),
     .atom (.load (.n (10 + 74 * n)) (.n 0) (n + 4310)),
     .atom (.load (.n (82 + 74 * (n - 1))) (.n 0) (n + 5172)),
-    .ret []]
+    .atom (.const (.n (11 + 74 * n)) (word 0 0 0)),
+    .ret [.n (11 + 74 * n)]]
 
 /-! ## The rounds as a sequence -/
 
@@ -238,14 +239,14 @@ theorem readsAt_flatten4 {p : E} (Cf : ℕ → List E) (h4 : ∀ q, (Cf q).lengt
 /-- The two parameters. -/
 abbrev gkParams : List V := [.n 0, .n 1]
 
-theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 2)
+theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 6)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = gkParams)
     (hbody : f.body = gkBody n) (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd name args rets) : MeaningGkrRounds n rd args rets := by
   rw [rel_iff_sem hfind, hbody, hparams, gkBody] at h
   simp only [holdsList_append, holdsList_range_flatten n gkRound (fun _ => rfl), holds_gkRound,
     Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at h
-  obtain ⟨σ, hp, l2, l3, l4, l5, l6, l7, l8, hrounds, s0, s1, s2, s3, s4, k, m, sc, sl, hret⟩ := h
+  obtain ⟨σ, hp, l2, l3, l4, l5, l6, l7, l8, hrounds, s0, s1, s2, s3, s4, k, m, sc, sl, z, hret⟩ := h
   subst hp
   have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
   set Cf : ℕ → List E := fun q ↦ [σ (.n (9 + 74 * q)), σ (.n (19 + 74 * q)), σ (.n (29 + 74 * q)),
@@ -350,7 +351,7 @@ theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 
     show _ = polyEval (((St m').1 + ef m' * sumE (Cf m')) :: Cf m') (challengeOf (P m'))
     rw [← gk_eval]
   obtain ⟨-, hBm⟩ := hAB m' (by omega)
-  refine ⟨hret.symm, cap, σ (.n 7), σ (.n 8), (List.range (m' + 1)).map Cf,
+  refine ⟨by rw [← hret]; exact congrArg (· :: []) ((show σ (.n (11 + 74 * (m' + 1))) = word 0 0 0 from z).trans word_zero), cap, σ (.n 7), σ (.n 8), (List.range (m' + 1)).map Cf,
     (List.range (m' + 1)).map ef, ⟨rfl, fun j hj ↦ ?_⟩, ?_, l7, l8, by simp, ?_, ?_, by simp, ?_, ?_⟩
   · simp only [hcap, List.length_cons, List.length_nil] at hj
     interval_cases j
@@ -456,7 +457,8 @@ def gkVals (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E)
     else (gkArith (cl ((k - 9) / 74)) (ef ((k - 9) / 74)) (Cf ((k - 9) / 74))
       (challengeOf (P ((k - 9) / 74)))).getD ((k - 9) % 74 - 61) 0)
   else if k = 9 + 74 * n then word (2 ^ (4 * n)) 0 0
-  else cur * word (2 ^ (4 * n)) 0 0
+  else if k = 10 + 74 * n then cur * word (2 ^ (4 * n)) 0 0
+  else 0
 
 /-- Decide the next `if` of an unfolded index function by `omega`. -/
 macro "gk_if" : tactic => `(tactic| first
@@ -518,6 +520,10 @@ theorem gkVals_tail1 {n : ℕ} :
   rw [gkVals, show (10 + 74 * n - 9) / 74 = n by omega]
   repeat gk_if
 
+theorem gkVals_tail2 {n : ℕ} : gkVals as cap cur Cf ef cl P n (11 + 74 * n) = 0 := by
+  rw [gkVals, show (11 + 74 * n - 9) / 74 = n by omega]
+  repeat gk_if
+
 end
 
 theorem flatten4_get (Cf : ℕ → List E) (h4 : ∀ q, (Cf q).length = 4) :
@@ -549,7 +555,7 @@ theorem list4_eq {l : List E} (h : l.length = 4) :
   match l, h with
   | [a, b, c, d], _ => rfl
 
-theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 2)
+theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 6)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = gkParams)
     (hbody : f.body = gkBody n) (rd : Reader) (args rets : List E)
     (h : MeaningGkrRounds n rd args rets) : coreProgram.Rel rd name args rets := by
@@ -645,7 +651,7 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
     Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
   obtain ⟨m', rfl⟩ : ∃ m', n = m' + 1 := ⟨n - 1, by omega⟩
   refine ⟨σ, by rw [e0, e1], ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun q hq ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, hr0.symm⟩
+    ?_, ?_, ?_, ?_⟩
   · show LoadHolds rd (σ (.n 0)) 0 (σ (.n 2))
     rw [e0, show σ (.n 2) = a2 by simp [ev, gkVals, cap]]
     exact hcap 0 (by simp)
@@ -809,25 +815,61 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
   · show LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (82 + 74 * (m' + 1 - 1))))
     rw [e0, show m' + 1 - 1 = m' by omega, idx _ (8 + 74 * (m' + 1)) (by ring), hcl (m' + 1) (by omega)]
     exact hres4
+  · show σ (.n (11 + 74 * (m' + 1))) = word 0 0 0
+    rw [ev, gkVals_tail2, word_zero]
+  · show [σ (.n (11 + 74 * (m' + 1)))] = rets
+    rw [hr0, ev, gkVals_tail2]
 
 
 set_option maxRecDepth 100000 in
-theorem core380_body : Fn.body Data.core392 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body1 : Fn.body Data.core425 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core379_body : Fn.body Data.core391 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body2 : Fn.body Data.core422 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-/-- **`gkr_rounds`' core IR is its meaning**, at one and two rounds. -/
+theorem gkr_rounds_body4 : Fn.body Data.core423 = gkBody 4 := stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem gkr_rounds_body6 : Fn.body Data.core424 = gkBody 6 := stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+/-- **`gkr_rounds`' core IR is its meaning**, at one, two, four and six rounds, and at none it
+returns `0`. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core392 :=
-    Program.find?_of_indexOf? (j := 392) (by decide +kernel) rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core391 :=
-    Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
-  exact ⟨fun rd args rets ↦ ⟨gk_sound 1 (by decide) (by decide) h1 rfl core380_body rd args rets,
-      gk_complete 1 (by decide) (by decide) h1 rfl core380_body rd args rets⟩,
-    fun rd args rets ↦ ⟨gk_sound 2 (by decide) (by decide) h2 rfl core379_body rd args rets,
-      gk_complete 2 (by decide) (by decide) h2 rfl core379_body rd args rets⟩⟩
+  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core425 :=
+    Program.find?_of_indexOf? (j := 425) (by decide +kernel) rfl
+  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core422 :=
+    Program.find?_of_indexOf? (j := 422) (by decide +kernel) rfl
+  have h4 : coreProgram.find? "gkr_rounds__L4" = some Data.core423 :=
+    Program.find?_of_indexOf? (j := 423) (by decide +kernel) rfl
+  have h6 : coreProgram.find? "gkr_rounds__L6" = some Data.core424 :=
+    Program.find?_of_indexOf? (j := 424) (by decide +kernel) rfl
+  have h0 : coreProgram.find? "gkr_rounds__L0" = some Data.core421 :=
+    Program.find?_of_indexOf? (j := 421) (by decide +kernel) rfl
+  refine ⟨fun n hn rd args rets ↦ ?_, fun rd args rets ↦ ?_⟩
+  · simp only [gkrRoundsCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
+    rcases hn with rfl | rfl | rfl | rfl
+    · exact ⟨gk_sound 1 (by decide) (by decide) h1 rfl gkr_rounds_body1 rd args rets,
+        gk_complete 1 (by decide) (by decide) h1 rfl gkr_rounds_body1 rd args rets⟩
+    · exact ⟨gk_sound 2 (by decide) (by decide) h2 rfl gkr_rounds_body2 rd args rets,
+        gk_complete 2 (by decide) (by decide) h2 rfl gkr_rounds_body2 rd args rets⟩
+    · exact ⟨gk_sound 4 (by decide) (by decide) h4 rfl gkr_rounds_body4 rd args rets,
+        gk_complete 4 (by decide) (by decide) h4 rfl gkr_rounds_body4 rd args rets⟩
+    · exact ⟨gk_sound 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets,
+        gk_complete 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets⟩
+  · rw [rel_iff_sem h0]
+    simp only [Data.core421, Data.core421.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+      List.map_cons, List.map_nil]
+    constructor
+    · rintro ⟨σ, rfl, hc, rfl⟩
+      simp only [MeaningGkrRounds0, hc, word_zero]
+    · intro h
+      match args, h with
+      | [a, b], h =>
+        refine ⟨fun v ↦ if v = .n 0 then a else if v = .n 1 then b else 0, by simp, ?_, ?_⟩
+        · simp [word_zero]
+        · simpa [MeaningGkrRounds0] using h.symm
 
 end
 end LeanVM.Guest.B1

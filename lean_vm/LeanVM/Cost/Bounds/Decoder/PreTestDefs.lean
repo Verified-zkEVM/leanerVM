@@ -32,35 +32,34 @@ def symExp : Sym → ℕ
   | .gp e => e
   | .fpg e => e
 
-/-- The memory cells an entry's memory bounds check. -/
-def memCells (t : FnPre) : ℕ := (t.mem.map (·.2.1)).sum
+/-- The memory cells an entry's memory bounds check: one each. -/
+def memCells (t : FnPre) : ℕ := t.mem.length
 
 /-- **An entry's exponents within `W` bits**: the frame's offsets, the known words' exponents and
-the memory bounds' cell counts below `2^W` (the counts at most `2^W`), the logarithms' bounds at
-most `34` (`scanBound`: the lanes' scan serves them). -/
+the memory bounds' cells below `2^W`, the logarithms' bounds at most `34` (`scanBound`: the lanes' scan serves them). -/
 def FnPreWithin (W : ℕ) (t : FnPre) : Prop :=
   (∀ p ∈ t.env, p.1 < 2 ^ W ∧ symExp p.2 < 2 ^ W) ∧ (∀ p ∈ t.pre, p.1 < 2 ^ W ∧ p.2 ≤ 34) ∧
-    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 ≤ 2 ^ W ∧ m.2.2 ≤ 34) ∧
+    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 < 2 ^ W ∧ m.2.2 ≤ 34) ∧
     (∀ p ∈ t.sem, p.1 < 2 ^ W ∧ p.2 < 2 ^ W)
 
 /-- **The price of an entry's test** (`fnPreTestC`), its exponents within `7` bits (their powers
 read off the powers table, `17` each), a memory read at most `R`, a logarithm's bound at most `B`:
-per entry-environment check `R + 153`, per bound `R + B + 83`, per memory cell `2R + B + 170`
-and per memory bound `51`, per semantic pair `70R + 7719` (the exponent tables' `34` entries,
+per entry-environment check `R + 153`, per bound `R + B + 83`, per memory bound (one cell)
+`2R + B + 170`, per semantic pair `70R + 7719` (the exponent tables' `34` entries,
 each two reads), and `62`; `3` for an entry without a precondition. -/
 def fnPrePrice (R B : ℕ) : Option FnPre → ℕ
   | none => 3
   | some t => (R + 153) * t.env.length + (R + B + 83) * t.pre.length +
-      (2 * R + B + 170) * memCells t + 51 * t.mem.length + (70 * R + 7719) * t.sem.length + 62
+      (2 * R + B + 170) * memCells t + (70 * R + 7719) * t.sem.length + 62
 
-/-- **The deployed table's shape**, decided: at most one check of each kind, at most `99` bounds
-and memory cells, exponents below `2^7`, logarithms' bounds at most `34`. -/
+/-- **The deployed table's shape**, decided: at most one entry check, bound and semantic pair, at
+most `99` bounds and memory bounds, exponents below `2^7`, logarithms' bounds at most `34`. -/
 def fnPreShape (t : FnPre) : Bool :=
-  decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 1) && decide (t.mem.length ≤ 1) &&
+  decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 1) &&
     decide (t.sem.length ≤ 1) && decide (t.pre.length + memCells t ≤ 99) &&
     t.env.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (symExp p.2 < 2 ^ 7)) &&
     t.pre.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 ≤ 34)) &&
-    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 ≤ 2 ^ 7) && decide (m.2.2 ≤ 34)) &&
+    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 < 2 ^ 7) && decide (m.2.2 ≤ 34)) &&
     t.sem.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 < 2 ^ 7))
 
 /-- Every entry of a table has the deployed shape. -/

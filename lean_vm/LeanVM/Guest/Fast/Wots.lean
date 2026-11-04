@@ -90,11 +90,11 @@ theorem armBaseN_shift (sz n : ℕ) (fold : Bool) : ∀ (k j b : ℕ),
 theorem startN_shift (sz n : ℕ) (fold : Bool) (sel k r : ℕ) :
     startN sz n fold sel k r = sel + startN sz n fold 0 k r := by
   unfold startN slotsN
-  rw [armBaseN_shift sz n fold 0 k (sel + 5), armBaseN_shift sz n fold 0 k (0 + 5)]
+  rw [armBaseN_shift sz n fold 0 k (sel + 6), armBaseN_shift sz n fold 0 k (0 + 6)]
   split
   · omega
   · rw [walkBaseN_shift _ _ _ _ (if fold then _ else _),
-      walkBaseN_shift _ _ _ _ (if fold then 0 + 5 + _ + 1 else 0 + 5 + _)]
+      walkBaseN_shift _ _ _ _ (if fold then 0 + 6 + _ + 1 else 0 + 6 + _)]
     cases fold <;> simp <;> omega
 
 /-! ## Off tables -/
