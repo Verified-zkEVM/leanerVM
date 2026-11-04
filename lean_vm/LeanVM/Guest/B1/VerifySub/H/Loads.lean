@@ -69,7 +69,7 @@ theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List
       64 ≤ (ownW.getD 12 []).length)
     {outE sqE : ℕ} {cells : List E} (houtL : (outE, cells) ∈ Lin) (hcl : 24 ≤ cells.length)
     (h6 : σ (.n 5) = ofK (addressOfIndex outE))
-    (hsqL : (sqE, Tables.gSquaresList) ∈ Lin)
+    (hsqL : (sqE, expTableWords) ∈ Lin)
     (hcev : ∃ e, σ (.n 645) = ofK (addressOfIndex e) ∧
       ∀ k < 157, Main.RegionL Lin (e + k) ∨ Main.RegionL own (e + k))
     (hpush : ∀ b < 54, ∃ κ, κ + Tables.blockKappaAdj b < 34 ∧
@@ -112,7 +112,8 @@ theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List
     obtain ⟨κ, hκ, e⟩ := hpush b (List.mem_range.mp hb)
     exact ⟨sqE + (κ + Tables.blockKappaAdj b), by rw [e, Main.addr_ofK, Nat.add_assoc],
       Or.inl ⟨_, hsqL, Nat.le_add_right _ _, Nat.add_lt_add_left (by
-        show κ + Tables.blockKappaAdj b < Tables.gSquaresList.length; simp [Tables.gSquaresList]; omega) _⟩⟩
+        show κ + Tables.blockKappaAdj b < expTableWords.length
+        simp [expTableWords, length_etWordsN]; omega) _⟩⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

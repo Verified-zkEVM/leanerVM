@@ -17,7 +17,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest.Memory
 
 /-- **The callees' results.** -/
 structure VsOuts {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
-    (bs : List ℕ) (lpE sqE : ℕ) (outs : List (List E × Main.Layout)) : Prop where
+    (bs : List ℕ) (sqE : ℕ) (outs : List (List E × Main.Layout)) : Prop where
   len : outs.length = 13
   o0 : (outs.getD 0 ([], [])).1 = [gen ^ S.rate]
   o1 : (outs.getD 1 ([], [])).1 = [gen ^ S.logMem]
@@ -26,13 +26,13 @@ structure VsOuts {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
   o4 : (outs.getD 4 ([], [])).1 = [0]
   o5 : (outs.getD 5 ([], [])).1 =
     S.s5.cap ++ [ofK (addressOfIndex (vcG bs)) * gen ^ S.xsG.length] ++ S.vals
-  o6 : (outs.getD 6 ([], [])).1 = S.H.retsH (S.vtB bs sqE)
+  o6 : (outs.getD 6 ([], [])).1 = S.vtRetsOf bs
   o7 : (outs.getD 7 ([], [])).1 =
     S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0]
   o8 : (outs.getD 8 ([], [])).1 = [polyEval (S.slices.map (phiMap · S.rchs)) gen]
   o9 : Tables.cpOut S.logMem S.hs (outs.getD 9 ([], [])).1 (outs.getD 9 ([], [])).2
   o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]
-  o11 : OsOut S.μs S.w (outs.getD 11 ([], [])).1 (outs.getD 11 ([], [])).2
+  o11 : vsOsOut S.μs S.w (outs.getD 11 ([], [])).1 (outs.getD 11 ([], [])).2
   o12 : (outs.getD 12 ([], [])).1 = []
   term : S.termOk (outs.take 12)
 
@@ -41,8 +41,8 @@ theorem take_getD {α : Type} (l : List α) (d : α) {m n : ℕ} (h : m < n) :
   simp [List.getD_eq_getElem?_getD, h]
 
 theorem vs_outs {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
-    (bs : List ℕ) (lpE sqE : ℕ) (outs : List (List E × Main.Layout)) (hl : outs.length = 13)
-    (ho : OutsOk (kidsAt (S.kids bs lpE sqE) [] outs) outs) : VsOuts S bs lpE sqE outs := by
+    (bs : List ℕ) (sqE : ℕ) (outs : List (List E × Main.Layout)) (hl : outs.length = 13)
+    (ho : OutsOk (kidsAt (S.kids bs sqE) [] outs) outs) : VsOuts S bs sqE outs := by
   have h := fun m (hm : m < 12) ↦ outsOk_at ho m (by simp [ChildSegs.kids]; omega) (by omega)
   have r : ∀ {a b : List E} {L : Main.Layout}, Returns a b L → b = a := fun h ↦ h.1
   have h9 := h 9 (by norm_num) rfl
@@ -52,7 +52,7 @@ theorem vs_outs {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
     · show Tables.cpOut S.logMem S.hs ((outs.take 12).getD 9 ([], [])).1
         ((outs.take 12).getD 9 ([], [])).2
       rw [take_getD _ _ (by norm_num)]; exact h9
-    · show OsOut S.μs S.w ((outs.take 12).getD 11 ([], [])).1 ((outs.take 12).getD 11 ([], [])).2
+    · show vsOsOut S.μs S.w ((outs.take 12).getD 11 ([], [])).1 ((outs.take 12).getD 11 ([], [])).2
       rw [take_getD _ _ (by norm_num)]; exact h11
   have h12 := outsOk_at ho 12 (by simp [ChildSegs.kids]) (by omega)
     (@decide_eq_true _ (Classical.propDecidable _) hterm)
