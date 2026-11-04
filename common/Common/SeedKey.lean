@@ -6,17 +6,19 @@ public import Common.Rerun
 @[expose] public section
 
 /-!
-# A secret key that is the key's seed
+# A secret key that is the key's seed, or the seed and part of what it derives
 
-The crates' secret key is the key's seed `S_0`: the signer derives what it signs with from it at
-each signature (the scheme seed `S = H(tag ‖ S_0)`, and the public parameter of `S`), as key
-generation derived it. In the random-oracle game these derivations are cache hits: key generation
-made the same queries before, so they return the same values. A scheme `S` whose secret key is what
-the derivation gives, and the scheme `K.scheme` whose secret key is the seed and whose signer
-derives it first (`SeedKeyed`), have the same game in distribution, and on every outcome of `S`'s
-game `K.scheme`'s game has an outcome with as many hash calls or more: the derivation's calls are
-counted again at each signature. So a random-oracle bound `q / 2^bits` for `S` at its count is one
-for `K.scheme` at its count (`SeedKeyed.romBound`).
+The crates' secret key is the key's seed `S_0` (leanSPHINCS), or the seed and the public parameter
+(leanXMSS): the signer derives the rest of what it signs with from it at each signature (the scheme
+seed `S = H(tag ‖ S_0)`, and for leanSPHINCS the public parameter of `S`), as key generation
+derived it. In the random-oracle game these derivations are cache hits: key generation made the
+same queries before, so they return the same values. A scheme `S` whose secret key is what the
+derivation gives, and the scheme `K.scheme` whose secret key is the kept part and whose signer
+derives the rest first (`KeptKey`, `SeedKeyed` when the seed alone is kept), have the same game in
+distribution, and on every outcome of `S`'s game `K.scheme`'s game has an outcome with as many hash
+calls or more: the derivation's calls are counted again at each signature. So a random-oracle bound
+`q / 2^bits` for `S` at its count is one for `K.scheme` at its count (`KeptKey.romBound`,
+`SeedKeyed.romBound`).
 -/
 
 open OracleComp OracleSpec
@@ -138,15 +140,23 @@ theorem gameOracles_inr {SK' : Type} (X : SchemeWithHash Seed PK SK' Req Resp F)
       (fun u ↦ (u, [⟨r, u⟩])) <$> (liftM (X.sign sk r) : OracleComp World Resp) := by
   simp [gameOracles, signingOracle]
 
-namespace SeedKeyed
+namespace KeptKey
 
-variable {S : SchemeWithHash Seed PK SK Req Resp F} (K : SeedKeyed S D)
+variable {SK' : Type} {S : SchemeWithHash Seed PK SK Req Resp F} (K : KeptKey S D SK')
 
-/-- The adversary's phase against `K.scheme` with the seed as the key is at most as costly as
-against `S` with a key of the same seed: its signer runs the derivation first. -/
-theorem phase_costLE (seed : Seed) (d : D) (hd : d ∈ support (K.derive seed)) (sk : SK)
+/-- The signer's derivation reruns key generation's: in the random-oracle model, from a cache that
+holds what `derive seed` queried, `rederive` of the kept key returns the derived value, querying
+nothing new. -/
+def Reruns : Prop :=
+  ∀ (seed : Seed) (c : SchemeHashSpec.QueryCache),
+    ∀ z ∈ support (romRun (liftM (K.derive seed) : OracleComp World D) c), ∀ c', z.2 ≤ c' →
+      romRun (liftM (K.rederive (K.keep seed z.1)) : OracleComp World D) c' = pure (z.1, c')
+
+/-- The adversary's phase against `K.scheme` with the kept key is at most as costly as against `S`
+with a key of the same derivation: its signer runs the derivation first. -/
+theorem phase_costLE (key : SK') (d : D) (hd : d ∈ support (K.rederive key)) (sk : SK)
     (hsk : S.sign sk = K.signWith d) {β : Type} (M : OracleComp (World + (Req →ₒ Resp)) β) :
-    CostLE (simulateQ (gameOracles K.scheme seed) M).run (simulateQ (gameOracles S sk) M).run := by
+    CostLE (simulateQ (gameOracles K.scheme key) M).run (simulateQ (gameOracles S sk) M).run := by
   induction M using OracleComp.inductionOn with
   | pure a =>
     simp only [simulateQ_pure, WriterT.run_pure]
@@ -158,7 +168,7 @@ theorem phase_costLE (seed : Seed) (d : D) (hd : d ∈ support (K.derive seed)) 
     · rw [gameOracles_inl, gameOracles_inl]
       exact CostLE.bind_right _ fun p _ ↦ CostLE.map (ih p.1) _
     · rw [gameOracles_inr, gameOracles_inr, hsk]
-      simp only [SeedKeyed.scheme, liftM_bind, map_bind, bind_assoc]
+      simp only [KeptKey.scheme, liftM_bind, map_bind, bind_assoc]
       refine CostLE.trans (CostLE.of_mem_support (a := d) ((mem_support_liftM_world _ _).mpr hd)) ?_
       exact CostLE.bind_right _ fun p _ ↦ CostLE.map (ih p.1) _
 
@@ -167,12 +177,12 @@ theorem romGame_costLE (main : PK → OracleComp (World + (Req →ₒ Resp)) F) 
     CostLE (romGame K.scheme main) (romGame S main) := by
   unfold romGame
   refine CostLE.bind_right (liftM S.sample) fun seed _ ↦ ?_
-  simp only [SeedKeyed.scheme, liftM_map, bind_map_left, K.keygen_eq, liftM_bind, bind_assoc]
+  simp only [KeptKey.scheme, liftM_map, bind_map_left, K.keygen_eq, liftM_bind, bind_assoc]
   refine CostLE.bind_right _ fun d hd ↦ CostLE.bind_right _ fun keys hkeys ↦ ?_
-  have hd' := (mem_support_liftM_world _ _).mp hd
+  have hd' := K.rederive_support seed d ((mem_support_liftM_world _ _).mp hd)
   have hsk := K.sign_eq seed d keys ((mem_support_liftM_world _ _).mp hkeys)
   rcases keys with ⟨pk, sk⟩
-  exact CostLE.bind_left (K.phase_costLE seed d hd' sk hsk (main pk)) _
+  exact CostLE.bind_left (K.phase_costLE _ d hd' sk hsk (main pk)) _
 
 /-- A hash-call budget of the game against `K.scheme` is one of the game against `S`. -/
 theorem romGame_cost (main : PK → OracleComp (World + (Req →ₒ Resp)) F) (Q : ℕ)
@@ -188,14 +198,14 @@ theorem _root_.Common.SufCma.romRun_map {α β : Type} (f : α → β) (x : Orac
     romRun (f <$> x) c = (fun p ↦ (f p.1, p.2)) <$> romRun x c := by
   simp only [romRun, simulateQ_map, StateT.run_map]
 
-/-- **The adversary's phase, in the random-oracle model**: from a cache holding the derivation's
-answers, the phase against `K.scheme` with the seed as the key is the phase against `S` with a key
-of the same seed, in distribution: the derivation's queries hit the cache. -/
-theorem phase_evalDistEq (seed : Seed) (d : D) (c₁ : SchemeHashSpec.QueryCache)
-    (hd : ∀ c, c₁ ≤ c → romRun (liftM (K.derive seed) : OracleComp World D) c = pure (d, c))
+/-- **The adversary's phase, in the random-oracle model**: from a cache on which the kept key's
+derivation returns `d` querying nothing new, the phase against `K.scheme` with the kept key is the
+phase against `S` with a key of derivation `d`, in distribution. -/
+theorem phase_evalDistEq (key : SK') (d : D) (c₁ : SchemeHashSpec.QueryCache)
+    (hd : ∀ c, c₁ ≤ c → romRun (liftM (K.rederive key) : OracleComp World D) c = pure (d, c))
     (sk : SK) (hsk : S.sign sk = K.signWith d) {β : Type}
     (M : OracleComp (World + (Req →ₒ Resp)) β) :
-    ∀ c, c₁ ≤ c → romRun (simulateQ (gameOracles K.scheme seed) M).run c =ᵈ
+    ∀ c, c₁ ≤ c → romRun (simulateQ (gameOracles K.scheme key) M).run c =ᵈ
       romRun (simulateQ (gameOracles S sk) M).run c := by
   induction M using OracleComp.inductionOn with
   | pure a => intro c _; exact EvalDistEq.rfl
@@ -210,17 +220,13 @@ theorem phase_evalDistEq (seed : Seed) (d : D) (c₁ : SchemeHashSpec.QueryCache
       exact (ih z.1.1 z.2 (le_trans hc (le_of_mem_support_run _ _ hz))).map _
     · rw [gameOracles_inr, gameOracles_inr, hsk]
       have hfirst : ∀ {γ : Type} (g : Resp → γ),
-          romRun (g <$> (liftM (K.scheme.sign seed r) : OracleComp World Resp)) c =
+          romRun (g <$> (liftM (K.scheme.sign key r) : OracleComp World Resp)) c =
             romRun (g <$> (liftM (K.signWith d r) : OracleComp World Resp)) c := by
         intro γ g
-        simp only [SeedKeyed.scheme, romRun_map, liftM_bind, romRun_bind, hd c hc, pure_bind]
+        simp only [KeptKey.scheme, romRun_map, liftM_bind, romRun_bind, hd c hc, pure_bind]
       refine romRun_bind_evalDistEq (by rw [hfirst]) fun z hz ↦ ?_
       rw [romRun_map, romRun_map]
       exact (ih z.1.1 z.2 (le_trans hc (le_of_mem_support_run _ _ hz))).map _
-
-theorem scheme_keygen (seed : Seed) :
-    K.scheme.keygen seed = (fun keys ↦ (keys.1, seed)) <$> (K.derive seed >>= K.rest seed) := by
-  simp only [SeedKeyed.scheme, K.keygen_eq]
 
 theorem fst_mem_support_romRun' {α : Type} {x : OracleComp World α} {c : SchemeHashSpec.QueryCache}
     {z : α × SchemeHashSpec.QueryCache} (h : z ∈ support (romRun x c)) :
@@ -229,42 +235,69 @@ theorem fst_mem_support_romRun' {α : Type} {x : OracleComp World α} {c : Schem
     rw [StateT.run'_eq]; erw [support_map]; exact ⟨z, h, rfl⟩)
 
 /-- **The game against `K.scheme` is the game against `S`, in distribution**, in the random-oracle
-model from any cache. -/
-theorem romGame_evalDistEq (main : PK → OracleComp (World + (Req →ₒ Resp)) F)
+model from any cache, when the signer's derivation reruns key generation's. -/
+theorem romGame_evalDistEq (hK : K.Reruns) (main : PK → OracleComp (World + (Req →ₒ Resp)) F)
     (c : SchemeHashSpec.QueryCache) :
     romRun (romGame K.scheme main) c =ᵈ romRun (romGame S main) c := by
   unfold romGame
   refine romRun_bind_evalDistEq EvalDistEq.rfl fun zs _ ↦ ?_
-  rw [scheme_keygen, K.keygen_eq]
-  simp only [liftM_map, bind_map_left, liftM_bind, bind_assoc]
+  simp only [KeptKey.scheme, K.keygen_eq, liftM_map, bind_map_left, liftM_bind, bind_assoc]
   refine romRun_bind_evalDistEq EvalDistEq.rfl fun zd hzd ↦ ?_
   refine romRun_bind_evalDistEq EvalDistEq.rfl fun zk hzk ↦ ?_
-  have hd : zd.1 ∈ support (K.derive zs.1) :=
-    (mem_support_liftM_world _ _).mp (fst_mem_support_romRun' hzd)
   have hkeys : zk.1 ∈ support (K.rest zs.1 zd.1) :=
     (mem_support_liftM_world _ _).mp (fst_mem_support_romRun' hzk)
   have hsk := K.sign_eq zs.1 zd.1 zk.1 hkeys
   have hrerun : ∀ c', zd.2 ≤ c' →
-      romRun (liftM (K.derive zs.1) : OracleComp World D) c' = pure (zd.1, c') :=
-    fun c' hc' ↦ run_rerun _ (noCoins_liftM _) zs.2 hzd c' hc'
+      romRun (liftM (K.rederive (K.keep zs.1 zd.1)) : OracleComp World D) c' = pure (zd.1, c') :=
+    hK zs.1 zs.2 zd hzd
   rcases zk with ⟨⟨pk, sk⟩, ck⟩
   refine romRun_bind_evalDistEq
-    (K.phase_evalDistEq zs.1 zd.1 zd.2 hrerun sk hsk (main pk) ck
+    (K.phase_evalDistEq _ zd.1 zd.2 hrerun sk hsk (main pk) ck
       (le_of_mem_support_run _ _ hzk)) fun _ _ ↦ EvalDistEq.rfl
 
 /-- The success of the game against `K.scheme` is that against `S`. -/
-theorem prob_romExperiment_eq (main : PK → OracleComp (World + (Req →ₒ Resp)) F) :
+theorem prob_romExperiment_eq (hK : K.Reruns) (main : PK → OracleComp (World + (Req →ₒ Resp)) F) :
     Pr{let r ← romExperiment K.scheme main}[r.1 = true] =
       Pr{let r ← romExperiment S main}[r.1 = true] := by
   rw [prob_romExperiment, prob_romExperiment, StateT.run'_eq, StateT.run'_eq, prEvent_map,
     prEvent_map]
-  exact (K.romGame_evalDistEq main ∅).prEvent_eq _
+  exact (K.romGame_evalDistEq hK main ∅).prEvent_eq _
+
+/-- **A random-oracle bound passes to the kept-key scheme**, at its own count of hash calls. -/
+theorem romBound {bits : ℕ} (hK : K.Reruns) (h : RomBound S bits) : RomBound K.scheme bits := by
+  intro q hq main hcost
+  rw [K.prob_romExperiment_eq hK main]
+  exact h q hq main (K.romGame_cost main q hcost)
+
+end KeptKey
+
+namespace SeedKeyed
+
+variable {S : SchemeWithHash Seed PK SK Req Resp F} (K : SeedKeyed S D)
+
+/-- The seed-keyed form is the kept-key form keeping the seed, from which the signer derives all
+of `D` again. -/
+def toKeptKey : KeptKey S D Seed where
+  derive := K.derive
+  rest := K.rest
+  signWith := K.signWith
+  keep seed _ := seed
+  rederive := K.derive
+  keygen_eq := K.keygen_eq
+  sign_eq := K.sign_eq
+  rederive_support _ _ h := h
+
+theorem scheme_eq_toKeptKey : K.scheme = K.toKeptKey.scheme := by
+  simp only [SeedKeyed.scheme, KeptKey.scheme, toKeptKey, K.keygen_eq, map_bind]
+
+/-- The seed-keyed signer's derivation is key generation's, run again on its cache. -/
+theorem toKeptKey_reruns : K.toKeptKey.Reruns :=
+  fun _ c _ hz c' hc' ↦ run_rerun _ (noCoins_liftM _) c hz c' hc'
 
 /-- **A random-oracle bound passes to the seed-keyed scheme**, at its own count of hash calls. -/
 theorem romBound {bits : ℕ} (h : RomBound S bits) : RomBound K.scheme bits := by
-  intro q hq main hcost
-  rw [K.prob_romExperiment_eq main]
-  exact h q hq main (K.romGame_cost main q hcost)
+  rw [scheme_eq_toKeptKey]
+  exact K.toKeptKey.romBound K.toKeptKey_reruns h
 
 end SeedKeyed
 
