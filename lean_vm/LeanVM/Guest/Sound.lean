@@ -19,7 +19,7 @@ on that run (`Check.EnteredAt`).
 
 * `b2_step`: a function's contract for runs shorter than `n + 1`, given every contract for runs
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
-  the first takes its memory bounds and semantic pairs from the statements before it, the
+  the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
   `verify_sub` (function `19`), whose second window starts at its call of
   `check_opening_terminal`, the bounds of the `8` entries of `kappa_base` from `VsKnown`, over
@@ -61,17 +61,19 @@ def VsKnown : Prop :=
 def ExpTablesSound : Prop :=
   ∀ (rd : Reader) (q : E), coreProgram.Rel rd "exponent_tables" [] [q] → B1.ExpTables rd q
 
-/-- **B1's obligations at function `j`'s cuts**: on every memory image, from the semantic pairs
+/-- **B1's obligations at function `j`'s cuts**: on every memory image, from the semantic tuples
 and memory bounds of `j`'s entry and the statements before each cut `i > 0` of `j`'s certificate,
-under its frame's valuation, the cut's memory bounds and semantic pairs. They are `VsKnown` for
-`verify_sub`, and nothing (`known_plain`) for a function whose cuts hand nothing on. -/
+under its frame's valuation, the cut's memory bounds, conditional memory bounds and semantic
+tuples. They are `VsKnown` for `verify_sub`, the walks' (`WalkKnown`) for the windowed Merkle
+walks, and nothing (`known_of_plain`) for a function whose cuts hand nothing on. -/
 def CutsKnown (j : ℕ) : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ fp : K,
     MemPre L fp (certOf j).mem → SemHolds glob L fp (certOf j).sem →
     ∀ i ≤ (certOf j).cuts.length, 0 < i →
       Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf j))
         ((coreOf j).body.take ((certOf j).cutAt i).start) True (fun _ ↦ True) →
-      MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems
+      MemKnown L fp ((certOf j).cutAt i).known ∧ MemIf L fp ((certOf j).cutAt i).knownIf ∧
+        SemHolds glob L fp ((certOf j).cutAt i).sems
 
 /-! ## `verify_sub`'s obligation -/
 
@@ -80,15 +82,16 @@ theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMe
     (hi : i ≤ (certOf 19).cuts.length) (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
       ((coreOf 19).body.take ((certOf 19).cutAt i).start) True (fun _ ↦ True)) :
-    MemKnown L fp ((certOf 19).cutAt i).known ∧ SemHolds glob L fp ((certOf 19).cutAt i).sems := by
+    MemKnown L fp ((certOf 19).cutAt i).known ∧ MemIf L fp ((certOf 19).cutAt i).knownIf ∧
+      SemHolds glob L fp ((certOf 19).cutAt i).sems := by
   obtain rfl : i = 1 := by rw [vs_cuts] at hi; omega
-  obtain ⟨hst, hkn, hsm⟩ := vs_cut
-  rw [hkn, hsm]
-  refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h⟩
+  obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
+  rw [hkn, hki, hsm]
+  refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
   obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
   rw [hst, coreOf_19] at hl
   have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) := by
-    have := hsem (6, 6) (by rw [vs_sem]; exact List.mem_singleton_self _)
+    have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
   exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
@@ -124,17 +127,18 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp :
     (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 1))
       ((coreOf 1).body.take ((certOf 1).cutAt i).start) True (fun _ ↦ True)) :
-    MemKnown L fp ((certOf 1).cutAt i).known ∧ SemHolds glob L fp ((certOf 1).cutAt i).sems := by
-  obtain ⟨hlen, hkn, hsm⟩ := main_cut
+    MemKnown L fp ((certOf 1).cutAt i).known ∧ MemIf L fp ((certOf 1).cutAt i).knownIf ∧
+      SemHolds glob L fp ((certOf 1).cutAt i).sems := by
+  obtain ⟨hlen, hkn, hki, hsm⟩ := main_cut
   obtain rfl : i = 1 := by rw [hlen] at hi; omega
-  rw [hkn, hsm]
-  refine ⟨fun _ h ↦ by simp at h, fun p hp ↦ ?_⟩
+  rw [hkn, hki, hsm]
+  refine ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun p hp ↦ ?_⟩
   simp only [List.mem_singleton] at hp
   subst hp
   rw [main_call, holdsList_append] at hl
   have hcall := ((holdsList_noRet _ main_exp_noRet _ _).mp hl).2
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hcall
-  exact hexp L.read _ hcall.1
+  exact (semRel_exp _ _).mpr (hexp L.read _ hcall.1)
 
 /-! ## The contracts -/
 

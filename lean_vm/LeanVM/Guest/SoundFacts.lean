@@ -62,24 +62,25 @@ theorem winOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
 theorem jtHolds_of {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) : JTHolds glob L :=
   JumpTable.jt_of_jumpTables h (PowTree.ok_of_okW Checked.powTree_ok)
 
-/-- A function's cuts hand nothing on (`Checked.Plain`): every cut's memory bounds and semantic pairs
-hold, vacuously. -/
+/-- A function's cuts hand nothing on (`Checked.Plain`): every cut's memory bounds, conditional
+memory bounds and semantic tuples hold, vacuously. -/
 theorem known_of_plain {j : ℕ} (hp : Checked.Plain j) {κ : ℕ} {L : MemoryImage κ} {fp : K} {i : ℕ}
     (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
-    MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems := by
+    MemKnown L fp ((certOf j).cutAt i).known ∧ MemIf L fp ((certOf j).cutAt i).knownIf ∧
+      SemHolds glob L fp ((certOf j).cutAt i).sems := by
   obtain ⟨i, rfl⟩ : ∃ i', i = i' + 1 := ⟨i - 1, by omega⟩
   have hall := List.all_eq_true.mp hp ((certOf j).cuts[i]'(by omega)) (List.getElem_mem _)
   simp only [Bool.and_eq_true, List.isEmpty_iff] at hall
   have hc : (certOf j).cutAt (i + 1) = (certOf j).cuts[i]'(by omega) := by
     simp only [Cert.cutAt]
     exact nth_eq _
-  rw [hc, hall.1, hall.2]
-  exact ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+  rw [hc, hall.1.1, hall.1.2, hall.2]
+  exact ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
 
-theorem known_plain {j : ℕ} (h0j : 1 ≤ j) (hj : j < nFns) (h1 : j ≠ 1) (h19 : j ≠ 19) {κ : ℕ}
-    {L : MemoryImage κ} {fp : K} {i : ℕ} (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
-    MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems :=
-  known_of_plain (Checked.all_plain j h0j hj h1 h19) hi h0
+/-- **The exponent table's tag**: tag `0` of `glob` on one word is `B1.ExpTables`. -/
+theorem semRel_exp (rd : Reader) (ws : List E) :
+    SemRel glob 0 rd ws ↔ B1.ExpTables rd (ws.getD 0 0) := by
+  simp [SemRel, SemRel0, tagNe, glob, globSem]
 
 /-! ## `verify_sub`'s window -/
 
@@ -95,20 +96,21 @@ def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
 theorem vs_cut : ((certOf 19).cutAt 1).start = 1592 ∧
     ((certOf 19).cutAt 1).known =
       (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
-    ((certOf 19).cutAt 1).sems = [] := by decide +kernel
+    ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
 theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 := by decide +kernel
 
-theorem vs_sem : (certOf 19).sem = [(6, 6)] := by decide +kernel
+theorem vs_sem : (certOf 19).sem = [(0, [6])] := by decide +kernel
 
 theorem coreOf_19 : coreOf 19 = Data.core18 := rfl
 
 /-! ## `main`'s window -/
 
 /-- `main`'s one cut, after its call of `exponent_tables` (`main_call`), takes the exponent
-table's relation on that call's return cell (`glob`'s relation reads a pair's first cell). -/
+table's relation (tag `0`) on that call's return cell. -/
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
-    ((certOf 1).cutAt 1).sems = [((certOf 1).locs.getD 49 0, (certOf 1).locs.getD 49 0)] := by
+    ((certOf 1).cutAt 1).knownIf = [] ∧
+    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 49 0])] := by
   decide +kernel
 
 /-- `main`'s statement `23` is its call of `exponent_tables`, before its cut, after no `ret`. -/
