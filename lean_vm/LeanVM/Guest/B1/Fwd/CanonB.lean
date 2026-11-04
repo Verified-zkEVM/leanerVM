@@ -14,7 +14,8 @@ public import LeanVM.Guest.B1.Fwd.Canon
 
 `mAdd M v`: the mask `M` with bit `v` set. `canonGoB M atoms`: `canonGo` with the values known
 canonical the set bits of `M`. `canonGoB_eq`: on a mask whose bits are a list's members, it is
-`canonGo` on that list; `canonChk_of_canonGoB`: `canonChk A atoms` from `canonGoB (maskOf A) atoms`.
+`canonGo` on that list; `canonChk_of_canonGoB`: `canonChk A atoms` from `canonGoB (maskOf A) atoms`. `canonGo_filter`:
+dropping atoms the walk passes over (`canonSkip`: no `KECCAK`, `XOR`, copy, `SET`) changes nothing.
 -/
 
 namespace LeanVM.Guest.B1.Fwd
@@ -101,6 +102,26 @@ theorem canonChk_of_canonGoB {A : List Nat} {atoms : List Atom}
     (h : canonGoB (maskOf A) atoms = true) : canonChk A atoms = true := by
   rw [canonChk, ← canonGoB_eq atoms A (maskOf A) (testBit_maskOf A)]
   exact h
+
+/-- An atom the walk passes over. -/
+def canonSkip : Atom → Bool
+  | .keccak .. | .add .. | .copy .. | .const .. => false
+  | _ => true
+
+/-- **Dropping atoms the walk passes over does not change it**: so a check need not filter
+(a filter by `∉ S` on atoms is a costly kernel evaluation). -/
+theorem canonGo_filter (p : Atom → Bool) : ∀ (A : List Atom) (K : List Nat),
+    (∀ a ∈ A, p a = false → canonSkip a = true) → canonGo K (A.filter p) = canonGo K A
+  | [], _, _ => rfl
+  | a :: as, K, h => by
+    have ih : ∀ K', canonGo K' (as.filter p) = canonGo K' as := fun K' =>
+      canonGo_filter p as K' fun b hb => h b (List.mem_cons_of_mem _ hb)
+    by_cases hp : p a = true
+    · rw [List.filter_cons_of_pos hp]
+      cases a <;> simp only [canonGo, ih]
+    · have hs := h a List.mem_cons_self (by simpa using hp)
+      rw [List.filter_cons_of_neg hp, ih]
+      cases a <;> simp_all [canonSkip, canonGo]
 
 end
 end LeanVM.Guest.B1.Fwd
