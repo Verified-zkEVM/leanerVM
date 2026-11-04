@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlaced1
 
-  The statements of `opening_queries`' templates, by kind: their loads and where they read, their
-  frame run, no `HeapBuf` in a query.
+  The statements of `opening_queries`' templates, by kind: their loads and where they read, no
+  `frameAddr` and no `HeapBuf` in a query.
 -/
 
 module
@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Opening.WalkMatch
 /-!
 # The statements of `opening_queries`, by kind
 
-The placed form (`RelAtIn`) needs, of a body, its `HeapBuf`s, its `frameAddr`s and runs, its
-calls and where its loads read. `OqAtomOk`: an atom of a query is a load reading the weights
+The placed form (`RelAtIn`) needs, of a body, its `HeapBuf`s, its `frameAddr`s (a query has
+none), its calls and where its loads read. `OqAtomOk`: an atom of a query is a load reading the weights
 (`wp`, below `lo + I/lo`), its windows (`bp`, below `npw + 2`: the path's and the cap's two), the
 flag (`.n (Cq + 2)` at `2^(cd-1)`) or the cap leaf (`.n (Cq + 8)` at `2^(cd+1)`, `+ 1`), or
 neither a load, a `frameAddr` nor a `HeapBuf`. `AtomsOk`: every statement is such an atom or a
@@ -59,9 +59,11 @@ theorem AtomKind.mono {L L' : V → ℕ → Prop} {F F' : V → List V → Prop}
 abbrev OqAtomOk (s : Oq) (bp wp : V) (ch : ℕ) : Atom → Prop :=
   AtomKind (OqQLoad s bp wp ch) (fun _ _ ↦ False)
 
-/-- Every statement is an atom of the kind `P`, or a `match` of quiet atom arms. -/
+/-- Every statement is an atom of the kind `P`, or a `match` of quiet atom arms (fewer than
+`2^64`). -/
 def AtomsOk (P : Atom → Prop) (ss : List Stmt) : Prop :=
-  ∀ x ∈ ss, (∃ a, x = .atom a ∧ P a) ∨ ∃ y arms, x = .match_ y arms ∧ Stmt.flatM (.match_ y arms) = true
+  ∀ x ∈ ss, (∃ a, x = .atom a ∧ P a) ∨
+    ∃ y arms, x = .match_ y arms ∧ Stmt.flatM (.match_ y arms) = true ∧ arms.length ≤ 2 ^ 64 - 1
 
 theorem atomsOk_append {P : Atom → Prop} {ss ts : List Stmt} (h1 : AtomsOk P ss) (h2 : AtomsOk P ts) :
     AtomsOk P (ss ++ ts) :=
@@ -82,17 +84,17 @@ theorem atomsOk_cons {P : Atom → Prop} {a : Atom} {ss : List Stmt} (ha : P a) 
   · exact h x hx
 
 theorem atomsOk_match {P : Atom → Prop} {y : V} {arms : List (List Stmt)} {ss : List Stmt}
-    (ha : Stmt.flatM (.match_ y arms) = true) (h : AtomsOk P ss) :
+    (ha : Stmt.flatM (.match_ y arms) = true) (hl : arms.length ≤ 2 ^ 64 - 1) (h : AtomsOk P ss) :
     AtomsOk P (.match_ y arms :: ss) := fun x hx ↦ by
   rcases List.mem_cons.mp hx with rfl | hx
-  · exact Or.inr ⟨y, arms, rfl, ha⟩
+  · exact Or.inr ⟨y, arms, rfl, ha, hl⟩
   · exact h x hx
 
 theorem AtomsOk.flatM {P : Atom → Prop} {ss : List Stmt} (h : AtomsOk P ss) :
     ss.all Stmt.flatM = true := by
   rw [List.all_eq_true]
   intro x hx
-  rcases h x hx with ⟨a, rfl, -⟩ | ⟨y, arms, rfl, hm⟩
+  rcases h x hx with ⟨a, rfl, -⟩ | ⟨y, arms, rfl, hm, -⟩
   · rfl
   · exact hm
 
@@ -183,7 +185,10 @@ theorem ok_pathT (pr kL : ℕ) : AtomsOk (OqAtomOk s bp wp ch) (oqPathT s bp pr 
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hy
   rw [List.mem_range] at hi
   exact atomsOk_cons (Or.inr (Or.inl ⟨rfl, by omega⟩)) (atomsOk_cons trivial
-    (atomsOk_match (oqWin_match_flatM s pr kL ch i) atomsOk_nil))
+    (atomsOk_match (oqWin_match_flatM s pr kL ch i) (by
+      rw [List.length_map, List.length_range]
+      exact le_trans (Nat.pow_le_pow_right (by norm_num) (oqWw_le s i)) (by norm_num))
+      atomsOk_nil))
 
 theorem ok_capT (cap flags : V) (kL : ℕ) :
     AtomsOk (OqAtomOk s bp wp ch) (oqCapT s bp cap flags kL ch) := by
