@@ -40,19 +40,32 @@ theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
 theorem dlNames_ok : (List.range 11).all (fun k => wOkB (wIdx B1.Da.dlNames[k]!) B1.Da.dlNames[k]!) = true := by
   decide +kernel
 
-/-- **`da_verify`'s static callees' words.** -/
+/-- The column offsets' doubling loops `__loop{22 + b}`, checked. -/
+theorem offLoops_ok :
+    (List.range 7).all (fun b => wOkK (wIdxL (22 + b)) (B1.Da.offLoopName b)) = true := by
+  decide +kernel
+
+/-- **`da_vector`'s words within its static bound**: its frame and buffers, its callees' frames
+and buffers, the doublings' iterations. -/
+theorem vec_le : B2C.fs "da_vector" + 30 + (B2C.fs "da_factors__L14_L7_L0" + 256 +
+    (B2C.fs "da_expand__L14_L7" + (B2C.fs "da_factors__L7_L8_L128" + 256 +
+      (B2C.fs "da_column_offsets" + 1080 +
+        ((List.range 7).map fun b => 2 ^ b * wSK (B1.Da.offLoopName b)).sum + 0)))) ≤
+    wSB "da_vector" := by
+  decide +kernel
+
+theorem exp_le : B2C.fs "da_expand__L7_L8" ≤ wSB "da_expand__L7_L8" := by decide +kernel
+
+/-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
 theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
-  l18 := wSK_totalLeOn (j := wIdxL 17) (by decide +kernel)
-  l19 := wSK_totalLeOn (j := wIdxL 18) (by decide +kernel)
-  l22 := wSK_totalLeOn (j := wIdxL 21) (by decide +kernel)
-  l23 := wSK_totalLeOn (j := wIdxL 22) (by decide +kernel)
-  l24 := wSK_totalLeOn (j := wIdxL 23) (by decide +kernel)
-  l417 := wSK_totalLeOn (j := wIdxL 415) (by decide +kernel)
-  l418 := wSK_totalLeOn (j := wIdxL 416) (by decide +kernel)
-  l419 := wSK_totalLeOn (j := wIdxL 417) (by decide +kernel)
-  l420 := wSK_totalLeOn (j := wIdxL 418) (by decide +kernel)
-  lev := wSB_totalLe (j := wIdx "da_levels__L128_L7") (by decide +kernel)
+  l17 := wSK_totalLeOn (j := wIdxL 17) (by decide +kernel)
+  l19 := wSK_totalLeOn (j := wIdxL 19) (by decide +kernel)
+  l20 := wSK_totalLeOn (j := wIdxL 20) (by decide +kernel)
+  l21 := wSK_totalLeOn (j := wIdxL 21) (by decide +kernel)
+  off := fun _ hb => wSK_totalLeOn (all_range_get offLoops_ok hb)
   dl := fun _ hk => wSB_totalLe (all_range_get dlNames_ok (Nat.lt_succ_of_le hk))
+  vec := vec_le
+  exp := exp_le
 
 /-- `claim_list_last__L{k}`, `k < 17`, checked. -/
 theorem clNames_ok :
@@ -66,9 +79,9 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
   l16 := wSK_totalLeOn (j := wIdxL 15) (by decide +kernel)
   cl := fun _ hk => wSB_totalLe (all_range_get clNames_ok hk)
-  l25 := wSK_totalLeOn (j := wIdxL 24) (by decide +kernel)
-  l26 := wSK_totalLeOn (j := wIdxL 25) (by decide +kernel)
-  l27 := wSK_totalLeOn (j := wIdxL 26) (by decide +kernel)
+  l25 := wSK_totalLeOn (j := wIdxL 29) (by decide +kernel)
+  l26 := wSK_totalLeOn (j := wIdxL 30) (by decide +kernel)
+  l27 := wSK_totalLeOn (j := wIdxL 31) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
 
 /-- `open_stacked`'s named callees, checked. -/

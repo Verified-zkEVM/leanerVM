@@ -247,7 +247,7 @@ theorem ly7_chain {rd : Reader} {dsh gmu layers rounds : E} {sh M : ℕ} (hsh2 :
 /-! ## The chain's words -/
 
 /-- The words of `__loop27` called below `g^(c/2)`: its frame when not entered. -/
-def ly7W29 (fs : String → ℕ) (K29 c : ℕ) : ℕ := fs "__loop27" + c / 2 * K29
+def ly7W29 (fs : String → ℕ) (K29 c : ℕ) : ℕ := fs "__loop32" + c / 2 * K29
 
 /-- The rounds the body calls: `gkr_rounds__L2` at an odd iteration, `gkr_rounds__L1` at an odd
 depth. -/
@@ -270,7 +270,7 @@ theorem ly70_calls (σ : Val) : (ly70.filterMap Main.Stmt.callS).map (Main.mkCal
     [⟨"gkr_rounds__L1", [.n 71, .n 72], [], true⟩] := rfl
 
 theorem ly7Csb_eq (σ : Val) : ly7Csb σ =
-    ⟨"__loop27", [.n 65, .n 61, .n 52, .n 50], [], decide (σ (.n 64) ≠ 0)⟩ :: ly7Rounds σ := by
+    ⟨"__loop32", [.n 65, .n 61, .n 52, .n 50], [], decide (σ (.n 64) ≠ 0)⟩ :: ly7Rounds σ := by
   simp only [ly7Csb, ly7Rounds, ly62_calls, ly70_calls]
   rw [lyA_calls]
   rfl
@@ -302,7 +302,7 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
 frame, given `__loop27`'s words linear in its end's exponent and the rounds' bound `R`. -/
 theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29 R : ℕ}
     (hsh2 : sh < 2)
-    (h29 : TotalLeOn P fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn P fs "__loop32" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe P fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe P fs "gkr_rounds__L2" (fun _ ↦ R)) :
     ∀ m c (t : Tree) args rets,

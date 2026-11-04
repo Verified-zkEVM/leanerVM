@@ -31,11 +31,11 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (321 + k) default) = true := by
+theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (323 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 330 + (k - 9) = 321 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 332 + (k - 9) = 323 + k by omega] at this
 
 /-- A load found in the atoms, not a store, reads memory. -/
 theorem load_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V} {o : ℕ}
@@ -74,7 +74,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   have hok := cl_all k hk
   have hcok := clc_all hk
-  set fn := coreProgram.getD (321 + k) default
+  set fn := coreProgram.getD (323 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [clcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff] at hcok
@@ -186,11 +186,11 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     (hc : AllCanonical cells)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 320 default) x N [chain, entries] := by
+    LoopBlock rd (coreProgram.getD 322 default) x N [chain, entries] := by
   have hok := l16_ok
   have hcok := l16c_ok
   have hnb := l16_nb
-  set fn := coreProgram.getD 320 default
+  set fn := coreProgram.getD 322 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 4 fn.body with hSdef
   simp only [l16Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

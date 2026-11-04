@@ -9,10 +9,11 @@ public import Mathlib.Tactic
 # The arithmetic of the code-binding bound
 
 From Benedikt Wagner's squared bound `(P - T)² ≤ (Q + 2) (ε₂ + δ)` with the collision term
-`ε₂ ≤ F² / 2^256` (`F ≤ 2 (Q + 2^20)`), the code-binding probability `P` is at most `T` plus
-`x / 2^95 + x² / 2^159 + (Q + 2) / 2^94` for `x = Q + 2^20` (`le_of_sq_tsub_le`, `fork_sq_le`):
+`ε₂ ≤ F² / 2^256` (`F ≤ 2 (Q + 2^20)`) and the membership test's
+`δ = (2^14 - 1) / 2^192 + 2^-384`, the code-binding probability `P` is at most `T` plus
+`x / 2^95 + x² / 2^159 + (Q + 2) / 2^89` for `x = Q + 2^20` (`le_of_sq_tsub_le`, `fork_sq_le`):
 `(Q + 2) F² / 2^256 ≤ 4 x³ / 2^256 ≤ (x / 2^95 + x² / 2^159)²` (the arithmetic and geometric
-means), and `(Q + 2) δ ≤ ((Q + 2) / 2^94)²`.
+means), and `(Q + 2) δ ≤ (Q + 2) / 2^178 ≤ ((Q + 2) / 2^89)²`.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -33,28 +34,26 @@ theorem toReal_natCast_div_pow (n k : ℕ) :
   simp
 
 /-- **The forking term**: for `F ≤ 2 (Q + 2^20)`, the right side of Wagner's squared bound is at
-most the square of `x / 2^95 + x² / 2^159 + (Q + 2) / 2^94`, `x = Q + 2^20`. -/
+most the square of `x / 2^95 + x² / 2^159 + (Q + 2) / 2^89`, `x = Q + 2^20`. -/
 theorem fork_sq_le (Q F : ℕ) (hF : F ≤ 2 * (Q + 2 ^ 20)) :
-    ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + 14 / 2 ^ 192 + (2 ^ 2688)⁻¹) ≤
+    ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 14 - 1) / 2 ^ 192 + (2 ^ 384)⁻¹) ≤
       (((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 95 + ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 159 +
-        ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 94) ^ 2 := by
-  have hδ : (14 : ℝ≥0∞) / 2 ^ 192 + (2 ^ 2688)⁻¹ ≤ 1 / 2 ^ 188 := by
-    rw [ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul, mul_one]
-    have h1 : ((2 : ℝ≥0∞) ^ 2688)⁻¹ ≤ 2 * (2 ^ 192)⁻¹ := by
-      calc ((2 : ℝ≥0∞) ^ 2688)⁻¹ ≤ (2 ^ 192)⁻¹ :=
-            ENNReal.inv_le_inv.mpr (pow_le_pow_right₀ (by norm_num) (by norm_num))
-        _ ≤ 2 * (2 ^ 192)⁻¹ := le_mul_of_one_le_left' (by norm_num)
-    calc (2 ^ 192 : ℝ≥0∞)⁻¹ * 14 + (2 ^ 2688)⁻¹ ≤ (2 ^ 192)⁻¹ * 14 + 2 * (2 ^ 192)⁻¹ :=
-          add_le_add le_rfl h1
-      _ = (2 ^ 192)⁻¹ * 16 := by ring
-      _ = (2 ^ 188)⁻¹ := by
-          rw [show (16 : ℝ≥0∞) = 2 ^ 4 by norm_num, show (2 : ℝ≥0∞) ^ 192 = 2 ^ 188 * 2 ^ 4 by
-            rw [← pow_add], ENNReal.mul_inv (Or.inl (by positivity)) (Or.inl (by simp)),
-            mul_assoc, ENNReal.inv_mul_cancel (by positivity) (by simp), mul_one]
+        ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 89) ^ 2 := by
+  have hδ : ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 192 + (2 ^ 384)⁻¹ ≤ 1 / 2 ^ 178 := by
+    have h1 : ((2 : ℝ≥0∞) ^ 384)⁻¹ ≤ (2 ^ 192)⁻¹ :=
+      ENNReal.inv_le_inv.mpr (pow_le_pow_right₀ (by norm_num) (by norm_num))
+    have h2 : ((2 : ℝ≥0∞) ^ 14 - 1) + 1 = 2 ^ 14 :=
+      tsub_add_cancel_of_le (one_le_pow₀ (by norm_num))
+    calc ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 192 + (2 ^ 384)⁻¹
+        ≤ ((2 : ℝ≥0∞) ^ 14 - 1) / 2 ^ 192 + 1 / 2 ^ 192 := by rw [one_div]; exact add_le_add le_rfl h1
+      _ = 2 ^ 14 / 2 ^ 192 := by rw [ENNReal.div_add_div_same, h2]
+      _ = 1 / 2 ^ 178 := by
+          rw [ENNReal.div_eq_div_iff (by positivity) (by simp) (by positivity) (by simp), mul_one,
+            ← pow_add]
   have hF2 : (F : ℝ≥0∞) ^ 2 ≤ (2 * ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞)) ^ 2 := by
     gcongr; exact_mod_cast hF
-  calc ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + 14 / 2 ^ 192 + (2 ^ 2688)⁻¹)
-      ≤ ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 * ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞)) ^ 2 / 2 ^ 256 + 1 / 2 ^ 188) := by
+  calc ((Q : ℝ≥0∞) + 2) * ((F : ℝ≥0∞) ^ 2 / 2 ^ 256 + (2 ^ 14 - 1) / 2 ^ 192 + (2 ^ 384)⁻¹)
+      ≤ ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 * ((Q + 2 ^ 20 : ℕ) : ℝ≥0∞)) ^ 2 / 2 ^ 256 + 1 / 2 ^ 178) := by
         rw [add_assoc]
         push_cast
         gcongr
@@ -73,7 +72,7 @@ theorem fork_sq_le (Q F : ℕ) (hF : F ≤ 2 * (Q + 2 ^ 20)) :
         have hx0 : 0 ≤ x := by positivity
         have ha : 0 ≤ x / 2 ^ 95 := by positivity
         have hb : 0 ≤ x ^ 2 / 2 ^ 159 := by positivity
-        have hc : 0 ≤ ((Q : ℝ) + 2) / 2 ^ 94 := by positivity
+        have hc : 0 ≤ ((Q : ℝ) + 2) / 2 ^ 89 := by positivity
         have h4 : 4 * x ^ 3 / 2 ^ 254 ≤ (x / 2 ^ 95 + x ^ 2 / 2 ^ 159) ^ 2 := by
           have := sq_nonneg (x / 2 ^ 95 - x ^ 2 / 2 ^ 159)
           have e : 4 * (x / 2 ^ 95) * (x ^ 2 / 2 ^ 159) = 4 * x ^ 3 / 2 ^ 254 := by ring
@@ -84,7 +83,7 @@ theorem fork_sq_le (Q F : ℕ) (hF : F ≤ 2 * (Q + 2 ^ 20)) :
             ring
           rw [e1, div_le_div_iff₀ (by positivity) (by positivity)]
           nlinarith [pow_pos (show (0 : ℝ) < 2 by norm_num) 254]
-        have h6 : ((Q : ℝ) + 2) * (1 / 2 ^ 188) ≤ (((Q : ℝ) + 2) / 2 ^ 94) ^ 2 := by
+        have h6 : ((Q : ℝ) + 2) * (1 / 2 ^ 178) ≤ (((Q : ℝ) + 2) / 2 ^ 89) ^ 2 := by
           have : (1 : ℝ) ≤ (Q : ℝ) + 2 := by linarith
           rw [div_pow, ← pow_mul]
           rw [mul_one_div]
@@ -93,13 +92,13 @@ theorem fork_sq_le (Q F : ℕ) (hF : F ≤ 2 * (Q + 2 ^ 20)) :
         nlinarith [mul_nonneg ha hc, mul_nonneg hb hc]
 
 /-- **The remaining terms**, each at most a multiple of `y² / 2^256` or of `x / 2^95`. -/
-theorem rest_le (Q K W x y : ℕ) (hK : K ≤ y) (hW : W ≤ y) (hx : x ≤ y) (hQ15 : Q + 15 ≤ y)
+theorem rest_le (Q K W x y : ℕ) (hK : K ≤ y) (hW : W ≤ y) (hx : x ≤ y) (hQ15 : Q + 3 ≤ y)
     (hQ2 : Q + 2 ≤ x) :
-    (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
-        ((K : ℝ≥0∞) ^ 2 / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
+    (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+        ((K : ℝ≥0∞) ^ 2 / 2 ^ 508 + 2 * ((Q + 3 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) +
         (W : ℝ≥0∞) ^ 2 / 2 ^ 256 +
-        ((x : ℝ≥0∞) / 2 ^ 95 + (x : ℝ≥0∞) ^ 2 / 2 ^ 159 + ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 94) ≤
-      (x : ℝ≥0∞) / 2 ^ 93 + (y : ℝ≥0∞) ^ 2 / 2 ^ 158 := by
+        ((x : ℝ≥0∞) / 2 ^ 95 + (x : ℝ≥0∞) ^ 2 / 2 ^ 159 + ((Q + 2 : ℕ) : ℝ≥0∞) / 2 ^ 89) ≤
+      (x : ℝ≥0∞) / 2 ^ 88 + (y : ℝ≥0∞) ^ 2 / 2 ^ 158 := by
   rw [← ENNReal.toReal_le_toReal (by finiteness) (by finiteness)]
   simp only [ENNReal.toReal_mul, ENNReal.toReal_add, ENNReal.toReal_pow, ENNReal.toReal_div,
     ENNReal.toReal_natCast, ENNReal.toReal_ofNat, ne_eq, ENNReal.div_eq_top,
@@ -110,7 +109,7 @@ theorem rest_le (Q K W x y : ℕ) (hK : K ≤ y) (hW : W ≤ y) (hx : x ≤ y) (
   have hK' : (K : ℝ) ≤ y := by exact_mod_cast hK
   have hW' : (W : ℝ) ≤ y := by exact_mod_cast hW
   have hx' : (x : ℝ) ≤ y := by exact_mod_cast hx
-  have hQ15' : (Q : ℝ) + 15 ≤ y := by exact_mod_cast hQ15
+  have hQ15' : (Q : ℝ) + 3 ≤ y := by exact_mod_cast hQ15
   have hQ2' : (Q : ℝ) + 2 ≤ x := by exact_mod_cast hQ2
   have hQ0 : (0 : ℝ) ≤ Q := Nat.cast_nonneg Q
   have hK0 : (0 : ℝ) ≤ K := Nat.cast_nonneg K
@@ -120,14 +119,14 @@ theorem rest_le (Q K W x y : ℕ) (hK : K ≤ y) (hW : W ≤ y) (hx : x ≤ y) (
   have hK2 : (K : ℝ) ^ 2 ≤ (y : ℝ) ^ 2 := by nlinarith
   have hW2 : (W : ℝ) ^ 2 ≤ (y : ℝ) ^ 2 := by nlinarith
   have hx2 : (x : ℝ) ^ 2 ≤ (y : ℝ) ^ 2 := by nlinarith
-  have h152 : ((Q : ℝ) + 15) ^ 2 ≤ (y : ℝ) ^ 2 := by nlinarith
+  have h152 : ((Q : ℝ) + 3) ^ 2 ≤ (y : ℝ) ^ 2 := by nlinarith
   have hy0 : (0 : ℝ) ≤ (y : ℝ) ^ 2 := sq_nonneg _
   have e1 : (Q : ℝ) ^ 2 / 2 ^ 508 ≤ (y : ℝ) ^ 2 / 2 ^ 508 := by gcongr
-  have e2 : 2 * ((Q : ℝ) + 15) ^ 2 / 2 ^ 576 ≤ 2 * (y : ℝ) ^ 2 / 2 ^ 576 := by gcongr
+  have e2 : 2 * ((Q : ℝ) + 3) ^ 2 / 2 ^ 576 ≤ 2 * (y : ℝ) ^ 2 / 2 ^ 576 := by gcongr
   have e3 : (K : ℝ) ^ 2 / 2 ^ 508 ≤ (y : ℝ) ^ 2 / 2 ^ 508 := by gcongr
   have e4 : (W : ℝ) ^ 2 / 2 ^ 256 ≤ (y : ℝ) ^ 2 / 2 ^ 256 := by gcongr
   have e5 : (x : ℝ) ^ 2 / 2 ^ 159 ≤ (y : ℝ) ^ 2 / 2 ^ 159 := by gcongr
-  have e6 : ((Q : ℝ) + 2) / 2 ^ 94 ≤ (x : ℝ) / 2 ^ 94 := by gcongr
+  have e6 : ((Q : ℝ) + 2) / 2 ^ 89 ≤ (x : ℝ) / 2 ^ 89 := by gcongr
   have hsum : (y : ℝ) ^ 2 / 2 ^ 508 + 2 * (y : ℝ) ^ 2 / 2 ^ 576 + ((y : ℝ) ^ 2 / 2 ^ 508 +
       2 * (y : ℝ) ^ 2 / 2 ^ 576) + (y : ℝ) ^ 2 / 2 ^ 256 + (y : ℝ) ^ 2 / 2 ^ 159 ≤
         (y : ℝ) ^ 2 / 2 ^ 158 := by
@@ -149,14 +148,14 @@ theorem rest_le (Q K W x y : ℕ) (hK : K ≤ y) (hW : W ≤ y) (hx : x ≤ y) (
     generalize (y : ℝ) ^ 2 / 2 ^ 256 = C at c1 c2 c3 ⊢
     linarith only [c1, c2, c3]
 
-  have hlin : (x : ℝ) / 2 ^ 95 + (x : ℝ) / 2 ^ 94 ≤ (x : ℝ) / 2 ^ 93 := by
-    have : (1 : ℝ) / 2 ^ 95 + 1 / 2 ^ 94 ≤ 1 / 2 ^ 93 := by norm_num
+  have hlin : (x : ℝ) / 2 ^ 95 + (x : ℝ) / 2 ^ 89 ≤ (x : ℝ) / 2 ^ 88 := by
+    have : (1 : ℝ) / 2 ^ 95 + 1 / 2 ^ 89 ≤ 1 / 2 ^ 88 := by norm_num
     have := mul_le_mul_of_nonneg_left this hx0
     ring_nf at this ⊢
     linarith
   generalize (Q : ℝ) ^ 2 / 2 ^ 508 = a₁ at e1 ⊢
   generalize (K : ℝ) ^ 2 / 2 ^ 508 = a₂ at e3 ⊢
-  generalize 2 * ((Q : ℝ) + 15) ^ 2 / 2 ^ 576 = a₃ at e2 ⊢
+  generalize 2 * ((Q : ℝ) + 3) ^ 2 / 2 ^ 576 = a₃ at e2 ⊢
   generalize (y : ℝ) ^ 2 / 2 ^ 508 = b₁ at e1 e3 hsum
   generalize 2 * (y : ℝ) ^ 2 / 2 ^ 576 = b₂ at e2 hsum
   linarith only [e1, e2, e3, e4, e5, e6, hsum, hlin]

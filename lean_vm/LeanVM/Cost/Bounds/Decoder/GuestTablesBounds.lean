@@ -73,8 +73,8 @@ theorem guestLocs21_lt :
   rfl
 
 set_option maxRecDepth 100000 in
-/-- The table of frame cells ends after `879` functions. -/
-theorem guestLocsList_drop_end : guestLocsList.drop 879 = [] := rfl
+/-- The table of frame cells ends after `884` functions. -/
+theorem guestLocsList_drop_end : guestLocsList.drop 884 = [] := rfl
 
 /-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/
 theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
@@ -83,21 +83,21 @@ theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = t
   refine all_of_drop _ _ 16 4 guestLocsChunk1_lt ?_
   refine all_of_drop _ _ 20 1 guestLocsChunk2_lt ?_
   refine all_of_drop _ _ 21 1 guestLocs21_lt ?_
-  refine all_of_drop _ _ 22 144 guestLocsChunk3_lt ?_
-  refine all_of_drop _ _ 166 88 guestLocsChunk4_lt ?_
-  refine all_of_drop _ _ 254 43 guestLocsChunk5_lt ?_
-  refine all_of_drop _ _ 297 8 guestLocsChunk6_lt ?_
-  refine all_of_drop _ _ 305 8 guestLocsChunk7_lt ?_
-  refine all_of_drop _ _ 313 17 guestLocsChunk8_lt ?_
-  refine all_of_drop _ _ 330 78 guestLocsChunk9_lt ?_
-  refine all_of_drop _ _ 408 144 guestLocsChunk10_lt ?_
-  refine all_of_drop _ _ 552 154 guestLocsChunk11_lt ?_
-  refine all_of_drop _ _ 706 115 guestLocsChunk12_lt ?_
-  refine all_of_drop _ _ 821 20 guestLocsChunk13_lt ?_
-  refine all_of_drop _ _ 841 16 guestLocsChunk14_lt ?_
-  refine all_of_drop _ _ 857 14 guestLocsChunk15_lt ?_
-  refine all_of_drop _ _ 871 8 guestLocsChunk16_lt ?_
-  show (guestLocsList.drop 879).all _ = true
+  refine all_of_drop _ _ 22 146 guestLocsChunk3_lt ?_
+  refine all_of_drop _ _ 168 88 guestLocsChunk4_lt ?_
+  refine all_of_drop _ _ 256 43 guestLocsChunk5_lt ?_
+  refine all_of_drop _ _ 299 8 guestLocsChunk6_lt ?_
+  refine all_of_drop _ _ 307 8 guestLocsChunk7_lt ?_
+  refine all_of_drop _ _ 315 17 guestLocsChunk8_lt ?_
+  refine all_of_drop _ _ 332 87 guestLocsChunk9_lt ?_
+  refine all_of_drop _ _ 419 144 guestLocsChunk10_lt ?_
+  refine all_of_drop _ _ 563 154 guestLocsChunk11_lt ?_
+  refine all_of_drop _ _ 717 113 guestLocsChunk12_lt ?_
+  refine all_of_drop _ _ 830 20 guestLocsChunk13_lt ?_
+  refine all_of_drop _ _ 850 16 guestLocsChunk14_lt ?_
+  refine all_of_drop _ _ 866 14 guestLocsChunk15_lt ?_
+  refine all_of_drop _ _ 880 4 guestLocsChunk16_lt ?_
+  show (guestLocsList.drop 884).all _ = true
   rw [guestLocsList_drop_end]
   rfl
 

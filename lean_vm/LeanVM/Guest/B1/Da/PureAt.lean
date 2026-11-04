@@ -9,14 +9,14 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.B1.Da.ColumnDefs
+public import LeanVM.Guest.B1.Da.VerifyDefs
 
 /-!
 # The pure callees
 
-`daPureSet`: the cell check, the column's row and padding loops, `da_verify`'s loops over the
-rows, the trees' `da_levels` and their level loops. `daPure`: it places nothing and calls only its
-own members (kernel evaluation).
+`daPureSet`: the cell check, `da_verify`'s loops over the blobs, the columns' row loop, the
+column offsets' doubling loops, the trees' `da_levels` and their level loops. `daPure`: it places
+nothing and calls only its own members (kernel evaluation).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -27,19 +27,21 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- The level loops of the `da_levels` functions. -/
 def lvlLoops : List String :=
-  ["__loop304", "__loop305", "__loop306", "__loop307", "__loop308", "__loop309", "__loop310",
-  "__loop311", "__loop312", "__loop313", "__loop314", "__loop315", "__loop316", "__loop317",
-  "__loop318", "__loop319", "__loop320", "__loop321", "__loop322", "__loop323", "__loop324",
-  "__loop325", "__loop326", "__loop327", "__loop328", "__loop329", "__loop330", "__loop331",
-  "__loop332", "__loop333", "__loop334", "__loop335", "__loop336", "__loop337", "__loop338",
-  "__loop339", "__loop340", "__loop341", "__loop342", "__loop343", "__loop344", "__loop345",
-  "__loop346", "__loop347", "__loop348", "__loop349", "__loop350", "__loop351", "__loop352",
-  "__loop353", "__loop354", "__loop355", "__loop356", "__loop357", "__loop358"]
+  ["__loop330", "__loop331", "__loop332", "__loop333", "__loop334", "__loop335", "__loop336",
+  "__loop309", "__loop310", "__loop311", "__loop312", "__loop313", "__loop314", "__loop315",
+  "__loop316", "__loop317", "__loop318", "__loop319", "__loop320", "__loop321", "__loop322",
+  "__loop323", "__loop324", "__loop325", "__loop326", "__loop327", "__loop328", "__loop329",
+  "__loop337", "__loop338", "__loop339", "__loop340", "__loop341", "__loop342", "__loop343",
+  "__loop344", "__loop345", "__loop346", "__loop347", "__loop348", "__loop349", "__loop350",
+  "__loop351", "__loop352", "__loop353", "__loop354", "__loop355", "__loop356", "__loop357",
+  "__loop358", "__loop359", "__loop360", "__loop361", "__loop362", "__loop363"]
 
-/-- **The pure callees of `da_verify`.** -/
+/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`__loop17`,
+`__loop19`, `__loop20`), the columns' row loop (`__loop21`), the offsets' doubling loops
+(`__loop22` to `__loop28`), the DA levels and their loops. -/
 def daPureSet : List String :=
-  ["da_verify_cell", "__loop415", "__loop416", "__loop417", "__loop418", "__loop17", "__loop18",
-    "__loop21", "__loop22", "__loop23"] ++ dlNames ++ lvlLoops
+  ["da_verify_cell", "__loop17", "__loop19", "__loop20", "__loop21", "__loop22", "__loop23",
+    "__loop24", "__loop25", "__loop26", "__loop27", "__loop28"] ++ dlNames ++ lvlLoops
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def daPureOk : Bool :=

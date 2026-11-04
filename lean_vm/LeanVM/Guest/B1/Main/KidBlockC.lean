@@ -8,7 +8,11 @@
 module
 
 public import LeanVM.Guest.B1.Main.KidCChk
-public import LeanVM.Guest.B1.Da.VerifyL23Complete
+public import LeanVM.Guest.B1.Da.LevelsComplete
+public import LeanVM.Guest.B1.Digest.ChainFilter
+public import LeanVM.Guest.B1.Digest.PairComplete
+public import LeanVM.Guest.B1.Digest.LoopComplete
+public import LeanVM.Guest.B1.Fwd.Eval
 public import LeanVM.Guest.B1.Digest.Range
 public import LeanVM.Guest.B1.Digest.ClaimListCLast
 public import LeanVM.Guest.B1.Da.AtBase

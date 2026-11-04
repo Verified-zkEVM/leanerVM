@@ -23,41 +23,69 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem os_run_14_0 : stmtsEqb ((Data.core306.body.drop 0).take 1100)
+theorem os_run_14_0 : stmtsEqb ((Data.core308.body.drop 0).take 1100)
     (((osBody (osCfg 14)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_14_1 : stmtsEqb ((Data.core306.body.drop 1100).take 1100)
+theorem os_run_14_1 : stmtsEqb ((Data.core308.body.drop 1100).take 1100)
     (((osBody (osCfg 14)).drop 1100).take 1100) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem osLv_14_0 : FnIs ((osCfg 14).sqLoop 0) (osParams 5)
+      (sqLoopBody (osLv 14 0) ((osCfg 14).sqLoop 0)) ∧
+    FnIs ((osCfg 14).resLoop 0) (osParams 6)
+      (resLoopBody (osCfg 14) 0 (osLv 14 0) ((osCfg 14).resLoop 0)) :=
+  ⟨⟨Data.core603, Program.find?_of_indexOf? (j := 603) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
+    ⟨Data.core608, Program.find?_of_indexOf? (j := 608) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
+
+set_option maxRecDepth 100000 in
+theorem osLv_14_1 : FnIs ((osCfg 14).sqLoop 1) (osParams 5)
+      (sqLoopBody (osLv 14 1) ((osCfg 14).sqLoop 1)) ∧
+    FnIs ((osCfg 14).resLoop 1) (osParams 6)
+      (resLoopBody (osCfg 14) 1 (osLv 14 1) ((osCfg 14).resLoop 1)) :=
+  ⟨⟨Data.core605, Program.find?_of_indexOf? (j := 605) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
+    ⟨Data.core609, Program.find?_of_indexOf? (j := 609) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
+
+set_option maxRecDepth 100000 in
+theorem osLv_14_2 : FnIs ((osCfg 14).sqLoop 2) (osParams 5)
+      (sqLoopBody (osLv 14 2) ((osCfg 14).sqLoop 2)) ∧
+    FnIs ((osCfg 14).resLoop 2) (osParams 6)
+      (resLoopBody (osCfg 14) 2 (osLv 14 2) ((osCfg 14).resLoop 2)) :=
+  ⟨⟨Data.core606, Program.find?_of_indexOf? (j := 606) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
+    ⟨Data.core610, Program.find?_of_indexOf? (j := 610) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
+
+set_option maxRecDepth 100000 in
+theorem osLv_14_3 : FnIs ((osCfg 14).sqLoop 3) (osParams 5)
+      (sqLoopBody (osLv 14 3) ((osCfg 14).sqLoop 3)) ∧
+    FnIs ((osCfg 14).resLoop 3) (osParams 6)
+      (resLoopBody (osCfg 14) 3 (osLv 14 3) ((osCfg 14).resLoop 3)) :=
+  ⟨⟨Data.core607, Program.find?_of_indexOf? (j := 607) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
+    ⟨Data.core611, Program.find?_of_indexOf? (j := 611) (by decide +kernel) rfl,
+    by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
 
 set_option maxRecDepth 100000 in
 theorem osData_14 : OsData 14 := by
   have hl : (osCfg 14).levels.length = 4 := by decide +kernel
-  have hb : Data.core306.body.drop 0 = (osBody (osCfg 14)).drop 0 :=
+  have hb : Data.core308.body.drop 0 = (osBody (osCfg 14)).drop 0 :=
     run_step 1100 0 os_run_14_0 <|
     run_step 1100 1100 os_run_14_1 <|
     drop_end (o := 2200) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  refine ⟨⟨Data.core306, Program.find?_of_indexOf? (j := 306) (by decide +kernel) rfl,
+  refine ⟨⟨Data.core308, Program.find?_of_indexOf? (j := 308) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_⟩
   rw [hl] at h
   interval_cases lvl
-  · exact ⟨⟨Data.core592, Program.find?_of_indexOf? (j := 592) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core597, Program.find?_of_indexOf? (j := 597) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core594, Program.find?_of_indexOf? (j := 594) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core598, Program.find?_of_indexOf? (j := 598) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core595, Program.find?_of_indexOf? (j := 595) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core599, Program.find?_of_indexOf? (j := 599) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
-  · exact ⟨⟨Data.core596, Program.find?_of_indexOf? (j := 596) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩,
-      ⟨Data.core600, Program.find?_of_indexOf? (j := 600) (by decide +kernel) rfl,
-      by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩⟩
+  · exact osLv_14_0
+  · exact osLv_14_1
+  · exact osLv_14_2
+  · exact osLv_14_3
 
 end
 end LeanVM.Guest.B1.Whir

@@ -37,7 +37,7 @@ theorem cw26_0_0 : cplWin 26 0 0 = true := by decide +kernel
 /-- `da_row_shape`, window 0, part 0. -/
 theorem cw27_0_0 : cplWin 27 0 0 = true := by decide +kernel
 
-/-- `da_verify_cell`, window 0, part 0. -/
+/-- `da_verify_column`, window 0, part 0. -/
 theorem cw28_0_0 : cplWin 28 0 0 = true := by decide +kernel
 
 theorem ok22 : CplOk 22 := by
@@ -99,6 +99,16 @@ theorem ok27 : CplOk 27 := by
     rw [hn] at hk
     interval_cases k
     · exact cw27_0_0
+
+theorem ok28 : CplOk 28 := by
+  intro i hi k hk
+  have hc : (certOf 28).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 28 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw28_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

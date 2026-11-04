@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop354`, window 0, part 0. -/
+/-- `__loop350`, window 0, part 0. -/
 theorem cw801_0_0 : cplWin 801 0 0 = true := by decide +kernel
 
-/-- `__loop355`, window 0, part 0. -/
+/-- `__loop351`, window 0, part 0. -/
 theorem cw802_0_0 : cplWin 802 0 0 = true := by decide +kernel
 
-/-- `__loop356`, window 0, part 0. -/
+/-- `__loop352`, window 0, part 0. -/
 theorem cw803_0_0 : cplWin 803 0 0 = true := by decide +kernel
 
-/-- `__loop357`, window 0, part 0. -/
+/-- `__loop353`, window 0, part 0. -/
 theorem cw804_0_0 : cplWin 804 0 0 = true := by decide +kernel
 
-/-- `__loop358`, window 0, part 0. -/
+/-- `__loop354`, window 0, part 0. -/
 theorem cw805_0_0 : cplWin 805 0 0 = true := by decide +kernel
 
-/-- `decode_query_bits__L17`, window 0, part 0. -/
+/-- `__loop355`, window 0, part 0. -/
 theorem cw806_0_0 : cplWin 806 0 0 = true := by decide +kernel
 
-/-- `__loop359`, window 0, part 0. -/
+/-- `__loop356`, window 0, part 0. -/
 theorem cw807_0_0 : cplWin 807 0 0 = true := by decide +kernel
 
-/-- `__loop359`, window 0, part 1. -/
-theorem cw807_0_1 : cplWin 807 0 1 = true := by decide +kernel
+/-- `__loop357`, window 0, part 0. -/
+theorem cw808_0_0 : cplWin 808 0 0 = true := by decide +kernel
 
 theorem ok801 : CplOk 801 := by
   intro i hi k hk
@@ -105,11 +105,20 @@ theorem ok807 : CplOk 807 := by
   have hc : (certOf 807).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 807 0 = 2 := by decide +kernel
+  · have hn : nParts 807 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw807_0_0
-    · exact cw807_0_1
+
+theorem ok808 : CplOk 808 := by
+  intro i hi k hk
+  have hc : (certOf 808).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 808 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw808_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

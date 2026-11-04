@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Sig.Interface
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (G:4229-4328, `core29`): from the batching seed (`AGG_SEED_*`), the
+**`aggregate_claims`** (G:4229-4328, `core31`): from the batching seed (`AGG_SEED_*`), the
 duplex sponge absorbs the children's count and every child's words, squeezes two coefficients per
 child, and one sumcheck (`batch_sumcheck`) reduces the children's claims on the bytecode to the
 claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words the memory holds
@@ -141,9 +141,11 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signat
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
-  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim. -/
+  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
+  the root's cells and the challenge's rate cells (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, coreProgram.Rel rd "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ root vd : Digest, (wD [gsq] rets).Opens root vd ∧ rets = digestCells root ++ digestCells vd
+    ∃ (root : Digest) (z c2 : E), (wD [gsq] rets).Opens root z ∧ IsInK c2 ∧
+      rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
   /-- A child proof's check with the exponent tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 glp gsq out,
     coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, glp, gsq, out] [] → ExpTables rd glp gsq →
@@ -248,9 +250,9 @@ noncomputable def nRawX (σ : Val) : ℕ := gLog (σ (.n 2))
 noncomputable def nRawS (σ : Val) : ℕ := gLog (σ (.n 5))
 noncomputable def nDirect (σ : Val) : ℕ := gLog (σ (.n 7))
 
-/-- The DA claim `da_verify` returns: its root and its vector digest. -/
+/-- The DA claim `da_verify` returns: its root and the challenge of its rate cells. -/
 noncomputable def dvClaim (σ : Val) : DaClaim :=
-  ⟨digestOfCells (σ (.n 339)) (σ (.n 340)), digestOfCells (σ (.n 341)) (σ (.n 342))⟩
+  ⟨digestOfCells (σ (.n 339)) (σ (.n 340)), Da.scalarOfCells (σ (.n 341)) (σ (.n 342))⟩
 
 /-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
 signature `wX` at the slot. -/
@@ -302,8 +304,8 @@ def main_sound_Spec (bytecode : List K) : Prop :=
 theorem find_main : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core29 :=
-  Program.find?_of_indexOf? (j := 29) (by decide +kernel) rfl
+theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core31 :=
+  Program.find?_of_indexOf? (j := 31) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Main

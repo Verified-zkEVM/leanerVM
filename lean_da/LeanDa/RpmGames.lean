@@ -23,7 +23,7 @@ game through it (`posBindingGameB_eq`, `codeBindingGameB_eq`, `ksGameB_eq`): the
 one of the same cost).
 
 The verifier's oracle programs are written for any monad, so they commute with a monad morphism
-such as a simulation (`membershipChallengesM_map`, `verifyCellM_map`, `commitCellsM_map`,
+such as a simulation (`membershipChallengeM_map`, `membershipChallengePairM_map`, `verifyCellM_map`, `commitCellsM_map`,
 `verifyRpm_map`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
@@ -47,32 +47,23 @@ variable {m n : Type → Type} [Monad m] [LawfulMonad m] [Monad n] [LawfulMonad 
 
 include hpure hbind
 
-theorem samplesM_map (k : ℕ) : ∀ s : Sponge,
-    φ (Sponge.samplesWith P k s) = Sponge.samplesWith (fun L ↦ φ (P L)) k s := by
-  induction k with
-  | zero => intro s; exact hpure _
-  | succ k ih =>
-    intro s
-    simp only [Sponge.samplesWith, Sponge.sampleWith, Sponge.duplexWith, hbind, hpure, ih]
-
 theorem duplexM_map (s : Sponge) : φ (Sponge.duplexWith P s) = Sponge.duplexWith (fun L ↦ φ (P L))
     s := by
   simp only [Sponge.duplexWith, hbind, hpure]
 
-theorem absorbM_map (s : Sponge) (x : E) (tag : K) :
-    φ (Sponge.absorbWith P s x tag) = Sponge.absorbWith (fun L ↦ φ (P L)) s x tag := by
-  unfold Sponge.absorbWith
-  rw [hbind]
-  split_ifs
-  · simp only [duplexM_map φ hpure hbind, hpure]
-  · simp only [hpure]
+/-- **The challenge's sponge through a monad morphism.** -/
+theorem membershipChallengeM_map (root : Common.DigestBytes) :
+    φ (membershipChallengeMWithHash H P root) =
+      membershipChallengeMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
+  simp only [membershipChallengeMWithHash, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith,
+    hbind, hpure]
 
-/-- **The challenges' sponge through a monad morphism.** -/
-theorem membershipChallengesM_map (root : Common.DigestBytes) :
-    φ (membershipChallengesMWithHash H P root) =
-      membershipChallengesMWithHash (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
-  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newWith, Sponge.observeWith, hbind,
-    hpure, absorbM_map φ hpure hbind P, samplesM_map φ hpure hbind P, bind_assoc]
+/-- **The pair of samples through a monad morphism.** -/
+theorem membershipChallengePairM_map (root : Common.DigestBytes) :
+    φ (membershipChallengePairM H P root) =
+      membershipChallengePairM (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) root := by
+  simp only [membershipChallengePairM, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith,
+    hbind, hpure]
 
 theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.DigestBytes) :
     φ (walkMWithHash H idx node path) = walkMWithHash (fun a ↦ φ (H a)) idx node path := by
@@ -105,18 +96,20 @@ theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Common.DigestBytes,
 /-- **The commitment through a monad morphism.** -/
 theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
     φ (commitCellsMWithHash H c) = commitCellsMWithHash (fun a ↦ φ (H a)) c := by
-  simp only [commitCellsMWithHash, rowRootMWithHash, colRootMWithHash, hbind, merkleRootM_map φ hpure hbind]
+  simp only [commitCellsMWithHash, merkleRootM_map φ hpure hbind]
   congr 1
-  congr 1; funext i; simp only [rowLeavesMWithHash, hbind, mapM_map φ hpure hbind]
+  funext i
+  simp only [blobRootMWithHash, merkleRootM_map φ hpure hbind, cellLeavesMWithHash]
+  rfl
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     φ (verifyRpm H P r ps crs com p x τ) =
       verifyRpm (fun a ↦ φ (H a)) (fun L ↦ φ (P L)) r ps crs com p x τ := by
-  simp only [verifyRpm, hbind, hpure, membershipChallengesM_map φ hpure hbind,
+  simp only [verifyRpm, hbind, hpure, membershipChallengePairM_map φ hpure hbind,
     verifyCellM_map φ hpure hbind]
 
 end Map
@@ -137,8 +130,8 @@ theorem toK_pR (L : Lanes) : simulateQ toK (pR L) = pKB L := by
 
 /-- The verifier's programs through `toK` are those of the games on byte states. -/
 theorem toK_verifyRpm (r : ℕ) {Crs Proof : Type}
-    {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
+    {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+    (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
     (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     simulateQ toK (verifyRpm hR pR r ps crs com p x τ) = verifyRpm hKB pKB r ps crs com p x τ := by
   rw [verifyRpm_map (fun x ↦ simulateQ toK x) (fun _ ↦ simulateQ_pure _ _)
@@ -202,10 +195,10 @@ theorem isWeightBound_toOne_iff {α : Type} (D : OracleComp (dSpec2 (List UInt8)
 
 section Games
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
-  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell)
+  (ext : Nark.Extractor (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell)
       Crs Proof)
 
 /-! ### The statement's oracles, read on byte states -/
@@ -229,9 +222,9 @@ theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : 
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
-theorem relabel_membershipChallengesM (root : Common.DigestBytes) :
-    simulateQ relabel (membershipChallengesMWithHash hK pK root) = membershipChallengesMWithHash hKB pKB root := by
-  rw [membershipChallengesM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
+theorem relabel_membershipChallengeM (root : Common.DigestBytes) :
+    simulateQ relabel (membershipChallengeMWithHash hK pK root) = membershipChallengeMWithHash hKB pKB root := by
+  rw [membershipChallengeM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK, relabel_pK]
 

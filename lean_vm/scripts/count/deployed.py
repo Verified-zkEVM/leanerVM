@@ -25,8 +25,8 @@ module
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK colC colS colP clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0
-  agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0 agA1
+  mainWords)
 
 @[expose] public section
 %s
@@ -48,17 +48,17 @@ def numbers(g, certs):
     v['dlK'] = max(-(-SB(n) // 2 ** j) for j, n in enumerate(DL))
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
-    colC = lambda f, gl: fs(f) + fs('da_vector_cell') + fs(gl)
-    colP = lambda gl: 4 + SK(gl) + v['dlK']
-    v['colC1'] = colC('da_verify_column__L1', '__loop416')
-    v['colC0'] = colC('da_verify_column__L0', '__loop418')
     v['clC'] = fs('claim_list_digest') + 13 + SB('list_split') + fs('__loop15') + v['cl']
-    v['dvC'] = (fs('da_verify') + 768 + fs('da_row_shape') + fs('__loop23') + SB('da_levels__L128_L7')
-                + (65 * fs('__loop19') + 64 * v['colC1']) + (65 * fs('__loop20') + 64 * v['colC0']))
-    sub = lambda a, b: max(0, SK(a) - SK(b))
-    v['dvS'] = (131 + SK('__loop17') + SK('__loop18') + SK('__loop21') + sub('__loop22', '__loop23')
-                + 64 * sub('__loop415', '__loop416') + 64 * sub('__loop417', '__loop418'))
-    v['dvP'] = 132 + SK('__loop23') + v['dlK'] + 64 * colP('__loop416') + 64 * colP('__loop418')
+    # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
+    # iterations (each its frame, the column's and the weights' expansion's) and its untaken tail
+    # call's frame, the padding loop's frame when it does not run; per row its region (641), its
+    # base (1), the regions' loop, the column's row loop in each of the 128 columns and the trees'
+    # loop past the padding loop; per padded row the roots (4), the padding loop and the levels.
+    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector')
+                + 128 * (fs('__loop18') + fs('da_verify_column') + SB('da_expand__L7_L8')) + fs('__loop18')
+                + fs('__loop20'))
+    v['dvS'] = 642 + SK('__loop17') + 128 * SK('__loop21') + max(0, SK('__loop19') - SK('__loop20'))
+    v['dvP'] = 4 + SK('__loop20') + v['dlK']
     v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop16') + v['ccl']
     v['clS'] = 1 + (SK('__loop15') + 16) // 17
     v['ccS'] = 1 + (fs('__loop16') + 16) // 17
@@ -66,7 +66,7 @@ def numbers(g, certs):
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 85 + SB('batch_sumcheck__L23')
-    v['agA1'] = 18 + SK('__loop24') + SK('__loop25') + SK('__loop26')
+    v['agA1'] = 18 + SK('__loop29') + SK('__loop30') + SK('__loop31')
     base = (fs('main') + 283 + fs('exponent_tables') + 68 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
@@ -132,20 +132,14 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
-    col1 = thm('colC1_eq', 'colC B2C.fs "da_verify_column__L1" "__loop416"', v['colC1'], 'colC', [],
-               fs=['da_verify_column__L1', 'da_vector_cell', '__loop416'])
-    col0 = thm('colC0_eq', 'colC B2C.fs "da_verify_column__L0" "__loop418"', v['colC0'], 'colC', [],
-               fs=['da_verify_column__L0', 'da_vector_cell', '__loop418'])
-    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', ['colC1_eq', 'colC0_eq'],
-              fs=['da_verify', 'da_row_shape', '__loop23', '__loop19', '__loop20'], sb=['da_levels__L128_L7'])
-    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS colS', [],
-              sk=['__loop17', '__loop18', '__loop21', '__loop22', '__loop23', '__loop415', '__loop416',
-                  '__loop417', '__loop418'])
-    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP colP', ['dlK_eq'],
-              sk=['__loop23', '__loop416', '__loop418'])
-    mod('DeployedB', '`da_verify`\'s columns\' words, its constant and per row.',
+    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
+              fs=['da_verify', 'da_row_shape', '__loop18', 'da_verify_column', '__loop20'],
+              sb=['da_vector', 'da_expand__L7_L8'])
+    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS', [], sk=['__loop17', '__loop19', '__loop20', '__loop21'])
+    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP', ['dlK_eq'], sk=['__loop20'])
+    mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
-        '\n' + col1 + '\n' + col0 + '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
+        '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
@@ -160,7 +154,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop16']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop24', '__loop25', '__loop26'])])
+        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop29', '__loop30', '__loop31'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
     wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)

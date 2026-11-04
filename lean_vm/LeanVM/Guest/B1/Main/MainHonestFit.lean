@@ -190,12 +190,15 @@ theorem daCells_canon (c : DaClaim) : AllCanonical (daCells c) := by
     or_false] at hx
   rcases hx with (rfl | rfl) | (rfl | rfl)
   exacts [(digestScalars_canonical _).1, (digestScalars_canonical _).2,
-    (digestScalars_canonical _).1, (digestScalars_canonical _).2]
+    (isCanonical128_ofLimbs_iff _ _ _).mpr rfl, (isCanonical128_ofLimbs_iff _ _ _).mpr rfl]
 
 theorem daCells_bytes (c : DaClaim) :
-    cellsBytes (daCells c) = digestBytes c.daRoot ++ digestBytes c.membershipVectorDigest := by
-  rw [digestBytes_eq_cells, digestBytes_eq_cells]
-  simp [daCells, B1.Digest.digestCells, cellsBytes]
+    cellsBytes (daCells c) = digestBytes c.daRoot ++ E.toBytes c.membershipChallenge ++
+      List.replicate 8 0 := by
+  rw [digestBytes_eq_cells]
+  simp [daCells, B1.Digest.digestCells, cellsBytes, Keccak.scalarCells, Keccak.cellBytes, E.toBytes,
+    List.append_assoc]
+  rfl
 
 /-- A run of digests' cells: digest `k`'s at `2k`. -/
 theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}

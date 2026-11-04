@@ -365,7 +365,7 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
 
 set_option maxRecDepth 100000 in
 theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (321 + k) default).body = true := by
+    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (323 + k) default).body = true := by
   decide +kernel
 
 theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=

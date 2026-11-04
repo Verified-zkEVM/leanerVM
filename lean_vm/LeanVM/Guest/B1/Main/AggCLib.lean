@@ -9,7 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Main.AggCDefs
 public import LeanVM.Guest.B1.Digest.PairComplete
-public import LeanVM.Guest.B1.Da.ColumnComplete
+public import LeanVM.Guest.B1.Da.AtBase
+public import LeanVM.Guest.B1.Digest.LoopComplete
 
 /-!
 # Evaluated templates

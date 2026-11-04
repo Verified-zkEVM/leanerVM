@@ -72,10 +72,10 @@ def l6Body : List Stmt :=
     .atom (.mul (.n 469) (.n 0) (.n 468)),
     .callIf (.n 467) "__loop5" [.n 469, .n 1, .n 2, .n 3, .n 4], .ret []]
 
-theorem core76_body : Fn.body Data.core76 = l6Body := stmtsEqb_sound (by decide +kernel)
+theorem core76_body : Fn.body Data.core78 = l6Body := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop6 : coreProgram.find? "__loop5" = some Data.core76 :=
-  Program.find?_of_indexOf? (j := 76) (by decide +kernel) rfl
+theorem find_loop6 : coreProgram.find? "__loop5" = some Data.core78 :=
+  Program.find?_of_indexOf? (j := 78) (by decide +kernel) rfl
 
 /-- What coordinate `k` asks. -/
 def L6Ok (rd : Reader) (σ : Val) : ℕ → Prop
@@ -168,7 +168,7 @@ theorem loop6_step (rd : Reader) (N z p chain : E) (d : ℕ) (x : E) :
     coreProgram.relN rd (d + 1) "__loop5" (x :: [N, z, p, chain]) [] ↔
       Loop6Body rd z p chain x ∧ IsInK (x * gen + N) ∧
         (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop5" (x * gen :: [N, z, p, chain]) []) := by
-  rw [relN_succ_iff find_loop6, show Fn.params Data.core76 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+  rw [relN_succ_iff find_loop6, show Fn.params Data.core78 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
     core76_body, l6Body]
   simp only [holdsList_append, holdsList_range_flatten 64 l6Blk (fun k => by cases k <;> rfl),
     holds_l6Blk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true,

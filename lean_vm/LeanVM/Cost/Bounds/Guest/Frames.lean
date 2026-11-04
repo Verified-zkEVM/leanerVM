@@ -162,13 +162,13 @@ theorem hintsAtFrame_cost (hP : Includes P Decoder.hintsAtFrameC.costDeps) {rd :
   rw [Decoder.hintsAtFrameC.costEq P hP rd rdV hrd Vn VnV hVn]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v]
-      (encodeValue (Vn 30 args [] v)) :=
+      (encodeValue (Vn 32 args [] v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.hintsAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v] ≤ F + 9 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
       Decoder.hintsAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-    have := hF 30 args [] v (by norm_num) (by simpa using hlen); omega
+    have := hF 32 args [] v (by norm_num) (by simpa using hlen); omega
   have := aggHints_cost P hσ hS hrd hR (by includes)
   omega
 

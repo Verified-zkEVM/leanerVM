@@ -20,7 +20,8 @@ collision terms.
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex LeanDa.Fork PFunctor PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex LeanDa.Fork PFunctor PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -52,8 +53,8 @@ theorem col_tImplX (h : HTab) (t : (unifSpec + TSpec).Domain) (s : HCache) :
 
 section Adversary
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
 /-- **Wagner's adversary with `H` on short strings as queries of `XS`** (`advH`). -/
@@ -68,7 +69,7 @@ theorem advH_eq (A : CodeBindingAdvB r Crs Proof) (h : HTab) (ck : Unit × Crs) 
     simulateQ_map, run_simulateQ_col_of h _ _ (col_tImplX h)]
 
 /-- Calls of `H` in the simulated world. -/
-def hCallsG : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).Domain → ℕ
+def hCallsG : (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).Domain → ℕ
   | .inr (.inl _) => 1
   | _ => 0
 
@@ -95,10 +96,10 @@ theorem isWeightBound_advS2_h (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     rwa [OracleComp.support_liftComp]
   exact (hX.of_bind_mem_support hmem).of_bind
 
-theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt KState Common.DigestBytes 14) :
+theorem isWeightBound_simImpl_h (t : Rom2.Domain) (s : SimSt Common.DigestBytes KState Common.DigestBytes 2) :
     QueryCostAtMost ((simImpl daDuplex hP gaP t).run s) hCallsG (hCalls t) := by
   have hu : ∀ {β : Type} (p : ProbComp β),
-      QueryCostAtMost (liftM p : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 14) β)
+      QueryCostAtMost (liftM p : OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes E 2) β)
         hCallsG 0 :=
     fun p ↦ isWeightBound_liftM_probComp hCallsG (fun _ ↦ rfl) p
   rcases t with k | m | x
@@ -123,7 +124,7 @@ theorem isWeightBound_advX (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) (ck : Unit × Crs) :
     QueryCostAtMost (advX r ps A ck) xCalls (Q + 1) := by
   have hB := isWeightBound_advS2_h r ps A Q hQ _ (fixCrs_mem r ps ck.2)
-  have hP : QueryCostAtMost (Common.Duplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
+  have hP : QueryCostAtMost (Common.SeedDuplex.hQ (St := KState) daDuplex.label >>= fun _ ↦
       advS2 keccakPadding KState.zero (A ((), fixCrs r ps ck.2))) hCalls (1 + Q) :=
     (isWeightBound_query hCalls (.inr (.inl daDuplex.label))).bind fun _ ↦ hB
   have hS := isWeightBound_run_simulateQ _ _ _ isWeightBound_simImpl_h hP SimSt.init

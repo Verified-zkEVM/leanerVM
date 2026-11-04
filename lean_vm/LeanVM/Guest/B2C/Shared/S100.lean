@@ -16,63 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L33`, once. -/
-theorem st249 : shareStatic 249 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, once. -/
+theorem st255 : shareStatic 255 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L33`, window 0. -/
-theorem w249_0 : shareWin 249 (snapsOf 249) 0 = true := by decide +kernel
-
-theorem ok249 : ShareOk 249 := ⟨st249, fun i hi ↦ by
-  have h : (snapsOf 249).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w249_0⟩
+/-- `keccak_layer__L1_L1`, window 0. -/
+theorem w255_0 : shareWin 255 (snapsOf 255) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop9`, once. -/
-theorem st250 : shareStatic 250 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, window 1. -/
+theorem w255_1 : shareWin 255 (snapsOf 255) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop9`, window 0. -/
-theorem w250_0 : shareWin 250 (snapsOf 250) 0 = true := by decide +kernel
-
-theorem ok250 : ShareOk 250 := ⟨st250, fun i hi ↦ by
-  have h : (snapsOf 250).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w250_0⟩
+/-- `keccak_layer__L1_L1`, window 2. -/
+theorem w255_2 : shareWin 255 (snapsOf 255) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop10`, once. -/
-theorem st251 : shareStatic 251 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, window 3. -/
+theorem w255_3 : shareWin 255 (snapsOf 255) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop10`, window 0. -/
-theorem w251_0 : shareWin 251 (snapsOf 251) 0 = true := by decide +kernel
-
-theorem ok251 : ShareOk 251 := ⟨st251, fun i hi ↦ by
-  have h : (snapsOf 251).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w251_0⟩
+/-- `keccak_layer__L1_L1`, window 4. -/
+theorem w255_4 : shareWin 255 (snapsOf 255) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L0`, once. -/
-theorem st252 : shareStatic 252 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, window 5. -/
+theorem w255_5 : shareWin 255 (snapsOf 255) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L0`, window 0. -/
-theorem w252_0 : shareWin 252 (snapsOf 252) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L0`, window 1. -/
-theorem w252_1 : shareWin 252 (snapsOf 252) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L0`, window 2. -/
-theorem w252_2 : shareWin 252 (snapsOf 252) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L0`, window 3. -/
-theorem w252_3 : shareWin 252 (snapsOf 252) 3 = true := by decide +kernel
+/-- `keccak_layer__L1_L1`, window 6. -/
+theorem w255_6 : shareWin 255 (snapsOf 255) 6 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

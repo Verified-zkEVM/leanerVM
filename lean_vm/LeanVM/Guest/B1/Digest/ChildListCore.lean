@@ -34,15 +34,15 @@ variable {rd : Reader}
 
 /-- `child_claim_list_last__L{k}`'s atoms. -/
 noncomputable def cclAtoms (k : ℕ) : List Atom :=
-  ((splitBody (coreProgram.getD (339 + k) default).body).map (·.1)).getD []
+  ((splitBody (coreProgram.getD (341 + k) default).body).map (·.1)).getD []
 
 set_option maxRecDepth 100000 in
 theorem ccl_shape_all : ∀ k < 17, ((cclAtoms k).all (fun a => !Memory.atomAllocB a &&
-    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (339 + k) default).loop == false)) = true := by
+    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (341 + k) default).loop == false)) = true := by
   decide +kernel
 
 theorem ccl_name {k : ℕ} (hk : k < 17) :
-    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (339 + k) default) :=
+    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (341 + k) default) :=
   find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
 
 theorem ccl_loop {k : ℕ} (hk : k < 17) : coreProgram.loop (cclNames.getD k "") = false := by
@@ -72,8 +72,8 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : 
     (hrec : RecMem rd cover origin limit entries marks k os cells) {L : ℕ}
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
-      (coreProgram.getD (339 + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
-      (coreProgram.getD (339 + k) default).params.map σ = [sp, entries, cover, marks, origin, limit] ∧
+      (coreProgram.getD (341 + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
+      (coreProgram.getD (341 + k) default).params.map σ = [sp, entries, cover, marks, origin, limit] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
       ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
@@ -84,7 +84,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries cover marks origin limit : 
         (∃ j < k, ∃ c < 4, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (eP + 4 * os j + c)) := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
-  set fn := coreProgram.getD (339 + k) default
+  set fn := coreProgram.getD (341 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [cccOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
@@ -225,10 +225,10 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    ∃ σ : Val, (coreProgram.getD 338 default).params.map σ =
+    ∃ σ : Val, (coreProgram.getD 340 default).params.map σ =
         [x, N, chain, entries, cover, base, origin, limit] ∧
-      (∀ a ∈ atomsIn (loopPre (coreProgram.getD 338 default)), a.Holds rd σ) ∧
-      ∀ q ∈ (loopPre (coreProgram.getD 338 default)).filterMap B1.Stmt.loadS,
+      (∀ a ∈ atomsIn (loopPre (coreProgram.getD 340 default)), a.Holds rd σ) ∧
+      ∀ q ∈ (loopPre (coreProgram.getD 340 default)).filterMap B1.Stmt.loadS,
         (∃ o < 26, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (chP +
             13 * xj + o)) ∨
         (∃ j < 17, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex (cv +
@@ -239,7 +239,7 @@ theorem l17_core {x N chain entries cover base origin limit : E} {xj chP eP cv o
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
-  set fn := coreProgram.getD 338 default
+  set fn := coreProgram.getD 340 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 8 fn.body with hSdef
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

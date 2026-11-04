@@ -112,7 +112,7 @@ theorem expand_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 12
 theorem expand_relationM {r : ℕ} (root : Common.DigestBytes) (c : Fin (r * 128) → Cell) :
     simulateQ expand (relationMWithHash hK pK root c) = relationMWithHash keccak256OverPermutation queryPermutation root c := by
   simp only [relationMWithHash, simulateQ_bind, simulateQ_pure]
-  rw [membershipChallengesM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
+  rw [membershipChallengeM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _), commitCellsM_map (fun x ↦ simulateQ expand x)
     (fun _ ↦ simulateQ_pure _ _) (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [expand_hK, expand_pK]

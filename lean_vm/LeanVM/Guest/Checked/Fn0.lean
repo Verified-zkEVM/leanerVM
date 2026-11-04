@@ -101,7 +101,6 @@ public import LeanVM.Guest.Checked.F21_89
 public import LeanVM.Guest.Checked.F21_90
 public import LeanVM.Guest.Checked.F21_91
 public import LeanVM.Guest.Checked.F28_0
-public import LeanVM.Guest.Checked.F28_0
 
 namespace LeanVM.Guest.Checked
 
@@ -378,26 +377,14 @@ theorem plain26 : Plain 26 := plain_of_nil (by decide +kernel)
 
 theorem plain27 : Plain 27 := plain_of_nil (by decide +kernel)
 
-theorem ok28 : CheckOk 28 := fun i hi ↦ by
-  have h : (certOf 28).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w28_0
-  · exact w28_1
-
-theorem plain28 : Plain 28 := by
-  unfold Plain
-  decide +kernel
+theorem plain28 : Plain 28 := plain_of_nil (by decide +kernel)
 
 theorem ok29 : CheckOk 29 := fun i hi ↦ by
-  have h : (certOf 29).cuts.length = 4 := by decide +kernel
+  have h : (certOf 29).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w29_0
   · exact w29_1
-  · exact w29_2
-  · exact w29_3
-  · exact w29_4
 
 theorem plain29 : Plain 29 := by
   unfold Plain

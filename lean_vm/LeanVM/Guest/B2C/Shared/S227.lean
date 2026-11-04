@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop400`, window 2. -/
-theorem w858_2 : shareWin 858 (snapsOf 858) 2 = true := by decide +kernel
+/-- `__loop405`, window 0. -/
+theorem w867_0 : shareWin 867 (snapsOf 867) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop400`, window 3. -/
-theorem w858_3 : shareWin 858 (snapsOf 858) 3 = true := by decide +kernel
+/-- `__loop405`, window 1. -/
+theorem w867_1 : shareWin 867 (snapsOf 867) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop405`, window 2. -/
+theorem w867_2 : shareWin 867 (snapsOf 867) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop405`, window 3. -/
+theorem w867_3 : shareWin 867 (snapsOf 867) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `decode_query_bits__L25`, once. -/
-theorem st859 : shareStatic 859 = true := by decide +kernel
+theorem st868 : shareStatic 868 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `decode_query_bits__L25`, window 0. -/
-theorem w859_0 : shareWin 859 (snapsOf 859) 0 = true := by decide +kernel
+theorem w868_0 : shareWin 868 (snapsOf 868) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `decode_query_bits__L25`, window 1. -/
-theorem w859_1 : shareWin 859 (snapsOf 859) 1 = true := by decide +kernel
+theorem w868_1 : shareWin 868 (snapsOf 868) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop401`, once. -/
-theorem st860 : shareStatic 860 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop401`, window 0. -/
-theorem w860_0 : shareWin 860 (snapsOf 860) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop401`, window 1. -/
-theorem w860_1 : shareWin 860 (snapsOf 860) 1 = true := by decide +kernel
+/-- `__loop406`, once. -/
+theorem st869 : shareStatic 869 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

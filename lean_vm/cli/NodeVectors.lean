@@ -13,7 +13,7 @@ import LeanVMTests.Spec.NodeVectors
   reports (`Manifest.fsSeed`, `fs_seed`) are `deployedSeed guestProgram`, the Keccak-256 IV of the assembled
   guest's `2^23` bytecode words: so the Lean `guestProgram` is the bytecode the Rust proves, every
   instruction (it is evaluated as `guestArray`, the same program, `guestArray_eq`);
-* the DA root's vector digest is the Rust's (`LeanVM.Da.vectorDigestOf`).
+* the DA root's membership challenge is the Rust's (`LeanVM.Da.membershipChallengeOf`).
 
 The other vectors are `#guard`s of `LeanVMTests.Spec.Node`. The exit code is `0` when every check
 passes.
@@ -37,9 +37,9 @@ def manifestSeed : Option Digest :=
 def checks : List (String × (Unit → Bool)) := [
   ("seed: the vectors' seed is deployedSeed guestProgram", fun _ ↦ guestSeed == Spec.NodeVectors.seed),
   ("seed: the manifest's fs_seed is deployedSeed guestProgram", fun _ ↦ manifestSeed == some guestSeed),
-  ("vectorDigest: the DA root's vector digest is the Rust's", fun _ ↦
+  ("membershipChallenge: the DA root's membership challenge is the Rust's", fun _ ↦
     let c := Spec.NodeVectors.daClaim
-    LeanVM.Da.vectorDigestOf c.daRoot == LeanVM.Protocol.Digest.toBytes c.membershipVectorDigest)]
+    LeanVM.Da.membershipChallengeOf c.daRoot == c.membershipChallenge)]
 
 /-- The driver. -/
 def main : IO UInt32 := do

@@ -15,6 +15,8 @@ the simulator and the random oracle `H` fold into one stateful implementation ov
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 
 namespace Common
 
@@ -56,7 +58,7 @@ end FoldWith
 
 end Common
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -77,11 +79,11 @@ noncomputable abbrev tabOuter (g : Tab Root Z n) :=
 /-- **The simulator against the table `g`**, with `H` folded in. -/
 noncomputable def tabImpl (g : Tab Root Z n) :
     QueryImpl (Rom2 Msg Dg St)
-      (StateT (SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) ProbComp) :=
+      (StateT (SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) ProbComp) :=
   foldWith (tabOuter g) (simImpl D hP gaP)
 
 /-- The challenge a fresh state is programmed with, if any. -/
-def progLbl (s : SimSt St Root n) (x : St) : Option (Root × Fin n) :=
+def progLbl (s : SimSt Dg St Root n) (x : St) : Option (Root × Fin n) :=
   match efflab D s x with
   | some L => if L ∈ s.used then none else some L
   | none => none
@@ -89,7 +91,7 @@ def progLbl (s : SimSt St Root n) (x : St) : Option (Root × Fin n) :=
 /-- A cache without challenges. -/
 def GFree (c : (GSpec Msg Dg Root Z n).QueryCache) : Prop := ∀ d, c (.inr d) = none
 
-theorem tab_coin (g : Tab Root Z n) (k : ℕ) (s : SimSt St Root n)
+theorem tab_coin (g : Tab Root Z n) (k : ℕ) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) {z}
     (hz : z ∈ support ((tabImpl D g (.inl k)).run (s, c))) : z.2 = (s, c) := by
   rw [tabImpl, foldWith_run] at hz
@@ -122,11 +124,11 @@ theorem tabOuter_G_run (g : Tab Root Z n) (r : Root) (j : Fin n)
       pure ((c (.inr (r, j))).getD (g.at r j), c) := by
   simp [eagerImpl, Tab.at]
 
-theorem tab_H (g : Tab Root Z n) (m : Msg) (s : SimSt St Root n)
+theorem tab_H (g : Tab Root Z n) (m : Msg) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) {z}
     (hz : z ∈ support ((tabImpl D g (.inr (.inl m))).run (s, c))) :
     (z.1, z.2.2) ∈ support (roStep (hs := GSpec Msg Dg Root Z n) (.inl m) c) ∧
-      z.2.1 = if m = D.label then { s with x0 := some (D.init z.1) } else s := by
+      z.2.1 = if m = D.label then { s with x0 := some (D.init z.1), iv := some z.1 } else s := by
   rw [tabImpl, foldWith_run] at hz
   simp only [simImpl, StateT.run_mk, simulateQ_bind, StateT.run_bind, simulateQ_pure,
     StateT.run_pure, tabOuter_hP, support_map, Set.mem_image, mem_support_bind_iff,
@@ -134,7 +136,7 @@ theorem tab_H (g : Tab Root Z n) (m : Msg) (s : SimSt St Root n)
   obtain ⟨_, ⟨v, hv, rfl⟩, rfl⟩ := hz
   exact ⟨hv, rfl⟩
 
-theorem tab_F (g : Tab Root Z n) (x : St) (s : SimSt St Root n)
+theorem tab_F (g : Tab Root Z n) (x : St) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree c) {z}
     (hz : z ∈ support ((tabImpl D g (.inr (.inr x))).run (s, c))) :
     (s.answer x = some z.1 ∧ z.2 = (s, c)) ∨
@@ -176,4 +178,4 @@ theorem tab_F (g : Tab Root Z n) (x : St) (s : SimSt St Root n)
     obtain ⟨_, rfl, rfl⟩ := hz
     exact Or.inl ⟨rfl, rfl⟩
 
-end Common.Duplex
+end Common.SeedDuplex

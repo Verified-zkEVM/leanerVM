@@ -152,7 +152,7 @@ set_option maxRecDepth 100000 in
 theorem ccbr_ok : ccBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17c_ok : l17cOk (coreProgram.getD 338 default) = true := by decide +kernel
+theorem l17c_ok : l17cOk (coreProgram.getD 340 default) = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Digest

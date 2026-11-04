@@ -812,18 +812,18 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
 
 
 set_option maxRecDepth 100000 in
-theorem core380_body : Fn.body Data.core380 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core380_body : Fn.body Data.core391 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core379_body : Fn.body Data.core379 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core379_body : Fn.body Data.core390 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one and two rounds. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core380 :=
-    Program.find?_of_indexOf? (j := 380) (by decide +kernel) rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core379 :=
-    Program.find?_of_indexOf? (j := 379) (by decide +kernel) rfl
+  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core391 :=
+    Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
+  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core390 :=
+    Program.find?_of_indexOf? (j := 390) (by decide +kernel) rfl
   exact ⟨fun rd args rets ↦ ⟨gk_sound 1 (by decide) (by decide) h1 rfl core380_body rd args rets,
       gk_complete 1 (by decide) (by decide) h1 rfl core380_body rd args rets⟩,
     fun rd args rets ↦ ⟨gk_sound 2 (by decide) (by decide) h2 rfl core379_body rd args rets,

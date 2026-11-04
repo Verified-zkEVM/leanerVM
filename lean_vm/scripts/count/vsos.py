@@ -43,7 +43,7 @@ for m in re.finditer(r'\("(opening_queries__[^"]+)", "(__loop\d+)"',
                      open(os.path.join(B1, 'Opening', 'Witness.lean'), encoding='utf-8').read()):
     oql[m.group(1)] = m.group(2)
 def nlev(m): return lig('LIG_N_LEVELS', m)
-def loopBase(m): return 34 + 2 * sum(nlev(k) for k in range(m))
+def loopBase(m): return 37 + 2 * sum(nlev(k) for k in range(m))  # `B1.Whir.loopBase`
 
 
 def calls(name):

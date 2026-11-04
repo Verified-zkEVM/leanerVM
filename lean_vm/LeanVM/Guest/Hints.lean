@@ -29,11 +29,11 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation.rs` (leanVM `3375f7a13`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1389-1395`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1708-1965`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1561-1587`; `push_lean_sphincs_hints`, `aggregation.rs:1595-1664`), a child's
-(`gen_verify`, `aggregation.rs:1191-1355`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:916-1033`) and LeanDA's.
+grouped by stream as `Hints::push` does, `aggregation.rs:1375-1381`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1694-1954`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1547-1573`; `push_lean_sphincs_hints`, `aggregation.rs:1581-1650`), a child's
+(`gen_verify`, `aggregation.rs:1177-1341`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:902-1019`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -46,9 +46,9 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1508-1518`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1494-1504`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation.rs:1703-1707`), then every child's claims, child by child; a claim takes its
+  sorted and deduplicated, `aggregation.rs:1689-1693`), then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
   strictly sorted, where the first free match is the slot `binary_search` finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
@@ -185,7 +185,7 @@ def sphincsUsedBits : ℕ :=
     2 * Sphincs.forestCoordinateCount * Sphincs.forestSubtreeHeight
 
 /-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
-(`mark`, `aggregation.rs:1576-1579`). -/
+(`mark`, `aggregation.rs:1562-1565`). -/
 def markEntry (index field : ℕ) : Entry :=
   [count index, cellOfBytes (HashSig.addressBytes (HashSig.tweakFields 0 0 field 0))]
 
@@ -239,12 +239,13 @@ def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphi
 
 /-! ## LeanDA -/
 
-/-- A blob matrix's hints: the vector a cell at a time, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1846-1866`). -/
-def daHints (w : Da.MatrixWitness) : List (String × Entry) :=
-  (List.range LeanDa.cellsPerRow).map (fun j ↦
-      ("da_weights", (w.orthogonalVector.drop (LeanDa.cellSymbols * j)).take LeanDa.cellSymbols)) ++
-    [("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
+/-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
+every row's cells, column by column (`aggregation.rs:1832-1856`). The Rust pushes the root's
+challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
+node. -/
+def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
+  [("da_challenge", [c.membershipChallenge]),
+    ("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
     (List.range LeanDa.cellsPerRow).flatMap fun j ↦
       w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
 
@@ -289,7 +290,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1277-1317`). -/
+(`aggregation.rs:1263-1303`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
@@ -365,7 +366,7 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation.rs:1683-1696`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation.rs:1669-1682`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length
@@ -397,7 +398,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
       [("child_defer", c.statement.deferredClaim.cells), ("child_da", digestCells c.statement.claims.daDigest)] ++
       childHints bytecode seed c) ++
   (if w.children = [] then [("leaf_defer", [s.deferredClaim.bytecodeValue])] else batchPushes w.batchingHints) ++
-  (w.daMatrix.map (fun c ↦ daHints c.2)).getD [] ++
+  (w.daMatrix.map (fun c ↦ daHints c.1 c.2)).getD [] ++
   [("da_pick", [count (daPick s w)])]
 
 /-- **The honest streams**: `honestPushes`, by stream. -/

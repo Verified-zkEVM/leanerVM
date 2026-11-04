@@ -14,9 +14,9 @@ namespace LeanVMTests.Guest.Bytecode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
-example : Data.functions.length = 879 := by decide +kernel
+example : Data.functions.length = 884 := by decide +kernel
 
-example : Data.codeLen = 362263 := rfl
+example : Data.codeLen = 362718 := rfl
 
 /-- `verify_sig_lean_sphincs` is function 21. -/
 theorem sphincs_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
@@ -49,7 +49,7 @@ example : guestProgram.fetch (addressOfIndex 8456) = some (OffsetInstruction.set
     (by decide +kernel) (by decide +kernel)
 
 /-- `main`'s `KECCAK`, both layouts even: the digest of the DA claim it checks directly
-(`keccak([root_0, root_1], [vector_0, vector_1], own_da[0:2])`), `KECCAK fp[345..+13] even =
+(`keccak([root_0, root_1], [z_0, z_1], own_da[0:2])`), `KECCAK fp[345..+13] even =
 keccak_f(fp[339], fp[340], fp[341], fp[342], tail = fp[358..+4], b8 = fp[363], cap = fp[359..+4])
 even`. -/
 example : guestProgram.fetch (addressOfIndex 9093) =
@@ -58,9 +58,10 @@ example : guestProgram.fetch (addressOfIndex 9093) =
   guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 637) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 
-/-- The first instruction of the program, in `__jump_tables`, `SET fp[406] = g^159148`. -/
+/-- The first instruction of the program, in `__jump_tables`: `SET fp[406]` to a jump target, a
+power of `g`. -/
 example : guestProgram.fetch (addressOfIndex 0) = some (OffsetInstruction.set 406
-    13063652579795698784 0 0).toLeanIsaInstruction :=
+    4850090650082519541 0 0).toLeanIsaInstruction :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 

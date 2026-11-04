@@ -128,7 +128,7 @@ instance : MachineDecoding DaClaim where
   decodeValue | .constructor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
 
 instance : MachineDecoding Da.MatrixWitness where
-  decodeValue | .constructor 0 [r, v] => do pure ⟨← decodeValue r, ← decodeValue v⟩ | _ => none
+  decodeValue | .constructor 0 [r] => do pure ⟨← decodeValue r⟩ | _ => none
 
 instance : MachineDecoding NodeClaims where
   decodeValue
@@ -278,8 +278,8 @@ instance : LawfulMachineDecoding BytecodeClaim := ⟨fun ⟨p, v⟩ ↦ by
 instance : LawfulMachineDecoding DaClaim := ⟨fun ⟨r, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue v)⟩ : Option DaClaim) = _; simp⟩
 
-instance : LawfulMachineDecoding Da.MatrixWitness := ⟨fun ⟨r, v⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue v)⟩ : Option Da.MatrixWitness) = _; simp⟩
+instance : LawfulMachineDecoding Da.MatrixWitness := ⟨fun ⟨r⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue r)⟩ : Option Da.MatrixWitness) = _; simp⟩
 
 instance : LawfulMachineDecoding NodeClaims := ⟨fun ⟨x, s, d⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue x), ← decodeValue (encodeValue s), ← decodeValue (encodeValue d)⟩ : Option NodeClaims) = _

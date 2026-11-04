@@ -84,7 +84,7 @@ structure VsWords (fs : String → ℕ) : Type where
   K29 : ℕ
   R : ℕ
   K8 : ℕ
-  h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29)
+  h29 : TotalLeOn coreProgram fs "__loop32" LoopPre (fun a ↦ logG (a.getD 1 0) * K29)
   hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R)
   hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R)
   h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)

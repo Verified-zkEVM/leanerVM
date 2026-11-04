@@ -74,17 +74,18 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   -- the matrix
   have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.MatrixWitness, ∀ gsq, args = [gsq] →
       coreProgram.Rel L.read "da_verify" [gsq] rets → Da.SquaresAt L.read gsq →
-      ∃ root vd : Digest, w.Opens root vd ∧ rets = digestCells root ++ digestCells vd := by
+      ∃ (root : Digest) (z c2 : E), w.Opens root z ∧ IsInK c2 ∧
+        rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0] := by
     intro args rets
     by_cases h : ∃ gsq, args = [gsq] ∧ coreProgram.Rel L.read "da_verify" [gsq] rets ∧
         Da.SquaresAt L.read gsq
     · obtain ⟨gsq, rfl, hr, hsq⟩ := h
-      obtain ⟨w, root, vd, hop, hrets⟩ := hd L.read hm' [gsq] rets hr hsq
+      obtain ⟨w, root, z, c2, hop, hc2, hrets⟩ := hd L.read hm' [gsq] rets hr hsq
       exact ⟨w, fun g hg _ _ => by
         simp only [List.cons.injEq, and_true] at hg
         subst hg
-        exact ⟨root, vd, hop, hrets⟩⟩
-    · exact ⟨⟨[], []⟩, fun g hg hr hsq => absurd ⟨g, hg, hr, hsq⟩ h⟩
+        exact ⟨root, z, c2, hop, hc2, hrets⟩⟩
+    · exact ⟨⟨[]⟩, fun g hg hr hsq => absurd ⟨g, hg, hr, hsq⟩ h⟩
   -- the proofs
   have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 glp gsq out,
       args = [pi0, pi1, s0, s1, glp, gsq, out] →

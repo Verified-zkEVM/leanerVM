@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F387_0
-public import LeanVM.Guest.Checked.F392_3
-public import LeanVM.Guest.Checked.F392_11
+public import LeanVM.Guest.Checked.F367_0
+public import LeanVM.Guest.Checked.F374_1
+public import LeanVM.Guest.Checked.F374_1
 
 namespace LeanVM.Guest.Checked
 
@@ -62,7 +62,16 @@ theorem plain372 : Plain 372 := plain_of_nil (by decide +kernel)
 
 theorem plain373 : Plain 373 := plain_of_nil (by decide +kernel)
 
-theorem plain374 : Plain 374 := plain_of_nil (by decide +kernel)
+theorem ok374 : CheckOk 374 := fun i hi ↦ by
+  have h : (certOf 374).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w374_0
+  · exact w374_1
+
+theorem plain374 : Plain 374 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain375 : Plain 375 := plain_of_nil (by decide +kernel)
 
@@ -70,7 +79,16 @@ theorem plain376 : Plain 376 := plain_of_nil (by decide +kernel)
 
 theorem plain377 : Plain 377 := plain_of_nil (by decide +kernel)
 
-theorem plain378 : Plain 378 := plain_of_nil (by decide +kernel)
+theorem ok378 : CheckOk 378 := fun i hi ↦ by
+  have h : (certOf 378).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w378_0
+  · exact w378_1
+
+theorem plain378 : Plain 378 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain379 : Plain 379 := plain_of_nil (by decide +kernel)
 
@@ -98,28 +116,7 @@ theorem plain390 : Plain 390 := plain_of_nil (by decide +kernel)
 
 theorem plain391 : Plain 391 := plain_of_nil (by decide +kernel)
 
-theorem ok392 : CheckOk 392 := fun i hi ↦ by
-  have h : (certOf 392).cuts.length = 13 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w392_0
-  · exact w392_1
-  · exact w392_2
-  · exact w392_3
-  · exact w392_4
-  · exact w392_5
-  · exact w392_6
-  · exact w392_7
-  · exact w392_8
-  · exact w392_9
-  · exact w392_10
-  · exact w392_11
-  · exact w392_12
-  · exact w392_13
-
-theorem plain392 : Plain 392 := by
-  unfold Plain
-  decide +kernel
+theorem plain392 : Plain 392 := plain_of_nil (by decide +kernel)
 
 theorem plain393 : Plain 393 := plain_of_nil (by decide +kernel)
 

@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.CheckWinC
+public import LeanVM.Guest.Checked.F397_0
+public import LeanVM.Guest.Checked.F403_2
+public import LeanVM.Guest.Checked.F403_10
 
 namespace LeanVM.Guest.Checked
 
@@ -17,7 +20,28 @@ theorem plain401 : Plain 401 := plain_of_nil (by decide +kernel)
 
 theorem plain402 : Plain 402 := plain_of_nil (by decide +kernel)
 
-theorem plain403 : Plain 403 := plain_of_nil (by decide +kernel)
+theorem ok403 : CheckOk 403 := fun i hi ↦ by
+  have h : (certOf 403).cuts.length = 13 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w403_0
+  · exact w403_1
+  · exact w403_2
+  · exact w403_3
+  · exact w403_4
+  · exact w403_5
+  · exact w403_6
+  · exact w403_7
+  · exact w403_8
+  · exact w403_9
+  · exact w403_10
+  · exact w403_11
+  · exact w403_12
+  · exact w403_13
+
+theorem plain403 : Plain 403 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain404 : Plain 404 := plain_of_nil (by decide +kernel)
 

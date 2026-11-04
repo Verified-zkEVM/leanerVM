@@ -25,9 +25,9 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4097`): one for each raw
+/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4128`): one for each raw
 signature and each entry of a child's signature lists, every slot written once
-(`lean_ethereum.py:4149, 4154, 3866-3867`, counted by `written`, `:4174, 4199-4200`). -/
+(`lean_ethereum.py:4180, 4185, 3871-3872`, counted by `written`, `:4174, 4199-4200`). -/
 def coverageSlots (witness : NodeWitness) : ℕ :=
   witness.xmssSignatures.length + witness.sphincsSignatures.length +
     (witness.children.map fun child ↦
@@ -36,24 +36,24 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
 stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4092`), every count of `meta` and of a child's
-lists below `2^16` (`lean_ethereum.py:4085-4090, 4185-4186`: each at most `coverageSlots`), the bus
-depth at most `32` (`lean_ethereum.py:1623`), the tables' heights at most `28`
-(`lean_ethereum.py:2003`). -/
+directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4123`), every count of `meta` and of a child's
+lists below `2^16` (`lean_ethereum.py:4116-4121, 4216-4217`: each at most `coverageSlots`), the bus
+depth at most `32` (`lean_ethereum.py:1628`), the tables' heights at most `28`
+(`lean_ethereum.py:2008`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
   once and the declared claims have one slot each
-  (`lean_ethereum.py:3866-3867, 4148-4149, 4153-4154, 4200`), where `NodeRelation` lets two equal
+  (`lean_ethereum.py:3871-3872, 4179-4180, 4184-4185, 4231`), where `NodeRelation` lets two equal
   claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4091`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4122`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^16` (`lean_ethereum.py:4098`). -/
+  /-- The coverage table below `2^16` (`lean_ethereum.py:4129`). -/
   coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
@@ -90,7 +90,7 @@ nonce within its fuel, a zero challenge where the guest program divides) is boun
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1246, 1553, 1558`), so a zero one makes
+and each level's batching challenge `λ`, `lean_ethereum.py:1251, 1558, 1563`), so a zero one makes
 it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
 anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
 zero with probability `2^-192`. -/

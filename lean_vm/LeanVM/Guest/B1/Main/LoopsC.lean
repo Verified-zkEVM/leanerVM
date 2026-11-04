@@ -192,9 +192,11 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
   claim at `p`. -/
   sphincs : ∀ p, C "verify_sig_lean_sphincs" [p, bb0] [] →
     Sig.ByteBits rd bb0 → Sig.SphincsOut rd p (wS p)
-  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim. -/
+  /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
+  the root's cells and the challenge's rate cells (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, C "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ root vd : Digest, (wD [gsq] rets).Opens root vd ∧ rets = digestCells root ++ digestCells vd
+    ∃ (root : Digest) (z c2 : E), (wD [gsq] rets).Opens root z ∧ IsInK c2 ∧
+      rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
   /-- A child proof's check with the exponent tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 glp gsq out,
     C "verify_sub" [pi0, pi1, s0, s1, glp, gsq, out] [] → ExpTables rd glp gsq →
@@ -226,7 +228,7 @@ theorem l3_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lxs cover lxt hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 32 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
+  have hpar : (coreProgram.getD 34 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]; rfl
@@ -262,7 +264,7 @@ theorem l4_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C) (hm : MemOk rd)
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
   refine ⟨fun N lss cover lxs nrx lst bb hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 33 default).params =
+  have hpar : (coreProgram.getD 35 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -314,7 +316,7 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   refine ⟨fun N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh hN
     => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 34 default).params = (List.range 16).map V.n := by
+  have hpar : (coreProgram.getD 36 default).params = (List.range 16).map V.n := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
     rw [hs.1.2, hlen]

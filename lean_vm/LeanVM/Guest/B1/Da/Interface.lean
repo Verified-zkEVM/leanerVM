@@ -13,17 +13,17 @@ public import LeanVM.Guest.B1.Digest.Interface
 # LeanDA: meanings (TRIAGE G #90-93)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`3375f7a13`, G below) its meaning on its argument and return words, and `…_sound_Spec`: its core
+`1e9d8cff`, G below) its meaning on its argument and return words, and `…_sound_Spec`: its core
 IR relation (`coreProgram.Rel`) gives the meaning. A `…_Spec` is a definition (a `Prop`); its
-proof is the theorem `…_holds` of the family's modules.
+proof is the theorem `…_holds` of the family's modules. The functions building the dual codeword
+(`da_vector` and its callees) have their meanings in `VectorDefs`.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3920-3982 | `core25` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to a vector of the returned digest (`LeanDa.vectorDigest`) |
-| `da_row_shape` | 3985-3994 | `core26` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 4019-4030 | `core27` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4033-4041 | `core364`, `core367-376` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
-| `da_vector_cell` | 4048-4060 | `core28` | one column's weights, their digest (`LeanDa.columnDigest`) written |
+| `da_verify` | 3921-3961 | `core25` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
+| `da_row_shape` | 3964-3973 | `core26` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify_cell` | 3993-4005 | `core28` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4008-4016 | `core362-372` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
@@ -58,18 +58,23 @@ def cellRoot : ℕ → List (E × E) → E × E
   | 0, nodes => nodes.headD 0
   | k + 1, nodes => cellRoot k (cellLevel nodes)
 
+/-- The scalar of its two rate cells `(z_0, z_1, 0)`, `(z_2, tag, 0)` (`fs_pack`,
+`Keccak.scalarCells`): `z`. -/
+def scalarOfCells (c0 c1 : E) : E := E.ofLimbs (c0.limb 0) (c0.limb 1) (c1.limb 0)
+
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
-/-! ## `da_verify` (G:3915-3977, TRIAGE #90) -/
+/-! ## `da_verify` (G:3921-3961, TRIAGE #90) -/
 
 /-- **`da_verify(g_squares)`**: with the exponent table at `g_squares`, a witness opens the claim
-of the returned root and vector digest (`Da.MatrixWitness.Opens`), the four returned words their
-digests' cells. -/
+of the returned root and challenge `z` (`Da.MatrixWitness.Opens`), the four returned words the
+root's cells and `z`'s rate cells as `fs_pack` writes them with the tag `0` (`c2` its hinted top
+limb, which the `KECCAK` hashing them pins: `Keccak.fsPack_cells`). -/
 def MeaningDaVerify (rd : Reader) : List E → List E → Prop
   | [gsq], rets => SquaresAt rd gsq →
-      ∃ (w : LeanVM.Da.MatrixWitness) (root vd : Digest), w.Opens root vd ∧
-        rets = digestCells root ++ digestCells vd
+      ∃ (w : LeanVM.Da.MatrixWitness) (root : Digest) (z c2 : E), w.Opens root z ∧ IsInK c2 ∧
+        rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
   | _, _ => False
 
 /-- `da_verify`'s core IR gives its meaning, on a memory image. -/
@@ -77,7 +82,7 @@ def da_verify_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_verify" args rets → MeaningDaVerify rd args rets
 
-/-! ## `da_row_shape` (G:3980-3989, TRIAGE #91) -/
+/-! ## `da_row_shape` (G:3964-3973, TRIAGE #91) -/
 
 /-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares`,
 `n_blob = g^r` for `1 ≤ r ≤ 1024`, `g_log_pad = g^L` with `2^L` the padded count
@@ -93,7 +98,7 @@ def da_row_shape_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_row_shape" args rets → MeaningDaRowShape rd args rets
 
-/-! ## `da_verify_cell` (G:4017-4029, TRIAGE #92) -/
+/-! ## `da_verify_cell` (G:3993-4005, TRIAGE #92) -/
 
 /-- **`da_verify_cell(lvals)`**: some `256` symbols of `K` (the hint), their digest's two cells
 (LeanDA's cell digest, eight bytes a symbol) and their dot product with the `256` weights at
@@ -110,7 +115,7 @@ def da_verify_cell_sound_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "da_verify_cell" args rets → MeaningDaVerifyCell rd args rets
 
-/-! ## `da_levels` (G:4032-4040, TRIAGE #92) -/
+/-! ## `da_levels` (G:4008-4016, TRIAGE #92) -/
 
 /-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`. -/
 def daLevelsName (k : ℕ) : String :=
@@ -131,22 +136,6 @@ def da_levels_sound_Spec : Prop :=
   ∀ k ≤ 10, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (daLevelsName k) args rets → MeaningDaLevels k rd args rets
 
-/-! ## `da_vector_cell` (G:4043-4053, TRIAGE #93) -/
-
-/-- **`da_vector_cell(digest)`**: some `256` weights (the hint) in a frame run at the returned
-pointer `p` (every readable word at `p·g^k` is weight `k`), and the two cells of their digest
-(three limbs a weight, `LeanDa.columnDigest`) written at `digest`. -/
-def MeaningDaVectorCell (rd : Reader) : List E → List E → Prop
-  | [dg], [p] => ∃ ws : List E, ws.length = LeanDa.cellSymbols ∧ IsInK p ∧
-      (∀ k < LeanDa.cellSymbols, ∀ w, rd (p.limb 0 * Parameters.addressOfIndex k) = some w → w = ws.getD k 0) ∧
-      ReadsAt rd dg (digestCells (keccak256 (ws.flatMap E.toBytes)))
-  | _, _ => False
-
-/-- `da_vector_cell`'s core IR gives its meaning. -/
-def da_vector_cell_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "da_vector_cell" args rets → MeaningDaVectorCell rd args rets
-
 /-! ## The functions, found -/
 
 theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core25 :=
@@ -155,11 +144,35 @@ theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core25 :=
 theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core26 :=
   Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
 
-theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core27 :=
+theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core27 :=
   Program.find?_of_indexOf? (j := 27) (by decide +kernel) rfl
 
-theorem find_da_vector_cell : coreProgram.find? "da_vector_cell" = some Data.core28 :=
+theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core28 :=
   Program.find?_of_indexOf? (j := 28) (by decide +kernel) rfl
+
+theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core29 :=
+  Program.find?_of_indexOf? (j := 29) (by decide +kernel) rfl
+
+theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core30 :=
+  Program.find?_of_indexOf? (j := 30) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core373 :=
+  Program.find?_of_indexOf? (j := 373) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_da_factors_L14_L7_L0 :
+    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core375 :=
+  Program.find?_of_indexOf? (j := 375) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core376 :=
+  Program.find?_of_indexOf? (j := 376) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_da_factors_L7_L8_L128 :
+    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core377 :=
+  Program.find?_of_indexOf? (j := 377) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Da

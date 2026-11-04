@@ -87,9 +87,11 @@ def hCover : List E :=
 
 /-! ## The oracle and the buffers -/
 
-/-- A DA claim's four cells: its root's, then its membership vector digest's. -/
+/-- A DA claim's four cells: its root's, then its challenge's rate cells with the tag `0`
+(`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py:3934`). -/
 def daCells (c : DaClaim) : List E :=
-  B1.Digest.digestCells c.daRoot ++ B1.Digest.digestCells c.membershipVectorDigest
+  B1.Digest.digestCells c.daRoot ++
+    [(Keccak.scalarCells c.membershipChallenge 0).1, (Keccak.scalarCells c.membershipChallenge 0).2]
 
 /-- The own DA digest: the checked claim's, or zeros. -/
 def hOwnDa : Digest := match w.daMatrix with

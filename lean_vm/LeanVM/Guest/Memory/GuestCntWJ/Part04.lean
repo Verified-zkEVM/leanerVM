@@ -9,47 +9,47 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_343 : kujStaticRange 343 30 := by
+theorem kujstaticRange_345 : kujStaticRange 345 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_373 : kujStaticRange 373 30 := by
+theorem kujstaticRange_375 : kujStaticRange 375 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_403 : kujStaticRange 403 30 := by
+theorem kujstaticRange_405 : kujStaticRange 405 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_433 : kujStaticRange 433 30 := by
+theorem kujstaticRange_435 : kujStaticRange 435 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_463 : kujStaticRange 463 30 := by
+theorem kujstaticRange_465 : kujStaticRange 465 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_493 : kujStaticRange 493 30 := by
+theorem kujstaticRange_495 : kujStaticRange 495 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_523 : kujStaticRange 523 30 := by
+theorem kujstaticRange_525 : kujStaticRange 525 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_553 : kujStaticRange 553 30 := by
+theorem kujstaticRange_555 : kujStaticRange 555 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_583 : kujStaticRange 583 30 := by
+theorem kujstaticRange_585 : kujStaticRange 585 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_613 : kujStaticRange 613 30 := by
+theorem kujstaticRange_615 : kujStaticRange 615 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_643 : kujStaticRange 643 30 := by
+theorem kujstaticRange_645 : kujStaticRange 645 30 := by
   unfold kujStaticRange; decide +kernel
 
 end

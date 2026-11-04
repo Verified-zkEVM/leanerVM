@@ -56,14 +56,17 @@ the files below keep their proofs and the definitions only the proofs use.
 - `Common/Eager.lean`: eager sampling of a finite part of a random oracle as a uniform table.
 - `Common/Rerun.lean`: a coin-free computation recomputed from a later cache returns the same
   result; weight bounds of prefixes and through simulations; coins through simulations.
-- `Common/Duplex/`: the duplex lemma (`Defs.lean` the duplex and its simulator, `Lazy.lean` the
+- `Common/Duplex/`: the duplex lemma, namespace `SeedDuplex` (`Spec.lean` the duplex and its
+  simulator, `Defs.lean` the challenge program, `Lazy.lean` the
   simulator with lazily sampled challenges, `Table.lean`, `Inv.lean`, `Chal.lean`, `Budget.lean`
   against a table of challenges, `Main.lean` the lemma, `Vec.lean` the challenges as one random
   oracle of vectors and the order of random oracles).
 - `Common/Game2.lean`: the two-oracle form of a game (`rpmGame2`) and its real world
   (`realGame2`), the form `keccak256_transfer2` takes.
 - `Common/SimDefs.lean`: the simulators of the two-oracle random-oracle model (`simulator2`,
-  `advS2`) and the duplex's (`Duplex.DuplexSpec`, `Duplex.simImpl`, `Duplex.GSpec`, `Duplex.toV`).
+  `advS2`), the challenges as random oracles (`Duplex.GSpec`, `Duplex.toV`), and an earlier duplex
+  whose roots share the label state's answer (`Duplex.DuplexSpec`, `Duplex.simImpl`), no longer
+  used.
 - `Common/HashOracle.lean`: the model with a Keccak-256 oracle over the same permutation, a proof
   device (`KSpecH`, `runKH`, `permCallsH`, `SufCma.rpmGameH`).
 - `Common/PiOnly.lean`: a game of that model with each hash call expanded into its permutation
@@ -142,10 +145,10 @@ outcome and `Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM boun
 `q / 2^b + Q² / 2^509`, and `Q / 2^b + Q² / 2^509` with the permutation budget alone
 (`rpm_bound_perm`).
 
-**The duplex lemma** (`Duplex.duplex_le`). A protocol derives `n` challenges of a root `r` by a
-duplex over the random function `F` (`chalP`): `y₀ = F (init (H label))`, `y₁ = F (first r y₀)`,
-`y_{k+1} = F (next y_k)`, the challenges the `out y_k`, where `first` and `next` keep the
-capacity and `first` is injective in `r` (`DuplexSpec`). In the two-oracle ROM, a computation `B`
+**The duplex lemma** (`SeedDuplex.duplex_le`). A protocol derives `n` challenges of a root `r` by
+a duplex over the random function `F` (`chalP`): `y₁ = F (first r iv)` with `iv = H label`,
+`y_{k+1} = F (next y_k)`, the challenges the `out y_k`, where `next` keeps the capacity, the first
+states share that of `init iv`, and `first` is injective in `r` (`SeedDuplex.DuplexSpec`). In the two-oracle ROM, a computation `B`
 with at most `N_B` calls of `F`, followed by the challenges of a root it chose and a computation
 `post` of them with coins and `H`, succeeds with probability at most that of the simulated world
 plus `N (2N εc)`, `N = N_B + n + 1`, `εc` the largest probability of a capacity. In the simulated
@@ -156,8 +159,9 @@ simulator is exactly `F` (`run'_simImpl_evalDistEq`), and against a table of cha
 derived challenges are the table's unless a fresh answer's capacity repeats one seen
 (`chal_ok`, `prob_bad_le`). `run'_romImpl_evalDistEq_vec` reads `G` as one random oracle of
 vectors. The reverse bound, the simulated world at most the two-oracle one plus the same term,
-follows for the negated `post` (`Duplex.duplex_ge`). LeanDA's membership challenges instantiate it
-(`lean_da`, `LeanDa.daDuplex`: capacity 576 bits, `εc = 2^-576`).
+follows for the negated `post` (`SeedDuplex.duplex_ge`). LeanDA's membership challenge
+instantiates it (`lean_da`, `LeanDa.daDuplex`: capacity 576 bits, `εc = 2^-576`, `n = 2`, the
+challenge the second).
 
 ## Not covered
 

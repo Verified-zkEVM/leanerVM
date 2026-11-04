@@ -23,7 +23,7 @@ checks a relation on the words it reads, so all nondeterminism is the choice of 
 
 namespace LeanVM.Parameters
 
-/-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:99-104`). -/
+/-- The six instructions, in bus-code order (`crates/leanvm_core/src/tables.rs:70-75`). -/
 inductive Opcode
   /-- `XOR`: an addition in `E`. -/
   | xor
@@ -48,11 +48,11 @@ def Opcode.busCode : Opcode → K
   | .jump => addressOfIndex 4
   | .keccak => addressOfIndex 5
 
-/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:41`, `MIN_LOG_MEM`).
+/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:40`, `MIN_LOG_MEM`).
 -/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:42`,
+/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:41`,
 `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
@@ -414,7 +414,7 @@ def busEntry : LeanIsaInstruction → Vector K 11
         layoutFlagWord outOdd]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`crates/leanvm_core/src/leaf.rs:770`): the entry at slots 3 to 13, zero elsewhere. -/
+`crates/leanvm_core/src/leaf.rs:775`): the entry at slots 3 to 13, zero elsewhere. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
   let e := busEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
@@ -432,7 +432,7 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:716-723`; `Digest.halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:607-614`; `Digest.halves`,
 `verifier.py:225-228`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]

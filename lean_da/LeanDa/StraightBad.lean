@@ -10,7 +10,7 @@ public import LeanDa.WithHash
 # The straight-line world and its bad events
 
 The world of the straight-line proof of code binding (`LeanDa.Straight`): `H` and the challenges
-`G` two lazily sampled random oracles, `G` from roots to vectors `E^14` (`VSpec`, the duplex
+`G` two lazily sampled random oracles, `G` from roots to vectors `E^2` (`VSpec`, the duplex
 lemma's world with the challenges as one oracle of vectors). Its caches are **good**
 (`Good`) when `H` is injective on its cached inputs and, for every root `d` with cached
 challenges `v`, every matrix whose commitment's inputs are all cached, which commits to `d` and
@@ -22,9 +22,9 @@ passes the membership test on `v`, is a codeword.
   older input already carries. At most `65 N` values for a cache of `N` entries.
 * **Fresh challenges keep a cache good** unless the one matrix committed to the root (`H`
   injective: `commit_unique`), fixed before the challenges are drawn, is not a codeword and passes
-  the membership test: at most `14 / 2^192`, the test's soundness (`checker_sound`).
+  the membership test: at most `(2^14 - 1) / 2^192`, the test's soundness (`checker_sound`).
 * So a run of `N` queries, `Q_G` of them of `G`, ends in a bad cache with probability at most
-  `N · 65 N / 2^256 + Q_G · 14 / 2^192` (`prob_not_good_le`, by the bad-event budget with two
+  `N · 65 N / 2^256 + Q_G · (2^14 - 1) / 2^192` (`prob_not_good_le`, by the bad-event budget with two
   weights, `prEvent_run_bad_le₂`).
 * A coin-free computation's run is read off its final cache (`replay_of_mem_support`): replayed
   against the cache as a partial function, it returns the run's result.
@@ -37,7 +37,8 @@ his membership test's soundness.
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex MeasureTheory PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex MeasureTheory PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace Common
@@ -129,7 +130,7 @@ namespace LeanDa
 
 /-- **The straight-line world's oracles**: coins, `H`, and the challenges as one random oracle of
 vectors. -/
-abbrev VS := VSpec (List UInt8) DigestBytes Common.DigestBytes E 14
+abbrev VS := VSpec (List UInt8) DigestBytes Common.DigestBytes E 2
 
 /-- Its cache. -/
 abbrev VCache := VS.QueryCache
@@ -147,10 +148,10 @@ def domG (c : VCache) : Set Common.DigestBytes := {d | c (.inr d) ≠ none}
 challenges `v`, every matrix whose commitment's inputs are cached, which commits to `d` and passes
 the membership test on `v`, a codeword. -/
 def Good (r : ℕ) (c : VCache) : Prop :=
-  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.DigestBytes) (v : MembershipChallenges), c (.inr d) =
+  Set.InjOn (fOf c) (domH c) ∧ ∀ (d : Common.DigestBytes) (v : MembershipChallenge), c (.inr d) =
       some v →
     ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
-      membershipCheck v w = true → w ∈ (leanDaErasureCode r).code
+      membershipCheck (v 1) w = true → w ∈ (leanDaErasureCode r).code
 
 theorem good_empty (r : ℕ) : Good r ∅ :=
   ⟨fun a ha ↦ (ha rfl).elim, fun _ _ h ↦ by simp at h⟩
@@ -178,11 +179,11 @@ theorem vcache_inl_inr (a : List UInt8) (u : Common.DigestBytes) (d : Common.Dig
     (c.cacheQuery (.inl a) u) (.inr d) = c (.inr d) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inl (d : Common.DigestBytes) (v : MembershipChallenges) (a : List UInt8) :
+theorem vcache_inr_inl (d : Common.DigestBytes) (v : MembershipChallenge) (a : List UInt8) :
     (c.cacheQuery (.inr d) v) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
-theorem vcache_inr_inr (d e : Common.DigestBytes) (v : MembershipChallenges) :
+theorem vcache_inr_inr (d e : Common.DigestBytes) (v : MembershipChallenge) :
     (c.cacheQuery (.inr d) v) (.inr e) = if e = d then some v else c (.inr e) := by
   by_cases h : e = d
   · subst h; simp
@@ -202,13 +203,13 @@ theorem domH_insertH (a : List UInt8) (u : Common.DigestBytes) :
 theorem domG_insertH (a : List UInt8) (u : Common.DigestBytes) : domG (c.cacheQuery (.inl a) u) = domG c := by
   ext d; simp [domG]
 
-theorem fOf_insertG (d : Common.DigestBytes) (v : MembershipChallenges) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
+theorem fOf_insertG (d : Common.DigestBytes) (v : MembershipChallenge) : fOf (c.cacheQuery (.inr d) v) = fOf c := by
   funext a; simp [fOf]
 
-theorem domH_insertG (d : Common.DigestBytes) (v : MembershipChallenges) : domH (c.cacheQuery (.inr d) v) = domH c := by
+theorem domH_insertG (d : Common.DigestBytes) (v : MembershipChallenge) : domH (c.cacheQuery (.inr d) v) = domH c := by
   ext a; simp [domH]
 
-theorem domG_insertG (d : Common.DigestBytes) (v : MembershipChallenges) :
+theorem domG_insertG (d : Common.DigestBytes) (v : MembershipChallenge) :
     domG (c.cacheQuery (.inr d) v) = insert d (domG c) := by
   ext e
   simp only [domG, Set.mem_ofPred_eq, Set.mem_insert_iff, vcache_inr_inr]
@@ -267,9 +268,9 @@ theorem good_insertH {r : ℕ} {c : VCache} (hc : Good r c) {a : List UInt8} (ha
 /-- **Fresh challenges keep a cache good** when every matrix whose commitment's inputs are cached
 and which commits to the root passes the test on them only if it is a codeword. -/
 theorem good_insertG {r : ℕ} {c : VCache} (hc : Good r c) {d : Common.DigestBytes} {v :
-    MembershipChallenges}
+    MembershipChallenge}
     (hv : ∀ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c → commitCellsWithHash (fOf c) w = d →
-      membershipCheck v w = true → w ∈ (leanDaErasureCode r).code) :
+      membershipCheck (v 1) w = true → w ∈ (leanDaErasureCode r).code) :
     Good r (c.cacheQuery (.inr d) v) := by
   rw [Good, fOf_insertG, domH_insertG]
   refine ⟨hc.1, fun e v' he ↦ ?_⟩
@@ -364,43 +365,43 @@ theorem prob_insertH_le {r : ℕ} {c : VCache} (hc : Good r c) (hfin : VFin c) {
         norm_num
     _ ≤ 65 * N / 2 ^ 256 := by gcongr
 
-/-- **The probability that fresh challenges spoil a good cache** is at most `14 / 2^192`: the one
+/-- **The probability that fresh challenges spoil a good cache** is at most `(2^14 - 1) / 2^192`: the one
 matrix committed to the root is fixed before they are drawn. -/
 theorem prob_insertG_le {r : ℕ} {c : VCache} (hc : Good r c) (d : Common.DigestBytes) :
-    Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[¬ Good r (c.cacheQuery
+    Pr{let v ← ($ᵗ MembershipChallenge : ProbComp MembershipChallenge)}[¬ Good r (c.cacheQuery
         (.inr d) v)] ≤
-      14 / 2 ^ 192 := by
+      (2 ^ 14 - 1) / 2 ^ 192 := by
   classical
   by_cases hS : ∃ w : Fin (r * 128) → Cell, commitIn (fOf c) w ⊆ domH c ∧
       commitCellsWithHash (fOf c) w = d ∧ w ∉ (leanDaErasureCode r).code
   · obtain ⟨w₀, hw₀, hd₀, hn₀⟩ := hS
-    calc Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[¬ Good r
+    calc Pr{let v ← ($ᵗ MembershipChallenge : ProbComp MembershipChallenge)}[¬ Good r
           (c.cacheQuery (.inr d) v)]
-        ≤ Pr{let v ← ($ᵗ MembershipChallenges : ProbComp MembershipChallenges)}[(checker r).check v w₀ = true] := by
+        ≤ Pr{let v ← ($ᵗ MembershipChallenge : ProbComp MembershipChallenge)}[(checker r).check v w₀ = true] := by
           refine prEvent_mono _ _ _ fun v hv ↦ ?_
           by_contra hck
           refine hv (good_insertG hc fun w hw hd hm ↦ ?_)
           have := commit_unique hc.1 hw hw₀ (hd.trans hd₀.symm)
           subst this
           exact absurd hm hck
-      _ = Pr{let x ← (fun l ↦ (checker r).check l w₀) <$> ($ᵗ MembershipChallenges)}[x = true] :=
-          (prEvent_map ($ᵗ MembershipChallenges) (fun l ↦ (checker r).check l w₀) (· = true)).symm
-      _ ≤ 14 / 2 ^ 192 := checker_sound r w₀ hn₀
+      _ = Pr{let x ← (fun l ↦ (checker r).check l w₀) <$> ($ᵗ MembershipChallenge)}[x = true] :=
+          (prEvent_map ($ᵗ MembershipChallenge) (fun l ↦ (checker r).check l w₀) (· = true)).symm
+      _ ≤ (2 ^ 14 - 1) / 2 ^ 192 := checker_sound r w₀ hn₀
   · push Not at hS
     refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun v _ hv ↦
       hv (good_insertG hc fun w hw hd hm ↦ hS w hw hd)) zero_le
 
 /-- **A run of the world ends in a bad cache** with probability at most
-`N · 65 N / 2^256 + Q_G · 14 / 2^192`, for at most `N` queries, `Q_G` of them of the challenges. -/
+`N · 65 N / 2^256 + Q_G · (2^14 - 1) / 2^192`, for at most `N` queries, `Q_G` of them of the challenges. -/
 theorem prob_not_good_le (r : ℕ) {α : Type} (Y : OracleComp (unifSpec + VS) α) (N QG : ℕ)
     (h1 : QueryCostAtMost Y vCalls N) (h2 : QueryCostAtMost Y gvCalls QG) :
     Pr{let z ← (simulateQ VS.romImpl Y).run ∅}[¬ Good r z.2] ≤
-      N * (65 * N / 2 ^ 256) + QG * (14 / 2 ^ 192) := by
+      N * (65 * N / 2 ^ 256) + QG * ((2 ^ 14 - 1) / 2 ^ 192) := by
   classical
   have hfin0 : VFin ∅ := ⟨by simp [domH], by simp [domG]⟩
   have hsize0 : vSize ∅ = 0 := by simp [vSize, domH, domG]
   have h := prEvent_run_bad_le₂ VS.romImpl (fun c ↦ ¬ Good r c) VFin vCalls gvCalls vSize N
-    (65 * N / 2 ^ 256) (14 / 2 ^ 192) ?_ ?_ ?_ Y N QG h1 h2 ∅ hfin0 (by rw [hsize0]; omega)
+    (65 * N / 2 ^ 256) ((2 ^ 14 - 1) / 2 ^ 192) ?_ ?_ ?_ Y N QG h1 h2 ∅ hfin0 (by rw [hsize0]; omega)
   · refine h.trans (le_of_eq ?_)
     simp [good_empty r]
   · intro t c hc z hz

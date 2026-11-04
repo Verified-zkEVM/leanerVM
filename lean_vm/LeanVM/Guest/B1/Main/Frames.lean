@@ -45,5 +45,20 @@ noncomputable def relV (rd : Reader) : FrameMap := fun f args rets =>
       Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets)
   then Classical.choose (Classical.choose_spec h) else fun _ => 0
 
+/-- **`coreProgram.Rel` unfolds at `relV`.** -/
+theorem unfoldsV_rel (rd : Reader) : UnfoldsV rd (coreProgram.Rel rd) (relV rd) := by
+  intro f args rets h
+  obtain ⟨fn, hf, σ, hp, hb⟩ := (rel_iff coreProgram f args rets).mp h
+  have hex : ∃ fn σ, coreProgram.find? f = some fn ∧ fn.params.map σ = args ∧
+      Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets) :=
+    ⟨fn, σ, hf, hp, hb⟩
+  have hs := Classical.choose_spec (Classical.choose_spec hex)
+  have hfn : Classical.choose hex = fn := Option.some.inj (hs.1.symm.trans hf)
+  refine ⟨fn, hf, ?_⟩
+  unfold relV
+  simp only [hex, ↓reduceDIte]
+  rw [← hfn]
+  exact hs.2
+
 end
 end LeanVM.Guest.B1

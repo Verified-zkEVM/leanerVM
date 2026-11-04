@@ -51,7 +51,7 @@ theorem kwjchkIdx_20 : kwjchkIdx 20 = true := by
     rfl
   exact kwjchkIdx_of_split (fn := Data.core20) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
-theorem kwjchkIdx_all : ∀ j < 878, kwjchkIdx j = true := by
+theorem kwjchkIdx_all : ∀ j < 883, kwjchkIdx j = true := by
   intro j hj
   by_cases h1000 : j = 19
   · subst h1000; exact kwjchkIdx_19
@@ -81,49 +81,49 @@ theorem kwjchkIdx_all : ∀ j < 878, kwjchkIdx j = true := by
   · exact kwjstaticRange_231.get (by omega) (by omega)
   by_cases h11 : j < 291
   · exact kwjstaticRange_261.get (by omega) (by omega)
-  by_cases h12 : j < 299
+  by_cases h12 : j < 301
   · exact kwjstaticRange_291.get (by omega) (by omega)
-  by_cases h13 : j < 306
-  · exact kwjstaticRange_299.get (by omega) (by omega)
-  by_cases h14 : j < 313
-  · exact kwjstaticRange_306.get (by omega) (by omega)
-  by_cases h15 : j < 343
-  · exact kwjstaticRange_313.get (by omega) (by omega)
-  by_cases h16 : j < 373
-  · exact kwjstaticRange_343.get (by omega) (by omega)
-  by_cases h17 : j < 403
-  · exact kwjstaticRange_373.get (by omega) (by omega)
-  by_cases h18 : j < 433
-  · exact kwjstaticRange_403.get (by omega) (by omega)
-  by_cases h19 : j < 463
-  · exact kwjstaticRange_433.get (by omega) (by omega)
-  by_cases h20 : j < 493
-  · exact kwjstaticRange_463.get (by omega) (by omega)
-  by_cases h21 : j < 523
-  · exact kwjstaticRange_493.get (by omega) (by omega)
-  by_cases h22 : j < 553
-  · exact kwjstaticRange_523.get (by omega) (by omega)
-  by_cases h23 : j < 583
-  · exact kwjstaticRange_553.get (by omega) (by omega)
-  by_cases h24 : j < 613
-  · exact kwjstaticRange_583.get (by omega) (by omega)
-  by_cases h25 : j < 643
-  · exact kwjstaticRange_613.get (by omega) (by omega)
-  by_cases h26 : j < 673
-  · exact kwjstaticRange_643.get (by omega) (by omega)
-  by_cases h27 : j < 703
-  · exact kwjstaticRange_673.get (by omega) (by omega)
-  by_cases h28 : j < 733
-  · exact kwjstaticRange_703.get (by omega) (by omega)
-  by_cases h29 : j < 763
-  · exact kwjstaticRange_733.get (by omega) (by omega)
-  by_cases h30 : j < 793
-  · exact kwjstaticRange_763.get (by omega) (by omega)
-  by_cases h31 : j < 823
-  · exact kwjstaticRange_793.get (by omega) (by omega)
-  by_cases h32 : j < 853
-  · exact kwjstaticRange_823.get (by omega) (by omega)
-  exact kwjstaticRange_853.get (by omega) (by omega)
+  by_cases h13 : j < 308
+  · exact kwjstaticRange_301.get (by omega) (by omega)
+  by_cases h14 : j < 315
+  · exact kwjstaticRange_308.get (by omega) (by omega)
+  by_cases h15 : j < 345
+  · exact kwjstaticRange_315.get (by omega) (by omega)
+  by_cases h16 : j < 375
+  · exact kwjstaticRange_345.get (by omega) (by omega)
+  by_cases h17 : j < 405
+  · exact kwjstaticRange_375.get (by omega) (by omega)
+  by_cases h18 : j < 435
+  · exact kwjstaticRange_405.get (by omega) (by omega)
+  by_cases h19 : j < 465
+  · exact kwjstaticRange_435.get (by omega) (by omega)
+  by_cases h20 : j < 495
+  · exact kwjstaticRange_465.get (by omega) (by omega)
+  by_cases h21 : j < 525
+  · exact kwjstaticRange_495.get (by omega) (by omega)
+  by_cases h22 : j < 555
+  · exact kwjstaticRange_525.get (by omega) (by omega)
+  by_cases h23 : j < 585
+  · exact kwjstaticRange_555.get (by omega) (by omega)
+  by_cases h24 : j < 615
+  · exact kwjstaticRange_585.get (by omega) (by omega)
+  by_cases h25 : j < 645
+  · exact kwjstaticRange_615.get (by omega) (by omega)
+  by_cases h26 : j < 675
+  · exact kwjstaticRange_645.get (by omega) (by omega)
+  by_cases h27 : j < 705
+  · exact kwjstaticRange_675.get (by omega) (by omega)
+  by_cases h28 : j < 735
+  · exact kwjstaticRange_705.get (by omega) (by omega)
+  by_cases h29 : j < 765
+  · exact kwjstaticRange_735.get (by omega) (by omega)
+  by_cases h30 : j < 795
+  · exact kwjstaticRange_765.get (by omega) (by omega)
+  by_cases h31 : j < 825
+  · exact kwjstaticRange_795.get (by omega) (by omega)
+  by_cases h32 : j < 855
+  · exact kwjstaticRange_825.get (by omega) (by omega)
+  exact kwjstaticRange_855.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

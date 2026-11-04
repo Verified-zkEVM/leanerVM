@@ -12,14 +12,16 @@ import all Init.Data.Array.Basic
 /-!
 # LeanDA's challenges as a duplex
 
-The challenges' sponge (`membershipChallengesWith`) over the direct calls `F` of the two-oracle
-model is a duplex challenge derivation in the sense of `Common.Duplex` (`daDuplex`): the initial
-state is the label's hash in lanes `0 … 3` (`Sponge.new`), absorbing the root writes its words and
-tags over the rate (`first`), a later sample writes zeros over the rate (`next`), and a challenge is
-the three lanes `0 … 2` of an answer (`out`). Every one of these keeps lanes `16 … 24`, the bytes
+The challenge's sponge (`membershipChallengeMWithHash`, and the pair of its two samples,
+`membershipChallengePairM`) over the direct calls `F` of the two-oracle model is a duplex challenge
+derivation in the sense of `Common.SeedDuplex` (`daDuplex`, two samples): a root's chain starts at
+the fresh sponge of the label's hash and the root (`first`, `Sponge::new`: lanes `0 … 3` the
+hash, `4 … 7` the root's words, the rest zero), a sample writes zeros over the rate (`next`), and
+a challenge is the three lanes `0 … 2` of an answer (`out`); the deployed challenge is the second
+sample. The fresh sponges have the zero capacity, and a sample keeps lanes `16 … 24`, the bytes
 `128 … 199` of the state (`cap_first`, `cap_next`), which the duplex lemma calls the capacity:
 `72` bytes, so a uniform state has a given capacity with probability `2^-576` (`daDuplex_cap`).
-Over `F`, the challenges are the duplex's (`membershipChallengesM_eq_chalP`).
+Over `F`, the pair is the duplex's challenges (`membershipChallengePairM_eq_chalP`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -27,7 +29,8 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex
+open OracleComp OracleSpec Common Common.SeedDuplex
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -131,31 +134,15 @@ theorem daDuplex_out (y : KState) :
       (K.ofLane (stateToLanes y)[2]) :=
   daBuild_symm_fst_eq y
 
-theorem samplesM_eq_chainP (k : ℕ) (y : KState) :
-    Sponge.samplesWith pR k ⟨stateToLanes y, []⟩ = chainP daDuplex k y := by
-  induction k generalizing y with
-  | zero => rfl
-  | succ k ih =>
-    simp only [Sponge.samplesWith, Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm, chainP,
-      map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
-    refine bind_congr fun y' ↦ ?_
-    rw [ih, daDuplex_out]
-
-/-- **Over `F`, LeanDA's challenges are the duplex's.** -/
-theorem membershipChallengesM_eq_chalP (root : Common.DigestBytes) :
-    membershipChallengesMWithHash hR pR root = chalP daDuplex root := by
-  simp only [membershipChallengesMWithHash, Sponge.fromLabelMWithHash, Sponge.newWith,
-      Sponge.observeWith,
-    Sponge.absorbWith, pR, lanePerm, chalP, map_eq_bind_pure_comp, bind_assoc, pure_bind,
-    Function.comp_apply]
-  refine bind_congr fun iv ↦ bind_congr fun y₀ ↦ ?_
-  have h0 : ¬ ([] : List (E × K)).length = rateScalars := by simp [rateScalars]
-  simp only [h0, ↓reduceIte, pure_bind, List.nil_append]
-  show Sponge.samplesWith pR (13 + 1) ⟨stateToLanes y₀, rootScalars root⟩ = _
-  rw [Sponge.samplesWith]
-  simp only [Sponge.sampleWith, Sponge.duplexWith, pR, lanePerm,
-    map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
-  refine bind_congr fun y₁ ↦ ?_
-  rw [samplesM_eq_chainP, daDuplex_out]
+/-- **Over `F`, the pair of LeanDA's samples is the duplex's challenges** (`n = 2`): the fresh
+sponge's answer at `daFirst root iv`, then the sample's at `daNext`. -/
+theorem membershipChallengePairM_eq_chalP (root : Common.DigestBytes) :
+    membershipChallengePairM hR pR root = toVec <$> chalP daDuplex root := by
+  simp only [membershipChallengePairM, Sponge.newWith, Sponge.sampleWith, Sponge.duplexWith, pR,
+    lanePerm, chalP, chainP, map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
+  refine bind_congr fun iv ↦ bind_congr fun y₁ ↦ bind_congr fun y₂ ↦ ?_
+  congr 1
+  funext j
+  fin_cases j <;> simp [toVec, daDuplex_out]
 
 end LeanDa

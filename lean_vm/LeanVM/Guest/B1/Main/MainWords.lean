@@ -15,7 +15,7 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # `main`'s words, linear in the work
 
-Component bounds: `colB_le` (a DA column, linear in its rows), `dvB_le` (`da_verify`),
+Component bounds: `dvB_le` (`da_verify`, linear in its blobs and padded blobs),
 `clB_le`, `ccB_le` (the claim lists' digests, linear in the list's length), `l5Chain_le` (the
 children's loop, linear in the children and their claims). `mainWords`: the budget;
 `Bmain_le`: `Bmain` at `0` within it.
@@ -59,9 +59,6 @@ theorem dl_le {L : ℕ} (hL : L < 11) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := 
       (Finset.mem_range.mpr hL)
   exact le_trans h1 (Nat.mul_le_mul_right _ h2)
 
-/-- A DA column's constant words. -/
-def colC (fname gl : String) : ℕ := fs fname + fs "da_vector_cell" + fs gl
-
 /-- **`r` rows of a loop and `P - r` of another within `r · (a - b) + P · b`**, with equality when
 `b ≤ a`: the row and padding loops share the padded height. -/
 theorem rows_gap_le {a b r P : ℕ} (h : r ≤ P) : r * a + (P - r) * b ≤ r * (a - b) + P * b := by
@@ -75,67 +72,39 @@ theorem rows_gap_le {a b r P : ℕ} (h : r ≤ P) : r * a + (P - r) * b ≤ r * 
     rw [Nat.sub_eq_zero_of_le hab, Nat.mul_zero, Nat.zero_add]
     omega
 
-/-- A DA column's words per row: its row loop's past its padding loop's. -/
-def colS (rl gl : String) : ℕ := SK rl - SK gl
-
-/-- A DA column's words per padded row: its node tree, its padding loop's, its levels'. -/
-def colP (gl : String) : ℕ := 4 + SK gl + dlK SB
-
-theorem colB_le {fname rl gl : String} {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
-    Da.colB fs SB SK fname rl gl r L ≤
-      colC fs fname gl + r * colS SK rl gl + 2 ^ L * colP SB SK gl := by
-  unfold Da.colB colC colS colP
-  have h1 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK gl else fs gl) ≤ (2 ^ L - r) * SK gl + fs gl := by
-    split <;> omega
-  have hg := rows_gap_le (a := SK rl) (b := SK gl) hr
-  have h2 := dl_le SB hL
-  have h3 : 2 ^ L * (4 + SK gl + dlK SB) = 4 * 2 ^ L + 2 ^ L * SK gl + dlK SB * 2 ^ L := by ring
-  omega
-
-/-- `da_verify`'s constant words. -/
+/-- `da_verify`'s constant words: its frame, `da_row_shape`'s, `da_vector`'s, the column loop's
+`128` iterations (each its frame, the column's and the weights' expansion's) and its untaken
+tail call's frame, the padding loop's frame when it does not run. -/
 def dvC : ℕ :=
-  fs "da_verify" + 768 + fs "da_row_shape" + fs "__loop23" + SB "da_levels__L128_L7" +
-    (65 * fs "__loop19" + 64 * colC fs "da_verify_column__L1" "__loop416") +
-    (65 * fs "__loop20" + 64 * colC fs "da_verify_column__L0" "__loop418")
+  fs "da_verify" + fs "da_row_shape" + SB "da_vector" +
+    128 * (fs "__loop18" + fs "da_verify_column" + SB "da_expand__L7_L8") + fs "__loop18" +
+    fs "__loop20"
 
-/-- `da_verify`'s words per row. -/
+/-- `da_verify`'s words per blob: its region (`641`) and base, the regions' loop, the column's
+row loop in each of the `128` columns, the trees' loop past the padding loop. -/
 def dvS : ℕ :=
-  131 + SK "__loop17" + SK "__loop18" + SK "__loop21" + (SK "__loop22" - SK "__loop23") +
-    64 * colS SK "__loop415" "__loop416" + 64 * colS SK "__loop417" "__loop418"
+  642 + SK "__loop17" + 128 * SK "__loop21" + (SK "__loop19" - SK "__loop20")
 
-/-- `da_verify`'s words per padded row. -/
-def dvP : ℕ :=
-  132 + SK "__loop23" + dlK SB + 64 * colP SB SK "__loop416" + 64 * colP SB SK "__loop418"
-
-theorem clLoop_le {f : String} {Bc C S Q r p : ℕ} (h : Bc ≤ C + r * S + p * Q) :
-    Da.clB fs f Bc 64 ≤ 65 * fs f + 64 * C + r * (64 * S) + p * (64 * Q) := by
-  unfold Da.clB
-  have : r * (64 * S) = 64 * (r * S) := by ring
-  have : p * (64 * Q) = 64 * (p * Q) := by ring
-  omega
+/-- `da_verify`'s words per padded blob: the roots (`4`), the padding loop, the levels. -/
+def dvP : ℕ := 4 + SK "__loop20" + dlK SB
 
 theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
     Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS SK + 2 ^ L * dvP SB SK := by
-  unfold Da.dvB Da.dvKB dvC dvS dvP Da.dvSizes
-  have c1 := clLoop_le fs (f := "__loop19") (colB_le fs SB SK (fname := "da_verify_column__L1")
-    (rl := "__loop415") (gl := "__loop416") hr hL)
-  have c0 := clLoop_le fs (f := "__loop20") (colB_le fs SB SK (fname := "da_verify_column__L0")
-    (rl := "__loop417") (gl := "__loop418") hr hL)
-  have h24 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop23" else fs "__loop23") ≤
-      (2 ^ L - r) * SK "__loop23" + fs "__loop23" := by
+  unfold Da.dvB Da.dvKB Da.clB Da.colB dvC dvS dvP Da.dvSizes
+  have h20 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop20" else fs "__loop20") ≤
+      (2 ^ L - r) * SK "__loop20" + fs "__loop20" := by
     split <;> omega
-  have hg := rows_gap_le (a := SK "__loop22") (b := SK "__loop23") hr
+  have hg := rows_gap_le (a := SK "__loop19") (b := SK "__loop20") hr
   have hd := dl_le SB hL
   simp only [List.sum_cons, List.sum_nil]
-  have e : r * (131 + SK "__loop17" + SK "__loop18" + SK "__loop21" + (SK "__loop22" - SK "__loop23") +
-      64 * colS SK "__loop415" "__loop416" + 64 * colS SK "__loop417" "__loop418") =
-      131 * r + r * SK "__loop17" + r * SK "__loop18" + r * SK "__loop21" +
-      r * (SK "__loop22" - SK "__loop23") + r * (64 * colS SK "__loop415" "__loop416") +
-      r * (64 * colS SK "__loop417" "__loop418") := by ring
-  have e' : 2 ^ L * (132 + SK "__loop23" + dlK SB + 64 * colP SB SK "__loop416" +
-      64 * colP SB SK "__loop418") =
-      132 * 2 ^ L + 2 ^ L * SK "__loop23" + dlK SB * 2 ^ L + 2 ^ L * (64 * colP SB SK "__loop416") +
-      2 ^ L * (64 * colP SB SK "__loop418") := by ring
+  have e : r * (642 + SK "__loop17" + 128 * SK "__loop21" + (SK "__loop19" - SK "__loop20")) =
+      642 * r + r * SK "__loop17" + 128 * (r * SK "__loop21") +
+      r * (SK "__loop19" - SK "__loop20") := by ring
+  have e' : 2 ^ L * (4 + SK "__loop20" + dlK SB) =
+      4 * 2 ^ L + 2 ^ L * SK "__loop20" + dlK SB * 2 ^ L := by ring
+  have e'' : 128 * (fs "__loop18" + (fs "da_verify_column" + SB "da_expand__L7_L8" +
+      r * SK "__loop21")) = 128 * (fs "__loop18" + fs "da_verify_column" + SB "da_expand__L7_L8") +
+      128 * (r * SK "__loop21") := by ring
   omega
 
 /-! ## The claim lists
@@ -292,7 +261,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   | none => simp
   | some p =>
     rw [DaDigestHeld, hw] at hda
-    have hw' : p.2.Opens p.1.daRoot p.1.membershipVectorDigest := hda.2
+    have hw' : p.2.Opens p.1.daRoot p.1.membershipChallenge := hda.2
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
     unfold LeanDa.maxRows at hm
@@ -311,7 +280,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
 def agA0 : ℕ := fs "aggregate_claims" + 85 + SB "batch_sumcheck__L23"
 
 /-- `aggregate_claims`' words per child. -/
-def agA1 : ℕ := 18 + SK "__loop24" + SK "__loop25" + SK "__loop26"
+def agA1 : ℕ := 18 + SK "__loop29" + SK "__loop30" + SK "__loop31"
 
 theorem aggB_eq (m : ℕ) : aggB fs SB SK m = agA0 fs SB + agA1 SK * m := by
   unfold aggB aggKB agA0 agA1 aggSizes

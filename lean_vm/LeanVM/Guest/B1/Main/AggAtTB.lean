@@ -34,11 +34,11 @@ open LeanVM.Guest.Budget (NodeHonest)
 
 /-- `aggregate_claims`' callees' bounds, in call order. -/
 def aggBs (SB SK : String → ℕ) (m : ℕ) : List ℕ :=
-  [m * SK "__loop24", m * SK "__loop25", SB "batch_sumcheck__L23", m * SK "__loop26"]
+  [m * SK "__loop29", m * SK "__loop30", SB "batch_sumcheck__L23", m * SK "__loop31"]
 
 /-- `aggregate_claims`' callees' words. -/
 def aggKB (SB SK : String → ℕ) (m : ℕ) : ℕ :=
-  m * SK "__loop24" + m * SK "__loop25" + SB "batch_sumcheck__L23" + m * SK "__loop26"
+  m * SK "__loop29" + m * SK "__loop30" + SB "batch_sumcheck__L23" + m * SK "__loop31"
 
 /-- **`aggregate_claims`' words bound** on `m` children: its frame, its `HeapBuf`s, its callees'. -/
 def aggB (fs : String → ℕ) (SB SK : String → ℕ) (m : ℕ) : ℕ :=
@@ -49,9 +49,9 @@ set_option maxRecDepth 20000 in
 words `Lin` hold, the hints of an accepting batching, writing the batching's claim, which `Lin`
 holds at `g^ds`. -/
 theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24"))
-    (h26 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
-    (h27 : TotalLeOn coreProgram fs "__loop26" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop26"))
+    (h25 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop29"))
+    (h26 : TotalLeOn coreProgram fs "__loop30" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop30"))
+    (h27 : TotalLeOn coreProgram fs "__loop31" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop31"))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
     {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
@@ -79,13 +79,13 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
   have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
-    [⟨"__loop24", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
+    [⟨"__loop29", true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc, cpi], Own ++ Lin,
         Returns []⟩,
-      ⟨"__loop25", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
+      ⟨"__loop30", true, [1, gen ^ m, P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs],
         Own ++ Lin, Returns []⟩,
       ⟨"batch_sumcheck__L23", true, capOf (aggAbs cs).perm ++ [P.msgs, claimAt cs m, P.pt],
         Own ++ Lin, Returns ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2])⟩,
-      ⟨"__loop26", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
+      ⟨"__loop31", true, [1, gen ^ m, P.lf, P.lc, P.pt, P.chain, P.w, lamA cs], Own ++ Lin,
         Returns []⟩]
   have hm' : m < 2 ^ 64 - 1 := by omega
   have hL : ∀ {g : String} (hT : TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g))

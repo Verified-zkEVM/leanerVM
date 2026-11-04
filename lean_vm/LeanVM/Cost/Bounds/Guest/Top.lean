@@ -81,7 +81,7 @@ theorem nRawS_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nRawSC.costD
 theorem dvClaim_cost (hP : Includes P Decoder.dvClaimC.costDeps) :
     machineCost P Decoder.dvClaimC.costIdx [σV] ≤ 4 * S + 93 := by
   rw [Decoder.dvClaimC.costEq P hP σ σV hσ, digestOfCells_cost P (by includes),
-    digestOfCells_cost P (by includes)]
+    Decoder.scalarOfCellsC.costEq P (by includes)]
   cost_facts [hS]
   omega
 

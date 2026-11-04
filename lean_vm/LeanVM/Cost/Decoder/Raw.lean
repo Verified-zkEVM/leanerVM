@@ -67,6 +67,7 @@ def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
 cost_compile nDirectC := nDirectD
+cost_compile scalarOfCellsC := LeanVM.Guest.B1.Da.scalarOfCells
 cost_compile dvClaimC := dvClaim
 cost_compile daWitnessC := daWitness
 cost_compile aggArgsC := aggArgs

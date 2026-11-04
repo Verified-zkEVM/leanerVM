@@ -1,6 +1,5 @@
 module
 
-public import LeanDa.Merkle
 public import LeanDa.WithHash
 
 @[expose] public section
@@ -12,7 +11,8 @@ For every hash function `H`, `commitCodewords`, the commitment as the crate comp
 codewords given as lists, is `commitCells` of the matrix the rows form
 (`commitCodewords_eq_commitCells`). A tree built level by level over the leaves `f 0 … f (2^d - 1)`
 has the root `merkleRoot H d f` (`treeRoot_map_range`), and the crate lists the leaves the model
-indexes: the row digests then the padding rows, and the cell digests column by column.
+indexes: a codeword's cell digests, a blob's tree, and the blob roots then the padding rows' (the
+zero codeword's), the tree over the blob roots.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -52,26 +52,8 @@ theorem treeRoot_map_range (d : ℕ) (f : ℕ → Common.DigestBytes) :
 
 /-! ## The leaves -/
 
-theorem ofFn_eq_map_range {α : Type} {n : ℕ} (f : ℕ → α) :
-    (List.ofFn fun j : Fin n ↦ f j) = (List.range n).map f :=
-  List.ext_getElem (by simp) fun j _ _ ↦ by simp
-
-/-- `(range a).flatMap (fun j ↦ (range b).map (g j))` lists `g` column by column. -/
-theorem flatMap_range_map_range (a b : ℕ) (hb : 0 < b) (g : ℕ → ℕ → Common.DigestBytes) :
-    (List.range a).flatMap (fun j ↦ (List.range b).map (g j)) =
-      (List.range (a * b)).map fun l ↦ g (l / b) (l % b) := by
-  induction a with
-  | zero => simp
-  | succ a ih =>
-    rw [List.range_succ, List.flatMap_append, ih, List.flatMap_singleton, Nat.succ_mul,
-      List.range_add, List.map_append, List.map_map]
-    congr 1
-    refine List.map_congr_left fun i hi ↦ ?_
-    rw [List.mem_range] at hi
-    simp only [Function.comp_apply]
-    rw [show (a * b + i) / b = a by
-        rw [Nat.add_comm, Nat.add_mul_div_right _ _ hb, Nat.div_eq_of_lt hi, Nat.zero_add],
-      show (a * b + i) % b = i by rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]]
+/-- The padded row count bounds the row count. -/
+theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
 
 theorem listCell_eq {row : List K} (hrow : row.length = 2 ^ logM) {j : ℕ} (hj : j < 128) :
     listCell row j = List.ofFn fun s : Fin 256 ↦ row.getD (256 * j + s) 0 := by
@@ -107,50 +89,40 @@ theorem paddedCell_cellsOfRows_of_le (rows : List (List K)) {i : ℕ} (hi : rows
     (j : ℕ) : paddedCell (cellsOfRows rows) i j = 0 := by
   simp only [paddedCell, show ¬(i < rows.length ∧ j < 128) from fun h ↦ by omega, ↓reduceDIte]
 
-theorem rowDigest_eq {rows : List (List K)} (hrows : ∀ row ∈ rows, row.length = 2 ^ logM)
-    {i : ℕ} (hi : i < rows.length) : rowDigestWithHash H rows[i] = rowLeavesWithHash H (cellsOfRows rows) i := by
-  rw [rowDigestWithHash, rowLeavesWithHash, ofFn_eq_map_range (n := 64)
-    (fun j ↦ cellDigestWithHash H (paddedCell (cellsOfRows rows) i j)), List.flatMap_map, payloadCells]
-  congr 1
-  rw [List.flatMap_def, List.flatMap_def]
-  congr 1
-  refine List.map_congr_left fun j hj ↦ ?_
+/-- A codeword's blob root, its tree built level by level, is the model's. -/
+theorem listBlobRoot_eq {rows : List (List K)} (hrows : ∀ row ∈ rows, row.length = 2 ^ logM)
+    {i : ℕ} (hi : i < rows.length) :
+    listBlobRootWithHash H rows[i] = blobRootWithHash H (cellsOfRows rows) i := by
+  rw [listBlobRootWithHash, blobRootWithHash, ← treeRoot_map_range, show cellsPerRow = 2 ^ 7 from rfl]
+  refine congrArg _ (List.map_congr_left fun j hj ↦ ?_)
   rw [List.mem_range] at hj
-  rw [listCellDigest_eq H (hrows _ (List.getElem_mem hi)) (by omega),
+  rw [cellLeavesWithHash, listCellDigest_eq H (hrows _ (List.getElem_mem hi)) (by omega),
     paddedCell_cellsOfRows rows hi (by omega)]
 
-theorem paddingRow_eq {rows : List (List K)} {i : ℕ} (hi : rows.length ≤ i) :
-    paddingRowWithHash H = rowLeavesWithHash H (cellsOfRows rows) i := by
-  simp only [paddingRowWithHash, rowLeavesWithHash, paddedCell_cellsOfRows_of_le rows hi, paddingCell_eq,
-    List.ofFn_const, payloadCells]
+/-- The zero codeword's blob root is a padding row's. -/
+theorem paddingBlobRoot_eq {rows : List (List K)} {i : ℕ} (hi : rows.length ≤ i) :
+    paddingBlobRootWithHash H = blobRootWithHash H (cellsOfRows rows) i := by
+  rw [paddingBlobRootWithHash, blobRootWithHash, ← treeRoot_map_range,
+    show cellsPerRow = 2 ^ 7 from rfl, show List.replicate (2 ^ 7) (paddingCellWithHash H) =
+      (List.range (2 ^ 7)).map fun _ ↦ paddingCellWithHash H by simp]
+  refine congrArg _ (List.map_congr_left fun j _ ↦ ?_)
+  rw [cellLeavesWithHash, paddedCell_cellsOfRows_of_le rows hi, paddingCell_eq]
 
-theorem rowLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    rows.map (rowDigestWithHash H) ++ List.replicate (paddedRowCount rows.length - rows.length) (paddingRowWithHash H) =
-      (List.range (2 ^ logPaddedRowCount rows.length)).map (rowLeavesWithHash H (cellsOfRows rows)) := by
+/-- The crate's blob roots, then the padding rows', are the model's leaves of the tree over the
+blob roots. -/
+theorem blobRoots_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
+    rows.map (listBlobRootWithHash H) ++
+        List.replicate (paddedRowCount rows.length - rows.length) (paddingBlobRootWithHash H) =
+      (List.range (2 ^ logPaddedRowCount rows.length)).map (blobRootWithHash H (cellsOfRows rows)) := by
   have hle := le_nPad rows.length
   change _ = (List.range (paddedRowCount rows.length)).map _
   refine List.ext_getElem (by simp only [List.length_append, List.length_map,
     List.length_replicate, List.length_range]; omega) fun i h₁ h₂ ↦ ?_
   rw [List.getElem_map, List.getElem_range]
   by_cases hi : i < rows.length
-  · rw [List.getElem_append_left (by simpa using hi), List.getElem_map, rowDigest_eq H hrows hi]
+  · rw [List.getElem_append_left (by simpa using hi), List.getElem_map, listBlobRoot_eq H hrows hi]
   · rw [List.getElem_append_right (by simpa using hi), List.getElem_replicate,
-      paddingRow_eq H (rows := rows) (i := i) (by omega)]
-
-theorem colLeaves_eq (rows : List (List K)) (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
-    ((List.range cellsPerRow).flatMap fun j ↦ (List.range (paddedRowCount rows.length)).map fun i ↦
-        if h : i < rows.length then listCellDigestWithHash H rows[i] j else paddingCellWithHash H) =
-      (List.range (2 ^ (7 + logPaddedRowCount rows.length))).map (colLeavesWithHash H (cellsOfRows rows)) := by
-  have hpos : 0 < paddedRowCount rows.length := by unfold paddedRowCount; positivity
-  rw [flatMap_range_map_range _ _ hpos, cellsPerRow, show 2 ^ (7 + logPaddedRowCount rows.length) =
-    128 * paddedRowCount rows.length by rw [pow_add]; rfl]
-  refine List.map_congr_left fun l hl ↦ ?_
-  rw [List.mem_range] at hl
-  have hj : l / paddedRowCount rows.length < 128 := (Nat.div_lt_iff_lt_mul hpos).mpr hl
-  rw [colLeavesWithHash]
-  split_ifs with hi
-  · rw [listCellDigest_eq H (hrows _ (List.getElem_mem hi)) hj, paddedCell_cellsOfRows rows hi hj]
-  · rw [paddedCell_cellsOfRows_of_le rows (by omega), paddingCell_eq]
+      paddingBlobRoot_eq H (rows := rows) (i := i) (by omega)]
 
 /-! ## The commitment -/
 
@@ -159,7 +131,6 @@ is `commitCells` of the matrix they form. -/
 theorem commitCodewords_eq_commitCells (rows : List (List K))
     (hrows : ∀ row ∈ rows, row.length = 2 ^ logM) :
     commitCodewordsWithHash H rows = commitCellsWithHash H (cellsOfRows rows) := by
-  rw [commitCodewordsWithHash, commitCellsWithHash, rowRootWithHash, colRootWithHash, rowLeaves_eq H rows hrows,
-    colLeaves_eq H rows hrows, treeRoot_map_range, treeRoot_map_range]
+  rw [commitCodewordsWithHash, commitCellsWithHash, blobRoots_eq H rows hrows, treeRoot_map_range]
 
 end LeanDa

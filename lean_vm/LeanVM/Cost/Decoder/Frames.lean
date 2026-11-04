@@ -10,7 +10,7 @@ The frame map keyed by the functions' indices (`Guest.Fast.NFrames`, `FunctionNa
 each callee's witness a function of its call's words, the compiled readers (`Signatures.lean`,
 `Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`verify_lean_xmss`, index `20`),
 `sphincsAtFrame` (`verify_sig_lean_sphincs`, `21`), `daAtFrame` (`da_verify`, `26`),
-`proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `30`). The signature
+`proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `32`). The signature
 and proof readers read their tables off `R : ReaderTabs` (`Guest/Fast/Main.lean`), which the top
 level builds once (`readerTabsC`) and passes.
 -/
@@ -51,9 +51,9 @@ noncomputable def proofAtFrame (R : ReaderTabs) (rd : Reader) (Vn : NFrames) (cl
   vsPiOfA R.whir rd (Vn 19 args []) Vn cl
 
 open LeanVM.Guest.Fast in
-/-- The batching's hints at `aggregate_claims`' (`30`) call's words. -/
+/-- The batching's hints at `aggregate_claims`' (`32`) call's words. -/
 noncomputable def hintsAtFrame (rd : Reader) (Vn : NFrames) (args : List E) : BatchingHints :=
-  aggHints rd (Vn 30 args [])
+  aggHints rd (Vn 32 args [])
 
 cost_enc LeanVM.Guest.Fast.ReaderTabs
 

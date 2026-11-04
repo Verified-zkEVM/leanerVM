@@ -312,11 +312,11 @@ def cclOk (k : ℕ) (f : Fn) : Bool :=
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (339 + k) default) = true := by
+theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (341 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (339 + k) := by
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (341 + k) := by
   decide +kernel
 
 theorem length_ccMsg (o0 n : ℕ) : (ccMsg o0 n).length = 4 * n := by simp [ccMsg]
@@ -333,7 +333,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
   have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ccl_all k hk
-  set f := coreProgram.getD (339 + k) default
+  set f := coreProgram.getD (341 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -388,13 +388,13 @@ def l17Ok (fn : Fn) : Bool :=
     monoIs (loopAtoms fn) (V.n 19) (V.n 5) (V.n 0) 17
 
 set_option maxRecDepth 100000 in
-theorem l17_ok : l17Ok (coreProgram.getD 338 default) = true := by decide +kernel
+theorem l17_ok : l17Ok (coreProgram.getD 340 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_idx : coreProgram.indexOf? "__loop16" = some 338 := by decide +kernel
+theorem l17_idx : coreProgram.indexOf? "__loop16" = some 340 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_nb : (l17Spec (loopAtoms (coreProgram.getD 338 default))).nb = 8 := by decide +kernel
+theorem l17_nb : (l17Spec (loopAtoms (coreProgram.getD 340 default))).nb = 8 := by decide +kernel
 
 /-- **One group of child claims**: from the state at `chain · x^13` after whole blocks `pre`,
 17 claims read at hinted slots and marked `base · x^17 · g^j`, absorbed, the state written at
@@ -418,7 +418,7 @@ theorem l17_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen8⟩, hc⟩, hst⟩, hrec⟩, hout⟩, hm13⟩, hm19⟩ := hok
   obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape h
   refine ⟨fun N chain entries cover base origin limit hN n pre hpre hS => ?_, hnext⟩
-  have hpar : (coreProgram.getD 338 default).params =
+  have hpar : (coreProgram.getD 340 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShape, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -431,7 +431,7 @@ theorem l17_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
   rw [← h13] at hS
   obtain ⟨hw, -, hcan⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
   obtain ⟨os, hos, hcl⟩ := records_sound hm (le_refl 17) hrec hat
-  have hlen : ((l17Spec (loopAtoms (coreProgram.getD 338 default))).vals σ).length = 68 := by
+  have hlen : ((l17Spec (loopAtoms (coreProgram.getD 340 default))).vals σ).length = 68 := by
     simp [ChainSpec.vals, l17Spec, length_ccMsg]
   refine ⟨os, _, ⟨hos, hlen, ?_⟩, hcan, fun c => ?_⟩
   · intro j hj

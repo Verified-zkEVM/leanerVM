@@ -7,22 +7,19 @@ public import LeanVM.Cost.Decoder.Da
 # Bounds on the guest decoder's prices: the DA matrix
 
 `da_verify`'s witness off its callees' frames (`Cost/Decoder/Da.lean`: each column's frame looked
-up once, its two words kept in an array of the `128` columns; each cell's row frame looked up
-once; the powers of `g` in `K`), in the price `S` of an application of `da_verify`'s valuation `σ`
-and the price `F` of an application of the frame map `Vn` (a frame's valuation at a variable), the
-matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
+up once, its two words kept in an array of the `128` columns; each cell's blob-loop frame looked
+up once; the powers of `g` in `K`), in the price `S` of an application of `da_verify`'s valuation
+`σ` and the price `F` of an application of the frame map `Vn` (a frame's valuation at a variable),
+the matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
 
-* a column's valuation (`dvColVN_cost`: `F + 8·S + 4378`), its two words (`dvColWords_cost`:
-  `2·F + 16·S + 8801`), **the `128` columns' words** (`dvCols_cost`: `256·F + 2048·S + 1131026`);
-* a row's valuation (`dvRowVW_cost`: `F + 3·S + 73·k + 607`), a cell's `256` symbols at a row's
-  valuation (`cellSymsAt_cost`: `3·Rw + 256·F + 12863`, `Rw` the row's price), a cell
-  (`dvSymsCell_cost`: `259·F + 9·S + 219·k + 14735`), a cell of the padded matrix
-  (`dvSymsCols_cost`: `259·F + 9·S + 219·k + 14768`);
-* a column's weights (`dvWsCols_cost`: `256·F + S + 13298`), the rows (`daRows_cost`, any
-  symbols);
-* the witness, its columns' words given (`dvWitNCols_cost`), and built (`dvWitNAt_cost`: at most
-  `dvWitNRowsPrice k F S = (33152·F + 1152·S + 28032·k + 2257970)·2^k + 33024·F + 2176·S +
-  3199693`);
+* a column's valuation (`dvColVN_cost`), its two words (`dvColWords_cost`), **the `128` columns'
+  words** (`dvCols_cost`: `256·F + 2048·S + 1131026`);
+* a blob-loop valuation (`dvRowVW_cost`), a cell's `256` symbols at it (`cellSymsAt_cost`), a cell
+  (`dvSymsCell_cost`), a cell of the padded matrix (`dvSymsCols_cost`); the rows (`daRows_cost`,
+  any symbols);
+* the witness, its columns' words given (`dvWitNCols_cost`: `dvWitNColsPrice`), and built
+  (`dvWitNAt_cost`: at most `dvWitNRowsPrice k F S = (33152·F + 1152·S + 28032·k +
+  2257970)·2^k + 256·F + 2048·S + 1131200`);
 * **`dvWitN_cost_1024`**: one logarithm (`GLogBound P D G`), the count clamped to `1024`
   (`daRowCount`, `daRowCount_cost`: `7`), the rows: at most `S + G + dvWitNRowsPrice 10 F S + 22`
   on every input; `dvWitN_cost`: below `S + G + dvWitNAtPrice F S + 14`, `dvWitNAtPrice F S =
@@ -39,31 +36,14 @@ public section
 
 variable (P : MachineProgram) {G : ℕ}
 
-/-- Column `j`'s function (`colNumC`): `5`. -/
-theorem colNum_cost (hP : Includes P Decoder.colNumC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
-    machineCost P Decoder.colNumC.costIdx [encodeValue j] ≤ 5 := by
-  rw [Decoder.colNumC.costEq P hP, limbs_of_lt hj]; split_ifs <;> omega
-
 /-- The rows' count clamped to `1024` (`daRowCountC`): `7`. -/
 theorem daRowCount_cost (hP : Includes P Decoder.daRowCountC.costDeps) (r : ℕ) (hr : r < 2 ^ 64) :
     machineCost P Decoder.daRowCountC.costIdx [encodeValue r] ≤ 7 := by
   rw [Decoder.daRowCountC.costEq P hP, limbs_of_lt hr]; split_ifs <;> omega
 
-/-- Column `j`'s row loop (`rowNumC`): `5`. -/
-theorem rowNum_cost (hP : Includes P Decoder.rowNumC.costDeps) (j : ℕ) (hj : j < 2 ^ 64) :
-    machineCost P Decoder.rowNumC.costIdx [encodeValue j] ≤ 5 := by
-  rw [Decoder.rowNumC.costEq P hP, limbs_of_lt hj]; split_ifs <;> omega
-
 theorem length_dvSymsCols (r : ℕ) (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (i j : ℕ) :
     (Decoder.dvSymsCols r σ Vn cols i j).length = 256 := by
   unfold Decoder.dvSymsCols Decoder.dvSymsCell Decoder.cellSymsAt Da.cellSymsOf
-  split_ifs
-  · rw [List.length_map, List.length_range]
-  · rw [List.length_replicate]
-
-theorem length_dvWsCols (σ : Val) (Vn : NFrames) (cols : Array (E × E)) (j : ℕ) :
-    (Decoder.dvWsCols σ Vn cols j).length = 256 := by
-  unfold Decoder.dvWsCols Da.vecWsOf
   split_ifs
   · rw [List.length_map, List.length_range]
   · rw [List.length_replicate]
@@ -113,20 +93,20 @@ include hVn hF
 
 /-- **A cell's `256` symbols at a row's valuation** (`cellSymsAtC`), the row's valuation a closure
 `rowV` of price at most `Rw`: `3·Rw + 256·F + 12863`. -/
-theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E) {row : Val}
+theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c13 : E) {row : Val}
     {rowV : MachineValue} (hrow : ∀ v : V, RunsApp P rowV [encodeValue v] (encodeValue (row v)))
     {Rw : ℕ} (hRw : ∀ v : V, appCost P rowV [encodeValue v] ≤ Rw) :
-    machineCost P Decoder.cellSymsAtC.costIdx [VnV, encodeValue c11, rowV] ≤
+    machineCost P Decoder.cellSymsAtC.costIdx [VnV, encodeValue c13, rowV] ≤
       3 * Rw + 256 * F + 12863 := by
-  rw [Decoder.cellSymsAtC.costEq P hP Vn VnV hVn c11 row rowV hrow]
-  set a := [row (.n 7), row (.n 8), row (.n 9)]
+  rw [Decoder.cellSymsAtC.costEq P hP Vn VnV hVn c13 row rowV hrow]
+  set a := [row (.n 6), row (.n 7), row (.n 8)]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.cellSymsAtC.lam0.costIdx
-      [VnV, encodeValue a, encodeValue [c11]]) [encodeValue v] (encodeValue (Vn 28 [c11] a v)) :=
-    fun v ↦ RunsApp.of_spec (Decoder.cellSymsAtC.lam0.costSpec P (by includes) Vn VnV hVn a [c11] v)
+      [VnV, encodeValue a, encodeValue [c13]]) [encodeValue v] (encodeValue (Vn 29 [c13] a v)) :=
+    fun v ↦ RunsApp.of_spec (Decoder.cellSymsAtC.lam0.costSpec P (by includes) Vn VnV hVn a [c13] v)
   rw [Decoder.cellSymsOfC.costEq P (by includes) _ _ hσ]
   have m := rangeMap_le P (by includes) (by includes) _
     (.closure Decoder.cellSymsOfC.lam0.costIdx
-      [.closure Decoder.cellSymsAtC.lam0.costIdx [VnV, encodeValue a, encodeValue [c11]]])
+      [.closure Decoder.cellSymsAtC.lam0.costIdx [VnV, encodeValue a, encodeValue [c13]]])
     (fun j ↦ RunsApp.of_spec (Decoder.cellSymsOfC.lam0.costSpec P
       (by includes) _ _ hσ j))
     (F + 22) 256 256 le_rfl (by norm_num) (fun j hj ↦ by
@@ -135,35 +115,9 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c11 : E)
         limbs_of_lt (by omega : j < 2 ^ 64), limbs_of_lt (by omega : j + 1 < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
         List.cons_append, List.nil_append,
         Decoder.cellSymsAtC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := hF 28 [c11] a (.n (j + 1)) (by norm_num) (by simp [a])
+      have := hF 29 [c13] a (.n (j + 1)) (by norm_num) (by simp [a])
       omega)
-  have := hRw (.n 7); have := hRw (.n 8); have := hRw (.n 9)
-  omega
-
-/-- A column's `256` weights (`vecWsOfC`) at the valuation `dvWsColsC.lam0`:
-`256·F + 12559`. -/
-theorem vecWsOf_cost (hP : Includes P Decoder.vecWsOfC.costDeps)
-    (hL : Includes P Decoder.dvWsColsC.lam0.costDeps) (a r : List E)
-    (hlen : r.length + a.length ≤ 16) :
-    machineCost P Decoder.vecWsOfC.costIdx
-      [.closure Decoder.dvWsColsC.lam0.costIdx [VnV, encodeValue a, encodeValue r]] ≤
-        256 * F + 12559 := by
-  have hσ : ∀ v : V, RunsApp P (.closure Decoder.dvWsColsC.lam0.costIdx
-      [VnV, encodeValue a, encodeValue r]) [encodeValue v] (encodeValue (Vn 29 r a v)) :=
-    fun v ↦ RunsApp.of_spec (Decoder.dvWsColsC.lam0.costSpec P hL Vn VnV hVn a r v)
-  rw [Decoder.vecWsOfC.costEq P hP _ _ hσ]
-  have m := rangeMap_le P (by includes) (by includes) _
-    (.closure Decoder.vecWsOfC.lam0.costIdx
-      [.closure Decoder.dvWsColsC.lam0.costIdx [VnV, encodeValue a, encodeValue r]])
-    (fun j ↦ RunsApp.of_spec (Decoder.vecWsOfC.lam0.costSpec P
-      (by includes) _ _ hσ j))
-    (F + 21) 256 256 le_rfl (by norm_num) (fun j hj ↦ by
-      rw [appCost_fn, List.cons_append, List.nil_append,
-        Decoder.vecWsOfC.lam0.costEq P (by includes) _ _ hσ,
-        limbs_of_lt (by omega : j < 2 ^ 64), limbs_of_lt (by omega : j + 1 < 2 ^ 64), appCost_fn, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, Decoder.dvWsColsC.lam0.costEq P hL Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := hF 29 r a (.n (j + 1)) (by norm_num) hlen
-      omega)
+  have := hRw (.n 6); have := hRw (.n 7); have := hRw (.n 8)
   omega
 
 section Val
@@ -182,8 +136,8 @@ theorem dvColArgs_cost (hP : Includes P Decoder.dvColArgsC.costDeps) (j : ℕ)
   rw [Decoder.dvColArgsC.costEq P hP σ σV hσ]
   have := powSqE_cost_lt P (by includes) LeanVM.Protocol.Verifier.gen j 7 (by norm_num)
     (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 3); have := hS (.n 4); have := hS (.n 2)
-  have := hS (.n 13); have := hS (.n 31); have := hS (.n 27); have := hS (.n 17)
+  have := hS (.n 1); have := hS (.n 32); have := hS (.n 16); have := hS (.n 17)
+  have := hS (.n 18); have := hS (.n 19)
   omega
 
 /-- **Column `j`'s valuation** (`dvColVNC`) at `a`, `j < 128`: `F + 8·S + 4378`. -/
@@ -191,10 +145,8 @@ theorem dvColVN_cost (hP : Includes P Decoder.dvColVNC.costDeps) (j : ℕ) (hj :
     machineCost P Decoder.dvColVNC.costIdx [σV, VnV, encodeValue j, encodeValue a] ≤
       F + 8 * S + 4378 := by
   rw [Decoder.dvColVNC.costEq P hP σ σV hσ Vn VnV hVn]
-  have := colNum_cost P (by includes) j (by omega)
   have := dvColArgs_cost P hσ hS (by includes) j hj
-  have := hF (colNum j) (Da.dvColArgs σ j) [] a (by unfold colNum; split <;> norm_num)
-    (by simp [Da.dvColArgs])
+  have := hF 28 (Da.dvColArgs σ j) [] a (by norm_num) (by simp [Da.dvColArgs])
   omega
 
 /-- **Column `j`'s two words** (`dvColWordsC`), its frame looked up once per word, `j < 128`:
@@ -214,7 +166,7 @@ theorem dvColWords_cost (hP : Includes P Decoder.dvColWordsC.costDeps) (j : ℕ)
       Decoder.dvColWordsC.lam0.costEq P (by includes) σ σV hσ Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
     have := dvColVN_cost P hVn hF hσ hS (by includes) j hj v
     omega
-  have := h (.n 11); have := h (.n 14)
+  have := h (.n 13); have := h (.n 14)
   omega
 
 /-- **The `128` columns' words** (`dvColsC`), each column's frame looked up once:
@@ -240,12 +192,11 @@ theorem dvRowVW_cost (hP : Includes P Decoder.dvRowVWC.costDeps) (cw : E × E) (
       [σV, VnV, encodeValue cw, encodeValue i, encodeValue j, encodeValue a] ≤
         F + 3 * S + 73 * k + 607 := by
   rw [Decoder.dvRowVWC.costEq P hP σ σV hσ Vn VnV hVn]
-  have := rowNum_cost P (by includes) j (by omega)
   have := powSqK_cost_lt P (by includes) Parameters.g i k hk0 (by omega) hi
   have := powSqK_cost_lt P (by includes) Parameters.g j 7 (by norm_num) (by norm_num) (by omega)
-  have := hS (.n 1); have := hS (.n 27); have := hS (.n 13)
-  have := hF (rowNum j) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 27), ofK (Parameters.g ^ j),
-    cw.2, σ (.n 13)] [] a (by unfold rowNum; split <;> norm_num) (by simp)
+  have := hS (.n 1); have := hS (.n 32)
+  have := hF 375 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ j),
+    cw.2] [] a (by norm_num) (by simp)
   omega
 
 /-- **Cell `(i, j)`'s symbols** (`dvSymsCellC`), the column's words given, its row's frame looked
@@ -292,28 +243,9 @@ theorem dvSymsCols_cost (hP : Includes P Decoder.dvSymsColsC.costDeps) (cols : A
   · omega
   · omega
 
-/-- **A column's weights** (`dvWsColsC`), the columns' words given: at most
-`256·F + S + 13298`. -/
-theorem dvWsCols_cost (hP : Includes P Decoder.dvWsColsC.costDeps) (cols : Array (E × E)) (j : ℕ)
-    (hj : j < 2 ^ 64) :
-    machineCost P Decoder.dvWsColsC.costIdx [σV, VnV, encodeValue cols, encodeValue j] ≤
-      256 * F + S + 13298 := by
-  rw [Decoder.dvWsColsC.costEq P hP σ σV hσ Vn VnV hVn, limbs_of_lt hj,
-    Decoder.mulKC.costEq P (by includes)]
-  have := replicate_cost P (by includes) (0 : E) 256 (by norm_num)
-  split_ifs with h
-  · rw [limbs_of_lt (by omega : 2 * j < 2 ^ 64)]
-    have := powSqK_cost_lt P (by includes) Parameters.g (2 * j) 8 (by norm_num) (by norm_num)
-      (by omega)
-    have := vecWsOf_cost P hVn hF (by includes) (by includes) [(cols.getD j (0, 0)).1]
-      [Decoder.mulK (σ (.n 17)) (Parameters.g ^ (2 * j))] (by simp)
-    have := hS (.n 17)
-    omega
-  · omega
-
 /-- The witness's price, its columns' words given, at `r ≤ 2^k` rows. -/
 @[expose] def dvWitNColsPrice (k F S : ℕ) : ℕ :=
-  (33152 * F + 1152 * S + 28032 * k + 2257970) * 2 ^ k + 32768 * F + 128 * S + 2068660
+  (33152 * F + 1152 * S + 28032 * k + 2257970) * 2 ^ k + 100
 
 /-- **`da_verify`'s witness, its columns' words given** (`dvWitNColsC`), `r ≤ 2^k` rows,
 `0 < k ≤ 34`: at most `dvWitNColsPrice k F S`. -/
@@ -335,18 +267,6 @@ theorem dvWitNCols_cost (hP : Includes P Decoder.dvWitNColsC.costDeps) (cols : A
         (by omega)
       omega)
     (fun i j ↦ (length_dvSymsCols r σ Vn cols i j).le)
-  have hws := rangeMap_le P (by includes) (by includes) _
-    (.closure Decoder.dvWitNColsC.lam1.costIdx [σV, VnV, encodeValue cols])
-    (fun j ↦ RunsApp.of_spec (Decoder.dvWitNColsC.lam1.costSpec P (by includes) σ σV hσ Vn VnV
-      hVn cols j))
-    (256 * F + S + 13306) 128 128 le_rfl (by norm_num) (fun j hj ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.dvWitNColsC.lam1.costEq P (by includes) σ σV hσ Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := dvWsCols_cost P hVn hF hσ hS (by includes) cols j (by omega)
-      omega)
-  have hf := flatten_map_cost P (by includes) 256 (Decoder.dvWsCols σ Vn cols) (List.range 128)
-    (fun j _ ↦ (length_dvWsCols σ Vn cols j).le)
-  simp only [List.length_range] at hf
   have e : ((259 * F + 9 * S + 219 * k + 14779 + 34) * 128 + 361906) * 2 ^ k =
       (33152 * F + 1152 * S + 28032 * k + 2257970) * 2 ^ k := by ring
   unfold dvWitNColsPrice
@@ -354,7 +274,7 @@ theorem dvWitNCols_cost (hP : Includes P Decoder.dvWitNColsC.costDeps) (cols : A
 
 /-- The witness's price at `r ≤ 2^k` rows. -/
 @[expose] def dvWitNRowsPrice (k F S : ℕ) : ℕ :=
-  (33152 * F + 1152 * S + 28032 * k + 2257970) * 2 ^ k + 33024 * F + 2176 * S + 3199693
+  (33152 * F + 1152 * S + 28032 * k + 2257970) * 2 ^ k + 256 * F + 2048 * S + 1131200
 
 /-- The witness's price at `r ≤ 2^34` rows. -/
 @[expose] def dvWitNAtPrice (F S : ℕ) : ℕ := dvWitNRowsPrice 34 F S

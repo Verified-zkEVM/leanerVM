@@ -16,9 +16,11 @@ calls of `F`, a collision occurs with probability at most `N · (2N · εc)` (`p
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -28,12 +30,12 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
 
 /-- The distribution of a fresh answer against the table `g`. -/
 noncomputable def freshDist (D : DuplexSpec Msg Dg St Root Z W Cp n) (g : Tab Root Z n)
-    (s : SimSt St Root n) (x : St) : ProbComp St :=
+    (s : SimSt Dg St Root n) (x : St) : ProbComp St :=
   match progLbl D s x with
   | some (r, j) => (fun w ↦ D.build (g.at r j, w)) <$> ($ᵗ W : ProbComp W)
   | none => ($ᵗ St : ProbComp St)
 
-theorem tab_F_run_fresh (g : Tab Root Z n) (x : St) (s : SimSt St Root n)
+theorem tab_F_run_fresh (g : Tab Root Z n) (x : St) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree c) (hx : s.answer x = none) :
     (tabImpl D g (.inr (.inr x))).run (s, c) =
       (fun y ↦ (y, (s.record D x y (progLbl D s x), c))) <$> freshDist D g s x := by
@@ -74,7 +76,7 @@ theorem pr_capW_mem_le {εc : ℝ≥0∞}
 `εc`. -/
 theorem pr_fresh_cap_le {εc : ℝ≥0∞}
     (hcap : ∀ c, Pr{let w ← ($ᵗ W : ProbComp W)}[D.capW w = c] ≤ εc) (g : Tab Root Z n)
-    (s : SimSt St Root n) (x : St) (F : Finset Cp) :
+    (s : SimSt Dg St Root n) (x : St) (F : Finset Cp) :
     Pr{let y ← freshDist D g s x}[D.cap y ∈ F] ≤ F.card * εc := by
   unfold freshDist
   split
@@ -93,7 +95,7 @@ def fCalls : (Rom2 Msg Dg St).Domain → ℕ
   | .inr (.inr _) => 1
   | _ => 0
 
-theorem card_forb_le (s : SimSt St Root n) : (forb D s).card ≤ 2 * s.log.length + 1 := by
+theorem card_forb_le (s : SimSt Dg St Root n) : (forb D s).card ≤ 2 * s.log.length + 1 := by
   unfold forb
   refine (List.toFinset_card_le _).trans ?_
   simp only [List.length_append, List.length_map]
@@ -106,13 +108,13 @@ theorem prob_bad_le {εc : ℝ≥0∞}
     {α : Type} (X : OracleComp (Rom2 Msg Dg St) α) (N : ℕ)
     (hX : QueryCostAtMost X (fCalls (Msg := Msg) (Dg := Dg) (St := St)) N) :
     Pr{let z ← (simulateQ (tabImpl D g) X).run
-        ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))}[
+        ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))}[
         z.2.1.bad = true] ≤ N * (2 * N * εc) := by
   classical
   have h := prEvent_run_bad_le (tabImpl D g) (fun sc ↦ sc.1.bad = true) (fun sc ↦ GFree sc.2)
     fCalls (fun sc ↦ sc.1.log.length) N (2 * N * εc)
     (fun t sc h z hz ↦ gfree_step g t sc h hz) ?_ ?_ X N hX
-    ((SimSt.init : SimSt St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))
+    ((SimSt.init : SimSt Dg St Root n), (∅ : (GSpec Msg Dg Root Z n).QueryCache))
     (fun _ ↦ rfl) (by simp [SimSt.init])
   · simpa [SimSt.init] using h
   · intro t sc hc z hz
@@ -152,4 +154,4 @@ theorem prob_bad_le {εc : ℝ≥0∞}
         · rw [h]; simpa using hb
         · rw [ha] at ha'; cases ha'
 
-end Common.Duplex
+end Common.SeedDuplex

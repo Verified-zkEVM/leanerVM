@@ -44,11 +44,11 @@ def aggPacks : List (V × ℕ) := [(.n 0, 14), (.n 23, 24), (.n 33, 34), (.n 43,
 
 /-- `aggregate_claims`' calls. -/
 def aggCalls : List Stmt :=
-  [.callIf (.n 62) "__loop24" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1],
-    .callIf (.n 115) "__loop25" [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106],
+  [.callIf (.n 62) "__loop29" [.n 63, .n 0, .n 60, .n 2, .n 7, .n 3, .n 8, .n 1],
+    .callIf (.n 115) "__loop30" [.n 116, .n 0, .n 111, .n 7, .n 8, .n 107, .n 106],
     .call "batch_sumcheck__L23" [.n 95, .n 96, .n 97, .n 98, .n 99, .n 5, .n 119, .n 120]
       [.n 121, .n 122, .n 123, .n 124, .n 125, .n 126],
-    .callIf (.n 132) "__loop26" [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106]]
+    .callIf (.n 132) "__loop31" [.n 133, .n 0, .n 7, .n 8, .n 120, .n 111, .n 129, .n 106]]
 
 /-- `aggregate_claims`' atoms but its stores. -/
 noncomputable def aggA : List Atom := (atomsIn aggP).filter fun a => decide (a ∉ aggStores)
@@ -57,14 +57,14 @@ theorem mem_aggA {a : Atom} : a ∈ aggA ↔ a ∈ atomsIn aggP ∧ a ∉ aggSto
   simp [aggA]
 
 set_option maxRecDepth 100000 in
-theorem agg_stores : storesOf 5 (Fn.body Data.core29) = aggStores := by decide +kernel
+theorem agg_stores : storesOf 5 (Fn.body Data.core31) = aggStores := by decide +kernel
 
 /-- **`aggregate_claims`' body, evaluated**: its values defined in order, its atoms but its stores
 holding from its loads, its packs and the final check, its statements atoms or its calls. -/
 noncomputable def aggCOk : Bool :=
   let A := atomsIn aggP
   let P := A.filter pureB
-  (chk 5 (Fn.body Data.core29)).isSome && canonChk ((List.range 13).map (70 + ·)) aggA &&
+  (chk 5 (Fn.body Data.core31)).isSome && canonChk ((List.range 13).map (70 + ·)) aggA &&
   aggA.all (fun a => !needsSide a || isPackInK aggPacks a || decide (a ∈ aggLoads) ||
     decide (a = .assertInK (.n 100) (.n 103)) || decide (a = .assertEq (.n 126) (.n 136))) &&
   aggPacks.all (fun p => packIn aggA p.1 p.2) &&

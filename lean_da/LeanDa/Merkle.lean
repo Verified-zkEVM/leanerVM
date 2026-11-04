@@ -3,6 +3,7 @@ module
 public import LeanDa.Scheme
 public import LeanDa.Defs
 public import LeanDa.WithHash
+public import LeanDa.Commitment
 
 @[expose] public section
 
@@ -11,8 +12,8 @@ public import LeanDa.WithHash
 
 For every hash function `H`. An honest opening verifies (`verifyCell_openCell`). Two openings of
 one commitment at one position to two different cells give an `H` collision, which
-`findCollision` computes: climb both openings' hash inputs from the cells' bytes up to the root's
-`rowRoot ‖ columnRoot`, and return the first pair of inputs that differ while their hashes agree
+`findCollision` computes: climb both openings' hash inputs from the cells' bytes up to the root's,
+and return the first pair of inputs that differ while their hashes agree
 (`findCollision_spec`). The cells' bytes differ because a cell's encoding is injective
 (`cellBytes_injective`), and the roots' inputs hash alike, so such a level exists.
 
@@ -95,62 +96,64 @@ theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ)
   | zero => rfl
   | succ d ih => simp [merklePathWithHash, ih]
 
-theorem le_nPad (r : ℕ) : r ≤ paddedRowCount r := Nat.le_pow_clog (by norm_num) r
 
-theorem colLeaves_colIndex {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    colLeavesWithHash H c (columnTreeIndex p) = cellDigestWithHash H (c p) := by
-  have hr := le_nPad r
-  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt hr
-  have hmod : columnTreeIndex p % paddedRowCount r = positionRow p := by
-    rw [columnTreeIndex, Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hrow]
-  have hdiv : columnTreeIndex p / paddedRowCount r = positionCell p := by
-    rw [columnTreeIndex, Nat.add_comm, Nat.add_mul_div_right _ _
-        (by unfold paddedRowCount; positivity),
-      Nat.div_eq_of_lt hrow, Nat.zero_add]
+/-- A climb reads the index's low bits only, one per sibling. -/
+theorem walk_mod : ∀ (path : List Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes),
+    walk H idx node path = walk H (idx % 2 ^ path.length) node path
+  | [], _, _ => rfl
+  | s :: rest, idx, node => by
+    have h2 : idx % 2 ^ (rest.length + 1) % 2 = idx % 2 := by
+      rw [pow_succ, Nat.mod_mul_left_mod]
+    have hd : idx % 2 ^ (rest.length + 1) / 2 % 2 ^ rest.length = idx / 2 % 2 ^ rest.length := by
+      rw [pow_succ', Nat.mod_mul_right_div_self, Nat.mod_mod]
+    rw [List.length_cons, walk, walk, h2, walk_mod rest (idx / 2), walk_mod rest (idx % _ / 2), hd]
+
+/-- A climb along two paths in turn. -/
+theorem walk_append : ∀ (l₁ l₂ : List Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes),
+    walk H idx node (l₁ ++ l₂) = walk H (idx / 2 ^ l₁.length) (walk H idx node l₁) l₂
+  | [], _, _, _ => by simp [walk]
+  | s :: rest, l₂, idx, node => by
+    rw [List.cons_append, walk, walk, walk_append rest l₂, List.length_cons, pow_succ',
+      Nat.div_div_eq_div_mul]
+
+theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
+    cellLeavesWithHash H c (positionRow p) (positionCell p) = cellDigestWithHash H (c p) := by
   have h1 : (positionRow p : ℕ) < r := (positionRow p).isLt
   have h2 : (positionCell p : ℕ) < 128 := (positionCell p).isLt
-  rw [colLeavesWithHash, hmod, hdiv]
+  rw [cellLeavesWithHash]
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
   simp only [cellPosition, positionRow, positionCell]
   omega
 
-theorem colIndex_lt {r : ℕ} (p : Fin (r * 128)) : columnTreeIndex p < 2 ^ (7 + logPaddedRowCount
-    r) := by
-  have hrow : (positionRow p : ℕ) < paddedRowCount r := lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
-  have hcell := (positionCell p).isLt
-  rw [pow_add, columnTreeIndex]
-  unfold paddedRowCount at hrow ⊢
-  nlinarith
-
 /-- **An honest opening verifies.** -/
 theorem verifyCell_openCell {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     verifyCell H r (commitCellsWithHash H c) p (c p) (openCellWithHash H c p) = true := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq]
-  refine ⟨length_merklePath H _ _ _, ?_⟩
+  have hrow : (positionRow p : ℕ) < 2 ^ logPaddedRowCount r :=
+    lt_of_lt_of_le (positionRow p).isLt (le_nPad r)
+  refine ⟨by simp only [openCellWithHash, List.length_append, length_merklePath], ?_⟩
   simp only [openCellWithHash]
-  rw [← colLeaves_colIndex H c p, walk_merklePath H _ _ _ (colIndex_lt p)]
-  rfl
+  rw [walk_append, length_merklePath, walk_mod H (merklePathWithHash H 7 _ _) (p : ℕ), length_merklePath,
+    show (p : ℕ) % 2 ^ 7 = positionCell p from rfl, ← cellLeaves_position H c p,
+    walk_merklePath H _ _ _ (positionCell p).isLt, show (p : ℕ) / 2 ^ 7 = positionRow p from rfl]
+  exact walk_merklePath H _ (blobRootWithHash H c) _ hrow
 
 /-! ## Collisions from two openings -/
 
-theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Common.DigestBytes) (rp rq : Common.DigestBytes)
+theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Common.DigestBytes)
     (hlen : p.length = q.length) (hab : a ≠ b)
-    (hroot : H (pairBytes rp (walk H idx (H a) p)) = H (pairBytes rq (walk H idx (H b) q))) :
-    (findCollision H (hashInputs H idx a p rp) (hashInputs H idx b q rq)).1 ≠
-        (findCollision H (hashInputs H idx a p rp) (hashInputs H idx b q rq)).2 ∧
-      H (findCollision H (hashInputs H idx a p rp) (hashInputs H idx b q rq)).1 =
-        H (findCollision H (hashInputs H idx a p rp) (hashInputs H idx b q rq)).2 := by
+    (hroot : walk H idx (H a) p = walk H idx (H b) q) :
+    (findCollision H (hashInputs H idx a p) (hashInputs H idx b q)).1 ≠
+        (findCollision H (hashInputs H idx a p) (hashInputs H idx b q)).2 ∧
+      H (findCollision H (hashInputs H idx a p) (hashInputs H idx b q)).1 =
+        H (findCollision H (hashInputs H idx a p) (hashInputs H idx b q)).2 := by
   induction p generalizing idx a b q with
   | nil =>
     obtain rfl : q = [] := List.eq_nil_of_length_eq_zero hlen.symm
-    simp only [hashInputs, findCollision]
-    by_cases hH : H a = H b
-    · simp [hab, hH]
-    · have hne : pairBytes rp (H a) ≠ pairBytes rq (H b) := fun h ↦ hH (pairBytes_injective h).2
-      simp only [walk] at hroot
-      simp [hab, hH, hne, hroot]
+    simp only [walk] at hroot
+    simp [hashInputs, findCollision, hab, hroot]
   | cons s rest ih =>
     obtain ⟨s', rest', rfl⟩ : ∃ s' rest', q = s' :: rest' := by
       cases q with
@@ -175,7 +178,7 @@ theorem openingsCollision_spec {r : ℕ} {com : Common.DigestBytes} {p : Fin (r 
     (openingsCollision H r p x τ x' τ').1 ≠ (openingsCollision H r p x τ x' τ').2 ∧
       H (openingsCollision H r p x τ x' τ').1 = H (openingsCollision H r p x τ x' τ').2 := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hτ hτ'
-  exact findCollision_spec H _ _ _ _ _ _ _ (hτ.1.trans hτ'.1.symm)
+  exact findCollision_spec H _ _ _ _ _ (hτ.1.trans hτ'.1.symm)
     (fun h ↦ hx (cellBytes_injective h)) (hτ.2.trans hτ'.2.symm)
 
 end LeanDa

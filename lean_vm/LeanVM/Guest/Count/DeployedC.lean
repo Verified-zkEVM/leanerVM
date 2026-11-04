@@ -12,8 +12,8 @@ public import LeanVM.Guest.Count.DeployedA2
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK colC colS colP clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0
-  agA1 mainWords)
+open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0 agA1
+  mainWords)
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ theorem clC_eq : clC B2C.fs wSB = 2915 := by
   unfold clC
   rw [cl_sum,
     fs_idx (j := 23) (f := "claim_list_digest") (by decide +kernel),
-    fs_idx (j := 320) (f := "__loop15") (by decide +kernel),
+    fs_idx (j := 322) (f := "__loop15") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
@@ -29,43 +29,43 @@ theorem ccC_eq : ccC B2C.fs wSB = 5349 := by
   unfold ccC
   rw [ccl_sum,
     fs_idx (j := 24) (f := "child_claim_list_digest") (by decide +kernel),
-    fs_idx (j := 338) (f := "__loop16") (by decide +kernel),
+    fs_idx (j := 340) (f := "__loop16") (by decide +kernel),
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
 theorem l5A0_eq : l5A0 B2C.fs = 65 := by
   unfold l5A0
-  rw [fs_idx (j := 34) (f := "__loop4") (by decide +kernel)]
+  rw [fs_idx (j := 36) (f := "__loop4") (by decide +kernel)]
   decide +kernel
 
 theorem clS_eq : clS wSK = 35 := by
   unfold clS
-  rw [wSK_idx (j := 320) (f := "__loop15") (by decide +kernel)]
+  rw [wSK_idx (j := 322) (f := "__loop15") (by decide +kernel)]
   decide +kernel
 
 theorem l5A1_eq : l5A1 B2C.fs wSB = 11152 := by
   unfold l5A1
   rw [ccC_eq,
-    fs_idx (j := 34) (f := "__loop4") (by decide +kernel),
+    fs_idx (j := 36) (f := "__loop4") (by decide +kernel),
     wSB_idx (j := 21) (f := "statement_digest") (by decide +kernel)]
   decide +kernel
 
 theorem l5A2_eq : l5A2 B2C.fs = 30 := by
   unfold l5A2 ccS
-  rw [fs_idx (j := 338) (f := "__loop16") (by decide +kernel)]
+  rw [fs_idx (j := 340) (f := "__loop16") (by decide +kernel)]
   decide +kernel
 
 theorem agA0_eq : agA0 B2C.fs wSB = 1406 := by
   unfold agA0
-  rw [fs_idx (j := 29) (f := "aggregate_claims") (by decide +kernel),
-    wSB_idx (j := 376) (f := "batch_sumcheck__L23") (by decide +kernel)]
+  rw [fs_idx (j := 31) (f := "aggregate_claims") (by decide +kernel),
+    wSB_idx (j := 387) (f := "batch_sumcheck__L23") (by decide +kernel)]
   decide +kernel
 
 theorem agA1_eq : agA1 wSK = 1736 := by
   unfold agA1
-  rw [wSK_idx (j := 374) (f := "__loop24") (by decide +kernel),
-    wSK_idx (j := 375) (f := "__loop25") (by decide +kernel),
-    wSK_idx (j := 377) (f := "__loop26") (by decide +kernel)]
+  rw [wSK_idx (j := 385) (f := "__loop29") (by decide +kernel),
+    wSK_idx (j := 386) (f := "__loop30") (by decide +kernel),
+    wSK_idx (j := 388) (f := "__loop31") (by decide +kernel)]
   decide +kernel
 
 end

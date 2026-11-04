@@ -6,6 +6,7 @@ import LeanVM.Guest.Expand
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
 import LeanVM.Guest.Code
+import LeanVM.Guest.B1.Da.DualMath
 
 /-!
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
@@ -153,14 +154,14 @@ def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
   let ((r, p), m) ← claimR
   return (((⟨r, p⟩ : HashSig.PublicKey), m), ← sphincsSigR)
 
-def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR), ← many eR⟩
+def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR)⟩
 
 /-- The blob matrix checked directly, with the DA claim it opens (`NodeWitness.daMatrix`): `direct`, the
-root, the vector digest, the rows and the vector; or `none`. -/
+root, the membership challenge, the rows; or `none`. -/
 def daR : R (Option (DaClaim × LeanVM.Da.MatrixWitness)) := do
   match ← tok with
   | "direct" =>
-    let claim := DaClaim.mk (← digestR) (← digestR)
+    let claim := DaClaim.mk (← digestR) (← eR)
     return some (claim, ← daWitnessR)
   | "none" => return none
   | t => throw s!"`{t}` is no DA witness"
@@ -213,14 +214,14 @@ def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
 
 /-- `MatrixWitness.Opens`, its dot products computed and its commitment computed level by level as
 the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^15` symbols the statement's
-`commitCells` of the matrix they form: `LeanDa.commitCodewords_eq_commitCells`). -/
-def daOpens (root vd : Digest) (w : LeanVM.Da.MatrixWitness) : Bool :=
+`commitCells` of the matrix they form: `LeanDa.commitCodewords_eq_commitCells`), the dual codeword
+of `z` as `dualAt` (`LeanDa.dualCodewordAt`: `Guest.B1.Da.dualAt_eq`). -/
+def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
+  let dual := (List.range (2 ^ LeanDa.logM)).map (LeanVM.Guest.B1.Da.dualAt z)
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&
     (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
-    w.orthogonalVector.length == 2 ^ LeanDa.logM &&
-    (LeanDa.vectorDigest keccakF1600 w.orthogonalVector).toList == (LeanVM.Protocol.Digest.toBytes vd).toList &&
-    w.rows.all fun row => (w.orthogonalVector.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
+    w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
 
 /-- Every raw signature of a kind verifies, and every claim of the kind is a raw signature's or in
 a child's list, each by name. -/
@@ -253,7 +254,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
     | some (cl, m) =>
       [("the DA digest is the directly checked claim's", digestEq s.claims.daDigest
           (daClaimDigest cl)),
-        ("the directly checked matrix opens its claim", daOpens cl.daRoot cl.membershipVectorDigest m)]
+        ("the directly checked matrix opens its claim", daOpens cl.daRoot cl.membershipChallenge m)]
     | none =>
       [("the DA digest is zero or a child's", digestEq s.claims.daDigest zeroDigest ||
         w.children.any fun ch => digestEq ch.statement.claims.daDigest s.claims.daDigest)]) ++

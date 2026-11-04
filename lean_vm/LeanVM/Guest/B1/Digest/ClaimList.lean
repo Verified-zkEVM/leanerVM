@@ -58,11 +58,11 @@ def clOk (k : ℕ) (f : Fn) : Bool :=
   | _ => false
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (321 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (323 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (321 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (323 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -76,7 +76,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (321 + k) default
+  set f := coreProgram.getD (323 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -121,13 +121,13 @@ def l16Ok (fn : Fn) : Bool :=
     monoIs (loopAtoms fn) (V.n 17) (V.n 3) (V.n 0) 68
 
 set_option maxRecDepth 100000 in
-theorem l16_ok : l16Ok (coreProgram.getD 320 default) = true := by decide +kernel
+theorem l16_ok : l16Ok (coreProgram.getD 322 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l16_idx : coreProgram.indexOf? "__loop15" = some 320 := by decide +kernel
+theorem l16_idx : coreProgram.indexOf? "__loop15" = some 322 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l16_nb : (l16Spec (loopAtoms (coreProgram.getD 320 default))).nb = 8 := by decide +kernel
+theorem l16_nb : (l16Spec (loopAtoms (coreProgram.getD 322 default))).nb = 8 := by decide +kernel
 
 /-- **One group**: from the state at `chain · x^13` after whole blocks `pre`, the 68 canonical
 cells at `entries · x^68` absorbed, the state written at `chain · x^13 · g^13`. -/
@@ -146,11 +146,11 @@ theorem l16_step {rd : Reader} {x : E} {ps : List E}
   have hok := l16_ok
   simp only [l16Ok, loopShape, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen4⟩, hc⟩, hst⟩, hl⟩, hout⟩, hm9⟩, hm17⟩ := hok
-  have hshape' : loopShape (coreProgram.getD 320 default) "__loop15" = true := by
+  have hshape' : loopShape (coreProgram.getD 322 default) "__loop15" = true := by
     simpa only [loopShape, Bool.and_eq_true, decide_eq_true_eq] using hshape
   obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape' h
   refine ⟨fun N chain entries hNce n pre hpre hS => ?_, hnext⟩
-  have hpar : (coreProgram.getD 320 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 322 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [hshape.1.2, hlen4]; rfl
   rw [hpar, hNce] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -159,7 +159,7 @@ theorem l16_step {rd : Reader} {x : E} {ps : List E}
   have h17 : σ (V.n 17) = entries * x ^ 68 := by rw [monoIs_sound hm17 hat, hentries, hx]
   rw [← h9] at hS
   obtain ⟨hreads, hcan, hS', hl'⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
-  have hnb : (l16Spec (loopAtoms (coreProgram.getD 320 default))).nb = 8 := l16_nb
+  have hnb : (l16Spec (loopAtoms (coreProgram.getD 322 default))).nb = 8 := l16_nb
   rw [hnb] at hS'
   refine ⟨_, by simp [ChainSpec.vals, l16Spec], by rwa [← h17], hcan, by rwa [← h9]⟩
 

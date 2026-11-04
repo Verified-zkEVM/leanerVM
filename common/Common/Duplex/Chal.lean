@@ -15,8 +15,10 @@ unchanged (`chal_ok`): every state of the chain is answered, or programmed, with
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
+open Common
+open Common.Duplex (GSpec hP gaP VSpec toV)
 
-namespace Common.Duplex
+namespace Common.SeedDuplex
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   [DecidableEq Msg] [DecidableEq St] [DecidableEq Root] [DecidableEq Cp]
@@ -25,7 +27,7 @@ variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
   {D : DuplexSpec Msg Dg St Root Z W Cp n}
 
 theorem gfree_step (g : Tab Root Z n) (t : (Rom2 Msg Dg St).Domain)
-    (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree sc.2) {z}
+    (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree sc.2) {z}
     (hz : z ∈ support ((tabImpl D g t).run sc)) : GFree z.2.2 := by
   obtain ⟨s, c⟩ := sc
   rcases t with k | m | x
@@ -45,7 +47,7 @@ theorem gfree_step (g : Tab Root Z n) (t : (Rom2 Msg Dg St).Domain)
 
 /-- Along a run of the table world, a collision stays recorded. -/
 theorem tab_run_bad {α : Type} (g : Tab Root Z n) (X : OracleComp (Rom2 Msg Dg St) α)
-    (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree sc.2)
+    (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) (hc : GFree sc.2)
     (hb : sc.1.bad = true) {z} (hz : z ∈ support ((simulateQ (tabImpl D g) X).run sc)) :
     z.2.1.bad = true :=
   (inv_of_mem_support_run (tabImpl D g) (fun sc ↦ GFree sc.2 ∧ sc.1.bad = true)
@@ -54,7 +56,7 @@ theorem tab_run_bad {α : Type} (g : Tab Root Z n) (X : OracleComp (Rom2 Msg Dg 
 
 /-- A step at a state described by the invariant: its answer carries the challenge `L`. -/
 theorem fstep_label (g : Tab Root Z n) (iv : Dg) (x : St) (L : Root × Fin n)
-    (s : SimSt St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache) (hG : Good D g iv (s, c))
+    (s : SimSt Dg St Root n) (c : (GSpec Msg Dg Root Z n).QueryCache) (hG : Good D g iv (s, c))
     (hok : NextOK D s x L) (hfp : s.answer x = none → progLbl D s x = some L) {z}
     (hz : z ∈ support ((tabImpl D g (.inr (.inr x))).run (s, c))) (hb : z.2.1.bad = false) :
     Good D g iv z.2 ∧ z.2.2 = c ∧ ∃ e ∈ z.2.1.log, e.2.1 = z.1 ∧ e.2.2 = some L := by
@@ -68,12 +70,12 @@ theorem fstep_label (g : Tab Root Z n) (iv : Dg) (x : St) (L : Root × Fin n)
     refine ⟨rfl, (x, z.1, progLbl D s x), List.mem_cons_self, rfl, hfp ha⟩
 
 /-- An entry of the log answering `y` with the challenge `L`. -/
-def HasEntry (s : SimSt St Root n) (y : St) (L : Root × Fin n) : Prop :=
+def HasEntry (s : SimSt Dg St Root n) (y : St) (L : Root × Fin n) : Prop :=
   ∃ e ∈ s.log, e.2.1 = y ∧ e.2.2 = some L
 
 theorem run_fQ_bind {β : Type} (g : Tab Root Z n) (x : St)
     (f : St → OracleComp (Rom2 Msg Dg St) β)
-    (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
+    (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
     (simulateQ (tabImpl D g) (fQ (Dg := Dg) x >>= f)).run sc =
       (tabImpl D g (.inr (.inr x))).run sc >>= fun w ↦ (simulateQ (tabImpl D g) (f w.1)).run w.2 := by
   rw [simulateQ_bind, StateT.run_bind,
@@ -83,7 +85,7 @@ theorem run_fQ_bind {β : Type} (g : Tab Root Z n) (x : St)
 
 /-- **The rest of a chain** is the table's challenges. -/
 theorem chain_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (k : ℕ) :
-    ∀ (y : St) (j : Fin n) (_ : j.val + k + 1 = n) (s : SimSt St Root n)
+    ∀ (y : St) (j : Fin n) (_ : j.val + k + 1 = n) (s : SimSt Dg St Root n)
       (c : (GSpec Msg Dg Root Z n).QueryCache), Good D g iv (s, c) → HasEntry s y (r, j) →
       ∀ z ∈ support ((simulateQ (tabImpl D g) (chainP D k y)).run (s, c)),
         z.2.1.bad = false → z.2.2 = c ∧ ∃ _ : z.1.length = k,
@@ -132,7 +134,7 @@ theorem chain_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (k : ℕ) :
 
 theorem run_hQ_bind {β : Type} (g : Tab Root Z n) (m : Msg)
     (f : Dg → OracleComp (Rom2 Msg Dg St) β)
-    (sc : SimSt St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
+    (sc : SimSt Dg St Root n × (GSpec Msg Dg Root Z n).QueryCache) :
     (simulateQ (tabImpl D g) (hQ (St := St) m >>= f)).run sc =
       (tabImpl D g (.inr (.inl m))).run sc >>= fun w ↦ (simulateQ (tabImpl D g) (f w.1)).run w.2 := by
   rw [simulateQ_bind, StateT.run_bind,
@@ -142,7 +144,7 @@ theorem run_hQ_bind {β : Type} (g : Tab Root Z n) (m : Msg)
 
 /-- **Without collision, the derived challenges of a root are the table's**, and the cache is
 unchanged. -/
-theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt St Root n)
+theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt Dg St Root n)
     (c : (GSpec Msg Dg Root Z n).QueryCache) (hG : Good D g iv (s, c))
     {z} (hz : z ∈ support ((simulateQ (tabImpl D g) (chalP D r)).run (s, c)))
     (hb : z.2.1.bad = false) :
@@ -155,12 +157,9 @@ theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt St Root n)
   rw [roStep_of_some hG.label] at hv₀
   simp only [support_pure, Set.mem_singleton_iff, Prod.mk.injEq] at hv₀
   obtain ⟨hiv, hc₀⟩ := hv₀
-  rw [ite_pos' rfl, hiv, record_x0_self s hG.inv.x0] at hs₀
+  rw [ite_pos' rfl, hiv, record_x0_self s hG.inv.x0 hG.inv.ivEq] at hs₀
   have hw₀2 : w₀.2 = (s, c) := Prod.ext hs₀ hc₀
   rw [hiv, hw₀2, run_fQ_bind] at hz
-  simp only [mem_support_bind_iff] at hz
-  obtain ⟨w₁, hw₁, hz⟩ := hz
-  rw [run_fQ_bind] at hz
   simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff, simulateQ_pure,
     StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
   obtain ⟨w₂, hw₂, w₃, hw₃, rfl⟩ := hz
@@ -170,31 +169,15 @@ theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt St Root n)
     cases h : w₂.2.1.bad
     · rfl
     · exfalso
-      have hgf₁ := gfree_step g _ _ hG.gfree hw₁
-      have := tab_run_bad g _ w₂.2 (gfree_step g _ _ hgf₁ hw₂) h hw₃
+      have := tab_run_bad g _ w₂.2 (gfree_step g _ _ hG.gfree hw₂) h hw₃
       simp_all
-  have hb₁ : w₁.2.1.bad = false := by
-    cases h : w₁.2.1.bad
-    · rfl
-    · exfalso
-      have := tab_bad_mono g _ w₁.2.1 w₁.2.2 (gfree_step g _ _ hG.gfree hw₁) h hw₂
-      simp_all
-  -- the initial state's answer
-  have hG₁ := good_step g iv _ _ hG hw₁ hb₁
-  have hy₀ : w₁.2.1.y0 = some w₁.1 := by
-    rw [hG₁.inv.y0]
-    rcases tab_F D g _ s c hG.gfree hw₁ with ⟨ha, h⟩ | ⟨ha, h, -⟩
-    · rw [h, ha]
-    · rw [h, answer_record, ite_pos' rfl]
-  have hc₁ : w₁.2.2 = c := by
-    rcases tab_F D g _ s c hG.gfree hw₁ with ⟨-, h⟩ | ⟨-, h, -⟩ <;> rw [h]
   -- the first state of the chain
-  have hok := hG₁.inv.fst w₁.1 hy₀ r
-  obtain ⟨hG₂, hc₂, e₂, he₂, he₂y, he₂l⟩ := fstep_label g iv _ _ w₁.2.1 w₁.2.2 hG₁ hok
-    (fun ha ↦ progLbl_of (hok.1 ha) (fun hu ↦ hG₁.inv.used_zero hy₀ r hu ha)) hw₂ hb₂
+  have hok := hG.inv.fst r
+  obtain ⟨hG₂, hc₂, e₂, he₂, he₂y, he₂l⟩ := fstep_label g iv _ _ s c hG hok
+    (fun ha ↦ progLbl_of (hok.1 ha) (fun hu ↦ hG.inv.used_zero r hu ha)) hw₂ hb₂
   obtain ⟨hc₃, hlen, hval⟩ := chain_ok g iv r (n - 1) w₂.1 ⟨0, D.n_pos⟩
     (by simp; have := D.n_pos; omega) w₂.2.1 w₂.2.2 hG₂ ⟨e₂, he₂, he₂y, he₂l⟩ w₃ hw₃ hb₃
-  refine ⟨hc₃.trans (hc₂.trans hc₁), by simp [hlen]; have := D.n_pos; omega, fun i hi ↦ ?_⟩
+  refine ⟨hc₃.trans hc₂, by simp [hlen]; have := D.n_pos; omega, fun i hi ↦ ?_⟩
   cases i with
   | zero =>
     simp only [List.getElem_cons_zero]
@@ -206,4 +189,4 @@ theorem chal_ok (g : Tab Root Z n) (iv : Dg) (r : Root) (s : SimSt St Root n)
     simp only
     omega
 
-end Common.Duplex
+end Common.SeedDuplex

@@ -76,7 +76,7 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
     (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP ePa eD)) {K29 R : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop32" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
     (hm0 : 0 < depth / 2) {t : Tree} {rets : List E} (hn : t.name = "__loop6")
@@ -121,7 +121,7 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : d
     (hκ : 6 ≤ κ) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) {K29 R K8 : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop27" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop32" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
     (hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R))
     (hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R))
     (h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :

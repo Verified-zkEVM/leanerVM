@@ -81,7 +81,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: common
         run: |
-          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm Common.Duplex.duplex_le Common.Duplex.duplex_ge"
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge"
           { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -227,7 +227,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork LeanDa.codeBindingRpmFork_of_codeBindingRpm"
+          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork LeanDa.codeBindingRpmFork_of_codeBindingRpm"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do

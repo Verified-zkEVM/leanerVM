@@ -9,9 +9,9 @@ public import LeanDa.WithHash
 /-!
 # Code binding in the random-permutation model, through the duplex lemma
 
-The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenges' sponge
+The two-oracle code-binding game (`codeBindingExpRom2`: `H` a random oracle, the challenge's sponge
 over an independent random function `F`) is brought to the form of the duplex lemma
-(`Common.Duplex.duplex_le`): the adversary, then the challenges of its root, computed once
+(`Common.SeedDuplex.duplex_le`): the adversary, then the challenges of its root, computed once
 (`chalP daDuplex`), then the verification of the openings with `H` alone (`postV`). The verifier
 recomputes the same challenges for every opening; flipping no coins, they are recomputed from the
 cache (`Common.run_rerun`), so computing them once changes nothing (`prob_codeBindingPost`).
@@ -22,7 +22,8 @@ commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanD
 
 set_option linter.unusedSectionVars false
 
-open OracleComp OracleSpec Common Common.Duplex PqDas
+open OracleComp OracleSpec Common Common.SeedDuplex PqDas
+open Common.Duplex (GSpec hP gaP VSpec toV)
 open scoped ENNReal
 
 namespace LeanDa
@@ -35,8 +36,8 @@ abbrev hH (a : List UInt8) : OracleComp (unifSpec + roSpec (List UInt8) DigestBy
 
 section Post
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
 /-- The win of a code-binding adversary from its openings' verdicts and the argument's. -/
@@ -47,7 +48,7 @@ noncomputable def cbWin (out : (Common.DigestBytes × Proof) × List (Fin (r * 1
 
 /-- **The verification of the openings with the challenges `l`**, hashing with `H`. -/
 noncomputable def postV (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
-    (l : MembershipChallenges) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
+    (l : MembershipChallenge) : OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
   let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hH r out.1.1 o.1 o.2.1 o.2.2
   pure (cbWin r out vs (ps.verify crs ((), out.1.1, l) out.1.2))
 
@@ -58,7 +59,7 @@ theorem simulateQ_embH_hH (a : List UInt8) :
 
 theorem simulateQ_embH_postV (crs : Crs)
     (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (l :
-        MembershipChallenges) :
+        MembershipChallenge) :
     simulateQ (embH (Msg := List UInt8) (Dg := DigestBytes) (St := KState)) (postV r ps crs out l) =
       (do
         let vs ← out.2.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2
@@ -87,20 +88,20 @@ theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List 
     (l : List (Fin (r * 128) × Cell × CellOpening)) (c : Cache2) (hc : w.2 ≤ c) :
     (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
         (l.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2)).run c =ᵈ
-      (fun z ↦ (z.1.map (ps.verify crs ((), out.1.1, toChallenges w.1) out.1.2 && ·), z.2)) <$>
+      (fun z ↦ (z.1.map (ps.verify crs ((), out.1.1, toVec w.1) out.1.2 && ·), z.2)) <$>
         (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
           (l.mapM fun o ↦ verifyCellMWithHash hR r out.1.1 o.1 o.2.1 o.2.2)).run c := by
   induction l generalizing c with
   | nil => simp only [List.mapM_nil, simulateQ_pure, StateT.run_pure, map_pure, List.map_nil]; exact EvalDistEq.rfl
   | cons o l ih =>
     simp only [List.mapM_cons, verifyRpm, simulateQ_bind, StateT.run_bind, simulateQ_pure,
-      StateT.run_pure, membershipChallengesM_eq_chalP]
+      StateT.run_pure, membershipChallengePairM_eq_chalP, bind_map_left]
     rw [run_rerun _ (noCoins_chalP out.1.1) c₀ hw c hc, pure_bind]
     simp only [map_bind, bind_assoc, pure_bind, map_pure]
     refine EvalDistEq.bind_congr_of_support _ fun w₁ hw₁ ↦ ?_
     have hc1 := le_of_mem_support_run _ c hw₁
     have := ih w₁.2 (hc.trans hc1)
-    simp only [verifyRpm, membershipChallengesM_eq_chalP] at this
+    simp only [verifyRpm, membershipChallengePairM_eq_chalP, bind_map_left] at this
     refine (EvalDistEq.bind_left this _).trans ?_
     rw [bind_map_left]
     simp only [List.map_cons]
@@ -135,13 +136,14 @@ theorem prob_codeBindingPost (crs : Crs)
       simp [consistent_nil]
   · refine EvalDistEq.prEvent_eq ?_ _
     simp only [codeBindingPost, List.mapM_cons, verifyRpm, simulateQ_bind, StateT.run'_eq,
-      StateT.run_bind, simulateQ_pure, StateT.run_pure, membershipChallengesM_eq_chalP,
+      StateT.run_bind, simulateQ_pure, StateT.run_pure, membershipChallengePairM_eq_chalP,
+      bind_map_left,
       simulateQ_embH_postV, map_bind, bind_assoc, pure_bind, map_pure]
     refine EvalDistEq.bind_congr_of_support _ fun w hw ↦ ?_
     refine EvalDistEq.bind_congr_of_support _ fun w₁ hw₁ ↦ ?_
     have hc1 := le_of_mem_support_run _ _ hw₁
     have h := run_mapM_rerun r ps crs (com, o :: l) hw l w₁.2 hc1
-    simp only [verifyRpm, membershipChallengesM_eq_chalP] at h
+    simp only [verifyRpm, membershipChallengePairM_eq_chalP, bind_map_left] at h
     refine (EvalDistEq.bind_left h _).trans ?_
     rw [bind_map_left]
     refine EvalDistEq.bind_right _ fun z ↦ ?_
@@ -196,8 +198,8 @@ theorem isWeightBound_shadowImpl_f (t : (dSpec2 (List UInt8) DigestBytes KState)
 
 section CodeBinding
 
-variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenges → (Fin (r * 128) → Cell) → Bool}
-  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenges) (Fin (r * 128) → Cell) Crs
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs
       Proof rel)
 
 /-- **The simulated adversary calls `F` at most `Q` times** for every crs the setup can output,
@@ -224,7 +226,7 @@ random oracle `G` on `(root, j)`, the adversary's direct calls of `F` answered b
 lemma's simulator from `H` and `G` (`simImpl`), then the openings verified with `H` and the
 challenges `G (root, ·)`. -/
 noncomputable def cbIdealG (A : CodeBindingAdvB r Crs Proof) (crs : Crs) : ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 14).romImpl
+  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).romImpl
     ((simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
         advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init >>= fun out ↦
       readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
@@ -236,13 +238,13 @@ noncomputable def codeBindingExpG (A : CodeBindingAdvB r Crs Proof) : ProbComp B
 
 /-- **From the random-permutation model to the simulated world**: for an adversary whose game
 makes at most `Q` permutation calls, the RPM code-binding probability is at most the simulated
-one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 15` (the
-duplex lemma: collisions of the 576-bit capacity among at most `Q + 15` calls of `F`). -/
+one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 3` (the
+duplex lemma: collisions of the 576-bit capacity among at most `Q + 3` calls of `F`). -/
 theorem codeBindingExpRpm_le_G (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
       Pr{let b ← codeBindingExpG r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 +
-        ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
+        ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
   refine (leanDa_codeBinding_rpm r ps A Q hQ).1.trans ?_
   rw [add_right_comm]
   refine add_le_add ?_ le_rfl

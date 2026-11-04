@@ -138,7 +138,7 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 878 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 883 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
@@ -149,7 +149,7 @@ function and at the two largest. -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 878 := coreProgram_length
+example : coreProgram.length = 883 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
@@ -160,14 +160,14 @@ example : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core429 :=
-  Program.find?_of_indexOf? (j := 429) (by decide +kernel) rfl
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core440 :=
+  Program.find?_of_indexOf? (j := 440) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop418" = some Data.core877 :=
-  Program.find?_of_indexOf? (j := 877) (by decide +kernel) rfl
+example : coreProgram.find? "__loop419" = some Data.core882 :=
+  Program.find?_of_indexOf? (j := 882) (by decide +kernel) rfl
 
 example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core877.name = Data.f878.name := name_eq_compiled (j := 877) rfl rfl
+example : Data.core882.name = Data.f883.name := name_eq_compiled (j := 882) rfl rfl
 
 end LeanVMTests.Guest.CoreData

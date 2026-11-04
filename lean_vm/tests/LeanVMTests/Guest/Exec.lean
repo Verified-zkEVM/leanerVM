@@ -61,11 +61,11 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 `fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f322.name = "claim_list_last__L0" ∧ Data.f322.entryPc = 269652 := by
+theorem hash_name : Data.f324.name = "claim_list_last__L0" ∧ Data.f324.entryPc = 266792 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f322).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 269673 hashIns),
+theorem hash_shape : (exec F0 Data.f324).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 266813 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -73,7 +73,7 @@ theorem hash_shape : (exec F0 Data.f322).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600] the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 269652 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 266792 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
@@ -83,8 +83,8 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f322.entryPc + s.start = 269652 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 322) rfl)) hs
+  have hentry : Data.f324.entryPc + s.start = 266792 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 324) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun

@@ -79,14 +79,14 @@ theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredCla
     exact ⟨(Option.some.inj hb).symm, hc⟩
   · exact absurd hb (by simp)
 
-theorem find_l25 : coreProgram.find? "__loop24" = some (coreProgram.getD 374 default) :=
+theorem find_l25 : coreProgram.find? "__loop29" = some (coreProgram.getD 385 default) :=
   find_of_idx l25_idx (by rw [coreProgram_length]; omega)
-theorem find_l26 : coreProgram.find? "__loop25" = some (coreProgram.getD 375 default) :=
+theorem find_l26 : coreProgram.find? "__loop30" = some (coreProgram.getD 386 default) :=
   find_of_idx l26_idx (by rw [coreProgram_length]; omega)
-theorem find_l27 : coreProgram.find? "__loop26" = some (coreProgram.getD 377 default) :=
+theorem find_l27 : coreProgram.find? "__loop31" = some (coreProgram.getD 388 default) :=
   find_of_idx l27_idx (by rw [coreProgram_length]; omega)
 
-theorem l25_shape' : loopShapeF (coreProgram.getD 374 default) "__loop24" = true := by
+theorem l25_shape' : loopShapeF (coreProgram.getD 385 default) "__loop29" = true := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -102,7 +102,7 @@ variable {cpi cfresh ccarried dst : E} {cs : List ChildClaims} {h : BatchingHint
 /-- The absorbing rows (`__loop24`), from its guard's counter `1`. -/
 theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 374 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 385 default) (gen ^ c)
       (gen ^ cs.length) [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi] := by
   intro c hc
   obtain ⟨-, -, -, -, -, -, hpi, hfr, hca⟩ := kid_reads (hcw c hc)
@@ -115,7 +115,7 @@ theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 /-- The records of `bc_chain` (`__loop25`). -/
 theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 375 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 386 default) (gen ^ c)
       (gen ^ cs.length) [P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs] := by
   intro c hc
   obtain ⟨-, -, -, -, hfv, hcv, -, -, -⟩ := kid_reads (hcw c hc)
@@ -127,7 +127,7 @@ theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 /-- The weights (`__loop26`). -/
 theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hrl : h.sumcheckMessages.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 377 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 388 default) (gen ^ c)
       (gen ^ cs.length) [P.lf, P.lc, P.pt, P.chain, P.w, lamA cs] := by
   intro c hc
   have hptl : (aggRun cs h).1.1.length = 23 := by rw [aggRun, bsRun_len, hrl]
@@ -165,7 +165,7 @@ sumcheck's returns `aggOrc`'s. -/
 noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
     (cs : List ChildClaims) (h : BatchingHints) : Val :=
   B1.Val.ofArgs (ev rd (aggOrc P h (aggRun cs h)) [gen ^ m, cpi, cfresh, ccarried, dst]
-    (Fn.body Data.core29))
+    (Fn.body Data.core31))
 
 /-- **What `aggregate_claims`' honest valuation is**: its atoms hold, and its words. -/
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst : E) (P : AggPtrs)
@@ -235,11 +235,11 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
   let args : List E := [gen ^ cs.length, cpi, cfresh, ccarried, dst]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = aggσ rd cs.length cpi cfresh ccarried dst P cs h := ⟨_, rfl⟩
   rw [← hσ]
-  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body Data.core29)) := hσ
+  have hσ' : σ = B1.Val.ofArgs (ev rd w args (Fn.body Data.core31)) := hσ
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ']; rfl
-  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core29) args hchk
+  obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core31) args hchk
   rw [show args.length = 5 from rfl, ← hσ', hS] at hgs
-  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body Data.core29 := fun s hs => by
+  have hmemP : ∀ s ∈ aggP, s ∈ Fn.body Data.core31 := fun s hs => by
     rw [hbody]; exact List.mem_append_left _ hs
   have hg : ∀ a ∈ atomsIn aggP, Good rd aggStores w σ a := fun a ha =>
     hgs (.atom a) (hmemP _ (atom_mem_of_atomsIn ha))

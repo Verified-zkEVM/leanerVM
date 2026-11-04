@@ -16,36 +16,32 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 5. -/
-theorem w300_5 : shareWin 300 (snapsOf 300) 5 = true := by decide +kernel
+/-- `open_stacked__L9`, window 3. -/
+theorem w304_3 : shareWin 304 (snapsOf 304) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, once. -/
-theorem st301 : shareStatic 301 = true := by decide +kernel
+/-- `open_stacked__L9`, window 4. -/
+theorem w304_4 : shareWin 304 (snapsOf 304) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, window 0. -/
-theorem w301_0 : shareWin 301 (snapsOf 301) 0 = true := by decide +kernel
+/-- `open_stacked__L9`, window 5. -/
+theorem w304_5 : shareWin 304 (snapsOf 304) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, window 1. -/
-theorem w301_1 : shareWin 301 (snapsOf 301) 1 = true := by decide +kernel
+/-- `open_stacked__L10`, once. -/
+theorem st305 : shareStatic 305 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, window 2. -/
-theorem w301_2 : shareWin 301 (snapsOf 301) 2 = true := by decide +kernel
+/-- `open_stacked__L10`, window 0. -/
+theorem w305_0 : shareWin 305 (snapsOf 305) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, window 3. -/
-theorem w301_3 : shareWin 301 (snapsOf 301) 3 = true := by decide +kernel
+/-- `open_stacked__L10`, window 1. -/
+theorem w305_1 : shareWin 305 (snapsOf 305) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L8`, window 4. -/
-theorem w301_4 : shareWin 301 (snapsOf 301) 4 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `open_stacked__L9`, once. -/
-theorem st302 : shareStatic 302 = true := by decide +kernel
+/-- `open_stacked__L10`, window 2. -/
+theorem w305_2 : shareWin 305 (snapsOf 305) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -173,7 +173,7 @@ well below `2^22` steps, the budget is several times what the compiled decoder s
 the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
 trade-off.
 
-The literals (`5969`, `17734`, `12895`, `7188478`, `2935`, `2965`, `1584`, the `+ 39`, `+ 36`,
+The literals (`5969`, `17734`, `12888`, `7229368`, `2935`, `2965`, `1584`, the `+ 39`, `+ 36`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
@@ -227,13 +227,13 @@ def guestDecoderFrameLookupCountAtValidCounts : ℕ := 99702868
 
 /-- **An upper bound on the guest decoder's price** on a memory of `2^κ` words, the deployed guest
 program (`2^ℓ` instructions, `ℓ = 19`) and a run of `steps` steps: per step the replay and the
-filing of the state, then the guest's tables of preconditions (`12895`) and of entries
-(`7188478`), the address tables, the witness at a valid execution's counts and cursors, and its
+filing of the state, then the guest's tables of preconditions (`12888`) and of entries
+(`7229368`), the address tables, the witness at a valid execution's counts and cursors, and its
 frame lookups. -/
 def guestDecoderPrice (κ ℓ steps : ℕ) : ℕ :=
   (LeanVM.Cost.runnerStepPrice κ ℓ + 46 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
-    12895 + 7188478 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
+    12888 + 7229368 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
     guestDecoderFrameLookupCountAtValidCounts *
       guestDecoderFramePrice (guestDecoderEntryTableKeyExponent steps) + 39
 

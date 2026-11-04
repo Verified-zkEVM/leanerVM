@@ -31,11 +31,11 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (339 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (341 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 348 + (k - 9) = 339 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 350 + (k - 9) = 341 + k by omega] at this
 
 theorem storesOf_load : ∀ {c : ℕ} {ss : List Stmt} {a : Atom}, a ∈ storesOf c ss →
     ∃ d p o, a = .load d p o
@@ -104,11 +104,11 @@ theorem l17_block {x N chain entries cover base origin limit : E} {n : ℕ} {pre
     (hL : limit = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 338 default) x N [chain, entries, cover, base, origin, limit] := by
+    LoopBlock rd (coreProgram.getD 340 default) x N [chain, entries, cover, base, origin, limit] := by
   have hok := l17_ok
   have hcok := l17c_ok
   have hnb := l17_nb
-  set fn := coreProgram.getD 338 default
+  set fn := coreProgram.getD 340 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 8 fn.body with hSdef
   simp only [l17Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
