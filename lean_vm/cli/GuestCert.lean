@@ -1014,6 +1014,13 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     let direct := fs.zipIdx.filter fun (a, k) =>
       avail a k && (used.contains k || isConst a || (keysG a).any sel.contains)
     let need : Std.HashSet ℕ := direct.foldl (fun h (a, _) => (needsG a).foldl (·.insert ·) h) {}
+    -- a frame address is stepped from another (`Check.fpgChain`): the products under the cells of
+    -- later frame addresses, and theirs, down to a bounce or a constant
+    let mut chain : Std.HashSet ℕ := sel
+    for _ in [0:Check.fpgDepth + 2] do
+      chain := fs.foldl (fun h a => if (keysG a).any chain.contains then (needsG a).foldl (·.insert ·) h
+        else h) chain
+    let need := chain.fold (·.insert ·) need
     let hand := direct ++ fs.zipIdx.filter fun (a, k) => avail a k && (keysG a).any need.contains
     let (handed, seen) := (hand.toList.flatMap fun (a, _) => (keysG a).map (·, a)).foldl
       (fun (acc, seen) (k, a) => let key := s!"{k}{atomText a}"
@@ -1456,7 +1463,12 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
       | .rangeCheck x y _ _ k => cell k.idx == d && ((cell x.idx == a && cell y.idx == b) || (cell x.idx == b && cell y.idx == a))
       | .assertNe x i p => cell p.idx == d && ((cell x.idx == a && cell i.idx == b) || (cell x.idx == b && cell i.idx == a))
       | .frameAddr p run => cell p.idx == d &&
-          (match c.plumb.get? a, contentK c st b with
+          (let fa : Option Cpl.PC := match c.plumb.get? a with
+            | some (.fpg e) => some (.fpg e)
+            | _ => (bookAt st a).findSome? fun y => match y with
+              | .frameAddr p0 (r :: _) => if cell p0.idx == a then some (.fpg (cell r.idx)) else none
+              | _ => none
+           match fa, contentK c st b with
             | some (.fpg e1), some (k0, 0, 0) => match (if k0 == 1 then some 0 else c.pows.get? k0), run with
               | some e2, r :: _ => e1 + e2 == cell r.idx
               | _, _ => false

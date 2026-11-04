@@ -1,20 +1,24 @@
 /-
   LeanVM.Guest.B1.Eq.RsLoop
 
-  B1 for `__loop5`, the paired loop of `rs_eq_run`.
+  B1 for `__loop5`, the chunked loop of `rs_eq_run`, and `mul_range` loops whose body calls.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Eq.RsRows
 
 /-!
-# `__loop5` (`rs_eq_run`'s `mul_range` loop, G:898-911)
+# `__loop5` (`rs_eq_run`'s `mul_range` loop, lean_ethereum.py:1032-1034 at leanVM `c4f4bc92`)
 
-At `xp = g^h` the body reads `z[2h]`, `z[2h + 1]`, `point1[2h]`, `point1[2h + 1]` and, for every
-`k < 64`, the row word `w = chain[64h + k]`, storing `chain[64h + 64 + k] = w · (z0^(2^k) + p0) ·
-(z1^(2^k) + p1)` (`l6Blk k`, the `z` powers squared along `k`), then continues at `xp·g`
-(`loop6_step`).
+At `xq = g^t` the body calls `rs_eq_rows__L8` on the row `chain·g^(64 t)` and the coordinates
+from `z·g^(8 t)`, `p·g^(8 t)` (`L5Body`), then continues at `xq·g` (`loop5_sound`,
+`loop5_complete`).
+
+A loop whose body calls a function is not `loop_iff`'s (its body's meaning would depend on the
+depth); `loop_rel_iff` takes the body's meaning at the program's relation, a step of the loop
+at depth `d + 1` giving it through the callee's relation at depth `d`, and the converse from the
+relation itself (`rel_iff`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -24,223 +28,170 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The values of `z0^(2^k)` and `z1^(2^k)`. -/
-def l6z0 : ℕ → ℕ
-  | 0 => 8
-  | k + 1 => 24 + 7 * k
+/-! ## Loops whose body calls -/
 
-def l6z1 : ℕ → ℕ
-  | 0 => 9
-  | k + 1 => 25 + 7 * k
+/-- **A `mul_range` loop whose body calls**: as `loop_iff`, the step given at depth `d + 1` one
+way (`hsound`) and at the program's relation the other (`hcomp`). -/
+theorem loop_rel_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hsound : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
+      B x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (hcomp : ∀ x, B x → IsInK (x * gen + N) → (x * gen + N ≠ 0 → P.Rel rd f (x * gen :: ps) []) →
+      P.Rel rd f (x :: ps) [])
+    (k : ℕ) :
+    P.Rel rd f (gen ^ k :: ps) [] ↔
+      ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
+        ∀ j, k ≤ j → j < m → B (gen ^ j) := by
+  constructor
+  · rintro ⟨d, hd⟩
+    induction d generalizing k with
+    | zero => exact hd.elim
+    | succ d ih =>
+      obtain ⟨hB, -, hnext⟩ := hsound d _ hd
+      by_cases h0 : gen ^ k * gen + N = 0
+      · refine ⟨k + 1, by omega, (gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => by omega,
+          fun j h1 h2 => ?_⟩
+        rwa [show j = k by omega]
+      · have := hnext h0
+        rw [gen_pow_mul_gen] at this
+        obtain ⟨m, hm, hN, hfirst, hall⟩ := ih (k + 1) this
+        refine ⟨m, by omega, hN, fun j h1 h2 => ?_, fun j h1 h2 => ?_⟩
+        · rcases Nat.lt_or_ge (k + 1) j with h | h
+          · exact hfirst j h h2
+          · rw [show j = k + 1 by omega]
+            intro he
+            exact h0 ((gen_pow_add_eq_zero_iff k).mpr he.symm)
+        · rcases Nat.lt_or_ge k j with h | h
+          · exact hall j (by omega) h2
+          · rwa [show j = k by omega]
+  · rintro ⟨m, hkm, hN, hfirst, hall⟩
+    obtain ⟨t, rfl⟩ : ∃ t, m = k + 1 + t := ⟨m - k - 1, by omega⟩
+    have hK : ∀ j, IsInK (gen ^ j * gen + N) := fun j => by
+      rw [hN]
+      exact isInK_add (isInK_mul (gen_pow_isInK j) (by simpa using gen_pow_isInK 1)) (gen_pow_isInK _)
+    induction t generalizing k with
+    | zero =>
+      exact hcomp _ (hall k le_rfl (by omega)) (hK k)
+        (fun h => absurd ((gen_pow_add_eq_zero_iff k).mpr hN) h)
+    | succ t ih =>
+      refine hcomp _ (hall k le_rfl (by omega)) (hK k) (fun _ => ?_)
+      rw [gen_pow_mul_gen]
+      exact ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
+        (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
 
-/-- The row word read at `k`. -/
-def l6w : ℕ → ℕ
-  | 0 => 19
-  | k + 1 => 26 + 7 * k
+/-- **A guarded `mul_range` loop whose body calls** (`guarded_loop_iff`'s form). -/
+theorem guarded_loop_rel_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hsound : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] →
+      B x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (hcomp : ∀ x, B x → IsInK (x * gen + N) → (x * gen + N ≠ 0 → P.Rel rd f (x * gen :: ps) []) →
+      P.Rel rd f (x :: ps) []) :
+    (IsInK (1 + N) ∧ (1 + N ≠ 0 → P.Rel rd f (1 :: ps) [])) ↔
+      ∃ m < ordG, N = gen ^ m ∧ ∀ j < m, B (gen ^ j) := by
+  have hl := loop_rel_iff hsound hcomp 0
+  rw [pow_zero] at hl
+  constructor
+  · rintro ⟨hK, hrun⟩
+    by_cases h1 : 1 + N = 0
+    · refine ⟨0, by decide, ?_, fun j hj => absurd hj (Nat.not_lt_zero j)⟩
+      rw [pow_zero]; exact (e_add_eq_zero_iff.mp h1).symm
+    · obtain ⟨m, hm, hN, hfirst, hall⟩ := hl.mp (hrun h1)
+      refine ⟨m, ?_, hN, fun j hj => hall j (Nat.zero_le j) hj⟩
+      by_contra hge
+      rcases Nat.lt_or_ge ordG m with hgt | hle
+      · have : gen ^ (m - ordG) = N := by
+          obtain ⟨t, rfl⟩ : ∃ t, m = ordG + t := ⟨m - ordG, by omega⟩
+          rw [hN, pow_add, gen_pow_ordG, one_mul, Nat.add_sub_cancel_left]
+        exact hfirst (m - ordG) (Nat.sub_pos_of_lt hgt) (Nat.sub_lt (by omega) ordG_pos) this
+      · have hm' : m = ordG := by omega
+        rw [hm', gen_pow_ordG] at hN
+        exact h1 (by rw [hN]; exact e_add_self 1)
+  · rintro ⟨m, hm, hN, hall⟩
+    refine ⟨?_, fun h1 => ?_⟩
+    · rw [hN]
+      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
+    have hm0 : 0 < m := by
+      rcases Nat.eq_zero_or_pos m with h | h
+      · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
+      · exact h
+    exact hl.mpr ⟨m, hm0, hN, first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
 
-/-- The row word stored at `64 + k`. -/
-def l6o : ℕ → ℕ
-  | 0 => 23
-  | k + 1 => 30 + 7 * k
-
-/-- Coordinate `k` of the row. -/
-def l6Blk : ℕ → List Stmt
-  | 0 => [.atom (.load (.n 19) (.n 18) 0), .atom (.add (.n 20) (.n 8) (.n 10)),
-      .atom (.mul (.n 21) (.n 19) (.n 20)), .atom (.add (.n 22) (.n 9) (.n 11)),
-      .atom (.mul (.n 23) (.n 21) (.n 22)), .atom (.load (.n 23) (.n 18) 64)]
-  | k + 1 => [.atom (.mul (.n (24 + 7 * k)) (.n (l6z0 k)) (.n (l6z0 k))),
-      .atom (.mul (.n (25 + 7 * k)) (.n (l6z1 k)) (.n (l6z1 k))),
-      .atom (.load (.n (26 + 7 * k)) (.n 18) (k + 1)),
-      .atom (.add (.n (27 + 7 * k)) (.n (24 + 7 * k)) (.n 10)),
-      .atom (.mul (.n (28 + 7 * k)) (.n (26 + 7 * k)) (.n (27 + 7 * k))),
-      .atom (.add (.n (29 + 7 * k)) (.n (25 + 7 * k)) (.n 11)),
-      .atom (.mul (.n (30 + 7 * k)) (.n (28 + 7 * k)) (.n (29 + 7 * k))),
-      .atom (.load (.n (30 + 7 * k)) (.n 18) (65 + k))]
+/-! ## `__loop5` -/
 
 /-- The expansion of `__loop5`. -/
-def l6Body : List Stmt :=
-  [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 2) (.n 5)),
-    .atom (.mul (.n 7) (.n 3) (.n 5)), .atom (.load (.n 8) (.n 6) 0),
-    .atom (.load (.n 9) (.n 6) 1), .atom (.load (.n 10) (.n 7) 0),
-    .atom (.load (.n 11) (.n 7) 1), .atom (.mul (.n 12) (.n 0) (.n 0)),
-    .atom (.mul (.n 13) (.n 12) (.n 12)), .atom (.mul (.n 14) (.n 13) (.n 13)),
-    .atom (.mul (.n 15) (.n 14) (.n 14)), .atom (.mul (.n 16) (.n 15) (.n 15)),
-    .atom (.mul (.n 17) (.n 16) (.n 16)), .atom (.mul (.n 18) (.n 4) (.n 17))] ++
-  ((List.range 64).map l6Blk).flatten ++
-  [.atom (.const (.n 465) (word 2 0 0)), .atom (.mul (.n 466) (.n 0) (.n 465)),
-    .atom (.add (.n 467) (.n 466) (.n 1)), .atom (.const (.n 468) (word 2 0 0)),
-    .atom (.mul (.n 469) (.n 0) (.n 468)),
-    .callIf (.n 467) "__loop5" [.n 469, .n 1, .n 2, .n 3, .n 4], .ret []]
+def l5Body : List Stmt :=
+  [.atom (.mul (.n 5) (.n 0) (.n 0)), .atom (.mul (.n 6) (.n 5) (.n 5)),
+    .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 0) (.n 0)),
+    .atom (.mul (.n 9) (.n 8) (.n 8)), .atom (.mul (.n 10) (.n 9) (.n 9)),
+    .atom (.mul (.n 11) (.n 10) (.n 10)), .atom (.mul (.n 12) (.n 11) (.n 11)),
+    .atom (.mul (.n 13) (.n 12) (.n 12)), .atom (.mul (.n 14) (.n 2) (.n 13)),
+    .atom (.mul (.n 15) (.n 3) (.n 7)), .atom (.mul (.n 16) (.n 4) (.n 7)),
+    .call "rs_eq_rows__L8" [.n 14, .n 15, .n 16] [.n 17],
+    .atom (.const (.n 18) (word 2 0 0)), .atom (.mul (.n 19) (.n 0) (.n 18)),
+    .atom (.add (.n 20) (.n 19) (.n 1)), .atom (.const (.n 21) (word 2 0 0)),
+    .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) "__loop5" [.n 22, .n 1, .n 2, .n 3, .n 4],
+    .ret []]
 
-theorem core76_body : Fn.body Data.core79 = l6Body := stmtsEqb_sound (by decide +kernel)
+theorem core81_body : Fn.body Data.core81 = l5Body := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop6 : coreProgram.find? "__loop5" = some Data.core79 :=
-  Program.find?_of_indexOf? (j := 79) (by decide +kernel) rfl
+theorem find_loop5 : coreProgram.find? "__loop5" = some Data.core81 :=
+  Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl
 
-/-- What coordinate `k` asks. -/
-def L6Ok (rd : Reader) (σ : Val) : ℕ → Prop
-  | 0 => LoadHolds rd (σ (.n 18)) 0 (σ (.n 19)) ∧ σ (.n 20) = σ (.n 8) + σ (.n 10) ∧
-      σ (.n 21) = σ (.n 19) * σ (.n 20) ∧ σ (.n 22) = σ (.n 9) + σ (.n 11) ∧
-      σ (.n 23) = σ (.n 21) * σ (.n 22) ∧ LoadHolds rd (σ (.n 18)) 64 (σ (.n 23))
-  | k + 1 => σ (.n (24 + 7 * k)) = σ (.n (l6z0 k)) * σ (.n (l6z0 k)) ∧
-      σ (.n (25 + 7 * k)) = σ (.n (l6z1 k)) * σ (.n (l6z1 k)) ∧
-      LoadHolds rd (σ (.n 18)) (k + 1) (σ (.n (26 + 7 * k))) ∧
-      σ (.n (27 + 7 * k)) = σ (.n (24 + 7 * k)) + σ (.n 10) ∧
-      σ (.n (28 + 7 * k)) = σ (.n (26 + 7 * k)) * σ (.n (27 + 7 * k)) ∧
-      σ (.n (29 + 7 * k)) = σ (.n (25 + 7 * k)) + σ (.n 11) ∧
-      σ (.n (30 + 7 * k)) = σ (.n (28 + 7 * k)) * σ (.n (29 + 7 * k)) ∧
-      LoadHolds rd (σ (.n 18)) (65 + k) (σ (.n (30 + 7 * k)))
+/-- The loop's body at `x`: one row from `chain·x^64`, the coordinates from `z·x^8`, `p·x^8`. -/
+def L5Body (rd : Reader) (chain z p x : E) : Prop :=
+  ∃ r, coreProgram.Rel rd "rs_eq_rows__L8" [chain * x ^ 64, z * x ^ 8, p * x ^ 8] [r]
 
-theorem holds_l6Blk {C : CallRel} {rd : Reader} {σ : Val} (k : ℕ) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (l6Blk k) True kret ↔ L6Ok rd σ k := by
-  cases k <;> simp only [l6Blk, L6Ok, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
+theorem pow8_eq (x : E) : (x * x) * (x * x) * ((x * x) * (x * x)) = x ^ 8 := by ring
 
-/-- The loop's body at `x`: the two `z` and `point1` words at `x²`, and every coordinate `k` of
-the next row the row's word times the two factors. -/
-def Loop6Body (rd : Reader) (z p chain x : E) : Prop :=
-  ∃ z0 z1 q0 q1 : E, LoadHolds rd (z * (x * x)) 0 z0 ∧ LoadHolds rd (z * (x * x)) 1 z1 ∧
-    LoadHolds rd (p * (x * x)) 0 q0 ∧ LoadHolds rd (p * (x * x)) 1 q1 ∧
-    ∀ k < 64, ∃ w, LoadHolds rd (chain * x ^ 64) k w ∧
-      LoadHolds rd (chain * x ^ 64) (64 + k) (w * (z0 ^ 2 ^ k + q0) * (z1 ^ 2 ^ k + q1))
+theorem pow64_eq (x : E) :
+    let a := x * x; let b := a * a; let c := b * b; let d := c * c; let e := d * d; e * e = x ^ 64 := by
+  simp only; ring
 
-theorem l6_pow {σ : Val} {rd : Reader} (h : ∀ k < 64, L6Ok rd σ k) :
-    ∀ k < 64, σ (.n (l6z0 k)) = σ (.n 8) ^ 2 ^ k ∧ σ (.n (l6z1 k)) = σ (.n 9) ^ 2 ^ k
-  | 0, _ => by simp [l6z0, l6z1]
-  | k + 1, hk => by
-    obtain ⟨e0, e1, -⟩ := h (k + 1) hk
-    obtain ⟨i0, i1⟩ := l6_pow h k (by omega)
-    refine ⟨?_, ?_⟩
-    · rw [l6z0, e0, i0, ← pow_add, ← two_mul, pow_succ, Nat.mul_comm]
-    · rw [l6z1, e1, i1, ← pow_add, ← two_mul, pow_succ, Nat.mul_comm]
+/-- **`__loop5`, one step**, at depth `d + 1`. -/
+theorem loop5_sound (rd : Reader) (N chain z p : E) (d : ℕ) (x : E)
+    (h : coreProgram.relN rd (d + 1) "__loop5" (x :: [N, chain, z, p]) []) :
+    L5Body rd chain z p x ∧ IsInK (x * gen + N) ∧
+      (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop5" (x * gen :: [N, chain, z, p]) []) := by
+  rw [relN_succ_iff find_loop5, show Fn.params Data.core81 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+    core81_body, l5Body] at h
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen] at h
+  obtain ⟨σ, hp, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, hc, h18, h19, h20, h21,
+    h22, hK, hcall, -⟩ := h
+  simp only [List.cons.injEq] at hp
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, -⟩ := hp
+  have e7 : σ (.n 7) = σ (.n 0) ^ 8 := by rw [h7, h6, h5, pow8_eq]
+  have e13 : σ (.n 13) = σ (.n 0) ^ 64 := by
+    rw [h13, h12, h11, h10, h9, h8]; exact pow64_eq _
+  refine ⟨⟨σ (.n 17), ?_⟩, by rwa [h20, h19, h18] at hK, fun hne => ?_⟩
+  · rw [← e7, ← e13, ← h14, ← h15, ← h16]
+    exact relN_le_rel _ d _ _ _ hc
+  · have := hcall (by rwa [h20, h19, h18])
+    rwa [h22, h21] at this
 
-theorem x_pow_64 (x : E) : ((((((x * x) * (x * x)) * ((x * x) * (x * x))) *
-    (((x * x) * (x * x)) * ((x * x) * (x * x)))) * ((((x * x) * (x * x)) * ((x * x) * (x * x))) *
-    (((x * x) * (x * x)) * ((x * x) * (x * x))))) * (((((x * x) * (x * x)) * ((x * x) * (x * x))) *
-    (((x * x) * (x * x)) * ((x * x) * (x * x)))) * ((((x * x) * (x * x)) * ((x * x) * (x * x))) *
-    (((x * x) * (x * x)) * ((x * x) * (x * x)))))) = x ^ 64 := by ring
-
-/-- The honest values of `__loop5` at `x`, from the words of `Loop6Body`. -/
-def l6Vals (x N z p chain z0 z1 q0 q1 : E) (w : ℕ → E) (i : ℕ) : E :=
-  if i < 24 then
-    [x, N, z, p, chain, x * x, z * (x * x), p * (x * x), z0, z1, q0, q1, x ^ 2, x ^ 4, x ^ 8,
-      x ^ 16, x ^ 32, x ^ 64, chain * x ^ 64, w 0, z0 + q0, w 0 * (z0 + q0), z1 + q1,
-      w 0 * (z0 + q0) * (z1 + q1)].getD i 0
-  else if i < 465 then
-    let k := (i - 24) / 7 + 1
-    match (i - 24) % 7 with
-    | 0 => z0 ^ 2 ^ k
-    | 1 => z1 ^ 2 ^ k
-    | 2 => w k
-    | 3 => z0 ^ 2 ^ k + q0
-    | 4 => w k * (z0 ^ 2 ^ k + q0)
-    | 5 => z1 ^ 2 ^ k + q1
-    | _ => w k * (z0 ^ 2 ^ k + q0) * (z1 ^ 2 ^ k + q1)
-  else [gen, x * gen, x * gen + N, gen, x * gen].getD (i - 465) 0
-
-theorem ite_F {α : Type} {c : Prop} [Decidable c] {x y : α} (h : ¬c) : (if c then x else y) = y := by
-  simp [h]
-
-theorem ite_T {α : Type} {c : Prop} [Decidable c] {x y : α} (h : c) : (if c then x else y) = x := by
-  simp [h]
-
-/-- The honest values of coordinate `k + 1`. -/
-theorem l6Vals_blk (x N z p chain z0 z1 q0 q1 : E) (w : ℕ → E) (k : ℕ) (hk : k < 63) :
-    let v := l6Vals x N z p chain z0 z1 q0 q1 w
-    v (24 + 7 * k) = z0 ^ 2 ^ (k + 1) ∧ v (25 + 7 * k) = z1 ^ 2 ^ (k + 1) ∧
-      v (26 + 7 * k) = w (k + 1) ∧ v (27 + 7 * k) = z0 ^ 2 ^ (k + 1) + q0 ∧
-      v (28 + 7 * k) = w (k + 1) * (z0 ^ 2 ^ (k + 1) + q0) ∧
-      v (29 + 7 * k) = z1 ^ 2 ^ (k + 1) + q1 ∧
-      v (30 + 7 * k) = w (k + 1) * (z0 ^ 2 ^ (k + 1) + q0) * (z1 ^ 2 ^ (k + 1) + q1) := by
-  intro v
-  simp only [v, l6Vals]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [ite_F (by omega), ite_T (by omega)]
-  · rw [show (24 + 7 * k - 24) % 7 = 0 by omega, show (24 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (25 + 7 * k - 24) % 7 = 1 by omega, show (25 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (26 + 7 * k - 24) % 7 = 2 by omega, show (26 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (27 + 7 * k - 24) % 7 = 3 by omega, show (27 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (28 + 7 * k - 24) % 7 = 4 by omega, show (28 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (29 + 7 * k - 24) % 7 = 5 by omega, show (29 + 7 * k - 24) / 7 = k by omega]; rfl
-  · rw [show (30 + 7 * k - 24) % 7 = 6 by omega, show (30 + 7 * k - 24) / 7 = k by omega]; rfl
-
-/-- **`__loop5`, one step**: at depth `d + 1` its relation at `x` is the body at `x` and the
-conditional call at `x·g`. -/
-theorem loop6_step (rd : Reader) (N z p chain : E) (d : ℕ) (x : E) :
-    coreProgram.relN rd (d + 1) "__loop5" (x :: [N, z, p, chain]) [] ↔
-      Loop6Body rd z p chain x ∧ IsInK (x * gen + N) ∧
-        (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop5" (x * gen :: [N, z, p, chain]) []) := by
-  rw [relN_succ_iff find_loop6, show Fn.params Data.core79 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-    core76_body, l6Body]
-  simp only [holdsList_append, holdsList_range_flatten 64 l6Blk (fun k => by cases k <;> rfl),
-    holds_l6Blk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true,
-    word_gen]
-  constructor
-  · rintro ⟨σ, hp, h5, h6, h7, l8, l9, l10, l11, h12, h13, h14, h15, h16, h17, h18, hblk, h465,
-      h466, h467, h468, h469, hK, hcall⟩
-    simp only [List.cons.injEq] at hp
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, -⟩ := hp
-    have hx64 : σ (.n 17) = σ (.n 0) ^ 64 := by
-      rw [h17, h16, h15, h14, h13, h12, x_pow_64]
-    have hpw := l6_pow hblk
-    refine ⟨⟨σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), by rwa [h6, h5] at l8,
-      by rwa [h6, h5] at l9, by rwa [h7, h5] at l10, by rwa [h7, h5] at l11, fun k hk => ?_⟩,
-      by rwa [h467, h466, h465] at hK, fun hne => ?_⟩
-    · rw [← hx64, ← h18]
-      cases k with
-      | zero =>
-        obtain ⟨lw, e20, e21, e22, e23, lo⟩ := hblk 0 hk
-        refine ⟨σ (.n 19), lw, ?_⟩
-        rw [e23, e21, e20, e22] at lo
-        simpa using lo
-      | succ k =>
-        obtain ⟨-, -, lw, e27, e28, e29, e30, lo⟩ := hblk (k + 1) hk
-        obtain ⟨p0, p1⟩ := hpw (k + 1) hk
-        refine ⟨σ (.n (26 + 7 * k)), lw, ?_⟩
-        rw [e30, e28, e29, e27, show 24 + 7 * k = l6z0 (k + 1) from rfl,
-          show 25 + 7 * k = l6z1 (k + 1) from rfl, p0, p1, show 65 + k = 64 + (k + 1) by omega] at lo
-        exact lo
-    · have := hcall (by rwa [h467, h466, h465])
-      rwa [h469, h468] at this
-  · rintro ⟨⟨z0, z1, q0, q1, l8, l9, l10, l11, hrow⟩, hK, hcall⟩
-    choose! wf hwf using hrow
-    let σ : Val := fun v => l6Vals x N z p chain z0 z1 q0 q1 wf v.idx
-    have ev : ∀ i, σ (.n i) = l6Vals x N z p chain z0 z1 q0 q1 wf i := fun _ => rfl
-    have hz0 : ∀ k < 64, σ (.n (l6z0 k)) = z0 ^ 2 ^ k ∧ σ (.n (l6z1 k)) = z1 ^ 2 ^ k := by
-      intro k hk
-      cases k with
-      | zero => simp [ev, l6Vals, l6z0, l6z1]
-      | succ k =>
-        obtain ⟨a, b, -⟩ := l6Vals_blk x N z p chain z0 z1 q0 q1 wf k (by omega)
-        exact ⟨a, b⟩
-    refine ⟨σ, rfl, ?_⟩
-    simp only [ev]
-    refine ⟨by simp [l6Vals], by simp [l6Vals], by simp [l6Vals], by simpa [l6Vals] using l8,
-      by simpa [l6Vals] using l9, by simpa [l6Vals] using l10, by simpa [l6Vals] using l11,
-      by simp [l6Vals]; ring, by simp [l6Vals]; ring, by simp [l6Vals]; ring,
-      by simp [l6Vals]; ring, by simp [l6Vals]; ring, by simp [l6Vals]; ring, by simp [l6Vals],
-      fun k hk => ?_, by simp [l6Vals], by simp [l6Vals], by simp [l6Vals], by simp [l6Vals],
-      by simp [l6Vals], by simpa [l6Vals] using hK, fun hne => ?_⟩
-    · obtain ⟨lw, lo⟩ := hwf k hk
-      cases k with
-      | zero =>
-        simp only [L6Ok, ev]
-        refine ⟨by simpa [l6Vals] using lw, by simp [l6Vals], by simp [l6Vals], by simp [l6Vals],
-          by simp [l6Vals], by simpa [l6Vals] using lo⟩
-      | succ k =>
-        obtain ⟨a, b, c, d, e, f, g⟩ := l6Vals_blk x N z p chain z0 z1 q0 q1 wf k (by omega)
-        obtain ⟨i0, i1⟩ := hz0 k (by omega)
-        rw [ev] at i0 i1
-        simp only [L6Ok, ev]
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-        · rw [a, i0, ← pow_add, ← two_mul, pow_succ, Nat.mul_comm]
-        · rw [b, i1, ← pow_add, ← two_mul, pow_succ, Nat.mul_comm]
-        · rw [c]; simpa [l6Vals] using lw
-        · rw [d, a, show l6Vals x N z p chain z0 z1 q0 q1 wf 10 = q0 by simp [l6Vals]]
-        · rw [e, c, d]
-        · rw [f, b, show l6Vals x N z p chain z0 z1 q0 q1 wf 11 = q1 by simp [l6Vals]]
-        · rw [g, e, f]
-        · rw [g, show 65 + k = 64 + (k + 1) by omega]; simpa [l6Vals] using lo
-    · have := hcall (by simpa [l6Vals] using hne)
-      simpa [l6Vals] using this
+/-- **`__loop5`, one step back**: the body and the next step give the loop at `x`. -/
+theorem loop5_complete (rd : Reader) (N chain z p : E) (x : E) (hB : L5Body rd chain z p x)
+    (hK : IsInK (x * gen + N))
+    (hnext : x * gen + N ≠ 0 → coreProgram.Rel rd "__loop5" (x * gen :: [N, chain, z, p]) []) :
+    coreProgram.Rel rd "__loop5" (x :: [N, chain, z, p]) [] := by
+  obtain ⟨r, hr⟩ := hB
+  rw [rel_iff_sem find_loop5, show Fn.params Data.core81 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+    core81_body, l5Body]
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen]
+  let w : List E := [x, N, chain, z, p, x * x, (x * x) * (x * x), (x * x) * (x * x) * ((x * x) * (x * x)),
+    x * x, (x * x) * (x * x), ((x * x) * (x * x)) * ((x * x) * (x * x)),
+    (((x * x) * (x * x)) * ((x * x) * (x * x))) * (((x * x) * (x * x)) * ((x * x) * (x * x))),
+    x ^ 32, x ^ 64, chain * x ^ 64, z * x ^ 8, p * x ^ 8, r, gen, x * gen, x * gen + N, gen,
+    x * gen]
+  refine ⟨Val.ofArgs w, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, rfl, ?_, ?_, ?_, rfl, rfl,
+    rfl, rfl, rfl, ?_, ?_, trivial⟩
+  all_goals simp only [ofArgs_n, w, List.getD_cons_succ, List.getD_cons_zero]
+  · ring
+  · ring
+  · rw [pow8_eq]
+  · rw [pow8_eq]
+  · exact hr
+  · exact hK
+  · exact hnext
 
 end
 end LeanVM.Guest.B1

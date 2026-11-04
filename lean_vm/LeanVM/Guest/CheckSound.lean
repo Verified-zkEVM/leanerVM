@@ -360,6 +360,35 @@ theorem gpAt_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ
       rw [hh, imm_of_ofBits this]
     · simp at hp
 
+theorem fpgChain_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ : Trie Sym}
+    (hψ : EnvHolds L fp ψ) : ∀ {n x e : ℕ}, fpgChain F B ψ n x = some e →
+      L.read (fp * addressOfIndex x) = some (ofK (fp * addressOfIndex e))
+  | 0, x, e, h => fpgAt_sound hB hψ h
+  | n + 1, x, e, h => by
+    unfold fpgChain at h
+    split at h
+    · rename_i e' he
+      obtain rfl := Option.some.inj h
+      exact fpgAt_sound hB hψ he
+    · obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
+      have hh := hB x a ha
+      split at hp
+      · rename_i pc y z w
+        simp only [Bool.cond_eq_ite, beq_iff_eq] at hp
+        split_ifs at hp with hw
+        subst hw
+        split at hp
+        · rename_i e1 e2 h1 h2
+          obtain rfl := Option.some.inj hp
+          obtain ⟨vY, vZ, hy, hz, hx⟩ := hh
+          rw [fpgChain_sound hF hB hψ h1] at hy
+          rw [gpAt_sound hF hB hψ h2] at hz
+          obtain rfl := Option.some.inj hy
+          obtain rfl := Option.some.inj hz
+          rw [hx, ← ofK_mul, mul_assoc, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
+        · cases hp
+      · cases hp
+
 theorem runAt_sound {loc : Trie ℕ} : ∀ {base : ℕ} {vs : List Core.V}, runAt loc base vs = true →
     ∀ i (hi : i < vs.length), cellOf loc vs[i] = base + i
   | _, [], _, _, hi => absurd hi (Nat.not_lt_zero _)
@@ -387,7 +416,7 @@ theorem addrOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {
     split at hq
     · rename_i e1 e2 h1 h2
       obtain ⟨vX, vY, hx, hy, hz⟩ := hh
-      rw [fpgAt_sound hB hψ h1] at hx
+      rw [fpgChain_sound hF hB hψ h1] at hx
       rw [gpAt_sound hF hB hψ h2] at hy
       obtain rfl := Option.some.inj hx
       obtain rfl := Option.some.inj hy

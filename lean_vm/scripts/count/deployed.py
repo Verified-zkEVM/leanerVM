@@ -82,7 +82,7 @@ def numbers(g, certs):
         lp = lambda n: c[n][3][0]
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
-        jt = 4104 if lop == 'setConstant' else 0
+        jt = 17051 if lop == 'setConstant' else 0
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)

@@ -217,6 +217,26 @@ theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
     obtain rfl := Option.some.inj h.symm
     rw [imm_one, gpow_zero', ofK_one]
 
+theorem fpgAtC_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o e : ℕ}
+    (h : fpgAtC X st o = some e) : rdc L fp o = some (ofK (addressOfIndex (fp + e))) := by
+  unfold fpgAtC at h
+  split at h
+  · rename_i e' he
+    obtain rfl := Option.some.inj h
+    exact statAt_sound hX he
+  · obtain ⟨x, hx, hp⟩ := List.exists_of_findSome?_eq_some h
+    have hh := (hst o x hx).1
+    split at hp
+    · rename_i p r rs
+      simp only [Bool.cond_eq_ite, Nat.beq_eq_true_eq] at hp
+      split_ifs at hp with hpo
+      obtain rfl := Option.some.inj hp
+      subst hpo
+      obtain ⟨c0, rest, hr, h3⟩ := hh
+      obtain ⟨rfl, -⟩ := List.cons.inj hr
+      exact h3
+    · cases hp
+
 theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k2 : ℕ}
     (h : cplCstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OffsetInstruction.immediateWord
         k0 k1 k2) := by
@@ -429,7 +449,7 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
           rw [he] at hp
           obtain rfl := Nat.eq_of_beq_eq_true hp
           obtain ⟨rfl, -⟩ := List.cons.inj hr
-          have h1 := statAt_sound hX ha
+          have h1 := fpgAtC_sound hX hst.book ha
           have h2 := cplCstAt_sound hX hst.book hb
           rw [gpE_sound hX he] at h2
           unfold Guest.Holds

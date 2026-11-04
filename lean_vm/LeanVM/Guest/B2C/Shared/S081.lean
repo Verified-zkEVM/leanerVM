@@ -16,8 +16,63 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sp_wots`, window 17. -/
-theorem w21_17 : shareWin 21 (snapsOf 21) 17 = true := by decide +kernel
+/-- `da_verify_cell`, once. -/
+theorem st32 : shareStatic 32 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 0. -/
+theorem w32_0 : shareWin 32 (snapsOf 32) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 1. -/
+theorem w32_1 : shareWin 32 (snapsOf 32) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 2. -/
+theorem w32_2 : shareWin 32 (snapsOf 32) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 3. -/
+theorem w32_3 : shareWin 32 (snapsOf 32) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_vector`, once. -/
+theorem st33 : shareStatic 33 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_vector`, window 0. -/
+theorem w33_0 : shareWin 33 (snapsOf 33) 0 = true := by decide +kernel
+
+theorem ok33 : ShareOk 33 := ⟨st33, fun i hi ↦ by
+  have h : (snapsOf 33).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w33_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_column_offsets`, once. -/
+theorem st34 : shareStatic 34 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_column_offsets`, window 0. -/
+theorem w34_0 : shareWin 34 (snapsOf 34) 0 = true := by decide +kernel
+
+theorem ok34 : ShareOk 34 := ⟨st34, fun i hi ↦ by
+  have h : (snapsOf 34).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w34_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `aggregate_claims`, once. -/
+theorem st35 : shareStatic 35 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `aggregate_claims`, window 0. -/
+theorem w35_0 : shareWin 35 (snapsOf 35) 0 = true := by decide +kernel
+
+theorem ok35 : ShareOk 35 := ⟨st35, fun i hi ↦ by
+  have h : (snapsOf 35).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w35_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
