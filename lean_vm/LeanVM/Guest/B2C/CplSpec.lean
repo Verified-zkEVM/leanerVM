@@ -74,12 +74,12 @@ structure FrameHolds {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es
   /-- The table jumps' targets. -/
   arm : ∀ a ∈ (plumbOf j).arms, 2 ≤ a.2.1 → a.2.1 < fsN j →
     L.read (addressOfIndex (fp + a.2.1)) = some (armWord σ a.1 a.2.2)
-  /-- The chained `match`es' table targets, on the arm the path takes: the next selector's slot
-  of the next table holds a word of `K`, which the target cell holds. -/
+  /-- The chained `match`es' table targets, on the arm the path takes: the next selector picks a
+  slot of the next table, whose word the target cell holds. -/
   chain : ∀ ch ∈ (plumbOf j).chains, ∀ (k t : ℕ), ch.2.2.1[k]? = some t →
-    σ (V.n ch.2.1) = ofK (addressOfIndex k) → ∃ w, IsInK (σ (V.n ch.2.2.2.1)) ∧ IsInK w ∧
-      L.read ((σ (V.n ch.2.2.2.1)).limb 0 * addressOfIndex ch.2.2.2.2) = some w ∧
-      (2 ≤ t → t < fsN j → L.read (addressOfIndex (fp + t)) = some w)
+    σ (V.n ch.2.1) = ofK (addressOfIndex k) → ∃ e pc, σ (V.n ch.2.2.2.1) = ofK (addressOfIndex e) ∧
+      glob.jt.get (ch.2.2.2.2 + e) = some pc ∧
+      (2 ≤ t → t < fsN j → L.read (addressOfIndex (fp + t)) = some (armWord σ ch.2.2.2.1 ch.2.2.2.2))
   /-- One callee frame per call. -/
   len : kfps.length = (calls es).length
   /-- A call site's callee frame pointer and dispatch target. -/

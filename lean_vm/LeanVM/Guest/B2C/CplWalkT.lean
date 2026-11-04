@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplWalk
-public import LeanVM.Guest.JumpTable
 
 /-!
 # Table jumps along a path
@@ -30,52 +29,6 @@ open LeanVM.Guest.Check LeanVM.Guest.Memory
 @[expose] public section
 
 /-! ## The jump table -/
-
-/-- A slot of the jump table is one of `main`'s table cells. -/
-theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ tableCells := by
-  have he := JumpTable.allEntries_get JumpTable.jtOk (show Data.jtTrie.get s = some t from h)
-  rw [Nat.one_mul, Nat.add_zero] at he
-  unfold JumpTable.entryOk at he
-  rw [Bool.and_eq_true] at he
-  obtain ⟨hlt, he⟩ := he
-  have hlen : s - 404 < Data.f0.instructionCount := by simpa using hlt
-  obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
-  rw [hins] at he
-  simp only [Bool.and_eq_true, beq_iff_eq] at he
-  obtain ⟨⟨⟨rfl, -⟩, -⟩, -⟩ := he
-  exact ⟨_, hmem⟩
-
-/-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
-theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
-    (htab : ∀ q ∈ tableCells, L.read (addressOfIndex q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s =
-        some e) :
-    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧ s < 404 + 17051 := by
-  obtain ⟨w, hw⟩ := tbl_jt_mem h
-  have hs := tableCells_off hw
-  obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
-    ((List.find?_isSome (p := fun q : ℕ × E ↦ q.1 == s)).mpr ⟨_, hw, by simp⟩)
-  have hq1' : (q.1 == s) = true := List.find?_some (p := fun q : ℕ × E ↦ q.1 == s) hq
-  have hq1 : q.1 = s := beq_iff_eq.mp hq1'
-  have hr := htab q (List.mem_of_find?_eq_some hq)
-  rw [hq1, hjt s e h] at hr
-  refine ⟨?_, hs.2⟩
-  rw [hq]
-  exact congrArg some (Prod.ext hq1 (Option.some.inj hr).symm)
-
-/-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
-theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (addressOfIndex k))
-    (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (addressOfIndex e)))
-    (hlt : base + k < 404 + 17051) : armWord σ x base = ofK (addressOfIndex e) := by
-  unfold armWord
-  split
-  case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn
-  rename_i h
-  have hle : Nat.find h ≤ k := Nat.find_min' h ⟨by omega, hk⟩
-  have hsp := (Nat.find_spec h).2
-  have he : Nat.find h = k := gpow_injOn (by simp only [Set.mem_Iio]; omega)
-    (by simp only [Set.mem_Iio]; omega) (ofK_injective (hsp.symm.trans hk))
-  rw [he, hf]
-  rfl
 
 theorem tbl_tcOk {X : CX} (hG : X.G = glob) {base na nr : ℕ} :
     ∀ (fs : List String) (i : ℕ), tcOk X base na nr i fs = true →

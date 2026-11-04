@@ -45,15 +45,7 @@ theorem armsCheck_spec {q : ℕ → ℕ × ℕ × ℕ → Bool} : ∀ {l : List 
 /-- The large functions' temporaries, from the freshness certificates (`GuestFresh.Temps*`), by
 compiled function index (core index `+ 1`). -/
 def bigTemps : List (ℕ × List ℕ) :=
-  [(20, temps19), (21, temps20), (538, temps537), (666, temps665), (677, temps676), (688, temps687),
-   (699, temps698), (848, temps847), (856, temps855), (862, temps861), (868, temps867),
-   (874, temps873), (880, temps879), (886, temps885), (888, temps887), (890, temps889),
-   (894, temps893), (896, temps895), (898, temps897), (902, temps901), (906, temps905),
-   (908, temps907), (912, temps911), (914, temps913), (916, temps915), (918, temps917),
-   (919, temps918), (920, temps919), (921, temps920), (922, temps921), (923, temps922),
-   (924, temps923), (926, temps925), (928, temps927), (930, temps929), (932, temps931),
-   (933, temps932), (934, temps933), (935, temps934), (936, temps935), (937, temps936),
-   (939, temps938), (941, temps940), (943, temps942), (945, temps944), (947, temps946)]
+  [(20, temps19), (37, temps36), (928, temps927), (930, temps929), (933, temps932), (974, temps973), (975, temps974), (981, temps980), (982, temps981), (983, temps982), (984, temps983), (985, temps984), (986, temps985), (987, temps986), (988, temps987), (989, temps988), (990, temps989), (991, temps990)]
 
 /-- The entry of index `j`, if any. -/
 def tempsFind : List (ℕ × List ℕ) → ℕ → Option (List ℕ)
@@ -74,11 +66,7 @@ theorem bigTemps_ok :
     ∀ p ∈ bigTemps, (Stmt.tmpsList (coreOf p.1).body).map V.idx = p.2 := by
   rw [← List.forall_iff_forall_mem]
   simp only [bigTemps, List.Forall]
-  exact ⟨tmps19, tmps20, tmps537, tmps665, tmps676, tmps687, tmps698, tmps847, tmps855, tmps861,
-    tmps867, tmps873, tmps879, tmps885, tmps887, tmps889, tmps893, tmps895, tmps897, tmps901,
-    tmps905, tmps907, tmps911, tmps913, tmps915, tmps917, tmps918, tmps919, tmps920, tmps921,
-    tmps922, tmps923, tmps925, tmps927, tmps929, tmps931, tmps932, tmps933, tmps934, tmps935,
-    tmps936, tmps938, tmps940, tmps942, tmps944, tmps946⟩
+  exact ⟨tmps19, tmps36, tmps927, tmps929, tmps932, tmps973, tmps974, tmps980, tmps981, tmps982, tmps983, tmps984, tmps985, tmps986, tmps987, tmps988, tmps989, tmps990⟩
 
 /-- Compiled function `j`'s temporaries, by index. -/
 noncomputable def armTemps (j : ℕ) : List ℕ :=

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplSem
+public import LeanVM.Guest.JumpTable
 
 /-!
 # The walk along a path
@@ -451,6 +452,52 @@ theorem self_is (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {ft : Tgt} (
     exact H.ctx.fpOne hself
   · cases hself
 
+/-- A slot of the jump table is one of `main`'s table cells. -/
+theorem tbl_jt_mem {s t : ℕ} (h : glob.jt.get s = some t) : ∃ w, (s, w) ∈ tableCells := by
+  have he := JumpTable.allEntries_get JumpTable.jtOk (show Data.jtTrie.get s = some t from h)
+  rw [Nat.one_mul, Nat.add_zero] at he
+  unfold JumpTable.entryOk at he
+  rw [Bool.and_eq_true] at he
+  obtain ⟨hlt, he⟩ := he
+  have hlen : s - 404 < Data.f0.instructionCount := by simpa using hlt
+  obtain ⟨o, k0, k1, k2, hins, hmem⟩ := End.f0_instr hlen
+  rw [hins] at he
+  simp only [Bool.and_eq_true, beq_iff_eq] at he
+  obtain ⟨⟨⟨rfl, -⟩, -⟩, -⟩ := he
+  exact ⟨_, hmem⟩
+
+/-- **Slot `s` of the jump table**, holding `g^e`: the table cell found there. -/
+theorem tbl_slot {κ : ℕ} {L : MemoryImage κ} (hjt : JTHolds glob L)
+    (htab : ∀ q ∈ tableCells, L.read (addressOfIndex q.1) = some q.2) {s e : ℕ} (h : glob.jt.get s =
+        some e) :
+    (tableCells.find? fun q ↦ q.1 == s) = some (s, ofK (addressOfIndex e)) ∧ s < 404 + 17051 := by
+  obtain ⟨w, hw⟩ := tbl_jt_mem h
+  have hs := tableCells_off hw
+  obtain ⟨q, hq⟩ := Option.isSome_iff_exists.mp
+    ((List.find?_isSome (p := fun q : ℕ × E ↦ q.1 == s)).mpr ⟨_, hw, by simp⟩)
+  have hq1' : (q.1 == s) = true := List.find?_some (p := fun q : ℕ × E ↦ q.1 == s) hq
+  have hq1 : q.1 = s := beq_iff_eq.mp hq1'
+  have hr := htab q (List.mem_of_find?_eq_some hq)
+  rw [hq1, hjt s e h] at hr
+  refine ⟨?_, hs.2⟩
+  rw [hq]
+  exact congrArg some (Prod.ext hq1 (Option.some.inj hr).symm)
+
+/-- The table word `armWord` at the selector `g^k` is slot `base + k`'s. -/
+theorem tbl_armWord {σ : Val} {x base k e : ℕ} (hk : σ (V.n x) = ofK (addressOfIndex k))
+    (hf : (tableCells.find? fun q ↦ q.1 == base + k) = some (base + k, ofK (addressOfIndex e)))
+    (hlt : base + k < 404 + 17051) : armWord σ x base = ofK (addressOfIndex e) := by
+  unfold armWord
+  split
+  case isFalse hn => exact absurd ⟨k, by omega, hk⟩ hn
+  rename_i h
+  have hle : Nat.find h ≤ k := Nat.find_min' h ⟨by omega, hk⟩
+  have hsp := (Nat.find_spec h).2
+  have he : Nat.find h = k := gpow_injOn (by simp only [Set.mem_Iio]; omega)
+    (by simp only [Set.mem_Iio]; omega) (ofK_injective (hsp.symm.trans hk))
+  rw [he, hf]
+  rfl
+
 /-- **The table read an arm of a chained `match` sets up holds**, on the arm the path takes. -/
 theorem armTg_ok (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Registers K} {n : ℕ}
     {x : Opcode → ℕ} (hp : PosZ H st W0 n x) {v : V} {k m : ℕ} (hvn : v = V.n v.idx)
@@ -472,8 +519,10 @@ theorem armTg_ok (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {
   obtain ⟨rfl, rfl, rfl⟩ := hch2
   subst hch1
   have hkl : k < ts'.length := by rw [Nat.eq_of_beq_eq_true hl]; exact hkm
-  obtain ⟨w, hiy, hiw, hrd, hrt⟩ := H.frame.chain _ hmem k ts'[k] (List.getElem?_eq_getElem hkl)
+  obtain ⟨e, pc, hey, hslot, hrt⟩ := H.frame.chain _ hmem k ts'[k] (List.getElem?_eq_getElem hkl)
     (by rw [← hvn]; exact hk)
+  obtain ⟨hfind, hlt⟩ := tbl_slot H.jt H.tab hslot
+  have hw := tbl_armWord hey hfind hlt
   have hfr := inFrame_mem hin
   have hy := hfr _ List.mem_cons_self
   have ht := hfr _ (List.mem_cons_of_mem _ (List.getElem_mem hkl))
@@ -481,10 +530,14 @@ theorem armTg_ok (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {
   rw [List.mem_singleton] at hq
   subst hq
   rw [nth_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hkl, Option.getD_some]
-  refine ⟨σ (V.n y'), w, val_cell H.frame H.loc (hp.sel rfl hsel) hy.1 (H.fs ▸ hy.2), hiy, ?_, hiw, hrd⟩
-  have := hrt ht.1 (H.fs ▸ ht.2)
-  rw [gpow_addC] at this
-  exact this
+  refine ⟨σ (V.n y'), ofK (addressOfIndex pc), val_cell H.frame H.loc (hp.sel rfl hsel) hy.1 (H.fs ▸ hy.2),
+    by rw [hey]; exact isInK_ofK _, ?_, isInK_ofK _, ?_⟩
+  · have := hrt ht.1 (H.fs ▸ ht.2)
+    rw [gpow_addC, hw] at this
+    exact this
+  · show L.read ((σ (V.n y')).limb 0 * addressOfIndex b') = _
+    rw [hey, limb_ofK0, ← gpow_addC, Nat.add_comm e b']
+    exact H.jt _ _ hslot
 
 theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
   intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
