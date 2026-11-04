@@ -1,12 +1,12 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsData1
 
-  `verify_sig_lean_sphincs` in the guest's core IR agrees with the template `sBody` on statements 480 to 534.
+  `verify_sig_lean_sphincs` in the guest's core IR agrees with the template `sBody` on statements 1500 to 2999.
 -/
 
 module
 
-public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.Data.Core11
 public import LeanVM.Guest.B1.Sig.SphincsT
 import LeanVM.Guest.B1.Sig.Decide
 
@@ -17,7 +17,15 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem sBody_slice_480 : (Data.core21.body.drop 480).take 55 = (sBody.drop 480).take 55 := by
+theorem sBody_slice_1500 : (Data.core21.body.drop 1500).take 500 = (sBody.drop 1500).take 500 := by
+  decide +kernel
+
+open scoped Dec in
+theorem sBody_slice_2000 : (Data.core21.body.drop 2000).take 500 = (sBody.drop 2000).take 500 := by
+  decide +kernel
+
+open scoped Dec in
+theorem sBody_slice_2500 : (Data.core21.body.drop 2500).take 500 = (sBody.drop 2500).take 500 := by
   decide +kernel
 
 end
