@@ -317,6 +317,9 @@ structure WCtx where
   entry : ℕ
   na : ℕ
   main : Bool
+  /-- The cells the frame pointer is bounced through (`DEREF *(fp[h]) = fp`, `self_fp`): a
+  core load never reads through one. -/
+  bounces : Std.HashSet ℕ := {}
 
 abbrev WM := ReaderT WCtx (StateT WSt (Except String))
 
@@ -376,7 +379,9 @@ def find (p : Pos) (facts : Array Exec.Atom)
   let st ← get
   let use (k : ℕ) : WM Unit := modify fun st => { st with uses := st.uses.push (st.curTop, k) }
   for (ft, r, k) in cons do
-    if r.all fun (v, c) => st.loc.get? v == some c then use k; return (p, facts, ft, r)
+    if r.all fun (v, c) => st.loc.get? v == some c then
+      use k
+      return (p, facts, ft, r)
   let shared := cons.toList.reverse.find? fun (_, r, _) =>
     (r.filter fun (v, c) => st.loc.get? v != some c && !st.pend.contains v).length ≤ 1
   let mut q := p
@@ -391,7 +396,9 @@ def find (p : Pos) (facts : Array Exec.Atom)
       fs := fs'
       n := n + 1
       if let some r ← pred fs.back! then return (q, fs, fs.back!, r)
-  if let some (ft, r, k) := shared then use k; return (p, facts, ft, r)
+  if let some (ft, r, k) := shared then
+    use k
+    return (p, facts, ft, r)
   for (ft, r, k) in cons do
     if !st.used.contains (atomKey ft) then use k; return (p, facts, ft, r)
   match cons[0]? with
@@ -399,10 +406,13 @@ def find (p : Pos) (facts : Array Exec.Atom)
   | none =>
     let near := (facts.toList.drop (facts.size - 12)).map reprStr
     let s ← getSeg p.1
+    let tests ← (s.items.toList.drop p.2 |>.take 6).mapM fun
+      | .ins a | .fact a => do return reprStr (← pred a)
+      | _ => return "-"
     let ahead := (s.items.toList.drop p.2 |>.take 6).map fun
       | .ins a | .fact a => reprStr a
       | .branch oc od of _ => s!"branch {oc} {od} {of}"
-    throw s!"not found at {p} (of {s.items.size} items, then {ahead}); the facts before: {near}"
+    throw s!"not found at {p} ({cons.size} passed fit, {n} items looked at forward, fits {tests} {st.loc.toList.take 20}; of {s.items.size} items, then {ahead}); the facts before: {near}"
 
 def go (p : Pos) (facts : Array Exec.Atom) (pred : Exec.Atom → WM (Option (List (ℕ × ℕ)))) :
     WM (Pos × Array Exec.Atom) := do
@@ -437,7 +447,8 @@ def setPred (c : ℕ) (l : ℕ × ℕ × ℕ) (ft : Exec.Atom) : WM (Option (Lis
 
 def derefPred (off : ℕ) (p d : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
   match ft with
-  | .instr _ (.deref o1 o2 o3 .cell) => if o2 == off then unify [(p, o1), (d, o3)] else return none
+  | .instr _ (.deref o1 o2 o3 .cell) =>
+    if o2 == off && !(← read).bounces.contains o1 then unify [(p, o1), (d, o3)] else return none
   | _ => return none
 
 def copyPred (d x : ℕ) (ft : Exec.Atom) : WM (Option (List (ℕ × ℕ))) := do
@@ -489,6 +500,7 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
     go p facts (setPred c (1, 0, 0))
   | .rangeCheck x y t1 t2 k =>
     let (p, facts) ← go p facts (derefPred 0 (vi x) (vi t1))
+
     let (p, facts) ← go p facts (mulPred (vi k) (vi x) (vi y))
     go p facts (derefPred 0 (vi y) (vi t2))
   | .assertInK x y =>
@@ -640,7 +652,10 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
   let setCells := f.code.foldl (fun m ins => match ins with
     | .set o k0 k1 k2 => m.insert (k0, k1, k2) (o :: (m.get? (k0, k1, k2)).getD [])
     | _ => m) ({} : Std.HashMap (ℕ × ℕ × ℕ) (List ℕ))
-  let ctx : WCtx := ⟨segMap, setCells, f.entryPc, cf.params.length, main⟩
+  let bounces := f.code.foldl (fun m ins => match ins with
+    | .deref o1 _ _ .fp => m.insert o1
+    | _ => m) ({} : Std.HashSet ℕ)
+  let ctx : WCtx := ⟨segMap, setCells, f.entryPc, cf.params.length, main, bounces⟩
   let loc0 : Loc := (cf.params.zipIdx.map fun (v, i) => (vi v, 2 + i)).foldl
     (fun m (v, c) => m.insert v c) {}
   let init : WSt := { loc := loc0 }
@@ -2137,7 +2152,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     | _ => st) {}
   let st0 : Cpl.St := cf.params.foldl (fun st v => Cpl.nameV cell st v.idx) st00
   let (_, out) ← ((Cpl.block cf.body (0, 0) st0 (top := true)).run ctx).run {}
-  unless out.fails.isEmpty do throw s!"completeness: {out.fails.toList.take 5}"
+  unless out.fails.isEmpty do throw s!"completeness ({out.fails.size} fails): {out.fails.toList.take 12}"
   -- one site per key, its cells apart from the values and the fixed cells, and from each other
   let mut byKey : Std.HashMap (List ℕ × List ℕ) (ℕ × ℕ × Option ℕ) := {}
   let mut used : Std.HashSet ℕ := {}
