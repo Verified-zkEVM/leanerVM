@@ -31,14 +31,6 @@ variable {rd : Reader} {σ : Val}
 noncomputable def bitsOf (σ : Val) (bitBase n : Nat) : Nat :=
   bitsVal (fun j => decide (σ (.n (bitBase + j)) = 1)) n
 
-theorem word_two : word 2 0 0 = gen := by
-  simp only [word, gen, eOfNat, Value.ofBits_zero]
-  exact (ofK_eq_ofLimbs _).symm
-
-theorem word_eq_eOfNat (n : Nat) : word n 0 0 = eOfNat n := by
-  simp only [word, eOfNat, Value.ofBits_zero]
-  exact (ofK_eq_ofLimbs _).symm
-
 theorem bit_eOfNat {x : E} (h : IsBit x) : x = eOfNat (decide (x = 1)).toNat := by
   rcases isBit_cases h with h0 | h1
   · subst h0; simp [Value.eOfNat_zero]
