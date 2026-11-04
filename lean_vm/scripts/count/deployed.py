@@ -36,6 +36,15 @@ end LeanVM.Guest.Count
 '''
 
 
+def jt_sets(lv):
+    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`B2C/Defs.lean`)."""
+    import re
+    t = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
+    m = re.search(r'def jtSets \(op : Opcode\) : ℕ := if op = \.setConstant then (\d+) else 0', t)
+    assert m, 'B2C.jtSets not found'
+    return int(m.group(1))
+
+
 def numbers(g, certs):
     fsd = g.fs_words()
     w = g.words_certs()
@@ -82,6 +91,7 @@ def numbers(g, certs):
     words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1'), SK('__loop2'),
              SK('__loop3'), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
+    JT_SETS = jt_sets(g.lv)
     tbl = vscount.tables(g)
     _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
     for lop, P, k in OPS_:
@@ -90,7 +100,7 @@ def numbers(g, certs):
         lp = lambda n: c[n][3][0]
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
-        jt = 17051 if lop == 'setConstant' else 0
+        jt = JT_SETS if lop == 'setConstant' else 0
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
