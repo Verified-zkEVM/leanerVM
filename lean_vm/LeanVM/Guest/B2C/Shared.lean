@@ -674,6 +674,7 @@ public import LeanVM.Guest.B2C.Shared.S662
 public import LeanVM.Guest.B2C.Shared.S663
 public import LeanVM.Guest.B2C.Shared.S664
 public import LeanVM.Guest.B2C.Shared.S665
+public import LeanVM.Guest.B2C.Shared.S666
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -685,6 +686,14 @@ theorem ok1 : ShareOk 1 := ⟨st1, fun i hi ↦ by
   interval_cases i
   · exact w1_0
   · exact w1_1
+⟩
+
+theorem ok10 : ShareOk 10 := ⟨st10, fun i hi ↦ by
+  have h : (snapsOf 10).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w10_0
+  · exact w10_1
 ⟩
 
 theorem ok12 : ShareOk 12 := ⟨st12, fun i hi ↦ by
@@ -987,6 +996,15 @@ theorem ok90 : ShareOk 90 := ⟨st90, fun i hi ↦ by
   · exact w90_2
   · exact w90_3
   · exact w90_4
+⟩
+
+theorem ok91 : ShareOk 91 := ⟨st91, fun i hi ↦ by
+  have h : (snapsOf 91).length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w91_0
+  · exact w91_1
+  · exact w91_2
 ⟩
 
 theorem ok265 : ShareOk 265 := ⟨st265, fun i hi ↦ by

@@ -10,27 +10,27 @@ module
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F1_0
 public import LeanVM.Guest.Checked.F8_0
-public import LeanVM.Guest.Checked.F12_4
-public import LeanVM.Guest.Checked.F12_4
-public import LeanVM.Guest.Checked.F13_3
-public import LeanVM.Guest.Checked.F13_3
-public import LeanVM.Guest.Checked.F18_1
-public import LeanVM.Guest.Checked.F18_1
-public import LeanVM.Guest.Checked.F18_1
-public import LeanVM.Guest.Checked.F20_3
-public import LeanVM.Guest.Checked.F20_11
-public import LeanVM.Guest.Checked.F20_19
-public import LeanVM.Guest.Checked.F20_27
-public import LeanVM.Guest.Checked.F20_35
-public import LeanVM.Guest.Checked.F20_35
-public import LeanVM.Guest.Checked.F21_2
-public import LeanVM.Guest.Checked.F21_7
-public import LeanVM.Guest.Checked.F21_12
-public import LeanVM.Guest.Checked.F21_17
-public import LeanVM.Guest.Checked.F21_17
-public import LeanVM.Guest.Checked.F22_4
-public import LeanVM.Guest.Checked.F22_12
-public import LeanVM.Guest.Checked.F31_0
+public import LeanVM.Guest.Checked.F8_0
+public import LeanVM.Guest.Checked.F12_3
+public import LeanVM.Guest.Checked.F12_3
+public import LeanVM.Guest.Checked.F13_2
+public import LeanVM.Guest.Checked.F18_0
+public import LeanVM.Guest.Checked.F18_0
+public import LeanVM.Guest.Checked.F18_0
+public import LeanVM.Guest.Checked.F20_2
+public import LeanVM.Guest.Checked.F20_10
+public import LeanVM.Guest.Checked.F20_18
+public import LeanVM.Guest.Checked.F20_26
+public import LeanVM.Guest.Checked.F20_34
+public import LeanVM.Guest.Checked.F20_34
+public import LeanVM.Guest.Checked.F21_1
+public import LeanVM.Guest.Checked.F21_6
+public import LeanVM.Guest.Checked.F21_11
+public import LeanVM.Guest.Checked.F21_16
+public import LeanVM.Guest.Checked.F22_0
+public import LeanVM.Guest.Checked.F22_8
+public import LeanVM.Guest.Checked.F22_16
+public import LeanVM.Guest.Checked.F27_0
 
 namespace LeanVM.Guest.Checked
 
@@ -59,7 +59,12 @@ theorem plain8 : Plain 8 := plain_of_nil (by decide +kernel)
 
 theorem plain9 : Plain 9 := plain_of_nil (by decide +kernel)
 
-theorem plain10 : Plain 10 := plain_of_nil (by decide +kernel)
+theorem ok10 : CheckOk 10 := fun i hi ↦ by
+  have h : (certOf 10).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w10_0
+  · exact w10_1
 
 theorem plain11 : Plain 11 := plain_of_nil (by decide +kernel)
 

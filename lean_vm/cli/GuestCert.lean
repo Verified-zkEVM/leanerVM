@@ -806,6 +806,16 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
   m := m.insert "__loop4" [(0, [16])]
+  -- `verify_bus_gkr`'s radix-four layer loop, which dispatches `gkr_rounds` on the layer's parity:
+  -- `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]` (arguments 4, 0, 2, 3, 6)
+  let byName : Std.HashMap String Core.Fn := P.foldl (fun m f => m.insert f.name f) {}
+  for cf in P do
+    if cf.name == "verify_bus_gkr" then
+      for g in loopsOf cf.body do
+        let dispatchesRounds := ((byName.get? g).map fun l => l.body.any fun
+          | .dispatch _ (h :: _) _ _ => h.startsWith "gkr_rounds"
+          | _ => false).getD false
+        if dispatchesRounds then m := m.insert g [(tagGkr, [6, 2, 4, 5, 8])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
       m := m.insert cf.name [(walkTag (2 + base) odd d cd, [6, 8])]
@@ -860,21 +870,27 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
     out := out.push (i, lo, tu)
   return out.toList
 
-/-- The windows a walk function's top-level `match`es dispatch on, a load `L[w·g^i]` each: per
+/-- The windows a walk function's top-level `match`es (and, `dispatches`, `dispatch`es: `GkrPar`'s
+loop) dispatch on, a load `L[w·g^i]` each: per
 pointer `w`, `(statement of its first such match, statement after `w`'s definition, the triples
 (w, i, arms))`; a cut before the first match takes them as bounds on memory read
 (`Cut.knownIf`). -/
-def winObligations (body : List Core.Stmt) : List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
+def winObligations (body : List Core.Stmt) (dispatches : Bool := false) :
+    List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
   let loads : Std.HashMap ℕ (ℕ × ℕ) := body.foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
-    if let .match_ v arms := s then
+    let sel : Option (Core.V × ℕ) := match s with
+      | .match_ v arms => some (v, arms.length)
+      | .dispatch v fs _ _ => if dispatches then some (v, fs.length) else none
+      | _ => none
+    if let some (v, n) := sel then
       if let some (w, off) := loads.get? v.idx then
         match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
-        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, arms.length)])
-        | none => out := out.push (i, defAfter body w, [(w, off, arms.length)])
+        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
+        | none => out := out.push (i, defAfter body w, [(w, off, n)])
   return out.toList
 
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
@@ -1201,7 +1217,8 @@ def forcedOf (semMap : Std.HashMap String (List (ℕ × List ℕ))) (cf : Core.F
     (semsOf cf.body).map (fun (i, q) => (i, i, none3, none3, [(0, [cell q])])) ++
     (← callObligations semMap cf.body).map (fun (i, lo, tu) =>
       (i, lo, none3, none3, tu.map fun (t, vs) => (t, vs.map cell))) ++
-    (if walkFn then (winObligations cf.body).map fun (i, lo, ws) =>
+    (if walkFn then (winObligations cf.body ((semMap.getD cf.name []).any (·.1 == tagGkr))).map
+      fun (i, lo, ws) =>
       (i, lo, none3, ws.map (fun (w, o, n) => (cell w, o, n)), noneS) else [])
 
 /-- The functions whose windows take obligations (`forcedOf`), by index. -/

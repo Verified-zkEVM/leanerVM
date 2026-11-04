@@ -8,16 +8,19 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F510_0
-public import LeanVM.Guest.Checked.F510_0
-public import LeanVM.Guest.Checked.F510_0
-public import LeanVM.Guest.Checked.F523_0
-public import LeanVM.Guest.Checked.F523_0
-public import LeanVM.Guest.Checked.F527_0
-public import LeanVM.Guest.Checked.F534_0
-public import LeanVM.Guest.Checked.F539_0
-public import LeanVM.Guest.Checked.F539_0
-public import LeanVM.Guest.Checked.F545_0
+public import LeanVM.Guest.Checked.F504_0
+public import LeanVM.Guest.Checked.F511_0
+public import LeanVM.Guest.Checked.F511_0
+public import LeanVM.Guest.Checked.F517_0
+public import LeanVM.Guest.Checked.F524_1
+public import LeanVM.Guest.Checked.F524_1
+public import LeanVM.Guest.Checked.F524_1
+public import LeanVM.Guest.Checked.F528_1
+public import LeanVM.Guest.Checked.F536_0
+public import LeanVM.Guest.Checked.F536_0
+public import LeanVM.Guest.Checked.F540_1
+public import LeanVM.Guest.Checked.F540_1
+public import LeanVM.Guest.Checked.F547_0
 
 namespace LeanVM.Guest.Checked
 

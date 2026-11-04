@@ -21,13 +21,17 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   `WinWalk` on `[t, x, N]` (a deeper loop), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop), `2 + base`
   `OqMainWins` on `[t, N]` (the function's window pointers and iteration count).
 
-`walkSem t` is the relation of tag `t ≥ 2`, decoded by `walkKind`, `walkOdd`, `walkD`, `walkCd`.
-The certificates' generator (`cli/GuestCert.lean`) writes the tags.
+* `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
+  radix-four layer loop `__loop6` (`lean_ethereum.py:1855-1921` at `c4f4bc92`): the parity word
+  `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
+
+`walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
+`walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
 -/
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -52,6 +56,18 @@ def walkSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
   | 0 => B1.WinWalk rd (walkD t) (walkCd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
   | 1 => B1.WinWalk2 rd (walkD t) (walkCd t) (walkOdd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
   | k => B1.OqMainWins rd (walkD t) (walkCd t) (walkOdd t) (k - 2) (ws.getD 0 0) (ws.getD 1 0)
+
+/-- The tag of `GkrPar`, above every walk tag. -/
+def tagGkr : ℕ := 2 ^ 20
+
+/-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, the depth shift table, `g_bus_mu`
+and `k_mod_next`: `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word
+`layer[g^12]` of layer `x`, `layer = layers·(x²·depth_shift[g_bus_mu])^17` (`LAYER_SLOTS = 17`,
+`LAYER_PARITY = 12`), if read, is `g^e`, `e < 4`. -/
+def GkrPar (rd : Reader) (layers x shift gbm kmn : E) : Prop :=
+  (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
+    ∀ s, LoadHolds rd (shift * gbm) 0 s → ∀ p, LoadHolds rd (layers * (x * x * s) ^ 17) 12 p →
+      ∃ e < 4, p = ofK (addressOfIndex e)
 
 theorem walkTag_decode {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) :
     walkKind (walkTag kind odd d cd) = kind ∧ walkOdd (walkTag kind odd d cd) = odd ∧

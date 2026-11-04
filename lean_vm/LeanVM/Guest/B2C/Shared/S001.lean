@@ -62,10 +62,9 @@ set_option maxRecDepth 100000 in
 /-- `verify_bus_gkr`, window 0. -/
 theorem w10_0 : shareWin 10 (snapsOf 10) 0 = true := by decide +kernel
 
-theorem ok10 : ShareOk 10 := ⟨st10, fun i hi ↦ by
-  have h : (snapsOf 10).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w10_0⟩
+set_option maxRecDepth 100000 in
+/-- `verify_bus_gkr`, window 1. -/
+theorem w10_1 : shareWin 10 (snapsOf 10) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `shared_selector_tables`, once. -/
@@ -83,14 +82,6 @@ theorem ok11 : ShareOk 11 := ⟨st11, fun i hi ↦ by
 set_option maxRecDepth 100000 in
 /-- `verify_tables`, once. -/
 theorem st12 : shareStatic 12 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 0. -/
-theorem w12_0 : shareWin 12 (snapsOf 12) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_tables`, window 1. -/
-theorem w12_1 : shareWin 12 (snapsOf 12) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
