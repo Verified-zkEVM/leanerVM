@@ -51,11 +51,10 @@ def numbers(g, certs):
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
     v['ccm'] = sum(fs(n) for n in CCM)
-    # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`): the chain's records
-    # (`bigs + groups + 1`), the loop per `136` claims by the claims, the loop per `17` at most `7`
-    # times, its untaken frames and the last digests in the constant.
-    v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs('__loop15') + 7 * (KS + SK('__loop16'))
-                + fs('__loop16') + v['cl'])
+    # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
+    # loops' untaken frames and the last digests in the constant; per claim `13` words and a
+    # `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration per `17`.
+    v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs('__loop15') + fs('__loop16') + v['cl'])
     # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
     # iterations (each its frame, the column's and the weights' expansion's) and its untaken tail
     # call's frame, the padding loop's frame when it does not run; per row its region (641), its
@@ -72,14 +71,14 @@ def numbers(g, certs):
     monoC = (fs('child_claim_list_mono') + MONO_REC + fs('__loop19') + 7 * (MONO_REC + fs('__loop20'))
              + fs('__loop20') + v['ccm'])
     v['ccC'] = fs('child_claim_list_digest') + SB('list_split') + max(anyC, monoC)
-    v['clS'] = -(-(KS + SK('__loop15')) // 136)
+    v['clS'] = 1 + -(-SK('__loop15') // 136) + -(-SK('__loop16') // 17)
     v['ccS'] = max(-(-(KS + fs('__loop17')) // 136), -(-(MONO_REC + fs('__loop19')) // 136))
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
-    v['agA0'] = fs('aggregate_claims') + 85 + SB('batch_sumcheck__L23')
+    v['agA0'] = fs('aggregate_claims') + 108 + SB('batch_sumcheck__L23')
     v['agA1'] = 18 + SK('__loop33') + SK('__loop34') + SK('__loop35')
-    base = (fs('main') + 283 + fs('exponent_tables') + 68 + 2 * (v['clC'] + fs('claim_list_digest'))
+    base = (fs('main') + 283 + fs('exponent_tables') + 236 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
@@ -138,7 +137,10 @@ theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = %d := by decide +kernel
 
 /-- The children's claim lists' last digests' frames. -/
 theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
-''' % (v['cl'], v['ccl']))
+
+/-- The children's monotone claim lists' last digests' frames. -/
+theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by decide +kernel
+''' % (v['cl'], v['ccl'], v['ccm']))
     def thm(name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
         r = idx_rw(g, fs, sb, sk)
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
@@ -155,15 +157,17 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
-        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop15'],
+        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop15', '__loop16'],
             sb=['list_split']),
-        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'], fs=['child_claim_list_digest', '__loop16'],
+        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum', 'ccm_sum'],
+            fs=['child_claim_list_digest', 'child_claim_list_any', 'child_claim_list_mono', '__loop17', '__loop18',
+                '__loop19', '__loop20'],
             sb=['list_split']),
         thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop4']),
-        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15']),
+        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15', '__loop16']),
         thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
             fs=['__loop4'], sb=['statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop16']),
+        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17', '__loop19']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
         thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop33', '__loop34', '__loop35'])])

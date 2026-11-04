@@ -40,7 +40,7 @@ set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s words for a child at candidate `candidate μ r`** at the deployed instance:
 its frame `1390`, its buffers `9156`, `g_power_of_word` (`50`, twice), the two `log2_ceil` chains
 (`464`, `465`), `assert_canonical` (`10`, twice), `verify_bus_gkr` (`49403`), `verify_tables`
-(`59762`), `verify_keccak` (`87672`), `ring_switch_target` (`10606`), `certify_placement` (`2590`)
+(`59762`), `verify_keccak` (`85921`), `ring_switch_target` (`10606`), `certify_placement` (`2590`)
 and the terminal (`38888`), `260516` in all, and `open_stacked` at the candidate (`osC`). -/
 theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
     B1.VerifySub.vsBoundAt vsWords B1.VerifySub.vkBound μ r = 260516 + osC (candidate μ r) := by

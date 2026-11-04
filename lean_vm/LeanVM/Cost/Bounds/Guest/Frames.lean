@@ -94,7 +94,7 @@ omit hF in
 /-- `da_verify`'s frame (`daAtFrameC.lam0`), the valuation `dvWitNC` takes: its spec. -/
 theorem daFrame_runs (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args rets : List E) (v : V) :
     RunsApp P (.closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets])
-      [encodeValue v] (encodeValue (Vn 27 args rets v)) :=
+      [encodeValue v] (encodeValue (Vn 29 args rets v)) :=
   RunsApp.of_spec (Decoder.daAtFrameC.lam0.costSpec P hP Vn VnV hVn _ _ v)
 
 /-- `da_verify`'s frame (`daAtFrameC.lam0`): its price `F + 9`. -/
@@ -104,7 +104,7 @@ theorem daFrame_cost (hP : Includes P Decoder.daAtFrameC.lam0.costDeps) (args re
       [encodeValue v] ≤ F + 9 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
     Decoder.daAtFrameC.lam0.costEq P hP Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-  have := hF 27 args rets v (by norm_num) hlen; omega
+  have := hF 29 args rets v (by norm_num) hlen; omega
 
 /-- **A child's proof off its `verify_sub` frame** (`proofAtFrameC`), the readers' tables `Tb`
 given, the cursor's length at the frame at most `L`: `vsPiPrice R (F + 9) F C L + 13`. -/
@@ -142,13 +142,13 @@ theorem hintsAtFrame_cost (hP : Includes P Decoder.hintsAtFrameC.costDeps) {rd :
   rw [Decoder.hintsAtFrameC.costEq P hP rd rdV hrd Vn VnV hVn]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v]
-      (encodeValue (Vn 33 args [] v)) :=
+      (encodeValue (Vn 35 args [] v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.hintsAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v] ≤ F + 9 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
       Decoder.hintsAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-    have := hF 33 args [] v (by norm_num) (by simpa using hlen); omega
+    have := hF 35 args [] v (by norm_num) (by simpa using hlen); omega
   have := aggHints_cost P hσ hS hrd hR (by includes)
   omega
 
