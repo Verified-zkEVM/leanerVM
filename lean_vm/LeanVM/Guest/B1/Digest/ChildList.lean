@@ -9,6 +9,11 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ClaimList
+public import LeanVM.Guest.B1.Digest.ChildListAny0
+public import LeanVM.Guest.B1.Digest.ChildListAny1
+public import LeanVM.Guest.B1.Digest.ChildListAny2
+public import LeanVM.Guest.B1.Digest.ChildListAny3
+public import LeanVM.Guest.B1.Digest.ChildListLasts
 
 /-!
 # `child_claim_list_any`
@@ -30,18 +35,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-! ## One claim record -/
-
-/-- The bound of the first range check of `x`. -/
-def rcOf (atoms : List Atom) (x : V) : Option V :=
-  atoms.findSome? fun a => match a with
-    | .rangeCheck x' _ _ _ k => if x' = x then some k else none
-    | _ => none
-
-/-- The pointer and offset of the first load into `x`. -/
-def loadOf (atoms : List Atom) (x : V) : Option (V × ℕ) :=
-  atoms.findSome? fun a => match a with
-    | .load d p off => if d = x then some (p, off) else none
-    | _ => none
 
 theorem rcOf_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x k : V}
     (h : rcOf atoms x = some k) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
@@ -74,30 +67,6 @@ theorem monoPerm_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V} {l :
     (h : (monoOf atoms 40 x).isPerm l = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
     σ x = (l.map σ).prod := by
   rw [mono_sound hat 40 x, (List.isPerm_iff.mp h).map σ |>.prod_eq]
-
-/-- The values a claim record reads: the coverage region, the range check's bound `last`, the
-table, the first mark. -/
-structure ClaimVs where
-  region : V
-  last : V
-  entries : V
-  marks : V
-
-/-- **Claim `j`'s record**: its slot `o` range-checked against `last`, its mark (`marks`, or the
-previous claim's `prev · g`) loaded at `region · o`, its four cells loaded at `entries · o^4`. -/
-def claimOk (atoms : List Atom) (P : ClaimVs) (j : ℕ) (o mark prev : V) (cells : List V) : Bool :=
-  decide (rcOf atoms o = some P.last) &&
-  (if j = 0 then decide (mark = P.marks) else
-    (match mulOf atoms mark with
-     | some (m, c) => decide (m = prev) && atoms.any (isConstAt c 2 0)
-     | none => false)) &&
-  (match loadOf atoms mark with
-   | some (b, off) => off == 0 && (monoOf atoms 40 b).isPerm [P.region, o]
-   | none => false) &&
-  cells.length == 4 &&
-  (List.range 4).all fun c => match loadOf atoms (cells.getD c default) with
-    | some (p, off) => off == c && (monoOf atoms 40 p).isPerm (P.entries :: List.replicate 4 o)
-    | none => false
 
 /-- What a claim record establishes: the slot `e` below the log of `last · g`, the mark
 `marks · g^j` at `region · g^e`, the four cells at `entries · g^(4e)`. -/
@@ -164,38 +133,9 @@ theorem claimOk_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
 
 /-! ## The records' layout -/
 
-/-- Claim `j`'s slot value, the first at `o0`. -/
-def ccOV (o0 j : ℕ) : ℕ := if j = 0 then o0 else o0 + 12 + 14 * (j - 1)
-
-/-- Claim `j`'s mark value (the first: the marks argument `mk`). -/
-def ccMark (o0 : ℕ) (mk : V) (j : ℕ) : V := if j = 0 then mk else .n (ccOV o0 j + 5)
-
-/-- Claim `j`'s cell `c`. -/
-def ccCell (o0 j c : ℕ) : ℕ := if j = 0 then o0 + 8 + c else ccOV o0 j + 10 + c
-
-/-- Claim `j`'s four cells. -/
-def ccCells (o0 j : ℕ) : List V := (List.range 4).map fun c => .n (ccCell o0 j c)
-
-/-- Claim `j`'s first atom (its hint), the first at `p0`: eleven atoms for the first claim,
-thirteen for each other. -/
-def ccPos (p0 j : ℕ) : ℕ := if j = 0 then p0 else p0 + 11 + 13 * (j - 1)
-
-/-- Claim `j`'s atoms: a window of thirteen from its hint (the kernel checks a record against its
-window, not the whole body). -/
-def ccWin (atoms : List Atom) (p0 j : ℕ) : List Atom := (atoms.drop (ccPos p0 j)).take 13
-
 theorem ccWin_holds {rd : Reader} {σ : Val} {atoms : List Atom} (hat : ∀ a ∈ atoms, a.Holds rd σ)
     (p0 j : ℕ) : ∀ a ∈ ccWin atoms p0 j, a.Holds rd σ :=
   fun a ha => hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
-
-/-- The records of `n` claims, claim `j`'s atoms from `ccPos p0 j`. -/
-def recordsOk (atoms : List Atom) (P : ClaimVs) (o0 p0 n : ℕ) : Bool :=
-  (List.range n).all fun j => claimOk (ccWin atoms p0 j) P j (.n (ccOV o0 j)) (ccMark o0 P.marks j)
-    (ccMark o0 P.marks (j - 1)) (ccCells o0 j)
-
-/-- The message of `n` claims: their cells, in order. -/
-def ccMsg (o0 n : ℕ) : List (Option V) :=
-  (List.range (4 * n)).map fun i => some (.n (ccCell o0 (i / 4) (i % 4)))
 
 theorem records_marks {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom} {P : ClaimVs}
     {o0 p0 n : ℕ} (h : recordsOk atoms P o0 p0 n = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
@@ -306,40 +246,6 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 /-! ## `child_claim_list_last__L{k}` -/
 
-/-- The names of `child_claim_list_last`'s specializations, `k ≤ 16`. -/
-def cclNames : List String :=
-  ["child_claim_list_last__L0", "child_claim_list_last__L1", "child_claim_list_last__L2",
-   "child_claim_list_last__L3", "child_claim_list_last__L4", "child_claim_list_last__L5",
-   "child_claim_list_last__L6", "child_claim_list_last__L7", "child_claim_list_last__L8",
-   "child_claim_list_last__L9", "child_claim_list_last__L10", "child_claim_list_last__L11",
-   "child_claim_list_last__L12", "child_claim_list_last__L13", "child_claim_list_last__L14",
-   "child_claim_list_last__L15", "child_claim_list_last__L16"]
-
-/-- The state cells `child_claim_list_last__L{k}` loads. -/
-def cclSt (k : ℕ) : List V :=
-  (List.range 13).map fun c => V.n ((if k = 0 then 5 else 14 * k + 3) + c)
-
-/-- The record values of `child_claim_list_last__L{k}`'s arguments
-`[state, entries, region, marks, last]`. -/
-def cclP : ClaimVs := ⟨.n 2, .n 4, .n 1, .n 3⟩
-
-/-- The chain of `child_claim_list_last__L{k}`. -/
-def cclSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨ccMsg 5 k, 64 * k, true, some (cclSt k), keccakBlocks atoms⟩
-
-/-- `child_claim_list_last__L{k}`'s body: `k` records, the chain over their cells from the state
-at its first argument. -/
-def cclOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4]) &&
-  match splitBody f.body with
-  | some (atoms, [r0, r1]) =>
-    (cclSpec k atoms).check atoms && retOk atoms (cclSpec k atoms) r0 r1 &&
-      recordsOk atoms cclP 5 0 k && stLoadsOk atoms (V.n 0) (cclSt k) 0
-  | _ => false
-
-set_option maxRecDepth 100000 in
-theorem ccl_all : ∀ k < 17, cclOk k (coreProgram.getD (352 + k) default) = true := by
-  decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (352 + k) := by
@@ -386,41 +292,29 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
 
 /-! ## The frame loops of child claims: `m` claims a frame -/
 
-/-- The state cells a frame loop loads, from `.n st0`. -/
-def anySt (st0 : ℕ) : List V := (List.range 13).map fun c => V.n (st0 + c)
-
-/-- The record values of the frame loops `[x, N, chain, entries, region, base, last]`, the marks
-at `.n mk`. -/
-def anyP (mk : ℕ) : ClaimVs := ⟨.n 4, .n 6, .n 3, .n mk⟩
-
-/-- The chain of a frame loop of `m` claims. -/
-def anySpec (m o0 st0 : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨ccMsg o0 m, 0, false, some (anySt st0), keccakBlocks atoms⟩
-
-/-- **A frame loop's body**: `m` records with the marks `base · x^m` (`.n mk`), the state at
-`chain · x^13` (`.n 12`), the next at `chain · x^13 · g^13`. -/
-def anyOk (fn : Fn) (f : String) (m o0 p0 mk st0 : ℕ) : Bool :=
-  loopShape fn f && decide (fn.params.length = 7) &&
-    (anySpec m o0 st0 (loopAtoms fn)).check (loopAtoms fn) &&
-    stLoadsOk (loopAtoms fn) (V.n 12) (anySt st0) 0 &&
-    recordsOk (loopAtoms fn) (anyP mk) o0 p0 m &&
-    stLoadsOk (loopAtoms fn) (V.n 12)
-      ((List.range 13).map ((anySpec m o0 st0 (loopAtoms fn)).outV
-        ((anySpec m o0 st0 (loopAtoms fn)).nb - 1))) 13 &&
-    monoIs (loopAtoms fn) (V.n 12) (V.n 2) (V.n 0) 13 &&
-    monoIs (loopAtoms fn) (V.n mk) (V.n 5) (V.n 0) m
-
 -- `__loop17`: 136 claims a frame, 64 blocks.
 set_option maxRecDepth 100000 in
-theorem any136_ok : anyOk (coreProgram.getD 350 default) "__loop17" 136 22 15 21 1924 = true := by
+theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 350 default))).nb = 64 := by
   decide +kernel
+
+-- its head here, its sixteen windows in `ChildListAny{q}`.
+set_option maxRecDepth 100000 in
+theorem any136_head : anyHead (coreProgram.getD 350 default) "__loop17" 136 22 21 1924 = true := by
+  decide +kernel
+
+theorem any136_ok : anyOk (coreProgram.getD 350 default) "__loop17" 136 22 15 21 1924 = true := by
+  have hw : ∀ i < 16, anyWin i = true := by
+    intro i hi
+    interval_cases i
+    exacts [anyWin_0, anyWin_1, anyWin_2, anyWin_3, anyWin_4, anyWin_5, anyWin_6, anyWin_7,
+      anyWin_8, anyWin_9, anyWin_10, anyWin_11, anyWin_12, anyWin_13, anyWin_14, anyWin_15]
+  simp only [anyWin, any136Spec, any136Atoms, Bool.and_eq_true] at hw
+  exact anyOk_of_parts (w := 4) (W := 16) (v := 9) (U := 16) any136_head (by rw [any136_nb])
+    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
 theorem any136_idx : coreProgram.indexOf? "__loop17" = some 350 := by decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 350 default))).nb = 64 := by
-  decide +kernel
 
 -- `__loop18`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in

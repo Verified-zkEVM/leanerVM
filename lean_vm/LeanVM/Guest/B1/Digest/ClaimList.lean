@@ -7,7 +7,10 @@
 
 module
 
-public import LeanVM.Guest.B1.Digest.Steps
+public import LeanVM.Guest.B1.Digest.ClaimListBig0
+public import LeanVM.Guest.B1.Digest.ClaimListBig1
+public import LeanVM.Guest.B1.Digest.ClaimListBig2
+public import LeanVM.Guest.B1.Digest.ClaimListBig3
 
 /-!
 # `claim_list_digest`
@@ -31,33 +34,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-! ## `claim_list_last__L{k}` -/
-
-/-- The names of `claim_list_last`'s specializations, `k ≤ 16`. -/
-def clNames : List String :=
-  ["claim_list_last__L0", "claim_list_last__L1", "claim_list_last__L2", "claim_list_last__L3",
-   "claim_list_last__L4", "claim_list_last__L5", "claim_list_last__L6", "claim_list_last__L7",
-   "claim_list_last__L8", "claim_list_last__L9", "claim_list_last__L10", "claim_list_last__L11",
-   "claim_list_last__L12", "claim_list_last__L13", "claim_list_last__L14", "claim_list_last__L15",
-   "claim_list_last__L16"]
-
-/-- The state cells `claim_list_last__L{k}` loads. -/
-def clSt (k : ℕ) : List V := (List.range 13).map fun c => V.n (2 + 4 * k + c)
-
-/-- The chain of `claim_list_last__L{k}`: `4k` cells loaded as `.n 2 …`, `64k` bytes, from the
-state loaded as `clSt k`. -/
-def clSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range (4 * k)).map (fun i => some (V.n (i + 2))), 64 * k, true, some (clSt k),
-    keccakBlocks atoms⟩
-
-/-- `claim_list_last__L{k}`'s body is the chain over the cells at its second argument from the
-state at its first. -/
-def clOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1]) &&
-  match splitBody f.body with
-  | some (atoms, [r0, r1]) =>
-    (clSpec k atoms).check atoms && retOk atoms (clSpec k atoms) r0 r1 &&
-      loadsOk atoms (V.n 1) (clSpec k atoms).msg && stLoadsOk atoms (V.n 0) (clSt k) 0
-  | _ => false
 
 set_option maxRecDepth 100000 in
 theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (333 + k) default) = true := by
@@ -104,28 +80,6 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
 
 /-! ## The frame loops: `m` claims a frame -/
 
-/-- The state cells a frame loop loads, from `.n st0`. -/
-def grpSt (st0 : ℕ) : List V := (List.range 13).map fun c => V.n (st0 + c)
-
-/-- The chain of a frame loop of `m` claims: `4m` cells loaded from `.n c0`, `final=0`, from the
-state `grpSt st0`. -/
-def grpSpec (m c0 st0 : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range (4 * m)).map (fun i => some (V.n (i + c0))), 0, false, some (grpSt st0),
-    keccakBlocks atoms⟩
-
-/-- **A frame loop's body**: the state at `chain · x^13` (`.n 9`), the `4m` cells at
-`entries · x^(4m)` (`.n ep`), the next state at `chain · x^13 · g^13`. -/
-def grpOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
-  loopShape fn f && decide (fn.params.length = 4) &&
-    (grpSpec m c0 st0 (loopAtoms fn)).check (loopAtoms fn) &&
-    stLoadsOk (loopAtoms fn) (V.n 9) (grpSt st0) 0 &&
-    loadsOk (loopAtoms fn) (V.n ep) (grpSpec m c0 st0 (loopAtoms fn)).msg &&
-    stLoadsOk (loopAtoms fn) (V.n 9)
-      ((List.range 13).map ((grpSpec m c0 st0 (loopAtoms fn)).outV
-        ((grpSpec m c0 st0 (loopAtoms fn)).nb - 1))) 13 &&
-    monoIs (loopAtoms fn) (V.n 9) (V.n 2) (V.n 0) 13 &&
-    monoIs (loopAtoms fn) (V.n ep) (V.n 3) (V.n 0) (4 * m)
-
 /-- **One frame of `m` claims, `nb` blocks**: from the state at `chain · x^13` after whole blocks
 `pre`, the `4m` canonical cells at `entries · x^(4m)` absorbed, the state written at
 `chain · x^13 · g^13`. -/
@@ -161,17 +115,29 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
   rw [hnb] at hS'
   refine ⟨_, by simp [ChainSpec.vals, grpSpec], by rwa [← hE], hcan, by rwa [← h9]⟩
 
--- The big frame loop `__loop15` (136 claims, 64 blocks).
 set_option maxRecDepth 100000 in
-theorem big_ok : grpOk (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 331 default))).nb = 64 := by
   decide +kernel
+
+-- The big frame loop `__loop15` (136 claims, 64 blocks): its head here, its sixteen windows in
+-- `ClaimListBig{q}`.
+set_option maxRecDepth 100000 in
+theorem big_head : grpHead (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+  decide +kernel
+
+theorem big_ok : grpOk (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+  have hw : ∀ i < 16, bigWin i = true := by
+    intro i hi
+    interval_cases i
+    exacts [bigWin_0, bigWin_1, bigWin_2, bigWin_3, bigWin_4, bigWin_5, bigWin_6, bigWin_7,
+      bigWin_8, bigWin_9, bigWin_10, bigWin_11, bigWin_12, bigWin_13, bigWin_14, bigWin_15]
+  simp only [bigWin, bigSpec, bigAtoms, Bool.and_eq_true] at hw
+  exact grpOk_of_parts (w := 4) (W := 16) (v := 34) (U := 16) big_head (by rw [big_nb])
+    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
 theorem big_idx : coreProgram.indexOf? "__loop15" = some 331 := by decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 331 default))).nb = 64 := by
-  decide +kernel
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
 set_option maxRecDepth 100000 in
@@ -184,10 +150,6 @@ theorem grp_idx : coreProgram.indexOf? "__loop16" = some 332 := by decide +kerne
 set_option maxRecDepth 100000 in
 theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 332 default))).nb = 8 := by
   decide +kernel
-
-/-- `x`'s factors are `base`, `e` times `y` and `e'` times `y'`. -/
-def mono2Is (atoms : List Atom) (x base y : V) (e : ℕ) (y' : V) (e' : ℕ) : Bool :=
-  (monoOf atoms 40 x).isPerm (base :: List.replicate e y ++ List.replicate e' y')
 
 theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}
     (h : mono2Is atoms x base y e y' e' = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
