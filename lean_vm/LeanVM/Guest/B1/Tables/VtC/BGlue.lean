@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BGlue
 
-  Tools for the bus sides' statements between the selectors: a slice whose statements beyond
-  evaluation are listed, a constant's word, a stream read (`fs_next`).
+  Tools for the bus sides' statements between the selectors: a constant's word, a stream read
+  (`fs_next`).
 -/
 
 module
@@ -13,8 +13,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 /-!
 # Between the selectors
 
-`vtB_blockR`: a slice of `vtPre` holds when the statements evaluation alone does not settle
-(`rest`, the kernel computing the filter) do. `vtB_const`: a constant's word. `vtc_fsNext`: a
+`vtB_const`: a constant's word. `vtc_fsNext`: a
 stream read `fsNextT` of a word the memory holds holds, its word the memory's and its cells
 `fsPackVals`.
 -/
@@ -28,22 +27,6 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protoco
 
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
-
-theorem vtB_memAt (n : ℕ) (s : Stmt) (heq : tbStmtsEqb [s] ((vtAt n).take 1) = true) :
-    s ∈ vtPre :=
-  vt_mem_slice (blk := [_]) (vtPre_drop n ▸ heq) List.mem_cons_self
-
-/-- **A slice holds** when its statements beyond evaluation do. -/
-theorem vtB_blockR (hl : args.length = 20) (a len : ℕ) (rest : List Stmt)
-    (hrest : tbStmtsEqb (((vtAt a).take len).filter (fun s ↦ !autoB s)) rest = true)
-    (h : ∀ s ∈ rest, s ∈ vtPre → VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) :
-    ∀ s ∈ (vtPre.drop a).take len, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
-  rw [← vtPre_drop] at hrest
-  intro s hs
-  have hm : s ∈ vtPre := List.mem_of_mem_drop (List.mem_of_mem_take hs)
-  cases ha : autoB s
-  · exact h s (tbStmtsEqb_sound hrest ▸ List.mem_filter.mpr ⟨hs, by simp [ha]⟩) hm
-  · exact vsh_auto hl hm ha
 
 /-- A constant's word. -/
 theorem vtB_const (hl : args.length = 20) {d : V} {c : E} (hm : Stmt.atom (.const d c) ∈ vtPre) :
