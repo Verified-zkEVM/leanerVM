@@ -79,7 +79,7 @@ theorem rs_callSF (σ : Val) : (rsA ++ rsT).filterMap (Stmt.callSF σ) =
 theorem rs_allocSz : (rsA ++ rsT).filterMap Main.Stmt.allocSz = [] := rfl
 
 theorem rs_walk (σ : Val) :
-    walk σ (Fn.body Data.core5) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 319] := by
+    walk σ (Fn.body Data.core6) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 319] := by
   rw [core5_body, rsBody_split]
   exact walk_flat σ _ _ rs_flat (rs_dispOk σ)
 
