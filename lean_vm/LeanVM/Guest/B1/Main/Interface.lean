@@ -38,7 +38,8 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
   (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`), the DA digest at the slot `da_pick` of `da_digests`,
   the deferred claim at `defer_stmt`;
 * `decWit σ rd wX wS wD wV wA`: the children (child `c`'s statement read off the coverage table:
-  its claims are the slots whose marks run from its base `written[c]`, `kidStmt`; its fresh
+  its claims are the slots whose marks lie in its segment from its base `written[c]`, by slot
+  for a gap-walked list, else by mark, `kidStmt`; its fresh
   claim at `child_fresh · g^(24c)`; its proof `wV` at its `verify_sub` call's words); the raw
   signatures, the `j`-th leanXMSS one at the slot holding the mark `j` (`slotOf`), the `j`-th
   leanSPHINCS one at the slot holding `n_raw_x + j`, each with its slot's claim (`rawXmss`,
@@ -208,18 +209,26 @@ the node's own at `k = n_children`). -/
 noncomputable def daDigestAt (rd : Reader) (σ : Val) (k : ℕ) : Digest :=
   digestOfCells (cellAt rd (σ (.n 334)) (2 * k)) (cellAt rd (σ (.n 334)) (2 * k + 1))
 
+/-- **A child's list's slots** in the region `[lo, lo + len)` of the coverage table, its marks in
+`[a, b)`: when as many of the region's slots hold the list's first mark `a` as hold a mark of
+`[a, b)` (a gap-walked list, `child_claim_list_mono`, marks every claim with `a`; or a list of at
+most one claim), the slots in slot order (the gap walk's slots strictly increase); else the slot
+of each mark `a + j` in turn (`child_claim_list_any` marks claim `j` with `a + j`). -/
+noncomputable def kidSlots (rd : Reader) (σ : Val) (lo len a b : ℕ) : List ℕ :=
+  if segCount rd σ lo len a (a + 1) = segCount rd σ lo len a b then
+    (List.range len).filter fun s => decide (a ≤ markOf rd σ (lo + s) ∧ markOf rd σ (lo + s) < b)
+  else (List.range (segCount rd σ lo len a b)).map fun j => slotOf rd σ lo len (a + j)
+
 /-- **Child `c`'s statement**, read off the coverage table: of the marks in its segment
-`[written[c], written[c + 1])`, the leanXMSS region's in order, then the leanSPHINCS region's,
-each the claim of its slot; its DA digest at `da_digests · g^(2c)`; its deferred claim at
-`child_carried · g^(24c)`. -/
+`[written[c], written[c + 1])`, the leanXMSS region's list, then the leanSPHINCS region's from
+the mark after the leanXMSS ones (`kidSlots`), each the claim of its slot; its DA digest at
+`da_digests · g^(2c)`; its deferred claim at `child_carried · g^(24c)`. -/
 noncomputable def kidStmt (rd : Reader) (σ : Val) (c : ℕ) : NodeStatement :=
   let a := countOf rd σ c
   let b := countOf rd σ (c + 1)
   let nx := segCount rd σ 0 (lxSlots σ) a b
-  let ns := segCount rd σ (lxSlots σ) (lsSlots σ) a b
-  ⟨⟨(List.range nx).map fun j => xmssAt rd (σ (.n 52)) (slotOf rd σ 0 (lxSlots σ) (a + j)),
-    (List.range ns).map fun j => sphincsAt rd (σ (.n 55)) (slotOf rd σ (lxSlots σ) (lsSlots σ)
-      (a + nx + j)),
+  ⟨⟨(kidSlots rd σ 0 (lxSlots σ) a b).map (xmssAt rd (σ (.n 52))),
+    (kidSlots rd σ (lxSlots σ) (lsSlots σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
    deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)⟩
 

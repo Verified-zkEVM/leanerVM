@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssData13
 
-  `verify_lean_xmss` in the guest's core IR agrees with the template `xBody` on statements 565 to 576.
+  `verify_lean_xmss` in the guest's core IR agrees with the template `xBody` on statements 594 to 608.
 -/
 
 module
@@ -17,7 +17,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem xBody_slice_565 : (Data.core19.body.drop 565).take 12 = (xBody.drop 565).take 12 := by
+theorem xBody_slice_594 : (Data.core19.body.drop 594).take 15 = (xBody.drop 594).take 15 := by
   decide +kernel
 
 end

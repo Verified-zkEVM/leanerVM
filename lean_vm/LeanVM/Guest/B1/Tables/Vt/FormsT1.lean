@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Vt.FormsVal
+public import LeanVM.Guest.B1.Tables.Vt.FormsDiff
+public import LeanVM.Guest.B1.Tables.Vt.PullSels
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 
 namespace LeanVM.Guest.B1.Tables
@@ -19,686 +20,504 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 set_option maxRecDepth 10000 in
 theorem vtB01_0 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6618) = σ (.n 3130) * vtBlockVal (σ (.n 15)) W ev
+    σ (.n 3214) = σ (.n 981) * vtBlockVal (σ (.n 14)) W ev
       [[([], 1)], [([0], 2)], [([1], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 5875 [
-    .atom (.load (.n 6608) (.n 14) 0),
-    .atom (.const (.n 6609) (word 2 0 0)),
-    .atom (.mul (.n 6610) (.n 6609) (.n 6401)),
-    .atom (.load (.n 6611) (.n 14) 1),
-    .atom (.mul (.n 6612) (.n 6611) (.n 6610)),
-    .atom (.add (.n 6613) (.n 6608) (.n 6612)),
-    .atom (.load (.n 6614) (.n 14) 2),
-    .atom (.mul (.n 6615) (.n 6614) (.n 6425)),
-    .atom (.add (.n 6616) (.n 6613) (.n 6615)),
-    .atom (.add (.n 6617) (.n 15) (.n 6616)),
-    .atom (.mul (.n 6618) (.n 3130) (.n 6617))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3147 [
+    .atom (.load (.n 3204) (.n 13) 0),
+    .atom (.const (.n 3205) (word 2 0 0)),
+    .atom (.mul (.n 3206) (.n 3205) (.n 2997)),
+    .atom (.load (.n 3207) (.n 13) 1),
+    .atom (.mul (.n 3208) (.n 3207) (.n 3206)),
+    .atom (.add (.n 3209) (.n 3204) (.n 3208)),
+    .atom (.load (.n 3210) (.n 13) 2),
+    .atom (.mul (.n 3211) (.n 3210) (.n 3021)),
+    .atom (.add (.n 3212) (.n 3209) (.n 3211)),
+    .atom (.add (.n 3213) (.n 14) (.n 3212)),
+    .atom (.mul (.n 3214) (.n 981) (.n 3213))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a5875, a5876, a5877, a5878, a5879, a5880, a5881, a5882, a5883, a5884, a5885, -⟩ := hs
-  have e5875 := tb_loadHolds_unique a5875 (hw 0 (by norm_num))
-  have e5878 := tb_loadHolds_unique a5878 (hw 1 (by norm_num))
-  have e5881 := tb_loadHolds_unique a5881 (hw 2 (by norm_num))
-  have v6401 : σ (.n 6401) = ev 0 := by
-    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2.1
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have hB : σ (.n 6617) = vtBlockVal (σ (.n 15)) W ev [[([], 1)], [([0], 2)], [([1], 1)]] := by
-    simp only [v6425, v6401, a5884, a5883, a5882, e5881, a5880, a5879, e5878, a5877, a5876, e5875]
+  obtain ⟨a3147, a3148, a3149, a3150, a3151, a3152, a3153, a3154, a3155, a3156, a3157, -⟩ := hs
+  have e3147 := tb_loadHolds_unique a3147 (hw 0 (by norm_num))
+  have e3150 := tb_loadHolds_unique a3150 (hw 1 (by norm_num))
+  have e3153 := tb_loadHolds_unique a3153 (hw 2 (by norm_num))
+  have v2997 : σ (.n 2997) = ev 0 := by
+    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2
+  have v3021 : σ (.n 3021) = ev 1 := by
+    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2
+  have hB : σ (.n 3213) = vtBlockVal (σ (.n 14)) W ev [[([], 1)], [([0], 2)], [([1], 1)]] := by
+    simp only [v3021, v2997, a3156, a3155, a3154, e3153, a3152, a3151, e3150, a3149, a3148, e3147]
     simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
     ring
-  rw [a5885, hB]
+  rw [a3157, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtB01_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6653) = σ (.n 6618) + σ (.n 3149) * vtBlockVal (σ (.n 15)) W ev
+    σ (.n 3249) = σ (.n 3214) + σ (.n 990) * vtBlockVal (σ (.n 14)) W ev
       [[([], 4)], [([0], 1)], [([14], 2)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
-  obtain ⟨_, hs⟩ := h.slice 5886 [
-    .atom (.load (.n 6619) (.n 14) 0),
-    .atom (.const (.n 6620) (word 4 0 0)),
-    .atom (.mul (.n 6621) (.n 6619) (.n 6620)),
-    .atom (.load (.n 6622) (.n 14) 1),
-    .atom (.mul (.n 6623) (.n 6622) (.n 6401)),
-    .atom (.add (.n 6624) (.n 6621) (.n 6623)),
-    .atom (.const (.n 6625) (word 2 0 0)),
-    .atom (.mul (.n 6626) (.n 6625) (.n 6607)),
-    .atom (.load (.n 6627) (.n 14) 2),
-    .atom (.mul (.n 6628) (.n 6627) (.n 6626)),
-    .atom (.add (.n 6629) (.n 6624) (.n 6628)),
-    .atom (.load (.n 6630) (.n 14) 3),
-    .atom (.const (.n 6631) (word 2 0 0)),
-    .atom (.mul (.n 6632) (.n 6630) (.n 6631)),
-    .atom (.add (.n 6633) (.n 6629) (.n 6632)),
-    .atom (.load (.n 6634) (.n 14) 4),
-    .atom (.mul (.n 6635) (.n 6634) (.n 6436)),
-    .atom (.add (.n 6636) (.n 6633) (.n 6635)),
-    .atom (.load (.n 6637) (.n 14) 5),
-    .atom (.mul (.n 6638) (.n 6637) (.n 6447)),
-    .atom (.add (.n 6639) (.n 6636) (.n 6638)),
-    .atom (.load (.n 6640) (.n 14) 6),
-    .atom (.mul (.n 6641) (.n 6640) (.n 6458)),
-    .atom (.add (.n 6642) (.n 6639) (.n 6641)),
-    .atom (.load (.n 6643) (.n 14) 7),
-    .atom (.const (.n 6644) (word 0 0 0)),
-    .atom (.mul (.n 6645) (.n 6643) (.n 6644)),
-    .atom (.add (.n 6646) (.n 6642) (.n 6645)),
-    .atom (.load (.n 6647) (.n 14) 8),
-    .atom (.const (.n 6648) (word 0 0 0)),
-    .atom (.mul (.n 6649) (.n 6647) (.n 6648)),
-    .atom (.add (.n 6650) (.n 6646) (.n 6649)),
-    .atom (.add (.n 6651) (.n 15) (.n 6650)),
-    .atom (.mul (.n 6652) (.n 3149) (.n 6651)),
-    .atom (.add (.n 6653) (.n 6618) (.n 6652))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3158 [
+    .atom (.load (.n 3215) (.n 13) 0),
+    .atom (.const (.n 3216) (word 4 0 0)),
+    .atom (.mul (.n 3217) (.n 3215) (.n 3216)),
+    .atom (.load (.n 3218) (.n 13) 1),
+    .atom (.mul (.n 3219) (.n 3218) (.n 2997)),
+    .atom (.add (.n 3220) (.n 3217) (.n 3219)),
+    .atom (.const (.n 3221) (word 2 0 0)),
+    .atom (.mul (.n 3222) (.n 3221) (.n 3203)),
+    .atom (.load (.n 3223) (.n 13) 2),
+    .atom (.mul (.n 3224) (.n 3223) (.n 3222)),
+    .atom (.add (.n 3225) (.n 3220) (.n 3224)),
+    .atom (.load (.n 3226) (.n 13) 3),
+    .atom (.const (.n 3227) (word 2 0 0)),
+    .atom (.mul (.n 3228) (.n 3226) (.n 3227)),
+    .atom (.add (.n 3229) (.n 3225) (.n 3228)),
+    .atom (.load (.n 3230) (.n 13) 4),
+    .atom (.mul (.n 3231) (.n 3230) (.n 3032)),
+    .atom (.add (.n 3232) (.n 3229) (.n 3231)),
+    .atom (.load (.n 3233) (.n 13) 5),
+    .atom (.mul (.n 3234) (.n 3233) (.n 3043)),
+    .atom (.add (.n 3235) (.n 3232) (.n 3234)),
+    .atom (.load (.n 3236) (.n 13) 6),
+    .atom (.mul (.n 3237) (.n 3236) (.n 3054)),
+    .atom (.add (.n 3238) (.n 3235) (.n 3237)),
+    .atom (.load (.n 3239) (.n 13) 7),
+    .atom (.const (.n 3240) (word 0 0 0)),
+    .atom (.mul (.n 3241) (.n 3239) (.n 3240)),
+    .atom (.add (.n 3242) (.n 3238) (.n 3241)),
+    .atom (.load (.n 3243) (.n 13) 8),
+    .atom (.const (.n 3244) (word 0 0 0)),
+    .atom (.mul (.n 3245) (.n 3243) (.n 3244)),
+    .atom (.add (.n 3246) (.n 3242) (.n 3245)),
+    .atom (.add (.n 3247) (.n 14) (.n 3246)),
+    .atom (.mul (.n 3248) (.n 990) (.n 3247)),
+    .atom (.add (.n 3249) (.n 3214) (.n 3248))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a5886, a5887, a5888, a5889, a5890, a5891, a5892, a5893, a5894, a5895, a5896, a5897, a5898, a5899,
-    a5900, a5901, a5902, a5903, a5904, a5905, a5906, a5907, a5908, a5909, a5910, a5911, a5912,
-    a5913, a5914, a5915, a5916, a5917, a5918, a5919, a5920, -⟩ := hs
-  have e5886 := tb_loadHolds_unique a5886 (hw 0 (by norm_num))
-  have e5889 := tb_loadHolds_unique a5889 (hw 1 (by norm_num))
-  have e5894 := tb_loadHolds_unique a5894 (hw 2 (by norm_num))
-  have e5897 := tb_loadHolds_unique a5897 (hw 3 (by norm_num))
-  have e5901 := tb_loadHolds_unique a5901 (hw 4 (by norm_num))
-  have e5904 := tb_loadHolds_unique a5904 (hw 5 (by norm_num))
-  have e5907 := tb_loadHolds_unique a5907 (hw 6 (by norm_num))
-  have e5910 := tb_loadHolds_unique a5910 (hw 7 (by norm_num))
-  have e5914 := tb_loadHolds_unique a5914 (hw 8 (by norm_num))
-  have v6401 : σ (.n 6401) = ev 0 := by
-    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2.1
-  have v6436 : σ (.n 6436) = ev 2 := by
-    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2.1
-  have v6447 : σ (.n 6447) = ev 3 := by
-    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2.1
-  have v6458 : σ (.n 6458) = ev 4 := by
-    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2.1
-  have v6607 : σ (.n 6607) = ev 14 := by
-    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2.1
-  have hB : σ (.n 6651) = vtBlockVal (σ (.n 15)) W ev [[([], 4)], [([0], 1)], [([14], 2)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
-    simp only [v6607, v6458, v6447, v6436, v6401, a5918, a5917, a5916, a5915, e5914, a5913, a5912, a5911,
-      e5910, a5909, a5908, e5907, a5906, a5905, e5904, a5903, a5902, e5901, a5900, a5899,
-      a5898, e5897, a5896, a5895, e5894, a5893, a5892, a5891, a5890, e5889, a5888, a5887,
-      e5886]
+  obtain ⟨a3158, a3159, a3160, a3161, a3162, a3163, a3164, a3165, a3166, a3167, a3168, a3169, a3170, a3171,
+    a3172, a3173, a3174, a3175, a3176, a3177, a3178, a3179, a3180, a3181, a3182, a3183, a3184,
+    a3185, a3186, a3187, a3188, a3189, a3190, a3191, a3192, -⟩ := hs
+  have e3158 := tb_loadHolds_unique a3158 (hw 0 (by norm_num))
+  have e3161 := tb_loadHolds_unique a3161 (hw 1 (by norm_num))
+  have e3166 := tb_loadHolds_unique a3166 (hw 2 (by norm_num))
+  have e3169 := tb_loadHolds_unique a3169 (hw 3 (by norm_num))
+  have e3173 := tb_loadHolds_unique a3173 (hw 4 (by norm_num))
+  have e3176 := tb_loadHolds_unique a3176 (hw 5 (by norm_num))
+  have e3179 := tb_loadHolds_unique a3179 (hw 6 (by norm_num))
+  have e3182 := tb_loadHolds_unique a3182 (hw 7 (by norm_num))
+  have e3186 := tb_loadHolds_unique a3186 (hw 8 (by norm_num))
+  have v2997 : σ (.n 2997) = ev 0 := by
+    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2
+  have v3032 : σ (.n 3032) = ev 2 := by
+    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2
+  have v3043 : σ (.n 3043) = ev 3 := by
+    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2
+  have v3054 : σ (.n 3054) = ev 4 := by
+    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2
+  have v3203 : σ (.n 3203) = ev 14 := by
+    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2
+  have hB : σ (.n 3247) = vtBlockVal (σ (.n 14)) W ev [[([], 4)], [([0], 1)], [([14], 2)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
+    simp only [v3203, v3054, v3043, v3032, v2997, a3190, a3189, a3188, a3187, e3186, a3185, a3184, a3183,
+      e3182, a3181, a3180, e3179, a3178, a3177, e3176, a3175, a3174, e3173, a3172, a3171,
+      a3170, e3169, a3168, a3167, e3166, a3165, a3164, a3163, a3162, e3161, a3160, a3159,
+      e3158]
     simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_zero, vt_ofK_ofBits_one]
     ring
-  rw [a5920, a5919, hB]
+  rw [a3192, a3191, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtB01_2 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6677) = σ (.n 6653) + σ (.n 3168) * vtBlockVal (σ (.n 15)) W ev
+    σ (.n 3273) = σ (.n 3249) + σ (.n 999) * vtBlockVal (σ (.n 14)) W ev
       [[([], 2)], [([1, 2], 1)], [([11], 2)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 5921 [
-    .atom (.load (.n 6654) (.n 14) 0),
-    .atom (.const (.n 6655) (word 2 0 0)),
-    .atom (.mul (.n 6656) (.n 6654) (.n 6655)),
-    .atom (.mul (.n 6657) (.n 6425) (.n 6436)),
-    .atom (.load (.n 6658) (.n 14) 1),
-    .atom (.mul (.n 6659) (.n 6658) (.n 6657)),
-    .atom (.add (.n 6660) (.n 6656) (.n 6659)),
-    .atom (.const (.n 6661) (word 2 0 0)),
-    .atom (.mul (.n 6662) (.n 6661) (.n 6561)),
-    .atom (.load (.n 6663) (.n 14) 2),
-    .atom (.mul (.n 6664) (.n 6663) (.n 6662)),
-    .atom (.add (.n 6665) (.n 6660) (.n 6664)),
-    .atom (.load (.n 6666) (.n 14) 3),
-    .atom (.mul (.n 6667) (.n 6666) (.n 6482)),
-    .atom (.add (.n 6668) (.n 6665) (.n 6667)),
-    .atom (.load (.n 6669) (.n 14) 4),
-    .atom (.mul (.n 6670) (.n 6669) (.n 6493)),
-    .atom (.add (.n 6671) (.n 6668) (.n 6670)),
-    .atom (.load (.n 6672) (.n 14) 5),
-    .atom (.mul (.n 6673) (.n 6672) (.n 6504)),
-    .atom (.add (.n 6674) (.n 6671) (.n 6673)),
-    .atom (.add (.n 6675) (.n 15) (.n 6674)),
-    .atom (.mul (.n 6676) (.n 3168) (.n 6675)),
-    .atom (.add (.n 6677) (.n 6653) (.n 6676))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3193 [
+    .atom (.load (.n 3250) (.n 13) 0),
+    .atom (.const (.n 3251) (word 2 0 0)),
+    .atom (.mul (.n 3252) (.n 3250) (.n 3251)),
+    .atom (.mul (.n 3253) (.n 3021) (.n 3032)),
+    .atom (.load (.n 3254) (.n 13) 1),
+    .atom (.mul (.n 3255) (.n 3254) (.n 3253)),
+    .atom (.add (.n 3256) (.n 3252) (.n 3255)),
+    .atom (.const (.n 3257) (word 2 0 0)),
+    .atom (.mul (.n 3258) (.n 3257) (.n 3157)),
+    .atom (.load (.n 3259) (.n 13) 2),
+    .atom (.mul (.n 3260) (.n 3259) (.n 3258)),
+    .atom (.add (.n 3261) (.n 3256) (.n 3260)),
+    .atom (.load (.n 3262) (.n 13) 3),
+    .atom (.mul (.n 3263) (.n 3262) (.n 3078)),
+    .atom (.add (.n 3264) (.n 3261) (.n 3263)),
+    .atom (.load (.n 3265) (.n 13) 4),
+    .atom (.mul (.n 3266) (.n 3265) (.n 3089)),
+    .atom (.add (.n 3267) (.n 3264) (.n 3266)),
+    .atom (.load (.n 3268) (.n 13) 5),
+    .atom (.mul (.n 3269) (.n 3268) (.n 3100)),
+    .atom (.add (.n 3270) (.n 3267) (.n 3269)),
+    .atom (.add (.n 3271) (.n 14) (.n 3270)),
+    .atom (.mul (.n 3272) (.n 999) (.n 3271)),
+    .atom (.add (.n 3273) (.n 3249) (.n 3272))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a5921, a5922, a5923, a5924, a5925, a5926, a5927, a5928, a5929, a5930, a5931, a5932, a5933, a5934,
-    a5935, a5936, a5937, a5938, a5939, a5940, a5941, a5942, a5943, a5944, -⟩ := hs
-  have e5921 := tb_loadHolds_unique a5921 (hw 0 (by norm_num))
-  have e5925 := tb_loadHolds_unique a5925 (hw 1 (by norm_num))
-  have e5930 := tb_loadHolds_unique a5930 (hw 2 (by norm_num))
-  have e5933 := tb_loadHolds_unique a5933 (hw 3 (by norm_num))
-  have e5936 := tb_loadHolds_unique a5936 (hw 4 (by norm_num))
-  have e5939 := tb_loadHolds_unique a5939 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6436 : σ (.n 6436) = ev 2 := by
-    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2.1
-  have v6482 : σ (.n 6482) = ev 5 := by
-    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2.1
-  have v6493 : σ (.n 6493) = ev 6 := by
-    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2.1
-  have v6504 : σ (.n 6504) = ev 7 := by
-    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2.1
-  have v6561 : σ (.n 6561) = ev 11 := by
-    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2.1
-  have hB : σ (.n 6675) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 2], 1)], [([11], 2)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
-    simp only [v6561, v6504, v6493, v6482, v6436, v6425, a5942, a5941, a5940, e5939, a5938, a5937, e5936,
-      a5935, a5934, e5933, a5932, a5931, e5930, a5929, a5928, a5927, a5926, e5925, a5924,
-      a5923, a5922, e5921]
+  obtain ⟨a3193, a3194, a3195, a3196, a3197, a3198, a3199, a3200, a3201, a3202, a3203, a3204, a3205, a3206,
+    a3207, a3208, a3209, a3210, a3211, a3212, a3213, a3214, a3215, a3216, -⟩ := hs
+  have e3193 := tb_loadHolds_unique a3193 (hw 0 (by norm_num))
+  have e3197 := tb_loadHolds_unique a3197 (hw 1 (by norm_num))
+  have e3202 := tb_loadHolds_unique a3202 (hw 2 (by norm_num))
+  have e3205 := tb_loadHolds_unique a3205 (hw 3 (by norm_num))
+  have e3208 := tb_loadHolds_unique a3208 (hw 4 (by norm_num))
+  have e3211 := tb_loadHolds_unique a3211 (hw 5 (by norm_num))
+  have v3021 : σ (.n 3021) = ev 1 := by
+    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2
+  have v3032 : σ (.n 3032) = ev 2 := by
+    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2
+  have v3078 : σ (.n 3078) = ev 5 := by
+    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2
+  have v3089 : σ (.n 3089) = ev 6 := by
+    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2
+  have v3100 : σ (.n 3100) = ev 7 := by
+    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2
+  have v3157 : σ (.n 3157) = ev 11 := by
+    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2
+  have hB : σ (.n 3271) = vtBlockVal (σ (.n 14)) W ev [[([], 2)], [([1, 2], 1)], [([11], 2)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
+    simp only [v3157, v3100, v3089, v3078, v3032, v3021, a3214, a3213, a3212, e3211, a3210, a3209, e3208,
+      a3207, a3206, e3205, a3204, a3203, e3202, a3201, a3200, a3199, a3198, e3197, a3196,
+      a3195, a3194, e3193]
     simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
     ring
-  rw [a5944, a5943, hB]
+  rw [a3216, a3215, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtB01_3 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6701) = σ (.n 6677) + σ (.n 3187) * vtBlockVal (σ (.n 15)) W ev
+    σ (.n 3297) = σ (.n 3273) + σ (.n 1008) * vtBlockVal (σ (.n 14)) W ev
       [[([], 2)], [([1, 3], 1)], [([12], 2)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 5945 [
-    .atom (.load (.n 6678) (.n 14) 0),
-    .atom (.const (.n 6679) (word 2 0 0)),
-    .atom (.mul (.n 6680) (.n 6678) (.n 6679)),
-    .atom (.mul (.n 6681) (.n 6425) (.n 6447)),
-    .atom (.load (.n 6682) (.n 14) 1),
-    .atom (.mul (.n 6683) (.n 6682) (.n 6681)),
-    .atom (.add (.n 6684) (.n 6680) (.n 6683)),
-    .atom (.const (.n 6685) (word 2 0 0)),
-    .atom (.mul (.n 6686) (.n 6685) (.n 6572)),
-    .atom (.load (.n 6687) (.n 14) 2),
-    .atom (.mul (.n 6688) (.n 6687) (.n 6686)),
-    .atom (.add (.n 6689) (.n 6684) (.n 6688)),
-    .atom (.load (.n 6690) (.n 14) 3),
-    .atom (.mul (.n 6691) (.n 6690) (.n 6515)),
-    .atom (.add (.n 6692) (.n 6689) (.n 6691)),
-    .atom (.load (.n 6693) (.n 14) 4),
-    .atom (.mul (.n 6694) (.n 6693) (.n 6539)),
-    .atom (.add (.n 6695) (.n 6692) (.n 6694)),
-    .atom (.load (.n 6696) (.n 14) 5),
-    .atom (.mul (.n 6697) (.n 6696) (.n 6550)),
-    .atom (.add (.n 6698) (.n 6695) (.n 6697)),
-    .atom (.add (.n 6699) (.n 15) (.n 6698)),
-    .atom (.mul (.n 6700) (.n 3187) (.n 6699)),
-    .atom (.add (.n 6701) (.n 6677) (.n 6700))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3217 [
+    .atom (.load (.n 3274) (.n 13) 0),
+    .atom (.const (.n 3275) (word 2 0 0)),
+    .atom (.mul (.n 3276) (.n 3274) (.n 3275)),
+    .atom (.mul (.n 3277) (.n 3021) (.n 3043)),
+    .atom (.load (.n 3278) (.n 13) 1),
+    .atom (.mul (.n 3279) (.n 3278) (.n 3277)),
+    .atom (.add (.n 3280) (.n 3276) (.n 3279)),
+    .atom (.const (.n 3281) (word 2 0 0)),
+    .atom (.mul (.n 3282) (.n 3281) (.n 3168)),
+    .atom (.load (.n 3283) (.n 13) 2),
+    .atom (.mul (.n 3284) (.n 3283) (.n 3282)),
+    .atom (.add (.n 3285) (.n 3280) (.n 3284)),
+    .atom (.load (.n 3286) (.n 13) 3),
+    .atom (.mul (.n 3287) (.n 3286) (.n 3111)),
+    .atom (.add (.n 3288) (.n 3285) (.n 3287)),
+    .atom (.load (.n 3289) (.n 13) 4),
+    .atom (.mul (.n 3290) (.n 3289) (.n 3135)),
+    .atom (.add (.n 3291) (.n 3288) (.n 3290)),
+    .atom (.load (.n 3292) (.n 13) 5),
+    .atom (.mul (.n 3293) (.n 3292) (.n 3146)),
+    .atom (.add (.n 3294) (.n 3291) (.n 3293)),
+    .atom (.add (.n 3295) (.n 14) (.n 3294)),
+    .atom (.mul (.n 3296) (.n 1008) (.n 3295)),
+    .atom (.add (.n 3297) (.n 3273) (.n 3296))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a5945, a5946, a5947, a5948, a5949, a5950, a5951, a5952, a5953, a5954, a5955, a5956, a5957, a5958,
-    a5959, a5960, a5961, a5962, a5963, a5964, a5965, a5966, a5967, a5968, -⟩ := hs
-  have e5945 := tb_loadHolds_unique a5945 (hw 0 (by norm_num))
-  have e5949 := tb_loadHolds_unique a5949 (hw 1 (by norm_num))
-  have e5954 := tb_loadHolds_unique a5954 (hw 2 (by norm_num))
-  have e5957 := tb_loadHolds_unique a5957 (hw 3 (by norm_num))
-  have e5960 := tb_loadHolds_unique a5960 (hw 4 (by norm_num))
-  have e5963 := tb_loadHolds_unique a5963 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6447 : σ (.n 6447) = ev 3 := by
-    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2.1
-  have v6515 : σ (.n 6515) = ev 8 := by
-    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2.1
-  have v6539 : σ (.n 6539) = ev 9 := by
-    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2.1
-  have v6550 : σ (.n 6550) = ev 10 := by
-    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2.1
-  have v6572 : σ (.n 6572) = ev 12 := by
-    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2.1
-  have hB : σ (.n 6699) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 3], 1)], [([12], 2)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
-    simp only [v6572, v6550, v6539, v6515, v6447, v6425, a5966, a5965, a5964, e5963, a5962, a5961, e5960,
-      a5959, a5958, e5957, a5956, a5955, e5954, a5953, a5952, a5951, a5950, e5949, a5948,
-      a5947, a5946, e5945]
+  obtain ⟨a3217, a3218, a3219, a3220, a3221, a3222, a3223, a3224, a3225, a3226, a3227, a3228, a3229, a3230,
+    a3231, a3232, a3233, a3234, a3235, a3236, a3237, a3238, a3239, a3240, -⟩ := hs
+  have e3217 := tb_loadHolds_unique a3217 (hw 0 (by norm_num))
+  have e3221 := tb_loadHolds_unique a3221 (hw 1 (by norm_num))
+  have e3226 := tb_loadHolds_unique a3226 (hw 2 (by norm_num))
+  have e3229 := tb_loadHolds_unique a3229 (hw 3 (by norm_num))
+  have e3232 := tb_loadHolds_unique a3232 (hw 4 (by norm_num))
+  have e3235 := tb_loadHolds_unique a3235 (hw 5 (by norm_num))
+  have v3021 : σ (.n 3021) = ev 1 := by
+    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2
+  have v3043 : σ (.n 3043) = ev 3 := by
+    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2
+  have v3111 : σ (.n 3111) = ev 8 := by
+    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2
+  have v3135 : σ (.n 3135) = ev 9 := by
+    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2
+  have v3146 : σ (.n 3146) = ev 10 := by
+    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2
+  have v3168 : σ (.n 3168) = ev 12 := by
+    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2
+  have hB : σ (.n 3295) = vtBlockVal (σ (.n 14)) W ev [[([], 2)], [([1, 3], 1)], [([12], 2)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
+    simp only [v3168, v3146, v3135, v3111, v3043, v3021, a3238, a3237, a3236, e3235, a3234, a3233, e3232,
+      a3231, a3230, e3229, a3228, a3227, e3226, a3225, a3224, a3223, a3222, e3221, a3220,
+      a3219, a3218, e3217]
     simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
     ring
-  rw [a5968, a5967, hB]
+  rw [a3240, a3239, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtB01_4 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6746) = σ (.n 6701) + σ (.n 3206) * vtBlockVal (σ (.n 15)) W ev
+    σ (.n 3342) = σ (.n 3297) + σ (.n 1017) * vtBlockVal (σ (.n 14)) W ev
       [[([], 2)], [([1, 4], 1)], [([13], 2)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 5969 [
-    .atom (.load (.n 6702) (.n 14) 0),
-    .atom (.const (.n 6703) (word 2 0 0)),
-    .atom (.mul (.n 6704) (.n 6702) (.n 6703)),
-    .atom (.mul (.n 6705) (.n 6425) (.n 6458)),
-    .atom (.load (.n 6706) (.n 14) 1),
-    .atom (.mul (.n 6707) (.n 6706) (.n 6705)),
-    .atom (.add (.n 6708) (.n 6704) (.n 6707)),
-    .atom (.const (.n 6709) (word 2 0 0)),
-    .atom (.mul (.n 6710) (.n 6709) (.n 6596)),
-    .atom (.load (.n 6711) (.n 14) 2),
-    .atom (.mul (.n 6712) (.n 6711) (.n 6710)),
-    .atom (.add (.n 6713) (.n 6708) (.n 6712)),
-    .atom (.mul (.n 6714) (.n 6482) (.n 6515)),
-    .atom (.mul (.n 6715) (.n 6493) (.n 6550)),
-    .atom (.add (.n 6716) (.n 6714) (.n 6715)),
-    .atom (.mul (.n 6717) (.n 6504) (.n 6539)),
-    .atom (.add (.n 6718) (.n 6716) (.n 6717)),
-    .atom (.load (.n 6719) (.n 14) 3),
-    .atom (.mul (.n 6720) (.n 6719) (.n 6718)),
-    .atom (.add (.n 6721) (.n 6713) (.n 6720)),
-    .atom (.mul (.n 6722) (.n 6482) (.n 6539)),
-    .atom (.mul (.n 6723) (.n 6493) (.n 6515)),
-    .atom (.add (.n 6724) (.n 6722) (.n 6723)),
-    .atom (.mul (.n 6725) (.n 6493) (.n 6550)),
-    .atom (.add (.n 6726) (.n 6724) (.n 6725)),
-    .atom (.mul (.n 6727) (.n 6504) (.n 6539)),
-    .atom (.add (.n 6728) (.n 6726) (.n 6727)),
-    .atom (.mul (.n 6729) (.n 6504) (.n 6550)),
-    .atom (.add (.n 6730) (.n 6728) (.n 6729)),
-    .atom (.load (.n 6731) (.n 14) 4),
-    .atom (.mul (.n 6732) (.n 6731) (.n 6730)),
-    .atom (.add (.n 6733) (.n 6721) (.n 6732)),
-    .atom (.mul (.n 6734) (.n 6482) (.n 6550)),
-    .atom (.mul (.n 6735) (.n 6493) (.n 6539)),
-    .atom (.add (.n 6736) (.n 6734) (.n 6735)),
-    .atom (.mul (.n 6737) (.n 6504) (.n 6515)),
-    .atom (.add (.n 6738) (.n 6736) (.n 6737)),
-    .atom (.mul (.n 6739) (.n 6504) (.n 6550)),
-    .atom (.add (.n 6740) (.n 6738) (.n 6739)),
-    .atom (.load (.n 6741) (.n 14) 5),
-    .atom (.mul (.n 6742) (.n 6741) (.n 6740)),
-    .atom (.add (.n 6743) (.n 6733) (.n 6742)),
-    .atom (.add (.n 6744) (.n 15) (.n 6743)),
-    .atom (.mul (.n 6745) (.n 3206) (.n 6744)),
-    .atom (.add (.n 6746) (.n 6701) (.n 6745))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3241 [
+    .atom (.load (.n 3298) (.n 13) 0),
+    .atom (.const (.n 3299) (word 2 0 0)),
+    .atom (.mul (.n 3300) (.n 3298) (.n 3299)),
+    .atom (.mul (.n 3301) (.n 3021) (.n 3054)),
+    .atom (.load (.n 3302) (.n 13) 1),
+    .atom (.mul (.n 3303) (.n 3302) (.n 3301)),
+    .atom (.add (.n 3304) (.n 3300) (.n 3303)),
+    .atom (.const (.n 3305) (word 2 0 0)),
+    .atom (.mul (.n 3306) (.n 3305) (.n 3192)),
+    .atom (.load (.n 3307) (.n 13) 2),
+    .atom (.mul (.n 3308) (.n 3307) (.n 3306)),
+    .atom (.add (.n 3309) (.n 3304) (.n 3308)),
+    .atom (.mul (.n 3310) (.n 3078) (.n 3111)),
+    .atom (.mul (.n 3311) (.n 3089) (.n 3146)),
+    .atom (.add (.n 3312) (.n 3310) (.n 3311)),
+    .atom (.mul (.n 3313) (.n 3100) (.n 3135)),
+    .atom (.add (.n 3314) (.n 3312) (.n 3313)),
+    .atom (.load (.n 3315) (.n 13) 3),
+    .atom (.mul (.n 3316) (.n 3315) (.n 3314)),
+    .atom (.add (.n 3317) (.n 3309) (.n 3316)),
+    .atom (.mul (.n 3318) (.n 3078) (.n 3135)),
+    .atom (.mul (.n 3319) (.n 3089) (.n 3111)),
+    .atom (.add (.n 3320) (.n 3318) (.n 3319)),
+    .atom (.mul (.n 3321) (.n 3089) (.n 3146)),
+    .atom (.add (.n 3322) (.n 3320) (.n 3321)),
+    .atom (.mul (.n 3323) (.n 3100) (.n 3135)),
+    .atom (.add (.n 3324) (.n 3322) (.n 3323)),
+    .atom (.mul (.n 3325) (.n 3100) (.n 3146)),
+    .atom (.add (.n 3326) (.n 3324) (.n 3325)),
+    .atom (.load (.n 3327) (.n 13) 4),
+    .atom (.mul (.n 3328) (.n 3327) (.n 3326)),
+    .atom (.add (.n 3329) (.n 3317) (.n 3328)),
+    .atom (.mul (.n 3330) (.n 3078) (.n 3146)),
+    .atom (.mul (.n 3331) (.n 3089) (.n 3135)),
+    .atom (.add (.n 3332) (.n 3330) (.n 3331)),
+    .atom (.mul (.n 3333) (.n 3100) (.n 3111)),
+    .atom (.add (.n 3334) (.n 3332) (.n 3333)),
+    .atom (.mul (.n 3335) (.n 3100) (.n 3146)),
+    .atom (.add (.n 3336) (.n 3334) (.n 3335)),
+    .atom (.load (.n 3337) (.n 13) 5),
+    .atom (.mul (.n 3338) (.n 3337) (.n 3336)),
+    .atom (.add (.n 3339) (.n 3329) (.n 3338)),
+    .atom (.add (.n 3340) (.n 14) (.n 3339)),
+    .atom (.mul (.n 3341) (.n 1017) (.n 3340)),
+    .atom (.add (.n 3342) (.n 3297) (.n 3341))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a5969, a5970, a5971, a5972, a5973, a5974, a5975, a5976, a5977, a5978, a5979, a5980, a5981, a5982,
-    a5983, a5984, a5985, a5986, a5987, a5988, a5989, a5990, a5991, a5992, a5993, a5994, a5995,
-    a5996, a5997, a5998, a5999, a6000, a6001, a6002, a6003, a6004, a6005, a6006, a6007, a6008,
-    a6009, a6010, a6011, a6012, a6013, -⟩ := hs
-  have e5969 := tb_loadHolds_unique a5969 (hw 0 (by norm_num))
-  have e5973 := tb_loadHolds_unique a5973 (hw 1 (by norm_num))
-  have e5978 := tb_loadHolds_unique a5978 (hw 2 (by norm_num))
-  have e5986 := tb_loadHolds_unique a5986 (hw 3 (by norm_num))
-  have e5998 := tb_loadHolds_unique a5998 (hw 4 (by norm_num))
-  have e6008 := tb_loadHolds_unique a6008 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6458 : σ (.n 6458) = ev 4 := by
-    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2.1
-  have v6482 : σ (.n 6482) = ev 5 := by
-    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2.1
-  have v6493 : σ (.n 6493) = ev 6 := by
-    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2.1
-  have v6504 : σ (.n 6504) = ev 7 := by
-    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2.1
-  have v6515 : σ (.n 6515) = ev 8 := by
-    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2.1
-  have v6539 : σ (.n 6539) = ev 9 := by
-    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2.1
-  have v6550 : σ (.n 6550) = ev 10 := by
-    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2.1
-  have v6596 : σ (.n 6596) = ev 13 := by
-    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2.1
-  have hB : σ (.n 6744) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 4], 1)], [([13], 2)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
-    simp only [v6596, v6550, v6539, v6515, v6504, v6493, v6482, v6458, v6425, a6011, a6010, a6009, e6008,
-      a6007, a6006, a6005, a6004, a6003, a6002, a6001, a6000, a5999, e5998, a5997, a5996,
-      a5995, a5994, a5993, a5992, a5991, a5990, a5989, a5988, a5987, e5986, a5985, a5984,
-      a5983, a5982, a5981, a5980, a5979, e5978, a5977, a5976, a5975, a5974, e5973, a5972,
-      a5971, a5970, e5969]
+  obtain ⟨a3241, a3242, a3243, a3244, a3245, a3246, a3247, a3248, a3249, a3250, a3251, a3252, a3253, a3254,
+    a3255, a3256, a3257, a3258, a3259, a3260, a3261, a3262, a3263, a3264, a3265, a3266, a3267,
+    a3268, a3269, a3270, a3271, a3272, a3273, a3274, a3275, a3276, a3277, a3278, a3279, a3280,
+    a3281, a3282, a3283, a3284, a3285, -⟩ := hs
+  have e3241 := tb_loadHolds_unique a3241 (hw 0 (by norm_num))
+  have e3245 := tb_loadHolds_unique a3245 (hw 1 (by norm_num))
+  have e3250 := tb_loadHolds_unique a3250 (hw 2 (by norm_num))
+  have e3258 := tb_loadHolds_unique a3258 (hw 3 (by norm_num))
+  have e3270 := tb_loadHolds_unique a3270 (hw 4 (by norm_num))
+  have e3280 := tb_loadHolds_unique a3280 (hw 5 (by norm_num))
+  have v3021 : σ (.n 3021) = ev 1 := by
+    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2
+  have v3054 : σ (.n 3054) = ev 4 := by
+    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2
+  have v3078 : σ (.n 3078) = ev 5 := by
+    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2
+  have v3089 : σ (.n 3089) = ev 6 := by
+    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2
+  have v3100 : σ (.n 3100) = ev 7 := by
+    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2
+  have v3111 : σ (.n 3111) = ev 8 := by
+    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2
+  have v3135 : σ (.n 3135) = ev 9 := by
+    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2
+  have v3146 : σ (.n 3146) = ev 10 := by
+    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2
+  have v3192 : σ (.n 3192) = ev 13 := by
+    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2
+  have hB : σ (.n 3340) = vtBlockVal (σ (.n 14)) W ev [[([], 2)], [([1, 4], 1)], [([13], 2)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
+    simp only [v3192, v3146, v3135, v3111, v3100, v3089, v3078, v3054, v3021, a3283, a3282, a3281, e3280,
+      a3279, a3278, a3277, a3276, a3275, a3274, a3273, a3272, a3271, e3270, a3269, a3268,
+      a3267, a3266, a3265, a3264, a3263, a3262, a3261, a3260, a3259, e3258, a3257, a3256,
+      a3255, a3254, a3253, a3252, a3251, e3250, a3249, a3248, a3247, a3246, e3245, a3244,
+      a3243, a3242, e3241]
     simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
     ring
-  rw [a6013, a6012, hB]
+  rw [a3285, a3284, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtSide01 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6746) =
-      vtSideVal [σ (.n 3130), σ (.n 3149), σ (.n 3168), σ (.n 3187), σ (.n 3206)]
-        (σ (.n 15)) W ev vtBTerms01 := by
+    σ (.n 3342) =
+      vtSideVal [σ (.n 981), σ (.n 990), σ (.n 999), σ (.n 1008), σ (.n 1017)]
+        (σ (.n 14)) W ev vtBTerms01 := by
   rw [vtB01_4 h hw hev, vtB01_3 h hw hev, vtB01_2 h hw hev, vtB01_1 h hw hev, vtB01_0 h hw hev]
   simp only [vtSideVal, vtBTerms01, List.zipWith_cons_cons, List.zipWith_nil_left,
     List.sum_cons, List.sum_nil, add_zero, add_assoc]
 
 set_option maxRecDepth 10000 in
-theorem vtB11_0 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+theorem vtD1_0 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6756) = σ (.n 4604) * vtBlockVal (σ (.n 15)) W ev
-      [[([], 1)], [([0], 1)], [([1], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 6015 [
-    .atom (.load (.n 6748) (.n 14) 0),
-    .atom (.load (.n 6749) (.n 14) 1),
-    .atom (.mul (.n 6750) (.n 6749) (.n 6401)),
-    .atom (.add (.n 6751) (.n 6748) (.n 6750)),
-    .atom (.load (.n 6752) (.n 14) 2),
-    .atom (.mul (.n 6753) (.n 6752) (.n 6425)),
-    .atom (.add (.n 6754) (.n 6751) (.n 6753)),
-    .atom (.add (.n 6755) (.n 15) (.n 6754)),
-    .atom (.mul (.n 6756) (.n 4604) (.n 6755))] (by decide +kernel)
+    σ (.n 3348) = σ (.n 1962) * vtSlots W ev 0
+      [[], [([0], 3)], []] := by
+  obtain ⟨_, hs⟩ := h.sliceAt 3287 [
+    .atom (.const (.n 3344) (word 3 0 0)),
+    .atom (.mul (.n 3345) (.n 3344) (.n 2997)),
+    .atom (.load (.n 3346) (.n 13) 1),
+    .atom (.mul (.n 3347) (.n 3346) (.n 3345)),
+    .atom (.mul (.n 3348) (.n 1962) (.n 3347))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6015, a6016, a6017, a6018, a6019, a6020, a6021, a6022, a6023, -⟩ := hs
-  have e6015 := tb_loadHolds_unique a6015 (hw 0 (by norm_num))
-  have e6016 := tb_loadHolds_unique a6016 (hw 1 (by norm_num))
-  have e6019 := tb_loadHolds_unique a6019 (hw 2 (by norm_num))
-  have v6401 : σ (.n 6401) = ev 0 := by
-    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2.1
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have hB : σ (.n 6755) = vtBlockVal (σ (.n 15)) W ev [[([], 1)], [([0], 1)], [([1], 1)]] := by
-    simp only [v6425, v6401, a6022, a6021, a6020, e6019, a6018, a6017, e6016, e6015]
-    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
-      List.map_nil, List.prod_cons, List.prod_nil, vt_ofK_ofBits_one]
+  obtain ⟨a3287, a3288, a3289, a3290, a3291, -⟩ := hs
+  have e3289 := tb_loadHolds_unique a3289 (hw 1 (by norm_num))
+  have v2997 : σ (.n 2997) = ev 0 := by
+    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2
+  have hB : σ (.n 3347) = vtSlots W ev 0 [[], [([0], 3)], []] := by
+    simp only [v2997, a3290, e3289, a3288, a3287]
+    simp only [vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK]
     ring
-  rw [a6023, hB]
+  rw [a3291, hB]
 
 set_option maxRecDepth 10000 in
-theorem vtB11_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+theorem vtD1_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6789) = σ (.n 6756) + σ (.n 4611) * vtBlockVal (σ (.n 15)) W ev
-      [[([], 4)], [([0], 1)], [([14], 1)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
-  obtain ⟨_, hs⟩ := h.slice 6024 [
-    .atom (.load (.n 6757) (.n 14) 0),
-    .atom (.const (.n 6758) (word 4 0 0)),
-    .atom (.mul (.n 6759) (.n 6757) (.n 6758)),
-    .atom (.load (.n 6760) (.n 14) 1),
-    .atom (.mul (.n 6761) (.n 6760) (.n 6401)),
-    .atom (.add (.n 6762) (.n 6759) (.n 6761)),
-    .atom (.load (.n 6763) (.n 14) 2),
-    .atom (.mul (.n 6764) (.n 6763) (.n 6607)),
-    .atom (.add (.n 6765) (.n 6762) (.n 6764)),
-    .atom (.load (.n 6766) (.n 14) 3),
-    .atom (.const (.n 6767) (word 2 0 0)),
-    .atom (.mul (.n 6768) (.n 6766) (.n 6767)),
-    .atom (.add (.n 6769) (.n 6765) (.n 6768)),
-    .atom (.load (.n 6770) (.n 14) 4),
-    .atom (.mul (.n 6771) (.n 6770) (.n 6436)),
-    .atom (.add (.n 6772) (.n 6769) (.n 6771)),
-    .atom (.load (.n 6773) (.n 14) 5),
-    .atom (.mul (.n 6774) (.n 6773) (.n 6447)),
-    .atom (.add (.n 6775) (.n 6772) (.n 6774)),
-    .atom (.load (.n 6776) (.n 14) 6),
-    .atom (.mul (.n 6777) (.n 6776) (.n 6458)),
-    .atom (.add (.n 6778) (.n 6775) (.n 6777)),
-    .atom (.load (.n 6779) (.n 14) 7),
-    .atom (.const (.n 6780) (word 0 0 0)),
-    .atom (.mul (.n 6781) (.n 6779) (.n 6780)),
-    .atom (.add (.n 6782) (.n 6778) (.n 6781)),
-    .atom (.load (.n 6783) (.n 14) 8),
-    .atom (.const (.n 6784) (word 0 0 0)),
-    .atom (.mul (.n 6785) (.n 6783) (.n 6784)),
-    .atom (.add (.n 6786) (.n 6782) (.n 6785)),
-    .atom (.add (.n 6787) (.n 15) (.n 6786)),
-    .atom (.mul (.n 6788) (.n 4611) (.n 6787)),
-    .atom (.add (.n 6789) (.n 6756) (.n 6788))] (by decide +kernel)
+    σ (.n 3354) = σ (.n 3348) + σ (.n 1964) * vtSlots W ev 0
+      [[], [], [([14], 3)], [], [], [], [], [], []] := by
+  obtain ⟨_, hs⟩ := h.sliceAt 3292 [
+    .atom (.const (.n 3349) (word 3 0 0)),
+    .atom (.mul (.n 3350) (.n 3349) (.n 3203)),
+    .atom (.load (.n 3351) (.n 13) 2),
+    .atom (.mul (.n 3352) (.n 3351) (.n 3350)),
+    .atom (.mul (.n 3353) (.n 1964) (.n 3352)),
+    .atom (.add (.n 3354) (.n 3348) (.n 3353))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6024, a6025, a6026, a6027, a6028, a6029, a6030, a6031, a6032, a6033, a6034, a6035, a6036, a6037,
-    a6038, a6039, a6040, a6041, a6042, a6043, a6044, a6045, a6046, a6047, a6048, a6049, a6050,
-    a6051, a6052, a6053, a6054, a6055, a6056, -⟩ := hs
-  have e6024 := tb_loadHolds_unique a6024 (hw 0 (by norm_num))
-  have e6027 := tb_loadHolds_unique a6027 (hw 1 (by norm_num))
-  have e6030 := tb_loadHolds_unique a6030 (hw 2 (by norm_num))
-  have e6033 := tb_loadHolds_unique a6033 (hw 3 (by norm_num))
-  have e6037 := tb_loadHolds_unique a6037 (hw 4 (by norm_num))
-  have e6040 := tb_loadHolds_unique a6040 (hw 5 (by norm_num))
-  have e6043 := tb_loadHolds_unique a6043 (hw 6 (by norm_num))
-  have e6046 := tb_loadHolds_unique a6046 (hw 7 (by norm_num))
-  have e6050 := tb_loadHolds_unique a6050 (hw 8 (by norm_num))
-  have v6401 : σ (.n 6401) = ev 0 := by
-    rw [← hev 0 (by norm_num)]; exact (vt_eval h (k := 15) (by norm_num)).2.2.1
-  have v6436 : σ (.n 6436) = ev 2 := by
-    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2.1
-  have v6447 : σ (.n 6447) = ev 3 := by
-    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2.1
-  have v6458 : σ (.n 6458) = ev 4 := by
-    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2.1
-  have v6607 : σ (.n 6607) = ev 14 := by
-    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2.1
-  have hB : σ (.n 6787) = vtBlockVal (σ (.n 15)) W ev [[([], 4)], [([0], 1)], [([14], 1)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
-    simp only [v6607, v6458, v6447, v6436, v6401, a6054, a6053, a6052, a6051, e6050, a6049, a6048, a6047,
-      e6046, a6045, a6044, e6043, a6042, a6041, e6040, a6039, a6038, e6037, a6036, a6035,
-      a6034, e6033, a6032, a6031, e6030, a6029, a6028, e6027, a6026, a6025, e6024]
-    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
-      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_zero, vt_ofK_ofBits_one]
+  obtain ⟨a3292, a3293, a3294, a3295, a3296, a3297, -⟩ := hs
+  have e3294 := tb_loadHolds_unique a3294 (hw 2 (by norm_num))
+  have v3203 : σ (.n 3203) = ev 14 := by
+    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2
+  have hB : σ (.n 3352) = vtSlots W ev 0 [[], [], [([14], 3)], [], [], [], [], [], []] := by
+    simp only [v3203, a3295, e3294, a3293, a3292]
+    simp only [vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK]
     ring
-  rw [a6056, a6055, hB]
+  rw [a3297, a3296, hB]
 
 set_option maxRecDepth 10000 in
-theorem vtB11_2 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+theorem vtD1_2 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6811) = σ (.n 6789) + σ (.n 4618) * vtBlockVal (σ (.n 15)) W ev
-      [[([], 2)], [([1, 2], 1)], [([11], 1)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 6057 [
-    .atom (.load (.n 6790) (.n 14) 0),
-    .atom (.const (.n 6791) (word 2 0 0)),
-    .atom (.mul (.n 6792) (.n 6790) (.n 6791)),
-    .atom (.mul (.n 6793) (.n 6425) (.n 6436)),
-    .atom (.load (.n 6794) (.n 14) 1),
-    .atom (.mul (.n 6795) (.n 6794) (.n 6793)),
-    .atom (.add (.n 6796) (.n 6792) (.n 6795)),
-    .atom (.load (.n 6797) (.n 14) 2),
-    .atom (.mul (.n 6798) (.n 6797) (.n 6561)),
-    .atom (.add (.n 6799) (.n 6796) (.n 6798)),
-    .atom (.load (.n 6800) (.n 14) 3),
-    .atom (.mul (.n 6801) (.n 6800) (.n 6482)),
-    .atom (.add (.n 6802) (.n 6799) (.n 6801)),
-    .atom (.load (.n 6803) (.n 14) 4),
-    .atom (.mul (.n 6804) (.n 6803) (.n 6493)),
-    .atom (.add (.n 6805) (.n 6802) (.n 6804)),
-    .atom (.load (.n 6806) (.n 14) 5),
-    .atom (.mul (.n 6807) (.n 6806) (.n 6504)),
-    .atom (.add (.n 6808) (.n 6805) (.n 6807)),
-    .atom (.add (.n 6809) (.n 15) (.n 6808)),
-    .atom (.mul (.n 6810) (.n 4618) (.n 6809)),
-    .atom (.add (.n 6811) (.n 6789) (.n 6810))] (by decide +kernel)
+    σ (.n 3360) = σ (.n 3354) + σ (.n 1966) * vtSlots W ev 0
+      [[], [], [([11], 3)], [], [], []] := by
+  obtain ⟨_, hs⟩ := h.sliceAt 3298 [
+    .atom (.const (.n 3355) (word 3 0 0)),
+    .atom (.mul (.n 3356) (.n 3355) (.n 3157)),
+    .atom (.load (.n 3357) (.n 13) 2),
+    .atom (.mul (.n 3358) (.n 3357) (.n 3356)),
+    .atom (.mul (.n 3359) (.n 1966) (.n 3358)),
+    .atom (.add (.n 3360) (.n 3354) (.n 3359))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6057, a6058, a6059, a6060, a6061, a6062, a6063, a6064, a6065, a6066, a6067, a6068, a6069, a6070,
-    a6071, a6072, a6073, a6074, a6075, a6076, a6077, a6078, -⟩ := hs
-  have e6057 := tb_loadHolds_unique a6057 (hw 0 (by norm_num))
-  have e6061 := tb_loadHolds_unique a6061 (hw 1 (by norm_num))
-  have e6064 := tb_loadHolds_unique a6064 (hw 2 (by norm_num))
-  have e6067 := tb_loadHolds_unique a6067 (hw 3 (by norm_num))
-  have e6070 := tb_loadHolds_unique a6070 (hw 4 (by norm_num))
-  have e6073 := tb_loadHolds_unique a6073 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6436 : σ (.n 6436) = ev 2 := by
-    rw [← hev 2 (by norm_num)]; exact (vt_eval h (k := 17) (by norm_num)).2.2.1
-  have v6482 : σ (.n 6482) = ev 5 := by
-    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2.1
-  have v6493 : σ (.n 6493) = ev 6 := by
-    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2.1
-  have v6504 : σ (.n 6504) = ev 7 := by
-    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2.1
-  have v6561 : σ (.n 6561) = ev 11 := by
-    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2.1
-  have hB : σ (.n 6809) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 2], 1)], [([11], 1)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
-    simp only [v6561, v6504, v6493, v6482, v6436, v6425, a6076, a6075, a6074, e6073, a6072, a6071, e6070,
-      a6069, a6068, e6067, a6066, a6065, e6064, a6063, a6062, e6061, a6060, a6059, a6058,
-      e6057]
-    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
-      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
+  obtain ⟨a3298, a3299, a3300, a3301, a3302, a3303, -⟩ := hs
+  have e3300 := tb_loadHolds_unique a3300 (hw 2 (by norm_num))
+  have v3157 : σ (.n 3157) = ev 11 := by
+    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2
+  have hB : σ (.n 3358) = vtSlots W ev 0 [[], [], [([11], 3)], [], [], []] := by
+    simp only [v3157, a3301, e3300, a3299, a3298]
+    simp only [vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK]
     ring
-  rw [a6078, a6077, hB]
+  rw [a3303, a3302, hB]
 
 set_option maxRecDepth 10000 in
-theorem vtB11_3 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+theorem vtD1_3 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6833) = σ (.n 6811) + σ (.n 4625) * vtBlockVal (σ (.n 15)) W ev
-      [[([], 2)], [([1, 3], 1)], [([12], 1)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 6079 [
-    .atom (.load (.n 6812) (.n 14) 0),
-    .atom (.const (.n 6813) (word 2 0 0)),
-    .atom (.mul (.n 6814) (.n 6812) (.n 6813)),
-    .atom (.mul (.n 6815) (.n 6425) (.n 6447)),
-    .atom (.load (.n 6816) (.n 14) 1),
-    .atom (.mul (.n 6817) (.n 6816) (.n 6815)),
-    .atom (.add (.n 6818) (.n 6814) (.n 6817)),
-    .atom (.load (.n 6819) (.n 14) 2),
-    .atom (.mul (.n 6820) (.n 6819) (.n 6572)),
-    .atom (.add (.n 6821) (.n 6818) (.n 6820)),
-    .atom (.load (.n 6822) (.n 14) 3),
-    .atom (.mul (.n 6823) (.n 6822) (.n 6515)),
-    .atom (.add (.n 6824) (.n 6821) (.n 6823)),
-    .atom (.load (.n 6825) (.n 14) 4),
-    .atom (.mul (.n 6826) (.n 6825) (.n 6539)),
-    .atom (.add (.n 6827) (.n 6824) (.n 6826)),
-    .atom (.load (.n 6828) (.n 14) 5),
-    .atom (.mul (.n 6829) (.n 6828) (.n 6550)),
-    .atom (.add (.n 6830) (.n 6827) (.n 6829)),
-    .atom (.add (.n 6831) (.n 15) (.n 6830)),
-    .atom (.mul (.n 6832) (.n 4625) (.n 6831)),
-    .atom (.add (.n 6833) (.n 6811) (.n 6832))] (by decide +kernel)
+    σ (.n 3366) = σ (.n 3360) + σ (.n 1968) * vtSlots W ev 0
+      [[], [], [([12], 3)], [], [], []] := by
+  obtain ⟨_, hs⟩ := h.sliceAt 3304 [
+    .atom (.const (.n 3361) (word 3 0 0)),
+    .atom (.mul (.n 3362) (.n 3361) (.n 3168)),
+    .atom (.load (.n 3363) (.n 13) 2),
+    .atom (.mul (.n 3364) (.n 3363) (.n 3362)),
+    .atom (.mul (.n 3365) (.n 1968) (.n 3364)),
+    .atom (.add (.n 3366) (.n 3360) (.n 3365))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6079, a6080, a6081, a6082, a6083, a6084, a6085, a6086, a6087, a6088, a6089, a6090, a6091, a6092,
-    a6093, a6094, a6095, a6096, a6097, a6098, a6099, a6100, -⟩ := hs
-  have e6079 := tb_loadHolds_unique a6079 (hw 0 (by norm_num))
-  have e6083 := tb_loadHolds_unique a6083 (hw 1 (by norm_num))
-  have e6086 := tb_loadHolds_unique a6086 (hw 2 (by norm_num))
-  have e6089 := tb_loadHolds_unique a6089 (hw 3 (by norm_num))
-  have e6092 := tb_loadHolds_unique a6092 (hw 4 (by norm_num))
-  have e6095 := tb_loadHolds_unique a6095 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6447 : σ (.n 6447) = ev 3 := by
-    rw [← hev 3 (by norm_num)]; exact (vt_eval h (k := 18) (by norm_num)).2.2.1
-  have v6515 : σ (.n 6515) = ev 8 := by
-    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2.1
-  have v6539 : σ (.n 6539) = ev 9 := by
-    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2.1
-  have v6550 : σ (.n 6550) = ev 10 := by
-    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2.1
-  have v6572 : σ (.n 6572) = ev 12 := by
-    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2.1
-  have hB : σ (.n 6831) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 3], 1)], [([12], 1)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
-    simp only [v6572, v6550, v6539, v6515, v6447, v6425, a6098, a6097, a6096, e6095, a6094, a6093, e6092,
-      a6091, a6090, e6089, a6088, a6087, e6086, a6085, a6084, e6083, a6082, a6081, a6080,
-      e6079]
-    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
-      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
+  obtain ⟨a3304, a3305, a3306, a3307, a3308, a3309, -⟩ := hs
+  have e3306 := tb_loadHolds_unique a3306 (hw 2 (by norm_num))
+  have v3168 : σ (.n 3168) = ev 12 := by
+    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2
+  have hB : σ (.n 3364) = vtSlots W ev 0 [[], [], [([12], 3)], [], [], []] := by
+    simp only [v3168, a3307, e3306, a3305, a3304]
+    simp only [vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK]
     ring
-  rw [a6100, a6099, hB]
+  rw [a3309, a3308, hB]
 
 set_option maxRecDepth 10000 in
-theorem vtB11_4 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+theorem vtD1_4 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6876) = σ (.n 6833) + σ (.n 4632) * vtBlockVal (σ (.n 15)) W ev
-      [[([], 2)], [([1, 4], 1)], [([13], 1)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
-  obtain ⟨_, hs⟩ := h.slice 6101 [
-    .atom (.load (.n 6834) (.n 14) 0),
-    .atom (.const (.n 6835) (word 2 0 0)),
-    .atom (.mul (.n 6836) (.n 6834) (.n 6835)),
-    .atom (.mul (.n 6837) (.n 6425) (.n 6458)),
-    .atom (.load (.n 6838) (.n 14) 1),
-    .atom (.mul (.n 6839) (.n 6838) (.n 6837)),
-    .atom (.add (.n 6840) (.n 6836) (.n 6839)),
-    .atom (.load (.n 6841) (.n 14) 2),
-    .atom (.mul (.n 6842) (.n 6841) (.n 6596)),
-    .atom (.add (.n 6843) (.n 6840) (.n 6842)),
-    .atom (.mul (.n 6844) (.n 6482) (.n 6515)),
-    .atom (.mul (.n 6845) (.n 6493) (.n 6550)),
-    .atom (.add (.n 6846) (.n 6844) (.n 6845)),
-    .atom (.mul (.n 6847) (.n 6504) (.n 6539)),
-    .atom (.add (.n 6848) (.n 6846) (.n 6847)),
-    .atom (.load (.n 6849) (.n 14) 3),
-    .atom (.mul (.n 6850) (.n 6849) (.n 6848)),
-    .atom (.add (.n 6851) (.n 6843) (.n 6850)),
-    .atom (.mul (.n 6852) (.n 6482) (.n 6539)),
-    .atom (.mul (.n 6853) (.n 6493) (.n 6515)),
-    .atom (.add (.n 6854) (.n 6852) (.n 6853)),
-    .atom (.mul (.n 6855) (.n 6493) (.n 6550)),
-    .atom (.add (.n 6856) (.n 6854) (.n 6855)),
-    .atom (.mul (.n 6857) (.n 6504) (.n 6539)),
-    .atom (.add (.n 6858) (.n 6856) (.n 6857)),
-    .atom (.mul (.n 6859) (.n 6504) (.n 6550)),
-    .atom (.add (.n 6860) (.n 6858) (.n 6859)),
-    .atom (.load (.n 6861) (.n 14) 4),
-    .atom (.mul (.n 6862) (.n 6861) (.n 6860)),
-    .atom (.add (.n 6863) (.n 6851) (.n 6862)),
-    .atom (.mul (.n 6864) (.n 6482) (.n 6550)),
-    .atom (.mul (.n 6865) (.n 6493) (.n 6539)),
-    .atom (.add (.n 6866) (.n 6864) (.n 6865)),
-    .atom (.mul (.n 6867) (.n 6504) (.n 6515)),
-    .atom (.add (.n 6868) (.n 6866) (.n 6867)),
-    .atom (.mul (.n 6869) (.n 6504) (.n 6550)),
-    .atom (.add (.n 6870) (.n 6868) (.n 6869)),
-    .atom (.load (.n 6871) (.n 14) 5),
-    .atom (.mul (.n 6872) (.n 6871) (.n 6870)),
-    .atom (.add (.n 6873) (.n 6863) (.n 6872)),
-    .atom (.add (.n 6874) (.n 15) (.n 6873)),
-    .atom (.mul (.n 6875) (.n 4632) (.n 6874)),
-    .atom (.add (.n 6876) (.n 6833) (.n 6875))] (by decide +kernel)
+    σ (.n 3372) = σ (.n 3366) + σ (.n 1970) * vtSlots W ev 0
+      [[], [], [([13], 3)], [], [], []] := by
+  obtain ⟨_, hs⟩ := h.sliceAt 3310 [
+    .atom (.const (.n 3367) (word 3 0 0)),
+    .atom (.mul (.n 3368) (.n 3367) (.n 3192)),
+    .atom (.load (.n 3369) (.n 13) 2),
+    .atom (.mul (.n 3370) (.n 3369) (.n 3368)),
+    .atom (.mul (.n 3371) (.n 1970) (.n 3370)),
+    .atom (.add (.n 3372) (.n 3366) (.n 3371))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6101, a6102, a6103, a6104, a6105, a6106, a6107, a6108, a6109, a6110, a6111, a6112, a6113, a6114,
-    a6115, a6116, a6117, a6118, a6119, a6120, a6121, a6122, a6123, a6124, a6125, a6126, a6127,
-    a6128, a6129, a6130, a6131, a6132, a6133, a6134, a6135, a6136, a6137, a6138, a6139, a6140,
-    a6141, a6142, a6143, -⟩ := hs
-  have e6101 := tb_loadHolds_unique a6101 (hw 0 (by norm_num))
-  have e6105 := tb_loadHolds_unique a6105 (hw 1 (by norm_num))
-  have e6108 := tb_loadHolds_unique a6108 (hw 2 (by norm_num))
-  have e6116 := tb_loadHolds_unique a6116 (hw 3 (by norm_num))
-  have e6128 := tb_loadHolds_unique a6128 (hw 4 (by norm_num))
-  have e6138 := tb_loadHolds_unique a6138 (hw 5 (by norm_num))
-  have v6425 : σ (.n 6425) = ev 1 := by
-    rw [← hev 1 (by norm_num)]; exact (vt_eval h (k := 16) (by norm_num)).2.2.1
-  have v6458 : σ (.n 6458) = ev 4 := by
-    rw [← hev 4 (by norm_num)]; exact (vt_eval h (k := 19) (by norm_num)).2.2.1
-  have v6482 : σ (.n 6482) = ev 5 := by
-    rw [← hev 5 (by norm_num)]; exact (vt_eval h (k := 20) (by norm_num)).2.2.1
-  have v6493 : σ (.n 6493) = ev 6 := by
-    rw [← hev 6 (by norm_num)]; exact (vt_eval h (k := 21) (by norm_num)).2.2.1
-  have v6504 : σ (.n 6504) = ev 7 := by
-    rw [← hev 7 (by norm_num)]; exact (vt_eval h (k := 22) (by norm_num)).2.2.1
-  have v6515 : σ (.n 6515) = ev 8 := by
-    rw [← hev 8 (by norm_num)]; exact (vt_eval h (k := 23) (by norm_num)).2.2.1
-  have v6539 : σ (.n 6539) = ev 9 := by
-    rw [← hev 9 (by norm_num)]; exact (vt_eval h (k := 24) (by norm_num)).2.2.1
-  have v6550 : σ (.n 6550) = ev 10 := by
-    rw [← hev 10 (by norm_num)]; exact (vt_eval h (k := 25) (by norm_num)).2.2.1
-  have v6596 : σ (.n 6596) = ev 13 := by
-    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2.1
-  have hB : σ (.n 6874) = vtBlockVal (σ (.n 15)) W ev [[([], 2)], [([1, 4], 1)], [([13], 1)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
-    simp only [v6596, v6550, v6539, v6515, v6504, v6493, v6482, v6458, v6425, a6141, a6140, a6139, e6138,
-      a6137, a6136, a6135, a6134, a6133, a6132, a6131, a6130, a6129, e6128, a6127, a6126,
-      a6125, a6124, a6123, a6122, a6121, a6120, a6119, a6118, a6117, e6116, a6115, a6114,
-      a6113, a6112, a6111, a6110, a6109, e6108, a6107, a6106, e6105, a6104, a6103, a6102,
-      e6101]
-    simp only [vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
-      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK, vt_ofK_ofBits_one]
+  obtain ⟨a3310, a3311, a3312, a3313, a3314, a3315, -⟩ := hs
+  have e3312 := tb_loadHolds_unique a3312 (hw 2 (by norm_num))
+  have v3192 : σ (.n 3192) = ev 13 := by
+    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2
+  have hB : σ (.n 3370) = vtSlots W ev 0 [[], [], [([13], 3)], [], [], []] := by
+    simp only [v3192, a3313, e3312, a3311, a3310]
+    simp only [vtSlots, vtCoordVal_cons, vtCoordVal_nil, List.map_cons,
+      List.map_nil, List.prod_cons, List.prod_nil, vt_word_ofK]
     ring
-  rw [a6143, a6142, hB]
+  rw [a3315, a3314, hB]
 
 set_option maxRecDepth 10000 in
 theorem vtSide11 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
-    (hw : ∀ i < 16, LoadHolds rd (σ (.n 14)) i (W i))
+    (hw : ∀ i < 16, LoadHolds rd (σ (.n 13)) i (W i))
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6876) =
-      vtSideVal [σ (.n 4604), σ (.n 4611), σ (.n 4618), σ (.n 4625), σ (.n 4632)]
-        (σ (.n 15)) W ev vtBTerms11 := by
-  rw [vtB11_4 h hw hev, vtB11_3 h hw hev, vtB11_2 h hw hev, vtB11_1 h hw hev, vtB11_0 h hw hev]
-  simp only [vtSideVal, vtBTerms11, List.zipWith_cons_cons, List.zipWith_nil_left,
+    σ (.n 3373) =
+      vtSideVal [σ (.n 1962), σ (.n 1964), σ (.n 1966), σ (.n 1968), σ (.n 1970)]
+        (σ (.n 14)) W ev vtBTerms11 := by
+  have hF0 : σ (.n 3342) =
+      vtSideVal [σ (.n 1962), σ (.n 1964), σ (.n 1966), σ (.n 1968), σ (.n 1970)]
+        (σ (.n 14)) W ev vtBTerms01 := by
+    rw [vtPullSels1 h]; exact vtSide01 h hw hev
+  have a3316 := h.atomAt 3316 (.add (.n 3373) (.n 3342) (.n 3372)) (by decide +kernel)
+  simp only [Atom.Holds] at a3316
+  rw [vtSideVal_pull _ _ _ _ _ _ _ vtPull1, ← hF0, a3316, vtD1_4 h hw hev, vtD1_3 h hw hev, vtD1_2 h hw hev, vtD1_1 h hw hev, vtD1_0 h hw hev]
+  simp only [vtDiffSum, vtDTerms1, List.zipWith_cons_cons, List.zipWith_nil_left,
     List.sum_cons, List.sum_nil, add_zero, add_assoc]
 
 set_option maxRecDepth 10000 in
 theorem vtSide21 {rd : Reader} {σ : Val} (h : VtH rd σ) {ev : ℕ → E}
     (hev : ∀ c < 15, σ (.n (vtEvB (15 + c))) = ev c) :
-    σ (.n 6885) =
-      vtSideVal [σ (.n 5002), σ (.n 5021), σ (.n 5040), σ (.n 5059)]
+    σ (.n 3382) =
+      vtSideVal [σ (.n 2085), σ (.n 2094), σ (.n 2103), σ (.n 2112)]
         (0) (fun _ ↦ 1) ev vtBTerms21 := by
-  obtain ⟨_, hs⟩ := h.slice 6146 [
-    .atom (.mul (.n 6879) (.n 5002) (.n 6561)),
-    .atom (.mul (.n 6880) (.n 5021) (.n 6572)),
-    .atom (.add (.n 6881) (.n 6879) (.n 6880)),
-    .atom (.mul (.n 6882) (.n 5040) (.n 6596)),
-    .atom (.add (.n 6883) (.n 6881) (.n 6882)),
-    .atom (.mul (.n 6884) (.n 5059) (.n 6607)),
-    .atom (.add (.n 6885) (.n 6883) (.n 6884))] (by decide +kernel)
+  obtain ⟨_, hs⟩ := h.sliceAt 3319 [
+    .atom (.mul (.n 3376) (.n 2085) (.n 3157)),
+    .atom (.mul (.n 3377) (.n 2094) (.n 3168)),
+    .atom (.add (.n 3378) (.n 3376) (.n 3377)),
+    .atom (.mul (.n 3379) (.n 2103) (.n 3192)),
+    .atom (.add (.n 3380) (.n 3378) (.n 3379)),
+    .atom (.mul (.n 3381) (.n 2112) (.n 3203)),
+    .atom (.add (.n 3382) (.n 3380) (.n 3381))] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hs
-  obtain ⟨a6146, a6147, a6148, a6149, a6150, a6151, a6152, -⟩ := hs
-  have v6561 : σ (.n 6561) = ev 11 := by
-    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2.1
-  have v6572 : σ (.n 6572) = ev 12 := by
-    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2.1
-  have v6596 : σ (.n 6596) = ev 13 := by
-    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2.1
-  have v6607 : σ (.n 6607) = ev 14 := by
-    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2.1
-  rw [a6152, a6150, a6148, a6146, a6147, a6149, a6151, v6561, v6572, v6596, v6607]
+  obtain ⟨a3319, a3320, a3321, a3322, a3323, a3324, a3325, -⟩ := hs
+  have v3157 : σ (.n 3157) = ev 11 := by
+    rw [← hev 11 (by norm_num)]; exact (vt_eval h (k := 26) (by norm_num)).2.2
+  have v3168 : σ (.n 3168) = ev 12 := by
+    rw [← hev 12 (by norm_num)]; exact (vt_eval h (k := 27) (by norm_num)).2.2
+  have v3192 : σ (.n 3192) = ev 13 := by
+    rw [← hev 13 (by norm_num)]; exact (vt_eval h (k := 28) (by norm_num)).2.2
+  have v3203 : σ (.n 3203) = ev 14 := by
+    rw [← hev 14 (by norm_num)]; exact (vt_eval h (k := 29) (by norm_num)).2.2
+  rw [a3325, a3323, a3321, a3319, a3320, a3322, a3324, v3157, v3168, v3192, v3203]
   simp only [vtSideVal, vtBTerms21, List.zipWith_cons_cons, List.zipWith_nil_left,
     List.sum_cons, List.sum_nil, vtBlockVal_eq, vtSlots, vtCoordVal_cons, vtCoordVal_nil,
     List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, vt_ofK_ofBits_one, zero_add,

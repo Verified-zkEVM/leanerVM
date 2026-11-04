@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
 # The totals (G:2103-2164)
 
 `vt_asm_totals`: with the facts `verify_sub` hands `verify_tables` (the point, the heights and
-row counts, `block_kappa`, the squares, the bus weights), `bus_table_total[PUSH]`,
+row counts, `kappa_base`, the exponent tables, the bus weights), `bus_table_total[PUSH]`,
 `bus_table_total[PULL]` and `bus_table_total[COUNT]` are the totals of `vtBus` (`vtAcc0`,
 `vtAcc1`, `vtAcc2`).
 -/
@@ -52,19 +52,19 @@ theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
   rw [vtWFinalPc, vt_word_ofK, Verifier.gpow, gen_pow_eq_ofK,
     show K.ofBits 12261764870545049476 = Parameters.addressOfIndex (2 ^ 19 - 1) by decide +kernel]
 
-theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 2853) = σ (.n 15) + 1 := by
-  have a1 := h.atomAt 2405 (.const (.n 2852) (word 1 0 0)) (by decide +kernel)
-  have a2 := h.atomAt 2406 (.add (.n 2853) (.n 15) (.n 2852)) (by decide +kernel)
+theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 783) = σ (.n 14) + 1 := by
+  have a1 := h.atomAt 770 (.const (.n 782) (word 1 0 0)) (by decide +kernel)
+  have a2 := h.atomAt 771 (.add (.n 783) (.n 14) (.n 782)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
 theorem vt_pushPad_var {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 4411) = σ (.n 3036) + σ (.n 4406) + (1 + σ (.n 3984)) + σ (.n 27) := by
-  have a1 := h.atomAt 3905 (.add (.n 4407) (.n 3036) (.n 4406)) (by decide +kernel)
-  have a2 := h.atomAt 3906 (.const (.n 4408) (word 1 0 0)) (by decide +kernel)
-  have a3 := h.atomAt 3907 (.add (.n 4409) (.n 4408) (.n 3984)) (by decide +kernel)
-  have a4 := h.atomAt 3908 (.add (.n 4410) (.n 4407) (.n 4409)) (by decide +kernel)
-  have a5 := h.atomAt 3909 (.add (.n 4411) (.n 4410) (.n 27)) (by decide +kernel)
+    σ (.n 1812) = σ (.n 947) + σ (.n 1807) + (1 + σ (.n 1385)) + σ (.n 25) := by
+  have a1 := h.atomAt 1846 (.add (.n 1808) (.n 947) (.n 1807)) (by decide +kernel)
+  have a2 := h.atomAt 1847 (.const (.n 1809) (word 1 0 0)) (by decide +kernel)
+  have a3 := h.atomAt 1848 (.add (.n 1810) (.n 1809) (.n 1385)) (by decide +kernel)
+  have a4 := h.atomAt 1849 (.add (.n 1811) (.n 1808) (.n 1810)) (by decide +kernel)
+  have a5 := h.atomAt 1850 (.add (.n 1812) (.n 1811) (.n 25)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2 a3 a4 a5
   rw [a5, a4, a3, a2, a1, tb_word_one]
 
@@ -76,59 +76,61 @@ include hμ
 theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.length = 2 ^ 23)
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hsq : TbReadsAt Lm.read (σ (.n 13)) gSquaresList) {lm : ℕ} (hlm : lm ≤ 32)
+    (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 29)
-    (hdim : ∀ t < 6, LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ vtHt rows t))
-    (hbk : TbReadsAt Lm.read (σ (.n 12))
-      (blockKappaWords (gen ^ lm) ((vtTauList (vtHt rows)).map (gen ^ ·))))
+    (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {alphas : List E} (hal : alphas.length = 4)
-    (hW : TbReadsAt Lm.read (σ (.n 14)) (eqKernel alphas))
+    (hW : TbReadsAt Lm.read (σ (.n 13)) (eqKernel alphas))
     (hpw : ∀ t < 6, σ (.n (vtPadV t)) = paddingWeight (point.take (vtHt rows t)) (vtRw rows t)) :
-    σ (.n 4411) = (vtAcc0 (layoutOf bc lm rows) alphas (σ (.n 15)) point
-      [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 2639)) (σ (.n 27))).2 ∧
-    σ (.n 4924) = (vtAcc1 (layoutOf bc lm rows) alphas (σ (.n 15)) point
-      [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639))
-      (σ (.n 27)) (σ (.n 28))).2 ∧
-    σ (.n 5816) = (vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 15)) point
-      [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639))
-      (σ (.n 27)) (σ (.n 28)) (σ (.n 29))).2 := by
-  obtain ⟨l1, l2, k1, k2, s0, s1, s2, c0, c1, c2, hS, hsum, hSC, hsumC⟩ :=
-    vt_sels hμ Lm h hz hmu hml hsq hlm hτ hdim hbk
+    σ (.n 1812) = (vtAcc0 (layoutOf bc lm rows) alphas (σ (.n 14)) point
+      [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 581)) (σ (.n 25))).2 ∧
+    σ (.n 2057) = (vtAcc1 (layoutOf bc lm rows) alphas (σ (.n 14)) point
+      [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+      (σ (.n 25)) (σ (.n 26))).2 ∧
+    σ (.n 2499) = (vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
+      [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+      (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).2 := by
+  obtain ⟨l1, l2, s0, s1, s2, c0, c1, c2, hS, hsum, hSC, hsumC⟩ :=
+    vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
+  have k1 : σ (.n 29) = gen ^ lm := by simpa using hkb 1 (by norm_num)
+  have k2 : σ (.n 876) = gen ^ 19 := by
+    have e0 : σ (.n 28) = 1 := by simpa using hkb 0 (by norm_num)
+    rw [vt_fw2_kappa h, e0, one_mul]
   obtain ⟨i1, i1', i2, i2', m0, m1, m2, -⟩ := vt_fw h hz l1 (by omega) l2 k1 k2
   have hWl : (eqKernel alphas).length = 16 := by rw [vt_length_eqKernel, hal]; rfl
   set W : ℕ → E := fun i ↦ (eqKernel alphas).getD i 0 with hWd
-  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n 14)) i (W i) := fun i hi ↦ by
+  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n 13)) i (W i) := fun i hi ↦ by
     have := hW i (by omega)
     rwa [← List.getD_eq_getElem _ 0] at this
   have hpw' : ∀ t < 6, paddingWeight (point.take (vtHt rows t)) (vtRw rows t) =
       σ (.n (vtPadV t)) := fun t ht ↦ (hpw t ht).symm
-  have e0 := vt_total0 hbc alphas (σ (.n 15)) point [σ (.n 2914), σ (.n 2927), σ (.n 2940)]
-    (σ (.n 2639)) (σ (.n 27)) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
+  have e0 := vt_total0 hbc alphas (σ (.n 14)) point [σ (.n 830), σ (.n 843), σ (.n 856)]
+    (σ (.n 581)) (σ (.n 25)) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
     s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
-  have e1 := vt_total1 hbc alphas (σ (.n 15)) point [σ (.n 2914), σ (.n 2927), σ (.n 2940)]
-    (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639)) (σ (.n 27)) (σ (.n 28)) _ _ _ (fun c ↦ σ (.n c))
+  have e1 := vt_total1 hbc alphas (σ (.n 14)) point [σ (.n 830), σ (.n 843), σ (.n 856)]
+    (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581)) (σ (.n 25)) (σ (.n 26)) _ _ _ (fun c ↦ σ (.n c))
     (fun t ↦ σ (.n (vtPadV t))) s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
-  have e2 := vt_total2 (bc := bc) (lm := lm) alphas (σ (.n 15)) point
-    [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639))
-    (σ (.n 27)) (σ (.n 28)) (σ (.n 29)) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
+  have e2 := vt_total2 (bc := bc) (lm := lm) alphas (σ (.n 14)) point
+    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+    (σ (.n 25)) (σ (.n 26)) (σ (.n 27)) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
     (fun i hi ↦ hSC i hi) hpw' hr
   have hpush := vt_push_total h hw
   have hfw := vt_push_fw h hw
   rw [vt_beta1 h] at hpush
-  have hpad : σ (.n 4406) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
-      (σ (.n 15) + 1) vtPushPadData := by
+  have hpad : σ (.n 1807) = vtPadSum (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
+      (σ (.n 14) + 1) vtPushPadData := by
     have := (vt_pushPad_var h).symm.trans hpush
     linear_combination this
   have hfp : ∀ (L : Layout), L.logMemory = lm → L.logBytecode = 19 →
-      vtFpPush L alphas point [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 2639)) =
-        [W 0 + W 1 + W 2, W 0 * gen + W 1 * σ (.n 2908) + W 2 + W 3 * σ (.n 2914) +
-          W 4 * σ (.n 2927) + W 5 * σ (.n 2940), W 0 * gen ^ 2 + W 1 * σ (.n 2983) + W 2 +
-          σ (.n 2639)] ∧
-      vtFpPull L alphas point [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444))
-          (σ (.n 4502)) (σ (.n 2639)) =
-        [W 0 + W 1 * vtWFinalPc + W 2, W 0 * gen + W 1 * σ (.n 2908) + W 2 * σ (.n 4444) +
-          W 3 * σ (.n 2914) + W 4 * σ (.n 2927) + W 5 * σ (.n 2940),
-          W 0 * gen ^ 2 + W 1 * σ (.n 2983) + W 2 * σ (.n 4502) + σ (.n 2639)] := by
+      vtFpPush L alphas point [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 581)) =
+        [W 0 + W 1 + W 2, W 0 * gen + W 1 * σ (.n 824) + W 2 + W 3 * σ (.n 830) +
+          W 4 * σ (.n 843) + W 5 * σ (.n 856), W 0 * gen ^ 2 + W 1 * σ (.n 894) + W 2 +
+          σ (.n 581)] ∧
+      vtFpPull L alphas point [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835))
+          (σ (.n 1890)) (σ (.n 581)) =
+        [W 0 + W 1 * vtWFinalPc + W 2, W 0 * gen + W 1 * σ (.n 824) + W 2 * σ (.n 1835) +
+          W 3 * σ (.n 830) + W 4 * σ (.n 843) + W 5 * σ (.n 856),
+          W 0 * gen ^ 2 + W 1 * σ (.n 894) + W 2 * σ (.n 1890) + σ (.n 581)] := by
     intro L hL1 hL2
     simp only [vtFpPush, vtFpPull, fingerprints, hL1, hL2, vt_take3 (eqKernel alphas) (by omega),
       vt_take6 (eqKernel alphas) (by omega), ← i1, ← i2, vtWFinalPc_eq, dot, List.zipWith_cons_cons,
