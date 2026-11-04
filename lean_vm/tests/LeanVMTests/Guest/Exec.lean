@@ -12,8 +12,9 @@ import LeanVM.Guest.Check
   thirteen cells it reads (`m0..m3`, the runs from `tail` and `cap`, `b8`) and the thirteen it
   writes;
 * the selectors bounded by booleanity (`Check.selBound`): `r_g` of `shared_selector_tables`
-  (`(1 + b₀(1 + g))(1 + b₁(1 + g²))`, below `g^4`) and `odd_g` of `verify_keccak`
-  (`1 + b(1 + g)`, below `g^2`), from the atoms of the functions' paths.
+  (`(1 + b₀(1 + g))(1 + b₁(1 + g²))`, below `g^4`) and `rem_g` of `verify_keccak`
+  (`(1 + b₀(1 + g))(1 + b₁(1 + g²))(1 + b₂(1 + g⁴))`, below `g^8`), from the atoms of the
+  functions' paths.
 -/
 
 namespace LeanVMTests.Guest.Exec
@@ -27,9 +28,9 @@ def F0 : Facts := {}
 /-- Its atoms: the instructions it executes, the not-taken `JUMP` reading its cells in `K`, and
 the return. -/
 def canonicalAtoms : List Atom :=
-  [.instr 4851 (.xor 2 4 5), .instr 4852 (.set 6 1 0 1), .instr 4853 (.mul 5 6 7),
-    .instr 4854 (.set 8 0 0 0), .jump 8 4 7, .instr 4856 (.set 3 0 0 0),
-    .instr 4857 (.set 9 1 0 0), .jump 9 0 1]
+  [.instr 17795 (.xor 2 4 5), .instr 17796 (.set 6 1 0 1), .instr 17797 (.mul 5 6 7),
+    .instr 17798 (.set 8 0 0 0), .jump 8 4 7, .instr 17800 (.set 3 0 0 0),
+    .instr 17801 (.set 9 1 0 0), .jump 9 0 1]
 
 theorem canonical_name : Data.f2.name = "assert_canonical" := by decide +kernel
 
@@ -41,13 +42,13 @@ theorem canonical_shape : (exec F0 Data.f2).segs.map (fun s ↦ (s.start, s.env.
 /-- **`assert_canonical`'s contract**, from the executor: a halting run entering it, on the run from
 `(g^0, 1)`, returns, in fewer steps, with every atom holding. -/
 theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 4851 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
+    FunSpecReached guestProgram L 17795 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (canonical_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hatoms, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f2.entryPc + s.start = 4851 := by rw [h0]; rfl
+  have hentry : Data.f2.entryPc + s.start = 17795 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 2) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -61,11 +62,11 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 `fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f325.name = "claim_list_last__L0" ∧ Data.f325.entryPc = 195470 := by
+theorem hash_name : Data.f334.name = "claim_list_last__L0" ∧ Data.f334.entryPc = 200666 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f325).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 195491 hashIns),
+theorem hash_shape : (exec F0 Data.f334).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 200687 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -73,7 +74,7 @@ theorem hash_shape : (exec F0 Data.f325).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600] the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 195470 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 200666 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
@@ -83,8 +84,8 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f325.entryPc + s.start = 195470 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 325) rfl)) hs
+  have hentry : Data.f334.entryPc + s.start = 200666 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 334) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun
@@ -98,21 +99,28 @@ open LeanVM.Guest.Check in
 noncomputable def bookOf (f : CompiledFunction) : Book :=
   ((exec F0 f).segs.flatMap fun s ↦ s.items.filterMap Item.atom?).foldl addFact .nil
 
-theorem names : Data.f10.name = "shared_selector_tables" ∧ Data.f13.name = "verify_keccak" := by
+theorem names : Data.f11.name = "shared_selector_tables" ∧ Data.f13.name = "verify_keccak" := by
   decide +kernel
 
 open LeanVM.Guest.Check in
 /-- `r_g = (1 + b₀(1 + g))(1 + b₁(1 + g²))` in `fp[21]`, the selector of the dispatch on
 `log(r_g)` over four arms: `g^e` with `e < 4`. -/
-theorem r_g_bound : selBound (bookOf Data.f10) selFuel 21 = some 4 := by decide +kernel
+theorem r_g_bound : selBound (bookOf Data.f11) selFuel 21 = some 4 := by decide +kernel
 
 open LeanVM.Guest.Check in
-/-- `odd_g = 1 + b(1 + g)` in `fp[61]`, the selector of `verify_keccak`'s twelve dispatches on
-`log(odd_g)` over two arms: `g^e` with `e < 2`. -/
-theorem odd_g_bound : selBound (bookOf Data.f13) selFuel 61 = some 2 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `rem_g = (1 + b₀(1 + g))(1 + b₁(1 + g²))(1 + b₂(1 + g⁴))` in `fp[60]`, the remainder of a
+layer's rounds that `verify_keccak` passes to `keccak_layer`: `g^e` with `e < 8`. -/
+theorem rem_g_bound : selBound (bookOf Data.f13) selFuel 60 = some 8 := by decide +kernel
 
 open LeanVM.Guest.Check in
-/-- A selector bound is only claimed of such a selector: `fp[60] = b·(1 + g)` is none. -/
-theorem odd_g_scaled_none : selBound (bookOf Data.f13) selFuel 60 = none := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- Its first factor `1 + b₀(1 + g)` in `fp[53]`: `g^e` with `e < 2`. -/
+theorem rem_g_factor_bound : selBound (bookOf Data.f13) selFuel 53 = some 2 := by decide +kernel
+
+open LeanVM.Guest.Check in
+set_option maxRecDepth 100000 in
+/-- A selector bound is only claimed of such a selector: `fp[52] = b₀·(1 + g)` is none. -/
+theorem rem_g_scaled_none : selBound (bookOf Data.f13) selFuel 52 = none := by decide +kernel
 
 end LeanVMTests.Guest.Exec
