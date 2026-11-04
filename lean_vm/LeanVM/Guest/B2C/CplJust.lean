@@ -228,10 +228,10 @@ theorem fpgAtC_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o e : ℕ}
     have hh := (hst o x hx).1
     split at hp
     · rename_i p r rs
-      simp only [Bool.cond_eq_ite, Nat.beq_eq_true_eq] at hp
+      simp only [Bool.cond_eq_ite] at hp
       split_ifs at hp with hpo
       obtain rfl := Option.some.inj hp
-      subst hpo
+      obtain rfl := Nat.eq_of_beq_eq_true hpo
       obtain ⟨c0, rest, hr, h3⟩ := hh
       obtain ⟨rfl, -⟩ := List.cons.inj hr
       exact h3
@@ -455,7 +455,7 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
           unfold Guest.Holds
           refine ⟨_, _, h1, h2, ?_⟩
           show rdc L fp _ = _
-          rw [h3, PC.word, ofK_gpow_mul, Nat.add_assoc]
+          rw [h3, ofK_gpow_mul, Nat.add_assoc]
       · cases hp
     · cases hp
   · obtain ⟨v, h1, h2⟩ := sameC_sound hX hst.book hs
