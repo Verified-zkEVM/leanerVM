@@ -51,10 +51,7 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args re
   match args, h with
   | [ng], h =>
     obtain ⟨a, ha, b, hb, c, hc, hng, hrets⟩ := h
-    simp only [maxKeys] at ha
-    simp only [bigGroups] at hb
-    simp only [claimGroup] at hc
-    simp only [claimBig, claimGroup] at hng
+    simp only [maxKeys, bigGroups, claimGroup, claimBig] at ha hb hc hng
     obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm (k := c) (K := 16) (by omega) (by norm_num)
     obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm (k := b) (K := 7) (by omega) (by norm_num)
     obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds' hm (k := a) (K := 65535) (by omega) (by norm_num)
