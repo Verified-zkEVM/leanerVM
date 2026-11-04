@@ -32,9 +32,9 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-- `verify_sub`'s soundness in the shape `main` reads it (B1-d's `verify_sub_Spec` gives it):
 every call with the exponent tables has a proof that `VerifySubOut` describes. -/
 def SubSound (bytecode : List K) : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ pi0 pi1 s0 s1 glp gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, glp, gsq, out] [] → ExpTables rd glp gsq →
-      ∃ π, VerifySubOut bytecode rd [pi0, pi1, s0, s1, glp, gsq, out] π
+  ∀ (rd : Reader), MemOk rd → ∀ pi0 pi1 s0 s1 gsq out,
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+      ∃ π, VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] π
 
 /-- **Witness functions for `main`'s callees exist.** -/
 theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature] [Nonempty Proof]
@@ -87,17 +87,18 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
         exact ⟨root, z, c2, hop, hc2, hrets⟩⟩
     · exact ⟨⟨[]⟩, fun g hg hr hsq => absurd ⟨g, hg, hr, hsq⟩ h⟩
   -- the proofs
-  have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 glp gsq out,
-      args = [pi0, pi1, s0, s1, glp, gsq, out] →
-      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read glp gsq →
+  have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 gsq out,
+      args = [pi0, pi1, s0, s1, gsq, out] →
+      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq →
       VerifySubOut bytecode L.read args π := by
     intro args
-    by_cases h : ∃ pi0 pi1 s0 s1 glp gsq out, args = [pi0, pi1, s0, s1, glp, gsq, out] ∧
-        coreProgram.Rel L.read "verify_sub" args [] ∧ ExpTables L.read glp gsq
-    · obtain ⟨pi0, pi1, s0, s1, glp, gsq, out, rfl, hr, he⟩ := h
-      obtain ⟨π, hπ⟩ := hv L.read hm' _ _ _ _ _ _ _ hr he
-      exact ⟨π, fun _ _ _ _ _ _ _ _ _ _ => hπ⟩
-    · exact ⟨Classical.ofNonempty, fun a b c d e f g hargs hr he => absurd ⟨a, b, c, d, e, f, g, hargs, hr, he⟩ h⟩
+    by_cases h : ∃ pi0 pi1 s0 s1 gsq out, args = [pi0, pi1, s0, s1, gsq, out] ∧
+        coreProgram.Rel L.read "verify_sub" args [] ∧ ExpTables L.read gsq
+    · obtain ⟨pi0, pi1, s0, s1, gsq, out, rfl, hr, he⟩ := h
+      obtain ⟨π, hπ⟩ := hv L.read hm' _ _ _ _ _ _ hr he
+      exact ⟨π, fun _ _ _ _ _ _ _ _ _ => hπ⟩
+    · exact ⟨Classical.ofNonempty, fun a b c d e f hargs hr he =>
+        absurd ⟨a, b, c, d, e, f, hargs, hr, he⟩ h⟩
   -- the batching's hints
   have ea : ∀ args : List E, ∃ hints : BatchingHints, ∀ ncg cpi cfresh ccarried dst,
       args = [ncg, cpi, cfresh, ccarried, dst] →
@@ -126,7 +127,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   choose wA hwA using ea
   exact ⟨wX, wS, wD, wV, wA, fun p hr => hwX p hr, fun p bb hr hbb => hwS p bb hr hbb,
     fun gsq rets hr hsq => hwD [gsq] rets gsq rfl hr hsq,
-    fun pi0 pi1 s0 s1 glp gsq out hr he => hwV _ _ _ _ _ _ _ _ rfl hr he,
+    fun pi0 pi1 s0 s1 gsq out hr he => hwV _ _ _ _ _ _ _ rfl hr he,
     fun ncg cpi cfresh ccarried dst hr m h1 h16 hn => hwA _ _ _ _ _ _ rfl hr m h1 h16 hn⟩
 
 /-- **A run of `main` decodes to a statement of the public input's digest, held by a witness.** -/

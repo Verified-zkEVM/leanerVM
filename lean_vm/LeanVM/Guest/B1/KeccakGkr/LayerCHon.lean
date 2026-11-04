@@ -17,13 +17,14 @@ the pack rounds' and the position rounds' messages, `t`). From them, on the run
 `verifyKeccakLayer` makes (`layerSq`, `layerPack`, `layerLocal`, `layerBeta`, `layerClaim`):
 
 * `run k`: the first `k` pack rounds (`packRunF`); `recWords cur`: the round records' buffer,
-  field `f` of record `j` at `16 f + j`, record `j` the state after `min (2j) y` rounds;
+  field `f` of record `j` at `16 f + j`, record `j` the state after `8j` rounds for
+  `j ≤ ⌊y/8⌋` (the eight-round loop), then one round a record (the remainder loop) (`recK`);
 * `chs`, `locPt`, `beta`, `next`: the pack challenges, the local point, `β`, the next claim;
 * `outW`: the next claim's record (its pointers given); `rets cur`: the returns.
 
 `run_cap`: every state of the run has five canonical capacity cells and nothing waiting.
-`run_pair`: two more rounds are two `eqRound`s. `run_chs`: the challenges so far are a prefix of
-`chs`.
+`run_add`: more rounds continue the run (`cont`); `eqChain_of_packRunF`: rounds from a state with
+nothing waiting chain by `eqRound`. `run_chs`: the challenges so far are a prefix of `chs`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -65,8 +66,8 @@ def run (k : ℕ) : (E × E × List E) × Fs :=
   packRunF (D.c.point.take k) (D.packMsgs.take k) (polyEval D.product (D.sv first)) 1
     ⟨D.capS first, []⟩
 
-/-- The rounds record `j` follows. -/
-def recK (j : ℕ) : ℕ := min (2 * j) D.y
+/-- The rounds record `j` follows: eight a record up to `⌊y/8⌋`, then one. -/
+def recK (j : ℕ) : ℕ := if j ≤ D.y / 8 then 8 * j else min (8 * (D.y / 8) + (j - D.y / 8)) D.y
 
 /-- Record `j`'s cursor. -/
 def recCur (cur : E) (j : ℕ) : E := cur * gen ^ (47 + 2 * D.recK j)
@@ -79,7 +80,7 @@ def recField (cur : E) (f j : ℕ) : E :=
 
 /-- The records' buffer. -/
 def recWords (cur : E) : List E := (List.range 128).map fun i ↦
-  if i % 16 ≤ D.y / 2 + D.y % 2 then D.recField first cur (i / 16) (i % 16) else 0
+  if i % 16 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 16) (i % 16) else 0
 
 /-- The pack rounds. -/
 def pack : (E × E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.packMsgs
@@ -104,9 +105,9 @@ def xs : List E :=
   D.product ++ D.packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
     D.localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [D.t.1, D.t.2.1, D.t.2.2]
 
-/-- The next claim's record, its point, lanes, local point and slices at `pt`, `lp`, `lc`, `sl`. -/
-def outW (pt lp lc sl : E) : List E :=
-  [(D.next first).value, sumE (D.next first).mu, pt, lp, lc, sl] ++ (D.next first).mu
+/-- The next claim's record, its point, lanes, local point and flips at `pt`, `lp`, `lc`, `fl`. -/
+def outW (pt lp lc fl : E) : List E :=
+  [(D.next first).value, sumE (D.next first).mu, pt, lp, lc, fl] ++ (D.next first).mu
 
 /-- The returns. -/
 def rets (cur : E) : List E := (D.beta first).2.cap ++ [cur * gen ^ (47 + 2 * D.y + 36)]
@@ -183,51 +184,21 @@ theorem run_add (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y)
     subst hs
     rfl
 
-/-- **Two more pack rounds.** -/
-theorem run_pair (hpm : D.packMsgs.length = D.y) {j : ℕ} (hj : 2 * j + 2 ≤ D.y) :
-    D.run first (2 * (j + 1)) = cont (D.run first (2 * j))
-      [D.c.point.getD (2 * j) 0, D.c.point.getD (2 * j + 1) 0]
-      [((D.packMsgs.getD (2 * j) (0, 0)).1, (D.packMsgs.getD (2 * j) (0, 0)).2),
-        ((D.packMsgs.getD (2 * j + 1) (0, 0)).1, (D.packMsgs.getD (2 * j + 1) (0, 0)).2)] := by
-  have hy : D.y = D.c.point.length := rfl
-  rw [show 2 * (j + 1) = 2 * j + 2 by ring, run_add hpm hj]
-  congr 1
-  · apply List.ext_getElem (by simp; omega)
-    intro i h1 h2
-    simp only [List.length_cons, List.length_nil] at h2
-    interval_cases i
-    · simp [List.getElem_take, List.getElem_drop,
-        List.getElem?_eq_getElem (show 2 * j < D.c.point.length by omega)]
-    · simp [List.getElem_take, List.getElem_drop,
-        List.getElem?_eq_getElem (show 2 * j + 1 < D.c.point.length by omega)]
-  · apply List.ext_getElem (by simp; omega)
-    intro i h1 h2
-    simp only [List.length_cons, List.length_nil] at h2
-    interval_cases i
-    · simp [List.getElem_take, List.getElem_drop,
-        List.getElem?_eq_getElem (show 2 * j < D.packMsgs.length by omega)]
-    · simp [List.getElem_take, List.getElem_drop,
-        List.getElem?_eq_getElem (show 2 * j + 1 < D.packMsgs.length by omega)]
-
-/-- **One more pack round** (`y` odd). -/
-theorem run_one (hpm : D.packMsgs.length = D.y) {j : ℕ} (hj : 2 * j + 1 = D.y) :
-    D.run first D.y = cont (D.run first (2 * j)) [D.c.point.getD (2 * j) 0]
-      [((D.packMsgs.getD (2 * j) (0, 0)).1, (D.packMsgs.getD (2 * j) (0, 0)).2)] := by
-  have hy : D.y = D.c.point.length := rfl
-  rw [← hj, run_add hpm (by omega)]
-  congr 1
-  · apply List.ext_getElem (by simp; omega)
-    intro i h1 h2
-    simp only [List.length_cons, List.length_nil] at h2
-    interval_cases i
-    simp [List.getElem_take, List.getElem_drop,
-      List.getElem?_eq_getElem (show 2 * j < D.c.point.length by omega)]
-  · apply List.ext_getElem (by simp; omega)
-    intro i h1 h2
-    simp only [List.length_cons, List.length_nil] at h2
-    interval_cases i
-    simp [List.getElem_take, List.getElem_drop,
-      List.getElem?_eq_getElem (show 2 * j < D.packMsgs.length by omega)]
+/-- **Rounds from a state with nothing waiting chain by `eqRound`.** -/
+theorem eqChain_of_packRunF : ∀ (rs : List E) (ms : List (E × E)) (cl sc : E) (cap : List E),
+    ms.length = rs.length →
+    EqChain rs ms cl sc cap (packRunF rs ms cl sc ⟨cap, []⟩).1.2.2
+      (packRunF rs ms cl sc ⟨cap, []⟩).1.1 (packRunF rs ms cl sc ⟨cap, []⟩).1.2.1
+      (packRunF rs ms cl sc ⟨cap, []⟩).2.cap
+  | [], [], _, _, _, _ => ⟨rfl, rfl, rfl, rfl⟩
+  | r :: rs, (g1, g2) :: ms, cl, sc, cap, h => by
+    rw [packRunF_eqRound]
+    have hs : (eqRound ⟨cap, []⟩ g1 g2 r cl sc).2.2.2 =
+        ⟨(eqRound ⟨cap, []⟩ g1 g2 r cl sc).2.2.2.cap, []⟩ := rfl
+    refine ⟨_, _, _, _, _, by rw [← hs], rfl, ?_⟩
+    rw [hs]
+    exact eqChain_of_packRunF rs ms _ _ _ (by simpa using h)
+  | [], _ :: _, _, _, _, h | _ :: _, [], _, _, _, h => by simp at h
 
 /-- **The challenges so far** are a prefix of the pack challenges. -/
 theorem run_chs (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) {i : ℕ}
