@@ -3393,7 +3393,7 @@ def chainedFiles (fns : List (ℕ × String × ℕ)) : List (System.FilePath × 
       let m := s!"K{j}_{g}"
       files := files.push (chainedDir / (m ++ ".lean"), header ("B2C.Chained." ++ m)
         "The kernel's checks of the chained `match`es' targets, window by window." ++
-        "public import LeanVM.Guest.B2C.Chain\n\n" ++ asyncOff ++
+        "public import LeanVM.Guest.B2C.ChainDefs\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.B2C.Chained\n\n@[expose] public section\n\n" ++
         (if g == 0 then s!"/-- `{name}`: its chains. -/\ntheorem fn{j} : chainFn {j} = true := by decide +kernel\n\n" else "") ++
         String.join (ws.map fun w =>
@@ -3408,7 +3408,7 @@ def chainedFiles (fns : List (ℕ × String × ℕ)) : List (System.FilePath × 
   let js := fns.map (·.1)
   let jsText := listText (js.map toString)
   let index := header "B2C.Chained" "Every compiled function passes the chained `match`es' check." ++
-    "public import LeanVM.Guest.B2C.Chain\npublic import Mathlib.Tactic.IntervalCases\n" ++
+    "public import LeanVM.Guest.B2C.ChainDefs\npublic import Mathlib.Tactic.IntervalCases\n" ++
     String.join (files.toList.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Chained.{(p.fileStem.getD "")}\n") ++
     "\nnamespace LeanVM.Guest.B2C.Chained\n\n@[expose] public section\n\n" ++ oks ++
     s!"/-- The functions with chains are `{jsText}`. -/

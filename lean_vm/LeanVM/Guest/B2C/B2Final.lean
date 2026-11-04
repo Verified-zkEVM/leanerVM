@@ -13,6 +13,7 @@ public import LeanVM.Guest.B2C.Cplw
 public import LeanVM.Guest.B2C.FrameAll
 public import LeanVM.Guest.B2C.KFacts
 public import LeanVM.Guest.B2C.Chained
+public import LeanVM.Guest.B2C.Chain
 
 /-!
 # B2's completeness at the deployed instance
