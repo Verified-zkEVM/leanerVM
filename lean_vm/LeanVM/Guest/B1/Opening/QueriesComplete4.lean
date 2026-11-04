@@ -12,11 +12,12 @@ public import LeanVM.Guest.B1.Opening.QueriesComplete3
 /-!
 # One query, completeness
 
-`QD.Ok` is what `QueryOpens` says of an honest query (`exists_of_opens`): the siblings and the
-row's length, the memory (`MemOk`), the weights at `wp`, the position below `2^depth`.
-`query_complete`: at a valuation that is the honest values on the query's indices, with the
-padding run `1, 0, 0, 0, 0` and the bit pointer reading the position's bits, every atom of
-`oqQueryT` holds and the query's value is `rowDot` (by the soundness direction, `oqQuery_sound`).
+`QD.Ok` is what `QueryOpens` and the windows say of an honest query (`exists_of_opens`): the
+siblings and the row's length, the memory (`MemOk`: the windows at the window pointer, the cap
+leaf, the flag), the weights at `wp`, the position below `2^depth`. `query_complete`: at a
+valuation that is the honest values on the query's indices, with the padding run `1, 0, 0, 0, 0`,
+every statement of `oqQueryT` holds and the query's value is `rowDot` (by the soundness
+direction, `oqQuery_sound`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -39,30 +40,30 @@ theorem rowDot_congr {base I : ℕ} {row : List K} {w w' : ℕ → E}
 
 namespace QD
 
-/-- What `QueryOpens` says of an honest query. -/
-structure Ok (d : QD) (rd : Reader) (wp : E) : Prop where
+/-- What `QueryOpens` and the windows say of an honest query. -/
+structure Ok (d : QD) (rd : Reader) (wp bpv : E) : Prop where
   hsibs : d.sibs.length = d.s.pd
   hrow : d.row.length = d.s.R
-  hmem : d.MemOk rd
-  hrd : d.rd = rd
+  hmem : d.MemOk rd bpv
   hw : ∀ l < d.s.lo + d.s.I / d.s.lo, LoadHolds rd wp l (d.w l)
   hq : d.q < 2 ^ (d.s.pd + d.s.cd)
 
-/-- **An opening is an honest query**, wherever it is placed. -/
-theorem exists_of_opens {rd : Reader} {s : Oq} {cap flags wp : E} {q : ℕ} {row : List K} {dv : E}
-    (hq : q < 2 ^ (s.pd + s.cd))
+/-- **An opening with its windows is an honest query**, wherever it is placed. -/
+theorem exists_of_opens {rd : Reader} {s : Oq} {cap flags wp bpv : E} {q : ℕ} {row : List K}
+    {dv : E} (hq : q < 2 ^ (s.pd + s.cd))
+    (hwin : ∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd bpv i (gen ^ qwVal (s.pd + s.cd) s.cd q i))
     (h : QueryOpens rd s.base s.I (s.pd + s.cd) s.cd cap flags wp q row dv) :
-    ∃ (w : ℕ → E) (sibs : List Digest) (pp : E), dv = rowDot s.base s.I row w ∧
-      ∀ b emit pr, (QD.mk s b emit pr row w q sibs pp cap flags rd).Ok rd wp := by
-  obtain ⟨hrl, sibs, w, pp, hsl, hw, hpp, hfr, hnd, hc0, hc1, hfl, hd⟩ := h
-  rw [show s.pd + s.cd - s.cd = s.pd by omega] at hsl hfr hnd hc0 hc1 hfl
-  exact ⟨w, sibs, pp, hd, fun b emit pr => ⟨hsl, hrl, ⟨hpp, hfr, hnd, hc0, hc1, hfl⟩, rfl, hw, hq⟩⟩
+    ∃ (w : ℕ → E) (sibs : List Digest), dv = rowDot s.base s.I row w ∧
+      ∀ b emit pr, (QD.mk s b emit pr row w q sibs cap flags).Ok rd wp bpv := by
+  obtain ⟨hrl, sibs, w, hsl, hw, hc0, hc1, hfl, hd⟩ := h
+  rw [show s.pd + s.cd - s.cd = s.pd by omega] at hsl hc0 hc1 hfl
+  exact ⟨w, sibs, hd, fun b emit pr => ⟨hsl, hrl, ⟨hwin, hc0, hc1, hfl⟩, hw, hq⟩⟩
 
 variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The padding run a query emits. -/
 theorem pad_of_emit (he : d.emit = true)
-    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i) :
+    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
     σ (.n d.prV) = word 1 0 0 ∧ ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0 := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
@@ -78,7 +79,7 @@ theorem pad_of_emit (he : d.emit = true)
 
 /-- The row a query's atoms read is the honest row. -/
 theorem oqRow_eq (hrow : d.row.length = d.s.R)
-    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i) : oqRow d.b d.s.R σ = d.row := by
+    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) : oqRow d.b d.s.R σ = d.row := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   refine List.ext_getElem (by simp [oqRow, hrow]) fun i h1 h2 => ?_
   have hi : i < d.s.R := by simpa [oqRow] using h1
@@ -87,34 +88,41 @@ theorem oqRow_eq (hrow : d.row.length = d.s.R)
   simp [List.getD_eq_getElem?_getD, h2]
 
 /-- **One query holds at the honest values**, and its value is the row's dot product. -/
-theorem query_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hcd : 2 ≤ d.s.cd)
-    (hcd8 : d.s.cd ≤ 8) {bp cap flags wp : V} (hok : d.Ok rd (σ wp))
-    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+theorem query_complete (hs : d.s.RowShape) (hpd : 1 ≤ d.s.pd) (hcd : 2 ≤ d.s.cd)
+    {bp cap flags wp : V} (hok : d.Ok rd (σ wp) (σ bp)) (hv : d.Hv σ)
     (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
-    (hbits : ∀ l < d.s.pd + d.s.cd, LoadHolds rd (σ bp) l (bitE (d.q.testBit l)))
     (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv) :
-    (∀ a, Stmt.atom a ∈ oqQueryT d.s bp cap flags wp d.b d.emit d.pr → a.Holds rd σ) ∧
+    BlockOk rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr) ∧
       σ (.n (oqDot d.s d.b)) = rowDot d.s.base d.s.I d.row d.w := by
-  have hA : ∀ a, Stmt.atom a ∈ oqQueryT d.s bp cap flags wp d.b d.emit d.pr → a.Holds rd σ := by
-    intro a ha
-    simp only [oqQueryT, List.mem_append] at ha
-    rcases ha with (((((ha | ha) | ha) | ha) | ha) | ha) | ha
-    · simp only [oqRowT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-      subst ha
-      trivial
-    · exact d.oqPacks_complete hv a ha
-    · exact d.oqDot_complete hs hv hok.hw a ha
-    · cases he : d.emit
-      · simp [he] at ha
-      · simp only [he, ↓reduceIte] at ha
-        exact d.oqPad_complete he hv a ha
-    · exact d.oqLeaf_complete hs hv hpad hz a ha
-    · exact d.oqPath_complete hs hpd hok.hsibs hok.hrow hv hpad hz hbits hok.hmem hok.hrd a ha
-    · exact d.oqCap_complete hs hpd hok.hsibs hok.hrow hcd hcd8 hok.hq hv hpad hz hbits hok.hmem
-        hcap hflags a ha
+  have hA : BlockOk rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr) := by
+    unfold oqQueryT
+    refine blockOk_append.mpr ⟨blockOk_append.mpr ⟨blockOk_of_atoms ?_ fun a ha => ?_,
+      d.oqPath_complete hs hpd hok.hsibs hok.hrow rfl hv hpad hz hok.hmem⟩,
+      blockOk_of_atoms (oqCapT_atoms _ _ _ _ _ _)
+        (d.oqCap_complete hs hok.hsibs hok.hrow (by omega) hok.hq rfl hv hpad hz hok.hmem hcap
+          hflags)⟩
+    · refine allAtoms_append (allAtoms_append (allAtoms_append
+        (allAtoms_append (oqRowT_atoms _ _) (oqPacksT_atoms _ _)) (oqDotT_atoms _ _ _)) ?_)
+        (oqLeafT_atoms _ _ _ _)
+      split
+      · exact oqPadT_atoms _
+      · exact allAtoms_nil
+    · simp only [List.mem_append] at ha
+      rcases ha with ((((ha | ha) | ha) | ha) | ha)
+      · simp only [oqRowT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+        subst ha
+        trivial
+      · exact d.oqPacks_complete hv a ha
+      · exact d.oqDot_complete hs hv hok.hw a ha
+      · cases he : d.emit
+        · simp [he] at ha
+        · simp only [he, ↓reduceIte] at ha
+          exact d.oqPad_complete he hv a ha
+      · exact d.oqLeaf_complete hs hv hpad hz a ha
   refine ⟨hA, ?_⟩
-  obtain ⟨-, -, w', -, -, hw', -, -, -, -, -, -, hd⟩ :=
-    oqQuery_sound hs hcd hcd8 hA hpad (fun i hi => by rw [← word_zero]; exact hz i hi) hok.hq hbits
+  obtain ⟨-, -, w', -, hw', -, -, -, hd⟩ :=
+    oqQuery_sound hs (by omega) hA hpad (fun i hi => by rw [← word_zero]; exact hz i hi) hok.hq
+      (fun i v hl hi => loadHolds_unique hl (hok.hmem.wins i hi))
   rw [hd, d.oqRow_eq hok.hrow hv]
   exact rowDot_congr fun l hl => loadHolds_unique (hw' l hl) (hok.hw l hl)
 
