@@ -31,15 +31,6 @@ namespace VkData
 variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {fs : String → ℕ}
   {fps : List ℕ}
 
-theorem vkCalls_odd : vkPre.filterMap (callSFO D.odd) = vkCalls D.odd := by
-  have : D.odd < 2 := Nat.mod_lt _ (by norm_num)
-  interval_cases hD : D.odd
-  · exact vkPre_kernel.2.2.2.2.1
-  · exact vkPre_kernel.2.2.2.2.2
-
-theorem logG_odd {σ : Val} (h47 : σ (.n 47) = gen ^ D.odd) : logG (σ (.n 47)) = D.odd := by
-  rw [h47, gen_pow_eq_ofK, logG_spec (by have : D.odd < 2 := Nat.mod_lt _ (by norm_num); omega)]
-
 theorem gen_ne (h : D.Ok) : 1 + gen ^ (D.τ - 4) ≠ 0 :=
   gen_pow_ne_one (by have := h.1; omega) (by have := h.2.1; unfold ordG; omega)
 
@@ -48,15 +39,15 @@ theorem layer_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE (D.lsOf fs
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12)
     {o : List E × Main.Layout}
     (ho : (D.layKid fs B curE s).Out ([] ++ fps.take (s + 1 + 1)) o.1 o.2) :
-    (Main.mkCall σ (stepCall D.odd s)).f = (D.layKid fs B curE s).f ∧
-      (Main.mkCall σ (stepCall D.odd s)).taken = (D.layKid fs B curE s).taken ∧
+    (Main.mkCall σ (stepCall s)).f = (D.layKid fs B curE s).f ∧
+      (Main.mkCall σ (stepCall s)).taken = (D.layKid fs B curE s).taken ∧
       ((D.layKid fs B curE s).taken = true →
-        (Main.mkCall σ (stepCall D.odd s)).args.map σ =
+        (Main.mkCall σ (stepCall s)).args.map σ =
           (D.layKid fs B curE s).args ([] ++ fps.take (s + 1)) ∧
-        (Main.mkCall σ (stepCall D.odd s)).rets.map σ = o.1) := by
+        (Main.mkCall σ (stepCall s)).rets.map σ = o.1) := by
   obtain ⟨hf, ha, hr⟩ := layer_call h hm hσd hs fs ([] ++ fps.take (s + 1))
-  have hc : stepCall D.odd s = (none, (stepCall D.odd s).2.1, (stepCall D.odd s).2.2.1,
-      (stepCall D.odd s).2.2.2) := by
+  have hc : stepCall s = (none, (stepCall s).2.1, (stepCall s).2.2.1,
+      (stepCall s).2.2.2) := by
     unfold stepCall; split <;> rfl
   rw [hc]
   refine ⟨hf, rfl, fun _ ↦ ⟨ha, ?_⟩⟩
@@ -71,7 +62,7 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE (D.lsOf fs
     (hout : OutsOk (atAllG [] (D.kids fs B curE chiE olE zvE slE) fps) outs) :
     CallsMatch σ ((vkPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
       (atAllG [] (D.kids fs B curE chiE olE zvE slE) fps) outs := by
-  obtain ⟨-, -, p6, -, -, p9, p10, h17, -, h47, -, a58, e60, e61, e63, -, -, -, -, e191, -, a201, -,
+  obtain ⟨-, -, p6, -, -, p9, p10, h17, -, -, a58, e60, e61, e63, -, -, -, -, e191, -, a201, -,
     a274, -, -⟩ := head_first h hm hσd
   obtain ⟨eL, e3690, e3691, e3692, e3693, eO, -, cellsW, e3971, e3972, e3974, -⟩ :=
     out_on h hm hσd p6 p9 h17 a58 a274
@@ -85,8 +76,9 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE (D.lsOf fs
     rw [show (1388 : ℕ) = 1382 + 6 from rfl, eS 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]; norm_num), (S_ok h).2.1]
     rfl
-  obtain ⟨e4977, e6580, e6581, e6583, -⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116
-  rw [vkPre_callSF, logG_odd h47, vkCalls_odd]
+  obtain ⟨e4977, e6580, e6581, e6583, -⟩ :=
+    fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116 e3979
+  rw [vkPre_callSF]
   obtain ⟨hol, hoi⟩ := outsOk_getElem hout
   have hk : (D.kids fs B curE chiE olE zvE slE).length = 18 := kids_length
   have hlen : (atAllG [] (D.kids fs B curE chiE olE zvE slE) fps).length = 18 := by
