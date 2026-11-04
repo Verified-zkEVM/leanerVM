@@ -15,6 +15,7 @@ public import LeanVM.Guest.WalkOs0
 public import LeanVM.Guest.WalkOs1
 public import LeanVM.Guest.WalkOs2
 public import LeanVM.Guest.WalkOs3
+public import LeanVM.Guest.WalkGkr
 
 /-!
 # `WalkKnown`, proved
@@ -24,7 +25,8 @@ public import LeanVM.Guest.WalkOs3
 loops (`WalkOq0.lean` to `WalkOq3.lean`, whir's `QueriesWalk` through b2's `WalkKnown.lean`),
 `open_stacked`'s candidates (`WalkOs0.lean` to `WalkOs3.lean`, from the decodes before each level's
 call, `WalkOsPre.lean`), and `verify_bus_gkr` (`10`) and its layer loop `__loop6` (`91`), whose
-obligations (the layers' parities, `GkrPar`) the gkr track proves (`walkKnown_of_gkr`).
+obligations (the layers' parities, `GkrPar`) the gkr track proves (`WalkGkr.lean`;
+`walkKnown_of_gkr`).
 -/
 
 namespace LeanVM.Guest.End
@@ -61,6 +63,9 @@ theorem walkKnown_of_gkr (h10 : CutsKnown 10) (h91 : CutsKnown 91) : WalkKnown :
     walk_906, walk_908, walk_910, walk_912, walk_914, walk_916, walk_918, walk_919, walk_920,
     walk_921, walk_922, walk_923, walk_924, walk_926, walk_928, walk_930, walk_932, walk_933,
     walk_934, walk_935, walk_936, walk_937, walk_939, walk_941, walk_943, walk_945, walk_947]
+
+/-- **The walks' obligations, proved.** -/
+theorem walkKnown_proved : WalkKnown := walkKnown_of_gkr gkrBus_cutsKnown gkrLoop_cutsKnown
 
 end
 end LeanVM.Guest.End
