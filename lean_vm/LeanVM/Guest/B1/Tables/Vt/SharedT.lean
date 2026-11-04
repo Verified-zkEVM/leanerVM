@@ -42,7 +42,8 @@ theorem vt_sh0 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 709) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 0),
         σ (.n 706) * gen ^ (144 * 0), σ (.n 8) * σ (.n 30), σ (.n 703) * σ (.n 30),
-        σ (.n 12) * σ (.n 30), σ (.n 708)] [] := by
+        σ (.n 12) * σ (.n 30), σ (.n 708)] [] ∧
+      σ (.n 705) = σ (.n 705) * gen ^ (288 * 0) ∧ σ (.n 706) = σ (.n 706) * gen ^ (144 * 0) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -53,9 +54,9 @@ theorem vt_sh0 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have hc := h.callAt 708 "shared_selector_tables" [.n 705, .n 706, .n 713, .n 714, .n 715, .n 708] []
     (by decide +kernel)
   simp only [Atom.Holds] at a701 a702 a703 a705 a706 a707
-  refine ⟨by rw [a701, ← a702], a704, a703, ?_⟩
   have e1 : σ (.n 705) = σ (.n 705) * gen ^ (288 * 0) := by ring
   have e2 : σ (.n 706) = σ (.n 706) * gen ^ (144 * 0) := by ring
+  refine ⟨by rw [a701, ← a702], a704, a703, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a705, ← a706, ← a707]
   simpa using hc
 
@@ -64,7 +65,8 @@ theorem vt_sh1 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 718) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 1),
         σ (.n 706) * gen ^ (144 * 1), σ (.n 8) * σ (.n 31), σ (.n 703) * σ (.n 31),
-        σ (.n 12) * σ (.n 31), σ (.n 717)] [] := by
+        σ (.n 12) * σ (.n 31), σ (.n 717)] [] ∧
+      σ (.n 723) = σ (.n 705) * gen ^ (288 * 1) ∧ σ (.n 725) = σ (.n 706) * gen ^ (144 * 1) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -88,9 +90,9 @@ theorem vt_sh1 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   simp only [Atom.Holds] at a701 a702 a703 a705 a706 a707 a709 a710 a711 a713 a714 a715 a716 a717 a718 a719
   rw [vtW288_eq] at a713
   rw [vtW144_eq] at a715
-  refine ⟨by rw [a709, ← a710], a712, a711, ?_⟩
   have e1 : σ (.n 723) = σ (.n 705) * gen ^ (288 * 1) := by rw [a714, a713]
   have e2 : σ (.n 725) = σ (.n 706) * gen ^ (144 * 1) := by rw [a716, a715]
+  refine ⟨by rw [a709, ← a710], a712, a711, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a717, ← a718, ← a719]
   simpa using hc
 
@@ -99,7 +101,8 @@ theorem vt_sh2 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 731) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 2),
         σ (.n 706) * gen ^ (144 * 2), σ (.n 8) * σ (.n 32), σ (.n 703) * σ (.n 32),
-        σ (.n 12) * σ (.n 32), σ (.n 730)] [] := by
+        σ (.n 12) * σ (.n 32), σ (.n 730)] [] ∧
+      σ (.n 736) = σ (.n 705) * gen ^ (288 * 2) ∧ σ (.n 738) = σ (.n 706) * gen ^ (144 * 2) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -136,9 +139,9 @@ theorem vt_sh2 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW144_eq] at a715
   rw [vtW288_eq] at a725
   rw [vtW288_eq] at a727
-  refine ⟨by rw [a721, ← a722], a724, a723, ?_⟩
   have e1 : σ (.n 736) = σ (.n 705) * gen ^ (288 * 2) := by rw [a726, a725, a714, a713]; ring
   have e2 : σ (.n 738) = σ (.n 706) * gen ^ (144 * 2) := by rw [a728, a727]
+  refine ⟨by rw [a721, ← a722], a724, a723, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a729, ← a730, ← a731]
   simpa using hc
 
@@ -147,7 +150,8 @@ theorem vt_sh3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 744) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 3),
         σ (.n 706) * gen ^ (144 * 3), σ (.n 8) * σ (.n 33), σ (.n 703) * σ (.n 33),
-        σ (.n 12) * σ (.n 33), σ (.n 743)] [] := by
+        σ (.n 12) * σ (.n 33), σ (.n 743)] [] ∧
+      σ (.n 749) = σ (.n 705) * gen ^ (288 * 3) ∧ σ (.n 751) = σ (.n 706) * gen ^ (144 * 3) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -197,9 +201,9 @@ theorem vt_sh3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW288_eq] at a727
   rw [vtW288_eq] at a737
   rw [vtW144_eq] at a739
-  refine ⟨by rw [a733, ← a734], a736, a735, ?_⟩
   have e1 : σ (.n 749) = σ (.n 705) * gen ^ (288 * 3) := by rw [a738, a737, a726, a725, a714, a713]; ring
   have e2 : σ (.n 751) = σ (.n 706) * gen ^ (144 * 3) := by rw [a740, a739, a728, a727]; ring
+  refine ⟨by rw [a733, ← a734], a736, a735, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a741, ← a742, ← a743]
   simpa using hc
 
@@ -208,7 +212,8 @@ theorem vt_sh4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 757) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 4),
         σ (.n 706) * gen ^ (144 * 4), σ (.n 8) * σ (.n 34), σ (.n 703) * σ (.n 34),
-        σ (.n 12) * σ (.n 34), σ (.n 756)] [] := by
+        σ (.n 12) * σ (.n 34), σ (.n 756)] [] ∧
+      σ (.n 762) = σ (.n 705) * gen ^ (288 * 4) ∧ σ (.n 764) = σ (.n 706) * gen ^ (144 * 4) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -271,9 +276,9 @@ theorem vt_sh4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW144_eq] at a739
   rw [vtW288_eq] at a749
   rw [vtW144_eq] at a751
-  refine ⟨by rw [a745, ← a746], a748, a747, ?_⟩
   have e1 : σ (.n 762) = σ (.n 705) * gen ^ (288 * 4) := by rw [a750, a749, a738, a737, a726, a725, a714, a713]; ring
   have e2 : σ (.n 764) = σ (.n 706) * gen ^ (144 * 4) := by rw [a752, a751, a740, a739, a728, a727]; ring
+  refine ⟨by rw [a745, ← a746], a748, a747, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a753, ← a754, ← a755]
   simpa using hc
 
@@ -282,7 +287,8 @@ theorem vt_sh5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
       σ (.n 770) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n 705) * gen ^ (288 * 5),
         σ (.n 706) * gen ^ (144 * 5), σ (.n 8) * σ (.n 35), σ (.n 703) * σ (.n 35),
-        σ (.n 12) * σ (.n 35), σ (.n 769)] [] := by
+        σ (.n 12) * σ (.n 35), σ (.n 769)] [] ∧
+      σ (.n 775) = σ (.n 705) * gen ^ (288 * 5) ∧ σ (.n 777) = σ (.n 706) * gen ^ (144 * 5) := by
   have a701 := h.atomAt 701 (.mul (.n 9) (.n 707) (.n 30)) (by decide +kernel)
   have a702 := h.atomAt 702 (.copy (.n 708) (.n 707)) (by decide +kernel)
   have a703 := h.atomAt 703 (.const (.n 709) (word 8589934592 0 0)) (by decide +kernel)
@@ -358,9 +364,9 @@ theorem vt_sh5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW144_eq] at a751
   rw [vtW288_eq] at a761
   rw [vtW144_eq] at a763
-  refine ⟨by rw [a757, ← a758], a760, a759, ?_⟩
   have e1 : σ (.n 775) = σ (.n 705) * gen ^ (288 * 5) := by rw [a762, a761, a750, a749, a738, a737, a726, a725, a714, a713]; ring
   have e2 : σ (.n 777) = σ (.n 706) * gen ^ (144 * 5) := by rw [a764, a763, a752, a751, a740, a739, a728, a727]; ring
+  refine ⟨by rw [a757, ← a758], a760, a759, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a765, ← a766, ← a767]
   simpa using hc
 

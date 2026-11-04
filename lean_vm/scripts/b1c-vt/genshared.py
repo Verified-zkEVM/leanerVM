@@ -91,11 +91,12 @@ def main():
       σ (.n {wvar}) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n {EQ0}) * gen ^ (288 * {t}),
         σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {30 + t}), σ (.n 703) * σ (.n {30 + t}),
-        σ (.n 12) * σ (.n {30 + t}), σ (.n {lenv})] [] := by
+        σ (.n 12) * σ (.n {30 + t}), σ (.n {lenv})] [] ∧
+      σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) ∧ σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := by
 {body}
-  refine ⟨by rw [{mnm}, ← {cnm}], {rcnm}, {wnm}, ?_⟩
   have e1 : σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) := {ptrproof(eqr, eqe, EQ0)}
   have e2 : σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := {ptrproof(gr, ge, G0)}
+  refine ⟨by rw [{mnm}, ← {cnm}], {rcnm}, {wnm}, ?_, e1, e2⟩
   rw [← e1, ← e2, ← {nmof[zv]}, ← {nmof[z1v]}, ← {nmof[sqv]}]
   simpa using hc''')
     return out

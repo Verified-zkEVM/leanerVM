@@ -98,12 +98,28 @@ theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : V
       ∃ d < 34, σ x = gen ^ d := fun hk hr =>
     vt_rc hμ Lm (K := 34) (by omega) (by norm_num) (by rw [hk]; exact vt_word_g33) hr
   interval_cases t
-  · obtain ⟨a, b, c, d⟩ := vt_sh0 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d⟩ := vt_sh1 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d⟩ := vt_sh2 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d⟩ := vt_sh3 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d⟩ := vt_sh4 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d⟩ := vt_sh5 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh0 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh1 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh2 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh3 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh4 h; exact ⟨a, rc c b, d⟩
+  · obtain ⟨a, b, c, d, -⟩ := vt_sh5 h; exact ⟨a, rc c b, d⟩
+
+/-- Table `t`'s shared tables' pointers, as the shared tables' statements step them. -/
+def vtEqV (t : ℕ) : ℕ := [705, 723, 736, 749, 762, 775].getD t 0
+def vtGV (t : ℕ) : ℕ := [706, 725, 738, 751, 764, 777].getD t 0
+
+theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
+    σ (.n (vtEqV t)) = σ (.n 705) * gen ^ (288 * t) ∧
+      σ (.n (vtGV t)) = σ (.n 706) * gen ^ (144 * t) := by
+  intro t ht
+  interval_cases t
+  · exact (vt_sh0 h).2.2.2.2
+  · exact (vt_sh1 h).2.2.2.2
+  · exact (vt_sh2 h).2.2.2.2
+  · exact (vt_sh3 h).2.2.2.2
+  · exact (vt_sh4 h).2.2.2.2
+  · exact (vt_sh5 h).2.2.2.2
 
 /-- **Table `t`'s shared tables.** -/
 theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
