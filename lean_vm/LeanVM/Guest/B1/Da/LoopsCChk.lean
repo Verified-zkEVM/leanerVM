@@ -30,13 +30,13 @@ def stepAtC (c : ℕ) : List Stmt :=
     .atom (.add (.n (c + 2)) (.n (c + 1)) (.n 1)), .atom (.const (.n (c + 3)) (word 2 0 0)),
     .atom (.mul (.n (c + 4)) (.n 0) (.n (c + 3)))]
 
-/-- `__loop17`'s block: `rowbase[x] = blobs·x^641`, the region's word `512` zero. -/
+/-- `__loop21`'s block: `rowbase[x] = blobs·x^641`, the region's word `512` zero. -/
 def l17Pre : List Stmt :=
   l17Pows ++ [.atom (.mul (.n 15) (.n 2) (.n 14)), .atom (.mul (.n 16) (.n 3) (.n 0)),
     .atom (.load (.n 15) (.n 16) 0), .atom (.const (.n 17) (word 0 0 0)),
     .atom (.load (.n 17) (.n 15) 512)] ++ stepAtC 18
 
-/-- `__loop19`'s block: the region's sum zero at word `640`, its tree's root at `roots·x²`. -/
+/-- `__loop23`'s block: the region's sum zero at word `640`, its tree's root at `roots·x²`. -/
 def l19Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.load (.n 6) (.n 5) 640), .atom (.const (.n 7) (word 0 0 0)),
@@ -44,7 +44,7 @@ def l19Pre : List Stmt :=
     .atom (.mul (.n 10) (.n 0) (.n 0)), .atom (.mul (.n 11) (.n 3) (.n 10)),
     .atom (.load (.n 8) (.n 11) 0), .atom (.load (.n 9) (.n 11) 1)] ++ stepAtC 12
 
-/-- `__loop20`'s block: the padding blob's root at `roots·n_blob²·x²`. -/
+/-- `__loop24`'s block: the padding blob's root at `roots·n_blob²·x²`. -/
 def l20Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 3) (.n 3)), .atom (.mul (.n 5) (.n 2) (.n 4)),
     .atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 5) (.n 6)),
@@ -53,7 +53,7 @@ def l20Pre : List Stmt :=
     .atom (.const (.n 9) (word 12830724869163462953 1721925254677230945 0)),
     .atom (.load (.n 9) (.n 7) 1)] ++ stepAtC 10
 
-/-- `__loop21`'s block: a blob's cell in column `xb`, its running sum's step and its digest at the
+/-- `__loop25`'s block: a blob's cell in column `xb`, its running sum's step and its digest at the
 blob tree's leaf. -/
 def l21Pre : List Stmt :=
   [.call "da_verify_cell" [.n 2] [.n 6, .n 7, .n 8], .atom (.mul (.n 9) (.n 3) (.n 0)),
@@ -67,23 +67,23 @@ def tailAt (f : String) (c n : ℕ) : List Stmt :=
   [.callIf (.n (c + 2)) f (.n (c + 4) :: (List.range n).map fun k => V.n (k + 1)), .ret []]
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_body : Fn.body (coreProgram.getD 359 default) = l17Pre ++ tailAt "__loop17" 18 3 ∧
-    Fn.body (coreProgram.getD 361 default) = l19Pre ++ tailAt "__loop19" 12 3 ∧
-    Fn.body (coreProgram.getD 362 default) = l20Pre ++ tailAt "__loop20" 10 3 ∧
-    Fn.body (coreProgram.getD 375 default) = l21Pre ++ tailAt "__loop21" 15 5 := by
+theorem dv_loops_body : Fn.body (coreProgram.getD 388 default) = l17Pre ++ tailAt "__loop21" 18 3 ∧
+    Fn.body (coreProgram.getD 390 default) = l19Pre ++ tailAt "__loop23" 12 3 ∧
+    Fn.body (coreProgram.getD 391 default) = l20Pre ++ tailAt "__loop24" 10 3 ∧
+    Fn.body (coreProgram.getD 404 default) = l21Pre ++ tailAt "__loop25" 15 5 := by
   refine ⟨stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_⟩ <;>
     decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem dv_loops_shape :
-    (loopShapeF (coreProgram.getD 359 default) "__loop17" = true ∧
-      (coreProgram.getD 359 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 361 default) "__loop19" = true ∧
-      (coreProgram.getD 361 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 362 default) "__loop20" = true ∧
-      (coreProgram.getD 362 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 375 default) "__loop21" = true ∧
-      (coreProgram.getD 375 default).params.length = 6) := by
+    (loopShapeF (coreProgram.getD 388 default) "__loop21" = true ∧
+      (coreProgram.getD 388 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 390 default) "__loop23" = true ∧
+      (coreProgram.getD 390 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 391 default) "__loop24" = true ∧
+      (coreProgram.getD 391 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 404 default) "__loop25" = true ∧
+      (coreProgram.getD 404 default).params.length = 6) := by
   decide +kernel
 
 end
