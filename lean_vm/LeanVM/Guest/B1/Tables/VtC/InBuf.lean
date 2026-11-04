@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.Hon
+public import LeanVM.Guest.B1.Fwd.FlatIte
 
 /-!
 # Loads inside buffers
@@ -24,14 +25,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
-
-/-- A load through `p` at `off` lands in one of the buffers `bufs` (pointer, length). -/
-def InBuf (σ : Val) (bufs : List (E × ℕ)) (p : V) (off : ℕ) : Prop :=
-  ∃ q ∈ bufs, ∃ j : ℕ, σ p = q.1 * gen ^ j ∧ j + off < q.2
-
-/-- Every load atom of a block lands in one of the buffers. -/
-def LoadsInBuf (σ : Val) (bufs : List (E × ℕ)) (blk : List Stmt) : Prop :=
-  ∀ d p off, Stmt.atom (.load d p off) ∈ blk → InBuf σ bufs p off
 
 theorem vt_inBuf_direct {σ : Val} {bufs : List (E × ℕ)} {p : V} {off len : ℕ}
     (hq : (σ p, len) ∈ bufs) (hoff : off < len) : InBuf σ bufs p off :=

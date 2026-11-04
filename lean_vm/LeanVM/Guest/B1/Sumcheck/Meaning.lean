@@ -86,7 +86,7 @@ capacity, a cursor and a claim; the `4n` stream words at the cursor are the roun
 the cursor `4n` words on and the claim after them. -/
 def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [rec, pt], rets =>
-      rets = [] ∧ ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
+      rets = [0] ∧ ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
         CapAt rd rec 0 gkrRoundsCap cap ∧ AllCanonical cap ∧
         LoadHolds rd rec (5 * gkrRoundsCap) cur ∧ LoadHolds rd rec (6 * gkrRoundsCap) claim ∧
         cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ ReadsAt rd cur cs.flatten ∧
@@ -98,12 +98,31 @@ def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
         LoadHolds rd rec (n + 6 * gkrRoundsCap) res.2.1
   | _, _ => False
 
-/-- `gkr_rounds__L1` and `gkr_rounds__L2`'s core IR are their meanings. -/
+/-- `gkr_rounds__L0` (G:1085, `if const(n != 0)` false): it returns `0` and does nothing else. -/
+def MeaningGkrRounds0 : List E → List E → Prop
+  | [_, _], rets => rets = [0]
+  | _, _ => False
+
+/-- The rounds' counts with a specialization of their own, `gkr_rounds__L{n}` (G:1080-1103: the
+odd round, and `2 r`, `r < 4`, after the loop's eight-round steps). -/
+def gkrRoundsCounts : List ℕ := [1, 2, 4, 6]
+
+/-- `gkr_rounds__L{n}`. -/
+def gkrRoundsName : ℕ → String
+  | 0 => "gkr_rounds__L0"
+  | 1 => "gkr_rounds__L1"
+  | 2 => "gkr_rounds__L2"
+  | 4 => "gkr_rounds__L4"
+  | 6 => "gkr_rounds__L6"
+  | _ => ""
+
+/-- `gkr_rounds__L{n}`'s core IR is its meaning, at `n ∈ {1, 2, 4, 6}`, and `gkr_rounds__L0`'s
+returns `0`. -/
 def gkr_rounds_Spec : Prop :=
-  (∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "gkr_rounds__L1" args rets ↔ MeaningGkrRounds 1 rd args rets) ∧
+  (∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd (gkrRoundsName n) args rets ↔ MeaningGkrRounds n rd args rets) ∧
   ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "gkr_rounds__L2" args rets ↔ MeaningGkrRounds 2 rd args rets
+    coreProgram.Rel rd "gkr_rounds__L0" args rets ↔ MeaningGkrRounds0 args rets
 
 /-! ## `batch_sumcheck` (G:989-1003, TRIAGE #32) -/
 

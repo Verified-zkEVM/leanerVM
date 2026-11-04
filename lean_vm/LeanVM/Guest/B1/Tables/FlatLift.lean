@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Tables.VtC.Agree
-public import LeanVM.Guest.B1.Tables.VtC.InBuf
+public import LeanVM.Guest.B1.Fwd.FlatIte
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!

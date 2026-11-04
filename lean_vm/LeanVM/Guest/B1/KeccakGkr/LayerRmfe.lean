@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerRmfe
 
-  The instance weights in `keccak_layer` (G:2498-2597): the powers of `s`, the RMFE embeddings
-  evaluated at `s` through compile-time relations, their sum, and their stores in the next claim.
+  The instance weights in `keccak_layer` (G:2716-2735): the powers of `s`, the RMFE embeddings
+  evaluated at `s` as products of small factors, their sum, and their stores in the next claim.
 -/
 
 module
@@ -13,8 +13,10 @@ public import LeanVM.Protocol.Keccak.LayerSum
 /-!
 # The instance weights
 
-The four specializations of `keccak_layer` share this block (statements `887 .. 1029`, `s` the
-value `1089`, `out` the parameter `12`). Its values are binary polynomials in `s` (`Mask`); by
+The two specializations of `keccak_layer` share this block (statements `675 .. 772`, `s` the
+value `877`, `out` the parameter `12`): the powers `s^0 .. s^5`, the eight factors
+(`KECCAK_FAC_START`, `KECCAK_FAC_IDX`), their products (`KECCAK_EMB_A`, `KECCAK_EMB_B`), the
+embeddings stored (`KECCAK_EMB_OUT`) and summed. Its values are binary polynomials in `s` (`Mask`); by
 kernel evaluation (`rmfeCheck`) the sixteen stored at `out[6 + i]` are the embeddings
 `RMFE_EMBED[i]` and the one stored at `out[1]` their sum, which `rmfeBlock_holds` turns into
 `keccakInstanceWeights s` (V:1960) and its sum.
@@ -30,165 +32,120 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- The block, `keccak_layer`'s statements `887 .. 1029`. -/
+/-- The block, `keccak_layer`'s statements `675 .. 772`. -/
 def rmfeBlockT : List Stmt :=
-  [.atom (.const (.n 1090) (word 1 0 0)),
-    .atom (.mul (.n 1091) (.n 1090) (.n 1089)),
-    .atom (.mul (.n 1092) (.n 1091) (.n 1089)),
-    .atom (.mul (.n 1093) (.n 1092) (.n 1089)),
-    .atom (.mul (.n 1094) (.n 1093) (.n 1089)),
-    .atom (.mul (.n 1095) (.n 1094) (.n 1089)),
-    .atom (.mul (.n 1096) (.n 1095) (.n 1089)),
-    .atom (.mul (.n 1097) (.n 1096) (.n 1089)),
-    .atom (.mul (.n 1098) (.n 1097) (.n 1089)),
-    .atom (.mul (.n 1099) (.n 1098) (.n 1089)),
-    .atom (.mul (.n 1100) (.n 1099) (.n 1089)),
-    .atom (.mul (.n 1101) (.n 1100) (.n 1089)),
-    .atom (.mul (.n 1102) (.n 1101) (.n 1089)),
-    .atom (.mul (.n 1103) (.n 1102) (.n 1089)),
-    .atom (.mul (.n 1104) (.n 1103) (.n 1089)),
-    .atom (.mul (.n 1105) (.n 1104) (.n 1089)),
-    .atom (.mul (.n 1106) (.n 1105) (.n 1089)),
-    .atom (.mul (.n 1107) (.n 1106) (.n 1089)),
-    .atom (.mul (.n 1108) (.n 1107) (.n 1089)),
-    .atom (.mul (.n 1109) (.n 1108) (.n 1089)),
-    .atom (.mul (.n 1110) (.n 1109) (.n 1089)),
-    .atom (.mul (.n 1111) (.n 1110) (.n 1089)),
-    .atom (.mul (.n 1112) (.n 1111) (.n 1089)),
-    .atom (.mul (.n 1113) (.n 1112) (.n 1089)),
-    .atom (.add (.n 1114) (.n 1091) (.n 1092)),
-    .atom (.add (.n 1115) (.n 1114) (.n 1094)),
-    .atom (.add (.n 1116) (.n 1115) (.n 1099)),
-    .atom (.add (.n 1117) (.n 1116) (.n 1101)),
-    .atom (.add (.n 1118) (.n 1117) (.n 1105)),
-    .atom (.add (.n 1119) (.n 1118) (.n 1106)),
-    .atom (.add (.n 1120) (.n 1119) (.n 1113)),
-    .atom (.copy (.n 1121) (.n 1120)),
-    .atom (.add (.n 1122) (.n 1090) (.n 1093)),
-    .atom (.add (.n 1123) (.n 1122) (.n 1094)),
-    .atom (.add (.n 1124) (.n 1123) (.n 1095)),
-    .atom (.add (.n 1125) (.n 1124) (.n 1096)),
-    .atom (.add (.n 1126) (.n 1125) (.n 1097)),
-    .atom (.add (.n 1127) (.n 1126) (.n 1100)),
-    .atom (.add (.n 1128) (.n 1127) (.n 1101)),
-    .atom (.add (.n 1129) (.n 1128) (.n 1102)),
-    .atom (.add (.n 1130) (.n 1129) (.n 1103)),
-    .atom (.add (.n 1131) (.n 1130) (.n 1105)),
-    .atom (.add (.n 1132) (.n 1131) (.n 1106)),
-    .atom (.add (.n 1133) (.n 1132) (.n 1107)),
-    .atom (.add (.n 1134) (.n 1133) (.n 1108)),
-    .atom (.add (.n 1135) (.n 1134) (.n 1109)),
-    .atom (.add (.n 1136) (.n 1135) (.n 1110)),
-    .atom (.add (.n 1137) (.n 1136) (.n 1111)),
-    .atom (.mul (.n 1138) (.n 1089) (.n 1137)),
-    .atom (.add (.n 1139) (.n 1137) (.n 1138)),
-    .atom (.add (.n 1140) (.n 1120) (.n 1137)),
-    .atom (.add (.n 1141) (.n 1091) (.n 1092)),
-    .atom (.add (.n 1142) (.n 1141) (.n 1099)),
-    .atom (.add (.n 1143) (.n 1142) (.n 1101)),
-    .atom (.add (.n 1144) (.n 1143) (.n 1102)),
-    .atom (.add (.n 1145) (.n 1144) (.n 1103)),
-    .atom (.add (.n 1146) (.n 1145) (.n 1106)),
-    .atom (.add (.n 1147) (.n 1146) (.n 1109)),
-    .atom (.add (.n 1148) (.n 1147) (.n 1110)),
-    .atom (.add (.n 1149) (.n 1148) (.n 1111)),
-    .atom (.mul (.n 1150) (.n 1089) (.n 1149)),
-    .atom (.add (.n 1151) (.n 1149) (.n 1150)),
-    .atom (.add (.n 1152) (.n 1140) (.n 1149)),
-    .atom (.add (.n 1153) (.n 1092) (.n 1096)),
-    .atom (.add (.n 1154) (.n 1153) (.n 1098)),
-    .atom (.add (.n 1155) (.n 1154) (.n 1099)),
-    .atom (.add (.n 1156) (.n 1155) (.n 1101)),
-    .atom (.add (.n 1157) (.n 1156) (.n 1104)),
-    .atom (.add (.n 1158) (.n 1157) (.n 1107)),
-    .atom (.add (.n 1159) (.n 1158) (.n 1108)),
-    .atom (.add (.n 1160) (.n 1159) (.n 1109)),
-    .atom (.add (.n 1161) (.n 1160) (.n 1112)),
-    .atom (.mul (.n 1162) (.n 1089) (.n 1161)),
-    .atom (.add (.n 1163) (.n 1162) (.n 1120)),
-    .atom (.add (.n 1164) (.n 1161) (.n 1163)),
-    .atom (.add (.n 1165) (.n 1152) (.n 1161)),
-    .atom (.add (.n 1166) (.n 1093) (.n 1095)),
-    .atom (.add (.n 1167) (.n 1166) (.n 1100)),
-    .atom (.add (.n 1168) (.n 1167) (.n 1101)),
-    .atom (.add (.n 1169) (.n 1168) (.n 1103)),
-    .atom (.add (.n 1170) (.n 1169) (.n 1104)),
-    .atom (.add (.n 1171) (.n 1170) (.n 1105)),
-    .atom (.add (.n 1172) (.n 1171) (.n 1108)),
-    .atom (.add (.n 1173) (.n 1172) (.n 1109)),
-    .atom (.add (.n 1174) (.n 1173) (.n 1110)),
-    .atom (.add (.n 1175) (.n 1174) (.n 1111)),
-    .atom (.add (.n 1176) (.n 1175) (.n 1112)),
-    .atom (.mul (.n 1177) (.n 1089) (.n 1176)),
-    .atom (.add (.n 1178) (.n 1177) (.n 1120)),
-    .atom (.add (.n 1179) (.n 1176) (.n 1178)),
-    .atom (.add (.n 1180) (.n 1165) (.n 1176)),
-    .atom (.mul (.n 1181) (.n 1089) (.n 1179)),
-    .atom (.add (.n 1182) (.n 1180) (.n 1181)),
-    .atom (.add (.n 1183) (.n 1091) (.n 1093)),
-    .atom (.add (.n 1184) (.n 1183) (.n 1095)),
-    .atom (.add (.n 1185) (.n 1184) (.n 1099)),
-    .atom (.add (.n 1186) (.n 1185) (.n 1101)),
-    .atom (.add (.n 1187) (.n 1186) (.n 1105)),
-    .atom (.add (.n 1188) (.n 1187) (.n 1106)),
-    .atom (.add (.n 1189) (.n 1188) (.n 1107)),
-    .atom (.add (.n 1190) (.n 1189) (.n 1108)),
-    .atom (.add (.n 1191) (.n 1190) (.n 1109)),
-    .atom (.mul (.n 1192) (.n 1089) (.n 1191)),
-    .atom (.add (.n 1193) (.n 1191) (.n 1192)),
-    .atom (.add (.n 1194) (.n 1182) (.n 1191)),
-    .atom (.mul (.n 1195) (.n 1089) (.n 1193)),
-    .atom (.add (.n 1196) (.n 1194) (.n 1195)),
-    .atom (.add (.n 1197) (.n 1093) (.n 1094)),
-    .atom (.add (.n 1198) (.n 1197) (.n 1095)),
-    .atom (.add (.n 1199) (.n 1198) (.n 1097)),
-    .atom (.add (.n 1200) (.n 1199) (.n 1098)),
-    .atom (.add (.n 1201) (.n 1200) (.n 1099)),
-    .atom (.add (.n 1202) (.n 1201) (.n 1101)),
-    .atom (.add (.n 1203) (.n 1202) (.n 1103)),
-    .atom (.add (.n 1204) (.n 1203) (.n 1105)),
-    .atom (.add (.n 1205) (.n 1204) (.n 1106)),
-    .atom (.add (.n 1206) (.n 1205) (.n 1107)),
-    .atom (.add (.n 1207) (.n 1206) (.n 1109)),
-    .atom (.add (.n 1208) (.n 1207) (.n 1110)),
-    .atom (.add (.n 1209) (.n 1208) (.n 1111)),
-    .atom (.mul (.n 1210) (.n 1089) (.n 1209)),
-    .atom (.add (.n 1211) (.n 1209) (.n 1210)),
-    .atom (.add (.n 1212) (.n 1196) (.n 1209)),
-    .atom (.mul (.n 1213) (.n 1089) (.n 1211)),
-    .atom (.add (.n 1214) (.n 1213) (.n 1120)),
-    .atom (.add (.n 1215) (.n 1212) (.n 1214)),
-    .atom (.load (.n 1139) (.n 12) 6),
-    .atom (.load (.n 1138) (.n 12) 7),
-    .atom (.load (.n 1151) (.n 12) 8),
-    .atom (.load (.n 1150) (.n 12) 9),
-    .atom (.load (.n 1164) (.n 12) 10),
-    .atom (.load (.n 1163) (.n 12) 11),
-    .atom (.load (.n 1179) (.n 12) 12),
-    .atom (.load (.n 1178) (.n 12) 13),
-    .atom (.load (.n 1181) (.n 12) 14),
-    .atom (.load (.n 1193) (.n 12) 15),
-    .atom (.load (.n 1192) (.n 12) 16),
-    .atom (.load (.n 1195) (.n 12) 17),
-    .atom (.load (.n 1211) (.n 12) 18),
-    .atom (.load (.n 1210) (.n 12) 19),
-    .atom (.load (.n 1214) (.n 12) 20),
-    .atom (.load (.n 1121) (.n 12) 21),
-    .atom (.load (.n 1215) (.n 12) 1)]
+  [.atom (.const (.n 878) (word 1 0 0)),
+    .atom (.copy (.n 879) (.n 877)),
+    .atom (.mul (.n 880) (.n 879) (.n 877)),
+    .atom (.mul (.n 881) (.n 880) (.n 877)),
+    .atom (.mul (.n 882) (.n 881) (.n 877)),
+    .atom (.mul (.n 883) (.n 882) (.n 877)),
+    .atom (.copy (.n 884) (.n 879)),
+    .atom (.add (.n 885) (.n 878) (.n 879)),
+    .atom (.copy (.n 886) (.n 885)),
+    .atom (.add (.n 887) (.n 878) (.n 879)),
+    .atom (.add (.n 888) (.n 887) (.n 880)),
+    .atom (.copy (.n 889) (.n 888)),
+    .atom (.add (.n 890) (.n 878) (.n 879)),
+    .atom (.add (.n 891) (.n 890) (.n 881)),
+    .atom (.copy (.n 892) (.n 891)),
+    .atom (.add (.n 893) (.n 878) (.n 880)),
+    .atom (.add (.n 894) (.n 893) (.n 881)),
+    .atom (.copy (.n 895) (.n 894)),
+    .atom (.add (.n 896) (.n 878) (.n 880)),
+    .atom (.add (.n 897) (.n 896) (.n 883)),
+    .atom (.copy (.n 898) (.n 897)),
+    .atom (.add (.n 899) (.n 878) (.n 881)),
+    .atom (.add (.n 900) (.n 899) (.n 883)),
+    .atom (.copy (.n 901) (.n 900)),
+    .atom (.add (.n 902) (.n 878) (.n 879)),
+    .atom (.add (.n 903) (.n 902) (.n 880)),
+    .atom (.add (.n 904) (.n 903) (.n 881)),
+    .atom (.add (.n 905) (.n 904) (.n 883)),
+    .atom (.copy (.n 906) (.n 905)),
+    .atom (.mul (.n 907) (.n 884) (.n 886)),
+    .atom (.mul (.n 908) (.n 892) (.n 895)),
+    .atom (.mul (.n 909) (.n 898) (.n 907)),
+    .atom (.mul (.n 910) (.n 901) (.n 906)),
+    .atom (.mul (.n 911) (.n 886) (.n 908)),
+    .atom (.mul (.n 912) (.n 884) (.n 909)),
+    .atom (.mul (.n 913) (.n 908) (.n 910)),
+    .atom (.mul (.n 914) (.n 911) (.n 912)),
+    .atom (.mul (.n 915) (.n 892) (.n 910)),
+    .atom (.mul (.n 916) (.n 884) (.n 901)),
+    .atom (.mul (.n 917) (.n 884) (.n 913)),
+    .atom (.mul (.n 918) (.n 886) (.n 895)),
+    .atom (.mul (.n 919) (.n 886) (.n 906)),
+    .atom (.mul (.n 920) (.n 889) (.n 909)),
+    .atom (.mul (.n 921) (.n 910) (.n 918)),
+    .atom (.mul (.n 922) (.n 914) (.n 916)),
+    .atom (.mul (.n 923) (.n 884) (.n 922)),
+    .atom (.mul (.n 924) (.n 886) (.n 909)),
+    .atom (.mul (.n 925) (.n 886) (.n 922)),
+    .atom (.mul (.n 926) (.n 898) (.n 910)),
+    .atom (.mul (.n 927) (.n 898) (.n 917)),
+    .atom (.mul (.n 928) (.n 901) (.n 908)),
+    .atom (.mul (.n 929) (.n 906) (.n 914)),
+    .atom (.mul (.n 930) (.n 907) (.n 911)),
+    .atom (.mul (.n 931) (.n 907) (.n 913)),
+    .atom (.mul (.n 932) (.n 907) (.n 917)),
+    .atom (.mul (.n 933) (.n 909) (.n 911)),
+    .atom (.mul (.n 934) (.n 909) (.n 913)),
+    .atom (.mul (.n 935) (.n 909) (.n 915)),
+    .atom (.mul (.n 936) (.n 911) (.n 926)),
+    .atom (.mul (.n 937) (.n 912) (.n 921)),
+    .atom (.mul (.n 938) (.n 914) (.n 919)),
+    .atom (.mul (.n 939) (.n 915) (.n 920)),
+    .atom (.mul (.n 940) (.n 915) (.n 930)),
+    .atom (.mul (.n 941) (.n 919) (.n 933)),
+    .atom (.mul (.n 942) (.n 920) (.n 928)),
+    .atom (.mul (.n 943) (.n 921) (.n 924)),
+    .atom (.load (.n 936) (.n 12) 6),
+    .atom (.load (.n 927) (.n 12) 7),
+    .atom (.add (.n 944) (.n 936) (.n 927)),
+    .atom (.load (.n 943) (.n 12) 8),
+    .atom (.add (.n 945) (.n 944) (.n 943)),
+    .atom (.load (.n 937) (.n 12) 9),
+    .atom (.add (.n 946) (.n 945) (.n 937)),
+    .atom (.load (.n 939) (.n 12) 10),
+    .atom (.add (.n 947) (.n 946) (.n 939)),
+    .atom (.load (.n 935) (.n 12) 11),
+    .atom (.add (.n 948) (.n 947) (.n 935)),
+    .atom (.load (.n 931) (.n 12) 12),
+    .atom (.add (.n 949) (.n 948) (.n 931)),
+    .atom (.load (.n 940) (.n 12) 13),
+    .atom (.add (.n 950) (.n 949) (.n 940)),
+    .atom (.load (.n 932) (.n 12) 14),
+    .atom (.add (.n 951) (.n 950) (.n 932)),
+    .atom (.load (.n 941) (.n 12) 15),
+    .atom (.add (.n 952) (.n 951) (.n 941)),
+    .atom (.load (.n 929) (.n 12) 16),
+    .atom (.add (.n 953) (.n 952) (.n 929)),
+    .atom (.load (.n 938) (.n 12) 17),
+    .atom (.add (.n 954) (.n 953) (.n 938)),
+    .atom (.load (.n 925) (.n 12) 18),
+    .atom (.add (.n 955) (.n 954) (.n 925)),
+    .atom (.load (.n 923) (.n 12) 19),
+    .atom (.add (.n 956) (.n 955) (.n 923)),
+    .atom (.load (.n 942) (.n 12) 20),
+    .atom (.add (.n 957) (.n 956) (.n 942)),
+    .atom (.load (.n 934) (.n 12) 21),
+    .atom (.add (.n 958) (.n 957) (.n 934)),
+    .atom (.load (.n 958) (.n 12) 1)]
 
 
 /-- The values stored at `out[6 + i]`. -/
 def rmfeStores : List ℕ :=
-  [1139, 1138, 1151, 1150, 1164, 1163, 1179, 1178, 1181, 1193, 1192, 1195, 1211, 1210, 1214, 1121]
+  [936, 927, 943, 937, 939, 935, 931, 940, 932, 941, 929, 938, 925, 923, 942, 934]
 
 /-- The sum of the embeddings, as a mask. -/
 def embedXor : ℕ := embedLit.foldl (· ^^^ ·) 0
 
 /-- The block's masks, checked. -/
 def rmfeCheck : Bool :=
-  match maskRun (.n 1089) [(.n 1089, 2)] rmfeBlockT with
+  match maskRun (.n 877) [(.n 877, 2)] rmfeBlockT with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (rmfeStores.getD i 0)) ==
-      some (embedLit.getD i 0)) && st.lookup (.n 1215) == some embedXor
+      some (embedLit.getD i 0)) && st.lookup (.n 958) == some embedXor
   | none => false
 
 theorem rmfeCheck_true : rmfeCheck = true := by decide +kernel
@@ -198,7 +155,7 @@ theorem rmfeBlock_atoms : rmfeBlockT.all isAtom = true := by decide +kernel
 theorem rmfeBlock_stores : ∀ i < 16, rmfeBlockT.any (fun s ↦ stmtEqb s
     (.atom (.load (.n (rmfeStores.getD i 0)) (.n 12) (6 + i)))) = true := by decide +kernel
 
-theorem rmfeBlock_kappa : rmfeBlockT.any (fun s ↦ stmtEqb s (.atom (.load (.n 1215) (.n 12) 1))) =
+theorem rmfeBlock_kappa : rmfeBlockT.any (fun s ↦ stmtEqb s (.atom (.load (.n 958) (.n 12) 1))) =
     true := by decide +kernel
 
 /-! ## The weights as masks -/
@@ -250,13 +207,13 @@ claim's record holds `keccakInstanceWeights s` at `out[6 + i]` and their sum at 
 theorem rmfeBlock_holds {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ rmfeBlockT next kret) :
     (∀ i < 16, LoadHolds rd (σ (.n 12)) (6 + i)
-      ((keccakInstanceWeights (σ (.n 1089))).getD i 0)) ∧
-    LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n 1089)))) := by
+      ((keccakInstanceWeights (σ (.n 877))).getD i 0)) ∧
+    LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n 877)))) := by
   have hc := rmfeCheck_true
   unfold rmfeCheck at hc
   split at hc
   · rename_i st hst
-    have hok0 : MaskOk σ (σ (.n 1089)) [(.n 1089, 2)] := by
+    have hok0 : MaskOk σ (σ (.n 877)) [(.n 877, 2)] := by
       intro p hp
       rw [List.mem_singleton] at hp
       subst hp

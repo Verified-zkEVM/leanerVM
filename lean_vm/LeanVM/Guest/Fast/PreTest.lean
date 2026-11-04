@@ -116,9 +116,9 @@ def memCell (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (o n c
   | some p => memAt D Pw rd n c p
   | none => false
 
-/-- The memory bound `(o, len, n)`: for every `c < len`. -/
+/-- The memory bound `(o, c, n)`: the word at cell `c` of the address in cell `o`. -/
 def memOne (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (m : ℕ × ℕ × ℕ) : Bool :=
-  (List.range m.2.1).all (memCell D Pw rd fp m.1 m.2.2)
+  memCell D Pw rd fp m.1 m.2.2 m.2.1
 
 /-! ## The powers table, built once -/
 

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FoldT
 
-  `fold_shifts`' statements (`foldT`, G:2377-2405) compute `foldF`.
+  `fold_shifts`' statements (`foldT`, G:2613-2639) compute `foldF`.
 -/
 
 module
@@ -29,16 +29,16 @@ theorem foldLevelT_mem {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} {q' : ℕ
     let n := 2 ^ (6 - t)
     let x0 := foldVal src b t (q' / 2 * n + (2 * k + (n - 1) * (q' % 2)) % n)
     let x1 := foldVal src b t (q' / 2 * n + (2 * k + 1 + (n - 1) * (q' % 2)) % n)
-    let d := b + 193 * t + 1 + 3 * ((foldFilt t).idxOf q' * (n / 2) + k)
-    Stmt.atom (.add (.n d) (.n x0) (.n x1)) ∈ foldLevelT src b a t ∧
-      Stmt.atom (.mul (.n (d + 1)) (.n (b + 193 * t)) (.n d)) ∈ foldLevelT src b a t ∧
-      Stmt.atom (.add (.n (d + 2)) (.n x0) (.n (d + 1))) ∈ foldLevelT src b a t := by
+    let d := b + 195 * t + 3 + 3 * ((foldFilt t).idxOf q' * (n / 2) + k)
+    Stmt.atom (.mul (.n d) (.n (b + 195 * t + 2)) (.n x0)) ∈ foldLevelT src b a t ∧
+      Stmt.atom (.mul (.n (d + 1)) (.n (b + 195 * t)) (.n x1)) ∈ foldLevelT src b a t ∧
+      Stmt.atom (.add (.n (d + 2)) (.n d) (.n (d + 1))) ∈ foldLevelT src b a t := by
   intro n x0 x1 d
   have hz : (q', (foldFilt t).idxOf q') ∈ (foldFilt t).zipIdx := by
     rw [List.mk_mem_zipIdx_iff_getElem?, List.getElem?_eq_getElem (List.idxOf_lt_length_of_mem hq),
       List.getElem_idxOf]
   refine ⟨?_, ?_, ?_⟩ <;>
-  · simp only [foldLevelT, List.mem_cons, List.mem_flatMap]
+  · simp only [foldLevelT, List.mem_append, List.mem_cons, List.mem_flatMap]
     right
     refine ⟨(q', (foldFilt t).idxOf q'), hz, k, List.mem_range.2 hk, ?_⟩
     simp [d, x0, x1, n]
@@ -46,11 +46,13 @@ theorem foldLevelT_mem {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} {q' : ℕ
 theorem foldLevelT_atoms (src : ℕ → ℕ) (b : ℕ) (a : V) (t : ℕ) :
     AllAtoms (foldLevelT src b a t) := by
   intro s hs
-  simp only [foldLevelT, List.mem_cons, List.mem_flatMap, List.mem_range] at hs
-  rcases hs with rfl | ⟨_, _, k, _, hs⟩
+  simp only [foldLevelT, List.mem_append, List.mem_cons, List.mem_flatMap, List.mem_range,
+    List.not_mem_nil, or_false] at hs
+  rcases hs with (rfl | rfl | rfl) | ⟨_, _, k, _, hs⟩
   · exact ⟨_, rfl⟩
-  · simp only [List.not_mem_nil, or_false] at hs
-    rcases hs with rfl | rfl | rfl <;> exact ⟨_, rfl⟩
+  · exact ⟨_, rfl⟩
+  · exact ⟨_, rfl⟩
+  · rcases hs with rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
 /-- **A level of `fold_shifts`**: from level `t`'s cells, `foldF` of level `t + 1`. -/
 theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t < 6) {A : List E}
@@ -69,8 +71,11 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
   have a1 := hall _ m1
   have a2 := hall _ m2
   have a3 := hall _ m3
-  have lB := hall (.load (.n (b + 193 * t)) a t) (by simp [foldLevelT])
-  simp only [Atom.Holds] at a1 a2 a3 lB
+  have lB := hall (.load (.n (b + 195 * t)) a t) (by simp [foldLevelT])
+  have c1 := hall (.const (.n (b + 195 * t + 1)) (word 1 0 0)) (by simp [foldLevelT])
+  have e2 := hall (.add (.n (b + 195 * t + 2)) (.n (b + 195 * t + 1)) (.n (b + 195 * t)))
+    (by simp [foldLevelT])
+  simp only [Atom.Holds] at a1 a2 a3 lB c1 e2
   have hp : q' / 2 < 2 ^ t := by rw [pow_succ] at hq2; omega
   have hb : q' % 2 < 2 := Nat.mod_lt _ (by norm_num)
   have hpos : foldVal.foldPos' t (q' / 2 + 2 ^ t * (q' % 2)) = (foldFilt t).idxOf q' := by
@@ -78,7 +83,7 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
     congr 1
     interval_cases t <;> omega
   have hv : foldVal src b (t + 1) ((q' / 2 + 2 ^ t * (q' % 2)) * 2 ^ (5 - t) + k) =
-      b + 193 * t + 1 + 3 * ((foldFilt t).idxOf q' * (2 ^ (6 - t) / 2) + k) + 2 := by
+      b + 195 * t + 3 + 3 * ((foldFilt t).idxOf q' * (2 ^ (6 - t) / 2) + k) + 2 := by
     have hm0 : 0 < 2 ^ (5 - t) := by positivity
     have hd : ((q' / 2 + 2 ^ t * (q' % 2)) * 2 ^ (5 - t) + k) / 2 ^ (5 - t) =
         q' / 2 + 2 ^ t * (q' % 2) := by
@@ -86,15 +91,14 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
     have hm : ((q' / 2 + 2 ^ t * (q' % 2)) * 2 ^ (5 - t) + k) % 2 ^ (5 - t) = k := by
       rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hk]
     simp only [foldVal, hn2, hd, hm, hpos]
-  rw [hv, a3, a2, a1, hA _ lB]
+  rw [hv, a3, a2, a1, e2, c1, word_one, hA _ lB]
   have hx0 := hprev (q' / 2) hp ((2 * k + (2 ^ (6 - t) - 1) * (q' % 2)) % 2 ^ (6 - t))
     (Nat.mod_lt _ (by positivity))
   have hx1 := hprev (q' / 2) hp ((2 * k + 1 + (2 ^ (6 - t) - 1) * (q' % 2)) % 2 ^ (6 - t))
     (Nat.mod_lt _ (by positivity))
   rw [hx0, hx1, foldF_succ A hAl S ht hp hb hk]
-  ring
 
-/-- **`fold_shifts`** (G:2377-2405): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
+/-- **`fold_shifts`** (G:2625-2639): the used shifts `Σ_z V[z]·eq(a, z + r)`. -/
 theorem foldT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {A : List E} {S : ℕ → E} (hAl : A.length = 6)
     (hA : ∀ t < 6, ∀ v, LoadHolds rd (σ a) t v → v = A.getD t 0)
     (hsrc : ∀ j < 64, σ (.n (src j)) = S j) {next : Prop} {kret : List E → Prop}
@@ -103,6 +107,7 @@ theorem foldT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {A : List E} {S : ℕ 
       next := by
   rw [foldT, holdsList_range_flatten _ _ (fun t ↦ by
     unfold foldLevelT
+    rw [noRetList_append]
     simp only [Stmt.noRetList, Stmt.noRet, Bool.true_and]
     induction ((List.range (2 ^ (t + 1))).filter _).zipIdx with
     | nil => rfl

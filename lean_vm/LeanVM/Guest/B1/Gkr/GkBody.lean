@@ -27,9 +27,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd : Reader) (rec pt : E)
-    (h : MeaningGkrRounds n rd [rec, pt] []) :
+    (h : MeaningGkrRounds n rd [rec, pt] [0]) :
     ∃ σ : Val, (∀ v, σ v = σ (.n v.idx)) ∧ σ (.n 0) = rec ∧ σ (.n 1) = pt ∧
-      Stmt.HoldsList C rd σ (gkBody n) False (fun rs => rs = []) := by
+      Stmt.HoldsList C rd σ (gkBody n) False (fun rs => rs = [0]) := by
   obtain ⟨hr0, cap, cur, claim, cs, es, ⟨hcl, hcap⟩, hcan, hcur, hclaim, hlen, h4, hflat, hles,
     hpt, hres⟩ := h
   let Cf : ℕ → List E := fun q ↦ [(cs.getD q []).getD 0 0, (cs.getD q []).getD 1 0,
@@ -117,10 +117,10 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
   refine ⟨σ, fun v => rfl, e0, e1, ?_⟩
   rw [gkBody]
   simp only [holdsList_append, holdsList_range_flatten n gkRound (fun _ => rfl), holds_gkRound,
-    Stmt.HoldsList, Stmt.Holds, List.map_nil]
+    Stmt.HoldsList, Stmt.Holds]
   obtain ⟨m', rfl⟩ : ∃ m', n = m' + 1 := ⟨n - 1, by omega⟩
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, fun q hq ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, trivial⟩
+    ?_, ?_, ?_, ?_⟩
   · show LoadHolds rd (σ (.n 0)) 0 (σ (.n 2))
     rw [e0, show σ (.n 2) = a2 by simp [ev, gkVals, cap]]
     exact hcap 0 (by simp)
@@ -284,7 +284,9 @@ theorem gk_body_holds (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd 
   · show LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (82 + 74 * (m' + 1 - 1))))
     rw [e0, show m' + 1 - 1 = m' by omega, idx _ (8 + 74 * (m' + 1)) (by ring), hcl (m' + 1) (by omega)]
     exact hres4
-
+  · show σ (.n (11 + 74 * (m' + 1))) = word 0 0 0
+    rw [ev, gkVals_tail2, word_zero]
+  · simp only [List.map_cons, List.map_nil, ev, gkVals_tail2]
 
 end
 end LeanVM.Guest.B1

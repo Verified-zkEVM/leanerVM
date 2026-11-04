@@ -1,14 +1,14 @@
 /-
   LeanVM.Guest.B1.Gkr.VbgBuf
 
-  `verify_bus_gkr` as a flat function, and its five buffers' honest words as whole buffers.
+  `verify_bus_gkr` as a flat function, and its six buffers' honest words as whole buffers.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Gkr.VbgComplete
 public import LeanVM.Guest.B1.Tables.FlatLift
-public import LeanVM.Guest.B1.Tables.VtC.Kids
+public import LeanVM.Guest.B1.Fwd.PureIn
 
 /-!
 # `verify_bus_gkr`'s kernel facts and buffers
@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.Tables.VtC.Kids
 range check's two reads (`vbgAux`, values `20`, `21`), its callees `vbgKidS` (`__loop6`, `__loop7`
 and theirs, placing nothing).
 
-**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the five buffers;
+**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the six buffers;
 `vbgBufs` lays out each buffer whole, the runs at their offsets and zeros between: `layers`
 (`17·(depth + 2)` words, a slot of `17` per level, the levels `≡ depth (mod 2)` up to `depth` and
 the root), the round records (`7` fields of `862` words), the point rows (`41` rows of `40`), the
-tables `pairs`, `depth_shift` (`33` each). `vbg_memLay`: a memory holding the whole buffers holds
+table `k_mod_next` (`8`), the tables `pairs`, `depth_shift` (`33` each). `vbg_memLay`: a memory holding the whole buffers holds
 `vbgLay`.
 -/
 
@@ -37,7 +37,8 @@ open LeanVM.Guest.B1.Fwd
 
 /-- `verify_bus_gkr`'s callees, directly or not. -/
 def vbgKidS : List String :=
-  ["__loop32", "__loop6", "__loop7", "gkr_rounds__L1", "gkr_rounds__L2"]
+  ["__loop36", "__loop6", "__loop7", "gkr_rounds__L0", "gkr_rounds__L1", "gkr_rounds__L2",
+    "gkr_rounds__L4", "gkr_rounds__L6"]
 
 theorem vbg_kids_pure : coreProgram.PureIn vbgKidS := pureIn_of_pureInB (by decide +kernel)
 
@@ -92,11 +93,11 @@ variable (depth : ℕ) (cap0 xs : List E) (cur : E) (eP : ℕ)
 noncomputable def vbgSlotW (j : ℕ) : List E :=
   gkSlotWords (gkSl cap0 xs (depth % 2) j).1 (cur * gen ^ (gkSl cap0 xs (depth % 2) j).2.2)
     (gkSl cap0 xs (depth % 2) j).2.1 (ofK (addressOfIndex eP) * gen ^ (40 * (j + depth % 2)))
-    (gen ^ gkPos (depth % 2) j) (gen ^ (j / 2)) (bitE (j % 2 = 1))
+    (gen ^ gkPos (depth % 2) j) (gen ^ (j / 4)) (gen ^ (j % 4))
 
 /-- The root slot's words. -/
 noncomputable def vbgRootW : List E :=
-  gkSlotWords (gkRootS cap0 xs) (cur * gen ^ 2) (gkRootSt xs) (ofK (addressOfIndex eP)) 1 1 0
+  gkSlotWords (gkRootS cap0 xs) (cur * gen ^ 2) (gkRootSt xs) (ofK (addressOfIndex eP)) 1 1 1
 
 /-- Level `l`'s seventeen words of `layers`. -/
 noncomputable def vbgLayBlock (l : ℕ) : List E :=
@@ -132,17 +133,17 @@ noncomputable def vbgRoundsW : List E := (List.range 7).flatMap (vbgRecBlock dep
 
 end
 
-/-- The tables `pairs`, `depth_shift`. -/
+/-- The tables `pairs`, `depth_shift` (`k_mod_next`'s words are `kmnWords`). -/
 def vbgPairsW : List E := (List.range 33).map fun k ↦ gen ^ (k / 2)
 def vbgDshW : List E := (List.range 33).map fun k ↦ gen ^ (k % 2)
 
 /-- The buffers' sizes. -/
-def vbgSizes (depth : ℕ) : List ℕ := [17 * (depth + 2), 6034, 1640, 33, 33]
+def vbgSizes (depth : ℕ) : List ℕ := [17 * (depth + 2), 6034, 1640, 8, 33, 33]
 
 /-- The buffers' words. -/
 noncomputable def vbgOwnW (depth : ℕ) (cap0 xs : List E) (cur : E) (eP : ℕ) : List (List E) :=
   [vbgLayersW depth cap0 xs cur eP, vbgRoundsW depth cap0 xs cur, vbgRowsW depth cap0 xs,
-    vbgPairsW, vbgDshW]
+    kmnWords, vbgPairsW, vbgDshW]
 
 end
 end LeanVM.Guest.B1.Tables
