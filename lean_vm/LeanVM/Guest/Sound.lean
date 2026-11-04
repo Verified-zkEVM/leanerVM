@@ -19,18 +19,19 @@ on that run (`Check.EnteredAt`).
 
 * `b2_step`: a function's contract for runs shorter than `n + 1`, given every contract for runs
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
-  the first takes its memory bounds and semantic pairs from the statements before it
-  (`CutsKnown`, `cutsKnown_of`): none but in
-  `verify_sub` (function `19`), whose second window, from its call of `check_opening_terminal`,
-  takes the bounds of the `8` entries of `kappa_base` from `VsKnown`, over the exponent table its
-  precondition carries.
+  the first takes its memory bounds and semantic pairs from the statements before it, the
+  function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
+  `verify_sub` (function `19`), whose second window starts at its call of
+  `check_opening_terminal`, the bounds of the `8` entries of `kappa_base` from `VsKnown`, over
+  the exponent table its precondition carries; in the windowed Merkle walks, `WalkKnown`.
 * `b2_main`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
   written. Its second window starts after `exponent_tables`, whose return it knows to be the
   table (`ExpTablesSound`).
 
 `VsKnown` and `ExpTablesSound` are statements about the core IR alone (`coreProgram.Rel`), B1's
-to prove (`verify_sub`'s callees `verify_tables` and `certify_placement`, and `exponent_tables`):
-the theorems here take them as hypotheses.
+to prove (`verify_sub`'s callees `verify_tables` and `certify_placement`, and `exponent_tables`);
+`WalkKnown` is stated at the certificates' cuts, B1's core IR facts on the walks read through
+the certificates' cells. The theorems here take them as hypotheses.
 
 Names are unique in `coreProgram` (`coreProgram_find_getElem`), and the jump table the checks
 read is the one `__jump_tables` writes (`JumpTable.jt_of_jumpTables`). The certificates' facts
@@ -88,18 +89,33 @@ theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMe
   rw [hst, coreOf_19] at hl
   have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) := by
     have := hsem (6, 6) (by rw [vs_sem]; exact List.mem_singleton_self _)
-    simp only [valG, Core.V.idx, vs_cells]
+    simp only [valG, vs_cells]
     exact this
   exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
 
-/-- **Every callee's cut obligations**, from `VsKnown`: `verify_sub`'s, and nothing for the
-others (`Checked.all_plain`). -/
-theorem cutsKnown_of (hvs : VsKnown) {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) : CutsKnown j := by
-  intro κ L h16 h32 fp _ hsem i hi h0 hl
+/-! ## The walks' obligations -/
+
+/-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, ostack's
+`open_stacked`; REC-GUEST-IFACE 'tool: walk obligations'): at every cut of a callee other than
+`verify_sub` whose cuts hand something on (not `Plain`), the cut's memory bounds and semantic
+tuples (`CutsKnown`). Checker K hands the windows' bounds of the windowed Merkle walk on at such
+cuts (`WinWalk`: the dispatch selector `L[L[qwp·x]·g^i]` below `g^(2^width)`, from
+`decode_query_windows`' range checks in `open_stacked`); B1 proves them on the core IR, as
+`VsKnown` for `verify_sub`, and `Sound.lean` reads them off the certificates' cells. -/
+def WalkKnown : Prop :=
+  ∀ j, 2 ≤ j → j < nFns → j ≠ 19 → ¬ Checked.Plain j → CutsKnown j
+
+/-- **Every callee's cut obligations**: `verify_sub`'s from `VsKnown`, the walks' from
+`WalkKnown`, and nothing for the others (`Plain`). -/
+theorem cutsKnown_of (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) :
+    CutsKnown j := by
+  intro κ L h16 h32 fp hmem hsem i hi h0 hl
   by_cases h19 : j = 19
   · subst h19
     exact known_vs hvs h16 h32 hsem hi h0 hl
-  · exact known_plain (by omega) hj (by omega) h19 hi h0
+  · by_cases hp : Checked.Plain j
+    · exact known_of_plain hp hi h0
+    · exact hwalk j h2 hj h19 hp L h16 h32 fp hmem hsem i hi h0 hl
 
 /-! ## `main`'s obligation -/
 
@@ -115,10 +131,8 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp :
   refine ⟨fun _ h ↦ by simp at h, fun p hp ↦ ?_⟩
   simp only [List.mem_singleton] at hp
   subst hp
-  have hnr : Stmt.noRetList ((coreOf 1).body.take (((certOf 1).cutAt 1).start - 1)) = true := by
-    decide +kernel
   rw [main_call, holdsList_append] at hl
-  have hcall := ((holdsList_noRet _ hnr _ _).mp hl).2
+  have hcall := ((holdsList_noRet _ main_exp_noRet _ _).mp hl).2
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hcall
   exact hexp L.read _ hcall.1
 
