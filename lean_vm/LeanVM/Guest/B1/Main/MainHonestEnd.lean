@@ -65,8 +65,8 @@ def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ
   ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
     [(digestHalves (statementDigest seed w.children[c].statement)).1,
       (digestHalves (statementDigest seed w.children[c].statement)).2,
-      (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et1,
-      (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns [])
+      (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,
+      (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns [])
 
 end
 end LeanVM.Guest.B1.Main

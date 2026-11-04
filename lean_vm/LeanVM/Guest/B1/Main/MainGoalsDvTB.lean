@@ -51,7 +51,7 @@ def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ 
 def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (SB SK : String → ℕ) : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
+    CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK w)
 
 theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
@@ -72,14 +72,13 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
   rw [hR, hDvNH, hDvB, hp]
   simp only [Option.map_some, Option.getD_some]
   have hL := wLog_lt hw
-  have h := Da.da_verify_completeAtTB fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp) + 34) hS
-  have hq : (etB fs (mK0 (hData seed s w) fs fp) + 34, etTabs.getD 1 []) ∈ hLmain fs fp seed s w :=
+  have h := Da.da_verify_completeAtTB fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp)) hS
+  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTableWords) ∈ hLmain fs fp seed s w :=
     List.mem_append_right _ (by simp [etL])
-  have hlen : (etTabs.getD 1 []).length = 34 := by simp [etTabs]
+  have hlen : expTableWords.length = 236 := length_expTableWords
   refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) h
   · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
-    have hv : (etTabs.getD 1 [])[wLog p.2]'(by omega) = gen ^ 2 ^ wLog p.2 := by simp [etTabs]
-    rw [hv] at hr
+    rw [expTableWords_sq (by omega)] at hr
     intro q hq'
     rw [List.mem_singleton] at hq'
     subst hq'
@@ -92,8 +91,8 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
     rw [List.mem_singleton] at hq'
     subst hq'
     simp only [List.length_singleton] at h1 h2
-    exact ⟨_, hq, show etB fs (mK0 (hData seed s w) fs fp) + 34 ≤ i by omega,
-      show i < etB fs (mK0 (hData seed s w) fs fp) + 34 + (etTabs.getD 1 []).length by omega⟩
+    exact ⟨_, hq, show etB fs (mK0 (hData seed s w) fs fp) ≤ i by omega,
+      show i < etB fs (mK0 (hData seed s w) fs fp) + expTableWords.length by omega⟩
 
 end
 end LeanVM.Guest.B1.Main

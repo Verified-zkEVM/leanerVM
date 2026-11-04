@@ -66,10 +66,10 @@ theorem bases_length : ∀ (b : ℕ) (sizes : List ℕ), (bases b sizes).length 
 
 /-- The own buffers at the bump allocator's positions. -/
 theorem vs_own_mem {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
-    (b : ℕ) {i : ℕ} (hi : i < 16) :
+    (b : ℕ) {i : ℕ} (hi : i < 13) :
     ((bases b (vsSizes S.μ)).getD i 0, S.ownW.getD i []) ∈ bufL b (vsSizes S.μ) S.ownW := by
-  have hl : (bases b (vsSizes S.μ)).length = 16 := by rw [bases_length]; rfl
-  have ho : S.ownW.length = 16 := rfl
+  have hl : (bases b (vsSizes S.μ)).length = 13 := by rw [bases_length]; rfl
+  have ho : S.ownW.length = 13 := rfl
   rw [bufL, List.mem_iff_getElem]
   refine ⟨i, by simp [hl, ho, hi], ?_⟩
   rw [List.getElem_zip, List.getD_eq_getElem _ _ (by omega), List.getD_eq_getElem _ _ (by omega)]

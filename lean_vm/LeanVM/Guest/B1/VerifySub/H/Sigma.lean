@@ -82,8 +82,8 @@ end ChildSegs
 structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (bs : List ℕ) (sqE : ℕ) (outs : List (List E × Main.Layout)) (args : List E) (σ : Val) :
     Prop where
-  par : ∀ i < 7, σ (.n i) = args.getD i 0
-  ptr : ∀ i < 16, σ (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (vb bs i))
+  par : ∀ i < 6, σ (.n i) = args.getD i 0
+  ptr : ∀ i < 13, σ (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (vb bs i))
   ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
     σ (.n ((vsRetVars.getD j []).getD k 0)) = (outs.getD j ([], [])).1.getD k 0
   e112 : σ (.n 110) = eOfNat S.rate
@@ -94,55 +94,62 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
   e825 : [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616)] = S.capS
   e836 : σ (.n 623) = S.β
   e838 : σ (.n 625) = ofK (addressOfIndex (vcG bs))
+  e645 : σ (.n 645) = ofK (addressOfIndex (S.cT bs + 5 + 3 * S.H.n))
   e858 : σ (.n 646) = gen ^ S.τ
-  e862 : σ (.n 650) = ofK (addressOfIndex (vb bs 0 + 110))
+  e862 : σ (.n 650) = ofK (addressOfIndex (S.cL bs))
   e1312 : [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)] = capOf S.s8.perm
-  e1884 : σ (.n 1671) = S.lam ^ 141
+  e1111 : σ (.n 1111) = S.lam
   e1886 : σ (.n 1673) = S.target
   e1901 : σ (.n 1687) = gen ^ B1.Whir.candidate S.μs S.rate
-  push : ∀ b < 54, ∃ k < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + k))
+  push : ∀ b < 54, ∃ κ, κ + Tables.blockKappaAdj b < 34 ∧
+    σ (.n (vsPushM b)) = ofK (addressOfIndex (sqE + κ))
 
 variable {rd : Reader} {args : List E}
 
 /-- **The honest valuation holds `VsSig`**, with the section data. -/
 theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
-    (S : ChildSegs bytecode seed c) {lpE sqE outE : ℕ}
+    (S : ChildSegs bytecode seed c) {sqE outE : ℕ}
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
-          outE)])
-    (bs : List ℕ) (outs : List (List E × Main.Layout)) (O : VsOuts S bs lpE sqE outs) {κ : ℕ}
+      (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)])
+    (bs : List ℕ) (outs : List (List E × Main.Layout)) (O : VsOuts S bs sqE outs) {κ : ℕ}
     (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
-    (hmem : ∀ i < 16, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
-    (hlp : ReadsAt rd (ofK (addressOfIndex lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
-    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) Tables.gSquaresList)
+    (hmem : ∀ i < 13, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
+    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) expTableWords)
     (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim)) :
     Nonempty (VsSecData rd (vsW bs outs) args) ∧
       VsSig S bs sqE outs args (vsσ rd (vsW bs outs) args) := by
   have hl : args.length = 6 := by rw [hargs]; rfl
   obtain ⟨D, hv, hlir, hlm, hhs, hm, hr, hτ, F, elam, es8, -, -⟩ :=
-    vsSec hbl S hargs bs outs hκ hlow hmem hlp hsq hfx O.o0 O.o1 O.o6 O.o7 O.o10
+    vsSec hbl S hargs bs outs hκ hlow hmem hsq hfx O.o0 O.o1 O.o6 O.o7 O.o10
   refine ⟨⟨D⟩, ?_⟩
-  have par := fun i (hi : i < 7) ↦ vsC_param (rd := rd) (w := vsW bs outs) hl hi
-  have ptr := fun i (hi : i < 16) ↦ vs_alloc_ptr (rd := rd) hl bs outs hi
+  have par := fun i (hi : i < 6) ↦ vsC_param (rd := rd) (w := vsW bs outs) hl hi
+  have ptr := fun i (hi : i < 13) ↦ vs_alloc_ptr (rd := rd) hl bs outs hi
   have ret := fun j (hj : j < 13) k (hk : k < (vsRetVars.getD j []).length) ↦
     vs_ret_val (rd := rd) hl bs outs hj hk
   have e112 := D.e112
   have e29 := D.e29
   rw [hlir] at e112
   rw [hlm] at e29
+  have hS := (vsSizesT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
+    D.hκ6 D.hlow D.hl1 D.hl4 D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial
+    trivial trivial).1
+  have hkbv : ∀ s < 8, vsσ rd (vsW bs outs) args (.n (140 + s)) =
+      gen ^ (([0, D.logMem] ++ D.hs).getD s 0) :=
+    fun s hs8 ↦ by rw [hS s hs8, D.hcount, kbase_getD D.hsl hs8]
   have hpush := (vsPushT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
-    D.hsl D.hh D.hm32 D.hbk D.hexp (fun _ _ ↦ trivial) trivial).1
+    D.hh D.hm32 hkbv D.hexp (fun _ _ ↦ trivial) trivial).1
   rw [hlm, hhs] at hpush
-  have hpp : ∀ b < 54, vsσ rd (vsW bs outs) args (.n (vsPushPtr b)) =
-      vsσ rd (vsW bs outs) args (.n 4) * gen ^ pushKappa D.logMem D.hs b :=
-    fun b hb ↦ vs_push_ptr hl D.hsl D.hbk hb
+  have hpp : ∀ b < 54, vsσ rd (vsW bs outs) args (.n (vsPushM b)) =
+      vsσ rd (vsW bs outs) args (.n 4) *
+        gen ^ ([0, D.logMem] ++ D.hs).getD (Tables.blockKappaSrc.getD b 0) 0 :=
+    fun b hb ↦ vs_push_ptr hl hkbv hb
   have hpk : ∀ b < 54, pushKappa D.logMem D.hs b < 34 := fun b hb ↦ pushKappa_lt D.hh D.hm32 hb
   have hcalls := vsCallsT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
     D.hd6 trivial trivial trivial trivial
   rw [hτ] at hcalls
   have hlam := vsLamT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
-    D.hz D.hcap966 D.hpool D.hlam trivial
+    D.hz D.hcap966 D.hpool trivial
   rw [hv] at hlam
   have htail := (vsTailPre_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True)
     hl D.hκ6 D.hlow D.hm22 D.hm28 D.hr1 D.hr4 D.e1890 D.e124 D.hzeta D.halpha D.hout D.hout'
@@ -151,13 +158,16 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   have hL := vsH_lam (rd := rd) (w := vsW bs outs) hl D.hcap966
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
   generalize vsσ rd (vsW bs outs) args = σ at *
-  have p7 : σ (.n 6) = ofK (addressOfIndex (vb bs 0)) := ptr 0 (by norm_num)
-  have p27 : σ (.n 25) = ofK (addressOfIndex (vb bs 2)) := ptr 2 (by norm_num)
-  have e5 : σ (.n 4) = ofK (addressOfIndex sqE) := by rw [par 5 (by norm_num), hargs]; rfl
+  have p1 : σ (.n 25) = ofK (addressOfIndex (vb bs 1)) := ptr 1 (by norm_num)
+  have e5 : σ (.n 4) = ofK (addressOfIndex sqE) := by rw [par 4 (by norm_num), hargs]; rfl
   have e1303 : σ (.n 1091) = polyEval (S.slices.map (phiMap · S.rchs)) gen := by
     have := ret 8 (by norm_num) 0 (by decide); rw [O.o8] at this; exact this
   have e869 : σ (.n 657) = S.word := by
     have := ret 7 (by norm_num) 6 (by decide); rw [O.o7, hK7] at this; exact this
+  have e645 : σ (.n 645) = ofK (addressOfIndex (S.cT bs + 5 + 3 * S.H.n)) := by
+    have := ret 6 (by norm_num) 9 (by rw [vsRetVars_lens.2.1]; omega)
+    rw [vsRetVars_runs.2.1 9 (by norm_num), O.o6, ChildSegs.vtRetsOf_getD9] at this
+    rw [this, Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul]
   rw [← es8] at hL
   exact {
     par := par
@@ -170,11 +180,12 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     e547 := F.h547
     e825 := (congrArg Fs.cap F.hs4).symm
     e836 := F.hβ
-    e838 := by rw [hcalls.1, p27, Tables.tb_ofK_gpow_mul]; rfl
+    e838 := by rw [hcalls.1, p1, Tables.tb_ofK_gpow_mul]; rfl
+    e645 := e645
     e858 := hcalls.2.1
-    e862 := by rw [hcalls.2.2.1, p7, Tables.tb_ofK_gpow_mul]
+    e862 := by rw [hcalls.2.2.1, e645, Tables.tb_ofK_gpow_mul]; rfl
     e1312 := (congrArg (fun p ↦ p.2.cap) hL).symm
-    e1884 := by rw [hlam.1, elam]
+    e1111 := elam
     e1886 := by rw [hlam.2.1, elam, e1303, e869, S.target_eq hbl]
     e1901 := htail
     push := fun b hb ↦ ⟨_, hpk b hb, by rw [hpp b hb, e5, Tables.tb_ofK_gpow_mul]⟩ }

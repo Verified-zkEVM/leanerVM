@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Digest.CoverComplete
 /-!
 # `main`'s honest valuation
 
-`MainIn`: what `main`'s oracle supplies (the counts of `meta`, the seed, the exponent tables'
-pointers, its `HeapBuf`s, the digests its callees return, the picked DA slot, the leaf's deferred
+`MainIn`: what `main`'s oracle supplies (the counts of `meta`, the seed, the exponent table's
+pointer, its `HeapBuf`s, the digests its callees return, the picked DA slot, the leaf's deferred
 value); `mσ rd m` is `mFlatE` evaluated on it (`Fwd.ev`). `main_core`: on a memory defined below
 `2^16` (the range checks) holding `main`'s stored and read words (`MainMem`: the byte table, the
 first and last running counts, the own and the published DA digests, the leaf's deferred claim,
@@ -47,8 +47,7 @@ structure MainIn where
   nd : ℕ
   pick : ℕ
   seed : Digest
-  et1 : E
-  et2 : E
+  et : E
   a77 : E
   a80 : E
   a117 : E
@@ -80,16 +79,16 @@ noncomputable def MainIn.ownDa (m : MainIn) : List E :=
 noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
   if j < 8 then gen ^ m.cnt.getD j 0
   else if j = 47 then (digestHalves m.seed).1 else if j = 48 then (digestHalves m.seed).2
-  else if j = 49 then m.et1 else if j = 50 then m.et2
-  else if j = 53 then m.a77 else if j = 56 then m.a80
-  else if j = 57 then (digestHalves m.xd).1 else if j = 58 then (digestHalves m.xd).2
-  else if j = 59 then (digestHalves m.sd).1 else if j = 60 then (digestHalves m.sd).2
-  else if j = 67 then m.a117 else if j = 68 then m.a119 else if j = 334 then m.aDa
+  else if j = 49 then m.et
+  else if j = 52 then m.a77 else if j = 55 then m.a80
+  else if j = 56 then (digestHalves m.xd).1 else if j = 57 then (digestHalves m.xd).2
+  else if j = 58 then (digestHalves m.sd).1 else if j = 59 then (digestHalves m.sd).2
+  else if j = 66 then m.a117 else if j = 68 then m.a119 else if j = 334 then m.aDa
   else if 339 ≤ j ∧ j < 343 then m.daR.getD (j - 339) 0
   else if j = 365 then m.a394 else if j = 371 then m.a400 else if j = 377 then m.a406
-  else if j = 380 then m.a409 else if j = 387 then gen ^ m.pick else if j = 402 then m.a417
-  else if j = 405 then m.leaf
-  else if j = 431 then (digestHalves m.sdg).1 else if j = 432 then (digestHalves m.sdg).2
+  else if j = 380 then m.a409 else if j = 387 then gen ^ m.pick else if j = 398 then m.a417
+  else if j = 401 then m.leaf
+  else if j = 427 then (digestHalves m.sdg).1 else if j = 428 then (digestHalves m.sdg).2
   else 0
 
 /-- **`main`'s honest valuation.** -/
@@ -129,17 +128,18 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   da : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ
   daZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ
   leaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ
-  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 50, 53, 56, 57, 58, 59, 60, 67, 68, 334, 339,
-    340, 341, 342, 365, 371, 377, 380, 387, 402, 405, 431, 432], σ (.n j) = mOrc m j
+  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 334, 339,
+    340, 341, 342, 365, 371, 377, 380, 387, 398, 401, 427, 428], σ (.n j) = mOrc m j
   v40 : σ (.n 40) = gen ^ (m.nlx + m.nxd)
   v41 : σ (.n 41) = gen ^ (m.nls + m.nsd)
   v42 : σ (.n 42) = gen ^ m.total
-  v52 : σ (.n 52) = gen ^ (4 * (m.nlx + m.nxd))
-  v55 : σ (.n 55) = gen ^ (4 * (m.nls + m.nsd))
-  g62 : σ (.n 62) = 1 + gen ^ m.nxd
-  g63 : σ (.n 63) = 1
-  g65 : σ (.n 65) = 1 + gen ^ m.nsd
-  g66 : σ (.n 66) = 1
+  v51 : σ (.n 51) = gen ^ (4 * (m.nlx + m.nxd))
+  v54 : σ (.n 54) = gen ^ (4 * (m.nls + m.nsd))
+  g61 : σ (.n 61) = 1 + gen ^ m.nxd
+  g62 : σ (.n 62) = 1
+  g64 : σ (.n 64) = 1 + gen ^ m.nsd
+  g65 : σ (.n 65) = 1
+  v67 : σ (.n 67) = m.a117 * gen ^ (m.nlx + m.nxd)
   g326 : σ (.n 326) = 1 + gen ^ m.nrx
   g327 : σ (.n 327) = 1
   g329 : σ (.n 329) = 1 + gen ^ m.nrs
@@ -155,12 +155,12 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   g383 : σ (.n 383) = 1 + gen ^ m.nc
   g384 : σ (.n 384) = 1
   v385 : σ (.n 385) = m.a409 * gen ^ m.nc
-  v401 : σ (.n 401) = m.aDa * gen ^ (2 * m.pick)
-  v404 : σ (.n 404) = gen ^ m.nc + 1
-  r429 : σ (.n 429) = (digestHalves m.dap).1
-  r430 : σ (.n 430) = (digestHalves m.dap).2
-  v433 : σ (.n 433) = 1
-  v437 : σ (.n 437) = gen
+  v397 : σ (.n 397) = m.aDa * gen ^ (2 * m.pick)
+  v400 : σ (.n 400) = gen ^ m.nc + 1
+  r425 : σ (.n 425) = (digestHalves m.dap).1
+  r426 : σ (.n 426) = (digestHalves m.dap).2
+  v429 : σ (.n 429) = 1
+  v433 : σ (.n 433) = gen
 
 /-! ## Helpers -/
 
@@ -234,8 +234,8 @@ theorem goodS_defs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {s :
   | _ => simp [defsOf] at hv
 
 /-- The oracle's values, as `MVals.orc` lists them. -/
-def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 50, 53, 56, 57, 58, 59, 60, 67, 68, 334,
-  339, 340, 341, 342, 365, 371, 377, 380, 387, 402, 405, 431, 432]
+def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 334,
+  339, 340, 341, 342, 365, 371, 377, 380, 387, 398, 401, 427, 428]
 
 set_option maxRecDepth 100000 in
 theorem mOrcIdx_defs : ∀ j ∈ mOrcIdx, ∃ s ∈ mOrcStmts, V.n j ∈ defsOf s := by decide +kernel

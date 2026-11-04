@@ -8,7 +8,9 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.Tables.VtC.AComplete
+public import LeanVM.Guest.B1.Tables.VtC.ADefs
+public import LeanVM.Guest.B1.Tables.Vt.AsmRun
+public import LeanVM.Guest.B1.Tables.Vt.AsmForms
 
 /-!
 # `verify_tables`' honest data from a run
@@ -26,6 +28,36 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
+
+/-- The tables' widths, table by table. -/
+theorem vtH_tables_widths : ∀ t < 6, (tables.getD t default).width = vtW6.getD t 0 := by decide
+
+theorem vtH_rowsT_length {H : VtHonest} (hr : H.rows.length = 6) : H.rowsT.length = 6 := by
+  have hf : H.busH.forms.length = 6 :=
+    (vt_forms3_shape H.bc H.lm hr H.alphas H.beta H.point (H.xs5.take 3) (H.xs5.getD 3 0)
+      (H.xs5.getD 4 0) H.bv (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  have ht : tables.length = 6 := rfl
+  simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, hf, ht,
+    LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
+  rfl
+
+/-- **The honest evaluations' shape**: six tables, each its width. -/
+theorem vtH_evsT_shape {H : VtHonest} (h : H.Ok) (hr : H.rows.length = 6) :
+    H.evsT.length = 6 ∧ ∀ t < 6, (H.evsT.getD t []).length = vtW6.getD t 0 := by
+  have hl := h.hevl
+  rw [vtH_rowsT_length hr] at hl
+  refine ⟨hl, fun t ht ↦ ?_⟩
+  have hz : (H.rowsT[t]'(by rw [vtH_rowsT_length hr]; exact ht), H.evsT[t]'(by omega)) ∈
+      List.zip H.rowsT H.evsT := by
+    rw [List.mem_iff_getElem]
+    exact ⟨t, by simp [vtH_rowsT_length hr, hl, ht], by simp⟩
+  have hw := h.hevw _ hz
+  simp only at hw
+  have ht1 : (H.rowsT[t]'(by rw [vtH_rowsT_length hr]; exact ht)).1 = tables.getD t default := by
+    simp [VtHonest.rowsT, vtRows, List.getElem_zip, List.getD_eq_getElem?_getD,
+      List.getElem?_eq_getElem (show t < tables.length from ht)]
+  rw [List.getD_eq_getElem _ _ (by omega), hw, ht1, vtH_tables_widths t ht]
 
 /-- **A run reads the words every run reads**: when the program runs on every `k` words, a run of
 it reads `k` words. -/
@@ -88,7 +120,7 @@ theorem zip_chunks {X : Type} (rows : List (Table × X)) (hrows : rows.map (·.1
       rw [List.getElem?_eq_getElem (by omega), List.getElem?_eq_getElem (by rw [← hrows]; simp; omega)]
         at this
       simpa using this
-    rw [h1, ← List.getD_eq_getElem _ default, tables_widths i (by omega)]
+    rw [h1, ← List.getD_eq_getElem _ default, vtH_tables_widths i (by omega)]
 
 /-- The table loop runs on every `157` words. -/
 theorem tableTerms_any (cp fp point : List E) (hs : List ℕ) (fs : List (List Form)) (ws : List E)
@@ -216,7 +248,7 @@ theorem vtH_run {bc : List K} {lm : ℕ} {pi : Digest} {alphas point values : Li
   refine ⟨⟨?_, hcar, by rw [e5, l1], by rw [eR, l2, hn'], ?_, ?_, hbv⟩, hsplit, hs', ?_⟩
   · show RunsTo _ ⟨f, []⟩ _ _ ⟨s'.cap, []⟩
     rw [← hsplit, ← hs']; exact h
-  · rw [eE, chunks_length, vt_rowsT_length hr]; rfl
+  · rw [eE, chunks_length, vtH_rowsT_length hr]; rfl
   · intro p hp
     rw [eE] at hp
     exact (zip_chunks H.rowsT (rowsT_fst H hr) x3 l3).2.2 p hp

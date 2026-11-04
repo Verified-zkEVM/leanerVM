@@ -7,14 +7,14 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainGoalsFCl
-public import LeanVM.Guest.B1.Digest.ClaimListsAtT
+public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `main`'s claim lists' digests, by trees of honest shape
 
-`clHonest n`, `ccHonest n`: the honest shapes of `claim_list_digest`, `child_claim_list_digest` on
-a list of `n` claims (`Digest/ClaimListsAtT.lean`). `MainGoalClXT`, `MainGoalClST`: `MainGoalClX`,
+`clHonest n`: the honest shape of `claim_list_digest` on a list of `n` claims
+(`Digest/ClaimListAt.lean`). `MainGoalClXT`, `MainGoalClST`: `MainGoalClX`,
 `MainGoalClS` by trees of shape `clHonest` at the declared lists' lengths (`nlx`, `nls`);
 `mainGoalClXT`, `mainGoalClST` prove them (same proofs as `mainGoalClX`, `mainGoalClS`), and
 `MainGoalClXT.goal`, `MainGoalClST.goal` give back the plain goals.
@@ -35,10 +35,6 @@ open LeanVM.Guest.Budget (NodeHonest)
 /-- **`claim_list_digest`'s honest shape** on `n` claims. -/
 def clHonest (n : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) clTs
-
-/-- **`child_claim_list_digest`'s honest shape** on `n` claims. -/
-def ccHonest (n : ℕ) : Tree → Prop :=
-  NodeHonest coreProgram "child_claim_list_digest" (ccQ n) (ccCalls n) (clBufs n) clTs
 
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
   (w : NodeWitness)
@@ -65,10 +61,10 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s w := by
-  have hn : s.claims.xmss.length < claimGroup * maxKeys := by
+  have hn : s.claims.xmss.length < claimBig * maxKeys := by
     have := hL.planSlotsBelow2Pow16
     simp only [Coverage.planSlots] at this
-    simp only [claimGroup, maxKeys]
+    simp only [claimBig, maxKeys]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -94,10 +90,10 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s w := by
-  have hn : s.claims.sphincs.length < claimGroup * maxKeys := by
+  have hn : s.claims.sphincs.length < claimBig * maxKeys := by
     have := hL.planSlotsBelow2Pow16
     simp only [Coverage.planSlots] at this
-    simp only [claimGroup, maxKeys]
+    simp only [claimBig, maxKeys]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++

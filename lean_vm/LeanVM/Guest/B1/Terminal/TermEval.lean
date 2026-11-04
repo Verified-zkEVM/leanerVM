@@ -108,8 +108,8 @@ theorem head_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
   have e20 : σ (.n 20) = ofK (addressOfIndex (b0 + 35)) := by
     rw [good_hint_alloc g3]; simp [termW]
   have e21 := good_const g4
-  have e22 := good_mul g6 (by omega) (by omega)
-  have e23 := good_mul g7 (by omega) (by omega)
+  have e22 := goodS_mul g6 (by omega) (by omega)
+  have e23 := goodS_mul g7 (by omega) (by omega)
   have e24 : σ (.n 24) = ofK (addressOfIndex (b0 + 70)) := by
     rw [good_hint_alloc g8]; simp [termW]
   have e25 := good_const g9
@@ -118,7 +118,7 @@ theorem head_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
   have e28 := good_const g14
   have e29 := good_add g15
   have e30 := good_const g16
-  have e31 := good_mul g18 (by omega) (by omega)
+  have e31 := goodS_mul g18 (by omega) (by omega)
   have hpk : ∀ k ≤ m, LoadHolds rd (ofK (addressOfIndex (b0 + 70))) k ((piW rm ps m).getD k 0) :=
     fun k hk => by
       rw [List.getD_eq_getElem _ _ (by rw [piW_length]; omega)]
@@ -229,7 +229,7 @@ theorem sel_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Main
   obtain ⟨k1, k2, k3, k4, k5⟩ := kapT_complete (C := TrivC) hsrc hadj hss gk
   obtain ⟨e0, l0⟩ := good_load_eq hS (n_ne_24 (by omega)) g0 hoff
   have e1 := good_const g1
-  have e2 := good_mul g2 (by omega) (by omega)
+  have e2 := goodS_mul g2 (by omega) (by omega)
   have r3 := good_rets g3
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq] at r3
   have e3 : σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := by
@@ -301,23 +301,23 @@ theorem tail_complete (hS : StoresAt24 S) {b0 : ℕ} {outs : List (List E × Mai
     rw [good_hint_alloc g0]; simp [termW]
   have e1 := good_const g1
   have e2 := good_const g2
-  have e3 := good_mul g3 (by omega) (by omega)
+  have e3 := goodS_mul g3 (by omega) (by omega)
   have e5 := good_const g5
-  have e6 := good_mul g6 (by omega) (by omega)
+  have e6 := goodS_mul g6 (by omega) (by omega)
   have e7' := good_const g7
-  have e8 := good_mul g8 (by omega) (by omega)
+  have e8 := goodS_mul g8 (by omega) (by omega)
   have r9 := good_rets g9
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq] at r9
   have e9 : σ (.n 1754) = (outs.getD 104 ([], [])).1.getD 0 0 := by rw [r9]; simp [termW]
-  have e10 := good_mul g10 (by omega) (by omega)
+  have e10 := goodS_mul g10 (by omega) (by omega)
   have h11 : LoadHolds rd (σ (.n 1755)) 6 v := by
     rw [e10, e0, e7, loadHolds_mul_gen_pow]; exact hch
   obtain ⟨e11, l11⟩ := good_load_eq hS (n_ne_24 (by decide)) g11 h11
-  have e12 := good_mul g12 (by omega) (by omega)
+  have e12 := goodS_mul g12 (by omega) (by omega)
   have e13 := good_add g13
-  have e14 := good_mul g14 (by omega) h5
+  have e14 := goodS_mul g14 (by omega) h5
   have e15 := good_add g15
-  have e16 := good_mul g16 (by omega) (by omega)
+  have e16 := goodS_mul g16 (by omega) (by omega)
   refine ⟨fun hfin s hs => ?_, fun q hq => ?_, e0, e1, by rw [e3, e2, e7], by rw [e6, e5],
     by rw [e8, e7', e7], e9, e11, by rw [e16, e15, e14, e13, e12]⟩
   · simp only [termTailPre_eq, List.mem_cons, List.not_mem_nil, or_false] at hs

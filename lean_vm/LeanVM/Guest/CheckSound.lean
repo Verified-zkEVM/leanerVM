@@ -1413,8 +1413,14 @@ theorem boundOk0_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ : 
     (h : boundOk0 F ψ mem B bnd c n = true) :
     ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
   simp only [boundOk0, Bool.or_eq_true] at h
-  rcases h with h | h
+  rcases h with (h | h) | h
   · exact boundBase_sound hm hB hb h
+  · revert h
+    cases hk : gpAt F B ψ c with
+    | none => exact fun h ↦ absurd h Bool.false_ne_true
+    | some k =>
+      intro h
+      exact ⟨k, Nat.blt_eq.mp h, gpAt_sound hF hB hψ hk⟩
   · obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
     have hh := hB c a ha
     split at hp

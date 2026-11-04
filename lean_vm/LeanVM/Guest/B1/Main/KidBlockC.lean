@@ -40,9 +40,9 @@ open LeanVM.Guest.B1 (LowDef)
 
 /-- The oracle of `__loop4`'s block. -/
 def l5W (ex es : ℕ) (cx0 cx1 cs0 cs1 p0 p1 : E) (j : ℕ) : E :=
-  if j = 18 then gen ^ ex else if j = 19 then gen ^ es else if j = 30 then cx0
-  else if j = 31 then cx1 else if j = 33 then cs0 else if j = 34 then cs1
-  else if j = 45 then p0 else if j = 46 then p1
+  if j = 18 then gen ^ ex else if j = 19 then gen ^ es else if j = 29 then cx0
+  else if j = 30 then cx1 else if j = 32 then cs0 else if j = 33 then cs1
+  else if j = 44 then p0 else if j = 45 then p1
   else 0
 
 /-- `__loop4`'s body. -/
@@ -62,24 +62,23 @@ structure L5Vals (rd : Reader) (σ : Val) (args : List E) (c ex es : ℕ)
   v18 : σ (.n 18) = gen ^ ex
   v19 : σ (.n 19) = gen ^ es
   v28 : σ (.n 28) = gen ^ ex * gen ^ es
-  v29 : σ (.n 29) = 1
-  v30 : σ (.n 30) = cx0
-  v31 : σ (.n 31) = cx1
-  v32 : σ (.n 32) = base * gen ^ ex
-  v33 : σ (.n 33) = cs0
-  v34 : σ (.n 34) = cs1
-  v40 : σ (.n 40) = args.getD 8 0 * gen ^ (24 * c)
-  v42 : σ (.n 42) = args.getD 9 0 * (gen ^ c * gen ^ c)
-  v43 : σ (.n 43) = d0
-  v44 : σ (.n 44) = d1
-  v45 : σ (.n 45) = p0
-  v46 : σ (.n 46) = p1
-  v48 : σ (.n 48) = args.getD 12 0 * (gen ^ c * gen ^ c)
-  v49 : σ (.n 49) = args.getD 12 0 * (gen ^ c * gen ^ c)
-  v55 : σ (.n 55) = args.getD 15 0 * gen ^ (24 * c)
-  v57 : σ (.n 57) = args.getD 2 0 * gen ^ c
-  v60 : σ (.n 60) = gen ^ (c + 1) + args.getD 1 0
-  v62 : σ (.n 62) = gen ^ (c + 1)
+  v29 : σ (.n 29) = cx0
+  v30 : σ (.n 30) = cx1
+  v31 : σ (.n 31) = base * gen ^ ex
+  v32 : σ (.n 32) = cs0
+  v33 : σ (.n 33) = cs1
+  v39 : σ (.n 39) = args.getD 9 0 * gen ^ (24 * c)
+  v41 : σ (.n 41) = args.getD 10 0 * (gen ^ c * gen ^ c)
+  v42 : σ (.n 42) = d0
+  v43 : σ (.n 43) = d1
+  v44 : σ (.n 44) = p0
+  v45 : σ (.n 45) = p1
+  v47 : σ (.n 47) = args.getD 13 0 * (gen ^ c * gen ^ c)
+  v48 : σ (.n 48) = args.getD 13 0 * (gen ^ c * gen ^ c)
+  v54 : σ (.n 54) = args.getD 15 0 * gen ^ (24 * c)
+  v56 : σ (.n 56) = args.getD 2 0 * gen ^ c
+  v59 : σ (.n 59) = gen ^ (c + 1) + args.getD 1 0
+  v61 : σ (.n 61) = gen ^ (c + 1)
 
 theorem gen_pow_mul_inv {K e : ℕ} (h : e ≤ K) : gen ^ K * (gen ^ e)⁻¹ = gen ^ (K - e) := by
   have hg : gen ^ e ≠ 0 := pow_ne_zero _ gen_ne_zero
@@ -97,7 +96,7 @@ theorem low_load {rd : Reader} (hlow : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16)
 set_option maxRecDepth 20000 in
 /-- **A child's block holds** on its honest valuation. -/
 theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
-    {N written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh : E}
+    {N written lxt cover lxs lst spc lss carried dadig s0 s1 cpi gsq cfresh : E}
     {ex es : ℕ} {base cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E}
     (hex : ex ≤ 65535) (hes : es ≤ 65535)
     (hbase : LoadHolds rd (written * gen ^ c) 0 base)
@@ -106,17 +105,17 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
     (hpi0 : LoadHolds rd (cpi * (gen ^ c * gen ^ c)) 0 p0)
     (hpi1 : LoadHolds rd (cpi * (gen ^ c * gen ^ c)) 1 p1)
     (hnext : LoadHolds rd (written * gen ^ c) 1 (base * (gen ^ ex * gen ^ es))) :
-    L5Vals rd (l5σ rd [gen ^ c, N, written, lxt, cover, lxs, lst, lss, carried, dadig,
-        s0, s1, cpi, glp, gsq, cfresh] (l5W ex es cx0 cx1 cs0 cs1 p0 p1))
-      [gen ^ c, N, written, lxt, cover, lxs, lst, lss, carried, dadig,
-        s0, s1, cpi, glp, gsq, cfresh] c ex es base cx0 cx1 cs0 cs1 d0 d1 p0 p1 := by
+    L5Vals rd (l5σ rd [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
+        s0, s1, cpi, gsq, cfresh] (l5W ex es cx0 cx1 cs0 cs1 p0 p1))
+      [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
+        s0, s1, cpi, gsq, cfresh] c ex es base cx0 cx1 cs0 cs1 d0 d1 p0 p1 := by
   have hok := l5c_ok
   unfold l5COk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hok
   obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcanA⟩, hneeds⟩, hcalls⟩ := hok
-  set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, lss, carried, dadig,
-    s0, s1, cpi, glp, gsq, cfresh] with hargs
+  set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
+    s0, s1, cpi, gsq, cfresh] with hargs
   set w := l5W ex es cx0 cx1 cs0 cs1 p0 p1 with hw
   set σ := l5σ rd args w with hσ
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
@@ -133,8 +132,8 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   -- the words
   have e0 : σ (.n 0) = gen ^ c := par 0 (by omega)
   have p2 : σ (.n 2) = written := par 2 (by omega)
-  have p9 : σ (.n 9) = dadig := par 9 (by omega)
-  have p12 : σ (.n 12) = cpi := par 12 (by omega)
+  have p10 : σ (.n 10) = dadig := par 10 (by omega)
+  have p13 : σ (.n 13) = cpi := par 13 (by omega)
   have mul' : ∀ {d x y : ℕ}, x < d → y < d → decide (Atom.mul (.n d) (.n x) (.n y) ∈ atomsIn l5Pre) = true →
       σ (.n d) = σ (.n x) * σ (.n y) := fun hx hy h => good_mul hx hy (hmem _ h)
   have v16 : σ (.n 16) = written * gen ^ c := by
@@ -147,8 +146,6 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   have v19 : σ (.n 19) = gen ^ es := hmeta (.n 19) (by simp)
   have v28 : σ (.n 28) = gen ^ ex * gen ^ es := by
     rw [mul' (d := 28) (x := 18) (y := 19) (by omega) (by omega) (by decide +kernel), v18, v19]
-  have v29 : σ (.n 29) = 1 := by
-    rw [show σ (.n 29) = word 1 0 0 from gconst (k := 8) (by decide), word_one]
   have hcall : ∀ s ∈ l5Calls, GoodS rd l5S w σ s := by
     intro s hs
     obtain ⟨t, ht, he⟩ := List.any_eq_true.mp (hcalls s hs)
@@ -157,49 +154,49 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   simp only [l5Calls, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq,
     GoodS] at hcall
   obtain ⟨hcx, hcs, hsd⟩ := hcall
-  have v30 : σ (.n 30) = cx0 := hcx.1
-  have v31 : σ (.n 31) = cx1 := hcx.2
-  have v33 : σ (.n 33) = cs0 := hcs.1
-  have v34 : σ (.n 34) = cs1 := hcs.2
-  have v45 : σ (.n 45) = p0 := hsd.1
-  have v46 : σ (.n 46) = p1 := hsd.2
-  have v32 : σ (.n 32) = base * gen ^ ex := by
-    rw [mul' (d := 32) (x := 17) (y := 18) (by omega) (by omega) (by decide +kernel), v17, v18]
-  have v35 := mul' (d := 35) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
-  have v36 := mul' (d := 36) (x := 35) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v29 : σ (.n 29) = cx0 := hcx.1
+  have v30 : σ (.n 30) = cx1 := hcx.2
+  have v32 : σ (.n 32) = cs0 := hcs.1
+  have v33 : σ (.n 33) = cs1 := hcs.2
+  have v44 : σ (.n 44) = p0 := hsd.1
+  have v45 : σ (.n 45) = p1 := hsd.2
+  have v31 : σ (.n 31) = base * gen ^ ex := by
+    rw [mul' (d := 31) (x := 17) (y := 18) (by omega) (by omega) (by decide +kernel), v17, v18]
+  have v34 := mul' (d := 34) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v35 := mul' (d := 35) (x := 34) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v36 := mul' (d := 36) (x := 35) (y := 35) (by omega) (by omega) (by decide +kernel)
   have v37 := mul' (d := 37) (x := 36) (y := 36) (by omega) (by omega) (by decide +kernel)
   have v38 := mul' (d := 38) (x := 37) (y := 37) (by omega) (by omega) (by decide +kernel)
-  have v39 := mul' (d := 39) (x := 38) (y := 38) (by omega) (by omega) (by decide +kernel)
-  have v40' := mul' (d := 40) (x := 8) (y := 39) (by omega) (by omega) (by decide +kernel)
-  have v41 := mul' (d := 41) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
-  have v42' := mul' (d := 42) (x := 9) (y := 41) (by omega) (by omega) (by decide +kernel)
-  have v47 := mul' (d := 47) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
-  have v48' := mul' (d := 48) (x := 12) (y := 47) (by omega) (by omega) (by decide +kernel)
-  have v49' := mul' (d := 49) (x := 12) (y := 47) (by omega) (by omega) (by decide +kernel)
-  have v50 := mul' (d := 50) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
-  have v51 := mul' (d := 51) (x := 50) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v39' := mul' (d := 39) (x := 9) (y := 38) (by omega) (by omega) (by decide +kernel)
+  have v40 := mul' (d := 40) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v41' := mul' (d := 41) (x := 10) (y := 40) (by omega) (by omega) (by decide +kernel)
+  have v46 := mul' (d := 46) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v47' := mul' (d := 47) (x := 13) (y := 46) (by omega) (by omega) (by decide +kernel)
+  have v48' := mul' (d := 48) (x := 13) (y := 46) (by omega) (by omega) (by decide +kernel)
+  have v49 := mul' (d := 49) (x := 0) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v50 := mul' (d := 50) (x := 49) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v51 := mul' (d := 51) (x := 50) (y := 50) (by omega) (by omega) (by decide +kernel)
   have v52 := mul' (d := 52) (x := 51) (y := 51) (by omega) (by omega) (by decide +kernel)
   have v53 := mul' (d := 53) (x := 52) (y := 52) (by omega) (by omega) (by decide +kernel)
-  have v54 := mul' (d := 54) (x := 53) (y := 53) (by omega) (by omega) (by decide +kernel)
-  have v55' := mul' (d := 55) (x := 15) (y := 54) (by omega) (by omega) (by decide +kernel)
-  have v56 := mul' (d := 56) (x := 17) (y := 28) (by omega) (by omega) (by decide +kernel)
-  have v57' := mul' (d := 57) (x := 2) (y := 0) (by omega) (by omega) (by decide +kernel)
-  have v59 := mul' (d := 59) (x := 0) (y := 58) (by omega) (by omega) (by decide +kernel)
-  have v62' := mul' (d := 62) (x := 0) (y := 61) (by omega) (by omega) (by decide +kernel)
-  have v58 : σ (.n 58) = word 2 0 0 := gconst (k := 40) (by decide)
-  have v61 : σ (.n 61) = word 2 0 0 := gconst (k := 43) (by decide)
-  have v60 : σ (.n 60) = σ (.n 59) + σ (.n 1) := hmem (.add (.n 60) (.n 59) (.n 1)) (by decide +kernel)
-  have h24 : σ (.n 39) = gen ^ (24 * c) := by
-    rw [v39, v38, v37, v36, v35, e0, mul_comm 24 c, pow_mul]; ring
-  have h54 : σ (.n 54) = gen ^ (24 * c) := by
-    rw [v54, v53, v52, v51, v50, e0, mul_comm 24 c, pow_mul]; ring
-  have v42 : σ (.n 42) = dadig * (gen ^ c * gen ^ c) := by rw [v42', v41, p9, e0]
-  have hS43 : Atom.load (.n 43) (.n 42) 0 ∉ l5S := by decide
-  have hS44 : Atom.load (.n 44) (.n 42) 1 ∉ l5S := by decide
-  have v43 : σ (.n 43) = d0 := by
-    rw [good_load hS43 (hmem _ (by decide +kernel)), v42, rdAt_of_load hda0]
-  have v44 : σ (.n 44) = d1 := by
-    rw [good_load hS44 (hmem _ (by decide +kernel)), v42, rdAt_of_load hda1]
+  have v54' := mul' (d := 54) (x := 15) (y := 53) (by omega) (by omega) (by decide +kernel)
+  have v55 := mul' (d := 55) (x := 17) (y := 28) (by omega) (by omega) (by decide +kernel)
+  have v56' := mul' (d := 56) (x := 2) (y := 0) (by omega) (by omega) (by decide +kernel)
+  have v58 := mul' (d := 58) (x := 0) (y := 57) (by omega) (by omega) (by decide +kernel)
+  have v61' := mul' (d := 61) (x := 0) (y := 60) (by omega) (by omega) (by decide +kernel)
+  have v57 : σ (.n 57) = word 2 0 0 := gconst (k := 39) (by decide)
+  have v60 : σ (.n 60) = word 2 0 0 := gconst (k := 42) (by decide)
+  have v59 : σ (.n 59) = σ (.n 58) + σ (.n 1) := hmem (.add (.n 59) (.n 58) (.n 1)) (by decide +kernel)
+  have h24 : σ (.n 38) = gen ^ (24 * c) := by
+    rw [v38, v37, v36, v35, v34, e0, mul_comm 24 c, pow_mul]; ring
+  have h53 : σ (.n 53) = gen ^ (24 * c) := by
+    rw [v53, v52, v51, v50, v49, e0, mul_comm 24 c, pow_mul]; ring
+  have v41 : σ (.n 41) = dadig * (gen ^ c * gen ^ c) := by rw [v41', v40, p10, e0]
+  have hS42 : Atom.load (.n 42) (.n 41) 0 ∉ l5S := by decide
+  have hS43 : Atom.load (.n 43) (.n 41) 1 ∉ l5S := by decide
+  have v42 : σ (.n 42) = d0 := by
+    rw [good_load hS42 (hmem _ (by decide +kernel)), v41, rdAt_of_load hda0]
+  have v43 : σ (.n 43) = d1 := by
+    rw [good_load hS43 (hmem _ (by decide +kernel)), v41, rdAt_of_load hda1]
   -- the range checks
   have hrc : ∀ {x y t1 t2 k : ℕ} {e K : ℕ}, k < y → e ≤ K → K < 2 ^ 16 →
       decide (Atom.rangeCheck (.n x) (.n y) (.n t1) (.n t2) (.n k) ∈ atomsIn l5Pre) = true →
@@ -227,9 +224,9 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
       · subst h
         exact load_holds_of hnS (hg _ ha) (by rw [v16]; exact hbase)
       · subst h
-        exact load_holds_of hnS (hg _ ha) (by have h := hda0; rw [← v43, ← v42] at h; exact h)
+        exact load_holds_of hnS (hg _ ha) (by have h := hda0; rw [← v42, ← v41] at h; exact h)
       · subst h
-        exact load_holds_of hnS (hg _ ha) (by have h := hda1; rw [← v44, ← v42] at h; exact h)
+        exact load_holds_of hnS (hg _ ha) (by have h := hda1; rw [← v43, ← v41] at h; exact h)
       · cases a <;> simp only [isRcB, Bool.false_eq_true] at h
         rename_i x y t1 t2 k
         have hmemA : decide (Atom.rangeCheck x y t1 t2 k ∈ atomsIn l5Pre) = true := decide_eq_true ha
@@ -251,19 +248,19 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
               gconst (k := 5) (by decide), word_gmax])
     · simp only [l5S, List.mem_cons, List.not_mem_nil, or_false] at haS
       rcases haS with rfl | rfl | rfl
-      · show LoadHolds rd (σ (.n 48)) 0 (σ (.n 45))
-        rw [v48', v47, e0, p12, v45]; exact hpi0
-      · show LoadHolds rd (σ (.n 49)) 1 (σ (.n 46))
-        rw [v49', v47, e0, p12, v46]; exact hpi1
-      · show LoadHolds rd (σ (.n 57)) 1 (σ (.n 56))
-        rw [v57', v56, p2, e0, v17, v28]; exact hnext
-  refine ⟨hat, par, v16, v17, v18, v19, v28, v29, v30, v31, v32, v33, v34, ?_, v42, v43, v44,
-    v45, v46, by rw [v48', v47, e0, p12]; rfl, by rw [v49', v47, e0, p12]; rfl, ?_,
-    by rw [v57', e0, p2]; rfl, ?_, ?_⟩
-  · rw [v40', h24, par 8 (by omega)]
-  · rw [v55', h54, par 15 (by omega)]
-  · rw [v60, v59, v58, e0, word_gen, gen_pow_mul_gen, par 1 (by omega)]
-  · rw [v62', v61, e0, word_gen, gen_pow_mul_gen]
+      · show LoadHolds rd (σ (.n 47)) 0 (σ (.n 44))
+        rw [v47', v46, e0, p13, v44]; exact hpi0
+      · show LoadHolds rd (σ (.n 48)) 1 (σ (.n 45))
+        rw [v48', v46, e0, p13, v45]; exact hpi1
+      · show LoadHolds rd (σ (.n 56)) 1 (σ (.n 55))
+        rw [v56', v55, p2, e0, v17, v28]; exact hnext
+  refine ⟨hat, par, v16, v17, v18, v19, v28, v29, v30, v31, v32, v33, ?_, v41, v42, v43,
+    v44, v45, by rw [v47', v46, e0, p13]; rfl, by rw [v48', v46, e0, p13]; rfl, ?_,
+    by rw [v56', e0, p2]; rfl, ?_, ?_⟩
+  · rw [v39', h24, par 9 (by omega)]
+  · rw [v54', h53, par 15 (by omega)]
+  · rw [v59, v58, v57, e0, word_gen, gen_pow_mul_gen, par 1 (by omega)]
+  · rw [v61', v60, e0, word_gen, gen_pow_mul_gen]
 
 end
 end LeanVM.Guest.B1.Main

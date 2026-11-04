@@ -121,13 +121,13 @@ theorem packRunF_of_chain : ∀ (rs : List E) (ms : List (E × E)) (cl sc : E) (
   | [], _ :: _, _, _, _, _, _, _, _, h => h.elim
   | _ :: _, [], _, _, _, _, _, _, _, h => h.elim
 
-theorem eqChain_length : ∀ {rs : List E} {ms : List (E × E)} {cl sc : E} {cap chs : List E}
+theorem packEqChain_length : ∀ {rs : List E} {ms : List (E × E)} {cl sc : E} {cap chs : List E}
     {cl' sc' : E} {cap' : List E}, EqChain rs ms cl sc cap chs cl' sc' cap' →
     ms.length = rs.length ∧ chs.length = rs.length
   | [], [], _, _, _, _, _, _, _, h => by obtain ⟨rfl, -⟩ := h; simp
   | _ :: _, (_, _) :: _, _, _, _, _, _, _, _, h => by
     obtain ⟨_, _, _, _, _, -, rfl, hc⟩ := h
-    have := eqChain_length hc
+    have := packEqChain_length hc
     simp [this.1, this.2]
   | [], _ :: _, _, _, _, _, _, _, _, h => h.elim
   | _ :: _, [], _, _, _, _, _, _, _, h => h.elim

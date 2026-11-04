@@ -45,7 +45,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 set_option maxRecDepth 20000 in
 /-- **`verify_tables` is complete, placed, within its bound, by a node of honest shape whose
 callees are within their weights.** -/
-theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
+theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
     (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
@@ -74,30 +74,30 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (
         (bases (fp + fs "verify_tables") H.sizes).map (fun b => ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)) = H.retsH B := by
     intro fp rd hlow hL
-    have hlow8 : LowDefB 8 rd := hlow.mono hκ
+    have hlow14 : LowDefB 14 rd := hlow.mono hκ
     have hm : MemLay rd (H.linL (B.at (fp + fs "verify_tables")) ++
         H.ownL (B.at (fp + fs "verify_tables"))) := hL
     obtain ⟨-, h2, h3, h4, h5⟩ :=
-      vt_rel_complete_vtW h hs (B.at (fp + fs "verify_tables")) hlow8 hm
-    exact ⟨vt_relIn_complete h hs _ (vtW_ok H _) hlow8 hm, h2, h3, h4, h5⟩
+      vt_rel_complete_vtW h hs (B.at (fp + fs "verify_tables")) hlow14 hm
+    exact ⟨vt_relIn_complete h hs _ (vtW_ok H _) hlow14 hm, h2, h3, h4, h5⟩
   -- the honest values around the rounds loop's call
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 5817) = gen ^ H.n ∧ σ (.n 5920) = 1 + gen ^ H.n ∧ σ (.n 5921) = 1 := by
+      σ (.n 2500) = gen ^ H.n ∧ σ (.n 2597) = 1 + gen ^ H.n ∧ σ (.n 2598) = 1 := by
     intro fp rd _ _
-    have hl : (H.args B).length = 22 := rfl
-    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 5152
-      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 5817])))] (by decide +kernel)
-    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 5238
-      [.atom (.const (.n 5919) (word 1 0 0)), .atom (.add (.n 5920) (.n 5919) (.n 5817)),
-        .atom (.const (.n 5921) (word 1 0 0))] (by decide +kernel)
+    have hl : (H.args B).length = 20 := rfl
+    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2571
+      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2500])))] (by decide +kernel)
+    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2651
+      [.atom (.const (.n 2596) (word 1 0 0)), .atom (.add (.n 2597) (.n 2596) (.n 2500)),
+        .atom (.const (.n 2598) (word 1 0 0))] (by decide +kernel)
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at g1 g2 ⊢
     simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq, and_true] at g1 g2
     obtain ⟨c19, a20, c21⟩ := g2
-    have w17 : σ (.n 5817) = gen ^ H.n := by
-      rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w5817
+    have w17 : σ (.n 2500) = gen ^ H.n := by
+      rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w2500
     refine ⟨w17, ?_, ?_⟩
     · rw [a20, c19, w17, tb_word_one]
     · rw [c21, tb_word_one]
@@ -272,7 +272,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (
         rcases Nat.eq_zero_or_pos H.n with h0 | h0
         · exfalso; apply ht; rw [v20, h0, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
         · exact h0
-      have hpre : LoopPre ([V.n 5921, V.n 5817, V.n 5912, V.n 18, V.n 5817, V.n 5915].map σ) := by
+      have hpre : LoopPre ([V.n 2598, V.n 2500, V.n 2589, V.n 16, V.n 2500, V.n 2592].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo
@@ -416,7 +416,7 @@ theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → Strin
 
 /-- **`verify_tables` is complete, placed, within its bound, by a tree within its weights**:
 `ω i "verify_tables" + (vtBs (Kw i) (Wss i) (28 · K10w i)).sum` at each `ω i`. -/
-theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
+theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
     (hKf : ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
