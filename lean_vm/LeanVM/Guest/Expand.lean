@@ -150,6 +150,8 @@ structure St where
   consts : List E := []
   /-- The shifted pointers materialized in this scope, by base (`Scope::mat_cells`). -/
   mats : List (V × List Mat) := []
+  /-- The run each `addr` pointer names. -/
+  addrRuns : List (V × List V) := []
   /-- Every function queued so far, originals first. -/
   queue : Array Func
   loopCtr : Nat
@@ -516,6 +518,13 @@ def materialize (ga : GAddr) : M V := do
   | some c, 0 => return c
   | none, exp => constCell (gpowE exp)
   | some c, exp => do
+      -- An `addr` pointer shifted: the compiler's base is its own frame pointer and the run's
+      -- offset (`stack_addr`), which this expansion does not place, so the shifted pointer is the
+      -- `addr` of the run from cell `exp` on.
+      if let some (_, cells) := (← get).addrRuns.find? (·.1 == c) then
+        let p ← fresh
+        emitFrameAddr p (cells.drop exp)
+        return p
       let mats ← matsOf c
       if let some m := mats.find? (·.exp == exp) then
         let k ← constCell (gpowE m.dist)
@@ -553,6 +562,7 @@ def stackAddr (args : List Expr) : M GAddr := do
   | some cells => do
       let p ← fresh
       emitFrameAddr p cells
+      modify fun st => { st with addrRuns := (p, cells) :: st.addrRuns }
       return ⟨some p, 0, some cells.length⟩
 
 /-- The compile-time bounds check of a heap or `addr` access (`check_heap_bound`). -/
