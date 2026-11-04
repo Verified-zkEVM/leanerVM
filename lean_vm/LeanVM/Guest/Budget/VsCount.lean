@@ -30,7 +30,7 @@ arm's (candidate `c`) from the `V` certificates, `verify_tables`' and the termin
 certificates (`kcVtW`, `kcTermW`: their trees within B1's `vtWB`, `termWB`), `verify_bus_gkr`'s and
 `verify_keccak`'s within their ratios of their words `Bs[5]`, `Bs[7]`. `vs_weight_le`: a
 `verify_sub` node of B1-d's shape (`vsTs` at `Count.vsWords`) weighs at most its frame's weight and
-`vsWs`. `vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `49403` and `85921`
+`vsWs`. `vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `29557` and `85921`
 words, at most `vsCountT op c`.
 -/
 
@@ -182,7 +182,7 @@ theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 2
 
 /-- `vsCountT` is the frame's weight and `vsWs` at the two ratio-bounded callees' words. -/
 theorem vsCountT_eq (op : Opcode) : ∀ c < 28, (omT op).getD 0 0 +
-    (vsWs op c [0, 0, 0, 0, 0, 49403, 0, 85921, 0, 0, 0, 0, 0]).sum = (vsCountT op).getD c 0 := by
+    (vsWs op c [0, 0, 0, 0, 0, 29557, 0, 85921, 0, 0, 0, 0, 0]).sum = (vsCountT op).getD c 0 := by
   cases op <;> decide +kernel
 
 theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h5 : Bs.getD 5 0 ≤ Bs'.getD 5 0)
@@ -193,17 +193,17 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h5 : Bs.getD 5 0 
   omega
 
 /-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs` at `Count.vsWords`),
-`verify_bus_gkr`'s and `verify_keccak`'s bounds within `49403` and `85921` words: at most
+`verify_bus_gkr`'s and `verify_keccak`'s bounds within `29557` and `85921` words: at most
 `vsCountT op` at the candidate. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r : ℕ} (hc : B1.Whir.candidate μ r < 28)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 49403) (h7 : Bvk ≤ 85921)
+    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 29557) (h7 : Bvk ≤ 85921)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWords Bvk μ r) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (B1.Whir.candidate μ r) 0 := by
   have h1 := vs_weight_le op hc h hv hb
   have h2 := vsWs_mono op (B1.Whir.candidate μ r) (Bs := B1.VerifySub.vsBsAt vsWords Bvk μ r)
-    (Bs' := [0, 0, 0, 0, 0, 49403, 0, 85921, 0, 0, 0, 0, 0]) h5 h7
+    (Bs' := [0, 0, 0, 0, 0, 29557, 0, 85921, 0, 0, 0, 0, 0]) h5 h7
   have h3 := vsCountT_eq op _ hc
   have h4 := om_eq op (i := 0) (by norm_num)
   simp only [omNames, List.getD_cons_zero] at h4
