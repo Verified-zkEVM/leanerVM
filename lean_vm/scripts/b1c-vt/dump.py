@@ -1,15 +1,15 @@
 # usage: python3 -I dump.py <lean_vm>/LeanVM/Guest/Data/Core00.lean vt_ir.txt
-# Writes verify_tables' body (namespace core10, chunks c0..c23) one statement a line, indexed.
+# Writes verify_tables' body (namespace core11, chunks c0..c15, at c4f4bc92) one statement a line, indexed.
 import re, sys
 src = open(sys.argv[1]).read()
-i = src.index('namespace core10\n')
-j = src.index('end core10', i)
+i = src.index('namespace core11\n')
+j = src.index('end core11', i)
 sec = src[i:j]
 chunks = {}
 for m in re.finditer(r'noncomputable def (c\d+) : List Core.Stmt := \(\n(.*?)\n  \[\]\)', sec, re.S):
     chunks[m.group(1)] = m.group(2)
 stmts = []
-for c in [f'c{k}' for k in range(24)]:
+for c in [f'c{k}' for k in range(16)]:
     body = chunks[c]
     depth = 0; cur = ''; k = 0
     while k < len(body):

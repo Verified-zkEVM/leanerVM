@@ -26,9 +26,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `g^(-1)`, as the data writes it. -/
-abbrev vtWInvGen : E := word 9223372036854775821 0 0
-
 theorem vtWInvGen_mul : vtWInvGen * gen = 1 := by
   rw [vtWInvGen, tb_word_eOfNat, eOfNat, ← tb_word_gen, tb_word_eOfNat, eOfNat, ← ofK_mul,
     show K.ofBits 9223372036854775821 * K.ofBits 2 = 1 by decide +kernel, ofK_one]

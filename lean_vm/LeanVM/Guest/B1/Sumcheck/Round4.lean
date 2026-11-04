@@ -26,12 +26,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem find_sumcheck_round4 : coreProgram.find? "sumcheck_round4" = some Data.core6 :=
-  Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl
+theorem find_sumcheck_round4 : coreProgram.find? "sumcheck_round4" = some Data.core7 :=
+  Program.find?_of_indexOf? (j := 7) (by decide +kernel) rfl
 
-theorem core6_params : Fn.params Data.core6 = [.n 0, .n 1, .n 2] := rfl
+theorem core7_params : Fn.params Data.core7 = [.n 0, .n 1, .n 2] := rfl
 
-theorem core6_body : Fn.body Data.core6 =
+theorem core7_body : Fn.body Data.core7 =
     [.atom (.load (.n 3) (.n 0) 0), .atom (.load (.n 4) (.n 0) 1), .atom (.load (.n 5) (.n 0) 2),
       .atom (.load (.n 6) (.n 0) 3), .atom (.load (.n 7) (.n 0) 4)] ++
     fsNextT (.n 1) 0 8 ++ fsNextT (.n 1) 1 18 ++ fsNextT (.n 1) 2 28 ++
@@ -85,7 +85,7 @@ def r4Vals (rec cur claim : E) (cap : List E) (c0 c2 c3 : E) (S : KeccakState) (
 /-- **`sumcheck_round4`'s core IR is its meaning.** -/
 theorem sumcheck_round4_holds : sumcheck_round4_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_sumcheck_round4, core6_body, core6_params]
+  rw [rel_iff_sem find_sumcheck_round4, core7_body, core7_params]
   simp only [holdsList_append, holds_fsNextT, holds_challengeT, keccakA, Stmt.HoldsList,
     Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
