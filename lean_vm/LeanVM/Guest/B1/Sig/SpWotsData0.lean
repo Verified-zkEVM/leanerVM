@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core11
+public import LeanVM.Guest.Data.Core05
 public import LeanVM.Guest.B1.Sig.SpWotsT
 import LeanVM.Guest.B1.Sig.Decide
 
