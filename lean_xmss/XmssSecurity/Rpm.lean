@@ -46,10 +46,31 @@ theorem romBound : RomBound LeanXmss.RandomPermutationModel.schemeWithHash 127 :
   rw [← experiment_eq_romExperiment] at hb ⊢
   exact Bridge.leanXmss_security q hq ⟨main⟩ hb
 
-/-- The ROM theorem for the crate's secret key, the seed `S_0`, whose signer derives `S` and `P`
-again at each signature: those calls hit the random oracle's cache (`Common.SufCma.SeedKeyed`). -/
+/-- leanXMSS's signer derives `S` again from the kept seed `S_0`: in the random-oracle model, after
+key generation's derivation of `S` and `P`, a cache hit that returns them. -/
+theorem keptKey_reruns : LeanXmss.RandomPermutationModel.keptKey.Reruns := by
+  intro seed c z hz c' hc'
+  simp only [LeanXmss.RandomPermutationModel.keptKey,
+    LeanXmss.KeyGenerationAndSigning.deriveSchemeSeedKey] at hz
+  rw [liftM_bind, romRun_bind, mem_support_bind_iff] at hz
+  obtain ⟨w, hw, hz⟩ := hz
+  have hle : w.2 ≤ z.2 := le_of_mem_support_run _ _ hz
+  have hkey : z.1 = ⟨w.1, z.1.parameter⟩ := by
+    have h := (mem_support_liftM_world _ _).mp (KeptKey.fst_mem_support_romRun' hz)
+    simp only [support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at h
+    obtain ⟨parameter, -, h⟩ := h
+    rw [h]
+  simp only [LeanXmss.RandomPermutationModel.keptKey,
+    LeanXmss.KeyGenerationAndSigning.rederiveSchemeSeedKey, liftM_bind, romRun_bind,
+    run_rerun _ (noCoins_liftM _) c hw c' (le_trans hle hc'), pure_bind]
+  rw [← hkey]
+  rfl
+
+/-- The ROM theorem for the crate's secret key, the seed `S_0` and the public parameter, whose
+signer derives `S` again at each signature: those calls hit the random oracle's cache
+(`Common.SufCma.KeptKey`). -/
 theorem romBoundFromSeed : RomBound LeanXmss.RandomPermutationModel.schemeWithHashFromSeed 127 :=
-  LeanXmss.RandomPermutationModel.seedKeyed.romBound romBound
+  LeanXmss.RandomPermutationModel.keptKey.romBound keptKey_reruns romBound
 
 /-- **leanXMSS in the random-permutation model, refined**: an adversary whose game makes at most
 `q ≥ 1` calls of `H`, `π` and `π⁻¹` and at most `Q` permutation calls on every path forges with

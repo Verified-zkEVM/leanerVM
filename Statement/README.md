@@ -87,20 +87,22 @@ theorems, then read the files in this order.
    (`SufCma.forgeryGame`) and its security notion (`SufCma.StronglyUnforgeable`), for one key.
 4. [`HashSignatures.lean`](HashSignatures.lean): what leanXMSS and leanSPHINCS share (namespace
    `HashSig`): the tweakable hash's types, bytes and address (`crates/signatures/src/tweak.rs`),
-   the address with its hypertree layer and tree, zero for leanXMSS), the secret key, the key's
-   seed `S_0` from which the signer derives the scheme seed again, the hash `H`, Keccak-256 over
+   the address with its hypertree layer and tree, zero for leanXMSS), the hash `H`, Keccak-256 over
    a permutation `π` (`OverPermutation.keccakHash π`), and a hash
    chain, a Merkle path's fold and a Merkle tree's node (`walkChain`, `foldPath`, `buildTree`),
    which every chain, fold and tree of both schemes instantiates.
 5. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme over a permutation `π`, on the shared
-   part, and `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at
-   127 bits, `Q` counting every permutation call of the game, key generation and the honest signer's
+   part, its secret key the crate's, the key's seed `S_0` and the public parameter (the signer
+   derives the scheme seed `S` again at each signature), and
+   `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits,
+   `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
 6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; FORS of
    24 trees of height 10 under a hypertree of three WOTS+C layers of heights 8, 8, 10, its signature
-   the randomizer, the FORS opening and each layer's counter, chain values and path) with the
-   crate's deterministic signer, call for call (each tree built once, the layers from the bottom up),
-   and `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
+   the randomizer, the FORS opening and each layer's counter, chain values and path), its secret
+   key the crate's, the key's seed `S_0`, with the crate's deterministic signer, call for call
+   (each tree built once, the layers from the bottom up), and
+   `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
    bits up to `1,182,000,000` signatures, `Q` counting the honest signer's worst-case grinding too;
    a key used past its signature limit is not covered).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
