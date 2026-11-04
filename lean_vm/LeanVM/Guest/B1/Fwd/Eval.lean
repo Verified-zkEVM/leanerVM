@@ -78,6 +78,13 @@ def chkA (c : Nat) : Atom → Option Nat
       if oldB c v && runB c ds then some (c + ds.length) else none
   | .hint (.bits v _ _ (.heap p _ _)) | .hint (.bitsExp v _ (.heap p _ _)) =>
       if oldB c v && oldB c p then some c else none
+  | .hint (.digitsExp v _ _ _ _ sc (.stack ds)) =>
+      if (v :: sc.toList).all (oldB c) && runB c ds then some (c + ds.length) else none
+  | .hint (.digitsExp v _ _ _ _ sc (.heap p _ _)) =>
+      if (v :: sc.toList).all (oldB c) && oldB c p then some c else none
+  | .hint (.windowsExp v _ _ _ (.stack ds)) =>
+      if oldB c v && runB c ds then some (c + ds.length) else none
+  | .hint (.windowsExp v _ _ _ (.heap p _ _)) => if oldB c v && oldB c p then some c else none
   | .hint (.log2Ceil b _ _ dst) => if b.vals.all (oldB c) && isN c dst then some (c + 1) else none
   | .hint (.alloc d _) => if isN c d then some (c + 1) else none
   | .hint (.allocDyn d s) => if isN c d && oldB c s then some (c + 1) else none
@@ -148,6 +155,9 @@ noncomputable def newA (rd : Reader) (w : Nat → E) (l : List E) (a : Atom) : L
   | .hint (.witness _ (.heap _ _ _)) => []
   | .hint (.bits _ _ _ (.stack ds)) | .hint (.bitsExp _ _ (.stack ds)) => orc w c ds.length
   | .hint (.bits _ _ _ (.heap _ _ _)) | .hint (.bitsExp _ _ (.heap _ _ _)) => []
+  | .hint (.digitsExp _ _ _ _ _ _ (.stack ds)) | .hint (.windowsExp _ _ _ _ (.stack ds)) =>
+      orc w c ds.length
+  | .hint (.digitsExp _ _ _ _ _ _ (.heap _ _ _)) | .hint (.windowsExp _ _ _ _ (.heap _ _ _)) => []
   | .hint (.log2Ceil _ _ _ _) | .hint (.alloc _ _) | .hint (.allocDyn _ _) => [w c]
 
 /-- The words a statement defines. -/
@@ -182,6 +192,8 @@ def Good (rd : Reader) (S : List Atom) (w : Nat → E) (σ : Val) : Atom → Pro
   | .hint (.inverse x d) => σ d = (σ x)⁻¹
   | .hint (.witness _ (.stack vs)) => ∀ v ∈ vs, σ v = w v.idx
   | .hint (.bits _ _ _ (.stack ds)) | .hint (.bitsExp _ _ (.stack ds)) => ∀ v ∈ ds, σ v = w v.idx
+  | .hint (.digitsExp _ _ _ _ _ _ (.stack ds)) | .hint (.windowsExp _ _ _ _ (.stack ds)) =>
+      ∀ v ∈ ds, σ v = w v.idx
   | .hint (.log2Ceil _ _ _ d) | .hint (.alloc d _) | .hint (.allocDyn d _) => σ d = w d.idx
   | .hint _ => True
 
@@ -319,6 +331,8 @@ theorem good_mono {rd : Reader} {S S' : List Atom} {w : Nat → E} {σ : Val} {a
     | witness _ dd => cases dd <;> exact h
     | bits _ _ _ dd => cases dd <;> exact h
     | bitsExp _ _ dd => cases dd <;> exact h
+    | digitsExp _ _ _ _ _ _ dd => cases dd <;> exact h
+    | windowsExp _ _ _ _ dd => cases dd <;> exact h
     | _ => exact h
   | _ => exact h
 
@@ -395,6 +409,20 @@ theorem good_congr {rd : Reader} {S : List Atom} {w : Nat → E} {σ σ' : Val} 
         rw [← he u (by simp [Atom.vals, Hint.vals, Dest.vals, hu])]; exact h u hu
       | heap => trivial
     | bitsExp v nb dd =>
+      cases dd with
+      | stack vs =>
+        simp only [Good] at h ⊢
+        intro u hu
+        rw [← he u (by simp [Atom.vals, Hint.vals, Dest.vals, hu])]; exact h u hu
+      | heap => trivial
+    | digitsExp v nb nd db st sc dd =>
+      cases dd with
+      | stack vs =>
+        simp only [Good] at h ⊢
+        intro u hu
+        rw [← he u (by simp [Atom.vals, Hint.vals, Dest.vals, hu])]; exact h u hu
+      | heap => trivial
+    | windowsExp v st wd ct dd =>
       cases dd with
       | stack vs =>
         simp only [Good] at h ⊢
@@ -771,6 +799,74 @@ theorem stepA {a : Atom} {c' : Nat} (h : chkA l.length a = some c') :
           · exact (oldB_spec hc.2).2
         · exact absurd h (by simp)
     | bitsExp v nb dd =>
+      cases dd with
+      | stack ds =>
+        simp only [chkA] at h
+        split at h
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true] at hc
+          obtain ⟨hv, hds⟩ := hc
+          refine ⟨by simp [newA, orc], fun u hu => ?_, ?_⟩
+          · simp only [Atom.vals, Hint.vals, Dest.vals, List.mem_cons] at hu
+            rcases hu with rfl | hu
+            · have := (oldB_spec hv).2; omega
+            · have := (runB_mem hds hu).2.2; omega
+          · intro u hu
+            obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hu
+            rw [runB_spec hds j hj, ofArgs_new]
+            simp [newA, orc, hj]
+        · exact absurd h (by simp)
+      | heap p off len =>
+        simp only [chkA] at h
+        split at h
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true] at hc
+          refine ⟨by simp [newA], fun u hu => ?_, trivial⟩
+          simp only [Atom.vals, Hint.vals, Dest.vals, List.mem_cons, List.not_mem_nil,
+            or_false] at hu
+          rcases hu with rfl | rfl
+          · exact (oldB_spec hc.1).2
+          · exact (oldB_spec hc.2).2
+        · exact absurd h (by simp)
+    | digitsExp v nb nd db st sc dd =>
+      cases dd with
+      | stack ds =>
+        simp only [chkA] at h
+        split at h
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true] at hc
+          obtain ⟨hv, hds⟩ := hc
+          refine ⟨by simp [newA, orc], fun u hu => ?_, ?_⟩
+          · simp only [Atom.vals, Hint.vals, Dest.vals] at hu
+            rcases List.mem_cons.mp hu with rfl | hu
+            · have := (oldB_spec (all_old hv _ (List.mem_cons_self))).2; omega
+            · rcases List.mem_append.mp hu with hu | hu
+              · have := (oldB_spec (all_old hv _ (List.mem_cons_of_mem _ hu))).2; omega
+              · have := (runB_mem hds hu).2.2; omega
+          · intro u hu
+            obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hu
+            rw [runB_spec hds j hj, ofArgs_new]
+            simp [newA, orc, hj]
+        · exact absurd h (by simp)
+      | heap p off len =>
+        simp only [chkA] at h
+        split at h
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true] at hc
+          refine ⟨by simp [newA], fun u hu => ?_, trivial⟩
+          simp only [Atom.vals, Hint.vals, Dest.vals] at hu
+          rcases List.mem_cons.mp hu with rfl | hu
+          · exact (oldB_spec (all_old hc.1 _ (List.mem_cons_self))).2
+          · rcases List.mem_append.mp hu with hu | hu
+            · exact (oldB_spec (all_old hc.1 _ (List.mem_cons_of_mem _ hu))).2
+            · simp only [List.mem_cons, List.not_mem_nil, or_false] at hu
+              subst hu; exact (oldB_spec hc.2).2
+        · exact absurd h (by simp)
+    | windowsExp v st wd ct dd =>
       cases dd with
       | stack ds =>
         simp only [chkA] at h
