@@ -35,9 +35,9 @@ def osParams (n : Nat) : List V := (List.range n).map V.n
 def OsData (m : Nat) : Prop :=
   FnIs ("open_stacked__L" ++ natStr m) (osParams 9) (osBody (osCfg m)) ∧
     ∀ lvl < (osCfg m).levels.length,
-      FnIs ((osCfg m).sqLoop lvl) (osParams 5) (sqLoopBody (osLv m lvl) ((osCfg m).sqLoop lvl)) ∧
+      FnIs ((osCfg m).sqLoop lvl) (osParams 6) (sqLoopBody (osLv m lvl) ((osCfg m).sqLoop lvl)) ∧
       FnIs ((osCfg m).resLoop lvl) (osParams 6)
-        (resLoopBody (osCfg m) lvl (osLv m lvl) ((osCfg m).resLoop lvl))
+        (resLoopBody lvl (osLv m lvl) ((osCfg m).resLoop lvl))
 
 /-- Two lists agree from `o` on if they agree on the run of `n` from `o` (by `stmtsEqb`) and from
 `o + n` on: the data's bodies are checked a run at a time, each run its own kernel evaluation. -/

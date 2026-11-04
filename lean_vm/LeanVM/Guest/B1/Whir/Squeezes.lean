@@ -86,27 +86,31 @@ theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 →
 theorem fs_of_pend_nil {s : Fs} (h : s.pend = []) : s = ⟨s.cap, []⟩ := by
   cases s; simp_all
 
-/-- **A level's squeezes** (G:1396-1431): from the capacity it carries with nothing waiting
-(`F0`), the loop's `n` squeezes decode the positions, the next squeeze is the batching
+/-- **A level's squeezes** (G:1543-1570): from the capacity it carries with nothing waiting
+(`F0`), the loop's `n` squeezes decode the positions and their windows (reading the window table
+at `win_tabs`), the next squeeze is the batching
 challenge `lam` (at the returned `k - 1`), its capacity the sponge's. -/
 theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hok : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl)))
+    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
     (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
     (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets →
-      MeaningDecodeQueryBits lv.depth rd args rets)
+    (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
+    (hwt : WinTabs rd (σ (.n osWin)))
     (hn0 : 0 < lv.squeezes) (hn : lv.squeezes < ordG) (hn5 : lv.squeezes * 5 < u128Bound)
     (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad) :
-    (∀ jj < lv.squeezes, MeaningDecodeQueryBits lv.depth rd
+    (∀ jj < lv.squeezes, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
       [((⟨st.fsv σ, []⟩ : Fs).squeezeN jj).2.squeeze.1,
         σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
-        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth))] []) ∧
+        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] []) ∧
     σ (.n ((osSqueezes c lvl lv st).2.k - 1)) =
       ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1 ∧
     (osSqueezes c lvl lv st).2.fsv σ =
       ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.2.cap ∧
-    PadOk σ (osSqueezes c lvl lv st).2.pad ∧ (osSqueezes c lvl lv st).2.fs.length = 5 := by
+    PadOk σ (osSqueezes c lvl lv st).2.pad ∧ (osSqueezes c lvl lv st).2.fs.length = 5 ∧
+    (osSqueezes c lvl lv st).2.mats = st.mats := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
   obtain ⟨fn, hfind, hps, hbody⟩ := hloop
   set k := st.k
@@ -117,7 +121,7 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   have hspad : (osSqueezes c lvl lv st).2.pad = some p := rfl
   have hstm : (osSqueezes c lvl lv st).1 = osHeap ((c.maxSq + 1) * 5) k ++
       (st.fs.zipIdx.map fun (f, i) ↦ .atom (.load (.n f) (.n (k + 1)) i)) ++
-      osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp] (k + 2) ++
+      osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp, osWin] (k + 2) ++
       [.atom (.const (.n (k + 7)) (gw (lv.squeezes * 5))),
         .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7)))] ++
       ((List.range 5).map fun i ↦ .atom (.load (.n (k + 9 + i)) (.n (k + 8)) i)) ++
@@ -141,7 +145,7 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     have : ordG < u128Bound := by unfold ordG u128Bound; norm_num
     omega)
   have hit := sqLoop_sound hfind lv hps hbody hpw hpo hdec hn0 hn (σ (.n (k + 1))) (σ (.n osQpos))
-    (σ (.n osQbp)) (by
+    (σ (.n osQbp)) (σ (.n osWin)) hwt (by
       rw [a4, c2, c3, c5, c6, hgn, word_one] at hcall
       exact hcall)
   have hfsv : st.fsv σ = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
@@ -175,7 +179,7 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     rw [hlast, ← fs_of_pend_nil (squeezeN_pend rfl _)]
   simp only [List.map_cons, List.map_nil, hF] at hsq
   obtain ⟨hcells, hlam⟩ := hsq
-  refine ⟨D, by rw [show j + 20 - 1 = j + 19 by omega, hlam]; rfl, ?_, hpad', rfl⟩
+  refine ⟨D, by rw [show j + 20 - 1 = j + 19 by omega, hlam]; rfl, ?_, hpad', rfl, rfl⟩
   have h8 : σ (.n (j + 8)) = _ := hcells 8
   have h9 : σ (.n (j + 9)) = _ := hcells 9
   have h10 : σ (.n (j + 10)) = _ := hcells 10
