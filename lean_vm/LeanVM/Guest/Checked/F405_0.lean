@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 0. -/
+/-- `__loop25`, window 0. -/
 theorem w405_0 : WinOk 405 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L12`, window 0. -/
+/-- `da_factors__L14_L7_L0`, window 0. -/
 theorem w406_0 : WinOk 406 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop38`, window 0. -/
+/-- `da_expand__L14_L7`, window 0. -/
 theorem w407_0 : WinOk 407 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_row_weights__L4_L0`, window 0. -/
+/-- `da_factors__L7_L8_L128`, window 0. -/
 theorem w408_0 : WinOk 408 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_merkle_cap__L6`, window 0. -/
+/-- `da_factors__L7_L8_L128`, window 1. -/
+theorem w408_1 : WinOk 408 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop26`, window 0. -/
 theorem w409_0 : WinOk 409 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L16_L6`, window 0. -/
+/-- `__loop27`, window 0. -/
 theorem w410_0 : WinOk 410 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L8`, window 0. -/
+/-- `__loop28`, window 0. -/
 theorem w411_0 : WinOk 411 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop39`, window 0. -/
-theorem w412_0 : WinOk 412 0 := winOk_of_C (by decide +kernel)
 
 theorem ok405 : CheckOk 405 := checkOk_one (by decide +kernel) w405_0
 
@@ -47,15 +47,11 @@ theorem ok406 : CheckOk 406 := checkOk_one (by decide +kernel) w406_0
 
 theorem ok407 : CheckOk 407 := checkOk_one (by decide +kernel) w407_0
 
-theorem ok408 : CheckOk 408 := checkOk_one (by decide +kernel) w408_0
-
 theorem ok409 : CheckOk 409 := checkOk_one (by decide +kernel) w409_0
 
 theorem ok410 : CheckOk 410 := checkOk_one (by decide +kernel) w410_0
 
 theorem ok411 : CheckOk 411 := checkOk_one (by decide +kernel) w411_0
-
-theorem ok412 : CheckOk 412 := checkOk_one (by decide +kernel) w412_0
 
 end
 end LeanVM.Guest.Checked

@@ -5732,316 +5732,309 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 145) (word 8388608 0 0)) ::
   .atom (.mul (.n 146) (.n 145) (.n 144)) ::
   .atom (.add (.n 147) (.n 102) (.n 146)) ::
-  .atom (.const (.n 148) (word 32 0 0)) ::
-  .atom (.mul (.n 149) (.n 4) (.n 148)) ::
-  .atom (.load (.n 149) (.n 2) 1) ::
+  .atom (.frameAddr (.n 148) (.n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 148) (.n 2) 1) ::
   .atom (.hint (.windowsExp (.n 0) 46 6 1 (.stack [.n 15]))) ::
-  .atom (.const (.n 150) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 15) (.n 151) (.n 152) (.n 153) (.n 150)) ::
-  .atom (.mul (.n 154) (.n 3) (.n 15)) ::
-  .atom (.load (.n 155) (.n 154) 0) ::
+  .atom (.const (.n 149) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 15) (.n 150) (.n 151) (.n 152) (.n 149)) ::
+  .atom (.mul (.n 153) (.n 3) (.n 15)) ::
+  .atom (.load (.n 154) (.n 153) 0) ::
   .atom (.hint (.windowsExp (.n 0) 52 6 1 (.stack [.n 16]))) ::
-  .atom (.const (.n 156) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 16) (.n 157) (.n 158) (.n 159) (.n 156)) ::
-  .atom (.mul (.n 160) (.n 3) (.n 16)) ::
-  .atom (.load (.n 161) (.n 160) 0) ::
-  .atom (.const (.n 162) (word 64 0 0)) ::
-  .atom (.mul (.n 163) (.n 161) (.n 162)) ::
-  .atom (.add (.n 164) (.n 155) (.n 163)) ::
+  .atom (.const (.n 155) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 16) (.n 156) (.n 157) (.n 158) (.n 155)) ::
+  .atom (.mul (.n 159) (.n 3) (.n 16)) ::
+  .atom (.load (.n 160) (.n 159) 0) ::
+  .atom (.const (.n 161) (word 64 0 0)) ::
+  .atom (.mul (.n 162) (.n 160) (.n 161)) ::
+  .atom (.add (.n 163) (.n 154) (.n 162)) ::
   .atom (.hint (.windowsExp (.n 0) 58 4 1 (.stack [.n 17]))) ::
-  .atom (.const (.n 165) (word 32768 0 0)) ::
-  .atom (.rangeCheck (.n 17) (.n 166) (.n 167) (.n 168) (.n 165)) ::
-  .atom (.mul (.n 169) (.n 3) (.n 17)) ::
-  .atom (.load (.n 170) (.n 169) 0) ::
-  .atom (.const (.n 171) (word 4096 0 0)) ::
-  .atom (.mul (.n 172) (.n 170) (.n 171)) ::
-  .atom (.add (.n 173) (.n 164) (.n 172)) ::
+  .atom (.const (.n 164) (word 32768 0 0)) ::
+  .atom (.rangeCheck (.n 17) (.n 165) (.n 166) (.n 167) (.n 164)) ::
+  .atom (.mul (.n 168) (.n 3) (.n 17)) ::
+  .atom (.load (.n 169) (.n 168) 0) ::
+  .atom (.const (.n 170) (word 4096 0 0)) ::
+  .atom (.mul (.n 171) (.n 169) (.n 170)) ::
+  .atom (.add (.n 172) (.n 163) (.n 171)) ::
   .atom (.hint (.windowsExp (.n 0) 62 1 1 (.stack [.n 18]))) ::
-  .atom (.const (.n 174) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 18) (.n 175) (.n 176) (.n 177) (.n 174)) ::
-  .atom (.mul (.n 178) (.n 3) (.n 18)) ::
-  .atom (.load (.n 179) (.n 178) 0) ::
-  .atom (.const (.n 180) (word 65536 0 0)) ::
-  .atom (.mul (.n 181) (.n 179) (.n 180)) ::
-  .atom (.add (.n 182) (.n 173) (.n 181)) ::
-  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 183]))) ::
-  .atom (.hint (.windowsExp (.n 0) 64 5 1 (.stack [.n 184]))) ::
-  .atom (.const (.n 185) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 183) (.n 186) (.n 187) (.n 188) (.n 185)) ::
-  .atom (.const (.n 189) (word 2147483648 0 0)) ::
-  .atom (.rangeCheck (.n 184) (.n 190) (.n 191) (.n 192) (.n 189)) ::
-  .atom (.mul (.n 193) (.n 184) (.n 184)) ::
-  .atom (.mul (.n 19) (.n 183) (.n 193)) ::
-  .atom (.mul (.n 194) (.n 3) (.n 183)) ::
-  .atom (.load (.n 195) (.n 194) 0) ::
-  .atom (.mul (.n 196) (.n 3) (.n 184)) ::
-  .atom (.load (.n 197) (.n 196) 0) ::
-  .atom (.const (.n 198) (word 131072 0 0)) ::
-  .atom (.mul (.n 199) (.n 195) (.n 198)) ::
-  .atom (.add (.n 200) (.n 182) (.n 199)) ::
-  .atom (.const (.n 201) (word 262144 0 0)) ::
-  .atom (.mul (.n 202) (.n 201) (.n 197)) ::
-  .atom (.add (.n 203) (.n 200) (.n 202)) ::
-  .atom (.load (.n 203) (.n 1) 2) ::
-  .atom (.const (.n 204) (word 70368744177664 0 0)) ::
-  .atom (.mul (.n 205) (.n 204) (.n 200)) ::
-  .atom (.const (.n 206) (word 0 1 0)) ::
-  .atom (.mul (.n 207) (.n 206) (.n 197)) ::
-  .atom (.add (.n 208) (.n 205) (.n 207)) ::
-  .atom (.add (.n 209) (.n 147) (.n 208)) ::
-  .atom (.const (.n 210) (word 32 0 0)) ::
-  .atom (.mul (.n 211) (.n 149) (.n 210)) ::
-  .atom (.load (.n 211) (.n 2) 2) ::
+  .atom (.const (.n 173) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 18) (.n 174) (.n 175) (.n 176) (.n 173)) ::
+  .atom (.mul (.n 177) (.n 3) (.n 18)) ::
+  .atom (.load (.n 178) (.n 177) 0) ::
+  .atom (.const (.n 179) (word 65536 0 0)) ::
+  .atom (.mul (.n 180) (.n 178) (.n 179)) ::
+  .atom (.add (.n 181) (.n 172) (.n 180)) ::
+  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 182]))) ::
+  .atom (.hint (.windowsExp (.n 0) 64 5 1 (.stack [.n 183]))) ::
+  .atom (.const (.n 184) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 182) (.n 185) (.n 186) (.n 187) (.n 184)) ::
+  .atom (.const (.n 188) (word 2147483648 0 0)) ::
+  .atom (.rangeCheck (.n 183) (.n 189) (.n 190) (.n 191) (.n 188)) ::
+  .atom (.mul (.n 192) (.n 183) (.n 183)) ::
+  .atom (.mul (.n 19) (.n 182) (.n 192)) ::
+  .atom (.mul (.n 193) (.n 3) (.n 182)) ::
+  .atom (.load (.n 194) (.n 193) 0) ::
+  .atom (.mul (.n 195) (.n 3) (.n 183)) ::
+  .atom (.load (.n 196) (.n 195) 0) ::
+  .atom (.const (.n 197) (word 131072 0 0)) ::
+  .atom (.mul (.n 198) (.n 194) (.n 197)) ::
+  .atom (.add (.n 199) (.n 181) (.n 198)) ::
+  .atom (.const (.n 200) (word 262144 0 0)) ::
+  .atom (.mul (.n 201) (.n 200) (.n 196)) ::
+  .atom (.add (.n 202) (.n 199) (.n 201)) ::
+  .atom (.load (.n 202) (.n 1) 2) ::
+  .atom (.const (.n 203) (word 70368744177664 0 0)) ::
+  .atom (.mul (.n 204) (.n 203) (.n 199)) ::
+  .atom (.const (.n 205) (word 0 1 0)) ::
+  .atom (.mul (.n 206) (.n 205) (.n 196)) ::
+  .atom (.add (.n 207) (.n 204) (.n 206)) ::
+  .atom (.add (.n 208) (.n 147) (.n 207)) ::
+  .atom (.frameAddr (.n 209) (.n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 209) (.n 2) 2) ::
   .atom (.hint (.windowsExp (.n 0) 69 6 1 (.stack [.n 20]))) ::
-  .atom (.const (.n 212) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 20) (.n 213) (.n 214) (.n 215) (.n 212)) ::
-  .atom (.mul (.n 216) (.n 3) (.n 20)) ::
-  .atom (.load (.n 217) (.n 216) 0) ::
+  .atom (.const (.n 210) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 20) (.n 211) (.n 212) (.n 213) (.n 210)) ::
+  .atom (.mul (.n 214) (.n 3) (.n 20)) ::
+  .atom (.load (.n 215) (.n 214) 0) ::
   .atom (.hint (.windowsExp (.n 0) 75 6 1 (.stack [.n 21]))) ::
-  .atom (.const (.n 218) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 21) (.n 219) (.n 220) (.n 221) (.n 218)) ::
-  .atom (.mul (.n 222) (.n 3) (.n 21)) ::
-  .atom (.load (.n 223) (.n 222) 0) ::
-  .atom (.const (.n 224) (word 64 0 0)) ::
-  .atom (.mul (.n 225) (.n 223) (.n 224)) ::
-  .atom (.add (.n 226) (.n 217) (.n 225)) ::
+  .atom (.const (.n 216) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 21) (.n 217) (.n 218) (.n 219) (.n 216)) ::
+  .atom (.mul (.n 220) (.n 3) (.n 21)) ::
+  .atom (.load (.n 221) (.n 220) 0) ::
+  .atom (.const (.n 222) (word 64 0 0)) ::
+  .atom (.mul (.n 223) (.n 221) (.n 222)) ::
+  .atom (.add (.n 224) (.n 215) (.n 223)) ::
   .atom (.hint (.windowsExp (.n 0) 81 4 1 (.stack [.n 22]))) ::
-  .atom (.const (.n 227) (word 32768 0 0)) ::
-  .atom (.rangeCheck (.n 22) (.n 228) (.n 229) (.n 230) (.n 227)) ::
-  .atom (.mul (.n 231) (.n 3) (.n 22)) ::
-  .atom (.load (.n 232) (.n 231) 0) ::
-  .atom (.const (.n 233) (word 4096 0 0)) ::
-  .atom (.mul (.n 234) (.n 232) (.n 233)) ::
-  .atom (.add (.n 235) (.n 226) (.n 234)) ::
+  .atom (.const (.n 225) (word 32768 0 0)) ::
+  .atom (.rangeCheck (.n 22) (.n 226) (.n 227) (.n 228) (.n 225)) ::
+  .atom (.mul (.n 229) (.n 3) (.n 22)) ::
+  .atom (.load (.n 230) (.n 229) 0) ::
+  .atom (.const (.n 231) (word 4096 0 0)) ::
+  .atom (.mul (.n 232) (.n 230) (.n 231)) ::
+  .atom (.add (.n 233) (.n 224) (.n 232)) ::
   .atom (.hint (.windowsExp (.n 0) 85 1 1 (.stack [.n 23]))) ::
-  .atom (.const (.n 236) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 23) (.n 237) (.n 238) (.n 239) (.n 236)) ::
-  .atom (.mul (.n 240) (.n 3) (.n 23)) ::
-  .atom (.load (.n 241) (.n 240) 0) ::
-  .atom (.const (.n 242) (word 65536 0 0)) ::
-  .atom (.mul (.n 243) (.n 241) (.n 242)) ::
-  .atom (.add (.n 244) (.n 235) (.n 243)) ::
+  .atom (.const (.n 234) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 23) (.n 235) (.n 236) (.n 237) (.n 234)) ::
+  .atom (.mul (.n 238) (.n 3) (.n 23)) ::
+  .atom (.load (.n 239) (.n 238) 0) ::
+  .atom (.const (.n 240) (word 65536 0 0)) ::
+  .atom (.mul (.n 241) (.n 239) (.n 240)) ::
+  .atom (.add (.n 242) (.n 233) (.n 241)) ::
   .atom (.hint (.windowsExp (.n 0) 86 6 1 (.stack [.n 24]))) ::
-  .atom (.const (.n 245) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 24) (.n 246) (.n 247) (.n 248) (.n 245)) ::
-  .atom (.mul (.n 249) (.n 3) (.n 24)) ::
-  .atom (.load (.n 250) (.n 249) 0) ::
-  .atom (.const (.n 251) (word 131072 0 0)) ::
-  .atom (.mul (.n 252) (.n 250) (.n 251)) ::
-  .atom (.add (.n 253) (.n 244) (.n 252)) ::
-  .atom (.load (.n 253) (.n 1) 3) ::
-  .atom (.const (.n 254) (word 0 32 0)) ::
-  .atom (.mul (.n 255) (.n 254) (.n 253)) ::
-  .atom (.add (.n 256) (.n 209) (.n 255)) ::
-  .atom (.const (.n 257) (word 32768 0 0)) ::
-  .atom (.mul (.n 258) (.n 4) (.n 257)) ::
-  .atom (.load (.n 258) (.n 2) 3) ::
+  .atom (.const (.n 243) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 24) (.n 244) (.n 245) (.n 246) (.n 243)) ::
+  .atom (.mul (.n 247) (.n 3) (.n 24)) ::
+  .atom (.load (.n 248) (.n 247) 0) ::
+  .atom (.const (.n 249) (word 131072 0 0)) ::
+  .atom (.mul (.n 250) (.n 248) (.n 249)) ::
+  .atom (.add (.n 251) (.n 242) (.n 250)) ::
+  .atom (.load (.n 251) (.n 1) 3) ::
+  .atom (.const (.n 252) (word 0 32 0)) ::
+  .atom (.mul (.n 253) (.n 252) (.n 251)) ::
+  .atom (.add (.n 254) (.n 208) (.n 253)) ::
+  .atom (.frameAddr (.n 255) (.n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 255) (.n 2) 3) ::
   .atom (.hint (.windowsExp (.n 0) 92 6 1 (.stack [.n 25]))) ::
-  .atom (.const (.n 259) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 25) (.n 260) (.n 261) (.n 262) (.n 259)) ::
-  .atom (.mul (.n 263) (.n 3) (.n 25)) ::
-  .atom (.load (.n 264) (.n 263) 0) ::
+  .atom (.const (.n 256) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 25) (.n 257) (.n 258) (.n 259) (.n 256)) ::
+  .atom (.mul (.n 260) (.n 3) (.n 25)) ::
+  .atom (.load (.n 261) (.n 260) 0) ::
   .atom (.hint (.windowsExp (.n 0) 98 6 1 (.stack [.n 26]))) ::
-  .atom (.const (.n 265) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 26) (.n 266) (.n 267) (.n 268) (.n 265)) ::
-  .atom (.mul (.n 269) (.n 3) (.n 26)) ::
-  .atom (.load (.n 270) (.n 269) 0) ::
-  .atom (.const (.n 271) (word 64 0 0)) ::
-  .atom (.mul (.n 272) (.n 270) (.n 271)) ::
-  .atom (.add (.n 273) (.n 264) (.n 272)) ::
+  .atom (.const (.n 262) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 26) (.n 263) (.n 264) (.n 265) (.n 262)) ::
+  .atom (.mul (.n 266) (.n 3) (.n 26)) ::
+  .atom (.load (.n 267) (.n 266) 0) ::
+  .atom (.const (.n 268) (word 64 0 0)) ::
+  .atom (.mul (.n 269) (.n 267) (.n 268)) ::
+  .atom (.add (.n 270) (.n 261) (.n 269)) ::
   .atom (.hint (.windowsExp (.n 0) 104 4 1 (.stack [.n 27]))) ::
-  .atom (.const (.n 274) (word 32768 0 0)) ::
-  .atom (.rangeCheck (.n 27) (.n 275) (.n 276) (.n 277) (.n 274)) ::
-  .atom (.mul (.n 278) (.n 3) (.n 27)) ::
-  .atom (.load (.n 279) (.n 278) 0) ::
-  .atom (.const (.n 280) (word 4096 0 0)) ::
-  .atom (.mul (.n 281) (.n 279) (.n 280)) ::
-  .atom (.add (.n 282) (.n 273) (.n 281)) ::
+  .atom (.const (.n 271) (word 32768 0 0)) ::
+  .atom (.rangeCheck (.n 27) (.n 272) (.n 273) (.n 274) (.n 271)) ::
+  .atom (.mul (.n 275) (.n 3) (.n 27)) ::
+  .atom (.load (.n 276) (.n 275) 0) ::
+  .atom (.const (.n 277) (word 4096 0 0)) ::
+  .atom (.mul (.n 278) (.n 276) (.n 277)) ::
+  .atom (.add (.n 279) (.n 270) (.n 278)) ::
   .atom (.hint (.windowsExp (.n 0) 108 1 1 (.stack [.n 28]))) ::
-  .atom (.const (.n 283) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 28) (.n 284) (.n 285) (.n 286) (.n 283)) ::
-  .atom (.mul (.n 287) (.n 3) (.n 28)) ::
-  .atom (.load (.n 288) (.n 287) 0) ::
-  .atom (.const (.n 289) (word 65536 0 0)) ::
-  .atom (.mul (.n 290) (.n 288) (.n 289)) ::
-  .atom (.add (.n 291) (.n 282) (.n 290)) ::
+  .atom (.const (.n 280) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 28) (.n 281) (.n 282) (.n 283) (.n 280)) ::
+  .atom (.mul (.n 284) (.n 3) (.n 28)) ::
+  .atom (.load (.n 285) (.n 284) 0) ::
+  .atom (.const (.n 286) (word 65536 0 0)) ::
+  .atom (.mul (.n 287) (.n 285) (.n 286)) ::
+  .atom (.add (.n 288) (.n 279) (.n 287)) ::
   .atom (.hint (.windowsExp (.n 0) 109 6 1 (.stack [.n 29]))) ::
-  .atom (.const (.n 292) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 29) (.n 293) (.n 294) (.n 295) (.n 292)) ::
-  .atom (.mul (.n 296) (.n 3) (.n 29)) ::
-  .atom (.load (.n 297) (.n 296) 0) ::
-  .atom (.const (.n 298) (word 131072 0 0)) ::
-  .atom (.mul (.n 299) (.n 297) (.n 298)) ::
-  .atom (.add (.n 300) (.n 291) (.n 299)) ::
-  .atom (.load (.n 300) (.n 1) 4) ::
-  .atom (.const (.n 301) (word 0 268435456 0)) ::
-  .atom (.mul (.n 302) (.n 301) (.n 300)) ::
-  .atom (.add (.n 303) (.n 256) (.n 302)) ::
-  .atom (.const (.n 304) (word 32 0 0)) ::
-  .atom (.mul (.n 305) (.n 258) (.n 304)) ::
-  .atom (.load (.n 305) (.n 2) 4) ::
+  .atom (.const (.n 289) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 29) (.n 290) (.n 291) (.n 292) (.n 289)) ::
+  .atom (.mul (.n 293) (.n 3) (.n 29)) ::
+  .atom (.load (.n 294) (.n 293) 0) ::
+  .atom (.const (.n 295) (word 131072 0 0)) ::
+  .atom (.mul (.n 296) (.n 294) (.n 295)) ::
+  .atom (.add (.n 297) (.n 288) (.n 296)) ::
+  .atom (.load (.n 297) (.n 1) 4) ::
+  .atom (.const (.n 298) (word 0 268435456 0)) ::
+  .atom (.mul (.n 299) (.n 298) (.n 297)) ::
+  .atom (.add (.n 300) (.n 254) (.n 299)) ::
+  .atom (.frameAddr (.n 301) (.n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 301) (.n 2) 4) ::
   .atom (.hint (.windowsExp (.n 0) 115 6 1 (.stack [.n 30]))) ::
-  .atom (.const (.n 306) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 30) (.n 307) (.n 308) (.n 309) (.n 306)) ::
-  .atom (.mul (.n 310) (.n 3) (.n 30)) ::
-  .atom (.load (.n 311) (.n 310) 0) ::
+  .atom (.const (.n 302) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 30) (.n 303) (.n 304) (.n 305) (.n 302)) ::
+  .atom (.mul (.n 306) (.n 3) (.n 30)) ::
+  .atom (.load (.n 307) (.n 306) 0) ::
   .atom (.hint (.windowsExp (.n 0) 121 6 1 (.stack [.n 31]))) ::
-  .atom (.const (.n 312) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 31) (.n 313) (.n 314) (.n 315) (.n 312)) ::
-  .atom (.mul (.n 316) (.n 3) (.n 31)) ::
-  .atom (.load (.n 317) (.n 316) 0) ::
-  .atom (.const (.n 318) (word 64 0 0)) ::
-  .atom (.mul (.n 319) (.n 317) (.n 318)) ::
-  .atom (.add (.n 320) (.n 311) (.n 319)) ::
-  .atom (.hint (.windowsExp (.n 0) 127 1 1 (.stack [.n 321]))) ::
-  .atom (.hint (.windowsExp (.n 0) 128 3 1 (.stack [.n 322]))) ::
-  .atom (.const (.n 323) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 321) (.n 324) (.n 325) (.n 326) (.n 323)) ::
-  .atom (.const (.n 327) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 322) (.n 328) (.n 329) (.n 330) (.n 327)) ::
-  .atom (.mul (.n 331) (.n 322) (.n 322)) ::
-  .atom (.mul (.n 32) (.n 321) (.n 331)) ::
-  .atom (.mul (.n 332) (.n 3) (.n 321)) ::
-  .atom (.load (.n 333) (.n 332) 0) ::
-  .atom (.mul (.n 334) (.n 3) (.n 322)) ::
-  .atom (.load (.n 335) (.n 334) 0) ::
-  .atom (.const (.n 336) (word 4096 0 0)) ::
-  .atom (.mul (.n 337) (.n 333) (.n 336)) ::
-  .atom (.add (.n 338) (.n 320) (.n 337)) ::
+  .atom (.const (.n 308) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 31) (.n 309) (.n 310) (.n 311) (.n 308)) ::
+  .atom (.mul (.n 312) (.n 3) (.n 31)) ::
+  .atom (.load (.n 313) (.n 312) 0) ::
+  .atom (.const (.n 314) (word 64 0 0)) ::
+  .atom (.mul (.n 315) (.n 313) (.n 314)) ::
+  .atom (.add (.n 316) (.n 307) (.n 315)) ::
+  .atom (.hint (.windowsExp (.n 0) 127 1 1 (.stack [.n 317]))) ::
+  .atom (.hint (.windowsExp (.n 0) 128 3 1 (.stack [.n 318]))) ::
+  .atom (.const (.n 319) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 317) (.n 320) (.n 321) (.n 322) (.n 319)) ::
+  .atom (.const (.n 323) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 318) (.n 324) (.n 325) (.n 326) (.n 323)) ::
+  .atom (.mul (.n 327) (.n 318) (.n 318)) ::
+  .atom (.mul (.n 32) (.n 317) (.n 327)) ::
+  .atom (.mul (.n 328) (.n 3) (.n 317)) ::
+  .atom (.load (.n 329) (.n 328) 0) ::
+  .atom (.mul (.n 330) (.n 3) (.n 318)) ::
+  .atom (.load (.n 331) (.n 330) 0) ::
+  .atom (.const (.n 332) (word 4096 0 0)) ::
+  .atom (.mul (.n 333) (.n 329) (.n 332)) ::
+  .atom (.add (.n 334) (.n 316) (.n 333)) ::
   .atom (.hint (.windowsExp (.n 0) 131 1 1 (.stack [.n 33]))) ::
-  .atom (.const (.n 339) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 33) (.n 340) (.n 341) (.n 342) (.n 339)) ::
-  .atom (.mul (.n 343) (.n 3) (.n 33)) ::
-  .atom (.load (.n 344) (.n 343) 0) ::
-  .atom (.const (.n 345) (word 8 0 0)) ::
-  .atom (.mul (.n 346) (.n 344) (.n 345)) ::
-  .atom (.add (.n 347) (.n 335) (.n 346)) ::
+  .atom (.const (.n 335) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 33) (.n 336) (.n 337) (.n 338) (.n 335)) ::
+  .atom (.mul (.n 339) (.n 3) (.n 33)) ::
+  .atom (.load (.n 340) (.n 339) 0) ::
+  .atom (.const (.n 341) (word 8 0 0)) ::
+  .atom (.mul (.n 342) (.n 340) (.n 341)) ::
+  .atom (.add (.n 343) (.n 331) (.n 342)) ::
   .atom (.hint (.windowsExp (.n 0) 132 6 1 (.stack [.n 34]))) ::
-  .atom (.const (.n 348) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 34) (.n 349) (.n 350) (.n 351) (.n 348)) ::
-  .atom (.mul (.n 352) (.n 3) (.n 34)) ::
-  .atom (.load (.n 353) (.n 352) 0) ::
-  .atom (.const (.n 354) (word 16 0 0)) ::
-  .atom (.mul (.n 355) (.n 353) (.n 354)) ::
-  .atom (.add (.n 356) (.n 347) (.n 355)) ::
-  .atom (.const (.n 357) (word 8192 0 0)) ::
-  .atom (.mul (.n 358) (.n 357) (.n 356)) ::
-  .atom (.add (.n 359) (.n 338) (.n 358)) ::
-  .atom (.load (.n 359) (.n 1) 5) ::
-  .atom (.const (.n 360) (word 0 2251799813685248 0)) ::
-  .atom (.mul (.n 361) (.n 360) (.n 338)) ::
-  .atom (.const (.n 362) (word 0 0 1)) ::
-  .atom (.mul (.n 363) (.n 362) (.n 356)) ::
-  .atom (.add (.n 364) (.n 361) (.n 363)) ::
-  .atom (.add (.n 365) (.n 303) (.n 364)) ::
-  .atom (.const (.n 366) (word 32 0 0)) ::
-  .atom (.mul (.n 367) (.n 305) (.n 366)) ::
-  .atom (.load (.n 367) (.n 2) 5) ::
+  .atom (.const (.n 344) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 34) (.n 345) (.n 346) (.n 347) (.n 344)) ::
+  .atom (.mul (.n 348) (.n 3) (.n 34)) ::
+  .atom (.load (.n 349) (.n 348) 0) ::
+  .atom (.const (.n 350) (word 16 0 0)) ::
+  .atom (.mul (.n 351) (.n 349) (.n 350)) ::
+  .atom (.add (.n 352) (.n 343) (.n 351)) ::
+  .atom (.const (.n 353) (word 8192 0 0)) ::
+  .atom (.mul (.n 354) (.n 353) (.n 352)) ::
+  .atom (.add (.n 355) (.n 334) (.n 354)) ::
+  .atom (.load (.n 355) (.n 1) 5) ::
+  .atom (.const (.n 356) (word 0 2251799813685248 0)) ::
+  .atom (.mul (.n 357) (.n 356) (.n 334)) ::
+  .atom (.const (.n 358) (word 0 0 1)) ::
+  .atom (.mul (.n 359) (.n 358) (.n 352)) ::
+  .atom (.add (.n 360) (.n 357) (.n 359)) ::
+  .atom (.add (.n 361) (.n 300) (.n 360)) ::
+  .atom (.frameAddr (.n 362) [.n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 362) (.n 2) 5) ::
   .atom (.hint (.windowsExp (.n 0) 138 6 1 (.stack [.n 35]))) ::
-  .atom (.const (.n 368) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 35) (.n 369) (.n 370) (.n 371) (.n 368)) ::
-  .atom (.mul (.n 372) (.n 3) (.n 35)) ::
-  .atom (.load (.n 373) (.n 372) 0) ::
+  .atom (.const (.n 363) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 35) (.n 364) (.n 365) (.n 366) (.n 363)) ::
+  .atom (.mul (.n 367) (.n 3) (.n 35)) ::
+  .atom (.load (.n 368) (.n 367) 0) ::
   .atom (.hint (.windowsExp (.n 0) 144 6 1 (.stack [.n 36]))) ::
-  .atom (.const (.n 374) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 36) (.n 375) (.n 376) (.n 377) (.n 374)) ::
-  .atom (.mul (.n 378) (.n 3) (.n 36)) ::
-  .atom (.load (.n 379) (.n 378) 0) ::
-  .atom (.const (.n 380) (word 64 0 0)) ::
-  .atom (.mul (.n 381) (.n 379) (.n 380)) ::
-  .atom (.add (.n 382) (.n 373) (.n 381)) ::
+  .atom (.const (.n 369) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 36) (.n 370) (.n 371) (.n 372) (.n 369)) ::
+  .atom (.mul (.n 373) (.n 3) (.n 36)) ::
+  .atom (.load (.n 374) (.n 373) 0) ::
+  .atom (.const (.n 375) (word 64 0 0)) ::
+  .atom (.mul (.n 376) (.n 374) (.n 375)) ::
+  .atom (.add (.n 377) (.n 368) (.n 376)) ::
   .atom (.hint (.windowsExp (.n 0) 150 4 1 (.stack [.n 37]))) ::
-  .atom (.const (.n 383) (word 32768 0 0)) ::
-  .atom (.rangeCheck (.n 37) (.n 384) (.n 385) (.n 386) (.n 383)) ::
-  .atom (.mul (.n 387) (.n 3) (.n 37)) ::
-  .atom (.load (.n 388) (.n 387) 0) ::
-  .atom (.const (.n 389) (word 4096 0 0)) ::
-  .atom (.mul (.n 390) (.n 388) (.n 389)) ::
-  .atom (.add (.n 391) (.n 382) (.n 390)) ::
+  .atom (.const (.n 378) (word 32768 0 0)) ::
+  .atom (.rangeCheck (.n 37) (.n 379) (.n 380) (.n 381) (.n 378)) ::
+  .atom (.mul (.n 382) (.n 3) (.n 37)) ::
+  .atom (.load (.n 383) (.n 382) 0) ::
+  .atom (.const (.n 384) (word 4096 0 0)) ::
+  .atom (.mul (.n 385) (.n 383) (.n 384)) ::
+  .atom (.add (.n 386) (.n 377) (.n 385)) ::
   .atom (.hint (.windowsExp (.n 0) 154 1 1 (.stack [.n 38]))) ::
-  .atom (.const (.n 392) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 38) (.n 393) (.n 394) (.n 395) (.n 392)) ::
-  .atom (.mul (.n 396) (.n 3) (.n 38)) ::
-  .atom (.load (.n 397) (.n 396) 0) ::
-  .atom (.const (.n 398) (word 65536 0 0)) ::
-  .atom (.mul (.n 399) (.n 397) (.n 398)) ::
-  .atom (.add (.n 400) (.n 391) (.n 399)) ::
+  .atom (.const (.n 387) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 38) (.n 388) (.n 389) (.n 390) (.n 387)) ::
+  .atom (.mul (.n 391) (.n 3) (.n 38)) ::
+  .atom (.load (.n 392) (.n 391) 0) ::
+  .atom (.const (.n 393) (word 65536 0 0)) ::
+  .atom (.mul (.n 394) (.n 392) (.n 393)) ::
+  .atom (.add (.n 395) (.n 386) (.n 394)) ::
   .atom (.hint (.windowsExp (.n 0) 155 6 1 (.stack [.n 39]))) ::
-  .atom (.const (.n 401) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 39) (.n 402) (.n 403) (.n 404) (.n 401)) ::
-  .atom (.mul (.n 405) (.n 3) (.n 39)) ::
-  .atom (.load (.n 406) (.n 405) 0) ::
-  .atom (.const (.n 407) (word 131072 0 0)) ::
-  .atom (.mul (.n 408) (.n 406) (.n 407)) ::
-  .atom (.add (.n 409) (.n 400) (.n 408)) ::
-  .atom (.load (.n 409) (.n 1) 6) ::
-  .atom (.const (.n 410) (word 0 0 1024)) ::
-  .atom (.mul (.n 411) (.n 410) (.n 409)) ::
-  .atom (.add (.n 412) (.n 365) (.n 411)) ::
-  .atom (.const (.n 413) (word 32 0 0)) ::
-  .atom (.mul (.n 414) (.n 367) (.n 413)) ::
-  .atom (.load (.n 414) (.n 2) 6) ::
+  .atom (.const (.n 396) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 39) (.n 397) (.n 398) (.n 399) (.n 396)) ::
+  .atom (.mul (.n 400) (.n 3) (.n 39)) ::
+  .atom (.load (.n 401) (.n 400) 0) ::
+  .atom (.const (.n 402) (word 131072 0 0)) ::
+  .atom (.mul (.n 403) (.n 401) (.n 402)) ::
+  .atom (.add (.n 404) (.n 395) (.n 403)) ::
+  .atom (.load (.n 404) (.n 1) 6) ::
+  .atom (.const (.n 405) (word 0 0 1024)) ::
+  .atom (.mul (.n 406) (.n 405) (.n 404)) ::
+  .atom (.add (.n 407) (.n 361) (.n 406)) ::
+  .atom (.frameAddr (.n 408) [.n 35, .n 36, .n 37, .n 38, .n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 408) (.n 2) 6) ::
   .atom (.hint (.windowsExp (.n 0) 161 6 1 (.stack [.n 40]))) ::
-  .atom (.const (.n 415) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 40) (.n 416) (.n 417) (.n 418) (.n 415)) ::
-  .atom (.mul (.n 419) (.n 3) (.n 40)) ::
-  .atom (.load (.n 420) (.n 419) 0) ::
+  .atom (.const (.n 409) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 40) (.n 410) (.n 411) (.n 412) (.n 409)) ::
+  .atom (.mul (.n 413) (.n 3) (.n 40)) ::
+  .atom (.load (.n 414) (.n 413) 0) ::
   .atom (.hint (.windowsExp (.n 0) 167 6 1 (.stack [.n 41]))) ::
-  .atom (.const (.n 421) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 41) (.n 422) (.n 423) (.n 424) (.n 421)) ::
-  .atom (.mul (.n 425) (.n 3) (.n 41)) ::
-  .atom (.load (.n 426) (.n 425) 0) ::
-  .atom (.const (.n 427) (word 64 0 0)) ::
-  .atom (.mul (.n 428) (.n 426) (.n 427)) ::
-  .atom (.add (.n 429) (.n 420) (.n 428)) ::
+  .atom (.const (.n 415) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 41) (.n 416) (.n 417) (.n 418) (.n 415)) ::
+  .atom (.mul (.n 419) (.n 3) (.n 41)) ::
+  .atom (.load (.n 420) (.n 419) 0) ::
+  .atom (.const (.n 421) (word 64 0 0)) ::
+  .atom (.mul (.n 422) (.n 420) (.n 421)) ::
+  .atom (.add (.n 423) (.n 414) (.n 422)) ::
   .atom (.hint (.windowsExp (.n 0) 173 4 1 (.stack [.n 42]))) ::
-  .atom (.const (.n 430) (word 32768 0 0)) ::
-  .atom (.rangeCheck (.n 42) (.n 431) (.n 432) (.n 433) (.n 430)) ::
-  .atom (.mul (.n 434) (.n 3) (.n 42)) ::
-  .atom (.load (.n 435) (.n 434) 0) ::
-  .atom (.const (.n 436) (word 4096 0 0)) ::
-  .atom (.mul (.n 437) (.n 435) (.n 436)) ::
-  .atom (.add (.n 438) (.n 429) (.n 437)) ::
+  .atom (.const (.n 424) (word 32768 0 0)) ::
+  .atom (.rangeCheck (.n 42) (.n 425) (.n 426) (.n 427) (.n 424)) ::
+  .atom (.mul (.n 428) (.n 3) (.n 42)) ::
+  .atom (.load (.n 429) (.n 428) 0) ::
+  .atom (.const (.n 430) (word 4096 0 0)) ::
+  .atom (.mul (.n 431) (.n 429) (.n 430)) ::
+  .atom (.add (.n 432) (.n 423) (.n 431)) ::
   .atom (.hint (.windowsExp (.n 0) 177 1 1 (.stack [.n 43]))) ::
-  .atom (.const (.n 439) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 43) (.n 440) (.n 441) (.n 442) (.n 439)) ::
-  .atom (.mul (.n 443) (.n 3) (.n 43)) ::
-  .atom (.load (.n 444) (.n 443) 0) ::
-  .atom (.const (.n 445) (word 65536 0 0)) ::
-  .atom (.mul (.n 446) (.n 444) (.n 445)) ::
-  .atom (.add (.n 447) (.n 438) (.n 446)) ::
+  .atom (.const (.n 433) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 43) (.n 434) (.n 435) (.n 436) (.n 433)) ::
+  .atom (.mul (.n 437) (.n 3) (.n 43)) ::
+  .atom (.load (.n 438) (.n 437) 0) ::
+  .atom (.const (.n 439) (word 65536 0 0)) ::
+  .atom (.mul (.n 440) (.n 438) (.n 439)) ::
+  .atom (.add (.n 441) (.n 432) (.n 440)) ::
   .atom (.hint (.windowsExp (.n 0) 178 6 1 (.stack [.n 44]))) ::
-  .atom (.const (.n 448) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 44) (.n 449) (.n 450) (.n 451) (.n 448)) ::
-  .atom (.mul (.n 452) (.n 3) (.n 44)) ::
-  .atom (.load (.n 453) (.n 452) 0) ::
-  .atom (.const (.n 454) (word 131072 0 0)) ::
-  .atom (.mul (.n 455) (.n 453) (.n 454)) ::
-  .atom (.add (.n 456) (.n 447) (.n 455)) ::
-  .atom (.load (.n 456) (.n 1) 7) ::
-  .atom (.const (.n 457) (word 0 0 8589934592)) ::
-  .atom (.mul (.n 458) (.n 457) (.n 456)) ::
-  .atom (.add (.n 459) (.n 412) (.n 458)) ::
-  .atom (.const (.n 460) (word 32 0 0)) ::
-  .atom (.mul (.n 461) (.n 414) (.n 460)) ::
-  .atom (.load (.n 461) (.n 2) 7) ::
-  .atom (.hint (.windowsExp (.n 0) 184 7 1 (.stack [.n 462]))) ::
-  .atom (.const (.n 463) (word 9223372036854775983 0 0)) ::
-  .atom (.rangeCheck (.n 462) (.n 464) (.n 465) (.n 466) (.n 463)) ::
-  .atom (.mul (.n 467) (.n 3) (.n 462)) ::
-  .atom (.load (.n 468) (.n 467) 0) ::
-  .atom (.const (.n 469) (word 0 0 72057594037927936)) ::
-  .atom (.mul (.n 470) (.n 468) (.n 469)) ::
-  .atom (.add (.n 471) (.n 459) (.n 470)) ::
-  .atom (.hint (.windowsExp (.n 0) 191 1 1 (.stack [.n 472]))) ::
-  .atom (.const (.n 473) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 472) (.n 474) (.n 475) (.n 476) (.n 473)) ::
-  .atom (.mul (.n 477) (.n 3) (.n 472)) ::
-  .atom (.load (.n 478) (.n 477) 0) ::
-  .atom (.const (.n 479) (word 0 0 9223372036854775808)) ::
-  .atom (.mul (.n 480) (.n 478) (.n 479)) ::
-  .atom (.add (.n 481) (.n 471) (.n 480)) ::
-  .atom (.assertEq (.n 481) (.n 0)) ::
+  .atom (.const (.n 442) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 44) (.n 443) (.n 444) (.n 445) (.n 442)) ::
+  .atom (.mul (.n 446) (.n 3) (.n 44)) ::
+  .atom (.load (.n 447) (.n 446) 0) ::
+  .atom (.const (.n 448) (word 131072 0 0)) ::
+  .atom (.mul (.n 449) (.n 447) (.n 448)) ::
+  .atom (.add (.n 450) (.n 441) (.n 449)) ::
+  .atom (.load (.n 450) (.n 1) 7) ::
+  .atom (.const (.n 451) (word 0 0 8589934592)) ::
+  .atom (.mul (.n 452) (.n 451) (.n 450)) ::
+  .atom (.add (.n 453) (.n 407) (.n 452)) ::
+  .atom (.frameAddr (.n 454) [.n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 454) (.n 2) 7) ::
+  .atom (.hint (.windowsExp (.n 0) 184 7 1 (.stack [.n 455]))) ::
+  .atom (.const (.n 456) (word 9223372036854775983 0 0)) ::
+  .atom (.rangeCheck (.n 455) (.n 457) (.n 458) (.n 459) (.n 456)) ::
+  .atom (.mul (.n 460) (.n 3) (.n 455)) ::
+  .atom (.load (.n 461) (.n 460) 0) ::
+  .atom (.const (.n 462) (word 0 0 72057594037927936)) ::
+  .atom (.mul (.n 463) (.n 461) (.n 462)) ::
+  .atom (.add (.n 464) (.n 453) (.n 463)) ::
+  .atom (.hint (.windowsExp (.n 0) 191 1 1 (.stack [.n 465]))) ::
+  .atom (.const (.n 466) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 465) (.n 467) (.n 468) (.n 469) (.n 466)) ::
+  .atom (.mul (.n 470) (.n 3) (.n 465)) ::
+  .atom (.load (.n 471) (.n 470) 0) ::
+  .atom (.const (.n 472) (word 0 0 9223372036854775808)) ::
+  .atom (.mul (.n 473) (.n 471) (.n 472)) ::
+  .atom (.add (.n 474) (.n 464) (.n 473)) ::
+  .atom (.assertEq (.n 474) (.n 0)) ::
   .ret [] ::
   [])
 
@@ -11940,8 +11933,8 @@ noncomputable def core907 : Core.Fn where
 
 namespace core908
 
-/-- `decode_query_windows__L19_L4`: the body. -/
-noncomputable def body : List Core.Stmt := (
+/-- `decode_query_windows__L19_L4`: statements 0 to 463 of the body. -/
+noncomputable def c0 : List Core.Stmt := (
   .atom (.frameAddr (.n 4) (.n 5 :: .n 6 :: .n 7 :: .n 8 :: .n 9 :: .n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
   .atom (.hint (.windowsExp (.n 0) 0 6 1 (.stack [.n 5]))) ::
   .atom (.const (.n 61) (word 9223372036854775808 0 0)) ::
@@ -12023,399 +12016,393 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 145) (word 524288 0 0)) ::
   .atom (.mul (.n 146) (.n 145) (.n 144)) ::
   .atom (.add (.n 147) (.n 102) (.n 146)) ::
-  .atom (.const (.n 148) (word 32 0 0)) ::
-  .atom (.mul (.n 149) (.n 4) (.n 148)) ::
-  .atom (.load (.n 149) (.n 2) 1) ::
+  .atom (.frameAddr (.n 148) (.n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 148) (.n 2) 1) ::
   .atom (.hint (.windowsExp (.n 0) 38 6 1 (.stack [.n 15]))) ::
-  .atom (.const (.n 150) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 15) (.n 151) (.n 152) (.n 153) (.n 150)) ::
-  .atom (.mul (.n 154) (.n 3) (.n 15)) ::
-  .atom (.load (.n 155) (.n 154) 0) ::
+  .atom (.const (.n 149) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 15) (.n 150) (.n 151) (.n 152) (.n 149)) ::
+  .atom (.mul (.n 153) (.n 3) (.n 15)) ::
+  .atom (.load (.n 154) (.n 153) 0) ::
   .atom (.hint (.windowsExp (.n 0) 44 6 1 (.stack [.n 16]))) ::
-  .atom (.const (.n 156) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 16) (.n 157) (.n 158) (.n 159) (.n 156)) ::
-  .atom (.mul (.n 160) (.n 3) (.n 16)) ::
-  .atom (.load (.n 161) (.n 160) 0) ::
-  .atom (.const (.n 162) (word 64 0 0)) ::
-  .atom (.mul (.n 163) (.n 161) (.n 162)) ::
-  .atom (.add (.n 164) (.n 155) (.n 163)) ::
+  .atom (.const (.n 155) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 16) (.n 156) (.n 157) (.n 158) (.n 155)) ::
+  .atom (.mul (.n 159) (.n 3) (.n 16)) ::
+  .atom (.load (.n 160) (.n 159) 0) ::
+  .atom (.const (.n 161) (word 64 0 0)) ::
+  .atom (.mul (.n 162) (.n 160) (.n 161)) ::
+  .atom (.add (.n 163) (.n 154) (.n 162)) ::
   .atom (.hint (.windowsExp (.n 0) 50 3 1 (.stack [.n 17]))) ::
-  .atom (.const (.n 165) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 17) (.n 166) (.n 167) (.n 168) (.n 165)) ::
-  .atom (.mul (.n 169) (.n 3) (.n 17)) ::
-  .atom (.load (.n 170) (.n 169) 0) ::
-  .atom (.const (.n 171) (word 4096 0 0)) ::
-  .atom (.mul (.n 172) (.n 170) (.n 171)) ::
-  .atom (.add (.n 173) (.n 164) (.n 172)) ::
+  .atom (.const (.n 164) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 17) (.n 165) (.n 166) (.n 167) (.n 164)) ::
+  .atom (.mul (.n 168) (.n 3) (.n 17)) ::
+  .atom (.load (.n 169) (.n 168) 0) ::
+  .atom (.const (.n 170) (word 4096 0 0)) ::
+  .atom (.mul (.n 171) (.n 169) (.n 170)) ::
+  .atom (.add (.n 172) (.n 163) (.n 171)) ::
   .atom (.hint (.windowsExp (.n 0) 53 1 1 (.stack [.n 18]))) ::
-  .atom (.const (.n 174) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 18) (.n 175) (.n 176) (.n 177) (.n 174)) ::
-  .atom (.mul (.n 178) (.n 3) (.n 18)) ::
-  .atom (.load (.n 179) (.n 178) 0) ::
-  .atom (.const (.n 180) (word 32768 0 0)) ::
-  .atom (.mul (.n 181) (.n 179) (.n 180)) ::
-  .atom (.add (.n 182) (.n 173) (.n 181)) ::
+  .atom (.const (.n 173) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 18) (.n 174) (.n 175) (.n 176) (.n 173)) ::
+  .atom (.mul (.n 177) (.n 3) (.n 18)) ::
+  .atom (.load (.n 178) (.n 177) 0) ::
+  .atom (.const (.n 179) (word 32768 0 0)) ::
+  .atom (.mul (.n 180) (.n 178) (.n 179)) ::
+  .atom (.add (.n 181) (.n 172) (.n 180)) ::
   .atom (.hint (.windowsExp (.n 0) 54 3 1 (.stack [.n 19]))) ::
-  .atom (.const (.n 183) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 19) (.n 184) (.n 185) (.n 186) (.n 183)) ::
-  .atom (.mul (.n 187) (.n 3) (.n 19)) ::
-  .atom (.load (.n 188) (.n 187) 0) ::
-  .atom (.const (.n 189) (word 65536 0 0)) ::
-  .atom (.mul (.n 190) (.n 188) (.n 189)) ::
-  .atom (.add (.n 191) (.n 182) (.n 190)) ::
-  .atom (.load (.n 191) (.n 1) 2) ::
-  .atom (.const (.n 192) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 193) (.n 192) (.n 191)) ::
-  .atom (.add (.n 194) (.n 147) (.n 193)) ::
-  .atom (.const (.n 195) (word 32 0 0)) ::
-  .atom (.mul (.n 196) (.n 149) (.n 195)) ::
-  .atom (.load (.n 196) (.n 2) 2) ::
+  .atom (.const (.n 182) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 19) (.n 183) (.n 184) (.n 185) (.n 182)) ::
+  .atom (.mul (.n 186) (.n 3) (.n 19)) ::
+  .atom (.load (.n 187) (.n 186) 0) ::
+  .atom (.const (.n 188) (word 65536 0 0)) ::
+  .atom (.mul (.n 189) (.n 187) (.n 188)) ::
+  .atom (.add (.n 190) (.n 181) (.n 189)) ::
+  .atom (.load (.n 190) (.n 1) 2) ::
+  .atom (.const (.n 191) (word 274877906944 0 0)) ::
+  .atom (.mul (.n 192) (.n 191) (.n 190)) ::
+  .atom (.add (.n 193) (.n 147) (.n 192)) ::
+  .atom (.frameAddr (.n 194) (.n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 194) (.n 2) 2) ::
   .atom (.hint (.windowsExp (.n 0) 57 6 1 (.stack [.n 20]))) ::
-  .atom (.const (.n 197) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 20) (.n 198) (.n 199) (.n 200) (.n 197)) ::
-  .atom (.mul (.n 201) (.n 3) (.n 20)) ::
-  .atom (.load (.n 202) (.n 201) 0) ::
-  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 203]))) ::
-  .atom (.hint (.windowsExp (.n 0) 64 5 1 (.stack [.n 204]))) ::
-  .atom (.const (.n 205) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 203) (.n 206) (.n 207) (.n 208) (.n 205)) ::
-  .atom (.const (.n 209) (word 2147483648 0 0)) ::
-  .atom (.rangeCheck (.n 204) (.n 210) (.n 211) (.n 212) (.n 209)) ::
-  .atom (.mul (.n 213) (.n 204) (.n 204)) ::
-  .atom (.mul (.n 21) (.n 203) (.n 213)) ::
-  .atom (.mul (.n 214) (.n 3) (.n 203)) ::
+  .atom (.const (.n 195) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 20) (.n 196) (.n 197) (.n 198) (.n 195)) ::
+  .atom (.mul (.n 199) (.n 3) (.n 20)) ::
+  .atom (.load (.n 200) (.n 199) 0) ::
+  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 201]))) ::
+  .atom (.hint (.windowsExp (.n 0) 64 5 1 (.stack [.n 202]))) ::
+  .atom (.const (.n 203) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 201) (.n 204) (.n 205) (.n 206) (.n 203)) ::
+  .atom (.const (.n 207) (word 2147483648 0 0)) ::
+  .atom (.rangeCheck (.n 202) (.n 208) (.n 209) (.n 210) (.n 207)) ::
+  .atom (.mul (.n 211) (.n 202) (.n 202)) ::
+  .atom (.mul (.n 21) (.n 201) (.n 211)) ::
+  .atom (.mul (.n 212) (.n 3) (.n 201)) ::
+  .atom (.load (.n 213) (.n 212) 0) ::
+  .atom (.mul (.n 214) (.n 3) (.n 202)) ::
   .atom (.load (.n 215) (.n 214) 0) ::
-  .atom (.mul (.n 216) (.n 3) (.n 204)) ::
-  .atom (.load (.n 217) (.n 216) 0) ::
-  .atom (.const (.n 218) (word 64 0 0)) ::
-  .atom (.mul (.n 219) (.n 215) (.n 218)) ::
-  .atom (.add (.n 220) (.n 202) (.n 219)) ::
+  .atom (.const (.n 216) (word 64 0 0)) ::
+  .atom (.mul (.n 217) (.n 213) (.n 216)) ::
+  .atom (.add (.n 218) (.n 200) (.n 217)) ::
   .atom (.hint (.windowsExp (.n 0) 69 3 1 (.stack [.n 22]))) ::
-  .atom (.const (.n 221) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 22) (.n 222) (.n 223) (.n 224) (.n 221)) ::
-  .atom (.mul (.n 225) (.n 3) (.n 22)) ::
-  .atom (.load (.n 226) (.n 225) 0) ::
-  .atom (.const (.n 227) (word 32 0 0)) ::
-  .atom (.mul (.n 228) (.n 226) (.n 227)) ::
-  .atom (.add (.n 229) (.n 217) (.n 228)) ::
+  .atom (.const (.n 219) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 22) (.n 220) (.n 221) (.n 222) (.n 219)) ::
+  .atom (.mul (.n 223) (.n 3) (.n 22)) ::
+  .atom (.load (.n 224) (.n 223) 0) ::
+  .atom (.const (.n 225) (word 32 0 0)) ::
+  .atom (.mul (.n 226) (.n 224) (.n 225)) ::
+  .atom (.add (.n 227) (.n 215) (.n 226)) ::
   .atom (.hint (.windowsExp (.n 0) 72 1 1 (.stack [.n 23]))) ::
-  .atom (.const (.n 230) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 23) (.n 231) (.n 232) (.n 233) (.n 230)) ::
-  .atom (.mul (.n 234) (.n 3) (.n 23)) ::
-  .atom (.load (.n 235) (.n 234) 0) ::
-  .atom (.const (.n 236) (word 256 0 0)) ::
-  .atom (.mul (.n 237) (.n 235) (.n 236)) ::
-  .atom (.add (.n 238) (.n 229) (.n 237)) ::
+  .atom (.const (.n 228) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 23) (.n 229) (.n 230) (.n 231) (.n 228)) ::
+  .atom (.mul (.n 232) (.n 3) (.n 23)) ::
+  .atom (.load (.n 233) (.n 232) 0) ::
+  .atom (.const (.n 234) (word 256 0 0)) ::
+  .atom (.mul (.n 235) (.n 233) (.n 234)) ::
+  .atom (.add (.n 236) (.n 227) (.n 235)) ::
   .atom (.hint (.windowsExp (.n 0) 73 3 1 (.stack [.n 24]))) ::
-  .atom (.const (.n 239) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 24) (.n 240) (.n 241) (.n 242) (.n 239)) ::
-  .atom (.mul (.n 243) (.n 3) (.n 24)) ::
-  .atom (.load (.n 244) (.n 243) 0) ::
-  .atom (.const (.n 245) (word 512 0 0)) ::
-  .atom (.mul (.n 246) (.n 244) (.n 245)) ::
-  .atom (.add (.n 247) (.n 238) (.n 246)) ::
-  .atom (.const (.n 248) (word 128 0 0)) ::
-  .atom (.mul (.n 249) (.n 248) (.n 247)) ::
-  .atom (.add (.n 250) (.n 220) (.n 249)) ::
-  .atom (.load (.n 250) (.n 1) 3) ::
-  .atom (.const (.n 251) (word 144115188075855872 0 0)) ::
-  .atom (.mul (.n 252) (.n 251) (.n 220)) ::
-  .atom (.const (.n 253) (word 0 1 0)) ::
-  .atom (.mul (.n 254) (.n 253) (.n 247)) ::
-  .atom (.add (.n 255) (.n 252) (.n 254)) ::
-  .atom (.add (.n 256) (.n 194) (.n 255)) ::
-  .atom (.const (.n 257) (word 32768 0 0)) ::
-  .atom (.mul (.n 258) (.n 4) (.n 257)) ::
-  .atom (.load (.n 258) (.n 2) 3) ::
+  .atom (.const (.n 237) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 24) (.n 238) (.n 239) (.n 240) (.n 237)) ::
+  .atom (.mul (.n 241) (.n 3) (.n 24)) ::
+  .atom (.load (.n 242) (.n 241) 0) ::
+  .atom (.const (.n 243) (word 512 0 0)) ::
+  .atom (.mul (.n 244) (.n 242) (.n 243)) ::
+  .atom (.add (.n 245) (.n 236) (.n 244)) ::
+  .atom (.const (.n 246) (word 128 0 0)) ::
+  .atom (.mul (.n 247) (.n 246) (.n 245)) ::
+  .atom (.add (.n 248) (.n 218) (.n 247)) ::
+  .atom (.load (.n 248) (.n 1) 3) ::
+  .atom (.const (.n 249) (word 144115188075855872 0 0)) ::
+  .atom (.mul (.n 250) (.n 249) (.n 218)) ::
+  .atom (.const (.n 251) (word 0 1 0)) ::
+  .atom (.mul (.n 252) (.n 251) (.n 245)) ::
+  .atom (.add (.n 253) (.n 250) (.n 252)) ::
+  .atom (.add (.n 254) (.n 193) (.n 253)) ::
+  .atom (.frameAddr (.n 255) (.n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 255) (.n 2) 3) ::
   .atom (.hint (.windowsExp (.n 0) 76 6 1 (.stack [.n 25]))) ::
-  .atom (.const (.n 259) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 25) (.n 260) (.n 261) (.n 262) (.n 259)) ::
-  .atom (.mul (.n 263) (.n 3) (.n 25)) ::
-  .atom (.load (.n 264) (.n 263) 0) ::
+  .atom (.const (.n 256) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 25) (.n 257) (.n 258) (.n 259) (.n 256)) ::
+  .atom (.mul (.n 260) (.n 3) (.n 25)) ::
+  .atom (.load (.n 261) (.n 260) 0) ::
   .atom (.hint (.windowsExp (.n 0) 82 6 1 (.stack [.n 26]))) ::
-  .atom (.const (.n 265) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 26) (.n 266) (.n 267) (.n 268) (.n 265)) ::
-  .atom (.mul (.n 269) (.n 3) (.n 26)) ::
-  .atom (.load (.n 270) (.n 269) 0) ::
-  .atom (.const (.n 271) (word 64 0 0)) ::
-  .atom (.mul (.n 272) (.n 270) (.n 271)) ::
-  .atom (.add (.n 273) (.n 264) (.n 272)) ::
+  .atom (.const (.n 262) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 26) (.n 263) (.n 264) (.n 265) (.n 262)) ::
+  .atom (.mul (.n 266) (.n 3) (.n 26)) ::
+  .atom (.load (.n 267) (.n 266) 0) ::
+  .atom (.const (.n 268) (word 64 0 0)) ::
+  .atom (.mul (.n 269) (.n 267) (.n 268)) ::
+  .atom (.add (.n 270) (.n 261) (.n 269)) ::
   .atom (.hint (.windowsExp (.n 0) 88 3 1 (.stack [.n 27]))) ::
-  .atom (.const (.n 274) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 27) (.n 275) (.n 276) (.n 277) (.n 274)) ::
-  .atom (.mul (.n 278) (.n 3) (.n 27)) ::
-  .atom (.load (.n 279) (.n 278) 0) ::
-  .atom (.const (.n 280) (word 4096 0 0)) ::
-  .atom (.mul (.n 281) (.n 279) (.n 280)) ::
-  .atom (.add (.n 282) (.n 273) (.n 281)) ::
+  .atom (.const (.n 271) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 27) (.n 272) (.n 273) (.n 274) (.n 271)) ::
+  .atom (.mul (.n 275) (.n 3) (.n 27)) ::
+  .atom (.load (.n 276) (.n 275) 0) ::
+  .atom (.const (.n 277) (word 4096 0 0)) ::
+  .atom (.mul (.n 278) (.n 276) (.n 277)) ::
+  .atom (.add (.n 279) (.n 270) (.n 278)) ::
   .atom (.hint (.windowsExp (.n 0) 91 1 1 (.stack [.n 28]))) ::
-  .atom (.const (.n 283) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 28) (.n 284) (.n 285) (.n 286) (.n 283)) ::
-  .atom (.mul (.n 287) (.n 3) (.n 28)) ::
-  .atom (.load (.n 288) (.n 287) 0) ::
-  .atom (.const (.n 289) (word 32768 0 0)) ::
-  .atom (.mul (.n 290) (.n 288) (.n 289)) ::
-  .atom (.add (.n 291) (.n 282) (.n 290)) ::
+  .atom (.const (.n 280) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 28) (.n 281) (.n 282) (.n 283) (.n 280)) ::
+  .atom (.mul (.n 284) (.n 3) (.n 28)) ::
+  .atom (.load (.n 285) (.n 284) 0) ::
+  .atom (.const (.n 286) (word 32768 0 0)) ::
+  .atom (.mul (.n 287) (.n 285) (.n 286)) ::
+  .atom (.add (.n 288) (.n 279) (.n 287)) ::
   .atom (.hint (.windowsExp (.n 0) 92 3 1 (.stack [.n 29]))) ::
-  .atom (.const (.n 292) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 29) (.n 293) (.n 294) (.n 295) (.n 292)) ::
-  .atom (.mul (.n 296) (.n 3) (.n 29)) ::
-  .atom (.load (.n 297) (.n 296) 0) ::
-  .atom (.const (.n 298) (word 65536 0 0)) ::
-  .atom (.mul (.n 299) (.n 297) (.n 298)) ::
-  .atom (.add (.n 300) (.n 291) (.n 299)) ::
-  .atom (.load (.n 300) (.n 1) 4) ::
-  .atom (.const (.n 301) (word 0 4096 0)) ::
-  .atom (.mul (.n 302) (.n 301) (.n 300)) ::
-  .atom (.add (.n 303) (.n 256) (.n 302)) ::
-  .atom (.const (.n 304) (word 32 0 0)) ::
-  .atom (.mul (.n 305) (.n 258) (.n 304)) ::
-  .atom (.load (.n 305) (.n 2) 4) ::
+  .atom (.const (.n 289) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 29) (.n 290) (.n 291) (.n 292) (.n 289)) ::
+  .atom (.mul (.n 293) (.n 3) (.n 29)) ::
+  .atom (.load (.n 294) (.n 293) 0) ::
+  .atom (.const (.n 295) (word 65536 0 0)) ::
+  .atom (.mul (.n 296) (.n 294) (.n 295)) ::
+  .atom (.add (.n 297) (.n 288) (.n 296)) ::
+  .atom (.load (.n 297) (.n 1) 4) ::
+  .atom (.const (.n 298) (word 0 4096 0)) ::
+  .atom (.mul (.n 299) (.n 298) (.n 297)) ::
+  .atom (.add (.n 300) (.n 254) (.n 299)) ::
+  .atom (.frameAddr (.n 301) (.n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: [])) ::
+  .atom (.load (.n 301) (.n 2) 4) ::
   .atom (.hint (.windowsExp (.n 0) 95 6 1 (.stack [.n 30]))) ::
-  .atom (.const (.n 306) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 30) (.n 307) (.n 308) (.n 309) (.n 306)) ::
-  .atom (.mul (.n 310) (.n 3) (.n 30)) ::
-  .atom (.load (.n 311) (.n 310) 0) ::
+  .atom (.const (.n 302) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 30) (.n 303) (.n 304) (.n 305) (.n 302)) ::
+  .atom (.mul (.n 306) (.n 3) (.n 30)) ::
+  .atom (.load (.n 307) (.n 306) 0) ::
   .atom (.hint (.windowsExp (.n 0) 101 6 1 (.stack [.n 31]))) ::
-  .atom (.const (.n 312) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 31) (.n 313) (.n 314) (.n 315) (.n 312)) ::
-  .atom (.mul (.n 316) (.n 3) (.n 31)) ::
-  .atom (.load (.n 317) (.n 316) 0) ::
-  .atom (.const (.n 318) (word 64 0 0)) ::
-  .atom (.mul (.n 319) (.n 317) (.n 318)) ::
-  .atom (.add (.n 320) (.n 311) (.n 319)) ::
+  .atom (.const (.n 308) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 31) (.n 309) (.n 310) (.n 311) (.n 308)) ::
+  .atom (.mul (.n 312) (.n 3) (.n 31)) ::
+  .atom (.load (.n 313) (.n 312) 0) ::
+  .atom (.const (.n 314) (word 64 0 0)) ::
+  .atom (.mul (.n 315) (.n 313) (.n 314)) ::
+  .atom (.add (.n 316) (.n 307) (.n 315)) ::
   .atom (.hint (.windowsExp (.n 0) 107 3 1 (.stack [.n 32]))) ::
-  .atom (.const (.n 321) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 32) (.n 322) (.n 323) (.n 324) (.n 321)) ::
-  .atom (.mul (.n 325) (.n 3) (.n 32)) ::
-  .atom (.load (.n 326) (.n 325) 0) ::
-  .atom (.const (.n 327) (word 4096 0 0)) ::
-  .atom (.mul (.n 328) (.n 326) (.n 327)) ::
-  .atom (.add (.n 329) (.n 320) (.n 328)) ::
+  .atom (.const (.n 317) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 32) (.n 318) (.n 319) (.n 320) (.n 317)) ::
+  .atom (.mul (.n 321) (.n 3) (.n 32)) ::
+  .atom (.load (.n 322) (.n 321) 0) ::
+  .atom (.const (.n 323) (word 4096 0 0)) ::
+  .atom (.mul (.n 324) (.n 322) (.n 323)) ::
+  .atom (.add (.n 325) (.n 316) (.n 324)) ::
   .atom (.hint (.windowsExp (.n 0) 110 1 1 (.stack [.n 33]))) ::
-  .atom (.const (.n 330) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 33) (.n 331) (.n 332) (.n 333) (.n 330)) ::
-  .atom (.mul (.n 334) (.n 3) (.n 33)) ::
-  .atom (.load (.n 335) (.n 334) 0) ::
-  .atom (.const (.n 336) (word 32768 0 0)) ::
-  .atom (.mul (.n 337) (.n 335) (.n 336)) ::
-  .atom (.add (.n 338) (.n 329) (.n 337)) ::
+  .atom (.const (.n 326) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 33) (.n 327) (.n 328) (.n 329) (.n 326)) ::
+  .atom (.mul (.n 330) (.n 3) (.n 33)) ::
+  .atom (.load (.n 331) (.n 330) 0) ::
+  .atom (.const (.n 332) (word 32768 0 0)) ::
+  .atom (.mul (.n 333) (.n 331) (.n 332)) ::
+  .atom (.add (.n 334) (.n 325) (.n 333)) ::
   .atom (.hint (.windowsExp (.n 0) 111 3 1 (.stack [.n 34]))) ::
-  .atom (.const (.n 339) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 34) (.n 340) (.n 341) (.n 342) (.n 339)) ::
-  .atom (.mul (.n 343) (.n 3) (.n 34)) ::
-  .atom (.load (.n 344) (.n 343) 0) ::
-  .atom (.const (.n 345) (word 65536 0 0)) ::
-  .atom (.mul (.n 346) (.n 344) (.n 345)) ::
-  .atom (.add (.n 347) (.n 338) (.n 346)) ::
-  .atom (.load (.n 347) (.n 1) 5) ::
-  .atom (.const (.n 348) (word 0 2147483648 0)) ::
-  .atom (.mul (.n 349) (.n 348) (.n 347)) ::
-  .atom (.add (.n 350) (.n 303) (.n 349)) ::
-  .atom (.const (.n 351) (word 32 0 0)) ::
-  .atom (.mul (.n 352) (.n 305) (.n 351)) ::
-  .atom (.load (.n 352) (.n 2) 5) ::
+  .atom (.const (.n 335) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 34) (.n 336) (.n 337) (.n 338) (.n 335)) ::
+  .atom (.mul (.n 339) (.n 3) (.n 34)) ::
+  .atom (.load (.n 340) (.n 339) 0) ::
+  .atom (.const (.n 341) (word 65536 0 0)) ::
+  .atom (.mul (.n 342) (.n 340) (.n 341)) ::
+  .atom (.add (.n 343) (.n 334) (.n 342)) ::
+  .atom (.load (.n 343) (.n 1) 5) ::
+  .atom (.const (.n 344) (word 0 2147483648 0)) ::
+  .atom (.mul (.n 345) (.n 344) (.n 343)) ::
+  .atom (.add (.n 346) (.n 300) (.n 345)) ::
+  .atom (.frameAddr (.n 347) [.n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 347) (.n 2) 5) ::
   .atom (.hint (.windowsExp (.n 0) 114 6 1 (.stack [.n 35]))) ::
-  .atom (.const (.n 353) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 35) (.n 354) (.n 355) (.n 356) (.n 353)) ::
-  .atom (.mul (.n 357) (.n 3) (.n 35)) ::
-  .atom (.load (.n 358) (.n 357) 0) ::
+  .atom (.const (.n 348) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 35) (.n 349) (.n 350) (.n 351) (.n 348)) ::
+  .atom (.mul (.n 352) (.n 3) (.n 35)) ::
+  .atom (.load (.n 353) (.n 352) 0) ::
   .atom (.hint (.windowsExp (.n 0) 120 6 1 (.stack [.n 36]))) ::
-  .atom (.const (.n 359) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 36) (.n 360) (.n 361) (.n 362) (.n 359)) ::
-  .atom (.mul (.n 363) (.n 3) (.n 36)) ::
-  .atom (.load (.n 364) (.n 363) 0) ::
-  .atom (.const (.n 365) (word 64 0 0)) ::
-  .atom (.mul (.n 366) (.n 364) (.n 365)) ::
-  .atom (.add (.n 367) (.n 358) (.n 366)) ::
-  .atom (.hint (.windowsExp (.n 0) 126 2 1 (.stack [.n 368]))) ::
-  .atom (.hint (.windowsExp (.n 0) 128 1 1 (.stack [.n 369]))) ::
-  .atom (.const (.n 370) (word 8 0 0)) ::
-  .atom (.rangeCheck (.n 368) (.n 371) (.n 372) (.n 373) (.n 370)) ::
-  .atom (.const (.n 374) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 369) (.n 375) (.n 376) (.n 377) (.n 374)) ::
-  .atom (.mul (.n 378) (.n 369) (.n 369)) ::
-  .atom (.mul (.n 379) (.n 378) (.n 378)) ::
-  .atom (.mul (.n 37) (.n 368) (.n 379)) ::
-  .atom (.mul (.n 380) (.n 3) (.n 368)) ::
-  .atom (.load (.n 381) (.n 380) 0) ::
-  .atom (.mul (.n 382) (.n 3) (.n 369)) ::
-  .atom (.load (.n 383) (.n 382) 0) ::
-  .atom (.const (.n 384) (word 4096 0 0)) ::
-  .atom (.mul (.n 385) (.n 381) (.n 384)) ::
-  .atom (.add (.n 386) (.n 367) (.n 385)) ::
+  .atom (.const (.n 354) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 36) (.n 355) (.n 356) (.n 357) (.n 354)) ::
+  .atom (.mul (.n 358) (.n 3) (.n 36)) ::
+  .atom (.load (.n 359) (.n 358) 0) ::
+  .atom (.const (.n 360) (word 64 0 0)) ::
+  .atom (.mul (.n 361) (.n 359) (.n 360)) ::
+  .atom (.add (.n 362) (.n 353) (.n 361)) ::
+  .atom (.hint (.windowsExp (.n 0) 126 2 1 (.stack [.n 363]))) ::
+  .atom (.hint (.windowsExp (.n 0) 128 1 1 (.stack [.n 364]))) ::
+  .atom (.const (.n 365) (word 8 0 0)) ::
+  .atom (.rangeCheck (.n 363) (.n 366) (.n 367) (.n 368) (.n 365)) ::
+  .atom (.const (.n 369) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 364) (.n 370) (.n 371) (.n 372) (.n 369)) ::
+  .atom (.mul (.n 373) (.n 364) (.n 364)) ::
+  .atom (.mul (.n 374) (.n 373) (.n 373)) ::
+  .atom (.mul (.n 37) (.n 363) (.n 374)) ::
+  .atom (.mul (.n 375) (.n 3) (.n 363)) ::
+  .atom (.load (.n 376) (.n 375) 0) ::
+  .atom (.mul (.n 377) (.n 3) (.n 364)) ::
+  .atom (.load (.n 378) (.n 377) 0) ::
+  .atom (.const (.n 379) (word 4096 0 0)) ::
+  .atom (.mul (.n 380) (.n 376) (.n 379)) ::
+  .atom (.add (.n 381) (.n 362) (.n 380)) ::
   .atom (.hint (.windowsExp (.n 0) 129 1 1 (.stack [.n 38]))) ::
-  .atom (.const (.n 387) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 38) (.n 388) (.n 389) (.n 390) (.n 387)) ::
-  .atom (.mul (.n 391) (.n 3) (.n 38)) ::
-  .atom (.load (.n 392) (.n 391) 0) ::
-  .atom (.const (.n 393) (word 2 0 0)) ::
-  .atom (.mul (.n 394) (.n 392) (.n 393)) ::
-  .atom (.add (.n 395) (.n 383) (.n 394)) ::
+  .atom (.const (.n 382) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 38) (.n 383) (.n 384) (.n 385) (.n 382)) ::
+  .atom (.mul (.n 386) (.n 3) (.n 38)) ::
+  .atom (.load (.n 387) (.n 386) 0) ::
+  .atom (.const (.n 388) (word 2 0 0)) ::
+  .atom (.mul (.n 389) (.n 387) (.n 388)) ::
+  .atom (.add (.n 390) (.n 378) (.n 389)) ::
   .atom (.hint (.windowsExp (.n 0) 130 3 1 (.stack [.n 39]))) ::
-  .atom (.const (.n 396) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 39) (.n 397) (.n 398) (.n 399) (.n 396)) ::
-  .atom (.mul (.n 400) (.n 3) (.n 39)) ::
-  .atom (.load (.n 401) (.n 400) 0) ::
-  .atom (.const (.n 402) (word 4 0 0)) ::
-  .atom (.mul (.n 403) (.n 401) (.n 402)) ::
-  .atom (.add (.n 404) (.n 395) (.n 403)) ::
-  .atom (.const (.n 405) (word 16384 0 0)) ::
-  .atom (.mul (.n 406) (.n 405) (.n 404)) ::
-  .atom (.add (.n 407) (.n 386) (.n 406)) ::
-  .atom (.load (.n 407) (.n 1) 6) ::
-  .atom (.const (.n 408) (word 0 1125899906842624 0)) ::
-  .atom (.mul (.n 409) (.n 408) (.n 386)) ::
-  .atom (.const (.n 410) (word 0 0 1)) ::
-  .atom (.mul (.n 411) (.n 410) (.n 404)) ::
-  .atom (.add (.n 412) (.n 409) (.n 411)) ::
-  .atom (.add (.n 413) (.n 350) (.n 412)) ::
-  .atom (.const (.n 414) (word 32 0 0)) ::
-  .atom (.mul (.n 415) (.n 352) (.n 414)) ::
-  .atom (.load (.n 415) (.n 2) 6) ::
+  .atom (.const (.n 391) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 39) (.n 392) (.n 393) (.n 394) (.n 391)) ::
+  .atom (.mul (.n 395) (.n 3) (.n 39)) ::
+  .atom (.load (.n 396) (.n 395) 0) ::
+  .atom (.const (.n 397) (word 4 0 0)) ::
+  .atom (.mul (.n 398) (.n 396) (.n 397)) ::
+  .atom (.add (.n 399) (.n 390) (.n 398)) ::
+  .atom (.const (.n 400) (word 16384 0 0)) ::
+  .atom (.mul (.n 401) (.n 400) (.n 399)) ::
+  .atom (.add (.n 402) (.n 381) (.n 401)) ::
+  .atom (.load (.n 402) (.n 1) 6) ::
+  .atom (.const (.n 403) (word 0 1125899906842624 0)) ::
+  .atom (.mul (.n 404) (.n 403) (.n 381)) ::
+  .atom (.const (.n 405) (word 0 0 1)) ::
+  .atom (.mul (.n 406) (.n 405) (.n 399)) ::
+  .atom (.add (.n 407) (.n 404) (.n 406)) ::
+  .atom (.add (.n 408) (.n 346) (.n 407)) ::
+  .atom (.frameAddr (.n 409) [.n 35, .n 36, .n 37, .n 38, .n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 409) (.n 2) 6) ::
   .atom (.hint (.windowsExp (.n 0) 133 6 1 (.stack [.n 40]))) ::
-  .atom (.const (.n 416) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 40) (.n 417) (.n 418) (.n 419) (.n 416)) ::
-  .atom (.mul (.n 420) (.n 3) (.n 40)) ::
-  .atom (.load (.n 421) (.n 420) 0) ::
+  .atom (.const (.n 410) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 40) (.n 411) (.n 412) (.n 413) (.n 410)) ::
+  .atom (.mul (.n 414) (.n 3) (.n 40)) ::
+  .atom (.load (.n 415) (.n 414) 0) ::
   .atom (.hint (.windowsExp (.n 0) 139 6 1 (.stack [.n 41]))) ::
-  .atom (.const (.n 422) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 41) (.n 423) (.n 424) (.n 425) (.n 422)) ::
-  .atom (.mul (.n 426) (.n 3) (.n 41)) ::
-  .atom (.load (.n 427) (.n 426) 0) ::
-  .atom (.const (.n 428) (word 64 0 0)) ::
-  .atom (.mul (.n 429) (.n 427) (.n 428)) ::
-  .atom (.add (.n 430) (.n 421) (.n 429)) ::
+  .atom (.const (.n 416) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 41) (.n 417) (.n 418) (.n 419) (.n 416)) ::
+  .atom (.mul (.n 420) (.n 3) (.n 41)) ::
+  .atom (.load (.n 421) (.n 420) 0) ::
+  .atom (.const (.n 422) (word 64 0 0)) ::
+  .atom (.mul (.n 423) (.n 421) (.n 422)) ::
+  .atom (.add (.n 424) (.n 415) (.n 423)) ::
   .atom (.hint (.windowsExp (.n 0) 145 3 1 (.stack [.n 42]))) ::
-  .atom (.const (.n 431) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 42) (.n 432) (.n 433) (.n 434) (.n 431)) ::
-  .atom (.mul (.n 435) (.n 3) (.n 42)) ::
-  .atom (.load (.n 436) (.n 435) 0) ::
-  .atom (.const (.n 437) (word 4096 0 0)) ::
-  .atom (.mul (.n 438) (.n 436) (.n 437)) ::
-  .atom (.add (.n 439) (.n 430) (.n 438)) ::
+  .atom (.const (.n 425) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 42) (.n 426) (.n 427) (.n 428) (.n 425)) ::
+  .atom (.mul (.n 429) (.n 3) (.n 42)) ::
+  .atom (.load (.n 430) (.n 429) 0) ::
+  .atom (.const (.n 431) (word 4096 0 0)) ::
+  .atom (.mul (.n 432) (.n 430) (.n 431)) ::
+  .atom (.add (.n 433) (.n 424) (.n 432)) ::
   .atom (.hint (.windowsExp (.n 0) 148 1 1 (.stack [.n 43]))) ::
-  .atom (.const (.n 440) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 43) (.n 441) (.n 442) (.n 443) (.n 440)) ::
-  .atom (.mul (.n 444) (.n 3) (.n 43)) ::
-  .atom (.load (.n 445) (.n 444) 0) ::
-  .atom (.const (.n 446) (word 32768 0 0)) ::
-  .atom (.mul (.n 447) (.n 445) (.n 446)) ::
-  .atom (.add (.n 448) (.n 439) (.n 447)) ::
+  .atom (.const (.n 434) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 43) (.n 435) (.n 436) (.n 437) (.n 434)) ::
+  .atom (.mul (.n 438) (.n 3) (.n 43)) ::
+  .atom (.load (.n 439) (.n 438) 0) ::
+  .atom (.const (.n 440) (word 32768 0 0)) ::
+  .atom (.mul (.n 441) (.n 439) (.n 440)) ::
+  .atom (.add (.n 442) (.n 433) (.n 441)) ::
   .atom (.hint (.windowsExp (.n 0) 149 3 1 (.stack [.n 44]))) ::
-  .atom (.const (.n 449) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 44) (.n 450) (.n 451) (.n 452) (.n 449)) ::
-  .atom (.mul (.n 453) (.n 3) (.n 44)) ::
-  .atom (.load (.n 454) (.n 453) 0) ::
-  .atom (.const (.n 455) (word 65536 0 0)) ::
-  .atom (.mul (.n 456) (.n 454) (.n 455)) ::
-  .atom (.add (.n 457) (.n 448) (.n 456)) ::
-  .atom (.load (.n 457) (.n 1) 7) ::
-  .atom (.const (.n 458) (word 0 0 32)) ::
-  .atom (.mul (.n 459) (.n 458) (.n 457)) ::
-  .atom (.add (.n 460) (.n 413) (.n 459)) ::
-  .atom (.const (.n 461) (word 32 0 0)) ::
-  .atom (.mul (.n 462) (.n 415) (.n 461)) ::
-  .atom (.load (.n 462) (.n 2) 7) ::
+  .atom (.const (.n 443) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 44) (.n 444) (.n 445) (.n 446) (.n 443)) ::
+  .atom (.mul (.n 447) (.n 3) (.n 44)) ::
+  .atom (.load (.n 448) (.n 447) 0) ::
+  .atom (.const (.n 449) (word 65536 0 0)) ::
+  .atom (.mul (.n 450) (.n 448) (.n 449)) ::
+  .atom (.add (.n 451) (.n 442) (.n 450)) ::
+  .atom (.load (.n 451) (.n 1) 7) ::
+  .atom (.const (.n 452) (word 0 0 32)) ::
+  .atom (.mul (.n 453) (.n 452) (.n 451)) ::
+  .atom (.add (.n 454) (.n 408) (.n 453)) ::
+  .atom (.frameAddr (.n 455) [.n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 455) (.n 2) 7) ::
   .atom (.hint (.windowsExp (.n 0) 152 6 1 (.stack [.n 45]))) ::
-  .atom (.const (.n 463) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 45) (.n 464) (.n 465) (.n 466) (.n 463)) ::
-  .atom (.mul (.n 467) (.n 3) (.n 45)) ::
-  .atom (.load (.n 468) (.n 467) 0) ::
+  .atom (.const (.n 456) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 45) (.n 457) (.n 458) (.n 459) (.n 456)) ::
+  .atom (.mul (.n 460) (.n 3) (.n 45)) ::
+  .atom (.load (.n 461) (.n 460) 0) ::
   .atom (.hint (.windowsExp (.n 0) 158 6 1 (.stack [.n 46]))) ::
-  .atom (.const (.n 469) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 46) (.n 470) (.n 471) (.n 472) (.n 469)) ::
-  .atom (.mul (.n 473) (.n 3) (.n 46)) ::
-  .atom (.load (.n 474) (.n 473) 0) ::
-  .atom (.const (.n 475) (word 64 0 0)) ::
-  .atom (.mul (.n 476) (.n 474) (.n 475)) ::
-  .atom (.add (.n 477) (.n 468) (.n 476)) ::
+  .atom (.const (.n 462) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 46) (.n 463) (.n 464) (.n 465) (.n 462)) ::
+  .atom (.mul (.n 466) (.n 3) (.n 46)) ::
+  .atom (.load (.n 467) (.n 466) 0) ::
+  .atom (.const (.n 468) (word 64 0 0)) ::
+  .atom (.mul (.n 469) (.n 467) (.n 468)) ::
+  .atom (.add (.n 470) (.n 461) (.n 469)) ::
   .atom (.hint (.windowsExp (.n 0) 164 3 1 (.stack [.n 47]))) ::
-  .atom (.const (.n 478) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 47) (.n 479) (.n 480) (.n 481) (.n 478)) ::
-  .atom (.mul (.n 482) (.n 3) (.n 47)) ::
-  .atom (.load (.n 483) (.n 482) 0) ::
-  .atom (.const (.n 484) (word 4096 0 0)) ::
-  .atom (.mul (.n 485) (.n 483) (.n 484)) ::
-  .atom (.add (.n 486) (.n 477) (.n 485)) ::
+  .atom (.const (.n 471) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 47) (.n 472) (.n 473) (.n 474) (.n 471)) ::
+  .atom (.mul (.n 475) (.n 3) (.n 47)) ::
+  .atom (.load (.n 476) (.n 475) 0) ::
+  .atom (.const (.n 477) (word 4096 0 0)) ::
+  .atom (.mul (.n 478) (.n 476) (.n 477)) ::
+  .atom (.add (.n 479) (.n 470) (.n 478)) ::
   .atom (.hint (.windowsExp (.n 0) 167 1 1 (.stack [.n 48]))) ::
-  .atom (.const (.n 487) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 48) (.n 488) (.n 489) (.n 490) (.n 487)) ::
-  .atom (.mul (.n 491) (.n 3) (.n 48)) ::
-  .atom (.load (.n 492) (.n 491) 0) ::
-  .atom (.const (.n 493) (word 32768 0 0)) ::
-  .atom (.mul (.n 494) (.n 492) (.n 493)) ::
-  .atom (.add (.n 495) (.n 486) (.n 494)) ::
+  .atom (.const (.n 480) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 48) (.n 481) (.n 482) (.n 483) (.n 480)) ::
+  .atom (.mul (.n 484) (.n 3) (.n 48)) ::
+  .atom (.load (.n 485) (.n 484) 0) ::
+  .atom (.const (.n 486) (word 32768 0 0)) ::
+  .atom (.mul (.n 487) (.n 485) (.n 486)) ::
+  .atom (.add (.n 488) (.n 479) (.n 487)) ::
   .atom (.hint (.windowsExp (.n 0) 168 3 1 (.stack [.n 49]))) ::
-  .atom (.const (.n 496) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 49) (.n 497) (.n 498) (.n 499) (.n 496)) ::
-  .atom (.mul (.n 500) (.n 3) (.n 49)) ::
-  .atom (.load (.n 501) (.n 500) 0) ::
-  .atom (.const (.n 502) (word 65536 0 0)) ::
-  .atom (.mul (.n 503) (.n 501) (.n 502)) ::
-  .atom (.add (.n 504) (.n 495) (.n 503)) ::
-  .atom (.load (.n 504) (.n 1) 8) ::
-  .atom (.const (.n 505) (word 0 0 16777216)) ::
-  .atom (.mul (.n 506) (.n 505) (.n 504)) ::
-  .atom (.add (.n 507) (.n 460) (.n 506)) ::
-  .atom (.const (.n 508) (word 32 0 0)) ::
-  .atom (.mul (.n 509) (.n 462) (.n 508)) ::
-  .atom (.load (.n 509) (.n 2) 8) ::
+  .atom (.const (.n 489) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 49) (.n 490) (.n 491) (.n 492) (.n 489)) ::
+  .atom (.mul (.n 493) (.n 3) (.n 49)) ::
+  .atom (.load (.n 494) (.n 493) 0) ::
+  .atom (.const (.n 495) (word 65536 0 0)) ::
+  .atom (.mul (.n 496) (.n 494) (.n 495)) ::
+  .atom (.add (.n 497) (.n 488) (.n 496)) ::
+  .atom (.load (.n 497) (.n 1) 8) ::
+  .atom (.const (.n 498) (word 0 0 16777216)) ::
+  .atom (.mul (.n 499) (.n 498) (.n 497)) ::
+  .atom (.add (.n 500) (.n 454) (.n 499)) ::
+  .atom (.frameAddr (.n 501) [.n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 501) (.n 2) 8) ::
   .atom (.hint (.windowsExp (.n 0) 171 6 1 (.stack [.n 50]))) ::
-  .atom (.const (.n 510) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 50) (.n 511) (.n 512) (.n 513) (.n 510)) ::
-  .atom (.mul (.n 514) (.n 3) (.n 50)) ::
-  .atom (.load (.n 515) (.n 514) 0) ::
+  .atom (.const (.n 502) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 50) (.n 503) (.n 504) (.n 505) (.n 502)) ::
+  .atom (.mul (.n 506) (.n 3) (.n 50)) ::
+  .atom (.load (.n 507) (.n 506) 0) ::
   .atom (.hint (.windowsExp (.n 0) 177 6 1 (.stack [.n 51]))) ::
-  .atom (.const (.n 516) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 51) (.n 517) (.n 518) (.n 519) (.n 516)) ::
-  .atom (.mul (.n 520) (.n 3) (.n 51)) ::
-  .atom (.load (.n 521) (.n 520) 0) ::
-  .atom (.const (.n 522) (word 64 0 0)) ::
-  .atom (.mul (.n 523) (.n 521) (.n 522)) ::
-  .atom (.add (.n 524) (.n 515) (.n 523)) ::
+  .atom (.const (.n 508) (word 9223372036854775808 0 0)) ::
+  .atom (.rangeCheck (.n 51) (.n 509) (.n 510) (.n 511) (.n 508)) ::
+  .atom (.mul (.n 512) (.n 3) (.n 51)) ::
+  .atom (.load (.n 513) (.n 512) 0) ::
+  .atom (.const (.n 514) (word 64 0 0)) ::
+  .atom (.mul (.n 515) (.n 513) (.n 514)) ::
+  .atom (.add (.n 516) (.n 507) (.n 515)) ::
   .atom (.hint (.windowsExp (.n 0) 183 3 1 (.stack [.n 52]))) ::
-  .atom (.const (.n 525) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 52) (.n 526) (.n 527) (.n 528) (.n 525)) ::
-  .atom (.mul (.n 529) (.n 3) (.n 52)) ::
-  .atom (.load (.n 530) (.n 529) 0) ::
-  .atom (.const (.n 531) (word 4096 0 0)) ::
-  .atom (.mul (.n 532) (.n 530) (.n 531)) ::
-  .atom (.add (.n 533) (.n 524) (.n 532)) ::
+  .atom (.const (.n 517) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 52) (.n 518) (.n 519) (.n 520) (.n 517)) ::
+  .atom (.mul (.n 521) (.n 3) (.n 52)) ::
+  .atom (.load (.n 522) (.n 521) 0) ::
+  .atom (.const (.n 523) (word 4096 0 0)) ::
+  .atom (.mul (.n 524) (.n 522) (.n 523)) ::
+  .atom (.add (.n 525) (.n 516) (.n 524)) ::
   .atom (.hint (.windowsExp (.n 0) 186 1 1 (.stack [.n 53]))) ::
-  .atom (.const (.n 534) (word 2 0 0)) ::
-  .atom (.rangeCheck (.n 53) (.n 535) (.n 536) (.n 537) (.n 534)) ::
-  .atom (.mul (.n 538) (.n 3) (.n 53)) ::
-  .atom (.load (.n 539) (.n 538) 0) ::
-  .atom (.const (.n 540) (word 32768 0 0)) ::
-  .atom (.mul (.n 541) (.n 539) (.n 540)) ::
-  .atom (.add (.n 542) (.n 533) (.n 541)) ::
+  .atom (.const (.n 526) (word 2 0 0)) ::
+  .atom (.rangeCheck (.n 53) (.n 527) (.n 528) (.n 529) (.n 526)) ::
+  .atom (.mul (.n 530) (.n 3) (.n 53)) ::
+  .atom (.load (.n 531) (.n 530) 0) ::
+  .atom (.const (.n 532) (word 32768 0 0)) ::
+  .atom (.mul (.n 533) (.n 531) (.n 532)) ::
+  .atom (.add (.n 534) (.n 525) (.n 533)) ::
   .atom (.hint (.windowsExp (.n 0) 187 3 1 (.stack [.n 54]))) ::
-  .atom (.const (.n 543) (word 128 0 0)) ::
-  .atom (.rangeCheck (.n 54) (.n 544) (.n 545) (.n 546) (.n 543)) ::
-  .atom (.mul (.n 547) (.n 3) (.n 54)) ::
-  .atom (.load (.n 548) (.n 547) 0) ::
-  .atom (.const (.n 549) (word 65536 0 0)) ::
-  .atom (.mul (.n 550) (.n 548) (.n 549)) ::
-  .atom (.add (.n 551) (.n 542) (.n 550)) ::
-  .atom (.load (.n 551) (.n 1) 9) ::
-  .atom (.const (.n 552) (word 0 0 8796093022208)) ::
-  .atom (.mul (.n 553) (.n 552) (.n 551)) ::
-  .atom (.add (.n 554) (.n 507) (.n 553)) ::
-  .atom (.const (.n 555) (word 32 0 0)) ::
-  .atom (.mul (.n 556) (.n 509) (.n 555)) ::
-  .atom (.load (.n 556) (.n 2) 9) ::
-  .atom (.hint (.windowsExp (.n 0) 190 2 1 (.stack [.n 557]))) ::
-  .atom (.const (.n 558) (word 8 0 0)) ::
-  .atom (.rangeCheck (.n 557) (.n 559) (.n 560) (.n 561) (.n 558)) ::
-  .atom (.mul (.n 562) (.n 3) (.n 557)) ::
-  .atom (.load (.n 563) (.n 562) 0) ::
-  .atom (.const (.n 564) (word 0 0 4611686018427387904)) ::
-  .atom (.mul (.n 565) (.n 563) (.n 564)) ::
-  .atom (.add (.n 566) (.n 554) (.n 565)) ::
-  .atom (.assertEq (.n 566) (.n 0)) ::
+  .atom (.const (.n 535) (word 128 0 0)) ::
+  .atom (.rangeCheck (.n 54) (.n 536) (.n 537) (.n 538) (.n 535)) ::
+  .atom (.mul (.n 539) (.n 3) (.n 54)) ::
+  .atom (.load (.n 540) (.n 539) 0) ::
+  .atom (.const (.n 541) (word 65536 0 0)) ::
+  .atom (.mul (.n 542) (.n 540) (.n 541)) ::
+  .atom (.add (.n 543) (.n 534) (.n 542)) ::
+  .atom (.load (.n 543) (.n 1) 9) ::
+  .atom (.const (.n 544) (word 0 0 8796093022208)) ::
+  .atom (.mul (.n 545) (.n 544) (.n 543)) ::
+  .atom (.add (.n 546) (.n 500) (.n 545)) ::
+  .atom (.frameAddr (.n 547) [.n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60]) ::
+  .atom (.load (.n 547) (.n 2) 9) ::
+  .atom (.hint (.windowsExp (.n 0) 190 2 1 (.stack [.n 548]))) ::
+  .atom (.const (.n 549) (word 8 0 0)) ::
+  .atom (.rangeCheck (.n 548) (.n 550) (.n 551) (.n 552) (.n 549)) ::
+  .atom (.mul (.n 553) (.n 3) (.n 548)) ::
+  .atom (.load (.n 554) (.n 553) 0) ::
+  .atom (.const (.n 555) (word 0 0 4611686018427387904)) ::
+  .atom (.mul (.n 556) (.n 554) (.n 555)) ::
+  .atom (.add (.n 557) (.n 546) (.n 556)) ::
+  .atom (.assertEq (.n 557) (.n 0)) ::
   .ret [] ::
   [])
+
+/-- `decode_query_windows__L19_L4`: the body. -/
+noncomputable def body : List Core.Stmt := c0
 
 end core908
 

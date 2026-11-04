@@ -16,29 +16,26 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `grind_check__L17`, window 0, part 0. -/
+/-- `da_levels__L256_L8`, window 0, part 0. -/
 theorem cw401_0_0 : cplWin 401 0 0 = true := by decide +kernel
 
-/-- `__loop37`, window 0, part 0. -/
+/-- `da_levels__L512_L9`, window 0, part 0. -/
 theorem cw402_0_0 : cplWin 402 0 0 = true := by decide +kernel
 
-/-- `opening_row_weights__L6_L1`, window 0, part 0. -/
+/-- `da_levels__L1024_L10`, window 0, part 0. -/
 theorem cw403_0_0 : cplWin 403 0 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L8`, window 0, part 0. -/
+/-- `da_expand__L7_L8`, window 0, part 0. -/
 theorem cw404_0_0 : cplWin 404 0 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L8`, window 1, part 0. -/
+/-- `da_expand__L7_L8`, window 1, part 0. -/
 theorem cw404_1_0 : cplWin 404 1 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L8`, window 2, part 0. -/
-theorem cw404_2_0 : cplWin 404 2 0 = true := by decide +kernel
+/-- `__loop25`, window 0, part 0. -/
+theorem cw405_0_0 : cplWin 405 0 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L8`, window 3, part 0. -/
-theorem cw404_3_0 : cplWin 404 3 0 = true := by decide +kernel
-
-/-- `verify_merkle_cap__L8`, window 4, part 0. -/
-theorem cw404_4_0 : cplWin 404 4 0 = true := by decide +kernel
+/-- `da_factors__L14_L7_L0`, window 0, part 0. -/
+theorem cw406_0_0 : cplWin 406 0 0 = true := by decide +kernel
 
 theorem ok401 : CplOk 401 := by
   intro i hi k hk
@@ -69,6 +66,40 @@ theorem ok403 : CplOk 403 := by
     rw [hn] at hk
     interval_cases k
     · exact cw403_0_0
+
+theorem ok404 : CplOk 404 := by
+  intro i hi k hk
+  have hc : (certOf 404).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 404 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw404_0_0
+  · have hn : nParts 404 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw404_1_0
+
+theorem ok405 : CplOk 405 := by
+  intro i hi k hk
+  have hc : (certOf 405).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 405 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw405_0_0
+
+theorem ok406 : CplOk 406 := by
+  intro i hi k hk
+  have hc : (certOf 406).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 406 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw406_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

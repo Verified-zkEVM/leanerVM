@@ -12,6 +12,18 @@ public import LeanVM.Guest.Data.Cert01
 public import LeanVM.Guest.Data.Cert02
 public import LeanVM.Guest.Data.Cert03
 public import LeanVM.Guest.Data.Cert04
+public import LeanVM.Guest.Data.Cert05
+public import LeanVM.Guest.Data.Cert06
+public import LeanVM.Guest.Data.Cert07
+public import LeanVM.Guest.Data.Cert08
+public import LeanVM.Guest.Data.Cert09
+public import LeanVM.Guest.Data.Cert10
+public import LeanVM.Guest.Data.Cert11
+public import LeanVM.Guest.Data.Cert12
+public import LeanVM.Guest.Data.Cert13
+public import LeanVM.Guest.Data.Cert14
+public import LeanVM.Guest.Data.Cert15
+public import LeanVM.Guest.Data.Cert16
 
 namespace LeanVM.Guest.Data
 
@@ -88,7 +100,11 @@ noncomputable def certs : List Check.Cert :=
   cert832 :: cert833 :: cert834 :: cert835 :: cert836 :: cert837 :: cert838 :: cert839 :: cert840 :: cert841 :: cert842 :: cert843 :: cert844 :: cert845 :: cert846 :: cert847 ::
   cert848 :: cert849 :: cert850 :: cert851 :: cert852 :: cert853 :: cert854 :: cert855 :: cert856 :: cert857 :: cert858 :: cert859 :: cert860 :: cert861 :: cert862 :: cert863 ::
   cert864 :: cert865 :: cert866 :: cert867 :: cert868 :: cert869 :: cert870 :: cert871 :: cert872 :: cert873 :: cert874 :: cert875 :: cert876 :: cert877 :: cert878 :: cert879 ::
-  cert880 :: cert881 :: cert882 :: cert883 :: cert884 :: []
+  cert880 :: cert881 :: cert882 :: cert883 :: cert884 :: cert885 :: cert886 :: cert887 :: cert888 :: cert889 :: cert890 :: cert891 :: cert892 :: cert893 :: cert894 :: cert895 ::
+  cert896 :: cert897 :: cert898 :: cert899 :: cert900 :: cert901 :: cert902 :: cert903 :: cert904 :: cert905 :: cert906 :: cert907 :: cert908 :: cert909 :: cert910 :: cert911 ::
+  cert912 :: cert913 :: cert914 :: cert915 :: cert916 :: cert917 :: cert918 :: cert919 :: cert920 :: cert921 :: cert922 :: cert923 :: cert924 :: cert925 :: cert926 :: cert927 ::
+  cert928 :: cert929 :: cert930 :: cert931 :: cert932 :: cert933 :: cert934 :: cert935 :: cert936 :: cert937 :: cert938 :: cert939 :: cert940 :: cert941 :: cert942 :: cert943 ::
+  cert944 :: cert945 :: cert946 :: cert947 :: []
 
 end
 end LeanVM.Guest.Data
