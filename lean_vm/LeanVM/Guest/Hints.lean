@@ -79,9 +79,13 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `CLAIM_GROUP` (`aggregation.rs:167`): the claims a claim list's digest absorbs per loop
-frame. -/
+/-- `CLAIM_GROUP` (`aggregation.rs:167`): the claims a claim list's digest absorbs per
+group. -/
 def claimGroup : ℕ := 17
+
+/-- `CLAIM_BIG` (`aggregation.rs:170-171`): the claims the main list loop absorbs per frame,
+`BIG_GROUPS = 8` groups. -/
+def claimBig : ℕ := claimGroup * 8
 
 /-- `DIGIT_GROUP` (`aggregation.rs:96`): the codeword digits the guest dispatches on at a time. -/
 def digitGroup : ℕ := 3
@@ -116,9 +120,10 @@ def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
 def exponentBytes (value bits : ℕ) : Entry :=
   (List.range ((bits + 7) / 8)).map fun k ↦ count (value / 2 ^ (8 * k) % 256)
 
-/-- How a list of `n` claims splits into whole groups of `claimGroup` and the rest
-(`list_split`, `aggregation.rs:175-178`). -/
-def listSplit (n : ℕ) : Entry := [count (n / claimGroup), count (n % claimGroup)]
+/-- How a list of `n` claims splits into whole frames of `claimBig`, then whole groups of
+`claimGroup`, then the rest (`list_split`, `aggregation.rs:178-186`). -/
+def listSplit (n : ℕ) : Entry :=
+  [count (n / claimBig), count (n % claimBig / claimGroup), count (n % claimBig % claimGroup)]
 
 /-- A list's split, if it is not empty, then one push per item. -/
 def listPushes (item : String) (entries : List Entry) : List (String × Entry) :=
@@ -329,26 +334,57 @@ def blockOrder (sizes : List ℕ) : List ℕ :=
   let offsets := (stackOffsets sizes).1
   (List.range sizes.length).mergeSort fun i j ↦ offsets.getD i 0 ≤ offsets.getD j 0
 
-/-- Every side's blocks in layout order, each block as `g` to its index over the three sides
-(`sort_order`): push and pull after the framework's three blocks, then count. -/
-def sortOrder (layout : Layout) : Entry :=
+/-- A list with each run of equal neighbours kept once. -/
+def runHeads : List ℕ → List ℕ
+  | a :: b :: l => if a = b then runHeads (b :: l) else a :: runHeads (b :: l)
+  | l => l
+
+/-- The group of each key of a run, numbered from `next`: a group is a maximal run of one key
+(`block_groups`, `col_groups`, `aggregation.rs:1029-1040`). -/
+def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
+  | _, _, [] => []
+  | next, prev, k :: ks =>
+      if prev = some k then (next - 1) :: runGroups next prev ks
+      else next :: runGroups (next + 1) (some k) ks
+
+/-- A bus block's kappa source, as a key (`block_kappa_sources`, `layout.rs:247-264`): the
+framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's block its table. -/
+def blockKey (b : BusBlock) : ℕ := 3 + b.owner
+
+/-- Every side's block groups in layout order, each as `g` to its index over the three sides,
+once per group, whose blocks are consecutive (`block_group_order`, `aggregation.rs:1185-1216`):
+push and pull after the framework's three blocks, then count; a group is a maximal run of blocks
+of one kappa source within a side. -/
+def blockGroupOrder (layout : Layout) : Entry :=
   let framework := [0, layout.logMemory, layout.logBytecode]
-  let sides := [framework ++ layout.push.map (·.logRows), framework ++ layout.pull.map (·.logRows),
-    layout.count.map (·.logRows)]
-  (sides.foldl (fun (acc : Entry × ℕ) sizes ↦
-    (acc.1 ++ (blockOrder sizes).map (count <| acc.2 + ·), acc.2 + sizes.length)) ([], 0)).1
+  let sides := [(framework ++ layout.push.map (·.logRows), [0, 1, 2] ++ layout.push.map blockKey),
+    (framework ++ layout.pull.map (·.logRows), [0, 1, 2] ++ layout.pull.map blockKey),
+    (layout.count.map (·.logRows), layout.count.map blockKey)]
+  (sides.foldl (fun (acc : Entry × ℕ) side ↦
+    let groups := runGroups acc.2 none side.2
+    (acc.1 ++ (runHeads ((blockOrder side.1).map (groups.getD · 0))).map count,
+      acc.2 + (runHeads groups).length)) ([], 0)).1
 
 /-- The committed columns: every global column but the `KECCAK` value lanes. -/
 def committedColumns (layout : Layout) : List ℕ :=
   (List.range layout.placements.length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
-/-- The committed columns in stack order, each as `g` to its index among them
-(`col_sort_order`). -/
-def colSortOrder (layout : Layout) : Entry :=
+/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs:211-239`): the
+memory's columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a table's
+columns their table. -/
+def colKey (c : ℕ) : ℕ :=
+  if c < 4 then 0 else if c < 6 then c - 3 else 3 + (globalColumnBases.filter (· ≤ c)).length
+
+/-- The committed columns' groups in stack order, each as `g` to its index, once per group,
+whose columns are consecutive (`col_group_order`, `aggregation.rs:1221-1249`): a group is a
+maximal run of committed columns, in their order, of one kappa source. -/
+def colGroupOrder (layout : Layout) : Entry :=
   let columns := committedColumns layout
+  let groups := runGroups 0 none (columns.map colKey)
   let offset := fun i ↦ (layout.placement (columns.getD i 0)).index
-  ((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map count
+  (runHeads (((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map
+    (groups.getD · 0))).map count
 
 /-- A child's hints (`gen_verify`): its proof stream, padded; its claim's value; the Merkle caps;
 the tables' log heights; the two layout orders; and every query's leaf and path. -/
@@ -361,10 +397,31 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
       ("bytecode_val", [c.freshClaim.bytecodeValue]),
       ("merkle_caps", caps), ("merkle_cap_active", active),
       ("zc_tau_max", [count (layout.tableLogHeights.foldl max 0)]),
-      ("table_logs", layout.tableLogHeights.map count), ("col_sort_order", colSortOrder layout),
-      ("sort_order", sortOrder layout)] ++ queries
+      ("table_logs", layout.tableLogHeights.map count),
+      ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++
+      queries
 
 /-! ## The node (`aggregate_with_stats`) -/
+
+/-- Whether a list is strictly increasing (`is_sorted_by(a < b)`). -/
+def increasing : List ℕ → Bool
+  | a :: b :: l => a < b && increasing (b :: l)
+  | _ => true
+
+/-- The gaps between strictly increasing slots, each from the slot after the previous one. -/
+def slotGaps : ℕ → List ℕ → List ℕ
+  | _, [] => []
+  | next, o :: os => (o - next) :: slotGaps (o + 1) os
+
+/-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
+flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
+(`aggregation.rs:1821-1840`). -/
+def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
+  if offsets = [] then [] else
+    ("signers_split", listSplit offsets.length) ::
+      if increasing offsets then
+        ("child_mono", [count 1]) :: (slotGaps 0 offsets).map fun d ↦ ("child_claim_gap", [count d])
+      else ("child_mono", [count 0]) :: offsets.map fun o ↦ ("child_claim_index", [count o])
 
 /-- The batching's hints: the sumcheck's rounds and the bytecode's value at its end. -/
 def batchPushes (h : BatchingHints) : List (String × Entry) :=
@@ -387,7 +444,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
   let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
-  let slots := fun (offsets : List ℕ) ↦ listPushes "child_claim_index" (offsets.map ([count ·]))
+  let slots := fun (offsets : List ℕ) ↦ childSlotPushes offsets
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
       count w.children.length, count ((w.daMatrix.map fun _ ↦ 1).getD 0)]),

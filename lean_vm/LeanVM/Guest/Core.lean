@@ -101,6 +101,14 @@ inductive Hint where
   | bits (value : V) (start nbits : Nat) (dest : Dest)
   /-- The `nbits` low bits of `n`, where `value = g^n`. -/
   | bitsExp (value : V) (nbits : Nat) (dest : Dest)
+  /-- `g^d` for each of the `ndigits` base-`2^digitBits` digits `d` of `n >> s`, low first,
+  where `value = g^n` with `n < 2^nbits` and `s` is `start` or, given `startCell = g^s`, its
+  exponent (`DigitDecomposeExp`). -/
+  | digitsExp (value : V) (nbits ndigits digitBits start : Nat) (startCell : Option V)
+      (dest : Dest)
+  /-- `g^w` for each of `count` windows `w` of `width` bits of a word, from bit `start` on
+  (`WindowsExp`; its `at` is folded into `dest`). -/
+  | windowsExp (value : V) (start width count : Nat) (dest : Dest)
   /-- The first limbs of a word. -/
   | limbs (value : V) (dest : List V)
   /-- `g^max(⌈log₂ v⌉, floor)` for the value `v` of `nbits` bits. -/

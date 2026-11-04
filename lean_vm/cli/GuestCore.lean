@@ -13,7 +13,7 @@ each function's values (`Fn.renumber`: value `n` is `V.n n = ⟨[], 0, n⟩`, wr
 named by position: `c3` is chunk 3 of the body, `s40_a3` arm 3 of statement 40 (`_t`, `_e` the
 branches of an `if`), `s40_a3_c0` a chunk of that arm. `lake exe guest-core --check` writes
 nothing and fails when the files differ; `lake exe guest-core --values f` prints the expansion's
-name of each value of the function `f`. Run it from `lean_vm`.
+name of each value of the function `f`, and `--show f` the function, renumbered. Run it from `lean_vm`.
 -/
 
 open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
@@ -74,6 +74,12 @@ def pHint : Hint → String
   | .witness s d => s!"(.witness {s.quote} {pDest d})"
   | .bits v st n d => s!"(.bits {pV v} {st} {n} {pDest d})"
   | .bitsExp v n d => s!"(.bitsExp {pV v} {n} {pDest d})"
+  | .digitsExp v nb nd db st sc d =>
+      let psc := match sc with
+        | some c => s!"(some {pV c})"
+        | none => "none"
+      s!"(.digitsExp {pV v} {nb} {nd} {db} {st} {psc} {pDest d})"
+  | .windowsExp v st w n d => s!"(.windowsExp {pV v} {st} {w} {n} {pDest d})"
   | .limbs v d => s!"(.limbs {pV v} {pVs d})"
   | .log2Ceil b n fl dst => s!"(.log2Ceil {pDest b} {n} {fl} {pV dst})"
   | .inverse x d => s!"(.inverse {pV x} {pV d})"
@@ -388,9 +394,13 @@ def main (args : List String) : IO UInt32 := do
     for (v, n) in f.numbering.2.toList.zipIdx do
       IO.println s!"{n}: {Interp.showV v}"
     return 0
+  if let ["--show", name] := args then
+    let some f := P.find? name | do IO.eprintln s!"no function {name}"; return 1
+    IO.println (Interp.showFn f.renumber)
+    return 0
   let check := args == ["--check"]
   unless args.isEmpty || check do
-    IO.eprintln "usage: guest-core [--check | --values FUNCTION]"
+    IO.eprintln "usage: guest-core [--check | --values FUNCTION | --show FUNCTION]"
     return 2
   unless ← dataDir.isDir do
     IO.eprintln s!"{dataDir} not found: run from lean_vm"

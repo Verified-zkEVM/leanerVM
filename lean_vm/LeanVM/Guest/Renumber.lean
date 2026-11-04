@@ -40,6 +40,8 @@ def Hint.rename (r : V → V) : Hint → Hint
   | .witness s d => .witness s (d.rename r)
   | .bits v st n d => .bits (r v) st n (d.rename r)
   | .bitsExp v n d => .bitsExp (r v) n (d.rename r)
+  | .digitsExp v nb nd db st sc d => .digitsExp (r v) nb nd db st (sc.map r) (d.rename r)
+  | .windowsExp v st w n d => .windowsExp (r v) st w n (d.rename r)
   | .limbs v d => .limbs (r v) (d.map r)
   | .log2Ceil b n fl dst => .log2Ceil (b.rename r) n fl (r dst)
   | .inverse x d => .inverse (r x) (r d)
@@ -146,7 +148,8 @@ def Dest.vals : Dest → List V
 
 def Hint.vals : Hint → List V
   | .witness _ d => d.vals
-  | .bits v _ _ d | .bitsExp v _ d => v :: d.vals
+  | .bits v _ _ d | .bitsExp v _ d | .windowsExp v _ _ _ d => v :: d.vals
+  | .digitsExp v _ _ _ _ sc d => v :: sc.toList ++ d.vals
   | .limbs v d => v :: d
   | .log2Ceil b _ _ dst => b.vals ++ [dst]
   | .inverse x d => [x, d]

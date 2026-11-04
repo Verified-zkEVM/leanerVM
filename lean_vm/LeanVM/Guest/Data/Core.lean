@@ -26,6 +26,31 @@ public import LeanVM.Guest.Data.Core15
 public import LeanVM.Guest.Data.Core16
 public import LeanVM.Guest.Data.Core17
 public import LeanVM.Guest.Data.Core18
+public import LeanVM.Guest.Data.Core19
+public import LeanVM.Guest.Data.Core20
+public import LeanVM.Guest.Data.Core21
+public import LeanVM.Guest.Data.Core22
+public import LeanVM.Guest.Data.Core23
+public import LeanVM.Guest.Data.Core24
+public import LeanVM.Guest.Data.Core25
+public import LeanVM.Guest.Data.Core26
+public import LeanVM.Guest.Data.Core27
+public import LeanVM.Guest.Data.Core28
+public import LeanVM.Guest.Data.Core29
+public import LeanVM.Guest.Data.Core30
+public import LeanVM.Guest.Data.Core31
+public import LeanVM.Guest.Data.Core32
+public import LeanVM.Guest.Data.Core33
+public import LeanVM.Guest.Data.Core34
+public import LeanVM.Guest.Data.Core35
+public import LeanVM.Guest.Data.Core36
+public import LeanVM.Guest.Data.Core37
+public import LeanVM.Guest.Data.Core38
+public import LeanVM.Guest.Data.Core39
+public import LeanVM.Guest.Data.Core40
+public import LeanVM.Guest.Data.Core41
+public import LeanVM.Guest.Data.Core42
+public import LeanVM.Guest.Data.Core43
 
 namespace LeanVM.Guest.Data
 
@@ -92,7 +117,11 @@ noncomputable def coreFunctions : List Core.Fn :=
   core832 :: core833 :: core834 :: core835 :: core836 :: core837 :: core838 :: core839 :: core840 :: core841 :: core842 :: core843 :: core844 :: core845 :: core846 :: core847 ::
   core848 :: core849 :: core850 :: core851 :: core852 :: core853 :: core854 :: core855 :: core856 :: core857 :: core858 :: core859 :: core860 :: core861 :: core862 :: core863 ::
   core864 :: core865 :: core866 :: core867 :: core868 :: core869 :: core870 :: core871 :: core872 :: core873 :: core874 :: core875 :: core876 :: core877 :: core878 :: core879 ::
-  core880 :: core881 :: core882 :: core883 :: []
+  core880 :: core881 :: core882 :: core883 :: core884 :: core885 :: core886 :: core887 :: core888 :: core889 :: core890 :: core891 :: core892 :: core893 :: core894 :: core895 ::
+  core896 :: core897 :: core898 :: core899 :: core900 :: core901 :: core902 :: core903 :: core904 :: core905 :: core906 :: core907 :: core908 :: core909 :: core910 :: core911 ::
+  core912 :: core913 :: core914 :: core915 :: core916 :: core917 :: core918 :: core919 :: core920 :: core921 :: core922 :: core923 :: core924 :: core925 :: core926 :: core927 ::
+  core928 :: core929 :: core930 :: core931 :: core932 :: core933 :: core934 :: core935 :: core936 :: core937 :: core938 :: core939 :: core940 :: core941 :: core942 :: core943 ::
+  core944 :: core945 :: core946 :: []
 
 end
 end LeanVM.Guest.Data

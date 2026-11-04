@@ -187,6 +187,27 @@ def execHint (fr : Nat) : Hint → IM Unit
       let some e := (← read).dlog a | throw "hint_decompose_bits_exponent of no small g-power"
       let nodes ← destNodes fr dest
       ((List.range nbits).zip nodes).forM fun (j, n) => assign n (bitWord ((e / 2 ^ j) % 2 = 1))
+  | .digitsExp value nbits ndigits digitBits start startCell dest => do
+      let a ← needK (← needV fr value) "a hint_decompose_digits_exponent value"
+      let some n := (← read).dlog a | throw "hint_decompose_digits_exponent of no small g-power"
+      if 2 ^ nbits ≤ n then throw s!"hint_decompose_digits_exponent of g^{n}, not below g^(2^{nbits})"
+      let s ← match startCell with
+        | none => pure start
+        | some c => do
+            let b ← needK (← needV fr c) "a hint_decompose_digits_exponent start"
+            let some s := (← read).dlog b | throw "hint_decompose_digits_exponent start of no small g-power"
+            if 128 ≤ s then throw s!"hint_decompose_digits_exponent start g^{s}, not below g^128"
+            pure s
+      let nodes ← destNodes fr dest
+      ((List.range ndigits).zip nodes).forM fun (j, nd) =>
+        let lo := s + digitBits * j
+        assign nd (gpowE (if 128 ≤ lo then 0 else n / 2 ^ lo % 2 ^ digitBits))
+  | .windowsExp value start width count dest => do
+      let x ← needV fr value
+      let nodes ← destNodes fr dest
+      ((List.range count).zip nodes).forM fun (i, nd) =>
+        assign nd (gpowE ((List.range width).foldl (fun acc j ↦
+          acc + if wordBit x (start + i * width + j) then 2 ^ j else 0) 0))
   | .limbs value dest => do
       let x ← needV fr value
       ((List.range dest.length).zip dest).forM fun (j, v) =>
@@ -424,6 +445,9 @@ def showAtom : Atom → String
     | .witness s d => s!"hint {showDest d} = witness \"{s}\""
     | .bits v st n d => s!"hint {showDest d} = bits {showV v} [{st}..+{n}]"
     | .bitsExp v n d => s!"hint {showDest d} = bits log {showV v} [..{n}]"
+    | .digitsExp v nb nd db st sc d =>
+        s!"hint {showDest d} = digits log {showV v} [..{nb}] {nd}×{db} from {(sc.map showV).getD (toString st)}"
+    | .windowsExp v st w n d => s!"hint {showDest d} = windows {showV v} [{st}..+{n}×{w}]"
     | .limbs v d => s!"hint [{showVs d}] = limbs {showV v}"
     | .log2Ceil b n f d => s!"hint {showV d} = log2ceil {showDest b} {n} floor {f}"
     | .inverse x d => s!"hint {showV d} = inverse {showV x}"

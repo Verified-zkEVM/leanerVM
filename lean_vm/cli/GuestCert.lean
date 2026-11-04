@@ -5,6 +5,7 @@ import LeanVM.Guest.Expand
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Check
 import LeanVM.Guest.Memory.Fresh
+import LeanVM.Guest.Interp
 
 /-!
 # `guest-cert`: the certificates of the guest's compiled functions
@@ -357,7 +358,13 @@ def bind (bs : List (ℕ × ℕ)) : WM Bool := do
   modify fun st => { st with loc := bs.foldl (fun m (v, c) => m.insert v c) st.loc }
   return true
 
-/-- The fact `pred` matches, among those passed (one fully known first), else forward, else any
+/-- How far forward a fact is looked for when a passed one already fits but for its one written
+value: the compiler shares pure results and repeated loads (`pure`, `load_cells`), so such a
+fact is the shared one unless the instruction follows at once (a write into a given cell). -/
+def nearWindow : ℕ := 48
+
+/-- The fact `pred` matches, among those passed (one fully known first), else forward (only
+`nearWindow` items when a passed one fits but for one value, which is then taken), else any
 unused, else any. -/
 def find (p : Pos) (facts : Array Exec.Atom)
     (pred : Exec.Atom → WM (Option (List (ℕ × ℕ)))) :
@@ -370,20 +377,32 @@ def find (p : Pos) (facts : Array Exec.Atom)
   let use (k : ℕ) : WM Unit := modify fun st => { st with uses := st.uses.push (st.curTop, k) }
   for (ft, r, k) in cons do
     if r.all fun (v, c) => st.loc.get? v == some c then use k; return (p, facts, ft, r)
+  let shared := cons.toList.reverse.find? fun (_, r, _) =>
+    (r.filter fun (v, c) => st.loc.get? v != some c && !st.pend.contains v).length ≤ 1
   let mut q := p
   let mut fs := facts
+  let mut n := 0
   repeat
+    if shared.isSome && nearWindow ≤ n then break
     match ← consume q fs with
     | none => break
     | some (q', fs') =>
       q := q'
       fs := fs'
+      n := n + 1
       if let some r ← pred fs.back! then return (q, fs, fs.back!, r)
+  if let some (ft, r, k) := shared then use k; return (p, facts, ft, r)
   for (ft, r, k) in cons do
     if !st.used.contains (atomKey ft) then use k; return (p, facts, ft, r)
   match cons[0]? with
   | some (ft, r, k) => use k; return (p, facts, ft, r)
-  | none => throw s!"not found at {p}"
+  | none =>
+    let near := (facts.toList.drop (facts.size - 12)).map reprStr
+    let s ← getSeg p.1
+    let ahead := (s.items.toList.drop p.2 |>.take 6).map fun
+      | .ins a | .fact a => reprStr a
+      | .branch oc od of _ => s!"branch {oc} {od} {of}"
+    throw s!"not found at {p} (of {s.items.size} items, then {ahead}); the facts before: {near}"
 
 def go (p : Pos) (facts : Array Exec.Atom) (pred : Exec.Atom → WM (Option (List (ℕ × ℕ)))) :
     WM (Pos × Array Exec.Atom) := do
@@ -549,7 +568,11 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
     loads := none
     match s with
     | .atom a =>
-      let (p', f') ← atom a p facts
+      let (p', f') ← try atom a p facts
+        catch e =>
+          let st ← get
+          let known := (Core.Atom.vals a).map fun v => (v.idx, st.loc.get? v.idx, st.pend.get? v.idx)
+          throw s!"{e}, the atom `{Interp.showAtom a}` (statement {idx}; cells {known})"
       p := p'
       facts := f'
     | .ite c z n =>

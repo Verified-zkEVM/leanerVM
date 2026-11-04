@@ -406,7 +406,7 @@ def Stmt.inlineSafe : Stmt → Bool
 /-- `stmt_inline_safe` on a kind. -/
 def StmtKind.inlineSafe : StmtKind → Bool
   | .let_ .. | .store .. | .hintWitness .. | .letHintWitness .. | .print .. | .assertEq ..
-  | .assertNe .. | .assertLt .. | .call .. => true
+  | .assertNe .. | .assertLt .. | .call .. | .letTuple .. | .match_ .. => true
   | .ite _ _ _ thn els _ => Stmt.inlineSafeList thn && Stmt.inlineSafeList els
   | .unroll _ _ _ body => Stmt.inlineSafeList body
   | _ => false

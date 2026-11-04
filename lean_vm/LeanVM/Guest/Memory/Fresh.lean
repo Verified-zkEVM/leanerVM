@@ -48,6 +48,8 @@ def hintUses : Hint → List V
   | .witness _ d => destUses d
   | .bits v _ _ d => v :: destUses d
   | .bitsExp v _ d => v :: destUses d
+  | .digitsExp v _ _ _ _ sc d => v :: sc.toList ++ destUses d
+  | .windowsExp v _ _ _ d => v :: destUses d
   | .limbs v ds => v :: ds
   | .log2Ceil b _ _ dst => dst :: destUses b
   | .inverse x dst => [x, dst]

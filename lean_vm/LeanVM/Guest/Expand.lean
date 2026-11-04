@@ -3,7 +3,7 @@
 
   The zkDSL front end in Lean: a source function and its `Const` arguments to the core IR function
   the compiler lowers, by the compiler's own rules (`crates/lean_compiler/src/lower.rs` and
-  `lower/*.rs`, leanVM `4af2cdddd`).
+  `lower/*.rs`, leanVM `c4f4bc92`).
 -/
 
 module
@@ -97,6 +97,15 @@ structure Bound where
   int : Option Nat
   deriving Inhabited
 
+/-- A materialized shifted pointer (`Scope::mat_cells`): the value `out` holds `base·g^exp`, made
+as `src · g^dist` (`src` the base itself or an earlier materialization of it). -/
+structure Mat where
+  exp : Nat
+  out : V
+  src : V
+  dist : Nat
+  deriving Inhabited
+
 /-- How an inlined return binds in the caller (`RetBind`). -/
 inductive RetBind where
   | stack (cells : List V)
@@ -136,6 +145,11 @@ structure St where
   inlineCalls : List String
   /-- The run `[0x01, 0, 0, 0, 0]` set for the `keccak`s of this scope (`Scope::keccak_pad`). -/
   keccakPad : Option (List V) := none
+  /-- The constants set in this scope, as the compiler pools them (the keys of
+  `Scope::const_cells`): which of them are set decides how a shifted pointer is made. -/
+  consts : List E := []
+  /-- The shifted pointers materialized in this scope, by base (`Scope::mat_cells`). -/
+  mats : List (V × List Mat) := []
   /-- Every function queued so far, originals first. -/
   queue : Array Func
   loopCtr : Nat
@@ -454,10 +468,18 @@ def constGpow (e : Expr) : M (Option Nat) := do
 
 /-! ## Emission helpers -/
 
+/-- Record `c` as a constant set in this scope (`Scope::const_cells`). -/
+def poolConst (c : E) : M Unit :=
+  modify fun st => if st.consts.contains c then st else { st with consts := c :: st.consts }
+
+/-- Whether `c` is a constant set in this scope. -/
+def hasConst (c : E) : M Bool := return (← get).consts.contains c
+
 /-- A fresh value holding `c` (`const_cell`). -/
 def constCell (c : E) : M V := do
   let o ← fresh
   emitAtom (.const o c)
+  poolConst c
   return o
 
 /-- A pure `XOR` or `MUL` into a fresh value (`pure`). -/
@@ -480,15 +502,38 @@ def anchor : M Unit := do
   let o ← fresh
   emitAtom (.const o 0)
 
-/-- A value holding an address (`materialize`). -/
+/-- The shifted pointers of a base materialized in this scope. -/
+def matsOf (c : V) : M (List Mat) :=
+  return (((← get).mats.find? (·.1 == c)).map (·.2)).getD []
+
+/-- A value holding an address (`materialize`): a constant is one `SET`; a base with no shift
+is that value; a shifted base `c·g^exp` is a product, from the nearest materialization
+`c·g^e` below whose distance `g^(exp-e)` is a constant already set, when `g^exp` is not one, else
+from `c` and `g^exp` (`mem.rs`, `materialize`). The compiler hands a second materialization of
+the same `c·g^exp` the first's cell; here it is the first's atoms again, on fresh values. -/
 def materialize (ga : GAddr) : M V := do
   match ga.base, ga.exp with
   | some c, 0 => return c
-  | base, exp => do
-      let k ← constCell (gpowE exp)
-      match base with
-      | none => return k
-      | some c => pureMul c k
+  | none, exp => constCell (gpowE exp)
+  | some c, exp => do
+      let mats ← matsOf c
+      if let some m := mats.find? (·.exp == exp) then
+        let k ← constCell (gpowE m.dist)
+        return ← pureMul m.src k
+      let mut best : Option Mat := none
+      if !(← hasConst (gpowE exp)) then
+        for m in mats do
+          if m.exp < exp && (← hasConst (gpowE (exp - m.exp))) then
+            if best.all (·.exp < m.exp) then best := some m
+      let (src, dist) := match best with
+        | some m => (m.out, exp - m.exp)
+        | none => (c, exp)
+      let k ← constCell (gpowE dist)
+      let o ← pureMul src k
+      let m : Mat := ⟨exp, o, src, dist⟩
+      modify fun st => { st with
+        mats := (c, mats ++ [m]) :: st.mats.filter (·.1 != c) }
+      return o
 
 /-- The frame cell `arr[idx]` names, if `arr` is a `StackBuf` (`frame_cell`). -/
 def frameCell (arr idx : Expr) : M (Option V) := do
@@ -680,8 +725,13 @@ def keccakPadRun : M (List V) := do
   let o ← freshRun 5
   for (v, k) in o.zipIdx do
     emitAtom (.const v (if k = 0 then keccakPadValue else 0))
+    poolConst (if k = 0 then keccakPadValue else 0)
   modify fun st => { st with keccakPad := some o }
   return o
+
+/-- The last rate lane of a 64-byte message's one block, the padding's closing `0x80` byte
+(`two_to_one_close`). -/
+def twoToOneClose : E := word (0x80 * 2 ^ 56) 0 0
 
 /-- A value holding a message cell (`sponge_cell`). -/
 def spongeCell : SpongeCell → M V
@@ -855,6 +905,8 @@ def expr : Nat → Expr → M V
         pureAdd la lb
     | .mul a b => do
         if let some x ← mulIdentity a b then return ← expr n x
+        if let some ga ← gaddrOf e then
+          if ga.base.isSome then return ← materialize ga
         let la ← expr n a
         let lb ← expr n b
         pureMul la lb
@@ -1136,7 +1188,7 @@ def tryInline : Nat → String → List Expr → List V → M Bool
     if def_.returnShapes.length != dsts.length then
       fail s!"`@inline {callee}` returns {def_.returnShapes.length} values, call binds {dsts.length}"
     if !bodyInlinable body then
-      fail s!"`@inline {callee}` requires one tail `return`, with no nested returns, tuple assignments, mul_range loops, or match"
+      fail s!"`@inline {callee}` requires one tail `return`, with no nested returns or mul_range loops"
     if (← get).inlineCalls.contains callee then
       fail s!"recursive @inline expansion is not supported: {callee}"
     let mut binds := #[]
@@ -1202,10 +1254,11 @@ def branch : Nat → Seg → List Source.Stmt → M (List Core.Stmt)
   | n + 1, seg, body => do
     let saved := (← get).names
     let pad := (← get).keccakPad
+    let (consts, mats) := ((← get).consts, (← get).mats)
     let ((), _, blk) ← capture <| withSeg seg do
       stmts n body
       if (← get).pending then anchor
-    modify fun st => { st with names := saved, keccakPad := pad }
+    modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
     return blk
 
 /-- `if` (`lower_if`). -/
@@ -1265,11 +1318,14 @@ def lowerAssertLt : Nat → Expr → LtBound → M Unit
       | .runtime b => do
           if (← tryFieldConst b).isSome then
             fail "a compile-time range-check bound must be written as `log GEN ** k` or an integer"
-          let bcell ← expr n b
-          let inv ← constCell (ofK gInv)
-          let c ← fresh
-          emitAtom (.mul c bcell inv)
-          pure c
+          match ← gaddrOf b with
+          | some ⟨some c, j + 1, none⟩ => materialize ⟨some c, j, none⟩
+          | _ => do
+              let bcell ← expr n b
+              let inv ← constCell (ofK gInv)
+              let c ← fresh
+              emitAtom (.mul c bcell inv)
+              pure c
     let x ← expr n e
     let y ← fresh
     let t1 ← fresh
@@ -1302,10 +1358,16 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
         return ← lowerDispatchedCall n targets x (specialized.map (·.1)) rt0
     let xo ← expr n x
     let (rcells, binds) ← retTargets targets
+    -- Arms that are all `@inline` calls: the padding run and a two-to-one hash's closing lane
+    -- are set once above the dispatch (`lower_match`).
+    if ← arms.allM isInlineArm then
+      discard keccakPadRun
+      discard <| constCell twoToOneClose
     let mut blocks := #[]
     for (j, arm) in (List.range arms.length).zip arms do
       let saved := (← get).names
       let pad := (← get).keccakPad
+      let (consts, mats) := ((← get).consts, (← get).mats)
       let ((), _, blk) ← capture do
         withSeg (.a j) do
           match rcells with
@@ -1327,7 +1389,7 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
                       copy c rc
                   | .scalar => pure ()
           if (← get).pending then anchor
-      modify fun st => { st with names := saved, keccakPad := pad }
+      modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
       blocks := blocks.push blk
     emit (.match_ xo blocks.toList)
     bindTargets binds
@@ -1418,6 +1480,46 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
           emitHint (.bits value start nbits bits)
         else
           emitHint (.bitsExp value nbits bits)
+        return true
+    | "hint_windows_exponent" => do
+        if !(args.length == 5 || args.length == 6) then
+          fail s!"{f} takes `(dest, value, start, width, count[, at])`, got {args.length} arguments"
+        let start ← constIndex args[2]!
+        let width ← constIndex args[3]!
+        let count ← constIndex args[4]!
+        if !(1 ≤ width && width ≤ 16) || 192 < start + width * count then
+          fail s!"{f}: windows of 1..=16 bits inside a 192-bit word"
+        let skip ← match args[5]? with
+          | some a => constIndex a
+          | none => pure 0
+        let dest ← bitsDest n args[0]! (skip + count)
+        let value ← expr n args[1]!
+        let dest : Dest := match dest with
+          | .stack cells => .stack (cells.drop skip)
+          | .heap p off len => .heap p (off + skip) (len - skip)
+        emitHint (.windowsExp value start width count dest)
+        return true
+    | "hint_decompose_digits_exponent" => do
+        let [a0, a1, a2, a3, a4, a5] := args
+          | fail s!"{f} takes `(dest, value, nbits, ndigits, digit_bits, start)`, got {args.length} arguments"
+        let nbits ← constIndex a2
+        let ndigits ← constIndex a3
+        let digitBits ← constIndex a4
+        if 64 < nbits || !(1 ≤ digitBits && digitBits ≤ 16) then
+          fail s!"{f}: nbits <= 64 and 1 <= digit_bits <= 16"
+        let dst ← bitsDest n a0 ndigits
+        let value ← expr n a1
+        let (start, startCell) ← match ← tryConstIndex a5 with
+          | some k => pure (k, none)
+          | none => do pure (0, some (← expr n a5))
+        emitHint (.digitsExp value nbits ndigits digitBits start startCell dst)
+        return true
+    | "assert_gpow" => do
+        -- One `DEREF` through `x` into a fresh touch cell: `x = g^e` with `e < 2^h`.
+        let [a0] := args | fail "assert_gpow(x) takes one scalar cell"
+        let x ← expr n a0
+        let t ← fresh
+        emitAtom (.load t x 0)
         return true
     | "keccak" => do
         lowerKeccak n args
