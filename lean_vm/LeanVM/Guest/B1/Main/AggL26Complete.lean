@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggL26Complete
 
-  `__loop25` (a child's lambdas) and `__loop26` (a child's weight), completely.
+  `__loop34` (a child's lambdas) and `__loop35` (a child's weight), completely.
 -/
 
 module
@@ -11,13 +11,13 @@ public import LeanVM.Guest.B1.Main.AggL26CChk
 /-!
 # A child's record and weight, completely
 
-`l26_block`: `__loop25`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
+`l26_block`: `__loop34`'s block at the child `x` holds on the evaluated valuation (`Fwd.ev`) when
 its record (`chain·x^2`) holds a power of `λ` and a running claim, the next record the power times
 `λ²` and the claim on, and the pointer tables the child's claims' values. Its atoms but its
 stores hold (their side conditions its loads), which its stores find.
 
-`l27_block`: `__loop26`'s block at `x` holds when the pointer tables point to the claims' points,
-`pt` holds the sumcheck's point, the record the power of `λ`, and the weights' table at `x` the
+`l27_block`: `__loop35`'s block at `x` holds when the pointer tables point to the claims' points,
+`pt1` holds `bc_point1` (`r1`, the point `1 + r1`), the record the power of `λ`, and the weights' table at `x` the
 weight and the weight on.
 -/
 
@@ -32,20 +32,20 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da
 variable {rd : Reader}
 
 set_option maxRecDepth 20000 in
-/-- **A child's record** (`__loop25`). -/
+/-- **A child's record** (`__loop34`). -/
 theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hrow : ReadsAt rd (chainT * x ^ 2) [pw, acc])
     (hnext : ReadsAt rd (chainT * x ^ 2 * gen ^ 2) [pw * lamSq, acc + pw * (fv + lam * cv)])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD 387 default) x N [chainT, lfT, lcT, lamSq, lam] := by
+    LoopBlock rd (coreProgram.getD 416 default) x N [chainT, lfT, lcT, lamSq, lam] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
     hm12⟩, hl13⟩, hm14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 387 default
+  set fn := coreProgram.getD 416 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, chainT, lfT, lcT, lamSq, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
@@ -125,23 +125,24 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     exact ⟨hat a (mem_atomsIn hs), trivial⟩
 
 set_option maxRecDepth 20000 in
-/-- **A child's weight** (`__loop26`). -/
-theorem l27_block {x N lfT lcT pt chainT wT lam pf pc pw wc : E} {pp pq r : List E}
+/-- **A child's weight** (`__loop35`). -/
+theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : List E}
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
-    (hpf : ReadsAt rd pf pp) (hpc : ReadsAt rd pc pq) (hr : ReadsAt rd pt r)
-    (hpl : pp.length = 23) (hql : pq.length = 23) (hrl : r.length = 23)
+    (hpf : ReadsAt rd pf pp) (hpc : ReadsAt rd pc pq) (hr : ReadsAt rd pt1 r1)
+    (hpl : pp.length = 23) (hql : pq.length = 23) (hrl : r1.length = 23)
     (hpw : LoadHolds rd (chainT * x ^ 2) 0 pw) (hw : LoadHolds rd (wT * x) 0 wc)
-    (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp r + lam * eqEval pq r))) :
-    LoopBlock rd (coreProgram.getD 389 default) x N [lfT, lcT, pt, chainT, wT, lam] := by
+    (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp (r1.map (1 + ·)) +
+      lam * eqEval pq (r1.map (1 + ·))))) :
+    LoopBlock rd (coreProgram.getD 418 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
-    he2⟩, hm263⟩, hm264⟩, hm265⟩, hl266⟩, hl267⟩, hm268⟩, ha269⟩, hm270⟩, ha271⟩, hm272⟩ := hcok
+    he2⟩, hm171⟩, hm172⟩, hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 389 default
+  set fn := coreProgram.getD 418 default
   set A := atomsIn (loopPre fn)
-  let args : List E := [x, N, lfT, lcT, pt, chainT, wT, lam]
+  let args : List E := [x, N, lfT, lcT, pt1, chainT, wT, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
@@ -153,14 +154,14 @@ theorem l27_block {x N lfT lcT pt chainT wT lam pf pc pw wc : E} {pp pq r : List
   have par : ∀ i (hi : i < 8), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
   have e0 : σ (.n 0) = x := par 0 (by omega)
-  have e4 : σ (.n 4) = pt := par 4 (by omega)
+  have e4 : σ (.n 4) = pt1 := par 4 (by omega)
   have hP : ∀ a ∈ A.filter pureB, a.Holds rd σ := pure_holds hg
   have p8 : σ (.n 8) = lfT * x := by rw [isMul_sound hm8 hP, par 2 (by omega), e0]; rfl
   have p10 : σ (.n 10) = lcT * x := by rw [isMul_sound hm10 hP, par 3 (by omega), e0]; rfl
-  have p264 : σ (.n 264) = chainT * x ^ 2 := by
-    rw [isMul_sound hm264 hP, isMul_sound hm263 hP, par 5 (by omega), e0, sq]; rfl
-  have p265 : σ (.n 265) = wT * x := by rw [isMul_sound hm265 hP, par 6 (by omega), e0]; rfl
-  have p272 : σ (.n 272) = wT * x := by rw [isMul_sound hm272 hP, par 6 (by omega), e0]; rfl
+  have p172 : σ (.n 172) = chainT * x ^ 2 := by
+    rw [isMul_sound hm172 hP, isMul_sound hm171 hP, par 5 (by omega), e0, sq]; rfl
+  have p173 : σ (.n 173) = wT * x := by rw [isMul_sound hm173 hP, par 6 (by omega), e0]; rfl
+  have p180 : σ (.n 180) = wT * x := by rw [isMul_sound hm180 hP, par 6 (by omega), e0]; rfl
   -- the atoms but the store
   have hg' : ∀ a ∈ l27A, Good rd l27Stores (fun _ => 0) σ a := fun a ha =>
     hg a (mem_l27A.mp ha).1
@@ -179,30 +180,30 @@ theorem l27_block {x N lfT lcT pt chainT wT lam pf pc pw wc : E} {pp pq r : List
         ⟨(rfl | rfl) | rfl, ho⟩)
       · rw [p8, memAt_of_load hlf]; exact hlf
       · rw [p10, memAt_of_load hlc]; exact hlc
-      · rw [p264, memAt_of_load hpw]; exact hpw
-      · rw [p265, memAt_of_load hw]; exact hw
+      · rw [p172, memAt_of_load hpw]; exact hpw
+      · rw [p173, memAt_of_load hw]; exact hw
       · rw [e4, memAt_of_load (hr o (by omega))]; exact hr o (by omega)
       · rw [v9, memAt_of_load (hpf o (by omega))]; exact hpf o (by omega)
       · rw [v11, memAt_of_load (hpc o (by omega))]; exact hpc o (by omega)
   -- the store
   have mp : memRun rd pf 23 = pp := by rw [← hpl]; exact (readsAt_memRun hpf).symm
   have mq : memRun rd pc 23 = pq := by rw [← hql]; exact (readsAt_memRun hpc).symm
-  have mr : memRun rd pt 23 = r := by rw [← hrl]; exact (readsAt_memRun hr).symm
+  have mr : memRun rd pt1 23 = r1 := by rw [← hrl]; exact (readsAt_memRun hr).symm
   have ef := eqChain_sound he1 hat'
   have ec := eqChain_sound he2 hat'
   rw [v9, e4, mp, mr] at ef
   rw [v11, e4, mq, mr] at ec
-  have e266 := (load_any_val hnS hg' hl266).1
-  have e267 := (load_any_val hnS hg' hl267).1
-  rw [p265, rdAt_of_load hw] at e266
-  rw [p264, rdAt_of_load hpw] at e267
+  have e174 := (load_any_val hnS hg' hl174).1
+  have e175 := (load_any_val hnS hg' hl175).1
+  rw [p173, rdAt_of_load hw] at e174
+  rw [p172, rdAt_of_load hpw] at e175
   have hat : ∀ a ∈ A, a.Holds rd σ := fun a ha => by
     by_cases haS : a ∈ l27Stores
     · simp only [l27Stores, List.mem_cons, List.not_mem_nil, or_false] at haS
       subst haS
-      show LoadHolds rd (σ (.n 272)) 1 (σ (.n 271))
-      rw [p272, add_sound ha271 hP, isMul_sound hm270 hP, add_sound ha269 hP,
-        isMul_sound hm268 hP, e266, e267, ef, ec, par 7 (by omega)]
+      show LoadHolds rd (σ (.n 180)) 1 (σ (.n 179))
+      rw [p180, add_sound ha179 hP, isMul_sound hm178 hP, add_sound ha177 hP,
+        isMul_sound hm176 hP, e174, e175, ef, ec, par 7 (by omega)]
       exact hw1
     · exact hat' a (mem_l27A.mpr ⟨ha, haS⟩)
   refine ⟨σ, ?_, fun s hs => ?_⟩

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColLoopAt
 
-  `da_verify`'s column loop `__loop18` (G:3938-3939) placed, by trees of its honest shape, within
+  `da_verify`'s column loop `__loop22` (G:3938-3939) placed, by trees of its honest shape, within
   its words bound before the memory, for the budget.
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 /-!
 # The column loop, within its bound
 
-`__loop18(xb, …)` (`core360`, `l18Body`): column `log xb` (`da_verify_column` on the loop's seven
+`__loop22(xb, …)` (`core389`, `l18Body`): column `log xb` (`da_verify_column` on the loop's seven
 words), then the next counter `xb·g` and the tail call while `xb·g ≠ g^128`.
 
 * `l18σ k ps`: its valuation at the counter `g^k`, `ps` the other six words.
@@ -26,7 +26,7 @@ words), then the next counter `xb·g` and the tail call while `xb·g ≠ g^128`.
   tree of `Tc`, whose tail call (taken unless `k + 1 = 128`) by a tree of `Tt`.
 * `l18From Tc t k`: `t` iterations from `k`, each of that shape (`False` past the last).
 * `l18_stepAtTB`, `l18_completeAtTB`: one iteration, and the loop from every `k < 128`, within
-  `clB fs "__loop18" Bc (128 - k)` when every column is within `Bc` by a tree of `Tc`.
+  `clB fs "__loop22" Bc (128 - k)` when every column is within `Bc` by a tree of `Tc`.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -40,31 +40,31 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 @[expose] public section
 
-/-- `__loop18`'s statements before its `ret`. -/
+/-- `__loop22`'s statements before its `ret`. -/
 def l18Pre : List Stmt := l18Body.dropLast
 
 theorem l18Body_split : l18Body = l18Pre ++ [.ret []] := rfl
 
 theorem l18Pre_straight : l18Pre.all Main.Stmt.straight = true := rfl
 
-theorem find_l18 : coreProgram.find? "__loop18" = some (coreProgram.getD 360 default) :=
+theorem find_l18 : coreProgram.find? "__loop22" = some (coreProgram.getD 389 default) :=
   find_of_idx dv_loops_idx.2.1 (by rw [coreProgram_length]; omega)
 
-theorem l18_body : Fn.body (coreProgram.getD 360 default) = l18Body := by
+theorem l18_body : Fn.body (coreProgram.getD 389 default) = l18Body := by
   have h := l18_ok
   simp only [l18Ok, Bool.and_eq_true] at h
   exact stmtsEqb_sound h.2
 
-theorem l18_params : (coreProgram.getD 360 default).params = (List.range 7).map V.n := by
+theorem l18_params : (coreProgram.getD 389 default).params = (List.range 7).map V.n := by
   have h := l18_ok
   simp only [l18Ok, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1
 
-theorem l18_loop : coreProgram.loop "__loop18" = true := by
+theorem l18_loop : coreProgram.loop "__loop22" = true := by
   rw [Program.loop_of_find? find_l18, Fn.loop, l18_body, fn_name_of_find find_l18]
   simp [l18Body]
 
-/-- `__loop18`'s valuation at the counter `g^k`. -/
+/-- `__loop22`'s valuation at the counter `g^k`. -/
 def l18σ (k : ℕ) (ps : List E) : Val :=
   Val.ofArgs ([gen ^ k] ++ ps ++ [word 2 0 0, gen ^ k * word 2 0 0, word 325 0 0,
     gen ^ k * word 2 0 0 + word 325 0 0, word 2 0 0, gen ^ k * word 2 0 0])
@@ -72,11 +72,11 @@ def l18σ (k : ℕ) (ps : List E) : Val :=
 /-- An iteration's calls: the column, then the tail call, taken unless `k + 1 = 128`. -/
 def l18Calls (k : ℕ) : List Call :=
   [⟨"da_verify_column", (List.range 7).map V.n, [], true⟩] ++
-    [⟨"__loop18", .n 12 :: (List.range 6).map fun i => V.n (i + 1), [], decide (k + 1 ≠ 128)⟩]
+    [⟨"__loop22", .n 12 :: (List.range 6).map fun i => V.n (i + 1), [], decide (k + 1 ≠ 128)⟩]
 
 /-- **An iteration's honest shape.** -/
 def l18NH (k : ℕ) (Tc Tt : Tree → Prop) : Tree → Prop :=
-  NodeHonest coreProgram "__loop18" (fun σ => σ (.n 0) = gen ^ k) (fun _ => l18Calls k)
+  NodeHonest coreProgram "__loop22" (fun σ => σ (.n 0) = gen ^ k) (fun _ => l18Calls k)
     (fun _ => []) [Tc, Tt]
 
 /-- **`t` iterations from `k`**, each of its honest shape; none (`False`) past the last, so the last
@@ -93,29 +93,29 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
     {Lin : Layout} {k : ℕ} (hk : k + 1 ≤ 128)
     (hcol : CompleteAtDTB fs cert 16 "da_verify_column" Lin (gen ^ k :: ps) (Returns []) Tc Bc)
     (htail : k + 1 < 128 →
-      CompleteAtDTB fs cert 16 "__loop18" Lin (gen ^ (k + 1) :: ps) (Returns []) Tt Bt)
-    (hBt : fs "__loop18" ≤ Bt) :
-    CompleteAtDTB fs cert 16 "__loop18" Lin (gen ^ k :: ps) (Returns []) (l18NH k Tc Tt)
-      (fs "__loop18" + Bt + Bc) := by
+      CompleteAtDTB fs cert 16 "__loop22" Lin (gen ^ (k + 1) :: ps) (Returns []) Tt Bt)
+    (hBt : fs "__loop22" ≤ Bt) :
+    CompleteAtDTB fs cert 16 "__loop22" Lin (gen ^ k :: ps) (Returns []) (l18NH k Tc Tt)
+      (fs "__loop22" + Bt + Bc) := by
   intro fp
   -- the rest of the loop
-  obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ Bt ∧ Within Lt (fp + fs "__loop18") nt ∧
+  obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ Bt ∧ Within Lt (fp + fs "__loop22") nt ∧
       DisjL Lt ∧ ∀ rd, B1.LowDef 16 rd → MemL rd (Lt ++ Lin) →
         if decide (k + 1 ≠ 128) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop18") nt
-            "__loop18" (gen ^ (k + 1) :: ps) [] Tt
-        else nt = fs "__loop18" := by
+          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop22") nt
+            "__loop22" (gen ^ (k + 1) :: ps) [] Tt
+        else nt = fs "__loop22" := by
     by_cases hlast : k + 1 = 128
-    · exact ⟨fs "__loop18", [], hBt, fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by
+    · exact ⟨fs "__loop22", [], hBt, fun q hq => by simp at hq, List.Pairwise.nil, fun _ _ _ => by
         simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, hntB, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs "__loop18")
+    · obtain ⟨nt, Lt, rt, Lot, hntB, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs "__loop22")
       refine ⟨nt, Lt, hntB, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
       simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
       exact hR rd hl (by simpa using hm)
   -- the column
-  obtain ⟨nc, Lc, rc, Loc, hncB, ⟨rfl, rfl⟩, hWc, hDc, hRc⟩ := hcol (fp + fs "__loop18" + nt)
+  obtain ⟨nc, Lc, rc, Loc, hncB, ⟨rfl, rfl⟩, hWc, hDc, hRc⟩ := hcol (fp + fs "__loop22" + nt)
   simp only [List.nil_append] at hWc hDc hRc
-  refine ⟨fs "__loop18" + nt + nc, Lt ++ Lc, [], [], by omega, ⟨rfl, rfl⟩, ?_,
+  refine ⟨fs "__loop22" + nt + nc, Lt ++ Lc, [], [], by omega, ⟨rfl, rfl⟩, ?_,
     by simpa using disj_append hDt hDc hWt hWc le_rfl, fun rd hlow hm => ?_⟩
   · rw [List.nil_append, within_append]
     exact ⟨hWt.mono (by omega) (by omega), hWc.mono (by omega) (by omega)⟩
@@ -143,7 +143,7 @@ theorem l18_stepAtTB {Bc Bt : ℕ} {Tc Tt : Tree → Prop} {ps : List E} (hps : 
   have hcalls : calls (l18Pre.flatMap (Main.slEvs σ)) = l18Calls k := by
     rw [hpc, show l18Pre.filterMap Main.Stmt.callS =
       [(none, "da_verify_column", (List.range 7).map V.n, []),
-        (some (.n 10), "__loop18", .n 12 :: (List.range 6).map fun k => V.n (k + 1), [])] from rfl]
+        (some (.n 10), "__loop22", .n 12 :: (List.range 6).map fun k => V.n (k + 1), [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, htk, l18Calls, List.cons_append,
       List.nil_append]
   have hal : allocs σ (l18Pre.flatMap (Main.slEvs σ)) = [] := by
@@ -201,16 +201,16 @@ theorem l18_completeAtTB {Bc : ℕ} {Tc : Tree → Prop} {ps : List E} (hps : ps
     (hcol : ∀ k, a ≤ k → k < 128 →
       CompleteAtDTB fs cert 16 "da_verify_column" Lin (gen ^ k :: ps) (Returns []) Tc Bc) :
     ∀ k, a ≤ k → k < 128 →
-      CompleteAtDTB fs cert 16 "__loop18" Lin (gen ^ k :: ps) (Returns [])
-        (l18From Tc (128 - k) k) (clB fs "__loop18" Bc (128 - k)) := by
+      CompleteAtDTB fs cert 16 "__loop22" Lin (gen ^ k :: ps) (Returns [])
+        (l18From Tc (128 - k) k) (clB fs "__loop22" Bc (128 - k)) := by
   have key : ∀ t k, a ≤ k → k + 1 + t = 128 →
-      CompleteAtDTB fs cert 16 "__loop18" Lin (gen ^ k :: ps) (Returns [])
-        (l18From Tc (t + 1) k) (clB fs "__loop18" Bc (t + 1)) := by
+      CompleteAtDTB fs cert 16 "__loop22" Lin (gen ^ k :: ps) (Returns [])
+        (l18From Tc (t + 1) k) (clB fs "__loop22" Bc (t + 1)) := by
     intro t
     induction t with
     | zero =>
       intro k hak hk
-      have h := l18_stepAtTB (Tt := l18From Tc 0 (k + 1)) (Bt := fs "__loop18") fs cert hps
+      have h := l18_stepAtTB (Tt := l18From Tc 0 (k + 1)) (Bt := fs "__loop22") fs cert hps
         (by omega) (hcol k hak (by omega)) (fun h => absurd h (by omega)) le_rfl
       exact h.mono (by simp only [clB]; omega) fun _ h => h
     | succ t ih =>

@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Da.Factors
 /-!
 # `da_expand` (G:4043-4055)
 
-`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`, `core374`; `da_expand__L14_L7`,
-`core377`): the tree's nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and
+`da_expand(root, factors, zs, shifts, top, D)` (`da_expand__L7_L8`, `core403`; `da_expand__L14_L7`,
+`core406`): the tree's nodes are values, node `1` the root (`.n 4`); depth `d` loads its power and
 shift (`.n (expB d)`, `.n (expB d + 1)`), and node `2^d + y` its factor (`.n s`,
 `s = expB d + 2 + 5y`), adds the shift, and makes its children `node · (factor + shift)` (`s + 2`)
 and that plus `node · z` (`s + 4`) (`expDepthA`). The nodes are the frame run `nodes` (a fresh word,

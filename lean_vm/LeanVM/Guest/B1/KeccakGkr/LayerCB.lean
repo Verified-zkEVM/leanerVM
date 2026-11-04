@@ -38,9 +38,9 @@ def rmfePure : List Stmt := rmfeBlockT.filter fun s ↦ !loadB s
 
 /-- The block's masks, checked on its statements but the loads. -/
 def rmfeCheckP : Bool :=
-  match maskRun (.n 1089) [(.n 1089, 2)] rmfePure with
+  match maskRun (.n 877) [(.n 877, 2)] rmfePure with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (rmfeStores.getD i 0)) ==
-      some (embedLit.getD i 0)) && st.lookup (.n 1215) == some embedXor
+      some (embedLit.getD i 0)) && st.lookup (.n 958) == some embedXor
   | none => false
 
 theorem rmfeCheckP_true : rmfeCheckP = true := by decide +kernel
@@ -51,12 +51,12 @@ theorem rmfePure_kernel : rmfePure.all isAtom = true ∧ canonChk [] (atomsL ([]
 theorem rmfe_kernel : rmfeBlockT.all isAtom = true ∧ canonChk [] (atomsL ([] ++ rmfeBlockT)) = true ∧
     resid (atomsL rmfeBlockT) =
       (List.range 16).map (fun i ↦ .load (.n (rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
-        [.load (.n 1215) (.n 12) 1] := ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
+        [.load (.n 958) (.n 12) 1] := ⟨by decide +kernel, by decide +kernel, by decide +kernel⟩
 
 /-- **The values the block stores**: the instance weights at `s`, and their sum. -/
 theorem rmfe_vals (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ rmfeBlockT, GoodS rd S w σ s) :
-    (∀ i < 16, σ (.n (rmfeStores.getD i 0)) = (keccakInstanceWeights (σ (.n 1089))).getD i 0) ∧
-      σ (.n 1215) = sumE (keccakInstanceWeights (σ (.n 1089))) := by
+    (∀ i < 16, σ (.n (rmfeStores.getD i 0)) = (keccakInstanceWeights (σ (.n 877))).getD i 0) ∧
+      σ (.n 958) = sumE (keccakInstanceWeights (σ (.n 877))) := by
   obtain ⟨hall, hk, hr⟩ := rmfePure_kernel
   have h : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ rmfePure True (fun _ ↦ True) :=
     block_holdsP (P := []) hall hσ hk (fun s hs ↦ by
@@ -67,7 +67,7 @@ theorem rmfe_vals (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ rmfeBlockT
   unfold rmfeCheckP at hc
   split at hc
   · rename_i st hst
-    have hok0 : MaskOk σ (σ (.n 1089)) [(.n 1089, 2)] := by
+    have hok0 : MaskOk σ (σ (.n 877)) [(.n 877, 2)] := by
       intro p hp
       rw [List.mem_singleton] at hp
       subst hp
@@ -84,12 +84,12 @@ theorem rmfe_vals (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ rmfeBlockT
 claim's record, the block holds. -/
 theorem rmfe_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ rmfeBlockT, GoodS rd S w σ s)
     (hmu : ∀ i < 16, LoadHolds rd (σ (.n 12)) (6 + i)
-      ((keccakInstanceWeights (σ (.n 1089))).getD i 0))
-    (hkap : LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n 1089))))) :
+      ((keccakInstanceWeights (σ (.n 877))).getD i 0))
+    (hkap : LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n 877))))) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ rmfeBlockT next kret := by
   obtain ⟨hall, hk, hr⟩ := rmfe_kernel
-  obtain ⟨hv, hv1215⟩ := rmfe_vals hσ hg
+  obtain ⟨hv, hv958⟩ := rmfe_vals hσ hg
   refine block_holdsP (P := []) hall hσ hk (by simpa using hg) (A := []) (by simp) ?_
   rw [hr]
   intro a ha
@@ -102,10 +102,10 @@ theorem rmfe_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ rmfeBl
   · rw [List.mem_singleton] at ha
     subst ha
     show LoadHolds rd _ _ _
-    rw [hv1215]; exact hkap
+    rw [hv958]; exact hkap
 
 /-- The Horner section of a specialization. -/
-def hornerS (first : ℕ) : List Stmt := hornerT (fun k ↦ ((prodTab first).getD k default).a) 1089 1216
+def hornerS (first : ℕ) : List Stmt := hornerT (fun k ↦ ((prodTab first).getD k default).a) 877 959
 
 theorem horner_kernel {first : ℕ} (hf : first < 2) :
     (hornerS first).all isAtom = true ∧ canonChk [] (atomsL ([] ++ hornerS first)) = true ∧
