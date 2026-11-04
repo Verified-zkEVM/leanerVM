@@ -9,7 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.C.Flat
-public import LeanVM.Guest.B1.Tables.VtC.Hon
+public import LeanVM.Guest.B1.Fwd.FlatIte
+public import LeanVM.Guest.B1.Fwd.NotStored
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The honest valuation

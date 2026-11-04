@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Ctab
 
-  `verify_sub`'s `c_table` (G:3253-3262), honestly: a kernel-checked pass on the evaluated
+  `verify_sub`'s `c_table` (G:3441-3450), honestly: a kernel-checked pass on the evaluated
   valuation, the table's cells checked against `ringCoefficients`' monomials as they are recorded.
 -/
 
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.C.Calls
 `ctStepH S`: `ctStep` (the soundness pass) checking, in addition, that a read is not a store of
 `S`, a product's operands are older than its value, and a cell recorded in the table is
 `specEV` of its offset. `ctRunH_good`: on a valuation satisfying the block's equations (`Good`),
-with the challenges at `876` and `ringCoefficients`' monomials at `877` in memory, every value the
+with the challenges at `664` and `ringCoefficients`' monomials at `665` in memory, every value the
 pass records is its monomial, every recorded cell is `specEV`'s, and the block holds.
 `vsCtabT_complete`: with `ring_switch_target`'s call in `C`.
 -/
@@ -200,7 +200,7 @@ theorem vsCtabT_complete (hl : args.length = 6) {chs : List E} (hcl : chs.length
     exact hW k _
   have hG : ∀ s ∈ ctPre, GoodS rd vsSL w (vsσ rd w args) s := fun s hs ↦ by
     have hm : s ∈ vsCtabT := by rw [vsCtabT_eq]; exact List.mem_append_left _ hs
-    have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 982) (blk := vsCtabT)
+    have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 617) (blk := vsCtabT)
       (by decide +kernel) hm)
     rwa [fixNe_of_noNe (List.all_eq_true.mp ctPre_noNe s hs)] at h
   obtain ⟨st, hst⟩ := Option.isSome_iff_exists.1 ctH_check

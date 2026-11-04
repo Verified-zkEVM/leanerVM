@@ -7,11 +7,13 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.C.Flat
-public import LeanVM.Guest.B1.Tables.VtC.Kids
+public import LeanVM.Guest.B1.Fwd.PureIn
+public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Bits.GPower
 public import LeanVM.Guest.B1.Bits.AssertCanonical
 public import LeanVM.Guest.B1.Tables.Base
 public import LeanVM.Guest.B1.KeccakGkr.Interface
+public import LeanVM.Guest.B1.Bits.Tables
 
 /-!
 # The callees, placed
@@ -65,18 +67,17 @@ theorem ac_completeAt (κ : ℕ) (Lin : Main.Layout) {w : E} (hw : IsCanonical12
 
 /-! ## The shapes the assembly takes -/
 
-/-- The exponent tables' words: `g_logs_pow2[j] = E(2^j)`, `g_squares[j] = g^(2^j)`, `j < 34`. -/
-noncomputable def expTablesL (lpE sqE : ℕ) : Main.Layout :=
-  [(lpE, (List.range 34).map fun j ↦ eOfNat (2 ^ j)), (sqE, Tables.gSquaresList)]
+/-- The exponent table's words (`exponent_tables`' one table, `B1.expTableWords`: the squares,
+the nibble shares, the rank keys, the groups' sides). -/
+noncomputable def expTablesL (sqE : ℕ) : Main.Layout := [(sqE, B1.expTableWords)]
 
 /-- **`log2_ceil_in_the_exponent` (floor `fl`), placed** (`name` its specialization): on `g^N`,
-`N < 2^34`, with the exponent tables, it returns `g^max fl (log2Ceil N)`. -/
+`N < 2^34`, with the exponent table, it returns `g^max fl (log2Ceil N)`. -/
 def Log2CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String) (fl : ℕ) :
     Prop :=
-  ∀ (N lpE sqE : ℕ), N < 2 ^ 34 → max fl (log2Ceil N) < 34 →
-    CompleteAtD fs cert κ name (expTablesL lpE sqE)
-      [gen ^ N, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)] (Returns [gen ^ max fl
-          (log2Ceil N)])
+  ∀ (N sqE : ℕ), N < 2 ^ 34 → max fl (log2Ceil N) < 34 →
+    CompleteAtD fs cert κ name (expTablesL sqE)
+      [gen ^ N, ofK (addressOfIndex sqE)] (Returns [gen ^ max fl (log2Ceil N)])
 
 /-- **`verify_keccak`, placed**: from a carried canonical capacity `f`, on the transcript words `xs`
 at the cursor, the table sumcheck's point `chis` (at least `τ` of them) at `chi`, the output lanes'
