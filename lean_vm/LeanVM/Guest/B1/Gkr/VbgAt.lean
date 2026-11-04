@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop8
 # `verify_bus_gkr`, placed (TRIAGE G #43)
 
 `vbg_run`: on a memory defined below `2^κ` (`κ ≥ 6`, the range check of `g^depth`) holding the
-cursor's words, the point at `zeta` and the five buffers whole (`vbgOwnW`), the honest valuation
+cursor's words, the point at `zeta` and the six buffers whole (`vbgOwnW`), the honest valuation
 (`vbgFlat.σ`, the allocations answered by the buffers' pointers) satisfies every statement with
 its calls by relations loading from a region `R` holding the cursor's words, the point and the
 buffers, its loads land inside the buffers (`vbg_loadOk`, `vbg_ptrs`), its allocations are the
@@ -515,7 +515,7 @@ theorem vbg_lift_facts {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) 
 
 /-- **`verify_bus_gkr` is complete, placed** (TRIAGE G #43): at `1 ≤ depth ≤ 32`, on memories
 defined below `2^κ`, `κ ≥ 6`, an accepting run of `gkrPhase depth` from a carried capacity `cap0`
-reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its five buffers at
+reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its six buffers at
 the bump allocator's positions holding their honest words (`vbgOwnW`). It returns the run's
 capacity, the cursor past `xs` and the three values. -/
 theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)

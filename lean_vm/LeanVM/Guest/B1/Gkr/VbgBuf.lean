@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.VbgBuf
 
-  `verify_bus_gkr` as a flat function, and its five buffers' honest words as whole buffers.
+  `verify_bus_gkr` as a flat function, and its six buffers' honest words as whole buffers.
 -/
 
 module
@@ -17,11 +17,11 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 range check's two reads (`vbgAux`, values `20`, `21`), its callees `vbgKidS` (`__loop6`, `__loop7`
 and theirs, placing nothing).
 
-**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the five buffers;
+**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the six buffers;
 `vbgBufs` lays out each buffer whole, the runs at their offsets and zeros between: `layers`
 (`17·(depth + 2)` words, a slot of `17` per level, the levels `≡ depth (mod 2)` up to `depth` and
 the root), the round records (`7` fields of `862` words), the point rows (`41` rows of `40`), the
-tables `pairs`, `depth_shift` (`33` each). `vbg_memLay`: a memory holding the whole buffers holds
+table `k_mod_next` (`8`), the tables `pairs`, `depth_shift` (`33` each). `vbg_memLay`: a memory holding the whole buffers holds
 `vbgLay`.
 -/
 

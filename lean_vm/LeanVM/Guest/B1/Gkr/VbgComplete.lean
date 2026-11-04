@@ -22,7 +22,7 @@ The buffers' honest words (`vbgLay`), as functions of the walk read back from th
 * the point rows (at `g^eP`): slot `j`'s point at `40·(j + sh)`;
 * the round records (at `g^eR`): step `j`'s `L + 1` records from position `gkPos sh j`, field `f`
   `862·f` on (`gkRecW`: the capacity, the cursor and the claim after `r` rounds);
-* the tables `pairs` (at `g^ePa`) and `depth_shift` (at `g^eD`).
+* the tables `k_mod_next` (at `g^eK`), `pairs` (at `g^ePa`) and `depth_shift` (at `g^eD`).
 
 `verify_bus_gkr_complete`: at `1 ≤ depth ≤ 32`, an accepting run of `gkrPhase depth` from a
 carried capacity, its words at the cursor, its point at `zeta`, the memory defined at `g^depth`

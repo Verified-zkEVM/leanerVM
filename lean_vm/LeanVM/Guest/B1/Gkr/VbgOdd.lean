@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.Loop7Complete
 public import LeanVM.Guest.B1.Gkr.Holds
 
 /-!
-# The binary layer, completely (G:1632-1669)
+# The binary layer, completely (G:1802-1837)
 
 `vbgEvL`: `verify_bus_gkr`'s body as the forward evaluator walks it (its `ite`'s branches in
 order, the checked inverse as its product, `fixNe`); `vb_good`, `vb_good_odd`: the statements of

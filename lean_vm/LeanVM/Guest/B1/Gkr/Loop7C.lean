@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Gkr.Loop29Complete
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 
 /-!
-# `__loop6`, completely (G:1671-1759)
+# `__loop6`, completely (G:1839-1921)
 
 An iteration at `x = g^j` from the slot of `L = 2j + sh` (`GkSlotC`, the slot's words exactly)
 runs one step of two levels (`GkStepD`, read back from the walk by `gkrStep_inv`). On a memory
@@ -24,13 +24,15 @@ holding the slot, the step's words at the cursor, the round records (`RecsAt`) a
 the body evaluated forward (`lyEvL`, its `ite`s' branches in order) holds: `ly_iter`. The
 regions of the body (`lyR1 .. lyR6`):
 
-* `lyc_head`: the combiner's permutation, the first record stored, `half` and `parity`;
+* `lyc_head`: the combiner's permutation, the first record stored, `half = g^(j/4)` and
+  `parity = g^(j % 4)`;
 * `lyc_rounds`: `__loop36`, `gkr_rounds__L{2r}` at `r = j % 4` (a dispatch), `gkr_rounds__L1` at
   an odd depth;
 * `lyc_last`: the last record read;
 * `lyc_children`: the twelve children read and absorbed;
 * `lyc_check`: their check and the two new coordinates;
-* `lyc_stores`: the next slot stored and the next iteration called.
+* `lyc_stores`: the next slot stored (`half`, `parity` through the table `k_mod_next`) and the
+  next iteration called.
 
 `ly_complete`: iterations at every `g^j`, `j < m`, give `__loop6` from `1` below `g^m`.
 -/
@@ -374,12 +376,6 @@ theorem lyc_head (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh : 
       a65, by rw [c66, tb_word_one]⟩
 
 theorem tb_isInK_one : IsInK (1 : E) := by simpa using tb_gen_pow_isInK 0
-
-theorem tb_bitE_isInK (b : Bool) : IsInK (bitE b) := by
-  cases b
-  · have := tb_isInK_add tb_isInK_one tb_isInK_one
-    rwa [e_add_self] at this
-  · exact tb_isInK_one
 
 /-- **The rounds**: `__loop36` (`8·(j/4)` rounds), `gkr_rounds__L{2r}` at `r = j % 4` (the
 dispatch on `parity = g^r`), and `gkr_rounds__L1` at an odd depth, each from its record, when the
