@@ -30,7 +30,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- Where step `s` ends. -/
 def stepE (s : ℕ) : ℕ :=
-  [531, 746, 960, 1315, 1624, 1979, 2192, 2501, 2763, 3074, 3383, 3691].getD s 0
+  [531, 746, 960, 1315, 1624, 1979, 2192, 2501, 2763, 3074, 3383, 963].getD s 0
 
 theorem stepE_eq : ∀ s < 12, stepT0 s (stepB s) + stepTailSz s = stepE s := by decide +kernel
 
@@ -47,10 +47,10 @@ def w (B curE : ℕ) (i : ℕ) : E :=
   else if i = 203 then ptr (B + D.τ + 288)
   else if i = 274 then ptr (B + D.o274)
   else if i = 382 then ptr (B + D.τ + 380)
-  else if i = 3987 then ptr (B + D.τ + 406)
-  else if 3694 ≤ i ∧ i < 3701 then (D.oRets curE).getD (i - 3694) 0
-  else if 3980 ≤ i ∧ i < 3987 then (D.iRets curE).getD (i - 3980) 0
-  else if 4110 ≤ i ∧ i < 4117 then (D.sRets curE).getD (i - 4110) 0
+  else if i = 1259 then ptr (B + D.τ + 406)
+  else if 966 ≤ i ∧ i < 973 then (D.oRets curE).getD (i - 966) 0
+  else if 1252 ≤ i ∧ i < 1259 then (D.iRets curE).getD (i - 1252) 0
+  else if 1382 ≤ i ∧ i < 1389 then (D.sRets curE).getD (i - 1382) 0
   else match (List.range 12).find? (fun s ↦ i == stepB s + 1) with
     | some s => ptr (B + D.τ + 382 + 2 * s)
     | none => match (List.range 12).find? (fun s ↦ stepE s - 6 ≤ i && i < stepE s) with
@@ -64,13 +64,13 @@ theorem w_bits {j : ℕ} (hj : j < 5) : D.w B curE (20 + j) = Value.bitE ((D.τ 
     Nat.add_sub_cancel_left]
 
 
-theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (3694 + j) = (D.oRets curE).getD j 0 := by
+theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (966 + j) = (D.oRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (3980 + j) = (D.iRets curE).getD j 0 := by
+theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (1252 + j) = (D.iRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (4110 + j) = (D.sRets curE).getD j 0 := by
+theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (1382 + j) = (D.sRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
 theorem w_step {s : ℕ} (hs : s < 12) : D.w B curE (stepB s + 1) = ptr (B + D.τ + 382 + 2 * s) := by

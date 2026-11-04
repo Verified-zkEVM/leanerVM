@@ -33,8 +33,8 @@ variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ �
 /-- **The twelve steps, on the layout.** -/
 theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4))
-    (h47 : σ (.n 47) = gen ^ D.odd) (h201 : σ (.n 201) = ptr (B + D.o201))
-    (h274 : σ (.n 274) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
+    (h47 : σ (.n 47) = gen ^ D.odd) (h201 : σ (.n 203) = ptr (B + D.o201))
+    (h274 : σ (.n 276) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkStepsT next kret := by
   have S : ∀ s, s < 12 → ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepT s (stepB s) (stepCap s) (stepCur s) vkGw)
@@ -56,17 +56,17 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
   obtain ⟨-, -, p6, -, -, p9, p10, h17, -, h47, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
     a274, -, HF⟩ := head_first h hm hσd
   obtain ⟨-, -, -, -, -, eO, e3701, -, -, -, -, HO⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 3699) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 971) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]), (O_ok h).2.1]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, -, -, e4104, e4107, -, -, e4110, efin, HI⟩ := in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 4115) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (4115 : ℕ) = 4110 + 5 from rfl, e4110 5 (by norm_num), sRets,
+  have e4115 : σ (.n 1387) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1387 : ℕ) = 1382 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]), (S_ok h).2.1]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
-  have e4116 : σ (.n 4116) = D.S.2.1 := by
-    rw [show (4116 : ℕ) = 4110 + 6 from rfl, e4110 6 (by norm_num), sRets,
+  have e4116 : σ (.n 1388) = D.S.2.1 := by
+    rw [show (1388 : ℕ) = 1382 + 6 from rfl, e4110 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]; norm_num), (S_ok h).2.1]
     rfl
   obtain ⟨-, -, -, -, HFn⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116
@@ -80,15 +80,15 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
   rfl
 
 theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) : σ (.n 57) = gen ^ (D.τ - 3) := by
+    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) : σ (.n 59) = gen ^ (D.τ - 3) := by
   have hG : ∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) σ s := by
     subst hσd; exact (val_good h).2.1
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
-  have c56 : σ (.n 56) = Guest.word 2 0 0 :=
-    gA (.const (.n 56) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+  have c56 : σ (.n 58) = Guest.word 2 0 0 :=
+    gA (.const (.n 58) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 57) (.n 17) (.n 56)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
+    (gA (.mul (.n 59) (.n 17) (.n 58)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]
   congr 1
   have := h.1

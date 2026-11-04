@@ -38,13 +38,13 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     (∀ i < 5, σ (.n i) = D.f.getD i 0) ∧ σ (.n 5) = ptr curE ∧ σ (.n 6) = gen ^ D.τ ∧
     σ (.n 7) = ptr chiE ∧ σ (.n 8) = ptr olE ∧ σ (.n 9) = ptr zvE ∧ σ (.n 10) = ptr slE ∧
     σ (.n 17) = gen ^ (D.τ - 4) ∧ σ (.n 43) = gen ^ ((D.τ - 3) / 2) ∧ σ (.n 47) = gen ^ D.odd ∧
-    σ (.n 48) = gen ^ ((D.τ - 3) / 2 + D.odd) ∧ σ (.n 58) = ptr B ∧
-    σ (.n 60) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 61) = 1 ∧ σ (.n 63) = ptr chiE * gen ^ 4 ∧
-    σ (.n 64) = ptr B * gen ^ (D.τ - 4) ∧ σ (.n 89) = D.seg.getD 0 0 ∧
-    σ (.n 90) = ptr (B + (D.τ - 3)) ∧ (cap5 179).map σ = (D.layer 0).cap ∧
-    σ (.n 191) = D.committed ∧ (σ (.n 198), σ (.n 200)) = D.cells 0 ∧
-    σ (.n 201) = ptr (B + D.o201) ∧ σ (.n 203) = ptr (B + D.τ + 288) ∧
-    σ (.n 274) = ptr (B + D.o274) ∧ σ (.n 382) = ptr (B + D.τ + 380) ∧
+    σ (.n 48) = gen ^ ((D.τ - 3) / 2 + D.odd) ∧ σ (.n 60) = ptr B ∧
+    σ (.n 62) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 63) = 1 ∧ σ (.n 65) = ptr chiE * gen ^ 4 ∧
+    σ (.n 66) = ptr B * gen ^ (D.τ - 4) ∧ σ (.n 91) = D.seg.getD 0 0 ∧
+    σ (.n 92) = ptr (B + (D.τ - 3)) ∧ (cap5 181).map σ = (D.layer 0).cap ∧
+    σ (.n 193) = D.committed ∧ (σ (.n 200), σ (.n 202)) = D.cells 0 ∧
+    σ (.n 203) = ptr (B + D.o201) ∧ σ (.n 205) = ptr (B + D.τ + 288) ∧
+    σ (.n 276) = ptr (B + D.o274) ∧ σ (.n 384) = ptr (B + D.τ + 380) ∧
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (vkHeadT ++ vkFirstT) next kret := by
   have hσ : ∀ v, σ v = σ (.n v.idx) := by subst hσd; exact (val_good h).1
@@ -72,12 +72,12 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
   have p10 : σ (.n 10) = ptr slE := by rw [pa 10 (by norm_num), args, hf]; rfl
   -- the buffers' bases
   have ha : ∀ x ∈ vkAllocs, σ x.1 = D.w B curE x.1.idx := by subst hσd; exact val_alloc h
-  have a58 : σ (.n 58) = ptr B := ha (.n 58, .inr (.n 57)) (by simp [vkAllocs])
-  have a90 : σ (.n 90) = ptr (B + (D.τ - 3)) := ha (.n 90, .inl 5) (by simp [vkAllocs])
-  have a201 : σ (.n 201) = ptr (B + D.o201) := ha (.n 201, .inl 286) (by simp [vkAllocs])
-  have a203 : σ (.n 203) = ptr (B + D.τ + 288) := ha (.n 203, .inl 30) (by simp [vkAllocs])
-  have a274 : σ (.n 274) = ptr (B + D.o274) := ha (.n 274, .inl 62) (by simp [vkAllocs])
-  have a382 : σ (.n 382) = ptr (B + D.τ + 380) := ha (.n 382, .inl 2) (by simp [vkAllocs])
+  have a58 : σ (.n 60) = ptr B := ha (.n 60, .inr (.n 59)) (by simp [vkAllocs])
+  have a90 : σ (.n 92) = ptr (B + (D.τ - 3)) := ha (.n 92, .inl 5) (by simp [vkAllocs])
+  have a201 : σ (.n 203) = ptr (B + D.o201) := ha (.n 203, .inl 286) (by simp [vkAllocs])
+  have a203 : σ (.n 205) = ptr (B + D.τ + 288) := ha (.n 205, .inl 30) (by simp [vkAllocs])
+  have a274 : σ (.n 276) = ptr (B + D.o274) := ha (.n 276, .inl 62) (by simp [vkAllocs])
+  have a382 : σ (.n 384) = ptr (B + D.τ + 380) := ha (.n 384, .inl 2) (by simp [vkAllocs])
   -- the memory
   obtain ⟨m58, m90, m201, m203, m274, m382, -, -⟩ := own_mem (by omega) hm.own
   have mchis := memL_entry hm.lin (b := chiE) (ws := D.chis) (by simp [lin])
@@ -104,26 +104,26 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       (chis := D.chis) (by rw [p7]; exact mchis) (by omega) (committed := D.committed)
       (by rw [p5]; exact mcom) (by rw [p0, p1, p2, p3, p4, ← hf]; exact hfc)
   rw [p0, p1, p2, p3, p4, ← hf] at q1
-  have hsq1 : D.sq1 = ([σ (.n 89)], ⟨(cap5 78).map σ, []⟩) := by
+  have hsq1 : D.sq1 = ([σ (.n 91)], ⟨(cap5 80).map σ, []⟩) := by
     rw [sq1, keccakSegmentBits_eq]; exact q1
-  have hseg : D.seg = [σ (.n 89)] := by rw [seg, hsq1]
-  have hsq2 : D.sq2 = ((List.range 5).map (fun i ↦ σ (.n (110 + 20 * i))), ⟨(cap5 179).map σ, []⟩) := by
+  have hseg : D.seg = [σ (.n 91)] := by rw [seg, hsq1]
+  have hsq2 : D.sq2 = ((List.range 5).map (fun i ↦ σ (.n (112 + 20 * i))), ⟨(cap5 181).map σ, []⟩) := by
     rw [sq2, hsq1]; exact q5
-  have hrl : D.rl = (List.range 5).map (fun i ↦ σ (.n (110 + 20 * i))) := by rw [rl, hsq2]
-  have hcap0 : (cap5 179).map σ = (D.layer 0).cap := by
+  have hrl : D.rl = (List.range 5).map (fun i ↦ σ (.n (112 + 20 * i))) := by rw [rl, hsq2]
+  have hcap0 : (cap5 181).map σ = (D.layer 0).cap := by
     simp [layer, chain_zero, S0, hsq2, Fs.absorb, rateScalars]
-  have e89 : σ (.n 89) = D.seg.getD 0 0 := by rw [hseg]; rfl
-  have e64' : σ (.n 64) = ptr B * gen ^ (D.τ - 4) := by rw [e64, a58, h17]
-  have l64 : LoadHolds rd (σ (.n 64)) 0 (σ (.n 89)) := by
+  have e89 : σ (.n 91) = D.seg.getD 0 0 := by rw [hseg]; rfl
+  have e64' : σ (.n 66) = ptr B * gen ^ (D.τ - 4) := by rw [e64, a58, h17]
+  have l64 : LoadHolds rd (σ (.n 66)) 0 (σ (.n 91)) := by
     rw [e64', loadHolds_mul_gen_pow, add_zero, e89, ← c0_point_seg h]
     exact ClaimLay.getD_load m58 (by rw [c0_point_length h]; omega)
-  have l90 : ∀ i < 5, LoadHolds rd (σ (.n 90)) i (σ (.n (110 + 20 * i))) := by
+  have l90 : ∀ i < 5, LoadHolds rd (σ (.n 92)) i (σ (.n (112 + 20 * i))) := by
     intro i hi
     have := ClaimLay.getD_load m90 (k := i) (by rw [rl_length]; exact hi)
     rw [a90]
     rwa [hrl, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map, List.getElem_range]
       at this
-  have l9 : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (σ (.n (52 + i))) := by
+  have l9 : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (σ (.n (54 + i))) := by
     intro i hi
     rw [p9, e52 i hi, ← op_getD h (by omega)]
     exact ClaimLay.getD_load mop (by rw [op_length h]; omega)
@@ -134,10 +134,10 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       (List.mem_append_left _ hs))))
   have hzv : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (D.chis.getD i 0) := fun i hi ↦ by
     rw [← e52 i hi]; exact l9 i hi
-  have hrlL : ∀ i < 5, LoadHolds rd (σ (.n 90)) i (D.rl.getD i 0) := fun i hi ↦ by
+  have hrlL : ∀ i < 5, LoadHolds rd (σ (.n 92)) i (D.rl.getD i 0) := fun i hi ↦ by
     rw [hrl, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map, List.getElem_range]
     exact l90 i hi
-  have hT203 : ∀ t, 1 ≤ t → t ≤ 4 → ∀ i < 2 ^ t, LoadHolds rd (σ (.n 203)) (2 ^ t - 2 + i)
+  have hT203 : ∀ t, 1 ≤ t → t ≤ 4 → ∀ i < 2 ^ t, LoadHolds rd (σ (.n 205)) (2 ^ t - 2 + i)
       ((eqKernel ((D.chis.take 4).take t)).getD i 0) := by
     intro t h1 h2 i hi
     have hl : 4 ≤ (D.chis.take 4).length := by simp; omega
@@ -146,7 +146,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     rw [eqLevels_length hl]
     have : 2 ^ t ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) h2
     omega
-  have hT274 : ∀ t, 1 ≤ t → t ≤ 5 → ∀ i < 2 ^ t, LoadHolds rd (σ (.n 274)) (2 ^ t - 2 + i)
+  have hT274 : ∀ t, 1 ≤ t → t ≤ 5 → ∀ i < 2 ^ t, LoadHolds rd (σ (.n 276)) (2 ^ t - 2 + i)
       ((eqKernel (D.rl.take t)).getD i 0) := by
     intro t h1 h2 i hi
     have hl : 5 ≤ D.rl.length := by rw [rl_length]
@@ -155,7 +155,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     rw [eqLevels_length hl]
     have : 2 ^ t ≤ 2 ^ 5 := Nat.pow_le_pow_right (by norm_num) h2
     omega
-  have hT382 : ∀ i < 2, LoadHolds rd (σ (.n 382)) i ((eqKernel [σ (.n 89)]).getD i 0) := by
+  have hT382 : ∀ i < 2, LoadHolds rd (σ (.n 384)) i ((eqKernel [σ (.n 91)]).getD i 0) := by
     intro i hi
     rw [a382, ← hseg]
     exact ClaimLay.getD_load m382 (by rw [eqKernel_length, seg_length]; simpa using hi)
@@ -163,29 +163,29 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     (by omega) hzv (rl_length) hrlL l64
     houts (by rw [p8]; exact mouts) hT203 hT274 hT382
   -- the first record's stores
-  have hcl : ∀ j < 22, LoadHolds rd (σ (.n 201)) j ((D.cw0 B).getD j 0) := fun j hj ↦ by
+  have hcl : ∀ j < 22, LoadHolds rd (σ (.n 203)) j ((D.cw0 B).getD j 0) := fun j hj ↦ by
     rw [a201, ← claims_cw0 (ls := ls) h hj]
     exact ClaimLay.getD_load m201 (by
       rw [claims, List.length_append]; simp [cw0, c0_mu h]; omega)
-  have s1 : LoadHolds rd (σ (.n 201)) 1 (σ (.n 202)) := by rw [e202]; exact hcl 1 (by norm_num)
-  have s2 : LoadHolds rd (σ (.n 201)) 2 (σ (.n 58)) := by rw [a58]; exact hcl 2 (by norm_num)
-  have s6 : ∀ i < 16, LoadHolds rd (σ (.n 201)) (6 + i) (σ (.n (258 + i))) := by
+  have s1 : LoadHolds rd (σ (.n 203)) 1 (σ (.n 204)) := by rw [e202]; exact hcl 1 (by norm_num)
+  have s2 : LoadHolds rd (σ (.n 203)) 2 (σ (.n 60)) := by rw [a58]; exact hcl 2 (by norm_num)
+  have s6 : ∀ i < 16, LoadHolds rd (σ (.n 203)) (6 + i) (σ (.n (260 + i))) := by
     intro i hi
     have := hcl (6 + i) (by omega)
     rw [e258 i hi]
     rwa [cw0, List.getD_append_right _ _ _ _ (by simp),
       show 6 + i - [D.c0.value, 1, ptr B, ptr (B + D.o274 + 30), 0, 0].length = i by simp,
       c0_mu_eq h] at this
-  have s3 : LoadHolds rd (σ (.n 201)) 3 (σ (.n 381)) := by
+  have s3 : LoadHolds rd (σ (.n 203)) 3 (σ (.n 383)) := by
     rw [e381, a274, ptr_mul_gen]; exact hcl 3 (by norm_num)
-  have s0 : LoadHolds rd (σ (.n 201)) 0 (σ (.n 487)) := by
+  have s0 : LoadHolds rd (σ (.n 203)) 0 (σ (.n 489)) := by
     have := hcl 0 (by norm_num)
-    suffices hv : (D.cw0 B).getD 0 0 = σ (.n 487) by rwa [hv] at this
+    suffices hv : (D.cw0 B).getD 0 0 = σ (.n 489) by rwa [hv] at this
     rw [e487, e191]
     simp only [cw0, c0, vkFirst, keccakSegments_eq, show 2 - 1 = 1 from rfl]
     rw [hseg, dot_eq _ _ (by simp [eqKernel_length, rl_length, houts])]
     simp only [List.length_take, eqKernel_length, rl_length, show min 25 (2 ^ 5) = 25 from rfl]
-    refine congrArg (D.committed + (eqKernel [σ (.n 89)]).getD 1 0 * ·)
+    refine congrArg (D.committed + (eqKernel [σ (.n 91)]).getD 1 0 * ·)
       (Finset.sum_congr rfl fun k hk ↦ ?_)
     simp [List.getD_eq_getElem?_getD, Finset.mem_range.1 hk]
   refine ⟨fun i hi ↦ ?_, p5, p6, p7, p8, p9, p10, h17, h43, h47, h48, a58,

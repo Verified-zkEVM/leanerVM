@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def vkFinPre : List Stmt := vkFinT.dropLast
 
 /-- The returned values. -/
-def vkVs : List V := [.n 6584, .n 6585, .n 6586, .n 6587, .n 6588, .n 6591, .n 6592, .n 6593]
+def vkVs : List V := [.n 3868, .n 3869, .n 3870, .n 3871, .n 3872, .n 3875, .n 3876, .n 3877]
 
 /-- The body but its return. -/
 def vkPre : List Stmt := vkHeadT ++ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinPre
@@ -43,9 +43,9 @@ theorem vkT_pre : vkT = vkPre ++ [.ret vkVs] := by
 
 /-- The buffers. -/
 def vkAllocs : List (V × (ℕ ⊕ V)) :=
-  [(.n 58, .inr (.n 57)), (.n 90, .inl 5), (.n 201, .inl 286), (.n 203, .inl 30), (.n 274, .inl 62),
-    (.n 382, .inl 2)] ++ (List.range 12).map (fun s ↦ (.n (stepB s + 1), .inl 2)) ++
-    [(.n 3987, .inl 30)]
+  [(.n 60, .inr (.n 59)), (.n 92, .inl 5), (.n 203, .inl 286), (.n 205, .inl 30), (.n 276, .inl 62),
+    (.n 384, .inl 2)] ++ (List.range 12).map (fun s ↦ (.n (stepB s + 1), .inl 2)) ++
+    [(.n 1259, .inl 30)]
 
 /-- The frame a statement sets up, a dispatch taking its `o`-th name. -/
 def callSFO (o : ℕ) : Stmt → Option (Option V × String × List V × List V)
@@ -61,24 +61,24 @@ def dispOddB : Stmt → Bool
 def stepCall (o s : ℕ) : Option V × String × List V × List V :=
   let T := stepT0 s (stepB s)
   if s = 0 then
-    (none, layerName 1 o, (stepCap s).map .n ++ [.n 198, .n 200, .n (T + 1), .n (T + 3), .n 43,
-      .n 48, .n 201, .n (T + 5), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 6 + j))
+    (none, layerName 1 o, (stepCap s).map .n ++ [.n 200, .n 202, .n (T + 1), .n (T + 3), .n 43,
+      .n 48, .n 203, .n (T + 5), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 6 + j))
   else
     (none, layerName 0 o, (stepCap s).map .n ++ [.n T, .n (T + 1), .n (stepCur s), .n (T + 3),
       .n 43, .n 48, .n (T + 5), .n (T + 9), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 10 + j))
 
 /-- **The calls**, `odd_g = g^o`. -/
 def vkCalls (o : ℕ) : List (Option V × String × List V × List V) :=
-  [(some (.n 60), "__loop10", [.n 61, .n 17, .n 58, .n 63], [])] ++
+  [(some (.n 62), "__loop10", [.n 63, .n 17, .n 60, .n 65], [])] ++
     (List.range 12).map (stepCall o) ++
-    [(none, "keccak_plain_rounds__L6_L0", [.n 3685, .n 3686, .n 3687, .n 3688, .n 3689, .n 3692,
-        .n 3693, .n 3690, .n 191, .n 3691], (List.range 7).map fun j ↦ .n (3694 + j)),
-      (some (.n 3971), "__loop11", [.n 3972, .n 17, .n 3974, .n 58], []),
-      (none, "keccak_plain_rounds__L4_L1", [.n 3694, .n 3695, .n 3696, .n 3697, .n 3698, .n 3708,
-        .n 3710, .n 3976, .n 3977, .n 3979], (List.range 7).map fun j ↦ .n (3980 + j)),
-      (none, "keccak_plain_rounds__L6_L0", [.n 3980, .n 3981, .n 3982, .n 3983, .n 3984, .n 4108,
-        .n 4109, .n 3985, .n 3986, .n 4107], (List.range 7).map fun j ↦ .n (4110 + j)),
-      (some (.n 6580), "__loop12", [.n 6581, .n 17, .n 6583, .n 4977], [])]
+    [(none, "keccak_plain_rounds__L6_L0", [.n 957, .n 958, .n 959, .n 960, .n 961, .n 964,
+        .n 965, .n 962, .n 193, .n 963], (List.range 7).map fun j ↦ .n (966 + j)),
+      (some (.n 1243), "__loop11", [.n 1244, .n 17, .n 1246, .n 60], []),
+      (none, "keccak_plain_rounds__L4_L1", [.n 966, .n 967, .n 968, .n 969, .n 970, .n 980,
+        .n 982, .n 1248, .n 1249, .n 1251], (List.range 7).map fun j ↦ .n (1252 + j)),
+      (none, "keccak_plain_rounds__L6_L0", [.n 1252, .n 1253, .n 1254, .n 1255, .n 1256, .n 1380,
+        .n 1381, .n 1257, .n 1258, .n 1379], (List.range 7).map fun j ↦ .n (1382 + j)),
+      (some (.n 3864), "__loop12", [.n 3865, .n 17, .n 3867, .n 2249], [])]
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧

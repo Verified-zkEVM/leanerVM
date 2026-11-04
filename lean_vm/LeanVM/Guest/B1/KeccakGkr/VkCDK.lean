@@ -23,29 +23,29 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- The committed outputs' lane weights. -/
-abbrev vkOutSL : List Stmt := slotLanesT 3691 3711 3712 1 1
+abbrev vkOutSL : List Stmt := slotLanesT 963 983 984 1 1
 
 /-- The committed outputs' dot product. -/
-abbrev vkOutDL : List Stmt := dotLoadsT ((List.range 25).map (slotLaneV 3712 1)) (.n 274) 30 3895
+abbrev vkOutDL : List Stmt := dotLoadsT ((List.range 25).map (slotLaneV 984 1)) (.n 276) 30 1167
 
 theorem vkOut_ker :
-    noneIn [.load (.n 3701) (.n 3699) 0] vkSt = true ∧
+    noneIn [.load (.n 973) (.n 971) 0] vkSt = true ∧
     vkOutSL.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkOutSL)) = true ∧
-    (resid (atomsL vkOutSL)).all (ldR [(.n 3691, 0, 6), (.n 3711, 0, 1)]) = true ∧
+    (resid (atomsL vkOutSL)).all (ldR [(.n 963, 0, 6), (.n 983, 0, 1)]) = true ∧
     noneIn (resid (atomsL vkOutSL)) vkSt = true ∧
     vkOutDL.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkOutDL)) = true ∧
-    (resid (atomsL vkOutDL)).all (ldR [(.n 274, 30, 55)]) = true ∧
+    (resid (atomsL vkOutDL)).all (ldR [(.n 276, 30, 55)]) = true ∧
     noneIn (resid (atomsL vkOutDL)) vkSt = true := by
   decide +kernel
 
 /-- The inputs' pairs: the low point's weights and the last claim's `μ`. -/
-abbrev vkInPD : List Stmt := pairsDotT (.n 3987) (.n 201) (consecOffs 14 270 16) 4042
+abbrev vkInPD : List Stmt := pairsDotT (.n 1259) (.n 203) (consecOffs 14 270 16) 1314
 
 theorem vkIn_ker :
-    noneIn [.load (.n 3977) (.n 201) 264] vkSt = true ∧
-    noneIn (eqtreeReads (.n 9) (.n 3987) 39 3988 4) vkSt = true ∧
+    noneIn [.load (.n 1249) (.n 203) 264] vkSt = true ∧
+    noneIn (eqtreeReads (.n 9) (.n 1259) 39 1260 4) vkSt = true ∧
     vkInPD.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkInPD)) = true ∧
-    (resid (atomsL vkInPD)).all (ldR [(.n 3987, 14, 30), (.n 201, 270, 286)]) = true ∧
+    (resid (atomsL vkInPD)).all (ldR [(.n 1259, 14, 30), (.n 203, 270, 286)]) = true ∧
     noneIn (resid (atomsL vkInPD)) vkSt = true := by
   decide +kernel
 
@@ -66,43 +66,43 @@ theorem slicesT_pre (cur : V) (capb b : ℕ) :
 
 /-- The canonical values of the slices' permutations' inputs: the capacity, the reads' cells. -/
 def slA : List ℕ :=
-  [4117, 4118, 4119, 4120, 4121] ++ (List.range 64).flatMap fun z ↦ [slB 4122 z + 7, slB 4122 z + 9]
+  [1389, 1390, 1391, 1392, 1393] ++ (List.range 64).flatMap fun z ↦ [slB 1394 z + 7, slB 1394 z + 9]
 
 /-- A residual atom of the slices: a read at the cursor, or the store of a read. -/
 def slRes (a : Atom) : Bool := match a with
-  | .load d p off => (p == .n 4115 && decide (off < 64) && !vkSt.contains a) ||
-      (p == .n 10 && decide (off < 64) && d == .n (slB 4122 off) && vkSt.contains a)
+  | .load d p off => (p == .n 1387 && decide (off < 64) && !vkSt.contains a) ||
+      (p == .n 10 && decide (off < 64) && d == .n (slB 1394 off) && vkSt.contains a)
   | _ => false
 
 theorem vkSlices_ker :
-    (slicesPre (.n 4115) 4117 4122).all isAtom = true ∧
-    canonChk slA (atomsL ([] ++ slicesPre (.n 4115) 4117 4122)) = true ∧
-    (resid (atomsL (slicesPre (.n 4115) 4117 4122))).all slRes = true := by
+    (slicesPre (.n 1387) 1389 1394).all isAtom = true ∧
+    canonChk slA (atomsL ([] ++ slicesPre (.n 1387) 1389 1394)) = true ∧
+    (resid (atomsL (slicesPre (.n 1387) 1389 1394))).all slRes = true := by
   decide +kernel
 
 /-- The inputs' lane weights. -/
-abbrev vkFinSL : List Stmt := slotLanesT 4107 4978 4979 0 2
+abbrev vkFinSL : List Stmt := slotLanesT 1379 2250 2251 0 2
 
 /-- The shifts of the slices. -/
-abbrev vkFinFT : List Stmt := foldT (fun j ↦ 5213 + j) 5277 (.n 5212)
+abbrev vkFinFT : List Stmt := foldT (fun j ↦ 2485 + j) 2549 (.n 2484)
 
 /-- `keccak_form`. -/
-abbrev vkFinFA : List Stmt := (formAll (.n 6363) vkSh (slotLaneV 4979 2) 6364).1
+abbrev vkFinFA : List Stmt := (formAll (.n 3647) vkSh (slotLaneV 2251 2) 3648).1
 
 theorem vkFin_ker :
-    noneIn ([.load (.n 4977) (.n 201) 266, .load (.n 5212) (.n 201) 268,
-      .load (.n 6363) (.n 201) 267] ++ (List.range 64).map fun z ↦ .load (.n (5213 + z)) (.n 10) z)
+    noneIn ([.load (.n 2249) (.n 203) 266, .load (.n 2484) (.n 203) 268,
+      .load (.n 3647) (.n 203) 267] ++ (List.range 64).map fun z ↦ .load (.n (2485 + z)) (.n 10) z)
       vkSt = true ∧
     vkFinSL.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinSL)) = true ∧
-    (resid (atomsL vkFinSL)).all (ldR [(.n 4107, 0, 6), (.n 4978, 0, 1)]) = true ∧
+    (resid (atomsL vkFinSL)).all (ldR [(.n 1379, 0, 6), (.n 2250, 0, 1)]) = true ∧
     noneIn (resid (atomsL vkFinSL)) vkSt = true ∧
     vkFinFT.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinFT)) = true ∧
-    (resid (atomsL vkFinFT)).all (ldR [(.n 5212, 0, 6)]) = true ∧
+    (resid (atomsL vkFinFT)).all (ldR [(.n 2484, 0, 6)]) = true ∧
     noneIn (resid (atomsL vkFinFT)) vkSt = true ∧
     vkFinFA.all isAtom = true ∧ canonChk [] (atomsL ([] ++ vkFinFA)) = true ∧
-    (resid (atomsL vkFinFA)).all (ldR [(.n 6363, 0, 25)]) = true ∧
+    (resid (atomsL vkFinFA)).all (ldR [(.n 3647, 0, 25)]) = true ∧
     noneIn (resid (atomsL vkFinFA)) vkSt = true ∧
-    (formAll (.n 6363) vkSh (slotLaneV 4979 2) 6364).2.2 = 6577 := by
+    (formAll (.n 3647) vkSh (slotLaneV 2251 2) 3648).2.2 = 3861 := by
   decide +kernel
 
 end
