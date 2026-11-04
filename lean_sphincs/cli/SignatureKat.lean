@@ -10,8 +10,8 @@ Keccak-f[1600], on the EthLib test vectors of `crates/signatures` (`DIR` is
 (`crates/signatures/src/lean_sphincs/known_answer.hex`, beside `DIR`'s crate, given as a second
 argument): the bytes must match. An input of the wrong length is rejected (`null`). Each case
 prints `ok` or `MISMATCH`; the exit code is the number of mismatches. `--sphincs` and `--xmss` run
-one scheme's cases; `--skip-xmss-sign` leaves out leanXMSS's signing cases, three tree builds of
-`2^16` leaves each.
+one scheme's cases; `--skip-xmss-sign` leaves out leanXMSS's signing cases, four tree builds of
+`2^16` leaves each (the key's top tree, then the signer's).
 -/
 
 /-!
@@ -422,8 +422,11 @@ def signatureOf (bytes : List UInt8) : Option Signature :=
 def keygen (seed : MasterSeed) : PublicKey :=
   ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
 
+/-- The key of the seed, as the crate's (`key_gen_from_seed`), then its signature. -/
 def sign (seed : MasterSeed) (leafIndex : LeafIndex) (message : Message) : Option Signature :=
-  (KeyGenerationAndSigning.sign (m := StateM Unit) keccak seed leafIndex message).run' ()
+  (do
+    let (_, secretKey) ← KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed
+    KeyGenerationAndSigning.sign (m := StateM Unit) keccak secretKey leafIndex message).run' ()
 
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
   (Verification.verify (m := StateM Unit) keccak publicKey message signature).run' ()
