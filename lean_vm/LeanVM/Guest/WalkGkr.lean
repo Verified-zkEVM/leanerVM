@@ -2,7 +2,7 @@
   LeanVM.Guest.WalkGkr
 
   The cut obligations (`CutsKnown`) of `verify_bus_gkr` (function `10`) and its radix-four layer
-  loop `__loop6` (function `91`): the parity words the loop dispatches on (`GkrPar`), from B1's
+  loop `__loop6` (function `90`): the parity words the loop dispatches on (`GkrPar`), from B1's
   facts on their bodies (`B1.Gkr.Parity`), read through the certificates' cells.
 -/
 
@@ -22,7 +22,7 @@ hands on, at its two cuts, the parity word's bound (`knownIf = [(19, 12, 4)]`, c
 on the cell of `x` holding `1` (`impTag tagGkr 1 1` on `[26, 39, 73, 8, 69]`, values
 `15, 313, 66, 6, 56`: `vbg_par`).
 
-`gkrLoop_cutsKnown : CutsKnown 91`, `gkrBus_cutsKnown : CutsKnown 10`, for `WalkKnown`
+`gkrLoop_cutsKnown : CutsKnown 90`, `gkrBus_cutsKnown : CutsKnown 10`, for `WalkKnown`
 (`walkKnown_of_gkr gkrBus_cutsKnown gkrLoop_cutsKnown`).
 -/
 
@@ -72,17 +72,17 @@ theorem valG_of_loc {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {v c : �
     (h : C.locs.getD v 0 = c) : valG L fp C (.n v) = wd L fp c := by
   rw [← h]; rfl
 
-/-! ## `__loop6` (function `91`) -/
+/-! ## `__loop6` (function `90`) -/
 
-theorem coreOf_91 : (coreOf 90).body = lyBody := by
+theorem coreOf_90 : (coreOf 90).body = lyBody := by
   obtain ⟨fn, hf, -, hb⟩ := lyFound
-  have hc := coreOf_find (j := 91) (by norm_num) (by unfold nFns; norm_num)
+  have hc := coreOf_find (j := 90) (by norm_num) (by unfold nFns; norm_num)
   rw [show (coreOf 90).name = "__loop6" from rfl, hf] at hc
   rw [← Option.some.inj hc, hb]
 
 /-- `__loop6`'s certificate: `GkrPar` on its arguments, two cuts (before the dispatch, before the
 tail call). -/
-theorem gkr91_cert : (certOf 90).sem = [(tagGkr, [6, 2, 4, 5, 8])] ∧ (certOf 90).cuts.length = 2 ∧
+theorem gkr90_cert : (certOf 90).sem = [(tagGkr, [6, 2, 4, 5, 8])] ∧ (certOf 90).cuts.length = 2 ∧
     ((certOf 90).cutAt 1).start = 62 ∧ ((certOf 90).cutAt 1).known = [] ∧
     ((certOf 90).cutAt 1).knownIf = [(19, 12, 4)] ∧ ((certOf 90).cutAt 1).sems = [] ∧
     ((certOf 90).cutAt 2).start = 297 ∧ ((certOf 90).cutAt 2).known = [] ∧
@@ -90,23 +90,23 @@ theorem gkr91_cert : (certOf 90).sem = [(tagGkr, [6, 2, 4, 5, 8])] ∧ (certOf 9
     ((certOf 90).cutAt 2).sems = [(tagGkr, [6, 342, 4, 5, 8])] := by decide +kernel
 
 /-- `__loop6`'s cells: values `0, 2, 3, 4, 6, 16, 346` in cells `2, 4, 5, 6, 8, 19, 342`. -/
-theorem gkr91_locs : (certOf 90).locs.getD 0 0 = 2 ∧ (certOf 90).locs.getD 2 0 = 4 ∧
+theorem gkr90_locs : (certOf 90).locs.getD 0 0 = 2 ∧ (certOf 90).locs.getD 2 0 = 4 ∧
     (certOf 90).locs.getD 3 0 = 5 ∧ (certOf 90).locs.getD 4 0 = 6 ∧
     (certOf 90).locs.getD 6 0 = 8 ∧ (certOf 90).locs.getD 16 0 = 19 ∧
     (certOf 90).locs.getD 346 0 = 342 := by decide +kernel
 
 /-- **`__loop6`'s cut obligations**: the parity word's bound at both cuts, `GkrPar` at `x·g`
 before the tail call. -/
-theorem gkrLoop_cutsKnown : CutsKnown 91 := by
+theorem gkrLoop_cutsKnown : CutsKnown 90 := by
   intro κ L _ _ fp _ hsem i hi h0 hl
-  obtain ⟨hs, hlen, s1, k1, i1, m1, s2, k2, i2, m2⟩ := gkr91_cert
-  obtain ⟨l0, l2, l3, l4, l6, l16, l346⟩ := gkr91_locs
+  obtain ⟨hs, hlen, s1, k1, i1, m1, s2, k2, i2, m2⟩ := gkr90_cert
+  obtain ⟨l0, l2, l3, l4, l6, l16, l346⟩ := gkr90_locs
   rw [hs] at hsem
   have hp := (semRel_gkr _ _).mp (hsem _ (List.mem_singleton_self _))
   simp only [List.map_cons, List.map_nil, List.getD_cons_zero, List.getD_cons_succ] at hp
   rw [← valG_of_loc l4, ← valG_of_loc l0, ← valG_of_loc l2, ← valG_of_loc l3,
     ← valG_of_loc l6] at hp
-  rw [coreOf_91] at hl
+  rw [coreOf_90] at hl
   have hif : ∀ {n}, Stmt.noRetList (lyBody.take n) = true →
       tbStmtsEqb lySlotT (((lyBody.take n).drop 0).take lySlotT.length) = true →
       Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 90)) (lyBody.take n) True
