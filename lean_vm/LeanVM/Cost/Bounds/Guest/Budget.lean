@@ -35,7 +35,7 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
   (`frameWit_cost`);
-* the tables: preconditions `12893` (`preTable_cost`), entries `7237546` (`pcTableT_cost`); the
+* the tables: preconditions `12610` (`preTable_cost`), entries `7752760` (`pcTableT_cost`); the
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
@@ -227,7 +227,7 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12893 7237546 _ _
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12610 7752760 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := topConst_le (guestDecoderFramePrice e)
@@ -269,7 +269,7 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 32) (hs : ste
     unfold guestDecoderFramePrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
-  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12893 + 7237546 +
+  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12610 + 7752760 +
           guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAtValidCounts +
           guestDecoderFrameLookupCountAtValidCounts * (1129 * lg + 7803) + 39 := by gcongr
     _ ≤ _ := by

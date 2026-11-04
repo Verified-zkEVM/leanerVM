@@ -9,8 +9,7 @@ DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8
       "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"]
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
-CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
-KS, MONO_REC = 13, 15  # `KECCAK_STATE`, `MONO_REC`: a claim list's chain record
+KS = 13  # `KECCAK_STATE`: a claim list's chain record
 FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'rawDaPad', 'children',
           'childClaims', 'childShape']
 
@@ -45,12 +44,11 @@ def numbers(g, certs):
         c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
     def SK(n):
         c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
-    for n in DL + CL + CCL + CCM: assert n in g.by, n
+    for n in DL + CL + CCL: assert n in g.by, n
     v = {}
     v['dlK'] = max(-(-SB(n) // 2 ** j) for j, n in enumerate(DL))
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
-    v['ccm'] = sum(fs(n) for n in CCM)
     # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
     # loops' untaken frames and the last digests in the constant; per claim `13` words and a
     # `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration per `17`.
@@ -65,14 +63,13 @@ def numbers(g, certs):
                 + fs('__loop24'))
     v['dvS'] = 642 + SK('__loop21') + 128 * SK('__loop25') + max(0, SK('__loop23') - SK('__loop24'))
     v['dvP'] = 4 + SK('__loop24') + v['dlK']
-    # A child's claim list: the larger of the two walks (`child_claim_list_any`, records of `13`
-    # words, `child_claim_list_mono`, of `15`), each loop's frame its words per iteration.
-    anyC = fs('child_claim_list_any') + KS + fs('__loop17') + 7 * (KS + fs('__loop18')) + fs('__loop18') + v['ccl']
-    monoC = (fs('child_claim_list_mono') + MONO_REC + fs('__loop19') + 7 * (MONO_REC + fs('__loop20'))
-             + fs('__loop20') + v['ccm'])
-    v['ccC'] = fs('child_claim_list_digest') + SB('list_split') + max(anyC, monoC)
+    # A child's claim list (`B1.Main.ccC`, `ccS`): the `child_claim_list_any` walk (the honest one),
+    # `__loop17`'s and `__loop18`'s frames twice and the last digests' frames in the constant; per
+    # claim `13` words, a `__loop17` frame per `136` claims and a `__loop18` frame per `17`.
+    v['ccC'] = (fs('child_claim_list_digest') + KS + SB('list_split') + fs('child_claim_list_any')
+                + 2 * fs('__loop17') + 2 * fs('__loop18') + v['ccl'])
     v['clS'] = 1 + -(-SK('__loop15') // 136) + -(-SK('__loop16') // 17)
-    v['ccS'] = max(-(-(KS + fs('__loop17')) // 136), -(-(MONO_REC + fs('__loop19')) // 136))
+    v['ccS'] = 1 + -(-fs('__loop17') // 136) + -(-fs('__loop18') // 17)
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
@@ -137,10 +134,7 @@ theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = %d := by decide +kernel
 
 /-- The children's claim lists' last digests' frames. -/
 theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
-
-/-- The children's monotone claim lists' last digests' frames. -/
-theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by decide +kernel
-''' % (v['cl'], v['ccl'], v['ccm']))
+''' % (v['cl'], v['ccl']))
     def thm(name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
         r = idx_rw(g, fs, sb, sk)
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
@@ -159,15 +153,14 @@ theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by de
     body = '\n'.join([
         thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', '__loop15', '__loop16'],
             sb=['list_split']),
-        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum', 'ccm_sum'],
-            fs=['child_claim_list_digest', 'child_claim_list_any', 'child_claim_list_mono', '__loop17', '__loop18',
-                '__loop19', '__loop20'],
+        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'],
+            fs=['child_claim_list_digest', 'child_claim_list_any', '__loop17', '__loop18'],
             sb=['list_split']),
         thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop4']),
         thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15', '__loop16']),
         thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
             fs=['__loop4'], sb=['statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17', '__loop19']),
+        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17', '__loop18']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
         thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop33', '__loop34', '__loop35'])])

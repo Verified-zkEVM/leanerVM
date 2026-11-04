@@ -17,13 +17,13 @@ namespace LeanVM.Guest.Count
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 = 29557 := by
-  dsimp only [vsWords]
+theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 = 57633 := by
+  dsimp only [vsWords, kGr]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 51863 := by
+theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 49100 := by
   dsimp only [vsWords]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
@@ -34,9 +34,9 @@ theorem vkBound_eq : B1.VerifySub.vkBound = 85921 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem termBound_eq : B1.VerifySub.termBound B2C.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 38496 := by
+theorem termBound_eq : B1.VerifySub.termBound B2C.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 38622 := by
   show B2C.fs "check_opening_terminal" + 146 + 3 * 184 + max (B2C.fs "__loop14") (32 * 38) +
-    (B2C.fs "selector_tables" + 322) + 99 * 157 + (B2C.fs "ring_switch_weight" + 2240 + 16433) = 38496
+    (B2C.fs "selector_tables" + 448) + 99 * 157 + (B2C.fs "ring_switch_weight" + 2240 + 16433) = 38622
   rw [← fsFast_eq]; decide +kernel
 
 end

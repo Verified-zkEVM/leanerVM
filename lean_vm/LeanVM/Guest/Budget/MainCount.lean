@@ -84,7 +84,7 @@ def mainCount (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) : ℕ :=
 /-- A call's bound, by its callee. -/
 def mainCallW (H : MainCounts ω fs) (m : MainIn) (Kx Ks Kd K5 : ℕ) (c : Call) : ℕ :=
   if c.f = "exponent_tables" then H.kExp
-  else if c.f = "claim_list_digest" then (if c.args = [.n 53, .n 0] then Kx else Ks)
+  else if c.f = "claim_list_digest" then (if c.args = [.n 52, .n 0] then Kx else Ks)
   else if c.f = "__loop0" then m.nxd * H.kL1
   else if c.f = "__loop1" then m.nsd * H.kL2
   else if c.f = "__loop2" then m.nrx * H.kL3
@@ -176,12 +176,12 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
     | exact hdv hd rd t _ rets hn hv' hb' hT'.1
     | exact h5 rd t _ rets hn hv' hb' hT'.1
     | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g383] using ht))
-    | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g63)
+    | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g62)
         (by simpa [MainIn.cnt] using hx 1 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g62] using ht)) hB.xd (by simp)
-    | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g66)
+        (ne_zero_of_guard (by simpa [hMV.g61] using ht)) hB.xd (by simp)
+    | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g65)
         (by simpa [MainIn.cnt] using hx 4 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g65] using ht)) hB.sd (by simp)
+        (ne_zero_of_guard (by simpa [hMV.g64] using ht)) hB.sd (by simp)
     | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g327)
         (by simpa [MainIn.cnt] using hx 2 (by norm_num))
         (ne_zero_of_guard (by simpa [hMV.g326] using ht)) hB.rx (by simp)

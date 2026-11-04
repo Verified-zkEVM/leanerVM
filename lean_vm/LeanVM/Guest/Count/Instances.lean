@@ -77,11 +77,12 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   main := mainStaticsMain
   dv := dvStatic
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
-  l16 := wSK_totalLeOn (j := wIdxL 15) (by decide +kernel)
+  l15 := wSK_totalLeOn (j := wIdxL 15) (by decide +kernel)
+  l16 := wSK_totalLeOn (j := wIdxL 16) (by decide +kernel)
   cl := fun _ hk => wSB_totalLe (all_range_get clNames_ok hk)
-  l25 := wSK_totalLeOn (j := wIdxL 29) (by decide +kernel)
-  l26 := wSK_totalLeOn (j := wIdxL 30) (by decide +kernel)
-  l27 := wSK_totalLeOn (j := wIdxL 31) (by decide +kernel)
+  l25 := wSK_totalLeOn (j := wIdxL 33) (by decide +kernel)
+  l26 := wSK_totalLeOn (j := wIdxL 34) (by decide +kernel)
+  l27 := wSK_totalLeOn (j := wIdxL 35) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
 
 /-- `open_stacked`'s named callees, checked. -/

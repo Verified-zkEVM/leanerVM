@@ -19,7 +19,7 @@ CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
 BIG, GROUP, GROUPS = 136, 17, 8
 # `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
 # ratio of these words.
-RB = [('verify_bus_gkr', 29557), ('verify_keccak', 85921)]
+RB = [('verify_bus_gkr', 57633), ('verify_keccak', 85921)]
 
 
 def vt_term(g):
@@ -107,14 +107,13 @@ def tables(g):
 
 def l5_parts(tbl, k):
     """At the opcode index `k`: `__loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
-    children's claim lists' digests' constant and per-claim slope, the larger of the two walks:
-    the loop per `136` claims by the claims, the loop per `17` at most `7` times and the last
-    digest in the constant) and `vsCountT`, from `tables`."""
+    children's claim lists' digests' constant and per-claim slope on the `child_claim_list_any` walk,
+    the honest one (`B1.Main.ccHonest`): the loop per `136` claims by the claims, the loop per `17`
+    at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
     stat, loop, om, vsc = tbl
-    anyA = om[k]['child_claim_list_any'] + (GROUPS - 1) * loop(k, CC_LP[1]) + max(stat(k, n) for n in CCL)
-    monoA = om[k]['child_claim_list_mono'] + (GROUPS - 1) * loop(k, CC_LP[3]) + max(stat(k, n) for n in CCM)
-    ccA = om[k]['child_claim_list_digest'] + stat(k, 'list_split') + max(anyA, monoA)
-    ccS = max(-(-loop(k, CC_LP[0]) // BIG), -(-loop(k, CC_LP[2]) // BIG))
+    ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split') + om[k]['child_claim_list_any']
+           + (GROUPS - 1) * loop(k, CC_LP[1]) + max(stat(k, n) for n in CCL))
+    ccS = -(-loop(k, CC_LP[0]) // BIG)
     return om[k]['__loop4'], ccA, ccS, [vsc(k, c) for c in range(28)]
 
 
@@ -157,7 +156,7 @@ def write(g, OPS):
     o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
     o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
     o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its two ratio-bounded callees '
-                    'within `29557`, `85921` words.', lambda k: [vsc(k, c) for c in range(28)]))
+                    'within `57633`, `85921` words.', lambda k: [vsc(k, c) for c in range(28)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 28).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
