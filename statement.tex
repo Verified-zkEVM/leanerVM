@@ -251,8 +251,9 @@ the crate's deterministic signer, call for call (each tree built once, the layer
 up), and at most $N = 1\,182\,000\,000$ signing requests
 (\lean{Sphincs.leanSphincsStronglyUnforgeable}, from leanVM's own random-oracle theorem
 \lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
-count them). In both schemes the secret key is the crate's, the key's seed $S_0$, from which the
-signer derives the scheme seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
+count them). In both schemes the secret key is the crate's: the key's seed $S_0$ (for leanXMSS
+with the public parameter $P$ key generation derived), from which the signer derives the scheme
+seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
 case ($2^{32}$ encoding counters on each of its three layers), so with every request used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
