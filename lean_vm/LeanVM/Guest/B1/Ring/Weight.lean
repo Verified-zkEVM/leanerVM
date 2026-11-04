@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.KeccakGkr.Lib
+public import LeanVM.Guest.B1.Eq.RsEqRun
 
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
@@ -171,8 +172,8 @@ theorem rsw_acc (hm : ∀ k < 64, (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 
   | k + 1, hk => by
     rw [hm (k + 1) hk (by omega), Nat.add_sub_cancel, rsw_acc hm k (by omega), gsum_succ (n := k + 1)]
 
-/-- **`ring_switch_weight` computes `ringWeight`**, given `rs_eq_run`'s meaning. -/
-theorem ring_switch_weight_holds (hrs : rs_eq_run_Spec) : ring_switch_weight_Spec := by
+/-- **`ring_switch_weight` computes `ringWeight`**, from `rs_eq_run`'s (`rs_eq_run_sound`). -/
+theorem ring_switch_weight_holds : ring_switch_weight_Spec := by
   intro rd args rets h
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_rsw args rets).mp h
   simp only [Data.core14, List.map_cons, List.map_nil] at hpar hb
@@ -190,7 +191,7 @@ theorem ring_switch_weight_holds (hrs : rs_eq_run_Spec) : ring_switch_weight_Spe
     simp only [rswInit, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
     rw [← word_one, ← this.1]; exact this.2
   have ht := fun k hk => holds_rswTerm (hterm k hk)
-  have hrsm := (hrs rd _ _).mp hcall
+  have hrsm := rs_eq_run_sound rd _ _ hcall
   simp only [List.map_cons, List.map_nil, MeaningRsEqRun] at hrsm
   obtain ⟨count, hcount, hcg, zs, ps, c, hzl, hpl, hcl, hz, hp, hc, hrows, hret77⟩ := hrsm
   simp only [List.cons.injEq, and_true] at hret77
@@ -206,9 +207,9 @@ theorem ring_switch_weight_holds (hrs : rs_eq_run_Spec) : ring_switch_weight_Spe
       simp only [Nat.zero_add, Nat.reduceDiv, mul_zero] at l
       rw [loadHolds_unique l (hrow0 k hk)]
       rfl
-    · have hH : 1 ≤ (count + 1) / 2 := by omega
+    · have hH : 1 ≤ (count + 7) / 8 := by omega
       have r := hrows _ hH le_rfl k hk
-      have hmin : min (2 * ((count + 1) / 2)) count = count := by omega
+      have hmin : min (8 * ((count + 7) / 8)) count = count := by omega
       rw [hmin, List.take_of_length_le (by omega), List.take_of_length_le (by omega)] at r
       have hck : c.getD k 0 = 1 := by
         have := hc hpos k (by rw [hcl]; exact hk)
