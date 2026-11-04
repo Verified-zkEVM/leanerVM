@@ -92,10 +92,8 @@ lean_sphincs() {
   no_escapes lean_sphincs
   (cd lean_sphincs && lake exe cache get)
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
-  build lean_sphincs 'Sphincs(Fors|Base)?/'
-  axioms lean_sphincs Sphincs SphincsLayered.Lifetimes.requestedSecurity \
-    Sphincs.Lifetimes.requestedSecurityRpm SphincsLayered.Lifetimes.requestedSecurityRpmCalls \
-    Sphincs.OneLayer.requestedSecurityRpm_iff
+  build lean_sphincs '(Sphincs|FORS)/'
+  axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.h26_layered
 }
 
 # LeanDA's security: Benedikt Wagner's framework, theorems and proofs (b-wagn/fv-pq-da), ported

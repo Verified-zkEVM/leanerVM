@@ -165,11 +165,11 @@ jobs:
           set -o pipefail
           python3 -I ../lake-build.py . 2>&1 | tee "$RUNNER_TEMP/build.log"
       - name: Forbid deprecated API
-        run: "! grep -E '^warning: Sphincs(Fors|Base)?/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
+        run: "! grep -E '^warning: (Sphincs|FORS)/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
       - name: Check the axiom footprint
         working-directory: lean_sphincs
         run: |
-          theorems="SphincsLayered.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityRpm SphincsLayered.Lifetimes.requestedSecurityRpmCalls Sphincs.OneLayer.requestedSecurityRpm_iff"
+          theorems="Sphincs.leanSphincsStronglyUnforgeable FORS.h26_layered"
           { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
