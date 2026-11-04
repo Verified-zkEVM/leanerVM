@@ -90,10 +90,10 @@ def rsBody : List Stmt :=
     .atom (.mul (.n 318) (.n 317) (.n 317)), .atom (.mul (.n 319) (.n 0) (.n 318)),
     .ret [.n 319]]
 
-theorem core5_body : Fn.body Data.core5 = rsBody := stmtsEqb_sound (by decide +kernel)
+theorem core5_body : Fn.body Data.core6 = rsBody := stmtsEqb_sound (by decide +kernel)
 
-theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core5 :=
-  Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl
+theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core6 :=
+  Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl
 
 /-! ## The odd tail -/
 
@@ -512,7 +512,7 @@ theorem rs_unfold (rd : Reader) (args rets : List E) :
       σ (.n 316) = σ (.n 315) * σ (.n 315) ∧ σ (.n 317) = σ (.n 316) * σ (.n 316) ∧
       σ (.n 318) = σ (.n 317) * σ (.n 317) ∧ σ (.n 319) = σ (.n 0) * σ (.n 318) ∧
       [σ (.n 319)] = rets := by
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] from rfl,
     core5_body, rsBody]
   simp only [Stmt.HoldsList]
   simp only [holds_ite_noRet (.n 44) rsOdd [] rsOdd_noRet rfl]
