@@ -41,6 +41,11 @@ def certs():
     return out
 
 
+def ref(n):
+    """A window's cells: its data list, or an empty window's literal `[]`."""
+    return "[]" if n == "[]" else f"Data.{n}"
+
+
 def chunks(xs, n):
     return [xs[i:i + n] for i in range(0, len(xs), n)]
 
@@ -72,11 +77,11 @@ def main():
         if j in split:
             rowdefs += (f"/-- Function {j}'s certificate's cells, list by list. -/\n"
                         f"def guestLocsRow{j} : List (List ℕ) := [\n    "
-                        + ",\n    ".join(f"Data.{n}" for n in names) + "]\n\n")
+                        + ",\n    ".join(ref(n) for n in names) + "]\n\n")
             locs.append(f"guestLocsRow{j}.flatten")
         else:
             locs.append("[]" if not names else
-                        "[" + ", ".join(f"Data.{n}" for n in names) + "].flatten")
+                        "[" + ", ".join(ref(n) for n in names) + "].flatten")
     parts = chunks(locs, PART)
     locs_parts = "".join(
         f"/-- Functions {i * PART} to {i * PART + len(p) - 1}'s frame cells. -/\n"
