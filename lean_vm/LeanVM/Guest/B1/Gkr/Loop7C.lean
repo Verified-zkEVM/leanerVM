@@ -25,7 +25,8 @@ the body evaluated forward (`lyEvL`, its `ite`s' branches in order) holds: `ly_i
 regions of the body (`lyR1 .. lyR6`):
 
 * `lyc_head`: the combiner's permutation, the first record stored, `half` and `parity`;
-* `lyc_rounds`: `__loop27`, `gkr_rounds__L2` at an odd `j`, `gkr_rounds__L1` at an odd depth;
+* `lyc_rounds`: `__loop36`, `gkr_rounds__L{2r}` at `r = j % 4` (a dispatch), `gkr_rounds__L1` at
+  an odd depth;
 * `lyc_last`: the last record read;
 * `lyc_children`: the twelve children read and absorbed;
 * `lyc_check`: their check and the two new coordinates;
@@ -88,10 +89,10 @@ theorem tbCapAt_getD {rd : Reader} {rec : E} {off stride : ℕ} {cap : List E}
 /-- `__loop6`'s evaluation list: its body, each `ite`'s branches in order. -/
 def lyEvL : List Stmt := flatIte lyPre
 
-theorem ly_chk : (chk 6 lyEvL).isSome = true := by decide +kernel
+theorem ly_chk : (chk 7 lyEvL).isSome = true := by decide +kernel
 
 /-- `__loop6`'s stores. -/
-def lyS : List Atom := storesOf 6 lyEvL
+def lyS : List Atom := storesOf 7 lyEvL
 
 /-- **The regions of the body.** The head: the combiner, the first record, `half`, `parity`. -/
 def lyR1 : List Stmt :=
@@ -257,14 +258,14 @@ theorem lyc_head (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh : 
   -- the slot's capacity and waiting cells
   have gcap := good_slice hG 10 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (17 + k)) (.n 16) k)) (by decide +kernel) (by decide +kernel)
-  have kcap : ∀ k < 5, some (16 + k, 15, k) ∉ lyS.map loadKey := by decide +kernel
+  have kcap : ∀ k < 5, some (17 + k, 16, k) ∉ lyS.map loadKey := by decide +kernel
   have rcap : ∀ k < 5, σ (.n (17 + k)) = s.cap.getD k 0 ∧
       LoadHolds rd (σ (.n 16)) k (σ (.n (17 + k))) := fun k hk =>
     good_readS (gcap _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (kcap k hk)
       ((ld k _).mpr (hcap k hk))
   have grate := good_slice hG 15 ((List.range 4).map fun k ↦
     Stmt.atom (.load (.n (22 + k)) (.n 16) (13 + k))) (by decide +kernel) (by decide +kernel)
-  have krate : ∀ k < 4, some (21 + k, 15, 13 + k) ∉ lyS.map loadKey := by decide +kernel
+  have krate : ∀ k < 4, some (22 + k, 16, 13 + k) ∉ lyS.map loadKey := by decide +kernel
   have rrate : ∀ k < 4, σ (.n (22 + k)) = (rateOf s.pend).getD k 0 ∧
       LoadHolds rd (σ (.n 16)) (13 + k) (σ (.n (22 + k))) := fun k hk =>
     good_readS (grate _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (krate k hk)
@@ -315,7 +316,7 @@ theorem lyc_head (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {j sh : 
     intro k hk
     have := tbCapAt_getD hc0 hk
     rw [show 0 + k * gkCap = 862 * k by unfold gkCap; ring] at this
-    rw [m53, show 38 + k = 30 + (8 + k) by omega, hP (8 + k) (by omega)]
+    rw [m53, show 39 + k = 31 + (8 + k) by omega, hP (8 + k) (by omega)]
     rwa [Fs.squeeze, capOf_getD _ hk] at this
   obtain ⟨e54, l54⟩ := good_read (g 41 (.load (.n 54) (.n 16) 5) (by decide +kernel))
     (by decide +kernel) ((ld 5 _).mpr hcur)
@@ -475,7 +476,7 @@ theorem lyc_last (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {L : ℕ
   rw [e10] at m77
   have gc := good_slice hG 66 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (78 + k)) (.n 77) (862 * k))) (by decide +kernel) (by decide +kernel)
-  have kc : ∀ k < 5, some (74 + k, 73, 862 * k) ∉ lyS.map loadKey := by decide +kernel
+  have kc : ∀ k < 5, some (78 + k, 77, 862 * k) ∉ lyS.map loadKey := by decide +kernel
   have rc : ∀ k < 5, σ (.n (78 + k)) = cap.getD k 0 ∧
       LoadHolds rd (σ (.n 77)) (862 * k) (σ (.n (78 + k))) := fun k hk =>
     good_readS (gc _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (kc k hk)
@@ -527,7 +528,7 @@ theorem lyc_children (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {cap
         (lyCh σ 1).map (·, dsObserve)⟩) := by
   have g := fun n a heq => ly_good (rd := rd) (σ := σ) hG n a heq
   have hni : ∀ i < 12, (lyEvT i).all notIteB = true := by decide +kernel
-  have hk : ∀ i < 12, some (lyEv i, 79, i) ∉ lyS.map loadKey := by decide +kernel
+  have hk : ∀ i < 12, some (lyEv i, 83, i) ∉ lyS.map loadKey := by decide +kernel
   have EV : ∀ i < 12, Stmt.HoldsList C rd σ (lyEvT i) True kret ∧
       σ (.n (lyEv i)) = ch.getD i 0 ∧ σ (.n (lyEv i + 10)) = σ (.n (lyEv i)) ∧
       FsPackOk σ (.n (lyEv i)) (lyEv i + 1) dsObserve ∧
@@ -721,7 +722,7 @@ theorem lyc_check (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {P1 : K
 coordinates, stored at `off`. -/
 theorem lyc_val (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {t b off : ℕ} (n : ℕ)
     (heq : tbStmtsEqb (lyVal t b off) ((lyPre.drop n).take (lyVal t b off).length) = true)
-    (ht : t < 3) (hb : 294 < b) (cp : ∀ i < 12, σ (.n (lyEv i + 10)) = σ (.n (lyEv i)))
+    (ht : t < 3) (hb : 298 < b) (cp : ∀ i < 12, σ (.n (lyEv i + 10)) = σ (.n (lyEv i)))
     (hl : LoadHolds rd (σ (.n 16)) off (multilinearEval (lyCh σ t) [σ (.n 278), σ (.n 298)])) :
     Stmt.HoldsList C rd σ (lyVal t b off) True kret := by
   have gb := good_slice hG n (lyVal t b off) heq (by simp [lyVal, notIteB])
@@ -739,19 +740,19 @@ theorem lyc_val (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s) {t b off 
     (by omega) (by omega)
   have a5 : σ (.n (b + 5)) = σ (.n (lyEv (4 * t + 2) + 10)) + σ (.n (b + 4)) :=
     gb (.atom (.add (.n (b + 5)) _ _)) (by simp [lyVal])
-  have a7 : σ (.n (b + 6)) = σ (.n (b + 2)) + σ (.n (b + 5)) :=
+  have a6 : σ (.n (b + 6)) = σ (.n (b + 2)) + σ (.n (b + 5)) :=
     gb (.atom (.add (.n (b + 6)) _ _)) (by simp [lyVal])
-  have m8 := good_mulS (gb (.atom (.mul (.n (b + 7)) (.n 298) (.n (b + 6)))) (by simp [lyVal]))
+  have m7 := good_mulS (gb (.atom (.mul (.n (b + 7)) (.n 298) (.n (b + 6)))) (by simp [lyVal]))
     (by omega) (by omega)
-  have a9 : σ (.n (b + 8)) = σ (.n (b + 2)) + σ (.n (b + 7)) :=
+  have a8 : σ (.n (b + 8)) = σ (.n (b + 2)) + σ (.n (b + 7)) :=
     gb (.atom (.add (.n (b + 8)) _ _)) (by simp [lyVal])
-  have e9 : σ (.n (b + 8)) = multilinearEval (lyCh σ t) [σ (.n 278), σ (.n 298)] := by
-    rw [a9, m8, a7, a5, m4, a3, a2, m1, a0, cp (4 * t + 0) (by omega), cp (4 * t + 1) (by omega),
+  have e8 : σ (.n (b + 8)) = multilinearEval (lyCh σ t) [σ (.n 278), σ (.n 298)] := by
+    rw [a8, m7, a6, a5, m4, a3, a2, m1, a0, cp (4 * t + 0) (by omega), cp (4 * t + 1) (by omega),
       cp (4 * t + 2) (by omega), cp (4 * t + 3) (by omega), lyCh_eq]
     simp only [multilinearEval, List.foldl, foldPairs, List.headD]
     ring_nf
   simp only [lyVal, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-  exact ⟨a0, m1, a2, a3, m4, a5, a7, m8, a9, by rw [e9]; exact hl⟩
+  exact ⟨a0, m1, a2, a3, m4, a5, a6, m7, a8, by rw [e8]; exact hl⟩
 
 /-- **The next slot and the next iteration**: the stores of the slot `34` words on, and the call
 at `x·g` below the bound. -/
@@ -766,11 +767,14 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
       (multilinearEval (lyCh σ t) [σ (.n 278), σ (.n 298)]))
     (s43 : LoadHolds rd (σ (.n 16)) 43 (σ (.n 51) * gen ^ 40))
     (s44 : LoadHolds rd (σ (.n 16)) 44 (σ (.n 52) * σ (.n 10) * gen))
-    (s45 : LoadHolds rd (σ (.n 16)) 45 (σ (.n 62) * (1 + σ (.n 63) * (1 + gen))))
-    (s46 : LoadHolds rd (σ (.n 16)) 46 (1 + σ (.n 63)))
+    {hv pv : E} (k4 : LoadHolds rd (σ (.n 6) * σ (.n 63)) 4 hv)
+    (k0 : LoadHolds rd (σ (.n 6) * σ (.n 63)) 0 pv)
+    (s45 : LoadHolds rd (σ (.n 16)) 45 (σ (.n 62) * hv))
+    (s46 : LoadHolds rd (σ (.n 16)) 46 pv)
     (hK : IsInK (σ (.n 0) * gen + σ (.n 1)))
     (hcall : σ (.n 0) * gen + σ (.n 1) ≠ 0 →
-      C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] []) :
+      C "__loop6" [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)]
+        []) :
     Stmt.HoldsList C rd σ lyR6 True kret := by
   have g := fun n a heq => ly_good (rd := rd) (σ := σ) hG n a heq
   have gz := good_slice hG 237 ((List.range 4).map fun k ↦ [Stmt.atom (.const (.n (299 + k))
@@ -789,24 +793,23 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
   have c335 : σ (.n 335) = word 2 0 0 := g 282 (.const (.n 335) (word 2 0 0)) (by decide +kernel)
   have m336 := good_mul (g 283 (.mul (.n 336) (.n 334) (.n 335)) (by decide +kernel)) (by omega)
     (by omega)
-  have c333 : σ (.n 333) = word 1 0 0 := g 280 (.const (.n 333) (word 1 0 0)) (by decide +kernel)
-  have c334 : σ (.n 334) = word 3 0 0 := g 281 (.const (.n 334) (word 3 0 0)) (by decide +kernel)
-  have m335 := good_mul (g 282 (.mul (.n 335) (.n 63) (.n 334)) (by decide +kernel)) (by omega)
+  have m337 := good_mul (g 285 (.mul (.n 337) (.n 6) (.n 63)) (by decide +kernel)) (by omega)
     (by omega)
-  have a336 : σ (.n 336) = σ (.n 333) + σ (.n 335) :=
-    g 283 (.add (.n 336) (.n 333) (.n 335)) (by decide +kernel)
-  have m337 := good_mul (g 284 (.mul (.n 337) (.n 62) (.n 336)) (by decide +kernel)) (by omega)
+  obtain ⟨e338, l338⟩ := good_read (g 286 (.load (.n 338) (.n 337) 4) (by decide +kernel))
+    (by decide +kernel) (by rw [m337]; exact k4)
+  have m339 := good_mul (g 287 (.mul (.n 339) (.n 62) (.n 338)) (by decide +kernel)) (by omega)
     (by omega)
-  have c338 : σ (.n 338) = word 1 0 0 := g 286 (.const (.n 338) (word 1 0 0)) (by decide +kernel)
-  have a339 : σ (.n 339) = σ (.n 338) + σ (.n 63) :=
-    g 287 (.add (.n 339) (.n 338) (.n 63)) (by decide +kernel)
-  have c340 : σ (.n 340) = word 2 0 0 := g 289 (.const (.n 340) (word 2 0 0)) (by decide +kernel)
-  have m341 := good_mul (g 290 (.mul (.n 341) (.n 0) (.n 340)) (by decide +kernel)) (by omega)
+  have m340 := good_mul (g 289 (.mul (.n 340) (.n 6) (.n 63)) (by decide +kernel)) (by omega)
     (by omega)
-  have a342 : σ (.n 342) = σ (.n 341) + σ (.n 1) :=
-    g 291 (.add (.n 342) (.n 341) (.n 1)) (by decide +kernel)
-  have c343 : σ (.n 343) = word 2 0 0 := g 292 (.const (.n 343) (word 2 0 0)) (by decide +kernel)
-  have m344 := good_mul (g 293 (.mul (.n 344) (.n 0) (.n 343)) (by decide +kernel)) (by omega)
+  obtain ⟨e341, l341⟩ := good_read (g 290 (.load (.n 341) (.n 340) 0) (by decide +kernel))
+    (by decide +kernel) (by rw [m340]; exact k0)
+  have c342 : σ (.n 342) = word 2 0 0 := g 292 (.const (.n 342) (word 2 0 0)) (by decide +kernel)
+  have m343 := good_mul (g 293 (.mul (.n 343) (.n 0) (.n 342)) (by decide +kernel)) (by omega)
+    (by omega)
+  have a344 : σ (.n 344) = σ (.n 343) + σ (.n 1) :=
+    g 294 (.add (.n 344) (.n 343) (.n 1)) (by decide +kernel)
+  have c345 : σ (.n 345) = word 2 0 0 := g 295 (.const (.n 345) (word 2 0 0)) (by decide +kernel)
+  have m346 := good_mul (g 296 (.mul (.n 346) (.n 0) (.n 345)) (by decide +kernel)) (by omega)
     (by omega)
   have w4096 : word 4096 0 0 = gen ^ 12 := by
     rw [show (4096 : ℕ) = 2 ^ 12 by norm_num, tb_word_two_pow (by norm_num)]
@@ -831,16 +834,14 @@ theorem lyc_stores (hG : ∀ s ∈ lyEvL, GoodS rd lyS (fun _ => 0) σ s)
   · exact lyc_val hG 258 (by decide +kernel) (by omega) (by omega) cp (sv 1 (by omega))
   · exact lyc_val hG 268 (by decide +kernel) (by omega) (by omega) cp (sv 2 (by omega))
   · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, List.map_cons, List.map_nil]
-    rw [tb_word_one] at c333 c338
-    rw [tb_word_gen] at c335 c340 c343
-    rw [tb_word_three] at c334
+    rw [tb_word_gen] at c335 c342 c345
     refine ⟨c332, m333, by rw [m333, c332, w40]; exact s43, m334, by rw [c335, tb_word_gen], m336,
-      by rw [m336, m334, c335]; exact s44, by rw [c333, tb_word_one], by rw [c334, tb_word_three],
-      m335, a336, m337, by rw [m337, a336, m335, c334, c333]; exact s45, by rw [c338, tb_word_one],
-      a339, by rw [a339, c338]; exact s46, by rw [c340, tb_word_gen], m341, a342,
-      by rw [c343, tb_word_gen], m344, by rw [a342, m341, c340]; exact hK, fun hne => ?_⟩
-    rw [m344, c343]
-    exact hcall (by rw [a342, m341, c340] at hne; exact hne)
+      by rw [m336, m334, c335]; exact s44, m337, l338, m339,
+      by rw [m339, e338]; exact s45, m340, l341, by rw [e341]; exact s46,
+      by rw [c342, tb_word_gen], m343, a344,
+      by rw [c345, tb_word_gen], m346, by rw [a344, m343, c342]; exact hK, fun hne => ?_⟩
+    rw [m346, c345]
+    exact hcall (by rw [a344, m343, c342] at hne; exact hne)
 
 end Eval
 
