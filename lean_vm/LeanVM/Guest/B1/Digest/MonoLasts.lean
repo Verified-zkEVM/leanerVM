@@ -72,7 +72,7 @@ theorem ml_all : ∀ k < 17, mlOk k (coreProgram.getD (370 + k) default) = true 
     ml_14, ml_15, ml_16]
 
 set_option maxRecDepth 100000 in
-theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (371 + k) := by
+theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (370 + k) := by
   decide +kernel
 
 end

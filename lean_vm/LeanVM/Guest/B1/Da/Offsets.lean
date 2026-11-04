@@ -119,7 +119,7 @@ theorem atom_mem_holds {C : CallRel} {P : List Stmt} {kret : List E → Prop}
 /-- **A run of bit `b`'s loop at `x`**: `offsets[8·2^b + j]` through `offsets·x^8` is its word
 `j`'s plus `steps[j]`. -/
 theorem off_loop_step {b : ℕ} (hb : b < 7) (hok : offLoopOk (coreProgram.getD (407 + b) default) b = true)
-    (hidx : coreProgram.indexOf? (offLoopName b) = some (408 + b)) {x : E} {ps : List E}
+    (hidx : coreProgram.indexOf? (offLoopName b) = some (407 + b)) {x : E} {ps : List E}
     (h : coreProgram.Rel rd (offLoopName b) (x :: ps) []) :
     (∀ N off st, ps = [N, off, st] → ∀ j < 8, ∃ a s, LoadHolds rd (off * x ^ 8) j a ∧
       LoadHolds rd st j s ∧ LoadHolds rd (off * x ^ 8) (8 * 2 ^ b + j) (a + s)) ∧
@@ -179,7 +179,7 @@ theorem offC_word (b j : ℕ) : word (offC b j) 0 0 = ofK (wK j (2 ^ (8 + b))) :
 /-- **`da_column_offsets`' body gives its meaning**, from its loops'. -/
 theorem da_column_offsets_val {fn : Fn} (hok : offOk fn = true)
     (hloop : ∀ b < 7, offLoopOk (coreProgram.getD (407 + b) default) b = true)
-    (hidx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (408 + b))
+    (hidx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (407 + b))
     {args rets : List E} (hpar : fn.params.map σ = args)
     (hb : Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets)) :
     MeaningDaColumnOffsets rd args rets := by
