@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Common.Atoms
+public import LeanVM.Guest.B1.Common.Loops
 
 /-!
 # Flat blocks
@@ -67,6 +67,75 @@ theorem match_arm_of_gen_pow {x : E} {j v : ℕ} (hj : j < 2 ^ 32) (hv : v < 2 ^
   rw [h2, gen_pow_eq_ofK] at h1
   exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
     (ofK_injective h1)).symm
+
+/-- The statements of a block hold, statement by statement. -/
+def BlockOk (rd : Reader) (σ : Val) (ss : List Stmt) : Prop := ∀ s ∈ ss, StmtOk rd σ s
+
+theorem BlockOk.atom {rd : Reader} {σ : Val} {ss : List Stmt} (h : BlockOk rd σ ss) {a : Atom}
+    (ha : Stmt.atom a ∈ ss) : a.Holds rd σ := h _ ha
+
+theorem BlockOk.mono {rd : Reader} {σ : Val} {ss ts : List Stmt} (h : BlockOk rd σ ts)
+    (hs : ∀ s ∈ ss, s ∈ ts) : BlockOk rd σ ss := fun s hs' ↦ h s (hs s hs')
+
+theorem blockOk_append {rd : Reader} {σ : Val} {ss ts : List Stmt} :
+    BlockOk rd σ (ss ++ ts) ↔ BlockOk rd σ ss ∧ BlockOk rd σ ts := by
+  simp only [BlockOk, List.mem_append]
+  exact ⟨fun h ↦ ⟨fun s hs ↦ h s (Or.inl hs), fun s hs ↦ h s (Or.inr hs)⟩,
+    fun h s hs ↦ hs.elim (h.1 s) (h.2 s)⟩
+
+theorem blockOk_of_atoms {rd : Reader} {σ : Val} {ss : List Stmt} (hA : AllAtoms ss)
+    (h : ∀ a, Stmt.atom a ∈ ss → a.Holds rd σ) : BlockOk rd σ ss := fun s hs ↦ by
+  obtain ⟨a, rfl⟩ := hA s hs
+  exact h a hs
+
+theorem flat_of_atoms {ss : List Stmt} (h : AllAtoms ss) : Flat ss := fun s hs ↦ Or.inl (h s hs)
+
+theorem flat_append {ss ts : List Stmt} (h1 : Flat ss) (h2 : Flat ts) : Flat (ss ++ ts) :=
+  fun s hs ↦ (List.mem_append.mp hs).elim (h1 s) (h2 s)
+
+theorem flat_flatten {bs : List (List Stmt)} (h : ∀ b ∈ bs, Flat b) : Flat bs.flatten := fun s hs ↦ by
+  obtain ⟨b, hb, hs⟩ := List.mem_flatten.mp hs
+  exact h b hb s hs
+
+theorem flat_map_flatten {α : Type} {xs : List α} {f : α → List Stmt} (h : ∀ x ∈ xs, Flat (f x)) :
+    Flat (xs.map f).flatten :=
+  flat_flatten fun b hb ↦ by obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hb; exact h x hx
+
+theorem flat_match {x : V} {arms : List (List Stmt)} (h : ∀ arm ∈ arms, AllAtoms arm) :
+    Flat [.match_ x arms] := fun s hs ↦ by
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
+  exact Or.inr ⟨x, arms, hs, h⟩
+
+/-- The meaning of a flat loop body at the arguments `args`. -/
+def FlatBody (rd : Reader) (params : List V) (A : List Stmt) (args : List E) : Prop :=
+  ∃ σ : Val, params.map σ = args ∧ BlockOk rd σ A
+
+/-- **A loop of a flat body** (`loop_step_atoms` with `match`es of atom arms). -/
+theorem loop_step_flat {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
+    (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List V}
+    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : Flat A)
+    {x N : E} {rest : List E}
+    (hc : ∀ σ : Val, fn.params.map σ = x :: N :: rest → BlockOk rd σ A →
+      σ (.n c) = x * gen + N ∧ args.map σ = x * gen :: N :: rest) (d : ℕ) :
+    P.relN rd (d + 1) f (x :: N :: rest) [] ↔
+      FlatBody rd fn.params A (x :: N :: rest) ∧ IsInK (x * gen + N) ∧
+        (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: N :: rest) []) := by
+  rw [relN_succ_iff hf, hb]
+  constructor
+  · rintro ⟨σ, hp, h⟩
+    rw [holdsList_append, holdsList_flat hA] at h
+    obtain ⟨hall, hK, hcall, -⟩ := h
+    obtain ⟨e1, e2⟩ := hc σ hp hall
+    rw [e1] at hK hcall
+    rw [e2] at hcall
+    exact ⟨⟨σ, hp, hall⟩, hK, hcall⟩
+  · rintro ⟨⟨σ, hp, hall⟩, hK, hcall⟩
+    obtain ⟨e1, e2⟩ := hc σ hp hall
+    refine ⟨σ, hp, ?_⟩
+    rw [holdsList_append, holdsList_flat hA]
+    refine ⟨hall, ?_, ?_, rfl⟩
+    · rw [e1]; exact hK
+    · rw [e1, e2]; exact hcall
 
 end
 end LeanVM.Guest.B1

@@ -50,6 +50,14 @@ def qwWin (d cd i : ℕ) : ℕ × ℕ :=
   else if i + 1 = qwNp d cd then (6 * i, d - cd - 6 * i)
   else (6 * i, 6)
 
+/-- Window `i`'s value of the position `q`: its bits at the window's place. -/
+def qwVal (d cd q i : ℕ) : ℕ := (q >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2
+
+/-- `p` names a frame run of `n` cells holding `f`: every readable word at `p·g^i`, `i < n`, is
+`f i` (`addr(run)`). -/
+def FrameRun (rd : Reader) (p : E) (n : ℕ) (f : ℕ → E) : Prop :=
+  IsInK p ∧ ∀ i < n, ∀ v, rd (p.limb 0 * Parameters.addressOfIndex i) = some v → v = f i
+
 /-- The range check's bound for a window of `w` bits: `g^(2^w - 1)`. -/
 def qwBound (w : ℕ) : E := E.ofLimbs (gpowK (2 ^ w - 1)) 0 0
 

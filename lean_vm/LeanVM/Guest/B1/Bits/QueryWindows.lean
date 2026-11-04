@@ -43,14 +43,6 @@ def WinTabs (rd : Reader) (tabs : E) : Prop := ∀ n < 128, LoadHolds rd tabs n 
 /-- Position `j` of depth `d` of a word: its bits `j·d ..< (j + 1)·d`. -/
 def qwPosOf (d : ℕ) (w : E) (j : ℕ) : ℕ := (eToNat w >>> (j * d)) % 2 ^ d
 
-/-- Window `i`'s value of the position `q`: its bits at the window's place. -/
-def qwVal (d cd q i : ℕ) : ℕ := (q >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2
-
-/-- `p` names a frame run of `n` cells holding `f`: every readable word at `p·g^i`, `i < n`, is
-`f i` (`addr(run)`). -/
-def FrameRun (rd : Reader) (p : E) (n : ℕ) (f : ℕ → E) : Prop :=
-  IsInK p ∧ ∀ i < n, ∀ v, rd (p.limb 0 * Parameters.addressOfIndex i) = some v → v = f i
-
 /-- **`decode_query_windows(word, positions, win_ptrs, tabs, d, cd)`**: for each position
 `j < 192 / d`, `positions[j]` is position `j` of the word and `win_ptrs[j]` names a frame run
 holding the position's windows `g^(qwVal)`. -/

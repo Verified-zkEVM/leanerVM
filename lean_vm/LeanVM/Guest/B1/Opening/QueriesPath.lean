@@ -1,25 +1,28 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPath
 
-  One query's Merkle path below the cap: `verify_merkle_path` climbs the leaf by the hinted
-  siblings, the position's bits choosing the sides.
+  One query's Merkle path below the cap: `walk_path` climbs the leaf by the hinted siblings,
+  a window of six levels a dispatch, the arm's order bits the position's.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesLeaf
 public import LeanVM.Guest.B1.Merkle.Climb
+public import LeanVM.Guest.B1.Opening.QueriesFlat
 
 /-!
-# A query's Merkle path (`verify_merkle_path`, G:1010-1025)
+# A query's Merkle path (`walk_path`, `walk_window`, lean_ethereum.py:1279-1331 at c4f4bc92)
 
 `oqPair_hash`: one `keccak(a, b, out)` of two two-cell digests (the padding run as its tail and
 capacity, `0x80` as its cell `8`) is `HashesPair` (G3's `keccak_one`).
 
-`oqPath_sound`: level `l` stores the running node into the child its bit selects (the frame run
-at `pp`, the address `pp·g^(2b)`), then hashes the four children; with the bits those of `q`,
-the nodes are `climbNode leaf q sibs l` for the siblings `sibs` the hinted children hold, the
-frame run holds `pathCell`, and the last node is `climbD leaf q sibs` (`climb`, V:492).
+`oqStep_sound`: one level of an arm hashes the running node with the hinted pair on the other
+side of its order bit (`sibOff`). `oqArm_sound`, `oqWin_sound`: window `i` dispatches on its word
+`g^v` to arm `v`, whose order bits are the position's `6i ..`; its levels climb on (`climbD`).
+`oqPath_sound`: with each window's word the position's, the hinted pairs off the walk's side are
+the cells of siblings `sibs` (`SibAt`) and the node reached is `climbD leaf q sibs` (`climb`,
+V:492).
 -/
 
 namespace LeanVM.Guest.B1
@@ -72,194 +75,209 @@ theorem oqPair_hash {c0 c1 c2 c3 w : V} {pr : ℕ} {outs : List V}
     rw [e0, e1] at h
     exact h
 
-/-! ## The levels -/
+/-! ## One level -/
 
-theorem word_five : word 5 0 0 = 1 + gen ^ 2 := by
-  rw [word_eOfNat, gen_pow_eq_eOfNat (by decide), ← eOfNat_one, ← eOfNat_xor]
-  rfl
+/-- The sibling's first cell at level `l` of the walk to `q`: the pair's left at bit `1`, its
+right at bit `0`. -/
+def sibOff (q l : ℕ) : ℕ := if q.testBit l then 0 else 2
 
-/-- The selected child's address: `pp` at bit `0`, `pp·g²` at bit `1`. -/
-theorem sel_eq (pp : E) (b : Bool) :
-    pp + bitE b * (pp * (1 + gen ^ 2)) = pp * gen ^ (if b then 2 else 0) := by
-  cases b
-  · simp [bitE]
-  · have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
-    simp only [bitE, ↓reduceIte, one_mul]
-    linear_combination pp * h2
+/-- The hinted pair off the walk's side at level `l` holds the digest `d`. -/
+def SibAt (σ : Val) (ch q l : ℕ) (d : Digest) : Prop :=
+  (σ (.n (ch + 4 * l + sibOff q l)), σ (.n (ch + 4 * l + sibOff q l + 1))) = digestHalves d
 
-theorem mem_oqPathT_level {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd) {a : Atom}
-    (ha : Stmt.atom a ∈ oqLevelT s bp pr kL ch l) : Stmt.atom a ∈ oqPathT s bp pr kL ch := by
-  unfold oqPathT
-  exact List.mem_append_right _
-    (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨l, List.mem_range.mpr hl, rfl⟩, ha⟩)
+theorem oqStepT_mem_keccak (pr ch l K n0 n1 : ℕ) (bit : Bool) :
+    Stmt.atom (.keccak ((if bit then [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n n0, .n n1]
+        else [.n n0, .n n1, .n (ch + 4 * l + 2), .n (ch + 4 * l + 3)]) ++
+      [.n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n K, .n (pr + 1), .n (pr + 2), .n (pr + 3),
+        .n (pr + 4)]) ((List.range 13).map fun c ↦ .n (K + 1 + c)) false false) ∈
+      oqStepT pr ch l K n0 n1 bit := by
+  simp [oqStepT]
 
-/-- The frame run of the path: every readable word at `pp·g^k`, `k < 4pd`, is hinted child `k`. -/
-theorem oqPath_frame {s : Oq} {bp : V} {pr kL ch : ℕ}
-    (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ) :
-    IsInK (σ (.n (ch + 4 * s.pd))) ∧ ∀ k < 4 * s.pd, ∀ x,
-      rd ((σ (.n (ch + 4 * s.pd))).limb 0 * Parameters.addressOfIndex k) = some x → x = σ (.n (ch +
-          k)) := by
-  have h := hA _ (by simp [oqPathT] : Stmt.atom (.frameAddr (.n (ch + 4 * s.pd))
-    (((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)) ++
-      ((List.range (80 - 4 * s.pd)).map fun j ↦ .n (ch + 4 * s.pd + 1 + j)))) ∈ _)
-  refine ⟨h.1, fun k hk x hx => ?_⟩
-  have := h.2 k (by simp; omega) x hx
-  rw [this]
-  simp [List.getElem_append_left (show k < ((List.range (4 * s.pd)).map fun j ↦ V.n (ch + j)).length
-    by simp [hk])]
-
-/-- **One level** (G:1017-1024): with the bit `b` read and the running node `node`, the hinted
-children hold the node on the bit's side and a sibling on the other, the next node is their hash
-in that order, and the node is stored at `pp·g^(2b)`. -/
-theorem oqLevel_sound {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd)
-    (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ)
-    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
-    {b : Bool} (hbit : LoadHolds rd (σ bp) l (bitE b)) {node : Digest}
-    (hnode : (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) = digestHalves node) :
+/-- **One level of an arm**: the running node `node` at `n0, n1` hashed with the hinted pair on
+the other side of the order bit, the pair a digest's cells, the next node at `K + 1, K + 2`. -/
+theorem oqStep_sound {pr ch l K n0 n1 : ℕ} {bit : Bool}
+    (hA : ∀ a, Stmt.atom a ∈ oqStepT pr ch l K n0 n1 bit → a.Holds rd σ)
+    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {node : Digest}
+    (hnode : (σ (.n n0), σ (.n n1)) = digestHalves node) :
     ∃ sib : Digest,
-      (σ (.n (ch + 4 * l)), σ (.n (ch + 4 * l + 1))) = digestHalves (if b then sib else node) ∧
-      (σ (.n (ch + 4 * l + 2)), σ (.n (ch + 4 * l + 3))) = digestHalves (if b then node else sib) ∧
-      (σ (.n (oqNode s kL ch (l + 1) 0)), σ (.n (oqNode s kL ch (l + 1) 1))) =
-        digestHalves (if b then hashPair sib node else hashPair node sib) ∧
-      LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0)) (4 * l)
-        (σ (.n (oqNode s kL ch l 0))) ∧
-      LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0)) (4 * l + 1)
-        (σ (.n (oqNode s kL ch l 1))) := by
-  have mem := fun a (ha : Stmt.atom a ∈ oqLevelT s bp pr kL ch l) => hA a (mem_oqPathT_level hl ha)
-  set L := oqL0 ch + 17 * l with hL
-  have a0 := mem _ (by simp [oqLevelT, ← hL] : Stmt.atom (.load (.n L) bp l) ∈ _)
-  have a1 := mem _ (by simp [oqLevelT, ← hL] :
-    Stmt.atom (.mul (.n (L + 1)) (.n L) (.n (ch + 82))) ∈ _)
-  have a2 := mem _ (by simp [oqLevelT, ← hL] :
-    Stmt.atom (.add (.n (L + 2)) (.n (ch + 4 * s.pd)) (.n (L + 1))) ∈ _)
-  have a3 := mem _ (by simp [oqLevelT, ← hL] :
-    Stmt.atom (.load (.n (oqNode s kL ch l 0)) (.n (L + 2)) (4 * l)) ∈ _)
-  have a4 := mem _ (by simp [oqLevelT, ← hL] :
-    Stmt.atom (.load (.n (oqNode s kL ch l 1)) (.n (L + 2)) (4 * l + 1)) ∈ _)
-  have a5 := mem _ (by simp [oqLevelT, ← hL] : Stmt.atom (.const (.n (L + 3)) (word (2 ^ 63) 0 0)) ∈ _)
-  have a6 := mem _ (by simp [oqLevelT, ← hL] : Stmt.atom (.keccak [.n (ch + 4 * l),
-    .n (ch + 4 * l + 1), .n (ch + 4 * l + 2), .n (ch + 4 * l + 3), .n pr, .n (pr + 1), .n (pr + 2),
-    .n (pr + 3), .n (L + 3), .n (pr + 1), .n (pr + 2), .n (pr + 3), .n (pr + 4)]
-    ((List.range 13).map fun c ↦ .n (L + 4 + c)) false false) ∈ _)
-  have s1 := hA _ (by simp [oqPathT] : Stmt.atom (.const (.n (ch + 81)) (word 5 0 0)) ∈ _)
-  have s2 := hA _ (by simp [oqPathT] :
-    Stmt.atom (.mul (.n (ch + 82)) (.n (ch + 4 * s.pd)) (.n (ch + 81))) ∈ _)
-  simp only [Atom.Holds] at a1 a2 a3 a4 a5 s1 s2
-  have hb : σ (.n L) = bitE b := loadHolds_unique a0 hbit
-  have hsel : σ (.n (L + 2)) = σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0) := by
-    rw [a2, a1, hb, s2, s1, word_five, sel_eq]
-  rw [hsel] at a3 a4
-  have hpair := oqPair_hash hpad hz a5 a6
-  obtain ⟨dl, dr, hl', hr', hp⟩ := hashesPair_digests hpair
-  have hfr := (oqPath_frame hA).2
-  have fr : ∀ j, j < 2 → ∀ x, LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if b then 2 else 0))
-      (4 * l + j) x → x = σ (.n (ch + 4 * l + (if b then 2 else 0) + j)) := fun j hj x hx => by
-    rw [loadHolds_mul_gen_pow] at hx
-    have := hfr _ (by split <;> omega) x hx.2
-    rw [this]; congr 2; omega
-  have n0 := fr 0 (by omega) _ a3
-  have n1 := fr 1 (by omega) _ a4
-  have o0 : oqNode s kL ch (l + 1) 0 = L + 4 := by simp [oqNode, hL]
-  have o1 : oqNode s kL ch (l + 1) 1 = L + 5 := by simp [oqNode, hL]
-  have hout : (σ (.n (oqNode s kL ch (l + 1) 0)), σ (.n (oqNode s kL ch (l + 1) 1))) =
-      digestHalves (hashPair dl dr) := by
-    rw [o0, o1, ← hp]; simp [List.getD_eq_getElem?_getD]
-  cases b
-  · simp only [Bool.false_eq_true, ↓reduceIte, Nat.add_zero] at n0 n1 ⊢
-    have hdl : dl = node := capDigestScalars_injective (by rw [← hl', ← hnode, n0, n1])
+      (σ (.n (ch + 4 * l + (if bit then 0 else 2))),
+        σ (.n (ch + 4 * l + (if bit then 0 else 2) + 1))) = digestHalves sib ∧
+      (σ (.n (K + 1)), σ (.n (K + 2))) =
+        digestHalves (if bit then hashPair sib node else hashPair node sib) := by
+  have a0 := hA _ (by simp [oqStepT] : Stmt.atom (.const (.n K) (word (2 ^ 63) 0 0)) ∈ _)
+  have a1 := hA _ (oqStepT_mem_keccak pr ch l K n0 n1 bit)
+  simp only [Atom.Holds] at a0
+  have hout : ∀ (x y : E), (x, y) = (σ ((((List.range 13).map fun c ↦ V.n (K + 1 + c)).getD 0 (.n 0))),
+      σ ((((List.range 13).map fun c ↦ V.n (K + 1 + c)).getD 1 (.n 0)))) →
+      (x, y) = (σ (.n (K + 1)), σ (.n (K + 2))) := fun x y h ↦ by
+    rw [h]; simp [List.getD_eq_getElem?_getD]
+  cases bit
+  · simp only [Bool.false_eq_true, ↓reduceIte, List.cons_append, List.nil_append] at a1
+    obtain ⟨dl, dr, hl, hr, hp⟩ := hashesPair_digests (oqPair_hash hpad hz a0 a1)
+    have hdl : dl = node := capDigestScalars_injective (by rw [← hl, ← hnode])
     subst hdl
-    exact ⟨dr, hl', hr', hout, a3, a4⟩
-  · simp only [↓reduceIte] at n0 n1 ⊢
-    have hdr : dr = node := capDigestScalars_injective (by
-      rw [← hr', ← hnode, n0, n1])
+    refine ⟨dr, by simpa using hr, ?_⟩
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    exact (hout _ _ hp.symm).symm
+  · simp only [↓reduceIte, List.cons_append, List.nil_append] at a1
+    obtain ⟨dl, dr, hl, hr, hp⟩ := hashesPair_digests (oqPair_hash hpad hz a0 a1)
+    have hdr : dr = node := capDigestScalars_injective (by rw [← hr, ← hnode])
     subst hdr
-    exact ⟨dl, hl', hr', hout, a3, a4⟩
+    refine ⟨dl, by simpa using hl, ?_⟩
+    simp only [↓reduceIte]
+    exact (hout _ _ hp.symm).symm
+
+/-! ## An arm -/
+
+theorem oqArmT_mem_step {s : Oq} {pr kL ch i a r : ℕ} (hr : r < oqWw s i) {x : Atom}
+    (hx : Stmt.atom x ∈ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 14 * r)
+      (oqArmN s kL ch i a r 0) (oqArmN s kL ch i a r 1) (a.testBit r)) :
+    Stmt.atom x ∈ oqArmT s pr kL ch i a := by
+  unfold oqArmT
+  exact List.mem_append_left _
+    (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨r, List.mem_range.mpr hr, rfl⟩, hx⟩)
+
+theorem climbD_step {leaf : Digest} {q : ℕ} {cs : List Digest} {sib : Digest} :
+    climbD leaf q (cs ++ [sib]) = if q.testBit cs.length then hashPair sib (climbD leaf q cs)
+      else hashPair (climbD leaf q cs) sib := by
+  rw [climbD_snoc, Nat.testBit_eq_decide_div_mod_eq]
+  by_cases h : q / 2 ^ cs.length % 2 = 1
+  · simp [h]
+  · simp [show q / 2 ^ cs.length % 2 = 0 by omega]
+
+/-- **An arm** (`walk_window`): with its order bits the position's from level `6i` and the node it
+starts from `climbD leaf q sibs0` (`6i` siblings), its levels' pairs off the walk's side hold
+siblings `sibs` and the node copied into the match's targets is `climbD leaf q (sibs0 ++ sibs)`. -/
+theorem oqArm_sound {s : Oq} {pr kL ch i a : ℕ}
+    (hA : ∀ x, Stmt.atom x ∈ oqArmT s pr kL ch i a → x.Holds rd σ)
+    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q : ℕ}
+    (hbits : ∀ r < oqWw s i, a.testBit r = q.testBit (6 * i + r)) {leaf : Digest}
+    {sibs0 : List Digest} (hl0 : sibs0.length = 6 * i)
+    (hnode : (σ (.n (oqNd s kL ch i 0)), σ (.n (oqNd s kL ch i 1))) =
+      digestHalves (climbD leaf q sibs0)) :
+    ∃ sibs : List Digest, sibs.length = oqWw s i ∧
+      (∀ r < oqWw s i, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (σ (.n (oqWT s ch i)), σ (.n (oqWT s ch i + 1))) =
+        digestHalves (climbD leaf q (sibs0 ++ sibs)) := by
+  suffices h : ∀ m ≤ oqWw s i, ∃ sibs : List Digest, sibs.length = m ∧
+      (∀ r < m, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (σ (.n (oqArmN s kL ch i a m 0)), σ (.n (oqArmN s kL ch i a m 1))) =
+        digestHalves (climbD leaf q (sibs0 ++ sibs)) by
+    obtain ⟨sibs, hl, hs, hn⟩ := h _ le_rfl
+    have c0 := hA _ (by simp [oqArmT] : Stmt.atom (.copy (.n (oqWT s ch i))
+      (.n (oqArmN s kL ch i a (oqWw s i) 0))) ∈ _)
+    have c1 := hA _ (by simp [oqArmT] : Stmt.atom (.copy (.n (oqWT s ch i + 1))
+      (.n (oqArmN s kL ch i a (oqWw s i) 1))) ∈ _)
+    simp only [Atom.Holds] at c0 c1
+    exact ⟨sibs, hl, hs, by rw [c0, c1, hn]⟩
+  intro m hm
+  induction m with
+  | zero => exact ⟨[], rfl, fun r hr ↦ absurd hr (by omega), by simpa [oqArmN] using hnode⟩
+  | succ m ih =>
+    obtain ⟨sibs, hl, hs, hn⟩ := ih (by omega)
+    obtain ⟨sib, hsib, hnext⟩ := oqStep_sound (fun x hx ↦ hA x (oqArmT_mem_step (by omega) hx))
+      hpad hz hn
+    have hb := hbits m (by omega)
+    refine ⟨sibs ++ [sib], by simp [hl], fun r hr ↦ ?_, ?_⟩
+    · by_cases hr' : r < m
+      · have := hs r hr'
+        rwa [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
+          ← List.getD_eq_getElem?_getD]
+      · obtain rfl : r = m := by omega
+        have e : (sibs ++ [sib]).getD r default = sib := by
+          simp [List.getD_eq_getElem?_getD, hl]
+        rw [e, SibAt, sibOff, ← hb, show ch + 4 * (6 * i + r) = ch + 4 * (6 * i + r) from rfl]
+        exact hsib
+    · have e0 : oqArmN s kL ch i a (m + 1) 0 = oqArmK s ch i a + 14 * m + 1 := by
+        simp [oqArmN]
+      have e1 : oqArmN s kL ch i a (m + 1) 1 = oqArmK s ch i a + 14 * m + 2 := by
+        simp [oqArmN]
+      rw [e0, e1, hnext, ← List.append_assoc, climbD_step, List.length_append, hl0, hl, ← hb]
+
+/-! ## A window -/
+
+theorem oqWw_le (s : Oq) (i : ℕ) : oqWw s i ≤ 6 := by
+  unfold oqWw oqNpw; split <;> omega
+
+/-- **Window `i`**: its word `g^v`, `v` below its arms' count, with `v`'s bits the position's
+from level `6i`: arm `v` climbs (`oqArm_sound`). -/
+theorem oqWin_sound {s : Oq} {bp : V} {pr kL ch i : ℕ}
+    (hA : BlockOk rd σ (oqWinT s bp pr kL ch i))
+    (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0) {q v : ℕ}
+    (hw : σ (.n (oqWk s ch i)) = gen ^ v) (hv : v < 2 ^ oqWw s i)
+    (hbits : ∀ r < oqWw s i, v.testBit r = q.testBit (6 * i + r)) {leaf : Digest}
+    {sibs0 : List Digest} (hl0 : sibs0.length = 6 * i)
+    (hnode : (σ (.n (oqNd s kL ch i 0)), σ (.n (oqNd s kL ch i 1))) =
+      digestHalves (climbD leaf q sibs0)) :
+    ∃ sibs : List Digest, sibs.length = oqWw s i ∧
+      (∀ r < oqWw s i, SibAt σ ch q (6 * i + r) (sibs.getD r default)) ∧
+      (σ (.n (oqWT s ch i)), σ (.n (oqWT s ch i + 1))) =
+        digestHalves (climbD leaf q (sibs0 ++ sibs)) := by
+  have hm := hA _ (by simp [oqWinT] : Stmt.match_ (.n (oqWk s ch i))
+    ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kL ch i)) ∈ _)
+  obtain ⟨j, hj, hx, harm⟩ := hm
+  have h64 : 2 ^ oqWw s i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) (oqWw_le s i)
+  simp only [List.length_map, List.length_range] at hj
+  have hjv : j = v := match_arm_of_gen_pow (by omega) (by omega) hx hw
+  subst hjv
+  simp only [List.getElem_map, List.getElem_range] at harm
+  exact oqArm_sound harm hpad hz hbits hl0 hnode
 
 /-! ## The path -/
 
-theorem climbNode_append {leaf : Digest} {q : ℕ} {sibs t : List Digest} {l : ℕ}
-    (hl : l ≤ sibs.length) : climbNode leaf q (sibs ++ t) l = climbNode leaf q sibs l := by
-  simp [climbNode, List.take_append_of_le_length hl]
+theorem oqPathT_mem_win {s : Oq} {bp : V} {pr kL ch i : ℕ} (hi : i < oqNpw s) {x : Stmt}
+    (hx : x ∈ oqWinT s bp pr kL ch i) : x ∈ oqPathT s bp pr kL ch := by
+  unfold oqPathT
+  exact List.mem_append_right _
+    (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩, hx⟩)
 
-theorem pathCell_append {leaf : Digest} {q : ℕ} {sibs t : List Digest} {k : ℕ}
-    (hk : k < 4 * sibs.length) : pathCell leaf q (sibs ++ t) k = pathCell leaf q sibs k := by
-  have hl : k / 4 < sibs.length := by omega
-  simp only [pathCell, climbNode_append (le_of_lt hl), List.getD_eq_getElem?_getD,
-    List.getElem?_append_left hl]
+theorem oqNd_succ (s : Oq) (kL ch i c : ℕ) : oqNd s kL ch (i + 1) c = oqWT s ch i + c := by
+  simp [oqNd]
 
-theorem climbNode_length (leaf : Digest) (q : ℕ) (sibs : List Digest) :
-    climbNode leaf q sibs sibs.length = climbD leaf q sibs := by
-  simp [climbNode]
-
-/-- **The path below the cap** (`verify_merkle_path`, G:1010-1025): with the bits those of `q`
-and the leaf's digest the first node, the hinted children are the frame run `pathCell` of some
-siblings, each level's node is stored on its bit's side, and the last node is
-`climbD leaf q sibs` (`climb`, V:492). -/
+/-- **The path below the cap** (`walk_path`): with each window's word `g^v`, `v`'s bits the
+position's from level `6i`, and the leaf's digest the first node, the hinted pairs off the walk's
+side hold siblings `sibs` and the node reached, the cap leaf's, is `climbD leaf q sibs`
+(`climb`, V:492). -/
 theorem oqPath_sound {s : Oq} {bp : V} {pr kL ch q : ℕ} {leaf : Digest}
-    (hA : ∀ a, Stmt.atom a ∈ oqPathT s bp pr kL ch → a.Holds rd σ)
+    (hA : BlockOk rd σ (oqPathT s bp pr kL ch))
     (hpad : σ (.n pr) = word 1 0 0) (hz : ∀ i < 4, σ (.n (pr + 1 + i)) = 0)
-    (hbits : ∀ l < s.pd, LoadHolds rd (σ bp) l (bitE (q.testBit l)))
-    (hleaf : (σ (.n (oqNode s kL ch 0 0)), σ (.n (oqNode s kL ch 0 1))) = digestHalves leaf) :
+    (hwin : ∀ i < oqNpw s, ∃ v < 2 ^ oqWw s i, σ (.n (oqWk s ch i)) = gen ^ v ∧
+      ∀ r < oqWw s i, v.testBit r = q.testBit (6 * i + r))
+    (hleaf : (σ (.n (oqNd s kL ch 0 0)), σ (.n (oqNd s kL ch 0 1))) = digestHalves leaf) :
     ∃ sibs : List Digest, sibs.length = s.pd ∧
-      (∀ k < 4 * s.pd, σ (.n (ch + k)) = pathCell leaf q sibs k) ∧
-      (∀ l < s.pd,
-        (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) =
-          digestHalves (climbNode leaf q sibs l) ∧
-        LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (σ (.n (oqNode s kL ch l 0))) ∧
-        LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (σ (.n (oqNode s kL ch l 1)))) ∧
-      (σ (.n (oqNode s kL ch s.pd 0)), σ (.n (oqNode s kL ch s.pd 1))) =
+      (∀ l < s.pd, SibAt σ ch q l (sibs.getD l default)) ∧
+      (σ (.n (oqNd s kL ch (oqNpw s) 0)), σ (.n (oqNd s kL ch (oqNpw s) 1))) =
         digestHalves (climbD leaf q sibs) := by
-  suffices h : ∀ m ≤ s.pd, ∃ sibs : List Digest, sibs.length = m ∧
-      (∀ k < 4 * m, σ (.n (ch + k)) = pathCell leaf q sibs k) ∧
-      (∀ l < m,
-        (σ (.n (oqNode s kL ch l 0)), σ (.n (oqNode s kL ch l 1))) =
-          digestHalves (climbNode leaf q sibs l) ∧
-        LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (σ (.n (oqNode s kL ch l 0))) ∧
-        LoadHolds rd (σ (.n (ch + 4 * s.pd)) * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (σ (.n (oqNode s kL ch l 1)))) ∧
-      (σ (.n (oqNode s kL ch m 0)), σ (.n (oqNode s kL ch m 1))) =
-        digestHalves (climbD leaf q sibs) from h s.pd le_rfl
+  suffices h : ∀ m ≤ oqNpw s, ∃ sibs : List Digest, sibs.length = min (6 * m) s.pd ∧
+      (∀ l < min (6 * m) s.pd, SibAt σ ch q l (sibs.getD l default)) ∧
+      (σ (.n (oqNd s kL ch m 0)), σ (.n (oqNd s kL ch m 1))) =
+        digestHalves (climbD leaf q sibs) by
+    obtain ⟨sibs, hl, hs, hn⟩ := h _ le_rfl
+    have e : min (6 * oqNpw s) s.pd = s.pd := by unfold oqNpw; omega
+    rw [e] at hl hs
+    exact ⟨sibs, hl, hs, hn⟩
   intro m hm
   induction m with
-  | zero => exact ⟨[], rfl, fun k hk => absurd hk (by omega), fun l hl => absurd hl (by omega), hleaf⟩
+  | zero => exact ⟨[], by simp, fun l hl ↦ absurd hl (by omega), by rw [climbD_nil]; exact hleaf⟩
   | succ m ih =>
-    obtain ⟨sibs, hlen, hch, hlv, hnd⟩ := ih (by omega)
-    obtain ⟨sib, c01, c23, hnext, ld0, ld1⟩ :=
-      oqLevel_sound (l := m) (by omega) hA hpad hz (hbits m (by omega)) hnd
-    refine ⟨sibs ++ [sib], by simp [hlen], fun k hk => ?_, fun l hl => ?_, ?_⟩
-    · by_cases hk' : k < 4 * m
-      · rw [pathCell_append (by rw [hlen]; exact hk'), hch k hk']
-      · have hl : k / 4 = m := by omega
-        have hcl : climbNode leaf q (sibs ++ [sib]) m = climbD leaf q sibs := by
-          rw [climbNode_append (by omega), ← hlen, climbNode_length]
-        have hsg : (sibs ++ [sib]).getD m (Vector.replicate 4 0) = sib := by
-          simp [List.getD_eq_getElem?_getD, hlen]
-        simp only [pathCell, hl, hcl, hsg]
-        obtain ⟨j, hj, rfl⟩ : ∃ j < 4, k = 4 * m + j := ⟨k - 4 * m, by omega, by omega⟩
-        rw [show (4 * m + j) % 4 = j by omega, show (4 * m + j) % 2 = j % 2 by omega]
-        have e0 := congrArg Prod.fst c01
-        have e1 := congrArg Prod.snd c01
-        have e2 := congrArg Prod.fst c23
-        have e3 := congrArg Prod.snd c23
-        simp only at e0 e1 e2 e3
-        rw [show ch + 4 * m + 1 = ch + (4 * m + 1) by omega] at e1
-        rw [show ch + 4 * m + 2 = ch + (4 * m + 2) by omega] at e2
-        rw [show ch + 4 * m + 3 = ch + (4 * m + 3) by omega] at e3
-        cases hb : q.testBit m <;> simp only [hb, Bool.false_eq_true, ↓reduceIte] at e0 e1 e2 e3 <;>
-          interval_cases j <;> simp [e0, e1, e2, e3]
-    · by_cases hl' : l < m
-      · rw [climbNode_append (by omega)]; exact hlv l hl'
-      · have : l = m := by omega
-        subst this
-        rw [climbNode_append (by omega), ← hlen, climbNode_length, hlen]
-        exact ⟨hnd, ld0, ld1⟩
-    · rw [hnext, climbD_snoc, hlen, Nat.testBit_eq_decide_div_mod_eq]
-      by_cases h : q / 2 ^ m % 2 = 1
-      · simp [h]
-      · simp [show q / 2 ^ m % 2 = 0 by omega]
+    obtain ⟨sibs, hl, hs, hn⟩ := ih (by omega)
+    have hm6 : min (6 * m) s.pd = 6 * m := by unfold oqNpw at hm; omega
+    rw [hm6] at hl hs
+    obtain ⟨v, hv, hw, hb⟩ := hwin m (by omega)
+    obtain ⟨sw, hsl, hss, hsn⟩ := oqWin_sound (hA.mono fun x hx ↦ oqPathT_mem_win (by omega) hx)
+      hpad hz hw hv hb hl hn
+    have hww : 6 * m + oqWw s m = min (6 * (m + 1)) s.pd := by
+      unfold oqWw; unfold oqNpw at hm ⊢; split <;> omega
+    refine ⟨sibs ++ sw, by simp [hl, hsl, hww], fun l hl' ↦ ?_, ?_⟩
+    · by_cases h : l < 6 * m
+      · have := hs l h
+        rwa [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
+          ← List.getD_eq_getElem?_getD]
+      · have := hss (l - 6 * m) (by omega)
+        rw [show 6 * m + (l - 6 * m) = l by omega] at this
+        rwa [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl,
+          ← List.getD_eq_getElem?_getD]
+    · rw [oqNd_succ, oqNd_succ, Nat.add_zero]; exact hsn
 
 end
 end LeanVM.Guest.B1

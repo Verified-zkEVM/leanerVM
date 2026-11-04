@@ -19,11 +19,12 @@ and the frame map `V`, reading words only (no hash, no verifier function, no cho
 
 **A query's witness** (`QW`): its position, its row and its siblings below the cap.
 
-* `posOf rd bp D`: the position whose `D` bits the run at `bp` holds (`memRead`, the memory's
-  word, `0` where it has none);
+* `winPosOf rd bp D cd`: the position whose windows `g^v` the run at `bp` holds (`memRead`, the
+  memory's word, `0` where it has none; `gLog7`, the exponent of a small power of `g`), bit `l`
+  read from the window holding it (`qwAt`);
 * `oqSibsOf pd ch q σ`: the siblings below the cap, read off the children cells `ch ..` of the
-  frame: at level `l` the pair on the side the position's bit does not select (`pathCell`);
-* `oqQueryW s rd bp b emit σ`: the query hinted at `b`, its bit pointer `bp` (`oqRow` its row);
+  frame: at level `l` the pair off the walk's side (`sibOff`);
+* `oqQueryW s rd bp b emit σ`: the query hinted at `b`, its window pointer `bp` (`oqRow` its row);
 * `oqIterOf s rd σ`: a loop iteration's queries (two at level 0, one deeper), from its frame;
 * `oqsOf s odd loop N rd σ V`: the function's queries, from its frame `σ` (the odd first query at
   level 0) and the frames `V loop (g^j :: ps) []` of its `N` iterations, `ps` the loop's other
@@ -33,7 +34,7 @@ and the frame map `V`, reading words only (no hash, no verifier function, no cho
 `MeaningOpeningQueriesW … ws` is `MeaningOpeningQueries` with the queries' positions, rows and
 siblings those of `ws`. `opening_queries_sound_w_Spec`: under a call relation `C ≤ Rel` that
 unfolds at `V` (`UnfoldsV`), a valuation `σ` holding the body of a deployed specialization, its
-bit pointers pointing to bits, gives `MeaningOpeningQueriesW` at `oqsOf … σ V`.
+window pointers naming positions' windows, gives `MeaningOpeningQueriesW` at `oqsOf … σ V`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -55,8 +56,16 @@ def readN (rd : Reader) (p : E) (n : ℕ) : List E := (List.range n).map (memRea
 /-- The digest of two cells (the zero digest when they are not one's). -/
 def digestOfCells (a b : E) : Digest := (digestFromHalves (a, b)).getD (Vector.replicate 4 0)
 
-/-- The position whose `D` bits the run at `bp` holds as `0`/`1` words. -/
-def posOf (rd : Reader) (bp : E) (D : ℕ) : ℕ := bitsVal (fun l ↦ decide (memRead rd bp l = 1)) D
+/-- The exponent `n < 128` of `x = g^n` (`0` for any other word). -/
+def gLog7 (x : E) : ℕ := ((List.range 128).find? fun n ↦ decide (gen ^ n = x)).getD 0
+
+/-- The window of a position of depth `d`, cap depth `cd`, holding its bit `l` (`qwWin`). -/
+def qwAt (d cd l : ℕ) : ℕ :=
+  if l < d - cd then l / 6 else if l = d - cd then qwNp d cd else qwNp d cd + 1
+
+/-- The position whose windows `g^v` the run at `bp` holds: bit `l` from the window holding it. -/
+def winPosOf (rd : Reader) (bp : E) (d cd : ℕ) : ℕ :=
+  bitsVal (fun l ↦ (gLog7 (memRead rd bp (qwAt d cd l))).testBit (l - (qwWin d cd (qwAt d cd l)).1)) d
 
 /-! ## A query's witness -/
 
@@ -64,16 +73,16 @@ def posOf (rd : Reader) (bp : E) (D : ℕ) : ℕ := bitsVal (fun l ↦ decide (m
 abbrev QW : Type := ℕ × List K × List Digest
 
 /-- The siblings below the cap of the query at `q`, read off the children cells `ch ..`: at
-level `l` the pair on the side the bit does not select. -/
+level `l` the pair off the walk's side (the left at bit `1`, the right at bit `0`). -/
 def oqSibsOf (pd ch q : ℕ) (σ : Val) : List Digest :=
   (List.range pd).map fun l ↦
     digestOfCells (σ (.n (ch + 4 * l + (if q.testBit l then 0 else 2))))
       (σ (.n (ch + 4 * l + (if q.testBit l then 0 else 2) + 1)))
 
-/-- The query hinted at `b` (bit pointer `bp`), from its frame `σ`. -/
+/-- The query hinted at `b` (window pointer `bp`), from its frame `σ`. -/
 def oqQueryW (s : Oq) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) : QW :=
-  (posOf rd bp (s.pd + s.cd), oqRow b s.R σ,
-    oqSibsOf s.pd (oqCh s b emit) (posOf rd bp (s.pd + s.cd)) σ)
+  (winPosOf rd bp (s.pd + s.cd) s.cd, oqRow b s.R σ,
+    oqSibsOf s.pd (oqCh s b emit) (winPosOf rd bp (s.pd + s.cd) s.cd) σ)
 
 /-- A loop iteration's queries, from its frame: two at level 0 (`base = 1`), one deeper. -/
 def oqIterOf (s : Oq) (rd : Reader) (σ : Val) : List QW :=
@@ -97,16 +106,8 @@ def oqsOf (s : Oq) (odd : ℕ) (loop : String) (N : ℕ) (rd : Reader) (σ : Val
 def QueryOpensS (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ) (row : List K)
     (sibs : List Digest) (d : E) : Prop :=
   row.length = (if base = 1 then I else 3 * I) ∧ sibs.length = depth - cd ∧
-    ∃ (w : ℕ → E) (pp : E),
+    ∃ w : ℕ → E,
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
-      IsInK pp ∧
-      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.addressOfIndex k) = some x →
-        x = pathCell (merkleLeafDigest row) q sibs k) ∧
-      (∀ l < depth - cd,
-        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
-        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
         (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
@@ -123,7 +124,8 @@ def MeaningOpeningQueriesW (odd base I depth cd : ℕ) (rd : Reader) (ws : List 
         ∃ (bps : ℕ → E) (ds : ℕ → E),
           (∀ k < oqCount odd base N, LoadHolds rd qptrs k (bps k) ∧
             (ws.getD k default).1 < 2 ^ depth ∧
-            (∀ l < depth, LoadHolds rd (bps k) l (bitE ((ws.getD k default).1.testBit l))) ∧
+            (∀ i < qwN depth cd,
+              LoadHolds rd (bps k) i (gen ^ qwVal depth cd (ws.getD k default).1 i)) ∧
             QueryOpensS rd base I depth cd cap flags wp (ws.getD k default).1
               (ws.getD k default).2.1 (ws.getD k default).2.2 (ds k)) ∧
           ∃ ch : E, (∀ i ≤ N, LoadHolds rd ch i (oqChain odd base lam⁻¹ ds i)) ∧
@@ -195,15 +197,15 @@ def oqLoopOf (name : String) : String :=
 
 /-- **`opening_queries` is sound with its queries named** at the specialization `name` (loop
 helper `loop`, shape `s`, `odd`): under a call relation `C ≤ Rel` unfolding at `V`, a valuation
-`σ` holding its body on `args` returning `rets`, `N` iterations (`args[6] = g^N`) and the bit
-pointers pointing to bits, its meaning holds with the queries `oqsOf s odd loop N rd σ V`. -/
+`σ` holding its body on `args` returning `rets`, `N` iterations (`args[6] = g^N`) and the window
+pointers naming positions' windows, its meaning holds with the queries `oqsOf s odd loop N rd σ V`. -/
 def opening_queries_sound_w_Spec (name loop : String) (s : Oq) (odd : ℕ) : Prop :=
   ∀ (rd : Reader) (C : CallRel) (V : FrameMap), UnfoldsV rd C V →
     CallRel.Le C (coreProgram.Rel rd) →
     ∀ (fm : Fn) (σ : Val) (args rets : List E) (N : ℕ), coreProgram.find? name = some fm →
       fm.params.map σ = args → Stmt.HoldsList C rd σ fm.body False (fun rs ↦ rs = rets) →
       args.getD 6 0 = gen ^ N → N < ordG →
-      QueryBitsBool rd (args.getD 4 0) (oqCount odd s.base N) (s.pd + s.cd) →
+      QueryWinsOk rd (args.getD 4 0) (oqCount odd s.base N) (s.pd + s.cd) s.cd →
       MeaningOpeningQueriesW odd s.base s.I (s.pd + s.cd) s.cd rd (oqsOf s odd loop N rd σ V)
         args rets
 

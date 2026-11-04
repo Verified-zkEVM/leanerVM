@@ -2,12 +2,12 @@
   LeanVM.Guest.B1.Opening.QueriesBody3
 
   The bodies of a quarter of `opening_queries`' specializations and of their loop helpers are the
-  templates (kernel evaluation), and so they are their meaning.
+  templates (kernel evaluation).
 -/
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesComplete6
+public import LeanVM.Guest.B1.Opening.QueriesT
 
 namespace LeanVM.Guest.B1
 
