@@ -171,7 +171,7 @@ theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (
     (ha : σ a = σ (.n 4) * σ (.n (140 + Tables.blockKappaSrc.getD b 0)))
     (hq : LoadHolds L.read (σ a) (Tables.blockKappaAdj b) (σ q)) :
     σ q = gen ^ 2 ^ pushKappa logMem hs b :=
-  push_read hexp (pushKappa_lt hh hm hb) (hkbv _ (blockKappaSrc_lt b (by omega))) ha hq
+  push_read hexp (pushKappa_lt hh hm hb) (hkbv _ (blockKappaSrc_lt b (by show b < 153; omega))) ha hq
 
 theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
@@ -229,6 +229,7 @@ theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
     true_and] at h
   obtain ⟨hc, hn⟩ := h
   rw [show vsPV 53 = 308 from rfl] at hp
+  replace hp : σ (.n 308) = gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum := hp
   have hr := (log2_holds.1 hκ hκ6 L _ _ hexp _).1 (hC _ _ _ hc)
   rw [hp, meaningLog2CeilExp_pow (by norm_num) (by have := push_sum_lt hh hm; omega)] at hr
   simp only [List.cons.injEq, and_true, Nat.zero_max] at hr

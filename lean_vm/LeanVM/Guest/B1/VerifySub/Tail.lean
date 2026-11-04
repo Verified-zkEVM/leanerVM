@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.Front
 
 * `vsCallsT_holds`: the three calls (`verify_bus_gkr`, `verify_tables`, `verify_keccak`) on their
   argument words, the cursor `stream·g^10`, the keccak table's `g^τ` from `dims_g`, the output
-  lanes at `claim_pool·g^110`, the capacity copied;
+  lanes at `col_eval_words·g^105`, the capacity copied;
 * `vsMapsT_holds`: the ring map's challenges, the first `verify_keccak`'s, five squeezed;
 * `vsTailT_holds`: `certify_placement`, the stack's log, the two range checks, the dispatch, the
   terminal, the deferred claim's words, and the return;
@@ -32,16 +32,16 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 theorem word_1024 : word 1024 0 0 = gen ^ 10 := by
   rw [show (1024 : ℕ) = 2 ^ 10 from rfl]; exact word_two_pow (by decide)
 
-/-- **The three calls** (G:3225-3237). -/
+/-- **The three calls** (G:3412-3423). -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
     σ (.n 625) = σ (.n 25) * gen ^ 10 ∧
     C "verify_bus_gkr" [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616), σ (.n 625),
       σ (.n 309), σ (.n 310)] ((List.range 9).map fun k ↦ σ (.n (626 + k))) ∧
     C "verify_tables" [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631),
-      σ (.n 0), σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n XBK), σ (.n 4),
-      σ (.n 427), σ (.n 623), σ (.n 6), σ (.n XCPLEN), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)]
-      ((List.range 9).map fun k ↦ σ (.n (636 + k))) ∧
-    LoadHolds rd (σ (.n 127)) 6 (σ (.n 646)) ∧ σ (.n 650) = σ (.n 6) * word 1899956092796928 0 0 ∧
+      σ (.n 0), σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n 4), σ (.n 427),
+      σ (.n 623), σ (.n 6), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)]
+      ((List.range 10).map fun k ↦ σ (.n (636 + k))) ∧
+    LoadHolds rd (σ (.n 127)) 6 (σ (.n 646)) ∧ σ (.n 650) = σ (.n 645) * word 59373627899904 0 0 ∧
     C "verify_keccak" [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640), σ (.n 641),
       σ (.n 646), σ (.n 635), σ (.n 650), σ (.n 647), σ (.n 648)]
       ((List.range 8).map fun k ↦ σ (.n (651 + k))) ∧
@@ -67,7 +67,7 @@ theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
       List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
     exact h.2.2.2.2.2
 
-/-- **The ring map's challenges** (G:3246-3252): the first `verify_keccak`'s, five squeezed from
+/-- **The ring map's challenges** (G:3431-3437): the first `verify_keccak`'s, five squeezed from
 the capacity it returned. -/
 theorem vsMapsT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
     (h13 : σ (.n 11) = 0) (h : Stmt.HoldsList C rd σ vsMapsT next kret) :
@@ -119,12 +119,12 @@ theorem holds_copyLoads (p q b : ℕ) (qo : ℕ → ℕ) : ∀ (n : ℕ) {X : Pr
     · exact hk k hk'
     · exact ⟨_, l1, l2⟩
 
-/-- **The tail** (G:3283-3318): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
+/-- **The tail** (G:3474-3500): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
 `g^7`, the candidate `size_sel·rate_sel^7` below `g^28`, one specialization of `open_stacked`
 dispatched on it, the terminal, the deferred claim's words, and no return word. -/
 theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
-    C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1674), σ (.n 1675), σ (.n XCOLKAPPAS)] ∧
-    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1674), σ (.n XGLP), σ (.n 4)] [σ (.n 1676)] ∧
+    C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1674), σ (.n 1675)] ∧
+    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1674), σ (.n 4)] [σ (.n 1676)] ∧
     σ (.n 1678) = σ (.n 1676) * word 8198552432976855044 0 0 ∧
     (LoadHolds rd (σ (.n 1678)) 0 (σ (.n 1681)) ∧ word 64 0 0 = σ (.n 1678) * σ (.n 1680) ∧
       LoadHolds rd (σ (.n 1680)) 0 (σ (.n 1682))) ∧
@@ -136,9 +136,9 @@ theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
       C vsOpenNames[j] [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104),
         σ (.n 1673), σ (.n 324), σ (.n 334), σ (.n 656)]
         [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)]) ∧
-    C "check_opening_terminal" [σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309), σ (.n 642),
-      σ (.n 128), σ (.n 646), σ (.n XCPLEN), σ (.n 1671), σ (.n XLAMPOOL), σ (.n 1675), σ (.n XCOLKAPPAS),
-      σ (.n 647), σ (.n 665), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696), σ (.n 1692)] [] ∧
+    C "check_opening_terminal" [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309),
+      σ (.n 642), σ (.n 128), σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1675), σ (.n 647),
+      σ (.n 665), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696), σ (.n 1692)] [] ∧
     (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 310)) k v ∧ LoadHolds rd (σ (.n 5)) k v) ∧
     (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 346)) k v ∧ LoadHolds rd (σ (.n 5)) (19 + k) v) ∧
     LoadHolds rd (σ (.n 5)) 23 (σ (.n 643)) ∧ kret [] := by

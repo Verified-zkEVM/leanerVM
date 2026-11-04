@@ -63,13 +63,13 @@ theorem holds_atom1 {a : Atom} {X : Prop} :
 /-- The seed's `KECCAK` atom. -/
 abbrev vsSeedAtom : Atom :=
   .keccak [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]
-    (vsRun 14 13) false false
+    (vsRun 12 13) false false
 
 /-- The head: the zero cells, the seed's atom. -/
 theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
     σ (.n 8) = 0 ∧ σ (.n 9) = 0 ∧ σ (.n 10) = 0 ∧ σ (.n 11) = 0 ∧ vsSeedAtom.Holds rd σ ∧ next := by
   simp only [vsHeadT, vsAlloc, vsConst, keccakA, Stmt.HoldsList, Stmt.Holds] at h
-  obtain ⟨-, -, -, h10, h11, h12, h13, hk, -, -, -, hn⟩ := h
+  obtain ⟨-, -, h10, h11, h12, h13, hk, -, -, -, hn⟩ := h
   simp only [Atom.Holds, word_zero] at h10 h11 h12 h13
   exact ⟨h10, h11, h12, h13, hk, hn⟩
 
@@ -97,7 +97,7 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
     (B := 1)
     (I := fun _ ↦ cells13 ([.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8,
       .n 9, .n 10, .n 11].map σ))
-    (O := fun k ↦ if k = 0 then cellsOfState Keccak.zeroState false else cells13 ((vsRun 14 13).map σ))
+    (O := fun k ↦ if k = 0 then cellsOfState Keccak.zeroState false else cells13 ((vsRun 12 13).map σ))
     (by simp)
     (fun k hk c hc ↦ by
       obtain rfl : k = 0 := by omega
@@ -128,7 +128,7 @@ def WordAt (rd : Reader) (σ : Val) (off x : ℕ) : Prop :=
 /-- The announced words' perm atom. -/
 abbrev vsAtom50 : Atom :=
   .keccak [.n 34, .n 36, .n 44, .n 46, .n 54, .n 56, .n 64, .n 66, .n 20, .n 21, .n 22, .n 23, .n 24]
-    (vsRun 69 13) false false
+    (vsRun 67 13) false false
 
 theorem vsReadsT_holds (h : Stmt.HoldsList C rd σ vsReadsT next kret) :
     (∀ i < 8, WordAt rd σ i (vsX i)) ∧

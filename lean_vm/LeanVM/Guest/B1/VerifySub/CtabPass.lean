@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.VerifySub.Template
 # Monomials in the ring map's challenges
 
 `c_table`'s section (G:3253-3261) computes, from `1` and the six challenges at `chs`, products and
-squares, each stored in or read from the table at `877`. A monomial `Π_i chs_i^(e_i)` is its six
+squares, each stored in or read from the table at `665`. A monomial `Π_i chs_i^(e_i)` is its six
 exponents `e` (`evVal`); a product adds them (`evAdd`).
 
 `ctRun st block` walks the block, keeping each value's exponents (`vars`) and each table cell's
-(`mem`): a constant `1`, a challenge read at `876`, a product, and a table cell read (a cell
+(`mem`): a constant `1`, a challenge read at `664`, a product, and a table cell read (a cell
 already known gives the value, an unknown cell is the value's). `ctRun_sound`: if the block holds,
 every recorded value and cell is its monomial (`CtOk`).
 -/

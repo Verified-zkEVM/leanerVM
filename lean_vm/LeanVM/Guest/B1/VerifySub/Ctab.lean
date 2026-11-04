@@ -80,7 +80,7 @@ theorem vsEqwT_holds {x v : ℕ} {a0 a1 a2 a3 : E}
 
 theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a3]) :
     ∀ (l : List ℕ) {next : Prop}, Stmt.HoldsList C rd σ (l.flatMap fun x ↦
-      (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 640 x]) next kret →
+      (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 427 x]) next kret →
       (∀ x ∈ l, LoadHolds rd (σ (.n 427)) x (eqAt [a0, a1, a2, a3] x)) ∧ next
   | [], _, h => ⟨fun _ hx ↦ absurd hx (by simp), h⟩
   | x :: l, _, h => by
@@ -97,7 +97,7 @@ theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a
 /-- **`fp_w`** (G:3220-3223): the bus challenges' equality weights, then `β`'s squeeze. -/
 theorem vsFpwT_holds {alphas : List E} (hl : alphas.length = 4)
     (ha : ReadsAt rd (σ (.n 346)) alphas) (h : Stmt.HoldsList C rd σ vsFpwT next kret) :
-    ReadsAt rd (σ (.n 427)) (eqKernel alphas) ∧ Stmt.HoldsList C rd σ (vsSqzT 628 817) next kret := by
+    ReadsAt rd (σ (.n 427)) (eqKernel alphas) ∧ Stmt.HoldsList C rd σ (vsSqzT 415 604) next kret := by
   match alphas, hl with
   | [a0, a1, a2, a3], _ =>
     unfold vsFpwT at h
