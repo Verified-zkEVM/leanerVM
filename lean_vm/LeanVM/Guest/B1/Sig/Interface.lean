@@ -59,7 +59,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
   argument holds the table `main` writes (`ByteBits`: `byte_bits[g^v] = v`): the counters are then
   32-bit integers, so the encodings' bytes are the scheme's.
 * `verify_lean_xmss_complete_Spec`: for a claim held at the pointer in its canonical cells and a
-  signature that verifies it, the carried chain indices held, on a memory of at least `64` words, so
+  signature that verifies it, the carried chain indices held, on a memory of at least `256` words, so
   that every range check has its witnesses, the check holds of a valuation changing only its own
   values (`Completes`), under any call relation.
   leanSPHINCS's completeness statements are in `SphincsCompleteSpec`.
@@ -152,11 +152,12 @@ def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Sig
 
 /-- **`verify_lean_xmss` is complete, inline in `__loop2`**: for a claim held at the pointer
 `σ (.n 65)` in its canonical cells and a signature that verifies it, the carried chain indices
-holding their indices, on a memory of at least `64` words, the check `xSeg` holds of a valuation
+holding their indices, on a memory of at least `256` words (the windows and the digit words are
+range-checked below `g^255`), the check `xSeg` holds of a valuation
 changing `σ` only on its own values `66 ..< 211052`, under any call relation. -/
 def verify_lean_xmss_complete_Spec : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (pk : HashSig.PublicKey) (m : HashSig.Message)
-    (sig : LeanXmss.Signature), MemOK rd 64 → LxTagsHold (fun j => σ (sTagParam j)) →
+    (sig : LeanXmss.Signature), MemOK rd 256 → LxTagsHold (fun j => σ (sTagParam j)) →
     ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) →
     LeanXmss.verifyWithKeccak pk m sig = true →
