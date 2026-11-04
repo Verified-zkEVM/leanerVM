@@ -24,8 +24,8 @@ there and its argument and return cells holding the call's words (`Located.RLg`,
 that run, holding for runs of any length (`globSpec`: `funSpecReached_induction` over `b2_step`).
 
 `B2SoundL` states B2 as `Sound.lean` proves it (`b2_step`, `b2_mainL`), so that this module and
-the assembly above it do not import the certificates; `EndSound.lean` proves it, from B1's two
-statements about the core IR there (`VsKnown`, `ExpTablesSound`).
+the assembly above it do not import the certificates; `EndSound.lean` proves it, from B1's
+statements about the core IR there (`VsDimsKnown`, `VsKnown`, `ExpTablesSound`, `WalkKnown`).
 -/
 
 namespace LeanVM.Guest.End

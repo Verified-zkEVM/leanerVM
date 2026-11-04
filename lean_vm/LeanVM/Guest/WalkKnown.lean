@@ -31,7 +31,7 @@ proves on the template (`B1.Opening.QueriesWalk`):
   setup), so it is `OqMainWins`' second half.
 
 `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`: `CutsKnown j` from the body's template and
-the decided check. The instances are `WalkKnownS*.lean`.
+the decided check. The instances are `WalkOq*.lean`.
 -/
 
 namespace LeanVM.Guest.End
@@ -51,12 +51,23 @@ theorem semRel_lt {t : ℕ} (ht : t < 2 ^ 32) (rd : Reader) (ws : List E) :
   unfold SemRel
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
 
-theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (rd : Reader) (ws : List E) :
+theorem tagGkr_lt : tagGkr < 2 ^ 32 := by unfold tagGkr; norm_num
+
+/-- A walk tag of a kind but `2` is not `tagGkr` (`2^20`, a multiple of `4`). -/
+theorem walkTag_ne_gkr {kind odd d cd : ℕ} (hk : kind < 4) (h2 : kind ≠ 2) :
+    walkTag kind odd d cd ≠ tagGkr := by
+  rw [show tagGkr = 4 * 262144 from rfl]
+  unfold walkTag
+  omega
+
+theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hg : t ≠ tagGkr) (rd : Reader) (ws : List E) :
     SemRel0 glob t rd ws ↔ walkSem t rd ws := by
   unfold SemRel0
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega))]
   obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
-  rfl
+  change (if n + 2 = tagGkr then GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0)
+    (ws.getD 4 0) else walkSem (n + 2) rd ws) ↔ _
+  rw [ite_eq_right_of_eq_false _ _ (eq_false hg)]
 
 theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.getD 0 0 ≠ ws.getD 1 0 := by
   rw [semRel_lt (by unfold tagNe; norm_num)]
@@ -66,20 +77,20 @@ theorem semRel_ne (rd : Reader) (ws : List E) : SemRel glob tagNe rd ws ↔ ws.g
 theorem semRel_w0 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (hlt : walkTag 0 odd d cd < 2 ^ 32)
     (rd : Reader) (ws : List E) :
     SemRel glob (walkTag 0 odd d cd) rd ws ↔ WinWalk rd d cd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel_lt hlt, semRel0_walk (walkTag_ge _ _ _ _)]
+  rw [semRel_lt hlt, semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
   obtain ⟨h1, -, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) ho hc
   simp only [walkSem, h1, h3, h4]
 
 theorem semRel0_w0 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (rd : Reader) (ws : List E) :
     SemRel0 glob (walkTag 0 odd d cd) rd ws ↔ WinWalk rd d cd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _)]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
   obtain ⟨h1, -, h3, h4⟩ := walkTag_decode (d := d) (by decide : 0 < 4) ho hc
   simp only [walkSem, h1, h3, h4]
 
 theorem semRel0_w1 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (rd : Reader) (ws : List E) :
     SemRel0 glob (walkTag 1 odd d cd) rd ws ↔
       WinWalk2 rd d cd odd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) := by
-  rw [semRel0_walk (walkTag_ge _ _ _ _)]
+  rw [semRel0_walk (walkTag_ge _ _ _ _) (walkTag_ne_gkr (by omega) (by omega))]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by decide : 1 < 4) ho hc
   simp only [walkSem, h1, h2, h3, h4]
 
@@ -90,10 +101,10 @@ theorem semRel_w1 {odd d cd : ℕ} (ho : odd < 2) (hc : cd < 64) (hlt : walkTag 
   rw [semRel_lt hlt, semRel0_w1 ho hc]
 
 theorem semRel_main {odd d cd base : ℕ} (ho : odd < 2) (hc : cd < 64) (hb : base < 2)
-    (hlt : walkTag (2 + base) odd d cd < 2 ^ 32) (rd : Reader) (ws : List E) :
+    (hlt : walkTag (2 + base) odd d cd < tagGkr) (rd : Reader) (ws : List E) :
     SemRel glob (walkTag (2 + base) odd d cd) rd ws ↔
       OqMainWins rd d cd odd base (ws.getD 0 0) (ws.getD 1 0) := by
-  rw [semRel_lt hlt, semRel0_walk (walkTag_ge _ _ _ _)]
+  rw [semRel_lt (hlt.trans tagGkr_lt), semRel0_walk (walkTag_ge _ _ _ _) hlt.ne]
   obtain ⟨h1, h2, h3, h4⟩ := walkTag_decode (d := d) (by omega : 2 + base < 4) ho hc
   obtain rfl | rfl : base = 0 ∨ base = 1 := by omega
   · simp only [walkSem, h1, h2, h3, h4]
@@ -219,7 +230,7 @@ theorem loop1_cutsKnown {j odd : ℕ} {s : Oq} {name : String}
 query's windows (`oqMainT_wins`, an odd count) and the walk from `1` (its second half). -/
 theorem main_cutsKnown {j o : ℕ} {s : Oq} {loop : String}
     (hb : (coreOf j).body = oqMainT s o loop) (ho : o < 2) (hc : s.cd < 64) (hbase : s.base < 2)
-    (hlt : walkTag (2 + s.base) o (s.pd + s.cd) s.cd < 2 ^ 32)
+    (hlt : walkTag (2 + s.base) o (s.pd + s.cd) s.cd < tagGkr)
     (hltW : walkTag (if s.base = 1 then 1 else 0) o (s.pd + s.cd) s.cd < 2 ^ 32)
     (hok : mainOkS j o s = true) :
     CutsKnown j := by

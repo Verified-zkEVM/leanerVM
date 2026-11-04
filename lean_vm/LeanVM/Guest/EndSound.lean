@@ -19,10 +19,13 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 * `expTablesSound`: `exponent_tables`' returns are the exponent tables (B1-a's
   `exponent_tables_holds`).
+* `vsDimsKnown_proved`: `verify_sub`'s `dims_g[g^0]` below `g^34`, an arm `verify_tables`
+  dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
-* `walkKnown_proved` (`WalkKnownAll.lean`): the windowed walks' cut obligations (whir's
-  `QueriesWalk` and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells).
+* `walkKnown_proved` (`WalkKnownAll.lean`): the walks' cut obligations (whir's `QueriesWalk`
+  and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers'
+  parities).
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`).
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
   the witness `W` (`Located.MainSoundV bytecode W`).
@@ -47,12 +50,18 @@ theorem expTablesSound : ExpTablesSound := fun rd q h ↦
 theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
   VerifySub.vsKnown_holds L h16 h32 σ hexp h
 
-/-- **B2, proved**, given `verify_sub`'s `kappa_base` bounds and the walks' obligations. -/
-theorem b2SoundL_of (hvs : VsKnown) (hwalk : WalkKnown) : B2SoundL :=
-  ⟨b2_step fun _ h2 hj ↦ cutsKnown_of hvs hwalk h2 hj, b2_mainL expTablesSound⟩
+/-- **`verify_sub`'s `dims_g[g^0]`** below `g^34`, an arm `verify_tables` dispatches on (B1-d's
+`VerifySub.vsDimsKnown0_holds`). -/
+theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
+  VerifySub.vsDimsKnown0_holds L h16 h32 σ h
+
+/-- **B2, proved**, given `verify_sub`'s `dims_g` and `kappa_base` bounds and the walks'
+obligations. -/
+theorem b2SoundL_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) : B2SoundL :=
+  ⟨b2_step fun _ h2 hj ↦ cutsKnown_of hvd hvs hwalk h2 hj, b2_mainL expTablesSound⟩
 
 /-- **B2, proved.** -/
-theorem b2SoundL : B2SoundL := b2SoundL_of vsKnown_proved walkKnown_proved
+theorem b2SoundL : B2SoundL := b2SoundL_of vsDimsKnown_proved vsKnown_proved walkKnown_proved
 
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 

@@ -29,7 +29,7 @@ The decoder `decodeWith W` reads, off a memory `L`:
   proof and the batching's hints is read off the frames of the functions that checked them.
 
 `SoundHyps W` gathers what the theorems rest on: B2 (`B2SoundL`, proved from the certificates
-and B1's two statements about the core IR in `EndSound.lean`) and `main`'s soundness with the
+and B1's statements about the core IR in `EndSound.lean`) and `main`'s soundness with the
 witness `W` over any
 call relation that unfolds along a frame map (`Located.MainSoundV`).
 
