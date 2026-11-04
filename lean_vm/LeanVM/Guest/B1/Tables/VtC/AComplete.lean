@@ -17,7 +17,8 @@ public import LeanVM.Guest.B1.Tables.VtC.Lift
 `vt_completeAt` on the caller's honest buffers `H.linL B`, the own buffers' honest words
 `H.ownW B` at the allocator's positions from `fp + fs "verify_tables"`, the oracle `vtW`, the
 returns `H.retsH B`; its run from `vt_rel_complete_vtW` and `vt_relIn_complete` on every memory
-defined below `2^κ`, `κ ≥ 8`, holding that layout.
+defined below `2^κ`, `κ ≥ 14` (the rank keys' range check against `g^8567`), holding that
+layout.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -40,8 +41,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`verify_tables` is complete, placed**: from the specification's accepting run (`H.Ok`) and
 the deployed shapes (`VtShape`), on the caller's honest buffers `H.linL B`, with the arguments
-`H.args B`, returning `H.retsH B`, for memories defined below `2^κ`, `κ ≥ 8`. -/
-theorem verify_tables_completeAt {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h : H.Ok)
+`H.args B`, returning `H.retsH B`, for memories defined below `2^κ`, `κ ≥ 14`. -/
+theorem verify_tables_completeAt {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) :
     CompleteAtD fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B)) := by
   refine vt_completeAt (H.linL B) (H.args B) (H.retsH B) rfl H.sizes (fun _ ↦ H.ownW B)
@@ -54,12 +55,12 @@ theorem verify_tables_completeAt {κ : ℕ} (hκ : 8 ≤ κ) {H : VtHonest} (h :
     unfold RegionL
     exact ⟨q', hq', by omega, by omega⟩
   · intro fp rd hlow hL
-    have hlow8 : LowDefB 8 rd := hlow.mono hκ
+    have hlow14 : LowDefB 14 rd := hlow.mono hκ
     have hm : MemLay rd (H.linL (B.at (fp + fs "verify_tables")) ++
         H.ownL (B.at (fp + fs "verify_tables"))) := hL
     obtain ⟨-, h2, h3, h4, h5⟩ :=
-      vt_rel_complete_vtW h hs (B.at (fp + fs "verify_tables")) hlow8 hm
-    exact ⟨vt_relIn_complete h hs _ (vtW_ok H _) hlow8 hm, h2, h3, h4, h5⟩
+      vt_rel_complete_vtW h hs (B.at (fp + fs "verify_tables")) hlow14 hm
+    exact ⟨vt_relIn_complete h hs _ (vtW_ok H _) hlow14 hm, h2, h3, h4, h5⟩
 
 end
 end LeanVM.Guest.B1.Tables
