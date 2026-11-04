@@ -247,7 +247,7 @@ theorem claimsT_complete (hS : StoresAt24 S) {e : ℕ → ℕ}
       rw [(hkap hgk).2.2.1, he _ (claimKappaSrc_lt j), ← pow_add]; rfl
     unfold ClaimIn at hij
     rcases hk : termKind j with _ | _ | _ | _ | k
-    all_goals simp only [hk, claimKap] at hg1 hg2 hij ⊢
+    all_goals simp only [hk] at hg1 hg2 hij ⊢
     · simp only [List.mem_append] at hg1 ⊢
       have hgk := fun s h => hg1 s (Or.inl h)
       obtain ⟨k1, k2, -, k3, k4⟩ := hkap hgk
