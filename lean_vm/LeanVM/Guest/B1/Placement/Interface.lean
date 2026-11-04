@@ -12,19 +12,22 @@ public import LeanVM.Guest.B1.Tables.Base
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
 
-`certify_placement(kappa_base, g_squares)` (G:2971-3004) builds each committed column's `g^κ`
-from its source in `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]` (`COL_KAPPA_SRC`,
-`COL_KAPPA_ADJ`, here `colKappaSrc`, `colKappaAdj`), reads the hinted order `col_sort_order`,
-certifies it to be `stackOffsets`'s (V:830: sizes non-increasing, ties by ascending index, every
-column once by write-once offsets), and returns `g^(Σ 2^κ)` over the committed columns and two
-buffers: `g^offset` and `g^κ` per committed column.
+`certify_placement(kappa_base, g_squares)` (G:3121-3165) groups the committed columns into the
+runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
+is `kappa_base[COL_KAPPA_SRC]·g^COL_KAPPA_ADJ`, `colKappaSrc`, `colKappaAdj`, over
+`kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]`), keys each group by `g^(κ·RANK_STRIDE - c₀)`
+(`RANK_STRIDE = 252`, from the rank keys `exponent_tables` keeps at `g_squares·g^178`,
+`rankKeysList`), reads the hinted group order `col_group_order`, certifies its keys strictly
+descending (descending `κ`, then ascending first column: `stackOffsets`'s order, V:830), stores
+each group's base offset write-once, and lays every column out from its group's base. It returns
+`g^(Σ 2^κ)` over the committed columns and the buffer of their `g^offset`.
 
 The committed columns are `placementsOf`'s (V:1261-1282): every global column but the `KECCAK`
 value lanes, `99` of the `163` (`committedCols`), in global order. `columnKappas log_mem 19 τ`
 (V:1250) are the sizes of all `163`; the bytecode's log size is the guest's own, `19`
 (`BYTECODE_LOG`).
 
-* `PCtx rd kappas off kap`: `kap` holds `g^κ` and `off` holds `g^offset` per committed column;
+* `PCtx rd kappas off`: `off` holds `g^offset` per committed column;
 * `certify_placement_Spec`: under its precondition the function's relation gives `PCtx` and the
   total;
 * `HypKappa`: once the stack is at most `2^28`, every committed column's `κ` is below `29` (the
@@ -64,31 +67,42 @@ def colKappaSrc (c : ℕ) : ℕ :=
 /-- `COL_KAPPA_ADJ[c]`: the bytecode's log size `19`, and `q_keccak`'s slot bits `6`. -/
 def colKappaAdj (c : ℕ) : ℕ := if c = 4 then 19 else if c = 5 then 6 else 0
 
-/-- **What `certify_placement` hands `check_opening_terminal`**: `kappas` are the `163` columns'
-sizes, `kap` holds `g^κ` and `off` holds `g^offset` per committed column, the offsets
-`stackOffsets`'s (V:830). -/
-def PCtx (rd : Reader) (kappas : List ℕ) (off kap : E) : Prop :=
-  kappas.length = 163 ∧ TbReadsAt rd kap ((committedKappas kappas).map (gen ^ ·)) ∧
-    TbReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
+/-- `N_COL_GROUPS`: the runs of committed columns sharing one `kappa_base` source. -/
+abbrev nColGroups : ℕ := 9
 
-/-- **`certify_placement` is sound**: over the base `[1, g^log_mem, g^τ_0, …, g^τ_5]` and the
-squares table, it returns `g^(Σ 2^κ)` over the committed columns of `columnKappas log_mem 19 τ`
-and two buffers of which `PCtx` holds. -/
+/-- `COL_GROUP_START`: each group's first column, then `N_COMMITTED_COLS`. -/
+def colGroupStart : List ℕ := [0, 4, 5, 6, 21, 36, 44, 59, 73, 99]
+
+/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS`: above any block or column index. -/
+abbrev rankStride : ℕ := 252
+
+/-- The rank keys `exponent_tables` keeps at `g_squares·g^RANK_KEYS_AT` (`RANK_KEYS_AT = 178`,
+G:688-689): `g^(k·RANK_STRIDE)` for `k < SIZE_BITS = 34`. -/
+def rankKeysList : List E := (List.range 34).map fun k ↦ gen ^ (k * rankStride)
+
+/-- **What `certify_placement` hands `check_opening_terminal`**: `kappas` are the `163` columns'
+sizes and `off` holds `g^offset` per committed column, the offsets `stackOffsets`'s (V:830). -/
+def PCtx (rd : Reader) (kappas : List ℕ) (off : E) : Prop :=
+  kappas.length = 163 ∧ TbReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
+
+/-- **`certify_placement` is sound**: over the base `[1, g^log_mem, g^τ_0, …, g^τ_5]`, the squares
+table and the rank keys, it returns `g^(Σ 2^κ)` over the committed columns of
+`columnKappas log_mem 19 τ` and a buffer of which `PCtx` holds. -/
 def certify_placement_Spec (rd : Reader) : Prop :=
   ∀ (logMem : ℕ) (hs : List ℕ) (kb sq : E) (rets : List E), logMem ≤ 32 → hs.length = 6 →
     (∀ h ∈ hs, h < 29) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
-    TbReadsAt rd sq gSquaresList →
+    TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     coreProgram.Rel rd "certify_placement" [kb, sq] rets →
-      ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off, kap] ∧
-        PCtx rd (columnKappas logMem guestLogBytecode hs) off kap
+      ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
+        PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
-/-- Every committed column's log, in `col_kappas`, is below `N_COLUMN_LOGS = 29`. -/
-def KappasBelow (rd : Reader) (kap : E) : Prop :=
-  ∀ c < nCommittedCols, ∃ κ < 29, LoadHolds rd kap c (gen ^ κ)
+/-- Every committed column's log is below `N_COLUMN_LOGS = 29`. -/
+def KappasBelow (kappas : List ℕ) : Prop :=
+  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 29
 
 /-- **The columns' logs are in range** once the stack is at most `2^28`. -/
-def HypKappa (rd : Reader) : Prop :=
-  ∀ kappas off kap, PCtx rd kappas off kap → log2Ceil (stackTotal kappas) ≤ 28 → KappasBelow rd kap
+def HypKappa : Prop :=
+  ∀ kappas : List ℕ, kappas.length = 163 → log2Ceil (stackTotal kappas) ≤ 28 → KappasBelow kappas
 
 end
 end LeanVM.Guest.B1.Tables

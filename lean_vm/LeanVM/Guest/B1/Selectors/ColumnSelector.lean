@@ -297,6 +297,86 @@ theorem cs_cover {M : Type} [CommMonoid M] (G : ℕ → M) {κ : ℕ} (hκ : κ 
   refine Finset.prod_congr rfl fun i _ => ?_
   rw [ite_eq_left (by omega)]; congr 1; omega
 
+/-! ## The number of the digits and its selector -/
+
+section Math
+
+variable {κ : ℕ} (hκ : κ < 28) {u : ℕ → ℕ} (hu : ∀ k < csN κ, u k < 16)
+include hκ hu
+
+omit hκ in
+/-- Bit `4(κ/4 + k) + t` of the digits' number is bit `t` of digit `k`. -/
+theorem cs_bit {k : ℕ} (hk : k < csN κ) {t : ℕ} (ht : t < 4) :
+    (16 ^ (κ / 4) * csDig u (csN κ)).testBit (4 * (κ / 4) + 4 * k + t) = (u k).testBit t := by
+  rw [show 16 ^ (κ / 4) = 2 ^ (4 * (κ / 4)) by rw [pow_mul]; norm_num, Nat.testBit_two_pow_mul,
+    show 4 * (κ / 4) + 4 * k + t - 4 * (κ / 4) = 4 * k + t by omega, testBit_csDig hu k t ht]
+  simp only [hk, decide_true, Bool.true_and, ge_iff_le,
+    show 4 * (κ / 4) ≤ 4 * (κ / 4) + 4 * k + t by omega]
+
+omit hκ in
+/-- **The strided table holds every digit**: digit `k` is a multiple of `2^(3 - (w_k - 1))`, the
+lowest one's bits below `κ` being zero once the number is a multiple of `2^κ`. -/
+theorem cs_dvd (hal : 2 ^ κ ∣ 16 ^ (κ / 4) * csDig u (csN κ)) (k : ℕ) (hk : k < csN κ) :
+    2 ^ (3 - (csW κ k - 1)) ∣ u k := by
+  have hlev : 3 - (csW κ k - 1) = if k = 0 then κ - 4 * (κ / 4) else 0 := by
+    unfold csW; split <;> omega
+  rw [hlev]
+  split
+  · rename_i hk0
+    subst hk0
+    apply Nat.dvd_of_mod_eq_zero
+    apply Nat.eq_of_testBit_eq
+    intro i
+    rw [Nat.testBit_mod_two_pow, Nat.zero_testBit]
+    by_cases hi : i < κ - 4 * (κ / 4)
+    · simp only [hi, decide_true, Bool.true_and]
+      rw [← cs_bit hu hk (show i < 4 by omega), Nat.mul_zero, Nat.add_zero]
+      obtain ⟨m, hm⟩ := hal
+      rw [hm, Nat.testBit_two_pow_mul]
+      simp only [ge_iff_le, Bool.and_eq_false_iff, decide_eq_false_iff_not, not_le]
+      exact Or.inl (by omega)
+    · simp [hi]
+  · simp
+
+/-- **The selector**: the digits' eq weights off the strided tables multiply to the eq weight of
+the number's bits `κ .. 27`. -/
+theorem cs_sel_prod {p p1 : List E}
+    (hp : p.length = 28) (hp1 : p1.length = 28) :
+    ∏ k ∈ Finset.range (csN κ), selEqEntry p p1 (κ / 4 + k) (csW κ k - 1) (u k) =
+      bitsEq ((List.range (28 - κ)).map fun i ↦ (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i))
+        (p.drop κ) (p1.drop κ) := by
+  let G : ℕ → E := fun i ↦
+    if (16 ^ (κ / 4) * csDig u (csN κ)).testBit i then p.getD i 0 else p1.getD i 0
+  have hxe : ∀ k < csN κ, selEqEntry p p1 (κ / 4 + k) (csW κ k - 1) (u k) =
+      ∏ t ∈ Finset.range 4, (if κ ≤ 4 * (κ / 4) + 4 * k + t then G (4 * (κ / 4) + 4 * k + t)
+        else 1) := by
+    intro k hk
+    have hlev : 3 - (csW κ k - 1) = if k = 0 then κ - 4 * (κ / 4) else 0 := by
+      unfold csW; split <;> omega
+    rw [selEqEntry, prod_Ico_four, hlev]
+    refine Finset.prod_congr rfl fun t ht => ?_
+    have ht' := Finset.mem_range.mp ht
+    have hc : ((if k = 0 then κ - 4 * (κ / 4) else 0) ≤ t) ↔ κ ≤ 4 * (κ / 4) + 4 * k + t := by
+      split <;> omega
+    by_cases hct : κ ≤ 4 * (κ / 4) + 4 * k + t
+    · rw [ite_eq_left (hc.mpr hct), ite_eq_left hct]
+      simp only [G]
+      rw [cs_bit hu hk ht', show 4 * (κ / 4 + k) + t = 4 * (κ / 4) + 4 * k + t by ring]
+    · rw [ite_eq_right (fun h => hct (hc.mp h)), ite_eq_right hct]
+  rw [Finset.prod_congr rfl (fun k hk => hxe k (Finset.mem_range.mp hk)), cs_cover G hκ,
+    bitsEq_eq_prod (m := 28 - κ) (by simp) (by simp [hp]) (by simp [hp1])]
+  refine Finset.prod_congr rfl fun i hi => ?_
+  have hi' := Finset.mem_range.mp hi
+  have e1 : ((List.range (28 - κ)).map fun i ↦
+      (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i)).getD i false =
+      (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i) := by
+    rw [List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range]
+  have e2 : ∀ q : List E, (q.drop κ).getD i 0 = q.getD (κ + i) 0 := fun q => by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_drop, ← List.getD_eq_getElem?_getD]
+  rw [e1, e2, e2]
+
+end Math
+
 /-- **`column_selector` is sound**. -/
 theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {args rets : List E} (h : coreProgram.Rel Lm.read (lName "column_selector" κ) args rets) :
@@ -375,69 +455,21 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
       Finset.prod_congr rfl (fun k hk => hxg' k (Finset.mem_range.mp hk)),
       prod_gen_pow_csDig]
   · -- the selector
-    have hbit : ∀ k < N, ∀ t < 4, o.testBit (4 * b + 4 * k + t) = (u' k).testBit t := by
-      intro k hk t ht
-      rw [hob, Nat.testBit_two_pow_mul, show 4 * b + 4 * k + t - 4 * b = 4 * k + t by omega,
-        testBit_csDig hu' k t ht]
-      simp only [hk, decide_true, Bool.true_and, ge_iff_le,
-        show 4 * b ≤ 4 * b + 4 * k + t by omega]
-    -- the lowest digit's bits below `κ` vanish
-    have hlow : ∀ t < 4, 4 * b + t < κ → (u' 0).testBit t = false := by
-      intro t ht htk
-      rw [← hbit 0 (by omega) t ht, Nat.mul_zero, Nat.add_zero]
-      obtain ⟨m, hm⟩ := hal
-      rw [hm, Nat.testBit_two_pow_mul]
-      simp only [ge_iff_le, Bool.and_eq_false_iff, decide_eq_false_iff_not, not_le]
-      exact Or.inl htk
-    let G : ℕ → E := fun i ↦ if o.testBit i then p.getD i 0 else p1.getD i 0
-    have hxe' : ∀ k < N, xe' k = ∏ t ∈ Finset.range 4,
-        (if κ ≤ 4 * b + 4 * k + t then G (4 * b + 4 * k + t) else 1) := by
+    have hxe' : ∀ k < N, xe' k = selEqEntry p p1 (b + k) (csW κ k - 1) (u' k) := by
       intro k hk
       obtain ⟨hw1, hw4⟩ := csW_bounds κ k
-      have hlev : 3 - (csW κ k - 1) = if k = 0 then κ - 4 * b else 0 := by
-        unfold csW; split <;> omega
-      have hdiv : 2 ^ (3 - (csW κ k - 1)) ∣ u' k := by
-        rw [hlev]
-        split
-        · rename_i hk0
-          subst hk0
-          apply Nat.dvd_of_mod_eq_zero
-          apply Nat.eq_of_testBit_eq
-          intro i
-          rw [Nat.testBit_mod_two_pow, Nat.zero_testBit]
-          by_cases hi : i < κ - 4 * b
-          · simp only [hi, decide_true, Bool.true_and]
-            exact hlow i (by omega) (by omega)
-          · simp [hi]
-        · simp
-      have h1 := hE (b + k) (show b + k < 7 by omega) (csW κ k - 1) (by omega) (u' k) (hu' k hk) hdiv
+      have h1 := hE (b + k) (show b + k < 7 by omega) (csW κ k - 1) (by omega) (u' k) (hu' k hk)
+        (cs_dvd hu' hal k hk)
       have h2 := hxe k hk
       rw [show u k hk + (64 * (κ / 4 + k) + 16 * (csW κ k - 1)) =
         64 * (b + k) + 16 * (csW κ k - 1) + u' k by simp only [u', hk, ↓reduceDIte, hbdef]; omega]
         at h2
       simp only [xe', hk, ↓reduceDIte]
-      rw [tb_loadHolds_unique h2 h1, selEqEntry, prod_Ico_four, hlev]
-      refine Finset.prod_congr rfl fun t ht => ?_
-      have ht' := Finset.mem_range.mp ht
-      have hc : ((if k = 0 then κ - 4 * b else 0) ≤ t) ↔ κ ≤ 4 * b + 4 * k + t := by
-        split <;> omega
-      by_cases hct : κ ≤ 4 * b + 4 * k + t
-      · rw [ite_eq_left (hc.mpr hct), ite_eq_left hct]
-        simp only [G, hbit k hk t ht', show 4 * (b + k) + t = 4 * b + 4 * k + t by ring]
-      · rw [ite_eq_right (fun h => hct (hc.mp h)), ite_eq_right hct]
+      exact tb_loadHolds_unique h2 h1
     rw [show csRet κ = csC κ N by simp only [csRet, h28, ↓reduceIte, hNdef], hcopy,
       hS (N - 1) (by omega), show N - 1 + 1 = N by omega,
-      Finset.prod_congr rfl (fun k hk => hxe' k (Finset.mem_range.mp hk)),
-      show 4 * b = 4 * (κ / 4) from rfl, cs_cover G hκ',
-      bitsEq_eq_prod (m := 28 - κ) (by simp) (by simp [hp]) (by simp [hp1])]
-    refine Finset.prod_congr rfl fun i hi => ?_
-    have hi' := Finset.mem_range.mp hi
-    have e1 : ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)).getD i false =
-        o.testBit (κ + i) := by
-      rw [List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range]
-    have e2 : ∀ q : List E, (q.drop κ).getD i 0 = q.getD (κ + i) 0 := fun q => by
-      rw [List.getD_eq_getElem?_getD, List.getElem?_drop, ← List.getD_eq_getElem?_getD]
-    rw [e1, e2, e2]
+      Finset.prod_congr rfl (fun k hk => hxe' k (Finset.mem_range.mp hk))]
+    exact cs_sel_prod hκ' hu' hp hp1
 
 theorem column_selector_holds : column_selector_Spec :=
   fun _ hκ _ hμ Lm _ _ h => column_selector_sound hκ hμ Lm h
