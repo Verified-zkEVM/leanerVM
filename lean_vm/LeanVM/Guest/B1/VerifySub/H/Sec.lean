@@ -35,12 +35,12 @@ theorem readsAt_getD' {rd : Reader} {p : E} {xs : List E} {k : ℕ} (h : ReadsAt
 
 variable {rd : Reader} {args : List E}
 
-theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 839 + i) ∧
-    (∀ i < 9, (vsRetVars.getD 6 []).getD i 0 = 849 + i) ∧
-    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 863 + i) ∧
-    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1906 + i) := by decide
+theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 626 + i) ∧
+    (∀ i < 10, (vsRetVars.getD 6 []).getD i 0 = 636 + i) ∧
+    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 651 + i) ∧
+    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1692 + i) := by decide
 
-theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 9 ∧
+theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 10 ∧
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
 
 set_option maxRecDepth 100000 in
@@ -48,10 +48,10 @@ theorem vs_e124 (hl : args.length = 6) {w : ℕ → E} {lir : ℕ}
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (h1 : 1 ≤ lir) :
     vsσ rd w args (.n 122) = gen ^ (lir - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have g1 := hG (vsMul 122 124 123) (by
+  have g1 := hG (vsMul 120 122 121) (by
     rw [vsSizesT]
     exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))
-  have g2 := hG (vsConst 123 (word 2 0 0)) (by
+  have g2 := hG (vsConst 121 (word 2 0 0)) (by
     rw [vsSizesT]; exact List.mem_append_left _ (List.mem_cons_of_mem _ List.mem_cons_self))
   simp only [vsMul, vsConst, GoodS] at g1 g2
   simp only [Good] at g2
@@ -101,24 +101,69 @@ theorem s7_eta (hbl : bytecode.length = 2 ^ 23) : S.s7 = ⟨S.s7.cap, []⟩ := b
   obtain ⟨K, hK⟩ := keccakSeg_capOf h (S.runK' hbl).2.2.2.2
   rw [hK]
 
+theorem vs_ofK_add (a b : ℕ) : ofK (addressOfIndex (a + b)) = ofK (addressOfIndex a) * gen ^ b := by
+  rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+
+theorem stream_pool_lt (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h162 : j < 162) :
+    10 + S.xsG.length + (5 + (3 * S.H.n + (j - 5))) < c.proof.stream.length := by
+  obtain ⟨hok, hx, -, hlen⟩ := S.H_run hbl
+  have := S.hstream
+  have h := congrArg List.length this
+  simp only [List.length_append, List.length_cons, List.length_map, S.hrowsL, List.length_nil] at h
+  omega
+
+/-- **The tables' evaluations in the stream**: past the announced words, the root, the GKR's words,
+the five framework words and the rounds', the evaluations are `claim_pool`'s words `5 ..< 162`. -/
+theorem stream_pool (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h5 : 5 ≤ j) (h162 : j < 162) :
+    (vsStreamW c.proof.stream).getD (10 + S.xsG.length + (5 + (3 * S.H.n + (j - 5)))) 0 =
+      S.H.poolW.getD j 0 := by
+  obtain ⟨hok, hx, -, -⟩ := S.H_run hbl
+  have h1 := hok.hx5
+  have h2 := hok.hxR
+  have hf : S.H.evsT.flatten.length = 157 := by
+    have := congrArg List.length hx
+    simp only [List.length_append, h1, h2] at this
+    have := (S.H_run hbl).2.2.2
+    omega
+  have hw : (eOfNat S.logMem :: S.rowsN.map eOfNat ++ [eOfNat S.rate] ++ [S.x0, S.x1]).length = 10 := by
+    simp [S.hrowsL]
+  have e : c.proof.stream = (eOfNat S.logMem :: S.rowsN.map eOfNat ++ [eOfNat S.rate] ++ [S.x0, S.x1]) ++
+      S.xsG ++ (S.H.xs5 ++ S.H.xsR ++ S.H.evsT.flatten) ++ (S.xsK ++ S.xsW) := by
+    rw [S.hstream, ← hx]; simp only [List.append_assoc]
+  have hlt := S.stream_pool_lt hbl h162
+  rw [vsStreamW, List.getD_append _ _ _ _ hlt, e, List.getD_append _ _ _ _ (by
+      simp only [List.length_append, hw, h1, h2, hf]; omega),
+    List.getD_append_right _ _ _ _ (by simp only [List.length_append, hw]; omega)]
+  simp only [List.length_append, hw]
+  rw [show 10 + S.xsG.length + (5 + (3 * S.H.n + (j - 5))) - (10 + S.xsG.length) =
+      S.H.xs5.length + S.H.xsR.length + (j - 5) by rw [h1, h2]; omega,
+    List.getD_append_right _ _ _ _ (by simp only [List.length_append]; omega)]
+  simp only [List.length_append, Nat.add_sub_cancel_left]
+  rw [Tables.VtHonest.poolW, List.getD_append _ _ _ _ (by simp only [List.length_append, h1, hf]; omega),
+    List.getD_append_right _ _ _ _ (by omega), h1]
+
+theorem s6_capOf (hbl : bytecode.length = 2 ^ 23) : S.s6.cap = S.H.s3.squeeze.2.cap := by
+  obtain ⟨hok, -, -, -⟩ := S.H_run hbl
+  exact (Tables.vt_spec hok).2.2.2
+
+theorem root_cells : (digestHalves S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
+
 end ChildSegs
 
 set_option maxRecDepth 100000 in
 /-- **The sections' data of the honest valuation on an honest child.** -/
 theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
-    (S : ChildSegs bytecode seed c) {lpE sqE outE : ℕ}
+    (S : ChildSegs bytecode seed c) {sqE outE : ℕ}
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
-          outE)])
+      (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)])
     (bs : List ℕ) (outs : List (List E × Main.Layout)) {κ : ℕ} (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
-    (hmem : ∀ i < 16, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
-    (hlp : ReadsAt rd (ofK (addressOfIndex lpE)) ((List.range 34).map fun j ↦ eOfNat (2 ^ j)))
-    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) Tables.gSquaresList)
+    (hmem : ∀ i < 13, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
+    (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) expTableWords)
     (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim))
     (o0 : (outs.getD 0 ([], [])).1 = [gen ^ S.rate])
     (o1 : (outs.getD 1 ([], [])).1 = [gen ^ S.logMem])
-    (o6 : (outs.getD 6 ([], [])).1 = S.H.retsH (S.vtB bs sqE))
+    (o6 : (outs.getD 6 ([], [])).1 = S.vtRetsOf bs)
     (o7 : (outs.getD 7 ([], [])).1 =
       S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
     (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]) :
@@ -132,20 +177,20 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
         vsσ rd (vsW bs outs) args (.n 758)], []⟩ ∧
       vsσ rd (vsW bs outs) args (.n 658) = S.m0 ∧ vsChs (vsσ rd (vsW bs outs) args) = S.chs := by
   have hl : args.length = 6 := by rw [hargs]; rfl
-  have ptr : ∀ i < 16, vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) =
+  have ptr : ∀ i < 13, vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) =
       ofK (addressOfIndex (bs.getD i 0)) := fun i hi ↦ vs_alloc_ptr hl bs outs hi
   have ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
       vsσ rd (vsW bs outs) args (.n ((vsRetVars.getD j []).getD k 0)) =
         (outs.getD j ([], [])).1.getD k 0 := fun j hj k hk ↦ vs_ret_val hl bs outs hj hk
-  have m : ∀ i < 16, ReadsAt rd (vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)))
+  have m : ∀ i < 13, ReadsAt rd (vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)))
       (S.ownW.getD i []) := fun i hi ↦ by rw [ptr i hi]; exact hmem i hi
-  have par : ∀ i < 7, vsσ rd (vsW bs outs) args (.n i) = args.getD i 0 :=
+  have par : ∀ i < 6, vsσ rd (vsW bs outs) args (.n i) = args.getD i 0 :=
     fun i hi ↦ vsC_param hl hi
   have hsl := S.hs_length
   have hh := S.hh29 hbl
   -- the stream
   have mS : ReadsAt rd (vsσ rd (vsW bs outs) args (.n 25)) (vsStreamW c.proof.stream) :=
-    m 2 (by norm_num)
+    m 1 (by norm_num)
   have hsl10 := S.stream_length
   have hws : ∀ i < 10, LoadHolds rd (vsσ rd (vsW bs outs) args (.n 25)) i
       (c.proof.stream.getD i 0) := fun i hi ↦ by
@@ -160,7 +205,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
   have e130 : σ (.n 128) = gen ^ S.logMem := by
     have := ret 1 (by norm_num) 0 (by decide); rw [o1] at this; exact this
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
-  have e863 : ∀ i < 5, σ (.n (863 + i)) = (capOf K7).getD i 0 := fun i hi ↦ by
+  have e651 : ∀ i < 5, σ (.n (651 + i)) = (capOf K7).getD i 0 := fun i hi ↦ by
     have := ret 7 (by norm_num) i (by rw [vsRetVars_lens.2.2.1]; omega)
     rw [vsRetVars_runs.2.2.1 i (by omega), o7, hK7,
       List.getD_append _ _ _ _ (by simp [capOf]; omega)] at this
@@ -182,26 +227,19 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
   -- the memory's words
   have hcount : S.hs.map Hints.count = S.hs.map (gen ^ ·) :=
     List.map_congr_left fun x hx ↦ count_eq_gen (by have := hh x hx; omega)
-  have hdims : ReadsAt rd (σ (.n 127)) (gen ^ S.logMem :: S.hs.map Hints.count) := m 4 (by norm_num)
+  have hdims : ReadsAt rd (σ (.n 127)) (gen ^ S.logMem :: S.hs.map Hints.count) := m 3 (by norm_num)
   have hkb : ReadsAt rd (σ (.n 139)) (1 :: gen ^ S.logMem :: S.hs.map Hints.count) :=
-    m 5 (by norm_num)
-  have hbk : ReadsAt rd (σ (.n XBK))
-      (Tables.blockKappaWords (gen ^ S.logMem) (S.hs.map (gen ^ ·))) := by
-    have := m 6 (by norm_num); rw [← hcount]; exact this
-  have hexp : ExpTables rd (σ (.n XGLP)) (σ (.n 4)) := by
-    rw [par 4 (by norm_num), par 5 (by norm_num), hargs]
-    intro j hj
-    refine ⟨?_, ?_⟩
-    · have := readsAt_getD' hlp (k := j) (by simpa using hj)
-      simpa [List.getD_eq_getElem?_getD, hj] using this
-    · have := readsAt_getD' hsq (k := j) (by simpa [Tables.gSquaresList] using hj)
-      simpa [Tables.gSquaresList, List.getD_eq_getElem?_getD, hj] using this
+    m 4 (by norm_num)
+  have hexp : ExpTables rd (σ (.n 4)) := by
+    rw [par 4 (by norm_num), hargs]
+    refine (expTables_iff_words _ _).2 fun o ho ↦ ?_
+    exact readsAt_getD' hsq (by simpa [expTableWords, length_etWordsN] using ho)
   -- the bus challenges
-  have mA : ReadsAt rd (σ (.n 346)) S.alphas := m 8 (by norm_num)
+  have mA : ReadsAt rd (σ (.n 346)) S.alphas := m 6 (by norm_num)
   have hA4 : vsAlphas σ = S.alphas := F.halphas
   have mA' : ReadsAt rd (σ (.n 346)) (vsAlphas σ) := by rw [hA4]; exact mA
   have mF : ReadsAt rd (σ (.n 427)) (eqKernel (vsAlphas σ)) := by
-    rw [hA4]; exact m 9 (by norm_num)
+    rw [hA4]; exact m 7 (by norm_num)
   -- `dims_g[6]`
   have hd6 : LoadHolds rd (σ (.n 127)) 6 (gen ^ S.τ) := by
     have := readsAt_getD' hdims (k := 6) (by simp [hsl])
@@ -215,15 +253,15 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     (next := True) (kret := fun _ ↦ True) hl (τg := gen ^ S.τ) (by rw [hσ]; exact hd6) trivial
     trivial trivial trivial).2.2.2.1
   rw [hσ] at hcp
-  have hc871 : ∀ i < 5, IsCanonical128 (σ (.n (871 + i))) := fun i hi ↦ by
-    rw [hcp i hi, e863 i hi]
+  have hc871 : ∀ i < 5, IsCanonical128 (σ (.n (659 + i))) := fun i hi ↦ by
+    rw [hcp i hi, e651 i hi]
     exact Tables.tb_capOf_canonical _ _ (by
       rw [List.getD_eq_getElem _ _ (by simp [capOf]; omega)]; exact List.getElem_mem _)
   -- the ring map
   have hM := vsH_maps (rd := rd) (w := vsW bs outs) hl (by rw [hσ]; exact hc871)
   rw [hσ] at hM
   have hs7 : (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs) = S.s7 := by
-    have hc := fun i (hi : i < 5) ↦ (hcp i hi).trans (e863 i hi)
+    have hc := fun i (hi : i < 5) ↦ (hcp i hi).trans (e651 i hi)
     have h0 : σ (.n 659) = cellsOfState K7 false 8 := hc 0 (by norm_num)
     have h1 : σ (.n 660) = cellsOfState K7 false 9 := hc 1 (by norm_num)
     have h2 : σ (.n 661) = cellsOfState K7 false 10 := hc 2 (by norm_num)
@@ -242,7 +280,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     rw [ChildSegs.lam, ← es8, hL]
   -- the fixed cells
   have hfx' : ReadsAt rd (σ (.n 5)) (S.point.take 19 ++ S.alphas ++ [c.freshClaim.bytecodeValue]) := by
-    rw [par 6 (by norm_num), hargs]
+    rw [par 5 (by norm_num), hargs]
     have := hfx
     rw [DeferredClaim.cells, S.fresh_eq hbl] at this
     exact this
@@ -265,7 +303,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     hws := fun i hi ↦ by rw [hσ]; exact hws i (by omega)
     hrows := fun i hi ↦ by
       rw [hσ, hw8 (i + 1) (by omega), S.words_getD_rows hi]
-      exact readsAt_getD' (m 3 (by norm_num)) (by simp [S.hrowsL]; omega)
+      exact readsAt_getD' (m 2 (by norm_num)) (by simp [S.hrowsL]; omega)
     hcap22 := by rw [hσ]; exact F.hcap22
     κ := κ
     hκ6 := by omega
@@ -286,7 +324,6 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     hdims := by rw [hσ]; exact hdims
     hkb := by rw [hσ]; exact hkb
     hcount := hcount
-    hbk := by rw [hσ]; exact hbk
     hexp := by rw [hσ]; exact hexp
     hin := by rw [hσ]; exact F.hin
     x0 := S.x0
@@ -311,7 +348,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     hcap871 := by rw [hσ]; exact hc871
     hM := fun k hk ↦ by
       rw [hσ]
-      have mC : ReadsAt rd (σ (.n 664)) S.rchs := m 13 (by norm_num)
+      have mC : ReadsAt rd (σ (.n 664)) S.rchs := m 11 (by norm_num)
       have := readsAt_getD' mC (k := k) (by rw [S.rchs_length]; omega)
       rw [ChildSegs.rchs, ← ech] at this
       interval_cases k
@@ -319,27 +356,35 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
       all_goals exact this
     chs := S.rchs
     hcl := S.rchs_length
-    hchs := by rw [hσ]; exact m 13 (by norm_num)
-    hct := by rw [hσ]; exact m 14 (by norm_num)
+    hchs := by rw [hσ]; exact m 11 (by norm_num)
+    hct := by rw [hσ]; exact m 12 (by norm_num)
     hcap966 := by rw [hσ]; exact hM.2
     vals := fun i ↦ S.H.poolW.getD (vsKept i) 0
     hpool := fun i hi ↦ by
       rw [hσ]
-      have mP : ReadsAt rd (σ (.n 6)) S.H.poolW := m 0 (by norm_num)
-      exact readsAt_getD' mP (by rw [S.poolW_length hbl]; exact vsKept_lt hi)
-    hlam := fun i hi ↦ by
-      rw [hσ, elam]
-      have mL : ReadsAt rd (σ (.n XLAMPOOL)) (lamW S.lam) := m 15 (by norm_num)
-      have := readsAt_getD' mL (k := vsKept i) (by rw [lamW_length]; exact vsKept_lt hi)
-      have hk : vsKept i ∈ (List.range Tables.nClaims).filter
-          (fun j ↦ Tables.claimColumns.getD j 0 ∉ keccakOutputColumns) := by
-        rw [kept_eq]; exact List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩
-      have hnot := (List.mem_filter.1 hk).2
-      simp only [decide_eq_true_eq] at hnot
-      rw [lamW, List.getD_eq_getElem _ _ (by simpa using vsKept_lt hi), List.getElem_map,
-        List.getElem_range, ite_eq_right_of_eq_false _ _ (eq_false hnot), poolRank_kept i hi,
-        add_comm] at this
-      exact this
+      have hk := vsKept_lt hi
+      show LoadHolds rd (σ (.n (vsClaimAt (vsKept i)).1)) (vsClaimAt (vsKept i)).2
+        (S.H.poolW.getD (vsKept i) 0)
+      unfold vsClaimAt
+      split
+      · rename_i hj
+        have e645 : σ (.n 645) = ofK (addressOfIndex (bs.getD 1 0 + (10 + S.xsG.length))) * gen ^ 5 *
+            gen ^ (3 * S.H.n) := by
+          have := ret 6 (by norm_num) 9 (by rw [vsRetVars_lens.2.1]; omega)
+          rw [vsRetVars_runs.2.1 9 (by norm_num), o6, ChildSegs.vtRetsOf_getD9, ChildSegs.cT_eq] at this
+          exact this
+        have key : LoadHolds rd (σ (.n 25)) ((10 + S.xsG.length) + (5 + (3 * S.H.n + (vsKept i - 5))))
+            (S.H.poolW.getD (vsKept i) 0) := by
+          rw [← S.stream_pool hbl hj.1 hj.2]
+          refine readsAt_getD' mS ?_
+          have := S.stream_pool_lt hbl hj.2
+          simp only [vsStreamW, List.length_append, List.length_replicate]
+          omega
+        rw [e645, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow, ChildSegs.vs_ofK_add,
+          loadHolds_mul_gen_pow, ← ptr 1 (by norm_num)]
+        exact key
+      · have mP : ReadsAt rd (σ (.n 6)) S.H.poolW := m 0 (by norm_num)
+        exact readsAt_getD' mP (by rw [S.poolW_length hbl]; exact hk)
     m := S.μs
     r := S.rate
     hm22 := S.hmu22
@@ -352,7 +397,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     al := fun k ↦ S.alphas.getD k 0
     hzeta := fun k hk ↦ by
       rw [hσ]
-      have mZ : ReadsAt rd (σ (.n 310)) S.point := m 7 (by norm_num)
+      have mZ : ReadsAt rd (σ (.n 310)) S.point := m 5 (by norm_num)
       exact readsAt_getD' mZ (by rw [hpl]; omega)
     halpha := fun k hk ↦ by rw [hσ]; exact readsAt_getD' mA (by omega)
     hout := fun k hk ↦ by

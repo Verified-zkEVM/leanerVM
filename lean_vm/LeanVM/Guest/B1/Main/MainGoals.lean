@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Main.MainHonest
 # `main`'s callees on an honest run
 
 `hm`, `hLmain`: `main`'s honest oracle and words at `fp` (its buffers `hOwn`, then
-`exponent_tables`' tables). One statement per callee (`MainGoalClX` … `MainGoalSt`), each the
+`exponent_tables`' table). One statement per callee (`MainGoalClX` … `MainGoalSt`), each the
 `CompleteAtD` `mKids` asks for; `completeAtD_lin_mono` moves a callee's completeness to a
 larger caller layout.
 -/
@@ -44,7 +44,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 /-- `main`'s honest oracle at `fp`. -/
 abbrev hm : MainIn := (hData seed s w).toIn fs fp
 
-/-- **`main`'s honest words at `fp`**: its buffers, then `exponent_tables`' tables. -/
+/-- **`main`'s honest words at `fp`**: its buffers, then `exponent_tables`' table. -/
 abbrev hLmain : B1.Main.Layout :=
   bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w) ++ etL (hData seed s w) fs fp
 
@@ -78,12 +78,12 @@ def MainGoalL4 : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
     CompleteAtD fs cert 16 "__loop3" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
-        (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
 
 def MainGoalDv : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtD fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
+    CompleteAtD fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR)
 
 def MainGoalL5 : Prop :=
@@ -91,11 +91,12 @@ def MainGoalL5 : Prop :=
     CompleteAtD fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
+        (hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
         (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
-        (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
-        (hm fs fp seed s w).a400] (Returns [])
+        (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400] (Returns [])
 
 def MainGoalAg : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →

@@ -49,14 +49,13 @@ theorem ChildSegs.candidate_lt (S : ChildSegs bytecode seed c) :
 
 set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s frames are its callees.** -/
-theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
+theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK (addressOfIndex
-          outE)])
-    (G : VsSig S bs sqE outs args σ) (O : VsOuts S bs lpE sqE outs) :
+      (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)])
+    (G : VsSig S bs sqE outs args σ) (O : VsOuts S bs sqE outs) :
     CallsMatch σ ((vsCPre.filterMap (Core.Stmt.callSF σ)).map (mkCall σ))
-      (kidsAt (S.kids bs lpE sqE) [] outs) outs := by
+      (kidsAt (S.kids bs sqE) [] outs) outs := by
   have R := G.ret
   have P := G.ptr
   -- the parameters
@@ -64,53 +63,49 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     rw [G.par 0 (by norm_num), hargs]; rfl
   have a1 : σ (.n 1) = (digestHalves (statementDigest seed c.statement)).2 := by
     rw [G.par 1 (by norm_num), hargs]; rfl
-  have a4 : σ (.n XGLP) = ofK (addressOfIndex lpE) := by rw [G.par 4 (by norm_num), hargs]; rfl
-  have a5 : σ (.n 4) = ofK (addressOfIndex sqE) := by rw [G.par 5 (by norm_num), hargs]; rfl
+  have a4 : σ (.n 4) = ofK (addressOfIndex sqE) := by rw [G.par 4 (by norm_num), hargs]; rfl
   -- the pointers
-  have q7 : σ (.n 6) = ofK (addressOfIndex (vb bs 0)) := P 0 (by norm_num)
-  have q8 : σ (.n XCPLEN) = ofK (addressOfIndex (vb bs 1)) := P 1 (by norm_num)
-  have q28 : σ (.n 26) = ofK (addressOfIndex (vb bs 3)) := P 3 (by norm_num)
-  have q129 : σ (.n 127) = ofK (addressOfIndex (vb bs 4)) := P 4 (by norm_num)
-  have q141 : σ (.n 139) = ofK (addressOfIndex (vb bs 5)) := P 5 (by norm_num)
-  have q149 : σ (.n XBK) = ofK (addressOfIndex (vb bs 6)) := P 6 (by norm_num)
-  have q523 : σ (.n 310) = ofK (addressOfIndex (vb bs 7)) := P 7 (by norm_num)
-  have q640 : σ (.n 427) = ofK (addressOfIndex (vb bs 9)) := P 9 (by norm_num)
-  have q848 : σ (.n 635) = ofK (addressOfIndex (vb bs 10)) := P 10 (by norm_num)
-  have q859 : σ (.n 647) = ofK (addressOfIndex (vb bs 11)) := P 11 (by norm_num)
-  have q860 : σ (.n 648) = ofK (addressOfIndex (vb bs 12)) := P 12 (by norm_num)
-  have q876 : σ (.n 664) = ofK (addressOfIndex (vb bs 13)) := P 13 (by norm_num)
-  have q877 : σ (.n 665) = ofK (addressOfIndex (vb bs 14)) := P 14 (by norm_num)
-  have q1324 : σ (.n XLAMPOOL) = ofK (addressOfIndex (vb bs 15)) := P 15 (by norm_num)
+  have q6 : σ (.n 6) = ofK (addressOfIndex (vb bs 0)) := P 0 (by norm_num)
+  have q26 : σ (.n 26) = ofK (addressOfIndex (vb bs 2)) := P 2 (by norm_num)
+  have q127 : σ (.n 127) = ofK (addressOfIndex (vb bs 3)) := P 3 (by norm_num)
+  have q139 : σ (.n 139) = ofK (addressOfIndex (vb bs 4)) := P 4 (by norm_num)
+  have q310 : σ (.n 310) = ofK (addressOfIndex (vb bs 5)) := P 5 (by norm_num)
+  have q427 : σ (.n 427) = ofK (addressOfIndex (vb bs 7)) := P 7 (by norm_num)
+  have q635 : σ (.n 635) = ofK (addressOfIndex (vb bs 8)) := P 8 (by norm_num)
+  have q647 : σ (.n 647) = ofK (addressOfIndex (vb bs 9)) := P 9 (by norm_num)
+  have q648 : σ (.n 648) = ofK (addressOfIndex (vb bs 10)) := P 10 (by norm_num)
+  have q664 : σ (.n 664) = ofK (addressOfIndex (vb bs 11)) := P 11 (by norm_num)
+  have q665 : σ (.n 665) = ofK (addressOfIndex (vb bs 12)) := P 12 (by norm_num)
   -- the results
   obtain ⟨-, -, -, ⟨K5, hK5⟩⟩ := S.runG' hbl
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
-  obtain ⟨e2, e120, e121, h9, -⟩ := O.o9
+  obtain ⟨e10, e11, e138, e139, e295, h9, -⟩ := O.o9
   obtain ⟨pb, pb1, h11, -⟩ := O.o11
   have r130 : σ (.n 128) = gen ^ S.logMem := by
     rw [show σ (.n 128) = _ from R 1 (by norm_num) 0 (by decide), O.o1]; rfl
   have r522 : σ (.n 309) = gen ^ S.μ := by
     rw [show σ (.n 309) = _ from R 2 (by norm_num) 0 (by decide), O.o2]; simp [ChildSegs.μ]
-  have r5 : ∀ i < 9, σ (.n (839 + i)) = (outs.getD 5 ([], [])).1.getD i 0 := fun i hi ↦ by
+  have r5 : ∀ i < 9, σ (.n (626 + i)) = (outs.getD 5 ([], [])).1.getD i 0 := fun i hi ↦ by
     rw [← vsRetVars_runs.1 i hi]; exact R 5 (by norm_num) i (by rw [vsRetVars_lens.1]; exact hi)
-  have r6 : ∀ i < 9, σ (.n (849 + i)) = (outs.getD 6 ([], [])).1.getD i 0 := fun i hi ↦ by
+  have r6 : ∀ i < 10, σ (.n (636 + i)) = (outs.getD 6 ([], [])).1.getD i 0 := fun i hi ↦ by
     rw [← vsRetVars_runs.2.1 i hi]; exact R 6 (by norm_num) i (by rw [vsRetVars_lens.2.1]; exact hi)
-  have r844 : σ (.n 631) = ofK (addressOfIndex (S.cT bs)) := by
+  have r631 : σ (.n 631) = ofK (addressOfIndex (S.cT bs)) := by
     rw [show σ (.n 631) = _ from r5 5 (by norm_num), O.o5, hK5]
     exact Tables.tb_ofK_gpow_mul _ _
-  have r854 : σ (.n 641) = ofK (addressOfIndex (S.cK bs)) := by
+  have r641 : σ (.n 641) = ofK (addressOfIndex (S.cK bs)) := by
     rw [show σ (.n 641) = _ from r6 5 (by norm_num), O.o6]
     show ofK (addressOfIndex (S.cT bs)) * gen ^ 5 * gen ^ (3 * S.H.n) * gen ^ 157 = _
     rw [Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, Tables.tb_ofK_gpow_mul, ChildSegs.cK,
       (S.H_run hbl).2.2.2, show S.cT bs + 5 + 3 * S.H.n + 157 = S.cT bs + (5 + 3 * S.H.n + 157) by
         omega]
-  have r855 : σ (.n 642) = gen ^ S.H.n := by
+  have r642 : σ (.n 642) = gen ^ S.H.n := by
     rw [show σ (.n 642) = _ from r6 6 (by norm_num), O.o6]; rfl
-  have r857 : σ (.n 644) = S.H.rm := by
+  have r644 : σ (.n 644) = S.H.rm := by
     rw [show σ (.n 644) = _ from r6 8 (by norm_num), O.o6]; rfl
-  have r868 : σ (.n 656) = ofK (addressOfIndex (S.cW bs)) := by
+  have r656 : σ (.n 656) = ofK (addressOfIndex (S.cW bs)) := by
     rw [show σ (.n 656) = _ from R 7 (by norm_num) 5 (by decide), O.o7, hK7]
     exact Tables.tb_ofK_gpow_mul _ _
-  have r1887 : σ (.n 1674) = gen ^ Tables.stackTotal S.kappas := by
+  have r1674 : σ (.n 1674) = gen ^ Tables.stackTotal S.kappas := by
     rw [show σ (.n 1674) = _ from R 9 (by norm_num) 0 (by decide), h9]; rfl
   have e6 : [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640)] = S.s6.cap := by
     rw [S.s6_capOf hbl, show σ (.n 636) = _ from r6 0 (by norm_num),
@@ -127,74 +122,72 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     (by rw [ChildSegs.kids_length, O.len]) fun j hj ↦ ?_
   have hj' : j < 13 := by simpa [vsCallsA, vsCallsB] using hj
   interval_cases j
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 0 (by norm_num) 
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 0 (by norm_num)
       (by rw [O.o0]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 110)] = [eOfNat S.rate]
     rw [G.e112]
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 1 (by norm_num) 
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 1 (by norm_num)
       (by rw [O.o1]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 27)] = [eOfNat S.logMem]
     rw [G.e29]
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 2 (by norm_num) 
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 2 (by norm_num)
       (by rw [O.o2]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 308), σ (.n XGLP), σ (.n 4)] =
-      [gen ^ pushTotal S.logMem S.hs, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)]
-    rw [G.e521, a4, a5]
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 3 (by norm_num) 
+    show [σ (.n 308), σ (.n 4)] = [gen ^ pushTotal S.logMem S.hs, ofK (addressOfIndex sqE)]
+    rw [G.e521, a4]
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 3 (by norm_num)
       (by rw [O.o3]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 324)] = [S.x0]
     rw [G.e537]
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 4 (by norm_num) 
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 4 (by norm_num)
       (by rw [O.o4]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     show [σ (.n 334)] = [S.x1]
     rw [G.e547]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 5 (by norm_num)
       (by rw [vsRetVars_lens.1, O.o5, hK5]; simp [capOf, hvl])⟩⟩
     show [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616), σ (.n 625), σ (.n 309),
-      σ (.n 310)] = S.capS ++ [ofK (addressOfIndex (vcG bs)), gen ^ S.μ, ofK (addressOfIndex (vb
-          bs 7))]
-    rw [← G.e825, G.e838, r522, q523]; rfl
+      σ (.n 310)] = S.capS ++ [ofK (addressOfIndex (vcG bs)), gen ^ S.μ,
+        ofK (addressOfIndex (vb bs 5))]
+    rw [← G.e825, G.e838, r522, q310]; rfl
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 6 (by norm_num)
-      (by rw [vsRetVars_lens.2.1, O.o6]; simp [Tables.VtHonest.retsH, Fs.squeeze, capOf])⟩⟩
+      (by rw [vsRetVars_lens.2.1, O.o6]; simp [ChildSegs.vtRetsOf, Fs.squeeze, capOf])⟩⟩
     show [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631), σ (.n 0),
-      σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n XBK), σ (.n 4), σ (.n 427),
-      σ (.n 623), σ (.n 6), σ (.n XCPLEN), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)] =
+      σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n 4), σ (.n 427),
+      σ (.n 623), σ (.n 6), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)] =
       [S.s5.cap.getD 0 0, S.s5.cap.getD 1 0, S.s5.cap.getD 2 0, S.s5.cap.getD 3 0,
-        S.s5.cap.getD 4 0, ofK (addressOfIndex (S.cT bs)), (digestHalves (statementDigest seed c.statement)).1,
-        (digestHalves (statementDigest seed c.statement)).2, ofK (addressOfIndex (vb bs 7)),
-        gen ^ S.point.length, ofK (addressOfIndex (vb bs 4)), ofK (addressOfIndex (vb bs 3)), ofK
-            (addressOfIndex (vb bs 6)),
-        ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 9)), S.β, ofK (addressOfIndex (vb bs
-            0)), ofK (addressOfIndex (vb bs 1)),
-        ofK (addressOfIndex (vb bs 10)), S.vals.getD 0 0, S.vals.getD 1 0, S.vals.getD 2 0]
+        S.s5.cap.getD 4 0, ofK (addressOfIndex (S.cT bs)),
+        (digestHalves (statementDigest seed c.statement)).1,
+        (digestHalves (statementDigest seed c.statement)).2, ofK (addressOfIndex (vb bs 5)),
+        gen ^ S.point.length, ofK (addressOfIndex (vb bs 3)), ofK (addressOfIndex (vb bs 2)),
+        ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 7)), S.β,
+        ofK (addressOfIndex (vb bs 0)), ofK (addressOfIndex (vb bs 8)), S.vals.getD 0 0,
+        S.vals.getD 1 0, S.vals.getD 2 0]
     rw [show σ (.n 626) = _ from r5 0 (by norm_num), show σ (.n 627) = _ from r5 1 (by norm_num),
       show σ (.n 628) = _ from r5 2 (by norm_num), show σ (.n 629) = _ from r5 3 (by norm_num),
       show σ (.n 630) = _ from r5 4 (by norm_num), show σ (.n 632) = _ from r5 6 (by norm_num),
       show σ (.n 633) = _ from r5 7 (by norm_num), show σ (.n 634) = _ from r5 8 (by norm_num),
-      r844, a0, a1, q523, r522, hpl, q129, q28, q149, a5, q640, G.e836, q7, q8, q848, O.o5, hK5]
+      r631, a0, a1, q310, r522, hpl, q127, q26, a4, q427, G.e836, q6, q635, O.o5, hK5]
     rfl
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 7 (by norm_num)
       (by rw [vsRetVars_lens.2.2.1, O.o7, hK7]; simp [capOf])⟩⟩
     show [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640), σ (.n 641), σ (.n 646),
       σ (.n 635), σ (.n 650), σ (.n 647), σ (.n 648)] =
-      S.s6.cap ++ [ofK (addressOfIndex (S.cK bs)), gen ^ S.τ, ofK (addressOfIndex (vb bs 10)),
-        ofK (addressOfIndex (vb bs 0 + 110)), ofK (addressOfIndex (vb bs 11)), ofK (addressOfIndex
-            (vb bs 12))]
-    rw [← e6, r854, G.e858, q848, G.e862, q859, q860]; rfl
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 8 (by norm_num) 
+      S.s6.cap ++ [ofK (addressOfIndex (S.cK bs)), gen ^ S.τ, ofK (addressOfIndex (vb bs 8)),
+        ofK (addressOfIndex (S.cL bs)), ofK (addressOfIndex (vb bs 9)),
+        ofK (addressOfIndex (vb bs 10))]
+    rw [← e6, r641, G.e858, q635, G.e862, q647, q648]; rfl
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 8 (by norm_num)
       (by rw [O.o8]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 648), σ (.n 664)] = [ofK (addressOfIndex (vb bs 12)), ofK (addressOfIndex (vb
-        bs 13))]
-    rw [q860, q876]
+    show [σ (.n 648), σ (.n 664)] = [ofK (addressOfIndex (vb bs 10)), ofK (addressOfIndex (vb
+        bs 11))]
+    rw [q648, q664]
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 9 (by norm_num)
       (by rw [h9]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 139), σ (.n 4)] = [ofK (addressOfIndex (vb bs 5)), ofK (addressOfIndex sqE)]
-    rw [q141, a5]
-  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 10 (by norm_num) 
+    show [σ (.n 139), σ (.n 4)] = [ofK (addressOfIndex (vb bs 4)), ofK (addressOfIndex sqE)]
+    rw [q139, a4]
+  · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets G 10 (by norm_num)
       (by rw [O.o10]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    show [σ (.n 1674), σ (.n XGLP), σ (.n 4)] =
-      [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE)]
-    rw [r1887, a4, a5]
+    show [σ (.n 1674), σ (.n 4)] = [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex sqE)]
+    rw [r1674, a4]
   · refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets G 11 (by norm_num)
       (by rw [h11]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
     · show vsOpenNames.getD (logG (σ (.n 1687))) "" = B1.Whir.openName S.μs S.rate
@@ -203,28 +196,25 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {lpE outE : ℕ}
     · show [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1673),
         σ (.n 324), σ (.n 334), σ (.n 656)] = capOf S.s8.perm ++ [S.target,
           (digestHalves S.root).1, (digestHalves S.root).2, ofK (addressOfIndex (S.cW bs))]
-      rw [← G.e1312, G.e1886, G.e537, G.e547, r868, S.root_cells]
+      rw [← G.e1312, G.e1886, G.e537, G.e547, r656, S.root_cells]
       rfl
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, vs_rets G 12 (by norm_num)
-      
       (by rw [O.o12, List.length_nil]; rfl)⟩⟩
     · show true = @decide (S.termOk (outs.take 12)) (Classical.propDecidable _)
       exact (@decide_eq_true _ (Classical.propDecidable _) O.term).symm
-    · show [σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309), σ (.n 642), σ (.n 128), σ (.n 646),
-        σ (.n XCPLEN), σ (.n 1671), σ (.n XLAMPOOL), σ (.n 1675), σ (.n XCOLKAPPAS), σ (.n 647), σ (.n 665),
+    · show [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309), σ (.n 642), σ (.n 128),
+        σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1675), σ (.n 647), σ (.n 665),
         σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696), σ (.n 1692)] =
-        [ofK (addressOfIndex (vb bs 7)), ofK (addressOfIndex (vb bs 10)), S.H.rm, gen ^ S.μ, gen
-            ^ S.H.n,
-          gen ^ S.logMem, gen ^ S.τ, ofK (addressOfIndex (vb bs 1)), S.lam ^ 141, ofK
-              (addressOfIndex (vb bs 15)),
-          ((outs.take 12).getD 9 ([], [])).1.getD 1 0, ((outs.take 12).getD 9 ([], [])).1.getD 2 0,
-          ofK (addressOfIndex (vb bs 11)), ofK (addressOfIndex (vb bs 14)), ((outs.take 12).getD 11 ([], [])).1.getD 1 0,
-          ((outs.take 12).getD 11 ([], [])).1.getD 2 0, ((outs.take 12).getD 11 ([], [])).1.getD 3 0,
-          ((outs.take 12).getD 11 ([], [])).1.getD 4 0, ((outs.take 12).getD 11 ([], [])).1.getD 0 0]
-      rw [take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12), q523, q848,
-        r857, r522, r855, r130, G.e858, q8, G.e1884, q1324,
-        show σ (.n 1675) = _ from R 9 (by norm_num) 1 (by decide),
-        show σ (.n XCOLKAPPAS) = _ from R 9 (by norm_num) 2 (by decide), q859, q877,
+        [ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 5)), ofK (addressOfIndex (vb bs 8)),
+          S.H.rm, gen ^ S.μ, gen ^ S.H.n, gen ^ S.logMem, gen ^ S.τ,
+          ofK (addressOfIndex (vb bs 4)), S.lam, ((outs.take 12).getD 9 ([], [])).1.getD 1 0,
+          ofK (addressOfIndex (vb bs 9)), ofK (addressOfIndex (vb bs 12)),
+          ((outs.take 12).getD 11 ([], [])).1.getD 1 0, ((outs.take 12).getD 11 ([], [])).1.getD 2 0,
+          ((outs.take 12).getD 11 ([], [])).1.getD 3 0, ((outs.take 12).getD 11 ([], [])).1.getD 4 0,
+          ((outs.take 12).getD 11 ([], [])).1.getD 0 0]
+      rw [take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12), a4, q310,
+        q635, r644, r522, r642, r130, G.e858, q139, G.e1111,
+        show σ (.n 1675) = _ from R 9 (by norm_num) 1 (by decide), q647, q665,
         show σ (.n 1692) = _ from R 11 (by norm_num) 0 (by decide),
         show σ (.n 1693) = _ from R 11 (by norm_num) 1 (by decide),
         show σ (.n 1694) = _ from R 11 (by norm_num) 2 (by decide),
@@ -251,8 +241,8 @@ theorem vs_dispOk (S : ChildSegs bytecode seed c)
     | _ => trivial
 
 /-- **The allocations' sizes** are the own buffers'. -/
-theorem vs_alloc_sizes (hbl : bytecode.length = 2 ^ 23) {lpE : ℕ} (G : VsSig S bs sqE outs args σ)
-    (O : VsOuts S bs lpE sqE outs) :
+theorem vs_alloc_sizes (hbl : bytecode.length = 2 ^ 23) (G : VsSig S bs sqE outs args σ)
+    (O : VsOuts S bs sqE outs) :
     (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) =
       vsSizes S.μ := by
   have r522 : σ (.n 309) = gen ^ S.μ := by
@@ -261,7 +251,7 @@ theorem vs_alloc_sizes (hbl : bytecode.length = 2 ^ 23) {lpE : ℕ} (G : VsSig S
     have := (S.μ_bounds hbl).2
     omega
   rw [vs_allocs]
-  show [165, 165, 8192, 6, 7, 8, 153, logG (σ (.n 309)), 4, 16, 34, 78, 64, 6, 64, 165] = _
+  show [165, 8192, 6, 7, 8, logG (σ (.n 309)), 4, 16, 34, 78, 64, 6, 64] = _
   rw [r522, logG_gen_pow hμ]
   rfl
 
@@ -271,25 +261,24 @@ theorem vs_alloc_bases (G : VsSig S bs sqE outs args σ) {b : ℕ} (hbs : bs = b
       (bases b (vsSizes S.μ)).map (fun x ↦ ofK (addressOfIndex x)) := by
   have e : (vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst = vsAllocVars.map V.n := by
     rw [vs_allocs]; rfl
-  have hl : (bases b (vsSizes S.μ)).length = 16 := by rw [bases_length]; rfl
-  have hv : vsAllocVars.length = 16 := rfl
+  have hl : (bases b (vsSizes S.μ)).length = 13 := by rw [bases_length]; rfl
+  have hv : vsAllocVars.length = 13 := rfl
   rw [e, ← hbs]
   apply List.ext_getElem (by simp [hv, hbs, hl])
   intro i h1 h2
-  have hi : i < 16 := by simpa [hv] using h1
+  have hi : i < 13 := by simpa [hv] using h1
   simp only [List.getElem_map]
   rw [← List.getD_eq_getElem _ 0 (by omega : i < vsAllocVars.length), G.ptr i hi, vb,
     List.getD_eq_getElem _ _ (by rw [hbs, hl]; exact hi)]
 
 /-- **The own buffers' lengths** the loads need. -/
 theorem ChildSegs.ownW_lens (S : ChildSegs bytecode seed c) (hbl : bytecode.length = 2 ^ 23) :
-    165 ≤ (S.ownW.getD 0 []).length ∧ 10 ≤ (S.ownW.getD 2 []).length ∧
-      6 ≤ (S.ownW.getD 3 []).length ∧ 7 ≤ (S.ownW.getD 4 []).length ∧
-      8 ≤ (S.ownW.getD 5 []).length ∧ 153 ≤ (S.ownW.getD 6 []).length ∧
-      19 ≤ (S.ownW.getD 7 []).length ∧ 4 ≤ (S.ownW.getD 8 []).length ∧
-      16 ≤ (S.ownW.getD 9 []).length ∧ 6 ≤ (S.ownW.getD 13 []).length ∧
-      64 ≤ (S.ownW.getD 14 []).length ∧ 165 ≤ (S.ownW.getD 15 []).length := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    165 ≤ (S.ownW.getD 0 []).length ∧ 10 ≤ (S.ownW.getD 1 []).length ∧
+      6 ≤ (S.ownW.getD 2 []).length ∧ 7 ≤ (S.ownW.getD 3 []).length ∧
+      8 ≤ (S.ownW.getD 4 []).length ∧ 19 ≤ (S.ownW.getD 5 []).length ∧
+      4 ≤ (S.ownW.getD 6 []).length ∧ 16 ≤ (S.ownW.getD 7 []).length ∧
+      6 ≤ (S.ownW.getD 11 []).length ∧ 64 ≤ (S.ownW.getD 12 []).length := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · show 165 ≤ S.H.poolW.length
     rw [S.poolW_length hbl]
   · show 10 ≤ (vsStreamW c.proof.stream).length
@@ -302,8 +291,6 @@ theorem ChildSegs.ownW_lens (S : ChildSegs bytecode seed c) (hbl : bytecode.leng
     simp [vsDimsW, S.hs_length]
   · show 8 ≤ (vsKbW S.logMem S.hs).length
     simp [vsKbW, S.hs_length]
-  · show 153 ≤ (vsBkW S.logMem S.hs).length
-    simp [vsBkW, Tables.blockKappaWords]
   · show 19 ≤ S.point.length
     rw [(S.runG' hbl).2.2.1]
     have := (S.μ_bounds hbl).1
@@ -317,8 +304,6 @@ theorem ChildSegs.ownW_lens (S : ChildSegs bytecode seed c) (hbl : bytecode.leng
     rw [S.rchs_length]
   · show 64 ≤ (ringCoefficients S.rchs).length
     simp [ringCoefficients, kBits]
-  · show 165 ≤ (lamW S.lam).length
-    rw [lamW_length]
 
 end
 end LeanVM.Guest.B1.VerifySub

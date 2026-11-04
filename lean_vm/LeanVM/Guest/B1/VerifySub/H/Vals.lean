@@ -79,7 +79,7 @@ theorem vs_ret_var (hl : args.length = 6) {v : ℕ} (hv : vsCPre.any (retsHas v)
 
 /-- **The allocations' pointers.** -/
 theorem vs_alloc_ptr (hl : args.length = 6) (bs : List ℕ) (outs : List (List E × Main.Layout))
-    {i : ℕ} (hi : i < 16) :
+    {i : ℕ} (hi : i < 13) :
     vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (bs.getD i 0)) := by
   rw [vs_alloc_var hl (vsAllocVars_idx i hi).1, vsW_alloc bs outs hi]
 

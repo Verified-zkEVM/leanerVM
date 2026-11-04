@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 `vsNames μ r`: the thirteen callees in call order (`vs_calls`), `open_stacked`'s candidate
 `openName μ r`. `vsTs fs W Bvk μ r`: callee `j` a call of `vsNames μ r`'s `j`-th name within
 `vsBsAt W Bvk μ r`'s `j`-th bound, `verify_tables`' and the terminal's within their weights at each
-opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 9156 +
+opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8673 +
 (vsBsAt W Bvk μ r).sum`. `vs_kidsDepBP`: the callees on an honest child, each within its bound by
 a tree of its predicate.
 
@@ -57,11 +57,11 @@ noncomputable def vsTs (fs : String → ℕ) (W : VsWords fs) (Bvk μ r : ℕ) :
 
 /-- **`verify_sub`'s bound at one candidate.** -/
 noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : ℕ :=
-  fs "verify_sub" + 9156 + (vsBsAt W Bvk μ r).sum
+  fs "verify_sub" + 8673 + (vsBsAt W Bvk μ r).sum
 
 theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
-    (bs : List ℕ) (lpE sqE : ℕ) :
-    List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (S.kids bs lpE sqE) (vsNames S.μs S.rate) :=
+    (bs : List ℕ) (sqE : ℕ) :
+    List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (S.kids bs sqE) (vsNames S.μs S.rate) :=
   .cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
     (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
       (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
@@ -85,35 +85,38 @@ theorem kidsDepBP_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ) (Ps : Lis
     ⟨h 0 (by simp), kidsDepBP_of ks Bs Ps (by simpa using hl) (by simpa using hl')
       fun j hj ↦ h (j + 1) (by simp; omega)⟩
 
+/-- The `j`-th callee of callees within their bounds. -/
+theorem kidsDepB_getD {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDepB fs cert κ ks Bs →
+    ∀ (j : ℕ), j < ks.length → ∀ (pv : List (List E × Main.Layout)),
+      ((ks.getD j noKid pv).taken = true →
+        CompleteAtB fs cert κ (ks.getD j noKid pv).f (ks.getD j noKid pv).Lin
+          (ks.getD j noKid pv).args (ks.getD j noKid pv).Out (Bs.getD j 0)) ∧
+      ((ks.getD j noKid pv).taken = false → fs (ks.getD j noKid pv).f ≤ Bs.getD j 0)
+  | [], _, _, _, hj, _ => absurd hj (by simp)
+  | _ :: _, [], h, _, _, _ => h.elim
+  | _ :: _, _ :: _, h, 0, _, pv => h.1 pv
+  | _ :: _, _ :: _, h, j + 1, hj, pv => kidsDepB_getD h.2 j (by simpa using hj) pv
+
 /-- **`verify_sub`'s callees on an honest child, each within its bound by a tree of its predicate**,
 `open_stacked` within its candidate's. -/
 theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
-    (bs : List ℕ) (lpE sqE : ℕ) :
-    KidsDepBP fs cert κ (S.kids bs lpE sqE) (vsBsAt W Bvk S.μs S.rate) (vsPs W) := by
+    (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
+    (bs : List ℕ) (sqE : ℕ) :
+    KidsDepBP fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) (vsPs W) := by
   refine kidsDepBP_of _ _ _ (by rw [ChildSegs.kids_length]; simp [vsBsAt])
     (by rw [ChildSegs.kids_length]; simp [vsPs]) fun j hj pv ↦ ?_
   have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
+  have hB := fun j (hj : j < 13) ↦ kidsDepB_getD (vs_kidsDepBAt hbl S hκ hrf hcons W hvk bs sqE) j
+    (by rw [ChildSegs.kids_length]; exact hj)
   have hμ := S.μ_bounds hbl
-  have hτ := S.τ_bounds hbl
-  have hfits := fun μ r h1 h2 h3 h4 ↦ osFitsAt_all fs cert hrf hap μ r h1 h2 h3 h4
   interval_cases j
-  · exact ⟨fun _ ↦ (gpw_completeAtB κ [] (by have := S.hr4; omega) W.hg).toDTB, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ (gpw_completeAtB κ [] (by have := S.h32; omega) W.hg).toDTB, fun h ↦ by cases h⟩
-  · refine ⟨fun _ ↦ (log2_L0_completeAtB κ (by omega) _ lpE sqE (S.pushTotal_lt hbl) ?_).toDTB,
-      fun h ↦ by cases h⟩
-    show max 0 S.μ < 34; omega
-  · exact ⟨fun _ ↦ (ac_completeAtB κ [] (x_canonical S.hroot).1 W.ha).toDTB, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ (ac_completeAtB κ [] (x_canonical S.hroot).2 W.ha).toDTB, fun h ↦ by cases h⟩
-  · obtain ⟨hrun, -, -, -⟩ := S.runG' hbl
-    have hB : Tables.vbgBound fs W.K29 W.R W.K8 S.μ ≤ vbgMax fs W.K29 W.R W.K8 := by
-      unfold vbgMax
-      exact le_lmax (List.mem_map.2 ⟨S.μ, List.mem_range.2 (by omega), rfl⟩)
-    exact ⟨fun _ ↦ (Tables.verify_bus_gkr_completeAtTB (by omega) (by omega) (by omega) hrun
-      S.capS_carries (vcG bs) (vb bs 7) W.h29 W.hR1 W.hR2 W.h8).toCompleteAtB.toDTB.mono hB
-      fun _ h ↦ h,
-      fun h ↦ by cases h⟩
+  · exact ⟨fun h ↦ ((hB 0 (by norm_num) pv).1 h).toDTB, (hB 0 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 1 (by norm_num) pv).1 h).toDTB, (hB 1 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 2 (by norm_num) pv).1 h).toDTB, (hB 2 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 3 (by norm_num) pv).1 h).toDTB, (hB 3 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 4 (by norm_num) pv).1 h).toDTB, (hB 4 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 5 (by norm_num) pv).1 h).toDTB, (hB 5 (by norm_num) pv).2⟩
   · obtain ⟨hok, -, -, -⟩ := S.H_run hbl
     have hHμ : S.H.μ < 30 := by
       show S.point.length < 30
@@ -127,46 +130,24 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
     exact ⟨fun _ ↦ (Tables.verify_tables_completeAtTBW' (by omega) hok (S.H_shape hbl) (S.vtB bs sqE)
       W.Kf W.Ksh W.K10 W.hKf W.hsh W.h10 W.ωv W.Kvw W.Wss W.Kw10 W.hKvw W.hssw W.h10w).mono hB
       fun _ h ↦ h, fun h ↦ by cases h⟩
-  · obtain ⟨hrun, -, -, -, hc6⟩ := S.runK' hbl
-    have hf : S.s6.cap = capOf S.H.s3.perm := S.s6_capOf hbl
-    exact ⟨fun _ ↦ hvk S.τ S.s6.cap S.chis S.outs S.xsK S.op S.kpt S.slices S.s7.cap S.word S.m0
-      (S.cK bs) (vb bs 10) (vb bs 0 + 110) (vb bs 11) (vb bs 12) hτ.1 (by omega)
-      (by rw [S.chis_length]; exact hτ.2.2) (S.lanes hbl).2.2 (by rw [hf]; rfl)
-      (by rw [hf]; exact Tables.tb_capOf_canonical _) hc6 hrun |>.toDTB, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ (rst_completeAtB κ (S.runK' hbl).2.2.2.1 S.rchs_length W.hl14).toDTB,
-      fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ (Tables.certify_placement_completeAtB fs cert (by omega) S.hs_length S.h32
-      (S.hh29 hbl) (by have := vsH_tau22 hbl S.hrowsL S.stack28; unfold ChildSegs.hs; omega) _
-      _).toCompleteAtB.toDTB, fun h ↦ by cases h⟩
-  · have hst : Tables.stackTotal S.kappas ≤ 2 ^ 28 := by
-      have h28 := S.stack28
-      rw [stackLog_eq hbl] at h28
-      exact log2Ceil_le_iff.mp (by
-        show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN)))
-          ≤ 28
-        omega)
-    have : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr hst
-    exact ⟨fun _ ↦ (log2_L15_completeAtB κ (by omega) _ lpE sqE (by omega) (by omega)).toDTB,
-      fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ CompleteAtB.toDTB <| open_stacked_completeAtB S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ
-      W.Bnd W.Kr hrf (hfits _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) W.hleaf
-      (W.hloop _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s8.perm S.root S.target _ S.xsW c.proof.openings
-      S.w S.s' S.roots' S.runW S.nzW S.capsW [(S.cW bs, S.xsW)]
-      (fun rd _ hm ↦ hm _ List.mem_cons_self), fun h ↦ by cases h⟩
-  · refine ⟨fun ht ↦ term_completeBW hbl S hκ _ lpE sqE pv ht W.hEqc W.hL15 W.hCs W.hCsF W.hrs
-      W.ωv W.Weqc W.W15 W.Wst W.Wcs W.Wrsw W.hEqcW W.hStW W.hCsW W.h15W W.hrswW, fun _ ↦ ?_⟩
+  · exact ⟨fun h ↦ ((hB 7 (by norm_num) pv).1 h).toDTB, (hB 7 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 8 (by norm_num) pv).1 h).toDTB, (hB 8 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 9 (by norm_num) pv).1 h).toDTB, (hB 9 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 10 (by norm_num) pv).1 h).toDTB, (hB 10 (by norm_num) pv).2⟩
+  · exact ⟨fun h ↦ ((hB 11 (by norm_num) pv).1 h).toDTB, (hB 11 (by norm_num) pv).2⟩
+  · refine ⟨fun ht ↦ term_completeBW hbl S hκ _ sqE S.w_point_length pv ht W.hEqc W.hL15 W.hCsF
+      W.hrs W.ωv W.Weqc W.W15 W.Wst W.Wcs W.Wrsw W.hEqcW W.hStW W.hCsW W.h15W W.hrswW, fun _ ↦ ?_⟩
     show fs "check_opening_terminal" ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
     unfold termBound
     omega
-
 
 /-- **`verify_sub` is complete on every honest child within its own bound**, by a node whose
 callees are calls of their names within their bounds, at the child's announced stack log and
 rate. -/
 theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hrf : Lift.RunsFit fs cert) (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk κ : ℕ}
+    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWords fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
-    (lpE sqE outE : ℕ) (Lin : Main.Layout)
+    (sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
@@ -174,12 +155,11 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hexpL : ∀ q ∈ log2Lin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestHalves (statementDigest seed c.statement)).1,
         (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-        (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
-            (addressOfIndex outE)] (Returns [])
+        (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)] (Returns [])
       (Budget.FlatShape coreProgram "verify_sub"
         (vsTs fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2))
       (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
@@ -189,9 +169,9 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
   have h := completeAt_flatDepRBP (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
     (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.μ) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE)
-    (vsNames S.μs S.rate) (vsBsAt W Bvk S.μs S.rate) (vsPs W) (fun _ ↦ vs_names S _ lpE sqE)
-    (fun fp ↦ vs_kidsDepBP hbl S hκ hrf hap W hvk _ lpE sqE) hkr hkm hσ
+    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) sqE)
+    (vsNames S.μs S.rate) (vsBsAt W Bvk S.μs S.rate) (vsPs W) (fun _ ↦ vs_names S _ sqE)
+    (fun fp ↦ vs_kidsDepBP hbl S hκ hrf hcons W hvk _ sqE) hkr hkm hσ
   refine h.mono ?_ fun _ ht ↦ ht
   have := (S.μ_bounds hbl).2
   simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]
@@ -201,8 +181,8 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
 sizes, `verify_keccak` within `vkBound`. -/
 theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
-    (seed : Digest) (c : Child) (lpE sqE outE : ℕ) (Lin : Main.Layout)
+    (hcons : RunsConsec cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
+    (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
@@ -210,16 +190,15 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
-    (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hexpL : ∀ q ∈ log2Lin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin
       [(digestHalves (statementDigest seed c.statement)).1,
         (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-        (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
-            (addressOfIndex outE)] (Returns [])
+        (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)] (Returns [])
       (Budget.FlatShape coreProgram "verify_sub"
         (vsTs LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2))
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=
-  verify_sub_completeBT hbl hrf hap W hκ (verify_keccak_completeAtB_fs κ) seed c lpE sqE outE Lin
+  verify_sub_completeBT hbl hrf hcons W hκ (verify_keccak_completeAtB_fs κ) seed c sqE outE Lin
     hmu hst hnz hcaps hexpL hout
 
 end

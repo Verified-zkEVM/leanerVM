@@ -233,7 +233,7 @@ theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s 
   have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAt fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) 0 hpos
-  rw [pow_zero] at h
+  rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h
   exact h
 
 /-! ## The direct DA claim -/

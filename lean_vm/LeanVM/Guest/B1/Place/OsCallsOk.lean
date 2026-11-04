@@ -32,7 +32,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- Level `l`'s squeeze loop's arguments. -/
 abbrev osSqArgs (c : OsCfg) (A : OsAt) (l : ℕ) : List E :=
-  [1, gen ^ (lvAt c l).squeezes, A.sqz l, A.P.qpos, A.P.qbp]
+  [1, gen ^ (lvAt c l).squeezes, A.sqz l, A.P.qpos, A.P.qbp, A.P.win]
 
 /-- Level `l`'s `opening_queries` arguments. -/
 abbrev osQArgs (c : OsCfg) (tr : OsTr) (A : OsAt) (l : ℕ) : List E :=
@@ -41,15 +41,15 @@ abbrev osQArgs (c : OsCfg) (tr : OsTr) (A : OsAt) (l : ℕ) : List E :=
     gen ^ ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))]
 
 /-- Level `l`'s residual loop's arguments. -/
-abbrev osResArgs (c : OsCfg) (A : OsAt) (l : ℕ) : List E :=
-  [1, gen ^ ((lvAt c l).queries / 2), A.P.qpos, A.P.qw, A.BD, A.rc l]
+abbrev osResArgs (c : OsCfg) (tr : OsTr) (A : OsAt) (l : ℕ) : List E :=
+  [1, gen ^ ((lvAt c l).queries / resBatch), A.P.qpos, A.BD, A.rc l, finM tr l]
 
 /-- **The callees placed apart**, at their honest arguments and returns. -/
 def osSp (c : OsCfg) (tr : OsTr) (A : OsAt) : String → List E → List E → Prop := fun f a r ↦
   ∃ l < c.levels.length,
     (f = c.sqLoop l ∧ a = osSqArgs c A l ∧ r = []) ∨
     (f = osQueriesName l (lvAt c l) ∧ a = osQArgs c tr A l ∧ r = [(tr.L l).enforced]) ∨
-    (f = c.resLoop l ∧ a = osResArgs c A l ∧ r = [])
+    (f = c.resLoop l ∧ a = osResArgs c tr A l ∧ r = [])
 
 /-- **The configuration's callee names**, decided per configuration. -/
 structure OsNames (c : OsCfg) : Prop where
@@ -70,6 +70,7 @@ structure OsNames (c : OsCfg) : Prop where
   il : ∀ i < c.levels.length,
     2 ^ rwLo (lvAt c i).folds + 2 ^ ((lvAt c i).folds - rwLo (lvAt c i).folds) ≤ c.maxIl
   cdd : ∀ i < c.levels.length, (lvAt c i).capDepth ≤ (lvAt c i).depth
+  sqres : ∀ i < c.levels.length, ∀ j < c.levels.length, c.sqLoop i ≠ c.resLoop j
 
 theorem osKindOf_fold : osKindOf "opening_fold" = some .fold := by
   simp [osKindOf, osKindTable]
@@ -87,10 +88,10 @@ section Placed
 
 variable {κ : ℕ} {c : OsCfg} {tr : OsTr} {b0 : ℕ} {Lin : Layout}
 
-/-- A slice of own buffer `j` (but the bit pointers), fixed on every memory holding the callees'
+/-- A slice of own buffer `j` (but the window pointers), fixed on every memory holding the callees'
 words. -/
 theorem lk_slice (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap)
-    (htl : tr.Lf.ml ≤ yrLogCap) {j off n : ℕ} (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8)
+    (htl : tr.Lf.ml ≤ yrLogCap) {j off n : ℕ} (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8)
     (hb : off + n ≤ ((osOwnL c tr fun _ _ ↦ 0).getD j []).length) :
     ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop off).take n).length = n ∧
       ∀ rd, LowDef κ rd → MemL rd (osLk c tr b0 Lin) →
@@ -99,7 +100,7 @@ theorem lk_slice (hpt : (tr.point (c.levels.headD default).folds).length ≤ poi
     fun _ _ hm ↦ os_readsAt_shift (osLk_readsAt hpt htl hm hj hne) hb⟩
 
 theorem lk_slice0 (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap)
-    (htl : tr.Lf.ml ≤ yrLogCap) {j n : ℕ} (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8)
+    (htl : tr.Lf.ml ≤ yrLogCap) {j n : ℕ} (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8)
     (hb : n ≤ ((osOwnL c tr fun _ _ ↦ 0).getD j []).length) :
     ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop 0).take n).length = n ∧
       ∀ rd, LowDef κ rd → MemL rd (osLk c tr b0 Lin) →

@@ -17,7 +17,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vtEvTab_lanes : ∀ i < 25, Tables.vtEvTab (105 + i) = 5 := by decide +kernel
+theorem vsEvTab_lanes : ∀ i < 25, Tables.vsEvTab (105 + i) = 5 := by decide +kernel
 
 /-- **The honest output lanes.** -/
 theorem vtH_lanes {H : Tables.VtHonest} (h : H.Ok) (hr : H.rows.length = 6)
@@ -46,7 +46,7 @@ theorem vtH_lanes {H : Tables.VtHonest} (h : H.Ok) (hr : H.rows.length = 6)
     simp only [List.length_replicate, List.length_cons, List.length_nil, List.getElem?_map,
       List.getElem?_range (show 110 + j - 4 - 1 < 157 by omega), Option.map_some,
       Option.some.injEq] at e
-    rw [e, show 110 + j - 4 - 1 = 105 + j by omega, vtEvTab_lanes j hj25]
+    rw [e, show 110 + j - 4 - 1 = 105 + j by omega, vsEvTab_lanes j hj25]
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -18,6 +18,8 @@ public import LeanVM.Guest.B1.Place.OsCandB
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.B1.Tables.VtC.AWeight
 public import LeanVM.Guest.B1.VerifySub.H.TermCBW
+public import LeanVM.Guest.B1.VerifySub.H.VtShape
+public import LeanVM.Guest.B1.VerifySub.H.WhirLen
 
 /-!
 # `verify_sub` within a bound
@@ -25,8 +27,8 @@ public import LeanVM.Guest.B1.VerifySub.H.TermCBW
 `VsWords fs`: the words facts of `verify_sub`'s callees' pure callees, at the frame sizes `fs`
 (`TotalLe`, `TotalLeOn`), with their constants. `vsBs W Bvk`: the thirteen callees' bounds, in
 call order — the maxima over the honest children's depths (`vbgMax`, `vtMax`, `osMax`) where a
-callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 9156 + (vsBs W Bvk).sum`: the
-frame, the own buffers (at most `9127 + 29` words) and the callees.
+callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8673 + (vsBs W Bvk).sum`: the
+frame, the own buffers (at most `8644 + 29` words) and the callees.
 
 `verify_sub_completeB`: on every honest child, `verify_sub` is `CompleteAtDTB … (fun _ ↦ True)
 (vsBound W Bvk)`, by `completeAt_flatDepRB` with `vs_obligations` and the callees' bounded
@@ -58,7 +60,7 @@ theorem le_lmax2 (f : ℕ → ℕ → ℕ) {A B a b : ℕ} (ha : a < A) (hb : b 
 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
 noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
-  fs "verify_tables" + (6604 + m + 9 * (n + 1)) +
+  fs "verify_tables" + (3841 + m + 9 * (n + 1)) +
     ((Tables.vtBs Kf Ksh (n * K10)).sum + Tables.ifFrames fs Tables.vtPre)
 
 /-- `verify_tables`' bound over the depths below `30` and the heights below `29`. -/
@@ -84,9 +86,8 @@ structure VsWords (fs : String → ℕ) : Type where
   K29 : ℕ
   R : ℕ
   K8 : ℕ
-  h29 : TotalLeOn coreProgram fs "__loop32" LoopPre (fun a ↦ logG (a.getD 1 0) * K29)
-  hR1 : TotalLe coreProgram fs "gkr_rounds__L1" (fun _ ↦ R)
-  hR2 : TotalLe coreProgram fs "gkr_rounds__L2" (fun _ ↦ R)
+  h29 : TotalLeOn coreProgram fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29)
+  hR : ∀ n ∈ Tables.grCounts, TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
   h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)
   Kf : String → ℕ
   Ksh : ℕ
@@ -109,7 +110,6 @@ structure VsWords (fs : String → ℕ) : Type where
   Brs : ℕ
   hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ ↦ Beqc
   hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a ↦ logG (a.getD 1 0) * K15
-  hCs : ∀ κ' < 29, TotalLe coreProgram fs (Tables.lName "column_selector" κ') fun _ ↦ Bcs
   hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
@@ -149,24 +149,24 @@ noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : 
 
 /-- **The callees' bounds**, in call order (`vs_calls`). -/
 noncomputable def vsBs {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : List ℕ :=
-  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35),
+  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power",
     W.Ba, W.Ba, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + [99, 99, 99].sum,
-    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35),
+    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + Tables.cpSizes.sum,
+    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
     osMax fs W.Bnd W.Kr, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
 /-- **The callees' bounds at one candidate**: `vsBs` with `open_stacked`'s bound at the stack log
 `μ` and the rate `r`. -/
 noncomputable def vsBsAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : List ℕ :=
-  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + (fs "verify_log2_ceil__L0_L34" + 35),
+  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power",
     W.Ba, W.Ba, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + [99, 99, 99].sum,
-    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + (fs "verify_log2_ceil__L15_L34" + 35),
+    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + Tables.cpSizes.sum,
+    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
     osBosAt fs W.Bnd W.Kr μ r, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
-/-- **`verify_sub`'s bound**: its frame, its own buffers (`9127 + μ`, `μ ≤ 29`), its callees. -/
+/-- **`verify_sub`'s bound**: its frame, its own buffers (`8644 + μ`, `μ ≤ 29`), its callees. -/
 noncomputable def vsBound {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : ℕ :=
-  fs "verify_sub" + 9156 + (vsBs W Bvk).sum
+  fs "verify_sub" + 8673 + (vsBs W Bvk).sum
 
 /-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAt` bounded). -/
 def VkCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
@@ -236,16 +236,25 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 /-- The largest height. -/
 theorem n_le (hbl : bytecode.length = 2 ^ 23) : S.H.n ≤ 28 := by
   show (Tables.tableHeightsOf S.rowsN).foldl max 0 ≤ 28
-  rcases Tables.foldl_max_mem (Tables.tableHeightsOf S.rowsN) 0 with h | h
+  rcases Tables.VtHonest.vsFoldl_max_mem (Tables.tableHeightsOf S.rowsN) 0 with h | h
   · omega
   · have := S.hh29 hbl _ h
     omega
 
 /-- `verify_tables`' own buffers. -/
-theorem vt_sizes_sum : S.H.sizes.sum = 6604 + S.H.μ + 9 * (S.H.n + 1) := by
+theorem vt_sizes_sum : S.H.sizes.sum = 3841 + S.H.μ + 9 * (S.H.n + 1) := by
   simp only [Tables.VtHonest.sizes, List.sum_append, List.sum_cons, List.sum_nil,
     List.sum_replicate, smul_eq_mul]
   omega
+
+/-- The stack's total is at most `2^28`. -/
+theorem stackTotal_le (hbl : bytecode.length = 2 ^ 23) : Tables.stackTotal S.kappas ≤ 2 ^ 28 := by
+  have h28 := S.stack28
+  rw [stackLog_eq hbl] at h28
+  exact log2Ceil_le_iff.mp (by
+    show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN)))
+      ≤ 28
+    omega)
 
 end ChildSegs
 
@@ -253,18 +262,17 @@ end ChildSegs
 candidate's. -/
 theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
-    (bs : List ℕ) (lpE sqE : ℕ) :
-    KidsDepB fs cert κ (S.kids bs lpE sqE) (vsBsAt W Bvk S.μs S.rate) := by
+    (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
+    (bs : List ℕ) (sqE : ℕ) :
+    KidsDepB fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) := by
   refine kidsDepB_of _ _ (by rw [ChildSegs.kids_length]; simp [vsBsAt]) fun j hj pv ↦ ?_
   have hj13 : j < 13 := by simpa [ChildSegs.kids_length] using hj
   have hμ := S.μ_bounds hbl
   have hτ := S.τ_bounds hbl
-  have hfits := fun μ r h1 h2 h3 h4 ↦ osFitsAt_all fs cert hrf hap μ r h1 h2 h3 h4
   interval_cases j
   · exact ⟨fun _ ↦ gpw_completeAtB κ [] (by have := S.hr4; omega) W.hg, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ gpw_completeAtB κ [] (by have := S.h32; omega) W.hg, fun h ↦ by cases h⟩
-  · refine ⟨fun _ ↦ log2_L0_completeAtB κ (by omega) _ lpE sqE (S.pushTotal_lt hbl) ?_,
+  · refine ⟨fun _ ↦ log2_L0_completeAtB κ (by omega) _ sqE (S.pushTotal_lt hbl) ?_,
       fun h ↦ by cases h⟩
     show max 0 S.μ < 34; omega
   · exact ⟨fun _ ↦ ac_completeAtB κ [] (x_canonical S.hroot).1 W.ha, fun h ↦ by cases h⟩
@@ -274,7 +282,7 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       unfold vbgMax
       exact le_lmax (List.mem_map.2 ⟨S.μ, List.mem_range.2 (by omega), rfl⟩)
     exact ⟨fun _ ↦ (Tables.verify_bus_gkr_completeAtTB (by omega) (by omega) (by omega) hrun
-      S.capS_carries (vcG bs) (vb bs 7) W.h29 W.hR1 W.hR2 W.h8).toCompleteAtB.mono le_rfl hB,
+      S.capS_carries (vcG bs) (vb bs 5) W.h29 W.hR W.h8).toCompleteAtB.mono le_rfl hB,
       fun h ↦ by cases h⟩
   · obtain ⟨hok, -, -, -⟩ := S.H_run hbl
     have hHμ : S.H.μ < 30 := by
@@ -291,7 +299,7 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · obtain ⟨hrun, -, -, -, hc6⟩ := S.runK' hbl
     have hf : S.s6.cap = capOf S.H.s3.perm := S.s6_capOf hbl
     exact ⟨fun _ ↦ hvk S.τ S.s6.cap S.chis S.outs S.xsK S.op S.kpt S.slices S.s7.cap S.word S.m0
-      (S.cK bs) (vb bs 10) (vb bs 0 + 110) (vb bs 11) (vb bs 12) hτ.1 (by omega)
+      (S.cK bs) (vb bs 8) (S.cL bs) (vb bs 9) (vb bs 10) hτ.1 (by omega)
       (by rw [S.chis_length]; exact hτ.2.2) (S.lanes hbl).2.2 (by rw [hf]; rfl)
       (by rw [hf]; exact Tables.tb_capOf_canonical _) hc6 hrun, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ rst_completeAtB κ (S.runK' hbl).2.2.2.1 S.rchs_length W.hl14,
@@ -299,23 +307,16 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · exact ⟨fun _ ↦ (Tables.certify_placement_completeAtB fs cert (by omega) S.hs_length S.h32
       (S.hh29 hbl) (by have := vsH_tau22 hbl S.hrowsL S.stack28; unfold ChildSegs.hs; omega) _
       _).toCompleteAtB, fun h ↦ by cases h⟩
-  · have hst : Tables.stackTotal S.kappas ≤ 2 ^ 28 := by
-      have h28 := S.stack28
-      rw [stackLog_eq hbl] at h28
-      exact log2Ceil_le_iff.mp (by
-        show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN)))
-          ≤ 28
-        omega)
-    have : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr hst
-    exact ⟨fun _ ↦ log2_L15_completeAtB κ (by omega) _ lpE sqE (by omega) (by omega),
-      fun h ↦ by cases h⟩
+  · have : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr (S.stackTotal_le hbl)
+    exact ⟨fun _ ↦ log2_L15_completeAtB κ (by omega) _ sqE (by have := S.stackTotal_le hbl; omega)
+      (by omega), fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ open_stacked_completeAtB S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ
-      W.Bnd W.Kr hrf (hfits _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) W.hleaf
+      W.Bnd W.Kr hrf hcons (by omega) (fun _ _ ↦ trivial) W.hleaf
       (W.hloop _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s8.perm S.root S.target _ S.xsW c.proof.openings
       S.w S.s' S.roots' S.runW S.nzW S.capsW [(S.cW bs, S.xsW)]
-      (fun rd _ hm ↦ hm _ List.mem_cons_self), fun h ↦ by cases h⟩
-  · refine ⟨fun ht ↦ term_completeB hbl S hκ _ lpE sqE pv ht W.hEqc W.hL15 W.hCs W.hCsF W.hrs,
-      fun _ ↦ ?_⟩
+      (fun _ _ hm ↦ hm _ List.mem_cons_self), fun h ↦ by cases h⟩
+  · refine ⟨fun ht ↦ term_completeB hbl S hκ _ sqE S.w_point_length pv ht W.hEqc W.hL15 W.hCsF
+      W.hrs, fun _ ↦ ?_⟩
     show fs "check_opening_terminal" ≤ termBound fs W.Beqc W.K15 W.Bcs W.Brs
     unfold termBound
     omega
@@ -323,14 +324,14 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
 /-- **`verify_sub`'s callees on an honest child, each within its bound.** -/
 theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
-    (bs : List ℕ) (lpE sqE : ℕ) :
-    KidsDepB fs cert κ (S.kids bs lpE sqE) (vsBs W Bvk) := by
+    (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
+    (bs : List ℕ) (sqE : ℕ) :
+    KidsDepB fs cert κ (S.kids bs sqE) (vsBs W Bvk) := by
   have hB : osBosAt fs W.Bnd W.Kr S.μs S.rate ≤ osMax fs W.Bnd W.Kr := by
     unfold osMax
     exact le_lmax2 (osBosAt fs W.Bnd W.Kr) (by have : S.μs ≤ 28 := S.hmu28; omega)
       (by have := S.hr4; omega)
-  refine KidsDepB.mono ?_ (vs_kidsDepBAt hbl S hκ hrf hap W hvk bs lpE sqE)
+  refine KidsDepB.mono ?_ (vs_kidsDepBAt hbl S hκ hrf hcons W hvk bs sqE)
   exact .cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl
     (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons hB
       (.cons le_rfl .nil))))))))))))

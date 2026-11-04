@@ -181,10 +181,10 @@ theorem rawX_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- `__loop3`'s valuation at the counter `g^j`. -/
 noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
-  Val.ofArgs [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb,
+  Val.ofArgs [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb,
     gen ^ s, ginvW, gen ^ Y * ginvW, gen ^ (Y - 1 - s), (rd (addressOfIndex s)).getD 0,
-    (rd (addressOfIndex (Y - 1 - s))).getD 0, gen ^ nrx * gen ^ j, gen ^ X * gen ^ s,
-    gen ^ cv * (gen ^ X * gen ^ s), gen ^ s * gen ^ s, gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
+    (rd (addressOfIndex (Y - 1 - s))).getD 0, gen ^ nrx * gen ^ j,
+    gen ^ (cv + X) * gen ^ s, gen ^ s * gen ^ s, gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
     gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), word 2 0 0, gen ^ j * word 2 0 0,
     gen ^ j * word 2 0 0 + gen ^ nrs, word 2 0 0, gen ^ j * word 2 0 0]
 
@@ -194,9 +194,9 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 16 rd) (hL : MemL rd Lin) :
     ∀ j < nrs, coreProgram.RelIn rd (RegionL Lin) "__loop3"
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
   have key : ∀ t j, j + 1 + t = nrs → coreProgram.RelIn rd (RegionL Lin) "__loop3"
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
     intro t
     induction t with
     | zero => ?_
@@ -213,26 +213,27 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
         (slEvs_holds fun st hst => ?_) (fun A hA => ?_) (fun c hcm ht => ?_)
       · simp only [l4Pre, List.mem_cons, List.not_mem_nil, or_false] at hst
         rcases hst with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-          rfl | rfl | rfl | rfl | rfl | rfl
+          rfl | rfl | rfl | rfl | rfl
         all_goals simp only [SlOk, Atom.Holds, hσ, l4σ, ofArgs_n, List.getD_cons_succ,
           List.getD_cons_zero]
         · refine ⟨low_read hl (by omega), ?_, low_read hl (by omega)⟩
           rw [gen_pow_mul_ginv (by omega), ← pow_add]; congr 1; omega
-        · rw [show gen ^ cv * (gen ^ X * gen ^ s) = gen ^ cv * gen ^ (X + s) by rw [← pow_add],
+        · rw [show gen ^ (cv + X) * gen ^ s = gen ^ cv * gen ^ (X + s) by
+              rw [← pow_add, ← pow_add, Nat.add_assoc],
             show gen ^ nrx * gen ^ j = gen ^ (nrx + j) by rw [← pow_add], loadHolds_mul_gen_pow,
             Nat.add_zero]
           exact D.cover rd hl hL j (by omega)
         · rw [word_gen, gen_pow_mul_gen]; exact gen_pow_add_isInK _ _
       · rw [B1.loadAddrs_straight σ _ l4Pre_straight,
-          show l4Pre.filterMap B1.Stmt.loadS = [(.n 16, 0)] from rfl] at hA
+          show l4Pre.filterMap B1.Stmt.loadS = [(.n 14, 0)] from rfl] at hA
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
         subst hA
         refine ⟨cv + (X + s), ?_, D.regCover j (by omega)⟩
-        show (gen ^ cv * (gen ^ X * gen ^ s)).limb 0 * addressOfIndex 0 = _
-        rw [← pow_add, ← pow_add, limb0_gen_pow_mul]; rfl
+        show (gen ^ (cv + X) * gen ^ s).limb 0 * addressOfIndex 0 = _
+        rw [← pow_add, Nat.add_assoc, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l4Pre.filterMap Main.Stmt.callS =
-          [(none, "verify_sig_lean_sphincs", [.n 19, .n 7], []),
-          (some (.n 22), "__loop3", [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [])]
+          [(none, "verify_sig_lean_sphincs", [.n 17, .n 6], []),
+          (some (.n 20), "__loop3", [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])]
           from rfl] at hcm
         simp only [List.map_cons, List.map_nil, Main.mkCall, List.mem_cons, List.not_mem_nil,
           or_false] at hcm
@@ -249,7 +250,7 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
           have ht' := of_decide_eq_true ((guard_taken hnrs (by omega)).symm.trans
             (decide_eq_true ht))
           show coreProgram.RelIn rd (RegionL Lin) "__loop3"
-            [gen ^ j * word 2 0 0, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb,
+            [gen ^ j * word 2 0 0, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb,
               gen ^ bb] []
           rw [word_gen, gen_pow_mul_gen]
           first
@@ -263,7 +264,7 @@ theorem rawS_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hc : Sig.SphincsCompleteSpecs) {nrs Y X nrx cv tb bb : ℕ}
     {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) :
     ∀ j < nrs, CompleteAtD fs cert 16 "__loop3" Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb]
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb]
       (Returns []) := fun j hj =>
   Lift.completeAtD_of_relIn raw4_pure (by simp) fun rd hl hL =>
     rawS_relIn hc D hY hnrs hl hL j hj

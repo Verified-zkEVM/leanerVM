@@ -9,6 +9,10 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.H.Sec
 public import LeanVM.Guest.B1.VerifySub.C.Callees
+public import LeanVM.Guest.B1.Placement.CertifyAt
+public import LeanVM.Guest.B1.Bits.Log2PlacedAll
+public import LeanVM.Guest.B1.Gkr.VbgAt
+public import LeanVM.Guest.B1.Ring.TargetComplete
 
 /-!
 # The callees, complete
@@ -16,7 +20,8 @@ public import LeanVM.Guest.B1.VerifySub.C.Callees
 `vsH_tau22`: the `KECCAK` table's height is at most `22` (its slot column's log `τ + 6` is a
 committed column's, at most the stack's log `≤ 28`). `kid_complete`: callee `j < 12` (all but the
 terminal) is `CompleteAtD` on its words, given `verify_keccak`'s completeness (`VkCompleteAt`) and
-`open_stacked`'s frame certificates (`OsFitsAt`).
+`verify_tables`' and `open_stacked`'s on the honest child's data (`hvt`, `hos`: `Complete`
+discharges them from their tracks' theorems).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -58,44 +63,40 @@ namespace ChildSegs
 
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
-theorem s6_capOf (hbl : bytecode.length = 2 ^ 23) : S.s6.cap = S.H.s3.squeeze.2.cap := by
-  obtain ⟨hok, -, -, -⟩ := S.H_run hbl
-  exact (Tables.vt_spec hok).2.2.2
-
-theorem root_cells : (digestHalves S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
-
 end ChildSegs
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`verify_sub`'s callees but the terminal are complete, placed.** -/
 theorem kid_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
-    (hvk : VkCompleteAt fs cert κ)
-    (hfits : ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
-      OsFitsAt fs cert (B1.Whir.osCfg (B1.Whir.candidate μ r)))
-    (bs : List ℕ) (lpE sqE : ℕ) {j : ℕ} (hj : j < 12) (pv : List (List E × Main.Layout)) :
-    CompleteAtD fs cert κ ((S.kids bs lpE sqE).getD j noKid pv).f
-      ((S.kids bs lpE sqE).getD j noKid pv).Lin ((S.kids bs lpE sqE).getD j noKid pv).args
-      ((S.kids bs lpE sqE).getD j noKid pv).Out := by
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ)
+    (hvk : VkCompleteAt fs cert κ) (bs : List ℕ) (sqE : ℕ)
+    (hvt : CompleteAtD fs cert κ "verify_tables" (S.H.linL (S.vtB bs sqE)) (S.H.args (S.vtB bs sqE))
+      (Returns (S.vtRetsOf bs)))
+    (hos : CompleteAtD fs cert κ (B1.Whir.openName S.μs S.rate) [(S.cW bs, S.xsW)]
+      (capOf S.s8.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
+        ofK (addressOfIndex (S.cW bs))]) (vsOsOut S.μs S.w))
+    {j : ℕ} (hj : j < 12) (pv : List (List E × Main.Layout)) :
+    CompleteAtD fs cert κ ((S.kids bs sqE).getD j noKid pv).f
+      ((S.kids bs sqE).getD j noKid pv).Lin ((S.kids bs sqE).getD j noKid pv).args
+      ((S.kids bs sqE).getD j noKid pv).Out := by
   have hμ := S.μ_bounds hbl
   have hτ := S.τ_bounds hbl
   interval_cases j
   · exact gpw_completeAt κ [] (by have := S.hr4; omega)
   · exact gpw_completeAt κ [] (by have := S.h32; omega)
-  · refine log2_L0_completeAt κ (by omega) _ lpE sqE (S.pushTotal_lt hbl) ?_
+  · refine log2_L0_completeAt κ (by omega) _ sqE (S.pushTotal_lt hbl) ?_
     show max 0 S.μ < 34; omega
   · exact ac_completeAt κ [] (x_canonical S.hroot).1
   · exact ac_completeAt κ [] (x_canonical S.hroot).2
   · obtain ⟨hrun, -, -, -⟩ := S.runG' hbl
     exact Tables.verify_bus_gkr_completeAt (by omega) (by omega) (by omega) hrun S.capS_carries
-      (vcG bs) (vb bs 7)
-  · obtain ⟨hok, -, -, -⟩ := S.H_run hbl
-    exact Tables.verify_tables_completeAt (by omega) hok (S.H_shape hbl) (S.vtB bs sqE)
+      (vcG bs) (vb bs 5)
+  · exact hvt
   · obtain ⟨hrun, -, -, -, hc6⟩ := S.runK' hbl
     have hf : S.s6.cap = capOf S.H.s3.perm := S.s6_capOf hbl
     exact hvk S.τ S.s6.cap S.chis S.outs S.xsK S.op S.kpt S.slices S.s7.cap S.word S.m0
-      (S.cK bs) (vb bs 10) (vb bs 0 + 110) (vb bs 11) (vb bs 12) hτ.1 (by omega)
+      (S.cK bs) (vb bs 8) (S.cL bs) (vb bs 9) (vb bs 10) hτ.1 (by omega)
       (by rw [S.chis_length]; exact hτ.2.2) (S.lanes hbl).2.2 (by rw [hf]; rfl)
       (by rw [hf]; exact Tables.tb_capOf_canonical _) hc6 hrun
   · exact rst_completeAt κ (by have := (S.runK' hbl).2.2.2.1; exact this) S.rchs_length
@@ -108,13 +109,10 @@ theorem kid_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
         show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN)))
           ≤ 28
         omega)
-    refine log2_L15_completeAt κ (by omega) _ lpE sqE (by omega) ?_
+    refine log2_L15_completeAt κ (by omega) _ sqE (by omega) ?_
     have : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr hst
     omega
-  · exact open_stacked_completeAtD S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ hrf
-      (hfits _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s8.perm S.root S.target _ S.xsW c.proof.openings
-      S.w S.s' S.roots' S.runW S.nzW S.capsW [(S.cW bs, S.xsW)]
-      (fun rd _ hm ↦ hm _ List.mem_cons_self)
+  · exact hos
 
 end
 end LeanVM.Guest.B1.VerifySub

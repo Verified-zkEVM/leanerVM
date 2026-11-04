@@ -49,13 +49,13 @@ theorem getD_flatMap_two {α : Type} (d : α) (a b : ℕ → α) : ∀ (n i : �
         List.getD_append_right _ _ _ _ (by rw [length_flatMap_two]; omega), length_flatMap_two]
       simp
 
-theorem length_osSizesL (c : OsCfg) : (osSizesL c).length = 17 + 3 * c.levels.length := by
+theorem length_osSizesL (c : OsCfg) : (osSizesL c).length = 18 + 3 * c.levels.length := by
   simp only [osSizesL, List.length_append, length_flatMap_two, List.length_cons, List.length_nil,
-    List.length_replicate]
+    List.length_map, List.length_range]
   ring
 
 theorem length_osOwnL (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
-    (osOwnL c tr bp).length = 17 + 3 * c.levels.length := by
+    (osOwnL c tr bp).length = 18 + 3 * c.levels.length := by
   simp only [osOwnL, List.length_append, length_flatMap_two, List.length_cons, List.length_nil,
     List.length_map, List.length_range]
   ring
@@ -69,14 +69,14 @@ noncomputable def osOwnR (c : OsCfg) (tr : OsTr) : List (List E) :=
 
 theorem osOwnL_eq6 (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
     osOwnL c tr bp = [capsC c tr, flagsC c tr, fmsgC c tr, rootsC c tr, fchC c tr, betasC c tr,
-      qwC c tr, qposC c tr, qbpC c bp, oodzC c tr, oodC c tr] ++ osOwnR c tr := by
+      musC c tr, qposC c tr, qbpC c bp, winC, oodzC c tr, oodC c tr] ++ osOwnR c tr := by
   simp only [osOwnL, osOwnR, List.append_assoc]
 
-/-- Buffer `j`'s words are the same for all bit pointers, but the bit pointers'. -/
+/-- Buffer `j`'s words are the same for all window pointers, but the window pointers'. -/
 theorem osOwnL_getD_ne8 (c : OsCfg) (tr : OsTr) (bp bp' : ℕ → ℕ → E) {j : ℕ} (h8 : j ≠ 8) :
     (osOwnL c tr bp).getD j [] = (osOwnL c tr bp').getD j [] := by
   have e : ∀ q : ℕ → ℕ → E, osOwnL c tr q = [capsC c tr, flagsC c tr, fmsgC c tr, rootsC c tr,
-      fchC c tr, betasC c tr, qwC c tr, qposC c tr] ++ (qbpC c q :: ([oodzC c tr, oodC c tr] ++
+      fchC c tr, betasC c tr, musC c tr, qposC c tr] ++ (qbpC c q :: ([winC, oodzC c tr, oodC c tr] ++
         osOwnR c tr)) := fun q ↦ by rw [osOwnL_eq6]; simp
   rw [e, e]
   rcases Nat.lt_or_ge j 8 with hj | hj
@@ -88,13 +88,13 @@ theorem osOwnL_getD_ne8 (c : OsCfg) (tr : OsTr) (bp bp' : ℕ → ℕ → E) {j 
 
 theorem osOwnL_getD_head6 (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
     (osOwnL c tr bp).getD 0 [] = capsC c tr ∧ (osOwnL c tr bp).getD 1 [] = flagsC c tr ∧
-      (osOwnL c tr bp).getD 6 [] = qwC c tr ∧ (osOwnL c tr bp).getD 7 [] = qposC c tr ∧
-      (osOwnL c tr bp).getD 8 [] = qbpC c bp := by
+      (osOwnL c tr bp).getD 6 [] = musC c tr ∧ (osOwnL c tr bp).getD 7 [] = qposC c tr ∧
+      (osOwnL c tr bp).getD 8 [] = qbpC c bp ∧ (osOwnL c tr bp).getD 9 [] = winC := by
   rw [osOwnL_eq6]
-  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem osOwnL_getD_R (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) (j : ℕ) :
-    (osOwnL c tr bp).getD (11 + j) [] = (osOwnR c tr).getD j [] := by
+    (osOwnL c tr bp).getD (12 + j) [] = (osOwnR c tr).getD j [] := by
   rw [osOwnL_eq6, List.getD_append_right _ _ _ _ (by simp)]
   simp
 
@@ -104,7 +104,7 @@ theorem osOwnL_getD_lv6 (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : �
       (osOwnL c tr bp).getD (osIxWp i) [] = wpC c tr i := by
   have h := getD_flatMap_two [] (sqzC c tr) (wpC c tr) c.levels.length i hi
   unfold osIxSqz osIxWp
-  rw [osOwnL_getD_R, show 12 + 2 * i = 11 + (2 * i + 1) by omega, osOwnL_getD_R, osOwnR,
+  rw [osOwnL_getD_R, show 13 + 2 * i = 12 + (2 * i + 1) by omega, osOwnL_getD_R, osOwnR,
     List.getD_append _ _ _ _ (by rw [length_flatMap_two]; omega),
     List.getD_append _ _ _ _ (by rw [length_flatMap_two]; omega)]
   exact h
@@ -123,17 +123,17 @@ theorem osOwnL_getD_fin6 (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : �
       length_flatMap_two, Nat.add_sub_cancel_left]
   unfold osIxBD osIxRC
   constructor
-  · rw [show 14 + 2 * c.levels.length = 11 + (2 * c.levels.length + 3) by omega, osOwnL_getD_R, hR,
+  · rw [show 15 + 2 * c.levels.length = 12 + (2 * c.levels.length + 3) by omega, osOwnL_getD_R, hR,
       List.getD_append _ _ _ _ (by rw [l6]; omega)]
     rfl
-  · rw [show 17 + 2 * c.levels.length + i = 11 + (2 * c.levels.length + (6 + i)) by omega,
+  · rw [show 18 + 2 * c.levels.length + i = 12 + (2 * c.levels.length + (6 + i)) by omega,
       osOwnL_getD_R, hR, List.getD_append_right _ _ _ _ (by rw [l6]; omega), l6,
       Nat.add_sub_cancel_left, List.getD_eq_getElem _ _ (by simpa using hi)]
     simp
 
 /-- **Buffer `j ≠ 8` is an entry of `osLk`.** -/
 theorem osLk_mem (c : OsCfg) (tr : OsTr) (b : ℕ) (Lin : Layout) (bp : ℕ → ℕ → E) {j : ℕ}
-    (hj : j < 17 + 3 * c.levels.length) (h8 : j ≠ 8) :
+    (hj : j < 18 + 3 * c.levels.length) (h8 : j ≠ 8) :
     (osBase c b j, (osOwnL c tr bp).getD j []) ∈ osLk c tr b Lin := by
   unfold osLk
   refine List.mem_append_left _ (List.mem_eraseIdx_iff_getElem?.mpr ⟨j, h8, ?_⟩)
@@ -147,13 +147,13 @@ theorem osLk_mem (c : OsCfg) (tr : OsTr) (b : ℕ) (Lin : Layout) (bp : ℕ → 
 /-- **A memory holding `osLk` reads buffer `j ≠ 8` at its pointer.** -/
 theorem osLk_reads {c : OsCfg} {tr : OsTr} {b : ℕ} {Lin : Layout} {rd : Reader}
     (hm : MemL rd (osLk c tr b Lin)) (bp : ℕ → ℕ → E) {j : ℕ}
-    (hj : j < 17 + 3 * c.levels.length) (h8 : j ≠ 8) :
+    (hj : j < 18 + 3 * c.levels.length) (h8 : j ≠ 8) :
     ReadsAt rd (osPtrAt c b j) ((osOwnL c tr bp).getD j []) :=
   hm _ (osLk_mem c tr b Lin bp hj h8)
 
 /-- **Buffer `j ≠ 8`'s addresses lie in `osLk`'s region.** -/
 theorem osLk_region (c : OsCfg) (tr : OsTr) (b : ℕ) (Lin : Layout) (bp : ℕ → ℕ → E) {j : ℕ}
-    (hj : j < 17 + 3 * c.levels.length) (h8 : j ≠ 8) {k : ℕ}
+    (hj : j < 18 + 3 * c.levels.length) (h8 : j ≠ 8) {k : ℕ}
     (hk : k < ((osOwnL c tr bp).getD j []).length) :
     RegionL (osLk c tr b Lin) (osBase c b j + k) :=
   ⟨_, osLk_mem c tr b Lin bp hj h8, by simp, by simpa using hk⟩

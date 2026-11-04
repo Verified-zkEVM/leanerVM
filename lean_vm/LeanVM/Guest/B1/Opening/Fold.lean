@@ -29,10 +29,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 theorem find_opening_fold : coreProgram.find? "opening_fold" = some Data.core8 :=
   Program.find?_of_indexOf? (j := 8) (by decide +kernel) rfl
 
-theorem core7_params : Fn.params Data.core8 =
+theorem core8_params : Fn.params Data.core8 =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10] := rfl
 
-theorem core7_body : Fn.body Data.core8 =
+theorem core8_body : Fn.body Data.core8 =
     [.atom (.copy (.n 11) (.n 0)), .atom (.copy (.n 12) (.n 1)), .atom (.copy (.n 13) (.n 2)),
       .atom (.copy (.n 14) (.n 3)), .atom (.copy (.n 15) (.n 4))] ++
     fsPackT (.n 5) 16 dsObserve ++ fsPackT (.n 6) 25 dsObserve ++
@@ -85,7 +85,7 @@ def foldVals (as : List E) (d0 d2 : E) (S : KeccakState) (k : ℕ) : E :=
 /-- **`opening_fold`'s core IR is its meaning.** -/
 theorem opening_fold_holds : opening_fold_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_opening_fold, core7_body, core7_params]
+  rw [rel_iff_sem find_opening_fold, core8_body, core8_params]
   simp only [holdsList_append, holds_fsPackT, holds_challengeT, keccakA,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor

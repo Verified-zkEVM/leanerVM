@@ -65,27 +65,28 @@ theorem forall₂_pairs {α β : Type} {R : α → β → Prop} (f g : ℕ → �
     exact List.rel_append (forall₂_pairs f g f' g' h n)
       (by simpa using List.Forall₂.cons (h n).1 (List.Forall₂.cons (h n).2 List.Forall₂.nil))
 
-theorem forall₂_map_replicate (f : ℕ → List E) (sz : ℕ) : ∀ n : ℕ, (∀ i, (f i).length ≤ sz) →
-    List.Forall₂ (fun c s ↦ c.length ≤ s) ((List.range n).map f) (List.replicate n sz)
+theorem forall₂_map_map (f : ℕ → List E) (sz : ℕ → ℕ) : ∀ n : ℕ, (∀ i, (f i).length ≤ sz i) →
+    List.Forall₂ (fun c s ↦ c.length ≤ s) ((List.range n).map f) ((List.range n).map sz)
   | 0, _ => List.Forall₂.nil
   | n + 1, h => by
-    rw [List.range_succ, List.map_append, List.replicate_succ']
-    exact List.rel_append (forall₂_map_replicate f sz n h)
+    rw [List.range_succ, List.map_append, List.map_append]
+    exact List.rel_append (forall₂_map_map f sz n h)
       (List.Forall₂.cons (h n) List.Forall₂.nil)
 
 /-! ## The buffers -/
 
 variable {c : OsCfg} {tr : OsTr}
 
-theorem osSizesL_length (c : OsCfg) : (osSizesL c).length = 17 + 3 * c.levels.length := by
-  simp only [osSizesL, List.length_append, List.length_cons, List.length_nil, List.length_replicate]
+theorem osSizesL_length (c : OsCfg) : (osSizesL c).length = 18 + 3 * c.levels.length := by
+  simp only [osSizesL, List.length_append, List.length_cons, List.length_nil, List.length_map,
+    List.length_range]
   rw [show ((List.range c.levels.length).flatMap fun _ ↦ [(c.maxSq + 1) * 5, c.maxIl]) =
     (List.range c.levels.length).flatMap fun i ↦ [(fun _ ↦ (c.maxSq + 1) * 5) i, (fun _ ↦ c.maxIl) i]
     from rfl, pairs_length]
   ring
 
 theorem osOwnL_length (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
-    (osOwnL c tr bp).length = 17 + 3 * c.levels.length := by
+    (osOwnL c tr bp).length = 18 + 3 * c.levels.length := by
   simp only [osOwnL, List.length_append, List.length_cons, List.length_nil, List.length_map,
     List.length_range]
   rw [show ((List.range c.levels.length).flatMap fun i ↦ [sqzC c tr i, wpC c tr i]) =
@@ -100,14 +101,14 @@ theorem osOwnL_fit (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E)
     List.Forall₂ (fun c s ↦ c.length ≤ s) (osOwnL c tr bp) (osSizesL c) := by
   unfold osOwnL osSizesL
   refine List.rel_append (List.rel_append (List.rel_append ?_ ?_) ?_) ?_
-  · simp [capsC, flagsC, fmsgC, rootsC, fchC, betasC, qwC, qposC, qbpC, oodzC, oodC]
+  · simp [capsC, flagsC, fmsgC, rootsC, fchC, betasC, musC, qposC, qbpC, winC, oodzC, oodC]
   · exact forall₂_pairs _ _ _ _ (fun i ↦ ⟨by simp [sqzC], by simp [wpC]⟩) _
   · simp only [List.forall₂_cons, List.Forall₂.nil, and_true]
     refine ⟨?_, ?_, ?_, by simp [bdC], by simp [lsC], by simp [ichC]⟩
     · simp only [tailC, List.length_append, tailChs_length, List.length_replicate]; omega
     · simp only [ptC, List.length_append, List.length_replicate]; omega
     · simp only [pt1C, List.length_append, List.length_map, List.length_replicate]; omega
-  · exact forall₂_map_replicate _ _ _ fun i ↦ by simp [rcC]
+  · exact forall₂_map_map _ _ _ fun i ↦ by simp [rcC]
 
 /-! ## Buffer `j`'s words -/
 
@@ -115,15 +116,15 @@ theorem osOwnL_getD_head (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
     (osOwnL c tr bp).getD 0 [] = capsC c tr ∧ (osOwnL c tr bp).getD 1 [] = flagsC c tr ∧
       (osOwnL c tr bp).getD 2 [] = fmsgC c tr ∧ (osOwnL c tr bp).getD 3 [] = rootsC c tr ∧
       (osOwnL c tr bp).getD 4 [] = fchC c tr ∧ (osOwnL c tr bp).getD 5 [] = betasC c tr ∧
-      (osOwnL c tr bp).getD 6 [] = qwC c tr ∧ (osOwnL c tr bp).getD 7 [] = qposC c tr ∧
-      (osOwnL c tr bp).getD 8 [] = qbpC c bp ∧ (osOwnL c tr bp).getD 9 [] = oodzC c tr ∧
-      (osOwnL c tr bp).getD 10 [] = oodC c tr :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      (osOwnL c tr bp).getD 6 [] = musC c tr ∧ (osOwnL c tr bp).getD 7 [] = qposC c tr ∧
+      (osOwnL c tr bp).getD 8 [] = qbpC c bp ∧ (osOwnL c tr bp).getD 9 [] = winC ∧
+      (osOwnL c tr bp).getD 10 [] = oodzC c tr ∧ (osOwnL c tr bp).getD 11 [] = oodC c tr :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
-/-- The head's eleven buffers. -/
+/-- The head's twelve buffers. -/
 noncomputable def osOwnA (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) : List (List E) :=
-  [capsC c tr, flagsC c tr, fmsgC c tr, rootsC c tr, fchC c tr, betasC c tr, qwC c tr, qposC c tr,
-    qbpC c bp, oodzC c tr, oodC c tr]
+  [capsC c tr, flagsC c tr, fmsgC c tr, rootsC c tr, fchC c tr, betasC c tr, musC c tr, qposC c tr,
+    qbpC c bp, winC, oodzC c tr, oodC c tr]
 
 /-- The levels' buffers. -/
 noncomputable def osOwnF (c : OsCfg) (tr : OsTr) : List (List E) :=
@@ -146,7 +147,7 @@ theorem osOwnL_getD_lv (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : ℕ
       (osOwnL c tr bp).getD (osIxWp i) [] = wpC c tr i := by
   have hp := pairs_getD (fun i ↦ sqzC c tr i) (fun i ↦ wpC c tr i) [] c.levels.length i hi
   have hl := osOwnF_length c tr
-  have hA : (osOwnA c tr bp).length = 11 := rfl
+  have hA : (osOwnA c tr bp).length = 12 := rfl
   have hC : (osOwnC c tr).length = 6 := rfl
   rw [osOwnL_eq]
   unfold osIxSqz osIxWp
@@ -154,23 +155,23 @@ theorem osOwnL_getD_lv (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : ℕ
   · rw [List.getD_append _ _ _ _ (by simp only [List.length_append, hA, hl, hC]; omega),
       List.getD_append _ _ _ _ (by simp only [List.length_append, hA, hl]; omega),
       List.getD_append_right _ _ _ _ (by rw [hA]; omega), hA,
-      show 11 + 2 * i - 11 = 2 * i by omega]
+      show 12 + 2 * i - 12 = 2 * i by omega]
     exact hp.1
   · rw [List.getD_append _ _ _ _ (by simp only [List.length_append, hA, hl, hC]; omega),
       List.getD_append _ _ _ _ (by simp only [List.length_append, hA, hl]; omega),
       List.getD_append_right _ _ _ _ (by rw [hA]; omega), hA,
-      show 12 + 2 * i - 11 = 2 * i + 1 by omega]
+      show 13 + 2 * i - 12 = 2 * i + 1 by omega]
     exact hp.2
 
 theorem osOwnL_getD_finC (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {t : ℕ} (ht : t < 6) :
-    (osOwnL c tr bp).getD (11 + 2 * c.levels.length + t) [] = (osOwnC c tr).getD t [] := by
+    (osOwnL c tr bp).getD (12 + 2 * c.levels.length + t) [] = (osOwnC c tr).getD t [] := by
   have hl := osOwnF_length c tr
-  have hA : (osOwnA c tr bp).length = 11 := rfl
+  have hA : (osOwnA c tr bp).length = 12 := rfl
   have hC : (osOwnC c tr).length = 6 := rfl
   rw [osOwnL_eq, List.getD_append _ _ _ _ (by simp only [List.length_append, hA, hl, hC]; omega),
     List.getD_append_right _ _ _ _ (by simp only [List.length_append, hA, hl]; omega)]
   simp only [List.length_append, hA, hl]
-  rw [show 11 + 2 * c.levels.length + t - (11 + 2 * c.levels.length) = t by omega]
+  rw [show 12 + 2 * c.levels.length + t - (12 + 2 * c.levels.length) = t by omega]
 
 theorem osOwnL_getD_fin (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
     (osOwnL c tr bp).getD (osIxT c) [] = tailC tr.Lf tr.xsR ∧
@@ -185,22 +186,22 @@ theorem osOwnL_getD_fin (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) :
   have h4 := osOwnL_getD_finC c tr bp (t := 4) (by omega)
   have h5 := osOwnL_getD_finC c tr bp (t := 5) (by omega)
   unfold osIxT osIxPT osIxPT1 osIxBD osIxLS osIxICH
-  rw [show 12 + 2 * c.levels.length = 11 + 2 * c.levels.length + 1 by omega,
-    show 13 + 2 * c.levels.length = 11 + 2 * c.levels.length + 2 by omega,
-    show 14 + 2 * c.levels.length = 11 + 2 * c.levels.length + 3 by omega,
-    show 15 + 2 * c.levels.length = 11 + 2 * c.levels.length + 4 by omega,
-    show 16 + 2 * c.levels.length = 11 + 2 * c.levels.length + 5 by omega, h1, h2, h3, h4, h5]
+  rw [show 13 + 2 * c.levels.length = 12 + 2 * c.levels.length + 1 by omega,
+    show 14 + 2 * c.levels.length = 12 + 2 * c.levels.length + 2 by omega,
+    show 15 + 2 * c.levels.length = 12 + 2 * c.levels.length + 3 by omega,
+    show 16 + 2 * c.levels.length = 12 + 2 * c.levels.length + 4 by omega,
+    show 17 + 2 * c.levels.length = 12 + 2 * c.levels.length + 5 by omega, h1, h2, h3, h4, h5]
   exact ⟨h0, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem osOwnL_getD_rc (c : OsCfg) (tr : OsTr) (bp : ℕ → ℕ → E) {i : ℕ} (hi : i < c.levels.length) :
     (osOwnL c tr bp).getD (osIxRC c i) [] = rcC c tr i := by
   have hl := osOwnF_length c tr
-  have hA : (osOwnA c tr bp).length = 11 := rfl
+  have hA : (osOwnA c tr bp).length = 12 := rfl
   have hC : (osOwnC c tr).length = 6 := rfl
   unfold osIxRC
   rw [osOwnL_eq, List.getD_append_right _ _ _ _ (by simp only [List.length_append, hA, hl, hC]; omega)]
   simp only [List.length_append, hA, hl, hC]
-  rw [show 17 + 2 * c.levels.length + i - (11 + 2 * c.levels.length + 6) = i by omega]
+  rw [show 18 + 2 * c.levels.length + i - (12 + 2 * c.levels.length + 6) = i by omega]
   simp [hi]
 
 /-! ## The memory holding them -/
@@ -220,7 +221,7 @@ theorem memL_readsAt {rd : Reader} {b : ℕ} {sizes : List ℕ} {own : List (Lis
 theorem osMemL_readsAt {rd : Reader} {b : ℕ} {bp : ℕ → ℕ → E}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     (hm : MemL rd (bufL b (osSizesL c) (osOwnL c tr bp))) {j : ℕ}
-    (hj : j < 17 + 3 * c.levels.length) :
+    (hj : j < 18 + 3 * c.levels.length) :
     ReadsAt rd (osPtrAt c b j) ((osOwnL c tr bp).getD j []) :=
   memL_readsAt (osOwnL_fit c tr bp hpt htl) hm (by rw [osSizesL_length]; exact hj)
 
@@ -228,17 +229,18 @@ theorem osMemL_readsAt {rd : Reader} {b : ℕ} {bp : ℕ → ℕ → E}
 theorem osMem_of_memL {rd : Reader} {b : ℕ} {bp : ℕ → ℕ → E}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     (hm : MemL rd (bufL b (osSizesL c) (osOwnL c tr bp))) : OsMem rd (osAtOf c b) c tr := by
-  have R := fun j (hj : j < 17 + 3 * c.levels.length) ↦ osMemL_readsAt hpt htl hm hj
-  obtain ⟨-, -, g2, g3, g4, g5, g6, g7, -, g9, g10⟩ := osOwnL_getD_head c tr bp
+  have R := fun j (hj : j < 18 + 3 * c.levels.length) ↦ osMemL_readsAt hpt htl hm hj
+  obtain ⟨-, -, g2, g3, g4, g5, g6, g7, -, g9, g10, g11⟩ := osOwnL_getD_head c tr bp
   obtain ⟨gT, gP, gP1, gB, gL, gI⟩ := osOwnL_getD_fin c tr bp
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ ?_⟩
   · rw [← g4]; exact R 4 (by omega)
   · rw [← g3]; exact R 3 (by omega)
   · rw [← g5]; exact R 5 (by omega)
   · rw [← g6]; exact R 6 (by omega)
-  · rw [← g7]; exact R 7 (by omega)
   · rw [← g9]; exact R 9 (by omega)
+  · rw [← g7]; exact R 7 (by omega)
   · rw [← g10]; exact R 10 (by omega)
+  · rw [← g11]; exact R 11 (by omega)
   · rw [← g2]; exact R 2 (by omega)
   · rw [← gT]; exact R _ (by unfold osIxT; omega)
   · rw [← gP]; exact R _ (by unfold osIxPT; omega)
@@ -265,24 +267,25 @@ theorem osOwnA_getElem?_ne8 (c : OsCfg) (tr : OsTr) (bp bp' : ℕ → ℕ → E)
   | 7, _ => simp
   | 9, _ => simp
   | 10, _ => simp
-  | n + 11, _ => simp
+  | 11, _ => simp
+  | n + 12, _ => simp
 
 theorem osOwnL_getElem?_ne8 (c : OsCfg) (tr : OsTr) (bp bp' : ℕ → ℕ → E) {i : ℕ} (hi : i ≠ 8) :
     (osOwnL c tr bp)[i]? = (osOwnL c tr bp')[i]? := by
-  have hA : (osOwnA c tr bp).length = 11 := rfl
-  have hA' : (osOwnA c tr bp').length = 11 := rfl
+  have hA : (osOwnA c tr bp).length = 12 := rfl
+  have hA' : (osOwnA c tr bp').length = 12 := rfl
   rw [osOwnL_eq, osOwnL_eq]
   simp only [List.append_assoc]
-  by_cases h : i < 11
+  by_cases h : i < 12
   · rw [List.getElem?_append_left (by rw [hA]; exact h), List.getElem?_append_left (by rw [hA']; exact h)]
     exact osOwnA_getElem?_ne8 c tr bp bp' hi
   · have e1 : (osOwnA c tr bp ++ (osOwnF c tr ++ (osOwnC c tr ++
         (List.range c.levels.length).map (rcC c tr))))[i]? = (osOwnF c tr ++ (osOwnC c tr ++
-        (List.range c.levels.length).map (rcC c tr)))[i - 11]? := by
+        (List.range c.levels.length).map (rcC c tr)))[i - 12]? := by
       rw [List.getElem?_append_right (by rw [hA]; omega), hA]
     have e2 : (osOwnA c tr bp' ++ (osOwnF c tr ++ (osOwnC c tr ++
         (List.range c.levels.length).map (rcC c tr))))[i]? = (osOwnF c tr ++ (osOwnC c tr ++
-        (List.range c.levels.length).map (rcC c tr)))[i - 11]? := by
+        (List.range c.levels.length).map (rcC c tr)))[i - 12]? := by
       rw [List.getElem?_append_right (by rw [hA']; omega), hA']
     rw [e1, e2]
 
@@ -292,9 +295,9 @@ theorem osLk_memL {rd : Reader} {b : ℕ} {bp : ℕ → ℕ → E} {Lin : Layout
     MemL rd (osLk c tr b Lin) := by
   refine Main.memL_append.mpr ⟨fun q hq ↦ ?_, hLin⟩
   obtain ⟨i, hi, hne, rfl⟩ := List.mem_eraseIdx_iff_getElem.mp hq
-  have hl0 : (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).length = 17 + 3 * c.levels.length := by
+  have hl0 : (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).length = 18 + 3 * c.levels.length := by
     simp only [bufL, List.length_zip, os_length_bases, osSizesL_length, osOwnL_length, Nat.min_self]
-  have hl1 : (bufL b (osSizesL c) (osOwnL c tr bp)).length = 17 + 3 * c.levels.length := by
+  have hl1 : (bufL b (osSizesL c) (osOwnL c tr bp)).length = 18 + 3 * c.levels.length := by
     simp only [bufL, List.length_zip, os_length_bases, osSizesL_length, osOwnL_length, Nat.min_self]
   have hi1 : i < (bufL b (osSizesL c) (osOwnL c tr bp)).length := by omega
   have e : (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0))[i]'hi =

@@ -8,23 +8,24 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.OsCallees
+public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.B1.Whir.CSqLoop
 
 /-!
 # The squeeze loop, placed
 
 A squeeze loop helper's body (`sqLoopBody lv name`) is straight-line: before its `ret []`
-(`sqLoopPre`) it allocates nothing, has no `frameAddr`, calls `decode_query_bits__L{depth}` and
-its tail (`sqLoopPre_calls`), and loads only through the row `sqz·x^5`, at offsets below `10`
+(`sqLoopPre`) it allocates nothing, has no `frameAddr`, calls
+`decode_query_windows__L{depth}_L{capDepth}` and its tail (`sqLoopPre_calls`), and loads only through the row `sqz·x^5`, at offsets below `10`
 (`sqLoopPre_loads`). A loop helper places its tail at `fp + fs L`, then its other callees:
 iteration `j` of `n` takes `(n - j + 1)·fs L + (n - j)·fs D` words (`sqTot`), its decoder at
 `sqDecAt`.
 
 `sqLoop_iter`: one iteration from its decoder's and its tail's placed relations.
-`sqLoop_relAtIn`: the loop from iteration `0` at `fp`, from `decode_query_bits`' placed
-completeness (`OsDecodeAtD`), on every memory holding the capacity chain at `sqz` and, at `qpos`
-and `qbp`, what each decoder stores: the positions and the pointers into its frame run.
+`sqLoop_relAtIn`: the loop from iteration `0` at `fp`, from `decode_query_windows`' placed
+completeness (`QwDecodeAtD`), on every memory holding the capacity chain at `sqz`, the window table
+at `tabs` and, at `qpos` and `qbp`, what each decoder stores: the positions and the pointers into
+its `wins` run (`qwPtrAt`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -40,12 +41,13 @@ open LeanVM.Guest.B1.Whir
 /-! ## The body's statements -/
 
 /-- The decoder a level's squeeze loop calls. -/
-def sqDecName (lv : OsLv) : String := "decode_query_bits__L" ++ natStr lv.depth
+def sqDecName (lv : OsLv) : String :=
+  "decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
 
 /-- The squeeze loop's body before its final `ret []`. -/
 def sqLoopPre (lv : OsLv) (name : String) : List Stmt :=
   sqLoopA lv ++ osLoopTailA (sqTail lv) ++
-    [.callIf (.n (sqTail lv + 2)) name (.n (sqTail lv + 4) :: (List.range (5 - 1)).map fun i ↦ .n (i + 1))]
+    [.callIf (.n (sqTail lv + 2)) name (.n (sqTail lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1))]
 
 theorem sqLoopBody_pre (lv : OsLv) (name : String) :
     sqLoopBody lv name = sqLoopPre lv name ++ [.ret []] := by
@@ -126,10 +128,10 @@ theorem sqLoopPre_addrs (lv : OsLv) (name : String) :
 
 /-- The calls of the squeeze loop's body: the decoder, then the tail. -/
 def sqCallsS (lv : OsLv) (name : String) : List (Option V × String × List V × List V) :=
-  [(none, sqDecName lv, [.n 38, .n (osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2,
-      .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2], []),
+  [(none, sqDecName lv, [.n 39, .n (osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2,
+      .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2, .n 5], []),
     (some (.n (sqTail lv + 2)), name,
-      .n (sqTail lv + 4) :: (List.range (5 - 1)).map fun i ↦ .n (i + 1), [])]
+      .n (sqTail lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1), [])]
 
 theorem sqLoopPre_calls (lv : OsLv) (name : String) :
     (sqLoopPre lv name).filterMap Main.Stmt.callS = sqCallsS lv name := by
@@ -141,7 +143,7 @@ theorem sqLoopPre_calls (lv : OsLv) (name : String) :
 
 theorem sqLoopPre_loadsEq (lv : OsLv) (name : String) :
     (sqLoopPre lv name).filterMap Stmt.loadS =
-      (List.range 10).map fun i => ((.n 8 : V), i) := by
+      (List.range 10).map fun i => ((.n 9 : V), i) := by
   simp only [sqLoopPre, sqLoopA, List.filterMap_append,
     fm_pow_nil Stmt.loadS (fun _ _ _ => rfl),
     fm_mat_nil Stmt.loadS (fun _ _ _ => rfl) (fun _ _ => rfl),
@@ -149,7 +151,7 @@ theorem sqLoopPre_loadsEq (lv : OsLv) (name : String) :
   rfl
 
 theorem sqLoopPre_loads (lv : OsLv) (name : String) :
-    ∀ q ∈ (sqLoopPre lv name).filterMap Stmt.loadS, q.1 = .n 8 ∧ q.2 < 10 := by
+    ∀ q ∈ (sqLoopPre lv name).filterMap Stmt.loadS, q.1 = .n 9 ∧ q.2 < 10 := by
   intro q hq
   rw [sqLoopPre_loadsEq] at hq
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hq
@@ -160,27 +162,27 @@ theorem sqLoopPre_loads (lv : OsLv) (name : String) :
 /-- **One iteration of a squeeze loop, placed at `fp`**: its tail at `fp + fs L` (or skipped at
 the last), its decoder after the tail's `m` words, its loads through the row in `R`. -/
 theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : OsLv} {name : String}
-    {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 5)
+    {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 6)
     (hb : fn.body = sqLoopBody lv name) (hlp : coreProgram.loop name = true)
     (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound) {rd : Reader} {R Rd Dd Dt : ℕ → Prop} {X N sqz qpos qbp : E}
+    (hpo : lv.posOff < u128Bound) {rd : Reader} {R Rd Dd Dt : ℕ → Prop} {X N sqz qpos qbp tabs : E}
     {cap : List E} (hcl : cap.length = 5) (hcan : AllCanonical cap) (fp : ℕ) {m : ℕ}
     (hrow : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) i (cap.getD i 0))
     (hnext : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) ((capOf (⟨cap, []⟩ : Fs).perm).getD i 0))
     (hdec : RelAtIn coreProgram fs cert rd Rd Dd (fp + fs name + m) (fs (sqDecName lv))
       (sqDecName lv) [challengeOf (⟨cap, []⟩ : Fs).perm, qpos * gen ^ lv.posOff * X ^ (192 / lv.depth),
-        qbp * gen ^ lv.posOff * X ^ (192 / lv.depth)] [])
+        qbp * gen ^ lv.posOff * X ^ (192 / lv.depth), tabs] [])
     (hRd : ∀ i, Rd i → R i) (hK : IsInK (X * gen + N))
     (htail : if X * gen + N ≠ 0 then
-      RelAtIn coreProgram fs cert rd R Dt (fp + fs name) m name [X * gen, N, sqz, qpos, qbp] []
+      RelAtIn coreProgram fs cert rd R Dt (fp + fs name) m name [X * gen, N, sqz, qpos, qbp, tabs] []
       else m = fs name)
     (hreg : ∀ t < 10, ∃ i, (sqz * X ^ 5).limb 0 * Parameters.addressOfIndex t =
         Parameters.addressOfIndex i ∧ R i) :
     RelAtIn coreProgram fs cert rd R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp
-      (fs name + m + fs (sqDecName lv)) name [X, N, sqz, qpos, qbp] [] := by
-  set σ := sqIterVal lv X N sqz qpos qbp cap with hσ
+      (fs name + m + fs (sqDecName lv)) name [X, N, sqz, qpos, qbp, tabs] [] := by
+  set σ := sqIterVal lv X N sqz qpos qbp tabs cap with hσ
   obtain ⟨hpar, ⟨hA, h8, hdargs⟩, hg, hta⟩ := sqIter_completeC (C := fun _ _ _ => True) (rd := rd)
-    lv hpw hpo X N sqz qpos qbp cap hcl hcan hrow hnext trivial
+    lv hpw hpo X N sqz qpos qbp tabs cap hcl hcan hrow hnext trivial
   rw [← hσ] at hpar hA h8 hdargs hg hta
   have hpre : fn.body = sqLoopPre lv name ++ [.ret []] := hb.trans (sqLoopBody_pre lv name)
   have hst := sqLoopPre_straight lv name
@@ -198,9 +200,10 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     exact fun e he => (this.1 e he).1
   obtain ⟨had, hal, hadr, hcl'⟩ := Main.straight_parts σ _ hst
   have hal0 : allocs σ es = [] := by rw [hal, sqLoopPre_allocs]; rfl
-  have hcalls : calls es = [⟨sqDecName lv, [.n 38, .n (osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2,
-      .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2], [], true⟩] ++
-      [⟨name, .n (sqTail lv + 4) :: (List.range (5 - 1)).map fun i ↦ .n (i + 1), [],
+  have hcalls : calls es = [⟨sqDecName lv, [.n 39, .n (osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2,
+      .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2, .n 5], [],
+      true⟩] ++
+      [⟨name, .n (sqTail lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1), [],
         decide (σ (.n (sqTail lv + 2)) ≠ 0)⟩] := by
     rw [hcl', sqLoopPre_calls]; rfl
   have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
@@ -230,7 +233,7 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     have hql := sqLoopPre_loads lv name _ hq'
     obtain ⟨i, hi, hR⟩ := hreg off hql.2
     refine ⟨i, ?_, Or.inr (Or.inl hR)⟩
-    have hp8 : p = .n 8 := hql.1
+    have hp8 : p = .n 9 := hql.1
     rw [hp8, h8]; exact hi
   · intro i hi
     rcases hi with hi | ⟨ht, hi⟩
@@ -280,12 +283,12 @@ def sqWJ (cap0 : List E) (j : ℕ) : E := challengeOf (⟨sqCapJ cap0 j, []⟩ :
 def sqRuns (fs : String → ℕ) (cert : String → V → ℕ) (lv : OsLv) (name : String) (n fp : ℕ)
     (w : ℕ → E) (j : ℕ) : Layout :=
   ((List.range (n - j)).map fun i =>
-    dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp (j + i)) (w (j + i))).flatten
+    qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp (j + i)) lv.depth lv.capDepth (w (j + i))).flatten
 
 theorem regionL_sqRuns {fs : String → ℕ} {cert : String → V → ℕ} {lv : OsLv} {name : String}
     {n fp : ℕ} {w : ℕ → E} {j i : ℕ} : RegionL (sqRuns fs cert lv name n fp w j) i ↔
       ∃ j', j ≤ j' ∧ j' < n ∧
-        RegionL (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j') (w j')) i := by
+        RegionL (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j') lv.depth lv.capDepth (w j')) i := by
   constructor
   · rintro ⟨q, hq, h1, h2⟩
     simp only [sqRuns, List.mem_flatten, List.mem_map, List.mem_range] at hq
@@ -340,53 +343,51 @@ theorem os_disj_windows {m : ℕ} (A B : ℕ → Layout) (lo len : ℕ → ℕ)
   · exact hwin i hi j hj hij x (List.mem_append_left _ hx) y (List.mem_append_right _ hy)
 
 /-- **A level's squeeze loop, placed** from its first iteration at `fp`: on every memory holding
-the capacity chain from `cap0` in the rows `sqz·(g^j)^5` and, at `qpos` and `qbp`, what each
-decoder stores (the positions and the pointers into its frame run at `sqDecAt`), the loop holds,
-its decoders' frame runs its data (`sqRuns`). -/
+the capacity chain from `cap0` in the rows `sqz·(g^j)^5`, the window table at `tabs` and, at `qpos`
+and `qbp`, what each decoder stores (the positions and the pointers into its `wins` run at
+`sqDecAt`), the loop holds, its decoders' runs its data (`sqRuns`). -/
 theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {lv : OsLv}
     {name : String} {fn : Fn} (hfind : coreProgram.find? name = some fn)
-    (hp : fn.params = osParams 5) (hb : fn.body = sqLoopBody lv name)
+    (hp : fn.params = osParams 6) (hb : fn.body = sqLoopBody lv name)
     (hlp : coreProgram.loop name = true)
     (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound) (hdec : OsDecodeAtD fs cert k lv.depth (sqDecName lv))
-    {n : ℕ} (hn : 0 < n) (hn' : n < ordG) {sqz qpos qbp : E} {cap0 : List E}
+    (hpo : lv.posOff < u128Bound) (hdec : QwDecodeAtD fs cert k lv.depth lv.capDepth (sqDecName lv))
+    {n : ℕ} (hn : 0 < n) (hn' : n < ordG) {sqz qpos qbp tabs : E} {cap0 : List E}
     (hcl : cap0.length = 5) (hcan : AllCanonical cap0) {Lin : Layout} (fp : ℕ)
     (hmem : ∀ rd, LowDef k rd → MemL rd Lin → ∀ j < n,
       (∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) i ((sqCapJ cap0 j).getD i 0)) ∧
         ∀ i < 5, LoadHolds rd (sqz * (gen ^ j) ^ 5) (5 + i)
           ((capOf (⟨sqCapJ cap0 j, []⟩ : Fs).perm).getD i 0))
-    (hdmem : ∀ rd, LowDef k rd → MemL rd Lin → ∀ j < n, ∀ i < 192 / lv.depth,
+    (hdmem : ∀ rd, LowDef k rd → MemL rd Lin → WinTabs rd tabs ∧ ∀ j < n, ∀ i < 192 / lv.depth,
       LoadHolds rd (qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)) i
-          (eOfNat ((eToNat (sqWJ cap0 j) >>> (i * lv.depth)) % 2 ^ lv.depth)) ∧
+          (eOfNat (qwPosOf lv.depth (sqWJ cap0 j) i)) ∧
         LoadHolds rd (qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)) i
-          (ofK (Parameters.addressOfIndex (sqDecAt fs lv name n fp j + cert (sqDecName lv)
-              (.n 3))) *
-            gen ^ (i * lv.depth)))
+          (qwPtrAt cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth i))
     (hreg : ∀ j < n, ∀ t < 10, ∃ i, (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.addressOfIndex t =
       Parameters.addressOfIndex i ∧ RegionL Lin i)
-    (hregd : ∀ j < n, RegPtrs [(1, 192 / lv.depth), (2, 192 / lv.depth)]
-      [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
-        qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] (RegionL Lin)) :
+    (hregd : ∀ j < n, QwRegs lv.depth [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
+        qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth), tabs] (RegionL Lin)) :
     ∃ Lown : Layout, Within (sqRuns fs cert lv name n fp (sqWJ cap0) 0 ++ Lown) fp
         (sqTot fs lv name n 0) ∧
       DisjL (sqRuns fs cert lv name n fp (sqWJ cap0) 0 ++ Lown) ∧
       ∀ rd, LowDef k rd → MemL rd (sqRuns fs cert lv name n fp (sqWJ cap0) 0 ++ Lown ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin)
           (RegionL (sqRuns fs cert lv name n fp (sqWJ cap0) 0)) fp (sqTot fs lv name n 0) name
-          [1, gen ^ n, sqz, qpos, qbp] [] := by
+          [1, gen ^ n, sqz, qpos, qbp, tabs] [] := by
   have hn2 : n < 2 ^ 64 - 1 := hn'
   have hdecj : ∀ j < n, ∃ Lj : Layout,
-      Within (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j) ++ Lj)
+      Within (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j) ++ Lj)
         (sqDecAt fs lv name n fp j) (fs (sqDecName lv)) ∧
-      DisjL (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j) ++ Lj) ∧
+      DisjL (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j) ++ Lj) ∧
       ∀ rd, LowDef k rd →
-        MemL rd (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j) ++ Lj ++ Lin) →
+        MemL rd (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j) ++ Lj ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin)
-          (RegionL (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j)))
+          (RegionL (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j)))
           (sqDecAt fs lv name n fp j) (fs (sqDecName lv)) (sqDecName lv)
           [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
-            qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] [] := fun j hj =>
-    hdec _ _ _ Lin _ (hregd j hj) fun rd hl hm i hi => hdmem rd hl hm j hj i hi
+            qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth), tabs] [] := fun j hj =>
+    hdec _ _ _ _ Lin _ (hregd j hj) fun rd hl hm =>
+      ⟨(hdmem rd hl hm).1, fun i hi => (hdmem rd hl hm).2 j hj i hi⟩
   classical
   let Lj : ℕ → Layout := fun j => if h : j < n then Classical.choose (hdecj j h) else []
   have hLj : ∀ j (h : j < n), Lj j = Classical.choose (hdecj j h) := fun j h => by simp [Lj, h]
@@ -412,7 +413,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       omega
   · have e1 : sqRuns fs cert lv name n fp (sqWJ cap0) 0 =
         ((List.range n).map fun j =>
-          dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j)).flatten := by
+          qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j)).flatten := by
       simp [sqRuns]
     rw [e1]
     refine os_disj_windows _ Lj (fun j => sqDecAt fs lv name n fp j) (fun _ => fs (sqDecName lv))
@@ -435,10 +436,10 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
   obtain ⟨hR, hO⟩ := Main.memL_append.mp h12
   have hd := hmem rd hlow hLin
   have hrel : ∀ j (hj : j < n), RelAtIn coreProgram fs cert rd (RegionL Lin)
-      (RegionL (dqRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) (sqWJ cap0 j)))
+      (RegionL (qwRunL cert (sqDecName lv) (sqDecAt fs lv name n fp j) lv.depth lv.capDepth (sqWJ cap0 j)))
       (sqDecAt fs lv name n fp j) (fs (sqDecName lv)) (sqDecName lv)
       [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
-        qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] [] := fun j hj => by
+        qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth), tabs] [] := fun j hj => by
     refine (Classical.choose_spec (hdecj j hj)).2.2 rd hlow
       (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨?_, ?_⟩, hLin⟩)
     · intro q hq
@@ -457,7 +458,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
   have hstep : ∀ t j, j + t + 1 = n →
       RelAtIn coreProgram fs cert rd (RegionL Lin)
         (fun i => RegionL (sqRuns fs cert lv name n fp (sqWJ cap0) j) i)
-        (fp + j * fs name) (sqTot fs lv name n j) name [gen ^ j, gen ^ n, sqz, qpos, qbp] [] := by
+        (fp + j * fs name) (sqTot fs lv name n j) name [gen ^ j, gen ^ n, sqz, qpos, qbp, tabs] [] := by
     intro t
     induction t with
     | zero =>
@@ -466,7 +467,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       have h0 : gen ^ j * gen + gen ^ n = 0 := by
         rw [gen_pow_add_eq_zero_iff]; congr 1; omega
       have := sqLoop_iter fs cert hfind hp hb hlp hpw hpo (rd := rd) (R := RegionL Lin)
-        (Dt := fun _ => False) (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp)
+        (Dt := fun _ => False) (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
         (hclj j) (hcanj j) (fp + j * fs name) (m := fs name) hr0 hn0
         (by
           have := hrel j (by omega)
@@ -494,7 +495,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       rw [Nat.add_mul, Nat.one_mul, ← Nat.add_assoc] at ht
       have := sqLoop_iter fs cert hfind hp hb hlp hpw hpo (rd := rd) (R := RegionL Lin)
         (Dt := fun i => RegionL (sqRuns fs cert lv name n fp (sqWJ cap0) (j + 1)) i)
-        (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp)
+        (N := gen ^ n) (sqz := sqz) (qpos := qpos) (qbp := qbp) (tabs := tabs)
         (hclj j) (hcanj j) (fp + j * fs name) (m := sqTot fs lv name n (j + 1)) hr0 hn0
         (by
           have := hrel j (by omega)
