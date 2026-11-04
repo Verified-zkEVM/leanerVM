@@ -119,20 +119,17 @@ words (`h15W`, `hrswW`). -/
 theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : TermBases)
     (Lin : Main.Layout)
     {layout : Layout} {bus : BusResult} {claims : List ColumnClaim} {out : ColumnClaim} {lam : E}
-    {ringPoint coeffs x : List E} {rm gmu gzcn glm gtau lamOut inner yr target : E} {nc : ℕ}
+    {ringPoint coeffs x : List E} {rm gmu gzcn glm gtau lamCl inner yr target : E} {nc : ℕ}
     (hnc : nc ≤ 40) (hgz : gzcn = gen ^ nc)
     (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → TermPre rd layout bus claims out lam ringPoint coeffs x
-      (termArgs B rm gmu gzcn glm gtau lamOut inner yr target))
+      (termArgs B rm gmu gzcn glm gtau lamCl inner yr target))
     (hreg : ∀ i, TermRegion B bus.point.length nc (layout.tableLogHeights.getD opKeccak 0) i →
       RegionL Lin i)
     (hbus : bus.point.length ≤ 34)
-    (hlen : ∀ c ∈ claims, c.point.length =
-      (columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights).getD c.column 0)
     (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) * yr =
       target)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
-    (hCs : ∀ κ' < 29, TotalLe coreProgram fs (Tables.lName "column_selector" κ') fun _ => Bcs)
     (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs)
@@ -148,11 +145,11 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i) :
     CompleteAtDTB fs cert κ "check_opening_terminal" Lin
-      (termArgs B rm gmu gzcn glm gtau lamOut inner yr target) (Returns [])
+      (termArgs B rm gmu gzcn glm gtau lamCl inner yr target) (Returns [])
       (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
       (fs "check_opening_terminal" + 146 + 3 * Beqc + max (fs "__loop14") (32 * K15) +
-        (fs "selector_tables" + 322) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
+        (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap
   · intro fp
@@ -161,15 +158,16 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have P0 := hpre rd0 hl0 hm0
   simp only [TermPre, termArgs] at P0
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, hopl, -,
-    hrpl, -, hcfl, -, hxl, -, -⟩ := P0
+  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
+    -, hrpl, -, hcfl, -, hxl, -, -⟩ := P0
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
-  obtain ⟨hkap, -, -⟩ := hPC
+  obtain ⟨hkap, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
   have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
-  set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
+  set kappas := columnKappas layout.logMemory Tables.guestLogBytecode layout.tableLogHeights
+    with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
   set τ := layout.tableLogHeights.getD opKeccak 0 with hτ
   have hLdef : layout.stackLog = max Whir.minLogStack (stackOffsets KC).2 := by
@@ -180,7 +178,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   have hO : ∀ c, (stackOffsets KC).1.getD c 0 < 2 ^ layout.stackLog := fun c ↦
     lt_of_lt_of_le (stackOffsets_lt KC c) (Nat.pow_le_pow_right (by decide) (by rw [hLdef]; omega))
   have hk6 : kappas.take 6 = [layout.logMemory, layout.logMemory, layout.logMemory,
-      layout.logMemory, layout.logBytecode, τ + 6] := kappas_small hHL
+      layout.logMemory, Tables.guestLogBytecode, τ + 6] := kappas_small hHL
   have hK5 : KC.getD 5 0 = τ + 6 := by
     rw [committedKappas_small hkap (by decide), ← getD_take_nat (n := 6) (by decide), hk6]; rfl
   have hK5L := hK 5 (by decide)
@@ -191,7 +189,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       MemL rd (Tables.stLin B.pt B.pt1 (pt28 x) (pt128 x)) := fun rd hl hm q hq => by
     have P := hpre rd hl hm
     simp only [TermPre, termArgs] at P
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hpt, hpt1⟩ := P
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hpt, hpt1⟩ := P
     simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl
     · exact readsAt_take hpt 28
@@ -224,18 +222,23 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     omega
   · refine termKids_completeB κ hκ Lin D _ hreg hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
       hlm32 hKC29 (fun c hc => ?_)
-      (fun rd hl hm => ?_) hEqc hL15 hCs hCsF hrs
+      (fun rd hl hm => ?_) hEqc hL15 hCsF hrs
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩
     · have P := hpre rd hl hm
       simp only [TermPre, termArgs] at P
-      obtain ⟨⟨chis', hzR, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hoz, -, -, -, -, -, -,
-        hpt1⟩ := P
+      obtain ⟨⟨chis', hzR, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hoz, -, -, -, -, -,
+        -, hpt1⟩ := P
       exact ⟨hzR, hchis rd hl hm, hoz, hpt1⟩
   · have P := hpre rd hl hLin
     simp only [TermPre, termArgs] at P
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hrp, -, hct, -, -, hpt1⟩ := P
-    refine termKids_mem Lin D _ outs hB hLin hLo (hst rd hl hLin) fun q hq => ?_
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, hgt, -, -, -, -, -, hrp, -, hct, -, -, hpt1⟩ := P
+    refine termKids_mem Lin D _ outs hB hLin hLo (hst rd hl hLin) ?_ fun q hq => ?_
+    · intro q hq
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+      subst hq
+      rw [ofK_gpow_mul_gen] at hgt
+      exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
@@ -243,7 +246,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     · exact readsAt_take hpt1 _
     · exact hct
   · exact term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)
-      (hchis rd hl hLin) hgzc (by omega) hreg hbus hlen hfin (by rw [hlen', termKids_length]) ho hB
+      (hchis rd hl hLin) hgzc (by omega) hreg hbus hfin (by rw [hlen', termKids_length]) ho hB
   · rw [termBs_sum]
     simp only [List.sum_cons, List.sum_nil]
     omega

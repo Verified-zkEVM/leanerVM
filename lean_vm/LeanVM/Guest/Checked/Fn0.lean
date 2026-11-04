@@ -8,32 +8,40 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F9_0
-public import LeanVM.Guest.Checked.F12_5
-public import LeanVM.Guest.Checked.F12_5
-public import LeanVM.Guest.Checked.F13_4
-public import LeanVM.Guest.Checked.F13_4
-public import LeanVM.Guest.Checked.F18_2
-public import LeanVM.Guest.Checked.F18_2
-public import LeanVM.Guest.Checked.F18_2
-public import LeanVM.Guest.Checked.F20_5
-public import LeanVM.Guest.Checked.F20_13
-public import LeanVM.Guest.Checked.F20_21
-public import LeanVM.Guest.Checked.F20_29
-public import LeanVM.Guest.Checked.F20_37
-public import LeanVM.Guest.Checked.F20_37
-public import LeanVM.Guest.Checked.F21_3
-public import LeanVM.Guest.Checked.F21_8
-public import LeanVM.Guest.Checked.F21_13
-public import LeanVM.Guest.Checked.F21_18
-public import LeanVM.Guest.Checked.F21_18
-public import LeanVM.Guest.Checked.F22_5
-public import LeanVM.Guest.Checked.F22_13
-public import LeanVM.Guest.Checked.F32_0
+public import LeanVM.Guest.Checked.F1_0
+public import LeanVM.Guest.Checked.F8_0
+public import LeanVM.Guest.Checked.F12_4
+public import LeanVM.Guest.Checked.F12_4
+public import LeanVM.Guest.Checked.F13_3
+public import LeanVM.Guest.Checked.F13_3
+public import LeanVM.Guest.Checked.F18_1
+public import LeanVM.Guest.Checked.F18_1
+public import LeanVM.Guest.Checked.F18_1
+public import LeanVM.Guest.Checked.F20_4
+public import LeanVM.Guest.Checked.F20_12
+public import LeanVM.Guest.Checked.F20_20
+public import LeanVM.Guest.Checked.F20_28
+public import LeanVM.Guest.Checked.F20_36
+public import LeanVM.Guest.Checked.F20_36
+public import LeanVM.Guest.Checked.F21_2
+public import LeanVM.Guest.Checked.F21_7
+public import LeanVM.Guest.Checked.F21_12
+public import LeanVM.Guest.Checked.F21_17
+public import LeanVM.Guest.Checked.F21_17
+public import LeanVM.Guest.Checked.F22_4
+public import LeanVM.Guest.Checked.F22_12
+public import LeanVM.Guest.Checked.F31_0
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
+
+theorem ok1 : CheckOk 1 := fun i hi ↦ by
+  have h : (certOf 1).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1_0
+  · exact w1_1
 
 theorem plain2 : Plain 2 := plain_of_nil (by decide +kernel)
 

@@ -43,7 +43,7 @@ theorem layer_residOk {first : ℕ} (hf : first < 2) :
     noneIn (resid (atomsL (weightT first))) (layerSt first) = true ∧
     noneIn (resid (atomsL (tailEqf (weightEnd first)))) (layerSt first) = true ∧
     noneIn [.load (.n (topV (weightEnd first))) (.n 1081) 5] (layerSt first) = true ∧
-    (∀ i < 7, noneIn (resid (atomsL (flipT (weightEnd first) i))) (layerSt first) = true) ∧
+    (∀ i < 7, noneIn (resid (atomsL (layerFlipT (weightEnd first) i))) (layerSt first) = true) ∧
     (∀ i < 7, (layerSt first).contains (.load (.n (flipB (weightEnd first) i + 42))
       (.n (topV (weightEnd first) + 3)) i) = true) := by
   interval_cases first

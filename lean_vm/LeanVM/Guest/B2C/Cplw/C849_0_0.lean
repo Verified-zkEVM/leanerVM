@@ -25,6 +25,9 @@ theorem cw850_0_0 : cplWin 850 0 0 = true := by decide +kernel
 /-- `__loop369`, window 1, part 0. -/
 theorem cw850_1_0 : cplWin 850 1 0 = true := by decide +kernel
 
+/-- `__loop369`, window 2, part 0. -/
+theorem cw850_2_0 : cplWin 850 2 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L15_L5`, window 0, part 0. -/
 theorem cw851_0_0 : cplWin 851 0 0 = true := by decide +kernel
 
@@ -34,8 +37,8 @@ theorem cw852_0_0 : cplWin 852 0 0 = true := by decide +kernel
 /-- `__loop370`, window 1, part 0. -/
 theorem cw852_1_0 : cplWin 852 1 0 = true := by decide +kernel
 
-/-- `decode_query_windows__L14_L5`, window 0, part 0. -/
-theorem cw853_0_0 : cplWin 853 0 0 = true := by decide +kernel
+/-- `__loop370`, window 2, part 0. -/
+theorem cw852_2_0 : cplWin 852 2 0 = true := by decide +kernel
 
 theorem ok849 : CplOk 849 := by
   intro i hi k hk
@@ -49,7 +52,7 @@ theorem ok849 : CplOk 849 := by
 
 theorem ok850 : CplOk 850 := by
   intro i hi k hk
-  have hc : (certOf 850).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 850).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 850 0 = 1 := by decide +kernel
@@ -60,6 +63,10 @@ theorem ok850 : CplOk 850 := by
     rw [hn] at hk
     interval_cases k
     · exact cw850_1_0
+  · have hn : nParts 850 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw850_2_0
 
 theorem ok851 : CplOk 851 := by
   intro i hi k hk
@@ -73,7 +80,7 @@ theorem ok851 : CplOk 851 := by
 
 theorem ok852 : CplOk 852 := by
   intro i hi k hk
-  have hc : (certOf 852).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 852).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 852 0 = 1 := by decide +kernel
@@ -84,16 +91,10 @@ theorem ok852 : CplOk 852 := by
     rw [hn] at hk
     interval_cases k
     · exact cw852_1_0
-
-theorem ok853 : CplOk 853 := by
-  intro i hi k hk
-  have hc : (certOf 853).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 853 0 = 1 := by decide +kernel
+  · have hn : nParts 852 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw853_0_0
+    · exact cw852_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

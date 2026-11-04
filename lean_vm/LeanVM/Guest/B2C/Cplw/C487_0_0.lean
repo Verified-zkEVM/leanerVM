@@ -31,14 +31,14 @@ theorem cw490_0_0 : cplWin 490 0 0 = true := by decide +kernel
 /-- `opening_queries__L0_L1_L64_L32_L20_L8`, window 0, part 0. -/
 theorem cw491_0_0 : cplWin 491 0 0 = true := by decide +kernel
 
+/-- `opening_queries__L0_L1_L64_L32_L20_L8`, window 1, part 0. -/
+theorem cw491_1_0 : cplWin 491 1 0 = true := by decide +kernel
+
 /-- `opening_ood_point__L15`, window 0, part 0. -/
 theorem cw492_0_0 : cplWin 492 0 0 = true := by decide +kernel
 
 /-- `__loop68`, window 0, part 0. -/
 theorem cw493_0_0 : cplWin 493 0 0 = true := by decide +kernel
-
-/-- `opening_queries__L0_L0_L16_L24_L19_L6`, window 0, part 0. -/
-theorem cw494_0_0 : cplWin 494 0 0 = true := by decide +kernel
 
 theorem ok487 : CplOk 487 := by
   intro i hi k hk
@@ -82,13 +82,17 @@ theorem ok490 : CplOk 490 := by
 
 theorem ok491 : CplOk 491 := by
   intro i hi k hk
-  have hc : (certOf 491).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 491).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 491 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw491_0_0
+  · have hn : nParts 491 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw491_1_0
 
 theorem ok492 : CplOk 492 := by
   intro i hi k hk
@@ -109,16 +113,6 @@ theorem ok493 : CplOk 493 := by
     rw [hn] at hk
     interval_cases k
     · exact cw493_0_0
-
-theorem ok494 : CplOk 494 := by
-  intro i hi k hk
-  have hc : (certOf 494).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 494 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw494_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

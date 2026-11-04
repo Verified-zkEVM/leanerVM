@@ -26,6 +26,9 @@ theorem w608_0 : WinOk 608 0 := winOk_of_C (by decide +kernel)
 /-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 0. -/
 theorem w609_0 : WinOk 609 0 := winOk_of_C (by decide +kernel)
 
+/-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 1. -/
+theorem w609_1 : WinOk 609 1 := winOk_of_C (by decide +kernel)
+
 /-- `__loop156`, window 0. -/
 theorem w610_0 : WinOk 610 0 := winOk_of_C (by decide +kernel)
 
@@ -38,14 +41,9 @@ theorem w612_0 : WinOk 612 0 := winOk_of_C (by decide +kernel)
 /-- `__loop159`, window 0. -/
 theorem w613_0 : WinOk 613 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L19_L4`, window 0. -/
-theorem w614_0 : WinOk 614 0 := winOk_of_C (by decide +kernel)
-
 theorem ok607 : CheckOk 607 := checkOk_one (by decide +kernel) w607_0
 
 theorem ok608 : CheckOk 608 := checkOk_one (by decide +kernel) w608_0
-
-theorem ok609 : CheckOk 609 := checkOk_one (by decide +kernel) w609_0
 
 theorem ok610 : CheckOk 610 := checkOk_one (by decide +kernel) w610_0
 
@@ -54,8 +52,6 @@ theorem ok611 : CheckOk 611 := checkOk_one (by decide +kernel) w611_0
 theorem ok612 : CheckOk 612 := checkOk_one (by decide +kernel) w612_0
 
 theorem ok613 : CheckOk 613 := checkOk_one (by decide +kernel) w613_0
-
-theorem ok614 : CheckOk 614 := checkOk_one (by decide +kernel) w614_0
 
 end
 end LeanVM.Guest.Checked

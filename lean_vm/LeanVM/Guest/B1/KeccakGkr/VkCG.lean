@@ -18,9 +18,10 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatG
 * `eqLevels rs n`: an equality tree's levels, `eqKernel` of the first `t` coordinates for
   `t = 1 … n`, as `eqtree` stores them (`eqLevels_getD`).
 * For a `VkData` `D`, from the buffers' base `B` and the layers' buffers' bases `ls`: `D.sizes` and
-  `D.own B ls`, the nineteen buffers' sizes and words (the first claim's point, the lane
-  coordinates, the claim records, the five equality trees, the low tree); `D.CL B ls s`, where claim
-  `s`'s record and buffers are (`ClaimLay`); `D.lcur s`, where layer `s` reads past the cursor.
+  `D.own B ls`, the seven buffers' sizes and words (the first claim's point, the lane
+  coordinates, the claim records, the instance, lane and segment trees, the low tree);
+  `D.CL B ls s`, where claim `s`'s record and buffers are (`ClaimLay`); `D.lcur s`, where layer
+  `s` reads past the cursor.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -87,17 +88,14 @@ namespace VkData
 
 variable (D : VkData)
 
-/-- The layers' parity. -/
-def odd : ℕ := (D.τ - 3) % 2
-
 /-- Layer `s`'s specialization. -/
-def lname (s : ℕ) : String := layerName (firstOf s) D.odd
+def lname (_D : VkData) (s : ℕ) : String := layerName (firstOf s)
 
 /-- Where layer `s` reads, past the cursor. -/
 def lcur (s : ℕ) : ℕ := 1 + s * (47 + 2 * (D.τ - 3) + 36)
 
 /-- The buffers' sizes. -/
-def sizes : List ℕ := [D.τ - 3, 5, 286, 30, 62, 2] ++ List.replicate 12 2 ++ [30]
+def sizes : List ℕ := [D.τ - 3, 5, 286, 30, 62, 2, 30]
 
 /-- The claim records' buffer, past the buffers' base. -/
 def o201 : ℕ := D.τ + 2
@@ -124,19 +122,15 @@ def CL (B : ℕ) (ls : ℕ → ℕ) : ℕ → ClaimLay
       lanesOut ((D.layer k).locPt (firstOf k)) ((D.layer k).beta (firstOf k)).1,
       ls k + (D.layer k).y + 128, (D.layer k).locPt (firstOf k), ls k + (D.layer k).y + 164⟩
 
-/-- Step `s`'s segment weights. -/
-def segW (s : ℕ) : List E := eqKernel [(D.chain s).1.point.getD (D.τ - 4) 0]
-
 /-- **The buffers' words.** -/
 def own (B : ℕ) (ls : ℕ → ℕ) : List (List E) :=
-  [D.c0.point, D.rl, D.claims B ls, eqLevels (D.chis.take 4) 4, eqLevels D.rl 5, eqKernel D.seg] ++
-    (List.range 12).map D.segW ++ [eqLevels D.I.1 4]
+  [D.c0.point, D.rl, D.claims B ls, eqLevels (D.chis.take 4) 4, eqLevels D.rl 5, eqKernel D.seg,
+    eqLevels D.I.1 4]
 
 theorem bases_eq (B : ℕ) (h : 3 ≤ D.τ) :
-    bases B D.sizes = [B, B + (D.τ - 3), B + D.o201, B + D.τ + 288, B + D.o274, B + D.τ + 380] ++
-      (List.range 12).map (fun s ↦ B + D.τ + 382 + 2 * s) ++ [B + D.τ + 406] := by
-  simp only [sizes, o201, o274, List.replicate, List.cons_append, List.nil_append, bases,
-    List.range_succ, List.range_zero, List.map_cons, List.map_nil]
+    bases B D.sizes = [B, B + (D.τ - 3), B + D.o201, B + D.τ + 288, B + D.o274, B + D.τ + 380,
+      B + D.τ + 382] := by
+  simp only [sizes, o201, o274, bases]
   simp only [List.cons.injEq, and_true, true_and]
   repeat' apply And.intro
   all_goals omega
