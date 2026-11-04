@@ -43,7 +43,7 @@ example : guestProgram.fetch (addressOfIndex (53169 + 76547)) =
   guest_fetch_of sphincs_mem (i := 76547) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `main`'s first instruction, `SET fp[10] = g^65535`, the immediate as its bits. -/
-example : guestProgram.fetch (addressOfIndex 8456) = some (OffsetInstruction.set 10
+example : guestProgram.fetch (addressOfIndex 4104) = some (OffsetInstruction.set 10
     9272771591053052074 0 0).toLeanIsaInstruction :=
   guest_fetch_of (f := Data.f1) (mem_functions (j := 1) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
