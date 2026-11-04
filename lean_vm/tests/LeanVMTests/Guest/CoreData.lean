@@ -79,6 +79,12 @@ def bool (e : Expr) : R Bool := do
   | (``Bool.false, #[]) => return false
   | _ => bad "a Bool" e
 
+def option {α : Type} (f : Expr → R α) (e : Expr) : R (Option α) := do
+  match ← app e with
+  | (``Option.none, #[_]) => return none
+  | (``Option.some, #[_, a]) => return some (← f a)
+  | _ => bad "an Option" e
+
 def dest (e : Expr) : R Dest := do
   match ← app e with
   | (``Dest.stack, #[cs]) => return .stack (← vals cs)
@@ -90,6 +96,10 @@ def hint (e : Expr) : R Hint := do
   | (``Hint.witness, #[s, d]) => return .witness (← str s) (← dest d)
   | (``Hint.bits, #[v, s, n, d]) => return .bits (← val v) (← nat s) (← nat n) (← dest d)
   | (``Hint.bitsExp, #[v, n, d]) => return .bitsExp (← val v) (← nat n) (← dest d)
+  | (``Hint.digitsExp, #[v, n, k, b, s, c, d]) =>
+      return .digitsExp (← val v) (← nat n) (← nat k) (← nat b) (← nat s) (← option val c) (← dest d)
+  | (``Hint.windowsExp, #[v, s, w, k, d]) =>
+      return .windowsExp (← val v) (← nat s) (← nat w) (← nat k) (← dest d)
   | (``Hint.limbs, #[v, d]) => return .limbs (← val v) (← vals d)
   | (``Hint.log2Ceil, #[b, n, f, d]) => return .log2Ceil (← dest b) (← nat n) (← nat f) (← val d)
   | (``Hint.inverse, #[x, d]) => return .inverse (← val x) (← val d)
@@ -138,7 +148,7 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 884 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 947 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
@@ -150,7 +160,7 @@ first function past `sp_wots` (core 21, compiled function 22). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 884 := coreProgram_length
+example : coreProgram.length = 947 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
@@ -164,16 +174,16 @@ example : coreProgram.find? "sp_wots" = some Data.core20 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
   Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core441 :=
-  Program.find?_of_indexOf? (j := 441) (by decide +kernel) rfl
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core472 :=
+  Program.find?_of_indexOf? (j := 472) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop419" = some Data.core883 :=
-  Program.find?_of_indexOf? (j := 883) (by decide +kernel) rfl
+example : coreProgram.find? "__loop423" = some Data.core946 :=
+  Program.find?_of_indexOf? (j := 946) (by decide +kernel) rfl
 
 example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
 example : Data.core21.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
 
-example : Data.core883.name = Data.f884.name := name_eq_compiled (j := 883) rfl rfl
+example : Data.core946.name = Data.f947.name := name_eq_compiled (j := 946) rfl rfl
 
 end LeanVMTests.Guest.CoreData

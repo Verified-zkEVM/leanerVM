@@ -44,7 +44,7 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 
 #guard get "meta" == [[count 1, count 0, count 1, count 0, count 0, count 0, count 0, count 0]]
 #guard get "fs_seed" == [digestCells seed]
-#guard get "signers_split" == [[count 0, count 1]]
+#guard get "signers_split" == [[count 0, count 0, count 1]]
 #guard get "claims" == [claimCells key.root key.parameter message]
 #guard get "raw_index" == [[count 0]]
 #guard get "leaf_defer" == [[5]]
@@ -67,9 +67,10 @@ on the right below level `1`, at it on the left (bit `1` of the key `2^16 + 2` i
 /- A digit group's index: its digits little endian in base 4, in the exponent. -/
 #guard digitGroups [1, 2, 3, 0] == [("digits", [count 57]), ("digits", [count 0])]
 
-/- A list of `n` claims splits into `n / 17` whole groups and `n % 17`; `exponent_bytes` is the
-value's bytes, low first. -/
-#guard listSplit 40 == [count 2, count 6]
+/- A list of `n` claims splits into `n / 136` whole frames of eight groups, then the rest's whole
+groups of 17 and the claims after them; `exponent_bytes` is the value's bytes, low first. -/
+#guard listSplit 40 == [count 0, count 2, count 6]
+#guard listSplit 300 == [count 2, count 1, count 11]
 #guard exponentBytes 0x30201 22 == [count 1, count 2, count 3]
 
 /-! ## Coverage -/
