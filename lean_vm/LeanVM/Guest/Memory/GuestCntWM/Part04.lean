@@ -9,47 +9,47 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_346 : kumStaticRange 346 30 := by
+theorem kumstaticRange_384 : kumStaticRange 384 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_376 : kumStaticRange 376 30 := by
+theorem kumstaticRange_414 : kumStaticRange 414 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_406 : kumStaticRange 406 30 := by
+theorem kumstaticRange_444 : kumStaticRange 444 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_436 : kumStaticRange 436 30 := by
+theorem kumstaticRange_474 : kumStaticRange 474 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_466 : kumStaticRange 466 30 := by
+theorem kumstaticRange_504 : kumStaticRange 504 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_496 : kumStaticRange 496 30 := by
+theorem kumstaticRange_534 : kumStaticRange 534 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_526 : kumStaticRange 526 30 := by
+theorem kumstaticRange_564 : kumStaticRange 564 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_556 : kumStaticRange 556 30 := by
+theorem kumstaticRange_594 : kumStaticRange 594 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_586 : kumStaticRange 586 30 := by
+theorem kumstaticRange_624 : kumStaticRange 624 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_616 : kumStaticRange 616 30 := by
+theorem kumstaticRange_654 : kumStaticRange 654 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_646 : kumStaticRange 646 30 := by
+theorem kumstaticRange_684 : kumStaticRange 684 30 := by
   unfold kumStaticRange; decide +kernel
 
 end

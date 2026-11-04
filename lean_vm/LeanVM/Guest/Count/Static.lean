@@ -111,9 +111,9 @@ theorem kw_loopTotalLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
 /-- `exponent_tables`'s instructions. -/
 def kcExp : Opcode → ℕ
   | .xor => 0
-  | .mulNative => 2
-  | .setConstant => 62
-  | .deref => 68
+  | .mulNative => 1
+  | .setConstant => 170
+  | .deref => 236
   | .jump => 1
   | .keccak => 0
 
@@ -122,9 +122,9 @@ theorem kcExp_weightLe (op : Opcode) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "exponent_tables" fun _ => kcExp op := by
   cases op
   · exact kwx_weightLe (by rw [kwxcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwxcertOf "exponent_tables" = .stat [] ⟨0, []⟩ [])
-  · exact kwm_weightLe (by rw [kwmcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwmcertOf "exponent_tables" = .stat [] ⟨2, []⟩ [])
-  · exact kws_weightLe (by rw [kwscertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwscertOf "exponent_tables" = .stat [] ⟨62, []⟩ [])
-  · exact kwd_weightLe (by rw [kwdcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwdcertOf "exponent_tables" = .stat [] ⟨68, []⟩ [])
+  · exact kwm_weightLe (by rw [kwmcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwmcertOf "exponent_tables" = .stat [] ⟨1, []⟩ [])
+  · exact kws_weightLe (by rw [kwscertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwscertOf "exponent_tables" = .stat [] ⟨170, []⟩ [])
+  · exact kwd_weightLe (by rw [kwdcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwdcertOf "exponent_tables" = .stat [] ⟨236, []⟩ [])
   · exact kwj_weightLe (by rw [kwjcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwjcertOf "exponent_tables" = .stat [] ⟨1, []⟩ [])
   · exact kwk_weightLe (by rw [kwkcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : kwkcertOf "exponent_tables" = .stat [] ⟨0, []⟩ [])
 
@@ -162,17 +162,17 @@ theorem kcL1_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop0" (kcL1 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwxcertOf "__loop0" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
+  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwxcertOf "__loop0" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwmcertOf "__loop0" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
+  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwmcertOf "__loop0" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwscertOf "__loop0" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
+  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwscertOf "__loop0" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwdcertOf "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwdcertOf "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwjcertOf "__loop0" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
+  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwjcertOf "__loop0" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : kwkcertOf "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwkcertOf "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop1`'s instructions per iteration. -/
@@ -189,23 +189,23 @@ theorem kcL2_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop1" (kcL2 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwxcertOf "__loop1" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
+  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwxcertOf "__loop1" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwmcertOf "__loop1" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
+  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwmcertOf "__loop1" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwscertOf "__loop1" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
+  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwscertOf "__loop1" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwdcertOf "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwdcertOf "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwjcertOf "__loop1" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
+  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwjcertOf "__loop1" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwkcertOf "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwkcertOf "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop2`'s instructions per iteration. -/
 def kcL3 : Opcode → ℕ
-  | .xor => 295
-  | .mulNative => 243
+  | .xor => 292
+  | .mulNative => 246
   | .setConstant => 206
   | .deref => 132
   | .jump => 84
@@ -216,24 +216,24 @@ theorem kcL3_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop2" (kcL3 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwxcertOf "__loop2" = .loop none [] ⟨295, []⟩ []) hn hv hb ha he hae heo
+  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwxcertOf "__loop2" = .loop none [] ⟨292, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwmcertOf "__loop2" = .loop none [] ⟨243, []⟩ []) hn hv hb ha he hae heo
+  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwmcertOf "__loop2" = .loop none [] ⟨246, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwscertOf "__loop2" = .loop none [] ⟨206, []⟩ []) hn hv hb ha he hae heo
+  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwscertOf "__loop2" = .loop none [] ⟨206, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwdcertOf "__loop2" = .loop none [] ⟨132, []⟩ []) hn hv hb ha he hae heo
+  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwdcertOf "__loop2" = .loop none [] ⟨132, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwjcertOf "__loop2" = .loop none [] ⟨84, []⟩ []) hn hv hb ha he hae heo
+  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwjcertOf "__loop2" = .loop none [] ⟨84, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : kwkcertOf "__loop2" = .loop none [] ⟨398, []⟩ []) hn hv hb ha he hae heo
+  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : kwkcertOf "__loop2" = .loop none [] ⟨398, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop3`'s instructions per iteration. -/
 def kcL4 : Opcode → ℕ
-  | .xor => 2204
-  | .mulNative => 1364
-  | .setConstant => 1164
+  | .xor => 2197
+  | .mulNative => 1369
+  | .setConstant => 825
   | .deref => 290
   | .jump => 143
   | .keccak => 876
@@ -243,31 +243,31 @@ theorem kcL4_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop3" (kcL4 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwxcertOf "__loop3" = .loop none [] ⟨2204, []⟩ []) hn hv hb ha he hae heo
+  · exact kwx_weight_le_of_loop (by rw [kwxcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwxcertOf "__loop3" = .loop none [] ⟨2197, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwmcertOf "__loop3" = .loop none [] ⟨1364, []⟩ []) hn hv hb ha he hae heo
+  · exact kwm_weight_le_of_loop (by rw [kwmcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwmcertOf "__loop3" = .loop none [] ⟨1369, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwscertOf "__loop3" = .loop none [] ⟨1164, []⟩ []) hn hv hb ha he hae heo
+  · exact kws_weight_le_of_loop (by rw [kwscertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwscertOf "__loop3" = .loop none [] ⟨825, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwdcertOf "__loop3" = .loop none [] ⟨290, []⟩ []) hn hv hb ha he hae heo
+  · exact kwd_weight_le_of_loop (by rw [kwdcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwdcertOf "__loop3" = .loop none [] ⟨290, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwjcertOf "__loop3" = .loop none [] ⟨143, []⟩ []) hn hv hb ha he hae heo
+  · exact kwj_weight_le_of_loop (by rw [kwjcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwjcertOf "__loop3" = .loop none [] ⟨143, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : kwkcertOf "__loop3" = .loop none [] ⟨876, []⟩ []) hn hv hb ha he hae heo
+  · exact kwk_weight_le_of_loop (by rw [kwkcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : kwkcertOf "__loop3" = .loop none [] ⟨876, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `aggregate_claims`' instructions: the constant. -/
 def kcAggC : Opcode → ℕ
-  | .xor => 265
-  | .mulNative => 171
+  | .xor => 287
+  | .mulNative => 172
   | .setConstant => 25
-  | .deref => 195
+  | .deref => 218
   | .jump => 80
   | .keccak => 24
 
 /-- `aggregate_claims`' instructions: per unit of `n`. -/
 def kcAggD : Opcode → ℕ
-  | .xor => 203
+  | .xor => 157
   | .mulNative => 160
   | .setConstant => 15
   | .deref => 160
@@ -287,30 +287,30 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     exact ⟨n, h0, h1, ha⟩
   have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
   cases op
-  · have := kwx_weight_le_of_stat (by rw [kwxcertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwxcertOf "aggregate_claims" = .stat [(0, 0)] ⟨265, [(0, 105), (0, 3), (0, 95)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kwx_weight_le_of_stat (by rw [kwxcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwxcertOf "aggregate_claims" = .stat [(0, 0)] ⟨287, [(0, 105), (0, 3), (0, 49)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwm_weight_le_of_stat (by rw [kwmcertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwmcertOf "aggregate_claims" = .stat [(0, 0)] ⟨171, [(0, 77), (0, 19), (0, 64)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kwm_weight_le_of_stat (by rw [kwmcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwmcertOf "aggregate_claims" = .stat [(0, 0)] ⟨172, [(0, 77), (0, 19), (0, 64)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kws_weight_le_of_stat (by rw [kwscertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwscertOf "aggregate_claims" = .stat [(0, 0)] ⟨25, [(0, 7), (0, 4), (0, 4)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kws_weight_le_of_stat (by rw [kwscertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwscertOf "aggregate_claims" = .stat [(0, 0)] ⟨25, [(0, 7), (0, 4), (0, 4)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwd_weight_le_of_stat (by rw [kwdcertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwdcertOf "aggregate_claims" = .stat [(0, 0)] ⟨195, [(0, 78), (0, 8), (0, 74)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kwd_weight_le_of_stat (by rw [kwdcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwdcertOf "aggregate_claims" = .stat [(0, 0)] ⟨218, [(0, 78), (0, 8), (0, 74)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwj_weight_le_of_stat (by rw [kwjcertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwjcertOf "aggregate_claims" = .stat [(0, 0)] ⟨80, [(0, 54), (0, 2), (0, 2)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kwj_weight_le_of_stat (by rw [kwjcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwjcertOf "aggregate_claims" = .stat [(0, 0)] ⟨80, [(0, 54), (0, 2), (0, 2)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := kwk_weight_le_of_stat (by rw [kwkcertOf_of_idx (j := 32) (by decide +kernel)]; rfl : kwkcertOf "aggregate_claims" = .stat [(0, 0)] ⟨24, [(0, 13), (0, 0), (0, 0)]⟩ [(.n 63, 0), (.n 116, 0), (.n 133, 0)]) hn hv hb hpre
+  · have := kwk_weight_le_of_stat (by rw [kwkcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : kwkcertOf "aggregate_claims" = .stat [(0, 0)] ⟨24, [(0, 13), (0, 0), (0, 0)]⟩ [(.n 63, 0), (.n 116, 0), (.n 203, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
 
 /-! ## Words at the frame sizes `B2C.fs` -/
 
-/-- **`exponent_tables`**: at most 136 words. -/
-theorem kwExp_totalLe : TotalLe coreProgram B2C.fs "exponent_tables" fun _ => 136 :=
-  fs_totalLe (by rw [wcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : wcertOf "exponent_tables" = .stat [] ⟨136, []⟩ [])
+/-- **`exponent_tables`**: at most 410 words. -/
+theorem kwExp_totalLe : TotalLe coreProgram B2C.fs "exponent_tables" fun _ => 410 :=
+  fs_totalLe (by rw [wcertOf_of_idx (j := 2) (by decide +kernel)]; rfl : wcertOf "exponent_tables" = .stat [] ⟨410, []⟩ [])
 
 /-- **`statement_digest`**: at most 389 words. -/
 theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 389 :=
@@ -319,28 +319,28 @@ theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 38
 /-- **`__loop0`**: at most 36 words per iteration. -/
 theorem kwL1_loopTotalLe : LoopTotalLe B2C.fs "__loop0" 36 := by
   intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 33) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
 
 /-- **`__loop1`**: at most 36 words per iteration. -/
 theorem kwL2_loopTotalLe : LoopTotalLe B2C.fs "__loop1" 36 := by
   intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
 
 /-- **`__loop2`**: at most 6459 words per iteration. -/
 theorem kwL3_loopTotalLe : LoopTotalLe B2C.fs "__loop2" 6459 := by
   intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨6459, []⟩ []) hn hv hb ha he hae heo
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨6459, []⟩ []) hn hv hb ha he hae heo
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
 
-/-- **`__loop3`**: at most 17904 words per iteration. -/
-theorem kwL4_loopTotalLe : LoopTotalLe B2C.fs "__loop3" 17904 := by
+/-- **`__loop3`**: at most 17561 words per iteration. -/
+theorem kwL4_loopTotalLe : LoopTotalLe B2C.fs "__loop3" 17561 := by
   intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨17904, []⟩ []) hn hv hb ha he hae heo
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨17561, []⟩ []) hn hv hb ha he hae heo
     (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
 

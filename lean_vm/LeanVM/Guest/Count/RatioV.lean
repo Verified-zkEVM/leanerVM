@@ -12,8 +12,6 @@ public import LeanVM.Guest.Count.RatioVChkVbg0C
 public import LeanVM.Guest.Count.RatioVChkVbg0R
 public import LeanVM.Guest.Count.RatioVChkVk0C
 public import LeanVM.Guest.Count.RatioVChkVk0R
-public import LeanVM.Guest.Count.RatioVChkVk1C
-public import LeanVM.Guest.Count.RatioVChkVk1R
 public import LeanVM.Guest.Count.RatioVChkVl150C
 public import LeanVM.Guest.Count.RatioVChkVl150R
 public import LeanVM.Guest.Count.RatioVChkVrsw0C
@@ -48,13 +46,13 @@ theorem krVbg_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : L
     t.name = "verify_bus_gkr" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVbgA op * t.total fs :=
   fun _ _ _ _ hn hv _ => kr_weight krVbg_closed krVbg_ratio (by decide +kernel)
-    ⟨8, by decide +kernel, by decide +kernel⟩ op hn hv
+    ⟨9, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVk_closed : (krVkJ).all (krClosedAt krVkJ krVkC) = true :=
-  kr_all_append (krVk_closed0) krVk_closed1
+  krVk_closed0
 
 theorem krVk_ratio : (krVkJ).all (krRatioAt krVkA) = true :=
-  kr_all_append (krVk_ratio0) krVk_ratio1
+  krVk_ratio0
 
 /-- **`verify_keccak`'s counts within its ratios of its words.** -/
 theorem krVk_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E),
@@ -74,7 +72,7 @@ theorem krVl15_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : 
     t.name = "__loop14" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVl15A op * t.total fs :=
   fun _ _ _ _ hn hv _ => kr_weight krVl15_closed krVl15_ratio (by decide +kernel)
-    ⟨263, by decide +kernel, by decide +kernel⟩ op hn hv
+    ⟨271, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVrsw_closed : (krVrswJ).all (krClosedAt krVrswJ krVrswC) = true :=
   krVrsw_closed0
