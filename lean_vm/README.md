@@ -52,7 +52,7 @@ The batching of a node's children, which depends on the statement alone, is re-p
 
 ### The guest's proof
 
-`LeanVM/Guest/EndFinal.lean` and, for `aggregate_sound_outer` (in the random-permutation model), `LeanVM/Guest/EndRpm.lean`, pinned in [`LeanVM.lean`](LeanVM.lean) (axioms `propext`, `Classical.choice`, `Quot.sound`), for the deployed bytecode `guestProgram` (`2^19` slots, 362,263 instructions, `bytecode = bytecodeWords guestProgram`, `2^23` words) and the decoder `LeanVM.Guest.End.decode`:
+`LeanVM/Guest/EndFinal.lean` and, for `aggregate_sound_outer` (in the random-permutation model), `LeanVM/Guest/EndRpm.lean`, pinned in [`LeanVM.lean`](LeanVM.lean) (axioms `propext`, `Classical.choice`, `Quot.sound`), for the deployed bytecode `guestProgram` (`2^19` slots, 456,105 instructions, `bytecode = bytecodeWords guestProgram`, `2^23` words) and the decoder `LeanVM.Guest.End.decode`:
 
 ```lean
 theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode
@@ -78,7 +78,7 @@ The statement's `GuestKnowledgeSoundness D` (`Statement/LeanVmGuest.lean`) takes
 
 **The chain.** `bytecode ⇐ B2 ⇒ core IR ⇐ B1 ⇒ NodeRelation`:
 
-* B2 (`Guest/Sound.lean`: `b2_step`, `b2_mainL`; `End.b2SoundL`): checker K's contracts for every compiled function, from the kernel-checked certificates (`Guest/Checked/`, 358 modules), give, for a valid execution, `main`'s core IR body at its frame with every call located at a frame of the memory (`End.mainBodyL_of`, the run's start `safe_jumpTables`). It takes two facts about the core IR from B1: `exponent_tables` returns the exponent tables (`expTablesSound`, from `exponent_tables_holds`), and `verify_sub`'s first 2098 statements put the 99 committed columns' logs `col_kappas` below 29 (`vsKnown_proved`, from `VerifySub.vsKnown_holds`).
+* B2 (`Guest/Sound.lean`: `b2_step`, `b2_mainL`; `End.b2SoundL`): checker K's contracts for every compiled function, from the kernel-checked certificates (`Guest/Checked/`, 207 modules), give, for a valid execution, `main`'s core IR body at its frame with every call located at a frame of the memory (`End.mainBodyL_of`, the run's start `safe_jumpTables`). It takes two facts about the core IR from B1: `exponent_tables` returns the exponent table (`expTablesSound`, from `exponent_tables_holds`), and `verify_sub`'s first 1592 statements, up to its call of `check_opening_terminal`, put the 8 entries of `kappa_base` (`g^0`, the memory's log, the six tables' heights, keccak's `τ`) below `g^1`, `g^29` and `g^23` (`vsKbBound`), the arms the terminal dispatches on (`vsKnown_proved`, from `VerifySub.vsKnown_holds`); the windowed Merkle walks' cut obligations (`WalkKnown`, the windows' bounds the walk's dispatches need, B1's from `decode_query_windows`' range checks) thread through `CutsKnown` likewise (`walkKnown_proved`: vacuous while the certificates hand nothing on there).
 * B1 (`B1/`): `main`'s soundness over any call relation that unfolds along a frame map (`B1.UnfoldsV`), its witness `decWitV` (`B1.Main.main_sound_V_of_sub`), given `verify_sub`'s with its proof `vsPiOf` (`VerifySub.verify_sub_sound_w : Main.SubSoundW bytecode vsPiOf`). The located relation unfolds along the memory's frame map (`Located.unfoldsV_RL`).
 * The binding of the statement's digest is `EndKnow` (`guest_knowledge_of`, `decode_binds_of`), and the composition with the verifier's knowledge soundness in the random-permutation model (`LeanVM.knowledgeSoundness_holds`) is `EndRpm` (`aggregate_knowledge_of`, `aggregate_sound_outer_of`).
 

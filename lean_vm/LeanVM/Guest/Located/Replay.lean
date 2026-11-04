@@ -203,16 +203,25 @@ def memTest (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
             (addressOfIndex e)))
     | none => false
 
-/-- The exponent tables at `p`, `q` (`B1.ExpTables`), decided. -/
-def expTablesTest (rd : Reader) (p q : E) : Bool :=
-  (List.range sizeBits).all fun j ↦ decide (IsInK p) &&
-    decide (rd (p.limb 0 * addressOfIndex j) = some (Protocol.Verifier.eOfNat (2 ^ j))) && decide
-        (IsInK q) &&
-    decide (rd (q.limb 0 * addressOfIndex j) = some (Protocol.Verifier.gen ^ 2 ^ j))
+/-- Word `o` of the table at `q` is `v`, decided (`LoadHolds`). -/
+def loadTest (rd : Reader) (q : E) (o : ℕ) (v : E) : Bool :=
+  decide (IsInK q) && decide (rd (q.limb 0 * addressOfIndex o) = some v)
 
-/-- The semantic pairs hold, decided: the exponent tables at each pair of cells. -/
+/-- The exponent table at `q` (`B1.ExpTables`), decided, section by section. -/
+def expTablesTest (rd : Reader) (q : E) : Bool :=
+  ((List.range sizeBits).all fun j ↦ loadTest rd q j (Protocol.Verifier.gen ^ 2 ^ j)) &&
+    ((List.range selTabNibbles).all fun j ↦ (List.range 16).all fun u ↦
+      loadTest rd q (sizeBits + 16 * j + u) (Protocol.Verifier.gen ^ (u * 16 ^ j))) &&
+    ((List.range sizeBits).all fun k ↦
+      loadTest rd q (rankKeysAt + k) (Protocol.Verifier.gen ^ (k * rankStride))) &&
+    ((List.range nGkrSides).all fun s ↦ (List.range (sideGroupStart.getD (s + 1) 0)).all fun gi ↦
+      !decide (sideGroupStart.getD s 0 ≤ gi) ||
+        loadTest rd q (sideTabAt + gi) (Protocol.Verifier.eOfNat s))
+
+/-- The semantic pairs hold, decided: the exponent table at the first cell of each pair
+(`glob`'s relation). -/
 def semTest (rd : Reader) (fp : K) (sems : List (ℕ × ℕ)) : Bool :=
-  sems.all fun p ↦ expTablesTest rd (wordWith rd fp p.1) (wordWith rd fp p.2)
+  sems.all fun p ↦ expTablesTest rd (wordWith rd fp p.1)
 
 /-- **Function `j`'s precondition at frame `fp`, decided**, but for the jump table, which the run
 writes first (`Check.Pre`). -/
@@ -264,7 +273,7 @@ theorem bndTest_iff {bnd : List (ℕ × ℕ)} : bndTest L.read fp bnd = true ↔
 
 theorem memTest_iff {mem : List (ℕ × ℕ × ℕ)} : memTest L.read fp mem = true ↔ MemPre L fp mem := by
   unfold memTest MemPre
-  simp only [List.all_eq_true, List.mem_range]
+  simp only [List.all_eq_true]
   refine forall_congr' fun m ↦ forall_congr' fun _ ↦ ?_
   split
   · rename_i p hp
@@ -272,8 +281,19 @@ theorem memTest_iff {mem : List (ℕ × ℕ × ℕ)} : memTest L.read fp mem = t
   · rename_i hp
     simp [hp]
 
-theorem expTablesTest_iff {rd : Reader} {p q : E} : expTablesTest rd p q = true ↔ ExpTables rd p q := by
-  simp [expTablesTest, ExpTables, LoadHolds, List.all_eq_true, List.mem_range, and_assoc]
+theorem loadTest_iff {rd : Reader} {q : E} {o : ℕ} {v : E} :
+    loadTest rd q o v = true ↔ LoadHolds rd q o v := by
+  simp [loadTest, LoadHolds]
+
+theorem expTablesTest_iff {rd : Reader} {q : E} : expTablesTest rd q = true ↔ ExpTables rd q := by
+  simp only [expTablesTest, ExpTables, Bool.and_eq_true, List.all_eq_true, List.mem_range,
+    loadTest_iff, Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, not_le, and_assoc]
+  refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr Iff.rfl
+    (forall_congr' fun s ↦ forall_congr' fun _ ↦ ⟨fun h gi h1 h2 ↦ ?_, fun h gi h2 ↦ ?_⟩)))
+  · exact (h gi h2).resolve_left (by omega)
+  · by_cases h1 : sideGroupStart.getD s 0 ≤ gi
+    · exact Or.inr (h gi h1 h2)
+    · exact Or.inl (by omega)
 
 theorem semTest_iff {sems : List (ℕ × ℕ)} : semTest L.read fp sems = true ↔ SemHolds glob L fp sems := by
   unfold semTest SemHolds
