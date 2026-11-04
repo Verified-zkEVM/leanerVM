@@ -24,7 +24,7 @@ open Lean Elab Command in
     `LeanVM.Guest.Fast.Wots, `LeanVM.Guest.Fast.SpWots, `LeanVM.Guest.Fast.LogG,
     `LeanVM.Guest.Fast.Common, `LeanVM.Guest.Fast.PreTest, `LeanVM.Guest.CertName,
     `LeanVM.Guest.CheckSound,
-    `LeanVM.Guest.Located, `LeanVM.Guest.B1.Sig.XmssSegSound, `LeanVM.Guest.B1.Sig.SphincsSound,
+    `LeanVM.Guest.Located, `LeanVM.Guest.B1.Sig.XmssSegSound, `LeanVM.Guest.B1.Sig.XmssLoop2, `LeanVM.Guest.B1.Sig.SphincsSound,
     `LeanVM.Guest.B1.VerifySub, `LeanVM.Guest.B1.Main.SoundV, `LeanVM.Guest.B1.Main.Interface,
     `LeanVM.Cost, `LeanVM.Guest.End, `LeanVM.Guest.EndFinal, `Statement.Theorems,
     `Statement.Corollaries]

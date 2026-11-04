@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Composed
 public import LeanVM.Guest.B1.Da.Verify
-public import LeanVM.Guest.B1.Sig.XmssSound
+public import LeanVM.Guest.B1.Sig.XmssLoop2
 public import LeanVM.Guest.B1.Sig.SphincsSound
 
 /-!
