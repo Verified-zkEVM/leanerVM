@@ -361,7 +361,7 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) (T : Xmss
       rw [limbs_of_lt (by omega : l.val < 2 ^ 64)]
       have := xPartA_cost P hσ hS (by includes) T hT 196 2 T.sel0 T.path0 hT.sel0 hT.path0
         (by norm_num)
-      have := xPartA_cost P hσ hS (by includes) T hT 12604 18 T.sel1 T.path1 hT.sel1 hT.path1
+      have := xPartA_cost P hσ hS (by includes) T hT 12624 18 T.sel1 T.path1 hT.sel1 hT.path1
         (by norm_num)
       split_ifs <;> omega) 0 (Nat.zero_le _)
   simp only [LeanXmss.layerCount, Nat.sub_zero] at m ⊢
@@ -410,7 +410,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
     machineCost P Decoder.layerAC.costIdx [encodeValue T, σV, wV, encodeValue ctr,
       encodeValue path, encodeValue bit, encodeValue layer] ≤ 169 * S + 104200 := by
   rw [Decoder.layerAC.costEq P hP T σ σV hσ w wV hw, ofFnFrom_length, ofFnFrom_length,
-    Auto.Sphincs.layerHeight.c844.costEq P (by includes)]
+    Auto.Sphincs.layerHeight.c848.costEq P (by includes)]
   have := hS (.n ctr)
   have := cellNat_cost P (by includes) (σ (.n ctr))
   have hl1 := limbs_le_of_lt (x := Sig.cellNat (σ (.n ctr))) (k := 2) (by norm_num)
@@ -490,9 +490,9 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
     Decoder.spCtrC.costEq P (by includes), Decoder.spPathC.costEq P (by includes),
     Decoder.spPathC.costEq P (by includes), Decoder.spPathC.costEq P (by includes),
     Decoder.spBitC.costEq P (by includes), Decoder.spBitC.costEq P (by includes),
-    Decoder.spBitC.costEq P (by includes), Auto.Fin.ofNat.c847.costEq P (by includes),
-    Auto.Fin.ofNat.c847.costEq P (by includes),
-    Auto.Fin.ofNat.c847.costEq P (by includes)]
+    Decoder.spBitC.costEq P (by includes), Auto.Fin.ofNat.c851.costEq P (by includes),
+    Auto.Fin.ofNat.c851.costEq P (by includes),
+    Auto.Fin.ofNat.c851.costEq P (by includes)]
   simp only [Sphincs.forsTreeCount, Sphincs.layerCount, Nat.sub_zero] at m0 ⊢
   simp only [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
     limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64),
@@ -506,8 +506,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
 `3·S + 59`. -/
 theorem spWotsArgs_cost (hP : Includes P Decoder.spWotsArgsC.costDeps) (l : ℕ) (hl : l < 3) :
     machineCost P Decoder.spWotsArgsC.costIdx [σV, encodeValue l] ≤ 3 * S + 59 := by
-  rw [Decoder.spWotsArgsC.costEq P hP σ σV hσ, Auto.LeanVM.Guest.Fast.spAt.c849.costEq P (by includes),
-    Auto.LeanVM.Guest.Fast.spEnc.c850.costEq P (by includes), limbs_of_lt (by omega : l < 2 ^ 64)]
+  rw [Decoder.spWotsArgsC.costEq P hP σ σV hσ, Auto.LeanVM.Guest.Fast.spAt.c853.costEq P (by includes),
+    Auto.LeanVM.Guest.Fast.spEnc.c854.costEq P (by includes), limbs_of_lt (by omega : l < 2 ^ 64)]
   have := hS (.n 2); have := hS (.n (spAt l)); have := hS (.n (spEnc l))
   simp only [ite_self]
   split_ifs <;> omega
@@ -515,7 +515,7 @@ theorem spWotsArgs_cost (hP : Includes P Decoder.spWotsArgsC.costDeps) (l : ℕ)
 /-- **A layer's call of `sp_wots`, its return** (`spWotsRetsC`), `l < 3`: at most `S + 24`. -/
 theorem spWotsRets_cost (hP : Includes P Decoder.spWotsRetsC.costDeps) (l : ℕ) (hl : l < 3) :
     machineCost P Decoder.spWotsRetsC.costIdx [σV, encodeValue l] ≤ S + 24 := by
-  rw [Decoder.spWotsRetsC.costEq P hP σ σV hσ, Auto.LeanVM.Guest.Fast.spLeaf.c852.costEq P (by includes),
+  rw [Decoder.spWotsRetsC.costEq P hP σ σV hσ, Auto.LeanVM.Guest.Fast.spLeaf.c856.costEq P (by includes),
     limbs_of_lt (by omega : l < 2 ^ 64)]
   have := hS (.n (spLeaf l))
   simp only [ite_self]

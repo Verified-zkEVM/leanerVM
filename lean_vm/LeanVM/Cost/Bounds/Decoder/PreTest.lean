@@ -26,9 +26,7 @@ The bounds, bottom-up: `readIs_cost` (`20`), `gpowAt_cost` (`17`),
 `symValAt_cost`, `envOne_cost`,
 `readPowBelow_cost`, `bndOne_cost`, `memAt_cost`, `memCell_cost`, `memOne_cost`, `wordAt_cost`
 (`wordWith_cost`, by squaring, for the entry table),
-`powSqE_cost` (a power in `E` by squaring, `11 + 606·(log₂ n + 1)`), `expOne_cost`,
-`expTablesAt_cost` (the exponent tables' `34` entries, the powers `gen^(2^j)` read off the table
-`Pw` the caller built once: `68R + 7569`), `semOne_cost`, then
+`powSqE_cost` (a power in `E` by squaring, `11 + 606·(log₂ n + 1)`), then
 
 * **`fnPreTest_cost`**: an entry's test at most `fnPrePrice R B t` (`PreTestDefs.lean`);
 * **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice R B (T.getD j none) + 19`;
@@ -336,60 +334,6 @@ theorem wordAt_cost (hP : Includes P wordAtC.costDeps) (Pw : Array E) (hW7 : W �
   generalize rd (fp * gpowAt Pw o) = r
   cases r <;> dsimp only <;> omega
 
-include hR in
-/-- An entry of the exponent tables (`expOneC`), `j < 34`, the powers `g^j` and `gen^(2^j)` read
-off the table `Pw`: two reads, at most `2R + 186`. -/
-theorem expOne_cost (hP : Includes P expOneC.costDeps) (Pw : Array E) (p q : E) (j : ℕ)
-    (hj : j < 34) :
-    machineCost P expOneC.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q,
-      encodeValue j] ≤ 2 * R + 186 := by
-  rw [expOneC.costEq P hP Pw rd rdVal hrd, limbs_shift (by omega),
-    limbs_of_lt (by omega : j < 2 ^ 64), limbs_two_pow (by omega)]
-  have h1 := gpowAt_cost P (by includes) Pw j (by unfold smallPowBound; omega)
-  have h2 := hR (p.limb 0 * gpowAt Pw j)
-  have h3 := hR (q.limb 0 * gpowAt Pw j)
-  have h4 := readIs_cost P (by includes) (rd (p.limb 0 * gpowAt Pw j))
-    (LeanVM.Protocol.Verifier.eOfNat (2 ^ j))
-  have h5 := readIs_cost P (by includes) (rd (q.limb 0 * gpowAt Pw j)) (Pw.getD j 0)
-  split_ifs <;> omega
-
-include hR in
-/-- The exponent tables at two words (`expTablesAtC`): `34` entries, at most `68R + 7569`. -/
-theorem expTablesAt_cost (hP : Includes P expTablesAtC.costDeps) (Pw : Array E) (p q : E) :
-    machineCost P expTablesAtC.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q] ≤
-      68 * R + 7569 := by
-  rw [expTablesAtC.costEq P hP Pw rd rdVal hrd]
-  have hs : LeanVM.Guest.B1.sizeBits = 34 := rfl
-  have hr := rangeLoop_cost P (by includes) LeanVM.Guest.B1.sizeBits [] (by rw [hs]; norm_num)
-  have ha := all_cost P (by includes) _
-    (.closure expTablesAtC.lam0.costIdx [encodeValue Pw, rdVal, encodeValue p, encodeValue q])
-    (fun j ↦ RunsApp.of_spec (expTablesAtC.lam0.costSpec P (by includes) Pw rd rdVal hrd p q j))
-    (2 * R + 196) (List.range LeanVM.Guest.B1.sizeBits) (fun j hj ↦ by
-      have hj' := List.mem_range.mp hj
-      rw [hs] at hj'
-      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [expTablesAtC.lam0.costEq P (by includes) Pw rd rdVal hrd]
-      have := expOne_cost P rd rdVal hrd R hR (by includes) Pw p q j hj'
-      omega)
-  simp only [hs, List.length_range] at hr ha ⊢
-  omega
-
-include hR in
-/-- A semantic pair (`semOneC`): two frame cells' words and the exponent tables at them: at most
-`70R + 7700`. -/
-theorem semOne_cost (hP : Includes P semOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
-    (p : ℕ × ℕ) (h1 : p.1 < 2 ^ W) (h2 : p.2 < 2 ^ W) :
-    machineCost P semOneC.costIdx [encodeValue Pw, rdVal, encodeValue fp, encodeValue p] ≤
-      70 * R + 7700 := by
-  rw [semOneC.costEq P hP Pw rd rdVal hrd]
-  have := wordAt_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p.1 h1
-  have := wordAt_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p.2 h2
-  have := expTablesAt_cost P rd rdVal hrd R hR (by includes) Pw
-    (wordAt Pw rd fp p.1) (wordAt Pw rd fp p.2)
-  omega
-
-/-! ## An entry, and function `j` -/
-
 include hR hB in
 /-- **An entry's test** (`fnPreTestC`), its exponents within `W ≤ 7` bits: at most
 `fnPrePrice R B t`. -/
@@ -401,7 +345,7 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (hW7
   cases t with
   | none => dsimp only; simp [fnPrePrice]
   | some s =>
-    obtain ⟨he, hpre, hm, hsem⟩ := ht s rfl
+    obtain ⟨he, hpre, hm⟩ := ht s rfl
     dsimp only
     have h1 := all_cost P (by includes) _
       (.closure fnPreTestC.lam0.costIdx [encodeValue Pw, rdVal, encodeValue fp])
@@ -421,30 +365,16 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (hW7
         have := bndOne_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp p
           (hpre p hp).1 (hpre p hp).2
         omega)
-    have h3 := all_cost_sum P (by includes) _
+    have h3 := all_cost P (by includes) _
       (.closure fnPreTestC.lam2.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp])
       (fun m ↦ RunsApp.of_spec (fnPreTestC.lam2.costSpec P (by includes) D Pw rd rdVal hrd fp m))
-      (fun _ ↦ 2 * R + B + 159) s.mem (fun m hm' ↦ by
+      (2 * R + B + 170) s.mem (fun m hm' ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [fnPreTestC.lam2.costEq P (by includes) D Pw rd rdVal hrd]
         have := memOne_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m
           (hm m hm').1 (hm m hm').2.1 (hm m hm').2.2
         omega)
-    have h4 := all_cost P (by includes) _
-      (.closure fnPreTestC.lam3.costIdx [encodeValue Pw, rdVal, encodeValue fp])
-      (fun p ↦ RunsApp.of_spec (fnPreTestC.lam3.costSpec P (by includes) Pw rd rdVal hrd fp p))
-      (70 * R + 7708) s.sem (fun p hp ↦ by
-        simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [fnPreTestC.lam3.costEq P (by includes) Pw rd rdVal hrd]
-        have := semOne_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p (hsem p hp).1
-          (hsem p hp).2
-        omega)
-    have hsum : (s.mem.map fun _ ↦ 2 * R + B + 159 + 11).sum = (2 * R + B + 170) * memCells s := by
-      have := sum_map_affine (fun _ : ℕ × ℕ × ℕ ↦ 1) (2 * R + B + 170) 0 s.mem
-      unfold memCells
-      simpa [List.sum_map_const, mul_comm] using this
-    rw [hsum] at h3
-    simp only [fnPrePrice]
+    simp only [fnPrePrice, memCells]
     split_ifs <;> nlinarith
 
 include hR hB in
@@ -469,26 +399,23 @@ end Checks
 /-- An entry of the deployed shape has its exponents within `7` bits. -/
 theorem fnPreWithin_of_shape {t : FnPre} (h : fnPreShape t = true) : FnPreWithin 7 t := by
   simp only [fnPreShape, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, he⟩, hp⟩, hm⟩, hs⟩ := h
-  exact ⟨fun p hp' ↦ he p hp', fun p hp' ↦ hp p hp', fun m hm' ↦ ⟨(hm m hm').1.1, (hm m hm').1.2, (hm m hm').2⟩,
-    fun p hp' ↦ hs p hp'⟩
+  obtain ⟨⟨⟨⟨⟨-, -⟩, -⟩, he⟩, hp⟩, hm⟩ := h
+  exact ⟨fun p hp' ↦ he p hp', fun p hp' ↦ hp p hp', fun m hm' ↦ ⟨(hm m hm').1.1, (hm m hm').1.2, (hm m hm').2⟩⟩
 
 /-- **An entry of the deployed shape**: its test's price at most `269R + 99B + 24815`. -/
 theorem fnPrePrice_of_shape {t : FnPre} (h : fnPreShape t = true) (R B : ℕ) :
     fnPrePrice R B (some t) ≤ 269 * R + 99 * B + 24815 := by
   simp only [fnPreShape, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨he, hp⟩, hs⟩, hpc⟩, -⟩, -⟩, -⟩, -⟩ := h
+  obtain ⟨⟨⟨⟨⟨he, hp⟩, hpc⟩, -⟩, -⟩, -⟩ := h
   simp only [fnPrePrice]
   generalize t.env.length = e at *
   generalize t.pre.length = p at *
   generalize t.mem.length = m at *
-  generalize t.sem.length = s at *
   generalize memCells t = c at *
   have h1 : (R + 153) * e ≤ (R + 153) * 1 := Nat.mul_le_mul_left _ he
-  have h2 : (R + B + 83) * p + (2 * R + B + 170) * c ≤ (2 * R + B + 170) * (p + c) := by
+  have h2 : (R + B + 83) * p + (2 * R + B + 181) * c ≤ (2 * R + B + 181) * (p + c) := by
     nlinarith
-  have h3 : (2 * R + B + 170) * (p + c) ≤ (2 * R + B + 170) * 99 := Nat.mul_le_mul_left _ hpc
-  have h4 : (70 * R + 7719) * s ≤ (70 * R + 7719) * 1 := Nat.mul_le_mul_left _ hs
+  have h3 : (2 * R + B + 181) * (p + c) ≤ (2 * R + B + 181) * 99 := Nat.mul_le_mul_left _ hpc
   nlinarith
 
 /-- An entry of a table of the deployed shape has that shape. -/

@@ -39,28 +39,25 @@ def memCells (t : FnPre) : ℕ := t.mem.length
 the memory bounds' cells below `2^W`, the logarithms' bounds at most `34` (`scanBound`: the lanes' scan serves them). -/
 def FnPreWithin (W : ℕ) (t : FnPre) : Prop :=
   (∀ p ∈ t.env, p.1 < 2 ^ W ∧ symExp p.2 < 2 ^ W) ∧ (∀ p ∈ t.pre, p.1 < 2 ^ W ∧ p.2 ≤ 34) ∧
-    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 < 2 ^ W ∧ m.2.2 ≤ 34) ∧
-    (∀ p ∈ t.sem, p.1 < 2 ^ W ∧ p.2 < 2 ^ W)
+    (∀ m ∈ t.mem, m.1 < 2 ^ W ∧ m.2.1 < 2 ^ W ∧ m.2.2 ≤ 34)
 
 /-- **The price of an entry's test** (`fnPreTestC`), its exponents within `7` bits (their powers
 read off the powers table, `17` each), a memory read at most `R`, a logarithm's bound at most `B`:
 per entry-environment check `R + 153`, per bound `R + B + 83`, per memory bound (one cell)
-`2R + B + 170`, per semantic pair `70R + 7719` (the exponent tables' `34` entries,
-each two reads), and `62`; `3` for an entry without a precondition. -/
+`2R + B + 181`, and `62`; `3` for an entry without a precondition. -/
 def fnPrePrice (R B : ℕ) : Option FnPre → ℕ
   | none => 3
   | some t => (R + 153) * t.env.length + (R + B + 83) * t.pre.length +
-      (2 * R + B + 170) * memCells t + (70 * R + 7719) * t.sem.length + 62
+      (2 * R + B + 181) * memCells t + 62
 
-/-- **The deployed table's shape**, decided: at most one entry check, bound and semantic pair, at
+/-- **The deployed table's shape**, decided: at most one entry check and bound, at
 most `99` bounds and memory bounds, exponents below `2^7`, logarithms' bounds at most `34`. -/
 def fnPreShape (t : FnPre) : Bool :=
   decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 1) &&
-    decide (t.sem.length ≤ 1) && decide (t.pre.length + memCells t ≤ 99) &&
+    decide (t.pre.length + memCells t ≤ 99) &&
     t.env.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (symExp p.2 < 2 ^ 7)) &&
     t.pre.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 ≤ 34)) &&
-    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 < 2 ^ 7) && decide (m.2.2 ≤ 34)) &&
-    t.sem.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 < 2 ^ 7))
+    t.mem.all (fun m ↦ decide (m.1 < 2 ^ 7) && decide (m.2.1 < 2 ^ 7) && decide (m.2.2 ≤ 34))
 
 /-- Every entry of a table has the deployed shape. -/
 def tableShape (T : Array (Option FnPre)) : Bool := T.toList.all fun o ↦ o.all fnPreShape

@@ -115,7 +115,7 @@ theorem proofAtFrame_cost (hP : Includes P Decoder.proofAtFrameC.costDeps) (Tb :
     (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
     {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
     {L : ℕ} (hL32 : L ≤ 2 ^ 32) (args : List E) (hlen : args.length ≤ 16)
-    (hL : cl (Vn 19 args [] (.n 27)) (Vn 19 args [] (.n 868)) ≤ L) :
+    (hL : cl (Vn 19 args [] (.n 25)) (Vn 19 args [] (.n 656)) ≤ L) :
     machineCost P Decoder.proofAtFrameC.costIdx [encodeValue Tb, rdV, VnV, clV, encodeValue args] ≤
       vsPiPrice R (F + 9) F C L + 13 := by
   rw [Decoder.proofAtFrameC.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl]
@@ -207,7 +207,7 @@ include hVn hF hrd hR hcl hC hL32 in
 cursor's length at `verify_sub`'s frame at most `L`: `vsPiPrice R (F + 9) F C L + 23`. -/
 theorem wV_cost (hP : Includes P Decoder.decWitNC.lam2.costDeps) (Tb : ReaderTabs)
     (hTb : ReaderTabsOK Tb) (args : List E) (hlen : args.length ≤ 16)
-    (hL : cl (Vn 19 args [] (.n 27)) (Vn 19 args [] (.n 868)) ≤ L) :
+    (hL : cl (Vn 19 args [] (.n 25)) (Vn 19 args [] (.n 656)) ≤ L) :
     appCost P (.closure Decoder.decWitNC.lam2.costIdx [encodeValue Tb, rdV, VnV, clV])
       [encodeValue args] ≤ vsPiPrice R (F + 9) F C L + 23 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,

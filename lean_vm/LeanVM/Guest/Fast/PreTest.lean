@@ -13,13 +13,11 @@ public import LeanVM.Guest.Fast.LogG
 preconditions (`FnPre`, `Fast/PreSig.lean`), the logarithm's baby-step tables `D`
 (`discreteLogWith D`) and the powers `gen^(2^j)`, `j < 34`, of the exponent tables (`Pw`:
 `genPows`, `34` squarings), all built once by the caller: one entry by its own function
-(`fnPreTest`), each list of checks through a function of one check (`envOne`, `bndOne`, `memOne`,
-`semOne`) by partial application, the logarithm passed as a value to `powBelowAt`, so that it
+(`fnPreTest`), each list of checks through a function of one check (`envOne`, `bndOne`, `memOne`)
+by partial application, the logarithm passed as a value to `powBelowAt`, so that it
 compiles to the cost machine (`Cost/Decoder/PreTest.lean`). (`discreteLog x` builds its tables at
 every call, `7.8·10^7` on the cost machine.)
 
-**`expTablesAt_genPows`**: with the powers table, the exponent tables' test is
-`Located.expTablesTest` on every input (`semOne_genPows`).
 **`preTestWith_eq_preTable`**: `preTestWith discreteLog = preTestAt discreteLogTables preTable
 genPows`, the table the kernel wrote out (`Fast/PreTable.lean`); with `preTest_eq_discreteLog`,
 `preTest_eq_preTable`.
@@ -138,27 +136,13 @@ def powsFrom (y : K) : ℕ → List E
 def genPows : Array E :=
   (squaresFrom Protocol.Verifier.gen B1.sizeBits ++ powsFrom 1 smallPowBound).toArray
 
-/-- Entry `j` of the exponent tables at `p`, `q` (`expTablesTest`), the powers `gen^(2^j)` read
-off the table `Pw` (`genPows`). -/
-def expOne (Pw : Array E) (rd : Reader) (p q : E) (j : ℕ) : Bool :=
-  decide (IsInK p) && readIs (rd (p.limb 0 * gpowAt Pw j)) (Protocol.Verifier.eOfNat (2 ^ j)) &&
-    decide (IsInK q) && readIs (rd (q.limb 0 * gpowAt Pw j)) (Pw.getD j 0)
-
-/-- The exponent tables at `p`, `q`. -/
-def expTablesAt (Pw : Array E) (rd : Reader) (p q : E) : Bool :=
-  (List.range B1.sizeBits).all (expOne Pw rd p q)
-
-/-- The semantic pair `(o₁, o₂)`: the exponent tables at the two cells' words. -/
-def semOne (Pw : Array E) (rd : Reader) (fp : K) (p : ℕ × ℕ) : Bool :=
-  expTablesAt Pw rd (wordAt Pw rd fp p.1) (wordAt Pw rd fp p.2)
-
 /-- **A function's precondition at the frame `fp`**, from its entry of the table. -/
 def fnPreTest (D : DiscreteLogTables) (Pw : Array E) (rd : Reader) (fp : K) (t : Option FnPre) :
     Bool :=
   match t with
   | none => true
   | some t => t.env.all (envOne Pw rd fp) && t.pre.all (bndOne D Pw rd fp) &&
-      t.mem.all (memOne D Pw rd fp) && t.sem.all (semOne Pw rd fp)
+      t.mem.all (memOne D Pw rd fp)
 
 /-- **Function `j`'s precondition at the frame `fp`**, from the table `T` of the functions'
 preconditions, the logarithm's baby-step tables `D` and the powers `Pw` (`genPows`) given (but
@@ -305,40 +289,18 @@ theorem genPows_getD {j : ℕ} (hj : j < B1.sizeBits) :
   rw [genPows, Array.getD_eq_getD_getElem?, List.getElem?_toArray, ← List.getD_eq_getElem?_getD,
     List.getD_append _ _ _ _ (by rw [length_squaresFrom]; exact hj), squaresFrom_getD _ _ _ hj]
 
-/-- **With the powers table, the exponent tables' test is `expTablesTest`**, on every input. -/
-theorem expTablesAt_genPows (rd : Reader) (p q : E) :
-    expTablesAt genPows rd p q = expTablesTest rd p q := by
-  unfold expTablesAt expTablesTest
-  apply Bool.eq_iff_iff.mpr
-  simp only [List.all_eq_true, List.mem_range]
-  refine forall_congr' fun j ↦ forall_congr' fun hj ↦ ?_
-  rw [expOne, genPows_getD hj]
-  simp only [readIs_eq, gpowAt_genPows]
-
-/-- **With the powers table, the semantic pair's test is the exponent tables at its cells'
-words**, on every input. -/
-theorem semOne_genPows (rd : Reader) (fp : K) (p : ℕ × ℕ) :
-    semOne genPows rd fp p = expTablesTest rd (wordWith rd fp p.1) (wordWith rd fp p.2) := by
-  rw [semOne, wordAt_genPows]
-  exact expTablesAt_genPows rd _ _
-
-theorem semTest_eq_all (rd : Reader) (fp : K) (sems : List (ℕ × ℕ)) :
-    semTest rd fp sems = sems.all (semOne genPows rd fp) := by
-  unfold semTest
-  exact congrArg sems.all (funext fun p ↦ (semOne_genPows rd fp p).symm)
-
-/-- **The test of an entry `fnPreOf s` is the four tests of `s`.** -/
+/-- **The test of an entry `fnPreOf s` is the three tests of `s`.** -/
 theorem fnPreTest_fnPreOf (rd : Reader) (fp : K) (s : Sig) :
     fnPreTest discreteLogTables genPows rd fp (fnPreOf s) =
       (envTest rd fp s.env && bndTestWith discreteLog rd fp s.pre &&
-        memTestWith discreteLog rd fp s.mem && semTest rd fp s.sem) := by
-  rw [envTest_eq, bndTestWith_eq_all, memTestWith_eq_all, semTest_eq_all]
+        memTestWith discreteLog rd fp s.mem) := by
+  rw [envTest_eq, bndTestWith_eq_all, memTestWith_eq_all]
   unfold fnPreOf
-  cases h : (envChecks s.env).isEmpty && s.pre.isEmpty && s.mem.isEmpty && s.sem.isEmpty
+  cases h : (envChecks s.env).isEmpty && s.pre.isEmpty && s.mem.isEmpty
   · rfl
   · simp only [Bool.and_eq_true, List.isEmpty_iff] at h
-    obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
-    simp [fnPreTest, h1, h2, h3, h4]
+    obtain ⟨⟨h1, h2⟩, h3⟩ := h
+    simp [fnPreTest, h1, h2, h3]
 
 /-- **From the table, the test is `preTestWith discreteLog`.** -/
 theorem preTestWith_eq_preTable :
