@@ -190,7 +190,7 @@ theorem ly_iter {rd : Reader} {N dsb gmu layers rounds kmn : E} {j sh : ℕ} (hj
     rwa [e52, e10, mul_assoc, ← pow_succ]
   obtain ⟨k4, k0⟩ := hkmn (j % 4) (Nat.mod_lt _ (by omega))
   have k4' : LoadHolds rd (σ (.n 6) * σ (.n 63)) 4 (gen ^ ((j % 4 + 1) / 4)) := by
-    rw [e6, e63, tb_loadHolds_mul_gen_pow]; rwa [Nat.add_comm]
+    rw [e6, e63, tb_loadHolds_mul_gen_pow, show j % 4 + 4 = 4 + j % 4 by omega]; exact k4
   have k0' : LoadHolds rd (σ (.n 6) * σ (.n 63)) 0 (gen ^ ((j % 4 + 1) % 4)) := by
     rw [e6, e63, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact k0
   have s45 : LoadHolds rd (σ (.n 16)) 45 (σ (.n 62) * gen ^ ((j % 4 + 1) / 4)) := by
