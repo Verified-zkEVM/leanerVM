@@ -42,7 +42,7 @@ example : certOf 16 3 1 = ⟨6, 6, 16, 136360984252⟩ := rfl
 
 example : (certOf 16 3 1).OK := by decide +kernel
 
-example : (certOf 28 4 5).OK := by decide +kernel
+example : (certOf 27 4 5).OK := by decide +kernel
 
 /-! ## Tightness at `2^-128` -/
 
@@ -60,13 +60,13 @@ example : shapeOK 129 28 4 = false := by decide +kernel
 
 /-! ## Level 0's slack is the largest -/
 
-example : certOf 28 4 0 = ⟨22, 4, 13059, 274877874175⟩ := rfl
+example : certOf 27 4 0 = ⟨22, 4, 13059, 274877874175⟩ := rfl
 
 /-- The query group of level 0 of `(28, 4)` with its 56 queries, at the table's slack. -/
-example : (certOf 28 4 0).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
+example : (certOf 27 4 0).QueryOK 128 (certOf 27 4 1) 56 := by decide +kernel
 
 /-- One unit of slack more breaks it. -/
-example : ¬ (Cert.mk 22 4 13060 274877874175).QueryOK 128 (certOf 28 4 1) 56 := by decide +kernel
+example : ¬ (Cert.mk 22 4 13060 274877874175).QueryOK 128 (certOf 27 4 1) 56 := by decide +kernel
 
 /-- At `(15, 2)` too. -/
 example : ¬ (Cert.mk 9 2 2050 549218680575).QueryOK 128 (certOf 15 2 1) 111 := by decide +kernel

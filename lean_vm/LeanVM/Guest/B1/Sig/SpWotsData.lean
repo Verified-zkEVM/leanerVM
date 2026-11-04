@@ -20,7 +20,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- **`sp_wots`'s body is the template**, checked by the kernel in slices: the powers, each digit
 group's dispatch, the checks and the leaf. -/
-theorem spBody_eq : Data.core20.body = spBody := by
+theorem spBody_eq : Data.core19.body = spBody := by
   have h120 := spBody_drop_120
   have h115 := drop_eq_of_take spBody_slice_115 h120
   have h110 := drop_eq_of_take spBody_slice_110 h115

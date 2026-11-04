@@ -14,10 +14,10 @@ public import LeanVM.Guest.Count.Words
 # `keccak_layer` within its words at `B2C.fs`
 
 At the deployed frame sizes the words certificates (`Count.Words`) give the callees' words: the
-eight-round pack loops `__loop37`, `__loop39` (core `426`, `428`, frame `473`) at most `946` words
+eight-round pack loops `__loop37`, `__loop39` (core `425`, `428`, frame `473`) at most `946` words
 per iteration (its frame and its last, skipped call's), the remainder loops `__loop38`, `__loop40`
-(core `427`, `429`, frame `92`) at most `184`. So `keccak_layer__L{first}` (core `265` for
-`first = 0`, frame `2624`; core `264` for `first = 1`, frame `2245`) is complete within
+(core `426`, `429`, frame `92`) at most `184`. So `keccak_layer__L{first}` (core `264` for
+`first = 0`, frame `2624`; core `263` for `first = 1`, frame `2245`) is complete within
 `layerWords B2C.fs first y 946 184`
 `= fs (layerName first) + (y + 171) + (473 + ⌊y/8⌋ * 946) + (92 + (y % 8) * 184)`
 (`layer_completeAtFB_fs`), at most `2624 + (y + 171) + (473 + ⌊y/8⌋ * 946) + (92 + (y % 8) * 184)`

@@ -95,12 +95,12 @@ set_option maxRecDepth 100000 in
 theorem any_loop : coreProgram.loop "child_claim_list_any" = false := by
   rw [Program.loop_of_find? find_child_claim_list_any]; decide +kernel
 
-theorem any_param (σ : Val) : (Fn.params Data.core26).map σ =
+theorem any_param (σ : Val) : (Fn.params Data.core25).map σ =
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] := rfl
 
-theorem any_body : Fn.body Data.core26 =
+theorem any_body : Fn.body Data.core25 =
     anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n 66, .n 67]]) := by
-  rw [core26_shape, anyFlat_split]; simp
+  rw [core25_shape, anyFlat_split]; simp
 
 theorem cclNames_get {r : ℕ} (hr : r < 17) : cclNames[r]! = cclNames.getD r "" := by
   have h : r < cclNames.length := by simp [cclNames]; omega

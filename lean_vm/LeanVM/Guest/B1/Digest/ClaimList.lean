@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_last__L{k}` -/
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (333 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (332 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -54,7 +54,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (333 + k) default
+  set f := coreProgram.getD (332 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -91,7 +91,7 @@ def GroupStep (rd : Reader) (m nb : ℕ) (chain entries x : E) : Prop :=
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 947)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -116,16 +116,16 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
   refine ⟨_, by simp [ChainSpec.vals, grpSpec], by rwa [← hE], hcan, by rwa [← h9]⟩
 
 set_option maxRecDepth 100000 in
-theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 331 default))).nb = 64 := by
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 330 default))).nb = 64 := by
   decide +kernel
 
 -- The big frame loop `__loop15` (136 claims, 64 blocks): its head here, its sixteen windows in
 -- `ClaimListBig{q}`.
 set_option maxRecDepth 100000 in
-theorem big_head : grpHead (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+theorem big_head : grpHead (coreProgram.getD 330 default) "__loop15" 136 21 565 20 = true := by
   decide +kernel
 
-theorem big_ok : grpOk (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+theorem big_ok : grpOk (coreProgram.getD 330 default) "__loop15" 136 21 565 20 = true := by
   have hw : ∀ i < 16, bigWin i = true := by
     intro i hi
     interval_cases i
@@ -136,19 +136,19 @@ theorem big_ok : grpOk (coreProgram.getD 331 default) "__loop15" 136 21 565 20 =
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? "__loop15" = some 331 := by decide +kernel
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 330 := by decide +kernel
 
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
 set_option maxRecDepth 100000 in
-theorem grp_ok : grpOk (coreProgram.getD 332 default) "__loop16" 17 18 86 17 = true := by
+theorem grp_ok : grpOk (coreProgram.getD 331 default) "__loop16" 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? "__loop16" = some 332 := by decide +kernel
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 331 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 332 default))).nb = 8 := by
+theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 331 default))).nb = 8 := by
   decide +kernel
 
 theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}
@@ -206,7 +206,7 @@ theorem groups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb) {chain
 /-- **A loop of frames of `m` claims**: called as `callIf (1 + N) f [1, N, chain, entries]` with
 `N = g^a`, `a < 2^34`, it gives every frame's step. -/
 theorem frames_of_loop {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 947)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
@@ -232,17 +232,17 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_digest` -/
 
 /-- The branch of an empty list. -/
-noncomputable def cl23Zero : List Stmt := match Fn.body Data.core24 with
+noncomputable def cl23Zero : List Stmt := match Fn.body Data.core23 with
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
 /-- The branch of a nonempty list. -/
-noncomputable def cl23Else : List Stmt := match Fn.body Data.core24 with
+noncomputable def cl23Else : List Stmt := match Fn.body Data.core23 with
   | [_, _, .ite _ _ n, _, _, _] => n
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core23_shape : Fn.body Data.core24 =
+theorem core22_shape : Fn.body Data.core23 =
     [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
      .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 87) (.n 10)), .atom (.copy (.n 88) (.n 11)),
      .ret [.n 87, .n 88]] :=
@@ -292,7 +292,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_claim_list_digest args rets).mp h
   have hp' : args = [σ (.n 0), σ (.n 1)] := by rw [← hp]; rfl
   subst hp'
-  rw [core23_shape] at hb
+  rw [core22_shape] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨c2, a3, -, hz, hnz⟩ := hb
   have hz1 := cz_ok

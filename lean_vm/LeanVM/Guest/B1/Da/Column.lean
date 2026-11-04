@@ -14,10 +14,10 @@ public import LeanVM.Guest.B1.Main.LoopsC
 /-!
 # `da_verify_column` (G:4254-4268)
 
-`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core30`), at
+`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core29`), at
 `xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell
 factors and the column's shifts `offsets·g^(8h)`, are the dual codeword's entries `256 h + e`
-(`cellLeaf_eq`); then `__loop25` (`core404`) over the blobs `i < r`: a `da_verify_cell` run on
+(`cellLeaf_eq`); then `__loop25` (`core403`) over the blobs `i < r`: a `da_verify_cell` run on
 `lvals`, its sum added to the blob's running sum (word `512 + h` to `513 + h` of the region at
 `rowbase[i]`), its digest the blob tree's leaf `h` (words `2h`, `2h + 1`). `colOk` and `l21Ok`
 check the bodies (kernel evaluation in `ColumnChk`); `col_stepW` is a column's run under a call
@@ -39,8 +39,8 @@ variable {rd : Reader}
 
 variable {C : CallRel} {Vm : FrameMap}
 
-theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 404 default) = true)
-    (hidx : coreProgram.indexOf? "__loop25" = some 404) {x : E} {ps : List E}
+theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 403 default) = true)
+    (hidx : coreProgram.indexOf? "__loop25" = some 403) {x : E} {ps : List E}
     (h : C "__loop25" (x :: ps) []) :
     (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] →
       CellStepW C rd (Vm "__loop25" (x :: ps) []) lv rb xb xb2 x) ∧
@@ -53,7 +53,7 @@ theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 404 de
   set σ := Vm "__loop25" (x :: ps) [] with hσ
   refine ⟨fun N lv rb xb xb2 hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 404 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
+  have hpar : (coreProgram.getD 403 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -87,8 +87,8 @@ check's frame (`colSyms`), whose digest is leaf `h` of the region at `rowbase[i]
 product with the dual codeword's entries `256 h + e` steps the region's running sum from word
 `512 + h` to `513 + h`. -/
 theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 404 default) = true)
-    (hidx : coreProgram.indexOf? "__loop25" = some 404) {z zs tl cf off rb : E} {h r : ℕ}
+    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 403 default) = true)
+    (hidx : coreProgram.indexOf? "__loop25" = some 403) {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
     (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
     ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 256 ∧

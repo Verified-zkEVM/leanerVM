@@ -24,11 +24,11 @@ public import LeanVM.Guest.B1.Main.Frames
 # The signature verifiers' interface
 
 `verify_lean_xmss(signer)` (`lean_ethereum.py:3617-3685`, core function `Data.core19`) and
-`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3842-3929`, `Data.core21`) check
+`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3842-3929`, `Data.core20`) check
 one signature of the claim at `signer`: four cells, the key's root and parameter, then the
 message's two halves, the low first. `verify_lean_xmss` calls nothing (every helper is `@inline`
 and every `match` arm runs in the frame), so its relation is its body's under any call relation;
-`verify_sig_lean_sphincs` calls `sp_wots` (`Data.core20`) once per layer, so its soundness is
+`verify_sig_lean_sphincs` calls `sp_wots` (`Data.core19`) once per layer, so its soundness is
 stated under a call relation that unfolds at a frame map (`UnfoldsV`), the signature read off its
 valuation and the frames of its calls.
 
@@ -138,7 +138,7 @@ argument `σ (.n 1)` holds the byte table, `sigOf σ V` verifies the claim at it
 def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Signature) : Prop :=
   ∀ (C : CallRel) (V : FrameMap) {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → UnfoldsV L.read C V →
     ∀ (σ : Val) (rets : List E),
-      Stmt.HoldsList C L.read σ Data.core21.body False (fun rs => rs = rets) →
+      Stmt.HoldsList C L.read σ Data.core20.body False (fun rs => rs = rets) →
         rets = [] ∧ (ByteBits L.read (σ (.n 1)) → SphincsOut L.read (σ (.n 0)) (sigOf σ V))
 
 /-- **`verify_lean_xmss` is complete**: for a claim held at `p` in its canonical cells and a
@@ -156,14 +156,14 @@ def verify_lean_xmss_complete_Spec : Prop :=
 
 theorem core19_params : Data.core19.params = [.n 0] := rfl
 
-theorem core21_params : Data.core21.params = [.n 0, .n 1] := rfl
+theorem core20_params : Data.core20.params = [.n 0, .n 1] := rfl
 
 theorem find_verify_lean_xmss : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
 
 theorem find_verify_sig_lean_sphincs :
-    coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
-  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
+    coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
+  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
 /-! ## The call relation, from the statements -/
 

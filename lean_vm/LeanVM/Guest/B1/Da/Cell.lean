@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Da.RowShape
 /-!
 # `da_verify_cell` (G:4295-4307)
 
-`da_verify_cell(lvals)` (`core31`): `256` hinted symbols `.n 1 … .n 256`; pair `e`'s atoms
+`da_verify_cell(lvals)` (`core30`): `256` hinted symbols `.n 1 … .n 256`; pair `e`'s atoms
 (`blkA e`, the template `tmplA`, compared atom by atom) assert both in `K`, pack them into the cell
 `sym[2e] + y·sym[2e + 1]` (`packV e`) and add `lvals[2e]·sym[2e] + lvals[2e + 1]·sym[2e + 1]` to the
 running sum (`accV e`, `acc_sum`); the `128` cells are hashed (`keccak_cells`, a `ChainSpec` from the

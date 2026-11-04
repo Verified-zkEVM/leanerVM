@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.XmssCore
 `spValues σ`: the chain values `sp_wots`'s frame `σ` holds, chain `i`'s the hint its walk reads in
 the arm its group's dispatch takes (`spStart σ i`, `SpWotsGroups`).
 
-`sp_wots_sound`: the body (`Data.core20.body = spBody`) holding, the powers are `g^s`; each group's
+`sp_wots_sound`: the body (`Data.core19.body = spBody`) holding, the powers are `g^s`; each group's
 dispatch takes the arm of its digit word (`spGroupsT_sound`, `spGroupT_sound`), whose walks reach
 their tips from the starts (`spArmK_sound`); the product is `g` to the digits' sum, asserted to be
 `g^128`, and the encoding their base-4 number, asserted to be the third argument, whose digits they
@@ -124,7 +124,7 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (3 + s)) = gen ^ s) (hpad : 
 and at an address cell `σ n1 = keyAddressCell layer tree lf` the encoding digest `σ n2` has digit sum `128`
 and `leaf` is the WOTS+C leaf the chain values `spValues σ` recover at its digits. -/
 theorem sp_wots_sound {rets : List E}
-    (h : Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = rets)) :
+    (h : Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
       (lf : Sphincs.TreeLeafIndex), σ (.n 1) = keyAddressCell layer tree lf →
         Sphincs.TargetSum.Valid (digestDigits (cellVal (σ (.n 2)))) ∧

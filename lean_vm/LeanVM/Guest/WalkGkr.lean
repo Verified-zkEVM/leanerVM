@@ -74,26 +74,26 @@ theorem valG_of_loc {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {v c : �
 
 /-! ## `__loop6` (function `91`) -/
 
-theorem coreOf_91 : (coreOf 91).body = lyBody := by
+theorem coreOf_91 : (coreOf 90).body = lyBody := by
   obtain ⟨fn, hf, -, hb⟩ := lyFound
   have hc := coreOf_find (j := 91) (by norm_num) (by unfold nFns; norm_num)
-  rw [show (coreOf 91).name = "__loop6" from rfl, hf] at hc
+  rw [show (coreOf 90).name = "__loop6" from rfl, hf] at hc
   rw [← Option.some.inj hc, hb]
 
 /-- `__loop6`'s certificate: `GkrPar` on its arguments, two cuts (before the dispatch, before the
 tail call). -/
-theorem gkr91_cert : (certOf 91).sem = [(tagGkr, [6, 2, 4, 5, 8])] ∧ (certOf 91).cuts.length = 2 ∧
-    ((certOf 91).cutAt 1).start = 62 ∧ ((certOf 91).cutAt 1).known = [] ∧
-    ((certOf 91).cutAt 1).knownIf = [(19, 12, 4)] ∧ ((certOf 91).cutAt 1).sems = [] ∧
-    ((certOf 91).cutAt 2).start = 297 ∧ ((certOf 91).cutAt 2).known = [] ∧
-    ((certOf 91).cutAt 2).knownIf = [(19, 12, 4)] ∧
-    ((certOf 91).cutAt 2).sems = [(tagGkr, [6, 342, 4, 5, 8])] := by decide +kernel
+theorem gkr91_cert : (certOf 90).sem = [(tagGkr, [6, 2, 4, 5, 8])] ∧ (certOf 90).cuts.length = 2 ∧
+    ((certOf 90).cutAt 1).start = 62 ∧ ((certOf 90).cutAt 1).known = [] ∧
+    ((certOf 90).cutAt 1).knownIf = [(19, 12, 4)] ∧ ((certOf 90).cutAt 1).sems = [] ∧
+    ((certOf 90).cutAt 2).start = 297 ∧ ((certOf 90).cutAt 2).known = [] ∧
+    ((certOf 90).cutAt 2).knownIf = [(19, 12, 4)] ∧
+    ((certOf 90).cutAt 2).sems = [(tagGkr, [6, 342, 4, 5, 8])] := by decide +kernel
 
 /-- `__loop6`'s cells: values `0, 2, 3, 4, 6, 16, 346` in cells `2, 4, 5, 6, 8, 19, 342`. -/
-theorem gkr91_locs : (certOf 91).locs.getD 0 0 = 2 ∧ (certOf 91).locs.getD 2 0 = 4 ∧
-    (certOf 91).locs.getD 3 0 = 5 ∧ (certOf 91).locs.getD 4 0 = 6 ∧
-    (certOf 91).locs.getD 6 0 = 8 ∧ (certOf 91).locs.getD 16 0 = 19 ∧
-    (certOf 91).locs.getD 346 0 = 342 := by decide +kernel
+theorem gkr91_locs : (certOf 90).locs.getD 0 0 = 2 ∧ (certOf 90).locs.getD 2 0 = 4 ∧
+    (certOf 90).locs.getD 3 0 = 5 ∧ (certOf 90).locs.getD 4 0 = 6 ∧
+    (certOf 90).locs.getD 6 0 = 8 ∧ (certOf 90).locs.getD 16 0 = 19 ∧
+    (certOf 90).locs.getD 346 0 = 342 := by decide +kernel
 
 /-- **`__loop6`'s cut obligations**: the parity word's bound at both cuts, `GkrPar` at `x·g`
 before the tail call. -/
@@ -109,7 +109,7 @@ theorem gkrLoop_cutsKnown : CutsKnown 91 := by
   rw [coreOf_91] at hl
   have hif : ∀ {n}, Stmt.noRetList (lyBody.take n) = true →
       tbStmtsEqb lySlotT (((lyBody.take n).drop 0).take lySlotT.length) = true →
-      Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 91)) (lyBody.take n) True
+      Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 90)) (lyBody.take n) True
         (fun _ ↦ True) → MemIf L fp [(19, 12, 4)] := by
     intro n hnr heq hl m hm v hv
     rw [List.mem_singleton] at hm

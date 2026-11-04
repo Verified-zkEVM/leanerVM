@@ -168,22 +168,22 @@ example : coreProgram.find? "main" = some Data.core0 :=
 example : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
 
-example : coreProgram.find? "sp_wots" = some Data.core20 :=
+example : coreProgram.find? "sp_wots" = some Data.core19 :=
+  Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
+
+example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
-  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core471 :=
+  Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core472 :=
-  Program.find?_of_indexOf? (j := 472) (by decide +kernel) rfl
+example : coreProgram.find? "__loop423" = some Data.core954 :=
+  Program.find?_of_indexOf? (j := 954) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop423" = some Data.core946 :=
-  Program.find?_of_indexOf? (j := 946) (by decide +kernel) rfl
+example : Data.core19.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
+example : Data.core20.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
 
-example : Data.core21.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
-
-example : Data.core946.name = Data.f947.name := name_eq_compiled (j := 946) rfl rfl
+example : Data.core954.name = Data.f947.name := name_eq_compiled (j := 946) rfl rfl
 
 end LeanVMTests.Guest.CoreData

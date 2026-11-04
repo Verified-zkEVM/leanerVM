@@ -20,10 +20,10 @@ proof is the theorem `…_holds` of the family's modules. The functions building
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3921-3961 | `core28` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
-| `da_row_shape` | 3964-3973 | `core29` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 3993-4005 | `core31` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4008-4016 | `core392-401` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
+| `da_verify` | 3921-3961 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
+| `da_row_shape` | 3964-3973 | `core28` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify_cell` | 3993-4005 | `core30` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4008-4016 | `core391-400` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
@@ -138,41 +138,41 @@ def da_levels_sound_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core28 :=
+theorem find_da_verify : coreProgram.find? "da_verify" = some Data.core27 :=
+  Program.find?_of_indexOf? (j := 27) (by decide +kernel) rfl
+
+theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core28 :=
   Program.find?_of_indexOf? (j := 28) (by decide +kernel) rfl
 
-theorem find_da_row_shape : coreProgram.find? "da_row_shape" = some Data.core29 :=
+theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core29 :=
   Program.find?_of_indexOf? (j := 29) (by decide +kernel) rfl
 
-theorem find_da_verify_column : coreProgram.find? "da_verify_column" = some Data.core30 :=
+theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core30 :=
   Program.find?_of_indexOf? (j := 30) (by decide +kernel) rfl
 
-theorem find_da_verify_cell : coreProgram.find? "da_verify_cell" = some Data.core31 :=
+theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core31 :=
   Program.find?_of_indexOf? (j := 31) (by decide +kernel) rfl
 
-theorem find_da_vector : coreProgram.find? "da_vector" = some Data.core32 :=
+theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core32 :=
   Program.find?_of_indexOf? (j := 32) (by decide +kernel) rfl
 
-theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Data.core33 :=
-  Program.find?_of_indexOf? (j := 33) (by decide +kernel) rfl
-
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core403 :=
-  Program.find?_of_indexOf? (j := 403) (by decide +kernel) rfl
+theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core402 :=
+  Program.find?_of_indexOf? (j := 402) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L14_L7_L0 :
-    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core405 :=
+    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core404 :=
+  Program.find?_of_indexOf? (j := 404) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core405 :=
   Program.find?_of_indexOf? (j := 405) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core406 :=
-  Program.find?_of_indexOf? (j := 406) (by decide +kernel) rfl
-
-set_option maxRecDepth 100000 in
 theorem find_da_factors_L7_L8_L128 :
-    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core407 :=
-  Program.find?_of_indexOf? (j := 407) (by decide +kernel) rfl
+    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core406 :=
+  Program.find?_of_indexOf? (j := 406) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Da

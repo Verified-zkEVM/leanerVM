@@ -93,7 +93,7 @@ theorem word_g16 : word 65536 0 0 = gen ^ 16 := word_two_pow (a := 16) (by decid
 
 theorem word_g7 : word 128 0 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
-theorem core22_body : Fn.body Data.core23 =
+theorem core21_body : Fn.body Data.core22 =
     [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2, .n 3]))),
      .atom (.const (.n 4) (word 65536 0 0)),
      .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
@@ -118,7 +118,7 @@ theorem core22_body : Fn.body Data.core23 =
 theorem list_split_sound : list_split_sound_Spec := by
   intro rd hm args rets h
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_list_split args rets).mp h
-  rw [core22_body] at hb
+  rw [core21_body] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨-, c4, rc1, c8, rc2, c12, rc3, m16, m17, m18, m19, m20, m21, m22, m23, m24, m25, m26,
     m27, m28, m29, m30, aeq, e31, e32, e33, hr⟩ := hb
