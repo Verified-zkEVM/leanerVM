@@ -35,9 +35,9 @@ leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`
   value in the payload.
 * `H` is the leanVM hash, Keccak-256 on the bytes of its input, over a permutation `π` of the Keccak
   state (`keccakHash`): in the end statement (the last section) the random permutation.
-* The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
-  32 bytes. The crate's signer derives `S` from `S_0` again at each signature; the game's signer is
-  handed `S` (`HashSig.SecretKey`).
+* The secret key is a 32-byte seed `S_0` (`HashSig.SecretKey`). Every secret derives from
+  `S = H("leanXMSS" || S_0)`, all 32 bytes, which the signer derives again at each signature, as the
+  crate's does, and the public parameter from `S`, which the crate's key keeps from key generation.
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
@@ -317,35 +317,47 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
   sequenceFin fun level =>
     treeNode π parameter layer seed level.val (Nat.xor (key.val / 2 ^ level.val) 1)
 
-/-- `Gen` (`key_gen`): hash the key's seed `S_0` into `S`, derive the public parameter and build the
-top tree. -/
+/-- The public parameter of the scheme seed `S` (`public_param`, `tweak.rs:135-137`). -/
+def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
+  th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
+
+/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:161-179`): the secret key is the seed `S_0`;
+hash it into `S` (`scheme_seed`, `hash.rs:27-29`), derive the public parameter and build the top
+tree. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
   let seed ← taggedSeed π seedTag masterSeed
-  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
+  let parameter ← publicParameterOf π seed
   let root ← treeNode π parameter topLayer seed layerHeight 0
-  return (⟨root, parameter⟩, ⟨seed, parameter⟩)
+  return (⟨root, parameter⟩, masterSeed)
 
 /-- One layer's signature by key `e` of `message`: the one-time signature and the path. -/
-def signLayer (secretKey : SecretKey) (layer : Layer) (key : KeyIndex) (message : HashInput) :
-    m (Option LayerSignature) := do
-  let some (randomizer, values) ←
-      otsSign π secretKey.parameter layer key secretKey.schemeSeed message | return none
-  let path ← treePath π secretKey.parameter layer secretKey.schemeSeed key
+def signLayer (seed : MasterSeed) (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
+    (message : HashInput) : m (Option LayerSignature) := do
+  let some (randomizer, values) ← otsSign π parameter layer key seed message | return none
+  let path ← treePath π parameter layer seed key
   return some ⟨randomizer, values, path⟩
 
-/-- `Sign` at leaf index `idx`: the bottom key `idx` signs `m`, and the top key `idx / 2^16` signs
-the root of bottom tree `idx / 2^16`. -/
-def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : m
-    (Option Signature) := do
+/-- `Sign` at leaf index `idx` with the scheme seed `S` and the public parameter: the bottom key
+`idx` signs `m`, and the top key `idx / 2^16` signs the root of bottom tree `idx / 2^16`. -/
+def signWithSchemeSeed (seed : MasterSeed) (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (message : Message) : m (Option Signature) := do
   let bottomKey := keyIndexOnLayer leafIndex bottomLayer
   let topKey := keyIndexOnLayer leafIndex topLayer
-  let some bottom ← signLayer π secretKey bottomLayer bottomKey (littleEndianBytes 32
-      message) | return none
-  let bottomRoot ← treeNode π secretKey.parameter bottomLayer secretKey.schemeSeed layerHeight
-      topKey.val
-  let some top ← signLayer π secretKey topLayer topKey (littleEndianBytes 16
-      bottomRoot) | return none
+  let some bottom ← signLayer π seed parameter bottomLayer bottomKey (littleEndianBytes 32 message)
+    | return none
+  let bottomRoot ← treeNode π parameter bottomLayer seed layerHeight topKey.val
+  let some top ← signLayer π seed parameter topLayer topKey (littleEndianBytes 16 bottomRoot)
+    | return none
   return some ⟨leafIndex, fun layer => if layer = bottomLayer then bottom else top⟩
+
+/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:184-229`): the scheme seed
+`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:27-29`), the public parameter
+of `S`, then the two layers' signatures. -/
+def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
+    m (Option Signature) := do
+  let seed ← taggedSeed π seedTag secretKey
+  let parameter ← publicParameterOf π seed
+  signWithSchemeSeed π seed parameter leafIndex message
 
 end KeyGenerationAndSigning
 

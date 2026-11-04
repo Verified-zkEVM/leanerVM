@@ -294,9 +294,7 @@ theorem costRun_withReveals_layerCostSearch (parameter : PublicParameter) (data 
     result.1 = (firstEncoding f parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
       (data.keyMessage lay (treeIndexAt index lay) (leafIndexAt index lay)) encodingAttemptLimit 0, []) := by
   unfold layerCostSearch at hresult
-  obtain ⟨r1, h1, r2, h2, rfl⟩ := costRun_withReveals_bind f table _ _ result hresult
-  obtain rfl := costRun_withReveals_tick f table _ r1 h1
-  obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ r2 h2
+  obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ result hresult
   obtain rfl := costRun_withReveals_liftHash f table _ r3 h3
   dsimp only at h4 ⊢
   simp only [layerSearch, ReferenceChoice.eval_search] at h4 ⊢
@@ -379,6 +377,31 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
               dite_eq_right (fun hall' : ∀ i : Fin (n + 1), (v i).isSome => hall fun i => hall' i.succ)
             exact hnone'.symm
 
+theorem costRun_withReveals_sequenceLayersUp_quiet {α : Type}
+    (comp : Layer → OracleComp CostSpec (Option α)) (v : Layer → Option α)
+    (h : ∀ lay r, r ∈ support (costRun f table (withReveals (comp lay))) → r.1 = (v lay, []))
+    (result : RunResult (Option (Layer → α)))
+    (hresult : result ∈ support (costRun f table (withReveals (Concrete.sequenceLayersUp comp)))) :
+    result.1 = (Completeness.allSome (α := fun _ => α) v, []) := by
+  unfold Concrete.sequenceLayersUp at hresult
+  obtain ⟨r1, h1, r2, h2, rfl⟩ := costRun_withReveals_bind f table _ _ result hresult
+  have hv1 := costRun_withReveals_sequenceDep_quiet f table (α := fun _ => α) (fun i => comp i.rev)
+    (fun i => v i.rev) (fun i r hr => h i.rev r hr) r1 h1
+  obtain ⟨⟨x1, L1⟩, E1⟩ := r1
+  simp only [Prod.mk.injEq] at hv1
+  obtain ⟨rfl, rfl⟩ := hv1
+  dsimp only at h2 ⊢
+  rw [← GraphView.allSome_rev v]
+  cases hc : Completeness.allSome (α := fun _ => α) (fun i => v i.rev) with
+  | none =>
+      rw [hc, costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h2
+      subst r2
+      rfl
+  | some found =>
+      rw [hc, costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h2
+      subst r2
+      rfl
+
 theorem finish_support (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) (result : RunResult (Option Signature))
     (hresult : result ∈ support (costRun f table (withReveals
@@ -391,7 +414,7 @@ theorem finish_support (parameter : PublicParameter) (data : PublicData) (messag
   obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ r2 h2
   obtain rfl := costRun_withReveals_tick f table _ r3 h3
   obtain ⟨r5, h5, r6, h6, rfl⟩ := costRun_withReveals_bind f table _ _ r4 h4
-  have hv5 := costRun_withReveals_sequenceDep_quiet f table _ _
+  have hv5 := costRun_withReveals_sequenceLayersUp_quiet f table _ _
     (fun lay r hr => costRun_withReveals_layerCostSearch f table parameter data _ lay r hr) r5 h5
   obtain ⟨⟨x5, L5⟩, E5⟩ := r5
   simp only [Prod.mk.injEq] at hv5

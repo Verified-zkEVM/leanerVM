@@ -346,6 +346,31 @@ theorem interp_sequenceDep_none (Inv : State → Prop) : ∀ {n : ℕ} {α : Fin
         rw [hres2, hres4, ho4] at hnone
         cases hnone
 
+/-- A search of the layers from the bottom up that fails under the interpreter has a failing
+layer. -/
+theorem interp_sequenceLayersUp_none (Inv : State → Prop) {α : Type}
+    (computation : Layer → OracleComp CostSpec (Option α)) (Bad : Layer → Prop)
+    (hinv : ∀ lay budget s, Inv s → ∀ out ∈ support (interp tg initial model (computation lay) budget s),
+      Inv out.2)
+    (hbad : ∀ lay budget s, Inv s → ∀ out ∈ support (interp tg initial model (computation lay) budget s),
+      out.1.1 = some none → Bad lay) :
+    ∀ budget s, Inv s → ∀ out ∈ support (interp tg initial model (sequenceLayersUp computation) budget s),
+      out.1.1 = some none → ∃ lay, Bad lay := by
+  intro budget s hs out hout hnone
+  unfold sequenceLayersUp at hout
+  obtain ⟨o1, ho1, h1⟩ := interp_bind_mem tg initial model _ _ budget s out hout
+  rcases h1 with ⟨_, hn, _⟩ | ⟨w, hw, o2, ho2, hres2, _, _⟩
+  · rw [hnone] at hn; cases hn
+  rcases w with _ | found
+  · obtain ⟨i, hi⟩ := interp_sequenceDep_none tg initial model Inv (α := fun _ => α)
+      (fun i => computation i.rev) (fun i => Bad i.rev) (fun i => hinv i.rev) (fun i => hbad i.rev)
+      budget s hs o1 ho1 hw
+    exact ⟨i.rev, hi⟩
+  · change o2 ∈ support (interp tg initial model (pure _) _ _) at ho2
+    rw [interp_pure, support_pure, Set.mem_singleton_iff] at ho2
+    rw [hres2, ho2] at hnone
+    cases hnone
+
 end Dep
 
 /-- **A failed layer search is a failed prepared search.** -/
@@ -362,20 +387,16 @@ theorem layerCostSearch_fail (parameterOutput : HashOutput) (fixed : HiddenGraph
     (hnone : out.1.1 = some none) : prepared.1 (keyAt index lay) = none := by
   set model := sampleModel parameterOutput highs
   unfold layerCostSearch at hout
-  obtain ⟨o1, ho1, h1⟩ := interp_bind_mem tg prepared.2 model _ _ budget s1 out hout
-  rcases h1 with ⟨_, hn, _⟩ | ⟨_, _, o2, ho2, hres2, _, _⟩
-  · rw [hnone] at hn; cases hn
-  have hext1 := interp_extends tg prepared.2 model _ budget s1 o1 ho1
-  obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg prepared.2 model _ _ _ _ o2 ho2
+  obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg prepared.2 model _ _ budget s1 out hout
   rcases h3 with ⟨_, hn, _⟩ | ⟨found, hfound, o4, ho4, hres4, _, _⟩
-  · rw [hres2, hn] at hnone; cases hnone
+  · rw [hnone] at hn; cases hn
   rcases found with _ | pair
   · obtain ⟨c0, r, hr, hr1, hr2⟩ := preparation_parts parameterOutput fixed highs remaining prepared hprepared
       (keyAt index lay)
     have ho3' : o3 ∈ support (interp tg prepared.2 model
         (liftM (ReferenceChoice.search (truncateHash parameterOutput) lay (treeIndexAt index lay)
           (leafIndexAt index lay) (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay))
-          encodingAttemptLimit 0) : OracleComp CostSpec _) (budget - traceCost o1.1.2.2.1) o1.2) := ho3
+          encodingAttemptLimit 0) : OracleComp CostSpec _) budget s1) := ho3
     have hrow := noQ_search (bad := fun x => model.parse x ≠ none)
       (truncateHash parameterOutput) lay (treeIndexAt index lay) (leafIndexAt index lay)
       (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay))
@@ -384,11 +405,11 @@ theorem layerCostSearch_fail (parameterOutput : HashOutput) (fixed : HiddenGraph
       (ReferenceChoice.search (truncateHash parameterOutput) lay (treeIndexAt index lay) (leafIndexAt index lay)
         (keyMessages (sampleData parameterOutput fixed highs remaining) (keyAt index lay)) encodingAttemptLimit 0 :
           OracleComp HashSpec (Option (Counter × Encoding)))
-    have hreplay := hstep hrow c0 r hr _ o1.2 (fun x v hx => hext1.1 x v (hprep x v (hr2 x v hx))) o3 ho3'
+    have hreplay := hstep hrow c0 r hr _ s1 (fun x v hx => hprep x v (hr2 x v hx)) o3 ho3'
       none hfound
     rw [← hr1, ← hreplay]
   · exfalso
-    have hmem := interp_result_mem tg prepared.2 model _ _ _ o4 ho4 none (by rw [← hres4, ← hres2, hnone])
+    have hmem := interp_result_mem tg prepared.2 model _ _ _ o4 ho4 none (by rw [← hres4, hnone])
     revert hmem
     dsimp only
     intro hmem
@@ -424,7 +445,7 @@ theorem finishRest_fail (parameterOutput : HashOutput) (fixed : HiddenGraph.Tabl
   rcases h3 with ⟨_, hn, _⟩ | ⟨found, hfound, o4, ho4, hres4, _, _⟩
   · rw [hres2, hn] at hnone; cases hnone
   rcases found with _ | found
-  · exact interp_sequenceDep_none tg prepared.2 model (Prepared prepared.2)
+  · exact interp_sequenceLayersUp_none tg prepared.2 model (Prepared prepared.2)
       (layerCostSearch (truncateHash parameterOutput) (sampleData parameterOutput fixed highs remaining steps)
         (digestIndex digest))
       (fun lay => prepared.1 (keyAt (digestIndex digest) lay) = none)

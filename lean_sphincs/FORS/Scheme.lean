@@ -711,6 +711,11 @@ def sequenceLayers {α : Layer → Type}
     (computation : (lay : Layer) → m (Option (α lay))) : m (Option ((lay : Layer) → α lay)) :=
   sequenceDep computation
 
+/-- Run the layers from the bottom up (the crate's order, `sign_with`), stopping on failure. -/
+def sequenceLayersUp {α : Type} (computation : Layer → m (Option α)) : m (Option (Layer → α)) := do
+  let some found ← sequenceDep (α := fun _ => α) fun i => computation i.rev | return none
+  return some fun lay => found lay.rev
+
 attribute [irreducible] verify
 
 end Concrete
@@ -986,11 +991,12 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) (step : Randomnes
       | some index => return some (randomness, index)
       | none => signDigestLoop secretKey message step attempts (randomness + step)
 
-/-- `Sign`: derive the randomizer base `R0` and the step `delta` of the message (one hash), scan
-`R0, R0 + delta, ...` into the kept subtree, compute the digest, open FORS, and at every layer sign
-the message of the layer below (the FORS key's `2k` top nodes at the bottom) with WOTS+C and attach
-the path. -/
-def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
+/-- The model's `Sign` (upstream's, for every shape): derive the randomizer base `R0` and the step
+`delta` of the message (one hash), scan `R0, R0 + delta, ...` into the kept subtree, compute the
+digest, open FORS, and at every layer sign the message of the layer below (the FORS key's `2k` top
+nodes at the bottom) with WOTS+C and attach the path. The game's signer is the crate's, `sign`
+below, which computes the same signature for a full or layered key. -/
+def signModel (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let walk ← deriveRandomizer secretKey.parameter secretKey.seed message
   let some (randomness, _) ← signDigestLoop secretKey message walk.2 digestAttemptLimit walk.1
     | return none
@@ -999,6 +1005,121 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
   let opening ← forsOpen secretKey.parameter index (digestLeaves digest) secretKey.seed
   let some layers ← sequenceLayers (fun lay => signLayer secretKey index lay) | return none
   return some ⟨randomness, opening, layers⟩
+
+end Seeded
+
+/-! ### The crate's signer
+
+`sign_with` of `crates/signatures/src/lean_sphincs/scheme.rs` (leanVM `542b0353`), call for call,
+for a full or layered key (`subtreeHeight = totalHeight`, every index lands, every tree is whole):
+the randomizer, the digest, each FORS tree built once for its key and its opening, then the layers
+from the bottom up, each a WOTS+C signature followed by its tree built once, whose root the layer
+above signs. It computes the model's signature (`signModel`) without its repeated calls: the
+model's landing call, and the trees it builds again. -/
+
+namespace Seeded
+
+open Concrete
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+
+/-- Node `nodeIdx` at level `level` of a layer's tree, built once (`treeNode`), with the siblings of
+the path of the leaf `target` below it (`path l` the sibling at level `l < level`, for a node above
+`target`). -/
+def treeNodeWithPath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (target : Nat) : Nat → Nat → m (Digest × (Nat → Digest))
+  | 0, nodeIdx => do
+      let leaf := leafOfNat nodeIdx
+      let endpoints ← oneTimePublicKey parameter lay tree leaf seed
+      let value ← leafHash parameter lay tree leaf endpoints
+      return (value, fun _ => 0)
+  | level + 1, nodeIdx => do
+      let left ← treeNodeWithPath parameter lay tree seed target level (2 * nodeIdx)
+      let right ← treeNodeWithPath parameter lay tree seed target level (2 * nodeIdx + 1)
+      let value ← tweakableHash parameter (.node lay tree (level + 1) nodeIdx)
+        (nodePayload left.1 right.1)
+      return (value, if target.testBit level then Function.update right.2 level left.1
+        else Function.update left.2 level right.1)
+
+/-- Node `node` at height `height + 1` of FORS tree `κ`, built once (`forsNode`), with the secret
+of the leaf `target` and the siblings of its path below it (`path l` the sibling at height
+`l ≤ height`), for a node above `target`. A height-1 node derives its pair of leaves once. -/
+def forsSubtree (parameter : PublicParameter) (index : Index) (κ : FTree) (seed : MasterSeed)
+    (target : FLeaf) : Nat → Nat → m (Digest × Digest × (Nat → Digest))
+  | 0, node => do
+      let left : FLeaf := ⟨2 * node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
+      let right : FLeaf := ⟨(2 * node + 1) % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
+      let output ← deriveOutput parameter (.fors index κ (leafPair left)) seed
+      let leftLeaf ← forsLeafHash parameter index κ left (hashHalf 0 output)
+      let rightLeaf ← forsLeafHash parameter index κ right (hashHalf 1 output)
+      let value ← tweakableHash parameter (.forsNode index κ ⟨0, by have := Params.forsHeight_ge; omega⟩
+        ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload leftLeaf rightLeaf)
+      return (value, hashHalf target.val output,
+        fun _ => if target.val.testBit 0 then leftLeaf else rightLeaf)
+  | height + 1, node => do
+      let left ← forsSubtree parameter index κ seed target height (2 * node)
+      let right ← forsSubtree parameter index κ seed target height (2 * node + 1)
+      let value ← (if hheight : height + 1 < forsHeight then
+          tweakableHash parameter (.forsNode index κ ⟨height + 1, hheight⟩
+            ⟨node % 2 ^ forsHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left.1 right.1)
+        else pure 0)
+      return (value, if target.val.testBit (height + 1) then right.2.1 else left.2.1,
+        if target.val.testBit (height + 1) then Function.update right.2.2 (height + 1) left.1
+        else Function.update left.2.2 (height + 1) right.1)
+
+/-- FORS tree `κ` built once: its two level-`(a - 1)` nodes and its opening at `target`. -/
+def treeOpenOnce (parameter : PublicParameter) (index : Index) (κ : FTree) (target : FLeaf)
+    (seed : MasterSeed) : m ((Digest × Digest) × TreeOpening) := do
+  let left ← forsSubtree parameter index κ seed target (forsHeight - 2) 0
+  let right ← forsSubtree parameter index κ seed target (forsHeight - 2) 1
+  let top := forsHeight - 1
+  let path := if target.val.testBit top then Function.update right.2.2 top left.1
+    else Function.update left.2.2 top right.1
+  return ((left.1, right.1),
+    ⟨if target.val.testBit top then right.2.1 else left.2.1, fun level => path level.val⟩)
+
+/-- `fors_open`: every FORS tree of instance `index` built once, the FORS key and the opening. -/
+def forsOpenOnce (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
+    (seed : MasterSeed) : m (ForsKey × (FTree → TreeOpening)) := do
+  let trees ← sequenceFin fun κ => treeOpenOnce parameter index κ (leaves κ) seed
+  return (fun κ => (trees κ).1, fun κ => (trees κ).2)
+
+/-- What a layer of the crate's signer gives: the counter, the chain values and the path. -/
+abbrev LayerData := Counter × (ChainIndex → Digest) × (Nat → Digest)
+
+/-- The layer `j` layers above the bottom one. -/
+def layerFromBottom (j : Nat) : Layer :=
+  ⟨numLayers - 1 - j, by have := Params.numLayers_pos; omega⟩
+
+/-- The layers from the `j`-th above the bottom up, `remaining` of them: each signs `message` with
+WOTS+C, then builds its tree once, whose root the next one signs. -/
+def signLayersUp (parameter : PublicParameter) (seed : MasterSeed) (index : Index) :
+    Nat → Nat → HashInput → m (Option (Layer → LayerData))
+  | 0, _, _ => pure (some fun _ => (0, fun _ => 0, fun _ => 0))
+  | remaining + 1, j, message => do
+      let lay := layerFromBottom j
+      let tree := treeIndexAt index lay
+      let leaf := leafIndexAt index lay
+      let some (counter, values) ← otsSign parameter lay tree leaf seed message | return none
+      let built ← treeNodeWithPath parameter lay tree seed leaf.val (layerHeight lay) 0
+      let rest ← signLayersUp parameter seed index remaining (j + 1) (rootPayload built.1)
+      return rest.map fun rest => Function.update rest lay (counter, values, built.2)
+
+/-- The layer signatures of what `signLayersUp` gives. -/
+def layersOfData (data : Layer → LayerData) : (lay : Layer) → LayerSignature lay :=
+  fun lay => ⟨(data lay).1, (data lay).2.1, fun level => (data lay).2.2 level.val⟩
+
+/-- `Sign`, the crate's `sign_with` with the scheme seed and the parameter: the randomizer, the
+digest, the FORS instance built once, and the layers from the bottom up. -/
+def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
+  let walk ← deriveRandomizer secretKey.parameter secretKey.seed message
+  let digest ← messageDigest secretKey.parameter secretKey.root message walk.1
+  let index := digestIndex digest
+  let fors ← forsOpenOnce secretKey.parameter index (digestLeaves digest) secretKey.seed
+  let some layers ← signLayersUp secretKey.parameter secretKey.seed index numLayers 0
+      (rootsPayload fors.1)
+    | return none
+  return some ⟨walk.1, fors.2, layersOfData layers⟩
 
 end Seeded
 

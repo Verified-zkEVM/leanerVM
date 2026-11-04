@@ -144,12 +144,19 @@ theorem revealsIn_sequenceDep (P : Coordinate → Prop) : ∀ {n : Nat} {α : Fi
           fun tail => ?_
         rcases tail with _ | tail <;> exact revealsIn_pure _ _
 
+theorem revealsIn_sequenceLayersUp (P : Coordinate → Prop) {α : Type}
+    {computation : Layer → OracleComp CostSpec (Option α)}
+    (h : ∀ lay, RevealsIn (D := HashInput) (R := HashOutput) P (computation lay)) :
+    RevealsIn (D := HashInput) (R := HashOutput) P (sequenceLayersUp computation) := by
+  unfold sequenceLayersUp
+  refine revealsIn_bind _ (revealsIn_sequenceDep P (α := fun _ => α) fun i => h i.rev) fun found => ?_
+  rcases found with _ | found <;> exact revealsIn_pure _ _
+
 /-- A layer's counter search reveals nothing. -/
 theorem revealsIn_layerCostSearch (P : Coordinate → Prop) (parameter : PublicParameter)
     (data : PublicData) (index : Index) (lay : Layer) :
     RevealsIn (D := HashInput) (R := HashOutput) P (layerCostSearch parameter data index lay) := by
   unfold layerCostSearch
-  refine revealsIn_bind _ (revealsIn_tick _ _) fun _ => ?_
   refine revealsIn_bind _ (revealsIn_liftHash _ _) fun found => ?_
   rcases found with _ | pair
   · exact revealsIn_pure _ _
@@ -161,7 +168,7 @@ theorem revealsIn_finishRest (parameter : PublicParameter) (data : PublicData) (
       (finishRest parameter data message randomness digest) := by
   unfold finishRest
   refine revealsIn_bind _ (revealsIn_tick _ _) fun _ => ?_
-  refine revealsIn_bind _ (revealsIn_sequenceDep _ fun lay => revealsIn_layerCostSearch _ _ _ _ lay)
+  refine revealsIn_bind _ (revealsIn_sequenceLayersUp _ fun lay => revealsIn_layerCostSearch _ _ _ _ lay)
     fun found => ?_
   rcases found with _ | found
   · exact revealsIn_pure _ _
@@ -206,7 +213,7 @@ theorem finishRest_none (randomness : Randomness) (digest : MessageDigest) (budg
   rw [hrev2, hr1, List.nil_append]
   obtain ⟨o3, ho3, h3⟩ := interp_bind_mem tg initial model _ _ _ _ o2 ho2
   have hr3 := no_reveals_of_false tg initial model _
-    (revealsIn_sequenceDep _ fun lay => revealsIn_layerCostSearch _ _ _ _ lay) _ _ o3 ho3
+    (revealsIn_sequenceLayersUp _ fun lay => revealsIn_layerCostSearch _ _ _ _ lay) _ _ o3 ho3
   rcases h3 with ⟨_, hn, _⟩ | ⟨found, hfound, o4, ho4, hres4, hrev4, _⟩
   · rw [hres2, hnone] at *; simp_all
   rw [hrev4, hr3, List.nil_append]

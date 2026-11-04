@@ -213,9 +213,9 @@ attribute [local instance] Classical.propDecidable
 /-- The final assembly after its digest call. -/
 noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (_message : Message)
     (randomness : Randomness) (digest : MessageDigest) : OracleComp CostSpec (Option Signature) := do
-  HiddenCost.tick (forsTrees * treeOpenCost)
+  HiddenCost.tick (forsKeyCost - 1)
   let index := digestIndex digest
-  let some found ← sequenceDep (α := fun _ => Counter × Encoding) (layerCostSearch parameter data index)
+  let some found ← sequenceLayersUp (layerCostSearch parameter data index)
     | return none
   let values ← sequenceFin fun lay : Layer => sequenceFin fun chain => HiddenCost.reveal
     (.chain lay (treeIndexAt index lay) (leafIndexAt index lay) chain ((found lay).2 chain))
@@ -269,11 +269,17 @@ theorem avoids_sequenceDep (avoid : HashInput → Prop) : ∀ {n : Nat} {α : Fi
 theorem avoids_layerCostSearch (parameter : PublicParameter) (data : PublicData) (index : Index)
     (lay : Layer) : Avoids IsMsgInput (layerCostSearch parameter data index lay) := by
   unfold layerCostSearch layerSearch
-  refine avoids_bind _ (avoids_tick _ _) fun _ => ?_
   refine avoids_bind _ (avoids_liftHash _ _ (NoMsg.search _ _ _ _ _ _ _)) fun found => ?_
   rcases found with _ | pair
   · exact avoids_pure _ _
   · exact avoids_bind _ (avoids_tick _ _) fun _ => avoids_pure _ _
+
+theorem avoids_sequenceLayersUp (avoid : HashInput → Prop) {α : Type}
+    {computation : Layer → OracleComp CostSpec (Option α)} (h : ∀ lay, Avoids avoid (computation lay)) :
+    Avoids avoid (sequenceLayersUp computation) := by
+  unfold sequenceLayersUp
+  refine avoids_bind _ (avoids_sequenceDep avoid (α := fun _ => α) fun i => h i.rev) fun found => ?_
+  rcases found with _ | found <;> exact avoids_pure _ _
 
 /-- The rest of the final assembly never queries a message-digest input. -/
 theorem avoids_finishRest (parameter : PublicParameter) (data : PublicData) (message : Message)
@@ -281,7 +287,8 @@ theorem avoids_finishRest (parameter : PublicParameter) (data : PublicData) (mes
     Avoids IsMsgInput (finishRest parameter data message randomness digest) := by
   unfold finishRest
   refine avoids_bind _ (avoids_tick _ _) fun _ => ?_
-  refine avoids_bind _ (avoids_sequenceDep _ fun lay => avoids_layerCostSearch _ _ _ lay) fun found => ?_
+  refine avoids_bind _ (avoids_sequenceLayersUp _ fun lay => avoids_layerCostSearch _ _ _ lay)
+    fun found => ?_
   rcases found with _ | found
   · exact avoids_pure _ _
   · refine avoids_bind _ (avoids_sequenceFin _ _ fun _ => avoids_sequenceFin _ _ fun _ => avoids_reveal _ _)

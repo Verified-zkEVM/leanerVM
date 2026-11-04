@@ -69,16 +69,12 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- The signer's key: the scheme seed `S = H(seedTag ‖ S_0)`, from which every secret derives
-(`seedTag` the scheme's name, `leanXMSS` or `leanSPHINCS`), and the parameter. The crates' secret
-key is the key's seed `S_0` alone (`LeanXmssSecretKey`, `LeanSphincsSecretKey`), whose signer derives
-`S` and `P` from it again (`scheme_seed`, `public_param`): the same signatures. The games hand
-their signer `S` and `P`, as key generation derived them, and count the hash calls of that signer. -/
-structure SecretKey where
-  /-- `S`, the scheme seed. -/
-  schemeSeed : MasterSeed
-  /-- The public parameter `P`. -/
-  parameter : PublicParameter
+/-- The secret key: the key's seed `S_0`, all of the key (`LeanXmssSecretKey`,
+`lean_xmss/scheme.rs:98-106`, which also caches what key generation derived from it, and
+`LeanSphincsSecretKey`, `lean_sphincs/scheme.rs:40-42`). Every secret derives from the scheme seed
+`S = H(seedTag ‖ S_0)` (`seedTag` the scheme's name, `leanXMSS` or `leanSPHINCS`), which the signer
+derives again at each signature, as the crates' do (`scheme_seed`). -/
+abbrev SecretKey := MasterSeed
 
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def littleEndianBytes (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
@@ -191,6 +187,20 @@ def buildTree {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
       let left ← buildTree leaf node l (2 * index)
       let right ← buildTree leaf node l (2 * index + 1)
       node l index (nodePayload left right)
+
+/-- `buildTree` with the authentication path of the leaf `target`: node `index` at level `level`,
+each node computed once, and the siblings of `target`'s path below it (`path l` the sibling at level
+`l < level`, for a node above `target`). -/
+def buildTreeWithPath {m : Type → Type} [Monad m] (leaf : Nat → m Digest)
+    (node : Nat → Nat → HashInput → m Digest) (target : Nat) :
+    Nat → Nat → m (Digest × (Nat → Digest))
+  | 0, index => do return (← leaf index, fun _ ↦ 0)
+  | l + 1, index => do
+      let left ← buildTreeWithPath leaf node target l (2 * index)
+      let right ← buildTreeWithPath leaf node target l (2 * index + 1)
+      let value ← node l index (nodePayload left.1 right.1)
+      return (value, if target.testBit l then Function.update right.2 l left.1
+        else Function.update left.2 l right.1)
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 

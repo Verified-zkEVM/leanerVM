@@ -456,10 +456,19 @@ theorem fixedCostP_sequenceDep_det : ∀ {n : Nat} {α : Fin n → Type}
         simp only [simulateQ_bind, hs, pure_bind]
         rcases xs with _ | tail <;> exact ⟨_, simulateQ_pure _ _⟩
 
+theorem fixedCostP_sequenceLayersUp_det {α : Type} (computation : Layer → OracleComp CostSpec (Option α))
+    (h : ∀ lay, ∃ x, simulateQ (fixedCostP g c) (computation lay) = pure x) :
+    ∃ x, simulateQ (fixedCostP g c) (Concrete.sequenceLayersUp computation) = pure x := by
+  obtain ⟨xs, hs⟩ := fixedCostP_sequenceDep_det g c (α := fun _ => α) (fun i => computation i.rev)
+    (fun i => h i.rev)
+  unfold Concrete.sequenceLayersUp
+  rw [simulateQ_bind, hs, pure_bind]
+  rcases xs with _ | found <;> exact ⟨_, simulateQ_pure _ _⟩
+
 theorem layerCostSearch_det (parameter : PublicParameter) (data : PublicData) (index : Index)
     (lay : Layer) :
     ∃ x, simulateQ (fixedCostP g c) (layerCostSearch parameter data index lay) = pure x := by
-  simp only [layerCostSearch, simulateQ_bind, fixedCostP_tick, fixedCostP_liftHash, pure_bind]
+  simp only [layerCostSearch, simulateQ_bind, fixedCostP_liftHash, pure_bind]
   split
   · simp only [simulateQ_bind, fixedCostP_tick, pure_bind, simulateQ_pure]
     exact ⟨_, rfl⟩
@@ -469,7 +478,7 @@ theorem finishCostSource_det (parameter : PublicParameter) (data : PublicData) (
     (randomness : Randomness) :
     ∃ x, simulateQ (fixedCostP g c) (finishCostSource parameter data message randomness) = pure x := by
   simp only [finishCostSource, simulateQ_bind, fixedCostP_liftHash, pure_bind, fixedCostP_tick]
-  obtain ⟨xs, hs⟩ := fixedCostP_sequenceDep_det g c _
+  obtain ⟨xs, hs⟩ := fixedCostP_sequenceLayersUp_det g c _
     (fun lay => layerCostSearch_det g c parameter data _ lay)
   rw [hs, pure_bind]
   rcases xs with _ | found

@@ -25,17 +25,15 @@ at leanVM `542b0353`: FORS without its root hash under a hypertree of WOTS+C key
 
 Every hash input is `P ‖ A ‖ payload` (§sec:parameters, §sec:tweaks), `P` the 16-byte public
 parameter and `A` the 16-byte address, whose layer and tree fields a hash of the hypertree fills.
-Key generation hashes the seed `S0` into `S = H(leanSPHINCS ‖ S0)`, from which every secret derives;
-it builds the top tree. The message digest hashes `m ‖ ρ` (the root is not: `P` binds the key),
-the randomizer `S ‖ m`.
+The secret key is the seed `S0`; every secret derives from `S = H(leanSPHINCS ‖ S0)`. Key
+generation builds the top tree. The message digest hashes `m ‖ ρ` (the root is not: `P` binds the
+key), the randomizer `S ‖ m`.
 
-**The signer.** The signer here computes the crate's signature (`sign_with`, `scheme.rs:303-325`) as
-the proofs' signer computes it, so that the budget of the end statement counts its hash calls: the
-layers from the top down (the crate goes up, reusing the root of each tree it builds as the next
-layer's message; here each layer computes its message again), each FORS tree and each Merkle tree
-from the seed again where the crate reuses what it built, and, before the digest, the digest's first
-call once more (the proofs' signer, written also for keys that keep a subtree of the top tree, checks
-there that the index lands in it; every index does here).
+**The signer** is the crate's, call for call (`sign`, `sign_with`, `scheme.rs:297-325`): the scheme
+seed hashed again from the key's seed, the public parameter, the randomizer, the digest's two
+calls, each FORS tree built once for its key and opening, then the layers from the bottom up, each
+a one-time signature followed by its tree built once, whose root the layer above signs. So the hash
+calls the end statement counts are the crate's.
 
 Then the SUF-CMA game of `Statement/SufCma.lean` with that signer, and the end statement
 `Sphincs.LeanSphincsStronglyUnforgeable`, proved by `Sphincs.leanSphincsStronglyUnforgeable`
@@ -202,8 +200,8 @@ deriving DecidableEq
 leaves, or `level + 16 node` (`fors_hi`, `hash.rs:21-23`). -/
 def forsHi (tree : ForsTreeIndex) (position : Nat) : Nat := tree.val + 64 * position
 
-/-- The verification hash domains; seed derivations use `KeygenDomain`. A `forsNode` at `level` is the
-node of FORS tree level `level + 1`: the scheme hashes levels 1 to `a - 1`. -/
+/-- The verification hash domains; seed derivations use `KeygenDomain`. A `forsNode` at `level` is
+the node of FORS tree level `level + 1`: the scheme hashes levels 1 to `a - 1`. -/
 inductive HashDomain where
   /-- Step `step` of chain `chainIndex` of the one-time key `(layer, tree, leaf)`. -/
   | chain (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) (chainIndex : ChainIndex)
@@ -255,7 +253,8 @@ tree: the two 16-byte halves of the hash. The parameter is the first 16 bytes of
 inductive KeygenDomain where
   /-- The public parameter `P`. -/
   | parameter
-  /-- The starts of chains `2t` and `2t + 1` of the one-time key `(layer, tree, leaf)`, `t = pair`. -/
+  /-- The starts of chains `2t` and `2t + 1` of the one-time key `(layer, tree, leaf)`,
+  `t = pair`. -/
   | oneTimeChainPair (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
       (pair : ChainPairIndex)
   /-- The secrets of leaves `2p` and `2p + 1` of FORS tree `forsTree` of instance `index`. -/
@@ -356,7 +355,8 @@ def otsLeaf (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
 tree's root. -/
 def treeFold (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (path : Nat → Digest) : Nat → Digest → m Digest :=
-  foldPath (fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex))
+  foldPath
+    (fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex))
     leaf.val path
 
 /-! #### FORS -/
@@ -538,33 +538,29 @@ def treeNode (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex) (s
         (← oneTimePublicKey π parameter layer tree (leafOfNat nodeIndex) seed))
     fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex)
 
-/-- The authentication path of the key at `leaf` in its tree: the sibling at each height
-(`sign_with`, `scheme.rs:315`). -/
-def treePath (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex) (seed : MasterSeed)
-    (leaf : TreeLeafIndex) : m (Fin (layerHeight layer) → Digest) :=
-  sequenceFin fun level =>
-    treeNode π parameter layer tree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
+/-- Tree `tree` of layer `layer`, built once (`tree_levels`, `scheme.rs:241-254`): node `nodeIndex`
+at height `level`, and the siblings of the path of the key at `leaf` below it. The crate builds the
+tree level by level and reads the root and the path from its levels (`sign_with`,
+`scheme.rs:313-316`); here it is built depth first: the same hash calls, each node once. -/
+def treeNodeWithPath (parameter : PublicParameter) (layer : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (leaf : TreeLeafIndex) : Nat → Nat → m (Digest × (Nat → Digest)) :=
+  buildTreeWithPath (fun nodeIndex ↦ do
+      leafHash π parameter layer tree (leafOfNat nodeIndex)
+        (← oneTimePublicKey π parameter layer tree (leafOfNat nodeIndex) seed))
+    (fun level nodeIndex ↦ tweakableHash π parameter (.node layer tree (level + 1) nodeIndex))
+    leaf.val
 
 /-! #### FORS -/
 
-/-- The secret of one FORS leaf, from its own derivation of its pair (`secret_pair`,
-`fors.rs:28-30`). -/
-def forsSecret (parameter : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
-    (leaf : ForsLeafIndex) (seed : MasterSeed) : m Digest := do
-  let output ← thPair π parameter (keygenDomainFields (.forsSecretPair index forsTree
-    (forsLeafPair leaf))) (littleEndianBytes 32 seed)
-  return hashHalfForChain leaf.val output
-
-/-- Node `node` at height `level` of FORS tree `forsTree` of instance `index` (`fors_open`,
-`fors.rs:44-70`). A height-1 node derives its pair of leaves once: the two halves of the hash are
-their secrets. -/
-def forsNode (parameter : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
-    (seed : MasterSeed) : Nat → Nat → m Digest
+/-- Node `node` at height `height + 1` of FORS tree `forsTree` of instance `index`, built once
+(`fors_open`, `fors.rs:44-70`), with the secret of the leaf `leaf` and the siblings of its path
+below it (`path l` the sibling at height `l ≤ height`), for a node above `leaf`. A height-1 node
+derives its pair of leaves once: the two halves of the hash are their secrets (`secret_pair`,
+`fors.rs:28-30`). The crate builds the tree level by level; here it is built depth first, the
+same hash calls. -/
+def forsSubtree (parameter : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
+    (seed : MasterSeed) (leaf : ForsLeafIndex) : Nat → Nat → m (Digest × Digest × (Nat → Digest))
   | 0, node => do
-      let leaf : ForsLeafIndex := ⟨node % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-      let secret ← forsSecret π parameter index forsTree leaf seed
-      forsLeafHash π parameter index forsTree leaf secret
-  | 1, node => do
       let left : ForsLeafIndex := ⟨2 * node % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
       let right : ForsLeafIndex :=
         ⟨(2 * node + 1) % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
@@ -572,81 +568,72 @@ def forsNode (parameter : PublicParameter) (index : Index) (forsTree : ForsTreeI
         (forsLeafPair left))) (littleEndianBytes 32 seed)
       let leftLeaf ← forsLeafHash π parameter index forsTree left (hashHalfForChain 0 output)
       let rightLeaf ← forsLeafHash π parameter index forsTree right (hashHalfForChain 1 output)
-      tweakableHash π parameter (.forsNode index forsTree ⟨0, by decide⟩
+      let value ← tweakableHash π parameter (.forsNode index forsTree ⟨0, by decide⟩
         ⟨node % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
         (nodePayload leftLeaf rightLeaf)
-  | level + 2, node => do
-      let left ← forsNode parameter index forsTree seed (level + 1) (2 * node)
-      let right ← forsNode parameter index forsTree seed (level + 1) (2 * node + 1)
-      if hlevel : level + 1 < forsTreeHeight then
-        tweakableHash π parameter (.forsNode index forsTree ⟨level + 1, hlevel⟩
-          ⟨node % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩) (nodePayload left right)
-      else
-        pure 0
+      return (value, hashHalfForChain leaf.val output,
+        fun _ ↦ if leaf.val.testBit 0 then leftLeaf else rightLeaf)
+  | height + 1, node => do
+      let left ← forsSubtree parameter index forsTree seed leaf height (2 * node)
+      let right ← forsSubtree parameter index forsTree seed leaf height (2 * node + 1)
+      let value ← (if hheight : height + 1 < forsTreeHeight then
+          tweakableHash π parameter (.forsNode index forsTree ⟨height + 1, hheight⟩
+            ⟨node % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩)
+            (nodePayload left.1 right.1)
+        else pure 0)
+      return (value, if leaf.val.testBit (height + 1) then right.2.1 else left.2.1,
+        if leaf.val.testBit (height + 1) then Function.update right.2.2 (height + 1) left.1
+        else Function.update left.2.2 (height + 1) right.1)
 
-/-- `Fts.key`: the FORS key of instance `index`, the two level-`(a - 1)` nodes of every tree. -/
-def forsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m ForsKey :=
-  sequenceFin fun forsTree => do
-    let left ← forsNode π parameter index forsTree seed (forsTreeHeight - 1) 0
-    let right ← forsNode π parameter index forsTree seed (forsTreeHeight - 1) 1
-    return (left, right)
-
-/-- The opening of one FORS tree at a leaf. One derivation gives the secret and the sibling leaf
-(path level 0); the last path element (level `a - 1`) is the top node the verifier does not
-compute. -/
+/-- FORS tree `forsTree` of instance `index`, built once: its two level-`(a - 1)` nodes, the FORS
+key's pair, and its opening at `leaf`, whose last path element is the other of the two
+(`fors_open`, `fors.rs:44-70`). -/
 def forsTreeOpen (parameter : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
-    (leaf : ForsLeafIndex) (seed : MasterSeed) : m ForsTreeOpening := do
-  let output ← thPair π parameter (keygenDomainFields (.forsSecretPair index forsTree
-    (forsLeafPair leaf))) (littleEndianBytes 32 seed)
-  let sibling : ForsLeafIndex :=
-    ⟨Nat.xor leaf.val 1 % 2 ^ forsTreeHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-  let siblingLeaf ← forsLeafHash π parameter index forsTree sibling
-    (hashHalfForChain sibling.val output)
-  let path ← sequenceFin fun level : Fin forsTreeHeight =>
-    if level.val = 0 then pure siblingLeaf
-    else forsNode π parameter index forsTree seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
-  return ⟨hashHalfForChain leaf.val output, path⟩
+    (leaf : ForsLeafIndex) (seed : MasterSeed) : m ((Digest × Digest) × ForsTreeOpening) := do
+  let left ← forsSubtree π parameter index forsTree seed leaf (forsTreeHeight - 2) 0
+  let right ← forsSubtree π parameter index forsTree seed leaf (forsTreeHeight - 2) 1
+  let top := forsTreeHeight - 1
+  let path := if leaf.val.testBit top then Function.update right.2.2 top left.1
+    else Function.update left.2.2 top right.1
+  return ((left.1, right.1),
+    ⟨if leaf.val.testBit top then right.2.1 else left.2.1, fun level ↦ path level.val⟩)
 
-/-- `Fts.sign`: the opening of every tree at the digest's leaves. -/
+/-- `Fts.key` and `Fts.sign` together (`fors_open`, `fors.rs:44-70`): every tree of instance
+`index` built once, the FORS key and the opening at the digest's leaves. -/
 def forsOpen (parameter : PublicParameter) (index : Index)
     (leaves : ForsTreeIndex → ForsLeafIndex) (seed : MasterSeed) :
-    m (ForsTreeIndex → ForsTreeOpening) :=
-  sequenceFin fun forsTree => forsTreeOpen π parameter index forsTree (leaves forsTree) seed
+    m (ForsKey × (ForsTreeIndex → ForsTreeOpening)) := do
+  let trees ← sequenceFin fun forsTree =>
+    forsTreeOpen π parameter index forsTree (leaves forsTree) seed
+  return (fun forsTree => (trees forsTree).1, fun forsTree => (trees forsTree).2)
 
 /-! #### Key generation and signing -/
 
-/-- `Gen` (`key_gen_from_seed`, `scheme.rs:258-271`): hash the key's seed `S0` into the scheme seed
-`S` (`scheme_seed`, `hash.rs:15-17`), derive the public parameter (`public_param`,
-`tweak.rs:135-137`), and build the top tree's root. -/
-def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
-  let schemeSeed ← taggedSeed π seedTag masterSeed
+/-- The public key of the scheme seed `S` (`public_key_of`, `scheme.rs:264-271`): the public
+parameter (`public_param`, `tweak.rs:135-137`) and the root of the top tree. -/
+def publicKeyOf (schemeSeed : MasterSeed) : m PublicKey := do
   let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
   let root ← treeNode π parameter topLayer 0 schemeSeed (layerHeight topLayer) 0
-  return (⟨root, parameter⟩, ⟨schemeSeed, parameter⟩)
+  return ⟨root, parameter⟩
 
-/-- `M_l`, what layer `l`'s key signs: the FORS key of instance `idx` at the bottom, the root of the
-tree below holding `K_{l-1}(idx)` above it (`sign_with`, `scheme.rs:307-317`). -/
-def layerMessage (parameter : PublicParameter) (seed : MasterSeed) (layer : Layer) (index : Index) :
-    m HashInput :=
-  if hbottom : layer.val = 0 then do
-    let key ← forsKey π parameter index seed
-    return forsKeyPayload key
-  else do
-    let below : Layer := ⟨layer.val - 1, by have := layer.isLt; omega⟩
-    let root ← treeNode π parameter below (treeOfIndex below index) seed (layerHeight below) 0
-    return littleEndianBytes 16 root
+/-- `Gen` (`key_gen_from_seed`, `scheme.rs:258-260`): the secret key is the seed `S0`, the public
+key that of the scheme seed `S = H(leanSPHINCS ‖ S0)` (`scheme_seed`, `hash.rs:15-17`). -/
+def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
+  let schemeSeed ← taggedSeed π seedTag masterSeed
+  let publicKey ← publicKeyOf π schemeSeed
+  return (publicKey, masterSeed)
 
-/-- Layer `l`'s one-time signature of `M_l` with `K_l(idx)`, and the key's path. -/
-def signLayer (secretKey : SecretKey) (index : Index) (layer : Layer) :
-    m (Option (LayerSignature layer)) := do
+/-- Layer `l`'s one-time signature of `message` with `K_l(idx)` (`wots_sign`), then the key's tree,
+built once: the layer's signature with the key's path, and the tree's root, which the layer above
+signs (the loop of `sign_with`, `scheme.rs:310-318`). -/
+def signLayer (parameter : PublicParameter) (schemeSeed : MasterSeed) (index : Index)
+    (layer : Layer) (message : HashInput) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
   let leaf := leafOfIndex layer index
-  let message ← layerMessage π secretKey.parameter secretKey.schemeSeed layer index
-  let some (counter, values) ←
-      otsSign π secretKey.parameter layer tree leaf secretKey.schemeSeed message
+  let some (counter, values) ← otsSign π parameter layer tree leaf schemeSeed message
     | return none
-  let path ← treePath π secretKey.parameter layer tree secretKey.schemeSeed leaf
-  return some ⟨counter, values, path⟩
+  let built ← treeNodeWithPath π parameter layer tree schemeSeed leaf (layerHeight layer) 0
+  return some (⟨counter, values, fun level ↦ built.2 level.val⟩, built.1)
 
 /-- The three layers' signatures, bottom first. -/
 def layerSignatures (bottom : LayerSignature 0) (middle : LayerSignature 1)
@@ -656,22 +643,32 @@ def layerSignatures (bottom : LayerSignature 0) (middle : LayerSignature 1)
   | ⟨2, _⟩ => top
   | ⟨_ + 3, h⟩ => absurd h (by unfold layerCount; omega)
 
-/-- `Sign` (`sign_with`, `scheme.rs:303-325`): the randomizer `ρ = Th(P, A_rnd, S ‖ m)`
-(`randomizer`, `scheme.rs:280-286`), the digest's index and leaves, the FORS opening, and each
-layer's one-time signature and path, the layers computed from the top down (the module's
-docstring: the proofs' order, and the digest's first call once more before the digest). -/
-def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let randomizer ← th π secretKey.parameter (tweakFields 7 0 0 0)
-    (littleEndianBytes 32 secretKey.schemeSeed ++ littleEndianBytes 32 message)
-  let _ ← messageDigestCall π secretKey.parameter message randomizer 0
-  let digest ← messageDigest π secretKey.parameter message randomizer
+/-- `sign_with` (`scheme.rs:303-325`), with the scheme seed `S`: the public parameter, the
+randomizer `ρ = Th(P, A_rnd, S ‖ m)` (`randomizer`, `scheme.rs:280-286`), the digest's index and
+leaves, the FORS instance built once (its key and its opening), then the layers from the bottom up,
+each signing what the layer below gives: the FORS key's bytes at the bottom (`fors_key_bytes`), the
+root of the tree below above it. -/
+def signWithSchemeSeed (schemeSeed : MasterSeed) (message : Message) : m (Option Signature) := do
+  let parameter ← th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 schemeSeed)
+  let randomizer ← th π parameter (tweakFields 7 0 0 0)
+    (littleEndianBytes 32 schemeSeed ++ littleEndianBytes 32 message)
+  let digest ← messageDigest π parameter message randomizer
   let index := digestIndex digest
-  let opening ← forsOpen π secretKey.parameter index (digestForsLeaves digest)
-    secretKey.schemeSeed
-  let some top ← signLayer π secretKey index 2 | return none
-  let some middle ← signLayer π secretKey index 1 | return none
-  let some bottom ← signLayer π secretKey index 0 | return none
-  return some ⟨randomizer, opening, layerSignatures bottom middle top⟩
+  let fors ← forsOpen π parameter index (digestForsLeaves digest) schemeSeed
+  let some (bottom, bottomRoot) ← signLayer π parameter schemeSeed index 0 (forsKeyPayload fors.1)
+    | return none
+  let some (middle, middleRoot) ←
+      signLayer π parameter schemeSeed index 1 (littleEndianBytes 16 bottomRoot)
+    | return none
+  let some (top, _) ← signLayer π parameter schemeSeed index 2 (littleEndianBytes 16 middleRoot)
+    | return none
+  return some ⟨randomizer, fors.2, layerSignatures bottom middle top⟩
+
+/-- `Sign` (`sign`, `scheme.rs:297-299`): the scheme seed `S = H(leanSPHINCS ‖ S0)` of the key's
+seed (`scheme_seed`, `hash.rs:15-17`), then `sign_with`. -/
+def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
+  let schemeSeed ← taggedSeed π seedTag secretKey
+  signWithSchemeSeed π schemeSeed message
 
 end KeyGenerationAndSigning
 
