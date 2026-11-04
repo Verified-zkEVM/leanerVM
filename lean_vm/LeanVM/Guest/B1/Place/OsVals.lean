@@ -59,10 +59,12 @@ theorem lvs_alloc_vals (c : OsCfg) (σ : Val) : ∀ (lvs : List OsLv) (Ds : List
         rw [hσ i (by have := osLevel_k_ge c lvl lv st; omega) (by rw [e]; exact h2)]
         show seqF σ1 st.k (osLevel c lvl lv st).2.k (lvF c lvl lv st σ1 D) _ i = _
         exact seqF_ge h1)
-    have hwv : (osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k + lv.queries + 1 =
-        wpVar c lvl lv (osLevelA c lvl lv st).2.1 := rfl
-    have hwv' : (osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k + lv.queries =
-        wpVar c lvl lv (osLevelA c lvl lv st).2.1 - 1 := by unfold wpVar; omega
+    have hwv : (osLamPow lvl ((osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k - 1) lv.queries
+        (osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k).2.2 + 1 =
+        wpVar c lvl lv (osLevelA c lvl lv st).2.1 := by rw [osLamPow_next]; rfl
+    have hwv' : (osLamPow lvl ((osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k - 1) lv.queries
+        (osSqueezes c lvl lv (osLevelA c lvl lv st).2.1).2.k).2.2 =
+        wpVar c lvl lv (osLevelA c lvl lv st).2.1 - 1 := by rw [osLamPow_next]; unfold wpVar; omega
     simp only [lvsAllocs, lvAllocs, List.map_append, List.map_cons, List.map_nil, List.flatMap_cons,
       osHeapA, vSz, Sum.elim_inr]
     refine ⟨?_, ?_⟩
@@ -71,13 +73,14 @@ theorem lvs_alloc_vals (c : OsCfg) (σ : Val) : ∀ (lvs : List OsLv) (Ds : List
 
 /-! ## The residual chains -/
 
-theorem res_alloc_vals (c : OsCfg) (σ : Val) (ich bd ls : ℕ) (RC acc P W I L : ℕ → E)
-    (D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ),
+theorem res_alloc_vals (c : OsCfg) (σ : Val) (ich bd ls : ℕ) (RC acc M I L : ℕ → E)
+    (P D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ),
     (∀ i, k ≤ i → i < (osResiduals c ich bd ls lvl levels k).2 →
-      ∃ σ1, σ (.n i) = residualsF c bd RC acc P W I L D lvl levels k σ1 i) →
+      ∃ σ1, σ (.n i) = residualsF c bd RC acc M I L P D lvl levels k σ1 i) →
     ((resAllocs c ich bd ls lvl levels k).map Prod.fst).map σ =
         (List.range levels.length).map (fun j ↦ RC (lvl + j)) ∧
-      (resAllocs c ich bd ls lvl levels k).map (vSz σ) = levels.map (fun _ ↦ gw (c.maxQ + 1))
+      (resAllocs c ich bd ls lvl levels k).map (vSz σ) =
+        levels.map (fun lv ↦ gw (lv.queries / resBatch + 1))
   | [], _, _, _ => ⟨rfl, rfl⟩
   | lv :: rest, lvl, k, hσ => by
     have h1 := osResidual_k c ich bd ls lvl lv k
@@ -85,14 +88,15 @@ theorem res_alloc_vals (c : OsCfg) (σ : Val) (ich bd ls : ℕ) (RC acc P W I L 
     have e : (osResiduals c ich bd ls lvl (lv :: rest) k).2 =
         (osResiduals c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2).2 := rfl
     have ek := osResidual_k_eq c ich bd ls lvl lv k
-    have hv : ∀ i, k ≤ i → i < k + 9 → σ (.n i) =
-        (resPreVals c (lv.queries / 2) (RC lvl) (acc lvl)).getD (i - k) 0 := fun i g1 g2 ↦ by
+    have hv : ∀ i, k ≤ i → i < k + 10 → σ (.n i) =
+        (resPreVals (lv.queries / resBatch) (M lvl) (RC lvl) (acc lvl)).getD (i - k) 0 :=
+      fun i g1 g2 ↦ by
       obtain ⟨σ1, h⟩ := hσ i g1 (by rw [e]; omega)
       rw [h]
       show seqF σ1 k (osResidual c 0 bd 0 lvl lv k).2 _ _ i = _
       rw [seqF_lt (by rw [← ek]; omega)]
       exact seqF_lt g2
-    have ih := res_alloc_vals c σ ich bd ls RC acc P W I L D rest (lvl + 1)
+    have ih := res_alloc_vals c σ ich bd ls RC acc M I L P D rest (lvl + 1)
       (osResidual c ich bd ls lvl lv k).2
       (fun i g1 g2 ↦ by
         obtain ⟨σ1, h⟩ := hσ i (by omega) (by rw [e]; exact g2)
@@ -104,24 +108,25 @@ theorem res_alloc_vals (c : OsCfg) (σ : Val) (ich bd ls : ℕ) (RC acc P W I L 
       List.range_succ_eq_map, List.map_map]
     refine ⟨?_, ?_⟩
     · rw [ih1, hv _ (by omega) (by omega)]
-      simp only [resPreVals, Nat.add_sub_cancel_left, List.getD_cons_succ, List.getD_cons_zero,
-        Nat.add_zero, List.cons.injEq, true_and]
-      exact List.map_congr_left fun j _ ↦ by simp only [Function.comp_apply]; congr 1; omega
-    · rw [ih.2, hv _ le_rfl (by omega)]
+      simp only [resPreVals, List.cons.injEq]
+      refine ⟨by rw [show k + 1 + 1 - k = 2 by omega]; rfl,
+        List.map_congr_left fun j _ ↦ by simp only [Function.comp_apply]; congr 1; omega⟩
+    · rw [ih.2, hv _ (by omega) (by omega)]
       simp [resPreVals]
 
 
 /-! ## The finish -/
 
 theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 BD LS ICH In : E)
-    (Pp β : ℕ → E) (X : ℕ → ℕ → E) (RC acc Pq W I L : ℕ → E) (D : ℕ → ℕ → E) (Λ : ℕ → E)
+    (Pp β : ℕ → E) (X : ℕ → ℕ → E) (RC acc M I L : ℕ → E) (Pq D : ℕ → ℕ → E) (Λ : ℕ → E)
     (Z Yo : ℕ → ℕ → E)
     (hσ : ∀ i, st.k ≤ i → i < osFinEnd c st tch →
-      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i) :
+      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo σ3 i) :
     ((finAllocs c st tch).map Prod.fst).map σ =
         [PT, PT1, BD, LS, ICH] ++ (List.range c.levels.length).map RC ∧
       (finAllocs c st tch).map (vSz σ) = [gw pointCap, gw pointCap, gw (c.levels.length * ligColsCap),
-        gw c.levels.length, gw (c.levels.length + 1)] ++ c.levels.map (fun _ ↦ gw (c.maxQ + 1)) := by
+        gw c.levels.length, gw (c.levels.length + 1)] ++
+          c.levels.map (fun lv ↦ gw (lv.queries / resBatch + 1)) := by
   unfold finAllocs
   dsimp only
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
@@ -139,11 +144,11 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
       ((osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)).2 + 4)).2 = bs.2 := rfl
   have e3 : (osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3)).2 = rs.2 := rfl
   have F : ∀ i, st.k ≤ i → i < od.2.2 + 6 →
-      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i :=
+      ∃ σ3, σ (.n i) = finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo σ3 i :=
     fun i h1 h2 ↦ hσ i h1 (by rw [hE]; exact h2)
   -- the point's buffers
   have G : ∀ i, st.k ≤ i → i < od.2.2 + 6 → ∀ v : E,
-      (∀ σ3, finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3 i = v) →
+      (∀ σ3, finishF c st tch Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo σ3 i = v) →
       σ (.n i) = v := fun i h1 h2 v hv ↦ by
     obtain ⟨σ3, hF⟩ := F i h1 h2
     rw [hF, hv]
@@ -182,7 +187,7 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
       simp [e2]
   -- the residual chains
   have h7 : ∀ i, bs.2 + 3 ≤ i → i < rs.2 →
-      ∃ σ7, σ (.n i) = residualsF c (pts.2 + 1) RC acc Pq W I L D 0 c.levels (bs.2 + 3) σ7 i := by
+      ∃ σ7, σ (.n i) = residualsF c (pts.2 + 1) RC acc M I L Pq D 0 c.levels (bs.2 + 3) σ7 i := by
     intro i h1 h2
     obtain ⟨σ3, hF⟩ := F i (by omega) (by omega); rw [hF]; unfold finishF
     rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
@@ -190,7 +195,7 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
     rw [seqF_ge (by omega)]; rw [seqF_ge (by omega)]
     rw [seqF_ge (by omega)]
     exact ⟨_, seqF_lt h2⟩
-  have hr := res_alloc_vals c σ (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) RC acc Pq W I L D c.levels 0
+  have hr := res_alloc_vals c σ (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) RC acc M I L Pq D c.levels 0
     (bs.2 + 3) h7
   simp only [Nat.zero_add] at hr
   simp only [List.map_cons, osHeapA, vSz, Sum.elim_inr, Sum.elim_inl,
@@ -204,22 +209,22 @@ theorem fin_alloc_vals (c : OsCfg) (σ : Val) (st : OsSt) (tch : ℕ) (Y PT PT1 
 section Body
 
 variable {c : OsCfg} {σ : Val} {P : OsPtrs} {c0 c2 : E} {Ds : List LvDat} {T : E} {xs : List E}
-  {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc Pq W I L : ℕ → E}
-  {D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
+  {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc M I L : ℕ → E}
+  {Pq D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
 
-theorem bodyF_head {i : ℕ} (h : i < 34) :
-    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+theorem bodyF_head {i : ℕ} (h : i < 164) :
+    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo i =
       headF c σ P c0 c2 i := seqF_lt h
 
 theorem bodyF_lvs {i : ℕ} (h1 : 164 ≤ i) (h2 : i < (osLvSt c).k) :
-    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
-      lvsF c 0 c.levels Ds (osHead c).2 (fill σ 9 34 (headF c σ P c0 c2)) i := by
+    bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo i =
+      lvsF c 0 c.levels Ds (osHead c).2 (fill σ 9 164 (headF c σ P c0 c2)) i := by
   unfold bodyF
   rw [seqF_ge h1]
   exact seqF_lt h2
 
 theorem bodyF_tail {i : ℕ} (h1 : (osLvSt c).k ≤ i) (h2 : i < (osTlSt c).2.1.k) (h0 : 164 ≤ (osLvSt c).k) :
-    ∃ σ2, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
+    ∃ σ2, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo i =
       tailF c (osLvSt c) σ2 T xs i := by
   unfold bodyF
   rw [seqF_ge (by omega), seqF_ge h1]
@@ -227,8 +232,8 @@ theorem bodyF_tail {i : ℕ} (h1 : (osLvSt c).k ≤ i) (h2 : i < (osTlSt c).2.1.
 
 theorem bodyF_fin {i : ℕ} (h1 : (osTlSt c).2.1.k ≤ i) (h0 : 164 ≤ (osLvSt c).k)
     (h3 : (osLvSt c).k ≤ (osTlSt c).2.1.k) :
-    ∃ σ3, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
-      finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo
+    ∃ σ3, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo i =
+      finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo
         σ3 i := by
   unfold bodyF
   rw [seqF_ge (by omega), seqF_ge (by omega), seqF_ge h1]

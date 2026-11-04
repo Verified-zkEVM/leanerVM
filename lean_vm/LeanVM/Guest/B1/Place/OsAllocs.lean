@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.Flatness
 # `open_stacked`'s allocation hints
 
 `osAllocsOf c`: the body's `HeapBuf` hints in order, each `osHeap e k` its pointer `k + 1` sized by
-the value `k` (`osHeapA k`), the point's and `point1`'s by `pointCap`: the head's eleven, each
+the value `k` (`osHeapA k`), the point's and `point1`'s by `pointCap`: the head's twelve, each
 level's squeeze run and row weights (`lvsAllocs`), the tail's, the finish's five and each level's
 residual chain (`resAllocs`). `osBodyA_allocs`: they are the body's (`Main.Stmt.allocSz`).
 -/
@@ -74,16 +74,24 @@ theorem osFolds_allocs (p : ℕ) : ∀ (n off : ℕ) (s : OsSt),
 theorem osFinal_allocs (c : OsCfg) (s : OsSt) : (osFinal c s).1.filterMap Main.Stmt.allocSz = [] := by
   simp [osFinal, osMat_allocs, List.filterMap_cons]
 
-theorem osCommit_allocs (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    (osCommit lvl lv s).1.filterMap Main.Stmt.allocSz = [] := by
-  simp [osCommit, fsPackT, fsNextT, keccakA, List.filterMap_cons, List.filterMap_eq_nil_iff]
+theorem osMatP_allocs (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (b o k : ℕ) :
+    (osMatP plan mats b o k).1.filterMap Main.Stmt.allocSz = [] := by
+  unfold osMatP; split_ifs <;> simp [List.filterMap_cons]
 
-theorem osLamPows_allocs (lam base k : ℕ) : ∀ q : ℕ,
-    (osLamPows lam base k q).filterMap Main.Stmt.allocSz = []
-  | 0 => rfl
-  | q + 1 => by
-    simp only [osLamPows]
-    split_ifs <;> simp [List.filterMap_cons]
+theorem osCommit_allocs (plan : List (ℕ × ℕ × ℕ)) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    (osCommit plan lvl lv s).1.filterMap Main.Stmt.allocSz = [] := by
+  simp [osCommit, fsPackT, fsNextT, keccakA, osMatP_allocs, List.filterMap_cons,
+    List.filterMap_eq_nil_iff]
+
+theorem osPowSteps_allocs (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ),
+    (osPowSteps x ds acc k).1.filterMap Main.Stmt.allocSz = []
+  | [], _, _ => rfl
+  | true :: ds, acc, k => by simp [osPowSteps, osPowSteps_allocs x ds, List.filterMap_cons]
+  | false :: ds, acc, k => by simp [osPowSteps, osPowSteps_allocs x ds, List.filterMap_cons]
+
+theorem osLamPow_allocs (lvl lam n k : ℕ) :
+    (osLamPow lvl lam n k).1.filterMap Main.Stmt.allocSz = [] := by
+  simp [osLamPow, osPowSteps_allocs, List.filterMap_cons]
 
 theorem osSqueezes_allocs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osSqueezes c lvl lv s).1.filterMap Main.Stmt.allocSz = [osHeapA s.k] := by
@@ -94,20 +102,21 @@ theorem osSqueezes_allocs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 
 theorem osQueries_allocs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
     (osQueries c lvl lv lam lamN s).1.filterMap Main.Stmt.allocSz = [osHeapA s.k] := by
-  simp only [osQueries, List.filterMap_append, osHeap_allocs, osMat_allocs]
+  simp only [osQueries, List.filterMap_append, osHeap_allocs, osMatP_allocs]
   simp [List.filterMap_cons]
 
 /-- A level's hints: its squeeze run and its row weights. -/
 def lvAllocs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List (V × (ℕ ⊕ V)) :=
   [osHeapA (osLevelA c lvl lv s).2.1.k,
-    osHeapA ((osSqueezes c lvl lv (osLevelA c lvl lv s).2.1).2.k + lv.queries)]
+    osHeapA (osLamPow lvl ((osSqueezes c lvl lv (osLevelA c lvl lv s).2.1).2.k - 1) lv.queries
+      (osSqueezes c lvl lv (osLevelA c lvl lv s).2.1).2.k).2.2]
 
 theorem osLevel_allocs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).1.filterMap Main.Stmt.allocSz = lvAllocs c lvl lv s := by
   rw [osLevel_split]
   simp only [List.filterMap_append, osLevelA, osLevelB, lvAllocs]
   split_ifs <;>
-    simp [osFolds_allocs, osFinal_allocs, osCommit_allocs, osSqueezes_allocs, osLamPows_allocs,
+    simp [osFolds_allocs, osFinal_allocs, osCommit_allocs, osSqueezes_allocs, osLamPow_allocs,
       osQueries_allocs, osOodGlue, osGlue, List.filterMap_cons]
 
 /-- The levels' hints. -/
@@ -165,16 +174,23 @@ theorem osResQ_allocs (pos bd row vo : ℕ) : ∀ (n t pe k : ℕ),
     simp only [osResQ, List.filterMap_append, osResQ_allocs pos bd row vo n]
     simp [List.filterMap_cons]
 
+theorem osResSteps_allocs (pp bd row vo ncols mu : ℕ) : ∀ (js : List ℕ) (h k : ℕ),
+    (osResSteps pp bd row vo ncols mu js h k).1.filterMap Main.Stmt.allocSz = []
+  | [], _, _ => rfl
+  | j :: js, h, k => by
+    simp only [osResSteps, osResStep, osResQuery, List.filterMap_append, osResQ_allocs,
+      osResSteps_allocs pp bd row vo ncols mu js]
+    simp [List.filterMap_cons]
+
 theorem osResidual_allocs (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    (osResidual c ich bd ls lvl lv k).1.filterMap Main.Stmt.allocSz = [osHeapA k] := by
-  simp only [osResidual, List.filterMap_append, osHeap_allocs]
-  split_ifs <;>
-    simp [osLoopCall, osResQuery, osResQ_allocs, List.filterMap_cons]
+    (osResidual c ich bd ls lvl lv k).1.filterMap Main.Stmt.allocSz = [osHeapA (k + 1)] := by
+  simp only [osResidual, List.filterMap_append, osHeap_allocs, osResSteps_allocs]
+  simp [osLoopCall, List.filterMap_cons]
 
 /-- The residual chains' hints. -/
 def resAllocs (c : OsCfg) (ich bd ls : ℕ) : ℕ → List OsLv → ℕ → List (V × (ℕ ⊕ V))
   | _, [], _ => []
-  | lvl, lv :: rest, k => osHeapA k :: resAllocs c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
+  | lvl, lv :: rest, k => osHeapA (k + 1) :: resAllocs c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2
 
 theorem osResiduals_allocs (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
     (osResiduals c ich bd ls lvl levels k).1.filterMap Main.Stmt.allocSz = resAllocs c ich bd ls lvl levels k
@@ -216,10 +232,19 @@ theorem osFinishA_allocs (c : OsCfg) (st : OsSt) (tch : ℕ) :
 /-! ## The body -/
 
 /-- The head's hints. -/
-def headAllocs : List (V × (ℕ ⊕ V)) := (List.range 11).map fun t ↦ osHeapA (12 + 2 * t)
+def headAllocs : List (V × (ℕ ⊕ V)) :=
+  (List.range 10).map (fun t ↦ osHeapA (12 + 2 * t)) ++ [osHeapA 160, osHeapA 162]
+
+theorem osWinTabs_allocs : osWinTabs.filterMap Main.Stmt.allocSz = [] := by
+  refine List.filterMap_eq_nil_iff.mpr fun a ha ↦ ?_
+  simp only [osWinTabs, List.mem_flatten, List.mem_map, List.mem_range] at ha
+  obtain ⟨_, ⟨i, -, rfl⟩, ha⟩ := ha
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+  rcases ha with rfl | rfl <;> rfl
 
 theorem osHead_allocs (c : OsCfg) : (osHead c).1.filterMap Main.Stmt.allocSz = headAllocs := by
-  simp [osHead, osHeap, List.filterMap_cons, headAllocs, osHeapA, List.range_succ]
+  simp only [osHead, List.filterMap_append, osHeap_allocs, osWinTabs_allocs]
+  simp [List.filterMap_cons, headAllocs, osHeapA, List.range_succ]
 
 /-- **The body's hints.** -/
 def osAllocsOf (c : OsCfg) : List (V × (ℕ ⊕ V)) :=
