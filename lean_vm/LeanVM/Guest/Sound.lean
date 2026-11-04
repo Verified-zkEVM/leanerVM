@@ -233,5 +233,8 @@ theorem b2_mainL (hexp : ExpTablesSound) :
   rw [hnret] at hbody
   exact hbody
 
+/-- The GKR parity tag is a 32-bit tag (`WalkGkr`, `WalkKnown`). -/
+theorem tagGkr_lt : tagGkr < 2 ^ 32 := by unfold tagGkr; norm_num
+
 end
 end LeanVM.Guest.End

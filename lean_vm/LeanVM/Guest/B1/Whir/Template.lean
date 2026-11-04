@@ -249,6 +249,11 @@ def osFolds (p : ℕ) : ℕ → ℕ → OsSt → List Stmt × OsSt
     let t := osFolds p (off + 1) n r.2
     (r.1 ++ t.1, t.2)
 
+/-- The rounds keep the materialized pointers. -/
+theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), (osFolds p off n st).2.mats = st.mats
+  | 0, _, _ => rfl
+  | n + 1, off, st => osFolds_mats p n (off + 1) (osFold p off st).2
+
 /-- The final level's message (`opening_final_message`, G:1479): the call, the sponge after the
 nonce's permutation; its first cell (the grinding word) and the nonce. -/
 def osFinal (c : OsCfg) (s : OsSt) : List Stmt × OsSt × ℕ :=

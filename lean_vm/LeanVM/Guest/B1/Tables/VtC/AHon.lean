@@ -59,13 +59,6 @@ theorem runsTo_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {xs1 xs2 
   simp only [Fs.mk.injEq]
   exact ⟨c1a.symm.trans c2a, c1b.symm.trans c2b⟩
 
-/-- A run carries a sponge to its end. -/
-theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s t : Fs} {xs : List E} {a : α}
-    (h : RunsTo p s xs a t) (hc : ∃ sp, s.Carries sp) : ∃ sp, t.Carries sp := by
-  obtain ⟨sp, hsp⟩ := hc
-  obtain ⟨sp1, c1, -⟩ := h sp hsp [] [] []
-  exact ⟨sp1, c1⟩
-
 /-- **An accepting run checked its requirement.** -/
 theorem runsTo_require_inv {c : Prop} [Decidable c] {s t : Fs} {xs : List E} {u : Unit}
     (h : RunsTo (VerifierProgram.require c) s xs u t) (hc : ∃ sp, s.Carries sp) : c := by

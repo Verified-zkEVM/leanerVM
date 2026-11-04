@@ -33,9 +33,7 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Tables
 
 @[expose] public section
 
-/-! ## The tag -/
-
-theorem tagGkr_lt : tagGkr < 2 ^ 32 := by unfold tagGkr; norm_num
+/-! ## The tag (`tagGkr_lt`, `Sound`) -/
 
 theorem semRel0_gkr (rd : Reader) (ws : List E) :
     SemRel0 glob tagGkr rd ws ↔

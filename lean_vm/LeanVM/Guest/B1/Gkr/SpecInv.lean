@@ -40,13 +40,6 @@ theorem RunsTo.toT {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E
   obtain ⟨sp', hc', he⟩ := h sp hc rest [] []
   rw [runT_of_runId p ⟨s, xs ++ rest, [], []⟩ sp hc a _ he, ← eq_fsOfT hc']
 
-/-- The sponge after a run from a carried one is carried. -/
-theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
-    (h : RunsTo p s xs a s') (hc : ∃ sp, s.Carries sp) : ∃ sp, s'.Carries sp := by
-  obtain ⟨sp, hsp⟩ := hc
-  obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
-  exact ⟨sp', hc'⟩
-
 /-- **Two accepting runs of one program** from one carried sponge, the second's words extending
 the first's, are one. -/
 theorem RunsTo.det {α : Type} {p : VerifierProgram α} {s s1 s2 : Fs} {xs ys : List E} {a b : α}

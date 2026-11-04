@@ -32,14 +32,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- A bounded completeness with a tree predicate forgets the predicate. -/
-theorem _root_.LeanVM.Guest.B1.CompleteAtDTB.toCompleteAtB {k : ℕ} {f : String} {Lin : Main.Layout}
-    {args : List E} {Out : List E → Main.Layout → Prop} {T : Tree → Prop} {B : ℕ}
-    (h : CompleteAtDTB fs cert k f Lin args Out T B) : CompleteAtB fs cert k f Lin args Out B :=
-  fun fp =>
-    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
-    ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
-
 /-- **`ring_switch_target` is complete, placed, within `fs "ring_switch_target" + 18 + B14`**: its
 frame, its chain (`18` words) and `__loop13`'s words, at most `B14` when called from `1` (`hl14`;
 at `B2C.fs` its words certificate gives `7 · 1322`). -/

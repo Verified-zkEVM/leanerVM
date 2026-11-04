@@ -51,8 +51,6 @@ theorem semRel_lt {t : ℕ} (ht : t < 2 ^ 32) (rd : Reader) (ws : List E) :
   unfold SemRel
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
 
-theorem tagGkr_lt : tagGkr < 2 ^ 32 := by unfold tagGkr; norm_num
-
 /-- A walk tag of a kind but `2` is not `tagGkr` (`2^20`, a multiple of `4`). -/
 theorem walkTag_ne_gkr {kind odd d cd : ℕ} (hk : kind < 4) (h2 : kind ≠ 2) :
     walkTag kind odd d cd ≠ tagGkr := by

@@ -45,11 +45,6 @@ theorem levelHead_eq (logN index : ℕ) (level : Whir.Level) (rest : List Whir.L
   simp only [levelHead, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
-theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt),
-    (osFolds p off n st).2.mats = st.mats
-  | 0, _, _ => rfl
-  | n + 1, off, st => osFolds_mats p n (off + 1) (osFold p off st).2
-
 theorem osFolds_state (p : ℕ) : ∀ (n off : ℕ) (st : OsSt),
     (osFolds p off n st).2.pad = st.pad ∧ (osFolds p off n st).2.k ≥ st.k
   | 0, _, _ => ⟨rfl, le_rfl⟩

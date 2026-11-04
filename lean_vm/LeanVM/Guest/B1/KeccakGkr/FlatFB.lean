@@ -35,14 +35,6 @@ theorem CompleteAtFB.mono_bound {k : ℕ} {f : String} {Lin : ℕ → Layout} {a
   let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
   ⟨n, Lown, rets, Lout, le_trans hn hB, ho, hw, hd, hr⟩
 
-/-- A bounded completeness with a tree predicate forgets the predicate (`CompleteAtB`). -/
-theorem CompleteAtDTB.toCompleteAtB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
-    (h : CompleteAtDTB fs cert k f Lin args Out T B) : CompleteAtB fs cert k f Lin args Out B :=
-  fun fp =>
-    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
-    ⟨n, Lown, rets, Lout, ho, hw, hd, hn, fun rd hl hm => (hr rd hl hm).relAtIn⟩
-
 /-- **`completeAt_flatOutF` within `fs f + sizes.sum + NB` words**: the callees within `bd`, their
 words (`kidsBound`) within `NB` at every frame pointer. -/
 theorem completeAt_flatOutFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)

@@ -34,10 +34,6 @@ theorem osFolds_co (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), 0 < n → (osFolds
   | 1, _, _, _ => rfl
   | n + 2, off, st, _ => osFolds_co p (n + 1) (off + 1) _ (by omega)
 
-theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), (osFolds p off n st).2.mats = st.mats
-  | 0, _, _ => rfl
-  | n + 1, off, _ => osFolds_mats p n (off + 1) _
-
 /-- What a level leaves up to its grinding check. -/
 structure LvAOut (σ' : Val) (st st2 : OsSt) (cap quad : List E) (t cur : E) (co : ℕ) : Prop where
   fsv : st2.fsv σ' = cap

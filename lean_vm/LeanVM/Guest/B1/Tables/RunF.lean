@@ -500,6 +500,13 @@ theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : 
     subst h0
     simp [runT] at h
 
+/-- The sponge after a run from a carried one is carried. -/
+theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsTo p s xs a s') (hc : ∃ sp, s.Carries sp) : ∃ sp, s'.Carries sp := by
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
+  exact ⟨sp', hc'⟩
+
 /-- **An accepting run of a sequence splits.** -/
 theorem RunsTo.unbind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s'' : Fs}
     {xs : List E} {b : β}
