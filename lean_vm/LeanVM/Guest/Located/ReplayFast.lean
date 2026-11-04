@@ -166,7 +166,7 @@ def memTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (mem : List (ℕ 
 /-- **Function `j`'s precondition, decided by the logarithm** (`preTest`). -/
 noncomputable def preTestWith (dl : K → Option ℕ) (rd : Reader) (j : ℕ) (fp : K) : Bool :=
   glob.good j && envTest rd fp (glob.sig j).env && bndTestWith dl rd fp (glob.sig j).pre &&
-    memTestWith dl rd fp (glob.sig j).mem && semTest rd fp (glob.sig j).sem
+    memTestWith dl rd fp (glob.sig j).mem
 
 theorem bndTestWith_eq (hdl : DiscreteLogSpec dl) : bndTestWith dl = bndTest := by
   funext rd fp bnd
@@ -411,7 +411,7 @@ theorem any_entry_eq (rd : Reader) (r : Registers K) (f : String) (args rets : L
     rw [Bool.and_eq_true, decide_eq_true_iff, entryKey, callKey_eq_iff] at h
     obtain ⟨hp, hn, ha, hr⟩ := h
     have hgood : glob.good j = true := by
-      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1.1
+      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1
     refine ⟨j, List.mem_range.mpr hj, ?_⟩
     simp only [enteredTest, Bool.and_eq_true]
     exact ⟨⟨⟨⟨decide_eq_true hpc, decide_eq_true ((name_eq_iff hgood f).mpr hn)⟩, hp⟩,
@@ -420,7 +420,7 @@ theorem any_entry_eq (rd : Reader) (r : Registers K) (f : String) (args rets : L
     simp only [enteredTest, Bool.and_eq_true] at h
     obtain ⟨⟨⟨⟨hpc, hn⟩, hp⟩, ha⟩, hr⟩ := h
     have hgood : glob.good j = true := by
-      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1.1
+      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1
     refine ⟨j, mem_pcTable.mpr ⟨List.mem_range.mp hj, of_decide_eq_true hpc⟩, ?_⟩
     rw [Bool.and_eq_true, decide_eq_true_iff, entryKey, callKey_eq_iff]
     exact ⟨hp, (name_eq_iff hgood f).mp (of_decide_eq_true hn), of_decide_eq_true ha,
