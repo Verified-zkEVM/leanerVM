@@ -125,6 +125,6 @@ deferred-claim rejection. Bind vectors to the revision in
 
 The executable ISA checker and its proved contracts are documented in
 [`docs/leanisa-checker.md`](../docs/leanisa-checker.md). The optional
-`python3 scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
+`uv run --no-project --python 3.12 python scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
 in `tests/rust/` and validates their actual exports in Lean. It requires the pinned source
 commit and an offline Cargo cache; the ordinary Lean gate does not depend on a Rust checkout.

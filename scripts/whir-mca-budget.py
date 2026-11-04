@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --no-project --python 3.12 python
 """Does ArkLib's proved Johnson MCA constant meet Annex B's per-level budget?
 
 Reproduces leanVM's per-level eta search (`crates/pcs/src/whir_config.rs` at
@@ -15,7 +15,7 @@ decimals only for the irrational square roots and logarithms:
 at every level of every admissible `(mu, R)` pair.  No float enters a verdict:
 the exact-rational comparisons `E0 <= 2^k` and `E0 <= a` are decided exactly.
 
-Usage: python3 scripts/whir-mca-budget.py [--json FILE] [--full] [--rust-eta FILE]
+Usage: uv run --no-project --python 3.12 python scripts/whir-mca-budget.py [--json FILE] [--full] [--rust-eta FILE]
 """
 from fractions import Fraction as Fr
 from decimal import Decimal, getcontext

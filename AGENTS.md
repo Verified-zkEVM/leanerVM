@@ -30,8 +30,8 @@ lake env lean -E warning tests/Main.lean
 ./scripts/check-repository.sh
 ./scripts/check-imports.sh
 ./scripts/check-layers.sh
-python3 ./scripts/check-docs.py
-python3 ./scripts/test-policy-checks.py
+uv run --no-project --python 3.12 python ./scripts/check-docs.py
+uv run --no-project --python 3.12 python ./scripts/test-policy-checks.py
 ```
 
 ## Where To Work

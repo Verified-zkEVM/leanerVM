@@ -18,6 +18,9 @@ or native boundary—open a design issue first. State the definitions, main theo
 source revisions, dependency direction, tests, and known fidelity gaps before investing
 in a large proof tree.
 
+Install uv as described in [Python tooling](docs/development.md#python-tooling)
+for the repository Python checks.
+
 ## Before opening a pull request
 
 Run:
