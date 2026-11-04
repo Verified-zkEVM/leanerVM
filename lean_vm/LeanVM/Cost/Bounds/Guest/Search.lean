@@ -1,6 +1,7 @@
 module
 
-public import LeanVM.Cost.Bounds.Guest.Log
+public import LeanVM.Cost.Bounds.ListLib
+public import LeanVM.Cost.Bounds.Guest.Basic
 public import LeanVM.Cost.Bounds.SortedMap
 public import LeanVM.Cost.Decoder.Kids
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
@@ -117,6 +118,118 @@ theorem countIn_cost (hP : Includes P countInC.costDeps) (tm : Array ℕ)
   unfold lowerBoundPrice at *
   limbs_one
   omega
+
+theorem countIn_le (tm : Array ℕ) (a b : ℕ) : countIn tm a b ≤ tm.size := by
+  unfold countIn
+  have := lowerBound_le_size tm b
+  omega
+
+/-! ## A child's list's slots -/
+
+section Slots
+
+variable {t : Array ℕ × Array ℕ}
+
+/-- **What the searches need of a coverage table**: both arrays of one size at most `2^34`, their
+entries below `2^34` (the marks sorted is not needed for the prices). -/
+@[expose] def TableGood (t : Array ℕ × Array ℕ) : Prop :=
+  t.1.size = t.2.size ∧ t.1.size ≤ 2 ^ 34 ∧ (∀ i, t.1.getD i 0 < 2 ^ 34) ∧ ∀ i, t.2.getD i 0 < 2 ^ 34
+
+theorem slotIn_lt (ht : TableGood t) (e : ℕ) : slotIn t.1 t.2 e < 2 ^ 34 := by
+  unfold slotIn
+  dsimp only
+  split
+  · exact ht.2.2.2 _
+  · norm_num
+
+theorem lt64_of_good (ht : TableGood t) (i : ℕ) : t.1.getD i 0 < 2 ^ 64 :=
+  lt_trans (ht.2.2.1 i) (by norm_num)
+
+/-- A child's list off the table has at most as many slots as the table. -/
+theorem kidSlotsIn_length_le (tm ts : Array ℕ) (a b : ℕ) : (kidSlotsIn tm ts a b).length ≤ tm.size := by
+  unfold kidSlotsIn slotsIn
+  split
+  · simp only [List.length_map, List.length_range]; exact countIn_le tm a (a + 1)
+  · simp only [List.length_map, List.length_range]; exact countIn_le tm a b
+
+/-- A child's list's slots off a good table are below `2^34`. -/
+theorem kidSlotsIn_lt (ht : TableGood t) (a b : ℕ) : ∀ s ∈ kidSlotsIn t.1 t.2 a b, s < 2 ^ 34 := by
+  intro s hs
+  unfold kidSlotsIn slotsIn at hs
+  split at hs
+  · obtain ⟨i, _, rfl⟩ := List.mem_map.1 hs
+    exact ht.2.2.2 _
+  · obtain ⟨j, _, rfl⟩ := List.mem_map.1 hs
+    exact slotIn_lt ht _
+
+/-- The price of a child's list off a table of at most `N` marks. -/
+@[expose] def kidSlotsInPrice (N : ℕ) : ℕ := 1000 * N + 6000
+
+/-- **The slots of mark `a`, by the table** (`slotsInC` on `[a, a + 1)`), at most `N` marks: a
+count, then a search and a read a slot: at most `967·N + 1876`. -/
+theorem slotsIn_cost (hP : Includes P slotsInC.costDeps) (ht : TableGood t) (a : ℕ)
+    (ha : a < 2 ^ 34) (N : ℕ) (hN : t.1.size ≤ N) :
+    machineCost P slotsInC.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a,
+      encodeValue (a + 1)] ≤ 967 * N + 1876 := by
+  rw [slotsInC.costEq P hP]
+  have hsz := ht.2.1
+  have hc := countIn_le t.1 a (a + 1)
+  have h0 := countIn_cost P (by includes) t.1 (lt64_of_good ht) ht.2.1 a (a + 1) (by omega)
+    (by omega)
+  have h1 := rangeLoop_cost P (by includes) (countIn t.1 a (a + 1)) [] (by omega)
+  have h2 := map_cost P (by includes) (fun i ↦ t.2.getD (lowerBound t.1 a 0 t.1.size + i) 0)
+    (.closure slotsInC.lam0.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a])
+    (fun i ↦ RunsApp.of_spec (slotsInC.lam0.costSpec P (by includes) t.1 t.2 a i))
+    (lowerBoundPrice + 14) (List.range (countIn t.1 a (a + 1))) (fun i hi ↦ by
+      rw [List.mem_range] at hi
+      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
+        slotsInC.lam0.costEq P (by includes), List.length_cons, List.length_cons,
+        List.length_cons, List.length_nil]
+      have := lowerBound_cost P (by includes) t.1 (lt64_of_good ht) ht.2.1 a (by omega)
+      have := lowerBound_le_size t.1 a
+      limbs_one
+      omega)
+  rw [List.length_range] at h2
+  unfold lowerBoundPrice at h2
+  have := Nat.mul_le_mul_left (915 + 14 + 13) (hc.trans hN)
+  have := Nat.mul_le_mul_left 15 (hc.trans hN)
+  omega
+
+/-- **A child's list's slots, by the table** (`kidSlotsInC`), at most `N` marks, `a, b < 2^34`:
+two counts, then the slots of the mark `a` (`slotsIn_cost`) or a search a mark: at most
+`kidSlotsInPrice N = 1000·N + 6000`. -/
+theorem kidSlotsIn_cost (hP : Includes P kidSlotsInC.costDeps) (ht : TableGood t) (a b : ℕ)
+    (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (N : ℕ) (hN : t.1.size ≤ N) :
+    machineCost P kidSlotsInC.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a,
+      encodeValue b] ≤ kidSlotsInPrice N := by
+  rw [kidSlotsInC.costEq P hP]
+  have hsz := ht.2.1
+  have hc := countIn_le t.1 a b
+  have hc1 := countIn_le t.1 a (a + 1)
+  have h0 := countIn_cost P (by includes) t.1 (lt64_of_good ht) ht.2.1 a (a + 1) (by omega)
+    (by omega)
+  have h1 := countIn_cost P (by includes) t.1 (lt64_of_good ht) ht.2.1 a b (by omega) (by omega)
+  have hs := slotsIn_cost P (by includes) ht a ha N hN
+  have h2 := rangeLoop_cost P (by includes) (countIn t.1 a b) [] (by omega)
+  have h3 := map_cost P (by includes) (fun j ↦ slotIn t.1 t.2 (a + j))
+    (.closure kidSlotsInC.lam0.costIdx [encodeValue t.1, encodeValue t.2, encodeValue a])
+    (fun j ↦ RunsApp.of_spec (kidSlotsInC.lam0.costSpec P (by includes) t.1 t.2 a j))
+    (933 + 9) (List.range (countIn t.1 a b)) (fun j hj ↦ by
+      rw [List.mem_range] at hj
+      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
+        kidSlotsInC.lam0.costEq P (by includes), List.length_cons, List.length_cons,
+        List.length_cons, List.length_nil]
+      have := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
+      limbs_one
+      omega)
+  rw [List.length_range] at h3
+  have := Nat.mul_le_mul_left (933 + 9 + 13) (hc.trans hN)
+  have := Nat.mul_le_mul_left 15 (hc.trans hN)
+  unfold kidSlotsInPrice
+  limbs_one
+  split <;> omega
+
+end Slots
 
 /-! ## The coverage table's sorted map: keys `(mark, slot)` -/
 
@@ -407,11 +520,6 @@ theorem coverTable_cost (hP : Includes P coverTableC.costDeps) (ps : List (ℕ �
   simp only [List.length_map]
   unfold coverTablePrice
   omega
-
-/-- **What the searches need of a coverage table**: both arrays of one size at most `2^34`, their
-entries below `2^34` (the marks sorted is not needed for the prices). -/
-@[expose] def TableGood (t : Array ℕ × Array ℕ) : Prop :=
-  t.1.size = t.2.size ∧ t.1.size ≤ 2 ^ 34 ∧ (∀ i, t.1.getD i 0 < 2 ^ 34) ∧ ∀ i, t.2.getD i 0 < 2 ^ 34
 
 theorem getD_lt_of_mem {l : List ℕ} {B : ℕ} (h : ∀ x ∈ l, x < B) (hB : 0 < B) (i : ℕ) :
     l.toArray.getD i 0 < B := by

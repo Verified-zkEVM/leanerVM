@@ -64,7 +64,7 @@ theorem topConst_valid_le (F : ℕ) :
         65535) ≤
       387933533474 + 70441362 * F := by
   unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice sphincsReaderPrice decWitPrice
-    decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
+    decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice kidSlotsInPrice
     xmssRawsTPrice sphincsRawsTPrice regionTablePrice vsPiPrice vsMPrice
     vsAtPrice levelPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
     queryAtPrice openingPrice dvFramePrice dvWitNRowsPrice gLogPrice
