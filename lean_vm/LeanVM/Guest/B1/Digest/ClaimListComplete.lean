@@ -8,18 +8,16 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ClaimListCLast
+public import LeanVM.Guest.B1.Digest.ClaimListCBig
 public import LeanVM.Guest.B1.Digest.CompleteSmall
 
 /-!
 # `claim_list_digest`, completely
 
 `ClaimChainMem rd chain entries n`: the memory an honest run leaves at its chain buffer `chain`,
-the sponge state after each group of `17` claims (`68` cells) at `chain · g^(13q)`.
-`claim_list_digest_complete`: on a memory image, `n < 17 · 2^16` claims at `entries`
-(`ClaimListOut`) and that memory give the relation. Each branch is evaluated on its own
-(`Fwd.ev` of `clZEval`, `clEEval`): the empty list hashes the empty string; the nonempty one splits
-`n = 17a + b` (`list_split_complete`), runs the groups (`guard_complete`, `l16_block`) and the last
-`b` claims (`claimLast_complete`), the oracle naming the split, the buffer and the digest.
+the sponge state after each frame (`136` claims, then `17`) at `chain · g^(13t)`. From it,
+`cl_bigBlocks` and `cl_grpBlocks` give the frame loops' blocks (`frame_block`, `grp_block`) that
+`guard_complete` runs.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -32,12 +30,17 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
+/-- The claims hashed after `t` frames of a list with `a` big frames, in groups of `17`: eight a
+big frame, one a group frame. -/
+def clU (a t : ℕ) : ℕ := 8 * min t a + (t - a)
+
 /-- **The memory an honest run of `claim_list_digest` leaves** at its chain buffer `chain`: after
-`q ≤ n / 17` groups, the sponge state after the first `68q` cells at `entries`, at
-`chain · g^(13q)`. -/
+`t ≤ a + b` frames (`n = 136a + 17b + c`, the big frames first), the sponge state after the first
+`68 · clU a t` cells at `entries`, at `chain · g^(13t)`. -/
 def ClaimChainMem (rd : Reader) (chain entries : E) (n : ℕ) : Prop :=
-  ∀ q ≤ n / 17, StateAt rd (chain * gen ^ (13 * q)) 0
-    (absorbChunks (8 * q) zeroState (cellsBytes (memRun rd entries (68 * q))))
+  ∀ t ≤ n / 136 + n % 136 / 17, StateAt rd (chain * gen ^ (13 * t)) 0
+    (absorbChunks (8 * clU (n / 136) t) zeroState
+      (cellsBytes (memRun rd entries (68 * clU (n / 136) t))))
 
 theorem readsAt_take' {p : E} {cells : List E} (hr : ReadsAt rd p cells) (k : ℕ) :
     ReadsAt rd p (cells.take k) := fun i hi => by
@@ -57,34 +60,82 @@ theorem canon_take {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCan
 theorem canon_drop {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.drop k) :=
   fun c h => hc c (List.mem_of_mem_drop h)
 
-theorem l16_shapeF : loopShapeF (coreProgram.getD 323 default) "__loop15" = true := by
-  have h := l16c_ok
-  simp only [l16cOk, Bool.and_eq_true] at h
+theorem grpc_shapeF {j : ℕ} {f : String} {m c0 st0 ep : ℕ}
+    (h : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true) :
+    loopShapeF (coreProgram.getD j default) f = true := by
+  simp only [grpcOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1
 
-/-- The groups of claims: `__loop15`'s block at every group below `a`. -/
-theorem cl_blocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
-    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ j < n / 17, LoopBlock rd (coreProgram.getD 323 default) (gen ^ j) (gen ^ (n / 17))
-      [chain, entries] := by
-  intro j hj
-  have h68 : 68 * j + 68 ≤ cells.length := by omega
-  have hS := hmem j (by omega)
-  have hS1 := hmem (j + 1) (by omega)
-  rw [memRun_take hr (by omega)] at hS
-  rw [memRun_take hr (by omega), show 68 * (j + 1) = 68 * j + 68 by ring, List.take_add,
-    cellsBytes_append] at hS1
-  have hpre : (cellsBytes (cells.take (68 * j))).length = rate * (8 * j) := by
+/-- **A frame from the chain's memory**: the states before and after `d` units of `68` cells
+(units `u` to `u + d`) give a frame loop's block (`grp_block`) at the counter `x`. -/
+theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
+    (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hcok : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb) (hep : ep ≠ 9)
+    (hm : 4 * m = 68 * d) (hnbd : nb = 8 * d) {N chain' entries' entries x : E} {u : ℕ}
+    {cells : List E} (hr : ReadsAt rd entries cells) (hc : AllCanonical cells)
+    (hu : 68 * (u + d) ≤ cells.length)
+    (hS : StateAt rd (chain' * x ^ 13) 0
+      (absorbChunks (8 * u) zeroState (cellsBytes (cells.take (68 * u)))))
+    (hS1 : StateAt rd (chain' * x ^ 13) 13
+      (absorbChunks (8 * (u + d)) zeroState (cellsBytes (cells.take (68 * (u + d))))))
+    (hE : entries' * x ^ (4 * m) = entries * gen ^ (68 * u)) :
+    LoopBlock rd (coreProgram.getD j default) x N [chain', entries'] := by
+  have hpre : (cellsBytes (cells.take (68 * u))).length = rate * (8 * u) := by
     rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
-    show 16 * (68 * j) = 136 * (8 * j); omega
-  refine l16_block hpre (by rw [gen_pow_pow]; exact hS) (cells := ((cells.drop (68 * j)).take 68))
-    (by simp; omega) ?_ (canon_take (canon_drop hc _) _) fun c => ?_
-  · rw [gen_pow_pow]; exact readsAt_take' (readsAt_drop' hr _) _
+    show 16 * (68 * u) = 136 * (8 * u); omega
+  refine grp_block hok hcok hnb hep hpre hS (cells := (cells.drop (68 * u)).take (4 * m))
+    (by simp; omega) ?_ (canon_take (canon_drop hc _) _) ?_
+  · rw [hE]; exact readsAt_take' (readsAt_drop' hr _) _
+  · rw [show 68 * (u + d) = 68 * u + 4 * m by omega, List.take_add, cellsBytes_append,
+      show 8 * (u + d) = 8 * u + nb by omega] at hS1
+    exact hS1
+
+/-- The big frames: `__loop15`'s block at every big frame below `a = n / 136`. -/
+theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
+    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
+    ∀ q < n / 136, LoopBlock rd (coreProgram.getD 331 default) (gen ^ q) (gen ^ (n / 136))
+      [chain, entries] := by
+  intro q hq
+  have hS := hmem q (by omega)
+  have hS1 := hmem (q + 1) (by omega)
+  have hu0 : clU (n / 136) q = 8 * q := by unfold clU; rw [Nat.min_eq_left (by omega)]; omega
+  have hu1 : clU (n / 136) (q + 1) = 8 * q + 8 := by
+    unfold clU; rw [Nat.min_eq_left (by omega)]; omega
+  rw [hu0, memRun_take hr (by omega)] at hS
+  rw [hu1, memRun_take hr (by omega)] at hS1
+  refine frame_block big_ok grpc_big big_nb (by decide) (d := 8) (by norm_num) rfl hr hc (u := 8 * q)
+    (by omega) (by rw [gen_pow_pow]; exact hS) (fun c => ?_) (by rw [gen_pow_pow]; congr 2; ring)
+  have := hS1 c
+  rw [gen_pow_pow, loadHolds_mul_gen_pow]
+  rw [loadHolds_mul_gen_pow, show 13 * (q + 1) + (0 + c.val) = 13 * q + (13 + c.val) by ring] at this
+  exact this
+
+/-- The groups: `__loop16`'s block at every group below `b = n % 136 / 17`, from
+`chain · g^(13a)` and `entries · g^(544a)`. -/
+theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
+    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
+    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 332 default) (gen ^ q) (gen ^ (n % 136 / 17))
+      [chain * gen ^ (13 * (n / 136)), entries * gen ^ (544 * (n / 136))] := by
+  intro q hq
+  set a := n / 136 with ha
+  have hn : n = 136 * a + n % 136 := (Nat.div_add_mod n 136).symm
+  have hS := hmem (a + q) (by omega)
+  have hS1 := hmem (a + q + 1) (by omega)
+  have hu0 : clU a (a + q) = 8 * a + q := by unfold clU; rw [Nat.min_eq_right (by omega)]; omega
+  have hu1 : clU a (a + q + 1) = 8 * a + q + 1 := by
+    unfold clU; rw [Nat.min_eq_right (by omega)]; omega
+  rw [hu0, memRun_take hr (by omega)] at hS
+  rw [hu1, memRun_take hr (by omega)] at hS1
+  refine frame_block grp_ok grpc_ok grp_nb (by decide) (d := 1) (by norm_num) rfl hr hc
+    (u := 8 * a + q) (by omega) ?_ (fun c => ?_) ?_
+  · rw [gen_pow_pow, mul_assoc, ← pow_add, show 13 * a + 13 * q = 13 * (a + q) by ring]; exact hS
   · have := hS1 c
-    rw [gen_pow_pow, loadHolds_mul_gen_pow]
-    rw [loadHolds_mul_gen_pow, show 13 * (j + 1) + (0 + c.val) = 13 * j + (13 + c.val) by ring,
-      show 8 * (j + 1) = 8 * j + 8 by ring] at this
+    rw [gen_pow_pow, mul_assoc, ← pow_add, loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow,
+      show 13 * (a + q + 1) + (0 + c.val) = 13 * a + 13 * q + (13 + c.val) by ring] at this
     exact this
+  · rw [gen_pow_pow, mul_assoc, ← pow_add]; congr 2; ring
 
 theorem cl_param (σ : Val) : (Fn.params Data.core24).map σ = [σ (.n 0), σ (.n 1)] := rfl
 
