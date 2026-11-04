@@ -45,7 +45,7 @@ theorem tS_digits {s v : ℕ → ℕ} {X m : ℕ} (h0 : s 0 = 0) (hs : ∀ t < m
       rw [← Nat.pow_add, Nat.add_sub_cancel' (hs n (by omega))]
     rw [this, Nat.mod_mul]
 
-theorem eToNat_lt (x : E) : eToNat x < 2 ^ 192 := by
+theorem qw_eToNat_lt (x : E) : eToNat x < 2 ^ 192 := by
   have h := eToNat_eOfNat192 (eToNat x)
   rw [eOfNat192_eToNat] at h
   rw [h]; exact Nat.mod_lt _ (by positivity)
@@ -118,7 +118,7 @@ theorem qw_recon {d cd : ℕ} (hs : QwShape d cd) (w : E) :
       rw [show N + (t - N) = t by omega] at e1 e2
       omega
   have h0 : qwTop d 0 = 0 := by rw [htop 0 (Nat.zero_le _), Nat.zero_mul]
-  rw [tS_digits h0 hmono (fun t ht ↦ ?_) _ le_rfl, hs.2.2.2.2.2.2.2, Nat.mod_eq_of_lt (eToNat_lt w)]
+  rw [tS_digits h0 hmono (fun t ht ↦ ?_) _ le_rfl, hs.2.2.2.2.2.2.2, Nat.mod_eq_of_lt (qw_eToNat_lt w)]
   by_cases h : t < N
   · rw [htop t h.le, htop (t + 1) h, show (t + 1) * d - t * d = d by
       rw [Nat.add_mul, Nat.one_mul, Nat.add_sub_cancel_left]]
@@ -135,7 +135,7 @@ theorem qw_recon {d cd : ℕ} (hs : QwShape d cd) (w : E) :
 def winHintVal (x : E) (start width : ℕ) : ℕ :=
   (List.range width).foldl (fun acc j ↦ acc + if wordBit x (start + 0 * width + j) then 2 ^ j else 0) 0
 
-theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
+theorem qw_kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
 
 /-- The bit `r < 64` of a limb `c < 2^64` under higher limbs. -/
 theorem div_two_pow_mod_two_limb (c H r : ℕ) (hc : c < 2 ^ 64) (hr : r < 64) :
@@ -171,7 +171,7 @@ theorem limbBit_eq (c0 c1 c2 : ℕ) (h0 : c0 < 2 ^ 64) (h1 : c1 < 2 ^ 64) {i : �
 /-- **`wordBit` is the integer's bit.** -/
 theorem wordBit_eq (x : E) {i : ℕ} (hi : i < 192) :
     wordBit x i = decide ((eToNat x >>> i) % 2 = 1) := by
-  have hn := limbBit_eq _ _ (kToNat (x.limb 2)) (kToNat_lt (x.limb 0)) (kToNat_lt (x.limb 1)) hi
+  have hn := limbBit_eq _ _ (kToNat (x.limb 2)) (qw_kToNat_lt (x.limb 0)) (qw_kToNat_lt (x.limb 1)) hi
   rw [Nat.shiftRight_eq_div_pow]
   exact congrArg (fun n : ℕ ↦ decide (n = 1)) hn
 
@@ -191,7 +191,7 @@ theorem winHintVal_eq (x : E) {start width : ℕ} (h : start + width ≤ 192) :
     rcases (show eToNat x / 2 ^ (start + n) % 2 = 0 ∨ eToNat x / 2 ^ (start + n) % 2 = 1 by omega)
       with e | e <;> simp [e]
 
-theorem gpowE_eq {n : ℕ} (h : n < 2 ^ 64) : gpowE n = gen ^ n := by
+theorem qw_gpowE_eq {n : ℕ} (h : n < 2 ^ 64) : gpowE n = gen ^ n := by
   rw [gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
 
 /-- **The honest windows are the interpreter's hints**: window `i` of position `j` is `g^` the
@@ -205,7 +205,7 @@ theorem qwVal_hint {d cd : ℕ} (hs : QwShape d cd) (w : E) {j i : ℕ} (hj : j 
     have := Nat.div_mul_le_self 192 d
     have : (j + 1) * d ≤ 192 / d * d := Nat.mul_le_mul_right _ hj
     nlinarith
-  rw [winHintVal_eq w (by omega), gpowE_eq (lt_of_lt_of_le (Nat.mod_lt _ (by positivity))
+  rw [winHintVal_eq w (by omega), qw_gpowE_eq (lt_of_lt_of_le (Nat.mod_lt _ (by positivity))
     (Nat.pow_le_pow_right (by decide) (by omega)))]
   congr 1
   have hp : 2 ^ d = 2 ^ (qwWin d cd i).1 * 2 ^ (d - (qwWin d cd i).1) := by
