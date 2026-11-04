@@ -3,10 +3,10 @@ import LeanVM.Guest.Bytecode
 /-!
 # The guest bytecode
 
-`guest_fetch_of` at the first and last pcs of the largest compiled function
-(`verify_sig_lean_sphincs`, 100444 instructions over 50 chunks in six modules), at a `KECCAK` of
-each layout, at `main`'s entry, at pc `0`, and the padding; each side condition is one
-`decide +kernel`. The expected instructions are those of the guest's `DBG_DISASM` dump. And the
+`guest_fetch_of` at the first and last pcs of the largest compiled function (`sp_wots`, 30438
+instructions over 15 chunks in three modules), at a `KECCAK` of each layout, at the first and last
+pcs of `verify_sig_lean_sphincs` and its first `KECCAK`, at `main`'s entry, at pc `0`, and the
+padding; each side condition is one `decide +kernel`. The expected instructions are those of the guest's `DBG_DISASM` dump. And the
 offset form of `KECCAK`'s cells.
 -/
 
@@ -17,6 +17,37 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 example : Data.functions.length = 885 := by decide +kernel
 
 example : Data.codeLen = 291396 := rfl
+
+/-- `sp_wots` is function 21, the largest. -/
+theorem spWots_mem : Data.f21 ∈ Data.functions := mem_functions (j := 21) rfl
+
+example : Data.f21.name = "sp_wots" ∧ Data.f21.entryPc = 48817 ∧
+    Data.f21.instructionCount = 30438 ∧ Data.f21.chunks.length = 15 := ⟨rfl, rfl, rfl, rfl⟩
+
+/-- Its first instruction, `SET fp[2502] = 1`. -/
+example : guestProgram.fetch (addressOfIndex 48817) = some (OffsetInstruction.set 2502 1 0
+    0).toLeanIsaInstruction :=
+  guest_fetch_of spWots_mem (i := 0) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+
+/-- Its last, the return `JUMP if fp[2521] ≠ 0: pc = fp[0], fp = fp[1]`. -/
+example : guestProgram.fetch (addressOfIndex 79254) = some (OffsetInstruction.jump 2521 0
+    1).toLeanIsaInstruction :=
+  guest_fetch_of spWots_mem (i := 30437) (by decide +kernel) (by decide +kernel)
+    (by decide +kernel)
+
+/-- A `KECCAK` writing the odd layout, `KECCAK fp[3399..+13] odd = keccak_f(fp[2], fp[3268],
+fp[32], fp[71], tail = fp[3412..+4], b8 = fp[266], cap = fp[3417..+4]) even`. -/
+example : guestProgram.fetch (addressOfIndex (48817 + 30364)) =
+    some (OffsetInstruction.keccak 2 3268 32 71 3412 266 3417 3399 false
+        true).toLeanIsaInstruction :=
+  guest_fetch_of spWots_mem (i := 30364) (by decide +kernel) rfl (by decide +kernel)
+
+/-- The next, reading the odd layout, `KECCAK fp[3421..+13] even = keccak_f(fp[3434], fp[3435],
+fp[3436], fp[3437], tail = fp[3438..+4], b8 = fp[3442], cap = fp[3408..+4]) odd`. -/
+example : guestProgram.fetch (addressOfIndex (48817 + 30374)) =
+    some (OffsetInstruction.keccak 3434 3435 3436 3437 3438 3442 3408 3421 true
+        false).toLeanIsaInstruction :=
+  guest_fetch_of spWots_mem (i := 30374) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `verify_sig_lean_sphincs` is function 22 (after `sp_wots`, 21). -/
 theorem sphincs_mem : Data.f22 ∈ Data.functions := mem_functions (j := 22) rfl

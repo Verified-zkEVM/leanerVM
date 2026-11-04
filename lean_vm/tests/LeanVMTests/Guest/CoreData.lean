@@ -145,7 +145,8 @@ run_meta do
 /-! ## Access
 
 By index, by name and against the compiled functions, at the first, a middle and the last
-function and at the two largest. -/
+function, at the two largest (`verify_lean_xmss`, `sp_wots`) and at `verify_sig_lean_sphincs`, the
+first function past `sp_wots` (core 21, compiled function 22). -/
 
 set_option maxRecDepth 100000
 
@@ -157,6 +158,9 @@ example : coreProgram.find? "main" = some Data.core0 :=
 example : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
 
+example : coreProgram.find? "sp_wots" = some Data.core20 :=
+  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
+
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
   Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
 
@@ -166,8 +170,10 @@ example : coreProgram.find? "opening_ood_point__L14" = some Data.core441 :=
 example : coreProgram.find? "__loop419" = some Data.core883 :=
   Program.find?_of_indexOf? (j := 883) (by decide +kernel) rfl
 
-example : Data.core21.name = Data.f21.name := name_eq_compiled (j := 21) rfl rfl
+example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core883.name = Data.f883.name := name_eq_compiled (j := 883) rfl rfl
+example : Data.core21.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
+
+example : Data.core883.name = Data.f884.name := name_eq_compiled (j := 883) rfl rfl
 
 end LeanVMTests.Guest.CoreData
