@@ -39,7 +39,7 @@ def SubSound (bytecode : List K) : Prop :=
 /-- **Witness functions for `main`'s callees exist.** -/
 theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature] [Nonempty Proof]
     {bytecode : List K} {sx : Val → LeanXmss.Signature}
-    {ss : Val → Sphincs.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sx)
+    {ss : Val → FrameMap → Sphincs.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sx)
     (hs : Sig.verify_sig_lean_sphincs_sound_Spec ss) (hv : SubSound bytecode)
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec) {rd : Reader}
     (hm : MemOk rd) :
@@ -132,7 +132,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
 /-- **A run of `main` decodes to a statement of the public input's digest, held by a witness.** -/
 theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
     [Nonempty Proof] {bytecode : List K} {sx : Val → LeanXmss.Signature}
-    {ss : Val → Sphincs.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sx)
+    {ss : Val → FrameMap → Sphincs.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sx)
     (hs : Sig.verify_sig_lean_sphincs_sound_Spec ss) (hv : SubSound bytecode)
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec)
     (hbl : bytecode.length = 2 ^ bytecodeVars) {rd : Reader} (hm : MemOk rd) {D : Digest}

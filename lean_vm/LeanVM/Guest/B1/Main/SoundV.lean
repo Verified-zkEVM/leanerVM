@@ -40,7 +40,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 noncomputable def decWitV (σ : Val) (rd : Reader) (V : FrameMap)
     (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
   decWit σ rd (fun p => Sig.xmssSigOf (V "verify_lean_xmss" [p] []))
-    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 68)] []))
+    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 68)] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
     (fun args => aggHints rd (V "aggregate_claims" args []))
@@ -85,8 +85,8 @@ theorem main_sound_V_of_sub {bytecode : List K} {piOf : Reader → Val → Frame
     exact ho
   · intro p h hbb
     obtain ⟨hp, hbs⟩ := body_ofV hV Sig.find_verify_sig_lean_sphincs h
-    obtain ⟨-, ho⟩ := Sig.verify_sig_lean_sphincs_sound_holds C L hκ _ _ hbs
-    rw [Sig.core20_params] at hp
+    obtain ⟨-, ho⟩ := Sig.verify_sig_lean_sphincs_sound_holds C V L hκ hV _ _ hbs
+    rw [Sig.core21_params] at hp
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
     obtain ⟨e0, e1⟩ := hp
     rw [e0, e1] at ho
