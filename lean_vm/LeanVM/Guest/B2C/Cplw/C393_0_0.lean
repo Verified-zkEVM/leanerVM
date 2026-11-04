@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `gkr_rounds__L1`, window 0, part 0. -/
+/-- `da_levels__L1_L0`, window 0, part 0. -/
 theorem cw393_0_0 : cplWin 393 0 0 = true := by decide +kernel
 
-/-- `__loop33`, window 0, part 0. -/
+/-- `da_levels__L2_L1`, window 0, part 0. -/
 theorem cw394_0_0 : cplWin 394 0 0 = true := by decide +kernel
 
-/-- `__loop34`, window 0, part 0. -/
+/-- `da_levels__L4_L2`, window 0, part 0. -/
 theorem cw395_0_0 : cplWin 395 0 0 = true := by decide +kernel
 
-/-- `__loop35`, window 0, part 0. -/
+/-- `da_levels__L8_L3`, window 0, part 0. -/
 theorem cw396_0_0 : cplWin 396 0 0 = true := by decide +kernel
 
-/-- `__loop36`, window 0, part 0. -/
+/-- `da_levels__L16_L4`, window 0, part 0. -/
 theorem cw397_0_0 : cplWin 397 0 0 = true := by decide +kernel
 
-/-- `verify_log2_ceil__L0_L34`, window 0, part 0. -/
+/-- `da_levels__L32_L5`, window 0, part 0. -/
 theorem cw398_0_0 : cplWin 398 0 0 = true := by decide +kernel
 
-/-- `verify_log2_ceil__L15_L34`, window 0, part 0. -/
+/-- `da_levels__L64_L6`, window 0, part 0. -/
 theorem cw399_0_0 : cplWin 399 0 0 = true := by decide +kernel
 
-/-- `opening_ood_point__L16`, window 0, part 0. -/
+/-- `da_levels__L128_L7`, window 0, part 0. -/
 theorem cw400_0_0 : cplWin 400 0 0 = true := by decide +kernel
 
 theorem ok393 : CplOk 393 := by

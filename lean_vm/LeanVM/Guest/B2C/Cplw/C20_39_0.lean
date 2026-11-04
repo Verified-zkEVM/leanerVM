@@ -31,5 +31,8 @@ theorem cw21_2_0 : cplWin 21 2 0 = true := by decide +kernel
 /-- `sp_wots`, window 3, part 0. -/
 theorem cw21_3_0 : cplWin 21 3 0 = true := by decide +kernel
 
+/-- `sp_wots`, window 4, part 0. -/
+theorem cw21_4_0 : cplWin 21 4 0 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Cplw

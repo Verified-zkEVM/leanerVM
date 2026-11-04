@@ -20,14 +20,14 @@ set_option maxRecDepth 100000
 /-! ## `verify_bus_gkr` -/
 
 /-- Indices of the functions `verify_bus_gkr` reaches, part 0. -/
-def krVbgJ0 : List ℕ := [8, 80,
-    81, 390, 391, 392]
+def krVbgJ0 : List ℕ := [9, 90,
+    91, 420, 421, 422, 423, 424, 425]
 /-- The core indices of the functions `verify_bus_gkr`'s paths reach. -/
 def krVbgJ : List ℕ := krVbgJ0
 
 /-- Their calls, by index, part 0. -/
-def krVbgCL0 : List (ℕ × List ℕ) := [(8, [80, 81]),
-    (80, [390, 391, 392, 80]), (81, [81]), (390, [390])]
+def krVbgCL0 : List (ℕ × List ℕ) := [(9, [90, 91]),
+    (90, [420, 421, 422, 423, 424, 425, 90]), (91, [91]), (420, [420])]
 /-- Their calls, by index. -/
 def krVbgCL : List (ℕ × List ℕ) := krVbgCL0
 
@@ -36,29 +36,26 @@ def krVbgC (i : ℕ) : List ℕ := (krVbgCL.lookup i).getD []
 
 /-- `verify_bus_gkr`'s ratios, in thousandths. -/
 def krVbgA : Opcode → ℕ
-  | .xor => 232
+  | .xor => 243
   | .mulNative => 648
-  | .setConstant => 236
-  | .deref => 554
-  | .jump => 118
+  | .setConstant => 334
+  | .deref => 585
+  | .jump => 167
   | .keccak => 15
 
 /-! ## `verify_keccak` -/
 
 /-- Indices of the functions `verify_keccak` reaches, part 0. -/
-def krVkJ0 : List ℕ := [11, 12,
-    253, 254, 255]
-/-- Indices of the functions `verify_keccak` reaches, part 1. -/
-def krVkJ1 : List ℕ := [256, 257,
-    258, 259, 260, 261, 393, 394, 395, 396]
+def krVkJ0 : List ℕ := [12, 263,
+    264, 265, 266, 267, 268, 269, 426, 427, 428, 429]
 /-- The core indices of the functions `verify_keccak`'s paths reach. -/
-def krVkJ : List ℕ := krVkJ0 ++ krVkJ1
+def krVkJ : List ℕ := krVkJ0
 
 /-- Their calls, by index, part 0. -/
 def krVkCL0 : List (ℕ × List ℕ) := [
-    (12, [253, 254, 255, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 256, 257, 258, 259, 260, 258, 261]),
-    (253, [253]), (254, [393]), (255, [394, 11]), (256, [395]), (257, [396, 11]), (259, [259]),
-    (261, [261]), (393, [393]), (394, [394]), (395, [395]), (396, [396])]
+    (12, [263, 264, 265, 265, 265, 265, 265, 265, 265, 265, 265, 265, 265, 266, 267, 268, 266, 269]),
+    (263, [263]), (264, [426, 427]), (265, [428, 429]), (267, [267]), (269, [269]), (426, [426]),
+    (427, [427]), (428, [428]), (429, [429])]
 /-- Their calls, by index. -/
 def krVkCL : List (ℕ × List ℕ) := krVkCL0
 
@@ -67,22 +64,22 @@ def krVkC (i : ℕ) : List ℕ := (krVkCL.lookup i).getD []
 
 /-- `verify_keccak`'s ratios, in thousandths. -/
 def krVkA : Opcode → ℕ
-  | .xor => 331
+  | .xor => 287
   | .mulNative => 648
   | .setConstant => 236
-  | .deref => 265
+  | .deref => 245
   | .jump => 118
   | .keccak => 19
 
 /-! ## `__loop14` -/
 
 /-- Indices of the functions `__loop14` reaches, part 0. -/
-def krVl15J0 : List ℕ := [263]
+def krVl15J0 : List ℕ := [271]
 /-- The core indices of the functions `__loop14`'s paths reach. -/
 def krVl15J : List ℕ := krVl15J0
 
 /-- Their calls, by index, part 0. -/
-def krVl15CL0 : List (ℕ × List ℕ) := [(263, [263])]
+def krVl15CL0 : List (ℕ × List ℕ) := [(271, [271])]
 /-- Their calls, by index. -/
 def krVl15CL : List (ℕ × List ℕ) := krVl15CL0
 
@@ -101,14 +98,14 @@ def krVl15A : Opcode → ℕ
 /-! ## `ring_switch_weight` -/
 
 /-- Indices of the functions `ring_switch_weight` reaches, part 0. -/
-def krVrswJ0 : List ℕ := [5,
-    14, 79]
+def krVrswJ0 : List ℕ := [6,
+    14, 81, 82, 83, 84, 85, 86, 87, 88, 89, 419]
 /-- The core indices of the functions `ring_switch_weight`'s paths reach. -/
 def krVrswJ : List ℕ := krVrswJ0
 
 /-- Their calls, by index, part 0. -/
-def krVrswCL0 : List (ℕ × List ℕ) := [(5, [79]), (14, [5]),
-    (79, [79])]
+def krVrswCL0 : List (ℕ × List ℕ) := [
+    (6, [81, 82, 83, 84, 85, 86, 87, 88, 89]), (14, [6]), (81, [419, 81])]
 /-- Their calls, by index. -/
 def krVrswCL : List (ℕ × List ℕ) := krVrswCL0
 
@@ -117,11 +114,11 @@ def krVrswC (i : ℕ) : List ℕ := (krVrswCL.lookup i).getD []
 
 /-- `ring_switch_weight`'s ratios, in thousandths. -/
 def krVrswA : Opcode → ℕ
-  | .xor => 273
-  | .mulNative => 576
-  | .setConstant => 29
+  | .xor => 317
+  | .mulNative => 704
+  | .setConstant => 186
   | .deref => 724
-  | .jump => 10
+  | .jump => 143
   | .keccak => 0
 
 end

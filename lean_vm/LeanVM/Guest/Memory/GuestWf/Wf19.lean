@@ -18,18 +18,18 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `verify_lean_xmss` is well formed. -/
 theorem core19_wf : Stmt.wfList coreProgram Data.core19.body = true := by
-  have h799 : Stmt.wfList coreProgram (Data.core19.body.drop 799) = true :=
+  have h839 : Stmt.wfList coreProgram (Data.core19.body.drop 839) = true :=
     wfStmts_end (by decide +kernel)
-  have h727 : Stmt.wfList coreProgram (Data.core19.body.drop 727) = true :=
-    wfStmts_drop (a := 727) (n := 72) wf19_727 h799
-  have h577 : Stmt.wfList coreProgram (Data.core19.body.drop 577) = true :=
-    wfStmts_drop (a := 577) (n := 150) wf19_577 h727
-  have h431 : Stmt.wfList coreProgram (Data.core19.body.drop 431) = true :=
-    wfStmts_drop (a := 431) (n := 146) wf19_431 h577
-  have h281 : Stmt.wfList coreProgram (Data.core19.body.drop 281) = true :=
-    wfStmts_drop (a := 281) (n := 150) wf19_281 h431
+  have h747 : Stmt.wfList coreProgram (Data.core19.body.drop 747) = true :=
+    wfStmts_drop (a := 747) (n := 92) wf19_747 h839
+  have h597 : Stmt.wfList coreProgram (Data.core19.body.drop 597) = true :=
+    wfStmts_drop (a := 597) (n := 150) wf19_597 h747
+  have h447 : Stmt.wfList coreProgram (Data.core19.body.drop 447) = true :=
+    wfStmts_drop (a := 447) (n := 150) wf19_447 h597
+  have h297 : Stmt.wfList coreProgram (Data.core19.body.drop 297) = true :=
+    wfStmts_drop (a := 297) (n := 150) wf19_297 h447
   have h150 : Stmt.wfList coreProgram (Data.core19.body.drop 150) = true :=
-    wfStmts_drop (a := 150) (n := 131) wf19_150 h281
+    wfStmts_drop (a := 150) (n := 147) wf19_150 h297
   have h0 : Stmt.wfList coreProgram (Data.core19.body.drop 0) = true :=
     wfStmts_drop (a := 0) (n := 150) wf19_0 h150
   simpa using h0

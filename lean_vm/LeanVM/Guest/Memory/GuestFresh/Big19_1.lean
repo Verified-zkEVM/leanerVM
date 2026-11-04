@@ -16,44 +16,44 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `261` to `268`. -/
-def ts19_261 : List ℕ := [7106, 7107, 7725, 7726]
+/-- The temporaries of statements `272` to `281`. -/
+def ts19_272 : List ℕ := [7117, 7118, 7737, 7738]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_261 : RangeFresh ((Data.core19.body.drop 261).take 8) ts19_261 temps19 := by
-  unfold RangeFresh ts19_261; decide +kernel
+theorem fresh19_272 : RangeFresh ((Data.core19.body.drop 272).take 10) ts19_272 temps19 := by
+  unfold RangeFresh ts19_272; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `269` to `276`. -/
-def ts19_269 : List ℕ := [8344, 8345, 8963, 8964]
+/-- The temporaries of statements `282` to `291`. -/
+def ts19_282 : List ℕ := [8357, 8358, 8977, 8978]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_269 : RangeFresh ((Data.core19.body.drop 269).take 8) ts19_269 temps19 := by
-  unfold RangeFresh ts19_269; decide +kernel
+theorem fresh19_282 : RangeFresh ((Data.core19.body.drop 282).take 10) ts19_282 temps19 := by
+  unfold RangeFresh ts19_282; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `277` to `284`. -/
-def ts19_277 : List ℕ := [9582, 9583, 10201, 10202]
+/-- The temporaries of statements `292` to `301`. -/
+def ts19_292 : List ℕ := [9597, 9598, 10217, 10218]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_277 : RangeFresh ((Data.core19.body.drop 277).take 8) ts19_277 temps19 := by
-  unfold RangeFresh ts19_277; decide +kernel
+theorem fresh19_292 : RangeFresh ((Data.core19.body.drop 292).take 10) ts19_292 temps19 := by
+  unfold RangeFresh ts19_292; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `285` to `292`. -/
-def ts19_285 : List ℕ := [10820, 10821, 11439, 11440]
+/-- The temporaries of statements `302` to `311`. -/
+def ts19_302 : List ℕ := [10837, 10838, 11457, 11458]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_285 : RangeFresh ((Data.core19.body.drop 285).take 8) ts19_285 temps19 := by
-  unfold RangeFresh ts19_285; decide +kernel
+theorem fresh19_302 : RangeFresh ((Data.core19.body.drop 302).take 10) ts19_302 temps19 := by
+  unfold RangeFresh ts19_302; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `293` to `442`. -/
-def ts19_293 : List ℕ := [12058, 12059]
+/-- The temporaries of statements `312` to `461`. -/
+def ts19_312 : List ℕ := [12077, 12078]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_293 : RangeFresh ((Data.core19.body.drop 293).take 150) ts19_293 temps19 := by
-  unfold RangeFresh ts19_293; decide +kernel
+theorem fresh19_312 : RangeFresh ((Data.core19.body.drop 312).take 150) ts19_312 temps19 := by
+  unfold RangeFresh ts19_312; decide +kernel
 
 end
 end LeanVM.Guest

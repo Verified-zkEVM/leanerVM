@@ -16,39 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop76`, window 0, part 0. -/
+/-- `__loop62`, window 0, part 0. -/
 theorem cw484_0_0 : cplWin 484 0 0 = true := by decide +kernel
 
-/-- `__loop77`, window 0, part 0. -/
+/-- `__loop62`, window 0, part 1. -/
+theorem cw484_0_1 : cplWin 484 0 1 = true := by decide +kernel
+
+/-- `__loop63`, window 0, part 0. -/
 theorem cw485_0_0 : cplWin 485 0 0 = true := by decide +kernel
 
-/-- `__loop78`, window 0, part 0. -/
+/-- `__loop64`, window 0, part 0. -/
 theorem cw486_0_0 : cplWin 486 0 0 = true := by decide +kernel
-
-/-- `__loop79`, window 0, part 0. -/
-theorem cw487_0_0 : cplWin 487 0 0 = true := by decide +kernel
-
-/-- `__loop80`, window 0, part 0. -/
-theorem cw488_0_0 : cplWin 488 0 0 = true := by decide +kernel
-
-/-- `__loop81`, window 0, part 0. -/
-theorem cw489_0_0 : cplWin 489 0 0 = true := by decide +kernel
-
-/-- `__loop82`, window 0, part 0. -/
-theorem cw490_0_0 : cplWin 490 0 0 = true := by decide +kernel
-
-/-- `opening_ood_point__L21`, window 0, part 0. -/
-theorem cw491_0_0 : cplWin 491 0 0 = true := by decide +kernel
 
 theorem ok484 : CplOk 484 := by
   intro i hi k hk
   have hc : (certOf 484).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 484 0 = 1 := by decide +kernel
+  · have hn : nParts 484 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw484_0_0
+    · exact cw484_0_1
 
 theorem ok485 : CplOk 485 := by
   intro i hi k hk
@@ -69,56 +58,6 @@ theorem ok486 : CplOk 486 := by
     rw [hn] at hk
     interval_cases k
     · exact cw486_0_0
-
-theorem ok487 : CplOk 487 := by
-  intro i hi k hk
-  have hc : (certOf 487).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 487 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw487_0_0
-
-theorem ok488 : CplOk 488 := by
-  intro i hi k hk
-  have hc : (certOf 488).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 488 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw488_0_0
-
-theorem ok489 : CplOk 489 := by
-  intro i hi k hk
-  have hc : (certOf 489).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 489 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw489_0_0
-
-theorem ok490 : CplOk 490 := by
-  intro i hi k hk
-  have hc : (certOf 490).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 490 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw490_0_0
-
-theorem ok491 : CplOk 491 := by
-  intro i hi k hk
-  have hc : (certOf 491).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 491 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw491_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

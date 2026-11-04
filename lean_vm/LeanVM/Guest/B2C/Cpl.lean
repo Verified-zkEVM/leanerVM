@@ -351,10 +351,19 @@ noncomputable def cellK (o : ℕ) : Bool :=
   st.fr.any (fun q ↦ Nat.beq q.1 o) || st.tg.any (fun t ↦ Nat.beq t.1 o) ||
   (st.seg.env.get o).isSome
 
+/-- `fp[a] = fp·g^e`: a fixed cell, or the address of a run starting at cell `e` (an `addr` fact,
+from which the compiler steps a shifted one). -/
+noncomputable def fpgAtC (a : ℕ) : Option ℕ :=
+  match statAt X a with
+  | some (.fpg e) => some e
+  | _ => (lookC st.book a).findSome? fun x ↦ match x with
+    | .addr p (r :: _) => bif Nat.beq p a then some r else none
+    | _ => none
+
 /-- A `MUL` of a frame address: `fp[a] = fp·g^e₁`, `fp[b] = g^e₂`, the run at `e₁ + e₂`. -/
 noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
-  match statAt X a, cplCstAt X st b, run with
-  | some (.fpg e1), some (k0, 0, 0), r :: _ => match gpE X k0 with
+  match fpgAtC X st a, cplCstAt X st b, run with
+  | some e1, some (k0, 0, 0), r :: _ => match gpE X k0 with
     | some e2 => Nat.beq (e1 + e2) r
     | none => false
   | _, _, _ => false

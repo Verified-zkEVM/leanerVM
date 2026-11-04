@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = 'verify_lean_xmss'
-MAIN_FRAME = 406 + 4104  # B2C.mainFrame
+MAIN_FRAME = 404 + 17051  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]

@@ -288,6 +288,21 @@ noncomputable def gpAt (y : ℕ) : Option ℕ :=
       | .instr _ (.set o k0 0 0) => bif o == y then F.pows.find k0 else none
       | _ => none)
 
+/-- `fp[x] = fp · g^e` through at most `n` products by known powers of `g` from a cell `fpgAt`
+knows: the compiler steps a shifted frame address from another (`mat_cells`). -/
+noncomputable def fpgChain : ℕ → ℕ → Option ℕ
+  | 0, x => fpgAt B ψ x
+  | n + 1, x => match fpgAt B ψ x with
+    | some e => some e
+    | none => (look B x).findSome? fun a ↦ match a with
+      | .instr _ (.mul y z w) => bif w == x then (match fpgChain n y, gpAt F B ψ z with
+          | some e1, some e2 => some (e1 + e2)
+          | _, _ => none) else none
+      | _ => none
+
+/-- The products a frame address is stepped through, at most. -/
+def fpgDepth : ℕ := 16
+
 /-- The values of a run sit in consecutive cells from `base`. -/
 noncomputable def runAt (loc : Trie ℕ) : ℕ → List Core.V → Bool
   | _, [] => true
@@ -297,7 +312,7 @@ noncomputable def runAt (loc : Trie ℕ) : ℕ → List Core.V → Bool
 `fp·g^(e₁+e₂)`. -/
 noncomputable def addrOk (loc : Trie ℕ) (p : ℕ) (run : List Core.V) : Bool :=
   (look B p).any fun a ↦ match a with
-    | .instr _ (.mul x y z) => z == p && (match fpgAt B ψ x, gpAt F B ψ y with
+    | .instr _ (.mul x y z) => z == p && (match fpgChain F B ψ fpgDepth x, gpAt F B ψ y with
         | some e1, some e2 => runAt loc (e1 + e2) run
         | _, _ => false)
     | _ => false
@@ -399,7 +414,7 @@ variable (F : Exec.Facts) (B : Book) (ψ : Trie Sym)
 /-- `addr` on cells. -/
 noncomputable def addrOkC (p : ℕ) (run : List ℕ) : Bool :=
   (look B p).any fun a ↦ match a with
-    | .instr _ (.mul x y z) => z == p && (match fpgAt B ψ x, gpAt F B ψ y with
+    | .instr _ (.mul x y z) => z == p && (match fpgChain F B ψ fpgDepth x, gpAt F B ψ y with
         | some e1, some e2 => runCells (e1 + e2) run
         | _, _ => false)
     | _ => false

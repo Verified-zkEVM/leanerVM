@@ -29,5 +29,8 @@ theorem w21_5 : WinOk 21 5 := winOk_of_C (by decide +kernel)
 /-- `sp_wots`, window 6. -/
 theorem w21_6 : WinOk 21 6 := winOk_of_C (by decide +kernel)
 
+/-- `sp_wots`, window 7. -/
+theorem w21_7 : WinOk 21 7 := winOk_of_C (by decide +kernel)
+
 end
 end LeanVM.Guest.Checked
