@@ -6,18 +6,18 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesComplete5
+public import LeanVM.Guest.B1.Opening.QueriesComplete4
 public import LeanVM.Guest.B1.Opening.QueriesPlaced1
 
 /-!
 # Pointers of an honest query; an iteration's valuation
 
-`QD.ptr_flag`, `QD.ptr_cap`: at the honest values a query loads its flag through `flags·g^Q` and
+`WD.ptr_flag`, `WD.ptr_cap`: at the honest values a walk loads its flag through `flags·g^Q` and
 its cap leaf through `cap·g^(4Q + 2b_pd)` (`Q = q / 2^(pd+1)`).
 
 `oqIter1F`, `oqIter0F`: an iteration's honest values, from its queries' `QD`s, their window
-pointers and the chain's word (`oqIter1_complete`'s valuation). `oqIter1_at`, `oqIter0_at`: its body
-holds statement by statement (`BlockOk`), its tail's guard and arguments, its loads' pointers.
+pointers and the chain's word. `oqIter1_at`, `oqIter0_at`: its body holds statement by statement
+(`BlockOkC`, any call), its tail's guard and arguments, its loads' pointers, its walks' leaf cells.
 -/
 
 namespace LeanVM.Guest.B1
@@ -27,27 +27,28 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-namespace QD
+namespace WD
 
-variable (d : QD) {σ : Val}
+variable (w : WD) {σ : Val}
 
-/-- The flag a query loads through: `flags·g^Q`. -/
-theorem ptr_flag (hv : d.Hv σ) :
-    σ (.n (d.Cq + 2)) = d.flagsv * gen ^ (d.q / 2 ^ (d.s.pd + 1)) := by
-  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
-  rw [hv _ (by omega) (by omega), val_cap]
+/-- The flag a walk loads through: `flags·g^Q`. -/
+theorem ptr_flag (hv : w.Hv σ) :
+    σ (.n (w.Cq + 2)) = w.flagsv * gen ^ (w.q / 2 ^ (w.s.pd + 1)) := by
+  rw [hv, val_cap]
   rfl
 
-/-- The cap leaf a query loads through: `cap·g^(4Q + 2b_pd)`. -/
-theorem ptr_cap (hv : d.Hv σ) :
-    σ (.n (d.Cq + 8)) = d.capv * gen ^ (4 * (d.q / 2 ^ (d.s.pd + 1)) +
-      (if d.q.testBit d.s.pd then 2 else 0)) := by
-  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
-  rw [hv _ (by omega) (by omega), val_cap]
+/-- The cap leaf a walk loads through: `cap·g^(4Q + 2b_pd)`. -/
+theorem ptr_cap (hv : w.Hv σ) :
+    σ (.n (w.Cq + 8)) = w.capv * gen ^ (4 * (w.q / 2 ^ (w.s.pd + 1)) +
+      (if w.q.testBit w.s.pd then 2 else 0)) := by
+  rw [hv, val_cap]
   simp only [capV, qV, wbV, List.getD_cons_succ, List.getD_cons_zero]
   split <;> ring
 
-end QD
+end WD
+
+/-- The call relation asking nothing of a call. -/
+def anyCall : CallRel := fun _ _ _ ↦ True
 
 /-! ## A level-0 iteration -/
 
@@ -74,8 +75,9 @@ variable {rd : Reader}
 
 /-- **A level-0 iteration at its honest values**: at a valuation holding `oqIter1F` (its queries
 `D1` at `11`, emitting the padding run, and `D2` after it), its body holds statement by statement,
-its parameters are its arguments, and its tail's guard and arguments, its loads' pointers. -/
-theorem oqIter1_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd j : ℕ}
+its parameters are its arguments, and its tail's guard and arguments, its loads' pointers, its
+queries' leaf cells (the walks' first arguments). -/
+theorem oqIter1_at {s : Oq} (hs : s.RowShape) {odd j : ℕ} {walk : String}
     {N qptrs cap flags wp ch mu : E} {r1 r2 : List K} {w1 w2 : ℕ → E} {q1 q2 : ℕ}
     {sb1 sb2 : List Digest} {bp1 bp2 v : E}
     (hok1 : (⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩ : QD).Ok rd wp bp1)
@@ -88,12 +90,17 @@ theorem oqIter1_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.
       ⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩
       ⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2, cap, flags⟩ bp1 bp2 v i) :
     oqLoopParams.map σ = [gen ^ j, N, qptrs, cap, flags, wp, ch, mu] ∧
-      BlockOk rd σ (oqLoop1A s odd) ∧
+      BlockOkC anyCall rd σ (oqLoop1A s odd walk) ∧
       (⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩ : QD).Hv σ ∧
       (⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2, cap, flags⟩ : QD).Hv σ ∧
       σ (.n 9) = qptrs * gen ^ j * gen ^ j ∧ σ (.n 10) = bp1 ∧ σ (.n (oqE1 s)) = bp2 ∧
       σ (.n (oqC1 s)) = ch * gen ^ j ∧ σ (.n (oqC1 s + 6)) = ch * gen ^ j ∧
-      σ (.n (oqC1 s + 9)) = gen ^ j * gen + N ∧ σ (.n (oqC1 s + 11)) = gen ^ j * gen := by
+      σ (.n (oqC1 s + 9)) = gen ^ j * gen + N ∧ σ (.n (oqC1 s + 11)) = gen ^ j * gen ∧
+      (σ (.n (oqOut s (oqKL s 11 true) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s 11 true) (s.B - 1) 1))) =
+        digestHalves (merkleLeafDigest r1) ∧
+      (σ (.n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 0)),
+        σ (.n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 1))) =
+        digestHalves (merkleLeafDigest r2) := by
   set D1 : QD := ⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩ with hD1
   set D2 : QD := ⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2, cap, flags⟩ with hD2
   have he1 : oqE1 s = D1.e := QD.end_eq D1
@@ -137,18 +144,19 @@ theorem oqIter1_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.
     rfl
   have hp1 := D1.pad_of_emit rfl eQ1
   have hw : σ (.n 5) = wp := eP 5 (by omega)
-  obtain ⟨hA1, hdot1⟩ := D1.query_complete (σ := σ) (bp := .n 10) (cap := .n 3) (flags := .n 4)
-    (wp := .n 5) hs hpd hcd (by rw [hw, e10]; exact hok1) eQ1 hp1.1 hp1.2
-    (eP 3 (by omega)) (eP 4 (by omega))
-  obtain ⟨hA2, hdot2⟩ := D2.query_complete (σ := σ) (bp := .n (oqE1 s)) (cap := .n 3)
-    (flags := .n 4) (wp := .n 5) hs hpd hcd (by rw [hw, eE1]; exact hok2) eQ2 hp1.1 hp1.2
-    (eP 3 (by omega)) (eP 4 (by omega))
+  obtain ⟨hA1, hdot1, hl1⟩ := D1.query_complete (σ := σ) (bp := .n 10) (cap := .n 3) (flags := .n 4)
+    (wp := .n 5) (walk := walk) (C := anyCall) hs (by rw [hw, e10]; exact hok1) eQ1 hp1.1 hp1.2
+    (eP 3 (by omega)) (eP 4 (by omega)) trivial
+  obtain ⟨hA2, hdot2, hl2⟩ := D2.query_complete (σ := σ) (bp := .n (oqE1 s)) (cap := .n 3)
+    (flags := .n 4) (wp := .n 5) (walk := walk) (C := anyCall) hs (by rw [hw, eE1]; exact hok2) eQ2
+    hp1.1 hp1.2 (eP 3 (by omega)) (eP 4 (by omega)) trivial
   change σ (.n (oqDot s 11)) = rowDot s.base s.I r1 w1 at hdot1
   change σ (.n (oqDot s (oqE1 s + 1))) = rowDot s.base s.I r2 w2 at hdot2
   have c0 := eC 0
   simp only [Nat.add_zero] at c0
   refine ⟨?_, fun a ha => ?_, eQ1, eQ2, e9, e10, eE1, c0,
-    by rw [eC 6]; rfl, by rw [eC 9]; simp [oqIter1C, word_gen], by rw [eC 11]; simp [oqIter1C, word_gen]⟩
+    by rw [eC 6]; rfl, by rw [eC 9]; simp [oqIter1C, word_gen], by rw [eC 11]; simp [oqIter1C, word_gen],
+    hl1, hl2⟩
   · simp only [oqLoopParams, List.map_cons, List.map_nil]
     rw [eP 0 (by omega), eP 1 (by omega), eP 2 (by omega), eP 3 (by omega), eP 4 (by omega),
       eP 5 (by omega), eP 6 (by omega), eP 7 (by omega)]
@@ -223,7 +231,7 @@ def oqIter0F (s : Oq) (args : List E) (D : QD) (bp v : E) (i : ℕ) : E :=
     (rowDot s.base s.I D.row D.w)).getD (i - oqC0 s) 0
 
 /-- **A deeper iteration at its honest values.** -/
-theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {j : ℕ}
+theorem oqIter0_at {s : Oq} (hs : s.RowShape) {j : ℕ} {walk : String}
     {N qptrs cap flags wp ch mu : E} {r : List K} {w : ℕ → E} {q : ℕ} {sb : List Digest} {bp v : E}
     (hok : (⟨s, 10, true, 0, r, w, q, sb, cap, flags⟩ : QD).Ok rd wp bp)
     (hb : LoadHolds rd qptrs j bp)
@@ -232,10 +240,12 @@ theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.
     {σ : Val} (hσ : ∀ i, σ (.n i) = oqIter0F s [gen ^ j, N, qptrs, cap, flags, wp, ch, mu]
       ⟨s, 10, true, 0, r, w, q, sb, cap, flags⟩ bp v i) :
     oqLoopParams.map σ = [gen ^ j, N, qptrs, cap, flags, wp, ch, mu] ∧
-      BlockOk rd σ (oqLoop0A s) ∧ (⟨s, 10, true, 0, r, w, q, sb, cap, flags⟩ : QD).Hv σ ∧
+      BlockOkC anyCall rd σ (oqLoop0A s walk) ∧ (⟨s, 10, true, 0, r, w, q, sb, cap, flags⟩ : QD).Hv σ ∧
       σ (.n 8) = qptrs * gen ^ j ∧ σ (.n 9) = bp ∧
       σ (.n (oqC0 s)) = ch * gen ^ j ∧ σ (.n (oqC0 s + 4)) = ch * gen ^ j ∧
-      σ (.n (oqC0 s + 7)) = gen ^ j * gen + N ∧ σ (.n (oqC0 s + 9)) = gen ^ j * gen := by
+      σ (.n (oqC0 s + 7)) = gen ^ j * gen + N ∧ σ (.n (oqC0 s + 9)) = gen ^ j * gen ∧
+      (σ (.n (oqOut s (oqKL s 10 true) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s 10 true) (s.B - 1) 1))) =
+        digestHalves (merkleLeafDigest r) := by
   set D1 : QD := ⟨s, 10, true, 0, r, w, q, sb, cap, flags⟩ with hD1
   have hc : oqC0 s = D1.e := QD.end_eq D1
   obtain ⟨a1, a2, a3, a4, a5⟩ := D1.places
@@ -259,15 +269,15 @@ theorem oqIter0_at {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.
     rfl
   have hp1 := D1.pad_of_emit rfl eQ1
   have hw : σ (.n 5) = wp := eP 5 (by omega)
-  obtain ⟨hA1, hdot1⟩ := D1.query_complete (σ := σ) (bp := .n 9) (cap := .n 3) (flags := .n 4)
-    (wp := .n 5) hs hpd hcd (by rw [hw, e9]; exact hok) eQ1 hp1.1 hp1.2
-    (eP 3 (by omega)) (eP 4 (by omega))
+  obtain ⟨hA1, hdot1, hl1⟩ := D1.query_complete (σ := σ) (bp := .n 9) (cap := .n 3) (flags := .n 4)
+    (wp := .n 5) (walk := walk) (C := anyCall) hs (by rw [hw, e9]; exact hok) eQ1 hp1.1 hp1.2
+    (eP 3 (by omega)) (eP 4 (by omega)) trivial
   change σ (.n (oqDot s 10)) = rowDot s.base s.I r w at hdot1
   have c0 := eC 0
   simp only [Nat.add_zero] at c0
   refine ⟨?_, fun a ha => ?_, eQ1, e8, e9, c0,
     by rw [eC 4]; rfl, by rw [eC 7]; simp [oqIter0C, word_gen],
-    by rw [eC 9]; simp [oqIter0C, word_gen]⟩
+    by rw [eC 9]; simp [oqIter0C, word_gen], hl1⟩
   · simp only [oqLoopParams, List.map_cons, List.map_nil]
     rw [eP 0 (by omega), eP 1 (by omega), eP 2 (by omega), eP 3 (by omega), eP 4 (by omega),
       eP 5 (by omega), eP 6 (by omega), eP 7 (by omega)]

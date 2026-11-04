@@ -7,7 +7,6 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesComplete6
 public import LeanVM.Guest.B1.Opening.QueriesPlaced6
 
 /-!
@@ -47,8 +46,8 @@ def oqMainF (s : Oq) (odd : ℕ) (args : List E) (ch bp : E) (D : QD) (rest : Li
 variable {rd : Reader}
 
 /-- **The function's start at its honest values**: it holds statement by statement. -/
-theorem oqMain_at {s : Oq} (hs : s.RowShape) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {odd : ℕ} (hodd : odd ≤ 1) {cap flags lam lamN qptrs wp nG ch bp : E}
+theorem oqMain_at {s : Oq} (hs : s.RowShape) {odd : ℕ} (hodd : odd ≤ 1) {walk : String}
+    {cap flags lam lamN qptrs wp nG ch bp : E}
     (hlam : lam ≠ 0) {r : List K} {w : ℕ → E} {q : ℕ} {sb : List Digest}
     (h1 : odd = 1 → LoadHolds rd qptrs 0 bp ∧
       (⟨s, 13, true, 0, r, w, q, sb, cap, flags⟩ : QD).Ok rd wp bp ∧
@@ -59,8 +58,10 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.
     [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6].map σ = [cap, flags, lam, lamN, qptrs, wp, nG] ∧
       σ (.n 8) = lam⁻¹ ∧ σ (.n 10) = nG * gen ∧ σ (.n 11) = ch ∧
       (∀ o, σ (.n (oqMK s odd + o)) = (oqMainTl nG rest).getD o 0) ∧
-      (odd = 1 → σ (.n 12) = bp ∧ (⟨s, 13, true, 0, r, w, q, sb, cap, flags⟩ : QD).Hv σ) ∧
-      BlockOk rd σ (oqMainA s odd) := by
+      (odd = 1 → σ (.n 12) = bp ∧ (⟨s, 13, true, 0, r, w, q, sb, cap, flags⟩ : QD).Hv σ ∧
+        (σ (.n (oqOut s (oqKL s 13 true) (s.B - 1) 0)), σ (.n (oqOut s (oqKL s 13 true) (s.B - 1) 1))) =
+          digestHalves (merkleLeafDigest r)) ∧
+      BlockOkC anyCall rd σ (oqMainA s odd walk) := by
   set tl := oqMainTl nG rest with htl
   have mu1 : word 1 0 0 = lam⁻¹ * lam := by rw [word_one, inv_mul_cancel₀ hlam]
   have eP : ∀ i < 7, σ (.n i) = [cap, flags, lam, lamN, qptrs, wp, nG].getD i 0 := fun i hi => by
@@ -134,14 +135,14 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.
       rfl
     have e12 : σ (.n 12) = bp := by rw [hσ]; simp [oqMainF]
     have hp := D.pad_of_emit rfl eQ
-    obtain ⟨hA, hdot⟩ := D.query_complete (σ := σ) (bp := .n 12) (cap := .n 0) (flags := .n 1)
-      (wp := .n 5) hs hpd1 hcd (by rw [eP 5 (by omega), e12]; exact hok) eQ hp.1 hp.2
-      (eP 0 (by omega)) (eP 1 (by omega))
+    obtain ⟨hA, hdot, hl⟩ := D.query_complete (σ := σ) (bp := .n 12) (cap := .n 0) (flags := .n 1)
+      (wp := .n 5) (walk := walk) (C := anyCall) hs (by rw [eP 5 (by omega), e12]; exact hok) eQ hp.1
+      hp.2 (eP 0 (by omega)) (eP 1 (by omega)) trivial
     change σ (.n (oqDot s 13)) = rowDot s.base s.I r w at hdot
     have t0 : σ (.n k) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 0
     have t1 : σ (.n (k + 1)) = word 1 0 0 + nG := by simpa [htl, oqMainTl] using eT 1
     have t2 : σ (.n (k + 2)) = word 1 0 0 := by simpa [htl, oqMainTl] using eT 2
-    refine ⟨hpar, e8, by rw [e10, word_gen], e11, eT, fun _ ↦ ⟨e12, eQ⟩, fun a ha => ?_⟩
+    refine ⟨hpar, e8, by rw [e10, word_gen], e11, eT, fun _ ↦ ⟨e12, eQ, hl⟩, fun a ha => ?_⟩
     simp only [oqMainA, ↓reduceIte, List.mem_append] at ha
     rcases ha with (ha | ((ha | ha) | ha)) | ha
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha

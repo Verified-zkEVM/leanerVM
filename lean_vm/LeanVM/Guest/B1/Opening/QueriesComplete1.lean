@@ -29,8 +29,9 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The query's places in order. -/
 theorem places : d.b + d.s.R ≤ d.k1 ∧ d.k1 + d.s.D ≤ d.kL ∧ d.kL + d.s.chainLen = d.ch ∧
-    d.ch + 4 * d.s.pd ≤ d.Cq ∧ d.Cq + 9 = d.e :=
-  ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, d.W0_le_Cq, (e_eq d).symm⟩
+    d.kL + 36 ≤ d.ch ∧ d.e = d.ch :=
+  ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, by rw [ch_eq]; unfold Oq.chainLen; omega,
+    e_eq d⟩
 
 theorem partV_zero (h : ℕ) : d.partV h 0 = d.W (d.s.lo * h) * d.w 0 := by
   simp [partV]
