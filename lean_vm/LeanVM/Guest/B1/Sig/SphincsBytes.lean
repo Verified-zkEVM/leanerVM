@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBytes
 
-  `sp_from_bytes` (`lean_ethereum.py:3515-3531`) is sound: on a memory image of at most `2^32`
+  `sp_from_bytes` (`lean_ethereum.py:3517-3531`) is sound: on a memory image of at most `2^32`
   words holding the byte table, its value is a word below the bound its marks' range checks give.
 -/
 
@@ -56,14 +56,6 @@ theorem g255W_eq : g255W = ofK (addressOfIndex 255) := by
 
 theorem g63W_eq : g63W = ofK (addressOfIndex 63) := by
   rw [g63W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
-  exact congrArg ofK (by decide +kernel)
-
-theorem g15W_eq : g15W = ofK (addressOfIndex 15) := by
-  rw [g15W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
-  exact congrArg ofK (by decide +kernel)
-
-theorem g7W_eq : g7W = ofK (addressOfIndex 7) := by
-  rw [g7W, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
 /-- **A byte, sound**: a mark range checked below `K ≤ 256` and read off the byte table at

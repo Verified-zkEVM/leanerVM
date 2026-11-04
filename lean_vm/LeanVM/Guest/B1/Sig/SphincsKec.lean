@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsKec
 
-  The one-block `keccak` calls of `verify_sig_lean_sphincs`: a chain step (48 bytes), a super-child
-  (96 bytes) and a child leaf (128 bytes).
+  The one-block `keccak` calls of leanSPHINCS's guest functions: a message of whole cells shorter
+  than a block, and its instance of 48 bytes (a chain step, a FORS leaf).
 -/
 
 module
@@ -15,9 +15,9 @@ public import LeanVM.Guest.B1.Sig.Shifts
 # One-block `keccak` calls
 
 `kecOne_sound`: a `KECCAK` atom whose nine rate cells are the padded cells of a message of whole
-cells shorter than a block, and whose capacity cells are zero, writes their `hcell`. Its instances:
-`k48_sound` (`keccak([P, a], [v, 0], len=48)`), `kec96_sound` (the super-child) and
-`kec128_sound` (a forest key's child leaf).
+cells shorter than a block, and whose capacity cells are zero, writes their `hcell`. Its instance
+`k48At_sound` (`keccak([pp, a], [v, 0], len=48)` at any padding run; `k48_sound` at
+`verify_sig_lean_sphincs`'s).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -71,42 +71,25 @@ theorem padCells_eight (a b c d e f g h : E) :
   simp [padCells, xorByte, padRead, rate, byteCell]
   exact e
 
-/-- **A chain step's `keccak([P, a], [v, 0], len=48)`.** -/
-theorem k48_sound (hp : PadOK σ sPad) {a v : V} {c o : Nat} (h : AtomsHold rd σ (k48 a v c o)) :
-    (σ (.n o), σ (.n (o + 1))) = hcell [σ sPP, σ a, σ v] := by
-  have hc : σ (.n c) = word (2 ^ 63) 0 0 := h.atom (a := .const (.n c) _) (by simp [k48, cst])
+/-- **A 48-byte `keccak([pp, a], [v, 0], len=48)`** at the padding run `pad`. -/
+theorem k48At_sound {pad : Nat} (hp : PadOK σ pad) {pp a v : V} {c o : Nat}
+    (h : AtomsHold rd σ (k48At pp pad a v c o)) :
+    (σ (.n o), σ (.n (o + 1))) = hcell [σ pp, σ a, σ v] := by
+  have hc : σ (.n c) = word (2 ^ 63) 0 0 := h.atom (a := .const (.n c) _) (by simp [k48At, cst])
   obtain ⟨p0, p1, p2, p3, p4⟩ := hp
-  refine kecOne_sound (ins := [sPP, a, v, .n sPad, .n (sPad + 1), .n (sPad + 2), .n (sPad + 3),
-    .n (sPad + 4), .n c, .n (sPad + 1), .n (sPad + 2), .n (sPad + 3), .n (sPad + 4)]) (len := 48)
+  refine kecOne_sound (ins := [pp, a, v, .n pad, .n (pad + 1), .n (pad + 2), .n (pad + 3),
+    .n (pad + 4), .n c, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)]) (len := 48)
     rfl (by norm_num) (h.sub fun x hx => by
-    simp only [List.mem_singleton] at hx; subst hx; simp [k48]) (fun c' hc' => ?_) (fun c' h1 h2 => ?_)
+    simp only [List.mem_singleton] at hx; subst hx; simp [k48At]) (fun c' hc' => ?_) (fun c' h1 h2 => ?_)
   · rw [padCells_three]
-    interval_cases c' <;> simp_all [sPad]
-  · interval_cases c' <;> simp_all [sPad]
-
-/-- **The super-child's `keccak` of six cells**, its padding cells `p1`, `p2`, `p3`. -/
-theorem kec96_sound (hp : PadOK σ sPad) {m0 m1 m2 m3 m4 m5 p1 p2 p3 : V} {o : Nat}
-    (hK : AtomsHold rd σ [kecS [m0, m1, m2, m3, m4, m5, p1, p2, p3, .n (sPad + 1), .n (sPad + 2),
-      .n (sPad + 3), .n (sPad + 4)] (runV o 13) false false])
-    (h1 : σ p1 = word 1 0 0) (h2 : σ p2 = 0) (h3 : σ p3 = word (2 ^ 63) 0 0) :
-    (σ (.n o), σ (.n (o + 1))) = hcell [σ m0, σ m1, σ m2, σ m3, σ m4, σ m5] := by
-  obtain ⟨-, q1, q2, q3, q4⟩ := hp
-  refine kecOne_sound (len := 96) rfl (by norm_num) hK (fun c' hc' => ?_) (fun c' h1 h2 => ?_)
-  · rw [padCells_six]
     interval_cases c' <;> simp_all
   · interval_cases c' <;> simp_all
 
-/-- **A child leaf's `keccak` of eight cells**, its padding cell `p`. -/
-theorem kec128_sound (hp : PadOK σ sPad) {m0 m1 m2 m3 m4 m5 m6 m7 p : V} {o : Nat}
-    (hK : AtomsHold rd σ [kecS [m0, m1, m2, m3, m4, m5, m6, m7, p, .n (sPad + 1), .n (sPad + 2),
-      .n (sPad + 3), .n (sPad + 4)] (runV o 13) false false])
-    (h : σ p = word (2 ^ 63 + 1) 0 0) :
-    (σ (.n o), σ (.n (o + 1))) = hcell [σ m0, σ m1, σ m2, σ m3, σ m4, σ m5, σ m6, σ m7] := by
-  obtain ⟨-, q1, q2, q3, q4⟩ := hp
-  refine kecOne_sound (len := 128) rfl (by norm_num) hK (fun c' hc' => ?_) (fun c' h1 h2 => ?_)
-  · rw [padCells_eight]
-    interval_cases c' <;> simp_all
-  · interval_cases c' <;> simp_all
+/-- **A chain step's or a FORS leaf's `keccak([P, a], [v, 0], len=48)`** in
+`verify_sig_lean_sphincs`. -/
+theorem k48_sound (hp : PadOK σ sPad) {a v : V} {c o : Nat} (h : AtomsHold rd σ (k48 a v c o)) :
+    (σ (.n o), σ (.n (o + 1))) = hcell [σ sPP, σ a, σ v] :=
+  k48At_sound hp h
 
 end
 end LeanVM.Guest.B1.Sig

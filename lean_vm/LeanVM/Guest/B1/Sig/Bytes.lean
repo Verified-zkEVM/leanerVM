@@ -260,8 +260,59 @@ theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
 
 /-! ## Addresses -/
 
-/-- The number an address's four fields pack into: `lo`, `hi` from bit 32, the type and step
-byte from bit 56. -/
+/-- A cell's bytes from its 128-bit number. -/
+theorem cellNat_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat192 n) = n := by
+  simp only [cellNat, eOfNat192, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
+  have h2 : n / 2 ^ 64 < 2 ^ 64 := by
+    rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
+    calc n < 2 ^ 128 := h
+      _ = 2 ^ 64 * 2 ^ 64 := by norm_num
+  rw [Nat.mod_eq_of_lt h2]
+  have := Nat.mod_add_div n (2 ^ 64)
+  omega
+
+theorem cellBytes_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat192 n) = leBytes n 16 := by
+  rw [cellBytes_eq_leBytes, cellNat_eOfNat192 h]
+
+/-- The number an address packs into (`address`, `tweak.rs:78-86`): `lo`, `hi` from bit 32, the
+type and step byte from bit 56, the layer from bit 64, the tree from bit 72. -/
+def tweakNat (f : HashSig.TweakFields) : Nat :=
+  f.lo.toNat + 2 ^ 32 * f.hi.toNat + 2 ^ 56 * (f.step ++ f.tag).toNat +
+    2 ^ 64 * (f.layer.toNat + 2 ^ 8 * f.tree.toNat)
+
+theorem tweakNat_lt (f : HashSig.TweakFields) : tweakNat f < 2 ^ 104 := by
+  have h1 := f.lo.isLt
+  have h2 := f.hi.isLt
+  have h3 := (f.step ++ f.tag).isLt
+  have h4 := f.layer.isLt
+  have h5 := f.tree.isLt
+  unfold tweakNat
+  omega
+
+/-- **An address's bytes are those of its packed number.** -/
+theorem addressBytes_eq (f : HashSig.TweakFields) :
+    HashSig.addressBytes f = leBytes (tweakNat f) 16 := by
+  have h1 := f.lo.isLt
+  have h2 := f.hi.isLt
+  have h3 := (f.step ++ f.tag).isLt
+  have h4 := f.layer.isLt
+  rw [HashSig.addressBytes, bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq]
+  simp only [BitVec.toNat_ofNat, BitVec.ofNat_eq_ofNat, Nat.zero_mod]
+  rw [show tweakNat f = f.lo.toNat + 256 ^ 4 * (f.hi.toNat + 256 ^ 3 * ((f.step ++ f.tag).toNat +
+      256 ^ 1 * (f.layer.toNat + 256 ^ 1 * (f.tree.toNat + 256 ^ 4 * 0)))) by unfold tweakNat; ring,
+    show (16 : Nat) = 4 + (3 + (1 + (1 + (4 + 3)))) from rfl,
+    leBytes_add_mul _ _ _ _ (by omega), leBytes_add_mul _ _ _ _ (by omega),
+    leBytes_add_mul _ _ _ _ (by omega), leBytes_add_mul _ _ _ _ (by omega),
+    leBytes_add_mul _ _ _ _ (by have := f.tree.isLt; omega)]
+  simp only [List.append_assoc]
+
+/-- **An address is the cell of its packed number.** -/
+theorem addressBytes_eq_cell (f : HashSig.TweakFields) :
+    HashSig.addressBytes f = cellBytes (eOfNat192 (tweakNat f)) := by
+  rw [addressBytes_eq, cellBytes_eOfNat192 (lt_trans (tweakNat_lt f) (by norm_num))]
+
+/-- The number an address's four fields pack into, layer and tree zero: `lo`, `hi` from bit 32,
+the type and step byte from bit 56. -/
 def addrNat (tag step hi lo : Nat) : Nat :=
   lo % 2 ^ 32 + 2 ^ 32 * (hi % 2 ^ 24) + 2 ^ 56 * (tag % 32 + 32 * (step % 8))
 
@@ -272,32 +323,32 @@ theorem addrNat_lt (tag step hi lo : Nat) : addrNat tag step hi lo < 2 ^ 64 := b
   have := Nat.mod_lt step (show 8 > 0 by norm_num)
   unfold addrNat; omega
 
-/-- **An address is the cell of its packed fields.** -/
+/-- The type and step byte's number. -/
+theorem toNat_stepTag (tag step : Nat) :
+    (BitVec.ofNat 3 step ++ BitVec.ofNat 5 tag).toNat = tag % 32 + 32 * (step % 8) := by
+  rw [BitVec.toNat_append, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.shiftLeft_eq, mul_comm,
+    two_pow_mul_or (Nat.mod_lt _ (by norm_num))]
+  norm_num
+  ring
+
+/-- The packed number of an address in tree `tree` of layer `layer`. -/
+theorem tweakNat_at (tag step hi lo layer tree : Nat) :
+    tweakNat ((HashSig.tweakFields tag step hi lo).at layer tree) =
+      addrNat tag step hi lo + 2 ^ 64 * (layer % 2 ^ 8 + 2 ^ 8 * (tree % 2 ^ 32)) := by
+  simp only [tweakNat, HashSig.TweakFields.at, HashSig.tweakFields, BitVec.toNat_ofNat,
+    toNat_stepTag, addrNat]
+
+theorem tweakNat_tweakFields (tag step hi lo : Nat) :
+    tweakNat (HashSig.tweakFields tag step hi lo) = addrNat tag step hi lo := by
+  simp only [tweakNat, HashSig.tweakFields, BitVec.toNat_ofNat, toNat_stepTag, addrNat,
+    BitVec.ofNat_eq_ofNat, Nat.zero_mod]
+  omega
+
+/-- **An address, layer and tree zero, is the cell of its packed fields.** -/
 theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
     HashSig.addressBytes (HashSig.tweakFields tag step hi lo) =
       cellBytes (eOfNat (addrNat tag step hi lo)) := by
-  have hS : (BitVec.ofNat 3 step ++ BitVec.ofNat 5 tag).toNat = tag % 32 + 32 * (step % 8) := by
-    rw [BitVec.toNat_append, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.shiftLeft_eq, mul_comm,
-      two_pow_mul_or (Nat.mod_lt _ (by norm_num))]
-    norm_num
-    ring
-  have hlo := Nat.mod_lt lo (show 2 ^ 32 > 0 by norm_num)
-  have hhi := Nat.mod_lt hi (show 2 ^ 24 > 0 by norm_num)
-  have htag := Nat.mod_lt tag (show 32 > 0 by norm_num)
-  have hst := Nat.mod_lt step (show 8 > 0 by norm_num)
-  rw [cellBytes_eOfNat (addrNat_lt _ _ _ _), HashSig.addressBytes, HashSig.tweakFields,
-    bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq, hS]
-  simp only [BitVec.toNat_ofNat, BitVec.ofNat_eq_ofNat, Nat.zero_mod]
-  rw [show addrNat tag step hi lo = lo % 2 ^ 32 + 256 ^ 4 * (hi % 2 ^ 24 + 256 ^ 3 *
-      ((tag % 32 + 32 * (step % 8)) + 256 ^ 1 * 0)) by unfold addrNat; ring,
-    show (16 : Nat) = 4 + (3 + (1 + 8)) from rfl, leBytes_add_mul _ _ _ _ (by norm_num; omega),
-    leBytes_add_mul _ _ _ _ (by norm_num; omega), leBytes_add_mul _ _ _ _ (by norm_num; omega)]
-  simp only [List.append_assoc]
-
-theorem sphincs_fieldBytes_tweakFields (tag step hi lo : Nat) :
-    HashSig.addressBytes (HashSig.tweakFields tag step hi lo) =
-      cellBytes (eOfNat (addrNat tag step hi lo)) :=
-  fieldBytes_tweakFields tag step hi lo
+  rw [addressBytes_eq, tweakNat_tweakFields, cellBytes_eOfNat (addrNat_lt _ _ _ _)]
 
 end
 end LeanVM.Guest.B1.Sig
