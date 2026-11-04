@@ -121,6 +121,16 @@ theorem kidsFromIn_walk {fs : String → ℕ} {cert : String → V → ℕ} {rd 
     KidsFromIn coreProgram fs cert rd σ R Dacc (⟨wlk, args, [], true⟩ :: cs) b (fs wlk + n) Dend :=
   ⟨fs wlk, n, R0, fun _ => False, rfl, hR0, hR, hrest⟩
 
+/-- `KidsFromIn` grows with the data earlier kids claimed. -/
+theorem kidsFromIn_dacc {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader} {σ : Val}
+    {R : ℕ → Prop} : ∀ (cs : List Call) {Dacc Dacc' : ℕ → Prop} {b n : ℕ} {Dend : ℕ → Prop},
+    (∀ i, Dacc i → Dacc' i) → KidsFromIn coreProgram fs cert rd σ R Dacc cs b n Dend →
+      KidsFromIn coreProgram fs cert rd σ R Dacc' cs b n Dend
+  | [], _, _, _, _, _, h, ⟨hn, hd⟩ => ⟨hn, fun i hi ↦ h i (hd i hi)⟩
+  | _ :: cs, _, _, _, _, _, h, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ =>
+    ⟨m, n', Rk, Dk, hn, fun i hi ↦ (hR i hi).imp_right (h i), hc,
+      kidsFromIn_dacc cs (fun i hi ↦ hi.imp (h i) id) hk⟩
+
 /-- A level-0 iteration's calls: its two queries' walks. -/
 theorem oqLoop1A_callS (s : Oq) (odd : ℕ) (wlk : String) :
     (oqLoop1A s odd wlk).filterMap Stmt.callS =
