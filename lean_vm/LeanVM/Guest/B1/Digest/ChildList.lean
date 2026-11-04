@@ -248,7 +248,7 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (352 + k) := by
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (351 + k) := by
   decide +kernel
 
 /-- **`child_claim_list_last__L{k}`**: from a state at its first argument after whole blocks
