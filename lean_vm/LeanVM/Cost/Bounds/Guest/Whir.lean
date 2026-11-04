@@ -402,7 +402,7 @@ omit hrd hR in
 theorem qwWin_fst_le (d cd i : ℕ) : (qwWin d cd i).1 ≤ d + 6 * i := by
   unfold qwWin
   by_cases h1 : i = qwNp d cd <;> by_cases h2 : i = qwNp d cd + 1 <;>
-    by_cases h3 : i + 1 = qwNp d cd <;> simp only [h1, h2, h3, ite_true, ite_false] <;> omega
+    by_cases h3 : i + 1 = qwNp d cd <;> simp [h1, h2, h3] <;> omega
 
 omit hrd hR in
 theorem getD_le_of_le (logs : List ℕ) (hv : ∀ x ∈ logs, x ≤ 128) (k : ℕ) : logs.getD k 0 ≤ 128 := by
@@ -1014,7 +1014,7 @@ theorem vsOsRets_cost (hP : Includes P Decoder.vsOsRetsC.costDeps) :
 /-- A child proof's price, its candidate and `open_stacked`'s frame given. -/
 @[expose] def vsAtPrice (R S F C L : ℕ) : ℕ :=
   3 * S + C + ((R + 56) * L + 5) + (F + 10) + ((R + 56) * 121 + 5) + (11 * L + 3) +
-    ((levelPrice R (F + 10) F + 9 + 13) * 6 + 3) + ((11 * 225 + 11) * 6 + 3) + 67
+    ((levelPrice R (F + 10) F + 20 + 13) * 6 + 3) + ((11 * 225 + 11) * 6 + 3) + 70
 
 /-- **A child's proof, its candidate `m` and the frame `fr` of its `open_stacked` call given**
 (`vsPiOfAtC`), the frame of price at most `F + 10`: at most `vsAtPrice R S F C L`. -/
@@ -1044,13 +1044,13 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
     (.closure Decoder.vsPiOfAtC.lam0.costIdx [rdV, VnV, frV, encodeValue T.lanes])
     (fun c ↦ RunsApp.of_spec (Decoder.vsPiOfAtC.lam0.costSpec P (by includes) rd rdV hrd Vn VnV hVn
       fr frV hfr T.lanes c))
-    (levelPrice R (F + 10) F + 9) (T.calls.getD m []) (fun c hc ↦ by
+    (levelPrice R (F + 10) F + 20) (T.calls.getD m []) (fun c hc ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
         List.nil_append, Decoder.vsPiOfAtC.lam0.costEq P (by includes) rd rdV hrd Vn VnV hVn fr frV
         hfr, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have := levelOsA_cost P hrd hR hfr hfrS hVn hF (by includes) T.lanes hT.lanes c (hcok c hc)
       omega)
-  have := Nat.mul_le_mul_left (levelPrice R (F + 10) F + 9 + 13) hcl6
+  have := Nat.mul_le_mul_left (levelPrice R (F + 10) F + 20 + 13) hcl6
   have hf := flatten_map_cost P (by includes) 225 (levelOsA T.lanes rd fr Vn) (T.calls.getD m [])
     (fun c hc ↦ length_levelOsA T.lanes _ _ c (hcok c hc))
   have := Nat.mul_le_mul_left (11 * 225 + 11) hcl6
