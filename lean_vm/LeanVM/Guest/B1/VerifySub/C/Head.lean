@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The head holds honestly.** -/
-theorem vsHeadT_complete (hl : args.length = 7) (hc : ∀ i < 4, IsCanonical128 (args.getD i 0)) :
+theorem vsHeadT_complete (hl : args.length = 6) (hc : ∀ i < 4, IsCanonical128 (args.getD i 0)) :
     ∀ s ∈ vsHeadT, VSH (coreProgram.Rel rd) rd (vsσ rd w args) s := by
   refine vs_block hl 0 vsHeadT (by decide +kernel)
     [keccakA [.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8, .n 9, .n 10, .n 11]

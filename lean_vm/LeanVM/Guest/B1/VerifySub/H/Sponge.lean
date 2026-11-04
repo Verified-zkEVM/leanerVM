@@ -40,7 +40,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The zero cells.** -/
-theorem vs_zero (hl : args.length = 7) : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0 := by
+theorem vs_zero (hl : args.length = 6) : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0 := by
   intro i hi
   have hmc : ∀ i ∈ [10, 11, 12, 13], vsConst i (word 0 0 0) ∈ vsCPre := by
     intro i hi
@@ -56,7 +56,7 @@ theorem vs_zero (hl : args.length = 7) : ∀ i ∈ [10, 11, 12, 13], vsσ rd w a
 
 set_option maxRecDepth 100000 in
 /-- **A `KECCAK` atom's outputs are canonical.** -/
-theorem vs_kecOut (hl : args.length = 7) {ins : List V} {o : ℕ}
+theorem vs_kecOut (hl : args.length = 6) {ins : List V} {o : ℕ}
     (hm : keccakA ins (vsRun o 13) ∈ vsCPre) :
     ∀ k < 13, IsCanonical128 (vsσ rd w args (.n (o + k))) := by
   have hg := vs_goodS (rd := rd) (w := w) hl hm
@@ -69,7 +69,7 @@ theorem vs_kecOut (hl : args.length = 7) {ins : List V} {o : ℕ}
   exact canon_cellsOfState _ _ _
 
 /-- **A `KECCAK` atom on canonical inputs holds.** -/
-theorem vs_kecHolds (hl : args.length = 7) {ins : List V} {o : ℕ}
+theorem vs_kecHolds (hl : args.length = 6) {ins : List V} {o : ℕ}
     (hm : keccakA ins (vsRun o 13) ∈ vsCPre) (hc : AllCanonical (ins.map (vsσ rd w args))) :
     (Atom.keccak ins (vsRun o 13) false false).Holds rd (vsσ rd w args) := by
   have hg := vs_goodS (rd := rd) (w := w) hl hm
@@ -77,7 +77,7 @@ theorem vs_kecHolds (hl : args.length = 7) {ins : List V} {o : ℕ}
   exact keccakA_complete (S := vsSL) (w := w) hg hc
 
 /-- A squeeze's inputs: the zero cells and a canonical capacity. -/
-theorem vs_sqzIn (hl : args.length = 7) {capb : ℕ}
+theorem vs_sqzIn (hl : args.length = 6) {capb : ℕ}
     (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i)))) :
     AllCanonical (([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++
       vsRun capb 5).map (vsσ rd w args)) := by
@@ -101,7 +101,7 @@ theorem vs_sqzIn (hl : args.length = 7) {capb : ℕ}
 
 /-- **A squeeze, honestly**: on canonical capacity cells, its challenge and capacity, its outputs
 canonical. -/
-theorem vs_sqz (hl : args.length = 7) {capb o : ℕ} (hmem : ∀ s ∈ vsSqzT capb o, s ∈ vsCPre)
+theorem vs_sqz (hl : args.length = 6) {capb o : ℕ} (hmem : ∀ s ∈ vsSqzT capb o, s ∈ vsCPre)
     (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i)))) :
     (⟨(vsRun capb 5).map (vsσ rd w args), []⟩ : Fs).squeeze =
         (vsσ rd w args (.n (o + 19)), ⟨[vsσ rd w args (.n (o + 8)), vsσ rd w args (.n (o + 9)),
@@ -151,7 +151,7 @@ structure VsFrontS (rd : Reader) (σ : Val) (ws : List E) : Prop where
 set_option maxRecDepth 100000 in
 /-- **The front, honestly**: with the statement's and the seed's cells canonical and the stream's
 first ten words in memory. -/
-theorem vsH_front (hl : args.length = 7) (hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0))
+theorem vsH_front (hl : args.length = 6) (hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0))
     {ws : List E} (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0)) :
     VsFrontS rd (vsσ rd w args) ws := by
   have hz := vs_zero (rd := rd) (w := w) hl
@@ -331,7 +331,7 @@ theorem vsMaps_sub (capb o : ℕ)
 
 set_option maxRecDepth 100000 in
 /-- **The ring map's five squeezed challenges, honestly**, from canonical capacity cells. -/
-theorem vsH_maps (hl : args.length = 7)
+theorem vsH_maps (hl : args.length = 6)
     (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i)))) :
     (⟨[vsσ rd w args (.n 659), vsσ rd w args (.n 660), vsσ rd w args (.n 661),
         vsσ rd w args (.n 662), vsσ rd w args (.n 663)], []⟩ : Fs).squeezeN 5 =
@@ -362,7 +362,7 @@ theorem vsH_maps (hl : args.length = 7)
   have := q5.2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this
 
 /-- **The batching challenge, honestly**, from canonical capacity cells. -/
-theorem vsH_lam (hl : args.length = 7)
+theorem vsH_lam (hl : args.length = 6)
     (hc : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))) :
     (⟨[vsσ rd w args (.n 754), vsσ rd w args (.n 755), vsσ rd w args (.n 756),
         vsσ rd w args (.n 757), vsσ rd w args (.n 758)], []⟩ : Fs).squeeze =

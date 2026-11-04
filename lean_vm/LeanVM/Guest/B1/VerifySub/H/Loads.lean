@@ -43,7 +43,7 @@ theorem vs_loads_class : (vsCPre.filterMap Stmt.loadS).all vsLoadOk = true := by
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **A push block's square pointer.** -/
-theorem vs_push_ptr (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
+theorem vs_push_ptr (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
     (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))) {b : ℕ} (hb : b < 54) :
     vsσ rd w args (.n (vsPushPtr b)) = vsσ rd w args (.n 4) * gen ^ pushKappa logMem hs b := by

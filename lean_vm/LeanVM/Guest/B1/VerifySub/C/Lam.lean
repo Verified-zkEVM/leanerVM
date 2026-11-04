@@ -31,7 +31,7 @@ theorem vsLam_notS : ∀ i < 140, Atom.load (.n (1325 + 4 * i)) (.n 6) (vsKept i
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsLamT_good (hl : args.length = 7) :
+theorem vsLamT_good (hl : args.length = 6) :
     ∀ s ∈ vsLamT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 1372) (blk := vsLamT)
@@ -44,7 +44,7 @@ theorem vsLamStep_mem {i : ℕ} (hi : i < 140) {s : Stmt} (hs : s ∈ vsLamStep 
     (List.mem_flatMap.2 ⟨i, List.mem_range.2 hi, hs⟩))
 
 /-- The batched claims, honestly. -/
-theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
+theorem vsLam_loop (hl : args.length = 6) {vals : ℕ → E}
     (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i))
     (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n XLAMPOOL)) (vsKept i)
       (vsσ rd w args (.n 1111) ^ (i + 1)))
@@ -94,7 +94,7 @@ theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
           simpa using h
 
 /-- **The batching, honestly.** -/
-theorem vsLamT_complete (hl : args.length = 7)
+theorem vsLamT_complete (hl : args.length = 6)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))) {vals : ℕ → E}
     (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i))

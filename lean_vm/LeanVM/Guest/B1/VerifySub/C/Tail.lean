@@ -60,7 +60,7 @@ theorem vsTail_notS : (∀ k < 19, Atom.load (.n (1911 + k)) (.n 310) k ∉ vsSL
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsTailPre_good (hl : args.length = 7) :
+theorem vsTailPre_good (hl : args.length = 6) :
     ∀ s ∈ vsTailPre, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 2084) (blk := vsTailPre)
@@ -69,7 +69,7 @@ theorem vsTailPre_good (hl : args.length = 7) :
 
 set_option maxRecDepth 100000 in
 /-- **The tail, honestly.** -/
-theorem vsTailPre_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
+theorem vsTailPre_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
     {m r : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)
     (e1890 : vsσ rd w args (.n 1676) = gen ^ m) (e124 : vsσ rd w args (.n 122) = gen ^ (r - 1))
     {zs al : ℕ → E}

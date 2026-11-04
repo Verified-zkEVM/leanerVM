@@ -66,7 +66,7 @@ theorem vsSizesT_noNe : vsSizesT.all noNeB = true := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsSizesT_good (hl : args.length = 7) :
+theorem vsSizesT_good (hl : args.length = 6) :
     ∀ s ∈ vsSizesT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 90) (blk := vsSizesT)
@@ -74,7 +74,7 @@ theorem vsSizesT_good (hl : args.length = 7) :
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsSizesT_noNe s hs)] at h
 
 /-- **The sizes, honestly.** -/
-theorem vsSizesT_complete (hl : args.length = 7) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
+theorem vsSizesT_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
     {lir logMem : ℕ} (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) (hm16 : 16 ≤ logMem) (hm32 : logMem ≤ 32)
     (e112 : vsσ rd w args (.n 110) = eOfNat lir) (e29 : vsσ rd w args (.n 27) = eOfNat logMem)
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (e130 : vsσ rd w args (.n 128) = gen ^ logMem)

@@ -134,7 +134,7 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
       (digestHalves seed).2, lp, sq, out])
     (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 25)) i (c.proof.stream.getD i 0)) :
     VsFrontH S rd (vsσ rd w args) := by
-  have hl : args.length = 7 := by rw [hargs]; rfl
+  have hl : args.length = 6 := by rw [hargs]; rfl
   have hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0) := by
     intro i hi
     have c1 := digest_canonical (statementDigest seed c.statement)

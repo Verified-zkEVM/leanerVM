@@ -124,7 +124,7 @@ theorem vsFpwStart_ge : ∀ x < 16, 641 ≤ vsFpwStart x := by decide +kernel
 
 variable {args : List E}
 
-theorem vsFpwT_good (hl : args.length = 7) :
+theorem vsFpwT_good (hl : args.length = 6) :
     ∀ s ∈ vsFpwT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 711) (blk := vsFpwT)
@@ -132,7 +132,7 @@ theorem vsFpwT_good (hl : args.length = 7) :
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsFpwT_noNe s hs)] at h
 
 /-- The sixteen weights, honestly. -/
-theorem vsFpw_loop (hl : args.length = 7) {a0 a1 a2 a3 : E}
+theorem vsFpw_loop (hl : args.length = 6) {a0 a1 a2 a3 : E}
     (ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3])
     (hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3]))
     {C : CallRel} {kret : List E → Prop} :

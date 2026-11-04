@@ -39,7 +39,7 @@ theorem vsKappa_notS : ∀ b < Tables.nBlocks,
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsKappaT_good (hl : args.length = 7) :
+theorem vsKappaT_good (hl : args.length = 6) :
     ∀ s ∈ vsKappaT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 121) (blk := vsKappaT)
@@ -50,7 +50,7 @@ theorem vsKappaStep_mem {b : ℕ} (hb : b < Tables.nBlocks) {s : Stmt} (hs : s �
     s ∈ vsKappaT := List.mem_cons_of_mem _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩)
 
 /-- One block, honestly. -/
-theorem vsKappaStep_complete (hl : args.length = 7) {g : E} {ds : List E} (hds : ds.length = 6)
+theorem vsKappaStep_complete (hl : args.length = 6) {g : E} {ds : List E} (hds : ds.length = 6)
     (hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: g :: ds))
     (hbk : ReadsAt rd (vsσ rd w args (.n XBK)) (Tables.blockKappaWords g ds))
     {b : ℕ} (hb : b < Tables.nBlocks) {C : CallRel} {next : Prop} {kret : List E → Prop}
@@ -99,7 +99,7 @@ theorem vsKappaStep_complete (hl : args.length = 7) {g : E} {ds : List E} (hds :
     exact hbkL
 
 /-- **`block_kappa`, honestly.** -/
-theorem vsKappaT_complete (hl : args.length = 7) {g : E} {ds : List E} (hds : ds.length = 6)
+theorem vsKappaT_complete (hl : args.length = 6) {g : E} {ds : List E} (hds : ds.length = 6)
     (hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: g :: ds))
     (hbk : ReadsAt rd (vsσ rd w args (.n XBK)) (Tables.blockKappaWords g ds))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :

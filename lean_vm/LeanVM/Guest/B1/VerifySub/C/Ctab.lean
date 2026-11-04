@@ -187,7 +187,7 @@ theorem ctPre_noNe : ctPre.all noNeB = true := by decide +kernel
 variable {args : List E}
 
 /-- **`c_table` and `ring_switch_target`'s call, honestly.** -/
-theorem vsCtabT_complete (hl : args.length = 7) {chs : List E} (hcl : chs.length = 6)
+theorem vsCtabT_complete (hl : args.length = 6) {chs : List E} (hcl : chs.length = 6)
     (hc : ReadsAt rd (vsσ rd w args (.n 664)) chs)
     (hW : ReadsAt rd (vsσ rd w args (.n 665)) (ringCoefficients chs)) {C : CallRel}
     (hC : C "ring_switch_target" [vsσ rd w args (.n 648), vsσ rd w args (.n 664)]

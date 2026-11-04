@@ -44,7 +44,7 @@ theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
 
 set_option maxRecDepth 100000 in
-theorem vs_e124 (hl : args.length = 7) {w : ℕ → E} {lir : ℕ}
+theorem vs_e124 (hl : args.length = 6) {w : ℕ → E} {lir : ℕ}
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (h1 : 1 ≤ lir) :
     vsσ rd w args (.n 122) = gen ^ (lir - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
@@ -131,7 +131,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
         vsσ rd (vsW bs outs) args (.n 756), vsσ rd (vsW bs outs) args (.n 757),
         vsσ rd (vsW bs outs) args (.n 758)], []⟩ ∧
       vsσ rd (vsW bs outs) args (.n 658) = S.m0 ∧ vsChs (vsσ rd (vsW bs outs) args) = S.chs := by
-  have hl : args.length = 7 := by rw [hargs]; rfl
+  have hl : args.length = 6 := by rw [hargs]; rfl
   have ptr : ∀ i < 16, vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) =
       ofK (addressOfIndex (bs.getD i 0)) := fun i hi ↦ vs_alloc_ptr hl bs outs hi
   have ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,

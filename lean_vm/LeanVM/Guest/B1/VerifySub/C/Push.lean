@@ -32,7 +32,7 @@ theorem vsPush_notS : ∀ b < 54, Atom.load (.n (if b = 0 then 307 else 306 + 4 
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsPushT_good (hl : args.length = 7) :
+theorem vsPushT_good (hl : args.length = 6) :
     ∀ s ∈ vsPushT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 432) (blk := vsPushT)
@@ -43,7 +43,7 @@ theorem vsPushStep_mem {b : ℕ} (hb : b < 54) {s : Stmt} (hs : s ∈ vsPushStep
   List.mem_append_left _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩)
 
 /-- The push blocks' running product, honestly. -/
-theorem vsPush_loop (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
+theorem vsPush_loop (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
     (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
     (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·))))
@@ -112,7 +112,7 @@ theorem vsPush_loop (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl :
       exact hp
 
 /-- **The push total and the bus depth, honestly.** -/
-theorem vsPushT_complete (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
+theorem vsPushT_complete (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
     (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
     (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·))))

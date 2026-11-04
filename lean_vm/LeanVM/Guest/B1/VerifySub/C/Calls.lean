@@ -34,7 +34,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The three calls' section, honestly.** -/
-theorem vsCallsT_complete (hl : args.length = 7) {τg : E}
+theorem vsCallsT_complete (hl : args.length = 6) {τg : E}
     (hd6 : LoadHolds rd (vsσ rd w args (.n 127)) 6 τg) {C : CallRel}
     (hCg : C "verify_bus_gkr" ([825, 826, 827, 828, 829, 838, 522, 523].map (vsσ rd w args ∘ V.n))
       ((List.range 9).map (vsσ rd w args ∘ V.n ∘ (839 + ·))))

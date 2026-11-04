@@ -31,7 +31,7 @@ theorem vsRoots_notS : Atom.load (.n 324) (.n 25) 8 ∉ vsSL ∧ Atom.load (.n 3
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsRootsT_good (hl : args.length = 7) :
+theorem vsRootsT_good (hl : args.length = 6) :
     ∀ s ∈ vsRootsT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 649) (blk := vsRootsT)
@@ -39,7 +39,7 @@ theorem vsRootsT_good (hl : args.length = 7) :
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsRootsT_noNe s hs)] at h
 
 /-- **The root, honestly.** -/
-theorem vsRootsT_complete (hl : args.length = 7)
+theorem vsRootsT_complete (hl : args.length = 6)
     (hin : ∀ i ∈ [89, 91, 99, 101, 109, 111, 119, 121, 77, 78, 79, 80, 81],
       IsCanonical128 (vsσ rd w args (.n i)))
     {x0 x1 : E} (hw8 : LoadHolds rd (vsσ rd w args (.n 25)) 8 x0)
@@ -103,7 +103,7 @@ theorem vsRootsT_complete (hl : args.length = 7)
 
 set_option maxRecDepth 100000 in
 /-- **The bus challenges, honestly.** -/
-theorem vsAlphasT_complete (hl : args.length = 7)
+theorem vsAlphasT_complete (hl : args.length = 6)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hr : ∀ i ∈ [544, 546, 554, 556], IsCanonical128 (vsσ rd w args (.n i)))
     (hcap0 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (532 + i))))

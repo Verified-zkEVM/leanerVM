@@ -41,7 +41,7 @@ theorem vsReadsT_noNe : vsReadsT.all noNeB = true := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsReadsT_good (hl : args.length = 7) :
+theorem vsReadsT_good (hl : args.length = 6) :
     ∀ s ∈ vsReadsT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 11) (blk := vsReadsT)
@@ -57,7 +57,7 @@ theorem vsReadsT_sub : ∀ i < 8, ∀ s ∈ fsNextT (.n 25) i (vsX i), s ∈ vsR
     simp only [vsReadsT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] <;> tauto
 
 /-- One announced word, honestly: read, packed canonically, its template holding. -/
-theorem vs_word (hl : args.length = 7) {ws : List E}
+theorem vs_word (hl : args.length = 6) {ws : List E}
     (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0)) {i : ℕ} (hi : i < 8) :
     vsσ rd w args (.n (vsX i)) = ws.getD i 0 ∧
       IsCanonical128 (vsσ rd w args (.n (vsX i + 7))) ∧
@@ -75,7 +75,7 @@ theorem vs_word (hl : args.length = 7) {ws : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The announced words, honestly.** -/
-theorem vsReadsT_complete (hl : args.length = 7) {ws : List E}
+theorem vsReadsT_complete (hl : args.length = 6) {ws : List E}
     (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0))
     (hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 26)) i (ws.getD (i + 1) 0))
     (hcap : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (vsσ rd w args (.n i)))

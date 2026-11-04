@@ -119,7 +119,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim)) :
     Nonempty (VsSecData rd (vsW bs outs) args) ∧
       VsSig S bs sqE outs args (vsσ rd (vsW bs outs) args) := by
-  have hl : args.length = 7 := by rw [hargs]; rfl
+  have hl : args.length = 6 := by rw [hargs]; rfl
   obtain ⟨D, hv, hlir, hlm, hhs, hm, hr, hτ, F, elam, es8, -, -⟩ :=
     vsSec hbl S hargs bs outs hκ hlow hmem hlp hsq hfx O.o0 O.o1 O.o6 O.o7 O.o10
   refine ⟨⟨D⟩, ?_⟩

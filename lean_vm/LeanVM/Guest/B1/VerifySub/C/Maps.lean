@@ -26,7 +26,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The ring map's challenges, honestly.** -/
-theorem vsMapsT_complete (hl : args.length = 7)
+theorem vsMapsT_complete (hl : args.length = 6)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap0 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i))))
     (hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 664)) k

@@ -36,7 +36,7 @@ theorem vsHeadT_atoms : vsHeadT.all atomB = true := by decide +kernel
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- The head, as a block holding under any call relation. -/
-theorem vsHeadT_completeH (hl : args.length = 7) (hc : ∀ i < 4, IsCanonical128 (args.getD i 0))
+theorem vsHeadT_completeH (hl : args.length = 6) (hc : ∀ i < 4, IsCanonical128 (args.getD i 0))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) vsHeadT next kret := by
   refine holdsList_straightN vsHeadT (by decide +kernel) (fun s hs ↦ ?_) hn
@@ -48,7 +48,7 @@ theorem vsHeadT_completeH (hl : args.length = 7) (hc : ∀ i < 4, IsCanonical128
 
 /-- **What the sections take.** -/
 structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
-  hl : args.length = 7
+  hl : args.length = 6
   -- the head
   hc4 : ∀ i < 4, IsCanonical128 (args.getD i 0)
   -- the announced words
