@@ -26,18 +26,17 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-/-- Step `s`'s pointers: its tree, its claim's point, its flips' lanes and slices. -/
+/-- Step `s`'s pointers: its claim's point's segment coordinate, its flips. -/
 def stepGroups (s : ℕ) : List (V × ℕ × ℕ) :=
-  [(.n (stepB s + 1), 0, 2), (.n (stepB s + 2), 0, 1)] ++
-    if s = 0 then [] else (List.range (iotaUsed s).length).flatMap fun j ↦
-      [(.n (stepB s + 6 + 46 * j), 0, 25), (.n (stepB s + 6 + 46 * j + 1), 0, 64)]
+  [(.n (stepB s + 1), 0, 1)] ++
+    if s = 0 then [] else (List.range (iotaUsed s).length).map fun j ↦ (.n (stepB s + 6 + 2 * j), 0, 7)
 
 /-- The pointers the body loads through, with their offsets' ranges. -/
 def vkGroups : List (V × ℕ × ℕ) :=
   [(.n 5, 0, 1), (.n 7, 0, 4), (.n 8, 0, 25), (.n 9, 0, 4), (.n 9, 39, 43), (.n 10, 0, 64),
-    (.n 64, 0, 1), (.n 90, 0, 5), (.n 201, 0, 286), (.n 203, 0, 30), (.n 274, 0, 62),
-    (.n 382, 0, 2), (.n 3691, 0, 6), (.n 3699, 0, 1), (.n 3711, 0, 1), (.n 3987, 0, 30),
-    (.n 4115, 0, 64), (.n 4107, 0, 6), (.n 4978, 0, 1), (.n 5212, 0, 6), (.n 6363, 0, 25)] ++
+    (.n 66, 0, 1), (.n 92, 0, 5), (.n 203, 0, 286), (.n 205, 0, 30), (.n 276, 0, 62),
+    (.n 384, 0, 2), (.n 963, 0, 6), (.n 971, 0, 1), (.n 983, 0, 1), (.n 1259, 0, 30),
+    (.n 1387, 0, 64), (.n 1379, 0, 6), (.n 2250, 0, 1), (.n 2484, 0, 6), (.n 3647, 0, 25)] ++
     (List.range 12).flatMap stepGroups
 
 /-- A load through one of `vkGroups`. -/
@@ -76,33 +75,27 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
   have hchis := h.2.2.1
   have houts : D.outs.length = 25 := h.2.2.2.1
   have hslL : D.slices.length = 64 := h.2.2.2.2.2.2.2.2.2.2.1
-  obtain ⟨-, p5, p6, p7, p8, p9, p10, h17, -, -, -, a58, -, -, -, e64, -, a90, -, -, -, a201, a203,
+  obtain ⟨-, p5, p6, p7, p8, p9, p10, h17, -, -, a58, -, -, -, e64, -, a90, -, -, -, a201, a203,
     a274, a382, -⟩ := head_first h hm hσd
   obtain ⟨-, -, e3691, -, -, eO, -⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 3699) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 971) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]), (O_ok h).2.1]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, -, -, -, e4107, -, -, e4110, -⟩ := in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 4115) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (4115 : ℕ) = 4110 + 5 from rfl, e4110 5 (by norm_num), sRets,
+  have e4115 : σ (.n 1387) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1387 : ℕ) = 1382 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]), (S_ok h).2.1]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
   obtain ⟨e4978, e5212, e6363⟩ := fin_ptrs h hm hσd h17 a201
-  have e3711 : σ (.n 3711) = ptr B * gen ^ (D.τ - 4) := by
-    have g : Good rd vkSt (D.w B curE) σ (.mul (.n 3711) (.n 58) (.n 17)) := by
+  have e3711 : σ (.n 983) = ptr B * gen ^ (D.τ - 4) := by
+    have g : Good rd vkSt (D.w B curE) σ (.mul (.n 983) (.n 60) (.n 17)) := by
       subst hσd
-      exact val_good' h (s := .atom (.mul (.n 3711) (.n 58) (.n 17)))
+      exact val_good' h (s := .atom (.mul (.n 983) (.n 60) (.n 17)))
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ (by simp [vkOutT]))))
     rw [mulG (by norm_num) (by norm_num) g, a58, h17]
-  have a3987 : σ (.n 3987) = ptr (B + D.τ + 406) := by
-    subst hσd; exact val_alloc h (.n 3987, .inl 30) (by simp [vkAllocs])
-  have aSt : ∀ s < 12, σ (.n (stepB s + 1)) = ptr (B + D.τ + 382 + 2 * s) := fun s hs ↦ by
-    have : σ (.n (stepB s + 1)) = D.w B curE (stepB s + 1) := by
-      subst hσd
-      exact val_alloc h (.n (stepB s + 1), .inl 2) (List.mem_append_left _ (List.mem_append_right _
-        (List.mem_map.mpr ⟨s, List.mem_range.mpr hs, rfl⟩)))
-    rw [this, w_step hs]
+  have a3987 : σ (.n 1259) = ptr (B + D.τ + 382) := by
+    subst hσd; exact val_alloc h (.n 1259, .inl 30) (by simp [vkAllocs])
   -- the entries
   have mLin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
       (zvE + qkeccakVarsCap, D.point), (slE, D.slices)] → ∀ {p : E} {a off : ℕ}, p = ptr a →
@@ -166,7 +159,7 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
   · exact mLin (b := curE) (ws := D.xs) (by simp) e3699 (by omega) (by omega)
   · exact mOwn (b := B) (ws := D.c0.point) (by rw [hO]; simp) (by rw [e3711, ptr_mul_gen])
       (by omega) (by omega)
-  · exact mOwn (b := B + D.τ + 406) (ws := eqLevels D.I.1 4) (by rw [hO]; simp) a3987 (by omega)
+  · exact mOwn (b := B + D.τ + 382) (ws := eqLevels D.I.1 4) (by rw [hO]; simp) a3987 (by omega)
       (by rw [eqLevels_length (by rw [I1_length h])]; norm_num; omega)
   · exact mLin (b := curE) (ws := D.xs) (by simp) e4115 (by omega) (by omega)
   · exact mLin (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp)
@@ -185,11 +178,7 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
     obtain ⟨hpp, hfl⟩ := step_ptrs h hm hσd hs h17 a201
     simp only [stepGroups, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
       Prod.mk.injEq] at hsg
-    rcases hsg with (⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩) | hsg
-    · exact mOwn (b := B + D.τ + 382 + 2 * s) (ws := D.segW s)
-        (by rw [hO]; exact List.mem_append_left _ (List.mem_append_right _
-          (List.mem_map.mpr ⟨s, List.mem_range.mpr hs, rfl⟩))) (aSt s hs) (by omega)
-        (by simp [segW, eqKernel_length]; omega)
+    rcases hsg with ⟨rfl, rfl, rfl⟩ | hsg
     · rcases s with _ | k
       · exact mOwn (b := B) (ws := D.c0.point) (by rw [hO]; simp) (a := B + (D.τ - 4))
           (by rw [hpp, ptr_mul_gen]; rfl) (by omega) (by omega)
@@ -198,19 +187,14 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val
           (by omega) (by rw [hchs k (by omega)]; omega)
     · rcases s with _ | k
       · simp at hsg
-      · simp only [show k + 1 ≠ 0 by omega, ↓reduceIte, List.mem_flatMap, List.mem_range,
-          List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hsg
-        obtain ⟨j, hj, (⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩)⟩ := hsg
-        · exact mLay k (by omega) (b := ls k + (D.layer k).y + 139)
-            (ws := lanesOut ((D.layer k).locPt (firstOf k)) ((D.layer k).beta (firstOf k)).1)
-            (by simp [layerBufs_eq]) (a := ls k + (D.layer k).y + 139)
-            (by rw [(hfl (by omega) j hj).1]; rfl) (by omega)
-            (by rw [lanesOut_length]; omega)
-        · exact mLay k (by omega) (b := ls k + (D.layer k).y + 164)
-            (ws := eqKernel (((D.layer k).locPt (firstOf k)).take 6))
-            (by simp [layerBufs_eq]) (a := ls k + (D.layer k).y + 164)
-            (by rw [(hfl (by omega) j hj).2]; rfl) (by omega)
-            (by rw [eqKernel_length, List.length_take, hlocL k (by omega)]; norm_num; omega)
+      · simp only [show k + 1 ≠ 0 by omega, ↓reduceIte, List.mem_map, List.mem_range,
+          Prod.mk.injEq] at hsg
+        obtain ⟨j, hj, rfl, rfl, rfl⟩ := hsg
+        exact mLay k (by omega) (b := ls k + (D.layer k).y + 164)
+          (ws := flipsOf (laterWeights (lanesOut ((D.layer k).locPt (firstOf k))
+            ((D.layer k).beta (firstOf k)).1) (eqKernel (((D.layer k).locPt (firstOf k)).take 6))))
+          (by simp [layerBufs_eq]) (a := ls k + (D.layer k).y + 164)
+          (by rw [hfl (by omega) j hj]; rfl) (by omega) (by simp [flipsOf]; omega)
 
 end VkData
 
