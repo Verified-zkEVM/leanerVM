@@ -104,5 +104,86 @@ theorem osMat_val {base off k : ℕ} (h : off < u128Bound)
 theorem osMat_next (base off k : ℕ) : k ≤ (osMat base off k).2.2 := by
   unfold osMat; split_ifs <;> simp
 
+/-! ## Materializations from earlier ones -/
+
+/-- The materializations hold: each `out` is its base times `g^exp`, and its source times
+`g^dist` is too. -/
+def MatsOk (σ : Val) (mats : List OsMat) : Prop :=
+  ∀ m ∈ mats, m.exp < u128Bound ∧ m.dist < u128Bound ∧
+    σ (.n m.out) = σ (.n m.base) * gen ^ m.exp ∧ σ (.n m.src) * gen ^ m.dist = σ (.n m.base) * gen ^ m.exp
+
+theorem matsOk_nil (σ : Val) : MatsOk σ [] := fun _ h ↦ absurd h (by simp)
+
+theorem osMatSrc_ok {σ : Val} {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} (hm : MatsOk σ mats)
+    {base off : ℕ} (h : off < u128Bound) :
+    (osMatSrc plan mats base off).2 < u128Bound ∧ σ (.n (osMatSrc plan mats base off).1) *
+      gen ^ (osMatSrc plan mats base off).2 = σ (.n base) * gen ^ off := by
+  unfold osMatSrc
+  split
+  · split
+    · rename_i m hf
+      have hmem := List.mem_of_find?_eq_some hf
+      have he := List.find?_some hf
+      simp only [Bool.and_eq_true, beq_iff_eq] at he
+      obtain ⟨-, -, ho, -⟩ := hm m hmem
+      split_ifs with hlt
+      · refine ⟨by omega, ?_⟩
+        simp only
+        rw [ho, he.1, he.2, mul_assoc, ← pow_add, Nat.add_sub_cancel' hlt.le]
+      · exact ⟨h, rfl⟩
+    · exact ⟨h, rfl⟩
+  · exact ⟨h, rfl⟩
+
+/-- **A materialization from earlier ones is the base times `g^off`.** -/
+theorem osMatP_val {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off k : ℕ}
+    (hm : MatsOk σ mats) (h : off < u128Bound)
+    (hok : AllOk C rd σ (osMatP plan mats base off k).1) :
+    σ (.n (osMatP plan mats base off k).2.1) = σ (.n base) * gen ^ off := by
+  by_cases h0 : off = 0
+  · subst h0; simp [osMatP]
+  · simp only [osMatP, h0, ↓reduceIte, allOk_cons, StmtOk, Atom.Holds] at hok ⊢
+    rw [hok.2.1, hok.1]
+    split
+    · rename_i m hf
+      have he := List.find?_some hf
+      simp only [Bool.and_eq_true, beq_iff_eq] at he
+      obtain ⟨-, hd, -, hs⟩ := hm m (List.mem_of_find?_eq_some hf)
+      simp only
+      rw [gw_eq hd, hs, he.1, he.2]
+    · obtain ⟨hd, hs⟩ := osMatSrc_ok (plan := plan) hm (base := base) h
+      rw [gw_eq hd, hs]
+
+theorem osMatP_next (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    k ≤ (osMatP plan mats base off k).2.2 := by
+  unfold osMatP; split_ifs <;> simp
+
+theorem osMatP_shape (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
+    (off = 0 → (osMatP plan mats base off k).2 = (base, k)) ∧
+      (off ≠ 0 → (osMatP plan mats base off k).2 = (k + 1, k + 2)) := by
+  unfold osMatP; constructor <;> intro h <;> simp [h]
+
+/-- The materializations stay ok after one more, once its statements hold. -/
+theorem osMatsAfter_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off k : ℕ}
+    (hm : MatsOk σ mats) (h : off < u128Bound)
+    (hok : AllOk C rd σ (osMatP plan mats base off k).1) :
+    MatsOk σ (osMatsAfter plan mats base off k) := by
+  have hv := osMatP_val hm h hok
+  unfold osMatsAfter
+  split_ifs with h0
+  · exact hm
+  · split
+    · exact hm
+    · rename_i hf
+      intro m hmem
+      rcases List.mem_append.mp hmem with hmem | hmem
+      · exact hm m hmem
+      · simp only [List.mem_singleton] at hmem
+        subst hmem
+        obtain ⟨hd, hs⟩ := osMatSrc_ok (plan := plan) hm (base := base) h
+        refine ⟨h, hd, ?_, hs⟩
+        have := (osMatP_shape plan mats base off k).2 h0
+        rw [this] at hv
+        exact hv
+
 end
 end LeanVM.Guest.B1.Whir

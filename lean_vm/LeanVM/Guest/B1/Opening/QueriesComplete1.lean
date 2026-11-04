@@ -29,8 +29,8 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The query's places in order. -/
 theorem places : d.b + d.s.R ≤ d.k1 ∧ d.k1 + d.s.D ≤ d.kL ∧ d.kL + d.s.chainLen = d.ch ∧
-    d.ch + 83 + 17 * d.s.pd = d.Cq ∧ d.Cq + 5 + 6 * (d.s.cd - 2) = d.z :=
-  ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, (Cq_eq d).symm, (z_eq d).symm⟩
+    d.ch + 4 * d.s.pd ≤ d.Cq ∧ d.Cq + 9 = d.e :=
+  ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, d.W0_le_Cq, (e_eq d).symm⟩
 
 theorem partV_zero (h : ℕ) : d.partV h 0 = d.W (d.s.lo * h) * d.w 0 := by
   simp [partV]
@@ -68,7 +68,7 @@ theorem W_odd (hb : d.s.base = 0) {jw : ℕ} (ho : jw % 2 = 1) :
 
 /-! ## The packs -/
 
-theorem oqPacks_complete (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i) :
+theorem oqPacks_complete (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
     ∀ a, Stmt.atom a ∈ oqPacksT d.b d.s.R → a.Holds rd σ := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   intro a ha
@@ -109,7 +109,7 @@ theorem tail_idx (hs : d.s.RowShape) {h o : ℕ} (hh : h < d.s.I / d.s.lo)
     simp only [hI, hlo, hG, hD] at hh ho ⊢ <;> split <;> split at ho <;> omega
 
 theorem oqDot_complete (hs : d.s.RowShape) {wp : V}
-    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i)
     (hw : ∀ l < d.s.lo + d.s.I / d.s.lo, LoadHolds rd (σ wp) l (d.w l)) :
     ∀ a, Stmt.atom a ∈ oqDotT d.s wp d.b → a.Holds rd σ := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
@@ -282,7 +282,7 @@ theorem oqDot_complete (hs : d.s.RowShape) {wp : V}
 /-! ## The padding run -/
 
 theorem oqPad_complete (he : d.emit = true)
-    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i) :
+    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
     ∀ a, Stmt.atom a ∈ oqPadT (oqK1 d.b d.s.R + d.s.D) → a.Holds rd σ := by
   obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
   have hk := k1_eq d

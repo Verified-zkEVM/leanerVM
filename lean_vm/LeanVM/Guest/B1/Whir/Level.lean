@@ -45,6 +45,11 @@ theorem levelHead_eq (logN index : ℕ) (level : Whir.Level) (rest : List Whir.L
   simp only [levelHead, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
 
+theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt),
+    (osFolds p off n st).2.mats = st.mats
+  | 0, _, _ => rfl
+  | n + 1, off, st => osFolds_mats p n (off + 1) (osFold p off st).2
+
 theorem osFolds_state (p : ℕ) : ∀ (n off : ℕ) (st : OsSt),
     (osFolds p off n st).2.pad = st.pad ∧ (osFolds p off n st).2.k ≥ st.k
   | 0, _, _ => ⟨rfl, le_rfl⟩
@@ -105,6 +110,7 @@ structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws 
   R : R[lvl]? = some (root, lv.depth, lvWidth lvl lv)
   r0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1
   r1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2
+  mats : MatsOk σ st.mats
 
 /-- The callees a level's template calls, by their meanings. -/
 structure LvCallees (rd : Reader) (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop where
@@ -118,9 +124,10 @@ structure LvCallees (rd : Reader) (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop whe
     MeaningOpeningFinalMessage c.yrLen rd args rets
   grind : ∀ args rets, coreProgram.Rel rd ("grind_check__L" ++ natStr lv.grind) args rets →
     MeaningGrindCheck Whir.queryGrindingBits args rets
-  loop : FnIs (c.sqLoop lvl) (osParams 5) (sqLoopBody lv (c.sqLoop lvl))
-  dec : ∀ args rets, coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets →
-    MeaningDecodeQueryBits lv.depth rd args rets
+  loop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl))
+  dec : ∀ args rets, WinTabs rd (args.getD 3 0) →
+    coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+      args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets
   rw : ∀ args rets, coreProgram.Rel rd ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++
     natStr (if lvl = 0 then 1 else 0)) args rets →
       MeaningOpeningRowWeights lv.folds (if lvl = 0 then 1 else 0) rd args rets
@@ -133,9 +140,9 @@ def LvQW (rd : Reader) (C : CallRel) (lvl : ℕ) (lv : OsLv) (W : List E → Lis
   ∀ args rets, C (osQueriesName lvl lv) args rets →
     args.getD 6 0 = gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0)) →
     lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG → lv.capDepth ≤ lv.depth →
-    (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryBitsBool rd (args.getD 4 0)
+    (∀ N, args.getD 6 0 = gen ^ N → N < ordG → QueryWinsOk rd (args.getD 4 0)
       (oqCount (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (if lvl = 0 then 1 else 0) N)
-      lv.depth) →
+      lv.depth lv.capDepth) →
     MeaningOpeningQueriesW (lv.queries % 2 * (if lvl = 0 then 1 else 0))
       (if lvl = 0 then 1 else 0) lv.interleave lv.depth lv.capDepth rd (W args rets) args rets
 
@@ -151,7 +158,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
     (hoff' : lv'.foldsOff = lv.foldsOff + lv.folds)
     (hshape : levelShape lv.logCols next (3 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv'))
     {st : OsSt} {ws : WhirStateT} {R : List (Digest × ℕ × ℕ)} {root : Digest}
-    (hin : LvIn rd σ lvl lv st ws R root)
+    (hin : LvIn rd σ lvl lv st ws R root) (hwt : WinTabs rd (σ (.n osWin)))
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (root' : Digest) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
@@ -177,21 +184,23 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
   have hco1' : st1.co = 0 := hco1.resolve_left (by omega)
   -- the commitment
   obtain ⟨ra, rb, y, c0, c2, nonce, d, z, F', hrd2, hco, hrun2⟩ :=
-    osCommit_sound hcb.can (hcb.ood hnf) hcb.grind hfs1 hm hlvl (allOk_mono hle (allOk_append.mpr ⟨hC, hG⟩)) next rest R
-  set st2 := (osCommit lvl lv st1).2.1
+    osCommit_sound hcb.can (hcb.ood hnf) hcb.grind hfs1
+      (by rw [osFolds_mats]; exact hin.mats) hm hlvl
+      (allOk_mono hle (allOk_append.mpr ⟨hC, hG⟩)) next rest R
+  set st2 := (osCommit c.plan lvl lv st1).2.1
   have hpad2 : st2.pad = st.pad := (osFolds_state osFch lv.folds lv.foldsOff st).1
   have hR2 : (R ++ [(d, levelShape lv.logCols next (3 * 2 ^ next.fold))])[lvl]? =
       some (root, lv.depth, if lvl = 0 then lv.interleave else 3 * lv.interleave) := by
     rw [List.getElem?_append_left (by rw [hin.rlen]; omega)]
     exact hin.R
   obtain ⟨xs3, os, ws', lam, qs, hos, hrd3, hxl3, hrun3, hq3, ht3, ⟨enf, intro, hws'⟩, hrec, hfs3, hpad3,
-      hcb3, hco3⟩ :=
+      hcb3, hco3, hmats3⟩ :=
     osLevelB_sound hle (lf := [] ++ chs) (ws := { ws with
         target := σ (.n st1.t)
         quad := st1.quad σ
         folds := ws.folds ++ chs })
       (pending := [(y, [c0, y + c2, c2], fun x ↦ eqEval z x)])
-      hcfg hB hcb.loop hcb.dec hcb.rw hcb.cap W hQW hco.fs (by rw [hpad2]; exact hin.pad)
+      hcfg hB hcb.loop hcb.dec hwt hcb.rw hcb.cap W hQW hco.fs (by rw [hpad2]; exact hin.pad) hco.mats
       rfl rfl (by simpa using hcl) (fun j hj ↦ by
         have := hch j (by rw [hcl]; exact hj)
         rw [List.nil_append, List.getD_eq_getElem _ _ (by rw [hcl]; exact hj)]
@@ -237,7 +246,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
       (runsWith_ret _ _ _)))) rfl rfl rfl rfl ?_ rfl ?_
     · simp only [hml']
     · rw [hshape]
-  · refine ⟨hfs3, ?_, hpad3, hq3, ht3, ?_, ?_, by simp [hin.rlen], ?_, ?_, ?_⟩
+  · refine ⟨hfs3, ?_, hpad3, hq3, ht3, ?_, ?_, by simp [hin.rlen], ?_, ?_, ?_, hmats3⟩
     · rw [hco3]; simp [st2, osCommit, hco1']
     · rw [hwf, hfl, hoff']
     · intro j hj
@@ -275,7 +284,7 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
     (hml : logN - (lv.foldsOff + lv.folds) = lv.logCols) (hlen : 2 ^ lv.logCols = c.yrLen)
     (hfin : lvl = c.yrLevel)
     {st : OsSt} {ws : WhirStateT} {R : List (Digest × ℕ × ℕ)} {root : Digest}
-    (hin : LvIn rd σ lvl lv st ws R root)
+    (hin : LvIn rd σ lvl lv st ws R root) (hwt : WinTabs rd (σ (.n osWin)))
     (hok : AllOk C rd σ (osLevel c lvl lv st).1) :
     ∃ (xs : List E) (os : List Opening) (ws' : WhirStateT) (ms : List E) (r : OsRec),
       ReadsAt rd (st.cur σ) xs ∧
@@ -308,13 +317,14 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
   set st2 := (osFinal c st1).2.1
   have hpad2 : st2.pad = st.pad := (osFolds_state osFch lv.folds lv.foldsOff st).1
   obtain ⟨xs3, os, ws', lam, qs, hos, hrd3, hxl3, hrun3, hq3, ht3, ⟨enf, intro, hws'⟩, hrec, hfs3, hpad3,
-      hcb3, hco3⟩ :=
+      hcb3, hco3, -⟩ :=
     osLevelB_sound hle (lf := [] ++ chs) (ws := { ws with
         target := σ (.n st1.t)
         quad := st1.quad σ
         folds := ws.folds ++ chs })
       (pending := []) (R := R)
-      hcfg hB hcb.loop hcb.dec hcb.rw hcb.cap W hQW hfs2 (by rw [hpad2]; exact hin.pad)
+      hcfg hB hcb.loop hcb.dec hwt hcb.rw hcb.cap W hQW hfs2 (by rw [hpad2]; exact hin.pad)
+      (by show MatsOk σ st1.mats; rw [osFolds_mats]; exact hin.mats)
       rfl rfl (by simpa using hcl) (fun j hj ↦ by
         have := hch j (by rw [hcl]; exact hj)
         rw [List.nil_append, List.getD_eq_getElem _ _ (by rw [hcl]; exact hj)]

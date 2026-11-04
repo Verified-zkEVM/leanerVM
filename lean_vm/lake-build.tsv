@@ -178,10 +178,6 @@ LeanVM.Guest.JumpTable.Ok4	70.0	60.0	2200	900
 LeanVM.Guest.JumpTable.Ok5	70.0	60.0	2200	900
 LeanVM.Guest.JumpTable.Ok6	70.0	60.0	2200	900
 LeanVM.Guest.JumpTable.Ok7	60.0	60.0	2200	900
-LeanVM.Guest.Lift.OqFitsS0	60.0	60.0	2200	800
-LeanVM.Guest.Lift.OqFitsS1	70.0	70.0	2200	800
-LeanVM.Guest.Lift.OqFitsS2	70.0	70.0	2200	800
-LeanVM.Guest.Lift.OqFitsS3	70.0	70.0	2200	800
 LeanVM.Guest.Memory.GuestCntVPm	20.0	20.0	5100	3600
 LeanVM.Guest.Memory.GuestFresh.Big20_10	10.0	10.0	5300	3900
 LeanVM.Guest.Memory.GuestFresh.Big20_12	20.0	10.0	5500	4000
