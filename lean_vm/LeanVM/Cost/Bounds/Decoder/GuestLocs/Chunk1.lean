@@ -6,7 +6,7 @@ public import LeanVM.Cost.Decoder.GuestTables
 # Bound: the guest's frame cells, functions `16` to `19`, by evaluation
 
 One chunk of `guestLocsList_lt` (`Bounds/Decoder/GuestTablesBounds.lean`): the frame cells of
-`4` functions (`6976` cells) below `2^20`, a kernel evaluation of their certificates' cells in a
+4 functions (`6987` cells) below `2^20`, a kernel evaluation of their certificates' cells in a
 module of its own (`GuestTablesFirewall.lean` checks that it imports the tables alone).
 -/
 
