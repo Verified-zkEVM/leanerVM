@@ -56,8 +56,10 @@ def MainGoalL3B : Prop :=
 def MainGoalL4B : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
     CompleteAtDTB fs cert 16 "__loop3" (hLmain fs fp seed s w)
-      [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns []) (fun _ => True) ((hm fs fp seed s w).nrs * SK "__loop3")
+      [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])
+      (fun _ => True) ((hm fs fp seed s w).nrs * SK "__loop3")
 
 def MainGoalStB : Prop :=
   CompleteAtDTB fs cert 16 "statement_digest" (hLmain fs fp seed s w)
@@ -130,7 +132,7 @@ theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s
   have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAtB fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) hT 0 hpos
-  rw [pow_zero] at h
+  rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h
   exact h
 
 end

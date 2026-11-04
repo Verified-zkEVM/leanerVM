@@ -23,6 +23,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1 (CompleteAtD Returns completeAt_of_rel_pureD)
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Node
+open LeanVM.Guest.Value.Keccak (cellsBytes)
 
 @[expose] public section
 
