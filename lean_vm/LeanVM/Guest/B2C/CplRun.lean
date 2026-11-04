@@ -35,8 +35,8 @@ variable {j i : ℕ}
 
 /-- The segments of window `i` of function `j`. -/
 noncomputable def segsW (j i : ℕ) : List Exec.Seg :=
-  (execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i)).segs
+  (execWinS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i)).segs
 
 /-- The offset window `i` hands on at, where no segment of it starts. -/
 noncomputable def wJW (j i : ℕ) : ℕ :=
@@ -59,8 +59,8 @@ theorem checkWin_cpl (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1)
             (envOf ((certOf j).cutAt (i + 1)).env).sub Sym.beq s.env = true) := by
   unfold checkWin at hc
   unfold segsW
-  rcases hR : execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
+  rcases hR : execWinS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
   obtain ⟨⟨⟨⟨⟨h1, h2⟩, -⟩, hlink⟩, -⟩, hc⟩ := hc
@@ -113,14 +113,22 @@ noncomputable def st0 (j i k : ℕ) (s : Exec.Seg) : CW :=
   ⟨s, s.items.drop (partM j i k), fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
     partC j i k, partU j i k, bif Nat.beq (partM j i k) 0 then some (partJ j i k) else none, 0⟩
 
+/-- The walk's start of an entered part. -/
+noncomputable def st0E (j i k : ℕ) (s : Exec.Seg) : CW :=
+  ⟨s, s.items, fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
+    partC j i k, partU j i k, some (partJ j i k), 0⟩
+
 theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i)) (partJ j i k) with
-    | some s => bif Nat.beq s.start (partJ j i k) then cw (Xp j i k) (partStmts j i k) (st0 j i k s)
+    | some s => bif Nat.beq s.start (partJ j i k) then
+        (match partEnt j i k with
+        | some (o, succ) => cwE (Xp j i k) o succ (st0E j i k s) (partStmts j i k)
+        | none => cw (Xp j i k) (partStmts j i k) (st0 j i k s))
       else .fail 91
     | none => .fail 90) := by
-  unfold cplRes Xp st0 segsW
-  rw [execWinC_eq]
-  rcases execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-    ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
+  unfold cplRes Xp st0 st0E segsW
+  rw [execWinCS_eq]
+  rcases execWinS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
   simp only [listSeq_eq, Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq]
   rfl
 
@@ -207,9 +215,9 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
   have hcw := checkWin_cpl (F.chk i hi)
   have hw0 := winOkC_of (F.ok i hi 0 (one_le_nParts j i))
   simp only [winOkC, Bool.and_eq_true] at hw0
-  obtain ⟨⟨⟨⟨hpack, -⟩, -⟩, hpar⟩, -⟩ := hw0
-  refine ⟨cxOk F.frame F.pows _ _ _ _, hctx, fun s hs ↦ execWin_z hctx hfet hs,
-    fun s hs ↦ (execWin_good (L := L) hctx hfet _ _ _ s hs).2.2, rfl, hcw.2.2.1,
+  obtain ⟨⟨⟨⟨⟨hpack, -⟩, -⟩, -⟩, hpar⟩, -⟩ := hw0
+  refine ⟨cxOk F.frame F.pows _ _ _ _, hctx, fun s hs ↦ execWinS_z hctx hfet hs,
+    fun s hs ↦ (execWinS_good (L := L) hctx hfet _ _ _ _ s hs).2.2, rfl, hcw.2.2.1,
     fun v c h ↦ clocW_get (cont_of F.chk) hi hcw.2.1 rfl hpack h, rfl, rfl, rfl, rfl, rfl, rfl,
     rfl, rfl, rfl, rfl, fun n hsel ↦ ?_, F.frame, F.kids, F.hev, fun hl ↦ lastCall_of F.walk hl hlb, F.jt,
     F.tab, F.j1, F.jn⟩
