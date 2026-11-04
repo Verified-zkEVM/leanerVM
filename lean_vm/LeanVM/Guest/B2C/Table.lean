@@ -130,7 +130,7 @@ theorem main_noRun : (blockAtoms Data.core0.body).all noRun = true := by decide 
 noncomputable def mainSmallB : Bool :=
   (certOf 1).locs.all (fun c => Nat.blt c 404) && (plumbOf 1).stat.all (fun p => Nat.blt p.1 404) &&
     (plumbOf 1).sites.all (fun s => Nat.blt s.q 404 && Nat.blt s.tgt 404) &&
-    (plumbOf 1).arms.all (fun a => Nat.blt a.2.1 404)
+    (plumbOf 1).arms.all (fun a => Nat.blt a.2.1 404) && (plumbOf 1).chains.isEmpty
 
 set_option maxRecDepth 100000 in
 theorem mainSmall : mainSmallB = true := by decide +kernel
@@ -192,7 +192,7 @@ theorem mainRest_lt {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {I : 
     (ht : I.t = .node "main" σ bufs kids) : ∀ x ∈ mainRest σ I, x.1 < 404 := by
   have hs := mainSmall
   simp only [mainSmallB, Bool.and_eq_true] at hs
-  obtain ⟨⟨⟨hl, hst⟩, hsi⟩, har⟩ := hs
+  obtain ⟨⟨⟨⟨hl, hst⟩, hsi⟩, har⟩, hch⟩ := hs
   obtain ⟨_, -, -, -, -, -, -, hcert, -, -⟩ := fn_of_idx main_idx
   have hval : ∀ vs : List V, ∀ x ∈ valE "main" σ vs, x.1 < 404 := by
     intro vs x hx
@@ -201,7 +201,7 @@ theorem mainRest_lt {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {I : 
     exact getD_lt hl _
   intro x hx
   simp only [mainRest, List.mem_append] at hx
-  rcases hx with ((((hx | hx) | hx) | hx) | hx) | hx
+  rcases hx with (((((hx | hx) | hx) | hx) | hx) | hx) | hx
   · exact hval _ x hx
   · rw [ht, runsE_main] at hx
     exact absurd hx List.not_mem_nil
@@ -223,6 +223,8 @@ theorem mainRest_lt {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {I : 
     · exact absurd hx List.not_mem_nil
   · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hx
     simpa using List.all_eq_true.mp har a ha
+  · rw [List.isEmpty_iff.mp hch] at hx
+    exact absurd hx List.not_mem_nil
 
 /-- **An instance of `main` that runs has the jump table in its cells.** -/
 theorem tableC_node {I : Inst} {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree}

@@ -112,7 +112,9 @@ theorem cntRetemp (hfr : coreProgram.Fresh) :
 /-! ## Re-chosen instances -/
 
 /-- No table selector is a temporary of its function (the sharing check's). -/
-def ArmsFresh : Prop := ∀ j, ∀ a ∈ (plumbOf j).arms, V.n a.1 ∉ Stmt.tmpsList (coreOf j).body
+def ArmsFresh : Prop := (∀ j, ∀ a ∈ (plumbOf j).arms, V.n a.1 ∉ Stmt.tmpsList (coreOf j).body) ∧
+  ∀ j, ∀ ch ∈ (plumbOf j).chains, V.n ch.2.1 ∉ Stmt.tmpsList (coreOf j).body ∧
+    V.n ch.2.2.2.1 ∉ Stmt.tmpsList (coreOf j).body
 
 /-- An instance with its tree's temporaries re-chosen, at the same frame, header and callees'
 frames. -/
@@ -310,11 +312,18 @@ theorem nodeRest_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) {I : Inst} {f
   have harms : (plumbOf (i + 1)).arms.map (fun a => (a.2.1, armWord (retempVal coreProgram ν I.fp f σ) a.1 a.2.2)) =
       (plumbOf (i + 1)).arms.map (fun a => (a.2.1, armWord σ a.1 a.2.2)) := by
     refine List.map_congr_left fun a ha ↦ ?_
-    have hna := hA (i + 1) a ha
+    have hna := hA.1 (i + 1) a ha
     rw [hcore, ← htemps] at hna
     rw [armWord_congr (retempVal_of_not hna)]
+  have hch : (plumbOf (i + 1)).chains.flatMap (chainE (retempVal coreProgram ν I.fp f σ)) =
+      (plumbOf (i + 1)).chains.flatMap (chainE σ) := by
+    refine List.flatMap_congr fun ch hc ↦ ?_
+    obtain ⟨hx, hy⟩ := hA.2 (i + 1) ch hc
+    rw [hcore, ← htemps] at hx hy
+    unfold chainE
+    rw [retempVal_of_not hx, armWord_congr (retempVal_of_not hy)]
   unfold nodeRest
-  rw [hev, hrets, runsE_congr fun e he v hv ↦ hnot v (Or.inr (hevu e he v hv)), valE_congr hnamed, harms]
+  rw [hev, hrets, runsE_congr fun e he v hv ↦ hnot v (Or.inr (hevu e he v hv)), valE_congr hnamed, harms, hch]
   rfl
 
 private theorem keys_valE {f : String} (σ σ' : Val) (vs : List V) (p : ℕ × E → Bool)
