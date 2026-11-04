@@ -1014,6 +1014,13 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     let direct := fs.zipIdx.filter fun (a, k) =>
       avail a k && (used.contains k || isConst a || (keysG a).any sel.contains)
     let need : Std.HashSet ℕ := direct.foldl (fun h (a, _) => (needsG a).foldl (·.insert ·) h) {}
+    -- a frame address is stepped from another (`Check.fpgChain`): the products under the cells of
+    -- later frame addresses, and theirs, down to a bounce or a constant
+    let mut chain : Std.HashSet ℕ := sel
+    for _ in [0:Check.fpgDepth + 2] do
+      chain := fs.foldl (fun h a => if (keysG a).any chain.contains then (needsG a).foldl (·.insert ·) h
+        else h) chain
+    let need := chain.fold (·.insert ·) need
     let hand := direct ++ fs.zipIdx.filter fun (a, k) => avail a k && (keysG a).any need.contains
     let (handed, seen) := (hand.toList.flatMap fun (a, _) => (keysG a).map (·, a)).foldl
       (fun (acc, seen) (k, a) => let key := s!"{k}{atomText a}"
