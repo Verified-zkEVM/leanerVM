@@ -25,6 +25,9 @@ theorem cw655_1_0 : cplWin 655 1 0 = true := by decide +kernel
 /-- `opening_queries__L1_L1_L64_L32_L21_L7`, window 2, part 0. -/
 theorem cw655_2_0 : cplWin 655 2 0 = true := by decide +kernel
 
+/-- `opening_queries__L1_L1_L64_L32_L21_L7`, window 3, part 0. -/
+theorem cw655_3_0 : cplWin 655 3 0 = true := by decide +kernel
+
 /-- `__loop194`, window 0, part 0. -/
 theorem cw656_0_0 : cplWin 656 0 0 = true := by decide +kernel
 
@@ -37,12 +40,9 @@ theorem cw658_0_0 : cplWin 658 0 0 = true := by decide +kernel
 /-- `__loop197`, window 0, part 0. -/
 theorem cw659_0_0 : cplWin 659 0 0 = true := by decide +kernel
 
-/-- `__loop198`, window 0, part 0. -/
-theorem cw660_0_0 : cplWin 660 0 0 = true := by decide +kernel
-
 theorem ok655 : CplOk 655 := by
   intro i hi k hk
-  have hc : (certOf 655).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 655).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 655 0 = 1 := by decide +kernel
@@ -57,6 +57,10 @@ theorem ok655 : CplOk 655 := by
     rw [hn] at hk
     interval_cases k
     · exact cw655_2_0
+  · have hn : nParts 655 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw655_3_0
 
 theorem ok656 : CplOk 656 := by
   intro i hi k hk

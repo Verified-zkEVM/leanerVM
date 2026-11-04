@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCD
 canonical, the lane weights of the local point (at `loc`, in memory), and the honest final check,
 `β` and the capacity are the squeeze's; and with the next claim's record (its value, its
 pointers, its lanes and its flips) in memory, the tail holds and returns the capacity and the
-cursor past `t`. The flips (`flipT`) are computed from the stored lanes, the slice weights and the
+cursor past `t`. The flips (`layerFlipT`) are computed from the stored lanes, the slice weights and the
 top coordinate (`lflipT_holds`), and are the next claim's weights at the positions `ι` can flip
 (`laterWeights_flip`).
 -/
@@ -102,11 +102,11 @@ def tailR1 (W : ℕ) : List Atom :=
 def flipB (W i : ℕ) : ℕ := topV W + 4 + 43 * i
 
 /-- Flip `i`'s block. -/
-def flipT (W i : ℕ) : List Stmt :=
+def layerFlipT (W i : ℕ) : List Stmt :=
   lflipT (.n (W + 33)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (flipB W i)
 
 theorem lflipsT_eq (W : ℕ) : lflipsT W = ((List.range 7).map fun i ↦
-    flipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
+    layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
 
 theorem tail_kernel {first : ℕ} (hf : first < 2) :
     (tailA1 (weightEnd first) (weightVal first)).all isAtom = true ∧
@@ -117,9 +117,9 @@ theorem tail_kernel {first : ℕ} (hf : first < 2) :
     (tailEqf (weightEnd first)).all isAtom = true ∧
     canonChk [] (atomsL ([] ++ tailEqf (weightEnd first))) = true ∧
     (resid (atomsL (tailEqf (weightEnd first)))).all (ldIn [(.n 1081, 5)]) = true ∧
-    (∀ i < 7, (flipT (weightEnd first) i).all isAtom = true ∧
-      canonChk [] (atomsL ([] ++ flipT (weightEnd first) i)) = true ∧
-      (resid (atomsL (flipT (weightEnd first) i))).all
+    (∀ i < 7, (layerFlipT (weightEnd first) i).all isAtom = true ∧
+      canonChk [] (atomsL ([] ++ layerFlipT (weightEnd first) i)) = true ∧
+      (resid (atomsL (layerFlipT (weightEnd first) i))).all
         (ldIn [(.n (weightEnd first + 33), 25)]) = true) ∧
     (tailA3 (weightEnd first)).all isAtom = true ∧
     canonChk [] (atomsL ([] ++ tailA3 (weightEnd first))) = true ∧
@@ -144,7 +144,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
     (hg : ∀ s ∈ tailPre (weightEnd first) (weightVal first), GoodS rd S w σ s)
     (hSe : ∀ a ∈ resid (atomsL (tailEqf (weightEnd first))), a ∉ S)
     (hSt : Atom.load (.n (topV (weightEnd first))) (.n 1081) 5 ∉ S)
-    (hSf : ∀ i < 7, ∀ a ∈ resid (atomsL (flipT (weightEnd first) i)), a ∉ S)
+    (hSf : ∀ i < 7, ∀ a ∈ resid (atomsL (layerFlipT (weightEnd first) i)), a ∉ S)
     (hSfl : ∀ i < 7, Atom.load (.n (flipB (weightEnd first) i + 42))
       (.n (topV (weightEnd first) + 3)) i ∈ S)
     (hA : ∀ i ∈ tailA, IsCanonical128 (σ (.n i)))
@@ -311,12 +311,12 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
       rw [lflipBlk_noRet]; rfl)]
     refine ⟨fun i hi ↦ ?_, hnx⟩
     obtain ⟨hai, hki, hri⟩ := hflk i hi
-    have mi : ∀ s ∈ flipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
+    have mi : ∀ s ∈ layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
         GoodS rd S w σ s := fun s hs ↦ mF s (by
       rw [lflipsT_eq]
       exact List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩, hs⟩)
     have hFi : ∀ {nx' : Prop} {kr : List E → Prop}, nx' →
-        Stmt.HoldsList C rd σ (flipT W i) nx' kr :=
+        Stmt.HoldsList C rd σ (layerFlipT W i) nx' kr :=
       block_holdsP (P := []) hai hσ hki (by simpa using fun s hs ↦ mi s (List.mem_append_left _ hs))
         (A := []) (by simp) (resid_ldIn hri (hSf i hi) fun q hq ↦ by
           simp only [List.mem_singleton] at hq

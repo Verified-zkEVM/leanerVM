@@ -24,6 +24,7 @@ public import LeanVM.Guest.Data.Cert13
 public import LeanVM.Guest.Data.Cert14
 public import LeanVM.Guest.Data.Cert15
 public import LeanVM.Guest.Data.Cert16
+public import LeanVM.Guest.Data.Cert17
 
 namespace LeanVM.Guest.Data
 
