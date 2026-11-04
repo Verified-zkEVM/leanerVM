@@ -148,6 +148,8 @@ leanvm() {
     --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored)
   (cd lean_vm && lake build guest-diff && capped .lake/build/bin/guest-diff "$gd"/*.txt)
   rm -rf "$gd"
+  step "leanvm: EthLib's vectors on the statement's signature schemes, compiled (scheme-vectors)"
+  (cd lean_vm && lake build scheme-vectors && capped .lake/build/bin/scheme-vectors)
   step "leanvm: Rust-vs-Lean differential"
   (cd lean_vm && lake build leanvm-verify)
   cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml

@@ -105,6 +105,14 @@ name = "node-vectors"
 root = "NodeVectors"
 srcDir = "cli"
 
+# EthLib's test vectors of the signature schemes on the statement's leanSPHINCS and leanXMSS,
+# compiled (cli/SchemeVectors.lean): key generation, signing and verification against the crate's;
+# CI runs it after `lake test`.
+[[lean_exe]]
+name = "scheme-vectors"
+root = "SchemeVectors"
+srcDir = "cli"
+
 # Writes the guest's core IR as data (`LeanVM/Guest/Data/Core*.lean`); `--check` fails when it
 # is stale, as CI runs it.
 [[lean_exe]]

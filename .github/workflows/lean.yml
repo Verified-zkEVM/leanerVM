@@ -368,6 +368,12 @@ jobs:
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
       - name: Check out leanVM at the pin
         run: ../leanvm-tree.sh
+      # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them at the pin, on the
+      # statement's schemes compiled: key generation, signing, verification.
+      - name: The statement's signature schemes are the crate's (scheme-vectors)
+        run: |
+          lake build scheme-vectors
+          .lake/build/bin/scheme-vectors
       # The guest's bytecode, source, manifest, test programs and node vectors are what
       # `scripts/guest-export` writes from leanVM's sources at the pin.
       - name: The guest's data is leanVM's
