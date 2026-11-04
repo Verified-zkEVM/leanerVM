@@ -11,10 +11,12 @@ import Statement.Fast.Keccak
 them at the pin (`crates/signatures/tests/signatures/ethlib/{sphincs,xmss}` of `../.leanvm`, the
 checkout `../leanvm-tree.sh` makes; the first argument overrides the directory):
 
-* leanSPHINCS: key generation (`key_gen`: the public key of a seed), signing (`sign`: the
-  signature of a seed and a message, byte for byte) and verification (`verify`);
-* leanXMSS: key generation, verification and the signature's leaf index (`signature_index`); signing
-  with `--xmss-sign` (each case builds two trees of `2^16` one-time keys).
+* by default, verification (`verify`) of both schemes and leanXMSS's signature's leaf index
+  (`signature_index`);
+* with `--sphincs-sign`, leanSPHINCS's key generation (`key_gen`: the public key of a seed) and
+  signing (`sign`: the signature of a seed and a message, byte for byte), and with `--xmss-sign`
+  leanXMSS's: slow (the statement's hashes go through its byte and bit-vector conversions; a
+  leanSPHINCS key builds a tree of `2^10` one-time keys, a leanXMSS one of `2^16`), so run by hand.
 
 A case whose output is `null` is an input the crate rejects for its length: the statement's
 schemes take values of fixed sizes, so it is skipped. The exit code is `0` when every case passes.
@@ -130,9 +132,9 @@ open SchemeVectors in
 def main (args : List String) : IO UInt32 := do
   let root : System.FilePath := (args.filter (!·.startsWith "--")).headD
     "../.leanvm/crates/signatures/tests/signatures/ethlib"
-  let xmssSign := args.contains "--xmss-sign"
-  let kinds := ["sphincs/key_gen", "sphincs/sign", "sphincs/verify", "xmss/key_gen", "xmss/verify",
-    "xmss/signature_index"] ++ (if xmssSign then ["xmss/sign"] else [])
+  let kinds := ["sphincs/verify", "xmss/verify", "xmss/signature_index"] ++
+    (if args.contains "--sphincs-sign" then ["sphincs/key_gen", "sphincs/sign"] else []) ++
+    (if args.contains "--xmss-sign" then ["xmss/key_gen", "xmss/sign"] else [])
   let mut failed := 0
   let mut passed := 0
   let mut skipped := 0
