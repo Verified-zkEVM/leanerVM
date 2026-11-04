@@ -14,9 +14,9 @@ valuation and `W` of the child proofs' reader `wV`; every count, mark and slot b
 * a mark and its slot (`markPair_cost`), **`regionTable_cost`** (`regionTablePrice G R len`: one
   logarithm and one read per slot, the table sorted, `coverTable_cost`), `regionTable_good`;
 * a running count (`countAtW_cost`);
-* a child's claim (`xmssKidClaim_cost`, `sphincsKidClaim_cost`: a search, a power in `K`, four
-  reads), a child's statement off its claims' counts (`kidStmtAt_cost`), its segment
-  (`kidStmtSeg_cost`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
+* a child's claim at a slot (`xmssSlotClaim_cost`, `sphincsSlotClaim_cost`: a power in `K`, four
+  reads), a child's statement off its lists' slots (`kidStmtAt_cost`), its segment
+  (`kidStmtSeg_cost`: the slots off the tables, `kidSlotsIn_cost`, `Search.lean`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
   **`decKid_cost`** (`decKidPrice G R S W N`), the regions' tables of at most `N ≤ 2^34` marks
   (`regionTable_size_le`: a region's slots; `2^34` on any memory, `65535` on a valid run), so
   at most `N` claims of each scheme a child. The children's list is `Raw.lean`'s
