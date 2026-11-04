@@ -969,7 +969,8 @@ theorem chkL_match {v : Core.V} {arms : List (List Core.Stmt)} {ss : List Core.S
           segAt X J se.book se.bnd = some sj ∧ chkL X (.match_ v arms :: ss) st P = chkL X ss sj P) ∨
         (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
           chkArms X (.chain x succ) as ts se.book se.bnd = true ∧
-          chkL X (.match_ v arms :: ss) st P = chainL X x succ se.book se.psi se.bnd ss P)) := by
+          chkL X (.match_ v arms :: ss) st P =
+            chainTo x succ ss P (chainL X x succ se.book se.psi se.bnd ss P))) := by
   revert h
   simp only [chkL]
   split
@@ -1018,7 +1019,8 @@ theorem chainL_match {x : ℕ} {succ : List ℕ} {B : Book} {ψ : Trie Sym} {bnd
           segAt X J B bnd = some sj ∧ chainL X x succ B ψ bnd (.match_ v arms :: ss) P = chkL X ss sj P) ∨
         (∃ x' succ', chkL X a0 s0 [] = .chain x' succ' ∧
           chkArms X (.chain x' succ') as ts B bnd = true ∧
-          chainL X x succ B ψ bnd (.match_ v arms :: ss) P = chainL X x' succ' B ψ bnd ss P)) := by
+          chainL X x succ B ψ bnd (.match_ v arms :: ss) P =
+            chainTo x' succ' ss P (chainL X x' succ' B ψ bnd ss P))) := by
   generalize hr : chainL X x succ B ψ bnd (.match_ v arms :: ss) P = r at h ⊢
   unfold chainL at hr
   split at hr
@@ -2059,20 +2061,45 @@ theorem walk_block (W : WalkEnv Prog cert A L fp f X Kb) {b ss : List Core.Stmt}
   obtain ⟨-, hP, hreach, hrc⟩ := rest k2 hk2 hr2.1
   exact ⟨hl, trivial, hP, hreach, hrc⟩
 
-/-- A block walked from `sb` into a chained `match`'s table jump, the rest walked by `chainL`. -/
+/-- A block walked from `sb` into a chained `match`'s table jump, the rest walked by `chainL`, or,
+at the end of the statements, that table jump the end. -/
 theorem walk_blockC (_W : WalkEnv Prog cert A L fp f X Kb) {b ss : List Core.Stmt} {sb : CS}
     {P : List Core.Atom} {x : ℕ} {succ : List ℕ} {k k1 : ℕ} {N : Prop} {B : Book} {ψ : Trie Sym}
     {bnd : List (ℕ × ℕ)}
     (hk1 : k1 ≤ k) (ihb : ∀ st P, WalkGood Prog cert A L fp f X Kb b st P)
     (ihc : ∀ x succ P, ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P)
     (hpb : PosOk L fp f X Kb sb k1) (hjb : chkL X b sb [] = .chain x succ)
-    (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd) (hne : chainL X x succ B ψ bnd ss P ≠ .fail)
-    (hj : ∀ J', chainL X x succ B ψ bnd ss P = .join J' → ∀ k', k' ≤ k → SegRun L fp f X Kb J' k' → N)
-    (hcn : ∀ x' s', chainL X x succ B ψ bnd ss P = .chain x' s' → ChainK L fp f X Kb x' s' k N) :
+    (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd)
+    (hne : chainTo x succ ss P (chainL X x succ B ψ bnd ss P) ≠ .fail)
+    (hj : ∀ J', chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = .join J' → ∀ k', k' ≤ k →
+      SegRun L fp f X Kb J' k' → N)
+    (hcn : ∀ x' s', chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = .chain x' s' →
+      ChainK L fp f X Kb x' s' k N) :
     Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) b
         (Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N
           (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
-      RestGood Prog cert A L fp f X Kb (chainL X x succ B ψ bnd ss P) [] True P k := by
+      RestGood Prog cert A L fp f X Kb (chainTo x succ ss P (chainL X x succ B ψ bnd ss P)) [] True
+        P k := by
+  by_cases hss : ss = []
+  · subst hss
+    by_cases hP : P = []
+    · subst hP
+      have hc : chainTo x succ [] [] (chainL X x succ B ψ bnd [] []) = .chain x succ := by
+        simp [chainTo]
+      rw [hc] at hcn ⊢
+      have hK := hcn x succ rfl
+      obtain ⟨hl, -, -, hr⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
+        (fun _ h ↦ by rw [hjb] at h; cases h)
+        (fun x' s' h ↦ by rw [hjb] at h; cases h; exact hK.mono hk1)
+      refine ⟨hl, trivial, by simp, ⟨fun _ h ↦ Res.noConfusion h, fun x' s' h ↦ ?_⟩⟩
+      obtain ⟨rfl, rfl⟩ := Res.chain.inj h
+      exact (hr x succ hjb).mono hk1
+    · exfalso
+      apply hne
+      simp [chainTo, hP]
+  have hc : chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = chainL X x succ B ψ bnd ss P := by
+    simp [chainTo, hss]
+  rw [hc] at hne hj hcn ⊢
   have rest : ∀ e (he : e < succ.length) k2, wd L fp x = ofK (addressOfIndex e) → k2 ≤ k1 →
       SegRun L fp f X Kb succ[e] k2 →
       RestGood Prog cert A L fp f X Kb (chainL X x succ B ψ bnd ss P) ss N P k := by
@@ -2109,7 +2136,8 @@ theorem walk_enter (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (a0 : List
     (hcase : (∃ J sj, chkL X a0 s0 [] = .join J ∧ chkArms X (.join J) as ts B bnd = true ∧
           segAt X J B bnd = some sj ∧ rest = chkL X ss sj P) ∨
         (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
-          chkArms X (.chain x succ) as ts B bnd = true ∧ rest = chainL X x succ B ψ bnd ss P))
+          chkArms X (.chain x succ) as ts B bnd = true ∧
+          rest = chainTo x succ ss P (chainL X x succ B ψ bnd ss P)))
     (hj : ∀ J, rest = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N)
     (hcn : ∀ x succ, rest = .chain x succ → ChainK L fp f X Kb x succ k N) :
     Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) (.match_ v (a0 :: as) :: ss) N
@@ -2167,7 +2195,7 @@ theorem walk_match (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (arms : Li
           segAt X J se.book se.bnd = some sj ∧ rest = chkL X ss sj P) ∨
         (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
           chkArms X (.chain x succ) as ts se.book se.bnd = true ∧
-          rest = chainL X x succ se.book se.psi se.bnd ss P) := hcase
+          rest = chainTo x succ ss P (chainL X x succ se.book se.psi se.bnd ss P)) := hcase
   obtain ⟨hl, -, hP, hreach, hrc⟩ := walk_enter W v a0 as ss P iha ih ihc hpse.book hpse.bnd hs0
     hk1 heL (wd_of hce) heA hrun rest hne hcase' hj hcn
   exact ⟨hl, hP, hreach, hrc⟩
