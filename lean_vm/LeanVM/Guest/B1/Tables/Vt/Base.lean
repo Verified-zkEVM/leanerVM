@@ -172,6 +172,11 @@ theorem VtH.sliceAt (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
   h.slice n blk (vtPre_drop n ▸ heq)
 
+theorem VtH.callAt (h : VtH rd σ) (n : ℕ) (f : String) (args rets : List V)
+    (heq : tbStmtsEqb [.call f args rets] ((vtAt n).take 1) = true) :
+    coreProgram.Rel rd f (args.map σ) (rets.map σ) :=
+  h.call n f args rets (vtPre_drop n ▸ heq)
+
 theorem VtH.dispatchAt (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
     (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtAt n).take 1) = true) :
