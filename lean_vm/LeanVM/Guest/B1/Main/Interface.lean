@@ -54,12 +54,6 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
 `main_sound_w`, composes the `…_Spec`s of every family.
 -/
 
-/-! `Sig.Interface` reaches the signature templates, whose `Sig.Decide` derives a second
-`DecidableEq Atom` (over the words' limbs, for kernel evaluation) and erases it only locally: the
-core instance is preferred from here on, as every module downstream of this one was written
-against it (the libraries' `if a ∈ S` and `decide (a ∉ S)` forms, `Fwd`). -/
-attribute [instance high] LeanVM.Guest.Core.instDecidableEqAtom
-
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
