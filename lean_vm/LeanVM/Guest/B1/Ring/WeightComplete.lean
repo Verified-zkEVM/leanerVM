@@ -77,7 +77,7 @@ theorem rs_pure : coreProgram.PureIn ["rs_eq_run", "__loop5"] := by
   rcases hg with rfl | rfl
   · rw [Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 78) (by decide +kernel) rfl, Option.some.injEq] at hf
+  · rw [Program.find?_of_indexOf? (j := 79) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
 
 /-- `rs_eq_run`'s words: the chain, the coordinates, the point. -/
