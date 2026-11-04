@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.KnownAll
 
-  `VsKnown`: the first `2098` statements of `verify_sub` put `col_kappas` among `g^e`, `e < 29`.
+  `VsKnown`: the first `1592` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
+  `e < kbBound i`.
 -/
 
 module
@@ -15,10 +16,10 @@ public import LeanVM.Guest.B1.Tables.HoldsC
 # `VsKnown`
 
 `vsKnown_holds`: on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, over the exponent
-tables at `verify_sub`'s arguments `4`, `5`, the body's first `2098` statements (up to the call of
-`check_opening_terminal`) put the `nCommittedCols` entries of `col_kappas` (`1889`) among `g^e`, `e < 29`.
+table at `verify_sub`'s argument `4`, the body's first `1592` statements (up to the call of
+`check_opening_terminal`) put the `8` entries of `kappa_base` (`139`) among `g^e`, `e < kbBound i`.
 They are the front (`vs_front`, through `verify_tables`: the tables' heights below `29` and
-`kappa_base`), the ring map, `c_table` and the batching (no `ret`, skipped), and the first `14`
+`kappa_base`), the ring map, `c_table` and the batching (no `ret`, skipped), and the first `6`
 statements of the tail (`vsKnown_tail`). The callees are B1-c's proved specifications; the
 bytecode `verify_tables` is read against is any of `2^23` words (its words do not enter).
 -/
@@ -32,24 +33,27 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The sections before the tail. -/
 def vsPre : List Stmt :=
-  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsKappaT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
+  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
     vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT
 
-theorem vsPre_length : vsPre.length = 2084 := by decide +kernel
+theorem vsPre_length : vsPre.length = 1578 := by decide +kernel
 
-theorem vsT_take : vsT.take 2098 = vsPre ++ vsTailT.take 14 := by
+theorem vsT_take : vsT.take 1592 = vsPre ++ vsTailT.take 14 := by
   rw [show vsT = vsPre ++ vsTailT from rfl, List.take_append, List.take_of_length_le
     (by rw [vsPre_length]; omega), vsPre_length]
 
 theorem noRet_mid : Stmt.noRetList (vsMapsT ++ vsCtabT ++ vsLamT) = true := by decide +kernel
 
-/-- **`VsKnown`** (G5's obligation on `verify_sub`). -/
+theorem vsTailT_take14 : vsTailT.take 14 = vsTailT.take 6 ++ (vsTailT.take 14).drop 6 := by
+  rw [List.take_append_drop]
+  rfl
+
+/-- **`VsKnown`** (G5's obligation on `verify_sub`): `kappa_base`'s entries below `kbBound`. -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
-    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n XGLP)) (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 2098) True
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1592) True
       (fun _ ↦ True)) :
-    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n XCOLKAPPAS)) c (ofK (addressOfIndex
-        e)) := by
+    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 139)) i (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32
   have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
@@ -60,8 +64,11 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
     (Tables.verify_tables_holdsC hκ L _ List.length_replicate hle) hexp h
   rw [← holdsList_append, ← holdsList_append] at h
   have h' := ((holdsList_noRet _ noRet_mid _ _).1 h).2
-  exact vsKnown_tail hκ hκ6 L hle hexp F.hm32
-    (tableHeights_length F.rowsN F.hrowsL) F.hh29 F.hkb h'
+  rw [vsTailT_take14, holdsList_append] at h'
+  have hsL := tableHeights_length F.rowsN F.hrowsL
+  obtain ⟨hm28, h5⟩ := vsKnown_tail hκ hκ6 L hle (Tables.certify_placement_holds hκ L) hexp F.hm32
+    hsL F.hh29 F.hkb h'
+  exact kb_bounds hsL F.hh29 hm28 h5 F.hkb
 
 end
 end LeanVM.Guest.B1.VerifySub

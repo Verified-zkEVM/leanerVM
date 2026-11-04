@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Terminal.Interface
+public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Bits.Meaning
 public import Statement.LeanVmGuest
