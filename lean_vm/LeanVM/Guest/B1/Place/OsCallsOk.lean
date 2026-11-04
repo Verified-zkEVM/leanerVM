@@ -70,6 +70,7 @@ structure OsNames (c : OsCfg) : Prop where
   il : ∀ i < c.levels.length,
     2 ^ rwLo (lvAt c i).folds + 2 ^ ((lvAt c i).folds - rwLo (lvAt c i).folds) ≤ c.maxIl
   cdd : ∀ i < c.levels.length, (lvAt c i).capDepth ≤ (lvAt c i).depth
+  sqres : ∀ i < c.levels.length, ∀ j < c.levels.length, c.sqLoop i ≠ c.resLoop j
 
 theorem osKindOf_fold : osKindOf "opening_fold" = some .fold := by
   simp [osKindOf, osKindTable]

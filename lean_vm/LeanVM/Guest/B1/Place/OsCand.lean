@@ -48,6 +48,7 @@ def PlacedP (c : OsCfg) : Prop :=
   (∀ i < c.levels.length,
     2 ^ rwLo (lvAt c i).folds + 2 ^ ((lvAt c i).folds - rwLo (lvAt c i).folds) ≤ c.maxIl) ∧
   (∀ i < c.levels.length, (lvAt c i).capDepth ≤ (lvAt c i).depth) ∧
+  (∀ i < c.levels.length, ∀ j < c.levels.length, c.sqLoop i ≠ c.resLoop j) ∧
   (∀ i < c.levels.length, (lvAt c i).queries ≤ c.maxQ) ∧
   (∀ i < c.levels.length, (lvAt c i).squeezes ≤ c.maxSq) ∧
   (∀ i < c.levels.length, (lvAt c i).logCols ≤ ligColsCap) ∧
@@ -63,7 +64,8 @@ def PlacedP (c : OsCfg) : Prop :=
   (osSizesL c).sum < 2 ^ 64 - 1 ∧
   (∀ l < c.levels.length,
     rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤ c.maxIl) ∧
-  (∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG)
+  (∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG) ∧
+  (∀ l < c.levels.length, resBatch ≤ (lvAt c l).queries)
 
 instance (c : OsCfg) : Decidable (PlacedP c) := by
   unfold PlacedP; infer_instance
@@ -74,11 +76,12 @@ theorem placedP_sound {c : OsCfg} (h : PlacedP c) :
       (∀ x ∈ osSizesL c, 0 < x) ∧ (osSizesL c).sum < 2 ^ 64 - 1 ∧
       (∀ l < c.levels.length,
         rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤ c.maxIl) ∧
-      (∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG) := by
-  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
-    h20, h21, h22, h23⟩ := h
-  exact ⟨⟨h0⟩, ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩, ⟨h12, h13, h14, h15, h16, h17, h18⟩,
-    h19, h20, h21, h22, h23⟩
+      (∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG) ∧
+      (∀ l < c.levels.length, resBatch ≤ (lvAt c l).queries) := by
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h11', h12, h13, h14, h15, h16, h17, h18,
+    h19, h20, h21, h22, h23, h24⟩ := h
+  exact ⟨⟨h0⟩, ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h11'⟩,
+    ⟨h12, h13, h14, h15, h16, h17, h18⟩, h19, h20, h21, h22, h23, h24⟩
 
 /-- **A squeeze loop's body ends with its tail call**: it is a loop helper. -/
 theorem sqLoop_isLoop {name : String} {fn : Fn} {lv : OsLv} (hf : coreProgram.find? name = some fn)
@@ -104,12 +107,13 @@ its certificates. -/
 theorem cfgPlaced_of {fs : String → ℕ} {cert : String → V → ℕ} {c : OsCfg} (hP : PlacedP c)
     (hq : ∀ l < c.levels.length, NamesOk c l (lvAt c l))
     (hsq : ∀ l < c.levels.length, ∃ fn, coreProgram.find? (c.sqLoop l) = some fn ∧
-      fn.params = osParams 5 ∧ fn.body = sqLoopBody (lvAt c l) (c.sqLoop l))
+      fn.params = osParams 6 ∧ fn.body = sqLoopBody (lvAt c l) (c.sqLoop l))
     (hres : ∀ l < c.levels.length, ∃ fn, coreProgram.find? (c.resLoop l) = some fn ∧
-      fn.params = osParams 6 ∧ fn.body = resLoopBody c l (lvAt c l) (c.resLoop l))
+      fn.params = osParams 6 ∧ fn.body = resLoopBody l (lvAt c l) (c.resLoop l))
     (hfits : OsFitsAt fs cert c) : OsCfgPlaced fs cert c := by
-  obtain ⟨hb, hn, hs, hsz, hpos, htot, hil, hqo⟩ := placedP_sound hP
-  refine ⟨hb, hn, hs, hsz, hpos, htot, hq, hfits, hil, hqo, fun l hl ↦ ?_, hres, fun l hl ↦ ?_⟩
+  obtain ⟨hb, hn, hs, hsz, hpos, htot, hil, hqo, hq8⟩ := placedP_sound hP
+  refine ⟨hb, hn, hs, hsz, hpos, htot, hq, hfits, hil, hqo, hq8, fun l hl ↦ ?_, hres,
+    fun l hl ↦ ?_⟩
   · obtain ⟨fn, h1, h2, h3⟩ := hsq l hl
     exact ⟨fn, h1, h2, h3, sqLoop_isLoop h1 h3⟩
   · exact (hq l hl).2.2.2.1

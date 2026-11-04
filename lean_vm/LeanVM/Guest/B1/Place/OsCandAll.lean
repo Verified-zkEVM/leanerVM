@@ -17,7 +17,8 @@ public import LeanVM.Guest.B1.Whir.Sound
 
 `placedP_all`: every candidate's decided placed facts. **`open_stacked_completeAtD`** proves
 `open_stacked_completeAtD_Spec`: for every stack log `μ ∈ [22, 28]` and rate `r ∈ [1, 4]`, with the
-frame runs fitting their frames (`Lift.RunsFit`) and the frame certificates of the candidate's
+frame runs fitting their frames, their cells consecutive (`Lift.RunsFit`, `RunsConsec`), on memories
+defined below `2^κ`, `7 ≤ κ` (`decode_query_windows`' range checks), and the frame certificates of the candidate's
 `opening_queries` frames (`OsFitsAt`), on every accepting run of `whirOpen μ r target` from
 `⟨capOf S, []⟩` with no zero challenge and openings that agree in the caps, the words at the cursor
 among the caller's words, the candidate's specialization is complete placed (`CompleteAtD`),
@@ -71,7 +72,7 @@ theorem placedP_all (m : ℕ) (h : m < 28) : PlacedP (osCfg m) := by
 def open_stacked_completeAtD_Spec : Prop :=
   ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert →
-      OsFitsAt fs cert (osCfg (candidate μ r)) →
+      RunsConsec cert → 7 ≤ κ → OsFitsAt fs cert (osCfg (candidate μ r)) →
       ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List Opening)
         (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
@@ -85,7 +86,8 @@ theorem osCfg_lvAt (m i : ℕ) (h : i < (osCfg m).levels.length) : lvAt (osCfg m
 
 /-- **`open_stacked` is complete placed at every candidate.** -/
 theorem open_stacked_completeAtD : open_stacked_completeAtD_Spec := by
-  intro μ r h1 h2 h3 h4 fs cert κ hk hfits S root target cur xs os w s' roots' hrun hnz hcaps Lin hLin
+  intro μ r h1 h2 h3 h4 fs cert κ hk hcons hκ hfits S root target cur xs os w s' roots' hrun hnz hcaps
+    Lin hLin
   have hm : candidate μ r < 28 := by unfold candidate; omega
   obtain ⟨cfg, hF, hnames, -⟩ := candB_sound (candB_all μ r h1 h2 h3 h4)
   have hdata := osData_all _ hm
@@ -95,7 +97,7 @@ theorem open_stacked_completeAtD : open_stacked_completeAtD_Spec := by
     refine cfgPlaced_of (placedP_all _ hm) (fun l hl ↦ hnames l hl) (fun l hl ↦ ?_) (fun l hl ↦ ?_) hfits
     · rw [osCfg_lvAt _ _ hl]; exact (hdata.2 l hl).1
     · rw [osCfg_lvAt _ _ hl]; exact (hdata.2 l hl).2
-  exact os_completeAtD_cfg hk hF hP hf hps hb (osBody_notLoop hf hb) hrun hnz hcaps hLin
+  exact os_completeAtD_cfg hk hcons hκ hF hP hf hps hb (osBody_notLoop hf hb) hrun hnz hcaps hLin
 
 end
 end LeanVM.Guest.B1

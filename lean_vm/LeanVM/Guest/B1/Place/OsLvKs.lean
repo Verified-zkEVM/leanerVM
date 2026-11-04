@@ -131,7 +131,8 @@ theorem lvB_qcall {c : OsCfg} (hN : OsNames c) {l : ℕ} (hl : l < c.levels.leng
 
 
 theorem osResidual_calls (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    ∀ x ∈ (osResidual c ich bd ls lvl lv k).1.filterMap Main.Stmt.callS, x.2.2.1.length = 6 := by
+    ∀ x ∈ (osResidual c ich bd ls lvl lv k).1.filterMap Main.Stmt.callS,
+      x.2.1 = c.resLoop lvl ∧ x.2.2.1.length = 6 := by
   have hq : ∀ js h k', (osResSteps osQpos bd (lvl * ligColsCap) lv.vanish lv.logCols k js h
       k').1.filterMap Main.Stmt.callS = [] := fun js h k' ↦
     callS_nil_of_cnames (cnames_osResSteps _ _ _ _ _ _ js h k')
@@ -146,24 +147,27 @@ theorem osResidual_calls (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ)
   rw [e]
   intro x hx
   rw [List.mem_singleton] at hx
-  subst hx; rfl
+  subst hx; exact ⟨rfl, rfl⟩
 
 theorem osResiduals_calls (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List OsLv) (k : ℕ),
-    ∀ x ∈ (osResiduals c ich bd ls lvl levels k).1.filterMap Main.Stmt.callS, x.2.2.1.length = 6
+    ∀ x ∈ (osResiduals c ich bd ls lvl levels k).1.filterMap Main.Stmt.callS,
+      (∃ j < levels.length, x.2.1 = c.resLoop (lvl + j)) ∧ x.2.2.1.length = 6
   | _, [], _, x, hx => by simp [osResiduals] at hx
   | lvl, lv :: rest, k, x, hx => by
     have e : (osResiduals c ich bd ls lvl (lv :: rest) k).1 = (osResidual c ich bd ls lvl lv k).1 ++
         (osResiduals c ich bd ls (lvl + 1) rest (osResidual c ich bd ls lvl lv k).2).1 := rfl
     rw [e, List.filterMap_append, List.mem_append] at hx
     rcases hx with hx | hx
-    · exact osResidual_calls c ich bd ls lvl lv k x hx
-    · exact osResiduals_calls c ich bd ls (lvl + 1) rest _ x hx
+    · obtain ⟨h1, h2⟩ := osResidual_calls c ich bd ls lvl lv k x hx
+      exact ⟨⟨0, by simp, by rw [h1, Nat.add_zero]⟩, h2⟩
+    · obtain ⟨⟨j, hj, h1⟩, h2⟩ := osResiduals_calls c ich bd ls (lvl + 1) rest _ x hx
+      exact ⟨⟨j + 1, by simp; omega, by rw [h1]; congr 1; omega⟩, h2⟩
 
 /-- **The finish's unnamed calls are its residual loops'**, of six arguments. -/
 theorem finish_rescall {c : OsCfg} (hN : OsNames c) {st : OsSt} {tch : ℕ}
     {x : Option V × String × List V × List V}
     (hx : x ∈ (osFinishA c st tch).filterMap Main.Stmt.callS) (hK : osKindOf x.2.1 = none) :
-    x.2.2.1.length = 6 := by
+    (∃ j < c.levels.length, x.2.1 = c.resLoop j) ∧ x.2.2.1.length = 6 := by
   have hp : ∀ pt pt1 i n k, (osPtBlks c pt pt1 tch i n k).1.filterMap Main.Stmt.callS = [] :=
     fun _ _ _ _ _ ↦ callS_nil_of_cnames (cnames_osPtBlks _ _ _ _ _ _ _)
   have hb : ∀ bd ls lvl levels k, (osBases c tch bd ls lvl levels k).1.filterMap Main.Stmt.callS = [] :=
@@ -176,7 +180,8 @@ theorem finish_rescall {c : OsCfg} (hN : OsNames c) {st : OsSt} {tch : ℕ}
     List.filterMap_nil, List.nil_append, List.append_nil, List.cons_append, List.mem_cons] at hx
   rcases hx with rfl | hx
   · simp only at hK; rw [hN.ffm] at hK; cases hK
-  · exact osResiduals_calls c _ _ _ 0 c.levels _ x hx
+  · obtain ⟨⟨j, hj, h1⟩, h2⟩ := osResiduals_calls c _ _ _ 0 c.levels _ x hx
+    exact ⟨⟨j, hj, by rw [h1, Nat.zero_add]⟩, h2⟩
 
 end
 end LeanVM.Guest.B1

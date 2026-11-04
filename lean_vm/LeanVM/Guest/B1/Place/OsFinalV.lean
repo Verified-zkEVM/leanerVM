@@ -168,6 +168,9 @@ theorem osVal_qpos : osSigma c tr σ0 c0 c2 b0 (.n osQpos) = (osAtOf c b0).P.qpo
 theorem osVal_qbp : osSigma c tr σ0 c0 c2 b0 (.n osQbp) = (osAtOf c b0).P.qbp := by
   rw [osSigma_head (by decide) (by decide)]; rfl
 
+theorem osVal_win : osSigma c tr σ0 c0 c2 b0 (.n osWin) = (osAtOf c b0).P.win := by
+  rw [osSigma_head (by decide) (by decide)]; rfl
+
 theorem osSigma_arg {j : ℕ} (hj : j < 9) : osSigma c tr σ0 c0 c2 b0 (.n j) = σ0 (.n j) := by
   unfold osSigma; exact fill_lt hj
 
