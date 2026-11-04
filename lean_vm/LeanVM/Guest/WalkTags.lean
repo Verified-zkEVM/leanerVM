@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.WalkDefs
+public import LeanVM.Guest.WalkWindows
 
 /-!
 # The tags of the semantic relations

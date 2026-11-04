@@ -44,10 +44,6 @@ theorem ok609 : CheckOk 609 := fun i hi ↦ by
   · exact w609_0
   · exact w609_1
 
-theorem plain609 : Plain 609 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain610 : Plain 610 := plain_of_nil (by decide +kernel)
 
 theorem plain611 : Plain 611 := plain_of_nil (by decide +kernel)
@@ -62,10 +58,6 @@ theorem ok614 : CheckOk 614 := fun i hi ↦ by
   interval_cases i
   · exact w614_0
   · exact w614_1
-
-theorem plain614 : Plain 614 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain615 : Plain 615 := plain_of_nil (by decide +kernel)
 
@@ -86,10 +78,6 @@ theorem ok621 : CheckOk 621 := fun i hi ↦ by
   · exact w621_0
   · exact w621_1
 
-theorem plain621 : Plain 621 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain622 : Plain 622 := plain_of_nil (by decide +kernel)
 
 theorem ok623 : CheckOk 623 := fun i hi ↦ by
@@ -99,10 +87,6 @@ theorem ok623 : CheckOk 623 := fun i hi ↦ by
   · exact w623_0
   · exact w623_1
 
-theorem plain623 : Plain 623 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain624 : Plain 624 := plain_of_nil (by decide +kernel)
 
 theorem ok625 : CheckOk 625 := fun i hi ↦ by
@@ -111,10 +95,6 @@ theorem ok625 : CheckOk 625 := fun i hi ↦ by
   interval_cases i
   · exact w625_0
   · exact w625_1
-
-theorem plain625 : Plain 625 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain626 : Plain 626 := plain_of_nil (by decide +kernel)
 
@@ -126,10 +106,6 @@ theorem ok628 : CheckOk 628 := fun i hi ↦ by
   interval_cases i
   · exact w628_0
   · exact w628_1
-
-theorem plain628 : Plain 628 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain629 : Plain 629 := plain_of_nil (by decide +kernel)
 
@@ -156,10 +132,6 @@ theorem ok637 : CheckOk 637 := fun i hi ↦ by
   · exact w637_2
   · exact w637_3
 
-theorem plain637 : Plain 637 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain638 : Plain 638 := plain_of_nil (by decide +kernel)
 
 theorem plain639 : Plain 639 := plain_of_nil (by decide +kernel)
@@ -184,10 +156,6 @@ theorem ok646 : CheckOk 646 := fun i hi ↦ by
   · exact w646_1
   · exact w646_2
   · exact w646_3
-
-theorem plain646 : Plain 646 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain647 : Plain 647 := plain_of_nil (by decide +kernel)
 
