@@ -247,10 +247,12 @@ randomizers in each of its two layers, so one request alone may cost over $2^{33
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
 $Q \ge 1$ (\lean{Sphincs.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with
-the deterministic signer and at most $N = 1\,182\,000\,000$ signing requests
+the crate's deterministic signer, call for call (each tree built once, the layers from the bottom
+up), and at most $N = 1\,182\,000\,000$ signing requests
 (\lean{Sphincs.leanSphincsStronglyUnforgeable}, from leanVM's own random-oracle theorem
 \lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
-count them). A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
+count them). In both schemes the secret key is the crate's, the key's seed $S_0$, from which the
+signer derives the scheme seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
 case ($2^{32}$ encoding counters on each of its three layers), so with every request used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.

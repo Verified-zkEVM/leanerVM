@@ -461,4 +461,70 @@ theorem Only.finishSign (secretKey : FORS.Seeded.SecretKey) (message : Message)
   refine Only.bind (Only.sequenceDep fun lay => Seeded.Only.signLayer secretKey index lay) (fun layers => ?_)
   rcases layers with _ | layers <;> exact Only.pure' _
 
+/-! ### The crate's signer -/
+
+namespace Seeded
+open FORS.Seeded
+
+theorem Only.treeNodeWithPath (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
+    (seed : MasterSeed) (target : Nat) : ∀ level nodeIdx,
+      Short.Only (treeNodeWithPath parameter lay tree seed target level nodeIdx :
+        OracleComp HashSpec (Digest × (Nat → Digest)))
+  | 0, nodeIdx => by
+      rw [FORS.Seeded.treeNodeWithPath]
+      exact Short.Only.bind (Only.oneTimePublicKey _ _ _ _ _) (fun _ =>
+        Short.Only.bind (Short.Only.leafHash _ _ _ _ _) (fun _ => Short.Only.pure' _))
+  | level + 1, nodeIdx => by
+      rw [FORS.Seeded.treeNodeWithPath]
+      exact Short.Only.bind (Only.treeNodeWithPath parameter lay tree seed target level _) (fun _ =>
+        Short.Only.bind (Only.treeNodeWithPath parameter lay tree seed target level _) (fun _ =>
+          Short.Only.bind (Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega))
+            (fun _ => Short.Only.pure' _)))
+
+theorem Only.forsSubtree (parameter : PublicParameter) (index : Index) (κ : FTree)
+    (seed : MasterSeed) (target : FLeaf) : ∀ height node,
+      Short.Only (forsSubtree parameter index κ seed target height node :
+        OracleComp HashSpec (Digest × Digest × (Nat → Digest)))
+  | 0, node => by
+      rw [FORS.Seeded.forsSubtree]
+      exact Short.Only.bind (Short.Only.deriveOutput _ _ _) (fun _ =>
+        Short.Only.bind (Short.Only.forsLeafHash _ _ _ _ _) (fun _ =>
+          Short.Only.bind (Short.Only.forsLeafHash _ _ _ _ _) (fun _ =>
+            Short.Only.bind (Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega))
+              (fun _ => Short.Only.pure' _))))
+  | height + 1, node => by
+      rw [FORS.Seeded.forsSubtree]
+      refine Short.Only.bind (Only.forsSubtree parameter index κ seed target height _) (fun _ =>
+        Short.Only.bind (Only.forsSubtree parameter index κ seed target height _) (fun _ => ?_))
+      refine Short.Only.bind ?_ (fun _ => Short.Only.pure' _)
+      split
+      · exact Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)
+      · exact Short.Only.pure' _
+
+theorem Only.forsOpenOnce (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
+    (seed : MasterSeed) :
+    Short.Only (forsOpenOnce parameter index leaves seed :
+      OracleComp HashSpec (ForsKey × (FTree → TreeOpening))) := by
+  unfold FORS.Seeded.forsOpenOnce FORS.Seeded.treeOpenOnce
+  exact Short.Only.bind (Short.Only.sequenceFin _ fun _ =>
+    Short.Only.bind (Only.forsSubtree _ _ _ _ _ _ _) (fun _ =>
+      Short.Only.bind (Only.forsSubtree _ _ _ _ _ _ _) (fun _ => Short.Only.pure' _)))
+    (fun _ => Short.Only.pure' _)
+
+theorem Only.signLayersUp (parameter : PublicParameter) (seed : MasterSeed) (index : Index) :
+    ∀ remaining j message, ShortMessage message →
+      Short.Only (signLayersUp parameter seed index remaining j message :
+        OracleComp HashSpec (Option (Layer → LayerData)))
+  | 0, _, _, _ => Short.Only.pure' _
+  | remaining + 1, j, message, hmsg => by
+      rw [FORS.Seeded.signLayersUp]
+      refine Short.Only.bind (Only.otsSignFrom _ _ _ _ _ _ hmsg _ _) (fun result => ?_)
+      rcases result with _ | ⟨counter, values⟩
+      · exact Short.Only.pure' _
+      · refine Short.Only.bind (Only.treeNodeWithPath _ _ _ _ _ _ _) (fun tree => ?_)
+        exact Short.Only.bind (Only.signLayersUp parameter seed index remaining (j + 1) _
+          (shortMessage_root tree.1)) (fun _ => Short.Only.pure' _)
+
+end Seeded
+
 end FORS.Security.Short

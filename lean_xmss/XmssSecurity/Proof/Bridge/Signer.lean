@@ -164,7 +164,7 @@ theorem erases_otsSignFrom_bottom (h : Prepared seed d result cache) (index : Le
 theorem bottomKey_lt (index : LeafIndex) : (topKeyOf index).val < 2 ^ (32 - 16) := by
   exact lt_of_lt_of_eq (topKeyOf index).isLt (by norm_num [topLifetime, treeHeight])
 
-theorem signLayer_bottom (secretKey : HashSig.SecretKey) (key :
+theorem signLayer_bottom (secretKey : LeanXmss.SchemeSeedKey) (key :
     LeanXmss.KeyIndex)
     (message : HashInput) :
     (LeanXmss.KeyGenerationAndSigning.signLayerWithHash secretKey LeanXmss.bottomLayer key message :

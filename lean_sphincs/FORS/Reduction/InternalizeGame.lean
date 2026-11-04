@@ -1,9 +1,9 @@
 import FORS.Reduction.PreparedSample
 
 /-! Internalizing long adversarial hash inputs for the deterministic-randomizer game, and the
-fixed-function form of the game from a uniform scheme seed. `Seeded.sign` only makes short queries
-(its randomizer derivation is 96 bytes), so the argument of `Reduction/Internalize` applies verbatim
-with `signingOracle`. -/
+fixed-function form of the game from a uniform scheme seed. `Seeded.sign`, the crate's signer, only
+makes short queries (its randomizer derivation is 96 bytes), so the argument of
+`Reduction/Internalize` applies verbatim with `signingOracle`. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -39,36 +39,18 @@ theorem Only.deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed)
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit Seeded.finishSign
   FORS.Seeded.signAttempt
 
-theorem Only.seededLoop (sk : FORS.Seeded.SecretKey) (message : Message) (step : Randomness) :
-    ∀ attempts randomness, Only (FORS.Seeded.signDigestLoop sk message step attempts randomness :
-      OracleComp HashSpec (Option (Randomness × Index)))
-  | 0, _ => Only.pure' _
-  | attempts + 1, randomness => by
-      rw [FORS.Seeded.signDigestLoop]
-      refine Only.bind (Short.Seeded.Only.signAttempt _ _ _) (fun result => ?_)
-      cases result with
-      | none => exact Only.seededLoop sk message step attempts (randomness + step)
-      | some _ => exact Only.pure' _
+attribute [local irreducible] FORS.Seeded.forsOpenOnce FORS.Seeded.signLayersUp
 
-/-- The deterministic signer is the derivation of the base and the step, the scan, and the common
-assembly. -/
-theorem seededSign_eq (sk : FORS.Seeded.SecretKey) (message : Message) :
-    (FORS.Seeded.sign sk message : OracleComp HashSpec (Option Signature)) = (do
-      let walk ← FORS.deriveRandomizer sk.parameter sk.seed message
-      let some (randomness, _) ← FORS.Seeded.signDigestLoop sk message walk.2 digestAttemptLimit walk.1
-        | return none
-      Seeded.finishSign sk message randomness) := by
-  unfold FORS.Seeded.sign Seeded.finishSign
-  rfl
-
+/-- The deterministic signer (the crate's) makes short queries only. -/
 theorem Only.seededSign (sk : FORS.Seeded.SecretKey) (message : Message) :
     Only (FORS.Seeded.sign sk message : OracleComp HashSpec (Option Signature)) := by
-  rw [seededSign_eq]
+  unfold FORS.Seeded.sign
   refine Only.bind (Only.deriveRandomizer _ _ _) (fun walk => ?_)
-  refine Only.bind (Only.seededLoop sk message _ _ _) (fun result => ?_)
-  rcases result with _ | ⟨randomness, _⟩
-  · exact Only.pure' _
-  · exact Short.Only.finishSign _ _ _
+  refine Only.bind (Short.Only.messageDigest _ _ _ _) (fun digest => ?_)
+  refine Only.bind (Short.Seeded.Only.forsOpenOnce _ _ _ _) (fun opened => ?_)
+  refine Only.bind (Short.Seeded.Only.signLayersUp _ _ _ _ _ _ (Short.shortMessage_roots _))
+    (fun layers => ?_)
+  rcases layers with _ | layers <;> exact Only.pure' _
 
 theorem OnlyW.seededSign (sk : FORS.Seeded.SecretKey) (message : Message) :
     OnlyW (liftM (FORS.Seeded.sign sk message : OracleComp HashSpec (Option Signature)) :

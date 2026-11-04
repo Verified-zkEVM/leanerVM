@@ -5,6 +5,7 @@ public import XmssSecurity.Proof.Bridge.Security
 public import Common.Linear
 public import Common.PiOnly
 public import Common.WithHashBridge
+public import Common.SeedKey
 
 @[expose] public section
 
@@ -40,15 +41,15 @@ theorem experiment_eq_romExperiment
   rfl
 
 /-- The ROM theorem in the form of `Common.SufCma.rpm_bound`. -/
-theorem romBound : ∀ q, 1 ≤ q →
-    ∀ main : HashSig.PublicKey →
-      OracleComp (LeanXmss.OracleWorld + LeanXmss.SigningOracleSpec) LeanXmss.Forgery,
-      (∀ r ∈ support (romExperiment LeanXmss.RandomPermutationModel.schemeWithHash main), r.2 ≤ q) →
-        Pr{let r ← romExperiment LeanXmss.RandomPermutationModel.schemeWithHash main}[r.1 = true] ≤
-          q / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
-  intro q hq main hb
+theorem romBound : RomBound LeanXmss.RandomPermutationModel.schemeWithHash 127 := by
+  refine romBound_of_support _ _ fun q hq main hb ↦ ?_
   rw [← experiment_eq_romExperiment] at hb ⊢
   exact Bridge.leanXmss_security q hq ⟨main⟩ hb
+
+/-- The ROM theorem for the crate's secret key, the seed `S_0`, whose signer derives `S` and `P`
+again at each signature: those calls hit the random oracle's cache (`Common.SufCma.SeedKeyed`). -/
+theorem romBoundFromSeed : RomBound LeanXmss.RandomPermutationModel.schemeWithHashFromSeed 127 :=
+  LeanXmss.RandomPermutationModel.seedKeyed.romBound romBound
 
 /-- **leanXMSS in the random-permutation model, refined**: an adversary whose game makes at most
 `q ≥ 1` calls of `H`, `π` and `π⁻¹` and at most `Q` permutation calls on every path forges with
@@ -59,18 +60,19 @@ theorem leanXmss_rpm_security_calls (q Q : ℕ) (hq1 : 1 ≤ q) (adversary :
     (hQ : LeanXmss.RandomPermutationModel.HasPermutationBound adversary Q) :
     LeanXmss.RandomPermutationModel.forgeAdvantage adversary ≤
       q / ((2 ^ 127 : ℕ) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
-  exact rpm_bound LeanXmss.RandomPermutationModel.schemeWithHash 127
-    romBound adversary.main q Q hq1 hq hQ
+  exact rpm_bound LeanXmss.RandomPermutationModel.schemeWithHashFromSeed 127
+    romBoundFromSeed adversary.main q Q hq1 hq hQ
 
 /-- **leanXMSS against adversaries that also query Keccak-256**: an adversary whose game makes at
 most `Q ≥ 1` permutation calls on every path forges with probability at most `(Q + 1) · 2^-127`:
 `Q / 2^127 + Q² / 2^509` (`rpm_bound_perm`), at most `(Q + 1) · 2^-127` for `Q ≤ 2^128`
 (`Common.bits_add_sq_le`); past `2^128` the bound is at least one. -/
-theorem leanXmss_rpm_securityH : RpmSecureH LeanXmss.RandomPermutationModel.schemeWithHash 127 := by
+theorem leanXmss_rpm_securityH :
+    RpmSecureH LeanXmss.RandomPermutationModel.schemeWithHashFromSeed 127 := by
   intro Q hQ main hbound
   rcases le_or_gt Q (2 ^ 128) with hcap | hcap
-  · exact (rpm_bound_perm LeanXmss.RandomPermutationModel.schemeWithHash 127 romBound main Q hQ
-      hbound).trans
+  · exact (rpm_bound_perm LeanXmss.RandomPermutationModel.schemeWithHashFromSeed 127
+      romBoundFromSeed main Q hQ hbound).trans
       (Common.bits_add_sq_le hcap (by norm_num))
   · exact Common.le_succ_mul_inv_two_pow_of_lt (prEvent_le_one _) (by norm_num) hcap
 

@@ -63,9 +63,12 @@ theorem win_eq (log : QueryLog (FORS.Message →ₒ Option FORS.Signature)) (for
 /-- **The statement's end statement from the model's 127 bits in the random-oracle model.** -/
 theorem stronglyUnforgeable_of_model (h : FORS.SecurityBits params 127) :
     LeanSphincsStronglyUnforgeable :=
-  Transport.stronglyUnforgeable_of_map modelScheme RandomPermutationModel.sufCmaScheme
-    ofModelPublicKey toStatementSecretKey (Option.map ofModelSignature) toModelForgery rfl
-    (fun seed ↦ (simulateQ_keygen seed).symm) (fun sk message ↦ (simulateQ_sign sk message).symm)
+  Transport.stronglyUnforgeable_of_map modelSchemeFromSeed RandomPermutationModel.sufCmaScheme
+    ofModelPublicKey id (Option.map ofModelSignature) toModelForgery rfl
+    (fun seed ↦ by
+      simp only [modelSchemeFromSeed, SeedKeyed.scheme, simulateQ_map, Functor.map_map]
+      exact (simulateQ_keygen seed).symm)
+    (fun sk message ↦ (simulateQ_sign sk message).symm)
     (fun publicKey forgery ↦ (simulateQ_verify (ofModelPublicKey publicKey) forgery.message
       forgery.signature).symm) win_eq (modelScheme_stronglyUnforgeable h)
 

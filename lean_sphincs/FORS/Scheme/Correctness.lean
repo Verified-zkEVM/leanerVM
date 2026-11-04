@@ -193,7 +193,7 @@ attribute [local irreducible] Seeded.signDigestLoop Seeded.signLayer Seeded.fors
   Seeded.spineNode
 
 theorem sign_spec (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
-    (h : evalWithAnswerFn f (Seeded.sign secretKey message
+    (h : evalWithAnswerFn f (Seeded.signModel secretKey message
         : OracleComp HashSpec (Option Signature)) = some signature) :
     Landed secretKey.parameter (digestIndex (digestValue f secretKey message signature.randomness))
       ∧ signature.fors = evalWithAnswerFn f (Seeded.forsOpen secretKey.parameter
@@ -203,7 +203,7 @@ theorem sign_spec (secretKey : Seeded.SecretKey) (message : Message) {signature 
       ∧ ∀ lay : Layer, evalWithAnswerFn f (Seeded.signLayer secretKey
           (digestIndex (digestValue f secretKey message signature.randomness)) lay
           : OracleComp HashSpec (Option (LayerSignature lay))) = some (signature.layers lay) := by
-  rw [Seeded.sign, evalWithAnswerFn_bind, evalWithAnswerFn_bind] at h
+  rw [Seeded.signModel, evalWithAnswerFn_bind, evalWithAnswerFn_bind] at h
   split at h
   next randomness index hloop =>
       have hland := signDigestLoop_spec f secretKey message _ digestAttemptLimit _ hloop
@@ -310,7 +310,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
 theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signature : Signature}
     (hroot : secretKey.root = evalWithAnswerFn f (Seeded.treeRoot secretKey.parameter topLayer
       rootTree secretKey.seed : OracleComp HashSpec Digest))
-    (h : evalWithAnswerFn f (Seeded.sign secretKey message
+    (h : evalWithAnswerFn f (Seeded.signModel secretKey message
         : OracleComp HashSpec (Option Signature)) = some signature) :
     evalWithAnswerFn f (Concrete.verify ⟨secretKey.root, secretKey.parameter⟩ message signature
       : OracleComp HashSpec Bool) = true := by
@@ -321,7 +321,7 @@ successful signature verifies, under every fixed hash function and every pruning
 theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
     (message : Message) (signature : Signature)
     (hkey : evalWithAnswerFn f (Seeded.keygenFromSeed seed) = (publicKey, secretKey))
-    (hsign : evalWithAnswerFn f (Seeded.sign secretKey message
+    (hsign : evalWithAnswerFn f (Seeded.signModel secretKey message
       : OracleComp HashSpec (Option Signature)) = some signature) :
     evalWithAnswerFn f (Concrete.verify publicKey message signature
       : OracleComp HashSpec Bool) = true := by

@@ -570,6 +570,41 @@ theorem prob_romExperiment (S : SchemeWithHash Seed PK SK Req Resp F)
     exact Functor.map_map _ _ _
   rw [← h2, prEvent_map]
 
+/-- **A random-oracle bound** at `bits` bits: every ROM adversary whose game makes at most `q ≥ 1`
+hash calls on every path, whatever the answers (`QueryCostAtMost`, structural), wins with
+probability at most `q / 2^bits`. -/
+def RomBound (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ) : Prop :=
+  ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
+    QueryCostAtMost (romGame S main) hashCalls q →
+      Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞)
+
+/-- A bound for every adversary whose experiment makes at most `q` hash calls on every outcome is
+a `RomBound`. -/
+theorem romBound_of_support (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
+    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
+      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
+        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞)) :
+    RomBound S bits := by
+  intro q hq main hcost
+  refine hrom q hq main fun r hr ↦ ?_
+  have h2 := count_le_of_isWeightBound hcost ∅
+  rw [romExperiment, StateT.run'_eq] at hr
+  erw [support_map] at hr
+  obtain ⟨z, hz, rfl⟩ := hr
+  exact h2 z hz
+
+/-- The ROM adversary of an RPM adversary whose game makes at most `q` calls of `H`, `π` and `π⁻¹`
+makes a ROM game with at most `q` hash calls on every path. -/
+theorem romAdv_cost (S : SchemeWithHash Seed PK SK Req Resp F)
+    (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (q : ℕ)
+    (hq : QueryCostAtMost (rpmGameB e S main) oracleCallsB q) :
+    QueryCostAtMost (romGame S (romAdv e main)) hashCalls q := by
+  rw [rpmGameB_eq] at hq
+  have h1 : QueryCostAtMost (simulateQ (toK e) (romGame S (romAdv e main))) romCalls q := by
+    rw [simulateQ_toK_romGame, ← run'_idealImpl_rpmGame, StateT.run'_eq]
+    exact isWeightBound_map _ (isWeightBound_run_simulateQ _ _ _ isWeightBound_idealImpl hq _)
+  exact isWeightBound_of_toK e h1
+
 /-- **The RPM game against the ROM game.** For an RPM adversary whose game makes at most `Q`
 permutation calls (`permCallsB`) and at most `q` calls of `H`, `π` and `π⁻¹` (`oracleCallsB`) on
 every path, the ROM adversary `romAdv e main` wins the ROM game with probability at least the RPM
@@ -603,16 +638,14 @@ hash calls wins with probability at most `q / 2^bits` (`q ≥ 1`), then every RP
 game makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹`, and at most `Q` permutation calls, on
 every path, wins the RPM game with probability at most `q / 2^bits + Q² / 2^509`. -/
 theorem rpm_boundB (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
-    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
-      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
-        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (hrom : RomBound S bits)
     (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (q Q : ℕ) (hq1 : 1 ≤ q)
     (hq : QueryCostAtMost (rpmGameB e S main) oracleCallsB q)
     (hQ : QueryCostAtMost (rpmGameB e S main) permCallsB Q) :
     Pr{let b ← rpmExperimentB e S main}[b = true] ≤
       q / ((2 ^ bits : ℕ) : ℝ≥0∞) + (Q ^ 2 : ℝ≥0∞) / 2 ^ 509 := by
-  obtain ⟨h1, h2⟩ := rpm_le_romB e S main q Q hq hQ
-  exact h1.trans (add_le_add (hrom q hq1 _ h2) le_rfl)
+  obtain ⟨h1, -⟩ := rpm_le_romB e S main q Q hq hQ
+  exact h1.trans (add_le_add (hrom q hq1 _ (romAdv_cost e S main q hq)) le_rfl)
 
 /-- A call of `H`, `π` or `π⁻¹` makes at least one permutation call. -/
 theorem oracleCallsB_le_permCallsB (t : KSpecB.Domain) : oracleCallsB t ≤ permCallsB t := by
@@ -621,9 +654,7 @@ theorem oracleCallsB_le_permCallsB (t : KSpecB.Domain) : oracleCallsB t ≤ perm
 /-- **The RPM bound in permutation calls alone**: `Q / 2^bits + Q² / 2^509` for an adversary
 whose game makes at most `Q ≥ 1` permutation calls on every path. -/
 theorem rpm_bound_permB (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
-    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
-      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
-        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (hrom : RomBound S bits)
     (main : PK → OracleComp (KSpecB + (Req →ₒ Resp)) F) (Q : ℕ) (hQ1 : 1 ≤ Q)
     (hQ : QueryCostAtMost (rpmGameB e S main) permCallsB Q) :
     Pr{let b ← rpmExperimentB e S main}[b = true] ≤
@@ -728,9 +759,7 @@ then every RPM adversary whose game makes at most `q ≥ 1` calls of `H`, `π` a
 most `Q` permutation calls, on every path, wins the RPM game with probability at most
 `q / 2^bits + Q² / 2^509`. -/
 theorem rpm_bound (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
-    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
-      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
-        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (hrom : RomBound S bits)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) (q Q : ℕ) (hq1 : 1 ≤ q)
     (hq : QueryCostAtMost (rpmGameH S main) oracleCalls q)
     (hQ : QueryCostAtMost (rpmGameH S main) permCallsH Q) :
@@ -747,9 +776,7 @@ theorem rpm_bound (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
 /-- **The RPM bound in permutation calls alone**: `Q / 2^bits + Q² / 2^509` for an adversary
 whose game makes at most `Q ≥ 1` permutation calls on every path. -/
 theorem rpm_bound_perm (S : SchemeWithHash Seed PK SK Req Resp F) (bits : ℕ)
-    (hrom : ∀ q, 1 ≤ q → ∀ main : PK → OracleComp (World + (Req →ₒ Resp)) F,
-      (∀ r ∈ support (romExperiment S main), r.2 ≤ q) →
-        Pr{let r ← romExperiment S main}[r.1 = true] ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞))
+    (hrom : RomBound S bits)
     (main : PK → OracleComp (KSpecH + (Req →ₒ Resp)) F) (Q : ℕ) (hQ1 : 1 ≤ Q)
     (hQ : QueryCostAtMost (rpmGameH S main) permCallsH Q) :
     Pr{let b ← rpmExperimentH S main}[b = true] ≤

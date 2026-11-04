@@ -27,7 +27,7 @@ def keygenQueries : Nat := 2 + 2 ^ 16 * (29 + 174 + 1) + 2 ^ 16 - 1
 theorem keygenQueries_eq : keygenQueries = 13434881 := by decide
 
 /-- The real key generation from the scheme's seed `S`, after the seed hash. -/
-def realKeygen (seed : MasterSeed) : OracleComp HashSpec (HashSig.PublicKey × HashSig.SecretKey) :=
+def realKeygen (seed : MasterSeed) : OracleComp HashSpec (HashSig.PublicKey × LeanXmss.SchemeSeedKey) :=
   (do
     let parameter ← LeanXmss.deriveKey 0 .parameter seed
     let root ← LeanXmss.KeyGenerationAndSigning.treeNodeWithHash parameter LeanXmss.topLayer seed LeanXmss.layerHeight 0
@@ -270,7 +270,7 @@ theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : l
 /-- The real key generation from `S` resolves to the model's public key. -/
 theorem realKeygen (h : Prepared seed d result cache) :
     Resolves cache (Bridge.realKeygen seed)
-      ((⟨result.1.1, d.parameter⟩ : HashSig.PublicKey), (⟨seed, d.parameter⟩ : HashSig.SecretKey)) := by
+      ((⟨result.1.1, d.parameter⟩ : HashSig.PublicKey), (⟨seed, d.parameter⟩ : LeanXmss.SchemeSeedKey)) := by
   unfold Bridge.realKeygen LeanXmss.deriveKey LeanXmss.Verification.thWithHash
   rw [bind_assoc]
   have hparam : cache (paramInput seed) = some d.param := h.prog_le (progCache_param seed d)

@@ -37,13 +37,13 @@ structure Adversary where
   main : PublicKey → OracleComp (KSpecH + SigningOracleSpec) Forgery
 
 /-- The game: the master seed, key generation, the adversary with the signing oracle, the final
-verification, all hashing with Keccak-256 over the permutation. -/
+verification, all hashing with Keccak-256 over the permutation; the secret key is the seed `S_0`. -/
 noncomputable def game (adversary : Adversary) : OracleComp KSpecH Bool :=
-  rpmGameH schemeWithHash adversary.main
+  rpmGameH schemeWithHashFromSeed adversary.main
 
 /-- The probability of a successful forgery against the lazily sampled random permutation. -/
 noncomputable def forgeAdvantage (adversary : Adversary) : ℝ≥0∞ :=
-  Pr{let b ← rpmExperimentH schemeWithHash adversary.main}[b = true]
+  Pr{let b ← rpmExperimentH schemeWithHashFromSeed adversary.main}[b = true]
 
 /-- Every path of the game makes at most `Q` permutation calls, the sponge's included. -/
 def HasPermutationBound (adversary : Adversary) (Q : Nat) : Prop :=

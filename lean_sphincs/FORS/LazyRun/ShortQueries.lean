@@ -177,6 +177,12 @@ theorem OnlyC.sequenceDep : ∀ {n : Nat} {α : Fin n → Type}
       · refine OnlyC.bind (OnlyC.sequenceDep (α := fun i => α i.succ) fun i => h i.succ) (fun tail => ?_)
         rcases tail with _ | tail <;> exact OnlyC.pure' _
 
+theorem OnlyC.sequenceLayersUp {α : Type} {computation : Layer → OracleComp CostSpec (Option α)}
+    (h : ∀ lay, OnlyC (computation lay)) : OnlyC (Concrete.sequenceLayersUp computation) := by
+  unfold Concrete.sequenceLayersUp
+  refine OnlyC.bind (OnlyC.sequenceDep (α := fun _ => α) fun i => h i.rev) (fun found => ?_)
+  rcases found with _ | found <;> exact OnlyC.pure' _
+
 theorem shortMessage_keyMessage (data : PublicData) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
     Short.ShortMessage (data.keyMessage lay tree leaf) := by
   unfold PublicData.keyMessage
@@ -187,7 +193,6 @@ theorem shortMessage_keyMessage (data : PublicData) (lay : Layer) (tree : TreeIn
 theorem OnlyC.layerCostSearch (parameter : PublicParameter) (data : PublicData) (index : Index)
     (lay : Layer) : OnlyC (GraphView.layerCostSearch parameter data index lay) := by
   unfold GraphView.layerCostSearch GraphView.layerSearch
-  refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)
   refine OnlyC.bind (OnlyC.liftHash (Only.search _ _ _ _ _ (shortMessage_keyMessage _ _ _ _) _ _))
     (fun found => ?_)
   rcases found with _ | pair
@@ -199,7 +204,8 @@ theorem OnlyC.finishCostSource (parameter : PublicParameter) (data : PublicData)
   unfold GraphView.finishCostSource
   refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigest _ _ _ _)) (fun digest => ?_)
   refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)
-  refine OnlyC.bind (OnlyC.sequenceDep fun lay => OnlyC.layerCostSearch _ _ _ lay) (fun found => ?_)
+  refine OnlyC.bind (OnlyC.sequenceLayersUp fun lay => OnlyC.layerCostSearch _ _ _ lay)
+    (fun found => ?_)
   rcases found with _ | found
   · exact OnlyC.pure' _
   · refine OnlyC.bind (OnlyC.sequenceFin _ fun _ => OnlyC.sequenceFin _ fun _ => OnlyC.reveal _)

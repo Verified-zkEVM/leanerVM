@@ -308,7 +308,7 @@ theorem sampleFn_plant_agree (material : Material) (seed : MasterSeed) (answers 
   · rw [dite_eq_right hshort, dite_eq_right hshort]
 
 /-- Every sample of the internalized deterministic game equals its graph-view cost game. -/
-theorem sample_costGameDet (adversary : Adversary) (material : Material) (seed : MasterSeed)
+theorem sample_costGameDet (hfull : subtreeHeight = totalHeight) (adversary : Adversary) (material : Material) (seed : MasterSeed)
     (answers : CanonicalGraphLabels) (table : Eager.Table) (rnd : RTable) :
     simulateQ (fixedRom (extend (preparedCache material seed answers)
           (plant (SeedModel.parameter material) seed table rnd)))
@@ -323,7 +323,7 @@ theorem sample_costGameDet (adversary : Adversary) (material : Material) (seed :
       sampleFn material seed answers table' from rfl]
   refine (evalDist_fixedRom_eq_fixedHashWorld _ _).trans ?_
   rw [fixedHashWorld_countHashQueries,
-    costGameDet_correct (sampleFn material seed answers table') (SeedModel.parameter material) seed
+    costGameDet_correct hfull (sampleFn material seed answers table') (SeedModel.parameter material) seed
       (GraphView.publicData (labelsOf material answers) (highsOf rnd))
       (sampleCoordinates material seed answers table')
       (GraphView.publicData_correct _ _ _ _ (sample_consistent material seed answers table')
@@ -342,7 +342,7 @@ noncomputable def detRun (adversary : Adversary) (q : Nat) (material : Material)
 
 /-- One sample: the capped win in the deterministic game is at most the seed-free capped win
 plus naming the seed. -/
-theorem per_sampleDet (adversary : Adversary) (q : Nat) (material : Material) (seed : MasterSeed)
+theorem per_sampleDet (hfull : subtreeHeight = totalHeight) (adversary : Adversary) (q : Nat) (material : Material) (seed : MasterSeed)
     (answers : CanonicalGraphLabels) (table : Eager.Table) (rnd : RTable) :
     Pr{let result ← (simulateQ (fixedRom (extend (preparedCache material seed answers)
           (plant (SeedModel.parameter material) seed table rnd)))
@@ -350,7 +350,7 @@ theorem per_sampleDet (adversary : Adversary) (q : Nat) (material : Material) (s
       Pr{let x ← detRun adversary q material answers table rnd}[Win x] +
         Pr{let result ← detRun adversary q material answers table rnd}[Hits (Marked seed) result.2] := by
   set table' := plant (SeedModel.parameter material) seed table rnd
-  have hrun := (sample_costGameDet adversary material seed answers table rnd).trans
+  have hrun := (sample_costGameDet hfull adversary material seed answers table rnd).trans
     (evalDist_fixedCostSource _ _ _)
   rw [(hrun).prEvent_eq, prEvent_map]
   refine le_trans (le_of_eq ?_) (le_trans (probEvent_costRun_le_cap (sampleFn material seed answers table')
@@ -378,7 +378,7 @@ internalized memoizing adversary in the fresh-randomizer graph-view game is at m
 table of walk steps, the capped win of the internalized game from a uniform scheme seed is at most
 `B` plus `2 q / 2^256` for naming the hidden seed. The step halves are fixed and the base
 randomizers averaged. -/
-theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ≥0∞)
+theorem budgetedWinMaster_le_seedFree (hfull : subtreeHeight = totalHeight) (adversary : Adversary) (q : Nat) (B : ℝ≥0∞)
     (hB : ∀ steps, Pr{let z ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps}[Win z] ≤ B) :
     Pr{let result ← experimentMaster (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
   calc
@@ -423,7 +423,7 @@ theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ
       refine probEvent_bind_le_add _ _ _ _ _ _ _ fun table => ?_
       refine probEvent_bind_le_add _ _ _ _ _ _ _ fun rnd => ?_
       rw [prEvent_map]
-      exact per_sampleDet (internalize adversary) q material seed answers table rnd
+      exact per_sampleDet hfull (internalize adversary) q material seed answers table rnd
     _ ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
       refine add_le_add ?_ ?_
       · have hsteps : ∀ steps : LTable, Pr{let z ← (do
@@ -494,7 +494,7 @@ theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ
 internalized memoizing adversary in the fresh-randomizer graph-view game is at most `B` for every
 table of walk steps, the SUF-CMA advantage against `Seeded.sign` is at most `B` plus `3 q / 2^256`
 for naming the hidden seeds. -/
-theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
+theorem forgeAdvantage_le_seedFree (hfull : subtreeHeight = totalHeight) (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound adversary q) (B : ℝ≥0∞)
     (hB : ∀ steps, Pr{let z ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps}[Win z] ≤ B) :
     forgeAdvantage adversary ≤ B + 3 * (q / (2 : ℝ≥0∞) ^ 256) := by
@@ -506,7 +506,7 @@ theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
     _ ≤ Pr{let result ← experimentMaster (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] + q / (2 : ℝ≥0∞) ^ 256 :=
       budgetedWin_le_master adversary q
     _ ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
-      add_le_add (budgetedWinMaster_le_seedFree adversary q B hB) le_rfl
+      add_le_add (budgetedWinMaster_le_seedFree hfull adversary q B hB) le_rfl
     _ = B + 3 * (q / (2 : ℝ≥0∞) ^ 256) := by ring
 
 end FORS.Security.Det

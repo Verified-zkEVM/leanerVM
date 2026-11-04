@@ -308,7 +308,7 @@ that pays the rate at `(q - keygenCost) / 2` cached digests and `Lmax` landed pa
 negligible cap term: if the large-budget inequality `hH0` with the weighted baseline and the excess
 forecast with one spare slot holds at the adversary's budget after key generation, the deterministic
 signer's advantage is at most `q / 2^127`. -/
-theorem det_largeH (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ)
+theorem det_largeH (hfull : subtreeHeight = totalHeight) (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ)
     (hbound : HasHashQueryBound adversary q) (hq : q < 2 ^ 127) (hK : keygenCost ≤ q)
     (wbar : ℝ≥0∞) (Lmax : ℕ) (hfair : FairS wbar ((q - keygenCost) / 2) Lmax)
     (hlam : lam Lmax 0 (q - keygenCost) ≤ (2 : ℝ≥0∞)⁻¹ ^ 201)
@@ -327,7 +327,7 @@ theorem det_largeH (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : �
   have hmain := fun steps => large_seedFree_boundH hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q
     steps (by omega) (fun _ _ _ _ _ hprep => targetingAll hb _ _ _ _ _ hprep)
     (fun _ _ _ _ _ hprep => prepared_clean _ _ _ _ _ hprep) wbar Lmax hfair htotal
-  refine le_trans (Det.forgeAdvantage_le_seedFree adversary q hbound _ hmain) ?_
+  refine le_trans (Det.forgeAdvantage_le_seedFree hfull adversary q hbound _ hmain) ?_
   have hE := expectedFail_le
   -- the negligible terms fit in the slack
   have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
