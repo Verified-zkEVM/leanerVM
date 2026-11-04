@@ -277,10 +277,10 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     ring
 
 /-- `aggregate_claims`' constant words. -/
-def agA0 : ℕ := fs "aggregate_claims" + 85 + SB "batch_sumcheck__L23"
+def agA0 : ℕ := fs "aggregate_claims" + 108 + SB "batch_sumcheck__L23"
 
 /-- `aggregate_claims`' words per child. -/
-def agA1 : ℕ := 18 + SK "__loop29" + SK "__loop30" + SK "__loop31"
+def agA1 : ℕ := 18 + SK "__loop33" + SK "__loop34" + SK "__loop35"
 
 theorem aggB_eq (m : ℕ) : aggB fs SB SK m = agA0 fs SB + agA1 SK * m := by
   unfold aggB aggKB agA0 agA1 aggSizes
