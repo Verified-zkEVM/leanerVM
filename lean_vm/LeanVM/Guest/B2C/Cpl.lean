@@ -1015,7 +1015,7 @@ noncomputable def partEnd (j i k : ℕ) : RC → Bool
 /-- The walk's result of part `k` of window `i` of function `j`. -/
 noncomputable def cplRes (j i k : ℕ) : RC :=
   match execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-      ((certOf j).cutAt i).seeds ((certOf j).endAt (fnOf j) i) with
+      (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
@@ -1044,8 +1044,8 @@ noncomputable def winOkC (j i : ℕ) : Bool :=
   (listElementOrDefault (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
   (match partEnt j i 0 with
-    | some (o, succ) => Nat.beq o ((certOf j).cutAt i).sel && succ == ((certOf j).cutAt i).succ && !succ.isEmpty
-    | none => ((certOf j).cutAt i).succ.isEmpty) &&
+    | some (o, succ) => Nat.beq o ((certOf j).selAt i) && succ == (certOf j).succAt i && !succ.isEmpty
+    | none => ((certOf j).succAt i).isEmpty) &&
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
