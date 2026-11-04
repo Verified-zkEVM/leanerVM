@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Selectors.IndexMle
 /-!
 # The framework's claims (G:2066-2102)
 
-`vt_fw`: `index_mle` at `log_mem` and at `19` (the bytecode's log-size) give the index extensions
+`vt_fw`: `index_mle` at `kb[1] = g^log_mem` and at `kb[0]·g^19` (the bytecode's log-size) give the index extensions
 of the point's prefixes; the memory's three values, the final memory count and the final bytecode
-count are `claim_pool[0 .. 4]`, with `claim_cplen_g` the `block_kappa` cells of their blocks; the
+count are `claim_pool[0 .. 4]`; the
 pull side reloads the index values and the memory values from where the push side left them.
 -/
 
@@ -43,50 +43,32 @@ theorem vt_index_arm {rd : Reader} {σ : Val} {v r : ℕ} {point : List E} {κ :
 /-- **The framework's claims.** -/
 theorem vt_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
     (hz : TbReadsAt rd (σ (.n 8)) point) {lm : ℕ} (hlm : lm ≤ point.length) (hlm34 : lm < 34)
-    (h19 : 19 ≤ point.length) (hk1 : LoadHolds rd (σ (.n 12)) 1 (gen ^ lm))
-    (hk2 : LoadHolds rd (σ (.n 12)) 2 (gen ^ 19)) :
-    σ (.n 2908) = indexMle (point.take lm) ∧ σ (.n 4440) = σ (.n 2908) ∧
-      σ (.n 2983) = indexMle (point.take 19) ∧ σ (.n 4485) = σ (.n 2983) ∧
-      σ (.n 4457) = σ (.n 2914) ∧ σ (.n 4461) = σ (.n 2927) ∧ σ (.n 4465) = σ (.n 2940) ∧
-      LoadHolds rd (σ (.n 16)) 0 (σ (.n 2914)) ∧ LoadHolds rd (σ (.n 16)) 1 (σ (.n 2927)) ∧
-      LoadHolds rd (σ (.n 16)) 2 (σ (.n 2940)) ∧ LoadHolds rd (σ (.n 16)) 3 (σ (.n 4444)) ∧
-      LoadHolds rd (σ (.n 16)) 4 (σ (.n 4502)) ∧ LoadHolds rd (σ (.n 17)) 0 (gen ^ lm) ∧
-      LoadHolds rd (σ (.n 17)) 1 (gen ^ lm) ∧ LoadHolds rd (σ (.n 17)) 2 (gen ^ lm) ∧
-      LoadHolds rd (σ (.n 17)) 3 (σ (.n 4430)) ∧ LoadHolds rd (σ (.n 17)) 4 (σ (.n 4475)) ∧
-      LoadHolds rd (σ (.n 12)) 55 (σ (.n 4430)) ∧ LoadHolds rd (σ (.n 12)) 56 (σ (.n 4475)) := by
-  have a2434 := h.atomAt 2434 (.load (.n 2884) (.n 12) 1) (by decide +kernel)
-  have a2510 := h.atomAt 2510 (.load (.n 2959) (.n 12) 2) (by decide +kernel)
-  have d2455 := h.dispatchAt 2455 (.n 2884) vtImNames [.n 8] [.n 2908] (by decide +kernel)
-  have d2531 := h.dispatchAt 2531 (.n 2959) vtImNames [.n 8] [.n 2983] (by decide +kernel)
-  have a2456 := h.atomAt 2456 (.load (.n 2908) (.n 2851) 1) (by decide +kernel)
-  have a2532 := h.atomAt 2532 (.load (.n 2983) (.n 2851) 2) (by decide +kernel)
-  have a3934 := h.atomAt 3934 (.load (.n 4440) (.n 2851) 1) (by decide +kernel)
-  have a3978 := h.atomAt 3978 (.load (.n 4485) (.n 2851) 2) (by decide +kernel)
-  have a2471 := h.atomAt 2471 (.load (.n 2914) (.n 16) 0) (by decide +kernel)
-  have a2485 := h.atomAt 2485 (.load (.n 2927) (.n 16) 1) (by decide +kernel)
-  have a2499 := h.atomAt 2499 (.load (.n 2940) (.n 16) 2) (by decide +kernel)
-  have a3947 := h.atomAt 3947 (.load (.n 4444) (.n 16) 3) (by decide +kernel)
-  have a3992 := h.atomAt 3992 (.load (.n 4502) (.n 16) 4) (by decide +kernel)
-  have a3952 := h.atomAt 3952 (.load (.n 4457) (.n 16) 0) (by decide +kernel)
-  have a3956 := h.atomAt 3956 (.load (.n 4461) (.n 16) 1) (by decide +kernel)
-  have a3960 := h.atomAt 3960 (.load (.n 4465) (.n 16) 2) (by decide +kernel)
-  have a2472 := h.atomAt 2472 (.load (.n 2884) (.n 17) 0) (by decide +kernel)
-  have a2486 := h.atomAt 2486 (.load (.n 2884) (.n 17) 1) (by decide +kernel)
-  have a2500 := h.atomAt 2500 (.load (.n 2884) (.n 17) 2) (by decide +kernel)
-  have a3948 := h.atomAt 3948 (.load (.n 4430) (.n 17) 3) (by decide +kernel)
-  have a3993 := h.atomAt 3993 (.load (.n 4475) (.n 17) 4) (by decide +kernel)
-  have a3926 := h.atomAt 3926 (.load (.n 4430) (.n 12) 55) (by decide +kernel)
-  have a3970 := h.atomAt 3970 (.load (.n 4475) (.n 12) 56) (by decide +kernel)
-  simp only [Atom.Holds] at a2434 a2510 a2456 a2532 a3934 a3978 a2471 a2485 a2499 a3947 a3992
-  simp only [Atom.Holds] at a3952 a3956 a3960 a2472 a2486 a2500 a3948 a3993 a3926 a3970
-  have e2884 := tb_loadHolds_unique a2434 hk1
-  have e2959 := tb_loadHolds_unique a2510 hk2
-  rw [e2884] at a2472 a2486 a2500
-  exact ⟨vt_index_arm hz hlm hlm34 e2884 d2455, tb_loadHolds_unique a3934 a2456,
-    vt_index_arm hz h19 (by norm_num) e2959 d2531, tb_loadHolds_unique a3978 a2532,
-    tb_loadHolds_unique a3952 a2471, tb_loadHolds_unique a3956 a2485,
-    tb_loadHolds_unique a3960 a2499, a2471, a2485, a2499, a3947, a3992, a2472, a2486, a2500,
-    a3948, a3993, a3926, a3970⟩
+    (h19 : 19 ≤ point.length) (hk1 : σ (.n 29) = gen ^ lm) (hk2 : σ (.n 876) = gen ^ 19) :
+    σ (.n 824) = indexMle (point.take lm) ∧ σ (.n 1831) = σ (.n 824) ∧
+      σ (.n 894) = indexMle (point.take 19) ∧ σ (.n 1873) = σ (.n 894) ∧
+      σ (.n 1848) = σ (.n 830) ∧ σ (.n 1852) = σ (.n 843) ∧ σ (.n 1856) = σ (.n 856) ∧
+      LoadHolds rd (σ (.n 15)) 0 (σ (.n 830)) ∧ LoadHolds rd (σ (.n 15)) 1 (σ (.n 843)) ∧
+      LoadHolds rd (σ (.n 15)) 2 (σ (.n 856)) ∧ LoadHolds rd (σ (.n 15)) 3 (σ (.n 1835)) ∧
+      LoadHolds rd (σ (.n 15)) 4 (σ (.n 1890)) := by
+  have d1 := h.dispatchAt 810 (.n 29) vtImNames [.n 8] [.n 824] (by decide +kernel)
+  have d2 := h.dispatchAt 880 (.n 876) vtImNames [.n 8] [.n 894] (by decide +kernel)
+  have s1 := h.atomAt 811 (.load (.n 824) (.n 781) 1) (by decide +kernel)
+  have s2 := h.atomAt 881 (.load (.n 894) (.n 781) 2) (by decide +kernel)
+  have r1 := h.atomAt 1869 (.load (.n 1831) (.n 781) 1) (by decide +kernel)
+  have r2 := h.atomAt 1911 (.load (.n 1873) (.n 781) 2) (by decide +kernel)
+  have p0 := h.atomAt 826 (.load (.n 830) (.n 15) 0) (by decide +kernel)
+  have p1 := h.atomAt 839 (.load (.n 843) (.n 15) 1) (by decide +kernel)
+  have p2 := h.atomAt 852 (.load (.n 856) (.n 15) 2) (by decide +kernel)
+  have p3 := h.atomAt 1882 (.load (.n 1835) (.n 15) 3) (by decide +kernel)
+  have p4 := h.atomAt 1925 (.load (.n 1890) (.n 15) 4) (by decide +kernel)
+  have q0 := h.atomAt 1886 (.load (.n 1848) (.n 15) 0) (by decide +kernel)
+  have q1 := h.atomAt 1890 (.load (.n 1852) (.n 15) 1) (by decide +kernel)
+  have q2 := h.atomAt 1894 (.load (.n 1856) (.n 15) 2) (by decide +kernel)
+  simp only [Atom.Holds] at s1 s2 r1 r2 p0 p1 p2 p3 p4 q0 q1 q2
+  exact ⟨vt_index_arm hz hlm hlm34 hk1 d1, tb_loadHolds_unique r1 s1,
+    vt_index_arm hz h19 (by norm_num) hk2 d2, tb_loadHolds_unique r2 s2,
+    tb_loadHolds_unique q0 p0, tb_loadHolds_unique q1 p1, tb_loadHolds_unique q2 p2,
+    p0, p1, p2, p3, p4⟩
 
 end
 end LeanVM.Guest.B1.Tables
