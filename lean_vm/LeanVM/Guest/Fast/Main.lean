@@ -4,17 +4,19 @@ public import LeanVM.Guest.Fast.Xmss
 public import LeanVM.Guest.Fast.Sphincs
 public import LeanVM.Guest.Fast.Whir
 public import LeanVM.Guest.Fast.Da
-public import LeanVM.Guest.B1.Main.SoundV
+public import LeanVM.Guest.B1.Main.Interface
+public import LeanVM.Guest.B1.Main.Aggregate
 
 /-!
 # `main`'s witness, its frames numbered
 
 `decWitV σ rd V piOf` (`B1/Main/SoundV.lean`) assembles `main`'s witness (`decWit`) from its
 callees' witnesses, each read off the frame the frame map `V` gives the call by the callee's name.
-`decWitN σ rd Vn cl` assembles it from the restated readers (`xmssSigOfN`, `sphincsSigOfN` (its
+`decWitN σ rd Vn cl` (here, importing no soundness proof, so the compiled chain does not rebuild
+with them) assembles it from the restated readers (`xmssSigOfN`, `sphincsSigOfN` (its
 three `sp_wots` frames by the frame map too), `dvWitN`, `vsPiOfN`, `aggHints`), every frame by its
 function's index, `cl` the
-cursor's length; `decWitN_eq`: at `Vn k = V (decoderFunctionName k)` and `cl = cursorLen` it is
+cursor's length; `decWitN_eq` (`Fast/Decode.lean`): at `Vn k = V (decoderFunctionName k)` and `cl = cursorLen` it is
 `decWitV σ rd V vsPiOf`, the deployed decoder's witness. `ReaderTabs`, `readerTabs`: the tables
 of the readers off arrays, built once.
 -/
@@ -32,14 +34,6 @@ noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E 
     (fun args rets ↦ dvWitN (Vn 27 args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
     (fun args ↦ aggHints rd (Vn 33 args []))
-
-/-- **The witnesses are equal.** -/
-theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :
-    decWitN σ rd (fun k ↦ V (decoderFunctionName k)) VerifySub.cursorLen =
-      decWitV σ rd V VerifySub.vsPiOf := by
-  simp only [decWitN, decWitV, xmssSigOfN_eq, sphincsSigOfN_eq, dvWitN_eq, vsPiOfN_eq,
-    name_verify_lean_xmss, name_verify_sig_lean_sphincs, name_da_verify, name_verify_sub,
-    name_aggregate_claims]
 
 /-- **The readers' tables, as arrays**, built once per decoding and passed to the readers off
 arrays (`xmssSigOfA`, `sphincsSigOfA`, `vsPiOfA`). -/

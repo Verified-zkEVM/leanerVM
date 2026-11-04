@@ -4,7 +4,9 @@ public import LeanVM.Guest.Fast.SpWots
 public import LeanVM.Guest.Fast.Common
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.SphincsSig
 public import LeanVM.Guest.B1.Sig.Bytes
+public import LeanVM.Cost.Rules
 
 /-!
 # leanSPHINCS's signature reader, computable
@@ -31,7 +33,7 @@ at cells its digit words select (`spStartAt`, `Fast/SpWots.lean`). The reader ta
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
+open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Sig
 
 @[expose] public section
 
@@ -65,25 +67,88 @@ def spCtr (l : ℕ) : ℕ := if l = 0 then 6868 else if l = 1 then 7201 else 742
 def spPath (l : ℕ) : ℕ := if l = 0 then 6998 else if l = 1 then 7221 else 7445
 def spBit (l : ℕ) : ℕ := 51 + 8 * l
 
+/-- Layer `l`'s call of `sp_wots`: the key's address cell, the encoding's first cell, the leaf. -/
+def spAt (l : ℕ) : ℕ := if l = 0 then 6826 else if l = 1 then 6827 else 6829
+def spEnc (l : ℕ) : ℕ := if l = 0 then 6984 else if l = 1 then 7207 else 7431
+def spLeaf (l : ℕ) : ℕ := if l = 0 then 6997 else if l = 1 then 7220 else 7444
+
 /-- Layer `l`'s call of `sp_wots`: its arguments (`P`, the key's address, the encoding's first
 cell) and its return (the leaf). -/
-def spWotsArgs (σ : Val) (l : ℕ) : List E :=
-  [σ (.n 2), σ (.n (if l = 0 then 6826 else if l = 1 then 6827 else 6829)),
-    σ (.n (if l = 0 then 6984 else if l = 1 then 7207 else 7431))]
-def spWotsRets (σ : Val) (l : ℕ) : List E :=
-  [σ (.n (if l = 0 then 6997 else if l = 1 then 7220 else 7444))]
+def spWotsArgs (σ : Val) (l : ℕ) : List E := [σ (.n 2), σ (.n (spAt l)), σ (.n (spEnc l))]
+def spWotsRets (σ : Val) (l : ℕ) : List E := [σ (.n (spLeaf l))]
 
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks**, off its valuation `σ` and its
 three `sp_wots` frames. -/
 def sphincsSigOfA (T : SpTabs) (σ w0 w1 w2 : Val) : Sphincs.Signature :=
-  ⟨cellVal (σ (.n 3)), fun c ↦ forsOpeningA σ c.val, fun layer ↦
-    layerA T σ (if layer.val = 0 then w0 else if layer.val = 1 then w1 else w2)
-      (spCtr layer.val) (spPath layer.val) (spBit layer.val) layer⟩
+  ⟨cellVal (σ (.n 3)), fun c ↦ forsOpeningA σ c.val,
+    LeanVM.Cost.depFin3 (layerA T σ w0 (spCtr 0) (spPath 0) (spBit 0) 0)
+      (layerA T σ w1 (spCtr 1) (spPath 1) (spBit 1) 1) (layerA T σ w2 (spCtr 2) (spPath 2) (spBit 2) 2)⟩
 
 /-- **The signature off the frame map keyed by index**: `sp_wots` is function `21`. -/
 def sphincsSigOfN (σ : Val) (Vn : NFrames) : Sphincs.Signature :=
   sphincsSigOfA spTabs σ (Vn 21 (spWotsArgs σ 0) (spWotsRets σ 0))
     (Vn 21 (spWotsArgs σ 1) (spWotsRets σ 1)) (Vn 21 (spWotsArgs σ 2) (spWotsRets σ 2))
+
+/-! ## The reader is the witness's -/
+
+/-- The template's positions (`SphincsT.lean`, `SphincsSig.lean`): FORS tree `c`'s base. -/
+theorem sForsBase_eq : ∀ c < 24, sForsBase c = 1225 + 233 * c := by decide +kernel
+
+/-- The template's positions: each layer's call, counter, path and bits. -/
+theorem sLayerPositions : ∀ l < 3, sAtOf l = .n (spAt l) ∧ sEncOf l = .n (spEnc l) ∧
+    sLeafOf l = spLeaf l ∧ sCtrOf l = .n (spCtr l) ∧ spPath l = sLeafOf l + 1 ∧
+    spBit l = 51 + sOffOf l := by
+  decide +kernel
+
+theorem forsOpeningA_eq (σ : Val) {c : ℕ} (hc : c < 24) : forsOpeningA σ c = sForsOpeningOf σ c := by
+  have h1 : ∀ l : ℕ, 51 + (26 + 10 * c + l) = 77 + 10 * c + l := fun l ↦ by omega
+  have h2 : ∀ l : ℕ, 1225 + 233 * c + 22 + 23 * l = 1247 + 233 * c + 23 * l := fun l ↦ by omega
+  simp only [forsOpeningA, sForsOpeningOf, sForsBase_eq c hc, siblingOf, sibN, sBit, h1, h2]
+
+/-- `sp_wots`' tables off arrays read the chain starts `spValues` reads. -/
+theorem layerChains_eq (w : Val) (i : Sphincs.ChainIndex) :
+    cellVal (w (.n (cwCellA spTabs.lanes 21 spTabs.sel spTabs.first spTabs.rest spTabs.last w i.val))) =
+      spValues w i := by
+  have hK : spDigitWord w = spK w := rfl
+  show _ = cellVal (w (spStartAt (spDigitWord w) i.val))
+  rw [hK, spStartAt_eq_cwCell w i.isLt]
+  exact congrArg (fun k ↦ cellVal (w (.n k))) (cwCellA_eq 21 spSel spFirst spRest spLast w i.val)
+
+theorem layerSignature_ext {l : Sphincs.Layer} {a b : Sphincs.LayerSignature l}
+    (h1 : a.counter = b.counter) (h2 : a.chainValues = b.chainValues)
+    (h3 : a.authenticationPath = b.authenticationPath) : a = b := by
+  cases a; cases b; cases h1; cases h2; cases h3; rfl
+
+theorem signature_ext {a b : Sphincs.Signature} (h1 : a.randomizer = b.randomizer)
+    (h2 : a.forsOpening = b.forsOpening) (h3 : a.layers = b.layers) : a = b := by
+  cases a; cases b; cases h1; cases h2; cases h3; rfl
+
+theorem layerA_eq (σ : Val) (V : FrameMap) (l : Sphincs.Layer) :
+    layerA spTabs σ (V "sp_wots" (spWotsArgs σ l.val) (spWotsRets σ l.val)) (spCtr l.val)
+      (spPath l.val) (spBit l.val) l = sLayerOf σ V l := by
+  obtain ⟨ha, he, hf, hc, hp, hb⟩ := sLayerPositions l.val l.isLt
+  apply layerSignature_ext
+  · simp only [layerA, sLayerOf, hc]
+    rfl
+  · funext i
+    simp only [layerA, sLayerOf, spWotsArgs, spWotsRets, layerChains_eq, ha, he, hf, sPP]
+  · funext j
+    simp only [layerA, sLayerOf, hp, hb, hf, siblingOf, sibN, sBit, Nat.add_assoc]
+    rfl
+
+/-- **The readers are equal**: off the frame map re-keyed by index, the reader is the witness
+`sphincsSigOf` (`B1/Sig/SphincsSig.lean`). -/
+theorem sphincsSigOfN_eq (σ : Val) (V : FrameMap) :
+    sphincsSigOfN σ (fun k ↦ V (decoderFunctionName k)) = sphincsSigOf σ V := by
+  apply signature_ext
+  · rfl
+  · exact funext fun c ↦ forsOpeningA_eq σ c.isLt
+  · funext l
+    simp only [sphincsSigOfN, sphincsSigOfA, sphincsSigOf, name_sp_wots]
+    match l with
+    | ⟨0, _⟩ => exact layerA_eq σ V 0
+    | ⟨1, _⟩ => exact layerA_eq σ V 1
+    | ⟨2, _⟩ => exact layerA_eq σ V 2
 
 end
 end LeanVM.Guest.Fast

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Guest.Fast.Main
+public import LeanVM.Guest.Fast.FramesN
 public import LeanVM.Guest.Fast.DiscreteLog
 public import LeanVM.Guest.EndFinal
 
@@ -11,8 +11,9 @@ public import LeanVM.Guest.EndFinal
 `Located.frameVFast`, keyed by the callee's name: it looks the call up in the entry table at the
 name's index (`nameIndex`) and reads the frame through the certificate of that name.
 
-* `frameVFastN pre states rd j`: the same lookup keyed by the index `j` (through `canonIndex`),
-  no name read; `frameVFastN_eq`: it is `frameVFast` at `decoderFunctionName j`, for every `j`;
+* `frameVFastN pre states rd j` (`Fast/FramesN.lean`): the same lookup keyed by the index `j`;
+* `decWitN_eq`: `main`'s witness off the restated readers, at the frame map re-keyed by index, is
+  `decWitV`'s;
 * `decode_eq_numbered`: the deployed decoder is the one reading `decWitN` (`Fast/Main.lean`, the
   restated readers) through `frameVFastN`, the cursor's length by a discrete logarithm
   (`cursorLenWith dl`, `Fast/DiscreteLog.lean`).
@@ -20,31 +21,20 @@ name's index (`nameIndex`) and reads the frame through the certificate of that n
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Node
 open LeanVM.Guest.Located LeanVM.Extraction.Fast
 
 attribute [local instance] lexOrd
 
 @[expose] public section
 
-/-- **The replayed frame map, keyed by index** (`frameVFast`): the call of function
-`canonIndex j` looked up in the entry table, its frame read through `certOf`. -/
-noncomputable def frameVFastN (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) :
-    NFrames :=
-  let table := entryTable pre states rd
-  fun j args rets ↦ match table.get? (callKey (canonIndex j) args rets) with
-    | some fp => fun v ↦ wordWith rd fp ((certOf (canonIndex j)).locs.getD v.idx 0)
-    | none => fun _ ↦ 0
-
-/-- **Keyed by index, the replayed frame map is the one keyed by name.** -/
-theorem frameVFastN_eq (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) (j : ℕ) :
-    frameVFastN pre states rd j = frameVFast pre states rd (decoderFunctionName j) := by
-  have h1 : nameIndex (decoderFunctionName j) = canonIndex j := nameIndex_decoderFunctionName j
-  have h2 : certByName (decoderFunctionName j) = certOf (canonIndex j) := congrArg certOf h1
-  unfold frameVFastN frameVFast
-  rw [h1, h2]
-  funext args rets
-  cases (entryTable pre states rd).get? (callKey (canonIndex j) args rets) <;> rfl
+/-- **The witnesses are equal.** -/
+theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :
+    decWitN σ rd (fun k ↦ V (decoderFunctionName k)) VerifySub.cursorLen =
+      decWitV σ rd V VerifySub.vsPiOf := by
+  simp only [decWitN, decWitV, xmssSigOfN_eq, sphincsSigOfN_eq, dvWitN_eq, vsPiOfN_eq,
+    name_verify_lean_xmss, name_verify_sig_lean_sphincs, name_da_verify, name_verify_sub,
+    name_aggregate_claims]
 
 /-- **The deployed decoder reads the frames by index**, through the restated readers, the
 cursor's length by any discrete logarithm `dl` (`discreteLog`, `Fast/DiscreteLog.lean`). -/

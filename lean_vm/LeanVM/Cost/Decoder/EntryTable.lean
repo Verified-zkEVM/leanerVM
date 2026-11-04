@@ -2,12 +2,12 @@ module
 
 public import LeanVM.Cost.Decoder.PreTable
 public import LeanVM.Cost.Decoder.GuestTables
-public import LeanVM.Guest.Fast.Decode
+public import LeanVM.Guest.Fast.FramesN
 
 /-!
 # The guest decoder's compiled chain: the replayed frame map, keyed by index
 
-`Guest.Fast.frameVFastN pre states rd` (`Fast/Decode.lean`): the entry table of the replayed
+`Guest.Fast.frameVFastN pre states rd` (`Fast/FramesN.lean`): the entry table of the replayed
 states (`Located.entryTable`: from a call's key to the frame of the first state that entered its
 callee, the precondition `pre` holding there), and each call's frame read through the callee's
 certificate. Restated with the guest's tables (`GuestTables.lean`, literals of the program) and

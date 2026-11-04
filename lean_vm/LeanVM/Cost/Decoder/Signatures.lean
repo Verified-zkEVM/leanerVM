@@ -34,6 +34,12 @@ cost_enc LeanVM.Guest.Fast.XmssTabs
 cost_enc LeanVM.Guest.Fast.SpTabs
 cost_enc LeanVM.Guest.Fast.WhirTabs
 
+/-- The leanSPHINCS layers as the reader builds them (`depFin3`, a function of `Fin 3`): the array
+of their values (`depFinEncoding`), stated at `Fin 3`, which instance search does not unify with
+`Sphincs.Layer = Fin layerCount`. -/
+instance spLayersEnc : MachineEncoding ((i : Fin 3) → Sphincs.LayerSignature i) :=
+  @depFinEncoding 3 (fun i ↦ Sphincs.LayerSignature i) fun i ↦ instMachineEncodingLayerSignature_1 i
+
 /-! ## The tables
 
 The literals and helpers the readers call, each under a name of its own (stable across the
