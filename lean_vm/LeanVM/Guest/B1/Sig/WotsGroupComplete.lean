@@ -142,7 +142,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
 theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {fold : Bool}
     {prodIn encIn : V} {d : Nat} {pre : List Stmt} {b : Nat} (hB : B ≤ b + 6) (hdb : d ≤ b)
     (hpre : NumBelow (b + 6) (Stmt.valsList pre)) (hpi : NBv (b + 6) prodIn) (hei : NBv (b + 6) encIn)
-    (hpw : ∀ j, NBv (b + 6) (W.power j)) :
+    (hpw : ∀ k < 4 ^ n, NBv (b + 6) (W.power (digitSum k n))) :
     NumBelow (groupD W first n fold prodIn encIn d pre b).2
       (Stmt.valsList (groupD W first n fold prodIn encIn d pre b).1) := by
   have hW' := StepShape.mono hW hB
@@ -179,7 +179,7 @@ theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Na
           rw [mul_comm]; exact Nat.mul_le_mul_right _ (by omega)
         split <;> omega
       refine armT_vals hW' (by simpa using l1) (by simpa using l2) hP1 (fun x hx => ?_) ⟨?_, ?_, ?_,
-        hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _), ?_⟩
+        hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _ hk), ?_⟩
       · obtain ⟨j, rfl, h1', h2'⟩ := l3 x (by simpa using hx)
         exact ⟨j, by omega, rfl⟩
       · exact ⟨_, by omega, rfl⟩
@@ -196,7 +196,7 @@ theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Na
         (Nat.zero_le n)
       simp only [walkBase] at hwb
       refine armT_vals hW' (by simpa [hk0] using l1) (by simpa [hk0] using l2) hP1 (fun x hx => ?_)
-        ⟨?_, ?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _), ?_⟩
+        ⟨?_, ?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _ hk), ?_⟩
       · obtain ⟨j, rfl, h⟩ := l3 x (by simpa [hk0] using hx)
         rcases h with h | h
         · exact ⟨j, by rw [groupStart_eq] at h1 h; omega, rfl⟩
@@ -228,7 +228,7 @@ theorem groupT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Na
     (hpw : ∀ j, NBv b (W.power j)) :
     NumBelow (groupT W first n fold prodIn encIn b).2 (Stmt.valsList (groupT W first n fold prodIn encIn b).1) :=
   groupD_numBelow (pre := []) hW (by omega) le_rfl (.nil _) (NBv.mono' hpi (by omega)) (NBv.mono' hei (by omega))
-    (fun j => NBv.mono' (hpw j) (by omega))
+    (fun _ _ => NBv.mono' (hpw _) (by omega))
 
 end
 end LeanVM.Guest.B1.Sig

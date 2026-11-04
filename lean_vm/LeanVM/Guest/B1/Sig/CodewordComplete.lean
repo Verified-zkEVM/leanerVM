@@ -85,6 +85,31 @@ theorem groupT_snd_eq (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : 
     (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
   simp only [groupT, groupD, groupArmsT]; rw [armsT_snd]; rfl
 
+/-- **A group completes from any valuation**, its digits `k` loaded at `d` and its arm's starts
+`vals`, its statements `pre` a sequential block on `d + 5 ..< b + 5` after which `good` holds. -/
+theorem groupD_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {d : Nat}
+    {pre : List Stmt} {b k : Nat}
+    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hdb : d ≤ b) (hB : B ≤ b + 5)
+    (hpre : SeqOK (d + 5) pre (b + 5)) (hpi : NBv B prodIn)
+    (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n))) (vals : Nat → E)
+    (hv : ∀ t < n, IsCanonical128 (vals t)) (σ : Val)
+    (hg : ∀ σ', AgreeBelow d σ σ' → AtomsHold rd σ' pre → good σ') :
+    Completes C rd d (groupD W first n fold prodIn encIn d pre b).2 (groupD W first n fold prodIn encIn d pre b).1 σ
+      (fun σ' => σ' (.n d) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+        (∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = vals t) ∧ good σ') := by
+  obtain ⟨hl1, hl2, hl3⟩ := gLoadD_spec W first n fold prodIn encIn d b k vals σ hk hdb
+  have hend : (groupD W first n fold prodIn encIn d pre b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
+    simp only [groupD, groupArmsT]; rw [armsT_snd]; rfl
+  rw [← hend] at hl1
+  refine ((groupD_complete (C := C) (rd := rd) hW hc hn hk hm hdb hB hpre hpi hei hpw _
+    (fun σ' he hh => hg σ' (fun j hj => (hl1.apply (Or.inl hj)).symm.trans (he.agree j (by omega))) hh)
+    hl2 (fun t ht => ?_)).reload hl1).mono le_rfl le_rfl
+    (fun σ' ⟨h1, h2, h3, h4⟩ => ⟨h1, h2, fun t ht => by rw [h3 t ht, hl3 t ht], h4⟩)
+  show IsCanonical128 (gLoadD W first n fold prodIn encIn d b k vals σ (grpPos W first n fold prodIn encIn b k t))
+  rw [hl3 t ht]
+  exact hv t ht
+
 /-- **A group completes from any valuation**, its digits `k` and its arm's starts `vals` loaded. -/
 theorem groupT_load {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
     (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}

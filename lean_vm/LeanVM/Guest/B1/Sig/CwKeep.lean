@@ -218,20 +218,20 @@ theorem sLoad_at (pos : Nat → V) (vals : Nat → E) (σ : Val) :
       · rw [Function.update_of_ne (hne t m (by omega) (by omega)),
           sLoad_at pos vals σ m (fun a b h1 h2 => hne a b h1 (by omega)) t (by omega)]
 
-/-- Group `b`'s digits `k` and its arm's starts `vals` loaded. -/
-def gLoad (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) (vals : Nat → E)
+/-- A group's digits `k` loaded at `d` and its arm's starts `vals`, its arms from `b`. -/
+def gLoadD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d b k : Nat) (vals : Nat → E)
     (σ : Val) : Val :=
-  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n b) (ofK
+  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n d) (ofK
       (addressOfIndex k))
 
-/-- **A group's load**: its digits at the base, its starts, changes in its range only. -/
-theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
-    (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) :
-    Ext b (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoad W first n fold prodIn encIn b k vals σ) ∧
-      gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (addressOfIndex k) ∧
-      ∀ t < n, gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t) =
+/-- **A group's load**: its digits at `d`, its starts, changes in its range only. -/
+theorem gLoadD_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d b k : Nat)
+    (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) (hdb : d ≤ b) :
+    Ext d (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoadD W first n fold prodIn encIn d b k vals σ) ∧
+      gLoadD W first n fold prodIn encIn d b k vals σ (.n d) = ofK (addressOfIndex k) ∧
+      ∀ t < n, gLoadD W first n fold prodIn encIn d b k vals σ (grpPos W first n fold prodIn encIn b k t) =
         vals t := by
-  have hne : ∀ t < n, grpPos W first n fold prodIn encIn b k t ≠ .n b := by
+  have hne : ∀ t < n, grpPos W first n fold prodIn encIn b k t ≠ .n d := by
     intro t ht e
     obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
     rw [ej] at e
@@ -241,15 +241,29 @@ theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) 
     rw [← armB_zero W first n fold prodIn encIn b]
     exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
   refine ⟨fun v hv => ?_, Function.update_self .., fun t ht => ?_⟩
-  · unfold gLoad
-    rw [Function.update_of_ne (hv b le_rfl (by omega))]
+  · unfold gLoadD
+    rw [Function.update_of_ne (hv d le_rfl (by omega))]
     refine sLoad_other _ _ σ n fun t ht e => ?_
     obtain ⟨j, ej, h1, h2, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
     rw [ej] at e
     exact hv j (by omega) h2 e
-  · unfold gLoad
+  · unfold gLoadD
     rw [Function.update_of_ne (hne t ht)]
     exact sLoad_at _ vals σ n (fun a c h1 h2 => grpPos_ne hk h1 h2) t ht
+
+/-- A group's digits `k` and its arm's starts `vals` loaded. -/
+def gLoad (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) (vals : Nat → E)
+    (σ : Val) : Val :=
+  gLoadD W first n fold prodIn encIn b b k vals σ
+
+/-- **A group's load**: its digits at the base, its starts, changes in its range only. -/
+theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
+    (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) :
+    Ext b (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoad W first n fold prodIn encIn b k vals σ) ∧
+      gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (addressOfIndex k) ∧
+      ∀ t < n, gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t) =
+        vals t :=
+  gLoadD_spec W first n fold prodIn encIn b b k vals σ hk le_rfl
 
 end
 end LeanVM.Guest.B1.Sig

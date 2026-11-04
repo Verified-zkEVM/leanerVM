@@ -109,7 +109,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
     {pre : List Stmt} {b k : Nat}
     (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hdb : d ≤ b) (hB : B ≤ b + 5)
     (hpre : SeqOK (d + 5) pre (b + 5)) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (σ : Val)
+    (hei : NBv B encIn) (hpw : NBv B (W.power (digitSum k n))) (σ : Val)
     (hg : ∀ σ', Ext (d + 1) (b + 5) σ σ' → AtomsHold rd σ' pre → good σ')
     (hb : σ (.n d) = ofK (addressOfIndex k))
     (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
@@ -163,7 +163,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
   rw [armsT_getElem]
   simp only [Nat.zero_add]
   obtain ⟨σ', he', hp', hh'⟩ := groupArm_complete (C := C) (rd := rd) (first := first) (n := n) (fold := fold)
-    (prodIn := prodIn) (encIn := encIn) (b := b) (k := k) hW hc hk (by omega) hpi hei (hpw _) σ4 hg4
+    (prodIn := prodIn) (encIn := encIn) (b := b) (k := k) hW hc hk (by omega) hpi hei hpw σ4 hg4
     (fun t ht => by
       have := hs t ht
       unfold StartCanon at this ⊢
@@ -206,7 +206,7 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
       (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
         ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) :=
-  (groupD_complete (pre := []) hW hc hn hk hm le_rfl (by omega) rfl hpi hei hpw σ
+  (groupD_complete (pre := []) hW hc hn hk hm le_rfl (by omega) rfl hpi hei (hpw _) σ
     (fun σ' he _ => hc.1 _ _ (fun j hj => (he.agree j (by omega))) hg) hb hs).mono le_rfl le_rfl
     (fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩)
 
