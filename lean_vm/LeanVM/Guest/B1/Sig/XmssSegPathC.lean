@@ -765,5 +765,108 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
       exact (check_complete hc _).mono le_rfl le_rfl (fun σ' e => by
         subst e; exact hkeep σ1 σ' (fun j hj => he2.apply (Or.inl hj)) hp1)
 
+/-! ## A window -/
+
+theorem lxArmB_succ (w : Nat) : ∀ j k b, lxArmB w k (j + 1) b = lxArmB w k j b + lxArmSize w (k + j)
+  | 0, k, b => by simp [lxArmB]
+  | j + 1, k, b => by
+      rw [lxArmB, lxArmB_succ w j (k + 1) _, lxArmB, show k + 1 + j = k + (j + 1) by omega]
+
+theorem lxArmB_mono (w k b : Nat) {j j' : Nat} (h : j ≤ j') : lxArmB w k j b ≤ lxArmB w k j' b := by
+  induction h with
+  | refl => exact le_rfl
+  | step _ ih => rw [lxArmB_succ]; omega
+
+theorem lxArmB_ge (w k j b : Nat) : b ≤ lxArmB w k j b := lxArmB_mono w k b (Nat.zero_le j)
+
+theorem lxArmsT_snd (w : Nat) (cur : V) (o : Nat) : ∀ m k b, (lxArmsT w cur o m k b).2 = lxArmB w k m b
+  | 0, _, _ => rfl
+  | m + 1, k, b => by
+      simp only [lxArmsT, lxArmB]
+      rw [lxArmsT_snd w cur o m (k + 1), lxArmT_next']
+
+theorem lxOut0_size (w b : Nat) : lxOut0 w b + 13 = b + lxArmSize w 0 ∧ b + 103 ≤ lxOut0 w b := by
+  unfold lxOut0 lxArmSize lxStride lxLastNext
+  by_cases hw : w + 1 = 4 <;> simp [hw]
+
+theorem lxArmO_none (w b : Nat) : lxArmO w none b = lxOut0 w b := by
+  rw [lxArmO_eq]; unfold lxOut0 lxStride; split <;> simp
+
+theorem lxArmO_some (w o b : Nat) : lxArmO w (some o) b = o := by rw [lxArmO_eq]; rfl
+
+theorem lxWindowT_snd (w : Nat) (cur : V) (b : Nat) :
+    (lxWindowT w cur b).2.1 = lxArmB w 0 256 (b + 5) := by
+  dsimp only [lxWindowT]
+  exact lxArmsT_snd ..
+
+/-- Where arm `k` of the window from `b` lies: its base and end below the window's end, arm `0`'s
+node's run below arm `k`'s base for `k ≠ 0`. -/
+theorem lxArm_place (w : Nat) {k : Nat} (hk : k < 256) (b : Nat) :
+    b + 5 ≤ lxArmB w 0 k (b + 5) ∧ lxArmB w 0 k (b + 5) + lxArmSize w k ≤ lxArmB w 0 256 (b + 5) ∧
+      lxOut0 w (b + 5) + 13 ≤ lxArmB w 0 256 (b + 5) ∧
+      (k ≠ 0 → lxOut0 w (b + 5) + 13 ≤ lxArmB w 0 k (b + 5)) := by
+  have h1 := lxArmB_succ w k 0 (b + 5)
+  have h0 := lxArmB_succ w 0 0 (b + 5)
+  simp only [Nat.zero_add] at h1 h0
+  have hm := lxArmB_mono w 0 (b + 5) (show k + 1 ≤ 256 by omega)
+  have hm1 := lxArmB_mono w 0 (b + 5) (show 1 ≤ 256 by omega)
+  have hz : lxArmB w 0 0 (b + 5) = b + 5 := rfl
+  have ho := (lxOut0_size w (b + 5)).1
+  refine ⟨lxArmB_ge .., by omega, by omega, fun hk0 => ?_⟩
+  have := lxArmB_mono w 0 (b + 5) (show 1 ≤ k by omega)
+  omega
+
+/-- **A window completes** by the honest arm `lxWin L w`, its range check against `g^255`, level
+`r`'s sibling `sibs r`: the siblings where the arm hints them, its node canonical. -/
+theorem lxWindowT_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4)
+    {cur : V} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hwin : σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
+    (hb : 103 ≤ b) (hcur : NBv b cur) (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E)
+    (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
+    Completes C rd b (lxWindowT w cur b).2.1 (lxWindowT w cur b).1 σ
+      (fun σ' => (∀ r < 8, lxSibF σ' w (lxArmB w 0 (lxWin L w) (b + 5)) r = sibs r) ∧
+        IsCanonical128 (σ' (.n (lxWindowT w cur b).2.2))) := by
+  have hk := lxWin_lt L w
+  obtain ⟨p1, p2, p3, p4⟩ := lxArm_place w hk b
+  have hsw : NBv b (sWin w) := ⟨71 + w, by omega, rfl⟩
+  rw [lxWindowT_snd]
+  dsimp only [lxWindowT]
+  rw [show ∀ (x y : Stmt), [x, y] = [x] ++ [y] from fun _ _ => rfl]
+  rw [show bound255 = ofK (addressOfIndex (256 - 1)) from bound255_eq]
+  refine Completes.append (m := b + 4) (by omega) (by omega) ?_
+    (rangeS_complete hm le_rfl hk σ (sWin w) hsw hwin) (fun σ1 he1 _ => ?_)
+  · intro v hv
+    simp [rangeS, cst, Stmt.vals, Atom.vals] at hv
+    rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals exact ⟨_, by omega, rfl⟩
+  refine Completes.append (m := b + 5) (by omega) (by omega)
+    (by simp [cst, Stmt.vals, Atom.vals]; exact .cons ⟨b + 4, by omega, rfl⟩ (.nil _))
+    (cst_complete σ1 (b + 4) closeLane) (fun σ2 he2 _ => ?_)
+  have hσ2 : ∀ j < b, σ2 (.n j) = σ (.n j) := fun j hj =>
+    (he2.apply (Or.inl (by omega))).trans (he1.apply (Or.inl hj))
+  refine match_complete (k := lxWin L w) (by rw [lxArmsT_length]; exact hk) (hsw.mono' (by omega))
+    (by obtain ⟨j, hj, e⟩ := hsw; rw [e, hσ2 j hj, ← e]; exact hwin) ?_
+  rw [lxArmsT_getElem]
+  simp only [Nat.zero_add]
+  obtain ⟨jc, hjc, rfl⟩ := hcur
+  have hE2 : LxEnv L σ2 := hE.congr fun j hj => hσ2 j (by omega)
+  have harm := lxArmT_complete (C := C) (rd := rd) hL hw (cur := .n jc)
+    (outO := if lxWin L w = 0 then none else some (lxOut0 w (b + 5))) (b := lxArmB w 0 (lxWin L w) (b + 5))
+    σ2 hE2 (by omega) ⟨jc, by omega, rfl⟩ (by rw [hσ2 jc hjc]; exact hcc)
+    (fun o ho => by
+      by_cases h0 : lxWin L w = 0
+      · simp [h0] at ho
+      · simp only [h0, ↓reduceIte, Option.some.injEq] at ho
+        subst ho
+        exact ⟨by have := (lxOut0_size w (b + 5)).2; omega, p4 h0,
+          notInR_of (by have := (lxOut0_size w (b + 5)).2; omega)⟩) sibs hsc
+  have hO : lxArmO w (if lxWin L w = 0 then none else some (lxOut0 w (b + 5))) (lxArmB w 0 (lxWin L w) (b + 5)) =
+      lxOut0 w (b + 5) := by
+    by_cases h0 : lxWin L w = 0
+    · simp only [h0, ↓reduceIte, lxArmO_none]; rfl
+    · simp only [h0, ↓reduceIte, lxArmO_some]
+  rw [hO, lxArmT_next'] at harm
+  have := (lxOut0_size w (b + 5)).2
+  exact harm.toC (by omega) (by omega) p2 p3
+
 end
 end LeanVM.Guest.B1.Sig
