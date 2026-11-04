@@ -1308,8 +1308,29 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     s!"{listText (c.bnd.map pairText)}, {listText (c.known.map tripText)}, " ++
     s!"{listText (c.knownIf.map tripText)}, {listText (c.sems.map tagText)}⟩")
   let envT := listText (F.env.map fun (o, s) => s!"({o}, {symText s})")
-  let armsT := listText ((F.arms.toList.mergeSort (·.1 ≤ ·.1)).map fun (i, a) =>
-    s!"({i}, {listText (a.map toString)})")
+  -- the table jumps' arms; many (a chain's arms each end in a table jump into the next `match`'s
+  -- arms): each list of arms defined once, the pairs in chunks, each ending in the next
+  let armsL := F.arms.toList.mergeSort (·.1 ≤ ·.1)
+  let manyArms := armsL.foldl (· + ·.2.length) 0 > 8192
+  let (tabIdx, tabs) := armsL.foldl (fun ((m : Std.HashMap String ℕ), (ts : Array (List ℕ))) (_, a) =>
+    let k := toString a
+    if m.contains k then (m, ts) else (m.insert k ts.size, ts.push a)) ({}, #[])
+  let armsRef (a : List ℕ) : String := match tabIdx.get? (toString a) with
+    | some k => if manyArms then s!"cert{j}_t{k}" else listText (a.map toString)
+    | none => listText (a.map toString)
+  let armChunks := (List.range ((armsL.length + locChunk - 1) / locChunk)).map fun c =>
+    (armsL.drop (c * locChunk)).take locChunk
+  let armsDefs := if !manyArms then "" else
+    String.join (tabs.toList.zipIdx.map fun (a, k) =>
+      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := " ++
+        "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
+    String.join ((armChunks.zipIdx.reverse).map fun (l, c) =>
+      let tl := if c + 1 < armChunks.length then s!"cert{j}_arms_{c + 1}" else "[]"
+      s!"/-- `{f.name}`: the table jumps' arms, from the {c * locChunk}th on. -/\n" ++
+      s!"def cert{j}_arms_{c} : List (ℕ × List ℕ) := (" ++
+        " :: ".intercalate (l.map fun (i, a) => s!"({i}, {armsRef a})") ++ s!" :: {tl})\n\n") ++ winMark
+  let armsT := if manyArms then (if armChunks.isEmpty then "[]" else s!"cert{j}_arms_0")
+    else listText (armsL.map fun (i, a) => s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
   -- each window's cells: the values from where the previous window's end, up to the last value
   -- its statements name, and the earlier values they name with the window holding them
@@ -1335,7 +1356,7 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     insW := insW.push (ins.map fun v => (v, locA.getD v 0, homeOf v))
   let litOf (l : List ℕ) : String := if l.length < 32 then listText (l.map toString)
     else "(" ++ " :: ".intercalate (l.map toString) ++ " :: [])"
-  let mut locDefs := ""
+  let mut locDefs := armsDefs
   let mut cellT : Array String := #[]
   for w in [0:nw] do
     let cs := (locs.drop los[w]!).take (his[w]! - los[w]!)
@@ -1382,7 +1403,7 @@ noncomputable def cert{j} : Check.Cert where
   sem := {listText ((semMap.getD f.name []).map tagText)}
   cuts := {cutT}
   ends := {listText (cuts.map (toString ·.b))}
-  entered := {listText (entW.map fun (i, sel, succ) => s!"({i}, {sel}, {listText (succ.map toString)})")}
+  entered := {listText (entW.map fun (i, sel, succ) => s!"({i}, {sel}, {armsRef succ})")}
 "
 
 end GuestCert
@@ -3272,7 +3293,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
 
 end CplK
 
-def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
+def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
   let T := tables Data.functions
   let index := (fns.toList.zipIdx.map fun (f, j) => (f.name, j)).foldl
@@ -3299,8 +3320,10 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     let attempt (coarse : Bool) := do
       let (c, sizes, fsz, locs, segs, (starts, los, his, insW), offs, entW) ←
         certOf coarse T fns index semMap (i + 1) cf
-      let (pt, statL, sh, tmps, runs, marks, stopAt, acs) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
-      let (sts, costs, wpos) ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
+      let (pt, statL, sh, tmps, runs, marks, stopAt, acs) ← if kOnly then pure default else
+        plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
+      let (sts, costs, wpos) ← if kOnly then pure default else
+        ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
       let nw := starts.size
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
@@ -3421,6 +3444,12 @@ noncomputable def certs : List Check.Cert :=
 " ++ "\n".intercalate rows ++ " []
 " ++ tail
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
+  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
+      [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++
+    (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
+      (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
+        else checkedDir / (n ++ ".lean"), t))
+  if kOnly then return kFiles
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
       [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
@@ -3452,8 +3481,11 @@ end GuestCert
 open GuestCert in
 def main (args : List String) : IO UInt32 := do
   let check := args == ["--check"]
-  unless args.isEmpty || check || args.head? == some "--windows" do
-    IO.eprintln "usage: guest-cert [--check | --windows [j]]"
+  -- `--k`: the soundness certificates and their checks only (`Data/Cert*`, `Pows`, `FrameSizes`,
+  -- `Checked`), the other files left as they are
+  let kOnly := args == ["--k"]
+  unless args.isEmpty || check || kOnly || args.head? == some "--windows" do
+    IO.eprintln "usage: guest-cert [--check | --k | --windows [j]]"
     return 2
   unless ← dataDir.isDir do
     IO.eprintln s!"{dataDir} not found: run from lean_vm"
@@ -3479,7 +3511,7 @@ def main (args : List String) : IO UInt32 := do
       | .error e1, .error e => IO.println s!"{i + 1} {cf.name}: {e1} / coarse: {e}"
       | .ok _, .error _ => pure ()
     return 0
-  let fs ← match files P with
+  let fs ← match files P kOnly with
     | .ok fs => pure fs
     | .error e => do IO.eprintln s!"certificate failed: {e}"; return 1
   unless check do
@@ -3487,7 +3519,8 @@ def main (args : List String) : IO UInt32 := do
     IO.FS.createDirAll sharedDir
     IO.FS.createDirAll CplK.cplwDir
   let paths := fs.map (·.1)
-  let stale := (← existing).filter (!paths.contains ·)
+  let stale := (← existing).filter fun p => !paths.contains p &&
+    (!kOnly || p.toString.startsWith checkedDir.toString || ((p.fileName.getD "").startsWith "Cert"))
   let mut bad := false
   for (path, text) in fs do
     if check then
