@@ -27,7 +27,7 @@ open LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.B2C
 /-- `checkWin` of function `j`, the window's code read by `execWinC`. -/
 noncomputable def checkWinC (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main : Bool) (i : ℕ) :
     Bool :=
-  match execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
+  match execWinCS C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1) (C.endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAt i).seq fun loc ↦
       C.contOk i && C.insOk (listElementOrDefault C.ins i []) && covOk loc (C.stmtsAt cf i) &&
       linkedWeak idx segs (C.fxAt G (fnOf j) cf main i segs idx loc).wJ (C.fxAt G (fnOf j) cf main i segs idx loc).wenv &&
@@ -35,13 +35,14 @@ noncomputable def checkWinC (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main
       (match segAt (C.fxAt G (fnOf j) cf main i segs idx loc) (C.cutAt i).J
           (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd with
         | some st => st.seg.env.sub Sym.beq (envOf (C.cutAt i).env) &&
-            winEnd C i idx (chkL (C.fxAt G (fnOf j) cf main i segs idx loc) (C.stmtsAt cf i) st [])
+            winEnd C i idx (walkFrom (C.fxAt G (fnOf j) cf main i segs idx loc) (C.cutAt i).env (C.selAt i)
+              (C.succAt i) (C.stmtsAt cf i) st)
         | none => false)
 
 theorem checkWinC_eq (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main : Bool) (i : ℕ) :
     checkWinC G j cf C main i = checkWin G (fnOf j) cf C main i := by
   unfold checkWinC checkWin
-  rw [execWinC_eq]
+  rw [execWinCS_eq]
   rfl
 
 /-- **A window's check**, decided by chunks. -/

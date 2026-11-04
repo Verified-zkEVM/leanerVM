@@ -508,13 +508,6 @@ structure Cut where
   known : List (ℕ × ℕ × ℕ) := []
   knownIf : List (ℕ × ℕ × ℕ) := []
   sems : List (ℕ × List ℕ) := []
-  /-- An entered window (a chained `match`'s, `succ ≠ []`): it starts at the arms `succ` (`J` the
-  first) of a `match` on the value in cell `sel`, entered from the previous window's table jumps. -/
-  sel : ℕ := 0
-  succ : List ℕ := []
-
-/-- The arms past the first an entered window starts at: the executor's pending edges. -/
-def Cut.seeds (c : Cut) : List ℕ := c.succ.drop 1
 
 /-- The certificate of one compiled function. -/
 structure Cert where
@@ -539,6 +532,9 @@ structure Cert where
   cuts : List Cut := []
   /-- The code offset each window's executor runs to, but the last's (which runs to the end). -/
   ends : List ℕ := []
+  /-- The entered windows (chained `match`es'): `(i, sel, succ)`, window `i` starting at the arms
+  `succ` (its `J` the first) of a `match` on the value in cell `sel`. -/
+  entered : List (ℕ × ℕ × List ℕ) := []
 
 /-- The program's context of a check: every function's `Sig` by index, the indices of the
 functions checked, the jump table, slot to target pc, and the relations on words over the memory,
@@ -916,6 +912,14 @@ noncomputable def tableSrc (B : Book) (t : ℕ) : Option (ℕ × ℕ) :=
     | .instr _ (.deref o1 o2 o3 .cell) => bif o3 == t then some (o1, o2) else none
     | _ => none
 
+/-- What `chainEnd` checks at the end `se` of a block jumping through `ft`'s frame into the
+arms `t0 :: ts`, the table read through `fp[x]` at `base`. -/
+noncomputable def chainOk (X : Fx) (se : CS) (ft : Exec.Tgt) (t0 : ℕ) (ts : List ℕ) (x base : ℕ)
+    (P : List Core.Atom) : Bool :=
+  X.F.self ft && armsOk X.G X.entry base 0 (t0 :: ts) &&
+    boundOk X.F se.psi X.mem se.book se.bnd x (ts.length + 1) && pendOk X se P &&
+    handOk X t0 se && (!(t0 == X.wJ) || X.wenv.sub Sym.beq se.seg.exit.env)
+
 /-- The end of a block in a chained `match`'s table jump: the segment's exit jumps through
 `fp[t]`, read from the table at `base` through `fp[x]`, whose slots hold the arms `succ`, the
 selector bounded by their number; every pending atom found; at a window's end its environment
@@ -925,11 +929,7 @@ noncomputable def chainEnd (X : Fx) (st : CS) (P : List Core.Atom) : Res :=
   | some se => match se.seg.exit.kind, se.seg.exit.succ with
     | .jump (.cell t) ft, t0 :: ts =>
         match tableSrc se.book t with
-        | some (x, base) =>
-            bif X.F.self ft && armsOk X.G X.entry base 0 (t0 :: ts) &&
-                boundOk X.F se.psi X.mem se.book se.bnd x (ts.length + 1) && pendOk X se P &&
-                handOk X t0 se && (bif t0 == X.wJ then X.wenv.sub Sym.beq se.seg.exit.env else true)
-            then .chain x (t0 :: ts) else .fail
+        | some (x, base) => bif chainOk X se ft t0 ts x base P then .chain x (t0 :: ts) else .fail
         | none => .fail
     | _, _ => .fail
   | none => .fail
@@ -1167,8 +1167,22 @@ noncomputable def bookOf : List (ℕ × Exec.Atom) → Book → Book
 
 /-- Where window `i` starts: the function's entry for the first. -/
 def Cert.cutAt (C : Cert) : ℕ → Cut
-  | 0 => ⟨0, C.facts.env, 0, [], C.pre, [], [], C.sem, 0, []⟩
-  | i + 1 => listElementOrDefault C.cuts i ⟨0, [], 0, [], [], [], [], [], 0, []⟩
+  | 0 => ⟨0, C.facts.env, 0, [], C.pre, [], [], C.sem⟩
+  | i + 1 => listElementOrDefault C.cuts i ⟨0, [], 0, [], [], [], [], []⟩
+
+/-- Window `i` entered (a chained `match`'s): the selector cell and the arms it starts at, or
+`(0, [])`; never the first. -/
+def Cert.enteredAt (C : Cert) : ℕ → ℕ × List ℕ
+  | 0 => (0, [])
+  | i + 1 => match C.entered.find? (·.1 == i + 1) with
+    | some (_, s, l) => (s, l)
+    | none => (0, [])
+
+/-- The selector cell of an entered window. -/
+def Cert.selAt (C : Cert) (i : ℕ) : ℕ := (C.enteredAt i).1
+
+/-- The arms an entered window starts at (`[]`: not entered). -/
+def Cert.succAt (C : Cert) (i : ℕ) : List ℕ := (C.enteredAt i).2
 
 /-- The code offset window `i`'s executor runs to. -/
 def Cert.endAt (C : Cert) (f : CompiledFunction) (i : ℕ) : ℕ :=
@@ -1197,9 +1211,9 @@ holding the next one's (at a segment of the window starting there, or by `linked
 the return. -/
 noncomputable def winEnd (C : Cert) (i : ℕ) (idx : Trie Exec.Seg) (r : Res) : Bool :=
   bif Nat.blt i C.cuts.length then
-    (bif (C.cutAt (i + 1)).succ.isEmpty then r == .join (C.cutAt (i + 1)).J
-      else r == .chain (C.cutAt (i + 1)).sel (C.cutAt (i + 1)).succ &&
-        (C.cutAt (i + 1)).succ.head? == some (C.cutAt (i + 1)).J) &&
+    (bif (C.succAt (i + 1)).isEmpty then r == .join (C.cutAt (i + 1)).J
+      else r == .chain (C.selAt (i + 1)) (C.succAt (i + 1)) &&
+        (C.succAt (i + 1)).head? == some (C.cutAt (i + 1)).J) &&
       Nat.ble (C.cutAt i).start (C.cutAt (i + 1)).start &&
       (match getF idx (C.cutAt (i + 1)).J with
       | some s => s.start == (C.cutAt (i + 1)).J && (envOf (C.cutAt (i + 1)).env).sub Sym.beq s.env
@@ -1281,9 +1295,14 @@ noncomputable def startsOk (idx : Trie Exec.Seg) (env : List (ℕ × Sym)) (succ
 
 /-- A window's walk from its start `st`: the statements from the segment there, or, entered, the
 chained `match` from its arms `succ` with the book, environment and bounds of `st`. -/
-noncomputable def walkFrom (X : Fx) (c : Cut) (ss : List Core.Stmt) (st : CS) : Res :=
-  bif c.succ.isEmpty then chkL X ss st []
-  else bif startsOk X.idx c.env c.succ then chainL X c.sel c.succ st.book st.psi st.bnd ss [] else .fail
+noncomputable def walkFrom (X : Fx) (env : List (ℕ × Sym)) (sel : ℕ) (succ : List ℕ)
+    (ss : List Core.Stmt) (st : CS) : Res :=
+  bif succ.isEmpty then chkL X ss st []
+  else bif startsOk X.idx env succ then chainL X sel succ st.book st.psi st.bnd ss [] else .fail
+
+theorem walkFrom_nil {X : Fx} {env : List (ℕ × Sym)} {sel : ℕ} {succ : List ℕ} (h : succ = [])
+    (ss : List Core.Stmt) (st : CS) : walkFrom X env sel succ ss st = chkL X ss st [] := by
+  simp [walkFrom, h]
 
 /-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
 executor's segments are linked, its cells are the certificate's and cover its statements, its walk
@@ -1291,7 +1310,7 @@ starts at its start offset in its environment with what the previous window hand
 as `winEnd` says; the first window also has the parameters in their cells. -/
 noncomputable def checkWin (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C : Cert) (main : Bool)
     (i : ℕ) : Bool :=
-  match execWinS C.facts f (C.cutAt i).J (C.cutAt i).env (C.cutAt i).seeds (C.endAt f i) with
+  match execWinS C.facts f (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1) (C.endAt f i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAt i).seq fun loc ↦
       C.contOk i && C.insOk (listElementOrDefault C.ins i []) && covOk loc (C.stmtsAt cf i) &&
       linkedWeak idx segs (C.fxAt G f cf main i segs idx loc).wJ (C.fxAt G f cf main i segs idx loc).wenv &&
@@ -1299,7 +1318,8 @@ noncomputable def checkWin (G : Glob) (f : CompiledFunction) (cf : Core.Fn) (C :
       (match segAt (C.fxAt G f cf main i segs idx loc) (C.cutAt i).J
           (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd with
         | some st => st.seg.env.sub Sym.beq (envOf (C.cutAt i).env) &&
-            winEnd C i idx (walkFrom (C.fxAt G f cf main i segs idx loc) (C.cutAt i) (C.stmtsAt cf i) st)
+            winEnd C i idx (walkFrom (C.fxAt G f cf main i segs idx loc) (C.cutAt i).env (C.selAt i)
+              (C.succAt i) (C.stmtsAt cf i) st)
         | none => false)
 
 end
