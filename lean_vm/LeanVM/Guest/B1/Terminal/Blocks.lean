@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Terminal.Blocks
 
-  The claims' blocks of `check_opening_terminal` (G:3083-3113): each adds its claim's term to the
-  running sum and checks its low point's length against its column's.
+  The claims' blocks of `check_opening_terminal` (G:3252-3289): each adds its claim's term to the
+  running sum and multiplies the running power of `λ` by `lam_cl`.
 -/
 
 module
@@ -13,15 +13,16 @@ public import LeanVM.Guest.B1.Terminal.Template
 # The claims' blocks
 
 The words the blocks read are named by `valOf` (the word read at a place, by choice; a read
-word is it, `valOf_eq`), the low points' lengths `cp j` given (`CpAt`). `claimsT_sound` gives
-the sum's value: the start plus each claim's `claimTerm`, and each claim's length check
-(`ClaimOk`).
+word is it, `valOf_eq`). Over the exponents `e` of `kappa_base` (`σ (33 + i) = g^(e i)`), claim
+`j`'s low length is `cLow e j`. `claimsT_sound` gives the sum's value: the start plus each claim's
+`claimTerm` at its power `λ^(1 + rk j)`, `rk` counting the claims kept before it, and the final
+power.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 @[expose] public section
 
@@ -44,128 +45,145 @@ def slotProd (s1 s0 : ℕ → E) (s : ℕ) : E :=
   let f := fun k ↦ if s.testBit k then s1 k else s0 k
   f 5 * f 4 * f 3 * f 2 * f 1 * f 0
 
-/-- Claim `j`'s term of the sum, `cp j` its low point's length: the batching power at
-`lam_pool` (`9`), the chain's value at `19` or `21`, the slot factor over the slot points (`23`,
-`24`) or the public input's chain value (`33`), and the column's selector. -/
-noncomputable def claimTerm (rd : Reader) (σ : Val) (cp : ℕ → ℕ) (j : ℕ) : E :=
+/-- Claim `j`'s low length over the exponents `e` of `kappa_base`. -/
+def cLow (e : ℕ → ℕ) (j : ℕ) : ℕ := e (claimKappaSrc j) + claimKappaAdj j
+
+/-- Claim `j`'s term of the sum at the power `L`: the chain's value at `18` or `20` at its low
+length, the slot factor over the slot points (`22`, `23`) or the public input's chain value
+(`32`), and the column's selector. -/
+noncomputable def claimTerm (rd : Reader) (σ : Val) (e : ℕ → ℕ) (L : E) (j : ℕ) : E :=
   match termKind j with
-  | 0 => valOf rd (σ (.n 9)) j * valOf rd (σ (.n 19)) (cp j) * σ (.n (selV (termCol j)))
-  | 1 => valOf rd (σ (.n 9)) j * valOf rd (σ (.n 21)) (cp j) * σ (.n (selV (termCol j)))
-  | 2 => valOf rd (σ (.n 9)) j * (slotProd (valOf rd (σ (.n 23))) (valOf rd (σ (.n 24))) (termSlot j) *
-      valOf rd (σ (.n 21)) (cp j)) * σ (.n (selV 5))
-  | 3 => valOf rd (σ (.n 9)) j * σ (.n 33) * σ (.n (selV (termCol j)))
+  | 0 => L * valOf rd (σ (.n 18)) (cLow e j) * σ (.n (selV (termCol j)))
+  | 1 => L * valOf rd (σ (.n 20)) (cLow e j) * σ (.n (selV (termCol j)))
+  | 2 => L * (slotProd (valOf rd (σ (.n 22))) (valOf rd (σ (.n 23))) (termSlot j) *
+      valOf rd (σ (.n 20)) (cLow e j)) * σ (.n (selV 5))
+  | 3 => L * σ (.n 32) * σ (.n (selV (termCol j)))
   | _ => 0
 
-/-- Claim `j`'s length check. -/
-noncomputable def ClaimOk (rd : Reader) (σ : Val) (cp : ℕ → ℕ) (j : ℕ) : Prop :=
-  match termKind j with
-  | 0 => gen ^ cp j = valOf rd (σ (.n 11)) (termCol j)
-  | 1 => gen ^ cp j = valOf rd (σ (.n 11)) (termCol j)
-  | 2 => gen ^ cp j * word 64 0 0 = valOf rd (σ (.n 11)) 5
-  | 3 => σ (.n 5) = valOf rd (σ (.n 11)) (termCol j)
-  | _ => True
+/-- **A low length**: `kb[src]·g^adj`. -/
+theorem kapT_sound {src adj r : ℕ} (hadj : adj < 64) {rest : List Stmt} {next : Prop}
+    {kret : List E → Prop} (h : Stmt.HoldsList C rd σ ((kapT src adj r).1 ++ rest) next kret) :
+    σ (.n (kapT src adj r).2.1) = σ (.n (kbV src)) * gen ^ adj ∧
+      Stmt.HoldsList C rd σ rest next kret := by
+  unfold kapT at h ⊢
+  by_cases h0 : adj = 0
+  · subst h0
+    simp only [↓reduceIte, List.nil_append, pow_zero, mul_one] at h ⊢
+    exact ⟨by simp, h⟩
+  · simp only [h0, ↓reduceIte, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
+      Atom.Holds] at h ⊢
+    obtain ⟨c0, m1, h⟩ := h
+    exact ⟨by rw [m1, c0, word_two_pow hadj], h⟩
 
-/-- Claim `j`'s length is read at `claim_cplen_g` as `g^(cp j)` (kinds `0 .. 2`). -/
-def CpAt (rd : Reader) (σ : Val) (cp : ℕ → ℕ) (j : ℕ) : Prop :=
-  termKind j < 3 → ∀ v, LoadHolds rd (σ (.n 7)) j v → v = gen ^ cp j
-
-theorem zrT_sound {ch j c r acc n : ℕ} {CH KV L : E}
-    (hcp : ∀ v, LoadHolds rd (σ (.n 7)) j v → v = gen ^ n)
-    (hch : ∀ v, LoadHolds rd (σ (.n ch)) n v → v = CH)
-    (hkv : ∀ v, LoadHolds rd (σ (.n 11)) c v → v = KV)
-    (hlam : ∀ v, LoadHolds rd (σ (.n 9)) j v → v = L)
-    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (zrT ch j c r acc) next kret) :
-    σ (.n (r + 7)) = σ (.n acc) + L * CH * σ (.n (selV c)) ∧ gen ^ n = KV ∧ next := by
+theorem zrT_sound {ch kr sel lr r acc n : ℕ} {L : E} (hkr : σ (.n kr) = gen ^ n)
+    (hl : σ (.n lr) = L) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (zrT ch kr sel lr r acc) next kret) :
+    σ (.n (r + 4)) = σ (.n acc) + L * valOf rd (σ (.n ch)) n * σ (.n sel) ∧
+      σ (.n (r + 5)) = L * σ (.n 9) ∧ next := by
   simp only [zrT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨l0, e1, l2, l3, a4, l4, e5, e6, e7, hn⟩ := h
-  have v0 := hcp _ l0
-  rw [e1, v0, loadHolds_mul_gen_pow, Nat.add_zero] at l2
-  refine ⟨?_, ?_, hn⟩
-  · rw [e7, e6, e5, hlam _ l4, hch _ l2]
-  · rw [← v0, ← hkv _ l3]; exact e_add_eq_zero_iff.mp a4
+  obtain ⟨e0, l1, e2, e3, e4, e5, hn⟩ := h
+  rw [e0, hkr, loadHolds_mul_gen_pow, Nat.add_zero] at l1
+  exact ⟨by rw [e4, e3, e2, hl, valOf_eq l1], by rw [e5, hl], hn⟩
 
-theorem slotPt_load {s k : ℕ} {s1 s0 : ℕ → E}
-    (hs1 : ∀ k v, LoadHolds rd (σ (.n 23)) k v → v = s1 k)
-    (hs0 : ∀ k v, LoadHolds rd (σ (.n 24)) k v → v = s0 k) {v : E}
-    (h : LoadHolds rd (σ (.n (slotPt s k))) k v) : v = if s.testBit k then s1 k else s0 k := by
+theorem slotPt_load {s k : ℕ} {v : E} (h : LoadHolds rd (σ (.n (slotPt s k))) k v) :
+    v = if s.testBit k then valOf rd (σ (.n 22)) k else valOf rd (σ (.n 23)) k := by
   unfold slotPt at h
   by_cases hb : s.testBit k
-  · simp only [hb, ↓reduceIte] at h ⊢; exact hs1 _ _ h
-  · simp only [hb, Bool.false_eq_true, ↓reduceIte] at h ⊢; exact hs0 _ _ h
+  · simp only [hb, ↓reduceIte] at h ⊢; exact eq_valOf h
+  · simp only [hb, Bool.false_eq_true, ↓reduceIte] at h ⊢; exact eq_valOf h
 
-theorem qT_sound {j s r acc n : ℕ} {CH KV L : E} {s1 s0 : ℕ → E}
-    (hcp : ∀ v, LoadHolds rd (σ (.n 7)) j v → v = gen ^ n)
-    (hch : ∀ v, LoadHolds rd (σ (.n 21)) n v → v = CH)
-    (hkv : ∀ v, LoadHolds rd (σ (.n 11)) 5 v → v = KV)
-    (hlam : ∀ v, LoadHolds rd (σ (.n 9)) j v → v = L)
-    (hs1 : ∀ k v, LoadHolds rd (σ (.n 23)) k v → v = s1 k)
-    (hs0 : ∀ k v, LoadHolds rd (σ (.n 24)) k v → v = s0 k)
-    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (qT j s r acc) next kret) :
-    σ (.n (r + 21)) = σ (.n acc) + L * (slotProd s1 s0 s * CH) * σ (.n (selV 5)) ∧
-      gen ^ n * word 64 0 0 = KV ∧ next := by
+theorem qT_sound {s kr lr r acc n : ℕ} {L : E} (hkr : σ (.n kr) = gen ^ n)
+    (hl : σ (.n lr) = L) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (qT s kr lr r acc) next kret) :
+    σ (.n (r + 16)) = σ (.n acc) + L * (slotProd (valOf rd (σ (.n 22))) (valOf rd (σ (.n 23))) s *
+      valOf rd (σ (.n 20)) n) * σ (.n (selV 5)) ∧ σ (.n (r + 17)) = L * σ (.n 9) ∧ next := by
   simp only [qT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨l0, l1, l2, e3, l4, e5, l6, e7, l8, e9, l10, e11, e12, l13, e14, c15, e16, l17, a18,
-    l18, e19, e20, e21, hn⟩ := h
-  have v0 := hcp _ l0
-  rw [e12, v0, loadHolds_mul_gen_pow, Nat.add_zero] at l13
-  refine ⟨?_, ?_, hn⟩
-  · rw [e21, e20, e19, e14, e11, e9, e7, e5, e3, hlam _ l18, hch _ l13,
-      slotPt_load hs1 hs0 l1, slotPt_load hs1 hs0 l2, slotPt_load hs1 hs0 l4,
-      slotPt_load hs1 hs0 l6, slotPt_load hs1 hs0 l8, slotPt_load hs1 hs0 l10]
-    rfl
-  · rw [← v0, ← c15, ← e16, ← hkv _ l17]; exact e_add_eq_zero_iff.mp a18
+  obtain ⟨l0, l1, e2, l3, e4, l5, e6, l7, e8, l9, e10, e11, l12, e13, e14, e15, e16, e17, hn⟩ := h
+  rw [e11, hkr, loadHolds_mul_gen_pow, Nat.add_zero] at l12
+  refine ⟨?_, by rw [e17, hl], hn⟩
+  rw [e16, e15, e14, e13, e10, e8, e6, e4, e2, hl, valOf_eq l12, slotPt_load l0, slotPt_load l1,
+    slotPt_load l3, slotPt_load l5, slotPt_load l7, slotPt_load l9]
+  rfl
 
-theorem pT_sound {j c r acc : ℕ} {KV L : E}
-    (hkv : ∀ v, LoadHolds rd (σ (.n 11)) c v → v = KV)
-    (hlam : ∀ v, LoadHolds rd (σ (.n 9)) j v → v = L)
-    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (pT j c r acc) next kret) :
-    σ (.n (r + 4)) = σ (.n acc) + L * σ (.n 33) * σ (.n (selV c)) ∧ σ (.n 5) = KV ∧ next := by
+theorem pT_sound {sel lr r acc : ℕ} {L : E} (hl : σ (.n lr) = L) {next : Prop}
+    {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (pT sel lr r acc) next kret) :
+    σ (.n (r + 2)) = σ (.n acc) + L * σ (.n 32) * σ (.n sel) ∧
+      σ (.n (r + 3)) = L * σ (.n 9) ∧ next := by
   simp only [pT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨l0, a1, l1, e2, e3, e4, hn⟩ := h
-  refine ⟨?_, ?_, hn⟩
-  · rw [e4, e3, e2, hlam _ l1]
-  · rw [← hkv _ l0]; exact e_add_eq_zero_iff.mp a1
+  obtain ⟨e0, e1, e2, e3, hn⟩ := h
+  exact ⟨by rw [e2, e1, e0, hl], by rw [e3, hl], hn⟩
 
-/-- **The claims' blocks**: the sum's value is the start plus every claim's term, and every
-claim's length check holds. -/
-theorem claimsT_sound {cp : ℕ → ℕ} :
-    ∀ (js : List ℕ) (r acc : ℕ) {next : Prop} {kret : List E → Prop},
-      (∀ j ∈ js, CpAt rd σ cp j) →
-      Stmt.HoldsList C rd σ (claimsT js r acc).1 next kret →
-      σ (.n (claimsT js r acc).2.2) = σ (.n acc) + (js.map (claimTerm rd σ cp)).sum ∧
-        (∀ j ∈ js, ClaimOk rd σ cp j) ∧ next
-  | [], r, acc, next, kret, _, h => by
-    simp only [claimsT, List.map_nil, List.sum_nil, add_zero, List.not_mem_nil,
-      false_imp_iff, implies_true, true_and] at h ⊢
-    exact h
-  | j :: js, r, acc, next, kret, hb, h => by
-    have hbj := hb j (List.mem_cons_self ..)
-    have hbs : ∀ j' ∈ js, CpAt rd σ cp j' := fun j' h' ↦ hb j' (List.mem_cons_of_mem _ h')
-    simp only [claimsT, holdsList_append] at h ⊢
-    simp only [List.map_cons, List.sum_cons, List.forall_mem_cons]
-    have L9 := fun v (h : LoadHolds rd (σ (.n 9)) j v) ↦ eq_valOf h
-    have L11 := fun c v (h : LoadHolds rd (σ (.n 11)) c v) ↦ eq_valOf h
-    rcases hk : termKind j with _ | _ | _ | _ | k
-    · simp only [claimT, claimTerm, ClaimOk, hk] at h ⊢
-      obtain ⟨e, ok, h⟩ := zrT_sound (hbj (by omega)) (fun v h ↦ eq_valOf h) (L11 _) L9 h
-      obtain ⟨e', ok', hn⟩ := claimsT_sound js _ _ hbs h
-      exact ⟨by rw [e', e, add_assoc], ⟨ok, ok'⟩, hn⟩
-    · simp only [claimT, claimTerm, ClaimOk, hk] at h ⊢
-      obtain ⟨e, ok, h⟩ := zrT_sound (hbj (by omega)) (fun v h ↦ eq_valOf h) (L11 _) L9 h
-      obtain ⟨e', ok', hn⟩ := claimsT_sound js _ _ hbs h
-      exact ⟨by rw [e', e, add_assoc], ⟨ok, ok'⟩, hn⟩
-    · simp only [claimT, claimTerm, ClaimOk, hk] at h ⊢
-      obtain ⟨e, ok, h⟩ := qT_sound (hbj (by omega)) (fun v h ↦ eq_valOf h) (L11 _) L9
-        (fun _ _ h ↦ eq_valOf h) (fun _ _ h ↦ eq_valOf h) h
-      obtain ⟨e', ok', hn⟩ := claimsT_sound js _ _ hbs h
-      exact ⟨by rw [e', e, add_assoc], ⟨ok, ok'⟩, hn⟩
-    · simp only [claimT, claimTerm, ClaimOk, hk] at h ⊢
-      obtain ⟨e, ok, h⟩ := pT_sound (L11 _) L9 h
-      obtain ⟨e', ok', hn⟩ := claimsT_sound js _ _ hbs h
-      exact ⟨by rw [e', e, add_assoc], ⟨ok, ok'⟩, hn⟩
-    · simp only [claimT, claimTerm, ClaimOk, hk] at h ⊢
-      obtain ⟨e', ok', hn⟩ := claimsT_sound js _ _ hbs h
-      exact ⟨by rw [e', zero_add], ⟨trivial, ok'⟩, hn⟩
+theorem claimKappaSrc_lt (j : ℕ) : claimKappaSrc j < 8 := by
+  unfold claimKappaSrc; split_ifs <;> omega
+
+theorem claimKappaAdj_lt (j : ℕ) : claimKappaAdj j < 64 := by
+  unfold claimKappaAdj; split_ifs <;> omega
+
+/-- A claim's low length's `g`-power. -/
+theorem claimKap_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ e i) {j r : ℕ}
+    {rest : List Stmt} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ ((claimKap j r).1 ++ rest) next kret) :
+    σ (.n (claimKap j r).2.1) = gen ^ cLow e j ∧ Stmt.HoldsList C rd σ rest next kret := by
+  obtain ⟨e1, h⟩ := kapT_sound (claimKappaAdj_lt j) h
+  exact ⟨by rw [claimKap, e1, he _ (claimKappaSrc_lt j), ← pow_add]; rfl, h⟩
+
+/-- **One claim's block**: the sum gains the claim's term, and the power is multiplied by
+`lam_cl` unless the claim is an output lane's. -/
+theorem claimT_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ e i) {j r acc lr : ℕ}
+    {L : E} (hl : σ (.n lr) = L) {rest : List Stmt} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ ((claimT j r acc lr).1 ++ rest) next kret) :
+    σ (.n (claimT j r acc lr).2.2.1) = σ (.n acc) + claimTerm rd σ e L j ∧
+      σ (.n (claimT j r acc lr).2.2.2) = (if termKind j < 4 then L * σ (.n 9) else L) ∧
+      Stmt.HoldsList C rd σ rest next kret := by
+  rcases hk : termKind j with _ | _ | _ | _ | k
+  · simp only [claimT, claimTerm, hk, List.append_assoc] at h ⊢
+    obtain ⟨hkr, h⟩ := claimKap_sound he h
+    rw [holdsList_append] at h
+    obtain ⟨e1, e2, h⟩ := zrT_sound hkr hl h
+    exact ⟨e1, by simpa using e2, h⟩
+  · simp only [claimT, claimTerm, hk, List.append_assoc] at h ⊢
+    obtain ⟨hkr, h⟩ := claimKap_sound he h
+    rw [holdsList_append] at h
+    obtain ⟨e1, e2, h⟩ := zrT_sound hkr hl h
+    exact ⟨e1, by simpa using e2, h⟩
+  · simp only [claimT, claimTerm, hk, List.append_assoc] at h ⊢
+    obtain ⟨hkr, h⟩ := claimKap_sound he h
+    rw [holdsList_append] at h
+    obtain ⟨e1, e2, h⟩ := qT_sound hkr hl h
+    exact ⟨e1, by simpa using e2, h⟩
+  · simp only [claimT, claimTerm, hk] at h ⊢
+    rw [holdsList_append] at h
+    obtain ⟨e1, e2, h⟩ := pT_sound hl h
+    exact ⟨e1, by simpa using e2, h⟩
+  · simp only [claimT, claimTerm, hk, List.nil_append] at h ⊢
+    exact ⟨by simp, by simpa [show ¬ (k + 1 + 1 + 1 + 1 < 4) by omega] using hl, h⟩
+
+/-- **The claims' blocks**: over the claims `s, …, s + n - 1`, the power `λ^(1 + rk s)` at `lr`
+and `rk` counting the kept claims, the sum's value is the start plus every claim's term at its
+power, and the final power is `λ^(1 + rk (s + n))`. -/
+theorem claimsT_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ e i) {rk : ℕ → ℕ}
+    {lam : E} (h9 : σ (.n 9) = lam) :
+    ∀ (n s r acc lr : ℕ) {next : Prop} {kret : List E → Prop},
+      (∀ j < s + n, rk (j + 1) = rk j + if termKind j < 4 then 1 else 0) →
+      σ (.n lr) = lam ^ (1 + rk s) →
+      Stmt.HoldsList C rd σ (claimsT (List.range' s n) r acc lr).1 next kret →
+      σ (.n (claimsT (List.range' s n) r acc lr).2.2.1) =
+          σ (.n acc) + ∑ i ∈ range n, claimTerm rd σ e (lam ^ (1 + rk (s + i))) (s + i) ∧
+        σ (.n (claimsT (List.range' s n) r acc lr).2.2.2) = lam ^ (1 + rk (s + n)) ∧ next
+  | 0, s, r, acc, lr, next, kret, _, hl, h => by
+    simp only [List.range'_zero, claimsT, Stmt.HoldsList] at h ⊢
+    exact ⟨by simp, by simpa using hl, h⟩
+  | n + 1, s, r, acc, lr, next, kret, hrk, hl, h => by
+    simp only [List.range'_succ, claimsT] at h ⊢
+    obtain ⟨e1, e2, h⟩ := claimT_sound he hl h
+    have hl' : σ (.n (claimT s r acc lr).2.2.2) = lam ^ (1 + rk (s + 1)) := by
+      rw [e2, hrk s (by omega), h9]
+      split <;> ring
+    obtain ⟨f1, f2, hn⟩ := claimsT_sound he h9 n (s + 1) _ _ _
+      (fun j hj ↦ hrk j (by omega)) hl' h
+    refine ⟨?_, by rw [f2, show s + 1 + n = s + (n + 1) by omega], hn⟩
+    rw [f1, e1, sum_range_succ', add_zero, add_assoc, add_comm (claimTerm _ _ _ _ s)]
+    simp only [show ∀ i, s + 1 + i = s + (i + 1) from fun i ↦ by omega]
 
 end
 end LeanVM.Guest.B1.VerifySub

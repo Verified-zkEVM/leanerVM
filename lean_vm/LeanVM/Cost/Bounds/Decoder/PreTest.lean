@@ -303,28 +303,14 @@ theorem memCell_cost (hP : Includes P memCellC.costDeps) (Pw : Array E) (hW7 : W
     dsimp only; omega
 
 include hR hB in
-/-- A memory bound (`memOneC`): per cell `2R + B + 170`, and `30`. -/
+/-- A memory bound (`memOneC`): one cell, `2R + B + 159`. -/
 theorem memOne_cost (hP : Includes P memOneC.costDeps) (Pw : Array E) (hW7 : W ≤ 7) (fp : K)
-    (m : ℕ × ℕ × ℕ) (h1 : m.1 < 2 ^ W) (h2 : m.2.1 ≤ 2 ^ W) (h3 : m.2.2 ≤ 34) :
+    (m : ℕ × ℕ × ℕ) (h1 : m.1 < 2 ^ W) (h2 : m.2.1 < 2 ^ W) (h3 : m.2.2 ≤ 34) :
     machineCost P memOneC.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
-      encodeValue m] ≤ (2 * R + B + 170) * m.2.1 + 30 := by
-  have h64 : 2 ^ W ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) hW7
+      encodeValue m] ≤ 2 * R + B + 159 := by
   rw [memOneC.costEq P hP D Pw rd rdVal hrd]
-  have hr := rangeLoop_cost P (by includes) m.2.1 [] (by omega)
-  have ha := all_cost P (by includes) _
-    (.closure memOneC.lam0.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp,
-      encodeValue m.2.2, encodeValue m.1])
-    (fun c ↦ RunsApp.of_spec (memOneC.lam0.costSpec P (by includes) D Pw rd rdVal hrd fp m.2.2
-      m.1 c))
-    (2 * R + B + 144) (List.range m.2.1) (fun c hc ↦ by
-      have hc' := List.mem_range.mp hc
-      simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [memOneC.lam0.costEq P (by includes) D Pw rd rdVal hrd]
-      have := memCell_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m.1 m.2.2 c
-        h1 h3 (by omega)
-      omega)
-  rw [List.length_range] at ha
-  nlinarith
+  have := memCell_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m.1 m.2.2 m.2.1 h1 h3 h2
+  omega
 
 include hR hW hW64 in
 /-- A frame cell's word (`wordWithC`): a power, a read and `43`. -/
@@ -438,7 +424,7 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (hW7
     have h3 := all_cost_sum P (by includes) _
       (.closure fnPreTestC.lam2.costIdx [encodeValue D, encodeValue Pw, rdVal, encodeValue fp])
       (fun m ↦ RunsApp.of_spec (fnPreTestC.lam2.costSpec P (by includes) D Pw rd rdVal hrd fp m))
-      (fun m ↦ (2 * R + B + 170) * m.2.1 + 40) s.mem (fun m hm' ↦ by
+      (fun _ ↦ 2 * R + B + 159) s.mem (fun m hm' ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [fnPreTestC.lam2.costEq P (by includes) D Pw rd rdVal hrd]
         have := memOne_cost P D rd rdVal hrd R hR B hB (by includes) Pw hW7 fp m
@@ -453,11 +439,10 @@ theorem fnPreTest_cost (hP : Includes P fnPreTestC.costDeps) (Pw : Array E) (hW7
         have := semOne_cost P rd rdVal hrd R hR (by includes) Pw hW7 fp p (hsem p hp).1
           (hsem p hp).2
         omega)
-    have hsum : (s.mem.map fun m ↦ (2 * R + B + 170) * m.2.1 + 40 + 11).sum =
-        (2 * R + B + 170) * memCells s + 51 * s.mem.length := by
-      have := sum_map_affine (fun m : ℕ × ℕ × ℕ ↦ m.2.1) (2 * R + B + 170) 51 s.mem
+    have hsum : (s.mem.map fun _ ↦ 2 * R + B + 159 + 11).sum = (2 * R + B + 170) * memCells s := by
+      have := sum_map_affine (fun _ : ℕ × ℕ × ℕ ↦ 1) (2 * R + B + 170) 0 s.mem
       unfold memCells
-      rw [← this]
+      simpa [List.sum_map_const, mul_comm] using this
     rw [hsum] at h3
     simp only [fnPrePrice]
     split_ifs <;> nlinarith
@@ -484,7 +469,7 @@ end Checks
 /-- An entry of the deployed shape has its exponents within `7` bits. -/
 theorem fnPreWithin_of_shape {t : FnPre} (h : fnPreShape t = true) : FnPreWithin 7 t := by
   simp only [fnPreShape, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, he⟩, hp⟩, hm⟩, hs⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, he⟩, hp⟩, hm⟩, hs⟩ := h
   exact ⟨fun p hp' ↦ he p hp', fun p hp' ↦ hp p hp', fun m hm' ↦ ⟨(hm m hm').1.1, (hm m hm').1.2, (hm m hm').2⟩,
     fun p hp' ↦ hs p hp'⟩
 
@@ -492,7 +477,7 @@ theorem fnPreWithin_of_shape {t : FnPre} (h : fnPreShape t = true) : FnPreWithin
 theorem fnPrePrice_of_shape {t : FnPre} (h : fnPreShape t = true) (R B : ℕ) :
     fnPrePrice R B (some t) ≤ 269 * R + 99 * B + 24815 := by
   simp only [fnPreShape, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨he, hp⟩, hm⟩, hs⟩, hpc⟩, -⟩, -⟩, -⟩, -⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨he, hp⟩, hs⟩, hpc⟩, -⟩, -⟩, -⟩, -⟩ := h
   simp only [fnPrePrice]
   generalize t.env.length = e at *
   generalize t.pre.length = p at *

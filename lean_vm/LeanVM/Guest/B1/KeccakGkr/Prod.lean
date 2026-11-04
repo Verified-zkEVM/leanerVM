@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Prod
 
-  The product polynomial in `keccak_layer` (G:2478-2494): its 47 coefficients read, packed and
+  The product polynomial in `keccak_layer` (G:2696-2710): its 47 coefficients read, packed and
   absorbed, and the projection onto the claim's instance weights; a template over a table of
   value numbers.
 -/
@@ -345,12 +345,12 @@ def ov (σ : Val) : Option ℕ → E
 /-- The projection's reader of bit `b`: the indices of the masks with bit `b`. -/
 def projIdx (b : ℕ) : List ℕ := (List.range 16).filter fun i ↦ (projectLit.getD i 0).testBit b
 
-/-- The running sum's checks from position `k`: each reader is the projection's, the first sum
-is the first product. -/
-def accOk : Option ℕ → ℕ → List PPos → Bool
+/-- The running sum's checks from position `k`: each reader is `R`'s (the indices of its
+values above `muB`), the first sum is the first product. -/
+def accOk (R : ℕ → List ℕ) : Option ℕ → ℕ → List PPos → Bool
   | _, _, [] => true
-  | prev, k, p :: ps => p.accPrev == prev && p.idx == projIdx k && p.idx != [] &&
-      (prev.isSome || p.acc == p.r) && accOk (some p.acc) (k + 1) ps
+  | prev, k, p :: ps => p.accPrev == prev && p.idx == R k && p.idx != [] &&
+      (prev.isSome || p.acc == p.r) && accOk R (some p.acc) (k + 1) ps
 
 /-- The last running sum. -/
 def accLast : Option ℕ → List PPos → Option ℕ
@@ -358,10 +358,11 @@ def accLast : Option ℕ → List PPos → Option ℕ
   | _, p :: ps => accLast (some p.acc) ps
 
 /-- **The running sum**: the readers times the coefficients. -/
-theorem accOk_sound {cur : V} {muB : ℕ} : ∀ (ps : List PPos) (prev : Option ℕ) (k : ℕ),
-    accOk prev k ps = true → (∀ a, Stmt.atom a ∈ prodTFrom cur muB k ps → a.Holds rd σ) →
+theorem accOk_sound {cur : V} {muB : ℕ} {R : ℕ → List ℕ} : ∀ (ps : List PPos) (prev : Option ℕ)
+    (k : ℕ), accOk R prev k ps = true →
+    (∀ a, Stmt.atom a ∈ prodTFrom cur muB k ps → a.Holds rd σ) →
     ov σ (accLast prev ps) = ov σ prev + ((List.range ps.length).map fun j ↦
-      ((projIdx (k + j)).map fun i ↦ σ (.n (muB + i))).sum * σ (.n (ps.getD j default).a)).sum
+      ((R (k + j)).map fun i ↦ σ (.n (muB + i))).sum * σ (.n (ps.getD j default).a)).sum
   | [], prev, _, _, _ => by simp [accLast]
   | p :: ps, prev, k, hok, H => by
     obtain ⟨H0, H1⟩ := prodTFrom_cons_mem H
@@ -371,7 +372,7 @@ theorem accOk_sound {cur : V} {muB : ℕ} : ∀ (ps : List PPos) (prev : Option 
     obtain ⟨⟨⟨⟨hprev, hidx⟩, hne⟩, hfirst⟩, hrest⟩ := hok
     have ih := accOk_sound ps (some p.acc) (k + 1) hrest H1
     have hv : σ (.n p.acc) = ov σ prev +
-        ((projIdx k).map fun i ↦ σ (.n (muB + i))).sum * σ (.n p.a) := by
+        ((R k).map fun i ↦ σ (.n (muB + i))).sum * σ (.n p.a) := by
       rw [← hidx, ← reader_val hrd hne, ← hr]
       rcases prev with _ | q
       · have : p.acc = p.r := by simpa using hfirst

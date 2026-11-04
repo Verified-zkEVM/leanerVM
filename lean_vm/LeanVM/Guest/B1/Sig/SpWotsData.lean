@@ -21,29 +21,28 @@ open LeanVM.Guest LeanVM.Guest.Core
 /-- **`sp_wots`'s body is the template**, checked by the kernel in slices: the powers, each digit
 group's dispatch, the checks and the leaf. -/
 theorem spBody_eq : Data.core20.body = spBody := by
-  have h98 := spBody_drop_98
-  have h94 := drop_eq_of_take spBody_slice_94 h98
-  have h90 := drop_eq_of_take spBody_slice_90 h94
-  have h86 := drop_eq_of_take spBody_slice_86 h90
-  have h82 := drop_eq_of_take spBody_slice_82 h86
-  have h78 := drop_eq_of_take spBody_slice_78 h82
-  have h74 := drop_eq_of_take spBody_slice_74 h78
-  have h70 := drop_eq_of_take spBody_slice_70 h74
-  have h66 := drop_eq_of_take spBody_slice_66 h70
-  have h62 := drop_eq_of_take spBody_slice_62 h66
-  have h58 := drop_eq_of_take spBody_slice_58 h62
-  have h54 := drop_eq_of_take spBody_slice_54 h58
-  have h50 := drop_eq_of_take spBody_slice_50 h54
-  have h46 := drop_eq_of_take spBody_slice_46 h50
-  have h42 := drop_eq_of_take spBody_slice_42 h46
-  have h38 := drop_eq_of_take spBody_slice_38 h42
-  have h34 := drop_eq_of_take spBody_slice_34 h38
-  have h30 := drop_eq_of_take spBody_slice_30 h34
-  have h26 := drop_eq_of_take spBody_slice_26 h30
-  have h22 := drop_eq_of_take spBody_slice_22 h26
-  have h18 := drop_eq_of_take spBody_slice_18 h22
-  have h14 := drop_eq_of_take spBody_slice_14 h18
-  have h10 := drop_eq_of_take spBody_slice_10 h14
+  have h120 := spBody_drop_120
+  have h115 := drop_eq_of_take spBody_slice_115 h120
+  have h110 := drop_eq_of_take spBody_slice_110 h115
+  have h105 := drop_eq_of_take spBody_slice_105 h110
+  have h100 := drop_eq_of_take spBody_slice_100 h105
+  have h95 := drop_eq_of_take spBody_slice_95 h100
+  have h90 := drop_eq_of_take spBody_slice_90 h95
+  have h85 := drop_eq_of_take spBody_slice_85 h90
+  have h80 := drop_eq_of_take spBody_slice_80 h85
+  have h75 := drop_eq_of_take spBody_slice_75 h80
+  have h70 := drop_eq_of_take spBody_slice_70 h75
+  have h65 := drop_eq_of_take spBody_slice_65 h70
+  have h60 := drop_eq_of_take spBody_slice_60 h65
+  have h55 := drop_eq_of_take spBody_slice_55 h60
+  have h50 := drop_eq_of_take spBody_slice_50 h55
+  have h45 := drop_eq_of_take spBody_slice_45 h50
+  have h40 := drop_eq_of_take spBody_slice_40 h45
+  have h35 := drop_eq_of_take spBody_slice_35 h40
+  have h30 := drop_eq_of_take spBody_slice_30 h35
+  have h25 := drop_eq_of_take spBody_slice_25 h30
+  have h20 := drop_eq_of_take spBody_slice_20 h25
+  have h10 := drop_eq_of_take spBody_slice_10 h20
   have h0 := drop_eq_of_take spBody_slice_0 h10
   rwa [List.drop_zero, List.drop_zero] at h0
 

@@ -110,13 +110,13 @@ theorem walkBase_lt_succ (S k a t : Nat) (hd : k / 4 ^ t % 4 ≠ 3) :
 at digit `3`, else the walk's base. -/
 theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k t : Nat)
     (hk : k < 4 ^ n) (ht : t < n) :
-    ∃ j, grpPos W first n fold prodIn encIn b k t = .n j ∧ b + 5 ≤ j ∧
+    ∃ j, grpPos W first n fold prodIn encIn b k t = .n j ∧ b + 6 ≤ j ∧
       j < armB W first n fold prodIn encIn b (4 ^ n) ∧
       (k / 4 ^ t % 4 = 3 → k ≠ 0 ∧ slotsT W fold b t 2 + 13 ≤ groupStart fold b + chainStride W * n ∧
         j = slotsT W fold b t 2) ∧
       (k / 4 ^ t % 4 ≠ 3 → j = walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)) := by
-  have ha : b + 5 ≤ armB W first n fold prodIn encIn b k := by
+  have ha : b + 6 ≤ armB W first n fold prodIn encIn b k := by
     rw [← armB_zero W first n fold prodIn encIn b]
     exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
   have hend : armB W first n fold prodIn encIn b (k + 1) ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
@@ -126,7 +126,7 @@ theorem grpPos_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V)
   rw [armB_one] at h1
   have hsl := slot_bounds W fold b t 2 (by norm_num)
   have hst : chainStride W * (t + 1) ≤ chainStride W * n := Nat.mul_le_mul_left _ ht
-  have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
+  have hgs : b + 6 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
   have hwe := walkEnd_lt W first n fold prodIn encIn b k
   have hwl := walkBase_le (if k = 0 then W.size + 13 else W.size) k
     (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
@@ -218,11 +218,43 @@ theorem sLoad_at (pos : Nat → V) (vals : Nat → E) (σ : Val) :
       · rw [Function.update_of_ne (hne t m (by omega) (by omega)),
           sLoad_at pos vals σ m (fun a b h1 h2 => hne a b h1 (by omega)) t (by omega)]
 
-/-- Group `b`'s digits `k` and its arm's starts `vals` loaded. -/
+/-- A group's digits `k` loaded at `d` and its arm's starts `vals`, its arms from `b`. -/
+def gLoadD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d b k : Nat) (vals : Nat → E)
+    (σ : Val) : Val :=
+  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n d) (ofK
+      (addressOfIndex k))
+
+/-- **A group's load**: its digits at `d`, its starts, changes in its range only. -/
+theorem gLoadD_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d b k : Nat)
+    (vals : Nat → E) (σ : Val) (hk : k < 4 ^ n) (hdb : d ≤ b) :
+    Ext d (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoadD W first n fold prodIn encIn d b k vals σ) ∧
+      gLoadD W first n fold prodIn encIn d b k vals σ (.n d) = ofK (addressOfIndex k) ∧
+      ∀ t < n, gLoadD W first n fold prodIn encIn d b k vals σ (grpPos W first n fold prodIn encIn b k t) =
+        vals t := by
+  have hne : ∀ t < n, grpPos W first n fold prodIn encIn b k t ≠ .n d := by
+    intro t ht e
+    obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
+    rw [ej] at e
+    simp only [V.mk.injEq, true_and] at e
+    omega
+  have hb5 : b + 6 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
+    rw [← armB_zero W first n fold prodIn encIn b]
+    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+  refine ⟨fun v hv => ?_, Function.update_self .., fun t ht => ?_⟩
+  · unfold gLoadD
+    rw [Function.update_of_ne (hv d le_rfl (by omega))]
+    refine sLoad_other _ _ σ n fun t ht e => ?_
+    obtain ⟨j, ej, h1, h2, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
+    rw [ej] at e
+    exact hv j (by omega) h2 e
+  · unfold gLoadD
+    rw [Function.update_of_ne (hne t ht)]
+    exact sLoad_at _ vals σ n (fun a c h1 h2 => grpPos_ne hk h1 h2) t ht
+
+/-- A group's digits `k` and its arm's starts `vals` loaded. -/
 def gLoad (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat) (vals : Nat → E)
     (σ : Val) : Val :=
-  Function.update (sLoad (grpPos W first n fold prodIn encIn b k) vals σ n) (.n b) (ofK
-      (addressOfIndex k))
+  gLoadD W first n fold prodIn encIn b b k vals σ
 
 /-- **A group's load**: its digits at the base, its starts, changes in its range only. -/
 theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
@@ -230,26 +262,8 @@ theorem gLoad_spec (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) 
     Ext b (armB W first n fold prodIn encIn b (4 ^ n)) σ (gLoad W first n fold prodIn encIn b k vals σ) ∧
       gLoad W first n fold prodIn encIn b k vals σ (.n b) = ofK (addressOfIndex k) ∧
       ∀ t < n, gLoad W first n fold prodIn encIn b k vals σ (grpPos W first n fold prodIn encIn b k t) =
-        vals t := by
-  have hne : ∀ t < n, grpPos W first n fold prodIn encIn b k t ≠ .n b := by
-    intro t ht e
-    obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
-    rw [ej] at e
-    simp only [V.mk.injEq, true_and] at e
-    omega
-  have hb5 : b + 5 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
-    rw [← armB_zero W first n fold prodIn encIn b]
-    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
-  refine ⟨fun v hv => ?_, Function.update_self .., fun t ht => ?_⟩
-  · unfold gLoad
-    rw [Function.update_of_ne (hv b le_rfl (by omega))]
-    refine sLoad_other _ _ σ n fun t ht e => ?_
-    obtain ⟨j, ej, h1, h2, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
-    rw [ej] at e
-    exact hv j (by omega) h2 e
-  · unfold gLoad
-    rw [Function.update_of_ne (hne t ht)]
-    exact sLoad_at _ vals σ n (fun a c h1 h2 => grpPos_ne hk h1 h2) t ht
+        vals t :=
+  gLoadD_spec W first n fold prodIn encIn b b k vals σ hk le_rfl
 
 end
 end LeanVM.Guest.B1.Sig

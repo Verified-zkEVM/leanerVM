@@ -2,24 +2,23 @@
   LeanVM.Guest.B1.Sig.SpWotsLayout
 
   Where `sp_wots`'s template (`SpWotsT`) puts its groups, its arms and its chains' starts: the
-  groups' running product, encoding and base, the arms' bases, the renaming each arm's padding run
-  makes, and the value each chain's start is hinted into, for given digit words.
+  groups' running product, encoding and base, the arms' bases, and the value each chain's start is
+  hinted into, for given digit words.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sig.SpWotsT
-public import LeanVM.Guest.B1.Sig.WotsSound
+public import LeanVM.Guest.B1.Sig.WotsGroup
 
 /-!
 # `sp_wots`'s layout
 
-* `padRenOf X sel L`: the renaming `withPad X sel L` makes (`padShift X P` at its padding base `P`,
-  the identity when nothing is selected); `withPad_eq`: `withPad` is that renaming with the run
-  inserted;
-* `spSlots`, `spPo`, `spEo`, `spArmV`: arm `k`'s slots, product and encoding outputs, and the shared
-  arm (`armT spW`, its padding run virtual) whose moved form `spArmT` is;
-* `spArmB`, `spArmsT_getElem`: the base of arm `k` and the arm the dispatch takes;
+A group of `sp_wots` is the shared group (`groupD`) over `spW`, its digit word at its base `B`, its
+arms laid out from `spL fold B`: so its arms are the shared arms (`armT spW`).
+
+* `spArmK`, `spArmB`, `spArmBase`, `spArmsT`: arm `k` of the group from `B`, from base `b`; the base
+  of arm `k`; the base arm `k + j` starts from; the arms (`groupArmsT`);
 * `spState`, `spGroupsT_eq`: group `p`'s running product, encoding and base (`cwState` for `sp_wots`);
 * `spN`, `spStartAt K i`: group `p`'s digits and the value chain `i`'s start is hinted into when
   group `p` takes arm `K p`.
@@ -31,123 +30,54 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 @[expose] public section
 
-/-! ## The padding run's renaming -/
-
-/-- The renaming `withPad X sel L` makes: the virtual run at `X` to the padding base, every value
-from it five up; the identity when `sel` picks nothing. -/
-def padRenOf (X : Nat) (sel : Stmt → Bool) (L : List Stmt) : V → V :=
-  match L.findIdx? sel with
-  | none => id
-  | some i => padShift X (firstDef (L.getD i default))
-
 /-! ## The arms -/
 
-/-- Arm `k`'s slots: arm `0`'s as the shared template lays them out, the others' the real ones. -/
-def spSlots (fold : Bool) (B k : Nat) : Nat → Nat → Nat :=
-  if k = 0 then slotsT spW fold B else spSlot fold B
+/-- Arm `k` of the group from `B`, from base `b`: the shared arm over `spW`. -/
+def spArmK (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) : List Stmt × Nat :=
+  armT spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) k b
 
-/-- Arm `k`'s product output. -/
-def spPo (fold : Bool) (n B k : Nat) : V :=
-  if k = 0 then prodT spW fold n B else .n (spProd fold n B)
-
-/-- Arm `k`'s encoding output. -/
-def spEo (fold : Bool) (n B k : Nat) : V :=
-  if k = 0 then encT spW fold n B else .n (spEnc fold n B)
-
-/-- Arm `k` of the group from `B`, from base `b`, its padding run virtual. -/
-def spArmV (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) : List Stmt × Nat :=
-  armT spW (spSlots fold B k) first n fold prodIn encIn (spPo fold n B k) (spEo fold n B k) k b
-
-theorem spArmK_eq (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) :
-    spArmK first n fold B prodIn encIn k b =
-      ((withPad spVPad isTopConst (spArmV first n fold B prodIn encIn k b).1).1,
-        (spArmV first n fold B prodIn encIn k b).2 +
-          (withPad spVPad isTopConst (spArmV first n fold B prodIn encIn k b).1).2) := by
-  by_cases hk : k = 0
-  · subst hk; rfl
-  · simp only [spArmK, hk, ↓reduceIte, spArmT, spArmV, spSlots, spPo, spEo]
-
-/-- The base of arm `k` of the group from `B`. -/
-def spArmB (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) : Nat → Nat
-  | 0 => B + 5
-  | k + 1 =>
-      let a := spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)
-      if k = 0 then a.2 + 2 else a.2
-
-theorem spArmsT_cons (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (m k b : Nat) :
-    spArmsT first n fold B prodIn encIn (m + 1) k b =
-      ((spArmK first n fold B prodIn encIn k b).1 ::
-        (spArmsT first n fold B prodIn encIn m (k + 1)
-          (if k = 0 then (spArmK first n fold B prodIn encIn k b).2 + 2
-            else (spArmK first n fold B prodIn encIn k b).2)).1,
-        (spArmsT first n fold B prodIn encIn m (k + 1)
-          (if k = 0 then (spArmK first n fold B prodIn encIn k b).2 + 2
-            else (spArmK first n fold B prodIn encIn k b).2)).2) := by
-  rfl
-
-theorem spArmsT_length (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
-    ∀ m k b, (spArmsT first n fold B prodIn encIn m k b).1.length = m
-  | 0, _, _ => rfl
-  | m + 1, k, b => by
-      rw [spArmsT_cons]
-      simp [spArmsT_length first n fold B prodIn encIn m]
+/-- The arms `k ..< k + m` of the group from `B`, from base `b`. -/
+def spArmsT (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (m k b : Nat) :
+    List (List Stmt) × Nat :=
+  armsT spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) m k b
 
 /-- The base arm `k + j` of `spArmsT` from arm `k` at `b` starts from. -/
-def spArmBase (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) : Nat → Nat → Nat → Nat
-  | _, 0, b => b
-  | k, j + 1, b => spArmBase first n fold B prodIn encIn (k + 1) j
-      (if k = 0 then (spArmK first n fold B prodIn encIn k b).2 + 2
-        else (spArmK first n fold B prodIn encIn k b).2)
+def spArmBase (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k j b : Nat) : Nat :=
+  armBase spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) k j b
 
-theorem spArmsT_getElem (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
-    ∀ m k b j (hj : j < (spArmsT first n fold B prodIn encIn m k b).1.length),
-      (spArmsT first n fold B prodIn encIn m k b).1[j] =
-        (spArmK first n fold B prodIn encIn (k + j) (spArmBase first n fold B prodIn encIn k j b)).1
-  | 0, _, _, j, hj => absurd hj (by simp [spArmsT])
-  | m + 1, k, b, 0, _ => by simp [spArmsT_cons, spArmBase]
-  | m + 1, k, b, j + 1, hj => by
-      have hj' : j < (spArmsT first n fold B prodIn encIn m (k + 1)
-          (if k = 0 then (spArmK first n fold B prodIn encIn k b).2 + 2
-            else (spArmK first n fold B prodIn encIn k b).2)).1.length := by
-        rw [spArmsT_length]; rw [spArmsT_length] at hj; omega
-      simp only [spArmsT_cons, List.getElem_cons_succ]
-      rw [spArmsT_getElem first n fold B prodIn encIn m (k + 1) _ j hj']
-      simp only [spArmBase, show k + 1 + j = k + (j + 1) by omega]
+/-- The base of arm `k` of the group from `B`. -/
+def spArmB (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) : Nat :=
+  armB spW first n fold prodIn encIn (spL fold B) k
 
-theorem spArmBase_eq (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
-    ∀ k, spArmBase first n fold B prodIn encIn 0 k (B + 5) = spArmB first n fold B prodIn encIn k := by
-  suffices h : ∀ j k, spArmBase first n fold B prodIn encIn k j (spArmB first n fold B prodIn encIn k) =
-      spArmB first n fold B prodIn encIn (k + j) by
-    intro k; simpa [spArmB] using h k 0
-  intro j
-  induction j with
-  | zero => intro k; rfl
-  | succ j ih =>
-      intro k
-      simp only [spArmBase]
-      rw [show k + (j + 1) = k + 1 + j by omega, ← ih (k + 1)]
-      rfl
+theorem spArmB_eq (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) :
+    spArmB first n fold B prodIn encIn k = spArmBase first n fold B prodIn encIn 0 k (spL fold B + 6) := rfl
 
-theorem spArmsT_end (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
-    ∀ m k, (spArmsT first n fold B prodIn encIn m k (spArmB first n fold B prodIn encIn k)).2 =
-      spArmB first n fold B prodIn encIn (k + m)
-  | 0, k => rfl
-  | m + 1, k => by
-      rw [spArmsT_cons, show k + (m + 1) = k + 1 + m by omega, ← spArmsT_end first n fold B prodIn encIn m (k + 1)]
-      rfl
+theorem spGroupT_eq (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
+    spGroupT first n fold prodIn encIn B = groupD spW first n fold prodIn encIn B (spPre fold B) (spL fold B) :=
+  rfl
+
+theorem spGroupArmsT_eq (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
+    groupArmsT spW first n fold prodIn encIn (spL fold B) =
+      spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6) := rfl
+
+theorem spArmsT_length (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (m k b : Nat) :
+    (spArmsT first n fold B prodIn encIn m k b).1.length = m :=
+  armsT_length _ _ _ _ _ _ _ _ _ m k b
 
 /-- **The arm the dispatch of a group takes**, its `k`-th. -/
 theorem spGroupArm (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat)
-    (hk : k < (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (B + 5)).1.length) :
-    (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (B + 5)).1[k] =
+    (hk : k < (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6)).1.length) :
+    (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (spL fold B + 6)).1[k] =
       (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 := by
-  rw [spArmsT_getElem, spArmBase_eq, Nat.zero_add]
+  simp only [spArmsT]
+  rw [armsT_getElem, Nat.zero_add]
+  rfl
 
 theorem spGroupT_end (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
     (spGroupT first n fold prodIn encIn B).2 = spArmB first n fold B prodIn encIn (4 ^ n) := by
-  have := spArmsT_end first n fold B prodIn encIn (4 ^ n) 0
-  rw [Nat.zero_add] at this
-  exact this
+  simp only [spGroupT, groupD, groupArmsT]
+  rw [armsT_snd]
+  rfl
 
 /-! ## The groups -/
 
@@ -219,14 +149,13 @@ theorem spGs_fst : spGs.1 = (spGroupsT 21 0 (spState 0).1 (spState 0).2.1 (spSta
 def spN (p : Nat) : Nat := if p < 21 then 3 else 1
 
 /-- **Where chain `i`'s start is hinted** when group `p = i / 3` takes arm `K p`: arm `K p`'s start of
-chain `i % 3` (`armStart`), moved by the arm's padding run. -/
+chain `i % 3` (`armStart`). -/
 def spStartAt (K : Nat → Nat) (i : Nat) : V :=
   let p := i / 3
   let st := spState p
   let k := K p
-  let b := spArmB (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k
-  padRenOf spVPad isTopConst (spArmV (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k b).1
-    (armStart spW (spSlots (p == 0) st.2.2 k) (p == 0) k b (i % 3))
+  armStart spW (spSlot (p == 0) st.2.2) (p == 0) k (spArmB (3 * p) (spN p) (p == 0) st.2.2 st.1 st.2.1 k)
+    (i % 3)
 
 end
 end LeanVM.Guest.B1.Sig
