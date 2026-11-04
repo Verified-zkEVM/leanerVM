@@ -43,8 +43,10 @@ fast way to compute this table and is not defined here: the verifier never runs 
 (Annex B, end of `app:ntt`), it touches the code through `columnWeight`, the weight `W_x` with
 `Enc(g)[x] = <W_x, g>` (`encode_columnWeight`, `lem:colweight`) and its multilinear extension
 `∏_k ((1 - r_k) + r_k Ŵ_k(x))` (`columnWeightMle`, the `mle` field of `columnWeight`), whose
-agreement with the table is the structure's proof field. The extension is evaluated in `κ`
-steps; building the table costs `2^κ`, so a verifier evaluates `columnWeightMle` directly.
+agreement with the table is the structure's proof field. The reference has `κ` factors, each
+recomputing `normW`; it exposes `κ(κ-1)/2` vanishing-recurrence products and `κ` inversions.
+Compiled consumers use the proved indexed recurrence with cached root inverses below. Building
+the cube table still costs `2^κ`; a verifier reads the extension without constructing that table.
 
 `V_k(x)` is computed as the Rust and the Python compute it, not as the product over `U_k`:
 `V_0(x) = x` and `V_{k+1}(x) = V_k(x) · (V_k(x) + V_k(e_k))` (`lem:subspace` (i) with (ii)),
@@ -297,19 +299,89 @@ theorem basisElt_linearIndependent [Module (ZMod 2) K] :
 /-! ## The encoder and the column weights -/
 
 /-- The extension `∏_k ((1 - r_k) + r_k Ŵ_k(x_v))` of the weight of the column at `x_v`
-(`lem:colweight`): what a verifier evaluates, in `κ` steps and without the table. -/
+(`lem:colweight`): the reference product of `κ` factors, without constructing the cube table.
+The compiled implementation below shares the vanishing recurrence and fixed root inverses. -/
 def columnWeightMle {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (v : Fin (2 ^ (κ + R)))
     (r : Vector S κ) : S :=
   ∏ k : Fin κ, ((1 - r[k]) + r[k] * φ (normW k (domainPt v)))
+
+/-! ## A compiled column-weight evaluator
+
+The reference product above remains the mathematical specification. The root/inverse pairs
+are shared native data; each query reads the original point vector by index, avoiding both
+repeated vanishing recurrences and repeated copies of vector tails. Initialization of the
+root inverses is delayed until each stage is first used; importing this module constructs only
+small inverse thunks. Later queries share the forced values. The default pair `(0, 0)` agrees with
+the reference's zero roots outside the table.
+-/
+
+private def columnWeightRootTable : Array (K × Thunk K) :=
+  subspaceRoots.toArray.map fun x ↦ (x, .mk fun _ ↦ x⁻¹)
+
+private def columnWeightRootPair (k : ℕ) : K × K :=
+  match columnWeightRootTable[k]? with
+  | some (x, inverse) => (x, inverse.get)
+  | none => (0, 0)
+
+private theorem columnWeightRootPair_eq (k : ℕ) :
+    columnWeightRootPair k = (subspaceRoot k, (subspaceRoot k)⁻¹) := by
+  unfold columnWeightRootPair columnWeightRootTable subspaceRoot
+  simp only [Array.getElem?_map, List.getElem?_toArray]
+  cases h : subspaceRoots[k]? <;> simp [h, List.getD_eq_getElem?_getD, Thunk.get]
+
+private def columnWeightFrom {S : Type*} [CommRing S] {n : ℕ}
+    (φ : K →+* S) (r : Vector S n) : (m k : ℕ) → k + m ≤ n → K → S
+  | 0, _, _, _ => 1
+  | m + 1, k, hk, v =>
+    let p := columnWeightRootPair k
+    let a := r[k]'(by omega)
+    ((1 - a) + a * φ (v * p.2)) *
+      columnWeightFrom φ r m (k + 1) (by omega) (v * (v + p.1))
+
+private theorem columnWeightFrom_eq {S : Type*} [CommRing S] {n : ℕ}
+    (φ : K →+* S) (r : Vector S n) :
+    ∀ (m k : ℕ) (hk : k + m ≤ n) (x : K),
+      columnWeightFrom φ r m k hk (vanish x k) =
+        ∏ i : Fin m, ((1 - r[k + i]'(by omega)) +
+          r[k + i]'(by omega) * φ (normW (k + i) x))
+  | 0, _, _, _ => by simp [columnWeightFrom]
+  | m + 1, k, hk, x => by
+    rw [columnWeightFrom, columnWeightRootPair_eq]
+    change ((1 - r[k]) + r[k] * φ (vanish x k * (subspaceRoot k)⁻¹)) *
+      columnWeightFrom φ r m (k + 1) (by omega) (vanish x (k + 1)) = _
+    rw [columnWeightFrom_eq φ r m (k + 1) (by omega) x, Fin.prod_univ_succ]
+    simp [normW, div_eq_mul_inv, Nat.add_comm, Nat.add_left_comm]
+
+/-- Evaluate the column weight with one vanishing-polynomial recurrence and cached root inverses.
+The exact equality below also covers the zero-root defaults beyond stage `63`. -/
+@[no_expose] def columnWeightMleFast {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+    (v : Fin (2 ^ (κ + R))) (r : Vector S κ) : S :=
+  columnWeightFrom φ r κ 0 (by omega) (domainPt v)
+
+/-- The indexed recurrence computes the reference product for every parameter and point. -/
+theorem columnWeightMleFast_eq {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+    (v : Fin (2 ^ (κ + R))) (r : Vector S κ) :
+    columnWeightMleFast φ κ R v r = columnWeightMle φ κ R v r := by
+  simpa [columnWeightMleFast, columnWeightMle, vanish] using
+    columnWeightFrom_eq φ r κ 0 (by omega) (domainPt v)
+
+/-- Compile later consumers of the column-weight evaluator through the proved recurrence. -/
+@[csimp] theorem columnWeightMle_eq_columnWeightMleFast :
+    @columnWeightMle = @columnWeightMleFast := by
+  funext S inst φ κ R v r
+  exact (columnWeightMleFast_eq φ κ R v r).symm
+
 
 /-- The weight `W_x(u) = ∏_k Ŵ_k(x) ^ u_k` of the column at `x`, as a table over the cube built
 from its `κ` factors, with its extension `columnWeightMle`. -/
 def columnWeight {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
     Weight S κ :=
-  let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
-  { cube := .mk fun _ ↦ bitProductTable fun k b ↦ if b then w[k] else 1
+  { cube := .mk fun _ ↦
+      let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
+      bitProductTable fun k b ↦ if b then w[k] else 1
     mle := columnWeightMle φ κ R v
     mle_eq := fun r ↦ by
+      let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
       show _ = evalMle (bitProductTable fun k b ↦ if b then w[k] else 1) r
       rw [evalMle_bitProductTable]
       exact Finset.prod_congr rfl fun k _ ↦ by simp [w] }
