@@ -65,12 +65,12 @@ theorem vt_mem_at (p : ℕ) (s : Stmt) (h : tbStmtsEqb [s] ((vtPre.drop p).take 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vt_good (hl : args.length = 22) : ∀ s ∈ vtEvL, GoodS rd vtSL w (vtσ rd w args) s := by
+theorem vt_good (hl : args.length = 20) : ∀ s ∈ vtEvL, GoodS rd vtSL w (vtσ rd w args) s := by
   have h := (ev_spec rd w vtEvL args (by rw [hl]; exact vt_chk)).2.2
   rw [hl, vt_stores] at h
   exact h
 
-theorem vt_param (hl : args.length = 22) {i : ℕ} (hi : i < 22) :
+theorem vt_param (hl : args.length = 20) {i : ℕ} (hi : i < 20) :
     vtσ rd w args (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact vt_chk) (by rw [hl]; exact hi)
 
@@ -82,7 +82,7 @@ theorem vt_mem_slice {n : ℕ} {blk : List Stmt}
   rw [tbStmtsEqb_sound heq] at hs
   exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
 
-theorem vt_goodS (hl : args.length = 22) {s : Stmt} (hs : s ∈ vtPre) :
+theorem vt_goodS (hl : args.length = 20) {s : Stmt} (hs : s ∈ vtPre) :
     GoodS rd vtSL w (vtσ rd w args) (fixNe s) := by
   by_cases hi : ∃ c z n, s = .ite c z n
   · obtain ⟨c, z, n, rfl⟩ := hi
@@ -90,7 +90,7 @@ theorem vt_goodS (hl : args.length = 22) {s : Stmt} (hs : s ∈ vtPre) :
   · exact vt_good hl _ (vtEvL_mem hs fun c z n h ↦ hi ⟨c, z, n, h⟩)
 
 /-- **A block's equations**, read at position `n`. -/
-theorem vt_goodL (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
+theorem vt_goodL (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
     GoodL rd w (vtσ rd w args) blk := by
   have h : ∀ s ∈ blk, GoodS rd vtSL w (vtσ rd w args) (fixNe s) :=
@@ -102,7 +102,7 @@ theorem vt_goodL (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
     exact ⟨h s List.mem_cons_self, ih fun t ht ↦ h t (List.mem_cons_of_mem _ ht)⟩
 
 /-- **A read** gives the word at its address (`0` if none). -/
-theorem vt_read (hl : args.length = 22) (n : ℕ) {d p : V} {off : ℕ}
+theorem vt_read (hl : args.length = 20) (n : ℕ) {d p : V} {off : ℕ}
     (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
     (hS : Atom.load d p off ∉ vtSL) :
     vtσ rd w args d = rdAt rd (vtσ rd w args p) off := by
@@ -111,7 +111,7 @@ theorem vt_read (hl : args.length = 22) (n : ℕ) {d p : V} {off : ℕ}
   exact h.resolve_left hS
 
 /-- A read of a word the memory holds holds, and reads it. -/
-theorem vt_readH (hl : args.length = 22) (n : ℕ) {d p : V} {off : ℕ}
+theorem vt_readH (hl : args.length = 20) (n : ℕ) {d p : V} {off : ℕ}
     (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
     (hS : Atom.load d p off ∉ vtSL) {v : E} (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) := by
@@ -129,7 +129,7 @@ theorem vsh_store {σ : Val} {d p : V} {off : ℕ} {v : E} (hm : LoadHolds rd (�
 
 /-! ## What holds by evaluation alone -/
 
-theorem vsh_auto (hl : args.length = 22) {s : Stmt} (hs : s ∈ vtPre) (ha : autoB s = true) :
+theorem vsh_auto (hl : args.length = 20) {s : Stmt} (hs : s ∈ vtPre) (ha : autoB s = true) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   cases s with
   | atom a =>
@@ -149,7 +149,7 @@ theorem vsh_auto (hl : args.length = 22) {s : Stmt} (hs : s ∈ vtPre) (ha : aut
   | _ => simp only [autoB, Bool.false_eq_true] at ha
 
 /-- **A block's statements hold** when the ones evaluation alone does not settle (`rest`) do. -/
-theorem vt_block (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
+theorem vt_block (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) (rest : List Stmt)
     (hrest : tbStmtsEqb (blk.filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
@@ -170,7 +170,7 @@ noncomputable def loadsBelow (ps : List (ℕ × ℕ)) : Bool :=
 /-- **A load through a buffer's pointer**, the memory holding at least `b` of its words `W`, with
 every load through it below `b` (`loadsBelow`): the memory holds the word at its offset, and a
 read reads it. -/
-theorem vt_bufLoad (hl : args.length = 22) {ps : List (ℕ × ℕ)} (hok : loadsBelow ps = true)
+theorem vt_bufLoad (hl : args.length = 20) {ps : List (ℕ × ℕ)} (hok : loadsBelow ps = true)
     {p b : ℕ} (hpb : (p, b) ∈ ps) {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n p)) W)
     (hb : b ≤ W.length) {d : V} {off : ℕ} (hs : Stmt.atom (.load d (.n p) off) ∈ vtEvL) :
     LoadHolds rd (vtσ rd w args (.n p)) off (W.getD off 0) ∧

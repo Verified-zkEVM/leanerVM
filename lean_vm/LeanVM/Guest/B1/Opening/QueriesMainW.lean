@@ -30,23 +30,23 @@ variable {rd : Reader} {σ : Val}
 
 /-! ## Lists of iterations -/
 
-theorem length_flatMap_range {α : Type} (f : ℕ → List α) (n : ℕ) (hf : ∀ j, (f j).length = n) :
+theorem oqLength_flatMap_range {α : Type} (f : ℕ → List α) (n : ℕ) (hf : ∀ j, (f j).length = n) :
     ∀ N, ((List.range N).flatMap f).length = n * N
   | 0 => by simp
   | N + 1 => by
-    rw [List.range_succ, List.flatMap_append, List.length_append, length_flatMap_range f n hf N]
+    rw [List.range_succ, List.flatMap_append, List.length_append, oqLength_flatMap_range f n hf N]
     simp [hf, Nat.mul_succ]
 
-theorem getD_flatMap_range {α : Type} (f : ℕ → List α) (n : ℕ) (hf : ∀ j, (f j).length = n)
+theorem oqGetD_flatMap_range {α : Type} (f : ℕ → List α) (n : ℕ) (hf : ∀ j, (f j).length = n)
     (d : α) : ∀ (N j e : ℕ), j < N → e < n →
       ((List.range N).flatMap f).getD (n * j + e) d = (f j).getD e d
   | 0, _, _, hj, _ => absurd hj (Nat.not_lt_zero _)
   | N + 1, j, e, hj, he => by
     rw [List.range_succ, List.flatMap_append]
-    have hl := length_flatMap_range f n hf N
+    have hl := oqLength_flatMap_range f n hf N
     rcases Nat.lt_or_ge j N with h | h
     · rw [List.getD_append _ _ _ _ (by rw [hl]; nlinarith)]
-      exact getD_flatMap_range f n hf d N j e h he
+      exact oqGetD_flatMap_range f n hf d N j e h he
     · obtain rfl : j = N := by omega
       rw [List.getD_append_right _ _ _ _ (by rw [hl]; omega)]
       simp [hl]
@@ -143,7 +143,7 @@ theorem oqsOf_length_one {s : Oq} (hb1 : s.base = 1) {odd : ℕ} (hodd : odd ≤
     (N : ℕ) (rd : Reader) (σ : Val) (V : FrameMap) :
     (oqsOf s odd loop N rd σ V).length = odd + 2 * N := by
   unfold oqsOf
-  rw [List.length_append, length_flatMap_range _ 2 (fun j => by simp [oqIterOf, hb1])]
+  rw [List.length_append, oqLength_flatMap_range _ 2 (fun j => by simp [oqIterOf, hb1])]
   split_ifs with h <;> simp <;> omega
 
 /-- **`opening_queries` at level 0 is sound with its queries named.** -/
@@ -239,7 +239,7 @@ theorem oqMain1_sound_w {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 �
       split_ifs with h <;> simp <;> omega
     simp only [hws, oqsOf]
     rw [List.getD_append_right _ _ _ _ (by omega), hl, Nat.add_sub_cancel_left]
-    exact getD_flatMap_range _ 2 (fun j => by simp [oqIterOf, hb1]) default N j e hj he
+    exact oqGetD_flatMap_range _ 2 (fun j => by simp [oqIterOf, hb1]) default N j e hj he
   -- the chain
   have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n 11)) i (oqChain odd s.base (σ (.n 2))⁻¹ ds i) := by
     intro i hi
@@ -296,7 +296,7 @@ theorem oqMain1_sound_w {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 �
 theorem oqsOf_length_zero {s : Oq} (hb0 : s.base = 0) (loop : String) (N : ℕ) (rd : Reader)
     (σ : Val) (V : FrameMap) : (oqsOf s 0 loop N rd σ V).length = N := by
   unfold oqsOf
-  rw [List.length_append, length_flatMap_range _ 1 (fun j => by simp [oqIterOf, hb0])]
+  rw [List.length_append, oqLength_flatMap_range _ 1 (fun j => by simp [oqIterOf, hb0])]
   simp
 
 /-- **`opening_queries` deeper is sound with its queries named.** -/
@@ -357,7 +357,7 @@ theorem oqMain0_sound_w {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 �
   have hwsI : ∀ j < N, ws.getD j default = oqQueryW s rd (τ j (.n 9)) 10 true (τ j) := by
     intro j hj
     simp only [hws, oqsOf, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.nil_append]
-    have := getD_flatMap_range (fun j => oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) [])) 1
+    have := oqGetD_flatMap_range (fun j => oqIterOf s rd (V loop (gen ^ j :: oqLoopArgs σ) [])) 1
       (fun j => by simp [oqIterOf, hb0]) default N j 0 hj (by omega)
     rw [Nat.one_mul, Nat.add_zero] at this
     rw [this]

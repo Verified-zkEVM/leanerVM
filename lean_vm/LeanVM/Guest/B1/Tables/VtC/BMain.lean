@@ -78,12 +78,12 @@ section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
 /-- An allocation's pointer: the oracle's. -/
-theorem vtB_allocDyn (hl : args.length = 22) {d s : V}
+theorem vtB_allocDyn (hl : args.length = 20) {d s : V}
     (hm : Stmt.atom (.hint (.allocDyn d s)) ∈ vtPre) : vtσ rd wo args d = wo d.idx :=
   vt_goodS (rd := rd) (w := wo) hl hm
 
 /-- **`index_mle`'s arm, complete.** -/
-theorem vtB_indexArm (hl : args.length = 22) {x r : V} {point : List E} {κ : ℕ}
+theorem vtB_indexArm (hl : args.length = 20) {x r : V} {point : List E} {κ : ℕ}
     (hm : Stmt.dispatch x vtImNames [.n 8] [r] ∈ vtPre) (hx : vtσ rd wo args x = gen ^ κ)
     (hκ : κ < 34) (hκμ : κ ≤ point.length) (hz : TbReadsAt rd (vtσ rd wo args (.n 8)) point)
     (hr : wo r.idx = indexMle (point.take κ)) :

@@ -38,7 +38,7 @@ theorem vtIdxcT_length : vtIdxcT.length = 68 := by decide +kernel
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/
-theorem idxc_ok (hl : args.length = 22) (h : TbReadsAt rd (vtσ rd w args (.n 2732)) vtIdxcW) :
+theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 2732)) vtIdxcW) :
     ∀ st ∈ vtIdxcT, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st := by
   intro st hst
   have hst' := hst
@@ -62,7 +62,7 @@ theorem idxc_ok (hl : args.length = 22) (h : TbReadsAt rd (vtσ rd w args (.n 27
     simpa [vtIdxcW] using this
 
 /-- **`zeta1`'s `plus_one_run`.** -/
-theorem zeta1_ok (hl : args.length = 22) {point : List E}
+theorem zeta1_ok (hl : args.length = 20) {point : List E}
     (h9 : vtσ rd w args (.n 9) = gen ^ point.length) (hμ : point.length ≤ 33)
     (hz : TbReadsAt rd (vtσ rd w args (.n 8)) point)
     (hz1 : TbReadsAt rd (vtσ rd w args (.n 2767)) (point.map (1 + ·))) (hw : w 2768 = 0) :

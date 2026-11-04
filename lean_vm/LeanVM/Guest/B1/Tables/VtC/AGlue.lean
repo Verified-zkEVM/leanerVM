@@ -55,7 +55,7 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **A framework word's `fs_next`, honestly**: its two rate cells, canonical. -/
-theorem vt_next_good (hl : args.length = 22) (cur : V) (pos k b : ℕ)
+theorem vt_next_good (hl : args.length = 20) (cur : V) (pos k b : ℕ)
     (heq : tbStmtsEqb (fsNextT cur k b) ((vtPre.drop pos).take (fsNextT cur k b).length) =
       true) :
     vtσ rd w args (.n (b + 7)) = (Keccak.scalarCells (vtσ rd w args (.n b)) dsObserve).1 ∧
@@ -88,7 +88,7 @@ theorem good_keccak_cells {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Va
 set_option maxRecDepth 10000 in
 /-- **The sponge after the framework words**, honestly: the first permutation's capacity and the
 last word waiting, its rate cells canonical, the capacity canonical. -/
-theorem vt_fresh_good (hl : args.length = 22) :
+theorem vt_fresh_good (hl : args.length = 20) :
     vtFreshFs (vtσ rd w args) = ⟨(lyCap 4489).map (vtσ rd w args),
         [(vtσ rd w args (.n 4502), dsObserve)]⟩ ∧
       rateOf [(vtσ rd w args (.n 4502), dsObserve)] =
@@ -164,7 +164,7 @@ theorem vt_fresh_good (hl : args.length = 22) :
 
 set_option maxRecDepth 10000 in
 /-- **The pull side's selectors are the push side's**, honestly. -/
-theorem vt_pull_good (hl : args.length = 22) : VtPullSelsH (vtσ rd w args) := by
+theorem vt_pull_good (hl : args.length = 20) : VtPullSelsH (vtσ rd w args) := by
   have g4049 := (vt_goodL (rd := rd) (w := w) hl 4049 [.atom (.copy (.n 4569) (.n 3051))] (by rw [vtPre_drop]; decide +kernel)).1
   have g4054 := (vt_goodL (rd := rd) (w := w) hl 4054 [.atom (.copy (.n 4576) (.n 3066))] (by rw [vtPre_drop]; decide +kernel)).1
   have g4059 := (vt_goodL (rd := rd) (w := w) hl 4059 [.atom (.copy (.n 4583) (.n 3081))] (by rw [vtPre_drop]; decide +kernel)).1
@@ -221,7 +221,7 @@ theorem vt_pull_good (hl : args.length = 22) : VtPullSelsH (vtσ rd w args) := b
   simp only [VtPullSelsH, g4049, g4054, g4059, g4064, g4069, g4074, g4079, g4084, g4089, g4094, g4099, g4104, g4109, g4114, g4119, g4124, g4129, g4134, g4139, g4144, g4149, g4154, g4159, g4164, g4169, g4174, g4179, g4184, g4189, g4194, g4199, g4204, g4209, g4214, g4219, g4224, g4229, g4234, g4239, g4244, g4249, g4254, g4259, g4264, g4269, g4274, g4279, g4284, g4289, g4294, g4299, and_self]
 
 /-- **`ξ`'s powers**, honestly. -/
-theorem vt_xi_good (hl : args.length = 22) :
+theorem vt_xi_good (hl : args.length = 20) :
     vtσ rd w args (.n 5896) = 1 ∧ vtσ rd w args (.n 5897) = vtσ rd w args (.n 5895) ∧
       vtσ rd w args (.n 5898) = vtσ rd w args (.n 5895) ^ 2 ∧
       vtσ rd w args (.n 5899) = vtσ rd w args (.n 5895) ^ 3 ∧
@@ -246,7 +246,7 @@ theorem vtPermCap_39 : vtPermCap 39 = [.n 9404, .n 9405, .n 9406, .n 9407, .n 94
 set_option maxRecDepth 10000 in
 /-- **The sponge after the evaluations**, from the evaluations' sponge facts: the last
 permutation's capacity and the last evaluation waiting, its rate cells canonical. -/
-theorem vt_evalFs_good (hl : args.length = 22)
+theorem vt_evalFs_good (hl : args.length = 20)
     (hF : ∀ j < 39, (⟨vtCapV (vtσ rd w args) 0, []⟩ : Fs).absorbAll
         ((vtEvs (vtσ rd w args)).take (4 * (j + 1))) dsObserve =
       ⟨vtCapV (vtσ rd w args) j,
@@ -303,7 +303,7 @@ theorem vt_evLoad_read : ∀ k < 157, Atom.load (.n (vtEvB k)) (.n 5932) k ∉ v
   fun _ _ ↦ not_mem_vtSL vtF_noStore.2.1 _ _
 
 /-- **The evaluations are the words at the cursor.** -/
-theorem vt_evs_good (hl : args.length = 22) {evs : List E}
+theorem vt_evs_good (hl : args.length = 20) {evs : List E}
     (hm : TbReadsAt rd (vtσ rd w args (.n 5932)) evs) (hlen : evs.length = 157) :
     vtEvs (vtσ rd w args) = evs := by
   apply List.ext_getElem (by simp [vtEvs, hlen])

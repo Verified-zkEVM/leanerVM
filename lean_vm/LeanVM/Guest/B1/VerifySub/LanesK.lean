@@ -43,12 +43,6 @@ theorem mem_le_foldl_max : ∀ {l : List ℕ} {x : ℕ} (acc : ℕ), x ∈ l →
     · exact le_trans (le_max_right acc x) (le_foldl_max l (max acc x))
     · exact mem_le_foldl_max (max acc y) h
 
-set_option maxRecDepth 100000 in
-theorem word_g110 : word 1899956092796928 0 0 = gen ^ 110 := by
-  rw [word_eOfNat, gen_pow_eq_ofK, ← gpowK_eq (by unfold u128Bound; omega)]
-  show ofK (K.ofBits 1899956092796928) = ofK (gpowK 110)
-  congr 1
-
 theorem layoutOf_heights (bytecode : List K) (m : ℕ) (rowsN : List ℕ) :
     (Tables.layoutOf bytecode m rowsN).tableLogHeights = Tables.tableHeightsOf rowsN := rfl
 

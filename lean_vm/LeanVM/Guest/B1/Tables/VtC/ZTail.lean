@@ -45,7 +45,7 @@ def ZtOut (σ : Val) (S2 : Fs) : Prop :=
 
 set_option maxRecDepth 100000 in
 /-- **Statements `10209 ..< 10251`, completely.** -/
-theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) {S2 : Fs}
+theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {S2 : Fs}
     (hSr : rateOf S2.pend =
       [vtσ rd w args (.n 9416), vtσ rd w args (.n 9418), 0, 0, 0, 0, 0, 0])
     (hSc : S2.cap = [vtσ rd w args (.n 9404), vtσ rd w args (.n 9405), vtσ rd w args (.n 9406),

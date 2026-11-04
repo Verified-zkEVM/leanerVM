@@ -114,7 +114,7 @@ section
 variable {args : List E}
 
 /-- **Where statements `0 ..< 2404` load**: in `vtBufsS`, under `vtS_complete`'s hypotheses. -/
-theorem vtS_loads (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
+theorem vtS_loads (hl : args.length = 20) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)
     (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
     (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))

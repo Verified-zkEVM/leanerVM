@@ -68,7 +68,7 @@ def vtBufsB (σ : Val) : List (E × ℕ) := vtBufsBIdx.map fun q ↦ (σ (.n q.1
 
 /-- **What the bus sides need.** -/
 structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Prop where
-  hl : args.length = 22
+  hl : args.length = 20
   hlow : LowDefB 8 rd
   hml : D.point.length < 33
   hlm : D.lm ≤ 32

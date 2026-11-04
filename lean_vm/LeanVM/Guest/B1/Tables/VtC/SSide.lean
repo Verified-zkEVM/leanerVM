@@ -82,7 +82,7 @@ end
 
 /-! ## Branches -/
 
-theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) {c : V}
+theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {c : V}
     {z nb : List Stmt} (hm : Stmt.ite c z nb ∈ vtPre) : GoodL rd w (vtσ rd w args) (z ++ nb) := by
   have h : ∀ t ∈ z ++ nb, GoodS rd vtSL w (vtσ rd w args) (fixNe t) :=
     fun t ht ↦ vt_good hl _ (vtEvL_mem_ite hm ht)
@@ -123,7 +123,7 @@ def RankOut (σ : Val) (v0 : ℕ) (e κ : ℕ → ℕ) (pre : ℕ → ℕ) (r : 
     σ (.n (vtGout v0 r)) = gen ^ pre (r + 1)
 
 /-- **A side's ranks hold**, rank by rank. -/
-theorem side_ranks (hl : args.length = 22) (hlow : LowDefB 8 rd) {v0 p0 R0 s base : ℕ}
+theorem side_ranks (hl : args.length = 20) (hlow : LowDefB 8 rd) {v0 p0 R0 s base : ℕ}
     (κs : List ℕ) (hv0 : 186 ≤ v0)
     (hchk0 : tbStmtsEqb (vtRank0T v0 R0 s) ((vtPre.drop p0).take (vtRank0T v0 R0 s).length) = true)
     (hchk : ∀ r < κs.length, 1 ≤ r → tbStmtsEqb (vtRankAt v0 R0 s r)

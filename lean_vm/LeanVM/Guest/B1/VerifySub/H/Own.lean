@@ -14,12 +14,10 @@ public import LeanVM.Guest.B1.Terminal.Interface
 /-!
 # The own buffers and the oracle
 
-`ChildSegs.ownW`: the sixteen own buffers' honest words, in allocation order (`vs_allocs`):
-`claim_pool` (`verify_tables`' pool words), `claim_cplen_g`, the stream padded, `table_rows`,
-`dims_g`, `kappa_base`, `block_kappa`, `zeta` (the bus point), `bus_alpha`, `fp_w`, `chi`,
-`z_vals` (the committed outputs' point at `0`, the ring switch's at `39`), `slices`, the ring map's
-challenges, `c_table`, `lam_pool` (`λ^(1 + poolRank j)` at the batched claims). `vs_own_fit`: each
-fits its size (`vsSizes μ`).
+`ChildSegs.ownW`: the thirteen own buffers' honest words, in allocation order (`vs_allocs`):
+`claim_pool` (`verify_tables`' pool words), the stream padded, `table_rows`, `dims_g`,
+`kappa_base`, `zeta` (the bus point), `bus_alpha`, `fp_w`, `chi`, `z_vals` (the committed outputs'
+point at `0`, the ring switch's at `39`), `slices`, the ring map's challenges, `c_table`.
 
 `vsW bs outs`: the oracle: an allocation's value is the pointer to its buffer (`bs`, the buffers'
 first words), a call's return is its callee's result in `outs` (`vsRetVars`, by callee).
@@ -32,13 +30,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open LeanVM.Node
 
 @[expose] public section
-
-/-- `lam_pool`'s words: claim `j`'s batching power where it is batched. -/
-noncomputable def lamW (lam : E) : List E :=
-  (List.range 165).map fun j ↦
-    if Tables.claimColumns.getD j 0 ∈ keccakOutputColumns then 0 else lam ^ (1 + poolRank j)
-
-theorem lamW_length (lam : E) : (lamW lam).length = 165 := by simp [lamW]
 
 /-- `z_vals`' words: the committed outputs' point, the ring switch's at `39`. -/
 def zvW (op kpt : List E) : List E := op ++ List.replicate (39 - op.length) 0 ++ kpt
@@ -55,9 +46,9 @@ def rchs : List E := S.m0 :: S.chs
 
 /-- **The own buffers' honest words**, in allocation order. -/
 noncomputable def ownW : List (List E) :=
-  [S.H.poolW, S.H.cplenW, vsStreamW c.proof.stream, S.rowsN.map eOfNat, vsDimsW S.logMem S.hs,
-    vsKbW S.logMem S.hs, vsBkW S.logMem S.hs, S.point, S.alphas, eqKernel S.alphas, S.chis,
-    zvW S.op S.kpt, S.slices, S.rchs, ringCoefficients S.rchs, lamW S.lam]
+  [S.H.poolW, vsStreamW c.proof.stream, S.rowsN.map eOfNat, vsDimsW S.logMem S.hs,
+    vsKbW S.logMem S.hs, S.point, S.alphas, eqKernel S.alphas, S.chis, zvW S.op S.kpt, S.slices,
+    S.rchs, ringCoefficients S.rchs]
 
 end ChildSegs
 
@@ -65,9 +56,8 @@ end ChildSegs
 
 /-- The callees' return values, callee by callee in call order. -/
 def vsRetVars : List (List ℕ) :=
-  [[122], [130], [522], [557], [558], (List.range 9).map (839 + ·), (List.range 9).map (849 + ·),
-    (List.range 8).map (863 + ·), [1303], [1887, 1888, 1889], [1890], (List.range 5).map (1906 + ·),
-    []]
+  [[120], [128], [309], [344], [345], (List.range 9).map (626 + ·), (List.range 10).map (636 + ·),
+    (List.range 8).map (651 + ·), [1091], [1674, 1675], [1676], (List.range 5).map (1692 + ·), []]
 
 /-- **The oracle**: an allocation's pointer, a callee's return. -/
 noncomputable def vsW (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=
@@ -75,10 +65,10 @@ noncomputable def vsW (bs : List ℕ) (outs : List (List E × Main.Layout)) (n :
   else (outs.getD (vsRetVars.findIdx (n ∈ ·)) ([], [])).1.getD
     ((vsRetVars.getD (vsRetVars.findIdx (n ∈ ·)) []).idxOf n) 0
 
-theorem vsAllocVars_idx : ∀ i < 16, vsAllocVars.getD i 0 ∈ vsAllocVars ∧
+theorem vsAllocVars_idx : ∀ i < 13, vsAllocVars.getD i 0 ∈ vsAllocVars ∧
     vsAllocVars.idxOf (vsAllocVars.getD i 0) = i := by decide
 
-theorem vsW_alloc (bs : List ℕ) (outs : List (List E × Main.Layout)) {i : ℕ} (hi : i < 16) :
+theorem vsW_alloc (bs : List ℕ) (outs : List (List E × Main.Layout)) {i : ℕ} (hi : i < 13) :
     vsW bs outs (vsAllocVars.getD i 0) = ofK (addressOfIndex (bs.getD i 0)) := by
   obtain ⟨h1, h2⟩ := vsAllocVars_idx i hi
   simp only [vsW, h1, ↓reduceIte, h2]

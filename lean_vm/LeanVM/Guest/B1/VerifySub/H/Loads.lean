@@ -12,10 +12,11 @@ public import LeanVM.Guest.B1.VerifySub.H.Calls
 # The loads
 
 `vs_loads_class` (by the kernel): `verify_sub`'s loads are through its own buffers' pointers within
-their sizes, through `out` (argument `6`) below `24`, or through a push block's square pointer
-(`g_squares·g^κ_b`) at offset `0`. `vs_push_ptr`: on the honest valuation a push block's square
-pointer is `g_squares·g^κ_b`. `vs_loads`: so every load's address lies in the caller's words or the
-own buffers.
+their sizes, through `out` (argument `5`) below `24`, through `col_eval_words` (`645`, `verify_tables`'
+return) below `157`, or through a push block's square pointer (`g_squares·kb[src]`, `vsPushM`) at
+the block's `adj`. `vs_push_ptr`: on the honest valuation a push block's square pointer is
+`g_squares·g^κ_src`. `vs_loads`: so every load's address lies in the caller's words or the own
+buffers.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -26,95 +27,92 @@ open LeanVM.Node LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- A push block's square pointer. -/
-def vsPushPtr (b : ℕ) : ℕ := if b = 0 then 308 else 307 + 4 * b
-
 /-- The loads' pointers and offsets. -/
 def vsLoadOk (q : V × ℕ) : Bool :=
   (q.1 == .n 25 && q.2 < 10) || (q.1 == .n 26 && q.2 < 6) || (q.1 == .n 127 && q.2 < 7) ||
-    (q.1 == .n 139 && q.2 < 8) || (q.1 == .n XBK && q.2 < 153) || (q.1 == .n 427 && q.2 < 16) ||
-    (q.1 == .n 664 && q.2 < 6) || (q.1 == .n 665 && q.2 < 64) || (q.1 == .n XLAMPOOL && q.2 < 165) ||
-    (q.1 == .n 6 && q.2 < 165) || (q.1 == .n 310 && q.2 < 19) || (q.1 == .n 346 && q.2 < 4) ||
-    (q.1 == .n 5 && q.2 < 24) ||
-    (((List.range 54).map fun b ↦ V.n (vsPushPtr b)).contains q.1 && q.2 == 0)
+    (q.1 == .n 139 && q.2 < 8) || (q.1 == .n 427 && q.2 < 16) || (q.1 == .n 664 && q.2 < 6) ||
+    (q.1 == .n 665 && q.2 < 64) || (q.1 == .n 6 && q.2 < 165) || (q.1 == .n 310 && q.2 < 19) ||
+    (q.1 == .n 346 && q.2 < 4) || (q.1 == .n 5 && q.2 < 24) || (q.1 == .n 645 && q.2 < 157) ||
+    ((List.range 54).map fun b ↦ (V.n (vsPushM b), Tables.blockKappaAdj b)).contains q
 
 theorem vs_loads_class : (vsCPre.filterMap Stmt.loadS).all vsLoadOk = true := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **A push block's square pointer.** -/
-theorem vs_push_ptr (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
-    (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
-      (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))) {b : ℕ} (hb : b < 54) :
-    vsσ rd w args (.n (vsPushPtr b)) = vsσ rd w args (.n 4) * gen ^ pushKappa logMem hs b := by
-  have hG := vsPushT_good (rd := rd) (w := w) hl
-  have hbL : LoadHolds rd (vsσ rd w args (.n XBK)) b (gen ^ pushKappa logMem hs b) := by
-    rw [← bkw_getD hsl (by show b < 153; omega), List.getD_eq_getElem _ _
-      (by simp only [Tables.blockKappaWords, List.length_map, List.length_range]; show b < 153; omega)]
-    exact hbk _ _
-  have h1 : vsLd (if b = 0 then 307 else 306 + 4 * b) 149 b ∈ vsPushStep b := by
-    by_cases h0 : b = 0 <;> simp [vsPushStep, h0]
-  have hm : vsMul (vsPushPtr b) 5 (if b = 0 then 307 else 306 + 4 * b) ∈ vsPushStep b := by
-    by_cases h0 : b = 0 <;> simp [vsPushStep, vsPushPtr, h0]
-  have g1 : Good rd vsSL w (vsσ rd w args) (.load (.n (if b = 0 then 307 else 306 + 4 * b))
-      (.n XBK) b) := hG _ (vsPushStep_mem hb h1)
-  have r1 := good_read g1 (vsPush_notS b hb).1 hbL
-  have gm : Good rd vsSL w (vsσ rd w args) (.mul (.n (vsPushPtr b)) (.n 4)
-      (.n (if b = 0 then 307 else 306 + 4 * b))) := hG _ (vsPushStep_mem hb hm)
+theorem vs_push_ptr (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ}
+    (hkbv : ∀ s < 8, vsσ rd w args (.n (140 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    {b : ℕ} (hb : b < 54) :
+    vsσ rd w args (.n (vsPushM b)) =
+      vsσ rd w args (.n 4) * gen ^ ([0, logMem] ++ hs).getD (Tables.blockKappaSrc.getD b 0) 0 := by
+  have hsrc := blockKappaSrc_lt b (by show b < 153; omega)
+  have hM : 147 < vsPushM b := by unfold vsPushM; split <;> omega
+  have gm : Good rd vsSL w (vsσ rd w args) (.mul (.n (vsPushM b)) (.n 4)
+      (.n (140 + Tables.blockKappaSrc.getD b 0))) :=
+    vsPushT_good (rd := rd) (w := w) hl (vsMul (vsPushM b) 4 (140 + Tables.blockKappaSrc.getD b 0))
+      (vsPushStep_mem hb (by rw [vsPushStep_eq]; simp))
   simp only [Good] at gm
   rw [ite_eq_left_of_eq_true _ _ (eq_true (by
-    unfold vsPushPtr; by_cases h0 : b = 0 <;> simp [h0]; omega))] at gm
-  rw [gm, r1.1]
+    generalize Tables.blockKappaSrc.getD b 0 = src at hsrc ⊢
+    generalize vsPushM b = m at hM ⊢
+    show 4 < m ∧ 140 + src < m; omega))] at gm
+  rw [gm, hkbv _ hsrc]
 
 /-- **Every load reads the caller's words or the own buffers.** -/
 theorem vs_loads {σ : Val} {bs : List ℕ} {own Lin : Main.Layout} {ownW : List (List E)}
-    (hown : ∀ k < 16, (bs.getD k 0, ownW.getD k []) ∈ own)
-    (hptr : ∀ k < 16, σ (.n (vsAllocVars.getD k 0)) = ofK (addressOfIndex (bs.getD k 0)))
-    (hlen : 165 ≤ (ownW.getD 0 []).length ∧ 10 ≤ (ownW.getD 2 []).length ∧
-      6 ≤ (ownW.getD 3 []).length ∧ 7 ≤ (ownW.getD 4 []).length ∧ 8 ≤ (ownW.getD 5 []).length ∧
-      153 ≤ (ownW.getD 6 []).length ∧ 19 ≤ (ownW.getD 7 []).length ∧
-      4 ≤ (ownW.getD 8 []).length ∧ 16 ≤ (ownW.getD 9 []).length ∧
-      6 ≤ (ownW.getD 13 []).length ∧ 64 ≤ (ownW.getD 14 []).length ∧
-      165 ≤ (ownW.getD 15 []).length)
+    (hown : ∀ k < 13, (bs.getD k 0, ownW.getD k []) ∈ own)
+    (hptr : ∀ k < 13, σ (.n (vsAllocVars.getD k 0)) = ofK (addressOfIndex (bs.getD k 0)))
+    (hlen : 165 ≤ (ownW.getD 0 []).length ∧ 10 ≤ (ownW.getD 1 []).length ∧
+      6 ≤ (ownW.getD 2 []).length ∧ 7 ≤ (ownW.getD 3 []).length ∧ 8 ≤ (ownW.getD 4 []).length ∧
+      19 ≤ (ownW.getD 5 []).length ∧ 4 ≤ (ownW.getD 6 []).length ∧
+      16 ≤ (ownW.getD 7 []).length ∧ 6 ≤ (ownW.getD 11 []).length ∧
+      64 ≤ (ownW.getD 12 []).length)
     {outE sqE : ℕ} {cells : List E} (houtL : (outE, cells) ∈ Lin) (hcl : 24 ≤ cells.length)
     (h6 : σ (.n 5) = ofK (addressOfIndex outE))
     (hsqL : (sqE, Tables.gSquaresList) ∈ Lin)
-    (hpush : ∀ b < 54, ∃ κ < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + κ))) {X : ℕ →
-        Prop} :
-    ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
+    (hcev : ∃ e, σ (.n 645) = ofK (addressOfIndex e) ∧
+      ∀ k < 157, Main.RegionL Lin (e + k) ∨ Main.RegionL own (e + k))
+    (hpush : ∀ b < 54, ∃ κ, κ + Tables.blockKappaAdj b < 34 ∧
+      σ (.n (vsPushM b)) = ofK (addressOfIndex (sqE + κ))) {X : ℕ → Prop} :
+    ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i,
+      (σ q.1).limb 0 * Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
       (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) := by
   intro q hq
   have hc := List.all_eq_true.mp vs_loads_class q hq
   obtain ⟨p, off⟩ := q
-  obtain ⟨l0, l2, l3, l4, l5, l6, l7, l8, l9, l13, l14, l15⟩ := hlen
-  have own' : ∀ k < 16, ∀ (hk : off < (ownW.getD k []).length), p = .n (vsAllocVars.getD k 0) →
-      ∃ i, (σ p).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) :=
+  obtain ⟨l0, l1, l2, l3, l4, l5, l6, l7, l11, l12⟩ := hlen
+  have own' : ∀ k < 13, ∀ (hk : off < (ownW.getD k []).length), p = .n (vsAllocVars.getD k 0) →
+      ∃ i, (σ p).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧
+        (Main.RegionL Lin i ∨ Main.RegionL own i ∨ X i) :=
     fun k hk hoff hp ↦ ⟨bs.getD k 0 + off, by rw [hp, hptr k hk, Main.addr_ofK],
       Or.inr (Or.inl ⟨_, hown k hk, Nat.le_add_right _ _, Nat.add_lt_add_left hoff _⟩)⟩
   simp only [vsLoadOk, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq,
-    List.contains_iff_mem] at hc
-  rcases hc with ((((((((((((⟨h1, h2⟩ | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) |
-    ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩) | ⟨h1, h2⟩
+    List.contains_iff_mem, or_assoc] at hc
+  rcases hc with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ |
+    ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ | h1
+  · exact own' 1 (by norm_num) (by omega) h1
   · exact own' 2 (by norm_num) (by omega) h1
   · exact own' 3 (by norm_num) (by omega) h1
   · exact own' 4 (by norm_num) (by omega) h1
+  · exact own' 7 (by norm_num) (by omega) h1
+  · exact own' 11 (by norm_num) (by omega) h1
+  · exact own' 12 (by norm_num) (by omega) h1
+  · exact own' 0 (by norm_num) (by omega) h1
   · exact own' 5 (by norm_num) (by omega) h1
   · exact own' 6 (by norm_num) (by omega) h1
-  · exact own' 9 (by norm_num) (by omega) h1
-  · exact own' 13 (by norm_num) (by omega) h1
-  · exact own' 14 (by norm_num) (by omega) h1
-  · exact own' 15 (by norm_num) (by omega) h1
-  · exact own' 0 (by norm_num) (by omega) h1
-  · exact own' 7 (by norm_num) (by omega) h1
-  · exact own' 8 (by norm_num) (by omega) h1
   · subst h1
     exact ⟨outE + off, by rw [h6, Main.addr_ofK],
       Or.inl ⟨_, houtL, Nat.le_add_right _ _, Nat.add_lt_add_left (by show off < cells.length; omega) _⟩⟩
-  · obtain ⟨b, hb, rfl⟩ := List.mem_map.mp h1
+  · subst h1
+    obtain ⟨e, he, hR⟩ := hcev
+    exact ⟨e + off, by rw [he, Main.addr_ofK], (hR off h2).elim Or.inl (fun h ↦ Or.inr (Or.inl h))⟩
+  · obtain ⟨b, hb, e⟩ := List.mem_map.mp h1
+    simp only [Prod.mk.injEq] at e
+    obtain ⟨rfl, rfl⟩ := e
     obtain ⟨κ, hκ, e⟩ := hpush b (List.mem_range.mp hb)
-    subst h2
-    exact ⟨sqE + κ, by rw [e, Main.addr_ofK, Nat.add_zero],
-      Or.inl ⟨_, hsqL, Nat.le_add_right _ _, Nat.add_lt_add_left (by show κ < Tables.gSquaresList.length; simp [Tables.gSquaresList]; omega) _⟩⟩
+    exact ⟨sqE + (κ + Tables.blockKappaAdj b), by rw [e, Main.addr_ofK, Nat.add_assoc],
+      Or.inl ⟨_, hsqL, Nat.le_add_right _ _, Nat.add_lt_add_left (by
+        show κ + Tables.blockKappaAdj b < Tables.gSquaresList.length; simp [Tables.gSquaresList]; omega) _⟩⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

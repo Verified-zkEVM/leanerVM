@@ -23,12 +23,12 @@ section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2404 (hl : args.length = 22)  :
+theorem vtB_glue_2404 (hl : args.length = 20)  :
     ∀ s ∈ (vtPre.drop 2404).take 3, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
   exact vtB_blockR hl 2404 3 [] (by decide +kernel) (fun _ h ↦ absurd h (by simp))
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2424 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2424 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i))  :
     ∀ s ∈ (vtPre.drop 2424).take 10, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
   refine vtB_blockR hl 2424 10 [
@@ -43,7 +43,7 @@ theorem vtB_glue_2424 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2427 _ (by decide +kernel)) (by decide +kernel) (hw 2 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2452 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2452 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) 
     (h2455 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.dispatch (.n 2884) vtImNames [.n 8] [.n 2908]))
     (h2456 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2908) (.n 2851) 1))) :
@@ -64,7 +64,7 @@ theorem vtB_glue_2452 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2460 _ (by decide +kernel)) (by decide +kernel) (hw 2 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2471 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2471 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) 
     (h2471 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2914) (.n 16) 0)))
     (h2472 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2884) (.n 17) 0))) :
@@ -81,7 +81,7 @@ theorem vtB_glue_2471 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2473 _ (by decide +kernel)) (by decide +kernel) (hw 3 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2485 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2485 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) 
     (h2485 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2927) (.n 16) 1)))
     (h2486 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2884) (.n 17) 1))) :
@@ -98,7 +98,7 @@ theorem vtB_glue_2485 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2487 _ (by decide +kernel)) (by decide +kernel) (hw 4 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2499 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2499 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) 
     (h2499 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2940) (.n 16) 2)))
     (h2500 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2884) (.n 17) 2))) :
@@ -115,7 +115,7 @@ theorem vtB_glue_2499 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2501 _ (by decide +kernel)) (by decide +kernel) (hw 5 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_2528 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_2528 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) 
     (h2531 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.dispatch (.n 2959) vtImNames [.n 8] [.n 2983]))
     (h2532 : VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.load (.n 2983) (.n 2851) 2))) :
@@ -158,7 +158,7 @@ theorem vtB_glue_2528 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 2578 _ (by decide +kernel)) (by decide +kernel) (hw 13 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_3484 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_3484 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i))  :
     ∀ s ∈ (vtPre.drop 3484).take 426, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
   refine vtB_blockR hl 3484 426 [
@@ -331,7 +331,7 @@ theorem vtB_glue_3484 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 3897 _ (by decide +kernel)) (by decide +kernel) (hw 4 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_3910 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_3910 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) {κ : ℕ → ℕ}
     (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))
     (hκ : ∀ b < 153, κ b < 34) {Q : ℕ → E}
@@ -368,7 +368,7 @@ theorem vtB_glue_3910 (hl : args.length = 22) {W : ℕ → E}
   · exact (vtB_readM hl (vtB_memAt 3935 _ (by decide +kernel)) (by decide +kernel) (hw 1 (by norm_num))).2
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_3947 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_3947 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) {κ : ℕ → ℕ}
     (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))
     (hκ : ∀ b < 153, κ b < 34) {P : ℕ → E}
@@ -417,7 +417,7 @@ theorem vtB_glue_3947 (hl : args.length = 22) {W : ℕ → E}
   · exact h3982
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_3992 (hl : args.length = 22) {W : ℕ → E}
+theorem vtB_glue_3992 (hl : args.length = 20) {W : ℕ → E}
     (hw : ∀ i < 16, LoadHolds rd (vtσ rd wo args (.n 14)) i (W i)) {κ : ℕ → ℕ}
     (hbkc : ∀ b < 153, LoadHolds rd (vtσ rd wo args (.n 12)) b (gen ^ κ b))
     (hκ : ∀ b < 153, κ b < 34) 
@@ -765,7 +765,7 @@ theorem vtB_glue_3992 (hl : args.length = 22) {W : ℕ → E}
       (by rw [vtB_const hl (vtB_memAt 4296 (.atom (.const (.n 4914) (word 8589934592 0 0))) (by decide +kernel))]; exact vtB_w33) (hκ 107 (by norm_num)) hlow
 
 set_option maxRecDepth 100000 in
-theorem vtB_glue_5098 (hl : args.length = 22)  :
+theorem vtB_glue_5098 (hl : args.length = 20)  :
     ∀ s ∈ (vtPre.drop 5098).take 54, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
   exact vtB_blockR hl 5098 54 [] (by decide +kernel) (fun _ h ↦ absurd h (by simp))
 

@@ -172,7 +172,7 @@ largest `τ_t` (at most `m = |point|`), the squeeze `ξ` of the sponge `S` after
 the target, the first record, `__loop9`'s rounds on the honest buffers (records, running
 products, `chi`) and words `xs` at the cursor five on, the last record, `eq_prefix_chain` into
 the prefix weights of `chi` against `zeta1`. -/
-theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22)
+theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20)
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n 9) = gen ^ m)
     (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τ t))

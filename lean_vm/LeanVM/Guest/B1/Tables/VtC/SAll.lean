@@ -39,7 +39,7 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`verify_tables`' statements `0 ..< 2404` complete.** -/
-theorem vtS_complete (hl : args.length = 22) (hlow : LowDefB 8 rd)
+theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 8 rd)
     (κ : ℕ → ℕ) (hκ : ∀ b < 153, κ b < 34) (point : List E) (hμ33 : point.length < 33)
     (τ n : ℕ → ℕ) (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ29 : ∀ t < 6, τ t < 29) (hτμ : ∀ t < 6, τ t ≤ point.length)
@@ -78,7 +78,7 @@ theorem vtS_complete (hl : args.length = 22) (hlow : LowDefB 8 rd)
   have hc := vt_goodL (rd := rd) (w := w) hl 0 _ vtS_copies_check
   simp only [GoodL, GoodS, fixNe, Good, and_true] at hc
   obtain ⟨c0, c1, c2, c3, c4, c5, c6, c7⟩ := hc
-  have p := fun i (hi : i < 22) => vt_param (rd := rd) (w := w) hl hi
+  have p := fun i (hi : i < 20) => vt_param (rd := rd) (w := w) hl hi
   refine ⟨forall_slice_split 0 2189 215 (vtS_sort hl hlow κ hκ hbk hsq' hso hst hoff) p2,
     fun i hi => ?_, fun i hi => ?_, vt_alloc hl 8 (sz := 153) (by decide +kernel),
     vt_alloc hl 10 (sz := 153) (by decide +kernel), vt_alloc hl 317 vtSort_alloc185, hpw, hsl,
