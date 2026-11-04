@@ -439,7 +439,7 @@ theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitn
       rcases hx with rfl | rfl
       · exact (digestScalars_canonical _).1
       · exact (digestScalars_canonical _).2)
-    (fun c hc => kidOk cert hbl hrel hl hV.goals hc)
+    (fun c hc => kidOk cert hbl hrel hl hV.goals (hX c hc).1.toD (hX c hc).2.toD hc)
     (fun c hc => by
       have hsh := kid_shapes hbl hrel _ (List.getElem_mem hc)
       rw [hKid_pi seed (s := s) hc (by simp [DeferredClaim.cells, hsh.2, bytecodeVars])]
