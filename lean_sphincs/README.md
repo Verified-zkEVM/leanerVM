@@ -11,7 +11,7 @@
 
 ## The model and the Rust code
 
-`Statement/LeanSphincs.lean` transcribes the crate (citations at `542b0353`): its key generation and signer are the crate's, call for call, so the budget counts the crate's hash calls, and the secret key is the crate's, the seed `S0`. It was checked against the crate by reading both sides and by running the compiled statement on the crate's known answers (`lake exe signature-kat`, [cli/SignatureKat.lean](cli/SignatureKat.lean)): the EthLib vectors of `542b0353` (`crates/signatures/tests/signatures/ethlib`: leanSPHINCS's key generation 4/4, signing 5/5 and verification 20/20, leanXMSS's the same) and leanSPHINCS's known answer (`known_answer.hex`: the public key, the signature and its verification). It is not a mechanized refinement of the Rust.
+`Statement/LeanSphincs.lean` transcribes the crate (citations at `542b0353`): its key generation and signer are the crate's, call for call, so the budget counts the crate's hash calls, and the secret key is the crate's, the seed `S0`. It was checked against the crate by reading both sides and by running the compiled statement on the crate's known answers (`lake exe signature-kat`, [cli/SignatureKat.lean](cli/SignatureKat.lean)): the EthLib vectors of `542b0353` (`crates/signatures/tests/signatures/ethlib`: leanSPHINCS's key generation 4/4, signing 5/5 and verification 24/24; leanXMSS's key generation 4/4, signing 6/6 and verification 20/20; the rejected inputs of the wrong length included) and leanSPHINCS's known answer (`known_answer.hex`: the public key, the signature and its verification). It is not a mechanized refinement of the Rust.
 
 ## Build
 
