@@ -176,12 +176,14 @@ def spC : Nat := spLast.2
 def spLeafCells : List V :=
   V.n 0 :: V.n (spC + 2) :: spGs.2.2.1 ++ [V.n (spSlot false spGs.2.1 0 2)]
 
-/-- The leaf's `keccak_cells` (1056 bytes), its padding run allocated at its first `KECCAK`: the
-statements, the next base and the output run's base. -/
+/-- The leaf's `keccak_cells` (1056 bytes), its padding run virtual: the statements, the next base
+and the output run's base. -/
+def spLeafM : List Stmt × Nat × Nat := kMsg spVPad (spLeafCells.map KC.cell) 1056 false none (spC + 3)
+
+/-- The leaf's `keccak_cells`, its padding run allocated at its first `KECCAK`. -/
 def spLeafK : List Stmt × Nat × Nat :=
-  let k := kMsg spVPad (spLeafCells.map KC.cell) 1056 false none (spC + 3)
-  let w := withPad spVPad isKeccak k.1
-  (w.1, k.2.1 + w.2, k.2.2 + w.2)
+  ((withPad spVPad isKeccak spLeafM.1).1, spLeafM.2.1 + (withPad spVPad isKeccak spLeafM.1).2,
+    spLeafM.2.2 + (withPad spVPad isKeccak spLeafM.1).2)
 
 /-- The body of `sp_wots`. -/
 def spBody : List Stmt :=

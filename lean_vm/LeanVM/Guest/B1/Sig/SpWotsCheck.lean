@@ -15,13 +15,14 @@ public import LeanVM.Guest.B1.Sig.SpWotsArms
 * `spLayout_all`: every arm of every group has its layout (`spLayoutOK`, `SpWotsArms`);
 * `spLeafCells_eq`: the leaf's cells are `P`, the leaf's address and the 64 tips `spTip i`, the
   slot of chain `i`'s last step in its group;
+* `spTarget_eq`: the target's word is `g^128`;
 * `spLeafPad`: the leaf's `keccak_cells` allocates its padding run at its first `KECCAK`, above
   every cell it hashes and at most at its output run, which lies below the virtual run.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -49,9 +50,6 @@ def spTip (i : Nat) : V := .n (spSlot (i / 3 == 0) (spState (i / 3)).2.2 (i % 3)
 theorem spLeafCells_eq : spLeafCells = .n 0 :: .n (spC + 2) :: (List.range 64).map spTip := by
   decide +kernel
 
-/-- The leaf's message before its padding run is moved. -/
-def spLeafM : List Stmt × Nat × Nat := kMsg spVPad (spLeafCells.map KC.cell) 1056 false none (spC + 3)
-
 /-- **Where the leaf's padding run is**: inserted, above the cells, at most at the output run, and
 the output run below the virtual run. -/
 theorem spLeafPad :
@@ -59,6 +57,12 @@ theorem spLeafPad :
       (∀ v ∈ spLeafCells, v = .n v.idx ∧ v.idx < padBase isKeccak spLeafM.1) ∧
       padBase isKeccak spLeafM.1 ≤ spLeafM.2.2 ∧ spLeafM.2.2 + 1 < spVPad := by
   decide +kernel
+
+/-- `g^128`, the target sum in the exponent. -/
+theorem spTarget_eq : spTarget = gen ^ 128 := by
+  rw [Value.gen_pow_eq_ofK, spTarget, word, Value.ofBits_zero]
+  rw [← ofK_eq_ofLimbs]
+  exact congrArg ofK (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Sig
