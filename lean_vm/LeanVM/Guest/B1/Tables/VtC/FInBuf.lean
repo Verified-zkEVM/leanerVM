@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FInBuf
 
-  Where the loads of statements `5259 ..< 10209` read: inside `fp_w`, the cursor's words, `dims`,
-  `claim_pool`, `claim_cplen_g`, the challenges' products and the equality prefix.
+  Where the loads of statements `2672 ..< 6251` read: inside `fp_w`, the cursor's words, the
+  challenges' products and the equality prefix.
 -/
 
 module
@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Tables.VtC.InBuf
 
 `BufWin σ bufs p len`: the pointer `σ p` starts a run of `len` words inside one of the buffers
 `bufs`. `vtF_loadsInBuf`: given such runs for `fp_w` (14 words read), the cursor (the 157
-evaluations), `dims` (7), `claim_pool` and `claim_cplen_g` (162 each) and the challenges'
-products and equality prefix (`n + 1` each), every load of the statements lands in a buffer.
+evaluations) and the challenges' products and equality prefix (`n + 1` each), every load of the
+statements lands in a buffer.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -50,64 +50,55 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The window's loads land in buffers.** -/
 theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
-    (h14 : BufWin (vtσ rd w args) bufs (.n 14) 14)
-    (hcur : BufWin (vtσ rd w args) bufs (.n 5932) 157)
-    (h10 : BufWin (vtσ rd w args) bufs (.n 10) 7)
-    (h16 : BufWin (vtσ rd w args) bufs (.n 16) 162)
-    (h17 : BufWin (vtσ rd w args) bufs (.n 17) 162)
-    {τs : ℕ → ℕ} (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t))
-    {n : ℕ} (hgn : vtσ rd w args (.n 5817) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    (hcp : BufWin (vtσ rd w args) bufs (.n 5915) (n + 1))
-    (hpe : BufWin (vtσ rd w args) bufs (.n 5936) (n + 1)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 5259).take (10209 - 5259)) := by
+    (h13 : BufWin (vtσ rd w args) bufs (.n 13) 14)
+    (hcur : BufWin (vtσ rd w args) bufs (.n 2609) 157)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (30 + t)) = gen ^ τs t)
+    {n : ℕ} (hgn : vtσ rd w args (.n 2500) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    (hcp : BufWin (vtσ rd w args) bufs (.n 2592) (n + 1))
+    (hpe : BufWin (vtσ rd w args) bufs (.n 2613) (n + 1)) :
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2672).take (6251 - 2672)) := by
   intro d p off hs
   rw [tbStmtsEqb_sound vtF_split] at hs
   rcases List.mem_append.mp hs with hs | hs
   swap
   · simp at hs
-  cases hr : rd14 (.atom (.load d p off))
+  cases hr : rdFpw (.atom (.load d p off))
   · have hf : Stmt.atom (.load d p off) ∈ vtFTags.flatMap vtFTagT := by
       rw [← tbStmtsEqb_sound vtF_cover]
       exact List.mem_filter.mpr ⟨hs, by simp [hr, autoB, Fwd.pureB, hintB]⟩
     obtain ⟨q, hq, hsq⟩ := List.mem_flatMap.mp hf
-    rcases vtFTags_spec q hq with ⟨h0, hk⟩ | ⟨h1, hj⟩ | ⟨h23, ht⟩
+    rcases vtFTags_spec q hq with ⟨h0, hk⟩ | ⟨h1, hj⟩ | ⟨h3, ht⟩
     · obtain ⟨a, k⟩ := q
       simp only at h0 hk
       subst h0
       simp only [vtFTagT, vtEvRest, List.mem_cons, List.not_mem_nil, or_false,
-        Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, false_or] at hsq
-      rcases hsq with ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
-      · exact hcur.inBuf hk
-      · exact h16.inBuf (by omega)
-      · exact h17.inBuf (by omega)
+        Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, or_false] at hsq
+      obtain ⟨-, rfl, rfl⟩ := hsq
+      exact hcur.inBuf hk
     · obtain ⟨a, j⟩ := q
       simp only at h1
       subst h1
       simp [vtFTagT, vtPermT, keccakA] at hsq
     · obtain ⟨a, t⟩ := q
-      simp only at h23 ht
-      obtain ⟨e1, e3⟩ := vtF_airVals (w := w) hl hdim hgn hτn ht
-      rcases h23 with rfl | rfl
-      · simp only [vtFTagT, vtDimT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,
-          Atom.load.injEq] at hsq
-        obtain ⟨-, rfl, rfl⟩ := hsq
-        exact h10.inBuf (by omega)
-      · have hfilt := tbStmtsEqb_sound (vtAirT_rest t ht)
-        simp only [vtFTagT] at hsq
-        rw [hfilt] at hsq
-        simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,
-          Atom.load.injEq, reduceCtorEq, false_or] at hsq
-        rcases hsq with ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
-        · exact hcp.shift (by omega) e1
-        · exact hpe.shift (by have := hτn t ht; omega) e3
+      simp only at h3 ht
+      subst h3
+      obtain ⟨e1, e3⟩ := vtF_airVals (w := w) hl hkbt hgn hτn ht
+      have hfilt := tbStmtsEqb_sound (vtAirT_rest t ht)
+      simp only [vtFTagT] at hsq
+      rw [hfilt] at hsq
+      simp only [vtAirRest, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,
+        Atom.load.injEq, reduceCtorEq, false_or] at hsq
+      rcases hsq with ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
+      · exact hcp.shift (by omega) e1
+      · exact hpe.shift (by have := hτn t ht; omega) e3
   · match p, hr with
-    | .n 14, _ =>
-      have hm : Stmt.atom (.load d (.n 14) off) ∈ vtEvL :=
+    | .n 13, _ =>
+      have hm : Stmt.atom (.load d (.n 13) off) ∈ vtEvL :=
         vtEvL_mem (vtF_mem hs) (fun _ _ _ h ↦ by cases h)
       have := List.all_eq_true.mp vtF_loadsBelow _ hm
       simp only at this
-      have := List.all_eq_true.mp this (14, 14) (by simp)
-      exact h14.inBuf (by simpa using this)
+      have := List.all_eq_true.mp this (13, 14) (by simp)
+      exact h13.inBuf (by simpa using this)
 
 end
 
