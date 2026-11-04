@@ -2,22 +2,28 @@
   LeanVM.Guest.B1.Sig.SpWotsGroupComplete
 
   A digit group of `sp_wots` completes: its digit word `g^k` hinted, its range check on a memory of
-  at least `64` words, its dispatch taking arm `k`, whose chains' starts are loaded.
+  at least `64` words, the padding run the first group sets, its dispatch taking arm `k`, whose
+  chains' starts are loaded.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Sig.SpWotsArmComplete
+public import LeanVM.Guest.B1.Sig.SpWotsStepComplete
+public import LeanVM.Guest.B1.Sig.SpWotsArms
 public import LeanVM.Guest.B1.Sig.SpWotsCheck
-public import LeanVM.Guest.B1.Sig.CwComplete
+public import LeanVM.Guest.B1.Sig.CodewordComplete
 
 /-!
 # A group, complete
 
-* `spGroupT_complete`: a group from base `B` completes on `B ..< end`, from any valuation whose
-  `pp` and address are canonical: its digit word `g^k` at `B`, its arm `k`'s tips canonical and
-  starts holding `vals`;
-* `spGroupP_complete`: group `p` of the body, its numbers checked (`spLayout_all`, `spPad_all`).
+A group of `sp_wots` is the shared group over `spW` (`groupD`), so it completes by the shared
+`groupD_load`, its chain step in single-assignment form above `23` and reading `SpGood spPad`
+(`spWp_shape`, `spWp_canon`).
+
+* `SpArmPost`: arm `k`'s tips canonical and its starts holding `vals`;
+* `spGroupT_complete`: a group from base `B` completes on `B ..< end`, from any valuation where
+  the padding run holds after what the group sets (`spPre`): its digit word `g^k` at `B`, `SpArmPost`;
+* `spGroupP_complete`, `spGroupP_nb`: group `p` of the body.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -28,122 +34,86 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 variable {C : CallRel} {rd : Reader}
 
-theorem spGroupT_fst_eq (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) :
-    (spGroupT first n fold prodIn encIn B).1 = [hintW "digits" [.n B]] ++
-      (rangeS (.n B) (word (2 ^ (4 ^ n - 1)) 0 0) (B + 1) ++
-        [.match_ (.n B) (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (B + 5)).1]) := rfl
+/-- What arm `k` of the group from `B` leaves: its tips canonical, its starts holding `vals`. -/
+def SpArmPost (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) (vals : Nat → E)
+    (σ : Val) : Prop :=
+  (∀ t < n, IsCanonical128 (σ (.n (spSlot fold B t 2)))) ∧
+    ∀ t < n, σ (spStartOf first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k) t) = vals t
 
-theorem spArmB_ge (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
-    ∀ k, B + 5 ≤ spArmB first n fold B prodIn encIn k
-  | 0 => le_rfl
-  | k + 1 => by
-      have ih := spArmB_ge first n fold B prodIn encIn k
-      rw [spArmB_succ, spArmEnd, spArmV, armT_snd]
-      have := walkBase_le (if k = 0 then spW.size + 13 else spW.size) k
-        (if fold then spArmB first n fold B prodIn encIn k + 1 else spArmB first n fold B prodIn encIn k)
-        (Nat.zero_le n)
-      simp only [walkBase] at this
-      split <;> split at this <;> cases fold <;> simp_all <;> omega
+theorem padRun_seq (P : Nat) : SeqOK P (padRun P) (P + 5) := by
+  simp [padRun, List.range_succ, SeqOK, ASeq, cst]
 
-/-- **A group completes**, its digit word `g^k` loaded at its base. -/
-theorem spGroupT_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} {k : Nat}
-    (hn0 : 0 < n) (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hB : 13 ≤ B) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hend : spArmB first n fold B prodIn encIn (4 ^ n) + 5 < spVPad)
-    (hlay : spLayoutOK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k) = true)
-    (hpad : spPadOK first n fold B prodIn encIn k = true)
-    (σ : Val) (hg0 : IsCanonical128 (σ (.n 0))) (hg1 : IsCanonical128 (σ (.n 1))) (vals : Nat → E)
-    (hv : ∀ t < n, IsCanonical128 (vals t)) :
+theorem spPre_seq (fold : Bool) (B : Nat) : SeqOK (B + 5) (spPre fold B) (spL fold B + 5) := by
+  cases fold
+  · rfl
+  · exact padRun_seq (B + 5)
+
+theorem spL_ge (fold : Bool) (B : Nat) : B ≤ spL fold B := by
+  unfold spL; split <;> omega
+
+theorem spW_shape {Bs : Nat} (h : 23 ≤ Bs) : StepShape spW Bs :=
+  StepShape.mono (spWp_shape (b := spPad) (B := 23) (by simp [spPad]) (by norm_num)) h
+
+theorem spW_canon {Bs : Nat} (h : 23 ≤ Bs) : StepCanon spW Bs (SpGood spPad) :=
+  StepCanon.mono (spWp_canon (b := spPad) (B := 23) (by simp [spPad]) (by norm_num)) h
+
+theorem spW_power_nb {Bs k n : Nat} (h : 23 ≤ Bs) (hn : n ≤ 3) : NBv Bs (spW.power (digitSum k n)) :=
+  ⟨3 + digitSum k n, by have := digitSum_le_nine k n hn; omega, rfl⟩
+
+/-- **A group completes**, its digit word `g^k` loaded at its base, its chain step above `Bs`. -/
+theorem spGroupT_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} {k Bs : Nat}
+    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hBs : 23 ≤ Bs) (hB : Bs ≤ spL fold B + 5)
+    (hpi : NBv Bs prodIn) (hei : NBv Bs encIn) (vals : Nat → E) (hv : ∀ t < n, IsCanonical128 (vals t))
+    (σ : Val) (hg : ∀ σ', AgreeBelow B σ σ' → AtomsHold rd σ' (spPre fold B) → SpGood spPad σ') :
     Completes C rd B (spGroupT first n fold prodIn encIn B).2 (spGroupT first n fold prodIn encIn B).1 σ
-      (fun σ' => σ' (.n B) = ofK (addressOfIndex k) ∧ SpArmPost first n fold B prodIn encIn k vals σ') := by
-  have h4n : 4 ^ n ≤ 64 := by
-    calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
-      _ = 64 := by norm_num
-  have hge := spArmB_ge first n fold B prodIn encIn (4 ^ n)
-  rw [spGroupT_end, spGroupT_fst_eq]
-  set σL := Function.update σ (.n B) (ofK (addressOfIndex k)) with hσL
-  have hextL : Ext B (spArmB first n fold B prodIn encIn (4 ^ n)) σ σL := fun v hv =>
-    Function.update_of_ne (fun e => hv B le_rfl (by omega) e) _ _
-  have hb : σL (.n B) = ofK (addressOfIndex k) := Function.update_self ..
-  refine Completes.reload hextL ?_
-  refine Completes.append (m := B + 1) (by omega) (by omega)
-    (by rw [valsList_hint]; exact .cons ⟨B, by omega, rfl⟩ (.nil _)) (hintKeep_complete σL _ _ _ _)
-    (fun σ1 he1 hp1 => ?_)
-  rw [hp1, word_two_pow_eq (by omega)]
-  refine Completes.append (m := B + 5) (by omega) hge ?_
-    (rangeS_complete (n := 64) (K := 4 ^ n) hm h4n hk σL (.n B) ⟨B, by omega, rfl⟩ hb)
-    (fun σ2 he2 _ => ?_)
-  · simp only [rangeS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
-      List.cons_append, List.nil_append]
-    repeat (first | exact .nil _ | (refine .cons ⟨_, ?_, rfl⟩ ?_; omega))
-  have hag : AgreeBelow (B + 1) σL σ2 := he2.agree
-  have hb2 : σ2 (.n B) = ofK (addressOfIndex k) := by rw [← hag B (by omega)]; exact hb
-  have hk' : k < (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (B + 5)).1.length := by
-    rw [spArmsT_length]; exact hk
-  refine match_complete hk' ⟨B, by omega, rfl⟩ hb2 ?_
-  rw [spGroupArm _ _ _ _ _ _ _ hk']
-  have h0 : σ2 (.n 0) = σ (.n 0) := by
-    rw [← hag 0 (by omega), hσL, Function.update_of_ne (by simp; omega)]
-  have h1 : σ2 (.n 1) = σ (.n 1) := by
-    rw [← hag 1 (by omega), hσL, Function.update_of_ne (by simp; omega)]
-  obtain ⟨σ', he', hp', hh'⟩ := (spArm_complete (C := C) (rd := rd) (k := k) hn0 hn hB hpi hei hend hlay
-    hpad σ2 (by rw [h0]; exact hg0) (by rw [h1]; exact hg1) vals hv).1
-  exact ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb2, hp'⟩, hh'⟩
+      (fun σ' => σ' (.n B) = ofK (addressOfIndex k) ∧ SpArmPost first n fold B prodIn encIn k vals σ' ∧
+        SpGood spPad σ') :=
+  (groupD_load (C := C) (rd := rd) (spW_shape hBs) (spW_canon hBs) hn hk hm (spL_ge fold B) hB
+    (spPre_seq fold B) hpi hei (spW_power_nb hBs hn) vals hv σ hg).mono le_rfl le_rfl
+    (fun _ h => ⟨h.1, ⟨h.2.1, h.2.2.1⟩, h.2.2.2⟩)
 
 theorem spN_pos (p : Nat) : 0 < spN p := by unfold spN; split <;> omega
 
 theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
 
-/-- **Group `p` of the body completes**, its digit word `g^k` loaded. -/
-theorem spGroupP_complete {p k : Nat} (hp : p < 22) (hk : k < 4 ^ spN p) (hm : MemOK rd 64)
-    (σ : Val) (hg0 : IsCanonical128 (σ (.n 0))) (hg1 : IsCanonical128 (σ (.n 1))) (vals : Nat → E)
-    (hv : ∀ t < spN p, IsCanonical128 (vals t)) :
-    Completes C rd (spState p).2.2
-      (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).2
-      (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).1 σ
-      (fun σ' => σ' (.n (spState p).2.2) = ofK (addressOfIndex k) ∧
-        SpArmPost (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k vals σ') := by
-  have hg := spGroupPad_all hp
-  simp only [spGroupPadOK, Bool.and_eq_true, decide_eq_true_eq] at hg
-  obtain ⟨⟨⟨⟨⟨⟨-, hpi1⟩, hpi2⟩, hei1⟩, hei2⟩, hB⟩, hend⟩ := hg
-  exact spGroupT_complete (spN_pos p) (spN_le p) hk hm hB ⟨_, hpi2, hpi1⟩ ⟨_, hei2, hei1⟩ hend
-    (spLayout_all hp hk) (spPad_all hp hk) σ hg0 hg1 vals hv
+theorem spArmB_ge (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k : Nat) :
+    spL fold B + 6 ≤ spArmB first n fold B prodIn encIn k := by
+  rw [spArmB, ← armB_zero spW first n fold prodIn encIn (spL fold B)]
+  exact armB_mono spW first n fold prodIn encIn (spL fold B) (Nat.zero_le _)
 
-/-- **A group's values are numbered below its end**, every arm's numbers checked. -/
-theorem spGroupT_nb {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V}
-    (hn0 : 0 < n) (hn : n ≤ 3) (hB : 13 ≤ B) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hend : spArmB first n fold B prodIn encIn (4 ^ n) + 5 < spVPad)
-    (hlay : ∀ k < 4 ^ n, spLayoutOK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k) = true)
-    (hpad : ∀ k < 4 ^ n, spPadOK first n fold B prodIn encIn k = true) :
-    NumBelow (spGroupT first n fold prodIn encIn B).2 (Stmt.valsList (spGroupT first n fold prodIn encIn B).1) := by
-  have hge := spArmB_ge first n fold B prodIn encIn (4 ^ n)
-  rw [spGroupT_end, spGroupT_fst_eq]
-  simp only [List.cons_append, valsList_cons, valsList_append, hintW, rangeS, cst]
-  intro x hx
-  simp only [Stmt.vals, Atom.vals, Hint.vals, Dest.vals, valsList_nil,
-    List.append_nil, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx
-  have key : x = .n B ∨ x = .n (B + 1) ∨ x = .n (B + 1 + 1) ∨ x = .n (B + 1 + 2) ∨
-      x = .n (B + 1 + 3) ∨ x ∈ Stmt.valsArms (spArmsT first n fold B prodIn encIn (4 ^ n) 0 (B + 5)).1 := by
-    tauto
-  clear hx
-  rcases key with rfl | rfl | rfl | rfl | rfl | hx
-  all_goals first | exact ⟨_, by omega, rfl⟩ | skip
-  refine numBelow_valsArms _ (fun arm ha => ?_) x hx
-  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
-  have hk' := hk
-  rw [spArmsT_length] at hk'
-  rw [spGroupArm _ _ _ _ _ _ _ hk]
-  exact (spArm_complete (C := fun _ _ _ => True) (rd := fun _ => none) hn0 hn hB hpi hei hend
-    (hlay k hk') (hpad k hk') (fun _ => 0) canon_zero canon_zero (fun _ => 0) (fun _ _ => canon_zero)).2
+/-- A group's encoding (and product) lie below its end. -/
+theorem spEnc_lt_end (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
+    spEnc fold n B < spArmB first n fold B prodIn encIn (4 ^ n) := by
+  have h1 := armB_one spW first n fold prodIn encIn (spL fold B)
+  have h2 := armB_mono spW first n fold prodIn encIn (spL fold B)
+    (Nat.one_le_pow n 4 (by norm_num))
+  rw [spArmB]
+  unfold spEnc spProd
+  omega
 
-/-- **Group `p`'s values are numbered below its end.** -/
-theorem spGroupP_nb {p : Nat} (hp : p < 22) :
-    NumBelow (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).2
-      (Stmt.valsList (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).1) := by
-  have hg := spGroupPad_all hp
-  simp only [spGroupPadOK, Bool.and_eq_true, decide_eq_true_eq] at hg
-  obtain ⟨⟨⟨⟨⟨⟨-, hpi1⟩, hpi2⟩, hei1⟩, hei2⟩, hB⟩, hend⟩ := hg
-  exact spGroupT_nb (spN_pos p) (spN_le p) hB ⟨_, hpi2, hpi1⟩ ⟨_, hei2, hei1⟩ hend
-    (fun k hk => spLayout_all hp hk) (fun k hk => spPad_all hp hk)
+/-- A group's tips and starts lie in its arms' range. -/
+theorem spPost_bounds (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) {k t : Nat}
+    (hk : k < 4 ^ n) (ht : t < n) :
+    (spL fold B + 6 ≤ spSlot fold B t 2 ∧ spSlot fold B t 2 < spArmB first n fold B prodIn encIn (4 ^ n)) ∧
+      ∃ j, spStartOf first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k) t = .n j ∧
+        spL fold B + 6 ≤ j ∧ j < spArmB first n fold B prodIn encIn (4 ^ n) := by
+  obtain ⟨j, ej, h1, h2, -⟩ := grpPos_spec spW first n fold prodIn encIn (spL fold B) k t hk ht
+  refine ⟨?_, j, ej, h1, h2⟩
+  have hs := slot_bounds spW fold (spL fold B) t 2 (by norm_num)
+  have hc : groupStart fold (spL fold B) + chainStride spW * (t + 1) ≤
+      groupStart fold (spL fold B) + chainStride spW * n :=
+    Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
+  have he := spEnc_lt_end first n fold B prodIn encIn
+  have hgs : spL fold B + 6 ≤ groupStart fold (spL fold B) := by rw [groupStart_eq]; split <;> omega
+  unfold spEnc spProd at he
+  exact ⟨by unfold spSlot; omega, by unfold spSlot; omega⟩
+
+theorem spGroupT_nb {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V} (hn : n ≤ 3)
+    (hB : 17 ≤ spL fold B) (hpi : NBv (spL fold B + 6) prodIn) (hei : NBv (spL fold B + 6) encIn) :
+    NumBelow (spGroupT first n fold prodIn encIn B).2 (Stmt.valsList (spGroupT first n fold prodIn encIn B).1) :=
+  groupD_numBelow (spW_shape (Bs := spL fold B + 6) (by omega)) le_rfl
+    (spL_ge fold B) ((spPre_seq fold B).numBelow.mono (by omega)) hpi hei
+    (fun k _ => spW_power_nb (by omega) hn)
 
 end
 end LeanVM.Guest.B1.Sig

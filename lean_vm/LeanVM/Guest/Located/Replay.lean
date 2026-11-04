@@ -197,9 +197,9 @@ def bndTest (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) : Bool :=
 
 /-- The memory bounds hold, decided. -/
 def memTest (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
-  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * addressOfIndex m.1) with
+  mem.all fun m ↦ match rd (fp * addressOfIndex m.1) with
     | some p => decide (IsInK p) &&
-        (List.range m.2.2).any fun e ↦ decide (rd (p.limb 0 * addressOfIndex c) = some (ofK
+        (List.range m.2.2).any fun e ↦ decide (rd (p.limb 0 * addressOfIndex m.2.1) = some (ofK
             (addressOfIndex e)))
     | none => false
 
@@ -274,7 +274,7 @@ theorem bndTest_iff {bnd : List (ℕ × ℕ)} : bndTest L.read fp bnd = true ↔
 theorem memTest_iff {mem : List (ℕ × ℕ × ℕ)} : memTest L.read fp mem = true ↔ MemPre L fp mem := by
   unfold memTest MemPre
   simp only [List.all_eq_true, List.mem_range]
-  refine forall_congr' fun m ↦ forall_congr' fun _ ↦ forall_congr' fun c ↦ forall_congr' fun _ ↦ ?_
+  refine forall_congr' fun m ↦ forall_congr' fun _ ↦ ?_
   split
   · rename_i p hp
     simp [hp, List.any_eq_true, List.mem_range]

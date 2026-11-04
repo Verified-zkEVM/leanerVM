@@ -105,7 +105,7 @@ theorem armStart_weq (h : WEq W W' I) : armStart W = armStart W' := by
 theorem groupT_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn : V) (b : Nat)
     (hn : first + n ≤ I) (hd : n ≤ 3) :
     groupT W first n fold prodIn encIn b = groupT W' first n fold prodIn encIn b := by
-  unfold groupT
+  unfold groupT groupD groupArmsT
   rw [slotsT_weq h, prodT_weq h, encT_weq h, armsT_weq h _ first n fold _ _ _ _ hn hd]
 
 theorem armB_weq (h : WEq W W' I) {first n : Nat} (fold : Bool) (prodIn encIn : V) (b k : Nat)

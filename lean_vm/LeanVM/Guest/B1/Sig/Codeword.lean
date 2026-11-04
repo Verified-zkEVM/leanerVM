@@ -72,7 +72,7 @@ def GroupOK (rd : Reader) (σ : Val) (W : WotsT) (b q : Nat) (fold : Bool) (n : 
       (cwState W b q).2.1 (prodT W fold n (cwState W b q).2.2) (encT W fold n (cwState W b q).2.2) k
       (armBase W (slotsT W fold (cwState W b q).2.2) (3 * q) n fold (cwState W b q).1
         (cwState W b q).2.1 (prodT W fold n (cwState W b q).2.2) (encT W fold n (cwState W b q).2.2)
-        0 k ((cwState W b q).2.2 + 5))).1
+        0 k ((cwState W b q).2.2 + 6))).1
 
 theorem groupsT_eq (W : WotsT) (b : Nat) : ∀ (m p : Nat),
     (groupsT W m p (cwState W b p).1 (cwState W b p).2.1 (cwState W b p).2.2).2 =
@@ -126,7 +126,7 @@ def cwArm (W : WotsT) (G b p k : Nat) : List Stmt × Nat :=
     (encT W (p == 0) (cwN G p) (cwState W b p).2.2) k
     (armBase W (slotsT W (p == 0) (cwState W b p).2.2) (3 * p) (cwN G p) (p == 0) (cwState W b p).1
       (cwState W b p).2.1 (prodT W (p == 0) (cwN G p) (cwState W b p).2.2)
-      (encT W (p == 0) (cwN G p) (cwState W b p).2.2) 0 k ((cwState W b p).2.2 + 5))
+      (encT W (p == 0) (cwN G p) (cwState W b p).2.2) 0 k ((cwState W b p).2.2 + 6))
 
 /-- The digit values group `p`'s dispatch takes: its selector's exponent. -/
 noncomputable def cwK (W : WotsT) (G b : Nat) (σ : Val) (p : Nat) : Nat :=
@@ -146,7 +146,7 @@ noncomputable def cwStart (W : WotsT) (G b : Nat) (σ : Val) (i : Nat) : V :=
       (i / 3 == 0) (cwState W b (i / 3)).1 (cwState W b (i / 3)).2.1
       (prodT W (i / 3 == 0) (cwN G (i / 3)) (cwState W b (i / 3)).2.2)
       (encT W (i / 3 == 0) (cwN G (i / 3)) (cwState W b (i / 3)).2.2) 0 (cwK W G b σ (i / 3))
-      ((cwState W b (i / 3)).2.2 + 5)) (i % 3)
+      ((cwState W b (i / 3)).2.2 + 6)) (i % 3)
 
 theorem codewordT_groups {W : WotsT} (hW : StepAtoms W) {G : Nat} (hG : 0 < G) {target : E} {d0 : V}
     {b : Nat} {rest : List Stmt} {next : Prop}
@@ -258,7 +258,7 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
       (armStart W (slotsT W (p == 0) (cwState W b p).2.2) (p == 0) (K p)
         (armBase W (slotsT W (p == 0) (cwState W b p).2.2) (3 * p) (cwN G p) (p == 0)
           (cwState W b p).1 (cwState W b p).2.1 (prodT W (p == 0) (cwN G p) (cwState W b p).2.2)
-          (encT W (p == 0) (cwN G p) (cwState W b p).2.2) 0 (K p) ((cwState W b p).2.2 + 5))) :=
+          (encT W (p == 0) (cwN G p) (cwState W b p).2.2) 0 (K p) ((cwState W b p).2.2 + 6))) :=
     fun p hp => armT_sound hs (hK p hp).2
   have hK64 : ∀ q, q < G → K q < 64 := fun q hq => by
     have := (hK q (by omega)).1

@@ -36,15 +36,16 @@ below `g^(depth/2)` loads from any region holding the cursor's words and the buf
 theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP ePa eD : ℕ} {rd : Reader}
-    {R : ℕ → Prop} (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP ePa eD))
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK ePa eD : ℕ} {rd : Reader}
+    {R : ℕ → Prop}
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK ePa eD))
     (hRx : ∀ i < xs.length, R (ec + i)) (hRL : ∀ i < 17 * (depth + 2), R (eL + i))
-    (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRD : ∀ i < 33, R (eD + i))
-    (hm0 : 0 < depth / 2)
+    (hRR : ∀ i < 6034, R (eR + i)) (hRr : ∀ i < 1640, R (eP + i)) (hRK : ∀ i < 8, R (eK + i))
+    (hRD : ∀ i < 33, R (eD + i)) (hm0 : 0 < depth / 2)
     (h : coreProgram.Rel rd "__loop6" [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
-      ofK (addressOfIndex eL), ofK (addressOfIndex eR)] []) :
+      ofK (addressOfIndex eL), ofK (addressOfIndex eR), ofK (addressOfIndex eK)] []) :
     coreProgram.RelIn rd R "__loop6" [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
-      ofK (addressOfIndex eL), ofK (addressOfIndex eR)] [] := by
+      ofK (addressOfIndex eL), ofK (addressOfIndex eR), ofK (addressOfIndex eK)] [] := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
   have hsc : capOf sp.state = cap0 := hsp.1
@@ -61,8 +62,8 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     gkSl_point_len (gkSl0_point_len cap0 xs sh hsh2) fun j hj => (hsteps j hj).1
   have SL : ∀ j ≤ m, GkSlotC rd (ofK (addressOfIndex eL)) (2 * j + sh) (gkSl cap0 xs sh j).1
       (ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh j).2.2) (gkSl cap0 xs sh j).2.1
-      (ofK (addressOfIndex eP) * gen ^ (40 * (j + sh))) (gen ^ gkPos sh j) (gen ^ (j / 2))
-      (bitE (j % 2 = 1)) := fun j hj =>
+      (ofK (addressOfIndex eP) * gen ^ (40 * (j + sh))) (gen ^ gkPos sh j) (gen ^ (j / 4))
+      (gen ^ (j % 4)) := fun j hj =>
     gkSlotC_of (inv j).1 (inv j).2.1 (inv j).2.2.1 (inv j).2.2.2 (hpl j hj)
       (by rw [tb_ofK_gpow_mul]
           exact hmP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr (by omega), rfl⟩))
@@ -109,7 +110,7 @@ theorem vbg_loop7_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     · exact (hR r (by omega)).2.1
   obtain ⟨d, hd'⟩ := h
   rw [show (1 : E) = gen ^ 0 from (pow_zero _).symm] at hd' ⊢
-  exact loop7_relIn hsh' hshR hit d 0 hm0 hd'
+  exact loop7_relIn hsh' hshR (ptrIn_ofK hRK) hit d 0 hm0 hd'
 
 end
 end LeanVM.Guest.B1.Tables
