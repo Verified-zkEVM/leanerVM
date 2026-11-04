@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.SpWotsData
+public import LeanVM.Guest.B1.Sig.XmssCore
 
 /-!
 # `sp_wots`, sound
@@ -120,12 +121,12 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (3 + s)) = gen ^ s)
         rw [hb, spState_succ, this, spN_of_lt hp])
     simpa [spN, spDigit] using hcw
 
-/-- **`sp_wots` is sound**: whenever its body holds of `σ`, it returns one word `leaf`, and at an
-address cell `σ n1 = keyAddressCell layer tree lf` the encoding digest `σ n2` has digit sum `128`
+/-- **`sp_wots` is sound**: whenever its body holds of `σ`, it returns one canonical word `leaf`,
+and at an address cell `σ n1 = keyAddressCell layer tree lf` the encoding digest `σ n2` has digit sum `128`
 and `leaf` is the WOTS+C leaf the chain values `spValues σ` recover at its digits. -/
 theorem sp_wots_sound {rets : List E}
     (h : Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = rets)) :
-    ∃ leaf, rets = [leaf] ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
+    ∃ leaf, rets = [leaf] ∧ IsCanonical128 leaf ∧ ∀ (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
       (lf : Sphincs.TreeLeafIndex), σ (.n 1) = keyAddressCell layer tree lf →
         Sphincs.TargetSum.Valid (digestDigits (cellVal (σ (.n 2)))) ∧
         cellVal leaf = wotsLeafOf (cellVal (σ (.n 0))) layer tree lf (cellVal (σ (.n 2))) (spValues σ) := by
@@ -222,7 +223,8 @@ theorem sp_wots_sound {rets : List E}
   have s5 := s4.2
   simp only [Stmt.HoldsList, Stmt.Holds, copyS, Atom.Holds, List.map_cons, List.map_nil] at s5
   obtain ⟨hcp, hret⟩ := s5
-  refine ⟨σ (.n spLeafK.2.1), hret.symm, fun layer tree lf hat => ?_⟩
+  refine ⟨σ (.n spLeafK.2.1), hret.symm, by rw [hcp, hleaf]; exact canon_hcell _,
+    fun layer tree lf hat => ?_⟩
   have hdlt : ∀ j, spDigit σ j < 4 := fun j => Nat.mod_lt _ (by norm_num)
   have hdig : ∀ i : Sphincs.ChainIndex, (digestDigits (cellVal (σ (.n 2))) i).val = spDigit σ i.val := by
     intro i
