@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ChildListCChk
 
-  `child_claim_list_digest`'s branches and `__loop16`, evaluated (by kernel evaluation), for its
-  completeness.
+  `child_claim_list_any`'s records, frame loops (`__loop17`, `__loop18`) and
+  `child_claim_list_last__L{k}`, evaluated (by kernel evaluation), for their completeness.
 -/
 
 module
@@ -10,17 +10,21 @@ module
 public import LeanVM.Guest.B1.Digest.ChildList
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
+public import LeanVM.Guest.B1.Fwd.CanonB
 
 /-!
-# `child_claim_list_digest`, evaluated
+# `child_claim_list_any`, evaluated
 
-A claim record (`ChildList`), evaluated: its slot hinted (`isWitO`), its range check forward
-against `limit · g⁻¹` (`isLimK`), its mark `marks · E(2^j)` (`markC`) stored at
-`cover · origin · o`, its four cells read at `entries · o^4` (`recC`), the products by the pure
-atoms (`Fwd.pureB`). `recSide`: an atom with a side condition is one of these. `l17cOk`,
-`cccOk k`, `ccBrOk`: `__loop16`, `child_claim_list_last__L{k}` and the two branches of
-`child_claim_list_digest` evaluate in order, their side atoms the records', the state's and the
-chain's.
+A claim record (`ChildListDefs.claimOk`), evaluated on its own atoms (`ccOwn`, eleven or
+thirteen from its hint, as soundness's windows): its slot hinted (`isWitO`), its mark `marks`
+(claim `0`) or the previous claim's mark times `g` (`markC`), its four cells read at
+`entries · o^4` through a pointer no mark's (`isCellLd`), its side atoms (`sideW`): the range
+check against `last`, the mark's store at `region · o`, the cells' reads (`recW`). No check
+decides membership in the stores (`decide (a ∈ S)` on atoms is a costly kernel evaluation):
+`edgeOk` checks the stores' pointers instead (`storesOk`: a mark's or the state's from offset
+`13`), so a cell's read and a state's load are no store. `cccOk k`:
+`child_claim_list_last__L{k}`. `anycOk`: a frame loop of `m` records, its parts (`anycHead`,
+`anycCanon`, `anycEdge`, `recsWin` by windows of records) kernel checks of their own.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -34,125 +38,131 @@ def isWitO (o : V) : Atom → Bool
   | .hint (.witness _ (.stack [v])) => decide (v = o)
   | _ => false
 
-/-- `k = limit · g⁻¹`, by the pure atoms `F`. -/
-def isLimK (F : List Atom) (P : ClaimVs) (k : V) : Bool :=
-  match mulOf F k with
-  | some (l, gi) => decide (l = P.limit) && F.any (isConstAt gi 9223372036854775821 0)
-  | none => false
-
-/-- Claim `j`'s mark is `marks · E(2^j)`, by the pure atoms `F`. -/
-def markC (F : List Atom) (P : ClaimVs) (j : ℕ) (mark : V) : Bool :=
-  if j = 0 then decide (mark = P.marks) else
-    match mulOf F mark with
-    | some (m, c) => decide (m = P.marks) && F.any (isConstAt c (2 ^ j) 0)
+/-- Claim `j`'s mark: `marks` for claim `0`, else the previous claim's mark times `g` (by the pure
+atoms `F`). -/
+def markC (F : List Atom) (P : ClaimVs) (o0 j : ℕ) : Bool :=
+  if j = 0 then true else
+    match mulOf F (ccMark o0 P.marks j) with
+    | some (m, c) => decide (m = ccMark o0 P.marks (j - 1)) && F.any (isConstAt c 2 0)
     | none => false
 
-/-- Claim `j`'s cell `c`, read (not stored) through `entries · o^4`. -/
-def isCellRead (F S : List Atom) (P : ClaimVs) (o0 j c : ℕ) : Atom → Bool
-  | .load d p off => decide (d = .n (ccCell o0 j c)) && decide (off = c) &&
-      (monoOf F 40 p).isPerm (P.entries :: List.replicate 4 (ccOV o0 j)) &&
-      !decide (Atom.load d p off ∈ S)
+/-- A mark's store pointer `region · o`: claim `0`'s at `o0 + 4`, claim `j`'s at `ccOV o0 j + 6`. -/
+def markPtrB (o0 q : ℕ) : Bool := q == o0 + 4 || (decide (o0 + 18 ≤ q) && (q - (o0 + 18)) % 14 == 0)
+
+/-- A store: a mark's (through a mark pointer) or the next state's (through `.n stp` from
+offset `13`). -/
+def storesOk (o0 stp : ℕ) : Atom → Bool
+  | .load _ p off => (p.idx == stp && decide (13 ≤ off)) || markPtrB o0 p.idx
   | _ => false
 
-/-- **Claim `j`'s record, evaluated.** -/
-def recC (A F S : List Atom) (P : ClaimVs) (o0 j : ℕ) : Bool :=
-  A.any (isWitO (ccOV o0 j)) && markC F P j (ccMark o0 P.marks j) &&
-    (List.range 4).all fun c => A.any (isCellRead F S P o0 j c)
-
-/-- The side atoms of `K` records: a forward range check of a slot against `limit · g⁻¹`, a store
-of a mark at `cover · origin · o`, a read at `entries · o^4`. -/
-def recSide (F : List Atom) (P : ClaimVs) (o0 K : ℕ) (S : List Atom) : Atom → Bool
-  | .rangeCheck x y _ _ k => decide (k.idx < y.idx) && isLimK F P k &&
-      (List.range K).any fun j => decide (x = ccOV o0 j)
-  | .load d p off =>
-    if decide (Atom.load d p off ∈ S) then
-      decide (off = 0) && (List.range K).any fun j =>
-        decide (d = ccMark o0 P.marks j) && (monoOf F 40 p).isPerm [P.cover, P.origin, ccOV o0 j]
-    else
-      decide (off < 4) && (List.range K).any fun j =>
-        (monoOf F 40 p).isPerm (P.entries :: List.replicate 4 (ccOV o0 j))
+/-- Claim `j`'s cell `c`, read through `entries · o^4` (a pointer no mark's: not a store). -/
+def isCellLd (F : List Atom) (P : ClaimVs) (o0 j c : ℕ) : Atom → Bool
+  | .load d p off => decide (d = .n (ccCell o0 j c)) && off == c && !markPtrB o0 p.idx &&
+      (monoOf F 40 p).isPerm (P.entries :: List.replicate 4 (.n (ccOV o0 j)))
   | _ => false
+
+/-- Claim `j`'s side atoms: the range check of its slot against `last`, the store of its mark at
+`region · o`, the reads of its cells. -/
+def sideW (F : List Atom) (P : ClaimVs) (o0 j : ℕ) : Atom → Bool
+  | .rangeCheck x y _ _ k => decide (k.idx < y.idx) && decide (k = P.last) &&
+      decide (x = .n (ccOV o0 j))
+  | .load d p off => (off == 0 && decide (d = ccMark o0 P.marks j) &&
+        (monoOf F 40 p).isPerm [P.region, .n (ccOV o0 j)]) ||
+      (decide (off < 4) && isCellLd F P o0 j off (.load d p off))
+  | _ => false
+
+/-- Claim `j`'s own atoms: from its hint, eleven for the first claim, thirteen for each other. -/
+def ccOwn (A : List Atom) (p0 j : ℕ) : List Atom :=
+  (A.drop (ccPos p0 j)).take (ccPos p0 (j + 1) - ccPos p0 j)
+
+/-- **Claim `j`'s record, evaluated on its own atoms `W`**: its slot hinted, its mark, its cells
+read, its side atoms. -/
+def recW (W : List Atom) (P : ClaimVs) (o0 j : ℕ) : Bool :=
+  W.any (isWitO (.n (ccOV o0 j))) && markC (W.filter pureB) P o0 j &&
+    (List.range 4).all (fun c => W.any (isCellLd (W.filter pureB) P o0 j c)) &&
+    W.all (fun a => !needsSide a || sideW (W.filter pureB) P o0 j a)
+
+/-- Records `lo ≤ j < lo + w` of `K` (those from `K` on pass). -/
+def recsWin (A : List Atom) (P : ClaimVs) (o0 p0 K lo w : ℕ) : Bool :=
+  (List.range' lo w).all fun j => decide (K ≤ j) || recW (ccOwn A p0 j) P o0 j
+
+/-- A load of the state, through `.n stp` below offset `13`. -/
+def isStLd (stp : ℕ) : Atom → Bool
+  | .load _ p off => p.idx == stp && decide (off < 13)
+  | _ => false
+
+/-- A store of the next state `outs`, through `.n stp` from offset `13`. -/
+def isStSt (outs : List V) (stp : ℕ) : Atom → Bool
+  | .load d p off => p.idx == stp && decide (13 ≤ off) && decide (off < 13 + outs.length) &&
+      decide (d = outs.getD (off - 13) default)
+  | _ => false
+
+/-- **The atoms around the records**: the stores marks' or the next state's, the state's
+pointer no mark's; before the records nothing with a side condition, after them the state's
+loads and the next state's stores. -/
+def edgeOk (A S : List Atom) (o0 p0 K stp : ℕ) (outs : List V) : Bool :=
+  S.all (storesOk o0 stp) && !markPtrB o0 stp && (A.take p0).all (fun a => !needsSide a) &&
+    (A.drop (ccPos p0 K)).all (fun a => !needsSide a || isStLd stp a || isStSt outs stp a)
 
 /-- The canonical values of `K` records' cells and the state `st`. -/
 def ccA (st : List V) (o0 K : ℕ) : List ℕ :=
   st.map V.idx ++ (List.range K).flatMap fun j => (List.range 4).map (ccCell o0 j)
 
-/-- **`child_claim_list_last__L{k}`, evaluated.** -/
+/-- **`child_claim_list_last__L{k}`, evaluated** (`[state, entries, region, marks, last]`): in
+order, its records, around them the state's loads. -/
 def cccOk (k : ℕ) (f : Fn) : Bool :=
-  let S := storesOf 6 f.body
-  (chk 6 f.body).isSome &&
+  (chk 5 f.body).isSome &&
   match splitBody f.body with
   | some (A, _) =>
-    let F := A.filter pureB
-    canonChk (ccA (cclSt k) 6 k) (A.filter fun a => decide (a ∉ S)) &&
-      A.all (fun a => !needsSide a || (isLoadBelow 0 13 a && decide (a ∉ S)) ||
-        recSide F cclP 6 k S a) &&
-      (List.range k).all (fun j => recC A F S cclP 6 j) &&
-      stLoadsOk (A.filter fun a => decide (a ∉ S)) (.n 0) (cclSt k) 0
+    canonGoB (maskOf (ccA (cclSt k) 5 k)) A && edgeOk A (storesOf 5 f.body) 5 0 k 0 [] &&
+      (List.range k).all (fun j => recW (ccOwn A 0 j) cclP 5 j) && stLoadsOk A (.n 0) (cclSt k) 0
   | none => false
 
-/-- **`__loop16`, evaluated.** -/
-def l17cOk (fn : Fn) : Bool :=
+/-- A frame loop's shape: in order, its block atoms, its stores loads. -/
+def anycHead (fn : Fn) (f : String) : Bool :=
+  loopShapeF fn f && (chk 7 fn.body).isSome && (loopPre fn).all isAtomS &&
+    atomsEqbL (atomsIn (loopPre fn)) (loopAtoms fn) && (storesOf 7 fn.body).all isLoadB
+
+/-- A frame loop's chain inputs, canonical from the state and the records' cells (on a mask, over
+all its atoms: the stores are loads, which the walk skips, `canonGo_filter`). -/
+def anycCanon (fn : Fn) (m o0 st0 : ℕ) : Bool :=
+  canonGoB (maskOf (ccA (anySt st0) o0 m)) (loopAtoms fn)
+
+/-- A frame loop's next state, the chain's last outputs. -/
+def anyOuts (m o0 st0 : ℕ) (A : List Atom) : List V :=
+  (List.range 13).map ((anySpec m o0 st0 A).outV ((anySpec m o0 st0 A).nb - 1))
+
+/-- A frame loop's atoms around its records, its state's loads, its pointers `chain · x^13` and
+the marks `base · x^m`. -/
+def anycEdge (fn : Fn) (m o0 p0 mk st0 : ℕ) : Bool :=
   let A := loopAtoms fn
-  let S := storesOf 8 fn.body
-  let F := A.filter pureB
-  let G := A.filter fun a => decide (a ∉ S)
-  loopShapeF fn "__loop16" && (chk 8 fn.body).isSome && (loopPre fn).all isAtomS &&
-  atomsEqbL (atomsIn (loopPre fn)) A && S.all isLoadB &&
-  canonChk (ccA l17St 20 17) G &&
-  A.all (fun a => !needsSide a || (isLoadBelow 13 13 a && decide (a ∉ S)) ||
-    (List.range 13).any (fun c =>
-      atomEqb a (.load ((l17Spec A).outV ((l17Spec A).nb - 1) c) (.n 13) (13 + c))) ||
-    recSide F l17P 20 17 S a) &&
-  (List.range 17).all (fun j => recC A F S l17P 20 j) &&
-  stLoadsOk G (.n 13) l17St 0 &&
-  monoIs F (.n 13) (.n 2) (.n 0) 13 && monoIs F (.n 19) (.n 5) (.n 0) 17
+  edgeOk A (storesOf 7 fn.body) o0 p0 m 12 (anyOuts m o0 st0 A) &&
+    stLoadsOk A (.n 12) (anySt st0) 0 &&
+    monoIs (A.filter pureB) (.n 12) (.n 2) (.n 0) 13 && monoIs (A.filter pureB) (.n mk) (.n 5) (.n 0) m
 
-/-- The nonempty branch but its two final copies. -/
-noncomputable def ccElsePre : List Stmt := cc24Else.dropLast.dropLast
+/-- **A frame loop of `m` records, evaluated** (`[x, N, chain, entries, region, base, last]`). -/
+def anycOk (fn : Fn) (f : String) (m o0 p0 mk st0 : ℕ) : Bool :=
+  anycHead fn f && anycCanon fn m o0 st0 && anycEdge fn m o0 p0 mk st0 &&
+    recsWin (loopAtoms fn) (anyP mk) o0 p0 m 0 m
 
-/-- The head of `child_claim_list_digest`'s body. -/
-def ccHead : List Stmt := [.atom (.const (.n 6) (word 1 0 0)), .atom (.add (.n 7) (.n 5) (.n 6))]
+/-- `__loop17`'s atoms. -/
+noncomputable def anyc136Atoms : List Atom := loopAtoms (coreProgram.getD 350 default)
 
-/-- The final copies of `child_claim_list_digest`. -/
-def ccTail : List Stmt := [.atom (.copy (.n 67) (.n 14)), .atom (.copy (.n 68) (.n 15))]
+/-- Window `i` of `__loop17`'s records: `9i … 9i + 8`. -/
+noncomputable def anycWin (i : ℕ) : Bool := recsWin anyc136Atoms (anyP 21) 22 15 136 (9 * i) 9
 
-/-- The empty list's run, evaluated. -/
-noncomputable def ccZEval : List Stmt :=
-  ccHead ++ cc24Zero ++ fillH ((chk 6 (ccHead ++ cc24Zero)).getD 0) 67 ++ ccTail
-
-/-- The nonempty list's run, evaluated: the empty branch's values hinted (the digest at `.n 14`,
-`.n 15`). -/
-noncomputable def ccEEval : List Stmt := ccHead ++ fillH 8 27 ++ ccElsePre ++ ccTail
-
-/-- **`child_claim_list_digest`'s branches, evaluated.** -/
-noncomputable def ccBrOk : Bool :=
-  let SE := storesOf 6 ccEEval
-  stmtsEqb cc24Else (ccElsePre ++ [.atom (.copy (.n 14) (.n 65)), .atom (.copy (.n 15) (.n 66))]) &&
-  (chk 6 ccEEval).isSome &&
-  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (37 + c)) (.n 36) c)) &&
-  (atomsIn ccEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
-  canonChk [] ((atomsIn ccEEval).filter fun a => decide (a ∉ SE)) &&
-  ccElsePre.all (fun s => isAtomS s || stmtEqb s (.call "list_split" [.n 5] [.n 27, .n 28]) ||
-    stmtEqb s (.callIf (.n 51) "__loop16" [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4]) ||
-    stmtEqb s (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4] [.n 65, .n 66])) &&
-  ccElsePre.any (stmtEqb · (.call "list_split" [.n 5] [.n 27, .n 28])) &&
-  ccElsePre.any (stmtEqb · (.callIf (.n 51) "__loop16"
-    [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) &&
-  ccElsePre.any (stmtEqb · (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
-    [.n 65, .n 66])) &&
-  (List.range 13).all (fun c => (atomsIn ccElsePre).any (isConstAt (.n (37 + c)) 0 0)) &&
-  (atomsIn ccElsePre).any (fun a => match a with
-    | .hint (.allocDyn d _) => decide (d = .n 36)
-    | _ => false) &&
-  (chk 6 ccZEval).isSome && (storesOf 6 ccZEval).isEmpty && canonChk [] (atomsIn ccZEval) &&
-  (atomsIn ccZEval).all (fun a => !needsSide a) && cc24Zero.all isAtomS
 
 set_option maxRecDepth 100000 in
-theorem ccbr_ok : ccBrOk = true := by decide +kernel
+theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (352 + k) default) = true := by
+  decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17c_ok : l17cOk (coreProgram.getD 341 default) = true := by decide +kernel
+theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (361 + k) default) = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem any17c_ok : anycOk (coreProgram.getD 351 default) "__loop18" 17 19 12 18 255 = true := by
+  decide +kernel
 
 end
 end LeanVM.Guest.B1.Digest

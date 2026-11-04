@@ -25,6 +25,9 @@ theorem cw9_0_0 : cplWin 9 0 0 = true := by decide +kernel
 /-- `verify_bus_gkr`, window 0, part 0. -/
 theorem cw10_0_0 : cplWin 10 0 0 = true := by decide +kernel
 
+/-- `verify_bus_gkr`, window 1, part 0. -/
+theorem cw10_1_0 : cplWin 10 1 0 = true := by decide +kernel
+
 /-- `shared_selector_tables`, window 0, part 0. -/
 theorem cw11_0_0 : cplWin 11 0 0 = true := by decide +kernel
 
@@ -50,13 +53,17 @@ theorem ok9 : CplOk 9 := by
 
 theorem ok10 : CplOk 10 := by
   intro i hi k hk
-  have hc : (certOf 10).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 10).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 10 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw10_0_0
+  · have hn : nParts 10 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw10_1_0
 
 theorem ok11 : CplOk 11 := by
   intro i hi k hk

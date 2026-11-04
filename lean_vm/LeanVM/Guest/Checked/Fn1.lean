@@ -8,11 +8,13 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F86_0
-public import LeanVM.Guest.Checked.F86_0
-public import LeanVM.Guest.Checked.F86_0
-public import LeanVM.Guest.Checked.F86_0
-public import LeanVM.Guest.Checked.F90_1
+public import LeanVM.Guest.Checked.F82_0
+public import LeanVM.Guest.Checked.F82_0
+public import LeanVM.Guest.Checked.F88_1
+public import LeanVM.Guest.Checked.F88_1
+public import LeanVM.Guest.Checked.F88_1
+public import LeanVM.Guest.Checked.F88_1
+public import LeanVM.Guest.Checked.F91_2
 
 namespace LeanVM.Guest.Checked
 
@@ -135,7 +137,13 @@ theorem plain90 : Plain 90 := by
   unfold Plain
   decide +kernel
 
-theorem plain91 : Plain 91 := plain_of_nil (by decide +kernel)
+theorem ok91 : CheckOk 91 := fun i hi ↦ by
+  have h : (certOf 91).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w91_0
+  · exact w91_1
+  · exact w91_2
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 
