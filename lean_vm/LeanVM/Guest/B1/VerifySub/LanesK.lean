@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.LanesK
 
   The output lanes' claims of `verify_sub`'s table phase: at the table sumcheck's point cut to
-  the `KECCAK` table's height, their values at `claim_pool·g^110`.
+  the `KECCAK` table's height, their values at `col_eval_words·g^105`.
 -/
 
 module
@@ -55,11 +55,11 @@ theorem layoutOf_heights (bytecode : List K) (m : ℕ) (rowsN : List ℕ) :
 /-- The GKR's capacity: `verify_bus_gkr`'s first five return words. -/
 theorem VsFront.capG_eq {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
     (F : VsFront bytecode C rd σ) :
-    F.capG = [σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843)] := by
+    F.capG = [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630)] := by
   have h := F.hretG
-  rw [show [σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843), σ (.n 844), σ (.n 845),
-    σ (.n 846), σ (.n 847)] = ([σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843)] ++
-      [σ (.n 844)]) ++ [σ (.n 845), σ (.n 846), σ (.n 847)] from rfl] at h
+  rw [show [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631), σ (.n 632),
+    σ (.n 633), σ (.n 634)] = ([σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630)] ++
+      [σ (.n 631)]) ++ [σ (.n 632), σ (.n 633), σ (.n 634)] from rfl] at h
   obtain ⟨h1, -⟩ := List.append_inj' h (by rw [F.hvL]; rfl)
   exact (List.append_inj' h1 rfl).1.symm
 
@@ -68,17 +68,17 @@ abbrev vsTau (rowsN : List ℕ) : ℕ := (Tables.tableHeightsOf rowsN).getD 5 0
 
 /-- The claimed fixed polynomial value at the bus's bytecode point. -/
 def vsFixed (σ : Val) (point : List E) : BytecodeClaim :=
-  ⟨point.take 19 ++ vsAlphas σ, σ (.n 856)⟩
+  ⟨point.take 19 ++ vsAlphas σ, σ (.n 643)⟩
 
 /-- **The output lanes**: their claims are on `KECCAK`'s output columns at one point, the table
 sumcheck's point `chis` (at `chi`) cut to the table's height `τ ≤ |chis|`, and their values are
-at `claim_pool·g^110`. -/
+at `col_eval_words·g^105` (claims `110 .. 134`, read in place: `col_eval_words` holds claims `5 .. 161`). -/
 theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallRel} {rd : Reader}
     {σ : Val} (F : VsFront bytecode C rd σ) :
-    ∃ chis : List E, ReadsAt rd (σ (.n 848)) chis ∧ vsTau F.rowsN ≤ chis.length ∧
+    ∃ chis : List E, ReadsAt rd (σ (.n 635)) chis ∧ vsTau F.rowsN ≤ chis.length ∧
       (lanesOf F.claims).map (·.column) = keccakOutputColumns ∧
       (∀ c ∈ lanesOf F.claims, c.point = chis.take (vsTau F.rowsN)) ∧
-      ReadsAt rd (σ (.n 7) * gen ^ 110) ((lanesOf F.claims).map (·.value)) ∧
+      ReadsAt rd (σ (.n 645) * gen ^ 105) ((lanesOf F.claims).map (·.value)) ∧
       (lanesOf F.claims).length = 25 := by
   have hctx := F.hctx
   simp only [Tables.TCtx] at hctx
@@ -134,10 +134,14 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
     simpa using this
   · rw [hlanes]
     intro k hk
-    simp only [List.length_map, List.length_take, List.length_drop] at hk
+    have hk' : k < 25 := by simp [hcl'] at hk; omega
     rw [loadHolds_mul_gen_pow]
-    have := F.hpool (110 + k) (by simp [hcl']; omega)
-    simpa using this
+    have e2 : Tables.nPooled = 162 := rfl
+    have e3 : Tables.nBusClaims = 5 := rfl
+    have := F.hcew (105 + k) (by simp [hcl']; omega)
+    simp only [List.getElem_map, List.getElem_take, List.getElem_drop] at this ⊢
+    convert this using 3
+    omega
   · rw [hlanes]; simp [hcl']
 
 end

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColumnChk
 
-  `da_verify_column`'s body and `__loop21`'s, checked by kernel evaluation.
+  `da_verify_column`'s body and `__loop25`'s, checked by kernel evaluation.
 -/
 
 module
@@ -16,10 +16,10 @@ set_option maxRecDepth 100000 in
 theorem col_ok : colOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l21_ok : l21Ok (coreProgram.getD 375 default) = true := by decide +kernel
+theorem l21_ok : l21Ok (coreProgram.getD 404 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l21_idx : coreProgram.indexOf? "__loop21" = some 375 := by decide +kernel
+theorem l21_idx : coreProgram.indexOf? "__loop25" = some 404 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

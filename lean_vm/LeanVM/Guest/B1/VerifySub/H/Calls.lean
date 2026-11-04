@@ -34,7 +34,7 @@ def vsCallsA : List (Option V × String × List V × List V) :=
     vcs "log2_ceil_in_the_exponent__L15_L34" [1887, 4, 5] [1890]]
 
 /-- The dispatch's arguments and returns. -/
-def vsDispArgs : List V := [.n 1312, .n 1313, .n 1314, .n 1315, .n 1316, .n 1886, .n 537, .n 547, .n 868]
+def vsDispArgs : List V := [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1673, .n 324, .n 334, .n 656]
 
 /-- The calls after the dispatch. -/
 def vsCallsB : List (Option V × String × List V × List V) :=
@@ -47,8 +47,8 @@ def noDispatchB : Stmt → Bool
   | _ => true
 
 theorem vs_split_disp : vsCPre = vsCPre.take 2097 ++
-    [.dispatch (.n 1901) vsOpenNames vsDispArgs (vsRun 1906 5)] ++ vsCPre.drop 2098 := by
-  have h : (vsCPre.drop 2097).take 1 = [.dispatch (.n 1901) vsOpenNames vsDispArgs (vsRun 1906 5)] :=
+    [.dispatch (.n 1687) vsOpenNames vsDispArgs (vsRun 1906 5)] ++ vsCPre.drop 2098 := by
+  have h : (vsCPre.drop 2097).take 1 = [.dispatch (.n 1687) vsOpenNames vsDispArgs (vsRun 1906 5)] :=
     (Tables.tbStmtsEqb_sound (by decide +kernel)).symm
   have e : vsCPre.drop 2097 = (vsCPre.drop 2097).take 1 ++ vsCPre.drop 2098 := by
     rw [show vsCPre.drop 2098 = (vsCPre.drop 2097).drop 1 by simp [List.drop_drop],
@@ -74,7 +74,7 @@ theorem callSF_noDisp (σ : Val) : ∀ (l : List Stmt), l.all noDispatchB = true
 
 /-- **`verify_sub`'s frames**, the dispatch's callee named by the candidate. -/
 theorem vs_calls (σ : Val) : (vsCPre.filterMap (Core.Stmt.callSF σ)).map (mkCall σ) =
-    (vsCallsA ++ [(none, vsOpenNames.getD (logG (σ (.n 1901))) "", vsDispArgs, vsRun 1906 5)] ++
+    (vsCallsA ++ [(none, vsOpenNames.getD (logG (σ (.n 1687))) "", vsDispArgs, vsRun 1906 5)] ++
       vsCallsB).map (mkCall σ) := by
   rw [vs_split_disp, List.filterMap_append, List.filterMap_append,
     callSF_noDisp σ _ vs_noDisp.1, callSF_noDisp σ _ vs_noDisp.2, vs_callsA, vs_callsB]
