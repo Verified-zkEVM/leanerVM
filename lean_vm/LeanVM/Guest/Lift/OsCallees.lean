@@ -34,8 +34,8 @@ caller's words, so `Lift.completeAtD_of_relIn` places it.
 **The callees** (`OsCalleesRegD`, `osCalleesRegD_holds`): `opening_fold`, `assert_canonical`,
 `grind_check__L17`, `opening_ood_point__L{n}`, `opening_final_message__L{n}`,
 `opening_row_weights__L4_L0`/`__L6_L1`, `verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, with
-their meanings (B1's `*_holds`) and the specs B1-b gave. `decode_query_bits`, which writes its own
-frame run, is not pure and stays in its own form.
+their meanings (B1's `*_holds`) and the specs B1-b gave. `decode_query_windows`, which writes its own
+frame run, is not pure and has its own form (`QwDecodeAtD`, `B1/Bits/QueryWindowsAt.lean`).
 -/
 
 namespace LeanVM.Guest.B1
