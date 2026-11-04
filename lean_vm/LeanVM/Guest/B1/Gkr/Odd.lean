@@ -32,15 +32,15 @@ def odEv (i : ℕ) : ℕ := if i < 4 then 182 + 11 * i else 195 + 11 * i
 def odEvT (i : ℕ) : List Stmt :=
   fsNextT (.n 171) i (odEv i) ++ [.atom (.copy (.n (odEv i + 10)) (.n (odEv i)))]
 
-/-- Side `t`'s new value `lo + c·(lo + hi)`, its values from `288 + 3t`, stored at `23 + t`. -/
+/-- Side `t`'s new value `lo + c·(lo + hi)`, its values from `297 + 3t`, stored at `23 + t`. -/
 def odVal (t : ℕ) : List Stmt :=
-  let b := 288 + 3 * t
+  let b := 297 + 3 * t
   [.atom (.add (.n b) (.n (odEv (2 * t) + 10)) (.n (odEv (2 * t + 1) + 10))),
     .atom (.mul (.n (b + 1)) (.n 290) (.n b)),
     .atom (.add (.n (b + 2)) (.n (odEv (2 * t) + 10)) (.n (b + 1))),
     .atom (.load (.n (b + 2)) (.n 15) (23 + t))]
 
-/-- The binary layer (`s199_e`). -/
+/-- The binary layer (`s216_e`). -/
 def odBody : List Stmt :=
   List.flatten [
     (List.range 5).map (fun k ↦ .atom (.load (.n (137 + k)) (.n 15) k)),
