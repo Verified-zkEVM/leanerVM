@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Sig.SphincsLoads
 /-!
 # `verify_sig_lean_sphincs`, complete
 
-The body splits into its stages (`sBody_split`): the digest calls (`sDigests_complete`), the fields
+The body splits into its stages (`sBody_stages`): the digest calls (`sDigests_complete`), the fields
 (`sFields_complete`), the FORS trees (`sForsTrees_complete`, the signature's openings hinted), the
 addresses and the bottom encoding (`sBotPre_complete`), the bottom layer's call and path
 (`layerTail_complete`), the two layers above (`sUpper_complete`), and the root's check. The
@@ -46,19 +46,19 @@ theorem sPathB_eq : sPathB = sPath (.n 6821) 0 (7 + 1) 0 (.n 6997) (6997 + 1) :=
 
 theorem sPathB_snd : sPathB.2.1 = 7165 ∧ sPathB.2.2 = .n 7152 := by decide +kernel
 
-theorem sUpperM_eq : sUpperM = sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165 := by
+theorem sUpperM_upper : sUpperM = sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165 := by
   rw [sUpperM, sH_eq, sPathB_snd.1, sPathB_snd.2]
 
 theorem sUpperM_snd : sUpperM.2.1 = 7388 ∧ sUpperM.2.2 = .n 7375 := by decide +kernel
 
-theorem sUpperT_eq : sUpperT = sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389 := by
+theorem sUpperT_upper : sUpperT = sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389 := by
   rw [sUpperT, sH_eq, sUpperM_snd.1, sUpperM_snd.2]
 
 theorem sUpperT_snd : sUpperT.2.1 = 7654 ∧ sUpperT.2.2 = .n 7641 := by decide +kernel
 
 theorem sFors_eq : sFors.1 = (sForsTrees 24 0 1225).1 := rfl
 
-theorem sBody_split : sBody = sDigests ++ (sFieldsBlock ++ (sFors.1 ++ (sBotPre ++
+theorem sBody_stages : sBody = sDigests ++ (sFieldsBlock ++ (sFors.1 ++ (sBotPre ++
     (([sWotsCall (.n 6826) (.n 6984) 6997] ++ sPathB.1) ++ (sUpperM.1 ++ ([cst 7388 (word 0 2 0)] ++
       (sUpperT.1 ++ (sFinal ++ [.ret []])))))))) := by
   have e1 := sEncB_snd
@@ -131,7 +131,7 @@ def sPre : List Stmt :=
     (sUpperM.1 ++ ([cst 7388 (word 0 2 0)] ++ sUpperT.1))))))
 
 theorem sBody_split2 : sBody = sPre ++ (sFinal ++ [.ret []]) := by
-  rw [sBody_split, sPre]; simp only [List.append_assoc]
+  rw [sBody_stages, sPre]; simp only [List.append_assoc]
 
 /-- The byte pointers: the unused bytes' and the three counters'. -/
 def sPtrs : List Nat :=
@@ -243,11 +243,11 @@ theorem stages_cells (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : Sphin
 
 theorem sUpperM_end : (sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165).2.1 = 7388 ∧
     (sUpper (.n 6827) (.n 7152) (.n 6825) 8 (7 + 1) 7165).2.2 = .n 7375 := by
-  rw [← sUpperM_eq]; exact sUpperM_snd
+  rw [← sUpperM_upper]; exact sUpperM_snd
 
 theorem sUpperT_end : (sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389).2.1 = 7654 ∧
     (sUpper (.n 6829) (.n 7375) (.n 7388) 16 (9 + 1) 7389).2.2 = .n 7641 := by
-  rw [← sUpperT_eq]; exact sUpperT_snd
+  rw [← sUpperT_upper]; exact sUpperT_snd
 
 theorem sPathB_end : (sPath (.n 6821) 0 (7 + 1) 0 (.n 6997) (6997 + 1)).2.2 = .n 7152 := by
   rw [← sPathB_eq]; exact sPathB_snd.2
@@ -361,7 +361,7 @@ theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complet
     have hl1 : (Sphincs.leafOfIndex 1 idx).val < 2 ^ (7 + 1) := by rw [← fl1]; exact fieldNat_lt Dn 1
     have hEpad : PadOK σE sPad := hDpad.congr (b := 6997) (by unfold sPad; omega) (fun j hj => (tE j hj).symm)
     refine Completes.append (m := 7388) (by norm_num) (by norm_num) sUpperM_nb
-      (by rw [sUpperM_eq, ← sUpperM_end.1]
+      (by rw [sUpperM_upper, ← sUpperM_end.1]
           exact (sUpper_complete (C := C) hm hbb hC (P := pk.parameter) (o1 _ hE0)
             (path := Sphincs.Verification.layerPath sig 1) (by norm_num) hl1 (adr := .n 6827) (below := .n 7152)
             (lane := .n 6825) (off := 8) (b := 7165) (by norm_num) (by norm_num) ⟨6827, by norm_num, rfl⟩
@@ -416,7 +416,7 @@ theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complet
                   obtain ⟨k, hk, ek⟩ := sVal_nb (i := 16 + j + 1) (by omega)
                   rw [← fl2, ek, tGD _ (by omega), ← ek]
                   exact path_vals hDvals (f := 2) (by norm_num) j hj))
-    rw [sUpperT_end.1, ← sUpperT_eq] at hH
+    rw [sUpperT_end.1, ← sUpperT_upper] at hH
     refine (hH.keep (Q := fun σ' => (∀ k ≤ 6, BytePtr bb (σ' (.n (fbPtr 1158 k)))) ∧
         (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 6836 k)))) ∧ (∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr 7169 k)))))
       (Q' := fun σ' => (∀ k ≤ 6, BytePtr bb (σ' (.n (fbPtr 1158 k)))) ∧
