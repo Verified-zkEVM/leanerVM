@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHL5T
 public import LeanVM.Guest.B1.Main.MainGoalsClT
+public import LeanVM.Guest.B1.Digest.ClaimListsAtT
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -28,12 +29,14 @@ open LeanVM.Guest.Coverage (planSlots)
 open LeanVM.Guest.Hints (claimCells)
 open LeanVM.Guest.Coverage (coveragePlan CoverageRegion)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns bufL)
+open LeanVM.Guest.Budget (NodeHonest)
+open LeanVM.Guest.B1.Digest (ccQ ccCalls ccBufs ccTs)
 
 @[expose] public section
 
 /-- **`child_claim_list_digest`'s honest shape** on `n` claims. -/
 def ccHonest (n : ℕ) : Tree → Prop :=
-  NodeHonest coreProgram "child_claim_list_digest" (ccQ n) (ccCalls n) (clBufs n) clTs
+  NodeHonest coreProgram "child_claim_list_digest" (ccQ n) (ccCalls n) (ccBufs n) (ccTs n)
 
 variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 
@@ -100,7 +103,6 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
       have hlt' : ((xPlan s w).childSlots.getD c []).getD j 0 <
           s.claims.xmss.length + (xPlan s w).duplicates.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
-      rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 2) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
@@ -113,7 +115,7 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
         (show _ < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
   rw [hKid_cx hc, xmssList_cells]
-  rwa [pow_zero] at this
+  exact this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
 theorem kidT_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
@@ -155,7 +157,7 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
         have := hlt; rw [List.length_append] at this; exact this
       obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
-      · rw [← pow_add, loadHolds_mul_gen_pow, Nat.add_zero,
+      · rw [← pow_add, Nat.add_assoc, pow_add, loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ (hKid s w c).ex * gen ^ j = gen ^ (hW s w c + hEx w c + j) by
             rw [pow_add, pow_add]; rfl]
         have := loadHolds_getD r4 (k := s.claims.xmss.length + (xPlan s w).duplicates.length +
@@ -197,6 +199,7 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
         (show _ < ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
   rw [hKid_cs hc, sphincsList_cells]
+  rw [pow_add (a := gen) (hP fs fp seed s w 2)] at this
   exact this
 
 /-- **The children's claim lists' digests on the honest run, by trees of honest shape.** -/

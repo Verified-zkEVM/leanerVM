@@ -156,16 +156,19 @@ theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS SK :
         n + n * ((SK "__loop15" + 135) / 136) + n * ((SK "__loop16" + 16) / 17) := by ring
     omega
 
-/-- A child's claim list's digest's constant words. -/
+/-- A child's claim list's digest's constant words: its frame, `list_split`, the any walk's frame
+(`child_claim_list_any`, the only walk the honest run takes) and its chain's first `13` words, its
+two loops' frames twice and its last group's helper. -/
 def ccC : ℕ :=
-  fs "child_claim_list_digest" + 13 + SB "list_split" + fs "__loop16" +
-    nameSum (fun g => fs g) B1.Digest.cclNames 17
+  fs "child_claim_list_digest" + 13 + SB "list_split" + fs "child_claim_list_any" +
+    2 * fs "__loop17" + 2 * fs "__loop18" + nameSum (fun g => fs g) B1.Digest.cclNames 17
 
-/-- A child's claim list's digest's words per claim: `13` and a `__loop16` frame per `17` claims. -/
-def ccS : ℕ := 1 + (fs "__loop16" + 16) / 17
+/-- A child's claim list's digest's words per claim: `13` and a `__loop17` frame per `136` claims,
+`13` and a `__loop18` frame per `17` claims. -/
+def ccS : ℕ := 1 + (fs "__loop17" + 135) / 136 + (fs "__loop18" + 16) / 17
 
 theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := by
-  unfold B1.Digest.ccB ccC ccS
+  unfold B1.Digest.ccB B1.Digest.anyB ccC ccS
   split
   · omega
   · have h1 := le_nameSum (g := fun g => fs g) (names := B1.Digest.cclNames) (j := n % 17)
@@ -174,15 +177,26 @@ theorem ccB_le (n : ℕ) : B1.Digest.ccB fs SB n ≤ ccC fs SB + n * ccS fs := b
       simp only [List.getD_eq_getElem?_getD, getElem!_def]
       cases B1.Digest.cclNames[n % 17]? <;> rfl
     rw [hg]
-    have h2 := div17_mul_le n (fs "__loop16")
-    have h3 : (if n / 17 ≠ 0 then (n / 17 + 1) * fs "__loop16" else fs "__loop16") ≤
-        n * ((fs "__loop16" + 16) / 17) + fs "__loop16" := by
+    have h2 := div136_mul_le n (fs "__loop17")
+    have h3 : (if n / 136 ≠ 0 then (n / 136 + 1) * fs "__loop17" else fs "__loop17") ≤
+        n * ((fs "__loop17" + 135) / 136) + 2 * fs "__loop17" := by
       split
-      · have e : (n / 17 + 1) * fs "__loop16" = n / 17 * fs "__loop16" + fs "__loop16" := by ring
+      · have e : (n / 136 + 1) * fs "__loop17" = n / 136 * fs "__loop17" + fs "__loop17" := by ring
         omega
       · omega
-    have h4 : 13 * (n / 17) ≤ n := by omega
-    have e : n * (1 + (fs "__loop16" + 16) / 17) = n + n * ((fs "__loop16" + 16) / 17) := by ring
+    have h5 : n % 136 / 17 * fs "__loop18" ≤ n * ((fs "__loop18" + 16) / 17) :=
+      le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega))
+        (div17_mul_le n (fs "__loop18"))
+    have h6 : (if n % 136 / 17 ≠ 0 then (n % 136 / 17 + 1) * fs "__loop18" else fs "__loop18") ≤
+        n * ((fs "__loop18" + 16) / 17) + 2 * fs "__loop18" := by
+      split
+      · have e : (n % 136 / 17 + 1) * fs "__loop18" = n % 136 / 17 * fs "__loop18" + fs "__loop18" := by
+          ring
+        omega
+      · omega
+    have h4 : 13 * (n / 136 + n % 136 / 17) ≤ n := by omega
+    have e : n * (1 + (fs "__loop17" + 135) / 136 + (fs "__loop18" + 16) / 17) =
+        n + n * ((fs "__loop17" + 135) / 136) + n * ((fs "__loop18" + 16) / 17) := by ring
     omega
 
 /-! ## The children's loop -/
