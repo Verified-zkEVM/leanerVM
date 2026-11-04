@@ -79,7 +79,7 @@ theorem size_le_of (u : End.Work) (k : Opcode → ℕ)
   exact le_trans (sizeOf_le_pow k hw hi) hk
 
 /-- **A recursion node of at most `8` children and `2^15` claims fits.** -/
-theorem narrow_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa = 0)
+theorem narrow_size_le (u : End.Work) (hraw : u.rawXmss + 3 * u.rawSphincs = 0) (hd : u.rawDa = 0)
     (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2 ^ 15) (hcov : u.coverage ≤ 2 ^ 15)
     (hcc : u.childClaims ≤ 2 ^ 15) (hch : u.children ≤ 8) (hlen : u.childShapes.length ≤ 8) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
@@ -92,9 +92,9 @@ theorem narrow_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd 
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A node of at most `4` children and `1024` raw signatures, with at most `8192` claims,
+/-- **A node of at most `4` children and `1024` raw signatures (a leanSPHINCS one counted as three), with at most `8192` claims,
 fits.** -/
-theorem mixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 1024) (hd : u.rawDa = 0)
+theorem mixed_size_le (u : End.Work) (hraw : u.rawXmss + 3 * u.rawSphincs ≤ 1024) (hd : u.rawDa = 0)
     (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 8192) (hcov : u.coverage ≤ 8192)
     (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 4) (hlen : u.childShapes.length ≤ 4) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
@@ -108,7 +108,7 @@ theorem mixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 1024) 
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
 /-- **A node of at most `4` children checking a matrix of at most `32` rows, with at most `8192` claims, fits.** -/
-theorem blob_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
+theorem blob_size_le (u : End.Work) (hraw : u.rawXmss + 3 * u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
     (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 8192)
     (hcov : u.coverage ≤ 8192) (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 4)
     (hlen : u.childShapes.length ≤ 4) :
@@ -122,8 +122,8 @@ theorem blob_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : 
   · have hb := instr_shapes hlen op
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
-/-- **A node of at most `2` children and `256` raw signatures checking a matrix of at most `32` rows, with at most `8192` claims, fits.** -/
-theorem blobMixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 256) (hd : u.rawDa ≤ 1)
+/-- **A node of at most `2` children and `256` raw signatures (a leanSPHINCS one counted as three) checking a matrix of at most `32` rows, with at most `8192` claims, fits.** -/
+theorem blobMixed_size_le (u : End.Work) (hraw : u.rawXmss + 3 * u.rawSphincs ≤ 256) (hd : u.rawDa ≤ 1)
     (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 8192)
     (hcov : u.coverage ≤ 8192) (hcc : u.childClaims ≤ 8192) (hch : u.children ≤ 2)
     (hlen : u.childShapes.length ≤ 2) :
@@ -138,7 +138,7 @@ theorem blobMixed_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs ≤ 25
     cases op <;> simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢ <;> omega
 
 /-- **A node of at most `2` children checking a matrix of at most `32` rows, with at most `2^14` claims, fits.** -/
-theorem blobWide_size_le (u : End.Work) (hraw : u.rawXmss + u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
+theorem blobWide_size_le (u : End.Work) (hraw : u.rawXmss + 3 * u.rawSphincs = 0) (hd : u.rawDa ≤ 1)
     (hr : u.rawDaRows ≤ 32) (hp : u.rawDaPad ≤ 32) (hdecl : u.declared ≤ 2 ^ 14)
     (hcov : u.coverage ≤ 2 ^ 14) (hcc : u.childClaims ≤ 2 ^ 14) (hch : u.children ≤ 2)
     (hlen : u.childShapes.length ≤ 2) :
@@ -167,19 +167,19 @@ theorem pad_le {s : NodeStatement} {w : NodeWitness} {k : ℕ}
 /-- `CoveredNode`'s families by the node's work, each bound on the coverage slots spread over
 the declared claims, the slots and the children's claims, which the size lemmas read. -/
 def CoveredW (u : End.Work) : Prop :=
-  (u.rawXmss + u.rawSphincs = 0 ∧ u.rawDa = 0 ∧
+  (u.rawXmss + 3 * u.rawSphincs = 0 ∧ u.rawDa = 0 ∧
     u.declared ≤ 2048 ∧ u.coverage ≤ 2048 ∧ u.childClaims ≤ 2048) ∨
-  (u.children = 0 ∧ u.rawDa = 0 ∧ u.rawXmss + u.rawSphincs ≤ 2048 ∧
+  (u.children = 0 ∧ u.rawDa = 0 ∧ u.rawXmss + 3 * u.rawSphincs ≤ 2048 ∧
     u.declared ≤ 2048 ∧ u.coverage ≤ 2048) ∨
-  (u.children ≤ 8 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDa = 0 ∧
+  (u.children ≤ 8 ∧ u.rawXmss + 3 * u.rawSphincs = 0 ∧ u.rawDa = 0 ∧
     u.declared ≤ 2 ^ 15 ∧ u.coverage ≤ 2 ^ 15 ∧ u.childClaims ≤ 2 ^ 15) ∨
-  (u.children ≤ 4 ∧ u.rawXmss + u.rawSphincs ≤ 1024 ∧ u.rawDa = 0 ∧
+  (u.children ≤ 4 ∧ u.rawXmss + 3 * u.rawSphincs ≤ 1024 ∧ u.rawDa = 0 ∧
     u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
-  (u.children ≤ 4 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
+  (u.children ≤ 4 ∧ u.rawXmss + 3 * u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
     u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
-  (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs ≤ 256 ∧ u.rawDaRows ≤ 32 ∧
+  (u.children ≤ 2 ∧ u.rawXmss + 3 * u.rawSphincs ≤ 256 ∧ u.rawDaRows ≤ 32 ∧
     u.declared ≤ 8192 ∧ u.coverage ≤ 8192 ∧ u.childClaims ≤ 8192) ∨
-  (u.children ≤ 2 ∧ u.rawXmss + u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
+  (u.children ≤ 2 ∧ u.rawXmss + 3 * u.rawSphincs = 0 ∧ u.rawDaRows ≤ 32 ∧
     u.declared ≤ 2 ^ 14 ∧ u.coverage ≤ 2 ^ 14 ∧ u.childClaims ≤ 2 ^ 14)
 
 /-- **Under the deployed limits the declared claims are at most the coverage slots**: each
@@ -203,13 +203,13 @@ theorem coveredW_of {s : NodeStatement} {w : NodeWitness} (hlim : DeployedLimits
       (work s w).rawXmss + (work s w).rawSphincs + (work s w).childClaims := rfl
   have hdecl := declared_le_coverageSlots hlim
   have e1 : (work s w).children = w.children.length := rfl
-  have e2 : (work s w).rawXmss + (work s w).rawSphincs =
-      w.xmssSignatures.length + w.sphincsSignatures.length := rfl
+  have e2 : (work s w).rawXmss = w.xmssSignatures.length := rfl
+  have e2' : (work s w).rawSphincs = w.sphincsSignatures.length := rfl
   have e3 : (work s w).rawDa = (w.daMatrix.map fun _ ↦ 1).getD 0 := rfl
   have e4 : (work s w).rawDaRows = (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 := rfl
   unfold CoveredNode at hcov
   simp only [CoveredW]
-  rcases hcov with ⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ |
+  rcases hcov with ⟨h1, h2, h3⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ |
     ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩ | ⟨h1, h2, h3, h4⟩
   · exact Or.inl ⟨by omega, by omega, by omega, by omega, by omega⟩
   · refine Or.inr (Or.inl ⟨by omega, by omega, by omega, by omega, by omega⟩)

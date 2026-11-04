@@ -4,8 +4,9 @@
   What the deployed budget covers, proved: every recursion node within the deployed limits (at
   most `16` children, each at any of the guest's opening arms) of at most `2048` declared claims,
   coverage slots and children's claims, with no raw signature or blob held directly, and every
-  leaf of at most `2048` raw signatures, declared claims and coverage slots, with no blob held
-  directly, has a valid execution of the guest of committed size in `[2^22, 2^28]`.
+  leaf of at most `2048` raw signatures (a leanSPHINCS signature counted as three), declared claims
+  and coverage slots, with no blob held directly, has a valid execution of the guest of committed
+  size in `[2^22, 2^28]`.
 -/
 
 module
@@ -116,9 +117,9 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
       omega
 
 /-- **A leaf of at most `2048` raw signatures fits**: no child and no blob held directly, at
-most `2048` raw leanXMSS and leanSPHINCS signatures together, at most `2048` declared claims and
-coverage slots. -/
-theorem leaf_size_le (u : End.Work) (hxs : u.rawXmss + u.rawSphincs ≤ 2048) (hd : u.rawDa = 0)
+most `2048` raw signatures, a leanSPHINCS one counted as three (`17904` words against leanXMSS's
+`6459`), at most `2048` declared claims and coverage slots. -/
+theorem leaf_size_le (u : End.Work) (hxs : u.rawXmss + 3 * u.rawSphincs ≤ 2048) (hd : u.rawDa = 0)
     (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2048) (hcov : u.coverage ≤ 2048)
     (hch : u.children = 0) (hcc : u.childClaims = 0) (hsh : u.childShapes = []) :
     (deployedBudget deployedBvAt).size u ≤ 2 ^ 28 := by
@@ -162,15 +163,14 @@ theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) 
 
 /-- **Every leaf of at most `2048` raw signatures has a valid execution of the guest**: for every
 seed, statement `s` and witness `w` with `NodeRelation`, within the deployed limits, with no child and
-no blob held directly, at most `2048` raw leanXMSS and leanSPHINCS signatures together and at most
-`2048` declared claims and coverage slots, there is a valid execution of the guest on the
+no blob held directly, at most `2048` raw signatures (leanXMSS ones and three for each leanSPHINCS
+one, `CoveredNode`'s count) and at most `2048` declared claims and coverage slots, there is a valid execution of the guest on the
 statement's digest of committed size in `[2^22, 2^28]`. -/
 theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
     (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
     (hch : w.children = []) (hd : w.daMatrix = none)
-    (hxs : w.xmssSignatures.length +
-      w.sphincsSignatures.length ≤ 2048)
+    (hxs : w.xmssSignatures.length + 3 * w.sphincsSignatures.length ≤ 2048)
     (hdecl : s.claims.xmss.length + s.claims.sphincs.length ≤ 2048)
     (hcov : coverageSlots w ≤ 2048) :
     ∃ t : Execution guestProgram,

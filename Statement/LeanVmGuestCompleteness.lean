@@ -61,21 +61,23 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
 namespace Completeness
 
 /-- **The nodes the deployed budget covers**, seven families by the node's children, raw
-signatures (leanXMSS and leanSPHINCS together), the rows of the blob matrix checked directly, and
-coverage slots (`coverageSlots`: the raw signatures and the children's claims): a recursion node of
-`2048` slots; a leaf of `2048` raw signatures; `8` children and `2^15` slots; `4` children, `1024`
-raw signatures and `8192` slots; `4` children, a matrix of `32` rows and `8192` slots; `2`
-children, `256` raw signatures, a matrix of `32` rows and `8192` slots; `2` children, a matrix of
-`32` rows and `2^14` slots. A node of no child and no raw signature, so of no claim, with a matrix
-of `32` rows, is of the fifth. -/
+signatures, the rows of the blob matrix checked directly, and coverage slots (`coverageSlots`: the
+raw signatures and the children's claims): a recursion node of `2048` slots; a leaf of `2048` raw
+signatures; `8` children and `2^15` slots; `4` children, `1024` raw signatures and `8192` slots;
+`4` children, a matrix of `32` rows and `8192` slots; `2` children, `256` raw signatures, a matrix
+of `32` rows and `8192` slots; `2` children, a matrix of `32` rows and `2^14` slots. A node of no
+child and no raw signature, so of no claim, with a matrix of `32` rows, is of the fifth. The raw
+signatures are counted with a leanSPHINCS signature as three (`raw`): its check costs the guest
+program about three leanXMSS ones (at leanVM `542b0353`, `17904` memory words against `6459`,
+`876` `KECCAK`s against `398`). -/
 def CoveredNode (witness : NodeWitness) : Prop :=
   let n := witness.children.length
-  let raw := witness.xmssSignatures.length + witness.sphincsSignatures.length
+  let raw := witness.xmssSignatures.length + 3 * witness.sphincsSignatures.length
   let blobs := (witness.daMatrix.map fun _ ↦ 1).getD 0
   let rows := (witness.daMatrix.map fun p ↦ p.2.rows.length).getD 0
   let slots := coverageSlots witness
   (raw = 0 ∧ blobs = 0 ∧ slots ≤ 2048) ∨
-  (n = 0 ∧ blobs = 0 ∧ slots ≤ 2048) ∨
+  (n = 0 ∧ blobs = 0 ∧ raw ≤ 2048 ∧ slots ≤ 2048) ∨
   (n ≤ 8 ∧ raw = 0 ∧ blobs = 0 ∧ slots ≤ 2 ^ 15) ∨
   (n ≤ 4 ∧ raw ≤ 1024 ∧ blobs = 0 ∧ slots ≤ 8192) ∨
   (n ≤ 4 ∧ raw = 0 ∧ rows ≤ 32 ∧ slots ≤ 8192) ∨

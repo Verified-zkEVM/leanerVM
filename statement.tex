@@ -565,16 +565,14 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $786000$)
-limits any program. It was set at leanVM \texttt{c445e3d5} to the compiled decoder's size and a
-slack of about one leanXMSS signature's encoding ($309$), so that no useful table of witnesses
-(hard-coded signatures that would mask a bug of $G$ on finitely many statements) fits there. At
-\texttt{542b0353} the compiled decoder's size is $379524$ (proved at most that, measured exactly;
-the guest's frame-cell table is $349381$ of it), so the slack is $406476$, room for about $1300$
-leanXMSS signatures' encodings: the bound is no longer tight, and tightening it is a change of the
-statement left to its owner. It does not bound what a program written differently could hold: the
-frame-cell table (cells below $2^{20}$) packs to about a third, three cells to a limb, and a
-program may compute its tables from its input.
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $380000$)
+limits any program; it is the compiled decoder's size at leanVM \texttt{542b0353}, $379524$ (proved
+at most that, measured exactly; the guest's frame-cell table is $349381$ of it), and a slack of
+$476$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
+fits there. It does not bound what a program written differently could hold: the frame-cell table
+(cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its
+tables from its input.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it within its size bound and budget gives \lean{GuestKnowledgeSoundness}
@@ -696,7 +694,8 @@ $\mathrm{dig}_{iv_G}(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committe
 \begin{itemize}
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
-children, $\cnt{xmss} + \cnt{sphincs}$ raw signatures, $\cnt{rows}$ blobs held directly (the rows of
+children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
+check costs $G$ about three leanXMSS ones, $17904$ words against $6459$), $\cnt{rows}$ blobs held directly (the rows of
 at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
 \cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
 (a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
@@ -704,7 +703,7 @@ the fifth):
 \begin{center}\small
 \begin{tabular}{lrrrr}
 \toprule
-Family & $\cnt{child}$ & $\cnt{xmss} + \cnt{sphincs}$ & $\cnt{rows}$ & slots\\\midrule
+Family & $\cnt{child}$ & $\cnt{xmss} + 3\cnt{sphincs}$ & $\cnt{rows}$ & slots\\\midrule
 recursion & any & $0$ & $0$ & $2048$\\
 leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 & $\le 8$ & $0$ & $0$ & $2^{15}$\\
