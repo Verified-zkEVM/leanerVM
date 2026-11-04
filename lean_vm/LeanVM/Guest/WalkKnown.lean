@@ -28,10 +28,15 @@ proves on the template (`B1.Opening.QueriesWalk`):
 * a specialization's precondition is `OqMainWins` on its values `[4, 6]`; its window bounds those of
   an odd count's first query (`oqMainT_wins`), and its loop call's tuple the walk from `x = 1`,
   conditional on the argument's cell holding `1` (`impTag … 1 1`, a constant `SET` in the call's
-  setup), so it is `OqMainWins`' second half.
+  setup), so it is `OqMainWins`' second half;
+* at b7a8d0cb the queries call `walk_path__L{pd}_L{cd}`, which dispatches on the windows: the cut
+  before each call hands it `WinsAt` (`winsTag`) of the loaded window pointer (`winSemOk`, the same
+  B1 facts as the window bounds), and `walk_path`'s own precondition `WinsAt` on `wins` (value `2`)
+  gives its cuts' window bounds (`wpOk`, `wp_cutsKnown`; PR661-IFACE 'walk-K').
 
 `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`: `CutsKnown j` from the body's template and
-the decided check. The instances are `WalkOq*.lean`.
+the decided check; `wp_cutsKnown` from the decided check alone. The instances are `WalkOq*.lean` and
+`WalkWp.lean`.
 -/
 
 namespace LeanVM.Guest.End
