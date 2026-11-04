@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkOut
 
-  `verify_keccak`'s committed outputs' opening (G:2847-2860).
+  `verify_keccak`'s committed outputs' opening (G:3020-3035).
 -/
 
 module
@@ -61,25 +61,25 @@ theorem plain_call {n k0 : ℕ} (hk : k0 < 2) (hn : n = plainCount k0) {cap : Li
     subst hn
     exact ⟨ms, hl, hr, fun w hw ↦ hall w hw⟩
 
-/-- **The committed outputs' opening** (G:2847-2860). -/
+/-- **The committed outputs' opening** (G:3020-3035). -/
 theorem vkOutT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h6 : σ (.n 6) = gen ^ τ)
     (h17 : σ (.n 17) = gen ^ (τ - 4)) {L : ℕ → E}
-    (hL : ∀ lane < 25, ∀ v, LoadHolds rd (σ (.n 274)) (30 + lane) v → v = L lane)
-    (h64 : σ (.n 64) = σ (.n 58) * σ (.n 17)) (h89 : LoadHolds rd (σ (.n 64)) 0 (σ (.n 89)))
+    (hL : ∀ lane < 25, ∀ v, LoadHolds rd (σ (.n 276)) (30 + lane) v → v = L lane)
+    (h64 : σ (.n 66) = σ (.n 60) * σ (.n 17)) (h89 : LoadHolds rd (σ (.n 66)) 0 (σ (.n 91)))
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ vkOutT next kret) :
     ∃ (mO : List (E × E)) (slotO : List E), mO.length = 6 ∧
-      ReadsAt rd (σ (.n 3690)) (mO.flatMap fun c ↦ [c.1, c.2]) ∧
-      plainRun mO (σ (.n 191))
-        ⟨[σ (.n 3685), σ (.n 3686), σ (.n 3687), σ (.n 3688), σ (.n 3689)], []⟩ =
-        (slotO, σ (.n 3700),
-          ⟨[σ (.n 3694), σ (.n 3695), σ (.n 3696), σ (.n 3697), σ (.n 3698)], []⟩) ∧
+      ReadsAt rd (σ (.n 962)) (mO.flatMap fun c ↦ [c.1, c.2]) ∧
+      plainRun mO (σ (.n 193))
+        ⟨[σ (.n 957), σ (.n 958), σ (.n 959), σ (.n 960), σ (.n 961)], []⟩ =
+        (slotO, σ (.n 972),
+          ⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩) ∧
       ReadsAt rd (σ (.n 9) * gen ^ τ) slotO ∧
-      σ (.n 3699) = σ (.n 3690) * gen ^ 12 ∧
-      (LoadHolds rd (σ (.n 3699)) 0 (σ (.n 3701)) ∧ FsPackOk σ (.n 3701) (3701 + 1) dsObserve) ∧
-      (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [σ (.n 89)] m * eqAt slotO (25 * (1 + m) + lane)) *
-        L lane) * σ (.n 3701) = σ (.n 3700) ∧
-      (∀ j < τ - 4, ∃ v, LoadHolds rd (σ (.n 58)) j v ∧ LoadHolds rd (σ (.n 9) * gen ^ 4) j v) ∧
+      σ (.n 971) = σ (.n 962) * gen ^ 12 ∧
+      (LoadHolds rd (σ (.n 971)) 0 (σ (.n 973)) ∧ FsPackOk σ (.n 973) (973 + 1) dsObserve) ∧
+      (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [σ (.n 91)] m * eqAt slotO (25 * (1 + m) + lane)) *
+        L lane) * σ (.n 973) = σ (.n 972) ∧
+      (∀ j < τ - 4, ∃ v, LoadHolds rd (σ (.n 60)) j v ∧ LoadHolds rd (σ (.n 9) * gen ^ 4) j v) ∧
       next := by
   rw [vkOutT] at h
   simp only [holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
@@ -87,23 +87,23 @@ theorem vkOutT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h6 : σ (.
   obtain ⟨e3691, z0, z1, hcall, h⟩ := h
   -- the slot's rounds
   obtain ⟨mO, hmL, hmR, hrun⟩ := plain_call (k0 := 0) (n := 6) (by omega) rfl
-    (cap := [σ (.n 3685), σ (.n 3686), σ (.n 3687), σ (.n 3688), σ (.n 3689)]) rfl
+    (cap := [σ (.n 957), σ (.n 958), σ (.n 959), σ (.n 960), σ (.n 961)]) rfl
     (by simpa [List.range_succ, plainName] using hcall)
   obtain ⟨hpt, hrets⟩ := hrun 0 (fun h ↦ absurd h (by decide))
   simp only [plainStart, show ¬ ((0 : ℕ) = 1) by decide, ↓reduceIte] at hpt hrets
-  have hpend := plainRun_pend mO (σ (.n 191))
-    ⟨[σ (.n 3685), σ (.n 3686), σ (.n 3687), σ (.n 3688), σ (.n 3689)], []⟩
+  have hpend := plainRun_pend mO (σ (.n 193))
+    ⟨[σ (.n 957), σ (.n 958), σ (.n 959), σ (.n 960), σ (.n 961)], []⟩
     (by rintro rfl; simp at hmL)
-  set R := plainRun mO (σ (.n 191))
-    ⟨[σ (.n 3685), σ (.n 3686), σ (.n 3687), σ (.n 3688), σ (.n 3689)], []⟩ with hR
-  rw [show [σ (.n 3694), σ (.n 3695), σ (.n 3696), σ (.n 3697), σ (.n 3698), σ (.n 3699),
-      σ (.n 3700)] = [σ (.n 3694), σ (.n 3695), σ (.n 3696), σ (.n 3697), σ (.n 3698)] ++
-      [σ (.n 3699), σ (.n 3700)] from rfl] at hrets
+  set R := plainRun mO (σ (.n 193))
+    ⟨[σ (.n 957), σ (.n 958), σ (.n 959), σ (.n 960), σ (.n 961)], []⟩ with hR
+  rw [show [σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970), σ (.n 971),
+      σ (.n 972)] = [σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)] ++
+      [σ (.n 971), σ (.n 972)] from rfl] at hrets
   obtain ⟨hcapR, hlast⟩ := List.append_inj' hrets rfl
   simp only [List.cons.injEq, and_true] at hlast
   obtain ⟨h3699, h3700⟩ := hlast
-  have hRs : R = (R.1, σ (.n 3700),
-      ⟨[σ (.n 3694), σ (.n 3695), σ (.n 3696), σ (.n 3697), σ (.n 3698)], []⟩) := by
+  have hRs : R = (R.1, σ (.n 972),
+      ⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩) := by
     rw [h3700, hcapR, ← hpend]
   have hslotL : R.1.length = 6 := by rw [hR, plainRun_length, hmL]
   -- the word
@@ -117,19 +117,19 @@ theorem vkOutT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h6 : σ (.
     have := hpt k h2
     rw [e3691, h6] at hrs
     exact loadHolds_unique (hrs k h1) (by rw [e3691, h6] at this; exact this)
-  have hr' : r = σ (.n 89) := by
+  have hr' : r = σ (.n 91) := by
     rw [e3711, ← h64] at hr
     exact loadHolds_unique hr h89
-  obtain ⟨hdot, h⟩ := dotLoadsT_holds (xs := (List.range 25).map (slotLaneV 3712 1)) (P := L)
+  obtain ⟨hdot, h⟩ := dotLoadsT_holds (xs := (List.range 25).map (slotLaneV 984 1)) (P := L)
     (fun k hk v hv ↦ hL k (by simpa using hk) v hv) (by simp) h
   obtain ⟨e3969, heq, c70, e71, c72, c73, e74, -, hcall12, hn⟩ := h
   simp only [List.length_map, List.length_range] at hdot
   refine ⟨mO, R.1, hmL, hmR, hRs, by rw [← h6]; rw [e3691] at hpt; exact hpt,
     h3699.trans (by norm_num), ⟨lw, pw⟩, ?_, ?_, hn⟩
   · rw [← eq_of_add_eq_zero' heq, e3969]
-    have hd : σ (.n 3968) = ∑ lane ∈ range 25,
-        (∑ m ∈ range 1, eqAt [σ (.n 89)] m * eqAt R.1 (25 * (1 + m) + lane)) * L lane := by
-      rw [show (3968 : ℕ) = dotLoadsV 3895 25 from rfl, hdot]
+    have hd : σ (.n 1240) = ∑ lane ∈ range 25,
+        (∑ m ∈ range 1, eqAt [σ (.n 91)] m * eqAt R.1 (25 * (1 + m) + lane)) * L lane := by
+      rw [show (1240 : ℕ) = dotLoadsV 1167 25 from rfl, hdot]
       refine Finset.sum_congr rfl fun lane hl ↦ ?_
       rw [List.getD_eq_getElem _ _ (by simpa using hl), List.getElem_map, List.getElem_range,
         hlanes lane (Finset.mem_range.1 hl), hrs', hr']

@@ -12,13 +12,13 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 /-!
 # Polynomials in `s` over the bits
 
-The instance weights of a layer (G:2501-2592) are sums of powers of the challenge `s`, combined at
-compile time by `x·` (a product with `s`) and `+`. A polynomial over `GF(2)` is a bit mask `m`;
+The instance weights of a layer (G:2716-2735) are sums of powers of the challenge `s`, combined at
+compile time by `x·` (a product with `s`), `+` and products of such polynomials. A polynomial over `GF(2)` is a bit mask `m`;
 its value at `s` is `pe m s = Σ_b [bit b of m] s^b`, and `+` is `xor` (characteristic two) and `s·`
-a shift (`pe_xor`, `pe_shl`).
+a shift (`pe_xor`, `pe_shl`), a product of two a carry-less product (`clmul`, `pe_clmul`).
 
-`maskRun sv st block` walks a block of constants `1`, additions, products with the value `sv`,
-copies and loads (stores, skipped), keeping each value's mask; `maskRun_sound`: if the block
+`maskRun sv st block` walks a block of constants `1`, additions, products with the value `sv` or
+of two masked values, copies and loads (stores, skipped), keeping each value's mask; `maskRun_sound`: if the block
 holds, every value the pass records is `pe` of its mask at `σ sv`.
 -/
 
@@ -58,6 +58,53 @@ theorem pe_one (x : E) : pe 1 x = 1 := by
   rw [Finset.sum_range_succ']
   simp [Nat.testBit_succ]
 
+/-- The carry-less product of two masks of at most `32` bits: a product of polynomials over
+`GF(2)`. -/
+def clmul (a b : ℕ) : ℕ :=
+  (List.range 32).foldl (fun acc i ↦ if b.testBit i then acc ^^^ (a <<< i) else acc) 0
+
+theorem pe_shl_n (a : ℕ) (x : E) : ∀ n, a < 2 ^ (64 - n) → n ≤ 63 →
+    pe (a <<< n) x = x ^ n * pe a x
+  | 0, _, _ => by simp
+  | n + 1, ha, hn => by
+    have h1 : a <<< n < 2 ^ 63 := by
+      rw [Nat.shiftLeft_eq]
+      calc a * 2 ^ n < 2 ^ (64 - (n + 1)) * 2 ^ n :=
+            Nat.mul_lt_mul_of_pos_right ha (Nat.two_pow_pos n)
+        _ = 2 ^ 63 := by rw [← pow_add]; congr 1; omega
+    have ih := pe_shl_n a x n (lt_of_lt_of_le ha (Nat.pow_le_pow_right (by norm_num) (by omega)))
+      (by omega)
+    rw [show a <<< (n + 1) = (a <<< n) <<< 1 by rw [Nat.shiftLeft_add], pe_shl _ h1, ih]
+    ring
+
+theorem pe_of_lt' (m n : ℕ) (hm : m < 2 ^ n) (hn : n ≤ 64) (x : E) :
+    pe m x = ∑ b ∈ range n, if m.testBit b then x ^ b else 0 := by
+  unfold pe
+  refine (Finset.sum_subset (fun b hb ↦ by simp at hb ⊢; omega) fun b _ hb ↦ ?_).symm
+  have hnb : n ≤ b := by simpa using hb
+  rw [Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hm (Nat.pow_le_pow_right (by norm_num) hnb))]
+  simp
+
+theorem pe_clmul_aux (a b : ℕ) (ha : a < 2 ^ 32) (x : E) : ∀ n ≤ 32,
+    pe ((List.range n).foldl (fun acc i ↦ if b.testBit i then acc ^^^ (a <<< i) else acc) 0) x =
+      pe a x * ∑ i ∈ range n, if b.testBit i then x ^ i else 0
+  | 0, _ => by simp [pe]
+  | n + 1, hn => by
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil,
+      Finset.sum_range_succ, mul_add, ← pe_clmul_aux a b ha x n (by omega)]
+    split
+    · rename_i hb
+      rw [pe_xor, pe_shl_n a x n (lt_of_lt_of_le ha (Nat.pow_le_pow_right (by norm_num) (by omega)))
+        (by omega)]
+      ring
+    · rename_i hb
+      rw [mul_zero, add_zero]
+
+/-- **A carry-less product is the product of the polynomials.** -/
+theorem pe_clmul (a b : ℕ) (ha : a < 2 ^ 32) (hb : b < 2 ^ 32) (x : E) :
+    pe (clmul a b) x = pe a x * pe b x := by
+  rw [clmul, pe_clmul_aux a b ha x 32 le_rfl, pe_of_lt' b 32 hb (by norm_num)]
+
 /-- One atom of the pass. -/
 def maskStep (sv : V) (st : List (V × ℕ)) : Stmt → Option (List (V × ℕ))
   | .atom (.const d c) => if eEqb c (word 1 0 0) then some ((d, 1) :: st) else none
@@ -74,7 +121,11 @@ def maskStep (sv : V) (st : List (V × ℕ)) : Stmt → Option (List (V × ℕ))
         match st.lookup b with
         | some mb => if mb < 2 ^ 63 then some ((d, mb <<< 1) :: st) else none
         | none => none
-      else none
+      else
+        match st.lookup a, st.lookup b with
+        | some ma, some mb =>
+            if ma < 2 ^ 32 ∧ mb < 2 ^ 32 then some ((d, clmul ma mb) :: st) else none
+        | _, _ => none
   | .atom (.copy d a) =>
       match st.lookup a with
       | some ma => some ((d, ma) :: st)
@@ -165,7 +216,19 @@ theorem maskStep_sound {sv : V} {st st' : List (V × ℕ)} {s : Stmt} (hs : mask
             · exact hok p hp
           · cases hs
         · cases hs
-      · cases hs
+      · split at hs
+        · rename_i ma mb ha hb
+          split at hs
+          · rename_i hlt
+            cases hs
+            obtain ⟨hd, hn⟩ := h
+            refine ⟨fun p hp => ?_, hn⟩
+            rcases List.mem_cons.1 hp with rfl | hp
+            · simp only [Atom.Holds] at hd
+              rw [hd, hok.lookup ha, hok.lookup hb, pe_clmul _ _ hlt.1 hlt.2]
+            · exact hok p hp
+          · cases hs
+        · cases hs
   | .atom (.copy d a), hs =>
     simp only [maskStep] at hs
     split at hs

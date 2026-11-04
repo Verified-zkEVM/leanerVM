@@ -86,20 +86,20 @@ structure VsSig {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs b
   ptr : ∀ i < 16, σ (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (vb bs i))
   ret : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
     σ (.n ((vsRetVars.getD j []).getD k 0)) = (outs.getD j ([], [])).1.getD k 0
-  e112 : σ (.n 112) = eOfNat S.rate
-  e29 : σ (.n 29) = eOfNat S.logMem
-  e521 : σ (.n 521) = gen ^ pushTotal S.logMem S.hs
-  e537 : σ (.n 537) = S.x0
-  e547 : σ (.n 547) = S.x1
-  e825 : [σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829)] = S.capS
-  e836 : σ (.n 836) = S.β
-  e838 : σ (.n 838) = ofK (addressOfIndex (vcG bs))
-  e858 : σ (.n 858) = gen ^ S.τ
-  e862 : σ (.n 862) = ofK (addressOfIndex (vb bs 0 + 110))
-  e1312 : [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316)] = capOf S.s8.perm
-  e1884 : σ (.n 1884) = S.lam ^ 141
-  e1886 : σ (.n 1886) = S.target
-  e1901 : σ (.n 1901) = gen ^ B1.Whir.candidate S.μs S.rate
+  e112 : σ (.n 110) = eOfNat S.rate
+  e29 : σ (.n 27) = eOfNat S.logMem
+  e521 : σ (.n 308) = gen ^ pushTotal S.logMem S.hs
+  e537 : σ (.n 324) = S.x0
+  e547 : σ (.n 334) = S.x1
+  e825 : [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616)] = S.capS
+  e836 : σ (.n 623) = S.β
+  e838 : σ (.n 625) = ofK (addressOfIndex (vcG bs))
+  e858 : σ (.n 646) = gen ^ S.τ
+  e862 : σ (.n 650) = ofK (addressOfIndex (vb bs 0 + 110))
+  e1312 : [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104)] = capOf S.s8.perm
+  e1884 : σ (.n 1671) = S.lam ^ 141
+  e1886 : σ (.n 1673) = S.target
+  e1901 : σ (.n 1687) = gen ^ B1.Whir.candidate S.μs S.rate
   push : ∀ b < 54, ∃ k < 34, σ (.n (vsPushPtr b)) = ofK (addressOfIndex (sqE + k))
 
 variable {rd : Reader} {args : List E}
@@ -119,7 +119,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim)) :
     Nonempty (VsSecData rd (vsW bs outs) args) ∧
       VsSig S bs sqE outs args (vsσ rd (vsW bs outs) args) := by
-  have hl : args.length = 7 := by rw [hargs]; rfl
+  have hl : args.length = 6 := by rw [hargs]; rfl
   obtain ⟨D, hv, hlir, hlm, hhs, hm, hr, hτ, F, elam, es8, -, -⟩ :=
     vsSec hbl S hargs bs outs hκ hlow hmem hlp hsq hfx O.o0 O.o1 O.o6 O.o7 O.o10
   refine ⟨⟨D⟩, ?_⟩
@@ -135,7 +135,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     D.hsl D.hh D.hm32 D.hbk D.hexp (fun _ _ ↦ trivial) trivial).1
   rw [hlm, hhs] at hpush
   have hpp : ∀ b < 54, vsσ rd (vsW bs outs) args (.n (vsPushPtr b)) =
-      vsσ rd (vsW bs outs) args (.n 5) * gen ^ pushKappa D.logMem D.hs b :=
+      vsσ rd (vsW bs outs) args (.n 4) * gen ^ pushKappa D.logMem D.hs b :=
     fun b hb ↦ vs_push_ptr hl D.hsl D.hbk hb
   have hpk : ∀ b < 54, pushKappa D.logMem D.hs b < 34 := fun b hb ↦ pushKappa_lt D.hh D.hm32 hb
   have hcalls := vsCallsT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
@@ -151,12 +151,12 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   have hL := vsH_lam (rd := rd) (w := vsW bs outs) hl D.hcap966
   obtain ⟨K7, hK7⟩ := S.s7_capOf hbl
   generalize vsσ rd (vsW bs outs) args = σ at *
-  have p7 : σ (.n 7) = ofK (addressOfIndex (vb bs 0)) := ptr 0 (by norm_num)
-  have p27 : σ (.n 27) = ofK (addressOfIndex (vb bs 2)) := ptr 2 (by norm_num)
-  have e5 : σ (.n 5) = ofK (addressOfIndex sqE) := by rw [par 5 (by norm_num), hargs]; rfl
-  have e1303 : σ (.n 1303) = polyEval (S.slices.map (phiMap · S.rchs)) gen := by
+  have p7 : σ (.n 6) = ofK (addressOfIndex (vb bs 0)) := ptr 0 (by norm_num)
+  have p27 : σ (.n 25) = ofK (addressOfIndex (vb bs 2)) := ptr 2 (by norm_num)
+  have e5 : σ (.n 4) = ofK (addressOfIndex sqE) := by rw [par 5 (by norm_num), hargs]; rfl
+  have e1303 : σ (.n 1091) = polyEval (S.slices.map (phiMap · S.rchs)) gen := by
     have := ret 8 (by norm_num) 0 (by decide); rw [O.o8] at this; exact this
-  have e869 : σ (.n 869) = S.word := by
+  have e869 : σ (.n 657) = S.word := by
     have := ret 7 (by norm_num) 6 (by decide); rw [O.o7, hK7] at this; exact this
   rw [← es8] at hL
   exact {

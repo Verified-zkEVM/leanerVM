@@ -78,7 +78,7 @@ theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
 set_option maxRecDepth 20000 in
 /-- **The writers of the coverage table.** -/
 theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    Writers rd (σ (.n 67)) (segsOf σ K) (LXS σ) (LSS σ) := by
+    Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) := by
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
   have hT := MF.total

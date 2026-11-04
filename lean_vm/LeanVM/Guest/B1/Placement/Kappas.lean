@@ -93,17 +93,13 @@ theorem tb_single_le_sum_map (l : List ℕ) (c : ℕ) (hc : c < l.length) :
   exact List.le_sum_of_mem (List.mem_map.mpr ⟨_, List.getElem_mem hc, rfl⟩)
 
 /-- **Every committed column's `κ` is below 29** once the stack is at most `2^28`. -/
-theorem hypKappa_holds (rd : Reader) : HypKappa rd := by
-  rintro kappas off kap ⟨hl, hkap, -⟩ h28 c hc
+theorem hypKappa_holds : HypKappa := by
+  intro kappas hl h28 c hc
   have hcl : c < (committedKappas kappas).length := by
     rw [committedKappas_length _ hl]; exact hc
-  refine ⟨(committedKappas kappas).getD c 0, ?_, ?_⟩
-  · have := tb_le_log2Ceil_of_two_pow_le (tb_single_le_sum_map _ c hcl)
-    rw [← stackTotal] at this
-    omega
-  · have := hkap c (by simpa using hcl)
-    simp only [List.getElem_map] at this
-    rwa [List.getD_eq_getElem _ _ hcl]
+  have := tb_le_log2Ceil_of_two_pow_le (tb_single_le_sum_map _ c hcl)
+  rw [← stackTotal] at this
+  omega
 
 end
 end LeanVM.Guest.B1.Tables

@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.VbgComplete
 public import LeanVM.Guest.B1.Tables.FlatLift
-public import LeanVM.Guest.B1.Tables.VtC.Kids
+public import LeanVM.Guest.B1.Fwd.PureIn
 
 /-!
 # `verify_bus_gkr`'s kernel facts and buffers

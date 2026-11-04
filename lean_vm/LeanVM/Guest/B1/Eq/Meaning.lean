@@ -23,7 +23,8 @@ meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtr
 | `eq_prefix_run__L{n}` | 870-876 | `chain[j] = seed · Π_{k<j} (a_k + b1_k)`, `j ≤ n` |
 | `eq_prefix_chain` | 860-867 | `count = g^n`, `n < 41`, and `eq_prefix_run__L{n}` |
 | `plus_one_run__L{n}` | 879-882 | `out[k] = 1 + src[k]`, `k < n` |
-| `rs_eq_run` | 895-939 | the rows of `ringWeight`'s products (V:2171) |
+| `rs_eq_rows__L{n}` | 989-1008 (c4f4bc92) | one row of `ringWeight`'s products over `n ≤ 8` coordinates |
+| `rs_eq_run` | 1011-1037 (c4f4bc92) | the rows of `ringWeight`'s products (V:2171), eight coordinates a row |
 | `fold_final_msg__L{n}` | 942-960 | `multilinearEval` (V:653) |
 
 With `b1_k = 1 + b_k`, `a_k + b1_k` is the factor `1 + a_k + b_k` of `eqEval` (V:669).
@@ -119,20 +120,41 @@ def plus_one_run_Spec : Prop :=
 def ringRow (c : E) (zs ps : List E) (k : ℕ) : E :=
   (List.zipWith (fun z p ↦ z ^ 2 ^ k + p) zs ps).foldl (· * ·) c
 
-/-- **`rs_eq_run(chain, z_vals, point1, count_g)`**: `count_g = g^count`, `count < 64`; the words
-`zs`, `ps` at `z_vals`, `point1` below `count`; row `h` of `chain` (64 words from
-`chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/2⌉`, is row `0` times the products over the first
-`min(2h, count)` coordinates (two coordinates a row, an odd count's last alone); it returns the
-last row, `chain·g^(64·⌈count/2⌉)`. -/
+/-- **`rs_eq_rows(row, zs, ps, n)`** (lean_ethereum.py:989-1008 at `c4f4bc92`): at `n = 0` it
+returns `row`; otherwise the `n` words `zs`, `ps` at `zs`, `ps` and the 64 words `c` at `row`; the
+next row, from `row·g^64`, holds `ringRow c[k] zs ps k` at `k < 64`, and it returns `row·g^64`. -/
+def MeaningRsEqRows (n : ℕ) (rd : Reader) : List E → List E → Prop
+  | [row, z, p], rets => (n = 0 ∧ rets = [row]) ∨
+      (0 < n ∧ ∃ zs ps c : List E, zs.length = n ∧ ps.length = n ∧ c.length = 64 ∧
+        ReadsAt rd z zs ∧ ReadsAt rd p ps ∧ ReadsAt rd row c ∧
+        (∀ k < 64, LoadHolds rd row (64 + k) (ringRow (c.getD k 0) zs ps k)) ∧
+        rets = [row * gen ^ 64])
+  | _, _ => False
+
+/-- The specializations' names, `rs_eq_rows__L{n}`, `n ≤ 8` (`RS_CHUNK = 8`). -/
+def rsEqRowsNames : List String :=
+  ["rs_eq_rows__L0", "rs_eq_rows__L1", "rs_eq_rows__L2", "rs_eq_rows__L3", "rs_eq_rows__L4",
+    "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7", "rs_eq_rows__L8"]
+
+/-- `rs_eq_rows__L{n}`'s core IR is its meaning, `n ≤ 8`. -/
+def rs_eq_rows_Spec : Prop :=
+  ∀ n ≤ 8, ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd (rsEqRowsNames.getD n "") args rets ↔ MeaningRsEqRows n rd args rets
+
+/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (lean_ethereum.py:1011-1037 at `c4f4bc92`):
+`count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; row
+`h` of `chain` (64 words from `chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is row `0` times the
+products over the first `min(8h, count)` coordinates (`RS_CHUNK = 8` coordinates a row, the
+last row the remainder's); it returns the last row, `chain·g^(64·⌈count/8⌉)`. -/
 def MeaningRsEqRun (rd : Reader) : List E → List E → Prop
   | [chain, z, p1, cg], rets =>
       ∃ count < 64, cg = gen ^ count ∧ ∃ zs ps c : List E, zs.length = count ∧
         ps.length = count ∧ c.length = 64 ∧ ReadsAt rd z zs ∧ ReadsAt rd p1 ps ∧
         (0 < count → ReadsAt rd chain c) ∧
-        (∀ h, 1 ≤ h → h ≤ (count + 1) / 2 → ∀ k < 64,
+        (∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64,
           LoadHolds rd chain (64 * h + k)
-            (ringRow (c.getD k 0) (zs.take (min (2 * h) count)) (ps.take (min (2 * h) count)) k)) ∧
-        rets = [chain * gen ^ (64 * ((count + 1) / 2))]
+            (ringRow (c.getD k 0) (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)) ∧
+        rets = [chain * gen ^ (64 * ((count + 7) / 8))]
   | _, _ => False
 
 /-- `rs_eq_run`'s core IR is its meaning. -/
