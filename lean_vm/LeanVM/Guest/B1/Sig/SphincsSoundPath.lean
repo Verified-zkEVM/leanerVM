@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Sig.SphincsPathComplete
 public import LeanVM.Guest.B1.Sig.SphincsKec
 public import LeanVM.Guest.B1.Sig.Merkle
+public import LeanVM.Guest.B1.Sig.SphincsSig
 
 /-!
 # `sp_path`, sound
@@ -28,11 +29,6 @@ open LeanVM.Protocol.Verifier (eOfNat)
 @[expose] public section
 
 variable {rd : Reader} {σ : Val}
-
-/-- **The sibling of a node** whose two children are hinted at `x`, `x + 1`, the node climbed the
-one the bit names: the left child when the bit is `1`. -/
-def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
-  if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
 
 /-- **`is_child`, sound**: the children are the node and its sibling, in the order of the bit. -/
 theorem isChild_sound {cur bit : V} {x b : Nat} (hbit : IsBit (σ bit))
