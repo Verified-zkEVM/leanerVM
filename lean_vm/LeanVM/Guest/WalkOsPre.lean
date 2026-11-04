@@ -34,6 +34,7 @@ statements before the cut, the callee's precondition `OqMainWins` on the call's 
 namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -82,7 +83,7 @@ theorem osPre_prefixA {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPr
   rw [← List.getD_eq_getElem _ default h] at hL
   refine List.IsPrefix.trans ((List.prefix_append_right_inj _).mpr hL) ?_
   unfold osBodyA
-  exact ((List.prefix_append _ _).trans (List.prefix_append _ _)).trans (List.prefix_append _ _)
+  exact (List.prefix_append _ _).trans (List.prefix_append _ _)
 
 theorem osPre_prefix {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPre c ℓ <+: osBody c := by
   rw [osBody_split]
@@ -117,7 +118,7 @@ theorem osLevelM_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
   · show MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats
     rw [osFolds_mats]; exact hm
   · rename_i hne
-    rw [if_neg hne] at h
+    simp only [hne, ↓reduceIte] at h
     have hm' : MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats := by
       rw [osFolds_mats]; exact hm
     refine osMatsAfter_ok hm' hb fun x hx ↦ h x ?_
@@ -148,8 +149,12 @@ theorem osLevelPre_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvM
 
 theorem osLevel_mats_eq (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).2.mats = osQueriesMats c lv (osLevelQ c lvl lv s) := by
-  unfold osLevel
-  split <;> rfl
+  unfold osLevel osLevelQ osLevelM
+  by_cases h : lvl = c.yrLevel
+  · simp only [h, ↓reduceIte]
+    rfl
+  · simp only [h, ↓reduceIte]
+    rfl
 
 /-- **A level's materializations hold** after it. -/
 theorem osLevel_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
