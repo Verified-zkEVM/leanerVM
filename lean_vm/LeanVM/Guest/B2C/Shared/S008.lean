@@ -16,6 +16,14 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
+/-- `verify_keccak`, window 4. -/
+theorem w13_4 : shareWin 13 (snapsOf 13) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_keccak`, window 5. -/
+theorem w13_5 : shareWin 13 (snapsOf 13) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- `verify_keccak`, window 6. -/
 theorem w13_6 : shareWin 13 (snapsOf 13) 6 = true := by decide +kernel
 
@@ -47,23 +55,6 @@ theorem ok14 : ShareOk 14 := ⟨st14, fun i hi ↦ by
   have h : (snapsOf 14).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w14_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, once. -/
-theorem st15 : shareStatic 15 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, window 0. -/
-theorem w15_0 : shareWin 15 (snapsOf 15) 0 = true := by decide +kernel
-
-theorem ok15 : ShareOk 15 := ⟨st15, fun i hi ↦ by
-  have h : (snapsOf 15).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w15_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, once. -/
-theorem st16 : shareStatic 16 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -20,6 +20,9 @@ open LeanVM.Guest.Check
 /-- `main`, window 0. -/
 theorem w1_0 : WinOk 1 0 := winOk_of_C (by decide +kernel)
 
+/-- `main`, window 1. -/
+theorem w1_1 : WinOk 1 1 := winOk_of_C (by decide +kernel)
+
 /-- `assert_canonical`, window 0. -/
 theorem w2_0 : WinOk 2 0 := winOk_of_C (by decide +kernel)
 
@@ -38,11 +41,6 @@ theorem w6_0 : WinOk 6 0 := winOk_of_C (by decide +kernel)
 /-- `rs_eq_run`, window 0. -/
 theorem w7_0 : WinOk 7 0 := winOk_of_C (by decide +kernel)
 
-/-- `sumcheck_round4`, window 0. -/
-theorem w8_0 : WinOk 8 0 := winOk_of_C (by decide +kernel)
-
-theorem ok1 : CheckOk 1 := checkOk_one (by decide +kernel) w1_0
-
 theorem ok2 : CheckOk 2 := checkOk_one (by decide +kernel) w2_0
 
 theorem ok3 : CheckOk 3 := checkOk_one (by decide +kernel) w3_0
@@ -54,8 +52,6 @@ theorem ok5 : CheckOk 5 := checkOk_one (by decide +kernel) w5_0
 theorem ok6 : CheckOk 6 := checkOk_one (by decide +kernel) w6_0
 
 theorem ok7 : CheckOk 7 := checkOk_one (by decide +kernel) w7_0
-
-theorem ok8 : CheckOk 8 := checkOk_one (by decide +kernel) w8_0
 
 end
 end LeanVM.Guest.Checked

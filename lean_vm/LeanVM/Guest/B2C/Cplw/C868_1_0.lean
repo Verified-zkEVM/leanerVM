@@ -31,14 +31,14 @@ theorem cw868_4_0 : cplWin 868 4 0 = true := by decide +kernel
 /-- `__loop378`, window 5, part 0. -/
 theorem cw868_5_0 : cplWin 868 5 0 = true := by decide +kernel
 
+/-- `__loop378`, window 6, part 0. -/
+theorem cw868_6_0 : cplWin 868 6 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L19_L6`, window 0, part 0. -/
 theorem cw869_0_0 : cplWin 869 0 0 = true := by decide +kernel
 
 /-- `__loop379`, window 0, part 0. -/
 theorem cw870_0_0 : cplWin 870 0 0 = true := by decide +kernel
-
-/-- `__loop379`, window 1, part 0. -/
-theorem cw870_1_0 : cplWin 870 1 0 = true := by decide +kernel
 
 theorem ok869 : CplOk 869 := by
   intro i hi k hk

@@ -23,10 +23,9 @@ set_option maxRecDepth 100000 in
 /-- `main`, window 0. -/
 theorem w1_0 : shareWin 1 (snapsOf 1) 0 = true := by decide +kernel
 
-theorem ok1 : ShareOk 1 := ⟨st1, fun i hi ↦ by
-  have h : (snapsOf 1).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1_0⟩
+set_option maxRecDepth 100000 in
+/-- `main`, window 1. -/
+theorem w1_1 : shareWin 1 (snapsOf 1) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `assert_canonical`, once. -/
@@ -92,32 +91,6 @@ theorem ok6 : ShareOk 6 := ⟨st6, fun i hi ↦ by
   have h : (snapsOf 6).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w6_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_run`, once. -/
-theorem st7 : shareStatic 7 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_run`, window 0. -/
-theorem w7_0 : shareWin 7 (snapsOf 7) 0 = true := by decide +kernel
-
-theorem ok7 : ShareOk 7 := ⟨st7, fun i hi ↦ by
-  have h : (snapsOf 7).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w7_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sumcheck_round4`, once. -/
-theorem st8 : shareStatic 8 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sumcheck_round4`, window 0. -/
-theorem w8_0 : shareWin 8 (snapsOf 8) 0 = true := by decide +kernel
-
-theorem ok8 : ShareOk 8 := ⟨st8, fun i hi ↦ by
-  have h : (snapsOf 8).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w8_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

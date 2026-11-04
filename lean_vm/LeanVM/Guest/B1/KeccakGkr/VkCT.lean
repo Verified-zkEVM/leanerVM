@@ -30,16 +30,44 @@ namespace VkData
 
 variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ → ℕ}
 
+theorem stepCb_eq : ∀ s < 12, 2 ≤ s → stepCb s = stepPn (s - 1) := by decide
+
+theorem stepPn_eq : ∀ s < 11,
+    stepPn (s + 1) = stepT0 s (stepB s) + (if s = 0 then 5 else 7) := by decide +kernel
+
+/-- **The claim records' pointers the steps pass on**: step `s ≥ 1` reads claim `s`'s at
+`stepCb s` and claim `s + 1`'s at `stepPn s`, as the step before computed them. -/
+theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4))
+    (h201 : σ (.n 203) = ptr (B + D.o201)) (h274 : σ (.n 276) = ptr (B + D.o274)) :
+    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 203) * gen ^ (22 * (s - 1)) ∧
+      σ (.n (stepPn s)) = σ (.n 203) * gen ^ (22 * s)
+  | 0, _, h1 => absurd h1 (by norm_num)
+  | 1, _, _ => by
+    refine ⟨by simp [stepCb], ?_⟩
+    rw [stepPn_eq 0 (by norm_num)]
+    exact ((step_on h hm hσd (s := 0) (by norm_num) h17 h201 h274 (fun h ↦ absurd h (by norm_num))
+      (fun h ↦ absurd h (by norm_num))).2.1 rfl).2.2
+  | k + 2, hs, _ => by
+    have IH := steps_chain h hm hσd h17 h201 h274 (k + 1) (by omega) (by omega)
+    refine ⟨by rw [stepCb_eq (k + 2) hs (by omega)]; exact IH.2, ?_⟩
+    rw [stepPn_eq (k + 1) (by omega)]
+    simp only [Nat.add_one_ne_zero, ↓reduceIte]
+    exact ((step_on h hm hσd (s := k + 1) (by omega) h17 h201 h274 (fun _ ↦ IH.1)
+      (fun _ ↦ IH.2)).2.2.1 (by omega)).2.2.2.2
+
 /-- **The twelve steps, on the layout.** -/
 theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4))
-    (h47 : σ (.n 47) = gen ^ D.odd) (h201 : σ (.n 201) = ptr (B + D.o201))
-    (h274 : σ (.n 274) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
+    (h201 : σ (.n 203) = ptr (B + D.o201))
+    (h274 : σ (.n 276) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkStepsT next kret := by
   have S : ∀ s, s < 12 → ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepT s (stepB s) (stepCap s) (stepCur s) vkGw)
-        next kret :=
-    fun s hs ↦ (step_on h hm hσd hs h17 h47 h201 h274).2.2.2
+      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
+        (stepT s (stepB s) (stepCap s) (stepCur s) (stepCb s) (stepPn s)) next kret :=
+    fun s hs ↦ (step_on h hm hσd hs h17 h201 h274
+      (fun h1 ↦ (steps_chain h hm hσd h17 h201 h274 s hs h1).1)
+      (fun h1 ↦ (steps_chain h hm hσd h17 h201 h274 s hs h1).2)).2.2.2
   rw [vkStepsT]
   simp only [holdsList_append]
   exact S 0 (by norm_num) (S 1 (by norm_num) (S 2 (by norm_num) (S 3 (by norm_num)
@@ -53,42 +81,43 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     (hfin : D.fin = (m0, ⟨cap', []⟩)) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkT False
       (fun r ↦ r = cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) := by
-  obtain ⟨-, -, p6, -, -, p9, p10, h17, -, h47, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
+  obtain ⟨-, -, p6, -, -, p9, p10, h17, -, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
     a274, -, HF⟩ := head_first h hm hσd
   obtain ⟨-, -, -, -, -, eO, e3701, -, -, -, -, HO⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 3699) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 971) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]), (O_ok h).2.1]
     simp [cL, ptr_mul_gen]
-  obtain ⟨-, -, -, -, e4104, e4107, -, -, e4110, efin, HI⟩ := in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 4115) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (4115 : ℕ) = 4110 + 5 from rfl, e4110 5 (by norm_num), sRets,
+  obtain ⟨-, -, e1251, -, e4104, e4107, -, -, e4110, efin, HI⟩ :=
+    in_on h hm hσd p6 p9 p10 a201 e3699
+  have e4115 : σ (.n 1387) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1387 : ℕ) = 1382 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]), (S_ok h).2.1]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
-  have e4116 : σ (.n 4116) = D.S.2.1 := by
-    rw [show (4116 : ℕ) = 4110 + 6 from rfl, e4110 6 (by norm_num), sRets,
+  have e4116 : σ (.n 1388) = D.S.2.1 := by
+    rw [show (1388 : ℕ) = 1382 + 6 from rfl, e4110 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]; norm_num), (S_ok h).2.1]
     rfl
-  obtain ⟨-, -, -, -, HFn⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116
+  obtain ⟨-, -, -, -, HFn⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116 e1251
   rw [hfin] at efin
   simp only [Prod.mk.injEq, Fs.mk.injEq, and_true] at efin
   obtain ⟨rfl, rfl⟩ := efin
   rw [vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append]
-  refine HF (steps_holds h hm hσd h17 h47 a201 a274 (HO (HI (HFn ?_))))
+  refine HF (steps_holds h hm hσd h17 a201 a274 (HO (HI (HFn ?_))))
   rw [e4115, e3701, ptr_mul_gen, ptr_mul_gen, xs_length h,
     show curE + D.lcur 12 + 33 + 64 = curE + (D.lcur 12 + 97) by omega]
   rfl
 
 theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) : σ (.n 57) = gen ^ (D.τ - 3) := by
+    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) : σ (.n 59) = gen ^ (D.τ - 3) := by
   have hG : ∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) σ s := by
     subst hσd; exact (val_good h).2.1
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
-  have c56 : σ (.n 56) = Guest.word 2 0 0 :=
-    gA (.const (.n 56) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+  have c56 : σ (.n 58) = Guest.word 2 0 0 :=
+    gA (.const (.n 58) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 57) (.n 17) (.n 56)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
+    (gA (.mul (.n 59) (.n 17) (.n 58)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]
   congr 1
   have := h.1
@@ -100,10 +129,8 @@ theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE z
     (vkPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = D.sizes := by
   have hτ := h.2.1
   rw [vkPre_kernel.2.2.1]
-  simp only [vkAllocs, sizes, List.map_append, List.map_cons, List.map_nil, Sum.elim_inl,
-    Sum.elim_inr, id, List.map_map, Function.comp_def]
+  simp only [vkAllocs, sizes, List.map_cons, List.map_nil, Sum.elim_inl, Sum.elim_inr, id]
   rw [val_57 h hσd h17, gen_pow_eq_ofK, logG_spec (by omega)]
-  simp [List.range_succ]
 
 /-- **The buffers' bases.** -/
 theorem body_bases (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE) :
@@ -113,10 +140,7 @@ theorem body_bases (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE z
   have e : vkAllocs.map (σ ∘ Prod.fst) = vkAllocs.map (fun x ↦ D.w B curE x.1.idx) :=
     List.map_congr_left (fun x hx ↦ ha x hx)
   rw [vkPre_kernel.2.2.1, List.map_map, e, bases_eq D B (by have := h.1; omega)]
-  simp only [vkAllocs, List.map_append, List.map_cons, List.map_nil, List.map_map,
-    Function.comp_def]
-  rw [List.map_congr_left (fun s hs ↦ w_step (D := D) (B := B) (curE := curE)
-    (List.mem_range.1 hs))]
+  simp only [vkAllocs, List.map_cons, List.map_nil]
   rfl
 
 theorem stepE_succ : ∀ s < 11, stepE s = stepB (s + 1) := by decide
@@ -128,13 +152,15 @@ set_option maxRecDepth 20000 in
 theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12) (fs : String → ℕ)
     (ps : List ℕ) :
-    (stepCall D.odd s).2.1 = D.lname s ∧
-      (stepCall D.odd s).2.2.1.map σ = (D.layKid fs B curE s).args ps ∧
-      (stepCall D.odd s).2.2.2.map σ = (D.layer s).rets (firstOf s) (ptr (curE + D.lcur s)) := by
+    (stepCall s).2.1 = D.lname s ∧
+      (stepCall s).2.2.1.map σ = (D.layKid fs B curE s).args ps ∧
+      (stepCall s).2.2.2.map σ = (D.layer s).rets (firstOf s) (ptr (curE + D.lcur s)) := by
   have hτ1 := h.1
-  obtain ⟨-, p5, -, -, -, -, -, h17, h43, h47, h48, -, -, -, -, -, -, -, hcap0, -, ecells, a201, -,
+  obtain ⟨-, p5, -, -, -, -, -, h17, h33, h47, -, -, -, -, -, -, -, hcap0, -, ecells, a201, -,
     a274, -, -⟩ := head_first h hm hσd
-  obtain ⟨hio, h0, hL, -⟩ := step_on h hm hσd hs h17 h47 a201 a274
+  obtain ⟨hio, h0, hL, -⟩ := step_on h hm hσd hs h17 a201 a274
+    (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).1)
+    (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).2)
   have hy := D.layer_y h hs.le
   have hE := stepE_eq s hs
   have hT6 := stepT0_lt s hs
@@ -159,8 +185,8 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       simp only [cells, ↓reduceIte] at ecells
       simp only [List.cons.injEq, and_true]
       refine ⟨(Prod.ext_iff.1 ecells).1, (Prod.ext_iff.1 ecells).2,
-        by rw [e1, p5, ptr_mul_gen1]; simp [lcur], by rw [e3, hy], by rw [h43, hy],
-        by rw [h48, hy], by rw [a201]; rfl, by rw [e5, a201, ptr_mul_gen], hio⟩
+        by rw [e1, p5, ptr_mul_gen1]; simp [lcur], by rw [e3, hy], by rw [h33, hy],
+        by rw [h47, hy], by rw [a201]; rfl, by rw [e5, a201, ptr_mul_gen], hio⟩
     · simp only [stepCall, ↓reduceIte, List.map_map, Function.comp_def]
       apply List.ext_getElem (by simp [hRL])
       intro j h1 h2
@@ -168,7 +194,7 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       rw [List.getElem_map, List.getElem_range, ← List.getD_eq_getElem _ 0 h2, ← hr j h1]
       congr 2
   · have hk0 : k + 1 ≠ 0 := by omega
-    obtain ⟨e0, e1, e3, e5, e9⟩ := hL hk0
+    obtain ⟨e0, e1, e3, e5, e7⟩ := hL hk0
     simp only [stepTailSz, hk0, ↓reduceIte] at hE
     have hEk := stepE_succ k (by omega)
     have hk : k < 12 := by omega
@@ -187,8 +213,8 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
         rw [hprev j (by omega), rets_cap h hk (by omega), ← List.getD_eq_getElem _ 0 h2]
         rfl
       · simp only [List.cons.injEq, and_true]
-        refine ⟨e0, e1, ?_, by rw [e3, hy], by rw [h43, hy], by rw [h48, hy],
-          by rw [e5, a201, ptr_mul_gen], by rw [e9, a201, ptr_mul_gen], hio⟩
+        refine ⟨e0, e1, ?_, by rw [e3, hy], by rw [h33, hy], by rw [h47, hy],
+          by rw [e5, a201, ptr_mul_gen], by rw [e7, a201, ptr_mul_gen], hio⟩
         have := hprev 5 (by norm_num)
         rw [rets_cur h hk] at this
         simp only [stepCur, hk0, ↓reduceIte]

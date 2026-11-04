@@ -65,11 +65,8 @@ theorem own_fit (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) :
     rw [eqLevels_length (by simp; have := h.2.2.1; omega)]; rfl
   have e2 : (eqLevels D.rl 5).length = 62 := by rw [eqLevels_length (by rw [rl_length])]; rfl
   have e3 : (eqLevels D.I.1 4).length = 30 := by rw [eqLevels_length (by rw [I1_length h])]; rfl
-  simp only [own, sizes, List.range_succ, List.range_zero, List.nil_append, List.map_cons,
-    List.map_nil, List.cons_append, List.replicate, List.forall₂_cons, List.Forall₂.nil,
-    and_true]
-  simp [c0_point_length h, rl_length, claims_length h, e1, e2, e3, eqKernel_length, seg_length,
-    segW]
+  simp only [own, sizes, List.forall₂_cons, List.Forall₂.nil, and_true]
+  simp [c0_point_length h, rl_length, claims_length h, e1, e2, e3, eqKernel_length, seg_length]
 
 theorem kids_lay {fs : String → ℕ} {B curE chiE olE zvE slE : ℕ} {s : ℕ} (hs : s < 12) :
     (D.kids fs B curE chiE olE zvE slE)[s + 1]'(by rw [kids_length]; omega) =
@@ -137,10 +134,9 @@ theorem vk_obl {D : VkData} (h : D.Ok) {cap' : List E} {m0 : E} (hfin : D.fin = 
     rw [← hlay s hs]
     exact hto' (s + 1) (by omega) (by omega) (by rw [atAllG_getElem]; simp [kids_lay hs, layKid])⟩
   set σ := D.val rd B curE chiE olE zvE slE with hσd
-  obtain ⟨-, -, -, -, -, -, -, h17, -, h47, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -⟩ :=
-    head_first h hm hσd
+  obtain ⟨-, -, -, -, -, -, -, h17, -⟩ := head_first h hm hσd
   refine ⟨memL_lins_of fun i hi ↦ ?_, regionsOk_ofI fun i hi ht x hx ↦ ?_, σ, ?_,
-    vkPre_disp (Nat.mod_lt _ (by norm_num)) h47, ?_, body_sizes h hσd h17, body_bases h hσd,
+    vkPre_disp σ, ?_, body_sizes h hσd h17, body_bases h hσd,
     calls_match h hm hσd hfl hout, ?_⟩
   · rw [atAllG_getElem]
     have := kids_lin_mem h hm hfl i (by rw [hlenA] at hi; rw [hk]; exact hi)

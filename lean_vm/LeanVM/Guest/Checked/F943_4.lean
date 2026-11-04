@@ -29,6 +29,9 @@ theorem w943_6 : WinOk 943 6 := winOk_of_C (by decide +kernel)
 /-- `__loop421`, window 7. -/
 theorem w943_7 : WinOk 943 7 := winOk_of_C (by decide +kernel)
 
+/-- `__loop421`, window 8. -/
+theorem w943_8 : WinOk 943 8 := winOk_of_C (by decide +kernel)
+
 /-- `decode_query_windows__L25_L5`, window 0. -/
 theorem w944_0 : WinOk 944 0 := winOk_of_C (by decide +kernel)
 
@@ -37,9 +40,6 @@ theorem w945_0 : WinOk 945 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop422`, window 1. -/
 theorem w945_1 : WinOk 945 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop422`, window 2. -/
-theorem w945_2 : WinOk 945 2 := winOk_of_C (by decide +kernel)
 
 theorem ok944 : CheckOk 944 := checkOk_one (by decide +kernel) w944_0
 

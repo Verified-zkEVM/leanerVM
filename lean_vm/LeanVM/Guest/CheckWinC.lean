@@ -58,7 +58,8 @@ namespace LeanVM.Guest.Checked
 @[expose] public section
 
 /-- Function `j`'s windows take nothing from obligations. -/
-def Plain (j : ℕ) : Prop := (certOf j).cuts.all (fun c ↦ c.known.isEmpty && c.sems.isEmpty) = true
+def Plain (j : ℕ) : Prop :=
+  (certOf j).cuts.all (fun c ↦ c.known.isEmpty && c.knownIf.isEmpty && c.sems.isEmpty) = true
 
 theorem plain_of_nil {j : ℕ} (h : (certOf j).cuts.length = 0) : Plain j := by
   unfold Plain

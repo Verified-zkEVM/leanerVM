@@ -31,14 +31,14 @@ theorem cw777_0_0 : cplWin 777 0 0 = true := by decide +kernel
 /-- `opening_queries__L0_L1_L64_L32_L26_L6`, window 0, part 0. -/
 theorem cw778_0_0 : cplWin 778 0 0 = true := by decide +kernel
 
+/-- `opening_queries__L0_L1_L64_L32_L26_L6`, window 1, part 0. -/
+theorem cw778_1_0 : cplWin 778 1 0 = true := by decide +kernel
+
 /-- `__loop302`, window 0, part 0. -/
 theorem cw779_0_0 : cplWin 779 0 0 = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L16_L24_L25_L5`, window 0, part 0. -/
 theorem cw780_0_0 : cplWin 780 0 0 = true := by decide +kernel
-
-/-- `__loop303`, window 0, part 0. -/
-theorem cw781_0_0 : cplWin 781 0 0 = true := by decide +kernel
 
 theorem ok774 : CplOk 774 := by
   intro i hi k hk
@@ -82,13 +82,17 @@ theorem ok777 : CplOk 777 := by
 
 theorem ok778 : CplOk 778 := by
   intro i hi k hk
-  have hc : (certOf 778).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 778).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 778 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw778_0_0
+  · have hn : nParts 778 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw778_1_0
 
 theorem ok779 : CplOk 779 := by
   intro i hi k hk
@@ -99,26 +103,6 @@ theorem ok779 : CplOk 779 := by
     rw [hn] at hk
     interval_cases k
     · exact cw779_0_0
-
-theorem ok780 : CplOk 780 := by
-  intro i hi k hk
-  have hc : (certOf 780).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 780 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw780_0_0
-
-theorem ok781 : CplOk 781 := by
-  intro i hi k hk
-  have hc : (certOf 781).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 781 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw781_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw
