@@ -43,7 +43,7 @@ theorem clB_mono {f : String} {Bc Bc' t : ℕ} (h : Bc ≤ Bc') : clB fs f Bc t 
 theorem dvBs_le (hS : DvStaticB fs SB SK) {r L : ℕ} (hL : L ≤ 10) :
     (dvBs fs SB SK r L).sum ≤ dvKB fs SB SK r L := by
   have hv : vecB fs SK ≤ SB "da_vector" := hS.vec
-  have hc : clB fs "__loop18" (colBf fs SK r) 128 ≤ clB fs "__loop18" (colB fs SB SK r) 128 :=
+  have hc : clB fs "__loop22" (colBf fs SK r) 128 ≤ clB fs "__loop22" (colB fs SB SK r) 128 :=
     clB_mono (by unfold colBf colB; have := hS.exp; omega)
   simp only [dvBs, dvKB, List.sum_cons, List.sum_nil, dlNames_bang hL]
   omega

@@ -650,10 +650,42 @@ public import LeanVM.Guest.B2C.Shared.S638
 public import LeanVM.Guest.B2C.Shared.S639
 public import LeanVM.Guest.B2C.Shared.S640
 public import LeanVM.Guest.B2C.Shared.S641
+public import LeanVM.Guest.B2C.Shared.S642
+public import LeanVM.Guest.B2C.Shared.S643
+public import LeanVM.Guest.B2C.Shared.S644
+public import LeanVM.Guest.B2C.Shared.S645
+public import LeanVM.Guest.B2C.Shared.S646
+public import LeanVM.Guest.B2C.Shared.S647
+public import LeanVM.Guest.B2C.Shared.S648
+public import LeanVM.Guest.B2C.Shared.S649
+public import LeanVM.Guest.B2C.Shared.S650
+public import LeanVM.Guest.B2C.Shared.S651
+public import LeanVM.Guest.B2C.Shared.S652
+public import LeanVM.Guest.B2C.Shared.S653
+public import LeanVM.Guest.B2C.Shared.S654
+public import LeanVM.Guest.B2C.Shared.S655
+public import LeanVM.Guest.B2C.Shared.S656
+public import LeanVM.Guest.B2C.Shared.S657
+public import LeanVM.Guest.B2C.Shared.S658
+public import LeanVM.Guest.B2C.Shared.S659
+public import LeanVM.Guest.B2C.Shared.S660
+public import LeanVM.Guest.B2C.Shared.S661
+public import LeanVM.Guest.B2C.Shared.S662
+public import LeanVM.Guest.B2C.Shared.S663
+public import LeanVM.Guest.B2C.Shared.S664
+public import LeanVM.Guest.B2C.Shared.S665
 
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
+
+theorem ok1 : ShareOk 1 := ⟨st1, fun i hi ↦ by
+  have h : (snapsOf 1).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1_0
+  · exact w1_1
+⟩
 
 theorem ok12 : ShareOk 12 := ⟨st12, fun i hi ↦ by
   have h : (snapsOf 12).length = 28 := by decide +kernel
@@ -990,7 +1022,7 @@ theorem ok271 : ShareOk 271 := ⟨st271, fun i hi ↦ by
 ⟩
 
 theorem ok304 : ShareOk 304 := ⟨st304, fun i hi ↦ by
-  have h : (snapsOf 304).length = 5 := by decide +kernel
+  have h : (snapsOf 304).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w304_0
@@ -999,10 +1031,11 @@ theorem ok304 : ShareOk 304 := ⟨st304, fun i hi ↦ by
   · exact w304_3
   · exact w304_4
   · exact w304_5
+  · exact w304_6
 ⟩
 
 theorem ok305 : ShareOk 305 := ⟨st305, fun i hi ↦ by
-  have h : (snapsOf 305).length = 5 := by decide +kernel
+  have h : (snapsOf 305).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w305_0
@@ -1011,10 +1044,11 @@ theorem ok305 : ShareOk 305 := ⟨st305, fun i hi ↦ by
   · exact w305_3
   · exact w305_4
   · exact w305_5
+  · exact w305_6
 ⟩
 
 theorem ok306 : ShareOk 306 := ⟨st306, fun i hi ↦ by
-  have h : (snapsOf 306).length = 5 := by decide +kernel
+  have h : (snapsOf 306).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w306_0
@@ -1023,10 +1057,12 @@ theorem ok306 : ShareOk 306 := ⟨st306, fun i hi ↦ by
   · exact w306_3
   · exact w306_4
   · exact w306_5
+  · exact w306_6
+  · exact w306_7
 ⟩
 
 theorem ok307 : ShareOk 307 := ⟨st307, fun i hi ↦ by
-  have h : (snapsOf 307).length = 5 := by decide +kernel
+  have h : (snapsOf 307).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w307_0
@@ -1035,10 +1071,13 @@ theorem ok307 : ShareOk 307 := ⟨st307, fun i hi ↦ by
   · exact w307_3
   · exact w307_4
   · exact w307_5
+  · exact w307_6
+  · exact w307_7
+  · exact w307_8
 ⟩
 
 theorem ok308 : ShareOk 308 := ⟨st308, fun i hi ↦ by
-  have h : (snapsOf 308).length = 6 := by decide +kernel
+  have h : (snapsOf 308).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w308_0
@@ -1048,10 +1087,12 @@ theorem ok308 : ShareOk 308 := ⟨st308, fun i hi ↦ by
   · exact w308_4
   · exact w308_5
   · exact w308_6
+  · exact w308_7
+  · exact w308_8
 ⟩
 
 theorem ok309 : ShareOk 309 := ⟨st309, fun i hi ↦ by
-  have h : (snapsOf 309).length = 6 := by decide +kernel
+  have h : (snapsOf 309).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w309_0
@@ -1061,10 +1102,12 @@ theorem ok309 : ShareOk 309 := ⟨st309, fun i hi ↦ by
   · exact w309_4
   · exact w309_5
   · exact w309_6
+  · exact w309_7
+  · exact w309_8
 ⟩
 
 theorem ok310 : ShareOk 310 := ⟨st310, fun i hi ↦ by
-  have h : (snapsOf 310).length = 8 := by decide +kernel
+  have h : (snapsOf 310).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w310_0
@@ -1076,10 +1119,12 @@ theorem ok310 : ShareOk 310 := ⟨st310, fun i hi ↦ by
   · exact w310_6
   · exact w310_7
   · exact w310_8
+  · exact w310_9
+  · exact w310_10
 ⟩
 
 theorem ok311 : ShareOk 311 := ⟨st311, fun i hi ↦ by
-  have h : (snapsOf 311).length = 6 := by decide +kernel
+  have h : (snapsOf 311).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w311_0
@@ -1089,10 +1134,11 @@ theorem ok311 : ShareOk 311 := ⟨st311, fun i hi ↦ by
   · exact w311_4
   · exact w311_5
   · exact w311_6
+  · exact w311_7
 ⟩
 
 theorem ok312 : ShareOk 312 := ⟨st312, fun i hi ↦ by
-  have h : (snapsOf 312).length = 6 := by decide +kernel
+  have h : (snapsOf 312).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w312_0
@@ -1102,10 +1148,11 @@ theorem ok312 : ShareOk 312 := ⟨st312, fun i hi ↦ by
   · exact w312_4
   · exact w312_5
   · exact w312_6
+  · exact w312_7
 ⟩
 
 theorem ok313 : ShareOk 313 := ⟨st313, fun i hi ↦ by
-  have h : (snapsOf 313).length = 6 := by decide +kernel
+  have h : (snapsOf 313).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w313_0
@@ -1115,10 +1162,12 @@ theorem ok313 : ShareOk 313 := ⟨st313, fun i hi ↦ by
   · exact w313_4
   · exact w313_5
   · exact w313_6
+  · exact w313_7
+  · exact w313_8
 ⟩
 
 theorem ok314 : ShareOk 314 := ⟨st314, fun i hi ↦ by
-  have h : (snapsOf 314).length = 7 := by decide +kernel
+  have h : (snapsOf 314).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w314_0
@@ -1129,10 +1178,12 @@ theorem ok314 : ShareOk 314 := ⟨st314, fun i hi ↦ by
   · exact w314_5
   · exact w314_6
   · exact w314_7
+  · exact w314_8
+  · exact w314_9
 ⟩
 
 theorem ok315 : ShareOk 315 := ⟨st315, fun i hi ↦ by
-  have h : (snapsOf 315).length = 7 := by decide +kernel
+  have h : (snapsOf 315).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w315_0
@@ -1143,10 +1194,12 @@ theorem ok315 : ShareOk 315 := ⟨st315, fun i hi ↦ by
   · exact w315_5
   · exact w315_6
   · exact w315_7
+  · exact w315_8
+  · exact w315_9
 ⟩
 
 theorem ok316 : ShareOk 316 := ⟨st316, fun i hi ↦ by
-  have h : (snapsOf 316).length = 8 := by decide +kernel
+  have h : (snapsOf 316).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w316_0
@@ -1158,10 +1211,12 @@ theorem ok316 : ShareOk 316 := ⟨st316, fun i hi ↦ by
   · exact w316_6
   · exact w316_7
   · exact w316_8
+  · exact w316_9
+  · exact w316_10
 ⟩
 
 theorem ok317 : ShareOk 317 := ⟨st317, fun i hi ↦ by
-  have h : (snapsOf 317).length = 9 := by decide +kernel
+  have h : (snapsOf 317).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w317_0
@@ -1174,10 +1229,12 @@ theorem ok317 : ShareOk 317 := ⟨st317, fun i hi ↦ by
   · exact w317_7
   · exact w317_8
   · exact w317_9
+  · exact w317_10
+  · exact w317_11
 ⟩
 
 theorem ok318 : ShareOk 318 := ⟨st318, fun i hi ↦ by
-  have h : (snapsOf 318).length = 6 := by decide +kernel
+  have h : (snapsOf 318).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w318_0
@@ -1187,10 +1244,11 @@ theorem ok318 : ShareOk 318 := ⟨st318, fun i hi ↦ by
   · exact w318_4
   · exact w318_5
   · exact w318_6
+  · exact w318_7
 ⟩
 
 theorem ok319 : ShareOk 319 := ⟨st319, fun i hi ↦ by
-  have h : (snapsOf 319).length = 6 := by decide +kernel
+  have h : (snapsOf 319).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w319_0
@@ -1200,10 +1258,12 @@ theorem ok319 : ShareOk 319 := ⟨st319, fun i hi ↦ by
   · exact w319_4
   · exact w319_5
   · exact w319_6
+  · exact w319_7
+  · exact w319_8
 ⟩
 
 theorem ok320 : ShareOk 320 := ⟨st320, fun i hi ↦ by
-  have h : (snapsOf 320).length = 7 := by decide +kernel
+  have h : (snapsOf 320).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w320_0
@@ -1214,10 +1274,12 @@ theorem ok320 : ShareOk 320 := ⟨st320, fun i hi ↦ by
   · exact w320_5
   · exact w320_6
   · exact w320_7
+  · exact w320_8
+  · exact w320_9
 ⟩
 
 theorem ok321 : ShareOk 321 := ⟨st321, fun i hi ↦ by
-  have h : (snapsOf 321).length = 7 := by decide +kernel
+  have h : (snapsOf 321).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w321_0
@@ -1228,10 +1290,13 @@ theorem ok321 : ShareOk 321 := ⟨st321, fun i hi ↦ by
   · exact w321_5
   · exact w321_6
   · exact w321_7
+  · exact w321_8
+  · exact w321_9
+  · exact w321_10
 ⟩
 
 theorem ok322 : ShareOk 322 := ⟨st322, fun i hi ↦ by
-  have h : (snapsOf 322).length = 8 := by decide +kernel
+  have h : (snapsOf 322).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w322_0
@@ -1243,10 +1308,12 @@ theorem ok322 : ShareOk 322 := ⟨st322, fun i hi ↦ by
   · exact w322_6
   · exact w322_7
   · exact w322_8
+  · exact w322_9
+  · exact w322_10
 ⟩
 
 theorem ok323 : ShareOk 323 := ⟨st323, fun i hi ↦ by
-  have h : (snapsOf 323).length = 8 := by decide +kernel
+  have h : (snapsOf 323).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w323_0
@@ -1258,10 +1325,12 @@ theorem ok323 : ShareOk 323 := ⟨st323, fun i hi ↦ by
   · exact w323_6
   · exact w323_7
   · exact w323_8
+  · exact w323_9
+  · exact w323_10
 ⟩
 
 theorem ok324 : ShareOk 324 := ⟨st324, fun i hi ↦ by
-  have h : (snapsOf 324).length = 19 := by decide +kernel
+  have h : (snapsOf 324).length = 20 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w324_0
@@ -1284,10 +1353,11 @@ theorem ok324 : ShareOk 324 := ⟨st324, fun i hi ↦ by
   · exact w324_17
   · exact w324_18
   · exact w324_19
+  · exact w324_20
 ⟩
 
 theorem ok325 : ShareOk 325 := ⟨st325, fun i hi ↦ by
-  have h : (snapsOf 325).length = 5 := by decide +kernel
+  have h : (snapsOf 325).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w325_0
@@ -1296,10 +1366,11 @@ theorem ok325 : ShareOk 325 := ⟨st325, fun i hi ↦ by
   · exact w325_3
   · exact w325_4
   · exact w325_5
+  · exact w325_6
 ⟩
 
 theorem ok326 : ShareOk 326 := ⟨st326, fun i hi ↦ by
-  have h : (snapsOf 326).length = 5 := by decide +kernel
+  have h : (snapsOf 326).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w326_0
@@ -1308,10 +1379,12 @@ theorem ok326 : ShareOk 326 := ⟨st326, fun i hi ↦ by
   · exact w326_3
   · exact w326_4
   · exact w326_5
+  · exact w326_6
+  · exact w326_7
 ⟩
 
 theorem ok327 : ShareOk 327 := ⟨st327, fun i hi ↦ by
-  have h : (snapsOf 327).length = 6 := by decide +kernel
+  have h : (snapsOf 327).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w327_0
@@ -1321,10 +1394,12 @@ theorem ok327 : ShareOk 327 := ⟨st327, fun i hi ↦ by
   · exact w327_4
   · exact w327_5
   · exact w327_6
+  · exact w327_7
+  · exact w327_8
 ⟩
 
 theorem ok328 : ShareOk 328 := ⟨st328, fun i hi ↦ by
-  have h : (snapsOf 328).length = 6 := by decide +kernel
+  have h : (snapsOf 328).length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w328_0
@@ -1334,10 +1409,12 @@ theorem ok328 : ShareOk 328 := ⟨st328, fun i hi ↦ by
   · exact w328_4
   · exact w328_5
   · exact w328_6
+  · exact w328_7
+  · exact w328_8
 ⟩
 
 theorem ok329 : ShareOk 329 := ⟨st329, fun i hi ↦ by
-  have h : (snapsOf 329).length = 6 := by decide +kernel
+  have h : (snapsOf 329).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w329_0
@@ -1347,10 +1424,13 @@ theorem ok329 : ShareOk 329 := ⟨st329, fun i hi ↦ by
   · exact w329_4
   · exact w329_5
   · exact w329_6
+  · exact w329_7
+  · exact w329_8
+  · exact w329_9
 ⟩
 
 theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
-  have h : (snapsOf 330).length = 7 := by decide +kernel
+  have h : (snapsOf 330).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w330_0
@@ -1361,10 +1441,12 @@ theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
   · exact w330_5
   · exact w330_6
   · exact w330_7
+  · exact w330_8
+  · exact w330_9
 ⟩
 
 theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
-  have h : (snapsOf 331).length = 8 := by decide +kernel
+  have h : (snapsOf 331).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w331_0
@@ -1376,6 +1458,9 @@ theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
   · exact w331_6
   · exact w331_7
   · exact w331_8
+  · exact w331_9
+  · exact w331_10
+  · exact w331_11
 ⟩
 
 theorem ok332 : ShareOk 332 := ⟨st332, fun i hi ↦ by
@@ -1511,6 +1596,14 @@ theorem ok435 : ShareOk 435 := ⟨st435, fun i hi ↦ by
   · exact w435_13
 ⟩
 
+theorem ok436 : ShareOk 436 := ⟨st436, fun i hi ↦ by
+  have h : (snapsOf 436).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w436_0
+  · exact w436_1
+⟩
+
 theorem ok440 : ShareOk 440 := ⟨st440, fun i hi ↦ by
   have h : (snapsOf 440).length = 2 := by decide +kernel
   rw [h] at hi
@@ -1520,12 +1613,36 @@ theorem ok440 : ShareOk 440 := ⟨st440, fun i hi ↦ by
   · exact w440_2
 ⟩
 
+theorem ok441 : ShareOk 441 := ⟨st441, fun i hi ↦ by
+  have h : (snapsOf 441).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w441_0
+  · exact w441_1
+⟩
+
 theorem ok444 : ShareOk 444 := ⟨st444, fun i hi ↦ by
   have h : (snapsOf 444).length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w444_0
   · exact w444_1
+⟩
+
+theorem ok445 : ShareOk 445 := ⟨st445, fun i hi ↦ by
+  have h : (snapsOf 445).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w445_0
+  · exact w445_1
+⟩
+
+theorem ok448 : ShareOk 448 := ⟨st448, fun i hi ↦ by
+  have h : (snapsOf 448).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w448_0
+  · exact w448_1
 ⟩
 
 theorem ok450 : ShareOk 450 := ⟨st450, fun i hi ↦ by
@@ -1544,6 +1661,30 @@ theorem ok451 : ShareOk 451 := ⟨st451, fun i hi ↦ by
   · exact w451_1
 ⟩
 
+theorem ok456 : ShareOk 456 := ⟨st456, fun i hi ↦ by
+  have h : (snapsOf 456).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w456_0
+  · exact w456_1
+⟩
+
+theorem ok459 : ShareOk 459 := ⟨st459, fun i hi ↦ by
+  have h : (snapsOf 459).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w459_0
+  · exact w459_1
+⟩
+
+theorem ok462 : ShareOk 462 := ⟨st462, fun i hi ↦ by
+  have h : (snapsOf 462).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w462_0
+  · exact w462_1
+⟩
+
 theorem ok466 : ShareOk 466 := ⟨st466, fun i hi ↦ by
   have h : (snapsOf 466).length = 1 := by decide +kernel
   rw [h] at hi
@@ -1558,6 +1699,30 @@ theorem ok467 : ShareOk 467 := ⟨st467, fun i hi ↦ by
   interval_cases i
   · exact w467_0
   · exact w467_1
+⟩
+
+theorem ok472 : ShareOk 472 := ⟨st472, fun i hi ↦ by
+  have h : (snapsOf 472).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w472_0
+  · exact w472_1
+⟩
+
+theorem ok475 : ShareOk 475 := ⟨st475, fun i hi ↦ by
+  have h : (snapsOf 475).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w475_0
+  · exact w475_1
+⟩
+
+theorem ok478 : ShareOk 478 := ⟨st478, fun i hi ↦ by
+  have h : (snapsOf 478).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w478_0
+  · exact w478_1
 ⟩
 
 theorem ok484 : ShareOk 484 := ⟨st484, fun i hi ↦ by
@@ -1584,6 +1749,30 @@ theorem ok486 : ShareOk 486 := ⟨st486, fun i hi ↦ by
   · exact w486_1
 ⟩
 
+theorem ok491 : ShareOk 491 := ⟨st491, fun i hi ↦ by
+  have h : (snapsOf 491).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w491_0
+  · exact w491_1
+⟩
+
+theorem ok494 : ShareOk 494 := ⟨st494, fun i hi ↦ by
+  have h : (snapsOf 494).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w494_0
+  · exact w494_1
+⟩
+
+theorem ok497 : ShareOk 497 := ⟨st497, fun i hi ↦ by
+  have h : (snapsOf 497).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w497_0
+  · exact w497_1
+⟩
+
 theorem ok503 : ShareOk 503 := ⟨st503, fun i hi ↦ by
   have h : (snapsOf 503).length = 1 := by decide +kernel
   rw [h] at hi
@@ -1606,6 +1795,30 @@ theorem ok505 : ShareOk 505 := ⟨st505, fun i hi ↦ by
   interval_cases i
   · exact w505_0
   · exact w505_1
+⟩
+
+theorem ok510 : ShareOk 510 := ⟨st510, fun i hi ↦ by
+  have h : (snapsOf 510).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w510_0
+  · exact w510_1
+⟩
+
+theorem ok512 : ShareOk 512 := ⟨st512, fun i hi ↦ by
+  have h : (snapsOf 512).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w512_0
+  · exact w512_1
+⟩
+
+theorem ok514 : ShareOk 514 := ⟨st514, fun i hi ↦ by
+  have h : (snapsOf 514).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w514_0
+  · exact w514_1
 ⟩
 
 theorem ok517 : ShareOk 517 := ⟨st517, fun i hi ↦ by
@@ -1634,7 +1847,7 @@ theorem ok519 : ShareOk 519 := ⟨st519, fun i hi ↦ by
 ⟩
 
 theorem ok524 : ShareOk 524 := ⟨st524, fun i hi ↦ by
-  have h : (snapsOf 524).length = 4 := by decide +kernel
+  have h : (snapsOf 524).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w524_0
@@ -1642,6 +1855,23 @@ theorem ok524 : ShareOk 524 := ⟨st524, fun i hi ↦ by
   · exact w524_2
   · exact w524_3
   · exact w524_4
+  · exact w524_5
+⟩
+
+theorem ok526 : ShareOk 526 := ⟨st526, fun i hi ↦ by
+  have h : (snapsOf 526).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w526_0
+  · exact w526_1
+⟩
+
+theorem ok528 : ShareOk 528 := ⟨st528, fun i hi ↦ by
+  have h : (snapsOf 528).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w528_0
+  · exact w528_1
 ⟩
 
 theorem ok531 : ShareOk 531 := ⟨st531, fun i hi ↦ by
@@ -1670,7 +1900,7 @@ theorem ok533 : ShareOk 533 := ⟨st533, fun i hi ↦ by
 ⟩
 
 theorem ok538 : ShareOk 538 := ⟨st538, fun i hi ↦ by
-  have h : (snapsOf 538).length = 4 := by decide +kernel
+  have h : (snapsOf 538).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w538_0
@@ -1678,6 +1908,31 @@ theorem ok538 : ShareOk 538 := ⟨st538, fun i hi ↦ by
   · exact w538_2
   · exact w538_3
   · exact w538_4
+  · exact w538_5
+⟩
+
+theorem ok540 : ShareOk 540 := ⟨st540, fun i hi ↦ by
+  have h : (snapsOf 540).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w540_0
+  · exact w540_1
+⟩
+
+theorem ok542 : ShareOk 542 := ⟨st542, fun i hi ↦ by
+  have h : (snapsOf 542).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w542_0
+  · exact w542_1
+⟩
+
+theorem ok547 : ShareOk 547 := ⟨st547, fun i hi ↦ by
+  have h : (snapsOf 547).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w547_0
+  · exact w547_1
 ⟩
 
 theorem ok548 : ShareOk 548 := ⟨st548, fun i hi ↦ by
@@ -1725,6 +1980,14 @@ theorem ok555 : ShareOk 555 := ⟨st555, fun i hi ↦ by
   · exact w555_5
 ⟩
 
+theorem ok556 : ShareOk 556 := ⟨st556, fun i hi ↦ by
+  have h : (snapsOf 556).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w556_0
+  · exact w556_1
+⟩
+
 theorem ok560 : ShareOk 560 := ⟨st560, fun i hi ↦ by
   have h : (snapsOf 560).length = 1 := by decide +kernel
   rw [h] at hi
@@ -1741,6 +2004,14 @@ theorem ok561 : ShareOk 561 := ⟨st561, fun i hi ↦ by
   · exact w561_1
 ⟩
 
+theorem ok565 : ShareOk 565 := ⟨st565, fun i hi ↦ by
+  have h : (snapsOf 565).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w565_0
+  · exact w565_1
+⟩
+
 theorem ok569 : ShareOk 569 := ⟨st569, fun i hi ↦ by
   have h : (snapsOf 569).length = 1 := by decide +kernel
   rw [h] at hi
@@ -1755,6 +2026,22 @@ theorem ok570 : ShareOk 570 := ⟨st570, fun i hi ↦ by
   interval_cases i
   · exact w570_0
   · exact w570_1
+⟩
+
+theorem ok574 : ShareOk 574 := ⟨st574, fun i hi ↦ by
+  have h : (snapsOf 574).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w574_0
+  · exact w574_1
+⟩
+
+theorem ok579 : ShareOk 579 := ⟨st579, fun i hi ↦ by
+  have h : (snapsOf 579).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w579_0
+  · exact w579_1
 ⟩
 
 theorem ok580 : ShareOk 580 := ⟨st580, fun i hi ↦ by
@@ -1781,6 +2068,22 @@ theorem ok582 : ShareOk 582 := ⟨st582, fun i hi ↦ by
   · exact w582_1
 ⟩
 
+theorem ok586 : ShareOk 586 := ⟨st586, fun i hi ↦ by
+  have h : (snapsOf 586).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w586_0
+  · exact w586_1
+⟩
+
+theorem ok591 : ShareOk 591 := ⟨st591, fun i hi ↦ by
+  have h : (snapsOf 591).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w591_0
+  · exact w591_1
+⟩
+
 theorem ok592 : ShareOk 592 := ⟨st592, fun i hi ↦ by
   have h : (snapsOf 592).length = 1 := by decide +kernel
   rw [h] at hi
@@ -1803,6 +2106,14 @@ theorem ok594 : ShareOk 594 := ⟨st594, fun i hi ↦ by
   interval_cases i
   · exact w594_0
   · exact w594_1
+⟩
+
+theorem ok598 : ShareOk 598 := ⟨st598, fun i hi ↦ by
+  have h : (snapsOf 598).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w598_0
+  · exact w598_1
 ⟩
 
 theorem ok603 : ShareOk 603 := ⟨st603, fun i hi ↦ by
@@ -1830,6 +2141,22 @@ theorem ok605 : ShareOk 605 := ⟨st605, fun i hi ↦ by
   · exact w605_1
 ⟩
 
+theorem ok609 : ShareOk 609 := ⟨st609, fun i hi ↦ by
+  have h : (snapsOf 609).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w609_0
+  · exact w609_1
+⟩
+
+theorem ok614 : ShareOk 614 := ⟨st614, fun i hi ↦ by
+  have h : (snapsOf 614).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w614_0
+  · exact w614_1
+⟩
+
 theorem ok615 : ShareOk 615 := ⟨st615, fun i hi ↦ by
   have h : (snapsOf 615).length = 2 := by decide +kernel
   rw [h] at hi
@@ -1853,6 +2180,38 @@ theorem ok617 : ShareOk 617 := ⟨st617, fun i hi ↦ by
   interval_cases i
   · exact w617_0
   · exact w617_1
+⟩
+
+theorem ok621 : ShareOk 621 := ⟨st621, fun i hi ↦ by
+  have h : (snapsOf 621).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w621_0
+  · exact w621_1
+⟩
+
+theorem ok623 : ShareOk 623 := ⟨st623, fun i hi ↦ by
+  have h : (snapsOf 623).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w623_0
+  · exact w623_1
+⟩
+
+theorem ok625 : ShareOk 625 := ⟨st625, fun i hi ↦ by
+  have h : (snapsOf 625).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w625_0
+  · exact w625_1
+⟩
+
+theorem ok628 : ShareOk 628 := ⟨st628, fun i hi ↦ by
+  have h : (snapsOf 628).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w628_0
+  · exact w628_1
 ⟩
 
 theorem ok630 : ShareOk 630 := ⟨st630, fun i hi ↦ by
@@ -1889,7 +2248,7 @@ theorem ok633 : ShareOk 633 := ⟨st633, fun i hi ↦ by
 ⟩
 
 theorem ok637 : ShareOk 637 := ⟨st637, fun i hi ↦ by
-  have h : (snapsOf 637).length = 4 := by decide +kernel
+  have h : (snapsOf 637).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w637_0
@@ -1897,6 +2256,7 @@ theorem ok637 : ShareOk 637 := ⟨st637, fun i hi ↦ by
   · exact w637_2
   · exact w637_3
   · exact w637_4
+  · exact w637_5
 ⟩
 
 theorem ok641 : ShareOk 641 := ⟨st641, fun i hi ↦ by
@@ -1916,7 +2276,7 @@ theorem ok642 : ShareOk 642 := ⟨st642, fun i hi ↦ by
 ⟩
 
 theorem ok646 : ShareOk 646 := ⟨st646, fun i hi ↦ by
-  have h : (snapsOf 646).length = 4 := by decide +kernel
+  have h : (snapsOf 646).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w646_0
@@ -1924,6 +2284,7 @@ theorem ok646 : ShareOk 646 := ⟨st646, fun i hi ↦ by
   · exact w646_2
   · exact w646_3
   · exact w646_4
+  · exact w646_5
 ⟩
 
 theorem ok650 : ShareOk 650 := ⟨st650, fun i hi ↦ by
@@ -1943,7 +2304,7 @@ theorem ok651 : ShareOk 651 := ⟨st651, fun i hi ↦ by
 ⟩
 
 theorem ok655 : ShareOk 655 := ⟨st655, fun i hi ↦ by
-  have h : (snapsOf 655).length = 4 := by decide +kernel
+  have h : (snapsOf 655).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w655_0
@@ -1951,6 +2312,7 @@ theorem ok655 : ShareOk 655 := ⟨st655, fun i hi ↦ by
   · exact w655_2
   · exact w655_3
   · exact w655_4
+  · exact w655_5
 ⟩
 
 theorem ok660 : ShareOk 660 := ⟨st660, fun i hi ↦ by
@@ -1978,7 +2340,7 @@ theorem ok662 : ShareOk 662 := ⟨st662, fun i hi ↦ by
 ⟩
 
 theorem ok666 : ShareOk 666 := ⟨st666, fun i hi ↦ by
-  have h : (snapsOf 666).length = 4 := by decide +kernel
+  have h : (snapsOf 666).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w666_0
@@ -1986,6 +2348,7 @@ theorem ok666 : ShareOk 666 := ⟨st666, fun i hi ↦ by
   · exact w666_2
   · exact w666_3
   · exact w666_4
+  · exact w666_5
 ⟩
 
 theorem ok671 : ShareOk 671 := ⟨st671, fun i hi ↦ by
@@ -2013,7 +2376,7 @@ theorem ok673 : ShareOk 673 := ⟨st673, fun i hi ↦ by
 ⟩
 
 theorem ok677 : ShareOk 677 := ⟨st677, fun i hi ↦ by
-  have h : (snapsOf 677).length = 5 := by decide +kernel
+  have h : (snapsOf 677).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w677_0
@@ -2022,6 +2385,7 @@ theorem ok677 : ShareOk 677 := ⟨st677, fun i hi ↦ by
   · exact w677_3
   · exact w677_4
   · exact w677_5
+  · exact w677_6
 ⟩
 
 theorem ok682 : ShareOk 682 := ⟨st682, fun i hi ↦ by
@@ -2050,7 +2414,7 @@ theorem ok684 : ShareOk 684 := ⟨st684, fun i hi ↦ by
 ⟩
 
 theorem ok688 : ShareOk 688 := ⟨st688, fun i hi ↦ by
-  have h : (snapsOf 688).length = 6 := by decide +kernel
+  have h : (snapsOf 688).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w688_0
@@ -2060,6 +2424,7 @@ theorem ok688 : ShareOk 688 := ⟨st688, fun i hi ↦ by
   · exact w688_4
   · exact w688_5
   · exact w688_6
+  · exact w688_7
 ⟩
 
 theorem ok693 : ShareOk 693 := ⟨st693, fun i hi ↦ by
@@ -2088,7 +2453,7 @@ theorem ok695 : ShareOk 695 := ⟨st695, fun i hi ↦ by
 ⟩
 
 theorem ok699 : ShareOk 699 := ⟨st699, fun i hi ↦ by
-  have h : (snapsOf 699).length = 6 := by decide +kernel
+  have h : (snapsOf 699).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w699_0
@@ -2098,6 +2463,31 @@ theorem ok699 : ShareOk 699 := ⟨st699, fun i hi ↦ by
   · exact w699_4
   · exact w699_5
   · exact w699_6
+  · exact w699_7
+⟩
+
+theorem ok701 : ShareOk 701 := ⟨st701, fun i hi ↦ by
+  have h : (snapsOf 701).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w701_0
+  · exact w701_1
+⟩
+
+theorem ok703 : ShareOk 703 := ⟨st703, fun i hi ↦ by
+  have h : (snapsOf 703).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w703_0
+  · exact w703_1
+⟩
+
+theorem ok706 : ShareOk 706 := ⟨st706, fun i hi ↦ by
+  have h : (snapsOf 706).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w706_0
+  · exact w706_1
 ⟩
 
 theorem ok708 : ShareOk 708 := ⟨st708, fun i hi ↦ by
@@ -2133,6 +2523,14 @@ theorem ok711 : ShareOk 711 := ⟨st711, fun i hi ↦ by
   · exact w711_1
 ⟩
 
+theorem ok715 : ShareOk 715 := ⟨st715, fun i hi ↦ by
+  have h : (snapsOf 715).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w715_0
+  · exact w715_1
+⟩
+
 theorem ok719 : ShareOk 719 := ⟨st719, fun i hi ↦ by
   have h : (snapsOf 719).length = 1 := by decide +kernel
   rw [h] at hi
@@ -2149,6 +2547,14 @@ theorem ok720 : ShareOk 720 := ⟨st720, fun i hi ↦ by
   · exact w720_1
 ⟩
 
+theorem ok724 : ShareOk 724 := ⟨st724, fun i hi ↦ by
+  have h : (snapsOf 724).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w724_0
+  · exact w724_1
+⟩
+
 theorem ok728 : ShareOk 728 := ⟨st728, fun i hi ↦ by
   have h : (snapsOf 728).length = 1 := by decide +kernel
   rw [h] at hi
@@ -2163,6 +2569,14 @@ theorem ok729 : ShareOk 729 := ⟨st729, fun i hi ↦ by
   interval_cases i
   · exact w729_0
   · exact w729_1
+⟩
+
+theorem ok733 : ShareOk 733 := ⟨st733, fun i hi ↦ by
+  have h : (snapsOf 733).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w733_0
+  · exact w733_1
 ⟩
 
 theorem ok738 : ShareOk 738 := ⟨st738, fun i hi ↦ by
@@ -2189,6 +2603,14 @@ theorem ok740 : ShareOk 740 := ⟨st740, fun i hi ↦ by
   · exact w740_1
 ⟩
 
+theorem ok744 : ShareOk 744 := ⟨st744, fun i hi ↦ by
+  have h : (snapsOf 744).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w744_0
+  · exact w744_1
+⟩
+
 theorem ok749 : ShareOk 749 := ⟨st749, fun i hi ↦ by
   have h : (snapsOf 749).length = 1 := by decide +kernel
   rw [h] at hi
@@ -2211,6 +2633,14 @@ theorem ok751 : ShareOk 751 := ⟨st751, fun i hi ↦ by
   interval_cases i
   · exact w751_0
   · exact w751_1
+⟩
+
+theorem ok755 : ShareOk 755 := ⟨st755, fun i hi ↦ by
+  have h : (snapsOf 755).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w755_0
+  · exact w755_1
 ⟩
 
 theorem ok760 : ShareOk 760 := ⟨st760, fun i hi ↦ by
@@ -2238,6 +2668,22 @@ theorem ok762 : ShareOk 762 := ⟨st762, fun i hi ↦ by
   · exact w762_1
 ⟩
 
+theorem ok766 : ShareOk 766 := ⟨st766, fun i hi ↦ by
+  have h : (snapsOf 766).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w766_0
+  · exact w766_1
+⟩
+
+theorem ok768 : ShareOk 768 := ⟨st768, fun i hi ↦ by
+  have h : (snapsOf 768).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w768_0
+  · exact w768_1
+⟩
+
 theorem ok772 : ShareOk 772 := ⟨st772, fun i hi ↦ by
   have h : (snapsOf 772).length = 2 := by decide +kernel
   rw [h] at hi
@@ -2261,6 +2707,30 @@ theorem ok774 : ShareOk 774 := ⟨st774, fun i hi ↦ by
   interval_cases i
   · exact w774_0
   · exact w774_1
+⟩
+
+theorem ok778 : ShareOk 778 := ⟨st778, fun i hi ↦ by
+  have h : (snapsOf 778).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w778_0
+  · exact w778_1
+⟩
+
+theorem ok780 : ShareOk 780 := ⟨st780, fun i hi ↦ by
+  have h : (snapsOf 780).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w780_0
+  · exact w780_1
+⟩
+
+theorem ok784 : ShareOk 784 := ⟨st784, fun i hi ↦ by
+  have h : (snapsOf 784).length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w784_0
+  · exact w784_1
 ⟩
 
 theorem ok786 : ShareOk 786 := ⟨st786, fun i hi ↦ by
@@ -2305,7 +2775,7 @@ theorem ok847 : ShareOk 847 := ⟨st847, fun i hi ↦ by
 ⟩
 
 theorem ok848 : ShareOk 848 := ⟨st848, fun i hi ↦ by
-  have h : (snapsOf 848).length = 6 := by decide +kernel
+  have h : (snapsOf 848).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w848_0
@@ -2315,6 +2785,7 @@ theorem ok848 : ShareOk 848 := ⟨st848, fun i hi ↦ by
   · exact w848_4
   · exact w848_5
   · exact w848_6
+  · exact w848_7
 ⟩
 
 theorem ok849 : ShareOk 849 := ⟨st849, fun i hi ↦ by
@@ -2326,13 +2797,14 @@ theorem ok849 : ShareOk 849 := ⟨st849, fun i hi ↦ by
 ⟩
 
 theorem ok850 : ShareOk 850 := ⟨st850, fun i hi ↦ by
-  have h : (snapsOf 850).length = 3 := by decide +kernel
+  have h : (snapsOf 850).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w850_0
   · exact w850_1
   · exact w850_2
   · exact w850_3
+  · exact w850_4
 ⟩
 
 theorem ok851 : ShareOk 851 := ⟨st851, fun i hi ↦ by
@@ -2344,13 +2816,14 @@ theorem ok851 : ShareOk 851 := ⟨st851, fun i hi ↦ by
 ⟩
 
 theorem ok852 : ShareOk 852 := ⟨st852, fun i hi ↦ by
-  have h : (snapsOf 852).length = 3 := by decide +kernel
+  have h : (snapsOf 852).length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w852_0
   · exact w852_1
   · exact w852_2
   · exact w852_3
+  · exact w852_4
 ⟩
 
 theorem ok853 : ShareOk 853 := ⟨st853, fun i hi ↦ by
@@ -2362,11 +2835,13 @@ theorem ok853 : ShareOk 853 := ⟨st853, fun i hi ↦ by
 ⟩
 
 theorem ok854 : ShareOk 854 := ⟨st854, fun i hi ↦ by
-  have h : (snapsOf 854).length = 1 := by decide +kernel
+  have h : (snapsOf 854).length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w854_0
   · exact w854_1
+  · exact w854_2
+  · exact w854_3
 ⟩
 
 theorem ok855 : ShareOk 855 := ⟨st855, fun i hi ↦ by
@@ -2378,7 +2853,7 @@ theorem ok855 : ShareOk 855 := ⟨st855, fun i hi ↦ by
 ⟩
 
 theorem ok856 : ShareOk 856 := ⟨st856, fun i hi ↦ by
-  have h : (snapsOf 856).length = 8 := by decide +kernel
+  have h : (snapsOf 856).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w856_0
@@ -2390,6 +2865,7 @@ theorem ok856 : ShareOk 856 := ⟨st856, fun i hi ↦ by
   · exact w856_6
   · exact w856_7
   · exact w856_8
+  · exact w856_9
 ⟩
 
 theorem ok857 : ShareOk 857 := ⟨st857, fun i hi ↦ by
@@ -2401,7 +2877,7 @@ theorem ok857 : ShareOk 857 := ⟨st857, fun i hi ↦ by
 ⟩
 
 theorem ok858 : ShareOk 858 := ⟨st858, fun i hi ↦ by
-  have h : (snapsOf 858).length = 4 := by decide +kernel
+  have h : (snapsOf 858).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w858_0
@@ -2409,6 +2885,7 @@ theorem ok858 : ShareOk 858 := ⟨st858, fun i hi ↦ by
   · exact w858_2
   · exact w858_3
   · exact w858_4
+  · exact w858_5
 ⟩
 
 theorem ok859 : ShareOk 859 := ⟨st859, fun i hi ↦ by
@@ -2420,7 +2897,7 @@ theorem ok859 : ShareOk 859 := ⟨st859, fun i hi ↦ by
 ⟩
 
 theorem ok860 : ShareOk 860 := ⟨st860, fun i hi ↦ by
-  have h : (snapsOf 860).length = 4 := by decide +kernel
+  have h : (snapsOf 860).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w860_0
@@ -2428,6 +2905,7 @@ theorem ok860 : ShareOk 860 := ⟨st860, fun i hi ↦ by
   · exact w860_2
   · exact w860_3
   · exact w860_4
+  · exact w860_5
 ⟩
 
 theorem ok861 : ShareOk 861 := ⟨st861, fun i hi ↦ by
@@ -2439,7 +2917,7 @@ theorem ok861 : ShareOk 861 := ⟨st861, fun i hi ↦ by
 ⟩
 
 theorem ok862 : ShareOk 862 := ⟨st862, fun i hi ↦ by
-  have h : (snapsOf 862).length = 8 := by decide +kernel
+  have h : (snapsOf 862).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w862_0
@@ -2451,6 +2929,7 @@ theorem ok862 : ShareOk 862 := ⟨st862, fun i hi ↦ by
   · exact w862_6
   · exact w862_7
   · exact w862_8
+  · exact w862_9
 ⟩
 
 theorem ok863 : ShareOk 863 := ⟨st863, fun i hi ↦ by
@@ -2462,7 +2941,7 @@ theorem ok863 : ShareOk 863 := ⟨st863, fun i hi ↦ by
 ⟩
 
 theorem ok864 : ShareOk 864 := ⟨st864, fun i hi ↦ by
-  have h : (snapsOf 864).length = 4 := by decide +kernel
+  have h : (snapsOf 864).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w864_0
@@ -2470,6 +2949,7 @@ theorem ok864 : ShareOk 864 := ⟨st864, fun i hi ↦ by
   · exact w864_2
   · exact w864_3
   · exact w864_4
+  · exact w864_5
 ⟩
 
 theorem ok865 : ShareOk 865 := ⟨st865, fun i hi ↦ by
@@ -2481,7 +2961,7 @@ theorem ok865 : ShareOk 865 := ⟨st865, fun i hi ↦ by
 ⟩
 
 theorem ok866 : ShareOk 866 := ⟨st866, fun i hi ↦ by
-  have h : (snapsOf 866).length = 4 := by decide +kernel
+  have h : (snapsOf 866).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w866_0
@@ -2489,10 +2969,11 @@ theorem ok866 : ShareOk 866 := ⟨st866, fun i hi ↦ by
   · exact w866_2
   · exact w866_3
   · exact w866_4
+  · exact w866_5
 ⟩
 
 theorem ok868 : ShareOk 868 := ⟨st868, fun i hi ↦ by
-  have h : (snapsOf 868).length = 9 := by decide +kernel
+  have h : (snapsOf 868).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w868_0
@@ -2505,6 +2986,7 @@ theorem ok868 : ShareOk 868 := ⟨st868, fun i hi ↦ by
   · exact w868_7
   · exact w868_8
   · exact w868_9
+  · exact w868_10
 ⟩
 
 theorem ok869 : ShareOk 869 := ⟨st869, fun i hi ↦ by
@@ -2516,7 +2998,7 @@ theorem ok869 : ShareOk 869 := ⟨st869, fun i hi ↦ by
 ⟩
 
 theorem ok870 : ShareOk 870 := ⟨st870, fun i hi ↦ by
-  have h : (snapsOf 870).length = 4 := by decide +kernel
+  have h : (snapsOf 870).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w870_0
@@ -2524,6 +3006,7 @@ theorem ok870 : ShareOk 870 := ⟨st870, fun i hi ↦ by
   · exact w870_2
   · exact w870_3
   · exact w870_4
+  · exact w870_5
 ⟩
 
 theorem ok871 : ShareOk 871 := ⟨st871, fun i hi ↦ by
@@ -2535,7 +3018,7 @@ theorem ok871 : ShareOk 871 := ⟨st871, fun i hi ↦ by
 ⟩
 
 theorem ok872 : ShareOk 872 := ⟨st872, fun i hi ↦ by
-  have h : (snapsOf 872).length = 4 := by decide +kernel
+  have h : (snapsOf 872).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w872_0
@@ -2543,6 +3026,7 @@ theorem ok872 : ShareOk 872 := ⟨st872, fun i hi ↦ by
   · exact w872_2
   · exact w872_3
   · exact w872_4
+  · exact w872_5
 ⟩
 
 theorem ok873 : ShareOk 873 := ⟨st873, fun i hi ↦ by
@@ -2554,7 +3038,7 @@ theorem ok873 : ShareOk 873 := ⟨st873, fun i hi ↦ by
 ⟩
 
 theorem ok874 : ShareOk 874 := ⟨st874, fun i hi ↦ by
-  have h : (snapsOf 874).length = 9 := by decide +kernel
+  have h : (snapsOf 874).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w874_0
@@ -2567,6 +3051,7 @@ theorem ok874 : ShareOk 874 := ⟨st874, fun i hi ↦ by
   · exact w874_7
   · exact w874_8
   · exact w874_9
+  · exact w874_10
 ⟩
 
 theorem ok875 : ShareOk 875 := ⟨st875, fun i hi ↦ by
@@ -2578,7 +3063,7 @@ theorem ok875 : ShareOk 875 := ⟨st875, fun i hi ↦ by
 ⟩
 
 theorem ok876 : ShareOk 876 := ⟨st876, fun i hi ↦ by
-  have h : (snapsOf 876).length = 4 := by decide +kernel
+  have h : (snapsOf 876).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w876_0
@@ -2586,6 +3071,7 @@ theorem ok876 : ShareOk 876 := ⟨st876, fun i hi ↦ by
   · exact w876_2
   · exact w876_3
   · exact w876_4
+  · exact w876_5
 ⟩
 
 theorem ok877 : ShareOk 877 := ⟨st877, fun i hi ↦ by
@@ -2597,7 +3083,7 @@ theorem ok877 : ShareOk 877 := ⟨st877, fun i hi ↦ by
 ⟩
 
 theorem ok878 : ShareOk 878 := ⟨st878, fun i hi ↦ by
-  have h : (snapsOf 878).length = 4 := by decide +kernel
+  have h : (snapsOf 878).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w878_0
@@ -2605,10 +3091,11 @@ theorem ok878 : ShareOk 878 := ⟨st878, fun i hi ↦ by
   · exact w878_2
   · exact w878_3
   · exact w878_4
+  · exact w878_5
 ⟩
 
 theorem ok880 : ShareOk 880 := ⟨st880, fun i hi ↦ by
-  have h : (snapsOf 880).length = 10 := by decide +kernel
+  have h : (snapsOf 880).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w880_0
@@ -2622,6 +3109,7 @@ theorem ok880 : ShareOk 880 := ⟨st880, fun i hi ↦ by
   · exact w880_8
   · exact w880_9
   · exact w880_10
+  · exact w880_11
 ⟩
 
 theorem ok881 : ShareOk 881 := ⟨st881, fun i hi ↦ by
@@ -2633,7 +3121,7 @@ theorem ok881 : ShareOk 881 := ⟨st881, fun i hi ↦ by
 ⟩
 
 theorem ok882 : ShareOk 882 := ⟨st882, fun i hi ↦ by
-  have h : (snapsOf 882).length = 4 := by decide +kernel
+  have h : (snapsOf 882).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w882_0
@@ -2641,6 +3129,7 @@ theorem ok882 : ShareOk 882 := ⟨st882, fun i hi ↦ by
   · exact w882_2
   · exact w882_3
   · exact w882_4
+  · exact w882_5
 ⟩
 
 theorem ok883 : ShareOk 883 := ⟨st883, fun i hi ↦ by
@@ -2652,7 +3141,7 @@ theorem ok883 : ShareOk 883 := ⟨st883, fun i hi ↦ by
 ⟩
 
 theorem ok884 : ShareOk 884 := ⟨st884, fun i hi ↦ by
-  have h : (snapsOf 884).length = 4 := by decide +kernel
+  have h : (snapsOf 884).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w884_0
@@ -2660,10 +3149,11 @@ theorem ok884 : ShareOk 884 := ⟨st884, fun i hi ↦ by
   · exact w884_2
   · exact w884_3
   · exact w884_4
+  · exact w884_5
 ⟩
 
 theorem ok886 : ShareOk 886 := ⟨st886, fun i hi ↦ by
-  have h : (snapsOf 886).length = 10 := by decide +kernel
+  have h : (snapsOf 886).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w886_0
@@ -2677,10 +3167,11 @@ theorem ok886 : ShareOk 886 := ⟨st886, fun i hi ↦ by
   · exact w886_8
   · exact w886_9
   · exact w886_10
+  · exact w886_11
 ⟩
 
 theorem ok888 : ShareOk 888 := ⟨st888, fun i hi ↦ by
-  have h : (snapsOf 888).length = 5 := by decide +kernel
+  have h : (snapsOf 888).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w888_0
@@ -2689,6 +3180,7 @@ theorem ok888 : ShareOk 888 := ⟨st888, fun i hi ↦ by
   · exact w888_3
   · exact w888_4
   · exact w888_5
+  · exact w888_6
 ⟩
 
 theorem ok889 : ShareOk 889 := ⟨st889, fun i hi ↦ by
@@ -2700,7 +3192,7 @@ theorem ok889 : ShareOk 889 := ⟨st889, fun i hi ↦ by
 ⟩
 
 theorem ok890 : ShareOk 890 := ⟨st890, fun i hi ↦ by
-  have h : (snapsOf 890).length = 5 := by decide +kernel
+  have h : (snapsOf 890).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w890_0
@@ -2709,6 +3201,7 @@ theorem ok890 : ShareOk 890 := ⟨st890, fun i hi ↦ by
   · exact w890_3
   · exact w890_4
   · exact w890_5
+  · exact w890_6
 ⟩
 
 theorem ok891 : ShareOk 891 := ⟨st891, fun i hi ↦ by
@@ -2720,7 +3213,7 @@ theorem ok891 : ShareOk 891 := ⟨st891, fun i hi ↦ by
 ⟩
 
 theorem ok892 : ShareOk 892 := ⟨st892, fun i hi ↦ by
-  have h : (snapsOf 892).length = 4 := by decide +kernel
+  have h : (snapsOf 892).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w892_0
@@ -2728,6 +3221,7 @@ theorem ok892 : ShareOk 892 := ⟨st892, fun i hi ↦ by
   · exact w892_2
   · exact w892_3
   · exact w892_4
+  · exact w892_5
 ⟩
 
 theorem ok893 : ShareOk 893 := ⟨st893, fun i hi ↦ by
@@ -2739,7 +3233,7 @@ theorem ok893 : ShareOk 893 := ⟨st893, fun i hi ↦ by
 ⟩
 
 theorem ok894 : ShareOk 894 := ⟨st894, fun i hi ↦ by
-  have h : (snapsOf 894).length = 8 := by decide +kernel
+  have h : (snapsOf 894).length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w894_0
@@ -2751,6 +3245,7 @@ theorem ok894 : ShareOk 894 := ⟨st894, fun i hi ↦ by
   · exact w894_6
   · exact w894_7
   · exact w894_8
+  · exact w894_9
 ⟩
 
 theorem ok895 : ShareOk 895 := ⟨st895, fun i hi ↦ by
@@ -2762,7 +3257,7 @@ theorem ok895 : ShareOk 895 := ⟨st895, fun i hi ↦ by
 ⟩
 
 theorem ok896 : ShareOk 896 := ⟨st896, fun i hi ↦ by
-  have h : (snapsOf 896).length = 9 := by decide +kernel
+  have h : (snapsOf 896).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w896_0
@@ -2775,6 +3270,7 @@ theorem ok896 : ShareOk 896 := ⟨st896, fun i hi ↦ by
   · exact w896_7
   · exact w896_8
   · exact w896_9
+  · exact w896_10
 ⟩
 
 theorem ok897 : ShareOk 897 := ⟨st897, fun i hi ↦ by
@@ -2786,7 +3282,7 @@ theorem ok897 : ShareOk 897 := ⟨st897, fun i hi ↦ by
 ⟩
 
 theorem ok898 : ShareOk 898 := ⟨st898, fun i hi ↦ by
-  have h : (snapsOf 898).length = 9 := by decide +kernel
+  have h : (snapsOf 898).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w898_0
@@ -2799,6 +3295,7 @@ theorem ok898 : ShareOk 898 := ⟨st898, fun i hi ↦ by
   · exact w898_7
   · exact w898_8
   · exact w898_9
+  · exact w898_10
 ⟩
 
 theorem ok899 : ShareOk 899 := ⟨st899, fun i hi ↦ by
@@ -2810,7 +3307,7 @@ theorem ok899 : ShareOk 899 := ⟨st899, fun i hi ↦ by
 ⟩
 
 theorem ok900 : ShareOk 900 := ⟨st900, fun i hi ↦ by
-  have h : (snapsOf 900).length = 4 := by decide +kernel
+  have h : (snapsOf 900).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w900_0
@@ -2818,6 +3315,7 @@ theorem ok900 : ShareOk 900 := ⟨st900, fun i hi ↦ by
   · exact w900_2
   · exact w900_3
   · exact w900_4
+  · exact w900_5
 ⟩
 
 theorem ok901 : ShareOk 901 := ⟨st901, fun i hi ↦ by
@@ -2829,7 +3327,7 @@ theorem ok901 : ShareOk 901 := ⟨st901, fun i hi ↦ by
 ⟩
 
 theorem ok902 : ShareOk 902 := ⟨st902, fun i hi ↦ by
-  have h : (snapsOf 902).length = 10 := by decide +kernel
+  have h : (snapsOf 902).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w902_0
@@ -2843,6 +3341,7 @@ theorem ok902 : ShareOk 902 := ⟨st902, fun i hi ↦ by
   · exact w902_8
   · exact w902_9
   · exact w902_10
+  · exact w902_11
 ⟩
 
 theorem ok903 : ShareOk 903 := ⟨st903, fun i hi ↦ by
@@ -2854,7 +3353,7 @@ theorem ok903 : ShareOk 903 := ⟨st903, fun i hi ↦ by
 ⟩
 
 theorem ok904 : ShareOk 904 := ⟨st904, fun i hi ↦ by
-  have h : (snapsOf 904).length = 4 := by decide +kernel
+  have h : (snapsOf 904).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w904_0
@@ -2862,10 +3361,11 @@ theorem ok904 : ShareOk 904 := ⟨st904, fun i hi ↦ by
   · exact w904_2
   · exact w904_3
   · exact w904_4
+  · exact w904_5
 ⟩
 
 theorem ok906 : ShareOk 906 := ⟨st906, fun i hi ↦ by
-  have h : (snapsOf 906).length = 10 := by decide +kernel
+  have h : (snapsOf 906).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w906_0
@@ -2879,10 +3379,11 @@ theorem ok906 : ShareOk 906 := ⟨st906, fun i hi ↦ by
   · exact w906_8
   · exact w906_9
   · exact w906_10
+  · exact w906_11
 ⟩
 
 theorem ok908 : ShareOk 908 := ⟨st908, fun i hi ↦ by
-  have h : (snapsOf 908).length = 12 := by decide +kernel
+  have h : (snapsOf 908).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w908_0
@@ -2898,6 +3399,7 @@ theorem ok908 : ShareOk 908 := ⟨st908, fun i hi ↦ by
   · exact w908_10
   · exact w908_11
   · exact w908_12
+  · exact w908_13
 ⟩
 
 theorem ok909 : ShareOk 909 := ⟨st909, fun i hi ↦ by
@@ -2909,7 +3411,7 @@ theorem ok909 : ShareOk 909 := ⟨st909, fun i hi ↦ by
 ⟩
 
 theorem ok910 : ShareOk 910 := ⟨st910, fun i hi ↦ by
-  have h : (snapsOf 910).length = 4 := by decide +kernel
+  have h : (snapsOf 910).length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w910_0
@@ -2917,10 +3419,11 @@ theorem ok910 : ShareOk 910 := ⟨st910, fun i hi ↦ by
   · exact w910_2
   · exact w910_3
   · exact w910_4
+  · exact w910_5
 ⟩
 
 theorem ok912 : ShareOk 912 := ⟨st912, fun i hi ↦ by
-  have h : (snapsOf 912).length = 12 := by decide +kernel
+  have h : (snapsOf 912).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w912_0
@@ -2936,10 +3439,11 @@ theorem ok912 : ShareOk 912 := ⟨st912, fun i hi ↦ by
   · exact w912_10
   · exact w912_11
   · exact w912_12
+  · exact w912_13
 ⟩
 
 theorem ok914 : ShareOk 914 := ⟨st914, fun i hi ↦ by
-  have h : (snapsOf 914).length = 6 := by decide +kernel
+  have h : (snapsOf 914).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w914_0
@@ -2949,10 +3453,11 @@ theorem ok914 : ShareOk 914 := ⟨st914, fun i hi ↦ by
   · exact w914_4
   · exact w914_5
   · exact w914_6
+  · exact w914_7
 ⟩
 
 theorem ok916 : ShareOk 916 := ⟨st916, fun i hi ↦ by
-  have h : (snapsOf 916).length = 6 := by decide +kernel
+  have h : (snapsOf 916).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w916_0
@@ -2962,6 +3467,7 @@ theorem ok916 : ShareOk 916 := ⟨st916, fun i hi ↦ by
   · exact w916_4
   · exact w916_5
   · exact w916_6
+  · exact w916_7
 ⟩
 
 theorem ok917 : ShareOk 917 := ⟨st917, fun i hi ↦ by
@@ -2973,7 +3479,7 @@ theorem ok917 : ShareOk 917 := ⟨st917, fun i hi ↦ by
 ⟩
 
 theorem ok918 : ShareOk 918 := ⟨st918, fun i hi ↦ by
-  have h : (snapsOf 918).length = 5 := by decide +kernel
+  have h : (snapsOf 918).length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w918_0
@@ -2982,10 +3488,11 @@ theorem ok918 : ShareOk 918 := ⟨st918, fun i hi ↦ by
   · exact w918_3
   · exact w918_4
   · exact w918_5
+  · exact w918_6
 ⟩
 
 theorem ok919 : ShareOk 919 := ⟨st919, fun i hi ↦ by
-  have h : (snapsOf 919).length = 9 := by decide +kernel
+  have h : (snapsOf 919).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w919_0
@@ -2998,10 +3505,11 @@ theorem ok919 : ShareOk 919 := ⟨st919, fun i hi ↦ by
   · exact w919_7
   · exact w919_8
   · exact w919_9
+  · exact w919_10
 ⟩
 
 theorem ok920 : ShareOk 920 := ⟨st920, fun i hi ↦ by
-  have h : (snapsOf 920).length = 9 := by decide +kernel
+  have h : (snapsOf 920).length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w920_0
@@ -3014,10 +3522,11 @@ theorem ok920 : ShareOk 920 := ⟨st920, fun i hi ↦ by
   · exact w920_7
   · exact w920_8
   · exact w920_9
+  · exact w920_10
 ⟩
 
 theorem ok921 : ShareOk 921 := ⟨st921, fun i hi ↦ by
-  have h : (snapsOf 921).length = 10 := by decide +kernel
+  have h : (snapsOf 921).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w921_0
@@ -3031,10 +3540,11 @@ theorem ok921 : ShareOk 921 := ⟨st921, fun i hi ↦ by
   · exact w921_8
   · exact w921_9
   · exact w921_10
+  · exact w921_11
 ⟩
 
 theorem ok922 : ShareOk 922 := ⟨st922, fun i hi ↦ by
-  have h : (snapsOf 922).length = 10 := by decide +kernel
+  have h : (snapsOf 922).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w922_0
@@ -3048,10 +3558,11 @@ theorem ok922 : ShareOk 922 := ⟨st922, fun i hi ↦ by
   · exact w922_8
   · exact w922_9
   · exact w922_10
+  · exact w922_11
 ⟩
 
 theorem ok923 : ShareOk 923 := ⟨st923, fun i hi ↦ by
-  have h : (snapsOf 923).length = 12 := by decide +kernel
+  have h : (snapsOf 923).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w923_0
@@ -3067,10 +3578,11 @@ theorem ok923 : ShareOk 923 := ⟨st923, fun i hi ↦ by
   · exact w923_10
   · exact w923_11
   · exact w923_12
+  · exact w923_13
 ⟩
 
 theorem ok924 : ShareOk 924 := ⟨st924, fun i hi ↦ by
-  have h : (snapsOf 924).length = 12 := by decide +kernel
+  have h : (snapsOf 924).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w924_0
@@ -3086,10 +3598,11 @@ theorem ok924 : ShareOk 924 := ⟨st924, fun i hi ↦ by
   · exact w924_10
   · exact w924_11
   · exact w924_12
+  · exact w924_13
 ⟩
 
 theorem ok926 : ShareOk 926 := ⟨st926, fun i hi ↦ by
-  have h : (snapsOf 926).length = 13 := by decide +kernel
+  have h : (snapsOf 926).length = 14 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w926_0
@@ -3106,10 +3619,11 @@ theorem ok926 : ShareOk 926 := ⟨st926, fun i hi ↦ by
   · exact w926_11
   · exact w926_12
   · exact w926_13
+  · exact w926_14
 ⟩
 
 theorem ok928 : ShareOk 928 := ⟨st928, fun i hi ↦ by
-  have h : (snapsOf 928).length = 6 := by decide +kernel
+  have h : (snapsOf 928).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w928_0
@@ -3119,10 +3633,11 @@ theorem ok928 : ShareOk 928 := ⟨st928, fun i hi ↦ by
   · exact w928_4
   · exact w928_5
   · exact w928_6
+  · exact w928_7
 ⟩
 
 theorem ok930 : ShareOk 930 := ⟨st930, fun i hi ↦ by
-  have h : (snapsOf 930).length = 6 := by decide +kernel
+  have h : (snapsOf 930).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w930_0
@@ -3132,6 +3647,7 @@ theorem ok930 : ShareOk 930 := ⟨st930, fun i hi ↦ by
   · exact w930_4
   · exact w930_5
   · exact w930_6
+  · exact w930_7
 ⟩
 
 theorem ok931 : ShareOk 931 := ⟨st931, fun i hi ↦ by
@@ -3143,7 +3659,7 @@ theorem ok931 : ShareOk 931 := ⟨st931, fun i hi ↦ by
 ⟩
 
 theorem ok932 : ShareOk 932 := ⟨st932, fun i hi ↦ by
-  have h : (snapsOf 932).length = 6 := by decide +kernel
+  have h : (snapsOf 932).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w932_0
@@ -3153,10 +3669,11 @@ theorem ok932 : ShareOk 932 := ⟨st932, fun i hi ↦ by
   · exact w932_4
   · exact w932_5
   · exact w932_6
+  · exact w932_7
 ⟩
 
 theorem ok933 : ShareOk 933 := ⟨st933, fun i hi ↦ by
-  have h : (snapsOf 933).length = 10 := by decide +kernel
+  have h : (snapsOf 933).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w933_0
@@ -3170,10 +3687,11 @@ theorem ok933 : ShareOk 933 := ⟨st933, fun i hi ↦ by
   · exact w933_8
   · exact w933_9
   · exact w933_10
+  · exact w933_11
 ⟩
 
 theorem ok934 : ShareOk 934 := ⟨st934, fun i hi ↦ by
-  have h : (snapsOf 934).length = 10 := by decide +kernel
+  have h : (snapsOf 934).length = 11 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w934_0
@@ -3187,10 +3705,11 @@ theorem ok934 : ShareOk 934 := ⟨st934, fun i hi ↦ by
   · exact w934_8
   · exact w934_9
   · exact w934_10
+  · exact w934_11
 ⟩
 
 theorem ok935 : ShareOk 935 := ⟨st935, fun i hi ↦ by
-  have h : (snapsOf 935).length = 12 := by decide +kernel
+  have h : (snapsOf 935).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w935_0
@@ -3206,10 +3725,11 @@ theorem ok935 : ShareOk 935 := ⟨st935, fun i hi ↦ by
   · exact w935_10
   · exact w935_11
   · exact w935_12
+  · exact w935_13
 ⟩
 
 theorem ok936 : ShareOk 936 := ⟨st936, fun i hi ↦ by
-  have h : (snapsOf 936).length = 12 := by decide +kernel
+  have h : (snapsOf 936).length = 13 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w936_0
@@ -3225,10 +3745,11 @@ theorem ok936 : ShareOk 936 := ⟨st936, fun i hi ↦ by
   · exact w936_10
   · exact w936_11
   · exact w936_12
+  · exact w936_13
 ⟩
 
 theorem ok937 : ShareOk 937 := ⟨st937, fun i hi ↦ by
-  have h : (snapsOf 937).length = 13 := by decide +kernel
+  have h : (snapsOf 937).length = 14 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w937_0
@@ -3245,10 +3766,11 @@ theorem ok937 : ShareOk 937 := ⟨st937, fun i hi ↦ by
   · exact w937_11
   · exact w937_12
   · exact w937_13
+  · exact w937_14
 ⟩
 
 theorem ok939 : ShareOk 939 := ⟨st939, fun i hi ↦ by
-  have h : (snapsOf 939).length = 13 := by decide +kernel
+  have h : (snapsOf 939).length = 14 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w939_0
@@ -3265,6 +3787,7 @@ theorem ok939 : ShareOk 939 := ⟨st939, fun i hi ↦ by
   · exact w939_11
   · exact w939_12
   · exact w939_13
+  · exact w939_14
 ⟩
 
 theorem ok940 : ShareOk 940 := ⟨st940, fun i hi ↦ by
@@ -3276,7 +3799,7 @@ theorem ok940 : ShareOk 940 := ⟨st940, fun i hi ↦ by
 ⟩
 
 theorem ok941 : ShareOk 941 := ⟨st941, fun i hi ↦ by
-  have h : (snapsOf 941).length = 6 := by decide +kernel
+  have h : (snapsOf 941).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w941_0
@@ -3286,10 +3809,11 @@ theorem ok941 : ShareOk 941 := ⟨st941, fun i hi ↦ by
   · exact w941_4
   · exact w941_5
   · exact w941_6
+  · exact w941_7
 ⟩
 
 theorem ok943 : ShareOk 943 := ⟨st943, fun i hi ↦ by
-  have h : (snapsOf 943).length = 14 := by decide +kernel
+  have h : (snapsOf 943).length = 15 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w943_0
@@ -3307,10 +3831,11 @@ theorem ok943 : ShareOk 943 := ⟨st943, fun i hi ↦ by
   · exact w943_12
   · exact w943_13
   · exact w943_14
+  · exact w943_15
 ⟩
 
 theorem ok945 : ShareOk 945 := ⟨st945, fun i hi ↦ by
-  have h : (snapsOf 945).length = 6 := by decide +kernel
+  have h : (snapsOf 945).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w945_0
@@ -3320,10 +3845,11 @@ theorem ok945 : ShareOk 945 := ⟨st945, fun i hi ↦ by
   · exact w945_4
   · exact w945_5
   · exact w945_6
+  · exact w945_7
 ⟩
 
 theorem ok947 : ShareOk 947 := ⟨st947, fun i hi ↦ by
-  have h : (snapsOf 947).length = 6 := by decide +kernel
+  have h : (snapsOf 947).length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w947_0
@@ -3333,6 +3859,7 @@ theorem ok947 : ShareOk 947 := ⟨st947, fun i hi ↦ by
   · exact w947_4
   · exact w947_5
   · exact w947_6
+  · exact w947_7
 ⟩
 
 /-- Every function but `__jump_tables` passes the sharing check. -/

@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
 
 * the copy loops `__loop10`, `__loop11`, `__loop12` (`τ - 4` words each): `(τ - 4) * KC`, from
   their words per iteration (`TotalLeOn … LoopPre`, at most `KC`);
-* the twelve layers: `layerWords fs (firstOf s) D.odd (D.layer s).y KP KR` (`layer_completeAtFB`);
+* the twelve layers: `layerWords fs (firstOf s) (D.layer s).y KP KR` (`layer_completeAtFB`);
 * the committed outputs' and the inputs' opening's rounds (`plainName 0`): `KO`; the inputs'
   rounds (`plainName 1`): `KI` (`TotalLe`).
 
@@ -114,7 +114,7 @@ namespace VkData
 rounds, `__loop11`, the inputs' rounds, their opening's rounds, `__loop12`. -/
 def kidsB (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) : List ℕ :=
   [(D.τ - 4) * KC] ++
-  (List.range 12).map (fun s ↦ layerWords fs (firstOf s) D.odd (D.layer s).y KP KR) ++
+  (List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR) ++
   [KO, (D.τ - 4) * KC, KI, KO, (D.τ - 4) * KC]
 
 variable {D : VkData}
@@ -122,7 +122,7 @@ variable {D : VkData}
 /-- The bounds' sum. -/
 theorem kidsB_sum (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) :
     (D.kidsB fs KC KP KR KO KI).sum = 3 * ((D.τ - 4) * KC) + 2 * KO + KI +
-      ((List.range 12).map (fun s ↦ layerWords fs (firstOf s) D.odd (D.layer s).y KP KR)).sum := by
+      ((List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR)).sum := by
   simp only [kidsB, List.sum_append, List.sum_cons, List.sum_nil]
   omega
 
@@ -136,14 +136,15 @@ theorem kids_boundB (B curE chiE olE zvE slE KC KP KR KO KI : ℕ) :
   rcases hk with ((rfl | ⟨s, -, rfl⟩) | rfl | rfl | rfl | rfl | rfl) <;> rfl
 
 /-- **The calls, complete where `verify_keccak` places them, within `D.kidsB`**: the copy loops
-at most `KC` words per iteration, the layers' pack loops `KP`, `keccak_round` `KR`, the openings'
-rounds `KO` (`plainName 0`) and `KI` (`plainName 1`). -/
+at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR`, the
+openings' rounds `KO` (`plainName 0`) and `KI` (`plainName 1`). -/
 theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC KP KR KO KI : ℕ}
     (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
       TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC)
-    (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first D.odd) LoopPre
+    (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * KP)
-    (hR : TotalLe coreProgram fs "keccak_round" fun _ ↦ KR)
+    (hR : ∀ first < 2, TotalLeOn coreProgram fs (remLoopName first) LoopPre
+      fun a ↦ logG (a.getD 1 0) * KR)
     (hO : TotalLe coreProgram fs (plainName 0) fun _ ↦ KO)
     (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) :
     KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE) (D.kidsB fs KC KP KR KO KI) := by
@@ -171,12 +172,12 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC
     obtain ⟨hcl, hcap⟩ := D.layer_cap h hs
     obtain ⟨hpl, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
     have hf2 : firstOf s < 2 := by unfold firstOf; split <;> omega
-    have H := layer_completeAtFB (fs := fs) (cert := cert) (first := firstOf s) (odd := D.odd)
-      hf2 (Nat.mod_lt _ (by norm_num)) κ (D.layer s)
+    have H := layer_completeAtFB (fs := fs) (cert := cert) (first := firstOf s)
+      hf2 κ (D.layer s)
       (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1))
-      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (hP _ hf2) hR hcl hcap (fun hf1 ↦ by
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (hP _ hf2) (hR _ hf2) hcl hcap (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
-        rfl) (by rw [hy]; rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
+        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
       (D.CL_ok h B _ (by omega))
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H

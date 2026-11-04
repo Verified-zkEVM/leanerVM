@@ -106,8 +106,8 @@ theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.le
 
 /-- The guest's form values: table `t`'s push, pull and count forms. -/
 def vtFV : List (List ℕ) :=
-  [[6261, 6371, 6380], [6746, 6876, 6885], [7079, 7143, 7148], [7512, 7639, 7648],
-    [7994, 8110, 8119], [10303, 11132, 11187]]
+  [[2937, 2968, 2977], [3342, 3373, 3382], [3575, 3594, 3599], [3962, 3993, 4002],
+    [4347, 4391, 4400], [6583, 6752, 6807]]
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
@@ -117,30 +117,28 @@ include hμ
 theorem vt_forms_val {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.length = 2 ^ 23)
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hsq : TbReadsAt Lm.read (σ (.n 13)) gSquaresList) {lm : ℕ} (hlm : lm ≤ 32)
+    (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 29)
-    (hdim : ∀ t < 6, LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ vtHt rows t))
-    (hbk : TbReadsAt Lm.read (σ (.n 12))
-      (blockKappaWords (gen ^ lm) ((vtTauList (vtHt rows)).map (gen ^ ·))))
+    (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {alphas : List E} (hal : alphas.length = 4)
-    (hW : TbReadsAt Lm.read (σ (.n 14)) (eqKernel alphas)) {t : ℕ} (ht : t < 6) :
-    ((vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 15)) point
-        [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639))
-        (σ (.n 27)) (σ (.n 28)) (σ (.n 29))).1.getD t []).map
+    (hW : TbReadsAt Lm.read (σ (.n 13)) (eqKernel alphas)) {t : ℕ} (ht : t < 6) :
+    ((vtAcc2 (layoutOf bc lm rows) alphas (σ (.n 14)) point
+        [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+        (σ (.n 25)) (σ (.n 26)) (σ (.n 27))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hP, -, hC, -⟩ :=
-    vt_sels hμ Lm h hz hmu hml hsq hlm hτ hdim hbk
+  obtain ⟨-, -, -, -, -, -, -, -, hP, -, hC, -⟩ :=
+    vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
   have hkl : (eqKernel alphas).length = 16 := by
     rw [show (16 : ℕ) = 2 ^ alphas.length by rw [hal]; rfl]
     exact vt_length_eqKernel alphas
-  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n 14)) i ((eqKernel alphas).getD i 0) :=
+  have hw : ∀ i < 16, LoadHolds Lm.read (σ (.n 13)) i ((eqKernel alphas).getD i 0) :=
     fun i hi ↦ by
       have := hW i (by omega)
       rwa [← List.getD_eq_getElem _ 0] at this
-  obtain ⟨e0, e1, e2⟩ := vt_forms hbc alphas (σ (.n 15)) point
-    [σ (.n 2914), σ (.n 2927), σ (.n 2940)] (σ (.n 4444)) (σ (.n 4502)) (σ (.n 2639))
-    (σ (.n 27)) (σ (.n 28)) (σ (.n 29)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+  obtain ⟨e0, e1, e2⟩ := vt_forms hbc alphas (σ (.n 14)) point
+    [σ (.n 830), σ (.n 843), σ (.n 856)] (σ (.n 1835)) (σ (.n 1890)) (σ (.n 581))
+    (σ (.n 25)) (σ (.n 26)) (σ (.n 27)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]

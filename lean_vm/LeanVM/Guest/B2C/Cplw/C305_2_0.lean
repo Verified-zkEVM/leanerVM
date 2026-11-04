@@ -22,6 +22,12 @@ theorem cw305_2_0 : cplWin 305 2 0 = true := by decide +kernel
 /-- `open_stacked__L1`, window 3, part 0. -/
 theorem cw305_3_0 : cplWin 305 3 0 = true := by decide +kernel
 
+/-- `open_stacked__L1`, window 4, part 0. -/
+theorem cw305_4_0 : cplWin 305 4 0 = true := by decide +kernel
+
+/-- `open_stacked__L1`, window 5, part 0. -/
+theorem cw305_5_0 : cplWin 305 5 0 = true := by decide +kernel
+
 /-- `open_stacked__L2`, window 0, part 0. -/
 theorem cw306_0_0 : cplWin 306 0 0 = true := by decide +kernel
 

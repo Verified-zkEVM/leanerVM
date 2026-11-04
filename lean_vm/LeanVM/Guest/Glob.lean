@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.Data.Cert
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.ExpTables
+public import LeanVM.Guest.WalkTags
 
 /-!
 # The guest's checks
@@ -60,9 +61,17 @@ noncomputable def sigOf (j : ℕ) : Sig :=
 /-- The callees: every function but `__jump_tables` and `main`. -/
 def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
-/-- The context the guest's checks share; the semantic relation is that of the exponent tables
-(`B1.ExpTables`), which `verify_sub` assumes of its arguments 4 and 5. -/
-noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, B1.ExpTables⟩
+/-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table (`B1.ExpTables`),
+which `verify_sub` and `__loop4` assume of an argument; `1` the checker's own (`Check.tagNe`, here
+unused); the others the windowed Merkle walk's (`walkSem`). -/
+def globSem (t : ℕ) (rd : Core.Reader) (ws : List LeanVM.Parameters.E) : Prop :=
+  match t with
+  | 0 => B1.ExpTables rd (ws.getD 0 0)
+  | 1 => True
+  | t => walkSem t rd ws
+
+/-- The context the guest's checks share, with the semantic relations `globSem`. -/
+noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, globSem⟩
 
 /-- **The check of window `i` of function `j`**. -/
 noncomputable def WinOk (j i : ℕ) : Prop :=

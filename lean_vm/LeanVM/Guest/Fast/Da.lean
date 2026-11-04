@@ -7,8 +7,8 @@ public import LeanVM.Guest.B1.Da.Verify
 # `da_verify`'s witness reader, its frames numbered
 
 `dvWit σ Vm` (`B1/Da/Verify.lean`) reads the DA matrix off `da_verify`'s callees' frames, which it
-names by string literals (`"da_verify_column"`, `"__loop21"`, `"da_verify_cell"`). `dvWitN σ Vn`
-reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `29`, `376`, `30`);
+names by string literals (`"da_verify_column"`, `"__loop25"`, `"da_verify_cell"`). `dvWitN σ Vn`
+reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `31`, `405`, `32`);
 `dvWitN_eq`: at `Vn k = Vm (decoderFunctionName k)` they are equal.
 -/
 
@@ -19,18 +19,18 @@ open LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- Column `h`'s valuation (`da_verify_column`, function `29`). -/
-def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 29 (dvColArgs σ h) []
+/-- Column `h`'s valuation (`da_verify_column`, function `31`). -/
+def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 31 (dvColArgs σ h) []
 
-/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop21`, function `376`), its valuation
+/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop25`, function `405`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn 376 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn 405 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
 
-/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `30`'s. -/
+/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `32`'s. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
   if i < dvRows σ ∧ h < 128 then
-    cellSymsOf (Vn 30 [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn 32 [dvColVN σ Vn h (.n 13)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
   else List.replicate 256 0
 
@@ -42,7 +42,7 @@ noncomputable def dvWitN (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
 theorem dvWitN_eq (σ : Val) (Vm : FrameMap) :
     dvWitN σ (fun k ↦ Vm (decoderFunctionName k)) = dvWit σ Vm := by
   unfold dvWitN dvWit dvSymsPN dvSymsP dvSyms colSyms colRowV dvRowVN dvColVN
-  simp only [name_da_verify_column, name_loop21, name_da_verify_cell, dvColArgs, List.getD_cons_succ,
+  simp only [name_da_verify_column, name_loop25, name_da_verify_cell, dvColArgs, List.getD_cons_succ,
     List.getD_cons_zero]
 
 end

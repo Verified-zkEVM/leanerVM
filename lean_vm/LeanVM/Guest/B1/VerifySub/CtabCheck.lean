@@ -25,10 +25,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 /-- `c_table`'s section before `ring_switch_target`. -/
 def ctPre : List Stmt :=
-  [vsConst 978 (word 1 0 0), vsLd 978 877 0] ++ vsStageT 0 32 979 ++ vsStageT 1 16 1014 ++
-    vsStageT 2 8 1051 ++ vsStageT 3 4 1092 ++ vsStageT 4 2 1141 ++ vsStageT 5 1 1206
+  [vsConst 766 (word 1 0 0), vsLd 766 665 0] ++ vsStageT 0 32 767 ++ vsStageT 1 16 802 ++
+    vsStageT 2 8 839 ++ vsStageT 3 4 880 ++ vsStageT 4 2 929 ++ vsStageT 5 1 994
 
-theorem vsCtabT_eq : vsCtabT = ctPre ++ [vsCall "ring_switch_target" [860, 876] [1303]] := rfl
+theorem vsCtabT_eq : vsCtabT = ctPre ++ [vsCall "ring_switch_target" [648, 664] [1091]] := rfl
 
 /-- The exponents of `ringCoefficients`' `k`-th product. -/
 def specEV (k : ℕ) : List ℕ :=

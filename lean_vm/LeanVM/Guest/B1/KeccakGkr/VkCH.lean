@@ -32,7 +32,7 @@ open LeanVM.Protocol.KeccakGkr
 
 theorem readsAt_mid {rd : Reader} {p : E} {A B C : List E} (h : ReadsAt rd p (A ++ B ++ C)) :
     ReadsAt rd (p * gen ^ A.length) B :=
-  (Digest.readsAt_append.1 (Digest.readsAt_append.1 h).1).2
+  (readsAt_append.1 (readsAt_append.1 h).1).2
 
 theorem flatMap_range_split (f : ℕ → List E) {s n : ℕ} (hs : s < n) :
     (List.range n).flatMap f =
@@ -89,19 +89,19 @@ theorem xs_reads (h : D.Ok) {rd : Reader} {curE : ℕ} (hr : ReadsAt rd (ptr cur
     fun k hk ↦ ltXs_length h hk
   rw [xs_eq h] at hr
   refine ⟨?_, fun s hs ↦ ?_, ?_⟩
-  · have := (Digest.readsAt_append.1 (Digest.readsAt_append.1 hr).1).1 0 (by simp)
+  · have := (readsAt_append.1 (readsAt_append.1 hr).1).1 0 (by simp)
     simpa using this
   · rw [flatMap_range_split _ hs] at hr
     have := readsAt_mid (A := [D.committed] ++ (List.range s).flatMap fun s ↦ ltXs (D.T s))
       (by simpa only [List.append_assoc] using hr)
     rw [ptr_mul_gen, List.length_append, flatMap_range_length _ (fun k hk ↦ hc k (by omega))] at this
     simpa [lcur, Nat.add_assoc, Nat.add_comm] using this
-  · have h1 := (Digest.readsAt_append.1 hr).2
+  · have h1 := (readsAt_append.1 hr).2
     rw [ptr_mul_gen, List.length_append, flatMap_range_length _ hc] at h1
     simp only [List.length_singleton] at h1
     rw [show curE + (1 + 12 * (47 + 2 * (D.τ - 3) + 36)) = curE + D.lcur 12 by simp [lcur]]
       at h1
-    simp only [Digest.readsAt_append, flatMap_pairs_length, hmO, hmI, List.length_append,
+    simp only [readsAt_append, flatMap_pairs_length, hmO, hmI, List.length_append,
       List.length_singleton, ptr_mul_gen] at h1
     obtain ⟨⟨⟨⟨r1, r2⟩, r3⟩, r4⟩, r5⟩ := h1
     refine ⟨r1, by simpa using r2 0 (by simp), by simpa using r3, ?_, ?_⟩

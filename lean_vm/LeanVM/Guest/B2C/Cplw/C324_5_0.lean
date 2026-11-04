@@ -22,8 +22,11 @@ theorem cw324_5_0 : cplWin 324 5 0 = true := by decide +kernel
 /-- `open_stacked__L20`, window 6, part 0. -/
 theorem cw324_6_0 : cplWin 324 6 0 = true := by decide +kernel
 
-/-- `open_stacked__L21`, window 0, part 0. -/
-theorem cw325_0_0 : cplWin 325 0 0 = true := by decide +kernel
+/-- `open_stacked__L20`, window 6, part 1. -/
+theorem cw324_6_1 : cplWin 324 6 1 = true := by decide +kernel
+
+/-- `open_stacked__L20`, window 7, part 0. -/
+theorem cw324_7_0 : cplWin 324 7 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

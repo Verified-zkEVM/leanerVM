@@ -50,10 +50,10 @@ theorem log2_bytecode {bytecode : List K} (h : bytecode.length = 2 ^ bytecodeVar
     Nat.log2 bytecode.length = bytecodeVars := by
   rw [h, Nat.log2_two_pow]
 
-variable {rd : Reader} {σ : Val} {Kr : ℕ → KidRec} {sl : ℕ → ℕ}
+variable {rd : Reader} {σ : Val} {Kr : ℕ → KidRec}
 
 instance : Nonempty KidRec :=
-  ⟨⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, fun _ => 0, [], fun _ => 0, [], []⟩⟩
+  ⟨⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, fun _ => 0, [], fun _ => 0, [], [], false, false⟩⟩
 
 /-- **A child's proof**: its fresh claim at `child_fresh · g^(24c)`, and the deferring verifier
 accepts its proof for the decoded child's statement under the decoded seed. -/
@@ -61,30 +61,30 @@ theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) (MF : MainFacts C rd σ)
     (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
-    (hW : Writers rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ))
-    (hC : Cover rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ) sl) {c : ℕ}
+    {rx rs : ℕ → ℕ} (hW : Writers rd (σ (.n 66)) (segsOf σ Kr) (LXS σ) (LSS σ) (slOf σ Kr rx rs))
+    {c : ℕ}
     (hc : c < lg σ 6) :
     (decKid rd σ wV c).freshClaim.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd (σ (.n 371) * gen ^ (24 * c)) (DeferredClaim.cells (decKid rd σ wV c).freshClaim) ∧
       verifyDeferred bytecode (decSeed σ) (statementDigest (decSeed σ) (kidStmt rd σ c))
         (decKid rd σ wV c).freshClaim (decKid rd σ wV c).proof = true := by
   have k := hK c hc
-  obtain ⟨pi0, pi1, s0, s1, glp, gsq, out, hargs, seed, pi, fresh, hs, hp, hfl, hfr, hvd⟩ :=
-    cw.sub _ _ _ _ _ _ _ k.sub MF.exp
+  obtain ⟨pi0, pi1, s0, s1, gsq, out, hargs, seed, pi, fresh, hs, hp, hfl, hfr, hvd⟩ :=
+    cw.sub _ _ _ _ _ _ k.sub MF.exp
   simp only [List.cons.injEq, and_true] at hargs
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
   have hseed : decSeed σ = seed := by
     unfold decSeed; rw [show σ (.n 47) = (digestHalves seed).1 by rw [← hs],
       show σ (.n 48) = (digestHalves seed).2 by rw [← hs], digestOfCells_scalars]
   have hpi : pi = statementDigest (decSeed σ) (kidStmt rd σ c) := by
     apply digestCells_inj
-    rw [← kid_digest MF hK hW hC hc, digestCells, ← hp]
+    rw [← kid_digest MF hK hW hc, digestCells, ← hp]
   have hlen : (DeferredClaim.cells fresh).length = 24 := by
     simp [DeferredClaim.cells, hfl, bytecodeVars]
   have hfresh : (decKid rd σ wV c).freshClaim = fresh := by
     show fixedOfCells (readCells rd (σ (.n 371) * gen ^ (24 * c)) 24) = fresh
     rw [readCells_of_readsAt hfr hlen, fixedOfCells_cells hfl]
-  have hargs : subArgs rd σ c = [(Kr c).p0, (Kr c).p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50),
+  have hargs : subArgs rd σ c = [(Kr c).p0, (Kr c).p1, σ (.n 47), σ (.n 48), σ (.n 49),
       σ (.n 371) * gen ^ (24 * c)] := by
     unfold subArgs
     rw [cellAt_eq_memAt, memAt_of_load k.pi0, memAt_of_load k.pi1]
@@ -110,8 +110,8 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     have hex : ∀ c, c < lg σ 6 → ∃ k : KidRec, KidOk C rd σ c k := kid_rec hm MF
     choose! Kr hK using hex
     exact ⟨Kr, hK⟩
-  have hW := writers MF hK
-  obtain ⟨sl, hC⟩ := cover_bij hW
+  obtain ⟨rx, rs, hrx, hrs⟩ := raw_slots MF
+  have hW := writers MF hK hrx hrs
   have hown := own_digest MF
   have hlog := log2_bytecode hbl
   -- the statement's digest
@@ -119,16 +119,16 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     apply digestCells_inj
     rw [← hown, loadHolds_unique MF.pub.1 hp0, loadHolds_unique MF.pub.2 hp1]
     rfl
-  have hdlen : (readCells rd (σ (.n 402)) 24).length = 24 := length_readCells _ _ _
-  refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, signatures_held MF hK hW hC cw, ?_, ?_⟩⟩
+  have hdlen : (readCells rd (σ (.n 398)) 24).length = 24 := length_readCells _ _ _
+  refine ⟨hdig, nodeRel_iff.mpr ⟨?_, ?_, signatures_held MF hK hW cw, ?_, ?_⟩⟩
   · -- the deferred claim's shape
-    show (deferOfCells (readCells rd (σ (.n 402)) 24)).bytecodePoint.length = _
+    show (deferOfCells (readCells rd (σ (.n 398)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point hdlen, hlog]
   · -- the children
     intro ch hch
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hch
     rw [List.mem_range, nKids_eq] at hc
-    refine ⟨?_, (kid_sub cw MF hK hW hC hc).2.2⟩
+    refine ⟨?_, (kid_sub cw MF hK hW hc).2.2⟩
     show (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
     rw [deferOfCells_point (length_readCells _ _ _), hlog]
   · -- the DA digest
@@ -142,7 +142,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
         show (List.range (nKids σ)).map _ = []
         rw [nKids_eq, h6]; rfl
       rw [ite_pos' hnil]
-      show (deferOfCells (readCells rd (σ (.n 402)) 24)).bytecodePoint = _
+      show (deferOfCells (readCells rd (σ (.n 398)) 24)).bytecodePoint = _
       rw [hlog]
       unfold deferOfCells
       simp only
@@ -161,7 +161,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
       obtain ⟨out, hol, hor, hb⟩ := cw.agg _ _ _ _ _ (MF.agg h6) (lg σ 6) (by omega) MF.kids.2
         MF.kids.1
       have hdef : (decStmt σ rd).deferredClaim = out := by
-        show deferOfCells (readCells rd (σ (.n 402)) 24) = out
+        show deferOfCells (readCells rd (σ (.n 398)) 24) = out
         rw [readCells_of_readsAt hor (by simp [DeferredClaim.cells, hol, bytecodeVars]),
           deferOfCells_of hol]
       have hch : (decWit σ rd wX wS wD wV wA).children = (List.range (lg σ 6)).map (decKid rd σ wV) := by
@@ -171,9 +171,9 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
       refine hb _ (by simp) fun c hc => ?_
       simp only [List.length_map, List.length_range] at hc
       simp only [List.getElem_map, List.getElem_range]
-      obtain ⟨hfl, hfr, -⟩ := kid_sub cw MF hK hW hC hc
+      obtain ⟨hfl, hfr, -⟩ := kid_sub cw MF hK hW hc
       have k := hK c hc
-      have hkd := kid_digest MF hK hW hC hc
+      have hkd := kid_digest MF hK hW hc
       simp only [digestCells, List.cons.injEq, and_true] at hkd
       refine ⟨hfl, ?_, ?_, ?_, hfr, ?_⟩
       · show (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).bytecodePoint.length = _

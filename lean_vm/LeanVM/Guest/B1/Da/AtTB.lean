@@ -43,10 +43,10 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 column offsets' doublings), the DA levels' words (`TotalLe`), and the statically bounded callees
 `da_vector` and `da_expand__L7_L8` within their static words (`vecB`, a frame). -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l17 : TotalLeOn coreProgram fs "__loop17" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop17")
-  l19 : TotalLeOn coreProgram fs "__loop19" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop19")
-  l20 : TotalLeOn coreProgram fs "__loop20" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop20")
-  l21 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21")
+  l17 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21")
+  l19 : TotalLeOn coreProgram fs "__loop23" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop23")
+  l20 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24")
+  l21 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25")
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * SK (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
@@ -93,7 +93,7 @@ theorem row_shape_completeAtB (fs : String → ℕ) (cert : String → V → ℕ
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_row_shape _ _).mp hrel
   rw [rs_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : Data.core27.params = [.n 0, .n 1, .n 2] := rfl
+  have hpar : Data.core29.params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   have h15 : σ (.n 15) = gen ^ s * gen ^ L := by
