@@ -275,6 +275,32 @@ theorem spArm_core {B : Nat} {slots : Nat → Nat → Nat} {first n : Nat} {fold
           ← e, hσ1]
         exact hkeep _ t ht
 
+/-- **The moved arm's values** are numbered below the group's end. -/
+theorem spArm_core_nb {B : Nat} {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool}
+    {prodIn encIn po eo : V} {k a En hi : Nat}
+    (F : SpArmFacts B slots first n fold prodIn encIn po eo k a En) (hB : 13 ≤ B) (hEhi0 : En ≤ hi)
+    (hEhi : ∀ i, (armT spW slots first n fold prodIn encIn po eo k a).1.findIdx? isTopConst = some i →
+      En + 5 ≤ hi) (hEX : En ≤ spVPad)
+    (hP : ∀ i, (armT spW slots first n fold prodIn encIn po eo k a).1.findIdx? isTopConst = some i →
+      B + 5 ≤ firstDef ((armT spW slots first n fold prodIn encIn po eo k a).1.getD i default) ∧
+      firstDef ((armT spW slots first n fold prodIn encIn po eo k a).1.getD i default) ≤ En)
+    (hnone : (armT spW slots first n fold prodIn encIn po eo k a).1.findIdx? isTopConst = none →
+      ∀ t < n, dig k t = 3) :
+    NumBelow hi (Stmt.valsList
+      (withPad spVPad isTopConst (armT spW slots first n fold prodIn encIn po eo k a).1).1) := by
+  cases hf : (armT spW slots first n fold prodIn encIn po eo k a).1.findIdx? isTopConst with
+  | none =>
+      rw [withPad_none hf]
+      rw [armT_digits3 (W := spW) (W' := spWp B) rfl rfl slots first n fold prodIn encIn po eo k a
+        (hnone hf)]
+      intro v hv
+      obtain ⟨j, rfl, hj⟩ := F.vals v hv
+      exact ⟨j, by omega, rfl⟩
+  | some i =>
+      obtain ⟨hP1, hP2⟩ := hP i hf
+      rw [withPad_some hf, (spArm_par (by omega) (by omega) hEX F.vals F.lay F.tail).symm]
+      exact (padMove_numBelow F.ssa.atoms hP2 F.vals i).mono (hEhi i hf)
+
 theorem padBase_eq {sel : Stmt → Bool} {L : List Stmt} {i : Nat} (h : L.findIdx? sel = some i) :
     padBase sel L = firstDef (L.getD i default) := by
   simp only [padBase, h]
@@ -299,7 +325,9 @@ theorem spArm_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V
     (hv : ∀ t < n, IsCanonical128 (vals t)) :
     Completes C rd (B + 5) (spArmB first n fold B prodIn encIn (4 ^ n))
       (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 σ
-      (SpArmPost first n fold B prodIn encIn k vals) := by
+      (SpArmPost first n fold B prodIn encIn k vals) ∧
+    NumBelow (spArmB first n fold B prodIn encIn (4 ^ n)) (Stmt.valsList
+      (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1) := by
   set a := spArmB first n fold B prodIn encIn k with ha
   set hi := spArmB first n fold B prodIn encIn (4 ^ n) with hhi
   set L := (spArmV first n fold B prodIn encIn k a).1 with hL
@@ -340,8 +368,10 @@ theorem spArm_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V
         (encT (spWp B) fold n B) 0 a).1 := rfl
     have hc := spArm_core (C := C) (rd := rd) F hB hEhi0 (by rw [← hLx]; exact hEhi) (by omega)
       (by rw [← hLx]; exact hP) (by rw [← hLx]; exact hnone) σ hg0 hg1 vals hv
-    rw [← hLx] at hc
-    refine hc.mono le_rfl le_rfl (fun σ' ⟨h1, h2⟩ => ⟨fun t ht => ?_, fun t ht => h2 t ht⟩)
+    have hnb := spArm_core_nb F hB hEhi0 (by rw [← hLx]; exact hEhi) (by omega)
+      (by rw [← hLx]; exact hP) (by rw [← hLx]; exact hnone)
+    rw [← hLx] at hc hnb
+    refine ⟨hc.mono le_rfl le_rfl (fun σ' ⟨h1, h2⟩ => ⟨fun t ht => ?_, fun t ht => h2 t ht⟩), hnb⟩
     cases hf : L.findIdx? isTopConst with
     | none => exact absurd (hnone hf 0 hn0) (by simp [dig])
     | some i =>
@@ -369,11 +399,13 @@ theorem spArm_complete {first n : Nat} {fold : Bool} {B : Nat} {prodIn encIn : V
     rw [← hEp] at F
     have hc := spArm_core (C := C) (rd := rd) F hB hEhi0 (by rw [← hV]; exact hEhi) (by omega)
       (by rw [← hV]; exact hP) (by rw [← hV]; exact hnone) σ hg0 hg1 vals hv
-    rw [← hV] at hc
+    have hnb := spArm_core_nb F hB hEhi0 (by rw [← hV]; exact hEhi) (by omega)
+      (by rw [← hV]; exact hP) (by rw [← hV]; exact hnone)
+    rw [← hV] at hc hnb
     have hsl : spSlots fold B k = slotsT (spWp B) fold (B + 5) := by
       simp only [spSlots, hk, ↓reduceIte, spSlot_eq]
     rw [hsl]
-    refine hc.mono le_rfl le_rfl (fun σ' ⟨h1, h2⟩ => ⟨fun t ht => ?_, fun t ht => h2 t ht⟩)
+    refine ⟨hc.mono le_rfl le_rfl (fun σ' ⟨h1, h2⟩ => ⟨fun t ht => ?_, fun t ht => h2 t ht⟩), hnb⟩
     have h1t := h1 t ht
     rw [spSlot_eq]
     cases hf : L.findIdx? isTopConst with

@@ -103,6 +103,15 @@ theorem atomsOnly_drop {ss : List Stmt} (h : atomsOnly ss = true) (i : Nat) :
       | zero => exact h
       | succ i => cases s <;> simp_all [atomsOnly]
 
+theorem mem_valsList_ex' : ∀ {L : List Stmt} {v : V}, v ∈ Stmt.valsList L → ∃ y ∈ L, v ∈ y.vals
+  | [], _, h => absurd h (by simp)
+  | y :: L, v, h => by
+      rw [valsList_cons, List.mem_append] at h
+      rcases h with h | h
+      · exact ⟨y, List.mem_cons_self .., h⟩
+      · obtain ⟨z, hz, hv⟩ := mem_valsList_ex' h
+        exact ⟨z, List.mem_cons_of_mem _ hz, hv⟩
+
 theorem mem_renameList_atom {r : V → V} : ∀ {ss : List Stmt} {a : Atom}, atomsOnly ss = true →
     Stmt.atom a ∈ Stmt.renameList r ss → ∃ a0, Stmt.atom a0 ∈ ss ∧ a = a0.rename r
   | [], _, _, h => absurd h (by simp [Stmt.renameList])
@@ -179,6 +188,64 @@ theorem padMove_completes {L : List Stmt} (hat : atomsOnly L = true) {b P lo E h
     rw [padVal_run hP hPE hhi hk, hpad k hk]
     rfl
   · exact hmain a (List.mem_of_mem_drop ha)
+
+theorem atom_vals_rename (r : V → V) (a : Atom) : (a.rename r).vals = a.vals.map r := by
+  cases a with
+  | hint h =>
+      cases h with
+      | witness s d => cases d <;> rfl
+      | bits v st n d => cases d <;> rfl
+      | bitsExp v n d => cases d <;> rfl
+      | log2Ceil b n fl dst => cases b <;> simp [Atom.rename, Hint.rename, Dest.rename, Atom.vals, Hint.vals, Dest.vals]
+      | _ => simp [Atom.rename, Hint.rename, Atom.vals, Hint.vals]
+  | keccak => simp [Atom.rename, Atom.vals]
+  | frameAddr => simp [Atom.rename, Atom.vals]
+  | _ => rfl
+
+theorem mem_valsList_rename {r : V → V} : ∀ {L : List Stmt}, atomsOnly L = true →
+    ∀ {v : V}, v ∈ Stmt.valsList (Stmt.renameList r L) → ∃ y ∈ Stmt.valsList L, v = r y
+  | [], _, _, h => absurd h (by simp [Stmt.renameList])
+  | .atom a :: L, hs, v, h => by
+      simp only [Stmt.renameList, Stmt.rename, valsList_cons, Stmt.vals, atom_vals_rename,
+        List.mem_append, List.mem_map] at h
+      rcases h with ⟨y, hy, rfl⟩ | h
+      · exact ⟨y, by simp [Stmt.vals, hy], rfl⟩
+      · obtain ⟨y, hy, e⟩ := mem_valsList_rename (r := r) (by simpa [atomsOnly] using hs) h
+        exact ⟨y, by simp [hy], e⟩
+  | .ite .. :: _, h, _, _ | .match_ .. :: _, h, _, _ | .call .. :: _, h, _, _
+  | .callIf .. :: _, h, _, _ | .dispatch .. :: _, h, _, _ | .ret _ :: _, h, _, _ => by
+      simp [atomsOnly] at h
+
+theorem mem_valsList_take {L : List Stmt} {i : Nat} {v : V} (h : v ∈ Stmt.valsList (L.take i)) :
+    v ∈ Stmt.valsList L := by
+  rw [← List.take_append_drop i L, valsList_append]; exact List.mem_append_left _ h
+
+theorem mem_valsList_drop {L : List Stmt} {i : Nat} {v : V} (h : v ∈ Stmt.valsList (L.drop i)) :
+    v ∈ Stmt.valsList L := by
+  rw [← List.take_append_drop i L, valsList_append]; exact List.mem_append_right _ h
+
+/-- **The moved block's values** are numbered below `E + 5`. -/
+theorem padMove_numBelow {L : List Stmt} (hat : atomsOnly L = true) {b P E : Nat} (hPE : P ≤ E)
+    (hv : ∀ v ∈ Stmt.valsList L, ∃ j, v = .n j ∧ j < E) (i : Nat) :
+    NumBelow (E + 5) (Stmt.valsList ((Stmt.renameList (padRen b P) L).take i ++ padRun P ++
+        (Stmt.renameList (padRen b P) L).drop i)) := by
+  have hren : ∀ v ∈ Stmt.valsList (Stmt.renameList (padRen b P) L), ∃ k < E + 5, v = .n k := by
+    intro v hm
+    obtain ⟨y, hy, rfl⟩ := mem_valsList_rename hat hm
+    obtain ⟨j, rfl, hj⟩ := hv y hy
+    rw [padRen_n]
+    exact ⟨_, by split_ifs <;> omega, rfl⟩
+  intro v hm
+  simp only [valsList_append, List.mem_append] at hm
+  rcases hm with (hm | hm) | hm
+  · exact hren v (mem_valsList_take hm)
+  · simp only [padRun, cst] at hm
+    obtain ⟨y, hy, hv'⟩ := mem_valsList_ex' hm
+    simp only [List.mem_map, List.mem_range] at hy
+    obtain ⟨k, hk, rfl⟩ := hy
+    simp only [Stmt.vals, Atom.vals, List.mem_singleton] at hv'
+    exact ⟨P + k, by omega, hv'⟩
+  · exact hren v (mem_valsList_drop hm)
 
 end
 end LeanVM.Guest.B1.Sig
