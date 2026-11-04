@@ -980,6 +980,13 @@ noncomputable def afterCall (X : Fx) (t q o : ℕ) (cr : List ℕ) (B : Book) (b
     | (_, false) => none
   | none => none
 
+/-- The walk after a `match`'s arms that end in the next chained `match`'s table jump through
+`fp[x]` into the arms `succ`: the walk `k` of the next `match` of the chain, or, at the end of the
+statements (a window ending there, the next one entered at `succ`), that table jump itself, with
+nothing pending. -/
+def chainTo (x : ℕ) (succ : List ℕ) (ss : List Core.Stmt) (P : List Core.Atom) (k : Res) : Res :=
+  bif ss.isEmpty then (bif P.isEmpty then .chain x succ else .fail) else k
+
 mutual
 /-- **The walk** of a block from a position, with the atoms pending in it. -/
 noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → Res
@@ -1027,7 +1034,7 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
                           else .fail
                       | .chain x succ =>
                           bif chkArms X (.chain x succ) as ts se.book se.bnd then
-                            chainL X x succ se.book se.psi se.bnd ss P
+                            chainTo x succ ss P (chainL X x succ se.book se.psi se.bnd ss P)
                           else .fail
                       | _ => .fail
                     | none => .fail
@@ -1133,7 +1140,8 @@ noncomputable def chainL (X : Fx) (x : ℕ) (succ : List ℕ) (B : Book) (ψ : T
                     | none => .fail
                   else .fail
               | .chain x' succ' =>
-                  bif chkArms X (.chain x' succ') as ts B bnd then chainL X x' succ' B ψ bnd ss P
+                  bif chkArms X (.chain x' succ') as ts B bnd then
+                    chainTo x' succ' ss P (chainL X x' succ' B ψ bnd ss P)
                   else .fail
               | _ => .fail
             | none => .fail
