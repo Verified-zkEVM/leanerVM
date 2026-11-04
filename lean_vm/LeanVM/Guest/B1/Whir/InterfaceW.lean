@@ -72,16 +72,21 @@ def osWordsLen (c : OsCfg) : ℕ := 2 + lvsWords c 0 c.levels + 2 * (c.yrLog - 1
 
 /-- The `opening_queries` call of `osQueries _ lvl lv lam lamN s`: its name, arguments and
 returns. -/
-def osQueriesCall (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
+def osQueriesCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
     String × List V × List V :=
   let k := s.k
-  let fp := osMat osFch lv.foldsOff (k + 2)
-  let cp := osMat osCaps (4 * lv.capOff) fp.2.2
-  let flp := osMat osFlags lv.capOff cp.2.2
+  let P := c.plan
+  let m0 := s.mats
+  let fp := osMatP P m0 osFch lv.foldsOff (k + 2)
+  let m1 := osMatsAfter P m0 osFch lv.foldsOff (k + 2)
+  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
+  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
+  let flp := osMatP P m2 osFlags lv.capOff cp.2.2
+  let m3 := osMatsAfter P m2 osFlags lv.capOff cp.2.2
   let r := flp.2.2
-  let cp2 := osMat osCaps (4 * lv.capOff) (r + 2)
-  let flp2 := osMat osFlags lv.capOff cp2.2.2
-  let bp := osMat osQbp lv.posOff flp2.2.2
+  let cp2 := osMatP P m3 osCaps (4 * lv.capOff) (r + 2)
+  let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
+  let bp := osMatP P m3 osQbp lv.posOff flp2.2.2
   let g := bp.2.2
   (osQueriesName lvl lv, [.n cp2.2.1, .n flp2.2.1, .n lam, .n lamN, .n bp.2.1, .n (k + 1), .n g],
     [.n (g + 1)])
@@ -89,11 +94,11 @@ def osQueriesCall (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
 /-- The `opening_queries` call of a level's template (`osLevel`, `osQueries`). -/
 def osQCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V × List V :=
   let f := osFolds osFch lv.foldsOff lv.folds s
-  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit lvl lv f.2
+  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   let sq := osSqueezes c lvl lv m.2.1
   let lam := sq.2.k - 1
-  let lamN := if lv.queries ≤ 1 then lam else sq.2.k + lv.queries - 1
-  osQueriesCall lvl lv lam lamN { sq.2 with k := sq.2.k + lv.queries }
+  let lp := osLamPow lvl lam lv.queries sq.2.k
+  osQueriesCall c lvl lv lam lp.2.1 { sq.2 with k := lp.2.2 }
 
 /-- The levels' `opening_queries` calls, with each level's index and configuration. -/
 def osQCalls (c : OsCfg) : ℕ → List OsLv → OsSt → List (ℕ × OsLv × String × List V × List V)
@@ -149,20 +154,21 @@ def open_stacked_osW (rd : Reader) (m : ℕ) (σ : Val) (V : FrameMap) : List E 
 /-- **`open_stacked` is sound with its witness `osW`**: under a call relation `C ≤ Rel` unfolding
 at the frame map `V`, a valuation `σ` holding the body of the candidate of `μ`, `r` on the
 capacity cells `fs`, the claim `target`, the root's two cells and the cursor, returning `rets`,
-gives `OpenOutW` at the words and openings `osW rd (candidate μ r) σ V`. Proved as
+on a memory image of at most `2^32` words (the query windows' range checks), gives `OpenOutW` at
+the words and openings `osW L.read (candidate μ r) σ V`. Proved as
 `open_stacked_sound_w` for `open_stacked_osW`. -/
 def open_stacked_sound_w_Spec (osW : Reader → ℕ → Val → FrameMap → List E × List Opening) :
     Prop :=
-  ∀ (rd : Reader) (C : CallRel) (V : FrameMap), UnfoldsV rd C V →
-    CallRel.Le C (coreProgram.Rel rd) →
+  ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap), UnfoldsV L.read C V →
+    CallRel.Le C (coreProgram.Rel L.read) →
     ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E) (fn : Fn)
         (σ : Val), fs.length = 5 → (root0, root1) = digestHalves root →
         coreProgram.find? (openName μ r) = some fn →
         fn.params.map σ = fs ++ [target, root0, root1, cur] →
-        Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets) →
-        OpenOutW rd μ r root fs target cur rets (osW rd (candidate μ r) σ V).1
-          (osW rd (candidate μ r) σ V).2
+        Stmt.HoldsList C L.read σ fn.body False (fun rs ↦ rs = rets) →
+        OpenOutW L.read μ r root fs target cur rets (osW L.read (candidate μ r) σ V).1
+          (osW L.read (candidate μ r) σ V).2
 
 end
 end LeanVM.Guest.B1.Whir

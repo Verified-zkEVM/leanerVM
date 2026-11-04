@@ -40,10 +40,9 @@ open LeanVM.Protocol.Verifier
 structure LvStatic (c : OsCfg) (i : ℕ) (lv : OsLv) : Prop where
   ml1 : 1 ≤ lv.logCols
   posOff : lv.posOff < u128Bound
-  wo : i * c.maxQ < u128Bound
   q2 : 2 ≤ lv.queries
-  qo : lv.queries / 2 < ordG
-  qu : lv.queries / 2 < u128Bound
+  qo : lv.queries / resBatch < ordG
+  qu : lv.queries / resBatch < u128Bound
   pre : lv.prefixLen + c.yrLog = lv.logCols
   rfo : lv.resFoldOff = lv.foldsOff + lv.folds
   le : lv.foldsOff + lv.folds ≤ c.nFolds
@@ -141,7 +140,7 @@ establishes `OpenOut`. -/
 theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     (hfnc : FnIs ("open_stacked__L" ++ natStr m) (osParams 9) (osBody c))
     (hloops : ∀ lvl (h : lvl < c.levels.length),
-      FnIs (c.resLoop lvl) (osParams 6) (resLoopBody c lvl c.levels[lvl] (c.resLoop lvl)))
+      FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl c.levels[lvl] (c.resLoop lvl)))
     (hF : CandFacts c μ r cfg) (hcal : CalleesOk rd c 0 c.levels)
     (hfold : ∀ args rets, coreProgram.Rel rd "opening_fold" args rets →
       MeaningOpeningFold rd args rets)
@@ -168,12 +167,12 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
   simp only [osBodyA, allOk_append] at hok
   obtain ⟨⟨⟨hH, hL⟩, hT⟩, hFin⟩ := hok
   -- the head
-  obtain ⟨c0, c2, hrd0, hrun0, hin0, hcur0⟩ :=
+  obtain ⟨c0, c2, hrd0, hrun0, hin0, hcur0, hwt⟩ :=
     osHead_sound (c := c) hfs hp hroot hF.shape hF.off0 (allOk_mono hle hH)
   -- the levels
   obtain ⟨xs1, os1, R', ms, ws', rs, hrd1, hrun1, hmsl, hfmr, hgl, hrsl, hrec, hfl, hfch, hq, ht,
     hfs1, hpad1, hco1, hcur1, hos1, hxl1⟩ :=
-    osLevels_sound hle c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hqw hin0 hL
+    osLevels_sound hle c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hqw hin0 hwt hL
   obtain ⟨p, hpp⟩ := osLevels_pad c c.levels 0 (osHead c).2 (by
     intro h; rw [h] at hn; simp at hn)
   set stL := (osLevels c 0 c.levels (osHead c).2).2 with hstL
@@ -196,8 +195,8 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     have := hF.lv i hi; rwa [lv_getD hi] at this
   -- the levels' inputs to the finish
   have hTr' : ∀ j (h : j < T.length), LoadHolds rd (σ (.n stT.2)) j T[j] := hTr
-  have hbasis : ∀ i (hi : i < c.levels.length), BasisIn rd σ c stT.2 i c.levels[i] (βof c rs i)
-      (Xof rs F T i) := fun i hi ↦ by
+  have hbasis : ∀ i (hi : i < c.levels.length), BasisIn rd σ c stT.2 i c.levels[i]
+      (βof c rs i * (rs.getD i default).lam ^ c.levels[i].queries) (Xof rs F T i) := fun i hi ↦ by
     have hr := hrec' i hi
     have hs := hsta i hi
     refine ⟨by unfold βof; exact hr.rq.beta, fun t ht ↦ ⟨(vanish_inv hs.vanish t (by
@@ -209,12 +208,13 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     rw [hpl, hrf]
     exact load_xof (by rw [hr.F, hFl]; exact hs.le) hfch hTr (by
       rw [hTl, hr.F, hFl]; have := hs.cols; have := hs.pre; omega)
-  have hres : ∀ i (hi : i < c.levels.length), ResIn rd σ c i c.levels[i] (Pof rs i) (Wof rs i) :=
+  have hres : ∀ i (hi : i < c.levels.length), ResIn rd σ c i c.levels[i] (Pof rs i)
+      ((rs.getD i default).lam) :=
     fun i hi ↦ by
       have hr := hrec' i hi
       have hs := hsta i hi
-      exact ⟨hloops i hi, hs.ml1, hs.posOff, hs.wo, hs.q2, hs.qo, hs.qu, hs.pre,
-        fun j hj ↦ hr.rq.pos j hj, fun j hj ↦ hr.rq.weights j hj⟩
+      exact ⟨hloops i hi, hs.ml1, hs.posOff, hs.qo, hs.qu, hs.pre,
+        fun j hj ↦ hr.rq.pos j hj, hr.rq.lam0, hr.rq.mu⟩
   have hood : OodAll rd σ c stT.2 (Λof rs) (Zof rs) (Yof rs F T) (c.levels.headD default).logCols
       1 c.levels.tail := by
     refine oodAll_of _ _ _ fun i hi ↦ ?_
@@ -254,7 +254,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
   obtain ⟨hfin, hpt, hne⟩ := osFinish_sound (rd := rd) (σ := σ) (c := c) (st := stT.1) (tch := stT.2)
     (ms := ms) (T := T) (Pt := (F ++ T).drop lane ++ (F ++ T).take lane)
     (β := βof c rs) (X := Xof rs F T) (P := Pof rs) (W := Wof rs) (Λ := Λof rs) (Z := Zof rs)
-    (Y := Yof rs F T) hfm (by rw [hmsl, hF.ylen]) hfmr hTl hTr
+    (Y := Yof rs F T) (Lam := fun i ↦ (rs.getD i default).lam) (fun _ _ ↦ rfl) hfm (by rw [hmsl, hF.ylen]) hfmr hTl hTr
     (ptSrc_ok hFl hTl hF.lane hfch hTr') hbasis hres hood hn (allOk_mono hle hFin)
   -- the glued weight
   have hlvfin : ∀ i < c.levels.length, LvFin c rs F T i := fun i hi ↦ by

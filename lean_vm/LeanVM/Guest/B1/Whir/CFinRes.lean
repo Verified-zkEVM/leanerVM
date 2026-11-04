@@ -33,7 +33,7 @@ def resPreVals (c : OsCfg) (n : ℕ) (RC acc : E) : List E :=
 
 /-- **The part before the last query, honestly.** -/
 theorem osResPre_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {bd k : ℕ} (σ : Val) (RC acc : E)
-    (hk : 34 ≤ k) (hbd : bd < k) (hn : lv.queries / 2 < u128Bound)
+    (hk : 164 ≤ k) (hbd : bd < k) (hn : lv.queries / 2 < u128Bound)
     (hL : IsInK (1 + gen ^ (lv.queries / 2)) ∧ (1 + gen ^ (lv.queries / 2) ≠ 0 →
       C (c.resLoop lvl) [1, gen ^ (lv.queries / 2), σ (.n osQpos), σ (.n osQw), σ (.n bd), RC] []))
     (h0 : LoadHolds rd RC 0 0) (hacc : LoadHolds rd RC (lv.queries / 2) acc) :
@@ -71,7 +71,7 @@ def resOddF (lvl : ℕ) (lv : OsLv) (bd k : ℕ) (σ : Val) (P W : E) (D : ℕ �
   fun j ↦ [W, W * σ2 (.n r.2.1), σ2 (.n (k + 8)) + W * σ2 (.n r.2.1)].getD (j - r.2.2) 0
 
 /-- **The last query of an odd count, honestly.** -/
-theorem osResOdd_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {bd k : ℕ} (σ : Val) (hk : 34 ≤ k)
+theorem osResOdd_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {bd k : ℕ} (σ : Val) (hk : 164 ≤ k)
     (hbd : bd < k) (hml : 1 ≤ lv.logCols) {P W : E} {D : ℕ → E}
     (hP : LoadHolds rd (σ (.n osQpos)) (lv.posOff + lv.queries - 1) P)
     (hD : ∀ s < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + s) (D s))
@@ -201,7 +201,7 @@ theorem osResidual_eq (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) :
 
 /-- **A level's residual sum, honestly.** -/
 theorem osResidual_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ} (σ : Val)
-    (hk : 34 ≤ k) (hich : ich < k) (hbd : bd < k) (hls : ls < k) (hml : 1 ≤ lv.logCols)
+    (hk : 164 ≤ k) (hich : ich < k) (hbd : bd < k) (hls : ls < k) (hml : 1 ≤ lv.logCols)
     (hn : lv.queries / 2 < u128Bound) (RC acc : E)
     (hL : IsInK (1 + gen ^ (lv.queries / 2)) ∧ (1 + gen ^ (lv.queries / 2) ≠ 0 →
       C (c.resLoop lvl) [1, gen ^ (lv.queries / 2), σ (.n osQpos), σ (.n osQw), σ (.n bd), RC] []))
@@ -308,7 +308,7 @@ theorem osResiduals_k (c : OsCfg) (ich bd ls : ℕ) : ∀ (lvl : ℕ) (levels : 
 
 /-- **Every level's residual sum, honestly.** -/
 theorem osResiduals_complete {c : OsCfg} {ich bd ls : ℕ} (RC acc P W I L : ℕ → E)
-    (D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), 34 ≤ k → ich < k → bd < k →
+    (D : ℕ → ℕ → E) : ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), 164 ≤ k → ich < k → bd < k →
       ls < k → (∀ i (hi : i < levels.length), ResMem C rd σ c ich bd ls (lvl + i) levels[i]
         (RC (lvl + i)) (acc (lvl + i)) (P (lvl + i)) (W (lvl + i)) (I (lvl + i)) (L (lvl + i))
         (D (lvl + i))) →

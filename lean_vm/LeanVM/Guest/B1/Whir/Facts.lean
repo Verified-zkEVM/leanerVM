@@ -31,13 +31,14 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `LvB`, checked. -/
 def lvBB (_c : OsCfg) (lvl : ℕ) (lv : OsLv) (level : Whir.Level) (ml : ℕ) : Bool :=
   decide (lv.depth = ml + level.logInvRate) && decide (level.queries = lv.queries) &&
-  decide (2 ≤ lv.queries) && decide (1 ≤ 192 / lv.depth) &&
+  decide (2 ≤ lv.queries) && decide (digitsVal (osPowDigits lv.queries) 1 = lv.queries) &&
+  decide (1 ≤ 192 / lv.depth) &&
   decide (lv.squeezes = ceilDiv lv.queries (192 / lv.depth)) &&
   decide (digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth) &&
   decide (lv.posOff < u128Bound) && decide (0 < lv.squeezes) && decide (lv.squeezes < ordG) &&
   decide (lv.squeezes * 5 < u128Bound) &&
   decide (lv.folds = if lvl = 0 then 6 else 4) && decide (lv.interleave = if lvl = 0 then 64 else 16) &&
-  decide (2 ≤ lv.capDepth) && decide (lv.capDepth ≤ lv.depth) &&
+  decide (2 ≤ lv.capDepth) && decide (lv.capDepth ≤ 8) && decide (lv.capDepth ≤ lv.depth) &&
   decide (lv.foldsOff < u128Bound) && decide (4 * lv.capOff < u128Bound) &&
   decide (lv.capOff < u128Bound) &&
   decide (lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG) &&
@@ -46,9 +47,9 @@ def lvBB (_c : OsCfg) (lvl : ℕ) (lv : OsLv) (level : Whir.Level) (ml : ℕ) : 
 theorem lvBB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {level : Whir.Level} {ml : ℕ}
     (h : lvBB c lvl lv level ml = true) : LvB c lvl lv level ml := by
   simp only [lvBB, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩,
-    h14⟩, h15⟩, h16⟩, h17⟩, h18⟩, h19⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ⟨h11, h12⟩, h13, h14,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, hqd⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩,
+    h13⟩, hc8⟩, h14⟩, h15⟩, h16⟩, h17⟩, h18⟩, h19⟩ := h
+  exact ⟨h1, h2, h3, hqd, h4, h5, h6, h7, h8, h9, h10, ⟨h11, h12⟩, h13, hc8, h14,
     ⟨h15, h16, h17, h7, h18, h19⟩⟩
 
 /-- `LevelsOk`, checked. -/
@@ -82,9 +83,10 @@ theorem levelsOkB_sound {c : OsCfg} {logN : ℕ} : ∀ {lvl : ℕ} {lvs : List O
   | _, _ :: _ :: _, [_], h => by simp [levelsOkB] at h
 
 /-- `LvStatic`, checked. -/
-def lvStaticB (c : OsCfg) (i : ℕ) (lv : OsLv) : Bool :=
-  decide (1 ≤ lv.logCols) && decide (lv.posOff < u128Bound) && decide (i * c.maxQ < u128Bound) &&
-  decide (2 ≤ lv.queries) && decide (lv.queries / 2 < ordG) && decide (lv.queries / 2 < u128Bound) &&
+def lvStaticB (c : OsCfg) (_i : ℕ) (lv : OsLv) : Bool :=
+  decide (1 ≤ lv.logCols) && decide (lv.posOff < u128Bound) &&
+  decide (2 ≤ lv.queries) && decide (lv.queries / resBatch < ordG) &&
+  decide (lv.queries / resBatch < u128Bound) &&
   decide (lv.prefixLen + c.yrLog = lv.logCols) && decide (lv.resFoldOff = lv.foldsOff + lv.folds) &&
   decide (lv.foldsOff + lv.folds ≤ c.nFolds) &&
   decide (c.nFolds - (lv.foldsOff + lv.folds) + c.yrLog = lv.logCols) &&
@@ -93,15 +95,16 @@ def lvStaticB (c : OsCfg) (i : ℕ) (lv : OsLv) : Bool :=
 theorem lvStaticB_sound {c : OsCfg} {i : ℕ} {lv : OsLv} (h : lvStaticB c i lv = true) :
     LvStatic c i lv := by
   simp only [lvStaticB, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, vanishOk_of_C h11⟩
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
+  exact ⟨h1, h2, h4, h5, h6, h7, h8, h9, h10, vanishOk_of_C h11⟩
 
 /-- A level's callees are in B1-a's tables. -/
 def NamesOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop :=
   (lvl ≠ c.yrLevel → ("opening_ood_point__L" ++ natStr lv.logCols, lv.logCols) ∈ oodPointNames) ∧
   ("opening_final_message__L" ++ natStr c.yrLen, c.yrLen) ∈ finalMessageNames ∧
   "grind_check__L" ++ natStr lv.grind = "grind_check__L17" ∧
-  ("decode_query_bits__L" ++ natStr lv.depth, lv.depth) ∈ decodeQueryBitsNames ∧
+  ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth, lv.depth, lv.capDepth) ∈
+    queryWindowsShapes ∧
   ("verify_merkle_cap__L" ++ natStr lv.capDepth, lv.capDepth) ∈ merkleCapNames ∧
   (osQueriesName lvl lv, lv.queries % 2 * (if lvl = 0 then 1 else 0), (if lvl = 0 then 1 else 0),
     lv.interleave, lv.leafCells, lv.depth, lv.capDepth) ∈ openingQueriesShapes ∧

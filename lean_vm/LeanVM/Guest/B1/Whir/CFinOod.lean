@@ -88,12 +88,12 @@ theorem osOodFacs_complete : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ) (�
     · rw [hv, h5, List.length_cons, Finset.prod_range_succ']
       ring
 
-theorem oodSrc_lt {tch zf k t : ℕ} {lv : OsLv} (htch : tch < k) (hk : 34 ≤ k) :
+theorem oodSrc_lt {tch zf k t : ℕ} {lv : OsLv} (htch : tch < k) (hk : 164 ≤ k) :
     (oodSrc tch zf lv t).1 < k := by
   unfold oodSrc; split_ifs <;> simp only <;> first | (unfold osFch; omega) | omega
 
 theorem oodAll_transfer {c : OsCfg} {tch : ℕ} {Λ : ℕ → E} {Z Y : ℕ → ℕ → E} {σ σ' : Val} {k : ℕ}
-    (htch : tch < k) (hk : 34 ≤ k) (ha : AgreeBelow k σ σ') :
+    (htch : tch < k) (hk : 164 ≤ k) (ha : AgreeBelow k σ σ') :
     ∀ (levels : List OsLv) (prevCols ol : ℕ), OodAll rd σ c tch Λ Z Y prevCols ol levels →
       OodAll rd σ' c tch Λ Z Y prevCols ol levels
   | [], _, _, _ => trivial
@@ -123,7 +123,7 @@ theorem osOodWeight_k (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) 
 
 /-- **One weight, honestly.** -/
 theorem osOodWeight_complete {c : OsCfg} {tch prevCols ol : ℕ} {lv : OsLv} {k : ℕ} (σ : Val)
-    (hk : 34 ≤ k) (htch : tch < k) {lam : E} {Z Y : ℕ → E}
+    (hk : 164 ≤ k) (htch : tch < k) {lam : E} {Z Y : ℕ → E}
     (hin : OodIn rd σ c tch prevCols ol lv lam Z Y) :
     BlkF C rd σ k (osOodWeight c tch prevCols ol lv k).2.2
       (oodWeightF c tch prevCols ol lv k σ lam Z Y) (osOodWeight c tch prevCols ol lv k).1
@@ -197,7 +197,7 @@ theorem osOodWeights_k (c : OsCfg) (tch : ℕ) : ∀ (levels : List OsLv) (prevC
 
 /-- **The weights, honestly**, summed onto the running sum. -/
 theorem osOodWeights_complete {c : OsCfg} {tch : ℕ} (Λ : ℕ → E) (Z Y : ℕ → ℕ → E) :
-    ∀ (levels : List OsLv) (prevCols ol : ℕ) (acc : Option ℕ) (k : ℕ) (σ : Val), 34 ≤ k →
+    ∀ (levels : List OsLv) (prevCols ol : ℕ) (acc : Option ℕ) (k : ℕ) (σ : Val), 164 ≤ k →
       tch < k → (∀ x, acc = some x → x < k) → OodAll rd σ c tch Λ Z Y prevCols ol levels →
       BlkF C rd σ k (osOodWeights c tch prevCols ol levels acc k).2.2
         (oodWeightsF c tch Λ Z Y prevCols ol levels acc k σ)

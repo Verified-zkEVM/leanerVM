@@ -185,7 +185,7 @@ theorem osFinEnd_ge (c : OsCfg) (st : OsSt) (tch : ℕ) : st.k + 6 ≤ osFinEnd 
   omega
 
 /-- **The body after the tail, honestly.** -/
-theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 34 ≤ st.k)
+theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} (σ : Val) (hk : 164 ≤ st.k)
     (htch : tch < st.k) (ht : st.t < st.k) (htail : c.levels.tail ≠ [])
     {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E} {RC acc Pq W I L : ℕ → E}
     {D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
