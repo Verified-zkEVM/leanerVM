@@ -74,8 +74,23 @@ cost_compile layerSwap := layerSwap
 def xmssLeaf (σ : LeanXmss.Signature) : ℕ := σ.leafIndex.val
 cost_compile xmssLeaf := xmssLeaf
 
-def sphincsCounter (σ : Sphincs.Signature) : ℕ := σ.counter.toNat
-cost_compile sphincsCounter := sphincsCounter
+def sphincsRandomizer (σ : Sphincs.Signature) : ℕ := σ.randomizer.toNat
+cost_compile sphincsRandomizer := sphincsRandomizer
+
+def slayerOf (n : ℕ) (r : BitVec 128) (l : Sphincs.Layer) : Sphincs.LayerSignature l :=
+  ⟨BitVec.ofNat 32 (n + l.val), fun _ ↦ r, fun j ↦ BitVec.ofNat 128 j.val⟩
+cost_compile slayerOf := slayerOf
+
+/-- The layers as the reader builds them (`depFin3`), stated at `Fin 3` (as
+`Cost/Decoder/Signatures.lean`'s `spLayersEnc`). -/
+instance : MachineEncoding ((i : Fin 3) → Sphincs.LayerSignature i) :=
+  @depFinEncoding 3 (fun i ↦ Sphincs.LayerSignature i) fun i ↦ instMachineEncodingLayerSignature_1 i
+
+/-- A signature whose layers are built as the reader builds them (`depFin3`). -/
+def mkSphincsSig (n : ℕ) (r p : BitVec 128) : Sphincs.Signature :=
+  ⟨BitVec.ofNat 128 77, fun _ ↦ ⟨p, fun _ ↦ r⟩,
+    LeanVM.Cost.depFin3 (slayerOf n r 0) (slayerOf n r 1) (slayerOf n r 2)⟩
+cost_compile mkSphincsSig := mkSphincsSig
 
 def vIdx (v : LeanVM.Guest.Core.V) : ℕ := v.idx + v.path.length
 cost_compile vIdx := vIdx
@@ -139,9 +154,12 @@ def decoded : SeedStatementAndWitness := mkDecoded digest stmt witness
 #guard runOn xmssLeaf.costDeps xmssLeaf.costIdx [encodeValue xsig] == some (encodeValue (12345 : ℕ))
 
 def ssig : Sphincs.Signature :=
-  ⟨r, fun _ ↦ ⟨fun _ ↦ ⟨fun _ ↦ p, fun _ ↦ r⟩, fun _ ↦ p⟩, BitVec.ofNat 32 99, fun _ ↦ r,
-    fun _ ↦ p⟩
-#guard runOn sphincsCounter.costDeps sphincsCounter.costIdx [encodeValue ssig] == some (encodeValue (99 : ℕ))
+  ⟨BitVec.ofNat 128 77, fun _ ↦ ⟨p, fun _ ↦ r⟩, fun l ↦ slayerOf 99 r l⟩
+#guard runOn sphincsRandomizer.costDeps sphincsRandomizer.costIdx [encodeValue ssig] ==
+  some (encodeValue (77 : ℕ))
+-- the layers built by `depFin3`, encoded as the statement encodes a signature's layers
+#guard runOn mkSphincsSig.costDeps mkSphincsSig.costIdx
+  [encodeValue (99 : ℕ), encodeValue r, encodeValue p] == some (encodeValue ssig)
 
 def v : LeanVM.Guest.Core.V := ⟨[.s 1, .i "main" 2, .t], 0, 7⟩
 #guard runOn vIdx.costDeps vIdx.costIdx [encodeValue v] == some (encodeValue (10 : ℕ))

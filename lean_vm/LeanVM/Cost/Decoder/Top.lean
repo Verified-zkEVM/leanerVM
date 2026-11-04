@@ -32,21 +32,31 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
+/-- The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer `o` (`22`): each layer's
+`sp_wots` frame (`21`) looked up once (`frameFpA`), the words read off the frame pointers
+(`frameValAt`). A function of the pointer, so that the search of `22` is not repeated at each word
+of that frame the reader reads. -/
+noncomputable def sphincsAtFp (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
+    (o : Option K) : Sphincs.Signature :=
+  sphincsSigOfA R.sphincs (frameValAt rd o 22)
+    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 0)
+      (spWotsRets (frameValAt rd o 22) 0)) 21)
+    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 1)
+      (spWotsRets (frameValAt rd o 22) 1)) 21)
+    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 2)
+      (spWotsRets (frameValAt rd o 22) 2)) 21)
+
 /-- **The leanSPHINCS signature checked at slot address `p`, its frames looked up once**
 (`sphincsAtFrame` at `frameAtA table rd`, `sphincsAtFrameT_eq`): `verify_sig_lean_sphincs`' frame
-(`22`), then each layer's `sp_wots` frame (`21`), each one binary search (`frameFpA`), their words
-read off the frame pointers found (`frameValAt`). -/
+(`22`) one binary search (`frameFpA`), then `sphincsAtFp`. -/
 noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) (p : E) : Sphincs.Signature :=
-  let s := frameValAt rd (frameFpA table 22 [p, σ (.n 68)] []) 22
-  sphincsSigOfA R.sphincs s (frameValAt rd (frameFpA table 21 (spWotsArgs s 0) (spWotsRets s 0)) 21)
-    (frameValAt rd (frameFpA table 21 (spWotsArgs s 1) (spWotsRets s 1)) 21)
-    (frameValAt rd (frameFpA table 21 (spWotsArgs s 2) (spWotsRets s 2)) 21)
+  sphincsAtFp R table rd (frameFpA table 22 [p, σ (.n 68)] [])
 
 theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by
   funext p
-  simp only [sphincsAtFrameT, sphincsAtFrame, frameAtA_eq_frameValAt]
+  simp only [sphincsAtFrameT, sphincsAtFp, sphincsAtFrame, frameAtA_eq_frameValAt]
 
 /-- The decoding off `main`'s valuation and the entry table. -/
 noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Reader) (σ : Val)
@@ -79,6 +89,8 @@ cost_compile powPairsByC measure fun _ n _ _ ↦ n := powPairsBy
 cost_compile babyTableC := babyTable
 set_option maxRecDepth 100000 in
 cost_compile discreteLogTablesC := discreteLogTables
+set_option maxRecDepth 100000 in
+cost_compile sphincsAtFpC := sphincsAtFp
 set_option maxRecDepth 100000 in
 cost_compile sphincsAtFrameTC := sphincsAtFrameT
 set_option maxRecDepth 100000 in

@@ -281,36 +281,37 @@ variable {rd : Reader} {rdV : MachineValue}
 include hrd hR hσ hS hVn hF hcl hC hL32
 
 /-- **The guest decoder's witness's price**: `decWitC` at the five callees' witness functions'
-prices. -/
-@[expose] def decWitNPrice (G R S F C L DW K N X : ℕ) : ℕ :=
-  decWitPrice G R S (458 * F + 214422) (S + 450 * F + 224149) (DW + 17)
-    (vsPiPrice R (F + 9) F C L + 23) (47 * F + 46 * R + 138493) K N X + 35
+prices, the leanSPHINCS reader's `WS` given. -/
+@[expose] def decWitNPrice (G R S F C L DW WS K N X : ℕ) : ℕ :=
+  decWitPrice G R S (458 * F + 214422) WS (DW + 17)
+    (vsPiPrice R (F + 9) F C L + 23) (47 * F + 46 * R + 138493) K N X + 29
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
-tables `Tb` given, `da_verify`'s witness at its frame at most `DW` (`dvWitN_cost` at `S = F + 9`),
-the counts within `K N X`, each child's cursor length (at `verify_sub`'s frame of its arguments,
-`subArgsK`) at most `L`: at most `decWitNPrice G R S F C L DW K N X`. -/
+tables `Tb` given, the leanSPHINCS reader `wS` of price at most `WS`, `da_verify`'s witness at its
+frame at most `DW` (`dvWitN_cost` at `S = F + 9`), the counts within `K N X`, each child's cursor
+length (at `verify_sub`'s frame of its arguments, `subArgsK`) at most `L`: at most
+`decWitNPrice G R S F C L DW WS K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
     (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
     (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
-        VnV] ≤ DW) {K N X : ℕ} (hc : CountsWithin D σ K N X)
+        VnV] ≤ DW) {wS : E → Sphincs.Signature} {wSV : MachineValue}
+    (hwS : ∀ a : E, RunsApp P wSV [encodeValue a] (encodeValue (wS a)))
+    {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS) {K N X : ℕ}
+    (hc : CountsWithin D σ K N X)
     (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 27))
       (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 868)) ≤ L) :
-    machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, clV] ≤
-      decWitNPrice G R S F C L DW K N X := by
-  rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn cl clV hcl]
+    machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, wSV, clV] ≤
+      decWitNPrice G R S F C L DW WS K N X := by
+  rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn wS wSV hwS cl clV hcl]
   have h := decWitC_cost P hrd hR hσ hS
     (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam0.costSpec P (by includes) Tb Vn VnV hVn p))
-    (wX_cost P hVn hF (by includes) Tb hTb)
-    (fun p ↦ RunsApp.of_spec (Decoder.decWitNC.lam1.costSpec P (by includes) Tb σ σV hσ Vn VnV hVn
-      p))
-    (wS_cost P hVn hF hσ hS (by includes) Tb hTb)
-    (fun a b ↦ RunsApp.of_spec (Decoder.decWitNC.lam2.costSpec P (by includes) D Vn VnV hVn a b))
+    (wX_cost P hVn hF (by includes) Tb hTb) hwS hWS
+    (fun a b ↦ RunsApp.of_spec (Decoder.decWitNC.lam1.costSpec P (by includes) D Vn VnV hVn a b))
     (wD_cost P hVn D (by includes) DW hDW)
-    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam3.costSpec P (by includes) Tb rd rdV hrd Vn VnV
+    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam2.costSpec P (by includes) Tb rd rdV hrd Vn VnV
       hVn cl clV hcl a))
-    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam4.costSpec P (by includes) rd rdV hrd Vn VnV hVn a))
+    (fun a ↦ RunsApp.of_spec (Decoder.decWitNC.lam3.costSpec P (by includes) rd rdV hrd Vn VnV hVn a))
     (wA_cost P hVn hF hrd hR (by includes)) D (by includes) hG hc
     (fun c hc ↦ wV_cost P hVn hF hrd hR hcl hC hL32 (by includes) Tb hTb _
       (by simp [Decoder.subArgsK]) (hLk c hc))

@@ -5,12 +5,13 @@ import LeanVM.Cost.Decoder.Frames
 
 The compiled readers off arrays (`xmssSigOfNC`, `sphincsSigOfNC`, `vsPiOfNC`, the tables
 `readerTabs` passed as a value) give the restated readers' values (`xmssSigOfN`, `sphincsSigOfN`,
-`vsPiOfN`) on a valuation whose cells hold powers of `g`, and cost less than those readers
-compiled as they were (`…OldC`: the tables literals named at each use, consecutive cells by
+`vsPiOfN`) on a valuation whose cells hold powers of `g` (every frame that valuation), and cost
+less than those readers compiled as they were (`…OldC`: the tables literals named at each use, consecutive cells by
 `g^k`, the loop's arguments and each query's position recomputed). On these inputs (each value of
-the valuation a `g^k` computed, so its reads dominate): leanXMSS `1209477 → 796429`, leanSPHINCS
-`1973004 → 942698`, the child proof `69900712 → 51424775`; the tables are built once per decoding
-at `29472` (`readerTabsC`).
+the valuation a `g^k` computed, so its reads dominate): leanXMSS `612868 → 199178`, leanSPHINCS
+`470905 → 459392` (its four frames the one valuation; the old compiled `sphincsSigOfN` builds
+`sp_wots`' tables at each call), the child proof `12188561 → 9257536`; the tables are built once per
+decoding at `16721` (`readerTabsC`).
 -/
 
 namespace LeanVMTests.Cost.DecoderReaders
@@ -55,8 +56,9 @@ def xmssNew := runOn (xmssSigOfNC.costDeps ++ powSigmaC.costDeps) xmssSigOfNC.co
 def xmssOld := runOn (xmssOldC.costDeps ++ powSigmaC.costDeps) xmssOldC.costIdx [sigmaV]
 
 def sphincsNew := runOn (sphincsSigOfNC.costDeps ++ powSigmaC.costDeps) sphincsSigOfNC.costIdx
-  [encodeValue sphincsTabs, sigmaV]
-def sphincsOld := runOn (sphincsOldC.costDeps ++ powSigmaC.costDeps) sphincsOldC.costIdx [sigmaV]
+  [encodeValue spTabs, sigmaV, sigmaV, sigmaV, sigmaV]
+def sphincsOld := runOn (sphincsOldC.costDeps ++ powSigmaC.costDeps ++ powFramesC.costDeps)
+  sphincsOldC.costIdx [sigmaV, vnV]
 
 def vsDeps := powSigmaC.costDeps ++ bitReaderC.costDeps ++ powFramesC.costDeps ++ cursor5C.costDeps
 def vsNew := runOn (vsPiOfNC.costDeps ++ vsDeps) vsPiOfNC.costIdx
@@ -65,8 +67,8 @@ def vsOld := runOn (vsPiOldC.costDeps ++ vsDeps) vsPiOldC.costIdx [rdV, sigmaV, 
 
 #guard (xmssNew.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
 #guard (xmssOld.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
-#guard (sphincsNew.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma))
-#guard (sphincsOld.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma))
+#guard (sphincsNew.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
+#guard (sphincsOld.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
 #guard (vsNew.map (·.1)) == some (encodeValue (vsPiOfN bitReader powSigma powFrames cursor5))
 #guard (vsOld.map (·.1)) == some (encodeValue (vsPiOfN bitReader powSigma powFrames cursor5))
 

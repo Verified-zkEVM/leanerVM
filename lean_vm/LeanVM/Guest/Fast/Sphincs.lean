@@ -11,22 +11,26 @@ public import LeanVM.Cost.Rules
 /-!
 # leanSPHINCS's signature reader, computable
 
-`verify_sig_lean_sphincs` (`Data.core21`, its template `B1/Sig/SphincsT.lean`) hints the
+`verify_sig_lean_sphincs` (`Data.core21`, compiled function `22`, its template
+`B1/Sig/SphincsT.lean`) hints the
 randomizer, the FORS openings, the counters and the paths into its own frame, at cells its body
-fixes, and calls `sp_wots` (`Data.core20`) once a layer, whose frame holds the layer's chain starts
+fixes, and calls `sp_wots` (`Data.core20`, function `21`) once a layer, whose frame holds the layer's chain starts
 at cells its digit words select (`spStartAt`, `Fast/SpWots.lean`). The reader takes
 `verify_sig_lean_sphincs`' valuation `σ` and the three `sp_wots` frames `w0`, `w1`, `w2`:
 
-* `forsOpeningA σ c`: FORS tree `c`'s opening, from its base `1225 + 233·c` (its secret, then nine
+* `forsOpeningA σ c`: FORS tree `c`'s opening, from its base `1225 + 233·c` (its secret, then ten
   levels of `23` cells, the hinted children at `+22`, the last two the tree's top nodes), each
   sibling the hinted child the bit does not name (`sibN`), the bit of the digest's field at
   `77 + 10·c` on;
 * `layerA T σ w ctr path bit layer`: a layer's counter (the cell `sp_from_bytes` folds), its chain
   starts off `sp_wots`' frame `w` (`cwCellA` over `sp_wots`' tables `T`), its path (levels of `21`
   cells from `path`, the bits from `bit`);
-* `sphincsSigOfA T σ w0 w1 w2`; `spWotsArgs σ l`, `spWotsRets σ l`: the words of layer `l`'s call
-  of `sp_wots` (`P`, the key's address, the encoding's first cell; the leaf), by which the frame
-  map finds its frame.
+* `sphincsSigOfA T σ w0 w1 w2`, its layers by `depFin3` (the compiler's dependent function of
+  `Fin 3`); `spWotsArgs σ l`, `spWotsRets σ l`: the words of layer `l`'s call of `sp_wots` (`P`,
+  the key's address, the encoding's first cell; the leaf), by which the frame map finds its frame;
+* **`sphincsSigOfN_eq`**: off the frame map re-keyed by index, the reader is B1's witness
+  `sphincsSigOf` (`B1/Sig/SphincsSig.lean`): the template's positions checked by the kernel
+  (`sForsBase_eq`, `sLayerPositions`), the chain starts by `spStartAt_eq_cwCell`.
 
 `SpTabs`, `spTabs`: `sp_wots`' tables as arrays, built once by the caller.
 -/

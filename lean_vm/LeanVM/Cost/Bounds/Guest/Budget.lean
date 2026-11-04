@@ -35,11 +35,11 @@ the decoder program's price is within `guestDecoderPrice` (`Cost/Prices.lean`,
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
   (`frameWit_cost`);
-* the tables: preconditions `12888` (`preTable_cost`), entries `7229368` (`pcTableT_cost`); the
+* the tables: preconditions `12888` (`preTable_cost`), entries `7237535` (`pcTableT_cost`); the
   address tables at the execution's `κ` and the guest's `ℓ`, `addressTablesPrice κ ℓ =
   (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`),
   `guestDecoderAddressTablesPrice` (`addressTablesPrice_eq`), and the rest of the constant,
-  `topConstPrice`, at most `101913582391 + 99702868·F` (`2^36.57 + 2^26.57·F`,
+  `topConstPrice`, at most `387933533474 + 70441362·F` (`2^38.50 + 2^26.07·F`,
   `topConst_valid_le`, each child's cursor at most `8192` words by `valid_cursor`), the
   `guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts·F`
   (`topConst_le`).
@@ -57,12 +57,13 @@ attribute [local instance] lexOrd
 
 /-- The constant's linear form in the frame map's price, the address tables apart, at a valid
 run's counts (`16` children, `65535` slots in the two regions together, `65535` declared claims
-and raw signatures a scheme, each child's cursor at most `8192` words): `101913582391 + 99702868·F`. -/
+and raw signatures a scheme, each child's cursor at most `8192` words): `387933533474 + 70441362·F`. -/
 theorem topConst_valid_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
-      8192 (dvFramePrice gLogPrice (F + 9)) 16 65535 65535) ≤
-      101913582391 + 99702868 * F := by
-  unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice decWitPrice
+      8192 (dvFramePrice gLogPrice (F + 9)) (sphincsReaderPrice 1271 (1271 + 1525) F) 16 65535
+        65535) ≤
+      387933533474 + 70441362 * F := by
+  unfold topConstPrice framesPrice decStmtPrice decStmtAtPrice decWitNPrice sphincsReaderPrice decWitPrice
     decWitAtPrice decWitTabPrice kidsTPrice decKidPrice kidStmtPrice kidStmtAtPrice
     xmssRawsTPrice sphincsRawsTPrice regionTablePrice vsPiPrice vsMPrice
     vsAtPrice levelPrice levelAtPrice oqsPrice stepPrice iterPrice queryPrice posPrice
@@ -76,7 +77,8 @@ theorem addressTablesPrice_eq (κ ℓ : ℕ) :
 /-- The constant is the statement's linear form. -/
 theorem topConst_le (F : ℕ) :
     topConstPrice 65535 (decWitNPrice gLogPrice 1271 (1271 + 1525) (F + 9) (125634 + 5)
-      8192 (dvFramePrice gLogPrice (F + 9)) 16 65535 65535) ≤
+      8192 (dvFramePrice gLogPrice (F + 9)) (sphincsReaderPrice 1271 (1271 + 1525) F) 16 65535
+        65535) ≤
       guestDecoderWitnessPriceAtValidCounts + guestDecoderFrameLookupCountAtValidCounts * F :=
   topConst_valid_le F
 
@@ -94,6 +96,18 @@ theorem entryArrayStatePrice_eq (e : ℕ) :
 `16` words). -/
 theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) :
     (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 1271 + 1584 ≤ guestDecoderFramePrice e := by
+  have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
+  rw [hw]
+  unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
+  have h1 : (64 * n + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) ≤
+      (64 * 16 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) :=
+    Nat.mul_le_mul_right _ (by omega)
+  omega
+
+/-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
+statement's frame lookup. -/
+theorem frameFpAPrice_le (e n : ℕ) (hn : n ≤ 16) :
+    (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e := by
   have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
   rw [hw]
   unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
@@ -188,6 +202,14 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
     fun k a r v hk hl ↦ (frameAtA_cost compiledGuestWitnessDecoder _ _ hrd 1271 hR
         includes_budget_frameAtA e _
       hok (by omega) k hk a r v).trans (frameAtAPrice_le e _ hl)
+  have hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 16 →
+      machineCost compiledGuestWitnessDecoder Decoder.frameFpAC.costIdx
+        [encodeValue (Decoder.entryArrayT Decoder.pcTableT
+          (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
+          states (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))),
+          encodeValue j, encodeValue args, encodeValue rets] ≤ guestDecoderFramePrice e :=
+    fun j args rets hj hl ↦ (frameFpA_cost compiledGuestWitnessDecoder includes_budget_frameFpA e _
+      hok (by omega) j hj args rets).trans (frameFpAPrice_le e _ hl)
   have hσ : ∀ v : V, RunsApp compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v]
       (encodeValue (Decoder.mainVal (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) v)) := fun v ↦
@@ -199,12 +221,13 @@ theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.
       Decoder.decTopStatesC.lam0.costEq compiledGuestWitnessDecoder includes_budget_mainValLam _ _ hrd, List.length_cons, List.length_nil]
     have := mainVal_cost compiledGuestWitnessDecoder includes_budget_mainVal hrd hR v; omega
   have hW := frameWit_cost compiledGuestWitnessDecoder discreteLogTables includes_budget_decWitN includes_budget_frameLam
-    includes_budget_cursorLam (gLog_bound compiledGuestWitnessDecoder includes_budget_gLogD) readerTabs readerTabs_ok hrd hR hσ hS
-    _ (guestDecoderFramePrice e) hF 125634
+    includes_budget_sphincsLam includes_budget_cursorLam
+    (gLog_bound compiledGuestWitnessDecoder includes_budget_gLogD) readerTabs readerTabs_ok hrd hR hσ hS
+    _ (guestDecoderFramePrice e) hF hFp 125634
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12888 7229368 _ _
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 12888 7237535 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := topConst_le (guestDecoderFramePrice e)
@@ -246,7 +269,7 @@ theorem guestDecoderPrice_le_budget {κ steps : ℕ} (hκ : κ ≤ 32) (hs : ste
     unfold guestDecoderFramePrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
-  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12888 + 7229368 +
+  calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 12888 + 7237535 +
           guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAtValidCounts +
           guestDecoderFrameLookupCountAtValidCounts * (1129 * lg + 7803) + 39 := by gcongr
     _ ≤ _ := by

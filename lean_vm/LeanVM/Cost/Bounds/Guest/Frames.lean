@@ -9,13 +9,16 @@ public import LeanVM.Cost.Decoder.Witness
 
 `Cost/Decoder/Frames.lean`: a callee's witness at its call's frame `Vn k args rets`, a closure of
 the frame map whose application costs at most `F + 9` (`F` the frame map's price), and the closures
-`decWitNC` hands to `decWitC` (`decWitNC.lam0 … lam4`), the callees' witness functions:
+`decWitNC` hands to `decWitC` (`decWitNC.lam0 … lam3`), the callees' witness functions but the
+leanSPHINCS reader, which the decoder's top passes (`sphincsAtFrameT`, its frames looked up once,
+`Bounds/Guest/DecTop.lean`):
 
-* `xmssAtFrame_cost` (`458·F + 214416`), `sphincsAtFrame_cost` (`S + 450·F + 224141`), the
-  readers' tables `Tb` given (`ReaderTabsOK`, `readerTabs_ok`),
+* `xmssAtFrame_cost` (`458·F + 214416`), the readers' tables `Tb` given (`ReaderTabsOK`,
+  `readerTabs_ok`),
   `daAtFrame_cost` (`dvWitNC`'s price `DW` at the frame a parameter, `daFrame_runs`, `daFrame_cost`:
   the frame's spec and price for `Da.lean`'s bound), `proofAtFrame_cost`, `hintsAtFrame_cost`;
-* `wX_cost` … `wA_cost`: the five closures `decWitNC` passes to `decWitC`, their prices.
+* `wX_cost`, `wD_cost`, `wV_cost`, `wA_cost`: the four closures `decWitNC` builds for `decWitC`,
+  their prices.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -30,17 +33,17 @@ variable (P : MachineProgram) {G : ℕ}
 /-- The readers' tables, their entries small (`readerTabs_ok`). -/
 structure ReaderTabsOK (Tb : ReaderTabs) : Prop where
   xmss : XmssTabsOK Tb.xmss
-  sphincs : SphincsTabsOK Tb.sphincs
+  sphincs : SpTabsOK Tb.sphincs
   whir : WhirTabsOK Tb.whir
 
-theorem readerTabs_ok : ReaderTabsOK readerTabs := ⟨xmssTabs_ok, sphincsTabs_ok, whirTabs_ok⟩
+theorem readerTabs_ok : ReaderTabsOK readerTabs := ⟨xmssTabs_ok, spTabs_ok, whirTabs_ok⟩
 
-/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `30452`. -/
+/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `17001`. -/
 theorem readerTabs_cost (hP : Includes P Decoder.readerTabsC.costDeps) :
-    machineCost P Decoder.readerTabsC.costIdx [] ≤ 30452 := by
+    machineCost P Decoder.readerTabsC.costIdx [] ≤ 17001 := by
   rw [Decoder.readerTabsC.costEq P hP]
   have := xmssTabs_cost P (by includes)
-  have := sphincsTabs_cost P (by includes)
+  have := spTabs_cost P (by includes)
   have := whirTabs_cost P (by includes)
   omega
 
@@ -71,29 +74,6 @@ theorem xmssAtFrame_cost (hP : Includes P Decoder.xmssAtFrameC.costDeps) (Tb : R
       Decoder.xmssAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
     have := hF 20 [p] [] v (by norm_num) (by simp); omega
   have := xmssSigOfN_cost P hσ hS (by includes) Tb.xmss hTb.xmss
-  omega
-
-/-- **A leanSPHINCS signature off its check's frame** (`sphincsAtFrameC`), the readers' tables
-`Tb` given, at `main`'s valuation of price `S`: `S + 450·F + 224141`. -/
-theorem sphincsAtFrame_cost (hP : Includes P Decoder.sphincsAtFrameC.costDeps) (Tb : ReaderTabs)
-    (hTb : ReaderTabsOK Tb) {σ : Val}
-    {σV : MachineValue} (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
-    {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S) (p : E) :
-    machineCost P Decoder.sphincsAtFrameC.costIdx [encodeValue Tb, σV, VnV, encodeValue p] ≤
-      S + 450 * F + 224141 := by
-  rw [Decoder.sphincsAtFrameC.costEq P hP Tb σ σV hσ Vn VnV hVn]
-  have hσ' : ∀ v : V, RunsApp P (.closure Decoder.sphincsAtFrameC.lam0.costIdx
-      [VnV, encodeValue [p, σ (.n 68)], encodeValue ([] : List E)]) [encodeValue v]
-      (encodeValue (Vn 21 [p, σ (.n 68)] [] v)) :=
-    fun v ↦ RunsApp.of_spec (Decoder.sphincsAtFrameC.lam0.costSpec P (by includes) Vn VnV hVn _ _ v)
-  have hS' : ∀ v : V, appCost P (.closure Decoder.sphincsAtFrameC.lam0.costIdx
-      [VnV, encodeValue [p, σ (.n 68)], encodeValue ([] : List E)]) [encodeValue v] ≤ F + 9 :=
-    fun v ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        Decoder.sphincsAtFrameC.lam0.costEq P (by includes) Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := hF 21 [p, σ (.n 68)] [] v (by norm_num) (by simp); omega
-  have := sphincsSigOfN_cost P hσ' hS' (by includes) Tb.sphincs hTb.sphincs
-  have := hS (.n 68)
   omega
 
 omit hF in
@@ -207,54 +187,42 @@ theorem wX_cost (hP : Includes P Decoder.decWitNC.lam0.costDeps) (Tb : ReaderTab
   have := xmssAtFrame_cost P hVn hF (by includes) Tb hTb p
   omega
 
-include hVn hF hσ hS in
-/-- The leanSPHINCS witness function (`decWitNC.lam1`), the readers' tables `Tb` given:
-`S + 450·F + 224149`. -/
-theorem wS_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (Tb : ReaderTabs)
-    (hTb : ReaderTabsOK Tb) (p : E) :
-    appCost P (.closure Decoder.decWitNC.lam1.costIdx [encodeValue Tb, σV, VnV]) [encodeValue p] ≤
-      S + 450 * F + 224149 := by
-  rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-    Decoder.decWitNC.lam1.costEq P hP Tb σ σV hσ Vn VnV hVn, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-  have := sphincsAtFrame_cost P hVn hF (by includes) Tb hTb hσ hS p
-  omega
-
 include hVn in
-/-- The DA witness function (`decWitNC.lam2`), the logarithm's tables `D` given, `dvWitNC` at
+/-- The DA witness function (`decWitNC.lam1`), the logarithm's tables `D` given, `dvWitNC` at
 `da_verify`'s frame at most `DW`: `DW + 17`. -/
 theorem wD_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
-    (hP : Includes P Decoder.decWitNC.lam2.costDeps) (DW : ℕ)
+    (hP : Includes P Decoder.decWitNC.lam1.costDeps) (DW : ℕ)
     (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
         VnV] ≤ DW) (args rets : List E) (hlen : args.length + rets.length ≤ 16) :
-    appCost P (.closure Decoder.decWitNC.lam2.costIdx [encodeValue D, VnV])
+    appCost P (.closure Decoder.decWitNC.lam1.costIdx [encodeValue D, VnV])
       [encodeValue args, encodeValue rets] ≤ DW + 17 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-    Decoder.decWitNC.lam2.costEq P hP D Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
+    Decoder.decWitNC.lam1.costEq P hP D Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
   have := daAtFrame_cost P hVn D (by includes) DW hDW args rets hlen
   omega
 
 include hVn hF hrd hR hcl hC hL32 in
-/-- The child proofs' witness function (`decWitNC.lam3`), the readers' tables `Tb` given, the
+/-- The child proofs' witness function (`decWitNC.lam2`), the readers' tables `Tb` given, the
 cursor's length at `verify_sub`'s frame at most `L`: `vsPiPrice R (F + 9) F C L + 23`. -/
-theorem wV_cost (hP : Includes P Decoder.decWitNC.lam3.costDeps) (Tb : ReaderTabs)
+theorem wV_cost (hP : Includes P Decoder.decWitNC.lam2.costDeps) (Tb : ReaderTabs)
     (hTb : ReaderTabsOK Tb) (args : List E) (hlen : args.length ≤ 16)
     (hL : cl (Vn 19 args [] (.n 27)) (Vn 19 args [] (.n 868)) ≤ L) :
-    appCost P (.closure Decoder.decWitNC.lam3.costIdx [encodeValue Tb, rdV, VnV, clV])
+    appCost P (.closure Decoder.decWitNC.lam2.costIdx [encodeValue Tb, rdV, VnV, clV])
       [encodeValue args] ≤ vsPiPrice R (F + 9) F C L + 23 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-    List.nil_append, Decoder.decWitNC.lam3.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
+    List.nil_append, Decoder.decWitNC.lam2.costEq P hP Tb rd rdV hrd Vn VnV hVn cl clV hcl, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
   have := proofAtFrame_cost P hVn hF (by includes) Tb hTb hrd hR hcl hC hL32 args hlen hL
   omega
 
 include hVn hF hrd hR in
-/-- The batching hints' witness function (`decWitNC.lam4`): `47·F + 46·R + 138493`. -/
-theorem wA_cost (hP : Includes P Decoder.decWitNC.lam4.costDeps) (args : List E)
+/-- The batching hints' witness function (`decWitNC.lam3`): `47·F + 46·R + 138493`. -/
+theorem wA_cost (hP : Includes P Decoder.decWitNC.lam3.costDeps) (args : List E)
     (hlen : args.length ≤ 16) :
-    appCost P (.closure Decoder.decWitNC.lam4.costIdx [rdV, VnV]) [encodeValue args] ≤
+    appCost P (.closure Decoder.decWitNC.lam3.costIdx [rdV, VnV]) [encodeValue args] ≤
       47 * F + 46 * R + 138493 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
-    Decoder.decWitNC.lam4.costEq P hP rd rdV hrd Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
+    Decoder.decWitNC.lam3.costEq P hP rd rdV hrd Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
   have := hintsAtFrame_cost P hVn hF (by includes) hrd hR args hlen
   omega
 

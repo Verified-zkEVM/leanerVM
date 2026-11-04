@@ -51,6 +51,11 @@ theorem includes_budget_frameAtA : Includes compiledGuestWitnessDecoder
   have := decoderProgram_includes
   includes
 
+theorem includes_budget_frameFpA : Includes compiledGuestWitnessDecoder
+    Decoder.frameFpAC.costDeps := by
+  have := decoderProgram_includes
+  includes
+
 theorem includes_budget_mainValLam : Includes compiledGuestWitnessDecoder Decoder.decTopStatesC.lam0.costDeps := by
   have := decoderProgram_includes
   includes
@@ -70,7 +75,11 @@ theorem includes_budget_frameLam : Includes compiledGuestWitnessDecoder
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_cursorLam : Includes compiledGuestWitnessDecoder Decoder.decTopFramesC.lam1.costDeps := by
+theorem includes_budget_sphincsLam : Includes compiledGuestWitnessDecoder Decoder.decTopFramesC.lam1.costDeps := by
+  have := decoderProgram_includes
+  includes
+
+theorem includes_budget_cursorLam : Includes compiledGuestWitnessDecoder Decoder.decTopFramesC.lam2.costDeps := by
   have := decoderProgram_includes
   includes
 

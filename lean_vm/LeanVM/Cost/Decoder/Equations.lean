@@ -24,7 +24,7 @@ compiled modules (their kernel checks stay small):
 
 The other restated functions' equations at the tables built (`…D_tables`,
 `dvWitND_tables`, `cursorLength_tables`, `gLogD_tables`; the readers' off arrays,
-`xmssSigOfA_tabs`, `sphincsSigOfA_tabs`, `vsPiOfA_tabs`, in `Guest/Fast/`) are next to them.
+`xmssSigOfA_tabs`, `vsPiOfA_tabs`, in `Guest/Fast/`) are next to them.
 -/
 
 namespace LeanVM.Cost.Decoder
