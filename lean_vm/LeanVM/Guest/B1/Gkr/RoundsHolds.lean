@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.RoundsHolds
 
-  `gkr_rounds__L1` and `gkr_rounds__L2` are sound in the form the bus's layers use: B1-a's
+  `gkr_rounds__L{1,2,4,6}` are sound in the form the bus's layers use: B1-a's
   `gkr_rounds_holds`.
 -/
 
@@ -23,10 +23,9 @@ theorem tbGkrRoundsOut_of_meaning {n : ℕ} {rd : Reader} {rec pt : E} {rets : L
   obtain ⟨-, cap, cur, claim, cs, es, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
   exact ⟨cap, cur, claim, cs, es, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
 
-/-- **`gkr_rounds__L1` and `gkr_rounds__L2` are sound** (from B1-a's `gkr_rounds_holds`). -/
+/-- **`gkr_rounds__L{n}`, `n ∈ {1, 2, 4, 6}`, is sound** (from B1-a's `gkr_rounds_holds`). -/
 theorem tb_gkr_rounds_holds : tb_gkr_rounds_Spec :=
-  ⟨fun rd _ _ h => tbGkrRoundsOut_of_meaning ((gkr_rounds_holds.1 rd _ _).mp h),
-    fun rd _ _ h => tbGkrRoundsOut_of_meaning ((gkr_rounds_holds.2 rd _ _).mp h)⟩
+  fun n hn rd _ _ _ h => tbGkrRoundsOut_of_meaning ((gkr_rounds_holds.1 n hn rd _ _).mp h)
 
 end
 end LeanVM.Guest.B1.Tables
