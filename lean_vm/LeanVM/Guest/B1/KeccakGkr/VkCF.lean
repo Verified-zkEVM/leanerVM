@@ -41,7 +41,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     (hchk : σ (.n 1376) * formVal (fun l ↦ ∑ m ∈ range 2,
         eqAt [point.getD (τ - 4) 0] m * eqAt slotI (25 * (0 + m) + l)) (kLane lanes)
         (fun r ↦ ∑ z ∈ range 64, slices.getD z 0 * eqAt (loc.take 6) ((z + r) % 64)) =
-      σ (.n 1388)) :
+      σ (.n 1388)) (h1251 : σ (.n 1251) = σ (.n 9) * gen ^ 39) :
     σ (.n 2249) = pp ∧ σ (.n 3864) = 1 + σ (.n 17) ∧ σ (.n 3865) = 1 ∧
       σ (.n 3867) = σ (.n 9) * gen ^ 43 ∧
       ∀ {kret : List E → Prop}, kret [σ (.n 2237), σ (.n 2238), σ (.n 2239), σ (.n 2240),
@@ -144,10 +144,10 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
   have a6580 : σ (.n 3864) = σ (.n 3863) + σ (.n 17) :=
     gA (.add (.n 3864) (.n 3863) (.n 17)) (by simp [vkFinT])
   have c6581 : σ (.n 3865) = word 1 0 0 := gA (.const (.n 3865) (word 1 0 0)) (by simp [vkFinT])
-  have c6582 : σ (.n 3866) = word 8796093022208 0 0 :=
-    gA (.const (.n 3866) (word 8796093022208 0 0)) (by simp [vkFinT])
+  have c6582 : σ (.n 3866) = word 16 0 0 :=
+    gA (.const (.n 3866) (word 16 0 0)) (by simp [vkFinT])
   have m6583 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 3867) (.n 9) (.n 3866)) (by simp [vkFinT]))
+    (gA (.mul (.n 3867) (.n 1251) (.n 3866)) (by simp [vkFinT]))
   have ecp : ∀ j < 5, σ (.n (3868 + j)) = σ (.n (2237 + j)) := fun j hj ↦
     hg _ (mCP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))
   have c6589 : σ (.n 3873) = word 27 0 0 := gA (.const (.n 3873) (word 27 0 0)) (by simp [vkFinT])
@@ -157,7 +157,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
   have e6592 : σ (.n 3876) = σ (.n 973) := gA (.copy (.n 3876) (.n 973)) (by simp [vkFinT])
   have e6593 : σ (.n 3877) = σ (.n 2248) := gA (.copy (.n 3877) (.n 2248)) (by simp [vkFinT])
   have e6580 : σ (.n 3864) = 1 + σ (.n 17) := by rw [a6580, c6579, word_one]
-  refine ⟨e4977, e6580, by rw [c6581, word_one], by rw [m6583, c6582, word_2p43],
+  refine ⟨e4977, e6580, by rw [c6581, word_one], by rw [m6583, c6582, word_16, h1251, mul_assoc, ← pow_add],
     fun {kret} hk ↦ ?_⟩
   rw [vkFinT]
   simp only [holdsList_append]

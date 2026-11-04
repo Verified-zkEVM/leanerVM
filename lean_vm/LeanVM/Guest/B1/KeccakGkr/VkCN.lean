@@ -26,7 +26,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-theorem mem_steps : ∀ s < 12, ∀ st ∈ stepT s (stepB s) (stepCap s) (stepCur s) vkGw,
+theorem mem_steps : ∀ s < 12, ∀ st ∈ stepT s (stepB s) (stepCap s) (stepCur s) (stepCb s) (stepPn s),
     st ∈ vkStepsT := by
   intro s hs st hst
   rw [vkStepsT]
@@ -67,13 +67,13 @@ theorem claims_slice (h : D.Ok) {k : ℕ} (hk : k < 12)
 /-- The first claim's record, in the claim records. -/
 theorem claims_first (hc : ReadsAt rd (ptr (B + D.o201)) (D.claims B ls)) :
     ReadsAt rd (ptr (B + D.o201 + 22 * 0)) (D.cw0 B) :=
-  (Digest.readsAt_append.1 hc).1
+  (readsAt_append.1 hc).1
 
 /-- The first claim's lanes, in the lane coordinates' tree. -/
 theorem lanes_first (ht : ReadsAt rd (ptr (B + D.o274)) (eqLevels D.rl 5)) :
     ReadsAt rd (ptr (B + D.o274 + 30)) ((eqKernel D.rl).take 25) := by
   rw [eqLevels_succ] at ht
-  have := (Digest.readsAt_append.1 ht).2
+  have := (readsAt_append.1 ht).2
   rw [ptr_mul_gen, eqLevels_length (by rw [rl_length]; norm_num),
     show D.rl.take (4 + 1) = D.rl from List.take_of_length_le (by rw [rl_length])] at this
   intro k hk
@@ -84,7 +84,7 @@ theorem lanes_first (ht : ReadsAt rd (ptr (B + D.o274)) (eqLevels D.rl 5)) :
 /-- **Claim `s`'s record and buffers, in memory.** -/
 theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {s : ℕ} (hs : s < 12) :
     MemL rd ((D.CL B ls s).L (firstOf s) (D.layer s).c) := by
-  obtain ⟨m58, -, m201, -, m274, -, -, -⟩ := own_mem (by have := h.1; omega) hm.own
+  obtain ⟨m58, -, m201, -, m274, -, -⟩ := own_mem (by have := h.1; omega) hm.own
   rcases s with _ | k
   · intro q hq
     simp only [CL, ClaimLay.L, firstOf, ↓reduceIte, List.append_nil, List.mem_cons,
@@ -108,16 +108,23 @@ theorem CL_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {s : ℕ} (
       exact hL _ (by simp)
     · exact hL _ (by simp)
     · exact hL _ (by simp)
-    · exact hL _ (by simp)
+    · have hw := (D.CL_ok h B ls (s := k + 1) (by omega)).2.2.2.2.2.2.2.2.2
+      simp only [show firstOf (k + 1) = 0 from rfl, zero_ne_one, ↓reduceIte] at hw
+      rw [hw.2.2.2]
+      exact hL _ (by simp [CL])
 
-theorem step_bounds : ∀ s < 12, 202 ≤ stepT0 s (stepB s) ∧ 17 ≤ stepB s := by decide +kernel
+theorem step_bounds : ∀ s < 12, 204 ≤ stepT0 s (stepB s) ∧ 17 ≤ stepB s ∧
+    stepCb s < stepT0 s (stepB s) ∧ stepPn s < stepT0 s (stepB s) := by decide +kernel
 
 set_option maxRecDepth 20000 in
-/-- **Step `s`, on the layout.** -/
+/-- **Step `s`, on the layout**: from the claim records' pointers it reads (`cb`: claim `s`'s,
+`pn`: claim `s + 1`'s, as the step before computed them). -/
 theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) (h47 : σ (.n 47) = gen ^ D.odd)
-    (h201 : σ (.n 203) = ptr (B + D.o201)) (h274 : σ (.n 276) = ptr (B + D.o274)) :
+    (h17 : σ (.n 17) = gen ^ (D.τ - 4))
+    (h201 : σ (.n 203) = ptr (B + D.o201)) (h274 : σ (.n 276) = ptr (B + D.o274))
+    (hcb : 1 ≤ s → σ (.n (stepCb s)) = σ (.n 203) * gen ^ (22 * (s - 1)))
+    (hpn : 1 ≤ s → σ (.n (stepPn s)) = σ (.n 203) * gen ^ (22 * s)) :
     σ (.n (stepT0 s (stepB s) - 1)) = keccakIota D.τ s (D.layer s).c ∧
     (s = 0 → σ (.n (stepT0 s (stepB s) + 1)) = σ (.n 5) * gen ∧
       σ (.n (stepT0 s (stepB s) + 3)) = gen ^ (D.τ - 3) ∧
@@ -125,13 +132,13 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (s ≠ 0 → σ (.n (stepT0 s (stepB s))) = 0 ∧ σ (.n (stepT0 s (stepB s) + 1)) = 0 ∧
       σ (.n (stepT0 s (stepB s) + 3)) = gen ^ (D.τ - 3) ∧
       σ (.n (stepT0 s (stepB s) + 5)) = σ (.n 203) * gen ^ (22 * s) ∧
-      σ (.n (stepT0 s (stepB s) + 9)) = σ (.n 203) * gen ^ (22 * (s + 1))) ∧
+      σ (.n (stepT0 s (stepB s) + 7)) = σ (.n 203) * gen ^ (22 * (s + 1))) ∧
     ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepT s (stepB s) (stepCap s) (stepCur s) vkGw)
-        next kret := by
+      Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
+        (stepT s (stepB s) (stepCap s) (stepCur s) (stepCb s) (stepPn s)) next kret := by
   have hτ1 := h.1
   have hσ : ∀ v, σ v = σ (.n v.idx) := by subst hσd; exact (val_good h).1
-  have hg : ∀ st ∈ stepT s (stepB s) (stepCap s) (stepCur s) vkGw,
+  have hg : ∀ st ∈ stepT s (stepB s) (stepCap s) (stepCur s) (stepCb s) (stepPn s),
       GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
     subst hσd
     exact val_good' h (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -140,7 +147,7 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   have hgC : ∀ st ∈ stepCore s (stepB s), GoodS rd vkSt (D.w B curE) σ st :=
     fun st hst ↦ hg st (List.mem_append_left _ hst)
   have hgT := fun st hst ↦ hg st (List.mem_append_right _ hst)
-  obtain ⟨hbT, hbB⟩ := step_bounds s hs
+  obtain ⟨hbT, hbB, hcbT, hpnT⟩ := step_bounds s hs
   -- the claim's record
   have hcr := ClaimLay.claimRec (D.CL_ok h B ls hs.le) (CL_mem h hm hs)
   have hbc : (D.CL B ls s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
@@ -148,24 +155,13 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   have hyL : (D.layer s).y = D.τ - 3 := D.layer_y h (by omega)
   obtain ⟨-, hptL, -, -, -, ⟨pp, hpp, hpt⟩, lp, lanes, hlp, hlen, hlanes, hrest⟩ := hcr
   have hpp' := (loadHolds_mul_gen_pow rd _ _ _ _).1 hpp
-  -- the segment weights
-  have hT : ∀ i < 2, LoadHolds rd (σ (.n (stepB s + 1))) i
-      ((eqKernel [(D.layer s).c.point.getD (D.τ - 4) 0]).getD i 0) := by
-    intro i hi
-    have ha : σ (.n (stepB s + 1)) = D.w B curE (stepB s + 1) := by
-      subst hσd
-      exact val_alloc h (.n (stepB s + 1), .inl 2) (List.mem_append_left _ (List.mem_append_right _
-        (List.mem_map.mpr ⟨s, List.mem_range.mpr hs, rfl⟩)))
-    rw [ha, w_step hs]
-    obtain ⟨-, -, -, -, -, -, mst, -⟩ := own_mem (by omega) hm.own
-    exact ClaimLay.getD_load (mst s hs) (by simp [segW, eqKernel_length]; omega)
   -- the flips
   obtain ⟨hF, HF⟩ : (∀ i ∈ iotaUsed s, σ (.n (flipOf s (stepB s + 6) i)) =
         (D.layer s).c.weights.getD (2 ^ i - 1) 0) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (flipsT s (stepB s + 6)) next kret := by
     rcases Nat.eq_zero_or_pos s with rfl | hs0
-    · obtain ⟨-, -, -, -, m274, -, -, -⟩ := own_mem (by omega) hm.own
+    · obtain ⟨-, -, -, -, m274, -, -⟩ := own_mem (by omega) hm.own
       have hL0 : LoadHolds rd (σ (.n 276)) 30 ((eqKernel D.rl).getD 0 0) := by
         rw [h274]
         have := lanes_first m274 0 (by simp [eqKernel_length, rl_length])
@@ -178,24 +174,26 @@ theorem step_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     · have hf0 : firstOf s = 0 := by unfold firstOf; split <;> omega
       simp only [hf0, show (0 : ℕ) = 1 ↔ False by decide, decide_false, Bool.false_eq_true,
         ↓reduceIte] at hrest
-      obtain ⟨lc, sl, loc, hlc, hlocL, -, hsl, hslices, hw⟩ := hrest
+      obtain ⟨-, fl, -, -, -, -, hfl, hflR, -⟩ := hrest
       exact flipsL_complete (by omega) hσ hgC (step_ker s hs)
-        ((loadHolds_mul_gen_pow rd _ _ _ _).1 hlp) ((loadHolds_mul_gen_pow rd _ _ _ _).1 hlc)
-        ((loadHolds_mul_gen_pow rd _ _ _ _).1 hsl) hlanes hlen hlocL hslices hw
+        ((loadHolds_mul_gen_pow rd _ _ _ _).1 hfl) hflR
   -- the core
   obtain ⟨hio, HC⟩ := stepCore_of_flips hs hbB hσ hgC (step_ker s hs) hτ1 h17 hpp' hpt
-    (by rw [hptL, hyL]) hT hF HF
+    (by rw [hptL, hyL]) hF HF
   refine ⟨hio, fun hs0 ↦ ?_, fun hs0 ↦ ?_, fun {next kret} hn ↦ ?_⟩
   · subst hs0
-    obtain ⟨e1, e3, e5, -⟩ := tail0_complete hbT hgT h17 (by omega) h47
+    obtain ⟨e1, e3, e5, -⟩ := tail0_complete hbT hgT h17 (by omega)
     exact ⟨e1, e3, e5⟩
-  · obtain ⟨e0, e1, e3, e5, e9, -⟩ := tailL_complete (by omega) hs hbT hgT h17 (by omega) h47
-    exact ⟨e0, e1, e3, e5, e9⟩
+  · obtain ⟨e0, e1, e3, e5, e7, -⟩ := tailL_complete (by omega) (by omega) hcbT hpnT hgT h17
+      (by omega)
+    refine ⟨e0, e1, e3, ?_, ?_⟩
+    · rw [e5, hcb (by omega), mul_assoc, ← pow_add]; congr 2; omega
+    · rw [e7, hpn (by omega), mul_assoc, ← pow_add]; congr 2
   · rw [holdsList_append]
     refine HC ?_
     rcases Nat.eq_zero_or_pos s with rfl | hs0
-    · exact (tail0_complete hbT hgT h17 (by omega) h47).2.2.2 hn
-    · exact (tailL_complete (by omega) hs hbT hgT h17 (by omega) h47).2.2.2.2.2 hn
+    · exact (tail0_complete hbT hgT h17 (by omega)).2.2.2 hn
+    · exact (tailL_complete (by omega) (by omega) hcbT hpnT hgT h17 (by omega)).2.2.2.2.2 hn
 
 end VkData
 

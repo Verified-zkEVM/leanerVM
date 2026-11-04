@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 # The body, flat
 
 `vkT = vkPre ++ [.ret vkVs]` (`vkT_pre`). `vkPre_kernel`: its statements are flat, it takes no
-frame addresses, its nineteen buffers (`vkAllocs`); every dispatch is on `odd_g` (`.n 47`) between
-two names, so its calls are `vkCalls o` at `logG odd_g = o` (`vkPre_callSF`).
+frame addresses, its seven buffers (`vkAllocs`); it dispatches nothing, so its calls are `vkCalls`
+(`vkPre_callSF`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -44,33 +44,27 @@ theorem vkT_pre : vkT = vkPre ++ [.ret vkVs] := by
 /-- The buffers. -/
 def vkAllocs : List (V × (ℕ ⊕ V)) :=
   [(.n 60, .inr (.n 59)), (.n 92, .inl 5), (.n 203, .inl 286), (.n 205, .inl 30), (.n 276, .inl 62),
-    (.n 384, .inl 2)] ++ (List.range 12).map (fun s ↦ (.n (stepB s + 1), .inl 2)) ++
-    [(.n 1259, .inl 30)]
+    (.n 384, .inl 2), (.n 1259, .inl 30)]
 
-/-- The frame a statement sets up, a dispatch taking its `o`-th name. -/
-def callSFO (o : ℕ) : Stmt → Option (Option V × String × List V × List V)
-  | .dispatch _ fs args rets => some (none, fs.getD o "", args, rets)
-  | s => Main.Stmt.callS s
-
-/-- A dispatch on `odd_g` between two names. -/
-def dispOddB : Stmt → Bool
-  | .dispatch x fs _ _ => x == .n 47 && fs.length == 2
+/-- Not a dispatch. -/
+def noDispB : Stmt → Bool
+  | .dispatch .. => false
   | _ => true
 
 /-- Step `s`'s call's arguments and returns. -/
-def stepCall (o s : ℕ) : Option V × String × List V × List V :=
+def stepCall (s : ℕ) : Option V × String × List V × List V :=
   let T := stepT0 s (stepB s)
   if s = 0 then
-    (none, layerName 1 o, (stepCap s).map .n ++ [.n 200, .n 202, .n (T + 1), .n (T + 3), .n 43,
-      .n 48, .n 203, .n (T + 5), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 6 + j))
+    (none, layerName 1, (stepCap s).map .n ++ [.n 200, .n 202, .n (T + 1), .n (T + 3), .n 33,
+      .n 47, .n 203, .n (T + 5), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 6 + j))
   else
-    (none, layerName 0 o, (stepCap s).map .n ++ [.n T, .n (T + 1), .n (stepCur s), .n (T + 3),
-      .n 43, .n 48, .n (T + 5), .n (T + 9), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 10 + j))
+    (none, layerName 0, (stepCap s).map .n ++ [.n T, .n (T + 1), .n (stepCur s), .n (T + 3),
+      .n 33, .n 47, .n (T + 5), .n (T + 7), .n (T - 1)], (List.range 6).map fun j ↦ .n (T + 8 + j))
 
-/-- **The calls**, `odd_g = g^o`. -/
-def vkCalls (o : ℕ) : List (Option V × String × List V × List V) :=
+/-- **The calls.** -/
+def vkCalls : List (Option V × String × List V × List V) :=
   [(some (.n 62), "__loop10", [.n 63, .n 17, .n 60, .n 65], [])] ++
-    (List.range 12).map (stepCall o) ++
+    (List.range 12).map stepCall ++
     [(none, "keccak_plain_rounds__L6_L0", [.n 957, .n 958, .n 959, .n 960, .n 961, .n 964,
         .n 965, .n 962, .n 193, .n 963], (List.range 7).map fun j ↦ .n (966 + j)),
       (some (.n 1243), "__loop11", [.n 1244, .n 17, .n 1246, .n 60], []),
@@ -82,31 +76,26 @@ def vkCalls (o : ℕ) : List (Option V × String × List V × List V) :=
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧
-    vkPre.filterMap Main.Stmt.allocSz = vkAllocs ∧ vkPre.all dispOddB = true ∧
-    vkPre.filterMap (callSFO 0) = vkCalls 0 ∧ vkPre.filterMap (callSFO 1) = vkCalls 1 := by
+    vkPre.filterMap Main.Stmt.allocSz = vkAllocs ∧ vkPre.all noDispB = true ∧
+    vkPre.filterMap Main.Stmt.callS = vkCalls := by
   decide +kernel
 
-theorem callSF_of_dispOdd (σ : Val) {s : Stmt} (h : dispOddB s = true) :
-    s.callSF σ = callSFO (logG (σ (.n 47))) s := by
+theorem callSF_of_noDisp (σ : Val) {s : Stmt} (h : noDispB s = true) :
+    s.callSF σ = Main.Stmt.callS s := by
   cases s with
-  | dispatch x fs args rets =>
-    simp only [dispOddB, Bool.and_eq_true, beq_iff_eq] at h
-    rw [h.1]; rfl
+  | dispatch x fs args rets => simp [noDispB] at h
   | _ => rfl
 
-theorem vkPre_callSF (σ : Val) :
-    vkPre.filterMap (Stmt.callSF σ) = vkPre.filterMap (callSFO (logG (σ (.n 47)))) :=
-  List.filterMap_congr fun _ hs ↦ callSF_of_dispOdd σ (List.all_eq_true.mp vkPre_kernel.2.2.2.1 _ hs)
+theorem vkPre_callSF (σ : Val) : vkPre.filterMap (Stmt.callSF σ) = vkCalls := by
+  rw [← vkPre_kernel.2.2.2.2]
+  exact List.filterMap_congr fun _ hs ↦
+    callSF_of_noDisp σ (List.all_eq_true.mp vkPre_kernel.2.2.2.1 _ hs)
 
-theorem vkPre_disp {σ : Val} {o : ℕ} (ho : o < 2) (h47 : σ (.n 47) = gen ^ o) :
-    ∀ s ∈ vkPre, DispOk σ s := by
+theorem vkPre_disp (σ : Val) : ∀ s ∈ vkPre, DispOk σ s := by
   intro s hs
   have h := List.all_eq_true.mp vkPre_kernel.2.2.2.1 s hs
   cases s with
-  | dispatch x fs args rets =>
-    simp only [dispOddB, Bool.and_eq_true, beq_iff_eq] at h
-    obtain ⟨rfl, hl⟩ := h
-    exact ⟨o, by rw [hl]; exact ho, by norm_num; omega, by rw [h47, gen_pow_eq_ofK]⟩
+  | dispatch x fs args rets => simp [noDispB] at h
   | _ => trivial
 
 end

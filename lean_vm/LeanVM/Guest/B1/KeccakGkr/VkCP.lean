@@ -79,7 +79,7 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   -- the memory
   have hrec := last_rec h hm
   rw [outWs_last h] at hrec
-  obtain ⟨-, -, -, -, -, -, -, m3987⟩ := own_mem (by omega) hm.own
+  obtain ⟨-, -, -, -, -, -, m3987⟩ := own_mem (by omega) hm.own
   have mpt := memL_entry hm.lin (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp [lin])
   obtain ⟨-, -, -, -, -, -, msl⟩ := xs_reads h (memL_entry hm.lin (b := curE) (ws := D.xs)
     (by simp [lin]))
@@ -97,7 +97,7 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     intro t ht
     rw [h9, ← point_low h ht, ← loadHolds_mul_gen_pow, ptr_mul_gen]
     exact ClaimLay.getD_load mpt (by rw [point_length h]; omega)
-  have a3987 : σ (.n 1259) = ptr (B + D.τ + 406) := by
+  have a3987 : σ (.n 1259) = ptr (B + D.τ + 382) := by
     subst hσd; exact val_alloc h (.n 1259, .inl 30) (by simp [vkAllocs])
   have hT : ∀ t, 1 ≤ t → t ≤ 4 → ∀ i < 2 ^ t, LoadHolds rd (σ (.n 1259)) (2 ^ t - 2 + i)
       ((eqKernel (D.I.1.take t)).getD i 0) := by
@@ -142,7 +142,8 @@ theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE) (h9 : σ (.n 9) = ptr zvE)
     (h10 : σ (.n 10) = ptr slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4)) (h201 : σ (.n 203) = ptr (B + D.o201))
     (h4104 : σ (.n 1376) = multilinearEval D.L.1.mu D.I.1)
-    (h4107 : σ (.n 1379) = ptr zvE * gen ^ 39 * gen ^ D.τ) (h4116 : σ (.n 1388) = D.S.2.1) :
+    (h4107 : σ (.n 1379) = ptr zvE * gen ^ 39 * gen ^ D.τ) (h4116 : σ (.n 1388) = D.S.2.1)
+    (h1251 : σ (.n 1251) = ptr zvE * gen ^ 39) :
     σ (.n 2249) = ptr (ls 11) ∧ σ (.n 3864) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 3865) = 1 ∧
       σ (.n 3867) = ptr zvE * gen ^ 43 ∧
       ∀ {kret : List E → Prop}, kret [σ (.n 2237), σ (.n 2238), σ (.n 2239), σ (.n 2240),
@@ -174,7 +175,7 @@ theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
     memL_entry hL (by simp)
   have hslot : ReadsAt rd (σ (.n 1379)) D.S.1 := by
     rw [h4107]
-    have := (Digest.readsAt_append.1 mpt).2
+    have := (readsAt_append.1 mpt).2
     rw [List.length_append, I1_length h, List.length_take, L_point h,
       show min (D.τ - 4) (D.τ - 3) = D.τ - 4 by omega, ptr_mul_gen,
       show zvE + qkeccakVarsCap + (4 + (D.τ - 4)) = zvE + 39 + D.τ by simp; omega] at this
@@ -198,7 +199,7 @@ theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
   rw [hdot] at hchk
   obtain ⟨e4977, e6580, e6581, e6583, H⟩ := vkFin_complete hσ hg (by omega) h17 hpp hpt (L_point h)
     hlc hloc hlocL hlp hlanes (lanesOut_length _ _) hslot (S1_length h) (by rw [h10]; exact msl)
-    h.2.2.2.2.2.2.2.2.2.2.1 (by rw [h4104, h4116, ← hchk])
+    h.2.2.2.2.2.2.2.2.2.2.1 (by rw [h4104, h4116, ← hchk]) (by rw [h1251, h9])
   exact ⟨e4977, by rw [e6580, h17], e6581, by rw [e6583, h9], H⟩
 
 end VkData

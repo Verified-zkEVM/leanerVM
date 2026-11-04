@@ -37,8 +37,8 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     (hσd : σ = D.val rd B curE chiE olE zvE slE) :
     (∀ i < 5, σ (.n i) = D.f.getD i 0) ∧ σ (.n 5) = ptr curE ∧ σ (.n 6) = gen ^ D.τ ∧
     σ (.n 7) = ptr chiE ∧ σ (.n 8) = ptr olE ∧ σ (.n 9) = ptr zvE ∧ σ (.n 10) = ptr slE ∧
-    σ (.n 17) = gen ^ (D.τ - 4) ∧ σ (.n 43) = gen ^ ((D.τ - 3) / 2) ∧ σ (.n 47) = gen ^ D.odd ∧
-    σ (.n 48) = gen ^ ((D.τ - 3) / 2 + D.odd) ∧ σ (.n 60) = ptr B ∧
+    σ (.n 17) = gen ^ (D.τ - 4) ∧ σ (.n 33) = gen ^ ((D.τ - 3) / 8) ∧
+    σ (.n 47) = gen ^ ((D.τ - 3) % 8) ∧ σ (.n 60) = ptr B ∧
     σ (.n 62) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 63) = 1 ∧ σ (.n 65) = ptr chiE * gen ^ 4 ∧
     σ (.n 66) = ptr B * gen ^ (D.τ - 4) ∧ σ (.n 91) = D.seg.getD 0 0 ∧
     σ (.n 92) = ptr (B + (D.τ - 3)) ∧ (cap5 181).map σ = (D.layer 0).cap ∧
@@ -79,7 +79,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
   have a274 : σ (.n 276) = ptr (B + D.o274) := ha (.n 276, .inl 62) (by simp [vkAllocs])
   have a382 : σ (.n 384) = ptr (B + D.τ + 380) := ha (.n 384, .inl 2) (by simp [vkAllocs])
   -- the memory
-  obtain ⟨m58, m90, m201, m203, m274, m382, -, -⟩ := own_mem (by omega) hm.own
+  obtain ⟨m58, m90, m201, m203, m274, m382, -⟩ := own_mem (by omega) hm.own
   have mchis := memL_entry hm.lin (b := chiE) (ws := D.chis) (by simp [lin])
   have mouts := memL_entry hm.lin (b := olE) (ws := D.outs) (by simp [lin])
   have mop := memL_entry hm.lin (b := zvE) (ws := D.op) (by simp [lin])
@@ -97,7 +97,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_right _ (by simp [vkBitsT]))))))) rfl
     exact (g (.n (20 + j)) (by simp; omega)).trans (w_bits hj)
-  obtain ⟨h17, -, h43, h47, h48, e52, e60, e61, e63, e64, q1, q5, e191, -, fcells, HH⟩ :=
+  obtain ⟨h17, -, h33, h47, e52, e60, e61, e63, e64, q1, q5, e191, -, fcells, HH⟩ :=
     vkHead_complete (S := vkSt) (w := D.w B curE) hσ (fun s hs hp ↦ hG s (mH s hs) hp)
       (fun d off ↦ not_mem_of_noStoreVia vk_ker2.1 (p := .n 7) (by simp) d off)
       (fun d off ↦ not_mem_of_noStoreVia vk_ker2.1 (p := .n 5) (by simp) d off) hτ1 hτ2 p6 hbits
@@ -188,7 +188,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     refine congrArg (D.committed + (eqKernel [σ (.n 91)]).getD 1 0 * ·)
       (Finset.sum_congr rfl fun k hk ↦ ?_)
     simp [List.getD_eq_getElem?_getD, Finset.mem_range.1 hk]
-  refine ⟨fun i hi ↦ ?_, p5, p6, p7, p8, p9, p10, h17, h43, h47, h48, a58,
+  refine ⟨fun i hi ↦ ?_, p5, p6, p7, p8, p9, p10, h17, h33, h47, a58,
     by rw [e60, h17], e61, by rw [e63, p7], e64', e89, a90, hcap0, e191, fcells, a201, a203,
     a274, a382, fun {next kret} hn ↦ ?_⟩
   · interval_cases i <;> simp [p0, p1, p2, p3, p4, hf]
