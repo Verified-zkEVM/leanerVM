@@ -181,35 +181,6 @@ theorem H_point : S.H.point = S.point := rfl
 theorem H_f : S.H.f = S.s5.cap := rfl
 theorem H_claims : S.H.claims = S.claims := rfl
 
-/-- **`verify_tables`' honest data fits its shapes.** -/
-theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by
-  have hb := S.μ_bounds hbl
-  have hpl := (S.runG' hbl).2.2.1
-  have hsl := S.hs_length
-  have hh := S.hh29 hbl
-  have hht : ∀ t < 6, Tables.vtHt S.rowsN t = S.hs.getD t 0 := fun t _ ↦ rfl
-  obtain ⟨K, hK⟩ := (S.runG' hbl).2.2.2
-  refine ⟨S.h32, ?_, ?_, ?_, S.hrowsL, fun t ht ↦ ?_, fun t ht ↦ ?_, ?_, by rw [H_f, hK]; rfl,
-    fun i hi ↦ ?_, ?_, ?_, hbl⟩
-  · rw [H_point, hpl, H_lm]; exact (height_le_depth S.logMem hsl (t := 0) (by norm_num)).2
-  · rw [H_point, hpl]; omega
-  · rw [H_point, hpl]; omega
-  · rw [H_rows, hht t ht]
-    exact hh _ (by rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _)
-  · rw [H_rows, H_point, hpl, hht t ht]; exact (height_le_depth S.logMem hsl ht).1
-  · have := S.halphas
-    show S.alphas.length = 4
-    have e := congrArg (fun p ↦ p.1.length) this
-    simp only [squeezeN_len] at e
-    rw [← e]; rfl
-  · rw [H_f, hK]
-    exact Tables.tb_capOf_canonical _ _ (by
-      rw [List.getD_eq_getElem _ _ (by simp [capOf]; omega)]; exact List.getElem_mem _)
-  · rw [H_lm, H_rows, H_point, hpl, vtSizesP_sum S.logMem S.rowsN S.hrowsL]
-    exact log2Ceil_le_iff.mp le_rfl
-  · rw [H_rows, H_point, hpl]
-    exact le_trans (vtSizesC_sum S.logMem S.rowsN S.hrowsL) (log2Ceil_le_iff.mp le_rfl)
-
 end ChildSegs
 
 end
