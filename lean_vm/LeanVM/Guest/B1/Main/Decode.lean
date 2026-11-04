@@ -57,7 +57,7 @@ theorem countOf_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
 
 /-! ## The marks -/
 
-theorem markOf_eq (s : ℕ) : markOf rd σ s = markAt rd (σ (.n 67)) s := by
+theorem markOf_eq (s : ℕ) : markOf rd σ s = markAt rd (σ (.n 66)) s := by
   unfold markOf markAt; rw [cellAt_eq_memAt]
 
 theorem markAt_sl {cover : E} {S : Segs} {X Y : ℕ} (hC : Cover rd cover S X Y sl) {m : ℕ}
@@ -189,7 +189,7 @@ theorem kid_base (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c
 
 theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).ex) :
-    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 67)) ((K c).ox j) (gen ^ ((segsOf σ K).a c + j)) := by
+    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 66)) ((K c).ox j) (gen ^ ((segsOf σ K).a c + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).xrec j hj
   refine ⟨belowLog_lt (by unfold LXS; omega) MF.lxs hbl, ?_⟩
@@ -198,7 +198,7 @@ theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 
 theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).es) :
-    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 67)) (LXS σ + (K c).os j)
+    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 66)) (LXS σ + (K c).os j)
       (gen ^ ((segsOf σ K).a c + (K c).ex + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).srec j hj
@@ -211,12 +211,12 @@ theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 
 /-- **Child `c`'s statement, read off the coverage table**, is its records'. -/
 theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
-    (hW : Writers rd (σ (.n 67)) (segsOf σ K) (LXS σ) (LSS σ))
-    (hC : Cover rd (σ (.n 67)) (segsOf σ K) (LXS σ) (LSS σ) sl) {c : ℕ}
+    (hW : Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ))
+    (hC : Cover rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :
     kidStmt rd σ c =
-      ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 53)) ((K c).ox j),
-        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 56)) ((K c).os j),
+      ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j),
+        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j),
         daDigestAt rd σ c⟩,
        deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)⟩ := by
   have hT := MF.total.2
@@ -238,7 +238,7 @@ theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     obtain ⟨r0, r1⟩ := region_kid' hcN h1 h2
     rw [hx, hy, r0, r1, segsOf_ex, segsOf_es]
     exact ⟨Iff.rfl, Iff.rfl⟩
-  have hmk : ∀ s, markOf rd σ s = markAt rd (σ (.n 67)) s := fun s => markOf_eq s
+  have hmk : ∀ s, markOf rd σ s = markAt rd (σ (.n 66)) s := fun s => markOf_eq s
   -- the counts
   have hnx : segCount rd σ 0 (LXS σ) ((segsOf σ K).a c) ((segsOf σ K).a (c + 1)) = (K c).ex := by
     unfold segCount; simp only [hmk]
@@ -268,13 +268,13 @@ theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     unfold slotOf; simp only [hmk]
     rw [slot_search hC hs (by omega) (by omega) (by omega) (by omega), ← hsl]
     omega
-  have ex : (List.range (K c).ex).map (fun j => xmssAt rd (σ (.n 53))
+  have ex : (List.range (K c).ex).map (fun j => xmssAt rd (σ (.n 52))
       (slotOf rd σ 0 (LXS σ) ((segsOf σ K).a c + j))) =
-      (List.range (K c).ex).map fun j => xmssAt rd (σ (.n 53)) ((K c).ox j) :=
+      (List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j) :=
     List.map_congr_left fun j hj => by rw [hox j (List.mem_range.mp hj)]
-  have es : (List.range (K c).es).map (fun j => sphincsAt rd (σ (.n 56))
+  have es : (List.range (K c).es).map (fun j => sphincsAt rd (σ (.n 55))
       (slotOf rd σ (LXS σ) (LSS σ) ((segsOf σ K).a c + (K c).ex + j))) =
-      (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 56)) ((K c).os j) :=
+      (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j) :=
     List.map_congr_left fun j hj => by rw [hos j (List.mem_range.mp hj)]
   unfold kidStmt
   simp only [countOf_eq MF hK (show c ≤ lg σ 6 by omega),

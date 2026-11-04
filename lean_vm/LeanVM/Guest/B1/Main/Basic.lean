@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.Interface
-public import LeanVM.Guest.B1.Digest.ChildList
+public import LeanVM.Guest.B1.Digest.ChildDigest
 
 /-!
 # `main`: claims, digests and cells
