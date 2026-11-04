@@ -134,7 +134,7 @@ lean_vm() {
   for k in entries rows split; do sed -n "s/^$k: //p" "$log/decoder.txt" > "$log/$k.txt"; done
   python3 -I lean_vm/scripts/decoder-tables --entries "$log/entries.txt" --check
   python3 -I lean_vm/scripts/decoder-table-chunks --row-lengths "$log/rows.txt" \
-    --row21-lengths "$log/split.txt" --check
+    --split-lengths "$log/split.txt" --check
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to

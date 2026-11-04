@@ -8,25 +8,14 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F348_0
-public import LeanVM.Guest.Checked.F369_0
+public import LeanVM.Guest.Checked.F364_0
+public import LeanVM.Guest.Checked.F369_3
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
-theorem ok351 : CheckOk 351 := fun i hi ↦ by
-  have h : (certOf 351).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w351_0
-  · exact w351_1
-  · exact w351_2
-  · exact w351_3
-
-theorem plain351 : Plain 351 := by
-  unfold Plain
-  decide +kernel
+theorem plain351 : Plain 351 := plain_of_nil (by decide +kernel)
 
 theorem plain352 : Plain 352 := plain_of_nil (by decide +kernel)
 
@@ -62,20 +51,20 @@ theorem plain367 : Plain 367 := plain_of_nil (by decide +kernel)
 
 theorem plain368 : Plain 368 := plain_of_nil (by decide +kernel)
 
-theorem plain369 : Plain 369 := plain_of_nil (by decide +kernel)
-
-theorem ok370 : CheckOk 370 := fun i hi ↦ by
-  have h : (certOf 370).cuts.length = 3 := by decide +kernel
+theorem ok369 : CheckOk 369 := fun i hi ↦ by
+  have h : (certOf 369).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w370_0
-  · exact w370_1
-  · exact w370_2
-  · exact w370_3
+  · exact w369_0
+  · exact w369_1
+  · exact w369_2
+  · exact w369_3
 
-theorem plain370 : Plain 370 := by
+theorem plain369 : Plain 369 := by
   unfold Plain
   decide +kernel
+
+theorem plain370 : Plain 370 := plain_of_nil (by decide +kernel)
 
 theorem plain371 : Plain 371 := plain_of_nil (by decide +kernel)
 

@@ -9,10 +9,10 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesLoop
 
 /-!
-# `opening_queries` is sound (lean_ethereum.py:1380-1404 at c4f4bc92, TRIAGE #40)
+# `opening_queries` is sound (lean_ethereum.py:1396-1420 at b7a8d0cb, TRIAGE #40)
 
-`oqLoop_step`: the loop helper satisfies `loop_iff`'s step with its flat body
-(`loop_step_flat`). `oqMain1_sound`, `oqMain0_sound`: the function's relation, its loop's
+`oqLoop_step`: the loop helper satisfies `loop_iffC`'s step with its flat body, its queries'
+calls of `walk_path` one level down (`loop_step_flatC`). `oqMain1_sound`, `oqMain0_sound`: the function's relation, its loop's
 iterations (`oqIter1_sound`, `oqIter0_sound`) and its start give `MeaningOpeningQueries`, the
 window pointers naming positions' windows.
 -/
@@ -28,15 +28,6 @@ variable {rd : Reader}
 
 /-- The loop's parameters. -/
 def oqLoopParams : List V := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]
-
-/-- A list literal of atoms. -/
-macro "atoms_lit" : tactic => `(tactic| (repeat' apply allAtoms_cons) <;> exact allAtoms_nil)
-
-/-- A list literal of atoms. -/
-theorem allAtoms_of_forall {ss : List Stmt} (h : ∀ s ∈ ss, ∃ a, s = .atom a) : AllAtoms ss := h
-
-theorem oqPadT_atoms (pr : ℕ) : AllAtoms (oqPadT pr) :=
-  allAtoms_of_forall fun x hx => by simp [oqPadT] at hx; rcases hx with h | h | h | h | h <;> exact ⟨_, h⟩
 
 theorem oqXorT_atoms (s : Oq) (b pr kL k c : ℕ) : AllAtoms (oqXorT s b pr kL k c) := by
   unfold oqXorT
@@ -57,78 +48,57 @@ theorem oqBlockT_atoms (s : Oq) (b pr kL k : ℕ) : AllAtoms (oqBlockT s b pr kL
 theorem oqLeafT_atoms (s : Oq) (b pr kL : ℕ) : AllAtoms (oqLeafT s b pr kL) :=
   allAtoms_map_flatten fun _ _ => oqBlockT_atoms _ _ _ _ _
 
-theorem oqStepT_atoms (pr ch l K n0 n1 : ℕ) (bit : Bool) : AllAtoms (oqStepT pr ch l K n0 n1 bit) := by
-  unfold oqStepT; atoms_lit
-
-theorem oqArmT_atoms (s : Oq) (pr kL ch i a : ℕ) : AllAtoms (oqArmT s pr kL ch i a) := by
-  unfold oqArmT
-  exact allAtoms_append (allAtoms_map_flatten fun _ _ => oqStepT_atoms _ _ _ _ _ _ _) (by atoms_lit)
-
-theorem oqWinT_flat (s : Oq) (bp : V) (pr kL ch i : ℕ) : Flat (oqWinT s bp pr kL ch i) := by
-  intro x hx
-  simp only [oqWinT, List.mem_cons, List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl
-  · exact Or.inl ⟨_, rfl⟩
-  · exact Or.inl ⟨_, rfl⟩
-  · refine Or.inr ⟨_, _, rfl, fun arm h ↦ ?_⟩
-    obtain ⟨a, -, rfl⟩ := List.mem_map.mp h
-    exact oqArmT_atoms _ _ _ _ _ _
-
-theorem oqPathT_flat (s : Oq) (bp : V) (pr kL ch : ℕ) : Flat (oqPathT s bp pr kL ch) :=
-  flat_append (flat_of_atoms (by atoms_lit)) (flat_map_flatten fun _ _ => oqWinT_flat _ _ _ _ _ _)
-
-theorem oqCapT_atoms (s : Oq) (bp cap flags : V) (kL ch : ℕ) : AllAtoms (oqCapT s bp cap flags kL ch) := by
-  unfold oqCapT; atoms_lit
-
-theorem oqQueryT_flat (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
-    Flat (oqQueryT s bp cap flags wp b emit pr) := by
+theorem oqQueryT_flatC (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) (walk : String) :
+    FlatC (oqQueryT s bp cap flags wp b emit pr walk) := by
   unfold oqQueryT
-  refine flat_append (flat_append (flat_of_atoms (allAtoms_append (allAtoms_append (allAtoms_append
+  refine flatC_append (flatC_of_flat (flat_of_atoms (allAtoms_append (allAtoms_append (allAtoms_append
     (allAtoms_append (oqRowT_atoms _ _) (oqPacksT_atoms _ _)) (oqDotT_atoms _ _ _)) ?_)
-    (oqLeafT_atoms _ _ _ _))) (oqPathT_flat _ _ _ _ _)) (flat_of_atoms (oqCapT_atoms _ _ _ _ _ _))
+    (oqLeafT_atoms _ _ _ _)))) (flatC_call _ _ _)
   split
   · exact oqPadT_atoms _
   · exact allAtoms_nil
 
-theorem oqLoop1A_flat (s : Oq) (odd : ℕ) : Flat (oqLoop1A s odd) := by
+theorem flatC_atoms {ss : List Stmt} (h : AllAtoms ss) : FlatC ss := flatC_of_flat (flat_of_atoms h)
+
+theorem oqLoop1A_flatC (s : Oq) (odd : ℕ) (walk : String) : FlatC (oqLoop1A s odd walk) := by
   unfold oqLoop1A
   dsimp only
-  refine flat_append (flat_append (flat_append (flat_append (flat_of_atoms ?_)
-    (oqQueryT_flat _ _ _ _ _ _ _ _)) (flat_of_atoms ?_)) (oqQueryT_flat _ _ _ _ _ _ _ _))
-    (flat_of_atoms ?_)
+  refine flatC_append (flatC_append (flatC_append (flatC_append (flatC_atoms ?_)
+    (oqQueryT_flatC _ _ _ _ _ _ _ _ _)) (flatC_atoms ?_)) (oqQueryT_flatC _ _ _ _ _ _ _ _ _))
+    (flatC_atoms ?_)
   all_goals atoms_lit
 
-theorem oqLoop0A_flat (s : Oq) : Flat (oqLoop0A s) := by
+theorem oqLoop0A_flatC (s : Oq) (walk : String) : FlatC (oqLoop0A s walk) := by
   unfold oqLoop0A
   dsimp only
-  refine flat_append (flat_append (flat_of_atoms ?_) (oqQueryT_flat _ _ _ _ _ _ _ _))
-    (flat_of_atoms ?_)
+  refine flatC_append (flatC_append (flatC_atoms ?_) (oqQueryT_flatC _ _ _ _ _ _ _ _ _))
+    (flatC_atoms ?_)
   all_goals atoms_lit
 
-theorem oqMainA_flat (s : Oq) (odd : ℕ) : Flat (oqMainA s odd) := by
+theorem oqMainA_flatC (s : Oq) (odd : ℕ) (walk : String) : FlatC (oqMainA s odd walk) := by
   unfold oqMainA
   dsimp only
-  refine flat_append (flat_append (flat_of_atoms ?_) ?_) (flat_of_atoms ?_)
+  refine flatC_append (flatC_append (flatC_atoms ?_) ?_) (flatC_atoms ?_)
   · atoms_lit
   · split
-    · exact flat_append (flat_append (flat_of_atoms (allAtoms_cons allAtoms_nil))
-        (oqQueryT_flat _ _ _ _ _ _ _ _)) (flat_of_atoms (allAtoms_cons (allAtoms_cons allAtoms_nil)))
-    · exact flat_of_atoms (allAtoms_cons (allAtoms_cons allAtoms_nil))
+    · exact flatC_append (flatC_append (flatC_atoms (allAtoms_cons allAtoms_nil))
+        (oqQueryT_flatC _ _ _ _ _ _ _ _ _)) (flatC_atoms (allAtoms_cons (allAtoms_cons allAtoms_nil)))
+    · exact flatC_atoms (allAtoms_cons (allAtoms_cons allAtoms_nil))
   · exact allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil))
 
 /-! ## The loop's step -/
 
-theorem oqLoop1_step {s : Oq} {odd : ℕ} {loop : String} {fl : Fn}
+theorem oqLoop1_step {s : Oq} {odd : ℕ} {walk loop : String} {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd loop) (ps : List E) (hps : ps.length = 7) :
+    (hbl : fl.body = oqLoop1T s odd walk loop) (ps : List E) (hps : ps.length = 7) :
     ∀ d x, coreProgram.relN rd (d + 1) loop (x :: ps) [] ↔
-      FlatBody rd fl.params (oqLoop1A s odd) (x :: ps) ∧ IsInK (x * gen + ps.headD 0) ∧
+      FlatBodyC (coreProgram.relN rd d) rd fl.params (oqLoop1A s odd walk) (x :: ps) ∧ IsInK (x * gen + ps.headD 0) ∧
         (x * gen + ps.headD 0 ≠ 0 → coreProgram.relN rd d loop (x * gen :: ps) []) := by
   intro d x
   obtain ⟨N, rest, rfl⟩ : ∃ N rest, ps = N :: rest := by
     match ps, hps with
     | N :: rest, _ => exact ⟨N, rest, rfl⟩
-  refine loop_step_flat hfl hbl (oqLoop1A_flat s odd) (fun σ hp hA => ?_) d
+  refine loop_step_flatC hfl hbl (oqLoop1A_flatC s odd walk) (fun C σ hp hA => ?_) d
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC1 s with hc
@@ -145,17 +115,17 @@ theorem oqLoop1_step {s : Oq} {odd : ℕ} {loop : String} {fl : Fn}
   refine ⟨by rw [a9, a8, a7, word_gen, h0, h1], ?_⟩
   simp [a11, a10, word_gen, h0, h1]
 
-theorem oqLoop0_step {s : Oq} {loop : String} {fl : Fn}
+theorem oqLoop0_step {s : Oq} {walk loop : String} {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s loop) (ps : List E) (hps : ps.length = 7) :
+    (hbl : fl.body = oqLoop0T s walk loop) (ps : List E) (hps : ps.length = 7) :
     ∀ d x, coreProgram.relN rd (d + 1) loop (x :: ps) [] ↔
-      FlatBody rd fl.params (oqLoop0A s) (x :: ps) ∧ IsInK (x * gen + ps.headD 0) ∧
+      FlatBodyC (coreProgram.relN rd d) rd fl.params (oqLoop0A s walk) (x :: ps) ∧ IsInK (x * gen + ps.headD 0) ∧
         (x * gen + ps.headD 0 ≠ 0 → coreProgram.relN rd d loop (x * gen :: ps) []) := by
   intro d x
   obtain ⟨N, rest, rfl⟩ : ∃ N rest, ps = N :: rest := by
     match ps, hps with
     | N :: rest, _ => exact ⟨N, rest, rfl⟩
-  refine loop_step_flat hfl hbl (oqLoop0A_flat s) (fun σ hp hA => ?_) d
+  refine loop_step_flatC hfl hbl (oqLoop0A_flatC s walk) (fun C σ hp hA => ?_) d
   rw [hpl] at hp
   simp only [oqLoopParams, List.map_cons, List.map_nil] at hp
   set c := oqC0 s with hc
@@ -176,8 +146,8 @@ theorem oqLoop0_step {s : Oq} {loop : String} {fl : Fn}
 
 /-- What the start of the function gives: `1 = μ·λ`, the loop's guard `1 + N` and start `1`, and
 at an even count the chain's first word `0`. -/
-theorem oqMainA_basic {s : Oq} {odd : ℕ} {σ : Val}
-    (hA : BlockOk rd σ (oqMainA s odd)) :
+theorem oqMainA_basic {C : CallRel} {s : Oq} {odd : ℕ} {walk : String} {σ : Val}
+    (hA : BlockOkC C rd σ (oqMainA s odd walk)) :
     σ (.n 8) * σ (.n 2) = 1 ∧ σ (.n (oqMK s odd + 1)) = 1 + σ (.n 6) ∧
       σ (.n (oqMK s odd + 2)) = 1 ∧ (odd ≠ 1 → LoadHolds rd (σ (.n 11)) 0 0) := by
   set k := oqMK s odd with hk
@@ -196,33 +166,33 @@ theorem oqMainA_basic {s : Oq} {odd : ℕ} {σ : Val}
 
 /-- The odd first query of the function's start, and the chain's first word, its value times
 `μ`. -/
-theorem oqMainA_odd {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {σ : Val}
-    (hA : BlockOk rd σ (oqMainA s 1))
+theorem oqMainA_odd {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
+    {σ : Val} (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqMainA s 1 walk))
     (hbool : ∀ bp, LoadHolds rd (σ (.n 4)) 0 bp → WinRun rd bp (s.pd + s.cd) s.cd) :
     ∃ (bp : E) (q : ℕ) (r : List K) (d : E), LoadHolds rd (σ (.n 4)) 0 bp ∧
       q < 2 ^ (s.pd + s.cd) ∧ (∀ l < qwN (s.pd + s.cd) s.cd, LoadHolds rd bp l (gen ^ qwVal (s.pd + s.cd) s.cd q l)) ∧
       QueryOpens rd s.base s.I (s.pd + s.cd) s.cd (σ (.n 0)) (σ (.n 1)) (σ (.n 5)) q r d ∧
       LoadHolds rd (σ (.n 11)) 0 (d * σ (.n 8)) := by
-  have mem : BlockOk rd σ (oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0) :=
+  have mem : BlockOkC (coreProgram.Rel rd) rd σ (oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0 walk) :=
     hA.mono fun a ha => by simp only [oqMainA, ↓reduceIte, List.mem_append]; simp_all
   have l12 := hA.atom (by simp [oqMainA] : Stmt.atom (.load (.n 12) (.n 4) 0) ∈ _)
   have c1 := hA.atom (by simp [oqMainA] :
     Stmt.atom (.mul (.n (oqMK s 1 - 1)) (.n (oqDot s 13)) (.n 8)) ∈ _)
   have c2 := hA.atom (by simp [oqMainA] : Stmt.atom (.load (.n (oqMK s 1 - 1)) (.n 11) 0) ∈ _)
   simp only [Atom.Holds] at c1
-  obtain ⟨-, -, hpd, -, -, -⟩ := oqQuery_pieces mem
+  obtain ⟨-, -, hpd, -, -⟩ := oqQuery_pieces mem
   obtain ⟨e1, z⟩ := oqPad_values (hpd rfl)
-  obtain ⟨q, hq, hb, ho⟩ := oqQuery_sound_wins hs hcd mem e1 z (hbool _ l12)
+  obtain ⟨q, hq, hb, ho⟩ := oqQuery_sound_wins hs hW mem e1 z (hbool _ l12)
   refine ⟨_, q, _, _, l12, hq, hb, ho, ?_⟩
   have := c2
   simp only [Atom.Holds, c1] at this
   exact this
 
 /-- A loop iteration's parameters. -/
-theorem flatBody_params {fl : Fn} (hpl : fl.params = oqLoopParams) {A : List Stmt}
+theorem flatBody_params {C : CallRel} {fl : Fn} (hpl : fl.params = oqLoopParams) {A : List Stmt}
     {x N qptrs cap flags wp ch mu : E}
-    (h : FlatBody rd fl.params A [x, N, qptrs, cap, flags, wp, ch, mu]) :
-    ∃ σ : Val, BlockOk rd σ A ∧ σ (.n 0) = x ∧ σ (.n 1) = N ∧
+    (h : FlatBodyC C rd fl.params A [x, N, qptrs, cap, flags, wp, ch, mu]) :
+    ∃ σ : Val, BlockOkC C rd σ A ∧ σ (.n 0) = x ∧ σ (.n 1) = N ∧
       σ (.n 2) = qptrs ∧ σ (.n 3) = cap ∧ σ (.n 4) = flags ∧ σ (.n 5) = wp ∧ σ (.n 6) = ch ∧
       σ (.n 7) = mu := by
   obtain ⟨σ, hp, hA⟩ := h
@@ -233,13 +203,13 @@ theorem flatBody_params {fl : Fn} (hpl : fl.params = oqLoopParams) {A : List Stm
 
 /-- **`opening_queries` at level 0 is sound** (G:1228-1250): with the window pointers naming
 positions' windows, its relation is `MeaningOpeningQueries`. -/
-theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤ s.cd)
-    {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
+theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1)
+    {odd : ℕ} (hodd : odd ≤ 1) {name walk loop : String} (hW : WalkSound walk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
-    (hbm : fm.body = oqMainT s odd loop)
+    (hbm : fm.body = oqMainT s odd walk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd loop)
+    (hbl : fl.body = oqLoop1T s odd walk loop)
     {cap flags lam lamN qptrs wp nG : E} {rets : List E}
     (hbits : ∀ N, nG = gen ^ N → N < ordG →
       QueryWinsOk rd qptrs (oqCount odd s.base N) (s.pd + s.cd) s.cd)
@@ -250,7 +220,7 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
   obtain ⟨σ, hp, h⟩ := h
   simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
   obtain ⟨p0, p1, p2, p3, p4, p5, p6, -⟩ := hp
-  rw [oqMainT, holdsList_append, holdsList_flat (oqMainA_flat s odd)] at h
+  rw [oqMainT, holdsList_append, holdsList_flatC (oqMainA_flatC s odd walk)] at h
   obtain ⟨hA, h⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
   obtain ⟨hK, hcall, e3, e4, e5, hret⟩ := h
@@ -261,7 +231,8 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
   set ps : List E := [σ (.n 6), σ (.n 4), σ (.n 0), σ (.n 1), σ (.n 5), σ (.n 11), σ (.n 8)]
     with hps
   have hstep := oqLoop1_step (rd := rd) hfl hpl hbl ps (by simp [hps])
-  obtain ⟨m, hm, hnG, hB⟩ := (guarded_loop_iff hstep).mp ⟨by
+  obtain ⟨m, hm, hnG, hB⟩ := (guarded_loop_iffC (B := fun C x ↦ FlatBodyC C rd fl.params (oqLoop1A s odd walk) (x :: ps))
+    (fun h hb ↦ FlatBodyC.monoC h hb) (fun hb ↦ flatBodyC_relN coreProgram hb) hstep).mp ⟨by
     show IsInK (1 + σ (.n 6)); rw [← hg]; exact hK, fun hne => by
     have := hcall (by rw [hg]; exact hne)
     rwa [hst] at this⟩
@@ -280,7 +251,7 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
       LoadHolds rd (σ (.n 11)) (j + 1) (((v + d0) * σ (.n 8) + d1) * σ (.n 8)) := by
     intro j hj
     obtain ⟨τ, hτ, t0, t1, t2, t3, t4, t5, t6, t7⟩ := flatBody_params hpl (hB j hj)
-    have := oqIter1_sound hs hcd (odd := odd) (i := j) hτ t0 (fun k hk bp hbp => by
+    have := oqIter1_sound hs hW (odd := odd) (i := j) hτ t0 (fun k hk bp hbp => by
       rw [t2, p4] at hbp
       exact hbool k (by omega) bp hbp)
     rwa [t2, t3, t4, t5, t6, t7, p0, p1, p4, p5] at this
@@ -293,7 +264,7 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
       LoadHolds rd (σ (.n 11)) 0 (d * σ (.n 8)) := by
     by_cases h1 : odd = 1
     · subst h1
-      obtain ⟨bp, q, r, d, h⟩ := oqMainA_odd hs hcd hA (fun bp hbp => by
+      obtain ⟨bp, q, r, d, h⟩ := oqMainA_odd hs hW hA (fun bp hbp => by
         rw [p4] at hbp; exact hbool 0 (by omega) bp hbp)
       rw [p0, p1, p4, p5] at h
       exact ⟨bp, q, r, d, fun _ => h⟩
@@ -358,13 +329,13 @@ theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤
 
 /-- **`opening_queries` deeper is sound** (`base = 0`, `odd = 0`): with the window pointers naming
 positions' windows, its relation is `MeaningOpeningQueries`. -/
-theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤ s.cd)
-    {name loop : String} {fm fl : Fn}
+theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0)
+    {name walk loop : String} (hW : WalkSound walk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
-    (hbm : fm.body = oqMainT s 0 loop)
+    (hbm : fm.body = oqMainT s 0 walk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s loop)
+    (hbl : fl.body = oqLoop0T s walk loop)
     {cap flags lam lamN qptrs wp nG : E} {rets : List E}
     (hbits : ∀ N, nG = gen ^ N → N < ordG →
       QueryWinsOk rd qptrs (oqCount 0 s.base N) (s.pd + s.cd) s.cd)
@@ -375,7 +346,7 @@ theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤
   obtain ⟨σ, hp, h⟩ := h
   simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
   obtain ⟨p0, p1, p2, p3, p4, p5, p6, -⟩ := hp
-  rw [oqMainT, holdsList_append, holdsList_flat (oqMainA_flat s 0)] at h
+  rw [oqMainT, holdsList_append, holdsList_flatC (oqMainA_flatC s 0 walk)] at h
   obtain ⟨hA, h⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
   obtain ⟨hK, hcall, e3, e4, e5, hret⟩ := h
@@ -385,7 +356,8 @@ theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤
   set ps : List E := [σ (.n 6), σ (.n 4), σ (.n 0), σ (.n 1), σ (.n 5), σ (.n 11), σ (.n 8)]
     with hps
   have hstep := oqLoop0_step (rd := rd) hfl hpl hbl ps (by simp [hps])
-  obtain ⟨m, hm, hnG, hB⟩ := (guarded_loop_iff hstep).mp ⟨by
+  obtain ⟨m, hm, hnG, hB⟩ := (guarded_loop_iffC (B := fun C x ↦ FlatBodyC C rd fl.params (oqLoop0A s walk) (x :: ps))
+    (fun h hb ↦ FlatBodyC.monoC h hb) (fun hb ↦ flatBodyC_relN coreProgram hb) hstep).mp ⟨by
     show IsInK (1 + σ (.n 6)); rw [← hg]; exact hK, fun hne => by
     have := hcall (by rw [hg]; exact hne)
     rwa [hst] at this⟩
@@ -400,7 +372,7 @@ theorem oqMain0_sound {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hcd : 2 ≤
       LoadHolds rd (σ (.n 11)) j v ∧ LoadHolds rd (σ (.n 11)) (j + 1) ((v + d) * σ (.n 8)) := by
     intro j hj
     obtain ⟨τ, hτ, t0, t1, t2, t3, t4, t5, t6, t7⟩ := flatBody_params hpl (hB j hj)
-    have := oqIter0_sound hs hcd (i := j) hτ t0 (fun bp hbp => by
+    have := oqIter0_sound hs hW (i := j) hτ t0 (fun bp hbp => by
       rw [t2, p4] at hbp
       exact hbool j hj bp hbp)
     rwa [t2, t3, t4, t5, t6, t7, p0, p1, p4, p5] at this

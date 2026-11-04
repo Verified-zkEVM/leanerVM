@@ -28,26 +28,6 @@ import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk22
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk23
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk24
 import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk25
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk26
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk27
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk28
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk29
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk30
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk31
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk32
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk33
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk34
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk35
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk36
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk37
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk38
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk39
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk40
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk41
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk42
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk43
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk44
-import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk45
 
 /-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the frame cells'
 bound (`Bounds/Decoder/GuestLocs/*.lean`) is a kernel evaluation of some functions' certificates,
@@ -58,7 +38,7 @@ build if their imports reach any other `LeanVM.Cost` module. -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
-  let chunks := ["Chunk0", "Chunk1", "Chunk2", "Chunk3", "Chunk4", "Chunk5", "Chunk6", "Chunk7", "Chunk8", "Chunk9", "Chunk10", "Chunk11", "Chunk12", "Chunk13", "Chunk14", "Chunk15", "Chunk16", "Chunk17", "Chunk18", "Chunk19", "Chunk20", "Chunk21", "Chunk22", "Chunk23", "Chunk24", "Chunk25", "Chunk26", "Chunk27", "Chunk28", "Chunk29", "Chunk30", "Chunk31", "Chunk32", "Chunk33", "Chunk34", "Chunk35", "Chunk36", "Chunk37", "Chunk38", "Chunk39", "Chunk40", "Chunk41", "Chunk42", "Chunk43", "Chunk44", "Chunk45"]
+  let chunks := ["Chunk0", "Chunk1", "Chunk2", "Chunk3", "Chunk4", "Chunk5", "Chunk6", "Chunk7", "Chunk8", "Chunk9", "Chunk10", "Chunk11", "Chunk12", "Chunk13", "Chunk14", "Chunk15", "Chunk16", "Chunk17", "Chunk18", "Chunk19", "Chunk20", "Chunk21", "Chunk22", "Chunk23", "Chunk24", "Chunk25"]
   let allowed := [`LeanVM.Cost.Decoder.GuestTables] ++
     chunks.map fun c ↦ (`LeanVM.Cost.Bounds.Decoder.GuestLocs).str c
   let reached := (← getEnv).header.moduleNames.filter fun m ↦

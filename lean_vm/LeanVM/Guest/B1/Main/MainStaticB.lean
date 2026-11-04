@@ -49,7 +49,7 @@ theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb 
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")) :
     ∀ i < nrx, CompleteAtDTB fs cert 16 "__loop2" Lin
-      [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] (Returns []) (fun _ => True)
+      ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns []) (fun _ => True)
       (nrx * SK "__loop2") := fun i hi =>
   completeAtDTB_of_relIn raw3_pure (by simp)
     (fun rd t rets' hn hv hb => by

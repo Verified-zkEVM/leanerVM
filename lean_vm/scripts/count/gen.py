@@ -40,8 +40,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
-XMSS = 'verify_lean_xmss'
-MAIN_FRAME = 404 + 17051  # B2C.mainFrame
+XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4491-4496)
+MAIN_FRAME = 455 + 16555  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -101,7 +101,7 @@ class G:
 
     def arm_max(self, k):
         """`B2C.costMaxW` of `verify_lean_xmss`'s body at opcode `k`."""
-        acs = self.arms[self.xj + 1]
+        acs = self.arms[self.xj + 1] if self.xj + 1 < len(self.arms) else []
         def key(x):
             for p in acs:
                 if p[0] == x: return max([l[k] if k < len(l) else 0 for l in p[1]] + [0])

@@ -16,23 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `sp_wots`, window 11, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 11, part 0. -/
 theorem cw21_11_0 : cplWin 21 11 0 = true := by decide +kernel
 
-/-- `sp_wots`, window 12, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 12, part 0. -/
 theorem cw21_12_0 : cplWin 21 12 0 = true := by decide +kernel
 
-/-- `sp_wots`, window 13, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 13, part 0. -/
 theorem cw21_13_0 : cplWin 21 13 0 = true := by decide +kernel
 
-/-- `sp_wots`, window 14, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 14, part 0. -/
 theorem cw21_14_0 : cplWin 21 14 0 = true := by decide +kernel
 
-/-- `sp_wots`, window 15, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 15, part 0. -/
 theorem cw21_15_0 : cplWin 21 15 0 = true := by decide +kernel
 
-/-- `sp_wots`, window 16, part 0. -/
+/-- `verify_sig_lean_sphincs`, window 16, part 0. -/
 theorem cw21_16_0 : cplWin 21 16 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 17, part 0. -/
+theorem cw21_17_0 : cplWin 21 17 0 = true := by decide +kernel
+
+/-- `verify_sig_lean_sphincs`, window 18, part 0. -/
+theorem cw21_18_0 : cplWin 21 18 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw
