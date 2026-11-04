@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Da.Verify
 
 `dvWit σ Vm` (`B1/Da/Verify.lean`) reads the DA matrix off `da_verify`'s callees' frames, which it
 names by string literals (`"da_verify_column"`, `"__loop21"`, `"da_verify_cell"`). `dvWitN σ Vn`
-reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `28`, `375`, `29`);
+reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `29`, `376`, `30`);
 `dvWitN_eq`: at `Vn k = Vm (decoderFunctionName k)` they are equal.
 -/
 
@@ -19,18 +19,18 @@ open LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- Column `h`'s valuation (`da_verify_column`, function `28`). -/
-def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 28 (dvColArgs σ h) []
+/-- Column `h`'s valuation (`da_verify_column`, function `29`). -/
+def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 29 (dvColArgs σ h) []
 
-/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop21`, function `375`), its valuation
+/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop21`, function `376`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn 375 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn 376 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
 
-/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `29`'s. -/
+/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `30`'s. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
   if i < dvRows σ ∧ h < 128 then
-    cellSymsOf (Vn 29 [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn 30 [dvColVN σ Vn h (.n 13)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
   else List.replicate 256 0
 

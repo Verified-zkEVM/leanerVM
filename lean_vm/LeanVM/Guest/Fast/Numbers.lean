@@ -1,15 +1,13 @@
 module
 
-public import LeanVM.Guest.B1.Sig.SphincsT
+public import LeanVM.Guest.B1.Sig.WotsT
 
 /-!
 # Template positions, as numbers
 
 The definitions the literal tables of `Fast/*Tables.lean` are checked against, arithmetic in the
 template's parameters, with no statement built: a codeword's arms, selectors and chain starts
-(`walkBaseN` … `startN`, `offTab`, proved equal to the generators in `Fast/Wots.lean`), the
-forest keys' chains and arms (`fkChainN` … `fkOffN`) and the folds' arms (`foldPos`,
-`Fast/SphincsN.lean`). The checks import these and the templates alone (`Fast/Firewall.lean`).
+(`walkBaseN` … `startN`, `offTab`, proved equal to the generators in `Fast/Wots.lean`). The checks import these and the templates alone (`Fast/Firewall.lean`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -65,29 +63,6 @@ structure WotsTabs (sz : ℕ) (first rest last : List (List ℕ)) : Prop where
   first : first = offTab sz 3 true
   rest : rest = offTab sz 3 false
   last : last = offTab sz 1 false
-
-/-! ## The forest keys and the folds -/
-
-/-- The base after chain `i` of key `t` from `b` (`fkChain`). -/
-def fkChainN (t i b : ℕ) : ℕ :=
-  if spCode t i = 0 then b + 1
-  else if i < 2 then b + 1 + 15 * spCode t i else b + 2 + 15 * spCode t i
-
-/-- The base after chains `i ..< i + m` of key `t` from `b` (`fkChains`). -/
-def fkChainsN (t : ℕ) : ℕ → ℕ → ℕ → ℕ
-  | 0, _, b => b
-  | m + 1, i, b => fkChainsN t m (i + 1) (fkChainN t i b)
-
-/-- The base of arm `t` of the 256 from `b` (`fkAB`). -/
-def fkABN : ℕ → ℕ → ℕ
-  | 0, b => b
-  | t + 1, b => fkChainsN t 6 0 (fkABN t b) + (if t = 0 then 17 else 15)
-
-/-- Chain `i` of arm `t`, from the arms' base `0`. -/
-def fkOffN (t i : ℕ) : ℕ := fkChainsN t i 0 (fkABN t 0)
-
-/-- The base of arm `a` of a fold from `b`, its first arm `first` cells, the others `rest`. -/
-def foldPos (first rest b a : ℕ) : ℕ := if a = 0 then b else b + first + rest * (a - 1)
 
 end
 end LeanVM.Guest.Fast
