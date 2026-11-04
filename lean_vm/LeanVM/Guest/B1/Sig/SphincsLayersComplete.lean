@@ -161,7 +161,7 @@ theorem cellsBytes_ctr_zero (cs : List E) (ctr : Sphincs.EncodingCounter) :
 
 /-! ## A layer above the bottom -/
 
-theorem sUpper_eq (adr below lane : V) (off height b : Nat) :
+theorem sUpper_split (adr below lane : V) (off height b : Nat) :
     sUpper adr below lane off height b =
       (hintW "sp_counter" (runV b 4) :: ((sFromBytes (.n (b + 3)) [.n (b + 2), .n (b + 1), .n b] g255W (b + 4)).1 ++
         ([cst (b + 37) (word (tw 4) 0 0), addS (.n (b + 38)) adr (.n (b + 37))] ++
@@ -237,7 +237,7 @@ theorem sUpper_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (hC 
           Id.run (Sphincs.Verification.treeFold keccakF1600 P layer tree leaf path (m + 1) v) ∧
         IsCanonical128 (σ' (sUpper adr below lane off (m + 1) b).2.2) ∧
         ∀ k ≤ 3, BytePtr bb (σ' (.n (fbPtr (b + 4) k)))) := by
-  rw [sUpper_eq]
+  rw [sUpper_split]
   dsimp only
   set cells : List KC := [.cell sPP, .cell (.n (b + 38)), .cell below, .cell (.n (b + 36))] with hcells
   set K := kMsg sPad cells 52 false none (b + 39) with hK
