@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.SoundVX
-public import LeanVM.Guest.B1.Sig.XmssSound
+public import LeanVM.Guest.B1.Sig.XmssLoop2
 
 /-!
 # `main`, its witness decoded from the frame map
