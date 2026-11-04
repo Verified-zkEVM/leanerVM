@@ -106,24 +106,26 @@ structure OsPtrs where
   roots : E
   fch : E
   betas : E
-  qw : E
+  mus : E
   qpos : E
   qbp : E
+  win : E
   oodz : E
   ood : E
 
 /-- The fixed buffers' pointers of a valuation. -/
 def ptrsOf (σ : Val) : OsPtrs :=
   ⟨σ (.n osCaps), σ (.n osFlags), σ (.n osFmsg), σ (.n osRoots), σ (.n osFch), σ (.n osBetas),
-    σ (.n osQw), σ (.n osQpos), σ (.n osQbp), σ (.n osOodz), σ (.n osOod)⟩
+    σ (.n osMus), σ (.n osQpos), σ (.n osQbp), σ (.n osWin), σ (.n osOodz), σ (.n osOod)⟩
 
 theorem ptrsOf_agree {σ σ' : Val} {k : ℕ} (hk : 164 ≤ k) (h : AgreeBelow k σ σ') :
     ptrsOf σ' = ptrsOf σ := by
   simp only [ptrsOf, h _ (show osCaps < k by unfold osCaps; omega),
     h _ (show osFlags < k by unfold osFlags; omega), h _ (show osFmsg < k by unfold osFmsg; omega),
     h _ (show osRoots < k by unfold osRoots; omega), h _ (show osFch < k by unfold osFch; omega),
-    h _ (show osBetas < k by unfold osBetas; omega), h _ (show osQw < k by unfold osQw; omega),
+    h _ (show osBetas < k by unfold osBetas; omega), h _ (show osMus < k by unfold osMus; omega),
     h _ (show osQpos < k by unfold osQpos; omega), h _ (show osQbp < k by unfold osQbp; omega),
+    h _ (show osWin < k by unfold osWin; omega),
     h _ (show osOodz < k by unfold osOodz; omega), h _ (show osOod < k by unfold osOod; omega)]
 
 /-- **A level that is not the last, its hypotheses** on the honest data `D` from `F`, `q`, `t`,
@@ -161,10 +163,10 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
   hm : ∀ j < lv.squeezes, SqNextMem rd D.sqz
     (gen ^ j) ((⟨capNon lv D F q t, []⟩ : Fs).squeezeN j).2.cap
   hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
-    C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp] [])
-  hQ2 : 2 ≤ lv.queries
-  hqw : ∀ i < lv.queries, LoadHolds rd (P.qw) (lvl * c.maxQ + i)
-    (lamOf lv (capNon lv D F q t) ^ i)
+    C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp, P.win] [])
+  hqd : digitsVal (osPowDigits lv.queries) 1 = lv.queries
+  hl0 : lamOf lv (capNon lv D F q t) ≠ 0
+  hmu : LoadHolds rd P.mus lvl (lamOf lv (capNon lv D F q t))⁻¹
   hbo : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
     lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound
   hRW : C ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
@@ -179,7 +181,8 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
     [D.sum]
   hi : ReadsAt rd (cur * gen ^ (2 * lv.folds + 6)) [D.ic0, D.ic2]
   hlo : LoadHolds rd (P.ood) ((lvl + 1) * oodSlots) (lamOf lv (capNon lv D F q t))
-  hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capNon lv D F q t) * lamOf lv (capNon lv D F q t))
+  hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capNon lv D F q t) * lamOf lv (capNon lv D F q t) *
+    lamOf lv (capNon lv D F q t) ^ lv.queries)
 
 /-- **The last level, its hypotheses.** -/
 structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (D : LvDat)
@@ -205,10 +208,10 @@ structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
   hm : ∀ j < lv.squeezes, SqNextMem rd D.sqz
     (gen ^ j) ((⟨capFin lv D F q t, []⟩ : Fs).squeezeN j).2.cap
   hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
-    C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp] [])
-  hQ2 : 2 ≤ lv.queries
-  hqw : ∀ i < lv.queries, LoadHolds rd (P.qw) (lvl * c.maxQ + i)
-    (lamOf lv (capFin lv D F q t) ^ i)
+    C (c.sqLoop lvl) [1, gen ^ lv.squeezes, D.sqz, P.qpos, P.qbp, P.win] [])
+  hqd : digitsVal (osPowDigits lv.queries) 1 = lv.queries
+  hl0 : lamOf lv (capFin lv D F q t) ≠ 0
+  hmu : LoadHolds rd P.mus lvl (lamOf lv (capFin lv D F q t))⁻¹
   hbo : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
     lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound
   hRW : C ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
@@ -222,7 +225,8 @@ structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
     P.qbp * gen ^ lv.posOff, D.wp, gen ^ (lv.queries / (1 + if lvl = 0 then 1 else 0))]
     [D.sum]
   hi : ReadsAt rd (cur * gen ^ (2 * lv.folds + c.yrLen + 1)) [D.ic0, D.ic2]
-  hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capFin lv D F q t))
+  hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capFin lv D F q t) *
+    lamOf lv (capFin lv D F q t) ^ lv.queries)
 
 theorem LvOut.congr_cur {σ' : Val} {st st' : OsSt} {F : Fs} {q : List E} {t cur cur' : E} {co : ℕ}
     (h : LvOut σ' st st' F q t cur co) (e : cur = cur') : LvOut σ' st st' F q t cur' co := by
@@ -245,7 +249,8 @@ theorem osLevel_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
     (hcur : st.cur σ = cur)
     (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hpad : PadOk σ st.pad)
-    (hpk : ∀ p, st.pad = some p → p + 4 < st.k) {P : OsPtrs} (hP : ptrsOf σ = P)
+    (hpk : ∀ p, st.pad = some p → p + 4 < st.k) (hmo : MatsOk σ st.mats)
+    (hmob : MatsBelow st.k st.mats) {P : OsPtrs} (hP : ptrsOf σ = P)
     (h : LvH C rd P c lvl lv D F q t cur) :
     BlkF C rd σ st.k (osLevel c lvl lv st).2.k (lvF c lvl lv st σ D) (osLevel c lvl lv st).1
       (fun σ' ↦ LvOut σ' st (osLevel c lvl lv st).2 (lvOut c lvl lv D F q t).1
@@ -260,16 +265,16 @@ theorem osLevel_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
     simp only [lvF, lvOut, lvWords, lvLam, lvFq, lvCap, hc, ↓reduceIte]
     refine BlkF.mono (osLevel_final_complete (C := C) (rd := rd) σ hfin h.hC
       (fun a r hm h8 ↦ h.hFm a r hm (by rw [h8]; rfl)) h.hGr hfs hco hb hk
-      hcan hpad hpk h.hxl h.hrd h.hst h.hml h.hrd2 h.hout h.hpow h.hn0 h.hn5 D.sqz h.h0 h.hm
-      h.hL h.hQ2 h.hqw h.hbo D.wp D.r0 D.r1 D.sum D.ic0 D.ic2 h.hRW h.hCap h.hr0 h.hr1 h.hQ
+      hcan hpad hpk hmo hmob h.hxl h.hrd h.hst h.hml h.hrd2 h.hout h.hpow h.hn0 h.hn5 D.sqz h.h0 h.hm
+      h.hL h.hqd h.hl0 h.hmu h.hbo D.wp D.r0 D.r1 D.sum D.ic0 D.ic2 h.hRW h.hCap h.hr0 h.hr1 h.hQ
       h.hi h.hbeta) fun σ' ⟨ho, ha⟩ ↦ ⟨LvOut.congr_cur ho (by
         rw [show 2 * lv.folds + (c.yrLen + 1) + 2 = 2 * lv.folds + c.yrLen + 3 by omega]), ha⟩
   · have hc : (lvl = c.yrLevel) = False := eq_false hfin
     simp only [hc, ↓reduceIte] at h
     simp only [lvF, lvOut, lvWords, lvLam, lvFq, lvCap, hc, ↓reduceIte]
     exact osLevel_nonfinal_complete (C := C) (rd := rd) σ hfin h.f1 h.hC h.hCan h.hOod h.hGr hfs hco
-      hb hk hcan hpad hpk h.hlvl h.hxl h.hrd h.hst h.hd h.hrd2 h.hr0' h.hr1' h.hz h.hy h.hc0 h.hc2
-      h.hpow h.hn0 h.hn5 D.sqz h.h0 h.hm h.hL h.hQ2 h.hqw h.hbo D.wp D.r0 D.r1 D.sum D.ic0 D.ic2
+      hb hk hcan hpad hpk hmo hmob h.hlvl h.hxl h.hrd h.hst h.hd h.hrd2 h.hr0' h.hr1' h.hz h.hy h.hc0 h.hc2
+      h.hpow h.hn0 h.hn5 D.sqz h.h0 h.hm h.hL h.hqd h.hl0 h.hmu h.hbo D.wp D.r0 D.r1 D.sum D.ic0 D.ic2
       h.hRW h.hCap h.hr0 h.hr1 h.hQ h.hi h.hlo h.hbeta
 
 /-- The values of the levels `lvl ..`. -/
@@ -309,6 +314,8 @@ structure LvsSt (σ : Val) (st : OsSt) (F : Fs) (q : List E) (t cur : E) : Prop 
   can : AllCanonical (st.fsv σ)
   pad : PadOk σ st.pad
   pk : ∀ p, st.pad = some p → p + 4 < st.k
+  mats : MatsOk σ st.mats
+  matsB : MatsBelow st.k st.mats
 
 /-- **The levels, honestly.** -/
 theorem osLevels_complete {c : OsCfg} {P : OsPtrs} :
@@ -324,7 +331,8 @@ theorem osLevels_complete {c : OsCfg} {P : OsPtrs} :
     refine BlkF.nil fun σ' ha ↦ ⟨?_, le_rfl, ha⟩
     obtain ⟨e1, e2, e3, e4, e5⟩ := OsSt.agree hs.below ha
     refine ⟨by rw [e2, hs.F], by rw [e3, hs.quad], by rw [e4, hs.t], by rw [e5, hs.cur], hs.fs,
-      hs.co, hs.below, hs.k, by rw [e1]; exact hs.can, ?_, hs.pk⟩
+      hs.co, hs.below, hs.k, by rw [e1]; exact hs.can, ?_, hs.pk,
+      matsOk_agree hs.mats hs.matsB ha, hs.matsB⟩
     have hpd := hs.pad
     cases hp : st.pad with
     | none => trivial
@@ -342,7 +350,7 @@ theorem osLevels_complete {c : OsCfg} {P : OsPtrs} :
     rw [e]
     dsimp only
     have hA := osLevel_complete (C := C) (rd := rd) σ hs.F hs.quad hs.t hs.cur hs.fs
-      (by have := hs.co; unfold u128Bound; omega) hs.below hs.k hs.can hs.pad hs.pk hP h1
+      (by have := hs.co; unfold u128Bound; omega) hs.below hs.k hs.can hs.pad hs.pk hs.mats hs.matsB hP h1
     have hk1 : st.k ≤ (osLevel c lvl lv st).2.k :=
       (hA _ (agree_fill _ _ _ _) (range_fill _ _ _ _)).2.1.k
     have mk : ∀ σ1, AgreeBelow st.k σ σ1 → LvOut σ1 st (osLevel c lvl lv st).2
@@ -352,7 +360,8 @@ theorem osLevels_complete {c : OsCfg} {P : OsPtrs} :
           (lvOut c lvl lv D F q t).2.2 (cur * gen ^ lvWords c lvl lv) ∧ ptrsOf σ1 = P :=
       fun σ1 ha1' lo ↦ ⟨⟨lo.F, lo.quad, lo.t, lo.cur, lo.fs, by rw [lo.co]; split_ifs <;> omega,
         lo.below, by have := lo.k; have := hs.k; omega, lo.can, lo.pad,
-        fun p hp ↦ by obtain ⟨p', hp', h4⟩ := lo.padSome; rw [hp'] at hp; cases hp; exact h4⟩,
+        fun p hp ↦ by obtain ⟨p', hp', h4⟩ := lo.padSome; rw [hp'] at hp; cases hp; exact h4,
+        lo.mats, lo.matsB⟩,
         by rw [ptrsOf_agree hs.k ha1', hP]⟩
     have hk2 : (osLevel c lvl lv st).2.k ≤ (osLevels c (lvl + 1) rest (osLevel c lvl lv st).2).2.k := by
       obtain ⟨-, lo, ha⟩ := hA _ (agree_fill _ _ _ _) (range_fill _ _ _ _)
