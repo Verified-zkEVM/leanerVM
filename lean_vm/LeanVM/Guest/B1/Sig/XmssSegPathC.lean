@@ -912,13 +912,13 @@ theorem mFold_congr' {pp : E} {A A' : Nat → E} {bits bits' : Nat → Bool} {si
         have := h (j + 1) (by omega)
         rwa [show l + (j + 1) = l + 1 + j by omega, show l' + (j + 1) = l' + 1 + j by omega] at this
 
-theorem mFold_add (pp : E) (A : Nat → E) (bits : Nat → Bool) (sibs : Nat → E) :
+theorem lxMFold_add (pp : E) (A : Nat → E) (bits : Nat → Bool) (sibs : Nat → E) :
     ∀ a c l x, mFold pp A bits sibs (a + c) l x = mFold pp A bits sibs c (l + a) (mFold pp A bits sibs a l x)
   | 0, c, l, x => by simp [mFold]
   | a + 1, c, l, x => by
       rw [show a + 1 + c = (a + c) + 1 by omega]
       simp only [mFold]
-      rw [mFold_add pp A bits sibs a c (l + 1), show l + 1 + a = l + (a + 1) by omega]
+      rw [lxMFold_add pp A bits sibs a c (l + 1), show l + 1 + a = l + (a + 1) by omega]
 
 /-- **A window completes, its node the fold** of its eight levels over the index `L`: the addresses
 `lxNodeAddr L w r`, the bits `8w + r` of `L`, the hinted siblings. -/
@@ -1015,7 +1015,7 @@ theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {laye
     rw [lxSibF, he2.apply (Or.inl hlt)]
     exact hs0 r hr
   · rw [hv1, hv0, show sLxPP = .n 66 from rfl, hlo1 66 (by omega), ← mFold_eq_xFold,
-      show 16 = 8 + 8 from rfl, mFold_add]
+      show 16 = 8 + 8 from rfl, lxMFold_add]
     have e0 : ∀ x, mFold (σ (.n 66)) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 0 x =
         mFold (σ (.n 66)) (lxNodeAddr L (2 * layer)) (fun r => L.testBit (8 * (2 * layer) + r)) sibs 8 0 x :=
       fun x => mFold_congr' 8 0 0 x fun j hj => ⟨by
