@@ -23,6 +23,7 @@ public import LeanVM.Guest.B1.Tables.InterfaceC
 public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.B1.Placement.Certify
 public import LeanVM.Guest.B1.VerifySub.Gw
+public import LeanVM.Guest.B1.VerifySub.TermGlue
 
 /-!
 # `verify_sub` is sound
@@ -76,46 +77,6 @@ theorem runsWith_whirOpen_target {μ r : ℕ} {t t' : E} (h : t = t') {s s' : Fs
     {os : List Opening} {roots roots' : List (Digest × ℕ × ℕ)} {w : B1.Whir.WhirEnd}
     (hr : B1.Whir.RunsWith (B1.Whir.whirOpen μ r t) s xs os roots w s' roots') :
     B1.Whir.RunsWith (B1.Whir.whirOpen μ r t') s xs os roots w s' roots' := h ▸ hr
-
-/-- The exponent table's nibble shares, as `check_opening_terminal` reads them at `g_squares·g^34`. -/
-theorem gTabs_of_exp {rd : Reader} {sq : E} (h : ExpTables rd sq) :
-    Tables.GTabsAt rd (sq * gen ^ 34) := by
-  intro j hj u hu
-  rw [loadHolds_mul_gen_pow]
-  have := h.2.1 j (by simp only [Tables.selNibbles] at hj; simp only [selTabNibbles]; omega) u hu
-  simpa only [sizeBits, Nat.add_assoc] using this
-
-/-- The layout's placements, at the guest's bytecode log size `19`. -/
-theorem layoutOf_placements {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
-    (rowsN : List ℕ) : (Tables.layoutOf bytecode logMem rowsN).placements =
-      (placementsOf (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))).1 := by
-  unfold Tables.layoutOf
-  simp only []
-  rw [log2_bytecode hbl]
-
-/-- The layout's stack log, at the guest's bytecode log size `19`. -/
-theorem layoutOf_stackLog {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
-    (rowsN : List ℕ) : (Tables.layoutOf bytecode logMem rowsN).stackLog =
-      (placementsOf (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))).2 := by
-  unfold Tables.layoutOf
-  simp only []
-  rw [log2_bytecode hbl]
-
-theorem claimKappaSrc_eq : ∀ j < Tables.nClaims, Tables.claimKappaSrc.getD j 0 = claimKappaSrc j := by
-  decide +kernel
-
-/-- `verify_tables`' context is the terminal's: the same claims, their low dimensions
-`claimLowDim` the terminal's `claimLow`. -/
-theorem termCtx_of_tctx {rd : Reader} {layout : Layout} {bus : BusResult}
-    {claims : List ColumnClaim} {zeta chi rm gmu gzcn : E}
-    (h : Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn]) :
-    TermCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] := by
-  obtain ⟨chis, h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
-  refine ⟨chis, h1, h2, h3, h4, h5, h6, h7, fun j p hp ↦ ?_⟩
-  obtain ⟨a, b, c, d⟩ := h8 j p hp
-  refine ⟨fun hj ↦ ?_, b, c, d⟩
-  rw [a hj, Tables.claimLowDim, claimLow, claimKappaSrc_eq j (by simp only [Tables.nPooled] at hj; omega)]
-  rfl
 
 /-- **`verify_sub` is sound**, given `verify_tables`' soundness, its child proof read off its
 valuation, the memory and the frame map. -/
