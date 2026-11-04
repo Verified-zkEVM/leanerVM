@@ -130,6 +130,193 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxHeartbeats 300000 in
 set_option maxRecDepth 20000 in
+/-- **The layer's honest valuation, placed from `b`**: the obligation `completeAt_flatOutF`
+(and `completeAt_flatOutFB`) asks of the body, on a memory holding the caller's words and the
+buffers. -/
+theorem layer_obl {first : ℕ} (hf : first < 2) (D : LayerData)
+    (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E}
+    (hcl : D.cap.length = 5) (hcap : AllCanonical D.cap)
+    (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
+    (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
+    (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11)
+    (hproj : projectedOf D.c D.product + iota * sumE D.c.mu = D.c.value)
+    (hfin : LayerFinal D.c (D.s0 first) D.product D.packMsgs D.localMsgs D.t)
+    (hCL : CL.Ok first D.c D.y) (b : ℕ) (outs : List (List E × Main.Layout))
+    (hout : OutsOk (layerKids D first CL bcur bout b) outs) (rd : Reader)
+    (hB : MemL rd (layerBufs D first (ptr bcur) b))
+    (hLin : MemL rd (layerLin D first CL bcur bout b)) :
+    ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
+        .n 13].map σ = D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
+          ptr CL.bclaim, ptr bout, iota] ∧ (∀ s ∈ layerPre first, DispOk σ s) ∧
+      Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first) False
+        (fun r => r = D.rets first (ptr bcur)) ∧
+      ((layerPre first).filterMap Main.Stmt.allocSz).map
+        (fun x => x.2.elim id fun s => logG (σ s)) = layerSizes D ∧
+      (((layerPre first).filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+        (bases b (layerSizes D)).map (fun b => ofK (Parameters.addressOfIndex b)) ∧
+      CallsMatch σ (((layerPre first).filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
+        (layerKids D first CL bcur bout b) outs ∧
+      ∀ q ∈ (layerPre first).filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 *
+          Parameters.addressOfIndex q.2 = Parameters.addressOfIndex i ∧
+        (RegionL (layerLin D first CL bcur bout b) i ∨
+          RegionL (layerBufs D first (ptr bcur) b) i) := by
+  obtain ⟨-, -, halloc, -, -, hloads⟩ := layerPre_kernel hf
+  have hlocL : (D.locPt first).length = 11 := by
+    rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
+  have hm : MemL rd (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b) :=
+    Main.memL_append.mpr ⟨hLin, hB⟩
+  obtain ⟨hK1, hK2⟩ := layer_kids hf D CL bcur bout b hy30 hpl hpm hlm hm
+  obtain ⟨w1052, w1053, w1081, w33, wfl⟩ := layerW_vals hf D b
+  have hcr0 := hCL
+  obtain ⟨hcwL, -, -, -, -, h2, h3, -, -, hwt⟩ := hcr0
+  have mem : ∀ q ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b,
+      ReadsAt rd (ptr q.1) q.2 := hm
+  have hCLm : MemL rd (CL.L first D.c) := fun q hq ↦ hLin q (by simp [layerLin, hq])
+  have hcr := ClaimLay.claimRec hCL hCLm
+  have mB : ∀ {bb ws}, (bb, ws) ∈ layerBufs D first (ptr bcur) b → ReadsAt rd (ptr bb) ws :=
+    fun hq ↦ mem _ (List.mem_append_right _ hq)
+  have mL : ∀ {bb ws}, (bb, ws) ∈ layerLin D first CL bcur bout b → ReadsAt rd (ptr bb) ws :=
+    fun hq ↦ mem _ (List.mem_append_left _ hq)
+  have hcw : ReadsAt rd (ptr CL.bclaim) CL.cw := mL (by simp [layerLin, ClaimLay.L])
+  have hxs : ReadsAt rd (ptr bcur) D.xs := mL (by simp [layerLin])
+  have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b 1052)
+      (layerW D first b (weightEnd first + 33)) (layerW D first b 1081)
+      (layerW D first b (topV (weightEnd first) + 3))) := by
+    rw [w1052, w33, w1081, wfl]; exact mL (by simp [layerLin])
+  have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
+    (p1 := p1) (cur := ptr bcur) (claim := ptr CL.bclaim) (out := ptr bout) (iota := iota)
+    (cw := CL.cw) hcl hcap hw hy1 hy30 hpl hpm hlm hproj hfin hcr hcw (by omega) hxs
+    (by rw [w1052]; exact mB (by simp [layerBufs_eq]))
+    (by rw [w1053]; exact mB (by simp [layerBufs_eq]))
+    (by rw [w1081]; exact mB (by simp [layerBufs_eq]))
+    (by rw [w33]; exact mB (by simp [layerBufs_eq]))
+    (by rw [wfl]; exact mB (by simp [layerBufs_eq])) hout'
+    (fun hne ↦ by rw [w1053, w1052, h2]; exact (hK1 hne).rel)
+    (fun hne ↦ by rw [w1053, w1052, h2]; exact (hK2 hne).rel)
+  dsimp only at hbody'
+  obtain ⟨⟨e1072, e1078, e1841, e1842, e1051⟩, hH⟩ := hbody'
+  -- the valuation's equations
+  have hl : (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
+      ptr CL.bclaim, ptr bout, iota]).length = 14 := by simp [hcl]
+  have hG := layer_good (rd := rd) (w := layerW D first b) hf hl
+  have hpar := fun i (hi : i < 14) ↦ layer_param (rd := rd) (w := layerW D first b) hf hl hi
+  generalize layerσ rd (layerW D first b) (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y,
+    gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota]) first = σ
+    at hG hpar hH e1072 e1078 e1841 e1842 e1051 ⊢
+  have hGpre : ∀ s ∈ layerPre first, GoodS rd (layerSt first) (layerW D first b) σ s :=
+    fun s hs ↦ hG s (by rw [layerT_pre]; exact List.mem_append_left _ hs)
+  have ga := alloc_good hGpre
+  rw [halloc] at ga
+  simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at ga
+  obtain ⟨a1052, a1053, a1081, a33, afl⟩ := ga
+  simp only [V.n] at a1052 a1053 a1081 a33 afl
+  rw [w1052] at a1052
+  rw [w1053] at a1053
+  rw [w1081] at a1081
+  rw [w33] at a33
+  rw [wfl] at afl
+  rw [layerT_sections] at hG
+  have gP : ∀ s ∈ packSetupT first, GoodS rd (layerSt first) (layerW D first b) σ s :=
+    fun s hs ↦ hG s (by simp [hs])
+  obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
+  rw [hcapE] at hpar
+  have a7 : σ (.n 7) = ptr bcur := hpar 7 (by norm_num)
+  have a8 : σ (.n 8) = gen ^ D.y := hpar 8 (by norm_num)
+  have a9 : σ (.n 9) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
+  have a10 : σ (.n 10) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
+  have a11 : σ (.n 11) = ptr CL.bclaim := hpar 11 (by norm_num)
+  have a12 : σ (.n 12) = ptr bout := hpar 12 (by norm_num)
+  refine ⟨σ, ?_, layerPre_disp hf σ, hH, ?_, ?_, ?_, ?_⟩
+  · -- the parameters
+    rw [hcapE]
+    simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
+    refine List.ext_getElem (by simp) fun i h1 h2 ↦ ?_
+    simp only [List.length_cons, List.length_nil] at h1
+    have := hpar i (by omega)
+    interval_cases i <;> simpa using this
+  · -- the sizes
+    rw [halloc]
+    simp only [List.map_cons, List.map_nil, Sum.elim_inl, Sum.elim_inr, id, layerSizes, a8,
+      gen_pow_eq_ofK]
+    rw [logG_spec (by omega)]
+  · -- the bases
+    rw [halloc]
+    simp only [List.map_cons, List.map_nil, a1052, a1053, a1081, a33, afl, layerSizes, bases]
+  · -- the calls
+    rw [layerPre_callSF hf σ]
+    obtain ⟨e1058', e1059, e1060, e1064, e1068, e1070', e1071⟩ := packSetup_vals gP
+    rw [a9] at e1058' e1064 e1068
+    rw [a10] at e1070'
+    have epp : σ (.n 1051) = ptr CL.bpp := by rw [e1051, h2]
+    simp only [layerCalls, layerKids, List.map_cons, List.map_nil] at hout ⊢
+    match outs, hout with
+    | [o1, o2], ⟨ho1, ho2, _⟩ =>
+      refine ⟨rfl, by simp [Main.mkCall, e1058'], fun ht ↦ ⟨?_, ?_⟩, rfl,
+        by simp [Main.mkCall, e1070'], fun ht ↦ ⟨?_, ?_⟩, trivial⟩
+      · simp [Main.mkCall, e1059, a9, a1053, epp, a1052]
+      · simp only [Main.mkCall, List.map_nil]; exact ((ho1 ht).1).symm
+      · simp [Main.mkCall, e1071, a10, e1060, e1064, e1068, a9, a1053, epp, a1052]
+      · simp only [Main.mkCall, List.map_nil]; exact ((ho2 ht).1).symm
+  · -- the loads
+    have fin : ∀ {bb : ℕ} {ws : List E} {j off : ℕ},
+        (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
+        j + off < ws.length → ∃ i, (ptr bb * gen ^ j).limb 0 * Parameters.addressOfIndex off =
+          Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
+            RegionL (layerBufs D first (ptr bcur) b) i) :=
+      fun hq h ↦ inR_split (inR_entry hq h)
+    have fin0 : ∀ {bb : ℕ} {ws : List E} {off : ℕ},
+        (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
+        off < ws.length → ∃ i, (ptr bb).limb 0 * Parameters.addressOfIndex off =
+          Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
+            RegionL (layerBufs D first (ptr bcur) b) i) := fun {bb ws off} hq h ↦ by
+      have := fin (bb := bb) (ws := ws) (j := 0) (off := off) hq (by omega)
+      simpa using this
+    have hxl := LayerData.xs_length hpl hpm hlm
+    have hcl' := LayerData.chs_length (D := D) (first := first) hpm
+    intro q hq
+    have hg := List.all_eq_true.mp hloads q hq
+    simp only [List.any_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hg
+    obtain ⟨g, hgm, hg1, hg2⟩ := hg
+    obtain ⟨p, off⟩ := q
+    simp only at hg1 hg2 ⊢
+    subst hg1
+    simp only [layerGroups, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hgm
+    rcases hgm with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | hgm
+    · rw [a7]; exact fin0 (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
+    · rw [a11]; exact fin0 (bb := CL.bclaim) (ws := CL.cw) (by simp [layerLin, ClaimLay.L])
+        (by simp only at hg2; omega)
+    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 139))
+        (ptr (b + D.y + 128)) (ptr (b + D.y + 164))) (by simp [layerLin])
+        (by simp [LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]; omega)
+    · rw [a1053]; exact fin0 (bb := b + D.y) (ws := D.recWords first (ptr bcur))
+        (by simp [layerBufs_eq]) (by rw [recWords_length]; omega)
+    · rw [e1072, w1053, mul_assoc, ← pow_add]
+      exact fin (bb := b + D.y) (ws := D.recWords first (ptr bcur))
+        (by simp [layerBufs_eq]) (by rw [recWords_length]; simp only at hg2; omega)
+    · rw [e1078]; exact fin (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
+    · rw [e1841, h3]; exact fin0 (bb := CL.blp) (ws := CL.lanes) (by simp [layerLin, ClaimLay.L])
+        (by have := hCL.2.2.2.2.2.2.2.2.1; simp only at hg2; omega)
+    · rw [a1081]; exact fin0 (bb := b + D.y + 128) (ws := D.locPt first) (by simp [layerBufs_eq])
+        (by simp only at hg2; omega)
+    · rw [a33]; exact fin0 (bb := b + D.y + 139) (ws := lanesOut (D.locPt first) (D.beta first).1)
+        (by simp [layerBufs_eq]) (by rw [lanesOut_length]; simp only at hg2; omega)
+    · rw [afl]; exact fin0 (bb := b + D.y + 164) (ws := flipsOf (laterWeights
+        (lanesOut (D.locPt first) (D.beta first).1) (eqKernel ((D.locPt first).take 6))))
+        (by simp [layerBufs_eq]) (by simp [flipsOf]; simp only at hg2; omega)
+    · split at hgm
+      · simp at hgm
+      · rename_i hf1
+        simp only [List.mem_singleton] at hgm
+        subst hgm
+        have hf0 : first = 0 := by omega
+        simp only [hf1, ↓reduceIte] at hwt
+        obtain ⟨h4, -, hlcl, -⟩ := hwt
+        rw [e1842 hf0, h4]
+        exact fin0 (bb := CL.blc) (ws := CL.locC) (by simp [layerLin, ClaimLay.L, hf1])
+          (by simp only at hg2; omega)
+
+
+set_option maxRecDepth 20000 in
 /-- **`keccak_layer` is complete, placed**, for its two specializations. -/
 theorem layer_completeAtF {first : ℕ} (hf : first < 2) (κ : ℕ) (D : LayerData)
     (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E}
@@ -180,159 +367,8 @@ theorem layer_completeAtF {first : ℕ} (hf : first < 2) (κ : ℕ) (D : LayerDa
     exact Main.memL_append.mpr ⟨hLin, hB⟩
   · -- the honest valuation
     intro fp outs hout rd _ hB hLin
-    generalize hbdef : fp + fs (layerName first) = b at hB hLin hout ⊢
-    have hm : MemL rd (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b) :=
-      Main.memL_append.mpr ⟨hLin, hB⟩
-    obtain ⟨hK1, hK2⟩ := layer_kids hf D CL bcur bout b hy30 hpl hpm hlm hm
-    obtain ⟨w1052, w1053, w1081, w33, wfl⟩ := layerW_vals hf D b
-    have hcr0 := hCL
-    obtain ⟨hcwL, -, -, -, -, h2, h3, -, -, hwt⟩ := hcr0
-    have mem : ∀ q ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b,
-        ReadsAt rd (ptr q.1) q.2 := hm
-    have hCLm : MemL rd (CL.L first D.c) := fun q hq ↦ hLin q (by simp [layerLin, hq])
-    have hcr := ClaimLay.claimRec hCL hCLm
-    have mB : ∀ {bb ws}, (bb, ws) ∈ layerBufs D first (ptr bcur) b → ReadsAt rd (ptr bb) ws :=
-      fun hq ↦ mem _ (List.mem_append_right _ hq)
-    have mL : ∀ {bb ws}, (bb, ws) ∈ layerLin D first CL bcur bout b → ReadsAt rd (ptr bb) ws :=
-      fun hq ↦ mem _ (List.mem_append_left _ hq)
-    have hcw : ReadsAt rd (ptr CL.bclaim) CL.cw := mL (by simp [layerLin, ClaimLay.L])
-    have hxs : ReadsAt rd (ptr bcur) D.xs := mL (by simp [layerLin])
-    have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b 1052)
-        (layerW D first b (weightEnd first + 33)) (layerW D first b 1081)
-        (layerW D first b (topV (weightEnd first) + 3))) := by
-      rw [w1052, w33, w1081, wfl]; exact mL (by simp [layerLin])
-    have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
-      (p1 := p1) (cur := ptr bcur) (claim := ptr CL.bclaim) (out := ptr bout) (iota := iota)
-      (cw := CL.cw) hcl hcap hw hy1 hy30 hpl hpm hlm hproj hfin hcr hcw (by omega) hxs
-      (by rw [w1052]; exact mB (by simp [layerBufs_eq]))
-      (by rw [w1053]; exact mB (by simp [layerBufs_eq]))
-      (by rw [w1081]; exact mB (by simp [layerBufs_eq]))
-      (by rw [w33]; exact mB (by simp [layerBufs_eq]))
-      (by rw [wfl]; exact mB (by simp [layerBufs_eq])) hout'
-      (fun hne ↦ by rw [w1053, w1052, h2]; exact (hK1 hne).rel)
-      (fun hne ↦ by rw [w1053, w1052, h2]; exact (hK2 hne).rel)
-    dsimp only at hbody'
-    obtain ⟨⟨e1072, e1078, e1841, e1842, e1051⟩, hH⟩ := hbody'
-    -- the valuation's equations
-    have hl : (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
-        ptr CL.bclaim, ptr bout, iota]).length = 14 := by simp [hcl]
-    have hG := layer_good (rd := rd) (w := layerW D first b) hf hl
-    have hpar := fun i (hi : i < 14) ↦ layer_param (rd := rd) (w := layerW D first b) hf hl hi
-    generalize layerσ rd (layerW D first b) (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y,
-      gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota]) first = σ
-      at hG hpar hH e1072 e1078 e1841 e1842 e1051 ⊢
-    have hGpre : ∀ s ∈ layerPre first, GoodS rd (layerSt first) (layerW D first b) σ s :=
-      fun s hs ↦ hG s (by rw [layerT_pre]; exact List.mem_append_left _ hs)
-    have ga := alloc_good hGpre
-    rw [halloc] at ga
-    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at ga
-    obtain ⟨a1052, a1053, a1081, a33, afl⟩ := ga
-    simp only [V.n] at a1052 a1053 a1081 a33 afl
-    rw [w1052] at a1052
-    rw [w1053] at a1053
-    rw [w1081] at a1081
-    rw [w33] at a33
-    rw [wfl] at afl
-    rw [layerT_sections] at hG
-    have gP : ∀ s ∈ packSetupT first, GoodS rd (layerSt first) (layerW D first b) σ s :=
-      fun s hs ↦ hG s (by simp [hs])
-    obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
-    rw [hcapE] at hpar
-    have a7 : σ (.n 7) = ptr bcur := hpar 7 (by norm_num)
-    have a8 : σ (.n 8) = gen ^ D.y := hpar 8 (by norm_num)
-    have a9 : σ (.n 9) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
-    have a10 : σ (.n 10) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
-    have a11 : σ (.n 11) = ptr CL.bclaim := hpar 11 (by norm_num)
-    have a12 : σ (.n 12) = ptr bout := hpar 12 (by norm_num)
-    refine ⟨σ, ?_, layerPre_disp hf σ, ?_, ?_, ?_, ?_, ?_⟩
-    · -- the parameters
-      rw [hparams, hcapE]
-      simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
-      refine List.ext_getElem (by simp) fun i h1 h2 ↦ ?_
-      simp only [List.length_cons, List.length_nil] at h1
-      have := hpar i (by omega)
-      interval_cases i <;> simpa using this
-    · rw [hbody]; exact hH
-    · -- the sizes
-      rw [halloc]
-      simp only [List.map_cons, List.map_nil, Sum.elim_inl, Sum.elim_inr, id, layerSizes, a8,
-        gen_pow_eq_ofK]
-      rw [logG_spec (by omega)]
-    · -- the bases
-      rw [halloc]
-      simp only [List.map_cons, List.map_nil, a1052, a1053, a1081, a33, afl, layerSizes, bases]
-    · -- the calls
-      rw [layerPre_callSF hf σ]
-      obtain ⟨e1058', e1059, e1060, e1064, e1068, e1070', e1071⟩ := packSetup_vals gP
-      rw [a9] at e1058' e1064 e1068
-      rw [a10] at e1070'
-      have epp : σ (.n 1051) = ptr CL.bpp := by rw [e1051, h2]
-      simp only [layerCalls, layerKids, List.map_cons, List.map_nil] at hout ⊢
-      match outs, hout with
-      | [o1, o2], ⟨ho1, ho2, _⟩ =>
-        refine ⟨rfl, by simp [Main.mkCall, e1058'], fun ht ↦ ⟨?_, ?_⟩, rfl,
-          by simp [Main.mkCall, e1070'], fun ht ↦ ⟨?_, ?_⟩, trivial⟩
-        · simp [Main.mkCall, e1059, a9, a1053, epp, a1052]
-        · simp only [Main.mkCall, List.map_nil]; exact ((ho1 ht).1).symm
-        · simp [Main.mkCall, e1071, a10, e1060, e1064, e1068, a9, a1053, epp, a1052]
-        · simp only [Main.mkCall, List.map_nil]; exact ((ho2 ht).1).symm
-    · -- the loads
-      have fin : ∀ {bb : ℕ} {ws : List E} {j off : ℕ},
-          (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
-          j + off < ws.length → ∃ i, (ptr bb * gen ^ j).limb 0 * Parameters.addressOfIndex off =
-            Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
-              RegionL (layerBufs D first (ptr bcur) b) i) :=
-        fun hq h ↦ inR_split (inR_entry hq h)
-      have fin0 : ∀ {bb : ℕ} {ws : List E} {off : ℕ},
-          (bb, ws) ∈ layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b →
-          off < ws.length → ∃ i, (ptr bb).limb 0 * Parameters.addressOfIndex off =
-            Parameters.addressOfIndex i ∧ (RegionL (layerLin D first CL bcur bout b) i ∨
-              RegionL (layerBufs D first (ptr bcur) b) i) := fun {bb ws off} hq h ↦ by
-        have := fin (bb := bb) (ws := ws) (j := 0) (off := off) hq (by omega)
-        simpa using this
-      have hxl := LayerData.xs_length hpl hpm hlm
-      have hcl' := LayerData.chs_length (D := D) (first := first) hpm
-      intro q hq
-      have hg := List.all_eq_true.mp hloads q hq
-      simp only [List.any_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hg
-      obtain ⟨g, hgm, hg1, hg2⟩ := hg
-      obtain ⟨p, off⟩ := q
-      simp only at hg1 hg2 ⊢
-      subst hg1
-      simp only [layerGroups, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hgm
-      rcases hgm with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | hgm
-      · rw [a7]; exact fin0 (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
-      · rw [a11]; exact fin0 (bb := CL.bclaim) (ws := CL.cw) (by simp [layerLin, ClaimLay.L])
-          (by simp only at hg2; omega)
-      · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 139))
-          (ptr (b + D.y + 128)) (ptr (b + D.y + 164))) (by simp [layerLin])
-          (by simp [LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]; omega)
-      · rw [a1053]; exact fin0 (bb := b + D.y) (ws := D.recWords first (ptr bcur))
-          (by simp [layerBufs_eq]) (by rw [recWords_length]; omega)
-      · rw [e1072, w1053, mul_assoc, ← pow_add]
-        exact fin (bb := b + D.y) (ws := D.recWords first (ptr bcur))
-          (by simp [layerBufs_eq]) (by rw [recWords_length]; simp only at hg2; omega)
-      · rw [e1078]; exact fin (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
-      · rw [e1841, h3]; exact fin0 (bb := CL.blp) (ws := CL.lanes) (by simp [layerLin, ClaimLay.L])
-          (by have := hCL.2.2.2.2.2.2.2.2.1; simp only at hg2; omega)
-      · rw [a1081]; exact fin0 (bb := b + D.y + 128) (ws := D.locPt first) (by simp [layerBufs_eq])
-          (by simp only at hg2; omega)
-      · rw [a33]; exact fin0 (bb := b + D.y + 139) (ws := lanesOut (D.locPt first) (D.beta first).1)
-          (by simp [layerBufs_eq]) (by rw [lanesOut_length]; simp only at hg2; omega)
-      · rw [afl]; exact fin0 (bb := b + D.y + 164) (ws := flipsOf (laterWeights
-          (lanesOut (D.locPt first) (D.beta first).1) (eqKernel ((D.locPt first).take 6))))
-          (by simp [layerBufs_eq]) (by simp [flipsOf]; simp only at hg2; omega)
-      · split at hgm
-        · simp at hgm
-        · rename_i hf1
-          simp only [List.mem_singleton] at hgm
-          subst hgm
-          have hf0 : first = 0 := by omega
-          simp only [hf1, ↓reduceIte] at hwt
-          obtain ⟨h4, -, hlcl, -⟩ := hwt
-          rw [e1842 hf0, h4]
-          exact fin0 (bb := CL.blc) (ws := CL.locC) (by simp [layerLin, ClaimLay.L, hf1])
-            (by simp only at hg2; omega)
-
+    rw [hparams, hbody]
+    exact layer_obl hf D CL bcur bout hcl hcap hw hy1 hy30 hpl hpm hlm hproj hfin hCL _ outs hout rd
+      hB hLin
 end
 end LeanVM.Guest.B1.VerifySub
