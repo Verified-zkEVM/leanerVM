@@ -65,7 +65,7 @@ def scalarOfCells (c0 c1 : E) : E := E.ofLimbs (c0.limb 0) (c0.limb 1) (c1.limb 
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
-/-! ## `da_verify` (G:4199-4239, TRIAGE #90) -/
+/-! ## `da_verify` (G:4238-4278, TRIAGE #90) -/
 
 /-- **`da_verify(g_squares)`**: with the exponent table at `g_squares`, a witness opens the claim
 of the returned root and challenge `z` (`Da.MatrixWitness.Opens`), the four returned words the
@@ -82,7 +82,7 @@ def da_verify_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_verify" args rets → MeaningDaVerify rd args rets
 
-/-! ## `da_row_shape` (G:4242-4251, TRIAGE #91) -/
+/-! ## `da_row_shape` (G:4281-4290, TRIAGE #91) -/
 
 /-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares`,
 `n_blob = g^r` for `1 ≤ r ≤ 1024`, `g_log_pad = g^L` with `2^L` the padded count
@@ -98,7 +98,7 @@ def da_row_shape_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_row_shape" args rets → MeaningDaRowShape rd args rets
 
-/-! ## `da_verify_cell` (G:4271-4283, TRIAGE #92) -/
+/-! ## `da_verify_cell` (G:4310-4322, TRIAGE #92) -/
 
 /-- **`da_verify_cell(lvals)`**: some `256` symbols of `K` (the hint), their digest's two cells
 (LeanDA's cell digest, eight bytes a symbol) and their dot product with the `256` weights at
@@ -115,7 +115,7 @@ def da_verify_cell_sound_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "da_verify_cell" args rets → MeaningDaVerifyCell rd args rets
 
-/-! ## `da_levels` (G:4286-4294, TRIAGE #92) -/
+/-! ## `da_levels` (G:4325-4333, TRIAGE #92) -/
 
 /-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`. -/
 def daLevelsName (k : ℕ) : String :=

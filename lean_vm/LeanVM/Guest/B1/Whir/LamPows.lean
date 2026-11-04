@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Loops
 
 /-!
-# `lam_pow` and `level_mus` (G:1572-1573)
+# `lam_pow` and `level_mus` (G:1589-1590)
 
 `osLamPow lvl lam n k` computes `λ^n` by square and multiply (`osPowSteps`) and stores
 `level_mus[lvl] = μ` with `μ·λ = 1` (`osLamPow_sound`): the residual chain runs

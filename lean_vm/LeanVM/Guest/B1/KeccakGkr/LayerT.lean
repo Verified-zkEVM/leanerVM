@@ -13,14 +13,14 @@ public import LeanVM.Guest.B1.KeccakGkr.EqFrame
 /-!
 # `keccak_layer` as a template
 
-The specializations `keccak_layer__L{first}` (G:2681-2862) compile to one statement list up to
+The specializations `keccak_layer__L{first}` (G:2698-2879) compile to one statement list up to
 the head (`first = 1` copies the waiting word's two cells), the product's table (`prodTab first`),
 the waiting cells of the squeeze after it, and the first layer's weight section; from `s` on the
 values are the same. Sections:
 
 * `headT`: the carried capacity (and, first, the waiting word's cells) copied, the claim's sixteen
   instance weights read (`KC_MU`), and the readers, a straight line of sums over them
-  (`KECCAK_PROJ_A`, `KECCAK_PROJ_B`, G:2697-2701);
+  (`KECCAK_PROJ_A`, `KECCAK_PROJ_B`, G:2714-2718);
 * `prodT` (`Prod`): the product's 47 coefficients read and absorbed, and their projection, each
   coefficient times its reader (`KECCAK_PROJ_OUT`);
 * `checkT`: the projection plus `ι·κ` against the claim's value;
@@ -304,7 +304,7 @@ def lanesEqT (lp loc : V) (f : ℕ → ℕ) (B : ℕ) : List Stmt :=
 /-- Bit `t` of the two points from `B`: `a_t`, `b_t`, `1`, `1 + a_t`, `1`, `1 + b_t`,
 `(1 + a_t)(1 + b_t)`, `a_t b_t`, then the weights `e_t = (1 + a_t)(1 + b_t) + a_t b_t`, and below
 the top bit `u_t = a_t (1 + b_t)`, `v_t = (1 + a_t) b_t`, at the top bit `s_t = a_t + b_t`
-(G:2573-2591). -/
+(G:2590-2608). -/
 def bitT (aP bP : V) (t B : ℕ) : List Stmt :=
   [.atom (.load (.n B) aP t), .atom (.load (.n (B + 1)) bP t),
     .atom (.const (.n (B + 2)) (word 1 0 0)), .atom (.add (.n (B + 3)) (.n (B + 2)) (.n B)),
@@ -512,7 +512,7 @@ def flipOffs (i : ℕ) : List (ℕ × ℕ) :=
 `1 + top` (`top1`). -/
 def topOf (top top1 z : ℕ) : ℕ := if z / 32 = 1 then top else top1
 
-/-- Flip `i` from `b` (G:2843-2849): over `flipOffs i`, the lane weight read at `lp`, the slice
+/-- Flip `i` from `b` (G:2860-2866): over `flipOffs i`, the lane weight read at `lp`, the slice
 weight `slices[z % 32]·top(z)`, their product, summed; the flip at `b + 42`. -/
 def lflipT (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) : List Stmt :=
   match flipOffs i with

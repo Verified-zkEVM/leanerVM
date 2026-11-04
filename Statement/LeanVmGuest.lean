@@ -69,13 +69,13 @@ abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 abbrev LeanSphincsClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`,
-`aggregation.rs:372-374`) and the membership challenge whose dual codeword its rows are orthogonal
+`aggregation.rs:377-379`) and the membership challenge whose dual codeword its rows are orthogonal
 to. A statement carries the claim's digest (`daClaimDigest`). -/
 structure DaClaim where
   /-- The matrix's Merkle root: the commitment to its codewords. -/
   daRoot : Digest
   /-- The membership challenge `z`, which the guest program reads as a hint (`da_challenge`,
-  `lean_ethereum.py:4210`); the deployed outer verifier derives it from the root
+  `lean_ethereum.py:4249`); the deployed outer verifier derives it from the root
   (`membership_challenge`, `crates/verifier/src/da.rs:14-17`). -/
   membershipChallenge : E
   deriving DecidableEq, Inhabited
@@ -103,7 +103,7 @@ Each digest is Keccak-256 of its preimage; the preimages are also the inputs of 
 collisions (`collisionCandidates`, below). -/
 
 /-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
-(`claim_cells`, `aggregation.rs:197-204`). -/
+(`claim_cells`, `aggregation.rs:202-209`). -/
 def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
   HashSig.littleEndianBytes 16 root ++ HashSig.littleEndianBytes 16 parameter ++
     HashSig.littleEndianBytes 32 message
@@ -114,18 +114,18 @@ def claimListPreimage (claims : List (HashSig.PublicKey × HashSig.Message)) : L
   claims.flatMap fun claim ↦ claimBytes claim.1.root claim.1.parameter claim.2
 
 /-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
-`aggregation.rs:191-193`, `lean_ethereum.py:4000-4031`). -/
+`aggregation.rs:196-198`, `lean_ethereum.py:4039-4070`). -/
 def claimListDigest (claims : List (HashSig.PublicKey × HashSig.Message)) : Digest :=
   keccak256 (claimListPreimage claims)
 
 /-- A DA claim's digest, which a statement carries: Keccak-256 of the root, then the challenge as
 its three limbs and a zero word, little-endian (`digest`, `crates/verifier/src/da.rs:19-26`; the
-guest program's `keccak([root_0, root_1], [z_0, z_1])`, `lean_ethereum.py:4475`). -/
+guest program's `keccak([root_0, root_1], [z_0, z_1])`, `lean_ethereum.py:4520`). -/
 def daClaimDigest (claim : DaClaim) : Digest :=
   keccak256 (digestBytes claim.daRoot ++ E.toBytes claim.membershipChallenge ++ List.replicate 8 0)
 
 /-- The DA digest of a statement without a DA claim: zeros (`digest(None)`,
-`crates/verifier/src/da.rs:19-26`; `own_da`'s zero cells, `lean_ethereum.py:4477-4478`). -/
+`crates/verifier/src/da.rs:19-26`; `own_da`'s zero cells, `lean_ethereum.py:4522-4523`). -/
 def zeroDigest : Digest := Vector.replicate 4 0
 
 /-- The deferred claim's cells, an odd count paired with a zero cell. -/
@@ -142,7 +142,7 @@ def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :
     (paddedDeferredClaimCells statement.deferredClaim).flatMap E.toBytes
 
 /-- **The statement's digest under `seed`**, a node's public input (`statement_digest`,
-`aggregation.rs:311-340`, `lean_ethereum.py:3934-3965`). The cells carry no lengths: the digest
+`aggregation.rs:316-345`, `lean_ethereum.py:3973-4004`). The cells carry no lengths: the digest
 tells two deferred claims apart only at one shape. -/
 def statementDigest (seed : Digest) (statement : NodeStatement) : Digest :=
   keccak256 (statementPreimage seed statement)
@@ -192,22 +192,22 @@ structure NodeWitness where
   batchingHints : BatchingHints
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation.rs:778-780`; `BYTECODE_VARS`, `lean_ethereum.py:355`). -/
+(`bytecode_vars`, `aggregation.rs:783-785`; `BYTECODE_VARS`, `lean_ethereum.py:355`). -/
 def DeferredClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredClaim::leaf`,
-`aggregation.rs:230-232`; `main`'s leaf branch, `lean_ethereum.py:4521-4529`). The value is the
+`aggregation.rs:235-237`; `main`'s leaf branch, `lean_ethereum.py:4566-4574`). The value is the
 outer verifier's to check. -/
 def DeferredClaim.HasZeroPoint (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredClaim::recompute_scalar`,
-`aggregation.rs:243-275`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
+`aggregation.rs:248-280`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
-checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation.rs:663-673`). -/
+checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation.rs:668-678`). -/
 def DeferredClaim.HoldsWithShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
@@ -241,7 +241,7 @@ def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Pr
 
 /-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
 opens; without such a matrix, zero or some child's DA digest (`da_pick`,
-`lean_ethereum.py:4513-4517`). -/
+`lean_ethereum.py:4558-4562`). -/
 def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
   match witness.daMatrix with
   | some (claim, matrix) =>
@@ -251,11 +251,11 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
     statement.claims.daDigest = zeroDigest ∨
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
-/-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4199-4239`):
+/-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py:4238-4278`):
 `1` to `1024` codewords of `2^15` symbols commit to `root` (the root of the matrix they form,
 `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
-which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4297-4361`). Only where
+which the guest program builds from `z`: `da_vector`, `lean_ethereum.py:4336-4400`). Only where
 `z` is the root's membership challenge, as the deployed outer verifier derives it (no end statement
 here assumes it), are the rows codewords, except with the membership test's error (`lean_da`'s
 `checker_sound`); the link to `lean_da`'s code binding is not proved. -/

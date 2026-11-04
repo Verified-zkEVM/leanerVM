@@ -28,11 +28,11 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation.rs` (leanVM `ed7d2b9c`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1262-1267`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1543-1814`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1433-1456`; `lean_sphincs_hints`, `aggregation.rs:1467-1506`), a child's
-(`gen_verify`, `aggregation.rs:1072-1227`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:819-927`) and LeanDA's.
+grouped by stream as `Hints::push` does, `aggregation.rs:1267-1272`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1557-1832`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1438-1461`; `lean_sphincs_hints`, `aggregation.rs:1472-1511`), a child's
+(`gen_verify`, `aggregation.rs:1077-1232`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:824-932`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -45,9 +45,9 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1380-1391`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1385-1396`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation.rs:1593-1597`), then every child's claims, child by child; a claim takes its
+  sorted and deduplicated, `aggregation.rs:1611-1597`), then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
   strictly sorted, where the first free match is the slot `binary_search` finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
@@ -79,20 +79,20 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `CLAIM_GROUP` (`aggregation.rs:167`): the claims a claim list's digest absorbs per
+/-- `CLAIM_GROUP` (`aggregation.rs:172`): the claims a claim list's digest absorbs per
 group. -/
 def claimGroup : ℕ := 17
 
-/-- `CLAIM_BIG` (`aggregation.rs:170-171`): the claims the main list loop absorbs per frame,
+/-- `CLAIM_BIG` (`aggregation.rs:175-176`): the claims the main list loop absorbs per frame,
 `BIG_GROUPS = 8` groups. -/
 def claimBig : ℕ := claimGroup * 8
 
-/-- `DIGIT_GROUP` (`aggregation.rs:96`): the codeword digits the guest dispatches on at a time. -/
+/-- `DIGIT_GROUP` (`aggregation.rs:97`): the codeword digits the guest dispatches on at a time. -/
 def digitGroup : ℕ := 3
 
 /-! ## Encodings -/
 
-/-- `count(n)`: `g^n` (`aggregation.rs:112-114`). -/
+/-- `count(n)`: `g^n` (`aggregation.rs:117-119`). -/
 def count (n : ℕ) : E := gpowE n
 
 /-- A bit as a word. -/
@@ -116,12 +116,12 @@ def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
   cellsOfBytes (claimBytes root parameter message)
 
 /-- The bytes of a `bits`-bit value, low first, each in the exponent (`exponent_bytes`,
-`aggregation.rs:118-122`). -/
+`aggregation.rs:123-127`). -/
 def exponentBytes (value bits : ℕ) : Entry :=
   (List.range ((bits + 7) / 8)).map fun k ↦ count (value / 2 ^ (8 * k) % 256)
 
 /-- How a list of `n` claims splits into whole frames of `claimBig`, then whole groups of
-`claimGroup`, then the rest (`list_split`, `aggregation.rs:178-186`). -/
+`claimGroup`, then the rest (`list_split`, `aggregation.rs:183-191`). -/
 def listSplit (n : ℕ) : Entry :=
   [count (n / claimBig), count (n % claimBig / claimGroup), count (n % claimBig % claimGroup)]
 
@@ -182,7 +182,7 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
 /-- The digest bits past the leanSPHINCS fields in the second call's first lane, which the guest
-takes as hinted bytes (`LEAN_SPHINCS_TAIL_BITS`, `aggregation.rs:126`: the fields end at bit
+takes as hinted bytes (`LEAN_SPHINCS_TAIL_BITS`, `aggregation.rs:131`: the fields end at bit
 `266 = 256 + 10`). -/
 def sphincsTailBits : ℕ := Sphincs.messageDigestBits - 256
 
@@ -223,7 +223,7 @@ def sphincsLayer (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
   ([("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++ siblings,
     fold (Sphincs.layerHeight layer))
 
-/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1467-1506`): the
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1472-1511`): the
 randomizer, the digest's bits past its fields, every FORS tree's secret, every tree's climb, then
 each layer's, bottom first, the bottom one-time key signing the FORS key's bytes and each above
 the root below. -/
@@ -251,7 +251,7 @@ def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1760-1784`). The Rust pushes the root's
+every row's cells, column by column (`aggregation.rs:1778-1802`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -301,7 +301,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1188-1228`). -/
+(`aggregation.rs:1193-1233`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
@@ -340,7 +340,7 @@ def runHeads : List ℕ → List ℕ
   | l => l
 
 /-- The group of each key of a run, numbered from `next`: a group is a maximal run of one key
-(`block_groups`, `col_groups`, `aggregation.rs:1029-1040`). -/
+(`block_groups`, `col_groups`, `aggregation.rs:1034-1045`). -/
 def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
   | _, _, [] => []
   | next, prev, k :: ks =>
@@ -352,7 +352,7 @@ framework's three blocks `(0, 0)`, `(1, 0)`, `(0, log_bytecode)`, a table's bloc
 def blockKey (b : BusBlock) : ℕ := 3 + b.owner
 
 /-- Every side's block groups in layout order, each as `g` to its index over the three sides,
-once per group, whose blocks are consecutive (`block_group_order`, `aggregation.rs:1185-1216`):
+once per group, whose blocks are consecutive (`block_group_order`, `aggregation.rs:1190-1221`):
 push and pull after the framework's three blocks, then count; a group is a maximal run of blocks
 of one kappa source within a side. -/
 def blockGroupOrder (layout : Layout) : Entry :=
@@ -377,7 +377,7 @@ def colKey (c : ℕ) : ℕ :=
   if c < 4 then 0 else if c < 6 then c - 3 else 3 + (globalColumnBases.filter (· ≤ c)).length
 
 /-- The committed columns' groups in stack order, each as `g` to its index, once per group,
-whose columns are consecutive (`col_group_order`, `aggregation.rs:1221-1249`): a group is a
+whose columns are consecutive (`col_group_order`, `aggregation.rs:1226-1254`): a group is a
 maximal run of committed columns, in their order, of one kappa source. -/
 def colGroupOrder (layout : Layout) : Entry :=
   let columns := committedColumns layout
@@ -415,7 +415,7 @@ def slotGaps : ℕ → List ℕ → List ℕ
 
 /-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
 flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
-(`aggregation.rs:1821-1840`). -/
+(`aggregation.rs:1839-1858`). -/
 def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
   if offsets = [] then [] else
     ("signers_split", listSplit offsets.length) ::
@@ -429,7 +429,7 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation.rs:1573-1586`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation.rs:1591-1604`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length

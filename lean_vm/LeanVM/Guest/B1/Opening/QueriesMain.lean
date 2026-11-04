@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesLoop
 
 /-!
-# `opening_queries` is sound (lean_ethereum.py:1380-1404 at c4f4bc92, TRIAGE #40)
+# `opening_queries` is sound (lean_ethereum.py:1397-1421 at c4f4bc92, TRIAGE #40)
 
 `oqLoop_step`: the loop helper satisfies `loop_iff`'s step with its flat body
 (`loop_step_flat`). `oqMain1_sound`, `oqMain0_sound`: the function's relation, its loop's
@@ -231,7 +231,7 @@ theorem flatBody_params {fl : Fn} (hpl : fl.params = oqLoopParams) {A : List Stm
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, -⟩ := hp
   exact ⟨σ, hA, h0, h1, h2, h3, h4, h5, h6, h7⟩
 
-/-- **`opening_queries` at level 0 is sound** (G:1228-1250): with the window pointers naming
+/-- **`opening_queries` at level 0 is sound** (G:1246-1268): with the window pointers naming
 positions' windows, its relation is `MeaningOpeningQueries`. -/
 theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hcd : 2 ≤ s.cd)
     {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}

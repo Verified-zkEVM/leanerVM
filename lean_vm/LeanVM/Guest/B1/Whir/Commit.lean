@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Merkle.Climb
 
 /-!
-# The next commitment (TRIAGE G #42, G:1481-1540)
+# The next commitment (TRIAGE G #42, G:1498-1557)
 
 A level that is not the last reads the next commitment's root (two scalars, checked canonical,
 stored in `level_roots`), samples its out-of-domain point (`opening_ood_point`, stored in
@@ -182,7 +182,7 @@ structure CommitOut (rd : Reader) (σ : Val) (lvl m : ℕ) (st st' : OsSt) (F : 
   fs : st'.fs.length = 5
   mats : MatsOk σ st'.mats
 
-/-- **A level's next commitment** (G:1481-1540), with the grinding check after it: the root's two
+/-- **A level's next commitment** (G:1498-1557), with the grinding check after it: the root's two
 halves, the out-of-domain point, its value and intro, the nonce read at the cursor; they run the
 Spec's `levelMid` and `grindP`. -/
 theorem osCommit_sound

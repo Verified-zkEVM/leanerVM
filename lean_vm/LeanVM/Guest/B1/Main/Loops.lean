@@ -17,12 +17,12 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`)
 `x` gives one iteration's facts (`LoopsC`: `RawXStepC`, `RawSStepC`, `KidStepC`) and the run at
 `x·g` (`loop_stepF`).
 
-* `__loop2` (G:4134-4143): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
+* `__loop2` (G:4173-4182): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
   `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
-* `__loop3` (G:4144-4148): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
+* `__loop3` (G:4183-4187): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
   `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
-* `__loop4` (G:4168-4192): child `c`, its DA digest hinted at `da_digests · c^2`.
+* `__loop4` (G:4207-4231): child `c`, its DA digest hinted at `da_digests · c^2`.
 -/
 
 namespace LeanVM.Guest.B1.Main

@@ -25,10 +25,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4406`): one for each raw
+/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4445`): one for each raw
 signature and each entry of a child's signature lists, every slot written once
-(`lean_ethereum.py:4440-4443`: the writes `:4460, 4465, 4055, 4123`, counted by `written`,
-`:4484-4485, 4510-4511`). -/
+(`lean_ethereum.py:4479-4482`: the writes `:4505, 4510, 4094, 4162`, counted by `written`,
+`:4529-4530, 4555-4556`). -/
 def coverageSlots (witness : NodeWitness) : ℕ :=
   witness.xmssSignatures.length + witness.sphincsSignatures.length +
     (witness.children.map fun child ↦
@@ -37,25 +37,25 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
 stack log at most `28` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4401`), every count of `meta` and of a child's
-lists below `2^16` (`lean_ethereum.py:4394-4399, 4496-4497`: each at most `coverageSlots`), the bus
-depth at most `32` (`lean_ethereum.py:1766`), the tables' heights at most `28`
-(`lean_ethereum.py:2182`). -/
+directly (`NodeWitness.daMatrix`, `lean_ethereum.py:4440`), every count of `meta` and of a child's
+lists below `2^16` (`lean_ethereum.py:4433-4438, 4541-4542`: each at most `coverageSlots`), the bus
+depth at most `32` (`lean_ethereum.py:1783`), the tables' heights at most `28`
+(`lean_ethereum.py:2199`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4459-4460, 4464-4465`; a
-  child's list by hinted indices, `:4054-4055`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4119-4123, 4177`; the count, `:4511`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4504-4505, 4509-4510`; a
+  child's list by hinted indices, `:4093-4094`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4158-4162, 4216`; the count, `:4556`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4400`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4439`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^16` (`lean_ethereum.py:4407`). -/
+  /-- The coverage table below `2^16` (`lean_ethereum.py:4446`). -/
   coverageSlotsBelow2Pow16 : coverageSlots witness < 2 ^ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
@@ -94,7 +94,7 @@ nonce within its fuel, a zero challenge where the guest program divides) is boun
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1387, 1696, 1701`), so a zero one makes
+and each level's batching challenge `λ`, `lean_ethereum.py:1404, 1713, 1718`), so a zero one makes
 it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
 anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
 zero with probability `2^-192`. -/

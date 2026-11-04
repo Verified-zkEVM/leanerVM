@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.ResLoop
 
 /-!
-# The residual sums (G:1708-1731)
+# The residual sums (G:1725-1748)
 
 `osResidual_sound`: level `lvl`'s block reads `μ` from `level_mus`, its positions `P`, its row's
 words `D` in `basis_d`, its scale `L` in `level_scale`, and stores
@@ -49,7 +49,7 @@ theorem resFold_eq_sum (D : ℕ → E) (vo ml : ℕ) (mu h : E) (P : ℕ → E) 
     rw [Finset.sum_congr rfl this, ← Finset.sum_mul, pow_succ, show n + 1 - n = 1 by omega]
     ring
 
-/-- **A level's residual sum** (G:1708-1731). -/
+/-- **A level's residual sum** (G:1725-1748). -/
 theorem osResidual_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {ich bd ls k : ℕ}
     (hloop : FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl lv (c.resLoop lvl)))
     (hml : 1 ≤ lv.logCols) (hpo : lv.posOff < u128Bound)

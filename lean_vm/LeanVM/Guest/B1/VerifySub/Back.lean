@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 /-!
 # The back of `verify_sub`
 
-`vs_back`: from the zero cells and the pooled claims, the statements after the calls (G:3431-3500)
+`vs_back`: from the zero cells and the pooled claims, the statements after the calls (G:3448-3517)
 give the ring map's challenges and their coefficients, the batching challenge and the target, and the tail's facts (`vsTailT_holds`).
 -/
 

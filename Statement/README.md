@@ -40,7 +40,7 @@ transcribe their sources; that the Rust verifier's expansion of the pruned Merkl
 prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
 formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation.rs:663-682`) checks of a root more than any end
+verifier** (`EthereumProof::verify`, `aggregation.rs:668-687`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
 `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
 end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one

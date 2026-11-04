@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.BrBody
 /-!
 # `open_stacked`'s buffers
 
-In allocation order (G:1503-1532 at c4f4bc92): the head's twelve fixed buffers (`merkle_caps`,
+In allocation order (G:1520-1549 at c4f4bc92): the head's twelve fixed buffers (`merkle_caps`,
 `merkle_cap_active`, the final message, the roots, the fold challenges, `level_betas`,
 `level_mus`, `query_positions`, `query_win_ptrs`, `win_tabs`, `ood_z`, `ood`), each level's
 squeeze run and row weights, the tail's challenges, the point and `point1`, `basis_d`, the

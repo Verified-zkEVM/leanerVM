@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.Squeezes
 public import LeanVM.Protocol.WithHash
 
 /-!
-# A level's queries block (G:1585-1607)
+# A level's queries block (G:1602-1624)
 
 `osQueries_sound`: the row weights (`opening_row_weights`, the level's folds), the cap checked
 against the level's root (`verify_merkle_cap`, stored in `level_roots`), the queries

@@ -17,12 +17,12 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `__loop4`);
 * `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
-  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1380-1404` at `c4f4bc92`): `kind` `0`
+  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1397-1421` at `c4f4bc92`): `kind` `0`
   `WinWalk` on `[t, x, N]` (a deeper loop), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop), `2 + base`
   `OqMainWins` on `[t, N]` (the function's window pointers and iteration count).
 
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `__loop6` (`lean_ethereum.py:1855-1921` at `c4f4bc92`): the parity word
+  radix-four layer loop `__loop6` (`lean_ethereum.py:1872-1938` at `c4f4bc92`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,

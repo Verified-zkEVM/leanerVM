@@ -41,10 +41,10 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
     (Tables.verify_tables_holdsC hκ L _ List.length_replicate hle) (Tables.certify_placement_holds hκ L)
     σ hexp h
 
-/-- **`dims_g`'s first word** (the memory's log, G:3354-3357): the body's first `552` statements
+/-- **`dims_g`'s first word** (the memory's log, G:3371-3374): the body's first `552` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`.
 The other six words (`table_logs`) are a hint there, certified only inside `verify_tables`
-(G:2176), so no such bound holds of them before its call. -/
+(G:2193), so no such bound holds of them before its call. -/
 theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 552) True

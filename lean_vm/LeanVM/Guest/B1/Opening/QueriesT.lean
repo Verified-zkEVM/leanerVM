@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Fs.Templates
 # The templates of `opening_queries` (TRIAGE G #33, #39, #40)
 
 `opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd, base, I,
-leaf_cells, depth, cd)` (G:1228-1251) has 56 specializations, one per level shape (`Oq`). One
-query (`opening_query`, G:1161-1225, inline, with `verify_merkle_path`, G:1122-1137) from its first
+leaf_cells, depth, cd)` (G:1246-1269) has 56 specializations, one per level shape (`Oq`). One
+query (`opening_query`, G:1179-1243, inline, with `verify_merkle_path`, G:1140-1155) from its first
 value `b` is `oqQueryT`:
 
 * the row: `R` hinted words (`I` at level 0, `base = 1`; `3I` limbs deeper) at `b .. b + R`, packed
@@ -214,7 +214,7 @@ def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
 /-! ## The path -/
 
 /-- The path's windows: six levels each from the bottom, the last the remainder
-(`walk_path`, lean_ethereum.py:1295-1331 at c4f4bc92). -/
+(`walk_path`, lean_ethereum.py:1312-1348 at c4f4bc92). -/
 def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
 /-- Window `i`'s levels. -/

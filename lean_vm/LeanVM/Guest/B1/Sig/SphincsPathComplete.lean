@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsPathComplete
 
-  A path in one tree of `verify_sig_lean_sphincs`'s hypertree (`sp_path`, `lean_ethereum.py:3811-3828`
+  A path in one tree of `verify_sig_lean_sphincs`'s hypertree (`sp_path`, `lean_ethereum.py:3811-3867`
   at leanVM `c4f4bc92`) is complete: each level's children hinted in the order of the leaf index's
   bit, the parent hashed at the tree's node address.
 -/

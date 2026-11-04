@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Gkr.LayerStep
 public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!
-# The odd depth's binary layer (G:1781-1823)
+# The odd depth's binary layer (G:1798-1840)
 
 At an odd depth the guest runs one level first, from the root slot (`L = 0`): the combiner's
 permutation over the slot's capacity and the two waiting roots, no rounds, the six children

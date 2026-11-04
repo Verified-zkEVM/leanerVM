@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Push
 
-  `verify_sub`'s push total and bus depth (G:3373-3377), honestly.
+  `verify_sub`'s push total and bus depth (G:3390-3394), honestly.
 -/
 
 module

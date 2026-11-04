@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsLayersComplete
 
   A layer of `verify_sig_lean_sphincs`'s hypertree past its encoding (`sp_wots`'s call and
-  `sp_path`, `lean_ethereum.py:3917-3928` at leanVM `c4f4bc92`) is complete under any call relation
+  `sp_path`, `lean_ethereum.py:3956-3967` at leanVM `c4f4bc92`) is complete under any call relation
   holding of every honest `sp_wots` call: the one-time leaf the statement's `otsLeaf` gives, its
   tree's root the statement's `treeFold`.
 -/

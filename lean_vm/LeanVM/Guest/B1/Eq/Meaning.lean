@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Basic
 For each function of the guest (`lean_ethereum.py` at leanVM `4af2cdddd`, G below) its meaning
 on its argument and return words, and `…_Spec`, the statement that its core IR relation is that
 meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtree_frame`
-(G:899-956) have no core function of their own; their expansions are templates of
+(G:917-974) have no core function of their own; their expansions are templates of
 `B1/Eq/Templates.lean`.
 
 | function | G | meaning |
@@ -120,7 +120,7 @@ def plus_one_run_Spec : Prop :=
 def ringRow (c : E) (zs ps : List E) (k : ℕ) : E :=
   (List.zipWith (fun z p ↦ z ^ 2 ^ k + p) zs ps).foldl (· * ·) c
 
-/-- **`rs_eq_rows(row, zs, ps, n)`** (lean_ethereum.py:989-1008 at `c4f4bc92`): at `n = 0` it
+/-- **`rs_eq_rows(row, zs, ps, n)`** (lean_ethereum.py:1007-1026 at `c4f4bc92`): at `n = 0` it
 returns `row`; otherwise the `n` words `zs`, `ps` at `zs`, `ps` and the 64 words `c` at `row`; the
 next row, from `row·g^64`, holds `ringRow c[k] zs ps k` at `k < 64`, and it returns `row·g^64`. -/
 def MeaningRsEqRows (n : ℕ) (rd : Reader) : List E → List E → Prop
@@ -141,7 +141,7 @@ def rs_eq_rows_Spec : Prop :=
   ∀ n ≤ 8, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (rsEqRowsNames.getD n "") args rets ↔ MeaningRsEqRows n rd args rets
 
-/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (lean_ethereum.py:1011-1037 at `c4f4bc92`):
+/-- **`rs_eq_run(chain, z_vals, point1, count_g)`** (lean_ethereum.py:1029-1055 at `c4f4bc92`):
 `count_g = g^count`, `count < 64`; the words `zs`, `ps` at `z_vals`, `point1` below `count`; row
 `h` of `chain` (64 words from `chain·g^(64·h)`), `1 ≤ h ≤ ⌈count/8⌉`, is row `0` times the
 products over the first `min(8h, count)` coordinates (`RS_CHUNK = 8` coordinates a row, the

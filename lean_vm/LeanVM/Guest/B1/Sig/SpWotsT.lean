@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsT
 
   The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py:3777-3804` at leanVM c4f4bc92) with the values numbered as the renumbered
+  (`lean_ethereum.py:3816-3843` at leanVM c4f4bc92) with the values numbered as the renumbered
   expansion numbers them.
 -/
 
@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.Sig.WotsT
 /-!
 # `sp_wots` as a template
 
-`sp_wots(pp, at, encoding)` (`G:3777-3804`; `G` is `lean_ethereum.py`) has the parameters `pp = n0`,
+`sp_wots(pp, at, encoding)` (`G:3816-3843`; `G` is `lean_ethereum.py`) has the parameters `pp = n0`,
 `at = n1` (the one-time key's address: its leaf in the low lane, its layer and tree in the high one)
 and `encoding = n2`; the powers `g^s` are `n(3 + s)`, `s < 10`.
 
-Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3562-3570`, `lx = 0`): 21 groups of
+Its codeword is the shared WOTS+C dispatch (`walk_group`, `G:3577-3584`, `lx = 0`): 21 groups of
 three digits and the last chain's, each a hinted digit word, its range check, the hoisted constant
 and a `match` over its `4^n` arms, written with the shared templates (`WotsT`, `groupD`). No `KECCAK`
 precedes the codeword, so the compiler sets the padding run `[0x01, 0, 0, 0, 0]` above the first
@@ -25,12 +25,12 @@ group's dispatch, at `n18 ..< n23` (`spPad`), after its range check: the first g
 out from `n18` (`spL`), five above its digit word; every chain step and the leaf read that run.
 
 * `k48At`, `spWp`, `spW`: the chain step, the address `at + (TW_CHAIN + i·2^32 + s·2^61)` and
-  `keccak([pp, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `G:3541-3559`), its run at `spPad`;
+  `keccak([pp, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `G:3548-3573`), its run at `spPad`;
 * `spL`, `spPre`, `spSlot`, `spProd`, `spEnc`, `spGroupT`, `spGroupsT`: a group's layout base, the
   run the first group sets, a chain's slots, the group's outputs, a group, the groups;
 * `spLeafCells`, `spBody`: the leaf's cells and the body: the powers, the groups, the encoding asserted to be
   `encoding`, the digit product to be `g^128` (`SP_TARGET_SUM`), the leaf hashed at
-  `at + TW_LEAF` (`wots_leaf`, `G:3585-3589`, 66 cells, 1056 bytes) and returned.
+  `at + TW_LEAF` (`wots_leaf`, `G:3599-3603`, 66 cells, 1056 bytes) and returned.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -59,7 +59,7 @@ def k48At (pp : V) (pad : Nat) (a v : V) (c o : Nat) : List Stmt :=
 
 /-- `sp_wots`'s chain step with its padding run at `X`: step `s` of chain `i`, the address
 `at + (TW_CHAIN + i·2^32 + s·2^61)`, then the 48-byte hash of `pp`, it and the value (`walk`,
-`G:3541-3559`). -/
+`G:3548-3573`). -/
 def spWp (X : Nat) : WotsT where
   step i s v c o := cst c (word (tw 1 + i * hiMul + s * stepMul) 0 0) ::
     addS (.n (c + 1)) (.n 1) (.n c) :: k48At (.n 0) X (.n (c + 1)) v (c + 2) o

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.QueryWindowsLib
 
 /-!
-# `decode_query_windows` (lean_ethereum.py:757-868 at c4f4bc92)
+# `decode_query_windows` (lean_ethereum.py:775-886 at c4f4bc92)
 
 `decode_query_windows(word, positions, win_ptrs, tabs, d, cd)` (template `qwBody d cd`) hints the
 squeezed word's bits in windows, each `g^n` range checked below `2^w` and read back through
@@ -37,7 +37,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The meaning -/
 
-/-- The window table: `tabs[g^n] = n` for `n < 128` (`win_tabs`, lean_ethereum.py:1462-1465). -/
+/-- The window table: `tabs[g^n] = n` for `n < 128` (`win_tabs`, lean_ethereum.py:1479-1482). -/
 def WinTabs (rd : Reader) (tabs : E) : Prop := ∀ n < 128, LoadHolds rd tabs n (eOfNat n)
 
 /-- Position `j` of depth `d` of a word: its bits `j·d ..< (j + 1)·d`. -/

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 # `exponent_tables`, placed
 
 `exponent_tables` allocates one `HeapBuf(236)` from `b = fp + fs "exponent_tables"` and writes the
-table there (`expTableWords`, lean_ethereum.py:676-701). `et_at`: on a memory holding it, it holds
+table there (`expTableWords`, lean_ethereum.py:694-719). `et_at`: on a memory holding it, it holds
 at `fp` by its frame and its buffer, returning `g^b` and claiming the buffer.
 -/
 
