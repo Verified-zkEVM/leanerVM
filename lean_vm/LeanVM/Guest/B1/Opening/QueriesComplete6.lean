@@ -31,18 +31,19 @@ variable {rd : Reader}
 /-- **The function's start holds** at `μ = λ⁻¹`, the chain at `ch`, and the values `1, 1 + N, 1`
 then `rest` from `oqMK`; at an odd count when its first query opens and the chain starts at its
 value times `μ`, at an even one when the chain starts at `0`. -/
-theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd : 2 ≤ s.cd)
-    (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {cap flags lam lamN qptrs wp nG ch : E}
+theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
+    {odd : ℕ} (hodd : odd ≤ 1) {cap flags lam lamN qptrs wp nG ch : E}
     (hlam : lam ≠ 0) (rest : List E)
     (h1 : odd = 1 → ∃ (bp : E) (q : ℕ) (r : List K) (d : E), LoadHolds rd qptrs 0 bp ∧
-      q < 2 ^ (s.pd + s.cd) ∧ (∀ l < s.pd + s.cd, LoadHolds rd bp l (bitE (q.testBit l))) ∧
+      q < 2 ^ (s.pd + s.cd) ∧
+      (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd bp i (gen ^ qwVal (s.pd + s.cd) s.cd q i)) ∧
       QueryOpens rd s.base s.I (s.pd + s.cd) s.cd cap flags wp q r d ∧
       LoadHolds rd ch 0 (d * lam⁻¹))
     (h0 : odd ≠ 1 → LoadHolds rd ch 0 0) :
     ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6].map σ =
         [cap, flags, lam, lamN, qptrs, wp, nG] ∧ σ (.n 8) = lam⁻¹ ∧ σ (.n 11) = ch ∧
       (∀ o, σ (.n (oqMK s odd + o)) = ([word 1 0 0, word 1 0 0 + nG, word 1 0 0] ++ rest).getD o 0) ∧
-      ∀ a, Stmt.atom a ∈ oqMainA s odd → a.Holds rd σ := by
+      BlockOk rd σ (oqMainA s odd) := by
   set tl : List E := [word 1 0 0, word 1 0 0 + nG, word 1 0 0] ++ rest with htl
   have mu1 : word 1 0 0 = lam⁻¹ * lam := by rw [word_one, inv_mul_cancel₀ hlam]
   rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hodd with rfl | rfl
@@ -73,7 +74,7 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
     have t2 : σ (.n (oqMK s 0 + 2)) = word 1 0 0 := by simpa [htl] using eT 2
     refine ⟨σ, rfl, e8, e11, eT, fun a ha => ?_⟩
     simp only [oqMainA, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.mem_append, List.mem_cons,
-      List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+      List.not_mem_nil, or_false] at ha
     rcases ha with ((rfl | rfl | rfl | rfl | rfl) | (rfl | rfl)) | (rfl | rfl | rfl)
     · exact e7
     · show σ (.n 7) = σ (.n 8) * σ (.n 2)
@@ -91,9 +92,9 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
     · exact t2
   · -- an odd count: the first query
     obtain ⟨bp, q, r, d, hb, hq, hbits, ho, hc0⟩ := h1 rfl
-    obtain ⟨w, sb, pp, hd, hok⟩ := QD.exists_of_opens hq ho
-    set D : QD := ⟨s, 13, true, 0, r, w, q, sb, pp, cap, flags, rd⟩ with hD
-    have hk : oqMK s 1 = D.z + 12 := by show oqEnd D.s D.b D.emit + 1 = _; rw [QD.end_eq D]
+    obtain ⟨w, sb, hd, hok⟩ := QD.exists_of_opens hq hbits ho
+    set D : QD := ⟨s, 13, true, 0, r, w, q, sb, cap, flags⟩ with hD
+    have hk : oqMK s 1 = D.e + 1 := by show oqEnd D.s D.b D.emit + 1 = _; rw [QD.end_eq D]
     obtain ⟨a1, a2, a3, a4, a5⟩ := D.places
     have hk1 := QD.k1_eq D
     set k := oqMK s 1 with hk'
@@ -107,7 +108,7 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
     have ev : ∀ i, σ (.n i) = f i := fun _ => rfl
     have eP : ∀ i < 7, σ (.n i) = [cap, flags, lam, lamN, qptrs, wp, nG].getD i 0 := fun i hi => by
       rw [ev]; simp only [f, hi, ↓reduceIte]
-    have eQ : ∀ i, D.b ≤ i → i < D.z + 11 → σ (.n i) = D.val i := fun i h1 h2 => by
+    have eQ : ∀ i, D.b ≤ i → i < D.e → σ (.n i) = D.val i := fun i h1 h2 => by
       have : D.b = 13 := rfl
       rw [ev]
       simp only [f, show ¬ i < 7 by omega, show i ≠ 7 by omega, show i ≠ 8 by omega,
@@ -128,8 +129,8 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
         ↓reduceIte, Nat.add_sub_cancel_left]
     have hp := D.pad_of_emit rfl eQ
     obtain ⟨hA, hdot⟩ := D.query_complete (σ := σ) (bp := .n 12) (cap := .n 0) (flags := .n 1)
-      (wp := .n 5) hs hpd hcd hcd8 (by rw [eP 5 (by omega)]; exact hok _ _ _) eQ hp.1 hp.2
-      (by rw [show σ (.n 12) = bp from rfl]; exact hbits) (eP 0 (by omega)) (eP 1 (by omega))
+      (wp := .n 5) hs hpd hcd (by rw [eP 5 (by omega), show σ (.n 12) = bp from rfl]; exact hok _ _ _)
+      eQ hp.1 hp.2 (eP 0 (by omega)) (eP 1 (by omega))
     rw [← hd] at hdot
     have e7 : σ (.n 7) = word 1 0 0 := by rw [ev]; simp only [f]; simp
     have e8 : σ (.n 8) = lam⁻¹ := by rw [ev]; simp only [f]; simp
@@ -142,7 +143,7 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
     refine ⟨σ, rfl, e8, e11, eT, fun a ha => ?_⟩
     simp only [oqMainA, ↓reduceIte, List.mem_append] at ha
     rcases ha with (ha | ((ha | ha) | ha)) | ha
-    · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl | rfl | rfl | rfl
       · exact e7
       · show σ (.n 7) = σ (.n 8) * σ (.n 2)
@@ -151,17 +152,17 @@ theorem oqMainA_complete {s : Oq} (hs : s.RowShape) (hpd : 4 * s.pd ≤ 80) (hcd
       · show σ (.n 10) = σ (.n 6) * σ (.n 9)
         rw [e10, e9, eP 6 (by omega)]; rfl
       · trivial
-    · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       subst ha
       exact hb
     · exact hA a ha
-    · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl
       · show σ (.n (k - 1)) = σ (.n (oqDot s 13)) * σ (.n 8)
         rw [eD, hdot, e8]
       · show LoadHolds rd (σ (.n 11)) 0 (σ (.n (k - 1)))
         rw [eD, e11]; exact hc0
-    · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl | rfl
       · exact t0
       · show σ (.n (k + 1)) = σ (.n k) + σ (.n 6)
@@ -180,7 +181,7 @@ theorem oqMainT_complete {s : Oq} {odd : ℕ} {loop name : String} {fm : Fn}
     (h8 : σ (.n 8) = lam⁻¹) (h11 : σ (.n 11) = ch)
     (hT : ∀ o, σ (.n (oqMK s odd + o)) =
       ([word 1 0 0, word 1 0 0 + nG, word 1 0 0] ++ [ch * nG, hN, hN * lamN]).getD o 0)
-    (hA : ∀ a, Stmt.atom a ∈ oqMainA s odd → a.Holds rd σ)
+    (hA : BlockOk rd σ (oqMainA s odd))
     (hK : IsInK (1 + nG))
     (hcall : 1 + nG ≠ 0 → coreProgram.Rel rd loop [1, nG, qptrs, cap, flags, wp, ch, lam⁻¹] []) :
     coreProgram.Rel rd name [cap, flags, lam, lamN, qptrs, wp, nG] [hN * lamN] := by
@@ -188,7 +189,7 @@ theorem oqMainT_complete {s : Oq} {odd : ℕ} {loop name : String} {fm : Fn}
   obtain ⟨p0, p1, p2, p3, p4, p5, p6, -⟩ := hp
   rw [rel_iff_sem hfm]
   refine ⟨σ, by rw [hpm]; simp [p0, p1, p2, p3, p4, p5, p6], ?_⟩
-  rw [hbm, oqMainT, holdsList_append, holdsList_atoms (oqMainA_atoms s odd)]
+  rw [hbm, oqMainT, holdsList_append, holdsList_flat (oqMainA_flat s odd)]
   refine ⟨hA, ?_⟩
   set k := oqMK s odd
   have t1 : σ (.n (k + 1)) = 1 + nG := by simpa [word_one] using hT 1
@@ -207,8 +208,8 @@ theorem oqMainT_complete {s : Oq} {odd : ℕ} {loop name : String} {fm : Fn}
   · rw [t5]
 
 /-- **`opening_queries` at level 0 is complete** (G:1228-1250): its meaning gives its relation. -/
-theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.pd ≤ 80)
-    (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
+theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 1 ≤ s.pd)
+    (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s odd loop)
@@ -231,8 +232,8 @@ theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 
     rw [show odd + 2 * j = 2 * j + odd by omega] at hv1
     have hv0 := hch j (by omega)
     rw [hb1] at hv0
-    exact oqIter1_complete hs hpd hcd hcd8 a1 a2 a3 a4 b1 b2 b3 b4 hv0 hv1⟩
-  obtain ⟨σ, hp, h8, h11, hT, hA⟩ := oqMainA_complete (rd := rd) hs hpd hcd hcd8 hodd
+    exact oqIter1_complete hs hpd hcd a1 a2 a3 a4 b1 b2 b3 b4 hv0 hv1⟩
+  obtain ⟨σ, hp, h8, h11, hT, hA⟩ := oqMainA_complete (rd := rd) hs hpd hcd hodd
     (cap := cap) (flags := flags) (lamN := lamN) (qptrs := qptrs) (wp := wp) (nG := nG) (ch := ch)
     hlam [ch * nG, oqChain odd s.base mu ds m, oqChain odd s.base mu ds m * lamN]
     (fun h1 => by
@@ -246,8 +247,8 @@ theorem oqMain1_complete {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 
   exact oqMainT_complete hfm hpm hbm hnG (hch m le_rfl) hp h8 h11 hT hA hK hcall
 
 /-- **`opening_queries` deeper is complete** (G:1228-1250, `base = 0`, `odd = 0`). -/
-theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80)
-    (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
+theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 1 ≤ s.pd)
+    (hcd : 2 ≤ s.cd) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s 0 loop)
@@ -268,8 +269,8 @@ theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 
     simp only [oqChain, hb0, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte] at hv1
     have hv0 := hch j (by omega)
     rw [hb0] at hv0
-    exact oqIter0_complete hs hpd hcd hcd8 a1 a2 a3 a4 hv0 hv1⟩
-  obtain ⟨σ, hp, h8, h11, hT, hA⟩ := oqMainA_complete (rd := rd) hs hpd hcd hcd8 (odd := 0)
+    exact oqIter0_complete hs hpd hcd a1 a2 a3 a4 hv0 hv1⟩
+  obtain ⟨σ, hp, h8, h11, hT, hA⟩ := oqMainA_complete (rd := rd) hs hpd hcd (odd := 0)
     (by decide) (cap := cap) (flags := flags) (lamN := lamN) (qptrs := qptrs) (wp := wp) (nG := nG)
     (ch := ch) hlam [ch * nG, oqChain 0 s.base mu ds m, oqChain 0 s.base mu ds m * lamN]
     (fun h1 => absurd h1 (by decide))
@@ -278,10 +279,10 @@ theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 
       simpa only [oqChain, h1, ↓reduceIte] using this)
   exact oqMainT_complete hfm hpm hbm hnG (hch m le_rfl) hp h8 h11 hT hA hK hcall
 
-/-- **`opening_queries` at level 0 is its meaning** (G:1228-1250), the bit pointers pointing to
-bits. -/
-theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.pd ≤ 80)
-    (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
+/-- **`opening_queries` at level 0 is its meaning** (lean_ethereum.py:1380-1404 at c4f4bc92), the
+window pointers naming positions' windows. -/
+theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 1 ≤ s.pd)
+    (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s odd loop)
@@ -289,13 +290,13 @@ theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 4 * s.p
     (hbl : fl.body = oqLoop1T s odd loop) :
     opening_queries_Spec name odd s.base s.I (s.pd + s.cd) s.cd :=
   fun _ _ _ _ _ _ _ _ _ hbits =>
-    ⟨oqMain1_sound hs hb1 hcd hcd8 hodd hfm hpm hbm hfl hpl hbl hbits,
-      oqMain1_complete hs hb1 hpd hcd hcd8 hodd hfm hpm hbm hfl hpl hbl⟩
+    ⟨oqMain1_sound hs hb1 hcd hodd hfm hpm hbm hfl hpl hbl hbits,
+      oqMain1_complete hs hb1 hpd hcd hodd hfm hpm hbm hfl hpl hbl⟩
 
-/-- **`opening_queries` deeper is its meaning** (G:1228-1250), the bit pointers pointing to
-bits. -/
-theorem oqMain0_iff {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.pd ≤ 80)
-    (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8) {name loop : String} {fm fl : Fn}
+/-- **`opening_queries` deeper is its meaning**, the window pointers naming positions'
+windows. -/
+theorem oqMain0_iff {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 1 ≤ s.pd)
+    (hcd : 2 ≤ s.cd) {name loop : String} {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hbm : fm.body = oqMainT s 0 loop)
@@ -303,8 +304,8 @@ theorem oqMain0_iff {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 4 * s.p
     (hbl : fl.body = oqLoop0T s loop) :
     opening_queries_Spec name 0 s.base s.I (s.pd + s.cd) s.cd :=
   fun _ _ _ _ _ _ _ _ _ hbits =>
-    ⟨oqMain0_sound hs hb0 hcd hcd8 hfm hpm hbm hfl hpl hbl hbits,
-      oqMain0_complete hs hb0 hpd hcd hcd8 hfm hpm hbm hfl hpl hbl⟩
+    ⟨oqMain0_sound hs hb0 hcd hfm hpm hbm hfl hpl hbl hbits,
+      oqMain0_complete hs hb0 hpd hcd hfm hpm hbm hfl hpl hbl⟩
 
 end
 end LeanVM.Guest.B1

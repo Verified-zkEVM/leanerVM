@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.Names
 public import LeanVM.Guest.B1.Bits.AssertCanonical
 public import LeanVM.Guest.B1.Bits.Grind
-public import LeanVM.Guest.B1.Bits.QueryBits
+public import LeanVM.Guest.B1.Bits.QueryWindowsAll
 public import LeanVM.Guest.B1.Merkle.CapAll
 public import LeanVM.Guest.B1.Opening.Fold
 public import LeanVM.Guest.B1.Opening.OodPoint
