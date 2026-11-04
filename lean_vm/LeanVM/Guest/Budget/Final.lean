@@ -48,7 +48,7 @@ theorem mainComplete_of_main (fs : String → ℕ) (cert : String → V → ℕ)
     (b : Budget) {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     (ω : Opcode → String → ℕ) (jt : Opcode → ℕ) (H : ∀ op, MainCounts (ω op) fs)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
-    (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →
@@ -139,7 +139,7 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     (ω : Opcode → String → ℕ) (jt : Opcode → ℕ) (H : ∀ op, MainCounts (ω op) fs)
     (hfs : 2 ≤ fs "main") (hxc : B1.Sig.verify_lean_xmss_complete_Spec)
-    (hsc : B1.Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : B1.Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →

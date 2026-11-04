@@ -42,7 +42,7 @@ loop's iterations `L5Hinted w Pxs Pss Pvs` (each child's claim lists' digests' a
 trees satisfying `Pxs c`, `Pss c`, `Pvs c`). -/
 theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     {Px Ps Pd Pa : Tree → Prop} {Pxs Pss Pvs : ℕ → Tree → Prop}
     (hV : VerifySubGoalsT fs cert fp seed s w Pvs) (hX : ChildListGoalsT fs cert fp seed s w Pxs Pss)
     (hclx : CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)

@@ -47,7 +47,7 @@ theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → �
     GuestCompleteWithin (mainBudget B2C.fs SB SK Bvf (B2C.ωArm C) H c5 s5 v5 B2C.jtSets) :=
   B2C.guest_complete_b2c (mainComplete_budget B2C.fs B2C.cert B2C.cnt (B2C.ωArm C) B2C.jtSets H
     (B2C.two_le_fs _) B1.Sig.verify_lean_xmss_complete_holds
-    B1.Sig.verify_sig_lean_sphincs_complete_loads B2C.runsFit hS hV (B2C.cnt_le_weight_arm C hC)
+    B1.Sig.sphincs_complete B2C.runsFit hS hV (B2C.cnt_le_weight_arm C hC)
     c5 s5 v5 h5)
 
 end

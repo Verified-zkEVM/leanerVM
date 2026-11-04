@@ -1,35 +1,26 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsLoads
 
-  Where `verify_sig_lean_sphincs`'s loads read, for the placed completeness: the valuation its
-  completeness builds loads only the claim's four words and the byte table's words
-  (`verify_sig_lean_sphincs_complete_loads`).
+  Where a body's loads read, by a check of its atoms: through its first argument at an offset below
+  `4`, or through given pointers at offset `0` (`verify_sig_lean_sphincs`'s claim and byte reads).
 -/
 
 module
 
-public import LeanVM.Guest.B1.Sig.SphincsComplete
-public import LeanVM.Guest.Memory.Regions
+public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
 /-!
-# The loads of `verify_sig_lean_sphincs`
+# A check of a body's loads
 
 * `loadOkB`, `stmtLoadsB`: a load reads through the argument `n0` at an offset below `4`, or through
   one of the given values at offset `0`; `walk_loadOk`: the path of a block passing the check
-  loads only so;
-* `core20_loads`: `Data.core21.body` passes it, its other pointers the seven byte reads'
-  (`n139`, `n145`, `n154` for the unused bytes, `sB + 8`, `+ 14`, `+ 23`, `+ 32` for the counter);
-* `verify_sig_lean_sphincs_complete_loads`: the valuation of `sphincs_complete_val` loads from
-  `p·g^k`, `k < 4`, or `bb·g^v`, `v < 256`, along the body's path.
+  loads only so; `loadAddrs_of_loadOk`, `loads_of_walk`: the addresses it loads from.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 open LeanVM.Guest.Memory
-open LeanVM.Protocol.Verifier (eOfNat)
-open Sphincs Sphincs.Verification
-open HashSig HashSig.OverPermutation
 
 @[expose] public section
 
@@ -148,15 +139,6 @@ theorem loadAddrs_of_loadOk {ptrs : List Nat} {es : List Ev} (h : ∀ e ∈ es, 
   · exact Or.inl ⟨off, hoff, rfl⟩
   · exact Or.inr ⟨q, hq, by simp [addressOfIndex]⟩
 
-/-! ## The body's loads -/
-
-/-- The byte reads' pointers. -/
-def sPtrs : List Nat := [139, 145, 154, 412419, 412425, 412434, 412443]
-
-theorem core20_loads : listLoadsB sPtrs Data.core21.body = true := by decide +kernel
-
-theorem sB_val : sB = 412411 := by decide +kernel
-
 /-- A checked block's returning path loads only so. -/
 theorem loads_of_walk {ptrs : List Nat} {ss : List Stmt} (h : listLoadsB ptrs ss = true) {es : List Ev}
     {vs : List V} (hw : walk σ ss = .ret es vs) : ∀ e ∈ es, Ev.loadOk ptrs e := by
@@ -164,85 +146,12 @@ theorem loads_of_walk {ptrs : List Nat} {ss : List Stmt} (h : listLoadsB ptrs ss
   rw [hw] at this
   exact this
 
-/-! ## The pointers' values -/
-
-theorem unusedBytes_lt {N : Nat} (h : N < 2 ^ 128) : ∀ j, unusedBytes N j < 256
-  | 0 => Nat.mod_lt _ (by norm_num)
-  | 1 => Nat.mod_lt _ (by norm_num)
-  | _ + 2 => by simp only [unusedBytes]; omega
-
 theorem limb_mul_ofK {bb : E} (hK : IsInK bb) (v : Nat) :
     (bb * ofK (addressOfIndex v)).limb 0 = bb.limb 0 * addressOfIndex v := by
   have e : bb * ofK (addressOfIndex v) = ofK (bb.limb 0 * addressOfIndex v) :=
       by rw [ofK_mul, ← eq_ofK_limb hK]
   rw [e]
   simp
-
-/-- **The byte reads' pointers hold `σ n1 · g^v`**, `v` a byte, the marks the hints'. -/
-theorem sPtr_val {rd : Reader} {Pc m0 m1 rho : E} (hsp : SP1 rd σ Pc m0 m1 rho)
-    (hmid : AtomsHold rd σ sMid) {ctr : Nat} (hcm : ∀ j < 4, σ (.n (sB + j)) = ofK (addressOfIndex (ctrByte ctr j))) :
-    ∀ q ∈ sPtrs, ∃ v < 256, σ (.n q) = σ (.n 1) * ofK (addressOfIndex v) := by
-  have hN := cellNat_lt (σ (.n 18))
-  have pro : ∀ (j k : Nat), j < 3 → Stmt.atom (.mul (.n k) (.n 1) (.n (132 + j))) ∈ sPrologue →
-      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (addressOfIndex v) := fun j k hj hk =>
-    ⟨_, unusedBytes_lt hN j, by rw [hsp.atoms.atom hk, hsp.marks j hj]⟩
-  have ctrm : ∀ (j k : Nat), j < 4 → Stmt.atom (.mul (.n k) (.n 1) (.n (sB + j))) ∈ sFb.1 →
-      ∃ v < 256, σ (.n k) = σ (.n 1) * ofK (addressOfIndex v) := fun j k hj hk =>
-    ⟨ctrByte ctr j, Nat.mod_lt _ (by norm_num), by
-      rw [hmid.atom (a := .mul (.n k) (.n 1) (.n (sB + j))) (by
-        rw [sMid_split]; exact List.mem_append_right _ (List.mem_append_left _ hk)), hcm j hj]⟩
-  intro q hq
-  simp only [sPtrs, List.mem_cons, List.not_mem_nil, or_false] at hq
-  rcases hq with rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact pro 2 139 (by norm_num) (by simp [sPrologue, sFromBytes, sByte, mulS])
-  · exact pro 1 145 (by norm_num) (by simp [sPrologue, sFromBytes, sFromBytesRest, sByte, mulS])
-  · exact pro 0 154 (by norm_num) (by simp [sPrologue, sFromBytes, sFromBytesRest, sByte, mulS])
-  · rw [show (412419 : Nat) = sB + 4 + 4 by rw [sB_val]]
-    exact ctrm 3 _ (by norm_num) (by simp [sFb, sFromBytes, sByte, mulS])
-  · rw [show (412425 : Nat) = sB + 4 + 6 + 4 by rw [sB_val]]
-    exact ctrm 2 _ (by norm_num) (by simp [sFb, sFromBytes, sFromBytesRest, sByte, mulS])
-  · rw [show (412434 : Nat) = sB + 4 + 6 + 9 + 4 by rw [sB_val]]
-    exact ctrm 1 _ (by norm_num) (by simp [sFb, sFromBytes, sFromBytesRest, sByte, mulS])
-  · rw [show (412443 : Nat) = sB + 4 + 6 + 9 + 9 + 4 by rw [sB_val]]
-    exact ctrm 0 _ (by norm_num) (by simp [sFb, sFromBytes, sFromBytesRest, sByte, mulS])
-
-/-! ## The statement -/
-
-/-- **Where `verify_sig_lean_sphincs`'s complete valuation loads**: under the hypotheses of
-`verify_sig_lean_sphincs_complete_Spec`, a valuation whose arguments are `p` and `bb`, under which
-the body holds, and whose path loads only from `p·g^k`, `k < 4` (the claim), or `bb·g^v`,
-`v < 256` (the byte table). -/
-def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
-  ∀ (C : CallRel) (rd : Reader) (p bb : E) (pk : HashSig.PublicKey) (m : HashSig.Message)
-    (sig : Sphincs.Signature), MemOK rd 256 → ByteBits rd bb →
-    ClaimAt rd p (cellOf128 pk.root) (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
-      (cellOf128 (m.extractLsb' 128 128)) →
-    Sphincs.verifyWithKeccak pk m sig = true →
-      ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
-        Stmt.HoldsList C rd σ Data.core21.body False (fun rs => rs = []) ∧
-        ∀ es vs, walk σ Data.core21.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
-          (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨ ∃ v < 256, A = bb.limb 0 * addressOfIndex v
-
-/-- **`verify_sig_lean_sphincs`'s complete valuation loads only the claim and the byte table.** -/
-theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complete_loads_Spec := by
-  intro C rd p bb pk m sig hm hbb hat hv
-  obtain ⟨σf, h0, h1, hb, hF, hh⟩ := sphincs_complete_val C rd p bb pk m sig hm hbb hat hv
-  obtain ⟨hsp, -, -, -, -, -, hcm⟩ := hF
-  refine ⟨σf, h0, h1, hb, fun es vs hw => ?_⟩
-  -- the middle's atoms hold
-  have hpre := sPrologue_sound hsp.atoms
-  unfold sPre at hh
-  have s0 := holdsList_split_atoms sPrologue_atoms hh
-  obtain ⟨s2, -⟩ := sCoords_sound (C := C) (rd := rd) (σ := σf) hpre.pad hpre.tws 8 0 s0.2
-  have hmid := atomsHold_of_holdsList sMid_atoms (holdsList_split_atoms sMid_atoms s2).1
-  -- the path's loads
-  generalize hbody : Data.core21.body = ss at hw
-  have hall := loads_of_walk (hbody ▸ core20_loads) hw
-  intro A hA
-  rcases loadAddrs_of_loadOk hall A hA with ⟨k, hk, rfl⟩ | ⟨q, hq, rfl⟩
-  · exact Or.inl ⟨k, hk, by rw [h0]⟩
-  · obtain ⟨v, hv256, e⟩ := sPtr_val hsp hmid hcm q hq
-    exact Or.inr ⟨v, hv256, by rw [e, h1, limb_mul_ofK (hbb 0 (by norm_num)).1]⟩
 
 end
 end LeanVM.Guest.B1.Sig

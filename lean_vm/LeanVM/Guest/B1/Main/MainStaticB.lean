@@ -58,7 +58,7 @@ theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb 
     fun rd hl hL => rawX_relIn hc D hX hnrx hl hL i hi
 
 /-- **`__loop3` within its static bound**, from every counter below the count. -/
-theorem rawS_completeAtB (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
+theorem rawS_completeAtB (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :

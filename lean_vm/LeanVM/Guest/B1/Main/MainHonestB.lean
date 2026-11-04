@@ -160,7 +160,7 @@ structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop 
 theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 ^ 23)
     (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hS : MainStaticsMain fs SB SK) :
+    (hsc : Sig.SphincsCompleteSpecs) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by
   have hb : MainBounds (hm fs fp seed s w) := hData_bounds hl fs fp
   exact ⟨mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),

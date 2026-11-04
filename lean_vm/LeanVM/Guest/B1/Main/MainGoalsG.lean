@@ -225,7 +225,7 @@ def rawSD (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphinc
 
 /-- **`__loop3` on an honest run.** -/
 theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
-    (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) : MainGoalL4 fs cert fp seed s w := by
+    (hc : Sig.SphincsCompleteSpecs) : MainGoalL4 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl

@@ -16,7 +16,8 @@ public import LeanVM.Guest.B1.Sig.Interface
 
 `l3Pre`, `l4Pre`: the loops' statements before their `ret []` (`l3_body`, `l4_body`), their
 parameters `.n 0 …` (`l3_params`, `l4_params`); `l3_find`, `l4_find`; `raw3_pure`, `raw4_pure`:
-each loop with its signature verifier places nothing (kernel evaluation).
+each loop with its signature verifier (leanSPHINCS's with `sp_wots`, which it calls) places
+nothing (kernel evaluation).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -94,7 +95,7 @@ theorem raw3_pure : coreProgram.PureIn ["__loop2", "verify_lean_xmss"] :=
   pureIn_of_ok (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem raw4_pure : coreProgram.PureIn ["__loop3", "verify_sig_lean_sphincs"] :=
+theorem raw4_pure : coreProgram.PureIn ["__loop3", "verify_sig_lean_sphincs", "sp_wots"] :=
   pureIn_of_ok (by decide +kernel)
 
 end

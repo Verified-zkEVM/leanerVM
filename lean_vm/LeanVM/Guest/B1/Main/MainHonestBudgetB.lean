@@ -92,7 +92,7 @@ non-static ones, within their bounds. -/
 theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hS : MainStatics fs SB SK) (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bmain fs SB SK Bv fp seed s w ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧

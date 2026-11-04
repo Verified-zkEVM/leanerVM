@@ -110,7 +110,7 @@ theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
 theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
     (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
     (hT : MainGoalsT fs cert fp seed s w p) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧

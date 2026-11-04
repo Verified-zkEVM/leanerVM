@@ -121,7 +121,7 @@ theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s
 
 /-- **`__loop3` on an honest run.** -/
 theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
-    (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {SK : String → ℕ}
+    (hc : Sig.SphincsCompleteSpecs) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
     MainGoalL4B fs cert fp seed s w SK := by
   intro h0

@@ -168,7 +168,7 @@ theorem find_verify_lean_xmss : coreProgram.find? "verify_lean_xmss" = some Data
 
 theorem find_verify_sig_lean_sphincs :
     coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
-  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
+  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
 
 /-! ## The call relation, from the statements -/
 

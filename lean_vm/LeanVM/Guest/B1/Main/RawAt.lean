@@ -190,7 +190,7 @@ noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
 
 set_option maxRecDepth 20000 in
 /-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
-theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
+theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 16 rd) (hL : MemL rd Lin) :
     ∀ j < nrs, coreProgram.RelIn rd (RegionL Lin) "__loop3"
@@ -260,7 +260,7 @@ theorem rawS_relIn (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
 
 /-- **`__loop3` is complete, placed**, from every counter below the count. -/
 theorem rawS_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
-    (hc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) {nrs Y X nrx cv tb bb : ℕ}
+    (hc : Sig.SphincsCompleteSpecs) {nrs Y X nrx cv tb bb : ℕ}
     {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) :
     ∀ j < nrs, CompleteAtD fs cert 16 "__loop3" Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb]
