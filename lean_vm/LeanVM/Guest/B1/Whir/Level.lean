@@ -105,6 +105,7 @@ structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws 
   R : R[lvl]? = some (root, lv.depth, lvWidth lvl lv)
   r0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1
   r1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2
+  mats : MatsOk σ st.mats
 
 /-- The callees a level's template calls, by their meanings. -/
 structure LvCallees (rd : Reader) (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop where

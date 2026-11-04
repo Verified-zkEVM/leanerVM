@@ -1,18 +1,20 @@
 /-
   LeanVM.Guest.B1.Whir.LamPows
 
-  A level's query weights: the powers of the batching challenge, stored.
+  A level's batching powers: `λ^n` for `opening_queries` and the level's scalar, and `μ = 1/λ`
+  stored for the residual chain.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.Flat
+public import LeanVM.Guest.B1.Whir.Loops
 
 /-!
-# The query weights (G:1432-1435)
+# `lam_pow` and `level_mus` (G:1572-1573)
 
-`osLamPows lam base k Q` stores `query_weights[base + i] = lam^i`, `i < Q`, and leaves `lam^Q` (at
-`k + Q - 1`) for `opening_queries`' `lam_n` (`osLamPows_sound`, `2 ≤ Q`).
+`osLamPow lvl lam n k` computes `λ^n` by square and multiply (`osPowSteps`) and stores
+`level_mus[lvl] = μ` with `μ·λ = 1` (`osLamPow_sound`): the residual chain runs
+`h ← (h + eq)·μ` and the level's scalar carries `λ^n`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -24,33 +26,26 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- **The query weights**: `lam^i` at `qw·g^(base + i)`, `i < Q`, and `lam^Q` at `k + Q - 1`. -/
-theorem osLamPows_sound {lam base k Q : ℕ} (hQ : 2 ≤ Q)
-    (h : AllOk C rd σ (osLamPows lam base k Q)) :
-    (∀ i < Q, LoadHolds rd (σ (.n osQw)) (base + i) (σ (.n lam) ^ i)) ∧
-      σ (.n (k + Q - 1)) = σ (.n lam) ^ Q := by
-  obtain ⟨q, rfl⟩ : ∃ q, Q = q + 2 := ⟨Q - 2, by omega⟩
-  simp only [osLamPows, Nat.add_one_ne_zero, ↓reduceIte,
-    allOk_append, allOk_cons, allOk_nil, and_true, allOk_flatten, StmtOk, Atom.Holds,
-    List.mem_map, List.mem_range, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂,
-    Nat.add_sub_cancel] at h
-  obtain ⟨⟨c1, l0⟩, l1, m2, hrest⟩ := h
-  have hv : ∀ i < q + 1, σ (.n (k + 1 + i)) = σ (.n lam) ^ (i + 2) := by
-    intro i
-    induction i with
-    | zero => intro _; rw [Nat.add_zero, m2]; ring
-    | succ i ih =>
-      intro hi
-      obtain ⟨-, hm⟩ := hrest i (by omega)
-      rw [show k + 1 + (i + 1) = k + 2 + i by ring, hm, ih (by omega)]; ring
-  refine ⟨fun i hi ↦ ?_, ?_⟩
-  · rcases i with _ | _ | i
-    · rw [c1] at l0; simpa [word_one] using l0
-    · simpa using l1
-    · obtain ⟨hl, -⟩ := hrest i (by omega)
-      rw [hv i (by omega)] at hl
-      simpa [show base + (i + 2) = base + 2 + i by ring] using hl
-  · rw [show k + (q + 2) - 1 = k + 1 + q by omega, hv q (by omega)]
+/-- **The batching power and its inverse**: `λ^n` at the returned value, `μ` stored at
+`level_mus[lvl]` with `μ·λ = 1` (so `λ ≠ 0` and `μ = λ⁻¹`). -/
+theorem osLamPow_sound {lvl lam n k : ℕ} (hd : digitsVal (osPowDigits n) 1 = n)
+    (h : AllOk C rd σ (osLamPow lvl lam n k).1) :
+    σ (.n (osLamPow lvl lam n k).2.1) = σ (.n lam) ^ n ∧ σ (.n lam) ≠ 0 ∧
+      LoadHolds rd (σ (.n osMus)) lvl (σ (.n lam))⁻¹ := by
+  simp only [osLamPow, allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds] at h
+  obtain ⟨hp, hc, hm, hl⟩ := h
+  have hv := osPowSteps_val (C := C) (rd := rd) lam (osPowDigits n) lam k 1 (by rw [pow_one]) hp
+  rw [hd] at hv
+  rw [hc] at hm
+  have hne : σ (.n lam) ≠ 0 := by
+    intro h0; rw [h0, mul_zero] at hm; exact one_ne_zero (word_one ▸ hm)
+  refine ⟨hv, hne, ?_⟩
+  have hinv : σ (.n (k + osPowLen n + 1)) = (σ (.n lam))⁻¹ := by
+    rw [word_one] at hm
+    exact eq_inv_of_mul_eq_one_left hm.symm
+  rw [← hinv]; exact hl
+
+theorem osLamPow_next (lvl lam n k : ℕ) : (osLamPow lvl lam n k).2.2 = k + osPowLen n + 2 := rfl
 
 end
 end LeanVM.Guest.B1.Whir
