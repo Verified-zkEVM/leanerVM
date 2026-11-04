@@ -33,22 +33,22 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-! ## The honest chain -/
 
-/-- The chain's last row: `⌈n/2⌉`. -/
-def rswH (count : ℕ) : ℕ := (count + 1) / 2
+/-- The chain's last row: `⌈n/8⌉` (`RS_CHUNK = 8` coordinates a row). -/
+def rswH (count : ℕ) : ℕ := (count + 7) / 8
 
 /-- **The honest chain**: row `0` ones, row `h ≥ 1` the products over the first `min(2h, n)`
-coordinates (`rs_eq_run`'s rows), up to row `⌈n/2⌉`. -/
+coordinates (`rs_eq_run`'s rows), up to row `⌈n/8⌉`. -/
 def rswChain (zs ps : List E) (count : ℕ) : List E :=
   (List.range (64 * (rswH count + 1))).map fun t ↦
     if t / 64 = 0 then 1
-    else ringRow 1 (zs.take (min (2 * (t / 64)) count)) (ps.take (min (2 * (t / 64)) count)) (t % 64)
+    else ringRow 1 (zs.take (min (8 * (t / 64)) count)) (ps.take (min (8 * (t / 64)) count)) (t % 64)
 
 theorem rswChain_length (zs ps : List E) (count : ℕ) :
     (rswChain zs ps count).length = 64 * (rswH count + 1) := by simp [rswChain]
 
 theorem rswChain_get (zs ps : List E) (count : ℕ) {t : ℕ} (ht : t < (rswChain zs ps count).length) :
     (rswChain zs ps count)[t] = if t / 64 = 0 then 1
-      else ringRow 1 (zs.take (min (2 * (t / 64)) count)) (ps.take (min (2 * (t / 64)) count))
+      else ringRow 1 (zs.take (min (8 * (t / 64)) count)) (ps.take (min (8 * (t / 64)) count))
         (t % 64) := by
   simp [rswChain]
 
@@ -64,20 +64,42 @@ theorem rswChain_load {rd : Reader} {zs ps : List E} {count b : ℕ}
     (h : ReadsAt rd (ofK (addressOfIndex b)) (rswChain zs ps count)) {t : ℕ}
     (ht : t < 64 * (rswH count + 1)) :
     LoadHolds rd (ofK (addressOfIndex b)) t (if t / 64 = 0 then 1
-      else ringRow 1 (zs.take (min (2 * (t / 64)) count)) (ps.take (min (2 * (t / 64)) count))
+      else ringRow 1 (zs.take (min (8 * (t / 64)) count)) (ps.take (min (8 * (t / 64)) count))
         (t % 64)) := by
   have := h t (by rw [rswChain_length]; exact ht)
   rwa [rswChain_get] at this
 
 /-! ## `rs_eq_run`, placed -/
 
-theorem rs_pure : coreProgram.PureIn ["rs_eq_run", "__loop5"] := by
+/-- `rs_eq_run`'s callees: `__loop5` and `rs_eq_rows__L{n}`, `n ≤ 8`. -/
+def rsPureNames : List String := ["rs_eq_run", "__loop5"] ++ rsEqRowsNames
+
+theorem rs_pure : coreProgram.PureIn rsPureNames := by
   intro g hg fn hf
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-  rcases hg with rfl | rfl
+  simp only [rsPureNames, rsEqRowsNames, List.cons_append, List.nil_append, List.mem_cons,
+    List.not_mem_nil, or_false] at hg
+  rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · rw [Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
   · rw [Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 89) (by decide +kernel) rfl, Option.some.injEq] at hf
+    subst hf; decide +kernel
+  · rw [Program.find?_of_indexOf? (j := 419) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
 
 /-- `rs_eq_run`'s words: the chain, the coordinates, the point. -/
@@ -300,7 +322,7 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
     · have hH : 1 ≤ rswH count := by unfold rswH; omega
       rw [ite_neg' (by omega), show (64 * rswH count + k) / 64 = rswH count by omega,
         show (64 * rswH count + k) % 64 = k by omega,
-        show min (2 * rswH count) count = count by unfold rswH; omega,
+        show min (8 * rswH count) count = count by unfold rswH; omega,
         List.take_of_length_le (by omega), List.take_of_length_le (by omega)] at this
       exact this
   have hcsk : ∀ k < 64, LoadHolds rd (σ (.n 2)) k (cs.getD k 0) := by
@@ -435,7 +457,7 @@ theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hc
   · intro fp k hk _
     rw [List.mem_singleton] at hk
     subst hk
-    exact completeAt_of_rel_pureD rs_pure (by simp) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
+    exact completeAt_of_rel_pureD rs_pure (by simp [rsPureNames]) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
   · intro fp k hk _ i hi
     rw [List.mem_singleton] at hk
     subst hk

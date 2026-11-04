@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerT
 
-  `keccak_layer`'s four specializations as one template (`layerT first odd`), section by section.
+  `keccak_layer`'s two specializations as one template (`layerT first`), section by section.
 -/
 
 module
@@ -13,23 +13,26 @@ public import LeanVM.Guest.B1.KeccakGkr.EqFrame
 /-!
 # `keccak_layer` as a template
 
-The specializations `keccak_layer__L{first}_L{odd}` (G:2462-2707) compile to one statement list up
-to the product's table (`prodTab first`), the waiting cells of the squeeze after it, the
-first layer's weight section, and a shift `d = 4·odd` of the values after the pack rounds' call
-(`odd = 1` adds a `keccak_round` call and its four values). Sections:
+The specializations `keccak_layer__L{first}` (G:2681-2862) compile to one statement list up to
+the head (`first = 1` copies the waiting word's two cells), the product's table (`prodTab first`),
+the waiting cells of the squeeze after it, and the first layer's weight section; from `s` on the
+values are the same. Sections:
 
 * `headT`: the carried capacity (and, first, the waiting word's cells) copied, the claim's sixteen
-  instance weights read (`KC_MU`);
-* `prodT` (`Prod`): the product's 47 coefficients read and absorbed, and their projection;
+  instance weights read (`KC_MU`), and the readers, a straight line of sums over them
+  (`KECCAK_PROJ_A`, `KECCAK_PROJ_B`, G:2697-2701);
+* `prodT` (`Prod`): the product's 47 coefficients read and absorbed, and their projection, each
+  coefficient times its reader (`KECCAK_PROJ_OUT`);
 * `checkT`: the projection plus `ι·κ` against the claim's value;
 * `sqT`: the squeeze of `s`; `rmfeBlockT` (`LayerRmfe`): the instance weights at `s`;
 * `hornerT`: the product at `s`;
-* `packSetupT`: the pack rounds' first record, the loop, and with `odd` the last round;
+* `packSetupT`: the pack rounds' first record and the two loops;
 * `lastT`, `localRoundsT`, `tReadsT`: the last record read, the eleven position rounds, `t`;
 * `eqfT` (`EqFrame`): the lane weights of the local point;
 * `weightT`: the claim's weights at the local point (first: `lanesEqT`; later: `shiftsT` and
   `formT`, `keccak_shifts_eq` and `keccak_form`);
-* `tailT`: the final check, the squeeze of `β`, and the next claim's record.
+* `tailT`: the final check, the squeeze of `β`, the next claim's record, and its weights where
+  `ι` can flip (`lflipT`, `slice_weight`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -66,124 +69,152 @@ theorem eq_of_add_eq_zero' {a b : E} (h : a + b = 0) : a = b := by
   have := congrArg (· + b) h
   simpa [add_assoc, e_add_self] using this
 
+/-! ## The readers -/
+
+/-- `KECCAK_PROJ_A`: reader `16 + t` is reader `projA t` plus reader `projB t`. -/
+def projA : List ℕ := [
+  1, 3, 2, 10, 8, 6, 1, 7, 14, 7, 4, 1, 3, 9, 20, 6, 8, 11, 18, 19, 8, 9, 10, 14, 17, 20, 10, 11,
+  12, 12, 13, 17, 19, 22, 23, 26, 0, 6, 6, 6, 6, 6, 7, 7, 8, 9, 10, 11, 11, 11, 11, 13, 14, 14,
+  14, 15, 17, 17, 17, 18, 18, 20, 20, 21, 22, 23, 23, 24, 24, 24, 24, 25, 25, 25, 26, 26, 26,
+  28, 28, 29, 29, 30, 30, 30, 30, 31, 31, 32, 32, 33, 33, 35, 39, 41, 43, 44, 44, 46, 47, 48,
+  48, 51, 51, 52, 53, 59, 60, 61, 63, 75, 79]
+
+/-- `KECCAK_PROJ_B`. -/
+def projB : List ℕ := [
+  5, 16, 4, 13, 9, 12, 18, 11, 17, 19, 16, 2, 22, 21, 23, 7, 24, 12, 20, 21, 14, 13, 21, 28, 25,
+  22, 27, 27, 19, 23, 24, 34, 23, 25, 38, 31, 18, 10, 26, 41, 46, 47, 13, 20, 10, 14, 17, 19,
+  24, 35, 37, 21, 37, 41, 43, 36, 29, 45, 50, 24, 32, 35, 39, 22, 33, 27, 36, 30, 34, 35, 38,
+  26, 27, 28, 29, 36, 50, 29, 45, 40, 49, 39, 42, 54, 62, 32, 37, 33, 67, 34, 42, 81, 66, 65,
+  77, 69, 84, 105, 58, 76, 91, 68, 71, 95, 78, 86, 80, 106, 90, 102, 82]
+
+/-- `KECCAK_PROJ_OUT`: coefficient `k`'s reader. -/
+def projOut : List ℕ := [
+  119, 40, 40, 49, 116, 93, 70, 112, 74, 83, 109, 117, 94, 98, 57, 101, 104, 126, 124, 108, 123,
+  113, 121, 85, 122, 99, 120, 107, 114, 56, 103, 96, 87, 89, 88, 115, 72, 64, 111, 92, 97, 110,
+  125, 73, 100, 55, 118]
+
+/-- The instance weights' base value. -/
+def muB (first : ℕ) : ℕ := 19 + 2 * first
+
+/-- The capacity (and the waiting cells) copied, the instance weights read, the readers. -/
+def headT (first : ℕ) : List Stmt :=
+  (List.range (5 + 2 * first)).map (fun i ↦ .atom (.copy (.n (14 + i)) (.n i))) ++
+    (List.range 16).map (fun i ↦ .atom (.load (.n (muB first + i)) (.n 11) (6 + i))) ++
+    (List.range 111).map fun t ↦ .atom (.add (.n (muB first + 16 + t))
+      (.n (muB first + projA.getD t 0)) (.n (muB first + projB.getD t 0)))
+
+/-- Coefficient `k`'s reader, as `Prod`'s index list. -/
+def projR (k : ℕ) : List ℕ := [projOut.getD k 0]
+
 /-! ## The product's tables -/
 
 /-- The product section's table, first = 1. -/
 def prodTab1 : List PPos := [
-    ⟨37, none, 38, [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 13], 47, 58, none, 58⟩,
-    ⟨59, none, 60, [1, 3, 5, 7, 10, 13], 69, 74, some 58, 75⟩,
-    ⟨76, none, 77, [1, 3, 5, 7, 10, 13], 86, 91, some 75, 92⟩,
-    ⟨93, some ([19, 20, 44, 46, 66, 68, 83, 85, 14, 15, 16, 17, 18], 94), 107, [1, 2, 4, 7, 10, 13], 116, 121, some 92, 122⟩,
-    ⟨123, none, 124, [1, 4, 5, 7, 8, 10, 11, 13, 14], 133, 141, some 122, 142⟩,
-    ⟨143, none, 144, [1, 2, 3, 4, 6, 9, 12], 153, 159, some 142, 160⟩,
-    ⟨161, none, 162, [1, 2, 11, 14], 171, 174, some 160, 175⟩,
-    ⟨176, some ([113, 115, 130, 132, 150, 152, 168, 170, 102, 103, 104, 105, 106], 177), 190, [1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14], 199, 209, some 175, 210⟩,
-    ⟨211, none, 212, [1, 3, 5, 6, 7, 10, 11, 12], 221, 228, some 210, 229⟩,
-    ⟨230, none, 231, [1, 3, 5, 7, 8, 9, 11, 14], 240, 247, some 229, 248⟩,
-    ⟨249, none, 250, [1, 2, 4, 6, 8, 9, 10, 11, 12, 13], 259, 268, some 248, 269⟩,
-    ⟨270, some ([196, 198, 218, 220, 237, 239, 256, 258, 185, 186, 187, 188, 189], 271), 284, [1, 4, 5, 6, 7, 9, 13, 14], 293, 300, some 269, 301⟩,
-    ⟨302, none, 303, [1, 2, 3, 4, 7, 11, 12], 312, 318, some 301, 319⟩,
-    ⟨320, none, 321, [1, 2, 7, 8, 9, 10, 11], 330, 336, some 319, 337⟩,
-    ⟨338, none, 339, [1, 2, 3, 4, 5, 6, 8, 9], 348, 355, some 337, 356⟩,
-    ⟨357, some ([290, 292, 309, 311, 327, 329, 345, 347, 279, 280, 281, 282, 283], 358), 371, [1, 3, 5, 6, 7, 8, 14], 380, 386, some 356, 387⟩,
-    ⟨388, none, 389, [1, 3, 5, 6, 8, 12, 13, 14], 398, 405, some 387, 406⟩,
-    ⟨407, none, 408, [1, 2, 4, 6, 7, 8, 11, 12, 14], 417, 425, some 406, 426⟩,
-    ⟨427, none, 428, [1, 4, 5, 6, 9, 10, 11, 12, 13], 437, 445, some 426, 446⟩,
-    ⟨447, some ([377, 379, 395, 397, 414, 416, 434, 436, 366, 367, 368, 369, 370], 448), 461, [1, 2, 3, 4, 9, 11, 13, 14], 470, 477, some 446, 478⟩,
-    ⟨479, none, 480, [1, 2, 9, 10, 11, 12, 14], 489, 495, some 478, 496⟩,
-    ⟨497, none, 498, [1, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14], 507, 517, some 496, 518⟩,
-    ⟨519, none, 520, [1, 3, 5, 6, 7, 8, 9, 10, 12, 14], 529, 538, some 518, 539⟩,
-    ⟨540, some ([467, 469, 486, 488, 504, 506, 526, 528, 456, 457, 458, 459, 460], 541), 554, [1, 3, 5, 6, 10, 12, 13, 14], 563, 570, some 539, 571⟩,
-    ⟨572, none, 573, [1, 2, 4, 8, 10, 11, 12], 582, 588, some 571, 589⟩,
-    ⟨590, none, 591, [1, 4, 5, 6, 7, 8, 9, 11], 600, 607, some 589, 608⟩,
-    ⟨609, none, 610, [1, 2, 3, 4, 6, 8, 9, 10, 14], 619, 627, some 608, 628⟩,
-    ⟨629, some ([560, 562, 579, 581, 597, 599, 616, 618, 549, 550, 551, 552, 553], 630), 643, [1, 2, 6, 7, 10, 11, 12, 13], 652, 659, some 628, 660⟩,
-    ⟨661, none, 662, [1, 2, 3, 4, 5, 7, 8, 9, 13], 671, 679, some 660, 680⟩,
-    ⟨681, none, 682, [1, 3, 5, 6, 13, 14], 691, 696, some 680, 697⟩,
-    ⟨698, none, 699, [1, 3, 5, 8, 11, 12, 14], 708, 714, some 697, 715⟩,
-    ⟨716, some ([649, 651, 668, 670, 688, 690, 705, 707, 638, 639, 640, 641, 642], 717), 730, [1, 2, 4, 6, 7, 9, 10, 12, 13], 739, 747, some 715, 748⟩,
-    ⟨749, none, 750, [1, 4, 5, 7, 10, 13], 759, 764, some 748, 765⟩,
-    ⟨766, none, 767, [1, 2, 3, 4, 7, 10, 13], 776, 782, some 765, 783⟩,
-    ⟨784, none, 785, [1, 2, 7, 10, 13], 794, 798, some 783, 799⟩,
-    ⟨800, some ([736, 738, 756, 758, 773, 775, 791, 793, 725, 726, 727, 728, 729], 801), 814, [1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 14], 823, 833, some 799, 834⟩,
-    ⟨835, none, 836, [1, 3, 5, 6, 9, 12], 845, 850, some 834, 851⟩,
-    ⟨852, none, 853, [1, 3, 5, 11, 14], 862, 866, some 851, 867⟩,
-    ⟨868, none, 869, [1, 2, 4, 8, 9, 10, 12, 13, 14], 878, 886, some 867, 887⟩,
-    ⟨888, some ([820, 822, 842, 844, 859, 861, 875, 877, 809, 810, 811, 812, 813], 889), 902, [1, 4, 5, 6, 7, 10, 11, 12], 911, 918, some 887, 919⟩,
-    ⟨920, none, 921, [1, 2, 3, 4, 7, 8, 9, 11, 14], 930, 938, some 919, 939⟩,
-    ⟨940, none, 941, [1, 2, 6, 8, 9, 10, 11, 12, 13], 950, 958, some 939, 959⟩,
-    ⟨960, none, 961, [1, 2, 3, 4, 5, 6, 7, 9, 13, 14], 970, 979, some 959, 980⟩,
-    ⟨981, some ([908, 910, 927, 929, 947, 949, 967, 969, 897, 898, 899, 900, 901], 982), 995, [1, 3, 5, 7, 11, 12], 1004, 1009, some 980, 1010⟩,
-    ⟨1011, none, 1012, [1, 3, 5, 7, 8, 9, 10, 11], 1021, 1028, some 1010, 1029⟩,
-    ⟨1030, none, 1031, [1, 2, 4, 6, 8, 9], 1040, 1045, some 1029, 1046⟩,
-    ⟨1047, none, 1048, [1, 4, 5, 6, 7, 8, 14, 15], 1057, 1064, some 1046, 1065⟩]
-
+    ⟨148, none, 149, [119], 0, 158, none, 158⟩,
+    ⟨159, none, 160, [40], 0, 169, some 158, 170⟩,
+    ⟨171, none, 172, [40], 0, 181, some 170, 182⟩,
+    ⟨183, some ([19, 20, 155, 157, 166, 168, 178, 180, 14, 15, 16, 17, 18], 184), 197, [49], 0, 206, some 182, 207⟩,
+    ⟨208, none, 209, [116], 0, 218, some 207, 219⟩,
+    ⟨220, none, 221, [93], 0, 230, some 219, 231⟩,
+    ⟨232, none, 233, [70], 0, 242, some 231, 243⟩,
+    ⟨244, some ([203, 205, 215, 217, 227, 229, 239, 241, 192, 193, 194, 195, 196], 245), 258, [112], 0, 267, some 243, 268⟩,
+    ⟨269, none, 270, [74], 0, 279, some 268, 280⟩,
+    ⟨281, none, 282, [83], 0, 291, some 280, 292⟩,
+    ⟨293, none, 294, [109], 0, 303, some 292, 304⟩,
+    ⟨305, some ([264, 266, 276, 278, 288, 290, 300, 302, 253, 254, 255, 256, 257], 306), 319, [117], 0, 328, some 304, 329⟩,
+    ⟨330, none, 331, [94], 0, 340, some 329, 341⟩,
+    ⟨342, none, 343, [98], 0, 352, some 341, 353⟩,
+    ⟨354, none, 355, [57], 0, 364, some 353, 365⟩,
+    ⟨366, some ([325, 327, 337, 339, 349, 351, 361, 363, 314, 315, 316, 317, 318], 367), 380, [101], 0, 389, some 365, 390⟩,
+    ⟨391, none, 392, [104], 0, 401, some 390, 402⟩,
+    ⟨403, none, 404, [126], 0, 413, some 402, 414⟩,
+    ⟨415, none, 416, [124], 0, 425, some 414, 426⟩,
+    ⟨427, some ([386, 388, 398, 400, 410, 412, 422, 424, 375, 376, 377, 378, 379], 428), 441, [108], 0, 450, some 426, 451⟩,
+    ⟨452, none, 453, [123], 0, 462, some 451, 463⟩,
+    ⟨464, none, 465, [113], 0, 474, some 463, 475⟩,
+    ⟨476, none, 477, [121], 0, 486, some 475, 487⟩,
+    ⟨488, some ([447, 449, 459, 461, 471, 473, 483, 485, 436, 437, 438, 439, 440], 489), 502, [85], 0, 511, some 487, 512⟩,
+    ⟨513, none, 514, [122], 0, 523, some 512, 524⟩,
+    ⟨525, none, 526, [99], 0, 535, some 524, 536⟩,
+    ⟨537, none, 538, [120], 0, 547, some 536, 548⟩,
+    ⟨549, some ([508, 510, 520, 522, 532, 534, 544, 546, 497, 498, 499, 500, 501], 550), 563, [107], 0, 572, some 548, 573⟩,
+    ⟨574, none, 575, [114], 0, 584, some 573, 585⟩,
+    ⟨586, none, 587, [56], 0, 596, some 585, 597⟩,
+    ⟨598, none, 599, [103], 0, 608, some 597, 609⟩,
+    ⟨610, some ([569, 571, 581, 583, 593, 595, 605, 607, 558, 559, 560, 561, 562], 611), 624, [96], 0, 633, some 609, 634⟩,
+    ⟨635, none, 636, [87], 0, 645, some 634, 646⟩,
+    ⟨647, none, 648, [89], 0, 657, some 646, 658⟩,
+    ⟨659, none, 660, [88], 0, 669, some 658, 670⟩,
+    ⟨671, some ([630, 632, 642, 644, 654, 656, 666, 668, 619, 620, 621, 622, 623], 672), 685, [115], 0, 694, some 670, 695⟩,
+    ⟨696, none, 697, [72], 0, 706, some 695, 707⟩,
+    ⟨708, none, 709, [64], 0, 718, some 707, 719⟩,
+    ⟨720, none, 721, [111], 0, 730, some 719, 731⟩,
+    ⟨732, some ([691, 693, 703, 705, 715, 717, 727, 729, 680, 681, 682, 683, 684], 733), 746, [92], 0, 755, some 731, 756⟩,
+    ⟨757, none, 758, [97], 0, 767, some 756, 768⟩,
+    ⟨769, none, 770, [110], 0, 779, some 768, 780⟩,
+    ⟨781, none, 782, [125], 0, 791, some 780, 792⟩,
+    ⟨793, some ([752, 754, 764, 766, 776, 778, 788, 790, 741, 742, 743, 744, 745], 794), 807, [73], 0, 816, some 792, 817⟩,
+    ⟨818, none, 819, [100], 0, 828, some 817, 829⟩,
+    ⟨830, none, 831, [55], 0, 840, some 829, 841⟩,
+    ⟨842, none, 843, [118], 0, 852, some 841, 853⟩]
 
 /-- The product section's table, first = 0. -/
 def prodTab0 : List PPos := [
-    ⟨35, none, 36, [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 13], 45, 56, none, 56⟩,
-    ⟨57, none, 58, [1, 3, 5, 7, 10, 13], 67, 72, some 56, 73⟩,
-    ⟨74, none, 75, [1, 3, 5, 7, 10, 13], 84, 89, some 73, 90⟩,
-    ⟨91, none, 92, [1, 2, 4, 7, 10, 13], 101, 106, some 90, 107⟩,
-    ⟨108, some ([42, 44, 64, 66, 81, 83, 98, 100, 14, 15, 16, 17, 18], 109), 122, [1, 4, 5, 7, 8, 10, 11, 13, 14], 131, 139, some 107, 140⟩,
-    ⟨141, none, 142, [1, 2, 3, 4, 6, 9, 12], 151, 157, some 140, 158⟩,
-    ⟨159, none, 160, [1, 2, 11, 14], 169, 172, some 158, 173⟩,
-    ⟨174, none, 175, [1, 2, 3, 4, 5, 8, 9, 10, 12, 13, 14], 184, 194, some 173, 195⟩,
-    ⟨196, some ([128, 130, 148, 150, 166, 168, 181, 183, 117, 118, 119, 120, 121], 197), 210, [1, 3, 5, 6, 7, 10, 11, 12], 219, 226, some 195, 227⟩,
-    ⟨228, none, 229, [1, 3, 5, 7, 8, 9, 11, 14], 238, 245, some 227, 246⟩,
-    ⟨247, none, 248, [1, 2, 4, 6, 8, 9, 10, 11, 12, 13], 257, 266, some 246, 267⟩,
-    ⟨268, none, 269, [1, 4, 5, 6, 7, 9, 13, 14], 278, 285, some 267, 286⟩,
-    ⟨287, some ([216, 218, 235, 237, 254, 256, 275, 277, 205, 206, 207, 208, 209], 288), 301, [1, 2, 3, 4, 7, 11, 12], 310, 316, some 286, 317⟩,
-    ⟨318, none, 319, [1, 2, 7, 8, 9, 10, 11], 328, 334, some 317, 335⟩,
-    ⟨336, none, 337, [1, 2, 3, 4, 5, 6, 8, 9], 346, 353, some 335, 354⟩,
-    ⟨355, none, 356, [1, 3, 5, 6, 7, 8, 14], 365, 371, some 354, 372⟩,
-    ⟨373, some ([307, 309, 325, 327, 343, 345, 362, 364, 296, 297, 298, 299, 300], 374), 387, [1, 3, 5, 6, 8, 12, 13, 14], 396, 403, some 372, 404⟩,
-    ⟨405, none, 406, [1, 2, 4, 6, 7, 8, 11, 12, 14], 415, 423, some 404, 424⟩,
-    ⟨425, none, 426, [1, 4, 5, 6, 9, 10, 11, 12, 13], 435, 443, some 424, 444⟩,
-    ⟨445, none, 446, [1, 2, 3, 4, 9, 11, 13, 14], 455, 462, some 444, 463⟩,
-    ⟨464, some ([393, 395, 412, 414, 432, 434, 452, 454, 382, 383, 384, 385, 386], 465), 478, [1, 2, 9, 10, 11, 12, 14], 487, 493, some 463, 494⟩,
-    ⟨495, none, 496, [1, 2, 3, 4, 5, 8, 9, 11, 12, 13, 14], 505, 515, some 494, 516⟩,
-    ⟨517, none, 518, [1, 3, 5, 6, 7, 8, 9, 10, 12, 14], 527, 536, some 516, 537⟩,
-    ⟨538, none, 539, [1, 3, 5, 6, 10, 12, 13, 14], 548, 555, some 537, 556⟩,
-    ⟨557, some ([484, 486, 502, 504, 524, 526, 545, 547, 473, 474, 475, 476, 477], 558), 571, [1, 2, 4, 8, 10, 11, 12], 580, 586, some 556, 587⟩,
-    ⟨588, none, 589, [1, 4, 5, 6, 7, 8, 9, 11], 598, 605, some 587, 606⟩,
-    ⟨607, none, 608, [1, 2, 3, 4, 6, 8, 9, 10, 14], 617, 625, some 606, 626⟩,
-    ⟨627, none, 628, [1, 2, 6, 7, 10, 11, 12, 13], 637, 644, some 626, 645⟩,
-    ⟨646, some ([577, 579, 595, 597, 614, 616, 634, 636, 566, 567, 568, 569, 570], 647), 660, [1, 2, 3, 4, 5, 7, 8, 9, 13], 669, 677, some 645, 678⟩,
-    ⟨679, none, 680, [1, 3, 5, 6, 13, 14], 689, 694, some 678, 695⟩,
-    ⟨696, none, 697, [1, 3, 5, 8, 11, 12, 14], 706, 712, some 695, 713⟩,
-    ⟨714, none, 715, [1, 2, 4, 6, 7, 9, 10, 12, 13], 724, 732, some 713, 733⟩,
-    ⟨734, some ([666, 668, 686, 688, 703, 705, 721, 723, 655, 656, 657, 658, 659], 735), 748, [1, 4, 5, 7, 10, 13], 757, 762, some 733, 763⟩,
-    ⟨764, none, 765, [1, 2, 3, 4, 7, 10, 13], 774, 780, some 763, 781⟩,
-    ⟨782, none, 783, [1, 2, 7, 10, 13], 792, 796, some 781, 797⟩,
-    ⟨798, none, 799, [1, 2, 3, 4, 5, 7, 8, 10, 11, 13, 14], 808, 818, some 797, 819⟩,
-    ⟨820, some ([754, 756, 771, 773, 789, 791, 805, 807, 743, 744, 745, 746, 747], 821), 834, [1, 3, 5, 6, 9, 12], 843, 848, some 819, 849⟩,
-    ⟨850, none, 851, [1, 3, 5, 11, 14], 860, 864, some 849, 865⟩,
-    ⟨866, none, 867, [1, 2, 4, 8, 9, 10, 12, 13, 14], 876, 884, some 865, 885⟩,
-    ⟨886, none, 887, [1, 4, 5, 6, 7, 10, 11, 12], 896, 903, some 885, 904⟩,
-    ⟨905, some ([840, 842, 857, 859, 873, 875, 893, 895, 829, 830, 831, 832, 833], 906), 919, [1, 2, 3, 4, 7, 8, 9, 11, 14], 928, 936, some 904, 937⟩,
-    ⟨938, none, 939, [1, 2, 6, 8, 9, 10, 11, 12, 13], 948, 956, some 937, 957⟩,
-    ⟨958, none, 959, [1, 2, 3, 4, 5, 6, 7, 9, 13, 14], 968, 977, some 957, 978⟩,
-    ⟨979, none, 980, [1, 3, 5, 7, 11, 12], 989, 994, some 978, 995⟩,
-    ⟨996, some ([925, 927, 945, 947, 965, 967, 986, 988, 914, 915, 916, 917, 918], 997), 1010, [1, 3, 5, 7, 8, 9, 10, 11], 1019, 1026, some 995, 1027⟩,
-    ⟨1028, none, 1029, [1, 2, 4, 6, 8, 9], 1038, 1043, some 1027, 1044⟩,
-    ⟨1045, none, 1046, [1, 4, 5, 6, 7, 8, 14, 15], 1055, 1062, some 1044, 1063⟩]
+    ⟨146, none, 147, [119], 0, 156, none, 156⟩,
+    ⟨157, none, 158, [40], 0, 167, some 156, 168⟩,
+    ⟨169, none, 170, [40], 0, 179, some 168, 180⟩,
+    ⟨181, none, 182, [49], 0, 191, some 180, 192⟩,
+    ⟨193, some ([153, 155, 164, 166, 176, 178, 188, 190, 14, 15, 16, 17, 18], 194), 207, [116], 0, 216, some 192, 217⟩,
+    ⟨218, none, 219, [93], 0, 228, some 217, 229⟩,
+    ⟨230, none, 231, [70], 0, 240, some 229, 241⟩,
+    ⟨242, none, 243, [112], 0, 252, some 241, 253⟩,
+    ⟨254, some ([213, 215, 225, 227, 237, 239, 249, 251, 202, 203, 204, 205, 206], 255), 268, [74], 0, 277, some 253, 278⟩,
+    ⟨279, none, 280, [83], 0, 289, some 278, 290⟩,
+    ⟨291, none, 292, [109], 0, 301, some 290, 302⟩,
+    ⟨303, none, 304, [117], 0, 313, some 302, 314⟩,
+    ⟨315, some ([274, 276, 286, 288, 298, 300, 310, 312, 263, 264, 265, 266, 267], 316), 329, [94], 0, 338, some 314, 339⟩,
+    ⟨340, none, 341, [98], 0, 350, some 339, 351⟩,
+    ⟨352, none, 353, [57], 0, 362, some 351, 363⟩,
+    ⟨364, none, 365, [101], 0, 374, some 363, 375⟩,
+    ⟨376, some ([335, 337, 347, 349, 359, 361, 371, 373, 324, 325, 326, 327, 328], 377), 390, [104], 0, 399, some 375, 400⟩,
+    ⟨401, none, 402, [126], 0, 411, some 400, 412⟩,
+    ⟨413, none, 414, [124], 0, 423, some 412, 424⟩,
+    ⟨425, none, 426, [108], 0, 435, some 424, 436⟩,
+    ⟨437, some ([396, 398, 408, 410, 420, 422, 432, 434, 385, 386, 387, 388, 389], 438), 451, [123], 0, 460, some 436, 461⟩,
+    ⟨462, none, 463, [113], 0, 472, some 461, 473⟩,
+    ⟨474, none, 475, [121], 0, 484, some 473, 485⟩,
+    ⟨486, none, 487, [85], 0, 496, some 485, 497⟩,
+    ⟨498, some ([457, 459, 469, 471, 481, 483, 493, 495, 446, 447, 448, 449, 450], 499), 512, [122], 0, 521, some 497, 522⟩,
+    ⟨523, none, 524, [99], 0, 533, some 522, 534⟩,
+    ⟨535, none, 536, [120], 0, 545, some 534, 546⟩,
+    ⟨547, none, 548, [107], 0, 557, some 546, 558⟩,
+    ⟨559, some ([518, 520, 530, 532, 542, 544, 554, 556, 507, 508, 509, 510, 511], 560), 573, [114], 0, 582, some 558, 583⟩,
+    ⟨584, none, 585, [56], 0, 594, some 583, 595⟩,
+    ⟨596, none, 597, [103], 0, 606, some 595, 607⟩,
+    ⟨608, none, 609, [96], 0, 618, some 607, 619⟩,
+    ⟨620, some ([579, 581, 591, 593, 603, 605, 615, 617, 568, 569, 570, 571, 572], 621), 634, [87], 0, 643, some 619, 644⟩,
+    ⟨645, none, 646, [89], 0, 655, some 644, 656⟩,
+    ⟨657, none, 658, [88], 0, 667, some 656, 668⟩,
+    ⟨669, none, 670, [115], 0, 679, some 668, 680⟩,
+    ⟨681, some ([640, 642, 652, 654, 664, 666, 676, 678, 629, 630, 631, 632, 633], 682), 695, [72], 0, 704, some 680, 705⟩,
+    ⟨706, none, 707, [64], 0, 716, some 705, 717⟩,
+    ⟨718, none, 719, [111], 0, 728, some 717, 729⟩,
+    ⟨730, none, 731, [92], 0, 740, some 729, 741⟩,
+    ⟨742, some ([701, 703, 713, 715, 725, 727, 737, 739, 690, 691, 692, 693, 694], 743), 756, [97], 0, 765, some 741, 766⟩,
+    ⟨767, none, 768, [110], 0, 777, some 766, 778⟩,
+    ⟨779, none, 780, [125], 0, 789, some 778, 790⟩,
+    ⟨791, none, 792, [73], 0, 801, some 790, 802⟩,
+    ⟨803, some ([762, 764, 774, 776, 786, 788, 798, 800, 751, 752, 753, 754, 755], 804), 817, [100], 0, 826, some 802, 827⟩,
+    ⟨828, none, 829, [55], 0, 838, some 827, 839⟩,
+    ⟨840, none, 841, [118], 0, 850, some 839, 851⟩]
 
+/-- The product section's table. -/
+def prodTab (first : ℕ) : List PPos := if first = 1 then prodTab1 else prodTab0
 
-/-- The product's table of a specialization. -/
-def prodTab : ℕ → List PPos
-  | 1 => prodTab1
-  | _ => prodTab0
-
-/-- The last running sum of the projection. -/
-def accL (first : ℕ) : ℕ := if first = 1 then 1065 else 1063
+/-- The last running sum. -/
+def accL (first : ℕ) : ℕ := if first = 1 then 853 else 851
 
 /-! ## Head, check, squeeze, Horner -/
-
-/-- The capacity (and the waiting cells) copied, the instance weights read. -/
-def headT (first : ℕ) : List Stmt :=
-  (List.range (5 + 2 * first)).map (fun i ↦ .atom (.copy (.n (14 + i)) (.n i))) ++
-    (List.range 16).map fun i ↦ .atom (.load (.n (19 + 2 * first + i)) (.n 11) (6 + i))
 
 /-- The projection plus `ι·κ` against the claim's value. -/
 def checkT (a : ℕ) : List Stmt :=
@@ -193,17 +224,17 @@ def checkT (a : ℕ) : List Stmt :=
 
 /-- The cells the squeeze of `s` reads. -/
 def sqIns : ℕ → List V
-  | 1 => [.n 1001, .n 1003, .n 1018, .n 1020, .n 1037, .n 1039, .n 1054, .n 1056,
-      .n 990, .n 991, .n 992, .n 993, .n 994]
-  | _ => [.n 1016, .n 1018, .n 1035, .n 1037, .n 1052, .n 1054, .n 1068, .n 1069,
-      .n 1005, .n 1006, .n 1007, .n 1008, .n 1009]
+  | 1 => [.n 813, .n 815, .n 825, .n 827, .n 837, .n 839, .n 849, .n 851,
+      .n 802, .n 803, .n 804, .n 805, .n 806]
+  | _ => [.n 823, .n 825, .n 835, .n 837, .n 847, .n 849, .n 856, .n 857,
+      .n 812, .n 813, .n 814, .n 815, .n 816]
 
-/-- The squeeze of `s` (`1089`). -/
+/-- The squeeze of `s` (`877`). -/
 def sqT (first : ℕ) : List Stmt :=
   (if first = 1 then [] else
-    [.atom (.const (.n 1068) (word 0 0 0)), .atom (.const (.n 1069) (word 0 0 0))]) ++
-  [keccakA (sqIns first) ((List.range 13).map fun k ↦ .n (1070 + k))] ++
-  challengeT (.n 1070) (.n 1071) 1083
+    [.atom (.const (.n 856) (word 0 0 0)), .atom (.const (.n 857) (word 0 0 0))]) ++
+  [keccakA (sqIns first) ((List.range 13).map fun k ↦ .n (858 + k))] ++
+  challengeT (.n 858) (.n 859) 871
 
 /-- The product at `s`, Horner from the top coefficient `a 46`, from the value `b`. -/
 def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
@@ -213,42 +244,42 @@ def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
 
 /-! ## The pack rounds and the local rounds -/
 
-/-- The pack rounds' first record, the loop, and with `odd` the last round. -/
-def packSetupT (first odd : ℕ) : List Stmt :=
-  [.atom (.load (.n 1308) (.n 11) 2), .atom (.hint (.allocDyn (.n 1309) (.n 8))),
-    .atom (.hint (.alloc (.n 1310) 128)),
-    .atom (.load (.n 1078) (.n 1310) 0), .atom (.load (.n 1079) (.n 1310) 16),
-    .atom (.load (.n 1080) (.n 1310) 32), .atom (.load (.n 1081) (.n 1310) 48),
-    .atom (.load (.n 1082) (.n 1310) 64),
-    .atom (.const (.n 1311) (word 140737488355328 0 0)), .atom (.mul (.n 1312) (.n 7) (.n 1311)),
-    .atom (.load (.n 1312) (.n 1310) 80), .atom (.load (.n 1307) (.n 1310) 96),
-    .atom (.const (.n 1313) (word 1 0 0)), .atom (.load (.n 1313) (.n 1310) 112),
-    .atom (.const (.n 1314) (word 1 0 0)), .atom (.add (.n 1315) (.n 1314) (.n 9)),
-    .atom (.const (.n 1316) (word 1 0 0)),
-    .callIf (.n 1315) (packLoopName first odd) [.n 1316, .n 9, .n 1310, .n 1308, .n 1309]] ++
-  if odd = 1 then
-    [.atom (.mul (.n 1317) (.n 9) (.n 9)), .atom (.mul (.n 1318) (.n 1310) (.n 9)),
-      .atom (.mul (.n 1319) (.n 1308) (.n 1317)), .atom (.mul (.n 1320) (.n 1309) (.n 1317)),
-      .call "keccak_round" [.n 1318, .n 1319, .n 1320] []]
-  else []
+/-- The pack rounds' first record (`rounds`, `1053`: the capacity after `s`, the cursor past the
+product, the product at `s`, the scale `1`), the eight-round loop on `step_g`, and the remainder
+loop on `rem_g` from `rounds·step_g`, `prev_point·step_g⁸`, `point·step_g⁸`. -/
+def packSetupT (first : ℕ) : List Stmt :=
+  [.atom (.load (.n 1051) (.n 11) 2), .atom (.hint (.allocDyn (.n 1052) (.n 8))),
+    .atom (.hint (.alloc (.n 1053) 128)),
+    .atom (.load (.n 866) (.n 1053) 0), .atom (.load (.n 867) (.n 1053) 16),
+    .atom (.load (.n 868) (.n 1053) 32), .atom (.load (.n 869) (.n 1053) 48),
+    .atom (.load (.n 870) (.n 1053) 64),
+    .atom (.const (.n 1054) (word 140737488355328 0 0)), .atom (.mul (.n 1055) (.n 7) (.n 1054)),
+    .atom (.load (.n 1055) (.n 1053) 80), .atom (.load (.n 1050) (.n 1053) 96),
+    .atom (.const (.n 1056) (word 1 0 0)), .atom (.load (.n 1056) (.n 1053) 112),
+    .atom (.const (.n 1057) (word 1 0 0)), .atom (.add (.n 1058) (.n 1057) (.n 9)),
+    .atom (.const (.n 1059) (word 1 0 0)),
+    .callIf (.n 1058) (packLoopName first) [.n 1059, .n 9, .n 1053, .n 1051, .n 1052],
+    .atom (.mul (.n 1060) (.n 1053) (.n 9)), .atom (.mul (.n 1061) (.n 9) (.n 9)),
+    .atom (.mul (.n 1062) (.n 1061) (.n 1061)), .atom (.mul (.n 1063) (.n 1062) (.n 1062)),
+    .atom (.mul (.n 1064) (.n 1051) (.n 1063)), .atom (.mul (.n 1065) (.n 9) (.n 9)),
+    .atom (.mul (.n 1066) (.n 1065) (.n 1065)), .atom (.mul (.n 1067) (.n 1066) (.n 1066)),
+    .atom (.mul (.n 1068) (.n 1052) (.n 1067)),
+    .atom (.const (.n 1069) (word 1 0 0)), .atom (.add (.n 1070) (.n 1069) (.n 10)),
+    .atom (.const (.n 1071) (word 1 0 0)),
+    .callIf (.n 1070) (remLoopName first) [.n 1071, .n 10, .n 1060, .n 1064, .n 1068]]
 
-/-- The capacity cells from `b`. -/
-def cap5 (b : ℕ) : List V := [.n b, .n (b + 1), .n (b + 2), .n (b + 3), .n (b + 4)]
-
-/-- The last record read, the local point allocated. -/
-def lastT (d : ℕ) : List Stmt :=
-  [.atom (.mul (.n (d + 1317)) (.n 1310) (.n 10))] ++
-    (List.range 5).map (fun j ↦ .atom (.load (.n (d + 1318 + j)) (.n (d + 1317)) (16 * j))) ++
-    [.atom (.load (.n (d + 1323)) (.n (d + 1317)) 80), .atom (.load (.n (d + 1324)) (.n (d + 1317)) 96),
-      .atom (.hint (.alloc (.n (d + 1325)) 11))]
+/-- The last record (`rounds·step_g·rem_g`) read, the local point allocated. -/
+def lastT : List Stmt :=
+  [.atom (.mul (.n 1072) (.n 1060) (.n 10))] ++
+    (List.range 8).map (fun j ↦ .atom (.load (.n (1073 + j)) (.n 1072) (16 * j))) ++
+    [.atom (.hint (.alloc (.n 1081) 11))]
 
 /-- `t`'s three words. -/
-def tReadsT (d : ℕ) : List Stmt :=
-  fsNextT (.n (d + 1323)) 33 (d + 1986) ++ fsNextT (.n (d + 1323)) 34 (d + 1996) ++
-    fsNextT (.n (d + 1323)) 35 (d + 2006)
+def tReadsT : List Stmt :=
+  fsNextT (.n 1078) 33 1742 ++ fsNextT (.n 1078) 34 1752 ++ fsNextT (.n 1078) 35 1762
 
 /-- The lane weights of the local point (`f_lanes[LANE_OFF + i]`). -/
-def laneW (d i : ℕ) : ℕ := eqfVal (d + 2016) 5 25 4 i
+def laneW (i : ℕ) : ℕ := eqfVal 1772 5 25 4 i
 
 /-! ## The first claim's weight -/
 
@@ -270,13 +301,18 @@ def lanesEqT (lp loc : V) (f : ℕ → ℕ) (B : ℕ) : List Stmt :=
 
 /-! ## A later claim's weight: `keccak_shifts_eq` -/
 
-/-- Bit `t` of the two points from `B`: `a_t`, `b_t`, `a_t b_t`, `a_t + b_t`, `1`, then the
-weights `e_t = 1 + a_t + b_t`, `u_t = a_t + a_t b_t`, `v_t = b_t + a_t b_t`. -/
+/-- Bit `t` of the two points from `B`: `a_t`, `b_t`, `1`, `1 + a_t`, `1`, `1 + b_t`,
+`(1 + a_t)(1 + b_t)`, `a_t b_t`, then the weights `e_t = (1 + a_t)(1 + b_t) + a_t b_t`, and below
+the top bit `u_t = a_t (1 + b_t)`, `v_t = (1 + a_t) b_t`, at the top bit `s_t = a_t + b_t`
+(G:2573-2591). -/
 def bitT (aP bP : V) (t B : ℕ) : List Stmt :=
   [.atom (.load (.n B) aP t), .atom (.load (.n (B + 1)) bP t),
-    .atom (.mul (.n (B + 2)) (.n B) (.n (B + 1))), .atom (.add (.n (B + 3)) (.n B) (.n (B + 1))),
-    .atom (.const (.n (B + 4)) (word 1 0 0)), .atom (.add (.n (B + 5)) (.n (B + 4)) (.n (B + 3))),
-    .atom (.add (.n (B + 6)) (.n B) (.n (B + 2))), .atom (.add (.n (B + 7)) (.n (B + 1)) (.n (B + 2)))]
+    .atom (.const (.n (B + 2)) (word 1 0 0)), .atom (.add (.n (B + 3)) (.n (B + 2)) (.n B)),
+    .atom (.const (.n (B + 4)) (word 1 0 0)), .atom (.add (.n (B + 5)) (.n (B + 4)) (.n (B + 1))),
+    .atom (.mul (.n (B + 6)) (.n (B + 3)) (.n (B + 5))), .atom (.mul (.n (B + 7)) (.n B) (.n (B + 1))),
+    .atom (.add (.n (B + 8)) (.n (B + 6)) (.n (B + 7)))] ++
+  if t = 5 then [.atom (.add (.n (B + 9)) (.n B) (.n (B + 1)))]
+  else [.atom (.mul (.n (B + 9)) (.n B) (.n (B + 5))), .atom (.mul (.n (B + 10)) (.n (B + 3)) (.n (B + 1)))]
 
 /-- `carry_step(c0, c1, n0, n1, e, u, v, t)` from `B`. -/
 def carryT (c0 c1 : ℕ → ℕ) (e u v : ℕ) (t B : ℕ) : List Stmt :=
@@ -342,29 +378,29 @@ def shOutV : List ℕ → ℕ → ℕ → ℕ
       else (if q = r then b + 2 else shOutV rs (b + 3) q)
 
 /-- The bit weights' values from `B0`. -/
-def bitEv (B0 t : ℕ) : ℕ := B0 + 8 * t + 5
-def bitUv (B0 t : ℕ) : ℕ := B0 + 8 * t + 6
-def bitVv (B0 t : ℕ) : ℕ := B0 + 8 * t + 7
-def bitSv (B0 t : ℕ) : ℕ := B0 + 8 * t + 3
+def bitEv (B0 t : ℕ) : ℕ := B0 + 11 * t + 8
+def bitUv (B0 t : ℕ) : ℕ := B0 + 11 * t + 9
+def bitVv (B0 t : ℕ) : ℕ := B0 + 11 * t + 10
+def bitSv (B0 t : ℕ) : ℕ := B0 + 11 * t + 9
 
 /-- `keccak_shifts_eq(a, b, shifts)` from `B0`: the six bits, the low carries (bits `1`, `2` on
 bit `0`), the high ones (bit `4` on bit `3`, bit `5` wrapping), the used shifts. -/
 def shiftsT (aP bP : V) (B0 : ℕ) : List Stmt :=
-  ((List.range 6).map fun t ↦ bitT aP bP t (B0 + 8 * t)).flatten ++
+  ((List.range 6).map fun t ↦ bitT aP bP t (B0 + 11 * t)).flatten ++
   carryT (fun p ↦ if p = 0 then bitEv B0 0 else bitUv B0 0) (fun _ ↦ bitVv B0 0)
-    (bitEv B0 1) (bitUv B0 1) (bitVv B0 1) 1 (B0 + 48) ++
-  carryT (carryN0 1 (B0 + 48)) (carryN1 1 (B0 + 48)) (bitEv B0 2) (bitUv B0 2) (bitVv B0 2) 2
-    (B0 + 59) ++
+    (bitEv B0 1) (bitUv B0 1) (bitVv B0 1) 1 (B0 + 65) ++
+  carryT (carryN0 1 (B0 + 65)) (carryN1 1 (B0 + 65)) (bitEv B0 2) (bitUv B0 2) (bitVv B0 2) 2
+    (B0 + 76) ++
   carryT (fun p ↦ if p = 0 then bitEv B0 3 else bitUv B0 3) (fun _ ↦ bitVv B0 3)
-    (bitEv B0 4) (bitUv B0 4) (bitVv B0 4) 1 (B0 + 86) ++
-  carryWrapT (carryN0 1 (B0 + 86)) (carryN1 1 (B0 + 86)) (bitEv B0 5) (bitSv B0 5) 2 (B0 + 97) ++
-  shOutT (carryN0 2 (B0 + 59)) (carryN1 2 (B0 + 59)) (wrapOut 2 (B0 + 97)) shiftUsed (B0 + 117)
+    (bitEv B0 4) (bitUv B0 4) (bitVv B0 4) 1 (B0 + 103) ++
+  carryWrapT (carryN0 1 (B0 + 103)) (carryN1 1 (B0 + 103)) (bitEv B0 5) (bitSv B0 5) 2 (B0 + 114) ++
+  shOutT (carryN0 2 (B0 + 76)) (carryN1 2 (B0 + 76)) (wrapOut 2 (B0 + 114)) shiftUsed (B0 + 134)
 
 /-- Where `shiftsT` writes `shifts[r]`. -/
-def shiftsV (B0 r : ℕ) : ℕ := shOutV shiftUsed (B0 + 117) r
+def shiftsV (B0 r : ℕ) : ℕ := shOutV shiftUsed (B0 + 134) r
 
 /-- The value after `shiftsT`. -/
-def shiftsEnd (B0 : ℕ) : ℕ := B0 + 227
+def shiftsEnd (B0 : ℕ) : ℕ := B0 + 244
 
 /-! ## A later claim's weight: `keccak_form` -/
 
@@ -436,24 +472,21 @@ def formAll (lp : V) (sh f : ℕ → ℕ) (B : ℕ) : List Stmt × ℕ × ℕ :=
 /-! ## The weight section and the tail -/
 
 /-- The weight section. -/
-def weightT (first d : ℕ) : List Stmt :=
+def weightT (first : ℕ) : List Stmt :=
   if first = 1 then
-    .atom (.load (.n (d + 2085)) (.n 11) 3) ::
-      lanesEqT (.n (d + 2085)) (.n (d + 1325)) (laneW d) (d + 2086)
+    .atom (.load (.n 1841) (.n 11) 3) :: lanesEqT (.n 1841) (.n 1081) laneW 1842
   else
-    [.atom (.load (.n (d + 2085)) (.n 11) 3), .atom (.load (.n (d + 2086)) (.n 11) 4)] ++
-      shiftsT (.n (d + 2086)) (.n (d + 1325)) (d + 2087) ++
-      (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d) (shiftsEnd (d + 2087))).1
+    [.atom (.load (.n 1841) (.n 11) 3), .atom (.load (.n 1842) (.n 11) 4)] ++
+      shiftsT (.n 1842) (.n 1081) 1843 ++
+      (formAll (.n 1841) (shiftsV 1843) laneW (shiftsEnd 1843)).1
 
 /-- The weight's value. -/
-def weightVal (first d : ℕ) : ℕ :=
-  if first = 1 then d + 2195 else (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d)
-    (shiftsEnd (d + 2087))).2.2
+def weightVal (first : ℕ) : ℕ :=
+  if first = 1 then 1951 else (formAll (.n 1841) (shiftsV 1843) laneW (shiftsEnd 1843)).2.2
 
 /-- The value after the weight section. -/
-def weightEnd (first d : ℕ) : ℕ :=
-  if first = 1 then d + 2196 else (formAll (.n (d + 2085)) (shiftsV (d + 2087)) (laneW d)
-    (shiftsEnd (d + 2087))).2.1
+def weightEnd (first : ℕ) : ℕ :=
+  if first = 1 then 1952 else (formAll (.n 1841) (shiftsV 1843) laneW (shiftsEnd 1843)).2.1
 
 /-- The next claim's lanes: `f[x] + β (f[x - 1] + β f[x - 2])` in each row, from `B`. -/
 def lanesOutT (beta : ℕ) (f : ℕ → ℕ) (lp B : ℕ) : List Stmt :=
@@ -464,52 +497,94 @@ def lanesOutT (beta : ℕ) (f : ℕ → ℕ) (lp B : ℕ) : List Stmt :=
       .atom (.add (.n (B + 4 * i + 3)) (.n (f i)) (.n (B + 4 * i + 2))),
       .atom (.load (.n (B + 4 * i + 3)) (.n lp) i)]).flatten
 
-/-- The final check, the squeeze of `β`, the next claim's record, the return; `W` the first value,
-`wv` the weight's. -/
-def tailT (d W wv : ℕ) : List Stmt :=
-  [.atom (.copy (.n W) (.n wv)), .atom (.load (.n (W + 1)) (.n (d + 1317)) 112),
-    .atom (.mul (.n (W + 2)) (.n (W + 1)) (.n W)),
-    .atom (.mul (.n (W + 3)) (.n 1215) (.n (d + 1986))),
-    .atom (.add (.n (W + 4)) (.n 1215) (.n (d + 1996))),
-    .atom (.mul (.n (W + 5)) (.n (W + 4)) (.n (d + 2006))),
-    .atom (.add (.n (W + 6)) (.n (W + 3)) (.n (W + 5))),
-    .atom (.mul (.n (W + 7)) (.n (W + 2)) (.n (W + 6))),
-    .atom (.assertEq (.n (W + 7)) (.n (d + 1985))),
-    .atom (.const (.n (W + 8)) (word 0 0 0)), .atom (.const (.n (W + 9)) (word 0 0 0)),
-    keccakA ([.n (d + 1993), .n (d + 1995), .n (d + 2003), .n (d + 2005), .n (d + 2013),
-      .n (d + 2015), .n (W + 8), .n (W + 9)] ++ cap5 (d + 1966))
-      ((List.range 13).map fun k ↦ .n (W + 10 + k))] ++
-  challengeT (.n (W + 10)) (.n (W + 11)) (W + 23) ++
-  [.atom (.mul (.n (W + 30)) (.n (W + 29)) (.n (d + 2006))),
-    .atom (.add (.n (W + 31)) (.n (d + 1996)) (.n (W + 30))),
-    .atom (.mul (.n (W + 32)) (.n (W + 29)) (.n (W + 31))),
-    .atom (.add (.n (W + 33)) (.n (d + 1986)) (.n (W + 32))),
-    .atom (.load (.n (W + 33)) (.n 12) 0), .atom (.load (.n 1309) (.n 12) 2),
-    .atom (.load (.n (d + 1325)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 34)) 25))] ++
-  lanesOutT (W + 29) (laneW d) (W + 34) (W + 35) ++
-  [.atom (.load (.n (W + 34)) (.n 12) 3)] ++
-  eqfT (.n (d + 1325)) 0 6 64 (W + 135) ++
-  [.atom (.hint (.alloc (.n (W + 278)) 64))] ++
-  (List.range 64).map (fun z ↦ .atom (.load (.n (eqfVal (W + 135) 6 64 5 z)) (.n (W + 278)) z)) ++
-  [.atom (.load (.n (W + 278)) (.n 12) 5)] ++
-  (List.range 5).map (fun j ↦ .atom (.copy (.n (W + 279 + j)) (.n (W + 18 + j)))) ++
-  [.atom (.const (.n (W + 284)) (word 68719476736 0 0)),
-    .atom (.mul (.n (W + 285)) (.n (d + 1323)) (.n (W + 284))),
-    .atom (.copy (.n (W + 286)) (.n (W + 285))),
-    .ret [.n (W + 279), .n (W + 280), .n (W + 281), .n (W + 282), .n (W + 283), .n (W + 286)]]
+/-- The value after `eqfT pt off n count b`. -/
+def eqfEnd (n count b : ℕ) : ℕ := eqfBase b (n - 1) + 3 + 2 ^ (n - 1) + eqfK n count (n - 1)
+
+/-- The lane and slice offsets of a later claim's weight at position `2^i - 1` of lane `0`: `θ`'s
+transpose through `ρ`, `π`. -/
+def flipOffs (i : ℕ) : List (ℕ × ℕ) :=
+  (keccakPi 0, (2 ^ i - 1 + keccakRho.getD 0 0) % 64) ::
+    (List.range 5).flatMap fun y ↦
+      [(keccakPi (1 + 5 * y), (2 ^ i - 1 + keccakRho.getD (1 + 5 * y) 0) % 64),
+        (keccakPi (4 + 5 * y), (2 ^ i + keccakRho.getD (4 + 5 * y) 0) % 64)]
+
+/-- `slice_weight`'s factor for slice `z`: the top coordinate's (`top`) when `z ≥ 32`, else
+`1 + top` (`top1`). -/
+def topOf (top top1 z : ℕ) : ℕ := if z / 32 = 1 then top else top1
+
+/-- Flip `i` from `b` (G:2843-2849): over `flipOffs i`, the lane weight read at `lp`, the slice
+weight `slices[z % 32]·top(z)`, their product, summed; the flip at `b + 42`. -/
+def lflipT (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) : List Stmt :=
+  match flipOffs i with
+  | [] => []
+  | o :: os =>
+      [.atom (.load (.n b) lp o.1), .atom (.mul (.n (b + 1)) (.n (sl (o.2 % 32))) (.n (topOf top top1 o.2))),
+        .atom (.mul (.n (b + 2)) (.n b) (.n (b + 1)))] ++
+      ((List.range os.length).map fun k ↦
+        [.atom (.load (.n (b + 3 + 4 * k)) lp (os.getD k default).1),
+          .atom (.mul (.n (b + 4 + 4 * k)) (.n (sl ((os.getD k default).2 % 32)))
+            (.n (topOf top top1 (os.getD k default).2))),
+          .atom (.mul (.n (b + 5 + 4 * k)) (.n (b + 3 + 4 * k)) (.n (b + 4 + 4 * k))),
+          .atom (.add (.n (b + 6 + 4 * k)) (.n (b + 2 + 4 * k))
+            (.n (b + 5 + 4 * k)))]).flatten
+
+/-- The slice tree of the local point's first five coordinates, from `E0`. -/
+def sliceB (W : ℕ) : ℕ := W + 134
+
+/-- The top coordinate, `top`; `top1 = 1 + top` at `+ 2`; the flips' buffer at `+ 3`. -/
+def topV (W : ℕ) : ℕ := eqfEnd 5 32 (sliceB W)
+
+/-- The flips, from `topV W + 4`, each `43` values; then their stores and the flips' pointer. -/
+def lflipsT (W : ℕ) : List Stmt :=
+  ((List.range 7).map fun i ↦
+    lflipT (.n (W + 33)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (topV W + 4 + 43 * i) ++
+      [.atom (.load (.n (topV W + 4 + 43 * i + 42)) (.n (topV W + 3)) i)]).flatten
+
+/-- The final check, the squeeze of `β`, the next claim's record, its flips, the return; `W` the
+first value, `wv` the weight's. -/
+def tailT (W wv : ℕ) : List Stmt :=
+  [.atom (.copy (.n W) (.n wv)), .atom (.mul (.n (W + 1)) (.n 1080) (.n W)),
+    .atom (.mul (.n (W + 2)) (.n 958) (.n 1742)),
+    .atom (.add (.n (W + 3)) (.n 958) (.n 1752)),
+    .atom (.mul (.n (W + 4)) (.n (W + 3)) (.n 1762)),
+    .atom (.add (.n (W + 5)) (.n (W + 2)) (.n (W + 4))),
+    .atom (.mul (.n (W + 6)) (.n (W + 1)) (.n (W + 5))),
+    .atom (.assertEq (.n (W + 6)) (.n 1741)),
+    .atom (.const (.n (W + 7)) (word 0 0 0)), .atom (.const (.n (W + 8)) (word 0 0 0)),
+    keccakA ([.n 1749, .n 1751, .n 1759, .n 1761, .n 1769, .n 1771, .n (W + 7), .n (W + 8)] ++
+      cap5 1722) ((List.range 13).map fun k ↦ .n (W + 9 + k))] ++
+  challengeT (.n (W + 9)) (.n (W + 10)) (W + 22) ++
+  [.atom (.mul (.n (W + 29)) (.n (W + 28)) (.n 1762)),
+    .atom (.add (.n (W + 30)) (.n 1752) (.n (W + 29))),
+    .atom (.mul (.n (W + 31)) (.n (W + 28)) (.n (W + 30))),
+    .atom (.add (.n (W + 32)) (.n 1742) (.n (W + 31))),
+    .atom (.load (.n (W + 32)) (.n 12) 0), .atom (.load (.n 1052) (.n 12) 2),
+    .atom (.load (.n 1081) (.n 12) 4), .atom (.hint (.alloc (.n (W + 33)) 25))] ++
+  lanesOutT (W + 28) laneW (W + 33) (W + 34) ++
+  [.atom (.load (.n (W + 33)) (.n 12) 3)] ++
+  eqfT (.n 1081) 0 5 32 (sliceB W) ++
+  [.atom (.load (.n (topV W)) (.n 1081) 5), .atom (.const (.n (topV W + 1)) (word 1 0 0)),
+    .atom (.add (.n (topV W + 2)) (.n (topV W + 1)) (.n (topV W))),
+    .atom (.hint (.alloc (.n (topV W + 3)) 7))] ++
+  lflipsT W ++
+  [.atom (.load (.n (topV W + 3)) (.n 12) 5)] ++
+  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 17 + j)))) ++
+  [.atom (.const (.n (topV W + 310)) (word 68719476736 0 0)),
+    .atom (.mul (.n (topV W + 311)) (.n 1078) (.n (topV W + 310))),
+    .atom (.copy (.n (topV W + 312)) (.n (topV W + 311))),
+    .ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
+      .n (topV W + 309), .n (topV W + 312)]]
 
 /-! ## The template -/
 
-/-- **`keccak_layer__L{first}_L{odd}`'s body.** -/
-def layerT (first odd : ℕ) : List Stmt :=
-  headT first ++ prodT (.n 7) (19 + 2 * first) (prodTab first) ++ checkT (accL first) ++
-    sqT first ++ rmfeBlockT ++ hornerT (fun k ↦ ((prodTab first).getD k default).a) 1089 1216 ++
-    packSetupT first odd ++ lastT (4 * odd) ++
-    localRoundsT (.n (4 * odd + 1323)) (.n (4 * odd + 1325)) (.n (4 * odd + 1324))
-      (cap5 (4 * odd + 1318)) (4 * odd + 1326) 11 ++
-    tReadsT (4 * odd) ++ eqfT (.n (4 * odd + 1325)) 6 5 25 (4 * odd + 2016) ++
-    weightT first (4 * odd) ++
-    tailT (4 * odd) (weightEnd first (4 * odd)) (weightVal first (4 * odd))
+/-- **`keccak_layer__L{first}`'s body.** -/
+def layerT (first : ℕ) : List Stmt :=
+  headT first ++ prodT (.n 7) (muB first) (prodTab first) ++ checkT (accL first) ++
+    sqT first ++ rmfeBlockT ++ hornerT (fun k ↦ ((prodTab first).getD k default).a) 877 959 ++
+    packSetupT first ++ lastT ++
+    localRoundsT (.n 1078) (.n 1081) (.n 1079) (cap5 1073) 1082 11 ++
+    tReadsT ++ eqfT (.n 1081) 6 5 25 1772 ++
+    weightT first ++ tailT (weightEnd first) (weightVal first)
 
 end
 end LeanVM.Guest.B1.VerifySub

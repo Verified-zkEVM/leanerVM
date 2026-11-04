@@ -140,7 +140,7 @@ theorem mem_windows {α : Type} (g : List Stmt → List α) (hg : ∀ a b, g (a 
     (hS : ShareOk j) {x : α} : ∀ k i, i + k = (snapsOf j).length →
       x ∈ g (fromW (coreOf j).body (snapsOf j) i) → ∃ i', i' ≤ (snapsOf j).length ∧
         x ∈ g (stmtsW (coreOf j).body (snapsOf j) i') := by
-  obtain ⟨-, -, hmono, -, -⟩ := shareStatic_spec hS.1
+  obtain ⟨-, hmono, -, -⟩ := shareStatic_spec hS.1
   intro k
   induction k with
   | zero =>
@@ -180,7 +180,7 @@ structure FnStatic (j : ℕ) : Prop where
 theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) : FnStatic j := by
   have hcont := cont_of hchk
-  obtain ⟨-, hlists, hsn, -, -⟩ := shareStatic_spec hS.1
+  obtain ⟨hlists, hsn, -, -⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
     locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h

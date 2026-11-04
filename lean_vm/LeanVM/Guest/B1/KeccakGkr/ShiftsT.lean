@@ -29,20 +29,32 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-- **One bit's weights** (G:2347-2363). -/
+/-- **One bit's weights** (G:2573-2591): `e = (1 + a)(1 + b) + ab = 1 + a + b`, and below the
+top bit `u = a(1 + b) = a + ab`, `v = (1 + a)b = b + ab`, at the top bit `s = a + b`. -/
 theorem bitT_holds {aP bP : V} {t B : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (bitT aP bP t B) next kret) :
     LoadHolds rd (σ aP) t (σ (.n B)) ∧ LoadHolds rd (σ bP) t (σ (.n (B + 1))) ∧
-      σ (.n (B + 3)) = σ (.n B) + σ (.n (B + 1)) ∧
-      σ (.n (B + 5)) = 1 + σ (.n B) + σ (.n (B + 1)) ∧
-      σ (.n (B + 6)) = σ (.n B) + σ (.n B) * σ (.n (B + 1)) ∧
-      σ (.n (B + 7)) = σ (.n (B + 1)) + σ (.n B) * σ (.n (B + 1)) ∧ next := by
-  simp only [bitT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
-  obtain ⟨la, lb, e2, e3, e4, e5, e6, e7, hn⟩ := h
-  refine ⟨la, lb, e3, ?_, ?_, ?_, hn⟩
-  · rw [e5, e4, e3, word_one, add_assoc]
-  · rw [e6, e2]
-  · rw [e7, e2]
+      σ (.n (B + 8)) = 1 + σ (.n B) + σ (.n (B + 1)) ∧
+      (t = 5 → σ (.n (B + 9)) = σ (.n B) + σ (.n (B + 1))) ∧
+      (t ≠ 5 → σ (.n (B + 9)) = σ (.n B) + σ (.n B) * σ (.n (B + 1)) ∧
+        σ (.n (B + 10)) = σ (.n (B + 1)) + σ (.n B) * σ (.n (B + 1))) ∧ next := by
+  rw [bitT, holdsList_append] at h
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨la, lb, e2, e3, e4, e5, e6, e7, e8, h⟩ := h
+  have he : σ (.n (B + 8)) = 1 + σ (.n B) + σ (.n (B + 1)) := by
+    rw [e8, e6, e7, e3, e5, e2, e4, word_one]
+    have : (1 + σ (.n B)) * (1 + σ (.n (B + 1))) + σ (.n B) * σ (.n (B + 1)) =
+        1 + σ (.n B) + σ (.n (B + 1)) + (σ (.n B) * σ (.n (B + 1)) + σ (.n B) * σ (.n (B + 1))) := by
+      ring
+    rw [this, e_add_self, add_zero]
+  by_cases ht : t = 5
+  · simp only [ht, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+    exact ⟨la, lb, he, fun _ ↦ h.1, fun h' ↦ absurd ht h', h.2⟩
+  · simp only [ht, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+    obtain ⟨e9, e10, hn⟩ := h
+    refine ⟨la, lb, he, fun h' ↦ absurd h' ht, fun _ ↦ ⟨?_, ?_⟩, hn⟩
+    · rw [e9, e5, e4, word_one]; ring
+    · rw [e10, e3, e2, word_one]; ring
 
 /-- **A `carry_step`** (G:2300-2314): from the carry sums of `t` bits, those of `t + 1`. -/
 theorem carryT_holds {c0 c1 : ℕ → ℕ} {e u v t B : ℕ} {as bs : List E} {α β : E}
@@ -218,25 +230,34 @@ theorem carryK_single (α β : E) {c r : ℕ} (hr : r < 2) (hc : c < 2) :
 
 theorem shiftUsed_lt : ∀ r ∈ shiftUsed, r < 64 := by decide
 
-/-- **`keccak_shifts_eq`** (G:2331-2379): the points' first six coordinates read at `aP`, `bP`,
+/-- **`keccak_shifts_eq`** (G:2557-2611): the points' first six coordinates read at `aP`, `bP`,
 and every used shift `r`'s value `Σ_z eq(a, (z + r) mod 64)·eq(b, z)`. -/
 theorem shiftsT_holds {aP bP : V} {B0 : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (shiftsT aP bP B0) next kret) :
-    (∀ t < 6, LoadHolds rd (σ aP) t (σ (.n (B0 + 8 * t))) ∧
-      LoadHolds rd (σ bP) t (σ (.n (B0 + 8 * t + 1)))) ∧
+    (∀ t < 6, LoadHolds rd (σ aP) t (σ (.n (B0 + 11 * t))) ∧
+      LoadHolds rd (σ bP) t (σ (.n (B0 + 11 * t + 1)))) ∧
     (∀ r ∈ shiftUsed, σ (.n (shiftsV B0 r)) = ∑ z ∈ range 64,
-      eqAt ((List.range 6).map fun t ↦ σ (.n (B0 + 8 * t))) ((z + r) % 64) *
-        eqAt ((List.range 6).map fun t ↦ σ (.n (B0 + 8 * t + 1))) z) ∧ next := by
+      eqAt ((List.range 6).map fun t ↦ σ (.n (B0 + 11 * t))) ((z + r) % 64) *
+        eqAt ((List.range 6).map fun t ↦ σ (.n (B0 + 11 * t + 1))) z) ∧ next := by
   rw [shiftsT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
-    holdsList_append, holdsList_range_flatten _ _ (fun _ ↦ rfl)] at h
+    holdsList_append, holdsList_range_flatten _ _ (fun t ↦ by
+      unfold bitT; split <;> rfl)] at h
   obtain ⟨hbits, h⟩ := h
   have bit := fun t (ht : t < 6) ↦ bitT_holds (hbits t ht)
-  set a : ℕ → E := fun t ↦ σ (.n (B0 + 8 * t)) with ha
-  set b : ℕ → E := fun t ↦ σ (.n (B0 + 8 * t + 1)) with hb
-  have be : ∀ t < 6, σ (.n (bitEv B0 t)) = 1 + a t + b t := fun t ht ↦ (bit t ht).2.2.2.1
-  have bu : ∀ t < 6, σ (.n (bitUv B0 t)) = a t + a t * b t := fun t ht ↦ (bit t ht).2.2.2.2.1
-  have bv : ∀ t < 6, σ (.n (bitVv B0 t)) = b t + a t * b t := fun t ht ↦ (bit t ht).2.2.2.2.2.1
-  have bs : ∀ t < 6, σ (.n (bitSv B0 t)) = a t + b t := fun t ht ↦ (bit t ht).2.2.1
+  set a : ℕ → E := fun t ↦ σ (.n (B0 + 11 * t)) with ha
+  set b : ℕ → E := fun t ↦ σ (.n (B0 + 11 * t + 1)) with hb
+  have be : ∀ t < 6, σ (.n (bitEv B0 t)) = 1 + a t + b t := fun t ht ↦ by
+    have := (bit t ht).2.2.1
+    exact this
+  have bu : ∀ t < 5, σ (.n (bitUv B0 t)) = a t + a t * b t := fun t ht ↦ by
+    have := ((bit t (by omega)).2.2.2.2.1 (by omega)).1
+    exact this
+  have bv : ∀ t < 5, σ (.n (bitVv B0 t)) = b t + a t * b t := fun t ht ↦ by
+    have := ((bit t (by omega)).2.2.2.2.1 (by omega)).2
+    exact this
+  have bs : σ (.n (bitSv B0 5)) = a 5 + b 5 := by
+    have := (bit 5 (by omega)).2.2.2.1 rfl
+    exact this
   obtain ⟨w000, w001, w100, w101, w010, w011, w110, w111⟩ := carryW_vals (a 0) (b 0)
   obtain ⟨x000, -, -, -, x010, x011, -, -⟩ := carryW_vals (a 3) (b 3)
   -- the low bits
@@ -264,9 +285,9 @@ theorem shiftsT_holds {aP bP : V} {B0 : ℕ} {next : Prop} {kret : List E → Pr
       rw [bv 3 (by omega), carryK_single _ _ (by omega) (by omega), x011])
     (be 4 (by omega)) (bu 4 (by omega)) (bv 4 (by omega)) h
   obtain ⟨hw, h⟩ := carryWrapT_holds (t := 2) (as := [a 3] ++ [a 4]) (bs := [b 3] ++ [b 4]) (α := a 5)
-    (β := b 5) rfl rfl n0 n1 (be 5 (by omega)) (bs 5 (by omega)) h
+    (β := b 5) rfl rfl n0 n1 (be 5 (by omega)) bs h
   -- the shifts
-  obtain ⟨hsh, hn⟩ := shOutT_holds shiftUsed (B0 + 117) h
+  obtain ⟨hsh, hn⟩ := shOutT_holds shiftUsed (B0 + 134) h
   refine ⟨fun t ht ↦ ⟨(bit t ht).1, (bit t ht).2.1⟩, fun r hr ↦ ?_, hn⟩
   have hr64 := shiftUsed_lt r hr
   have hL : (List.range 6).map a = ([a 0] ++ [a 1] ++ [a 2]) ++ ([a 3] ++ [a 4] ++ [a 5]) := rfl
