@@ -667,8 +667,8 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 17789 + 35\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 7328\cnt{sphincs} + 480944\cnt{da}
-  + 212653\cnt{rows} \\ + 17672\cnt{pad} + 12941\cnt{child} + 30\cnt{childclaims}
+W = 13437 + 35\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 17904\cnt{sphincs} + 187595\cnt{da}
+  + 227257\cnt{rows} \\ + 136\cnt{pad} + 12941\cnt{child} + 30\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
@@ -682,8 +682,8 @@ $r=4$ & 389193 & 393074 & 408904 & 413004 & 417160 & 423729 & 439992
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + \cnt{decl} + 398\cnt{xmss} + 390\cnt{sphincs} + 6047\cnt{da} +
-2064\cnt{rows} + 129\cnt{pad} + 61\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
+(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $25 + \cnt{decl} + 398\cnt{xmss} + 876\cnt{sphincs} +
+2175\cnt{rows} + \cnt{pad} + 61\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
 $\gamma$ between $4922$ and $9979$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
@@ -718,10 +718,10 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2550$ leanXMSS or $2252$ leanSPHINCS signatures (each declared once), and a node holding one DA
+$2550$ leanXMSS or $930$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size is the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
-\texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{542b0353} alike).
+\texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike).
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
