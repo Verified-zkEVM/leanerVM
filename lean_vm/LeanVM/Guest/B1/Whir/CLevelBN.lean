@@ -287,5 +287,22 @@ theorem osLevelB_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsS
   · intro i hi
     exact (tr3' i (by rw [eq1]; omega) σ' ha6).trans (hag13 i hi)
 
+/-- A level's part after its grinding check ends past its start. -/
+theorem osLevelB_k_le (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) :
+    st.k ≤ (osLevelB c lvl lv st).2.k := by
+  obtain ⟨g, hg, hgk⟩ := osQueries_rets c lvl lv (bLam c lvl lv st) (bLamN c lvl lv st)
+    { bSq c lvl lv st with k := (bLp c lvl lv st).2.2 }
+  have hd := osPad_next st.pad (st.k + 14)
+  have h1 : (bSq c lvl lv st).k = (osPad st.pad (st.k + 14)).2.2 + 20 := rfl
+  have h2 : (bLp c lvl lv st).2.2 = (bSq c lvl lv st).k + osPowLen lv.queries + 2 := rfl
+  have h3 : (bQ c lvl lv st).2.1 = g + 5 := by rw [hg]
+  simp only at hgk
+  rw [osLevelB_eq]
+  split_ifs
+  · show st.k ≤ (bQ c lvl lv st).2.1 + 1 + 8
+    omega
+  · show st.k ≤ (bQ c lvl lv st).2.1 + 13 + 1 + 8
+    omega
+
 end
 end LeanVM.Guest.B1.Whir

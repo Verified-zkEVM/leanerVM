@@ -71,6 +71,8 @@ structure CommitOutC (σ : Val) (st st' : OsSt) (S : KeccakState) : Prop where
   pad : st'.pad = st.pad
   w0 : st'.w0 = st.w0
   w1 : st'.w1 = st.w1
+  mats : MatsOk σ st'.mats
+  matsB : MatsBelow st'.k st'.mats
 
 theorem capOf_canonical (S : KeccakState) : AllCanonical (capOf S) := by
   intro c hc
@@ -281,7 +283,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
     rw [o8, o9, o10, o11, o12]
     simp [cells13F, capOf]
   refine ⟨?_, ⟨hfsv', ?_, by simp [osCommit], by rw [hfsv']; exact capOf_canonical _, rfl,
-    osCommit_below plan lvl lv hb, rfl, rfl, rfl⟩, ha⟩
+    osCommit_below plan lvl lv hb, rfl, rfl, rfl, ?_, ?_⟩, ha⟩
   have hoff0 : (lvl + 1) * ligColsCap ≠ 0 := by unfold ligColsCap; omega
   have hsd := osMatSD_ok (plan := plan) hm (base := osOodz) hlvl
   have hsrc : σ' (.n (osMatSD plan st.mats osOodz ((lvl + 1) * ligColsCap)).1) =
@@ -423,6 +425,24 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
       rw [this]
       exact grind_meaning (by decide) hpow
   · simp only [OsSt.cur, osCommit, pow_add, mul_assoc]
+  · have hoff0 : (lvl + 1) * ligColsCap ≠ 0 := by unfold ligColsCap; omega
+    have hm' : MatsOk σ' st.mats := matsOk_agree hm hmb hagree
+    show MatsOk σ' (osMatsAfter plan st.mats osOodz ((lvl + 1) * ligColsCap) (k + 45))
+    unfold osMatsAfter
+    simp only [hoff0, ↓reduceIte]
+    split
+    · exact hm'
+    · intro m hmem
+      rcases List.mem_append.mp hmem with hmem | hmem
+      · exact hm' m hmem
+      · simp only [List.mem_singleton] at hmem
+        subst hmem
+        obtain ⟨hd, hs⟩ := osMatSrc_ok (plan := plan) hm' (base := osOodz) hlvl
+        refine ⟨hlvl, hd, ?_, hs⟩
+        show σ' (.n (k + 46)) = σ' (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)
+        rw [v46, hoz, gw_eq hlvl]
+  · show MatsBelow (k + 110) (osMatsAfter plan st.mats osOodz ((lvl + 1) * ligColsCap) (k + 45))
+    exact matsBelow_after hmb (by unfold osOodz; omega) (by omega) (by omega)
 
 end
 end LeanVM.Guest.B1.Whir
