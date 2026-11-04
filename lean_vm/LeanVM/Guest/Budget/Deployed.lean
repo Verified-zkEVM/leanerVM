@@ -14,7 +14,7 @@ public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.B2C.RunsFit
 public import LeanVM.Guest.B2C.CntWeight
-public import LeanVM.Guest.B1.Sig.XmssComplete
+public import LeanVM.Guest.B1.Sig.XmssSegComplete
 public import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 public import LeanVM.Guest.AcceptableChild
 

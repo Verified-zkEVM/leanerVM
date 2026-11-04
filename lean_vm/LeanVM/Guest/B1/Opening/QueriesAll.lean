@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesAll
 
-  Every deployed specialization of `opening_queries` is its meaning.
+  The deployed specializations of `opening_queries`, their bodies the templates.
 -/
 
 module
@@ -14,9 +14,8 @@ public import LeanVM.Guest.B1.Opening.QueriesBody3
 /-!
 # `opening_queries`, every specialization (TRIAGE G #40)
 
-`opening_queries_all_holds`: each of the 56 deployed shapes (`openingQueriesShapes`) is its
-meaning (`opening_queries_Spec`): when its bit pointers point to bits, the function's relation is
-`MeaningOpeningQueries` (`oqMain1_iff`, `oqMain0_iff`).
+The 56 deployed shapes' bodies checked against the templates (`QueriesBody0-3`), for `Whir.Sound`;
+their soundness is `QueriesAllW`, their placed completeness `QueriesPlacedAll`.
 -/
 
 namespace LeanVM.Guest.B1

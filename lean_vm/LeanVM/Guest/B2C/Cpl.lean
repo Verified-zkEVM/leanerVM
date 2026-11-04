@@ -256,6 +256,8 @@ structure CX where
   stop : Option (ℕ × ℕ)
   /-- The `match`es whose arms are counted separately, by selector, with their arms' counts. -/
   acs : List (ℕ × List (List ℕ))
+  /-- The chained `match`es (`Plumb.chains`). -/
+  chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ)
 
 /-- A position of the walk: a segment and its items not yet passed, the facts, the callee frames
 in flight `(cell, its cells)`, the table reads `(target, selector, base)`, the next frame of a
@@ -514,9 +516,12 @@ def setK (s n : ℕ) : ℕ := Nat.lor s (Nat.shiftLeft 1 n)
 def subK (s t : ℕ) : Bool := Nat.beq (Nat.land s t) s
 
 /-- How a block's walk ends: at a join with the counts of the path there (the most of any), by
-the return, or not at all (with a code saying where). -/
+the return, in a chained `match`'s table jump into the arms `succ` through the selector in cell
+`o`, or not at all (with a code saying where). -/
 inductive RC where
   | join (J : ℕ) (c : Cnt) (u : ℕ)
+  /-- In a table jump through slot `log fp[o]` into the arms `succ` of the next `match`. -/
+  | chain (o : ℕ) (succ : List ℕ) (c : Cnt) (u : ℕ)
   /-- Inside the segment starting at `J`, its first `m` items passed. -/
   | mid (J m : ℕ) (c : Cnt) (u : ℕ)
   | done
@@ -612,8 +617,50 @@ pointer and the return pc. -/
 def callFC (args : List V) (self : List ℕ) (r : ℕ) : List (ℕ × FC) :=
   argFC X.loc 2 args ++ self.map (fun o ↦ (o, FC.self)) ++ [(1, .fp), (0, .pc r)]
 
-/-- Where a block ends: at the start of a segment, at the part's stop inside its segment, or by
-its segment's local jump. -/
+/-- The table read `(selector cell, base)` into target cell `t`, among the walk's. -/
+def tgAt (tg : List (ℕ × ℕ × ℕ)) (t : ℕ) : Option (ℕ × ℕ) := (tg.find? fun q ↦ Nat.beq q.1 t).map Prod.snd
+
+/-- The end of a block in a chained `match`'s table jump, at the segment's end `se`: the jump
+through cell `t`, the frame kept, read from a table at `b` through the selector in cell `o`
+(the walk's table reads), whose slots hold the arms `succ`. -/
+noncomputable def chainEnd (se : CW) (t : ℕ) (ft : Tgt) : RC :=
+  match se.seg.exit.succ with
+  | [] => .fail 2
+  | t0 :: ts => match tgAt se.tg t with
+    | some (o, b) => bif X.F.self ft && armsOk X.G X.entry b 0 (t0 :: ts) then
+        .chain o (t0 :: ts) se.cnt se.uq else .fail 8
+    | none => .fail 9
+
+/-- The chained `match` on value number `x`, if any: its arms' targets, the next selector and
+table base. -/
+def chainOf (x : ℕ) : Option (List ℕ × ℕ × ℕ) :=
+  (X.chains.find? fun ch ↦ Nat.beq ch.2.1 x).map fun ch ↦ ch.2.2
+
+/-- The table read arm `k` of the `match` on `v` sets up, if the `match` is chained: into its
+target cell, through the next selector's cell, from the next table. -/
+noncomputable def armTg (v : V) (k : ℕ) : List (ℕ × ℕ × ℕ) :=
+  match chainOf X v.idx with
+  | some (ts, y, b) => [(listElementOrDefault ts k 0, X.loc.cell (V.n y), b)]
+  | none => []
+
+/-- A chained `match` on `v` of `n` arms: one target per arm, in the frame, the next selector a
+value the path names, in the frame. -/
+noncomputable def chainPre (st : CW) (v : V) (n : ℕ) : Bool :=
+  match chainOf X v.idx with
+  | some (ts, y, _) => Nat.beq ts.length n && selOk X st (V.n y) &&
+      inFrame X.fs (X.loc.cell (V.n y) :: ts)
+  | none => true
+
+/-- How an arm of a `match` must end, as its first: at the join `J` (`succ = []`), or in the next
+`match`'s table jump through the selector in cell `J` into the arms `succ`; its counts and set-up
+cells. -/
+def armEnd (J : ℕ) (succ : List ℕ) : RC → Option (Cnt × ℕ)
+  | .join J' c u => bif succ.isEmpty && Nat.beq J J' then some (c, u) else none
+  | .chain o succ' c u => bif !succ.isEmpty && Nat.beq J o && succ == succ' then some (c, u) else none
+  | _ => none
+
+/-- Where a block ends: at the start of a segment, at the part's stop inside its segment, by
+its segment's local jump, or in a chained `match`'s table jump. -/
 noncomputable def endC (st : CW) : RC :=
   match st.fresh with
   | some t => .join t st.cnt st.uq
@@ -628,6 +675,7 @@ noncomputable def endC (st : CW) : RC :=
     | none => match endAtC X st with
       | .ok se => match se.seg.exit.kind with
         | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt se.uq else .fail 1
+        | .jump (.cell t) ft => chainEnd X se t ft
         | _ => .fail 2
       | .error e => .fail e
 
@@ -685,20 +733,27 @@ noncomputable def cw : List Core.Stmt → CW → RC
             v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
             inFrame X.fs [o1, t] &&
             X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
-            armsOk X.G X.entry base 0 (t0 :: ts) then
+            armsOk X.G X.entry base 0 (t0 :: ts) && chainPre X st v (as.length + 1) then
           match endAtC X { st with tg := (t, o1, base) :: st.tg } with
           | .ok se =>
             match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
             | some s0 =>
               (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
-              match cw a0 { s0 with book := B0 } with
+              match cw a0 { s0 with book := B0, tg := armTg X v 0 ++ s0.tg } with
               | .join J c0 u0 =>
                 bif armChkK (armKeyD X.acs v.idx) 0 c0 then
-                  match cwArms J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
+                  match cwArms J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
                   | some (c, u) => match segAtC X J se with
                     | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
                         cw ss { sj with cnt := c, uq := u }
                     | none => .fail 20
+                  | none => .fail 21
+                else .fail 24
+              | .chain o succ c0 u0 =>
+                bif armChkK (armKeyD X.acs v.idx) 0 c0 && ss.isEmpty && !succ.isEmpty then
+                  match cwArms o succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
+                  | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                        .chain o succ c u
                   | none => .fail 21
                 else .fail 24
               | .fail e => .fail e
@@ -800,22 +855,59 @@ noncomputable def cw : List Core.Stmt → CW → RC
         inFrame X.fs (vs.map X.loc.cell) then .done else .fail 70
     | .error e => .fail e
 
-/-- The other arms of a `match`, each from its segment, ending at the join `J`: the most counts
-of any. -/
-noncomputable def cwArms (J : ℕ) (se : CW) (key : Option (List Cnt)) :
+/-- The other arms of a `match` on `v`, each from its segment, ending as `armEnd J succ` says (at
+the join `J`, or in the next `match`'s table jump): the most counts of any. -/
+noncomputable def cwArms (J : ℕ) (succ : List ℕ) (v : V) (se : CW) (key : Option (List Cnt)) :
     List (List Core.Stmt) → List ℕ → Cnt → ℕ → ℕ → Option (Cnt × ℕ)
   | [], [], c, u, _ => some (c, u)
   | a :: as, t :: ts, c, u, k =>
     match segAtC X t se with
     | some s => (fileB X.loc X.fs a se.book).seq fun B ↦
-      match cw a { s with book := B } with
-      | .join J' c' u' => bif Nat.beq J J' && armChkK key k c' then
-          (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦ cwArms J se key as ts c u (k + 1)
+      match armEnd J succ (cw a { s with book := B, tg := armTg X v k ++ s.tg }) with
+      | some (c', u') => bif armChkK key k c' then
+          (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦ cwArms J succ v se key as ts c u (k + 1)
           else none
-      | _ => none
+      | none => none
     | none => none
   | _, _, _, _, _ => none
 end
+
+/-- **A chained `match`**, entered from the arms of the one before by a table jump through slot
+`log fp[o]` into the arms `succ`: the `match` on the value in cell `o`, each arm walked from its
+segment with the facts, frames, reads and counts `se` of the chain's dispatch, all ending at one
+join (the walk goes on there) or, the `match` the last statement, in one next table jump. -/
+noncomputable def cwE (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) : List Core.Stmt → RC
+  | .match_ v (a0 :: as) :: ss =>
+    match succ with
+    | t0 :: ts =>
+      bif Nat.beq o (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X se v &&
+          Nat.beq ts.length as.length && inFrame X.fs [o] && chainPre X se v (as.length + 1) then
+        match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
+        | some s0 =>
+          (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
+          match cw X a0 { s0 with book := B0, tg := armTg X v 0 ++ s0.tg } with
+          | .join J c0 u0 =>
+            bif armChkK (armKeyD X.acs v.idx) 0 c0 then
+              match cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
+              | some (c, u) => match segAtC X J se with
+                | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                    cw X ss { sj with cnt := c, uq := u }
+                | none => .fail 80
+              | none => .fail 81
+            else .fail 84
+          | .chain o' succ' c0 u0 =>
+            bif armChkK (armKeyD X.acs v.idx) 0 c0 && ss.isEmpty && !succ'.isEmpty then
+              match cwArms X o' succ' v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
+              | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                  .chain o' succ' c u
+              | none => .fail 81
+            else .fail 84
+          | .fail e => .fail e
+          | _ => .fail 82
+        | none => .fail 83
+      else .fail 85
+    | [] => .fail 86
+  | _ => .fail 87
 
 end Walk
 
@@ -865,6 +957,13 @@ noncomputable def partU (j i k : ℕ) : ℕ := listElementOrDefault (listElement
 noncomputable def partM (j i k : ℕ) : ℕ := listElementOrDefault (listElementOrDefault (partsOf j i)
     k []) 9 0
 
+/-- Part `k` entered: it starts with a chained `match`, entered by a table jump through the
+selector in cell `o` into its arms `succ` (`[…, m, 1, o, succ…]`). -/
+noncomputable def partEnt (j i k : ℕ) : Option (ℕ × List ℕ) :=
+  match (listElementOrDefault (partsOf j i) k []).drop 10 with
+  | 1 :: o :: succ => some (o, succ)
+  | _ => none
+
 /-- Where part `k` stops: inside a segment, if the next part starts there. -/
 noncomputable def stopOf (j i k : ℕ) : Option (ℕ × ℕ) :=
   bif Nat.blt (k + 1) (nParts j i) && !(Nat.beq (partM j i (k + 1)) 0) then
@@ -883,7 +982,7 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
   ⟨glob, (certOf j).facts, (fnOf j).entryPc, idx, loc, fsN j, stat, j == 1, (coreOf j).name,
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
     (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv, stop,
-    listElementOrDefault Data.cplArms j []⟩
+    listElementOrDefault Data.cplArms j [], (plumbOf j).chains⟩
 
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
@@ -892,24 +991,31 @@ def nvOf : List Core.Stmt → ℕ → ℕ
   | _ :: ss, s => nvOf ss s
 
 /-- How part `k` of window `i` must end: at the next part's start, the next window's, within
-what is handed on there, or by the return. -/
+what is handed on there (in its chained `match`'s table jump if it is entered), or by the
+return. -/
 noncomputable def partEnd (j i k : ℕ) : RC → Bool
   | .join J c u =>
     bif Nat.blt (k + 1) (nParts j i) then
-      Nat.beq J (partJ j i (k + 1)) && Nat.beq (partM j i (k + 1)) 0 && c.le (partC j i (k + 1)) &&
-        subK u (partU j i (k + 1))
+      Nat.beq J (partJ j i (k + 1)) && Nat.beq (partM j i (k + 1)) 0 && (partEnt j i (k + 1)).isNone &&
+        c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
     else Nat.blt i (certOf j).cuts.length && Nat.beq J ((certOf j).cutAt (i + 1)).J &&
-      c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
+      (partEnt j (i + 1) 0).isNone && c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
   | .mid J m c u => Nat.blt (k + 1) (nParts j i) && Nat.beq J (partJ j i (k + 1)) &&
-      Nat.beq m (partM j i (k + 1)) && !(Nat.beq m 0) && c.le (partC j i (k + 1)) &&
-      subK u (partU j i (k + 1))
+      Nat.beq m (partM j i (k + 1)) && !(Nat.beq m 0) && (partEnt j i (k + 1)).isNone &&
+      c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
+  | .chain o succ c u => !succ.isEmpty &&
+    bif Nat.blt (k + 1) (nParts j i) then
+      decide (partEnt j i (k + 1) = some (o, succ)) && Nat.beq (partJ j i (k + 1)) (succ.headD 0) &&
+        c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
+    else Nat.blt i (certOf j).cuts.length && decide (partEnt j (i + 1) 0 = some (o, succ)) &&
+      Nat.beq (partJ j (i + 1) 0) (succ.headD 0) && c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
   | .done => !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
   | .fail _ => false
 
 /-- The walk's result of part `k` of window `i` of function `j`. -/
 noncomputable def cplRes (j i k : ℕ) : RC :=
-  match execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
-      ((certOf j).endAt (fnOf j) i) with
+  match execWinCS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+      (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
@@ -917,7 +1023,10 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
     natSeq (nvOf (coreOf j).body 0) fun nv ↦ natSeq (partM j i k) fun m ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
-        cw (cxOf j idx loc stat nv (stopOf j i k)) (partStmts j i k)
+        match partEnt j i k with
+        | some (o, succ) => cwE (cxOf j idx loc stat nv (stopOf j i k)) o succ
+            ⟨s, s.items, B, [], [], [], c, u, some J, 0⟩ (partStmts j i k)
+        | none => cw (cxOf j idx loc stat nv (stopOf j i k)) (partStmts j i k)
           ⟨s, s.items.drop m, B, [], [], [], c, u, bif Nat.beq m 0 then some J else none, 0⟩
       else .fail 91
     | none => .fail 90
@@ -934,6 +1043,9 @@ fixed. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
   (listElementOrDefault (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
+  (match partEnt j i 0 with
+    | some (o, succ) => Nat.beq o ((certOf j).selAt i) && succ == (certOf j).succAt i && !succ.isEmpty
+    | none => ((certOf j).succAt i).isEmpty) &&
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&

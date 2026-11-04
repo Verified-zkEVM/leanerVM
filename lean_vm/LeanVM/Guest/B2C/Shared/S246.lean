@@ -16,8 +16,63 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L21_L7`, window 2. -/
-theorem w655_2 : shareWin 655 (snapsOf 655) 2 = true := by decide +kernel
+/-- `__loop277`, window 1. -/
+theorem w749_1 : shareWin 749 (snapsOf 749) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop278`, once. -/
+theorem st750 : shareStatic 750 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop278`, window 0. -/
+theorem w750_0 : shareWin 750 (snapsOf 750) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop278`, window 1. -/
+theorem w750_1 : shareWin 750 (snapsOf 750) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop279`, once. -/
+theorem st751 : shareStatic 751 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop279`, window 0. -/
+theorem w751_0 : shareWin 751 (snapsOf 751) 0 = true := by decide +kernel
+
+theorem ok751 : ShareOk 751 := ⟨st751, fun i hi ↦ by
+  have h : (snapsOf 751).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w751_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop280`, once. -/
+theorem st752 : shareStatic 752 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop280`, window 0. -/
+theorem w752_0 : shareWin 752 (snapsOf 752) 0 = true := by decide +kernel
+
+theorem ok752 : ShareOk 752 := ⟨st752, fun i hi ↦ by
+  have h : (snapsOf 752).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w752_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop281`, once. -/
+theorem st753 : shareStatic 753 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop281`, window 0. -/
+theorem w753_0 : shareWin 753 (snapsOf 753) 0 = true := by decide +kernel
+
+theorem ok753 : ShareOk 753 := ⟨st753, fun i hi ↦ by
+  have h : (snapsOf 753).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w753_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L64_L32_L24_L6`, once. -/
+theorem st754 : shareStatic 754 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

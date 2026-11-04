@@ -17,29 +17,20 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `verify_lean_xmss`, window 2. -/
+/-- `sp_wots`, window 2. -/
 theorem w20_2 : WinOk 20 2 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 3. -/
+/-- `sp_wots`, window 3. -/
 theorem w20_3 : WinOk 20 3 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 4. -/
+/-- `sp_wots`, window 4. -/
 theorem w20_4 : WinOk 20 4 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 5. -/
+/-- `sp_wots`, window 5. -/
 theorem w20_5 : WinOk 20 5 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 6. -/
+/-- `sp_wots`, window 6. -/
 theorem w20_6 : WinOk 20 6 := winOk_of_C (by decide +kernel)
-
-/-- `verify_lean_xmss`, window 7. -/
-theorem w20_7 : WinOk 20 7 := winOk_of_C (by decide +kernel)
-
-/-- `verify_lean_xmss`, window 8. -/
-theorem w20_8 : WinOk 20 8 := winOk_of_C (by decide +kernel)
-
-/-- `verify_lean_xmss`, window 9. -/
-theorem w20_9 : WinOk 20 9 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

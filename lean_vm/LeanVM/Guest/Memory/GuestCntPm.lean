@@ -31,24 +31,21 @@ def kcSTlll : NTree ℕ := (.node 2 2 .leaf .leaf)
 def kcSTllr : NTree ℕ := (.node 20 20 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTlrl : NTree ℕ := (.node 22 22 .leaf .leaf)
+def kcSTlrl : NTree ℕ := (.node 33 33 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTlrr : NTree ℕ := (.node 35 35 .leaf .leaf)
+def kcSTrll : NTree ℕ := (.node 36 36 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrll : NTree ℕ := (.node 37 37 .leaf .leaf)
+def kcSTrlr : NTree ℕ := (.node 414 414 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrlr : NTree ℕ := (.node 415 415 .leaf .leaf)
-
-/-- A subtree. -/
-def kcSTrrl : NTree ℕ := (.node 417 417 .leaf .leaf)
+def kcSTrrl : NTree ℕ := (.node 416 416 .leaf .leaf)
 
 
 /-- The functions the certificates counting instructions cover, by core index (each its own
 value): the closure of `main`'s statically bounded callees. -/
-def kcST : NTree ℕ := (.node 36 36 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 34 34 kcSTlrl kcSTlrr)) (.node 416 416 (.node 38 38 kcSTrll kcSTrlr) (.node 418 418 kcSTrrl .leaf)))
+def kcST : NTree ℕ := (.node 35 35 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 34 34 kcSTlrl .leaf)) (.node 415 415 (.node 37 37 kcSTrll kcSTrlr) (.node 417 417 kcSTrrl .leaf)))
 
 /-- Function `j` is covered. -/
 def kcIn (j : ℕ) : Prop := kcST.find j = some j
@@ -56,11 +53,11 @@ def kcIn (j : ℕ) : Prop := kcST.find j = some j
 instance (j : ℕ) : Decidable (kcIn j) := inferInstanceAs (Decidable (_ = _))
 
 /-- `B2C.xmssArmC` at function `j`, by `Opcode`'s index. -/
-def kcArmJ (j i : ℕ) : ℕ := if j = 19 then [40, 80, 40, 0, 40, 348].getD i 0 else 0
+def kcArmJ (j i : ℕ) : ℕ := if j = 36 then [0, 0, 0, 0, 0, 0].getD i 0 else 0
 
 theorem kc_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
-    coreProgram[j].name = "verify_lean_xmss" ↔ j = 19 := by
-  have hx : (coreProgram[19]?).map Fn.name = some "verify_lean_xmss" := by decide +kernel
+    coreProgram[j].name = "verify_lean_xmss" ↔ j = 36 := by
+  have hx : (coreProgram[36]?).map Fn.name = some "verify_lean_xmss" := by decide +kernel
   constructor
   · intro h
     have := coreIdx_getElem hj
@@ -102,7 +99,7 @@ theorem kc_idxOf {j : ℕ} (hj : j < coreProgram.length) :
 /-- `kcArmJ` is `B2C.xmssArmC` at `verify_lean_xmss`. -/
 theorem kcArmJ_eq {j : ℕ} (hj : j < coreProgram.length) (op : Opcode) :
     kcArmJ j (B2C.opIdx op) = if coreProgram[j].name = "verify_lean_xmss" then B2C.xmssArmC op else 0 := by
-  by_cases hx : j = 19
+  by_cases hx : j = 36
   · subst hx
     have hn := (kc_name_xmss hj).mpr rfl
     simp only [hn, ↓reduceIte]

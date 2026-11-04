@@ -18,19 +18,36 @@ public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F20_2
-public import LeanVM.Guest.Checked.F20_10
-public import LeanVM.Guest.Checked.F20_18
-public import LeanVM.Guest.Checked.F20_26
-public import LeanVM.Guest.Checked.F20_34
-public import LeanVM.Guest.Checked.F20_34
-public import LeanVM.Guest.Checked.F21_1
-public import LeanVM.Guest.Checked.F21_6
-public import LeanVM.Guest.Checked.F21_11
-public import LeanVM.Guest.Checked.F21_16
-public import LeanVM.Guest.Checked.F22_0
-public import LeanVM.Guest.Checked.F22_8
-public import LeanVM.Guest.Checked.F22_16
-public import LeanVM.Guest.Checked.F27_0
+public import LeanVM.Guest.Checked.F20_7
+public import LeanVM.Guest.Checked.F20_12
+public import LeanVM.Guest.Checked.F20_17
+public import LeanVM.Guest.Checked.F20_17
+public import LeanVM.Guest.Checked.F21_4
+public import LeanVM.Guest.Checked.F21_12
+public import LeanVM.Guest.Checked.F30_0
+public import LeanVM.Guest.Checked.F37_0
+public import LeanVM.Guest.Checked.F37_3
+public import LeanVM.Guest.Checked.F37_5
+public import LeanVM.Guest.Checked.F37_7
+public import LeanVM.Guest.Checked.F37_9
+public import LeanVM.Guest.Checked.F37_11
+public import LeanVM.Guest.Checked.F37_13
+public import LeanVM.Guest.Checked.F37_15
+public import LeanVM.Guest.Checked.F37_17
+public import LeanVM.Guest.Checked.F37_18
+public import LeanVM.Guest.Checked.F37_19
+public import LeanVM.Guest.Checked.F37_20
+public import LeanVM.Guest.Checked.F37_23
+public import LeanVM.Guest.Checked.F37_25
+public import LeanVM.Guest.Checked.F37_27
+public import LeanVM.Guest.Checked.F37_29
+public import LeanVM.Guest.Checked.F37_31
+public import LeanVM.Guest.Checked.F37_33
+public import LeanVM.Guest.Checked.F37_35
+public import LeanVM.Guest.Checked.F37_37
+public import LeanVM.Guest.Checked.F37_38
+public import LeanVM.Guest.Checked.F37_39
+public import LeanVM.Guest.Checked.F37_40
 
 namespace LeanVM.Guest.Checked
 
@@ -130,7 +147,7 @@ theorem ok19 : CheckOk 19 := fun i hi ↦ by
   · exact w19_2
 
 theorem ok20 : CheckOk 20 := fun i hi ↦ by
-  have h : (certOf 20).cuts.length = 39 := by decide +kernel
+  have h : (certOf 20).cuts.length = 20 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w20_0
@@ -154,32 +171,13 @@ theorem ok20 : CheckOk 20 := fun i hi ↦ by
   · exact w20_18
   · exact w20_19
   · exact w20_20
-  · exact w20_21
-  · exact w20_22
-  · exact w20_23
-  · exact w20_24
-  · exact w20_25
-  · exact w20_26
-  · exact w20_27
-  · exact w20_28
-  · exact w20_29
-  · exact w20_30
-  · exact w20_31
-  · exact w20_32
-  · exact w20_33
-  · exact w20_34
-  · exact w20_35
-  · exact w20_36
-  · exact w20_37
-  · exact w20_38
-  · exact w20_39
 
 theorem plain20 : Plain 20 := by
   unfold Plain
   decide +kernel
 
 theorem ok21 : CheckOk 21 := fun i hi ↦ by
-  have h : (certOf 21).cuts.length = 20 := by decide +kernel
+  have h : (certOf 21).cuts.length = 19 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -202,40 +200,12 @@ theorem ok21 : CheckOk 21 := fun i hi ↦ by
   · exact w21_17
   · exact w21_18
   · exact w21_19
-  · exact w21_20
 
 theorem plain21 : Plain 21 := by
   unfold Plain
   decide +kernel
 
-theorem ok22 : CheckOk 22 := fun i hi ↦ by
-  have h : (certOf 22).cuts.length = 19 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w22_0
-  · exact w22_1
-  · exact w22_2
-  · exact w22_3
-  · exact w22_4
-  · exact w22_5
-  · exact w22_6
-  · exact w22_7
-  · exact w22_8
-  · exact w22_9
-  · exact w22_10
-  · exact w22_11
-  · exact w22_12
-  · exact w22_13
-  · exact w22_14
-  · exact w22_15
-  · exact w22_16
-  · exact w22_17
-  · exact w22_18
-  · exact w22_19
-
-theorem plain22 : Plain 22 := by
-  unfold Plain
-  decide +kernel
+theorem plain22 : Plain 22 := plain_of_nil (by decide +kernel)
 
 theorem plain23 : Plain 23 := plain_of_nil (by decide +kernel)
 
@@ -253,18 +223,18 @@ theorem plain29 : Plain 29 := plain_of_nil (by decide +kernel)
 
 theorem plain30 : Plain 30 := plain_of_nil (by decide +kernel)
 
-theorem plain31 : Plain 31 := plain_of_nil (by decide +kernel)
-
-theorem ok32 : CheckOk 32 := fun i hi ↦ by
-  have h : (certOf 32).cuts.length = 1 := by decide +kernel
+theorem ok31 : CheckOk 31 := fun i hi ↦ by
+  have h : (certOf 31).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w32_0
-  · exact w32_1
+  · exact w31_0
+  · exact w31_1
 
-theorem plain32 : Plain 32 := by
+theorem plain31 : Plain 31 := by
   unfold Plain
   decide +kernel
+
+theorem plain32 : Plain 32 := plain_of_nil (by decide +kernel)
 
 theorem plain33 : Plain 33 := plain_of_nil (by decide +kernel)
 
@@ -274,7 +244,55 @@ theorem plain35 : Plain 35 := plain_of_nil (by decide +kernel)
 
 theorem plain36 : Plain 36 := plain_of_nil (by decide +kernel)
 
-theorem plain37 : Plain 37 := plain_of_nil (by decide +kernel)
+theorem ok37 : CheckOk 37 := fun i hi ↦ by
+  have h : (certOf 37).cuts.length = 40 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w37_0
+  · exact w37_1
+  · exact w37_2
+  · exact w37_3
+  · exact w37_4
+  · exact w37_5
+  · exact w37_6
+  · exact w37_7
+  · exact w37_8
+  · exact w37_9
+  · exact w37_10
+  · exact w37_11
+  · exact w37_12
+  · exact w37_13
+  · exact w37_14
+  · exact w37_15
+  · exact w37_16
+  · exact w37_17
+  · exact w37_18
+  · exact w37_19
+  · exact w37_20
+  · exact w37_21
+  · exact w37_22
+  · exact w37_23
+  · exact w37_24
+  · exact w37_25
+  · exact w37_26
+  · exact w37_27
+  · exact w37_28
+  · exact w37_29
+  · exact w37_30
+  · exact w37_31
+  · exact w37_32
+  · exact w37_33
+  · exact w37_34
+  · exact w37_35
+  · exact w37_36
+  · exact w37_37
+  · exact w37_38
+  · exact w37_39
+  · exact w37_40
+
+theorem plain37 : Plain 37 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain38 : Plain 38 := plain_of_nil (by decide +kernel)
 

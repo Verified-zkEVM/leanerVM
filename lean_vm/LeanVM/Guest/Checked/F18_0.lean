@@ -35,10 +35,10 @@ theorem w19_1 : WinOk 19 1 := winOk_of_C (by decide +kernel)
 /-- `verify_sub`, window 2. -/
 theorem w19_2 : WinOk 19 2 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 0. -/
+/-- `sp_wots`, window 0. -/
 theorem w20_0 : WinOk 20 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_lean_xmss`, window 1. -/
+/-- `sp_wots`, window 1. -/
 theorem w20_1 : WinOk 20 1 := winOk_of_C (by decide +kernel)
 
 end

@@ -16,67 +16,79 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `decode_query_windows__L14_L5`, window 0, part 0. -/
+/-- `__loop371`, window 0, part 0. -/
 theorem cw853_0_0 : cplWin 853 0 0 = true := by decide +kernel
 
-/-- `__loop371`, window 0, part 0. -/
-theorem cw854_0_0 : cplWin 854 0 0 = true := by decide +kernel
-
 /-- `__loop371`, window 1, part 0. -/
-theorem cw854_1_0 : cplWin 854 1 0 = true := by decide +kernel
+theorem cw853_1_0 : cplWin 853 1 0 = true := by decide +kernel
 
 /-- `__loop371`, window 2, part 0. -/
-theorem cw854_2_0 : cplWin 854 2 0 = true := by decide +kernel
+theorem cw853_2_0 : cplWin 853 2 0 = true := by decide +kernel
 
 /-- `decode_query_windows__L18_L8`, window 0, part 0. -/
-theorem cw855_0_0 : cplWin 855 0 0 = true := by decide +kernel
+theorem cw854_0_0 : cplWin 854 0 0 = true := by decide +kernel
 
 /-- `__loop372`, window 0, part 0. -/
-theorem cw856_0_0 : cplWin 856 0 0 = true := by decide +kernel
+theorem cw855_0_0 : cplWin 855 0 0 = true := by decide +kernel
 
 /-- `__loop372`, window 1, part 0. -/
-theorem cw856_1_0 : cplWin 856 1 0 = true := by decide +kernel
+theorem cw855_1_0 : cplWin 855 1 0 = true := by decide +kernel
 
 /-- `__loop372`, window 2, part 0. -/
-theorem cw856_2_0 : cplWin 856 2 0 = true := by decide +kernel
+theorem cw855_2_0 : cplWin 855 2 0 = true := by decide +kernel
+
+/-- `__loop372`, window 3, part 0. -/
+theorem cw855_3_0 : cplWin 855 3 0 = true := by decide +kernel
 
 theorem ok853 : CplOk 853 := by
   intro i hi k hk
-  have hc : (certOf 853).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 853).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 853 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw853_0_0
+  · have hn : nParts 853 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw853_1_0
+  · have hn : nParts 853 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw853_2_0
 
 theorem ok854 : CplOk 854 := by
   intro i hi k hk
-  have hc : (certOf 854).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 854).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 854 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw854_0_0
-  · have hn : nParts 854 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw854_1_0
-  · have hn : nParts 854 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw854_2_0
 
 theorem ok855 : CplOk 855 := by
   intro i hi k hk
-  have hc : (certOf 855).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 855).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 855 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw855_0_0
+  · have hn : nParts 855 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw855_1_0
+  · have hn : nParts 855 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw855_2_0
+  · have hn : nParts 855 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw855_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

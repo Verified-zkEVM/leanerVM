@@ -24,19 +24,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem fn_loop_main {s : Oq} {odd : ℕ} {name loop : String} {fm : Fn}
-    (hfm : coreProgram.find? name = some fm) (hbm : fm.body = oqMainT s odd loop) :
+theorem fn_loop_main {s : Oq} {odd : ℕ} {name wlk loop : String} {fm : Fn}
+    (hfm : coreProgram.find? name = some fm) (hbm : fm.body = oqMainT s odd wlk loop) :
     coreProgram.loop name = false := by
   rw [Program.loop_of_find? hfm, Fn.loop, hbm]
   simp [oqMainT]
 
-/-- **`opening_queries`, placed.** -/
+/-- **`opening_queries`, placed**: its chain buffer after its frame, its odd first query's walk
+after it, then its loop's tree (`m` words). -/
 theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1)
-    {name loop : String} {fm : Fn}
+    {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
-    (hbm : fm.body = oqMainT s odd loop)
+    (hbm : fm.body = oqMainT s odd wlk loop)
     {rd : Reader} {R : ℕ → Prop} {fp N m : ℕ} (hN : N + 1 < ordG)
     {cap flags lam lamN qptrs wp : E} (hlam : lam ≠ 0)
     {r : List K} {w : ℕ → E} {q : ℕ} {sb : List Digest} {bp hNv : E}
@@ -49,17 +50,17 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     (hNl : LoadHolds rd (ofK (Parameters.addressOfIndex (fp + fs name))) N hNv)
     (hloop : if 1 + gen ^ N ≠ 0 then
       RelAtIn coreProgram fs cert rd (fun i ↦ R i ∨ (fp + fs name ≤ i ∧ i < fp + fs name + (N + 1)))
-        (fun _ ↦ False) (fp + fs name + (N + 1)) m loop
+        (fun _ ↦ False) (fp + fs name + (N + 1) + odd * fs wlk) m loop
         [1, gen ^ N, qptrs, cap, flags, wp, ofK (Parameters.addressOfIndex (fp + fs name)),
             lam⁻¹] []
       else m = fs loop) :
-    RelAtIn coreProgram fs cert rd R (fun _ ↦ False) fp (fs name + (N + 1) + m) name
+    RelAtIn coreProgram fs cert rd R (fun _ ↦ False) fp (fs name + (N + 1) + odd * fs wlk + m) name
       [cap, flags, lam, lamN, qptrs, wp, gen ^ N] [hNv * lamN] := by
   set ch0 : E := ofK (Parameters.addressOfIndex (fp + fs name)) with hch0
   set D : QD := ⟨s, 13, true, 0, r, w, q, sb, cap, flags⟩ with hD
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ v : V, σ v = oqMainF s odd [cap, flags, lam, lamN, qptrs, wp, gen ^ N]
       ch0 bp D [ch0 * gen ^ N, hNv, hNv * lamN] v.idx := ⟨_, fun _ ↦ rfl⟩
-  obtain ⟨hpar, e8, e10, e11, eT, eodd, hA⟩ := oqMain_at (σ := σ) hs hpd1 hcd hodd hlam
+  obtain ⟨hpar, e8, e10, e11, eT, eodd, hA⟩ := oqMain_at (σ := σ) (walk := wlk) hs hodd hlam
     (fun h ↦ ⟨(h1 h).1, (h1 h).2.1, (h1 h).2.2.1⟩) h0
     [ch0 * gen ^ N, hNv, hNv * lamN] (fun _ ↦ hσ _)
   set k := oqMK s odd with hk
@@ -79,8 +80,8 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
   set post : List Stmt := [.atom (.mul (.n (k + 3)) (.n 11) (.n 6)),
     .atom (.load (.n (k + 4)) (.n (k + 3)) 0), .atom (.mul (.n (k + 5)) (.n (k + 4)) (.n 3))]
     with hpost
-  set pre := oqMainA s odd ++ (ca :: post) with hpre
-  have hok := oqMainA_ok s odd
+  set pre := oqMainA s odd wlk ++ (ca :: post) with hpre
+  have hok := oqMainA_ok s odd wlk
   have hflat : pre.all Stmt.flatM = true := by
     rw [hpre, List.all_append, hok.flatM]; rfl
   have hmo : ∀ x ∈ pre, MatchOk σ x := by
@@ -97,13 +98,17 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
   obtain ⟨i1, i2, i3, i4⟩ := flatM_parts σ pre hflat
   have hal : pre.filterMap Stmt.allocSz = [(.n 11, .inr (.n 10))] := by
     rw [hpre, List.filterMap_append, oqMainA_allocSz]; rfl
+  set a1 : List V := [.n (oqOut s (oqKL s 13 true) (s.B - 1) 0), .n (oqOut s (oqKL s 13 true) (s.B - 1) 1),
+    .n 12, .n 0, .n 1] with ha1
   have hlogN : logG (σ (.n 10)) = N + 1 := by
     rw [e10, ← pow_succ, gen_pow_eq_ofK, logG_spec hN]
   have hallocs : allocs σ es = [N + 1] := by
     rw [i2, hal]; simp [hlogN]
-  have hcalls : calls es = [⟨loop, [.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8], [],
+  have hcalls : calls es = (if odd = 1 then [⟨wlk, a1, [], true⟩] else []) ++
+      [⟨loop, [.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8], [],
       decide (σ (.n (k + 1)) ≠ 0)⟩] := by
-    rw [i4, hpre, List.filterMap_append, hok.callS]; rfl
+    rw [i4, hpre, List.filterMap_append, oqMainA_callS]
+    split_ifs <;> rfl
   -- the events hold
   have hev : ∀ e ∈ es, e.Holds rd σ := by
     intro e he
@@ -137,42 +142,65 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     refine Or.inl ⟨(N + 1, fp + fs name), ?_, h1', by omega⟩
     rw [hallocs]; simp [bases]
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) hP
-    (R := R) (D := fun _ ↦ False) (Dk := fun _ ↦ False) (fp := fp) (N := m)
+    (R := R) (D := fun _ ↦ False) (Dk := fun _ ↦ False) (fp := fp) (N := odd * fs wlk + (m + 0))
     (args := [cap, flags, lam, lamN, qptrs, wp, gen ^ N]) (rets := [hNv * lamN])
     hfm (Or.inl (fn_loop_main hfm hbm)) (by rw [hpm]; exact hpar) hw (by simp [t5]) hev
     (by rw [i1, hal, hallocs]; simp [bases, e11, hch0])
     (fun q hq ↦ ?_) ?_ (fun A hAl ↦ ?_) (fun _ h ↦ h.elim)
-  · rw [hallocs] at h; simpa using h
+  · rw [hallocs] at h; simpa [Nat.add_assoc] using h
   · -- no frame address
     have hb : ∀ p run, oqAlloc ≠ .frameAddr p run := fun p run h ↦ by cases h
     rw [i3, hpre, List.filterMap_append, hok.addrS' hb] at hq
     simp [hca, hpost, Stmt.addrS] at hq
-  · -- the loop
+  · -- the odd query's walk, the loop
     rw [hcalls]
     have hsum : (allocs σ es).sum = N + 1 := by rw [hallocs]; simp
     rw [hsum]
-    refine ⟨m, 0, (fun i ↦ R i ∨ (fp + fs name ≤ i ∧ i < fp + fs name + (N + 1))), fun _ ↦ False,
-      by omega, fun i hi ↦ ?_, ?_, ⟨rfl, fun _ h ↦ h.elim⟩⟩
-    · rcases hi with hi | hi
-      · exact Or.inl (Or.inl hi)
-      · exact Or.inl (Or.inr (hbufd i hi.1 hi.2))
-    · have hargs : ([.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8] : List V).map σ =
-          [1, gen ^ N, qptrs, cap, flags, wp, ch0, lam⁻¹] := by
-        simp only [List.map_cons, List.map_nil, t2, eP 6 (by omega), eP 4 (by omega),
-          eP 0 (by omega), eP 1 (by omega), eP 5 (by omega), e11, e8]
+    have hloopK : KidsFromIn coreProgram fs cert rd σ
+        (fun i ↦ R i ∨ ownData cert fp (fp + fs name) name (allocs σ es) es i)
+        (fun i ↦ False ∨ (odd = 1 ∧ False))
+        [⟨loop, [.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8], [],
+          decide (σ (.n (k + 1)) ≠ 0)⟩] (fp + fs name + (N + 1) + odd * fs wlk) (m + 0)
+        (fun _ ↦ False) := by
+      refine ⟨m, 0, (fun i ↦ R i ∨ (fp + fs name ≤ i ∧ i < fp + fs name + (N + 1))), fun _ ↦ False,
+        by omega, fun i hi ↦ ?_, ?_, ⟨rfl, fun _ h ↦ h.elim⟩⟩
+      · rcases hi with hi | hi
+        · exact Or.inl (Or.inl hi)
+        · exact Or.inl (Or.inr (hbufd i hi.1 hi.2))
+      · have hargs : ([.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8] : List V).map σ =
+            [1, gen ^ N, qptrs, cap, flags, wp, ch0, lam⁻¹] := by
+          simp only [List.map_cons, List.map_nil, t2, eP 6 (by omega), eP 4 (by omega),
+            eP 0 (by omega), eP 1 (by omega), eP 5 (by omega), e11, e8]
+          rfl
+        by_cases ht : 1 + gen ^ N ≠ 0
+        · have htk : decide (σ (.n (k + 1)) ≠ 0) = true := by rw [t1]; exact decide_eq_true ht
+          simp only [htk, ↓reduceIte, List.map_nil]
+          rw [hargs]
+          split at hloop
+          · exact hloop
+          · next h' => exact absurd ht h'
+        · have htk : decide (σ (.n (k + 1)) ≠ 0) = false := by rw [t1]; exact decide_eq_false ht
+          simp only [htk, Bool.false_eq_true, ↓reduceIte]
+          split at hloop
+          · next h' => exact absurd h' ht
+          · exact hloop
+    rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hodd with rfl | rfl
+    · simp only [show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, List.nil_append, Nat.zero_mul,
+        Nat.zero_add, Nat.add_zero] at hloopK ⊢
+      exact kidsFromIn_dacc _ (fun i hi ↦ by simp at hi) hloopK
+    · obtain ⟨-, hokD, -, -, hreg⟩ := h1 rfl
+      obtain ⟨e12, -, hl⟩ := eodd rfl
+      have hW1 := wp_relAtIn (w := D.wd bp) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hokD.hsibs hokD.hq
+        hokD.hmem hW hreg.toW (fp + fs name + (N + 1))
+      have hm1 : a1.map σ = [(digestHalves D.leaf).1, (digestHalves D.leaf).2, bp, cap, flags] := by
+        have e0 := congrArg Prod.fst hl
+        have e1 := congrArg Prod.snd hl
+        simp only at e0 e1
+        simp only [ha1, List.map_cons, List.map_nil, e0, e1, e12, eP 0 (by omega), eP 1 (by omega)]
         rfl
-      by_cases ht : 1 + gen ^ N ≠ 0
-      · have htk : decide (σ (.n (k + 1)) ≠ 0) = true := by rw [t1]; exact decide_eq_true ht
-        simp only [htk, ↓reduceIte, List.map_nil]
-        rw [hargs]
-        split at hloop
-        · exact hloop
-        · next h' => exact absurd ht h'
-      · have htk : decide (σ (.n (k + 1)) ≠ 0) = false := by rw [t1]; exact decide_eq_false ht
-        simp only [htk, Bool.false_eq_true, ↓reduceIte]
-        split at hloop
-        · next h' => exact absurd h' ht
-        · exact hloop
+      simp only [↓reduceIte, List.singleton_append, Nat.one_mul] at hloopK ⊢
+      refine kidsFromIn_walk (R0 := R) (by rw [hm1]; exact hW1) (fun i hi ↦ Or.inl (Or.inl hi)) ?_
+      exact kidsFromIn_dacc _ (fun i hi ↦ by simp at hi) hloopK
   · -- the loads
     rw [loadAddrs_flatM σ pre hflat] at hAl
     obtain ⟨⟨p, off⟩, hq, rfl⟩ := List.mem_map.mp hAl
@@ -182,9 +210,8 @@ theorem oqMain_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Strin
     · rcases hok.load' hb hq with ⟨ho, hl⟩ | ⟨ho, rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · subst ho
         obtain ⟨-, -, -, -, hreg⟩ := h1 rfl
-        obtain ⟨i, hi, hr⟩ := oqQLoad_in (R := R) (D := D) (eodd rfl).2 (bp := .n 12) (wp := .n 5)
-          ⟨fun o ho ↦ by rw [eP 5 (by omega)]; exact hreg.w o ho,
-            fun o ho ↦ by rw [(eodd rfl).1]; exact hreg.b o ho, hreg.f, hreg.c⟩ hl
+        obtain ⟨i, hi, hr⟩ := oqQLoad_in (R := R) (σ := σ) (wp := .n 5)
+          (by rw [eP 5 (by omega)]; exact hreg) hl
         exact ⟨i, hi, Or.inr (Or.inl hr)⟩
       · obtain ⟨i, hi, hr⟩ := (h1 ho).2.2.2.1
         rw [eP 4 (by omega)]
