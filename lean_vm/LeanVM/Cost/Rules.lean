@@ -196,6 +196,26 @@ end MachineEncoding
 
 /-! ## Rules -/
 
+/-! ## Dependent functions of `Fin 3`
+
+The leanSPHINCS signature's layers are a function of the layer whose values' types depend on it
+(`(layer : Sphincs.Layer) → Sphincs.LayerSignature layer`); the statement encodes it as the array of
+its values (`Statement/LeanVmGuest.lean`). A compiled reader builds it from its three values by
+`depFin3`, whose run is the array of their runs (`Rule.depFin3`). -/
+
+/-- A dependent function of `Fin 3`, from its values at `0`, `1` and `2`. -/
+def depFin3 {β : Fin 3 → Type} (a : β 0) (b : β 1) (c : β 2) : (i : Fin 3) → β i
+  | ⟨0, _⟩ => a
+  | ⟨1, _⟩ => b
+  | ⟨2, _⟩ => c
+
+/-- A dependent function of a finite domain: the array of its values, as the statement encodes the
+leanSPHINCS signature's layers (low priority: a function whose values' type does not depend on the
+argument is the statement's `Fin n → α`, the same array). -/
+instance (priority := low) depFinEncoding {n : ℕ} {β : Fin n → Type} [∀ i, MachineEncoding (β i)] :
+    MachineEncoding ((i : Fin n) → β i) :=
+  ⟨fun f ↦ .array (Array.ofFn fun i ↦ encodeValue (f i))⟩
+
 namespace Rule
 
 variable {P : MachineProgram} {env : List MachineValue} {α β γ : Type} [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ]
@@ -1043,6 +1063,30 @@ theorem finFunApp {t u : Term} {n : ℕ} {f : Fin n → α} {i : Fin n} {c d : �
     (v := encodeValue (f i)) (d := 1) (by
       show PrimitiveOperation.apply .arrayGet [.array (Array.ofFn fun j ↦ encodeValue (f j)), .nat i.val, _] = _
       simp [PrimitiveOperation.apply])).cost_eq (by omega)
+
+/-- **`depFin3 a b c`**: the array of the three values' runs, built from the list of them. -/
+theorem depFin3 {β : Fin 3 → Type} [∀ i, MachineEncoding (β i)] {ta tb tc : Term} {a : β 0}
+    {b : β 1} {c : β 2} {ca cb cc : ℕ} (ha : Runs P env ta (encodeValue a) ca)
+    (hb : Runs P env tb (encodeValue b) cb) (hc : Runs P env tc (encodeValue c) cc) :
+    Runs P env (.primitive .arrayOfList [.constructor 1 [ta, .constructor 1 [tb,
+        .constructor 1 [tc, .constructor 0 []]]]])
+      (encodeValue (LeanVM.Cost.depFin3 a b c)) (ca + cb + cc + 14) := by
+  have hn : Runs P env (.constructor 0 []) (MachineValue.ofList []) 1 :=
+    (Runs.ctor (k := 0) RunsList.nil).cost_eq (by simp)
+  have h3 := (Runs.ctor (k := 1) (RunsList.cons hc (RunsList.cons hn RunsList.nil)))
+  have h2 := (Runs.ctor (k := 1) (RunsList.cons hb (RunsList.cons h3 RunsList.nil)))
+  have h1 := (Runs.ctor (k := 1) (RunsList.cons ha (RunsList.cons h2 RunsList.nil)))
+  refine (Runs.op (RunsList.cons h1 RunsList.nil) (v := encodeValue (LeanVM.Cost.depFin3 a b c))
+    (d := 4) ?_).cost_eq (by simp; omega)
+  show PrimitiveOperation.apply .arrayOfList [MachineValue.ofList [encodeValue a, encodeValue b,
+    encodeValue c]] = Option.some (MachineValue.array (Array.ofFn fun i ↦
+      encodeValue (LeanVM.Cost.depFin3 a b c i)), 4)
+  have e : (Array.ofFn fun i ↦ encodeValue (LeanVM.Cost.depFin3 a b c i)) =
+      [encodeValue a, encodeValue b, encodeValue c].toArray := by
+    apply Array.ext'
+    simp [List.ofFn_succ, LeanVM.Cost.depFin3]
+  rw [e]
+  simp [PrimitiveOperation.apply, valToList_ofList]
 
 /-- A function of a finite domain as data: the array of its values. -/
 theorem finFunOfArray {t : Term} {n : ℕ} {f : Fin n → α} {c : ℕ}

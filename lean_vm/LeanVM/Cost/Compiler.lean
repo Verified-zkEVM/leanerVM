@@ -103,6 +103,7 @@ def rules : List (Name × Name) := [
   (``Array.replicate, ``Rule.arrReplicate),
   (``Array.toList, ``Rule.arrToList),
   (``List.toArray, ``Rule.listToArray),
+  (``LeanVM.Cost.depFin3, ``Rule.depFin3),
   (``Array.getD, ``Rule.arrGetD),
   (``GetElem?.getElem?, ``Rule.arrGetElem?),
   (``GetElem.getElem, ``Rule.arrGetElem),
