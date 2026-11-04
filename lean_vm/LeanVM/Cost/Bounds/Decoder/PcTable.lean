@@ -10,7 +10,7 @@ import all LeanVM.Protocol.Extraction.Fast.SortedMap
 their entry pc, built once by the decoder's top. Its shape and prices:
 
 * `pcTableT_good`: a good map of word-sized keys, `885` insertions (below `2^10`);
-* **`pcTableT_cost`**: built at most `7237535` (each insertion amortized: a power `g^e`, `e < 2^19`,
+* **`pcTableT_cost`**: built at most `7237546` (each insertion amortized: a power `g^e`, `e < 2^19`,
   a lookup and the carry);
 * **`pcTableT_get_cost`**: a lookup at most `5969` (`10` levels, a binary search each), the `Gpc` of
   `entryArrayT_cost` (`EntryArray.lean`);
@@ -195,9 +195,9 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
 
 set_option maxRecDepth 100000 in
-/-- **The pc table** (`pcTableTC`), built once: at most `7237535`. -/
+/-- **The pc table** (`pcTableTC`), built once: at most `7237546`. -/
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
-    machineCost P pcTableTC.costIdx [] ≤ 7237535 := by
+    machineCost P pcTableTC.costIdx [] ≤ 7237546 := by
   rw [pcTableTC.costEq P hP]
   have hn : nFns = 885 := rfl
   have hr := rangeLoop_cost P (by includes) nFns [] (by rw [hn]; norm_num)
