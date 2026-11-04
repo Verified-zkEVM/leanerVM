@@ -3165,7 +3165,8 @@ def existing : IO (List System.FilePath) := do
       gen "Snaps" e.fileName)).map (·.path) ++
     (cs.toList.filter fun e => gen "F" e.fileName || gen "G" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName ||
       gen "X" e.fileName).map (·.path) ++
-    (ss.toList.filter fun e => gen "S" e.fileName || gen "H" e.fileName || gen "T" e.fileName).map (·.path) ++
+    (ss.toList.filter fun e => gen "S" e.fileName || gen "H" e.fileName || gen "T" e.fileName ||
+      gen "B" e.fileName || gen "N" e.fileName).map (·.path) ++
     (ws.toList.filter fun e => gen "C" e.fileName || gen "D" e.fileName || gen "E" e.fileName).map (·.path)
 
 end GuestCert
