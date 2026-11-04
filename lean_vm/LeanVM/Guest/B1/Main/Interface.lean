@@ -304,8 +304,8 @@ def main_sound_Spec (bytecode : List K) : Prop :=
 theorem find_main : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core32 :=
-  Program.find?_of_indexOf? (j := 32) (by decide +kernel) rfl
+theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core34 :=
+  Program.find?_of_indexOf? (j := 34) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Main
