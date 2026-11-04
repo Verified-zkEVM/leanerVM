@@ -34,8 +34,8 @@ def vtSelKC (i : ℕ) : ℕ :=
 /-- **The values the oracle answers.** -/
 def vtWKeys : List ℕ :=
   vtAllocVars ++ ((List.range 6).flatMap fun t ↦ [vtPadV t, vtPadV t + 1, vtPadV t + 2]) ++
-    [2768, 2639, 5817, 2908, 2983] ++
-    ((List.range 3).flatMap fun b ↦ [vtFwV.getD b 0 + 16, vtFwV.getD b 0 + 17]) ++
+    [704, 581, 2500, 824, 894] ++
+    ((List.range 3).flatMap fun b ↦ [vtFwW b + 10, vtFwW b + 11]) ++
     ((List.range 51).flatMap fun i ↦ [vtSelKP i, vtSelKP i + 1]) ++
     ((List.range 45).flatMap fun i ↦ [vtSelKC i, vtSelKC i + 1])
 
@@ -89,13 +89,13 @@ theorem vtWVals_split :
       gen ^ H.offC.getD i 0]))))) := by
   simp only [vtWVals, List.append_assoc]
 
-theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 110 := by
+theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 111 := by
   simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_alloc : ∀ j < 110, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
+theorem vtWKeys_alloc : ∀ j < 111, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
 
-theorem vtW_alloc {j : ℕ} (hj : j < 110) :
+theorem vtW_alloc {j : ℕ} (hj : j < 111) :
     vtW H B (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0)) := by
   rw [vtW, vtWKeys_alloc j hj, vtWVals_split, List.getD_append _ _ _ _
     (by rw [ownB_map_length]; exact hj), List.getD_eq_getElem _ _ (by rw [ownB_map_length]; exact hj),
@@ -112,30 +112,30 @@ theorem flatMap_len {α : Type} {S : ℕ} (m : ℕ) (f : ℕ → List α) (hf : 
   rw [List.length_flatMap]; simp [hf, List.sum_replicate, Nat.mul_comm]
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 110 + 3 * t ∧
-    vtWKeys.idxOf (vtPadV t + 1) = 110 + (3 * t + 1) ∧
-    vtWKeys.idxOf (vtPadV t + 2) = 110 + (3 * t + 2) := by decide +kernel
+theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 111 + 3 * t ∧
+    vtWKeys.idxOf (vtPadV t + 1) = 111 + (3 * t + 1) ∧
+    vtWKeys.idxOf (vtPadV t + 2) = 111 + (3 * t + 2) := by decide +kernel
 set_option maxRecDepth 100000 in
-theorem vtWKeys_misc : vtWKeys.idxOf 2768 = 128 ∧ vtWKeys.idxOf 2639 = 129 ∧
-    vtWKeys.idxOf 5817 = 130 ∧ vtWKeys.idxOf 2908 = 131 ∧ vtWKeys.idxOf 2983 = 132 := by
+theorem vtWKeys_misc : vtWKeys.idxOf 704 = 129 ∧ vtWKeys.idxOf 581 = 130 ∧
+    vtWKeys.idxOf 2500 = 131 ∧ vtWKeys.idxOf 824 = 132 ∧ vtWKeys.idxOf 894 = 133 := by
   decide +kernel
 set_option maxRecDepth 100000 in
-theorem vtWKeys_fw : ∀ b < 3, vtWKeys.idxOf (vtFwV.getD b 0 + 16) = 133 + 2 * b ∧
-    vtWKeys.idxOf (vtFwV.getD b 0 + 17) = 133 + (2 * b + 1) := by decide +kernel
+theorem vtWKeys_fw : ∀ b < 3, vtWKeys.idxOf (vtFwW b + 10) = 134 + 2 * b ∧
+    vtWKeys.idxOf (vtFwW b + 11) = 134 + (2 * b + 1) := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_push : ∀ i < 51,
     vtWKeys.idxOf (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
-      139 + 2 * i ∧
+      140 + 2 * i ∧
     vtWKeys.idxOf (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
-      139 + (2 * i + 1) := by decide +kernel
+      140 + (2 * i + 1) := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_count : ∀ i < 45,
     vtWKeys.idxOf (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1) =
-      241 + 2 * i ∧
+      242 + 2 * i ∧
     vtWKeys.idxOf (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
-      241 + (2 * i + 1) := by decide +kernel
+      242 + (2 * i + 1) := by decide +kernel
 
-theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 110 + (3 * t + c)) :
+theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 111 + (3 * t + c)) :
     (vtWVals H B).getD j 0 =
       [paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t), PadLead (H.τ t) (vtRw H.rows t),
         PadRest (H.τ t) (vtRw H.rows t)].getD c 0 := by
@@ -144,7 +144,7 @@ theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 110 + (3 
     List.getD_append _ _ _ _ (by rw [flatMap_len (S := 3) _ _ (fun _ ↦ rfl)]; omega)]
   exact getD_flatMap_const' (S := 3) 0 _ (fun _ ↦ rfl) 6 t c ht hc
 
-theorem vtWVals_misc {k j : ℕ} (hk : k < 5) (hj : j = 110 + (18 + k)) :
+theorem vtWVals_misc {k j : ℕ} (hk : k < 5) (hj : j = 111 + (18 + k)) :
     (vtWVals H B).getD j 0 =
       [0, H.bv, gen ^ H.n, indexMle (H.point.take H.lm), indexMle (H.point.take 19)].getD k 0 := by
   subst hj
@@ -152,7 +152,7 @@ theorem vtWVals_misc {k j : ℕ} (hk : k < 5) (hj : j = 110 + (18 + k)) :
     getD_append_len (flatMap_len (S := 3) _ _ (fun _ ↦ rfl)),
     List.getD_append _ _ _ _ (by simp; omega)]
 
-theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 110 + (18 + (5 + (2 * b + c)))) :
+theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 111 + (18 + (5 + (2 * b + c)))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesP H.lm H.τ) H.μ b H.point, gen ^ H.offP.getD b 0].getD c 0 := by
   subst hj
@@ -162,7 +162,7 @@ theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 110 + (18 +
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 3 b c hb hc
 
 theorem vtWVals_push {i c j : ℕ} (hi : i < 51) (hc : c < 2)
-    (hj : j = 110 + (18 + (5 + (6 + (2 * i + c))))) :
+    (hj : j = 111 + (18 + (5 + (6 + (2 * i + c))))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point, gen ^ H.offP.getD (3 + i) 0].getD c 0 := by
   subst hj
@@ -173,7 +173,7 @@ theorem vtWVals_push {i c j : ℕ} (hi : i < 51) (hc : c < 2)
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 51 i c hi hc
 
 theorem vtWVals_count {i c j : ℕ} (hi : i < 45) (hc : c < 2)
-    (hj : j = 110 + (18 + (5 + (6 + (102 + (2 * i + c)))))) :
+    (hj : j = 111 + (18 + (5 + (6 + (102 + (2 * i + c)))))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesC H.τ) H.μ i H.point, gen ^ H.offC.getD i 0].getD c 0 := by
   subst hj
@@ -192,10 +192,10 @@ theorem vtW_ok : VtWOk H B (vtW H B) where
     · rw [vtW, k0, vtWVals_pads H B ht (c := 0) (by norm_num) (by omega)]; rfl
     · rw [vtW, k1, vtWVals_pads H B ht (c := 1) (by norm_num) (by omega)]; rfl
     · rw [vtW, k2, vtWVals_pads H B ht (c := 2) (by norm_num) (by omega)]; rfl
-  w2768 := by rw [vtW, vtWKeys_misc.1, vtWVals_misc H B (k := 0) (by norm_num) (by omega)]; rfl
-  w2639 := by
+  w704 := by rw [vtW, vtWKeys_misc.1, vtWVals_misc H B (k := 0) (by norm_num) (by omega)]; rfl
+  w581 := by
     rw [vtW, vtWKeys_misc.2.1, vtWVals_misc H B (k := 1) (by norm_num) (by omega)]; rfl
-  w5817 := by
+  w2500 := by
     rw [vtW, vtWKeys_misc.2.2.1, vtWVals_misc H B (k := 2) (by norm_num) (by omega)]; rfl
   hwI := by
     refine ⟨?_, ?_⟩
