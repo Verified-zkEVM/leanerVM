@@ -16,36 +16,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `check_opening_terminal`, window 5. -/
-theorem w18_5 : shareWin 18 (snapsOf 18) 5 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 19. -/
+theorem w20_19 : shareWin 20 (snapsOf 20) 19 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `check_opening_terminal`, window 6. -/
-theorem w18_6 : shareWin 18 (snapsOf 18) 6 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, once. -/
-theorem st19 : shareStatic 19 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 0. -/
-theorem w19_0 : shareWin 19 (snapsOf 19) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 1. -/
-theorem w19_1 : shareWin 19 (snapsOf 19) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 2. -/
-theorem w19_2 : shareWin 19 (snapsOf 19) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 3. -/
-theorem w19_3 : shareWin 19 (snapsOf 19) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sub`, window 4. -/
-theorem w19_4 : shareWin 19 (snapsOf 19) 4 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 20. -/
+theorem w20_20 : shareWin 20 (snapsOf 20) 20 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
