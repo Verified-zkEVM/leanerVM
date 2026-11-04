@@ -189,7 +189,7 @@ theorem osBases_k (c : OsCfg) (tch bd ls : ℕ) : ∀ (lvl : ℕ) (levels : List
 
 /-- **Every level's basis row, honestly.** -/
 theorem osBases_complete {c : OsCfg} {tch bd ls : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E) :
-    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), tch < k → bd < k → ls < k → 34 ≤ k →
+    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), tch < k → bd < k → ls < k → 164 ≤ k →
       (∀ i (hi : i < levels.length), BasisMem rd σ c tch bd ls (lvl + i) levels[i] (β (lvl + i))
         (X (lvl + i))) →
       BlkF C rd σ k (osBases c tch bd ls lvl levels k).2 (basesF c tch bd β X lvl levels k σ)

@@ -117,7 +117,7 @@ def ptrsOf (σ : Val) : OsPtrs :=
   ⟨σ (.n osCaps), σ (.n osFlags), σ (.n osFmsg), σ (.n osRoots), σ (.n osFch), σ (.n osBetas),
     σ (.n osQw), σ (.n osQpos), σ (.n osQbp), σ (.n osOodz), σ (.n osOod)⟩
 
-theorem ptrsOf_agree {σ σ' : Val} {k : ℕ} (hk : 34 ≤ k) (h : AgreeBelow k σ σ') :
+theorem ptrsOf_agree {σ σ' : Val} {k : ℕ} (hk : 164 ≤ k) (h : AgreeBelow k σ σ') :
     ptrsOf σ' = ptrsOf σ := by
   simp only [ptrsOf, h _ (show osCaps < k by unfold osCaps; omega),
     h _ (show osFlags < k by unfold osFlags; omega), h _ (show osFmsg < k by unfold osFmsg; omega),
@@ -243,7 +243,7 @@ def lvF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) (σ : Val) (D : LvDat) :
 theorem osLevel_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) {D : LvDat}
     {F : Fs} {q : List E} {t cur : E} (hF : st.F σ = F) (hq : st.quad σ = q) (ht : σ (.n st.t) = t)
     (hcur : st.cur σ = cur)
-    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hpad : PadOk σ st.pad)
     (hpk : ∀ p, st.pad = some p → p + 4 < st.k) {P : OsPtrs} (hP : ptrsOf σ = P)
     (h : LvH C rd P c lvl lv D F q t cur) :
@@ -305,7 +305,7 @@ structure LvsSt (σ : Val) (st : OsSt) (F : Fs) (q : List E) (t cur : E) : Prop 
   fs : st.fs.length = 5
   co : st.co ≤ 8
   below : st.Below
-  k : 34 ≤ st.k
+  k : 164 ≤ st.k
   can : AllCanonical (st.fsv σ)
   pad : PadOk σ st.pad
   pk : ∀ p, st.pad = some p → p + 4 < st.k

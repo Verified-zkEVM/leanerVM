@@ -48,11 +48,12 @@ def commitF2 (σ : Val) (st : OsSt) (ra rb : E) (m : ℕ) (y c0 c2 nonce : E) : 
     (nonce, dsPowNonce)]⟩
 
 /-- The block's values, by segments from its first value. -/
-def commitSegs (σ : Val) (st : OsSt) (lvl m : ℕ) (ra rb y c0 c2 nonce : E) :
+def commitSegs (plan : List (ℕ × ℕ × ℕ)) (σ : Val) (st : OsSt) (lvl m : ℕ) (ra rb y c0 c2 nonce : E) :
     List (ℕ × (ℕ → E)) :=
   [(5, fun i ↦ (st.fsv σ).getD i 0), (9, fsPackVals (σ (.n st.w0)) 1),
     (9, fsPackVals (σ (.n st.w1)) 1), (1, fun _ ↦ ra), (9, fsPackVals ra 1), (1, fun _ ↦ rb),
-    (9, fsPackVals rb 1), (2, fun _ ↦ 0), (1, fun _ ↦ gw ((lvl + 1) * ligColsCap)),
+    (9, fsPackVals rb 1), (2, fun _ ↦ 0),
+    (1, fun _ ↦ gw (osMatSD plan st.mats osOodz ((lvl + 1) * ligColsCap)).2),
     (1, fun _ ↦ σ (.n osOodz) * gw ((lvl + 1) * ligColsCap)),
     (5, fun i ↦ (commitRest σ st ra rb m).2.cap.getD i 0), (1, fun _ ↦ y), (9, fsPackVals y 1),
     (1, fun _ ↦ c0), (9, fsPackVals c0 1), (1, fun _ ↦ c2), (9, fsPackVals c2 1),
@@ -88,8 +89,8 @@ theorem squeezeN_cap_canonical : ∀ (n : ℕ) (F : Fs), AllCanonical F.cap →
   | 0, _, h => h
   | n + 1, _, _ => squeezeN_cap_canonical n _ (capOf_canonical _)
 
-theorem osCommit_below (lvl : ℕ) (lv : OsLv) {st : OsSt} (hb : st.Below) :
-    (osCommit lvl lv st).2.1.Below := by
+theorem osCommit_below (plan : List (ℕ × ℕ × ℕ)) (lvl : ℕ) (lv : OsLv) {st : OsSt} (hb : st.Below) :
+    (osCommit plan lvl lv st).2.1.Below := by
   have := hb.w0; have := hb.w1; have := hb.c; have := hb.b; have := hb.a; have := hb.t
   have := hb.cb
   refine ⟨fun f hf ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -97,15 +98,16 @@ theorem osCommit_below (lvl : ℕ) (lv : OsLv) {st : OsSt} (hb : st.Below) :
   all_goals omega
 
 /-- **The next commitment and its proof of work, honestly.** -/
-theorem osCommit_complete
+theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
     (hCan : ∀ args rets, MeaningAssertCanonical args rets → C "assert_canonical" args rets)
     {lvl : ℕ} {lv : OsLv}
     (hOod : ∀ args rets, MeaningOpeningOodPoint lv.logCols rd args rets →
       C ("opening_ood_point__L" ++ natStr lv.logCols) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k)
+    {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hb : st.Below) (hk : 164 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
+    (hm : MatsOk σ st.mats) (hmb : MatsBelow st.k st.mats)
     {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestHalves d)
     (hrd : ReadsAt rd (st.cur σ) [ra, rb, y, c0, c2, nonce])
     (hr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) ra)
@@ -117,14 +119,14 @@ theorem osCommit_complete
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
     (hpow : powOk Whir.queryGrindingBits nonce
       (commitF2 σ st ra rb lv.logCols y c0 c2 nonce).squeeze.1 = true) :
-    BlkF C rd σ st.k (osCommit lvl lv st).2.1.k
-      (fun j ↦ segLookup (commitSegs σ st lvl lv.logCols ra rb y c0 c2 nonce) (j - st.k))
-      ((osCommit lvl lv st).1 ++
-        [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit lvl lv st).2.2] []])
-      (fun σ' ↦ CommitOutC σ' st (osCommit lvl lv st).2.1
+    BlkF C rd σ st.k (osCommit plan lvl lv st).2.1.k
+      (fun j ↦ segLookup (commitSegs plan σ st lvl lv.logCols ra rb y c0 c2 nonce) (j - st.k))
+      ((osCommit plan lvl lv st).1 ++
+        [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit plan lvl lv st).2.2] []])
+      (fun σ' ↦ CommitOutC σ' st (osCommit plan lvl lv st).2.1
         (commitF2 σ st ra rb lv.logCols y c0 c2 nonce).perm ∧ AgreeBelow st.k σ σ') := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
-  set segs := commitSegs σ st lvl lv.logCols ra rb y c0 c2 nonce with hsegs
+  set segs := commitSegs plan σ st lvl lv.logCols ra rb y c0 c2 nonce with hsegs
   have hlen : segLen segs = 110 := by simp [hsegs, commitSegs, segLen]
   intro σ' ha hv
   have HV : ∀ j < segLen segs, σ' (.n (st.k + j)) = segLookup segs j := fun j hj ↦ by
@@ -169,7 +171,8 @@ theorem osCommit_complete
     (by simp [hsegs, segLen, commitSegs]) (by simp [hsegs, commitSegs])
   have va : ∀ i < 2, σ' (.n (k + 43 + i)) = 0 := fun i hi ↦
     seg 7 (by omega) 43 (by simp [hsegs, segLen, commitSegs]) i (by simp [hsegs, commitSegs]; omega)
-  have v45 : σ' (.n (k + 45)) = gw ((lvl + 1) * ligColsCap) := one 8 (by omega) 45
+  have v45 : σ' (.n (k + 45)) = gw (osMatSD plan st.mats osOodz ((lvl + 1) * ligColsCap)).2 :=
+    one 8 (by omega) 45
     (by simp [hsegs, segLen, commitSegs]) (by simp [hsegs, commitSegs])
   have v46 : σ' (.n (k + 46)) = σ (.n osOodz) * gw ((lvl + 1) * ligColsCap) := one 9 (by omega) 46
     (by simp [hsegs, segLen, commitSegs]) (by simp [hsegs, commitSegs])
@@ -241,7 +244,7 @@ theorem osCommit_complete
       segLen (segs.take m) = o → segs[m].1 = 9 → segs[m].2 = fsPackVals (σ' x) t →
       FsPackOk σ' x (k + o) t := fun m o hm x t ho h9 hx ↦
     fsPackOk_of_vals fun i hi ↦ pk m o hm ho h9 (σ' x) t hx i hi
-  have SL : ∀ m, segLen (segs.take m) = segLen ((commitSegs σ st lvl lv.logCols ra rb y c0 c2
+  have SL : ∀ m, segLen (segs.take m) = segLen ((commitSegs plan σ st lvl lv.logCols ra rb y c0 c2
       nonce).take m) := fun _ ↦ rfl
   have pc : ∀ (m o : ℕ) (hm : m < segs.length) (x : E) (t : ℕ), segLen (segs.take m) = o →
       segs[m].1 = 9 → segs[m].2 = fsPackVals x t →
@@ -270,7 +273,7 @@ theorem osCommit_complete
   simp only [Nat.add_assoc, Nat.reduceAdd] at pw0 pw1 pra prb py pc0 pc2 pn
   have sc := fun x t ↦ scalarCells_canonical x t
   -- the new capacity
-  have hfsv' : (osCommit lvl lv st).2.1.fsv σ' = capOf F2.perm := by
+  have hfsv' : (osCommit plan lvl lv st).2.1.fsv σ' = capOf F2.perm := by
     have o8 := vout 8 (by omega); have o9 := vout 9 (by omega); have o10 := vout 10 (by omega)
     have o11 := vout 11 (by omega); have o12 := vout 12 (by omega)
     simp only [Nat.add_assoc, Nat.reduceAdd] at o8 o9 o10 o11 o12
@@ -278,10 +281,15 @@ theorem osCommit_complete
     rw [o8, o9, o10, o11, o12]
     simp [cells13F, capOf]
   refine ⟨?_, ⟨hfsv', ?_, by simp [osCommit], by rw [hfsv']; exact capOf_canonical _, rfl,
-    osCommit_below lvl lv hb, rfl, rfl, rfl⟩, ha⟩
+    osCommit_below plan lvl lv hb, rfl, rfl, rfl⟩, ha⟩
+  have hoff0 : (lvl + 1) * ligColsCap ≠ 0 := by unfold ligColsCap; omega
+  have hsd := osMatSD_ok (plan := plan) hm (base := osOodz) hlvl
+  have hsrc : σ' (.n (osMatSD plan st.mats osOodz ((lvl + 1) * ligColsCap)).1) =
+      σ (.n (osMatSD plan st.mats osOodz ((lvl + 1) * ligColsCap)).1) :=
+    hagree _ (osMatSD_lt hmb (by unfold osOodz; omega))
   · simp only [osCommit, allOk_append]
-    rw [← hkdef]
-    refine ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩
+    rw [← hkdef, osMatP_eq _ hoff0]
+    refine ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩
     · -- the capacity copied
       rw [hf]
       simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, allOk_cons,
@@ -308,14 +316,17 @@ theorem osCommit_complete
     · refine (allOk_fsNextT _ _ _).mpr ⟨by rw [vrb]; exact hcur 1 (by omega), ?_⟩
       exact fp 6 34 (by omega) (.n (k + 33)) dsObserve (by simp [hsegs, segLen, commitSegs])
         (by simp [hsegs, commitSegs]) (by simp [hsegs, commitSegs, vrb, dsObserve])
-    · simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons, List.map_nil,
-        List.cons_append, List.nil_append, osRun, List.range_succ, List.range_zero, hf,
-        Nat.add_zero]
+    · simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons, List.map_nil]
       have a43 := va 0 (by omega); have a44 := va 1 (by omega)
       rw [Nat.add_zero] at a43
-      refine ⟨hCan _ _ ⟨by rw [vra]; exact hcanr.1, by rw [a43]⟩,
+      exact ⟨hCan _ _ ⟨by rw [vra]; exact hcanr.1, by rw [a43]⟩,
         hCan _ _ ⟨by rw [vrb]; exact hcanr.2, by rw [a44]⟩, by rw [vra, hrt]; exact hr0,
-        by rw [vrb, hrt]; exact hr1, v45, by rw [v46, v45, hoz], hOod _ _ ?_⟩
+        by rw [vrb, hrt]; exact hr1⟩
+    · simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
+      exact ⟨v45, by rw [v46, v45, hsrc, gw_eq hsd.1, hsd.2, gw_eq hlvl]⟩
+    · simp only [allOk_cons, allOk_nil, and_true, StmtOk, List.map_cons, List.map_nil, osRun,
+        List.range_succ, List.range_zero, hf, Nat.add_zero, List.cons_append, List.nil_append]
+      refine hOod _ _ ?_
       have cq : ∀ i < 5, σ' (.n (k + 47 + i)) = [q0, q1, q2, q3, q4].getD i 0 := vcap
       have q0' := cq 0 (by omega); have q1' := cq 1 (by omega); have q2' := cq 2 (by omega)
       have q3' := cq 3 (by omega); have q4' := cq 4 (by omega)

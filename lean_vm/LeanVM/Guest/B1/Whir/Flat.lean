@@ -153,6 +153,82 @@ theorem osMatP_val {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base o
     · obtain ⟨hd, hs⟩ := osMatSrc_ok (plan := plan) hm (base := base) h
       rw [gw_eq hd, hs]
 
+/-- The source and distance `osMatP` multiplies: a repeated materialization's, else `osMatSrc`'s. -/
+def osMatSD (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off : ℕ) : ℕ × ℕ :=
+  match mats.find? (fun m ↦ m.base == base && m.exp == off) with
+  | some m => (m.src, m.dist)
+  | none => osMatSrc plan mats base off
+
+theorem osMatP_eq {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off : ℕ} (k : ℕ)
+    (h0 : off ≠ 0) : osMatP plan mats base off k =
+      ([.atom (.const (.n k) (gw (osMatSD plan mats base off).2)),
+        .atom (.mul (.n (k + 1)) (.n (osMatSD plan mats base off).1) (.n k))], k + 1, k + 2) := by
+  unfold osMatP osMatSD
+  simp only [h0, ↓reduceIte]
+  split <;> rename_i h <;> simp only [h]
+
+/-- The source times `g^dist` is the base times `g^off`. -/
+theorem osMatSD_ok {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} (hm : MatsOk σ mats)
+    {base off : ℕ} (h : off < u128Bound) :
+    (osMatSD plan mats base off).2 < u128Bound ∧ σ (.n (osMatSD plan mats base off).1) *
+      gen ^ (osMatSD plan mats base off).2 = σ (.n base) * gen ^ off := by
+  unfold osMatSD
+  split
+  · rename_i m hf
+    have he := List.find?_some hf
+    simp only [Bool.and_eq_true, beq_iff_eq] at he
+    obtain ⟨-, hd, -, hs⟩ := hm m (List.mem_of_find?_eq_some hf)
+    exact ⟨hd, by rw [hs, he.1, he.2]⟩
+  · exact osMatSrc_ok hm h
+
+/-- The materializations' values lie below `K`. -/
+def MatsBelow (K : ℕ) (mats : List OsMat) : Prop := ∀ m ∈ mats, m.out < K ∧ m.src < K ∧ m.base < K
+
+/-- The source of a materialization lies below `K`. -/
+theorem osMatSD_lt {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off K : ℕ}
+    (hb : MatsBelow K mats) (hbase : base < K) : (osMatSD plan mats base off).1 < K := by
+  unfold osMatSD osMatSrc
+  split
+  · rename_i m hf; exact (hb m (List.mem_of_find?_eq_some hf)).2.1
+  · split
+    · split
+      · rename_i m hf; split_ifs
+        · exact (hb m (List.mem_of_find?_eq_some hf)).1
+        · exact hbase
+      · exact hbase
+    · exact hbase
+
+/-- Materializations below `K` keep their facts on a valuation agreeing below `K`. -/
+theorem matsOk_agree {σ' : Val} {mats : List OsMat} {K : ℕ} (hm : MatsOk σ mats)
+    (hb : MatsBelow K mats) (ha : ∀ i < K, σ' (.n i) = σ (.n i)) : MatsOk σ' mats := by
+  intro m hm'
+  obtain ⟨e, d, o, s⟩ := hm m hm'
+  obtain ⟨b1, b2, b3⟩ := hb m hm'
+  exact ⟨e, d, by rw [ha _ b1, ha _ b3]; exact o, by rw [ha _ b2, ha _ b3]; exact s⟩
+
+/-- One more materialization at `k + 1 < K'` from a base below `K ≤ K'` stays below `K'`. -/
+theorem matsBelow_after {plan : List (ℕ × ℕ × ℕ)} {mats : List OsMat} {base off k K K' : ℕ}
+    (hb : MatsBelow K mats) (hbase : base < K) (hK : K ≤ K') (hk : k + 1 < K') :
+    MatsBelow K' (osMatsAfter plan mats base off k) := by
+  have hb' : MatsBelow K' mats := fun m hm ↦ by
+    obtain ⟨h1, h2, h3⟩ := hb m hm; exact ⟨by omega, by omega, by omega⟩
+  unfold osMatsAfter
+  split_ifs
+  · exact hb'
+  · split
+    · exact hb'
+    · intro m hm
+      rcases List.mem_append.mp hm with hm | hm
+      · exact hb' m hm
+      · simp only [List.mem_singleton] at hm
+        subst hm
+        refine ⟨hk, ?_, show base < K' by omega⟩
+        have := osMatSD_lt (plan := plan) (off := off) hb hbase
+        unfold osMatSD at this
+        rename_i hf
+        rw [hf] at this
+        exact lt_of_lt_of_le this hK
+
 theorem osMatP_next (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k : ℕ) :
     k ≤ (osMatP plan mats base off k).2.2 := by
   unfold osMatP; split_ifs <;> simp

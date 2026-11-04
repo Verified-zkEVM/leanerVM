@@ -44,8 +44,8 @@ def bodyLvs (c : OsCfg) (σ : Val) (c0 c2 : E) (Ds : List LvDat) : Fs × List E 
   lvsOut c 0 c.levels Ds (headSponge σ c0 c2) [c0, σ (.n 5) + c2, c2] (σ (.n 5))
     (σ (.n 8) * gen ^ 2)
 
-theorem osTail_bounds (c : OsCfg) (st : OsSt) (hk : 34 ≤ st.k) :
-    st.k ≤ (osTail c st).2.1.k ∧ 34 ≤ (osTail c st).2.1.k ∧
+theorem osTail_bounds (c : OsCfg) (st : OsSt) (hk : 164 ≤ st.k) :
+    st.k ≤ (osTail c st).2.1.k ∧ 164 ≤ (osTail c st).2.1.k ∧
       (osTail c st).2.2 < (osTail c st).2.1.k ∧ (osTail c st).2.1.t < (osTail c st).2.1.k := by
   rw [osTail_eq]
   dsimp only
@@ -111,12 +111,12 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
   unfold bodyF
   obtain ⟨-, hs10, hP10, -⟩ := osHead_complete (C := C) σ P h0 h2 hr0 hr1 hcan _
     (agree_fill _ _ _ _) (range_fill _ _ _ _)
-  have hlk : 34 ≤ (osLvSt c).k := ((osLevels_complete c.levels Ds 0 (osHead c).2 _ _ _ _ _ hs10
+  have hlk : 164 ≤ (osLvSt c).k := ((osLevels_complete c.levels Ds 0 (osHead c).2 _ _ _ _ _ hs10
     hP10 hlv) _ (agree_fill _ _ _ _) (range_fill _ _ _ _)).2.2.1
   have b5 : (osTlSt c).2.1.k + 6 ≤ osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2 := osFinEnd_ge _ _ _
   have hb := osTail_bounds c (osLvSt c) hlk
   have b1 : (osLvSt c).k ≤ (osTlSt c).2.1.k := hb.1
-  have b2 : 34 ≤ (osTlSt c).2.1.k := hb.2.1
+  have b2 : 164 ≤ (osTlSt c).2.1.k := hb.2.1
   have b3 : (osTlSt c).2.2 < (osTlSt c).2.1.k := hb.2.2.1
   have b4 : (osTlSt c).2.1.t < (osTlSt c).2.1.k := hb.2.2.2
   -- the head

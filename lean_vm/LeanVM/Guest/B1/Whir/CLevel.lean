@@ -69,7 +69,7 @@ theorem osLevel_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt
       C ("opening_ood_point__L" ++ natStr lv.logCols) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     (hlvl : (lvl + 1) * ligColsCap < u128Bound)
     {xs : List E} (hxl : xs.length = 2 * lv.folds) (hrd : ReadsAt rd (st.cur σ) xs)
@@ -241,7 +241,7 @@ theorem osLevel_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (
       args.getD 8 0 = σ (.n osFmsg) → C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     {xs : List E} (hxl : xs.length = 2 * lv.folds) (hrd : ReadsAt rd (st.cur σ) xs)
     (hst : ∀ j, j < lv.folds → LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j)

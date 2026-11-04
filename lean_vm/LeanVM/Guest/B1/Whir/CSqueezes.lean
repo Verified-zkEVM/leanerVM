@@ -64,7 +64,7 @@ def sqzSegs (c : OsCfg) (lv : OsLv) (st : OsSt) (sqz : E) (F : Fs) : List (ℕ �
 
 theorem osSqueezes_completeC {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
     (hn0 : 0 < lv.squeezes) (hn5 : lv.squeezes * 5 < u128Bound)
-    (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
+    (hfs : st.fs.length = 5) (hb : st.Below) (hk : 164 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
     (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
     (hm : ∀ j < lv.squeezes, SqNextMem rd sqz (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)

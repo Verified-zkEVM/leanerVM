@@ -67,7 +67,7 @@ def queriesF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) (σ : Val)
 
 /-- **A level's queries block, honestly.** -/
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {lam lamN : ℕ} {s : OsSt} (σ : Val)
-    (hb : s.Below) (hk : 34 ≤ s.k) (hl : lam < s.k) (hlN : lamN < s.k)
+    (hb : s.Below) (hk : 164 ≤ s.k) (hl : lam < s.k) (hlN : lamN < s.k)
     (hbo : lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧ lv.capOff < u128Bound ∧
       lv.posOff < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < u128Bound)
     (wp r0 r1 sum ic0 ic2 : E)
