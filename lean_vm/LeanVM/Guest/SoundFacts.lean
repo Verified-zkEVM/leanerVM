@@ -18,8 +18,9 @@ public import LeanVM.Guest.CertName
 What `Sound.lean` reads off the certificates and the kernel's checks (`Checked.all_ok`), none of
 it about the semantics of `KECCAK`: every window of every function passes (`winOk_of`), the jump
 table the checks read is the one `__jump_tables` writes (`jtHolds_of`), the windows hand nothing
-on but in `main` (after `exponent_tables`, `main_cut`) and `verify_sub` (function `19`, from its
-call of `check_opening_terminal`, `vs_cut`), and `main`'s certificate (`main_facts`).
+on but in `main` (after `exponent_tables`, `main_cut`), `verify_sub` (function `19`, from its calls
+of `verify_tables`, `vs_cut1`, and `check_opening_terminal`, `vs_cut`) and the walks
+(`Checked.oblFns`), and `main`'s certificate (`main_facts`).
 -/
 
 namespace LeanVM.Guest.End
@@ -116,19 +117,30 @@ theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j'
 
 /-! ## `verify_sub`'s window -/
 
-theorem vs_cuts : (certOf 19).cuts.length = 1 := by decide +kernel
+theorem vs_cuts : (certOf 19).cuts.length = 2 := by decide +kernel
 
 /-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3242-3250`): `kb[0] = g^0`, the
 memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, keccak's `τ`,
 below `g^23` (`τ + 6` is a column's log, at most `28`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
 
-/-- `verify_sub`'s second window starts at its call of `check_opening_terminal` (statement
-`1592`) and takes the bound of each of the `8` entries of `kappa_base` (the value `139`). -/
-theorem vs_cut : ((certOf 19).cutAt 1).start = 1592 ∧
-    ((certOf 19).cutAt 1).known =
-      (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
+/-- `verify_sub`'s bounds of the tables' certified logs: entry `t < 7` of `dims_g` (the value
+`127`) among `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
+def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := (List.range 7).map (fun t ↦ (c, t, 34))
+
+/-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `552`) and takes
+the bound of each of the `7` entries of `dims_g` (the value `127`). -/
+theorem vs_cut1 : ((certOf 19).cutAt 1).start = 552 ∧
+    ((certOf 19).cutAt 1).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
+
+/-- `verify_sub`'s third window starts at its call of `check_opening_terminal` (statement
+`1592`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
+value `139`). -/
+theorem vs_cut : ((certOf 19).cutAt 2).start = 1592 ∧
+    ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ++
+      (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
+    ((certOf 19).cutAt 2).knownIf = [] ∧ ((certOf 19).cutAt 2).sems = [] := by decide +kernel
 
 theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 := by decide +kernel
 

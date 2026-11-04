@@ -99,7 +99,8 @@ theorem os_cutsKnown {j m : ℕ} (hm : m < 28) (hb : (coreOf j).body = osBody (o
   have ho : ((osCfg m).levels.getD ℓ default).queries % 2 * (if ℓ = 0 then 1 else 0) < 2 := by
     split_ifs <;> omega
   have hbase : (if ℓ = 0 then 1 else 0) < 2 := by split_ifs <;> omega
-  rw [ht1, semRel_impL htW, ← semRel_lt htW, semRel_main ho hcd hbase htW]
+  have htW' := htW.trans tagGkr_lt
+  rw [ht1, semRel_impL htW', ← semRel_lt htW', semRel_main ho hcd hbase htW]
   intro hx
   rw [getD_map_lt (by omega)] at hx
   rw [getD_map_lt (by omega), getD_map_lt (by omega), hx, hbp, Exec.imm_of_ofBits hl0,

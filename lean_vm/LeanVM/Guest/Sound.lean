@@ -21,15 +21,18 @@ on that run (`Check.EnteredAt`).
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
   the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
-  `verify_sub` (function `19`), whose second window starts at its call of
-  `check_opening_terminal`, the bounds of the `8` entries of `kappa_base` from `VsKnown`, over
-  the exponent table its precondition carries; in the windowed Merkle walks, `WalkKnown`.
+  `verify_sub` (function `19`), whose second window starts at its call of `verify_tables`, the
+  bounds of the `7` entries of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
+  `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
+  `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks and
+  `verify_bus_gkr`'s layer loop, `WalkKnown`.
 * `b2_main`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
   written. Its second window starts after `exponent_tables`, whose return it knows to be the
   table (`ExpTablesSound`).
 
-`VsKnown` and `ExpTablesSound` are statements about the core IR alone (`coreProgram.Rel`), B1's
-to prove (`verify_sub`'s callees `verify_tables` and `certify_placement`, and `exponent_tables`);
+`VsDimsKnown`, `VsKnown` and `ExpTablesSound` are statements about the core IR alone
+(`coreProgram.Rel`), B1's to prove (`verify_sub`'s callees `verify_tables` and
+`certify_placement`, and `exponent_tables`);
 `WalkKnown` is stated at the certificates' cuts, B1's core IR facts on the walks read through
 the certificates' cells. The theorems here take them as hypotheses.
 
@@ -57,6 +60,17 @@ def VsKnown : Prop :=
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1592) True (fun _ ↦ True) →
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
 
+/-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
+dims_g known'): on every memory image, over the exponent table at `verify_sub`'s argument `4`, its
+first `552` statements, up to its call of `verify_tables`, put entry `t < 7` of `dims_g` (the
+value `127`, the tables' certified logs) among the powers `g^e`, `e < 34`, which `verify_tables`
+dispatches on. -/
+def VsDimsKnown : Prop :=
+  ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
+    B1.ExpTables L.read (σ (.n 4)) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True (fun _ ↦ True) →
+      ∀ t < 7, ∃ e < 34, LoadHolds L.read (σ (.n 127)) t (ofK (addressOfIndex e))
+
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table. -/
 def ExpTablesSound : Prop :=
   ∀ (rd : Reader) (q : E), coreProgram.Rel rd "exponent_tables" [] [q] → B1.ExpTables rd q
@@ -77,46 +91,73 @@ def CutsKnown (j : ℕ) : Prop :=
 
 /-! ## `verify_sub`'s obligation -/
 
-theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ)
-    (h32 : κ ≤ maxLogMem) {fp : K} (hsem : SemHolds glob L fp (certOf 19).sem) {i : ℕ}
+/-- `verify_sub`'s first `552` statements hold under any longer prefix of its body. -/
+theorem vs_take552 {κ : ℕ} {L : MemoryImage κ} {σ : Val} {n : ℕ} (hn : 552 ≤ n)
+    (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take n) True
+      (fun _ ↦ True)) :
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True
+      (fun _ ↦ True) := by
+  obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hn
+  rw [List.take_add, holdsList_append] at hl
+  exact holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ trivial) (fun _ h ↦ h) hl
+
+theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ}
+    (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {fp : K}
+    (hsem : SemHolds glob L fp (certOf 19).sem) {i : ℕ}
     (hi : i ≤ (certOf 19).cuts.length) (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
       ((coreOf 19).body.take ((certOf 19).cutAt i).start) True (fun _ ↦ True)) :
     MemKnown L fp ((certOf 19).cutAt i).known ∧ MemIf L fp ((certOf 19).cutAt i).knownIf ∧
       SemHolds glob L fp ((certOf 19).cutAt i).sems := by
-  obtain rfl : i = 1 := by rw [vs_cuts] at hi; omega
-  obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
-  rw [hkn, hki, hsm]
-  refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
-  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
-  rw [hst, coreOf_19] at hl
   have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) := by
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
-  exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
+  have hdims (n : ℕ) (hn : 552 ≤ n)
+      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
+        ((coreOf 19).body.take n) True (fun _ ↦ True)) :
+      MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 127 0)) := by
+    intro m hm
+    obtain ⟨t, ht7, rfl⟩ := List.mem_map.mp hm
+    exact hvd L h16 h32 _ ht (vs_take552 hn hl) t (List.mem_range.mp ht7)
+  rw [vs_cuts] at hi
+  obtain rfl | rfl : i = 1 ∨ i = 2 := by omega
+  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1
+    rw [hkn, hki, hsm]
+    rw [hst] at hl
+    exact ⟨hdims 552 le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
+    rw [hkn, hki, hsm]
+    rw [hst] at hl
+    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
+    rcases List.mem_append.mp hm with hm | hm
+    · exact hdims 1592 (by omega) hl m hm
+    obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
+    exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
 
 /-! ## The walks' obligations -/
 
 /-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, ostack's
-`open_stacked`; REC-GUEST-IFACE 'tool: walk obligations — IMPLEMENTED'): the cut obligations
-(`CutsKnown`) of every function the certificates hand something on at its cuts (`Checked.oblFns`)
-but `main` and `verify_sub`. Checker K hands on there the window bounds of the windowed Merkle
-walk (`knownIf`: the dispatch selector `L[w·g^i]` below `g^(2^width)`, from
-`decode_query_windows`' range checks in `open_stacked`) and the walk's tuples at the calls (`sems`);
-B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the certificates' cells
-(`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`; `walkKnown_proved`). -/
+`open_stacked`, gkr's `verify_bus_gkr` and its layer loop `__loop6`; REC-GUEST-IFACE 'tool: walk
+obligations — IMPLEMENTED', 'tool: gkr obligations'): the cut obligations (`CutsKnown`) of every
+function the certificates hand something on at its cuts (`Checked.oblFns`) but `main` and
+`verify_sub`. Checker K hands on there the window bounds of the windowed Merkle walk (`knownIf`:
+the dispatch selector `L[w·g^i]` below `g^(2^width)`, from `decode_query_windows`' range checks in
+`open_stacked`), the parity of a GKR layer (`L[layer·g^12]` below `g^4`) and the tuples at the
+calls (`sems`); B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the
+certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`;
+`walkKnown_proved`). -/
 def WalkKnown : Prop :=
   ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ 19 → CutsKnown j
 
-/-- **Every callee's cut obligations**: `verify_sub`'s from `VsKnown`, the walks' from
-`WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/
-theorem cutsKnown_of (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) :
-    CutsKnown j := by
+/-- **Every callee's cut obligations**: `verify_sub`'s from `VsDimsKnown` and `VsKnown`, the
+walks' from `WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/
+theorem cutsKnown_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j)
+    (hj : j < nFns) : CutsKnown j := by
   intro κ L h16 h32 fp hmem hsem i hi h0 hl
   by_cases h19 : j = 19
   · subst h19
-    exact known_vs hvs h16 h32 hsem hi h0 hl
+    exact known_vs hvd hvs h16 h32 hsem hi h0 hl
   · by_cases ho : j ∈ Checked.oblFns
     · exact hwalk j ho (by omega) h19 L h16 h32 fp hmem hsem i hi h0 hl
     · exact known_of_plain (Checked.all_plain j (by omega) hj ho) hi h0

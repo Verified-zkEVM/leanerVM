@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.WalkKnownAll
 
-  The windowed Merkle walk's obligations, proved: every function the certificates hand something
-  on at its cuts, but `main` and `verify_sub`.
+  The walks' obligations, proved: every function the certificates hand something on at its cuts,
+  but `main` and `verify_sub`.
 -/
 
 module
@@ -21,20 +21,21 @@ public import LeanVM.Guest.WalkOs3
 
 `walkKnown_proved : WalkKnown`: the cut obligations (`CutsKnown`) of every function of
 `Checked.oblFns` but `main` (`1`) and `verify_sub` (`19`): `opening_queries`' specializations and
-loops (`WalkOq0.lean` to `WalkOq3.lean`, whir's `QueriesWalk` through b2's `WalkKnown.lean`), and
+loops (`WalkOq0.lean` to `WalkOq3.lean`, whir's `QueriesWalk` through b2's `WalkKnown.lean`),
 `open_stacked`'s candidates (`WalkOs0.lean` to `WalkOs3.lean`, from the decodes before each level's
-call, `WalkOsPre.lean`).
+call, `WalkOsPre.lean`), and `verify_bus_gkr` (`10`) and its layer loop `__loop6` (`91`), whose
+obligations (the layers' parities, `GkrPar`) the gkr track proves (`walkKnown_of_gkr`).
 -/
 
 namespace LeanVM.Guest.End
 
 @[expose] public section
 
-/-- **The walks' obligations, proved.** -/
-theorem walkKnown_proved : WalkKnown := by
+/-- **The walks' obligations**, given `verify_bus_gkr`'s and its layer loop's. -/
+theorem walkKnown_of_gkr (h10 : CutsKnown 10) (h91 : CutsKnown 91) : WalkKnown := by
   intro j hj h1 h19
   simp only [Checked.oblFns, List.mem_cons, List.not_mem_nil, or_false] at hj
-  rcases hj with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+  rcases hj with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
@@ -43,8 +44,8 @@ theorem walkKnown_proved : WalkKnown := by
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl
-  exacts [absurd rfl h1, absurd rfl h19, walk_304, walk_305, walk_306, walk_307, walk_308,
+    rfl | rfl
+  exacts [absurd rfl h1, h10, absurd rfl h19, h91, walk_304, walk_305, walk_306, walk_307, walk_308,
     walk_309, walk_310, walk_311, walk_312, walk_313, walk_314, walk_315, walk_316, walk_317,
     walk_318, walk_319, walk_320, walk_321, walk_322, walk_323, walk_324, walk_325, walk_326,
     walk_327, walk_328, walk_329, walk_330, walk_331, walk_436, walk_441, walk_445, walk_448,

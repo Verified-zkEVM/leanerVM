@@ -150,7 +150,7 @@ def osSemOk (C : Cert) (c : OsCfg) (start : ℕ) (t : ℕ × List ℕ) : Bool :=
     let base := if ℓ = 0 then 1 else 0
     let tW := walkTag (2 + base) (lv.queries % 2 * base) lv.depth lv.capDepth
     let N := lv.queries / (1 + base)
-    t.1 == impTag tW 1 (impImm t.1) && decide (tW < 2 ^ 32) && decide (lv.capDepth < 64) &&
+    t.1 == impTag tW 1 (impImm t.1) && decide (tW < tagGkr) && decide (lv.capDepth < 64) &&
       decide (N < u128Bound) && decide (K.ofBits (impImm t.1) = gpowK N) &&
       t.2.length == 2 && t.2.getD 0 0 == C.locs.getD (osPreBp c ℓ) 0 &&
       Nat.ble (osPre c ℓ).length start

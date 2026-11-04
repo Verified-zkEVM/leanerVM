@@ -51,8 +51,9 @@ choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only 
   `iv`, the public input's digest learns that the decoded seed and statement are `iv` and `s₀`,
   or holds an explicit Keccak-256 collision.
 
-They rest on B2 (`b2SoundL`: the kernel-checked certificates and `VsKnown`) and B1
-(`B1.Main.main_sound_V_of_sub` with `VerifySub.verify_sub_sound_w`).
+They rest on B2 (`b2SoundL`: the kernel-checked certificates, `VsDimsKnown`, `VsKnown` and
+the walks' obligations) and B1 (`B1.Main.main_sound_V_of_sub` with
+`VerifySub.verify_sub_sound_w`).
 -/
 
 namespace LeanVM.Guest.End
