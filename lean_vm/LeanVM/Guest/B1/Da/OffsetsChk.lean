@@ -16,11 +16,11 @@ set_option maxRecDepth 100000 in
 theorem off_ok : offOk Data.core31 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem offLoop_ok : ∀ b < 7, offLoopOk (coreProgram.getD (378 + b) default) b = true := by
+theorem offLoop_ok : ∀ b < 7, offLoopOk (coreProgram.getD (379 + b) default) b = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (378 + b) := by
+theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (379 + b) := by
   decide +kernel
 
 end
