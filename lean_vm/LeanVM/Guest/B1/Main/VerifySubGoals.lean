@@ -58,7 +58,7 @@ theorem childShape_bounds (hbl : bytecode.length = 2 ^ 23)
 at its announced stack log and rate, by a node of `Budget.FlatShape` for `vsTs`, the child's
 candidate among `open_stacked`'s 28. -/
 theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit fs cert)
-    (hap : Lift.RunsApart cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert 16 Bvk)
+    (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert 16 Bvk)
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTB fs cert fp seed s w
       (fun c t => ∀ hc : c < w.children.length,
@@ -71,7 +71,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   have hmem := List.getElem_mem hc
   set e := etB fs (mK0 (hData seed s w) fs fp) with he
   set outE := hP fs fp seed s w 6 + 24 * c with hout
-  have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hap W le_rfl hvk seed
+  have h := verify_sub_completeBT (fs := fs) (cert := cert) hbl hrf hcons W le_rfl hvk seed
     w.children[c] e outE
     (log2Lin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
     (hok _ hmem).stackLogAtLeastMinimum (hok _ hmem).streamWithinCap (Limits.verifyDeferredNZ_of_childOk (hok _ hmem))
