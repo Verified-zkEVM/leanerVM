@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `child_claim_list_last__L5`, window 0. -/
+/-- `claim_list_last__L14`, window 0. -/
 theorem w348_0 : WinOk 348 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_last__L6`, window 0. -/
+/-- `claim_list_last__L15`, window 0. -/
 theorem w349_0 : WinOk 349 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_last__L7`, window 0. -/
+/-- `claim_list_last__L16`, window 0. -/
 theorem w350_0 : WinOk 350 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_last__L8`, window 0. -/
+/-- `__loop17`, window 0. -/
 theorem w351_0 : WinOk 351 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_last__L9`, window 0. -/
+/-- `__loop17`, window 1. -/
+theorem w351_1 : WinOk 351 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop17`, window 2. -/
+theorem w351_2 : WinOk 351 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop17`, window 3. -/
+theorem w351_3 : WinOk 351 3 := winOk_of_C (by decide +kernel)
+
+/-- `__loop18`, window 0. -/
 theorem w352_0 : WinOk 352 0 := winOk_of_C (by decide +kernel)
-
-/-- `child_claim_list_last__L10`, window 0. -/
-theorem w353_0 : WinOk 353 0 := winOk_of_C (by decide +kernel)
-
-/-- `child_claim_list_last__L11`, window 0. -/
-theorem w354_0 : WinOk 354 0 := winOk_of_C (by decide +kernel)
-
-/-- `child_claim_list_last__L12`, window 0. -/
-theorem w355_0 : WinOk 355 0 := winOk_of_C (by decide +kernel)
 
 theorem ok348 : CheckOk 348 := checkOk_one (by decide +kernel) w348_0
 
@@ -47,15 +47,7 @@ theorem ok349 : CheckOk 349 := checkOk_one (by decide +kernel) w349_0
 
 theorem ok350 : CheckOk 350 := checkOk_one (by decide +kernel) w350_0
 
-theorem ok351 : CheckOk 351 := checkOk_one (by decide +kernel) w351_0
-
 theorem ok352 : CheckOk 352 := checkOk_one (by decide +kernel) w352_0
-
-theorem ok353 : CheckOk 353 := checkOk_one (by decide +kernel) w353_0
-
-theorem ok354 : CheckOk 354 := checkOk_one (by decide +kernel) w354_0
-
-theorem ok355 : CheckOk 355 := checkOk_one (by decide +kernel) w355_0
 
 end
 end LeanVM.Guest.Checked

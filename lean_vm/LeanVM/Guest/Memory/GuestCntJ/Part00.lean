@@ -9,11 +9,11 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kwjstaticRange_0 : kwjStaticRange 0 10 := by
+theorem kwjstaticRange_0 : kwjStaticRange 0 11 := by
   unfold kwjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwjstaticRange_10 : kwjStaticRange 10 8 := by
+theorem kwjstaticRange_11 : kwjStaticRange 11 7 := by
   unfold kwjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -21,10 +21,10 @@ theorem kwjstaticRange_18 : kwjStaticRange 18 1 := by
   unfold kwjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwjsplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 533) = true ∧
-    blockR (kwjlookJ 19) (kwjomLookJ 19) false [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 533)
+theorem kwjsplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 558) = true ∧
+    blockR (kwjlookJ 19) (kwjomLookJ 19) false [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 558)
       ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv false [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 533) = ([], []) := by
+    blockEnv false [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 558) = ([], []) := by
   decide +kernel
 
 end
