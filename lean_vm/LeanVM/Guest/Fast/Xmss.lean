@@ -52,7 +52,7 @@ theorem bitsN_lt (σ : Val) : bitsN σ 2 32 < 2 ^ (LeanXmss.layerCount * LeanXms
 /-- **The leanXMSS signature `verify_lean_xmss` checks**, read off its valuation (`xmssSigOf`). -/
 def xmssSigOfN (σ : Val) : LeanXmss.Signature :=
   ⟨⟨bitsN σ 2 32, bitsN_lt σ⟩, fun lay ↦
-    if lay.val = 0 then xPartN 196 2 xSel0 xPath0 σ else xPartN 12604 18 xSel1 xPath1 σ⟩
+    if lay.val = 0 then xPartN 196 2 xSel0 xPath0 σ else xPartN 12624 18 xSel1 xPath1 σ⟩
 
 /-! ## Equal to the original -/
 
@@ -70,13 +70,13 @@ theorem xPart0_eq (σ : Val) : xPart 0 196 σ = xPartN 196 2 xSel0 xPath0 σ := 
     rw [show 2 + (16 * 0 + l.val) = 2 + l.val by omega]
   simp only [xPart, xPartN, hc, hp, xRho, ↓reduceIte]
 
-theorem xPart1_eq (σ : Val) : xPart 1 12602 σ = xPartN 12604 18 xSel1 xPath1 σ := by
-  have hc (i : LeanXmss.ChainIndex) : cwStart (xW 1 12602) 19 (xA 1 12602 + 6) σ i.val =
+theorem xPart1_eq (σ : Val) : xPart 1 12622 σ = xPartN 12624 18 xSel1 xPath1 σ := by
+  have hc (i : LeanXmss.ChainIndex) : cwStart (xW 1 12622) 19 (xA 1 12622 + 6) σ i.val =
       .n (cwCell 19 xSel1 xFirst xRest xLast σ i.val) :=
-    cwStart_eq_cwCell (W := xW 1 12602) (G := 19) (b := 12627) xSel1_eq xTabs (by norm_num) σ
+    cwStart_eq_cwCell (W := xW 1 12622) (G := 19) (b := 12647) xSel1_eq xTabs (by norm_num) σ
       (by have := i.isLt; simp only [LeanXmss.chainCount] at this; omega)
   have hp (l : Fin LeanXmss.layerHeight) :
-      mSib σ (xBitOf 1) l.val (mBase (xNodeOf 1) 0 l.val (xLeafK 1 12602).2.1) =
+      mSib σ (xBitOf 1) l.val (mBase (xNodeOf 1) 0 l.val (xLeafK 1 12622).2.1) =
         sibN σ (18 + l.val) (xPath1.getD l.val 0) := by
     have hl : l.val < 16 := l.isLt
     rw [xPath1_eq, getD_map_range hl]
@@ -124,7 +124,7 @@ def xPartA (T : XmssTabs) (rho bitBase : ℕ) (sel path : Array ℕ) (σ : Val) 
 /-- **The leanXMSS signature `verify_lean_xmss` checks, off the tables `T`** (`xmssSigOfN`). -/
 def xmssSigOfA (T : XmssTabs) (σ : Val) : LeanXmss.Signature :=
   ⟨⟨bitsN σ 2 32, bitsN_lt σ⟩, fun lay ↦
-    if lay.val = 0 then xPartA T 196 2 T.sel0 T.path0 σ else xPartA T 12604 18 T.sel1 T.path1 σ⟩
+    if lay.val = 0 then xPartA T 196 2 T.sel0 T.path0 σ else xPartA T 12624 18 T.sel1 T.path1 σ⟩
 
 theorem xPartA_tabs (rho bitBase : ℕ) (sel path : List ℕ) (σ : Val) :
     xPartA xmssTabs rho bitBase sel.toArray path.toArray σ = xPartN rho bitBase sel path σ := by
