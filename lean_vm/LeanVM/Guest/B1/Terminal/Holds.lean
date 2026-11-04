@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
@@ -30,7 +30,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
     (hst : Tables.selector_tables_Spec) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :
     check_opening_terminal_Spec Lm.read :=
-  check_opening_terminal_holds_of eq_prefix_chain_holds (ring_switch_weight_holds rs_eq_run_holds)
+  check_opening_terminal_holds_of eq_prefix_chain_holds ring_switch_weight_holds
     hcs hst hμ Lm
 
 end
