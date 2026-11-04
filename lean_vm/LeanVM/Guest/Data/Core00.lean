@@ -20,7 +20,7 @@ set_option linter.all false
 
 namespace core0
 
-/-- `main`: statements 0 to 610 of the body. -/
+/-- `main`: statements 0 to 621 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.witness "meta" (.stack [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]))) ::
   .atom (.const (.n 8) (word 9272771591053052074 0 0)) ::
@@ -577,143 +577,195 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.load (.n 323) (.n 68) 254) ::
   .atom (.const (.n 324) (word 255 0 0)) ::
   .atom (.load (.n 324) (.n 68) 255) ::
-  .atom (.const (.n 325) (word 1 0 0)) ::
-  .atom (.add (.n 326) (.n 325) (.n 2)) ::
-  .atom (.const (.n 327) (word 1 0 0)) ::
-  .callIf (.n 326) "__loop2" [.n 327, .n 2, .n 40, .n 66, .n 52] ::
-  .atom (.const (.n 328) (word 1 0 0)) ::
-  .atom (.add (.n 329) (.n 328) (.n 5)) ::
-  .atom (.const (.n 330) (word 1 0 0)) ::
-  .callIf (.n 329) "__loop3" [.n 330, .n 5, .n 41, .n 67, .n 2, .n 55, .n 68] ::
-  .atom (.const (.n 331) (word 2 0 0)) ::
-  .atom (.mul (.n 332) (.n 6) (.n 331)) ::
-  .atom (.mul (.n 333) (.n 332) (.n 332)) ::
-  .atom (.hint (.allocDyn (.n 334) (.n 333))) ::
-  .atom (.mul (.n 335) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 336) (.n 334) (.n 335)) ::
-  .atom (.const (.n 337) (word 2 0 0)) ::
-  .atom (.add (.n 338) (.n 7) (.n 337)) ::
-  .ite (.n 338) [
-    .call "da_verify" [.n 49] [.n 339, .n 340, .n 341, .n 342],
-    .atom (.const (.n 343) (word 1 0 0)),
-    .atom (.const (.n 344) (word 0 0 0)),
-    .atom (.const (.n 345) (word 0 0 0)),
-    .atom (.const (.n 346) (word 0 0 0)),
-    .atom (.const (.n 347) (word 0 0 0)),
-    .atom (.const (.n 348) (word 9223372036854775808 0 0)),
-    .atom (.keccak [.n 339, .n 340, .n 341, .n 342, .n 343, .n 344, .n 345, .n 346, .n 348, .n 344, .n 345, .n 346, .n 347] [.n 349, .n 350, .n 351, .n 352, .n 353, .n 354, .n 355, .n 356, .n 357, .n 358, .n 359, .n 360, .n 361] false false),
-    .atom (.load (.n 349) (.n 336) 0),
-    .atom (.load (.n 350) (.n 336) 1)] [
-    .atom (.const (.n 362) (word 0 0 0)),
-    .atom (.load (.n 362) (.n 336) 0),
-    .atom (.const (.n 363) (word 0 0 0)),
-    .atom (.load (.n 363) (.n 336) 1)] ::
-  .atom (.mul (.n 364) (.n 6) (.n 6)) ::
-  .atom (.hint (.allocDyn (.n 365) (.n 364))) ::
-  .atom (.mul (.n 366) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 367) (.n 366) (.n 6)) ::
-  .atom (.mul (.n 368) (.n 367) (.n 367)) ::
-  .atom (.mul (.n 369) (.n 368) (.n 368)) ::
-  .atom (.mul (.n 370) (.n 369) (.n 369)) ::
-  .atom (.hint (.allocDyn (.n 371) (.n 370))) ::
-  .atom (.mul (.n 372) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 373) (.n 372) (.n 6)) ::
-  .atom (.mul (.n 374) (.n 373) (.n 373)) ::
-  .atom (.mul (.n 375) (.n 374) (.n 374)) ::
-  .atom (.mul (.n 376) (.n 375) (.n 375)) ::
-  .atom (.hint (.allocDyn (.n 377) (.n 376))) ::
-  .atom (.const (.n 378) (word 2 0 0)) ::
-  .atom (.mul (.n 379) (.n 6) (.n 378)) ::
-  .atom (.hint (.allocDyn (.n 380) (.n 379))) ::
-  .atom (.mul (.n 381) (.n 2) (.n 5)) ::
-  .atom (.load (.n 381) (.n 380) 0) ::
-  .atom (.const (.n 382) (word 1 0 0)) ::
-  .atom (.add (.n 383) (.n 382) (.n 6)) ::
-  .atom (.const (.n 384) (word 1 0 0)) ::
-  .callIf (.n 383) "__loop4" [.n 384, .n 6, .n 380, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41, .n 377, .n 334, .n 47, .n 48, .n 365, .n 49, .n 371] ::
-  .atom (.mul (.n 385) (.n 380) (.n 6)) ::
-  .atom (.load (.n 386) (.n 385) 0) ::
-  .atom (.assertEq (.n 386) (.n 42)) ::
-  .atom (.hint (.witness "da_pick" (.stack [.n 387]))) ::
-  .atom (.rangeCheck (.n 387) (.n 388) (.n 389) (.n 390) (.n 6)) ::
-  .atom (.add (.n 391) (.n 387) (.n 6)) ::
-  .atom (.const (.n 392) (word 1 0 0)) ::
-  .atom (.add (.n 393) (.n 7) (.n 392)) ::
-  .atom (.mul (.n 394) (.n 391) (.n 393)) ::
-  .atom (.const (.n 395) (word 0 0 0)) ::
-  .atom (.assertEq (.n 394) (.n 395)) ::
-  .atom (.mul (.n 396) (.n 387) (.n 387)) ::
-  .atom (.mul (.n 397) (.n 334) (.n 396)) ::
-  .atom (.hint (.alloc (.n 398) 24)) ::
-  .atom (.const (.n 399) (word 1 0 0)) ::
-  .atom (.add (.n 400) (.n 6) (.n 399)) ::
+  .atom (.const (.n 325) (word 3 0 0)) ::
+  .atom (.const (.n 326) (word 5 0 0)) ::
+  .atom (.const (.n 327) (word 6 0 0)) ::
+  .atom (.const (.n 328) (word 7 0 0)) ::
+  .atom (.const (.n 329) (word 9 0 0)) ::
+  .atom (.const (.n 330) (word 10 0 0)) ::
+  .atom (.const (.n 331) (word 11 0 0)) ::
+  .atom (.const (.n 332) (word 12 0 0)) ::
+  .atom (.const (.n 333) (word 13 0 0)) ::
+  .atom (.const (.n 334) (word 14 0 0)) ::
+  .atom (.const (.n 335) (word 15 0 0)) ::
+  .atom (.const (.n 336) (word 17 0 0)) ::
+  .atom (.const (.n 337) (word 18 0 0)) ::
+  .atom (.const (.n 338) (word 19 0 0)) ::
+  .atom (.const (.n 339) (word 20 0 0)) ::
+  .atom (.const (.n 340) (word 21 0 0)) ::
+  .atom (.const (.n 341) (word 22 0 0)) ::
+  .atom (.const (.n 342) (word 23 0 0)) ::
+  .atom (.const (.n 343) (word 24 0 0)) ::
+  .atom (.const (.n 344) (word 25 0 0)) ::
+  .atom (.const (.n 345) (word 26 0 0)) ::
+  .atom (.const (.n 346) (word 27 0 0)) ::
+  .atom (.const (.n 347) (word 28 0 0)) ::
+  .atom (.const (.n 348) (word 29 0 0)) ::
+  .atom (.const (.n 349) (word 30 0 0)) ::
+  .atom (.const (.n 350) (word 31 0 0)) ::
+  .atom (.const (.n 351) (word 33 0 0)) ::
+  .atom (.const (.n 352) (word 34 0 0)) ::
+  .atom (.const (.n 353) (word 35 0 0)) ::
+  .atom (.const (.n 354) (word 36 0 0)) ::
+  .atom (.const (.n 355) (word 37 0 0)) ::
+  .atom (.const (.n 356) (word 38 0 0)) ::
+  .atom (.const (.n 357) (word 39 0 0)) ::
+  .atom (.const (.n 358) (word 40 0 0)) ::
+  .atom (.const (.n 359) (word 41 0 0)) ::
+  .atom (.const (.n 360) (word 42 0 0)) ::
+  .atom (.const (.n 361) (word 43 0 0)) ::
+  .atom (.const (.n 362) (word 44 0 0)) ::
+  .atom (.const (.n 363) (word 45 0 0)) ::
+  .atom (.const (.n 364) (word 46 0 0)) ::
+  .atom (.const (.n 365) (word 47 0 0)) ::
+  .atom (.const (.n 366) (word 48 0 0)) ::
+  .atom (.const (.n 367) (word 49 0 0)) ::
+  .atom (.const (.n 368) (word 50 0 0)) ::
+  .atom (.const (.n 369) (word 51 0 0)) ::
+  .atom (.const (.n 370) (word 52 0 0)) ::
+  .atom (.const (.n 371) (word 53 0 0)) ::
+  .atom (.const (.n 372) (word 54 0 0)) ::
+  .atom (.const (.n 373) (word 55 0 0)) ::
+  .atom (.const (.n 374) (word 56 0 0)) ::
+  .atom (.const (.n 375) (word 57 0 0)) ::
+  .atom (.const (.n 376) (word 1 0 0)) ::
+  .atom (.add (.n 377) (.n 376) (.n 2)) ::
+  .atom (.const (.n 378) (word 1 0 0)) ::
+  .callIf (.n 377) "__loop2" (.n 378 :: .n 2 :: .n 40 :: .n 66 :: .n 52 :: .n 325 :: .n 326 :: .n 327 :: .n 328 :: .n 329 :: .n 330 :: .n 331 :: .n 332 :: .n 333 :: .n 334 :: .n 335 :: .n 336 :: .n 337 :: .n 338 :: .n 339 :: .n 340 :: .n 341 :: .n 342 :: .n 343 :: .n 344 :: .n 345 :: .n 346 :: .n 347 :: .n 348 :: .n 349 :: .n 350 :: .n 351 :: .n 352 :: .n 353 :: .n 354 :: .n 355 :: .n 356 :: .n 357 :: .n 358 :: .n 359 :: .n 360 :: .n 361 :: .n 362 :: .n 363 :: .n 364 :: .n 365 :: .n 366 :: .n 367 :: .n 368 :: .n 369 :: .n 370 :: .n 371 :: .n 372 :: .n 373 :: .n 374 :: .n 375 :: []) ::
+  .atom (.const (.n 379) (word 1 0 0)) ::
+  .atom (.add (.n 380) (.n 379) (.n 5)) ::
+  .atom (.const (.n 381) (word 1 0 0)) ::
+  .callIf (.n 380) "__loop3" [.n 381, .n 5, .n 41, .n 67, .n 2, .n 55, .n 68] ::
+  .atom (.const (.n 382) (word 2 0 0)) ::
+  .atom (.mul (.n 383) (.n 6) (.n 382)) ::
+  .atom (.mul (.n 384) (.n 383) (.n 383)) ::
+  .atom (.hint (.allocDyn (.n 385) (.n 384))) ::
+  .atom (.mul (.n 386) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 387) (.n 385) (.n 386)) ::
+  .atom (.const (.n 388) (word 2 0 0)) ::
+  .atom (.add (.n 389) (.n 7) (.n 388)) ::
   [])
 
-/-- `main`: statements 611 to 623 of the body. -/
-noncomputable def c1 : List Core.Stmt := [
-  .ite (.n 400) (
-    .atom (.hint (.witness "leaf_defer" (.stack [.n 401]))) ::
-    .atom (.const (.n 402) (word 0 0 0)) ::
-    .atom (.load (.n 402) (.n 398) 0) ::
-    .atom (.const (.n 403) (word 0 0 0)) ::
-    .atom (.load (.n 403) (.n 398) 1) ::
-    .atom (.const (.n 404) (word 0 0 0)) ::
-    .atom (.load (.n 404) (.n 398) 2) ::
-    .atom (.const (.n 405) (word 0 0 0)) ::
-    .atom (.load (.n 405) (.n 398) 3) ::
-    .atom (.const (.n 406) (word 0 0 0)) ::
-    .atom (.load (.n 406) (.n 398) 4) ::
-    .atom (.const (.n 407) (word 0 0 0)) ::
-    .atom (.load (.n 407) (.n 398) 5) ::
-    .atom (.const (.n 408) (word 0 0 0)) ::
-    .atom (.load (.n 408) (.n 398) 6) ::
-    .atom (.const (.n 409) (word 0 0 0)) ::
-    .atom (.load (.n 409) (.n 398) 7) ::
-    .atom (.const (.n 410) (word 0 0 0)) ::
-    .atom (.load (.n 410) (.n 398) 8) ::
-    .atom (.const (.n 411) (word 0 0 0)) ::
-    .atom (.load (.n 411) (.n 398) 9) ::
-    .atom (.const (.n 412) (word 0 0 0)) ::
-    .atom (.load (.n 412) (.n 398) 10) ::
-    .atom (.const (.n 413) (word 0 0 0)) ::
-    .atom (.load (.n 413) (.n 398) 11) ::
-    .atom (.const (.n 414) (word 0 0 0)) ::
-    .atom (.load (.n 414) (.n 398) 12) ::
-    .atom (.const (.n 415) (word 0 0 0)) ::
-    .atom (.load (.n 415) (.n 398) 13) ::
-    .atom (.const (.n 416) (word 0 0 0)) ::
-    .atom (.load (.n 416) (.n 398) 14) ::
-    .atom (.const (.n 417) (word 0 0 0)) ::
-    .atom (.load (.n 417) (.n 398) 15) ::
-    .atom (.const (.n 418) (word 0 0 0)) ::
-    .atom (.load (.n 418) (.n 398) 16) ::
-    .atom (.const (.n 419) (word 0 0 0)) ::
-    .atom (.load (.n 419) (.n 398) 17) ::
-    .atom (.const (.n 420) (word 0 0 0)) ::
-    .atom (.load (.n 420) (.n 398) 18) ::
-    .atom (.const (.n 421) (word 0 0 0)) ::
-    .atom (.load (.n 421) (.n 398) 19) ::
-    .atom (.const (.n 422) (word 0 0 0)) ::
-    .atom (.load (.n 422) (.n 398) 20) ::
-    .atom (.const (.n 423) (word 0 0 0)) ::
-    .atom (.load (.n 423) (.n 398) 21) ::
-    .atom (.const (.n 424) (word 0 0 0)) ::
-    .atom (.load (.n 424) (.n 398) 22) ::
-    .atom (.load (.n 401) (.n 398) 23) ::
+/-- `main`: statements 622 to 674 of the body. -/
+noncomputable def c1 : List Core.Stmt := (
+  .ite (.n 389) [
+    .call "da_verify" [.n 49] [.n 390, .n 391, .n 392, .n 393],
+    .atom (.const (.n 394) (word 1 0 0)),
+    .atom (.const (.n 395) (word 0 0 0)),
+    .atom (.const (.n 396) (word 0 0 0)),
+    .atom (.const (.n 397) (word 0 0 0)),
+    .atom (.const (.n 398) (word 0 0 0)),
+    .atom (.const (.n 399) (word 9223372036854775808 0 0)),
+    .atom (.keccak [.n 390, .n 391, .n 392, .n 393, .n 394, .n 395, .n 396, .n 397, .n 399, .n 395, .n 396, .n 397, .n 398] [.n 400, .n 401, .n 402, .n 403, .n 404, .n 405, .n 406, .n 407, .n 408, .n 409, .n 410, .n 411, .n 412] false false),
+    .atom (.load (.n 400) (.n 387) 0),
+    .atom (.load (.n 401) (.n 387) 1)] [
+    .atom (.const (.n 413) (word 0 0 0)),
+    .atom (.load (.n 413) (.n 387) 0),
+    .atom (.const (.n 414) (word 0 0 0)),
+    .atom (.load (.n 414) (.n 387) 1)] ::
+  .atom (.mul (.n 415) (.n 6) (.n 6)) ::
+  .atom (.hint (.allocDyn (.n 416) (.n 415))) ::
+  .atom (.mul (.n 417) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 418) (.n 417) (.n 6)) ::
+  .atom (.mul (.n 419) (.n 418) (.n 418)) ::
+  .atom (.mul (.n 420) (.n 419) (.n 419)) ::
+  .atom (.mul (.n 421) (.n 420) (.n 420)) ::
+  .atom (.hint (.allocDyn (.n 422) (.n 421))) ::
+  .atom (.mul (.n 423) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 424) (.n 423) (.n 6)) ::
+  .atom (.mul (.n 425) (.n 424) (.n 424)) ::
+  .atom (.mul (.n 426) (.n 425) (.n 425)) ::
+  .atom (.mul (.n 427) (.n 426) (.n 426)) ::
+  .atom (.hint (.allocDyn (.n 428) (.n 427))) ::
+  .atom (.const (.n 429) (word 2 0 0)) ::
+  .atom (.mul (.n 430) (.n 6) (.n 429)) ::
+  .atom (.hint (.allocDyn (.n 431) (.n 430))) ::
+  .atom (.mul (.n 432) (.n 2) (.n 5)) ::
+  .atom (.load (.n 432) (.n 431) 0) ::
+  .atom (.const (.n 433) (word 1 0 0)) ::
+  .atom (.add (.n 434) (.n 433) (.n 6)) ::
+  .atom (.const (.n 435) (word 1 0 0)) ::
+  .callIf (.n 434) "__loop4" [.n 435, .n 6, .n 431, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41, .n 428, .n 385, .n 47, .n 48, .n 416, .n 49, .n 422] ::
+  .atom (.mul (.n 436) (.n 431) (.n 6)) ::
+  .atom (.load (.n 437) (.n 436) 0) ::
+  .atom (.assertEq (.n 437) (.n 42)) ::
+  .atom (.hint (.witness "da_pick" (.stack [.n 438]))) ::
+  .atom (.rangeCheck (.n 438) (.n 439) (.n 440) (.n 441) (.n 6)) ::
+  .atom (.add (.n 442) (.n 438) (.n 6)) ::
+  .atom (.const (.n 443) (word 1 0 0)) ::
+  .atom (.add (.n 444) (.n 7) (.n 443)) ::
+  .atom (.mul (.n 445) (.n 442) (.n 444)) ::
+  .atom (.const (.n 446) (word 0 0 0)) ::
+  .atom (.assertEq (.n 445) (.n 446)) ::
+  .atom (.mul (.n 447) (.n 438) (.n 438)) ::
+  .atom (.mul (.n 448) (.n 385) (.n 447)) ::
+  .atom (.hint (.alloc (.n 449) 24)) ::
+  .atom (.const (.n 450) (word 1 0 0)) ::
+  .atom (.add (.n 451) (.n 6) (.n 450)) ::
+  .ite (.n 451) (
+    .atom (.hint (.witness "leaf_defer" (.stack [.n 452]))) ::
+    .atom (.const (.n 453) (word 0 0 0)) ::
+    .atom (.load (.n 453) (.n 449) 0) ::
+    .atom (.const (.n 454) (word 0 0 0)) ::
+    .atom (.load (.n 454) (.n 449) 1) ::
+    .atom (.const (.n 455) (word 0 0 0)) ::
+    .atom (.load (.n 455) (.n 449) 2) ::
+    .atom (.const (.n 456) (word 0 0 0)) ::
+    .atom (.load (.n 456) (.n 449) 3) ::
+    .atom (.const (.n 457) (word 0 0 0)) ::
+    .atom (.load (.n 457) (.n 449) 4) ::
+    .atom (.const (.n 458) (word 0 0 0)) ::
+    .atom (.load (.n 458) (.n 449) 5) ::
+    .atom (.const (.n 459) (word 0 0 0)) ::
+    .atom (.load (.n 459) (.n 449) 6) ::
+    .atom (.const (.n 460) (word 0 0 0)) ::
+    .atom (.load (.n 460) (.n 449) 7) ::
+    .atom (.const (.n 461) (word 0 0 0)) ::
+    .atom (.load (.n 461) (.n 449) 8) ::
+    .atom (.const (.n 462) (word 0 0 0)) ::
+    .atom (.load (.n 462) (.n 449) 9) ::
+    .atom (.const (.n 463) (word 0 0 0)) ::
+    .atom (.load (.n 463) (.n 449) 10) ::
+    .atom (.const (.n 464) (word 0 0 0)) ::
+    .atom (.load (.n 464) (.n 449) 11) ::
+    .atom (.const (.n 465) (word 0 0 0)) ::
+    .atom (.load (.n 465) (.n 449) 12) ::
+    .atom (.const (.n 466) (word 0 0 0)) ::
+    .atom (.load (.n 466) (.n 449) 13) ::
+    .atom (.const (.n 467) (word 0 0 0)) ::
+    .atom (.load (.n 467) (.n 449) 14) ::
+    .atom (.const (.n 468) (word 0 0 0)) ::
+    .atom (.load (.n 468) (.n 449) 15) ::
+    .atom (.const (.n 469) (word 0 0 0)) ::
+    .atom (.load (.n 469) (.n 449) 16) ::
+    .atom (.const (.n 470) (word 0 0 0)) ::
+    .atom (.load (.n 470) (.n 449) 17) ::
+    .atom (.const (.n 471) (word 0 0 0)) ::
+    .atom (.load (.n 471) (.n 449) 18) ::
+    .atom (.const (.n 472) (word 0 0 0)) ::
+    .atom (.load (.n 472) (.n 449) 19) ::
+    .atom (.const (.n 473) (word 0 0 0)) ::
+    .atom (.load (.n 473) (.n 449) 20) ::
+    .atom (.const (.n 474) (word 0 0 0)) ::
+    .atom (.load (.n 474) (.n 449) 21) ::
+    .atom (.const (.n 475) (word 0 0 0)) ::
+    .atom (.load (.n 475) (.n 449) 22) ::
+    .atom (.load (.n 452) (.n 449) 23) ::
     []) [
-    .call "aggregate_claims" [.n 6, .n 365, .n 371, .n 377, .n 398] []],
-  .atom (.load (.n 425) (.n 397) 0),
-  .atom (.load (.n 426) (.n 397) 1),
-  .call "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 425, .n 426, .n 398] [.n 427, .n 428],
-  .atom (.const (.n 429) (word 1 0 0)),
-  .atom (.load (.n 430) (.n 429) 0),
-  .atom (.assertEq (.n 430) (.n 427)),
-  .atom (.const (.n 431) (word 1 0 0)),
-  .atom (.const (.n 432) (word 2 0 0)),
-  .atom (.mul (.n 433) (.n 431) (.n 432)),
-  .atom (.load (.n 434) (.n 433) 0),
-  .atom (.assertEq (.n 434) (.n 428)),
-  .ret []]
+    .call "aggregate_claims" [.n 6, .n 416, .n 422, .n 428, .n 449] []] ::
+  .atom (.load (.n 476) (.n 448) 0) ::
+  .atom (.load (.n 477) (.n 448) 1) ::
+  .call "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 476, .n 477, .n 449] [.n 478, .n 479] ::
+  .atom (.const (.n 480) (word 1 0 0)) ::
+  .atom (.load (.n 481) (.n 480) 0) ::
+  .atom (.assertEq (.n 481) (.n 478)) ::
+  .atom (.const (.n 482) (word 1 0 0)) ::
+  .atom (.const (.n 483) (word 2 0 0)) ::
+  .atom (.mul (.n 484) (.n 482) (.n 483)) ::
+  .atom (.load (.n 485) (.n 484) 0) ::
+  .atom (.assertEq (.n 485) (.n 479)) ::
+  .ret [] ::
+  [])
 
 /-- `main`: the body. -/
 noncomputable def body : List Core.Stmt := c0 ++ c1
