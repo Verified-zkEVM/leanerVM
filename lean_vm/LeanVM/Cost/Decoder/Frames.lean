@@ -8,10 +8,11 @@ public import LeanVM.Guest.Fast.Main
 
 The frame map keyed by the functions' indices (`Guest.Fast.NFrames`, `FunctionNames.lean`), and
 each callee's witness a function of its call's words, the compiled readers (`Signatures.lean`,
-`Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`verify_lean_xmss`, index `20`),
-`sphincsAtFrame` (`verify_sig_lean_sphincs`, `22`, and its three `sp_wots` frames, `21`: not
-compiled here, the decoder's top looks its frames up once, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`, `29`),
-`proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `35`). The signature
+`Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`__loop2`, index `37`, the
+leanXMSS check inline there), `sphincsAtFrame` (`verify_sig_lean_sphincs`, `21`, and its three
+`sp_wots` frames, `20`); neither is compiled here: the decoder's top looks their frames up once,
+`xmssAtFrameT`, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`, `28`), `proofAtFrame`
+(`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `34`). The signature
 and proof readers read their tables off `R : ReaderTabs` (`Guest/Fast/Main.lean`), which the top
 level builds once (`readerTabsC`) and passes.
 -/
@@ -26,10 +27,11 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 /-! ## Each callee's witness off its frame, keyed by index -/
 
 open LeanVM.Guest.Fast in
-/-- The leanXMSS signature checked at slot address `p` (`verify_lean_xmss`, index `20`), the
-readers' tables `R` given. -/
-noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (p : E) : LeanXmss.Signature :=
-  xmssSigOfA R.xmss (Vn 37 [p] [])
+/-- The leanXMSS signature `__loop2`'s iteration on `args` checks (index `37`: the check is
+inline there), the readers' tables `R` given. -/
+noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (args : List E) :
+    LeanXmss.Signature :=
+  xmssSigOfA R.xmss (Vn 37 args [])
 
 open LeanVM.Guest.Fast in
 /-- The leanSPHINCS signature checked at slot address `p` (`verify_sig_lean_sphincs`, `22`), off
@@ -62,7 +64,6 @@ cost_enc LeanVM.Guest.Fast.ReaderTabs
 
 -- the readers' tables, built: called once by the decoder's top level
 cost_compile readerTabsC := LeanVM.Guest.Fast.readerTabs
-cost_compile xmssAtFrameC := xmssAtFrame
 cost_compile daAtFrameC := daAtFrame
 cost_compile proofAtFrameC := proofAtFrame
 cost_compile hintsAtFrameC := hintsAtFrame

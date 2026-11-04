@@ -37,62 +37,66 @@ include hrd hR
 
 section Xmss
 
-variable {wX : E → LeanXmss.Signature} {wXV : MachineValue}
-  (hwX : ∀ a : E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))
-  {WX : ℕ} (hWX : ∀ a : E, appCost P wXV [encodeValue a] ≤ WX)
+variable {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
+  (hwX : ∀ a : List E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))
+  {WX : ℕ} (hWX : ∀ a : List E, a.length ≤ 56 → appCost P wXV [encodeValue a] ≤ WX)
 include hwX hWX
 
-/-- **The raw leanXMSS signature at the address `p53 · a`** (`xmssRawAtC`): its slot's claim and
-the signature, at most `4·R + WX + 12600`. -/
-theorem xmssRawAt_cost (hP : Includes P xmssRawAtC.costDeps) (p53 : E) (a : K) :
-    machineCost P xmssRawAtC.costIdx [rdV, encodeValue p53, wXV, encodeValue a] ≤
-      4 * R + WX + 12600 := by
+/-- **The raw leanXMSS signature of mark `j` at the address `p53 · a`** (`xmssRawAtC`), `j < 2^35`,
+`__loop2`'s other arguments `args` at most `55` words: its slot's claim, `g^j` in `K` and the
+signature at the iteration's arguments, at most `4·R + WX + 15100`. -/
+theorem xmssRawAt_cost (hP : Includes P xmssRawAtC.costDeps) (p53 : E) (args : List E)
+    (hargs : args.length ≤ 55) (a : K) (j : ℕ) (hj : j < 2 ^ 35) :
+    machineCost P xmssRawAtC.costIdx [rdV, encodeValue p53, wXV, encodeValue args, encodeValue a,
+      encodeValue j] ≤ 4 * R + WX + 15100 := by
   rw [xmssRawAtC.costEq P hP rd rdV hrd p53 wX wXV hwX]
   have h1 := xmssAtK_cost P hrd hR (by includes) (p53.limb 0 * a)
-  have h2 := mulK_cost P (by includes) p53 a
-  have h3 := hWX (mulK p53 a)
+  have h2 := powSqK_cost_lt P (by includes) Parameters.g j 36 (by norm_num) (by norm_num) (by omega)
+  have h3 := hWX (ofK (Parameters.g ^ j) :: args) (by simp; omega)
   omega
 
 /-- **The raw leanXMSS signature of mark `j`** (`xmssRawC`) off a good table, `j < 2^35`: one
-search, a power in `K`, then `xmssRawAt_cost`: at most `4·R + WX + 16300`. -/
-theorem xmssRaw_cost (hP : Includes P xmssRawC.costDeps) (p53 : E) (t : Array ℕ × Array ℕ)
-    (ht : TableGood t) (j : ℕ) (hj : j < 2 ^ 35) :
-    machineCost P xmssRawC.costIdx [rdV, encodeValue p53, wXV, encodeValue t.1, encodeValue t.2,
-      encodeValue j] ≤ 4 * R + WX + 16300 := by
+search, a power in `K`, then `xmssRawAt_cost`: at most `4·R + WX + 18800`. -/
+theorem xmssRaw_cost (hP : Includes P xmssRawC.costDeps) (p53 : E) (args : List E)
+    (hargs : args.length ≤ 55) (t : Array ℕ × Array ℕ) (ht : TableGood t) (j : ℕ) (hj : j < 2 ^ 35) :
+    machineCost P xmssRawC.costIdx [rdV, encodeValue p53, wXV, encodeValue args, encodeValue t.1,
+      encodeValue t.2, encodeValue j] ≤ 4 * R + WX + 18800 := by
   rw [xmssRawC.costEq P hP rd rdV hrd p53 wX wXV hwX]
   have h1 := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 j (by omega)
   have hs := slotIn_lt ht j
   have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * slotIn t.1 t.2 j) 36 (by norm_num)
     (by norm_num) (by omega)
-  have h3 := xmssRawAt_cost P hrd hR hwX hWX (by includes) p53
-    (Parameters.g ^ (4 * slotIn t.1 t.2 j))
+  have h3 := xmssRawAt_cost P hrd hR hwX hWX (by includes) p53 args hargs
+    (Parameters.g ^ (4 * slotIn t.1 t.2 j)) j hj
   limbs_one
   omega
 
 /-- The raw leanXMSS signatures' price, at most `X` of them. -/
-@[expose] def xmssRawsTPrice (R WX X : ℕ) : ℕ := (4 * R + WX + 16350) * X + 30
+@[expose] def xmssRawsTPrice (R WX X : ℕ) : ℕ := (4 * R + WX + 18850) * X + 30
 
-/-- **The raw leanXMSS signatures** (`xmssRawsTC`), off a good table, `n ≤ X ≤ 2^34`: at most
-`xmssRawsTPrice R WX X`. -/
-theorem xmssRawsT_cost (hP : Includes P xmssRawsTC.costDeps) (p53 : E) (t : Array ℕ × Array ℕ)
-    (ht : TableGood t) (n X : ℕ) (hX : X ≤ 2 ^ 34) (hn : n ≤ X) :
-    machineCost P xmssRawsTC.costIdx [rdV, encodeValue p53, wXV, encodeValue t, encodeValue n] ≤
-      xmssRawsTPrice R WX X := by
+/-- **The raw leanXMSS signatures** (`xmssRawsTC`), off a good table, `n ≤ X ≤ 2^34`, `__loop2`'s
+other arguments at most `55` words: at most `xmssRawsTPrice R WX X`. -/
+theorem xmssRawsT_cost (hP : Includes P xmssRawsTC.costDeps) (p53 : E) (args : List E)
+    (hargs : args.length ≤ 55) (t : Array ℕ × Array ℕ) (ht : TableGood t) (n X : ℕ)
+    (hX : X ≤ 2 ^ 34) (hn : n ≤ X) :
+    machineCost P xmssRawsTC.costIdx [rdV, encodeValue p53, wXV, encodeValue args, encodeValue t,
+      encodeValue n] ≤ xmssRawsTPrice R WX X := by
   rw [xmssRawsTC.costEq P hP rd rdV hrd p53 wX wXV hwX]
-  have h1 := rangeMap_le P (by includes) (by includes) (xmssRawT rd p53 wX t.1 t.2)
-    (.closure xmssRawsTC.lam0.costIdx [rdV, encodeValue p53, wXV, encodeValue t.2,
-      encodeValue t.1])
+  have h1 := rangeMap_le P (by includes) (by includes) (xmssRawT rd p53 wX args t.1 t.2)
+    (.closure xmssRawsTC.lam0.costIdx [rdV, encodeValue p53, wXV, encodeValue args,
+      encodeValue t.2, encodeValue t.1])
     (fun j ↦ RunsApp.of_spec (xmssRawsTC.lam0.costSpec P (by includes) rd rdV hrd p53 wX wXV hwX
-      t.2 t.1 j))
-    (4 * R + WX + 16320) n X hn (by omega) (fun j hj ↦ by
+      args t.2 t.1 j))
+    (4 * R + WX + 18820) n X hn (by omega) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append,
+        List.cons_append, List.cons_append, List.nil_append,
         xmssRawsTC.lam0.costEq P (by includes) rd rdV hrd p53 wX wXV hwX, List.length_cons,
-        List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := xmssRaw_cost P hrd hR hwX hWX (by includes) p53 t ht j (by omega)
+        List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons,
+        List.length_nil]
+      have := xmssRaw_cost P hrd hR hwX hWX (by includes) p53 args hargs t ht j (by omega)
       omega)
   unfold xmssRawsTPrice
-  have : (4 * R + WX + 16320 + 28) * X ≤ (4 * R + WX + 16350) * X :=
+  have : (4 * R + WX + 18820 + 28) * X ≤ (4 * R + WX + 18850) * X :=
     Nat.mul_le_mul_right _ (by omega)
   omega
 
