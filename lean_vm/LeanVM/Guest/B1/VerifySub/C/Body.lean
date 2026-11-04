@@ -55,7 +55,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   ws : List E
   hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0)
   hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 26)) i (ws.getD (i + 1) 0)
-  hcap22 : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (vsσ rd w args (.n i))
+  hcap22 : ∀ i ∈ [20, 21, 22, 23, 24], IsCanonical128 (vsσ rd w args (.n i))
   -- the sizes
   κ : ℕ
   hκ6 : 6 ≤ κ
@@ -76,45 +76,42 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hdims : ReadsAt rd (vsσ rd w args (.n 127)) (gen ^ logMem :: hs.map Hints.count)
   hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: gen ^ logMem :: hs.map Hints.count)
   hcount : hs.map Hints.count = hs.map (gen ^ ·)
-  hbk : ReadsAt rd (vsσ rd w args (.n XBK))
-    (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·)))
-  hexp : B1.ExpTables rd (vsσ rd w args (.n XGLP)) (vsσ rd w args (.n 4))
+  hexp : B1.ExpTables rd (vsσ rd w args (.n 4))
   -- the root
-  hin : ∀ i ∈ [89, 91, 99, 101, 109, 111, 119, 121, 77, 78, 79, 80, 81],
+  hin : ∀ i ∈ [87, 89, 97, 99, 107, 109, 117, 119, 75, 76, 77, 78, 79],
     IsCanonical128 (vsσ rd w args (.n i))
   x0 : E
   x1 : E
   hw8 : LoadHolds rd (vsσ rd w args (.n 25)) 8 x0
   hw9 : LoadHolds rd (vsσ rd w args (.n 25)) 9 x1
   -- the bus challenges and their weights
-  hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0
-  hcap532 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (532 + i)))
+  hz : ∀ i ∈ [8, 9, 10, 11], vsσ rd w args (.n i) = 0
+  hcap532 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (319 + i)))
   hA : ∀ k (hk : k < 4), LoadHolds rd (vsσ rd w args (.n 346)) k
-    (vsσ rd w args (.n ([579, 599, 619, 639][k]'(by simp; omega))))
+    (vsσ rd w args (.n ([366, 386, 406, 426][k]'(by simp; omega))))
   a0 : E
   a1 : E
   a2 : E
   a3 : E
   ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3]
   hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3])
-  hcap628 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (628 + i)))
+  hcap628 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (415 + i)))
   -- the three calls
   τg : E
   hd6 : LoadHolds rd (vsσ rd w args (.n 127)) 6 τg
   -- the ring map
-  hcap871 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (871 + i)))
+  hcap871 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (659 + i)))
   hM : ∀ k (hk : k < 6), LoadHolds rd (vsσ rd w args (.n 664)) k
-    (vsσ rd w args (.n ([870, 897, 917, 937, 957, 977][k]'(by simp; omega))))
+    (vsσ rd w args (.n ([658, 685, 705, 725, 745, 765][k]'(by simp; omega))))
   chs : List E
   hcl : chs.length = 6
   hchs : ReadsAt rd (vsσ rd w args (.n 664)) chs
   hct : ReadsAt rd (vsσ rd w args (.n 665)) (ringCoefficients chs)
   -- the batching
-  hcap966 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))
+  hcap966 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (754 + i)))
   vals : ℕ → E
-  hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i)
-  hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n XLAMPOOL)) (vsKept i)
-    (vsσ rd w args (.n 1111) ^ (i + 1))
+  hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n (vsClaimAt (vsKept i)).1))
+    (vsClaimAt (vsKept i)).2 (vals i)
   -- the tail
   m : ℕ
   r : ℕ
@@ -141,10 +138,13 @@ theorem vsCPre_complete (D : VsSecData rd w args) {next : Prop} {kret : List E �
   simp only [holdsList_append]
   refine vsHeadT_completeH hl D.hc4 ?_
   refine (vsReadsT_complete hl D.hws D.hrows D.hcap22 ?_).2
-  refine vsSizesT_complete hl D.hκ6 D.hlow D.hl1 D.hl4 D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130
-    D.hsl D.hdims D.hkb trivial trivial ?_
-  refine vsKappaT_complete hl (by simp [D.hsl]) D.hkb (by rw [D.hcount]; exact D.hbk) ?_
-  refine (vsPushT_complete hl D.hsl D.hh D.hm32 D.hbk D.hexp (fun _ _ ↦ trivial) ?_).2
+  have hS := (vsSizesT_complete (C := fun _ _ _ ↦ True) (kret := kret) hl D.hκ6 D.hlow D.hl1 D.hl4
+    D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial trivial trivial).1
+  have hkbv : ∀ s < 8, vsσ rd w args (.n (140 + s)) = gen ^ (([0, D.logMem] ++ D.hs).getD s 0) :=
+    fun s hs8 ↦ by rw [hS s hs8, D.hcount, kbase_getD D.hsl hs8]
+  refine (vsSizesT_complete hl D.hκ6 D.hlow D.hl1 D.hl4 D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130
+    D.hsl D.hdims D.hkb trivial trivial ?_).2
+  refine (vsPushT_complete hl D.hh D.hm32 hkbv D.hexp (fun _ _ ↦ trivial) ?_).2
   have R := vsRootsT_complete (rd := rd) (w := w) (C := fun _ _ _ ↦ True) (next := True)
     (kret := kret) hl D.hin D.hw8 D.hw9 trivial trivial trivial
   refine (vsRootsT_complete hl D.hin D.hw8 D.hw9 trivial trivial ?_).2.2.2
@@ -153,7 +153,7 @@ theorem vsCPre_complete (D : VsSecData rd w args) {next : Prop} {kret : List E �
   refine (vsCallsT_complete hl D.hd6 trivial trivial trivial ?_).2.2.2.2
   refine vsMapsT_complete hl D.hz D.hcap871 D.hM ?_
   refine vsCtabT_complete hl D.hcl D.hchs D.hct trivial ?_
-  refine (vsLamT_complete hl D.hz D.hcap966 D.hpool D.hlam ?_).2.2
+  refine (vsLamT_complete hl D.hz D.hcap966 D.hpool ?_).2.2
   exact (vsTailPre_complete hl D.hκ6 D.hlow D.hm22 D.hm28 D.hr1 D.hr4 D.e1890 D.e124 D.hzeta
     D.halpha D.hout D.hout' D.hout23 trivial trivial trivial trivial hn).2
 

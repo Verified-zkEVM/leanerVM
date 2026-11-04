@@ -49,8 +49,8 @@ theorem gLog_lg (σ : Val) (v : ℕ) : gLog (σ (.n v)) = lg σ v := (lg_eq_gLog
 
 /-- The DA digest at the slot `da_pick` holds the cells `statement_digest` reads. -/
 theorem pick_cells (MF : MainFacts C rd σ) :
-    LoadHolds rd (σ (.n 334)) (2 * lg σ 387) (σ (.n 429)) ∧
-      LoadHolds rd (σ (.n 334)) (2 * lg σ 387 + 1) (σ (.n 430)) := by
+    LoadHolds rd (σ (.n 334)) (2 * lg σ 387) (σ (.n 425)) ∧
+      LoadHolds rd (σ (.n 334)) (2 * lg σ 387 + 1) (σ (.n 426)) := by
   obtain ⟨h0, h1⟩ := MF.dacells
   rw [MF.picked, loadHolds_gen_pow_iff] at h0 h1
   rw [Nat.add_zero] at h0
@@ -58,29 +58,29 @@ theorem pick_cells (MF : MainFacts C rd σ) :
 
 /-- **The decoded statement's digest** is the one `statement_digest` computes. -/
 theorem own_digest (MF : MainFacts C rd σ) :
-    [σ (.n 431), σ (.n 432)] = digestCells (statementDigest (decSeed σ) (decStmt σ rd)) := by
+    [σ (.n 427), σ (.n 428)] = digestCells (statementDigest (decSeed σ) (decStmt σ rd)) := by
   obtain ⟨cells, hlen, hreads, -, hrets⟩ := statement_digest_sound rd _ _ MF.stmt
   obtain ⟨cx, hlx, hrx, -, hdx⟩ := MF.xlist
   obtain ⟨cs, hls, hrs, -, hds⟩ := MF.slist
   have hx := xmss_digest_id (slotsHold_of_readsAt hrx hlx)
   have hs := sphincs_digest_id (slotsHold_of_readsAt hrs hls)
   obtain ⟨p0, p1⟩ := pick_cells MF
-  have eX : (decStmt σ rd).claims.xmss = (List.range (lg σ 0)).map (xmssAt rd (σ (.n 53))) := by
+  have eX : (decStmt σ rd).claims.xmss = (List.range (lg σ 0)).map (xmssAt rd (σ (.n 52))) := by
     unfold decStmt; simp only [gLog_lg]
   have eS : (decStmt σ rd).claims.sphincs =
-      (List.range (lg σ 3)).map (sphincsAt rd (σ (.n 56))) := by
+      (List.range (lg σ 3)).map (sphincsAt rd (σ (.n 55))) := by
     unfold decStmt; simp only [gLog_lg]
   have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 387) := by
     unfold decStmt; simp only [gLog_lg]
   have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
   have hxd : digestBytes (claimListDigest (decStmt σ rd).claims.xmss) =
-      cellsBytes [σ (.n 57), σ (.n 58)] := by
+      cellsBytes [σ (.n 56), σ (.n 57)] := by
     rw [eX, hx]; exact digestBytes_of_cells hdx
   have hsd : digestBytes (claimListDigest (decStmt σ rd).claims.sphincs) =
-      cellsBytes [σ (.n 59), σ (.n 60)] := by
+      cellsBytes [σ (.n 58), σ (.n 59)] := by
     rw [eS, hs]; exact digestBytes_of_cells hds
-  have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 429), σ (.n 430)] := by
+  have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 425), σ (.n 426)] := by
     rw [eD]; exact (daDigestAt_of_loads p0 p1).2
   rw [hrets, statementDigest_parts (digestBytes_decSeed σ) hxd hsd hda hdef hlen]
 
@@ -103,22 +103,22 @@ variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
 /-- **Child `c`'s statement's digest** is the one its `statement_digest` call computes. -/
 theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
-    (hW : Writers rd (σ (.n 67)) (segsOf σ K) (LXS σ) (LSS σ))
-    (hC : Cover rd (σ (.n 67)) (segsOf σ K) (LXS σ) (LSS σ) sl) {c : ℕ}
+    (hW : Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ))
+    (hC : Cover rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :
     [(K c).p0, (K c).p1] = digestCells (statementDigest (decSeed σ) (kidStmt rd σ c)) := by
   have k := hK c hc
   rw [kidStmt_eq MF hK hW hC hc]
-  have hx := xmss_digest (o := (K c).ox) (n := (K c).ex) (p := σ (.n 53))
+  have hx := xmss_digest (o := (K c).ox) (n := (K c).ex) (p := σ (.n 52))
     ⟨k.xlen, fun j hj i hi => (k.xrec j hj).2.2 i hi⟩
-  have hs := sphincs_digest (o := (K c).os) (n := (K c).es) (p := σ (.n 56))
+  have hs := sphincs_digest (o := (K c).os) (n := (K c).es) (p := σ (.n 55))
     ⟨k.slen, fun j hj i hi => (k.srec j hj).2.2 i hi⟩
   have hxd : digestBytes (claimListDigest
-      ((List.range (K c).ex).map fun j => xmssAt rd (σ (.n 53)) ((K c).ox j))) =
+      ((List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j))) =
       cellsBytes [(K c).cx0, (K c).cx1] := by
     rw [hx]; exact digestBytes_of_cells k.xdig
   have hsd : digestBytes (claimListDigest
-      ((List.range (K c).es).map fun j => sphincsAt rd (σ (.n 56)) ((K c).os j))) =
+      ((List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j))) =
       cellsBytes [(K c).cs0, (K c).cs1] := by
     rw [hs]; exact digestBytes_of_cells k.sdig
   have hda := (daDigestAt_of_loads k.da0 k.da1).2
@@ -126,8 +126,8 @@ theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
       (deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
     rw [readCells_of_readsAt k.defreads k.deflen]; exact deferOfCells_cells k.deflen
   have hst := statementDigest_parts (seed := decSeed σ)
-    (s := ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 53)) ((K c).ox j),
-        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 56)) ((K c).os j),
+    (s := ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j),
+        (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j),
         daDigestAt rd σ c⟩,
        deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)⟩)
     (digestBytes_decSeed σ) hxd hsd hda hdef k.deflen

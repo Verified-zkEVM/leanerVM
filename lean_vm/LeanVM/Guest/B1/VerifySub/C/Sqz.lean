@@ -31,7 +31,7 @@ set_option maxRecDepth 100000 in
 /-- **A squeeze, honestly.** -/
 theorem vsSqzT_complete (hl : args.length = 6) {capb o : ℕ}
     (hmem : ∀ s ∈ vsSqzT capb o, s ∈ vsCPre)
-    (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
+    (hz : ∀ i ∈ [8, 9, 10, 11], vsσ rd w args (.n i) = 0)
     (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i))))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) (vsSqzT capb o) next kret := by
@@ -51,17 +51,17 @@ theorem vsSqzT_complete (hl : args.length = 6) {capb o : ℕ}
     obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
     simp only [vsRun, List.cons_append, List.nil_append, List.mem_cons, List.mem_map,
       List.mem_range] at hv
-    have hz' : ∀ i ∈ [10, 11, 12, 13], IsCanonical128 (vsσ rd w args (.n i)) :=
+    have hz' : ∀ i ∈ [8, 9, 10, 11], IsCanonical128 (vsσ rd w args (.n i)) :=
       fun i hi ↦ by rw [hz i hi]; exact c0
     rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | ⟨i, hi, rfl⟩
-    · exact hz' 10 (by simp)
-    · exact hz' 10 (by simp)
-    · exact hz' 10 (by simp)
-    · exact hz' 10 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 8 (by simp)
+    · exact hz' 9 (by simp)
     · exact hz' 10 (by simp)
     · exact hz' 11 (by simp)
-    · exact hz' 12 (by simp)
-    · exact hz' 13 (by simp)
     · exact hcap i hi
   have hK := keccakA_complete hk hcan
   have h1 : IsCanonical128 (vsσ rd w args (.n (o + 1))) := by
@@ -78,12 +78,12 @@ theorem vsSqzT_complete (hl : args.length = 6) {capb o : ℕ}
 theorem vsFpwT_complete (hl : args.length = 6) {a0 a1 a2 a3 : E}
     (ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3])
     (hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3]))
-    (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
-    (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (628 + i))))
+    (hz : ∀ i ∈ [8, 9, 10, 11], vsσ rd w args (.n i) = 0)
+    (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (415 + i))))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList C rd (vsσ rd w args) vsFpwT next kret := by
-  have hsq := vsSqzT_complete (C := C) (kret := kret) hl (capb := 628) (o := 817)
-    (fun s hs ↦ vs_mem_slice (n := 711) (blk := vsFpwT) (by decide +kernel)
+  have hsq := vsSqzT_complete (C := C) (kret := kret) hl (capb := 415) (o := 604)
+    (fun s hs ↦ vs_mem_slice (n := 346) (blk := vsFpwT) (by decide +kernel)
       (by rw [vsFpwT]; exact List.mem_append_right _ hs)) hz hcap hn
   rw [vsFpwT, holdsList_append]
   simp only [Stmt.HoldsList, Stmt.Holds, vsAlloc]

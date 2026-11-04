@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Fpw
 
-  `verify_sub`'s `fp_w` (G:3220-3223), honestly: the bus challenges' equality weights stored, then
+  `verify_sub`'s `fp_w` (G:3406-3409), honestly: the bus challenges' equality weights stored, then
   `β`'s squeeze.
 -/
 
@@ -41,11 +41,11 @@ theorem eqwFactor_complete {x t v : ℕ} (hg : ∀ s ∈ (vsEqwFactor x t v).1, 
   unfold vsEqwFactor at hg ⊢
   by_cases hb : x.testBit t
   · simp only [hb, ↓reduceIte] at hg ⊢
-    have r := good_read (w := w) (hg (vsLd v 559 t) (by simp)) hS ha
+    have r := good_read (w := w) (hg (vsLd v 346 t) (by simp)) hS ha
     simp only [Stmt.HoldsList, Stmt.Holds, vsLd]
     exact ⟨r.1, r.2, hn⟩
   · simp only [hb, Bool.false_eq_true, ↓reduceIte] at hg ⊢
-    have r := good_read (w := w) (hg (vsLd v 559 t) (by simp)) hS ha
+    have r := good_read (w := w) (hg (vsLd v 346 t) (by simp)) hS ha
     have hc : σ (.n (v + 1)) = word 1 0 0 := hg (vsConst (v + 1) (word 1 0 0)) (by simp)
     have hd : σ (.n (v + 2)) = σ (.n (v + 1)) + σ (.n v) := hg (vsAdd (v + 2) (v + 1) v) (by simp)
     simp only [Stmt.HoldsList, Stmt.Holds, vsLd, vsConst, vsAdd]
@@ -105,29 +105,29 @@ theorem eqw_complete {x v : ℕ} (hg : ∀ s ∈ (vsEqwT x v).1, GoodS rd S w σ
   refine ⟨gm2, ?_⟩
   refine (eqwFactor_complete g3 (hS _ 3 (by omega)) l3 ?_).2
   exact ⟨gm3, hn⟩
-/-- The only loads through `bus_alpha` (`559`) the evaluation list stores are the challenges'. -/
+/-- The only loads through `bus_alpha` (`346`) the evaluation list stores are the challenges'. -/
 def alphaStoreB : Atom → Bool
-  | .load d (.n 346) _ => decide (d.idx < 641)
+  | .load d (.n 346) _ => decide (d.idx < 428)
   | _ => true
 
 theorem vsSL_alpha : vsSL.all alphaStoreB = true := by decide +kernel
 
-theorem vsSL_alpha_notS {d off : ℕ} (hd : 641 ≤ d) : Atom.load (.n d) (.n 346) off ∉ vsSL := by
+theorem vsSL_alpha_notS {d off : ℕ} (hd : 428 ≤ d) : Atom.load (.n d) (.n 346) off ∉ vsSL := by
   intro h
   have := List.all_eq_true.mp vsSL_alpha _ h
   simp only [alphaStoreB, decide_eq_true_eq] at this
-  exact absurd this (by show ¬ d < 641; omega)
+  exact absurd this (by show ¬ d < 428; omega)
 
 theorem vsFpwT_noNe : vsFpwT.all noNeB = true := by decide +kernel
 
-theorem vsFpwStart_ge : ∀ x < 16, 641 ≤ vsFpwStart x := by decide +kernel
+theorem vsFpwStart_ge : ∀ x < 16, 428 ≤ vsFpwStart x := by decide +kernel
 
 variable {args : List E}
 
 theorem vsFpwT_good (hl : args.length = 6) :
     ∀ s ∈ vsFpwT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
-  have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 711) (blk := vsFpwT)
+  have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 346) (blk := vsFpwT)
     (by decide +kernel) hs)
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsFpwT_noNe s hs)] at h
 
@@ -138,12 +138,12 @@ theorem vsFpw_loop (hl : args.length = 6) {a0 a1 a2 a3 : E}
     {C : CallRel} {kret : List E → Prop} :
     ∀ l : List ℕ, (∀ x ∈ l, x < 16) → ∀ {nx : Prop}, nx →
       Stmt.HoldsList C rd (vsσ rd w args) (l.flatMap fun x ↦
-        (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 640 x]) nx kret
+        (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 427 x]) nx kret
   | [], _, _, h => h
   | x :: l, hx, nx, h => by
     have hG := vsFpwT_good (rd := rd) (w := w) hl
     have h16 := hx x List.mem_cons_self
-    have hmem : ∀ s ∈ (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 640 x],
+    have hmem : ∀ s ∈ (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 427 x],
         s ∈ vsFpwT := fun s hs ↦ by
       rw [vsFpwT]
       exact List.mem_append_left _ (List.mem_cons_of_mem _

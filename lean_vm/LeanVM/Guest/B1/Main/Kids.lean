@@ -57,14 +57,14 @@ structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : 
   xlen : k.cellsx.length = 4 * k.ex
   xcan : AllCanonical k.cellsx
   xrec : ∀ j < k.ex, BelowLog (σ (.n 40)) (k.ox j) ∧
-    LoadHolds rd (σ (.n 67) * (1 * gen ^ k.ox j)) 0 (k.base * gen ^ j) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 53)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
+    LoadHolds rd (σ (.n 66) * (1 * gen ^ k.ox j)) 0 (k.base * gen ^ j) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n 52)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
   xdig : [k.cx0, k.cx1] = digestCells (keccak256 (cellsBytes k.cellsx))
   slen : k.cellss.length = 4 * k.es
   scan : AllCanonical k.cellss
   srec : ∀ j < k.es, BelowLog (σ (.n 41)) (k.os j) ∧
-    LoadHolds rd (σ (.n 67) * (σ (.n 40) * gen ^ k.os j)) 0 (k.base * gen ^ k.ex * gen ^ j) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 56)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
+    LoadHolds rd (σ (.n 66) * (σ (.n 40) * gen ^ k.os j)) 0 (k.base * gen ^ k.ex * gen ^ j) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n 55)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
   sdig : [k.cs0, k.cs1] = digestCells (keccak256 (cellsBytes k.cellss))
   da0 : LoadHolds rd (σ (.n 334)) (2 * c) k.d0
   da1 : LoadHolds rd (σ (.n 334)) (2 * c + 1) k.d1
@@ -76,7 +76,7 @@ structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : 
   pi0 : LoadHolds rd (σ (.n 365)) (2 * c) k.p0
   pi1 : LoadHolds rd (σ (.n 365)) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 371) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 371) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=
