@@ -28,6 +28,28 @@ public import LeanVM.Guest.Memory.GuestCntVJ.Part18
 public import LeanVM.Guest.Memory.GuestCntVJ.Part19
 public import LeanVM.Guest.Memory.GuestCntVJ.Part20
 public import LeanVM.Guest.Memory.GuestCntVJ.Part21
+public import LeanVM.Guest.Memory.GuestCntVJ.Part22
+public import LeanVM.Guest.Memory.GuestCntVJ.Part23
+public import LeanVM.Guest.Memory.GuestCntVJ.Part24
+public import LeanVM.Guest.Memory.GuestCntVJ.Part25
+public import LeanVM.Guest.Memory.GuestCntVJ.Part26
+public import LeanVM.Guest.Memory.GuestCntVJ.Part27
+public import LeanVM.Guest.Memory.GuestCntVJ.Part28
+public import LeanVM.Guest.Memory.GuestCntVJ.Part29
+public import LeanVM.Guest.Memory.GuestCntVJ.Part30
+public import LeanVM.Guest.Memory.GuestCntVJ.Part31
+public import LeanVM.Guest.Memory.GuestCntVJ.Part32
+public import LeanVM.Guest.Memory.GuestCntVJ.Part33
+public import LeanVM.Guest.Memory.GuestCntVJ.Part34
+public import LeanVM.Guest.Memory.GuestCntVJ.Part35
+public import LeanVM.Guest.Memory.GuestCntVJ.Part36
+public import LeanVM.Guest.Memory.GuestCntVJ.Part37
+public import LeanVM.Guest.Memory.GuestCntVJ.Part38
+public import LeanVM.Guest.Memory.GuestCntVJ.Part39
+public import LeanVM.Guest.Memory.GuestCntVJ.Part40
+public import LeanVM.Guest.Memory.GuestCntVJ.Part41
+public import LeanVM.Guest.Memory.GuestCntVJ.Part42
+public import LeanVM.Guest.Memory.GuestCntVJ.Part43
 
 namespace LeanVM.Guest
 
@@ -36,56 +58,8 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvjchkIdx_298 : kvjchkIdx 298 = true := by
-  have hb : blockB (kvjlookJ 298) (kvjomLookJ 298) false [(.n 217, 0), (.n 218, 25), (.n 479, 112), (.n 666, 0), (.n 667, 6), (.n 767, 56), (.n 954, 0), (.n 955, 4), (.n 1031, 32), (.n 1218, 0), (.n 1219, 3), (.n 1286, 23), (.n 1371, 0), (.n 1372, 2), (.n 1433, 17), (.n 2048, 0), (.n 2049, 112), (.n 2061, 0), (.n 2062, 28), (.n 2074, 0), (.n 2075, 16), (.n 2087, 0), (.n 2088, 11), (.n 2142, 0), (.n 2143, 8)] Data.core298.params Data.core298.name ([], []) Data.core298.body = some (⟨12341, []⟩, []) := by
-    rw [← List.drop_zero (l := Data.core298.body)]
-    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_298_0.1 rfl kvjsplit_298_0.2.2,
-      ← blockR_eq ((Data.core298.body.drop 0).take 1320), kvjsplit_298_0.2.1]
-    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_298_1320.1 rfl kvjsplit_298_1320.2.2,
-      ← blockR_eq ((Data.core298.body.drop 1320).take 1320), kvjsplit_298_1320.2.1]
-    rw [← blockR_eq (Data.core298.body.drop 2640), kvjsplit_298_2640]
-    rfl
-  exact kvjchkIdx_of_split (fn := Data.core298) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-theorem kvjchkIdx_299 : kvjchkIdx 299 = true := by
-  have hb : blockB (kvjlookJ 299) (kvjomLookJ 299) false [(.n 217, 0), (.n 218, 25), (.n 479, 112), (.n 666, 0), (.n 667, 7), (.n 767, 56), (.n 954, 0), (.n 955, 4), (.n 1031, 32), (.n 1218, 0), (.n 1219, 3), (.n 1286, 23), (.n 1371, 0), (.n 1372, 2), (.n 1434, 18), (.n 2096, 0), (.n 2097, 112), (.n 2109, 0), (.n 2110, 28), (.n 2122, 0), (.n 2123, 16), (.n 2135, 0), (.n 2136, 11), (.n 2196, 0), (.n 2197, 9)] Data.core299.params Data.core299.name ([], []) Data.core299.body = some (⟨12392, []⟩, []) := by
-    rw [← List.drop_zero (l := Data.core299.body)]
-    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_299_0.1 rfl kvjsplit_299_0.2.2,
-      ← blockR_eq ((Data.core299.body.drop 0).take 1320), kvjsplit_299_0.2.1]
-    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_299_1320.1 rfl kvjsplit_299_1320.2.2,
-      ← blockR_eq ((Data.core299.body.drop 1320).take 1320), kvjsplit_299_1320.2.1]
-    rw [← blockR_eq (Data.core299.body.drop 2640), kvjsplit_299_2640]
-    rfl
-  exact kvjchkIdx_of_split (fn := Data.core299) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-theorem kvjchkIdx_300 : kvjchkIdx 300 = true := by
-  have hb : blockB (kvjlookJ 300) (kvjomLookJ 300) false [(.n 217, 0), (.n 218, 29), (.n 480, 112), (.n 667, 0), (.n 668, 7), (.n 768, 56), (.n 955, 0), (.n 956, 4), (.n 1032, 32), (.n 1219, 0), (.n 1220, 3), (.n 1287, 23), (.n 1372, 0), (.n 1373, 2), (.n 1435, 18), (.n 2144, 0), (.n 2145, 112), (.n 2283, 0), (.n 2284, 28), (.n 2296, 0), (.n 2297, 16), (.n 2309, 0), (.n 2310, 11), (.n 2376, 0), (.n 2377, 9)] Data.core300.params Data.core300.name ([], []) Data.core300.body = some (⟨12470, []⟩, []) := by
-    rw [← List.drop_zero (l := Data.core300.body)]
-    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_300_0.1 rfl kvjsplit_300_0.2.2,
-      ← blockR_eq ((Data.core300.body.drop 0).take 1320), kvjsplit_300_0.2.1]
-    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_300_1320.1 rfl kvjsplit_300_1320.2.2,
-      ← blockR_eq ((Data.core300.body.drop 1320).take 1320), kvjsplit_300_1320.2.1]
-    rw [← blockR_eq (Data.core300.body.drop 2640), kvjsplit_300_2640]
-    rfl
-  exact kvjchkIdx_of_split (fn := Data.core300) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-theorem kvjchkIdx_301 : kvjchkIdx 301 = true := by
-  have hb : blockB (kvjlookJ 301) (kvjomLookJ 301) false [(.n 217, 0), (.n 218, 29), (.n 480, 112), (.n 667, 0), (.n 668, 7), (.n 768, 56), (.n 955, 0), (.n 956, 4), (.n 1032, 32), (.n 1219, 0), (.n 1220, 3), (.n 1287, 23), (.n 1474, 0), (.n 1475, 2), (.n 1537, 18), (.n 1622, 0), (.n 1623, 2), (.n 1681, 14), (.n 2410, 0), (.n 2411, 112), (.n 2555, 0), (.n 2556, 28), (.n 2568, 0), (.n 2569, 16), (.n 2581, 0), (.n 2582, 11), (.n 2654, 0), (.n 2655, 9), (.n 2667, 0), (.n 2668, 7)] Data.core301.params Data.core301.name ([], []) Data.core301.body = some (⟨12885, []⟩, []) := by
-    rw [← List.drop_zero (l := Data.core301.body)]
-    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_301_0.1 rfl kvjsplit_301_0.2.2,
-      ← blockR_eq ((Data.core301.body.drop 0).take 1111), kvjsplit_301_0.2.1]
-    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_301_1111.1 rfl kvjsplit_301_1111.2.2,
-      ← blockR_eq ((Data.core301.body.drop 1111).take 1111), kvjsplit_301_1111.2.1]
-    rw [← blockR_eq (Data.core301.body.drop 2222), kvjsplit_301_2222]
-    rfl
-  exact kvjchkIdx_of_split (fn := Data.core301) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
-
-set_option maxRecDepth 100000 in
 theorem kvjchkIdx_307 : kvjchkIdx 307 = true := by
-  have hb : blockB (kvjlookJ 307) (kvjomLookJ 307) false [(.n 217, 0), (.n 218, 14), (.n 367, 56), (.n 554, 0), (.n 555, 6), (.n 644, 45), (.n 831, 0), (.n 832, 4), (.n 904, 28), (.n 1091, 0), (.n 1092, 3), (.n 1157, 21), (.n 1242, 0), (.n 1243, 2), (.n 1303, 16), (.n 2012, 0), (.n 2013, 56), (.n 2025, 0), (.n 2026, 22), (.n 2140, 0), (.n 2141, 14), (.n 2153, 0), (.n 2154, 10), (.n 2220, 0), (.n 2221, 8)] Data.core307.params Data.core307.name ([], []) Data.core307.body = some (⟨7748, []⟩, []) := by
+  have hb : blockB (kvjlookJ 307) (kvjomLookJ 307) false [(.n 347, 0), (.n 348, 25), (.n 396, 112), (.n 584, 0), (.n 585, 7), (.n 638, 56), (.n 826, 0), (.n 827, 4), (.n 878, 32), (.n 1066, 0), (.n 1067, 3), (.n 1120, 23), (.n 1206, 0), (.n 1207, 2), (.n 1258, 18), (.n 1922, 0), (.n 1923, 28), (.n 1936, 0), (.n 1937, 7), (.n 1950, 0), (.n 1951, 4), (.n 1964, 0), (.n 1965, 2), (.n 2307, 0), (.n 2308, 2)] Data.core307.params Data.core307.name ([], []) Data.core307.body = some (⟨14158, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core307.body)]
     rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_307_0.1 rfl kvjsplit_307_0.2.2,
       ← blockR_eq ((Data.core307.body.drop 0).take 1320), kvjsplit_307_0.2.1]
@@ -97,19 +71,57 @@ theorem kvjchkIdx_307 : kvjchkIdx 307 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_308 : kvjchkIdx 308 = true := by
-  have hb : blockB (kvjlookJ 308) (kvjomLookJ 308) false [(.n 217, 0), (.n 218, 14), (.n 367, 56), (.n 554, 0), (.n 555, 6), (.n 644, 45), (.n 831, 0), (.n 832, 4), (.n 904, 28), (.n 1091, 0), (.n 1092, 3), (.n 1157, 21), (.n 1344, 0), (.n 1345, 2), (.n 1405, 16), (.n 1490, 0), (.n 1491, 2), (.n 1548, 13), (.n 2277, 0), (.n 2278, 56), (.n 2290, 0), (.n 2291, 22), (.n 2411, 0), (.n 2412, 14), (.n 2424, 0), (.n 2425, 10), (.n 2497, 0), (.n 2498, 8), (.n 2510, 0), (.n 2511, 6)] Data.core308.params Data.core308.name ([], []) Data.core308.body = some (⟨8135, []⟩, []) := by
+  have hb : blockB (kvjlookJ 308) (kvjomLookJ 308) false [(.n 347, 0), (.n 348, 29), (.n 397, 112), (.n 585, 0), (.n 586, 7), (.n 639, 56), (.n 827, 0), (.n 828, 4), (.n 879, 32), (.n 1067, 0), (.n 1068, 3), (.n 1121, 23), (.n 1207, 0), (.n 1208, 2), (.n 1259, 18), (.n 1970, 0), (.n 1971, 28), (.n 2109, 0), (.n 2110, 7), (.n 2123, 0), (.n 2124, 4), (.n 2137, 0), (.n 2138, 2), (.n 2522, 0), (.n 2523, 2)] Data.core308.params Data.core308.name ([], []) Data.core308.body = some (⟨14276, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core308.body)]
-    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_308_0.1 rfl kvjsplit_308_0.2.2,
-      ← blockR_eq ((Data.core308.body.drop 0).take 1111), kvjsplit_308_0.2.1]
-    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_308_1111.1 rfl kvjsplit_308_1111.2.2,
-      ← blockR_eq ((Data.core308.body.drop 1111).take 1111), kvjsplit_308_1111.2.1]
-    rw [← blockR_eq (Data.core308.body.drop 2222), kvjsplit_308_2222]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_308_0.1 rfl kvjsplit_308_0.2.2,
+      ← blockR_eq ((Data.core308.body.drop 0).take 1320), kvjsplit_308_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_308_1320.1 rfl kvjsplit_308_1320.2.2,
+      ← blockR_eq ((Data.core308.body.drop 1320).take 1320), kvjsplit_308_1320.2.1]
+    rw [← blockR_eq (Data.core308.body.drop 2640), kvjsplit_308_2640]
     rfl
   exact kvjchkIdx_of_split (fn := Data.core308) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
+theorem kvjchkIdx_309 : kvjchkIdx 309 = true := by
+  have hb : blockB (kvjlookJ 309) (kvjomLookJ 309) false [(.n 347, 0), (.n 348, 29), (.n 397, 112), (.n 585, 0), (.n 586, 7), (.n 639, 56), (.n 827, 0), (.n 828, 4), (.n 879, 32), (.n 1067, 0), (.n 1068, 3), (.n 1121, 23), (.n 1309, 0), (.n 1310, 2), (.n 1361, 18), (.n 1447, 0), (.n 1448, 2), (.n 1499, 14), (.n 2230, 0), (.n 2231, 28), (.n 2375, 0), (.n 2376, 7), (.n 2389, 0), (.n 2390, 4), (.n 2403, 0), (.n 2404, 2), (.n 2830, 0), (.n 2831, 2), (.n 2914, 0), (.n 2915, 1)] Data.core309.params Data.core309.name ([], []) Data.core309.body = some (⟨14761, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core309.body)]
+    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_309_0.1 rfl kvjsplit_309_0.2.2,
+      ← blockR_eq ((Data.core309.body.drop 0).take 1111), kvjsplit_309_0.2.1]
+    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_309_1111.1 rfl kvjsplit_309_1111.2.2,
+      ← blockR_eq ((Data.core309.body.drop 1111).take 1111), kvjsplit_309_1111.2.1]
+    rw [blockB_dropE _ _ _ 2222 1111 3333 kvjsplit_309_2222.1 rfl kvjsplit_309_2222.2.2,
+      ← blockR_eq ((Data.core309.body.drop 2222).take 1111), kvjsplit_309_2222.2.1]
+    rw [← blockR_eq (Data.core309.body.drop 3333), kvjsplit_309_3333]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core309) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_312 : kvjchkIdx 312 = true := by
+  have hb : blockB (kvjlookJ 312) (kvjomLookJ 312) false [(.n 347, 0), (.n 348, 13), (.n 395, 56), (.n 583, 0), (.n 584, 5), (.n 638, 45), (.n 826, 0), (.n 827, 3), (.n 879, 28), (.n 1067, 0), (.n 1068, 2), (.n 1120, 21), (.n 1206, 0), (.n 1207, 2), (.n 1257, 16), (.n 1827, 0), (.n 1828, 14), (.n 1841, 0), (.n 1842, 5), (.n 2270, 0), (.n 2271, 3), (.n 2520, 0), (.n 2521, 2), (.n 2709, 0), (.n 2710, 2)] Data.core312.params Data.core312.name ([], []) Data.core312.body = some (⟨8714, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core312.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_312_0.1 rfl kvjsplit_312_0.2.2,
+      ← blockR_eq ((Data.core312.body.drop 0).take 1320), kvjsplit_312_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_312_1320.1 rfl kvjsplit_312_1320.2.2,
+      ← blockR_eq ((Data.core312.body.drop 1320).take 1320), kvjsplit_312_1320.2.1]
+    rw [← blockR_eq (Data.core312.body.drop 2640), kvjsplit_312_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core312) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_313 : kvjchkIdx 313 = true := by
+  have hb : blockB (kvjlookJ 313) (kvjomLookJ 313) false [(.n 347, 0), (.n 348, 13), (.n 395, 56), (.n 583, 0), (.n 584, 5), (.n 638, 45), (.n 826, 0), (.n 827, 3), (.n 879, 28), (.n 1067, 0), (.n 1068, 3), (.n 1120, 21), (.n 1206, 0), (.n 1207, 2), (.n 1257, 16), (.n 1874, 0), (.n 1875, 14), (.n 1888, 0), (.n 1889, 5), (.n 2347, 0), (.n 2348, 3), (.n 2621, 0), (.n 2622, 2), (.n 2840, 0), (.n 2841, 2)] Data.core313.params Data.core313.name ([], []) Data.core313.body = some (⟨8805, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core313.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_313_0.1 rfl kvjsplit_313_0.2.2,
+      ← blockR_eq ((Data.core313.body.drop 0).take 1320), kvjsplit_313_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_313_1320.1 rfl kvjsplit_313_1320.2.2,
+      ← blockR_eq ((Data.core313.body.drop 1320).take 1320), kvjsplit_313_1320.2.1]
+    rw [← blockR_eq (Data.core313.body.drop 2640), kvjsplit_313_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core313) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
 theorem kvjchkIdx_314 : kvjchkIdx 314 = true := by
-  have hb : blockB (kvjlookJ 314) (kvjomLookJ 314) false [(.n 217, 0), (.n 218, 10), (.n 330, 37), (.n 517, 0), (.n 518, 5), (.n 600, 38), (.n 787, 0), (.n 788, 4), (.n 857, 25), (.n 1044, 0), (.n 1045, 3), (.n 1108, 19), (.n 1193, 0), (.n 1194, 2), (.n 1253, 15), (.n 1962, 0), (.n 1963, 37), (.n 2101, 0), (.n 2102, 19), (.n 2114, 0), (.n 2115, 12), (.n 2205, 0), (.n 2206, 9), (.n 2272, 0), (.n 2273, 7)] Data.core314.params Data.core314.name ([], []) Data.core314.body = some (⟨6111, []⟩, []) := by
+  have hb : blockB (kvjlookJ 314) (kvjomLookJ 314) false [(.n 347, 0), (.n 348, 14), (.n 395, 56), (.n 583, 0), (.n 584, 5), (.n 638, 45), (.n 826, 0), (.n 827, 4), (.n 879, 28), (.n 1067, 0), (.n 1068, 3), (.n 1120, 21), (.n 1206, 0), (.n 1207, 2), (.n 1257, 16), (.n 1921, 0), (.n 1922, 14), (.n 1935, 0), (.n 1936, 5), (.n 2424, 0), (.n 2425, 3), (.n 2722, 0), (.n 2723, 2), (.n 2971, 0), (.n 2972, 2)] Data.core314.params Data.core314.name ([], []) Data.core314.body = some (⟨8831, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core314.body)]
     rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_314_0.1 rfl kvjsplit_314_0.2.2,
       ← blockR_eq ((Data.core314.body.drop 0).take 1320), kvjsplit_314_0.2.1]
@@ -121,52 +133,196 @@ theorem kvjchkIdx_314 : kvjchkIdx 314 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_315 : kvjchkIdx 315 = true := by
-  have hb : blockB (kvjlookJ 315) (kvjomLookJ 315) false [(.n 217, 0), (.n 218, 11), (.n 330, 37), (.n 517, 0), (.n 518, 5), (.n 600, 38), (.n 787, 0), (.n 788, 4), (.n 857, 25), (.n 1044, 0), (.n 1045, 3), (.n 1108, 19), (.n 1295, 0), (.n 1296, 2), (.n 1355, 15), (.n 1440, 0), (.n 1441, 2), (.n 1498, 13), (.n 2227, 0), (.n 2228, 37), (.n 2372, 0), (.n 2373, 19), (.n 2385, 0), (.n 2386, 12), (.n 2482, 0), (.n 2483, 9), (.n 2555, 0), (.n 2556, 7), (.n 2604, 0), (.n 2605, 6)] Data.core315.params Data.core315.name ([], []) Data.core315.body = some (⟨6503, []⟩, []) := by
+  have hb : blockB (kvjlookJ 315) (kvjomLookJ 315) false [(.n 347, 0), (.n 348, 14), (.n 395, 56), (.n 583, 0), (.n 584, 6), (.n 638, 45), (.n 826, 0), (.n 827, 4), (.n 879, 28), (.n 1067, 0), (.n 1068, 3), (.n 1120, 21), (.n 1206, 0), (.n 1207, 2), (.n 1257, 16), (.n 1968, 0), (.n 1969, 14), (.n 1982, 0), (.n 1983, 5), (.n 2501, 0), (.n 2502, 3), (.n 2823, 0), (.n 2824, 2), (.n 3102, 0), (.n 3103, 2)] Data.core315.params Data.core315.name ([], []) Data.core315.body = some (⟨8860, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core315.body)]
-    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_315_0.1 rfl kvjsplit_315_0.2.2,
-      ← blockR_eq ((Data.core315.body.drop 0).take 1111), kvjsplit_315_0.2.1]
-    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_315_1111.1 rfl kvjsplit_315_1111.2.2,
-      ← blockR_eq ((Data.core315.body.drop 1111).take 1111), kvjsplit_315_1111.2.1]
-    rw [← blockR_eq (Data.core315.body.drop 2222), kvjsplit_315_2222]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_315_0.1 rfl kvjsplit_315_0.2.2,
+      ← blockR_eq ((Data.core315.body.drop 0).take 1320), kvjsplit_315_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_315_1320.1 rfl kvjsplit_315_1320.2.2,
+      ← blockR_eq ((Data.core315.body.drop 1320).take 1320), kvjsplit_315_1320.2.1]
+    rw [← blockR_eq (Data.core315.body.drop 2640), kvjsplit_315_2640]
     rfl
   exact kvjchkIdx_of_split (fn := Data.core315) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
+theorem kvjchkIdx_316 : kvjchkIdx 316 = true := by
+  have hb : blockB (kvjlookJ 316) (kvjomLookJ 316) false [(.n 347, 0), (.n 348, 14), (.n 395, 56), (.n 583, 0), (.n 584, 6), (.n 638, 45), (.n 826, 0), (.n 827, 4), (.n 879, 28), (.n 1067, 0), (.n 1068, 3), (.n 1120, 21), (.n 1308, 0), (.n 1309, 2), (.n 1359, 16), (.n 1445, 0), (.n 1446, 2), (.n 1497, 13), (.n 2228, 0), (.n 2229, 14), (.n 2242, 0), (.n 2243, 5), (.n 2791, 0), (.n 2792, 3), (.n 3137, 0), (.n 3138, 2), (.n 3446, 0), (.n 3447, 2), (.n 3460, 0), (.n 3461, 1)] Data.core316.params Data.core316.name ([], []) Data.core316.body = some (⟨9313, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core316.body)]
+    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_316_0.1 rfl kvjsplit_316_0.2.2,
+      ← blockR_eq ((Data.core316.body.drop 0).take 1111), kvjsplit_316_0.2.1]
+    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_316_1111.1 rfl kvjsplit_316_1111.2.2,
+      ← blockR_eq ((Data.core316.body.drop 1111).take 1111), kvjsplit_316_1111.2.1]
+    rw [blockB_dropE _ _ _ 2222 1111 3333 kvjsplit_316_2222.1 rfl kvjsplit_316_2222.2.2,
+      ← blockR_eq ((Data.core316.body.drop 2222).take 1111), kvjsplit_316_2222.2.1]
+    rw [← blockR_eq (Data.core316.body.drop 3333), kvjsplit_316_3333]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core316) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_319 : kvjchkIdx 319 = true := by
+  have hb : blockB (kvjlookJ 319) (kvjomLookJ 319) false [(.n 347, 0), (.n 348, 9), (.n 396, 37), (.n 584, 0), (.n 585, 5), (.n 638, 38), (.n 826, 0), (.n 827, 3), (.n 879, 25), (.n 1067, 0), (.n 1068, 2), (.n 1120, 19), (.n 1206, 0), (.n 1207, 2), (.n 1259, 15), (.n 1829, 0), (.n 1830, 9), (.n 2164, 0), (.n 2165, 4), (.n 2676, 0), (.n 2677, 3), (.n 2749, 0), (.n 2750, 2), (.n 2868, 0), (.n 2869, 1)] Data.core319.params Data.core319.name ([], []) Data.core319.body = some (⟨6894, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core319.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_319_0.1 rfl kvjsplit_319_0.2.2,
+      ← blockR_eq ((Data.core319.body.drop 0).take 1320), kvjsplit_319_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_319_1320.1 rfl kvjsplit_319_1320.2.2,
+      ← blockR_eq ((Data.core319.body.drop 1320).take 1320), kvjsplit_319_1320.2.1]
+    rw [← blockR_eq (Data.core319.body.drop 2640), kvjsplit_319_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core319) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_320 : kvjchkIdx 320 = true := by
+  have hb : blockB (kvjlookJ 320) (kvjomLookJ 320) false [(.n 347, 0), (.n 348, 10), (.n 396, 37), (.n 584, 0), (.n 585, 5), (.n 638, 38), (.n 826, 0), (.n 827, 3), (.n 879, 25), (.n 1067, 0), (.n 1068, 2), (.n 1120, 19), (.n 1206, 0), (.n 1207, 2), (.n 1259, 15), (.n 1876, 0), (.n 1877, 9), (.n 2229, 0), (.n 2230, 4), (.n 2777, 0), (.n 2778, 3), (.n 2856, 0), (.n 2857, 2), (.n 2993, 0), (.n 2994, 1)] Data.core320.params Data.core320.name ([], []) Data.core320.body = some (⟨6911, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core320.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_320_0.1 rfl kvjsplit_320_0.2.2,
+      ← blockR_eq ((Data.core320.body.drop 0).take 1320), kvjsplit_320_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_320_1320.1 rfl kvjsplit_320_1320.2.2,
+      ← blockR_eq ((Data.core320.body.drop 1320).take 1320), kvjsplit_320_1320.2.1]
+    rw [← blockR_eq (Data.core320.body.drop 2640), kvjsplit_320_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core320) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_321 : kvjchkIdx 321 = true := by
+  have hb : blockB (kvjlookJ 321) (kvjomLookJ 321) false [(.n 347, 0), (.n 348, 10), (.n 396, 37), (.n 584, 0), (.n 585, 5), (.n 638, 38), (.n 826, 0), (.n 827, 3), (.n 879, 25), (.n 1067, 0), (.n 1068, 3), (.n 1120, 19), (.n 1206, 0), (.n 1207, 2), (.n 1259, 15), (.n 1923, 0), (.n 1924, 9), (.n 2294, 0), (.n 2295, 4), (.n 2878, 0), (.n 2879, 3), (.n 2963, 0), (.n 2964, 2), (.n 3118, 0), (.n 3119, 1)] Data.core321.params Data.core321.name ([], []) Data.core321.body = some (⟨6932, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core321.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_321_0.1 rfl kvjsplit_321_0.2.2,
+      ← blockR_eq ((Data.core321.body.drop 0).take 1320), kvjsplit_321_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_321_1320.1 rfl kvjsplit_321_1320.2.2,
+      ← blockR_eq ((Data.core321.body.drop 1320).take 1320), kvjsplit_321_1320.2.1]
+    rw [← blockR_eq (Data.core321.body.drop 2640), kvjsplit_321_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core321) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
 theorem kvjchkIdx_322 : kvjchkIdx 322 = true := by
-  have hb : blockB (kvjlookJ 322) (kvjomLookJ 322) false [(.n 217, 0), (.n 218, 8), (.n 311, 28), (.n 498, 0), (.n 499, 5), (.n 575, 32), (.n 762, 0), (.n 763, 3), (.n 830, 23), (.n 1017, 0), (.n 1018, 3), (.n 1080, 18), (.n 1267, 0), (.n 1268, 2), (.n 1327, 15), (.n 1412, 0), (.n 1413, 2), (.n 1469, 12), (.n 2198, 0), (.n 2199, 28), (.n 2211, 0), (.n 2212, 16), (.n 2224, 0), (.n 2225, 11), (.n 2321, 0), (.n 2322, 9), (.n 2334, 0), (.n 2335, 7), (.n 2383, 0), (.n 2384, 6)] Data.core322.params Data.core322.name ([], []) Data.core322.body = some (⟨5379, []⟩, []) := by
+  have hb : blockB (kvjlookJ 322) (kvjomLookJ 322) false [(.n 347, 0), (.n 348, 10), (.n 396, 37), (.n 584, 0), (.n 585, 5), (.n 638, 38), (.n 826, 0), (.n 827, 4), (.n 879, 25), (.n 1067, 0), (.n 1068, 3), (.n 1120, 19), (.n 1206, 0), (.n 1207, 2), (.n 1259, 15), (.n 1970, 0), (.n 1971, 9), (.n 2359, 0), (.n 2360, 4), (.n 2979, 0), (.n 2980, 3), (.n 3070, 0), (.n 3071, 2), (.n 3243, 0), (.n 3244, 1)] Data.core322.params Data.core322.name ([], []) Data.core322.body = some (⟨6961, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core322.body)]
-    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_322_0.1 rfl kvjsplit_322_0.2.2,
-      ← blockR_eq ((Data.core322.body.drop 0).take 1111), kvjsplit_322_0.2.1]
-    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_322_1111.1 rfl kvjsplit_322_1111.2.2,
-      ← blockR_eq ((Data.core322.body.drop 1111).take 1111), kvjsplit_322_1111.2.1]
-    rw [← blockR_eq (Data.core322.body.drop 2222), kvjsplit_322_2222]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_322_0.1 rfl kvjsplit_322_0.2.2,
+      ← blockR_eq ((Data.core322.body.drop 0).take 1320), kvjsplit_322_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_322_1320.1 rfl kvjsplit_322_1320.2.2,
+      ← blockR_eq ((Data.core322.body.drop 1320).take 1320), kvjsplit_322_1320.2.1]
+    rw [← blockR_eq (Data.core322.body.drop 2640), kvjsplit_322_2640]
     rfl
   exact kvjchkIdx_of_split (fn := Data.core322) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
-theorem kvjchkIdx_all : ∀ j < 884, kvjchkIdx j = true := by
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_323 : kvjchkIdx 323 = true := by
+  have hb : blockB (kvjlookJ 323) (kvjomLookJ 323) false [(.n 347, 0), (.n 348, 11), (.n 396, 37), (.n 584, 0), (.n 585, 5), (.n 638, 38), (.n 826, 0), (.n 827, 4), (.n 879, 25), (.n 1067, 0), (.n 1068, 3), (.n 1120, 19), (.n 1308, 0), (.n 1309, 2), (.n 1361, 15), (.n 1447, 0), (.n 1448, 2), (.n 1499, 13), (.n 2230, 0), (.n 2231, 9), (.n 2637, 0), (.n 2638, 4), (.n 3293, 0), (.n 3294, 3), (.n 3390, 0), (.n 3391, 2), (.n 3581, 0), (.n 3582, 1), (.n 3840, 0), (.n 3841, 1)] Data.core323.params Data.core323.name ([], []) Data.core323.body = some (⟨7419, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core323.body)]
+    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_323_0.1 rfl kvjsplit_323_0.2.2,
+      ← blockR_eq ((Data.core323.body.drop 0).take 1111), kvjsplit_323_0.2.1]
+    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_323_1111.1 rfl kvjsplit_323_1111.2.2,
+      ← blockR_eq ((Data.core323.body.drop 1111).take 1111), kvjsplit_323_1111.2.1]
+    rw [blockB_dropE _ _ _ 2222 1111 3333 kvjsplit_323_2222.1 rfl kvjsplit_323_2222.2.2,
+      ← blockR_eq ((Data.core323.body.drop 2222).take 1111), kvjsplit_323_2222.2.1]
+    rw [← blockR_eq (Data.core323.body.drop 3333), kvjsplit_323_3333]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core323) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_326 : kvjchkIdx 326 = true := by
+  have hb : blockB (kvjlookJ 326) (kvjomLookJ 326) false [(.n 347, 0), (.n 348, 7), (.n 394, 28), (.n 582, 0), (.n 583, 4), (.n 634, 32), (.n 822, 0), (.n 823, 3), (.n 876, 23), (.n 1064, 0), (.n 1065, 2), (.n 1116, 18), (.n 1202, 0), (.n 1203, 2), (.n 1254, 14), (.n 1824, 0), (.n 1825, 7), (.n 1838, 0), (.n 1839, 4), (.n 1852, 0), (.n 1853, 2), (.n 2279, 0), (.n 2280, 2), (.n 2363, 0), (.n 2364, 1)] Data.core326.params Data.core326.name ([], []) Data.core326.body = some (⟨5621, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core326.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_326_0.1 rfl kvjsplit_326_0.2.2,
+      ← blockR_eq ((Data.core326.body.drop 0).take 1320), kvjsplit_326_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_326_1320.1 rfl kvjsplit_326_1320.2.2,
+      ← blockR_eq ((Data.core326.body.drop 1320).take 1320), kvjsplit_326_1320.2.1]
+    rw [← blockR_eq (Data.core326.body.drop 2640), kvjsplit_326_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core326) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_327 : kvjchkIdx 327 = true := by
+  have hb : blockB (kvjlookJ 327) (kvjomLookJ 327) false [(.n 347, 0), (.n 348, 7), (.n 394, 28), (.n 582, 0), (.n 583, 4), (.n 634, 32), (.n 822, 0), (.n 823, 3), (.n 876, 23), (.n 1064, 0), (.n 1065, 2), (.n 1116, 18), (.n 1202, 0), (.n 1203, 2), (.n 1254, 14), (.n 1871, 0), (.n 1872, 7), (.n 1885, 0), (.n 1886, 4), (.n 1899, 0), (.n 1900, 2), (.n 2368, 0), (.n 2369, 2), (.n 2464, 0), (.n 2465, 1)] Data.core327.params Data.core327.name ([], []) Data.core327.body = some (⟨5633, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core327.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_327_0.1 rfl kvjsplit_327_0.2.2,
+      ← blockR_eq ((Data.core327.body.drop 0).take 1320), kvjsplit_327_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_327_1320.1 rfl kvjsplit_327_1320.2.2,
+      ← blockR_eq ((Data.core327.body.drop 1320).take 1320), kvjsplit_327_1320.2.1]
+    rw [← blockR_eq (Data.core327.body.drop 2640), kvjsplit_327_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core327) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_328 : kvjchkIdx 328 = true := by
+  have hb : blockB (kvjlookJ 328) (kvjomLookJ 328) false [(.n 347, 0), (.n 348, 7), (.n 394, 28), (.n 582, 0), (.n 583, 4), (.n 634, 32), (.n 822, 0), (.n 823, 3), (.n 876, 23), (.n 1064, 0), (.n 1065, 2), (.n 1116, 18), (.n 1202, 0), (.n 1203, 2), (.n 1254, 14), (.n 1918, 0), (.n 1919, 7), (.n 1932, 0), (.n 1933, 4), (.n 1946, 0), (.n 1947, 2), (.n 2457, 0), (.n 2458, 2), (.n 2565, 0), (.n 2566, 1)] Data.core328.params Data.core328.name ([], []) Data.core328.body = some (⟨5649, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core328.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_328_0.1 rfl kvjsplit_328_0.2.2,
+      ← blockR_eq ((Data.core328.body.drop 0).take 1320), kvjsplit_328_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_328_1320.1 rfl kvjsplit_328_1320.2.2,
+      ← blockR_eq ((Data.core328.body.drop 1320).take 1320), kvjsplit_328_1320.2.1]
+    rw [← blockR_eq (Data.core328.body.drop 2640), kvjsplit_328_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core328) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_329 : kvjchkIdx 329 = true := by
+  have hb : blockB (kvjlookJ 329) (kvjomLookJ 329) false [(.n 347, 0), (.n 348, 8), (.n 394, 28), (.n 582, 0), (.n 583, 4), (.n 634, 32), (.n 822, 0), (.n 823, 3), (.n 876, 23), (.n 1064, 0), (.n 1065, 3), (.n 1116, 18), (.n 1202, 0), (.n 1203, 2), (.n 1255, 15), (.n 1966, 0), (.n 1967, 7), (.n 1980, 0), (.n 1981, 4), (.n 1994, 0), (.n 1995, 2), (.n 2547, 0), (.n 2548, 2), (.n 2667, 0), (.n 2668, 1)] Data.core329.params Data.core329.name ([], []) Data.core329.body = some (⟨5891, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core329.body)]
+    rw [blockB_dropE _ _ _ 0 1320 1320 kvjsplit_329_0.1 rfl kvjsplit_329_0.2.2,
+      ← blockR_eq ((Data.core329.body.drop 0).take 1320), kvjsplit_329_0.2.1]
+    rw [blockB_dropE _ _ _ 1320 1320 2640 kvjsplit_329_1320.1 rfl kvjsplit_329_1320.2.2,
+      ← blockR_eq ((Data.core329.body.drop 1320).take 1320), kvjsplit_329_1320.2.1]
+    rw [← blockR_eq (Data.core329.body.drop 2640), kvjsplit_329_2640]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core329) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem kvjchkIdx_330 : kvjchkIdx 330 = true := by
+  have hb : blockB (kvjlookJ 330) (kvjomLookJ 330) false [(.n 347, 0), (.n 348, 8), (.n 394, 28), (.n 582, 0), (.n 583, 5), (.n 634, 32), (.n 822, 0), (.n 823, 3), (.n 876, 23), (.n 1064, 0), (.n 1065, 3), (.n 1116, 18), (.n 1304, 0), (.n 1305, 2), (.n 1357, 15), (.n 1443, 0), (.n 1444, 2), (.n 1494, 12), (.n 2225, 0), (.n 2226, 7), (.n 2239, 0), (.n 2240, 4), (.n 2253, 0), (.n 2254, 2), (.n 2848, 0), (.n 2849, 2), (.n 2980, 0), (.n 2981, 1), (.n 3239, 0), (.n 3240, 1)] Data.core330.params Data.core330.name ([], []) Data.core330.body = some (⟨6363, []⟩, []) := by
+    rw [← List.drop_zero (l := Data.core330.body)]
+    rw [blockB_dropE _ _ _ 0 1111 1111 kvjsplit_330_0.1 rfl kvjsplit_330_0.2.2,
+      ← blockR_eq ((Data.core330.body.drop 0).take 1111), kvjsplit_330_0.2.1]
+    rw [blockB_dropE _ _ _ 1111 1111 2222 kvjsplit_330_1111.1 rfl kvjsplit_330_1111.2.2,
+      ← blockR_eq ((Data.core330.body.drop 1111).take 1111), kvjsplit_330_1111.2.1]
+    rw [blockB_dropE _ _ _ 2222 1111 3333 kvjsplit_330_2222.1 rfl kvjsplit_330_2222.2.2,
+      ← blockR_eq ((Data.core330.body.drop 2222).take 1111), kvjsplit_330_2222.2.1]
+    rw [← blockR_eq (Data.core330.body.drop 3333), kvjsplit_330_3333]
+    rfl
+  exact kvjchkIdx_of_split (fn := Data.core330) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
+
+theorem kvjchkIdx_all : ∀ j < 947, kvjchkIdx j = true := by
   intro j hj
-  by_cases h1000 : j = 298
-  · subst h1000; exact kvjchkIdx_298
-  by_cases h1001 : j = 299
-  · subst h1001; exact kvjchkIdx_299
-  by_cases h1002 : j = 300
-  · subst h1002; exact kvjchkIdx_300
-  by_cases h1003 : j = 301
-  · subst h1003; exact kvjchkIdx_301
-  by_cases h1004 : j = 307
-  · subst h1004; exact kvjchkIdx_307
-  by_cases h1005 : j = 308
-  · subst h1005; exact kvjchkIdx_308
-  by_cases h1006 : j = 314
-  · subst h1006; exact kvjchkIdx_314
-  by_cases h1007 : j = 315
-  · subst h1007; exact kvjchkIdx_315
-  by_cases h1008 : j = 322
-  · subst h1008; exact kvjchkIdx_322
-  by_cases h0 : j < 10
+  by_cases h1000 : j = 307
+  · subst h1000; exact kvjchkIdx_307
+  by_cases h1001 : j = 308
+  · subst h1001; exact kvjchkIdx_308
+  by_cases h1002 : j = 309
+  · subst h1002; exact kvjchkIdx_309
+  by_cases h1003 : j = 312
+  · subst h1003; exact kvjchkIdx_312
+  by_cases h1004 : j = 313
+  · subst h1004; exact kvjchkIdx_313
+  by_cases h1005 : j = 314
+  · subst h1005; exact kvjchkIdx_314
+  by_cases h1006 : j = 315
+  · subst h1006; exact kvjchkIdx_315
+  by_cases h1007 : j = 316
+  · subst h1007; exact kvjchkIdx_316
+  by_cases h1008 : j = 319
+  · subst h1008; exact kvjchkIdx_319
+  by_cases h1009 : j = 320
+  · subst h1009; exact kvjchkIdx_320
+  by_cases h1010 : j = 321
+  · subst h1010; exact kvjchkIdx_321
+  by_cases h1011 : j = 322
+  · subst h1011; exact kvjchkIdx_322
+  by_cases h1012 : j = 323
+  · subst h1012; exact kvjchkIdx_323
+  by_cases h1013 : j = 326
+  · subst h1013; exact kvjchkIdx_326
+  by_cases h1014 : j = 327
+  · subst h1014; exact kvjchkIdx_327
+  by_cases h1015 : j = 328
+  · subst h1015; exact kvjchkIdx_328
+  by_cases h1016 : j = 329
+  · subst h1016; exact kvjchkIdx_329
+  by_cases h1017 : j = 330
+  · subst h1017; exact kvjchkIdx_330
+  by_cases h0 : j < 11
   · exact kvjstaticRange_0.get (by omega) (by omega)
   by_cases h1 : j < 18
-  · exact kvjstaticRange_10.get (by omega) (by omega)
+  · exact kvjstaticRange_11.get (by omega) (by omega)
   by_cases h2 : j < 48
   · exact kvjstaticRange_18.get (by omega) (by omega)
   by_cases h3 : j < 78
@@ -185,99 +341,161 @@ theorem kvjchkIdx_all : ∀ j < 884, kvjchkIdx j = true := by
   · exact kvjstaticRange_228.get (by omega) (by omega)
   by_cases h10 : j < 288
   · exact kvjstaticRange_258.get (by omega) (by omega)
-  by_cases h11 : j < 296
+  by_cases h11 : j < 304
   · exact kvjstaticRange_288.get (by omega) (by omega)
-  by_cases h12 : j < 297
-  · exact kvjstaticRange_296.get (by omega) (by omega)
-  by_cases h13 : j < 298
-  · exact kvjstaticRange_297.get (by omega) (by omega)
-  by_cases h14 : j < 304
-  · exact kvjstaticRange_302.get (by omega) (by omega)
-  by_cases h15 : j < 305
+  by_cases h12 : j < 305
   · exact kvjstaticRange_304.get (by omega) (by omega)
-  by_cases h16 : j < 306
+  by_cases h13 : j < 306
   · exact kvjstaticRange_305.get (by omega) (by omega)
-  by_cases h17 : j < 307
+  by_cases h14 : j < 307
   · exact kvjstaticRange_306.get (by omega) (by omega)
-  by_cases h18 : j < 311
-  · exact kvjstaticRange_309.get (by omega) (by omega)
-  by_cases h19 : j < 312
+  by_cases h15 : j < 311
+  · exact kvjstaticRange_310.get (by omega) (by omega)
+  by_cases h16 : j < 312
   · exact kvjstaticRange_311.get (by omega) (by omega)
-  by_cases h20 : j < 313
-  · exact kvjstaticRange_312.get (by omega) (by omega)
-  by_cases h21 : j < 314
-  · exact kvjstaticRange_313.get (by omega) (by omega)
-  by_cases h22 : j < 318
-  · exact kvjstaticRange_316.get (by omega) (by omega)
-  by_cases h23 : j < 319
+  by_cases h17 : j < 318
+  · exact kvjstaticRange_317.get (by omega) (by omega)
+  by_cases h18 : j < 319
   · exact kvjstaticRange_318.get (by omega) (by omega)
-  by_cases h24 : j < 320
-  · exact kvjstaticRange_319.get (by omega) (by omega)
-  by_cases h25 : j < 321
-  · exact kvjstaticRange_320.get (by omega) (by omega)
-  by_cases h26 : j < 322
-  · exact kvjstaticRange_321.get (by omega) (by omega)
-  by_cases h27 : j < 348
-  · exact kvjstaticRange_323.get (by omega) (by omega)
-  by_cases h28 : j < 370
-  · exact kvjstaticRange_348.get (by omega) (by omega)
-  by_cases h29 : j < 385
-  · exact kvjstaticRange_370.get (by omega) (by omega)
-  by_cases h30 : j < 415
-  · exact kvjstaticRange_385.get (by omega) (by omega)
-  by_cases h31 : j < 437
-  · exact kvjstaticRange_415.get (by omega) (by omega)
-  by_cases h32 : j < 460
-  · exact kvjstaticRange_437.get (by omega) (by omega)
-  by_cases h33 : j < 482
-  · exact kvjstaticRange_460.get (by omega) (by omega)
-  by_cases h34 : j < 503
-  · exact kvjstaticRange_482.get (by omega) (by omega)
-  by_cases h35 : j < 523
-  · exact kvjstaticRange_503.get (by omega) (by omega)
-  by_cases h36 : j < 543
-  · exact kvjstaticRange_523.get (by omega) (by omega)
-  by_cases h37 : j < 564
-  · exact kvjstaticRange_543.get (by omega) (by omega)
-  by_cases h38 : j < 585
-  · exact kvjstaticRange_564.get (by omega) (by omega)
-  by_cases h39 : j < 606
-  · exact kvjstaticRange_585.get (by omega) (by omega)
-  by_cases h40 : j < 626
-  · exact kvjstaticRange_606.get (by omega) (by omega)
-  by_cases h41 : j < 646
-  · exact kvjstaticRange_626.get (by omega) (by omega)
-  by_cases h42 : j < 666
-  · exact kvjstaticRange_646.get (by omega) (by omega)
-  by_cases h43 : j < 687
-  · exact kvjstaticRange_666.get (by omega) (by omega)
-  by_cases h44 : j < 708
+  by_cases h19 : j < 325
+  · exact kvjstaticRange_324.get (by omega) (by omega)
+  by_cases h20 : j < 326
+  · exact kvjstaticRange_325.get (by omega) (by omega)
+  by_cases h21 : j < 353
+  · exact kvjstaticRange_331.get (by omega) (by omega)
+  by_cases h22 : j < 383
+  · exact kvjstaticRange_353.get (by omega) (by omega)
+  by_cases h23 : j < 406
+  · exact kvjstaticRange_383.get (by omega) (by omega)
+  by_cases h24 : j < 436
+  · exact kvjstaticRange_406.get (by omega) (by omega)
+  by_cases h25 : j < 457
+  · exact kvjstaticRange_436.get (by omega) (by omega)
+  by_cases h26 : j < 478
+  · exact kvjstaticRange_457.get (by omega) (by omega)
+  by_cases h27 : j < 499
+  · exact kvjstaticRange_478.get (by omega) (by omega)
+  by_cases h28 : j < 518
+  · exact kvjstaticRange_499.get (by omega) (by omega)
+  by_cases h29 : j < 534
+  · exact kvjstaticRange_518.get (by omega) (by omega)
+  by_cases h30 : j < 551
+  · exact kvjstaticRange_534.get (by omega) (by omega)
+  by_cases h31 : j < 569
+  · exact kvjstaticRange_551.get (by omega) (by omega)
+  by_cases h32 : j < 588
+  · exact kvjstaticRange_569.get (by omega) (by omega)
+  by_cases h33 : j < 605
+  · exact kvjstaticRange_588.get (by omega) (by omega)
+  by_cases h34 : j < 624
+  · exact kvjstaticRange_605.get (by omega) (by omega)
+  by_cases h35 : j < 640
+  · exact kvjstaticRange_624.get (by omega) (by omega)
+  by_cases h36 : j < 655
+  · exact kvjstaticRange_640.get (by omega) (by omega)
+  by_cases h37 : j < 671
+  · exact kvjstaticRange_655.get (by omega) (by omega)
+  by_cases h38 : j < 687
+  · exact kvjstaticRange_671.get (by omega) (by omega)
+  by_cases h39 : j < 701
   · exact kvjstaticRange_687.get (by omega) (by omega)
-  by_cases h45 : j < 729
-  · exact kvjstaticRange_708.get (by omega) (by omega)
-  by_cases h46 : j < 750
-  · exact kvjstaticRange_729.get (by omega) (by omega)
-  by_cases h47 : j < 772
-  · exact kvjstaticRange_750.get (by omega) (by omega)
-  by_cases h48 : j < 796
-  · exact kvjstaticRange_772.get (by omega) (by omega)
-  by_cases h49 : j < 818
-  · exact kvjstaticRange_796.get (by omega) (by omega)
-  by_cases h50 : j < 832
-  · exact kvjstaticRange_818.get (by omega) (by omega)
-  by_cases h51 : j < 844
-  · exact kvjstaticRange_832.get (by omega) (by omega)
-  by_cases h52 : j < 852
-  · exact kvjstaticRange_844.get (by omega) (by omega)
-  by_cases h53 : j < 861
-  · exact kvjstaticRange_852.get (by omega) (by omega)
-  by_cases h54 : j < 867
-  · exact kvjstaticRange_861.get (by omega) (by omega)
-  by_cases h55 : j < 875
+  by_cases h40 : j < 719
+  · exact kvjstaticRange_701.get (by omega) (by omega)
+  by_cases h41 : j < 737
+  · exact kvjstaticRange_719.get (by omega) (by omega)
+  by_cases h42 : j < 755
+  · exact kvjstaticRange_737.get (by omega) (by omega)
+  by_cases h43 : j < 773
+  · exact kvjstaticRange_755.get (by omega) (by omega)
+  by_cases h44 : j < 791
+  · exact kvjstaticRange_773.get (by omega) (by omega)
+  by_cases h45 : j < 815
+  · exact kvjstaticRange_791.get (by omega) (by omega)
+  by_cases h46 : j < 839
+  · exact kvjstaticRange_815.get (by omega) (by omega)
+  by_cases h47 : j < 853
+  · exact kvjstaticRange_839.get (by omega) (by omega)
+  by_cases h48 : j < 859
+  · exact kvjstaticRange_853.get (by omega) (by omega)
+  by_cases h49 : j < 863
+  · exact kvjstaticRange_859.get (by omega) (by omega)
+  by_cases h50 : j < 867
+  · exact kvjstaticRange_863.get (by omega) (by omega)
+  by_cases h51 : j < 869
   · exact kvjstaticRange_867.get (by omega) (by omega)
-  by_cases h56 : j < 882
+  by_cases h52 : j < 873
+  · exact kvjstaticRange_869.get (by omega) (by omega)
+  by_cases h53 : j < 875
+  · exact kvjstaticRange_873.get (by omega) (by omega)
+  by_cases h54 : j < 879
   · exact kvjstaticRange_875.get (by omega) (by omega)
-  exact kvjstaticRange_882.get (by omega) (by omega)
+  by_cases h55 : j < 881
+  · exact kvjstaticRange_879.get (by omega) (by omega)
+  by_cases h56 : j < 885
+  · exact kvjstaticRange_881.get (by omega) (by omega)
+  by_cases h57 : j < 887
+  · exact kvjstaticRange_885.get (by omega) (by omega)
+  by_cases h58 : j < 891
+  · exact kvjstaticRange_887.get (by omega) (by omega)
+  by_cases h59 : j < 895
+  · exact kvjstaticRange_891.get (by omega) (by omega)
+  by_cases h60 : j < 897
+  · exact kvjstaticRange_895.get (by omega) (by omega)
+  by_cases h61 : j < 899
+  · exact kvjstaticRange_897.get (by omega) (by omega)
+  by_cases h62 : j < 901
+  · exact kvjstaticRange_899.get (by omega) (by omega)
+  by_cases h63 : j < 903
+  · exact kvjstaticRange_901.get (by omega) (by omega)
+  by_cases h64 : j < 905
+  · exact kvjstaticRange_903.get (by omega) (by omega)
+  by_cases h65 : j < 907
+  · exact kvjstaticRange_905.get (by omega) (by omega)
+  by_cases h66 : j < 909
+  · exact kvjstaticRange_907.get (by omega) (by omega)
+  by_cases h67 : j < 911
+  · exact kvjstaticRange_909.get (by omega) (by omega)
+  by_cases h68 : j < 913
+  · exact kvjstaticRange_911.get (by omega) (by omega)
+  by_cases h69 : j < 917
+  · exact kvjstaticRange_913.get (by omega) (by omega)
+  by_cases h70 : j < 918
+  · exact kvjstaticRange_917.get (by omega) (by omega)
+  by_cases h71 : j < 919
+  · exact kvjstaticRange_918.get (by omega) (by omega)
+  by_cases h72 : j < 920
+  · exact kvjstaticRange_919.get (by omega) (by omega)
+  by_cases h73 : j < 921
+  · exact kvjstaticRange_920.get (by omega) (by omega)
+  by_cases h74 : j < 922
+  · exact kvjstaticRange_921.get (by omega) (by omega)
+  by_cases h75 : j < 923
+  · exact kvjstaticRange_922.get (by omega) (by omega)
+  by_cases h76 : j < 925
+  · exact kvjstaticRange_923.get (by omega) (by omega)
+  by_cases h77 : j < 927
+  · exact kvjstaticRange_925.get (by omega) (by omega)
+  by_cases h78 : j < 931
+  · exact kvjstaticRange_927.get (by omega) (by omega)
+  by_cases h79 : j < 932
+  · exact kvjstaticRange_931.get (by omega) (by omega)
+  by_cases h80 : j < 933
+  · exact kvjstaticRange_932.get (by omega) (by omega)
+  by_cases h81 : j < 934
+  · exact kvjstaticRange_933.get (by omega) (by omega)
+  by_cases h82 : j < 935
+  · exact kvjstaticRange_934.get (by omega) (by omega)
+  by_cases h83 : j < 936
+  · exact kvjstaticRange_935.get (by omega) (by omega)
+  by_cases h84 : j < 938
+  · exact kvjstaticRange_936.get (by omega) (by omega)
+  by_cases h85 : j < 940
+  · exact kvjstaticRange_938.get (by omega) (by omega)
+  by_cases h86 : j < 942
+  · exact kvjstaticRange_940.get (by omega) (by omega)
+  by_cases h87 : j < 944
+  · exact kvjstaticRange_942.get (by omega) (by omega)
+  exact kvjstaticRange_944.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

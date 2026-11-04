@@ -23,28 +23,28 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [27, 30, 374]
+def dvStJ : List ℕ := [29, 32, 403]
 
 /-- `da_verify`'s row loops and its columns' row loop. -/
 def dvLpNames : List String := ["__loop17", "__loop19", "__loop20", "__loop21"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [359, 361, 362, 375]
+def dvLpJ : List ℕ := [350, 369, 370, 388]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373]
+def dlJ : List ℕ := [392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340]
+def clJ : List ℕ := [333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349]
 
 /-- The core index of `__loop15`. -/
-def l16J : ℕ := 323
+def l16J : ℕ := 331
 
 /-- The functions whose frames the counts weigh. -/
 def mvOmNames : List String := ["da_verify", "__loop18", "da_verify_column", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [26, 360, 28, 24]
+def mvOmJ : List ℕ := [28, 351, 30, 24]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
@@ -57,12 +57,12 @@ def kcDvStT : Opcode → List ℕ
 
 /-- The instructions of `dvLpNames` per iteration. -/
 def kcDvLpT : Opcode → List ℕ
-  | .xor => [1, 136, 1, 514]
-  | .mulNative => [22, 1726, 13, 401]
-  | .setConstant => [5, 1354, 6, 13]
-  | .deref => [2, 815, 2, 267]
-  | .jump => [2, 265, 2, 132]
-  | .keccak => [0, 127, 0, 16]
+  | .xor => [577, 577, 73, 1]
+  | .mulNative => [841, 562, 86, 22]
+  | .setConstant => [4, 6, 6, 5]
+  | .deref => [978, 846, 132, 2]
+  | .jump => [2, 2, 2, 2]
+  | .keccak => [64, 64, 8, 0]
 
 /-- The DA levels' instructions, by `L`. -/
 def kcDlT : Opcode → List ℕ
@@ -84,66 +84,66 @@ def kcClT : Opcode → List ℕ
 
 /-- `__loop15`'s instructions per iteration. -/
 def kcL16 : Opcode → ℕ
-  | .xor => 73
-  | .mulNative => 22
+  | .xor => 577
+  | .mulNative => 25
   | .setConstant => 4
-  | .deref => 94
+  | .deref => 570
   | .jump => 2
-  | .keccak => 8
+  | .keccak => 64
 
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
-  | .xor => [4, 1, 1, 2]
-  | .mulNative => [19, 12, 5, 23]
-  | .setConstant => [11, 6, 3, 9]
-  | .deref => [51, 9, 17, 34]
-  | .jump => [9, 3, 3, 5]
-  | .keccak => [0, 0, 0, 1]
+  | .xor => [4, 73, 1, 3]
+  | .mulNative => [19, 124, 5, 40]
+  | .setConstant => [11, 4, 3, 9]
+  | .deref => [51, 145, 17, 42]
+  | .jump => [9, 2, 3, 6]
+  | .keccak => [0, 8, 0, 1]
 
 /-- `da_verify`'s instructions on `r` rows padded to `2^L` within `kcDvA + kcDvR · r + kcDvP · 2^L`: the constant. -/
 def kcDvA : Opcode → ℕ
-  | .xor => 67327
-  | .mulNative => 70238
-  | .setConstant => 2504
-  | .deref => 42082
-  | .jump => 1176
-  | .keccak => 0
+  | .xor => 76543
+  | .mulNative => 84574
+  | .setConstant => 2248
+  | .deref => 59490
+  | .jump => 1048
+  | .keccak => 1024
 
 /-- `da_verify`'s instructions: per row. -/
 def kcDvR : Opcode → ℕ
-  | .xor => 65928
-  | .mulNative => 53063
-  | .setConstant => 3017
-  | .deref => 34991
-  | .jump => 17161
-  | .keccak => 2175
+  | .xor => 1209
+  | .mulNative => 4133
+  | .setConstant => 644
+  | .deref => 1948
+  | .jump => 258
+  | .keccak => 120
 
 /-- `da_verify`'s instructions: per padded row. -/
 def kcDvP : Opcode → ℕ
-  | .xor => 3
-  | .mulNative => 27
+  | .xor => 75
+  | .mulNative => 100
   | .setConstant => 17
-  | .deref => 10
+  | .deref => 140
   | .jump => 5
-  | .keccak => 1
+  | .keccak => 9
 
 /-- `claim_list_digest`'s instructions on `n` claims within `kcClA + kcClS · n`: the constant. -/
 def kcClA : Opcode → ℕ
   | .xor => 73
-  | .mulNative => 38
+  | .mulNative => 67
   | .setConstant => 19
-  | .deref => 115
-  | .jump => 7
+  | .deref => 125
+  | .jump => 8
   | .keccak => 9
 
 /-- `claim_list_digest`'s instructions: per claim. -/
 def kcClS : Opcode → ℕ
-  | .xor => 5
+  | .xor => 34
   | .mulNative => 2
   | .setConstant => 1
-  | .deref => 6
+  | .deref => 34
   | .jump => 1
-  | .keccak => 1
+  | .keccak => 4
 
 /-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def mvTabOk (op : Opcode) : Bool :=

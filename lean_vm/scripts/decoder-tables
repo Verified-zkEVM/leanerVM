@@ -5,14 +5,14 @@ For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its nu
 (`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
 cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i}_{k}`). Read off
 the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entry list
-(`--entries FILE`, the output of `#eval (List.range nFns).map fun j ↦ (fnOf j).entry`);
+(`--entries FILE`, the output of `#eval (List.range nFns).map fun j ↦ (fnOf j).entryPc`);
 `Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions by kernel
 evaluation. Run from lean_vm: `python3 -I scripts/decoder-tables --entries FILE`; `--check`
 fails when the file differs.
 """
 import argparse, glob, re, sys
 
-N = 885
+N = 948
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 
