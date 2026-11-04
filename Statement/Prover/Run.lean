@@ -9,8 +9,9 @@ public import Statement.Prover.Script
 Fiat-Shamir sponge `sp`, over the permutation `F` (Keccak-256 the sponge over `F`), and returns the
 proof's scalars and Merkle openings: a script's scalar is absorbed at each `read` of `P`, a
 challenge squeezed at each `sample`; a `grind` takes the first nonce below `fuel` that passes
-(`grind_pow`, `crates/fiat_shamir/src/lib.rs`), the proof failing if none does; a `commit` builds
-the matrix's Merkle tree once (`merkle_tree`, `crates/pcs/src/merkle.rs:50-61`) and sends its root;
+(`grind_pow`, `crates/fiat_shamir/src/lib.rs`), the proof failing if none does; a `commit`
+builds the matrix's Merkle tree once (`MerkleBuilder`, `crates/pcs/src/merkle.rs:39-176`) and sends
+its root;
 a `query` gives the script the rows at the positions and puts their openings, read off the tree,
 in the proof. Where the script's move is not the program's, the run sends `0`, commits the empty
 matrix and gives the script nothing more; a script that follows the program never meets it.
