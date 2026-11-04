@@ -896,8 +896,8 @@ def winObligations (body : List Core.Stmt) (dispatches : Bool := false) :
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
 `lean_vm/README.md`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
-(argument 9) and on the tables' certified logs `dims_g[g^t]`, `t < 7` (argument 10, cell 12:
-`kb[1 + t]`, an unadjusted `kappa_g`, `lean_ethereum.py:2118-2121, 2218-2221`),
+(argument 9) and on `dims_g[g^0]` (argument 10, cell 12: `kb[1]`, an unadjusted `kappa_g`,
+`lean_ethereum.py:2118-2121, 2218-2221`; the logs `t ≥ 1` it range checks itself, G:2176-2186),
 `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
@@ -910,7 +910,7 @@ def bounds (name : String) :
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
   else if name == "list_split" then ([], [(5, 17)], [], [])
   else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
-  else if name == "verify_tables" then ([(11, 34)], [], (List.range 7).map (fun t => (12, t, 34)), [])
+  else if name == "verify_tables" then ([(11, 34)], [], [(12, 0, 34)], [])
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
     name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(4, 34)], [], [])
