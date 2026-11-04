@@ -115,7 +115,7 @@ theorem body_alloc_vals (c : OsCfg) (tr : OsTr) (σ0 : Val) (c0 c2 : E) (b0 : �
   generalize hA : osAtOf c b0 = A
   generalize hE : osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2 = E
   generalize hσ : fill σ0 9 E (osBodyF c tr σ0 c0 c2 A) = σ
-  have hk : 34 ≤ (osLvSt c).k := osLevels_k_ge c 0 c.levels (osHead c).2
+  have hk : 164 ≤ (osLvSt c).k := osLevels_k_ge c 0 c.levels (osHead c).2
   have hk' : (osLvSt c).k = (osLevels c 0 c.levels (osHead c).2).2.k := rfl
   have h34 : (osHead c).2.k = 34 := rfl
   have ht : (osLvSt c).k + 2 ≤ (osTlSt c).2.1.k := osTail_k2 c (osLvSt c)

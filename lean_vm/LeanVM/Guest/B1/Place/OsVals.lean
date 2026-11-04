@@ -211,21 +211,21 @@ theorem bodyF_head {i : ℕ} (h : i < 34) :
     bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
       headF c σ P c0 c2 i := seqF_lt h
 
-theorem bodyF_lvs {i : ℕ} (h1 : 34 ≤ i) (h2 : i < (osLvSt c).k) :
+theorem bodyF_lvs {i : ℕ} (h1 : 164 ≤ i) (h2 : i < (osLvSt c).k) :
     bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
       lvsF c 0 c.levels Ds (osHead c).2 (fill σ 9 34 (headF c σ P c0 c2)) i := by
   unfold bodyF
   rw [seqF_ge h1]
   exact seqF_lt h2
 
-theorem bodyF_tail {i : ℕ} (h1 : (osLvSt c).k ≤ i) (h2 : i < (osTlSt c).2.1.k) (h0 : 34 ≤ (osLvSt c).k) :
+theorem bodyF_tail {i : ℕ} (h1 : (osLvSt c).k ≤ i) (h2 : i < (osTlSt c).2.1.k) (h0 : 164 ≤ (osLvSt c).k) :
     ∃ σ2, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
       tailF c (osLvSt c) σ2 T xs i := by
   unfold bodyF
   rw [seqF_ge (by omega), seqF_ge h1]
   exact ⟨_, seqF_lt h2⟩
 
-theorem bodyF_fin {i : ℕ} (h1 : (osTlSt c).2.1.k ≤ i) (h0 : 34 ≤ (osLvSt c).k)
+theorem bodyF_fin {i : ℕ} (h1 : (osTlSt c).2.1.k ≤ i) (h0 : 164 ≤ (osLvSt c).k)
     (h3 : (osLvSt c).k ≤ (osTlSt c).2.1.k) :
     ∃ σ3, bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo i =
       finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo

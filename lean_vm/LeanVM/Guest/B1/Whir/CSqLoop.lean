@@ -131,16 +131,17 @@ theorem osSqueeze0_complete {σ : Val} {p : ℕ} {cap : List ℕ} (hcl : cap.len
 /-! ## The squeeze loop's iteration -/
 
 /-- What one iteration at `x` reads and writes of memory: the capacity in its row of the squeeze
-run, the next capacity in the next row, the challenge decoded into the positions and bit runs. -/
-structure SqIterMem (rd : Reader) (d po : ℕ) (sqz qpos qbp x : E) (cap : List E) : Prop where
+run, the next capacity in the next row, the challenge decoded into the positions and windows. -/
+structure SqIterMem (rd : Reader) (d cd po : ℕ) (sqz qpos qbp tabs x : E) (cap : List E) : Prop where
   row : ∀ i < 5, LoadHolds rd (sqz * x ^ 5) i (cap.getD i 0)
   next : ∀ i < 5, LoadHolds rd (sqz * x ^ 5) (5 + i) ((capOf (⟨cap, []⟩ : Fs).perm).getD i 0)
-  dec : MeaningDecodeQueryBits d rd [challengeOf (⟨cap, []⟩ : Fs).perm,
-    qpos * gen ^ po * x ^ (192 / d), qbp * gen ^ po * x ^ (192 / d)] []
+  dec : coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
+    [challengeOf (⟨cap, []⟩ : Fs).perm, qpos * gen ^ po * x ^ (192 / d),
+      qbp * gen ^ po * x ^ (192 / d), tabs] []
 
 /-- The iteration's values, by segments. -/
-def sqSegs (lv : OsLv) (X N sqz qpos qbp : E) (cap : List E) : List (ℕ × (ℕ → E)) :=
-  [(5, fun i ↦ [X, N, sqz, qpos, qbp].getD i 0),
+def sqSegs (lv : OsLv) (X N sqz qpos qbp tabs : E) (cap : List E) : List (ℕ × (ℕ → E)) :=
+  [(6, fun i ↦ [X, N, sqz, qpos, qbp, tabs].getD i 0),
     (4, fun i ↦ [X * X, X * X * (X * X), X * X * (X * X) * X, sqz * (X * X * (X * X) * X)].getD i 0),
     (5, fun i ↦ cap.getD i 0), (5, fun i ↦ [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0,
       word 0 0 0].getD i 0),
@@ -159,43 +160,45 @@ theorem osMat_k_eq (b o k : ℕ) : (osMat b o k).2.2 = k + (if o = 0 then 0 else
 
 /-- The loop's tail's first value. -/
 def sqTail (lv : OsLv) : ℕ :=
-  (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1
+  (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1
 
 theorem sqTail_eq (lv : OsLv) : sqTail lv =
-    39 + osPowLen (192 / lv.depth) + 2 * (if lv.posOff = 0 then 0 else 2) + 2 := by
+    40 + osPowLen (192 / lv.depth) + 2 * (if lv.posOff = 0 then 0 else 2) + 2 := by
   unfold sqTail osMat
   split_ifs <;> simp
 
 /-- The valuation of one iteration. -/
-def sqIterVal (lv : OsLv) (X N sqz qpos qbp : E) (cap : List E) : Val :=
-  segVal (sqSegs lv X N sqz qpos qbp cap)
+def sqIterVal (lv : OsLv) (X N sqz qpos qbp tabs : E) (cap : List E) : Val :=
+  segVal (sqSegs lv X N sqz qpos qbp tabs cap)
 
 /-- **One iteration, honestly**, at its explicit valuation, for any relation holding of its
 decoder call. -/
 theorem sqIter_completeC (lv : OsLv)
     (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
     (hpo : lv.posOff < u128Bound)
-    (X N sqz qpos qbp : E) (cap : List E) (hcl : cap.length = 5) (hcan : AllCanonical cap)
+    (X N sqz qpos qbp tabs : E) (cap : List E) (hcl : cap.length = 5) (hcan : AllCanonical cap)
     (hrow : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) i (cap.getD i 0))
     (hnext : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) ((capOf (⟨cap, []⟩ : Fs).perm).getD i 0))
-    (hdec : C ("decode_query_bits__L" ++ natStr lv.depth) [challengeOf (⟨cap, []⟩ : Fs).perm,
-      qpos * gen ^ lv.posOff * X ^ (192 / lv.depth), qbp * gen ^ lv.posOff * X ^ (192 / lv.depth)] []) :
-    (osParams 5).map (sqIterVal lv X N sqz qpos qbp cap) = [X, N, sqz, qpos, qbp] ∧
-      (AllOk C rd (sqIterVal lv X N sqz qpos qbp cap) (sqLoopA lv ++ osLoopTailA (sqTail lv)) ∧
-        sqIterVal lv X N sqz qpos qbp cap (.n 8) = sqz * X ^ 5 ∧
-        ([.n 38, .n (osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2,
-          .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2] :
-            List V).map (sqIterVal lv X N sqz qpos qbp cap) =
+    (hdec : C ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
+      [challengeOf (⟨cap, []⟩ : Fs).perm, qpos * gen ^ lv.posOff * X ^ (192 / lv.depth),
+        qbp * gen ^ lv.posOff * X ^ (192 / lv.depth), tabs] []) :
+    (osParams 6).map (sqIterVal lv X N sqz qpos qbp tabs cap) = [X, N, sqz, qpos, qbp, tabs] ∧
+      (AllOk C rd (sqIterVal lv X N sqz qpos qbp tabs cap) (sqLoopA lv ++ osLoopTailA (sqTail lv)) ∧
+        sqIterVal lv X N sqz qpos qbp tabs cap (.n 9) = sqz * X ^ 5 ∧
+        ([.n 39, .n (osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2,
+          .n (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2,
+          .n 5] :
+            List V).map (sqIterVal lv X N sqz qpos qbp tabs cap) =
           [challengeOf (⟨cap, []⟩ : Fs).perm, qpos * gen ^ lv.posOff * X ^ (192 / lv.depth),
-            qbp * gen ^ lv.posOff * X ^ (192 / lv.depth)]) ∧
-      sqIterVal lv X N sqz qpos qbp cap (.n (sqTail lv + 2)) = X * gen + N ∧
-      (.n (sqTail lv + 4) :: (List.range (5 - 1)).map fun i ↦ V.n (i + 1)).map
-          (sqIterVal lv X N sqz qpos qbp cap) =
-        X * gen :: [N, sqz, qpos, qbp] := by
+            qbp * gen ^ lv.posOff * X ^ (192 / lv.depth), tabs]) ∧
+      sqIterVal lv X N sqz qpos qbp tabs cap (.n (sqTail lv + 2)) = X * gen + N ∧
+      (.n (sqTail lv + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map
+          (sqIterVal lv X N sqz qpos qbp tabs cap) =
+        X * gen :: [N, sqz, qpos, qbp, tabs] := by
   rcases cap with _ | ⟨c0, _ | ⟨c1, _ | ⟨c2, _ | ⟨c3, _ | ⟨c4, _ | ⟨c5, rest⟩⟩⟩⟩⟩⟩ <;>
     simp only [List.length_cons, List.length_nil] at hcl <;> try omega
   unfold sqIterVal
-  set segs := sqSegs lv X N sqz qpos qbp [c0, c1, c2, c3, c4] with hsegs
+  set segs := sqSegs lv X N sqz qpos qbp tabs [c0, c1, c2, c3, c4] with hsegs
   set σ := segVal segs with hσ
   have hv : ∀ i, σ (.n i) = segLookup segs i := segVal_n segs
   have sv : ∀ (m : ℕ) (hm : m < segs.length) (o : ℕ), segLen (segs.take m) = o → ∀ i,
@@ -207,12 +210,13 @@ theorem sqIter_completeC (lv : OsLv)
   set m := if lv.posOff = 0 then 0 else 2 with hmm
   have he := sqTail_eq lv
   rw [← hL, ← hmm] at he
-  have lowv : ∀ i < 39, σ (.n i) = segLookup segs i := fun i _ ↦ hv i
+  have lowv : ∀ i < 40, σ (.n i) = segLookup segs i := fun i _ ↦ hv i
   have g0 : σ (.n 0) = X := by rw [hv]; simp [hsegs, sqSegs, segLookup]
   have g1 : σ (.n 1) = N := by rw [hv]; simp [hsegs, sqSegs, segLookup]
   have g2 : σ (.n 2) = sqz := by rw [hv]; simp [hsegs, sqSegs, segLookup]
   have g3 : σ (.n 3) = qpos := by rw [hv]; simp [hsegs, sqSegs, segLookup]
   have g4 : σ (.n 4) = qbp := by rw [hv]; simp [hsegs, sqSegs, segLookup]
+  have g5 : σ (.n 5) = tabs := by rw [hv]; simp [hsegs, sqSegs, segLookup]
   have tl : ∀ i < 5, σ (.n (sqTail lv + i)) =
       [word 2 0 0, X * word 2 0 0, X * word 2 0 0 + N, word 2 0 0, X * word 2 0 0].getD i 0 :=
     fun i hi ↦ by
@@ -224,39 +228,39 @@ theorem sqIter_completeC (lv : OsLv)
   simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at t0 t1 t2 t3 t4
   refine ⟨?_, ?_, ?_, ?_⟩
   · simp only [osParams, List.range_succ, List.range_zero, List.map_cons,
-      List.map_nil, List.nil_append, List.cons_append, g0, g1, g2, g3, g4]
-  · have v5 : σ (.n 5) = X * X := by rw [hv]; simp [hsegs, sqSegs, segLookup]
-    have v6 : σ (.n 6) = X * X * (X * X) := by rw [hv]; simp [hsegs, sqSegs, segLookup]
-    have v7 : σ (.n 7) = X * X * (X * X) * X := by rw [hv]; simp [hsegs, sqSegs, segLookup]
-    have v8 : σ (.n 8) = sqz * (X * X * (X * X) * X) := by rw [hv]; simp [hsegs, sqSegs, segLookup]
-    have vc : ∀ i < 5, σ (.n (9 + i)) = [c0, c1, c2, c3, c4].getD i 0 := fun i hi ↦
-      sv 2 (by simp [hsegs, sqSegs]) 9 (by simp [hsegs, sqSegs, segLen]) i
+      List.map_nil, List.nil_append, List.cons_append, g0, g1, g2, g3, g4, g5]
+  · have v5 : σ (.n 6) = X * X := by rw [hv]; simp [hsegs, sqSegs, segLookup]
+    have v6 : σ (.n 7) = X * X * (X * X) := by rw [hv]; simp [hsegs, sqSegs, segLookup]
+    have v7 : σ (.n 8) = X * X * (X * X) * X := by rw [hv]; simp [hsegs, sqSegs, segLookup]
+    have v8 : σ (.n 9) = sqz * (X * X * (X * X) * X) := by rw [hv]; simp [hsegs, sqSegs, segLookup]
+    have vc : ∀ i < 5, σ (.n (10 + i)) = [c0, c1, c2, c3, c4].getD i 0 := fun i hi ↦
+      sv 2 (by simp [hsegs, sqSegs]) 10 (by simp [hsegs, sqSegs, segLen]) i
         (by simp [hsegs, sqSegs]; omega)
-    have vz : ∀ i < 5, σ (.n (14 + i)) = [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0,
+    have vz : ∀ i < 5, σ (.n (15 + i)) = [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0,
         word 0 0 0].getD i 0 := fun i hi ↦
-      sv 3 (by simp [hsegs, sqSegs]) 14 (by simp [hsegs, sqSegs, segLen]) i
+      sv 3 (by simp [hsegs, sqSegs]) 15 (by simp [hsegs, sqSegs, segLen]) i
         (by simp [hsegs, sqSegs]; omega)
     set S := (⟨[c0, c1, c2, c3, c4], []⟩ : Fs).perm with hS
-    have vk : ∀ c < 13, σ (.n (19 + c)) = cells13F S c := fun c hc ↦
-      sv 4 (by simp [hsegs, sqSegs]) 19 (by simp [hsegs, sqSegs, segLen]) c
+    have vk : ∀ c < 13, σ (.n (20 + c)) = cells13F S c := fun c hc ↦
+      sv 4 (by simp [hsegs, sqSegs]) 20 (by simp [hsegs, sqSegs, segLen]) c
         (by simp [hsegs, sqSegs]; omega)
-    have vch : ∀ i < 7, σ (.n (32 + i)) = challengeVals (cells13F S 0) (cells13F S 1) i :=
-      fun i hi ↦ sv 5 (by simp [hsegs, sqSegs]) 32 (by simp [hsegs, sqSegs, segLen]) i
+    have vch : ∀ i < 7, σ (.n (33 + i)) = challengeVals (cells13F S 0) (cells13F S 1) i :=
+      fun i hi ↦ sv 5 (by simp [hsegs, sqSegs]) 33 (by simp [hsegs, sqSegs, segLen]) i
         (by simp [hsegs, sqSegs]; omega)
     have vpw : ∀ j < (powVals (σ (.n 0)) (osPowDigits (192 / lv.depth)) 1).length,
-        σ (.n (39 + j)) = (powVals (σ (.n 0)) (osPowDigits (192 / lv.depth)) 1).getD j 0 :=
+        σ (.n (40 + j)) = (powVals (σ (.n 0)) (osPowDigits (192 / lv.depth)) 1).getD j 0 :=
       fun j hj ↦ by
         rw [g0] at hj ⊢
-        exact sv 6 (by simp [hsegs, sqSegs]) 39 (by simp [hsegs, sqSegs, segLen]) j
+        exact sv 6 (by simp [hsegs, sqSegs]) 40 (by simp [hsegs, sqSegs, segLen]) j
           (by simp [hsegs, sqSegs, osPowLen, powVals_length] at hj ⊢; omega)
-    have hcm : [c0, c1, c2, c3, c4] = [9, 10, 11, 12, 13].map fun i ↦ σ (.n i) := by
+    have hcm : [c0, c1, c2, c3, c4] = [10, 11, 12, 13, 14].map fun i ↦ σ (.n i) := by
       have e0 := vc 0 (by omega); have e1 := vc 1 (by omega); have e2 := vc 2 (by omega)
       have e3 := vc 3 (by omega); have e4 := vc 4 (by omega)
       simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at e0 e1 e2 e3 e4
       simp only [List.map_cons, List.map_nil]
       rw [e0, e1, e2, e3, e4]
-    have hp1k : (osMat 3 lv.posOff (39 + L)).2.2 = 39 + L + m := osMat_k_eq _ _ _
-    have hp2k : (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + L)).2.2 + 1)).2.2 = 39 + L + m + 1 + m :=
+    have hp1k : (osMat 3 lv.posOff (40 + L)).2.2 = 40 + L + m := osMat_k_eq _ _ _
+    have hp2k : (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + L)).2.2 + 1)).2.2 = 40 + L + m + 1 + m :=
       by rw [osMat_k_eq, hp1k]
     have hmat : ∀ (b : ℕ) (bv : E) (k : ℕ) (mi : ℕ) (hmi : mi < segs.length), b < k → σ (.n b) = bv →
         segLen (segs.take mi) = k → segs[mi].1 = m →
@@ -277,47 +281,47 @@ theorem sqIter_completeC (lv : OsLv)
               hbv])
       rwa [hbv] at this
     have hX5 : X * X * (X * X) * X = X ^ 5 := by ring
-    obtain ⟨okp1, vp1⟩ := hmat 3 qpos (39 + L) 7 (by simp [hsegs, sqSegs]) (by omega) g3
+    obtain ⟨okp1, vp1⟩ := hmat 3 qpos (40 + L) 7 (by simp [hsegs, sqSegs]) (by omega) g3
       (by simp [hsegs, sqSegs, segLen, hL]; omega) (by simp [hsegs, sqSegs, hmm])
       (by simp [hsegs, sqSegs])
-    obtain ⟨okp2, vp2⟩ := hmat 4 qbp ((osMat 3 lv.posOff (39 + L)).2.2 + 1) 9
+    obtain ⟨okp2, vp2⟩ := hmat 4 qbp ((osMat 3 lv.posOff (40 + L)).2.2 + 1) 9
       (by simp [hsegs, sqSegs]) (by omega) g4
       (by rw [hp1k]; simp [hsegs, sqSegs, segLen, hL, hmm]; split_ifs <;> omega)
       (by simp [hsegs, sqSegs, hmm])
       (by simp [hsegs, sqSegs])
     have hpwr := osPowSteps_complete (C := C) (rd := rd) (σ := σ) 0
-      (osPowDigits (192 / lv.depth)) 0 39 1 (by rw [pow_one]) vpw
+      (osPowDigits (192 / lv.depth)) 0 40 1 (by rw [pow_one]) vpw
     rw [hpw, g0] at hpwr
-    have vq1 : σ (.n (osMat 3 lv.posOff (39 + L)).2.2) = qpos * gen ^ lv.posOff * X ^ (192 / lv.depth) := by
+    have vq1 : σ (.n (osMat 3 lv.posOff (40 + L)).2.2) = qpos * gen ^ lv.posOff * X ^ (192 / lv.depth) := by
       rw [hp1k]
-      have := sv 8 (by simp [hsegs, sqSegs]) (39 + L + m)
+      have := sv 8 (by simp [hsegs, sqSegs]) (40 + L + m)
         (by simp [hsegs, sqSegs, segLen, hL, hmm]; split_ifs <;> omega) 0 (by simp [hsegs, sqSegs])
       rw [Nat.add_zero] at this
       rw [this]; simp [hsegs, sqSegs]
-    have vq2 : σ (.n (osMat 4 lv.posOff ((osMat 3 lv.posOff (39 + L)).2.2 + 1)).2.2) =
+    have vq2 : σ (.n (osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + L)).2.2 + 1)).2.2) =
         qbp * gen ^ lv.posOff * X ^ (192 / lv.depth) := by
       rw [hp2k]
-      have := sv 10 (by simp [hsegs, sqSegs]) (39 + L + m + 1 + m)
+      have := sv 10 (by simp [hsegs, sqSegs]) (40 + L + m + 1 + m)
         (by simp [hsegs, sqSegs, segLen, hL, hmm]; split_ifs <;> omega) 0 (by simp [hsegs, sqSegs])
       rw [Nat.add_zero] at this
       rw [this]; simp [hsegs, sqSegs]
-    have k0 : σ (.n 19) = cellsOfState S false 0 := by
+    have k0 : σ (.n 20) = cellsOfState S false 0 := by
       have := vk 0 (by omega); simpa [cells13F] using this
-    have k1 : σ (.n 20) = cellsOfState S false 1 := by
+    have k1 : σ (.n 21) = cellsOfState S false 1 := by
       have := vk 1 (by omega); simpa [cells13F] using this
-    have hS' : (⟨[9, 10, 11, 12, 13].map fun i ↦ σ (.n i), []⟩ : Fs).perm = S := by rw [← hcm]
-    have z1 : σ (.n (14 + 1)) = 0 := by have := vz 1 (by omega); simpa [word_zero] using this
-    have z2 : σ (.n (14 + 2)) = 0 := by have := vz 2 (by omega); simpa [word_zero] using this
-    have z3 : σ (.n (14 + 3)) = 0 := by have := vz 3 (by omega); simpa [word_zero] using this
-    have z4 : σ (.n (14 + 4)) = 0 := by have := vz 4 (by omega); simpa [word_zero] using this
-    have hsq := osSqueeze0_complete (C := C) (rd := rd) (σ := σ) (p := 14)
-      (cap := [9, 10, 11, 12, 13]) (j := 19) rfl ⟨z1, z2, z3, z4⟩
+    have hS' : (⟨[10, 11, 12, 13, 14].map fun i ↦ σ (.n i), []⟩ : Fs).perm = S := by rw [← hcm]
+    have z1 : σ (.n (15 + 1)) = 0 := by have := vz 1 (by omega); simpa [word_zero] using this
+    have z2 : σ (.n (15 + 2)) = 0 := by have := vz 2 (by omega); simpa [word_zero] using this
+    have z3 : σ (.n (15 + 3)) = 0 := by have := vz 3 (by omega); simpa [word_zero] using this
+    have z4 : σ (.n (15 + 4)) = 0 := by have := vz 4 (by omega); simpa [word_zero] using this
+    have hsq := osSqueeze0_complete (C := C) (rd := rd) (σ := σ) (p := 15)
+      (cap := [10, 11, 12, 13, 14]) (j := 20) rfl ⟨z1, z2, z3, z4⟩
       (by rw [← hcm]; exact hcan) (fun c hc ↦ by rw [hS']; exact vk c hc)
-      (fun i hi ↦ by rw [k0, k1, show 19 + 13 + i = 32 + i by ring, vch i hi, cells13F, cells13F]
+      (fun i hi ↦ by rw [k0, k1, show 20 + 13 + i = 33 + i by ring, vch i hi, cells13F, cells13F]
                      simp)
     rw [hS'] at hsq
-    have h38 : σ (.n 38) = challengeOf S := hsq.2
-    refine ⟨?_, by rw [v8]; ring, by simp only [List.map_cons, List.map_nil]; rw [h38, vq1, vq2]⟩
+    have h38 : σ (.n 39) = challengeOf S := hsq.2
+    refine ⟨?_, by rw [v8]; ring, by simp only [List.map_cons, List.map_nil]; rw [h38, vq1, vq2, g5]⟩
     simp only [sqLoopA, allOk_append]
     refine ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, hsq.1⟩, ?_⟩, hpwr.1⟩, okp1⟩, ?_⟩, okp2⟩, ?_⟩, ?_⟩, ?_⟩
     · simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
@@ -357,29 +361,27 @@ theorem sqIter_completeC (lv : OsLv)
     · simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       rw [vq2, vp2, hpwr.2]
     · simp only [allOk_cons, allOk_nil, and_true, StmtOk, List.map_cons, List.map_nil]
-      rw [h38, vq1, vq2]
+      rw [h38, vq1, vq2, g5]
       exact hdec
     · simp only [osLoopTailA, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
       exact ⟨t0, by rw [t1, g0, t0], by rw [t2, t1, g1], t3, by rw [t4, g0, t3]⟩
   · rw [t2, word_gen]
-  · show [σ (.n (sqTail lv + 4)), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = _
-    rw [t4, word_gen, g1, g2, g3, g4]
+  · show [σ (.n (sqTail lv + 4)), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] = _
+    rw [t4, word_gen, g1, g2, g3, g4, g5]
 
 /-- **One iteration, honestly.** -/
 theorem sqIter_complete (lv : OsLv)
     (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
     (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, MeaningDecodeQueryBits lv.depth rd args rets →
-      coreProgram.Rel rd ("decode_query_bits__L" ++ natStr lv.depth) args rets)
-    (X N sqz qpos qbp : E) (cap : List E) (hcl : cap.length = 5) (hcan : AllCanonical cap)
-    (hm : SqIterMem rd lv.depth lv.posOff sqz qpos qbp X cap) :
-    ∃ σ : Val, (osParams 5).map σ = [X, N, sqz, qpos, qbp] ∧
+    (X N sqz qpos qbp tabs : E) (cap : List E) (hcl : cap.length = 5) (hcan : AllCanonical cap)
+    (hm : SqIterMem rd lv.depth lv.capDepth lv.posOff sqz qpos qbp tabs X cap) :
+    ∃ σ : Val, (osParams 6).map σ = [X, N, sqz, qpos, qbp, tabs] ∧
       AllOk (coreProgram.Rel rd) rd σ (sqLoopA lv ++ osLoopTailA (sqTail lv)) ∧
       σ (.n (sqTail lv + 2)) = X * gen + N ∧
-      (.n (sqTail lv + 4) :: (List.range (5 - 1)).map fun i ↦ V.n (i + 1)).map σ =
-        X * gen :: [N, sqz, qpos, qbp] :=
-  let h := sqIter_completeC (C := coreProgram.Rel rd) lv hpw hpo X N sqz qpos qbp cap hcl hcan
-    hm.row hm.next (hdec _ _ hm.dec)
+      (.n (sqTail lv + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ =
+        X * gen :: [N, sqz, qpos, qbp, tabs] :=
+  let h := sqIter_completeC (C := coreProgram.Rel rd) lv hpw hpo X N sqz qpos qbp tabs cap hcl hcan
+    hm.row hm.next hm.dec
   ⟨_, h.1, h.2.1.1, h.2.2.1, h.2.2.2⟩
 
 end
