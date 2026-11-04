@@ -275,7 +275,7 @@ theorem pack8Block_complete {x N rec pp pt : E} (hs : Pack8Hon rd rec pp pt x) :
     hcan, hrl, hrs, hms, hch, hchs, ⟨⟨hcl', hcap'⟩, lcur', lclm', lsc'⟩⟩ := hs
   obtain ⟨c0, c1, c2, c3, c4, rfl⟩ := five_of_length hcl
   obtain ⟨d0, d1, d2, d3, d4, rfl⟩ := five_of_length hcl'
-  obtain ⟨hml, hchl⟩ := eqChain_length hch
+  obtain ⟨hml, hchl⟩ := packEqChain_length hch
   obtain ⟨CL, SC, CAP, h0, h1, h2, h3, h4, h5, hst⟩ := eqChain_idx _ _ _ _ _ _ _ _ _ hch
   rw [hrl] at h3 h4 h5 hst
   have hcanC : ∀ q ≤ 8, AllCanonical (CAP q) := by

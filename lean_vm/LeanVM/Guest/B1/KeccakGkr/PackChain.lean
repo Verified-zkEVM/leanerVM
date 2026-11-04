@@ -165,7 +165,7 @@ theorem packInv_extend {rec pt cur hv : E} {capS pts : List E} {j n : ℕ}
     PackInv rd rec pt cur hv capS pts (j + 1) (n + rs.length) := by
   obtain ⟨msgs, chs, cap, cl, sc, hml, hcl, hrm, hrc, hrec, hcan, hrun⟩ := hI
   obtain ⟨rfl, hcur, rfl, rfl⟩ := roundRec_unique hrec0 hrec
-  obtain ⟨hmsl, hchl⟩ := eqChain_length hch
+  obtain ⟨hmsl, hchl⟩ := packEqChain_length hch
   have htake : pts.take (n + rs.length) = pts.take n ++ rs := by
     apply List.ext_getElem?
     intro k
