@@ -532,7 +532,9 @@ def main (args : List String) : IO UInt32 := do
   let mut bad := false
   if check then
     for (p, s) in files do
-      if !(← p.pathExists) || (← IO.FS.readFile p) != s then
+      -- Two steps: a `(← …)` is run before the `||`, so a missing file must not be read.
+      let same ← if ← p.pathExists then pure ((← IO.FS.readFile p) == s) else pure false
+      if !same then
         IO.eprintln s!"stale: {p}"
         bad := true
     for d in [memDir / "GuestFresh", memDir / "GuestWf", memDir / "GuestMainFree"] do

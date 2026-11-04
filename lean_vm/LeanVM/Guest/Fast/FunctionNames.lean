@@ -9,10 +9,10 @@ The decoder reads the witness off the frames of the functions that checked it, t
 map keyed by the function's name (`FrameMap`, `B1/Main/Frames.lean`). Its readers, made programs
 of the cost machine, key it by a number instead (`NFrames`): **the function's index**, one past
 its position in `coreProgram` (`main` is `1`), the index `certOf` and the replayed frame map's
-entry table (`Located/ReplayFast.lean`) use, `nameIndex f` for the function named `f` (`885` for
+entry table (`Located/ReplayFast.lean`) use, `nameIndex f` for the function named `f` (`948` for
 no function, `Guest/NameIndex.lean`).
 
-* `decoderFunctionName j`: the name of function `j` (`main`'s off the indices `1 ..< 885`);
+* `decoderFunctionName j`: the name of function `j` (`main`'s off the indices `1 ..< 948`);
 * `nameIndex_decoderFunctionName`: the index of function `j`'s name is `canonIndex j` (`j` on the
   indices, `1` off them), so a frame map keyed by name `V` and one keyed by index agree when the
   latter is `V` re-keyed (`fun j ↦ V (decoderFunctionName j)`) and reads its index through
@@ -33,7 +33,7 @@ open LeanVM.Parameters LeanVM.Guest.Core
 abbrev NFrames : Type := ℕ → List E → List E → Val
 
 /-- Whether `j` is a function's index. -/
-def isFunctionIndex (j : ℕ) : Bool := 1 ≤ j && j ≤ 884
+def isFunctionIndex (j : ℕ) : Bool := 1 ≤ j && j ≤ 947
 
 /-- **The name of function `j`** (`main`'s off the indices). -/
 noncomputable def decoderFunctionName (j : ℕ) : String :=
@@ -65,10 +65,10 @@ theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (
     decoderFunctionName (nameIndex f) = f := by
   obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hf
   obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hg
-  have hl : coreProgram.length = 884 := coreProgram_length
+  have hl : coreProgram.length = 947 := coreProgram_length
   unfold nameIndex decoderFunctionName
   rw [findIdx_name_of_nodup coreProgram_names_nodup hi]
-  simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 884 by omega, decide_true, Bool.and_self,
+  simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 947 by omega, decide_true, Bool.and_self,
     ↓reduceIte, Nat.add_sub_cancel, List.getD_eq_getElem _ _ hi]
 
 /-! ## The indices the readers name -/

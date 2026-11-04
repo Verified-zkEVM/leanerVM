@@ -18,44 +18,44 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem from20_186 : RangeFresh (Data.core20.body.drop 186) [] temps20 :=
+theorem from20_208 : RangeFresh (Data.core20.body.drop 208) [] temps20 :=
   rangeFresh_end (l := Data.core20.body) (by decide +kernel) temps20
 
-theorem from20_93 : RangeFresh (Data.core20.body.drop 93) (ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 93) (n := 93) (ts := ts20_93) (ts' := []) fresh20_93 from20_186
+theorem from20_119 : RangeFresh (Data.core20.body.drop 119) (ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 119) (n := 89) (ts := ts20_119) (ts' := []) fresh20_119 from20_208
 
-theorem from20_85 : RangeFresh (Data.core20.body.drop 85) (ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 85) (n := 8) (ts := ts20_85) (ts' := ts20_93 ++ []) fresh20_85 from20_93
+theorem from20_109 : RangeFresh (Data.core20.body.drop 109) (ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 109) (n := 10) (ts := ts20_109) (ts' := ts20_119 ++ []) fresh20_109 from20_119
 
-theorem from20_77 : RangeFresh (Data.core20.body.drop 77) (ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 77) (n := 8) (ts := ts20_77) (ts' := ts20_85 ++ ts20_93 ++ []) fresh20_77 from20_85
+theorem from20_99 : RangeFresh (Data.core20.body.drop 99) (ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 99) (n := 10) (ts := ts20_99) (ts' := ts20_109 ++ ts20_119 ++ []) fresh20_99 from20_109
 
-theorem from20_69 : RangeFresh (Data.core20.body.drop 69) (ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 69) (n := 8) (ts := ts20_69) (ts' := ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_69 from20_77
+theorem from20_89 : RangeFresh (Data.core20.body.drop 89) (ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 89) (n := 10) (ts := ts20_89) (ts' := ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_89 from20_99
 
-theorem from20_61 : RangeFresh (Data.core20.body.drop 61) (ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 61) (n := 8) (ts := ts20_61) (ts' := ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_61 from20_69
+theorem from20_79 : RangeFresh (Data.core20.body.drop 79) (ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 79) (n := 10) (ts := ts20_79) (ts' := ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_79 from20_89
 
-theorem from20_53 : RangeFresh (Data.core20.body.drop 53) (ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 53) (n := 8) (ts := ts20_53) (ts' := ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_53 from20_61
+theorem from20_69 : RangeFresh (Data.core20.body.drop 69) (ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 69) (n := 10) (ts := ts20_69) (ts' := ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_69 from20_79
 
-theorem from20_45 : RangeFresh (Data.core20.body.drop 45) (ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 45) (n := 8) (ts := ts20_45) (ts' := ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_45 from20_53
+theorem from20_59 : RangeFresh (Data.core20.body.drop 59) (ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 59) (n := 10) (ts := ts20_59) (ts' := ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_59 from20_69
 
-theorem from20_37 : RangeFresh (Data.core20.body.drop 37) (ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 37) (n := 8) (ts := ts20_37) (ts' := ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_37 from20_45
+theorem from20_49 : RangeFresh (Data.core20.body.drop 49) (ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 49) (n := 10) (ts := ts20_49) (ts' := ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_49 from20_59
 
-theorem from20_29 : RangeFresh (Data.core20.body.drop 29) (ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 29) (n := 8) (ts := ts20_29) (ts' := ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_29 from20_37
+theorem from20_39 : RangeFresh (Data.core20.body.drop 39) (ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 39) (n := 10) (ts := ts20_39) (ts' := ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_39 from20_49
 
-theorem from20_21 : RangeFresh (Data.core20.body.drop 21) (ts20_21 ++ ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 21) (n := 8) (ts := ts20_21) (ts' := ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_21 from20_29
+theorem from20_29 : RangeFresh (Data.core20.body.drop 29) (ts20_29 ++ ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 29) (n := 10) (ts := ts20_29) (ts' := ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_29 from20_39
 
-theorem from20_0 : RangeFresh (Data.core20.body.drop 0) (ts20_0 ++ ts20_21 ++ ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) temps20 :=
-  rangeFresh_drop (l := Data.core20.body) (a := 0) (n := 21) (ts := ts20_0) (ts' := ts20_21 ++ ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) fresh20_0 from20_21
+theorem from20_0 : RangeFresh (Data.core20.body.drop 0) (ts20_0 ++ ts20_29 ++ ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) temps20 :=
+  rangeFresh_drop (l := Data.core20.body) (a := 0) (n := 29) (ts := ts20_0) (ts' := ts20_29 ++ ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) fresh20_0 from20_29
 
 set_option maxRecDepth 100000 in
-theorem all20 : (ts20_0 ++ ts20_21 ++ ts20_29 ++ ts20_37 ++ ts20_45 ++ ts20_53 ++ ts20_61 ++ ts20_69 ++ ts20_77 ++ ts20_85 ++ ts20_93 ++ []) = temps20 := by decide +kernel
+theorem all20 : (ts20_0 ++ ts20_29 ++ ts20_39 ++ ts20_49 ++ ts20_59 ++ ts20_69 ++ ts20_79 ++ ts20_89 ++ ts20_99 ++ ts20_109 ++ ts20_119 ++ []) = temps20 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem nodup20 : temps20.Nodup :=

@@ -16,36 +16,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 2. -/
-theorem w16_2 : shareWin 16 (snapsOf 16) 2 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 15. -/
+theorem w20_15 : shareWin 20 (snapsOf 20) 15 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 3. -/
-theorem w16_3 : shareWin 16 (snapsOf 16) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 4. -/
-theorem w16_4 : shareWin 16 (snapsOf 16) 4 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 5. -/
-theorem w16_5 : shareWin 16 (snapsOf 16) 5 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 6. -/
-theorem w16_6 : shareWin 16 (snapsOf 16) 6 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 7. -/
-theorem w16_7 : shareWin 16 (snapsOf 16) 7 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 8. -/
-theorem w16_8 : shareWin 16 (snapsOf 16) 8 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `selector_tables`, once. -/
-theorem st17 : shareStatic 17 = true := by decide +kernel
+/-- `verify_lean_xmss`, window 16. -/
+theorem w20_16 : shareWin 20 (snapsOf 20) 16 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

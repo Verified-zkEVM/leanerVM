@@ -16,39 +16,67 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop413`, window 0, part 0. -/
+/-- `decode_query_windows__L19_L5`, window 0, part 0. -/
 theorem cw877_0_0 : cplWin 877 0 0 = true := by decide +kernel
 
-/-- `__loop413`, window 0, part 1. -/
-theorem cw877_0_1 : cplWin 877 0 1 = true := by decide +kernel
-
-/-- `__loop414`, window 0, part 0. -/
+/-- `__loop383`, window 0, part 0. -/
 theorem cw878_0_0 : cplWin 878 0 0 = true := by decide +kernel
 
-/-- `__loop414`, window 0, part 1. -/
-theorem cw878_0_1 : cplWin 878 0 1 = true := by decide +kernel
+/-- `__loop383`, window 1, part 0. -/
+theorem cw878_1_0 : cplWin 878 1 0 = true := by decide +kernel
+
+/-- `__loop383`, window 2, part 0. -/
+theorem cw878_2_0 : cplWin 878 2 0 = true := by decide +kernel
+
+/-- `decode_query_windows__L22_L8`, window 0, part 0. -/
+theorem cw879_0_0 : cplWin 879 0 0 = true := by decide +kernel
+
+/-- `__loop384`, window 0, part 0. -/
+theorem cw880_0_0 : cplWin 880 0 0 = true := by decide +kernel
+
+/-- `__loop384`, window 1, part 0. -/
+theorem cw880_1_0 : cplWin 880 1 0 = true := by decide +kernel
+
+/-- `__loop384`, window 2, part 0. -/
+theorem cw880_2_0 : cplWin 880 2 0 = true := by decide +kernel
 
 theorem ok877 : CplOk 877 := by
   intro i hi k hk
   have hc : (certOf 877).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 877 0 = 2 := by decide +kernel
+  · have hn : nParts 877 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw877_0_0
-    · exact cw877_0_1
 
 theorem ok878 : CplOk 878 := by
   intro i hi k hk
-  have hc : (certOf 878).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 878).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 878 0 = 2 := by decide +kernel
+  · have hn : nParts 878 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw878_0_0
-    · exact cw878_0_1
+  · have hn : nParts 878 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw878_1_0
+  · have hn : nParts 878 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw878_2_0
+
+theorem ok879 : CplOk 879 := by
+  intro i hi k hk
+  have hc : (certOf 879).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 879 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw879_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw
