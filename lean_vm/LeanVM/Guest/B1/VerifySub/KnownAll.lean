@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.KnownAll
 
   `VsKnown`: the first `1592` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
-  `e < kbBound i`.
+  `e < kbBound i`; the first `552` put `dims_g[g^0]` below `g^34`.
 -/
 
 module
@@ -40,6 +40,30 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
   vsKnown_of L h16 h32 (Tables.verify_bus_gkr_holdsC hκ L hle)
     (Tables.verify_tables_holdsC hκ L _ List.length_replicate hle) (Tables.certify_placement_holds hκ L)
     σ hexp h
+
+/-- **`dims_g`'s first word** (the memory's log, G:3354-3357): the body's first `552` statements
+(up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`.
+The other six words (`table_logs`) are a hint there, certified only inside `verify_tables`
+(G:2176), so no such bound holds of them before its call. -/
+theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
+    (σ : Val)
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 552) True
+      (fun _ ↦ True)) :
+    ∃ e < 34, LoadHolds L.read (σ (.n 127)) 0 (ofK (addressOfIndex e)) := by
+  have hκ : κ ≤ 32 := h32
+  have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
+  have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
+  have hT : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsRootsT ++ vsAlphasT ++
+      vsFpwT ++ vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT ++ vsTailT) := by
+    simp only [vsT, List.append_assoc]
+  have hL : (vsHeadT ++ vsReadsT ++ vsSizesT).length = 121 := by decide +kernel
+  rw [show Fn.body Data.core18 = vsT from vs_body, hT, List.take_append,
+    List.take_of_length_le (by rw [hL]; omega), holdsList_append, holdsList_append,
+    holdsList_append] at h
+  obtain ⟨-, -, -, -, -, h⟩ := vsHeadT_holds h
+  obtain ⟨-, -, -, h⟩ := vsReadsT_holds h
+  obtain ⟨-, logMem, -, -, -, -, -, hm32, -, -, ds, -, hd, -⟩ := vsSizesT_holds hκ hκ6 L hle h
+  exact ⟨logMem, by omega, by rw [← gen_pow_eq_ofK]; exact hd 0 (by simp)⟩
 
 end
 end LeanVM.Guest.B1.VerifySub
