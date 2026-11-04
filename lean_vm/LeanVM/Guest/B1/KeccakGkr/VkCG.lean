@@ -19,8 +19,9 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatG
   `t = 1 … n`, as `eqtree` stores them (`eqLevels_getD`).
 * For a `VkData` `D`, from the buffers' base `B` and the layers' buffers' bases `ls`: `D.sizes` and
   `D.own B ls`, the seven buffers' sizes and words (the first claim's point, the lane
-  coordinates, the claim records, the instance, lane and segment trees, the low tree); `D.CL B ls s`, where claim
-  `s`'s record and buffers are (`ClaimLay`); `D.lcur s`, where layer `s` reads past the cursor.
+  coordinates, the claim records, the instance, lane and segment trees, the low tree);
+  `D.CL B ls s`, where claim `s`'s record and buffers are (`ClaimLay`); `D.lcur s`, where layer
+  `s` reads past the cursor.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
