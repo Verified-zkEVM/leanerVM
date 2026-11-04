@@ -40,7 +40,7 @@ theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (332 + k) default) = true 
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (333 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (332 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
