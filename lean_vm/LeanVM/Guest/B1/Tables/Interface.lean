@@ -218,14 +218,8 @@ def sideGroupStart : List ℕ := [0, 9, 18, 24]
 selector shares. -/
 abbrev rankKeysAt : ℕ := 34 + 16 * 9
 
-/-- `RANK_STRIDE` (G:290): above any block or column index. -/
-abbrev rankStride : ℕ := 252
-
 /-- `SIDE_TAB_AT` (G:292): where `exponent_tables` keeps each block group's side. -/
 abbrev sideTabAt : ℕ := rankKeysAt + 34
-
-/-- The rank keys `g^(κ·RANK_STRIDE)`, `κ < 34` (`exponent_tables`, G:688-689). -/
-def rankKeysList : List E := (List.range 34).map fun k ↦ gen ^ (k * rankStride)
 
 /-- Block group `gi`'s side (`exponent_tables`, G:691-693), a word. -/
 def sideTabList : List E :=

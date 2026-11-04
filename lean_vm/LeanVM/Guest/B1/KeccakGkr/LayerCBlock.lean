@@ -153,5 +153,33 @@ theorem load_val {d p : V} {off : ℕ} (hg : Good rd S w σ (.load d p off))
   · exact absurd h' hS
   · rw [h', rdAt_load h]
 
+/-! ## Small facts -/
+
+theorem good_mul {d x y : V} (h : x.idx < d.idx ∧ y.idx < d.idx) (hg : Good rd S w σ (.mul d x y)) :
+    σ d = σ x * σ y := by
+  simp only [Good, h.1, h.2, and_self, ↓reduceIte] at hg
+  exact hg
+
+theorem holds_mul {d x y : V} (h : x.idx < d.idx ∧ y.idx < d.idx) (hg : Good rd S w σ (.mul d x y)) :
+    (Atom.mul d x y).Holds rd σ :=
+  holds_of_good hg (by simp only [Side, h.1, h.2, and_self, ↓reduceIte])
+
+theorem holds_store {d p : V} {off : ℕ} (hS : Atom.load d p off ∈ S)
+    (hg : Good rd S w σ (.load d p off)) (h : LoadHolds rd (σ p) off (σ d)) :
+    (Atom.load d p off).Holds rd σ :=
+  holds_of_good hg (by simp only [Side, hS, ↓reduceIte]; exact h)
+
+theorem holds_read {d p : V} {off : ℕ} (hS : Atom.load d p off ∉ S)
+    (hg : Good rd S w σ (.load d p off)) {v : E} (h : LoadHolds rd (σ p) off v) :
+    (Atom.load d p off).Holds rd σ :=
+  holds_of_good hg (side_load hS h)
+
+theorem idx_lt {a b : ℕ} (h : a < b) : (V.n a).idx < (V.n b).idx := h
+
+theorem canon_zero : IsCanonical128 (0 : E) := by
+  have cz : IsCanonical128 (word 0 0 0) := by
+    rw [word_zero]; unfold IsCanonical128; exact limb_zero 2
+  rwa [word_zero] at cz
+
 end
 end LeanVM.Guest.B1.VerifySub

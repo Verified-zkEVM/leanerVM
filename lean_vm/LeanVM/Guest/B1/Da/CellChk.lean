@@ -13,7 +13,7 @@ namespace LeanVM.Guest.B1.Da
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem cell_ok : cellOk Data.core29 = true := by decide +kernel
+theorem cell_ok : cellOk Data.core31 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

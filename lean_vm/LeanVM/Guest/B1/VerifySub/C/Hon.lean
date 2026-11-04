@@ -9,7 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.C.Flat
-public import LeanVM.Guest.B1.Tables.VtC.Hon
+public import LeanVM.Guest.B1.Fwd.FlatIte
+public import LeanVM.Guest.B1.Fwd.NotStored
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The honest valuation
@@ -31,10 +33,10 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 @[expose] public section
 
 /-- The stores of the evaluation list. -/
-def vsSL : List Atom := storesOf 7 vsEvL
+def vsSL : List Atom := storesOf 6 vsEvL
 
 /-- The pointers of `verify_sub`'s stores (`vsSL_ptrs`). -/
-def vsStorePtrs : List ℕ := [6, 28, 129, 141, 149, 559, 640, 876, 877, 1324]
+def vsStorePtrs : List ℕ := [5, 26, 127, 139, 346, 427, 664, 665]
 
 theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 
@@ -43,7 +45,7 @@ theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 instance (priority := high) instDecidableNotMemVsSL (a : Atom) : Decidable (a ∉ vsSL) :=
   decidable_of_iff _ (notStoredB_iff vsSL_ptrs a)
 
-theorem vs_chk' : chk 7 vsEvL = some 1934 := by decide +kernel
+theorem vs_chk' : chk 6 vsEvL = some 1720 := by decide +kernel
 
 /-- **The honest valuation** of `verify_sub`. -/
 noncomputable def vsσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
@@ -57,12 +59,12 @@ def VsGoodL (rd : Reader) (w : ℕ → E) (σ : Val) : List Stmt → Prop
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vs_good (hl : args.length = 7) : ∀ s ∈ vsEvL, GoodS rd vsSL w (vsσ rd w args) s := by
+theorem vs_good (hl : args.length = 6) : ∀ s ∈ vsEvL, GoodS rd vsSL w (vsσ rd w args) s := by
   have h := (ev_spec rd w vsEvL args (by rw [hl]; exact vs_chk')).2.2
   rw [hl] at h
   exact h
 
-theorem vsC_param (hl : args.length = 7) {i : ℕ} (hi : i < 7) :
+theorem vsC_param (hl : args.length = 6) {i : ℕ} (hi : i < 6) :
     vsσ rd w args (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact vs_chk') (by rw [hl]; exact hi)
 
@@ -77,7 +79,7 @@ theorem vs_mem_slice {n : ℕ} {blk : List Stmt}
   rw [tbStmtsEqb_sound heq] at hs
   exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
 
-theorem vs_goodS (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) :
+theorem vs_goodS (hl : args.length = 6) {s : Stmt} (hs : s ∈ vsCPre) :
     GoodS rd vsSL w (vsσ rd w args) (fixNe s) := by
   by_cases hi : ∃ c z n, s = .ite c z n
   · obtain ⟨c, z, n, rfl⟩ := hi
@@ -86,7 +88,7 @@ theorem vs_goodS (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) :
 
 /-- An atom evaluation alone settles (a constant, a sum, a copy, a product of older values, a
 hint) holds. -/
-theorem vs_auto (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) (ha : autoB s = true) :
+theorem vs_auto (hl : args.length = 6) {s : Stmt} (hs : s ∈ vsCPre) (ha : autoB s = true) :
     VSH (coreProgram.Rel rd) rd (vsσ rd w args) s := by
   cases s with
   | atom a =>
@@ -106,7 +108,7 @@ theorem vs_auto (hl : args.length = 7) {s : Stmt} (hs : s ∈ vsCPre) (ha : auto
   | _ => simp only [autoB, Bool.false_eq_true] at ha
 
 /-- **A block's statements hold** when the ones evaluation alone does not settle (`rest`) do. -/
-theorem vs_block (hl : args.length = 7) (n : ℕ) (blk : List Stmt)
+theorem vs_block (hl : args.length = 6) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vsCPre.drop n).take blk.length) = true) (rest : List Stmt)
     (hrest : tbStmtsEqb (blk.filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, VSH (coreProgram.Rel rd) rd (vsσ rd w args) s) :

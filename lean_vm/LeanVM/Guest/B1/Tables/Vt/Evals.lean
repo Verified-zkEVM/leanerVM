@@ -10,9 +10,9 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 
 /-!
-# The table evaluations (G:2213-2227, 2285)
+# The table evaluations (G:2423-2431, 2507)
 
-`vt_eval`: evaluation `k`'s read, packing, copy, pooled value and its claim's `τ_g`.
+`vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2609`), packing and copy.
 `vt_evals_fs`: from the last round's sponge, the 157 words absorbed leave the sponge whose
 capacity permutation `j` reads; `vt_evals`: the public input's challenge `rm` is the squeeze after
 them, the returned capacity the sponge after it.
@@ -38,17 +38,15 @@ theorem vtEvs_getD (σ : Val) {k : ℕ} (hk : k < 157) : (vtEvs σ).getD k 0 = �
 
 /-- **Evaluation `k`.** -/
 theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 157) :
-    LoadHolds rd (σ (.n 5932)) k (σ (.n (vtEvB k))) ∧
+    LoadHolds rd (σ (.n 2609)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
-      σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) ∧
-      LoadHolds rd (σ (.n 16)) (5 + k) (σ (.n (vtEvB k))) ∧
-      LoadHolds rd (σ (.n 17)) (5 + k) (σ (.n (vtEvalData.getD k (0, 0, 0)).2.2)) := by
-  obtain ⟨_, hs⟩ := h.slice _ _ (vtEval_check k hk)
+      σ (.n (vtEvB k + 10)) = σ (.n (vtEvB k)) := by
+  obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)
   unfold vtEvalT at hs
   rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hr⟩ := hs
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr
-  exact ⟨hl, hp, hr.1, hr.2.1, hr.2.2⟩
+  exact ⟨hl, hp, hr⟩
 
 theorem vt_four_eq (σ : Val) {j : ℕ} (hj : j < 39) :
     ((vtEvs σ).drop (4 * j)).take 4 = [σ (.n (vtEvB (4 * j))), σ (.n (vtEvB (4 * j + 1))),
@@ -75,7 +73,7 @@ theorem vt_evals_fs {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have hperm : ∀ j < 39, vtCapV σ (j + 1) = capOf (Fs.perm ⟨vtCapV σ j,
       (((vtEvs σ).drop (4 * j)).take 4).map (·, dsObserve)⟩) := by
     intro j hj
-    have hk := h.atom _ _ (vtPerm_check j hj)
+    have hk := h.atomAt _ _ (vtPerm_check j hj)
     obtain ⟨hcan, -, hC⟩ := ly_keccak hk
     have cell : ∀ i < 4, σ (.n (vtEvB (4 * j + i) + 7)) =
         (Keccak.scalarCells (σ (.n (vtEvB (4 * j + i)))) dsObserve).1 ∧

@@ -19,13 +19,13 @@ the rounds at `bc_sumcheck_msgs` (`batch_sumcheck`'s statement, B1-a) and `bc_st
 claim written at `defer_stmt` is the sumcheck's point and the hint. For `m` children whose words
 the memory holds (`ChildWordsAt`), `batch_fs` reads `Node.batch` on the carried sponge:
 
-* the absorbing rows (`__loop24`, `l25_step`) carry the sponge after the count and the first `c`
+* the absorbing rows (`__loop33`, `l25_step`) carry the sponge after the count and the first `c`
   children's words (`absorb_rows`);
 * the last absorbing row is permuted and `λ` is its challenge (`sqLF`), the permutation's
   capacity the sponge `batch_sumcheck__L23` starts from;
-* the records of `bc_chain` (`__loop25`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
+* the records of `bc_chain` (`__loop34`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
   of the first `c` children's values (`chain_rows`); the last one's feeds `batch_sumcheck__L23`;
-* the weights (`__loop26`, `l27_step`) are the lambdas' combination of the claims' equality
+* the weights (`__loop35`, `l27_step`) are the lambdas' combination of the claims' equality
   weights at the sumcheck's point (`weight_rows`), and the body checks that the final claim is
   the hint times the last.
 -/
@@ -225,13 +225,13 @@ theorem chain_rows {absorb cpi cfresh lfT ccarried lcT chainT lam : E} {m : ℕ}
 
 /-- **The weights**: `w[c]` is the lambdas' combination of the first `c` children's equality
 weights at `r`. -/
-theorem weight_rows {absorb cpi cfresh lfT ccarried lcT wT chainT pt lam : E} {r : List E} {m : ℕ}
+theorem weight_rows {absorb cpi cfresh lfT ccarried lcT wT chainT pt1 lam : E} {r : List E} {m : ℕ}
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (L25 : ∀ c < m, L25Step rd absorb cfresh lfT ccarried lcT cpi (gen ^ c))
-    (L27 : ∀ c < m, L27Step rd lfT lcT pt chainT wT lam (gen ^ c))
+    (L27 : ∀ c < m, L27Step rd lfT lcT pt1 chainT wT lam (gen ^ c))
     (hpow : ∀ c < m, memAt rd (chainT * (gen ^ c) ^ 2) 0 = lam ^ (2 * c))
-    (hpt : memRun rd pt 23 = r) (hz : memAt rd wT 0 = 0) :
+    (hpt : (memRun rd pt1 23).map (1 + ·) = r) (hz : memAt rd wT 0 = 0) :
     ∀ c ≤ m, memAt rd (wT * gen ^ c) 0 = sumE (List.zipWith (fun c l ↦
       l.1 * eqEval c.freshClaim.bytecodePoint r + l.2 * eqEval c.carriedClaim.bytecodePoint r) (cs.take c)
       (Batch.lambdaPowers lam c)) := by
@@ -309,16 +309,16 @@ def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List 
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
 theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
-    {σ : Val} {args rets : List E} (hpar : Data.core32.params.map σ = args)
-    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core32) False (fun rs => rs = rets)) :
+    {σ : Val} {args rets : List E} (hpar : Data.core34.params.map σ = args)
+    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core34) False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
   have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok
   simp only [aggOk, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hflat, hparams⟩, hseed⟩, hp0⟩, hc23⟩, hp23⟩, hc33⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hflat, hparams⟩, hseed⟩, hp0⟩, hc23⟩, hp23⟩, hc33⟩,
     hp33⟩, hc43⟩, hp43⟩, hrate⟩, hg25⟩, hm69⟩, hk⟩, hrin⟩, hch⟩, hm107⟩, hc112⟩, hl112⟩, hc113⟩,
-    hl113⟩, hg26⟩, hm118⟩, hl119⟩, hbs⟩, hc130⟩, hl130⟩, hg27⟩, hm134⟩, hl135⟩, hm136⟩, hae⟩,
-    hout⟩, hl6⟩ := hok
+    hl113⟩, hg26⟩, hm118⟩, hl119⟩, hbs⟩, hpt1⟩, hc200⟩, hl200⟩, hg27⟩, hm204⟩, hl205⟩, hm206⟩,
+    hae⟩, hout⟩, hl6⟩ := hok
   rw [hparams] at hpar
   subst hpar
   rw [agg_shape, holdsList_append] at hb
@@ -331,11 +331,11 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   simp only [List.map_cons, List.map_nil, MeaningAggregateClaimsW]
   intro m hm1 hm16 hN
   refine ⟨trivial, ?_⟩
-  simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hrate hout
+  simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hrate hpt1 hout
   -- the absorbing loop
   have L25 : ∀ c < m, L25Step rd (σ (.n 60)) (σ (.n 2)) (σ (.n 7)) (σ (.n 3)) (σ (.n 8))
       (σ (.n 1)) (gen ^ c) :=
-    loop_sound (f := "__loop29")
+    loop_sound (f := "__loop33")
       (ps := [σ (.n 0), σ (.n 60), σ (.n 2), σ (.n 7), σ (.n 3), σ (.n 8), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
@@ -438,7 +438,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   -- the records
   have L26 : ∀ c < m, L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 106) * σ (.n 106))
       (σ (.n 106)) (gen ^ c) := by
-    have h := loop_sound (f := "__loop30")
+    have h := loop_sound (f := "__loop34")
       (ps := [σ (.n 0), σ (.n 111), σ (.n 7), σ (.n 8), σ (.n 107), σ (.n 106)])
       (B := fun x => L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 107)) (σ (.n 106)) x)
       (by unfold ordG; omega) hN
@@ -463,30 +463,34 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
       ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩ := by
     rw [aggRun, hclaim, hagg]
   -- the weight
-  have L27 : ∀ c < m, L27Step rd (σ (.n 7)) (σ (.n 8)) (σ (.n 120)) (σ (.n 111)) (σ (.n 129))
+  have L27 : ∀ c < m, L27Step rd (σ (.n 7)) (σ (.n 8)) (σ (.n 127)) (σ (.n 111)) (σ (.n 199))
       (σ (.n 106)) (gen ^ c) :=
-    loop_sound (f := "__loop31")
-      (ps := [σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 120), σ (.n 111), σ (.n 129), σ (.n 106)])
+    loop_sound (f := "__loop35")
+      (ps := [σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 127), σ (.n 111), σ (.n 199), σ (.n 106)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l27_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg27 hall hne)
-  have hptr : memRun rd (σ (.n 120)) 23 = (bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96),
-      σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 := by
+  have hptr : (memRun rd (σ (.n 127)) 23).map (1 + ·) = (bsRun rounds (σ (.n 119))
+      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 := by
     rw [readsAt_memRun hpt, hptl]
-  have hz129 : memAt rd (σ (.n 129)) 0 = 0 := by
-    rw [memAt_of_load (load_sound hl130 hat), const_sound hc130 hat, word_zero]
-  have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz129 m le_rfl
+    refine map_one_add_memRun fun k hk => ?_
+    obtain ⟨⟨⟨c1, l1⟩, a1⟩, s1⟩ := hpt1 k hk
+    rw [memAt_of_load (load_sound s1 hat), add_sound a1 hat, const_sound c1 hat, word_one,
+      memAt_of_load (load_sound l1 hat)]
+  have hz199 : memAt rd (σ (.n 199)) 0 = 0 := by
+    rw [memAt_of_load (load_sound hl200 hat), const_sound hc200 hat, word_zero]
+  have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz199 m le_rfl
   rw [List.take_of_length_le (by omega)] at W
   have hw : Batch.batchedBytecodeWeight cs (aggLam cs).1 (bsRun rounds (σ (.n 119))
       ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 =
-      σ (.n 135) := by
-    rw [hagg, ← memAt_of_load (load_sound hl135 hat), isMul_sound hm134 hat, hN, W]
+      σ (.n 205) := by
+    rw [hagg, ← memAt_of_load (load_sound hl205 hat), isMul_sound hm204 hat, hN, W]
     rfl
   -- the check
   rw [show aggHints rd σ = ⟨rounds, σ (.n 6)⟩ by rw [hrnd]; rfl, batch_fs, hrun, hw, ← h126,
-    assertEq_sound hae hat, isMul_sound hm136 hat]
+    assertEq_sound hae hat, isMul_sound hm206 hat]
   exact ite_pos' rfl
 
 /-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory

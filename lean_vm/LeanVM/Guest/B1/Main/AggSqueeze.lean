@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.AggSqueeze
 
-  `aggregate_claims`' squeezing loop (`__loop25`: the lambdas and the batched claim) and its
-  weighing loop (`__loop26`: the batched equality weight).
+  `aggregate_claims`' squeezing loop (`__loop34`: the lambdas and the batched claim) and its
+  weighing loop (`__loop35`: the batched equality weight).
 -/
 
 module
@@ -10,17 +10,18 @@ module
 public import LeanVM.Guest.B1.Main.AggAbsorb
 
 /-!
-# `__loop25` and `__loop26`
+# `__loop34` and `__loop35`
 
-* `l26_step` (`__loop25`, core function `375`): iteration `x = g^c` reads record `c` of
+* `l26_step` (`__loop34`, core function `416`): iteration `x = g^c` reads record `c` of
   `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
   power times `λ²` into word `2` (record `c + 1`'s power) and the running claim plus the power
   times `fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`,
   `lc`) into word `3` (record `c + 1`'s claim) (`L26Step`).
-* `l27_step` (`__loop26`, core function `377`): iteration `x = g^c` adds
+* `l27_step` (`__loop35`, core function `418`): iteration `x = g^c` adds
   `p · (eq(fresh, r) + λ · eq(carried, r))` to the running weight `w[c]` into `w[c + 1]`, `p`
-  record `c`'s power, `r` the `23` coordinates at `pt` (`L27Step`); the equality polynomials are
-  products `Π (1 + p_j + r_j)` checked by evaluation (`eqChainOk`).
+  record `c`'s power, `r = 1 + r1`, `r1` the `23` coordinates at `pt1` (`bc_point1 = 1 + bc_point`,
+  `L27Step`); the equality polynomials are products `Π (p_j + r1_j) = Π (1 + p_j + r_j)` checked
+  by evaluation (`eqChainOk`, `one_add_add_one_add`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -67,12 +68,12 @@ theorem chal_sound {s0 s1 : V} {b : ℕ} (h : allIn atoms (challA s0 s1 b) = tru
   ((holds_challengeT (C := fun _ _ _ => True) s0 s1 b True (fun _ => True)).mp
     (allIn_holds h hat _ _)).1
 
-/-! ## `__loop25`: the powers of `λ` and the running claim -/
+/-! ## `__loop34`: the powers of `λ` and the running claim -/
 
-/-- **`__loop25`'s body, checked.** -/
+/-- **`__loop34`'s body, checked.** -/
 def l26Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop30" && decide (fn.params.length = 7) &&
+  loopShapeF fn "__loop34" && decide (fn.params.length = 7) &&
   isMul A (.n 7) (.n 0) (.n 0) && isMul A (.n 8) (.n 2) (.n 7) &&
   A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
@@ -84,10 +85,10 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD 387 default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD 416 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop30" = some 387 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? "__loop34" = some 416 := by decide +kernel
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
 the next record holds the power times `λ²` and the running claim plus the power times
@@ -98,10 +99,10 @@ def L26Step (rd : Reader) (chainT lfT lcT lamSq lam x : E) : Prop :=
     memAt rd (chainT * x ^ 2) 0 * (memAt rd (memAt rd (lfT * x) 0) 23 +
       lam * memAt rd (memAt rd (lcT * x) 0) 23))
 
-theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop30" (x :: ps) []) :
+theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop34" (x :: ps) []) :
     (∀ N chainT lfT lcT lamSq lam, ps = [N, chainT, lfT, lcT, lamSq, lam] →
       L26Step rd chainT lfT lcT lamSq lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop30" (x * gen :: ps) []) := by
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop34" (x * gen :: ps) []) := by
   have hf := find_of_idx l26_idx (by rw [coreProgram_length]; omega)
   have hok := l26_ok
   simp only [l26Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -110,7 +111,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop30" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N chainT lfT lcT lamSq lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 387 default).params =
+  have hpar : (coreProgram.getD 416 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -138,31 +139,30 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop30" (x :: 
 
 /-! ## Equality weights -/
 
-/-- `t = 1 + p[j] + r[j]`, through two `ADD`s, the constant `1`, and loads through `pP`, `pR`. -/
+/-- In characteristic `2`, `(1 + a) + (1 + b) = a + b`: an equality factor against `1 + r` is
+one `ADD`. -/
+theorem one_add_add_one_add (a b : E) : 1 + a + (1 + b) = a + b := by
+  linear_combination e_add_self 1
+
+/-- `t = p[j] + r1[j]`, one `ADD` of loads through `pP`, `pR` (`r1` is `1 + r`: `bc_point1`). -/
 def eqTermOk (A : List Atom) (t pP pR : V) (j : ℕ) : Bool :=
   match addOf A t with
-  | some (a, r) => A.any (isLoadAt r pR j) && (match addOf A a with
-      | some (o, pv) => A.any (isConstAt o 1 0) && A.any (isLoadAt pv pP j)
-      | none => false)
+  | some (pv, r) => A.any (isLoadAt pv pP j) && A.any (isLoadAt r pR j)
   | none => false
 
 theorem eqTerm_sound {t pP pR : V} {j : ℕ} (h : eqTermOk atoms t pP pR j = true)
     (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    σ t = 1 + memAt rd (σ pP) j + memAt rd (σ pR) j := by
+    σ t = memAt rd (σ pP) j + memAt rd (σ pR) j := by
   unfold eqTermOk at h
   split at h
-  · rename_i a r har
+  · rename_i pv r har
     simp only [Bool.and_eq_true] at h
-    obtain ⟨hr, h⟩ := h
-    split at h
-    · rename_i o pv hop
-      simp only [Bool.and_eq_true] at h
-      rw [addOf_sound har hat, addOf_sound hop hat, const_sound h.1 hat, word_one,
-        memAt_of_load (load_sound h.2 hat), memAt_of_load (load_sound hr hat)]
-    · exact absurd h (by simp)
+    rw [addOf_sound har hat, memAt_of_load (load_sound h.1 hat),
+      memAt_of_load (load_sound h.2 hat)]
   · exact absurd h (by simp)
 
-/-- `out` is `Π_{j < n} (1 + p[j] + r[j])`, its factors through `MUL`s from the last. -/
+/-- `out` is `Π_{j < n} (p[j] + r1[j])`, its factors through `MUL`s from the last, the first
+factor alone. -/
 def eqChainOk (A : List Atom) (pP pR : V) : ℕ → V → Bool
   | 0, _ => false
   | 1, t => eqTermOk A t pP pR 0
@@ -179,64 +179,82 @@ theorem eqEval_snoc (l r : List E) (a b : E) (h : l.length = r.length) :
   rw [eqEval, eqEval, List.zipWith_append h, List.foldl_append]
   rfl
 
+/-- **The chain is the equality polynomial** of the points at `pP` and `1 + r1`, `r1` at `pR`. -/
 theorem eqChain_sound {pP pR : V} : ∀ {n : ℕ} {out : V}, eqChainOk atoms pP pR n out = true →
     (∀ a ∈ atoms, a.Holds rd σ) →
-    σ out = eqEval (memRun rd (σ pP) n) (memRun rd (σ pR) n)
+    σ out = eqEval (memRun rd (σ pP) n) ((memRun rd (σ pR) n).map (1 + ·))
   | 0, _, h, _ => absurd h (by simp [eqChainOk])
   | 1, t, h, hat => by
     rw [eqTerm_sound h hat]
-    simp [memRun, eqEval]
+    simp only [memRun, List.range_one, List.map_cons, List.map_nil, eqEval, List.zipWith_cons_cons,
+      List.zipWith_nil_left, List.foldl_cons, List.foldl_nil, one_mul, one_add_add_one_add]
   | n + 2, out, h, hat => by
     unfold eqChainOk at h
     split at h
     · rename_i prev t hm
       simp only [Bool.and_eq_true] at h
       rw [mulOf_sound hm hat, eqChain_sound h.2 hat, eqTerm_sound h.1 hat,
-        memRun_succ rd _ (n + 1), memRun_succ rd _ (n + 1), eqEval_snoc _ _ _ _ (by simp)]
+        memRun_succ rd _ (n + 1), memRun_succ rd _ (n + 1), List.map_append, List.map_singleton,
+        eqEval_snoc _ _ _ _ (by simp), one_add_add_one_add]
     · exact absurd h (by simp)
 
-/-! ## `__loop26`: the weights -/
+/-- The point `r` from `r1 = 1 + r`, coordinatewise. -/
+theorem map_one_add_memRun {p1 p : E} {n : ℕ} (h : ∀ k < n, memAt rd p1 k = 1 + memAt rd p k) :
+    (memRun rd p1 n).map (1 + ·) = memRun rd p n := by
+  simp only [memRun, List.map_map]
+  refine List.map_congr_left fun k hk => ?_
+  rw [Function.comp_apply, h k (List.mem_range.mp hk), ← add_assoc, e_add_self, zero_add]
 
-/-- **`__loop26`'s body, checked.** -/
+/-- `1 + ·` twice is the identity. -/
+theorem map_one_add_twice (l : List E) : (l.map (1 + ·)).map (1 + ·) = l := by
+  rw [List.map_map]
+  conv_rhs => rw [← List.map_id l]
+  refine List.map_congr_left fun x _ => ?_
+  rw [Function.comp_apply, ← add_assoc, e_add_self, zero_add, id]
+
+/-! ## `__loop35`: the weights -/
+
+/-- **`__loop35`'s body, checked.** -/
 def l27Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
-  loopShapeF fn "__loop31" && decide (fn.params.length = 8) &&
+  loopShapeF fn "__loop35" && decide (fn.params.length = 8) &&
   isMul A (.n 8) (.n 2) (.n 0) && A.any (isLoadAt (.n 9) (.n 8) 0) &&
   isMul A (.n 10) (.n 3) (.n 0) && A.any (isLoadAt (.n 11) (.n 10) 0) &&
-  eqChainOk A (.n 9) (.n 4) 23 (.n 257) && eqChainOk A (.n 11) (.n 4) 23 (.n 262) &&
-  isMul A (.n 263) (.n 0) (.n 0) && isMul A (.n 264) (.n 5) (.n 263) &&
-  isMul A (.n 265) (.n 6) (.n 0) && A.any (isLoadAt (.n 266) (.n 265) 0) &&
-  A.any (isLoadAt (.n 267) (.n 264) 0) && isMul A (.n 268) (.n 7) (.n 262) &&
-  A.any (isAddAt (.n 269) (.n 257) (.n 268)) && isMul A (.n 270) (.n 267) (.n 269) &&
-  A.any (isAddAt (.n 271) (.n 266) (.n 270)) && isMul A (.n 272) (.n 6) (.n 0) &&
-  A.any (isLoadAt (.n 271) (.n 272) 1)
+  eqChainOk A (.n 9) (.n 4) 23 (.n 167) && eqChainOk A (.n 11) (.n 4) 23 (.n 170) &&
+  isMul A (.n 171) (.n 0) (.n 0) && isMul A (.n 172) (.n 5) (.n 171) &&
+  isMul A (.n 173) (.n 6) (.n 0) && A.any (isLoadAt (.n 174) (.n 173) 0) &&
+  A.any (isLoadAt (.n 175) (.n 172) 0) && isMul A (.n 176) (.n 7) (.n 170) &&
+  A.any (isAddAt (.n 177) (.n 167) (.n 176)) && isMul A (.n 178) (.n 175) (.n 177) &&
+  A.any (isAddAt (.n 179) (.n 174) (.n 178)) && isMul A (.n 180) (.n 6) (.n 0) &&
+  A.any (isLoadAt (.n 179) (.n 180) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD 389 default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD 418 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop31" = some 389 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? "__loop35" = some 418 := by decide +kernel
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
-power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r` at `pt`. -/
-def L27Step (rd : Reader) (lfT lcT pt chainT wT lam x : E) : Prop :=
+power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r = 1 + r1`, `r1`
+the 23 words at `pt1` (`bc_point1`). -/
+def L27Step (rd : Reader) (lfT lcT pt1 chainT wT lam x : E) : Prop :=
   LoadHolds rd (wT * x) 1 (memAt rd (wT * x) 0 + memAt rd (chainT * x ^ 2) 0 *
-    (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) (memRun rd pt 23) +
-      lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) (memRun rd pt 23)))
+    (eqEval (memRun rd (memAt rd (lfT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·)) +
+      lam * eqEval (memRun rd (memAt rd (lcT * x) 0) 23) ((memRun rd pt1 23).map (1 + ·))))
 
-theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop31" (x :: ps) []) :
-    (∀ N lfT lcT pt chainT wT lam, ps = [N, lfT, lcT, pt, chainT, wT, lam] →
-      L27Step rd lfT lcT pt chainT wT lam x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop31" (x * gen :: ps) []) := by
+theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop35" (x :: ps) []) :
+    (∀ N lfT lcT pt1 chainT wT lam, ps = [N, lfT, lcT, pt1, chainT, wT, lam] →
+      L27Step rd lfT lcT pt1 chainT wT lam x) ∧
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop35" (x * gen :: ps) []) := by
   have hf := find_of_idx l27_idx (by rw [coreProgram_length]; omega)
   have hok := l27_ok
   simp only [l27Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩, he2⟩, hm263⟩, hm264⟩,
-    hm265⟩, hl266⟩, hl267⟩, hm268⟩, ha269⟩, hm270⟩, ha271⟩, hm272⟩, hl271⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩, he2⟩, hm171⟩, hm172⟩,
+    hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩, hl179⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
-  refine ⟨fun N lfT lcT pt chainT wT lam hN => ?_, hnext⟩
+  refine ⟨fun N lfT lcT pt1 chainT wT lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 389 default).params =
+  have hpar : (coreProgram.getD 418 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -252,16 +270,16 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop31" (x :: 
   have ec := eqChain_sound he2 hat
   rw [← e9, h4] at ef
   rw [← e11, h4] at ec
-  have e266 := memAt_of_load (load_sound hl266 hat)
-  have e267 := memAt_of_load (load_sound hl267 hat)
-  have e271 := load_sound hl271 hat
-  rw [isMul_sound hm265 hat, h6, hx] at e266
-  rw [isMul_sound hm264 hat, isMul_sound hm263 hat, h5, hx, ← sq] at e267
-  rw [isMul_sound hm272 hat, h6, hx] at e271
+  have e174 := memAt_of_load (load_sound hl174 hat)
+  have e175 := memAt_of_load (load_sound hl175 hat)
+  have e179 := load_sound hl179 hat
+  rw [isMul_sound hm173 hat, h6, hx] at e174
+  rw [isMul_sound hm172 hat, isMul_sound hm171 hat, h5, hx, ← sq] at e175
+  rw [isMul_sound hm180 hat, h6, hx] at e179
   unfold L27Step
-  rw [add_sound ha271 hat, isMul_sound hm270 hat, add_sound ha269 hat, isMul_sound hm268 hat, h7,
-    ← e266, ← e267, ef, ec] at e271
-  exact e271
+  rw [add_sound ha179 hat, isMul_sound hm178 hat, add_sound ha177 hat, isMul_sound hm176 hat, h7,
+    ← e174, ← e175, ef, ec] at e179
+  exact e179
 
 end
 end LeanVM.Guest.B1.Main
