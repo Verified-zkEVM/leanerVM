@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
 # `y` in the exponent
 
 With the table's height `τ` (`tau_g = g^τ`), `pack_g = g^(τ - 4)` and `y_g = g^(τ - 3)`; the
-hinted bits of `y = τ - 3`, pinned boolean, give `half_g = g^(y / 2)`, `odd_g = g^(y % 2)` and
-`y_last = g^(y/2 + y % 2)`, which `assert half_g·y_last = y_g` ties back to `y`.
+hinted bits of `y = τ - 3`, pinned boolean, give `step_g = g^(y / 8)` and `rem_g = g^(y % 8)`,
+which `assert step_g⁸·rem_g = y_g` ties back to `y`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -139,7 +139,7 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
   rw [← this.2]
   simp [cap5, List.range_succ]
 
-/-- **The six squeezes** (G:2794-2801): the segment coordinate, then the five lane coordinates. -/
+/-- **The six squeezes** (G:2950-2956): the segment coordinate, then the five lane coordinates. -/
 theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 11).map σ = cap0)
     (hz : ∀ k < 4, σ (.n (68 + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :

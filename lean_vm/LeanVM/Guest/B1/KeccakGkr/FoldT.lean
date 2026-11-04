@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FoldT
 
-  `fold_shifts`' statements (`foldT`, G:2377-2405) compute `foldF`.
+  `fold_shifts`' statements (`foldT`, G:2613-2639) compute `foldF`.
 -/
 
 module
