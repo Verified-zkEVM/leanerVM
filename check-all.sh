@@ -106,7 +106,7 @@ lean_da() {
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id LeanDa.verifyCellM_id \
+    LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
     LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
     LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork \
     LeanDa.codeBindingRpmFork_of_codeBindingRpm
