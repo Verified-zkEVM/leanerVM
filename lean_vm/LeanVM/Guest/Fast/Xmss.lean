@@ -94,7 +94,10 @@ def xPartA (T : XmssTabs) (kw : List ℕ) (layer : ℕ) (σ : Val) : LeanXmss.La
       (l.val % 8))))⟩
 
 /-- The leaf index from the windows' arms `kw` (`lxIndex`), below `2^32`. -/
-def lxLeafOf (kw : List ℕ) : ℕ := lxIndex (fun w ↦ kw.getD w 0) % 2 ^ 32
+def lxLeafOf (kw : List ℕ) : ℕ :=
+  (kw.getD 0 0 + 256 * kw.getD 1 0 + 65536 * kw.getD 2 0 + 16777216 * kw.getD 3 0) % 2 ^ 32
+
+theorem lxLeafOf_eq (kw : List ℕ) : lxLeafOf kw = lxIndex (fun w ↦ kw.getD w 0) % 2 ^ 32 := rfl
 
 theorem lxLeafOf_lt (kw : List ℕ) :
     lxLeafOf kw < LeanXmss.lifetime :=

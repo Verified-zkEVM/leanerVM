@@ -36,7 +36,6 @@ cost_compile lxWinBaseC := lxWinBase
 cost_compile lxArmBaseC := lxArmBase
 cost_compile lxSibAtC := lxSibAt
 cost_compile xPartNC := xPartA
-cost_compile lxIndexC := LeanVM.Guest.B1.Sig.lxIndex
 cost_compile lxLeafOfC := lxLeafOf
 cost_compile xmssSigOfNC := xmssSigOfA
 
