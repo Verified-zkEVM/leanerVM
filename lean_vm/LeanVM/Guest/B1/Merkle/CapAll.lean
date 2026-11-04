@@ -45,15 +45,15 @@ theorem verify_merkle_cap_holds : verify_merkle_cap_Spec := by
   intro p hp
   simp only [merkleCapNames, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl
-  · exact merkle_cap_at 4 le_rfl (Program.find?_of_indexOf? (j := 513) (by decide +kernel) rfl)
+  · exact merkle_cap_at 4 le_rfl (Program.find?_of_indexOf? (j := 514) (by decide +kernel) rfl)
       rfl core502_body
-  · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 411) (by decide +kernel) rfl)
+  · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 412) (by decide +kernel) rfl)
       rfl core400_body
-  · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 407) (by decide +kernel) rfl)
+  · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 408) (by decide +kernel) rfl)
       rfl core396_body
-  · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 522) (by decide +kernel) rfl)
+  · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 523) (by decide +kernel) rfl)
       rfl core511_body
-  · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 402) (by decide +kernel) rfl)
+  · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 403) (by decide +kernel) rfl)
       rfl core391_body
 
 end
