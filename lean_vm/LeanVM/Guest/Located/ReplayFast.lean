@@ -157,8 +157,8 @@ def bndTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (bnd : List (ℕ 
 
 /-- The memory bounds hold (`memTest`), by the logarithm. -/
 def memTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
-  mem.all fun m ↦ (List.range m.2.1).all fun c ↦ match rd (fp * addressOfIndex m.1) with
-    | some p => decide (IsInK p) && match rd (p.limb 0 * addressOfIndex c) with
+  mem.all fun m ↦ match rd (fp * addressOfIndex m.1) with
+    | some p => decide (IsInK p) && match rd (p.limb 0 * addressOfIndex m.2.1) with
       | some w => isPowBelow dl w m.2.2
       | none => false
     | none => false
@@ -180,8 +180,6 @@ theorem memTestWith_eq (hdl : DiscreteLogSpec dl) : memTestWith dl = memTest := 
   unfold memTestWith memTest
   congr 1
   funext m
-  congr 1
-  funext c
   cases rd (fp * addressOfIndex m.1) with
   | none => rfl
   | some p =>

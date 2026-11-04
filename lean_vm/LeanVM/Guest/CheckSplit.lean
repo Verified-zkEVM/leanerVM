@@ -319,7 +319,7 @@ theorem chkL_match_of {X : Fx} {v : Core.V} {a0 : List Core.Stmt} {as : List (Li
     {ts : List ℕ} {base : ℕ} {s0 : CS} {J : ℕ} {sj : CS} (h1 : endAt st = some se)
     (h2 : se.seg.exit.kind = .jump (.cell t) ft) (h3 : se.seg.exit.succ = t0 :: ts)
     (h4 : X.F.self ft = true) (h5 : ts.length = as.length)
-    (h6 : boundOk X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true)
+    (h6 : boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true)
     (h7 : tableBase se.book t (cellOf X.loc v) = some base)
     (h8 : armsOk X.G X.entry base 0 (t0 :: ts) = true) (h9 : segAt X t0 se.book se.bnd = some s0)
     (h10 : chkL X a0 s0 [] = .join J) (h11 : chkArms X J as ts se.book se.bnd = true)
@@ -434,7 +434,7 @@ noncomputable def chkMatchS (X : Fx) (lo hi : ℕ) (v : Core.V) (arms : List (Li
   | some se => match se.seg.exit.kind, se.seg.exit.succ, arms with
     | .jump (.cell t) ft, t0 :: ts, a0 :: as =>
         bif X.F.self ft && ts.length == as.length &&
-            boundOk X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) then
+            boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) then
           match tableBase se.book t (cellOf X.loc v) with
           | some base =>
               bif armsOk X.G X.entry base 0 (t0 :: ts) then
@@ -459,7 +459,7 @@ theorem chkMatchS_dec {X : Fx} {lo hi : ℕ} {v : Core.V} {arms : List (List Cor
     ∃ se t ft t0 ts a0 as base s0 J sj, endAt st = some se ∧
       se.seg.exit.kind = .jump (.cell t) ft ∧ se.seg.exit.succ = t0 :: ts ∧ arms = a0 :: as ∧
       X.F.self ft = true ∧ ts.length = as.length ∧
-      boundOk X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true ∧
+      boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true ∧
       tableBase se.book t (cellOf X.loc v) = some base ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧ segAt X t0 se.book se.bnd = some s0 ∧
       chkL X a0 s0 [] = .join J ∧ chkArmsS X J lo hi 1 as ts se.book se.bnd = true ∧
