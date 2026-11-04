@@ -14,13 +14,14 @@ public import LeanVM.Guest.B1.Digest.Loops
 # `main`'s loops
 
 Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`), and its run at
-`x` gives one iteration's facts (`RawXStep`, `RawSStep`, `KidStep`) and the run at `x·g`
-(`loop_stepF`).
+`x` gives one iteration's facts (`LoopsC`: `RawXStepC`, `RawSStepC`, `KidStepC`) and the run at
+`x·g` (`loop_stepF`).
 
 * `__loop2` (G:4134-4143): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
   `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
 * `__loop3` (G:4144-4148): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
-  region, `cover[lx_slots · g^s] = n_raw_x · g^j`, `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
+  region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
+  `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
 * `__loop4` (G:4168-4192): child `c`, its DA digest hinted at `da_digests · c^2`.
 -/
 
@@ -82,41 +83,27 @@ def l3Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 35 default) = true := by decide +kernel
+theorem l3_ok : l3Ok (coreProgram.getD 37 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop2" = some 35 := by decide +kernel
-
-/-- **A raw leanXMSS signature** at the counter `x`: a slot `s` below the region's bound holding
-the mark `x`, and the signature check of the claim at slot `s`. -/
-def RawXStep (rd : Reader) (lxs cover lxt x : E) : Prop :=
-  ∃ s, BelowLog lxs s ∧ LoadHolds rd cover s x ∧
-    coreProgram.Rel rd "verify_lean_xmss" [lxt * gen ^ (4 * s)] []
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 37 := by decide +kernel
 
 /-! ## `__loop3`: raw leanSPHINCS signatures -/
 
 def l4Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop3" && decide (fn.params.length = 8) &&
-    rcBoundOk (atomsIn (loopPre fn)) (.n 8) (.n 2) &&
-    isMul (atomsIn (loopPre fn)) (.n 14) (.n 5) (.n 0) &&
-    isMul (atomsIn (loopPre fn)) (.n 15) (.n 4) (.n 8) &&
-    isMul (atomsIn (loopPre fn)) (.n 16) (.n 3) (.n 15) &&
-    (atomsIn (loopPre fn)).any (isLoadAt (.n 14) (.n 16) 0) &&
-    monoIs (atomsIn (loopPre fn)) (.n 19) (.n 6) (.n 8) 4 &&
-    hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 19, .n 7] []
+  loopShapeF fn "__loop3" && decide (fn.params.length = 7) &&
+    rcBoundOk (atomsIn (loopPre fn)) (.n 7) (.n 2) &&
+    isMul (atomsIn (loopPre fn)) (.n 13) (.n 4) (.n 0) &&
+    isMul (atomsIn (loopPre fn)) (.n 14) (.n 3) (.n 7) &&
+    (atomsIn (loopPre fn)).any (isLoadAt (.n 13) (.n 14) 0) &&
+    monoIs (atomsIn (loopPre fn)) (.n 17) (.n 5) (.n 7) 4 &&
+    hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 17, .n 6] []
 
 set_option maxRecDepth 100000 in
-theorem l4_ok : l4Ok (coreProgram.getD 36 default) = true := by decide +kernel
+theorem l4_ok : l4Ok (coreProgram.getD 38 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop3" = some 36 := by decide +kernel
-
-/-- **A raw leanSPHINCS signature** at the counter `x`: a slot `s` below the region's bound
-holding the mark `n_raw_x · x` (at `cover · lx_slots · g^s`), and the signature check of the
-claim at slot `s`. -/
-def RawSStep (rd : Reader) (lss cover lxs nrx lst bb x : E) : Prop :=
-  ∃ s, BelowLog lss s ∧ LoadHolds rd (cover * (lxs * gen ^ s)) 0 (nrx * x) ∧
-    coreProgram.Rel rd "verify_sig_lean_sphincs" [lst * gen ^ (4 * s), bb] []
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 38 := by decide +kernel
 
 /-! ## A two-digest hash in a block -/
 
@@ -169,48 +156,30 @@ def l5Ok (fn : Fn) : Bool :=
   rcConstOk A (.n 18) 9272771591053052074 &&
   rcConstOk A (.n 19) 9272771591053052074 &&
   isMul A (.n 28) (.n 18) (.n 19) &&
-  A.any (isConstAt (.n 29) 1 0) &&
-  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 29, .n 5, .n 18] [.n 30, .n 31] &&
-  isMul A (.n 32) (.n 17) (.n 18) &&
-  hasCall P "child_claim_list_digest" [.n 6, .n 4, .n 32, .n 5, .n 7, .n 19] [.n 33, .n 34] &&
-  monoIs A (.n 40) (.n 8) (.n 0) 24 &&
-  monoIs A (.n 42) (.n 9) (.n 0) 2 &&
-  isLoad A (.n 43) (.n 42) 0 &&
-  isLoad A (.n 44) (.n 42) 1 &&
-  hasCall P "statement_digest" [.n 10, .n 11, .n 30, .n 31, .n 33, .n 34, .n 43, .n 44, .n 40]
-    [.n 45, .n 46] &&
-  monoIs A (.n 48) (.n 12) (.n 0) 2 &&
-  isLoad A (.n 45) (.n 48) 0 &&
-  monoIs A (.n 49) (.n 12) (.n 0) 2 &&
-  isLoad A (.n 46) (.n 49) 1 &&
-  monoIs A (.n 55) (.n 15) (.n 0) 24 &&
-  hasCall P "verify_sub" [.n 45, .n 46, .n 10, .n 11, .n 13, .n 14, .n 55] [] &&
-  isMul A (.n 56) (.n 17) (.n 28) &&
-  isMul A (.n 57) (.n 2) (.n 0) &&
-  isLoad A (.n 56) (.n 57) 1
+  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 29, .n 30] &&
+  isMul A (.n 31) (.n 17) (.n 18) &&
+  hasCall P "child_claim_list_digest" [.n 6, .n 7, .n 31, .n 8, .n 19] [.n 32, .n 33] &&
+  monoIs A (.n 39) (.n 9) (.n 0) 24 &&
+  monoIs A (.n 41) (.n 10) (.n 0) 2 &&
+  isLoad A (.n 42) (.n 41) 0 &&
+  isLoad A (.n 43) (.n 41) 1 &&
+  hasCall P "statement_digest" [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39]
+    [.n 44, .n 45] &&
+  monoIs A (.n 47) (.n 13) (.n 0) 2 &&
+  isLoad A (.n 44) (.n 47) 0 &&
+  monoIs A (.n 48) (.n 13) (.n 0) 2 &&
+  isLoad A (.n 45) (.n 48) 1 &&
+  monoIs A (.n 54) (.n 15) (.n 0) 24 &&
+  hasCall P "verify_sub" [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54] [] &&
+  isMul A (.n 55) (.n 17) (.n 28) &&
+  isMul A (.n 56) (.n 2) (.n 0) &&
+  isLoad A (.n 55) (.n 56) 1
 
 set_option maxRecDepth 100000 in
-theorem l5_ok : l5Ok (coreProgram.getD 37 default) = true := by decide +kernel
+theorem l5_ok : l5Ok (coreProgram.getD 39 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop4" = some 37 := by decide +kernel
-
-/-- **Child `x`'s facts**: its base `written[x]`, its counts `g^ex`, `g^es`, its two rebuilt claim
-lists' digests, its DA digest's cells at `da_digests · x^2`, its statement's digest at
-`child_pi · x^2`, its proof's check, and `written[x · g] = base · g^(ex + es)`. -/
-def KidStep (rd : Reader) (written lxt cover lxs lst lss carried dadig s0 s1 cpi glp gsq cfresh
-    x : E) : Prop :=
-  ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (ex es : ℕ),
-    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧
-    coreProgram.Rel rd "child_claim_list_digest" [lxt, cover, base, 1, lxs, gen ^ ex] [cx0, cx1] ∧
-    coreProgram.Rel rd "child_claim_list_digest" [lst, cover, base * gen ^ ex, lxs, lss, gen ^ es]
-      [cs0, cs1] ∧
-    LoadHolds rd (dadig * x ^ 2) 0 d0 ∧ LoadHolds rd (dadig * x ^ 2) 1 d1 ∧
-    coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 24]
-      [p0, p1] ∧
-    LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
-    coreProgram.Rel rd "verify_sub" [p0, p1, s0, s1, glp, gsq, cfresh * x ^ 24] [] ∧
-    LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es))
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 39 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Main

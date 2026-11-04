@@ -25,11 +25,14 @@ theorem cw306_2_0 : cplWin 306 2 0 = true := by decide +kernel
 /-- `open_stacked__L2`, window 3, part 0. -/
 theorem cw306_3_0 : cplWin 306 3 0 = true := by decide +kernel
 
-/-- `open_stacked__L2`, window 3, part 1. -/
-theorem cw306_3_1 : cplWin 306 3 1 = true := by decide +kernel
-
 /-- `open_stacked__L2`, window 4, part 0. -/
 theorem cw306_4_0 : cplWin 306 4 0 = true := by decide +kernel
+
+/-- `open_stacked__L2`, window 5, part 0. -/
+theorem cw306_5_0 : cplWin 306 5 0 = true := by decide +kernel
+
+/-- `open_stacked__L2`, window 6, part 0. -/
+theorem cw306_6_0 : cplWin 306 6 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

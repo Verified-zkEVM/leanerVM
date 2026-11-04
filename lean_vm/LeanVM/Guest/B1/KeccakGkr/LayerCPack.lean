@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerCPack
 
-  A layer's pack rounds, honestly: the round records in memory give every iteration's meaning
-  (`PackStep`) and, with `y` odd, the last round's (`MeaningKeccakRound`).
+  A layer's pack rounds, honestly: the round records in memory give every iteration's meaning,
+  of the eight-round loop (`Pack8Hon`) and of the remainder loop (`PackRemHon`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCHon
+public import LeanVM.Guest.B1.KeccakGkr.PackComplete
 
 /-!
 # The pack rounds, honestly
@@ -16,8 +17,9 @@ With the records' buffer (`recWords`), the claim's point, the stream words and t
 (`chs`) in memory:
 
 * `recWords_rec`: record `j` is a `RoundRec`;
-* `packStep_honest`: iteration `j < ⌊y/2⌋` of the pack loop has its meaning;
-* `round_honest`: with `y` odd, `keccak_round` at record `⌊y/2⌋` has its meaning.
+* `pack8_honest`: iteration `j < ⌊y/8⌋` of the eight-round loop has its meaning;
+* `packRem_honest`: iteration `i < y mod 8` of the remainder loop, from record `⌊y/8⌋`, has its
+  meaning.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -75,7 +77,7 @@ theorem xs_length (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
 
 /-- **Record `j` in memory.** -/
 theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur)) {j : ℕ}
-    (hj : j < 16) (hjy : j ≤ D.y / 2 + D.y % 2) :
+    (hj : j < 16) (hjy : j ≤ D.y / 8 + D.y % 8) :
     RoundRec rd (base * gen ^ j) 0 (D.run first (D.recK j)).2.cap (D.recCur cur j)
       (D.run first (D.recK j)).1.1 (D.run first (D.recK j)).1.2.1 := by
   have field : ∀ f < 8, LoadHolds rd (base * gen ^ j) (16 * f) (D.recField first cur f j) := by
@@ -118,107 +120,123 @@ theorem getD_append_two {l : List E} {a b : E} {n : ℕ} (hl : l.length = n) :
   subst hl
   simp
 
-/-- **An iteration of the pack loop, honestly.** -/
-theorem packStep_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
+/-- The challenges of rounds `k .. k + n`, as the continuation's. -/
+theorem chs_cont (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y) {q : ℕ}
+    (hq : q < n) :
+    (D.chs first).getD (k + q) 0 = (packRunF ((D.c.point.drop k).take n)
+      ((D.packMsgs.drop k).take n) (D.run first k).1.1 (D.run first k).1.2.1
+      ⟨(D.run first k).2.cap, []⟩).1.2.2.getD q 0 := by
+  rw [run_chsD (D := D) (first := first) hpm hk (by omega), run_add hpm hk]
+  simp only [cont]
+  rw [List.getD_append_right _ _ _ _ (by rw [run_chs_length hpm (by omega)]; omega),
+    run_chs_length hpm (by omega), Nat.add_sub_cancel_left]
+
+/-- **An iteration of the eight-round loop, honestly.** -/
+theorem pack8_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
     {rec pp pt cur : E} (hrec : ReadsAt rd rec (D.recWords first cur))
     (hpp : ReadsAt rd pp D.c.point) (hxs : ReadsAt rd cur D.xs)
-    (hpt : ReadsAt rd pt (D.chs first)) (hy30 : D.y ≤ 30) {j : ℕ} (hj : j < D.y / 2) :
-    PackStep rd rec pp pt (gen ^ j) := by
+    (hpt : ReadsAt rd pt (D.chs first)) (hy30 : D.y ≤ 30) {j : ℕ} (hj : j < D.y / 8) :
+    Pack8Hon rd rec pp pt (gen ^ j) := by
   have hy : D.y = D.c.point.length := rfl
-  have hk0 : D.recK j = 2 * j := by unfold recK; omega
-  have hk1 : D.recK (j + 1) = 2 * (j + 1) := by unfold recK; omega
+  have hk0 : D.recK j = 8 * j := by unfold recK; split <;> omega
+  have hk1 : D.recK (j + 1) = 8 * j + 8 := by unfold recK; split <;> omega
   have r0 := recWords_rec hrec (j := j) (by omega) (by omega)
   have r1 := recWords_rec hrec (j := j + 1) (by omega) (by omega)
   rw [hk0] at r0
-  have e2 := run_pair (D := D) (first := first) hpm (j := j) (by omega)
-  have hsl : (D.run first (2 * j)).1.2.2.length = 2 * j := run_chs_length hpm (by omega)
-  have hcl := chs_length (D := D) (first := first) hpm
-  have c0 := run_chsD (D := D) (first := first) hpm (k := 2 * (j + 1)) (by omega) (i := 2 * j)
-    (by omega)
-  have c1 := run_chsD (D := D) (first := first) hpm (k := 2 * (j + 1)) (by omega)
-    (i := 2 * j + 1) (by omega)
-  rw [hk1, e2] at r1
-  rw [e2] at c0 c1
-  simp only [cont, packRunF_pair] at r1 c0 c1
-  rw [(getD_append_two hsl).1] at c0
-  rw [(getD_append_two hsl).2] at c1
-  obtain ⟨g1e, g2e⟩ := xs_packReads hpl hxs (k := 2 * j) (by omega)
-  obtain ⟨g1e', g2e'⟩ := xs_packReads hpl hxs (k := 2 * j + 1) (by omega)
-  rw [← List.getD_eq_getElem (d := (0, 0))] at g1e g2e g1e' g2e'
-  refine ⟨(D.run first (2 * j)).2.cap, D.recCur cur j, (D.run first (2 * j)).1.1,
-    (D.run first (2 * j)).1.2.1, D.c.point.getD (2 * j) 0, D.c.point.getD (2 * j + 1) 0,
-    (D.packMsgs.getD (2 * j) (0, 0)).1, (D.packMsgs.getD (2 * j) (0, 0)).2,
-    (D.packMsgs.getD (2 * j + 1) (0, 0)).1, (D.packMsgs.getD (2 * j + 1) (0, 0)).2,
-    by simpa [recCur, hk0] using r0, (run_cap (2 * j)).1.2, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero]
-    exact kk_readsAt_getD hpp (by omega)
-  · rw [gen_sq, loadHolds_mul_gen_pow]
-    exact kk_readsAt_getD hpp (by omega)
-  · rw [recCur, hk0]
-    intro k hk
-    simp only [List.length_cons, List.length_nil] at hk
-    rw [pow_add, ← mul_assoc, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow]
-    interval_cases k
-    · convert g1e using 2; rfl
-    · convert g2e using 2; rfl
-    · convert g1e' using 2; rfl
-    · convert g2e' using 2; rfl
-  · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero, ← c0]
-    exact kk_readsAt_getD hpt (by omega)
-  · rw [gen_sq, loadHolds_mul_gen_pow, ← c1]
-    exact kk_readsAt_getD hpt (by omega)
+  have e8 := run_add (D := D) (first := first) hpm (k := 8 * j) (n := 8) (by omega)
+  rw [hk1, e8] at r1
+  have hrsl : ((D.c.point.drop (8 * j)).take 8).length = 8 := by simp; omega
+  have hmsl : ((D.packMsgs.drop (8 * j)).take 8).length = 8 := by simp; omega
+  obtain ⟨⟨-, hcan⟩, -⟩ := run_cap (D := D) (first := first) (8 * j)
+  have hPl := packRunF_chs_length ((D.c.point.drop (8 * j)).take 8)
+    ((D.packMsgs.drop (8 * j)).take 8) (D.run first (8 * j)).1.1 (D.run first (8 * j)).1.2.1
+    ⟨(D.run first (8 * j)).2.cap, []⟩ (by rw [hrsl, hmsl])
+  refine ⟨_, D.recCur cur j, _, _, _, _, _, _, _, _, by simpa [recCur, hk0] using r0, hcan,
+    hrsl, ?_, ?_, eqChain_of_packRunF _ _ _ _ _ (by rw [hrsl, hmsl]), ?_, ?_⟩
+  · intro k hk
+    rw [hrsl] at hk
+    rw [← pow_mul, show j * 8 = 8 * j by ring, loadHolds_mul_gen_pow]
+    have := hpp (8 * j + k) (by omega)
+    simpa [List.getElem_take, List.getElem_drop] using this
+  · have h := readsAt_pairs (rd := rd) (p := D.recCur cur j) ((D.packMsgs.drop (8 * j)).take 8) 0
+      fun q hq ↦ by
+        rw [hmsl] at hq
+        obtain ⟨g1e, g2e⟩ := xs_packReads hpl hxs (k := 8 * j + q) (by omega)
+        have e : ((D.packMsgs.drop (8 * j)).take 8).getD q (0, 0) = D.packMsgs[8 * j + q] := by
+          rw [List.getD_eq_getElem _ _ (by omega)]
+          simp [List.getElem_take, List.getElem_drop]
+        rw [e, recCur, hk0, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow]
+        refine ⟨?_, ?_⟩
+        · rw [show 47 + 2 * (8 * j) + (0 + 2 * q) = 47 + 2 * (8 * j + q) by ring]; exact g1e
+        · rw [show 47 + 2 * (8 * j) + (0 + 2 * q + 1) = 47 + 2 * (8 * j + q) + 1 by ring]
+          exact g2e
+    simpa using h
+  · intro k hk
+    rw [hPl, hrsl] at hk
+    rw [← pow_mul, show j * 8 = 8 * j by ring, loadHolds_mul_gen_pow]
+    have := kk_readsAt_getD hpt (k := 8 * j + k) (by rw [chs_length hpm]; omega)
+    rw [chs_cont hpm (by omega) hk, List.getD_eq_getElem _ _ (by rw [hPl, hrsl]; exact hk)] at this
+    exact this
   · refine roundRec_pred ?_
-    simp only [recCur, hk1] at r1
-    rw [recCur, hk0, mul_assoc, ← pow_add,
-      show 47 + 2 * (2 * j) + 4 = 47 + 2 * (2 * (j + 1)) by ring]
+    simp only [recCur, hk1, cont] at r1
+    rw [recCur, hk0, mul_assoc, ← pow_add, show 47 + 2 * (8 * j) + 16 = 47 + 2 * (8 * j + 8) by ring]
     exact r1
 
-/-- **The last round, honestly** (`y` odd). -/
-theorem round_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
+/-- **An iteration of the remainder loop, honestly**: at `g^i`, `i < y mod 8`, from the record
+`⌊y/8⌋`, one round. -/
+theorem packRem_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
     {rec pp pt cur : E} (hrec : ReadsAt rd rec (D.recWords first cur))
     (hpp : ReadsAt rd pp D.c.point) (hxs : ReadsAt rd cur D.xs)
-    (hpt : ReadsAt rd pt (D.chs first)) (hy30 : D.y ≤ 30) (hodd : D.y % 2 = 1) :
-    MeaningKeccakRound rd [rec * gen ^ (D.y / 2), pp * (gen ^ (D.y / 2)) ^ 2,
-      pt * (gen ^ (D.y / 2)) ^ 2] [] := by
+    (hpt : ReadsAt rd pt (D.chs first)) (hy30 : D.y ≤ 30) {i : ℕ} (hi : i < D.y % 8) :
+    PackRemHon rd (rec * gen ^ (D.y / 8)) (pp * (gen ^ (D.y / 8)) ^ 8)
+      (pt * (gen ^ (D.y / 8)) ^ 8) (gen ^ i) := by
   have hy : D.y = D.c.point.length := rfl
-  obtain ⟨j, hjdef⟩ : ∃ j, j = D.y / 2 := ⟨_, rfl⟩
-  rw [← hjdef]
-  have hk0 : D.recK j = 2 * j := by unfold recK; omega
-  have hk1 : D.recK (j + 1) = D.y := by unfold recK; omega
-  have r0 := recWords_rec hrec (j := j) (by omega) (by omega)
-  have r1 := recWords_rec hrec (j := j + 1) (by omega) (by omega)
+  set k := 8 * (D.y / 8) + i with hkd
+  have hk0 : D.recK (D.y / 8 + i) = k := by unfold recK; split <;> omega
+  have hk1 : D.recK (D.y / 8 + i + 1) = k + 1 := by unfold recK; split <;> omega
+  have r0 := recWords_rec hrec (j := D.y / 8 + i) (by omega) (by omega)
+  have r1 := recWords_rec hrec (j := D.y / 8 + i + 1) (by omega) (by omega)
   rw [hk0] at r0
-  have e1 := run_one (D := D) (first := first) hpm (j := j) (by omega)
-  have hsl : (D.run first (2 * j)).1.2.2.length = 2 * j := run_chs_length hpm (by omega)
-  have hcl := chs_length (D := D) (first := first) hpm
-  have c0 := run_chsD (D := D) (first := first) hpm (k := D.y) le_rfl (i := 2 * j) (by omega)
+  have e1 := run_add (D := D) (first := first) hpm (k := k) (n := 1) (by omega)
   rw [hk1, e1] at r1
-  rw [e1] at c0
-  simp only [cont, packRunF_eqRound, packRunF_nil] at r1 c0
-  rw [show ∀ l : List E, ∀ a : E, l.length = 2 * j → (l ++ [a]).getD (2 * j) 0 = a from
-    fun l a hl ↦ by rw [← hl]; simp] at c0
-  · obtain ⟨g1e, g2e⟩ := xs_packReads hpl hxs (k := 2 * j) (by omega)
-    rw [← List.getD_eq_getElem (d := (0, 0))] at g1e g2e
-    refine ⟨rfl, (D.run first (2 * j)).2.cap, D.recCur cur j, (D.run first (2 * j)).1.1,
-      (D.run first (2 * j)).1.2.1, D.c.point.getD (2 * j) 0, (D.packMsgs.getD (2 * j) (0, 0)).1,
-      (D.packMsgs.getD (2 * j) (0, 0)).2, by simpa [recCur, hk0] using r0, (run_cap (2 * j)).1.2,
-      ?_, ?_, ?_, ?_⟩
-    · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero]
-      exact kk_readsAt_getD hpp (by omega)
-    · rw [recCur, hk0]
-      intro k hk
-      simp only [List.length_cons, List.length_nil] at hk
-      rw [pow_add, ← mul_assoc, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow]
-      interval_cases k
-      · convert g1e using 2; rfl
-      · convert g2e using 2; rfl
-    · rw [gen_sq, loadHolds_mul_gen_pow, Nat.add_zero, ← c0]
-      exact kk_readsAt_getD hpt (by omega)
-    · refine roundRec_pred ?_
-      simp only [recCur, hk1] at r1
-      rw [recCur, hk0, mul_assoc, ← pow_add, show 47 + 2 * (2 * j) + 2 = 47 + 2 * D.y by omega]
-      exact r1
-  · exact hsl
+  have hr : (D.c.point.drop k).take 1 = [D.c.point.getD k 0] := by
+    rw [List.getD_eq_getElem _ _ (by omega)]
+    simp [List.take_one, List.head?_drop, List.getElem?_eq_getElem (show k < D.c.point.length by omega)]
+  have hm : (D.packMsgs.drop k).take 1 = [((D.packMsgs.getD k (0, 0)).1,
+      (D.packMsgs.getD k (0, 0)).2)] := by
+    rw [List.getD_eq_getElem _ _ (by omega)]
+    simp [List.take_one, List.head?_drop, List.getElem?_eq_getElem (show k < D.packMsgs.length by omega)]
+  rw [hr, hm] at r1
+  simp only [cont, packRunF_eqRound, packRunF_nil] at r1
+  obtain ⟨⟨-, hcan⟩, -⟩ := run_cap (D := D) (first := first) k
+  have hrec' : rec * gen ^ (D.y / 8) * gen ^ i = rec * gen ^ (D.y / 8 + i) := by
+    rw [mul_assoc, ← pow_add]
+  have hgk : ∀ p : E, p * (gen ^ (D.y / 8)) ^ 8 * gen ^ i = p * gen ^ k := fun p ↦ by
+    rw [mul_assoc, ← pow_mul, ← pow_add, hkd, show D.y / 8 * 8 = 8 * (D.y / 8) by ring]
+  obtain ⟨g1e, g2e⟩ := xs_packReads hpl hxs (k := k) (by omega)
+  rw [← List.getD_eq_getElem (d := (0, 0))] at g1e g2e
+  refine ⟨(D.run first k).2.cap, D.recCur cur (D.y / 8 + i), (D.run first k).1.1,
+    (D.run first k).1.2.1, D.c.point.getD k 0, (D.packMsgs.getD k (0, 0)).1,
+    (D.packMsgs.getD k (0, 0)).2, by rw [hrec']; simpa [recCur, hk0] using r0, hcan, ?_, ?_, ?_, ?_⟩
+  · rw [hgk, loadHolds_mul_gen_pow, Nat.add_zero]
+    exact kk_readsAt_getD hpp (by omega)
+  · rw [recCur, hk0]
+    intro q hq
+    simp only [List.length_cons, List.length_nil] at hq
+    rw [loadHolds_mul_gen_pow]
+    interval_cases q
+    · simpa using g1e
+    · simpa [Nat.add_assoc] using g2e
+  · rw [hgk, loadHolds_mul_gen_pow, Nat.add_zero]
+    have := kk_readsAt_getD hpt (k := k + 0) (by rw [chs_length hpm]; omega)
+    rw [chs_cont hpm (by omega) (show 0 < 1 by norm_num), hr, hm, packRunF_eqRound,
+      packRunF_nil] at this
+    exact this
+  · rw [hrec']
+    refine roundRec_pred ?_
+    simp only [recCur, hk1] at r1
+    rw [recCur, hk0, mul_assoc, ← pow_add, show 47 + 2 * k + 2 = 47 + 2 * (k + 1) by ring]
+    exact r1
 
 end LayerData
 

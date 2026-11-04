@@ -16,72 +16,45 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 13. -/
-theorem w435_13 : shareWin 435 (snapsOf 435) 13 = true := by decide +kernel
+/-- `__loop35`, once. -/
+theorem st419 : shareStatic 419 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L17_L8`, once. -/
-theorem st436 : shareStatic 436 = true := by decide +kernel
+/-- `__loop35`, window 0. -/
+theorem w419_0 : shareWin 419 (snapsOf 419) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L17_L8`, window 0. -/
-theorem w436_0 : shareWin 436 (snapsOf 436) 0 = true := by decide +kernel
-
-theorem ok436 : ShareOk 436 := ⟨st436, fun i hi ↦ by
-  have h : (snapsOf 436).length = 0 := by decide +kernel
+theorem ok419 : ShareOk 419 := ⟨st419, fun i hi ↦ by
+  have h : (snapsOf 419).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w436_0⟩
+  exact w419_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_ood_point__L12`, once. -/
-theorem st437 : shareStatic 437 = true := by decide +kernel
+/-- `rs_eq_rows__L8`, once. -/
+theorem st420 : shareStatic 420 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_ood_point__L12`, window 0. -/
-theorem w437_0 : shareWin 437 (snapsOf 437) 0 = true := by decide +kernel
-
-theorem ok437 : ShareOk 437 := ⟨st437, fun i hi ↦ by
-  have h : (snapsOf 437).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w437_0⟩
+/-- `rs_eq_rows__L8`, window 0. -/
+theorem w420_0 : shareWin 420 (snapsOf 420) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop42`, once. -/
-theorem st438 : shareStatic 438 = true := by decide +kernel
+/-- `rs_eq_rows__L8`, window 1. -/
+theorem w420_1 : shareWin 420 (snapsOf 420) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop42`, window 0. -/
-theorem w438_0 : shareWin 438 (snapsOf 438) 0 = true := by decide +kernel
-
-theorem ok438 : ShareOk 438 := ⟨st438, fun i hi ↦ by
-  have h : (snapsOf 438).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w438_0⟩
+/-- `rs_eq_rows__L8`, window 2. -/
+theorem w420_2 : shareWin 420 (snapsOf 420) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_row_weights__L4_L0`, once. -/
-theorem st439 : shareStatic 439 = true := by decide +kernel
+/-- `rs_eq_rows__L8`, window 3. -/
+theorem w420_3 : shareWin 420 (snapsOf 420) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_row_weights__L4_L0`, window 0. -/
-theorem w439_0 : shareWin 439 (snapsOf 439) 0 = true := by decide +kernel
-
-theorem ok439 : ShareOk 439 := ⟨st439, fun i hi ↦ by
-  have h : (snapsOf 439).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w439_0⟩
+/-- `rs_eq_rows__L8`, window 4. -/
+theorem w420_4 : shareWin 420 (snapsOf 420) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L6`, once. -/
-theorem st440 : shareStatic 440 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L6`, window 0. -/
-theorem w440_0 : shareWin 440 (snapsOf 440) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L6`, window 1. -/
-theorem w440_1 : shareWin 440 (snapsOf 440) 1 = true := by decide +kernel
+/-- `rs_eq_rows__L8`, window 5. -/
+theorem w420_5 : shareWin 420 (snapsOf 420) 5 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

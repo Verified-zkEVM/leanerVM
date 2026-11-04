@@ -36,59 +36,53 @@ include hμ
 
 /-- **The round count.** -/
 theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
-    (hdim : ∀ t < 6, LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ τ t)) {m : ℕ} (hm : m < 33)
+    (hkbt : ∀ t < 6, σ (.n (30 + t)) = gen ^ τ t) {m : ℕ} (hm : m < 33)
     (hmu : σ (.n 9) = gen ^ m) :
-    ∃ n, σ (.n 5817) = gen ^ n ∧ (∀ t < 6, τ t ≤ n) ∧ (∃ t < 6, τ t = n) ∧ n ≤ m := by
-  have a5153 := h.atomAt 5153 (.load (.n 5818) (.n 10) 1) (by decide +kernel)
-  have a5154 := h.atomAt 5154 (.const (.n 5819) (word 4294967296 0 0)) (by decide +kernel)
-  have a5155 := h.atomAt 5155 (.mul (.n 5817) (.n 5820) (.n 5818)) (by decide +kernel)
-  have a5156 := h.atomAt 5156 (.rangeCheck (.n 5820) (.n 5821) (.n 5822) (.n 5823) (.n 5819)) (by decide +kernel)
-  have a5157 := h.atomAt 5157 (.add (.n 5824) (.n 5817) (.n 5818)) (by decide +kernel)
-  have a5158 := h.atomAt 5158 (.load (.n 5825) (.n 10) 2) (by decide +kernel)
-  have a5159 := h.atomAt 5159 (.const (.n 5826) (word 4294967296 0 0)) (by decide +kernel)
-  have a5160 := h.atomAt 5160 (.mul (.n 5817) (.n 5827) (.n 5825)) (by decide +kernel)
-  have a5161 := h.atomAt 5161 (.rangeCheck (.n 5827) (.n 5828) (.n 5829) (.n 5830) (.n 5826)) (by decide +kernel)
-  have a5162 := h.atomAt 5162 (.add (.n 5831) (.n 5817) (.n 5825)) (by decide +kernel)
-  have a5163 := h.atomAt 5163 (.mul (.n 5832) (.n 5824) (.n 5831)) (by decide +kernel)
-  have a5164 := h.atomAt 5164 (.load (.n 5833) (.n 10) 3) (by decide +kernel)
-  have a5165 := h.atomAt 5165 (.const (.n 5834) (word 4294967296 0 0)) (by decide +kernel)
-  have a5166 := h.atomAt 5166 (.mul (.n 5817) (.n 5835) (.n 5833)) (by decide +kernel)
-  have a5167 := h.atomAt 5167 (.rangeCheck (.n 5835) (.n 5836) (.n 5837) (.n 5838) (.n 5834)) (by decide +kernel)
-  have a5168 := h.atomAt 5168 (.add (.n 5839) (.n 5817) (.n 5833)) (by decide +kernel)
-  have a5169 := h.atomAt 5169 (.mul (.n 5840) (.n 5832) (.n 5839)) (by decide +kernel)
-  have a5170 := h.atomAt 5170 (.load (.n 5841) (.n 10) 4) (by decide +kernel)
-  have a5171 := h.atomAt 5171 (.const (.n 5842) (word 4294967296 0 0)) (by decide +kernel)
-  have a5172 := h.atomAt 5172 (.mul (.n 5817) (.n 5843) (.n 5841)) (by decide +kernel)
-  have a5173 := h.atomAt 5173 (.rangeCheck (.n 5843) (.n 5844) (.n 5845) (.n 5846) (.n 5842)) (by decide +kernel)
-  have a5174 := h.atomAt 5174 (.add (.n 5847) (.n 5817) (.n 5841)) (by decide +kernel)
-  have a5175 := h.atomAt 5175 (.mul (.n 5848) (.n 5840) (.n 5847)) (by decide +kernel)
-  have a5176 := h.atomAt 5176 (.load (.n 5849) (.n 10) 5) (by decide +kernel)
-  have a5177 := h.atomAt 5177 (.const (.n 5850) (word 4294967296 0 0)) (by decide +kernel)
-  have a5178 := h.atomAt 5178 (.mul (.n 5817) (.n 5851) (.n 5849)) (by decide +kernel)
-  have a5179 := h.atomAt 5179 (.rangeCheck (.n 5851) (.n 5852) (.n 5853) (.n 5854) (.n 5850)) (by decide +kernel)
-  have a5180 := h.atomAt 5180 (.add (.n 5855) (.n 5817) (.n 5849)) (by decide +kernel)
-  have a5181 := h.atomAt 5181 (.mul (.n 5856) (.n 5848) (.n 5855)) (by decide +kernel)
-  have a5182 := h.atomAt 5182 (.load (.n 5857) (.n 10) 6) (by decide +kernel)
-  have a5183 := h.atomAt 5183 (.const (.n 5858) (word 4294967296 0 0)) (by decide +kernel)
-  have a5184 := h.atomAt 5184 (.mul (.n 5817) (.n 5859) (.n 5857)) (by decide +kernel)
-  have a5185 := h.atomAt 5185 (.rangeCheck (.n 5859) (.n 5860) (.n 5861) (.n 5862) (.n 5858)) (by decide +kernel)
-  have a5186 := h.atomAt 5186 (.add (.n 5863) (.n 5817) (.n 5857)) (by decide +kernel)
-  have a5187 := h.atomAt 5187 (.mul (.n 5864) (.n 5856) (.n 5863)) (by decide +kernel)
-  have a5188 := h.atomAt 5188 (.const (.n 5865) (word 0 0 0)) (by decide +kernel)
-  have a5189 := h.atomAt 5189 (.assertEq (.n 5864) (.n 5865)) (by decide +kernel)
-  have a5190 := h.atomAt 5190 (.const (.n 5866) (word 4294967296 0 0)) (by decide +kernel)
-  have a5191 := h.atomAt 5191 (.mul (.n 9) (.n 5867) (.n 5817)) (by decide +kernel)
-  have a5192 := h.atomAt 5192 (.rangeCheck (.n 5867) (.n 5868) (.n 5869) (.n 5870) (.n 5866)) (by decide +kernel)
-  simp only [Atom.Holds] at a5153 a5154 a5155 a5157 a5158 a5159 a5160 a5162 a5163 a5164
-  simp only [Atom.Holds] at a5165 a5166 a5168 a5169 a5170 a5171 a5172 a5174 a5175 a5176
-  simp only [Atom.Holds] at a5177 a5178 a5180 a5181 a5182 a5183 a5184 a5186 a5187 a5188 a5189
+    ∃ n, σ (.n 2500) = gen ^ n ∧ (∀ t < 6, τ t ≤ n) ∧ (∃ t < 6, τ t = n) ∧ n ≤ m := by
+  have a5154 := h.atomAt 2572 (.const (.n 2501) (word 4294967296 0 0)) (by decide +kernel)
+  have a5155 := h.atomAt 2573 (.mul (.n 2500) (.n 2502) (.n 30)) (by decide +kernel)
+  have a5156 := h.atomAt 2574 (.rangeCheck (.n 2502) (.n 2503) (.n 2504) (.n 2505) (.n 2501)) (by decide +kernel)
+  have a5157 := h.atomAt 2575 (.add (.n 2506) (.n 2500) (.n 30)) (by decide +kernel)
+  have a5159 := h.atomAt 2576 (.const (.n 2507) (word 4294967296 0 0)) (by decide +kernel)
+  have a5160 := h.atomAt 2577 (.mul (.n 2500) (.n 2508) (.n 31)) (by decide +kernel)
+  have a5161 := h.atomAt 2578 (.rangeCheck (.n 2508) (.n 2509) (.n 2510) (.n 2511) (.n 2507)) (by decide +kernel)
+  have a5162 := h.atomAt 2579 (.add (.n 2512) (.n 2500) (.n 31)) (by decide +kernel)
+  have a5163 := h.atomAt 2580 (.mul (.n 2513) (.n 2506) (.n 2512)) (by decide +kernel)
+  have a5165 := h.atomAt 2581 (.const (.n 2514) (word 4294967296 0 0)) (by decide +kernel)
+  have a5166 := h.atomAt 2582 (.mul (.n 2500) (.n 2515) (.n 32)) (by decide +kernel)
+  have a5167 := h.atomAt 2583 (.rangeCheck (.n 2515) (.n 2516) (.n 2517) (.n 2518) (.n 2514)) (by decide +kernel)
+  have a5168 := h.atomAt 2584 (.add (.n 2519) (.n 2500) (.n 32)) (by decide +kernel)
+  have a5169 := h.atomAt 2585 (.mul (.n 2520) (.n 2513) (.n 2519)) (by decide +kernel)
+  have a5171 := h.atomAt 2586 (.const (.n 2521) (word 4294967296 0 0)) (by decide +kernel)
+  have a5172 := h.atomAt 2587 (.mul (.n 2500) (.n 2522) (.n 33)) (by decide +kernel)
+  have a5173 := h.atomAt 2588 (.rangeCheck (.n 2522) (.n 2523) (.n 2524) (.n 2525) (.n 2521)) (by decide +kernel)
+  have a5174 := h.atomAt 2589 (.add (.n 2526) (.n 2500) (.n 33)) (by decide +kernel)
+  have a5175 := h.atomAt 2590 (.mul (.n 2527) (.n 2520) (.n 2526)) (by decide +kernel)
+  have a5177 := h.atomAt 2591 (.const (.n 2528) (word 4294967296 0 0)) (by decide +kernel)
+  have a5178 := h.atomAt 2592 (.mul (.n 2500) (.n 2529) (.n 34)) (by decide +kernel)
+  have a5179 := h.atomAt 2593 (.rangeCheck (.n 2529) (.n 2530) (.n 2531) (.n 2532) (.n 2528)) (by decide +kernel)
+  have a5180 := h.atomAt 2594 (.add (.n 2533) (.n 2500) (.n 34)) (by decide +kernel)
+  have a5181 := h.atomAt 2595 (.mul (.n 2534) (.n 2527) (.n 2533)) (by decide +kernel)
+  have a5183 := h.atomAt 2596 (.const (.n 2535) (word 4294967296 0 0)) (by decide +kernel)
+  have a5184 := h.atomAt 2597 (.mul (.n 2500) (.n 2536) (.n 35)) (by decide +kernel)
+  have a5185 := h.atomAt 2598 (.rangeCheck (.n 2536) (.n 2537) (.n 2538) (.n 2539) (.n 2535)) (by decide +kernel)
+  have a5186 := h.atomAt 2599 (.add (.n 2540) (.n 2500) (.n 35)) (by decide +kernel)
+  have a5187 := h.atomAt 2600 (.mul (.n 2541) (.n 2534) (.n 2540)) (by decide +kernel)
+  have a5188 := h.atomAt 2601 (.const (.n 2542) (word 0 0 0)) (by decide +kernel)
+  have a5189 := h.atomAt 2602 (.assertEq (.n 2541) (.n 2542)) (by decide +kernel)
+  have a5190 := h.atomAt 2603 (.const (.n 2543) (word 4294967296 0 0)) (by decide +kernel)
+  have a5191 := h.atomAt 2604 (.mul (.n 9) (.n 2544) (.n 2500)) (by decide +kernel)
+  have a5192 := h.atomAt 2605 (.rangeCheck (.n 2544) (.n 2545) (.n 2546) (.n 2547) (.n 2543)) (by decide +kernel)
+  simp only [Atom.Holds] at a5154 a5155 a5157 a5159 a5160 a5162 a5163
+  simp only [Atom.Holds] at a5165 a5166 a5168 a5169 a5171 a5172 a5174 a5175
+  simp only [Atom.Holds] at a5177 a5178 a5180 a5181 a5183 a5184 a5186 a5187 a5188 a5189
   simp only [Atom.Holds] at a5190 a5191
-  have v0 := tb_loadHolds_unique a5153 (hdim 0 (by norm_num))
-  have v1 := tb_loadHolds_unique a5158 (hdim 1 (by norm_num))
-  have v2 := tb_loadHolds_unique a5164 (hdim 2 (by norm_num))
-  have v3 := tb_loadHolds_unique a5170 (hdim 3 (by norm_num))
-  have v4 := tb_loadHolds_unique a5176 (hdim 4 (by norm_num))
-  have v5 := tb_loadHolds_unique a5182 (hdim 5 (by norm_num))
+  have v0 : σ (.n 30) = gen ^ τ 0 := hkbt 0 (by norm_num)
+  have v1 : σ (.n 31) = gen ^ τ 1 := hkbt 1 (by norm_num)
+  have v2 : σ (.n 32) = gen ^ τ 2 := hkbt 2 (by norm_num)
+  have v3 : σ (.n 33) = gen ^ τ 3 := hkbt 3 (by norm_num)
+  have v4 : σ (.n 34) = gen ^ τ 4 := hkbt 4 (by norm_num)
+  have v5 : σ (.n 35) = gen ^ τ 5 := hkbt 5 (by norm_num)
   have rc := fun {x y t1 t2 k : V} (hk : σ k = vtW32)
       (hh : (Atom.rangeCheck x y t1 t2 k).Holds Lm.read σ) =>
     vt_rc hμ Lm (K := 33) (by omega) (by norm_num) (by rw [hk, vtW32_eq]) hh
@@ -118,9 +112,9 @@ theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t 
   refine ⟨d0 + τ 0, a5155, fun t ht => ?_, ?_, by omega⟩
   · interval_cases t <;> omega
   · rw [tb_word_zero] at a5188
-    have hz : σ (.n 5864) = 0 := by rw [← a5188]; exact e_add_eq_zero_iff.mp a5189
+    have hz : σ (.n 2541) = 0 := by rw [← a5188]; exact e_add_eq_zero_iff.mp a5189
     rw [a5187, a5181, a5175, a5169, a5163, a5157, a5162, a5168, a5174, a5180, a5186] at hz
-    have key : ∀ t < 6, ∀ v : E, v = gen ^ τ t → σ (.n 5817) + v = 0 → τ t = d0 + τ 0 :=
+    have key : ∀ t < 6, ∀ v : E, v = gen ^ τ t → σ (.n 2500) + v = 0 → τ t = d0 + τ 0 :=
       fun t ht v hv h0 => by
         rw [a5155, hv] at h0
         exact (gen_pow_inj (by omega) (by have := hb t ht; omega)

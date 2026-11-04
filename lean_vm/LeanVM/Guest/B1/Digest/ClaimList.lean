@@ -1,24 +1,29 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimList
 
-  B1 for `claim_list_digest` (G:3815-3847; TRIAGE #88): the digest of a declared claim list,
-  hashed seventeen claims a loop frame through a heap chain of sponge states.
+  B1 for `claim_list_digest` (G:4000-4043; TRIAGE #88): the digest of a declared claim list,
+  hashed 136 claims a loop frame, then seventeen, through a heap chain of sponge states.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Digest.Steps
+public import LeanVM.Guest.B1.Digest.ClaimListBig0
+public import LeanVM.Guest.B1.Digest.ClaimListBig1
+public import LeanVM.Guest.B1.Digest.ClaimListBig2
+public import LeanVM.Guest.B1.Digest.ClaimListBig3
 
 /-!
 # `claim_list_digest`
 
 `claim_list_digest(entries, n_g)`: for `n_g = 1` the digest of the empty string; otherwise
-`list_split` writes `n = 17 a + b`, a heap chain starts at the zero state (`zero_state`), the
-loop `__loop15` absorbs group `q < a` (68 cells, `1088` bytes, eight blocks, `final=0`) from the
-state at `chain · g^(13q)` into the state at `chain · g^(13(q + 1))` (`l16_step`), and
-`claim_list_last__L{b}` absorbs the last `4b` cells with the padding from the state at
-`chain · g^(13a)` (`claimLast_sound`). By induction over the groups (`groups_sound`), the
-digest is Keccak-256 of the `4n` cells' bytes.
+`list_split` writes `n = 136 a + 17 b + c`, a heap chain starts at the zero state (`zero_state`),
+the loop `__loop15` absorbs big frame `q < a` (544 cells, 64 blocks, `final=0`) from the state at
+`chain · g^(13q)` into the state at `chain · g^(13(q + 1))`, the loop `__loop16` then group
+`q < b` (68 cells, eight blocks) from `mid = chain · g^(13a)` over the cells from
+`entries · g^(544a)` (one generic frame loop: `grpOk`, `grp_step`, `frames_of_loop`), and
+`claim_list_last__L{c}` absorbs the last `4c` cells with the padding from the state at
+`mid · g^(13b)` (`claimLast_sound`). By induction over the frames (`groups_sound`), the digest is
+Keccak-256 of the `4n` cells' bytes.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -30,39 +35,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## `claim_list_last__L{k}` -/
 
-/-- The names of `claim_list_last`'s specializations, `k ≤ 16`. -/
-def clNames : List String :=
-  ["claim_list_last__L0", "claim_list_last__L1", "claim_list_last__L2", "claim_list_last__L3",
-   "claim_list_last__L4", "claim_list_last__L5", "claim_list_last__L6", "claim_list_last__L7",
-   "claim_list_last__L8", "claim_list_last__L9", "claim_list_last__L10", "claim_list_last__L11",
-   "claim_list_last__L12", "claim_list_last__L13", "claim_list_last__L14", "claim_list_last__L15",
-   "claim_list_last__L16"]
-
-/-- The state cells `claim_list_last__L{k}` loads. -/
-def clSt (k : ℕ) : List V := (List.range 13).map fun c => V.n (2 + 4 * k + c)
-
-/-- The chain of `claim_list_last__L{k}`: `4k` cells loaded as `.n 2 …`, `64k` bytes, from the
-state loaded as `clSt k`. -/
-def clSpec (k : ℕ) (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range (4 * k)).map (fun i => some (V.n (i + 2))), 64 * k, true, some (clSt k),
-    keccakBlocks atoms⟩
-
-/-- `claim_list_last__L{k}`'s body is the chain over the cells at its second argument from the
-state at its first. -/
-def clOk (k : ℕ) (f : Fn) : Bool :=
-  decide (f.params = [V.n 0, V.n 1]) &&
-  match splitBody f.body with
-  | some (atoms, [r0, r1]) =>
-    (clSpec k atoms).check atoms && retOk atoms (clSpec k atoms) r0 r1 &&
-      loadsOk atoms (V.n 1) (clSpec k atoms).msg && stLoadsOk atoms (V.n 0) (clSt k) 0
-  | _ => false
-
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (324 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (333 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (324 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (333 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -76,7 +54,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (324 + k) default
+  set f := coreProgram.getD (333 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -100,94 +78,115 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
     rfl
   · exact absurd hok (by simp)
 
-/-! ## `__loop15`: one group of seventeen claims -/
+/-! ## The frame loops: `m` claims a frame -/
 
-/-- The state cells `__loop15` loads. -/
-def l16St : List V := (List.range 13).map fun c => V.n (86 + c)
-
-/-- The chain of `__loop15`: 68 cells loaded as `.n 18 …`, eight blocks, `final=0`. -/
-def l16Spec (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range 68).map (fun i => some (V.n (i + 18))), 0, false, some l16St, keccakBlocks atoms⟩
-
-/-- `__loop15`'s body: the state at `chain · x^13`, the cells at `entries · x^68`, the next state
-at `chain · x^13 · g^13`. -/
-def l16Ok (fn : Fn) : Bool :=
-  loopShape fn "__loop15" && decide (fn.params.length = 4) &&
-    (l16Spec (loopAtoms fn)).check (loopAtoms fn) && stLoadsOk (loopAtoms fn) (V.n 9) l16St 0 &&
-    loadsOk (loopAtoms fn) (V.n 17) (l16Spec (loopAtoms fn)).msg &&
-    stLoadsOk (loopAtoms fn) (V.n 9)
-      ((List.range 13).map ((l16Spec (loopAtoms fn)).outV ((l16Spec (loopAtoms fn)).nb - 1))) 13 &&
-    monoIs (loopAtoms fn) (V.n 9) (V.n 2) (V.n 0) 13 &&
-    monoIs (loopAtoms fn) (V.n 17) (V.n 3) (V.n 0) 68
-
-set_option maxRecDepth 100000 in
-theorem l16_ok : l16Ok (coreProgram.getD 323 default) = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem l16_idx : coreProgram.indexOf? "__loop15" = some 323 := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem l16_nb : (l16Spec (loopAtoms (coreProgram.getD 323 default))).nb = 8 := by decide +kernel
-
-/-- **One group**: from the state at `chain · x^13` after whole blocks `pre`, the 68 canonical
-cells at `entries · x^68` absorbed, the state written at `chain · x^13 · g^13`. -/
-def GroupStep (rd : Reader) (chain entries x : E) : Prop :=
+/-- **One frame of `m` claims, `nb` blocks**: from the state at `chain · x^13` after whole blocks
+`pre`, the `4m` canonical cells at `entries · x^(4m)` absorbed, the state written at
+`chain · x^13 · g^13`. -/
+def GroupStep (rd : Reader) (m nb : ℕ) (chain entries x : E) : Prop :=
   ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
     StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre) →
-    ∃ cells : List E, cells.length = 68 ∧ ReadsAt rd (entries * x ^ 68) cells ∧
+    ∃ cells : List E, cells.length = 4 * m ∧ ReadsAt rd (entries * x ^ (4 * m)) cells ∧
       AllCanonical cells ∧
-      StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))
+      StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
-theorem l16_step {rd : Reader} {x : E} {ps : List E}
-    (h : coreProgram.Rel rd "__loop15" (x :: ps) []) :
-    (∀ N chain entries, ps = [N, chain, entries] → GroupStep rd chain entries x) ∧
-      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd "__loop15" (x * gen :: ps) []) := by
-  have hf := find_of_idx l16_idx (by rw [coreProgram_length]; omega)
-  have hok := l16_ok
-  simp only [l16Ok, loopShape, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen4⟩, hc⟩, hst⟩, hl⟩, hout⟩, hm9⟩, hm17⟩ := hok
-  have hshape' : loopShape (coreProgram.getD 323 default) "__loop15" = true := by
-    simpa only [loopShape, Bool.and_eq_true, decide_eq_true_eq] using hshape
-  obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape' h
+theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 947)
+    (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
+    {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
+    (∀ N chain entries, ps = [N, chain, entries] → GroupStep rd m nb chain entries x) ∧
+      (x * gen + ps.headD 0 ≠ 0 → coreProgram.Rel rd f (x * gen :: ps) []) := by
+  have hf := find_of_idx hidx (by rw [coreProgram_length]; omega)
+  simp only [grpOk, Bool.and_eq_true, decide_eq_true_eq] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨hshape, hlen4⟩, hc⟩, hst⟩, hl⟩, hout⟩, hm9⟩, hmE⟩ := hok
+  obtain ⟨σ, hx, hps, hat, hnext⟩ := loop_step hf hshape h
   refine ⟨fun N chain entries hNce n pre hpre hS => ?_, hnext⟩
-  have hpar : (coreProgram.getD 323 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD j default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+    simp only [loopShape, Bool.and_eq_true, decide_eq_true_eq] at hshape
     rw [hshape.1.2, hlen4]; rfl
   rw [hpar, hNce] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
   obtain ⟨-, hchain, hentries⟩ := hps
   have h9 : σ (V.n 9) = chain * x ^ 13 := by rw [monoIs_sound hm9 hat, hchain, hx]
-  have h17 : σ (V.n 17) = entries * x ^ 68 := by rw [monoIs_sound hm17 hat, hentries, hx]
+  have hE : σ (V.n ep) = entries * x ^ (4 * m) := by rw [monoIs_sound hmE hat, hentries, hx]
   rw [← h9] at hS
-  obtain ⟨hreads, hcan, hS', hl'⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
-  have hnb : (l16Spec (loopAtoms (coreProgram.getD 323 default))).nb = 8 := l16_nb
+  obtain ⟨hreads, hcan, hS', -⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
   rw [hnb] at hS'
-  refine ⟨_, by simp [ChainSpec.vals, l16Spec], by rwa [← h17], hcan, by rwa [← h9]⟩
+  refine ⟨_, by simp [ChainSpec.vals, grpSpec], by rwa [← hE], hcan, by rwa [← h9]⟩
 
-/-! ## The groups, by induction -/
+set_option maxRecDepth 100000 in
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 331 default))).nb = 64 := by
+  decide +kernel
+
+-- The big frame loop `__loop15` (136 claims, 64 blocks): its head here, its sixteen windows in
+-- `ClaimListBig{q}`.
+set_option maxRecDepth 100000 in
+theorem big_head : grpHead (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+  decide +kernel
+
+theorem big_ok : grpOk (coreProgram.getD 331 default) "__loop15" 136 21 565 20 = true := by
+  have hw : ∀ i < 16, bigWin i = true := by
+    intro i hi
+    interval_cases i
+    exacts [bigWin_0, bigWin_1, bigWin_2, bigWin_3, bigWin_4, bigWin_5, bigWin_6, bigWin_7,
+      bigWin_8, bigWin_9, bigWin_10, bigWin_11, bigWin_12, bigWin_13, bigWin_14, bigWin_15]
+  simp only [bigWin, bigSpec, bigAtoms, Bool.and_eq_true] at hw
+  exact grpOk_of_parts (w := 4) (W := 16) (v := 34) (U := 16) big_head (by rw [big_nb])
+    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
+
+set_option maxRecDepth 100000 in
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 331 := by decide +kernel
+
+
+-- The group frame loop `__loop16` (17 claims, 8 blocks).
+set_option maxRecDepth 100000 in
+theorem grp_ok : grpOk (coreProgram.getD 332 default) "__loop16" 17 18 86 17 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 332 := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 332 default))).nb = 8 := by
+  decide +kernel
+
+theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}
+    (h : mono2Is atoms x base y e y' e' = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
+    σ x = σ base * σ y ^ e * σ y' ^ e' := by
+  rw [mono_sound hat 40 x, (List.isPerm_iff.mp h).map σ |>.prod_eq]
+  simp [mul_assoc]
+
+/-! ## The frames, by induction -/
 
 theorem gen_pow_pow (q e : ℕ) : (gen ^ q) ^ e = gen ^ (e * q) := by rw [← pow_mul, mul_comm]
 
-/-- **The groups**: after `q ≤ a` groups, the state at `chain · g^(13q)` is the sponge after the
-`68q` canonical cells at `entries`. -/
-theorem groups_sound {rd : Reader} {chain entries : E} {a : ℕ}
-    (h0 : StateAt rd chain 0 zeroState)
-    (hstep : ∀ q < a, GroupStep rd chain entries (gen ^ q)) :
-    ∀ q ≤ a, ∃ cells : List E, cells.length = 68 * q ∧ ReadsAt rd entries cells ∧
+/-- **The frames**: after `q ≤ a` frames of `m` claims (`nb` blocks each, `64 m = 136 nb`), the
+state at `chain · g^(13q)` is the sponge after the `4mq` canonical cells at `entries`. -/
+theorem groups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb) {chain entries : E}
+    {a n0 : ℕ} {pre : List UInt8} (hpre0 : pre.length = rate * n0)
+    (h0 : StateAt rd chain 0 (absorbChunks n0 zeroState pre))
+    (hstep : ∀ q < a, GroupStep rd m nb chain entries (gen ^ q)) :
+    ∀ q ≤ a, ∃ cells : List E, cells.length = 4 * m * q ∧ ReadsAt rd entries cells ∧
       AllCanonical cells ∧
-      StateAt rd (chain * gen ^ (13 * q)) 0 (absorbChunks (8 * q) zeroState (cellsBytes cells)) := by
+      StateAt rd (chain * gen ^ (13 * q)) 0
+        (absorbChunks (n0 + nb * q) zeroState (pre ++ cellsBytes cells)) := by
   intro q
   induction q with
   | zero =>
     intro _
     refine ⟨[], rfl, readsAt_nil _ _, fun _ h => absurd h (by simp), ?_⟩
-    simpa [absorbChunks] using h0
+    simpa using h0
   | succ q ih =>
     intro hq
     obtain ⟨cells, hlen, hreads, hcan, hS⟩ := ih (by omega)
-    have hpre : (cellsBytes cells).length = rate * (8 * q) := by
-      rw [length_cellsBytes, hlen]; show 16 * (68 * q) = 136 * (8 * q); omega
+    have hpre : (pre ++ cellsBytes cells).length = rate * (n0 + nb * q) := by
+      rw [List.length_append, length_cellsBytes, hlen, hpre0]
+      show 136 * n0 + 16 * (4 * m * q) = 136 * (n0 + nb * q)
+      have : 16 * (4 * m * q) = (64 * m) * q := by ring
+      rw [this, hmn]; ring
     rw [show chain * gen ^ (13 * q) = chain * (gen ^ q) ^ 13 by rw [gen_pow_pow]] at hS
-    obtain ⟨c2, hl2, hr2, hcan2, hS2⟩ := hstep q (by omega) (8 * q) (cellsBytes cells) hpre hS
+    obtain ⟨c2, hl2, hr2, hcan2, hS2⟩ := hstep q (by omega) _ _ hpre hS
     refine ⟨cells ++ c2, by rw [List.length_append, hlen, hl2]; ring, ?_, ?_, ?_⟩
     · rw [readsAt_append, hlen]
       refine ⟨hreads, ?_⟩
@@ -199,10 +198,26 @@ theorem groups_sound {rd : Reader} {chain entries : E} {a : ℕ}
     · intro c
       have := hS2 c
       rw [gen_pow_pow, loadHolds_mul_gen_pow] at this
-      rw [loadHolds_mul_gen_pow, cellsBytes_append,
+      rw [loadHolds_mul_gen_pow, cellsBytes_append, ← List.append_assoc,
         show 13 * (q + 1) + (0 + c.val) = 13 * q + (13 + c.val) by ring,
-        show 8 * (q + 1) = 8 * q + 8 by ring]
+        show n0 + nb * (q + 1) = n0 + nb * q + nb by ring]
       exact this
+
+/-- **A loop of frames of `m` claims**: called as `callIf (1 + N) f [1, N, chain, entries]` with
+`N = g^a`, `a < 2^34`, it gives every frame's step. -/
+theorem frames_of_loop {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 947)
+    (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
+    {N chain entries : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
+    (hloop : 1 + N ≠ 0 → coreProgram.Rel rd f [1, N, chain, entries] []) :
+    ∀ q < a, GroupStep rd m nb chain entries (gen ^ q) :=
+  loop_sound (f := f) (ps := [N, chain, entries]) (N := N)
+    (B := GroupStep rd m nb chain entries) (by unfold ordG; omega) hN
+    (fun x hx => by
+      obtain ⟨h1, h2⟩ := grp_step hidx hj hok hnb hx
+      exact ⟨h1 _ _ _ rfl, h2⟩)
+    hloop
 
 end
 end LeanVM.Guest.B1.Digest
@@ -229,8 +244,8 @@ noncomputable def cl23Else : List Stmt := match Fn.body Data.core24 with
 set_option maxRecDepth 100000 in
 theorem core23_shape : Fn.body Data.core24 =
     [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
-     .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 65) (.n 10)), .atom (.copy (.n 66) (.n 11)),
-     .ret [.n 65, .n 66]] :=
+     .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 87) (.n 10)), .atom (.copy (.n 88) (.n 11)),
+     .ret [.n 87, .n 88]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
@@ -241,22 +256,29 @@ noncomputable def czOk : Bool :=
   cl23Zero.all Stmt.flat && czSpec.check (atomsIn cl23Zero) &&
     decide (czSpec.outV (czSpec.nb - 1) 0 = V.n 10) && decide (czSpec.outV (czSpec.nb - 1) 1 = V.n 11)
 
-/-- The nonempty list's branch: `list_split`, the zero state at `chain = .n 32`, the loop over the
-groups, `last = chain · groups^13`, `blk = entries · groups^68`, the dispatch on the rest. -/
+/-- The nonempty list's branch: `list_split`, the zero state at `chain = .n 34`, the big frames'
+loop, `mid = chain · bigs^13`, `mid_entries = entries · bigs^544`, the groups' loop,
+`last = mid · groups^13`, `blk = mid_entries · groups^68`, the dispatch on the rest. -/
 noncomputable def ceOk : Bool :=
   cl23Else.all Stmt.flat &&
-  cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24])) &&
-  cl23Else.any (stmtEqb · (.callIf (.n 47) "__loop15" [.n 48, .n 23, .n 32, .n 0])) &&
-  cl23Else.any (stmtEqb · (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
+  cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24, .n 25])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 49) "__loop15" [.n 50, .n 23, .n 34, .n 0])) &&
+  cl23Else.any (stmtEqb · (.callIf (.n 69) "__loop16" [.n 70, .n 24, .n 56, .n 67])) &&
+  cl23Else.any (stmtEqb · (.dispatch (.n 25) clNames [.n 76, .n 84] [.n 85, .n 86])) &&
+  (atomsIn cl23Else).any (isConstAt (.n 50) 1 0) &&
+  (atomsIn cl23Else).any (isAddAt (.n 49) (.n 48) (.n 23)) &&
   (atomsIn cl23Else).any (isConstAt (.n 48) 1 0) &&
-  (atomsIn cl23Else).any (isAddAt (.n 47) (.n 46) (.n 23)) &&
-  (atomsIn cl23Else).any (isConstAt (.n 46) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n (33 + c)) (.n 32) c) &&
-    (atomsIn cl23Else).any (isConstAt (.n (33 + c)) 0 0)) &&
-  monoIs (atomsIn cl23Else) (.n 54) (.n 32) (.n 23) 13 &&
-  monoIs (atomsIn cl23Else) (.n 62) (.n 0) (.n 23) 68 &&
-  (atomsIn cl23Else).any (isCopyAt (.n 10) (.n 63)) &&
-  (atomsIn cl23Else).any (isCopyAt (.n 11) (.n 64))
+  (atomsIn cl23Else).any (isConstAt (.n 70) 1 0) &&
+  (atomsIn cl23Else).any (isAddAt (.n 69) (.n 68) (.n 24)) &&
+  (atomsIn cl23Else).any (isConstAt (.n 68) 1 0) &&
+  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n (35 + c)) (.n 34) c) &&
+    (atomsIn cl23Else).any (isConstAt (.n (35 + c)) 0 0)) &&
+  monoIs (atomsIn cl23Else) (.n 56) (.n 34) (.n 23) 13 &&
+  monoIs (atomsIn cl23Else) (.n 67) (.n 0) (.n 23) 544 &&
+  mono2Is (atomsIn cl23Else) (.n 76) (.n 34) (.n 23) 13 (.n 24) 13 &&
+  mono2Is (atomsIn cl23Else) (.n 84) (.n 0) (.n 23) 544 (.n 24) 68 &&
+  (atomsIn cl23Else).any (isCopyAt (.n 10) (.n 85)) &&
+  (atomsIn cl23Else).any (isCopyAt (.n 11) (.n 86))
 
 set_option maxRecDepth 100000 in
 theorem cz_ok : czOk = true := by decide +kernel
@@ -278,7 +300,8 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
   simp only [czOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
   simp only [ceOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at he1
   obtain ⟨⟨⟨hzf, hzc⟩, hz10⟩, hz11⟩ := hz1
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hef, hls⟩, hlp⟩, hdis⟩, h48⟩, h47⟩, h46⟩, hzs⟩, hm54⟩, hm62⟩, hc10⟩, hc11⟩ := he1
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hef, hls⟩, hlp⟩, hlp2⟩, hdis⟩, h50⟩, h49⟩, h48⟩, h70⟩, h69⟩, h68⟩,
+    hzs⟩, hm56⟩, hm67⟩, hm76⟩, hm84⟩, hc10⟩, hc11⟩ := he1
   by_cases h3 : σ (.n 3) = 0
   · -- the empty list
     have hn1 : σ (.n 1) = 1 := by
@@ -295,63 +318,80 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
   · -- a nonempty list
     obtain ⟨hall, h65, h66, hr⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h3)
     have hat := atoms_of_flat hall
-    obtain ⟨a, ha, b, hb, hn, hab⟩ :=
+    obtain ⟨a, ha, b, hb, c, hc, hn, habc⟩ :=
       list_split_sound rd hm _ _ (call_of_flat hall hls)
-    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hab
-    obtain ⟨h23, h24⟩ := hab
-    simp only [maxKeys, claimGroup] at ha hb hn
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at habc
+    obtain ⟨h23, h24, h25⟩ := habc
+    simp only [maxKeys, claimGroup, bigGroups] at ha hb hc
     -- the zero state
-    have h0 : StateAt rd (σ (.n 32)) 0 zeroState := by
+    have h0 : StateAt rd (σ (.n 34)) 0 (absorbChunks 0 zeroState []) := by
       intro c
       have hl := load_sound (hzs c c.isLt).1 hat
       rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
-      rw [Nat.zero_add, cellsOfState_zero]
+      rw [Nat.zero_add, absorbChunks, cellsOfState_zero]
       exact hl
+    -- the big frames
+    have hbig := frames_of_loop big_idx (by norm_num) big_ok big_nb (chain := σ (.n 34))
+      (entries := σ (.n 0)) (by omega) h23 (fun hne => by
+        have := (callIf_of_flat hall hlp).2
+          (by rw [add_sound h49 hat, const_sound h48 hat, word_one]; exact hne)
+        simpa [const_sound h50 hat, word_one] using this)
+    obtain ⟨ca, hla, hra, hcana, hSa⟩ := groups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
+      hbig a le_rfl
     -- the groups
-    have hloop := callIf_of_flat hall hlp
-    have h47v : σ (.n 47) = 1 + σ (.n 23) := by
-      rw [add_sound h47 hat, const_sound h46 hat, word_one]
-    have h48v : σ (.n 48) = 1 := by rw [const_sound h48 hat, word_one]
-    have hsteps : ∀ q < a, GroupStep rd (σ (.n 32)) (σ (.n 0)) (gen ^ q) :=
-      loop_sound (f := "__loop15") (ps := [σ (.n 23), σ (.n 32), σ (.n 0)]) (N := σ (.n 23))
-        (B := GroupStep rd (σ (.n 32)) (σ (.n 0))) (by unfold ordG; omega) h23
-        (fun x hx => by
-          obtain ⟨h1, h2⟩ := l16_step hx
-          exact ⟨h1 _ _ _ rfl, h2⟩)
-        (fun hne => by
-          have := hloop.2 (by rw [h47v]; exact hne)
-          simpa [h48v] using this)
-    obtain ⟨ca, hla, hra, hcana, hSa⟩ := groups_sound h0 hsteps a le_rfl
+    have h56 : σ (.n 56) = σ (.n 34) * gen ^ (13 * a) := by
+      rw [monoIs_sound hm56 hat, h23, gen_pow_pow]
+    have h67 : σ (.n 67) = σ (.n 0) * gen ^ (544 * a) := by
+      rw [monoIs_sound hm67 hat, h23, gen_pow_pow]
+    have hgrp := frames_of_loop grp_idx (by norm_num) grp_ok grp_nb (chain := σ (.n 56))
+      (entries := σ (.n 67)) (by omega) h24 (fun hne => by
+        have := (callIf_of_flat hall hlp2).2
+          (by rw [add_sound h69 hat, const_sound h68 hat, word_one]; exact hne)
+        simpa [const_sound h70 hat, word_one] using this)
+    have hpa : ([] ++ cellsBytes ca).length = rate * (0 + 64 * a) := by
+      rw [List.nil_append, length_cellsBytes, hla]; show 16 * (4 * 136 * a) = 136 * (0 + 64 * a)
+      ring
+    obtain ⟨cb, hlb, hrb, hcanb, hSb⟩ := groups_sound (by norm_num) hpa
+      (by rw [h56]; exact hSa) hgrp b le_rfl
     -- the rest
     obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
     have hj17 : j < 17 := hj
-    have hjb : j = b := by
-      rw [h24, gen_pow_eq_ofK] at hsel
+    have hjc : j = c := by
+      rw [h25, gen_pow_eq_ofK] at hsel
       exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
         (ofK_injective hsel)).symm
-    subst hjb
+    subst hjc
     rw [show clNames[j] = clNames.getD j "" by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl] at hcall
     obtain ⟨sp, blk, hargs, hlast⟩ := claimLast_sound hj17 hcall
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
     obtain ⟨hsp, hblk⟩ := hargs
-    have h54 : σ (.n 54) = σ (.n 32) * gen ^ (13 * a) := by
-      rw [monoIs_sound hm54 hat, h23, gen_pow_pow]
-    have h62 : σ (.n 62) = σ (.n 0) * gen ^ (68 * a) := by
-      rw [monoIs_sound hm62 hat, h23, gen_pow_pow]
-    have hpre : (cellsBytes ca).length = rate * (8 * a) := by
-      rw [length_cellsBytes, hla]; show 16 * (68 * a) = 136 * (8 * a); omega
-    obtain ⟨cb, hlb, hrb, hcanb, hd⟩ := hlast (8 * a) (cellsBytes ca) hpre (by rw [← hsp, h54]; exact hSa)
-    refine ⟨17 * a + j, by simp only [claimGroup, maxKeys]; omega, by rw [hn],
-      ca ++ cb, by rw [List.length_append, hla, hlb]; ring, ?_, ?_, ?_⟩
-    · rw [readsAt_append, hla]
-      exact ⟨hra, by rw [← h62, hblk]; exact hrb⟩
-    · intro c hc
-      rcases List.mem_append.mp hc with hc | hc
-      · exact hcana c hc
-      · exact hcanb c hc
-    · rw [← hr, h65, h66, copy_sound hc10 hat, copy_sound hc11 hat, cellsBytes_append]
-      exact hd
+    have h76 : σ (.n 76) = σ (.n 56) * gen ^ (13 * b) := by
+      rw [mono2Is_sound hm76 hat, h56, h23, h24]; simp only [gen_pow_pow]
+    have h84 : σ (.n 84) = σ (.n 67) * gen ^ (68 * b) := by
+      rw [mono2Is_sound hm84 hat, h67, h23, h24]; simp only [gen_pow_pow]
+    have hpre : ([] ++ cellsBytes ca ++ cellsBytes cb).length = rate * (0 + 64 * a + 8 * b) := by
+      rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hla, hlb]
+      show 16 * (4 * 136 * a) + 16 * (4 * 17 * b) = 136 * (0 + 64 * a + 8 * b)
+      ring
+    obtain ⟨cc, hlc, hrc, hcanc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h76]; exact hSb)
+    refine ⟨136 * a + 17 * b + j, by simp only [claimBig, maxKeys]; omega,
+      by rw [hn], ca ++ cb ++ cc, by rw [List.length_append, List.length_append, hla, hlb, hlc]; ring,
+      ?_, ?_, ?_⟩
+    · rw [readsAt_append, readsAt_append, List.length_append, hla, hlb]
+      refine ⟨⟨hra, ?_⟩, ?_⟩
+      · rw [show 4 * 136 * a = 544 * a by ring, ← h67]; exact hrb
+      · rw [← hblk, h84, h67, mul_assoc, ← pow_add] at hrc
+        rwa [show 4 * 136 * a + 4 * 17 * b = 544 * a + 68 * b by ring]
+    · intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · rcases List.mem_append.mp hx with hx | hx
+        · exact hcana x hx
+        · exact hcanb x hx
+      · exact hcanc x hx
+    · rw [← hr, h65, h66, copy_sound hc10 hat, copy_sound hc11 hat, cellsBytes_append,
+        cellsBytes_append]
+      simpa using hd
 
 end
 end LeanVM.Guest.B1.Digest

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.FrontAll
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.VerifySub.Accept
-public import LeanVM.Guest.B1.Whir.FactsAll
+public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Protocol.WithHash
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -24,7 +24,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The front: the statements up to the three calls. -/
 abbrev vsFrontT : List Stmt :=
-  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsKappaT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
+  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
     vsCallsT
 
 theorem vsFrontT_noRet : Stmt.noRetList vsFrontT = true := by decide +kernel
@@ -96,20 +96,6 @@ theorem tau_ge {rowsN : List ℕ} (h : rowsN.length = 6) :
 theorem tau_lt {rowsN : List ℕ} (h : rowsN.length = 6)
     (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 29) : (Tables.tableHeightsOf rowsN).getD 5 0 < 29 :=
   hh _ (getD_mem' (by rw [tableHeights_length rowsN h]; omega))
-
-/-! ## The stack's configuration -/
-
-theorem cfg_cons {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
-    ∃ level rest, Whir.ladder μ r = some (level :: rest) := by
-  obtain ⟨cfg, hF, -, -⟩ := B1.Whir.candB_sound (B1.Whir.candB_all μ r h1 h2 h3 h4)
-  rcases cfg with _ | ⟨level, rest⟩
-  · exfalso
-    have hl := hF.lok
-    have hn := hF.n2
-    generalize (B1.Whir.osCfg (B1.Whir.candidate μ r)).levels = lvs at hl hn
-    match lvs, hn with
-    | _ :: _ :: _, _ => simp [B1.Whir.LevelsOk] at hl
-  · exact ⟨level, rest, hF.dc⟩
 
 /-! ## The bus depth -/
 

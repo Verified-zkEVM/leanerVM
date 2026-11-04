@@ -22,6 +22,9 @@ theorem cw937_6_0 : cplWin 937 6 0 = true := by decide +kernel
 /-- `__loop418`, window 7, part 0. -/
 theorem cw937_7_0 : cplWin 937 7 0 = true := by decide +kernel
 
+/-- `__loop418`, window 8, part 0. -/
+theorem cw937_8_0 : cplWin 937 8 0 = true := by decide +kernel
+
 /-- `decode_query_windows__L25_L6`, window 0, part 0. -/
 theorem cw938_0_0 : cplWin 938 0 0 = true := by decide +kernel
 
@@ -36,9 +39,6 @@ theorem cw939_2_0 : cplWin 939 2 0 = true := by decide +kernel
 
 /-- `__loop419`, window 3, part 0. -/
 theorem cw939_3_0 : cplWin 939 3 0 = true := by decide +kernel
-
-/-- `__loop419`, window 4, part 0. -/
-theorem cw939_4_0 : cplWin 939 4 0 = true := by decide +kernel
 
 theorem ok938 : CplOk 938 := by
   intro i hi k hk

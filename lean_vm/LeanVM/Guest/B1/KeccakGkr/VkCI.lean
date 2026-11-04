@@ -91,7 +91,7 @@ def layKid (fs : String → ℕ) (B curE : ℕ) (s : ℕ) : KidG where
   f := D.lname s
   taken := true
   args := fun _ ↦ (D.layer s).cap ++ [(D.cells s).1, (D.cells s).2, ptr (curE + D.lcur s),
-    gen ^ (D.layer s).y, gen ^ ((D.layer s).y / 2), gen ^ ((D.layer s).y / 2 + D.odd),
+    gen ^ (D.layer s).y, gen ^ ((D.layer s).y / 8), gen ^ ((D.layer s).y % 8),
     ptr (B + D.o201 + 22 * s), ptr (B + D.o201 + 22 * (s + 1)), keccakIota D.τ s (D.layer s).c]
   Lin := fun ps ↦ layerLin (D.layer s) (firstOf s) (D.CL B (D.lsOf fs ps.dropLast) s) (curE + D.lcur s)
     (B + D.o201 + 22 * (s + 1)) (ps.getLast?.getD 0 + fs (D.lname s))
@@ -225,7 +225,7 @@ theorem oMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
   rw [← hc, O_run h w]
   refine ⟨?_, by simp [oRets, plainCount]⟩
   rw [op_eq] at hop
-  have := (Digest.readsAt_append.1 hop).2
+  have := (readsAt_append.1 hop).2
   rwa [List.take_append_drop, inst_length h] at this
 
 /-- The inputs' rounds, honestly. -/
@@ -245,7 +245,7 @@ theorem iMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
   rw [← hc, I_run h]
   refine ⟨?_, by simp [iRets, plainCount]⟩
   rw [show ptr zvE * gen ^ 39 = ptr (zvE + qkeccakVarsCap) from ptr_mul_gen _ _]
-  exact (Digest.readsAt_append.1 (Digest.readsAt_append.1 hpt).1).1
+  exact (readsAt_append.1 (readsAt_append.1 hpt).1).1
 
 /-- The inputs' opening's rounds, honestly. -/
 theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
@@ -261,7 +261,7 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE : ℕ}
   · rw [cL, ptr_mul_gen, ptr_mul_gen1, ptr_mul_gen]; exact hmS
   rw [← hc, S_run h w]
   refine ⟨?_, by simp [sRets, plainCount]⟩
-  have := (Digest.readsAt_append.1 hpt).2
+  have := (readsAt_append.1 hpt).2
   have hτ := h.1
   rw [List.length_append, I1_length h, List.length_take, L_point h,
     show min (D.τ - 4) (D.τ - 3) = D.τ - 4 by omega, ptr_mul_gen,
@@ -296,12 +296,12 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) :
     have hy := D.layer_y h (k := s) (by omega)
     obtain ⟨hcl, hcap⟩ := D.layer_cap h hs
     obtain ⟨hpl, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
-    have H := layer_completeAtF (fs := fs) (cert := cert) (first := firstOf s) (odd := D.odd)
-      (by unfold firstOf; split <;> omega) (Nat.mod_lt _ (by norm_num)) κ (D.layer s)
+    have H := layer_completeAtF (fs := fs) (cert := cert) (first := firstOf s)
+      (by unfold firstOf; split <;> omega) κ (D.layer s)
       (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1))
       (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl hcap (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
-        rfl) (by rw [hy]; rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
+        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
       (D.CL_ok h B _ hs.le)
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H
