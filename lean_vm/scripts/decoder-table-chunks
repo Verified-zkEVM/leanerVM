@@ -11,7 +11,11 @@ evaluation of its size, or of its equality with the certificates, takes 10-19 GB
 * `LeanVM/Cost/Decoder/GuestTablesCheck/C{k}.lean`: the tables' entries for functions
   `a … a + n - 1` (`glob.sig`, `certOf`), `--functions` per module, and
   `GuestTablesCheck.lean`, combining them;
-* `LeanVM/Cost/DecoderTablesFirewall.lean`: the guard that the chunks import the tables alone.
+* `LeanVM/Cost/DecoderTablesFirewall.lean`: the guard that the chunks import the tables alone;
+* `LeanVM/Cost/Bounds/Decoder/GuestLocs/Chunk{k}.lean`: the frame cells of rows `a … a + n - 1`
+  below `2^20`, each by `decide +kernel` on at most `--bound-limit` cells, `GuestLocs.lean`
+  combining them (`guestLocsList_lt`), and `Bounds/Decoder/GuestTablesFirewall.lean`, the guard that
+  they import the tables alone.
 
 Inputs: the rows' lengths (`--row-lengths FILE`, the output of
 `#eval guestLocsList.map List.length`) and function `21`'s lists' lengths (`--row21-lengths
@@ -188,6 +192,68 @@ def check_files(per):
     return files
 
 
+BOUND_DIR = Path("LeanVM/Cost/Bounds/Decoder/GuestLocs")
+BOUND_TOP = Path("LeanVM/Cost/Bounds/Decoder/GuestLocs.lean")
+BOUND_FIREWALL = Path("LeanVM/Cost/Bounds/Decoder/GuestTablesFirewall.lean")
+
+
+def bound_files(rows, limit):
+    """The frame cells below `2^20`, by chunks of rows of at most `limit` cells."""
+    files = {}
+    ch = chunks(rows, limit)
+    for k, (a, n, s) in enumerate(ch):
+        files[BOUND_DIR / f"Chunk{k}.lean"] = (
+            f"/-\n  {HEADER}\n-/\n\nmodule\n\npublic import LeanVM.Cost.Decoder.GuestTables\n\n"
+            + wrap(f"Bound: the guest's frame cells of functions `{a}` to `{a + n - 1}` (`{s}` cells) below "
+                   "`2^20`, a kernel evaluation of their certificates' cells in a module of its own "
+                   "(`GuestTablesFirewall.lean` checks that it imports the tables alone).")
+            + "\n\nnamespace LeanVM.Cost.Bounds\n\nopen LeanVM.Cost.Decoder\n\npublic section\n\n"
+            f"theorem guestLocsChunk{k}_lt :\n    ((guestLocsList.drop {a}).take {n}).all "
+            "(fun l ↦ l.all (· < 2 ^ 20)) = true := by\n  decide +kernel\n\nend\n\n"
+            "end LeanVM.Cost.Bounds\n")
+    steps = "\n".join(f"  refine all_of_drop _ _ {a} {n} guestLocsChunk{k}_lt ?_" for k, (a, n, s) in enumerate(ch))
+    imports = "".join(f"public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk{k}\n" for k in range(len(ch)))
+    files[BOUND_TOP] = (
+        f"/-\n  {HEADER}\n-/\n\nmodule\n\npublic import LeanVM.Cost.Decoder.GuestTables\n{imports}\n"
+        + wrap(f"Bound: the guest's frame cells below `2^20`, the evaluations of `{len(ch)}` chunks of "
+               f"functions of at most `{limit}` cells each (`GuestLocs/Chunk*.lean`, a module each: the "
+               "whole table at once peaks over `12 GB` in the kernel), combined.")
+        + "\n\nnamespace LeanVM.Cost.Bounds\n\nopen LeanVM.Cost.Decoder\n\npublic section\n\n"
+        "/-- A list holds a test from `a` on if it holds the `n` entries from `a` and the rest. -/\n"
+        "theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)\n"
+        "    (h1 : ((l.drop a).take n).all p = true) (h2 : (l.drop (a + n)).all p = true) :\n"
+        "    (l.drop a).all p = true := by\n"
+        "  rw [← List.take_append_drop n (l.drop a), List.all_append, Bool.and_eq_true, List.drop_drop]\n"
+        "  exact ⟨h1, h2⟩\n\n"
+        f"set_option maxRecDepth 100000 in\n/-- The table of frame cells ends after `{N}` functions. -/\n"
+        f"theorem guestLocsList_drop_end : guestLocsList.drop {N} = [] := rfl\n\n"
+        "/-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/\n"
+        "theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by\n"
+        "  rw [← List.drop_zero (l := guestLocsList)]\n"
+        f"{steps}\n  show (guestLocsList.drop {N}).all _ = true\n  rw [guestLocsList_drop_end]\n  rfl\n\n"
+        "end\n\nend LeanVM.Cost.Bounds\n")
+    names = ", ".join(f'"Chunk{k}"' for k in range(len(ch)))
+    files[BOUND_FIREWALL] = (
+        f"/-\n  {HEADER}\n-/\n\n"
+        + "".join(f"import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk{k}\n" for k in range(len(ch)))
+        + "\n/-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the frame cells'\n"
+        "bound (`Bounds/Decoder/GuestLocs/*.lean`) is a kernel evaluation of some functions' certificates,\n"
+        "and a module is rebuilt whenever anything it imports changes. So they import only the tables\n"
+        "(`Cost/Decoder/GuestTables.lean`), none of the cost compiler, the compiled decoder or the bounds'\n"
+        "proofs: an edit there rebuilds no chunk. This module, which imports the chunks alone, fails to\n"
+        "build if their imports reach any other `LeanVM.Cost` module. -/\n\n"
+        "open Lean Elab Command in\n#eval show CommandElabM Unit from do\n"
+        f"  let chunks := [{names}]\n"
+        "  let allowed := [`LeanVM.Cost.Decoder.GuestTables] ++\n"
+        "    chunks.map fun c ↦ (`LeanVM.Cost.Bounds.Decoder.GuestLocs).str c\n"
+        "  let reached := (← getEnv).header.moduleNames.filter fun m ↦\n"
+        "    (`LeanVM.Cost).isPrefixOf m && !allowed.contains m\n"
+        "  unless reached.isEmpty do\n"
+        "    throwError m!\"the guest tables' chunk evaluations import {reached.toList}: keep them on the \\\n"
+        "      tables alone (see `Bounds/Decoder/GuestTablesFirewall.lean`)\"\n")
+    return files
+
+
 FIREWALL = Path("LeanVM/Cost/DecoderTablesFirewall.lean")
 FIREWALL_BODY = '\n/-! **The decoder\'s table checks read the tables alone.** The kernel evaluations of the guest\ndecoder\'s tables (their size, `DecoderSize/Rows*.lean`, `Names*.lean`; their equality with the\nguest\'s signatures and certificates, `Decoder/GuestTablesCheck/C*.lean`) are split into chunks,\neach under the memory a module may take, and a module is rebuilt whenever anything it imports\nchanges. So they import only the tables (`Decoder/GuestTables.lean`), the definitions of the\nsizes (`DecoderSize/Rows.lean`) and the statement, and, for the equalities, the guest\'s\nsignatures and certificates (`Guest/Glob.lean`): none of the cost compiler, the compiled decoder\nor the guest\'s proofs. This module, which imports the chunks alone, fails to build if their\nimports reach any other `LeanVM.Cost` module, or the guest\'s proofs (`LeanVM.Guest.B1`,\n`LeanVM.Guest.Located`, `LeanVM.Protocol`). -/\n\nopen Lean Elab Command in\n#eval show CommandElabM Unit from do\n  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.DecoderSize.Rows]\n  let chunk (m : Name) : Bool :=\n    (m.getPrefix == `LeanVM.Cost.DecoderSize && m != `LeanVM.Cost.DecoderSize.Locs) ||\n      m.getPrefix == `LeanVM.Cost.Decoder.GuestTablesCheck\n  let forbidden := [`LeanVM.Guest.B1, `LeanVM.Guest.Located, `LeanVM.Protocol]\n  let reached := (← getEnv).header.moduleNames.filter fun m ↦\n    ((`LeanVM.Cost).isPrefixOf m && !allowed.contains m && !chunk m &&\n        m != `LeanVM.Cost.DecoderTablesFirewall) ||\n      forbidden.any (·.isPrefixOf m)\n  unless reached.isEmpty do\n    throwError m!"the decoder\'s table checks import {reached.toList}: keep the definitions they \\\n      evaluate in modules that do not (see `Cost/DecoderTablesFirewall.lean`)"\n'
 
@@ -204,11 +270,12 @@ def main():
     ap.add_argument("--row21-lengths", required=True)
     ap.add_argument("--limit", type=int, default=70000)
     ap.add_argument("--functions", type=int, default=40)
+    ap.add_argument("--bound-limit", type=int, default=40000)
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
     rows, names = nums(a.row_lengths), nums(a.row21_lengths)
     assert len(rows) == N and sum(names) == rows[SPLIT], (len(rows), sum(names), rows[SPLIT])
-    files = {**size_files(rows, names, a.limit), **check_files(a.functions)}
+    files = {**size_files(rows, names, a.limit), **check_files(a.functions), **bound_files(rows, a.bound_limit)}
     size_mods = [p.stem for p in files if p.parent == SIZE_DIR and p.stem != "Locs"]
     check_mods = [p.stem for p in files if p.parent == CHECK_DIR]
     files[FIREWALL] = firewall(size_mods, check_mods)

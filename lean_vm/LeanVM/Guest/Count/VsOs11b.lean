@@ -14,7 +14,7 @@ namespace LeanVM.Guest.Count
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem osC11_b : osPartF 11 23 23 = 54546 := by
+theorem osC11_b : osPartF 11 23 23 = 49356 := by
   decide +kernel
 
 end

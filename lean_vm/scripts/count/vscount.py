@@ -8,10 +8,18 @@ import os
 
 VS_ST = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'assert_canonical', 'ring_switch_target',
          'certify_placement', 'log2_ceil_in_the_exponent__L15_L34']
-OM = ['verify_sub', 'child_claim_list_digest', '__loop4']
+OM = ['verify_sub', 'child_claim_list_digest', '__loop4', 'child_claim_list_any', 'child_claim_list_mono']
+# A list of `n = 136·bigs + 17·groups + rest` claims (`list_split`, `groups < 8`, `rest < 17`): the
+# claim lists' loops per `136` claims (`CLAIM_BIG`) and per `17` (`CLAIM_GROUP`), `claim_list_digest`'s,
+# and `child_claim_list_any`'s and `child_claim_list_mono`'s (the hinted gap walk), the prover's choice.
+CL_LP = ['__loop15', '__loop16']
+CC_LP = ['__loop17', '__loop18', '__loop19', '__loop20']
+CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
+CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
+BIG, GROUP, GROUPS = 136, 17, 8
 # `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
 # ratio of these words.
-RB = [('verify_bus_gkr', 49403), ('verify_keccak', 87672)]
+RB = [('verify_bus_gkr', 57633), ('verify_keccak', 85921)]
 
 
 def vt_term(g):
@@ -99,12 +107,14 @@ def tables(g):
 
 def l5_parts(tbl, k):
     """At the opcode index `k`: `__loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
-    children's claim lists' digests' constant and per-claim slope) and `vsCountT`, from
-    `tables`."""
+    children's claim lists' digests' constant and per-claim slope on the `child_claim_list_any` walk,
+    the honest one (`B1.Main.ccHonest`): the loop per `136` claims by the claims, the loop per `17`
+    at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
     stat, loop, om, vsc = tbl
-    cclN = ['child_claim_list_last__L%d' % j for j in range(17)]
-    ccA = om[k]['child_claim_list_digest'] + stat(k, 'list_split') + max(stat(k, n) for n in cclN)
-    return om[k]['__loop4'], ccA, (loop(k, '__loop16') + 16) // 17, [vsc(k, c) for c in range(28)]
+    ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split') + om[k]['child_claim_list_any']
+           + (GROUPS - 1) * loop(k, CC_LP[1]) + max(stat(k, n) for n in CCL))
+    ccS = -(-loop(k, CC_LP[0]) // BIG)
+    return om[k]['__loop4'], ccA, ccS, [vsc(k, c) for c in range(28)]
 
 
 def write(g, OPS):
@@ -127,21 +137,26 @@ def write(g, OPS):
              % ', '.join('"%s"' % n for n in VS_ST))
     o.append('/-- Their core indices. -/\ndef vsStJ : List ℕ := %s\n' % lst(g.by[n] for n in VS_ST))
     o.append('/-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/\ndef cclJ : List ℕ := %s\n' % lst(g.by[n] for n in cclN))
-    o.append('/-- The core index of `list_split`. -/\ndef lsJ : ℕ := %d\n\n/-- The core index of `__loop16`. -/\ndef l17J : ℕ := %d\n'
-             % (g.by['list_split'], g.by['__loop16']))
-    o.append('/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/\ndef omJ : List ℕ := %s\n'
+    o.append('/-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/\ndef ccmJ : List ℕ := %s\n' % lst(g.by[n] for n in CCM))
+    o.append('/-- The core index of `list_split`. -/\ndef lsJ : ℕ := %d\n' % g.by['list_split'])
+    o.append('/-- The children\'s claim lists\' loops: `child_claim_list_any`\'s per `136` and per `17` claims, '
+             '`child_claim_list_mono`\'s. -/\ndef ccLpNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in CC_LP))
+    o.append('/-- Their core indices. -/\ndef ccLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CC_LP))
+    o.append('/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, '
+             '`child_claim_list_mono`. -/\ndef omJ : List ℕ := %s\n'
              % lst(g.by[n] for n in OM))
     o.append('/-- Their names. -/\ndef omNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in OM))
     o.append(opdefl('kcOsT', '`open_stacked__L{c}`\'s instructions, by `c`.', lambda k: [stat(k, n) for n in osN]))
     o.append(opdefl('kcVsStT', 'The instructions of `vsStNames`.', lambda k: [stat(k, n) for n in VS_ST]))
     o.append(opdefl('kcCclT', '`child_claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: [stat(k, n) for n in cclN]))
+    o.append(opdefl('kcCcmT', '`child_claim_list_mono_last__L{k}`\'s instructions, by `k`.', lambda k: [stat(k, n) for n in CCM]))
     o.append(opdef('kcLs', '`list_split`\'s instructions.', lambda k: stat(k, 'list_split')))
-    o.append(opdef('kcL17', '`__loop16`\'s instructions per iteration.', lambda k: loop(k, '__loop16')))
+    o.append(opdefl('kcCcLpT', 'The instructions of `ccLpNames` per iteration.', lambda k: [loop(k, n) for n in CC_LP]))
     o.append(opdefl('omT', 'The frame weights of `omNames`.', lambda k: [om[k][n] for n in OM]))
     o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
     o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
     o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its two ratio-bounded callees '
-                    'within `49403`, `87672` words.', lambda k: [vsc(k, c) for c in range(28)]))
+                    'within `57633`, `85921` words.', lambda k: [vsc(k, c) for c in range(28)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 28).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
@@ -150,9 +165,12 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
     kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) &&
   (List.range 17).all (fun k => kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
     kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) &&
+  (List.range 17).all (fun k => kvOkB op (ccmJ.getD k 0) ("child_claim_list_mono_last__L" ++ B1.Whir.natStr k) &&
+    kvSBJ op (ccmJ.getD k 0) == (kcCcmT op).getD k 0) &&
   kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op &&
-  kvOkK op l17J "__loop16" && kvSKJ op l17J == kcL17 op &&
-  (List.range 3).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
+  (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
+    kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
+  (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
     (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
 ''')
     open(os.path.join(D, 'VsCountData.lean'), 'w', encoding='utf-8').write(
@@ -170,16 +188,16 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 # `main`'s `da_verify` and `claim_list_digest`, counted by their trees' shapes (`Budget/MvCount.lean`)
 # from the `V` certificates: `da_verify`'s statically bounded callees, its row loops (the blobs' sums'
 # bases, their trees, the padding blobs) and its columns' row loop, the DA levels by their log `L`,
-# the claim lists' last digests by the last group's size, `__loop15`. `da_verify`'s column loop
-# `__loop18` and `da_verify_column` are counted by their frames: the column loop's 128 iterations,
+# the claim lists' last digests by the last group's size, their loops (`CL_LP`). `da_verify`'s column loop
+# `__loop22` and `da_verify_column` are counted by their frames: the column loop's 128 iterations,
 # each a column, its weights' expansion and its row loop's `r` iterations.
 MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L7_L8']
-MV_LP = ['__loop17', '__loop19', '__loop20', '__loop21']
+MV_LP = ['__loop21', '__loop23', '__loop24', '__loop25']
 MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(11)]
 MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
-MV_OM = ['da_verify', '__loop18', 'da_verify_column', 'claim_list_digest']
+MV_OM = ['da_verify', '__loop22', 'da_verify_column', 'claim_list_digest']
 MV_MAXROWS = 1024
-MV_COLS = 128  # `DA_CELLS`: the columns `__loop18` runs
+MV_COLS = 128  # `DA_CELLS`: the columns `__loop22` runs
 
 
 def main_tables(g):
@@ -196,7 +214,7 @@ def main_tables(g):
     T = {}
     for k in range(6):
         T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=[stat(k, n) for n in MV_DL],
-                    cl=[stat(k, n) for n in MV_CL], l16=loop(k, '__loop15'), ls=stat(k, 'list_split'),
+                    cl=[stat(k, n) for n in MV_CL], clp=[loop(k, n) for n in CL_LP], ls=stat(k, 'list_split'),
                     om=[om[k][n] for n in MV_OM])
     def colW(k, r):
         """A column on `r` rows: its frame, its weights' expansion, its row loop's `r` iterations."""
@@ -218,10 +236,13 @@ def main_tables(g):
         return C, R, P
     def clW(k, n):
         t = T[k]
-        return t['om'][3] + (0 if n == 0 else t['ls'] + n // 17 * t['l16'] + t['cl'][n % 17])
+        return t['om'][3] + (0 if n == 0 else t['ls'] + n // BIG * t['clp'][0] + n % BIG // GROUP * t['clp'][1]
+                             + t['cl'][n % GROUP])
     def cl_aff(k):
+        """`clW` within `A + S · n`: the loop per `17` claims at most `7` times and the last digest in
+        the constant, the loop per `136` claims by the claims."""
         t = T[k]
-        return t['om'][3] + t['ls'] + max(t['cl']), (t['l16'] + 16) // 17
+        return t['om'][3] + t['ls'] + (GROUPS - 1) * t['clp'][1] + max(t['cl']), -(-t['clp'][0] // BIG)
     return T, dvW, clW, dv_aff, cl_aff
 
 
@@ -233,7 +254,7 @@ def write_main(g, OPS):
         A, R, P = dv_aff(k)
         assert all(dvW(k, r, L) <= A + R * r + P * 2 ** L for L in range(11) for r in range(1, 2 ** L + 1))
         A, S = cl_aff(k)
-        assert all(clW(k, n) <= A + S * n for n in range(0, 17 * 2 ** 16))
+        assert all(clW(k, n) <= A + S * n for n in range(0, 2 ** 17))
     def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
     def names(xs): return '[' + ', '.join('"%s"' % x for x in xs) + ']'
     def opdefl(name, doc, f):
@@ -251,14 +272,15 @@ def write_main(g, OPS):
     o.append('/-- Their core indices. -/\ndef dvLpJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_LP))
     o.append('/-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/\ndef dlJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_DL))
     o.append('/-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/\ndef clJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_CL))
-    o.append('/-- The core index of `__loop15`. -/\ndef l16J : ℕ := %d\n' % g.by['__loop15'])
+    o.append('/-- `claim_list_digest`\'s loops, per `136` and per `17` claims. -/\ndef clLpNames : List String := %s\n' % names(CL_LP))
+    o.append('/-- Their core indices. -/\ndef clLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CL_LP))
     o.append('/-- The functions whose frames the counts weigh. -/\ndef mvOmNames : List String := %s\n' % names(MV_OM))
     o.append('/-- Their core indices. -/\ndef mvOmJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_OM))
     o.append(opdefl('kcDvStT', 'The instructions of `dvStNames`.', lambda k: T[k]['st']))
     o.append(opdefl('kcDvLpT', 'The instructions of `dvLpNames` per iteration.', lambda k: T[k]['lp']))
     o.append(opdefl('kcDlT', 'The DA levels\' instructions, by `L`.', lambda k: T[k]['dl']))
     o.append(opdefl('kcClT', '`claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: T[k]['cl']))
-    o.append(opdef('kcL16', '`__loop15`\'s instructions per iteration.', lambda k: T[k]['l16']))
+    o.append(opdefl('kcClLpT', 'The instructions of `clLpNames` per iteration.', lambda k: T[k]['clp']))
     o.append(opdefl('mvOmT', 'The frame weights of `mvOmNames`.', lambda k: T[k]['om']))
     o.append(opdef('kcDvA', '`da_verify`\'s instructions on `r` rows padded to `2^L` within '
                    '`kcDvA + kcDvR · r + kcDvP · 2^L`: the constant.', lambda k: dv_aff(k)[0]))
@@ -277,7 +299,8 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
-  kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op &&
+  (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
+    kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
     (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
 ''')

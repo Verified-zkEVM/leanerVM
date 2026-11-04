@@ -14,9 +14,9 @@ valuation and `W` of the child proofs' reader `wV`; every count, mark and slot b
 * a mark and its slot (`markPair_cost`), **`regionTable_cost`** (`regionTablePrice G R len`: one
   logarithm and one read per slot, the table sorted, `coverTable_cost`), `regionTable_good`;
 * a running count (`countAtW_cost`);
-* a child's claim (`xmssKidClaim_cost`, `sphincsKidClaim_cost`: a search, a power in `K`, four
-  reads), a child's statement off its claims' counts (`kidStmtAt_cost`), its segment
-  (`kidStmtSeg_cost`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
+* a child's claim at a slot (`xmssSlotClaim_cost`, `sphincsSlotClaim_cost`: a power in `K`, four
+  reads), a child's statement off its lists' slots (`kidStmtAt_cost`), its segment
+  (`kidStmtSeg_cost`: the slots off the tables, `kidSlotsIn_cost`, `Search.lean`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
   **`decKid_cost`** (`decKidPrice G R S W N`), the regions' tables of at most `N ≤ 2^34` marks
   (`regionTable_size_le`: a region's slots; `2^34` on any memory, `65535` on a valid run), so
   at most `N` claims of each scheme a child. The children's list is `Raw.lean`'s
@@ -34,21 +34,6 @@ public section
 variable (P : MachineProgram) {G : ℕ}
 
 /-! ## Facts of the tables -/
-
-theorem countIn_le (tm : Array ℕ) (a b : ℕ) : countIn tm a b ≤ tm.size := by
-  unfold countIn
-  have := lowerBound_le_size tm b
-  omega
-
-theorem slotIn_lt {t : Array ℕ × Array ℕ} (ht : TableGood t) (e : ℕ) : slotIn t.1 t.2 e < 2 ^ 34 := by
-  unfold slotIn
-  dsimp only
-  split
-  · exact ht.2.2.2 _
-  · norm_num
-
-theorem lt64_of_good {t : Array ℕ × Array ℕ} (ht : TableGood t) (i : ℕ) : t.1.getD i 0 < 2 ^ 64 :=
-  lt_trans (ht.2.2.1 i) (by norm_num)
 
 /-! ## The tables -/
 
@@ -128,34 +113,27 @@ theorem countAtW_cost (D : DiscreteLogTables) (hP : Includes P countAtWC.costDep
 
 /-! ## A child -/
 
-/-- **A child's leanXMSS claim** (`xmssKidClaimC`) off a good table, `a, j < 2^35`: a search, a
-power in `K` and four reads, at most `4·R + 15929`. -/
-theorem xmssKidClaim_cost (hP : Includes P xmssKidClaimC.costDeps) (p53 : E)
-    (t : Array ℕ × Array ℕ) (ht : TableGood t) (a j : ℕ) (ha : a < 2 ^ 35) (hj : j < 2 ^ 35) :
-    machineCost P xmssKidClaimC.costIdx [rdV, encodeValue p53, encodeValue t.1, encodeValue t.2,
-      encodeValue a, encodeValue j] ≤ 4 * R + 15929 := by
-  rw [xmssKidClaimC.costEq P hP rd rdV hrd]
-  have h1 := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
-  have hs := slotIn_lt ht (a + j)
-  have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * slotIn t.1 t.2 (a + j)) 36 (by norm_num)
-    (by norm_num) (by omega)
-  have h3 := xmssAtK_cost P hrd hR (by includes)
-    (p53.limb 0 * Parameters.g ^ (4 * slotIn t.1 t.2 (a + j)))
+/-- **A child's leanXMSS claim at slot `s`** (`xmssSlotClaimC`), `s < 2^34`: a power in `K` and
+four reads, at most `4·R + 14996`. -/
+theorem xmssSlotClaim_cost (hP : Includes P xmssSlotClaimC.costDeps) (p52 : E) (s : ℕ)
+    (hs : s < 2 ^ 34) :
+    machineCost P xmssSlotClaimC.costIdx [rdV, encodeValue p52, encodeValue s] ≤ 4 * R + 14996 := by
+  rw [xmssSlotClaimC.costEq P hP rd rdV hrd]
+  have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * s) 36 (by norm_num) (by norm_num)
+    (by omega)
+  have h3 := xmssAtK_cost P hrd hR (by includes) (p52.limb 0 * Parameters.g ^ (4 * s))
   limbs_one
   omega
 
-/-- **A child's leanSPHINCS claim** (`sphincsKidClaimC`), as `xmssKidClaim_cost`. -/
-theorem sphincsKidClaim_cost (hP : Includes P sphincsKidClaimC.costDeps) (p56 : E)
-    (t : Array ℕ × Array ℕ) (ht : TableGood t) (a j : ℕ) (ha : a < 2 ^ 35) (hj : j < 2 ^ 35) :
-    machineCost P sphincsKidClaimC.costIdx [rdV, encodeValue p56, encodeValue t.1, encodeValue t.2,
-      encodeValue a, encodeValue j] ≤ 4 * R + 15929 := by
-  rw [sphincsKidClaimC.costEq P hP rd rdV hrd]
-  have h1 := slotIn_cost P (by includes) t.1 t.2 (lt64_of_good ht) ht.2.1 (a + j) (by omega)
-  have hs := slotIn_lt ht (a + j)
-  have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * slotIn t.1 t.2 (a + j)) 36 (by norm_num)
-    (by norm_num) (by omega)
-  have h3 := sphincsAtK_cost P hrd hR (by includes)
-    (p56.limb 0 * Parameters.g ^ (4 * slotIn t.1 t.2 (a + j)))
+/-- **A child's leanSPHINCS claim at slot `s`** (`sphincsSlotClaimC`), as `xmssSlotClaim_cost`. -/
+theorem sphincsSlotClaim_cost (hP : Includes P sphincsSlotClaimC.costDeps) (p55 : E) (s : ℕ)
+    (hs : s < 2 ^ 34) :
+    machineCost P sphincsSlotClaimC.costIdx [rdV, encodeValue p55, encodeValue s] ≤
+      4 * R + 14996 := by
+  rw [sphincsSlotClaimC.costEq P hP rd rdV hrd]
+  have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * s) 36 (by norm_num) (by norm_num)
+    (by omega)
+  have h3 := sphincsAtK_cost P hrd hR (by includes) (p55.limb 0 * Parameters.g ^ (4 * s))
   limbs_one
   omega
 
@@ -166,69 +144,78 @@ variable {σ : Val} {σV : MachineValue}
   {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
 include hσ hS
 
-/-- A child's statement's price off its claims' counts, both at most `N`. -/
-@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 31938) * N + 26 * R + 3 * S + 81877
+/-- A child's statement's price off its lists' slots, at most `N` a list. -/
+@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 30050) * N + 26 * R + 3 * S + 81877
 
-/-- **A child's statement, its claims' counts given** (`kidStmtAtC`), off good tables, `c, a <
-2^34`, `nx, ns ≤ N ≤ 2^34`: at most `kidStmtAtPrice R S N = (8·R + 31938)·N + …`. -/
-theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p53 p56 : E)
-    (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx) (hts : TableGood ts) (c a nx ns : ℕ)
-    (hc : c < 2 ^ 34) (ha : a < 2 ^ 34) (N : ℕ) (hN : N ≤ 2 ^ 34) (hnx : nx ≤ N) (hns : ns ≤ N) :
-    machineCost P kidStmtAtC.costIdx [rdV, σV, encodeValue p53, encodeValue p56, encodeValue tx,
-      encodeValue ts, encodeValue c, encodeValue a, encodeValue nx, encodeValue ns] ≤
-      kidStmtAtPrice R S N := by
+/-- **A child's statement, its lists' slots given** (`kidStmtAtC`), `c < 2^34`, at most `N` slots
+a list, each below `2^34`: a claim a slot (`xmssSlotClaim_cost`), the DA digest and the deferred
+claim: at most `kidStmtAtPrice R S N = (8·R + 30050)·N + …`. -/
+theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p52 p55 : E) (c : ℕ)
+    (sx ss : List ℕ) (hc : c < 2 ^ 34) (N : ℕ) (hsx : sx.length ≤ N) (hss : ss.length ≤ N)
+    (hsx' : ∀ s ∈ sx, s < 2 ^ 34) (hss' : ∀ s ∈ ss, s < 2 ^ 34) :
+    machineCost P kidStmtAtC.costIdx [rdV, σV, encodeValue p52, encodeValue p55, encodeValue c,
+      encodeValue sx, encodeValue ss] ≤ kidStmtAtPrice R S N := by
   rw [kidStmtAtC.costEq P hP rd rdV hrd σ σV hσ]
-  have h1 := rangeMap_le P (by includes) (by includes) (xmssKidClaim rd p53 tx.1 tx.2 a)
-    (.closure kidStmtAtC.lam0.costIdx [rdV, encodeValue p53, encodeValue a, encodeValue tx.2,
-      encodeValue tx.1])
-    (fun j ↦ RunsApp.of_spec (kidStmtAtC.lam0.costSpec P (by includes) rd rdV hrd p53 a tx.2 tx.1 j))
-    (4 * R + 15941) nx N hnx (by omega) (fun j hj ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, kidStmtAtC.lam0.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := xmssKidClaim_cost P hrd hR (by includes) p53 tx htx a j (by omega) (by omega)
+  have h1 := map_cost P (by includes) (xmssSlotClaim rd p52)
+    (.closure kidStmtAtC.lam0.costIdx [rdV, encodeValue p52])
+    (fun s ↦ RunsApp.of_spec (kidStmtAtC.lam0.costSpec P (by includes) rd rdV hrd p52 s))
+    (4 * R + 15012) sx (fun s hs ↦ by
+      rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+        kidStmtAtC.lam0.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons,
+        List.length_nil]
+      have := xmssSlotClaim_cost P hrd hR (by includes) p52 s (hsx' s hs)
       omega)
-  have h2 := rangeMap_le P (by includes) (by includes) (sphincsKidClaim rd p56 ts.1 ts.2 (a + nx))
-    (.closure kidStmtAtC.lam1.costIdx [rdV, encodeValue p56, encodeValue (a + nx), encodeValue ts.1,
-      encodeValue ts.2])
-    (fun j ↦ RunsApp.of_spec
-      (kidStmtAtC.lam1.costSpec P (by includes) rd rdV hrd p56 (a + nx) ts.1 ts.2 j))
-    (4 * R + 15941) ns N hns (by omega) (fun j hj ↦ by
-      rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
-        List.cons_append, List.nil_append, kidStmtAtC.lam1.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
-      have := sphincsKidClaim_cost P hrd hR (by includes) p56 ts hts (a + nx) j (by omega)
-        (by omega)
+  have h2 := map_cost P (by includes) (sphincsSlotClaim rd p55)
+    (.closure kidStmtAtC.lam1.costIdx [rdV, encodeValue p55])
+    (fun s ↦ RunsApp.of_spec (kidStmtAtC.lam1.costSpec P (by includes) rd rdV hrd p55 s))
+    (4 * R + 15012) ss (fun s hs ↦ by
+      rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
+        kidStmtAtC.lam1.costEq P (by includes) rd rdV hrd, List.length_cons, List.length_cons,
+        List.length_nil]
+      have := sphincsSlotClaim_cost P hrd hR (by includes) p55 s (hss' s hs)
       omega)
+  have m1 := Nat.mul_le_mul_left (4 * R + 15012 + 13) hsx
+  have m2 := Nat.mul_le_mul_left (4 * R + 15012 + 13) hss
   have h3 := daDigestAt_cost P hrd hR hσ hS (by includes) c (by omega)
   have h4 := hS (.n 377)
-  have h5 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
-  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n 377)).limb 0 * Parameters.g ^ (24 * c)) 24
-    (by norm_num)
+  have h5 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num)
+    (by omega)
+  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n 377)).limb 0 * Parameters.g ^ (24 * c))
+    24 (by norm_num)
   have h7 := deferOfCells_cost P (by includes)
     (readCellsK rd ((σ (.n 377)).limb 0 * Parameters.g ^ (24 * c)) 24)
   limbs_one
   unfold kidStmtAtPrice
-  have : (4 * R + 15941 + 28) * N + (4 * R + 15941 + 28) * N = (8 * R + 31938) * N := by ring
+  have : (4 * R + 15012 + 13) * N + (4 * R + 15012 + 13) * N = (8 * R + 30050) * N := by ring
   omega
 
 /-- **A child's statement, its segment `[a, b)` given** (`kidStmtSegC`), the tables of at most `N`
-marks: the claims counted by two searches each, then `kidStmtAt_cost`. -/
-theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p53 p56 : E)
+marks: its lists' slots off the tables (`kidSlotsIn_cost`, a count between), then
+`kidStmtAt_cost`. -/
+theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p52 p55 : E)
     (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx) (hts : TableGood ts) (c a b : ℕ)
     (hc : c < 2 ^ 34) (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (N : ℕ) (hN : N ≤ 2 ^ 34)
     (htxN : tx.1.size ≤ N) (htsN : ts.1.size ≤ N) :
-    machineCost P kidStmtSegC.costIdx [rdV, σV, encodeValue p53, encodeValue p56, encodeValue tx,
+    machineCost P kidStmtSegC.costIdx [rdV, σV, encodeValue p52, encodeValue p55, encodeValue tx,
       encodeValue ts, encodeValue c, encodeValue a, encodeValue b] ≤
-      kidStmtAtPrice R S N + 3705 := by
+      kidStmtAtPrice R S N + 2 * kidSlotsInPrice N + 1890 := by
   rw [kidStmtSegC.costEq P hP rd rdV hrd σ σV hσ]
+  have h0 := countIn_le tx.1 a b
   have h1 := countIn_cost P (by includes) tx.1 (lt64_of_good htx) htx.2.1 a b (by omega) (by omega)
-  have h2 := countIn_cost P (by includes) ts.1 (lt64_of_good hts) hts.2.1 a b (by omega) (by omega)
-  have h3 := kidStmtAt_cost P hrd hR hσ hS (by includes) p53 p56 tx ts htx hts c a
-    (countIn tx.1 a b) (countIn ts.1 a b) hc ha N hN
-    ((countIn_le tx.1 a b).trans htxN) ((countIn_le ts.1 a b).trans htsN)
+  have h2 := kidSlotsIn_cost P (by includes) htx a b (by omega) (by omega) N htxN
+  have h3 := kidSlotsIn_cost P (by includes) hts (a + countIn tx.1 a b) b (by omega) (by omega)
+    N htsN
+  have h4 := kidStmtAt_cost P hrd hR hσ hS (by includes) p52 p55 c
+    (kidSlotsIn tx.1 tx.2 a b) (kidSlotsIn ts.1 ts.2 (a + countIn tx.1 a b) b) hc N
+    ((kidSlotsIn_length_le tx.1 tx.2 a b).trans htxN)
+    ((kidSlotsIn_length_le ts.1 ts.2 _ b).trans htsN)
+    (kidSlotsIn_lt htx a b) (kidSlotsIn_lt hts _ b)
+  limbs_one
   omega
 
 /-- A child's statement's price. -/
-@[expose] def kidStmtPrice (G R S N : ℕ) : ℕ := 2 * G + 2 * R + kidStmtAtPrice R S N + 9675
+@[expose] def kidStmtPrice (G R S N : ℕ) : ℕ :=
+  2 * G + 2 * R + kidStmtAtPrice R S N + 2 * kidSlotsInPrice N + 9675
 
 /-- **Child `c`'s statement** (`kidStmtC`), off good tables of at most `N` marks, `c < 2^34`: its
 segment's ends (two logarithms), then `kidStmtSeg_cost`: at most `kidStmtPrice G R S N`. -/
@@ -257,7 +244,7 @@ theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^
   have h3 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
   have h4 := mulK_cost P (by includes) (σ (.n 371)) (Parameters.g ^ (24 * c))
   have := hS (.n 365); have := hS (.n 47); have := hS (.n 48); have := hS (.n 49)
-  have := hS (.n 50); have := hS (.n 371)
+  have := hS (.n 371)
   limbs_one
   omega
 

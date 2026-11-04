@@ -16,7 +16,8 @@ proved equal to the deployed decoder's reader there at the tables built): a lean
 `cl` a parameter). Their tables (`XmssTabs`, `SpTabs`, `WhirTabs`: the lanes of `g^k`, the
 chain starts, the selectors and path bases, `open_stacked`'s stream words and calls) are arrays the decoder's top level builds once
 (`readerTabsC`, `Frames.lean`) and passes; consecutive cells are read by stepping the address
-(`wordsFrom`), each query's position once (`oqQueryAt`), the loop's frames at the next power of
+(`wordsFrom`), each query's windows once, their exponents off the lanes (`winLogsFrom`), each
+query's position once (`oqQueryAt`), the loop's frames at the next power of
 `g` (`oqItersFrom`). The compiled names stay the readers' (`xmssSigOfNC`, `sphincsSigOfNC`,
 `vsPiOfNC`, `oqsOfNC`, …). Their records are encoded by their constructors (`Oq`, `OsCall`, the
 tables).
@@ -96,6 +97,9 @@ cost_compile oqKLC := oqKL
 cost_compile OqBC := Oq.B
 cost_compile OqChainLenC := Oq.chainLen
 cost_compile oqChC := oqCh
+cost_compile oqNpwC := oqNpw
+cost_compile oqWwC := oqWw
+cost_compile oqWkC measure fun _ _ i ↦ i := oqWk
 cost_compile oqCqC := oqCq
 cost_compile oqEndC := oqEnd
 cost_compile oqE1C := oqE1
@@ -107,12 +111,19 @@ cost_compile toOpeningC := LeanVM.Guest.B1.Whir.toOpening
 cost_compile vsOsArgsC := LeanVM.Guest.B1.VerifySub.vsOsArgs
 cost_compile vsOsRetsC := LeanVM.Guest.B1.VerifySub.vsOsRets
 cost_compile wordsFromC measure fun _ _ n ↦ n := wordsFrom
-cost_compile bitsWC measure fun l ↦ l.length := bitsW
-cost_compile posOfWC := posOfW
+cost_compile winLogsFromC measure fun _ _ _ n ↦ n := winLogsFrom
+cost_compile qwNpC := qwNp
+cost_compile qwNC := qwN
+cost_compile qwWinC := qwWin
+cost_compile qwAtC := qwAt
+cost_compile winBitC := winBit
+cost_compile bitsBC measure fun l ↦ l.length := bitsB
+cost_compile winPosAtC := winPosAt
+cost_compile winPosOfWC := winPosOfW
 cost_compile oqQueryAtC := oqQueryAt
 cost_compile oqQueryAC := oqQueryA
 cost_compile oqIterAC := oqIterA
-cost_compile oqItersFromC measure fun _ _ _ _ _ n _ ↦ n := oqItersFrom
+cost_compile oqItersFromC measure fun _ _ _ _ _ _ n _ ↦ n := oqItersFrom
 cost_compile oqsOfNC := oqsOfA
 cost_compile levelOsAtC := levelOsAt
 cost_compile levelOsNC := levelOsA

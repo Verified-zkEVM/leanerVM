@@ -10,7 +10,7 @@ public import LeanVM.Guest.Fast.PreTest
 table `T` of the functions' preconditions (`FnPre`, by its constructor; a frame cell's known word
 `Sym`, by its constructors), the logarithm's baby-step tables `D` given, compiled bottom-up: the
 logarithm's bound (`powBelowAt`, the logarithm passed in as a value, `powBelow`), each check of one
-entry (`envOne`, `bndOne`, `memOne`, `semOne`) and the entry's test (`fnPreTest`). The three
+entry (`envOne`, `bndOne`, `memOne`) and the entry's test (`fnPreTest`). The three
 tables are parameters: the decoder's top level builds them once and passes them (`D`:
 `Extraction.Fast.discreteLogTables`, about `7.8·10^7`; `T`: `preTableC`,
 `Cost/Decoder/PreTable.lean`, the literal `Guest.Fast.preTable`; `Pw`: `genPowsC`, the powers
@@ -44,9 +44,6 @@ cost_compile memOneC := memOne
 cost_compile squaresFromC measure fun _ n ↦ n := squaresFrom
 cost_compile powsFromC measure fun _ n ↦ n := powsFrom
 cost_compile genPowsC := genPows
-cost_compile expOneC := expOne
-cost_compile expTablesAtC := expTablesAt
-cost_compile semOneC := semOne
 cost_compile fnPreTestC := fnPreTest
 cost_compile preTestAtC := preTestAt
 

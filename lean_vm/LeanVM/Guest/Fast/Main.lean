@@ -31,9 +31,9 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main Le
 noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
   decWit σ rd (fun p ↦ xmssSigOfN (Vn 20 [p] []))
     (fun p ↦ sphincsSigOfN (Vn 22 [p, σ (.n 68)] []) Vn)
-    (fun args rets ↦ dvWitN (Vn 27 args rets) Vn)
+    (fun args rets ↦ dvWitN (Vn 29 args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
-    (fun args ↦ aggHints rd (Vn 33 args []))
+    (fun args ↦ aggHints rd (Vn 35 args []))
 
 /-- **The readers' tables, as arrays**, built once per decoding and passed to the readers off
 arrays (`xmssSigOfA`, `sphincsSigOfA`, `vsPiOfA`). -/

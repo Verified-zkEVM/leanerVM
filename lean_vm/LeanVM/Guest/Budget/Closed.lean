@@ -12,6 +12,7 @@ public import LeanVM.Guest.Budget.DeployedBudget
 public import LeanVM.Guest.Count.VsWords
 public import LeanVM.Guest.B1.Main.VerifySubGoals
 public import LeanVM.Guest.B1.VerifySub.CompleteAll
+public import LeanVM.Guest.B2C.RunsConsec
 
 namespace LeanVM.Guest.Budget
 
@@ -38,7 +39,7 @@ theorem verifySubGoals_deployed {seed : LeanVM.Protocol.Digest} {s : NodeStateme
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (deployedVsT w)
       (childBv (vsBoundAt Count.vsWords vkBound) w) :=
-  B1.Main.verifySubGoalsTB_of bytecode_length B2C.runsFit B2C.runsApart Count.vsWords
+  B1.Main.verifySubGoalsTB_of bytecode_length B2C.runsFit B2C.runsConsec Count.vsWords
     (B1.VerifySub.verify_keccak_completeAtB_fs 16) hr hok
 
 /-- **The aggregation guest is complete within the deployed budget**: for every seed, statement

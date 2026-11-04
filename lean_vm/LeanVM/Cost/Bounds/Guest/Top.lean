@@ -103,7 +103,7 @@ theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnes
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
-  have := hWD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] (by simp)
+  have := hWD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] (by simp)
   have : Decoder.nDirectD D σ < 2 ^ 34 := gLogD_lt D _
   cost_facts [hS]
   limbs_one
@@ -213,14 +213,14 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
       decWitAtPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitAtC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
-  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 67)) 0 lx (by norm_num) hlx.le
-  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 67)) lx ls hlx.le hls
+  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) 0 lx (by norm_num) hlx.le
+  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
-    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 380)) (σ (.n 53)) (σ (.n 56)) _ _
-    (regionTable_good (rd := rd) D (σ (.n 67)) 0 lx hlx.le)
-    (regionTable_good (rd := rd) D (σ (.n 67)) lx ls hls)
-    ((regionTable_size_le (rd := rd) D (σ (.n 67)) 0 lx).trans hlxN)
-    ((regionTable_size_le (rd := rd) D (σ (.n 67)) lx ls).trans hlsN) hWV
+    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 380)) (σ (.n 52)) (σ (.n 55)) _ _
+    (regionTable_good (rd := rd) D (σ (.n 66)) 0 lx hlx.le)
+    (regionTable_good (rd := rd) D (σ (.n 66)) lx ls hls)
+    ((regionTable_size_le (rd := rd) D (σ (.n 66)) 0 lx).trans hlxN)
+    ((regionTable_size_le (rd := rd) D (σ (.n 66)) lx ls).trans hlsN) hWV
   have e1 : regionTablePrice G R lx ≤ regionTablePrice G R N := by
     unfold regionTablePrice; exact Nat.add_le_add_right (Nat.mul_le_mul_left _ hlxN) _
   have e2 : regionTablePrice G R ls ≤ regionTablePrice G R N := by
@@ -299,8 +299,8 @@ theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabs
     (hwS : ∀ a : E, RunsApp P wSV [encodeValue a] (encodeValue (wS a)))
     {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS) {K N X : ℕ}
     (hc : CountsWithin D σ K N X)
-    (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 27))
-      (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 868)) ≤ L) :
+    (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 25))
+      (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 656)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, wSV, clV] ≤
       decWitNPrice G R S F C L DW WS K N X := by
   rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn wS wSV hwS cl clV hcl]

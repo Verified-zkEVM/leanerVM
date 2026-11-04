@@ -10,8 +10,8 @@ The frame map keyed by the functions' indices (`Guest.Fast.NFrames`, `FunctionNa
 each callee's witness a function of its call's words, the compiled readers (`Signatures.lean`,
 `Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`verify_lean_xmss`, index `20`),
 `sphincsAtFrame` (`verify_sig_lean_sphincs`, `22`, and its three `sp_wots` frames, `21`: not
-compiled here, the decoder's top looks its frames up once, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`, `27`),
-`proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `33`). The signature
+compiled here, the decoder's top looks its frames up once, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`, `29`),
+`proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `35`). The signature
 and proof readers read their tables off `R : ReaderTabs` (`Guest/Fast/Main.lean`), which the top
 level builds once (`readerTabsC`) and passes.
 -/
@@ -41,11 +41,11 @@ noncomputable def sphincsAtFrame (R : ReaderTabs) (σ : Val) (Vn : NFrames) (p :
     (Vn 21 (spWotsArgs s 1) (spWotsRets s 1)) (Vn 21 (spWotsArgs s 2) (spWotsRets s 2))
 
 open LeanVM.Guest.Fast in
-/-- The DA matrix `da_verify` (`27`) checks on the call's words, the logarithm's tables `D`
+/-- The DA matrix `da_verify` (`29`) checks on the call's words, the logarithm's tables `D`
 given. -/
 noncomputable def daAtFrame (D : LeanVM.Extraction.Fast.DiscreteLogTables) (Vn : NFrames)
     (args rets : List E) : LeanVM.Da.MatrixWitness :=
-  dvWitND D (Vn 27 args rets) Vn
+  dvWitND D (Vn 29 args rets) Vn
 
 open LeanVM.Guest.Fast in
 /-- A child's proof at its `verify_sub` (`19`) call's words, the readers' tables `R` given. -/
@@ -54,9 +54,9 @@ noncomputable def proofAtFrame (R : ReaderTabs) (rd : Reader) (Vn : NFrames) (cl
   vsPiOfA R.whir rd (Vn 19 args []) Vn cl
 
 open LeanVM.Guest.Fast in
-/-- The batching's hints at `aggregate_claims`' (`33`) call's words. -/
+/-- The batching's hints at `aggregate_claims`' (`35`) call's words. -/
 noncomputable def hintsAtFrame (rd : Reader) (Vn : NFrames) (args : List E) : BatchingHints :=
-  aggHints rd (Vn 33 args [])
+  aggHints rd (Vn 35 args [])
 
 cost_enc LeanVM.Guest.Fast.ReaderTabs
 
