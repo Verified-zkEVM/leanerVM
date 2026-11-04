@@ -110,7 +110,7 @@ theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
 theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
     (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
     (hT : MainGoalsT fs cert fp seed s w p) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
@@ -123,7 +123,8 @@ theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_relAtInT fs cert fp (hData seed s w) (hOwn seed s w) (hOwn_fit (log2_of_length hbl) hr (freshShaped_of hbl hr))
     (hData_bounds hl fs fp) _
-    (mainKidsDT (mainGoals_of hbl hr hl hxc hsc hrf hT.l5.goal (fun hn => (hT.ag hn).toD)) hT)
+    (mainKidsDT (mainGoals_of hbl hr hl hxc hsc (fun hn => (hT.dv hn).toD) hT.l5.goal
+      (fun hn => (hT.ag hn).toD)) hT)
     (fun rd hM h0 h1 => hMainMem (log2_of_length hbl) hr (freshShaped_of hbl hr) hl fs fp rd hM h0 h1)
 
 end

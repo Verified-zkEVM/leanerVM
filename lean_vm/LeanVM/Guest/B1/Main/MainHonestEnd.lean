@@ -18,8 +18,8 @@ public import LeanVM.Guest.AcceptableChild
 # `main` on an honest run, its callees discharged
 
 `mainGoals_of`: `MainGoals` from `NodeRelation`, `Limits`, a bytecode of `2^23` words, the signature
-schemes' completeness (B1-e), the frame runs' certificate facts (`Lift.RunsFit`), and the
-children's loop and aggregation (`MainGoalL5`, `MainGoalAg`). `main_honest_end`:
+schemes' completeness (B1-e), and the direct DA check, the children's loop and aggregation
+(`MainGoalDv`, `MainGoalL5`, `MainGoalAg`). `main_honest_end`:
 `main_honest_relAtInW` on those.
 -/
 
@@ -44,16 +44,16 @@ theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytec
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
 theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
     (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
-    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
-    (hl5 : MainGoalL5 fs cert fp seed s w) (hag : MainGoalAg fs cert fp seed s w) :
-    MainGoals fs cert fp seed s w where
+    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec)
+    (hdv : MainGoalDv fs cert fp seed s w) (hl5 : MainGoalL5 fs cert fp seed s w)
+    (hag : MainGoalAg fs cert fp seed s w) : MainGoals fs cert fp seed s w where
   clx := mainGoalClX fs cert fp seed s w hl
   cls := mainGoalClS fs cert fp seed s w hl
   l1 := mainGoalL1 fs cert fp seed s w
   l2 := mainGoalL2 fs cert fp seed s w
   l3 := mainGoalL3 (fs := fs) (cert := cert) (fp := fp) hr hl hxc
   l4 := mainGoalL4 (fs := fs) (cert := cert) (fp := fp) hr hl hsc
-  dv := mainGoalDv (fs := fs) (cert := cert) (fp := fp) hr hrf
+  dv := hdv
   l5 := hl5
   ag := hag
   st := mainGoalSt fs cert fp seed s w hr hbl

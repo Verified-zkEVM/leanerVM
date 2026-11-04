@@ -11,7 +11,7 @@ public import LeanVM.Guest.Budget.Main
 public import LeanVM.Guest.Budget.Static
 public import LeanVM.Guest.B1.Main.MainHonestB
 public import LeanVM.Guest.B1.Main.MainGoalsClT
-public import LeanVM.Guest.B1.Da.VerifyAtT
+public import LeanVM.Guest.B1.Da.DvAt
 
 /-!
 # `main`'s instruction counts

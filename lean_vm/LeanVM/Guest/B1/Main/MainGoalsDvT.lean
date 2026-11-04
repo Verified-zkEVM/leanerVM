@@ -10,14 +10,15 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainGoalsG
-public import LeanVM.Guest.B1.Da.WitnessAtT
+public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.AcceptableChild
 
 /-!
 # `da_verify` on an honest run, its honest shape
 
 `hDvNH w`: `da_verify`'s honest shape on the directly held DA claim's witness (no constraint
-without one). `MainGoalDvT`: `MainGoalDv` by such a tree; `mainGoalDvT`: as `mainGoalDv`.
+without one). `MainGoalDvT`: `MainGoalDv` by such a tree (`MainGoalsDvTB.mainGoalDvTB` proves it
+within a bound).
 -/
 
 namespace LeanVM.Guest.B1.Main

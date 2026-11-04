@@ -261,7 +261,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   | none => simp
   | some p =>
     rw [DaDigestHeld, hw] at hda
-    have hw' : p.2.Opens p.1.daRoot p.1.membershipVectorDigest := hda.2
+    have hw' : p.2.Opens p.1.daRoot p.1.membershipChallenge := hda.2
     have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
     unfold LeanDa.maxRows at hm

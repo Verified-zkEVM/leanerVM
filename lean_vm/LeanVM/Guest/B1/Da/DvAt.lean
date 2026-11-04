@@ -65,6 +65,9 @@ def dvCallsS (j : ℕ) : List (Option V × String × List V × List V) :=
 
 theorem dv_callsSF (σ : Val) : dvP.filterMap (Stmt.callSF σ) = dvCallsS (logG (σ (.n 2))) := rfl
 
+theorem dv_flatCalls (σ : Val) : flatCalls dvP σ = (dvCallsS (logG (σ (.n 2)))).map (Main.mkCall σ) := by
+  rw [flatCalls, dv_callsSF]
+
 /-- **`da_verify`'s block, its shape** (kernel evaluation). -/
 noncomputable def dvCOk : Bool :=
   dvP.all Core.Stmt.flat && dvP.all B1.notIteB && decide (dvP.filterMap Stmt.addrS = []) &&
@@ -143,10 +146,11 @@ def dvVals (r L s : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c
     word 1 0 0 + gen ^ r, word 1 0 0, word 1 0 0, word 1 0 0 + gen ^ (2 ^ L - r), word 1 0 0, c0, c1,
     c0, c1, z + word 0 0 1 * ofK (z.limb 2), ofK (z.limb 2) + word 0 1 0 * word 0 0 0]
 
-/-- **`da_verify`'s honest shape**: its counts, its loops' starts, its dispatch. -/
+/-- **`da_verify`'s honest shape**: its counts, its loops' starts and the padding's guard, its
+dispatch. -/
 def dvQ (r L : ℕ) (σ : Val) : Prop :=
   σ (.n 1) = gen ^ r ∧ σ (.n 2) = gen ^ L ∧ σ (.n 4) = gen ^ (2 ^ L - r) ∧ σ (.n 35) = 1 ∧
-    σ (.n 42) = 1 ∧ σ (.n 45) = 1
+    σ (.n 42) = 1 ∧ σ (.n 44) = 1 + gen ^ (2 ^ L - r) ∧ σ (.n 45) = 1
 
 /-- The predicates on `da_verify`'s callees' trees: the column loop's honest shape. -/
 def dvTs (r : ℕ) : List (Tree → Prop) :=
@@ -477,7 +481,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     · rw [hloads]
       simp
     · refine ⟨by rw [hσ]; rfl, s2, by rw [hσ]; rfl, by rw [hσ]; exact word_one, by rw [hσ]; exact word_one,
-        by rw [hσ]; exact word_one⟩
+        by rw [hσ]; show word 1 0 0 + _ = _; rw [word_one], by rw [hσ]; exact word_one⟩
 
 end
 end LeanVM.Guest.B1.Da

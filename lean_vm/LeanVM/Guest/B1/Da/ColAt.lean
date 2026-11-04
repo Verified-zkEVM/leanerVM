@@ -86,6 +86,8 @@ def colVals (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r13 : E) : List E :=
     gen ^ bo * (gen ^ h * gen ^ h * (gen ^ h * gen ^ h) * (gen ^ h * gen ^ h * (gen ^ h * gen ^ h))),
     r13, gen ^ h * gen ^ h, 1, 1 + gen ^ r, 1]
 
+theorem col_flatCalls (σ : Val) : flatCalls colPre σ = colCallsS.map (Main.mkCall σ) := rfl
+
 /-- **A column's honest shape**: its counter's bound `g^r`, its loop started at `1`. -/
 def colQ (r : ℕ) (σ : Val) : Prop := σ (.n 1) = gen ^ r ∧ σ (.n 17) = 1
 

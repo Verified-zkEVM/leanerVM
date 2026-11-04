@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsG
 
-  `main`'s raw-signature loops and its direct DA check on an honest run: `MainGoalL3`,
-  `MainGoalL4`, `MainGoalDv`.
+  `main`'s raw-signature loops on an honest run, and its direct DA claim: `MainGoalL3`,
+  `MainGoalL4`, `checked_da`.
 
   The DA witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.B1.Main.MainCoverLemmas
 public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.B1.Main.KidCoverAt
-public import LeanVM.Guest.B1.Da.WitnessAt
+public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -26,8 +26,9 @@ honest words `hLmain`:
   (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
 * `mainGoalL3`, `mainGoalL4`: `__loop2`, `__loop3` from the counter `1 = g^0` (`rawX_completeAt`,
   `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
-* `mainGoalDv`: `da_verify` on the checked DA claim's witness (`da_verify_completeAt_runs`), its
-  squares table `exponent_tables`' second (`wLog_lt`: the padded count's log is below `34`).
+* `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells;
+  `wLog_lt`: its padded count's log is below `34` (`da_verify` reads `exponent_tables`' second
+  table there; its completeness is `MainGoalsDvTB.mainGoalDvTB`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -53,7 +54,7 @@ theorem regions_lt (hl : DeployedLimits s w) : rX s w + rY s w < 2 ^ 16 := by
   omega
 
 /-- The padded count's log is below `34`: at most `1024` rows. -/
-theorem wLog_lt {x : LeanVM.Da.MatrixWitness} {r v : Digest} (hw : x.Opens r v) : wLog x < 34 := by
+theorem wLog_lt {x : LeanVM.Da.MatrixWitness} {r : Digest} {v : E} (hw : x.Opens r v) : wLog x < 34 := by
   obtain ⟨h1, h2, -⟩ := hw
   have hb := (Da.nPad_bounds h1).2
   unfold LeanDa.maxRows at h2
@@ -238,10 +239,10 @@ theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s 
 /-! ## The direct DA claim -/
 
 /-- **The checked DA claim**, when `main` checks one: its witness opens its root and vector
-digest, `da_verify`'s returns its cells. -/
+challenge, `da_verify`'s returns its cells. -/
 theorem checked_da (hn : NodeRelation bytecode seed s w) (h1 : (hm fs fp seed s w).nd = 1) :
     ∃ p, w.daMatrix = some p ∧ (hm fs fp seed s w).daR = daCells p.1 ∧
-      p.2.Opens p.1.daRoot p.1.membershipVectorDigest := by
+      p.2.Opens p.1.daRoot p.1.membershipChallenge := by
   obtain ⟨-, hda, -, -⟩ := hn
   obtain ⟨p, hw⟩ : ∃ p, w.daMatrix = some p := by
     cases hw : w.daMatrix with
@@ -249,36 +250,6 @@ theorem checked_da (hn : NodeRelation bytecode seed s w) (h1 : (hm fs fp seed s 
     | some p => exact ⟨p, rfl⟩
   rw [DaDigestHeld, hw] at hda
   exact ⟨p, hw, by simp [hm, hData, MainData.toIn, hw], hda.2⟩
-
-/-- **`da_verify` on an honest run.** -/
-theorem mainGoalDv (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit fs cert) :
-    MainGoalDv fs cert fp seed s w := by
-  intro h1
-  obtain ⟨p, -, hR, hw'⟩ := checked_da fs fp hn h1
-  rw [hR]
-  have hL := wLog_lt hw'
-  have h := Da.da_verify_completeAt_runs fs cert hrf hw' (etB fs (mK0 (hData seed s w) fs fp) + 34)
-  have hq : (etB fs (mK0 (hData seed s w) fs fp) + 34, etTabs.getD 1 []) ∈ hLmain fs fp seed s w :=
-    List.mem_append_right _ (by simp [etL])
-  have hlen : (etTabs.getD 1 []).length = 34 := by simp [etTabs]
-  refine completeAtD_lin_mono (fun rd hM => ?_) (fun i hi => ?_) h
-  · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
-    have hv : (etTabs.getD 1 [])[wLog p.2]'(by omega) = gen ^ 2 ^ wLog p.2 := by simp [etTabs]
-    rw [hv] at hr
-    intro q hq'
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    intro k hk
-    simp only [List.length_singleton, Nat.lt_one_iff] at hk
-    subst hk
-    rw [← gen_pow_eq_ofK, pow_add, loadHolds_mul_gen_pow, Nat.add_zero]
-    exact hr
-  · obtain ⟨q, hq', h1, h2⟩ := hi
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    simp only [List.length_singleton] at h1 h2
-    exact ⟨_, hq, show etB fs (mK0 (hData seed s w) fs fp) + 34 ≤ i by omega,
-      show i < etB fs (mK0 (hData seed s w) fs fp) + 34 + (etTabs.getD 1 []).length by omega⟩
 
 end
 end LeanVM.Guest.B1.Main
