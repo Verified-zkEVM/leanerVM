@@ -53,11 +53,12 @@ def MainGoalL5T (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (
     CompleteAtDT fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
-        (hm fs fp seed s w).a80, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
+        (hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a406, (hm fs fp seed s w).aDa,
         (digestHalves (hm fs fp seed s w).seed).1, (digestHalves (hm fs fp seed s w).seed).2,
-        (hm fs fp seed s w).a394, (hm fs fp seed s w).et1, (hm fs fp seed s w).et2,
-        (hm fs fp seed s w).a400] (Returns []) T5
+        (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400] (Returns []) T5
 
 theorem MainGoalL5T.goal {T5 : Tree → Prop} (h : MainGoalL5T fs cert fp seed s w T5) :
     MainGoalL5 fs cert fp seed s w := fun hn => (h hn).toD
@@ -73,7 +74,7 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDT fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et2]
+    CompleteAtDT fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) p.Pd
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)

@@ -42,11 +42,12 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   main : MainStaticsMain fs SB SK
   dv : Da.DvStaticB fs SB SK
   ls : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")
-  l16 : TotalLeOn coreProgram fs "__loop15" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop15")
+  l15 : TotalLeOn coreProgram fs "__loop15" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop15")
+  l16 : TotalLeOn coreProgram fs "__loop16" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop16")
   cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
-  l25 : TotalLeOn coreProgram fs "__loop29" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop29")
-  l26 : TotalLeOn coreProgram fs "__loop30" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop30")
-  l27 : TotalLeOn coreProgram fs "__loop31" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop31")
+  l25 : TotalLeOn coreProgram fs "__loop33" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop33")
+  l26 : TotalLeOn coreProgram fs "__loop34" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop34")
+  l27 : TotalLeOn coreProgram fs "__loop35" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop35")
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests
@@ -75,8 +76,8 @@ theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop
     (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
-  ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
-    mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l16 hS.cl,
+  ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
+    mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
     mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
     mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩

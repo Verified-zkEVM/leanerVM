@@ -63,7 +63,7 @@ theorem rawS_completeAtB (hc : Sig.SphincsCompleteSpecs)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
     ∀ j < nrs, CompleteAtDTB fs cert 16 "__loop3" Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ cv, gen ^ X, gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
+      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
       (fun _ => True) (nrs * SK "__loop3") := fun j hj =>
   completeAtDTB_of_relIn raw4_pure (by simp)
     (fun rd t rets' hn hv hb => by

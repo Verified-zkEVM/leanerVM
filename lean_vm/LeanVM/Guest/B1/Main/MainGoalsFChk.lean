@@ -24,16 +24,16 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem mfL1_idx : coreProgram.indexOf? "__loop0" = some 33 := by decide +kernel
+theorem mfL1_idx : coreProgram.indexOf? "__loop0" = some 35 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mfL2_idx : coreProgram.indexOf? "__loop1" = some 34 := by decide +kernel
+theorem mfL2_idx : coreProgram.indexOf? "__loop1" = some 36 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mfL1_shape : loopShapeF (coreProgram.getD 33 default) "__loop0" = true := by decide +kernel
+theorem mfL1_shape : loopShapeF (coreProgram.getD 35 default) "__loop0" = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mfL2_shape : loopShapeF (coreProgram.getD 34 default) "__loop1" = true := by decide +kernel
+theorem mfL2_shape : loopShapeF (coreProgram.getD 36 default) "__loop1" = true := by decide +kernel
 
 /-- `main`'s first two loops. -/
 def mfLoopSet : List String := ["__loop0", "__loop1"]
