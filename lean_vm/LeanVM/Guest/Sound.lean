@@ -19,13 +19,14 @@ on that run (`Check.EnteredAt`).
 
 * `b2_step`: a function's contract for runs shorter than `n + 1`, given every contract for runs
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
-  the first takes its memory bounds and semantic pairs from the statements before it: none but in
-  `verify_sub` (function `19`), whose second window, before `check_opening_terminal`, takes the
-  bound of the `99` column logs `col_kappas` holds from `VsKnown`, over the exponent tables its
+  the first takes its memory bounds and semantic pairs from the statements before it
+  (`CutsKnown`, `cutsKnown_of`): none but in
+  `verify_sub` (function `19`), whose second window, from its call of `check_opening_terminal`,
+  takes the bounds of the `8` entries of `kappa_base` from `VsKnown`, over the exponent table its
   precondition carries.
 * `b2_main`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
-  written. Its second window starts after `exponent_tables`, whose returns it knows to be the
-  tables (`ExpTablesSound`).
+  written. Its second window starts after `exponent_tables`, whose return it knows to be the
+  table (`ExpTablesSound`).
 
 `VsKnown` and `ExpTablesSound` are statements about the core IR alone (`coreProgram.Rel`), B1's
 to prove (`verify_sub`'s callees `verify_tables` and `certify_placement`, and `exponent_tables`):
@@ -45,19 +46,31 @@ open LeanVM.Guest.Exec
 
 /-! ## B1's obligations -/
 
-/-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent tables at
-`verify_sub`'s arguments `4`, `5`, its first `2098` statements, up to its call of
-`check_opening_terminal`, put the `99` entries of `col_kappas` (the value `1889`) among the `29`
-arms of `column_selector`. -/
+/-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
+`verify_sub`'s argument `4` (`g_squares`), its first `1592` statements, up to its call of
+`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `139`) among the powers
+`g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    B1.ExpTables L.read (σ (.n 4)) (σ (.n 5)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 2098) True (fun _ ↦ True) →
-      ∀ c < 99, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (addressOfIndex e))
+    B1.ExpTables L.read (σ (.n 4)) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1592) True (fun _ ↦ True) →
+      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
 
-/-- **`exponent_tables`' relation** (B1's): its two returned pointers hold the exponent tables. -/
+/-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table. -/
 def ExpTablesSound : Prop :=
-  ∀ (rd : Reader) (p q : E), coreProgram.Rel rd "exponent_tables" [] [p, q] → B1.ExpTables rd p q
+  ∀ (rd : Reader) (q : E), coreProgram.Rel rd "exponent_tables" [] [q] → B1.ExpTables rd q
+
+/-- **B1's obligations at function `j`'s cuts**: on every memory image, from the semantic pairs
+and memory bounds of `j`'s entry and the statements before each cut `i > 0` of `j`'s certificate,
+under its frame's valuation, the cut's memory bounds and semantic pairs. They are `VsKnown` for
+`verify_sub`, and nothing (`known_plain`) for a function whose cuts hand nothing on. -/
+def CutsKnown (j : ℕ) : Prop :=
+  ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ fp : K,
+    MemPre L fp (certOf j).mem → SemHolds glob L fp (certOf j).sem →
+    ∀ i ≤ (certOf j).cuts.length, 0 < i →
+      Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf j))
+        ((coreOf j).body.take ((certOf j).cutAt i).start) True (fun _ ↦ True) →
+      MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems
 
 /-! ## `verify_sub`'s obligation -/
 
@@ -69,18 +82,24 @@ theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMe
     MemKnown L fp ((certOf 19).cutAt i).known ∧ SemHolds glob L fp ((certOf 19).cutAt i).sems := by
   obtain rfl : i = 1 := by rw [vs_cuts] at hi; omega
   obtain ⟨hst, hkn, hsm⟩ := vs_cut
-  obtain ⟨c4, c5, c1889⟩ := vs_cells
   rw [hkn, hsm]
-  refine ⟨fun m hm c hc ↦ ?_, fun _ h ↦ by simp at h⟩
-  simp only [List.mem_singleton] at hm
-  subst hm
+  refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h⟩
+  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
   rw [hst, coreOf_19] at hl
-  have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) (valG L fp (certOf 19) (.n 5)) := by
-    have := hsem (6, 7) (by rw [vs_sem]; exact List.mem_singleton_self _)
-    simp only [valG, c4, c5]
+  have ht : B1.ExpTables L.read (valG L fp (certOf 19) (.n 4)) := by
+    have := hsem (6, 6) (by rw [vs_sem]; exact List.mem_singleton_self _)
+    simp only [valG, Core.V.idx, vs_cells]
     exact this
-  have := hvs L h16 h32 _ ht hl c hc
-  simpa only [valG, Core.V.idx, c1889] using this
+  exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
+
+/-- **Every callee's cut obligations**, from `VsKnown`: `verify_sub`'s, and nothing for the
+others (`Checked.all_plain`). -/
+theorem cutsKnown_of (hvs : VsKnown) {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) : CutsKnown j := by
+  intro κ L h16 h32 fp _ hsem i hi h0 hl
+  by_cases h19 : j = 19
+  · subst h19
+    exact known_vs hvs h16 h32 hsem hi h0 hl
+  · exact known_plain (by omega) hj (by omega) h19 hi h0
 
 /-! ## `main`'s obligation -/
 
@@ -101,13 +120,13 @@ theorem known_main (hexp : ExpTablesSound) {κ : ℕ} {L : MemoryImage κ} {fp :
   rw [main_call, holdsList_append] at hl
   have hcall := ((holdsList_noRet _ hnr _ _).mp hl).2
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hcall
-  exact hexp L.read _ _ hcall.1
+  exact hexp L.read _ hcall.1
 
 /-! ## The contracts -/
 
 /-- **B2's step**: each contract for runs shorter than `n + 1`, given all of them for runs
 shorter than `n`. -/
-theorem b2_step (hvs : VsKnown) :
+theorem b2_step (hcuts : ∀ j, 2 ≤ j → j < nFns → CutsKnown j) :
     ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
       (∀ j, FunSpecLtReached guestProgram L n (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L certByName (EnteredAt glob L) j)) →
@@ -125,12 +144,8 @@ theorem b2_step (hvs : VsKnown) :
     (coreOf_find (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
     (certByName_coreOf (by omega) hj.2)
     (fun i ↦ (hlt i).mono (by omega)) hjt henv hbnd hmem hsem
-    (fun i hi h0 hl ↦ by
-      by_cases h19 : j = 19
-      · subst h19
-        exact known_vs hvs h16 h32 hsem hi h0
-          (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl)
-      · exact known_plain (by omega) hj.2 (by omega) h19 hi h0)
+    (fun i hi h0 hl ↦ hcuts j hj.1 hj.2 L h16 h32 fp hmem hsem i hi h0
+      (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl))
     hsafe
   obtain ⟨k', hk', r, hr, hs⟩ := hret rfl
   exact ⟨k', hk', r, hr, ⟨hbody, ⟨hin, j, rfl, hpre', hsafe.2, rfl, rfl⟩, hpost⟩, hs⟩

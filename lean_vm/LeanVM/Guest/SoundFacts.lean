@@ -18,8 +18,8 @@ public import LeanVM.Guest.CertName
 What `Sound.lean` reads off the certificates and the kernel's checks (`Checked.all_ok`), none of
 it about the semantics of `KECCAK`: every window of every function passes (`winOk_of`), the jump
 table the checks read is the one `__jump_tables` writes (`jtHolds_of`), the windows hand nothing
-on but in `main` (after `exponent_tables`, `main_cut`) and `verify_sub` (function `19`, before
-`check_opening_terminal`, `vs_cut`), and `main`'s certificate (`main_facts`).
+on but in `main` (after `exponent_tables`, `main_cut`) and `verify_sub` (function `19`, from its
+call of `check_opening_terminal`, `vs_cut`), and `main`'s certificate (`main_facts`).
 -/
 
 namespace LeanVM.Guest.End
@@ -80,28 +80,35 @@ theorem known_plain {j : ℕ} (h0j : 1 ≤ j) (hj : j < nFns) (h1 : j ≠ 1) (h1
 
 theorem vs_cuts : (certOf 19).cuts.length = 1 := by decide +kernel
 
-theorem vs_cut : ((certOf 19).cutAt 1).start = 2098 ∧ ((certOf 19).cutAt 1).known = [(1340, 99, 29)] ∧
+/-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3242-3250`): `kb[0] = g^0`, the
+memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, keccak's `τ`,
+below `g^23` (`τ + 6` is a column's log, at most `28`). -/
+def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
+
+/-- `verify_sub`'s second window starts at its call of `check_opening_terminal` (statement
+`1592`) and takes the bound of each of the `8` entries of `kappa_base` (the value `139`). -/
+theorem vs_cut : ((certOf 19).cutAt 1).start = 1592 ∧
+    ((certOf 19).cutAt 1).known =
+      (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
     ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
-theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 ∧ (certOf 19).locs.getD 5 0 = 7 ∧
-    (certOf 19).locs.getD 1889 0 = 1340 := by
-  decide +kernel
+theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 := by decide +kernel
 
-theorem vs_sem : (certOf 19).sem = [(6, 7)] := by decide +kernel
+theorem vs_sem : (certOf 19).sem = [(6, 6)] := by decide +kernel
 
 theorem coreOf_19 : coreOf 19 = Data.core18 := rfl
 
 /-! ## `main`'s window -/
 
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
-    ((certOf 1).cutAt 1).sems = [((certOf 1).locs.getD 49 0, (certOf 1).locs.getD 50 0)] := by
+    ((certOf 1).cutAt 1).sems = [((certOf 1).locs.getD 49 0, (certOf 1).locs.getD 49 0)] := by
   decide +kernel
 
 theorem main_call : ((coreOf 1).body.take ((certOf 1).cutAt 1).start) =
     (coreOf 1).body.take (((certOf 1).cutAt 1).start - 1) ++
-      [.call "exponent_tables" [] [.n 49, .n 50]] := by
+      [.call "exponent_tables" [] [.n 49]] := by
   have h : ((coreOf 1).body[((certOf 1).cutAt 1).start - 1]?) =
-      some (.call "exponent_tables" [] [.n 49, .n 50]) := rfl
+      some (.call "exponent_tables" [] [.n 49]) := rfl
   obtain ⟨m, hm⟩ : ∃ m, ((certOf 1).cutAt 1).start = m + 1 :=
     ⟨_, (Nat.succ_pred_eq_of_pos (by decide +kernel)).symm⟩
   rw [hm, Nat.add_sub_cancel] at h ⊢

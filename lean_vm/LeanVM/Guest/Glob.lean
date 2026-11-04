@@ -60,9 +60,10 @@ noncomputable def sigOf (j : ℕ) : Sig :=
 /-- The callees: every function but `__jump_tables` and `main`. -/
 def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
-/-- The context the guest's checks share; the semantic relation is that of the exponent tables
-(`B1.ExpTables`), which `verify_sub` assumes of its arguments 4 and 5. -/
-noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, B1.ExpTables⟩
+/-- The context the guest's checks share; the semantic relation is that of the exponent table
+(`B1.ExpTables`) on the first cell of a pair (the certificates pair a cell with itself), which
+`verify_sub` assumes of its argument 4, `g_squares`. -/
+noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, fun rd q _ ↦ B1.ExpTables rd q⟩
 
 /-- **The check of window `i` of function `j`**. -/
 noncomputable def WinOk (j i : ℕ) : Prop :=
