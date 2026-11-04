@@ -56,6 +56,11 @@ def asgAcc : ℕ → ℕ
   | 0 => 16
   | j + 1 => 23 + 7 * j
 
+/-- The pointer into the shares of digit `j`. -/
+def asgPtr : ℕ → ℕ
+  | 0 => 15
+  | j + 1 => 21 + 7 * j
+
 /-- Digit `j + 1`: its range check, its share, the product. -/
 def asgBlk (j : ℕ) : List Stmt :=
   [.atom (.const (.n (17 + 7 * j)) (word 32768 0 0)),
@@ -88,6 +93,18 @@ theorem holds_asgBlk {C : CallRel} {rd : Reader} {σ : Val} (j : ℕ) (kret : Li
     Stmt.HoldsList C rd σ (asgBlk j) True kret ↔ AsgOk rd σ j := by
   simp only [asgBlk, AsgOk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
+/-- The body under any call relation, valuation and continuation, unfolded to its conditions. -/
+theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ asgBody False kret ↔
+      σ (.n 11) = word 32768 0 0 ∧
+      (LoadHolds rd (σ (.n 2)) 0 (σ (.n 13)) ∧ σ (.n 11) = σ (.n 2) * σ (.n 12) ∧
+        LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
+      σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
+      (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ kret [] := by
+  rw [asgBody, asgHead]
+  simp only [holdsList_append, holdsList_range_flatten 8 asgBlk (fun _ => rfl), holds_asgBlk,
+    Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_nil, true_and]
+
 /-- The body, unfolded to its conditions. -/
 theorem asg_unfold (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "assert_small_g_power" args rets ↔ ∃ σ : Val,
@@ -97,9 +114,8 @@ theorem asg_unfold (rd : Reader) (args rets : List E) :
       σ (.n 15) = σ (.n 1) * σ (.n 2) ∧ LoadHolds rd (σ (.n 15)) 34 (σ (.n 16)) ∧
       (∀ j < 8, AsgOk rd σ j) ∧ σ (.n 72) + σ (.n 0) = 0 ∧ [] = rets := by
   rw [rel_iff_sem find_assert_small_g_power, core4_body,
-    show Fn.params Data.core4 = [.n 0, .n 1] from rfl, asgBody, asgHead]
-  simp only [holdsList_append, holdsList_range_flatten 8 asgBlk (fun _ => rfl), holds_asgBlk,
-    Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
+    show Fn.params Data.core4 = [.n 0, .n 1] from rfl]
+  simp only [asg_holds_iff, List.map_cons, List.map_nil]
 
 /-! ## Soundness -/
 
@@ -189,6 +205,89 @@ theorem asgVals_blk (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (j i : ℕ) (hi : 
 theorem mod_sixteen_succ (e j : ℕ) : e % 16 ^ (j + 1) = e % 16 ^ j + e / 16 ^ j % 16 * 16 ^ j := by
   rw [Nat.mod_pow_succ, Nat.mul_comm]
 
+/-- **The honest valuation** of `assert_small_g_power` at `g^e`, `e < 16^9`, on any reader where
+each digit's range check reads its words (`hrc`) and the table at `q` holds the shares (`hshare`). -/
+theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 ^ 9)
+    (hrc : ∀ j, ∃ y t1 t2 : E, LoadHolds rd (gen ^ (e / 16 ^ j % 16)) 0 t1 ∧
+      word (2 ^ (16 - 1)) 0 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds rd y 0 t2)
+    (hshare : ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
+      (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
+    ∃ σ : Val, σ (.n 0) = gen ^ e ∧ σ (.n 1) = q ∧
+      (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
+      Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) := by
+  choose y t1 t2 hrc using hrc
+  let σ : Val := fun v ↦ asgVals (gen ^ e) q e y t1 t2 v.idx
+  have ev : ∀ k, σ (.n k) = asgVals (gen ^ e) q e y t1 t2 k := fun _ ↦ rfl
+  have eb : ∀ j i, i < 7 → σ (.n (17 + 7 * j + i)) = _ := fun j i hi ↦
+    (ev _).trans (asgVals_blk (gen ^ e) q e y t1 t2 j i hi)
+  have w15 : word (2 ^ (16 - 1)) 0 0 = word 32768 0 0 := rfl
+  have ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
+    (ev _).trans (asgVals_d _ q e y t1 t2 j hj)
+  have eh : ∀ i < 6, σ (.n (11 + i)) = _ := fun i hi ↦
+    (ev _).trans (asgVals_head (gen ^ e) q e y t1 t2 i hi)
+  have e1 : σ (.n 1) = q := rfl
+  have e0 : σ (.n 0) = gen ^ e := rfl
+  have hacc : ∀ j < 8, σ (.n (asgAcc j)) = gen ^ (e % 16 ^ (j + 1)) := fun j hj ↦ by
+    cases j with
+    | zero =>
+      rw [show asgAcc 0 = 11 + 5 from rfl, eh 5 (by omega)]
+      simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, Nat.div_one, zero_add,
+        pow_one]
+    | succ j =>
+      rw [show asgAcc (j + 1) = 17 + 7 * j + 6 by simp only [asgAcc]; omega, eb j 6 (by omega)]
+      rfl
+  have d0 := ed 0 (by omega)
+  simp only [pow_zero, Nat.div_one, zero_add] at d0
+  have ep : ∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16) := fun j hj ↦ by
+    cases j with
+    | zero =>
+      rw [show asgPtr 0 = 11 + 4 from rfl, eh 4 (by omega)]
+      rfl
+    | succ j =>
+      rw [show asgPtr (j + 1) = 17 + 7 * j + 4 by simp only [asgPtr]; omega, eb j 4 (by omega)]
+      rfl
+  refine ⟨σ, rfl, rfl, ep, (asg_holds_iff C rd σ _).2
+    ⟨eh 0 (by omega), ⟨?_, ?_, ?_⟩, ?_, ?_, fun j hj ↦ ?_, ?_, rfl⟩⟩
+  · rw [d0, show 13 = 11 + 2 from rfl, eh 2 (by omega)]
+    simpa using (hrc 0).1
+  · rw [d0, show 11 = 11 + 0 from rfl, eh 0 (by omega), show 12 = 11 + 1 from rfl,
+      eh 1 (by omega)]
+    simpa [w15] using (hrc 0).2.1
+  · rw [show 12 = 11 + 1 from rfl, eh 1 (by omega), show 14 = 11 + 3 from rfl, eh 3 (by omega)]
+    simpa using (hrc 0).2.2
+  · rw [show 15 = 11 + 4 from rfl, eh 4 (by omega), e1, d0]
+    simp
+  · rw [show 15 = 11 + 4 from rfl, eh 4 (by omega), show 16 = 11 + 5 from rfl, eh 5 (by omega)]
+    simpa using hshare 0 (by decide)
+  · have dj := ed (j + 1) (by omega)
+    rw [show j + 1 + 2 = 3 + j by omega] at dj
+    refine ⟨?_, ⟨?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+    · rw [show 17 + 7 * j = 17 + 7 * j + 0 from rfl, eb j 0 (by omega)]; rfl
+    · rw [show 19 + 7 * j = 17 + 7 * j + 2 by omega, eb j 2 (by omega), dj]
+      exact (hrc (j + 1)).1
+    · rw [show 17 + 7 * j = 17 + 7 * j + 0 from rfl, eb j 0 (by omega),
+        show 18 + 7 * j = 17 + 7 * j + 1 by omega, eb j 1 (by omega), dj]
+      have := (hrc (j + 1)).2.1
+      rw [w15] at this
+      exact this
+    · rw [show 18 + 7 * j = 17 + 7 * j + 1 by omega, eb j 1 (by omega),
+        show 20 + 7 * j = 17 + 7 * j + 3 by omega, eb j 3 (by omega)]
+      exact (hrc (j + 1)).2.2
+    · rw [show 21 + 7 * j = 17 + 7 * j + 4 by omega, eb j 4 (by omega), e1, dj]
+      rfl
+    · rw [show 21 + 7 * j = 17 + 7 * j + 4 by omega, eb j 4 (by omega),
+        show 22 + 7 * j = 17 + 7 * j + 5 by omega, eb j 5 (by omega)]
+      have := hshare (j + 1) (by omega)
+      rwa [show 34 + 16 * (j + 1) = 50 + 16 * j by omega] at this
+    · rw [show 23 + 7 * j = 17 + 7 * j + 6 by omega, eb j 6 (by omega),
+        show 22 + 7 * j = 17 + 7 * j + 5 by omega, eb j 5 (by omega), hacc j hj]
+      simp only [List.getD_cons_succ, List.getD_cons_zero]
+      rw [mod_sixteen_succ e (j + 1), pow_add]
+  · rw [show 72 = 17 + 7 * 7 + 6 from rfl, eb 7 6 (by omega), e0]
+    simp only [List.getD_cons_succ, List.getD_cons_zero]
+    rw [Nat.mod_eq_of_lt (by simpa using he)]
+    exact e_add_eq_zero_iff.mpr rfl
+
 /-- **`assert_small_g_power`'s core IR is its meaning.** -/
 theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
   intro κ hκ hκ6 Lm x q ht rets
@@ -208,75 +307,16 @@ theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
         word (2 ^ (16 - 1)) 0 0 = gen ^ (e / 16 ^ j % 16) * y ∧ LoadHolds Lm.read y 0 t2 :=
       fun j ↦ (rangeCheck_gen_iff hκ Lm _ (K := 16) (by decide) hK (by decide)).2
         ⟨_, Nat.mod_lt _ (by decide), rfl⟩
-    choose y t1 t2 hrc using hrc
-    let σ : Val := fun v ↦ asgVals (gen ^ e) q e y t1 t2 v.idx
-    have ev : ∀ k, σ (.n k) = asgVals (gen ^ e) q e y t1 t2 k := fun _ ↦ rfl
-    have eb : ∀ j i, i < 7 → σ (.n (17 + 7 * j + i)) = _ := fun j i hi ↦
-      (ev _).trans (asgVals_blk (gen ^ e) q e y t1 t2 j i hi)
-    have w15 : word (2 ^ (16 - 1)) 0 0 = word 32768 0 0 := rfl
     have hshare : ∀ j < 9, LoadHolds Lm.read (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
         (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun j hj ↦ by
       rw [loadHolds_mul_gen_pow]
       have := ht.2.1 j hj (e / 16 ^ j % 16) (Nat.mod_lt _ (by decide))
       rwa [show sizeBits + 16 * j + e / 16 ^ j % 16 = e / 16 ^ j % 16 + (34 + 16 * j) by
         simp only [sizeBits]; omega] at this
-    have ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
-      (ev _).trans (asgVals_d _ q e y t1 t2 j hj)
-    have eh : ∀ i < 6, σ (.n (11 + i)) = _ := fun i hi ↦
-      (ev _).trans (asgVals_head (gen ^ e) q e y t1 t2 i hi)
-    have e1 : σ (.n 1) = q := rfl
-    have e0 : σ (.n 0) = gen ^ e := rfl
-    have hacc : ∀ j < 8, σ (.n (asgAcc j)) = gen ^ (e % 16 ^ (j + 1)) := fun j hj ↦ by
-      cases j with
-      | zero =>
-        rw [show asgAcc 0 = 11 + 5 from rfl, eh 5 (by omega)]
-        simp only [List.getD_cons_succ, List.getD_cons_zero, pow_zero, Nat.div_one, zero_add,
-          pow_one]
-      | succ j =>
-        rw [show asgAcc (j + 1) = 17 + 7 * j + 6 by simp only [asgAcc]; omega, eb j 6 (by omega)]
-        rfl
-    have d0 := ed 0 (by omega)
-    simp only [pow_zero, Nat.div_one, zero_add] at d0
-    refine ⟨σ, rfl, eh 0 (by omega), ⟨?_, ?_, ?_⟩, ?_, ?_, fun j hj ↦ ?_, ?_, rfl⟩
-    · rw [d0, show 13 = 11 + 2 from rfl, eh 2 (by omega)]
-      simpa using (hrc 0).1
-    · rw [d0, show 11 = 11 + 0 from rfl, eh 0 (by omega), show 12 = 11 + 1 from rfl,
-        eh 1 (by omega)]
-      simpa [w15] using (hrc 0).2.1
-    · rw [show 12 = 11 + 1 from rfl, eh 1 (by omega), show 14 = 11 + 3 from rfl, eh 3 (by omega)]
-      simpa using (hrc 0).2.2
-    · rw [show 15 = 11 + 4 from rfl, eh 4 (by omega), e1, d0]
-      simp
-    · rw [show 15 = 11 + 4 from rfl, eh 4 (by omega), show 16 = 11 + 5 from rfl, eh 5 (by omega)]
-      simpa using hshare 0 (by decide)
-    · have dj := ed (j + 1) (by omega)
-      rw [show j + 1 + 2 = 3 + j by omega] at dj
-      refine ⟨?_, ⟨?_, ?_, ?_⟩, ?_, ?_, ?_⟩
-      · rw [show 17 + 7 * j = 17 + 7 * j + 0 from rfl, eb j 0 (by omega)]; rfl
-      · rw [show 19 + 7 * j = 17 + 7 * j + 2 by omega, eb j 2 (by omega), dj]
-        exact (hrc (j + 1)).1
-      · rw [show 17 + 7 * j = 17 + 7 * j + 0 from rfl, eb j 0 (by omega),
-          show 18 + 7 * j = 17 + 7 * j + 1 by omega, eb j 1 (by omega), dj]
-        have := (hrc (j + 1)).2.1
-        rw [w15] at this
-        exact this
-      · rw [show 18 + 7 * j = 17 + 7 * j + 1 by omega, eb j 1 (by omega),
-          show 20 + 7 * j = 17 + 7 * j + 3 by omega, eb j 3 (by omega)]
-        exact (hrc (j + 1)).2.2
-      · rw [show 21 + 7 * j = 17 + 7 * j + 4 by omega, eb j 4 (by omega), e1, dj]
-        rfl
-      · rw [show 21 + 7 * j = 17 + 7 * j + 4 by omega, eb j 4 (by omega),
-          show 22 + 7 * j = 17 + 7 * j + 5 by omega, eb j 5 (by omega)]
-        have := hshare (j + 1) (by omega)
-        rwa [show 34 + 16 * (j + 1) = 50 + 16 * j by omega] at this
-      · rw [show 23 + 7 * j = 17 + 7 * j + 6 by omega, eb j 6 (by omega),
-          show 22 + 7 * j = 17 + 7 * j + 5 by omega, eb j 5 (by omega), hacc j hj]
-        simp only [List.getD_cons_succ, List.getD_cons_zero]
-        rw [mod_sixteen_succ e (j + 1), pow_add]
-    · rw [show 72 = 17 + 7 * 7 + 6 from rfl, eb 7 6 (by omega), e0]
-      simp only [List.getD_cons_succ, List.getD_cons_zero]
-      rw [Nat.mod_eq_of_lt (by simpa using he)]
-      exact e_add_eq_zero_iff.mpr rfl
+    obtain ⟨σ, e0, e1, -, hh⟩ :=
+      asg_holds_of (C := coreProgram.Rel Lm.read) (by simpa using he) hrc hshare
+    obtain ⟨a, b, c, d, f, g, -⟩ := (asg_holds_iff _ _ _ _).1 hh
+    exact ⟨σ, by rw [e0, e1], a, b, c, d, f, g, rfl⟩
 
 end
 end LeanVM.Guest.B1

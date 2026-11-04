@@ -189,7 +189,7 @@ theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (h
     ?_ ?_ ?_)
   · intro fp
     refine ⟨fun _ => ?_, trivial⟩
-    exact (completeAt_of_rel_pureBat rs_pure (by simp) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
+    exact (completeAt_of_rel_pureBat rs_pure (by simp [rsPureNames]) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
       fun rd t hn hv hb => hrs rd t _ _ hn rfl hv hb).toDTB
   · intro fp k hk _ i hi
     rw [List.mem_singleton] at hk

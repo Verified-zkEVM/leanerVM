@@ -37,10 +37,10 @@ after them only the first `tail` cells of the untaken call's frame (`RHint::Allo
 size, a `HeapBuf` when its hint runs. Here a phantom takes its callee's whole frame (`fs f`
 words), more than the Rust's `tail`: the honest memory writes in it only what its caller writes
 (`B2C.phantomE`: the parameters and the self frame pointer cells, which the checker confirms the
-caller's code writes, so cells within the `tail`), and the rest are words nothing writes, which
-the ISA permits; the model allocates `fs f - tail` words more per loop run than the Rust.
-Completeness needs only disjointness, which this order gives by construction; soundness assumes
-nothing of where frames lie.
+caller's code writes: the cells the compiler's `tail` counts), and the rest are words nothing
+writes, which the ISA permits; the model allocates `fs f - tail` words more per loop run than the
+Rust. Completeness needs only disjointness, which this order gives by construction; soundness
+assumes nothing of where frames lie.
 
 `Tree.insts fs lp H fp hdr t` lists the placed call instances (`Inst`), `lp` saying which
 functions are loop helpers: the tree, its frame, its header words `fp[0]`, `fp[1]`, its callees'

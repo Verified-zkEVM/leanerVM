@@ -143,7 +143,7 @@ theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
     · exact testBit_lor_r (scc c hc)
 
 theorem apart_j {j : ℕ} (hS : ShareOk j) : Apart j := by
-  exact apart_of (shareStatic_spec hS.1).2.2.2.1
+  exact apart_of (shareStatic_spec hS.1).2.2.1
 
 end Apart
 
@@ -205,7 +205,7 @@ theorem valOk_global {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (
     v = V.n v.idx ∧ cellJ j v < fsN j ∧ bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
       (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
   have hcont := cont_of hchk
-  obtain ⟨-, -, hsn, -, hpv⟩ := shareStatic_spec hS.1
+  obtain ⟨-, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
     locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h
@@ -661,7 +661,7 @@ theorem read_args {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
 
 /-- The fixed cells lie in the frame. -/
 theorem stat_in (hS : ShareOk j) {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) : 2 ≤ q.1 ∧ q.1 < fsN j := by
-  obtain ⟨-, hlists, -, -, -⟩ := shareStatic_spec hS.1
+  obtain ⟨hlists, -, -, -⟩ := shareStatic_spec hS.1
   simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
   have := (hlists.1.1.1.1.1 q hq).1
   simp only [Nat.ble_eq, Nat.blt_eq] at this

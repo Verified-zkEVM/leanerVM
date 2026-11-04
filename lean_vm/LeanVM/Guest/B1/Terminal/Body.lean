@@ -14,13 +14,31 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem term_body : Data.core17.body = termT := stmtsEqb_sound (by decide +kernel)
+/-- The function's parameters. -/
+def termParams : List V :=
+  [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
+      .n 13, .n 14, .n 15, .n 16, .n 17]
 
-theorem find_term : coreProgram.find? "check_opening_terminal" = some Data.core17 :=
-  Program.find?_of_indexOf? (j := 17) (by decide +kernel) rfl
+/-- The function, found by name, has the eighteen parameters and the template's body. -/
+noncomputable def termCheck : Bool :=
+  match coreProgram.find? "check_opening_terminal" with
+  | some fn => decide (fn.params = termParams) && stmtsEqb fn.body termT
+  | none => false
 
-/-- The template's claims end at value `1990`, the sum at `1989`. -/
-theorem claimsT_end : (claimsT (List.range 165) claimsStart 16).2 = (1990, 1989) := by
+theorem termCheck_eq : termCheck = true := by decide +kernel
+
+theorem termFound : ∃ fn : Fn, coreProgram.find? "check_opening_terminal" = some fn ∧
+    fn.params = termParams ∧ fn.body = termT := by
+  have h := termCheck_eq
+  unfold termCheck at h
+  split at h
+  · rename_i fn hf
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
+  · exact absurd h (by simp)
+
+/-- The template's claims end at value `1746`, the sum at `1744`, `lam_out` at `1745`. -/
+theorem termClaims_end : termClaims.2 = (1746, 1744, 1745) := by
   decide +kernel
 
 end

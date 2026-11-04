@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkOpen
 
-  `verify_keccak`'s openings' lane weights (`keccak_slot_lanes`, G:2739-2752) and dot products.
+  `verify_keccak`'s openings' lane weights (`keccak_slot_lanes`, G:2893-2907) and dot products.
 -/
 
 module
