@@ -9,18 +9,17 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SpWotsGroupComplete
-public import LeanVM.Guest.B1.Sig.SpWotsPostCheck
-public import LeanVM.Guest.B1.Sig.SpWotsLeafCheck
 public import LeanVM.Guest.B1.Sig.SpWotsSound
 public import LeanVM.Guest.B1.Sig.SpWotsData
+public import LeanVM.Guest.B1.Sig.CompleteKit
 
 /-!
 # `sp_wots`, complete
 
 The valuation: the arguments; the powers; each digit group with the digest's digits (`spK`) and
-the chain values' cells loaded at its arm's starts (`spGroupsC`); the checks, which hold since the
-digits are the digest's (`spCheck_complete`); the leaf's message, evaluated with its padding run at
-the last group's digit cells and moved (`spLeaf_complete`); the copy. The returned leaf is then read
+the chain values' cells loaded at its arm's starts (`spGroupsC`), the first setting the padding
+run; the checks, which hold since the digits are the digest's (`spCheck_complete`); the leaf's
+message over that run (`spLeaf_complete`); the copy. The returned leaf is then read
 off by soundness (`sp_wots_sound`): its chain values are the loaded ones (`spValues_eq`).
 -/
 
@@ -90,8 +89,11 @@ theorem spEnd_eq (p : Nat) :
 theorem spState_succ_end {p : Nat} (hp : p < 21) : (spState (p + 1)).2.2 = spEnd p := by
   rw [spState_succ, spEnd, spN_of_lt hp]
 
-theorem spState_le_end (p : Nat) : (spState p).2.2 + 5 ≤ spEnd p := by
-  rw [spEnd_eq]; exact spArmB_ge ..
+theorem spState_le_end (p : Nat) : (spState p).2.2 + 6 ≤ spEnd p := by
+  rw [spEnd_eq]
+  have := spArmB_ge (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 (4 ^ spN p)
+  have := spL_ge (p == 0) (spState p).2.2
+  omega
 
 theorem spState_mono : ∀ {p q : Nat}, p ≤ q → q ≤ 21 → (spState p).2.2 ≤ (spState q).2.2
   | p, q, h, hq => by
@@ -107,21 +109,56 @@ theorem spState_mono : ∀ {p q : Nat}, p ≤ q → q ≤ 21 → (spState p).2.2
           · have : p = q + 1 := by omega
             subst this; exact le_rfl
 
+/-- Every group's arms lie above the padding run. -/
+theorem spL_state : ∀ q, q ≤ 21 → 18 ≤ spL (q == 0) (spState q).2.2
+  | 0, _ => by rw [spState_zero]; decide
+  | q + 1, hq => by
+      have ih := spL_state q (by omega)
+      have h1 : spL (q + 1 == 0) (spState (q + 1)).2.2 = (spState (q + 1)).2.2 := by simp [spL]
+      rw [h1, spState_succ_end (by omega), spEnd_eq]
+      have := spArmB_ge (3 * q) (spN q) (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1 (4 ^ spN q)
+      omega
+
+/-- A later group's running product and encoding lie below its base, and its base above `23`. -/
+theorem spState_in {p : Nat} (hp0 : 0 < p) (hp : p ≤ 21) :
+    NBv (spState p).2.2 (spState p).1 ∧ NBv (spState p).2.2 (spState p).2.1 ∧ 24 ≤ (spState p).2.2 := by
+  obtain ⟨q, rfl⟩ : ∃ q, p = q + 1 := ⟨p - 1, by omega⟩
+  have hl := spL_state q (by omega)
+  have he := spEnc_lt_end (3 * q) 3 (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1
+  have hg := spArmB_ge (3 * q) 3 (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1 (4 ^ 3)
+  have hend : (spState (q + 1)).2.2 = spArmB (3 * q) 3 (q == 0) (spState q).2.2 (spState q).1
+      (spState q).2.1 (4 ^ 3) := by
+    rw [spState_succ_end (by omega), spEnd_eq, spN_of_lt (by omega)]
+  rw [hend]
+  rw [spState_succ]
+  unfold spEnc at he
+  exact ⟨⟨_, by omega, rfl⟩, ⟨_, by unfold spEnc; omega, rfl⟩, by omega⟩
+
 /-- What group `q` establishes: its digit word, its arm's tips canonical and starts loaded. -/
 def SpGP (digest : Digest) (values : Sphincs.ChainIndex → Digest) (q : Nat) (σ : Val) : Prop :=
   σ (.n (spState q).2.2) = ofK (addressOfIndex (spK digest q)) ∧
     SpArmPost (3 * q) (spN q) (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1 (spK digest q)
       (fun t => spCv values (3 * q + t)) σ
 
-theorem SpGP.keep {digest : Digest} {values : Sphincs.ChainIndex → Digest} {q : Nat} (hq : q < 22)
+theorem spPost_q {q t : Nat} (k : Nat) (hk : k < 4 ^ spN q) (ht : t < spN q) :
+    ((spState q).2.2 ≤ spSlot (q == 0) (spState q).2.2 t 2 ∧ spSlot (q == 0) (spState q).2.2 t 2 < spEnd q) ∧
+      ∃ j, spStartOf (3 * q) (spN q) (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1 k
+        (spArmB (3 * q) (spN q) (q == 0) (spState q).2.2 (spState q).1 (spState q).2.1 k) t = .n j ∧
+        (spState q).2.2 ≤ j ∧ j < spEnd q := by
+  obtain ⟨⟨h1, h2⟩, j, ej, h3, h4⟩ := spPost_bounds (3 * q) (spN q) (q == 0) (spState q).2.2
+    (spState q).1 (spState q).2.1 hk ht
+  have := spL_ge (q == 0) (spState q).2.2
+  rw [← spEnd_eq] at h2 h4
+  exact ⟨⟨by omega, h2⟩, j, ej, by omega, h4⟩
+
+theorem SpGP.keep {digest : Digest} {values : Sphincs.ChainIndex → Digest} {q : Nat}
     {σ σ' : Val} (h : SpGP digest values q σ) {lo hi : Nat} (he : Ext lo hi σ σ') (hlo : spEnd q ≤ lo) :
     SpGP digest values q σ' := by
-  obtain ⟨hs, hst⟩ := spPost_all hq
   have hB := spState_le_end q
-  rw [spEnd_eq] at hlo hB
   refine ⟨by rw [he.apply (Or.inl (by omega))]; exact h.1, fun t ht => ?_, fun t ht => ?_⟩
-  · rw [he.apply (Or.inl (by have := (hs t ht).2; omega))]; exact h.2.1 t ht
-  · obtain ⟨j, e, -, hj⟩ := hst _ (spK_lt digest q) t ht
+  · rw [he.apply (Or.inl (by have := (spPost_q (spK digest q) (spK_lt digest q) ht).1.2; omega))]
+    exact h.2.1 t ht
+  · obtain ⟨j, e, -, hj⟩ := (spPost_q (spK digest q) (spK_lt digest q) ht).2
     rw [e, he.apply (Or.inl (by omega)), ← e]
     exact h.2.2 t ht
 
@@ -149,27 +186,91 @@ theorem spGL_snoc : ∀ m p, spGL p (m + 1) = spGL p m ++
 /-- The end of groups `p ..< p + m`. -/
 def spGLEnd (p m : Nat) : Nat := if m = 0 then (spState p).2.2 else spEnd (p + m - 1)
 
+/-- What a valuation needs before group `p`: before the first, `pp` and the key's address canonical;
+before a later one, those and the padding run (`SpGood`). -/
+def SpBefore (p : Nat) (σ : Val) : Prop :=
+  if p = 0 then IsCanonical128 (σ (.n 0)) ∧ IsCanonical128 (σ (.n 1)) else SpGood spPad σ
+
+/-- **Group `p` of the body completes**, its digit word `g^k` loaded. -/
+theorem spGroupP_complete {p k : Nat} (hp : p < 22) (hk : k < 4 ^ spN p) (hm : MemOK rd 64)
+    (σ : Val) (hσ : SpBefore p σ) (vals : Nat → E) (hv : ∀ t < spN p, IsCanonical128 (vals t)) :
+    Completes C rd (spState p).2.2
+      (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).2
+      (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).1 σ
+      (fun σ' => σ' (.n (spState p).2.2) = ofK (addressOfIndex k) ∧
+        SpArmPost (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k vals σ' ∧
+        SpGood spPad σ') := by
+  rcases Nat.eq_zero_or_pos p with rfl | hp0
+  · simp only [SpBefore, ↓reduceIte] at hσ
+    rw [spState_zero]
+    exact spGroupT_complete (Bs := 23) (spN_le 0) hk hm le_rfl (by decide) ⟨0, by norm_num, rfl⟩
+      ⟨0, by norm_num, rfl⟩ vals hv σ (fun σ' hag hpre =>
+        ⟨by rw [← hag 0 (by norm_num)]; exact hσ.1, by rw [← hag 1 (by norm_num)]; exact hσ.2,
+          padRun_ok (P := 13 + 5) hpre⟩)
+  · have hσ' : SpGood spPad σ := by simpa [SpBefore, show p ≠ 0 by omega] using hσ
+    obtain ⟨hpi, hei, h24⟩ := spState_in hp0 (by omega)
+    have hl : spL (p == 0) (spState p).2.2 = (spState p).2.2 := by
+      simp [spL, show p ≠ 0 by omega]
+    exact spGroupT_complete (Bs := (spState p).2.2) (spN_le p) hk hm (by omega) (by rw [hl]; omega)
+      hpi hei vals hv σ (fun σ' hag _ =>
+        spGood_congr (B := (spState p).2.2) (by simp [spPad]; omega) (by omega) hag hσ')
+
+/-- **Group `p`'s values are numbered below its end.** -/
+theorem spGroupP_nb {p : Nat} (hp : p < 22) :
+    NumBelow (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).2
+      (Stmt.valsList (spGroupT (3 * p) (spN p) (p == 0) (spState p).1 (spState p).2.1 (spState p).2.2).1) := by
+  have hl := spL_state p (by omega)
+  rcases Nat.eq_zero_or_pos p with rfl | hp0
+  · rw [spState_zero] at hl ⊢
+    exact spGroupT_nb (spN_le 0) (by omega) ⟨0, by norm_num, rfl⟩ ⟨0, by norm_num, rfl⟩
+  · obtain ⟨hpi, hei, -⟩ := spState_in hp0 (by omega)
+    have hl' : spL (p == 0) (spState p).2.2 = (spState p).2.2 := by
+      simp [spL, show p ≠ 0 by omega]
+    exact spGroupT_nb (spN_le p) (by omega) (by rw [hl']; exact NBv.mono' hpi (by omega))
+      (by rw [hl']; exact NBv.mono' hei (by omega))
+
+/-- **Groups `p ..< p + m`' values are numbered below their end.** -/
+theorem spGL_nb : ∀ m p, p + m ≤ 22 → NumBelow (spGLEnd p m) (Stmt.valsList (spGL p m))
+  | 0, _, _ => NumBelow.nil _
+  | m + 1, p, hpm => by
+      have hnb := spGroupP_nb (show p < 22 by omega)
+      rcases Nat.eq_zero_or_pos m with rfl | hm0
+      · simp only [spGL, List.append_nil]
+        have e : spGLEnd p 1 = spEnd p := by simp [spGLEnd]
+        rw [e]; exact hnb
+      · have e : spGLEnd (p + 1) m = spGLEnd p (m + 1) := by
+          unfold spGLEnd; simp only [show m ≠ 0 by omega, ↓reduceIte, Nat.add_eq_zero_iff]
+          congr 1; omega
+        have hle : spEnd p ≤ spGLEnd (p + 1) m := by
+          unfold spGLEnd; simp only [show m ≠ 0 by omega, ↓reduceIte]
+          have := spState_le_end (p + 1 + m - 1)
+          have := spState_mono (p := p + 1) (q := p + 1 + m - 1) (by omega) (by omega)
+          rw [← spState_succ_end (show p < 21 by omega)] at *
+          omega
+        simp only [spGL, valsList_append]
+        rw [← e]
+        exact (hnb.mono hle).append (spGL_nb m (p + 1) (by omega))
+
 /-- **Groups `p ..< p + m` complete**, each with the digest's digits and the values loaded. -/
 theorem spGroupsC (digest : Digest) (values : Sphincs.ChainIndex → Digest) (hm : MemOK rd 64) :
-    ∀ m p, p + m ≤ 22 → ∀ σ, IsCanonical128 (σ (.n 0)) → IsCanonical128 (σ (.n 1)) →
+    ∀ m p, p + m ≤ 22 → ∀ σ, SpBefore p σ →
       Completes C rd (spState p).2.2 (spGLEnd p m) (spGL p m) σ
-        (fun σ' => ∀ q, p ≤ q → q < p + m → SpGP digest values q σ') ∧
-      NumBelow (spGLEnd p m) (Stmt.valsList (spGL p m))
-  | 0, p, _, σ, _, _ => ⟨⟨σ, Ext.refl _ _ _, fun q h1 h2 => by omega, fun _ _ hn => hn⟩,
-      NumBelow.nil _⟩
-  | m + 1, p, hpm, σ, h0, h1 => by
+        (fun σ' => (∀ q, p ≤ q → q < p + m → SpGP digest values q σ') ∧ SpBefore (p + m) σ')
+  | 0, p, _, σ, hσ => ⟨σ, Ext.refl _ _ _, ⟨fun q h1 h2 => by omega, by simpa using hσ⟩, fun _ _ hn => hn⟩
+  | m + 1, p, hpm, σ, hσ => by
       have hp : p < 22 := by omega
-      have hg := spGroupP_complete (C := C) hp (spK_lt digest p) hm σ h0 h1
+      have hg := spGroupP_complete (C := C) hp (spK_lt digest p) hm σ hσ
         (fun t => spCv values (3 * p + t)) (fun t _ => spCv_canon _ _)
       have hnb := spGroupP_nb hp
-      have hB := spState_le_end p
+      have hbefore : ∀ σ', SpGood spPad σ' → SpBefore (p + 1) σ' := fun σ' h => by
+        simpa [SpBefore] using h
       rcases Nat.eq_zero_or_pos m with rfl | hm0
       · simp only [spGL, List.append_nil]
         have e : spGLEnd p 1 = spEnd p := by simp [spGLEnd]
         rw [e]
-        exact ⟨hg.mono le_rfl le_rfl (fun σ' hσ' q h1 h2 => by
+        exact hg.mono le_rfl le_rfl (fun σ' hσ' => ⟨fun q h1 h2 => by
           have : q = p := by omega
-          subst this; exact hσ'), hnb⟩
+          subst this; exact ⟨hσ'.1, hσ'.2.1⟩, hbefore σ' hσ'.2.2⟩)
       · have hp21 : p < 21 := by omega
         have hst := spState_succ_end hp21
         have e : spGLEnd (p + 1) m = spGLEnd p (m + 1) := by
@@ -180,29 +281,18 @@ theorem spGroupsC (digest : Digest) (values : Sphincs.ChainIndex → Digest) (hm
           have := spState_le_end (p + 1 + m - 1)
           have := spState_mono (p := p + 1) (q := p + 1 + m - 1) (by omega) (by omega)
           omega
-        obtain ⟨-, hnbR⟩ := spGroupsC digest values hm m (p + 1) (by omega) σ h0 h1
-        refine ⟨?_, ?_⟩
-        · simp only [spGL]
-          refine Completes.append (m := spEnd p) (by omega) (by rw [← e]; exact hle) hnb hg
-            (fun σ1 he1 hp1 => ?_)
-          have hag : AgreeBelow (spState p).2.2 σ σ1 := he1.agree
-          have hB13 : 13 ≤ (spState p).2.2 := by
-            have := spGroupPad_all hp
-            simp only [spGroupPadOK, Bool.and_eq_true, decide_eq_true_eq] at this
-            exact this.1.2
-          obtain ⟨ih, -⟩ := spGroupsC digest values hm m (p + 1) (by omega) σ1
-            (by rw [← hag 0 (by omega)]; exact h0) (by rw [← hag 1 (by omega)]; exact h1)
-          rw [hst, e] at ih
-          refine (ih.keep (Q := SpGP digest values p) (Q' := SpGP digest values p) hp1
-            (fun σ' he' hq => hq.keep hp he' le_rfl)).mono le_rfl le_rfl
-            (fun σ' ⟨hr, hq⟩ q h1 h2 => ?_)
-          rcases Nat.lt_or_ge q (p + 1) with h | h
-          · have : q = p := by omega
-            subst this; exact hq
-          · exact hr q h (by omega)
-        · simp only [spGL, valsList_append]
-          rw [← e]
-          exact (hnb.mono hle).append hnbR
+        simp only [spGL]
+        refine Completes.append (m := spEnd p) (by have := spState_le_end p; omega)
+          (by rw [← e]; exact hle) hnb hg (fun σ1 _ hp1 => ?_)
+        have ih := spGroupsC digest values hm m (p + 1) (by omega) σ1 (hbefore σ1 hp1.2.2)
+        rw [hst, e] at ih
+        refine (ih.keep (Q := SpGP digest values p) (Q' := SpGP digest values p) ⟨hp1.1, hp1.2.1⟩
+          (fun σ' he' hq => hq.keep he' le_rfl)).mono le_rfl le_rfl
+          (fun σ' ⟨⟨hr, hb⟩, hq⟩ => ⟨fun q h1 h2 => ?_, by rwa [show p + 1 + m = p + (m + 1) by omega] at hb⟩)
+        rcases Nat.lt_or_ge q (p + 1) with h | h
+        · have : q = p := by omega
+          subst this; exact hq
+        · exact hr q h (by omega)
 
 theorem spGL_full : spGL 0 22 = spGs.1 ++ spLast.1 := by
   rw [spGL_snoc 21 0, ← spGL_eq 21 0 (by norm_num), ← spGs_fst, spLast_eq]
@@ -214,28 +304,27 @@ theorem spGLEnd_full : spGLEnd 0 22 = spC := by
   rw [spC, spLast_eq]
   rfl
 
-theorem spC_ge : 13 ≤ spC := by
+theorem spC_ge : 24 ≤ spC := by
   rw [← spGLEnd_full]
   unfold spGLEnd
   simp only [show (22 : Nat) ≠ 0 by norm_num, ↓reduceIte, show 0 + 22 - 1 = 21 by norm_num]
   have := spState_le_end 21
-  have := spState_mono (p := 0) (q := 21) (by norm_num) le_rfl
-  rw [spState_zero] at this
-  simp only at this
+  have := (spState_in (p := 21) (by norm_num) le_rfl).2.2
   omega
 
 /-- **The powers and the groups complete**, the digits the digest's and the values loaded. -/
 theorem spCode_complete (digest : Digest) (values : Sphincs.ChainIndex → Digest) (hm : MemOK rd 64)
     (σ : Val) (h0 : IsCanonical128 (σ (.n 0))) (h1 : IsCanonical128 (σ (.n 1))) :
     Completes C rd 3 spC (spPowers ++ (spGs.1 ++ spLast.1)) σ
-      (fun σ' => (∀ s < 10, σ' (.n (3 + s)) = gen ^ s) ∧ ∀ q < 22, SpGP digest values q σ') ∧
+      (fun σ' => (∀ s < 10, σ' (.n (3 + s)) = gen ^ s) ∧ (∀ q < 22, SpGP digest values q σ') ∧
+        SpGood spPad σ') ∧
     NumBelow spC (Stmt.valsList (spPowers ++ (spGs.1 ++ spLast.1))) := by
   have hseq : SeqOK 3 spPowers 13 := seqB_ok (by decide +kernel)
   rw [← spGL_full, ← spGLEnd_full]
   have hst0 : (spState 0).2.2 = 13 := by rw [spState_zero]
   have hC := spC_ge
   rw [← spGLEnd_full] at hC
-  refine ⟨Completes.append (m := 13) (by norm_num) hC hseq.numBelow (seq_completes hseq σ)
+  refine ⟨Completes.append (m := 13) (by norm_num) (by omega) hseq.numBelow (seq_completes hseq σ)
     (fun σ1 he1 hp1 => ?_), ?_⟩
   · have hpow : ∀ s < 10, σ1 (.n (3 + s)) = gen ^ s := by
       intro s hs
@@ -244,16 +333,18 @@ theorem spCode_complete (digest : Digest) (values : Sphincs.ChainIndex → Diges
         exact ⟨s, hs, rfl⟩)
       rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
     have hag : AgreeBelow 3 σ σ1 := he1.agree
-    obtain ⟨hg, -⟩ := spGroupsC (C := C) digest values hm 22 0 (by norm_num) σ1
-      (by rw [← hag 0 (by norm_num)]; exact h0) (by rw [← hag 1 (by norm_num)]; exact h1)
+    have hg := spGroupsC (C := C) digest values hm 22 0 (by norm_num) σ1
+      (by simp only [SpBefore, ↓reduceIte]
+          exact ⟨by rw [← hag 0 (by norm_num)]; exact h0, by rw [← hag 1 (by norm_num)]; exact h1⟩)
     rw [hst0] at hg
     refine (hg.keep (Q := fun σ => ∀ s < 10, σ (.n (3 + s)) = gen ^ s)
       (Q' := fun σ => ∀ s < 10, σ (.n (3 + s)) = gen ^ s) hpow
       (fun σ' he' hq s hs => by rw [he'.apply (Or.inl (by omega))]; exact hq s hs)).mono le_rfl le_rfl
-      (fun σ' ⟨hr, hq⟩ => ⟨hq, fun q hq' => hr q (Nat.zero_le _) (by omega)⟩)
+      (fun σ' ⟨⟨hr, hb⟩, hq⟩ => ⟨hq, fun q hq' => hr q (Nat.zero_le _) (by omega),
+        by simpa [SpBefore] using hb⟩)
   · rw [valsList_append]
-    obtain ⟨-, hnb⟩ := spGroupsC (C := C) digest values hm 22 0 (by norm_num) σ h0 h1
-    exact (hseq.numBelow.mono hC).append hnb
+    have hnb := spGL_nb 22 0 (by norm_num)
+    exact (hseq.numBelow.mono (by omega)).append hnb
 
 theorem spN_mod (i : Nat) (hi : i < 64) : i % 3 < spN (i / 3) := by
   unfold spN; split <;> omega
@@ -267,9 +358,10 @@ theorem spVals {digest : Digest} {values : Sphincs.ChainIndex → Digest} {σ : 
     σ (.n (spEnc false 1 (spState 21).2.2)) = cellOf128 digest ∧
       σ (.n (spProd false 1 (spState 21).2.2)) = spTarget := by
   rw [spGs_fst] at h
-  obtain ⟨s2, hg⟩ := spGroupsT_sound (C := C) (rd := rd) (σ := σ) 21 0 (by norm_num) h
+  obtain ⟨s2, hpad, hg⟩ := spGroupsT_sound (C := C) (rd := rd) (σ := σ) 21 0 (by norm_num) h
+  have hpad := hpad rfl (by norm_num)
   rw [spLast_eq] at s2
-  obtain ⟨-, kL, hkL, hxL, haL⟩ := spGroupT_sound s2
+  obtain ⟨-, -, kL, hkL, hxL, haL⟩ := spGroupT_sound s2
   have hgrp : ∀ p < 22, SpGroupOK rd σ p := by
     intro p hp
     by_cases hp21 : p < 21
@@ -277,7 +369,7 @@ theorem spVals {digest : Digest} {values : Sphincs.ChainIndex → Digest} {σ : 
     · have : p = 21 := by omega
       subst this
       exact ⟨kL, by simpa [spN] using hkL, hxL, by simpa [spN] using haL⟩
-  obtain ⟨-, hprod, henc⟩ := spCodeword_sound hpow hgrp
+  obtain ⟨-, hprod, henc⟩ := spCodeword_sound hpow hpad hgrp
   have hdig : ∀ i < 64, spDigit σ i = digest.toNat / 4 ^ i % 4 := by
     intro i hi
     unfold spDigit
@@ -307,14 +399,22 @@ theorem upds3 (σ : Val) (e0 e1 e2 : E) (k : Nat) :
   · rw [upds_cons_ne _ _ _ (by omega), upds_cons_self]
   · rw [upds_cons_ne _ _ _ (by omega), upds_cons_ne _ _ _ (by omega), upds_cons_self]
 
+/-- The codeword's product and encoding lie below the checks. -/
+theorem spEP_lt : spEnc false 1 (spState 21).2.2 < spC ∧ spProd false 1 (spState 21).2.2 < spC := by
+  have h := spEnc_lt_end 63 1 false (spState 21).2.2 (spState 21).1 (spState 21).2.1
+  have e : spC = spArmB 63 1 false (spState 21).2.2 (spState 21).1 (spState 21).2.1 (4 ^ 1) := by
+    rw [spC, spLast_eq, spGroupT_end]
+  rw [← e] at h
+  unfold spEnc at h
+  exact ⟨by unfold spEnc; omega, by omega⟩
+
 /-- **The checks complete**, the encoding the argument's and the product the target. -/
 theorem spCheck_complete (σ : Val)
     (henc : σ (.n (spEnc false 1 (spState 21).2.2)) = σ (.n 2))
     (hprod : σ (.n (spProd false 1 (spState 21).2.2)) = spTarget) :
     Completes C rd spC (spC + 3) spChecks σ
       (fun σ' => σ' (.n (spC + 2)) = σ (.n 1) + word (tw 2) 0 0) := by
-  obtain ⟨-, -, -, -, -, -, -, hE, hP⟩ := spLeaf_check
-  rw [spLeafB] at hE hP
+  obtain ⟨hE, hP⟩ := spEP_lt
   have hC := spC_ge
   obtain ⟨e0, e1, e2⟩ := upds3 σ spTarget (word (tw 2) 0 0) (σ (.n 1) + word (tw 2) 0 0) spC
   have hext : Ext spC (spC + 3) σ
@@ -339,27 +439,13 @@ theorem spCheck_complete (σ : Val)
     rw [e2, below 1 (by omega), e1]
 
 theorem spChecks_nb : NumBelow (spC + 3) (Stmt.valsList spChecks) := by
-  obtain ⟨-, -, -, -, -, -, -, hE, hP⟩ := spLeaf_check
-  rw [spLeafB] at hE hP
+  obtain ⟨hE, hP⟩ := spEP_lt
   have hC := spC_ge
   intro v hv
   simp only [spChecks, cst, addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
     List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hv
   rcases hv with (rfl | rfl) | rfl | (rfl | rfl) | rfl | (rfl | rfl | rfl)
   all_goals exact ⟨_, by omega, rfl⟩
-
-theorem padPull_lt (σ : Val) {B P j : Nat} (hj : j < B ∨ B + 5 ≤ j) (hP : j < P) :
-    padPull σ B P (.n j) = σ (.n j) := by
-  have e : ¬ (B ≤ j ∧ j < B + 5) := by omega
-  simp only [padPull, V.n, true_and, e, ↓reduceIte, padRen_n, show ¬ P ≤ j by omega]
-
-theorem padPull_canon (σ : Val) {B P : Nat} {j : Nat} (hP : j < P) (h : IsCanonical128 (σ (.n j))) :
-    IsCanonical128 (padPull σ B P (.n j)) := by
-  by_cases hj : B ≤ j ∧ j < B + 5
-  · have e : padPull σ B P (.n j) = padC (j - B) := by
-      simp only [padPull, hj, and_self, ↓reduceIte]
-    rw [e]; exact canon_word _ _
-  · rw [padPull_lt σ (by omega) hP]; exact h
 
 theorem spEnd_le_C {q : Nat} (hq : q < 22) : spEnd q ≤ spC := by
   rw [← spGLEnd_full]
@@ -381,53 +467,40 @@ theorem spLeafCells_lt : ∀ v ∈ spLeafCells, ∃ j, v = .n j ∧ j < spC + 3 
   · exact ⟨0, rfl, by omega⟩
   · exact ⟨_, rfl, by omega⟩
   · have hp : i / 3 < 22 := by omega
-    have h := ((spPost_all hp).1 (i % 3) (spN_mod i hi)).2
-    rw [← spEnd_eq] at h
+    have h := (spPost_q (q := i / 3) 0 (by positivity) (spN_mod i hi)).1.2
     have := spEnd_le_C hp
     exact ⟨_, rfl, by omega⟩
 
-/-- **The leaf's message completes** on canonical cells, its padding run moved. -/
-theorem spLeaf_complete (σ : Val) (hc : ∀ v ∈ spLeafCells, IsCanonical128 (σ v)) :
+/-- **The leaf's message completes** on canonical cells, over the padding run. -/
+theorem spLeaf_complete (σ : Val) (hp : PadOK σ spPad) (hc : ∀ v ∈ spLeafCells, IsCanonical128 (σ v)) :
     Completes C rd (spC + 3) spLeafK.2.1 spLeafK.1 σ (fun _ => True) ∧
       NumBelow spLeafK.2.1 (Stmt.valsList spLeafK.1) := by
-  obtain ⟨hpar, hE, -, hB5, hP3, hPE, -, -, -⟩ := spLeaf_check
-  obtain ⟨hsome, hcells, -, -⟩ := spLeafPad
-  obtain ⟨i, hf⟩ := Option.isSome_iff_exists.mp hsome
-  have hP : firstDef (spLeafM.1.getD i default) = spLeafP := by rw [spLeafP, padBase_eq hf]
-  have hK : spLeafK.1 = (Stmt.renameList (padRen spLeafB spLeafP) spLeafMb.1).take i ++ padRun spLeafP ++
-      (Stmt.renameList (padRen spLeafB spLeafP) spLeafMb.1).drop i := by
-    show (withPad spVPad isKeccak spLeafM.1).1 = _
-    rw [withPad_some hf, hP, hpar]
-  have hK2 : spLeafK.2.1 = spLeafM.2.1 + 5 := by
-    show spLeafM.2.1 + (withPad spVPad isKeccak spLeafM.1).2 = _
-    rw [withPad_some hf]
-  set σ0 := padPull σ spLeafB spLeafP with hσ0
-  obtain ⟨hcomp, hnb, -⟩ := kMsg_complete (C := C) (rd := rd) (pad := spLeafB)
-    (cells := spLeafCells.map KC.cell) (len := 1056) (tailRun := false) (b := spC + 3) σ0
-    (padOK_padPull σ _ _) hB5 (fun c hcm => by
+  have hC := spC_ge
+  obtain ⟨h1, h2, -⟩ := kMsg_complete (C := C) (rd := rd) (pad := spPad)
+    (cells := spLeafCells.map KC.cell) (len := 1056) (tailRun := false) (b := spC + 3) σ hp
+    (by simp [spPad]; omega) (fun c hcm => by
       obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hcm
-      obtain ⟨e, hlt⟩ := hcells v hv
       obtain ⟨j, ej, hj⟩ := spLeafCells_lt v hv
-      refine ⟨⟨j, hj, ej⟩, ?_⟩
-      show IsCanonical128 (σ0 v)
-      rw [e]
-      exact padPull_canon σ hlt (by rw [← e]; exact hc v hv)) (fun h => by simp at h)
-  change Completes C rd (spC + 3) spLeafMb.2.1 spLeafMb.1 σ0 _ at hcomp
-  change NumBelow spLeafMb.2.1 (Stmt.valsList spLeafMb.1) at hnb
-  rw [hE] at hcomp hnb
-  obtain ⟨σ1, he1, -, hh1⟩ := hcomp
-  have hat : atomsOnly spLeafMb.1 = true := kMsg_atoms ..
-  have hA : AtomsHold rd σ1 spLeafMb.1 := atomsHold_of_holdsList (C := C) (kret := fun _ => True) hat
-    (hh1 True (fun _ => True) trivial)
-  have hv : ∀ v ∈ Stmt.valsList spLeafMb.1, ∃ j, v = .n j ∧ j < spLeafM.2.1 := fun v hv =>
-    let ⟨j, hj, e⟩ := hnb v hv; ⟨j, e, hj⟩
-  have hpadv : ∀ j < 5, σ1 (.n (spLeafB + j)) = padC j := fun j hj => by
-    rw [he1.apply (Or.inl (by omega)), hσ0, padPull_run σ hj]
-  have hag : ∀ j < spC + 3, (j < spLeafB ∨ spLeafB + 5 ≤ j) → σ1 (.n j) = σ (.n j) := fun j hj h => by
-    rw [he1.apply (Or.inl hj), hσ0, padPull_lt σ h (by omega)]
-  rw [hK, hK2]
-  exact ⟨(padMove_completes (C := C) (rd := rd) hat hP3 hPE le_rfl hv hpadv hag hA i).mono le_rfl le_rfl
-    (fun _ _ => trivial), padMove_numBelow hat hPE hv i⟩
+      exact ⟨⟨j, hj, ej⟩, hc v hv⟩) (fun h => by simp at h)
+  exact ⟨h1, h2⟩
+
+theorem spLeafCells_KCb : ∀ c ∈ spLeafCells.map KC.cell, KCb (spC + 3) c := by
+  intro c hcm
+  obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hcm
+  obtain ⟨j, ej, hj⟩ := spLeafCells_lt v hv
+  exact ⟨j, hj, ej⟩
+
+theorem spLeafK_le : spC + 3 ≤ spLeafK.2.1 :=
+  kMsg_le (by simp [spPad]; have := spC_ge; omega) spLeafCells_KCb
+
+theorem spLeafK_out : spLeafK.2.2 < spLeafK.2.1 := by
+  have := kMsg_out spPad (spLeafCells.map KC.cell) 1056 false (spC + 3)
+  show (kMsg spPad (spLeafCells.map KC.cell) 1056 false none (spC + 3)).2.2 <
+    (kMsg spPad (spLeafCells.map KC.cell) 1056 false none (spC + 3)).2.1
+  omega
+
+theorem spLeaf_nb : NumBelow spLeafK.2.1 (Stmt.valsList spLeafK.1) :=
+  kMsg_numBelow (by simp [spPad]; have := spC_ge; omega) spLeafCells_KCb
 
 /-! ## `sp_wots`, complete -/
 
@@ -464,10 +537,10 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
   obtain ⟨hA, hnbA⟩ := spCode_complete (C := C) (rd := rd) digest values hm σI c0 c1
   -- the checks
   have hB : Completes C rd 3 (spC + 3) ((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) σI
-      (fun σ' => (∀ q < 22, SpGP digest values q σ') ∧
+      (fun σ' => ((∀ q < 22, SpGP digest values q σ') ∧ SpGood spPad σ') ∧
         σ' (.n (spC + 2)) = σI (.n 1) + word (tw 2) 0 0) := by
     refine Completes.append (m := spC) (by omega) (by omega) hnbA hA.withHolds
-      (fun σ2 he2 ⟨⟨hpow, hgp⟩, hh2⟩ => ?_)
+      (fun σ2 he2 ⟨⟨hpow, hgp, hgd⟩, hh2⟩ => ?_)
     have hag2 : AgreeBelow 3 σI σ2 := he2.agree
     have h22 : σ2 (.n 2) = cellOf128 digest := by rw [← hag2 2 (by norm_num)]; exact i2
     have h21 : σ2 (.n 1) = σI (.n 1) := (hag2 1 (by norm_num)).symm
@@ -475,19 +548,18 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
     rw [show spGs.1 ++ spLast.1 = spGs.1 ++ (spLast.1 ++ []) by simp] at hs
     obtain ⟨henc, hprod⟩ := spVals hs hpow hgp hT
     refine ((spCheck_complete (C := C) (rd := rd) σ2 (by rw [henc, h22]) hprod).keep
-      (Q := fun σ => ∀ q < 22, SpGP digest values q σ) (Q' := fun σ => ∀ q < 22, SpGP digest values q σ) hgp
-      (fun σ' he' hq q hq' => (hq q hq').keep hq' he' (spEnd_le_C hq'))).mono le_rfl le_rfl
+      (Q := fun σ => (∀ q < 22, SpGP digest values q σ) ∧ SpGood spPad σ)
+      (Q' := fun σ => (∀ q < 22, SpGP digest values q σ) ∧ SpGood spPad σ) ⟨hgp, hgd⟩
+      (fun σ' he' hq => ⟨fun q hq' => (hq.1 q hq').keep he' (spEnd_le_C hq'),
+        spGood_congr (B := spC) (by simp [spPad]; omega) (by omega) he'.agree hq.2⟩)).mono le_rfl le_rfl
       (fun σ' ⟨h1, h2⟩ => ⟨h2, by rw [h1, h21]⟩)
   -- the leaf
-  have hLe : spC + 3 ≤ spLeafK.2.1 := by
-    obtain ⟨-, -, -, -, hP3, hPE, -, -, -⟩ := spLeaf_check
-    show spC + 3 ≤ spLeafM.2.1 + (withPad spVPad isKeccak spLeafM.1).2
-    omega
+  have hLe : spC + 3 ≤ spLeafK.2.1 := spLeafK_le
   have hnbB : NumBelow (spC + 3) (Stmt.valsList ((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks)) := by
     rw [valsList_append]; exact (hnbA.mono (by omega)).append spChecks_nb
   have hL : Completes C rd 3 spLeafK.2.1 (((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) ++ spLeafK.1) σI
       (fun σ' => ∀ q < 22, SpGP digest values q σ') := by
-    refine Completes.append (m := spC + 3) (by omega) hLe hnbB hB (fun σ3 he3 ⟨hgp3, h32⟩ => ?_)
+    refine Completes.append (m := spC + 3) (by omega) hLe hnbB hB (fun σ3 he3 ⟨⟨hgp3, hgd3⟩, h32⟩ => ?_)
     have hag3 : AgreeBelow 3 σI σ3 := he3.agree
     have hcells : ∀ v ∈ spLeafCells, IsCanonical128 (σ3 v) := by
       intro v hv
@@ -498,25 +570,22 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
       · rw [h32]; exact canon_add c1 (canon_word _ _)
       · have hp : i / 3 < 22 := by omega
         exact (hgp3 (i / 3) hp).2.1 (i % 3) (spN_mod i hi)
-    refine ((spLeaf_complete (C := C) (rd := rd) σ3 hcells).1.keep
+    refine ((spLeaf_complete (C := C) (rd := rd) σ3 hgd3.2.2 hcells).1.keep
       (Q := fun σ => ∀ q < 22, SpGP digest values q σ) (Q' := fun σ => ∀ q < 22, SpGP digest values q σ) hgp3
-      (fun σ' he' hq q hq' => (hq q hq').keep hq' he' (by have := spEnd_le_C hq'; omega))).mono le_rfl le_rfl
+      (fun σ' he' hq q hq' => (hq q hq').keep he' (by have := spEnd_le_C hq'; omega))).mono le_rfl le_rfl
       (fun σ' h => h.2)
   -- the copy
-  have hlt : spLeafK.2.2 < spLeafK.2.1 := by
-    obtain ⟨-, -, -, -, -, -, h, -, -⟩ := spLeaf_check
-    show spLeafM.2.2 + (withPad spVPad isKeccak spLeafM.1).2 < spLeafM.2.1 + (withPad spVPad isKeccak spLeafM.1).2
-    omega
+  have hlt : spLeafK.2.2 < spLeafK.2.1 := spLeafK_out
   have hnbL : NumBelow spLeafK.2.1
       (Stmt.valsList (((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) ++ spLeafK.1)) := by
-    rw [valsList_append]; exact (hnbB.mono hLe).append (spLeaf_complete (C := C) (rd := rd) (fun _ => 0) (fun _ _ => canon_zero)).2
+    rw [valsList_append]; exact (hnbB.mono hLe).append spLeaf_nb
   have hD : Completes C rd 3 (spLeafK.2.1 + 1)
       ((((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) ++ spLeafK.1) ++ [copyS (.n spLeafK.2.1) (.n spLeafK.2.2)])
       σI (fun σ' => ∀ q < 22, SpGP digest values q σ') := by
     refine Completes.append (m := spLeafK.2.1) (by omega) (by omega) hnbL hL (fun σ4 he4 hgp4 => ?_)
     have hext : Ext spLeafK.2.1 (spLeafK.2.1 + 1) σ4 (upds σ4 [(spLeafK.2.1, σ4 (.n spLeafK.2.2))]) :=
       upds_ext σ4 _ (by simp)
-    refine completes_atoms rfl hext (fun q hq => (hgp4 q hq).keep hq hext
+    refine completes_atoms rfl hext (fun q hq => (hgp4 q hq).keep hext
       (by have := spEnd_le_C hq; omega)) (fun a ha => ?_)
     simp only [copyS, List.mem_singleton, Stmt.atom.injEq] at ha
     subst ha

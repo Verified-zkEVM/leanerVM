@@ -1610,13 +1610,13 @@ noncomputable def startSt (j i : ℕ) : SSt :=
 
 /-- What the static check says. -/
 theorem shareStatic_spec (h : shareStatic j = true) :
-    fsN j < 2 ^ envDepth ∧ listsOk (plumbOf j) (fsN j) = true ∧ snapsOk (certOf j) (snapsOf j) = true ∧
+    listsOk (plumbOf j) (fsN j) = true ∧ snapsOk (certOf j) (snapsOf j) = true ∧
       apartOk j = true ∧
       ∀ v ∈ (coreOf j).params, valOk (locW (certOf j) 0) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j))
         (fpgCells (plumbOf j)) (fsN j) v = true := by
   unfold shareStatic at h
   simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at h
-  exact ⟨h.1.1.1.1.2, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
+  exact ⟨h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
 
 /-- What a window's check says. -/
 theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
@@ -1757,7 +1757,7 @@ theorem chain_sound (hS : ShareOk j)
     intro i hi pre Ψ hI es vs hw he
     have hiN : i < (snapsOf j).length := by omega
     obtain ⟨-, hval, m, hsw, href⟩ := shareWin_spec (hS.2 i hiN.le)
-    obtain ⟨-, -, hmono, -, -⟩ := shareStatic_spec hS.1
+    obtain ⟨-, hmono, -, -⟩ := shareStatic_spec hS.1
     rw [fromW_split hiN (snapsOk_spec hmono hiN).1, walk_append_sh] at hw
     have hfit : FitV (locW (certOf j) (winW (snapsOf j) i)) (cellJ j) (Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i)) :=
       fitV_of (hA i hiN.le) fun v hv ↦ hval v (List.mem_append_left _ hv)
@@ -1874,7 +1874,7 @@ theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
       ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OffsetInstruction.immediateWord a b
           c := by
   have hcont := cont_of hchk
-  obtain ⟨-, hlists, hsn, -, hpv⟩ := shareStatic_spec hS.1
+  obtain ⟨hlists, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
     locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h

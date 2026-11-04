@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Terminal.Body
 * `chain_value`: `eq_prefix_chain(chain, 1, a, point1, g^|A|)` over the words `A` at `a` makes
   `chain[m]` the weight of `A`'s first `m` words against `x`'s;
 * `sel_value`: committed column `c`'s selector is `selProd` of its offset's bits above its size,
-  and the offset is a multiple of `2^κ`;
+  the offset a multiple of `2^κ`;
 * the sizes of `columnKappas` (`kappas_qkeccak`, `kappas_lane`, `kappas_memory`).
 -/
 
@@ -120,38 +120,50 @@ theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length =
 
 /-! ## The selectors -/
 
-/-- **Committed column `c`'s selector.** -/
+/-- **Committed column `c`'s selector**, its `g^κ` at `kb[src]·g^adj`, its offset `g^o` with `o` a
+multiple of `2^κ` (`stackOffsets` lays the blocks out largest first). -/
 theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tables_Spec)
+    {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {σ : Val} {c κ o L : ℕ} {x : List E} {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (selBlockT c) True kret)
-    (hstc : coreProgram.Rel rd "selector_tables" [σ (.n 14), σ (.n 15)] [σ (.n 34), σ (.n 35)])
-    (hoff : LoadHolds rd (σ (.n 10)) c (gen ^ o)) (hkap : LoadHolds rd (σ (.n 11)) c (gen ^ κ))
+    (h : Stmt.HoldsList (coreProgram.Rel Lm.read) Lm.read σ (selBlockT c) True kret)
+    (hstc : coreProgram.Rel Lm.read "selector_tables" [σ (.n 13), σ (.n 14)] [σ (.n 41)])
+    (hgt : Tables.GTabsAt Lm.read (σ (.n 0) * gen ^ 34))
+    (hkap : σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ κ)
+    (hoff : LoadHolds Lm.read (σ (.n 10)) c (gen ^ o)) (hdvd : 2 ^ κ ∣ o)
     (hκ : κ ≤ L) (hL : L ≤ 28) (ho : o < 2 ^ L) (hx : x.length = L)
-    (hpt : ReadsAt rd (σ (.n 14)) (padPoint x))
-    (hpt1 : ReadsAt rd (σ (.n 15)) ((padPoint x).map (1 + ·))) :
-    σ (.n (selV c)) = selProd o κ (L - κ) x ∧ 2 ^ κ ∣ o := by
-  simp only [selBlockT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at h
-  obtain ⟨loff, lkap, ⟨j, hj, hkj, hcall⟩, -⟩ := h
+    (hpt : ReadsAt Lm.read (σ (.n 13)) (padPoint x))
+    (hpt1 : ReadsAt Lm.read (σ (.n 14)) ((padPoint x).map (1 + ·))) :
+    σ (.n (selV c)) = selProd o κ (L - κ) x := by
+  have hadj : Tables.colKappaAdj c < 64 := by unfold Tables.colKappaAdj; split_ifs <;> omega
+  simp only [selBlockT, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨loff, h⟩ := h
+  obtain ⟨hkv, h⟩ := kapT_sound (src := Tables.colKappaSrc c) (r := selStart c + 1) (rest := [])
+    hadj (by rw [List.append_nil]; exact h)
+  simp only [Stmt.HoldsList, List.map_cons, List.map_nil] at h
+  obtain ⟨c34, m35, ⟨j, hj, hkj, hcall⟩, -⟩ := h
   have hjl : j < 29 := by simpa [colSelNames] using hj
-  rw [loadHolds_unique lkap hkap, ← gen_pow_eq_ofK] at hkj
+  have hkv' : σ (.n (selKap c).2.1) = gen ^ κ := hkv.trans hkap
+  rw [hkv', ← gen_pow_eq_ofK] at hkj
   have hjκ : κ = j := gen_pow_inj_le (by omega) (by omega) hkj
   subst hjκ
   simp only [colSelNames, List.getElem_map, List.getElem_range] at hcall
-  have hout := hcs κ hjl rd _ _ hcall
+  have hsg : σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 := by
+    rw [m35, c34, show (17179869184 : ℕ) = 2 ^ 34 from rfl, word_two_pow (by decide)]
+  rw [hsg] at hcall
+  have hout := hcs κ hjl μ hμ Lm _ _ hcall
   have hxl : x.length ≤ termPointCap := by simp only [termPointCap]; omega
   have hpl : (padPoint x).length = termPointCap := padPoint_length hxl
-  have htabs := hst rd _ _ hstc ((padPoint x).take 28) (((padPoint x).map (1 + ·)).take 28)
+  have htabs := hst Lm.read _ _ hstc ((padPoint x).take 28) (((padPoint x).map (1 + ·)).take 28)
     (by simp [hpl, termPointCap]) (by simp [hpl, termPointCap]) (readsAt_take hpt 28)
     (readsAt_take hpt1 28)
-  obtain ⟨o', ho', hdiv, hoff', hsel⟩ := hout htabs.2
+  obtain ⟨o', ho', -, hoff', hsel⟩ := hout hgt
   have e := loadHolds_unique loff hoff
   rw [e] at hoff'
   have ho2 : o < 2 ^ 28 := lt_of_lt_of_le ho (Nat.pow_le_pow_right (by decide) hL)
   have hoo : o = o' :=
     gen_pow_inj (lt_trans ho2 (by norm_num)) (lt_trans ho' (by norm_num)) hoff'
   subst hoo
-  refine ⟨?_, hdiv⟩
-  rw [hsel _ _ (by simp [hpl, termPointCap]) (by simp [hpl, termPointCap]) htabs.1,
+  rw [hsel hdvd _ _ (by simp [hpl, termPointCap]) (by simp [hpl, termPointCap]) htabs,
     bitsEq_sel o (by omega) hxl, selProd_pad hx ho hκ (by omega)]
 
 end

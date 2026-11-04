@@ -40,58 +40,10 @@ arguments `args`. -/
 noncomputable def vtσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
   B1.Val.ofArgs (ev rd w args vtEvL)
 
-/-- An `assertNe` read as the product it checks (`fixNe` on atoms). -/
-def fixA : Atom → Atom
-  | .assertNe x i p => .mul p x i
-  | a => a
-
-theorem fixNe_atom (a : Atom) : fixNe (.atom a) = .atom (fixA a) := by
-  cases a <;> rfl
-
 /-- The equations of a block, as one conjunction. -/
 def GoodL (rd : Reader) (w : ℕ → E) (σ : Val) : List Stmt → Prop
   | [] => True
   | s :: ss => GoodS rd vtSL w σ (fixNe s) ∧ GoodL rd w σ ss
-
-/-- A hint. -/
-def hintB : Atom → Bool
-  | .hint _ => true
-  | _ => false
-
-/-- What holds by evaluation alone: constants, sums, copies, products of older values, hints. -/
-def autoB : Stmt → Bool
-  | .atom a => pureB a || hintB a
-  | _ => false
-
-/-! ## Membership -/
-
-theorem mem_flatIte_of {s : Stmt} (hni : ∀ c z n, s ≠ .ite c z n) :
-    ∀ {ss : List Stmt}, s ∈ ss → s ∈ flatIte ss
-  | [], h => absurd h (by simp)
-  | t :: ss, h => by
-    rcases List.mem_cons.mp h with rfl | h
-    · cases s with
-      | ite c z n => exact absurd rfl (hni c z n)
-      | _ => simp [flatIte]
-    · have ih := mem_flatIte_of hni h
-      cases t with
-      | ite c z n => simp [flatIte, ih]
-      | _ => simp [flatIte, ih]
-
-theorem mem_flatIte_ite {c : V} {z n : List Stmt} :
-    ∀ {ss : List Stmt}, Stmt.ite c z n ∈ ss → ∀ t ∈ z ++ n, t ∈ flatIte ss
-  | [], h => absurd h (by simp)
-  | u :: ss, h => by
-    intro t ht
-    rcases List.mem_cons.mp h with rfl | h
-    · simp only [flatIte, List.mem_append]
-      rcases List.mem_append.mp ht with ht | ht
-      · exact Or.inl (Or.inl ht)
-      · exact Or.inl (Or.inr ht)
-    · have ih := mem_flatIte_ite h t ht
-      cases u with
-      | ite c' z' n' => simp [flatIte, ih]
-      | _ => simp [flatIte, ih]
 
 /-- A statement of the body, not an `ite`, is in the list as `fixNe` reads it. -/
 theorem vtEvL_mem {s : Stmt} (hs : s ∈ vtPre) (hni : ∀ c z n, s ≠ .ite c z n) :
