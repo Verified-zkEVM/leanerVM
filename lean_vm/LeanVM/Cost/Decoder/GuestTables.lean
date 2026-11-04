@@ -350,8 +350,8 @@ def guestLocsRow21 : List (List ℕ) := [
     Data.cert21_w19_0,
     Data.cert21_w20_0]
 
-/-- Each function's frame cells (`(certOf j).locs`), as lists. -/
-def guestLocsList : List (List ℕ) := [
+/-- Functions 0 to 511's frame cells. -/
+def guestLocsList0 : List (List ℕ) := [
     [],
     [Data.cert1_w0_0].flatten,
     [Data.cert2_w0_0].flatten,
@@ -863,7 +863,10 @@ def guestLocsList : List (List ℕ) := [
     [Data.cert508_w0_0].flatten,
     [Data.cert509_w0_0].flatten,
     [Data.cert510_w0_0].flatten,
-    [Data.cert511_w0_0].flatten,
+    [Data.cert511_w0_0].flatten]
+
+/-- Functions 512 to 947's frame cells. -/
+def guestLocsList1 : List (List ℕ) := [
     [Data.cert512_w0_0].flatten,
     [Data.cert513_w0_0].flatten,
     [Data.cert514_w0_0].flatten,
@@ -1300,6 +1303,11 @@ def guestLocsList : List (List ℕ) := [
     [Data.cert945_w0_0, Data.cert945_w1_0, Data.cert945_w2_0, Data.cert945_w3_0].flatten,
     [Data.cert946_w0_0].flatten,
     [Data.cert947_w0_0, Data.cert947_w1_0, Data.cert947_w2_0, Data.cert947_w3_0].flatten]
+
+/-- Each function's frame cells (`(certOf j).locs`), as lists: the parts' (a list literal of
+948 rows exceeds the code generator's recursion depth). -/
+def guestLocsList : List (List ℕ) :=
+    guestLocsList0 ++ guestLocsList1
 
 /-- Each function's frame cells, as arrays: the decoder's literal (reducible: the compiler's
 literal rule reads its list). -/
