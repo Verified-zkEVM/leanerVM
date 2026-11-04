@@ -26,13 +26,13 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables LeanVM.Protocol.Verifier
 
 theorem vsPushT_noNe : vsPushT.all noNeB = true := by decide +kernel
 
-theorem vsPush_notS : ∀ b < 54, Atom.load (.n (if b = 0 then 307 else 306 + 4 * b)) (.n 149) b ∉ vsSL ∧
+theorem vsPush_notS : ∀ b < 54, Atom.load (.n (if b = 0 then 307 else 306 + 4 * b)) (.n XBK) b ∉ vsSL ∧
     Atom.load (.n (if b = 0 then 309 else 308 + 4 * b)) (.n (if b = 0 then 308 else 307 + 4 * b)) 0
       ∉ vsSL := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsPushT_good (hl : args.length = 7) :
+theorem vsPushT_good (hl : args.length = 6) :
     ∀ s ∈ vsPushT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 432) (blk := vsPushT)
@@ -43,11 +43,11 @@ theorem vsPushStep_mem {b : ℕ} (hb : b < 54) {s : Stmt} (hs : s ∈ vsPushStep
   List.mem_append_left _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩)
 
 /-- The push blocks' running product, honestly. -/
-theorem vsPush_loop (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
+theorem vsPush_loop (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
     (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
-    (hbk : ReadsAt rd (vsσ rd w args (.n 149))
+    (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·))))
-    (hexp : B1.ExpTables rd (vsσ rd w args (.n 4)) (vsσ rd w args (.n 5)))
+    (hexp : B1.ExpTables rd (vsσ rd w args (.n XGLP)) (vsσ rd w args (.n 4)))
     {C : CallRel} {kret : List E → Prop} :
     ∀ n < 54, ∀ {nx : Prop}, nx →
       vsσ rd w args (.n (vsPV n)) =
@@ -59,17 +59,17 @@ theorem vsPush_loop (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl :
   have rd2 : ∀ b < 54, ∀ (k1 m k2 : ℕ), k1 = (if b = 0 then 307 else 306 + 4 * b) →
       m = (if b = 0 then 308 else 307 + 4 * b) → k2 = (if b = 0 then 309 else 308 + 4 * b) →
       vsLd k1 149 b ∈ vsPushStep b → vsMul m 5 k1 ∈ vsPushStep b → vsLd k2 m 0 ∈ vsPushStep b →
-      σ (.n k1) = gen ^ pushKappa logMem hs b ∧ (Atom.load (.n k1) (.n 149) b).Holds rd σ ∧
-        σ (.n m) = σ (.n 5) * σ (.n k1) ∧ (Atom.mul (.n m) (.n 5) (.n k1)).Holds rd σ ∧
+      σ (.n k1) = gen ^ pushKappa logMem hs b ∧ (Atom.load (.n k1) (.n XBK) b).Holds rd σ ∧
+        σ (.n m) = σ (.n 4) * σ (.n k1) ∧ (Atom.mul (.n m) (.n 4) (.n k1)).Holds rd σ ∧
         σ (.n k2) = gen ^ 2 ^ pushKappa logMem hs b ∧ (Atom.load (.n k2) (.n m) 0).Holds rd σ := by
     intro b hb k1 m k2 e1 em e2 h1 hm' h2
-    have hbL : LoadHolds rd (σ (.n 149)) b (gen ^ pushKappa logMem hs b) := by
+    have hbL : LoadHolds rd (σ (.n XBK)) b (gen ^ pushKappa logMem hs b) := by
       rw [← bkw_getD hsl (by show b < 153; omega), List.getD_eq_getElem _ _
         (by simp only [Tables.blockKappaWords, List.length_map, List.length_range]; show b < 153; omega)]
       exact hbk _ _
-    have g1 : Good rd vsSL w σ (.load (.n k1) (.n 149) b) := hG _ (vsPushStep_mem hb h1)
+    have g1 : Good rd vsSL w σ (.load (.n k1) (.n XBK) b) := hG _ (vsPushStep_mem hb h1)
     have r1 := good_read g1 (by rw [e1]; exact (vsPush_notS b hb).1) hbL
-    have gm : Good rd vsSL w σ (.mul (.n m) (.n 5) (.n k1)) := hG _ (vsPushStep_mem hb hm')
+    have gm : Good rd vsSL w σ (.mul (.n m) (.n 4) (.n k1)) := hG _ (vsPushStep_mem hb hm')
     simp only [Good] at gm
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by
       rw [e1, em]; by_cases h0 : b = 0 <;> simp [h0]; omega))] at gm
@@ -112,21 +112,21 @@ theorem vsPush_loop (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl :
       exact hp
 
 /-- **The push total and the bus depth, honestly.** -/
-theorem vsPushT_complete (hl : args.length = 7) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
+theorem vsPushT_complete (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ} (hsl : hs.length = 6)
     (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
-    (hbk : ReadsAt rd (vsσ rd w args (.n 149))
+    (hbk : ReadsAt rd (vsσ rd w args (.n XBK))
       (Tables.blockKappaWords (gen ^ logMem) (hs.map (gen ^ ·))))
-    (hexp : B1.ExpTables rd (vsσ rd w args (.n 4)) (vsσ rd w args (.n 5)))
-    {C : CallRel} (hC : ∀ r, vsσ rd w args (.n 522) = r →
+    (hexp : B1.ExpTables rd (vsσ rd w args (.n XGLP)) (vsσ rd w args (.n 4)))
+    {C : CallRel} (hC : ∀ r, vsσ rd w args (.n 309) = r →
       C "log2_ceil_in_the_exponent__L0_L34"
         [gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum,
-          vsσ rd w args (.n 4), vsσ rd w args (.n 5)] [r])
+          vsσ rd w args (.n XGLP), vsσ rd w args (.n 4)] [r])
     {next : Prop} {kret : List E → Prop} (hn : next) :
-    vsσ rd w args (.n 521) = gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧
+    vsσ rd w args (.n 308) = gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧
       Stmt.HoldsList C rd (vsσ rd w args) vsPushT next kret := by
   have hrest : Stmt.HoldsList C rd (vsσ rd w args)
       [vsCall "log2_ceil_in_the_exponent__L0_L34" [521, 4, 5] [522],
-        .atom (.hint (.allocDyn (.n 523) (.n 522)))] next kret := by
+        .atom (.hint (.allocDyn (.n 310) (.n 309)))] next kret := by
     obtain ⟨e521, -⟩ := vsPush_loop (C := C) (kret := kret) hl hsl hh hm hbk hexp 53 (by norm_num)
       (nx := True) trivial
     simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil]

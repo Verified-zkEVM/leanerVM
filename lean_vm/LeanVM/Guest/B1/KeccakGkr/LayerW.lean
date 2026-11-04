@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 # A layer, from its facts
 
 `LayerW` collects, for one reading of `keccak_layer`'s arguments (the claim `c`, `y`, the waiting
-word `w`), the facts its body gives (G:2462-2707): the product read, the projection check, the
+word `w`), the facts its body gives (G:2681-2862): the product read, the projection check, the
 squeeze after the product, the instance weights written, the pack rounds' records and calls, the
 eleven position rounds, `t`, the final check, the squeeze `β` and the next claim's record.
 `layer_of_w` turns them into the meaning: `layer_runsTo` with `pack_chain`'s messages, and the
@@ -31,7 +31,7 @@ open LeanVM.Protocol.KeccakGkr
 @[expose] public section
 
 /-- The facts of a `keccak_layer` specialization's body, for one reading of its arguments. -/
-structure LayerW (first odd : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur hg yl claim out iota : E)
+structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out iota : E)
     (rets : List E) (c : KeccakClaim) (w : E) : Type where
   prod : List E
   hprodL : prod.length = productBits
@@ -47,14 +47,16 @@ structure LayerW (first odd : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur hg yl claim
   pp : E
   hpp : LoadHolds rd claim 2 pp
   h0 : RoundRec rd rc 0 capS (cur * gen ^ productBits) (polyEval prod sv) 1
-  hloop : IsInK (1 + hg) ∧
-    (1 + hg ≠ 0 → coreProgram.Rel rd (packLoopName first odd) [1, hg, rc, pp, pt] [])
-  hoddc : odd = 1 → coreProgram.Rel rd "keccak_round" [rc * hg, pp * hg ^ 2, pt * hg ^ 2] []
+  hloop : IsInK (1 + sg) ∧
+    (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rc, pp, pt] [])
+  hrem : IsInK (1 + rg) ∧
+    (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rc * sg, pp * sg ^ 8,
+      pt * sg ^ 8] [])
   capL : List E
   curL : E
   vL : E
   scL : E
-  hlast : RoundRec rd (rc * yl) 0 capL curL vL scL
+  hlast : RoundRec rd (rc * sg * rg) 0 capL curL vL scL
   msgs : List (E × E × E)
   hmsgsL : msgs.length = keccakLocalBits
   hmsgs : ReadsAt rd curL (msgs.flatMap fun m ↦ [m.1, m.2.1, m.2.2])
@@ -77,23 +79,22 @@ structure LayerW (first odd : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur hg yl claim
   hout2 : LoadHolds rd out 2 pt
   hout4 : LoadHolds rd out 4 loc
   lo : E
-  sl : E
+  fl : E
   hout3 : LoadHolds rd out 3 lo
   hlanes : ReadsAt rd lo (lanesOut locPt beta)
-  hout5 : LoadHolds rd out 5 sl
-  hslices : ReadsAt rd sl (eqKernel (locPt.take 6))
+  hout5 : LoadHolds rd out 5 fl
+  hflips : ReadsAt rd fl (flipsOf (laterWeights (lanesOut locPt beta) (eqKernel (locPt.take 6))))
   hrets : rets = capB ++ [curL * gen ^ 36]
 
 theorem lanesOut_length (loc : List E) (beta : E) : (lanesOut loc beta).length = 25 := by
   simp [lanesOut]
 
-/-- **A layer, from its facts** (G:2462-2707 against V:1983-2019). -/
-theorem layer_of_w {first odd : ℕ} (hf : first < 2) (ho : odd < 2) {rd : Reader}
-    {f0 f1 f2 f3 f4 cur hg yl claim out iota : E} {rets : List E} {y step : ℕ} {c : KeccakClaim}
-    {w : E} (hy : y % 2 = odd) (hy32 : y < 32) (hhg : hg = gen ^ (y / 2))
-    (hyl : yl = gen ^ (y / 2 + odd)) (hcr : ClaimRec rd (first = 1) claim c y)
-    (hiota : iota = keccakIota (y + 3) step c)
-    (W : LayerW first odd rd f0 f1 f2 f3 f4 cur hg yl claim out iota rets c w) :
+/-- **A layer, from its facts** (G:2681-2862 against V:1983-2019). -/
+theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
+    {f0 f1 f2 f3 f4 cur sg rg claim out iota : E} {rets : List E} {y step : ℕ} {c : KeccakClaim}
+    {w : E} (hy32 : y < 32) (hsg : sg = gen ^ (y / krStep)) (hrg : rg = gen ^ (y % krStep))
+    (hcr : ClaimRec rd (first = 1) claim c y) (hiota : iota = keccakIota (y + 3) step c)
+    (W : LayerW first rd f0 f1 f2 f3 f4 cur sg rg claim out iota rets c w) :
     ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd cur xs ∧
       RunsTo (verifyKeccakLayer (y + 3) step c) (plainStart first [f0, f1, f2, f3, f4] w) xs c'
         ⟨cap', []⟩ ∧
@@ -105,7 +106,7 @@ theorem layer_of_w {first odd : ℕ} (hf : first < 2) (ho : odd < 2) {rd : Reade
     simp only [layerSq] at h
     rw [← h]; exact squeeze_cap_canonical _
   obtain ⟨msgsP, chs, hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2, -⟩ :=
-    pack_chain hf ho hy hhg hyl hy32 hptL (epp ▸ hppR) W.h0 hcanS W.hloop W.hoddc W.hlast
+    pack_chain hf hsg hrg hy32 hptL (epp ▸ hppR) W.h0 hcanS W.hloop W.hrem W.hlast
   have hpack : packRunF c.point msgsP (polyEval W.prod W.sv) 1 ⟨W.capS, []⟩ =
       ((W.vL, W.scL, chs), ⟨W.capL, []⟩) := Prod.ext hrun1 hrun2
   have hsq1 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod).1 = W.sv := by
@@ -150,9 +151,11 @@ theorem layer_of_w {first odd : ℕ} (hf : first < 2) (ho : odd < 2) {rd : Reade
       exact W.ht
   · simp only [ClaimRec, layerClaim, hsq1, hP, hL, hB, Bool.false_eq_true, ↓reduceIte]
     refine ⟨keccakInstanceWeights_length _, hchL, W.hout0, W.hkapOut, W.hmuOut, ⟨W.pt, W.hout2, hchR⟩,
-      W.lo, lanesOut W.locPt W.beta, W.hout3, lanesOut_length _ _, W.hlanes, W.loc, W.sl, W.locPt,
-      W.hout4, hlocL, W.hloc, W.hout5, W.hslices, ?_⟩
-    rw [laterWeights, ← batch_factor W.locPt hlocL W.beta]
+      W.lo, lanesOut W.locPt W.beta, W.hout3, lanesOut_length _ _, W.hlanes, W.loc, W.fl, W.locPt,
+      W.hout4, hlocL, W.hloc, W.hout5, ?_, ?_⟩
+    · have := W.hflips
+      rwa [laterWeights, ← batch_factor W.locPt hlocL W.beta] at this
+    · rw [laterWeights, ← batch_factor W.locPt hlocL W.beta]
   · refine W.hrets.trans ?_
     rw [hc']
     simp only [List.length_append, List.length_cons, List.length_nil, W.hprodL,

@@ -28,14 +28,14 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables LeanVM.Protocol.Verifier
 
 theorem vsCallsT_noNe : vsCallsT.all noNeB = true := by decide +kernel
 
-theorem vsCalls_notS : Atom.load (.n 858) (.n 129) 6 ∉ vsSL := by decide +kernel
+theorem vsCalls_notS : Atom.load (.n 646) (.n 127) 6 ∉ vsSL := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The three calls' section, honestly.** -/
-theorem vsCallsT_complete (hl : args.length = 7) {τg : E}
-    (hd6 : LoadHolds rd (vsσ rd w args (.n 129)) 6 τg) {C : CallRel}
+theorem vsCallsT_complete (hl : args.length = 6) {τg : E}
+    (hd6 : LoadHolds rd (vsσ rd w args (.n 127)) 6 τg) {C : CallRel}
     (hCg : C "verify_bus_gkr" ([825, 826, 827, 828, 829, 838, 522, 523].map (vsσ rd w args ∘ V.n))
       ((List.range 9).map (vsσ rd w args ∘ V.n ∘ (839 + ·))))
     (hCt : C "verify_tables" ([839, 840, 841, 842, 843, 844, 0, 1, 523, 522, 129, 28, 149, 5, 640,
@@ -44,8 +44,8 @@ theorem vsCallsT_complete (hl : args.length = 7) {τg : E}
     (hCk : C "verify_keccak" ([849, 850, 851, 852, 853, 854, 858, 848, 862, 859, 860].map
       (vsσ rd w args ∘ V.n)) ((List.range 8).map (vsσ rd w args ∘ V.n ∘ (863 + ·))))
     {next : Prop} {kret : List E → Prop} (hn : next) :
-    vsσ rd w args (.n 838) = vsσ rd w args (.n 27) * gen ^ 10 ∧ vsσ rd w args (.n 858) = τg ∧
-      vsσ rd w args (.n 862) = vsσ rd w args (.n 7) * gen ^ 110 ∧
+    vsσ rd w args (.n 625) = vsσ rd w args (.n 25) * gen ^ 10 ∧ vsσ rd w args (.n 646) = τg ∧
+      vsσ rd w args (.n 650) = vsσ rd w args (.n 6) * gen ^ 110 ∧
       (∀ i < 5, vsσ rd w args (.n (871 + i)) = vsσ rd w args (.n (863 + i))) ∧
       Stmt.HoldsList C rd (vsσ rd w args) vsCallsT next kret := by
   have hG : ∀ s ∈ vsCallsT, GoodS rd vsSL w (vsσ rd w args) s := fun s hs ↦ by
@@ -58,11 +58,11 @@ theorem vsCallsT_complete (hl : args.length = 7) {τg : E}
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
     rw [vsCallsT]
     rcases hs with rfl | rfl | rfl | rfl | rfl <;> simp
-  have c837 : vsσ rd w args (.n 837) = word 1024 0 0 := hG (vsConst 837 _) (m _ (by simp))
-  have c861 : vsσ rd w args (.n 861) = word 1899956092796928 0 0 := hG (vsConst 861 _) (m _ (by simp))
-  have g838 : Good rd vsSL w (vsσ rd w args) (.mul (.n 838) (.n 27) (.n 837)) :=
+  have c837 : vsσ rd w args (.n 624) = word 1024 0 0 := hG (vsConst 837 _) (m _ (by simp))
+  have c861 : vsσ rd w args (.n 649) = word 1899956092796928 0 0 := hG (vsConst 861 _) (m _ (by simp))
+  have g838 : Good rd vsSL w (vsσ rd w args) (.mul (.n 625) (.n 25) (.n 624)) :=
     hG (vsMul 838 27 837) (m _ (by simp))
-  have g862 : Good rd vsSL w (vsσ rd w args) (.mul (.n 862) (.n 7) (.n 861)) :=
+  have g862 : Good rd vsSL w (vsσ rd w args) (.mul (.n 650) (.n 6) (.n 649)) :=
     hG (vsMul 862 7 861) (m _ (by simp))
   simp only [Good] at g838 g862
   rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨show 27 < 838 by norm_num, show 837 < 838 by norm_num⟩)]

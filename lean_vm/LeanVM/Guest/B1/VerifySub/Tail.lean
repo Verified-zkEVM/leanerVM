@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.Front
 
 * `vsCallsT_holds`: the three calls (`verify_bus_gkr`, `verify_tables`, `verify_keccak`) on their
   argument words, the cursor `stream·g^10`, the keccak table's `g^τ` from `dims_g`, the output
-  lanes at `claim_pool·g^110`, the capacity copied;
+  lanes at `col_eval_words·g^105`, the capacity copied;
 * `vsMapsT_holds`: the ring map's challenges, the first `verify_keccak`'s, five squeezed;
 * `vsTailT_holds`: `certify_placement`, the stack's log, the two range checks, the dispatch, the
   terminal, the deferred claim's words, and the return;
@@ -32,20 +32,20 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 theorem word_1024 : word 1024 0 0 = gen ^ 10 := by
   rw [show (1024 : ℕ) = 2 ^ 10 from rfl]; exact word_two_pow (by decide)
 
-/-- **The three calls** (G:3225-3237). -/
+/-- **The three calls** (G:3412-3423). -/
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
-    σ (.n 838) = σ (.n 27) * gen ^ 10 ∧
-    C "verify_bus_gkr" [σ (.n 825), σ (.n 826), σ (.n 827), σ (.n 828), σ (.n 829), σ (.n 838),
-      σ (.n 522), σ (.n 523)] ((List.range 9).map fun k ↦ σ (.n (839 + k))) ∧
-    C "verify_tables" [σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843), σ (.n 844),
-      σ (.n 0), σ (.n 1), σ (.n 523), σ (.n 522), σ (.n 129), σ (.n 28), σ (.n 149), σ (.n 5),
-      σ (.n 640), σ (.n 836), σ (.n 7), σ (.n 8), σ (.n 848), σ (.n 845), σ (.n 846), σ (.n 847)]
-      ((List.range 9).map fun k ↦ σ (.n (849 + k))) ∧
-    LoadHolds rd (σ (.n 129)) 6 (σ (.n 858)) ∧ σ (.n 862) = σ (.n 7) * word 1899956092796928 0 0 ∧
-    C "verify_keccak" [σ (.n 849), σ (.n 850), σ (.n 851), σ (.n 852), σ (.n 853), σ (.n 854),
-      σ (.n 858), σ (.n 848), σ (.n 862), σ (.n 859), σ (.n 860)]
-      ((List.range 8).map fun k ↦ σ (.n (863 + k))) ∧
-    (∀ i < 5, σ (.n (871 + i)) = σ (.n (863 + i))) ∧ next := by
+    σ (.n 625) = σ (.n 25) * gen ^ 10 ∧
+    C "verify_bus_gkr" [σ (.n 612), σ (.n 613), σ (.n 614), σ (.n 615), σ (.n 616), σ (.n 625),
+      σ (.n 309), σ (.n 310)] ((List.range 9).map fun k ↦ σ (.n (626 + k))) ∧
+    C "verify_tables" [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631),
+      σ (.n 0), σ (.n 1), σ (.n 310), σ (.n 309), σ (.n 127), σ (.n 26), σ (.n 4), σ (.n 427),
+      σ (.n 623), σ (.n 6), σ (.n 635), σ (.n 632), σ (.n 633), σ (.n 634)]
+      ((List.range 10).map fun k ↦ σ (.n (636 + k))) ∧
+    LoadHolds rd (σ (.n 127)) 6 (σ (.n 646)) ∧ σ (.n 650) = σ (.n 645) * word 59373627899904 0 0 ∧
+    C "verify_keccak" [σ (.n 636), σ (.n 637), σ (.n 638), σ (.n 639), σ (.n 640), σ (.n 641),
+      σ (.n 646), σ (.n 635), σ (.n 650), σ (.n 647), σ (.n 648)]
+      ((List.range 8).map fun k ↦ σ (.n (651 + k))) ∧
+    (∀ i < 5, σ (.n (659 + i)) = σ (.n (651 + i))) ∧ next := by
   simp only [vsCallsT, vsConst, vsMul, vsCall, vsAlloc, vsLd, holdsList_append, Stmt.HoldsList,
     Stmt.Holds, List.map_cons, List.map_nil, List.map_map] at h
   obtain ⟨c837, m838, cg, -, ct, l858, -, -, c861, m862, ck, h⟩ := h
@@ -67,15 +67,15 @@ theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
       List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
     exact h.2.2.2.2.2
 
-/-- **The ring map's challenges** (G:3246-3252): the first `verify_keccak`'s, five squeezed from
+/-- **The ring map's challenges** (G:3431-3437): the first `verify_keccak`'s, five squeezed from
 the capacity it returned. -/
-theorem vsMapsT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.n 12) = 0)
-    (h13 : σ (.n 13) = 0) (h : Stmt.HoldsList C rd σ vsMapsT next kret) :
-    (⟨[σ (.n 871), σ (.n 872), σ (.n 873), σ (.n 874), σ (.n 875)], []⟩ : Fs).squeezeN 5 =
-      ([σ (.n 897), σ (.n 917), σ (.n 937), σ (.n 957), σ (.n 977)],
-        ⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩) ∧
-      ReadsAt rd (σ (.n 876))
-        [σ (.n 870), σ (.n 897), σ (.n 917), σ (.n 937), σ (.n 957), σ (.n 977)] ∧ next := by
+theorem vsMapsT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
+    (h13 : σ (.n 11) = 0) (h : Stmt.HoldsList C rd σ vsMapsT next kret) :
+    (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs).squeezeN 5 =
+      ([σ (.n 685), σ (.n 705), σ (.n 725), σ (.n 745), σ (.n 765)],
+        ⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩) ∧
+      ReadsAt rd (σ (.n 664))
+        [σ (.n 658), σ (.n 685), σ (.n 705), σ (.n 725), σ (.n 745), σ (.n 765)] ∧ next := by
   simp only [vsMapsT, holdsList_append] at h
   obtain ⟨-, -, l0, h⟩ := h
   obtain ⟨s1, l1, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
@@ -83,16 +83,16 @@ theorem vsMapsT_holds (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0) (h12 : σ (.
   obtain ⟨s3, l3, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
   obtain ⟨s4, l4, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
   obtain ⟨s5, l5, hn⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  have e1 : (⟨[σ (.n 871), σ (.n 872), σ (.n 873), σ (.n 874), σ (.n 875)], []⟩ : Fs).squeeze =
-      (σ (.n 897), ⟨[σ (.n 886), σ (.n 887), σ (.n 888), σ (.n 889), σ (.n 890)], []⟩) := s1
-  have e2 : (⟨[σ (.n 886), σ (.n 887), σ (.n 888), σ (.n 889), σ (.n 890)], []⟩ : Fs).squeeze =
-      (σ (.n 917), ⟨[σ (.n 906), σ (.n 907), σ (.n 908), σ (.n 909), σ (.n 910)], []⟩) := s2
-  have e3 : (⟨[σ (.n 906), σ (.n 907), σ (.n 908), σ (.n 909), σ (.n 910)], []⟩ : Fs).squeeze =
-      (σ (.n 937), ⟨[σ (.n 926), σ (.n 927), σ (.n 928), σ (.n 929), σ (.n 930)], []⟩) := s3
-  have e4 : (⟨[σ (.n 926), σ (.n 927), σ (.n 928), σ (.n 929), σ (.n 930)], []⟩ : Fs).squeeze =
-      (σ (.n 957), ⟨[σ (.n 946), σ (.n 947), σ (.n 948), σ (.n 949), σ (.n 950)], []⟩) := s4
-  have e5 : (⟨[σ (.n 946), σ (.n 947), σ (.n 948), σ (.n 949), σ (.n 950)], []⟩ : Fs).squeeze =
-      (σ (.n 977), ⟨[σ (.n 966), σ (.n 967), σ (.n 968), σ (.n 969), σ (.n 970)], []⟩) := s5
+  have e1 : (⟨[σ (.n 659), σ (.n 660), σ (.n 661), σ (.n 662), σ (.n 663)], []⟩ : Fs).squeeze =
+      (σ (.n 685), ⟨[σ (.n 674), σ (.n 675), σ (.n 676), σ (.n 677), σ (.n 678)], []⟩) := s1
+  have e2 : (⟨[σ (.n 674), σ (.n 675), σ (.n 676), σ (.n 677), σ (.n 678)], []⟩ : Fs).squeeze =
+      (σ (.n 705), ⟨[σ (.n 694), σ (.n 695), σ (.n 696), σ (.n 697), σ (.n 698)], []⟩) := s2
+  have e3 : (⟨[σ (.n 694), σ (.n 695), σ (.n 696), σ (.n 697), σ (.n 698)], []⟩ : Fs).squeeze =
+      (σ (.n 725), ⟨[σ (.n 714), σ (.n 715), σ (.n 716), σ (.n 717), σ (.n 718)], []⟩) := s3
+  have e4 : (⟨[σ (.n 714), σ (.n 715), σ (.n 716), σ (.n 717), σ (.n 718)], []⟩ : Fs).squeeze =
+      (σ (.n 745), ⟨[σ (.n 734), σ (.n 735), σ (.n 736), σ (.n 737), σ (.n 738)], []⟩) := s4
+  have e5 : (⟨[σ (.n 734), σ (.n 735), σ (.n 736), σ (.n 737), σ (.n 738)], []⟩ : Fs).squeeze =
+      (σ (.n 765), ⟨[σ (.n 754), σ (.n 755), σ (.n 756), σ (.n 757), σ (.n 758)], []⟩) := s5
   refine ⟨by simp only [Fs.squeezeN, e1, e2, e3, e4, e5], fun k hk ↦ ?_, hn⟩
   simp only [List.length_cons, List.length_nil] at hk
   interval_cases k
@@ -119,37 +119,37 @@ theorem holds_copyLoads (p q b : ℕ) (qo : ℕ → ℕ) : ∀ (n : ℕ) {X : Pr
     · exact hk k hk'
     · exact ⟨_, l1, l2⟩
 
-/-- **The tail** (G:3283-3318): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
+/-- **The tail** (G:3474-3500): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
 `g^7`, the candidate `size_sel·rate_sel^7` below `g^28`, one specialization of `open_stacked`
 dispatched on it, the terminal, the deferred claim's words, and no return word. -/
 theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
-    C "certify_placement" [σ (.n 141), σ (.n 5)] [σ (.n 1887), σ (.n 1888), σ (.n 1889)] ∧
-    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1887), σ (.n 4), σ (.n 5)] [σ (.n 1890)] ∧
-    σ (.n 1892) = σ (.n 1890) * word 8198552432976855044 0 0 ∧
-    (LoadHolds rd (σ (.n 1892)) 0 (σ (.n 1895)) ∧ word 64 0 0 = σ (.n 1892) * σ (.n 1894) ∧
-      LoadHolds rd (σ (.n 1894)) 0 (σ (.n 1896))) ∧
-    σ (.n 1901) = σ (.n 1892) * (σ (.n 124) * σ (.n 124) * σ (.n 124) *
-      (σ (.n 124) * σ (.n 124) * σ (.n 124)) * σ (.n 124)) ∧
-    (LoadHolds rd (σ (.n 1901)) 0 (σ (.n 1904)) ∧ word 134217728 0 0 = σ (.n 1901) * σ (.n 1903) ∧
-      LoadHolds rd (σ (.n 1903)) 0 (σ (.n 1905))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1901) = ofK (addressOfIndex j) ∧
-      C vsOpenNames[j] [σ (.n 1312), σ (.n 1313), σ (.n 1314), σ (.n 1315), σ (.n 1316),
-        σ (.n 1886), σ (.n 537), σ (.n 547), σ (.n 868)]
-        [σ (.n 1906), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910)]) ∧
-    C "check_opening_terminal" [σ (.n 523), σ (.n 848), σ (.n 857), σ (.n 522), σ (.n 855),
-      σ (.n 130), σ (.n 858), σ (.n 8), σ (.n 1884), σ (.n 1324), σ (.n 1888), σ (.n 1889),
-      σ (.n 859), σ (.n 877), σ (.n 1907), σ (.n 1908), σ (.n 1909), σ (.n 1910), σ (.n 1906)] [] ∧
-    (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 523)) k v ∧ LoadHolds rd (σ (.n 6)) k v) ∧
-    (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 559)) k v ∧ LoadHolds rd (σ (.n 6)) (19 + k) v) ∧
-    LoadHolds rd (σ (.n 6)) 23 (σ (.n 856)) ∧ kret [] := by
+    C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1674), σ (.n 1675)] ∧
+    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1674), σ (.n 4)] [σ (.n 1676)] ∧
+    σ (.n 1678) = σ (.n 1676) * word 8198552432976855044 0 0 ∧
+    (LoadHolds rd (σ (.n 1678)) 0 (σ (.n 1681)) ∧ word 64 0 0 = σ (.n 1678) * σ (.n 1680) ∧
+      LoadHolds rd (σ (.n 1680)) 0 (σ (.n 1682))) ∧
+    σ (.n 1687) = σ (.n 1678) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
+      (σ (.n 122) * σ (.n 122) * σ (.n 122)) * σ (.n 122)) ∧
+    (LoadHolds rd (σ (.n 1687)) 0 (σ (.n 1690)) ∧ word 134217728 0 0 = σ (.n 1687) * σ (.n 1689) ∧
+      LoadHolds rd (σ (.n 1689)) 0 (σ (.n 1691))) ∧
+    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1687) = ofK (addressOfIndex j) ∧
+      C vsOpenNames[j] [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104),
+        σ (.n 1673), σ (.n 324), σ (.n 334), σ (.n 656)]
+        [σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696)]) ∧
+    C "check_opening_terminal" [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309),
+      σ (.n 642), σ (.n 128), σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1675), σ (.n 647),
+      σ (.n 665), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1696), σ (.n 1692)] [] ∧
+    (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 310)) k v ∧ LoadHolds rd (σ (.n 5)) k v) ∧
+    (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 346)) k v ∧ LoadHolds rd (σ (.n 5)) (19 + k) v) ∧
+    LoadHolds rd (σ (.n 5)) 23 (σ (.n 643)) ∧ kret [] := by
   rw [vsTailT] at h
   simp only [holdsList_append] at h
   simp only [vsConst, vsMul, vsCall, vsRange, vsLd, vsRun, Stmt.HoldsList, Stmt.Holds,
     List.map_cons, List.map_nil] at h
   obtain ⟨cp, cl, c1891, m1892, c1893, r1, m1897, m1898, m1899, m1900, m1901, c1902, r2, hd, ct,
     h⟩ := h
-  obtain ⟨d1, h⟩ := holds_copyLoads 523 6 1911 (fun k ↦ k) 19 h
-  obtain ⟨d2, h⟩ := holds_copyLoads 559 6 1930 (fun k ↦ 19 + k) 4 h
+  obtain ⟨d1, h⟩ := holds_copyLoads 310 5 1697 (fun k ↦ k) 19 h
+  obtain ⟨d2, h⟩ := holds_copyLoads 346 5 1716 (fun k ↦ 19 + k) 4 h
   simp only [Atom.Holds] at c1891 m1892 c1893 r1 m1897 m1898 m1899 m1900 m1901 c1902 r2 h
   refine ⟨cp, cl, by rw [m1892, c1891], by rw [← c1893]; exact r1, ?_, by rw [← c1902]; exact r2,
     ?_, ct, d1, d2, h.1, by simpa using h.2⟩

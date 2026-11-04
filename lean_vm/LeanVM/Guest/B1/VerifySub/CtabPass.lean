@@ -13,11 +13,11 @@ public import LeanVM.Guest.B1.VerifySub.Template
 # Monomials in the ring map's challenges
 
 `c_table`'s section (G:3253-3261) computes, from `1` and the six challenges at `chs`, products and
-squares, each stored in or read from the table at `877`. A monomial `Π_i chs_i^(e_i)` is its six
+squares, each stored in or read from the table at `665`. A monomial `Π_i chs_i^(e_i)` is its six
 exponents `e` (`evVal`); a product adds them (`evAdd`).
 
 `ctRun st block` walks the block, keeping each value's exponents (`vars`) and each table cell's
-(`mem`): a constant `1`, a challenge read at `876`, a product, and a table cell read (a cell
+(`mem`): a constant `1`, a challenge read at `664`, a product, and a table cell read (a cell
 already known gives the value, an unknown cell is the value's). `ctRun_sound`: if the block holds,
 every recorded value and cell is its monomial (`CtOk`).
 -/
@@ -80,9 +80,9 @@ def ctStep (st : CtSt) : Stmt → Option CtSt
   | .atom (.const d c) =>
       if eEqb c (word 1 0 0) then some ⟨(d, List.replicate 6 0) :: st.vars, st.mem⟩ else none
   | .atom (.load d p off) =>
-      if p = .n 876 then
+      if p = .n 664 then
         if off < 6 then some ⟨(d, evUnit off) :: st.vars, st.mem⟩ else none
-      else if p = .n 877 then
+      else if p = .n 665 then
         match st.mem.lookup off with
         | some e => some ⟨(d, e) :: st.vars, st.mem⟩
         | none =>
@@ -107,7 +107,7 @@ def ctRun : CtSt → List Stmt → Option CtSt
 /-- Every recorded value and table cell is its monomial. -/
 def CtOk (chs : List E) (rd : Reader) (σ : Val) (st : CtSt) : Prop :=
   (∀ p ∈ st.vars, σ p.1 = evVal chs p.2 ∧ p.2.length = 6) ∧
-    ∀ p ∈ st.mem, LoadHolds rd (σ (.n 877)) p.1 (evVal chs p.2) ∧ p.2.length = 6
+    ∀ p ∈ st.mem, LoadHolds rd (σ (.n 665)) p.1 (evVal chs p.2) ∧ p.2.length = 6
 
 theorem lookup_mem {α β : Type} [BEq α] [LawfulBEq α] :
     ∀ {l : List (α × β)} {k : α} {e : β}, l.lookup k = some e → (k, e) ∈ l
@@ -121,7 +121,7 @@ theorem lookup_mem {α β : Type} [BEq α] [LawfulBEq α] :
     · simp only [List.lookup, beq_eq_false_iff_ne.mpr hk] at h
       exact List.mem_cons_of_mem _ (lookup_mem h)
 
-theorem ctStep_sound {chs : List E} (hcl : chs.length = 6) (hc : ReadsAt rd (σ (.n 876)) chs)
+theorem ctStep_sound {chs : List E} (hcl : chs.length = 6) (hc : ReadsAt rd (σ (.n 664)) chs)
     {st st' : CtSt} {s : Stmt} (hs : ctStep st s = some st') (hok : CtOk chs rd σ st)
     {next : Prop} {kret : List E → Prop} (h : Stmt.Holds C rd σ s next kret) :
     CtOk chs rd σ st' ∧ next := by
@@ -196,7 +196,7 @@ theorem ctStep_sound {chs : List E} (hcl : chs.length = 6) (hc : ReadsAt rd (σ 
 
 /-- **The pass is sound**: from a sound start, if the block holds, every value and cell the pass
 records is its monomial. -/
-theorem ctRun_sound {chs : List E} (hcl : chs.length = 6) (hc : ReadsAt rd (σ (.n 876)) chs) :
+theorem ctRun_sound {chs : List E} (hcl : chs.length = 6) (hc : ReadsAt rd (σ (.n 664)) chs) :
     ∀ {st st' : CtSt} {ss : List Stmt}, ctRun st ss = some st' → CtOk chs rd σ st →
       ∀ {next : Prop} {kret : List E → Prop}, Stmt.HoldsList C rd σ ss next kret →
         CtOk chs rd σ st' ∧ next

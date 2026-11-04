@@ -41,31 +41,31 @@ theorem vsReadsT_noNe : vsReadsT.all noNeB = true := by decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsReadsT_good (hl : args.length = 7) :
+theorem vsReadsT_good (hl : args.length = 6) :
     ∀ s ∈ vsReadsT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 11) (blk := vsReadsT)
     (by decide +kernel) hs)
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsReadsT_noNe s hs)] at h
 
-theorem vsReadsT_notS : ∀ i < 8, Atom.load (.n (vsX i)) (.n 27) i ∉ vsSL := by decide +kernel
+theorem vsReadsT_notS : ∀ i < 8, Atom.load (.n (vsX i)) (.n 25) i ∉ vsSL := by decide +kernel
 
-theorem vsReadsT_sub : ∀ i < 8, ∀ s ∈ fsNextT (.n 27) i (vsX i), s ∈ vsReadsT := by
+theorem vsReadsT_sub : ∀ i < 8, ∀ s ∈ fsNextT (.n 25) i (vsX i), s ∈ vsReadsT := by
   intro i hi s hs
   interval_cases i <;>
     simp only [vsX, List.getD_cons_zero, List.getD_cons_succ] at hs <;>
     simp only [vsReadsT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] <;> tauto
 
 /-- One announced word, honestly: read, packed canonically, its template holding. -/
-theorem vs_word (hl : args.length = 7) {ws : List E}
-    (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 27)) i (ws.getD i 0)) {i : ℕ} (hi : i < 8) :
+theorem vs_word (hl : args.length = 6) {ws : List E}
+    (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0)) {i : ℕ} (hi : i < 8) :
     vsσ rd w args (.n (vsX i)) = ws.getD i 0 ∧
       IsCanonical128 (vsσ rd w args (.n (vsX i + 7))) ∧
       IsCanonical128 (vsσ rd w args (.n (vsX i + 9))) ∧
       ∀ {C : CallRel} {next : Prop} {kret : List E → Prop}, next →
-        Stmt.HoldsList C rd (vsσ rd w args) (fsNextT (.n 27) i (vsX i)) next kret := by
+        Stmt.HoldsList C rd (vsσ rd w args) (fsNextT (.n 25) i (vsX i)) next kret := by
   have hG := vsReadsT_good (rd := rd) (w := w) hl
-  have hgs : ∀ s ∈ fsNextT (.n 27) i (vsX i), GoodS rd vsSL w (vsσ rd w args) s :=
+  have hgs : ∀ s ∈ fsNextT (.n 25) i (vsX i), GoodS rd vsSL w (vsσ rd w args) s :=
     fun s hs ↦ hG s (vsReadsT_sub i hi s hs)
   obtain ⟨e, c1, c2, -, -⟩ := fsNext_complete (C := fun _ _ _ ↦ True)
     hgs (vsReadsT_notS i hi) (hws i hi)
@@ -75,9 +75,9 @@ theorem vs_word (hl : args.length = 7) {ws : List E}
 
 set_option maxRecDepth 100000 in
 /-- **The announced words, honestly.** -/
-theorem vsReadsT_complete (hl : args.length = 7) {ws : List E}
-    (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 27)) i (ws.getD i 0))
-    (hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 28)) i (ws.getD (i + 1) 0))
+theorem vsReadsT_complete (hl : args.length = 6) {ws : List E}
+    (hws : ∀ i < 8, LoadHolds rd (vsσ rd w args (.n 25)) i (ws.getD i 0))
+    (hrows : ∀ i < 6, LoadHolds rd (vsσ rd w args (.n 26)) i (ws.getD (i + 1) 0))
     (hcap : ∀ i ∈ [22, 23, 24, 25, 26], IsCanonical128 (vsσ rd w args (.n i)))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     (∀ i < 8, vsσ rd w args (.n (vsX i)) = ws.getD i 0) ∧
@@ -85,14 +85,14 @@ theorem vsReadsT_complete (hl : args.length = 7) {ws : List E}
   have W := fun i (hi : i < 8) ↦ vs_word (rd := rd) (w := w) hl hws hi
   have hG := vsReadsT_good (rd := rd) (w := w) hl
   refine ⟨fun i hi ↦ (W i hi).1, ?_⟩
-  have st : ∀ j < 6, (Atom.load (.n (vsX (j + 1))) (.n 28) j).Holds rd (vsσ rd w args) := by
+  have st : ∀ j < 6, (Atom.load (.n (vsX (j + 1))) (.n 26) j).Holds rd (vsσ rd w args) := by
     intro j hj
     show LoadHolds rd _ _ _
     rw [(W (j + 1) (by omega)).1]
     exact hrows j hj
   have hk : vsAtom50.Holds rd (vsσ rd w args) := by
-    have hm : keccakA [.n 36, .n 38, .n 46, .n 48, .n 56, .n 58, .n 66, .n 68, .n 22, .n 23,
-        .n 24, .n 25, .n 26] (vsRun 69 13) ∈ vsReadsT := by
+    have hm : keccakA [.n 34, .n 36, .n 44, .n 46, .n 54, .n 56, .n 64, .n 66, .n 20, .n 21,
+        .n 22, .n 23, .n 24] (vsRun 69 13) ∈ vsReadsT := by
       simp only [vsReadsT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false]; tauto
     have hg := hG _ hm
     simp only [keccakA, GoodS] at hg

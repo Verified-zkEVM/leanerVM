@@ -29,7 +29,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 set_option maxRecDepth 100000 in
 /-- **A squeeze, honestly.** -/
-theorem vsSqzT_complete (hl : args.length = 7) {capb o : ℕ}
+theorem vsSqzT_complete (hl : args.length = 6) {capb o : ℕ}
     (hmem : ∀ s ∈ vsSqzT capb o, s ∈ vsCPre)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i))))
@@ -40,12 +40,12 @@ theorem vsSqzT_complete (hl : args.length = 7) {capb o : ℕ}
     rwa [fixNe_of_noNe (List.all_eq_true.mp (vsSqzT_noNe capb o) s hs)] at h
   have c0 : IsCanonical128 (0 : E) := canonical_zero
   have hk : Good rd vsSL w (vsσ rd w args)
-      (.keccak ([V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++ vsRun capb 5)
+      (.keccak ([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++ vsRun capb 5)
         (vsRun o 13) false false) :=
-    hG (keccakA ([V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++ vsRun capb 5)
+    hG (keccakA ([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++ vsRun capb 5)
       (vsRun o 13)) (by simp [vsSqzT])
   have hcan : AllCanonical
-      (([V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++ vsRun capb 5).map
+      (([V.n 8, V.n 8, V.n 8, V.n 8, V.n 8, V.n 9, V.n 10, V.n 11] ++ vsRun capb 5).map
         (vsσ rd w args)) := by
     intro x hx
     obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
@@ -75,9 +75,9 @@ theorem vsSqzT_complete (hl : args.length = 7) {capb o : ℕ}
   exact ⟨hK, hch.2 hn⟩
 
 /-- **`fp_w` and `β`'s squeeze, honestly.** -/
-theorem vsFpwT_complete (hl : args.length = 7) {a0 a1 a2 a3 : E}
-    (ha : ReadsAt rd (vsσ rd w args (.n 559)) [a0, a1, a2, a3])
-    (hfp : ReadsAt rd (vsσ rd w args (.n 640)) (eqKernel [a0, a1, a2, a3]))
+theorem vsFpwT_complete (hl : args.length = 6) {a0 a1 a2 a3 : E}
+    (ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3])
+    (hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3]))
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (628 + i))))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
@@ -96,7 +96,7 @@ theorem kc_noNe (ins : List V) (o : ℕ) :
 set_option maxRecDepth 100000 in
 /-- **A permutation and its challenge, honestly**: on canonical inputs, the `KECCAK` atom and
 `challenge_from_state` hold, and the permutation's thirteen output cells are canonical. -/
-theorem kc_complete (hl : args.length = 7) {ins : List V} {o : ℕ}
+theorem kc_complete (hl : args.length = 6) {ins : List V} {o : ℕ}
     (hmem : ∀ s ∈ keccakA ins (vsRun o 13) :: challengeT (.n o) (.n (o + 1)) (o + 13), s ∈ vsCPre)
     (hcan : AllCanonical (ins.map (vsσ rd w args)))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :

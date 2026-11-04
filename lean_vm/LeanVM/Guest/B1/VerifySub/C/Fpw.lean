@@ -34,7 +34,7 @@ variable {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 /-- One factor, honestly. -/
 theorem eqwFactor_complete {x t v : ℕ} (hg : ∀ s ∈ (vsEqwFactor x t v).1, GoodS rd S w σ s)
-    (hS : Atom.load (.n v) (.n 559) t ∉ S) {a : E} (ha : LoadHolds rd (σ (.n 559)) t a)
+    (hS : Atom.load (.n v) (.n 346) t ∉ S) {a : E} (ha : LoadHolds rd (σ (.n 346)) t a)
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     σ (.n (vsEqwFactor x t v).2.1) = (if x.testBit t then a else 1 + a) ∧
       Stmt.HoldsList C rd σ (vsEqwFactor x t v).1 next kret := by
@@ -53,15 +53,15 @@ theorem eqwFactor_complete {x t v : ℕ} (hg : ∀ s ∈ (vsEqwFactor x t v).1, 
 
 /-- The weight `eq_weight(alphas, 4, x, 0)` from `v`, honestly. -/
 theorem eqw_complete {x v : ℕ} (hg : ∀ s ∈ (vsEqwT x v).1, GoodS rd S w σ s)
-    (hS : ∀ d off, v ≤ d → Atom.load (.n d) (.n 559) off ∉ S) {a0 a1 a2 a3 : E}
-    (ha : ReadsAt rd (σ (.n 559)) [a0, a1, a2, a3])
+    (hS : ∀ d off, v ≤ d → Atom.load (.n d) (.n 346) off ∉ S) {a0 a1 a2 a3 : E}
+    (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a3])
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
     σ (.n (vsEqwT x v).2.1) = eqAt [a0, a1, a2, a3] x ∧
       Stmt.HoldsList C rd σ (vsEqwT x v).1 next kret := by
-  have l0 : LoadHolds rd (σ (.n 559)) 0 a0 := ha 0 (by simp)
-  have l1 : LoadHolds rd (σ (.n 559)) 1 a1 := ha 1 (by simp)
-  have l2 : LoadHolds rd (σ (.n 559)) 2 a2 := ha 2 (by simp)
-  have l3 : LoadHolds rd (σ (.n 559)) 3 a3 := ha 3 (by simp)
+  have l0 : LoadHolds rd (σ (.n 346)) 0 a0 := ha 0 (by simp)
+  have l1 : LoadHolds rd (σ (.n 346)) 1 a1 := ha 1 (by simp)
+  have l2 : LoadHolds rd (σ (.n 346)) 2 a2 := ha 2 (by simp)
+  have l3 : LoadHolds rd (σ (.n 346)) 3 a3 := ha 3 (by simp)
   unfold vsEqwT at hg ⊢
   simp only [List.mem_append, List.mem_singleton] at hg
   have i0 := eqwFactor_idx x 0 v
@@ -107,12 +107,12 @@ theorem eqw_complete {x v : ℕ} (hg : ∀ s ∈ (vsEqwT x v).1, GoodS rd S w σ
   exact ⟨gm3, hn⟩
 /-- The only loads through `bus_alpha` (`559`) the evaluation list stores are the challenges'. -/
 def alphaStoreB : Atom → Bool
-  | .load d (.n 559) _ => decide (d.idx < 641)
+  | .load d (.n 346) _ => decide (d.idx < 641)
   | _ => true
 
 theorem vsSL_alpha : vsSL.all alphaStoreB = true := by decide +kernel
 
-theorem vsSL_alpha_notS {d off : ℕ} (hd : 641 ≤ d) : Atom.load (.n d) (.n 559) off ∉ vsSL := by
+theorem vsSL_alpha_notS {d off : ℕ} (hd : 641 ≤ d) : Atom.load (.n d) (.n 346) off ∉ vsSL := by
   intro h
   have := List.all_eq_true.mp vsSL_alpha _ h
   simp only [alphaStoreB, decide_eq_true_eq] at this
@@ -124,7 +124,7 @@ theorem vsFpwStart_ge : ∀ x < 16, 641 ≤ vsFpwStart x := by decide +kernel
 
 variable {args : List E}
 
-theorem vsFpwT_good (hl : args.length = 7) :
+theorem vsFpwT_good (hl : args.length = 6) :
     ∀ s ∈ vsFpwT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 711) (blk := vsFpwT)
@@ -132,9 +132,9 @@ theorem vsFpwT_good (hl : args.length = 7) :
   rwa [fixNe_of_noNe (List.all_eq_true.mp vsFpwT_noNe s hs)] at h
 
 /-- The sixteen weights, honestly. -/
-theorem vsFpw_loop (hl : args.length = 7) {a0 a1 a2 a3 : E}
-    (ha : ReadsAt rd (vsσ rd w args (.n 559)) [a0, a1, a2, a3])
-    (hfp : ReadsAt rd (vsσ rd w args (.n 640)) (eqKernel [a0, a1, a2, a3]))
+theorem vsFpw_loop (hl : args.length = 6) {a0 a1 a2 a3 : E}
+    (ha : ReadsAt rd (vsσ rd w args (.n 346)) [a0, a1, a2, a3])
+    (hfp : ReadsAt rd (vsσ rd w args (.n 427)) (eqKernel [a0, a1, a2, a3]))
     {C : CallRel} {kret : List E → Prop} :
     ∀ l : List ℕ, (∀ x ∈ l, x < 16) → ∀ {nx : Prop}, nx →
       Stmt.HoldsList C rd (vsσ rd w args) (l.flatMap fun x ↦
@@ -148,7 +148,7 @@ theorem vsFpw_loop (hl : args.length = 7) {a0 a1 a2 a3 : E}
       rw [vsFpwT]
       exact List.mem_append_left _ (List.mem_cons_of_mem _
         (List.mem_flatMap.2 ⟨x, List.mem_range.2 h16, hs⟩))
-    have hS : ∀ d off, vsFpwStart x ≤ d → Atom.load (.n d) (.n 559) off ∉ vsSL :=
+    have hS : ∀ d off, vsFpwStart x ≤ d → Atom.load (.n d) (.n 346) off ∉ vsSL :=
       fun d off hd ↦ vsSL_alpha_notS (by have := vsFpwStart_ge x h16; omega)
     obtain ⟨e, -⟩ := eqw_complete (C := C) (kret := kret) (next := True)
       (fun s hs ↦ hG s (hmem s (List.mem_append_left _ hs))) hS ha trivial

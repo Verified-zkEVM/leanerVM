@@ -16,20 +16,23 @@ public import LeanVM.Guest.B1.Selectors.Interface
 /-!
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
-`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, block_kappa,
-g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)`
-(G:1920-2294) settles the bus against the six tables: it certifies each side's blocks' offsets
-(`busLayout`, V:548), certifies every table's log-height to be `max (log2Ceil rows) floor`
-(V:1294, by `padding_weight`), decomposes the three GKR leaf values (`accumulateSide`, V:1452),
-reads the framework's five column claims, runs the one table sumcheck (`tableSumcheck`, V:1552)
-and the public input's binding (`publicInputPhase`, V:2198), and pools every column claim's value.
+`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
+fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)` (G:2096-2522, at c4f4bc92)
+settles the bus against the six tables: it certifies each side's blocks' offsets by a hinted order
+of its block groups (`busLayout`, V:548), certifies every table's log-height to be
+`max (log2Ceil rows) floor` (V:1294, by `padding_weight`), decomposes the three GKR leaf values
+(`accumulateSide`, V:1452), reads the framework's five column claims, runs the one table sumcheck
+(`tableSumcheck`, V:1552) and the public input's binding (`publicInputPhase`, V:2198). The bus's
+five claim values and the public input's three are pooled (`claim_pool`, slots `0 .. 4` and
+`162 .. 164`); the tables' `157` column evaluations stay where the stream holds them, and the
+function returns their address (`col_eval_words`).
 
 What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), `tablePhase`,
 `publicInputPhase`. The bytecode's value is the hinted `bytecode_val` (`BytecodeClaim`, exported by
 `verify_sub`): for every `ev` taking that value at the bus's bytecode point, the run is the
 specification's.
 
-* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:1886-1917) holds exactly when
+* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2062-2094) holds exactly when
   `rows` is an integer word `n ≤ 2^τ`; it returns `paddingWeight (zeta[..τ]) n` (V:679) and the
   two words whose `lead = 1 ∧ rest ≠ 0` says `τ = log2Ceil n` (`PadLead`, `PadRest`).
 * `verify_tables_Spec`: under `TablesPre` (what `verify_sub` establishes before the call), the
@@ -61,7 +64,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:1886-1917; TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** (G:2062-2094; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
   ∀ n < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -143,19 +146,41 @@ def claimColumns : List ℕ :=
     tables.flatMap (fun t ↦ (List.range t.width).map (globalColumnBases.getD t.opcode 0 + ·)) ++
     [memory0, memory1, memory2]
 
+/-- `N_BUS_CLAIMS`: the bus's pooled claims, slots `0 .. 4`. -/
+abbrev nBusClaims : ℕ := 5
+
+/-- `N_COL_EVALS`: the tables' column evaluations, read where the stream holds them. -/
+abbrev nColEvals : ℕ := nPooled - nBusClaims
+
+/-- `CLAIM_KAPPA_SRC` (G:341): a claim's low dimension as a kappa source, an index into
+`kappa_base = [g^0, g^log_mem, g^τ_0, …, g^τ_5]` … -/
+def claimKappaSrc : List ℕ :=
+  [1, 1, 1, 1, 0] ++ List.replicate 15 2 ++ List.replicate 15 3 ++ List.replicate 8 4 ++
+    List.replicate 15 5 ++ List.replicate 14 6 ++ List.replicate 90 7 ++ [1, 1, 1]
+
+/-- … plus `CLAIM_KAPPA_ADJ` (G:342): the bytecode claim's `19`. -/
+def claimKappaAdj (j : ℕ) : ℕ := if j = 4 then 19 else 0
+
+/-- Claim `j`'s low dimension, `kappa_base[CLAIM_KAPPA_SRC[j]]·g^CLAIM_KAPPA_ADJ[j]` in the exponent,
+at the memory's log-size and the tables' log-heights (what `check_opening_terminal` reads,
+G:3266). -/
+def claimLowDim (logMem : ℕ) (taus : List ℕ) (j : ℕ) : ℕ :=
+  (0 :: logMem :: taus).getD (claimKappaSrc.getD j 0) 0 + claimKappaAdj j
+
 /-- **`TCtx`**, what `verify_tables` hands `check_opening_terminal` and `verify_keccak`, over
-`[zeta, chi, rm, g_bus_mu, g_zc_n, claim_cplen_g]`: the claims are `claimColumns`'s; the bus's lie
-on a prefix of the bus point at `zeta`, the tables' on a prefix of the table sumcheck's point
-`chis` at `chi`, the public input's at `(rm, 0, …, 0)`; and the first `162` have `g^|point|` in
-`claim_cplen_g`. -/
+`[zeta, chi, rm, g_bus_mu, g_zc_n]`: the claims are `claimColumns`'s; the bus's lie on a prefix of
+the bus point at `zeta`, the tables' on a prefix of the table sumcheck's point `chis` at `chi`, the
+public input's at `(rm, 0, …, 0)`; and the first `162` have the low dimension `claimLowDim` of the
+layout (at c4f4bc92 the terminal derives it from `kappa_base`, where `verify_tables` stored it in
+`claim_cplen_g` before). -/
 def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :
     List E → Prop
-  | [zeta, chi, rm, gmu, gzcn, cplen] =>
+  | [zeta, chi, rm, gmu, gzcn] =>
       ∃ chis : List E, TbReadsAt rd zeta bus.point ∧ gmu = gen ^ bus.point.length ∧
         TbReadsAt rd chi chis ∧ gzcn = gen ^ chis.length ∧ chis.length ≤ bus.point.length ∧
         claims.length = nClaims ∧ claims.map (·.column) = claimColumns ∧
         ∀ j (p : List E), (claims.map (·.point))[j]? = some p →
-          (j < nPooled → LoadHolds rd cplen j (gen ^ p.length)) ∧
+          (j < nPooled → p.length = claimLowDim layout.logMemory layout.tableLogHeights j) ∧
           (j < 5 → p = bus.point.take p.length) ∧
           (5 ≤ j → j < nPooled → p = chis.take p.length) ∧
           (nPooled ≤ j → p = rm :: List.replicate ((layout.placement memory0).variableCount - 1) 0)
@@ -163,8 +188,8 @@ def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Column
 
 /-! ## `verify_tables` -/
 
-/-- `BLOCK_KAPPA_SRC` (G:113): a bus block's log-height is source `s` of
-`[0, log_mem, τ_0, …, τ_5]` … -/
+/-- `BLOCK_KAPPA_SRC` (G:126): a bus block's log-height is source `s` of
+`kappa_base = [g^0, g^log_mem, g^τ_0, …, g^τ_5]` … -/
 def blockKappaSrc : List ℕ :=
   [0, 1, 0, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7,
     7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 1, 0, 2, 2, 2, 2, 2,
@@ -172,44 +197,67 @@ def blockKappaSrc : List ℕ :=
     7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 6, 6,
     6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
 
-/-- … plus `BLOCK_KAPPA_ADJ` (G:114): the bytecode blocks' `19`. -/
+/-- … plus `BLOCK_KAPPA_ADJ` (G:127): the bytecode blocks' `19`. -/
 def blockKappaAdj (b : ℕ) : ℕ := if b = 2 ∨ b = 56 then 19 else 0
 
 /-- `N_BLOCKS`. -/
 abbrev nBlocks : ℕ := 153
 
-/-- `block_kappa` (G:3185-3187): block `b`'s `g^κ` over `kappa_base = [1, g^log_mem, dims…]`. -/
-def blockKappaWords (gLogMem : E) (dims : List E) : List E :=
-  (List.range nBlocks).map fun b ↦
-    (1 :: gLogMem :: dims).getD (blockKappaSrc.getD b 0) 0 * gen ^ blockKappaAdj b
+/-- `N_BLOCK_GROUPS` (G:130): the runs of a side's blocks sharing one kappa source. -/
+abbrev nBlockGroups : ℕ := 24
+
+/-- `BLOCK_GROUP_START` (G:131): each block group's first block, then `N_BLOCKS`. -/
+def blockGroupStart : List ℕ :=
+  [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126,
+    153]
+
+/-- `SIDE_GROUP_START` (G:132): each side's first block group, then `N_BLOCK_GROUPS`. -/
+def sideGroupStart : List ℕ := [0, 9, 18, 24]
+
+/-- `RANK_KEYS_AT` (G:289): where `exponent_tables` keeps the rank keys, past the squares and the
+selector shares. -/
+abbrev rankKeysAt : ℕ := 34 + 16 * 9
+
+/-- `SIDE_TAB_AT` (G:292): where `exponent_tables` keeps each block group's side. -/
+abbrev sideTabAt : ℕ := rankKeysAt + 34
+
+/-- Block group `gi`'s side (`exponent_tables`, G:691-693), a word. -/
+def sideTabList : List E :=
+  (List.range nBlockGroups).map fun gi ↦
+    eOfNat ((List.range 3).filter (fun s ↦ sideGroupStart.getD s 0 ≤ gi)).length.pred
+
+/-- **What `exponent_tables` leaves at `g_squares` that `verify_tables` reads**: the squares, the
+rank keys and the block groups' sides. -/
+def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
+  TbReadsAt rd sq gSquaresList ∧ TbReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
+    TbReadsAt rd (sq * gen ^ sideTabAt) sideTabList
 
 /-- **What `verify_sub` establishes before `verify_tables`**, for the public input `pi`, the
 memory's log-size `logMem`, the bus challenges `alphas`, the GKR point and values: the public
-input's cells; the point at `zeta`, `g_bus_mu = g^|point|`; `dims_g = [g^log_mem, …]` and
-`block_kappa` derived from it; the squares table; `fp_w` the equality weights of `alphas`; the
-three GKR values. -/
+input's cells; the point at `zeta`, `g_bus_mu = g^|point|`; `dims_g = [g^log_mem, …]`; the
+exponent tables (`ExpTablesAt`); `fp_w` the equality weights of `alphas`; the three GKR values. -/
 def TablesPre (pi : Digest) (logMem : ℕ) (alphas point values : List E) (rd : Reader) :
     List E → Prop
-  | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, bk, sq, fpw, _, _, _, _, cpush, cpull,
-      ccount] =>
+  | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, cpush, cpull, ccount] =>
       (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
       point.length < 33 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
-      (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds) ∧
-        TbReadsAt rd bk (blockKappaWords (gen ^ logMem) ds)) ∧
-      TbReadsAt rd sq gSquaresList ∧ alphas.length = 4 ∧ TbReadsAt rd fpw (eqKernel alphas) ∧
+      (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
+      ExpTablesAt rd sq ∧ alphas.length = 4 ∧ TbReadsAt rd fpw (eqKernel alphas) ∧
       values = [cpush, cpull, ccount]
   | _ => False
 
 /-- **`verify_tables`' outcome**: the row counts `rows` are integer words in `table_rows`, and
 their log-heights, below `29`, in `dims_g`; for the layout they give and every `ev` taking `bv`
 for the bytecode at `(point[..logBytecode], alphas)`, from the carried capacity the words `xs`
-at the cursor run `tablesSeg` to the bus result and the `165` column claims, whose values are in
-`claim_pool`; `TCtx` holds of them; and the function returns the new capacity, the cursor past
-`xs`, `g^n` (the table sumcheck's rounds), `bv` and the public input's challenge. -/
+at the cursor run `tablesSeg` to the bus result and the `165` column claims, the bus's five
+values and the public input's three in `claim_pool` (slots `0 .. 4`, `162 .. 164`) and the
+tables' `157` at `col_eval_words`; `TCtx` holds of them; and the function returns the new
+capacity, the cursor past `xs`, `g^n` (the table sumcheck's rounds), `bv`, the public input's
+challenge and `col_eval_words`. -/
 def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point values : List E)
     (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, _, beta, pool, cplen, chi, _, _,
-      _], [f0', f1', f2', f3', f4', cur', gzcn, bv, rm] =>
+  | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, beta, pool, chi, _, _, _],
+      [f0', f1', f2', f3', f4', cur', gzcn, bv, rm, cew] =>
       ∃ (xs cap' : List E) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim),
         rowsN.length = 6 ∧ TbReadsAt rd rows (rowsN.map eOfNat) ∧
         TbReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
@@ -218,12 +266,14 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
             (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
           RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)
             ⟨[f0, f1, f2, f3, f4], []⟩ xs (bus, claims) ⟨cap', []⟩) ∧
-        claims.length = nClaims ∧ TbReadsAt rd pool (claims.map (·.value)) ∧
-        TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn, cplen] ∧
+        claims.length = nClaims ∧ TbReadsAt rd pool ((claims.take nBusClaims).map (·.value)) ∧
+        TbReadsAt rd cew (((claims.drop nBusClaims).take nColEvals).map (·.value)) ∧
+        TbReadsAt rd (pool * gen ^ nPooled) ((claims.drop nPooled).map (·.value)) ∧
+        TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn] ∧
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (G:1920-2296; TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound** (G:2096-2522; TRIAGE #52), for the guest's own bytecode words
 `bytecode`. Proved for every memory of at most `2^32` words (`verify_tables_holds`). -/
 def verify_tables_Spec (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem alphas point values args rets,

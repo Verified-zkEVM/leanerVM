@@ -26,12 +26,12 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables LeanVM.Protocol.Verifier Finset
 
 theorem vsLamT_noNe : vsLamT.all noNeB = true := by decide +kernel
 
-theorem vsLam_notS : ∀ i < 140, Atom.load (.n (1325 + 4 * i)) (.n 7) (vsKept i) ∉ vsSL := by
+theorem vsLam_notS : ∀ i < 140, Atom.load (.n (1325 + 4 * i)) (.n 6) (vsKept i) ∉ vsSL := by
   decide +kernel
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vsLamT_good (hl : args.length = 7) :
+theorem vsLamT_good (hl : args.length = 6) :
     ∀ s ∈ vsLamT, GoodS rd vsSL w (vsσ rd w args) s := by
   intro s hs
   have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 1372) (blk := vsLamT)
@@ -44,15 +44,15 @@ theorem vsLamStep_mem {i : ℕ} (hi : i < 140) {s : Stmt} (hs : s ∈ vsLamStep 
     (List.mem_flatMap.2 ⟨i, List.mem_range.2 hi, hs⟩))
 
 /-- The batched claims, honestly. -/
-theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
-    (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 7)) (vsKept i) (vals i))
-    (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 1324)) (vsKept i)
-      (vsσ rd w args (.n 1323) ^ (i + 1)))
+theorem vsLam_loop (hl : args.length = 6) {vals : ℕ → E}
+    (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i))
+    (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n XLAMPOOL)) (vsKept i)
+      (vsσ rd w args (.n 1111) ^ (i + 1)))
     {C : CallRel} {kret : List E → Prop} :
     ∀ n ≤ 140, ∀ {nx : Prop}, nx →
-      vsσ rd w args (.n (vsPw n)) = vsσ rd w args (.n 1323) ^ (n + 1) ∧
-      vsσ rd w args (.n (vsTg n)) = vsσ rd w args (.n 1303) +
-        ∑ i ∈ range n, vsσ rd w args (.n 1323) ^ (i + 1) * vals i ∧
+      vsσ rd w args (.n (vsPw n)) = vsσ rd w args (.n 1111) ^ (n + 1) ∧
+      vsσ rd w args (.n (vsTg n)) = vsσ rd w args (.n 1091) +
+        ∑ i ∈ range n, vsσ rd w args (.n 1111) ^ (i + 1) * vals i ∧
       Stmt.HoldsList C rd (vsσ rd w args) ((List.range n).flatMap vsLamStep) nx kret := by
   have hG := vsLamT_good (rd := rd) (w := w) hl
   generalize hσ : vsσ rd w args = σ at *
@@ -71,7 +71,7 @@ theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
       g (vsMul _ _ _) (by simp [vsLamStep])
     have a1 : Good rd vsSL w σ (.add (.n (1327 + 4 * n)) (.n (vsTg n)) (.n (1326 + 4 * n))) :=
       g (vsAdd _ _ _) (by simp [vsLamStep])
-    have m2 : Good rd vsSL w σ (.mul (.n (1328 + 4 * n)) (.n (vsPw n)) (.n 1323)) :=
+    have m2 : Good rd vsSL w σ (.mul (.n (1328 + 4 * n)) (.n (vsPw n)) (.n 1111)) :=
       g (vsMul _ _ _) (by simp [vsLamStep])
     have hpw : vsPw n < 1326 + 4 * n := by unfold vsPw; split <;> omega
     simp only [Good] at m1 a1 m2
@@ -94,22 +94,22 @@ theorem vsLam_loop (hl : args.length = 7) {vals : ℕ → E}
           simpa using h
 
 /-- **The batching, honestly.** -/
-theorem vsLamT_complete (hl : args.length = 7)
+theorem vsLamT_complete (hl : args.length = 6)
     (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
     (hcap : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (966 + i)))) {vals : ℕ → E}
-    (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 7)) (vsKept i) (vals i))
-    (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 1324)) (vsKept i)
-      (vsσ rd w args (.n 1323) ^ (i + 1)))
+    (hpool : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n 6)) (vsKept i) (vals i))
+    (hlam : ∀ i < 140, LoadHolds rd (vsσ rd w args (.n XLAMPOOL)) (vsKept i)
+      (vsσ rd w args (.n 1111) ^ (i + 1)))
     {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
-    vsσ rd w args (.n 1884) = vsσ rd w args (.n 1323) ^ 141 ∧
-      vsσ rd w args (.n 1886) = vsσ rd w args (.n 1303) +
-        ∑ i ∈ range 140, vsσ rd w args (.n 1323) ^ (i + 1) * vals i +
-          vsσ rd w args (.n 1323) ^ 141 * vsσ rd w args (.n 869) ∧
+    vsσ rd w args (.n 1671) = vsσ rd w args (.n 1111) ^ 141 ∧
+      vsσ rd w args (.n 1673) = vsσ rd w args (.n 1091) +
+        ∑ i ∈ range 140, vsσ rd w args (.n 1111) ^ (i + 1) * vals i +
+          vsσ rd w args (.n 1111) ^ 141 * vsσ rd w args (.n 657) ∧
       Stmt.HoldsList C rd (vsσ rd w args) vsLamT next kret := by
   have hG := vsLamT_good (rd := rd) (w := w) hl
-  have g1 : Good rd vsSL w (vsσ rd w args) (.mul (.n 1885) (.n 1884) (.n 869)) :=
+  have g1 : Good rd vsSL w (vsσ rd w args) (.mul (.n 1672) (.n 1671) (.n 657)) :=
     hG (vsMul 1885 1884 869) (by rw [vsLamT]; simp)
-  have g2 : Good rd vsSL w (vsσ rd w args) (.add (.n 1886) (.n 1883) (.n 1885)) :=
+  have g2 : Good rd vsSL w (vsσ rd w args) (.add (.n 1673) (.n 1670) (.n 1672)) :=
     hG (vsAdd 1886 1883 1885) (by rw [vsLamT]; simp)
   simp only [Good] at g1 g2
   rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨show 1884 < 1885 by norm_num,

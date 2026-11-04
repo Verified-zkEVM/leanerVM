@@ -35,7 +35,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 
 /-! ## `fp_w` -/
 
-theorem vsEqwFactor_holds {x t v : ℕ} {a : E} (ha : LoadHolds rd (σ (.n 559)) t a)
+theorem vsEqwFactor_holds {x t v : ℕ} {a : E} (ha : LoadHolds rd (σ (.n 346)) t a)
     (h : Stmt.HoldsList C rd σ (vsEqwFactor x t v).1 next kret) :
     σ (.n (vsEqwFactor x t v).2.1) = (if x.testBit t then a else 1 + a) ∧ next := by
   unfold vsEqwFactor at h ⊢
@@ -58,13 +58,13 @@ theorem testBit_eqAt (x : ℕ) (a0 a1 a2 a3 : E) :
   ring_nf
 
 theorem vsEqwT_holds {x v : ℕ} {a0 a1 a2 a3 : E}
-    (ha : ReadsAt rd (σ (.n 559)) [a0, a1, a2, a3])
+    (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a3])
     (h : Stmt.HoldsList C rd σ (vsEqwT x v).1 next kret) :
     σ (.n (vsEqwT x v).2.1) = eqAt [a0, a1, a2, a3] x ∧ next := by
-  have l0 : LoadHolds rd (σ (.n 559)) 0 a0 := ha 0 (by simp)
-  have l1 : LoadHolds rd (σ (.n 559)) 1 a1 := ha 1 (by simp)
-  have l2 : LoadHolds rd (σ (.n 559)) 2 a2 := ha 2 (by simp)
-  have l3 : LoadHolds rd (σ (.n 559)) 3 a3 := ha 3 (by simp)
+  have l0 : LoadHolds rd (σ (.n 346)) 0 a0 := ha 0 (by simp)
+  have l1 : LoadHolds rd (σ (.n 346)) 1 a1 := ha 1 (by simp)
+  have l2 : LoadHolds rd (σ (.n 346)) 2 a2 := ha 2 (by simp)
+  have l3 : LoadHolds rd (σ (.n 346)) 3 a3 := ha 3 (by simp)
   unfold vsEqwT at h ⊢
   simp only [holdsList_append] at h
   obtain ⟨e0, h⟩ := vsEqwFactor_holds l0 h
@@ -78,10 +78,10 @@ theorem vsEqwT_holds {x v : ℕ} {a0 a1 a2 a3 : E}
   refine ⟨?_, h⟩
   rw [m3, m2, m1, e0, e1, e2, e3, testBit_eqAt]
 
-theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 559)) [a0, a1, a2, a3]) :
+theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a3]) :
     ∀ (l : List ℕ) {next : Prop}, Stmt.HoldsList C rd σ (l.flatMap fun x ↦
-      (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 640 x]) next kret →
-      (∀ x ∈ l, LoadHolds rd (σ (.n 640)) x (eqAt [a0, a1, a2, a3] x)) ∧ next
+      (vsEqwT x (vsFpwStart x)).1 ++ [vsLd (vsEqwT x (vsFpwStart x)).2.1 427 x]) next kret →
+      (∀ x ∈ l, LoadHolds rd (σ (.n 427)) x (eqAt [a0, a1, a2, a3] x)) ∧ next
   | [], _, h => ⟨fun _ hx ↦ absurd hx (by simp), h⟩
   | x :: l, _, h => by
     rw [List.flatMap_cons, holdsList_append, holdsList_append] at h
@@ -96,8 +96,8 @@ theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 559)) [a0, a1, a2, a
 
 /-- **`fp_w`** (G:3220-3223): the bus challenges' equality weights, then `β`'s squeeze. -/
 theorem vsFpwT_holds {alphas : List E} (hl : alphas.length = 4)
-    (ha : ReadsAt rd (σ (.n 559)) alphas) (h : Stmt.HoldsList C rd σ vsFpwT next kret) :
-    ReadsAt rd (σ (.n 640)) (eqKernel alphas) ∧ Stmt.HoldsList C rd σ (vsSqzT 628 817) next kret := by
+    (ha : ReadsAt rd (σ (.n 346)) alphas) (h : Stmt.HoldsList C rd σ vsFpwT next kret) :
+    ReadsAt rd (σ (.n 427)) (eqKernel alphas) ∧ Stmt.HoldsList C rd σ (vsSqzT 415 604) next kret := by
   match alphas, hl with
   | [a0, a1, a2, a3], _ =>
     unfold vsFpwT at h
@@ -150,10 +150,10 @@ theorem ringCoefficients_getElem {chs : List E} (hl : chs.length = 6) {k : ℕ} 
 
 /-- **`c_table`** (G:3253-3262): the ring map's Frobenius coefficients are `ringCoefficients` of
 its six challenges, then `ring_switch_target` is called. -/
-theorem vsCtabT_holds {chs : List E} (hl : chs.length = 6) (hc : ReadsAt rd (σ (.n 876)) chs)
+theorem vsCtabT_holds {chs : List E} (hl : chs.length = 6) (hc : ReadsAt rd (σ (.n 664)) chs)
     (h : Stmt.HoldsList C rd σ vsCtabT next kret) :
-    ReadsAt rd (σ (.n 877)) (ringCoefficients chs) ∧
-      C "ring_switch_target" [σ (.n 860), σ (.n 876)] [σ (.n 1303)] ∧ next := by
+    ReadsAt rd (σ (.n 665)) (ringCoefficients chs) ∧
+      C "ring_switch_target" [σ (.n 648), σ (.n 664)] [σ (.n 1091)] ∧ next := by
   rw [vsCtabT_eq, holdsList_append] at h
   have hc0 := ct_check
   generalize hr : ctRun ⟨[], []⟩ ctPre = r at hc0
