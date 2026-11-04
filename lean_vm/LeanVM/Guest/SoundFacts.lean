@@ -124,12 +124,13 @@ memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, k
 below `g^23` (`τ + 6` is a column's log, at most `28`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
 
-/-- `verify_sub`'s bounds of the tables' certified logs: entry `t < 7` of `dims_g` (the value
-`127`) among `g^e`, `e < 34`, which `verify_tables` dispatches on. -/
-def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := (List.range 7).map (fun t ↦ (c, t, 34))
+/-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `127`) among `g^e`,
+`e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
+checked in `verify_tables` itself, `lean_ethereum.py:2176`). -/
+def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := [(c, 0, 34)]
 
 /-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `552`) and takes
-the bound of each of the `7` entries of `dims_g` (the value `127`). -/
+the bound of entry `0` of `dims_g` (the value `127`). -/
 theorem vs_cut1 : ((certOf 19).cutAt 1).start = 552 ∧
     ((certOf 19).cutAt 1).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel

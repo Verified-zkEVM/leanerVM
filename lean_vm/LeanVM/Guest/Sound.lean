@@ -22,7 +22,7 @@ on that run (`Check.EnteredAt`).
   the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
   `verify_sub` (function `19`), whose second window starts at its call of `verify_tables`, the
-  bounds of the `7` entries of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
+  bound of entry `0` of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
   `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
   `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks and
   `verify_bus_gkr`'s layer loop, `WalkKnown`.
@@ -61,15 +61,13 @@ def VsKnown : Prop :=
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
-dims_g known'): on every memory image, over the exponent table at `verify_sub`'s argument `4`, its
-first `552` statements, up to its call of `verify_tables`, put entry `t < 7` of `dims_g` (the
-value `127`, the tables' certified logs) among the powers `g^e`, `e < 34`, which `verify_tables`
-dispatches on. -/
+dims_g known', 'verifysub#7'): on every memory image, its first `552` statements, up to its call
+of `verify_tables`, put entry `0` of `dims_g` (the value `127`, `g^logMem`) among the powers
+`g^e`, `e < 34`, which `verify_tables` dispatches on. -/
 def VsDimsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    B1.ExpTables L.read (σ (.n 4)) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 552) True (fun _ ↦ True) →
-      ∀ t < 7, ∃ e < 34, LoadHolds L.read (σ (.n 127)) t (ofK (addressOfIndex e))
+      ∃ e < 34, LoadHolds L.read (σ (.n 127)) 0 (ofK (addressOfIndex e))
 
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table. -/
 def ExpTablesSound : Prop :=
@@ -118,8 +116,9 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
         ((coreOf 19).body.take n) True (fun _ ↦ True)) :
       MemKnown L fp (vsDimsKnown ((certOf 19).locs.getD 127 0)) := by
     intro m hm
-    obtain ⟨t, ht7, rfl⟩ := List.mem_map.mp hm
-    exact hvd L h16 h32 _ ht (vs_take552 hn hl) t (List.mem_range.mp ht7)
+    rw [vsDimsKnown, List.mem_singleton] at hm
+    subst hm
+    exact hvd L h16 h32 _ (vs_take552 hn hl)
   rw [vs_cuts] at hi
   obtain rfl | rfl : i = 1 ∨ i = 2 := by omega
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1

@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 * `expTablesSound`: `exponent_tables`' returns are the exponent tables (B1-a's
   `exponent_tables_holds`).
-* `vsDimsKnown_proved`: `verify_sub`'s `dims_g` entries below `g^34`, the arms `verify_tables`
-  dispatches on (B1-d's `VerifySub.vsDimsKnown_holds`).
+* `vsDimsKnown_proved`: `verify_sub`'s `dims_g[g^0]` below `g^34`, an arm `verify_tables`
+  dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
 * `walkKnown_proved` (`WalkKnownAll.lean`): the walks' cut obligations (whir's `QueriesWalk`
@@ -50,10 +50,10 @@ theorem expTablesSound : ExpTablesSound := fun rd q h ↦
 theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
   VerifySub.vsKnown_holds L h16 h32 σ hexp h
 
-/-- **`verify_sub`'s `dims_g`** below `g^34`, the arms `verify_tables` dispatches on (B1-d's
-`VerifySub.vsDimsKnown_holds`). -/
-theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ hexp h ↦
-  VerifySub.vsDimsKnown_holds L h16 h32 σ hexp h
+/-- **`verify_sub`'s `dims_g[g^0]`** below `g^34`, an arm `verify_tables` dispatches on (B1-d's
+`VerifySub.vsDimsKnown0_holds`). -/
+theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
+  VerifySub.vsDimsKnown0_holds L h16 h32 σ h
 
 /-- **B2, proved**, given `verify_sub`'s `dims_g` and `kappa_base` bounds and the walks'
 obligations. -/
