@@ -657,6 +657,16 @@ noncomputable def execWin (F : Facts) (f : CompiledFunction) (a : ℕ) (env : Li
   pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
       env))) [] [] 0
 
+/-- **A window entered at several offsets**: `execWin` with pending edges into `seeds`, each in
+the environment `env` (an entered window's arms past the first). -/
+noncomputable def execWinS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
+    (seeds : List ℕ) (b : ℕ) : Result :=
+  pass F f.entryPc f.instructionCount ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf
+      env))) (seeds.map fun t ↦ (t, envOf env)) [] 0
+
+theorem execWinS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
+    execWinS F f a env [] b = execWin F f a env b := rfl
+
 /-! ## Linking -/
 
 /-- The segments by start. -/

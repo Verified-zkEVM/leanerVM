@@ -1134,6 +1134,13 @@ theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) (
   pass_good hctx _ a _ [] [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
 
+/-- Every segment of a window entered at several offsets is good. -/
+theorem execWinS_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entryPc f.code) (a : ℕ)
+    (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :
+    ∀ s ∈ (execWinS F f a env seeds b).segs, SegGood L fp prog f.entryPc s :=
+  pass_good hctx _ a _ _ [] 0 (hf.window a (b - a))
+    (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
+
 /-- **Linking across windows**: every successor of an exit of a window starts one of its
 segments, or one of the windows `ext`, with an environment holding where the exit's does. -/
 theorem Result.linkedExt_spec {ext : List (ℕ × List (ℕ × Sym))} {R : Result}

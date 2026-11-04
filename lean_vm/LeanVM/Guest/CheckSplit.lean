@@ -270,15 +270,17 @@ section Walk
 
 variable (X : Fx) (l' : Exec.Trie ℕ)
 
+theorem pendOk_congr (P : List Core.Atom) (hP : ∀ a ∈ P, ∀ v ∈ atomVals a, Agree X.loc l' v)
+    (se : CS) : pendOk X se P = pendOk { X with loc := l' } se P := by
+  unfold pendOk
+  rw [all_congr' fun a ha ↦ atomOk_congr X.F se.book se.psi (hP a ha)]
+
 theorem blockEnd_congr (st : CS) (P : List Core.Atom)
     (hP : ∀ a ∈ P, ∀ v ∈ atomVals a, Agree X.loc l' v) :
     blockEnd X st P = blockEnd { X with loc := l' } st P := by
-  unfold blockEnd pendOk
-  split
-  · rename_i J se _
-    rw [all_congr' fun a ha ↦ atomOk_congr X.F se.book se.psi (hP a ha)]
-    rfl
-  · rfl
+  unfold blockEnd chainEnd chainOk
+  simp only [pendOk_congr X l' P hP]
+  rfl
 
 /-- **The walk of atoms on agreeing cells**: the same. -/
 theorem chkL_atoms_congr : ∀ (ss : List Core.Stmt) (st : CS) (P : List Core.Atom),
@@ -322,7 +324,7 @@ theorem chkL_match_of {X : Fx} {v : Core.V} {a0 : List Core.Stmt} {as : List (Li
     (h6 : boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true)
     (h7 : tableBase se.book t (cellOf X.loc v) = some base)
     (h8 : armsOk X.G X.entry base 0 (t0 :: ts) = true) (h9 : segAt X t0 se.book se.bnd = some s0)
-    (h10 : chkL X a0 s0 [] = .join J) (h11 : chkArms X J as ts se.book se.bnd = true)
+    (h10 : chkL X a0 s0 [] = .join J) (h11 : chkArms X (.join J) as ts se.book se.bnd = true)
     (h12 : segAt X J se.book se.bnd = some sj) :
     chkL X (.match_ v (a0 :: as) :: ss) st P = chkL X ss sj P := by
   simp only [chkL, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, beq_self_eq_true,
@@ -372,10 +374,10 @@ theorem getElem_selArms (lo hi : ℕ) : ∀ (k : ℕ) (as : List (List Core.Stmt
     exact getElem_selArms lo hi (k + 1) as e (by simpa using he) (by omega) (by omega)
 
 /-- `chkArms` from each arm's walk. -/
-theorem chkArms_of {X : Fx} {J : ℕ} {B : Book} {bnd : List (ℕ × ℕ)} :
+theorem chkArms_of {X : Fx} {r : Res} {B : Book} {bnd : List (ℕ × ℕ)} :
     ∀ {as : List (List Core.Stmt)} {ts : List ℕ}, ts.length = as.length →
       (∀ e (he : e < as.length) (ht : e < ts.length), ∃ st, segAt X ts[e] B bnd = some st ∧
-        chkL X as[e] st [] = .join J) → chkArms X J as ts B bnd = true
+        chkL X as[e] st [] = r) → chkArms X r as ts B bnd = true
   | [], [], _, _ => by simp [chkArms]
   | [], _ :: _, h, _ => by simp at h
   | _ :: _, [], h, _ => by simp at h
@@ -567,7 +569,7 @@ window and of the values it names outside it (`Cert.locAtR`), which cover the gr
 the executor, the links and the window's start and end as `checkWinC`'s. Not the first window. -/
 noncomputable def checkWinS (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main : Bool) (i lo hi : ℕ)
     (rs : List (ℕ × ℕ)) : Bool :=
-  matchAtoms lo hi (C.stmtsAt cf i) &&
+  matchAtoms lo hi (C.stmtsAt cf i) && (C.succAt i).isEmpty &&
   match execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAtR i rs).seq fun loc ↦
       !(i == 0) && C.rsFit i rs &&
@@ -628,7 +630,13 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     obtain ⟨g', hg', h1, h2⟩ := hcov e he
     obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hg'
     exact ⟨g, hg, h1, h2⟩
+  have hsucc : C.succAt i = [] := by
+    have hc := h g0 hg0
+    unfold checkWinS at hc
+    simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
+    exact hc.1.2
   unfold checkWinC
+  rw [hsucc, List.drop_nil, execWinCS_nil]
   rcases hR : execWinC C.facts (fnOf j) (C.cutAt i).J (C.cutAt i).env (C.endAt (fnOf j) i) with
     ⟨segs, dead⟩
   simp only [listSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true]
@@ -649,7 +657,7 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     rw [hR, hss] at hc
     simp only [listSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, Bool.not_eq_true',
       beq_eq_false_iff_ne, selStmts, chkWinS] at hc
-    obtain ⟨hm, ⟨⟨⟨⟨hi, hfit⟩, hcovg⟩, hlink⟩, hend⟩⟩ := hc
+    obtain ⟨⟨hm, -⟩, ⟨⟨⟨⟨hi, hfit⟩, hcovg⟩, hlink⟩, hend⟩⟩ := hc
     refine ⟨hm, hi, hfit, hcovg, hlink, ?_⟩
     split at hend
     · rename_i st hst
@@ -695,6 +703,7 @@ theorem checkWinC_of_split {G : Glob} {j : ℕ} {cf : Core.Fn} {C : Cert} {main 
     exact hs
   · rw [hst]
     simp only [hsub, Bool.true_and]
+    rw [walkFrom_nil rfl]
     have hne : ∀ g ∈ gs, chkMatchS (C.fxAt G (fnOf j) cf main i segs (index segs) (C.locAtR i g.2.2))
         g.1 g.2.1 v (a0 :: as) st ≠ .fail := by
       intro g hg hf
