@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.Loop7Complete
 public import LeanVM.Guest.B1.Gkr.Holds
 
 /-!
-# The binary layer, completely (G:1632-1669)
+# The binary layer, completely (G:1802-1837)
 
 `vbgEvL`: `verify_bus_gkr`'s body as the forward evaluator walks it (its `ite`'s branches in
 order, the checked inverse as its product, `fixNe`); `vb_good`, `vb_good_odd`: the statements of
@@ -185,14 +185,14 @@ theorem odc_holds (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {cur : 
   -- the combiner
   have gcap := od_goodB hG 0 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (137 + k)) (.n 15) k)) (by decide +kernel)
-  have kcap : ∀ k < 5, some (128 + k, 15, k) ∉ vbgS.map loadKey := by decide +kernel
+  have kcap : ∀ k < 5, some (137 + k, 15, k) ∉ vbgS.map loadKey := by decide +kernel
   have rcap : ∀ k < 5, σ (.n (137 + k)) = s.cap.getD k 0 ∧
       LoadHolds rd (σ (.n 15)) k (σ (.n (137 + k))) := fun k hk =>
     good_readS (gcap _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (kcap k hk)
       (hcap k hk)
   have grate := od_goodB hG 5 ((List.range 4).map fun k ↦
     Stmt.atom (.load (.n (142 + k)) (.n 15) (13 + k))) (by decide +kernel)
-  have krate : ∀ k < 4, some (133 + k, 15, 13 + k) ∉ vbgS.map loadKey := by decide +kernel
+  have krate : ∀ k < 4, some (142 + k, 15, 13 + k) ∉ vbgS.map loadKey := by decide +kernel
   have rrate : ∀ k < 4, σ (.n (142 + k)) = (rateOf s.pend).getD k 0 ∧
       LoadHolds rd (σ (.n 15)) (13 + k) (σ (.n (142 + k))) := fun k hk =>
     good_readS (grate _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)) (krate k hk)
@@ -268,7 +268,7 @@ theorem odc_holds (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {cur : 
     have := hx i (by simp; omega)
     rw [e171]
     rwa [← List.getD_eq_getElem _ 0] at this
-  have hk : ∀ i < 6, some (odEv i, 162, i) ∉ vbgS.map loadKey := by decide +kernel
+  have hk : ∀ i < 6, some (odEv i, 171, i) ∉ vbgS.map loadKey := by decide +kernel
   have EV : ∀ i < 6, Stmt.HoldsList C rd σ (odEvT i) True kret ∧
       σ (.n (odEv i)) = [w0, w1, w2, w3, w4, w5].getD i 0 ∧
       σ (.n (odEv i + 10)) = σ (.n (odEv i)) ∧
