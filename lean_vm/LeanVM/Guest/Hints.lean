@@ -10,7 +10,6 @@ module
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
-public import Sphincs.Equations
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
@@ -28,12 +27,12 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation.rs` (leanVM `3375f7a13`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1347-1353`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1645-1911`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1519-1573`; `push_lean_sphincs_hints`, `aggregation.rs:1581-1601`), a child's
-(`gen_verify`, `aggregation.rs:1149-1313`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:874-991`) and LeanDA's.
+`crates/rec_aggregation/src/aggregation.rs` (leanVM `542b0353`) push for push (`honestPushes`,
+grouped by stream as `Hints::push` does, `aggregation.rs:1309-1314`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1590-1842`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1480-1503`; `lean_sphincs_hints`, `aggregation.rs:1514-1553`), a child's
+(`gen_verify`, `aggregation.rs:1119-1274`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:868-974`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -46,7 +45,7 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1466-1476`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1427-1438`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
   sorted and deduplicated, `aggregation.rs:1640-1644`), then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
@@ -80,16 +79,16 @@ def group (pushes : List (String × Entry)) : Streams :=
 
 /-! ## The deployed constants -/
 
-/-- `CLAIM_GROUP` (`aggregation.rs:164`): the claims a claim list's digest absorbs per loop
+/-- `CLAIM_GROUP` (`aggregation.rs:167`): the claims a claim list's digest absorbs per loop
 frame. -/
 def claimGroup : ℕ := 17
 
-/-- `DIGIT_GROUP` (`aggregation.rs:93`): the codeword digits the guest dispatches on at a time. -/
+/-- `DIGIT_GROUP` (`aggregation.rs:96`): the codeword digits the guest dispatches on at a time. -/
 def digitGroup : ℕ := 3
 
 /-! ## Encodings -/
 
-/-- `count(n)`: `g^n` (`aggregation.rs:135-111`). -/
+/-- `count(n)`: `g^n` (`aggregation.rs:112-114`). -/
 def count (n : ℕ) : E := gpowE n
 
 /-- A bit as a word. -/
@@ -113,12 +112,12 @@ def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
   cellsOfBytes (claimBytes root parameter message)
 
 /-- The bytes of a `bits`-bit value, low first, each in the exponent (`exponent_bytes`,
-`aggregation.rs:115-120`). -/
+`aggregation.rs:118-122`). -/
 def exponentBytes (value bits : ℕ) : Entry :=
   (List.range ((bits + 7) / 8)).map fun k ↦ count (value / 2 ^ (8 * k) % 256)
 
 /-- How a list of `n` claims splits into whole groups of `claimGroup` and the rest
-(`list_split`, `aggregation.rs:172-175`). -/
+(`list_split`, `aggregation.rs:175-178`). -/
 def listSplit (n : ℕ) : Entry := [count (n / claimGroup), count (n % claimGroup)]
 
 /-- A list's split, if it is not empty, then one push per item. -/
@@ -175,67 +174,74 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
     (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
   ("leaf_index_bits", bits) :: bottom ++ top
 
-/-! ## A leanSPHINCS signature (`push_lean_sphincs_hints`) -/
+/-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
-/-- The digest bits the leanSPHINCS fields take (`LEAN_SPHINCS_USED_BITS`,
-`aggregation.rs:123-151`): from bit `128` of the digest, the index, every tree's leaf and every
-subtree's key. -/
-def sphincsUsedBits : ℕ :=
-  Sphincs.treeHeight + Sphincs.forestCoordinateCount * Sphincs.topTreeHeight +
-    2 * Sphincs.forestCoordinateCount * Sphincs.forestSubtreeHeight
+/-- The digest bits past the leanSPHINCS fields in the second call's first lane, which the guest
+takes as hinted bytes (`LEAN_SPHINCS_TAIL_BITS`, `aggregation.rs:126`: the fields end at bit
+`266 = 256 + 10`). -/
+def sphincsTailBits : ℕ := Sphincs.messageDigestBits - 256
 
-/-- A field the guest dispatches on: in the exponent, and as the address cell whose `hi` it is
-(`mark`, `aggregation.rs:1562-1565`). -/
-def markEntry (index field : ℕ) : Entry :=
-  [count index, cellOfBytes (HashSig.addressBytes (HashSig.tweakFields 0 0 field 0))]
+/-- One FORS tree's hints: the ordered children of every node on its climb, the two top nodes
+last (`fors_recover`'s visits, `fors.rs:74-94`). -/
+def sphincsForsNodes (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
+    (tree : Sphincs.ForsTreeIndex) (leaf : Sphincs.ForsLeafIndex) (opening : Sphincs.ForsTreeOpening) :
+    List (String × Entry) :=
+  let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 parameter index tree
+    leaf opening.secret)
+  let fold := fun levels ↦ Id.run (Sphincs.Verification.forsFold (m := Id) keccakF1600 parameter
+    index tree leaf opening.path levels value)
+  let below := (List.range (Sphincs.forsTreeHeight - 1)).map fun l ↦
+    ("sp_fors_nodes", ordered (leaf.val.testBit l) (fold l)
+      (if h : l < Sphincs.forsTreeHeight then opening.path ⟨l, h⟩ else 0))
+  below ++ [("sp_fors_nodes", ordered (leaf.val.testBit (Sphincs.forsTreeHeight - 1))
+    (fold (Sphincs.forsTreeHeight - 1)) (opening.path Sphincs.Verification.forsTopLevel))]
 
-/-- A leanSPHINCS signature's hints: the randomizer, the forest's chain values, the digest's
-unused bits, its codeword indices, each tree's leaf, each subtree's key and the forest's path
-nodes in signature order, the counter, the codeword's digits, the chain values, and the ordered
-children of every node on the tree's path. -/
+/-- One layer's hints: the counter, the codeword's digits, the chain values and the ordered
+children of every node on the key's path; and the root the layer reaches. -/
+def sphincsLayer (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
+    (σ : Sphincs.Signature) (layer : Sphincs.Layer) (message : List UInt8) :
+    List (String × Entry) × HashSig.Digest :=
+  let tree := Sphincs.treeOfIndex layer index
+  let leaf := Sphincs.leafOfIndex layer index
+  let part := σ.layers layer
+  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 parameter layer tree leaf
+    message part.counter)
+  let digits := (List.finRange Sphincs.chainCount).map fun i ↦ (encoding.map (· i |>.val)).getD 0
+  let starts := (List.finRange Sphincs.chainCount).map fun i ↦
+    ("chain_starts", [cell128 (part.chainValues i)])
+  let value := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 parameter layer tree leaf
+    message part.counter part.chainValues)).getD 0
+  let fold := fun levels ↦ Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 parameter
+    layer tree leaf (Sphincs.Verification.layerPath σ layer) levels value)
+  let siblings := (List.range (Sphincs.layerHeight layer)).map fun l ↦
+    ("siblings", ordered (leaf.val.testBit l) (fold l) (Sphincs.Verification.layerPath σ layer l))
+  ([("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++ siblings,
+    fold (Sphincs.layerHeight layer))
+
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1514-1553`): the
+randomizer, the digest's bits past its fields, every FORS tree's secret, every tree's climb, then
+each layer's, bottom first, the bottom one-time key signing the FORS key's bytes and each above
+the root below. -/
 def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
   let parameter := pk.parameter
-  let call := Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600 parameter message
-    σ.randomizer)
-  let digest := Sphincs.truncateMessageDigest call
-  let index := Sphincs.Verification.digestLeafIndex digest
-  let marks := Sphincs.Verification.digestCoordinateSelections digest
-  let coords := List.finRange Sphincs.forestCoordinateCount
-  let subtrees := List.finRange 2
-  let values := coords.flatMap fun c ↦ subtrees.flatMap fun j ↦
-    (List.finRange Sphincs.forestChainCount).map fun i ↦
-      ("sp_forest_values", [cell128 (((σ.forestOpening c).subtreeOpenings j).values i)])
-  let unused := call.toNat / 2 ^ (128 + sphincsUsedBits)
-  let words := coords.flatMap fun c ↦ subtrees.map fun j ↦
-    ("sp_words", [count ((marks c).codewordIndex j).val])
-  let trees := coords.flatMap fun c ↦
-    ("sp_leaves", markEntry (marks c).superChild.val (c.val + 8 * (marks c).superChild.val)) ::
-      (subtrees.flatMap fun j ↦
-        ("sp_keys", markEntry ((marks c).child j).val (128 * j.val + 256 * ((marks c).child j).val)) ::
-          (List.finRange Sphincs.forestSubtreeHeight).map fun l ↦
-            ("sp_forest_nodes", [cell128 (((σ.forestOpening c).subtreeOpenings j).path l)])) ++
-      (List.finRange Sphincs.topTreeHeight).map fun l ↦ ("sp_forest_nodes", [cell128 ((σ.forestOpening c).topTreePath l)])
-  let forestKey := Id.run (Sphincs.Verification.forestRecover (m := Id) keccakF1600 parameter index
-    marks σ.forestOpening)
-  let leaf := index
-  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 parameter leaf forestKey
-    σ.counter)
-  let digits := (List.finRange Sphincs.chainCount).map fun i ↦ (encoding.map (· i |>.val)).getD 0
-  let starts := (List.finRange Sphincs.chainCount).map fun i ↦
-    ("chain_starts", [cell128 (σ.chainValues i)])
-  let wotsLeaf := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 parameter leaf
-      forestKey
-    σ.counter σ.chainValues)).getD 0
-  let path := fun l ↦ if h : l < Sphincs.treeHeight then σ.authenticationPath ⟨l, h⟩ else 0
-  let siblings := (List.range Sphincs.treeHeight).map fun l ↦
-    ("siblings", ordered (leaf.val.testBit l)
-      (Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 parameter leaf path l wotsLeaf))
-      (path l))
-  [("sp_rand", [cell128 σ.randomizer])] ++ values ++
-    [("sp_unused", exponentBytes unused (128 - sphincsUsedBits))] ++ words ++ trees ++
-    [("sp_counter", exponentBytes σ.counter.toNat 32)] ++ digitGroups digits ++ starts ++
-    siblings
+  let outputs := fun call ↦ Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600
+    parameter message σ.randomizer call)
+  let digest := Sphincs.truncateMessageDigest outputs
+  let index := Sphincs.digestIndex digest
+  let leaves := Sphincs.digestForsLeaves digest
+  let unused := Sphincs.digestValue outputs / 2 ^ Sphincs.messageDigestBits % 2 ^ (64 - sphincsTailBits)
+  let trees := List.finRange Sphincs.forsTreeCount
+  let secrets := trees.map fun c ↦ ("sp_fors_secrets", [cell128 (σ.forsOpening c).secret])
+  let climbs := trees.flatMap fun c ↦ sphincsForsNodes parameter index c (leaves c) (σ.forsOpening c)
+  let forsKey := Id.run (Sphincs.Verification.forsRecover (m := Id) keccakF1600 parameter index leaves
+    σ.forsOpening)
+  let (bottom, rootB) := sphincsLayer parameter index σ 0 (Sphincs.Verification.forsKeyPayload forsKey)
+  let (middle, rootM) := sphincsLayer parameter index σ 1 (HashSig.littleEndianBytes 16 rootB)
+  let (top, _) := sphincsLayer parameter index σ 2 (HashSig.littleEndianBytes 16 rootM)
+  [("sp_rand", [cell128 σ.randomizer]),
+    ("sp_unused", exponentBytes unused (64 - sphincsTailBits))] ++ secrets ++ climbs ++
+    bottom ++ middle ++ top
 
 /-! ## LeanDA -/
 

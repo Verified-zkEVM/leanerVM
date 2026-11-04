@@ -133,16 +133,15 @@ def xmssSigR : R LeanXmss.Signature := do
   return ⟨⟨index % 2 ^ 32, Nat.mod_lt _ (by decide)⟩, fun l => if l.val = 0 then bottom else top⟩
 
 def sphincsSigR : R Sphincs.Signature := do
-  let randomness ← d128
-  let forest ← (List.range Sphincs.forestCoordinateCount).mapM fun _ => do
-    let subs ← (List.range 2).mapM fun _ => do
-      return (⟨fn128 (← many d128), fn128 (← many d128)⟩ : Sphincs.SubtreeOpening)
-    return (⟨fun j => subs.getD j ⟨fun _ => 0, fun _ => 0⟩, fn128 (← many d128)⟩ : Sphincs.CoordinateOpening)
-  let counter ← nat
-  let values ← many d128
-  let path ← many d128
-  return ⟨randomness, fun c => forest.getD c ⟨fun _ => ⟨fun _ => 0, fun _ => 0⟩, fun _ => 0⟩,
-    BitVec.ofNat 32 counter, fn128 values, fn128 path⟩
+  let randomizer ← d128
+  let fors ← (List.range Sphincs.forsTreeCount).mapM fun _ => do
+    return (⟨← d128, fn128 (← many d128)⟩ : Sphincs.ForsTreeOpening)
+  let layers ← (List.range Sphincs.layerCount).mapM fun _ => do
+    return (BitVec.ofNat 32 (← nat), (← many d128), (← many d128))
+  let layer := fun (l : Sphincs.Layer) =>
+    let (counter, values, path) := layers.getD l.val (0, [], [])
+    (⟨counter, fn128 values, fn128 path⟩ : Sphincs.LayerSignature l)
+  return ⟨randomizer, fun c => fors.getD c ⟨0, fun _ => 0⟩, layer⟩
 
 /-- A raw leanXMSS signature with its claim. -/
 def rawXmssR : R (LeanXmssClaim × LeanXmss.Signature) := do

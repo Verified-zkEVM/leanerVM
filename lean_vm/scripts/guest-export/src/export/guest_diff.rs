@@ -100,18 +100,19 @@ impl Out {
         }
     }
 
+    /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter, chain values
+    /// and path.
     fn sphincs_signature(&mut self, sig: &LeanSphincsSignature) {
         self.bytes(&sig.randomizer);
-        for tree in &sig.forest {
-            for subtree in &tree.subtrees {
-                self.digests(&subtree.values);
-                self.digests(&subtree.path);
-            }
+        for tree in &sig.fors {
+            self.bytes(&tree.secret);
             self.digests(&tree.path);
         }
-        self.n(sig.counter as usize);
-        self.digests(&sig.wots);
-        self.digests(&sig.path);
+        for (layer, layer_sig) in sig.layers.iter().enumerate() {
+            self.n(layer_sig.counter as usize);
+            self.digests(&layer_sig.wots);
+            self.digests(sig.path(layer));
+        }
     }
 }
 
