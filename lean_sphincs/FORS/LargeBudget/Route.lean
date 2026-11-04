@@ -172,7 +172,7 @@ end RestW
 
 section ChainW
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 /-- The targeting facts at every prepared sample of a parameter set. -/
 def TargetingAll : Prop :=
@@ -292,7 +292,7 @@ theorem large_seedFree_boundW (hb : 0 < keptHeight topLayer) (adversary : Advers
       prepared ∈ support (preparation parameterOutput fixed highs remaining) → ∀ x, IsMsgInput x → prepared.2 x = none)
     (wbar : ℝ≥0∞) (Lmax : ℕ) (hfair : FairS wbar (q - keygenCost + digestAttemptLimit) Lmax)
     (htotal : 2 * ((q - keygenCost : ℕ) : ℝ) + 2 ≤ spaceReal) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q steps] ≤
+    Pr{let z ← seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
       ((1 - budget 0 (q - keygenCost)) + (q - keygenCost : ℕ) * startExcessO wbar (baselineW (q - keygenCost))
         (q - keygenCost) + lam Lmax 0 (q - keygenCost)) +
       ((q - keygenCost : ℕ) + signatureLimit) * expectedFail := by

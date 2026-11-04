@@ -11,7 +11,7 @@ namespace FORS.Security.HiddenBridge
 variable [Params]
 
 open HiddenReveal HiddenCost Eager Short Concrete
-open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -25,8 +25,8 @@ attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSamp
 set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world.** -/
 theorem seedFree_le_prep (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q steps] ≤
-      Pr[HiddenReveal.StopOr RichWin | do
+    Pr{let z ← seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
+      Pr{let z ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -35,7 +35,7 @@ theorem seedFree_le_prep (adversary : Adversary) (q : Nat) (steps : Message → 
         HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining steps))))
-          (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) x] := by
+          (knownOf (truncateHash parameterOutput) fixed) prepared.2)}[(HiddenReveal.StopOr RichWin) z] := by
   refine (seedFree_le_stopped (internalize adversary) q steps Win).trans (le_of_eq ?_)
   refine probEvent_bind_congr₂ _ _ _ _ _ fun parameterOutput => ?_
   refine probEvent_bind_congr₂ _ _ _ _ _ fun fixed => ?_
@@ -71,8 +71,8 @@ theorem seedFree_le_prep (adversary : Adversary) (q : Nat) (steps : Message → 
 set_option maxRecDepth 100000 in
 /-- **The seed-free win in the stopped prepared world, with the above-word values exposed.** -/
 theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q steps] ≤
-      Pr[HiddenReveal.StopOr RichWin | do
+    Pr{let z ← seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
+      Pr{let z ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -83,7 +83,7 @@ theorem seedFree_le_exposeP (adversary : Adversary) (q : Nat) (steps : Message �
         HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
           (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
             (sampleData parameterOutput fixed highs remaining steps))))
-          known prepared.2)}[(HiddenReveal.StopOr RichWin) x] := by
+          known prepared.2)}[(HiddenReveal.StopOr RichWin) z] := by
   refine (seedFree_le_expose (internalize adversary) q steps Win
     (fun parameterOutput fixed highs remaining outsideTable =>
       aboveList (truncateHash parameterOutput)

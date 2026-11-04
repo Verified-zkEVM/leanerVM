@@ -9,7 +9,6 @@ namespace FORS.Security.HiddenRows
 variable [Params]
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 
 structure Model (D R A ι : Type) where
@@ -82,7 +81,6 @@ noncomputable def stopped {α : Type} (model : Model D R A ι) (table : (ι → 
   OracleComp.construct (fun value _ => pure (some value))
     (fun source _ next => stoppedStep model table outside source next) computation
 
-set_option maxHeartbeats 100000
 section Equations
 variable {α : Type} (model : Model D R A ι)
   (table : (ι → Digest)) (outside : D → R)

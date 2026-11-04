@@ -1,21 +1,18 @@
 import Sphincs.Axioms
-import Sphincs.WithHash
-import Sphincs.TablesFirewall
 
 /-! # The end theorem of leanSPHINCS
 
-`Sphincs.Lifetimes.requestedSecurityRpm` proves `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable`
-(`Statement/LeanSphincs.lean`): in the random-permutation model, at every proved lifetime, an
-adversary whose game makes at most `Q` permutation calls, for every `Q ≥ 1`, forges with probability
-at most `(Q + 1) · 2^-127` (from `Q / 2^127 + Q² / 2^509`, the sponge's indifferentiability
-added). Its proof passes through the random-oracle model
-(`SphincsLayered.Lifetimes.requestedSecurity`, a step) and the layered presentation of the scheme,
-the statement's scheme through a bijection of the signatures (`Sphincs.OneLayer`).
-`Sphincs/Axioms.lean` pins the axiom footprint of every theorem of the project; the build fails if
-the end theorem's grows beyond Lean's three. -/
+`Sphincs.leanSphincsStronglyUnforgeable` proves `Sphincs.LeanSphincsStronglyUnforgeable`
+(`Statement/LeanSphincs.lean`): in the random-permutation model, up to `1,182,000,000` signatures,
+an adversary whose game makes at most `Q` permutation calls, for every `Q ≥ 1`, forges with
+probability at most `(Q + 1) · 2^-127` (from `Q / 2^127 + Q² / 2^509`, the sponge's
+indifferentiability added). Its proof passes through the random-oracle model (upstream's
+`FORS.h26_layered`, a step) and upstream's model of the scheme (`FORS.Scheme`), the statement's
+scheme through the maps of `Sphincs/Model.lean`. `Sphincs/Axioms.lean` and `FORS/Axioms.lean` pin
+the axiom footprints; the build fails if the end theorem's grows beyond Lean's three. -/
 
-example : Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable := Sphincs.Lifetimes.requestedSecurityRpm
+example : Sphincs.LeanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
 
-/-- info: 'Sphincs.Lifetimes.requestedSecurityRpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.leanSphincsStronglyUnforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Lifetimes.requestedSecurityRpm
+#print axioms Sphincs.leanSphincsStronglyUnforgeable

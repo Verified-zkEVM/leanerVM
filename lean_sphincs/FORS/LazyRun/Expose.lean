@@ -58,7 +58,7 @@ theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Know
 
 end Generic
 
-open Completeness SeedModel Graph Assembly Reduce HiddenGraph Internalize GraphView
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce HiddenGraph Internalize GraphView
 
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
@@ -71,8 +71,8 @@ outside samples. -/
 theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message → Randomness)
     (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop)
     (cs : HashOutput → HiddenGraph.Table → CoordinateHighs → RemainingOutputs → Eager.Table → List Coordinate) :
-    Pr[event | seedFreeExperiment adversary q steps] ≤
-      Pr[HiddenReveal.StopOr event | do
+    Pr{let z ← seedFreeExperiment adversary q steps}[event z] ≤
+      Pr{let z ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -85,7 +85,7 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat) (steps : Message �
             (splitAnswers highs remaining fixed) outsideTable)
           (HiddenCost.erase (HiddenCost.trace
             (sampleProgram adversary q steps parameterOutput fixed highs remaining)))
-          known)}[(HiddenReveal.StopOr event) x] := by
+          known)}[(HiddenReveal.StopOr event) z] := by
   rw [(evalDist_seedFree_completion adversary q steps).prEvent_eq]
   refine probEvent_bind_mono_support _ _ _ _ _ fun parameterOutput _ => ?_
   refine probEvent_bind_mono_support _ _ _ _ _ fun fixed _ => ?_

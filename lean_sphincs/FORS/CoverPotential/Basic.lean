@@ -170,15 +170,15 @@ theorem landing_le_one : landing ≤ 1 := ForsPrice.landing_le_one
 
 /-- **Mean over a fresh pair.** Only the block of `firstCall` decides landing. -/
 theorem pair_mean (parameter : PublicParameter) (F : View → ℝ≥0∞) (C : ℝ≥0∞) :
-    ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else C) =
       landing * freshAvg Finset.univ F + (1 - landing) * C := by
   have hsplit : ∀ u : DigestCall → HashOutput,
-      Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else C) =
-      Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then F (viewOf u) else 0) +
-      C * (Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+      C * (Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then 0 else 1)) := by
     intro u
     split_ifs <;> ring
@@ -201,7 +201,7 @@ section PairE
 
 /-- Expectation over the fresh blocks of a pair, one per digest call. -/
 noncomputable def pairE (F : (DigestCall → HashOutput) → ℝ≥0∞) : ℝ≥0∞ :=
-  ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] * F u
+  ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] * F u
 
 theorem pairE_add (F G : (DigestCall → HashOutput) → ℝ≥0∞) :
     pairE (fun a => F a + G a) = pairE F + pairE G := by
@@ -561,9 +561,9 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
     (computation : OracleComp CostSpec α) (budget : ℕ) (state : State) (hx : state.cache x = none)
     (F : Run HashInput Coordinate α × State → ℝ≥0∞)
     (hF : ∀ out (v : HashOutput), out.2.cache x = none → F out ≤ F (out.1, out.2.store x v)) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-      (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model
-        computation budget (state.store x v)] * F out := by
+    ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
+      (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model
+        computation budget (state.store x v))}[z = out] * F out := by
   refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
   · cases hc : out.2.cache x with
     | some w =>
@@ -573,7 +573,7 @@ theorem interp_presample_fresh_leF (x : HashInput) (hk : tg.kind x = .none) {α 
         rw [presample_fresh x out.2 hc, support_map] at hs
         obtain ⟨v, _, rfl⟩ := hs
         exact hF out v hc
-  · rw [presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
+  · rw [presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
 set_option maxRecDepth 100000 in
 /-- `HiddenDebt.interp_presampleAll_le` with the growth hypothesis only at the family. -/
@@ -583,9 +583,9 @@ theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpec �
       (∀ out (i : Fin n) (v : HashOutput), out.2.cache (x i) = none →
         F out ≤ F (out.1, out.2.store (x i) v)) →
       ∀ state : State, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
+        ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
           ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → HashOutput,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out
+            ∑' out, Pr{let z ← interp tg initial model computation budget (storeAll x u state)}[z = out] * F out
   | 0, _, _, _, _, _, _ => by
       simp only [pow_zero, inv_one, one_mul]
       rw [Fintype.sum_unique]
@@ -594,26 +594,26 @@ theorem interp_presampleAll_leF {α : Type} (computation : OracleComp CostSpec �
       have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
       refine le_trans (interp_presample_fresh_leF tg initial model (x 0) (hk 0) computation budget state
         (hfresh 0) F fun out v hc => hF out 0 v hc) ?_
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget
-            (state.store (x 0) v)] * F out ≤
+      have hrest : ∀ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+            (state.store (x 0) v))}[z = out] * F out ≤
           ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → HashOutput, ∑' out,
-            Pr[= out | interp tg initial model computation budget
-              (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out := fun v =>
+            Pr{let z ← (interp tg initial model computation budget
+              (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out := fun v =>
         interp_presampleAll_leF computation budget F (Fin.tail x) hxt (fun i => hk i.succ)
           (fun out i v' hc => hF out i.succ v' hc) _ fun i => by
             show (state.store (x 0) v).cache (x i.succ) = none
             rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
             exact hfresh i.succ
-      calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model
-              computation budget (state.store (x 0) v)] * F out
+      calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model
+              computation budget (state.store (x 0) v))}[z = out] * F out
           ≤ (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ *
-              ∑ w : Fin n → HashOutput, ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out) := by
+              ∑ w : Fin n → HashOutput, ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out) := by
             gcongr with v
             exact hrest v
         _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → HashOutput,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll x (Fin.cons v w) state))}[z = out] * F out := by
             rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
               (Or.inl (ENNReal.natCast_ne_top _))]
             rfl
@@ -631,20 +631,20 @@ theorem interp_presample_newF {α : Type} {n : ℕ} (x : Fin n → HashInput) (h
     (F : Run HashInput Coordinate α × State → ℝ≥0∞)
     (hF : ∀ out (i : Fin n) (v : HashOutput), out.2.cache (x i) = none →
       F out ≤ F (out.1, out.2.store (x i) v)) :
-    ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
+    ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+        ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out ≤
       ((Fintype.card HashOutput : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → HashOutput,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out := by
+        ∑' out, Pr{let z ← interp tg initial model (next (u c)) budget (storeAll x u state)}[z = out] * F out := by
   obtain ⟨mm, rfl⟩ : ∃ mm, n = mm + 1 := ⟨n - 1, by have := c.isLt; omega⟩
   set σ : Equiv.Perm (Fin (mm + 1)) := Equiv.swap 0 c with hσ
   set x' : Fin (mm + 1) → HashInput := x ∘ σ with hx'
   have hx'inj : Function.Injective x' := hx.comp σ.injective
   have hx'0 : x' 0 = x c := by simp [hx', hσ]
   have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-        (state.store (x c) v)] * F out ≤
+  have hrest : ∀ v, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+        (state.store (x c) v))}[z = out] * F out ≤
       ((Fintype.card HashOutput : ℝ≥0∞) ^ mm)⁻¹ * ∑ w : Fin mm → HashOutput, ∑' out,
-        Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out := by
+        Pr{let z ← interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)}[z = out] * F out := by
     intro v
     rw [← hx'0]
     exact interp_presampleAll_leF tg initial model (next v) budget F (Fin.tail x') hxt
@@ -653,20 +653,20 @@ theorem interp_presample_newF {α : Type} {n : ℕ} (x : Fin n → HashInput) (h
         rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
         exact hfresh _
   rw [tsum_uniform_eq]
-  calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out
+  calc (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+          (state.store (x c) v))}[z = out] * F out
       ≤ (Fintype.card HashOutput : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card HashOutput : ℝ≥0∞) ^ mm)⁻¹ *
-          ∑ w : Fin mm → HashOutput, ∑' out, Pr[= out | interp tg initial model (next v) budget
-            (storeAll x' (Fin.cons v w) state)] * F out) := by
+          ∑ w : Fin mm → HashOutput, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+            (storeAll x' (Fin.cons v w) state))}[z = out] * F out) := by
         gcongr with v
         exact hrest v
     _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * ∑ v, ∑ w : Fin mm → HashOutput,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget
-            (storeAll x' (Fin.cons v w) state)] * F out := by
+          ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+            (storeAll x' (Fin.cons v w) state))}[z = out] * F out := by
         rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
           (Or.inl (ENNReal.natCast_ne_top _))]
     _ = ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * ∑ u' : Fin (mm + 1) → HashOutput,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out := by
+          ∑' out, Pr{let z ← interp tg initial model (next (u' 0)) budget (storeAll x' u' state)}[z = out] * F out := by
         refine congrArg (fun z : ℝ≥0∞ => ((Fintype.card HashOutput : ℝ≥0∞) ^ (mm + 1))⁻¹ * z) ?_
         rw [← Fintype.sum_prod_type']
         exact Fintype.sum_equiv (Fin.consEquiv fun _ => HashOutput) _ _ fun _ => rfl

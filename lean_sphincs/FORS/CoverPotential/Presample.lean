@@ -372,7 +372,7 @@ theorem storeAll_perm {n : ℕ} (x : Fin n → D) (hx : Function.Injective x) (u
     storeAll (x ∘ σ) (u ∘ σ) state = storeAll x u state := by
   have hx' : Function.Injective (x ∘ σ) := hx.comp σ.injective
   have hcache : (storeAll (x ∘ σ) (u ∘ σ) state).cache = (storeAll x u state).cache := by
-    funext y
+    ext y : 1
     by_cases hy : ∃ j, x (σ j) = y
     · obtain ⟨j, rfl⟩ := hy
       have h1 : (storeAll (x ∘ σ) (u ∘ σ) state).cache (x (σ j)) = some (u (σ j)) :=
@@ -401,8 +401,8 @@ variable [Fintype R]
 omit [Fintype ι] in
 /-- The mean against a uniform answer as a normalized finite sum. -/
 theorem tsum_uniform_eq (G : R → ℝ≥0∞) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] * G v = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, G v := by
-  simp only [probOutput_uniformSample]
+    ∑' v, Pr{let z ← ($ᵗ R : ProbComp R)}[z = v] * G v = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, G v := by
+  simp only [SampleableType.prEvent_uniformSample_eq_singleton]
   rw [ENNReal.tsum_mul_left, tsum_fintype]
 
 omit [Fintype ι] in
@@ -411,9 +411,9 @@ theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
     (hx : state.cache x = none) (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
-      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-        (state.store x v)] * F out := by
+    ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
+      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+        (state.store x v))}[z = out] * F out := by
   refine le_trans (interp_presample_le tg initial model x hk computation budget state F fun out s hs => ?_) ?_
   · cases hc : out.2.cache x with
     | some w =>
@@ -423,7 +423,7 @@ theorem interp_presample_fresh_le (x : D) (hk : tg.kind x = .none) {α : Type}
         rw [presample_fresh x out.2 hc, support_map] at hs
         obtain ⟨v, _, rfl⟩ := hs
         exact hF out x v hc
-  · rw [presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
+  · rw [presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
 omit [Fintype ι] in
 /-- **Presampling an injective family of fresh untargeted inputs** helps a final value monotone
@@ -433,9 +433,9 @@ theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCost
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
     ∀ {n : ℕ} (x : Fin n → D), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
       ∀ state : DebtState D R ι, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out ≤
+        ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out ≤
           ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out
+            ∑' out, Pr{let z ← interp tg initial model computation budget (storeAll x u state)}[z = out] * F out
   | 0, x, _, _, state, _ => by
       simp only [pow_zero, inv_one, one_mul]
       rw [Fintype.sum_unique]
@@ -444,23 +444,23 @@ theorem interp_presampleAll_le {α : Type} (computation : OracleComp (SourceCost
       have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
       refine le_trans (interp_presample_fresh_le tg initial model (x 0) (hk 0) computation budget state
         (hfresh 0) F hF) ?_
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget (state.store (x 0) v)] * F out ≤
-          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr[= out | interp tg initial model
-            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out := fun v =>
+      have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model computation budget (state.store (x 0) v)}[z = out] * F out ≤
+          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr{let z ← (interp tg initial model
+            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out := fun v =>
         interp_presampleAll_le computation budget F hF (Fin.tail x) hxt (fun i => hk i.succ) _ fun i => by
           show (state.store (x 0) v).cache (x i.succ) = none
           rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
           exact hfresh i.succ
-      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-              (state.store (x 0) v)] * F out
+      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+              (state.store (x 0) v))}[z = out] * F out
           ≤ (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out) := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out) := by
             gcongr with v
             exact hrest v
         _ = ((Fintype.card R : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll x (Fin.cons v w) state))}[z = out] * F out := by
             rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
               (Or.inl (ENNReal.natCast_ne_top _))]
             rfl
@@ -478,19 +478,19 @@ theorem interp_presample_new {α : Type} {n : ℕ} (x : Fin n → D) (hx : Funct
     (budget : ℕ) (state : DebtState D R ι) (hfresh : ∀ i, state.cache (x i) = none)
     (F : Run D ι α × DebtState D R ι → ℝ≥0∞)
     (hF : ∀ out (y : D) (v : R), out.2.cache y = none → F out ≤ F (out.1, out.2.store y v)) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
+    ∑' v, Pr{let z ← ($ᵗ R : ProbComp R)}[z = v] *
+        ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out ≤
       ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out := by
+        ∑' out, Pr{let z ← interp tg initial model (next (u c)) budget (storeAll x u state)}[z = out] * F out := by
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by have := c.isLt; omega⟩
   set σ : Equiv.Perm (Fin (m + 1)) := Equiv.swap 0 c with hσ
   set x' : Fin (m + 1) → D := x ∘ σ with hx'
   have hx'inj : Function.Injective x' := hx.comp σ.injective
   have hx'0 : x' 0 = x c := by simp [hx', hσ]
   have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out ≤
-      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr[= out | interp tg initial model
-        (next v) budget (storeAll x' (Fin.cons v w) state)] * F out := by
+  have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out ≤
+      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr{let z ← (interp tg initial model
+        (next v) budget (storeAll x' (Fin.cons v w) state))}[z = out] * F out := by
     intro v
     rw [← hx'0]
     exact interp_presampleAll_le tg initial model (next v) budget F hF (Fin.tail x') hxt (fun i => hk _) _
@@ -499,14 +499,14 @@ theorem interp_presample_new {α : Type} {n : ℕ} (x : Fin n → D) (hx : Funct
         rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
         exact hfresh _
   rw [tsum_uniform_eq]
-  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out
+  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+          (state.store (x c) v))}[z = out] * F out
       ≤ (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out) := by
+          ∑' out, Pr{let z ← interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)}[z = out] * F out) := by
         gcongr with v
         exact hrest v
     _ = ((Fintype.card R : ℝ≥0∞) ^ (m + 1))⁻¹ * ∑ u' : Fin (m + 1) → R,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out := by
+          ∑' out, Pr{let z ← interp tg initial model (next (u' 0)) budget (storeAll x' u' state)}[z = out] * F out := by
         rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
           (Or.inl (ENNReal.natCast_ne_top _))]
         congr 1
@@ -527,11 +527,11 @@ omit [Fintype ι] in
 theorem interp_presample_fresh_eq (x : D) (hk : tg.kind x = .none) {α : Type}
     (computation : OracleComp (SourceCostSpec D R ι) α) (budget : ℕ) (state : DebtState D R ι)
     (hx : state.cache x = none) (F : Run D ι α → ℝ≥0∞) :
-    ∑' out, Pr[= out | interp tg initial model computation budget state] * F out.1 =
-      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-        (state.store x v)] * F out.1 := by
+    ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out.1 =
+      (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+        (state.store x v))}[z = out] * F out.1 := by
   rw [← interp_presample_eq tg initial model x hk computation budget state F,
-    presample_fresh x state hx, tsum_probOutput_map_mul, tsum_uniform_eq]
+    presample_fresh x state hx, OracleComp.tsum_prEvent_map_mul, tsum_uniform_eq]
 
 omit [Fintype ι] in
 /-- **Presampling an injective family of fresh untargeted inputs** keeps a value of the run alone. -/
@@ -539,9 +539,9 @@ theorem interp_presampleAll_eq {α : Type} (computation : OracleComp (SourceCost
     (F : Run D ι α → ℝ≥0∞) :
     ∀ {n : ℕ} (x : Fin n → D), Function.Injective x → (∀ i, tg.kind (x i) = .none) →
       ∀ state : DebtState D R ι, (∀ i, state.cache (x i) = none) →
-        ∑' out, Pr[= out | interp tg initial model computation budget state] * F out.1 =
+        ∑' out, Pr{let z ← interp tg initial model computation budget state}[z = out] * F out.1 =
           ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-            ∑' out, Pr[= out | interp tg initial model computation budget (storeAll x u state)] * F out.1
+            ∑' out, Pr{let z ← interp tg initial model computation budget (storeAll x u state)}[z = out] * F out.1
   | 0, x, _, _, state, _ => by
       simp only [pow_zero, inv_one, one_mul]
       rw [Fintype.sum_unique]
@@ -549,22 +549,22 @@ theorem interp_presampleAll_eq {α : Type} (computation : OracleComp (SourceCost
   | n + 1, x, hx, hk, state, hfresh => by
       have hxt : Function.Injective (Fin.tail x) := fun a b e => Fin.succ_injective _ (hx e)
       rw [interp_presample_fresh_eq tg initial model (x 0) (hk 0) computation budget state (hfresh 0) F]
-      have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model computation budget (state.store (x 0) v)] * F out.1 =
-          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr[= out | interp tg initial model
-            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out.1 := fun v =>
+      have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model computation budget (state.store (x 0) v)}[z = out] * F out.1 =
+          ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R, ∑' out, Pr{let z ← (interp tg initial model
+            computation budget (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out.1 := fun v =>
         interp_presampleAll_eq computation budget F (Fin.tail x) hxt (fun i => hk i.succ) _ fun i => by
           show (state.store (x 0) v).cache (x i.succ) = none
           rw [store_cache_ne state (x 0) _ (fun e => Fin.succ_ne_zero i (hx e))]
           exact hfresh i.succ
-      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model computation budget
-              (state.store (x 0) v)] * F out.1
+      calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model computation budget
+              (state.store (x 0) v))}[z = out] * F out.1
           = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll (Fin.tail x) w (state.store (x 0) v))] * F out.1) :=
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll (Fin.tail x) w (state.store (x 0) v)))}[z = out] * F out.1) :=
             congrArg (fun A => (Fintype.card R : ℝ≥0∞)⁻¹ * A) (Finset.sum_congr rfl fun v _ => hrest v)
         _ = ((Fintype.card R : ℝ≥0∞) ^ (n + 1))⁻¹ * ∑ v, ∑ w : Fin n → R,
-              ∑' out, Pr[= out | interp tg initial model computation budget
-                (storeAll x (Fin.cons v w) state)] * F out.1 := by
+              ∑' out, Pr{let z ← (interp tg initial model computation budget
+                (storeAll x (Fin.cons v w) state))}[z = out] * F out.1 := by
             rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
               (Or.inl (ENNReal.natCast_ne_top _))]
             rfl
@@ -581,19 +581,19 @@ theorem interp_presample_new_eq {α : Type} {n : ℕ} (x : Fin n → D) (hx : Fu
     (hk : ∀ i, tg.kind (x i) = .none) (c : Fin n) (next : R → OracleComp (SourceCostSpec D R ι) α)
     (budget : ℕ) (state : DebtState D R ι) (hfresh : ∀ i, state.cache (x i) = none)
     (F : Run D ι α → ℝ≥0∞) :
-    ∑' v, Pr[= v | ($ᵗ R : ProbComp R)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out.1 =
+    ∑' v, Pr{let z ← ($ᵗ R : ProbComp R)}[z = v] *
+        ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out.1 =
       ((Fintype.card R : ℝ≥0∞) ^ n)⁻¹ * ∑ u : Fin n → R,
-        ∑' out, Pr[= out | interp tg initial model (next (u c)) budget (storeAll x u state)] * F out.1 := by
+        ∑' out, Pr{let z ← interp tg initial model (next (u c)) budget (storeAll x u state)}[z = out] * F out.1 := by
   obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by have := c.isLt; omega⟩
   set σ : Equiv.Perm (Fin (m + 1)) := Equiv.swap 0 c with hσ
   set x' : Fin (m + 1) → D := x ∘ σ with hx'
   have hx'inj : Function.Injective x' := hx.comp σ.injective
   have hx'0 : x' 0 = x c := by simp [hx', hσ]
   have hxt : Function.Injective (Fin.tail x') := fun a b e => Fin.succ_injective _ (hx'inj e)
-  have hrest : ∀ v, ∑' out, Pr[= out | interp tg initial model (next v) budget (state.store (x c) v)] * F out.1 =
-      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr[= out | interp tg initial model
-        (next v) budget (storeAll x' (Fin.cons v w) state)] * F out.1 := by
+  have hrest : ∀ v, ∑' out, Pr{let z ← interp tg initial model (next v) budget (state.store (x c) v)}[z = out] * F out.1 =
+      ((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R, ∑' out, Pr{let z ← (interp tg initial model
+        (next v) budget (storeAll x' (Fin.cons v w) state))}[z = out] * F out.1 := by
     intro v
     rw [← hx'0]
     exact interp_presampleAll_eq tg initial model (next v) budget F (Fin.tail x') hxt (fun i => hk _) _
@@ -602,13 +602,13 @@ theorem interp_presample_new_eq {α : Type} {n : ℕ} (x : Fin n → D) (hx : Fu
         rw [store_cache_ne state (x' 0) _ (fun e => Fin.succ_ne_zero i (hx'inj e))]
         exact hfresh _
   rw [tsum_uniform_eq]
-  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr[= out | interp tg initial model (next v) budget
-          (state.store (x c) v)] * F out.1
+  calc (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, ∑' out, Pr{let z ← (interp tg initial model (next v) budget
+          (state.store (x c) v))}[z = out] * F out.1
       = (Fintype.card R : ℝ≥0∞)⁻¹ * ∑ v, (((Fintype.card R : ℝ≥0∞) ^ m)⁻¹ * ∑ w : Fin m → R,
-          ∑' out, Pr[= out | interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)] * F out.1) :=
+          ∑' out, Pr{let z ← interp tg initial model (next v) budget (storeAll x' (Fin.cons v w) state)}[z = out] * F out.1) :=
         congrArg (fun A => (Fintype.card R : ℝ≥0∞)⁻¹ * A) (Finset.sum_congr rfl fun v _ => hrest v)
     _ = ((Fintype.card R : ℝ≥0∞) ^ (m + 1))⁻¹ * ∑ u' : Fin (m + 1) → R,
-          ∑' out, Pr[= out | interp tg initial model (next (u' 0)) budget (storeAll x' u' state)] * F out.1 := by
+          ∑' out, Pr{let z ← interp tg initial model (next (u' 0)) budget (storeAll x' u' state)}[z = out] * F out.1 := by
         rw [← Finset.mul_sum, ← mul_assoc, pow_succ', ENNReal.mul_inv (Or.inr (by simp))
           (Or.inl (ENNReal.natCast_ne_top _))]
         congr 1

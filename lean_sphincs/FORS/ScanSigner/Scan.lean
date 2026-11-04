@@ -30,8 +30,7 @@ theorem nextRand_pow (half : Randomness) (j : ℕ) (ρ : Randomness) :
   induction j with
   | zero => simp
   | succ j ih =>
-      rw [pow_succ', Equiv.Perm.mul_apply, ih, nextRand_apply]
-      push_cast
+      rw [pow_succ', Equiv.Perm.mul_apply, ih, nextRand_apply, Nat.cast_succ]
       ring
 
 /-- The scan does not return to a randomizer within `2^128` steps. -/
@@ -40,7 +39,7 @@ theorem nextRand_pow_ne (half ρ : Randomness) (j : ℕ) (h0 : 0 < j) (hj : j < 
   obtain ⟨i, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by omega⟩
   have h := walk_iterate_ne half ρ i hj
   rwa [walk_iterate, show ρ + walkStep half + (i : Randomness) * walkStep half =
-    ρ + ((i + 1 : ℕ) : Randomness) * walkStep half by push_cast; ring, ← nextRand_pow] at h
+    ρ + ((i + 1 : ℕ) : Randomness) * walkStep half by rw [Nat.cast_succ]; ring, ← nextRand_pow] at h
 
 
 theorem signCostSourceLoop_succ (parameter : PublicParameter) (data : PublicData) (message : Message)
@@ -220,7 +219,7 @@ theorem trial_boundS
           else cont) budget state)}[x = out] *
         W out.1.1 out.2 ≤
       (state.cache (blk parameter data message ρ)).elim
-        (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+        (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
           (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound))
         (fun u0 => if Landed parameter (blockIndex u0) then poolValue parameter data message reference gp ρ
           else bound) := by
@@ -299,7 +298,7 @@ theorem trial_boundS
           exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
             (pairInv_storeAll parameter data message state hinv ρ u hl)
             (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     rw [hWabort]
     exact zero_le
 
@@ -372,11 +371,11 @@ theorem scan_boundW
           set bound := walk (nextRand (data.steps message)) ForsPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
             (nextRand (data.steps message) ρ)
-          have hsplit : (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+          have hsplit : (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
               (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound)) =
-              (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) +
-              bound * ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              bound * ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then 0 else 1) := by
             rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
             refine tsum_congr fun u => ?_

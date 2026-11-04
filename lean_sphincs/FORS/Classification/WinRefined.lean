@@ -13,7 +13,7 @@ namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
-open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
+open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
@@ -403,7 +403,6 @@ theorem leafMatch_contact (parameterOutput : HashOutput) (highs : CoordinateHigh
 
 attribute [local irreducible] ReferenceChoice.selection encodingAttemptLimit
 
-set_option maxHeartbeats 1000000 in
 /-- **Refined case analysis.** For any answer function consistent with the sample and agreeing
 with the final cache on the run's queries, an accepted fresh forgery yields a cached first-order
 hit, a WOTS event at a retained key, a FORS contact at a revealed leaf, two FORS contacts at one

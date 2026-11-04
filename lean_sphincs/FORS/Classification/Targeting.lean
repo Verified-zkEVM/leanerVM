@@ -14,7 +14,7 @@ namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
-open Concrete Completeness Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
+open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000

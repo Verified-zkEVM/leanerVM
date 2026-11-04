@@ -188,13 +188,13 @@ theorem tsum_prob_mul_le {ρ : Type} (p : ProbComp ρ) (C : ℝ≥0∞) :
 tick, then the scan from the base) wins at most as often as the scan from a uniform start. -/
 theorem row_le {α : Type} (E : α → Prop) (parameter : PublicParameter) (data : PublicData)
     (message : Message) (k : Option Signature → OracleComp CostSpec α) (n b : ℕ) :
-    ∑' r, Pr[= r | ($ᵗ Randomness : ProbComp Randomness)] *
+    ∑' r, Pr{let z ← ($ᵗ Randomness : ProbComp Randomness)}[z = r] *
         val g c E ((HiddenCost.tick 1 >>= fun _ =>
           signCostSourceLoop parameter data message (data.step message) n r) >>= k) b ≤
       val g c E (((liftM ($ᵗ Randomness : ProbComp Randomness) : OracleComp CostSpec Randomness) >>=
         fun start => signCostSourceLoop parameter data message (data.step message) n start) >>= k) b := by
   calc
-    _ ≤ ∑' r, Pr[= r | ($ᵗ Randomness : ProbComp Randomness)] *
+    _ ≤ ∑' r, Pr{let z ← ($ᵗ Randomness : ProbComp Randomness)}[z = r] *
           val g c E (signCostSourceLoop parameter data message (data.step message) n r >>= k) b := by
       refine ENNReal.tsum_le_tsum fun r => mul_le_mul' le_rfl ?_
       rw [bind_assoc]
@@ -343,7 +343,7 @@ deterministic game whose base randomizers are uniform and whose step halves are 
 wins (within budget) at most as often as the fresh-randomizer game. -/
 theorem avg_advDet (E : Bool → Prop) (parameter : PublicParameter) (data : PublicData) :
     ∀ (M : OracleComp AdvSpec Forgery) (S : List Message) (L : QueryLog SigningSpec), NoRepeat M S → ∀ b,
-      ∑' lows, Pr[= lows | ($ᵗ Det.LTable : ProbComp Det.LTable)] *
+      ∑' lows, Pr{let z ← ($ᵗ Det.LTable : ProbComp Det.LTable)}[z = lows] *
           val g c E (advDet parameter data (Det.joinTable lows data.steps) M L) b ≤
         val g c E (advRand parameter data M L) b := by
   intro M
@@ -375,7 +375,7 @@ theorem avg_advDet (E : Bool → Prop) (parameter : PublicParameter) (data : Pub
             (List.mem_append_right _ (List.mem_singleton_self m))
         simp_rw [hloc]
         calc
-          _ ≤ ∑' low, Pr[= low | ($ᵗ Randomness : ProbComp Randomness)] *
+          _ ≤ ∑' low, Pr{let z ← ($ᵗ Randomness : ProbComp Randomness)}[z = low] *
                 val g c E ((HiddenCost.tick 1 >>= fun _ =>
                     signCostSourceLoop parameter data m (data.step m) digestAttemptLimit low) >>= fun r =>
                   advRand parameter data (next r) (L ++ [⟨m, r⟩])) b := by
@@ -597,7 +597,7 @@ theorem memo_game_le (parameter : PublicParameter) (data : PublicData) (rnd : De
 
 theorem avg_game (parameter : PublicParameter) (data : PublicData) (adversary : Adversary)
     (hnr : adversary.NoRepeat) (b : ℕ) :
-    ∑' lows, Pr[= lows | ($ᵗ Det.LTable : ProbComp Det.LTable)] *
+    ∑' lows, Pr{let z ← ($ᵗ Det.LTable : ProbComp Det.LTable)}[z = lows] *
         val g c (· = true) (Det.costGameDet parameter data (Det.joinTable lows data.steps) adversary) b ≤
       val g c (· = true) (costGame parameter data adversary) b := by
   unfold Det.costGameDet costGame
@@ -616,7 +616,7 @@ theorem win_avg_le (parameter : PublicParameter) (data : PublicData) (adversary 
       Pr{let x ← costRun g c (cap (costGame parameter data (Memo.memoAdv adversary)) b)}[Reduce.Win x] := by
   rw [OracleComp.prEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' lows, Pr[= lows | ($ᵗ Det.LTable : ProbComp Det.LTable)] *
+    _ ≤ ∑' lows, Pr{let z ← ($ᵗ Det.LTable : ProbComp Det.LTable)}[z = lows] *
           val g c (· = true) (Det.costGameDet parameter data (Det.joinTable lows data.steps)
             (Memo.memoAdv adversary)) b :=
       ENNReal.tsum_le_tsum fun lows => mul_le_mul' le_rfl

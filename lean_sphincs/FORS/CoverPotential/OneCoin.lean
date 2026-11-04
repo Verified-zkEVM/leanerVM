@@ -731,12 +731,12 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
     (hC : CountInv parameter data Qtot s budget) (p : Pair) (c : DigestCall)
     (hkind : ∀ call, tg.kind (pblk parameter data p call) = .none)
     (hp0 : s.cache (pblk parameter data p firstCall) = none) :
-    ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) (budget - 1)
-          (s.store (pblk parameter data p c) v)] * finalValue parameter data tg initial R out ≤
+    ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+        ∑' out, Pr{let z ← (interp tg initial model (next v) (budget - 1)
+          (s.store (pblk parameter data p c) v))}[z = out] * finalValue parameter data tg initial R out ≤
       potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
         b0 * ((if Realized tg initial s then 0 else 1) +
-          ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
             expectedFlagged tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v)) := by
   set n := signatureLimit - L.length with hn
   set ℓ := (livePairs L P).length with hℓ
@@ -764,17 +764,17 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
             h1.2 ((realized_store_untargeted tg initial out.2 _ v (hkind i)).1 hreal)⟩ h2
         · exact bot_le
         · exact le_rfl
-  have hpre : ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) (budget - 1)
-          (s.store (pblk parameter data p c) v)] * finalValue parameter data tg initial R out ≤
-      pairE (fun u => ∑' out, Pr[= out | interp tg initial model (next (u c)) (budget - 1)
-        (withPair parameter data s p u)] * finalValue parameter data tg initial R out) := by
+  have hpre : ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+        ∑' out, Pr{let z ← (interp tg initial model (next v) (budget - 1)
+          (s.store (pblk parameter data p c) v))}[z = out] * finalValue parameter data tg initial R out ≤
+      pairE (fun u => ∑' out, Pr{let z ← (interp tg initial model (next (u c)) (budget - 1)
+        (withPair parameter data s p u))}[z = out] * finalValue parameter data tg initial R out) := by
     rw [hpairE]
     exact interp_presample_newF tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh _ hFmono
   have hcount : pairE (fun u => expectedFlagged tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u)) =
-      ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
+      ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
         expectedFlagged tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v) := by
     rw [hpairE]
     unfold expectedFlagged
@@ -783,10 +783,10 @@ theorem new_pair_boundO {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
       fun run => (flaggedCount tg run.2.2.2 : ℝ≥0∞)).symm
   by_cases hcap : 1 ≤ lam Lmax ℓ budget
   · -- more landed pairs than the cap: the cap term pays everything
-    calc _ ≤ ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] * 1 :=
+    calc _ ≤ ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] * 1 :=
           ENNReal.tsum_le_tsum fun v => mul_le_mul_right
             (final_le_one parameter data tg initial model (next v) (budget - 1) _ R) _
-      _ ≤ 1 := by simp only [mul_one]; exact tsum_probOutput_le_one
+      _ ≤ 1 := by simp only [mul_one]; exact OracleComp.tsum_prEvent_le_one _
       _ ≤ lam Lmax ℓ budget := hcap
       _ ≤ _ := le_trans le_add_self le_self_add
   have hlen : ℓ ≤ Lmax := by

@@ -14,7 +14,6 @@ certificate and checks again only its cover chains, where its keygen credit ente
 namespace FORS.Security.H0
 
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
 -- one check at a time: with asynchronous elaboration the memory of the finished checks is kept
 set_option Elab.async false
 

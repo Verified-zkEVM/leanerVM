@@ -49,7 +49,7 @@ theorem randHit_unique {input : HashInput} {seed seed' : MasterSeed}
 
 theorem randHit_probability_le (input : HashInput) :
     Pr{let x ← sampleMasterSeed}[(RandHit input) x] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) from rfl,
     SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter (RandHit input)).card ≤ 1 := by
@@ -247,29 +247,19 @@ noncomputable local instance halvesSampleable : SampleableType (LTable × LTable
 /-- A uniform randomizer table is a uniform table of step halves and an independent uniform table
 of base randomizers. -/
 theorem evalDist_rtable_split {β : Type} (F : RTable → ProbComp β) :
-    𝒟[($ᵗ RTable : ProbComp RTable) >>= F] =
-      𝒟[do
+    (($ᵗ RTable : ProbComp RTable) >>= F) =ᵈ (do
         let highs ← ($ᵗ LTable : ProbComp LTable)
         let lows ← ($ᵗ LTable : ProbComp LTable)
-        F (joinTable lows highs)] := by
-  have hjoin : 𝒟[(fun pair : LTable × LTable => joinTable pair.1 pair.2) <$>
-      ($ᵗ (LTable × LTable) : ProbComp (LTable × LTable))] = 𝒟[($ᵗ RTable : ProbComp RTable)] :=
-    evalDist_map_bijective_uniform_cross _ _ joinTable_bijective
+        F (joinTable lows highs)) := by
+  have hjoin : ((fun pair : LTable × LTable => joinTable pair.1 pair.2) <$>
+      ($ᵗ (LTable × LTable) : ProbComp (LTable × LTable))) =ᵈ ($ᵗ RTable : ProbComp RTable) :=
+    SampleableType.map_uniformSample_evalDistEq_of_bijective joinTable_bijective
   have hpair := evalDist_independent_uniform_pair (α := LTable) (β := LTable)
-  calc
-    _ = 𝒟[((fun pair : LTable × LTable => joinTable pair.1 pair.2) <$>
-          ($ᵗ (LTable × LTable) : ProbComp (LTable × LTable))) >>= F] := by
-      rw [evalDist_bind, evalDist_bind, hjoin]
-    _ = 𝒟[(do
-          let lows ← ($ᵗ LTable : ProbComp LTable)
-          let highs ← ($ᵗ LTable : ProbComp LTable)
-          pure (lows, highs)) >>= fun pair => F (joinTable pair.1 pair.2)] := by
-      rw [bind_map_left, evalDist_bind, evalDist_bind, hpair]
-    _ = 𝒟[do
-          let lows ← ($ᵗ LTable : ProbComp LTable)
-          let highs ← ($ᵗ LTable : ProbComp LTable)
-          F (joinTable lows highs)] := by simp only [bind_assoc, pure_bind]
-    _ = _ := evalDist_bind_bind_swap _ _ _
+  refine (hjoin.bind_left F).symm.trans ?_
+  rw [bind_map_left]
+  refine (hpair.bind_left (fun pair => F (joinTable pair.1 pair.2))).symm.trans ?_
+  simp only [bind_assoc, pure_bind]
+  exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 /-! ### One sample -/
 
@@ -389,9 +379,8 @@ table of walk steps, the capped win of the internalized game from a uniform sche
 `B` plus `2 q / 2^256` for naming the hidden seed. The step halves are fixed and the base
 randomizers averaged. -/
 theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ≥0∞)
-    (hB : ∀ steps, Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps] ≤ B) :
-    Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-        experimentMaster (internalize adversary)] ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
+    (hB : ∀ steps, Pr{let z ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps}[Win z] ≤ B) :
+    Pr{let result ← experimentMaster (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
   calc
     _ = Pr{let result ← (do
           let material ← sampleMaterial
@@ -437,13 +426,13 @@ theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ
       exact per_sampleDet (internalize adversary) q material seed answers table rnd
     _ ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) := by
       refine add_le_add ?_ ?_
-      · have hsteps : ∀ steps : LTable, Pr[Win | do
+      · have hsteps : ∀ steps : LTable, Pr{let z ← (do
             let material ← sampleMaterial
             let _seed ← sampleMasterSeed
             let answers ← $ᵗ CanonicalGraphLabels
             let table ← $ᵗ Eager.Table
             let lows ← ($ᵗ LTable : ProbComp LTable)
-            detRun (internalize adversary) q material answers table (joinTable lows steps)] ≤ B := by
+            detRun (internalize adversary) q material answers table (joinTable lows steps))}[Win z] ≤ B := by
           intro steps
           refine le_trans ?_ (hB steps)
           unfold seedFreeExperiment
@@ -457,30 +446,34 @@ theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) (B : ℝ
           exact win_avg_le (graphFn material answers table) (graphCoordinates material answers)
             (SeedModel.parameter material) (publicData (labelsOf material answers) steps) (internalize adversary)
             (noRepeat_internalize_memoAdv adversary) q
-        have hsplit : Pr[Win | do
+        have hsplit : Pr{let z ← (do
             let material ← sampleMaterial
             let _seed ← sampleMasterSeed
             let answers ← $ᵗ CanonicalGraphLabels
             let table ← $ᵗ Eager.Table
             let rnd ← $ᵗ RTable
-            detRun (internalize adversary) q material answers table rnd] =
-          Pr[Win | do
+            detRun (internalize adversary) q material answers table rnd)}[Win z] =
+          Pr{let z ← (do
             let steps ← ($ᵗ LTable : ProbComp LTable)
             let material ← sampleMaterial
             let _seed ← sampleMasterSeed
             let answers ← $ᵗ CanonicalGraphLabels
             let table ← $ᵗ Eager.Table
             let lows ← ($ᵗ LTable : ProbComp LTable)
-            detRun (internalize adversary) q material answers table (joinTable lows steps)] := by
-          refine probEvent_congr' (fun _ _ => Iff.rfl) ?_
-          rw [evalDist_bind_bind_swap ($ᵗ LTable : ProbComp LTable) sampleMaterial]
-          refine evalDist_bind_congr' _ fun material => ?_
-          rw [evalDist_bind_bind_swap ($ᵗ LTable : ProbComp LTable) sampleMasterSeed]
-          refine evalDist_bind_congr' _ fun _ => ?_
-          rw [evalDist_bind_bind_swap ($ᵗ LTable : ProbComp LTable) ($ᵗ CanonicalGraphLabels)]
-          refine evalDist_bind_congr' _ fun answers => ?_
-          rw [evalDist_bind_bind_swap ($ᵗ LTable : ProbComp LTable) ($ᵗ Eager.Table)]
-          refine evalDist_bind_congr' _ fun table => ?_
+            detRun (internalize adversary) q material answers table (joinTable lows steps))}[Win z] := by
+          refine EvalDistEq.prEvent_eq ?_ _
+          refine EvalDistEq.trans ?_
+            (OracleComp.EvalDistEq.bind_bind_swap sampleMaterial ($ᵗ LTable : ProbComp LTable) _)
+          refine EvalDistEq.bind_right _ fun material => ?_
+          refine EvalDistEq.trans ?_
+            (OracleComp.EvalDistEq.bind_bind_swap sampleMasterSeed ($ᵗ LTable : ProbComp LTable) _)
+          refine EvalDistEq.bind_right _ fun _ => ?_
+          refine EvalDistEq.trans ?_
+            (OracleComp.EvalDistEq.bind_bind_swap ($ᵗ CanonicalGraphLabels) ($ᵗ LTable : ProbComp LTable) _)
+          refine EvalDistEq.bind_right _ fun answers => ?_
+          refine EvalDistEq.trans ?_
+            (OracleComp.EvalDistEq.bind_bind_swap ($ᵗ Eager.Table) ($ᵗ LTable : ProbComp LTable) _)
+          refine EvalDistEq.bind_right _ fun table => ?_
           exact evalDist_rtable_split _
         rw [hsplit]
         exact probEvent_bind_le_of _ _ _ _ fun steps => hsteps steps
@@ -503,16 +496,14 @@ table of walk steps, the SUF-CMA advantage against `Seeded.sign` is at most `B` 
 for naming the hidden seeds. -/
 theorem forgeAdvantage_le_seedFree (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound adversary q) (B : ℝ≥0∞)
-    (hB : ∀ steps, Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps] ≤ B) :
+    (hB : ∀ steps, Pr{let z ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q steps}[Win z] ≤ B) :
     forgeAdvantage adversary ≤ B + 3 * (q / (2 : ℝ≥0∞) ^ 256) := by
   unfold forgeAdvantage
   calc
-    _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experiment adversary] :=
-      probEvent_congr' (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩) rfl
-    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-          experiment (internalize adversary)] := budgetedWin_le_internalize adversary q
-    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-          experimentMaster (internalize adversary)] + q / (2 : ℝ≥0∞) ^ 256 :=
+    _ = Pr{let result ← experiment adversary}[result.1 = true ∧ result.2 ≤ q] :=
+      prEvent_congr_of_support _ _ _ (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩)
+    _ ≤ Pr{let result ← experiment (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] := budgetedWin_le_internalize adversary q
+    _ ≤ Pr{let result ← experimentMaster (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] + q / (2 : ℝ≥0∞) ^ 256 :=
       budgetedWin_le_master adversary q
     _ ≤ B + 2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
       add_le_add (budgetedWinMaster_le_seedFree adversary q B hB) le_rfl

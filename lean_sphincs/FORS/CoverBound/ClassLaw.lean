@@ -82,7 +82,7 @@ theorem yM_toReal_le_card (Ms : Multiset (FTree → FLeaf)) :
   unfold yM
   rw [ENNReal.toReal_prod]
   calc ∏ κ, (φF (Ms.map fun m => m κ)).toReal ≤ ∏ _κ : FTree, ((Ms.card : ℝ) / leavesR) := by
-        refine Finset.prod_le_prod (fun κ _ => ENNReal.toReal_nonneg) fun κ _ => ?_
+        refine Finset.prod_le_prod₀ (fun κ _ => ENNReal.toReal_nonneg) fun κ _ => ?_
         rw [φF_toReal]
         have h := distinctD_le_card (Ms.map fun m => m κ)
         rw [Multiset.card_map] at h
@@ -382,7 +382,7 @@ theorem classLaw_pointwise (n T : ℕ) (F : ℝ → ℝ) (hFm : Monotone F)
     calc ∏ κ, (φF (Ms.map fun m => m κ)).toReal = ∏ κ, ((distinctD (Ms.map fun m => m κ) : ℝ) / leavesR) :=
           Finset.prod_congr rfl fun κ _ => φF_toReal _
       _ ≤ ∏ κ, (((if κ ∈ t2 then n - 2 else if κ ∈ t then n - 1 else n : ℕ) : ℝ) / leavesR) :=
-          Finset.prod_le_prod (fun _ _ => div_nonneg (Nat.cast_nonneg _) leavesR_pos.le) fun κ _ =>
+          Finset.prod_le_prod₀ (fun _ _ => div_nonneg (Nat.cast_nonneg _) leavesR_pos.le) fun κ _ =>
             div_le_div_of_nonneg_right (by exact_mod_cast hr κ) leavesR_pos.le
       _ = _ := by rw [Finset.prod_div_distrib, Finset.prod_const, Finset.card_univ, card_ftree, hY, Nat.cast_prod]
   have hrep : lawY forsTrees n t.card t2.card ≤

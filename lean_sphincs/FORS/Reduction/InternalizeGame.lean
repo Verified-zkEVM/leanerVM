@@ -341,8 +341,8 @@ theorem experiment_eq_rightRun (adversary : Adversary) :
 
 attribute [local irreducible] sampleMasterSeed in
 theorem evalDist_experiment_internalize (adversary : Adversary) :
-    𝒟[experiment (internalize adversary)] =
-      𝒟[(fun result => result.1) <$> leftRun (gameCore adversary) ∅] := by
+    experiment (internalize adversary) =ᵈ
+      (fun result => result.1) <$> leftRun (gameCore adversary) ∅ := by
   rw [experiment_eq_rightRun, gameCore_eq_sampling, gameCore_eq_sampling,
     show leftRun (sampleSchemeSeed >>= gameAfterSeedDet adversary) ∅ =
       leftRun (sampleSchemeSeed >>= gameAfterSeedDet adversary) (merge ∅ ∅) by rw [merge_empty],
@@ -350,7 +350,8 @@ theorem evalDist_experiment_internalize (adversary : Adversary) :
   symm
   refine evalDist_bind_rel _ _ id (fun result => (result.1, merge result.2 ∅))
     (by rw [leftRun_short _ OnlyW.sampleSchemeSeed, Functor.map_map]; rfl) _ _
-    (fun first => (fun second => (second.1.1, first.1.2 + second.1.2)) <$>
+    (fun first : (MasterSeed × Nat) × QueryCache HashSpec =>
+      (fun second => (second.1.1, first.1.2 + second.1.2)) <$>
       leftRun (gameAfterSeedDet adversary first.1.1) first.2)
     (fun first => ?_) (fun first => ?_)
   · simp only [Functor.map_map]
@@ -371,13 +372,13 @@ attribute [local irreducible] experiment count2 leftRun rightRun sampleMasterSee
 
 /-- Internalizing long inputs never lowers the probability of a budgeted win. -/
 theorem budgetedWin_le_internalize (adversary : Adversary) (q : Nat) :
-    Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experiment adversary] ≤
-      Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-        experiment (internalize adversary)] := by
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experiment_internalize adversary),
-    experiment_eq_rightRun, leftRun_eq_split, rightRun_eq_split, probEvent_map, probEvent_map,
-    probEvent_map, probEvent_map]
-  refine probEvent_mono fun result _ hresult => ⟨hresult.1, ?_⟩
+    Pr{let result ← experiment adversary}[result.1 = true ∧ result.2 ≤ q] ≤
+      Pr{let result ← experiment (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] := by
+  rw [(evalDist_experiment_internalize adversary).prEvent_eq
+      (fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q),
+    experiment_eq_rightRun, leftRun_eq_split, rightRun_eq_split, prEvent_map, prEvent_map,
+    prEvent_map, prEvent_map]
+  refine prEvent_mono _ _ _ fun result hresult => ⟨hresult.1, ?_⟩
   exact le_trans (Nat.le_add_right _ _) hresult.2
 
 end Budgeted
@@ -424,15 +425,17 @@ noncomputable local instance detLabelsSampleable : SampleableType CanonicalGraph
 open SeedModel Graph Assembly Eager in
 /-- The internalized game from a uniform scheme seed as an average of fixed-function counted games. -/
 theorem evalDist_experimentMaster_fixed (adversary : Adversary) :
-    𝒟[experimentMaster (internalize adversary)] = 𝒟[do
+    experimentMaster (internalize adversary) =ᵈ (do
       let material ← sampleMaterial
       let seed ← sampleMasterSeed
       let answers ← $ᵗ CanonicalGraphLabels
       let table ← $ᵗ Eager.Table
       simulateQ (fixedRom (extend (preparedCache material seed answers) table))
-        (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] := by
-  rw [experimentMaster, gameCoreMaster, evalDist_seeded_prepared_counted]
-  refine evalDist_bind_congr' _ (fun material => evalDist_bind_congr' _ (fun seed => ?_))
+        (countHashQueries (gameAfterSeedDet (internalize adversary) seed)) :
+          ProbComp (Bool × Nat)) := by
+  rw [experimentMaster, gameCoreMaster]
+  refine (evalDist_seeded_prepared_counted _).trans ?_
+  refine EvalDistEq.bind_right _ (fun material => EvalDistEq.bind_right _ (fun seed => ?_))
   rw [← simulateQ_countHashQueries]
   change (simulateQ romImpl (countHashQueries (gameAfterSeedDet (internalize adversary) seed))).run'
     (programCache ∅ seed material) =ᵈ _

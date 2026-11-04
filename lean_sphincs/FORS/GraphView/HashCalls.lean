@@ -311,7 +311,6 @@ open SeedCoupling
 open QueryCap
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxHeartbeats 40000
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 noncomputable def fixedWorldCost (f : QueryImpl HashSpec Id) :

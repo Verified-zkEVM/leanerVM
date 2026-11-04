@@ -21,7 +21,7 @@ attribute [local instance] Classical.propDecidable
 
 section TotalO
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable

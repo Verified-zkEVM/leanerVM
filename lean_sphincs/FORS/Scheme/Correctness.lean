@@ -5,7 +5,6 @@ import FORS.Scheme.DigestView
 
 open OracleComp
 
-set_option maxHeartbeats 250000
 
 namespace FORS.Completeness
 

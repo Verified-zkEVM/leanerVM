@@ -126,9 +126,9 @@ theorem all_read_bound {β : Type} : ∀ {n : Nat} (x : Fin n → D), Function.I
     ∀ rest : (Fin n → R) → OracleComp (SourceCostSpec D R ι) β,
     (∀ values, Avoids (fun y => ∃ index, y = x index) (rest values)) →
     ∀ (g : (Fin n → R) → ℝ≥0∞) (budget : Nat),
-    ∑' out, Pr[= out | interp tg initial model (Concrete.sequenceFin (fun index =>
+    ∑' out, Pr{let z ← (interp tg initial model (Concrete.sequenceFin (fun index =>
           (liftM ((SourceCostSpec D R ι).query (.inl (.inr (.inl (x index))))) :
-            OracleComp (SourceCostSpec D R ι) R)) >>= rest) budget state] *
+            OracleComp (SourceCostSpec D R ι) R)) >>= rest) budget state)}[z = out] *
         (if out.1.1.isSome then (Completeness.allSome (α := fun _ => R) fun index =>
           out.2.cache (x index)).elim 0 g else 0) ≤ g u
   | 0, x, _, _, state, u, _, rest, _, g, budget => by
@@ -138,14 +138,14 @@ theorem all_read_bound {β : Type} : ∀ {n : Nat} (x : Fin n → D), Function.I
         rw [Completeness.allSome, dite_eq_left fun index => index.elim0]
         exact congrArg g (funext fun index => index.elim0)
       rw [Concrete.sequenceFin, pure_bind]
-      calc _ ≤ ∑' out, Pr[= out | interp tg initial model (rest Fin.elim0) budget state] * g u := by
+      calc _ ≤ ∑' out, Pr{let z ← interp tg initial model (rest Fin.elim0) budget state}[z = out] * g u := by
             refine ENNReal.tsum_le_tsum fun out => mul_le_mul_right ?_ _
             split_ifs
             · rw [hvalue]
             · exact bot_le
         _ ≤ g u := by
             rw [ENNReal.tsum_mul_right]
-            exact mul_le_of_le_one_left' tsum_probOutput_le_one
+            exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   | n + 1, x, hx, hp, state, u, hc, rest, havoid, g, budget => by
       set tail : (Fin n → R) → OracleComp (SourceCostSpec D R ι) β := fun values =>
         rest (Fin.cases (u 0) values) with htail
@@ -169,7 +169,7 @@ theorem all_read_bound {β : Type} : ∀ {n : Nat} (x : Fin n → D), Function.I
       split_ifs with hbudget
       · rw [ordinaryStep, hp 0]
         simp only
-        rw [readOutside_cached (x 0) state (u 0) (hc 0), pure_bind, tsum_probOutput_map_mul]
+        rw [readOutside_cached (x 0) state (u 0) (hc 0), pure_bind, OracleComp.tsum_prEvent_map_mul]
         simp only
         have hcons : (Fin.cases (u 0) fun index : Fin n => u index.succ : Fin (n + 1) → R) = u := by
           funext index
@@ -195,8 +195,8 @@ theorem all_read_bound {β : Type} : ∀ {n : Nat} (x : Fin n → D), Function.I
           split_ifs
           · rw [allSome_cons _ (by rw [h0]; exact hc 0), elim_map]
           · exact le_rfl
-        · rw [probOutput_eq_zero_of_not_mem_support hout, zero_mul, zero_mul]
-      · rw [tsum_probOutput_pure_mul]
+        · rw [prEvent_eq_zero_of_not_mem_support _ hout, zero_mul, zero_mul]
+      · rw [OracleComp.tsum_prEvent_pure_mul]
         simp
 
 end FORS.Security.HiddenDebt
@@ -369,23 +369,23 @@ end FinishOne
 /-- The fresh landed view law: weighting a fresh pair by a landed view weight gives the landing
 probability times the uniform average of the weight. -/
 theorem fresh_view_mean (parameter : PublicParameter) (gf : Lifetime.KeptDigestView → ℝ≥0∞) :
-    (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) =
       ForsPrice.landing * Domination.freshAvg Finset.univ gf := by
   classical
   set φ : MessageDigest → ℝ≥0∞ := fun digest =>
     if Landed parameter (digestIndex digest) then gf (Lifetime.localDigestView digest) else 0
-  have hsplit : (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+  have hsplit : (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) =
-      ∑' digest, Pr[= digest | truncateMessageDigest <$>
-        ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] * φ digest := by
-    rw [tsum_probOutput_map_mul]
+      ∑' digest, Pr{let z ← (truncateMessageDigest <$>
+        ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput)))}[z = digest] * φ digest := by
+    rw [OracleComp.tsum_prEvent_map_mul]
     refine tsum_congr fun u => ?_
     simp only [φ, viewOf, digestIndex_truncate]
   rw [hsplit]
-  have huni : ∀ digest, Pr[= digest | truncateMessageDigest <$>
-      ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] =
-      Pr[= digest | ($ᵗ MessageDigest : ProbComp MessageDigest)] := by
+  have huni : ∀ digest, Pr{let z ← (truncateMessageDigest <$>
+      ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput)))}[z = digest] =
+      Pr{let z ← ($ᵗ MessageDigest : ProbComp MessageDigest)}[z = digest] := by
     intro digest
     exact Security.evalDist_digestBlock_uniform.prEvent_eq _
   simp only [huni]
@@ -479,7 +479,7 @@ noncomputable def landedCount (state : DebtState HashInput HashOutput Coordinate
 
 theorem payload_randomness_injective (root : Digest) (message : Message) {ρ ρ' : Randomness}
     (h : messageDigestPayload root message ρ = messageDigestPayload root message ρ') : ρ = ρ' := by
-  have hparts := List.append_inj h (by simp [bytesLE_length])
+  have hparts := List.append_inj h (by simp)
   exact bytesLE_injective hparts.2
 
 theorem blk_ne_of_ne {ρ ρ' : Randomness} (h : ρ ≠ ρ') :
@@ -524,24 +524,24 @@ theorem outWeight_finish_le (reference : DebtState HashInput HashOutput Coordina
 theorem card_randomness : Fintype.card Randomness = 2 ^ 128 := HiddenDebt.card_digest
 
 theorem landed_mass (parameter : PublicParameter) :
-    ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then (1 : ℝ≥0∞) else 0) = ForsPrice.landing := by
   have h := fresh_view_mean parameter (fun _ => 1)
   rw [Domination.freshAvg_const _ Finset.univ_nonempty, mul_one] at h
   exact h
 
 theorem unlanded_mass (parameter : PublicParameter) :
-    ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then (0 : ℝ≥0∞) else 1) = 1 - ForsPrice.landing := by
-  have htot : (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+  have htot : (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then (1 : ℝ≥0∞) else 0)) +
-    ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+    ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
       (if Landed parameter (blockIndex (u firstCall)) then (0 : ℝ≥0∞) else 1) = 1 := by
     rw [← ENNReal.tsum_add]
-    calc _ = ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] := by
+    calc _ = ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] := by
           refine tsum_congr fun u => ?_
           split_ifs <;> simp
-      _ = 1 := tsum_probOutput_eq_one' probFailure_eq_zero
+      _ = 1 := OracleComp.tsum_prEvent_eq_one _
   rw [landed_mass parameter] at htot
   exact ENNReal.eq_sub_of_add_eq' ENNReal.one_ne_top (by rw [add_comm]; exact htot)
 

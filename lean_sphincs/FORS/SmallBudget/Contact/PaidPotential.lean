@@ -326,7 +326,7 @@ theorem goodXF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAct
     -- the expected number of queries of the class is unchanged by the presampling
     have hcount : pairE (fun u => expCount K model IsF (next (u c)) (budget - 1)
           (withPair K.p data s p u)) =
-        ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
+        ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
           expCount K model IsF (next v) (budget - 1) (s.store (pblk K.p data p c) v) := by
       rw [hpairE]
       unfold expCount
@@ -338,12 +338,12 @@ theorem goodXF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAct
     simp only [ite_eq_right (hFp p c), zero_add]
     rw [ordinaryStep, hparse p c]
     simp only
-    rw [readOutside_fresh _ s (hfresh c), tsum_probOutput_map_mul, tsum_probOutput_map_mul]
-    calc ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-          ∑' out, Pr[= out | interp K.tg K.initial model (next v) (budget - 1)
-            (s.store (pblk K.p data p c) v)] * G out.1.1 (R ++ out.1.2.1) out.2
-        ≤ pairE (fun u => ∑' out, Pr[= out | interp K.tg K.initial model (next (u c)) (budget - 1)
-            (withPair K.p data s p u)] * G out.1.1 (R ++ out.1.2.1) out.2) := by
+    rw [readOutside_fresh _ s (hfresh c), OracleComp.tsum_prEvent_map_mul, OracleComp.tsum_prEvent_map_mul]
+    calc ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+          ∑' out, Pr{let z ← (interp K.tg K.initial model (next v) (budget - 1)
+            (s.store (pblk K.p data p c) v))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2
+        ≤ pairE (fun u => ∑' out, Pr{let z ← (interp K.tg K.initial model (next (u c)) (budget - 1)
+            (withPair K.p data s p u))}[z = out] * G out.1.1 (R ++ out.1.2.1) out.2) := by
           rw [hpairE]
           exact interp_presample_new K.tg K.initial model (pblk K.p data p)
             (pblk_call_injective K.p data p) hkind c next (budget - 1) s hfresh
@@ -358,9 +358,9 @@ theorem goodXF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAct
       _ ≤ _ := by
           rw [hcount]
           exact add_le_add hnewp' le_rfl
-  · rw [hexp, interp_ordinary, ite_eq_left hb, tsum_probOutput_bind_mul]
-    simp only [tsum_probOutput_map_mul]
-    calc _ ≤ ∑' r, Pr[= r | ordinaryStep model x s.known s] *
+  · rw [hexp, interp_ordinary, ite_eq_left hb, OracleComp.tsum_prEvent_bind_mul]
+    simp only [OracleComp.tsum_prEvent_map_mul]
+    calc _ ≤ ∑' r, Pr{let z ← ordinaryStep model x s.known s}[z = r] *
           (Φ r.2 P Ms L d R (budget - 1) + pay * expCount K model IsF (next r.1) (budget - 1) r.2) := by
           refine ENNReal.tsum_le_tsum fun r => ?_
           by_cases hr : r ∈ support (ordinaryStep model x s.known s)

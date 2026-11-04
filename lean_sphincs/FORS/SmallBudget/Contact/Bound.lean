@@ -90,7 +90,7 @@ theorem finalA4_store (K : Ctx) (root : Digest) (o : Option HiddenBridge.Outcome
   | none => exact le_rfl
   | some outcome =>
       simp only [Option.elim]
-      exact probEvent_mono fun T _ h => ⟨h.1, a4ev_store K root T s outcome R x u hx h.2⟩
+      exact prEvent_mono_of_support _ _ _ fun T _ h => ⟨h.1, a4ev_store K root T s outcome R x u hx h.2⟩
 
 /-! ### The end of the game -/
 

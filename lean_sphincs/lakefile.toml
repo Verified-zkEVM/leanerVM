@@ -1,6 +1,6 @@
 name = "lean-sphincs-security"
 version = "0.1.0"
-defaultTargets = ["Sphincs"]
+defaultTargets = ["Sphincs", "FORS"]
 
 [leanOptions]
 warningAsError = true
@@ -35,14 +35,9 @@ name = "PolyFun"
 git = "https://github.com/Verified-zkEVM/PolyFun"
 rev = "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
 
+# The bridge from upstream's model to the statement, and the end theorem.
 [[lean_lib]]
 name = "Sphincs"
-
-[[lean_lib]]
-name = "SphincsFors"
-
-[[lean_lib]]
-name = "SphincsBase"
 
 [[lean_lib]]
 name = "FORS"

@@ -62,12 +62,12 @@ noncomputable local instance highsSampleable : SampleableType CoordinateHighs :=
 noncomputable local instance remainingSampleable : SampleableType RemainingOutputs :=
   SampleableType.ofFintype _
 
-private theorem lift_pmf_bind {α β : Type} (distribution : PMF α) (next : α → PMF β) :
-    (liftM (distribution.bind next) : SPMF β) =
-      (liftM distribution >>= fun value => liftM (next value)) := liftM_bind distribution next
-
-private theorem lift_pmf_map {α β : Type} (distribution : PMF α) (next : α → β) :
-    (liftM (distribution.map next) : SPMF β) = next <$> liftM distribution := liftM_map next distribution
+omit [Params] in
+private theorem uniformSample_evalDistEq_pmf (T : Type) [Fintype T] [Nonempty T] [SampleableType T] :
+    ($ᵗ T : ProbComp T) =ᵈ PMF.uniformOfFintype T := by
+  refine evalDistEq_iff_forall_prEvent_eq_output.mpr fun x => ?_
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, PMF.probOutput_eq_apply,
+    PMF.uniformOfFintype_apply]
 
 theorem evalDist_mix (parameter : PublicParameter) :
     (($ᵗ HiddenGraph.Table) >>= fun fixed => mix parameter fixed <$> ($ᵗ HiddenGraph.Table)) =ᵈ ($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table) := by
@@ -110,8 +110,7 @@ noncomputable def hiddenRun (adversary : Adversary) (q : Nat) (steps : Message �
 /-- **Hidden decomposition.** The seed-free experiment samples every public and structural
 value first and then the coordinate table as an exact completion of the known coordinates. -/
 theorem evalDist_seedFree_completion (adversary : Adversary) (q : Nat) (steps : Message → Randomness) :
-    𝒟[seedFreeExperiment adversary q steps] =
-      𝒟[do
+    seedFreeExperiment adversary q steps =ᵈ (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -183,8 +182,8 @@ event or a hidden-input stop in the existing stopped hidden-row experiment, aver
 public and structural samples. -/
 theorem seedFree_le_stopped (adversary : Adversary) (q : Nat) (steps : Message → Randomness)
     (event : Option Bool × List (HiddenCost.Entry HashInput) → Prop) :
-    Pr[event | seedFreeExperiment adversary q steps] ≤
-      Pr[HiddenReveal.StopOr event | do
+    Pr{let x ← seedFreeExperiment adversary q steps}[event x] ≤
+      Pr{let x ← (do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs

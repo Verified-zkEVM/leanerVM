@@ -56,7 +56,7 @@ theorem trial_boundV
           else cont) budget state)}[x = out] *
         V out.1.2.1 ≤
       (state.cache (blk parameter data message ρ)).elim
-        (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+        (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
           (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound))
         (fun u0 => if Landed parameter (blockIndex u0) then poolValue parameter data message reference gp ρ
           else bound) := by
@@ -141,7 +141,7 @@ theorem trial_boundV
           exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
             (pairInv_storeAll parameter data message state hinv ρ u hl)
             (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
-  · rw [tsum_probOutput_pure_mul]
+  · rw [OracleComp.tsum_prEvent_pure_mul]
     change V [] ≤ _
     rw [hV0]
     exact zero_le
@@ -212,11 +212,11 @@ theorem loop_boundV
           set bound := walk (nextRand (data.steps message)) ForsPrice.landing (stOf parameter data message reference)
             (poolValue parameter data message reference gp) (Domination.freshAvg Finset.univ gf) 0 attempts
             (nextRand (data.steps message) ρ)
-          have hsplit : (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+          have hsplit : (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
               (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else bound)) =
-              (∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              (∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) +
-              bound * ∑' u, Pr[= u | ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))] *
+              bound * ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then 0 else 1) := by
             rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
             refine tsum_congr fun u => ?_

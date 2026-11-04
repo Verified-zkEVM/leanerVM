@@ -27,7 +27,7 @@ namespace FORS.Security.ForsPotential
 variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000

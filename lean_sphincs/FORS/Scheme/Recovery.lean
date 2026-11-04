@@ -16,7 +16,6 @@ here is probabilistic, and nothing depends on the answers being uniform.
 open OracleComp
 
 set_option maxRecDepth 100000
-set_option maxHeartbeats 1000000
 
 namespace FORS.Completeness
 

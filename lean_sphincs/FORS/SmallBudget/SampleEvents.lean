@@ -26,7 +26,7 @@ set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -89,7 +89,7 @@ end Flagged
 
 section Pointwise
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 variable (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
   (remaining : RemainingOutputs) (prepared : (OtsKey → Option (Counter × Encoding)) × QueryCache HashSpec)
@@ -148,7 +148,7 @@ end Pointwise
 
 section Helpers
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 theorem targetingA_msgF (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (results : OtsKey → Option (Counter × Encoding)) (x : HashInput)

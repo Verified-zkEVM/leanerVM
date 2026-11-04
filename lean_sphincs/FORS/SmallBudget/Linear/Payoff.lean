@@ -13,7 +13,7 @@ namespace FORS.Security.PotentialA
 
 variable [Params]
 
-open Concrete Completeness Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
+open Concrete Completeness _root_.FORS.Security.Graph HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
   TargetAssignment
 
 set_option backward.isDefEq.respectTransparency false

@@ -101,7 +101,7 @@ end Tick
 
 section Chain
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -240,7 +240,7 @@ end Chain
 
 section FailSet
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -450,7 +450,7 @@ end FailSet
 
 section Total
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -483,7 +483,7 @@ end Total
 
 section Clean
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 theorem noQ_sequenceFin {bad : HashInput → Prop} [DecidablePred bad] {α : Type} :
     ∀ {n : ℕ} (f : Fin n → OracleComp HashSpec α), (∀ i, (f i).IsQueryBoundP bad 0) →
@@ -528,7 +528,7 @@ end Clean
 
 section FailBound
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
@@ -574,7 +574,7 @@ theorem encoding_not_graph (parameter parameter' : PublicParameter) (position : 
 /-- **One prepared search fails rarely.** -/
 theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (key : OtsKey) :
-    Pr[fun prepared => prepared.1 key = none | preparation parameterOutput fixed highs remaining] ≤
+    Pr{let prepared ← preparation parameterOutput fixed highs remaining}[prepared.1 key = none] ≤
       Completeness.failMass (fun out => TargetSum.decodeDigest (truncateHash out)) ^ encodingAttemptLimit := by
   have hrw : preparation parameterOutput fixed highs remaining =
       (fun r => ((fun key : OtsKey => r.1 key.1 key.2.1 key.2.2), r.2)) <$>
@@ -588,7 +588,7 @@ theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) 
     simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure]
     rw [map_eq_bind_pure_comp]
     rfl
-  rw [hrw, probEvent_map]
+  rw [hrw, prEvent_map]
   let Bad : HashInput → Prop := fun x => ∃ t, x = encodeInput (truncateHash parameterOutput) key.1 key.2.1 key.2.2
     (keyMessages (sampleData parameterOutput fixed highs remaining) key) t
   let Inv : QueryCache HashSpec → Prop := fun c => ∀ s, s < encodingAttemptLimit →
@@ -700,8 +700,8 @@ theorem tsum_elim_le {β : Type} (mx : ProbComp ((OtsKey → Option β) × Query
   rw [OracleComp.prEvent_eq_tsum_ite mx (fun x => x.1 i = none)]
   refine ENNReal.tsum_le_tsum fun x => ?_
   cases hx : x.1 i with
-  | none => simp [hx]
-  | some v => simp [hx]
+  | none => simp
+  | some v => simp
 
 /-- **Expected share of failing indices.** -/
 theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
@@ -752,7 +752,7 @@ end FailBound
 
 section Close
 
-open HiddenBridge Completeness SeedModel Graph Assembly Reduce Internalize
+open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable

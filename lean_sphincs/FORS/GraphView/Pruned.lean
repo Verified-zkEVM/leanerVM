@@ -15,7 +15,6 @@ namespace FORS.Security
 variable [Params]
 open Concrete
 attribute [local irreducible] Seeded.treeNode Seeded.treeRoot Seeded.spineNode
-set_option maxHeartbeats 600000
 
 theorem xor_one_ne (index : Nat) : Nat.xor index 1 ≠ index := by
   intro heq

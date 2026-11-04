@@ -31,7 +31,7 @@ theorem schemeSeedInput_injective : Function.Injective schemeSeedInput := fun se
 
 theorem schemeSeedInput_probability_le (input : HashInput) :
     Pr{let seed ← sampleMasterSeed}[schemeSeedInput seed = input] ≤ 1 / (2 : ℝ≥0∞) ^ 256 := by
-  letI := SampleableType.ofFintype MasterSeed
+  let := SampleableType.ofFintype MasterSeed
   rw [show sampleMasterSeed = ($ᵗ MasterSeed : ProbComp MasterSeed) by unfold sampleMasterSeed; rfl,
     SampleableType.prEvent_uniformSample]
   have hcard : (Finset.univ.filter fun seed => schemeSeedInput seed = input).card ≤ 1 := by
@@ -143,7 +143,7 @@ theorem evalDist_table_point {β : Type} (point : ShortIn) (H : MasterSeed → E
     (($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => H (table point) table) =ᵈ
       (($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => sampleMasterSeed >>= fun value =>
         H value (Function.update table point value)) := by
-  letI : SampleableType MasterSeed := SampleableType.ofFintype MasterSeed
+  let : SampleableType MasterSeed := SampleableType.ofFintype MasterSeed
   have hfst : (Prod.fst <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) =ᵈ
       ($ᵗ Eager.Table : ProbComp Eager.Table) := fun p => by
     rw [prEvent_map, SampleableType.prEvent_uniformSample_inst_irrel _
@@ -154,21 +154,22 @@ theorem evalDist_table_point {β : Type} (point : ShortIn) (H : MasterSeed → E
     SampleableType.map_uniformSample_evalDistEq_of_bijective (swapPoint_involutive point).bijective
   have hpair := evalDist_independent_uniform_pair (α := Eager.Table) (β := MasterSeed)
   calc
-    _ = 𝒟[(Prod.fst <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) >>=
-          fun table => H (table point) table] := by
-      rw [evalDist_bind, evalDist_bind, hfst]
-    _ = 𝒟[(swapPoint point <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) >>=
-          fun pair => H (pair.1 point) pair.1] := by
-      rw [bind_map_left, evalDist_bind, evalDist_bind, hswap]
-    _ = 𝒟[($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed)) >>=
-          fun pair => H pair.2 (Function.update pair.1 point pair.2)] := by
+    _ =ᵈ (Prod.fst <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) >>=
+          fun table => H (table point) table := hfst.symm.bind_left _
+    _ = ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed)) >>=
+          fun pair => H (pair.1 point) pair.1 := by
+      rw [bind_map_left]
+    _ =ᵈ (swapPoint point <$> ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed))) >>=
+          fun pair => H (pair.1 point) pair.1 := hswap.symm.bind_left _
+    _ = ($ᵗ (Eager.Table × MasterSeed) : ProbComp (Eager.Table × MasterSeed)) >>=
+          fun pair => H pair.2 (Function.update pair.1 point pair.2) := by
       rw [bind_map_left]
       simp only [swapPoint, Function.update_self]
-    _ = 𝒟[(do
+    _ =ᵈ (do
           let table ← ($ᵗ Eager.Table : ProbComp Eager.Table)
           let value ← ($ᵗ MasterSeed : ProbComp MasterSeed)
-          pure (table, value)) >>= fun pair => H pair.2 (Function.update pair.1 point pair.2)] := by
-      rw [evalDist_bind, evalDist_bind, hpair]
+          pure (table, value)) >>= fun pair => H pair.2 (Function.update pair.1 point pair.2) :=
+      hpair.symm.bind_left _
     _ = _ := by
       simp only [bind_assoc, pure_bind]
       unfold sampleMasterSeed
@@ -231,20 +232,19 @@ theorem fixed_afterSchemeSeed (adversary : Adversary) (F : HashInput → HashOut
 /-- **The scheme seed.** A budgeted win of the internalized game is a budgeted win of the game from
 a uniform scheme seed, at the same budget, or a guess of `S0` among at most `q` hash calls. -/
 theorem budgetedWin_le_master (adversary : Adversary) (q : ℕ) :
-    Pr[fun result : Bool × ℕ => result.1 = true ∧ result.2 ≤ q | experiment (internalize adversary)] ≤
-      Pr[fun result : Bool × ℕ => result.1 = true ∧ result.2 ≤ q |
-        experimentMaster (internalize adversary)] + q / (2 : ℝ≥0∞) ^ 256 := by
+    Pr{let result ← experiment (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] ≤
+      Pr{let result ← experimentMaster (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] + q / (2 : ℝ≥0∞) ^ 256 := by
   set game := gameAfterSeedDet (internalize adversary)
   set run : (HashInput → HashOutput) → MasterSeed → ProbComp (Bool × ℕ) :=
     fun F master => simulateQ (fixedRom F) (countHashQueries (game master)) with hrun
-  have hnew : 𝒟[experiment (internalize adversary)] = 𝒟[
+  have hnew : experiment (internalize adversary) =ᵈ (
       ($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => sampleMasterSeed >>= fun master =>
         sampleMasterSeed >>= fun seed =>
           (fun result => (result.1, 1 + result.2)) <$>
-            run (Function.update (extend ∅ table) (schemeSeedInput seed) master) master] := by
-    rw [experiment, gameCore_eq_schemeSeed,
-      evalDist_counted_eager _ (OnlyW.afterSchemeSeed adversary)]
-    simp only [fixed_afterSchemeSeed]
+            run (Function.update (extend ∅ table) (schemeSeedInput seed) master) master) := by
+    rw [experiment, gameCore_eq_schemeSeed]
+    refine (evalDist_counted_eager _ (OnlyW.afterSchemeSeed adversary)).trans ?_
+    simp only [fun seed table => fixed_afterSchemeSeed (internalize adversary) (extend ∅ table) seed]
     calc
       _ =ᵈ (sampleMasterSeed >>= fun seed => ($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table =>
             sampleMasterSeed >>= fun master =>
@@ -257,16 +257,18 @@ theorem budgetedWin_le_master (adversary : Adversary) (q : ℕ) :
         refine EvalDistEq.trans ?_ h
         simp only [extend, dite_eq_left (schemeSeedInput_short seed), hrun]
         rfl
-      _ = _ := by
-        rw [evalDist_bind_bind_swap]
-        refine evalDist_bind_congr' _ fun table => ?_
-        rw [evalDist_bind_bind_swap]
-  have hold : 𝒟[experimentMaster (internalize adversary)] = 𝒟[
+      _ =ᵈ _ := by
+        refine (EvalDistEq.bind_bind_swap _ _ _).trans ?_
+        refine EvalDistEq.bind_right _ fun table => ?_
+        exact EvalDistEq.bind_bind_swap _ _ _
+  have hold : experimentMaster (internalize adversary) =ᵈ (
       ($ᵗ Eager.Table : ProbComp Eager.Table) >>= fun table => sampleMasterSeed >>= fun master =>
-        run (extend ∅ table) master] := by
-    rw [experimentMaster, gameCoreMaster,
-      evalDist_counted_eager _ (OnlyW.gameAfterSeedDet_internalize adversary), evalDist_bind_bind_swap]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) hnew, probEvent_congr' (fun _ _ => Iff.rfl) hold]
+        run (extend ∅ table) master) := by
+    rw [experimentMaster, gameCoreMaster]
+    exact (evalDist_counted_eager _ (OnlyW.gameAfterSeedDet_internalize adversary)).trans
+      (EvalDistEq.bind_bind_swap _ _ _)
+  rw [hnew.prEvent_eq (fun result : Bool × ℕ => result.1 = true ∧ result.2 ≤ q),
+    hold.prEvent_eq (fun result : Bool × ℕ => result.1 = true ∧ result.2 ≤ q)]
   refine probEvent_bind_le_add_const _ _ _ _ _ _ fun table => ?_
   refine probEvent_bind_le_add_const _ _ _ _ _ _ fun master => ?_
   refine le_trans (probEvent_bind_mono _ _ _ _ fun seed => ?_) (probEvent_update_seed_le (game master)

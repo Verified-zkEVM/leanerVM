@@ -272,7 +272,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
     CountGood (fun k : ι → ℕ => ∏ l, g l (k l)) where
   mono := by
     intro k k' hk
-    exact Finset.prod_le_prod' fun l _ => (hg l).mono (hk l)
+    exact Finset.prod_le_prod fun l _ => (hg l).mono (hk l)
   super := by
     intro k i j hij
     simp only [Pi.add_apply, Pi.single_apply]
@@ -313,7 +313,7 @@ theorem prod_countGood (g : ι → ℕ → ℝ≥0∞) (hg : ∀ l, SepGood (g l
   growth := by
     choose C hC using fun l => (hg l).growth
     refine ⟨∏ l, C l, 2, fun k => ?_⟩
-    calc ∏ l, g l (k l) ≤ ∏ l, (C l : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod' fun l _ => hC l _
+    calc ∏ l, g l (k l) ≤ ∏ l, (C l : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod fun l _ => hC l _
       _ = _ := by
           rw [Finset.prod_mul_distrib, Finset.prod_pow_eq_pow_sum]
           push_cast
@@ -380,7 +380,7 @@ theorem dominated_of_splitJ {M : Type} [Fintype M] [Nonempty M] {f : Multiset (�
   refine mul_le_mul_right (Finset.sum_le_sum fun T _ => ?_) _
   rw [avgL_prod_marks (fun l Ms => if l ∈ T then a j Ms else h j Ms)]
   simp only [marksAt_zero]
-  refine Finset.prod_le_prod' fun l _ => ?_
+  refine Finset.prod_le_prod fun l _ => ?_
   by_cases hl : l ∈ T
   · simp only [hl, ite_true]; exact ha j hj _
   · simp only [hl, ite_false]; exact hh j hj _

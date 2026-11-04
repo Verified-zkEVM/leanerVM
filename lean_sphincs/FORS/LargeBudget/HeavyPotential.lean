@@ -770,13 +770,13 @@ theorem new_pair_boundHW {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot / 2
     (hT : TotalInv parameter data Qtot s budget) (p : Pair) (c : DigestCall)
     (hkind : ∀ call, tg.kind (pblk parameter data p call) = .none)
     (hp0 : s.cache (pblk parameter data p firstCall) = none) :
-    ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) (budget - 1)
-          (s.store (pblk parameter data p c) v)] *
+    ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+        ∑' out, Pr{let z ← (interp tg initial model (next v) (budget - 1)
+          (s.store (pblk parameter data p c) v))}[z = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
       weight tg initial s * potH parameter data Qtot w b0 Fail tg initial Lmax s P Ms L d budget +
         b0 * (weight tg initial s +
-          ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
             wflag tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v)) := by
   set ℓ := (livePairs L P).length with hℓ
   have hfresh : ∀ call, s.cache (pblk parameter data p call) = none := hP.first p hp0
@@ -809,26 +809,26 @@ theorem new_pair_boundHW {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot / 2
             h1.2 ((realized_store_untargeted tg initial out.2 _ v (hkind i)).1 hreal)⟩ h2
         · exact bot_le
         · exact le_rfl
-  have hpre : ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        ∑' out, Pr[= out | interp tg initial model (next v) (budget - 1)
-          (s.store (pblk parameter data p c) v)] *
+  have hpre : ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
+        ∑' out, Pr{let z ← (interp tg initial model (next v) (budget - 1)
+          (s.store (pblk parameter data p c) v))}[z = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial R out) ≤
-      pairE (fun u => ∑' out, Pr[= out | interp tg initial model (next (u c)) (budget - 1)
-        (withPair parameter data s p u)] *
+      pairE (fun u => ∑' out, Pr{let z ← (interp tg initial model (next (u c)) (budget - 1)
+        (withPair parameter data s p u))}[z = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial R out)) := by
     rw [hpairE]
     exact interp_presample_newF tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh _ hFmono
   have hcount : pairE (fun u => wflag tg initial model (next (u c)) (budget - 1)
         (withPair parameter data s p u)) =
-      ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] *
+      ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] *
         wflag tg initial model (next v) (budget - 1) (s.store (pblk parameter data p c) v) := by
     rw [hpairE]
     exact (wflag_presample_new_eq tg initial model (pblk parameter data p)
       (pblk_call_injective parameter data p) hkind c next (budget - 1) s hfresh).symm
   by_cases hcap : 1 ≤ lam Lmax ℓ budget
   · -- more landed pairs than the cap: the cap term pays everything
-    calc _ ≤ ∑' v, Pr[= v | ($ᵗ HashOutput : ProbComp HashOutput)] * weight tg initial s :=
+    calc _ ≤ ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] * weight tg initial s :=
           ENNReal.tsum_le_tsum fun v => mul_le_mul_right
             ((finalW_le parameter data tg initial model (next v) (budget - 1) _ R).trans
               (weight_store_untargetedW tg initial s _ v (hkind c)).le) _

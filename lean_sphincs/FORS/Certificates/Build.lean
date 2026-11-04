@@ -242,8 +242,8 @@ theorem checkOptB_build {H b k a : ℕ} {t : PoisT} {c1 θ : ℚ} {s : ℕ} {cth
     checkOptB H b k a t (.F (buildOpt H b k a t c1 θ s cthr)) p = true := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨h1, h2⟩, h3⟩ := h
-  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true, decide_eq_true_eq]
-  exact ⟨⟨checkOptF_build h1, h2⟩, h3⟩
+  simp only [checkOptB, checkOpt, Opt.cthr, Opt.B, Bool.and_eq_true]
+  exact ⟨⟨checkOptF_build h1, decide_eq_true h2⟩, decide_eq_true h3⟩
 
 /-! ### Near certificates -/
 

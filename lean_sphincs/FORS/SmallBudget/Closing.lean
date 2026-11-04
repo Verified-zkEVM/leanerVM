@@ -20,7 +20,7 @@ set_option maxRecDepth 10000
 set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
-open Completeness SeedModel Graph Assembly Reduce Internalize in
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
@@ -111,7 +111,6 @@ theorem small_realFF (x qh q N ρ B c M : ℝ) (hx0 : 0 ≤ x) (hxq : x ≤ qh) 
   linarith
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **The small-budget bound in closed form**, with the two cap terms of the scan signer. -/
 theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh) (hqh : qh ≤ 2 ^ 127)
     (hN : signatureLimit ≤ 2 ^ 70) (ρ : ℝ) (hρ : 0 ≤ ρ) (B c : ℚ) (hB : 0 ≤ B) (hc : 0 ≤ c)
@@ -175,7 +174,7 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
 
 section Close
 
-open Completeness SeedModel Graph Assembly Reduce Internalize
+open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize
 
 set_option maxRecDepth 100000 in
 /-- **Small budgets, seed-free win.** -/
@@ -189,7 +188,7 @@ theorem small_seedFree_boundF (hb : 0 < keptHeight topLayer) (adversary : Advers
     (t : H0.PoisT) (o : H0.Opt) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
     (hrt : H0.checkRate H b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
     (ho : H0.checkOpt H b k a t o = true) (hon : H0.checkOptN H k a t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
-    Pr[Win | seedFreeExperiment (internalize adversary) q steps] ≤
+    Pr{let z ← seedFreeExperiment (internalize adversary) q steps}[Win z] ≤
       (smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) +
         2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost)) + smallFailF q * expectedFail := by
   refine le_trans (seedFree_le_exposeP adversary q steps) ?_

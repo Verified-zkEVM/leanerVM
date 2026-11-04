@@ -12,7 +12,6 @@ variable [Params]
 open Graph
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
-set_option maxHeartbeats 100000
 attribute [local instance] Classical.propDecidable
 
 def coordinates
