@@ -98,7 +98,7 @@ theorem sPath_complete {lane : V} {off : Nat} (hoff : off ≤ 16) {e : Nat} {pp 
     ∀ (m l : Nat) (cur : V) (x : Nat) (σ : Val), l + m + 1 ≤ 10 → e < 2 ^ (l + m + 1) → 1225 ≤ x →
       NBv x lane → NBv x cur → PadOK σ sPad → σ sPP = pp → σ lane = L →
       (∀ j < l + m + 1, σ (sBit (off + j)) = if e.testBit j then 1 else 0) →
-      (∀ j, j < l + m + 1 → σ (sVal (off + j + 1)) = eOfNat (e >>> (j + 1))) → IsCanonical128 (σ cur) →
+      (∀ j, j + 1 < l + m + 1 → σ (sVal (off + j + 1)) = eOfNat (e >>> (j + 1))) → IsCanonical128 (σ cur) →
       Completes C rd x (x + 21 * (m + 1) - 1) (sPath lane off (m + 1) l cur x).1 σ
         (fun σ' => σ' (sPath lane off (m + 1) l cur x).2.2 = nIter (tNode pp L e sib) l (m + 1) (σ cur) ∧
           IsCanonical128 (σ' (sPath lane off (m + 1) l cur x).2.2))
