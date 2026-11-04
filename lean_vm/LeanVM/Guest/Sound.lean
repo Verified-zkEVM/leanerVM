@@ -99,26 +99,27 @@ theorem known_vs (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMe
 /-! ## The walks' obligations -/
 
 /-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, ostack's
-`open_stacked`; REC-GUEST-IFACE 'tool: walk obligations'): at every cut of a callee other than
-`verify_sub` whose cuts hand something on (not `Plain`), the cut's memory bounds and semantic
-tuples (`CutsKnown`). Checker K hands the windows' bounds of the windowed Merkle walk on at such
-cuts (`WinWalk`: the dispatch selector `L[L[qwp·x]·g^i]` below `g^(2^width)`, from
-`decode_query_windows`' range checks in `open_stacked`); B1 proves them on the core IR, as
-`VsKnown` for `verify_sub`, and `Sound.lean` reads them off the certificates' cells. -/
+`open_stacked`; REC-GUEST-IFACE 'tool: walk obligations — IMPLEMENTED'): the cut obligations
+(`CutsKnown`) of every function the certificates hand something on at its cuts (`Checked.oblFns`)
+but `main` and `verify_sub`. Checker K hands on there the window bounds of the windowed Merkle
+walk (`knownIf`: the dispatch selector `L[w·g^i]` below `g^(2^width)`, from
+`decode_query_windows`' range checks in `open_stacked`) and the walk's tuples at the calls (`sems`);
+B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the certificates' cells
+(`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`; `walkKnown_proved`). -/
 def WalkKnown : Prop :=
-  ∀ j, 2 ≤ j → j < nFns → j ≠ 19 → ¬ Checked.Plain j → CutsKnown j
+  ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ 19 → CutsKnown j
 
 /-- **Every callee's cut obligations**: `verify_sub`'s from `VsKnown`, the walks' from
-`WalkKnown`, and nothing for the others (`Plain`). -/
+`WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/
 theorem cutsKnown_of (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) :
     CutsKnown j := by
   intro κ L h16 h32 fp hmem hsem i hi h0 hl
   by_cases h19 : j = 19
   · subst h19
     exact known_vs hvs h16 h32 hsem hi h0 hl
-  · by_cases hp : Checked.Plain j
-    · exact known_of_plain hp hi h0
-    · exact hwalk j h2 hj h19 hp L h16 h32 fp hmem hsem i hi h0 hl
+  · by_cases ho : j ∈ Checked.oblFns
+    · exact hwalk j ho (by omega) h19 L h16 h32 fp hmem hsem i hi h0 hl
+    · exact known_of_plain (Checked.all_plain j (by omega) hj ho) hi h0
 
 /-! ## `main`'s obligation -/
 

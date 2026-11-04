@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.Sound
-public import LeanVM.Guest.WalkTags
+public import LeanVM.Guest.WalkKnownDefs
 public import LeanVM.Guest.B1.Opening.QueriesWalk
 
 /-!
@@ -133,12 +133,6 @@ theorem cutAt_mem {C : Cert} {i : ℕ} (hi : i ≤ C.cuts.length) (h0 : 0 < i) :
   rw [hc]
   exact List.getElem_mem _
 
-/-- A window bound the walk hands on: on the cell of a window pointer `v` the prefix has loaded
-(`v.2` statements suffice), window `m.2.1 < qwN`, bound at least its width's. -/
-def winTripOk (C : Cert) (d cd : ℕ) (src : List (ℕ × ℕ)) (start : ℕ) (m : ℕ × ℕ × ℕ) : Bool :=
-  src.any fun v ↦ m.1 == C.locs.getD v.1 0 && Nat.ble v.2 start && Nat.blt m.2.1 (qwN d cd) &&
-    Nat.ble (2 ^ (qwWin d cd m.2.1).2) m.2.2
-
 theorem memIf_of_wins {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {d cd start : ℕ}
     {src : List (ℕ × ℕ)} {knownIf : List (ℕ × ℕ × ℕ)}
     (hok : knownIf.all (winTripOk C d cd src start) = true)
@@ -155,19 +149,6 @@ theorem memIf_of_wins {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {d cd 
   exact ⟨e, lt_of_lt_of_le he h4, rfl⟩
 
 /-! ## The loops -/
-
-/-- A loop's cut: no plain bound, its window bounds of the loaded pointers `src`, its tuples the
-walk's tail `[2, xv, 1]` once `tl` statements hold. -/
-def loopCutOk (C : Cert) (tag d cd : ℕ) (src : List (ℕ × ℕ)) (xv tl : ℕ) (c : Cut) : Bool :=
-  c.known.isEmpty && c.knownIf.all (winTripOk C d cd src c.start) &&
-    c.sems.all fun t ↦ t == (tag, [C.locs.getD 2 0, C.locs.getD xv 0, C.locs.getD 1 0]) &&
-      Nat.ble tl c.start
-
-/-- A loop's certificate: the walk `tag` on `[2, 0, 1]` and `0 ≠ 1` assumed, every cut a
-`loopCutOk`. -/
-def loopOk (C : Cert) (tag d cd : ℕ) (src : List (ℕ × ℕ)) (xv tl : ℕ) : Bool :=
-  C.sem == [(tag, [C.locs.getD 2 0, C.locs.getD 0 0, C.locs.getD 1 0]),
-    (tagNe, [C.locs.getD 0 0, C.locs.getD 1 0])] && C.cuts.all (loopCutOk C tag d cd src xv tl)
 
 /-- **A loop's cut obligations**, from its certificate's check (`loopOk`) and the walk's facts on
 the prefixes of its body: the window pointers `src` name windows, the tail passes the walk on. -/
@@ -205,8 +186,7 @@ theorem loop_cutsKnown {j tag d cd xv tl : ℕ} {src : List (ℕ × ℕ)}
 theorem loop0_cutsKnown {j o : ℕ} {s : Oq} {name : String}
     (hb : (coreOf j).body = oqLoop0T s name) (ho : o < 2) (hc : s.cd < 64)
     (hlt : walkTag 0 o (s.pd + s.cd) s.cd < 2 ^ 32)
-    (hok : loopOk (certOf j) (walkTag 0 o (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd [(9, 2)]
-      (oqC0 s + 9) (oqLoop0A s).length = true) :
+    (hok : loop0Ok j o s = true) :
     CutsKnown j := by
   refine loop_cutsKnown hok (fun rd t x N ↦ WinWalk rd (s.pd + s.cd) s.cd t x N)
     (semRel_w0 ho hc hlt) (fun L σ n hl hw hne v hv hle ↦ ?_) (fun L σ n hle hl hw hne ↦ ?_)
@@ -221,9 +201,7 @@ theorem loop0_cutsKnown {j o : ℕ} {s : Oq} {name : String}
 theorem loop1_cutsKnown {j odd : ℕ} {s : Oq} {name : String}
     (hb : (coreOf j).body = oqLoop1T s odd name) (ho : odd < 2) (hc : s.cd < 64)
     (hlt : walkTag 1 odd (s.pd + s.cd) s.cd < 2 ^ 32)
-    (hok : loopOk (certOf j) (walkTag 1 odd (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd
-      [(10, 3), (oqE1 s, (oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0).length + 4)]
-      (oqC1 s + 11) (oqLoop1A s odd).length = true) :
+    (hok : loop1Ok j odd s = true) :
     CutsKnown j := by
   refine loop_cutsKnown hok (fun rd t x N ↦ WinWalk2 rd (s.pd + s.cd) s.cd odd t x N)
     (semRel_w1 ho hc hlt) (fun L σ n hl hw hne v hv hle ↦ ?_) (fun L σ n hle hl hw hne ↦ ?_)
@@ -237,32 +215,16 @@ theorem loop1_cutsKnown {j odd : ℕ} {s : Oq} {name : String}
 
 /-! ## The specializations -/
 
-/-- A specialization's cut: no plain bound, its window bounds of an odd count's first query
-(`src`), its tuples the loop call's walk `tagW` on `[4, x, 6]`, conditional on `x = 1`. -/
-def mainCutOk (C : Cert) (tagW d cd : ℕ) (src : List (ℕ × ℕ)) (c : Cut) : Bool :=
-  c.known.isEmpty && c.knownIf.all (winTripOk C d cd src c.start) &&
-    c.sems.all fun t ↦ t.1 == impTag tagW 1 1 && t.2.length == 3 &&
-      t.2.getD 0 0 == C.locs.getD 4 0 && t.2.getD 2 0 == C.locs.getD 6 0
-
-/-- A specialization's certificate: `OqMainWins` (`tagM`) on `[4, 6]` assumed, every cut a
-`mainCutOk`. -/
-def mainOk (C : Cert) (tagM tagW d cd : ℕ) (src : List (ℕ × ℕ)) : Bool :=
-  C.sem == [(tagM, [C.locs.getD 4 0, C.locs.getD 6 0])] && C.cuts.all (mainCutOk C tagW d cd src)
-
 /-- **A specialization's cut obligations** (`oqMainT`): its precondition `OqMainWins`, the first
 query's windows (`oqMainT_wins`, an odd count) and the walk from `1` (its second half). -/
-theorem main_cutsKnown {j odd o : ℕ} {s : Oq} {loop : String}
-    (hb : (coreOf j).body = oqMainT s odd loop) (ho : odd < 2) (hc : s.cd < 64) (hbase : s.base < 2)
-    (hlt : walkTag (2 + s.base) odd (s.pd + s.cd) s.cd < 2 ^ 32)
+theorem main_cutsKnown {j o : ℕ} {s : Oq} {loop : String}
+    (hb : (coreOf j).body = oqMainT s o loop) (ho : o < 2) (hc : s.cd < 64) (hbase : s.base < 2)
+    (hlt : walkTag (2 + s.base) o (s.pd + s.cd) s.cd < 2 ^ 32)
     (hltW : walkTag (if s.base = 1 then 1 else 0) o (s.pd + s.cd) s.cd < 2 ^ 32)
-    (hoW : o = odd)
-    (hok : mainOk (certOf j) (walkTag (2 + s.base) odd (s.pd + s.cd) s.cd)
-      (walkTag (if s.base = 1 then 1 else 0) o (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd
-      (if odd = 1 then [(12, 6)] else []) = true) :
+    (hok : mainOkS j o s = true) :
     CutsKnown j := by
-  subst hoW
   intro κ L _ _ fp _ hsem' i hi h0 hl
-  simp only [mainOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
+  simp only [mainOkS, mainOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
   have hW : OqMainWins L.read (s.pd + s.cd) s.cd o s.base (valG L fp (certOf j) (.n 4))

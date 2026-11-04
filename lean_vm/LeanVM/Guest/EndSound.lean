@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Sound
+public import LeanVM.Guest.WalkKnownAll
 public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.B1.VerifySub.KnownAll
 
@@ -20,8 +21,8 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
   `exponent_tables_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
-* `walkKnown_proved`: the windowed walks' cut obligations (vacuous while no walk certificate
-  hands anything on; whir's and ostack's `WinWalk` once checker K's walk obligations land).
+* `walkKnown_proved` (`WalkKnownAll.lean`): the windowed walks' cut obligations (whir's
+  `QueriesWalk` and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells).
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`).
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
   the witness `W` (`Located.MainSoundV bytecode W`).
@@ -45,11 +46,6 @@ theorem expTablesSound : ExpTablesSound := fun rd q h ↦
 `coreOf 19` is `Data.core18`). -/
 theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
   VerifySub.vsKnown_holds L h16 h32 σ hexp h
-
-/-- **The walks' obligations**: no callee but `verify_sub` hands anything on at its cuts in the
-deployed certificates (`Checked.all_plain`), so `WalkKnown` holds vacuously. -/
-theorem walkKnown_proved : WalkKnown := fun j h2 hj h19 hp ↦
-  absurd (Checked.all_plain j (by omega) hj (by omega) h19) hp
 
 /-- **B2, proved**, given `verify_sub`'s `kappa_base` bounds and the walks' obligations. -/
 theorem b2SoundL_of (hvs : VsKnown) (hwalk : WalkKnown) : B2SoundL :=
