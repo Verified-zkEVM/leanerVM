@@ -52,8 +52,9 @@ structure LvMem (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (
   r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestHalves L.root).2
   rows : ∀ j ≤ lv.squeezes, ∀ i < 5, LoadHolds rd sqz (5 * j + i)
     ((L.F2.squeezeN j).2.cap.getD i 0)
-  qw : ∀ i < lv.queries, LoadHolds rd P.qw (lvl * c.maxQ + i) (L.lam ^ i)
-  beta : LoadHolds rd P.betas lvl (if lvl = c.yrLevel then L.lam else L.lam * L.lam)
+  mu : LoadHolds rd P.mus lvl L.lam⁻¹
+  beta : LoadHolds rd P.betas lvl
+    ((if lvl = c.yrLevel then L.lam else L.lam * L.lam) * L.lam ^ lv.queries)
   r0' : lvl ≠ c.yrLevel → LoadHolds rd P.roots (2 * lvl + 2) L.ra
   r1' : lvl ≠ c.yrLevel → LoadHolds rd P.roots (2 * lvl + 3) L.rb
   oodz : lvl ≠ c.yrLevel →
@@ -74,7 +75,7 @@ structure LvCallsOk (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : 
   fm : lvl = c.yrLevel → ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
     args.getD 8 0 = P.fmsg →
     C ("opening_final_message__L" ++ natStr c.yrLen) args rets
-  sq : 1 + gen ^ lv.squeezes ≠ 0 → C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, P.qpos, P.qbp] []
+  sq : 1 + gen ^ lv.squeezes ≠ 0 → C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, P.qpos, P.qbp, P.win] []
   rw : C ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
     [P.fch * gen ^ lv.foldsOff, wp] []
   cap : C ("verify_merkle_cap__L" ++ natStr lv.capDepth)
@@ -133,13 +134,12 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} 
     rw [hw] at hwr
     have hF2 : L.F2 = (⟨L.F2.cap, []⟩ : Fs) := fs_of_pend_nil hpend
     refine ⟨hf, hc.fold, hc.fm hf, hc.grind, hxl, readsAt_left (readsAt_left hwr), hst, hmsl, ?_,
-      hm.fmsg hf, ?_, hb.sq0, hb.sq5, ?_, ?_, ⟨hIn, hc.sq⟩, hb.q2, ?_, hbo, hc.rw, hc.cap, hm.r0,
-      hm.r1, ?_, ?_, ?_⟩
+      hm.fmsg hf, ?_, hb.sq0, hb.sq5, ?_, ?_, ⟨hIn, hc.sq⟩, hb.qdigits, by rw [hlamF]; exact hOk.lam,
+      by rw [hlamF]; exact hm.mu, hbo, hc.rw, hc.cap, hm.r0, hm.r1, ?_, ?_, ?_⟩
     · have := readsAt_right (readsAt_left hwr); rwa [hxl] at this
     · rw [hR]; have := hOk.powFin hL; exact this
     · intro i hi; rw [hcapF]; exact hrows0 i hi
     · intro j hj; rw [hcapF, ← hF2]; exact hnext j hj
-    · intro i hi; rw [hlamF]; exact hm.qw i hi
     · rw [hlamF]; exact hc.queries
     · have := readsAt_right hwr
       simp only [List.length_append, List.length_cons, List.length_nil, hxl, hmsl] at this
@@ -165,14 +165,14 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} 
       readsAt_left (readsAt_left hwr), hst,
       (digestScalars_digestOfScalars (hdd hL)).symm, ?_, hm.r0' hf, hm.r1' hf, ?_,
       readsAt_off hood (k := 1) (by simp), readsAt_off hood (k := 2) (by simp),
-      readsAt_off hood (k := 3) (by simp), ?_, hb.sq0, hb.sq5, ?_, ?_, ⟨hIn, hc.sq⟩, hb.q2, ?_, hbo,
+      readsAt_off hood (k := 3) (by simp), ?_, hb.sq0, hb.sq5, ?_, ?_, ⟨hIn, hc.sq⟩, hb.qdigits,
+      by rw [hlamN]; exact hOk.lam, by rw [hlamN]; exact hm.mu, hbo,
       hc.rw, hc.cap, hm.r0, hm.r1, ?_, ?_, ?_, ?_⟩
     · have := readsAt_right (readsAt_left hwr); rwa [hxl] at this
     · rw [hR, ← h.ml]; exact hm.oodz hf
     · rw [hR, ← h.ml]; exact hOk.powNf hL
     · intro i hi; rw [hcapN]; exact hrows0 i hi
     · intro j hj; rw [hcapN, ← hF2]; exact hnext j hj
-    · intro i hi; rw [hlamN]; exact hm.qw i hi
     · rw [hlamN]; exact hc.queries
     · have := readsAt_right hwr
       simp only [List.length_append, List.length_cons, List.length_nil, hxl] at this

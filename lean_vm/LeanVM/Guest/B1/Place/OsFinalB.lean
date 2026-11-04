@@ -40,7 +40,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 structure OsCalleeBounds (fs : String → ℕ) (Bk : String → ℕ) (c : OsCfg) : Prop where
   leaf : OsLeafBounds fs Bk
   res : ∀ l < c.levels.length, ∃ K, TotalLeOn coreProgram fs (c.resLoop l) LoopPre
-    (fun a ↦ logG (a.getD 1 0) * K) ∧ (lvAt c l).queries / 2 * K ≤ Bk (c.resLoop l)
+    (fun a ↦ logG (a.getD 1 0) * K) ∧ (lvAt c l).queries / resBatch * K ≤ Bk (c.resLoop l)
   sq : ∀ l < c.levels.length,
     sqTot fs (lvAt c l) (c.sqLoop l) (lvAt c l).squeezes 0 ≤ Bk (c.sqLoop l)
   q : ∀ l < c.levels.length, oqBound fs (osQueriesName l (lvAt c l))
@@ -54,7 +54,7 @@ def osSpB (fs Kr : String → ℕ) (c : OsCfg) : List (String × ℕ) :=
     [(c.sqLoop l, sqTot fs (lvAt c l) (c.sqLoop l) (lvAt c l).squeezes 0),
      (osQueriesName l (lvAt c l), oqBound fs (osQueriesName l (lvAt c l))
        (oqLoopOf (osQueriesName l (lvAt c l))) ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))),
-     (c.resLoop l, (lvAt c l).queries / 2 * Kr (c.resLoop l))]
+     (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l))]
 
 /-- **The callees' bounds by name**: a named callee's `Bnd`, plus the special callees' bounds of
 that name. -/
@@ -74,7 +74,7 @@ theorem osSpB_mem {fs Kr : String → ℕ} {c : OsCfg} {l : ℕ} (hl : l < c.lev
     (osQueriesName l (lvAt c l), oqBound fs (osQueriesName l (lvAt c l))
        (oqLoopOf (osQueriesName l (lvAt c l))) ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))) ∈
       osSpB fs Kr c ∧
-    (c.resLoop l, (lvAt c l).queries / 2 * Kr (c.resLoop l)) ∈ osSpB fs Kr c := by
+    (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l)) ∈ osSpB fs Kr c := by
   have hr : l ∈ List.range c.levels.length := List.mem_range.mpr hl
   refine ⟨?_, ?_, ?_⟩ <;> exact List.mem_flatMap.mpr ⟨l, hr, by simp⟩
 
@@ -95,7 +95,8 @@ theorem osCalleeBounds_of {fs Bnd Kr : String → ℕ} {c : OsCfg} (hT : OsLeafB
   omega
 
 /-- **`open_stacked` at a configuration is complete, placed, within `osBos fs Bk name c` words.** -/
-theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) {Bk : String → ℕ} {c : OsCfg} {μ r : ℕ}
+theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
+    {Bk : String → ℕ} {c : OsCfg} {μ r : ℕ}
     {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (hP : OsCfgPlaced fs cert c) (hBk : OsCalleeBounds fs Bk c) {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 9)
     (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KeccakState} {root : Digest}
@@ -150,20 +151,22 @@ theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) {Bk : String → ℕ} {c
       refine ⟨fun l hl ↦ ?_, fun l hl p ↦ ?_, fun l hl ↦ ?_⟩
       · obtain ⟨fn', h1, h2, h3, h4⟩ := hP.sqFn l hl
         exact (os_sq_completeAtPB fs cert κ hF hfit hP.sizes hl h1 h2 h3 h4
-          (osDecodeRegAtD_holds hrf κ _ (hP.dec l hl)) (fp + fs name) Lin).mono (hBk.sq l hl)
+          (qwDecodeAtD_holds hrf hcons hκ _ (hP.dec l hl)) (fp + fs name) Lin).mono (hBk.sq l hl)
       · exact (os_q_completeAtB fs cert κ hfit hP.sizes hrunT hcaps hl (hP.qnames l hl) (hP.fits l hl)
           (hrunT.index l (by rw [hlen]; exact hl)) (hrunT.width l (by rw [hlen]; exact hl))
           (hP.il l hl) (hP.qo l hl) (fp + fs name) Lin p).mono le_rfl (hBk.q l hl)
       · obtain ⟨fn', h1, h2, h3⟩ := hP.resFn l hl
         have hb := hfit.lvb l hl
-        have hq2 : 2 ≤ (lvAt c l).queries := hb.q2
-        have hqo : (lvAt c l).queries / 2 < 2 ^ 64 - 1 := by
-          have := hP.qo l hl; unfold ordG at this; omega
+        have hq8 := hP.q8 l hl
+        have hq0 : 0 < (lvAt c l).queries / resBatch := Nat.div_pos hq8 (by decide)
+        have hqo : (lvAt c l).queries / resBatch < 2 ^ 64 - 1 := by
+          have := hP.qo l hl; have := Nat.div_le_self (lvAt c l).queries resBatch
+          unfold ordG at *; omega
         obtain ⟨K, hK, hKB⟩ := hBk.res l hl
-        refine (os_res_completeAtB fs cert κ hF hfit hP.sizes hl h1 h2 h3
-          (one_add_gen_pow_ne_zero (by omega) hqo) (fp + fs name) Lin
-          (B := (lvAt c l).queries / 2 * K) fun rd t hn hv hbo ↦ ?_).mono le_rfl hKB
-        have := hK rd t _ [] hn (loopPre_gen (by omega) hqo _) hv hbo
+        refine (os_res_completeAtB fs cert κ hF hfit hP.sizes hl h1 h2 h3 hq8
+          (one_add_gen_pow_ne_zero hq0 hqo) (fp + fs name) Lin
+          (B := (lvAt c l).queries / resBatch * K) fun rd t hn hv hbo ↦ ?_).mono le_rfl hKB
+        have := hK rd t _ [] hn (loopPre_gen hq0 hqo _) hv hbo
         simp only [List.getD_cons_succ, List.getD_cons_zero, logG_gen_pow hqo] at this
         exact this
     obtain ⟨N, L, ps, hps, hW, hD, hNB, hK⟩ := os_kids_atB (σ0 := Val.ofArgs args) (c0 := c0) (c2 := c2) (b0 := fp + fs name)

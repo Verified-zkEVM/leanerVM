@@ -44,7 +44,8 @@ structure FixedMem (rd : Reader) (P : OsPtrs) (c : OsCfg) (tr : OsTr) : Prop whe
   fch : ReadsAt rd P.fch (fchC c tr)
   roots : ReadsAt rd P.roots (rootsC c tr)
   betas : ReadsAt rd P.betas (betasC c tr)
-  qw : ReadsAt rd P.qw (qwC c tr)
+  mus : ReadsAt rd P.mus (musC c tr)
+  win : ReadsAt rd P.win winC
   qpos : ReadsAt rd P.qpos (qposC c tr)
   oodz : ReadsAt rd P.oodz (oodzC c tr)
   ood : ReadsAt rd P.ood (oodC c tr)
@@ -83,7 +84,7 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
   obtain ⟨R, d, hOk⟩ := h.ok i hi
   have hfit := h.fit i hi
   have hnf : ∀ h' : i ≠ c.yrLevel, i + 1 < c.levels.length := fun h' ↦ by have := hF.yr; omega
-  refine ⟨fun j hj ↦ ?_, ?_, ?_, fun j hj t ht ↦ ?_, fun j hj ↦ ?_, ?_, fun hf ↦ ?_, fun hf ↦ ?_,
+  refine ⟨fun j hj ↦ ?_, ?_, ?_, fun j hj t ht ↦ ?_, ?_, ?_, fun hf ↦ ?_, fun hf ↦ ?_,
     fun hf ↦ ?_, fun hf ↦ ?_, fun hf ↦ ?_⟩
   · have hle : (lvAt c i).foldsOff + (lvAt c i).folds ≤ c.nFolds := hst.le
     have := readsAt_map_range hm.fch (k := (lvAt c i).foldsOff + j) (by omega)
@@ -96,13 +97,8 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
     simp only [show (5 * j + t) / 5 = j by omega, show (5 * j + t) % 5 = t by omega, hj,
       ↓reduceIte] at this
     exact this
-  · have := readsAt_map_range hm.qw (k := i * c.maxQ + j) (by nlinarith)
-    simp only [show (i * c.maxQ + j) / c.maxQ = i by
-        rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by omega), Nat.div_eq_of_lt (by omega)]; simp,
-      show (i * c.maxQ + j) % c.maxQ = j by
-        rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega)], hj,
-      ↓reduceIte] at this
-    exact this
+  · have := readsAt_map_range hm.mus (k := i) hi
+    simpa [OsTr.L] using this
   · have := readsAt_map_range hm.betas (k := i) hi
     simpa [OsTr.L] using this
   · have hd := hOk.digest (by cases e : (tr.L i).fin <;> simp_all [hfit.fin])

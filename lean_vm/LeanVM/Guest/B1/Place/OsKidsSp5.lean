@@ -15,13 +15,13 @@ public import LeanVM.Guest.B1.Whir.Facts
 # The queries, placed
 
 **`os_q_completeAtB`**: level `l`'s `opening_queries` call, at its honest arguments (the cap and
-flags at the level's offsets, `λ`, `λ^q`, the bit pointers at the level's offset, the row weights,
-`g^N`), is `CompleteAtB`, by a tree of at most `oqBound` words, on the callees' words `osLk`, the
-bit pointers `osW … l p` and the decoders' runs `osS … l p`, for every placement `p` of the level's
-squeeze loop, returning the level's enforced sum; `os_q_completeAtD`, its `CompleteAtD`. From
-`OqCompleteDB` (its frame facts `OqFits` a hypothesis): the positions decoded, the bits in the
-runs, the row weights, the cap's cells and flags the honest cap holds at the openings' climbs
-(`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
+flags at the level's offsets, `λ`, `λ^q`, the window pointers at the level's offset, the row
+weights, `g^N`), is `CompleteAtB`, by a tree of at most `oqBound` words, on the callees' words
+`osLk`, the window pointers `osW … l p` and the decoders' runs `osS … l p`, for every placement
+`p` of the level's squeeze loop, returning the level's enforced sum; `os_q_completeAtD`, its
+`CompleteAtD`. From `OqCompleteDB` (`OqFits` is `True`): the positions decoded, their windows in
+the decoders' `wins` runs (`osS_wins`), the row weights, the cap's cells and flags the honest cap
+holds at the openings' climbs (`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -160,9 +160,9 @@ theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ
       omega
     · exact regionL_append_left (regionL_append_right (osW_region (fs := fs) (cert := cert)
         (c := c) (b := b) (l := l) (p := p) (by omega)))
-    · simp only [osQShape_pd, osQShape_cd] at ht
+    · simp only [osQShape_pd, osQShape_cd, Nat.sub_add_cancel hcdd] at ht
       exact regionL_append_right (osS_region (fs := fs) (cert := cert) (c := c) (tr := tr) (l := l)
-        (p := p) (by omega) (by omega))
+        (p := p) (by omega) ht)
     · have hq := hqsk k hk
       simp only [osQShape_pd, osQShape_cd]
       rw [← Nat.sub_add_cancel hcdd, show (lvAt c l).depth - (lvAt c l).capDepth +
@@ -212,12 +212,11 @@ theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ
       rw [List.getD_eq_getElem _ _ hl2]
       exact this
     · exact osW_reads hmW (by omega)
-    · simp only [osQShape_pd, osQShape_cd] at ht
-      have hb := osS_bits (tr := tr) (fs := fs) (cert := cert) (p := p) hmS (k := k) (by omega)
-        (t := t) (by omega)
-      have hq : (tr.L l).qs.getD k 0 = (eToNat (sqWJ ((tr.L l).F2.squeezeN 0).2.cap
-          (k / (192 / (lvAt c l).depth))) >>> ((k % (192 / (lvAt c l).depth)) * (lvAt c l).depth)) %
-          2 ^ (lvAt c l).depth := by
+    · simp only [osQShape_pd, osQShape_cd, Nat.sub_add_cancel hcdd] at ht ⊢
+      have hb := osS_wins (tr := tr) (fs := fs) (cert := cert) (p := p) hmS (k := k) (by omega) ht
+      have hq : (tr.L l).qs.getD k 0 = qwPosOf (lvAt c l).depth (sqWJ ((tr.L l).F2.squeezeN 0).2.cap
+          (k / (192 / (lvAt c l).depth))) (k % (192 / (lvAt c l).depth)) := by
+        unfold qwPosOf
         rw [List.getD_eq_getElem _ _ (by omega)]
         simp only [SpLv.qs, queriesOf, List.getElem_map, List.getElem_range, hD]
         congr 3
@@ -228,8 +227,7 @@ theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ
         rw [show (Fs.squeezeN 0 (tr.L l).F2).2.cap = (tr.L l).F2.cap from rfl,
           ← fs_of_pend_nil hpend, ← fs_of_pend_nil (squeezeN_pend hpend _)]
         rfl
-      show LoadHolds rd _ t (bitE (((tr.L l).qs.getD k 0).testBit t))
-      rw [hq, testBit_chunk _ _ _ _ (by omega)]
+      rw [hq]
       exact hb
     · have hk1 : k < (tr.L l).qs.length := by omega
       have hk2 : k < (tr.L l).os.length := by omega

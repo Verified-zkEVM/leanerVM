@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Place.OsKidsSp1
 public import LeanVM.Guest.B1.Place.OsKidsSp2
 public import LeanVM.Guest.B1.Place.OsKidsSp5
 public import LeanVM.Guest.B1.Place.OsBodyFacts
-public import LeanVM.Guest.Lift.Decode
+public import LeanVM.Guest.B1.Bits.QueryWindowsAtAll
 
 /-!
 # `open_stacked`, placed
@@ -20,8 +20,9 @@ public import LeanVM.Guest.Lift.Decode
 names', its buffers' sizes, its loop helpers' and `opening_queries`' frames).
 
 **`os_completeAtD_cfg`**: a function whose body is `osBody c`, at a configuration with those facts,
-its frame runs fitting their frames (`Lift.RunsFit`; its callees by G7's `osCalleesRegD_holds`,
-`osDecodeRegAtD_holds`), is complete placed on every accepting run of
+its frame runs fitting their frames with consecutive cells (`Lift.RunsFit`, `RunsConsec`; its
+callees by `osCalleesRegD_holds` and dqwc's `qwDecodeAtD_holds`, memories defined below `2^κ`,
+`7 ≤ κ`), is complete placed on every accepting run of
 `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings that agree in the
 caps, the words at the cursor among the caller's: it returns the run's claim, the pointers of its
 two point buffers, its glued weight and its residual's value, the buffers the run's point
@@ -55,12 +56,14 @@ structure OsCfgPlaced (fs : String → ℕ) (cert : String → V → ℕ) (c : O
   il : ∀ l < c.levels.length,
     rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤ c.maxIl
   qo : ∀ l < c.levels.length, (lvAt c l).queries + 1 < ordG
+  q8 : ∀ l < c.levels.length, resBatch ≤ (lvAt c l).queries
   sqFn : ∀ l < c.levels.length, ∃ fn, coreProgram.find? (c.sqLoop l) = some fn ∧
-    fn.params = osParams 5 ∧ fn.body = sqLoopBody (lvAt c l) (c.sqLoop l) ∧
+    fn.params = osParams 6 ∧ fn.body = sqLoopBody (lvAt c l) (c.sqLoop l) ∧
     coreProgram.loop (c.sqLoop l) = true
   resFn : ∀ l < c.levels.length, ∃ fn, coreProgram.find? (c.resLoop l) = some fn ∧
-    fn.params = osParams 6 ∧ fn.body = resLoopBody c l (lvAt c l) (c.resLoop l)
-  dec : ∀ l < c.levels.length, (sqDecName (lvAt c l), (lvAt c l).depth) ∈ decodeQueryBitsNames
+    fn.params = osParams 6 ∧ fn.body = resLoopBody l (lvAt c l) (c.resLoop l)
+  dec : ∀ l < c.levels.length,
+    (sqDecName (lvAt c l), (lvAt c l).depth, (lvAt c l).capDepth) ∈ queryWindowsShapes
 
 /-- What `open_stacked` returns and the buffers it hands back. -/
 def OsOut (μ : ℕ) (w : WhirEnd) : List E → Layout → Prop := fun rets Lout ↦
@@ -73,7 +76,8 @@ theorem lf_ml {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c
     (h : TrFit c tr) : tr.Lf.ml = c.yrLog := lf_ml' hF h
 
 /-- **`open_stacked` at a configuration is complete, placed.** -/
-theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
+theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
+    {c : OsCfg} {μ r : ℕ}
     {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (hP : OsCfgPlaced fs cert c) {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 9)
     (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KeccakState} {root : Digest}
@@ -128,15 +132,17 @@ theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
         completeAtD_lin_mono h fun q hq ↦ List.mem_append_left _ hq⟩
       · obtain ⟨fn', h1, h2, h3, h4⟩ := hP.sqFn l hl
         exact os_sq_completeAtP fs cert κ hF hfit hP.sizes hl h1 h2 h3 h4
-          (osDecodeRegAtD_holds hrf κ _ (hP.dec l hl)) (fp + fs name) Lin
+          (qwDecodeAtD_holds hrf hcons hκ _ (hP.dec l hl)) (fp + fs name) Lin
       · exact os_q_completeAtD fs cert κ hfit hP.sizes hrunT hcaps hl (hP.qnames l hl) (hP.fits l hl)
           (hrunT.index l (by rw [hlen]; exact hl)) (hrunT.width l (by rw [hlen]; exact hl))
           (hP.il l hl) (hP.qo l hl) (fp + fs name) Lin p
       · obtain ⟨fn', h1, h2, h3⟩ := hP.resFn l hl
         have hb := hfit.lvb l hl
-        exact os_res_completeAtD fs cert κ hF hfit hP.sizes hl h1 h2 h3
-          (one_add_gen_pow_ne_zero (by have := hb.q2; omega)
-            (by have := hP.qo l hl; unfold ordG at this; omega)) (fp + fs name) Lin
+        have hq8 := hP.q8 l hl
+        exact os_res_completeAtD fs cert κ hF hfit hP.sizes hl h1 h2 h3 hq8
+          (one_add_gen_pow_ne_zero (Nat.div_pos hq8 (by decide))
+            (by have := hP.qo l hl; have := Nat.div_le_self (lvAt c l).queries resBatch
+                unfold ordG at *; omega)) (fp + fs name) Lin
     obtain ⟨N, L, ps, hps, hW, hD, hK⟩ := os_kids_at (σ0 := Val.ofArgs args) (c0 := c0) (c2 := c2) (b0 := fp + fs name)
       (Lin := Lin) (osCalleesRegD_holds κ) hP.names hlen hfit hP.pos hP.tot hsp hall hex ((fp + fs name) + (osSizesL c).sum)
     refine ⟨(osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)), osOwnL c tr (osBp fs cert c fun l ↦ ps.getD l 0), [w.target, (osAtOf c (fp + fs name)).PT, (osAtOf c (fp + fs name)).PT1, w.inner, w.residual], N, L, fun _ ↦ False, _, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩

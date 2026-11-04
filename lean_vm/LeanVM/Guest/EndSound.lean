@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Sound
+public import LeanVM.Guest.WalkKnownAll
 public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.B1.VerifySub.KnownAll
 
@@ -18,8 +19,10 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 * `expTablesSound`: `exponent_tables`' returns are the exponent tables (B1-a's
   `exponent_tables_holds`).
-* `vsKnown_proved`: `verify_sub`'s column logs among `column_selector`'s arms (B1-d's
-  `VerifySub.vsKnown_holds`).
+* `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
+  `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
+* `walkKnown_proved` (`WalkKnownAll.lean`): the windowed walks' cut obligations (whir's
+  `QueriesWalk` and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells).
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`).
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
   the witness `W` (`Located.MainSoundV bytecode W`).
@@ -36,19 +39,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 @[expose] public section
 
 /-- **`exponent_tables`' relation is the exponent tables** (B1-a's `exponent_tables_holds`). -/
-theorem expTablesSound : ExpTablesSound := fun rd p q h ↦
-  (exponent_tables_holds rd [] [p, q]).mp h
+theorem expTablesSound : ExpTablesSound := fun rd q h ↦
+  (exponent_tables_holds rd [] [q]).mp h
 
-/-- **`verify_sub`'s column logs** among `column_selector`'s arms (B1-d's
-`VerifySub.vsKnown_holds`; `coreOf 19` is `Data.core18`). -/
+/-- **`verify_sub`'s `kappa_base`** below `vsKbBound` (B1-d's `VerifySub.vsKnown_holds`;
+`coreOf 19` is `Data.core18`). -/
 theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
   VerifySub.vsKnown_holds L h16 h32 σ hexp h
 
-/-- **B2, proved**, given `verify_sub`'s column logs. -/
-theorem b2SoundL_of (hvs : VsKnown) : B2SoundL := ⟨b2_step hvs, b2_mainL expTablesSound⟩
+/-- **B2, proved**, given `verify_sub`'s `kappa_base` bounds and the walks' obligations. -/
+theorem b2SoundL_of (hvs : VsKnown) (hwalk : WalkKnown) : B2SoundL :=
+  ⟨b2_step fun _ h2 hj ↦ cutsKnown_of hvs hwalk h2 hj, b2_mainL expTablesSound⟩
 
 /-- **B2, proved.** -/
-theorem b2SoundL : B2SoundL := b2SoundL_of vsKnown_proved
+theorem b2SoundL : B2SoundL := b2SoundL_of vsKnown_proved walkKnown_proved
 
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 

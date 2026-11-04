@@ -20,11 +20,12 @@ its fold challenges `Fall`, its tail challenges `Tc`, its levels' records `rs` (
 proof's `OsRec`), its point.
 
 The finish's honest data, as the soundness proof names them (`βof`, `Xof`, `Pof`, `Wof`, `Λof`,
-`Zof`, `Yof` of the records): `finD`, `finAcc`, `finPq`, `finW`, `finL`, `finI`.
+`Zof`, `Yof` of the records): `finD`, `finM` (`μ = λ⁻¹`), `finB` (`level_betas`: `β·λ^n`), `finAcc`
+(the residual chain after its loop), `finPq` (the remaining queries' positions), `finL`, `finI`.
 
 Each buffer's honest words, a list of its size (`osHeap`'s, the allocation's): the fixed buffers
-(`capsC`, `flagsC`, `fmsgC`, `rootsC`, `fchC`, `betasC`, `qwC`, `qposC`, `qbpC` (at the decoders'
-frames `bp`), `oodzC`, `oodC`), the tail challenges (`tailC`), the point and one plus it (`ptC`,
+(`capsC`, `flagsC`, `fmsgC`, `rootsC`, `fchC`, `betasC`, `musC`, `qposC`, `qbpC` (at the decoders'
+frames `bp`), `winC`, `oodzC`, `oodC`), the tail challenges (`tailC`), the point and one plus it (`ptC`,
 `pt1C`), the basis coefficients, scales and inner sums (`bdC`, `lsC`, `ichC`), and each level's
 squeeze chain, residual chain and row weights (`sqzC`, `rcC`, `wpC`). A buffer split by levels at
 the configuration's offsets (`capOff`, `posOff`) gives each word to its level (`ownerOf`).
@@ -84,27 +85,35 @@ abbrev lvAt (i : ℕ) : OsLv := c.levels.getD i default
 /-- Level `i`'s coefficients `d_t`. -/
 def finD (i : ℕ) : ℕ → E := dOf (lvAt c i) (Xof tr.rs tr.Fall tr.Tc i)
 
-/-- Level `i`'s query pairs' sum. -/
-def finAcc (i : ℕ) : E :=
-  ∑ j ∈ Finset.range (2 * ((lvAt c i).queries / 2)),
-    Wof tr.rs i j * lvRes (lvAt c i) (finD c tr i) (Pof tr.rs i j)
+/-- Level `i`'s `μ = λ⁻¹` (`level_mus`). -/
+def finM (i : ℕ) : E := (tr.rs.getD i default).lam⁻¹
 
-/-- Level `i`'s last query's position. -/
-def finPq (i : ℕ) : E := Pof tr.rs i ((lvAt c i).queries - 1)
+/-- Level `i`'s residual chain after `m` loop iterations: the `μ`-chain over its first
+`resBatch · m` queries' positions, from `0`. -/
+def finChain (i m : ℕ) : E :=
+  resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i) 0
+    ((List.range (resBatch * m)).map (Pof tr.rs i))
 
-/-- Level `i`'s last query's weight. -/
-def finW (i : ℕ) : E := Wof tr.rs i ((lvAt c i).queries - 1)
+/-- Level `i`'s residual chain after its loop. -/
+def finAcc (i : ℕ) : E := finChain c tr i ((lvAt c i).queries / resBatch)
+
+/-- Level `i`'s remaining queries' positions (after the loop's `resBatch`-blocks). -/
+def finPq (i j : ℕ) : E :=
+  Pof tr.rs i ((lvAt c i).queries - (lvAt c i).queries % resBatch + j)
+
+/-- Level `i`'s scalar in `level_betas`: `β·λ^n`. -/
+def finB (i : ℕ) : E := βof c tr.rs i * Wof tr.rs i (lvAt c i).queries
 
 /-- Level `i`'s scale. -/
 def finL (i : ℕ) : E :=
-  βof c tr.rs i * ∏ t ∈ Finset.range ((lvAt c i).prefixLen + c.yrLog),
+  finB c tr i * ∏ t ∈ Finset.range ((lvAt c i).prefixLen + c.yrLog),
     (Xof tr.rs tr.Fall tr.Tc i t * invW (lvAt c i) t)
 
 /-- The inner sum after the levels below `i`. -/
 def finI : ℕ → E
   | 0 => 0
-  | i + 1 => finI i + finL c tr i * resSum (lvAt c i) (finAcc c tr i) (finW c tr i) (finD c tr i)
-      (finPq c tr i)
+  | i + 1 => finI i + finL c tr i * resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols
+      (finM tr i) (finAcc c tr i) ((List.range ((lvAt c i).queries % resBatch)).map (finPq c tr i))
 
 /-! ## The buffers' words -/
 
@@ -121,13 +130,16 @@ def fchC : List E := (List.range c.nFolds).map fun j ↦ tr.Fall.getD j 0
 def rootsC : List E := (List.range (2 * c.levels.length)).map fun k ↦
   if k % 2 = 0 then (digestHalves (tr.L (k / 2)).root).1 else (digestHalves (tr.L (k / 2)).root).2
 
-/-- `level_betas`. -/
+/-- `level_betas`: `β·λ^n`. -/
 def betasC : List E := (List.range c.levels.length).map fun i ↦
-  if i = c.yrLevel then (tr.L i).lam else (tr.L i).lam * (tr.L i).lam
+  (if i = c.yrLevel then (tr.L i).lam else (tr.L i).lam * (tr.L i).lam) *
+    (tr.L i).lam ^ (lvAt c i).queries
 
-/-- `query_weights`: level `i`'s powers of its batching challenge from `i · maxQ`. -/
-def qwC : List E := (List.range (c.levels.length * c.maxQ)).map fun k ↦
-  if k % c.maxQ < (lvAt c (k / c.maxQ)).queries then (tr.L (k / c.maxQ)).lam ^ (k % c.maxQ) else 0
+/-- `level_mus`: each level's `λ⁻¹`. -/
+def musC : List E := (List.range c.levels.length).map fun i ↦ (tr.L i).lam⁻¹
+
+/-- `win_tabs`: `g^n ↦ n` for `n < 128`. -/
+def winC : List E := (List.range 128).map fun n ↦ word n 0 0
 
 /-- `ood_z`: from row `i + 1`, the out-of-domain point level `i` samples. -/
 def oodzC : List E := (List.range (c.levels.length * ligColsCap)).map fun k ↦
@@ -160,13 +172,14 @@ def qposC : List E := (List.range c.posLen).map fun k ↦
       (k - (lvAt c (ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k)).posOff)
   else 0
 
-/-- `query_bit_ptrs`: each level's squeezes' bit runs, squeeze `s` of level `i` decoded at the
-frame `bp i s`. -/
+/-- `query_win_ptrs`: each level's squeezes' window runs, squeeze `s` of level `i` decoded at the
+frame `bp i s` (position `j` of a squeeze `qwN depth capDepth` words further). -/
 def qbpC (bp : ℕ → ℕ → E) : List E := (List.range c.posLen).map fun k ↦
   let i := ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k
   let j := k - (lvAt c i).posOff
   let per := 192 / (lvAt c i).depth
-  if j < (lvAt c i).squeezes * per then bp i (j / per) * gen ^ ((j % per) * (lvAt c i).depth)
+  if j < (lvAt c i).squeezes * per then
+    bp i (j / per) * gen ^ ((j % per) * qwN (lvAt c i).depth (lvAt c i).capDepth)
   else 0
 
 /-- A level's query step's openings. -/
@@ -207,11 +220,9 @@ def ichC : List E := (List.range (c.levels.length + 1)).map (finI c tr)
 def sqzC (i : ℕ) : List E := (List.range ((c.maxSq + 1) * 5)).map fun k ↦
   if k / 5 ≤ (lvAt c i).squeezes then (((tr.L i).F2.squeezeN (k / 5)).2.cap).getD (k % 5) 0 else 0
 
-/-- Level `i`'s residual chain: the query pairs' partial sums. -/
-def rcC (i : ℕ) : List E := (List.range (c.maxQ + 1)).map fun m ↦
-  if m ≤ (lvAt c i).queries / 2 then
-    ∑ j ∈ Finset.range (2 * m), Wof tr.rs i j * lvRes (lvAt c i) (finD c tr i) (Pof tr.rs i j)
-  else 0
+/-- Level `i`'s residual chain (`q / resBatch + 1` words): the chain after each loop iteration. -/
+def rcC (i : ℕ) : List E :=
+  (List.range ((lvAt c i).queries / resBatch + 1)).map (finChain c tr i)
 
 /-- Level `i`'s row weights. -/
 def wpC (i : ℕ) : List E := (List.range c.maxIl).map fun k ↦
