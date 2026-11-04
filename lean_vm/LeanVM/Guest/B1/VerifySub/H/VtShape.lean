@@ -1,14 +1,14 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.VtShape
 
-  An honest child's `verify_tables` data fits B1-c's shapes (`VtShape`), apart from `H/Data` so the
-  data's consumers do not wait for `verify_tables`' completeness.
+  An honest child's `verify_tables` data fits B1-c's shapes (`VtShape`), and `verify_tables` is
+  complete on it as `verify_sub`'s seventh callee (`H/KidsC`'s `hvt`).
 -/
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.H.Data
-public import LeanVM.Guest.B1.Tables.VtC.AMain
+public import LeanVM.Guest.B1.VerifySub.H.Kids
+public import LeanVM.Guest.B1.Tables.VtC.AComplete
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -51,7 +51,20 @@ theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by
   · rw [H_rows, H_point, hpl]
     exact le_trans (vtSizesC_sum S.logMem S.rowsN S.hrowsL) (log2Ceil_le_iff.mp le_rfl)
 
+theorem retsH_eq (bs : List ℕ) (sqE : ℕ) : S.H.retsH (S.vtB bs sqE) = S.vtRetsOf bs := rfl
+
 end ChildSegs
+
+variable {fs : String → ℕ} {cert : String → V → ℕ}
+
+/-- **`verify_tables` is complete on an honest child's data**, as `verify_sub` calls it. -/
+theorem vt_kid_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 14 ≤ κ) (bs : List ℕ) (sqE : ℕ) :
+    CompleteAtD fs cert κ "verify_tables" (S.H.linL (S.vtB bs sqE)) (S.H.args (S.vtB bs sqE))
+      (Returns (S.vtRetsOf bs)) := by
+  obtain ⟨hok, -, -, -⟩ := S.H_run hbl
+  rw [← S.retsH_eq bs sqE]
+  exact Tables.verify_tables_completeAt hκ hok (S.H_shape hbl) (S.vtB bs sqE)
 
 end
 end LeanVM.Guest.B1.VerifySub
