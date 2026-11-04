@@ -20,23 +20,23 @@ theorem wf19_0 : WfStmts Data.core19.body 0 150 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf19_150 : WfStmts Data.core19.body 150 131 := by
+theorem wf19_150 : WfStmts Data.core19.body 150 147 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf19_281 : WfStmts Data.core19.body 281 150 := by
+theorem wf19_297 : WfStmts Data.core19.body 297 150 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf19_431 : WfStmts Data.core19.body 431 146 := by
+theorem wf19_447 : WfStmts Data.core19.body 447 150 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf19_577 : WfStmts Data.core19.body 577 150 := by
+theorem wf19_597 : WfStmts Data.core19.body 597 150 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf19_727 : WfStmts Data.core19.body 727 72 := by
+theorem wf19_747 : WfStmts Data.core19.body 747 92 := by
   unfold WfStmts; decide +kernel
 
 end
