@@ -78,10 +78,6 @@ theorem ok304 : CheckOk 304 := fun i hi ↦ by
   · exact w304_4
   · exact w304_5
 
-theorem plain304 : Plain 304 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok305 : CheckOk 305 := fun i hi ↦ by
   have h : (certOf 305).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -92,10 +88,6 @@ theorem ok305 : CheckOk 305 := fun i hi ↦ by
   · exact w305_3
   · exact w305_4
   · exact w305_5
-
-theorem plain305 : Plain 305 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok306 : CheckOk 306 := fun i hi ↦ by
   have h : (certOf 306).cuts.length = 6 := by decide +kernel
@@ -109,10 +101,6 @@ theorem ok306 : CheckOk 306 := fun i hi ↦ by
   · exact w306_5
   · exact w306_6
 
-theorem plain306 : Plain 306 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok307 : CheckOk 307 := fun i hi ↦ by
   have h : (certOf 307).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -124,10 +112,6 @@ theorem ok307 : CheckOk 307 := fun i hi ↦ by
   · exact w307_4
   · exact w307_5
   · exact w307_6
-
-theorem plain307 : Plain 307 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok308 : CheckOk 308 := fun i hi ↦ by
   have h : (certOf 308).cuts.length = 6 := by decide +kernel
@@ -141,10 +125,6 @@ theorem ok308 : CheckOk 308 := fun i hi ↦ by
   · exact w308_5
   · exact w308_6
 
-theorem plain308 : Plain 308 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok309 : CheckOk 309 := fun i hi ↦ by
   have h : (certOf 309).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -156,10 +136,6 @@ theorem ok309 : CheckOk 309 := fun i hi ↦ by
   · exact w309_4
   · exact w309_5
   · exact w309_6
-
-theorem plain309 : Plain 309 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok310 : CheckOk 310 := fun i hi ↦ by
   have h : (certOf 310).cuts.length = 8 := by decide +kernel
@@ -175,10 +151,6 @@ theorem ok310 : CheckOk 310 := fun i hi ↦ by
   · exact w310_7
   · exact w310_8
 
-theorem plain310 : Plain 310 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok311 : CheckOk 311 := fun i hi ↦ by
   have h : (certOf 311).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -189,10 +161,6 @@ theorem ok311 : CheckOk 311 := fun i hi ↦ by
   · exact w311_3
   · exact w311_4
   · exact w311_5
-
-theorem plain311 : Plain 311 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok312 : CheckOk 312 := fun i hi ↦ by
   have h : (certOf 312).cuts.length = 5 := by decide +kernel
@@ -205,10 +173,6 @@ theorem ok312 : CheckOk 312 := fun i hi ↦ by
   · exact w312_4
   · exact w312_5
 
-theorem plain312 : Plain 312 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok313 : CheckOk 313 := fun i hi ↦ by
   have h : (certOf 313).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -220,10 +184,6 @@ theorem ok313 : CheckOk 313 := fun i hi ↦ by
   · exact w313_4
   · exact w313_5
   · exact w313_6
-
-theorem plain313 : Plain 313 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok314 : CheckOk 314 := fun i hi ↦ by
   have h : (certOf 314).cuts.length = 7 := by decide +kernel
@@ -238,10 +198,6 @@ theorem ok314 : CheckOk 314 := fun i hi ↦ by
   · exact w314_6
   · exact w314_7
 
-theorem plain314 : Plain 314 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok315 : CheckOk 315 := fun i hi ↦ by
   have h : (certOf 315).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -255,10 +211,6 @@ theorem ok315 : CheckOk 315 := fun i hi ↦ by
   · exact w315_6
   · exact w315_7
 
-theorem plain315 : Plain 315 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok316 : CheckOk 316 := fun i hi ↦ by
   have h : (certOf 316).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -271,10 +223,6 @@ theorem ok316 : CheckOk 316 := fun i hi ↦ by
   · exact w316_5
   · exact w316_6
   · exact w316_7
-
-theorem plain316 : Plain 316 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok317 : CheckOk 317 := fun i hi ↦ by
   have h : (certOf 317).cuts.length = 8 := by decide +kernel
@@ -290,10 +238,6 @@ theorem ok317 : CheckOk 317 := fun i hi ↦ by
   · exact w317_7
   · exact w317_8
 
-theorem plain317 : Plain 317 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok318 : CheckOk 318 := fun i hi ↦ by
   have h : (certOf 318).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -305,10 +249,6 @@ theorem ok318 : CheckOk 318 := fun i hi ↦ by
   · exact w318_4
   · exact w318_5
 
-theorem plain318 : Plain 318 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok319 : CheckOk 319 := fun i hi ↦ by
   have h : (certOf 319).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -319,10 +259,6 @@ theorem ok319 : CheckOk 319 := fun i hi ↦ by
   · exact w319_3
   · exact w319_4
   · exact w319_5
-
-theorem plain319 : Plain 319 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok320 : CheckOk 320 := fun i hi ↦ by
   have h : (certOf 320).cuts.length = 7 := by decide +kernel
@@ -337,10 +273,6 @@ theorem ok320 : CheckOk 320 := fun i hi ↦ by
   · exact w320_6
   · exact w320_7
 
-theorem plain320 : Plain 320 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok321 : CheckOk 321 := fun i hi ↦ by
   have h : (certOf 321).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -353,10 +285,6 @@ theorem ok321 : CheckOk 321 := fun i hi ↦ by
   · exact w321_5
   · exact w321_6
   · exact w321_7
-
-theorem plain321 : Plain 321 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok322 : CheckOk 322 := fun i hi ↦ by
   have h : (certOf 322).cuts.length = 7 := by decide +kernel
@@ -371,10 +299,6 @@ theorem ok322 : CheckOk 322 := fun i hi ↦ by
   · exact w322_6
   · exact w322_7
 
-theorem plain322 : Plain 322 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok323 : CheckOk 323 := fun i hi ↦ by
   have h : (certOf 323).cuts.length = 7 := by decide +kernel
   rw [h] at hi
@@ -387,10 +311,6 @@ theorem ok323 : CheckOk 323 := fun i hi ↦ by
   · exact w323_5
   · exact w323_6
   · exact w323_7
-
-theorem plain323 : Plain 323 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok324 : CheckOk 324 := fun i hi ↦ by
   have h : (certOf 324).cuts.length = 9 := by decide +kernel
@@ -407,10 +327,6 @@ theorem ok324 : CheckOk 324 := fun i hi ↦ by
   · exact w324_8
   · exact w324_9
 
-theorem plain324 : Plain 324 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok325 : CheckOk 325 := fun i hi ↦ by
   have h : (certOf 325).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -422,10 +338,6 @@ theorem ok325 : CheckOk 325 := fun i hi ↦ by
   · exact w325_4
   · exact w325_5
 
-theorem plain325 : Plain 325 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok326 : CheckOk 326 := fun i hi ↦ by
   have h : (certOf 326).cuts.length = 5 := by decide +kernel
   rw [h] at hi
@@ -436,10 +348,6 @@ theorem ok326 : CheckOk 326 := fun i hi ↦ by
   · exact w326_3
   · exact w326_4
   · exact w326_5
-
-theorem plain326 : Plain 326 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok327 : CheckOk 327 := fun i hi ↦ by
   have h : (certOf 327).cuts.length = 6 := by decide +kernel
@@ -453,10 +361,6 @@ theorem ok327 : CheckOk 327 := fun i hi ↦ by
   · exact w327_5
   · exact w327_6
 
-theorem plain327 : Plain 327 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok328 : CheckOk 328 := fun i hi ↦ by
   have h : (certOf 328).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -469,10 +373,6 @@ theorem ok328 : CheckOk 328 := fun i hi ↦ by
   · exact w328_5
   · exact w328_6
 
-theorem plain328 : Plain 328 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok329 : CheckOk 329 := fun i hi ↦ by
   have h : (certOf 329).cuts.length = 6 := by decide +kernel
   rw [h] at hi
@@ -484,10 +384,6 @@ theorem ok329 : CheckOk 329 := fun i hi ↦ by
   · exact w329_4
   · exact w329_5
   · exact w329_6
-
-theorem plain329 : Plain 329 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok330 : CheckOk 330 := fun i hi ↦ by
   have h : (certOf 330).cuts.length = 7 := by decide +kernel
@@ -502,10 +398,6 @@ theorem ok330 : CheckOk 330 := fun i hi ↦ by
   · exact w330_6
   · exact w330_7
 
-theorem plain330 : Plain 330 := by
-  unfold Plain
-  decide +kernel
-
 theorem ok331 : CheckOk 331 := fun i hi ↦ by
   have h : (certOf 331).cuts.length = 8 := by decide +kernel
   rw [h] at hi
@@ -519,10 +411,6 @@ theorem ok331 : CheckOk 331 := fun i hi ↦ by
   · exact w331_6
   · exact w331_7
   · exact w331_8
-
-theorem plain331 : Plain 331 := by
-  unfold Plain
-  decide +kernel
 
 theorem ok332 : CheckOk 332 := fun i hi ↦ by
   have h : (certOf 332).cuts.length = 1 := by decide +kernel

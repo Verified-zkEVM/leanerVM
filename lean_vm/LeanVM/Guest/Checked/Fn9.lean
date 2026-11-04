@@ -39,10 +39,6 @@ theorem ok456 : CheckOk 456 := fun i hi ↦ by
   · exact w456_0
   · exact w456_1
 
-theorem plain456 : Plain 456 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain457 : Plain 457 := plain_of_nil (by decide +kernel)
 
 theorem plain458 : Plain 458 := plain_of_nil (by decide +kernel)
@@ -54,10 +50,6 @@ theorem ok459 : CheckOk 459 := fun i hi ↦ by
   · exact w459_0
   · exact w459_1
 
-theorem plain459 : Plain 459 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain460 : Plain 460 := plain_of_nil (by decide +kernel)
 
 theorem plain461 : Plain 461 := plain_of_nil (by decide +kernel)
@@ -68,10 +60,6 @@ theorem ok462 : CheckOk 462 := fun i hi ↦ by
   interval_cases i
   · exact w462_0
   · exact w462_1
-
-theorem plain462 : Plain 462 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain463 : Plain 463 := plain_of_nil (by decide +kernel)
 
@@ -98,10 +86,6 @@ theorem ok472 : CheckOk 472 := fun i hi ↦ by
   · exact w472_0
   · exact w472_1
 
-theorem plain472 : Plain 472 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain473 : Plain 473 := plain_of_nil (by decide +kernel)
 
 theorem plain474 : Plain 474 := plain_of_nil (by decide +kernel)
@@ -113,10 +97,6 @@ theorem ok475 : CheckOk 475 := fun i hi ↦ by
   · exact w475_0
   · exact w475_1
 
-theorem plain475 : Plain 475 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain476 : Plain 476 := plain_of_nil (by decide +kernel)
 
 theorem plain477 : Plain 477 := plain_of_nil (by decide +kernel)
@@ -127,10 +107,6 @@ theorem ok478 : CheckOk 478 := fun i hi ↦ by
   interval_cases i
   · exact w478_0
   · exact w478_1
-
-theorem plain478 : Plain 478 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain479 : Plain 479 := plain_of_nil (by decide +kernel)
 
@@ -163,10 +139,6 @@ theorem ok491 : CheckOk 491 := fun i hi ↦ by
   · exact w491_0
   · exact w491_1
 
-theorem plain491 : Plain 491 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain492 : Plain 492 := plain_of_nil (by decide +kernel)
 
 theorem plain493 : Plain 493 := plain_of_nil (by decide +kernel)
@@ -178,10 +150,6 @@ theorem ok494 : CheckOk 494 := fun i hi ↦ by
   · exact w494_0
   · exact w494_1
 
-theorem plain494 : Plain 494 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain495 : Plain 495 := plain_of_nil (by decide +kernel)
 
 theorem plain496 : Plain 496 := plain_of_nil (by decide +kernel)
@@ -192,10 +160,6 @@ theorem ok497 : CheckOk 497 := fun i hi ↦ by
   interval_cases i
   · exact w497_0
   · exact w497_1
-
-theorem plain497 : Plain 497 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain498 : Plain 498 := plain_of_nil (by decide +kernel)
 
