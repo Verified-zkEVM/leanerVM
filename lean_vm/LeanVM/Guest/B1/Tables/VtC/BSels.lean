@@ -67,7 +67,7 @@ section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
 /-- **All the block selectors, complete.** -/
-theorem vtc_sels (hl : args.length = 22) {point : List E}
+theorem vtc_sels (hl : args.length = 20) {point : List E}
     (hmu : vtσ rd wo args (.n 9) = gen ^ point.length) (hml : point.length < 33) {lm : ℕ}
     (hlmμ : lm ≤ point.length) (h19 : 19 ≤ point.length) {τ : ℕ → ℕ}
     (hτ : ∀ t < 6, τ t < 29)

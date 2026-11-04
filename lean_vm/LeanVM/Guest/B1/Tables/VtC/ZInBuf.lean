@@ -28,7 +28,7 @@ open LeanVM.Guest.B1.Fwd
 
 set_option maxRecDepth 100000 in
 /-- **The loads of `5152 ..< 5259`** read `dims_g`, the records and the running products. -/
-theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) {n : ℕ}
+theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {n : ℕ}
     (hwn : w 5817 = gen ^ n) {bufs : List (E × ℕ)} (b10 : (vtσ rd w args (.n 10), 7) ∈ bufs)
     (bR : (w 5912, 7 * (n + 1)) ∈ bufs) (bC : (w 5915, n + 1) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 5152).take 107) := by

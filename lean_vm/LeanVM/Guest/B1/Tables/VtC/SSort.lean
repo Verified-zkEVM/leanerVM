@@ -109,7 +109,7 @@ theorem vtSideT_length : vtSideT.length = 306 := by decide +kernel
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vt_alloc (hl : args.length = 22) (n : ℕ) {d : ℕ} {sz : ℕ}
+theorem vt_alloc (hl : args.length = 20) (n : ℕ) {d : ℕ} {sz : ℕ}
     (heq : tbStmtsEqb [.atom (.hint (.alloc (.n d) sz))] ((vtPre.drop n).take 1) = true) :
     vtσ rd w args (.n d) = w d := by
   have h := vt_goodL (rd := rd) (w := w) hl n _ heq
@@ -122,7 +122,7 @@ theorem vtSideW_get {rd : Reader} {p : E} (h : TbReadsAt rd p vtSideW) {b : ℕ}
   simpa [vtSideW] using this
 
 /-- **The two sides' ranks**, rank by rank. -/
-theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
+theorem vtS_sides (hl : args.length = 20) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)
     (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
     (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))
@@ -200,7 +200,7 @@ theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → �
   exact ⟨H1, H2⟩
 
 /-- **Statements `0 ..< 2189`.** -/
-theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
+theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
     (hκ : ∀ b < 153, κ b < 34)
     (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
     (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))

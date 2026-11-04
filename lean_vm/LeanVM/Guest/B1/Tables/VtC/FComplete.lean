@@ -38,7 +38,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **Statements `5259 ..< 10209` complete**, and what they leave: `VtF`, the evaluations' values
 and the sponge after them. -/
-theorem vtF_complete (hl : args.length = 22) (bc : List K) (hbc : bc.length = 2 ^ 23)
+theorem vtF_complete (hl : args.length = 20) (bc : List K) (hbc : bc.length = 2 ^ 23)
     {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
     (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ vtHt rows t))
     (hP : ∀ i < 51, vtσ rd w args (.n (vtPushPadData.getD i default).2.2.1) =
