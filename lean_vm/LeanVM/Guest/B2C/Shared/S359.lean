@@ -16,8 +16,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop385`, window 2. -/
-theorem w882_2 : shareWin 882 (snapsOf 882) 2 = true := by decide +kernel
+/-- `__loop381`, window 7. -/
+theorem w874_7 : shareWin 874 (snapsOf 874) 7 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

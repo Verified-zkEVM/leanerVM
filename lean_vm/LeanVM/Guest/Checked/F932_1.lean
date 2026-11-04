@@ -26,6 +26,9 @@ theorem w932_2 : WinOk 932 2 := winOk_of_C (by decide +kernel)
 /-- `__loop413`, window 3. -/
 theorem w932_3 : WinOk 932 3 := winOk_of_C (by decide +kernel)
 
+/-- `__loop413`, window 4. -/
+theorem w932_4 : WinOk 932 4 := winOk_of_C (by decide +kernel)
+
 /-- `__loop414`, window 0. -/
 theorem w933_0 : WinOk 933 0 := winOk_of_C (by decide +kernel)
 
@@ -37,9 +40,6 @@ theorem w933_2 : WinOk 933 2 := winOk_of_C (by decide +kernel)
 
 /-- `__loop414`, window 3. -/
 theorem w933_3 : WinOk 933 3 := winOk_of_C (by decide +kernel)
-
-/-- `__loop414`, window 4. -/
-theorem w933_4 : WinOk 933 4 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

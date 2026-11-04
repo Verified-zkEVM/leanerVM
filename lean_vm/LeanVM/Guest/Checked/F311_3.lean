@@ -20,6 +20,12 @@ open LeanVM.Guest.Check
 /-- `open_stacked__L7`, window 3. -/
 theorem w311_3 : WinOk 311 3 := winOk_of_C (by decide +kernel)
 
+/-- `open_stacked__L7`, window 4. -/
+theorem w311_4 : WinOk 311 4 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L7`, window 5. -/
+theorem w311_5 : WinOk 311 5 := winOk_of_C (by decide +kernel)
+
 /-- `open_stacked__L8`, window 0. -/
 theorem w312_0 : WinOk 312 0 := winOk_of_C (by decide +kernel)
 
@@ -34,12 +40,6 @@ theorem w312_3 : WinOk 312 3 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L8`, window 4. -/
 theorem w312_4 : WinOk 312 4 := winOk_of_C (by decide +kernel)
-
-/-- `open_stacked__L9`, window 0. -/
-theorem w313_0 : WinOk 313 0 := winOk_of_C (by decide +kernel)
-
-/-- `open_stacked__L9`, window 1. -/
-theorem w313_1 : WinOk 313 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

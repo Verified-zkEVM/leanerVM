@@ -26,6 +26,9 @@ theorem w906_4 : WinOk 906 4 := winOk_of_C (by decide +kernel)
 /-- `__loop397`, window 5. -/
 theorem w906_5 : WinOk 906 5 := winOk_of_C (by decide +kernel)
 
+/-- `__loop397`, window 6. -/
+theorem w906_6 : WinOk 906 6 := winOk_of_C (by decide +kernel)
+
 /-- `decode_query_windows__L23_L7`, window 0. -/
 theorem w907_0 : WinOk 907 0 := winOk_of_C (by decide +kernel)
 
@@ -37,9 +40,6 @@ theorem w908_1 : WinOk 908 1 := winOk_of_C (by decide +kernel)
 
 /-- `__loop398`, window 2. -/
 theorem w908_2 : WinOk 908 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop398`, window 3. -/
-theorem w908_3 : WinOk 908 3 := winOk_of_C (by decide +kernel)
 
 theorem ok907 : CheckOk 907 := checkOk_one (by decide +kernel) w907_0
 

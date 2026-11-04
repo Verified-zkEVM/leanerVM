@@ -19,6 +19,9 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `main`, window 0, part 0. -/
 theorem cw1_0_0 : cplWin 1 0 0 = true := by decide +kernel
 
+/-- `main`, window 1, part 0. -/
+theorem cw1_1_0 : cplWin 1 1 0 = true := by decide +kernel
+
 /-- `assert_canonical`, window 0, part 0. -/
 theorem cw2_0_0 : cplWin 2 0 0 = true := by decide +kernel
 
@@ -37,18 +40,19 @@ theorem cw6_0_0 : cplWin 6 0 0 = true := by decide +kernel
 /-- `rs_eq_run`, window 0, part 0. -/
 theorem cw7_0_0 : cplWin 7 0 0 = true := by decide +kernel
 
-/-- `sumcheck_round4`, window 0, part 0. -/
-theorem cw8_0_0 : cplWin 8 0 0 = true := by decide +kernel
-
 theorem ok1 : CplOk 1 := by
   intro i hi k hk
-  have hc : (certOf 1).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 1).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1_0_0
+  · have hn : nParts 1 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1_1_0
 
 theorem ok2 : CplOk 2 := by
   intro i hi k hk
@@ -109,16 +113,6 @@ theorem ok7 : CplOk 7 := by
     rw [hn] at hk
     interval_cases k
     · exact cw7_0_0
-
-theorem ok8 : CplOk 8 := by
-  intro i hi k hk
-  have hc : (certOf 8).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 8 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw8_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

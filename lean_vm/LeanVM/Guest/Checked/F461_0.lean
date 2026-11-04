@@ -23,6 +23,9 @@ theorem w461_0 : WinOk 461 0 := winOk_of_C (by decide +kernel)
 /-- `opening_queries__L0_L0_L16_L24_L16_L5`, window 0. -/
 theorem w462_0 : WinOk 462 0 := winOk_of_C (by decide +kernel)
 
+/-- `opening_queries__L0_L0_L16_L24_L16_L5`, window 1. -/
+theorem w462_1 : WinOk 462 1 := winOk_of_C (by decide +kernel)
+
 /-- `opening_final_message__L32`, window 0. -/
 theorem w463_0 : WinOk 463 0 := winOk_of_C (by decide +kernel)
 
@@ -38,12 +41,7 @@ theorem w466_0 : WinOk 466 0 := winOk_of_C (by decide +kernel)
 /-- `__loop54`, window 0. -/
 theorem w467_0 : WinOk 467 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop55`, window 0. -/
-theorem w468_0 : WinOk 468 0 := winOk_of_C (by decide +kernel)
-
 theorem ok461 : CheckOk 461 := checkOk_one (by decide +kernel) w461_0
-
-theorem ok462 : CheckOk 462 := checkOk_one (by decide +kernel) w462_0
 
 theorem ok463 : CheckOk 463 := checkOk_one (by decide +kernel) w463_0
 
@@ -54,8 +52,6 @@ theorem ok465 : CheckOk 465 := checkOk_one (by decide +kernel) w465_0
 theorem ok466 : CheckOk 466 := checkOk_one (by decide +kernel) w466_0
 
 theorem ok467 : CheckOk 467 := checkOk_one (by decide +kernel) w467_0
-
-theorem ok468 : CheckOk 468 := checkOk_one (by decide +kernel) w468_0
 
 end
 end LeanVM.Guest.Checked
