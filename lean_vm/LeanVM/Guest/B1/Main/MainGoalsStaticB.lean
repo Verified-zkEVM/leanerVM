@@ -102,7 +102,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
-  · exact congrArg digestCells (statementDigest_parts (digestBytes_eq_cells _)
+  · exact congrArg digestCells (statementDigest_of_parts (digestBytes_eq_cells _)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 /-- **`__loop2` on an honest run.** -/

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHAg
 public import LeanVM.Guest.B1.Main.KidsAt
-public import LeanVM.Guest.B1.Main.Digests
 public import LeanVM.Protocol.Verifier.Load
 public import LeanVM.Guest.AcceptableChild
 
@@ -186,7 +185,7 @@ theorem hKid_pi {c : ℕ} (hc : c < w.children.length)
       digestHalves (statementDigest seed w.children[c].statement) := by
   unfold KidH.pi
   rw [hKid_cx hc, hKid_cs hc, hKid_da hc, hKid_defer hc,
-    statementDigest_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
+    statementDigest_of_parts (digestBytes_eq_cells seed) (digestBytes_eq_cells _)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen]
 
 end

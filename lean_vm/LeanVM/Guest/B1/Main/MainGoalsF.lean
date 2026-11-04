@@ -11,7 +11,6 @@ module
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.MainGoalsFChk
 public import LeanVM.Guest.B1.Main.KidCoverAt
-public import LeanVM.Guest.B1.Main.Digests
 public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.Limits
 public import LeanVM.Protocol.Verifier.Load
@@ -28,7 +27,7 @@ public import LeanVM.Guest.Batch.Node
 * `mainGoalSt`: the deferred claim's `24` cells (`NodeRelation`'s shape on a bytecode of `2^23` words)
   hash, with the seed, the claim lists' digests and the published DA digest, to the statement's
   digest
-  (`statementDigest_parts`).
+  (`statementDigest_of_parts`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -224,7 +223,7 @@ theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
-  · exact congrArg digestCells (statementDigest_parts (digestBytes_eq_cells _)
+  · exact congrArg digestCells (statementDigest_of_parts (digestBytes_eq_cells _)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 end
