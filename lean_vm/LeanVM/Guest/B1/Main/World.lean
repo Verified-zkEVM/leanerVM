@@ -65,7 +65,7 @@ theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K 
 
 /-- **The running counts**: `written[c] = g^(a c)`. -/
 theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 380)) c (gen ^ (segsOf σ K).a c) := by
+    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 431)) c (gen ^ (segsOf σ K).a c) := by
   intro c
   induction c with
   | zero => intro _; rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; exact MF.written0
@@ -98,7 +98,7 @@ theorem raw_slots (MF : MainFacts C rd σ) :
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
   have hx : ∀ i, i < lg σ 2 → ∃ s, s < LXS σ ∧ LoadHolds rd (σ (.n 66)) s (gen ^ i) := by
     intro i hi
-    obtain ⟨s, hbl, hl, -⟩ := MF.rawx i hi
+    obtain ⟨-, s, hbl, hl⟩ := MF.rawx i hi
     exact ⟨s, belowLog_lt (by omega) h40 hbl, hl⟩
   have hs : ∀ j, j < lg σ 5 → ∃ s, s < LSS σ ∧
       LoadHolds rd (σ (.n 66)) (LXS σ + s) (gen ^ (lg σ 2 + j)) := by
