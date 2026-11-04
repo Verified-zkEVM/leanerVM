@@ -16,33 +16,33 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop408`, window 0, part 0. -/
+/-- `__loop405`, window 0, part 0. -/
 theorem cw923_0_0 : cplWin 923 0 0 = true := by decide +kernel
 
-/-- `__loop408`, window 1, part 0. -/
+/-- `__loop405`, window 1, part 0. -/
 theorem cw923_1_0 : cplWin 923 1 0 = true := by decide +kernel
 
-/-- `__loop408`, window 2, part 0. -/
+/-- `__loop405`, window 2, part 0. -/
 theorem cw923_2_0 : cplWin 923 2 0 = true := by decide +kernel
 
-/-- `__loop408`, window 3, part 0. -/
+/-- `__loop405`, window 3, part 0. -/
 theorem cw923_3_0 : cplWin 923 3 0 = true := by decide +kernel
 
-/-- `__loop408`, window 4, part 0. -/
-theorem cw923_4_0 : cplWin 923 4 0 = true := by decide +kernel
+/-- `walk_path__L14_L7`, window 0, part 0. -/
+theorem cw924_0_0 : cplWin 924 0 0 = true := by decide +kernel
 
-/-- `__loop408`, window 5, part 0. -/
-theorem cw923_5_0 : cplWin 923 5 0 = true := by decide +kernel
+/-- `walk_path__L14_L7`, window 1, part 0. -/
+theorem cw924_1_0 : cplWin 924 1 0 = true := by decide +kernel
 
-/-- `__loop408`, window 6, part 0. -/
-theorem cw923_6_0 : cplWin 923 6 0 = true := by decide +kernel
+/-- `walk_path__L14_L7`, window 2, part 0. -/
+theorem cw924_2_0 : cplWin 924 2 0 = true := by decide +kernel
 
-/-- `__loop408`, window 7, part 0. -/
-theorem cw923_7_0 : cplWin 923 7 0 = true := by decide +kernel
+/-- `__loop406`, window 0, part 0. -/
+theorem cw925_0_0 : cplWin 925 0 0 = true := by decide +kernel
 
 theorem ok923 : CplOk 923 := by
   intro i hi k hk
-  have hc : (certOf 923).cuts.length = 7 := by decide +kernel
+  have hc : (certOf 923).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 923 0 = 1 := by decide +kernel
@@ -61,22 +61,24 @@ theorem ok923 : CplOk 923 := by
     rw [hn] at hk
     interval_cases k
     · exact cw923_3_0
-  · have hn : nParts 923 4 = 1 := by decide +kernel
+
+theorem ok924 : CplOk 924 := by
+  intro i hi k hk
+  have hc : (certOf 924).cuts.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 924 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw923_4_0
-  · have hn : nParts 923 5 = 1 := by decide +kernel
+    · exact cw924_0_0
+  · have hn : nParts 924 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw923_5_0
-  · have hn : nParts 923 6 = 1 := by decide +kernel
+    · exact cw924_1_0
+  · have hn : nParts 924 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw923_6_0
-  · have hn : nParts 923 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw923_7_0
+    · exact cw924_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

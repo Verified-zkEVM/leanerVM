@@ -17,29 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 0. -/
+/-- `statement_digest`, window 0. -/
 theorem w22_0 : WinOk 22 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 1. -/
-theorem w22_1 : WinOk 22 1 := winOk_of_C (by decide +kernel)
+/-- `list_split`, window 0. -/
+theorem w23_0 : WinOk 23 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 2. -/
-theorem w22_2 : WinOk 22 2 := winOk_of_C (by decide +kernel)
+/-- `claim_list_digest`, window 0. -/
+theorem w24_0 : WinOk 24 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 3. -/
-theorem w22_3 : WinOk 22 3 := winOk_of_C (by decide +kernel)
+/-- `child_claim_list_digest`, window 0. -/
+theorem w25_0 : WinOk 25 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 4. -/
-theorem w22_4 : WinOk 22 4 := winOk_of_C (by decide +kernel)
+/-- `child_claim_list_any`, window 0. -/
+theorem w26_0 : WinOk 26 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 5. -/
-theorem w22_5 : WinOk 22 5 := winOk_of_C (by decide +kernel)
+/-- `child_claim_list_mono`, window 0. -/
+theorem w27_0 : WinOk 27 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 6. -/
-theorem w22_6 : WinOk 22 6 := winOk_of_C (by decide +kernel)
+/-- `da_verify`, window 0. -/
+theorem w28_0 : WinOk 28 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 7. -/
-theorem w22_7 : WinOk 22 7 := winOk_of_C (by decide +kernel)
+/-- `da_row_shape`, window 0. -/
+theorem w29_0 : WinOk 29 0 := winOk_of_C (by decide +kernel)
+
+theorem ok22 : CheckOk 22 := checkOk_one (by decide +kernel) w22_0
+
+theorem ok23 : CheckOk 23 := checkOk_one (by decide +kernel) w23_0
+
+theorem ok24 : CheckOk 24 := checkOk_one (by decide +kernel) w24_0
+
+theorem ok25 : CheckOk 25 := checkOk_one (by decide +kernel) w25_0
+
+theorem ok26 : CheckOk 26 := checkOk_one (by decide +kernel) w26_0
+
+theorem ok27 : CheckOk 27 := checkOk_one (by decide +kernel) w27_0
+
+theorem ok28 : CheckOk 28 := checkOk_one (by decide +kernel) w28_0
+
+theorem ok29 : CheckOk 29 := checkOk_one (by decide +kernel) w29_0
 
 end
 end LeanVM.Guest.Checked

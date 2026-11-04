@@ -22,23 +22,17 @@ theorem cw19_1_1 : cplWin 19 1 1 = true := by decide +kernel
 /-- `verify_sub`, window 2, part 0. -/
 theorem cw19_2_0 : cplWin 19 2 0 = true := by decide +kernel
 
-/-- `verify_lean_xmss`, window 0, part 0. -/
+/-- `sp_wots`, window 0, part 0. -/
 theorem cw20_0_0 : cplWin 20 0 0 = true := by decide +kernel
 
-/-- `verify_lean_xmss`, window 1, part 0. -/
+/-- `sp_wots`, window 1, part 0. -/
 theorem cw20_1_0 : cplWin 20 1 0 = true := by decide +kernel
 
-/-- `verify_lean_xmss`, window 2, part 0. -/
+/-- `sp_wots`, window 2, part 0. -/
 theorem cw20_2_0 : cplWin 20 2 0 = true := by decide +kernel
 
-/-- `verify_lean_xmss`, window 3, part 0. -/
+/-- `sp_wots`, window 3, part 0. -/
 theorem cw20_3_0 : cplWin 20 3 0 = true := by decide +kernel
-
-/-- `verify_lean_xmss`, window 4, part 0. -/
-theorem cw20_4_0 : cplWin 20 4 0 = true := by decide +kernel
-
-/-- `verify_lean_xmss`, window 5, part 0. -/
-theorem cw20_5_0 : cplWin 20 5 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -5,7 +5,7 @@ The guest's table of frame cells (`Cost/Decoder/GuestTables.lean`) is ~750k numb
 evaluation of its size, or of its equality with the certificates, takes 10-19 GB. Written here:
 
 * `LeanVM/Cost/DecoderSize/Rows{k}.lean`: `rowsSize a n = S`, rows `a … a + n - 1` (function
-  `21`'s row excluded), and `Names{k}.lean`: `namesSize guestLocsRow21 a n = S`, function `21`'s
+  `37`'s row excluded), and `Names{k}.lean`: `namesSize guestLocsRow37 a n = S`, function `37`'s
   lists `a … a + n - 1`, each by `decide +kernel` on at most `--limit` numbers;
 * `LeanVM/Cost/DecoderSize/Locs.lean`: their sum, `(guestLocsList.map rowSize).sum`;
 * `LeanVM/Cost/Decoder/GuestTablesCheck/C{k}.lean`: the tables' entries for functions
@@ -18,7 +18,7 @@ evaluation of its size, or of its equality with the certificates, takes 10-19 GB
   they import the tables alone.
 
 Inputs: the rows' lengths (`--row-lengths FILE`, `guestLocsList.map List.length`) and function
-`21`'s lists' lengths (`--row21-lengths FILE`, `guestLocsRow21.map List.length`), the lines
+`37`'s lists' lengths (`--split-lengths FILE`, `guestLocsRow37.map List.length`), the lines
 `rows: …` and `split: …` that `lake env lean scripts/decoder-tables-inputs.lean` prints after
 `lake build` (a plain `#eval` elides a long list, and `lake env` does not rebuild a stale
 `GuestTables`). Every number of the table is below `2^64` (one limb), so a row's size is its
@@ -29,8 +29,8 @@ length and one. Run after `scripts/decoder-tables`, from any directory (the path
 import argparse, os, re, sys, textwrap
 from pathlib import Path
 
-N = 948
-SPLIT = 21
+N = 992
+SPLIT = 37  # `__loop2`, leanXMSS's check inline (its 41 windows' cells)
 SIZE_DIR = Path("LeanVM/Cost/DecoderSize")
 CHECK_DIR = Path("LeanVM/Cost/Decoder/GuestTablesCheck")
 CHECK_TOP = Path("LeanVM/Cost/Decoder/GuestTablesCheck.lean")
@@ -270,13 +270,13 @@ def firewall(size_mods, check_mods):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--row-lengths", required=True)
-    ap.add_argument("--row21-lengths", required=True)
+    ap.add_argument("--split-lengths", required=True)
     ap.add_argument("--limit", type=int, default=70000)
     ap.add_argument("--functions", type=int, default=40)
     ap.add_argument("--bound-limit", type=int, default=40000)
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
-    rows, names = nums(a.row_lengths), nums(a.row21_lengths)
+    rows, names = nums(a.row_lengths), nums(a.split_lengths)
     os.chdir(Path(__file__).resolve().parent.parent)
     assert len(rows) == N and sum(names) == rows[SPLIT], (len(rows), sum(names), rows[SPLIT])
     files = {**size_files(rows, names, a.limit), **check_files(a.functions), **bound_files(rows, a.bound_limit)}

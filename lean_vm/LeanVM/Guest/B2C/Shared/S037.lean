@@ -16,12 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_lean_xmss`, window 48. -/
-theorem w20_48 : shareWin 20 (snapsOf 20) 48 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 14. -/
+theorem w21_14 : shareWin 21 (snapsOf 21) 14 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_lean_xmss`, window 49. -/
-theorem w20_49 : shareWin 20 (snapsOf 20) 49 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 15. -/
+theorem w21_15 : shareWin 21 (snapsOf 21) 15 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 16. -/
+theorem w21_16 : shareWin 21 (snapsOf 21) 16 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 17. -/
+theorem w21_17 : shareWin 21 (snapsOf 21) 17 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 18. -/
+theorem w21_18 : shareWin 21 (snapsOf 21) 18 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

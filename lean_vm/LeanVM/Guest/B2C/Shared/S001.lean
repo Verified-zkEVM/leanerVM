@@ -16,6 +16,19 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
+/-- `eq_prefix_chain`, once. -/
+theorem st6 : shareStatic 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_chain`, window 0. -/
+theorem w6_0 : shareWin 6 (snapsOf 6) 0 = true := by decide +kernel
+
+theorem ok6 : ShareOk 6 := ⟨st6, fun i hi ↦ by
+  have h : (snapsOf 6).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w6_0⟩
+
+set_option maxRecDepth 100000 in
 /-- `rs_eq_run`, once. -/
 theorem st7 : shareStatic 7 = true := by decide +kernel
 
@@ -78,10 +91,6 @@ theorem ok11 : ShareOk 11 := ⟨st11, fun i hi ↦ by
   have h : (snapsOf 11).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w11_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `verify_tables`, once. -/
-theorem st12 : shareStatic 12 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
