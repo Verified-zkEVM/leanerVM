@@ -120,12 +120,12 @@ def vecOut (z : E) : List E → Layout → Prop := fun rets Lo =>
 
 /-! ## A returned buffer's base -/
 
-/-- The base `b` a callee's result `o` satisfies `P b` at, chosen; `0` if none. -/
-noncomputable def outB (P : ℕ → List E → Layout → Prop) (o : List E × Layout) : ℕ :=
-  open Classical in if h : ∃ b, P b o.1 o.2 then Classical.choose h else 0
+/-- The bases `b` a callee's result `o` satisfies `P b` at, chosen; `default` if none. -/
+noncomputable def outB {α : Type} [Inhabited α] (P : α → List E → Layout → Prop) (o : List E × Layout) : α :=
+  open Classical in if h : ∃ b, P b o.1 o.2 then Classical.choose h else default
 
-theorem outB_spec {P : ℕ → List E → Layout → Prop} {o : List E × Layout} (h : ∃ b, P b o.1 o.2) :
-    P (outB P o) o.1 o.2 := by
+theorem outB_spec {α : Type} [Inhabited α] {P : α → List E → Layout → Prop} {o : List E × Layout}
+    (h : ∃ b, P b o.1 o.2) : P (outB P o) o.1 o.2 := by
   unfold outB
   simp only [h, ↓reduceDIte]
   exact Classical.choose_spec h
