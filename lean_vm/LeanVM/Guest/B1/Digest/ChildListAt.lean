@@ -229,7 +229,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       _ = last := by rw [hV.v8, e3]
   -- the path
   have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
-  have hw : walk σ (Fn.body Data.core26) =
+  have hw : walk σ (Fn.body Data.core25) =
       .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
         [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 66, .n 67] := by
     rw [any_body]

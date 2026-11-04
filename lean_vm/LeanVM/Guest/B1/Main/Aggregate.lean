@@ -309,8 +309,8 @@ def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List 
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
 theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
-    {σ : Val} {args rets : List E} (hpar : Data.core34.params.map σ = args)
-    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core34) False (fun rs => rs = rets)) :
+    {σ : Val} {args rets : List E} (hpar : Data.core33.params.map σ = args)
+    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core33) False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
   have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok

@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Da.VectorMath
 /-!
 # `da_factors` (G:4317-4325)
 
-`da_factors(zs, top, D, at)` (`da_factors__L14_L7_L0`, `core405`; `da_factors__L7_L8_L128`,
-`core407`): a heap run `factors` (`.n 1`, `256` words); at each depth `d < D` the power
+`da_factors(zs, top, D, at)` (`da_factors__L14_L7_L0`, `core404`; `da_factors__L7_L8_L128`,
+`core406`): a heap run `factors` (`.n 1`, `256` words); at each depth `d < D` the power
 `zs[top - d]` loaded into `.n (facB d)`, and for each node `2^d + y` the constant
 `Ŵ_(top-d)(y · 2^(top-d+1))` (`DA_VHAT[at + 2^d + y]`, here `facC top d y`, read off `wK`), its
 product with the power, plus one, written to `factors[2^d + y]` (`facNodeA`). The body is the

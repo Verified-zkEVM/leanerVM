@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Sig.SphincsData
 /-!
 # `verify_sig_lean_sphincs`, sound
 
-The body (`Data.core21.body = sBody`) is four blocks of atoms around the three calls of `sp_wots`
+The body (`Data.core20.body = sBody`) is four blocks of atoms around the three calls of `sp_wots`
 (`sBody_split`): the prologue, the FORS trees, the hypertree's addresses and the bottom encoding
 (`sBlockA`); the bottom path and the middle layer's counter and encoding (`sBlockB`); the middle
 path and the top layer's (`sBlockC`); the top path and the root's check (`sBlockD`).

@@ -59,9 +59,9 @@ set_option maxRecDepth 100000 in
 theorem clPost_eq : clPost = [.atom (.copy (.n 10) (.n 85)), .atom (.copy (.n 11) (.n 86))] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem cl_body : Fn.body Data.core24 =
+theorem cl_body : Fn.body Data.core23 =
     clHead ++ .ite (.n 3) cl23Zero cl23Else :: (clTail ++ [.ret [.n 87, .n 88]]) := by
-  rw [core23_shape]; rfl
+  rw [core22_shape]; rfl
 
 set_option maxRecDepth 100000 in
 theorem clP1_straight : clP1.all Main.Stmt.straight = true := by decide +kernel
@@ -407,7 +407,7 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
 
 set_option maxRecDepth 100000 in
 theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (333 + k) default).body = true := by
+    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (332 + k) default).body = true := by
   decide +kernel
 
 theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.Body
 /-!
 # `da_verify` (G:4199-4239), checked
 
-`da_verify(g_squares)` (`core28`): the shape (`da_row_shape`), the challenge `z` and its rate
+`da_verify(g_squares)` (`core27`): the shape (`da_row_shape`), the challenge `z` and its rate
 cells (`fs_pack` with the tag `0`), the dual codeword's builders (`da_vector`), the blobs' regions
 (`__loop21`: `rowbase[x] = blobs·x^641`, the running sum's first word `0`), the columns
 (`__loop22`: `da_verify_column` on columns `0 … 127`), each blob's sum checked and its tree's
@@ -89,14 +89,14 @@ def l20Ok (fn : Fn) : Bool :=
 /-! ## The body -/
 
 /-- `da_verify`'s block (its body but the final `ret`). -/
-noncomputable def dvP : List Stmt := (Fn.body Data.core28).dropLast
+noncomputable def dvP : List Stmt := (Fn.body Data.core27).dropLast
 
 /-- **`da_verify`'s block, checked.** -/
 noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
-  decide (Data.core28.params = [.n 0]) &&
-  stmtsEqb (Fn.body Data.core28) (P ++ [.ret [.n 48, .n 49, .n 50, .n 51]]) &&
+  decide (Data.core27.params = [.n 0]) &&
+  stmtsEqb (Fn.body Data.core27) (P ++ [.ret [.n 48, .n 49, .n 50, .n 51]]) &&
   P.all Stmt.flat &&
   hasCall P "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4] &&
   hasAtom A (.const (.n 6) (word 0 0 0)) && hasAtom A (.assertInK (.n 9) (.n 6)) &&

@@ -27,12 +27,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The branch of an empty list. -/
-noncomputable def cc25Zero : List Stmt := match Fn.body Data.core25 with
+noncomputable def cc25Zero : List Stmt := match Fn.body Data.core24 with
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core25_shape : Fn.body Data.core25 =
+theorem core24_shape : Fn.body Data.core24 =
     [.atom (.const (.n 5) (word 1 0 0)), .atom (.add (.n 6) (.n 4) (.n 5)),
      .ite (.n 6) cc25Zero
       [.call "list_split" [.n 4] [.n 26, .n 27, .n 28],
@@ -94,7 +94,7 @@ theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
   have hp' : args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
     rw [← hp]; rfl
   subst hp'
-  rw [core25_shape] at hb
+  rw [core24_shape] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨c5, a6, -, hz, hnz⟩ := hb
   by_cases h6 : σ (.n 6) = 0

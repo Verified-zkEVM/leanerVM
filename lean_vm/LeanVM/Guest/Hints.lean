@@ -30,7 +30,7 @@ at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/rec_aggregation/src/aggregation.rs` (leanVM `ed7d2b9c`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `aggregation.rs:1262-1267`): the node's streams
 (`aggregate_with_stats`, `aggregation.rs:1543-1814`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1433-1456`; `lean_sphincs_hints`, `aggregation.rs:1467-1506`), a child's
+`aggregation.rs:1540-1575`; `lean_sphincs_hints`, `aggregation.rs:1586-1625`), a child's
 (`gen_verify`, `aggregation.rs:1072-1227`), the batching's (`aggregate_deferred_claims`,
 `aggregation.rs:819-927`) and LeanDA's.
 
@@ -87,8 +87,16 @@ def claimGroup : ℕ := 17
 `BIG_GROUPS = 8` groups. -/
 def claimBig : ℕ := claimGroup * 8
 
-/-- `DIGIT_GROUP` (`aggregation.rs:96`): the codeword digits the guest dispatches on at a time. -/
+/-- `DIGIT_GROUP` (`aggregation.rs:97`): the leanSPHINCS codeword digits the guest dispatches on at
+a time. -/
 def digitGroup : ℕ := 3
+
+/-- `LX_DIGIT_GROUP` (`aggregation.rs:99`): the leanXMSS codeword digits the guest dispatches on at
+a time. -/
+def lxDigitGroup : ℕ := 4
+
+/-- `LX_WINDOW` (`aggregation.rs:101`): the leaf index bits a leanXMSS path dispatch covers. -/
+def lxWindow : ℕ := 8
 
 /-! ## Encodings -/
 
@@ -130,11 +138,15 @@ def listPushes (item : String) (entries : List Entry) : List (String × Entry) :
   (if entries = [] then [] else [("signers_split", listSplit entries.length)]) ++
     entries.map (item, ·)
 
-/-- A codeword's digits as the guest dispatches on them: `digitGroup` at a time, then the last
-alone, each group's index little endian in base 4, in the exponent (`digit_hints`). -/
+/-- A codeword's digits as the guest dispatches on them: `size` at a time, then the rest, each
+group's index little endian in base 4, in the exponent (`digit_hints`, `aggregation.rs:1526-1534`). -/
+def digitHints (size : ℕ) (digits : List ℕ) : List Entry :=
+  (List.range ((digits.length + size - 1) / size)).map fun i ↦
+    [count (((digits.drop (size * i)).take size).foldr (· + 4 * ·) 0)]
+
+/-- The leanSPHINCS digits' pushes: `digitGroup` at a time, one push each. -/
 def digitGroups (digits : List ℕ) : List (String × Entry) :=
-  (List.range ((digits.length + digitGroup - 1) / digitGroup)).map fun i ↦
-    ("digits", [count (((digits.drop (digitGroup * i)).take digitGroup).foldr (· + 4 * ·) 0)])
+  (digitHints digitGroup digits).map ("digits", ·)
 
 /-- The ordered children of a node and its sibling: the sibling first when `right`. -/
 def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
@@ -144,8 +156,9 @@ def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
 
 /-! ## A leanXMSS signature (`lean_xmss_hints`) -/
 
-/-- One layer's hints: the ordered children of every node on the path, the randomizer, the
-codeword's digits and the chain values; and the root the layer reaches. -/
+/-- One layer's hints: the sibling of every node on the path, the randomizer, the codeword's
+digits (`lxDigitGroup` at a time, one push) and the chain values; and the root the layer
+reaches. -/
 def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
     (key : LeanXmss.KeyIndex) (message : List UInt8) (part : LeanXmss.LayerSignature) :
     List (String × Entry) × HashSig.Digest :=
@@ -156,28 +169,32 @@ def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
   let fold := fun levels ↦ Id.run (LeanXmss.Verification.treeFold (m := Id) keccakF1600
       parameter lay
     key part.authenticationPath levels leaf)
+  -- `pair[index >> level & 1 == 0]` of the ordered children is the sibling.
   let siblings := (List.finRange LeanXmss.layerHeight).map fun l ↦
-    ("siblings", ordered (key.val.testBit l.val) (fold l.val) (part.authenticationPath l))
+    ("lx_path", [cell128 (part.authenticationPath l)])
   let digits := (List.finRange LeanXmss.chainCount).map fun i ↦
     (HashSig.digestDigits digest i).val
   let starts := (List.finRange LeanXmss.chainCount).map fun i ↦
     ("chain_starts", [cell128 (part.chainValues i)])
-  (siblings ++ [("randomizer", [cell128 part.randomizer])] ++ digitGroups digits ++ starts,
+  (siblings ++ [("randomizer", [cell128 part.randomizer]),
+      ("lx_digits", (digitHints lxDigitGroup digits).flatten)] ++ starts,
     fold LeanXmss.layerHeight)
 
-/-- A leanXMSS signature's hints: its leaf index's bits, then each layer's, bottom first. -/
+/-- A leanXMSS signature's hints: its leaf index shifted by each multiple of `lxWindow`, those
+windows in the exponent, then each layer's, bottom first. -/
 def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXmss.Signature) :
     List (String × Entry) :=
   let index := σ.leafIndex
-  let bits := (List.range (LeanXmss.layerCount * LeanXmss.layerHeight)).map fun b ↦
-    bit (index.val.testBit b)
+  let shifts := (List.range (LeanXmss.layerCount * LeanXmss.layerHeight / lxWindow)).map fun v ↦
+    index.val / 2 ^ (lxWindow * v)
   let (bottom, root) := xmssLayer pk.parameter LeanXmss.bottomLayer
     (LeanXmss.keyIndexOnLayer index LeanXmss.bottomLayer) (HashSig.littleEndianBytes 32 message)
     (σ.layers LeanXmss.bottomLayer)
   let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer index
       LeanXmss.topLayer)
     (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
-  ("leaf_index_bits", bits) :: bottom ++ top
+  ("lx_index", shifts.map fun x ↦ word x 0 0) ::
+    ("lx_windows", shifts.map fun x ↦ count (x % 2 ^ lxWindow)) :: bottom ++ top
 
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
 
@@ -223,7 +240,7 @@ def sphincsLayer (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
   ([("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++ siblings,
     fold (Sphincs.layerHeight layer))
 
-/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1467-1506`): the
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1586-1625`): the
 randomizer, the digest's bits past its fields, every FORS tree's secret, every tree's climb, then
 each layer's, bottom first, the bottom one-time key signing the FORS key's bytes and each above
 the root below. -/

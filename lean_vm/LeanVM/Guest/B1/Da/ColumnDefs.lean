@@ -34,14 +34,14 @@ def l21Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 7) (.n 14) 1)
 
 /-- `da_verify_column`'s block (its body but the final `ret`). -/
-noncomputable def colP : List Stmt := (Fn.body Data.core30).dropLast
+noncomputable def colP : List Stmt := (Fn.body Data.core29).dropLast
 
 /-- **`da_verify_column`'s block, checked.** -/
 noncomputable def colOk : Bool :=
   let P := colP
   let A := atomsIn P
-  decide (Data.core30.params = (List.range 7).map V.n) &&
-  stmtsEqb (Fn.body Data.core30) (P ++ [.ret []]) && P.all Stmt.flat &&
+  decide (Data.core29.params = (List.range 7).map V.n) &&
+  stmtsEqb (Fn.body Data.core29) (P ++ [.ret []]) && P.all Stmt.flat &&
   isMul A (.n 7) (.n 4) (.n 0) && A.any (isLoadAt (.n 8) (.n 7) 0) &&
   monoIs A (.n 12) (.n 6) (.n 0) 8 &&
   hasCall P "da_expand__L7_L8" [.n 8, .n 5, .n 3, .n 12] [.n 13] &&

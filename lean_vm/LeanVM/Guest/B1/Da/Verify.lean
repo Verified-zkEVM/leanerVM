@@ -54,7 +54,7 @@ theorem l17_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.1 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N bl rb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 388 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 387 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -79,7 +79,7 @@ theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.2.2.1 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N rb roots hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 390 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 389 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -108,7 +108,7 @@ theorem l20_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.2.2.2 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N roots nb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 391 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 390 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -216,8 +216,8 @@ lies below `coreProgram.Rel`, on a memory image with the exponent table at its a
 returned words are the cells of a root and the rate cells of a challenge `z` that `dvWit σ Vm`
 opens. -/
 theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : Data.core28.params.map σ = [gsq])
-    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core28) False (fun rs => rs = rets))
+    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : Data.core27.params.map σ = [gsq])
+    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core27) False (fun rs => rs = rets))
     (hsq0 : SquaresAt rd gsq) :
     ∃ (root : Digest) (z c2 : E), (dvWit σ Vm).Opens root z ∧ IsInK c2 ∧
       rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0] := by
@@ -394,7 +394,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
 theorem da_verify_holds : da_verify_sound_Spec := by
   intro rd hm args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify _ _).mp hrel
-  have hp : Data.core28.params.map σ = [σ (.n 0)] := rfl
+  have hp : Data.core27.params.map σ = [σ (.n 0)] := rfl
   rw [hp] at hpar
   subst hpar
   simp only [MeaningDaVerify]

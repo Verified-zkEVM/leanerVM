@@ -351,6 +351,14 @@ jobs:
         run: lake exe guest-cert --check
       - name: The guest's memory-layer checks are current
         run: lake exe guest-memory --check
+      # Their inputs evaluated from the build (`decoder-tables-inputs.lean`: one line each).
+      - name: The guest decoder's tables and their chunked checks are current
+        run: |
+          lake env lean scripts/decoder-tables-inputs.lean > "$RUNNER_TEMP/decoder.txt"
+          for k in entries rows split; do sed -n "s/^$k: //p" "$RUNNER_TEMP/decoder.txt" > "$RUNNER_TEMP/$k.txt"; done
+          python3 -I scripts/decoder-tables --entries "$RUNNER_TEMP/entries.txt" --check
+          python3 -I scripts/decoder-table-chunks --row-lengths "$RUNNER_TEMP/rows.txt" \
+            --row21-lengths "$RUNNER_TEMP/split.txt" --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

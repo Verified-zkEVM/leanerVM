@@ -11,10 +11,10 @@ public import LeanVM.Cost.Rules
 /-!
 # leanSPHINCS's signature reader, computable
 
-`verify_sig_lean_sphincs` (`Data.core21`, compiled function `22`, its template
+`verify_sig_lean_sphincs` (`Data.core20`, compiled function `22`, its template
 `B1/Sig/SphincsT.lean`) hints the
 randomizer, the FORS openings, the counters and the paths into its own frame, at cells its body
-fixes, and calls `sp_wots` (`Data.core20`, function `21`) once a layer, whose frame holds the layer's chain starts
+fixes, and calls `sp_wots` (`Data.core19`, function `21`) once a layer, whose frame holds the layer's chain starts
 at cells its digit words select (`spStartAt`, `Fast/SpWots.lean`). The reader takes
 `verify_sig_lean_sphincs`' valuation `σ` and the three `sp_wots` frames `w0`, `w1`, `w2`:
 

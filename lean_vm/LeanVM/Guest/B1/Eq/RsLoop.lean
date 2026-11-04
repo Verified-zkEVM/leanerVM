@@ -132,10 +132,10 @@ def l5Body : List Stmt :=
     .atom (.mul (.n 22) (.n 0) (.n 21)), .callIf (.n 20) "__loop5" [.n 22, .n 1, .n 2, .n 3, .n 4],
     .ret []]
 
-theorem core81_body : Fn.body Data.core81 = l5Body := stmtsEqb_sound (by decide +kernel)
+theorem core80_body : Fn.body Data.core80 = l5Body := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop5 : coreProgram.find? "__loop5" = some Data.core81 :=
-  Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl
+theorem find_loop5 : coreProgram.find? "__loop5" = some Data.core80 :=
+  Program.find?_of_indexOf? (j := 80) (by decide +kernel) rfl
 
 /-- The loop's body at `x`: one row from `chain·x^64`, the coordinates from `z·x^8`, `p·x^8`. -/
 def L5Body (rd : Reader) (chain z p x : E) : Prop :=
@@ -152,8 +152,8 @@ theorem loop5_sound (rd : Reader) (N chain z p : E) (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) "__loop5" (x :: [N, chain, z, p]) []) :
     L5Body rd chain z p x ∧ IsInK (x * gen + N) ∧
       (x * gen + N ≠ 0 → coreProgram.relN rd d "__loop5" (x * gen :: [N, chain, z, p]) []) := by
-  rw [relN_succ_iff find_loop5, show Fn.params Data.core81 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-    core81_body, l5Body] at h
+  rw [relN_succ_iff find_loop5, show Fn.params Data.core80 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+    core80_body, l5Body] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen] at h
   obtain ⟨σ, hp, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, hc, h18, h19, h20, h21,
     h22, hK, hcall, -⟩ := h
@@ -174,8 +174,8 @@ theorem loop5_complete (rd : Reader) (N chain z p : E) (x : E) (hB : L5Body rd c
     (hnext : x * gen + N ≠ 0 → coreProgram.Rel rd "__loop5" (x * gen :: [N, chain, z, p]) []) :
     coreProgram.Rel rd "__loop5" (x :: [N, chain, z, p]) [] := by
   obtain ⟨r, hr⟩ := hB
-  rw [rel_iff_sem find_loop5, show Fn.params Data.core81 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
-    core81_body, l5Body]
+  rw [rel_iff_sem find_loop5, show Fn.params Data.core80 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+    core80_body, l5Body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen]
   let w : List E := [x, N, chain, z, p, x * x, (x * x) * (x * x), (x * x) * (x * x) * ((x * x) * (x * x)),
     x * x, (x * x) * (x * x), ((x * x) * (x * x)) * ((x * x) * (x * x)),

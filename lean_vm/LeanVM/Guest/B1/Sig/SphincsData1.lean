@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core11
+public import LeanVM.Guest.Data.Core05
 public import LeanVM.Guest.B1.Sig.SphincsT
 import LeanVM.Guest.B1.Sig.Decide
 
@@ -17,15 +17,15 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem sBody_slice_1500 : (Data.core21.body.drop 1500).take 500 = (sBody.drop 1500).take 500 := by
+theorem sBody_slice_1500 : (Data.core20.body.drop 1500).take 500 = (sBody.drop 1500).take 500 := by
   decide +kernel
 
 open scoped Dec in
-theorem sBody_slice_2000 : (Data.core21.body.drop 2000).take 500 = (sBody.drop 2000).take 500 := by
+theorem sBody_slice_2000 : (Data.core20.body.drop 2000).take 500 = (sBody.drop 2000).take 500 := by
   decide +kernel
 
 open scoped Dec in
-theorem sBody_slice_2500 : (Data.core21.body.drop 2500).take 500 = (sBody.drop 2500).take 500 := by
+theorem sBody_slice_2500 : (Data.core20.body.drop 2500).take 500 = (sBody.drop 2500).take 500 := by
   decide +kernel
 
 end

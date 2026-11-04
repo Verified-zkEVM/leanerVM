@@ -595,11 +595,11 @@ theorem sp_wots_complete : sp_wots_complete_Spec := by
   have f0 : σf (.n 0) = cellOf128 parameter := by rw [hef.apply (Or.inl (by norm_num))]; exact i0
   have f1 : σf (.n 1) = keyAddressCell layer tree leaf := by rw [hef.apply (Or.inl (by norm_num))]; exact i1
   have f2 : σf (.n 2) = cellOf128 digest := by rw [hef.apply (Or.inl (by norm_num))]; exact i2
-  have hbody : Data.core20.body = ((((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) ++ spLeafK.1) ++
+  have hbody : Data.core19.body = ((((spPowers ++ (spGs.1 ++ spLast.1)) ++ spChecks) ++ spLeafK.1) ++
       [copyS (.n spLeafK.2.1) (.n spLeafK.2.2)]) ++ [.ret [.n spLeafK.2.1]] := by
     rw [spBody_eq, spBody_split]
     simp only [List.append_assoc, List.cons_append, List.nil_append]
-  have hH : Stmt.HoldsList C rd σf Data.core20.body False (fun rs => rs = [σf (.n spLeafK.2.1)]) := by
+  have hH : Stmt.HoldsList C rd σf Data.core19.body False (fun rs => rs = [σf (.n spLeafK.2.1)]) := by
     rw [hbody, holdsList_append]
     exact hhf _ _ rfl
   obtain ⟨lf, hrets, hcan, hsound⟩ := sp_wots_sound hH

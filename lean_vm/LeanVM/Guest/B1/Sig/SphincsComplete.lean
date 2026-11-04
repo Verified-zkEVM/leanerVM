@@ -138,7 +138,7 @@ def sPtrs : List Nat :=
   (List.range 7).map (fbPtr 1158) ++ (List.range 4).map (fbPtr 6836) ++ (List.range 4).map (fbPtr 7169) ++
     (List.range 4).map (fbPtr 7393)
 
-theorem sBody_loads : listLoadsB sPtrs Data.core21.body = true := by
+theorem sBody_loads : listLoadsB sPtrs Data.core20.body = true := by
   rw [sBody_eq]; decide +kernel
 
 /-- The valuation the proof starts from: the arguments and, past every stage, the key's root. -/

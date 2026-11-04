@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
   The completeness statements of leanSPHINCS's guest functions at leanVM `c4f4bc92`: `sp_wots`
-  (`Data.core20`), a leaf, and `verify_sig_lean_sphincs` (`Data.core21`), which calls it three
+  (`Data.core19`), a leaf, and `verify_sig_lean_sphincs` (`Data.core20`), which calls it three
   times, in the forms `main`'s completeness consumes.
 -/
 
@@ -65,12 +65,12 @@ def wotsLeafOf (parameter : PublicParameter) (layer : Sphincs.Layer) (tree : Sph
 
 /-! ## The functions, found -/
 
-theorem sp_wots_params : Data.core20.params = [.n 0, .n 1, .n 2] := rfl
+theorem sp_wots_params : Data.core19.params = [.n 0, .n 1, .n 2] := rfl
 
-theorem verify_sig_lean_sphincs_params : Data.core21.params = [.n 0, .n 1] := rfl
+theorem verify_sig_lean_sphincs_params : Data.core20.params = [.n 0, .n 1] := rfl
 
-theorem find_sp_wots : coreProgram.find? "sp_wots" = some Data.core20 :=
-  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
+theorem find_sp_wots : coreProgram.find? "sp_wots" = some Data.core19 :=
+  Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
 
 /-! ## The statements -/
 
@@ -85,7 +85,7 @@ def sp_wots_complete_Spec : Prop :=
     Sphincs.TargetSum.Valid (digestDigits digest) →
       ∃ σ : Val, σ (.n 0) = cellOf128 parameter ∧ σ (.n 1) = keyAddressCell layer tree leaf ∧
         σ (.n 2) = cellOf128 digest ∧
-        Stmt.HoldsList C rd σ Data.core20.body False
+        Stmt.HoldsList C rd σ Data.core19.body False
           (fun rs => rs = [cellOf128 (wotsLeafOf parameter layer tree leaf digest values)])
 
 /-- **The call relation holds of every honest call of `sp_wots`**: on the parameter's cell, a key's
@@ -109,8 +109,8 @@ def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
       (cellOf128 (m.extractLsb' 128 128)) →
     Sphincs.verifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
-        Stmt.HoldsList C rd σ Data.core21.body False (fun rs => rs = []) ∧
-        ∀ es vs, walk σ Data.core21.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
+        Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = []) ∧
+        ∀ es vs, walk σ Data.core20.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
           (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨ ∃ v < 256, A = bb.limb 0 * addressOfIndex v
 
 /-- **leanSPHINCS's guest functions are complete**: `sp_wots` and `verify_sig_lean_sphincs`, as

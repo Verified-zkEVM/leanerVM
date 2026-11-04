@@ -80,9 +80,9 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
     obtain ⟨⟨hcanC, hneedsC⟩, hhint⟩ := hcok
     have hbody := splitBody_eq hsp
     let w : ℕ → E := symOrc syms
-    obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [lv] (Fn.body Data.core31)) := ⟨_, rfl⟩
+    obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd w [lv] (Fn.body Data.core30)) := ⟨_, rfl⟩
     have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
-    obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core31) [lv] hchk
+    obtain ⟨-, -, hgs⟩ := ev_spec rd w (Fn.body Data.core30) [lv] hchk
     rw [show [lv].length = 1 from rfl, hst, ← hσ] at hgs
     have hg : ∀ a ∈ A, Good rd [] w σ a := fun a ha =>
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))

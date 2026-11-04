@@ -62,7 +62,7 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args re
       gen ^ (136 * a), gen ^ (2 * b), gen ^ (4 * b), gen ^ (8 * b), gen ^ (16 * b),
       gen ^ (17 * b), gen ^ (136 * a + 17 * b), gen ^ (136 * a + 17 * b + c), gen ^ a, gen ^ b,
       gen ^ c], rfl, ?_⟩
-    rw [core22_body]
+    rw [core21_body]
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n]
     simp only [List.getD_cons_succ, List.getD_cons_zero]
     refine ⟨trivial, trivial, ⟨h1, by rw [word_g16, e1], h2⟩, trivial, ⟨h5, by rw [word_g7, e3], h6⟩,

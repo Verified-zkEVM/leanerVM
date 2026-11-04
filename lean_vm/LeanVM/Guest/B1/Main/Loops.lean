@@ -83,10 +83,10 @@ def l3Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 37 default) = true := by decide +kernel
+theorem l3_ok : l3Ok (coreProgram.getD 36 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop2" = some 37 := by decide +kernel
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 36 := by decide +kernel
 
 /-! ## `__loop3`: raw leanSPHINCS signatures -/
 
@@ -100,10 +100,10 @@ def l4Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 17, .n 6] []
 
 set_option maxRecDepth 100000 in
-theorem l4_ok : l4Ok (coreProgram.getD 38 default) = true := by decide +kernel
+theorem l4_ok : l4Ok (coreProgram.getD 37 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop3" = some 38 := by decide +kernel
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 37 := by decide +kernel
 
 /-! ## A two-digest hash in a block -/
 
@@ -176,10 +176,10 @@ def l5Ok (fn : Fn) : Bool :=
   isLoad A (.n 55) (.n 56) 1
 
 set_option maxRecDepth 100000 in
-theorem l5_ok : l5Ok (coreProgram.getD 39 default) = true := by decide +kernel
+theorem l5_ok : l5Ok (coreProgram.getD 38 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop4" = some 39 := by decide +kernel
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 38 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Main
