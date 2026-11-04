@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.LanesK
-public import LeanVM.Guest.B1.Tables.HoldsC
+public import LeanVM.Guest.B1.Placement.Kappas
 
 namespace LeanVM.Guest.B1.VerifySub
 

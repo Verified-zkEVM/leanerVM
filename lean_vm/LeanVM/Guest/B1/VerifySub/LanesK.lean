@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.LanesK
 
   The output lanes' claims of `verify_sub`'s table phase: at the table sumcheck's point cut to
-  the `KECCAK` table's height, their values at `claim_pool·g^110`.
+  the `KECCAK` table's height, their values at `col_eval_words·g^105`.
 -/
 
 module
@@ -72,13 +72,13 @@ def vsFixed (σ : Val) (point : List E) : BytecodeClaim :=
 
 /-- **The output lanes**: their claims are on `KECCAK`'s output columns at one point, the table
 sumcheck's point `chis` (at `chi`) cut to the table's height `τ ≤ |chis|`, and their values are
-at `claim_pool·g^110`. -/
+at `col_eval_words·g^105` (claims `110 .. 134`, read in place: `col_eval_words` holds claims `5 .. 161`). -/
 theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallRel} {rd : Reader}
     {σ : Val} (F : VsFront bytecode C rd σ) :
     ∃ chis : List E, ReadsAt rd (σ (.n 635)) chis ∧ vsTau F.rowsN ≤ chis.length ∧
       (lanesOf F.claims).map (·.column) = keccakOutputColumns ∧
       (∀ c ∈ lanesOf F.claims, c.point = chis.take (vsTau F.rowsN)) ∧
-      ReadsAt rd (σ (.n 6) * gen ^ 110) ((lanesOf F.claims).map (·.value)) ∧
+      ReadsAt rd (σ (.n 645) * gen ^ 105) ((lanesOf F.claims).map (·.value)) ∧
       (lanesOf F.claims).length = 25 := by
   have hctx := F.hctx
   simp only [Tables.TCtx] at hctx
@@ -134,10 +134,14 @@ theorem vs_lanes {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {C : CallR
     simpa using this
   · rw [hlanes]
     intro k hk
-    simp only [List.length_map, List.length_take, List.length_drop] at hk
+    have hk' : k < 25 := by simp [hcl'] at hk; omega
     rw [loadHolds_mul_gen_pow]
-    have := F.hpool (110 + k) (by simp [hcl']; omega)
-    simpa using this
+    have e2 : Tables.nPooled = 162 := rfl
+    have e3 : Tables.nBusClaims = 5 := rfl
+    have := F.hcew (105 + k) (by simp [hcl']; omega)
+    simp only [List.getElem_map, List.getElem_take, List.getElem_drop] at this ⊢
+    convert this using 3
+    omega
   · rw [hlanes]; simp [hcl']
 
 end

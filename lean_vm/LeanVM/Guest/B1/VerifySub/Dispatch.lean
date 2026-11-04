@@ -87,5 +87,19 @@ theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val}
   exact hos μ r hμ1 hμ2 hr1 hr2 root [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
     σ (.n 1104)] (σ (.n 1673)) (σ (.n 324)) (σ (.n 334)) (σ (.n 656)) _ rfl hroot hc
 
+/-! ## The stack's configuration -/
+
+theorem cfg_cons {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+    ∃ level rest, Whir.ladder μ r = some (level :: rest) := by
+  obtain ⟨cfg, hF, -, -⟩ := B1.Whir.candB_sound (B1.Whir.candB_all μ r h1 h2 h3 h4)
+  rcases cfg with _ | ⟨level, rest⟩
+  · exfalso
+    have hl := hF.lok
+    have hn := hF.n2
+    generalize (B1.Whir.osCfg (B1.Whir.candidate μ r)).levels = lvs at hl hn
+    match lvs, hn with
+    | _ :: _ :: _, _ => simp [B1.Whir.LevelsOk] at hl
+  · exact ⟨level, rest, hF.dc⟩
+
 end
 end LeanVM.Guest.B1.VerifySub

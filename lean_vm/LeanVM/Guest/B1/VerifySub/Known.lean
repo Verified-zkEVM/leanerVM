@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.VerifySub.Mid
 public import LeanVM.Guest.B1.VerifySub.FrontAll
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Kappas
+public import LeanVM.Guest.B1.VerifySub.Body
 
 /-!
 # The columns' logs, from the placement and the stack's log
@@ -166,6 +167,46 @@ theorem kb_bounds {rd : Reader} {p : E} {logMem : ℕ} {hs : List ℕ} (hl : hs.
     · exact ⟨h3, by show h3 < 29; omega, by simpa using hr⟩
     · exact ⟨h4, by show h4 < 29; omega, by simpa using hr⟩
     · exact ⟨h5', by show h5' < 23; omega, by simpa using hr⟩
+
+/-- The sections before the tail. -/
+def vsPre : List Stmt :=
+  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRootsT ++ vsAlphasT ++ vsFpwT ++
+    vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT
+
+theorem vsPre_length : vsPre.length = 1578 := by decide +kernel
+
+theorem vsT_take : vsT.take 1592 = vsPre ++ vsTailT.take 14 := by
+  rw [show vsT = vsPre ++ vsTailT from rfl, List.take_append, List.take_of_length_le
+    (by rw [vsPre_length]; omega), vsPre_length]
+
+theorem noRet_mid : Stmt.noRetList (vsMapsT ++ vsCtabT ++ vsLamT) = true := by decide +kernel
+
+theorem vsTailT_take14 : vsTailT.take 14 = vsTailT.take 6 ++ (vsTailT.take 14).drop 6 := by
+  have := List.take_append_drop 6 (vsTailT.take 14)
+  rw [List.take_take, show min 6 14 = 6 from rfl] at this
+  exact this.symm
+
+/-- **`VsKnown`** from the callees' specifications: `kappa_base`'s entries below `kbBound`. -/
+theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
+    (hgkr : Tables.verify_bus_gkr_SpecC L.read (coreProgram.Rel L.read))
+    (htab : Tables.verify_tables_SpecC (List.replicate (2 ^ 23) 0) L.read (coreProgram.Rel L.read))
+    (hcp : Tables.certify_placement_Spec L.read)
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1592) True
+      (fun _ ↦ True)) :
+    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 139)) i (ofK (addressOfIndex e)) := by
+  have hκ : κ ≤ 32 := h32
+  have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
+  have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
+  rw [show Fn.body Data.core18 = vsT from vs_body, vsT_take, vsPre] at h
+  rw [holdsList_append, holdsList_append, holdsList_append, holdsList_append] at h
+  obtain ⟨⟨F⟩, h⟩ := vs_front hκ hκ6 L hle (List.replicate (2 ^ 23) 0) hgkr htab hexp h
+  rw [← holdsList_append, ← holdsList_append] at h
+  have h' := ((holdsList_noRet _ noRet_mid _ _).1 h).2
+  rw [vsTailT_take14, holdsList_append] at h'
+  have hsL := tableHeights_length F.rowsN F.hrowsL
+  obtain ⟨hm28, h5⟩ := vsKnown_tail hκ hκ6 L hle hcp hexp F.hm32 hsL F.hh29 F.hkb h'
+  exact kb_bounds hsL F.hh29 hm28 h5 F.hkb
 
 end
 end LeanVM.Guest.B1.VerifySub
