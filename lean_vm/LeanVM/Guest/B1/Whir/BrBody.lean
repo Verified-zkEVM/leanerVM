@@ -63,7 +63,7 @@ structure OsMem (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
 structure OsCallsOk (C : CallRel) (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
   fold : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets
   lv : ∀ i < c.levels.length, LvCallsOk C rd A.P c i (lvAt c i) (tr.L i) (A.sqz i) (A.wp i)
-  res : ∀ i < c.levels.length, ResCallOk C A.P c i A.BD (A.rc i)
+  res : ∀ i < c.levels.length, ResCallOk C A.P c i A.BD (A.rc i) (finM tr i)
   ffm : C ("fold_final_msg__L" ++ natStr c.yrLog) [A.P.fmsg, A.T] [multilinearEval tr.Lf.ms tr.Tc]
 
 /-- The honest data of the body's levels. -/
@@ -76,8 +76,8 @@ def OsTr.tailWords (c : OsCfg) (tr : OsTr) : List E := tr.xsR.take (2 * (c.yrLog
 def osBodyF (c : OsCfg) (tr : OsTr) (σ : Val) (c0 c2 : E) (A : OsAt) : ℕ → E :=
   bodyF c σ A.P c0 c2 (tr.Ds A) A.T (tr.tailWords c) (multilinearEval tr.Lf.ms tr.Tc) A.PT A.PT1
     A.BD A.LS A.ICH (finI c tr c.levels.length)
-    (fun j ↦ (ptC tr (c.levels.headD default).folds).getD j 0) (βof c tr.rs)
-    (Xof tr.rs tr.Fall tr.Tc) A.rc (finAcc c tr) (finPq c tr) (finW c tr) (finI c tr) (finL c tr)
+    (fun j ↦ (ptC tr (c.levels.headD default).folds).getD j 0) (finB c tr)
+    (Xof tr.rs tr.Fall tr.Tc) A.rc (finAcc c tr) (finM tr) (finI c tr) (finL c tr) (finPq c tr)
     (finD c tr) (Λof tr.rs) (Zof tr.rs) (Yof tr.rs tr.Fall tr.Tc)
 
 /-- **What the run gives of its trace** beyond the body: each level's query step is one of the
@@ -211,7 +211,8 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
   -- the body
   refine BlkF.mono (osBodyA_complete (C := C) (rd := rd) σ A.P (Ds := tr.Ds A)
     (xs := tr.tailWords c) (Y := multilinearEval tr.Lf.ms tr.Tc)
-    (by intro h; have := congrArg List.length h; simp at this; omega) h0 h2 hr0 hr1 hcan hlvs hc.fold hxl hrdT hT hlast hzero
+    (by intro h; have := congrArg List.length h; simp at this; omega) h0 h2 hr0 hr1
+    (fun i hi ↦ readsAt_map_range hm.fixed.win hi) hcan hlvs hc.fold hxl hrdT hT hlast hzero
     hc.ffm (fin_pt hF hfit hs hm.fixed hm.T hm.PT hm.PT1)
     (fun i hi ↦ fin_bases hF hfit hs hm.fixed hm.T hm.BD hm.LS hi)
     (by have := readsAt_map_range hm.ICH (k := 0) (by omega); simpa [finI] using this)

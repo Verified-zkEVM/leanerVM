@@ -38,8 +38,8 @@ compile time.
   returns `w`'s claim, two buffers holding `w`'s point (`μ` coordinates, witness order) and its
   coordinates plus one, zero-padded (one-padded) to `pointCap = 40`, `w`'s glued weight and its
   residual's value.
-* `open_stacked_sound_Spec`: every specialization's call relation gives `OpenOut` (proved later as
-  `open_stacked_sound_holds`).
+* `open_stacked_sound_Spec`: every specialization's call relation gives `OpenOut`, on a memory
+  image of at most `2^32` words (the query windows' range checks, `decode_query_windows`).
 
 The guest's completeness statement (an honest run with no zero fold, tail or batching challenge,
 on a memory holding the hinted caps and rows, gives the call relation; DESIGN §5.2.1) follows the
@@ -220,13 +220,13 @@ def OpenOut (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur
 
 /-- **`open_stacked` is sound** at every candidate: a call of the specialization of `μ`, `r` on
 the capacity cells `fs`, the claim `target`, the root's two cells and the cursor establishes
-`OpenOut`. Proved as `open_stacked_sound_holds`. -/
+`OpenOut`, on a memory image of at most `2^32` words (`decode_query_windows`' range checks). -/
 def open_stacked_sound_Spec : Prop :=
-  ∀ (rd : Reader) (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+  ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E),
       fs.length = 5 → (root0, root1) = digestHalves root →
-      coreProgram.Rel rd (openName μ r) (fs ++ [target, root0, root1, cur]) rets →
-        OpenOut rd μ r root fs target cur rets
+      coreProgram.Rel L.read (openName μ r) (fs ++ [target, root0, root1, cur]) rets →
+        OpenOut L.read μ r root fs target cur rets
 
 end
 end LeanVM.Guest.B1.Whir
