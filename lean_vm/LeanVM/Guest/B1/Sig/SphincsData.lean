@@ -112,11 +112,11 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-theorem sBody_length : Data.core20.body.length = 914 := by decide +kernel
+theorem sBody_length : Data.core21.body.length = 914 := by decide +kernel
 theorem sBody_length' : sBody.length = 914 := by decide +kernel
 
 open scoped Dec in
-theorem sBody_elt_199 : Data.core20.body.getD 199 default = sBody.getD 199 default := by
+theorem sBody_elt_199 : Data.core21.body.getD 199 default = sBody.getD 199 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_199_3
   have h128 := drop_eq_of_take sBody_arms_199_2 h192
@@ -125,7 +125,7 @@ theorem sBody_elt_199 : Data.core20.body.getD 199 default = sBody.getD 199 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_209 : Data.core20.body.getD 209 default = sBody.getD 209 default := by
+theorem sBody_elt_209 : Data.core21.body.getD 209 default = sBody.getD 209 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_209_3
   have h128 := drop_eq_of_take sBody_arms_209_2 h192
@@ -134,7 +134,7 @@ theorem sBody_elt_209 : Data.core20.body.getD 209 default = sBody.getD 209 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_235 : Data.core20.body.getD 235 default = sBody.getD 235 default := by
+theorem sBody_elt_235 : Data.core21.body.getD 235 default = sBody.getD 235 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_235_3
   have h128 := drop_eq_of_take sBody_arms_235_2 h192
@@ -143,7 +143,7 @@ theorem sBody_elt_235 : Data.core20.body.getD 235 default = sBody.getD 235 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_246 : Data.core20.body.getD 246 default = sBody.getD 246 default := by
+theorem sBody_elt_246 : Data.core21.body.getD 246 default = sBody.getD 246 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_246_3
   have h128 := drop_eq_of_take sBody_arms_246_2 h192
@@ -152,7 +152,7 @@ theorem sBody_elt_246 : Data.core20.body.getD 246 default = sBody.getD 246 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_272 : Data.core20.body.getD 272 default = sBody.getD 272 default := by
+theorem sBody_elt_272 : Data.core21.body.getD 272 default = sBody.getD 272 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_272_3
   have h128 := drop_eq_of_take sBody_arms_272_2 h192
@@ -161,7 +161,7 @@ theorem sBody_elt_272 : Data.core20.body.getD 272 default = sBody.getD 272 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_283 : Data.core20.body.getD 283 default = sBody.getD 283 default := by
+theorem sBody_elt_283 : Data.core21.body.getD 283 default = sBody.getD 283 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_283_3
   have h128 := drop_eq_of_take sBody_arms_283_2 h192
@@ -170,7 +170,7 @@ theorem sBody_elt_283 : Data.core20.body.getD 283 default = sBody.getD 283 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_309 : Data.core20.body.getD 309 default = sBody.getD 309 default := by
+theorem sBody_elt_309 : Data.core21.body.getD 309 default = sBody.getD 309 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_309_3
   have h128 := drop_eq_of_take sBody_arms_309_2 h192
@@ -179,7 +179,7 @@ theorem sBody_elt_309 : Data.core20.body.getD 309 default = sBody.getD 309 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_320 : Data.core20.body.getD 320 default = sBody.getD 320 default := by
+theorem sBody_elt_320 : Data.core21.body.getD 320 default = sBody.getD 320 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_320_3
   have h128 := drop_eq_of_take sBody_arms_320_2 h192
@@ -188,7 +188,7 @@ theorem sBody_elt_320 : Data.core20.body.getD 320 default = sBody.getD 320 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_346 : Data.core20.body.getD 346 default = sBody.getD 346 default := by
+theorem sBody_elt_346 : Data.core21.body.getD 346 default = sBody.getD 346 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_346_3
   have h128 := drop_eq_of_take sBody_arms_346_2 h192
@@ -197,7 +197,7 @@ theorem sBody_elt_346 : Data.core20.body.getD 346 default = sBody.getD 346 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_357 : Data.core20.body.getD 357 default = sBody.getD 357 default := by
+theorem sBody_elt_357 : Data.core21.body.getD 357 default = sBody.getD 357 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_357_3
   have h128 := drop_eq_of_take sBody_arms_357_2 h192
@@ -206,7 +206,7 @@ theorem sBody_elt_357 : Data.core20.body.getD 357 default = sBody.getD 357 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_383 : Data.core20.body.getD 383 default = sBody.getD 383 default := by
+theorem sBody_elt_383 : Data.core21.body.getD 383 default = sBody.getD 383 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_383_3
   have h128 := drop_eq_of_take sBody_arms_383_2 h192
@@ -215,7 +215,7 @@ theorem sBody_elt_383 : Data.core20.body.getD 383 default = sBody.getD 383 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_394 : Data.core20.body.getD 394 default = sBody.getD 394 default := by
+theorem sBody_elt_394 : Data.core21.body.getD 394 default = sBody.getD 394 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_394_3
   have h128 := drop_eq_of_take sBody_arms_394_2 h192
@@ -224,7 +224,7 @@ theorem sBody_elt_394 : Data.core20.body.getD 394 default = sBody.getD 394 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_420 : Data.core20.body.getD 420 default = sBody.getD 420 default := by
+theorem sBody_elt_420 : Data.core21.body.getD 420 default = sBody.getD 420 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_420_3
   have h128 := drop_eq_of_take sBody_arms_420_2 h192
@@ -233,7 +233,7 @@ theorem sBody_elt_420 : Data.core20.body.getD 420 default = sBody.getD 420 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_431 : Data.core20.body.getD 431 default = sBody.getD 431 default := by
+theorem sBody_elt_431 : Data.core21.body.getD 431 default = sBody.getD 431 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_431_3
   have h128 := drop_eq_of_take sBody_arms_431_2 h192
@@ -242,7 +242,7 @@ theorem sBody_elt_431 : Data.core20.body.getD 431 default = sBody.getD 431 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_457 : Data.core20.body.getD 457 default = sBody.getD 457 default := by
+theorem sBody_elt_457 : Data.core21.body.getD 457 default = sBody.getD 457 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_457_3
   have h128 := drop_eq_of_take sBody_arms_457_2 h192
@@ -251,7 +251,7 @@ theorem sBody_elt_457 : Data.core20.body.getD 457 default = sBody.getD 457 defau
   rwa [List.drop_zero, List.drop_zero] at h0
 
 open scoped Dec in
-theorem sBody_elt_468 : Data.core20.body.getD 468 default = sBody.getD 468 default := by
+theorem sBody_elt_468 : Data.core21.body.getD 468 default = sBody.getD 468 default := by
   refine eq_of_match (by decide +kernel) (by decide +kernel) (by decide +kernel) ?_
   have h192 := sBody_arms_468_3
   have h128 := drop_eq_of_take sBody_arms_468_2 h192
@@ -261,7 +261,7 @@ theorem sBody_elt_468 : Data.core20.body.getD 468 default = sBody.getD 468 defau
 
 /-- The body, checked by the kernel in slices: the forest keys' dispatches (256 arms each) a
 statement at a time, their arms 64 at a time. -/
-theorem sBody_eq : Data.core20.body = sBody := by
+theorem sBody_eq : Data.core21.body = sBody := by
   have h619 := sBody_drop_619
   have h615 := drop_eq_of_take sBody_slice_615 h619
   have h611 := drop_eq_of_take sBody_slice_611 h615

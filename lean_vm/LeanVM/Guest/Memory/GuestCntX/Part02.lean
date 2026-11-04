@@ -9,30 +9,28 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kwxsplit_20_357 : noTopRet ((Data.core20.body.drop 357).take 63) = true ∧
-    blockR (kwxlookJ 20) (kwxomLookJ 20) false [] Data.core20.params Data.core20.name ((Data.core20.body.drop 357).take 63)
-      ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv false [] Data.core20.params ([], []) ((Data.core20.body.drop 357).take 63) = ([], []) := by
-  decide +kernel
+theorem kwxstaticRange_141 : kwxStaticRange 141 30 := by
+  unfold kwxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwxsplit_20_420 : noTopRet ((Data.core20.body.drop 420).take 48) = true ∧
-    blockR (kwxlookJ 20) (kwxomLookJ 20) false [] Data.core20.params Data.core20.name ((Data.core20.body.drop 420).take 48)
-      ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv false [] Data.core20.params ([], []) ((Data.core20.body.drop 420).take 48) = ([], []) := by
-  decide +kernel
+theorem kwxstaticRange_171 : kwxStaticRange 171 30 := by
+  unfold kwxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwxsplit_20_468 : noTopRet ((Data.core20.body.drop 468).take 110) = true ∧
-    blockR (kwxlookJ 20) (kwxomLookJ 20) false [] Data.core20.params Data.core20.name ((Data.core20.body.drop 468).take 110)
-      ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv false [] Data.core20.params ([], []) ((Data.core20.body.drop 468).take 110) = ([], []) := by
-  decide +kernel
+theorem kwxstaticRange_201 : kwxStaticRange 201 30 := by
+  unfold kwxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwxsplit_20_578 : blockR (kwxlookJ 20) (kwxomLookJ 20) false [] Data.core20.params Data.core20.name (Data.core20.body.drop 578)
-    ([], []) = some (⟨0, []⟩, []) := by
-  decide +kernel
+theorem kwxstaticRange_231 : kwxStaticRange 231 30 := by
+  unfold kwxStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kwxstaticRange_261 : kwxStaticRange 261 30 := by
+  unfold kwxStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kwxstaticRange_291 : kwxStaticRange 291 11 := by
+  unfold kwxStaticRange; decide +kernel
 
 end
 end LeanVM.Guest

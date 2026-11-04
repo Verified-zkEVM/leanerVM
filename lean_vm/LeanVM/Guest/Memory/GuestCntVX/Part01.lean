@@ -37,11 +37,11 @@ theorem kvxstaticRange_258 : kvxStaticRange 258 30 := by
   unfold kvxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvxstaticRange_288 : kvxStaticRange 288 7 := by
+theorem kvxstaticRange_288 : kvxStaticRange 288 8 := by
   unfold kvxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvxstaticRange_295 : kvxStaticRange 295 1 := by
+theorem kvxstaticRange_296 : kvxStaticRange 296 1 := by
   unfold kvxStaticRange; decide +kernel
 
 end

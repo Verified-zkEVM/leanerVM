@@ -22,8 +22,8 @@ public import LeanVM.Facts.Verifier
 /-!
 # The signature verifiers' interface
 
-`verify_lean_xmss(signer)` (`lean_ethereum.py:3451-3519`, core function `Data.core19`) and
-`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3632-3758`, `Data.core20`) check
+`verify_lean_xmss(signer)` (`lean_ethereum.py:3440-3508`, core function `Data.core19`) and
+`verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3632-3751`, `Data.core21`) check
 one signature of the claim at `signer`: four cells, the key's root and parameter, then the
 message's two halves, the low first. Both call nothing (every helper is `@inline` and every
 `match` arm runs in the frame), so their relation is their body's under any call relation.
@@ -45,7 +45,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
 * `verify_sig_lean_sphincs_sound_Spec sigOf`: the same for leanSPHINCS, on a memory image of at most
   `2^32` words (the range checks of `sp_from_bytes` are bounded discrete logarithms there,
   `rangeCheck_iff`), when its `byte_bits` argument holds the table `main` writes (`ByteBits`:
-  `byte_bits[g^v] = v`, `lean_ethereum.py:4169-4171`): the counter is then a 32-bit integer, so the
+  `byte_bits[g^v] = v`, `lean_ethereum.py:4162-4164`): the counter is then a 32-bit integer, so the
   encoding hash's 292 bytes are the scheme's.
 * `verify_lean_xmss_complete_Spec`, `verify_sig_lean_sphincs_complete_Spec`: for a claim held at `p`
   in its canonical cells and a signature that verifies it, on a memory of at least `64`
@@ -107,7 +107,7 @@ def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-! ## Preconditions -/
 
-/-- **The byte table** `main` writes (`lean_ethereum.py:4169-4171`): `byte_bits[g^v] = v` for every
+/-- **The byte table** `main` writes (`lean_ethereum.py:4162-4164`): `byte_bits[g^v] = v` for every
 byte `v`, the word whose bits spell `v`. -/
 def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0 0)
 
@@ -131,7 +131,7 @@ when its second argument `σ (.n 1)` holds the byte table, `sigOf σ` verifies t
 first argument `σ (.n 0)`. -/
 def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → Sphincs.Signature) : Prop :=
   ∀ (C : CallRel) {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 → ∀ (σ : Val) (rets : List E),
-    Stmt.HoldsList C L.read σ Data.core20.body False (fun rs => rs = rets) →
+    Stmt.HoldsList C L.read σ Data.core21.body False (fun rs => rs = rets) →
       rets = [] ∧ (ByteBits L.read (σ (.n 1)) → SphincsOut L.read (σ (.n 0)) (sigOf σ))
 
 /-- **`verify_lean_xmss` is complete**: for a claim held at `p` in its canonical cells and a
@@ -155,19 +155,19 @@ def verify_sig_lean_sphincs_complete_Spec : Prop :=
       (cellOf128 (m.extractLsb' 128 128)) →
     Sphincs.verifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
-        Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = [])
+        Stmt.HoldsList C rd σ Data.core21.body False (fun rs => rs = [])
 
 /-! ## The functions, found -/
 
 theorem core19_params : Data.core19.params = [.n 0] := rfl
 
-theorem core20_params : Data.core20.params = [.n 0, .n 1] := rfl
+theorem core20_params : Data.core21.params = [.n 0, .n 1] := rfl
 
 theorem find_verify_lean_xmss : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
 
 theorem find_verify_sig_lean_sphincs :
-    coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
+    coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
 /-! ## The call relation, from the statements -/

@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `gkr_rounds` (G:975-997, TRIAGE #31)
+# `gkr_rounds` (G:964-986, TRIAGE #31)
 
 Its body at `n` rounds (`gkBody n`): the record's capacity, cursor and claim loaded into `2 .. 8`;
 round `q` (`gkRound q`, from `9 + 74 q`): four stream words read and packed, the permutation of
@@ -812,17 +812,17 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
 
 
 set_option maxRecDepth 100000 in
-theorem core380_body : Fn.body Data.core391 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core380_body : Fn.body Data.core392 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem core379_body : Fn.body Data.core390 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core379_body : Fn.body Data.core391 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one and two rounds. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core391 :=
+  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core392 :=
     Program.find?_of_indexOf? (j := 391) (by decide +kernel) rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core390 :=
+  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core391 :=
     Program.find?_of_indexOf? (j := 390) (by decide +kernel) rfl
   exact ⟨fun rd args rets ↦ ⟨gk_sound 1 (by decide) (by decide) h1 rfl core380_body rd args rets,
       gk_complete 1 (by decide) (by decide) h1 rfl core380_body rd args rets⟩,

@@ -31,10 +31,10 @@ family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `statement_digest` | 3766-3797 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
-| `list_split` | 3812-3824 | `core22` | `n = 17 · groups + rest`, `groups < 2^16`, `rest < 17` |
-| `claim_list_digest` | 3827-3849 | `core23` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
-| `child_claim_list_digest` | 3876-3903 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table |
+| `statement_digest` | 3766-3797 | `core22` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
+| `list_split` | 3812-3824 | `core23` | `n = 17 · groups + rest`, `groups < 2^16`, `rest < 17` |
+| `claim_list_digest` | 3827-3849 | `core24` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
+| `child_claim_list_digest` | 3876-3903 | `core25` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table |
 
 **Cells and bytes.** A cell holds sixteen bytes, limbs `0` and `1` (`Value.Keccak.cellsBytes`;
 the `KECCAK` instruction makes every cell it reads canonical, `AllCanonical`). A digest's two
@@ -68,7 +68,7 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0 0
 
-/-! ## `statement_digest` (G:3759-3790, TRIAGE #86) -/
+/-! ## `statement_digest` (G:3752-3783, TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
@@ -99,7 +99,7 @@ def statement_digest_complete_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     MeaningStatementDigest rd args rets → coreProgram.Rel rd "statement_digest" args rets
 
-/-! ## `list_split` (G:3807-3819, TRIAGE #87) -/
+/-! ## `list_split` (G:3800-3812, TRIAGE #87) -/
 
 /-- `CLAIM_GROUP`: claims hashed a loop frame. -/
 abbrev claimGroup : ℕ := 17
@@ -124,7 +124,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     MeaningListSplit args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:3822-3854, TRIAGE #88) -/
+/-! ## `claim_list_digest` (G:3815-3847, TRIAGE #88) -/
 
 /-- The `4n` cells of `n` claims at `entries` are canonical, and `rets` is the two cells of their
 Keccak-256 digest (an empty list: the empty string's). -/
@@ -143,7 +143,7 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:3859-3906, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (G:3852-3899, TRIAGE #89) -/
 
 /-- **A child's claim list rebuilt from this node's table**: claim `j < n` sits at slot `o j` of
 the table at `entries` (its four cells at `entries · g^(4 o j)`), the slot below the log of `limit`
@@ -172,17 +172,17 @@ def child_claim_list_digest_sound_Spec : Prop :=
 
 /-! ## The functions, found -/
 
-theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data.core21 :=
+theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data.core22 :=
   Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
 
-theorem find_list_split : coreProgram.find? "list_split" = some Data.core22 :=
+theorem find_list_split : coreProgram.find? "list_split" = some Data.core23 :=
   Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl
 
-theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some Data.core23 :=
+theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some Data.core24 :=
   Program.find?_of_indexOf? (j := 23) (by decide +kernel) rfl
 
 theorem find_child_claim_list_digest :
-    coreProgram.find? "child_claim_list_digest" = some Data.core24 :=
+    coreProgram.find? "child_claim_list_digest" = some Data.core25 :=
   Program.find?_of_indexOf? (j := 24) (by decide +kernel) rfl
 
 end

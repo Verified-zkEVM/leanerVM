@@ -16,108 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L0`, once. -/
-theorem st150 : shareStatic 150 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 3. -/
+theorem w22_3 : shareWin 22 (snapsOf 22) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L0`, window 0. -/
-theorem w150_0 : shareWin 150 (snapsOf 150) 0 = true := by decide +kernel
-
-theorem ok150 : ShareOk 150 := ⟨st150, fun i hi ↦ by
-  have h : (snapsOf 150).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w150_0⟩
+/-- `verify_sig_lean_sphincs`, window 4. -/
+theorem w22_4 : shareWin 22 (snapsOf 22) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L1`, once. -/
-theorem st151 : shareStatic 151 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 5. -/
+theorem w22_5 : shareWin 22 (snapsOf 22) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L1`, window 0. -/
-theorem w151_0 : shareWin 151 (snapsOf 151) 0 = true := by decide +kernel
-
-theorem ok151 : ShareOk 151 := ⟨st151, fun i hi ↦ by
-  have h : (snapsOf 151).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w151_0⟩
+/-- `verify_sig_lean_sphincs`, window 6. -/
+theorem w22_6 : shareWin 22 (snapsOf 22) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L2`, once. -/
-theorem st152 : shareStatic 152 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L2`, window 0. -/
-theorem w152_0 : shareWin 152 (snapsOf 152) 0 = true := by decide +kernel
-
-theorem ok152 : ShareOk 152 := ⟨st152, fun i hi ↦ by
-  have h : (snapsOf 152).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w152_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L3`, once. -/
-theorem st153 : shareStatic 153 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L3`, window 0. -/
-theorem w153_0 : shareWin 153 (snapsOf 153) 0 = true := by decide +kernel
-
-theorem ok153 : ShareOk 153 := ⟨st153, fun i hi ↦ by
-  have h : (snapsOf 153).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w153_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L4`, once. -/
-theorem st154 : shareStatic 154 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L4`, window 0. -/
-theorem w154_0 : shareWin 154 (snapsOf 154) 0 = true := by decide +kernel
-
-theorem ok154 : ShareOk 154 := ⟨st154, fun i hi ↦ by
-  have h : (snapsOf 154).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w154_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L5`, once. -/
-theorem st155 : shareStatic 155 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L5`, window 0. -/
-theorem w155_0 : shareWin 155 (snapsOf 155) 0 = true := by decide +kernel
-
-theorem ok155 : ShareOk 155 := ⟨st155, fun i hi ↦ by
-  have h : (snapsOf 155).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w155_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L6`, once. -/
-theorem st156 : shareStatic 156 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L6`, window 0. -/
-theorem w156_0 : shareWin 156 (snapsOf 156) 0 = true := by decide +kernel
-
-theorem ok156 : ShareOk 156 := ⟨st156, fun i hi ↦ by
-  have h : (snapsOf 156).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w156_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L7`, once. -/
-theorem st157 : shareStatic 157 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L7`, window 0. -/
-theorem w157_0 : shareWin 157 (snapsOf 157) 0 = true := by decide +kernel
-
-theorem ok157 : ShareOk 157 := ⟨st157, fun i hi ↦ by
-  have h : (snapsOf 157).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w157_0⟩
+/-- `verify_sig_lean_sphincs`, window 7. -/
+theorem w22_7 : shareWin 22 (snapsOf 22) 7 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

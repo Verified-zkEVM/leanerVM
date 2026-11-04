@@ -22,11 +22,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem core502_body : Fn.body Data.core513 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
-theorem core400_body : Fn.body Data.core411 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
-theorem core396_body : Fn.body Data.core407 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
-theorem core511_body : Fn.body Data.core522 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
-theorem core391_body : Fn.body Data.core402 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
+theorem core502_body : Fn.body Data.core514 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
+theorem core400_body : Fn.body Data.core412 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
+theorem core396_body : Fn.body Data.core408 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
+theorem core511_body : Fn.body Data.core523 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
+theorem core391_body : Fn.body Data.core403 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
 
 theorem merkle_cap_at {name : String} {f : Fn} (D : ℕ) (hD : 4 ≤ D)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])

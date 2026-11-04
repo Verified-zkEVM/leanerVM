@@ -23,28 +23,28 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [26, 29, 373]
+def dvStJ : List ℕ := [27, 30, 374]
 
 /-- `da_verify`'s row loops and its columns' row loop. -/
 def dvLpNames : List String := ["__loop17", "__loop19", "__loop20", "__loop21"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [358, 360, 361, 374]
+def dvLpJ : List ℕ := [359, 361, 362, 375]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372]
+def dlJ : List ℕ := [363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339]
+def clJ : List ℕ := [324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340]
 
 /-- The core index of `__loop15`. -/
-def l16J : ℕ := 322
+def l16J : ℕ := 323
 
 /-- The functions whose frames the counts weigh. -/
 def mvOmNames : List String := ["da_verify", "__loop18", "da_verify_column", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [25, 359, 27, 23]
+def mvOmJ : List ℕ := [26, 360, 28, 24]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ

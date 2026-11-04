@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Sels
 public import LeanVM.Guest.B1.Tables.Vt.SelFw
 
 /-!
-# All the block selectors (G:1988-2075, 2116-2126, 2311-2385)
+# All the block selectors (G:1977-2064, 2105-2115, 2300-2374)
 
 `vt_sels`: when `block_kappa` holds `blockKappaWords` of `log_mem` and the tables' heights `τ`,
 the point fits the memory and bytecode blocks, the push side's three framework selectors and

@@ -279,7 +279,7 @@ theorem sphincs_complete_val (C : CallRel) (rd : Reader) (p bb : E) (pk : HashSi
       (cellOf128 (m.extractLsb' 128 128)))
     (hv : Sphincs.verifyWithKeccak pk m sig = true) :
     ∃ σf : Val, σf (.n 0) = p ∧ σf (.n 1) = bb ∧
-      Stmt.HoldsList C rd σf Data.core20.body False (fun rs => rs = []) ∧
+      Stmt.HoldsList C rd σf Data.core21.body False (fun rs => rs = []) ∧
       SFinal rd σf (cellOf128 pk.parameter) (cellOf128 (m.extractLsb' 0 128))
         (cellOf128 (m.extractLsb' 128 128)) (cellOf128 sig.randomizer) sig
         (cellNat (hcell [cellOf128 pk.parameter, word (tw 12) 0 0, cellOf128 (m.extractLsb' 0 128),

@@ -31,21 +31,24 @@ def kcSTlll : NTree ℕ := (.node 2 2 .leaf .leaf)
 def kcSTllr : NTree ℕ := (.node 20 20 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTlrl : NTree ℕ := (.node 31 31 .leaf .leaf)
+def kcSTlrl : NTree ℕ := (.node 22 22 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrll : NTree ℕ := (.node 34 34 .leaf .leaf)
+def kcSTlrr : NTree ℕ := (.node 33 33 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrlr : NTree ℕ := (.node 385 385 .leaf .leaf)
+def kcSTrll : NTree ℕ := (.node 35 35 .leaf .leaf)
 
 /-- A subtree. -/
-def kcSTrrl : NTree ℕ := (.node 387 387 .leaf .leaf)
+def kcSTrlr : NTree ℕ := (.node 386 386 .leaf .leaf)
+
+/-- A subtree. -/
+def kcSTrrl : NTree ℕ := (.node 388 388 .leaf .leaf)
 
 
 /-- The functions the certificates counting instructions cover, by core index (each its own
 value): the closure of `main`'s statically bounded callees. -/
-def kcST : NTree ℕ := (.node 33 33 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 32 32 kcSTlrl .leaf)) (.node 386 386 (.node 35 35 kcSTrll kcSTrlr) (.node 388 388 kcSTrrl .leaf)))
+def kcST : NTree ℕ := (.node 34 34 (.node 21 21 (.node 19 19 kcSTlll kcSTllr) (.node 32 32 kcSTlrl kcSTlrr)) (.node 387 387 (.node 36 36 kcSTrll kcSTrlr) (.node 389 389 kcSTrrl .leaf)))
 
 /-- Function `j` is covered. -/
 def kcIn (j : ℕ) : Prop := kcST.find j = some j

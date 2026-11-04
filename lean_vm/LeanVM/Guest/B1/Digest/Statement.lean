@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.Statement
 
-  B1 for `statement_digest` (G:3759-3790; TRIAGE #86): the statement's digest, byte for byte.
+  B1 for `statement_digest` (G:3752-3783; TRIAGE #86): the statement's digest, byte for byte.
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Digest.Basic
 seed's two cells, the two claim lists' digests' two each, the DA digest's two, then the 24
 deferred cells (read at `defer`) two at a time as three canonical cells each (`pack_pair`), `704`
 bytes in six `KECCAK` blocks, the last holding bytes `680 … 703`, the padding's `0x01` (byte
-`704`, cell `44`) and `0x80` (byte `815`, cell `50`). Its core IR (`Data.core21`) is the template
+`704`, cell `44`) and `0x80` (byte `815`, cell `50`). Its core IR (`Data.core22`) is the template
 `sdAtoms` (`core21_body`, by kernel evaluation); `keccak_final_digest` makes the chain Keccak-256 of
 the cells' bytes, which are the header cells' and the deferred cells' limbs (`pair_bytes`).
 -/
@@ -80,10 +80,10 @@ def sdAtoms : List Atom :=
     [.copy (.n 465) (.n 452), .copy (.n 466) (.n 453)]
 
 set_option maxRecDepth 100000 in
-theorem core21_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]] :=
+theorem core21_body : Fn.body Data.core22 = sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem core21_params : Fn.params Data.core21 =
+theorem core21_params : Fn.params Data.core22 =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
 
 /-! ## The cells -/

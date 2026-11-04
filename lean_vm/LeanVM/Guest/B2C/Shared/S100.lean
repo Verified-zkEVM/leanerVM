@@ -16,36 +16,99 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, once. -/
-theorem st255 : shareStatic 255 = true := by decide +kernel
+/-- `__loop5`, window 1. -/
+theorem w80_1 : shareWin 80 (snapsOf 80) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 0. -/
-theorem w255_0 : shareWin 255 (snapsOf 255) 0 = true := by decide +kernel
+/-- `__loop6`, once. -/
+theorem st81 : shareStatic 81 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 1. -/
-theorem w255_1 : shareWin 255 (snapsOf 255) 1 = true := by decide +kernel
+/-- `__loop6`, window 0. -/
+theorem w81_0 : shareWin 81 (snapsOf 81) 0 = true := by decide +kernel
+
+theorem ok81 : ShareOk 81 := ⟨st81, fun i hi ↦ by
+  have h : (snapsOf 81).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w81_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 2. -/
-theorem w255_2 : shareWin 255 (snapsOf 255) 2 = true := by decide +kernel
+/-- `__loop7`, once. -/
+theorem st82 : shareStatic 82 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 3. -/
-theorem w255_3 : shareWin 255 (snapsOf 255) 3 = true := by decide +kernel
+/-- `__loop7`, window 0. -/
+theorem w82_0 : shareWin 82 (snapsOf 82) 0 = true := by decide +kernel
+
+theorem ok82 : ShareOk 82 := ⟨st82, fun i hi ↦ by
+  have h : (snapsOf 82).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w82_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 4. -/
-theorem w255_4 : shareWin 255 (snapsOf 255) 4 = true := by decide +kernel
+/-- `__loop8`, once. -/
+theorem st83 : shareStatic 83 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 5. -/
-theorem w255_5 : shareWin 255 (snapsOf 255) 5 = true := by decide +kernel
+/-- `__loop8`, window 0. -/
+theorem w83_0 : shareWin 83 (snapsOf 83) 0 = true := by decide +kernel
+
+theorem ok83 : ShareOk 83 := ⟨st83, fun i hi ↦ by
+  have h : (snapsOf 83).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w83_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 6. -/
-theorem w255_6 : shareWin 255 (snapsOf 255) 6 = true := by decide +kernel
+/-- `sel_partial_nibble__L0`, once. -/
+theorem st84 : shareStatic 84 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L0`, window 0. -/
+theorem w84_0 : shareWin 84 (snapsOf 84) 0 = true := by decide +kernel
+
+theorem ok84 : ShareOk 84 := ⟨st84, fun i hi ↦ by
+  have h : (snapsOf 84).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w84_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L1`, once. -/
+theorem st85 : shareStatic 85 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L1`, window 0. -/
+theorem w85_0 : shareWin 85 (snapsOf 85) 0 = true := by decide +kernel
+
+theorem ok85 : ShareOk 85 := ⟨st85, fun i hi ↦ by
+  have h : (snapsOf 85).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w85_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L2`, once. -/
+theorem st86 : shareStatic 86 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L2`, window 0. -/
+theorem w86_0 : shareWin 86 (snapsOf 86) 0 = true := by decide +kernel
+
+theorem ok86 : ShareOk 86 := ⟨st86, fun i hi ↦ by
+  have h : (snapsOf 86).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w86_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L3`, once. -/
+theorem st87 : shareStatic 87 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sel_partial_nibble__L3`, window 0. -/
+theorem w87_0 : shareWin 87 (snapsOf 87) 0 = true := by decide +kernel
+
+theorem ok87 : ShareOk 87 := ⟨st87, fun i hi ↦ by
+  have h : (snapsOf 87).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w87_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

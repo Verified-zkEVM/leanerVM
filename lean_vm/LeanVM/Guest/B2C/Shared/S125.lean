@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L16`, window 4. -/
-theorem w311_4 : shareWin 311 (snapsOf 311) 4 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, once. -/
+theorem st258 : shareStatic 258 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L16`, window 5. -/
-theorem w311_5 : shareWin 311 (snapsOf 311) 5 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 0. -/
+theorem w258_0 : shareWin 258 (snapsOf 258) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, once. -/
-theorem st312 : shareStatic 312 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 1. -/
+theorem w258_1 : shareWin 258 (snapsOf 258) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, window 0. -/
-theorem w312_0 : shareWin 312 (snapsOf 312) 0 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 2. -/
+theorem w258_2 : shareWin 258 (snapsOf 258) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, window 1. -/
-theorem w312_1 : shareWin 312 (snapsOf 312) 1 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 3. -/
+theorem w258_3 : shareWin 258 (snapsOf 258) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, window 2. -/
-theorem w312_2 : shareWin 312 (snapsOf 312) 2 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 4. -/
+theorem w258_4 : shareWin 258 (snapsOf 258) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, window 3. -/
-theorem w312_3 : shareWin 312 (snapsOf 312) 3 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 5. -/
+theorem w258_5 : shareWin 258 (snapsOf 258) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L17`, window 4. -/
-theorem w312_4 : shareWin 312 (snapsOf 312) 4 = true := by decide +kernel
+/-- `keccak_layer__L0_L1`, window 6. -/
+theorem w258_6 : shareWin 258 (snapsOf 258) 6 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -17,14 +17,17 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 11. -/
+/-- `sp_wots`, window 11. -/
 theorem w21_11 : WinOk 21 11 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 12. -/
+/-- `sp_wots`, window 12. -/
 theorem w21_12 : WinOk 21 12 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 13. -/
+/-- `sp_wots`, window 13. -/
 theorem w21_13 : WinOk 21 13 := winOk_of_C (by decide +kernel)
+
+/-- `sp_wots`, window 14. -/
+theorem w21_14 : WinOk 21 14 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

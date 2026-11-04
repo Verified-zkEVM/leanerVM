@@ -24,11 +24,11 @@ theorem wfRange_320 : WfRange 320 1 := by
   unfold WfRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wfRange_321 : WfRange 321 10 := by
+theorem wfRange_321 : WfRange 321 1 := by
   unfold WfRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wfRange_331 : WfRange 331 35 := by
+theorem wfRange_322 : WfRange 322 10 := by
   unfold WfRange; decide +kernel
 
 end

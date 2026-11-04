@@ -56,9 +56,9 @@ theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
   have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 32 default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 32 default) = Data.core32.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD 32 default) = Data.core33.body.take 10 from rfl]
     intro t ht
-    simp only [Data.core32.body, List.take_succ_cons, List.take_zero, List.mem_cons,
+    simp only [Data.core33.body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact And.intro rfl trivial | exact And.intro trivial trivial
@@ -71,9 +71,9 @@ theorem mfL2_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
   have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 33 default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 33 default) = Data.core33.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD 33 default) = Data.core34.body.take 10 from rfl]
     intro t ht
-    simp only [Data.core33.body, List.take_succ_cons, List.take_zero, List.mem_cons,
+    simp only [Data.core34.body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals first | exact And.intro rfl trivial | exact And.intro trivial trivial

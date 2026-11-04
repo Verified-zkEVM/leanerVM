@@ -16,99 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L7_L8_L128`, window 2. -/
-theorem w378_2 : shareWin 378 (snapsOf 378) 2 = true := by decide +kernel
+/-- `open_stacked__L12`, window 5. -/
+theorem w308_5 : shareWin 308 (snapsOf 308) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop22`, once. -/
-theorem st379 : shareStatic 379 = true := by decide +kernel
+/-- `open_stacked__L12`, window 6. -/
+theorem w308_6 : shareWin 308 (snapsOf 308) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop22`, window 0. -/
-theorem w379_0 : shareWin 379 (snapsOf 379) 0 = true := by decide +kernel
-
-theorem ok379 : ShareOk 379 := ⟨st379, fun i hi ↦ by
-  have h : (snapsOf 379).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w379_0⟩
+/-- `open_stacked__L13`, once. -/
+theorem st309 : shareStatic 309 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop23`, once. -/
-theorem st380 : shareStatic 380 = true := by decide +kernel
+/-- `open_stacked__L13`, window 0. -/
+theorem w309_0 : shareWin 309 (snapsOf 309) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop23`, window 0. -/
-theorem w380_0 : shareWin 380 (snapsOf 380) 0 = true := by decide +kernel
-
-theorem ok380 : ShareOk 380 := ⟨st380, fun i hi ↦ by
-  have h : (snapsOf 380).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w380_0⟩
+/-- `open_stacked__L13`, window 1. -/
+theorem w309_1 : shareWin 309 (snapsOf 309) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop24`, once. -/
-theorem st381 : shareStatic 381 = true := by decide +kernel
+/-- `open_stacked__L13`, window 2. -/
+theorem w309_2 : shareWin 309 (snapsOf 309) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop24`, window 0. -/
-theorem w381_0 : shareWin 381 (snapsOf 381) 0 = true := by decide +kernel
-
-theorem ok381 : ShareOk 381 := ⟨st381, fun i hi ↦ by
-  have h : (snapsOf 381).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w381_0⟩
+/-- `open_stacked__L13`, window 3. -/
+theorem w309_3 : shareWin 309 (snapsOf 309) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop25`, once. -/
-theorem st382 : shareStatic 382 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop25`, window 0. -/
-theorem w382_0 : shareWin 382 (snapsOf 382) 0 = true := by decide +kernel
-
-theorem ok382 : ShareOk 382 := ⟨st382, fun i hi ↦ by
-  have h : (snapsOf 382).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w382_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop26`, once. -/
-theorem st383 : shareStatic 383 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop26`, window 0. -/
-theorem w383_0 : shareWin 383 (snapsOf 383) 0 = true := by decide +kernel
-
-theorem ok383 : ShareOk 383 := ⟨st383, fun i hi ↦ by
-  have h : (snapsOf 383).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w383_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop27`, once. -/
-theorem st384 : shareStatic 384 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop27`, window 0. -/
-theorem w384_0 : shareWin 384 (snapsOf 384) 0 = true := by decide +kernel
-
-theorem ok384 : ShareOk 384 := ⟨st384, fun i hi ↦ by
-  have h : (snapsOf 384).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w384_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop28`, once. -/
-theorem st385 : shareStatic 385 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop28`, window 0. -/
-theorem w385_0 : shareWin 385 (snapsOf 385) 0 = true := by decide +kernel
-
-theorem ok385 : ShareOk 385 := ⟨st385, fun i hi ↦ by
-  have h : (snapsOf 385).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w385_0⟩
+/-- `open_stacked__L13`, window 4. -/
+theorem w309_4 : shareWin 309 (snapsOf 309) 4 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -90,7 +90,7 @@ theorem row_shape_completeAtB (fs : String → ℕ) (cert : String → V → ℕ
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_row_shape _ _).mp hrel
   rw [rs_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : Data.core26.params = [.n 0, .n 1, .n 2] := rfl
+  have hpar : Data.core27.params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   have h15 : σ (.n 15) = gen ^ s * gen ^ L := by

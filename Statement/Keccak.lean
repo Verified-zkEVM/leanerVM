@@ -12,7 +12,7 @@ permutation's state is one type throughout, `KeccakState`: `25` lanes of `64` bi
 at index `x + 5y`.
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`1e9d8cffd6df7d5210e70a33664a6cd6f569918e` (branch `main`): the round constants, rotation
+`542b0353aa2ab87602f5a04455a985d099c9765c` (branch `main`): the round constants, rotation
 offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`),
 the permutation `keccak_f` (`verifier.py:360-375`) and the hash `keccak_hash`
 (`verifier.py:191-209`): Keccak-256 as Ethereum computes it, rate `136` bytes, the message padded

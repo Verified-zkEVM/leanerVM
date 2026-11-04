@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.LevelRest
 public import LeanVM.Protocol.WithHash
 
 /-!
-# A level's queries and glue, soundly (G:1402-1495)
+# A level's queries and glue, soundly (G:1391-1484)
 
 `osLevelB_sound`: `osLevelB`'s atoms and calls (the squeezes, the weights, the queries, the glue)
 run `levelRest` from the sponge with nothing waiting after the proof of work, and leave the

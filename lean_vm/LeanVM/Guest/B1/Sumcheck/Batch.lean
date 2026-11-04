@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `batch_sumcheck` (G:1000-1014, TRIAGE #32)
+# `batch_sumcheck` (G:989-1003, TRIAGE #32)
 
 Its body at `n` rounds (`bsBody n`): the capacity copied into `8 .. 12`; round `0` (`bsRound0`):
 `g(1)`, `g(∞)` read at `msgs[0]`, `msgs[1]` and packed (`fsNextT` from `13`, `23`), the pad run
@@ -791,13 +791,13 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     rfl
 
 set_option maxRecDepth 100000 in
-theorem core376_body : Fn.body Data.core387 = bsBody 23 := stmtsEqb_sound (by decide +kernel)
+theorem core376_body : Fn.body Data.core388 = bsBody 23 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`batch_sumcheck`'s core IR is its meaning.** -/
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
-  have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core387 :=
+  have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core388 :=
     Program.find?_of_indexOf? (j := 387) (by decide +kernel) rfl
   exact ⟨bs_sound 23 (by decide) hfind rfl core376_body rd args rets,
     bs_complete 23 (by decide) hfind rfl core376_body rd args rets⟩

@@ -16,36 +16,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 9. -/
-theorem w21_9 : shareWin 21 (snapsOf 21) 9 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 11. -/
-theorem w21_11 : shareWin 21 (snapsOf 21) 11 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 12. -/
-theorem w21_12 : shareWin 21 (snapsOf 21) 12 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 13. -/
-theorem w21_13 : shareWin 21 (snapsOf 21) 13 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 15. -/
-theorem w21_15 : shareWin 21 (snapsOf 21) 15 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 17. -/
-theorem w21_17 : shareWin 21 (snapsOf 21) 17 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 18. -/
-theorem w21_18 : shareWin 21 (snapsOf 21) 18 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 19. -/
-theorem w21_19 : shareWin 21 (snapsOf 21) 19 = true := by decide +kernel
+/-- `sp_wots`, once. -/
+theorem st21 : shareStatic 21 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

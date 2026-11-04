@@ -20,11 +20,14 @@ open LeanVM.Guest.Check
 /-- `verify_lean_xmss`, window 39. -/
 theorem w20_39 : WinOk 20 39 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 0. -/
+/-- `sp_wots`, window 0. -/
 theorem w21_0 : WinOk 21 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_sig_lean_sphincs`, window 1. -/
+/-- `sp_wots`, window 1. -/
 theorem w21_1 : WinOk 21 1 := winOk_of_C (by decide +kernel)
+
+/-- `sp_wots`, window 2. -/
+theorem w21_2 : WinOk 21 2 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

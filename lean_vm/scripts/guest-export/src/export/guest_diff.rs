@@ -180,7 +180,7 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation.rs:1689-1693`).
+    // deduplicated (`aggregation.rs:1640-1644`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));

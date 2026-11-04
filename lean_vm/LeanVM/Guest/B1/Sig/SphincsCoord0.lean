@@ -17,11 +17,11 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem sBody_slice_200 : (Data.core20.body.drop 200).take 9 = (sBody.drop 200).take 9 := by
+theorem sBody_slice_200 : (Data.core21.body.drop 200).take 9 = (sBody.drop 200).take 9 := by
   decide +kernel
 
 open scoped Dec in
-theorem sBody_slice_210 : (Data.core20.body.drop 210).take 25 = (sBody.drop 210).take 25 := by
+theorem sBody_slice_210 : (Data.core21.body.drop 210).take 25 = (sBody.drop 210).take 25 := by
   decide +kernel
 
 end

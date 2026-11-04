@@ -17,7 +17,7 @@ public import LeanVM.Guest.Memory.Regions
 * `loadOkB`, `stmtLoadsB`: a load reads through the argument `n0` at an offset below `4`, or through
   one of the given values at offset `0`; `walk_loadOk`: the path of a block passing the check
   loads only so;
-* `core20_loads`: `Data.core20.body` passes it, its other pointers the seven byte reads'
+* `core20_loads`: `Data.core21.body` passes it, its other pointers the seven byte reads'
   (`n139`, `n145`, `n154` for the unused bytes, `sB + 8`, `+ 14`, `+ 23`, `+ 32` for the counter);
 * `verify_sig_lean_sphincs_complete_loads`: the valuation of `sphincs_complete_val` loads from
   `p·g^k`, `k < 4`, or `bb·g^v`, `v < 256`, along the body's path.
@@ -153,7 +153,7 @@ theorem loadAddrs_of_loadOk {ptrs : List Nat} {es : List Ev} (h : ∀ e ∈ es, 
 /-- The byte reads' pointers. -/
 def sPtrs : List Nat := [139, 145, 154, 412419, 412425, 412434, 412443]
 
-theorem core20_loads : listLoadsB sPtrs Data.core20.body = true := by decide +kernel
+theorem core20_loads : listLoadsB sPtrs Data.core21.body = true := by decide +kernel
 
 theorem sB_val : sB = 412411 := by decide +kernel
 
@@ -219,8 +219,8 @@ def verify_sig_lean_sphincs_complete_loads_Spec : Prop :=
       (cellOf128 (m.extractLsb' 128 128)) →
     Sphincs.verifyWithKeccak pk m sig = true →
       ∃ σ : Val, σ (.n 0) = p ∧ σ (.n 1) = bb ∧
-        Stmt.HoldsList C rd σ Data.core20.body False (fun rs => rs = []) ∧
-        ∀ es vs, walk σ Data.core20.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
+        Stmt.HoldsList C rd σ Data.core21.body False (fun rs => rs = []) ∧
+        ∀ es vs, walk σ Data.core21.body = .ret es vs → ∀ A ∈ loadAddrs σ es,
           (∃ k < 4, A = p.limb 0 * addressOfIndex k) ∨ ∃ v < 256, A = bb.limb 0 * addressOfIndex v
 
 /-- **`verify_sig_lean_sphincs`'s complete valuation loads only the claim and the byte table.** -/
@@ -236,7 +236,7 @@ theorem verify_sig_lean_sphincs_complete_loads : verify_sig_lean_sphincs_complet
   obtain ⟨s2, -⟩ := sCoords_sound (C := C) (rd := rd) (σ := σf) hpre.pad hpre.tws 8 0 s0.2
   have hmid := atomsHold_of_holdsList sMid_atoms (holdsList_split_atoms sMid_atoms s2).1
   -- the path's loads
-  generalize hbody : Data.core20.body = ss at hw
+  generalize hbody : Data.core21.body = ss at hw
   have hall := loads_of_walk (hbody ▸ core20_loads) hw
   intro A hA
   rcases loadAddrs_of_loadOk hall A hA with ⟨k, hk, rfl⟩ | ⟨q, hq, rfl⟩

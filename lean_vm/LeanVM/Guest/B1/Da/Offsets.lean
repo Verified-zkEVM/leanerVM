@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Offsets
 
-  `da_column_offsets`' template, its loops' and its meaning (G:4065-4083).
+  `da_column_offsets`' template, its loops' and its meaning (G:4058-4076).
 -/
 
 module
@@ -9,9 +9,9 @@ module
 public import LeanVM.Guest.B1.Da.Help
 
 /-!
-# `da_column_offsets` (G:4065-4083)
+# `da_column_offsets` (G:4058-4076)
 
-`da_column_offsets(zs)` (`core30`): a heap run `offsets` (`.n 1`, `1024` words) whose first eight
+`da_column_offsets(zs)` (`core31`): a heap run `offsets` (`.n 1`, `1024` words) whose first eight
 words are zero; then for each bit `b < 7` of the cell index a run `steps` (`.n (offB b)`, eight
 words), `steps[j] = zs[j] · Ŵ_j(e_(8 + b))` (`DA_VHAT_COLUMN[8b + j]`, here `offC b j`, read off
 `wK`), and the loop `__loop{22 + b}` (`core{378 + b}`) over `h < 2^b`, which writes

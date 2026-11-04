@@ -14,7 +14,7 @@ namespace LeanVMTests.Guest.Bytecode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
-example : Data.functions.length = 884 := by decide +kernel
+example : Data.functions.length = 885 := by decide +kernel
 
 example : Data.codeLen = 362718 := rfl
 

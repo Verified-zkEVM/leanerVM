@@ -17,17 +17,17 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 set_option maxRecDepth 100000 in
 theorem sphincsLeaf_420 :
-    Stmt.leafOkList anyAtom ((Data.core20.body.drop 420).take 37) = true := by
+    Stmt.leafOkList anyAtom ((Data.core21.body.drop 420).take 37) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem sphincsLeaf_457 :
-    Stmt.leafOkList anyAtom ((Data.core20.body.drop 457).take 81) = true := by
+    Stmt.leafOkList anyAtom ((Data.core21.body.drop 457).take 81) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem sphincsLeaf_538 :
-    Stmt.leafOkList anyAtom ((Data.core20.body.drop 538).take 36) = true := by
+    Stmt.leafOkList anyAtom ((Data.core21.body.drop 538).take 36) = true := by
   decide +kernel
 
 end

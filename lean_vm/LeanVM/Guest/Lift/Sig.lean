@@ -100,9 +100,9 @@ theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.verify_sig_lean_sphincs_compl
     (hregb : ∀ v < 256, ∃ i, bb.limb 0 * addressOfIndex v = addressOfIndex i ∧ R i) :
     coreProgram.RelIn rd R "verify_sig_lean_sphincs" [p, bb] [] := by
   obtain ⟨σ, h0, h1, hb, hloads⟩ := hc (coreProgram.Rel rd) rd p bb pk m sig hrd hbb hat hv
-  have hsat := walk_sat (P := coreProgram) Data.core20.body core20_wf hb
-  have hall := walk_leafOk (σ := σ) Data.core20.body sphincs_leafOk
-  cases hw : walk σ Data.core20.body with
+  have hsat := walk_sat (P := coreProgram) Data.core21.body core20_wf hb
+  have hall := walk_leafOk (σ := σ) Data.core21.body sphincs_leafOk
+  cases hw : walk σ Data.core21.body with
   | fall es => rw [hw] at hsat; exact hsat.2.elim
   | stuck => rw [hw] at hsat; exact hsat.elim
   | ret es vs =>

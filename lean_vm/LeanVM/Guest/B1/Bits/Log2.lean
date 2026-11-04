@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Bits.Grind
 
 Ported from the BLAKE2s-era `B1/Log2.lean` (both functions are unchanged).
 
-`verify_log2_ceil(bits, g_logs_pow2, g_squares, floor, 34)` (G:679-713) reads 34 Boolean bits of a
+`verify_log2_ceil(bits, g_logs_pow2, g_squares, floor, 34)` (G:668-702) reads 34 Boolean bits of a
 word `W`, multiplies `g^W` over `g_squares`, stores the prefix sums `W mod 2^j` in a fresh run,
 and pins the hinted `g^L` by two range checks (`L < 34`, `L - floor < 34`), `high·(W + 2^L) = 0`
 and, unless `L` is the floor or zero, `(W mod 2^(L-1) + W)·(W + 2^(L-1)) ≠ 0`: that is
@@ -115,9 +115,9 @@ def vlBody (fl : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n 3) 35)), .atom (.const (.n 4) (word 0 0 0)),
     .atom (.load (.n 4) (.n 3) 0)] ++ ((List.range 34).map vlBlk).flatten ++ vlTail fl
 
-theorem core385_body : Fn.body Data.core396 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core385_body : Fn.body Data.core397 = vlBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core386_body : Fn.body Data.core397 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core386_body : Fn.body Data.core398 = vlBody 15 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The bits, the prefix sums, the product -/
 
@@ -617,12 +617,12 @@ theorem verify_log2_ceil_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L0_L34 :
-    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core396 :=
+    coreProgram.find? "verify_log2_ceil__L0_L34" = some Data.core397 :=
   Program.find?_of_indexOf? (j := 396) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_verify_log2_ceil_L15_L34 :
-    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core397 :=
+    coreProgram.find? "verify_log2_ceil__L15_L34" = some Data.core398 :=
   Program.find?_of_indexOf? (j := 397) (by decide +kernel) rfl
 
 theorem verify_log2_ceil_L0_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemoryImage κ)

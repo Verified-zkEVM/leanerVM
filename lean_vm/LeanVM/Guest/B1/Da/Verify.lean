@@ -216,8 +216,8 @@ lies below `coreProgram.Rel`, on a memory image with the exponent table at its a
 returned words are the cells of a root and the rate cells of a challenge `z` that `dvWit σ Vm`
 opens. -/
 theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : Data.core25.params.map σ = [gsq])
-    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core25) False (fun rs => rs = rets))
+    (hm : MemOk rd) {σ : Val} {gsq : E} {rets : List E} (hpar0 : Data.core26.params.map σ = [gsq])
+    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core26) False (fun rs => rs = rets))
     (hsq0 : SquaresAt rd gsq) :
     ∃ (root : Digest) (z c2 : E), (dvWit σ Vm).Opens root z ∧ IsInK c2 ∧
       rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0] := by
@@ -394,7 +394,7 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
 theorem da_verify_holds : da_verify_sound_Spec := by
   intro rd hm args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify _ _).mp hrel
-  have hp : Data.core25.params.map σ = [σ (.n 0)] := rfl
+  have hp : Data.core26.params.map σ = [σ (.n 0)] := rfl
   rw [hp] at hpar
   subst hpar
   simp only [MeaningDaVerify]

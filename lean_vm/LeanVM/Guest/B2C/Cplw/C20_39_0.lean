@@ -19,26 +19,17 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `verify_lean_xmss`, window 39, part 0. -/
 theorem cw20_39_0 : cplWin 20 39 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 0, part 0. -/
+/-- `sp_wots`, window 0, part 0. -/
 theorem cw21_0_0 : cplWin 21 0 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 1, part 0. -/
+/-- `sp_wots`, window 1, part 0. -/
 theorem cw21_1_0 : cplWin 21 1 0 = true := by decide +kernel
 
-/-- `verify_sig_lean_sphincs`, window 3, part 0. -/
+/-- `sp_wots`, window 2, part 0. -/
+theorem cw21_2_0 : cplWin 21 2 0 = true := by decide +kernel
+
+/-- `sp_wots`, window 3, part 0. -/
 theorem cw21_3_0 : cplWin 21 3 0 = true := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`, window 5, part 0. -/
-theorem cw21_5_0 : cplWin 21 5 0 = true := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`, window 6, part 0. -/
-theorem cw21_6_0 : cplWin 21 6 0 = true := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`, window 7, part 0. -/
-theorem cw21_7_0 : cplWin 21 7 0 = true := by decide +kernel
-
-/-- `verify_sig_lean_sphincs`, window 9, part 0. -/
-theorem cw21_9_0 : cplWin 21 9 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

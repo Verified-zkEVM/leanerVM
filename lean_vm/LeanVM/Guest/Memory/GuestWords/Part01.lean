@@ -14,25 +14,24 @@ theorem wsplit_19_533 : blockR (wlookJ 19) (womLookJ 19) true [] Data.core19.par
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_20_0 : noTopRet ((Data.core20.body.drop 0).take 246) = true ∧
-    blockR (wlookJ 20) (womLookJ 20) true [] Data.core20.params Data.core20.name ((Data.core20.body.drop 0).take 246)
+theorem wsplit_20_0 : noTopRet ((Data.core20.body.drop 0).take 61) = true ∧
+    blockR (wlookJ 20) (womLookJ 20) true [] Data.core20.params Data.core20.name ((Data.core20.body.drop 0).take 61)
       ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv true [] Data.core20.params ([], []) ((Data.core20.body.drop 0).take 246) = ([], []) := by
+    blockEnv true [] Data.core20.params ([], []) ((Data.core20.body.drop 0).take 61) = ([], []) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_20_246 : noTopRet ((Data.core20.body.drop 246).take 63) = true ∧
-    blockR (wlookJ 20) (womLookJ 20) true [] Data.core20.params Data.core20.name ((Data.core20.body.drop 246).take 63)
-      ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv true [] Data.core20.params ([], []) ((Data.core20.body.drop 246).take 63) = ([], []) := by
+theorem wsplit_20_61 : blockR (wlookJ 20) (womLookJ 20) true [] Data.core20.params Data.core20.name (Data.core20.body.drop 61)
+    ([], []) = some (⟨0, []⟩, []) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_20_309 : noTopRet ((Data.core20.body.drop 309).take 48) = true ∧
-    blockR (wlookJ 20) (womLookJ 20) true [] Data.core20.params Data.core20.name ((Data.core20.body.drop 309).take 48)
-      ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv true [] Data.core20.params ([], []) ((Data.core20.body.drop 309).take 48) = ([], []) := by
-  decide +kernel
+theorem wstaticRange_21 : wStaticRange 21 21 := by
+  unfold wStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem wstaticRange_42 : wStaticRange 42 27 := by
+  unfold wStaticRange; decide +kernel
 
 end
 end LeanVM.Guest

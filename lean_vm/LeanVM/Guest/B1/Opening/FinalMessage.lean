@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 
 /-!
-# `opening_final_message` (G:1125-1144, TRIAGE #37)
+# `opening_final_message` (G:1114-1133, TRIAGE #37)
 
 Its body at `n = 4m` words (`ofmBody m`): the capacity copied into `9 .. 13`, the waiting `w0`,
 `w1` packed (`fsPackT` from `14`, `23`); message word `i` read, packed and stored
@@ -818,13 +818,13 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
 
 
 set_option maxRecDepth 100000 in
-theorem core437_body : Fn.body Data.core448 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core437_body : Fn.body Data.core449 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core456_body : Fn.body Data.core467 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core456_body : Fn.body Data.core468 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core402_body : Fn.body Data.core413 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem core402_body : Fn.body Data.core414 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core419_body : Fn.body Data.core430 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core419_body : Fn.body Data.core431 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
 
 theorem ofm_iff {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤ 8)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = ofmParams)

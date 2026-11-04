@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# `grind_check` (G:774-796, TRIAGE #21)
+# `grind_check` (G:763-785, TRIAGE #21)
 
 `grind_check(word, 17)` splits the word (`canonicalLimbsT (.n 0) 1`: canonical, its low limb at
 `1`), hints the low limb's 64 bits into frame cells `5 .. 68`, pins bits `17 .. 63` by booleanity,
@@ -47,10 +47,10 @@ def gcBody : List Stmt :=
   canonicalLimbsT (.n 0) 1 ++ [.atom (.hint (.bits (.n 1) 0 64 (.stack gcRun)))] ++
   ((List.range 47).map gcBlk).flatten ++ [.atom (.assertEq (.n 208) (.n 1)), .ret []]
 
-theorem core388_body : Fn.body Data.core399 = gcBody := stmtsEqb_sound (by decide +kernel)
+theorem core388_body : Fn.body Data.core400 = gcBody := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core399 :=
+theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core400 :=
   Program.find?_of_indexOf? (j := 399) (by decide +kernel) rfl
 
 /-- What bit `17 + j` asks of a valuation. -/
@@ -125,7 +125,7 @@ theorem gv_acc (w : E) (j : ℕ) : gcVals w (gcAcc j) = gcSum w (j + 1) := by
 /-- **`grind_check`'s core IR is its meaning.** -/
 theorem grind_check_holds : grind_check_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_grind_check, core388_body, show Fn.params Data.core399 = [.n 0] from rfl,
+  rw [rel_iff_sem find_grind_check, core388_body, show Fn.params Data.core400 = [.n 0] from rfl,
     gcBody]
   simp only [holdsList_append, holds_canonicalLimbsT,
     holdsList_range_flatten 47 gcBlk (fun j => by cases j <;> rfl), holds_gcBlk, Stmt.HoldsList,

@@ -9,47 +9,47 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_345 : kukStaticRange 345 30 := by
+theorem kukstaticRange_346 : kukStaticRange 346 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_375 : kukStaticRange 375 30 := by
+theorem kukstaticRange_376 : kukStaticRange 376 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_405 : kukStaticRange 405 30 := by
+theorem kukstaticRange_406 : kukStaticRange 406 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_435 : kukStaticRange 435 30 := by
+theorem kukstaticRange_436 : kukStaticRange 436 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_465 : kukStaticRange 465 30 := by
+theorem kukstaticRange_466 : kukStaticRange 466 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_495 : kukStaticRange 495 30 := by
+theorem kukstaticRange_496 : kukStaticRange 496 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_525 : kukStaticRange 525 30 := by
+theorem kukstaticRange_526 : kukStaticRange 526 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_555 : kukStaticRange 555 30 := by
+theorem kukstaticRange_556 : kukStaticRange 556 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_585 : kukStaticRange 585 30 := by
+theorem kukstaticRange_586 : kukStaticRange 586 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_615 : kukStaticRange 615 30 := by
+theorem kukstaticRange_616 : kukStaticRange 616 30 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_645 : kukStaticRange 645 30 := by
+theorem kukstaticRange_646 : kukStaticRange 646 30 := by
   unfold kukStaticRange; decide +kernel
 
 end

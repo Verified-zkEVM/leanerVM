@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 /-!
 # `decode_query_bits` (TRIAGE #20)
 
-`decode_query_bits(word, positions, bit_ptrs, depth)` (G:647-691) hints the 192 bits of `word`
+`decode_query_bits(word, positions, bit_ptrs, depth)` (G:636-680) hints the 192 bits of `word`
 into a frame run, pins each by booleanity, and for each of the `192 / depth` groups `j` stores the
 position `Σ_b bit_{j·depth + b} 2^b` (a group crossing a limb boundary as two runs joined by
 `COORD_BASIS[cut]`) and the pointer `bits·g^(j·depth)` to its bits; the leftover bits and the
@@ -113,31 +113,31 @@ def dqBody (d : ℕ) : List Stmt :=
   [.atom (.hint (.bits (.n 0) 0 192 (.stack dqRun))), .atom (.frameAddr (.n 195) dqRun)] ++ g.1 ++
     l.1 ++ [.atom (.assertEq l.2 (.n 0)), .ret []]
 
-theorem core811_body : Fn.body Data.core820 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
+theorem core811_body : Fn.body Data.core821 = dqBody 14 := stmtsEqb_sound (by decide +kernel)
 
-theorem core805_body : Fn.body Data.core814 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
+theorem core805_body : Fn.body Data.core815 = dqBody 17 := stmtsEqb_sound (by decide +kernel)
 
-theorem core807_body : Fn.body Data.core816 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
+theorem core807_body : Fn.body Data.core817 = dqBody 16 := stmtsEqb_sound (by decide +kernel)
 
-theorem core809_body : Fn.body Data.core818 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
+theorem core809_body : Fn.body Data.core819 = dqBody 15 := stmtsEqb_sound (by decide +kernel)
 
-theorem core813_body : Fn.body Data.core822 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
+theorem core813_body : Fn.body Data.core823 = dqBody 18 := stmtsEqb_sound (by decide +kernel)
 
-theorem core817_body : Fn.body Data.core826 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
+theorem core817_body : Fn.body Data.core827 = dqBody 19 := stmtsEqb_sound (by decide +kernel)
 
-theorem core821_body : Fn.body Data.core830 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
+theorem core821_body : Fn.body Data.core831 = dqBody 20 := stmtsEqb_sound (by decide +kernel)
 
-theorem core825_body : Fn.body Data.core834 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
+theorem core825_body : Fn.body Data.core835 = dqBody 21 := stmtsEqb_sound (by decide +kernel)
 
-theorem core829_body : Fn.body Data.core838 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
+theorem core829_body : Fn.body Data.core839 = dqBody 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core833_body : Fn.body Data.core842 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
+theorem core833_body : Fn.body Data.core843 = dqBody 23 := stmtsEqb_sound (by decide +kernel)
 
-theorem core847_body : Fn.body Data.core856 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
+theorem core847_body : Fn.body Data.core857 = dqBody 24 := stmtsEqb_sound (by decide +kernel)
 
-theorem core858_body : Fn.body Data.core867 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
+theorem core858_body : Fn.body Data.core868 = dqBody 25 := stmtsEqb_sound (by decide +kernel)
 
-theorem core870_body : Fn.body Data.core879 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
+theorem core870_body : Fn.body Data.core880 = dqBody 26 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## Sums and bit runs -/
 
@@ -384,7 +384,7 @@ theorem holds_dqGroup (d j k : ℕ) (recon : Option V) (next : Prop) (kret : Lis
   rw [holdsList_append, holdsList_append, dqR, holds_dqBits, ← dqR, dqP, holds_dqPr, ← dqP, holds_dqBp]
   simp only [and_assoc]
 
-/-- **A group** (G:661-684): its bits Boolean, its position their integer over the basis, its
+/-- **A group** (G:650-673): its bits Boolean, its position their integer over the basis, its
 pointer `bits·g^(j·d)`, and its term added to the reconstruction. -/
 theorem dqGroup_facts {d j k : ℕ} {recon : Option V} (hd0 : 0 < d) (hd : d ≤ 26)
     (hj : j * d + d ≤ 192) (hrec : recon = none → j = 0) (h : DqGroupOk rd σ d j k recon) :

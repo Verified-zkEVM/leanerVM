@@ -15,7 +15,7 @@ public import LeanVM.Arithmetization.Completeness.Theorem
 /-!
 # Constraint soundness
 
-At leanVM pin `1e9d8cffd6df7d5210e70a33664a6cd6f569918e` and Clean pin `42fe4b26`. The soundness
+At leanVM pin `542b0353aa2ab87602f5a04455a985d099c9765c` and Clean pin `42fe4b26`. The soundness
 direction for the proof system's constraint statement (`SatisfiedBy`), `constraintSoundness`.
 It assumes that statement, whose three hypotheses Clean cannot yet express and whose `KECCAK`
 validity are conjuncts, and nothing of the program: the machine halts in the final state

@@ -16,17 +16,43 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `keccak_layer__L0_L1`, window 0, part 0. -/
+/-- `keccak_layer__L0_L0`, window 0, part 0. -/
 theorem cw257_0_0 : cplWin 257 0 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L1`, window 1, part 0. -/
+/-- `keccak_layer__L0_L0`, window 1, part 0. -/
 theorem cw257_1_0 : cplWin 257 1 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L1`, window 1, part 1. -/
+/-- `keccak_layer__L0_L0`, window 1, part 1. -/
 theorem cw257_1_1 : cplWin 257 1 1 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L1`, window 2, part 0. -/
+/-- `keccak_layer__L0_L0`, window 2, part 0. -/
 theorem cw257_2_0 : cplWin 257 2 0 = true := by decide +kernel
+
+/-- `keccak_layer__L0_L0`, window 3, part 0. -/
+theorem cw257_3_0 : cplWin 257 3 0 = true := by decide +kernel
+
+theorem ok257 : CplOk 257 := by
+  intro i hi k hk
+  have hc : (certOf 257).cuts.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 257 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw257_0_0
+  · have hn : nParts 257 1 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw257_1_0
+    · exact cw257_1_1
+  · have hn : nParts 257 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw257_2_0
+  · have hn : nParts 257 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw257_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

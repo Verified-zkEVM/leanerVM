@@ -8,39 +8,42 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F300_3
-public import LeanVM.Guest.Checked.F301_5
-public import LeanVM.Guest.Checked.F301_5
-public import LeanVM.Guest.Checked.F301_5
+public import LeanVM.Guest.Checked.F300_4
+public import LeanVM.Guest.Checked.F300_4
+public import LeanVM.Guest.Checked.F302_1
+public import LeanVM.Guest.Checked.F302_1
 public import LeanVM.Guest.Checked.F303_3
 public import LeanVM.Guest.Checked.F303_3
 public import LeanVM.Guest.Checked.F303_3
-public import LeanVM.Guest.Checked.F305_2
-public import LeanVM.Guest.Checked.F305_2
-public import LeanVM.Guest.Checked.F307_0
-public import LeanVM.Guest.Checked.F307_0
-public import LeanVM.Guest.Checked.F308_3
-public import LeanVM.Guest.Checked.F308_3
-public import LeanVM.Guest.Checked.F308_3
+public import LeanVM.Guest.Checked.F305_3
+public import LeanVM.Guest.Checked.F305_3
+public import LeanVM.Guest.Checked.F305_3
+public import LeanVM.Guest.Checked.F307_1
+public import LeanVM.Guest.Checked.F307_1
+public import LeanVM.Guest.Checked.F308_4
+public import LeanVM.Guest.Checked.F308_4
+public import LeanVM.Guest.Checked.F308_4
 public import LeanVM.Guest.Checked.F310_1
 public import LeanVM.Guest.Checked.F310_1
-public import LeanVM.Guest.Checked.F312_0
-public import LeanVM.Guest.Checked.F312_0
-public import LeanVM.Guest.Checked.F313_3
-public import LeanVM.Guest.Checked.F313_3
-public import LeanVM.Guest.Checked.F313_3
-public import LeanVM.Guest.Checked.F315_1
-public import LeanVM.Guest.Checked.F315_1
-public import LeanVM.Guest.Checked.F316_3
-public import LeanVM.Guest.Checked.F316_3
-public import LeanVM.Guest.Checked.F316_3
+public import LeanVM.Guest.Checked.F310_1
+public import LeanVM.Guest.Checked.F312_1
+public import LeanVM.Guest.Checked.F312_1
+public import LeanVM.Guest.Checked.F313_4
+public import LeanVM.Guest.Checked.F313_4
+public import LeanVM.Guest.Checked.F313_4
+public import LeanVM.Guest.Checked.F315_2
+public import LeanVM.Guest.Checked.F315_2
+public import LeanVM.Guest.Checked.F316_5
+public import LeanVM.Guest.Checked.F316_5
+public import LeanVM.Guest.Checked.F316_5
 public import LeanVM.Guest.Checked.F318_3
 public import LeanVM.Guest.Checked.F318_3
 public import LeanVM.Guest.Checked.F318_3
 public import LeanVM.Guest.Checked.F320_3
 public import LeanVM.Guest.Checked.F320_3
 public import LeanVM.Guest.Checked.F320_3
-public import LeanVM.Guest.Checked.F322_1
+public import LeanVM.Guest.Checked.F322_2
+public import LeanVM.Guest.Checked.F322_2
 
 namespace LeanVM.Guest.Checked
 
@@ -62,13 +65,15 @@ theorem plain301 : Plain 301 := by
   decide +kernel
 
 theorem ok302 : CheckOk 302 := fun i hi ↦ by
-  have h : (certOf 302).cuts.length = 3 := by decide +kernel
+  have h : (certOf 302).cuts.length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w302_0
   · exact w302_1
   · exact w302_2
   · exact w302_3
+  · exact w302_4
+  · exact w302_5
 
 theorem plain302 : Plain 302 := by
   unfold Plain
@@ -88,14 +93,13 @@ theorem plain303 : Plain 303 := by
   decide +kernel
 
 theorem ok304 : CheckOk 304 := fun i hi ↦ by
-  have h : (certOf 304).cuts.length = 4 := by decide +kernel
+  have h : (certOf 304).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w304_0
   · exact w304_1
   · exact w304_2
   · exact w304_3
-  · exact w304_4
 
 theorem plain304 : Plain 304 := by
   unfold Plain
@@ -144,7 +148,7 @@ theorem plain307 : Plain 307 := by
   decide +kernel
 
 theorem ok308 : CheckOk 308 := fun i hi ↦ by
-  have h : (certOf 308).cuts.length = 5 := by decide +kernel
+  have h : (certOf 308).cuts.length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w308_0
@@ -152,20 +156,21 @@ theorem ok308 : CheckOk 308 := fun i hi ↦ by
   · exact w308_2
   · exact w308_3
   · exact w308_4
-  · exact w308_5
 
 theorem plain308 : Plain 308 := by
   unfold Plain
   decide +kernel
 
 theorem ok309 : CheckOk 309 := fun i hi ↦ by
-  have h : (certOf 309).cuts.length = 3 := by decide +kernel
+  have h : (certOf 309).cuts.length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w309_0
   · exact w309_1
   · exact w309_2
   · exact w309_3
+  · exact w309_4
+  · exact w309_5
 
 theorem plain309 : Plain 309 := by
   unfold Plain
@@ -185,14 +190,13 @@ theorem plain310 : Plain 310 := by
   decide +kernel
 
 theorem ok311 : CheckOk 311 := fun i hi ↦ by
-  have h : (certOf 311).cuts.length = 4 := by decide +kernel
+  have h : (certOf 311).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w311_0
   · exact w311_1
   · exact w311_2
   · exact w311_3
-  · exact w311_4
 
 theorem plain311 : Plain 311 := by
   unfold Plain
@@ -241,7 +245,7 @@ theorem plain314 : Plain 314 := by
   decide +kernel
 
 theorem ok315 : CheckOk 315 := fun i hi ↦ by
-  have h : (certOf 315).cuts.length = 5 := by decide +kernel
+  have h : (certOf 315).cuts.length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w315_0
@@ -249,20 +253,21 @@ theorem ok315 : CheckOk 315 := fun i hi ↦ by
   · exact w315_2
   · exact w315_3
   · exact w315_4
-  · exact w315_5
 
 theorem plain315 : Plain 315 := by
   unfold Plain
   decide +kernel
 
 theorem ok316 : CheckOk 316 := fun i hi ↦ by
-  have h : (certOf 316).cuts.length = 3 := by decide +kernel
+  have h : (certOf 316).cuts.length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w316_0
   · exact w316_1
   · exact w316_2
   · exact w316_3
+  · exact w316_4
+  · exact w316_5
 
 theorem plain316 : Plain 316 := by
   unfold Plain
@@ -308,14 +313,13 @@ theorem plain319 : Plain 319 := by
   decide +kernel
 
 theorem ok320 : CheckOk 320 := fun i hi ↦ by
-  have h : (certOf 320).cuts.length = 4 := by decide +kernel
+  have h : (certOf 320).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w320_0
   · exact w320_1
   · exact w320_2
   · exact w320_3
-  · exact w320_4
 
 theorem plain320 : Plain 320 := by
   unfold Plain
@@ -349,7 +353,19 @@ theorem plain322 : Plain 322 := by
   unfold Plain
   decide +kernel
 
-theorem plain323 : Plain 323 := plain_of_nil (by decide +kernel)
+theorem ok323 : CheckOk 323 := fun i hi ↦ by
+  have h : (certOf 323).cuts.length = 4 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w323_0
+  · exact w323_1
+  · exact w323_2
+  · exact w323_3
+  · exact w323_4
+
+theorem plain323 : Plain 323 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain324 : Plain 324 := plain_of_nil (by decide +kernel)
 

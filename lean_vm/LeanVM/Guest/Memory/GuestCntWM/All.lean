@@ -19,7 +19,7 @@ open Core Memory Data
 
 @[expose] public section
 
-theorem kumchkIdx_all : ∀ j < 883, kumchkIdx j = true := by
+theorem kumchkIdx_all : ∀ j < 884, kumchkIdx j = true := by
   intro j hj
   by_cases h0 : j < 10
   · exact kumstaticRange_0.get (by omega) (by omega)
@@ -35,59 +35,59 @@ theorem kumchkIdx_all : ∀ j < 883, kumchkIdx j = true := by
   · exact kumstaticRange_103.get (by omega) (by omega)
   by_cases h6 : j < 156
   · exact kumstaticRange_129.get (by omega) (by omega)
-  by_cases h7 : j < 179
+  by_cases h7 : j < 180
   · exact kumstaticRange_156.get (by omega) (by omega)
-  by_cases h8 : j < 205
-  · exact kumstaticRange_179.get (by omega) (by omega)
-  by_cases h9 : j < 231
-  · exact kumstaticRange_205.get (by omega) (by omega)
-  by_cases h10 : j < 261
-  · exact kumstaticRange_231.get (by omega) (by omega)
-  by_cases h11 : j < 287
-  · exact kumstaticRange_261.get (by omega) (by omega)
-  by_cases h12 : j < 301
-  · exact kumstaticRange_287.get (by omega) (by omega)
-  by_cases h13 : j < 308
-  · exact kumstaticRange_301.get (by omega) (by omega)
-  by_cases h14 : j < 315
-  · exact kumstaticRange_308.get (by omega) (by omega)
-  by_cases h15 : j < 345
-  · exact kumstaticRange_315.get (by omega) (by omega)
-  by_cases h16 : j < 375
-  · exact kumstaticRange_345.get (by omega) (by omega)
-  by_cases h17 : j < 405
-  · exact kumstaticRange_375.get (by omega) (by omega)
-  by_cases h18 : j < 435
-  · exact kumstaticRange_405.get (by omega) (by omega)
-  by_cases h19 : j < 465
-  · exact kumstaticRange_435.get (by omega) (by omega)
-  by_cases h20 : j < 495
-  · exact kumstaticRange_465.get (by omega) (by omega)
-  by_cases h21 : j < 525
-  · exact kumstaticRange_495.get (by omega) (by omega)
-  by_cases h22 : j < 555
-  · exact kumstaticRange_525.get (by omega) (by omega)
-  by_cases h23 : j < 585
-  · exact kumstaticRange_555.get (by omega) (by omega)
-  by_cases h24 : j < 615
-  · exact kumstaticRange_585.get (by omega) (by omega)
-  by_cases h25 : j < 645
-  · exact kumstaticRange_615.get (by omega) (by omega)
-  by_cases h26 : j < 675
-  · exact kumstaticRange_645.get (by omega) (by omega)
-  by_cases h27 : j < 705
-  · exact kumstaticRange_675.get (by omega) (by omega)
-  by_cases h28 : j < 735
-  · exact kumstaticRange_705.get (by omega) (by omega)
-  by_cases h29 : j < 765
-  · exact kumstaticRange_735.get (by omega) (by omega)
-  by_cases h30 : j < 795
-  · exact kumstaticRange_765.get (by omega) (by omega)
-  by_cases h31 : j < 825
-  · exact kumstaticRange_795.get (by omega) (by omega)
-  by_cases h32 : j < 855
-  · exact kumstaticRange_825.get (by omega) (by omega)
-  exact kumstaticRange_855.get (by omega) (by omega)
+  by_cases h8 : j < 206
+  · exact kumstaticRange_180.get (by omega) (by omega)
+  by_cases h9 : j < 232
+  · exact kumstaticRange_206.get (by omega) (by omega)
+  by_cases h10 : j < 262
+  · exact kumstaticRange_232.get (by omega) (by omega)
+  by_cases h11 : j < 288
+  · exact kumstaticRange_262.get (by omega) (by omega)
+  by_cases h12 : j < 302
+  · exact kumstaticRange_288.get (by omega) (by omega)
+  by_cases h13 : j < 309
+  · exact kumstaticRange_302.get (by omega) (by omega)
+  by_cases h14 : j < 316
+  · exact kumstaticRange_309.get (by omega) (by omega)
+  by_cases h15 : j < 346
+  · exact kumstaticRange_316.get (by omega) (by omega)
+  by_cases h16 : j < 376
+  · exact kumstaticRange_346.get (by omega) (by omega)
+  by_cases h17 : j < 406
+  · exact kumstaticRange_376.get (by omega) (by omega)
+  by_cases h18 : j < 436
+  · exact kumstaticRange_406.get (by omega) (by omega)
+  by_cases h19 : j < 466
+  · exact kumstaticRange_436.get (by omega) (by omega)
+  by_cases h20 : j < 496
+  · exact kumstaticRange_466.get (by omega) (by omega)
+  by_cases h21 : j < 526
+  · exact kumstaticRange_496.get (by omega) (by omega)
+  by_cases h22 : j < 556
+  · exact kumstaticRange_526.get (by omega) (by omega)
+  by_cases h23 : j < 586
+  · exact kumstaticRange_556.get (by omega) (by omega)
+  by_cases h24 : j < 616
+  · exact kumstaticRange_586.get (by omega) (by omega)
+  by_cases h25 : j < 646
+  · exact kumstaticRange_616.get (by omega) (by omega)
+  by_cases h26 : j < 676
+  · exact kumstaticRange_646.get (by omega) (by omega)
+  by_cases h27 : j < 706
+  · exact kumstaticRange_676.get (by omega) (by omega)
+  by_cases h28 : j < 736
+  · exact kumstaticRange_706.get (by omega) (by omega)
+  by_cases h29 : j < 766
+  · exact kumstaticRange_736.get (by omega) (by omega)
+  by_cases h30 : j < 796
+  · exact kumstaticRange_766.get (by omega) (by omega)
+  by_cases h31 : j < 826
+  · exact kumstaticRange_796.get (by omega) (by omega)
+  by_cases h32 : j < 856
+  · exact kumstaticRange_826.get (by omega) (by omega)
+  exact kumstaticRange_856.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

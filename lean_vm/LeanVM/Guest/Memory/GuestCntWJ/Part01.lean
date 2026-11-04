@@ -21,23 +21,23 @@ theorem kujstaticRange_129 : kujStaticRange 129 27 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_156 : kujStaticRange 156 23 := by
+theorem kujstaticRange_156 : kujStaticRange 156 24 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_179 : kujStaticRange 179 26 := by
+theorem kujstaticRange_180 : kujStaticRange 180 26 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_205 : kujStaticRange 205 26 := by
+theorem kujstaticRange_206 : kujStaticRange 206 26 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_231 : kujStaticRange 231 30 := by
+theorem kujstaticRange_232 : kujStaticRange 232 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_261 : kujStaticRange 261 26 := by
+theorem kujstaticRange_262 : kujStaticRange 262 26 := by
   unfold kujStaticRange; decide +kernel
 
 end

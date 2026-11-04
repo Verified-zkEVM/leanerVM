@@ -16,108 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L26`, once. -/
-theorem st142 : shareStatic 142 = true := by decide +kernel
+/-- `sp_wots`, window 21. -/
+theorem w21_21 : shareWin 21 (snapsOf 21) 21 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L26`, window 0. -/
-theorem w142_0 : shareWin 142 (snapsOf 142) 0 = true := by decide +kernel
-
-theorem ok142 : ShareOk 142 := ⟨st142, fun i hi ↦ by
-  have h : (snapsOf 142).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w142_0⟩
+/-- `verify_sig_lean_sphincs`, once. -/
+theorem st22 : shareStatic 22 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L27`, once. -/
-theorem st143 : shareStatic 143 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 0. -/
+theorem w22_0 : shareWin 22 (snapsOf 22) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L27`, window 0. -/
-theorem w143_0 : shareWin 143 (snapsOf 143) 0 = true := by decide +kernel
-
-theorem ok143 : ShareOk 143 := ⟨st143, fun i hi ↦ by
-  have h : (snapsOf 143).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w143_0⟩
+/-- `verify_sig_lean_sphincs`, window 1. -/
+theorem w22_1 : shareWin 22 (snapsOf 22) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L28`, once. -/
-theorem st144 : shareStatic 144 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L28`, window 0. -/
-theorem w144_0 : shareWin 144 (snapsOf 144) 0 = true := by decide +kernel
-
-theorem ok144 : ShareOk 144 := ⟨st144, fun i hi ↦ by
-  have h : (snapsOf 144).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w144_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L29`, once. -/
-theorem st145 : shareStatic 145 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L29`, window 0. -/
-theorem w145_0 : shareWin 145 (snapsOf 145) 0 = true := by decide +kernel
-
-theorem ok145 : ShareOk 145 := ⟨st145, fun i hi ↦ by
-  have h : (snapsOf 145).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w145_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L30`, once. -/
-theorem st146 : shareStatic 146 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L30`, window 0. -/
-theorem w146_0 : shareWin 146 (snapsOf 146) 0 = true := by decide +kernel
-
-theorem ok146 : ShareOk 146 := ⟨st146, fun i hi ↦ by
-  have h : (snapsOf 146).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w146_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L31`, once. -/
-theorem st147 : shareStatic 147 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L31`, window 0. -/
-theorem w147_0 : shareWin 147 (snapsOf 147) 0 = true := by decide +kernel
-
-theorem ok147 : ShareOk 147 := ⟨st147, fun i hi ↦ by
-  have h : (snapsOf 147).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w147_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L32`, once. -/
-theorem st148 : shareStatic 148 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L32`, window 0. -/
-theorem w148_0 : shareWin 148 (snapsOf 148) 0 = true := by decide +kernel
-
-theorem ok148 : ShareOk 148 := ⟨st148, fun i hi ↦ by
-  have h : (snapsOf 148).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w148_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L33`, once. -/
-theorem st149 : shareStatic 149 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L33`, window 0. -/
-theorem w149_0 : shareWin 149 (snapsOf 149) 0 = true := by decide +kernel
-
-theorem ok149 : ShareOk 149 := ⟨st149, fun i hi ↦ by
-  have h : (snapsOf 149).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w149_0⟩
+/-- `verify_sig_lean_sphincs`, window 2. -/
+theorem w22_2 : shareWin 22 (snapsOf 22) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

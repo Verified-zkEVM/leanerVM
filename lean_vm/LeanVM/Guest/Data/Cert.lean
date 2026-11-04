@@ -12,12 +12,6 @@ public import LeanVM.Guest.Data.Cert01
 public import LeanVM.Guest.Data.Cert02
 public import LeanVM.Guest.Data.Cert03
 public import LeanVM.Guest.Data.Cert04
-public import LeanVM.Guest.Data.Cert21_0
-public import LeanVM.Guest.Data.Cert21_1
-public import LeanVM.Guest.Data.Cert21_2
-public import LeanVM.Guest.Data.Cert21_3
-public import LeanVM.Guest.Data.Cert21_4
-public import LeanVM.Guest.Data.Cert21_5
 
 namespace LeanVM.Guest.Data
 
@@ -94,7 +88,7 @@ noncomputable def certs : List Check.Cert :=
   cert832 :: cert833 :: cert834 :: cert835 :: cert836 :: cert837 :: cert838 :: cert839 :: cert840 :: cert841 :: cert842 :: cert843 :: cert844 :: cert845 :: cert846 :: cert847 ::
   cert848 :: cert849 :: cert850 :: cert851 :: cert852 :: cert853 :: cert854 :: cert855 :: cert856 :: cert857 :: cert858 :: cert859 :: cert860 :: cert861 :: cert862 :: cert863 ::
   cert864 :: cert865 :: cert866 :: cert867 :: cert868 :: cert869 :: cert870 :: cert871 :: cert872 :: cert873 :: cert874 :: cert875 :: cert876 :: cert877 :: cert878 :: cert879 ::
-  cert880 :: cert881 :: cert882 :: cert883 :: []
+  cert880 :: cert881 :: cert882 :: cert883 :: cert884 :: []
 
 end
 end LeanVM.Guest.Data

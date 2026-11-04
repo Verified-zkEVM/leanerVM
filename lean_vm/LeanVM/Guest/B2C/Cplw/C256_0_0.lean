@@ -16,24 +16,21 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `keccak_layer__L0_L0`, window 0, part 0. -/
+/-- `keccak_layer__L1_L1`, window 0, part 0. -/
 theorem cw256_0_0 : cplWin 256 0 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L0`, window 1, part 0. -/
+/-- `keccak_layer__L1_L1`, window 1, part 0. -/
 theorem cw256_1_0 : cplWin 256 1 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L0`, window 1, part 1. -/
+/-- `keccak_layer__L1_L1`, window 1, part 1. -/
 theorem cw256_1_1 : cplWin 256 1 1 = true := by decide +kernel
 
-/-- `keccak_layer__L0_L0`, window 2, part 0. -/
+/-- `keccak_layer__L1_L1`, window 2, part 0. -/
 theorem cw256_2_0 : cplWin 256 2 0 = true := by decide +kernel
-
-/-- `keccak_layer__L0_L0`, window 3, part 0. -/
-theorem cw256_3_0 : cplWin 256 3 0 = true := by decide +kernel
 
 theorem ok256 : CplOk 256 := by
   intro i hi k hk
-  have hc : (certOf 256).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 256).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 256 0 = 1 := by decide +kernel
@@ -49,10 +46,6 @@ theorem ok256 : CplOk 256 := by
     rw [hn] at hk
     interval_cases k
     · exact cw256_2_0
-  · have hn : nParts 256 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw256_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

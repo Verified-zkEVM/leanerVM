@@ -21,23 +21,23 @@ theorem kusstaticRange_129 : kusStaticRange 129 27 := by
   unfold kusStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kusstaticRange_156 : kusStaticRange 156 23 := by
+theorem kusstaticRange_156 : kusStaticRange 156 24 := by
   unfold kusStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kusstaticRange_179 : kusStaticRange 179 26 := by
+theorem kusstaticRange_180 : kusStaticRange 180 26 := by
   unfold kusStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kusstaticRange_205 : kusStaticRange 205 26 := by
+theorem kusstaticRange_206 : kusStaticRange 206 26 := by
   unfold kusStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kusstaticRange_231 : kusStaticRange 231 30 := by
+theorem kusstaticRange_232 : kusStaticRange 232 30 := by
   unfold kusStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kusstaticRange_261 : kusStaticRange 261 26 := by
+theorem kusstaticRange_262 : kusStaticRange 262 26 := by
   unfold kusStaticRange; decide +kernel
 
 end

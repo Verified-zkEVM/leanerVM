@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.Column
 
   `da_verify_column` and its blob loop `__loop21`: what a run of a column establishes
-  (G:3976-3990).
+  (G:3969-3983).
 -/
 
 module
@@ -12,12 +12,12 @@ public import LeanVM.Guest.B1.Da.VectorHolds
 public import LeanVM.Guest.B1.Main.LoopsC
 
 /-!
-# `da_verify_column` (G:3976-3990)
+# `da_verify_column` (G:3969-3983)
 
-`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core27`), at
+`da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core28`), at
 `xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell
 factors and the column's shifts `offsets·g^(8h)`, are the dual codeword's entries `256 h + e`
-(`cellLeaf_eq`); then `__loop21` (`core374`) over the blobs `i < r`: a `da_verify_cell` run on
+(`cellLeaf_eq`); then `__loop21` (`core375`) over the blobs `i < r`: a `da_verify_cell` run on
 `lvals`, its sum added to the blob's running sum (word `512 + h` to `513 + h` of the region at
 `rowbase[i]`), its digest the blob tree's leaf `h` (words `2h`, `2h + 1`). `colOk` and `l21Ok`
 check the bodies (kernel evaluation in `ColumnChk`); `col_stepW` is a column's run under a call

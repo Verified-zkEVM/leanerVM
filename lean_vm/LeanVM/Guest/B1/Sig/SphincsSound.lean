@@ -19,7 +19,7 @@ public import LeanVM.Guest.WithHash
 `sphincsSigOf σ`: the randomizer `n3`, each coordinate's opening (`coordOpening`), the counter
 `sp_from_bytes` reads, the chain values the codeword's dispatches hint and the tree's siblings.
 
-`verify_sig_lean_sphincs_sound_holds`: the body (`Data.core20.body = sBody`) holding, the prologue
+`verify_sig_lean_sphincs_sound_holds`: the body (`Data.core21.body = sBody`) holding, the prologue
 gives the message digest's two cells `n17`, `n18`; the forest's coordinates sum their weights into
 `n17` and their marks into `n18`, so the digest's index and marks are the dispatches'; the forest
 key is the sixteen top nodes; the counter is below `2^32` (the byte table), so the 292-byte

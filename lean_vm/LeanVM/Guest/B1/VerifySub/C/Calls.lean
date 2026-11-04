@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.C.Calls
 
-  `verify_sub`'s calls of the bus's GKR, the tables and the Keccak reduction (G:3236-3248),
+  `verify_sub`'s calls of the bus's GKR, the tables and the Keccak reduction (G:3225-3237),
   honestly: the statements around the calls, the calls given.
 -/
 

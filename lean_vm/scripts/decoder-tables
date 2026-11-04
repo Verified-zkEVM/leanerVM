@@ -12,7 +12,7 @@ fails when the file differs.
 """
 import argparse, glob, re, sys
 
-N = 884
+N = 885
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 

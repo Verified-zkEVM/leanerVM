@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesRow
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# A query's leaf hash (`opening_query`, G:1217-1219)
+# A query's leaf hash (`opening_query`, G:1206-1208)
 
 `keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)` over the `n = R / 2` packed cells is
 `B = 16n/136 + 1` chained `KECCAK`s (`oqLeafT`): block `k` reads the previous output plus the
@@ -149,7 +149,7 @@ theorem cellsBytes_packed (row : List K) (n : ℕ) (hn : row.length = 2 * n) :
     rw [h1, h2]
     simp [cellsBytes, cellBytes]
 
-/-- **The leaf hash** (G:1217-1219): with the padding run `1, 0, 0, 0, 0` at `pr` and the packed
+/-- **The leaf hash** (G:1206-1208): with the padding run `1, 0, 0, 0, 0` at `pr` and the packed
 cells those of the row's words, the last block's first two cells are the digest of the row,
 `digestHalves (merkleLeafDigest row)` (the leaf of `openOne`, V:501). -/
 theorem oqLeaf_sound {s : Oq} (hs : s.RowShape) {b pr kL : ℕ} {row : List K}

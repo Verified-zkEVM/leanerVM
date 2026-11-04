@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimList
 
-  B1 for `claim_list_digest` (G:3822-3854; TRIAGE #88): the digest of a declared claim list,
+  B1 for `claim_list_digest` (G:3815-3847; TRIAGE #88): the digest of a declared claim list,
   hashed seventeen claims a loop frame through a heap chain of sponge states.
 -/
 
@@ -217,17 +217,17 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_digest` -/
 
 /-- The branch of an empty list. -/
-noncomputable def cl23Zero : List Stmt := match Fn.body Data.core23 with
+noncomputable def cl23Zero : List Stmt := match Fn.body Data.core24 with
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
 /-- The branch of a nonempty list. -/
-noncomputable def cl23Else : List Stmt := match Fn.body Data.core23 with
+noncomputable def cl23Else : List Stmt := match Fn.body Data.core24 with
   | [_, _, .ite _ _ n, _, _, _] => n
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core23_shape : Fn.body Data.core23 =
+theorem core23_shape : Fn.body Data.core24 =
     [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
      .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 65) (.n 10)), .atom (.copy (.n 66) (.n 11)),
      .ret [.n 65, .n 66]] :=

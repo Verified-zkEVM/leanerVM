@@ -13,7 +13,7 @@ namespace LeanVM.Guest.B1.Da
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem off_ok : offOk Data.core30 = true := by decide +kernel
+theorem off_ok : offOk Data.core31 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem offLoop_ok : ∀ b < 7, offLoopOk (coreProgram.getD (378 + b) default) b = true := by

@@ -26,81 +26,15 @@ public import LeanVM.Guest.Checked.F20_23
 public import LeanVM.Guest.Checked.F20_31
 public import LeanVM.Guest.Checked.F20_39
 public import LeanVM.Guest.Checked.F20_39
-public import LeanVM.Guest.Checked.F21_2
 public import LeanVM.Guest.Checked.F21_3
-public import LeanVM.Guest.Checked.F21_4
-public import LeanVM.Guest.Checked.F21_5
-public import LeanVM.Guest.Checked.F21_8
-public import LeanVM.Guest.Checked.F21_9
-public import LeanVM.Guest.Checked.F21_10
+public import LeanVM.Guest.Checked.F21_7
 public import LeanVM.Guest.Checked.F21_11
-public import LeanVM.Guest.Checked.F21_14
 public import LeanVM.Guest.Checked.F21_15
-public import LeanVM.Guest.Checked.F21_16
-public import LeanVM.Guest.Checked.F21_17
-public import LeanVM.Guest.Checked.F21_20
-public import LeanVM.Guest.Checked.F21_21
-public import LeanVM.Guest.Checked.F21_22
-public import LeanVM.Guest.Checked.F21_23
-public import LeanVM.Guest.Checked.F21_26
-public import LeanVM.Guest.Checked.F21_27
-public import LeanVM.Guest.Checked.F21_28
-public import LeanVM.Guest.Checked.F21_29
-public import LeanVM.Guest.Checked.F21_32
-public import LeanVM.Guest.Checked.F21_33
-public import LeanVM.Guest.Checked.F21_34
-public import LeanVM.Guest.Checked.F21_35
-public import LeanVM.Guest.Checked.F21_38
-public import LeanVM.Guest.Checked.F21_39
-public import LeanVM.Guest.Checked.F21_40
-public import LeanVM.Guest.Checked.F21_41
-public import LeanVM.Guest.Checked.F21_44
-public import LeanVM.Guest.Checked.F21_45
-public import LeanVM.Guest.Checked.F21_46
-public import LeanVM.Guest.Checked.F21_47
-public import LeanVM.Guest.Checked.F21_50
-public import LeanVM.Guest.Checked.F21_51
-public import LeanVM.Guest.Checked.F21_52
-public import LeanVM.Guest.Checked.F21_53
-public import LeanVM.Guest.Checked.F21_54
-public import LeanVM.Guest.Checked.F21_55
-public import LeanVM.Guest.Checked.F21_56
-public import LeanVM.Guest.Checked.F21_57
-public import LeanVM.Guest.Checked.F21_58
-public import LeanVM.Guest.Checked.F21_59
-public import LeanVM.Guest.Checked.F21_60
-public import LeanVM.Guest.Checked.F21_61
-public import LeanVM.Guest.Checked.F21_62
-public import LeanVM.Guest.Checked.F21_63
-public import LeanVM.Guest.Checked.F21_64
-public import LeanVM.Guest.Checked.F21_65
-public import LeanVM.Guest.Checked.F21_66
-public import LeanVM.Guest.Checked.F21_67
-public import LeanVM.Guest.Checked.F21_68
-public import LeanVM.Guest.Checked.F21_69
-public import LeanVM.Guest.Checked.F21_70
-public import LeanVM.Guest.Checked.F21_71
-public import LeanVM.Guest.Checked.F21_72
-public import LeanVM.Guest.Checked.F21_73
-public import LeanVM.Guest.Checked.F21_74
-public import LeanVM.Guest.Checked.F21_75
-public import LeanVM.Guest.Checked.F21_76
-public import LeanVM.Guest.Checked.F21_77
-public import LeanVM.Guest.Checked.F21_78
-public import LeanVM.Guest.Checked.F21_79
-public import LeanVM.Guest.Checked.F21_80
-public import LeanVM.Guest.Checked.F21_81
-public import LeanVM.Guest.Checked.F21_82
-public import LeanVM.Guest.Checked.F21_83
-public import LeanVM.Guest.Checked.F21_84
-public import LeanVM.Guest.Checked.F21_85
-public import LeanVM.Guest.Checked.F21_86
-public import LeanVM.Guest.Checked.F21_87
-public import LeanVM.Guest.Checked.F21_88
-public import LeanVM.Guest.Checked.F21_89
-public import LeanVM.Guest.Checked.F21_90
-public import LeanVM.Guest.Checked.F21_91
-public import LeanVM.Guest.Checked.F28_0
+public import LeanVM.Guest.Checked.F21_19
+public import LeanVM.Guest.Checked.F21_19
+public import LeanVM.Guest.Checked.F22_6
+public import LeanVM.Guest.Checked.F22_14
+public import LeanVM.Guest.Checked.F25_0
 
 namespace LeanVM.Guest.Checked
 
@@ -264,7 +198,7 @@ theorem plain20 : Plain 20 := by
   decide +kernel
 
 theorem ok21 : CheckOk 21 := fun i hi ↦ by
-  have h : (certOf 21).cuts.length = 92 := by decide +kernel
+  have h : (certOf 21).cuts.length = 20 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w21_0
@@ -288,84 +222,39 @@ theorem ok21 : CheckOk 21 := fun i hi ↦ by
   · exact w21_18
   · exact w21_19
   · exact w21_20
-  · exact w21_21
-  · exact w21_22
-  · exact w21_23
-  · exact w21_24
-  · exact w21_25
-  · exact w21_26
-  · exact w21_27
-  · exact w21_28
-  · exact w21_29
-  · exact w21_30
-  · exact w21_31
-  · exact w21_32
-  · exact w21_33
-  · exact w21_34
-  · exact w21_35
-  · exact w21_36
-  · exact w21_37
-  · exact w21_38
-  · exact w21_39
-  · exact w21_40
-  · exact w21_41
-  · exact w21_42
-  · exact w21_43
-  · exact w21_44
-  · exact w21_45
-  · exact w21_46
-  · exact w21_47
-  · exact w21_48
-  · exact w21_49
-  · exact w21_50
-  · exact w21_51
-  · exact w21_52
-  · exact w21_53
-  · exact w21_54
-  · exact w21_55
-  · exact w21_56
-  · exact w21_57
-  · exact w21_58
-  · exact w21_59
-  · exact w21_60
-  · exact w21_61
-  · exact w21_62
-  · exact w21_63
-  · exact w21_64
-  · exact w21_65
-  · exact w21_66
-  · exact w21_67
-  · exact w21_68
-  · exact w21_69
-  · exact w21_70
-  · exact w21_71
-  · exact w21_72
-  · exact w21_73
-  · exact w21_74
-  · exact w21_75
-  · exact w21_76
-  · exact w21_77
-  · exact w21_78
-  · exact w21_79
-  · exact w21_80
-  · exact w21_81
-  · exact w21_82
-  · exact w21_83
-  · exact w21_84
-  · exact w21_85
-  · exact w21_86
-  · exact w21_87
-  · exact w21_88
-  · exact w21_89
-  · exact w21_90
-  · exact w21_91
-  · exact w21_92
 
 theorem plain21 : Plain 21 := by
   unfold Plain
   decide +kernel
 
-theorem plain22 : Plain 22 := plain_of_nil (by decide +kernel)
+theorem ok22 : CheckOk 22 := fun i hi ↦ by
+  have h : (certOf 22).cuts.length = 19 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w22_0
+  · exact w22_1
+  · exact w22_2
+  · exact w22_3
+  · exact w22_4
+  · exact w22_5
+  · exact w22_6
+  · exact w22_7
+  · exact w22_8
+  · exact w22_9
+  · exact w22_10
+  · exact w22_11
+  · exact w22_12
+  · exact w22_13
+  · exact w22_14
+  · exact w22_15
+  · exact w22_16
+  · exact w22_17
+  · exact w22_18
+  · exact w22_19
+
+theorem plain22 : Plain 22 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain23 : Plain 23 := plain_of_nil (by decide +kernel)
 
@@ -379,18 +268,18 @@ theorem plain27 : Plain 27 := plain_of_nil (by decide +kernel)
 
 theorem plain28 : Plain 28 := plain_of_nil (by decide +kernel)
 
-theorem ok29 : CheckOk 29 := fun i hi ↦ by
-  have h : (certOf 29).cuts.length = 1 := by decide +kernel
+theorem plain29 : Plain 29 := plain_of_nil (by decide +kernel)
+
+theorem ok30 : CheckOk 30 := fun i hi ↦ by
+  have h : (certOf 30).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w29_0
-  · exact w29_1
+  · exact w30_0
+  · exact w30_1
 
-theorem plain29 : Plain 29 := by
+theorem plain30 : Plain 30 := by
   unfold Plain
   decide +kernel
-
-theorem plain30 : Plain 30 := plain_of_nil (by decide +kernel)
 
 theorem plain31 : Plain 31 := plain_of_nil (by decide +kernel)
 

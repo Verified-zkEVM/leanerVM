@@ -17,7 +17,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem sBody_arms_199_0 : ((matchArms (Data.core20.body.getD 199 default)).drop 0).take 64 =
+theorem sBody_arms_199_0 : ((matchArms (Data.core21.body.getD 199 default)).drop 0).take 64 =
     ((matchArms (sBody.getD 199 default)).drop 0).take 64 := by
   decide +kernel
 

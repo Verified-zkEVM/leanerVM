@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.Blocks
 
-  The claims' blocks of `check_opening_terminal` (G:3094-3124): each adds its claim's term to the
+  The claims' blocks of `check_opening_terminal` (G:3083-3113): each adds its claim's term to the
   running sum and checks its low point's length against its column's.
 -/
 

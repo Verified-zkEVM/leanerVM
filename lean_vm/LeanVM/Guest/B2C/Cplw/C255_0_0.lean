@@ -16,16 +16,16 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `keccak_layer__L1_L1`, window 0, part 0. -/
+/-- `keccak_layer__L1_L0`, window 0, part 0. -/
 theorem cw255_0_0 : cplWin 255 0 0 = true := by decide +kernel
 
-/-- `keccak_layer__L1_L1`, window 1, part 0. -/
+/-- `keccak_layer__L1_L0`, window 1, part 0. -/
 theorem cw255_1_0 : cplWin 255 1 0 = true := by decide +kernel
 
-/-- `keccak_layer__L1_L1`, window 1, part 1. -/
+/-- `keccak_layer__L1_L0`, window 1, part 1. -/
 theorem cw255_1_1 : cplWin 255 1 1 = true := by decide +kernel
 
-/-- `keccak_layer__L1_L1`, window 2, part 0. -/
+/-- `keccak_layer__L1_L0`, window 2, part 0. -/
 theorem cw255_2_0 : cplWin 255 2 0 = true := by decide +kernel
 
 theorem ok255 : CplOk 255 := by

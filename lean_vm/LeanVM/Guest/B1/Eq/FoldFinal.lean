@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 /-!
 # `fold_final_msg` (TRIAGE #24)
 
-`fold_final_msg(msg, point, log_len)` (G:808-824) reads `log_len` coordinates, keeps the weights
+`fold_final_msg(msg, point, log_len)` (G:797-813) reads `log_len` coordinates, keeps the weights
 `1 + p_j` and `p_j`, folds the `2^log_len` message words pairwise at `p_0`, then each level at
 `p_j`, and returns the last value: `multilinearEval msg point` (V:687). Its expansion: `ffW j`
 per weight, `ff0` per pair of the first level (with its loads), `ffPairs` per later level
@@ -71,13 +71,13 @@ def ffBody (L fin : ℕ) : List Stmt :=
     (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
 
-theorem core439_body : Fn.body Data.core450 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
+theorem core439_body : Fn.body Data.core451 = ffBody 1 22 := stmtsEqb_sound (by decide +kernel)
 
-theorem core458_body : Fn.body Data.core469 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
+theorem core458_body : Fn.body Data.core470 = ffBody 2 42 := stmtsEqb_sound (by decide +kernel)
 
-theorem core405_body : Fn.body Data.core416 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
+theorem core405_body : Fn.body Data.core417 = ffBody 3 78 := stmtsEqb_sound (by decide +kernel)
 
-theorem core421_body : Fn.body Data.core432 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
+theorem core421_body : Fn.body Data.core433 = ffBody 4 146 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## What it asks -/
 

@@ -8,9 +8,8 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F367_0
-public import LeanVM.Guest.Checked.F374_1
-public import LeanVM.Guest.Checked.F374_1
+public import LeanVM.Guest.Checked.F372_0
+public import LeanVM.Guest.Checked.F379_0
 
 namespace LeanVM.Guest.Checked
 
@@ -62,35 +61,35 @@ theorem plain372 : Plain 372 := plain_of_nil (by decide +kernel)
 
 theorem plain373 : Plain 373 := plain_of_nil (by decide +kernel)
 
-theorem ok374 : CheckOk 374 := fun i hi ↦ by
-  have h : (certOf 374).cuts.length = 1 := by decide +kernel
+theorem plain374 : Plain 374 := plain_of_nil (by decide +kernel)
+
+theorem ok375 : CheckOk 375 := fun i hi ↦ by
+  have h : (certOf 375).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w374_0
-  · exact w374_1
+  · exact w375_0
+  · exact w375_1
 
-theorem plain374 : Plain 374 := by
+theorem plain375 : Plain 375 := by
   unfold Plain
   decide +kernel
-
-theorem plain375 : Plain 375 := plain_of_nil (by decide +kernel)
 
 theorem plain376 : Plain 376 := plain_of_nil (by decide +kernel)
 
 theorem plain377 : Plain 377 := plain_of_nil (by decide +kernel)
 
-theorem ok378 : CheckOk 378 := fun i hi ↦ by
-  have h : (certOf 378).cuts.length = 1 := by decide +kernel
+theorem plain378 : Plain 378 := plain_of_nil (by decide +kernel)
+
+theorem ok379 : CheckOk 379 := fun i hi ↦ by
+  have h : (certOf 379).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w378_0
-  · exact w378_1
+  · exact w379_0
+  · exact w379_1
 
-theorem plain378 : Plain 378 := by
+theorem plain379 : Plain 379 := by
   unfold Plain
   decide +kernel
-
-theorem plain379 : Plain 379 := plain_of_nil (by decide +kernel)
 
 theorem plain380 : Plain 380 := plain_of_nil (by decide +kernel)
 

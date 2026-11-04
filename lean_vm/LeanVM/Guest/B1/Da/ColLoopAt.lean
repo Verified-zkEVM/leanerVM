@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColLoopAt
 
-  `da_verify`'s column loop `__loop18` (G:3945-3946) placed, by trees of its honest shape, within
+  `da_verify`'s column loop `__loop18` (G:3938-3939) placed, by trees of its honest shape, within
   its words bound before the memory, for the budget.
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 /-!
 # The column loop, within its bound
 
-`__loop18(xb, …)` (`core359`, `l18Body`): column `log xb` (`da_verify_column` on the loop's seven
+`__loop18(xb, …)` (`core360`, `l18Body`): column `log xb` (`da_verify_column` on the loop's seven
 words), then the next counter `xb·g` and the tail call while `xb·g ≠ g^128`.
 
 * `l18σ k ps`: its valuation at the counter `g^k`, `ps` the other six words.

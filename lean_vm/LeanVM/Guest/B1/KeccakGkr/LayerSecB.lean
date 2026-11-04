@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecB
 
-  `keccak_layer`'s middle sections (G:2604-2658): the product at `s` (Horner), the pack rounds'
+  `keccak_layer`'s middle sections (G:2593-2647): the product at `s` (Horner), the pack rounds'
   first record and their loop, and the last record read.
 -/
 
@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- The value after `j` steps of the chain. -/
 def hornerV (a : ℕ → ℕ) (b j : ℕ) : ℕ := if j = 0 then a 46 else b + 2 * j - 1
 
-/-- **Horner** (G:2604-2606): the chain's last value is the product at `s`. -/
+/-- **Horner** (G:2593-2595): the chain's last value is the product at `s`. -/
 theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.length = 47)
     (hc : ∀ k < 47, σ (.n (a k)) = cs.getD k 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (hornerT a s b) next kret) :
@@ -69,7 +69,7 @@ theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.lengt
 theorem gen47 : word 140737488355328 0 0 = gen ^ 47 := by
   rw [show (140737488355328 : ℕ) = 2 ^ 47 from rfl]; exact word_two_pow (by decide)
 
-/-- **The pack rounds' setup** (G:2607-2649): the first record at `rounds` (value `1310`), the loop's
+/-- **The pack rounds' setup** (G:2596-2638): the first record at `rounds` (value `1310`), the loop's
 call, and with `odd` the last round's. -/
 theorem packSetupT_holds {first odd : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (packSetupT first odd) next kret) :
@@ -106,7 +106,7 @@ theorem packSetupT_holds {first odd : ℕ} {next : Prop} {kret : List E → Prop
     · simp only [ho, ↓reduceIte, Stmt.HoldsList] at h
       exact ⟨fun h' ↦ absurd h' ho, h⟩
 
-/-- **The last record** (G:2650-2654): `rounds·y_last` (value `1317 + d`) and its capacity, cursor
+/-- **The last record** (G:2639-2643): `rounds·y_last` (value `1317 + d`) and its capacity, cursor
 and claim. -/
 theorem lastT_holds {d : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (lastT d) next kret) :

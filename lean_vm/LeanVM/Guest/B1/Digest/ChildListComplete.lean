@@ -58,7 +58,7 @@ theorem l17_shapeF : loopShapeF (coreProgram.getD 340 default) "__loop16" = true
   simp only [l17cOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1.1
 
-theorem cc_param (σ : Val) : (Fn.params Data.core24).map σ =
+theorem cc_param (σ : Val) : (Fn.params Data.core25).map σ =
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] := rfl
 
 end

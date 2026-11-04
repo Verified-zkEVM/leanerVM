@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3522-3761`) with the values numbered as the renumbered expansion numbers them.
+  (`lean_ethereum.py:3511-3754`) with the values numbered as the renumbered expansion numbers them.
 -/
 
 module
@@ -16,7 +16,7 @@ public import Sphincs.Equations
 `byte_bits` is the parameter `n1`, `P` the cell `n2` (`sPP`), the padding run `n12 … n16`, the
 index `idx` the node index `sNode 0`.
 
-* `sFromBytes` (`sp_from_bytes`, `lean_ethereum.py:3526-3542`): each byte mark range checked and read
+* `sFromBytes` (`sp_from_bytes`, `lean_ethereum.py:3515-3531`): each byte mark range checked and read
   off `byte_bits`, the value folded high byte first;
 * `sPrologue`: the message digest, its index bits pinned Boolean, the node indices (`shifts`), the
   unused bytes, the bound's start, the encoding's first two cells (`tops`), and the address
@@ -299,7 +299,7 @@ def sCoords : Nat → Nat → Option V → V → Nat → List Stmt × Nat × V �
 /-! ## The one-time signature and the tree -/
 
 /-- leanSPHINCS's chain step: the address `idx + (TW_CHAIN + i·2^32 + s·2^61)`, then
-`keccak([P, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `lean_ethereum.py:3389`). -/
+`keccak([P, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `lean_ethereum.py:3378`). -/
 def sWots (power : Nat → V) : WotsT where
   step i s v c o := cst c (word (tw 1 + i * hiMul + s * stepMul) 0 0) ::
     addS (.n (c + 1)) (sNode 0) (.n c) :: k48 (.n (c + 1)) v (c + 2) o

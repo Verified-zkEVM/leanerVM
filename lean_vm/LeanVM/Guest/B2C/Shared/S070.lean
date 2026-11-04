@@ -16,63 +16,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_column`, once. -/
-theorem st28 : shareStatic 28 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_column`, window 0. -/
-theorem w28_0 : shareWin 28 (snapsOf 28) 0 = true := by decide +kernel
-
-theorem ok28 : ShareOk 28 := ⟨st28, fun i hi ↦ by
-  have h : (snapsOf 28).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w28_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, once. -/
-theorem st29 : shareStatic 29 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 0. -/
-theorem w29_0 : shareWin 29 (snapsOf 29) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 1. -/
-theorem w29_1 : shareWin 29 (snapsOf 29) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 2. -/
-theorem w29_2 : shareWin 29 (snapsOf 29) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 3. -/
-theorem w29_3 : shareWin 29 (snapsOf 29) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_vector`, once. -/
-theorem st30 : shareStatic 30 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_vector`, window 0. -/
-theorem w30_0 : shareWin 30 (snapsOf 30) 0 = true := by decide +kernel
-
-theorem ok30 : ShareOk 30 := ⟨st30, fun i hi ↦ by
-  have h : (snapsOf 30).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w30_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_column_offsets`, once. -/
-theorem st31 : shareStatic 31 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_column_offsets`, window 0. -/
-theorem w31_0 : shareWin 31 (snapsOf 31) 0 = true := by decide +kernel
-
-theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
-  have h : (snapsOf 31).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w31_0⟩
+/-- `sp_wots`, window 6. -/
+theorem w21_6 : shareWin 21 (snapsOf 21) 6 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

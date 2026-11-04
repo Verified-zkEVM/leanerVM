@@ -53,7 +53,7 @@ set_option maxRecDepth 100000 in
 theorem ccPost_eq : ccPost = [.atom (.copy (.n 14) (.n 65)), .atom (.copy (.n 15) (.n 66))] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem cc_body : Fn.body Data.core24 =
+theorem cc_body : Fn.body Data.core25 =
     ccHead ++ .ite (.n 7) cc24Zero cc24Else :: (ccTail ++ [.ret [.n 67, .n 68]]) := by
   rw [core24_shape]; rfl
 

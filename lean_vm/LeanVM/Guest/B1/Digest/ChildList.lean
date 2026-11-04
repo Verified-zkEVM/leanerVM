@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_digest` (G:3859-3906; TRIAGE #89): a child's claim list rebuilt from
+  B1 for `child_claim_list_digest` (G:3852-3899; TRIAGE #89): a child's claim list rebuilt from
   this node's table through hinted slots, each marked in the coverage table, and its digest.
 -/
 
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.ClaimList
 # `child_claim_list_digest`
 
 As `claim_list_digest`, but claim `j` of a group is read at a hinted slot `o` of the table
-(`child_claims`, G:3859-3871): `o` passes a range check against the region's bound, the coverage
+(`child_claims`, G:3852-3864): `o` passes a range check against the region's bound, the coverage
 table's slot `origin · g^o` holds the mark `marks · g^j`, and the four cells are read at
 `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by evaluation, and
 `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets in the 17
@@ -494,17 +494,17 @@ theorem childGroups_sound {rd : Reader} {chain entries cover base origin limit :
 /-! ## `child_claim_list_digest` -/
 
 /-- The branch of an empty list. -/
-noncomputable def cc24Zero : List Stmt := match Fn.body Data.core24 with
+noncomputable def cc24Zero : List Stmt := match Fn.body Data.core25 with
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
 /-- The branch of a nonempty list. -/
-noncomputable def cc24Else : List Stmt := match Fn.body Data.core24 with
+noncomputable def cc24Else : List Stmt := match Fn.body Data.core25 with
   | [_, _, .ite _ _ n, _, _, _] => n
   | _ => []
 
 set_option maxRecDepth 100000 in
-theorem core24_shape : Fn.body Data.core24 =
+theorem core24_shape : Fn.body Data.core25 =
     [.atom (.const (.n 6) (word 1 0 0)), .atom (.add (.n 7) (.n 5) (.n 6)),
      .ite (.n 7) cc24Zero cc24Else, .atom (.copy (.n 67) (.n 14)), .atom (.copy (.n 68) (.n 15)),
      .ret [.n 67, .n 68]] :=
