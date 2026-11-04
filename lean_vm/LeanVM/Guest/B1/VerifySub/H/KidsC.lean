@@ -58,12 +58,6 @@ namespace ChildSegs
 
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
-theorem s6_capOf (hbl : bytecode.length = 2 ^ 23) : S.s6.cap = S.H.s3.squeeze.2.cap := by
-  obtain ⟨hok, -, -, -⟩ := S.H_run hbl
-  exact (Tables.vt_spec hok).2.2.2
-
-theorem root_cells : (digestHalves S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
-
 end ChildSegs
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}

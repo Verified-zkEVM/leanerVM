@@ -142,6 +142,12 @@ theorem stream_pool (hbl : bytecode.length = 2 ^ 23) {j : ℕ} (h5 : 5 ≤ j) (h
   rw [Tables.VtHonest.poolW, List.getD_append _ _ _ _ (by simp only [List.length_append, h1, hf]; omega),
     List.getD_append_right _ _ _ _ (by omega), h1]
 
+theorem s6_capOf (hbl : bytecode.length = 2 ^ 23) : S.s6.cap = S.H.s3.squeeze.2.cap := by
+  obtain ⟨hok, -, -, -⟩ := S.H_run hbl
+  exact (Tables.vt_spec hok).2.2.2
+
+theorem root_cells : (digestHalves S.root) = (S.x0, S.x1) := digestScalars_digestOfScalars S.hroot
+
 end ChildSegs
 
 set_option maxRecDepth 100000 in
