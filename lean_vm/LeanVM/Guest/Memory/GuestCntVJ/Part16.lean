@@ -28,7 +28,7 @@ theorem kvjsplit_330_3333 : blockR (kvjlookJ 330) (kvjomLookJ 330) false [(.n 34
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_331 : kvjStaticRange 331 22 := by
+theorem kvjstaticRange_331 : kvjStaticRange 331 21 := by
   unfold kvjStaticRange; decide +kernel
 
 end

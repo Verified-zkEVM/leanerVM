@@ -9,6 +9,8 @@ DL = ["da_levels__L1_L0", "da_levels__L2_L1", "da_levels__L4_L2", "da_levels__L8
       "da_levels__L256_L8", "da_levels__L512_L9", "da_levels__L1024_L10"]
 CL = ['claim_list_last__L%d' % k for k in range(17)]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
+CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
+KS, MONO_REC = 13, 15  # `KECCAK_STATE`, `MONO_REC`: a claim list's chain record
 FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'rawDaPad', 'children',
           'childClaims', 'childShape']
 
@@ -43,30 +45,40 @@ def numbers(g, certs):
         c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
     def SK(n):
         c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
-    for n in DL + CL + CCL: assert n in g.by, n
+    for n in DL + CL + CCL + CCM: assert n in g.by, n
     v = {}
     v['dlK'] = max(-(-SB(n) // 2 ** j) for j, n in enumerate(DL))
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
-    v['clC'] = fs('claim_list_digest') + 13 + SB('list_split') + fs('__loop15') + v['cl']
+    v['ccm'] = sum(fs(n) for n in CCM)
+    # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`): the chain's records
+    # (`bigs + groups + 1`), the loop per `136` claims by the claims, the loop per `17` at most `7`
+    # times, its untaken frames and the last digests in the constant.
+    v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs('__loop15') + 7 * (KS + SK('__loop16'))
+                + fs('__loop16') + v['cl'])
     # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
     # iterations (each its frame, the column's and the weights' expansion's) and its untaken tail
     # call's frame, the padding loop's frame when it does not run; per row its region (641), its
     # base (1), the regions' loop, the column's row loop in each of the 128 columns and the trees'
     # loop past the padding loop; per padded row the roots (4), the padding loop and the levels.
     v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector')
-                + 128 * (fs('__loop18') + fs('da_verify_column') + SB('da_expand__L7_L8')) + fs('__loop18')
-                + fs('__loop20'))
-    v['dvS'] = 642 + SK('__loop17') + 128 * SK('__loop21') + max(0, SK('__loop19') - SK('__loop20'))
-    v['dvP'] = 4 + SK('__loop20') + v['dlK']
-    v['ccC'] = fs('child_claim_list_digest') + 13 + SB('list_split') + fs('__loop16') + v['ccl']
-    v['clS'] = 1 + (SK('__loop15') + 16) // 17
-    v['ccS'] = 1 + (fs('__loop16') + 16) // 17
+                + 128 * (fs('__loop22') + fs('da_verify_column') + SB('da_expand__L7_L8')) + fs('__loop22')
+                + fs('__loop24'))
+    v['dvS'] = 642 + SK('__loop21') + 128 * SK('__loop25') + max(0, SK('__loop23') - SK('__loop24'))
+    v['dvP'] = 4 + SK('__loop24') + v['dlK']
+    # A child's claim list: the larger of the two walks (`child_claim_list_any`, records of `13`
+    # words, `child_claim_list_mono`, of `15`), each loop's frame its words per iteration.
+    anyC = fs('child_claim_list_any') + KS + fs('__loop17') + 7 * (KS + fs('__loop18')) + fs('__loop18') + v['ccl']
+    monoC = (fs('child_claim_list_mono') + MONO_REC + fs('__loop19') + 7 * (MONO_REC + fs('__loop20'))
+             + fs('__loop20') + v['ccm'])
+    v['ccC'] = fs('child_claim_list_digest') + SB('list_split') + max(anyC, monoC)
+    v['clS'] = -(-(KS + SK('__loop15')) // 136)
+    v['ccS'] = max(-(-(KS + fs('__loop17')) // 136), -(-(MONO_REC + fs('__loop19')) // 136))
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 85 + SB('batch_sumcheck__L23')
-    v['agA1'] = 18 + SK('__loop29') + SK('__loop30') + SK('__loop31')
+    v['agA1'] = 18 + SK('__loop33') + SK('__loop34') + SK('__loop35')
     base = (fs('main') + 283 + fs('exponent_tables') + 68 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
@@ -133,10 +145,10 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
-              fs=['da_verify', 'da_row_shape', '__loop18', 'da_verify_column', '__loop20'],
+              fs=['da_verify', 'da_row_shape', '__loop22', 'da_verify_column', '__loop24'],
               sb=['da_vector', 'da_expand__L7_L8'])
-    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS', [], sk=['__loop17', '__loop19', '__loop20', '__loop21'])
-    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP', ['dlK_eq'], sk=['__loop20'])
+    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS', [], sk=['__loop21', '__loop23', '__loop24', '__loop25'])
+    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP', ['dlK_eq'], sk=['__loop24'])
     mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
         '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
@@ -154,7 +166,7 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop16']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop29', '__loop30', '__loop31'])])
+        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop33', '__loop34', '__loop35'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
     wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)

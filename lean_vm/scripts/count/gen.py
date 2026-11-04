@@ -49,15 +49,16 @@ LOOP_ROOTS = [('L1', '__loop0'), ('L2', '__loop1'), ('L3', '__loop2'), ('L4', '_
 AGG = 'aggregate_claims'
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `verify_sub`'s statically bounded callees (each child's opening arm among them),
-# `child_claim_list_digest`'s callees, and the statically bounded callees of `main`'s
+# `child_claim_list_digest`'s callees (its two walks' loops and last digests), and the statically bounded callees of `main`'s
 # `claim_list_digest` and `da_verify`, whose trees' shapes count them (`vscount.MV_*`): the `V`
 # count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
 # family's change rebuilds the other's dependents.
 VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
           ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
            'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split', '__loop16'] + ['child_claim_list_last__L%d' % k for k in range(17)] +
-          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + ['__loop15'])
+           'list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
+          ['child_claim_list_mono_last__L%d' % k for k in range(17)] +
+          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
 # loop, `shared_selector_tables`' callees and the terminal's `__loop14`: the `W` count families
 # (`Memory/GuestCntW*`), which bound those two callees of `verify_sub` by their trees' shapes.

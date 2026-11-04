@@ -30,17 +30,23 @@ def vsStJ : List ℕ := [3, 301, 1, 13, 15, 302]
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
 def cclJ : List ℕ := [352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368]
 
+/-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/
+def ccmJ : List ℕ := [371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387]
+
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 23
 
-/-- The core index of `__loop16`. -/
-def l17J : ℕ := 332
+/-- The children's claim lists' loops: `child_claim_list_any`'s per `136` and per `17` claims, `child_claim_list_mono`'s. -/
+def ccLpNames : List String := ["__loop17", "__loop18", "__loop19", "__loop20"]
 
-/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/
-def omJ : List ℕ := [18, 25, 39]
+/-- Their core indices. -/
+def ccLpJ : List ℕ := [350, 351, 369, 370]
+
+/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
+def omJ : List ℕ := [18, 25, 39, 26, 27]
 
 /-- Their names. -/
-def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4"]
+def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4", "child_claim_list_any", "child_claim_list_mono"]
 
 /-- `open_stacked__L{c}`'s instructions, by `c`. -/
 def kcOsT : Opcode → List ℕ
@@ -69,6 +75,15 @@ def kcCclT : Opcode → List ℕ
   | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
 
+/-- `child_claim_list_mono_last__L{k}`'s instructions, by `k`. -/
+def kcCcmT : Opcode → List ℕ
+  | .xor => [2, 6, 9, 15, 18, 23, 27, 32, 36, 40, 44, 49, 53, 57, 61, 66, 70]
+  | .mulNative => [4, 13, 14, 21, 22, 26, 30, 34, 38, 42, 47, 50, 55, 58, 64, 66, 72]
+  | .setConstant => [6, 8, 4, 8, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+  | .deref => [16, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 83, 89, 95, 101, 107, 113]
+  | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
+
 /-- `list_split`'s instructions. -/
 def kcLs : Opcode → ℕ
   | .xor => 0
@@ -78,23 +93,23 @@ def kcLs : Opcode → ℕ
   | .jump => 1
   | .keccak => 0
 
-/-- `__loop16`'s instructions per iteration. -/
-def kcL17 : Opcode → ℕ
-  | .xor => 73
-  | .mulNative => 22
-  | .setConstant => 4
-  | .deref => 94
-  | .jump => 2
-  | .keccak => 8
+/-- The instructions of `ccLpNames` per iteration. -/
+def kcCcLpT : Opcode → List ℕ
+  | .xor => [577, 73, 577, 73]
+  | .mulNative => [841, 124, 562, 86]
+  | .setConstant => [4, 4, 6, 6]
+  | .deref => [978, 145, 846, 132]
+  | .jump => [2, 2, 2, 2]
+  | .keccak => [64, 8, 64, 8]
 
 /-- The frame weights of `omNames`. -/
 def omT : Opcode → List ℕ
-  | .xor => [187, 2, 1]
-  | .mulNative => [598, 4, 36]
-  | .setConstant => [31, 9, 9]
-  | .deref => [469, 19, 49]
-  | .jump => [35, 6, 6]
-  | .keccak => [14, 1, 0]
+  | .xor => [187, 2, 1, 2, 2]
+  | .mulNative => [598, 4, 36, 35, 24]
+  | .setConstant => [31, 9, 9, 6, 6]
+  | .deref => [469, 19, 49, 43, 38]
+  | .jump => [35, 6, 6, 4, 4]
+  | .keccak => [14, 1, 0, 0, 0]
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
 def kcVtW : Opcode → ℕ
@@ -131,9 +146,12 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
     kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) &&
   (List.range 17).all (fun k => kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
     kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) &&
+  (List.range 17).all (fun k => kvOkB op (ccmJ.getD k 0) ("child_claim_list_mono_last__L" ++ B1.Whir.natStr k) &&
+    kvSBJ op (ccmJ.getD k 0) == (kcCcmT op).getD k 0) &&
   kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op &&
-  kvOkK op l17J "__loop16" && kvSKJ op l17J == kcL17 op &&
-  (List.range 3).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
+  (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
+    kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
+  (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
     (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
 
 end
