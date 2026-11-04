@@ -105,9 +105,9 @@ def xs : List E :=
   D.product ++ D.packMsgs.flatMap (fun m ↦ [m.1, m.2]) ++
     D.localMsgs.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++ [D.t.1, D.t.2.1, D.t.2.2]
 
-/-- The next claim's record, its point, lanes, local point and slices at `pt`, `lp`, `lc`, `sl`. -/
-def outW (pt lp lc sl : E) : List E :=
-  [(D.next first).value, sumE (D.next first).mu, pt, lp, lc, sl] ++ (D.next first).mu
+/-- The next claim's record, its point, lanes, local point and flips at `pt`, `lp`, `lc`, `fl`. -/
+def outW (pt lp lc fl : E) : List E :=
+  [(D.next first).value, sumE (D.next first).mu, pt, lp, lc, fl] ++ (D.next first).mu
 
 /-- The returns. -/
 def rets (cur : E) : List E := (D.beta first).2.cap ++ [cur * gen ^ (47 + 2 * D.y + 36)]
