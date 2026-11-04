@@ -164,12 +164,6 @@ def oqDot (s : Oq) (b : ℕ) : ℕ := oqDotAfter s b (s.I / s.lo - 1)
 
 /-! ## The padding run and the leaf hash -/
 
-/-- The zero/padding run (`keccak_pad_run`): `1`, then four zeros. -/
-def oqPadT (pr : ℕ) : List Stmt :=
-  [.atom (.const (.n pr) (word 1 0 0)), .atom (.const (.n (pr + 1)) (word 0 0 0)),
-    .atom (.const (.n (pr + 2)) (word 0 0 0)), .atom (.const (.n (pr + 3)) (word 0 0 0)),
-    .atom (.const (.n (pr + 4)) (word 0 0 0))]
-
 /-- The first value of block `k` of the leaf hash. -/
 def oqBs (kL k : ℕ) : ℕ := if k = 0 then kL else kL + 13 + (k - 1) * 22
 
@@ -211,32 +205,36 @@ def oqBlockT (s : Oq) (b pr kL k : ℕ) : List Stmt :=
 def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
   ((List.range s.B).map (oqBlockT s b pr kL)).flatten
 
-/-! ## The path -/
+/-! ## The path (`walk_path`, a function of its own at b7a8d0cb) -/
 
 /-- The path's windows: six levels each from the bottom, the last the remainder
-(`walk_path`, lean_ethereum.py:1295-1331 at c4f4bc92). -/
+(`walk_path`, lean_ethereum.py:1312-1347 at b7a8d0cb). -/
 def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
 /-- Window `i`'s levels. -/
 def oqWw (s : Oq) (i : ℕ) : ℕ := if i + 1 = oqNpw s then s.pd - 6 * i else 6
 
-/-- Window `i`'s first value: its window word, then the hoisted `0x80`, then the arms. The
-children hinted at `ch .. ch + 4pd - 1` come first. -/
+/-- The values window `i` places before its hoisted `0x80`: window `0` the function's padding run
+(its first keccak), the others none. -/
+def oqWo (i : ℕ) : ℕ := if i = 0 then 5 else 0
+
+/-- Window `i`'s first value: its window word, then (window `0`) the padding run, then the hoisted
+`0x80`, then the arms. The children hinted at `ch .. ch + 4pd - 1` come first. -/
 def oqWk (s : Oq) (ch : ℕ) : ℕ → ℕ
   | 0 => ch + 4 * s.pd
-  | i + 1 => oqWk s ch i + 4 + 14 * oqWw s i * 2 ^ oqWw s i
+  | i + 1 => oqWk s ch i + 4 + oqWo i + 14 * oqWw s i * 2 ^ oqWw s i
 
 /-- The match targets of window `i`: the node after its levels. -/
-def oqWT (s : Oq) (ch i : ℕ) : ℕ := oqWk s ch i + 2 + 14 * oqWw s i
+def oqWT (s : Oq) (ch i : ℕ) : ℕ := oqWk s ch i + 2 + oqWo i + 14 * oqWw s i
 
-/-- Cell `c` of the node window `i` starts from: the leaf digest, then the previous window's
-targets; window `oqNpw` is the cap leaf. -/
+/-- Cell `c` of the node window `i` starts from: the node the walk is given at `kL, kL + 1`, then
+the previous window's targets; window `oqNpw` is the cap leaf. -/
 def oqNd (s : Oq) (kL ch i c : ℕ) : ℕ :=
-  if i = 0 then oqOut s kL (s.B - 1) c else oqWT s ch (i - 1) + c
+  if i = 0 then kL + c else oqWT s ch (i - 1) + c
 
 /-- Arm `a`'s first value in window `i` (the first arm's targets follow it). -/
 def oqArmK (s : Oq) (ch i a : ℕ) : ℕ :=
-  if a = 0 then oqWk s ch i + 2 else oqWk s ch i + 4 + 14 * oqWw s i * a
+  if a = 0 then oqWk s ch i + 2 + oqWo i else oqWk s ch i + 4 + oqWo i + 14 * oqWw s i * a
 
 /-- One level `l` of an arm from `K`: the running node `n0, n1` hashed with its sibling on the
 side the bit leaves (`keccak([n0, n1], path[4l+2:4l+4])` at bit `0`, `keccak(path[4l:4l+2],
@@ -260,10 +258,18 @@ def oqArmT (s : Oq) (pr kL ch i a : ℕ) : List Stmt :=
     [.atom (.copy (.n (oqWT s ch i)) (.n (oqArmN s kL ch i a (oqWw s i) 0))),
       .atom (.copy (.n (oqWT s ch i + 1)) (.n (oqArmN s kL ch i a (oqWw s i) 1)))]
 
-/-- Window `i`: its word read, the hoisted `0x80`, the dispatch on the word's log. -/
+/-- The zero/padding run (`keccak_pad_run`): `1`, then four zeros. -/
+def oqPadT (pr : ℕ) : List Stmt :=
+  [.atom (.const (.n pr) (word 1 0 0)), .atom (.const (.n (pr + 1)) (word 0 0 0)),
+    .atom (.const (.n (pr + 2)) (word 0 0 0)), .atom (.const (.n (pr + 3)) (word 0 0 0)),
+    .atom (.const (.n (pr + 4)) (word 0 0 0))]
+
+/-- Window `i`: its word read, (window `0`) the padding run at `pr`, the hoisted `0x80`, the
+dispatch on the word's log. -/
 def oqWinT (s : Oq) (bp : V) (pr kL ch i : ℕ) : List Stmt :=
-  [.atom (.load (.n (oqWk s ch i)) bp i), .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0 0)),
-    .match_ (.n (oqWk s ch i)) ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kL ch i))]
+  [.atom (.load (.n (oqWk s ch i)) bp i)] ++ (if i = 0 then oqPadT pr else []) ++
+    [.atom (.const (.n (oqWk s ch i + 1 + oqWo i)) (word (2 ^ 63) 0 0)),
+      .match_ (.n (oqWk s ch i)) ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kL ch i))]
 
 /-- The path: the children hinted, the windows. -/
 def oqPathT (s : Oq) (bp : V) (pr kL ch : ℕ) : List Stmt :=
@@ -289,6 +295,20 @@ def oqCapT (s : Oq) (bp cap flags : V) (kL ch : ℕ) : List Stmt :=
     .atom (.load (.n (oqNd s kL ch (oqNpw s) 0)) (.n (k + 8)) (2 ^ (s.cd + 1))),
     .atom (.load (.n (oqNd s kL ch (oqNpw s) 1)) (.n (k + 8)) (2 ^ (s.cd + 1) + 1))]
 
+/-! ## `walk_path` -/
+
+/-- `walk_path`'s children: after its parameters `n0, n1, wins, cap, flags` (`0 .. 4`). -/
+def wpCh : ℕ := 5
+
+/-- `walk_path`'s padding run: after its children and its first window's word. -/
+def wpPr (s : Oq) : ℕ := wpCh + 4 * s.pd + 1
+
+/-- **`walk_path__L{pd}_L{cd}`'s body** (lean_ethereum.py:1312-1347 at b7a8d0cb): the path from the
+node `n0, n1` (`.n 0`, `.n 1`) by the windows at `wins` (`.n 2`), the cap leaf into `cap`
+(`.n 3`), the flag into `flags` (`.n 4`). -/
+def wpBodyT (s : Oq) : List Stmt :=
+  oqPathT s (.n 2) (wpPr s) 0 wpCh ++ oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh ++ [.ret []]
+
 /-! ## One query -/
 
 /-- The first value of the leaf hash: after the dot product, and the padding run if emitted. -/
@@ -297,19 +317,23 @@ def oqKL (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqK1 b s.R + s.D + (if emit t
 /-- The padding run's first value. -/
 def oqPr (s : Oq) (b : ℕ) (emit : Bool) (pr : ℕ) : ℕ := if emit then oqK1 b s.R + s.D else pr
 
-/-- The first hinted child of the path. -/
+/-- The first value after the leaf hash. -/
 def oqCh (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqKL s b emit + s.chainLen
 
-/-- **One query** from the value `b`, its bits at `bp`, emitting the padding run (`emit`) or
-reusing the one at `pr`. -/
-def oqQueryT (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) : List Stmt :=
+/-- The leaf digest's first cell (the leaf hash's last state's first cell). -/
+def oqLf (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqOut s (oqKL s b emit) (s.B - 1) 0
+
+/-- **One query** from the value `b`, its windows at `bp`, emitting the padding run (`emit`) or
+reusing the one at `pr`: the row, its dot product, the leaf hash, and the call of `walk`
+(`walk_path__L{pd}_L{cd}`) on the leaf digest, the windows, the cap and the flags. -/
+def oqQueryT (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) (walk : String) :
+    List Stmt :=
   oqRowT b s.R ++ oqPacksT b s.R ++ oqDotT s wp b ++ (if emit then oqPadT (oqK1 b s.R + s.D) else []) ++
     oqLeafT s b (oqPr s b emit pr) (oqKL s b emit) ++
-    oqPathT s bp (oqPr s b emit pr) (oqKL s b emit) (oqCh s b emit) ++
-    oqCapT s bp cap flags (oqKL s b emit) (oqCh s b emit)
+    [.call walk [.n (oqLf s b emit), .n (oqLf s b emit + 1), bp, cap, flags] []]
 
 /-- The first value after a query. -/
-def oqEnd (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqCq s (oqCh s b emit) + 9
+def oqEnd (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqCh s b emit
 
 /-! ## The loop and the function -/
 
@@ -319,17 +343,17 @@ def oqE1 (s : Oq) : ℕ := oqEnd s 11 true
 /-- The first value of a level-0 iteration's chain step. -/
 def oqC1 (s : Oq) : ℕ := oqEnd s (oqE1 s + 1) false
 
-/-- The atoms of the loop helper's body at level 0 (`base = 1`: two queries an iteration, from the
-bit pointers at `qptrs·x²` offsets `odd`, `odd + 1`), on its parameters `x, N, qptrs, cap, flags,
-wp, chain, μ` (`0 .. 7`): the queries, the chain step `chain[x·g] = ((chain[x] + d0)·μ + d1)·μ`,
-the guard `x·g + N` and the next `x·g`. -/
-def oqLoop1A (s : Oq) (odd : ℕ) : List Stmt :=
+/-- The atoms and calls of the loop helper's body at level 0 (`base = 1`: two queries an
+iteration, from the window pointers at `qptrs·x²` offsets `odd`, `odd + 1`), on its parameters
+`x, N, qptrs, cap, flags, wp, chain, μ` (`0 .. 7`): the queries, the chain step
+`chain[x·g] = ((chain[x] + d0)·μ + d1)·μ`, the guard `x·g + N` and the next `x·g`. -/
+def oqLoop1A (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let e1 := oqE1 s
   let c := oqC1 s
   [.atom (.mul (.n 8) (.n 2) (.n 0)), .atom (.mul (.n 9) (.n 8) (.n 0)), .atom (.load (.n 10) (.n 9) odd)] ++
-    oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0 ++
+    oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0 walk ++
     [.atom (.load (.n e1) (.n 9) (odd + 1))] ++
-    oqQueryT s (.n e1) (.n 3) (.n 4) (.n 5) (e1 + 1) false (oqK1 11 s.R + s.D) ++
+    oqQueryT s (.n e1) (.n 3) (.n 4) (.n 5) (e1 + 1) false (oqK1 11 s.R + s.D) walk ++
     [.atom (.mul (.n c) (.n 6) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
       .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqDot s 11))),
       .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 7)),
@@ -341,20 +365,20 @@ def oqLoop1A (s : Oq) (odd : ℕ) : List Stmt :=
       .atom (.mul (.n (c + 11)) (.n 0) (.n (c + 10)))]
 
 /-- The loop helper's body at level 0. -/
-def oqLoop1T (s : Oq) (odd : ℕ) (name : String) : List Stmt :=
-  oqLoop1A s odd ++
+def oqLoop1T (s : Oq) (odd : ℕ) (walk name : String) : List Stmt :=
+  oqLoop1A s odd walk ++
     [.callIf (.n (oqC1 s + 9)) name
       [.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], .ret []]
 
 /-- The first value of a deeper iteration's chain step. -/
 def oqC0 (s : Oq) : ℕ := oqEnd s 10 true
 
-/-- The atoms of the loop helper's body deeper (`base = 0`: one query an iteration, from the bit
-pointer `qptrs[x]`). -/
-def oqLoop0A (s : Oq) : List Stmt :=
+/-- The atoms and the call of the loop helper's body deeper (`base = 0`: one query an iteration,
+from the window pointer `qptrs[x]`). -/
+def oqLoop0A (s : Oq) (walk : String) : List Stmt :=
   let c := oqC0 s
   [.atom (.mul (.n 8) (.n 2) (.n 0)), .atom (.load (.n 9) (.n 8) 0)] ++
-    oqQueryT s (.n 9) (.n 3) (.n 4) (.n 5) 10 true 0 ++
+    oqQueryT s (.n 9) (.n 3) (.n 4) (.n 5) 10 true 0 walk ++
     [.atom (.mul (.n c) (.n 6) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
       .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqDot s 10))),
       .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 7)), .atom (.mul (.n (c + 4)) (.n 6) (.n 0)),
@@ -364,33 +388,33 @@ def oqLoop0A (s : Oq) : List Stmt :=
       .atom (.mul (.n (c + 9)) (.n 0) (.n (c + 8)))]
 
 /-- The loop helper's body deeper. -/
-def oqLoop0T (s : Oq) (name : String) : List Stmt :=
-  oqLoop0A s ++
+def oqLoop0T (s : Oq) (walk name : String) : List Stmt :=
+  oqLoop0A s walk ++
     [.callIf (.n (oqC0 s + 7)) name
       [.n (oqC0 s + 9), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], .ret []]
 
 /-- The first value after the function's start. -/
 def oqMK (s : Oq) (odd : ℕ) : ℕ := if odd = 1 then oqEnd s 13 true + 1 else 13
 
-/-- The atoms of the function's start, on its parameters `cap, flags, λ, λ_n, qptrs, wp, N`
-(`0 .. 6`): `μ` with `1 = μ·λ`, the chain allocated, its start (the odd first query's value times
-`μ`, or `0`), the loop's guard `1 + N` and start `1`. -/
-def oqMainA (s : Oq) (odd : ℕ) : List Stmt :=
+/-- The atoms and the call of the function's start, on its parameters `cap, flags, λ, λ_n, qptrs,
+wp, N` (`0 .. 6`): `μ` with `1 = μ·λ`, the chain allocated, its start (the odd first query's value
+times `μ`, or `0`), the loop's guard `1 + N` and start `1`. -/
+def oqMainA (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let k := oqMK s odd
   [.atom (.const (.n 7) (word 1 0 0)), .atom (.mul (.n 7) (.n 8) (.n 2)),
     .atom (.const (.n 9) (word 2 0 0)), .atom (.mul (.n 10) (.n 6) (.n 9)),
     .atom (.hint (.allocDyn (.n 11) (.n 10)))] ++
   (if odd = 1 then
-      [.atom (.load (.n 12) (.n 4) 0)] ++ oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0 ++
+      [.atom (.load (.n 12) (.n 4) 0)] ++ oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0 walk ++
         [.atom (.mul (.n (k - 1)) (.n (oqDot s 13)) (.n 8)), .atom (.load (.n (k - 1)) (.n 11) 0)]
     else [.atom (.const (.n 12) (word 0 0 0)), .atom (.load (.n 12) (.n 11) 0)]) ++
   [.atom (.const (.n k) (word 1 0 0)), .atom (.add (.n (k + 1)) (.n k) (.n 6)),
     .atom (.const (.n (k + 2)) (word 1 0 0))]
 
 /-- The function's body: the start, the loop, the chain's end times `λ_n`. -/
-def oqMainT (s : Oq) (odd : ℕ) (loop : String) : List Stmt :=
+def oqMainT (s : Oq) (odd : ℕ) (walk loop : String) : List Stmt :=
   let k := oqMK s odd
-  oqMainA s odd ++
+  oqMainA s odd walk ++
     [.callIf (.n (k + 1)) loop [.n (k + 2), .n 6, .n 4, .n 0, .n 1, .n 5, .n 11, .n 8],
       .atom (.mul (.n (k + 3)) (.n 11) (.n 6)), .atom (.load (.n (k + 4)) (.n (k + 3)) 0),
       .atom (.mul (.n (k + 5)) (.n (k + 4)) (.n 3)), .ret [.n (k + 5)]]
