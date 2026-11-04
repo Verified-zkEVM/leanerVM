@@ -103,7 +103,7 @@ theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnes
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
-  have := hWD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] (by simp)
+  have := hWD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)] (by simp)
   have : Decoder.nDirectD D σ < 2 ^ 34 := gLogD_lt D _
   cost_facts [hS]
   limbs_one
@@ -216,7 +216,7 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
   have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) 0 lx (by norm_num) hlx.le
   have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
-    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 380)) (σ (.n 52)) (σ (.n 55)) _ _
+    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 431)) (σ (.n 52)) (σ (.n 55)) _ _
     (regionTable_good (rd := rd) D (σ (.n 66)) 0 lx hlx.le)
     (regionTable_good (rd := rd) D (σ (.n 66)) lx ls hls)
     ((regionTable_size_le (rd := rd) D (σ (.n 66)) 0 lx).trans hlxN)

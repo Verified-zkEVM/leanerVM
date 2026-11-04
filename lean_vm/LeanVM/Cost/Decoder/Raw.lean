@@ -58,11 +58,11 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
+    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
   else none
 
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 377), σ (.n 398)]
+def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 416), σ (.n 422), σ (.n 428), σ (.n 449)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
