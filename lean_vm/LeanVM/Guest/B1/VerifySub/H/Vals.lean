@@ -19,7 +19,7 @@ open LeanVM.Guest.B1.Fwd
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- An allocation's value is the oracle's. -/
-theorem vs_alloc_vals (hl : args.length = 7) :
+theorem vs_alloc_vals (hl : args.length = 6) :
     ∀ x ∈ vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz, vsσ rd w args x.1 = w x.1.idx := by
   intro x hx
   obtain ⟨s, hs, hsx⟩ := List.mem_filterMap.mp hx
@@ -45,7 +45,7 @@ theorem vs_alloc_fst : (vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (
   rfl
 
 /-- An allocated value is the oracle's. -/
-theorem vs_alloc_var (hl : args.length = 7) {v : ℕ} (hv : v ∈ vsAllocVars) :
+theorem vs_alloc_var (hl : args.length = 6) {v : ℕ} (hv : v ∈ vsAllocVars) :
     vsσ rd w args (.n v) = w v := by
   have : V.n v ∈ (vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.1) := by
     rw [vs_alloc_fst]; exact List.mem_map.mpr ⟨v, hv, rfl⟩
@@ -64,7 +64,7 @@ theorem vs_retsHas : ∀ j < 13, ∀ k < (vsRetVars.getD j []).length,
     vsCPre.any (retsHas ((vsRetVars.getD j []).getD k 0)) = true := by decide +kernel
 
 /-- A call's return is the oracle's. -/
-theorem vs_ret_var (hl : args.length = 7) {v : ℕ} (hv : vsCPre.any (retsHas v) = true) :
+theorem vs_ret_var (hl : args.length = 6) {v : ℕ} (hv : vsCPre.any (retsHas v) = true) :
     vsσ rd w args (.n v) = w v := by
   obtain ⟨s, hs, hr⟩ := List.any_eq_true.mp hv
   have hg := vs_goodS (rd := rd) (w := w) hl hs
@@ -78,13 +78,13 @@ theorem vs_ret_var (hl : args.length = 7) {v : ℕ} (hv : vsCPre.any (retsHas v)
   | _ => simp [retsHas] at hr
 
 /-- **The allocations' pointers.** -/
-theorem vs_alloc_ptr (hl : args.length = 7) (bs : List ℕ) (outs : List (List E × Main.Layout))
+theorem vs_alloc_ptr (hl : args.length = 6) (bs : List ℕ) (outs : List (List E × Main.Layout))
     {i : ℕ} (hi : i < 16) :
     vsσ rd (vsW bs outs) args (.n (vsAllocVars.getD i 0)) = ofK (addressOfIndex (bs.getD i 0)) := by
   rw [vs_alloc_var hl (vsAllocVars_idx i hi).1, vsW_alloc bs outs hi]
 
 /-- **The calls' returns.** -/
-theorem vs_ret_val (hl : args.length = 7) (bs : List ℕ) (outs : List (List E × Main.Layout))
+theorem vs_ret_val (hl : args.length = 6) (bs : List ℕ) (outs : List (List E × Main.Layout))
     {j k : ℕ} (hj : j < 13) (hk : k < (vsRetVars.getD j []).length) :
     vsσ rd (vsW bs outs) args (.n ((vsRetVars.getD j []).getD k 0)) =
       (outs.getD j ([], [])).1.getD k 0 := by

@@ -51,13 +51,11 @@ def TbGkrRoundsOut (n : ℕ) (rd : Reader) (rec pt : E) : Prop :=
     LoadHolds rd rec (n + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
     LoadHolds rd rec (n + 6 * gkCap) (gkrRun cs es claim ⟨cap, []⟩).2.1
 
-/-- `gkr_rounds__L1` and `gkr_rounds__L2` are sound (B1-a's `gkr_rounds_Spec`, in this direction;
+/-- `gkr_rounds__L{n}`, `n ∈ {1, 2, 4, 6}`, is sound (B1-a's `gkr_rounds_Spec`, in this direction;
 B1-a proves it). -/
 def tb_gkr_rounds_Spec : Prop :=
-  (∀ (rd : Reader) (rec pt : E),
-    coreProgram.Rel rd "gkr_rounds__L1" [rec, pt] [] → TbGkrRoundsOut 1 rd rec pt) ∧
-  ∀ (rd : Reader) (rec pt : E),
-    coreProgram.Rel rd "gkr_rounds__L2" [rec, pt] [] → TbGkrRoundsOut 2 rd rec pt
+  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt : E) (rets : List E),
+    coreProgram.Rel rd (gkrRoundsName n) [rec, pt] rets → TbGkrRoundsOut n rd rec pt
 
 /-! ## Rounds in sequence -/
 

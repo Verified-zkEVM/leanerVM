@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.VerifySub.Tail
 /-!
 # The stream before the opening
 
-`vs_stream`: the words at `stream` (`σ 27`) up to the cursor handed to `open_stacked` (`σ 868`),
+`vs_stream`: the words at `stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 656`),
 read by `wordsAt` for `cursorLen` of them, are the announced words, the root's two words, the
 bus's GKR words, the tables' words and `verify_keccak`'s. The cursor is `stream·g^n` for their
 count `n`, which the memory bounds by `2^κ ≤ 2^32` (`mem_size_le`), so `cursorLen` finds it.
@@ -64,20 +64,20 @@ theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {x
 /-- **The stream before the opening** (the decoder's words). -/
 theorem vs_stream {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {bytecode : List K} {C : CallRel}
     {σ : Val} (F : VsFront bytecode C L.read σ) {xsK : List E}
-    (hxsK : ReadsAt L.read (σ (.n 854)) xsK) (e868 : σ (.n 868) = σ (.n 854) * gen ^ xsK.length) :
-    wordsAt L.read (σ (.n 27)) (cursorLen (σ (.n 27)) (σ (.n 868))) =
-      vsWords σ ++ [σ (.n 537), σ (.n 547)] ++ F.xsG ++ F.xsT ++ xsK := by
+    (hxsK : ReadsAt L.read (σ (.n 641)) xsK) (e868 : σ (.n 656) = σ (.n 641) * gen ^ xsK.length) :
+    wordsAt L.read (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 656))) =
+      vsWords σ ++ [σ (.n 324), σ (.n 334)] ++ F.xsG ++ F.xsT ++ xsK := by
   -- the cursor after the bus's GKR
-  have e844 : σ (.n 844) = σ (.n 27) * gen ^ 10 * gen ^ F.xsG.length := by
+  have e844 : σ (.n 631) = σ (.n 25) * gen ^ 10 * gen ^ F.xsG.length := by
     have hr := F.hretG
-    rw [show [σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843), σ (.n 844), σ (.n 845),
-      σ (.n 846), σ (.n 847)] = ([σ (.n 839), σ (.n 840), σ (.n 841), σ (.n 842), σ (.n 843)] ++
-        [σ (.n 844)]) ++ [σ (.n 845), σ (.n 846), σ (.n 847)] from rfl] at hr
+    rw [show [σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630), σ (.n 631), σ (.n 632),
+      σ (.n 633), σ (.n 634)] = ([σ (.n 626), σ (.n 627), σ (.n 628), σ (.n 629), σ (.n 630)] ++
+        [σ (.n 631)]) ++ [σ (.n 632), σ (.n 633), σ (.n 634)] from rfl] at hr
     obtain ⟨h1, -⟩ := List.append_inj' hr (by rw [F.hvL]; rfl)
     obtain ⟨-, h2⟩ := List.append_inj' h1 rfl
     simpa using h2
   -- the words
-  have h10 : ReadsAt L.read (σ (.n 27)) (vsWords σ ++ [σ (.n 537), σ (.n 547)]) := by
+  have h10 : ReadsAt L.read (σ (.n 25)) (vsWords σ ++ [σ (.n 324), σ (.n 334)]) := by
     intro k hk
     simp only [vsWords, List.cons_append, List.nil_append, List.length_cons, List.length_nil] at hk
     have hw := F.hw
@@ -92,9 +92,9 @@ theorem vs_stream {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {bytecode : 
     · exact (hw 7 (by norm_num)).1
     · exact F.w8.1
     · exact F.w9.1
-  have hlen10 : (vsWords σ ++ [σ (.n 537), σ (.n 547)]).length = 10 := rfl
-  have hall : ReadsAt L.read (σ (.n 27))
-      (vsWords σ ++ [σ (.n 537), σ (.n 547)] ++ F.xsG ++ F.xsT ++ xsK) := by
+  have hlen10 : (vsWords σ ++ [σ (.n 324), σ (.n 334)]).length = 10 := rfl
+  have hall : ReadsAt L.read (σ (.n 25))
+      (vsWords σ ++ [σ (.n 324), σ (.n 334)] ++ F.xsG ++ F.xsT ++ xsK) := by
     rw [readsAt_append, readsAt_append, readsAt_append]
     refine ⟨⟨⟨h10, ?_⟩, ?_⟩, ?_⟩
     · rw [hlen10]; exact F.hxsG
@@ -102,8 +102,8 @@ theorem vs_stream {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {bytecode : 
     · rw [List.length_append, List.length_append, hlen10, pow_add, pow_add, ← mul_assoc,
         ← mul_assoc, ← e844, ← F.e854]
       exact hxsK
-  have hq : σ (.n 868) = σ (.n 27) *
-      gen ^ (vsWords σ ++ [σ (.n 537), σ (.n 547)] ++ F.xsG ++ F.xsT ++ xsK).length := by
+  have hq : σ (.n 656) = σ (.n 25) *
+      gen ^ (vsWords σ ++ [σ (.n 324), σ (.n 334)] ++ F.xsG ++ F.xsT ++ xsK).length := by
     rw [e868, F.e854, e844]
     simp only [List.length_append, hlen10, pow_add]
     ring

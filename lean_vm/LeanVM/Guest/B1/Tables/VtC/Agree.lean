@@ -152,6 +152,8 @@ theorem newA_agree {rd1 rd2 : Reader} {w : ℕ → E} {A : ℕ → Bool} {l1 l2 
       | witness n dst => cases dst <;> simp only [newA, hlen]
       | bits v a b dst => cases dst <;> simp only [newA, hlen]
       | bitsExp v a dst => cases dst <;> simp only [newA, hlen]
+      | digitsExp v nb nd db st sc dst => cases dst <;> simp only [newA, hlen]
+      | windowsExp v st wd ct dst => cases dst <;> simp only [newA, hlen]
       | log2Ceil b a f dst => simp only [newA, hlen]
       | alloc d n => simp only [newA, hlen]
       | allocDyn d n => simp only [newA, hlen]
