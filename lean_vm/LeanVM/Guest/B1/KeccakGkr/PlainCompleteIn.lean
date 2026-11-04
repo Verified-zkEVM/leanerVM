@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.PlainComplete41
-public import LeanVM.Guest.B1.KeccakGkr.RoundCompleteIn
+public import LeanVM.Guest.B1.KeccakGkr.RecIn
 
 /-!
 # `keccak_plain_rounds`' loads

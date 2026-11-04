@@ -28,35 +28,32 @@ open LeanVM.Guest.Memory
 @[expose] public section
 
 /-- The body but its return. -/
-def layerPre (first odd : ℕ) : List Stmt :=
-  secA1 first ++ (secA2 first ++ (rmfeBlockT ++ (hornerS first ++ (packSetupT first odd ++
-    (lastT (4 * odd) ++ (localS (4 * odd) ++ (tReadsT (4 * odd) ++ (eqfS (4 * odd) ++
-      (weightT first (4 * odd) ++ tailPre (4 * odd) (weightEnd first (4 * odd))
-        (weightVal first (4 * odd)))))))))))
+def layerPre (first : ℕ) : List Stmt :=
+  secA1 first ++ (secA2 first ++ (rmfeBlockT ++ (hornerS first ++ (packSetupT first ++
+    (lastT ++ (localS ++ (tReadsT ++ (eqfS ++
+      (weightT first ++ tailPre (weightEnd first) (weightVal first))))))))))
 
 /-- The returned values. -/
-def layerVs (first odd : ℕ) : List V :=
-  [.n (weightEnd first (4 * odd) + 279), .n (weightEnd first (4 * odd) + 280),
-    .n (weightEnd first (4 * odd) + 281), .n (weightEnd first (4 * odd) + 282),
-    .n (weightEnd first (4 * odd) + 283), .n (weightEnd first (4 * odd) + 286)]
+def layerVs (first : ℕ) : List V :=
+  [.n (topV (weightEnd first) + 305), .n (topV (weightEnd first) + 306),
+    .n (topV (weightEnd first) + 307), .n (topV (weightEnd first) + 308),
+    .n (topV (weightEnd first) + 309), .n (topV (weightEnd first) + 312)]
 
-theorem layerT_pre (first odd : ℕ) : layerT first odd = layerPre first odd ++ [.ret (layerVs first odd)] := by
+theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
   simp only [layerPre, layerVs, List.append_assoc]
 
-theorem layer_fn {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
-    ∃ fn, coreProgram.find? (layerName first odd) = some fn ∧ fn.body = layerT first odd ∧
+theorem layer_fn {first : ℕ} (hf : first < 2) :
+    ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
       fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
         .n 13] := by
-  interval_cases first <;> interval_cases odd
-  · exact ⟨_, find_layer256, layer_body256, rfl⟩
-  · exact ⟨_, find_layer257, layer_body257, rfl⟩
-  · exact ⟨_, find_layer254, layer_body254, rfl⟩
-  · exact ⟨_, find_layer255, layer_body255, rfl⟩
+  interval_cases first
+  · exact ⟨_, find_layer265, layer_body265, rfl⟩
+  · exact ⟨_, find_layer264, layer_body264, rfl⟩
 
-theorem layer_loop {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
-    coreProgram.loop (layerName first odd) = false := by
-  interval_cases first <;> interval_cases odd <;> decide +kernel
+theorem layer_loop {first : ℕ} (hf : first < 2) :
+    coreProgram.loop (layerName first) = false := by
+  interval_cases first <;> decide +kernel
 
 /-- A dispatch. -/
 def dispB : Stmt → Bool
@@ -64,29 +61,28 @@ def dispB : Stmt → Bool
   | _ => false
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
-def layerGroups (first odd : ℕ) : List (V × ℕ) :=
-  [(.n 7, 47), (.n 11, 22), (.n 12, 22), (.n 1310, 128), (.n (4 * odd + 1317), 113),
-    (.n (4 * odd + 1323), 36), (.n (4 * odd + 2085), 25), (.n (4 * odd + 1325), 11),
-    (.n (weightEnd first (4 * odd) + 34), 25), (.n (weightEnd first (4 * odd) + 278), 64)] ++
-    if first = 1 then [] else [(.n (4 * odd + 2086), 11)]
+def layerGroups (first : ℕ) : List (V × ℕ) :=
+  [(.n 7, 47), (.n 11, 22), (.n 12, 22), (.n 1053, 128), (.n 1072, 113), (.n 1078, 36),
+    (.n 1841, 25), (.n 1081, 11), (.n (weightEnd first + 33), 25),
+    (.n (topV (weightEnd first) + 3), 7)] ++
+    if first = 1 then [] else [(.n 1842, 11)]
 
-/-- The calls of the body. -/
-def layerCalls (first odd : ℕ) : List (Option V × String × List V × List V) :=
-  [(some (.n 1315), packLoopName first odd, [.n 1316, .n 9, .n 1310, .n 1308, .n 1309], [])] ++
-    if odd = 1 then [(none, "keccak_round", [.n 1318, .n 1319, .n 1320], [])] else []
+/-- The calls of the body: the eight-round loop and the remainder loop. -/
+def layerCalls (first : ℕ) : List (Option V × String × List V × List V) :=
+  [(some (.n 1058), packLoopName first, [.n 1059, .n 9, .n 1053, .n 1051, .n 1052], []),
+    (some (.n 1070), remLoopName first, [.n 1071, .n 10, .n 1060, .n 1064, .n 1068], [])]
 
-theorem layerPre_kernel {first odd : ℕ} (hf : first < 2) (ho : odd < 2) :
-    (layerPre first odd).all Stmt.flat = true ∧
-    (layerPre first odd).filterMap Main.Stmt.addrS = [] ∧
-    (layerPre first odd).filterMap Main.Stmt.allocSz =
-      [(.n 1309, .inr (.n 8)), (.n 1310, .inl 128), (.n (4 * odd + 1325), .inl 11),
-        (.n (weightEnd first (4 * odd) + 34), .inl 25),
-        (.n (weightEnd first (4 * odd) + 278), .inl 64)] ∧
-    (layerPre first odd).all (fun s ↦ !dispB s) = true ∧
-    (layerPre first odd).filterMap Main.Stmt.callS = layerCalls first odd ∧
-    ((layerPre first odd).filterMap Stmt.loadS).all
-      (fun q ↦ (layerGroups first odd).any fun g ↦ g.1 == q.1 && decide (q.2 < g.2)) = true := by
-  interval_cases first <;> interval_cases odd
+theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
+    (layerPre first).all Stmt.flat = true ∧
+    (layerPre first).filterMap Main.Stmt.addrS = [] ∧
+    (layerPre first).filterMap Main.Stmt.allocSz =
+      [(.n 1052, .inr (.n 8)), (.n 1053, .inl 128), (.n 1081, .inl 11),
+        (.n (weightEnd first + 33), .inl 25), (.n (topV (weightEnd first) + 3), .inl 7)] ∧
+    (layerPre first).all (fun s ↦ !dispB s) = true ∧
+    (layerPre first).filterMap Main.Stmt.callS = layerCalls first ∧
+    ((layerPre first).filterMap Stmt.loadS).all
+      (fun q ↦ (layerGroups first).any fun g ↦ g.1 == q.1 && decide (q.2 < g.2)) = true := by
+  interval_cases first
   all_goals exact ⟨by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel,
     by decide +kernel, by decide +kernel⟩
 
@@ -95,17 +91,17 @@ theorem callSF_of_not_disp (σ : Val) {s : Stmt} (h : dispB s = false) :
     s.callSF σ = Main.Stmt.callS s := by
   cases s <;> simp_all [dispB, Stmt.callSF]
 
-theorem layerPre_callSF {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (σ : Val) :
-    (layerPre first odd).filterMap (Stmt.callSF σ) = layerCalls first odd := by
-  obtain ⟨-, -, -, hd, hc, -⟩ := layerPre_kernel hf ho
+theorem layerPre_callSF {first : ℕ} (hf : first < 2) (σ : Val) :
+    (layerPre first).filterMap (Stmt.callSF σ) = layerCalls first := by
+  obtain ⟨-, -, -, hd, hc, -⟩ := layerPre_kernel hf
   rw [← hc]
   refine List.filterMap_congr fun s hs ↦ callSF_of_not_disp σ ?_
   have := List.all_eq_true.mp hd s hs
   simpa using this
 
-theorem layerPre_disp {first odd : ℕ} (hf : first < 2) (ho : odd < 2) (σ : Val) :
-    ∀ s ∈ layerPre first odd, DispOk σ s := by
-  obtain ⟨-, -, -, hd, -, -⟩ := layerPre_kernel hf ho
+theorem layerPre_disp {first : ℕ} (hf : first < 2) (σ : Val) :
+    ∀ s ∈ layerPre first, DispOk σ s := by
+  obtain ⟨-, -, -, hd, -, -⟩ := layerPre_kernel hf
   intro s hs
   have := List.all_eq_true.mp hd s hs
   cases s <;> simp_all [dispB, DispOk]

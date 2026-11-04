@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
-public import LeanVM.Guest.B1.KeccakGkr.PackCompleteIn
+public import LeanVM.Guest.B1.KeccakGkr.RecIn
 
 /-!
 # The copy loops, completely
@@ -77,7 +77,7 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
     · show IsInK (σ (.n 9))
       show IsInK (gen ^ k * word 2 0 0 + gen ^ m)
       rw [e2, ← pow_succ]
-      exact Digest.gen_pow_add_isInK _ _
+      exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
     · split <;> trivial
   · rw [loadAddrs_straight σ _ (copy_straight name), copy_loads] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
@@ -106,7 +106,7 @@ theorem copyLoop_relIn {name : String} {fn : Fn} (hf : coreProgram.find? name = 
     (hR : ∀ j < m, InR R (src * gen ^ j) 0 ∧ InR R (dst * gen ^ j) 0) :
     IsInK (1 + gen ^ m) ∧
       (1 + gen ^ m ≠ 0 → coreProgram.RelIn rd R name [1, gen ^ m, dst, src] []) := by
-  refine ⟨by rw [← pow_zero gen]; exact Digest.gen_pow_add_isInK _ _, fun hne ↦ ?_⟩
+  refine ⟨by rw [← pow_zero gen]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _), fun hne ↦ ?_⟩
   have key : ∀ t k, k + 1 + t = m →
       coreProgram.RelIn rd R name [gen ^ k, gen ^ m, dst, src] [] := by
     intro t

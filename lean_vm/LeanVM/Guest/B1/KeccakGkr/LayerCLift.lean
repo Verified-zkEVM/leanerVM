@@ -17,10 +17,10 @@ public import LeanVM.Guest.Memory.LiftPure
 * `ClaimLay`: where the caller keeps a claim's record and its buffers (`ClaimLay.L`), and what
   they hold (`ClaimLay.Ok`); `ClaimLay.claimRec`: a memory holding them holds the claim's record.
 * `layerBufs D first cur b`: the layer's buffers from `b`: the pack challenges, the round records,
-  the local point, the next claim's lanes and slices. `layerLin`: the caller's words, the next
+  the local point, the next claim's lanes and flips. `layerLin`: the caller's words, the next
   claim's record at `out` pointing into `layerBufs`.
-* `layer_kids`: on a memory holding both, the pack loop and (`y` odd) the last round hold, loading
-  from them.
+* `layer_kids`: on a memory holding both, the eight-round loop and the remainder loop hold,
+  loading from them.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -60,22 +60,22 @@ structure ClaimLay where
   lanes : List E
   blc : ℕ
   locC : List E
-  bsl : ℕ
+  bfl : ℕ
 
 namespace ClaimLay
 
-/-- The record, the point, the lanes and, for a later claim, the local point and the slices. -/
+/-- The record, the point, the lanes and, for a later claim, the local point and the flips. -/
 def L (CL : ClaimLay) (first : ℕ) (c : KeccakClaim) : Main.Layout :=
   [(CL.bclaim, CL.cw), (CL.bpp, c.point), (CL.blp, CL.lanes)] ++
-    if first = 1 then [] else [(CL.blc, CL.locC), (CL.bsl, eqKernel (CL.locC.take 6))]
+    if first = 1 then [] else [(CL.blc, CL.locC), (CL.bfl, flipsOf c.weights)]
 
-/-- What the record holds (`KC_*`, G:218-225). -/
+/-- What the record holds (`KC_*`, G:237-244). -/
 def Ok (CL : ClaimLay) (first : ℕ) (c : KeccakClaim) (y : ℕ) : Prop :=
   CL.cw.length = 22 ∧ c.mu.length = 16 ∧ c.point.length = y ∧ CL.cw.getD 0 0 = c.value ∧
     CL.cw.getD 1 0 = sumE c.mu ∧ CL.cw.getD 2 0 = ptr CL.bpp ∧ CL.cw.getD 3 0 = ptr CL.blp ∧
     (∀ i < 16, CL.cw.getD (6 + i) 0 = c.mu.getD i 0) ∧ CL.lanes.length = 25 ∧
     if first = 1 then c.weights = firstWeights CL.lanes
-    else CL.cw.getD 4 0 = ptr CL.blc ∧ CL.cw.getD 5 0 = ptr CL.bsl ∧ CL.locC.length = 11 ∧
+    else CL.cw.getD 4 0 = ptr CL.blc ∧ CL.cw.getD 5 0 = ptr CL.bfl ∧ CL.locC.length = 11 ∧
       c.weights = laterWeights CL.lanes (eqKernel (CL.locC.take 6))
 
 theorem getD_load {rd : Reader} {p : E} {ws : List E} (h : ReadsAt rd p ws) {k : ℕ}
@@ -103,8 +103,8 @@ theorem claimRec {CL : ClaimLay} {first : ℕ} {c : KeccakClaim} {y : ℕ} (h : 
   · simp only [hf, decide_false, Bool.false_eq_true, ↓reduceIte] at hw ⊢
     obtain ⟨h4, h5, hlc, hwt⟩ := hw
     have hlcR := memL_entry hm (b := CL.blc) (ws := CL.locC) (by simp [L, hf])
-    have hslR := memL_entry hm (b := CL.bsl) (ws := eqKernel (CL.locC.take 6)) (by simp [L, hf])
-    exact ⟨ptr CL.blc, ptr CL.bsl, CL.locC, by rw [← h4]; exact getD_load hcw (by omega), hlc,
+    have hslR := memL_entry hm (b := CL.bfl) (ws := flipsOf c.weights) (by simp [L, hf])
+    exact ⟨ptr CL.blc, ptr CL.bfl, CL.locC, by rw [← h4]; exact getD_load hcw (by omega), hlc,
       hlcR, by rw [← h5]; exact getD_load hcw (by omega), hslR, hwt⟩
 
 end ClaimLay
@@ -112,12 +112,13 @@ end ClaimLay
 /-! ## The layer's layout -/
 
 /-- The sizes of the layer's buffers. -/
-def layerSizes (D : LayerData) : List ℕ := [D.y, 128, 11, 25, 64]
+def layerSizes (D : LayerData) : List ℕ := [D.y, 128, 11, 25, 7]
 
 /-- The words of the layer's buffers. -/
 def layerOwn (D : LayerData) (first : ℕ) (cur : E) : List (List E) :=
   [D.chs first, D.recWords first cur, D.locPt first, lanesOut (D.locPt first) (D.beta first).1,
-    eqKernel ((D.locPt first).take 6)]
+    flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
+      (eqKernel ((D.locPt first).take 6)))]
 
 /-- **The layer's buffers from `b`.** -/
 def layerBufs (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) : Main.Layout :=
@@ -126,7 +127,8 @@ def layerBufs (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) : Main.Layout :=
 theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
     layerBufs D first cur b = [(b, D.chs first), (b + D.y, D.recWords first cur),
       (b + D.y + 128, D.locPt first), (b + D.y + 139, lanesOut (D.locPt first) (D.beta first).1),
-      (b + D.y + 164, eqKernel ((D.locPt first).take 6))] := by
+      (b + D.y + 164, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
+        (eqKernel ((D.locPt first).take 6))))] := by
   simp [layerBufs, bufL, layerSizes, layerOwn, bases]
 
 /-- **The caller's words**: the next claim's record at `out` (its pointers into `layerBufs` from
@@ -139,18 +141,18 @@ theorem recWords_length (D : LayerData) (first : ℕ) (cur : E) :
     (D.recWords first cur).length = 128 := by simp [LayerData.recWords]
 
 /-- **The callees, honestly and loading from the layout**: on a memory holding the caller's words
-and the buffers, the pack loop and (`y` odd) the last round hold. -/
-theorem layer_kids {first odd : ℕ} (D : LayerData) (CL : ClaimLay) (bcur bout b : ℕ)
-    (hy : D.y % 2 = odd) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
+and the buffers, the eight-round loop and the remainder loop hold. -/
+theorem layer_kids {first : ℕ} (hf : first < 2) (D : LayerData) (CL : ClaimLay) (bcur bout b : ℕ)
+    (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
     (hpm : D.packMsgs.length = D.y) (hlm : D.localMsgs.length = 11) {rd : Reader}
     (hm : MemL rd (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b)) :
-    (1 + gen ^ (D.y / 2) ≠ 0 → coreProgram.RelIn rd
+    (1 + gen ^ (D.y / 8) ≠ 0 → coreProgram.RelIn rd
       (RegionL (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b))
-      (packLoopName first odd) [1, gen ^ (D.y / 2), ptr (b + D.y), ptr CL.bpp, ptr b] []) ∧
-    (odd = 1 → coreProgram.RelIn rd
-      (RegionL (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b)) "keccak_round"
-      [ptr (b + D.y) * gen ^ (D.y / 2), ptr CL.bpp * (gen ^ (D.y / 2)) ^ 2,
-        ptr b * (gen ^ (D.y / 2)) ^ 2] []) := by
+      (packLoopName first) [1, gen ^ (D.y / 8), ptr (b + D.y), ptr CL.bpp, ptr b] []) ∧
+    (1 + gen ^ (D.y % 8) ≠ 0 → coreProgram.RelIn rd
+      (RegionL (layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b))
+      (remLoopName first) [1, gen ^ (D.y % 8), ptr (b + D.y) * gen ^ (D.y / 8),
+        ptr CL.bpp * (gen ^ (D.y / 8)) ^ 8, ptr b * (gen ^ (D.y / 8)) ^ 8] []) := by
   have hy' : D.y = D.c.point.length := rfl
   set L := layerLin D first CL bcur bout b ++ layerBufs D first (ptr bcur) b with hL
   have mRec : (b + D.y, D.recWords first (ptr bcur)) ∈ L := by
@@ -166,7 +168,7 @@ theorem layer_kids {first odd : ℕ} (D : LayerData) (CL : ClaimLay) (bcur bout 
   have hcl := LayerData.chs_length (D := D) (first := first) hpm
   have hxl := LayerData.xs_length hpl hpm hlm
   -- record `j`'s cursor
-  have hcur : ∀ j < 16, j ≤ D.y / 2 + D.y % 2 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 80 c' →
+  have hcur : ∀ j < 16, j ≤ D.y / 8 + D.y % 8 → ∀ c', LoadHolds rd (ptr (b + D.y) * gen ^ j) 80 c' →
       c' = ptr bcur * gen ^ (47 + 2 * D.recK j) := by
     intro j hj hjy c' hc'
     have := (LayerData.recWords_rec hrec hj hjy).2.1
@@ -179,27 +181,34 @@ theorem layer_kids {first odd : ℕ} (D : LayerData) (CL : ClaimLay) (bcur bout 
     rw [hrl]
     rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl <;> omega
-  refine ⟨fun hne ↦ ?_, fun ho1 ↦ ?_⟩
-  · refine (packLoop_relIn first odd (m := D.y / 2)
-      (fun j hj ↦ LayerData.packStep_honest hpl hpm hrec hpp hxs hpt hy30 hj)
-      (fun j hj ↦ ⟨hrecR j (by omega), ?_, ?_, ?_, ?_, fun c' hc' k hk ↦ ?_⟩)).2 hne
-    · rw [gen_sq]; exact inR_entry mPp (by omega)
-    · rw [gen_sq]; exact inR_entry mPp (by omega)
-    · rw [gen_sq]; exact inR_entry mPt (by omega)
-    · rw [gen_sq]; exact inR_entry mPt (by omega)
+  have hpow : ∀ (p : E) (a c : ℕ), p * (gen ^ a) ^ 8 * gen ^ c = p * gen ^ (8 * a + c) := by
+    intro p a c
+    rw [mul_assoc, ← pow_mul, ← pow_add, show a * 8 = 8 * a by ring]
+  refine ⟨fun hne ↦ ?_, fun hne ↦ ?_⟩
+  · refine (pack8Loop_relIn hf (m := D.y / 8)
+      (fun j hj ↦ LayerData.pack8_honest hpl hpm hrec hpp hxs hpt hy30 hj)
+      (fun j hj ↦ ⟨hrecR j (by omega), fun q hq ↦ ?_, fun q hq ↦ ?_, fun c' hc' k hk ↦ ?_⟩)).2 hne
+    · rw [← pow_mul]; exact inR_entry mPp (by omega)
+    · rw [← pow_mul]; exact inR_entry mPt (by omega)
     · rw [hcur j (by omega) (by omega) c' hc']
       refine inR_entry mXs ?_
-      simp only [LayerData.recK]
+      have : D.recK j = 8 * j := by unfold LayerData.recK; split <;> omega
+      rw [this]
       omega
-  · have hodd : D.y % 2 = 1 := by omega
-    refine keccak_round_relIn
-      (LayerData.round_honest hpl hpm hrec hpp hxs hpt hy30 hodd) (hrecR _ (by omega)) ?_ ?_
-      (fun c' hc' ↦ ?_)
-    · rw [gen_sq]; exact inR_entry mPp (by omega)
-    · rw [gen_sq]; exact inR_entry mPt (by omega)
-    · rw [hcur _ (by omega) (by omega) c' hc']
-      simp only [LayerData.recK]
-      exact ⟨inR_entry mXs (by omega), inR_entry mXs (by omega)⟩
+  · refine (packRemLoop_relIn hf (m := D.y % 8)
+      (fun i hi ↦ LayerData.packRem_honest hpl hpm hrec hpp hxs hpt hy30 hi)
+      (fun i hi ↦ ⟨?_, ?_, ?_, fun c' hc' k hk ↦ ?_⟩)).2 hne
+    · rw [mul_assoc, ← pow_add]; exact hrecR _ (by omega)
+    · rw [hpow, show 8 * (D.y / 8) + i = 8 * (D.y / 8) + i + 0 from rfl]
+      exact inR_entry mPp (by omega)
+    · rw [hpow]; exact inR_entry mPt (by omega)
+    · rw [mul_assoc, ← pow_add] at hc'
+      rw [hcur _ (by omega) (by omega) c' hc']
+      refine inR_entry mXs ?_
+      have : D.recK (D.y / 8 + i) = 8 * (D.y / 8) + i := by
+        unfold LayerData.recK; split <;> omega
+      rw [this]
+      omega
 
 end
 end LeanVM.Guest.B1.VerifySub
