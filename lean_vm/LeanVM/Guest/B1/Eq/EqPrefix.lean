@@ -417,7 +417,7 @@ theorem eq_prefix_run_holds : eq_prefix_run_Spec := by
 theorem find_eq_prefix_chain : coreProgram.find? "eq_prefix_chain" = some Data.core5 :=
   Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl
 
-theorem core4_body : Fn.body Data.core5 =
+theorem core5_body : Fn.body Data.core5 =
     [.atom (.const (.n 5) (word (2 ^ 40) 0 0)),
       .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
       .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9], .ret []] :=
@@ -430,7 +430,7 @@ theorem eq_prefix_chain_holds : eq_prefix_chain_Spec := by
   have hname : ∀ j (hj : j < eqPrefixRunNames.length), eqPrefixRunNames[j] = eqPrefixRunNames.getD j "" :=
     fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
   rw [rel_iff_sem find_eq_prefix_chain,
-    show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, core4_body]
+    show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, core5_body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   rw [word_two_pow (by norm_num)]
   constructor
