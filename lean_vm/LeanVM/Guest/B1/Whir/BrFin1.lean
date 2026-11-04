@@ -164,7 +164,7 @@ theorem fin_bases {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cf
     (hs : OsSizes c) {rd : Reader} {P : OsPtrs} (hm : FixedMem rd P c tr) {T BD LS : E}
     (hT : ReadsAt rd T (tailC tr.Lf tr.xsR)) (hBD : ReadsAt rd BD (bdC c tr))
     (hLS : ReadsAt rd LS (lsC c tr)) {i : ℕ} (hi : i < c.levels.length) :
-    BasisMemP rd P T BD LS c i c.levels[i] (βof c tr.rs i) (Xof tr.rs tr.Fall tr.Tc i) := by
+    BasisMemP rd P T BD LS c i c.levels[i] (finB c tr i) (Xof tr.rs tr.Fall tr.Tc i) := by
   have hst := hF.lv i hi
   have hg : c.levels[i] = lvAt c i := (List.getD_eq_getElem _ _ hi).symm
   rw [hg]
@@ -176,7 +176,7 @@ theorem fin_bases {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cf
   refine ⟨?_, fun t ht ↦ ⟨xof_ne hF h hi (by omega),
     (vanish_inv hst.vanish t (by simp only [lvAt] at *; omega)).2, ?_, ?_⟩, ?_⟩
   · have := readsAt_map_range hm.betas hi
-    rw [βof, rs_get h hi]
+    rw [finB, βof, Wof, rs_get h hi]
     simpa [recOf] using this
   · rw [xof_getD hF h hi t]
     unfold coordPtr coordSrc
