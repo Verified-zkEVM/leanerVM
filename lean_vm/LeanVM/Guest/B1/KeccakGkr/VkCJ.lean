@@ -47,7 +47,7 @@ def vkAllocs : List (V × (ℕ ⊕ V)) :=
     (.n 384, .inl 2), (.n 1259, .inl 30)]
 
 /-- Not a dispatch. -/
-def noDispB : Stmt → Bool
+def vkNoDispB : Stmt → Bool
   | .dispatch .. => false
   | _ => true
 
@@ -76,26 +76,26 @@ def vkCalls : List (Option V × String × List V × List V) :=
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧
-    vkPre.filterMap Main.Stmt.allocSz = vkAllocs ∧ vkPre.all noDispB = true ∧
+    vkPre.filterMap Main.Stmt.allocSz = vkAllocs ∧ vkPre.all vkNoDispB = true ∧
     vkPre.filterMap Main.Stmt.callS = vkCalls := by
   decide +kernel
 
-theorem callSF_of_noDisp (σ : Val) {s : Stmt} (h : noDispB s = true) :
+theorem vk_callSF_of_noDisp (σ : Val) {s : Stmt} (h : vkNoDispB s = true) :
     s.callSF σ = Main.Stmt.callS s := by
   cases s with
-  | dispatch x fs args rets => simp [noDispB] at h
+  | dispatch x fs args rets => simp [vkNoDispB] at h
   | _ => rfl
 
 theorem vkPre_callSF (σ : Val) : vkPre.filterMap (Stmt.callSF σ) = vkCalls := by
   rw [← vkPre_kernel.2.2.2.2]
   exact List.filterMap_congr fun _ hs ↦
-    callSF_of_noDisp σ (List.all_eq_true.mp vkPre_kernel.2.2.2.1 _ hs)
+    vk_callSF_of_noDisp σ (List.all_eq_true.mp vkPre_kernel.2.2.2.1 _ hs)
 
 theorem vkPre_disp (σ : Val) : ∀ s ∈ vkPre, DispOk σ s := by
   intro s hs
   have h := List.all_eq_true.mp vkPre_kernel.2.2.2.1 s hs
   cases s with
-  | dispatch x fs args rets => simp [noDispB] at h
+  | dispatch x fs args rets => simp [vkNoDispB] at h
   | _ => trivial
 
 end

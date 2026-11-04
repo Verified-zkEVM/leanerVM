@@ -56,7 +56,7 @@ theorem good_load_eq (hS : StoresAt24 S) {d p : V} {off : ℕ} (hp : p ≠ .n 24
   show LoadHolds rd (σ p) off (σ d)
   rw [e]; exact hl
 
-theorem good_mul {d x y : ℕ} (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y))))
+theorem goodS_mul {d x y : ℕ} (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y))))
     (hx : x < d) (hy : y < d) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
   rwa [ite_pos' (show (Core.V.n x).idx < (Core.V.n d).idx ∧ (Core.V.n y).idx < (Core.V.n d).idx from
@@ -89,7 +89,7 @@ theorem kapT_complete {src adj r : ℕ} (hsrc : src < 8) (hadj : adj < 64) (hr :
       forall_eq] at hg ⊢
     obtain ⟨g0, g1⟩ := hg
     have e0 := good_const g0
-    have e1 := good_mul g1 (by simp only [kbV]; omega) (by omega)
+    have e1 := goodS_mul g1 (by simp only [kbV]; omega) (by omega)
     refine ⟨⟨e0, e1⟩, rfl, by rw [e1, e0, word_two_pow hadj], by omega, by omega⟩
 
 /-- **A claim on a prefix chain, completely.** -/
@@ -103,7 +103,7 @@ theorem zrT_complete (hS : StoresAt24 S) {ch kr sel lr r acc n : ℕ} (hch' : ch
   simp only [zrT, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at m
   obtain ⟨g0, g1, g2, g3, g4, g5⟩ := m
   obtain ⟨CH, hch⟩ := hch
-  have e0 := good_mul g0 hch' hkr
+  have e0 := goodS_mul g0 hch' hkr
   rw [ekr] at e0
   rw [← e0] at hch ach
   obtain ⟨-, l1⟩ := good_load_eq hS (n_ne_24 (by omega)) g1 hch
@@ -112,10 +112,10 @@ theorem zrT_complete (hS : StoresAt24 S) {ch kr sel lr r acc n : ℕ} (hch' : ch
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl
     · exact (by rw [e0, ekr] : σ (.n r) = σ (.n ch) * σ (.n kr))
     · exact l1
-    · exact good_mul g2 (by omega) (by omega)
-    · exact good_mul g3 (by omega) (by omega)
+    · exact goodS_mul g2 (by omega) (by omega)
+    · exact goodS_mul g3 (by omega) (by omega)
     · exact good_add g4
-    · exact good_mul g5 (by omega) (by omega)
+    · exact goodS_mul g5 (by omega) (by omega)
   · simp only [zrT, List.filterMap_cons, Stmt.loadS, List.filterMap_nil, List.mem_cons,
       List.not_mem_nil, or_false] at hq
     subst hq
@@ -140,7 +140,7 @@ theorem qT_complete (hS : StoresAt24 S) {s kr lr r acc n : ℕ} (hsel : selV 5 <
       (Atom.load (.n d) (.n (slotPt s k)) k).Holds rd σ := fun k hk d g => by
     obtain ⟨v, hv⟩ := (hslot k hk _ (hsp k hk)).1
     exact (good_load_eq hS (n_ne_24 (by rcases hsp k hk with h | h <;> rw [h] <;> decide)) g hv).2
-  have e11 := good_mul g11 (by omega) (by omega)
+  have e11 := goodS_mul g11 (by omega) (by omega)
   rw [ekr] at e11
   rw [← e11] at hch ach
   obtain ⟨-, l12⟩ := good_load_eq hS (n_ne_24 (by omega)) g12 hch
@@ -150,22 +150,22 @@ theorem qT_complete (hS : StoresAt24 S) {s kr lr r acc n : ℕ} (hsel : selV 5 <
       rfl | rfl | rfl | rfl | rfl
     · exact ls 5 (by decide) _ g0
     · exact ls 4 (by decide) _ g1
-    · exact good_mul g2 (by omega) (by omega)
+    · exact goodS_mul g2 (by omega) (by omega)
     · exact ls 3 (by decide) _ g3
-    · exact good_mul g4 (by omega) (by omega)
+    · exact goodS_mul g4 (by omega) (by omega)
     · exact ls 2 (by decide) _ g5
-    · exact good_mul g6 (by omega) (by omega)
+    · exact goodS_mul g6 (by omega) (by omega)
     · exact ls 1 (by decide) _ g7
-    · exact good_mul g8 (by omega) (by omega)
+    · exact goodS_mul g8 (by omega) (by omega)
     · exact ls 0 (by decide) _ g9
-    · exact good_mul g10 (by omega) (by omega)
+    · exact goodS_mul g10 (by omega) (by omega)
     · exact (by rw [e11, ekr] : σ (.n (r + 11)) = σ (.n 20) * σ (.n kr))
     · exact l12
-    · exact good_mul g13 (by omega) (by omega)
-    · exact good_mul g14 (by omega) (by omega)
-    · exact good_mul g15 (by omega) (by omega)
+    · exact goodS_mul g13 (by omega) (by omega)
+    · exact goodS_mul g14 (by omega) (by omega)
+    · exact goodS_mul g15 (by omega) (by omega)
     · exact good_add g16
-    · exact good_mul g17 (by omega) (by omega)
+    · exact goodS_mul g17 (by omega) (by omega)
   · simp only [qT, List.filterMap_cons, Stmt.loadS, List.filterMap_nil, List.mem_cons,
       List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -188,10 +188,10 @@ theorem pT_complete {sel lr r acc : ℕ} (hsel : sel < r) (hlr : lr < r) (hr : 3
   refine ⟨fun t ht => ?_, fun q hq => ?_⟩
   · simp only [pT, List.mem_cons, List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl
-    · exact good_mul g0 (by omega) (by omega)
-    · exact good_mul g1 (by omega) (by omega)
+    · exact goodS_mul g0 (by omega) (by omega)
+    · exact goodS_mul g1 (by omega) (by omega)
     · exact good_add g2
-    · exact good_mul g3 (by omega) (by omega)
+    · exact goodS_mul g3 (by omega) (by omega)
   · simp [pT, Stmt.loadS] at hq
 
 /-! ## All the claims -/
