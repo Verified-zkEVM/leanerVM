@@ -57,10 +57,10 @@ theorem dlNames_bang {L : ℕ} (hL : L ≤ 10) : dlNames[L]! = daLevelsName L :=
 def dvCallsS (j : ℕ) : List (Option V × String × List V × List V) :=
   [(none, "da_row_shape", [.n 1, .n 2, .n 0], [.n 3, .n 4]),
     (none, "da_vector", [.n 5], [.n 16, .n 17, .n 18, .n 19]),
-    (some (.n 34), "__loop17", [.n 35, .n 1, .n 31, .n 32], []),
-    (none, "__loop18", [.n 36, .n 1, .n 32, .n 16, .n 17, .n 18, .n 19], []),
-    (some (.n 41), "__loop19", [.n 42, .n 1, .n 32, .n 39], []),
-    (some (.n 44), "__loop20", [.n 45, .n 4, .n 39, .n 1], []),
+    (some (.n 34), "__loop21", [.n 35, .n 1, .n 31, .n 32], []),
+    (none, "__loop22", [.n 36, .n 1, .n 32, .n 16, .n 17, .n 18, .n 19], []),
+    (some (.n 41), "__loop23", [.n 42, .n 1, .n 32, .n 39], []),
+    (some (.n 44), "__loop24", [.n 45, .n 4, .n 39, .n 1], []),
     (none, dlList.getD j "", [.n 39], [.n 46, .n 47])]
 
 theorem dv_callsSF (σ : Val) : dvP.filterMap (Stmt.callSF σ) = dvCallsS (logG (σ (.n 2))) := rfl
@@ -96,12 +96,12 @@ theorem dvVb_spec {z : E} {pv : List (List E × Layout)} (h : vecOut z (pv.getD 
 
 /-- A column's words bound, its callees' frames and its row loop's `r` iterations. -/
 def colBf (fs : String → ℕ) (SK : String → ℕ) (r : ℕ) : ℕ :=
-  fs "da_verify_column" + (fs "da_expand__L7_L8" + r * SK "__loop21")
+  fs "da_verify_column" + (fs "da_expand__L7_L8" + r * SK "__loop25")
 
 /-- `da_verify`'s callees' bounds, in call order, at the frame sizes. -/
 def dvBs (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : List ℕ :=
-  [fs "da_row_shape", vecB fs SK, r * SK "__loop17", clB fs "__loop18" (colBf fs SK r) 128,
-    r * SK "__loop19", if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop20" else fs "__loop20",
+  [fs "da_row_shape", vecB fs SK, r * SK "__loop21", clB fs "__loop22" (colBf fs SK r) 128,
+    r * SK "__loop23", if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop24" else fs "__loop24",
     SB (daLevelsName L)]
 
 /-- `da_verify`'s callees, on its buffers at `bb`. -/
@@ -109,16 +109,16 @@ noncomputable def dvKids (r L : ℕ) (syms : ℕ → ℕ → List K) (z : E) (s 
   [fun _ => ⟨"da_row_shape", true, [gen ^ r, gen ^ L, gen ^ s], [(s + L, [gen ^ 2 ^ L])],
       Returns [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]⟩,
     fun _ => ⟨"da_vector", true, [z], [], vecOut z⟩,
-    fun _ => ⟨"__loop17", true, [1, gen ^ r, gen ^ bb, gen ^ (bb + 641 * r)],
+    fun _ => ⟨"__loop21", true, [1, gen ^ r, gen ^ bb, gen ^ (bb + 641 * r)],
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb)], Returns []⟩,
-    fun pv => ⟨"__loop18", true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (dvVb z pv).1,
+    fun pv => ⟨"__loop22", true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (dvVb z pv).1,
       gen ^ ((dvVb z pv).2.1 + 2 ^ 7), gen ^ (dvVb z pv).2.2.1, gen ^ (dvVb z pv).2.2.2],
       colLin r syms z (dvVb z pv).1 (dvVb z pv).2.1 (dvVb z pv).2.2.1 (dvVb z pv).2.2.2 bb (bb + 641 * r),
       Returns []⟩,
-    fun _ => ⟨"__loop19", true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (bb + 641 * r + r)],
+    fun _ => ⟨"__loop23", true, [1, gen ^ r, gen ^ (bb + 641 * r), gen ^ (bb + 641 * r + r)],
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb),
         (bb + 641 * r + r, rootsCells r L syms)], Returns []⟩,
-    fun _ => ⟨"__loop20", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), gen ^ (bb + 641 * r + r), gen ^ r],
+    fun _ => ⟨"__loop24", decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), gen ^ (bb + 641 * r + r), gen ^ r],
       [(bb + 641 * r + r, rootsCells r L syms)], Returns []⟩,
     fun _ => ⟨daLevelsName L, true, [gen ^ (bb + 641 * r + r)], [(bb + 641 * r + r, rootsCells r L syms)],
       Returns (digestCells (daRoot r L syms))⟩]
@@ -169,7 +169,7 @@ theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ �
     (c0 c1 : E) :
     ∀ st ∈ dvP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, Data.core26, Data.core26.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, Data.core28, Data.core28.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, dvVals, List.getD_cons_succ,
@@ -190,7 +190,7 @@ set_option maxRecDepth 20000 in
 theorem dv_dispOk (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) :
     ∀ st ∈ dvP, B1.DispOk (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, Data.core26, Data.core26.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, Data.core28, Data.core28.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals first
@@ -247,10 +247,10 @@ buffers and its callees' bounds**, on `r` blobs of cells `syms` orthogonal to th
 theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
       (fun a => logG (a.getD 1 0) * SK (offLoopName b)))
-    (h17 : TotalLeOn coreProgram fs "__loop17" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop17"))
-    (h19 : TotalLeOn coreProgram fs "__loop19" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop19"))
-    (h20 : TotalLeOn coreProgram fs "__loop20" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop20"))
-    (h21 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21"))
+    (h17 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21"))
+    (h19 : TotalLeOn coreProgram fs "__loop23" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop23"))
+    (h20 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24"))
+    (h21 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
     {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
     (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
     {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
@@ -274,7 +274,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body Data.core26 = dvP ++ [.ret [.n 48, .n 49, .n 50, .n 51]] := rfl
+  have hb : Fn.body Data.core28 = dvP ++ [.ret [.n 48, .n 49, .n 50, .n 51]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [blobsCells r syms z, rowbaseCells r bb, rootsCells r L syms] =
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb), (bb + 641 * r + r, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]
@@ -284,7 +284,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (fun fp => [blobsCells r syms z, rowbaseCells r (fp + fs "da_verify"), rootsCells r L syms])
     (fun _ => by simp [dvSizes, length_blobsCells, rowbaseCells, length_rootsCells])
     (fun fp => dvKids r L syms z s (fp + fs "da_verify"))
-    ["da_row_shape", "da_vector", "__loop17", "__loop18", "__loop19", "__loop20", daLevelsName L]
+    ["da_row_shape", "da_vector", "__loop21", "__loop22", "__loop23", "__loop24", daLevelsName L]
     (dvBs fs SB SK r L) (dvTs r) (dvQ r L)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl)
       (.cons (fun _ => rfl) (.cons (fun _ => rfl) (.cons (fun _ => rfl) .nil)))))))

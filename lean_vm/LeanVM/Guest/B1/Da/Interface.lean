@@ -20,10 +20,10 @@ proof is the theorem `…_holds` of the family's modules. The functions building
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 3921-3961 | `core26` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
-| `da_row_shape` | 3964-3973 | `core27` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 3993-4005 | `core29` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4008-4016 | `core363-372` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
+| `da_verify` | 3921-3961 | `core28` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the challenge whose rate cells it returns |
+| `da_row_shape` | 3964-3973 | `core29` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify_cell` | 3993-4005 | `core31` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4008-4016 | `core392-401` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
