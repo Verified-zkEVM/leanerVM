@@ -35,12 +35,12 @@ theorem readsAt_getD' {rd : Reader} {p : E} {xs : List E} {k : ℕ} (h : ReadsAt
 
 variable {rd : Reader} {args : List E}
 
-theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 839 + i) ∧
-    (∀ i < 9, (vsRetVars.getD 6 []).getD i 0 = 849 + i) ∧
-    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 863 + i) ∧
-    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1906 + i) := by decide
+theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 626 + i) ∧
+    (∀ i < 10, (vsRetVars.getD 6 []).getD i 0 = 636 + i) ∧
+    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 651 + i) ∧
+    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1692 + i) := by decide
 
-theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 9 ∧
+theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 10 ∧
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
 
 set_option maxRecDepth 100000 in
@@ -48,10 +48,10 @@ theorem vs_e124 (hl : args.length = 6) {w : ℕ → E} {lir : ℕ}
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (h1 : 1 ≤ lir) :
     vsσ rd w args (.n 122) = gen ^ (lir - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have g1 := hG (vsMul 122 124 123) (by
+  have g1 := hG (vsMul 120 122 121) (by
     rw [vsSizesT]
     exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))
-  have g2 := hG (vsConst 123 (word 2 0 0)) (by
+  have g2 := hG (vsConst 121 (word 2 0 0)) (by
     rw [vsSizesT]; exact List.mem_append_left _ (List.mem_cons_of_mem _ List.mem_cons_self))
   simp only [vsMul, vsConst, GoodS] at g1 g2
   simp only [Good] at g2

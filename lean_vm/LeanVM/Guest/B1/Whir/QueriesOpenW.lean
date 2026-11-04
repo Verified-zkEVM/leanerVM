@@ -183,18 +183,32 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
   rw [climbD_append, hsl, hc]
   exact decide_eq_true rfl
 
+/-- A frame run's word read by a load is the run's. -/
+theorem frameRun_load {p v : E} {n i : ℕ} {f : ℕ → E} (h : FrameRun rd p n f) (hi : i < n)
+    (hl : LoadHolds rd p i v) : v = f i := h.2 i hi v hl.2
+
+/-- Two positions whose windows a run holds are equal. -/
+theorem winPos_unique {p : E} {d cd q q' : ℕ} (hcd : cd ≤ 8) (hq : q < 2 ^ d) (hq' : q' < 2 ^ d)
+    (hl : ∀ i < qwN d cd, LoadHolds rd p i (gen ^ qwVal d cd q i))
+    (hr : FrameRun rd p (qwN d cd) fun i ↦ gen ^ qwVal d cd q' i) : q = q' := by
+  have hl' : ∀ i < qwN d cd, LoadHolds rd p i (gen ^ qwVal d cd q' i) := by
+    intro i hi
+    have := hl i hi
+    rwa [frameRun_load hr hi this] at this
+  rw [← winPosOf_eq hcd hq hl, winPosOf_eq hcd hq' hl']
+
 /-- **The queries' openings and sum, named.** -/
 theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptrs wp nG sum r0 r1 : E}
     {root : Digest} {ws : List QW} {cap0 : E} (hc0 : cap0 = cap)
     (hm : MeaningOpeningQueriesW odd base I depth cd rd ws [cap, flags, lam, lamN, qptrs, wp, nG]
       [sum])
     (hcap : MeaningVerifyMerkleCap cd rd [cap, flags] [r0, r1])
-    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ cd) (hcdd : cd ≤ depth)
+    (hroot : (r0, r1) = digestHalves root) (hcd : 2 ≤ cd) (hcd8 : cd ≤ 8) (hcdd : cd ≤ depth)
     (hnG : nG = gen ^ N0) (hN0 : N0 < ordG) (hQ : oqCount odd base N0 = q) (hodd : odd ≤ 1)
     (hb : base = 1 ∨ (base = 0 ∧ odd = 0))
     (qs : List ℕ) (hqlt : ∀ k < q, qs.getD k 0 < 2 ^ depth)
-    (hbits : ∀ k < q, ∃ bp, LoadHolds rd qptrs k bp ∧ ∀ l < depth, ∀ w, LoadHolds rd bp l w →
-      w = bitE ((qs.getD k 0).testBit l))
+    (hbits : ∀ k < q, ∃ bp, LoadHolds rd qptrs k bp ∧
+      FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd (qs.getD k 0) i)
     (hlamN : lamN = lam ^ q) {width : ℕ} (hwidth : (if base = 1 then I else 3 * I) = width)
     (specRow : List K → List E) (fd : List E)
     (hdot : ∀ (row : List K) (w : ℕ → E), row.length = width →
@@ -219,8 +233,7 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
     obtain ⟨bp, hbp', hbits'⟩ := hbits k hk
     have e := loadHolds_unique hbp hbp'
     subst e
-    refine eq_of_bits hlt (hqlt k hk) fun l hl ↦ bitE_injective ?_
-    exact hbits' l hl _ (hb' l hl)
+    exact winPos_unique hcd8 hlt (hqlt k hk) hb' hbits'
   have hget : ∀ k (hk : k < q), (ws.map (toOpening rd cap0 cd depth))[k]'(by rw [hql]; exact hk) =
       toOpening rd cap0 cd depth (ws.getD k default) := by
     intro k hk
@@ -228,12 +241,12 @@ theorem queries_open_w {odd base I depth cd q N0 : ℕ} {cap flags lam lamN qptr
   refine ⟨hql, fun k hk ho ↦ ?_, ?_⟩
   · have hkq : k < q := by rw [hql] at ho; exact ho
     obtain ⟨-, hlt, -, hop⟩ := hall k hkq
-    obtain ⟨hrow, hsl, w, pp, -, -, -, -, h0, h1, hfl, -⟩ := hop
+    obtain ⟨hrow, hsl, w, -, h0, h1, hfl, -⟩ := hop
     rw [hget k hkq, ← List.getD_eq_getElem _ 0 hk, ← hqs' k hkq]
     exact query_openOne_w hcd hcdd hcap hroot hlt (hrow.trans hwidth) hsl h0 h1 hfl
   · have hds : ∀ k < q, ds k = dot (specRow (ws.getD k default).2.1) (eqKernel fd) := by
       intro k hk
-      obtain ⟨-, -, -, hrow, -, w, pp, hw, -, -, -, -, -, -, hd⟩ := hall k hk
+      obtain ⟨-, -, -, hrow, -, w, hw, -, -, -, hd⟩ := hall k hk
       rw [hd]
       exact hdot _ _ (hrow.trans hwidth) hw
     obtain ⟨hret, -⟩ := List.cons_eq_cons.mp hret

@@ -66,7 +66,7 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The honest valuation satisfies `VtP`.** -/
-theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
+theorem vtP_honest (hl : args.length = 20) {W : List E} (hW16 : 16 ≤ W.length)
     (hW : TbReadsAt rd (vtσ rd w args (.n 14)) W) : VtP rd (vtσ rd w args) := by
   intro n a heq hok
   have hs : Stmt.atom a ∈ vtPre := vt_mem_slice (blk := [_]) heq List.mem_cons_self
@@ -121,7 +121,7 @@ theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V
 /-! ## By membership -/
 
 /-- A read of a word the memory holds, the statement in `vtPre`. -/
-theorem vtB_readM (hl : args.length = 22) {d p : V} {off : ℕ}
+theorem vtB_readM (hl : args.length = 20) {d p : V} {off : ℕ}
     (hs : Stmt.atom (.load d p off) ∈ vtPre) (hS : Atom.load d p off ∉ vtSL) {v : E}
     (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) := by
@@ -133,7 +133,7 @@ theorem vtB_readM (hl : args.length = 22) {d p : V} {off : ℕ}
   rw [e]; exact hm
 
 /-- A range check, the statement in `vtPre`. -/
-theorem vshB_rcM (hl : args.length = 22) {x y t1 t2 k : V}
+theorem vshB_rcM (hl : args.length = 20) {x y t1 t2 k : V}
     (hs : Stmt.atom (.rangeCheck x y t1 t2 k) ∈ vtPre)
     (hky : k.idx < y.idx) {K e : ℕ} (hx : vtσ rd w args x = gen ^ e)
     (hk : vtσ rd w args k = gen ^ (K - 1)) (he : e < K)
@@ -154,12 +154,12 @@ theorem vshB_rcM (hl : args.length = 22) {x y t1 t2 k : V}
   · rw [g2, hy, r2]; exact l2
 
 /-- The returns of a dispatch in `vtPre`: the oracle's. -/
-theorem vtB_retsM (hl : args.length = 22) {x : V} {fs : List String} {args' rets : List V}
+theorem vtB_retsM (hl : args.length = 20) {x : V} {fs : List String} {args' rets : List V}
     (hs : Stmt.dispatch x fs args' rets ∈ vtPre) : ∀ v ∈ rets, vtσ rd w args v = w v.idx :=
   vt_goodS (rd := rd) (w := w) hl hs
 
 /-- **A block's statements hold** when those evaluation alone does not settle do. -/
-theorem vtB_blockA (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
+theorem vtB_blockA (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true)
     (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by

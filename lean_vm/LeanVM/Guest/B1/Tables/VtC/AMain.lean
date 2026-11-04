@@ -256,7 +256,7 @@ theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take 240
 theorem multilinearEval_zero2 (x : E) : multilinearEval [0, 0] [x] = 0 := by
   simp [multilinearEval, foldPairs]
 
-theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) :
+theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) :
     ∀ x ∈ vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz, vtσ rd w args x.1 = w x.1.idx := by
   intro x hx
   obtain ⟨s, hs, hsx⟩ := List.mem_filterMap.mp hx
@@ -276,7 +276,7 @@ theorem vt_alloc_vals {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
     | _ => simp [LeanVM.Guest.Memory.Stmt.allocSz] at hsx
   | _ => simp [LeanVM.Guest.Memory.Stmt.allocSz] at hsx
 
-theorem vt_alloc_var {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 22) {v : ℕ}
+theorem vt_alloc_var {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {v : ℕ}
     (hv : v ∈ vtAllocVars) : vtσ rd w args (.n v) = w v := by
   have : V.n v ∈ (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.1) := by
     rw [vt_allocs]; exact List.mem_map.mpr ⟨v, hv, rfl⟩

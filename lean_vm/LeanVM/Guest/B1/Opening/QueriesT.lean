@@ -213,76 +213,81 @@ def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
 
 /-! ## The path -/
 
-/-- The first level's value of the path, the hinted children at `ch`, the frame address at
-`ch + 4pd`, its 80-cell run ending at `ch + 80`, the step `pp·(1 + g²)` at `ch + 82`. -/
-def oqL0 (ch : ℕ) : ℕ := ch + 83
+/-- The path's windows: six levels each from the bottom, the last the remainder
+(`walk_path`, lean_ethereum.py:1295-1331 at c4f4bc92). -/
+def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
-/-- The node a path level starts from: the leaf digest, then the previous level's. -/
-def oqNode (s : Oq) (kL ch l i : ℕ) : ℕ :=
-  if l = 0 then oqOut s kL (s.B - 1) i else oqL0 ch + 17 * (l - 1) + 4 + i
+/-- Window `i`'s levels. -/
+def oqWw (s : Oq) (i : ℕ) : ℕ := if i + 1 = oqNpw s then s.pd - 6 * i else 6
 
-/-- Level `l` of the path: the bit, the selected child, the node stored there, the children
-hashed (`keccak(path[4l:4l+2], path[4l+2:4l+4], node)`). -/
-def oqLevelT (s : Oq) (bp : V) (pr kL ch l : ℕ) : List Stmt :=
-  let L := oqL0 ch + 17 * l
-  let pp := ch + 4 * s.pd
-  [.atom (.load (.n L) bp l), .atom (.mul (.n (L + 1)) (.n L) (.n (ch + 82))),
-    .atom (.add (.n (L + 2)) (.n pp) (.n (L + 1))),
-    .atom (.load (.n (oqNode s kL ch l 0)) (.n (L + 2)) (4 * l)),
-    .atom (.load (.n (oqNode s kL ch l 1)) (.n (L + 2)) (4 * l + 1)),
-    .atom (.const (.n (L + 3)) (word (2 ^ 63) 0 0)),
-    .atom (.keccak [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n (ch + 4 * l + 2), .n (ch + 4 * l + 3),
-      .n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n (L + 3), .n (pr + 1), .n (pr + 2), .n (pr + 3),
-      .n (pr + 4)] ((List.range 13).map fun c ↦ .n (L + 4 + c)) false false)]
+/-- Window `i`'s first value: its window word, then the hoisted `0x80`, then the arms. The
+children hinted at `ch .. ch + 4pd - 1` come first. -/
+def oqWk (s : Oq) (ch : ℕ) : ℕ → ℕ
+  | 0 => ch + 4 * s.pd
+  | i + 1 => oqWk s ch i + 4 + 14 * oqWw s i * 2 ^ oqWw s i
 
-/-- The path: the children hinted, the frame run, the step `pp·(1 + g²)`, the levels. -/
+/-- The match targets of window `i`: the node after its levels. -/
+def oqWT (s : Oq) (ch i : ℕ) : ℕ := oqWk s ch i + 2 + 14 * oqWw s i
+
+/-- Cell `c` of the node window `i` starts from: the leaf digest, then the previous window's
+targets; window `oqNpw` is the cap leaf. -/
+def oqNd (s : Oq) (kL ch i c : ℕ) : ℕ :=
+  if i = 0 then oqOut s kL (s.B - 1) c else oqWT s ch (i - 1) + c
+
+/-- Arm `a`'s first value in window `i` (the first arm's targets follow it). -/
+def oqArmK (s : Oq) (ch i a : ℕ) : ℕ :=
+  if a = 0 then oqWk s ch i + 2 else oqWk s ch i + 4 + 14 * oqWw s i * a
+
+/-- One level `l` of an arm from `K`: the running node `n0, n1` hashed with its sibling on the
+side the bit leaves (`keccak([n0, n1], path[4l+2:4l+4])` at bit `0`, `keccak(path[4l:4l+2],
+[n0, n1])` at `1`), the zero/padding run at `pr`. -/
+def oqStepT (pr ch l K n0 n1 : ℕ) (bit : Bool) : List Stmt :=
+  [.atom (.const (.n K) (word (2 ^ 63) 0 0)),
+    .atom (.keccak ((if bit then [.n (ch + 4 * l), .n (ch + 4 * l + 1), .n n0, .n n1]
+        else [.n n0, .n n1, .n (ch + 4 * l + 2), .n (ch + 4 * l + 3)]) ++
+      [.n pr, .n (pr + 1), .n (pr + 2), .n (pr + 3), .n K, .n (pr + 1), .n (pr + 2), .n (pr + 3),
+        .n (pr + 4)]) ((List.range 13).map fun c ↦ .n (K + 1 + c)) false false)]
+
+/-- The node before level `r` of arm `a` of window `i`. -/
+def oqArmN (s : Oq) (kL ch i a r c : ℕ) : ℕ :=
+  if r = 0 then oqNd s kL ch i c else oqArmK s ch i a + 14 * (r - 1) + 1 + c
+
+/-- Arm `a` of window `i` (`walk_window`): its levels, the order bits `a`'s, then the node copied
+into the match's targets. -/
+def oqArmT (s : Oq) (pr kL ch i a : ℕ) : List Stmt :=
+  ((List.range (oqWw s i)).map fun r ↦ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 14 * r)
+      (oqArmN s kL ch i a r 0) (oqArmN s kL ch i a r 1) (a.testBit r)).flatten ++
+    [.atom (.copy (.n (oqWT s ch i)) (.n (oqArmN s kL ch i a (oqWw s i) 0))),
+      .atom (.copy (.n (oqWT s ch i + 1)) (.n (oqArmN s kL ch i a (oqWw s i) 1)))]
+
+/-- Window `i`: its word read, the hoisted `0x80`, the dispatch on the word's log. -/
+def oqWinT (s : Oq) (bp : V) (pr kL ch i : ℕ) : List Stmt :=
+  [.atom (.load (.n (oqWk s ch i)) bp i), .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0 0)),
+    .match_ (.n (oqWk s ch i)) ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kL ch i))]
+
+/-- The path: the children hinted, the windows. -/
 def oqPathT (s : Oq) (bp : V) (pr kL ch : ℕ) : List Stmt :=
-  let pp := ch + 4 * s.pd
-  [.atom (.hint (.witness "merkle_children" (.stack ((List.range (4 * s.pd)).map fun j ↦ .n (ch + j))))),
-    .atom (.frameAddr (.n pp) (((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)) ++
-      ((List.range (80 - 4 * s.pd)).map fun j ↦ .n (pp + 1 + j)))),
-    .atom (.const (.n (ch + 81)) (word 5 0 0)),
-    .atom (.mul (.n (ch + 82)) (.n pp) (.n (ch + 81)))] ++
-    ((List.range s.pd).map (oqLevelT s bp pr kL ch)).flatten
+  [.atom (.hint (.witness "merkle_children" (.stack ((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)))))] ++
+    ((List.range (oqNpw s)).map (oqWinT s bp pr kL ch)).flatten
 
 /-! ## The cap leaf -/
 
 /-- The cap section's first value. -/
-def oqCq (s : Oq) (ch : ℕ) : ℕ := oqL0 ch + 17 * s.pd
+def oqCq (s : Oq) (ch : ℕ) : ℕ := oqWk s ch (oqNpw s)
 
-/-- The product `q` after the cap bits `1 .. j`. -/
-def oqQ (s : Oq) (ch j : ℕ) : ℕ := oqCq s ch + 4 + 6 * j
-
-/-- Cap bit `j ≥ 1`: `q ← q·(1 + b·(1 + g^(2^j)))`. -/
-def oqCapBitT (s : Oq) (bp : V) (ch j : ℕ) : List Stmt :=
-  let Y := oqCq s ch + 5 + 6 * (j - 1)
-  [.atom (.const (.n Y) (word 1 0 0)), .atom (.load (.n (Y + 1)) bp (s.pd + 1 + j)),
-    .atom (.const (.n (Y + 2)) (word (capFac.getD j 0) 0 0)),
-    .atom (.mul (.n (Y + 3)) (.n (Y + 1)) (.n (Y + 2))),
-    .atom (.add (.n (Y + 4)) (.n Y) (.n (Y + 3))),
-    .atom (.mul (.n (Y + 5)) (.n (oqQ s ch (j - 1))) (.n (Y + 4)))]
-
-/-- The cap leaf (`cd ≥ 2`): `q = g^(q / 2^(pd+1))` from the cap bits, the parent's flag set, the
-node stored at the cap leaf `cap·q⁴·g^(2b)` at `2^(cd+1)`. -/
+/-- The cap leaf (`cd ≥ 2`): the child bit `g^b` and the parent index `q = g^Q` read from the last
+two windows, the parent's flag set, the node stored at the cap leaf `cap·q⁴·g^(2b)` at
+`2^(cd+1)`. -/
 def oqCapT (s : Oq) (bp cap flags : V) (kL ch : ℕ) : List Stmt :=
-  let Cq := oqCq s ch
-  let q := oqQ s ch (s.cd - 2)
-  let z := Cq + 5 + 6 * (s.cd - 2)
-  [.atom (.const (.n Cq) (word 1 0 0)), .atom (.load (.n (Cq + 1)) bp (s.pd + 1)),
-    .atom (.const (.n (Cq + 2)) (word (capFac.getD 0 0) 0 0)),
-    .atom (.mul (.n (Cq + 3)) (.n (Cq + 1)) (.n (Cq + 2))),
-    .atom (.add (.n (Cq + 4)) (.n Cq) (.n (Cq + 3)))] ++
-    ((List.range (s.cd - 2)).map fun j ↦ oqCapBitT s bp ch (j + 1)).flatten ++
-    [.atom (.mul (.n z) flags (.n q)), .atom (.const (.n (z + 1)) (word 1 0 0)),
-      .atom (.load (.n (z + 1)) (.n z) (2 ^ (s.cd - 1))),
-      .atom (.mul (.n (z + 2)) (.n q) (.n q)), .atom (.mul (.n (z + 3)) cap (.n (z + 2))),
-      .atom (.mul (.n (z + 4)) (.n (z + 3)) (.n (z + 2))), .atom (.const (.n (z + 5)) (word 1 0 0)),
-      .atom (.load (.n (z + 6)) bp s.pd), .atom (.const (.n (z + 7)) (word 5 0 0)),
-      .atom (.mul (.n (z + 8)) (.n (z + 6)) (.n (z + 7))),
-      .atom (.add (.n (z + 9)) (.n (z + 5)) (.n (z + 8))),
-      .atom (.mul (.n (z + 10)) (.n (z + 4)) (.n (z + 9))),
-      .atom (.load (.n (oqNode s kL ch s.pd 0)) (.n (z + 10)) (2 ^ (s.cd + 1))),
-      .atom (.load (.n (oqNode s kL ch s.pd 1)) (.n (z + 10)) (2 ^ (s.cd + 1) + 1))]
+  let k := oqCq s ch
+  [.atom (.load (.n k) bp (oqNpw s)), .atom (.load (.n (k + 1)) bp (oqNpw s + 1)),
+    .atom (.mul (.n (k + 2)) flags (.n (k + 1))), .atom (.const (.n (k + 3)) (word 1 0 0)),
+    .atom (.load (.n (k + 3)) (.n (k + 2)) (2 ^ (s.cd - 1))),
+    .atom (.mul (.n (k + 4)) (.n (k + 1)) (.n (k + 1))), .atom (.mul (.n (k + 5)) cap (.n (k + 4))),
+    .atom (.mul (.n (k + 6)) (.n (k + 5)) (.n (k + 4))), .atom (.mul (.n (k + 7)) (.n k) (.n k)),
+    .atom (.mul (.n (k + 8)) (.n (k + 6)) (.n (k + 7))),
+    .atom (.load (.n (oqNd s kL ch (oqNpw s) 0)) (.n (k + 8)) (2 ^ (s.cd + 1))),
+    .atom (.load (.n (oqNd s kL ch (oqNpw s) 1)) (.n (k + 8)) (2 ^ (s.cd + 1) + 1))]
 
 /-! ## One query -/
 
@@ -304,7 +309,7 @@ def oqQueryT (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) :
     oqCapT s bp cap flags (oqKL s b emit) (oqCh s b emit)
 
 /-- The first value after a query. -/
-def oqEnd (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqCq s (oqCh s b emit) + 16 + 6 * (s.cd - 2)
+def oqEnd (s : Oq) (b : ℕ) (emit : Bool) : ℕ := oqCq s (oqCh s b emit) + 9
 
 /-! ## The loop and the function -/
 

@@ -66,7 +66,7 @@ section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
 /-- **A table block's selector, complete.** -/
-theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option ℕ}
+theorem vtc_selblock (hl : args.length = 20) {v b t pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtSelT v b t prev) ((vtPre.drop pos).take (vtSelT v b t prev).length) =
       true) (ht : t < 6) (hv : 2770 < v)
     (hS : Atom.load (.n v) (.n 12) b ∉ vtSL ∧ Atom.load (.n (v + 7)) (.n 185) b ∉ vtSL ∧
@@ -218,7 +218,7 @@ theorem vtc_selblock (hl : args.length = 22) {v b t pos : ℕ} {prev : Option �
         rcases hs with rfl | rfl <;> simp [autoB, pureB, hintB] at ha
 
 /-- **A framework block's selector, complete.** -/
-theorem vtc_fwblock (hl : args.length = 22) {v b pos : ℕ} {prev : Option ℕ}
+theorem vtc_fwblock (hl : args.length = 20) {v b pos : ℕ} {prev : Option ℕ}
     (hcheck : tbStmtsEqb (vtFwSelT v b prev) ((vtPre.drop pos).take (vtFwSelT v b prev).length) =
       true) (hv : 2767 < v)
     (hS : Atom.load (.n v) (.n 12) b ∉ vtSL ∧ Atom.load (.n (v + 7)) (.n 185) b ∉ vtSL ∧

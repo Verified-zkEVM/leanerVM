@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Sponge
+public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
 
@@ -180,26 +181,17 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
     else sibs.getD (k / 4) (Vector.replicate 4 0)
   if k % 2 = 0 then (digestHalves d).1 else (digestHalves d).2
 
-/-- **One query** (`opening_query`, G:1161-1225, with `verify_merkle_path`, G:1010-1025; TRIAGE
-#33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words of `K`, hashed
-(`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels by hinted siblings
-(`climb`, V:492, the position's low bits: `climbD`); the path's children cells are a frame run at
-`pp` (`pathCell`), the node of each level written into it on its bit's side; the node reached is
+/-- **One query** (`opening_query`, lean_ethereum.py:1334-1377 at c4f4bc92, with `walk_path`,
+:1295-1331; TRIAGE #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words
+of `K`, hashed (`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels
+by hinted siblings (`climb`, V:492, the position's low bits: `climbD`); the node reached is
 written at the cap's cells of node `2^cd + q / 2^(depth - cd)` and its parent flagged; the
 query's value is the row's dot product with the weights at `wp`. -/
 def QueryOpens (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ) (row : List K)
     (d : E) : Prop :=
   row.length = (if base = 1 then I else 3 * I) ∧
-    ∃ (sibs : List Digest) (w : ℕ → E) (pp : E), sibs.length = depth - cd ∧
+    ∃ (sibs : List Digest) (w : ℕ → E), sibs.length = depth - cd ∧
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
-      IsInK pp ∧
-      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.addressOfIndex k) = some x →
-        x = pathCell (merkleLeafDigest row) q sibs k) ∧
-      (∀ l < depth - cd,
-        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
-          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).1 ∧
-        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
-          (digestHalves (climbNode (merkleLeafDigest row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
         (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
@@ -219,14 +211,17 @@ def oqChain (odd base : ℕ) (mu : E) (ds : ℕ → E) : ℕ → E
     if base = 1 then ((oqChain odd base mu ds i + ds (odd + 2 * i)) * mu + ds (odd + 2 * i + 1)) * mu
     else (oqChain odd base mu ds i + ds i) * mu
 
-/-- The bit pointers' words are bits: every pointer `qptrs[k]`, `k < Q`, points to `depth` words
-that are `0` or `1` (`decode_query_bits` writes them so). -/
-def QueryBitsBool (rd : Reader) (qptrs : E) (Q depth : ℕ) : Prop :=
-  ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp → ∀ l < depth, ∀ b, LoadHolds rd bp l b → b = 0 ∨ b = 1
+/-- The window pointers point to positions' windows: every pointer `qptrs[k]`, `k < Q`, names a
+frame run holding the `qwN depth cd` windows `g^(qwVal …)` of a position below `2^depth` (what
+`decode_query_windows` writes, `MeaningDecodeQueryWindows`). -/
+def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
+  ∀ k < Q, ∀ bp, LoadHolds rd qptrs k bp →
+    ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
-/-- **`opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd,
-base, I, leaf_cells, depth, cd)`** (G:1228-1251; TRIAGE #40): `n_iters_g = g^N`, `λ ≠ 0`; query
-`k < Q` (`oqCount`) reads its bit pointer and the bits of its position `q_k < 2^depth`, and opens
+/-- **`opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_iters_g, odd,
+base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1380-1404 at c4f4bc92; TRIAGE #40):
+`n_iters_g = g^N`, `λ ≠ 0`; query `k < Q` (`oqCount`) reads its window pointer and the windows
+`g^(qwVal …)` of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the
 function returns its end times `lam_n`: `lam_n · Σ_k d_k λ^(k - Q)` (`Σ_k λ^k d_k` at
 `lam_n = λ^Q`, `enforcedSum`, V:1694). -/
@@ -235,17 +230,17 @@ def MeaningOpeningQueries (odd base I depth cd : ℕ) (rd : Reader) : List E →
       ∃ N < ordG, nG = gen ^ N ∧ lam ≠ 0 ∧
         ∃ (bps : ℕ → E) (qs : ℕ → ℕ) (rows : ℕ → List K) (ds : ℕ → E),
           (∀ k < oqCount odd base N, LoadHolds rd qptrs k (bps k) ∧ qs k < 2 ^ depth ∧
-            (∀ l < depth, LoadHolds rd (bps k) l (bitE ((qs k).testBit l))) ∧
+            (∀ i < qwN depth cd, LoadHolds rd (bps k) i (gen ^ qwVal depth cd (qs k) i)) ∧
             QueryOpens rd base I depth cd cap flags wp (qs k) (rows k) (ds k)) ∧
           ∃ ch : E, (∀ i ≤ N, LoadHolds rd ch i (oqChain odd base lam⁻¹ ds i)) ∧
             rets = [oqChain odd base lam⁻¹ ds N * lamN]
   | _, _ => False
 
 /-- `opening_queries`' core IR (the function named `name`, of shape `(odd, base, I, leafCells,
-depth, cd)`) is its meaning, when the bit pointers point to bits. -/
+depth, cd)`) is its meaning, when the window pointers point to positions' windows. -/
 def opening_queries_Spec (name : String) (odd base I depth cd : ℕ) : Prop :=
   ∀ (rd : Reader) (cap flags lam lamN qptrs wp nG : E) (rets : List E),
-    (∀ N, nG = gen ^ N → N < ordG → QueryBitsBool rd qptrs (oqCount odd base N) depth) →
+    (∀ N, nG = gen ^ N → N < ordG → QueryWinsOk rd qptrs (oqCount odd base N) depth cd) →
     (coreProgram.Rel rd name [cap, flags, lam, lamN, qptrs, wp, nG] rets ↔
       MeaningOpeningQueries odd base I depth cd rd [cap, flags, lam, lamN, qptrs, wp, nG] rets)
 

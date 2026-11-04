@@ -49,7 +49,7 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The window's loads land in buffers.** -/
-theorem vtF_loadsInBuf (hl : args.length = 22) {bufs : List (E × ℕ)}
+theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
     (h14 : BufWin (vtσ rd w args) bufs (.n 14) 14)
     (hcur : BufWin (vtσ rd w args) bufs (.n 5932) 157)
     (h10 : BufWin (vtσ rd w args) bufs (.n 10) 7)

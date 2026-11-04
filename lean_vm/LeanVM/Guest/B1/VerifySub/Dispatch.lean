@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Main.Frames
 
 * `OsSoundW C rd osW`: every `C`-call of a specialization `openName μ r` is `OpenOutW` at the
   words and openings `osW (candidate μ r) args rets`.
-* `osSoundW_of`: under a call relation `C ≤ Rel` unfolding at `V`, the witness
+* `osSoundW_of`: on a memory below `2^32` words, under a call relation `C ≤ Rel` unfolding at `V`,
+  the witness
   `open_stacked_osW rd m (V (openNames.getD m "") args rets) V` (B1-b's `open_stacked_sound_w`).
 * `vs_dispatch`: the template's fused `match` on `g^candidate` calls the candidate's
   specialization, so its returns are `OpenOutW`.
@@ -40,13 +41,13 @@ def OsSoundW (C : CallRel) (rd : Reader) (osW : ℕ → List E → List E → Li
       (osW (B1.Whir.candidate μ r) (fs ++ [target, root0, root1, cur]) rets).2
 
 /-- **The witness of `open_stacked`'s calls**, from the frame map (B1-b's `open_stacked_sound_w`). -/
-theorem osSoundW_of {rd : Reader} {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V)
-    (hLe : CallRel.Le C (coreProgram.Rel rd)) :
-    OsSoundW C rd (fun m args rets ↦
-      B1.Whir.open_stacked_osW rd m (V (B1.Whir.openNames.getD m "") args rets) V) := by
+theorem osSoundW_of {κ : ℕ} (hκ : κ ≤ 32) {L : MemoryImage κ} {C : CallRel} {V : FrameMap}
+    (hU : UnfoldsV L.read C V) (hLe : CallRel.Le C (coreProgram.Rel L.read)) :
+    OsSoundW C L.read (fun m args rets ↦
+      B1.Whir.open_stacked_osW L.read m (V (B1.Whir.openNames.getD m "") args rets) V) := by
   intro μ r hμ1 hμ2 hr1 hr2 root fs target root0 root1 cur rets hfs hroot hc
   obtain ⟨fn, hfind, hpar, hbody⟩ := hU _ _ _ hc
-  exact B1.Whir.open_stacked_sound_w rd C V hU hLe μ r hμ1 hμ2 hr1 hr2 root fs target root0
+  exact B1.Whir.open_stacked_sound_w hκ L C V hU hLe μ r hμ1 hμ2 hr1 hr2 root fs target root0
     root1 cur rets fn _ hfs hroot hfind hpar hbody
 
 theorem candidate_lt {μ r : ℕ} (hμ2 : μ ≤ 28) (hr1 : 1 ≤ r) (hr2 : r ≤ 4) :
