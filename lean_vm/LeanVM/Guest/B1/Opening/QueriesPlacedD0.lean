@@ -26,12 +26,12 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 /-- **`opening_queries` deeper is `CompleteAtB`.** -/
 theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd)
-    {name loop : String} {fm fl : Fn}
+    {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
-    (hbm : fm.body = oqMainT s 0 loop)
+    (hbm : fm.body = oqMainT s 0 wlk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop0T s loop) (hlp : coreProgram.loop loop = true)
+    (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)
     {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags eqp ewp : ℕ} {lam lamN : E}
     (hlam : lam ≠ 0) {w : ℕ → E} {eb qs : ℕ → ℕ} {rows : ℕ → List K} {sibs : ℕ → List Digest}
     (hst : ∀ k < N, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = s.R ∧ (sibs k).length = s.pd)
@@ -44,7 +44,7 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
       [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
         ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
       (Returns [oqChain 0 s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
-      (fs name + (N + 1) + (N + 1) * fs loop) := by
+      (fs name + (N + 1) + (N + 1) * fs loop + N * fs wlk) := by
   intro fp
   set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
   obtain ⟨chainL, hchainL⟩ : ∃ L : Main.Layout,
@@ -54,11 +54,11 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     simp only [hchainL, List.mem_singleton] at hx
     subst hx
     simp [oqChainVals]
-  set n := fs name + (N + 1) + (N + 1) * fs loop with hn
+  set n := fs name + (N + 1) + 0 * fs wlk + ((N + 1) * fs loop + N * fs wlk) with hn
   have wAll : Within chainL fp n := wChain.mono (by omega) (by omega)
   have dAll : DisjL chainL := by rw [hchainL]; exact List.pairwise_singleton _ _
   refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll,
-    by simpa using dAll, le_rfl, fun rd hlow hm ↦ ?_⟩
+    by simpa using dAll, le_of_eq (by rw [hn]; ring), fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
@@ -73,7 +73,7 @@ theorem oqMain0_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     (r := rows) (w := fun _ ↦ w) (q := qs) (sb := sibs)
     (bp := fun j ↦ ofK (Parameters.addressOfIndex (eb j))) (v := fun j ↦ oqChain 0 s.base
         lam⁻¹ ds j)
-    coreProgram_wf fs cert hs hpd1 hcd hfm hpm hbm hfl hpl hbl hlp hN hlam
+    coreProgram_wf fs cert hs hpd1 hcd hW hfm hpm hbm hfl hpl hbl hlp hN hlam
     (by simpa [oqChain] using hch 0 (by omega)) (hch N le_rfl) (fun j hj ↦ ?_)
   obtain ⟨a1, a2, a3, a4, a5⟩ := hk j hj
   obtain ⟨qa, ra, sa⟩ := hst j hj
