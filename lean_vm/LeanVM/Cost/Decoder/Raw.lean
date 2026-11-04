@@ -39,13 +39,13 @@ theorem nDirectD_tables : nDirectD discreteLogTables = nDirect := by
 noncomputable def rawXmssD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : E → LeanXmss.Signature) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
   let s := slotOfD D rd σ 0 (lxSlotsD D σ) j
-  (xmssAt rd (σ (.n 53)) s, wX (σ (.n 53) * gen ^ (4 * s)))
+  (xmssAt rd (σ (.n 52)) s, wX (σ (.n 52) * gen ^ (4 * s)))
 
 /-- **The raw leanSPHINCS signature of mark `n_raw_x + j`** (`rawSphincs`). -/
 noncomputable def rawSphincsD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) : LeanSphincsClaim × Sphincs.Signature :=
   let s := slotOfD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (nRawXD D σ + j)
-  (sphincsAt rd (σ (.n 56)) s, wS (σ (.n 56) * gen ^ (4 * s)))
+  (sphincsAt rd (σ (.n 55)) s, wS (σ (.n 55) * gen ^ (4 * s)))
 
 theorem rawXmssD_tables : rawXmssD discreteLogTables = rawXmss := by
   funext rd σ wX j; unfold rawXmssD rawXmss; rw [slotOfD_tables, lxSlotsD_tables]
@@ -58,11 +58,11 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
+    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
   else none
 
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 377), σ (.n 402)]
+def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 377), σ (.n 398)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
@@ -101,13 +101,13 @@ noncomputable def sphincsRawT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signat
 
 theorem xmssRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : E → LeanXmss.Signature) (j : ℕ) :
-    xmssRawT rd (σ (.n 53)) wX (lxTable D rd σ).1 (lxTable D rd σ).2 j = rawXmssD D rd σ wX j := by
+    xmssRawT rd (σ (.n 52)) wX (lxTable D rd σ).1 (lxTable D rd σ).2 j = rawXmssD D rd σ wX j := by
   unfold xmssRawT xmssRawAt rawXmssD
   rw [slotIn_regionTable, mulK_gen_pow, ← xmssAt_eq_K]
 
 theorem sphincsRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) :
-    sphincsRawT rd (σ (.n 56)) wS (lsTable D rd σ).1 (lsTable D rd σ).2 (nRawXD D σ) j =
+    sphincsRawT rd (σ (.n 55)) wS (lsTable D rd σ).1 (lsTable D rd σ).2 (nRawXD D σ) j =
       rawSphincsD D rd σ wS j := by
   unfold sphincsRawT sphincsRawAt rawSphincsD
   rw [slotIn_regionTable, mulK_gen_pow, ← sphincsAt_eq_K]

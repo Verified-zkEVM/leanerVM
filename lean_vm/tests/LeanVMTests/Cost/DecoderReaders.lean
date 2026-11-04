@@ -10,8 +10,10 @@ less than those readers compiled as they were (`…OldC`: the tables literals na
 `g^k`, the loop's arguments and each query's position recomputed). On these inputs (each value of
 the valuation a `g^k` computed, so its reads dominate): leanXMSS `612868 → 199178`, leanSPHINCS
 `470905 → 459392` (its four frames the one valuation; the old compiled `sphincsSigOfN` builds
-`sp_wots`' tables at each call), the child proof `12188561 → 9257536`; the tables are built once per
-decoding at `16721` (`readerTabsC`).
+`sp_wots`' tables at each call); the tables are built once per decoding at `16721` (`readerTabsC`).
+The child proof's reader is checked for its value only: the restated `vsPiOfN` reads each
+position's bits off the windows by `gLog7`, a search of `128` powers of `g` per bit, too slow to
+run compiled here.
 -/
 
 namespace LeanVMTests.Cost.DecoderReaders
@@ -44,7 +46,6 @@ cost_compile cursor5C := cursor5
 cost_compile xmssOldC := xmssSigOfN
 set_option maxRecDepth 100000 in
 cost_compile sphincsOldC := sphincsSigOfN
-cost_compile vsPiOldC := vsPiOfN
 
 def sigmaV : MachineValue := .closure powSigmaC.costIdx []
 def rdV : MachineValue := .closure bitReaderC.costIdx []
@@ -63,14 +64,12 @@ def sphincsOld := runOn (sphincsOldC.costDeps ++ powSigmaC.costDeps ++ powFrames
 def vsDeps := powSigmaC.costDeps ++ bitReaderC.costDeps ++ powFramesC.costDeps ++ cursor5C.costDeps
 def vsNew := runOn (vsPiOfNC.costDeps ++ vsDeps) vsPiOfNC.costIdx
   [encodeValue whirTabs, rdV, sigmaV, vnV, clV]
-def vsOld := runOn (vsPiOldC.costDeps ++ vsDeps) vsPiOldC.costIdx [rdV, sigmaV, vnV, clV]
 
 #guard (xmssNew.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
 #guard (xmssOld.map (·.1)) == some (encodeValue (xmssSigOfN powSigma))
 #guard (sphincsNew.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
 #guard (sphincsOld.map (·.1)) == some (encodeValue (sphincsSigOfN powSigma powFrames))
 #guard (vsNew.map (·.1)) == some (encodeValue (vsPiOfN bitReader powSigma powFrames cursor5))
-#guard (vsOld.map (·.1)) == some (encodeValue (vsPiOfN bitReader powSigma powFrames cursor5))
 
 /-- The second run is cheaper. -/
 def cheaper : Option (MachineValue × ℕ) → Option (MachineValue × ℕ) → Bool
@@ -79,6 +78,5 @@ def cheaper : Option (MachineValue × ℕ) → Option (MachineValue × ℕ) → 
 
 #guard cheaper xmssOld xmssNew
 #guard cheaper sphincsOld sphincsNew
-#guard cheaper vsOld vsNew
 
 end LeanVMTests.Cost.DecoderReaders

@@ -20,10 +20,11 @@ tables built once by the caller (`Staged.lean`) answer them, on every input
 
 * `regionTable D rd cover lo len`: the region's marks (one logarithm per slot) sorted with their
   slots (`coverTable`); `slotIn` of it is `slotOfD` (`slotIn_regionTable`), `countIn` of it
-  `segCountD` (`countIn_regionTable`);
+  `segCountD` (`countIn_regionTable`), `kidSlotsIn` of it `kidSlotsD` (`kidSlotsIn_regionTable`:
+  a gap-walked list's slots, all of the list's first mark, are a run of the table, in slot order);
 * `kidStmtT`, `decKidT`: a child's statement and the child off the two regions' tables, `main`'s
   words the loops read (`written`, the tables' pointers) passed as values, the slots' addresses by
-  powers in `K` (`xmssAtK`); `kidStmtT_eq`, `decKidT_eq`: at the tables built they are `kidStmtD`,
+  powers in `K` (`xmssSlotClaim`); `kidStmtT_eq`, `decKidT_eq`: at the tables built they are `kidStmtD`,
   `decKidD`.
 -/
 
@@ -38,7 +39,7 @@ open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast LeanVM.Guest.Fa
 
 /-- The mark in coverage slot `s` (`markOf`). -/
 noncomputable def markOfD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (s : ℕ) : ℕ :=
-  gLogD D (cellAt rd (σ (.n 67)) s)
+  gLogD D (cellAt rd (σ (.n 66)) s)
 
 /-- The running count `written[c]` (`countOf`). -/
 noncomputable def countOfD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) : ℕ :=
@@ -79,16 +80,21 @@ noncomputable def segCountD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo
   ((List.range len).filter fun s =>
     decide (a ≤ markOfD D rd σ (lo + s) ∧ markOfD D rd σ (lo + s) < b)).length
 
+/-- A child's list's slots in the region `[lo, lo + len)`, its marks in `[a, b)` (`kidSlots`). -/
+noncomputable def kidSlotsD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo len a b : ℕ) :
+    List ℕ :=
+  if segCountD D rd σ lo len a (a + 1) = segCountD D rd σ lo len a b then
+    (List.range len).filter fun s => decide (a ≤ markOfD D rd σ (lo + s) ∧ markOfD D rd σ (lo + s) < b)
+  else (List.range (segCountD D rd σ lo len a b)).map fun j => slotOfD D rd σ lo len (a + j)
+
 /-- **Child `c`'s statement** (`kidStmt`). -/
 noncomputable def kidStmtD (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) :
     NodeStatement :=
   let a := countOfD D rd σ c
   let b := countOfD D rd σ (c + 1)
   let nx := segCountD D rd σ 0 (lxSlotsD D σ) a b
-  let ns := segCountD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) a b
-  ⟨⟨(List.range nx).map fun j => xmssAt rd (σ (.n 53)) (slotOfD D rd σ 0 (lxSlotsD D σ) (a + j)),
-    (List.range ns).map fun j => sphincsAt rd (σ (.n 56))
-      (slotOfD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (a + nx + j)),
+  ⟨⟨(kidSlotsD D rd σ 0 (lxSlotsD D σ) a b).map (xmssAt rd (σ (.n 52))),
+    (kidSlotsD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
    deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)⟩
 
@@ -102,10 +108,13 @@ theorem slotOfD_tables : slotOfD discreteLogTables = slotOf := by
   funext rd σ lo len e; unfold slotOfD slotOf; rw [markOfD_tables]
 theorem segCountD_tables : segCountD discreteLogTables = segCount := by
   funext rd σ lo len a b; unfold segCountD segCount; rw [markOfD_tables]
+theorem kidSlotsD_tables : kidSlotsD discreteLogTables = kidSlots := by
+  funext rd σ lo len a b; unfold kidSlotsD kidSlots
+  rw [markOfD_tables, segCountD_tables, slotOfD_tables]
 theorem kidStmtD_tables : kidStmtD discreteLogTables = kidStmt := by
   funext rd σ c
   unfold kidStmtD kidStmt
-  rw [countOfD_tables, segCountD_tables, lxSlotsD_tables, lsSlotsD_tables, slotOfD_tables]
+  rw [countOfD_tables, segCountD_tables, lxSlotsD_tables, lsSlotsD_tables, kidSlotsD_tables]
 theorem decKidD_tables : decKidD discreteLogTables = decKid := by
   funext rd σ wV c; unfold decKidD decKid; rw [kidStmtD_tables]
 
@@ -129,6 +138,8 @@ cost_compile coverKeysC := coverKeys
 cost_compile coverTableC := coverTable
 cost_compile slotInC := slotIn
 cost_compile countInC := countIn
+cost_compile slotsInC := slotsIn
+cost_compile kidSlotsInC := kidSlotsIn
 
 end Tables
 
@@ -149,19 +160,25 @@ noncomputable def regionTable (D : DiscreteLogTables) (rd : Reader) (cover : E) 
   coverTable ((List.range len).map (markPair D rd cover lo))
 
 theorem regionTable_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo len : ℕ) :
-    regionTable D rd (σ (.n 67)) lo len =
+    regionTable D rd (σ (.n 66)) lo len =
       coverTable (regionPairs (fun s ↦ markOfD D rd σ (lo + s)) len) := rfl
 
 /-- **The table's first slot is `slotOf`'s.** -/
 theorem slotIn_regionTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo len e : ℕ) :
-    slotIn (regionTable D rd (σ (.n 67)) lo len).1 (regionTable D rd (σ (.n 67)) lo len).2 e =
+    slotIn (regionTable D rd (σ (.n 66)) lo len).1 (regionTable D rd (σ (.n 66)) lo len).2 e =
       slotOfD D rd σ lo len e := by
   rw [regionTable_eq, slotIn_coverTable]; rfl
 
 /-- **The table's count is `segCount`'s.** -/
 theorem countIn_regionTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo len a b : ℕ) :
-    countIn (regionTable D rd (σ (.n 67)) lo len).1 a b = segCountD D rd σ lo len a b := by
+    countIn (regionTable D rd (σ (.n 66)) lo len).1 a b = segCountD D rd σ lo len a b := by
   rw [regionTable_eq, countIn_coverTable]; rfl
+
+/-- **The table's child list is `kidSlots`'.** -/
+theorem kidSlotsIn_regionTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) (lo len a b : ℕ) :
+    kidSlotsIn (regionTable D rd (σ (.n 66)) lo len).1 (regionTable D rd (σ (.n 66)) lo len).2 a b =
+      kidSlotsD D rd σ lo len a b := by
+  rw [regionTable_eq, kidSlotsIn_coverTable]; rfl
 
 /-- The running count `written[c]` at `w = written` (`countOf`). -/
 noncomputable def countAtW (D : DiscreteLogTables) (rd : Reader) (w : E) (c : ℕ) : ℕ := gLogD D (cellAt rd w c)
@@ -173,86 +190,78 @@ cost_compile countAtWC := countAtW
 
 /-! ## A child, off the tables -/
 
-/-- Claim `j` of a child's leanXMSS claims from the mark `a`: the claim of the slot holding mark
-`a + j` (`slotIn` of the region's table `tm`, `ts`), the table at `p53`. -/
-noncomputable def xmssKidClaim (rd : Reader) (p53 : E) (tm ts : Array ℕ) (a j : ℕ) : LeanXmssClaim :=
-  xmssAtK rd (p53.limb 0 * Parameters.g ^ (4 * slotIn tm ts (a + j)))
+/-- The leanXMSS claim of slot `s` of the table at `p52` (`xmssAt`, the slot's address by a power
+in `K`). -/
+noncomputable def xmssSlotClaim (rd : Reader) (p52 : E) (s : ℕ) : LeanXmssClaim :=
+  xmssAtK rd (p52.limb 0 * Parameters.g ^ (4 * s))
 
-/-- Claim `j` of a child's leanSPHINCS claims from the mark `a` (`xmssKidClaim`). -/
-noncomputable def sphincsKidClaim (rd : Reader) (p56 : E) (tm ts : Array ℕ) (a j : ℕ) :
-    LeanSphincsClaim :=
-  sphincsAtK rd (p56.limb 0 * Parameters.g ^ (4 * slotIn tm ts (a + j)))
+/-- The leanSPHINCS claim of slot `s` of the table at `p55` (`sphincsAt`). -/
+noncomputable def sphincsSlotClaim (rd : Reader) (p55 : E) (s : ℕ) : LeanSphincsClaim :=
+  sphincsAtK rd (p55.limb 0 * Parameters.g ^ (4 * s))
 
-/-- Child `c`'s statement, its segment's start `a` and its claims' counts `nx`, `ns` given. -/
-noncomputable def kidStmtAt (rd : Reader) (σ : Val) (p53 p56 : E) (tx ts : Array ℕ × Array ℕ)
-    (c a nx ns : ℕ) : NodeStatement :=
-  ⟨⟨(List.range nx).map (xmssKidClaim rd p53 tx.1 tx.2 a),
-    (List.range ns).map (sphincsKidClaim rd p56 ts.1 ts.2 (a + nx)),
-    daDigestAt rd σ c⟩,
+/-- Child `c`'s statement, its lists' slots `sx`, `ss` given. -/
+noncomputable def kidStmtAt (rd : Reader) (σ : Val) (p52 p55 : E) (c : ℕ) (sx ss : List ℕ) :
+    NodeStatement :=
+  ⟨⟨sx.map (xmssSlotClaim rd p52), ss.map (sphincsSlotClaim rd p55), daDigestAt rd σ c⟩,
    deferOfCells (readCellsK rd ((σ (.n 377)).limb 0 * Parameters.g ^ (24 * c)) 24)⟩
 
-/-- Child `c`'s statement, its segment `[a, b)` given: its claims counted in the tables. -/
-noncomputable def kidStmtSeg (rd : Reader) (σ : Val) (p53 p56 : E) (tx ts : Array ℕ × Array ℕ)
+/-- Child `c`'s statement, its segment `[a, b)` given: its lists' slots off the tables
+(`kidSlotsIn`), the leanSPHINCS list's from the mark after the leanXMSS ones. -/
+noncomputable def kidStmtSeg (rd : Reader) (σ : Val) (p52 p55 : E) (tx ts : Array ℕ × Array ℕ)
     (c a b : ℕ) : NodeStatement :=
-  kidStmtAt rd σ p53 p56 tx ts c a (countIn tx.1 a b) (countIn ts.1 a b)
+  kidStmtAt rd σ p52 p55 c (kidSlotsIn tx.1 tx.2 a b) (kidSlotsIn ts.1 ts.2 (a + countIn tx.1 a b) b)
 
 /-- **Child `c`'s statement** (`kidStmt`), off the regions' tables `tx`, `ts`, `written` at
-`w380` and the tables at `p53`, `p56`: its segment's ends (logarithms) read here. -/
-noncomputable def kidStmtT (D : DiscreteLogTables) (rd : Reader) (σ : Val) (w380 p53 p56 : E)
+`w380` and the tables at `p52`, `p55`: its segment's ends (logarithms) read here. -/
+noncomputable def kidStmtT (D : DiscreteLogTables) (rd : Reader) (σ : Val) (w380 p52 p55 : E)
     (tx ts : Array ℕ × Array ℕ) (c : ℕ) : NodeStatement :=
-  kidStmtSeg rd σ p53 p56 tx ts c (countAtW D rd w380 c) (countAtW D rd w380 (c + 1))
+  kidStmtSeg rd σ p52 p55 tx ts c (countAtW D rd w380 c) (countAtW D rd w380 (c + 1))
 
 /-- The words of child `c`'s `verify_sub` call (`subArgs`), its proof's claim's address by a
 power in `K`. -/
 noncomputable def subArgsK (rd : Reader) (σ : Val) (c : ℕ) : List E :=
   [cellAt rd (σ (.n 365)) (2 * c), cellAt rd (σ (.n 365)) (2 * c + 1), σ (.n 47), σ (.n 48),
-    σ (.n 49), σ (.n 50), mulK (σ (.n 371)) (Parameters.g ^ (24 * c))]
+    σ (.n 49), mulK (σ (.n 371)) (Parameters.g ^ (24 * c))]
 
 /-- **Child `c`** (`decKid`), off the regions' tables. -/
 noncomputable def decKidT (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wV : List E → LeanVM.Protocol.Compile.Proof) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ)
+    (wV : List E → LeanVM.Protocol.Compile.Proof) (w380 p52 p55 : E) (tx ts : Array ℕ × Array ℕ)
     (c : ℕ) : Child :=
-  ⟨kidStmtT D rd σ w380 p53 p56 tx ts c,
+  ⟨kidStmtT D rd σ w380 p52 p55 tx ts c,
     fixedOfCells (readCellsK rd ((σ (.n 371)).limb 0 * Parameters.g ^ (24 * c)) 24),
     wV (subArgsK rd σ c)⟩
 
 /-- The two regions' tables, as `decWit`'s caller builds them. -/
 noncomputable abbrev lxTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) : Array ℕ × Array ℕ :=
-  regionTable D rd (σ (.n 67)) 0 (lxSlotsD D σ)
+  regionTable D rd (σ (.n 66)) 0 (lxSlotsD D σ)
 noncomputable abbrev lsTable (D : DiscreteLogTables) (rd : Reader) (σ : Val) : Array ℕ × Array ℕ :=
-  regionTable D rd (σ (.n 67)) (lxSlotsD D σ) (lsSlotsD D σ)
+  regionTable D rd (σ (.n 66)) (lxSlotsD D σ) (lsSlotsD D σ)
 
-theorem xmssKidClaim_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (a : ℕ) :
-    xmssKidClaim rd (σ (.n 53)) (lxTable D rd σ).1 (lxTable D rd σ).2 a =
-      fun j ↦ xmssAt rd (σ (.n 53)) (slotOfD D rd σ 0 (lxSlotsD D σ) (a + j)) := by
-  funext j
-  rw [xmssKidClaim, slotIn_regionTable, xmssAt_eq_K]
+theorem xmssSlotClaim_eq (rd : Reader) (p : E) : xmssSlotClaim rd p = xmssAt rd p := by
+  funext s; rw [xmssSlotClaim, xmssAt_eq_K]
 
-theorem sphincsKidClaim_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (a : ℕ) :
-    sphincsKidClaim rd (σ (.n 56)) (lsTable D rd σ).1 (lsTable D rd σ).2 a =
-      fun j ↦ sphincsAt rd (σ (.n 56)) (slotOfD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (a + j)) := by
-  funext j
-  rw [sphincsKidClaim, slotIn_regionTable, sphincsAt_eq_K]
+theorem sphincsSlotClaim_eq (rd : Reader) (p : E) : sphincsSlotClaim rd p = sphincsAt rd p := by
+  funext s; rw [sphincsSlotClaim, sphincsAt_eq_K]
 
 /-- **Off the tables built, child `c`'s statement is `kidStmtD`'s.** -/
 theorem kidStmtT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val) (c : ℕ) :
-    kidStmtT D rd σ (σ (.n 380)) (σ (.n 53)) (σ (.n 56)) (lxTable D rd σ) (lsTable D rd σ) c =
+    kidStmtT D rd σ (σ (.n 380)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
       kidStmtD D rd σ c := by
   unfold kidStmtT kidStmtSeg kidStmtAt kidStmtD
-  rw [countIn_regionTable, countIn_regionTable, xmssKidClaim_eq, sphincsKidClaim_eq,
-    ← readCells_mul_gen_pow]
+  rw [countIn_regionTable, kidSlotsIn_regionTable, kidSlotsIn_regionTable, xmssSlotClaim_eq,
+    sphincsSlotClaim_eq, ← readCells_mul_gen_pow]
   rfl
 
 /-- **Off the tables built, child `c` is `decKidD`'s.** -/
 theorem decKidT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (c : ℕ) :
-    decKidT D rd σ wV (σ (.n 380)) (σ (.n 53)) (σ (.n 56)) (lxTable D rd σ) (lsTable D rd σ) c =
+    decKidT D rd σ wV (σ (.n 380)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) c =
       decKidD D rd σ wV c := by
   unfold decKidT decKidD subArgsK subArgs
   rw [kidStmtT_eq, ← readCells_mul_gen_pow, mulK_gen_pow]
 
-cost_compile xmssKidClaimC := xmssKidClaim
-cost_compile sphincsKidClaimC := sphincsKidClaim
+cost_compile xmssSlotClaimC := xmssSlotClaim
+cost_compile sphincsSlotClaimC := sphincsSlotClaim
 cost_compile kidStmtAtC := kidStmtAt
 cost_compile kidStmtSegC := kidStmtSeg
 cost_compile kidStmtC := kidStmtT

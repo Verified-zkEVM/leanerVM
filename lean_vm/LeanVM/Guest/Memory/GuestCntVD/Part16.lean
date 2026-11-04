@@ -28,7 +28,7 @@ theorem kvdsplit_330_3333 : blockR (kvdlookJ 330) (kvdomLookJ 330) false [(.n 34
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvdstaticRange_331 : kvdStaticRange 331 22 := by
+theorem kvdstaticRange_331 : kvdStaticRange 331 21 := by
   unfold kvdStaticRange; decide +kernel
 
 end

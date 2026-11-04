@@ -43,7 +43,7 @@ for m in re.finditer(r'\("(opening_queries__[^"]+)", "(__loop\d+)"',
                      open(os.path.join(B1, 'Opening', 'Witness.lean'), encoding='utf-8').read()):
     oql[m.group(1)] = m.group(2)
 def nlev(m): return lig('LIG_N_LEVELS', m)
-def loopBase(m): return 37 + 2 * sum(nlev(k) for k in range(m))  # `B1.Whir.loopBase`
+def loopBase(m): return 41 + 2 * sum(nlev(k) for k in range(m))  # `B1.Whir.loopBase`
 
 
 def calls(name):
@@ -61,20 +61,22 @@ def osBos(m):
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
     maxQ = lig('LIG_MAX_QUERIES', m); posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m)
     maxIl = lig('LIG_MAX_INTERLEAVE', m)
-    sizes = ([4 * capLen, capLen, yrLen, 2 * nl, nF, nl, nl * maxQ, posLen, posLen, nl * 22, nl * 4]
-             + [(maxSq + 1) * 5, maxIl] * nl + [5, 40, 40, nl * 22, nl, nl + 1] + [maxQ + 1] * nl)
+    # `B1.osSizesL` (ligColsCap 22, oodSlots 4, yrLogCap 5, pointCap 40, resBatch 8)
+    sizes = ([4 * capLen, capLen, yrLen, 2 * nl, nF, nl, nl, posLen, posLen, 128, nl * 22, nl * 4]
+             + [(maxSq + 1) * 5, maxIl] * nl + [5, 40, 40, nl * 22, nl, nl + 1]
+             + [lig('LIG_QUERIES', m * 6 + l) // 8 + 1 for l in range(nl)])
     sp = {}
     for l in range(nl):
         i = m * 6 + l
         q = lig('LIG_QUERIES', i); depth = lig('LIG_TREE_DEPTH', i); sq = lig('LIG_SQUEEZES', i)
         il = lig('LIG_INTERLEAVE', i); lc = lig('LIG_LEAF_CELLS', i); cd = lig('LIG_CAP_DEPTH', i)
         sqL = '__loop%d' % (loopBase(m) + l); resL = '__loop%d' % (loopBase(m) + nl + l)
-        sp[sqL] = sp.get(sqL, 0) + (sq + 1) * fs(sqL) + sq * fs('decode_query_bits__L%d' % depth)
+        sp[sqL] = sp.get(sqL, 0) + (sq + 1) * fs(sqL) + sq * fs('decode_query_windows__L%d_L%d' % (depth, cd))
         base = 1 if l == 0 else 0
         oq = 'opening_queries__L%d_L%d_L%d_L%d_L%d_L%d' % (q % 2 * base, base, il, lc, depth, cd)
         N = q // (1 + base)
         sp[oq] = sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
-        sp[resL] = sp.get(resL, 0) + q // 2 * SK(resL)
+        sp[resL] = sp.get(resL, 0) + q // 8 * SK(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 
 

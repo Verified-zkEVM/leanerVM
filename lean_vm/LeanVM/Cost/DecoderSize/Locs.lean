@@ -18,6 +18,17 @@ public import LeanVM.Cost.DecoderSize.Rows9
 public import LeanVM.Cost.DecoderSize.Rows10
 public import LeanVM.Cost.DecoderSize.Rows11
 public import LeanVM.Cost.DecoderSize.Rows12
+public import LeanVM.Cost.DecoderSize.Rows13
+public import LeanVM.Cost.DecoderSize.Rows14
+public import LeanVM.Cost.DecoderSize.Rows15
+public import LeanVM.Cost.DecoderSize.Rows16
+public import LeanVM.Cost.DecoderSize.Rows17
+public import LeanVM.Cost.DecoderSize.Rows18
+public import LeanVM.Cost.DecoderSize.Rows19
+public import LeanVM.Cost.DecoderSize.Rows20
+public import LeanVM.Cost.DecoderSize.Rows21
+public import LeanVM.Cost.DecoderSize.Rows22
+public import LeanVM.Cost.DecoderSize.Rows23
 public import LeanVM.Cost.DecoderSize.Names0
 
 /-! The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
@@ -30,7 +41,7 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 808345 := by
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 1459581 := by
   have hl : guestLocsList.length = 948 := by decide +kernel
   have hn : guestLocsRow21.length = 21 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
@@ -41,26 +52,48 @@ theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 808345 := by
   have c2 := rowsSize_22_291
   have s3 := rowsSize_split 313 44 591 357 635 rfl rfl
   have c3 := rowsSize_313_44
-  have s4 := rowsSize_split 357 212 379 569 591 rfl rfl
-  have c4 := rowsSize_357_212
-  have s5 := rowsSize_split 569 130 249 699 379 rfl rfl
-  have c5 := rowsSize_569_130
-  have s6 := rowsSize_split 699 163 86 862 249 rfl rfl
-  have c6 := rowsSize_699_163
-  have s7 := rowsSize_split 862 20 66 882 86 rfl rfl
-  have c7 := rowsSize_862_20
-  have s8 := rowsSize_split 882 20 46 902 66 rfl rfl
-  have c8 := rowsSize_882_20
-  have s9 := rowsSize_split 902 16 30 918 46 rfl rfl
-  have c9 := rowsSize_902_16
-  have s10 := rowsSize_split 918 8 22 926 30 rfl rfl
-  have c10 := rowsSize_918_8
-  have s11 := rowsSize_split 926 10 12 936 22 rfl rfl
-  have c11 := rowsSize_926_10
-  have s12 := rowsSize_split 936 11 1 947 12 rfl rfl
-  have c12 := rowsSize_936_11
-  have s13 := rowsSize_split 947 1 0 948 1 rfl rfl
-  have c13 := rowsSize_947_1
+  have s4 := rowsSize_split 357 181 410 538 591 rfl rfl
+  have c4 := rowsSize_357_181
+  have s5 := rowsSize_split 538 117 293 655 410 rfl rfl
+  have c5 := rowsSize_538_117
+  have s6 := rowsSize_split 655 44 249 699 293 rfl rfl
+  have c6 := rowsSize_655_44
+  have s7 := rowsSize_split 699 153 96 852 249 rfl rfl
+  have c7 := rowsSize_699_153
+  have s8 := rowsSize_split 852 12 84 864 96 rfl rfl
+  have c8 := rowsSize_852_12
+  have s9 := rowsSize_split 864 10 74 874 84 rfl rfl
+  have c9 := rowsSize_864_10
+  have s10 := rowsSize_split 874 7 67 881 74 rfl rfl
+  have c10 := rowsSize_874_7
+  have s11 := rowsSize_split 881 9 58 890 67 rfl rfl
+  have c11 := rowsSize_881_9
+  have s12 := rowsSize_split 890 8 50 898 58 rfl rfl
+  have c12 := rowsSize_890_8
+  have s13 := rowsSize_split 898 8 42 906 50 rfl rfl
+  have c13 := rowsSize_898_8
+  have s14 := rowsSize_split 906 6 36 912 42 rfl rfl
+  have c14 := rowsSize_906_6
+  have s15 := rowsSize_split 912 7 29 919 36 rfl rfl
+  have c15 := rowsSize_912_7
+  have s16 := rowsSize_split 919 3 26 922 29 rfl rfl
+  have c16 := rowsSize_919_3
+  have s17 := rowsSize_split 922 2 24 924 26 rfl rfl
+  have c17 := rowsSize_922_2
+  have s18 := rowsSize_split 924 4 20 928 24 rfl rfl
+  have c18 := rowsSize_924_4
+  have s19 := rowsSize_split 928 5 15 933 20 rfl rfl
+  have c19 := rowsSize_928_5
+  have s20 := rowsSize_split 933 2 13 935 15 rfl rfl
+  have c20 := rowsSize_933_2
+  have s21 := rowsSize_split 935 2 11 937 13 rfl rfl
+  have c21 := rowsSize_935_2
+  have s22 := rowsSize_split 937 4 7 941 11 rfl rfl
+  have c22 := rowsSize_937_4
+  have s23 := rowsSize_split 941 6 1 947 7 rfl rfl
+  have c23 := rowsSize_941_6
+  have s24 := rowsSize_split 947 1 0 948 1 rfl rfl
+  have c24 := rowsSize_947_1
   have e := rowsSize_zero 948
   have g : guestLocsList.getD 21 [] = guestLocsRow21.flatten := rfl
   have r := rowsSize_one (a := 21) (by omega)

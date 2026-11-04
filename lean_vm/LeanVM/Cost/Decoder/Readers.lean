@@ -195,7 +195,7 @@ open LeanVM.Extraction.Fast in
 /-- **The statement** (`decStmt`), the logarithm's tables `D` given: the counts (logarithms)
 computed here and passed to `decStmtAt`. -/
 noncomputable def decStmtD (D : DiscreteLogTables) (σ : Val) (rd : Reader) : NodeStatement :=
-  decStmtAt rd (σ (.n 53)) (σ (.n 56)) (σ (.n 334)) (σ (.n 402)) (gLogD D (σ (.n 0)))
+  decStmtAt rd (σ (.n 52)) (σ (.n 55)) (σ (.n 334)) (σ (.n 398)) (gLogD D (σ (.n 0)))
     (gLogD D (σ (.n 3))) (gLogD D (σ (.n 387)))
 
 open LeanVM.Extraction.Fast in

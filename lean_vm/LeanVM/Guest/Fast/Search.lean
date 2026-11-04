@@ -322,6 +322,119 @@ theorem slotIn_coverTable (mk : ℕ → ℕ) (len e : ℕ) :
   rw [hrange, ← hfind]
   exact slotIn_eq_find _ (coverKeys_fst_sorted _) e
 
+/-- **The slots of the table's entries whose marks lie in `[a, b)`**, in the table's order: one
+binary search and a run of the slots. -/
+def slotsIn (tm ts : Array ℕ) (a b : ℕ) : List ℕ :=
+  (List.range (countIn tm a b)).map fun i ↦ ts.getD (lowerBound tm a 0 tm.size + i) 0
+
+/-- **A child's list's slots by the table** (`B1.Main.kidSlots`): when as many slots hold the mark
+`a` as hold a mark of `[a, b)`, the slots of mark `a` (in slot order, the table's ties); else the
+slot of each mark `a + j` in turn. -/
+def kidSlotsIn (tm ts : Array ℕ) (a b : ℕ) : List ℕ :=
+  if countIn tm a (a + 1) = countIn tm a b then slotsIn tm ts a (a + 1)
+  else (List.range (countIn tm a b)).map fun j ↦ slotIn tm ts (a + j)
+
+/-- **The slots of one mark by the table**: `slotsIn` of `[a, a + 1)` is the region's slots holding
+the mark `a`, in slot order. -/
+theorem slotsIn_coverTable (mk : ℕ → ℕ) (len a : ℕ) :
+    slotsIn (coverTable (regionPairs mk len)).1 (coverTable (regionPairs mk len)).2 a (a + 1) =
+      (List.range len).filter fun s ↦ decide (mk s = a) := by
+  have hsort := (coverKeys_spec (regionPairs mk len)).1
+  have hperm := coverKeys_perm mk len
+  have hmono := monotone_toArray (coverKeys_fst_sorted (regionPairs mk len))
+  obtain ⟨hr, hlt, hge⟩ := lowerBound_full _ hmono a
+  obtain ⟨hr', hlt', hge'⟩ := lowerBound_full _ hmono (a + 1)
+  simp only [slotsIn, countIn, coverTable]
+  generalize coverKeys (regionPairs mk len) = K at *
+  generalize lowerBound (K.map Prod.fst).toArray a 0 (K.map Prod.fst).toArray.size = r at *
+  generalize lowerBound (K.map Prod.fst).toArray (a + 1) 0 (K.map Prod.fst).toArray.size = r' at *
+  simp only [List.size_toArray, List.length_map, List.getElem_toArray, List.getElem_map] at hr hlt hge hr' hlt' hge'
+  have hrr : r ≤ r' := by
+    by_contra hc
+    have h1 := hge' r' (by omega) (Nat.le_refl _)
+    have h2 := hlt r' (by omega) (by omega)
+    omega
+  -- the run `[r, r')` of the sorted keys is the keys of mark `a`
+  have hmid : (K.drop r).take (r' - r) = K.filter fun p ↦ decide (p.1 = a) := by
+    have hsplit : K = K.take r ++ ((K.drop r).take (r' - r) ++ K.drop r') := by
+      conv_lhs => rw [← List.take_append_drop r K, ← List.take_append_drop (r' - r) (K.drop r)]
+      rw [List.drop_drop, Nat.add_sub_cancel' hrr]
+    have h2 : ((K.drop r).take (r' - r)).filter (fun p ↦ decide (p.1 = a)) = (K.drop r).take (r' - r) := by
+      refine List.filter_eq_self.2 fun x hx ↦ ?_
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hx
+      simp only [List.length_take, List.length_drop] at hi
+      simp only [List.getElem_take, List.getElem_drop, decide_eq_true_eq]
+      have h1 := hge (r + i) (by omega) (by omega)
+      have h2 := hlt' (r + i) (by omega) (by omega)
+      omega
+    have h3 : (K.drop r').filter (fun p ↦ decide (p.1 = a)) = [] := by
+      refine List.filter_eq_nil_iff.2 fun x hx ↦ ?_
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hx
+      simp only [List.length_drop] at hi
+      simp only [List.getElem_drop, decide_eq_true_eq]
+      have := hge' (r' + i) (by omega) (by omega)
+      omega
+    have h1 : (K.take r).filter (fun p ↦ decide (p.1 = a)) = [] := by
+      refine List.filter_eq_nil_iff.2 fun x hx ↦ ?_
+      obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hx
+      simp only [List.length_take] at hi
+      simp only [List.getElem_take, decide_eq_true_eq]
+      have := hlt i (by omega) (by omega)
+      omega
+    conv_rhs => rw [hsplit]
+    rw [List.filter_append, List.filter_append, h1, h2, h3, List.nil_append, List.append_nil]
+  -- the keys of mark `a`, sorted, are the region's, in slot order
+  have hfil : K.filter (fun p ↦ decide (p.1 = a)) =
+      (regionPairs mk len).filter (fun p ↦ decide (p.1 = a)) := by
+    refine List.Perm.eq_of_pairwise (le := fun p q ↦ p.2 < q.2) (fun _ _ _ _ h h' ↦ by omega)
+      ?_ ?_ (hperm.filter _)
+    · refine List.pairwise_filter.2 (hsort.imp fun {p q} h hp hq ↦ ?_)
+      have := compare_pair_lt h
+      simp at hp hq
+      exact this.2 (by omega)
+    · refine List.Pairwise.filter _ ?_
+      simp only [regionPairs, List.pairwise_map]
+      exact List.pairwise_lt_range
+  have hlist : (List.range (r' - r)).map (fun i ↦ (K.map Prod.snd).toArray.getD (r + i) 0) =
+      ((K.drop r).take (r' - r)).map Prod.snd := by
+    refine List.ext_getElem (by simp; omega) (fun i h1 h2 ↦ ?_)
+    simp only [List.length_map, List.length_range] at h1
+    simp only [List.getElem_map, List.getElem_range, List.getElem_take, List.getElem_drop,
+      Array.getD_eq_getD_getElem?, List.getElem?_toArray, List.getElem?_map,
+      List.getElem?_eq_getElem (show r + i < K.length by omega), Option.map_some, Option.getD_some]
+  rw [hlist, hmid, hfil]
+  simp [regionPairs, List.filter_map, List.map_map, Function.comp_def]
+
+/-- Under the gap walk's test, the slots of `[a, b)` are those of the mark `a`. -/
+theorem filter_Ico_of_length_eq (l : List ℕ) (mk : ℕ → ℕ) (a b : ℕ)
+    (h : (l.filter fun s ↦ decide (a ≤ mk s ∧ mk s < a + 1)).length =
+      (l.filter fun s ↦ decide (a ≤ mk s ∧ mk s < b)).length) :
+    l.filter (fun s ↦ decide (mk s = a)) = l.filter fun s ↦ decide (a ≤ mk s ∧ mk s < b) := by
+  have e : l.filter (fun s ↦ decide (mk s = a)) = l.filter fun s ↦ decide (a ≤ mk s ∧ mk s < a + 1) :=
+    List.filter_congr fun s _ ↦ by simp only [decide_eq_decide]; omega
+  rw [e]
+  by_cases hab : a + 1 ≤ b
+  · exact (List.monotone_filter_right l (fun s hs ↦ by simp at hs ⊢; omega)).eq_of_length h
+  · have h0 : l.filter (fun s ↦ decide (a ≤ mk s ∧ mk s < b)) = [] :=
+      List.filter_eq_nil_iff.2 fun s _ ↦ by simp; omega
+    rw [h0] at h ⊢
+    exact List.length_eq_zero_iff.1 h
+
+/-- **A child's list's slots by the table** are `kidSlots`' scan: the filter over the region in
+slot order, or the first slot of each mark. -/
+theorem kidSlotsIn_coverTable (mk : ℕ → ℕ) (len a b : ℕ) :
+    kidSlotsIn (coverTable (regionPairs mk len)).1 (coverTable (regionPairs mk len)).2 a b =
+      if ((List.range len).filter fun s ↦ decide (a ≤ mk s ∧ mk s < a + 1)).length =
+          ((List.range len).filter fun s ↦ decide (a ≤ mk s ∧ mk s < b)).length then
+        (List.range len).filter fun s ↦ decide (a ≤ mk s ∧ mk s < b)
+      else (List.range ((List.range len).filter fun s ↦ decide (a ≤ mk s ∧ mk s < b)).length).map
+        fun j ↦ ((List.range len).find? fun s ↦ decide (mk s = a + j)).getD 0 := by
+  unfold kidSlotsIn
+  rw [countIn_coverTable, countIn_coverTable]
+  split_ifs with h
+  · rw [slotsIn_coverTable, filter_Ico_of_length_eq _ mk a b h]
+  · simp only [slotIn_coverTable]
+
 end Cover
 
 end

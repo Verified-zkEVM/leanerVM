@@ -30,17 +30,23 @@ def vsStJ : List ℕ := [3, 301, 1, 13, 15, 302]
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
 def cclJ : List ℕ := [352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368]
 
+/-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/
+def ccmJ : List ℕ := [371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387]
+
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 23
 
-/-- The core index of `__loop16`. -/
-def l17J : ℕ := 332
+/-- The children's claim lists' loops: `child_claim_list_any`'s per `136` and per `17` claims, `child_claim_list_mono`'s. -/
+def ccLpNames : List String := ["__loop17", "__loop18", "__loop19", "__loop20"]
 
-/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`. -/
-def omJ : List ℕ := [18, 25, 39]
+/-- Their core indices. -/
+def ccLpJ : List ℕ := [350, 351, 369, 370]
+
+/-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
+def omJ : List ℕ := [18, 25, 39, 26, 27]
 
 /-- Their names. -/
-def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4"]
+def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4", "child_claim_list_any", "child_claim_list_mono"]
 
 /-- `open_stacked__L{c}`'s instructions, by `c`. -/
 def kcOsT : Opcode → List ℕ
@@ -69,6 +75,15 @@ def kcCclT : Opcode → List ℕ
   | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
 
+/-- `child_claim_list_mono_last__L{k}`'s instructions, by `k`. -/
+def kcCcmT : Opcode → List ℕ
+  | .xor => [2, 6, 9, 15, 18, 23, 27, 32, 36, 40, 44, 49, 53, 57, 61, 66, 70]
+  | .mulNative => [4, 13, 14, 21, 22, 26, 30, 34, 38, 42, 47, 50, 55, 58, 64, 66, 72]
+  | .setConstant => [6, 8, 4, 8, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+  | .deref => [16, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 83, 89, 95, 101, 107, 113]
+  | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
+
 /-- `list_split`'s instructions. -/
 def kcLs : Opcode → ℕ
   | .xor => 0
@@ -78,23 +93,23 @@ def kcLs : Opcode → ℕ
   | .jump => 1
   | .keccak => 0
 
-/-- `__loop16`'s instructions per iteration. -/
-def kcL17 : Opcode → ℕ
-  | .xor => 73
-  | .mulNative => 22
-  | .setConstant => 4
-  | .deref => 94
-  | .jump => 2
-  | .keccak => 8
+/-- The instructions of `ccLpNames` per iteration. -/
+def kcCcLpT : Opcode → List ℕ
+  | .xor => [577, 73, 577, 73]
+  | .mulNative => [841, 124, 562, 86]
+  | .setConstant => [4, 4, 6, 6]
+  | .deref => [978, 145, 846, 132]
+  | .jump => [2, 2, 2, 2]
+  | .keccak => [64, 8, 64, 8]
 
 /-- The frame weights of `omNames`. -/
 def omT : Opcode → List ℕ
-  | .xor => [187, 2, 1]
-  | .mulNative => [598, 4, 36]
-  | .setConstant => [31, 9, 9]
-  | .deref => [469, 19, 49]
-  | .jump => [35, 6, 6]
-  | .keccak => [14, 1, 0]
+  | .xor => [187, 2, 1, 2, 2]
+  | .mulNative => [598, 4, 36, 35, 24]
+  | .setConstant => [31, 9, 9, 6, 6]
+  | .deref => [469, 19, 49, 43, 38]
+  | .jump => [35, 6, 6, 4, 4]
+  | .keccak => [14, 1, 0, 0, 0]
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
 def kcVtW : Opcode → ℕ
@@ -114,14 +129,14 @@ def kcTermW : Opcode → ℕ
   | .jump => 3052
   | .keccak => 0
 
-/-- `verify_sub`'s instructions at candidate `c`, its two ratio-bounded callees within `49403`, `87672` words. -/
+/-- `verify_sub`'s instructions at candidate `c`, its two ratio-bounded callees within `57633`, `85921` words. -/
 def vsCountT : Opcode → List ℕ
-  | .xor => [94366, 95168, 97308, 98238, 99326, 100383, 102295, 74817, 75261, 77271, 77816, 78348, 78873, 80440, 67649, 68190, 69899, 70281, 70693, 71107, 72633, 63884, 64204, 65691, 65975, 66279, 66875, 68297]
-  | .mulNative => [180612, 181556, 184235, 185877, 187960, 189469, 191645, 159627, 159950, 163282, 164049, 164734, 165254, 167236, 151583, 152772, 155188, 155616, 156065, 156518, 158607, 148038, 148384, 150336, 150512, 150797, 151954, 154002]
-  | .setConstant => [49623, 49787, 50186, 50520, 50885, 51092, 51492, 47518, 47508, 48229, 48332, 48404, 48510, 48897, 46726, 47001, 47452, 47491, 47581, 47646, 48072, 46318, 46350, 46748, 46776, 46782, 47017, 47409]
-  | .deref => [99554, 99875, 100875, 101753, 103120, 103680, 104441, 94078, 94048, 95917, 96251, 96462, 96597, 97318, 91990, 92826, 94003, 94062, 94206, 94310, 95206, 91085, 91182, 91999, 91932, 91903, 92679, 93697]
-  | .jump => [35418, 35457, 36056, 36265, 36811, 36930, 37434, 30429, 30453, 31365, 31457, 31484, 31514, 31986, 28662, 28967, 29545, 29563, 29585, 29615, 30092, 27709, 27769, 28272, 28285, 28302, 28545, 29036]
-  | .keccak => [7303, 7649, 8243, 8605, 8980, 9364, 9979, 5809, 6023, 6492, 6721, 6952, 7184, 7663, 5240, 5406, 5826, 6005, 6185, 6367, 6810, 4922, 5059, 5448, 5597, 5747, 5921, 6329]
+  | .xor => [95864, 96666, 98806, 99736, 100824, 101881, 103793, 76315, 76759, 78769, 79314, 79846, 80371, 81938, 69147, 69688, 71397, 71779, 72191, 72605, 74131, 65382, 65702, 67189, 67473, 67777, 68373, 69795]
+  | .mulNative => [184810, 185754, 188433, 190075, 192158, 193667, 195843, 163825, 164148, 167480, 168247, 168932, 169452, 171434, 155781, 156970, 159386, 159814, 160263, 160716, 162805, 152236, 152582, 154534, 154710, 154995, 156152, 158200]
+  | .setConstant => [51959, 52123, 52522, 52856, 53221, 53428, 53828, 49854, 49844, 50565, 50668, 50740, 50846, 51233, 49062, 49337, 49788, 49827, 49917, 49982, 50408, 48654, 48686, 49084, 49112, 49118, 49353, 49745]
+  | .deref => [103940, 104261, 105261, 106139, 107506, 108066, 108827, 98464, 98434, 100303, 100637, 100848, 100983, 101704, 96376, 97212, 98389, 98448, 98592, 98696, 99592, 95471, 95568, 96385, 96318, 96289, 97065, 98083]
+  | .jump => [36585, 36624, 37223, 37432, 37978, 38097, 38601, 31596, 31620, 32532, 32624, 32651, 32681, 33153, 29829, 30134, 30712, 30730, 30752, 30782, 31259, 28876, 28936, 29439, 29452, 29469, 29712, 30203]
+  | .keccak => [7393, 7739, 8333, 8695, 9070, 9454, 10069, 5899, 6113, 6582, 6811, 7042, 7274, 7753, 5330, 5496, 5916, 6095, 6275, 6457, 6900, 5012, 5149, 5538, 5687, 5837, 6011, 6419]
 
 /-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
@@ -131,9 +146,12 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
     kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) &&
   (List.range 17).all (fun k => kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
     kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) &&
+  (List.range 17).all (fun k => kvOkB op (ccmJ.getD k 0) ("child_claim_list_mono_last__L" ++ B1.Whir.natStr k) &&
+    kvSBJ op (ccmJ.getD k 0) == (kcCcmT op).getD k 0) &&
   kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op &&
-  kvOkK op l17J "__loop16" && kvSKJ op l17J == kcL17 op &&
-  (List.range 3).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
+  (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
+    kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
+  (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
     (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
 
 end

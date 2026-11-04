@@ -30,8 +30,9 @@ expansion's (`da_expand__L7_L8`), its row loop's `r` iterations (`col_weight_le`
 `da_vector`'s, the regions' bases' `r` iterations, `128` columns, the blobs' trees' `r`, the
 padding's `2^L - r` and the levels at `L` (`dv_weight_le`, on a tree of `Da.dvNH r L`);
 `dvW_le`: within `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
-`clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 17` iterations
-of `__loop15` and the last group's `claim_list_last__L{n % 17}` (`cl_weight_le`, on a tree of
+`clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 136` iterations
+of `__loop15`, `n % 136 / 17` of `__loop16` and the last group's `claim_list_last__L{n % 17}`
+(`cl_weight_le`, on a tree of
 `Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
 `op`'s instructions, the static ones' certificates and these two by their shapes.
 -/
@@ -62,18 +63,20 @@ theorem mvTab_parts (op : Opcode) :
       kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) = true) ∧
     (∀ k < 17, (kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
       kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) = true) ∧
-    (kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op) = true ∧
+    (∀ i < 2, (kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
+      kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) = true) ∧
     (∀ i < 4, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
       (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (mvOmT op).getD i 0) := by
   have h := mvTab_ok op
   simp only [mvTabOk, Bool.and_eq_true, List.all_eq_true, List.mem_range, beq_iff_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5a⟩, h5b⟩, h6⟩ := h
-  refine ⟨fun i hi => ?_, fun i hi => ?_, fun L hL => ?_, fun k hk => ?_, ?_, fun i hi => h6 i hi⟩
+  obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+  refine ⟨fun i hi => ?_, fun i hi => ?_, fun L hL => ?_, fun k hk => ?_, fun i hi => ?_,
+    fun i hi => h6 i hi⟩
   · have := h1 i hi; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
   · have := h2 i hi; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
   · have := h3 L hL; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
   · have := h4 k hk; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
-  · simp only [Bool.and_eq_true, beq_iff_eq]; exact ⟨h5a, h5b⟩
+  · have := h5 i hi; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
 
 variable (op : Opcode)
 
@@ -100,9 +103,20 @@ theorem cl_weightLe {k : ℕ} (hk : k < 17) :
       fun _ => (kcClT op).getD k 0 :=
   weightLe_tab ((mvTab_parts op).2.2.2.1 k hk)
 
+/-- The claim lists' loops' instructions per iteration: `__loop15` per `136` claims, `__loop16`
+per `17`. -/
+def kcL15 : ℕ := (kcClLpT op).getD 0 0
+
+/-- See `kcL15`. -/
+def kcL16 : ℕ := (kcClLpT op).getD 1 0
+
 /-- **`__loop15`, per iteration.** -/
-theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop15" (kcL16 op) :=
-  loopWeightLe_tab (mvTab_parts op).2.2.2.2.1
+theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop15" (kcL15 op) :=
+  loopWeightLe_tab (by simpa [clLpNames, kcL15] using (mvTab_parts op).2.2.2.2.1 0 (by norm_num))
+
+/-- **`__loop16`, per iteration.** -/
+theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop16" (kcL16 op) :=
+  loopWeightLe_tab (by simpa [clLpNames, kcL16] using (mvTab_parts op).2.2.2.2.1 1 (by norm_num))
 
 /-- **The frame weights** of `mvOmNames`. -/
 theorem mvOm_eq {i : ℕ} (hi : i < 4) :
@@ -118,7 +132,8 @@ theorem clNames_bang {k : ℕ} (hk : k < 17) :
   interval_cases k <;> decide
 
 theorem clNames_ne {k : ℕ} (hk : k < 17) :
-    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ "__loop15" := by
+    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ "__loop15" ∧
+      B1.Digest.clNames[k]! ≠ "__loop16" := by
   interval_cases k <;> decide
 
 /-- A loop of `r` iterations from the counter `1`, at most `r` per-iteration counts. -/
@@ -168,13 +183,13 @@ theorem l18From_weight_le {Tc : Tree → Prop} {Kc : ℕ}
       t.BufsOk coreProgram → t.weight (B2C.ωArm B2C.xmssArmC op) ≤ Kc) :
     ∀ (n k : ℕ) (rd : Reader) (t : Tree) (args rets : List E), B1.Da.l18From Tc n k t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op "__loop18" + Kc)
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op "__loop22" + Kc)
   | 0, _, _, _, _, _, h, _, _ => h.elim
   | n + 1, k, rd, t, args, rets, h, hv, hb => by
     obtain ⟨σ, ks, rfl, -, hcl, hl, hT⟩ := h
     obtain ⟨hk, hbk⟩ := node_kids hv hb hcl
     have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.l18Calls k)
-      [Tc, B1.Da.l18From Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op "__loop18" + Kc)] ks hk
+      [Tc, B1.Da.l18From Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op "__loop22" + Kc)] ks hk
       hbk hT (by simp [B1.Da.l18Calls]) (by simp [B1.Da.l18Calls])
       (fun i hi _ _ _ t' rets' _ hv' hb' hT' => by
         have hi2 : i < 2 := by simpa [B1.Da.l18Calls] using hi
@@ -209,7 +224,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
   obtain ⟨hk, hbk⟩ := node_kids hv hb hc
   have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) _ (B1.Da.dvTs r)
     [(kcDvStT op).getD 0 0, (kcDvStT op).getD 1 0, r * (kcDvLpT op).getD 0 0,
-      128 * (B2C.ωArm B2C.xmssArmC op "__loop18" + colW op r), r * (kcDvLpT op).getD 1 0,
+      128 * (B2C.ωArm B2C.xmssArmC op "__loop22" + colW op r), r * (kcDvLpT op).getD 1 0,
       (2 ^ L - r) * (kcDvLpT op).getD 2 0, (kcDlT op).getD L 0] ks hk hbk hT
     (by simp [B1.Da.dvCallsS, B1.Da.dvTs]) (by simp [B1.Da.dvCallsS])
     (fun i hi _ _ ht t' rets' hn hv' hb' hT' => by
@@ -238,7 +253,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
   rw [Tree.weight]
   simp only [List.sum_cons, List.sum_nil] at hk'
   rw [show B2C.ωArm B2C.xmssArmC op "da_verify" = (mvOmT op).getD 0 0 from hom]
-  rw [show B2C.ωArm B2C.xmssArmC op "__loop18" = (mvOmT op).getD 1 0 from hom1] at hk'
+  rw [show B2C.ωArm B2C.xmssArmC op "__loop22" = (mvOmT op).getD 1 0 from hom1] at hk'
   unfold dvW
   omega
 
@@ -253,9 +268,11 @@ theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
 
 /-! ## The claim lists -/
 
-/-- **`claim_list_digest`'s instructions of `op` on `n` claims.** -/
+/-- **`claim_list_digest`'s instructions of `op` on `n = 136a + 17b + c` claims**: its frame's,
+`list_split`'s, `a` iterations of `__loop15`, `b` of `__loop16` and `claim_list_last__L{c}`. -/
 def clW (n : ℕ) : ℕ :=
-  (mvOmT op).getD 3 0 + (if n = 0 then 0 else kcLs op + n / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
+  (mvOmT op).getD 3 0 + (if n = 0 then 0 else
+    kcLs op + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
 
 /-- **`claim_list_digest`'s instructions** on a tree of honest shape. -/
 theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
@@ -263,24 +280,30 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ clW op n := by
   let W : Call → ℕ := fun c =>
     if c.f = "list_split" then kcLs op
-    else if c.f = "__loop15" then n / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
-  obtain ⟨σ, hQ, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
+    else if c.f = "__loop15" then n / 136 * kcL15 op
+    else if c.f = "__loop16" then n % 136 / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
+  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _
       by_cases h0 : n = 0
       · simp [B1.Digest.clCalls, h0] at hmem
-      obtain ⟨-, h23, -, -, h48⟩ := And.intro hQ.1 (hQ.2 h0)
+      obtain ⟨-, h23, h24, -, -, h50, h70⟩ := And.intro hQ.1 (hQ.2 h0)
       simp only [B1.Digest.clCalls, h0, ↓reduceIte, B1.Digest.clTs, List.zip_cons_cons,
         List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hmem
-      rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · simp only [W, ↓reduceIte]
         exact ls_weightLe op rd t' _ rets' hn' hv' hb'
       · simp only [W, String.reduceEq, ↓reduceIte]
-        have hq : n / 17 ≠ 0 := by simpa using ht
-        exact loop_at (l16_loop op) hn' hv' hb' (by simp [h48]) (by simp [h23]) (by omega) hn
+        have hq : n / 136 ≠ 0 := by simpa using ht
+        exact loop_at (l15_loop op) hn' hv' hb' (by simp [h50]) (by simp [h23]) (by omega)
+          (by omega)
+      · simp only [W, String.reduceEq, ↓reduceIte]
+        have hq : n % 136 / 17 ≠ 0 := by simpa using ht
+        exact loop_at (l16_loop op) hn' hv' hb' (by simp [h70]) (by simp [h24]) (by omega)
+          (by omega)
       · have hk : n % 17 < 17 := Nat.mod_lt _ (by norm_num)
-        obtain ⟨e1, e2⟩ := clNames_ne hk
-        simp only [W, e1, e2, ↓reduceIte]
+        obtain ⟨e1, e2, e3⟩ := clNames_ne hk
+        simp only [W, e1, e2, e3, ↓reduceIte]
         rw [clNames_bang hk] at hn'
         exact cl_weightLe op hk rd t' _ rets' hn' hv' hb')
   have hom := mvOm_eq op (i := 3) (by norm_num)
@@ -292,24 +315,27 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
     simp only [h0, ↓reduceIte]
     omega
   · have hc : callsW W (B1.Digest.clCalls n σ) ≤
-        kcLs op + n / 17 * kcL16 op + (kcClT op).getD (n % 17) 0 := by
+        kcLs op + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + (kcClT op).getD (n % 17) 0 := by
       have hk := Nat.mod_lt n (show 0 < 17 by norm_num)
-      obtain ⟨e1, e2⟩ := clNames_ne hk
+      obtain ⟨e1, e2, e3⟩ := clNames_ne hk
       simp only [callsW, B1.Digest.clCalls, h0, ↓reduceIte, List.map_cons, List.map_nil,
-        List.sum_cons, List.sum_nil, W, String.reduceEq, e1, e2]
+        List.sum_cons, List.sum_nil, W, String.reduceEq, e1, e2, e3]
       clear hle
-      generalize n / 17 * kcL16 op = P
-      split <;> omega
+      generalize n / 136 * kcL15 op = P
+      generalize n % 136 / 17 * kcL16 op = Q
+      split <;> split <;> omega
     simp only [h0, ↓reduceIte]
     omega
 
-theorem kcClA_eq : kcClA op = (mvOmT op).getD 3 0 + kcLs op + (kcClT op).foldl max 0 := by
+theorem kcClA_eq : kcClA op =
+    (mvOmT op).getD 3 0 + kcLs op + 7 * kcL16 op + (kcClT op).foldl max 0 := by
   cases op <;> decide
 
-theorem kcClS_eq : kcClS op = (kcL16 op + 16) / 17 := by
+theorem kcClS_eq : kcClS op = (kcL15 op + 135) / 136 := by
   cases op <;> decide
 
-/-- **`claim_list_digest`'s instructions** within `kcClA op + kcClS op · n`. -/
+/-- **`claim_list_digest`'s instructions** within `kcClA op + kcClS op · n`: at most `7`
+iterations of `__loop16` (`n % 136 / 17 ≤ 7`) and the largest last group in the constant. -/
 theorem clW_le (n : ℕ) : clW op n ≤ kcClA op + kcClS op * n := by
   rw [kcClA_eq, kcClS_eq]
   unfold clW
@@ -317,13 +343,15 @@ theorem clW_le (n : ℕ) : clW op n ≤ kcClA op + kcClS op * n := by
   · omega
   · have hk : (kcClT op).getD (n % 17) 0 ≤ (kcClT op).foldl max 0 := by
       cases op <;> (have : n % 17 < 17 := Nat.mod_lt _ (by norm_num); interval_cases (n % 17) <;> decide)
-    have hq : n / 17 * kcL16 op ≤ (kcL16 op + 16) / 17 * n := by
-      have h1 : kcL16 op ≤ 17 * ((kcL16 op + 16) / 17) := by omega
-      have h2 : 17 * (n / 17) ≤ n := Nat.mul_div_le n 17
-      calc n / 17 * kcL16 op ≤ n / 17 * (17 * ((kcL16 op + 16) / 17)) := Nat.mul_le_mul_left _ h1
-        _ = 17 * (n / 17) * ((kcL16 op + 16) / 17) := by ring
-        _ ≤ n * ((kcL16 op + 16) / 17) := Nat.mul_le_mul_right _ h2
-        _ = (kcL16 op + 16) / 17 * n := Nat.mul_comm _ _
+    have hq : n / 136 * kcL15 op ≤ (kcL15 op + 135) / 136 * n := by
+      have h1 : kcL15 op ≤ 136 * ((kcL15 op + 135) / 136) := by omega
+      have h2 : 136 * (n / 136) ≤ n := Nat.mul_div_le n 136
+      calc n / 136 * kcL15 op ≤ n / 136 * (136 * ((kcL15 op + 135) / 136)) :=
+            Nat.mul_le_mul_left _ h1
+        _ = 136 * (n / 136) * ((kcL15 op + 135) / 136) := by ring
+        _ ≤ n * ((kcL15 op + 135) / 136) := Nat.mul_le_mul_right _ h2
+        _ = (kcL15 op + 135) / 136 * n := Nat.mul_comm _ _
+    have hb : n % 136 / 17 * kcL16 op ≤ 7 * kcL16 op := Nat.mul_le_mul_right _ (by omega)
     omega
 
 end
