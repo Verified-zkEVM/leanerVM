@@ -485,6 +485,50 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
     have h4 := frameWordAt_cost P rd rdVal hrd R hR (by includes) fp j hj v
     dsimp only; split_ifs <;> omega
 
+/-- **A frame looked up once** (`frameFpAC`, `frameAtA`'s search): one binary search of the call's
+key (`w = |args| + |rets|` words): at most `(64w + 78 + 9·wl E)·(E + 2) + 27w + 49`. -/
+theorem frameFpA_cost (hP : Includes P frameFpAC.costDeps) (E : ℕ)
+    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 22 e.1) (hs : table.size ≤ 2 ^ E)
+    (j : ℕ) (hj : j < 2 ^ 64) (args rets : List LeanVM.Parameters.E) :
+    machineCost P frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
+        encodeValue rets] ≤
+      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) +
+        27 * (args.length + rets.length) + 49 := by
+  rw [frameFpAC.costEq P hP]
+  have h1 := isFunctionIndex_cost P (by includes) j hj
+  have h2 := callKey_cost P (by includes) (canonIndex j) args rets
+  have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
+    callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
+  have h3 := searchInKey_cost P (by includes) 22 table ht _ hk (2 ^ E) (wl E)
+    (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
+  have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
+      64 * (args.length + rets.length) + 41 := by
+    simp [keyCmpPrice, callKey]
+  have hlog : Nat.log2 (table.size - 0) ≤ E := by
+    have := log2_mono (show table.size - 0 ≤ 2 ^ E by omega)
+    rwa [Nat.log2_two_pow] at this
+  have h3' : (keyCmpPrice (callKey (canonIndex j) args rets) + 37 + 9 * wl E) *
+      (Nat.log2 (table.size - 0) + 2) ≤
+      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) := by
+    rw [hkc]
+    exact Nat.mul_le_mul (by omega) (by omega)
+  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3' ⊢
+  split_ifs <;> omega
+
+/-- **A word of a frame looked up once** (`frameValAtC`): at most `R + 1544`. -/
+theorem frameValAt_cost (rd : Reader) (rdVal : MachineValue)
+    (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
+    (R : ℕ) (hR : ∀ a : K, appCost P rdVal [encodeValue a] ≤ R)
+    (hP : Includes P frameValAtC.costDeps) (o : Option K) (j : ℕ) (hj : j < 2 ^ 64) (v : V) :
+    machineCost P frameValAtC.costIdx [rdVal, encodeValue o, encodeValue j, encodeValue v] ≤
+      R + 1544 := by
+  rw [frameValAtC.costEq P hP rd rdVal hrd]
+  cases o with
+  | none => dsimp only; omega
+  | some fp =>
+    have h4 := frameWordAt_cost P rd rdVal hrd R hR (by includes) fp j hj v
+    dsimp only; omega
+
 end
 
 end LeanVM.Cost.Bounds

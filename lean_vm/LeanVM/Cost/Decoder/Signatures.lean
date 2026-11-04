@@ -11,16 +11,15 @@ public import LeanVM.Guest.Fast.Whir
 The readers of a callee's witness off its check's frame, restated off arrays (`Guest/Fast/`, each
 proved equal to the deployed decoder's reader there at the tables built): a leanXMSS signature off
 `verify_lean_xmss`' valuation (`xmssSigOfA`, `xmssSigOfA_tabs`), a leanSPHINCS signature off
-`verify_sig_lean_sphincs`' (`sphincsSigOfA`, `sphincsSigOfA_tabs`), a child's proof off
+`verify_sig_lean_sphincs`' and its three `sp_wots` frames (`sphincsSigOfA`), a child's proof off
 `verify_sub`'s and the frame map keyed by index (`vsPiOfA`, `vsPiOfA_tabs`, the cursor's length
-`cl` a parameter). Their tables (`XmssTabs`, `SphincsTabs`, `WhirTabs`: the lanes of `g^k`, the
-chain starts, the selectors and path bases, the forest keys' cells, the coordinates' positions,
-`open_stacked`'s stream words and calls) are arrays the decoder's top level builds once
+`cl` a parameter). Their tables (`XmssTabs`, `SpTabs`, `WhirTabs`: the lanes of `g^k`, the
+chain starts, the selectors and path bases, `open_stacked`'s stream words and calls) are arrays the decoder's top level builds once
 (`readerTabsC`, `Frames.lean`) and passes; consecutive cells are read by stepping the address
 (`wordsFrom`), each query's position once (`oqQueryAt`), the loop's frames at the next power of
-`g` (`oqItersFrom`), each opening's exponents once (`subOpeningAt`, `coordOpeningAt`). The
-compiled names stay the readers' (`xmssSigOfNC`, `sphincsSigOfNC`, `vsPiOfNC`, `oqsOfNC`, …).
-Their records are encoded by their constructors (`Oq`, `OsCall`, `SCoord`, the tables).
+`g` (`oqItersFrom`). The compiled names stay the readers' (`xmssSigOfNC`, `sphincsSigOfNC`,
+`vsPiOfNC`, `oqsOfNC`, …). Their records are encoded by their constructors (`Oq`, `OsCall`, the
+tables).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -31,9 +30,8 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.B1 LeanVM.Guest.Fast
 
 cost_enc LeanVM.Guest.B1.Oq
 cost_enc LeanVM.Guest.Fast.OsCall
-cost_enc LeanVM.Guest.Fast.SCoord
 cost_enc LeanVM.Guest.Fast.XmssTabs
-cost_enc LeanVM.Guest.Fast.SphincsTabs
+cost_enc LeanVM.Guest.Fast.SpTabs
 cost_enc LeanVM.Guest.Fast.WhirTabs
 
 /-! ## The tables
@@ -49,16 +47,10 @@ cost_compile xSel0C := xSel0
 cost_compile xPath0C := xPath0
 cost_compile xSel1C := xSel1
 cost_compile xPath1C := xPath1
-set_option maxRecDepth 100000 in
-cost_compile fkOffC := fkOff
-set_option maxRecDepth 100000 in
-cost_compile sCoordTabC := sCoordTab
-cost_compile sCoord0C := sCoord0
-cost_compile sSelC := sSel
-cost_compile sFirstC := sFirst
-cost_compile sRestC := sRest
-cost_compile sLastC := sLast
-cost_compile sPathC := sPath
+cost_compile spSelC := spSel
+cost_compile spFirstC := spFirst
+cost_compile spRestC := spRest
+cost_compile spLastC := spLast
 cost_compile osWordsTabC := osWordsTab
 set_option maxRecDepth 100000 in
 cost_compile osCallsTabC := osCallsTab
@@ -67,7 +59,7 @@ cost_compile offAtAC := offAtA
 cost_compile idxBelowC measure fun _ l _ _ ↦ l.length := idxBelow
 cost_compile logGTWithC := logGTWith
 cost_compile xmssTabsC := xmssTabs
-cost_compile sphincsTabsC := sphincsTabs
+cost_compile spTabsC := spTabs
 cost_compile whirTabsC := whirTabs
 
 /-! ## leanXMSS -/
@@ -80,12 +72,14 @@ cost_compile xmssSigOfNC := xmssSigOfA
 
 /-! ## leanSPHINCS -/
 
-cost_compile foldPosC := foldPos
-cost_compile subOpeningAtC := subOpeningAt
-cost_compile subOpeningNC := subOpeningA
-cost_compile coordOpeningAtC := coordOpeningAt
-cost_compile coordOpeningNC := coordOpeningA
+cost_compile forsOpeningAC := forsOpeningA
+cost_compile spCtrC := spCtr
+cost_compile spPathC := spPath
+cost_compile spBitC := spBit
+cost_compile layerAC := layerA
 cost_compile sphincsSigOfNC := sphincsSigOfA
+cost_compile spWotsArgsC := spWotsArgs
+cost_compile spWotsRetsC := spWotsRets
 
 /-! ## A child's proof -/
 

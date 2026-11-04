@@ -173,6 +173,34 @@ cost_compile entryArrayTC := entryArrayT
 set_option maxRecDepth 100000 in
 cost_compile frameAtAC := frameAtA
 
+/-! ### A frame looked up once
+
+`frameAtA` searches the call's key at every word it reads. A reader of many words of one frame
+(leanSPHINCS's, `Top.lean`) looks the frame up once (`frameFpA`, the search) and reads its words off
+the frame pointer found (`frameValAt`); `frameAtA_eq_frameValAt`: the same words. -/
+
+/-- The frame pointer of function `canonIndex j`'s call on `args`, `rets`, if it was entered:
+`frameAtA`'s search. -/
+def frameFpA (table : Array (CallKey × K)) (j : ℕ) (args rets : List E) : Option K :=
+  searchIn table (callKey (canonIndex j) args rets) 0 table.size
+
+/-- The word of `v` in function `j`'s frame at the pointer `o` (`0` if none): `frameAtA`'s word. -/
+def frameValAt (rd : Reader) (o : Option K) (j : ℕ) (v : V) : E :=
+  match o with
+  | some fp => frameWordAt rd fp j v
+  | none => 0
+
+theorem frameAtA_eq_frameValAt (table : Array (CallKey × K)) (rd : Reader) (j : ℕ)
+    (args rets : List E) :
+    frameAtA table rd j args rets = frameValAt rd (frameFpA table j args rets) j := by
+  funext v
+  unfold frameAtA frameValAt frameFpA
+  rfl
+
+set_option maxRecDepth 100000 in
+cost_compile frameFpAC := frameFpA
+cost_compile frameValAtC := frameValAt
+
 end
 
 end LeanVM.Cost.Decoder

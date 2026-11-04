@@ -9,7 +9,8 @@ public import LeanVM.Guest.Fast.Main
 The frame map keyed by the functions' indices (`Guest.Fast.NFrames`, `FunctionNames.lean`), and
 each callee's witness a function of its call's words, the compiled readers (`Signatures.lean`,
 `Da.lean`, `Hints.lean`) at the frame map's value: `xmssAtFrame` (`verify_lean_xmss`, index `20`),
-`sphincsAtFrame` (`verify_sig_lean_sphincs`, `21`), `daAtFrame` (`da_verify`, `27`),
+`sphincsAtFrame` (`verify_sig_lean_sphincs`, `22`, and its three `sp_wots` frames, `21`: not
+compiled here, the decoder's top looks its frames up once, `sphincsAtFrameT`, `Top.lean`), `daAtFrame` (`da_verify`, `27`),
 `proofAtFrame` (`verify_sub`, `19`), `hintsAtFrame` (`aggregate_claims`, `33`). The signature
 and proof readers read their tables off `R : ReaderTabs` (`Guest/Fast/Main.lean`), which the top
 level builds once (`readerTabsC`) and passes.
@@ -31,11 +32,13 @@ noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (p : E) : LeanXmss
   xmssSigOfA R.xmss (Vn 20 [p] [])
 
 open LeanVM.Guest.Fast in
-/-- The leanSPHINCS signature checked at slot address `p` (`verify_sig_lean_sphincs`, `21`), the
-readers' tables `R` given. -/
+/-- The leanSPHINCS signature checked at slot address `p` (`verify_sig_lean_sphincs`, `22`), off
+its frame and its three `sp_wots` frames (`21`), the readers' tables `R` given. -/
 noncomputable def sphincsAtFrame (R : ReaderTabs) (σ : Val) (Vn : NFrames) (p : E) :
     Sphincs.Signature :=
-  sphincsSigOfA R.sphincs (Vn 21 [p, σ (.n 68)] [])
+  let s := Vn 22 [p, σ (.n 68)] []
+  sphincsSigOfA R.sphincs s (Vn 21 (spWotsArgs s 0) (spWotsRets s 0))
+    (Vn 21 (spWotsArgs s 1) (spWotsRets s 1)) (Vn 21 (spWotsArgs s 2) (spWotsRets s 2))
 
 open LeanVM.Guest.Fast in
 /-- The DA matrix `da_verify` (`27`) checks on the call's words, the logarithm's tables `D`
@@ -60,7 +63,6 @@ cost_enc LeanVM.Guest.Fast.ReaderTabs
 -- the readers' tables, built: called once by the decoder's top level
 cost_compile readerTabsC := LeanVM.Guest.Fast.readerTabs
 cost_compile xmssAtFrameC := xmssAtFrame
-cost_compile sphincsAtFrameC := sphincsAtFrame
 cost_compile daAtFrameC := daAtFrame
 cost_compile proofAtFrameC := proofAtFrame
 cost_compile hintsAtFrameC := hintsAtFrame

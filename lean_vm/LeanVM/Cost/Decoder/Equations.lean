@@ -43,12 +43,14 @@ theorem decWitStaged_eq : decWitStaged discreteLogTables = decWit := by
     nRawSD_tables, nDirectD_tables]
 
 open LeanVM.Guest.Fast in
-/-- **The staged witness is `decWitN`**, at the tables built. -/
-theorem decWitNStaged_eq : decWitNStaged discreteLogTables readerTabs = decWitN := by
-  funext σ rd Vn cl
+/-- **The staged witness is `decWitN`**, at the tables built and the leanSPHINCS reader off the
+frame map. -/
+theorem decWitNStaged_eq (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) :
+    decWitNStaged discreteLogTables readerTabs σ rd Vn (sphincsAtFrame readerTabs σ Vn) cl =
+      decWitN σ rd Vn cl := by
   unfold decWitNStaged decWitN daAtFrame xmssAtFrame sphincsAtFrame proofAtFrame
-  simp only [show readerTabs.xmss = xmssTabs from rfl, show readerTabs.sphincs = sphincsTabs from rfl,
-    show readerTabs.whir = whirTabs from rfl, xmssSigOfA_tabs, sphincsSigOfA_tabs, vsPiOfA_tabs]
+  simp only [show readerTabs.xmss = xmssTabs from rfl, show readerTabs.sphincs = spTabs from rfl,
+    show readerTabs.whir = whirTabs from rfl, xmssSigOfA_tabs, vsPiOfA_tabs]
   rw [decWitStaged_eq, dvWitND_tables]
   rfl
 

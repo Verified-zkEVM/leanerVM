@@ -11,8 +11,9 @@ public import LeanVM.Guest.B1.Main.SoundV
 
 `decWitV σ rd V piOf` (`B1/Main/SoundV.lean`) assembles `main`'s witness (`decWit`) from its
 callees' witnesses, each read off the frame the frame map `V` gives the call by the callee's name.
-`decWitN σ rd Vn cl` assembles it from the restated readers (`xmssSigOfN`, `sphincsSigOfN`,
-`dvWitN`, `vsPiOfN`, `aggHints`), every frame by its function's index, `cl` the
+`decWitN σ rd Vn cl` assembles it from the restated readers (`xmssSigOfN`, `sphincsSigOfN` (its
+three `sp_wots` frames by the frame map too), `dvWitN`, `vsPiOfN`, `aggHints`), every frame by its
+function's index, `cl` the
 cursor's length; `decWitN_eq`: at `Vn k = V (decoderFunctionName k)` and `cl = cursorLen` it is
 `decWitV σ rd V vsPiOf`, the deployed decoder's witness. `ReaderTabs`, `readerTabs`: the tables
 of the readers off arrays, built once.
@@ -27,7 +28,7 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main Le
 /-- **`main`'s witness** (`decWitV`), its frames numbered. -/
 noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
   decWit σ rd (fun p ↦ xmssSigOfN (Vn 20 [p] []))
-    (fun p ↦ sphincsSigOfN (Vn 21 [p, σ (.n 68)] []))
+    (fun p ↦ sphincsSigOfN (Vn 22 [p, σ (.n 68)] []) Vn)
     (fun args rets ↦ dvWitN (Vn 27 args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
     (fun args ↦ aggHints rd (Vn 33 args []))
@@ -44,11 +45,11 @@ theorem decWitN_eq (σ : Val) (rd : Reader) (V : FrameMap) :
 arrays (`xmssSigOfA`, `sphincsSigOfA`, `vsPiOfA`). -/
 structure ReaderTabs where
   xmss : XmssTabs
-  sphincs : SphincsTabs
+  sphincs : SpTabs
   whir : WhirTabs
 
 /-- **The readers' tables**, built from the literals. -/
-def readerTabs : ReaderTabs := ⟨xmssTabs, sphincsTabs, whirTabs⟩
+def readerTabs : ReaderTabs := ⟨xmssTabs, spTabs, whirTabs⟩
 
 end
 end LeanVM.Guest.Fast

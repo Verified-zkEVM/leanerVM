@@ -16,8 +16,8 @@ once and passed down:
 * `decTopTables`: the reader (`memReader memT mem`) and the replay (`replayStatesOf`);
 * `decTopStates`: `main`'s valuation (`mainVal rd`) and the entry table, one sorted array
   (`entryArrayT`, the precondition `preTestAt D T Pw rd`);
-* `decTopFrames`: the witness (`decWitNStaged`, the frame map `frameAtA table rd`, the cursor's
-  length `cursorLength D`) and the decoding (`decoderOutput D`: the seed, the statement
+* `decTopFrames`: the witness (`decWitNStaged`, the frame map `frameAtA table rd`, the leanSPHINCS
+  reader looking its frames up once `sphincsAtFrameT`, the cursor's length `cursorLength D`) and the decoding (`decoderOutput D`: the seed, the statement
   `decStmtD D`, `decodedOf`).
 
 `TopEq.lean`: **`decTop_eq : decTop guest κ (memoryVector L) = End.decode L`**.
@@ -32,10 +32,27 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
+/-- **The leanSPHINCS signature checked at slot address `p`, its frames looked up once**
+(`sphincsAtFrame` at `frameAtA table rd`, `sphincsAtFrameT_eq`): `verify_sig_lean_sphincs`' frame
+(`22`), then each layer's `sp_wots` frame (`21`), each one binary search (`frameFpA`), their words
+read off the frame pointers found (`frameValAt`). -/
+noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
+    (σ : Val) (p : E) : Sphincs.Signature :=
+  let s := frameValAt rd (frameFpA table 22 [p, σ (.n 68)] []) 22
+  sphincsSigOfA R.sphincs s (frameValAt rd (frameFpA table 21 (spWotsArgs s 0) (spWotsRets s 0)) 21)
+    (frameValAt rd (frameFpA table 21 (spWotsArgs s 1) (spWotsRets s 1)) 21)
+    (frameValAt rd (frameFpA table 21 (spWotsArgs s 2) (spWotsRets s 2)) 21)
+
+theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
+    (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by
+  funext p
+  simp only [sphincsAtFrameT, sphincsAtFrame, frameAtA_eq_frameValAt]
+
 /-- The decoding off `main`'s valuation and the entry table. -/
 noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Reader) (σ : Val)
     (table : Array (CallKey × K)) : SeedStatementAndWitness :=
-  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (cursorLength D))
+  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (sphincsAtFrameT R table rd σ)
+    (cursorLength D))
 
 /-- The decoding off the reader and the replayed states. -/
 noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
@@ -62,6 +79,8 @@ cost_compile powPairsByC measure fun _ n _ _ ↦ n := powPairsBy
 cost_compile babyTableC := babyTable
 set_option maxRecDepth 100000 in
 cost_compile discreteLogTablesC := discreteLogTables
+set_option maxRecDepth 100000 in
+cost_compile sphincsAtFrameTC := sphincsAtFrameT
 set_option maxRecDepth 100000 in
 cost_compile decTopFramesC := decTopFrames
 set_option maxRecDepth 100000 in

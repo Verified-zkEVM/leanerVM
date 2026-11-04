@@ -10,8 +10,9 @@ import all LeanVM.Guest.Glob
 /-!
 # The guest decoder's compiled chain: the witness and `main`'s valuation
 
-* **`decWitN`, staged** (`decWitNStaged`, the logarithm's tables `D` and the readers' tables `R`
-  given; `Equations.lean`: `decWitNStaged discreteLogTables readerTabs = Guest.Fast.decWitN`):
+* **`decWitN`, staged** (`decWitNStaged`, the logarithm's tables `D`, the readers' tables `R` and
+  the leanSPHINCS reader given; `Equations.lean`: at `sphincsAtFrame readerTabs σ Vn` it is
+  `Guest.Fast.decWitN`):
   `decWitStaged` (`Staged.lean`) with each callee's witness off its frame (`Frames.lean`), by
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
@@ -28,11 +29,13 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 
 open LeanVM.Guest.Fast in
 /-- **`decWitN`, staged**: `decWitStaged` with each callee's witness off its frame, by partial
-application. -/
+application, the leanSPHINCS signatures' reader `wS` given (the top's, `sphincsAtFrameT`, looks
+its frames up once; `sphincsAtFrame` at the frame map). -/
 noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (R : ReaderTabs)
-    (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
-  decWitStaged D σ rd (xmssAtFrame R Vn) (sphincsAtFrame R σ Vn) (daAtFrame D Vn)
-    (proofAtFrame R rd Vn cl) (hintsAtFrame rd Vn)
+    (σ : Val) (rd : Reader) (Vn : NFrames) (wS : E → Sphincs.Signature) (cl : E → E → ℕ) :
+    NodeWitness :=
+  decWitStaged D σ rd (xmssAtFrame R Vn) wS (daAtFrame D Vn) (proofAtFrame R rd Vn cl)
+    (hintsAtFrame rd Vn)
 
 -- a frame cell's word, under a name of its own (the bounds name it, not an index)
 cost_compile wordWithC := LeanVM.Guest.Located.wordWith
