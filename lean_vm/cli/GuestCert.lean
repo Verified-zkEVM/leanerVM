@@ -1966,12 +1966,13 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
           let some yv := nextSel | throw ("chain without a next match")
           let (_, o, b, succ') := chs.head!
           unless chs.length == arms.length && ends.length == arms.length &&
-              chs.all (fun (_, o', b', s') => o' == o && b' == b && s' == succ') && !succ'.isEmpty &&
-              !keyed do
+              chs.all (fun (_, o', b', s') => o' == o && b' == b && s' == succ') && !succ'.isEmpty do
             fail s!"chained match {xv.idx}: arms end apart"
             return none
           modify fun out => { out with chains := out.chains.push (nTop - 1, xv.idx, chs.map (·.1), yv.idx, b) }
           let st2 := joinSt st1 (ends.map fun e => { e.2 with chainEnd := none })
+          -- separately counted arms: the path after them counts from the jump
+          let st2 := if keyed then { st2 with cnt := st1.cnt } else st2
           entered := some (o, succ')
           p := (succ'.headD 0, 0); st := st2; moved := false
           continue
@@ -2398,7 +2399,7 @@ end GuestCert
 namespace GuestCert
 
 /-- The functions whose top-level `match`es have their arms counted separately (`Data.cplArms`). -/
-def armedFns : List String := ["verify_lean_xmss"]
+def armedFns : List String := ["verify_lean_xmss", "__loop2"]
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
