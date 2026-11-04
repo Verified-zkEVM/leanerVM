@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.WhirLen
 
-  An accepted opening's terminal point has `μ` coordinates (from `open_stacked`'s honest run), apart
-  from `H/TermPre` so the terminal's context does not wait for `open_stacked`'s placement.
+  `open_stacked` on an honest child: its terminal point has `μ` coordinates, and it is complete as
+  `verify_sub`'s twelfth callee (`H/KidsC`'s `hos`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.VerifySub.H.TermPre
+public import LeanVM.Guest.B1.VerifySub.H.Kids
 public import LeanVM.Guest.B1.Whir.BrBody
 public import LeanVM.Guest.B1.Place.OsCandAll
 
@@ -43,6 +44,18 @@ theorem w_point_length : S.w.point.length = S.μs :=
   whir_point_length S.hmu22 S.hmu28 S.hr1 S.hr4 S.runW S.nzW
 
 end ChildSegs
+
+variable {fs : String → ℕ} {cert : String → V → ℕ}
+
+/-- **`open_stacked` is complete on an honest child**, as `verify_sub` calls it. -/
+theorem os_kid_complete {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
+    {κ : ℕ} (hκ : 7 ≤ κ) (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (bs : List ℕ) :
+    CompleteAtD fs cert κ (B1.Whir.openName S.μs S.rate) [(S.cW bs, S.xsW)]
+      (capOf S.s8.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
+        ofK (addressOfIndex (S.cW bs))]) (vsOsOut S.μs S.w) :=
+  B1.open_stacked_completeAtD S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ hrf hcons hκ
+    (fun _ _ ↦ trivial) S.s8.perm S.root S.target _ S.xsW c.proof.openings S.w S.s' S.roots' S.runW
+    S.nzW S.capsW [(S.cW bs, S.xsW)] (fun _ _ hm ↦ hm _ List.mem_cons_self)
 
 end
 end LeanVM.Guest.B1.VerifySub
