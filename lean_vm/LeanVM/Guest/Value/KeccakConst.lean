@@ -34,10 +34,10 @@ equation between closed terms, checked here by `decide +kernel` through the eval
   (`Table.padding`, the guest's `COORD_PADDING`);
 * `batchSeed_eq`, `aggSeed_cells`: the batching transcript's initial state, whose five capacity
   cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
-  .capacity_cells()`, `aggregation.rs:2460`);
+  .capacity_cells()`, `aggregation.rs:2432`);
 * `paddingCell_eq`, `daPadCell_cells`, `paddingRow_eq`, `daPadRow_cells`: LeanDA's padding
   digests (`lean_da::padding_digests`, `crates/lean_da/src/commit.rs:104-107`), whose two cells are
-  `DA_PAD_CELL_0/1` and `DA_PAD_ROW_0/1` (`pack_hash_state`, `aggregation.rs:2481-2493`).
+  `DA_PAD_CELL_0/1` and `DA_PAD_ROW_0/1` (`pack_hash_state`, `aggregation.rs:2453-2465`).
 
 Kernel cost (measured on the build machine): each permutation of the evaluator is milliseconds;
 Keccak-256 of the 2048-byte zero cell (16 permutations) about 6 s and 2 GB over the imports.
@@ -183,7 +183,7 @@ theorem paddingBlobRoot_eq :
     merkleRoot_const, daPadLevel_toBytes_succ (by norm_num)]
   rfl
 
-/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation.rs:2473-2475`, `lean_ethereum.py:3951-3952`)
+/-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation.rs:2445-2447`, `lean_ethereum.py:3951-3952`)
 are the padding blob root's two cells. -/
 theorem daPadBlob_cells :
     (LeanVM.Guest.word 8002054802297438051 4108169256045952147 0,

@@ -74,22 +74,16 @@ pub fn file() -> File {
     let xmss_typed: Vec<LeanXmssClaim> = xmss
         .iter()
         .map(|(pk, m)| {
-            let key = LeanXmssPublicKey {
-                merkle_root: pk[..16].try_into().unwrap(),
-                public_param: pk[16..].try_into().unwrap(),
-            };
-            assert_eq!(&key.flatten(), pk);
+            let key = LeanXmssPublicKey::from_bytes(pk);
+            assert_eq!(&key.to_bytes(), pk);
             (key, *m)
         })
         .collect();
     let sphincs_typed: Vec<LeanSphincsClaim> = sphincs
         .iter()
         .map(|(pk, m)| {
-            let key = LeanSphincsPublicKey {
-                root: pk[..16].try_into().unwrap(),
-                public_param: pk[16..].try_into().unwrap(),
-            };
-            assert_eq!(&key.flatten(), pk);
+            let key = LeanSphincsPublicKey::from_bytes(pk);
+            assert_eq!(&key.to_bytes(), pk);
             (key, *m)
         })
         .collect();
@@ -124,7 +118,13 @@ pub fn file() -> File {
         .map(|_| DeferredClaim::recompute(elements(&mut rng, kbcv)).unwrap())
         .collect();
     let carried_refs: Vec<&DeferredClaim> = carried.iter().collect();
-    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs);
+    // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
+    let points: Vec<Vec<F192>> = subproofs
+        .iter()
+        .zip(&carried)
+        .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
+        .collect();
+    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs, bytecode_sums(&points));
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");

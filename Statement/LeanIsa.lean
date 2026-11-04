@@ -172,7 +172,7 @@ def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   else (some (2 * c), some (2 * c + 1))
 
 /-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
-it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:82-94`). -/
+it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:82-100`). -/
 def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
   (List.finRange 13).foldl (fun s (c : Fin 13) ↦
     let (lo, hi) := cellLanes odd c.val
@@ -184,7 +184,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
       | none => s) (Vector.replicate 25 0)
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
-limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:96-107`). -/
+limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:102-113`). -/
 def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
@@ -249,7 +249,7 @@ def derefSource : DerefMode → Registers K → E → E
 return the next registers; `none` if a read or a check fails. A taken `JUMP` moves to any elements
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
 be powers of `g` with a 32-bit exponent, the target inside the bytecode
-(`crates/leanvm_core/src/cpu/execute.rs:877-915`, `cpu/hints.rs:118`), and stops after `MAX_STEPS`
+(`crates/leanvm_core/src/cpu/execute.rs:869-907`, `cpu/hints.rs:131`), and stops after `MAX_STEPS`
 (`10^8`, `execute.rs:156`) steps, which nothing here bounds: those are the executor's limits, not
 the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
@@ -322,7 +322,7 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:551-562`): the last slot reached in
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:549-560`): the last slot reached in
 another frame executes like any other slot, and a step that falls through it, to
 `g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the

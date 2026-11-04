@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SpWotsT
 
   The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py:3600-3631` at leanVM 542b0353) with the values numbered as the renumbered
+  (`lean_ethereum.py:3600-3631` at leanVM ed7d2b9c) with the values numbered as the renumbered
   expansion numbers them.
 -/
 

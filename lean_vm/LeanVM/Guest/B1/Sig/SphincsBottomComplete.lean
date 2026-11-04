@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsBottomComplete
 
   The hypertree's addresses and the bottom layer's encoding of `verify_sig_lean_sphincs`
-  (`lean_ethereum.py:3720-3740` at leanVM `542b0353`) are complete: each layer's key address and
+  (`lean_ethereum.py:3720-3740` at leanVM `ed7d2b9c`) are complete: each layer's key address and
   tree lane from the index's fields, the counter's bytes, and the 804-byte encoding of the FORS key.
 -/
 

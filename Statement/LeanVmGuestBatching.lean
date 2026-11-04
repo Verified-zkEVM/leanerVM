@@ -38,7 +38,7 @@ def DeferredClaim.cells (claim : DeferredClaim) : List E :=
 /-! ## The batching program
 
 The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4253-4352`;
-`aggregate_deferred_claims`, `aggregation.rs:868-974`), as a program of the verifier's language
+`aggregate_deferred_claims`, `aggregation.rs:819-927`), as a program of the verifier's language
 (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the count `n`
 as `g^n`, then each child's words, each padded with zeros to a whole rate), then one challenge,
 whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds (`sumcheckRoundsProgram`) and
@@ -84,12 +84,12 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateScalars) % rateScalars
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation.rs:878-882`; `AGG_CHILD_PAD`). -/
+`aggregation.rs:830-834`; `AGG_CHILD_PAD`). -/
 def _root_.LeanVM.Node.padToRate (words : List E) : List E :=
   words ++ List.replicate (zerosToWholeRate words.length) 0
 
 /-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh
-claim and its carried one (`lean_ethereum.py:4315-4329`, `aggregation.rs:898-902`). -/
+claim and its carried one (`lean_ethereum.py:4315-4329`, `aggregation.rs:850-854`). -/
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 
@@ -159,7 +159,7 @@ noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredClaim → Pr
 
 /-- **The batching transcript run**, over a permutation `π` in any monad: from the seed
 `π(H(label) ‖ 0)`, `H` Keccak-256 over `π` (`FiatShamirState::from_label`; the guest program bakes
-its capacity, `AGG_SEED_*`, `aggregation.rs:2457-2460`), the program on the proof. -/
+its capacity, `AGG_SEED_*`, `aggregation.rs:2429-2432`), the program on the proof. -/
 noncomputable def runBatching {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← π (seedInput (← keccak256With π batchingLabel) (Vector.replicate 4 0))

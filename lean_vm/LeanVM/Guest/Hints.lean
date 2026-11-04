@@ -27,12 +27,12 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation.rs` (leanVM `542b0353`) push for push (`honestPushes`,
-grouped by stream as `Hints::push` does, `aggregation.rs:1309-1314`): the node's streams
-(`aggregate_with_stats`, `aggregation.rs:1590-1842`), a raw signature's (`lean_xmss_hints`,
-`aggregation.rs:1480-1503`; `lean_sphincs_hints`, `aggregation.rs:1514-1553`), a child's
-(`gen_verify`, `aggregation.rs:1119-1274`), the batching's (`aggregate_deferred_claims`,
-`aggregation.rs:868-974`) and LeanDA's.
+`crates/rec_aggregation/src/aggregation.rs` (leanVM `ed7d2b9c`) push for push (`honestPushes`,
+grouped by stream as `Hints::push` does, `aggregation.rs:1262-1267`): the node's streams
+(`aggregate_with_stats`, `aggregation.rs:1543-1814`), a raw signature's (`lean_xmss_hints`,
+`aggregation.rs:1433-1456`; `lean_sphincs_hints`, `aggregation.rs:1467-1506`), a child's
+(`gen_verify`, `aggregation.rs:1072-1227`), the batching's (`aggregate_deferred_claims`,
+`aggregation.rs:819-927`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from
@@ -45,9 +45,9 @@ its scheme's own definitions, over Keccak-f[1600] (as `LeanXmss.verifyWithKeccak
 
 Choices the witness does not fix, made as the Rust makes them:
 
-* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1427-1438`): the raw signatures
+* **Coverage slots** (`plan`, `take_slot`, `aggregation.rs:1380-1391`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation.rs:1640-1644`), then every child's claims, child by child; a claim takes its
+  sorted and deduplicated, `aggregation.rs:1593-1597`), then every child's claims, child by child; a claim takes its
   declared slot if it is still free, else the next duplicate slot. The deployed lists are
   strictly sorted, where the first free match is the slot `binary_search` finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
@@ -182,7 +182,7 @@ takes as hinted bytes (`LEAN_SPHINCS_TAIL_BITS`, `aggregation.rs:126`: the field
 def sphincsTailBits : ℕ := Sphincs.messageDigestBits - 256
 
 /-- One FORS tree's hints: the ordered children of every node on its climb, the two top nodes
-last (`fors_recover`'s visits, `fors.rs:74-94`). -/
+last (`fors_recover`'s visits, `fors.rs:80-100`). -/
 def sphincsForsNodes (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
     (tree : Sphincs.ForsTreeIndex) (leaf : Sphincs.ForsLeafIndex) (opening : Sphincs.ForsTreeOpening) :
     List (String × Entry) :=
@@ -218,7 +218,7 @@ def sphincsLayer (parameter : HashSig.PublicParameter) (index : Sphincs.Index)
   ([("sp_counter", exponentBytes part.counter.toNat 32)] ++ digitGroups digits ++ starts ++ siblings,
     fold (Sphincs.layerHeight layer))
 
-/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1514-1553`): the
+/-- A leanSPHINCS signature's hints (`lean_sphincs_hints`, `aggregation.rs:1467-1506`): the
 randomizer, the digest's bits past its fields, every FORS tree's secret, every tree's climb, then
 each layer's, bottom first, the bottom one-time key signing the FORS key's bytes and each above
 the root below. -/
@@ -246,7 +246,7 @@ def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation.rs:1789-1813`). The Rust pushes the root's
+every row's cells, column by column (`aggregation.rs:1760-1784`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -296,7 +296,7 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
 /-- One level's Merkle hints, from its commitment's height, its positions and their openings:
 per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
 `merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation.rs:1235-1275`). -/
+(`aggregation.rs:1188-1228`). -/
 def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     List (String × Entry) × Entry × Entry :=
   let capDepth := min (log2Ceil positions.length) depth
@@ -372,7 +372,7 @@ def batchPushes (h : BatchingHints) : List (String × Entry) :=
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`,
-`aggregation.rs:1620-1633`): its own (`n`, the children's count) when it checks a matrix or
+`aggregation.rs:1573-1586`): its own (`n`, the children's count) when it checks a matrix or
 publishes zeros, else the first child whose DA digest it publishes. -/
 def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsFields
 
   The fields of `verify_sig_lean_sphincs`'s digest (`lean_ethereum.py:3683-3697`, `sp_shifts`,
-  `sp_place`, at leanVM `542b0353`): from the bits of an integer `D`, each field's value and right
+  `sp_place`, at leanVM `ed7d2b9c`): from the bits of an integer `D`, each field's value and right
   shifts, and the 64-bit lanes the fields are placed into.
 -/
 

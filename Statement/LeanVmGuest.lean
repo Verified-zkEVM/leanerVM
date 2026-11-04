@@ -192,7 +192,7 @@ structure NodeWitness where
   batchingHints : BatchingHints
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation.rs:753-755`; `BYTECODE_VARS`, `lean_ethereum.py:325`). -/
+(`bytecode_vars`, `aggregation.rs:770-772`; `BYTECODE_VARS`, `lean_ethereum.py:325`). -/
 def DeferredClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
@@ -207,7 +207,7 @@ the bytecode's multilinear extension at the point (`DeferredClaim::recompute_sca
 `aggregation.rs:235-267`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
-checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation.rs:631-641`). -/
+checks it of the root's deferred claim (`EthereumProof::verify`, `aggregation.rs:655-665`). -/
 def DeferredClaim.HoldsWithShape (bytecode : List K) (claim : DeferredClaim) : Prop :=
   claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
@@ -443,7 +443,7 @@ open LeanVM.Parameters LeanVM.Semantics
 limits. -/
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `380000`, the
-compiled decoder's size at leanVM `542b0353` (`379524`: `lean_vm`'s `Cost/DecoderSize.lean` proves
+compiled decoder's size at leanVM `ed7d2b9c` (`379524`: `lean_vm`'s `Cost/DecoderSize.lean` proves
 it at most that) and a slack of `476`, room for one leanXMSS signature's encoding (`309`) but not
 two, so no useful table of witnesses (hard-coded signatures, matrices or proofs that would mask a bug
 of the guest program on finitely many statements) fits beside the compiled decoder's code. The size

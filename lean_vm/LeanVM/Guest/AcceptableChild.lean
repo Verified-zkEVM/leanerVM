@@ -35,10 +35,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Coverage
 
-/-- `STREAM_CAP` (`aggregation.rs:1288`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation.rs:1241`): a child's proof stream is zero-padded to it. -/
 def childStreamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation.rs:1279`): the least stack log the guest program has an opening arm
+/-- `MU_MIN` (`aggregation.rs:1232`): the least stack log the guest program has an opening arm
 for. -/
 def minChildStackLog : ℕ := 22
 

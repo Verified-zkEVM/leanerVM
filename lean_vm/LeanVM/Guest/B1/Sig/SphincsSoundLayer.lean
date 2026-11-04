@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundLayer
 
   A hypertree layer of `verify_sig_lean_sphincs` (`lean_ethereum.py:3634-3662` and the bottom
-  layer's lines `3730-3745` at leanVM `542b0353`) is sound: its encoding's digest, the call of
+  layer's lines `3730-3745` at leanVM `ed7d2b9c`) is sound: its encoding's digest, the call of
   `sp_wots` at the key's address and the path reach the statement's layer root.
 -/
 

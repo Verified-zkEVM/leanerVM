@@ -77,13 +77,13 @@ impl Out {
         self.tag("xmss");
         self.n(p.xmss_signers.len());
         for (pk, m) in &p.xmss_signers {
-            self.bytes(&pk.flatten());
+            self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("sphincs");
         self.n(p.lean_sphincs_signers.len());
         for (pk, m) in &p.lean_sphincs_signers {
-            self.bytes(&pk.flatten());
+            self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("da");
@@ -91,28 +91,52 @@ impl Out {
         self.deferred(&p.defer);
     }
 
+    /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
+    /// signature's bytes (`to_bytes`, in that order), the crate keeping its fields private.
     fn xmss_signature(&mut self, sig: &LeanXmssSignature) {
-        self.n(sig.leaf_index as usize);
-        for layer in [&sig.bottom, &sig.top] {
-            self.bytes(&layer.randomizer);
-            self.digests(&layer.chain_values);
-            self.digests(&layer.path);
+        use lean_xmss::{LAYER_HEIGHT, LEAF_INDEX_SIZE, N, RANDOMIZER_LEN, V};
+        let bytes = sig.to_bytes();
+        let mut at = Cursor(&bytes[..]);
+        self.n(sig.leaf_index() as usize);
+        at.take(LEAF_INDEX_SIZE);
+        for _ in 0..2 {
+            self.bytes(at.take(RANDOMIZER_LEN));
+            self.digests(at.take(V * N).as_chunks::<N>().0);
+            self.digests(at.take(LAYER_HEIGHT * N).as_chunks::<N>().0);
         }
+        assert!(at.0.is_empty(), "a leanXMSS signature is read whole");
     }
 
     /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter, chain values
-    /// and path.
+    /// and path: read off the signature's bytes (`to_bytes`, in that order).
     fn sphincs_signature(&mut self, sig: &LeanSphincsSignature) {
-        self.bytes(&sig.randomizer);
-        for tree in &sig.fors {
-            self.bytes(&tree.secret);
-            self.digests(&tree.path);
+        use lean_sphincs::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, RANDOMIZER_LEN, V};
+        let bytes = sig.to_bytes();
+        let mut at = Cursor(&bytes[..]);
+        self.bytes(at.take(RANDOMIZER_LEN));
+        for _ in 0..FORS_TREES {
+            self.bytes(at.take(N));
+            self.digests(at.take(FORS_HEIGHT * N).as_chunks::<N>().0);
         }
-        for (layer, layer_sig) in sig.layers.iter().enumerate() {
-            self.n(layer_sig.counter as usize);
-            self.digests(&layer_sig.wots);
-            self.digests(sig.path(layer));
+        for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
+            let counter = u32::from_le_bytes(at.take(COUNTER_LEN).try_into().unwrap());
+            assert_eq!(counter, sig.layers()[layer].counter());
+            self.n(counter as usize);
+            self.digests(at.take(V * N).as_chunks::<N>().0);
+            self.digests(at.take(height * N).as_chunks::<N>().0);
         }
+        assert!(at.0.is_empty(), "a leanSPHINCS signature is read whole");
+    }
+}
+
+/// A signature's bytes, read front to back.
+struct Cursor<'a>(&'a [u8]);
+
+impl<'a> Cursor<'a> {
+    fn take(&mut self, len: usize) -> &'a [u8] {
+        let (head, rest) = self.0.split_at(len);
+        self.0 = rest;
+        head
     }
 }
 
@@ -163,7 +187,11 @@ fn export(
             .iter()
             .map(|path| (path.leaf.iter().map(|w| w.0).collect(), path.siblings.clone()))
             .collect();
-        let (_, fresh) = gen_verify(unified_guest(), pi, &child.proof.stream, summary).expect("the child fits");
+        // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
+        let fresh_point: Vec<F192> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
+        let fresh_value = mle_eval_par(stacked_bytecode(), &fresh_point);
+        let (_, fresh) =
+            gen_verify(unified_guest(), pi, &child.proof.stream, summary, fresh_value).expect("the child fits");
         out.tag("fresh");
         let point: Vec<F192> = fresh.bytecode_point.clone();
         out.es(&point);
@@ -181,14 +209,14 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation.rs:1640-1644`).
+    // deduplicated (`aggregation.rs:1593-1597`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
     out.tag("raw_xmss");
     out.n(raw_xmss.len());
     for (pk, m, sig) in &raw_xmss {
-        out.bytes(&pk.flatten());
+        out.bytes(&pk.to_bytes());
         out.bytes(m);
         out.xmss_signature(sig);
     }
@@ -198,7 +226,7 @@ fn export(
     out.tag("raw_sphincs");
     out.n(raw_sphincs.len());
     for (pk, m, sig) in &raw_sphincs {
-        out.bytes(&pk.flatten());
+        out.bytes(&pk.to_bytes());
         out.bytes(m);
         out.sphincs_signature(sig);
     }

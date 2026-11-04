@@ -321,7 +321,7 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
 def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
   th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
 
-/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:161-179`): the secret key is the seed `S_0`;
+/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:173-191`): the secret key is the seed `S_0`;
 hash it into `S` (`scheme_seed`, `hash.rs:27-29`), derive the public parameter and build the top
 tree. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
@@ -350,7 +350,7 @@ def signWithSchemeSeed (seed : MasterSeed) (parameter : PublicParameter) (leafIn
     | return none
   return some ⟨leafIndex, fun layer => if layer = bottomLayer then bottom else top⟩
 
-/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:184-229`): the scheme seed
+/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:196-248`): the scheme seed
 `S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:27-29`), the public parameter
 of `S`, then the two layers' signatures. -/
 def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundFors
 
   The FORS trees of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3579-3598` at
-  leanVM `542b0353`) are sound: whatever secrets and children are hinted, each tree's two top
+  leanVM `ed7d2b9c`) are sound: whatever secrets and children are hinted, each tree's two top
   nodes are `fTops` of the hinted secret and siblings.
 -/
 

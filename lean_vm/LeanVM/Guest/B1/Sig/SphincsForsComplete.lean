@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsForsComplete
 
   The FORS trees of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3579-3598` at
-  leanVM `542b0353`) are complete: each tree's secret hinted, its leaf hashed and climbed up the
+  leanVM `ed7d2b9c`) are complete: each tree's secret hinted, its leaf hashed and climbed up the
   hinted ordered children to its two top nodes, the FORS key.
 -/
 
