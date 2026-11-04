@@ -15,14 +15,15 @@ public import LeanVM.Guest.B1.Da.RowShapeAt
 public import LeanVM.Guest.B1.Da.PureAt
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.B1.Da.Offsets
 
 /-!
 # Bounded helpers
 
 `pureB_static`, `pureB_loop`: a pure callee complete within the words its static bound gives
 (`TotalLe`; for a loop helper from `1` to `g^m`, `TotalLeOn … LoopPre` of `m` iterations).
-`DvStaticB fs SB SK`: the static bounds of `da_verify`'s statically bounded callees, `SB g` the
-words of `g`, `SK g` a loop helper's words per iteration. `row_shape_completeAtB`:
+`DvStaticB fs SB SK`: the static bounds `da_verify`'s completeness rests on, `SB g` the words of
+`g`, `SK g` a loop helper's words per iteration. `row_shape_completeAtB`:
 `row_shape_completeAt` (same proof) within its frame.
 -/
 
@@ -37,20 +38,22 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
-/-- **The static bounds `da_verify` rests on**: its statically bounded callees' words (`TotalLe`),
-its loop helpers' per iteration (`TotalLeOn … LoopPre`). -/
+/-- **The static bounds `da_verify` rests on**: its loop helpers' words per iteration
+(`TotalLeOn … LoopPre`: the regions' bases, the blobs' trees, the padding, a column's cells, the
+column offsets' doublings), the DA levels' words (`TotalLe`), and the statically bounded callees
+`da_vector` and `da_expand__L7_L8` within their static words (`vecB`, a frame). -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l18 : TotalLeOn coreProgram fs "__loop17" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop17")
-  l19 : TotalLeOn coreProgram fs "__loop18" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop18")
-  l22 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21")
-  l23 : TotalLeOn coreProgram fs "__loop22" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop22")
-  l24 : TotalLeOn coreProgram fs "__loop23" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop23")
-  l417 : TotalLeOn coreProgram fs "__loop415" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop415")
-  l418 : TotalLeOn coreProgram fs "__loop416" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop416")
-  l419 : TotalLeOn coreProgram fs "__loop417" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop417")
-  l420 : TotalLeOn coreProgram fs "__loop418" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop418")
-  lev : TotalLe coreProgram fs "da_levels__L128_L7" (fun _ => SB "da_levels__L128_L7")
+  l17 : TotalLeOn coreProgram fs "__loop17" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop17")
+  l19 : TotalLeOn coreProgram fs "__loop19" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop19")
+  l20 : TotalLeOn coreProgram fs "__loop20" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop20")
+  l21 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21")
+  off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
+    (fun a => logG (a.getD 1 0) * SK (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
+  vec : fs "da_vector" + 30 + (fs "da_factors__L14_L7_L0" + 256 + (fs "da_expand__L14_L7" +
+    (fs "da_factors__L7_L8_L128" + 256 + (fs "da_column_offsets" + 1080 +
+      ((List.range 7).map fun b => 2 ^ b * SK (offLoopName b)).sum + 0)))) ≤ SB "da_vector"
+  exp : fs "da_expand__L7_L8" ≤ SB "da_expand__L7_L8"
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

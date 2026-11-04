@@ -17,19 +17,19 @@ public import LeanVM.Guest.Count.MvCountChkK
 public import LeanVM.Guest.Budget.VsCount
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.Count.Static
-public import LeanVM.Guest.B1.Da.VerifyAtT
+public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Main.MainGoalsClT
 
 /-!
 # `da_verify`'s and the claim lists' instructions
 
-`colW op i r L`: a column's instructions of `op` on `r` rows padded to `2^L` (`i = 0` for
-`da_verify_column__L1`, `1` for `__L0`): its frame's weight, the vector cell's, its row loop's `r`
-iterations, its padding loop's `2^L - r`, the DA levels at `L` (`col_weight_le`, on a tree of
-`Da.colNH`). `colFrom_weight_le`: a column loop's `n` iterations, each its frame and a column.
-`dvW op r L`: `da_verify`'s, its frame, its static callees, its row loops' `r` iterations, its two
-column loops' 64 columns each, `__loop23`'s `2^L - r` and the levels at `L` (`dv_weight_le`, on a
-tree of `Da.dvNH r L`); `dvW_le`: within `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
+`colW op r`: a column's instructions of `op` on `r` blobs: its frame's weight, its weights'
+expansion's (`da_expand__L7_L8`), its row loop's `r` iterations (`col_weight_le`, on a tree of
+`Da.colNH r`). `l18From_weight_le`: the column loop's `n` iterations, each its frame and a column.
+`dvW op r L`: `da_verify`'s on `r` blobs padded to `2^L`: its frame, the row shape's and
+`da_vector`'s, the regions' bases' `r` iterations, `128` columns, the blobs' trees' `r`, the
+padding's `2^L - r` and the levels at `L` (`dv_weight_le`, on a tree of `Da.dvNH r L`);
+`dvW_le`: within `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
 `clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 17` iterations
 of `__loop15` and the last group's `claim_list_last__L{n % 17}` (`cl_weight_le`, on a tree of
 `Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
@@ -56,14 +56,14 @@ theorem mvTab_ok (op : Opcode) : mvTabOk op = true := by
 theorem mvTab_parts (op : Opcode) :
     (∀ i < 3, (kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
       kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) = true) ∧
-    (∀ i < 9, (kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
+    (∀ i < 4, (kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
       kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) = true) ∧
     (∀ L < 11, (kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
       kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) = true) ∧
     (∀ k < 17, (kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
       kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) = true) ∧
     (kvOkK op l16J "__loop15" && kvSKJ op l16J == kcL16 op) = true ∧
-    (∀ i < 6, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
+    (∀ i < 4, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
       (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (mvOmT op).getD i 0) := by
   have h := mvTab_ok op
   simp only [mvTabOk, Bool.and_eq_true, List.all_eq_true, List.mem_range, beq_iff_eq] at h
@@ -84,7 +84,7 @@ theorem dvSt_weightLe {i : ℕ} (hi : i < 3) :
   weightLe_tab ((mvTab_parts op).1 i hi)
 
 /-- **`da_verify`'s and its columns' loops, per iteration.** -/
-theorem dvLp_loop {i : ℕ} (hi : i < 9) :
+theorem dvLp_loop {i : ℕ} (hi : i < 4) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (dvLpNames.getD i "") ((kcDvLpT op).getD i 0) :=
   loopWeightLe_tab ((mvTab_parts op).2.1 i hi)
 
@@ -105,7 +105,7 @@ theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop15" (kcL16 op
   loopWeightLe_tab (mvTab_parts op).2.2.2.2.1
 
 /-- **The frame weights** of `mvOmNames`. -/
-theorem mvOm_eq {i : ℕ} (hi : i < 6) :
+theorem mvOm_eq {i : ℕ} (hi : i < 4) :
     B2C.ωArm B2C.xmssArmC op (mvOmNames.getD i "") = (mvOmT op).getD i 0 := by
   obtain ⟨hn, hv⟩ := (mvTab_parts op).2.2.2.2.2 i hi
   rw [ωArm_idx (decide_eq_true_eq.mp hn) (by interval_cases i <;> decide), hv]
@@ -130,65 +130,58 @@ theorem loop_at {ω : String → ℕ} {f : String} {K : ℕ} (hL : LoopWeightLe 
     (by rw [h1, Value.gen_pow_eq_ofK]) hr hr64
   simpa using this
 
-/-! ## A column and a column loop -/
+/-! ## A column and the column loop -/
 
-/-- **A column's instructions** on `r` rows padded to `2^L`, its frame `ωc`, its row loop's and
-padding loop's `Kr`, `Kg` per iteration. -/
-def colW (ωc Kr Kg r L : ℕ) : ℕ :=
-  ωc + (kcDvStT op).getD 1 0 + r * Kr + (2 ^ L - r) * Kg + (kcDlT op).getD L 0
+/-- **A column's instructions** on `r` rows: its frame, its weights' expansion, its row loop's `r`
+iterations. -/
+def colW (r : ℕ) : ℕ :=
+  (mvOmT op).getD 2 0 + (kcDvStT op).getD 2 0 + r * (kcDvLpT op).getD 3 0
 
 /-- **A column's instructions** on a tree of its honest shape. -/
-theorem col_weight_le {fname rl gl : String} {Kr Kg r L : ℕ}
-    (hlr : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) rl Kr)
-    (hlg : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) gl Kg) (hr : 0 < r) (hrL : r ≤ 2 ^ L)
-    (hL : L < 11) {rd : Reader} {t : Tree} {args rets : List E}
-    (h : B1.Da.colNH fname rl gl r L t) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤
-      colW op (B2C.ωArm B2C.xmssArmC op fname) Kr Kg r L := by
-  obtain ⟨σ, ks, rfl, ⟨h1, h3, -, h17, h20⟩, hc, hl, hT⟩ := h
+theorem col_weight_le {r : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) {rd : Reader} {t : Tree}
+    {args rets : List E} (h : B1.Da.colNH r t) (hv : t.Valid coreProgram rd args rets)
+    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ colW op r := by
+  obtain ⟨σ, ks, rfl, ⟨h1, h17⟩, hc, hl, hT⟩ := h
+  rw [B1.Da.col_flatCalls] at hc hl hT
   obtain ⟨hk, hbk⟩ := node_kids hv hb hc
-  have h2L : 2 ^ L < 2 ^ 11 := Nat.pow_lt_pow_right (by norm_num) hL
-  have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.colCalls rl gl r L)
-    (List.replicate 4 fun _ => True)
-    [(kcDvStT op).getD 1 0, r * Kr, (2 ^ L - r) * Kg, (kcDlT op).getD L 0] ks hk hbk hT
-    (by simp [B1.Da.colCalls]) (by simp [B1.Da.colCalls])
+  have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) _ [fun _ => True, fun _ => True]
+    [(kcDvStT op).getD 2 0, r * (kcDvLpT op).getD 3 0] ks hk hbk hT
+    (by simp [B1.Da.colCallsS]) (by simp [B1.Da.colCallsS])
     (fun i hi _ _ ht t' rets' hn hv' hb' _ => by
-      have hi4 : i < 4 := by simpa [B1.Da.colCalls] using hi
+      have hi2 : i < 2 := by simpa [B1.Da.colCallsS] using hi
       interval_cases i <;>
-        simp only [B1.Da.colCalls, List.getElem_cons_zero, List.getElem_cons_succ,
-          List.getElem_cons_zero] at ht hn hv' ⊢
-      · exact dvSt_weightLe op (i := 1) (by norm_num) rd t' _ rets' hn hv' hb'
-      · exact loop_at hlr hn hv' hb' (by simp [h17]) (by simp [h1]) hr (by omega)
-      · have hg : 2 ^ L - r ≠ 0 := by simpa using ht
-        exact loop_at hlg hn hv' hb' (by simp [h20]) (by simp [h3]) (by omega) (by omega)
-      · rw [dlNames_bang hL] at hn
-        exact dl_weightLe op hL rd t' _ rets' hn hv' hb')
+        simp only [B1.Da.colCallsS, List.map_cons, List.map_nil, mkCall, List.getElem_cons_zero,
+          List.getElem_cons_succ] at ht hn hv' ⊢
+      · exact dvSt_weightLe op (i := 2) (by norm_num) rd t' _ rets' hn hv' hb'
+      · exact loop_at (dvLp_loop op (i := 3) (by norm_num)) hn hv' hb' (by simp [h17])
+          (by simp [h1]) hr (by omega))
+  have hom := mvOm_eq op (i := 2) (by norm_num)
   rw [Tree.weight]
   simp only [List.sum_cons, List.sum_nil] at hk'
+  rw [show B2C.ωArm B2C.xmssArmC op "da_verify_column" = (mvOmT op).getD 2 0 from hom]
   unfold colW
   omega
 
-/-- **A column loop's `n` iterations** weigh at most `n` times its frame and a column's bound. -/
-theorem colFrom_weight_le {f col : String} {m : ℕ} {Tc : Tree → Prop} {Kc : ℕ}
+/-- **The column loop's `n` iterations** weigh at most `n` times its frame and a column's bound. -/
+theorem l18From_weight_le {Tc : Tree → Prop} {Kc : ℕ}
     (hc : ∀ (rd : Reader) (t : Tree) (args rets : List E), Tc t → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → t.weight (B2C.ωArm B2C.xmssArmC op) ≤ Kc) :
-    ∀ (n k : ℕ) (rd : Reader) (t : Tree) (args rets : List E), B1.Da.colFrom f col m Tc n k t →
+    ∀ (n k : ℕ) (rd : Reader) (t : Tree) (args rets : List E), B1.Da.l18From Tc n k t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op f + Kc)
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op "__loop18" + Kc)
   | 0, _, _, _, _, _, h, _, _ => h.elim
   | n + 1, k, rd, t, args, rets, h, hv, hb => by
     obtain ⟨σ, ks, rfl, -, hcl, hl, hT⟩ := h
     obtain ⟨hk, hbk⟩ := node_kids hv hb hcl
-    have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.colLoopCalls col f k m)
-      [Tc, B1.Da.colFrom f col m Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op f + Kc)] ks hk
-      hbk hT (by simp [B1.Da.colLoopCalls]) (by simp [B1.Da.colLoopCalls])
+    have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.l18Calls k)
+      [Tc, B1.Da.l18From Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op "__loop18" + Kc)] ks hk
+      hbk hT (by simp [B1.Da.l18Calls]) (by simp [B1.Da.l18Calls])
       (fun i hi _ _ _ t' rets' _ hv' hb' hT' => by
-        have hi2 : i < 2 := by simpa [B1.Da.colLoopCalls] using hi
+        have hi2 : i < 2 := by simpa [B1.Da.l18Calls] using hi
         interval_cases i <;>
           simp only [List.getElem_cons_zero, List.getElem_cons_succ] at hT' ⊢
         · exact hc rd t' _ rets' hT' hv' hb'
-        · exact colFrom_weight_le hc n (k + 1) rd t' _ rets' hT' hv' hb')
+        · exact l18From_weight_le hc n (k + 1) rd t' _ rets' hT' hv' hb')
     rw [Tree.weight]
     simp only [List.sum_cons, List.sum_nil] at hk'
     rw [Nat.succ_mul]
@@ -196,77 +189,56 @@ theorem colFrom_weight_le {f col : String} {m : ℕ} {Tc : Tree → Prop} {Kc : 
 
 /-! ## `da_verify` -/
 
-/-- **`da_verify`'s instructions of `op`** on `r` rows padded to `2^L`. -/
+/-- **`da_verify`'s instructions of `op`** on `r` rows padded to `2^L`: its frame, the row shape,
+the dual codeword, the regions' bases, `128` columns, the blobs' trees, the padding, the roots'
+tree. -/
 def dvW (r L : ℕ) : ℕ :=
-  (mvOmT op).getD 0 0 + (kcDvStT op).getD 0 0 + r * (kcDvLpT op).getD 0 0 +
-    r * (kcDvLpT op).getD 1 0 +
-    64 * ((mvOmT op).getD 1 0 +
-      colW op ((mvOmT op).getD 3 0) ((kcDvLpT op).getD 5 0) ((kcDvLpT op).getD 6 0) r L) +
-    64 * ((mvOmT op).getD 2 0 +
-      colW op ((mvOmT op).getD 4 0) ((kcDvLpT op).getD 7 0) ((kcDvLpT op).getD 8 0) r L) +
-    r * (kcDvLpT op).getD 2 0 + (kcDvStT op).getD 2 0 + r * (kcDvLpT op).getD 3 0 +
-    (2 ^ L - r) * (kcDvLpT op).getD 4 0 + (kcDlT op).getD L 0
-
-/-- A column loop of `da_verify`, its 64 columns. -/
-theorem dvCol_weight_le {f col rl gl : String} {jf jc jr jg : ℕ} {r L m k : ℕ}
-    (hf : mvOmNames.getD jf "" = f) (hjf : jf < 6) (hc : mvOmNames.getD jc "" = col) (hjc : jc < 6)
-    (hrl : dvLpNames.getD jr "" = rl) (hjr : jr < 9) (hgl : dvLpNames.getD jg "" = gl)
-    (hjg : jg < 9) (hr : 0 < r) (hrL : r ≤ 2 ^ L) (hL : L < 11) {rd : Reader} {t : Tree}
-    {args rets : List E} (h : B1.Da.colFrom f col m (B1.Da.colNH col rl gl r L) 64 k t)
-    (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ 64 * ((mvOmT op).getD jf 0 +
-      colW op ((mvOmT op).getD jc 0) ((kcDvLpT op).getD jr 0) ((kcDvLpT op).getD jg 0) r L) := by
-  have hcw := fun (rd : Reader) (t : Tree) (args rets : List E) (hT : B1.Da.colNH col rl gl r L t)
-      (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) =>
-    col_weight_le op (hrl ▸ dvLp_loop op hjr) (hgl ▸ dvLp_loop op hjg) hr hrL hL hT hv hb
-  have := colFrom_weight_le op hcw 64 k rd t args rets h hv hb
-  rw [← hf, ← hc, mvOm_eq op hjf, mvOm_eq op hjc] at this
-  exact this
+  (mvOmT op).getD 0 0 + (kcDvStT op).getD 0 0 + (kcDvStT op).getD 1 0 + r * (kcDvLpT op).getD 0 0 +
+    128 * ((mvOmT op).getD 1 0 + colW op r) + r * (kcDvLpT op).getD 1 0 +
+    (2 ^ L - r) * (kcDvLpT op).getD 2 0 + (kcDlT op).getD L 0
 
 /-- **`da_verify`'s instructions of `op`** on a tree of its honest shape `Da.dvNH r L`. -/
-theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hrL : r ≤ 2 ^ L) (hL : L < 11) {rd : Reader}
-    {t : Tree} {args rets : List E} (h : B1.Da.dvNH r L t) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ dvW op r L := by
-  obtain ⟨σ, ks, rfl, ⟨h1, -, -, h4, -, -, -, h16, h30, h36, h44, h47⟩, hc, hl, hT⟩ := h
-  obtain ⟨hk, hbk⟩ := node_kids hv hb hc
+theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 ^ L) (hL : L < 11)
+    {rd : Reader} {t : Tree} {args rets : List E} (h : B1.Da.dvNH r L t)
+    (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
+    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ dvW op r L := by
+  obtain ⟨σ, ks, rfl, ⟨h1, h2, h4, h35, h42, h44, h45⟩, hc, hl, hT⟩ := h
   have h2L : 2 ^ L < 2 ^ 11 := Nat.pow_lt_pow_right (by norm_num) hL
-  have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.dvCallList r L) (B1.Da.dvTs r L)
-    [(kcDvStT op).getD 0 0, r * (kcDvLpT op).getD 0 0, r * (kcDvLpT op).getD 1 0,
-      64 * ((mvOmT op).getD 1 0 +
-        colW op ((mvOmT op).getD 3 0) ((kcDvLpT op).getD 5 0) ((kcDvLpT op).getD 6 0) r L),
-      64 * ((mvOmT op).getD 2 0 +
-        colW op ((mvOmT op).getD 4 0) ((kcDvLpT op).getD 7 0) ((kcDvLpT op).getD 8 0) r L),
-      r * (kcDvLpT op).getD 2 0, (kcDvStT op).getD 2 0, r * (kcDvLpT op).getD 3 0,
-      (2 ^ L - r) * (kcDvLpT op).getD 4 0, (kcDlT op).getD L 0] ks hk hbk hT
-    (by simp [B1.Da.dvCallList, B1.Da.dvTs]) (by simp [B1.Da.dvCallList])
+  have hlog : logG (σ (.n 2)) = L := by rw [h2]; exact logG_gen_pow (by omega)
+  rw [B1.Da.dv_flatCalls, hlog] at hc hl hT
+  obtain ⟨hk, hbk⟩ := node_kids hv hb hc
+  have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) _ (B1.Da.dvTs r)
+    [(kcDvStT op).getD 0 0, (kcDvStT op).getD 1 0, r * (kcDvLpT op).getD 0 0,
+      128 * (B2C.ωArm B2C.xmssArmC op "__loop18" + colW op r), r * (kcDvLpT op).getD 1 0,
+      (2 ^ L - r) * (kcDvLpT op).getD 2 0, (kcDlT op).getD L 0] ks hk hbk hT
+    (by simp [B1.Da.dvCallsS, B1.Da.dvTs]) (by simp [B1.Da.dvCallsS])
     (fun i hi _ _ ht t' rets' hn hv' hb' hT' => by
-      have hi10 : i < 10 := by simpa [B1.Da.dvCallList] using hi
+      have hi7 : i < 7 := by simpa [B1.Da.dvCallsS] using hi
       interval_cases i <;>
-        simp only [B1.Da.dvCallList, B1.Da.dvTs, List.getElem_cons_zero,
-          List.getElem_cons_succ] at ht hn hv' hT' ⊢
+        simp only [B1.Da.dvCallsS, B1.Da.dvTs, List.map_cons, List.map_nil, mkCall,
+          List.getElem_cons_zero, List.getElem_cons_succ] at ht hn hv' hT' ⊢
       · exact dvSt_weightLe op (i := 0) (by norm_num) rd t' _ rets' hn hv' hb'
-      · exact loop_at (dvLp_loop op (i := 0) (by norm_num)) hn hv' hb' (by simp [h16])
+      · exact dvSt_weightLe op (i := 1) (by norm_num) rd t' _ rets' hn hv' hb'
+      · exact loop_at (dvLp_loop op (i := 0) (by norm_num)) hn hv' hb' (by simp [h35])
           (by simp [h1]) hr (by omega)
-      · exact loop_at (dvLp_loop op (i := 1) (by norm_num)) hn hv' hb' (by simp [h30])
+      · exact l18From_weight_le op (fun rd t args rets hT hv hb => col_weight_le op hr hr' hT hv hb)
+          128 0 rd t' _ rets' hT' hv' hb'
+      · exact loop_at (dvLp_loop op (i := 1) (by norm_num)) hn hv' hb' (by simp [h42])
           (by simp [h1]) hr (by omega)
-      · exact dvCol_weight_le op (jf := 1) (jc := 3) (jr := 5) (jg := 6) rfl (by norm_num) rfl
-          (by norm_num) rfl (by norm_num) rfl (by norm_num) hr hrL hL hT' hv' hb'
-      · exact dvCol_weight_le op (jf := 2) (jc := 4) (jr := 7) (jg := 8) rfl (by norm_num) rfl
-          (by norm_num) rfl (by norm_num) rfl (by norm_num) hr hrL hL hT' hv' hb'
-      · exact loop_at (dvLp_loop op (i := 2) (by norm_num)) hn hv' hb' (by simp [h36])
-          (by simp [h1]) hr (by omega)
-      · exact dvSt_weightLe op (i := 2) (by norm_num) rd t' _ rets' hn hv' hb'
-      · exact loop_at (dvLp_loop op (i := 3) (by norm_num)) hn hv' hb' (by simp [h44])
-          (by simp [h1]) hr (by omega)
-      · have hg : 2 ^ L - r ≠ 0 := by simpa using ht
-        exact loop_at (dvLp_loop op (i := 4) (by norm_num)) hn hv' hb' (by simp [h47])
+      · have hg : 2 ^ L - r ≠ 0 := by
+          have := of_decide_eq_true ht
+          rw [h44] at this
+          exact (B1.Da.one_add_gen_ne_iff (by unfold B1.ordG; omega)).mp this
+        exact loop_at (dvLp_loop op (i := 2) (by norm_num)) hn hv' hb' (by simp [h45])
           (by simp [h4]) (by omega) (by omega)
-      · rw [dlNames_bang hL] at hn
+      · rw [B1.Da.dlList_getD (by omega), ← B1.Da.dlNames_bang (by omega), dlNames_bang hL] at hn
         exact dl_weightLe op hL rd t' _ rets' hn hv' hb')
   have hom := mvOm_eq op (i := 0) (by norm_num)
+  have hom1 := mvOm_eq op (i := 1) (by norm_num)
   rw [Tree.weight]
   simp only [List.sum_cons, List.sum_nil] at hk'
   rw [show B2C.ωArm B2C.xmssArmC op "da_verify" = (mvOmT op).getD 0 0 from hom]
+  rw [show B2C.ωArm B2C.xmssArmC op "__loop18" = (mvOmT op).getD 1 0 from hom1] at hk'
   unfold dvW
   omega
 
@@ -283,7 +255,7 @@ theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L < 11) :
 
 /-- **`claim_list_digest`'s instructions of `op` on `n` claims.** -/
 def clW (n : ℕ) : ℕ :=
-  (mvOmT op).getD 5 0 + (if n = 0 then 0 else kcLs op + n / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
+  (mvOmT op).getD 3 0 + (if n = 0 then 0 else kcLs op + n / 17 * kcL16 op + (kcClT op).getD (n % 17) 0)
 
 /-- **`claim_list_digest`'s instructions** on a tree of honest shape. -/
 theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
@@ -311,7 +283,7 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
         simp only [W, e1, e2, ↓reduceIte]
         rw [clNames_bang hk] at hn'
         exact cl_weightLe op hk rd t' _ rets' hn' hv' hb')
-  have hom := mvOm_eq op (i := 5) (by norm_num)
+  have hom := mvOm_eq op (i := 3) (by norm_num)
   simp only [mvOmNames, List.getD_cons_succ, List.getD_cons_zero] at hom
   rw [hom] at hle
   unfold clW
@@ -331,7 +303,7 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
     simp only [h0, ↓reduceIte]
     omega
 
-theorem kcClA_eq : kcClA op = (mvOmT op).getD 5 0 + kcLs op + (kcClT op).foldl max 0 := by
+theorem kcClA_eq : kcClA op = (mvOmT op).getD 3 0 + kcLs op + (kcClT op).foldl max 0 := by
   cases op <;> decide
 
 theorem kcClS_eq : kcClS op = (kcL16 op + 16) / 17 := by
@@ -395,7 +367,7 @@ noncomputable def mainCounts (op : Opcode) :
     have hm : r ≤ 1024 := hr
     have hL11 : L < 11 :=
       (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp (by omega : 2 ^ L < 2 ^ 11)
-    exact (Budget.dv_weight_le op (by omega) hlo hL11 hT hv hb).trans
+    exact (Budget.dv_weight_le op (by omega) hm hlo hL11 hT hv hb).trans
       (Budget.dvW_le op hlo hL11)
 
 end

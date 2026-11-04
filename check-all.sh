@@ -77,7 +77,7 @@ common() {
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
     Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.rpm_bound Common.SufCma.rpm_bound_perm \
-    Common.Duplex.duplex_le Common.Duplex.duplex_ge
+    Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge
 }
 
 lean_xmss() {
@@ -106,7 +106,7 @@ lean_da() {
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual \
+    LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
     LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
     LeanDa.leanDa_codeBinding_rpm_bound LeanDa.leanDa_codeBinding_fork \
     LeanDa.codeBindingRpmFork_of_codeBindingRpm
