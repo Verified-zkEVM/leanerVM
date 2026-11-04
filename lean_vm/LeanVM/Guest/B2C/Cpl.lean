@@ -1001,14 +1001,14 @@ noncomputable def partEnd (j i k : ℕ) : RC → Bool
     else Nat.blt i (certOf j).cuts.length && Nat.beq J ((certOf j).cutAt (i + 1)).J &&
       (partEnt j (i + 1) 0).isNone && c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
   | .mid J m c u => Nat.blt (k + 1) (nParts j i) && Nat.beq J (partJ j i (k + 1)) &&
-      Nat.beq m (partM j i (k + 1)) && !(Nat.beq m 0) && c.le (partC j i (k + 1)) &&
-      subK u (partU j i (k + 1))
-  | .chain o succ c u =>
+      Nat.beq m (partM j i (k + 1)) && !(Nat.beq m 0) && (partEnt j i (k + 1)).isNone &&
+      c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
+  | .chain o succ c u => !succ.isEmpty &&
     bif Nat.blt (k + 1) (nParts j i) then
-      decide (partEnt j i (k + 1) = some (o, succ)) && c.le (partC j i (k + 1)) &&
-        subK u (partU j i (k + 1))
+      decide (partEnt j i (k + 1) = some (o, succ)) && Nat.beq (partJ j i (k + 1)) (succ.headD 0) &&
+        c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
     else Nat.blt i (certOf j).cuts.length && decide (partEnt j (i + 1) 0 = some (o, succ)) &&
-      c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
+      Nat.beq (partJ j (i + 1) 0) (succ.headD 0) && c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
   | .done => !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
   | .fail _ => false
 

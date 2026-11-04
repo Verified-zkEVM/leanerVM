@@ -183,7 +183,7 @@ abbrev WOut (_H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (r : RC) (o : O
   (∀ o' succ c u, r = .chain o' succ c u → ∃ es', o = .fall es' ∧
     ArrCh L fp X wJ wenv ck W0 o' succ c (calls (ebef ++ es')).length (xc + costW X.acs σ ss))
 
-theorem arr_mono {W0 : Registers K} {J n : ℕ} {c c' : Cnt} {x x' : Opcode → ℕ}
+theorem arr_monoX {W0 : Registers K} {J n : ℕ} {c c' : Cnt} {x x' : Opcode → ℕ}
     (h : Arr L fp X wJ wenv ck W0 J c n x) (hle : ∀ op, c.get op + x op ≤ c'.get op + x' op) :
     Arr L fp X wJ wenv ck W0 J c' n x' := by
   obtain ⟨⟨cr, hcr, hc⟩, he⟩ := h
@@ -344,7 +344,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
       fun o2 s2 c2 u2 hj ↦ ?_⟩
     simp only [RC.chain.injEq] at hj
     obtain ⟨rfl, rfl, rfl, rfl⟩ := hj
-    refine ⟨e1, by rw [hw']; simp [walk, Out.pre], fun e he hoe ↦ arr_mono (hA e he hoe) fun op ↦ ?_⟩
+    refine ⟨e1, by rw [hw']; simp [walk, Out.pre], fun e he hoe ↦ arr_monoX (hA.1 e he hoe) fun op ↦ ?_, hA.2⟩
     have h2 := hcnt c ckk hckc hchk op
     simp only [costW, Pi.add_apply, Pi.zero_apply, Nat.add_zero] at h2 ⊢
     omega
@@ -457,7 +457,7 @@ theorem walk_enterZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (hW : �
     val_cell H.frame H.loc hnamed hv2.1 (H.fs ▸ hv2.2)
   refine tbl_armsZ H (fun k hk st ↦ hW _ st) (hW ss') hw hes hs hshape hok0 hnm0 hvn hl hpre
     (fun k hkt hvk ↦ ?_) hs0 hr hok
-  obtain ⟨⟨cr, hcr, hc⟩, he⟩ := harr k hkt (by rw [hcv, hvk])
+  obtain ⟨⟨cr, hcr, hc⟩, he⟩ := harr.1 k hkt (by rw [hcv, hvk])
   exact ⟨cr, hcr, hc, he⟩
 
 /-- **A `dispatch`**: the run calls, through the table, the callee the path takes, and goes on

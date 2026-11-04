@@ -239,11 +239,13 @@ def Arr (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (c
     EnvAt L fp X wJ wenv J
 
 /-- **The run arrives at the arm of a chained `match` its selector picks**: at offset `succ[e]`
-when the selector cell `o` holds `g^e`, within the counts `c` and the first `n` callees'. -/
+when the selector cell `o` holds `g^e`, within the counts `c` and the first `n` callees'; the
+environment of the first arm's offset holds whichever the selector. -/
 def ArrCh (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck : List (Opcode → ℕ))
     (W0 : Registers K) (o : ℕ) (succ : List ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
-  ∀ e (he : e < succ.length), rdc L fp o = some (ofK (addressOfIndex e)) →
-    Arr L fp X wJ wenv ck W0 succ[e] c n x
+  (∀ e (he : e < succ.length), rdc L fp o = some (ofK (addressOfIndex e)) →
+    Arr L fp X wJ wenv ck W0 succ[e] c n x) ∧
+  ∀ (h0 : 0 < succ.length), EnvAt L fp X wJ wenv succ[0]
 
 /-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
 counts `c` and the first `n` callees'. -/
@@ -619,8 +621,26 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
     rw [he] at hj
     simp only [RC.chain.injEq] at hj
     obtain ⟨rfl, rfl, rfl, rfl⟩ := hj
-    intro e hle hoe
     obtain ⟨hseg, -, -, htgs, -, -, hreach⟩ := endAtC_reach H hp hse
+    have hft : ft.Is L (addressOfIndex fp) (addressOfIndex fp) := self_is H hself
+    refine ⟨fun e hle hoe ↦ ?_, fun h0 ↦ ?_⟩
+    swap
+    · -- the exit's environment holds, whichever the target
+      have htg' : tgAt st.tg t = some (o1, b) := by rw [← htgs]; exact htg
+      obtain ⟨q, hq, hq1, -⟩ : ∃ q ∈ st.tg, q.1 = t ∧ q.2 = (o1, b) := by
+        unfold tgAt at htg'
+        obtain ⟨q, hq, hq2⟩ := Option.map_eq_some_iff.mp htg'
+        exact ⟨q, List.mem_of_find?_eq_some hq,
+          Nat.eq_of_beq_eq_true (List.find?_some (p := fun q : ℕ × ℕ × ℕ ↦ Nat.beq q.1 t) hq), hq2⟩
+      obtain ⟨-, w, -, -, hw1, hwk, -⟩ := hp.ok.tg q hq
+      rw [hq1] at hw1
+      rw [hseg] at hk hsu
+      obtain ⟨-, -, -, henv⟩ := hreach ⟨w.limb 0, addressOfIndex fp⟩ (by
+        rw [hk]
+        exact ⟨_, _, ⟨w, hw1, hwk, rfl⟩, hft, rfl⟩)
+      refine envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) ?_ henv
+      rw [hsu]
+      exact List.getElem_mem h0
     rw [hseg] at hk hsu
     -- the table read into `t`
     have htg' : tgAt st.tg t = some (o1, b) := by rw [← htgs]; exact htg
@@ -639,7 +659,6 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
       rw [limb_ofK0, ← gpow_addC, Nat.add_comm e b] at hrw
       exact Option.some.inj (hrw.symm.trans (H.jt _ _ hslot))
     subst hwv
-    have hft : ft.Is L (addressOfIndex fp) (addressOfIndex fp) := self_is H hself
     obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨addressOfIndex (X.entry + succ1[e]), addressOfIndex fp⟩ (by
       rw [hk]
       exact ⟨_, _, ⟨_, hw1, isInK_ofK _, by rw [limb_ofK0]⟩, hft, rfl⟩)

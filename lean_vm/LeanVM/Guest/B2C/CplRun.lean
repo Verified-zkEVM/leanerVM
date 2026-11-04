@@ -94,6 +94,29 @@ theorem checkWin_cpl (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1)
       exact ⟨beq_iff_eq.mp henv.1, henv.2⟩
     · cases hc
 
+/-- **An entered window's arms each start a segment of it**, in an environment its start's holds. -/
+theorem checkWin_starts (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true)
+    (hne : (certOf j).succAt i ≠ []) :
+    startsOk (index (segsW j i)) ((certOf j).cutAt i).env ((certOf j).succAt i) = true := by
+  unfold checkWin at hc
+  unfold segsW
+  rcases hR : execWinS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+    (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
+  rw [hR] at hc
+  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
+  obtain ⟨-, hc⟩ := hc
+  split at hc
+  · simp only [Bool.and_eq_true] at hc
+    have hw := hc.2
+    by_contra hn
+    have hn' : startsOk (index segs) ((certOf j).cutAt i).env ((certOf j).succAt i) = false := by
+      simpa using hn
+    have hne' : ((certOf j).succAt i).isEmpty = false := by simpa using hne
+    simp only [walkFrom, Cert.fxAt, hne', hn', Bool.cond_false] at hw
+    unfold winEnd at hw
+    split at hw <;> simp_all
+  · cases hc
+
 end Win
 
 /-! ## A part's context -/
