@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedS3
 
 `opening_queries_completeAtB`: each of the 56 deployed specializations (`openingQueriesLoops`:
 name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of at most
-`oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert` whose frames
-fit its frame runs (`OqFits`); `opening_queries_completeAtD`, its `CompleteAtD`.
+`oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert` (`OqFits`
+trivial: no frame runs); `opening_queries_completeAtD`, its `CompleteAtD`.
 -/
 
 namespace LeanVM.Guest.B1

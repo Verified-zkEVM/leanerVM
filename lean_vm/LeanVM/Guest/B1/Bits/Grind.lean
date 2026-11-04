@@ -10,12 +10,13 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# `grind_check` (G:763-785, TRIAGE #21)
+# `grind_check` (lean_ethereum.py:871-898 at c4f4bc92, TRIAGE #21)
 
 `grind_check(word, 17)` splits the word (`canonicalLimbsT (.n 0) 1`: canonical, its low limb at
-`1`), hints the low limb's 64 bits into frame cells `5 .. 68`, pins bits `17 .. 63` by booleanity,
-reconstructs them over `COORD_BASIS` (`gcBlk`, the running sum at `gcAcc`) and asserts the sum is
-the low limb: its low 17 bits are zero.
+`1`), hints the low limb's 64 bits into frame cells `5 .. 68`, pins bits `63` down to `17` by
+booleanity, reads them by Horner's rule from the top bit by the one constant `X` (`gcBlk`, the
+running value at `gcAcc`), and asserts the result times `X^17` is the low limb: its low 17 bits
+are zero.
 -/
 
 namespace LeanVM.Guest.B1
@@ -25,19 +26,19 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The running sum after bit `17 + j`. -/
+/-- The running value after Horner step `j` (bit `63 - j`). -/
 def gcAcc : ℕ → ℕ
-  | 0 => 70
-  | j + 1 => 73 + 3 * j
+  | 0 => 68
+  | j + 1 => 71 + 3 * j
 
-/-- Bit `17 + j`: booleanity, its term, added (the first folded). -/
+/-- Horner step `j`, bit `63 - j` at cell `68 - j`: booleanity, then (past the first) the running
+value times `X`, plus the bit. -/
 def gcBlk : ℕ → List Stmt
-  | 0 => [.atom (.mul (.n 22) (.n 22) (.n 22)), .atom (.const (.n 69) (word (2 ^ 17) 0 0)),
-      .atom (.mul (.n 70) (.n 22) (.n 69))]
-  | j + 1 => [.atom (.mul (.n (23 + j)) (.n (23 + j)) (.n (23 + j))),
-      .atom (.const (.n (71 + 3 * j)) (word (2 ^ (18 + j)) 0 0)),
-      .atom (.mul (.n (72 + 3 * j)) (.n (23 + j)) (.n (71 + 3 * j))),
-      .atom (.add (.n (73 + 3 * j)) (.n (gcAcc j)) (.n (72 + 3 * j)))]
+  | 0 => [.atom (.mul (.n 68) (.n 68) (.n 68))]
+  | j + 1 => [.atom (.mul (.n (67 - j)) (.n (67 - j)) (.n (67 - j))),
+      .atom (.const (.n (69 + 3 * j)) (word 2 0 0)),
+      .atom (.mul (.n (70 + 3 * j)) (.n (gcAcc j)) (.n (69 + 3 * j))),
+      .atom (.add (.n (71 + 3 * j)) (.n (70 + 3 * j)) (.n (67 - j)))]
 
 /-- The 64 frame cells of the lane's bits. -/
 def gcRun : List V := (List.range 64).map fun i => .n (5 + i)
@@ -45,22 +46,23 @@ def gcRun : List V := (List.range 64).map fun i => .n (5 + i)
 /-- The expansion of `grind_check__L17`. -/
 def gcBody : List Stmt :=
   canonicalLimbsT (.n 0) 1 ++ [.atom (.hint (.bits (.n 1) 0 64 (.stack gcRun)))] ++
-  ((List.range 47).map gcBlk).flatten ++ [.atom (.assertEq (.n 208) (.n 1)), .ret []]
+  ((List.range 47).map gcBlk).flatten ++
+  [.atom (.const (.n 207) (word (2 ^ 17) 0 0)), .atom (.mul (.n 208) (.n 206) (.n 207)),
+    .atom (.assertEq (.n 208) (.n 1)), .ret []]
 
-theorem core388_body : Fn.body Data.core400 = gcBody := stmtsEqb_sound (by decide +kernel)
+theorem grind_check_body : Fn.body Data.core431 = gcBody := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core400 :=
-  Program.find?_of_indexOf? (j := 400) (by decide +kernel) rfl
+theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core431 :=
+  Program.find?_of_indexOf? (j := 431) (by decide +kernel) rfl
 
-/-- What bit `17 + j` asks of a valuation. -/
+/-- What Horner step `j` asks of a valuation. -/
 def GcOk (σ : Val) : ℕ → Prop
-  | 0 => σ (.n 22) = σ (.n 22) * σ (.n 22) ∧ σ (.n 69) = word (2 ^ 17) 0 0 ∧
-      σ (.n 70) = σ (.n 22) * σ (.n 69)
-  | j + 1 => σ (.n (23 + j)) = σ (.n (23 + j)) * σ (.n (23 + j)) ∧
-      σ (.n (71 + 3 * j)) = word (2 ^ (18 + j)) 0 0 ∧
-      σ (.n (72 + 3 * j)) = σ (.n (23 + j)) * σ (.n (71 + 3 * j)) ∧
-      σ (.n (73 + 3 * j)) = σ (.n (gcAcc j)) + σ (.n (72 + 3 * j))
+  | 0 => σ (.n 68) = σ (.n 68) * σ (.n 68)
+  | j + 1 => σ (.n (67 - j)) = σ (.n (67 - j)) * σ (.n (67 - j)) ∧
+      σ (.n (69 + 3 * j)) = word 2 0 0 ∧
+      σ (.n (70 + 3 * j)) = σ (.n (gcAcc j)) * σ (.n (69 + 3 * j)) ∧
+      σ (.n (71 + 3 * j)) = σ (.n (70 + 3 * j)) + σ (.n (67 - j))
 
 theorem holds_gcBlk {C : CallRel} {rd : Reader} {σ : Val} (j : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (gcBlk j) True kret ↔ GcOk σ j := by
@@ -69,80 +71,98 @@ theorem holds_gcBlk {C : CallRel} {rd : Reader} {σ : Val} (j : ℕ) (kret : Lis
 theorem word_coordBasis {i : ℕ} (h : i < 64) : word (2 ^ i) 0 0 = coordBasis i := by
   rw [word_eOfNat, coordBasis_of_lt h]
 
-theorem gc_acc {σ : Val} : ∀ n, n < 47 → (∀ j < n + 1, GcOk σ j) →
-    σ (.n (gcAcc n)) = ∑ j ∈ Finset.range (n + 1), σ (.n (22 + j)) * coordBasis (17 + j)
-  | 0, _, h => by
-    obtain ⟨-, e69, e70⟩ := h 0 (by omega)
-    rw [Finset.sum_range_one, gcAcc, e70, e69, word_coordBasis (by norm_num)]
+/-- Basis vectors multiply without reduction while the degree stays inside a limb. -/
+theorem coordBasis_mul {i j : ℕ} (hi : i < 192) (h : i % 64 + j < 64) :
+    coordBasis i * coordBasis j = coordBasis (i + j) := by
+  rw [coordBasis_of_lt (show j < 64 by omega), coordBasis_mul_eOfNat hi (by
+    rw [← Nat.pow_add]; exact Nat.pow_lt_pow_right (by decide) h), ← Nat.pow_add]; rfl
+
+/-- **Horner's rule**: after step `n`, the running value shifted to bit `63 - n` is the bits
+`63 - n .. 63` at their places. -/
+theorem gc_horner {σ : Val} : ∀ n, n < 47 → (∀ j < n + 1, GcOk σ j) →
+    σ (.n (gcAcc n)) * coordBasis (63 - n) =
+      ∑ i ∈ Finset.range (n + 1), σ (.n (68 - i)) * coordBasis (63 - i)
+  | 0, _, _ => by rw [Finset.sum_range_one]; rfl
   | n + 1, hn, h => by
-    obtain ⟨-, e71, e72, e73⟩ := h (n + 1) (by omega)
-    rw [gcAcc, e73, gc_acc n (by omega) (fun j hj => h j (by omega)), e72, e71,
-      word_coordBasis (by omega), Finset.sum_range_succ (n := n + 1),
-      show 22 + (n + 1) = 23 + n by omega, show 17 + (n + 1) = 18 + n by omega]
+    obtain ⟨-, e69, e70, e71⟩ := h (n + 1) (by omega)
+    have ih := gc_horner n (by omega) fun j hj => h j (by omega)
+    have h2 : word 2 0 0 = coordBasis 1 := by rw [← word_coordBasis (by norm_num), pow_one]
+    have hm : coordBasis 1 * coordBasis (63 - (n + 1)) = coordBasis (63 - n) := by
+      rw [coordBasis_mul (by norm_num) (by omega)]; congr 1; omega
+    rw [Finset.sum_range_succ, ← ih, gcAcc, e71, e70, e69, h2, add_mul, mul_assoc, hm,
+      show 68 - (n + 1) = 67 - n by omega]
+
+/-- The bits `17 .. 63`, Horner's rule finished and shifted by `X^17`. -/
+theorem gc_value {σ : Val} (h : ∀ j < 47, GcOk σ j) :
+    σ (.n 206) * coordBasis 17 =
+      ∑ j ∈ Finset.range 47, σ (.n (22 + j)) * coordBasis (17 + j) := by
+  have := gc_horner 46 (by omega) h
+  rw [show gcAcc 46 = 206 from rfl, show 63 - 46 = 17 from rfl] at this
+  rw [this, ← Finset.sum_range_reflect]
+  exact Finset.sum_congr rfl fun i hi => by
+    have := Finset.mem_range.mp hi
+    rw [show 68 - (47 - 1 - i) = 22 + i by omega, show 63 - (47 - 1 - i) = 17 + i by omega]
+
+/-- Horner's honest running value: the lane's bits from `63 - j` up, `L >>> (63 - j)`. -/
+def gcH (w : E) : ℕ → E
+  | 0 => bitE ((kToNat (w.limb 0)).testBit 63)
+  | j + 1 => gcH w j * word 2 0 0 + bitE ((kToNat (w.limb 0)).testBit (62 - j))
 
 /-- The honest values of `grind_check__L17` on the word `w`, `L` its low limb's integer. -/
 def gcVals (w : E) (k : ℕ) : E :=
   let L := kToNat (w.limb 0)
-  let b := fun i => bitE (L.testBit i)
-  let acc := fun m => ∑ j ∈ Finset.range m, b (17 + j) * coordBasis (17 + j)
   if k = 0 then w else if k = 1 then ofK (w.limb 0) else if k = 2 then w + ofK (w.limb 0)
   else if k = 3 then word 1 0 1 else if k = 4 then ofK (w.limb 1)
-  else if k < 69 then b (k - 5)
-  else if k = 69 then word (2 ^ 17) 0 0 else if k = 70 then b 17 * word (2 ^ 17) 0 0
-  else if (k - 71) % 3 = 0 then word (2 ^ (18 + (k - 71) / 3)) 0 0
-  else if (k - 71) % 3 = 1 then b (18 + (k - 71) / 3) * word (2 ^ (18 + (k - 71) / 3)) 0 0
-  else acc ((k - 71) / 3 + 2)
-
-/-- The honest running sum. -/
-def gcSum (w : E) (m : ℕ) : E :=
-  ∑ j ∈ Finset.range m, bitE ((kToNat (w.limb 0)).testBit (17 + j)) * coordBasis (17 + j)
+  else if k < 69 then bitE (L.testBit (k - 5))
+  else if k < 207 then
+    (if (k - 69) % 3 = 0 then word 2 0 0
+    else if (k - 69) % 3 = 1 then gcH w ((k - 69) / 3) * word 2 0 0
+    else gcH w ((k - 69) / 3 + 1))
+  else if k = 207 then word (2 ^ 17) 0 0 else gcH w 46 * word (2 ^ 17) 0 0
 
 theorem gv_bit (w : E) {k : ℕ} (h1 : 5 ≤ k) (h2 : k < 69) :
     gcVals w k = bitE ((kToNat (w.limb 0)).testBit (k - 5)) := by
   unfold gcVals; split_ifs <;> first | omega | rfl
 
-theorem gv_c (w : E) (j : ℕ) : gcVals w (71 + 3 * j) = word (2 ^ (18 + j)) 0 0 := by
+theorem gv_c (w : E) {j : ℕ} (hj : j < 46) : gcVals w (69 + 3 * j) = word 2 0 0 := by
   unfold gcVals
-  split_ifs <;> first | omega | (rw [show (71 + 3 * j - 71) / 3 = j by omega])
+  split_ifs <;> first | omega | rfl
 
-theorem gv_m (w : E) (j : ℕ) : gcVals w (72 + 3 * j) =
-    bitE ((kToNat (w.limb 0)).testBit (18 + j)) * word (2 ^ (18 + j)) 0 0 := by
+theorem gv_m (w : E) {j : ℕ} (hj : j < 46) :
+    gcVals w (70 + 3 * j) = gcH w j * word 2 0 0 := by
   unfold gcVals
-  split_ifs <;> first | omega | (rw [show (72 + 3 * j - 71) / 3 = j by omega])
+  split_ifs <;> first | omega | (rw [show (70 + 3 * j - 69) / 3 = j by omega])
 
-theorem gv_a (w : E) (j : ℕ) : gcVals w (73 + 3 * j) = gcSum w (j + 2) := by
-  unfold gcVals
-  split_ifs <;> first | omega | (rw [show (73 + 3 * j - 71) / 3 = j by omega]; rfl)
-
-theorem gv_acc (w : E) (j : ℕ) : gcVals w (gcAcc j) = gcSum w (j + 1) := by
+theorem gv_acc (w : E) {j : ℕ} (hj : j < 47) : gcVals w (gcAcc j) = gcH w j := by
   cases j with
-  | zero =>
-    have h70 : gcVals w 70 = bitE ((kToNat (w.limb 0)).testBit 17) * word (2 ^ 17) 0 0 := by
-      rfl
-    rw [show gcAcc 0 = 70 from rfl, h70, gcSum, Finset.sum_range_one, word_coordBasis (by norm_num)]
-  | succ j => exact gv_a w j
+  | zero => rw [show gcAcc 0 = 68 from rfl, gv_bit w (by omega) (by omega)]; rfl
+  | succ j =>
+    show gcVals w (71 + 3 * j) = _
+    unfold gcVals
+    split_ifs <;> first | omega | (rw [show (71 + 3 * j - 69) / 3 = j by omega])
 
 /-- **`grind_check`'s core IR is its meaning.** -/
 theorem grind_check_holds : grind_check_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_grind_check, core388_body, show Fn.params Data.core400 = [.n 0] from rfl,
+  rw [rel_iff_sem find_grind_check, grind_check_body, show Fn.params Data.core431 = [.n 0] from rfl,
     gcBody]
   simp only [holdsList_append, holds_canonicalLimbsT,
     holdsList_range_flatten 47 gcBlk (fun j => by cases j <;> rfl), holds_gcBlk, Stmt.HoldsList,
     Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   constructor
-  · rintro ⟨σ, hp, ⟨hc, h1, -⟩, hbits, ha, hret⟩
+  · rintro ⟨σ, hp, ⟨hc, h1, -⟩, hbits, h207, h208, ha, hret⟩
     subst hp
     refine ⟨hret.symm, hc, ?_⟩
-    have hsum := gc_acc 46 (by omega) hbits
-    rw [show gcAcc 46 = 208 from rfl, e_add_eq_zero_iff.mp ha, h1] at hsum
-    have hb : ∀ i < 47, σ (.n (22 + i)) * σ (.n (22 + i)) = σ (.n (22 + i)) := by
-      intro i hi
-      cases i with
-      | zero => exact (hbits 0 (by omega)).1.symm
-      | succ i =>
-        rw [show 22 + (i + 1) = 23 + i by omega]
-        exact (hbits (i + 1) hi).1.symm
+    have hsum := gc_value hbits
+    have h17 : σ (.n 207) = coordBasis 17 := h207.trans (word_coordBasis (by norm_num))
+    rw [← h17, ← h208, e_add_eq_zero_iff.mp ha, h1] at hsum
+    have hb : ∀ m < 47, σ (.n (22 + m)) * σ (.n (22 + m)) = σ (.n (22 + m)) := by
+      intro m hm
+      by_cases h46 : m = 46
+      · subst h46; exact (hbits 0 (by omega)).symm
+      · have := hbits (45 - m + 1) (by omega)
+        rw [show 22 + m = 67 - (45 - m) by omega]
+        exact this.1.symm
     obtain ⟨N, hN, hx, -⟩ := bits_of_reconstruct (s := 17) hb hsum.symm
     have hm : 2 ^ 17 * N < 2 ^ 64 := by
       calc 2 ^ 17 * N < 2 ^ 17 * 2 ^ 47 := Nat.mul_lt_mul_of_pos_left hN (by positivity)
@@ -164,28 +184,39 @@ theorem grind_check_holds : grind_check_Spec := by
     set L := kToNat (w.limb 0) with hLdef
     have hLN : L = 2 ^ 17 * (L / 2 ^ 17) := (Nat.mul_div_cancel' (Nat.dvd_of_mod_eq_zero hlow)).symm
     have hN : L / 2 ^ 17 < 2 ^ 47 := by omega
-    refine ⟨σ, rfl, ⟨by simpa [ev, gcVals] using hc, by simp [ev, gcVals], by simp [ev, gcVals],
-      by simp [ev, gcVals], by simp [ev, gcVals]⟩, fun j hj => ?_, ?_, rfl⟩
-    · cases j with
+    have hblk : ∀ j < 47, GcOk σ j := fun j hj => by
+      cases j with
       | zero =>
-        refine ⟨?_, by simp [ev, gcVals], ?_⟩
-        · rw [ev, gv_bit w (by omega) (by omega)]; exact (bitE_mul_self _).symm
-        · show gcVals w 70 = gcVals w 22 * gcVals w 69
-          rw [gv_bit w (k := 22) (by omega) (by omega)]
-          simp [gcVals]
+        show gcVals w 68 = gcVals w 68 * gcVals w 68
+        rw [gv_bit w (by omega) (by omega)]; exact (bitE_mul_self _).symm
       | succ j =>
-        refine ⟨?_, by rw [ev, gv_c], ?_, ?_⟩
+        refine ⟨?_, by rw [ev, gv_c w (by omega)], ?_, ?_⟩
         · rw [ev, gv_bit w (by omega) (by omega)]; exact (bitE_mul_self _).symm
-        · rw [ev, ev, ev, gv_m, gv_c, gv_bit w (by omega) (by omega),
-            show 23 + j - 5 = 18 + j by omega]
-        · rw [ev, ev, ev, gv_a, gv_acc, gv_m, gcSum, gcSum, Finset.sum_range_succ (n := j + 1),
-            word_coordBasis (by omega), show 17 + (j + 1) = 18 + j by omega]
-    · rw [ev, ev, show (208 : ℕ) = gcAcc 46 from rfl, gv_acc, e_add_eq_zero_iff, gcSum]
-      have hrec := reconstruct_bits 17 hN
-      simp only [Nat.testBit_div_two_pow] at hrec
-      rw [← hLN, eOfNat192_of_lt hL] at hrec
-      simp only [show ∀ i, i + 17 = 17 + i from fun i => by omega] at hrec
-      rw [show gcVals w 1 = ofK (w.limb 0) by simp [gcVals], hrec, eOfNat, hLdef, ofBits_kToNat]
+        · rw [ev, ev, ev, gv_m w (by omega), gv_c w (by omega), gv_acc w (by omega)]
+        · show gcVals w (71 + 3 * j) = gcVals w (70 + 3 * j) + gcVals w (67 - j)
+          rw [gv_m w (by omega), gv_bit w (k := 67 - j) (by omega) (by omega),
+            show (71 + 3 * j) = gcAcc (j + 1) from rfl, gv_acc w (by omega), gcH,
+            show 67 - j - 5 = 62 - j by omega]
+    refine ⟨σ, rfl, ⟨by simpa [ev, gcVals] using hc, by simp [ev, gcVals], by simp [ev, gcVals],
+      by simp [ev, gcVals], by simp [ev, gcVals]⟩, hblk, by simp [ev, gcVals], ?_, ?_, rfl⟩
+    · show gcVals w 208 = gcVals w 206 * gcVals w 207
+      rw [show (206 : ℕ) = gcAcc 46 from rfl, gv_acc w (by omega)]
+      simp [gcVals]
+    · have hv := gc_value hblk
+      have h207 : σ (.n 207) = coordBasis 17 := by
+        rw [ev, ← word_coordBasis (by norm_num)]; simp [gcVals]
+      have h208 : σ (.n 208) = σ (.n 206) * σ (.n 207) := by
+        show gcVals w 208 = gcVals w 206 * gcVals w 207
+        rw [show (206 : ℕ) = gcAcc 46 from rfl, gv_acc w (by omega)]
+        simp [gcVals]
+      rw [h208, h207, hv, e_add_eq_zero_iff]
+      have hb : ∀ j ∈ Finset.range 47, σ (.n (22 + j)) * coordBasis (17 + j) =
+          bitE ((L / 2 ^ 17).testBit j) * coordBasis (17 + j) := fun j hj => by
+        rw [ev, gv_bit w (by omega) (by have := Finset.mem_range.mp hj; omega),
+          Nat.testBit_div_two_pow, show 22 + j - 5 = j + 17 by omega]
+      rw [Finset.sum_congr rfl hb, reconstruct_bits 17 hN, ← hLN, eOfNat192_of_lt hL]
+      show eOfNat L = gcVals w 1
+      rw [show gcVals w 1 = ofK (w.limb 0) by simp [gcVals], eOfNat, hLdef, ofBits_kToNat]
 
 end
 end LeanVM.Guest.B1
