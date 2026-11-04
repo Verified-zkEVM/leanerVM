@@ -87,19 +87,20 @@ theorems, then read the files in this order.
    (`SufCma.forgeryGame`) and its security notion (`SufCma.StronglyUnforgeable`), for one key.
 4. [`HashSignatures.lean`](HashSignatures.lean): what leanXMSS and leanSPHINCS share (namespace
    `HashSig`): the tweakable hash's types, bytes and address (`crates/signatures/src/tweak.rs`),
-   the hash `H`, Keccak-256 over a permutation `π` (`OverPermutation.keccakHash π`), and a hash
+   the address with its hypertree layer and tree, zero for leanXMSS), the hash `H`, Keccak-256 over
+   a permutation `π` (`OverPermutation.keccakHash π`), and a hash
    chain, a Merkle path's fold and a Merkle tree's node (`walkChain`, `foldPath`, `buildTree`),
    which every chain, fold and tree of both schemes instantiates.
 5. [`LeanXmss.lean`](LeanXmss.lean): the leanXMSS scheme over a permutation `π`, on the shared
    part, and `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at
    127 bits, `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
-6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; one tree,
-   its signature the randomizer, the forest opening, the WOTS+C counter and chain values and the
-   path) with the deterministic signer, the proved lifetimes, and
-   `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits at each
-   lifetime, `Q` counting the honest signer's worst-case grinding too; other subtree heights, and a
-   key used past its signature limit, are not covered).
+6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; FORS of
+   24 trees of height 10 under a hypertree of three WOTS+C layers of heights 8, 8, 10, its signature
+   the randomizer, the FORS opening and each layer's counter, chain values and path) with the
+   deterministic signer, and `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
+   bits up to `1,182,000,000` signatures, `Q` counting the honest signer's worst-case grinding too;
+   a key used past its signature limit is not covered).
 7. [`Field.lean`](Field.lean): `K = GF(2^64)` (CompPoly's `BF64`), `E = GF(2^192)`, the generator
    `g`; Keccak lanes, bytes and digests as field elements; the Fiat-Shamir duplex sponge over a
    permutation (`Sponge`, `absorb`, `squeeze`), which leanVM's verifier and LeanDA's membership
@@ -288,7 +289,7 @@ proved (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`,
 | `LeanVM.Guest.Completeness.HonestProofRarelyRefused` | `LeanVM.Guest.Completeness.honest_proof_rarely_refused` (`guest_child_complete`'s first part) | [`lean_vm/LeanVM/Guest/HonestChildren.lean`](../lean_vm/LeanVM/Guest/HonestChildren.lean) |
 | `LeanVM.Guest.Batch.BatchingSound` | `LeanVM.Guest.Batch.batch_sound_holds` | [`lean_vm/LeanVM/Guest/Batch/Rpm.lean`](../lean_vm/LeanVM/Guest/Batch/Rpm.lean) |
 | `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` | `XmssSecurity.leanXmss_rpm_security` | [`lean_xmss/XmssSecurity/Rpm.lean`](../lean_xmss/XmssSecurity/Rpm.lean) |
-| `Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable` | `Sphincs.Lifetimes.requestedSecurityRpm` | [`lean_sphincs/Sphincs/LifetimesRpm.lean`](../lean_sphincs/Sphincs/LifetimesRpm.lean) |
+| `Sphincs.LeanSphincsStronglyUnforgeable` | `Sphincs.leanSphincsStronglyUnforgeable`, from upstream's `FORS.h26_layered` | [`lean_sphincs/Sphincs/Security.lean`](../lean_sphincs/Sphincs/Security.lean) |
 | `LeanDa.LeanDaPerfectlyComplete` | `LeanDa.leanDa_perfectlyComplete_rpm` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |
 | `LeanDa.LeanDaPositionBinding` | `LeanDa.leanDa_positionBinding_rpm` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |
 | `LeanDa.LeanDaCodeBinding` | `LeanDa.leanDa_codeBinding_rpm_bound` | [`lean_da/LeanDa/PiOnly.lean`](../lean_da/LeanDa/PiOnly.lean) |

@@ -54,7 +54,7 @@ Field & End statement & Section\\\midrule
 \lean{honestProofRarelyRefused} & \lean{LeanVM.Guest.Completeness.HonestProofRarelyRefused} & \ref{sec:guest}\\
 \lean{batchingSound} & \lean{LeanVM.Guest.Batch.BatchingSound} & \ref{sec:guest}\\
 \lean{leanXmssStronglyUnforgeable} & \lean{LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable} & \ref{sec:schemes}\\
-\lean{leanSphincsStronglyUnforgeable} & \lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable} & \ref{sec:schemes}\\
+\lean{leanSphincsStronglyUnforgeable} & \lean{Sphincs.LeanSphincsStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanDaComplete} & \lean{LeanDa.LeanDaPerfectlyComplete} & \ref{sec:schemes}\\
 \lean{leanDaPositionBinding} & \lean{LeanDa.LeanDaPositionBinding} & \ref{sec:schemes}\\
 \lean{leanDaCodeBinding} & \lean{LeanDa.LeanDaCodeBinding} & \ref{sec:schemes}\\
@@ -246,13 +246,12 @@ and the final verification at their worst case: a signature grinds through up to
 randomizers in each of its two layers, so one request alone may cost over $2^{33}$ calls.
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
-$Q \ge 1$ (\lean{Sphincs.Lifetimes.LeanSphincsStronglyUnforgeable},
-\lean{Statement/LeanSphincs.lean}), with the deterministic signer and at most the lifetime's number
-of signing requests, at each of the seven proved lifetimes (subtree heights
-$26, 20, 14, 13, 12, 10, 8$; \lean{Sphincs.Lifetimes.requestedSecurityRpm}); other heights, which the
-crate also allows, are not covered, and staying within the lifetime's number of signatures is the
-key holder's duty (the signer does not count them). A signature costs about
-$2^{35}$ calls in the worst case, so with every request of the largest lifetime used the bound is
+$Q \ge 1$ (\lean{Sphincs.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with
+the deterministic signer and at most $N = 1\,182\,000\,000$ signing requests
+(\lean{Sphincs.leanSphincsStronglyUnforgeable}, from leanVM's own random-oracle theorem
+\lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
+count them). A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
+case ($2^{32}$ encoding counters on each of its three layers), so with every request used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
 
