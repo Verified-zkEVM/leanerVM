@@ -93,9 +93,16 @@ def stepCells (Z : ℕ → E) (b : ℕ) : List E :=
 def facOut (Z : ℕ → E) (top D : ℕ) : List E → Layout → Prop := fun rets Lo =>
   ∃ b, rets = [gen ^ b] ∧ (b, facCells Z top D) ∈ Lo
 
-/-- `da_expand` returns a pointer to its tree's leaves. -/
+/-- A `da_expand` run (`512` words): node `n` of its tree at word `n`, `1 ≤ n < 2^(D + 1)`
+(`expandLeaf` at depth `log n`), zeros elsewhere. -/
+def expRunVals (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E :=
+  (List.range 512).map fun i =>
+    if 1 ≤ i ∧ i < 2 ^ (D + 1) then expandLeaf root F Z S top (Nat.log 2 i) (i - 2 ^ Nat.log 2 i)
+    else 0
+
+/-- `da_expand` returns a pointer to its tree's leaves, word `2^D` of its run. -/
 def expOut (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E → Layout → Prop := fun rets Lo =>
-  ∃ b, rets = [gen ^ b] ∧ (b, expLeaves root F Z S top D) ∈ Lo
+  ∃ b, rets = [gen ^ (b + 2 ^ D)] ∧ (b, expRunVals root F Z S top D) ∈ Lo
 
 /-- `da_column_offsets` returns a pointer to its buffer. -/
 def offOut (Z : ℕ → E) : List E → Layout → Prop := fun rets Lo =>

@@ -61,9 +61,12 @@ def expRun (D : ℕ) : List V :=
 /-- The value of the leaves' offset. -/
 def expC (D : ℕ) : ℕ := expB D + 2 + (512 - 2 ^ (D + 1))
 
+/-- `da_expand`'s computing atoms: the root's copy, then the depths. -/
+def expBodyA (top D : ℕ) : List Atom := .copy (.n 4) (.n 0) :: (List.range D).flatMap (expDepthA top)
+
 /-- **`da_expand`'s atoms**, `W` the word of `g^(2^D)`. -/
 def expT (top D W : ℕ) : List Atom :=
-  .copy (.n 4) (.n 0) :: (List.range D).flatMap (expDepthA top) ++
+  expBodyA top D ++
     [.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
       .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))]
 
@@ -102,16 +105,15 @@ theorem expRun_leaf {D k : ℕ} (hk : k < 2 ^ D) (h : 2 ^ D + k < (expRun D).len
   exact Option.some.inj h?
 
 /-- **A depth's facts**: the power and the shift it loads, and the children of each node. -/
-theorem exp_depth {top D W d y : ℕ} (hd : d < D) (hy : y < 2 ^ d)
-    (hat : ∀ a ∈ expT top D W, a.Holds rd σ) :
+theorem exp_depth {top D d y : ℕ} (hd : d < D) (hy : y < 2 ^ d)
+    (hat : ∀ a ∈ expBodyA top D, a.Holds rd σ) :
     LoadHolds rd (σ (.n 2)) (top - d) (σ (.n (expB d))) ∧
       LoadHolds rd (σ (.n 3)) (top - d) (σ (.n (expB d + 1))) ∧
       LoadHolds rd (σ (.n 1)) (2 ^ d + y) (memAt rd (σ (.n 1)) (2 ^ d + y)) ∧
       ∀ b < 2, σ (.n (nodeAt (d + 1) (2 * y + b))) = σ (.n (nodeAt d y)) *
         (memAt rd (σ (.n 1)) (2 ^ d + y) + σ (.n (expB d + 1)) + if b = 1 then σ (.n (expB d)) else 0) := by
   have hdep : ∀ a ∈ expDepthA top d, a.Holds rd σ := fun a ha ↦
-    hat a (List.mem_cons_of_mem _ (List.mem_append_left _
-      (List.mem_flatMap.mpr ⟨d, List.mem_range.mpr hd, ha⟩)))
+    hat a (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨d, List.mem_range.mpr hd, ha⟩))
   have hn : ∀ a ∈ expNodeA d y, a.Holds rd σ := fun a ha ↦
     hdep a (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_flatMap.mpr ⟨y, List.mem_range.mpr hy, ha⟩)))
@@ -135,7 +137,7 @@ theorem exp_depth {top D W d y : ℕ} (hd : d < D) (hy : y < 2 ^ d)
 
 /-- **Node `2^d + y` is `expandLeaf … d y`**, the factors read at `factors`, the powers and shifts
 at `zs` and `shifts`. -/
-theorem exp_node {top D W : ℕ} (hat : ∀ a ∈ expT top D W, a.Holds rd σ) (hD : D ≤ top + 1) :
+theorem exp_node {top D : ℕ} (hat : ∀ a ∈ expBodyA top D, a.Holds rd σ) (hD : D ≤ top + 1) :
     ∀ d ≤ D, ∀ y < 2 ^ d, σ (.n (nodeAt d y)) =
       expandLeaf (σ (.n 0)) (memAt rd (σ (.n 1))) (fun j ↦ σ (.n (expB (top - j))))
         (fun j ↦ σ (.n (expB (top - j) + 1))) top d y
@@ -146,7 +148,7 @@ theorem exp_node {top D W : ℕ} (hat : ∀ a ∈ expT top D W, a.Holds rd σ) (
   | d + 1, hd, y, hy => by
     have hy2 : y / 2 < 2 ^ d := by rw [pow_succ] at hy; omega
     have ih := exp_node hat hD d (by omega) (y / 2) hy2
-    obtain ⟨-, -, -, hc⟩ := exp_depth (W := W) (show d < D by omega) hy2 hat
+    obtain ⟨-, -, -, hc⟩ := exp_depth (show d < D by omega) hy2 hat
     have hc' := hc (y % 2) (Nat.mod_lt _ (by norm_num))
     rw [show 2 * (y / 2) + y % 2 = y by omega] at hc'
     rw [hc', ih, expandLeaf, expandLeaf, List.range_succ, List.map_append, List.prod_append,
@@ -181,9 +183,10 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
     rw [atomsEqb_sound htm] at hat
     rw [hparams] at hpar
     subst hpar hrets
+    have hatB : ∀ a ∈ expBodyA top D, a.Holds rd σ := fun a ha ↦ hat a (List.mem_append_left _ ha)
     have hend : ∀ a ∈ [Atom.frameAddr (.n (expB D)) (expRun D), .const (.n (expC D)) (word W 0 0),
         .mul (.n (expC D + 1)) (.n (expB D)) (.n (expC D))], a.Holds rd σ := fun a ha ↦
-      hat a (List.mem_cons_of_mem _ (List.mem_append_right _ ha))
+      hat a (List.mem_append_right _ ha)
     simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq,
       Atom.Holds] at hend
     obtain ⟨⟨hfk, hfr⟩, hcst, hmul⟩ := hend
@@ -199,13 +202,13 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
         have := Nat.pow_log_le_self 2 (show n ≠ 0 by omega)
         omega
       rw [hn]
-      exact (exp_depth hl hy hat).2.2.1
+      exact (exp_depth hl hy hatB).2.2.1
     · beta_reduce
       rw [show top - (top - d) = d by omega]
-      exact (exp_depth hd (Nat.two_pow_pos d) hat).1
+      exact (exp_depth hd (Nat.two_pow_pos d) hatB).1
     · beta_reduce
       rw [show top - (top - d) = d by omega]
-      exact (exp_depth hd (Nat.two_pow_pos d) hat).2.1
+      exact (exp_depth hd (Nat.two_pow_pos d) hatB).2.1
     · have hw : word W 0 0 = ofK (addressOfIndex (2 ^ D)) := by
         rw [word_eOfNat, eOfNat, hW]
       rw [hmul, hcst, hw]
@@ -226,7 +229,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
             _ = 256 := by norm_num
         omega
       rw [hfr (2 ^ D + k) hidx w (by rw [addressOfIndex]; exact hr), expRun_leaf hk hidx]
-      exact exp_node hat hD D le_rfl k hk
+      exact exp_node hatB hD D le_rfl k hk
   · exact absurd hok (by simp)
 
 end
