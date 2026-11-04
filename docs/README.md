@@ -10,6 +10,9 @@ This directory contains stable project and operating knowledge.
 - [leanisa-checker.md](leanisa-checker.md): proved exact and fuel-bounded checkers, trace
   adapters, filler validation, and the pinned Rust comparison lane.
 - [development.md](development.md): local commands, module workflow, and testing guidance.
+- [writing.md](writing.md): advice for clear, precise, correct technical prose.
+- [writing-vocabulary.md](writing-vocabulary.md): technical meanings and wording suggestions.
+- [write-technical-prose.md](write-technical-prose.md): the writing workflow and optional local checker.
 - [ci.md](ci.md): workflow responsibilities, required checks, and automation secrets.
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)
   per formalization effort.

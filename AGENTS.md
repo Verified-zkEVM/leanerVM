@@ -114,6 +114,8 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 
 ## Repository Hygiene
 
+- For prose work, read the [writing workflow](docs/write-technical-prose.md). Its guide and local
+  suggestions are advice; preserve technical meaning and contribution requirements.
 - Edit source files, not generated or local state such as `.lake/` and benchmark artifacts.
 - Preserve unrelated work in a dirty tree; do not discard or rewrite changes you did not make.
 - Keep stable operating knowledge in `docs/` and update the corresponding page when commands,

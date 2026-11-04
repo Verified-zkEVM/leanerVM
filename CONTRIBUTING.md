@@ -44,6 +44,16 @@ without a trailing full stop. Commit subjects, pull-request titles, and issue ti
 ASCII punctuation: no em dashes or en dashes. Separate a qualifier from the subject with a
 colon or a comma (`feat(semantics): leanISA Layer 3: step and valid executions`).
 
+## Writing
+
+The [writing guide](docs/writing.md) and [vocabulary](docs/writing-vocabulary.md) offer advice for
+clear, precise, correct prose. Leave clear, correct text alone, even if a suggestion flags it.
+The requirements in this document retain their wording and force; the guide adds no second set.
+
+The [writing workflow](docs/write-technical-prose.md) helps with documents, docstrings, PR text,
+and review comments. Its local checker is optional and does not judge technical accuracy or
+STE conformance. A style edit preserves claims, conditions, uncertainty, and requirement strength.
+
 ## Lean files and modules
 
 Production code lives under `LeanerVM/`; executable and proof-regression tests live
