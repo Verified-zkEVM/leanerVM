@@ -34,7 +34,7 @@ theorem vtB_memAt (n : ℕ) (s : Stmt) (heq : tbStmtsEqb [s] ((vtAt n).take 1) =
   vt_mem_slice (blk := [_]) (vtPre_drop n ▸ heq) List.mem_cons_self
 
 /-- **A slice holds** when its statements beyond evaluation do. -/
-theorem vtB_blockR (hl : args.length = 22) (a len : ℕ) (rest : List Stmt)
+theorem vtB_blockR (hl : args.length = 20) (a len : ℕ) (rest : List Stmt)
     (hrest : tbStmtsEqb (((vtAt a).take len).filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, s ∈ vtPre → VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) :
     ∀ s ∈ (vtPre.drop a).take len, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
@@ -46,12 +46,12 @@ theorem vtB_blockR (hl : args.length = 22) (a len : ℕ) (rest : List Stmt)
   · exact vsh_auto hl hm ha
 
 /-- A constant's word. -/
-theorem vtB_const (hl : args.length = 22) {d : V} {c : E} (hm : Stmt.atom (.const d c) ∈ vtPre) :
+theorem vtB_const (hl : args.length = 20) {d : V} {c : E} (hm : Stmt.atom (.const d c) ∈ vtPre) :
     vtσ rd wo args d = c :=
   vt_goodS (rd := rd) (w := wo) hl hm
 
 /-- **A stream read, complete.** -/
-theorem vtc_fsNext (hl : args.length = 22) {cur : V} {off b pos : ℕ}
+theorem vtc_fsNext (hl : args.length = 20) {cur : V} {off b pos : ℕ}
     (hcheck : tbStmtsEqb (fsNextT cur off b) ((vtPre.drop pos).take (fsNextT cur off b).length) =
       true) (hS : Atom.load (.n b) cur off ∉ vtSL) {x : E}
     (hx : LoadHolds rd (vtσ rd wo args cur) off x) :

@@ -73,14 +73,14 @@ theorem vtPad5T_length : (vtPad5T 2710).length = 12 := rfl
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vt_hint1 (hl : args.length = 22) (n : ℕ) {d : ℕ} {h : Hint}
+theorem vt_hint1 (hl : args.length = 20) (n : ℕ) {d : ℕ} {h : Hint}
     (heq : tbStmtsEqb [.atom (.hint h)] ((vtPre.drop n).take 1) = true)
     (hh : GoodS rd vtSL w (vtσ rd w args) (fixNe (.atom (.hint h))) → vtσ rd w args (.n d) = w d) :
     vtσ rd w args (.n d) = w d :=
   hh (vt_goodS hl (vt_mem_slice (blk := [_]) heq List.mem_cons_self))
 
 /-- **Statements `2189 ..< 2404`.** -/
-theorem vtS_p2 (hl : args.length = 22) (hlow : LowDefB 8 rd) (point : List E)
+theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 8 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ29 : ∀ t < 6, τ t < 29) (hτμ : ∀ t < 6, τ t ≤ point.length)

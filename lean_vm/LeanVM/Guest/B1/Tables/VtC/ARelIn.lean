@@ -217,7 +217,7 @@ theorem ptr_own0 (hw : VtWOk H B w) {j v : ℕ} (hj : j < 110) (hv : vtAllocVars
 
 local notation "σv" => vtσ rd w (H.args B)
 
-theorem vt_p {i : ℕ} (hi : i < 22) : σv (.n i) = (H.args B).getD i 0 := vt_param rfl hi
+theorem vt_p {i : ℕ} (hi : i < 20) : σv (.n i) = (H.args B).getD i 0 := vt_param rfl hi
 
 theorem vt_s8 : σv (.n 8) = ofK (addressOfIndex B.zeta) := vt_p (by norm_num)
 
