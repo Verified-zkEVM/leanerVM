@@ -36,7 +36,7 @@ meaning of a word in a different context:
 | statement | A theorem's proposition or a protocol's public input | Use "theorem statement" or "protocol statement" when both meanings occur. |
 | valid | Satisfaction of a specified predicate or well-formedness condition | Define or name the predicate. Do not replace "valid transcript" with "accepted transcript" unless they mean the same thing. |
 | verify | A protocol verifier's action or a formal-verification operation | Use "check" for routine repository tests. Identify the relevant verification predicate or result. |
-| leanerVM, leanVM | This Lean repository and its pinned implementation target, respectively | Name the implementation revision for a correspondence claim. The historical repository is not a substitute for the current target map. |
+| leanerVM, leanVM | leanerVM is this Lean repository. leanVM is its pinned implementation target. | Name the implementation revision for a correspondence claim. The historical repository is not a substitute for the current target map. |
 | trace | An execution trace or the table values that represent an execution | Write "execution trace" or "arithmetization trace" when both occur. A protocol transcript is a different object. |
 | table | A table definition, its constraints, or its witness rows | Name the opcode or table type and distinguish constraints from witness values. |
 | column | A column index, its values, or its polynomial representation | Identify the table, column, and representation that the claim concerns. |

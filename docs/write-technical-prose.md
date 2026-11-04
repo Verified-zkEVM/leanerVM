@@ -40,9 +40,9 @@ For stacked work, replace `origin/main` with the actual parent branch in both co
 commit-message command runs the checker only if `git log` succeeds. Keep drafts and temporary
 files outside the contribution.
 
-The checker runs locally; this port adds no CI job or merge check. Suggestions return 0 by
-default. Input notices report unsupported encodings or symlinks without failing the run. Usage,
-Git, and vocabulary-configuration errors return 2. Counts and source extraction are approximate.
+The checker runs locally, and no CI job or merge check runs it. Suggestions return 0. Input
+notices report unsupported encodings or symlinks without failing the run. Usage, Git, and
+vocabulary-configuration errors return 2. Counts and source extraction are approximate.
 
 In diff mode, it checks tracked Markdown and Lean prose in paragraphs with added lines. It skips
 `docs/reviews/`, which holds historical review records, dependency output under `.lake/`, and
