@@ -88,7 +88,7 @@ def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool
       (a.1 :: rest.1, rest.2)
 
 /-- Where arm `0` of a group from base `b` starts its first walk. -/
-def groupStart (fold : Bool) (b : Nat) : Nat := b + 5 + (if fold then 1 else 0)
+def groupStart (fold : Bool) (b : Nat) : Nat := b + 6 + (if fold then 1 else 0)
 /-- The fresh values of a chain in arm `0`. -/
 def chainStride (W : WotsT) : Nat := 1 + 3 * (W.size + 13)
 /-- The slot of chain `r`'s step `s` in a group from base `b`. -/
@@ -97,14 +97,31 @@ def slotsT (W : WotsT) (fold : Bool) (b : Nat) (r s : Nat) : Nat :=
 def prodT (W : WotsT) (fold : Bool) (n b : Nat) : V := .n (groupStart fold b + chainStride W * n)
 def encT (W : WotsT) (fold : Bool) (n b : Nat) : V := .n (groupStart fold b + chainStride W * n + 1)
 
-/-- A group of `n` digits from base `b`: the digit hint, its range check and the dispatch over the
-`4^n` digit values. -/
+/-- The `2^63` a group sets above its dispatch: the compiler hoists the arms' common constants
+(the two-to-one closing lane of `walk`'s one-block `keccak`) above an all-`@inline` `match`; the
+arms set their own, so this one is unread. -/
+def closeLane : E := word (2 ^ 63) 0 0
+
+/-- The `4^n` arms of a group laid out from base `b`: arm `0` from `b + 6`. -/
+def groupArmsT (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
+    List (List Stmt) × Nat :=
+  armsT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) (4 ^ n) 0
+    (b + 6)
+
+/-- A group of `n` digits, its digit word hinted at `d`, its arms laid out from base `b`: the
+digit hint, its range check, the statements `pre`, the hoisted constant at `b + 5` and the dispatch
+over the `4^n` digit values; the statements and the next base. -/
+def groupD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d : Nat) (pre : List Stmt)
+    (b : Nat) : List Stmt × Nat :=
+  (hintW "digits" [.n d] :: rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0 0) (d + 1) ++ pre ++
+    [cst (b + 5) closeLane, .match_ (.n d) (groupArmsT W first n fold prodIn encIn b).1],
+    (groupArmsT W first n fold prodIn encIn b).2)
+
+/-- A group of `n` digits from base `b`: the digit hint, its range check, the hoisted constant and
+the dispatch over the `4^n` digit values (`groupD` with its digit word at its base). -/
 def groupT (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
     List Stmt × Nat :=
-  let arms := armsT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b)
-    (4 ^ n) 0 (b + 5)
-  (hintW "digits" [.n b] :: rangeS (.n b) (word (2 ^ (4 ^ n - 1)) 0 0) (b + 1) ++
-    [.match_ (.n b) arms.1], arms.2)
+  groupD W first n fold prodIn encIn b [] b
 
 /-- Groups `p ..< p + m` of three digits from base `b`, after the running product and encoding:
 the statements, the next base, the chains' tips, the product and the encoding. -/
