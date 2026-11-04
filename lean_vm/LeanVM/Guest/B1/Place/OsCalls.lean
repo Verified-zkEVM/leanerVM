@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Whir
 /-- A level's commitment, or its final message. -/
 def lvM (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt × ℕ :=
   if lvl = c.yrLevel then osFinal c (osFolds osFch lv.foldsOff lv.folds s).2
-  else osCommit lvl lv (osFolds osFch lv.foldsOff lv.folds s).2
+  else osCommit c.plan lvl lv (osFolds osFch lv.foldsOff lv.folds s).2
 
 /-- A level before its squeezes. -/
 def lvA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
@@ -40,17 +40,19 @@ def lvA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
 def lvB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
   let sq := osSqueezes c lvl lv (lvM c lvl lv s).2.1
   let lam := sq.2.k - 1
-  let lp := osLamPows lam (lvl * c.maxQ) sq.2.k lv.queries
-  let lamN := if lv.queries ≤ 1 then lam else sq.2.k + lv.queries - 1
-  let q := osQueries c lvl lv lam lamN { sq.2 with k := sq.2.k + lv.queries }
+  let lp := osLamPow lvl lam lv.queries sq.2.k
+  let lamN := lp.2.1
+  let q := osQueries c lvl lv lam lamN { sq.2 with k := lp.2.2 }
   let s1 : OsSt := { sq.2 with k := q.2.1, w0 := q.2.2.2.1, w1 := q.2.2.2.2.2,
-                               co := sq.2.co + 2 }
+                               co := sq.2.co + 2, mats := osQueriesMats c lv { sq.2 with k := lp.2.2 } }
   let o := if lvl = c.yrLevel then (([] : List Stmt), s1, lam) else
     let g := osOodGlue lvl lam s1
     (g.1, g.2, s1.k + 12)
   let beta := o.2.2
-  let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 o.2.1
-  lp ++ q.1 ++ o.1 ++ [.atom (.load (.n beta) (.n osBetas) lvl)] ++ gl.1
+  let bk := o.2.1.k
+  let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 { o.2.1 with k := bk + 1 }
+  lp.1 ++ q.1 ++ o.1 ++
+    [.atom (.mul (.n bk) (.n beta) (.n lamN)), .atom (.load (.n bk) (.n osBetas) lvl)] ++ gl.1
 
 theorem osLevel_callSplit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).1 = lvA c lvl lv s ++ ((osSqueezes c lvl lv (lvM c lvl lv s).2.1).1 ++
@@ -60,7 +62,7 @@ theorem osLevel_callSplit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 /-- The squeeze loop's frame. -/
 def sqCallS (c : OsCfg) (lvl : ℕ) (k : ℕ) : Option V × String × List V × List V :=
   (some (.n (k + 2 + 2)), c.sqLoop lvl,
-    .n (k + 2 + 3) :: .n (k + 2 + 4) :: [k + 1, osQpos, osQbp].map V.n, [])
+    .n (k + 2 + 3) :: .n (k + 2 + 4) :: [k + 1, osQpos, osQbp, osWin].map V.n, [])
 
 theorem osSqueezes_callS (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osSqueezes c lvl lv s).1.filterMap Main.Stmt.callS = [sqCallS c lvl s.k] := by
@@ -91,7 +93,8 @@ theorem osLevels_calls (σ : Val) (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv
     simp [osLvKOf, OsLvK.calls]
 
 theorem osHead_callS (c : OsCfg) : (osHead c).1.filterMap Main.Stmt.callS = [] := by
-  simp [osHead, osHeap, Main.Stmt.callS]
+  simp [osHead, osHeap, osWinTabs, Main.Stmt.callS]
+  rintro a (⟨i, -, rfl | rfl⟩ | rfl | rfl | rfl | rfl) <;> rfl
 
 theorem osBodyA_calls (σ : Val) (c : OsCfg) :
     ((osBodyA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) =

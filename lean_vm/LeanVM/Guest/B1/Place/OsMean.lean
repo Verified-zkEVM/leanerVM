@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.OsCallees
+public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.B1.Place.OsKidsC
 public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.Lift.OsCallees
