@@ -83,12 +83,12 @@ noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
   else if j = 52 then m.a77 else if j = 55 then m.a80
   else if j = 56 then (digestHalves m.xd).1 else if j = 57 then (digestHalves m.xd).2
   else if j = 58 then (digestHalves m.sd).1 else if j = 59 then (digestHalves m.sd).2
-  else if j = 66 then m.a117 else if j = 68 then m.a119 else if j = 334 then m.aDa
-  else if 339 ≤ j ∧ j < 343 then m.daR.getD (j - 339) 0
-  else if j = 365 then m.a394 else if j = 371 then m.a400 else if j = 377 then m.a406
-  else if j = 380 then m.a409 else if j = 387 then gen ^ m.pick else if j = 398 then m.a417
-  else if j = 401 then m.leaf
-  else if j = 427 then (digestHalves m.sdg).1 else if j = 428 then (digestHalves m.sdg).2
+  else if j = 66 then m.a117 else if j = 68 then m.a119 else if j = 385 then m.aDa
+  else if 390 ≤ j ∧ j < 394 then m.daR.getD (j - 390) 0
+  else if j = 416 then m.a394 else if j = 422 then m.a400 else if j = 428 then m.a406
+  else if j = 431 then m.a409 else if j = 438 then gen ^ m.pick else if j = 449 then m.a417
+  else if j = 452 then m.leaf
+  else if j = 478 then (digestHalves m.sdg).1 else if j = 479 then (digestHalves m.sdg).2
   else 0
 
 /-- **`main`'s honest valuation.** -/
@@ -128,8 +128,8 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   da : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ
   daZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ
   leaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ
-  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 334, 339,
-    340, 341, 342, 365, 371, 377, 380, 387, 398, 401, 427, 428], σ (.n j) = mOrc m j
+  orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 385, 390,
+    391, 392, 393, 416, 422, 428, 431, 438, 449, 452, 478, 479], σ (.n j) = mOrc m j
   v40 : σ (.n 40) = gen ^ (m.nlx + m.nxd)
   v41 : σ (.n 41) = gen ^ (m.nls + m.nsd)
   v42 : σ (.n 42) = gen ^ m.total
@@ -140,27 +140,28 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   g64 : σ (.n 64) = 1 + gen ^ m.nsd
   g65 : σ (.n 65) = 1
   v67 : σ (.n 67) = m.a117 * gen ^ (m.nlx + m.nxd)
-  g326 : σ (.n 326) = 1 + gen ^ m.nrx
-  g327 : σ (.n 327) = 1
-  g329 : σ (.n 329) = 1 + gen ^ m.nrs
-  g330 : σ (.n 330) = 1
-  v333 : σ (.n 333) = gen ^ (2 * (m.nc + 1))
-  v336 : σ (.n 336) = m.aDa * gen ^ (2 * m.nc)
-  v338 : σ (.n 338) = gen ^ m.nd + gen
-  v364 : σ (.n 364) = gen ^ (2 * m.nc)
-  v370 : σ (.n 370) = gen ^ (24 * m.nc)
-  v376 : σ (.n 376) = gen ^ (24 * m.nc)
-  v379 : σ (.n 379) = gen ^ (m.nc + 1)
-  v381 : σ (.n 381) = gen ^ (m.nrx + m.nrs)
-  g383 : σ (.n 383) = 1 + gen ^ m.nc
-  g384 : σ (.n 384) = 1
-  v385 : σ (.n 385) = m.a409 * gen ^ m.nc
-  v397 : σ (.n 397) = m.aDa * gen ^ (2 * m.pick)
-  v400 : σ (.n 400) = gen ^ m.nc + 1
-  r425 : σ (.n 425) = (digestHalves m.dap).1
-  r426 : σ (.n 426) = (digestHalves m.dap).2
-  v429 : σ (.n 429) = 1
-  v433 : σ (.n 433) = gen
+  g377 : σ (.n 377) = 1 + gen ^ m.nrx
+  g378 : σ (.n 378) = 1
+  g380 : σ (.n 380) = 1 + gen ^ m.nrs
+  g381 : σ (.n 381) = 1
+  v384 : σ (.n 384) = gen ^ (2 * (m.nc + 1))
+  v387 : σ (.n 387) = m.aDa * gen ^ (2 * m.nc)
+  v389 : σ (.n 389) = gen ^ m.nd + gen
+  v415 : σ (.n 415) = gen ^ (2 * m.nc)
+  v421 : σ (.n 421) = gen ^ (24 * m.nc)
+  v427 : σ (.n 427) = gen ^ (24 * m.nc)
+  v430 : σ (.n 430) = gen ^ (m.nc + 1)
+  v432 : σ (.n 432) = gen ^ (m.nrx + m.nrs)
+  g434 : σ (.n 434) = 1 + gen ^ m.nc
+  g435 : σ (.n 435) = 1
+  v436 : σ (.n 436) = m.a409 * gen ^ m.nc
+  v448 : σ (.n 448) = m.aDa * gen ^ (2 * m.pick)
+  v451 : σ (.n 451) = gen ^ m.nc + 1
+  r476 : σ (.n 476) = (digestHalves m.dap).1
+  r477 : σ (.n 477) = (digestHalves m.dap).2
+  v480 : σ (.n 480) = 1
+  v484 : σ (.n 484) = gen
+  tags : lxTagsV.map σ = lxTagWords
 
 /-! ## Helpers -/
 
@@ -234,8 +235,8 @@ theorem goodS_defs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {s :
   | _ => simp [defsOf] at hv
 
 /-- The oracle's values, as `MVals.orc` lists them. -/
-def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 334,
-  339, 340, 341, 342, 365, 371, 377, 380, 387, 398, 401, 427, 428]
+def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 385,
+  390, 391, 392, 393, 416, 422, 428, 431, 438, 449, 452, 478, 479]
 
 set_option maxRecDepth 100000 in
 theorem mOrcIdx_defs : ∀ j ∈ mOrcIdx, ∃ s ∈ mOrcStmts, V.n j ∈ defsOf s := by decide +kernel

@@ -109,12 +109,12 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
   have := (segsOf σ Kr).kid_spec h0 (by rw [hW.total]; exact hm)
   rwa [segsOf_NC] at this
 
-variable {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+variable {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
   {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof}
   {wA : List E → BatchingHints}
 
 /-- **Every raw leanXMSS signature verifies its claim.** -/
-theorem xmss_raw_verify (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
+theorem xmss_raw_verify (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
     ∀ raw ∈ (decWit σ rd wX wS wD wV wA).xmssSignatures,
       LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true := by
   have hT := MF.total.2
@@ -124,13 +124,13 @@ theorem xmss_raw_verify (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV w
   obtain ⟨j, hj, rfl⟩ :=
     List.mem_map.mp (show raw ∈ (List.range (nRawX σ)).map (rawXmss rd σ wX) from hraw)
   rw [List.mem_range, nRawX_eq] at hj
-  obtain ⟨s, hbl, hl, hcall⟩ := MF.rawx j hj
+  obtain ⟨s, hbl, hl, hout⟩ := rawX_of_out hm (cw.xmss _ (MF.rawx j hj).1) _ _ _ _ _ rfl
   have hsLXS := belowLog_lt (by omega) MF.lxs hbl
   have hsj : s = slOf σ Kr rx rs j :=
     hW.uniq_raw (by omega) (by rw [segsOf_RX, segsOf_RS]; omega) hl
   have hslot : slotOf rd σ 0 (lxSlots σ) j = s := by
     rw [slotOf_lx MF hW (by omega) (by rw [← hsj]; exact hsLXS), hsj]
-  obtain ⟨a, b, c, d, hat, hv⟩ := cw.xmss _ hcall
+  obtain ⟨a, b, c, d, hat, hv⟩ := hout MF.tags
   simp only [rawXmss, hslot]
   unfold xmssAt
   rw [slot_claimAt hat]
@@ -246,15 +246,15 @@ theorem sphincs_covered :
     rw [show (Kr c).os (m - (segsOf σ Kr).a c - (Kr c).ex) = k by omega]
 
 /-- **The decoded witness holds the decoded signature claims** (`SignatureClaimsHeld`). -/
-theorem signatures_held (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
+theorem signatures_held (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
     SignatureClaimsHeld (decStmt σ rd) (decWit σ rd wX wS wD wV wA) :=
-  ⟨xmss_raw_verify MF hW cw, sphincs_raw_verify MF hW cw, xmss_covered MF hK hW,
+  ⟨xmss_raw_verify MF hW hm cw, sphincs_raw_verify MF hW cw, xmss_covered MF hK hW,
     sphincs_covered MF hK hW⟩
 
 omit hK hW in
 /-- **The DA digest**: with the direct DA check, the digest of the claim it returns, which the
 decoded matrix opens; without it, zeros or a child's. -/
-theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n 68)) wX wS wD wV wA) :
     (∀ c m, (decWit σ rd wX wS wD wV wA).daMatrix = some (c, m) →
@@ -262,14 +262,14 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     ((decWit σ rd wX wS wD wV wA).daMatrix = none → (decStmt σ rd).claims.daDigest = zeroDigest ∨
       ∃ c ∈ (decWit σ rd wX wS wD wV wA).children,
         c.statement.claims.daDigest = (decStmt σ rd).claims.daDigest) := by
-  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 387) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 438) := by
     unfold decStmt; simp only [gLog_lg]
   obtain ⟨-, hpl, hp1⟩ := MF.pick
   have h7 := MF.direct.2
   have hown := MF.own
   by_cases hd : lg σ 7 = 1
   · have hdec : (decWit σ rd wX wS wD wV wA).daMatrix =
-        some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]) := by
+        some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)]) := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h
@@ -295,8 +295,8 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     rw [hdv]
     simp only [Prod.ext_iff] at hz
     congr 1
-    rw [show [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)] =
-      [(digestHalves root).1, (digestHalves root).2] ++ [σ (.n 341), σ (.n 342)] by rw [r0, r1]; rfl,
+    rw [show [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)] =
+      [(digestHalves root).1, (digestHalves root).2] ++ [σ (.n 392), σ (.n 393)] by rw [r0, r1]; rfl,
       cellsBytes, List.flatMap_append, ← cellsBytes, ← digestBytes_eq_cells, hz.1, hz.2]
     simp [Keccak.scalarCells, cellBytes, E.toBytes, List.append_assoc]
     rfl
@@ -304,12 +304,12 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
     have hdec : (decWit σ rd wX wS wD wV wA).daMatrix = none := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => (by rw [hdec] at h; cases h), fun _ => ?_⟩
-    rcases Nat.lt_or_ge (lg σ 387) (lg σ 6) with hlt | hge
+    rcases Nat.lt_or_ge (lg σ 438) (lg σ 6) with hlt | hge
     · show _ ∨ ∃ c ∈ (List.range (nKids σ)).map (decKid rd σ wV), _
-      refine Or.inr ⟨decKid rd σ wV (lg σ 387),
-        List.mem_map.mpr ⟨lg σ 387, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
+      refine Or.inr ⟨decKid rd σ wV (lg σ 438),
+        List.mem_map.mpr ⟨lg σ 438, List.mem_range.mpr (by rw [nKids_eq]; exact hlt), rfl⟩, ?_⟩
       rw [eD]; rfl
-    · have hpe : lg σ 387 = lg σ 6 := by omega
+    · have hpe : lg σ 438 = lg σ 6 := by omega
       obtain ⟨z0, z1⟩ := MF.daz hd0
       rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at z0
       rw [hown, loadHolds_gen_pow_iff] at z1
