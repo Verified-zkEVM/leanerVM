@@ -33,6 +33,32 @@ theorem capAt_get {rec : E} {k : ℕ} {cap : List E} (h : CapAt rd rec k krCap c
   rw [List.getD_eq_getElem _ _ (by omega), show k + 16 * j = k + j * krCap by simp [krCap]; ring]
   exact this
 
+/-- **The setup's call arguments** on a valuation satisfying its equations. -/
+theorem packSetup_vals {first : ℕ} (hg : ∀ s ∈ packSetupT first, GoodS rd S w σ s) :
+    σ (.n 1058) = 1 + σ (.n 9) ∧ σ (.n 1059) = 1 ∧ σ (.n 1060) = σ (.n 1053) * σ (.n 9) ∧
+      σ (.n 1064) = σ (.n 1051) * σ (.n 9) ^ 8 ∧ σ (.n 1068) = σ (.n 1052) * σ (.n 9) ^ 8 ∧
+      σ (.n 1070) = 1 + σ (.n 10) ∧ σ (.n 1071) = 1 := by
+  have gs : ∀ a, Stmt.atom a ∈ packSetupT first → Good rd S w σ a := fun a ha ↦ hg _ ha
+  have e1057 : σ (.n 1057) = word 1 0 0 := gs (.const (.n 1057) _) (by simp [packSetupT])
+  have e1058 : σ (.n 1058) = σ (.n 1057) + σ (.n 9) := gs (.add (.n 1058) _ _) (by simp [packSetupT])
+  have e1059 : σ (.n 1059) = word 1 0 0 := gs (.const (.n 1059) _) (by simp [packSetupT])
+  have e1060 : σ (.n 1060) = σ (.n 1053) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1061 : σ (.n 1061) = σ (.n 9) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1062 : σ (.n 1062) = σ (.n 1061) * σ (.n 1061) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1063 : σ (.n 1063) = σ (.n 1062) * σ (.n 1062) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1064 : σ (.n 1064) = σ (.n 1051) * σ (.n 1063) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1065 : σ (.n 1065) = σ (.n 9) * σ (.n 9) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1066 : σ (.n 1066) = σ (.n 1065) * σ (.n 1065) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1067 : σ (.n 1067) = σ (.n 1066) * σ (.n 1066) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1068 : σ (.n 1068) = σ (.n 1052) * σ (.n 1067) := good_mul (by decide) (gs _ (by simp [packSetupT]))
+  have e1069 : σ (.n 1069) = word 1 0 0 := gs (.const (.n 1069) _) (by simp [packSetupT])
+  have e1070 : σ (.n 1070) = σ (.n 1069) + σ (.n 10) := gs (.add (.n 1070) _ _) (by simp [packSetupT])
+  have e1071 : σ (.n 1071) = word 1 0 0 := gs (.const (.n 1071) _) (by simp [packSetupT])
+  refine ⟨by rw [e1058, e1057, word_one], by rw [e1059, word_one], e1060,
+    by rw [e1064, gen_pow_eight_of _ _ _ _ e1061 e1062 e1063],
+    by rw [e1068, gen_pow_eight_of _ _ _ _ e1065 e1066 e1067], by rw [e1070, e1069, word_one],
+    by rw [e1071, word_one]⟩
+
 /-- **The pack rounds' setup, completely**: with the claim's point pointer in its record, the
 first round record in memory, and the two loops' relations, the setup holds. -/
 theorem packSetup_complete {first : ℕ} (hg : ∀ s ∈ packSetupT first, GoodS rd S w σ s)
