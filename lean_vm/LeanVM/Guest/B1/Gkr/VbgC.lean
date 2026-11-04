@@ -362,7 +362,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
         by rw [c1, tb_word_two_pow (by omega)], by rw [e56, c1]; exact k4⟩
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
   -- the tables
-  have gT := vb_goodB hG 63 vbR4 (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  have gT := vb_goodB hG 80 vbR4 (by decide +kernel) (by decide +kernel) (by decide +kernel)
   have hpk : ∀ k < 33, LoadHolds rd pairs k (gen ^ (k / 2)) := fun k hk => by
     have := hpairs k (by simpa using hk)
     simpa using this
