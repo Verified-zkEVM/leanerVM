@@ -24,7 +24,9 @@ search (`dispatchIdx`). `vsPiOfN rd σ Vn cl` reads the same words off the liter
 **Off arrays, consecutive cells incrementally.** `vsPiOfA T rd σ Vn cl` reads the same proof off
 the tables `T` (`WhirTabs`: the lanes of `g^k`, the stream words and the calls of each candidate),
 built once by the caller (`whirTabs`), and reads consecutive cells by stepping the address by `g`
-(`wordsFrom`: `readN`, `wordsAt`; `posOfW`: `posOf`), each query's position once (`oqQueryAt`),
+(`wordsFrom`: `readN`, `wordsAt`), a query's windows once each, their exponents off the lanes
+(`winLogsFrom`, `winPosOfW`: `winPosOf`, whose `gLog7` searches the powers of `g` per bit), each
+query's position once (`oqQueryAt`),
 each loop iteration's frame at `x·g^j` by stepping `x` (`oqItersFrom`), the loop's other
 arguments once (`oqLoopArgs σ`, an argument), the selected candidate and its `open_stacked`
 frame once (`vsPiOfM`, `vsPiOfAt`); `vsPiOfA_tabs`: at `whirTabs` it is `vsPiOfN`.
@@ -53,9 +55,9 @@ def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/
 def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  let m := logGT (σ (.n 1901)) 28
+  let m := logGT (σ (.n 1687)) 28
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 27)) (cl (σ (.n 27)) (σ (.n 868))) ++
+  ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 656))) ++
       readN rd (fr (.n 8)) (osWordsTab.getD m 0),
     (osCallsTab.getD m []).flatMap (levelOsN rd fr Vn)⟩
 
@@ -103,10 +105,10 @@ theorem flatMap_zip {α β γ : Type} {g : α → List γ} {h : β → List γ} 
 
 theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
     vsPiOfN rd σ (fun k ↦ Fm (decoderFunctionName k)) cursorLen = vsPiOf rd σ Fm := by
-  have hm := logG_lt (σ (.n 1901)) (bound := 28) (by norm_num)
+  have hm := logG_lt (σ (.n 1687)) (bound := 28) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at hm
-  have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1901)) 28)) =
-      openNames.getD (logGT (σ (.n 1901)) 28) "" := by
+  have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1687)) 28)) =
+      openNames.getD (logGT (σ (.n 1687)) 28) "" := by
     rw [openNames_eq, getD_map_range hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hm
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
@@ -151,39 +153,88 @@ theorem wordsAt_eq_wordsFrom (rd : Reader) (p : E) (n : ℕ) :
     wordsAt rd p n = wordsFrom rd (p.limb 0) n := by
   rw [wordsFrom_eq]; rfl
 
-/-- The number whose bits, low first, are the words equal to `1`. -/
-def bitsW : List E → ℕ
-  | [] => 0
-  | w :: ws => (if w = 1 then 1 else 0) + 2 * bitsW ws
+/-! ## A query's position, its windows read once -/
 
-theorem bitsW_append (l : List E) (w : E) :
-    bitsW (l ++ [w]) = bitsW l + 2 ^ l.length * (if w = 1 then 1 else 0) := by
-  generalize hc : (if w = 1 then 1 else 0 : ℕ) = c
+/-- **The `n` windows' exponents from the address `a` on** (each below `128`, off the lanes
+`lanes`: `logGTWith`), each address the last's times `g` (`0` where the memory has none). -/
+def winLogsFrom (lanes : List ℕ) (rd : Reader) : K → ℕ → List ℕ
+  | _, 0 => []
+  | a, n + 1 => logGTWith lanes ((rd a).getD 0) 128 :: winLogsFrom lanes rd (a * Parameters.g) n
+
+theorem winLogsFrom_eq_map (lanes : List ℕ) (rd : Reader) :
+    ∀ (a : K) (n : ℕ), winLogsFrom lanes rd a n =
+      (wordsFrom rd a n).map fun w ↦ logGTWith lanes w 128
+  | _, 0 => rfl
+  | a, n + 1 => by
+    rw [winLogsFrom, wordsFrom, List.map_cons, winLogsFrom_eq_map lanes rd (a * Parameters.g) n]
+
+/-- `gLog7` off the lanes. -/
+theorem gLog7_eq_logGT (x : E) : gLog7 x = logGT x 128 := by
+  rw [← logG_eq_logGT _ (by norm_num)]
+  unfold gLog7 logG
+  congr 2
+  funext n
+  rw [LeanVM.Guest.Value.gen_pow_eq_ofK]
+  simp only [eq_comm]
+
+/-- The windows' exponents, off `gLanes`, are `gLog7`'s. -/
+theorem winLogsFrom_gLanes (rd : Reader) (bp : E) (n : ℕ) :
+    winLogsFrom gLanes rd (bp.limb 0) n = (List.range n).map fun i ↦ gLog7 (memRead rd bp i) := by
+  rw [winLogsFrom_eq_map, wordsFrom_eq, List.map_map]
+  apply List.map_congr_left
+  intro i _
+  rw [Function.comp_apply, gLog7_eq_logGT, ← logGTWith_gLanes]
+  rfl
+
+/-- The number whose bits, low first, are `bs`. -/
+def bitsB : List Bool → ℕ
+  | [] => 0
+  | b :: bs => (if b then 1 else 0) + 2 * bitsB bs
+
+theorem bitsB_append (l : List Bool) (b : Bool) :
+    bitsB (l ++ [b]) = bitsB l + 2 ^ l.length * (if b then 1 else 0) := by
   induction l with
-  | nil =>
-    show (if w = 1 then 1 else 0) + 2 * 0 = 0 + 2 ^ 0 * c
-    rw [hc]; omega
+  | nil => simp [bitsB]
   | cons x l ih =>
-    show (if x = 1 then 1 else 0) + 2 * bitsW (l ++ [w]) =
-      ((if x = 1 then 1 else 0) + 2 * bitsW l) + 2 ^ (l.length + 1) * c
+    show (if x then 1 else 0) + 2 * bitsB (l ++ [b]) =
+      ((if x then 1 else 0) + 2 * bitsB l) + 2 ^ (l.length + 1) * (if b then 1 else 0)
     rw [ih, pow_succ]
     ring
 
-theorem bitsVal_eq_bitsW (h : ℕ → E) : ∀ n,
-    LeanVM.Guest.Value.bitsVal (fun l ↦ decide (h l = 1)) n = bitsW ((List.range n).map h)
+theorem bitsVal_eq_bitsB (f : ℕ → Bool) : ∀ n,
+    LeanVM.Guest.Value.bitsVal f n = bitsB ((List.range n).map f)
   | 0 => rfl
   | n + 1 => by
-    rw [LeanVM.Guest.Value.bitsVal, bitsVal_eq_bitsW h n, List.range_succ, List.map_append,
-      List.map_singleton, bitsW_append, List.length_map, List.length_range]
-    by_cases hn : h n = 1
-    · rw [decide_eq_true hn, ite_eq_left_iff.mpr (fun h ↦ absurd hn h)]; rfl
-    · rw [decide_eq_false hn, ite_eq_right_iff.mpr (fun h ↦ absurd h hn)]; rfl
+    rw [LeanVM.Guest.Value.bitsVal, bitsVal_eq_bitsB f n, List.range_succ, List.map_append,
+      List.map_singleton, bitsB_append, List.length_map, List.length_range]
+    cases f n <;> rfl
 
-/-- **The position whose `D` bits the run at `bp` holds** (`posOf`), its cells read in a row. -/
-def posOfW (rd : Reader) (bp : E) (D : ℕ) : ℕ := bitsW (wordsFrom rd (bp.limb 0) D)
+/-- Bit `l` of a position of depth `d`, cap depth `cd`, from its windows' exponents `logs`
+(`winPosOf`'s). -/
+def winBit (logs : List ℕ) (d cd l : ℕ) : Bool :=
+  (logs.getD (qwAt d cd l) 0).testBit (l - (qwWin d cd (qwAt d cd l)).1)
 
-theorem posOfW_eq (rd : Reader) (bp : E) (D : ℕ) : posOfW rd bp D = posOf rd bp D := by
-  rw [posOfW, posOf, bitsVal_eq_bitsW, wordsFrom_eq]
+/-- The position of depth `d`, cap depth `cd`, its windows' exponents `logs` given. -/
+def winPosAt (logs : List ℕ) (d cd : ℕ) : ℕ := bitsB ((List.range d).map (winBit logs d cd))
+
+/-- **The position whose windows the run at `bp` holds** (`winPosOf`), its `qwN d cd` windows
+read in a row, each's exponent once, off the lanes. -/
+def winPosOfW (lanes : List ℕ) (rd : Reader) (bp : E) (d cd : ℕ) : ℕ :=
+  winPosAt (winLogsFrom lanes rd (bp.limb 0) (qwN d cd)) d cd
+
+/-- The window holding a bit is one of the position's. -/
+theorem qwAt_lt_qwN (d cd l : ℕ) : qwAt d cd l < qwN d cd := by
+  unfold qwAt qwN qwNp
+  split_ifs <;> omega
+
+theorem winPosOfW_eq (rd : Reader) (bp : E) (d cd : ℕ) :
+    winPosOfW gLanes rd bp d cd = winPosOf rd bp d cd := by
+  rw [winPosOfW, winPosAt, winPosOf, bitsVal_eq_bitsB, winLogsFrom_gLanes]
+  congr 1
+  apply List.map_congr_left
+  intro l _
+  rw [winBit, List.getD_eq_getElem?_getD, List.getElem?_map,
+    List.getElem?_range (qwAt_lt_qwN d cd l)]
   rfl
 
 /-! ## The queries, each position once, the loop's frames stepped -/
@@ -192,32 +243,36 @@ theorem posOfW_eq (rd : Reader) (bp : E) (D : ℕ) : posOfW rd bp D = posOf rd b
 def oqQueryAt (s : Oq) (σ : Val) (b : ℕ) (emit : Bool) (pos : ℕ) : QW :=
   (pos, oqRow b s.R σ, oqSibsOf s.pd (oqCh s b emit) pos σ)
 
-/-- **The query hinted at `b`**, its position read once (`oqQueryW`). -/
-def oqQueryA (s : Oq) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) : QW :=
-  oqQueryAt s σ b emit (posOfW rd bp (s.pd + s.cd))
+/-- **The query hinted at `b`**, its position read once off its windows (`oqQueryW`). -/
+def oqQueryA (s : Oq) (lanes : List ℕ) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) :
+    QW :=
+  oqQueryAt s σ b emit (winPosOfW lanes rd bp (s.pd + s.cd) s.cd)
 
 theorem oqQueryA_eq (s : Oq) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) :
-    oqQueryA s rd bp b emit σ = oqQueryW s rd bp b emit σ := by
-  rw [oqQueryA, oqQueryAt, oqQueryW, posOfW_eq]
+    oqQueryA s gLanes rd bp b emit σ = oqQueryW s rd bp b emit σ := by
+  rw [oqQueryA, oqQueryAt, oqQueryW, winPosOfW_eq]
 
 /-- A loop iteration's queries, from its frame (`oqIterOf`). -/
-def oqIterA (s : Oq) (rd : Reader) (σ : Val) : List QW :=
+def oqIterA (s : Oq) (lanes : List ℕ) (rd : Reader) (σ : Val) : List QW :=
   if s.base = 1 then
-    [oqQueryA s rd (σ (.n 10)) 11 true σ, oqQueryA s rd (σ (.n (oqE1 s))) (oqE1 s + 1) false σ]
-  else [oqQueryA s rd (σ (.n 9)) 10 true σ]
+    [oqQueryA s lanes rd (σ (.n 10)) 11 true σ,
+      oqQueryA s lanes rd (σ (.n (oqE1 s))) (oqE1 s + 1) false σ]
+  else [oqQueryA s lanes rd (σ (.n 9)) 10 true σ]
 
-theorem oqIterA_eq (s : Oq) (rd : Reader) (σ : Val) : oqIterA s rd σ = oqIterOf s rd σ := by
+theorem oqIterA_eq (s : Oq) (rd : Reader) (σ : Val) :
+    oqIterA s gLanes rd σ = oqIterOf s rd σ := by
   simp only [oqIterA, oqIterOf, oqQueryA_eq]
 
 /-- **The loop's iterations from the frame at `x`**, `n` of them, the next at `x·g`: each the
 queries of the frame of the loop's call `x :: la` (`la` the loop's other arguments). -/
-def oqItersFrom (s : Oq) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
+def oqItersFrom (s : Oq) (lanes : List ℕ) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
     ℕ → E → List QW
   | 0, _ => []
-  | n + 1, x => oqIterA s rd (Vn loop (x :: la) []) ++ oqItersFrom s loop rd Vn la n (x * gen)
+  | n + 1, x =>
+    oqIterA s lanes rd (Vn loop (x :: la) []) ++ oqItersFrom s lanes loop rd Vn la n (x * gen)
 
 theorem oqItersFrom_gen (s : Oq) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
-    ∀ n k, oqItersFrom s loop rd Vn la n (gen ^ k) =
+    ∀ n k, oqItersFrom s gLanes loop rd Vn la n (gen ^ k) =
       (List.range' k n).flatMap fun j ↦ oqIterOf s rd (Vn loop (gen ^ j :: la) [])
   | 0, _ => rfl
   | n + 1, k => by
@@ -226,28 +281,31 @@ theorem oqItersFrom_gen (s : Oq) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la :
 
 /-- **`opening_queries`' queries** (`oqsOfN`): its loop's other arguments read once, each
 iteration's frame at the next power of `g`, each query's position once. -/
-def oqsOfA (s : Oq) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
-  (if odd = 1 then [oqQueryA s rd (σ (.n 12)) 13 true σ] else []) ++
-    oqItersFrom s loop rd Vn (oqLoopArgs σ) N 1
+def oqsOfA (s : Oq) (lanes : List ℕ) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
+    List QW :=
+  (if odd = 1 then [oqQueryA s lanes rd (σ (.n 12)) 13 true σ] else []) ++
+    oqItersFrom s lanes loop rd Vn (oqLoopArgs σ) N 1
 
 theorem oqsOfA_eq (s : Oq) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
-    oqsOfA s odd loop N rd σ Vn = oqsOfN s odd loop N rd σ Vn := by
+    oqsOfA s gLanes odd loop N rd σ Vn = oqsOfN s odd loop N rd σ Vn := by
   have h := oqItersFrom_gen s loop rd Vn (oqLoopArgs σ) N 0
   rw [pow_zero] at h
   unfold oqsOfA oqsOfN
   rw [h, oqQueryA_eq, List.range_eq_range']
 
 /-- A level's openings from its call `c`, the call's argument words `a` given (`levelOsN`). -/
-def levelOsAt (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) (a : List E) : List Opening :=
-  (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N rd (Vn c.fn a (c.rets.map fun k ↦ σ (.n k)))
-    Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
+def levelOsAt (lanes : List ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) (a : List E) :
+    List Opening :=
+  (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ lanes c.odd c.loop c.N rd
+    (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
 
 /-- **A level's openings** (`levelOsN`), its call's argument words read once. -/
-def levelOsA (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening :=
-  levelOsAt rd σ Vn c (c.args.map fun k ↦ σ (.n k))
+def levelOsA (lanes : List ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) :
+    List Opening :=
+  levelOsAt lanes rd σ Vn c (c.args.map fun k ↦ σ (.n k))
 
 theorem levelOsA_eq (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) :
-    levelOsA rd σ Vn c = levelOsN rd σ Vn c := by
+    levelOsA gLanes rd σ Vn c = levelOsN rd σ Vn c := by
   rw [levelOsA, levelOsAt, levelOsN, oqsOfA_eq]
 
 /-- `open_stacked`'s tables, as arrays: the lanes of `g^k` (`gLanes`), each candidate's stream
@@ -264,9 +322,9 @@ def whirTabs : WhirTabs := ⟨gLanes, osWordsTab.toArray, osCallsTab.toArray⟩
 (`vsPiOfN`). -/
 def vsPiOfAt (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ)
     (fr : Val) : Proof :=
-  ⟨wordsFrom rd ((σ (.n 27)).limb 0) (cl (σ (.n 27)) (σ (.n 868))) ++
+  ⟨wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 656))) ++
       wordsFrom rd ((fr (.n 8)).limb 0) (T.words.getD m 0),
-    (T.calls.getD m []).flatMap (levelOsA rd fr Vn)⟩
+    (T.calls.getD m []).flatMap (levelOsA T.lanes rd fr Vn)⟩
 
 /-- The child proof, its candidate `m` given: the frame of `open_stacked__L{m}`'s call read once. -/
 def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :
@@ -275,12 +333,12 @@ def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E
 
 /-- **The child proof `verify_sub` checks, off the tables `T`** (`vsPiOfN`). -/
 def vsPiOfA (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  vsPiOfM T rd σ Vn cl (logGTWith T.lanes (σ (.n 1901)) 28)
+  vsPiOfM T rd σ Vn cl (logGTWith T.lanes (σ (.n 1687)) 28)
 
 /-- **Off the tables built, the reader is `vsPiOfN`.** -/
 theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) :
     vsPiOfA whirTabs rd σ Vn cl = vsPiOfN rd σ Vn cl := by
-  have hl : levelOsA rd = levelOsN rd := funext fun σ ↦ funext fun Vn ↦ funext fun c ↦
+  have hl : levelOsA gLanes rd = levelOsN rd := funext fun σ ↦ funext fun Vn ↦ funext fun c ↦
     levelOsA_eq rd σ Vn c
   simp only [vsPiOfA, vsPiOfM, vsPiOfAt, vsPiOfN, whirTabs, logGTWith_gLanes, getD_toArray, hl,
     ← wordsAt_eq_wordsFrom, readN_eq_wordsAt]
