@@ -35,12 +35,12 @@ theorem readsAt_getD' {rd : Reader} {p : E} {xs : List E} {k : ℕ} (h : ReadsAt
 
 variable {rd : Reader} {args : List E}
 
-theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 839 + i) ∧
-    (∀ i < 9, (vsRetVars.getD 6 []).getD i 0 = 849 + i) ∧
-    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 863 + i) ∧
-    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1906 + i) := by decide
+theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 626 + i) ∧
+    (∀ i < 10, (vsRetVars.getD 6 []).getD i 0 = 636 + i) ∧
+    (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 651 + i) ∧
+    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1692 + i) := by decide
 
-theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 9 ∧
+theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 10 ∧
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
 
 set_option maxRecDepth 100000 in

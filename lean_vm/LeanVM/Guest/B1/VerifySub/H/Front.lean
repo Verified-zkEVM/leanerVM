@@ -128,10 +128,10 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The honest front is the run's.** -/
 theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest} {c : Child}
-    (S : ChildSegs bytecode seed c) {lp sq out : E}
+    (S : ChildSegs bytecode seed c) {sq out : E}
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-      (digestHalves seed).2, lp, sq, out])
+      (digestHalves seed).2, sq, out])
     (hws : ∀ i < 10, LoadHolds rd (vsσ rd w args (.n 25)) i (c.proof.stream.getD i 0)) :
     VsFrontH S rd (vsσ rd w args) := by
   have hl : args.length = 6 := by rw [hargs]; rfl
@@ -147,7 +147,7 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     · exact c2.2
   have F := vsH_front (rd := rd) (w := w) hl hc4 hws
   generalize hσ : vsσ rd w args = σ at F hws ⊢
-  have hp : ∀ i < 7, σ (.n i) = args.getD i 0 := fun i hi ↦ by rw [← hσ]; exact vsC_param hl hi
+  have hp : ∀ i < 6, σ (.n i) = args.getD i 0 := fun i hi ↦ by rw [← hσ]; exact vsC_param hl hi
   obtain ⟨hw8, hx8, hx9⟩ := S.stream_getD
   -- the seed
   obtain ⟨seed', pi', es, ep, hcap0⟩ := vs_seed F.hseed (F.hz 8 (by simp)) (F.hz 9 (by simp))
