@@ -176,7 +176,7 @@ theorem cover_bound (hl : DeployedLimits s w) :
 theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
+      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) := by
   have hcov := cover_bound hl
@@ -189,11 +189,11 @@ theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAt fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 0) (cv := hP fs fp seed s w 2) (og := 0)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 0) (rg := hP fs fp seed s w 2)
     (L := s.claims.xmss.length + (xPlan s w).duplicates.length) (n := (hKid s w c).ex)
     (base := (hKid s w c).base) (o := fun j => ((xPlan s w).childSlots.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
-    (by rw [hKid_ex hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
+    (by rw [hKid_ex hc]; simp only [B1.Digest.claimBig, B1.Digest.maxKeys]; omega)
     (by rw [hKid_ex hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
@@ -207,7 +207,7 @@ theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
         have := hlt; rw [List.length_append] at this; exact this
       obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
-      · rw [pow_zero, one_mul, loadHolds_mul_gen_pow, Nat.add_zero,
+      · rw [loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ j = gen ^ (hW s w c + j) from (pow_add _ _ _).symm]
         have := loadHolds_getD r4 (k := ((xPlan s w).childSlots.getD c []).getD j 0)
           (by rw [kid_length_hCover]; omega)
@@ -235,7 +235,6 @@ theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
       have hlt' : ((xPlan s w).childSlots.getD c []).getD j 0 <
           s.claims.xmss.length + (xPlan s w).duplicates.length := by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
-      rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 2) (by omega)
         (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
@@ -248,14 +247,15 @@ theorem kid_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
         (show _ < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
   rw [hKid_cx hc, xmssList_cells]
-  rwa [pow_zero] at this
+  exact this
 
 /-- **Child `c`'s leanSPHINCS list is complete.** -/
 theorem kid_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
-        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+      [(hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        (hKid s w c).base * gen ^ (hKid s w c).ex,
         gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) := by
   have hcov := cover_bound hl
@@ -268,14 +268,14 @@ theorem kid_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAt fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 2)
-    (og := s.claims.xmss.length + (xPlan s w).duplicates.length)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1)
+    (rg := hP fs fp seed s w 2 + (s.claims.xmss.length + (xPlan s w).duplicates.length))
     (L := s.claims.sphincs.length + (sPlan s w).duplicates.length) (n := (hKid s w c).es)
     (base := (hKid s w c).base * gen ^ (hKid s w c).ex)
     (o := fun j => ((sPlan s w).childSlots.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.sphincs.flatMap
       fun c => claimCells c.1.root c.1.parameter c.2)
-    (by rw [hKid_es hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
+    (by rw [hKid_es hc]; simp only [B1.Digest.claimBig, B1.Digest.maxKeys]; omega)
     (by rw [hKid_es hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
@@ -289,7 +289,7 @@ theorem kid_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
         have := hlt; rw [List.length_append] at this; exact this
       obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
-      · rw [← pow_add, loadHolds_mul_gen_pow, Nat.add_zero,
+      · rw [← Nat.add_assoc, loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ (hKid s w c).ex * gen ^ j = gen ^ (hW s w c + hEx w c + j) by
             rw [pow_add, pow_add]; rfl]
         have := loadHolds_getD r4 (k := s.claims.xmss.length + (xPlan s w).duplicates.length +
@@ -330,7 +330,7 @@ theorem kid_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
       exact region_buf fs fp seed s w (i := 1) (by omega)
         (show _ < ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap
           fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega))
-  rw [hKid_cs hc, sphincsList_cells]
+  rw [hKid_cs hc, sphincsList_cells, ← pow_add]
   exact this
 
 /-- The children's statement digests' cells, two a child. -/
@@ -351,15 +351,16 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
       [(digestHalves (statementDigest seed w.children[c].statement)).1,
         (digestHalves (statementDigest seed w.children[c].statement)).2,
-        (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et1,
-        (hm fs fp seed s w).et2, (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []))
+        (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,
+        (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []))
     {c : ℕ} (hc : c < w.children.length) :
     KidOkC fs cert (hLmain fs fp seed s w) (hP fs fp seed s w 8) (hP fs fp seed s w 4)
       (hP fs fp seed s w 5) (hP fs fp seed s w 7)
       (hm fs fp seed s w).a77 (hm fs fp seed s w).a117
       (gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd)) (hm fs fp seed s w).a80
+      ((hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd))
       (gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd))
-      (digestHalves seed).1 (digestHalves seed).2 (hm fs fp seed s w).et1 (hm fs fp seed s w).et2
+      (digestHalves seed).1 (digestHalves seed).2 (hm fs fp seed s w).et
       (hm fs fp seed s w).a400 c (hKid s w c) := by
   have hsh := kid_shapes hbl hrel
   have hb : bytecodeVars = 23 := rfl

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Main.MainGoalsHAg
+public import LeanVM.Guest.B1.Main.MainGoalsHBase
 public import LeanVM.Guest.B1.Main.KidsAt
 public import LeanVM.Protocol.Verifier.Load
 public import LeanVM.Guest.AcceptableChild

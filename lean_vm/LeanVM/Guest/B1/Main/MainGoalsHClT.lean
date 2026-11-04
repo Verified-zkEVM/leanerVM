@@ -37,7 +37,7 @@ variable {fs : String → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w
 theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
+      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (ccHonest (hKid s w c).ex) := by
   have hcov := cover_bound hl
@@ -50,11 +50,11 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
       (w.children.map (·.statement.claims.xmss)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtT fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 0) (cv := hP fs fp seed s w 2) (og := 0)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 0) (rg := hP fs fp seed s w 2)
     (L := s.claims.xmss.length + (xPlan s w).duplicates.length) (n := (hKid s w c).ex)
     (base := (hKid s w c).base) (o := fun j => ((xPlan s w).childSlots.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
-    (by rw [hKid_ex hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
+    (by rw [hKid_ex hc]; simp only [B1.Digest.claimBig, B1.Digest.maxKeys]; omega)
     (by rw [hKid_ex hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
@@ -68,7 +68,7 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
         have := hlt; rw [List.length_append] at this; exact this
       obtain ⟨r1, r2, r4, -⟩ := reads_buf fs fp seed s w hM
       refine ⟨belowLog_of hlt' (by omega), ?_, fun i hi => ?_⟩
-      · rw [pow_zero, one_mul, loadHolds_mul_gen_pow, Nat.add_zero,
+      · rw [loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ j = gen ^ (hW s w c + j) from (pow_add _ _ _).symm]
         have := loadHolds_getD r4 (k := ((xPlan s w).childSlots.getD c []).getD j 0)
           (by rw [kid_length_hCover]; omega)
@@ -115,8 +115,9 @@ theorem kidT_hX (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
 theorem kidT_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ}
     (hc : c < w.children.length) :
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
-        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+      [(hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        (hKid s w c).base * gen ^ (hKid s w c).ex,
         gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (ccHonest (hKid s w c).es) := by
   have hcov := cover_bound hl
@@ -129,14 +130,14 @@ theorem kidT_hS (cert : String → V → ℕ) (hl : DeployedLimits s w) {c : ℕ
       (w.children.map (·.statement.claims.sphincs)) (c := c) (j := j) (by simpa using hc)
       (by simpa using hj)
   have := B1.Digest.child_claim_list_digest_completeAtT fs cert (κ := 16) le_rfl
-    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1) (cv := hP fs fp seed s w 2)
-    (og := s.claims.xmss.length + (xPlan s w).duplicates.length)
+    (Lin := hLmain fs fp seed s w) (eP := hP fs fp seed s w 1)
+    (rg := hP fs fp seed s w 2 + (s.claims.xmss.length + (xPlan s w).duplicates.length))
     (L := s.claims.sphincs.length + (sPlan s w).duplicates.length) (n := (hKid s w c).es)
     (base := (hKid s w c).base * gen ^ (hKid s w c).ex)
     (o := fun j => ((sPlan s w).childSlots.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.sphincs.flatMap
       fun c => claimCells c.1.root c.1.parameter c.2)
-    (by rw [hKid_es hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
+    (by rw [hKid_es hc]; simp only [B1.Digest.claimBig, B1.Digest.maxKeys]; omega)
     (by rw [hKid_es hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
