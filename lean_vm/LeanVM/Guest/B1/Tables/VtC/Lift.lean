@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.FlatLift
 public import LeanVM.Guest.B1.Tables.VtC.RcReads
 public import LeanVM.Guest.B1.Tables.VtC.Kids
+public import LeanVM.Guest.B1.Tables.VtC.Hon
 
 /-!
 # `verify_tables`, placed
@@ -76,7 +77,7 @@ theorem vtEvL_load_mem {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ 
 noncomputable def vtFlat : FlatFn where
   name := "verify_tables"
   fn := vtFound.choose
-  k := 22
+  k := 20
   pre := vtPre
   rets := vtRets
   evL := vtEvL
@@ -105,7 +106,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`verify_tables` is complete, placed**, from its honest valuation on every memory holding its
 layout and its calls by relations loading from that layout. -/
-theorem vt_completeAt {κ : ℕ} (Lin : Layout) (args rets : List E) (hl : args.length = 22)
+theorem vt_completeAt {κ : ℕ} (Lin : Layout) (args rets : List E) (hl : args.length = 20)
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
     (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
