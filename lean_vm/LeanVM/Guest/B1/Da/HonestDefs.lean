@@ -108,12 +108,27 @@ def expOut (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E → Layout → 
 def offOut (Z : ℕ → E) : List E → Layout → Prop := fun rets Lo =>
   ∃ b, rets = [gen ^ b] ∧ (b, offCells Z) ∈ Lo
 
-/-- `da_vector` returns pointers to the powers, the top leaves, the cell factors and the column
-offsets of `z`. -/
+/-- The top tree's run: `da_expand__L14_L7` from `1` over the factors of `z`'s bits `14 … 8`,
+no shifts. -/
+def topRun (z : E) : List E := expRunVals 1 (factorAt (zsVal z) 14) (zsVal z) (fun _ => 0) 14 7
+
+/-- `da_vector` returns pointers to the powers, the top leaves (word `128` of the top tree's run
+in `da_expand`'s frame), the cell factors and the column offsets of `z`. -/
 def vecOut (z : E) : List E → Layout → Prop := fun rets Lo =>
-  ∃ bz bt bc bo, rets = [gen ^ bz, gen ^ bt, gen ^ bc, gen ^ bo] ∧ (bz, zsCells z) ∈ Lo ∧
-    (bt, (List.range 128).map (topLeaf z)) ∈ Lo ∧ (bc, facCells (zsVal z) 7 8) ∈ Lo ∧
-    (bo, offCells (zsVal z)) ∈ Lo
+  ∃ bz bt bc bo, rets = [gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] ∧ (bz, zsCells z) ∈ Lo ∧
+    (bt, topRun z) ∈ Lo ∧ (bc, facCells (zsVal z) 7 8) ∈ Lo ∧ (bo, offCells (zsVal z)) ∈ Lo
+
+/-! ## A returned buffer's base -/
+
+/-- The base `b` a callee's result `o` satisfies `P b` at, chosen; `0` if none. -/
+noncomputable def outB (P : ℕ → List E → Layout → Prop) (o : List E × Layout) : ℕ :=
+  open Classical in if h : ∃ b, P b o.1 o.2 then Classical.choose h else 0
+
+theorem outB_spec {P : ℕ → List E → Layout → Prop} {o : List E × Layout} (h : ∃ b, P b o.1 o.2) :
+    P (outB P o) o.1 o.2 := by
+  unfold outB
+  simp only [h, ↓reduceDIte]
+  exact Classical.choose_spec h
 
 end
 end LeanVM.Guest.B1.Da
