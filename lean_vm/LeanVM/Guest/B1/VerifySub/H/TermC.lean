@@ -143,15 +143,29 @@ theorem regionL_of {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **The terminal is complete on an honest child**, entered on what `certify_placement` and
-`open_stacked` return (`hwl`: the opening's terminal point has `μ` coordinates, `H/WhirLen`). -/
-theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (bs : List ℕ) (sqE : ℕ)
+/-- The terminal's arguments on an honest child at the buffers `B`. -/
+noncomputable def ChildSegs.termArgsH {bytecode : List K} {seed : Digest} {c : Child}
+    (S : ChildSegs bytecode seed c) (B : TermBases) : List E :=
+  termArgs B S.H.rm (gen ^ S.μ) (gen ^ S.H.n) (gen ^ S.logMem) (gen ^ S.τ) S.lam S.w.inner
+    S.w.residual S.w.target
+
+/-- **The terminal as `verify_sub`'s thirteenth callee**, entered on what `certify_placement` and
+`open_stacked` return (`hwl`: the opening's terminal point has `μ` coordinates, `H/WhirLen`): any
+property `Q` of a call of `check_opening_terminal` on its honest arguments at buffers `B`, words
+`Lin` holding its precondition and its regions. -/
+theorem term_via {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (bs : List ℕ) (sqE : ℕ)
     (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
-    (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true) :
-    CompleteAtD fs cert κ ((S.kids bs sqE).getD 12 noKid pv).f
-      ((S.kids bs sqE).getD 12 noKid pv).Lin ((S.kids bs sqE).getD 12 noKid pv).args
-      ((S.kids bs sqE).getD 12 noKid pv).Out := by
+    (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true)
+    (Q : String → Main.Layout → List E → (List E → Main.Layout → Prop) → Prop)
+    (hQ : ∀ (Lin : Main.Layout) (B : TermBases),
+      (∀ rd, LowDef κ rd → Main.MemL rd Lin → TermPre rd S.layout S.bus S.claims
+        ⟨qkeccak, S.op, S.word⟩ S.lam S.kpt (ringCoefficients S.rchs) S.w.point (S.termArgsH B)) →
+      (∀ i, TermRegion B S.bus.point.length S.H.n (S.layout.tableLogHeights.getD opKeccak 0) i →
+        Main.RegionL Lin i) →
+      Q "check_opening_terminal" Lin (S.termArgsH B) (Returns [])) :
+    Q ((S.kids bs sqE).getD 12 noKid pv).f ((S.kids bs sqE).getD 12 noKid pv).Lin
+      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out := by
   have hok : S.termOk pv := @of_decide_eq_true _ (Classical.propDecidable _) ht
   have hLin : ((S.kids bs sqE).getD 12 noKid pv).Lin =
       (ChildSegs.cpRes pv).2 ++ (ChildSegs.osRes pv).2 ++ S.termLin bs sqE := by
@@ -168,7 +182,7 @@ theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     rw [hr9, hr11]
     rfl
   rw [hLin, hargs, hL9, hL11]
-  show CompleteAtD fs cert κ "check_opening_terminal" _ _ (Returns [])
+  show Q "check_opening_terminal" _ _ (Returns [])
   have hμ := S.μ_bounds hbl
   have hpl := (S.runG' hbl).2.2.1
   obtain ⟨hok', -, -, -⟩ := S.H_run hbl
@@ -177,18 +191,7 @@ theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   have hτ := S.τ_bounds hbl
   obtain ⟨-, hopl, hkpl, -, -⟩ := S.runK' hbl
   have hμs : S.μs ≤ 28 := S.hmu28
-  refine check_opening_terminal_completeAt κ (by omega) (vsTermB bs sqE e295 pb pb1) _
-    (layout := S.layout) (bus := S.bus) (claims := S.claims) (out := ⟨qkeccak, S.op, S.word⟩)
-    (lam := S.lam) (ringPoint := S.kpt) (coeffs := ringCoefficients S.rchs) (x := S.w.point)
-    (nc := S.H.n) (by
-      obtain ⟨t, ht, e⟩ := Tables.VtHonest.vtH_n_ex (H := S.H) S.hrowsL
-      have := S.hh29 hbl (Tables.vtHt S.rowsN t) (by
-        show Tables.vtHt S.rowsN t ∈ Tables.tableHeightsOf S.rowsN
-        rw [Tables.vt_tableHeights_eq S.hrowsL]
-        exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
-      have e' : Tables.vtHt S.rowsN t = S.H.n := e
-      omega)
-    rfl (fun rd _ hm ↦ ?_) (fun i hi ↦ ?_) (by rw [hbp, hpl]; omega) (S.fin hbl)
+  refine hQ _ (vsTermB bs sqE e295 pb pb1) (fun rd _ hm ↦ ?_) (fun i hi ↦ ?_)
   · obtain ⟨h12, hT⟩ := Main.memL_append.mp hm
     obtain ⟨hC, hO⟩ := Main.memL_append.mp h12
     exact vsH_termPre hbl S bs sqE hwl hC
@@ -219,6 +222,44 @@ theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
         (by simp) h.1 (by simp [hwl, B1.Whir.pointCap]; omega)
     · exact regionL_of (q := (pb1, S.w.point.map (1 + ·) ++ List.replicate (B1.Whir.pointCap - S.μs) 1))
         (by simp) h.1 (by simp [hwl, B1.Whir.pointCap]; omega)
+
+namespace ChildSegs
+
+variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
+
+/-- The batch's round count is at most `40`. -/
+theorem H_n_le40 (hbl : bytecode.length = 2 ^ 23) : S.H.n ≤ 40 := by
+  obtain ⟨t, ht, e⟩ := Tables.VtHonest.vtH_n_ex (H := S.H) S.hrowsL
+  have := S.hh29 hbl (Tables.vtHt S.rowsN t) (by
+    show Tables.vtHt S.rowsN t ∈ Tables.tableHeightsOf S.rowsN
+    rw [Tables.vt_tableHeights_eq S.hrowsL]
+    exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
+  have e' : Tables.vtHt S.rowsN t = S.H.n := e
+  omega
+
+/-- The bus point has at most `34` coordinates. -/
+theorem bus_point_le34 (hbl : bytecode.length = 2 ^ 23) : S.bus.point.length ≤ 34 := by
+  have hμ := S.μ_bounds hbl
+  have hpl := (S.runG' hbl).2.2.1
+  obtain ⟨hok', -, -, -⟩ := S.H_run hbl
+  have hbus : S.bus = S.H.busH := (Tables.vt_spec hok').2.1
+  have hbp : S.bus.point = S.point := by rw [hbus]; rfl
+  rw [hbp, hpl]; omega
+
+end ChildSegs
+
+/-- **The terminal is complete on an honest child**, entered on what `certify_placement` and
+`open_stacked` return (`hwl`: the opening's terminal point has `μ` coordinates, `H/WhirLen`). -/
+theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (bs : List ℕ) (sqE : ℕ)
+    (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
+    (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true) :
+    CompleteAtD fs cert κ ((S.kids bs sqE).getD 12 noKid pv).f
+      ((S.kids bs sqE).getD 12 noKid pv).Lin ((S.kids bs sqE).getD 12 noKid pv).args
+      ((S.kids bs sqE).getD 12 noKid pv).Out :=
+  term_via hbl S bs sqE hwl pv ht (CompleteAtD fs cert κ) fun _ B hpre hreg ↦
+    check_opening_terminal_completeAt κ (by omega) B _ (nc := S.H.n) (S.H_n_le40 hbl) rfl hpre hreg
+      (S.bus_point_le34 hbl) (S.fin hbl)
 
 end
 end LeanVM.Guest.B1.VerifySub
