@@ -79,15 +79,15 @@ theorem name_verify_lean_xmss : decoderFunctionName 20 = "verify_lean_xmss" := b
 theorem name_sp_wots : decoderFunctionName 21 = "sp_wots" := by decide +kernel
 theorem name_verify_sig_lean_sphincs : decoderFunctionName 22 = "verify_sig_lean_sphincs" := by
   decide +kernel
-theorem name_da_verify : decoderFunctionName 27 = "da_verify" := by decide +kernel
-theorem name_da_verify_column : decoderFunctionName 29 = "da_verify_column" := by decide +kernel
-theorem name_da_verify_cell : decoderFunctionName 30 = "da_verify_cell" := by decide +kernel
-theorem name_aggregate_claims : decoderFunctionName 33 = "aggregate_claims" := by decide +kernel
-theorem name_da_expand_L7_L8 : decoderFunctionName 375 = "da_expand__L7_L8" := by decide +kernel
-theorem name_loop21 : decoderFunctionName 376 = "__loop21" := by decide +kernel
+theorem name_da_verify : decoderFunctionName 29 = "da_verify" := by decide +kernel
+theorem name_da_verify_column : decoderFunctionName 31 = "da_verify_column" := by decide +kernel
+theorem name_da_verify_cell : decoderFunctionName 32 = "da_verify_cell" := by decide +kernel
+theorem name_aggregate_claims : decoderFunctionName 35 = "aggregate_claims" := by decide +kernel
+theorem name_da_expand_L7_L8 : decoderFunctionName 404 = "da_expand__L7_L8" := by decide +kernel
+theorem name_loop25 : decoderFunctionName 405 = "__loop25" := by decide +kernel
 
-/-- `open_stacked__L{m}` is function `296 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 296 + m
+/-- `open_stacked__L{m}` is function `304 + m`. -/
+def openStackedIdx (m : ℕ) : ℕ := 304 + m
 
 end
 end LeanVM.Guest.Fast
