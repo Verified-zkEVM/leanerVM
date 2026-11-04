@@ -1,4 +1,5 @@
 import LeanVM.Cost.FastLib
+import LeanVM.Guest.Fast.Sphincs
 import Statement.Theorems
 
 /-!
@@ -80,11 +81,6 @@ cost_compile sphincsRandomizer := sphincsRandomizer
 def slayerOf (n : ℕ) (r : BitVec 128) (l : Sphincs.Layer) : Sphincs.LayerSignature l :=
   ⟨BitVec.ofNat 32 (n + l.val), fun _ ↦ r, fun j ↦ BitVec.ofNat 128 j.val⟩
 cost_compile slayerOf := slayerOf
-
-/-- The layers as the reader builds them (`depFin3`), stated at `Fin 3` (as
-`Cost/Decoder/Signatures.lean`'s `spLayersEnc`). -/
-instance : MachineEncoding ((i : Fin 3) → Sphincs.LayerSignature i) :=
-  @depFinEncoding 3 (fun i ↦ Sphincs.LayerSignature i) fun i ↦ instMachineEncodingLayerSignature_1 i
 
 /-- A signature whose layers are built as the reader builds them (`depFin3`). -/
 def mkSphincsSig (n : ℕ) (r p : BitVec 128) : Sphincs.Signature :=

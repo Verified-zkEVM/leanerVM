@@ -81,6 +81,16 @@ cell) and its return (the leaf). -/
 def spWotsArgs (σ : Val) (l : ℕ) : List E := [σ (.n 2), σ (.n (spAt l)), σ (.n (spEnc l))]
 def spWotsRets (σ : Val) (l : ℕ) : List E := [σ (.n (spLeaf l))]
 
+/-- **The layers as the reader builds them** (`LeanVM.Cost.depFin3`, a dependent function of
+`Fin 3`), encoded as the statement encodes a signature's layers: the array of their values
+(`depFinEncoding`). Stated here, at `Fin 3`: `depFin3`'s domain is `Fin 3`, which instance search
+does not unify with `Sphincs.Layer = Fin layerCount` (`layerCount` is not reducible), so neither
+`depFinEncoding` nor the statement's encoding of a layer's signature is found for it; and
+`Cost/Rules.lean`, where `depFin3` is, does not see the statement's schemes. -/
+instance layersEncodingFin3 : LeanVM.Cost.MachineEncoding ((i : Fin 3) → Sphincs.LayerSignature i) :=
+  @LeanVM.Cost.depFinEncoding 3 (fun i ↦ Sphincs.LayerSignature i)
+    fun i ↦ LeanVM.Cost.instMachineEncodingLayerSignature_1 i
+
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks**, off its valuation `σ` and its
 three `sp_wots` frames. -/
 def sphincsSigOfA (T : SpTabs) (σ w0 w1 w2 : Val) : Sphincs.Signature :=
