@@ -36,17 +36,17 @@ def armBaseN (sz n : ℕ) (fold : Bool) : ℕ → ℕ → ℕ → ℕ
 /-- The selector cell of group `p` of a codeword from `b` (`(cwState W b p).2.2`). -/
 def selN (sz b : ℕ) : ℕ → ℕ
   | 0 => b
-  | p + 1 => armBaseN sz 3 (p == 0) 0 64 (selN sz b p + 5)
+  | p + 1 => armBaseN sz 3 (p == 0) 0 64 (selN sz b p + 6)
 
 /-- The slot of chain `r`'s step `s` in a group from `b` (`slotsT`). -/
 def slotsN (sz : ℕ) (fold : Bool) (b r s : ℕ) : ℕ :=
-  b + 5 + (if fold then 1 else 0) + (1 + 3 * (sz + 13)) * r + 1 + (sz + 13) * s + sz
+  b + 6 + (if fold then 1 else 0) + (1 + 3 * (sz + 13)) * r + 1 + (sz + 13) * s + sz
 
 /-- **Chain `r`'s start** in arm `k` of a group of `n` digits whose selector is `sel`. -/
 def startN (sz n : ℕ) (fold : Bool) (sel k r : ℕ) : ℕ :=
   if k / 4 ^ r % 4 = 3 then slotsN sz fold sel r 2
   else walkBaseN (if k = 0 then sz + 13 else sz) k 0 r
-    (if fold then armBaseN sz n fold 0 k (sel + 5) + 1 else armBaseN sz n fold 0 k (sel + 5))
+    (if fold then armBaseN sz n fold 0 k (sel + 6) + 1 else armBaseN sz n fold 0 k (sel + 6))
 
 /-! ## Tables -/
 

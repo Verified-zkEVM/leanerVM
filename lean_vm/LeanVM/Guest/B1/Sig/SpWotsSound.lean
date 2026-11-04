@@ -23,7 +23,7 @@ dispatch takes the arm of its digit word (`spGroupsT_sound`, `spGroupT_sound`), 
 their tips from the starts (`spArmK_sound`); the product is `g` to the digits' sum, asserted to be
 `g^128`, and the encoding their base-4 number, asserted to be the third argument, whose digits they
 therefore are; the leaf is the `keccak_cells` of `P`, `at + TW_LEAF` and the tips (`kMsg_sound`,
-its padding run moved, `withPad_sound`). At an address `at = keyAddressCell layer tree leaf` this is
+over the padding run the first group sets). At an address `at = keyAddressCell layer tree leaf` this is
 `wotsLeafOf` (`wotsLeafOf_cells`).
 -/
 
@@ -57,11 +57,10 @@ theorem spBody_split : spBody = spPowers ++ (spGs.1 ++ (spLast.1 ++ (spChecks ++
   rw [spBody, spChecks, spGs_eq, spPowers]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
 
-theorem spLeafK_atoms : atomsOnly spLeafK.1 = true :=
-  atomsOnly_withPad (kMsg_atoms _ _ _ _ _ _)
+theorem spLeafK_atoms : atomsOnly spLeafK.1 = true := kMsg_atoms _ _ _ _ _ _
 
 /-- **The tips, the product and the encoding** of the codeword, its groups' atoms holding. -/
-theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (3 + s)) = gen ^ s)
+theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (3 + s)) = gen ^ s) (hpad : PadOK σ spPad)
     (hg : ∀ p < 22, SpGroupOK rd σ p) :
     (∀ i < 64, σ (spTip i) = chainT (spStepF (σ (.n 0)) (σ (.n 1))) i (3 - spDigit σ i) (spDigit σ i)
       (σ (spStart σ i))) ∧
@@ -77,7 +76,7 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (3 + s)) = gen ^ s)
     intro p hp
     obtain ⟨k, hk, hx, ha⟩ := hg p hp
     rw [spDigitWord_eq hk hx]
-    exact ⟨hk, spArmK_sound (hN p).1 (hN p).2 (spLayout_all hp hk) ha⟩
+    exact ⟨hk, spArmK_sound hpad ha⟩
   refine ⟨fun i hi => ?_, ?_⟩
   · have hp : i / 3 < 22 := by omega
     have hr : i % 3 < spN (i / 3) := by
@@ -143,9 +142,10 @@ theorem sp_wots_sound {rets : List E}
   -- the groups
   have s1 := s0.2
   rw [spGs_fst] at s1
-  obtain ⟨s2, hg⟩ := spGroupsT_sound (C := C) (rd := rd) (σ := σ) 21 0 (by norm_num) s1
+  obtain ⟨s2, hpad, hg⟩ := spGroupsT_sound (C := C) (rd := rd) (σ := σ) 21 0 (by norm_num) s1
+  have hpad := hpad rfl (by norm_num)
   rw [spLast_eq] at s2
-  obtain ⟨s3, kL, hkL, hxL, haL⟩ := spGroupT_sound s2
+  obtain ⟨s3, -, kL, hkL, hxL, haL⟩ := spGroupT_sound s2
   have hgrp : ∀ p < 22, SpGroupOK rd σ p := by
     intro p hp
     by_cases hp21 : p < 21
@@ -153,7 +153,7 @@ theorem sp_wots_sound {rets : List E}
     · have : p = 21 := by omega
       subst this
       exact ⟨kL, by simpa [spN] using hkL, hxL, by simpa [spN] using haL⟩
-  obtain ⟨htip, hprod, henc⟩ := spCodeword_sound hpow hgrp
+  obtain ⟨htip, hprod, henc⟩ := spCodeword_sound hpow hpad hgrp
   -- the checks and the leaf
   have hca : atomsOnly (spChecks ++ spLeafK.1) = true := by
     rw [atomsOnly_append, spLeafK_atoms]; rfl
@@ -183,42 +183,18 @@ theorem sp_wots_sound {rets : List E}
     rw [← hprod, (Value.e_add_eq_zero_iff).mp eP, eC, spTarget_eq]
   -- the leaf's message
   have hl := hc.right
-  have hlk : spLeafK.1 = (withPad spVPad isKeccak spLeafM.1).1 := rfl
-  rw [hlk] at hl
-  obtain ⟨hlA, hlP, hl5⟩ := withPad_sound hl
-  obtain ⟨hsome, hcells, hPo, hoX⟩ := spLeafPad
-  set P := padBase isKeccak spLeafM.1 with hPdef
-  have hren : padRenOf spVPad isKeccak spLeafM.1 = padShift spVPad P := by
-    unfold padRenOf
-    rw [hPdef, padBase]
-    cases hf : spLeafM.1.findIdx? isKeccak with
-    | none => rw [hf] at hsome; exact absurd hsome (by simp)
-    | some i => rfl
-  rw [hren] at hlA
   have hlenC : spLeafCells.length = 66 := by decide +kernel
-  have hk := kMsg_sound (padOK_shift (X := spVPad) (hlP hsome)) (cells := spLeafCells.map KC.cell)
+  have hk := kMsg_sound hpad (cells := spLeafCells.map KC.cell)
     (len := 1056) (tailRun := false) (out := none) (b := spC + 3) (fun h => absurd h (by simp))
-    hlA (by simp [hlenC]) (fun j hj => by
+    hl (by simp [hlenC]) (fun j hj => by
       rw [List.getD_eq_default _ _ (by rw [length_cellsBytes]; simp [hlenC]; omega)])
-  have hcv : (spLeafCells.map KC.cell).map (KC.val (σ ∘ padShift spVPad P)) = spLeafCells.map σ := by
+  have hcv : (spLeafCells.map KC.cell).map (KC.val σ) = spLeafCells.map σ := by
     rw [List.map_map]
-    apply List.map_congr_left
-    intro v hv
-    obtain ⟨hv1, hv2⟩ := hcells v hv
-    simp only [Function.comp, KC.val]
-    rw [hv1, padShift_below hv2 (by omega)]
-  have hout : (σ ∘ padShift spVPad P) (.n spLeafM.2.2) = σ (.n spLeafK.2.2) := by
-    have e : padShift spVPad P (.n spLeafM.2.2) = .n spLeafK.2.2 := by
-      rw [padShift_above (k := spLeafM.2.2) hPo (by omega)]
-      rw [spLeafK, hl5]
-      simp only [hsome, ↓reduceIte]
-    simp only [Function.comp, e]
+    rfl
   have htake : (cellsBytes (spLeafCells.map σ)).take 1056 = cellsBytes (spLeafCells.map σ) := by
     rw [List.take_of_length_le (by rw [length_cellsBytes]; simp [hlenC])]
   rw [hcv, htake] at hk
-  have hleaf : σ (.n spLeafK.2.2) = (hcell (spLeafCells.map σ)).1 := by
-    rw [← hout]
-    exact congrArg Prod.fst hk
+  have hleaf : σ (.n spLeafK.2.2) = (hcell (spLeafCells.map σ)).1 := congrArg Prod.fst hk
   -- the return
   have s5 := s4.2
   simp only [Stmt.HoldsList, Stmt.Holds, copyS, Atom.Holds, List.map_cons, List.map_nil] at s5

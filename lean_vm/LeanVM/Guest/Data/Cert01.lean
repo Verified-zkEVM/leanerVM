@@ -161,7 +161,7 @@ noncomputable def cert24 : Check.Cert where
   nret := 3
   callees := []
   pre := []
-  post := [(4, 17)]
+  post := [(5, 17)]
   mem := []
   sem := []
   cuts := []
@@ -214,7 +214,7 @@ noncomputable def cert27 : Check.Cert where
   ins := [[]]
   nret := 2
   callees := [351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369]
-  pre := []
+  pre := [(8, 17)]
   post := []
   mem := []
   sem := []
@@ -232,7 +232,7 @@ noncomputable def cert28 : Check.Cert where
   ins := [[]]
   nret := 2
   callees := [370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388]
-  pre := []
+  pre := [(8, 17)]
   post := []
   mem := []
   sem := []
@@ -5220,7 +5220,7 @@ noncomputable def cert302 : Check.Cert where
   nret := 1
   callees := [5]
   pre := []
-  post := [(5, 34)]
+  post := [(4, 34)]
   mem := []
   sem := []
   cuts := []
@@ -5238,7 +5238,7 @@ noncomputable def cert303 : Check.Cert where
   nret := 1
   callees := [5]
   pre := []
-  post := [(5, 34)]
+  post := [(4, 34)]
   mem := []
   sem := []
   cuts := []

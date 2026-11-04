@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsData1
 
-  `sp_wots` in the guest's core IR agrees with the template `spBody` on digit groups 11 to 21, the checks and the leaf (statements 54 on).
+  `sp_wots` in the guest's core IR agrees with the template `spBody` on digit groups 11 to 21, the checks and the leaf (statements 75 on).
 -/
 
 module
@@ -17,51 +17,47 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 open scoped Dec in
-theorem spBody_slice_54 : (Data.core20.body.drop 54).take 4 = (spBody.drop 54).take 4 := by
+theorem spBody_slice_70 : (Data.core20.body.drop 70).take 5 = (spBody.drop 70).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_58 : (Data.core20.body.drop 58).take 4 = (spBody.drop 58).take 4 := by
+theorem spBody_slice_75 : (Data.core20.body.drop 75).take 5 = (spBody.drop 75).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_62 : (Data.core20.body.drop 62).take 4 = (spBody.drop 62).take 4 := by
+theorem spBody_slice_80 : (Data.core20.body.drop 80).take 5 = (spBody.drop 80).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_66 : (Data.core20.body.drop 66).take 4 = (spBody.drop 66).take 4 := by
+theorem spBody_slice_85 : (Data.core20.body.drop 85).take 5 = (spBody.drop 85).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_70 : (Data.core20.body.drop 70).take 4 = (spBody.drop 70).take 4 := by
+theorem spBody_slice_90 : (Data.core20.body.drop 90).take 5 = (spBody.drop 90).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_74 : (Data.core20.body.drop 74).take 4 = (spBody.drop 74).take 4 := by
+theorem spBody_slice_95 : (Data.core20.body.drop 95).take 5 = (spBody.drop 95).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_78 : (Data.core20.body.drop 78).take 4 = (spBody.drop 78).take 4 := by
+theorem spBody_slice_100 : (Data.core20.body.drop 100).take 5 = (spBody.drop 100).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_82 : (Data.core20.body.drop 82).take 4 = (spBody.drop 82).take 4 := by
+theorem spBody_slice_105 : (Data.core20.body.drop 105).take 5 = (spBody.drop 105).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_86 : (Data.core20.body.drop 86).take 4 = (spBody.drop 86).take 4 := by
+theorem spBody_slice_110 : (Data.core20.body.drop 110).take 5 = (spBody.drop 110).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_90 : (Data.core20.body.drop 90).take 4 = (spBody.drop 90).take 4 := by
+theorem spBody_slice_115 : (Data.core20.body.drop 115).take 5 = (spBody.drop 115).take 5 := by
   decide +kernel
 
 open scoped Dec in
-theorem spBody_slice_94 : (Data.core20.body.drop 94).take 4 = (spBody.drop 94).take 4 := by
-  decide +kernel
-
-open scoped Dec in
-theorem spBody_drop_98 : Data.core20.body.drop 98 = spBody.drop 98 := by
+theorem spBody_drop_120 : Data.core20.body.drop 120 = spBody.drop 120 := by
   decide +kernel
 
 end
