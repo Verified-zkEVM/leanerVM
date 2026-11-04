@@ -60,6 +60,37 @@ theorem osLamPow_complete {lvl lam n k : ℕ} (hd : digitsVal (osPowDigits n) 1 
   · simp only [osLamPow]
     rw [hp.2, hd, el]
 
+theorem osPowSteps_lt (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), acc < k →
+    (osPowSteps x ds acc k).2 < k + ds.length + (ds.filter id).length
+  | [], _, _, h => by simp [osPowSteps]; omega
+  | true :: ds, acc, k, _ => by
+    have := osPowSteps_lt x ds (k + 1) (k + 2) (by omega)
+    simp only [osPowSteps, ↓reduceIte, List.length_cons, List.filter_cons_of_pos (show id true = true from rfl)]
+    omega
+  | false :: ds, acc, k, _ => by
+    have := osPowSteps_lt x ds k (k + 1) (by omega)
+    simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, List.length_cons,
+      List.filter_cons_of_neg (show ¬ id false = true by decide)]
+    omega
+
+/-- `λ^n`'s value lies below the block's `1`. -/
+theorem osLamPow_lt {lvl lam n k : ℕ} (h : lam < k) : (osLamPow lvl lam n k).2.1 < k + osPowLen n := by
+  have := osPowSteps_lt lam (osPowDigits n) lam k h
+  simp only [osLamPow, osPowLen]
+  omega
+
+/-- **`β·λ^n` stored in `level_betas`, honestly.** -/
+theorem osBeta_complete {σ : Val} {bk beta lamN lvl : ℕ} (hbe : beta < bk) (hn : lamN < bk)
+    (hB : osBetas < bk) (hmem : LoadHolds rd (σ (.n osBetas)) lvl (σ (.n beta) * σ (.n lamN))) :
+    BlkF C rd σ bk (bk + 1) (fun _ ↦ σ (.n beta) * σ (.n lamN))
+      [.atom (.mul (.n bk) (.n beta) (.n lamN)), .atom (.load (.n bk) (.n osBetas) lvl)]
+      (fun σ' ↦ AgreeBelow bk σ σ') := by
+  intro σ' ha hv
+  have v := hv bk le_rfl (by omega)
+  refine ⟨?_, ha⟩
+  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
+  exact ⟨by rw [v, ha _ hbe, ha _ hn], by rw [v, ha _ hB]; exact hmem⟩
+
 /-- The out-of-domain glue's values. -/
 def oodGlueVals (σ : Val) (s : OsSt) (lam : ℕ) (y c0 c2 : E) : List E :=
   let l := σ (.n lam)

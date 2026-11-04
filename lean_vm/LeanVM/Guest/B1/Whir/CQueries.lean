@@ -31,6 +31,10 @@ theorem rangeVals_sub {σ : Val} {k k' a b : ℕ} {f g : ℕ → E} (h : RangeVa
     (ha : k ≤ a) (hb : b ≤ k') (hfg : ∀ i, a ≤ i → i < b → f i = g i) : RangeVals σ a b g :=
   fun i h1 h2 ↦ (h i (by omega) (by omega)).trans (hfg i h1 h2)
 
+theorem matsBelow_mono {K K' : ℕ} {mats : List OsMat} (h : MatsBelow K mats) (hK : K ≤ K') :
+    MatsBelow K' mats := fun m hm ↦ by
+  obtain ⟨h1, h2, h3⟩ := h m hm; exact ⟨by omega, by omega, by omega⟩
+
 /-- The values of `osMatP plan mats base off k`: the distance's power, then the pointer. -/
 def matPVal (σ : Val) (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (base off k i : ℕ) : E :=
   if i = k then gw (osMatSD plan mats base off).2 else σ (.n base) * gw off
