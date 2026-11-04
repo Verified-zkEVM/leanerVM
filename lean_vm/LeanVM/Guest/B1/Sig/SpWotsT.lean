@@ -32,7 +32,7 @@ block's `KECCAK`.
 * `k48At`, `spW`: the chain step, the address `at + (TW_CHAIN + i·2^32 + s·2^61)` and
   `keccak([pp, a], [v, 0], walks[o:o + 13], len=48)` (`walk`, `G:3381-3386`);
 * `padRun`, `padShift`, `withPad`: the padding run where the compiler allocates it;
-* `spArmT`, `spArmsT`, `spGroupT`, `spGroupsT`: an arm, a group's arms (arm `0` lays out the
+* `spArmT`, `spArmK`, `spArmsT`, `spGroupT`, `spGroupsT`: an arm, arm `k` of a group, a group's arms (arm `0` lays out the
   chains' slots and the group's outputs, the others write them), a group, the groups;
 * `spLeafCells`, `spBody`: the leaf's cells and the body: the powers, the groups, the encoding asserted to be
   `encoding`, the digit product to be `g^128` (`SP_TARGET_SUM`), the leaf hashed at
@@ -123,18 +123,20 @@ def spArmT (first n : Nat) (fold : Bool) (slots : Nat → Nat → Nat) (prodIn e
   let w := withPad spVPad isTopConst a.1
   (w.1, a.2 + w.2)
 
-/-- Arms `k ..< k + m` of the group from `B`, from base `b`: arm `0` with the slots and outputs as
-the shared template lays them out (moved by its run), the others writing the real ones; the arms
-and the next base. -/
+/-- Arm `k` of the group from `B`, from base `b`: arm `0` with the slots and outputs as the shared
+template lays them out (moved by its run), the others writing the real ones. -/
+def spArmK (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) : List Stmt × Nat :=
+  if k = 0 then
+    spArmT first n fold (slotsT spW fold B) prodIn encIn (prodT spW fold n B) (encT spW fold n B) 0 b
+  else spArmT first n fold (spSlot fold B) prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) k b
+
+/-- Arms `k ..< k + m` of the group from `B`, from base `b`; arm `0` allocates the outputs after its
+walks. The arms and the next base. -/
 def spArmsT (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) :
     Nat → Nat → Nat → List (List Stmt) × Nat
   | 0, _, b => ([], b)
   | m + 1, k, b =>
-      let a := if k = 0 then
-          spArmT first n fold (slotsT spW fold B) prodIn encIn (prodT spW fold n B) (encT spW fold n B)
-            0 b
-        else spArmT first n fold (spSlot fold B) prodIn encIn (.n (spProd fold n B))
-          (.n (spEnc fold n B)) k b
+      let a := spArmK first n fold B prodIn encIn k b
       let rest := spArmsT first n fold B prodIn encIn m (k + 1) (if k = 0 then a.2 + 2 else a.2)
       (a.1 :: rest.1, rest.2)
 
