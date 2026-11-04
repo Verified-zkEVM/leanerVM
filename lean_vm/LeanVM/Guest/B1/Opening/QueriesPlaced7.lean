@@ -7,7 +7,6 @@
 
 module
 
-public import LeanVM.Guest.B1.Opening.QueriesComplete6
 public import LeanVM.Guest.B1.Opening.QueriesPlaced6
 
 /-!

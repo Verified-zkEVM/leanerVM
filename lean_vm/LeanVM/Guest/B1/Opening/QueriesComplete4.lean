@@ -44,7 +44,7 @@ namespace QD
 structure Ok (d : QD) (rd : Reader) (wp bpv : E) : Prop where
   hsibs : d.sibs.length = d.s.pd
   hrow : d.row.length = d.s.R
-  hmem : d.MemOk rd bpv
+  hmem : (d.wd bpv).MemOk rd
   hw : ∀ l < d.s.lo + d.s.I / d.s.lo, LoadHolds rd wp l (d.w l)
   hq : d.q < 2 ^ (d.s.pd + d.s.cd)
 
@@ -87,44 +87,80 @@ theorem oqRow_eq (hrow : d.row.length = d.s.R)
   rw [hv _ (by omega) (by omega), val_row d hi, QD.rw, limb_ofK]
   simp [List.getD_eq_getElem?_getD, h2]
 
-/-- **One query holds at the honest values**, and its value is the row's dot product. -/
-theorem query_complete (hs : d.s.RowShape) (hpd : 1 ≤ d.s.pd) (hcd : 2 ≤ d.s.cd)
+/-- The query's statements but its call of the walk: atoms. -/
+theorem oqQueryT_eq (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ) (walk : String) :
+    oqQueryT s bp cap flags wp b emit pr walk =
+      (oqRowT b s.R ++ oqPacksT b s.R ++ oqDotT s wp b ++
+        (if emit then oqPadT (oqK1 b s.R + s.D) else []) ++ oqLeafT s b (oqPr s b emit pr) (oqKL s b emit)) ++
+      [.call walk [.n (oqOut s (oqKL s b emit) (s.B - 1) 0), .n (oqOut s (oqKL s b emit) (s.B - 1) 1),
+        bp, cap, flags] []] := rfl
+
+/-- **One query's atoms hold at the honest values.** -/
+theorem query_atoms (hs : d.s.RowShape) {wp : V} {bpv : E} (hok : d.Ok rd (σ wp) bpv) (hv : d.Hv σ)
+    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0) :
+    AllAtoms (oqRowT d.b d.s.R ++ oqPacksT d.b d.s.R ++ oqDotT d.s wp d.b ++
+        (if d.emit then oqPadT (oqK1 d.b d.s.R + d.s.D) else []) ++ oqLeafT d.s d.b d.prV d.kL) ∧
+      ∀ a, Stmt.atom a ∈ (oqRowT d.b d.s.R ++ oqPacksT d.b d.s.R ++ oqDotT d.s wp d.b ++
+        (if d.emit then oqPadT (oqK1 d.b d.s.R + d.s.D) else []) ++ oqLeafT d.s d.b d.prV d.kL) →
+        a.Holds rd σ := by
+  refine ⟨allAtoms_append (allAtoms_append (allAtoms_append
+      (allAtoms_append (oqRowT_atoms _ _) (oqPacksT_atoms _ _)) (oqDotT_atoms _ _ _)) ?_)
+      (oqLeafT_atoms _ _ _ _), fun a ha => ?_⟩
+  · split
+    · exact oqPadT_atoms _
+    · exact allAtoms_nil
+  · simp only [List.mem_append] at ha
+    rcases ha with ((((ha | ha) | ha) | ha) | ha)
+    · simp only [oqRowT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+      subst ha
+      trivial
+    · exact d.oqPacks_complete hv a ha
+    · exact d.oqDot_complete hs hv hok.hw a ha
+    · cases he : d.emit
+      · simp [he] at ha
+      · simp only [he, ↓reduceIte] at ha
+        exact d.oqPad_complete he hv a ha
+    · exact d.oqLeaf_complete hs hv hpad hz a ha
+
+/-- **One query holds at the honest values**, its call of `walk` in `C` on the leaf's halves, the
+window pointer, the cap and the flags; its value is the row's dot product (by the soundness
+direction, `oqQuery_pieces`), and its leaf cells the leaf's digest's halves. -/
+theorem query_complete (hs : d.s.RowShape) {walk : String} {C : CallRel}
     {bp cap flags wp : V} (hok : d.Ok rd (σ wp) (σ bp)) (hv : d.Hv σ)
     (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
-    (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv) :
-    BlockOk rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr) ∧
-      σ (.n (oqDot d.s d.b)) = rowDot d.s.base d.s.I d.row d.w := by
-  have hA : BlockOk rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr) := by
-    unfold oqQueryT
-    refine blockOk_append.mpr ⟨blockOk_append.mpr ⟨blockOk_of_atoms ?_ fun a ha => ?_,
-      d.oqPath_complete hs hpd hok.hsibs hok.hrow rfl hv hpad hz hok.hmem⟩,
-      blockOk_of_atoms (oqCapT_atoms _ _ _ _ _ _)
-        (d.oqCap_complete hs hok.hsibs hok.hrow (by omega) hok.hq rfl hv hpad hz hok.hmem hcap
-          hflags)⟩
-    · refine allAtoms_append (allAtoms_append (allAtoms_append
-        (allAtoms_append (oqRowT_atoms _ _) (oqPacksT_atoms _ _)) (oqDotT_atoms _ _ _)) ?_)
-        (oqLeafT_atoms _ _ _ _)
-      split
-      · exact oqPadT_atoms _
-      · exact allAtoms_nil
-    · simp only [List.mem_append] at ha
-      rcases ha with ((((ha | ha) | ha) | ha) | ha)
-      · simp only [oqRowT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-        subst ha
-        trivial
-      · exact d.oqPacks_complete hv a ha
-      · exact d.oqDot_complete hs hv hok.hw a ha
-      · cases he : d.emit
-        · simp [he] at ha
-        · simp only [he, ↓reduceIte] at ha
-          exact d.oqPad_complete he hv a ha
-      · exact d.oqLeaf_complete hs hv hpad hz a ha
-  refine ⟨hA, ?_⟩
-  obtain ⟨-, -, w', -, hw', -, -, -, hd⟩ :=
-    oqQuery_sound hs (by omega) hA hpad (fun i hi => by rw [← word_zero]; exact hz i hi) hok.hq
-      (fun i v hl hi => loadHolds_unique hl (hok.hmem.wins i hi))
-  rw [hd, d.oqRow_eq hok.hrow hv]
-  exact rowDot_congr fun l hl => loadHolds_unique (hw' l hl) (hok.hw l hl)
+    (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv)
+    (hC : C walk [(digestHalves d.leaf).1, (digestHalves d.leaf).2, σ bp, d.capv, d.flagsv] []) :
+    BlockOkC C rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr walk) ∧
+      σ (.n (oqDot d.s d.b)) = rowDot d.s.base d.s.I d.row d.w ∧
+      (σ (.n (oqOut d.s d.kL (d.s.B - 1) 0)), σ (.n (oqOut d.s d.kL (d.s.B - 1) 1))) =
+        digestHalves d.leaf := by
+  obtain ⟨hAA, hA⟩ := d.query_atoms hs hok hv hpad hz
+  have hT : BlockOkC (fun _ _ _ ↦ True) rd σ (oqQueryT d.s bp cap flags wp d.b d.emit d.pr walk) := by
+    rw [oqQueryT_eq]
+    refine blockOkC_append.mpr ⟨blockOkC_of_blockOk (blockOk_of_atoms hAA hA), fun s hs ↦ ?_⟩
+    simp only [List.mem_singleton] at hs
+    subst hs
+    trivial
+  have hz' : ∀ i < 4, σ (.n (oqPr d.s d.b d.emit d.pr + 1 + i)) = 0 := fun i hi => by
+    rw [← word_zero]; exact hz i hi
+  have hleaf := oqQuery_leaf hs hT hpad hz'
+  rw [d.oqRow_eq hok.hrow hv] at hleaf
+  obtain ⟨hP, hD, -, -, -⟩ := oqQuery_pieces hT
+  obtain ⟨hw', hdot⟩ := oqDot_sound hs hD (oqWord_sound hs hP hD)
+  refine ⟨?_, ?_, hleaf⟩
+  · rw [oqQueryT_eq]
+    refine blockOkC_append.mpr ⟨blockOkC_of_blockOk (blockOk_of_atoms hAA hA), fun s hs ↦ ?_⟩
+    simp only [List.mem_singleton] at hs
+    subst hs
+    show C walk _ _
+    simp only [List.map_cons, List.map_nil]
+    have e0 := congrArg Prod.fst hleaf
+    have e1 := congrArg Prod.snd hleaf
+    simp only at e0 e1
+    rw [e0, e1, hcap, hflags]
+    exact hC
+  · rw [hdot, rowDot_eq, d.oqRow_eq hok.hrow hv]
+    exact rowDot_congr fun l hl => loadHolds_unique (hw' l hl) (hok.hw l hl)
 
 end QD
 
