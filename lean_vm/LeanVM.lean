@@ -9,7 +9,7 @@ import LeanVM.Prover.End
 import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
-import Sphincs.LifetimesRpm
+import Sphincs.Security
 import LeanDa
 import Statement.Theorems
 import Statement.Corollaries
@@ -268,7 +268,7 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
-  leanSphincsStronglyUnforgeable := Sphincs.Lifetimes.requestedSecurityRpm
+  leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
   leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound

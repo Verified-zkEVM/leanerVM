@@ -1,6 +1,6 @@
 import Statement.LeanVmGuest
 import LeanXmss.Scheme
-import Sphincs.Equations
+import Statement.LeanSphincs
 import Statement.Fast.Schemes
 import LeanDa.Scheme
 import Statement.Fast.Keccak

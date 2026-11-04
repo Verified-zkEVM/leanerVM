@@ -109,16 +109,30 @@ instance : MachineDecoding LeanXmss.LayerSignature where
 instance : MachineDecoding LeanXmss.Signature where
   decodeValue | .constructor 0 [i, l] => do pure ⟨← decodeValue i, ← decodeValue l⟩ | _ => none
 
-instance : MachineDecoding Sphincs.SubtreeOpening where
-  decodeValue | .constructor 0 [v, p] => do pure ⟨← decodeValue v, ← decodeValue p⟩ | _ => none
+instance : MachineDecoding Sphincs.ForsTreeOpening where
+  decodeValue | .constructor 0 [s, p] => do pure ⟨← decodeValue s, ← decodeValue p⟩ | _ => none
 
-instance : MachineDecoding Sphincs.CoordinateOpening where
-  decodeValue | .constructor 0 [s, t] => do pure ⟨← decodeValue s, ← decodeValue t⟩ | _ => none
+instance (layer : Sphincs.Layer) : MachineDecoding (Sphincs.LayerSignature layer) where
+  decodeValue
+    | .constructor 0 [c, v, p] => do pure ⟨← decodeValue c, ← decodeValue v, ← decodeValue p⟩
+    | _ => none
+
+/-- The three layers' signatures, bottom first, as a dependent function of the layer. -/
+def sphincsLayers (bottom : Sphincs.LayerSignature 0) (middle : Sphincs.LayerSignature 1)
+    (top : Sphincs.LayerSignature 2) : (layer : Sphincs.Layer) → Sphincs.LayerSignature layer :=
+  fun layer => match layer with
+    | ⟨0, _⟩ => bottom
+    | ⟨1, _⟩ => middle
+    | ⟨2, _⟩ => top
 
 instance : MachineDecoding Sphincs.Signature where
   decodeValue
-    | .constructor 0 [r, f, c, v, p] =>
-      do pure ⟨← decodeValue r, ← decodeValue f, ← decodeValue c, ← decodeValue v, ← decodeValue p⟩
+    | .constructor 0 [r, f, .array ls] =>
+      match ls.toList with
+      | [l0, l1, l2] => do
+        pure ⟨← decodeValue r, ← decodeValue f,
+          sphincsLayers (← decodeValue l0) (← decodeValue l1) (← decodeValue l2)⟩
+      | _ => none
     | _ => none
 
 instance : MachineDecoding BytecodeClaim where
@@ -261,16 +275,35 @@ instance : LawfulMachineDecoding LeanXmss.LayerSignature := ⟨fun ⟨r, c, p⟩
 instance : LawfulMachineDecoding LeanXmss.Signature := ⟨fun ⟨i, l⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue i), ← decodeValue (encodeValue l)⟩ : Option LeanXmss.Signature) = _; simp⟩
 
-instance : LawfulMachineDecoding Sphincs.SubtreeOpening := ⟨fun ⟨v, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue v), ← decodeValue (encodeValue p)⟩ : Option Sphincs.SubtreeOpening) = _; simp⟩
+instance : LawfulMachineDecoding Sphincs.ForsTreeOpening := ⟨fun ⟨s, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue p)⟩ : Option Sphincs.ForsTreeOpening) = _; simp⟩
 
-instance : LawfulMachineDecoding Sphincs.CoordinateOpening := ⟨fun ⟨s, t⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue t)⟩ : Option Sphincs.CoordinateOpening) = _; simp⟩
+instance (layer : Sphincs.Layer) : LawfulMachineDecoding (Sphincs.LayerSignature layer) :=
+  ⟨fun ⟨c, v, p⟩ ↦ by
+    show (do pure ⟨← decodeValue (encodeValue c), ← decodeValue (encodeValue v),
+      ← decodeValue (encodeValue p)⟩ : Option (Sphincs.LayerSignature layer)) = _
+    simp⟩
 
-instance : LawfulMachineDecoding Sphincs.Signature := ⟨fun ⟨r, f, c, v, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue f), ← decodeValue (encodeValue c), ← decodeValue (encodeValue v),
-    ← decodeValue (encodeValue p)⟩ : Option Sphincs.Signature) = _
-  simp⟩
+theorem sphincsLayers_eta (l : (layer : Sphincs.Layer) → Sphincs.LayerSignature layer) :
+    sphincsLayers (l 0) (l 1) (l 2) = l := by
+  funext layer
+  match layer with
+  | ⟨0, _⟩ => rfl
+  | ⟨1, _⟩ => rfl
+  | ⟨2, _⟩ => rfl
+
+instance : LawfulMachineDecoding Sphincs.Signature := ⟨fun ⟨r, f, l⟩ ↦ by
+  have hl : (Array.ofFn fun layer ↦ encodeValue (l layer)).toList =
+      [encodeValue (l 0), encodeValue (l 1), encodeValue (l 2)] := by
+    rw [Array.toList_ofFn]; rfl
+  show (match (Array.ofFn fun layer ↦ encodeValue (l layer)).toList with
+    | [l0, l1, l2] => do
+      pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue f),
+        sphincsLayers (← decodeValue l0) (← decodeValue l1) (← decodeValue l2)⟩
+    | _ => none : Option Sphincs.Signature) = _
+  rw [hl]
+  simp only [decodeValue_encodeValue, Option.pure_def, Option.bind_eq_bind, Option.bind_some,
+    sphincsLayers_eta]⟩
 
 instance : LawfulMachineDecoding BytecodeClaim := ⟨fun ⟨p, v⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue p), ← decodeValue (encodeValue v)⟩ : Option BytecodeClaim) = _; simp⟩

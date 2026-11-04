@@ -10,7 +10,7 @@ public import LeanVM.Guest.Batch.Cube
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
-public import Sphincs.Equations
+public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak

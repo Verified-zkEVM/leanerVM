@@ -12,7 +12,6 @@ public import LeanVM.Guest.WithHash
 public import LeanDa.WithHashBridge
 public import LeanDa.Commitment
 public import Common.WithHash
-public import Sphincs.WithHash
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -25,9 +24,9 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
 * the batching's run, the verifier refusing a zero challenge, the deferring verifier refusing a zero
   challenge, the openings' climb (`runBatching_deployed`, …);
 * LeanDA's commitment (`commitCells_keccakF1600`);
-* the signature schemes' verification (`xmssVerify_eq_withHash`, `sphincsVerify_eq_withHash`): the
-  schemes read a digest as the little-endian number of its 32 bytes, the guest's reading
-  (`keccakHash_keccakF1600`).
+* leanXMSS's verification (`xmssVerify_eq_withHash`): the scheme reads a digest as the
+  little-endian number of its 32 bytes, the guest's reading (`keccakHash_keccakF1600`); the
+  statement's leanSPHINCS is written over the permutation alone.
 -/
 
 @[expose] public section
@@ -53,15 +52,6 @@ theorem xmss_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
       @LeanXmss.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
           σ := rfl
 
-/-- The statement's leanSPHINCS verification over `π` is the hash-query one with the hash
-Keccak-256 over `π`. -/
-theorem sphincs_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
-    (π : KeccakState → m KeccakState) (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : Sphincs.Signature) :
-    Sphincs.Verification.verify π pk message σ =
-      @Sphincs.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
-          σ := rfl
-
 namespace Node
 
 /-- leanXMSS verification over Keccak-f[1600] is the hash-query verification with `keccakBits`. -/
@@ -70,14 +60,6 @@ theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Messa
     LeanXmss.verifyWithKeccak pk message σ =
       Id.run (@LeanXmss.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
   rw [LeanXmss.verifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
-
-/-- leanSPHINCS verification over Keccak-f[1600] is the hash-query verification with
-`keccakBits`. -/
-theorem sphincsVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : Sphincs.Signature) :
-    Sphincs.verifyWithKeccak pk message σ =
-      Id.run (@Sphincs.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [Sphincs.verifyWithKeccak, sphincs_verify_eq_verifyWithHash, keccakHash_keccakF1600]
 
 end Node
 

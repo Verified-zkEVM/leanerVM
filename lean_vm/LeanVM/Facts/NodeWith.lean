@@ -4,9 +4,9 @@
   The node's hashing functions with any hash `H : Bytes → m Digest` and permutation
   `F : KState → m KState` in any monad (`…With`), as the verifier is (`verifier H F`): moved here
   from `Statement/LeanVmGuest.lean`, names kept (no end statement names them), and at `m = Id`,
-  Keccak-256 and Keccak-f[1600] the deployed ones: the `*_id` lemmas. The digests and the
-  signature schemes use only `H`; the batching's transcript only `F`, from a parameter state `s0`
-  (deployed: `batchSeed`).
+  Keccak-256 and Keccak-f[1600] the deployed ones: the `*_id` lemmas. The digests and leanXMSS use
+  only `H` (the statement's leanSPHINCS is written over the permutation alone); the batching's
+  transcript only `F`, from a parameter state `s0` (deployed: `batchSeed`).
 -/
 
 module
@@ -14,7 +14,7 @@ module
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
-public import Sphincs.Equations
+public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
@@ -23,7 +23,6 @@ public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Facts.DaWith
 public import Common.WithHash
-public import Sphincs.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
 
@@ -45,12 +44,6 @@ def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) : m Bool :=
   letI : HasQuery LeanXmss.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
   LeanXmss.Verification.verifyWithHash pk message σ
-
-/-- leanSPHINCS verification with the hash `H`. -/
-def sphincsVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : Sphincs.Signature) : m Bool :=
-  letI : HasQuery Sphincs.HashSpec m := ⟨fun x ↦ digestBits <$> H x⟩
-  Sphincs.Verification.verifyWithHash pk message σ
 
 /-! ### The statement's digest -/
 
@@ -127,13 +120,6 @@ theorem xmssVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
     (σ : LeanXmss.Signature) :
     Id.run (xmssVerifyWith (m := Id) keccak256 pk message σ) = LeanXmss.verifyWithKeccak pk message σ := by
   rw [xmssVerify_eq_withHash]
-  rfl
-
-/-- leanSPHINCS verification with Keccak-256 is `Sphincs.verifyWithKeccak`. -/
-theorem sphincsVerifyWith_id (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : Sphincs.Signature) :
-    Id.run (sphincsVerifyWith (m := Id) keccak256 pk message σ) = Sphincs.verifyWithKeccak pk message σ := by
-  rw [sphincsVerify_eq_withHash]
   rfl
 
 /-- The statement's digest with Keccak-256 is `statementDigest`. -/
