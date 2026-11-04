@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegPath
 public import LeanVM.Guest.B1.Sig.XmssSegStepC
 public import LeanVM.Guest.B1.Sig.XmssBound
 public import LeanVM.Guest.B1.Sig.CwComplete
+public import LeanVM.Guest.B1.Sig.XmssSegWinSpec
 
 /-!
 # A window of the path, complete
@@ -816,6 +817,12 @@ theorem lxArm_place (w : Nat) {k : Nat} (hk : k < 256) (b : Nat) :
   have := lxArmB_mono w 0 (b + 5) (show 1 ≤ k by omega)
   omega
 
+theorem lxArm_O (w k b : Nat) :
+    lxArmO w (if k = 0 then none else some (lxOut0 w (b + 5))) (lxArmB w 0 k (b + 5)) = lxOut0 w (b + 5) := by
+  by_cases h0 : k = 0
+  · subst h0; simp only [↓reduceIte, lxArmO_none]; rfl
+  · simp only [h0, ↓reduceIte, lxArmO_some]
+
 /-- **A window completes** by the honest arm `lxWin L w`, its range check against `g^255`, level
 `r`'s sibling `sibs r`: the siblings where the arm hints them, its node canonical. -/
 theorem lxWindowT_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4)
@@ -859,14 +866,221 @@ theorem lxWindowT_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : 
         subst ho
         exact ⟨by have := (lxOut0_size w (b + 5)).2; omega, p4 h0,
           notInR_of (by have := (lxOut0_size w (b + 5)).2; omega)⟩) sibs hsc
-  have hO : lxArmO w (if lxWin L w = 0 then none else some (lxOut0 w (b + 5))) (lxArmB w 0 (lxWin L w) (b + 5)) =
-      lxOut0 w (b + 5) := by
-    by_cases h0 : lxWin L w = 0
-    · simp only [h0, ↓reduceIte, lxArmO_none]; rfl
-    · simp only [h0, ↓reduceIte, lxArmO_some]
-  rw [hO, lxArmT_next'] at harm
+  rw [lxArm_O, lxArmT_next'] at harm
   have := (lxOut0_size w (b + 5)).2
   exact harm.toC (by omega) (by omega) p2 p3
+
+/-- **A window's values lie below its end**, its node below its base. -/
+theorem lxWindowT_numBelow {w : Nat} (hw : w < 4) {cur : V} {b : Nat} (hb : 103 ≤ b) (hcur : NBv b cur) :
+    NumBelow (lxWindowT w cur b).2.1 (Stmt.valsList (lxWindowT w cur b).1) := by
+  have hsw : NBv b (sWin w) := ⟨71 + w, by omega, rfl⟩
+  have hend : b + 5 ≤ lxArmB w 0 256 (b + 5) := lxArmB_ge ..
+  have harms : ∀ a ∈ (lxArmsT w cur (lxOut0 w (b + 5)) 256 0 (b + 5)).1,
+      NumBelow (lxArmB w 0 256 (b + 5)) (Stmt.valsList a) := by
+    intro a ha
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
+    have hk' : k < 256 := by rw [lxArmsT_length] at hk; exact hk
+    rw [lxArmsT_getElem]
+    simp only [Nat.zero_add]
+    obtain ⟨p1, p2, p3, p4⟩ := lxArm_place w hk' b
+    intro v hv
+    rcases lxArmT_vals hw k cur _ _ v hv with rfl | ⟨j, hj, rfl⟩ | ⟨j, h1, h2, rfl⟩ | ⟨i, hi, rfl⟩
+    · obtain ⟨j, hj, rfl⟩ := hcur; exact ⟨j, by omega, rfl⟩
+    · exact ⟨j, by omega, rfl⟩
+    · rw [lxArmT_next'] at h2; exact ⟨j, by omega, rfl⟩
+    · rw [lxArm_O]; exact ⟨_, by omega, rfl⟩
+  rw [lxWindowT_snd]
+  dsimp only [lxWindowT]
+  intro v hv
+  simp only [valsList_append, valsList_cons, valsList_nil, List.append_nil, List.mem_append, rangeS, cst,
+    Stmt.vals, Atom.vals, List.mem_cons, List.not_mem_nil, or_false] at hv
+  rcases hv with (rfl | rfl | rfl | rfl | rfl | rfl) | rfl | rfl | hv
+  all_goals first | exact ⟨_, by omega, rfl⟩ | exact numBelow_valsArms _ harms v hv
+
+/-! ## A window's node, the fold over the index -/
+
+theorem mFold_congr' {pp : E} {A A' : Nat → E} {bits bits' : Nat → Bool} {sibs sibs' : Nat → E} :
+    ∀ m l l' x, (∀ j < m, A (l + j) = A' (l' + j) ∧ bits (l + j) = bits' (l' + j) ∧ sibs (l + j) = sibs' (l' + j)) →
+      mFold pp A bits sibs m l x = mFold pp A' bits' sibs' m l' x
+  | 0, _, _, _, _ => rfl
+  | m + 1, l, l', x, h => by
+      simp only [mFold]
+      obtain ⟨h1, h2, h3⟩ := h 0 (by omega)
+      simp only [Nat.add_zero] at h1 h2 h3
+      rw [h1, h2, h3]
+      exact mFold_congr' m (l + 1) (l' + 1) _ fun j hj => by
+        have := h (j + 1) (by omega)
+        rwa [show l + (j + 1) = l + 1 + j by omega, show l' + (j + 1) = l' + 1 + j by omega] at this
+
+theorem mFold_add (pp : E) (A : Nat → E) (bits : Nat → Bool) (sibs : Nat → E) :
+    ∀ a c l x, mFold pp A bits sibs (a + c) l x = mFold pp A bits sibs c (l + a) (mFold pp A bits sibs a l x)
+  | 0, c, l, x => by simp [mFold]
+  | a + 1, c, l, x => by
+      rw [show a + 1 + c = (a + c) + 1 by omega]
+      simp only [mFold]
+      rw [mFold_add pp A bits sibs a c (l + 1), show l + 1 + a = l + (a + 1) by omega]
+
+/-- **A window completes, its node the fold** of its eight levels over the index `L`: the addresses
+`lxNodeAddr L w r`, the bits `8w + r` of `L`, the hinted siblings. -/
+theorem lxWindowT_complete_fold (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4)
+    {cur : V} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hwin : σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
+    (hb : 103 ≤ b) (hcur : NBv b cur) (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E)
+    (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
+    Completes C rd b (lxWindowT w cur b).2.1 (lxWindowT w cur b).1 σ
+      (fun σ' => (∀ r < 8, lxSibF σ' w (lxArmB w 0 (lxWin L w) (b + 5)) r = sibs r) ∧
+        σ' (.n (lxWindowT w cur b).2.2) =
+          mFold (σ sLxPP) (lxNodeAddr L w) (fun r => L.testBit (8 * w + r)) sibs 8 0 (σ cur) ∧
+        IsCanonical128 (σ' (.n (lxWindowT w cur b).2.2))) := by
+  obtain ⟨σ', he, ⟨hs, hc⟩, hh⟩ := lxWindowT_complete (C := C) hm hL hw σ hE hwin hb hcur hcc sibs hsc
+  refine ⟨σ', he, ⟨hs, ?_, hc⟩, hh⟩
+  have hlo : ∀ j < b, σ' (.n j) = σ (.n j) := fun j hj => he.apply (Or.inl hj)
+  have hE' : LxEnv L σ' := hE.congr fun j hj => hlo j (by omega)
+  obtain ⟨-, k, hk, hx, -, hout⟩ := lxWindowT_sound (C := C) (rd := rd) (rest := []) (next := True)
+    (kret := fun _ => True) hE'.1 (by rw [List.append_nil]; exact hh True _ trivial)
+  have hkk : k = lxWin L w := by
+    rw [show sWin w = .n (71 + w) from rfl, hlo _ (by omega)] at hx
+    rw [show sWin w = .n (71 + w) from rfl] at hwin
+    rw [hwin] at hx
+    have := lxWin_lt L w
+    exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
+      (ofK_injective hx)).symm
+  subst hkk
+  obtain ⟨jc, hjc, rfl⟩ := hcur
+  rw [hout, show sLxPP = .n 66 from rfl, hlo 66 (by omega), hlo jc hjc]
+  refine mFold_congr' 8 0 0 _ fun j hj => ⟨?_, ?_, ?_⟩
+  · simp only [Nat.zero_add, lxAtF]
+    rw [hE'.2.2.2 (7 - j) (by omega), gen_pow_eq_eOfNat (by omega)]
+    exact lx_at hL (his := fun v => σ' (sHis v)) hE'.2.2.1 hw hj
+  · simp [lxBitF, lx_bit L w j hj]
+  · simp only [Nat.zero_add]; exact hs j hj
+
+/-! ## A layer's two windows -/
+
+/-- The address of level `l` of layer `layer`'s path over the index `L`. -/
+def lxLayerA (L layer l : Nat) : E := lxNodeAddr L (2 * layer + l / 8) (l % 8)
+
+/-- The bit of level `l` of layer `layer`'s path: bit `16 · layer + l` of the index. -/
+def lxLayerBit (L layer l : Nat) : Bool := L.testBit (16 * layer + l)
+
+theorem lxArmSize_ge (w k : Nat) : lxStride w * 7 + 3 ≤ lxArmSize w k := by
+  unfold lxArmSize lxLastNext
+  by_cases hw : w + 1 = 4 <;> by_cases hk : k = 0 <;> simp [hw, hk]
+
+/-- **A layer's two windows complete** (`2 · layer`, then `2 · layer + 1` on its node), the hinted
+siblings `sibs l` of its sixteen levels where the arms hint them: the node is the layer's path fold
+`xFold` over the index, canonical. -/
+theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {layer : Nat} (hlay : layer < 2)
+    {cur : V} {b0 : Nat} (σ : Val) (hE : LxEnv L σ)
+    (hwin : ∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w))) (hb : 103 ≤ b0) (hcur : NBv b0 cur)
+    (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E) (hsc : ∀ l < 16, IsCanonical128 (sibs l)) :
+    Completes C rd b0
+      (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).2.1
+      ((lxWindowT (2 * layer) cur b0).1 ++
+        (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).1) σ
+      (fun σ' => (∀ r < 8, lxSibF σ' (2 * layer) (lxArmB (2 * layer) 0 (lxWin L (2 * layer)) (b0 + 5)) r = sibs r ∧
+          lxSibF σ' (2 * layer + 1) (lxArmB (2 * layer + 1) 0 (lxWin L (2 * layer + 1))
+            ((lxWindowT (2 * layer) cur b0).2.1 + 5)) r = sibs (8 + r)) ∧
+        σ' (.n (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
+            (lxWindowT (2 * layer) cur b0).2.1).2.2) =
+          xFold (σ sLxPP) (lxLayerA L layer) (lxLayerBit L layer) sibs 16 (σ cur) ∧
+        IsCanonical128 (σ' (.n (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
+            (lxWindowT (2 * layer) cur b0).2.1).2.2))) := by
+  set W0 := lxWindowT (2 * layer) cur b0 with hW0
+  have hw0 : 2 * layer < 4 := by omega
+  have hw1 : 2 * layer + 1 < 4 := by omega
+  have hk0 := lxWin_lt L (2 * layer)
+  obtain ⟨p1, p2, p3, p4⟩ := lxArm_place (2 * layer) hk0 b0
+  have hend0 : W0.2.1 = lxArmB (2 * layer) 0 256 (b0 + 5) := lxWindowT_snd ..
+  have hout0 : W0.2.2 = lxOut0 (2 * layer) (b0 + 5) := rfl
+  have h103 := (lxOut0_size (2 * layer) (b0 + 5)).2
+  have hend1 := lxArmB_ge (2 * layer + 1) 0 256 (W0.2.1 + 5)
+  rw [← lxWindowT_snd (2 * layer + 1) (.n W0.2.2) W0.2.1] at hend1
+  refine Completes.append (m := W0.2.1) (by omega) (by omega) (lxWindowT_numBelow hw0 hb hcur)
+    (lxWindowT_complete_fold (C := C) hm hL hw0 σ hE (hwin _ hw0) hb hcur hcc sibs
+      (fun r hr => hsc r (by omega))) (fun σ1 he1 ⟨hs0, hv0, hc0⟩ => ?_)
+  have hlo1 : ∀ j < b0, σ1 (.n j) = σ (.n j) := fun j hj => he1.apply (Or.inl hj)
+  have hE1 : LxEnv L σ1 := hE.congr fun j hj => hlo1 j (by omega)
+  have hW02 : W0.2.2 < W0.2.1 := by omega
+  have hW01 : 103 ≤ W0.2.1 := by omega
+  obtain ⟨σ2, he2, ⟨hs1, hv1, hc1⟩, hh2⟩ := lxWindowT_complete_fold (C := C) (cur := .n W0.2.2) (b := W0.2.1)
+    hm hL hw1 σ1 hE1
+    (by rw [show sWin (2 * layer + 1) = .n (71 + (2 * layer + 1)) from rfl, hlo1 _ (by omega)];
+        exact hwin _ hw1) hW01 ⟨W0.2.2, hW02, rfl⟩ hc0 (fun r => sibs (8 + r))
+    (fun r hr => hsc _ (by omega))
+  refine ⟨σ2, he2, ⟨fun r hr => ⟨?_, hs1 r hr⟩, ?_, hc1⟩, hh2⟩
+  · have hc := lxSibCell_last (w := 2 * layer) hr (lxArmB (2 * layer) 0 (lxWin L (2 * layer)) (b0 + 5))
+    have := lxArmSize_ge (2 * layer) (lxWin L (2 * layer))
+    have hlt : lxSibCell (2 * layer) r (lxArmB (2 * layer) 0 (lxWin L (2 * layer)) (b0 + 5) +
+        lxStride (2 * layer) * r) < W0.2.1 := by omega
+    rw [lxSibF, he2.apply (Or.inl hlt)]
+    exact hs0 r hr
+  · rw [hv1, hv0, show sLxPP = .n 66 from rfl, hlo1 66 (by omega), ← mFold_eq_xFold,
+      show 16 = 8 + 8 from rfl, mFold_add]
+    have e0 : ∀ x, mFold (σ (.n 66)) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 0 x =
+        mFold (σ (.n 66)) (lxNodeAddr L (2 * layer)) (fun r => L.testBit (8 * (2 * layer) + r)) sibs 8 0 x :=
+      fun x => mFold_congr' 8 0 0 x fun j hj => ⟨by
+          show lxNodeAddr L (2 * layer + (0 + j) / 8) ((0 + j) % 8) = lxNodeAddr L (2 * layer) (0 + j)
+          rw [show (0 + j) / 8 = 0 by omega, show (0 + j) % 8 = 0 + j by omega, Nat.add_zero], by
+          show L.testBit (16 * layer + (0 + j)) = L.testBit (8 * (2 * layer) + (0 + j))
+          rw [show 16 * layer + (0 + j) = 8 * (2 * layer) + (0 + j) by omega], rfl⟩
+    have e1 : ∀ x, mFold (σ (.n 66)) (lxLayerA L layer) (lxLayerBit L layer) sibs 8 (0 + 8) x =
+        mFold (σ (.n 66)) (lxNodeAddr L (2 * layer + 1)) (fun r => L.testBit (8 * (2 * layer + 1) + r))
+          (fun r => sibs (8 + r)) 8 0 x :=
+      fun x => mFold_congr' 8 (0 + 8) 0 x fun j hj => ⟨by
+          show lxNodeAddr L (2 * layer + (0 + 8 + j) / 8) ((0 + 8 + j) % 8) = lxNodeAddr L (2 * layer + 1) (0 + j)
+          rw [show (0 + 8 + j) / 8 = 1 by omega, show (0 + 8 + j) % 8 = 0 + j by omega], by
+          show L.testBit (16 * layer + (0 + 8 + j)) = L.testBit (8 * (2 * layer + 1) + (0 + j))
+          rw [show 16 * layer + (0 + 8 + j) = 8 * (2 * layer + 1) + (0 + j) by omega], by
+          show sibs (0 + 8 + j) = sibs (8 + (0 + j))
+          rw [show 0 + 8 + j = 8 + (0 + j) by omega]⟩
+    rw [e1, e0]
+
+/-- A window's node lies between its base and its end. -/
+theorem lxWindowT_out_lt (w : Nat) (cur : V) (b : Nat) :
+    b + 103 ≤ (lxWindowT w cur b).2.2 ∧ (lxWindowT w cur b).2.2 + 13 ≤ (lxWindowT w cur b).2.1 := by
+  rw [lxWindowT_snd, show (lxWindowT w cur b).2.2 = lxOut0 w (b + 5) from rfl]
+  have := (lxOut0_size w (b + 5)).2
+  exact ⟨by omega, (lxArm_place w (show 0 < 256 by norm_num) b).2.2.1⟩
+
+/-- **A layer's two windows' values lie below their end.** -/
+theorem lxWindows_numBelow {layer : Nat} (hlay : layer < 2) {cur : V} {b0 : Nat} (hb : 103 ≤ b0)
+    (hcur : NBv b0 cur) :
+    NumBelow
+      (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).2.1
+      (Stmt.valsList ((lxWindowT (2 * layer) cur b0).1 ++
+        (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).1)) := by
+  obtain ⟨h1, h2⟩ := lxWindowT_out_lt (2 * layer) cur b0
+  obtain ⟨h3, h4⟩ := lxWindowT_out_lt (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
+    (lxWindowT (2 * layer) cur b0).2.1
+  rw [valsList_append]
+  exact ((lxWindowT_numBelow (by omega) hb hcur).mono (by omega)).append
+    (lxWindowT_numBelow (by omega) (by omega) ⟨_, by omega, rfl⟩)
+
+/-- A window's hinted siblings lie below its end. -/
+theorem lxSibCell_window {w k r : Nat} (hk : k < 256) (hr : r < 8) (cur : V) (b : Nat) :
+    lxSibCell w r (lxArmB w 0 k (b + 5) + lxStride w * r) < (lxWindowT w cur b).2.1 := by
+  have hc := lxSibCell_last (w := w) hr (lxArmB w 0 k (b + 5))
+  have := lxArmSize_ge w k
+  have := (lxArm_place w hk b).2.1
+  rw [lxWindowT_snd]
+  omega
+
+/-- **The path windows' completeness** (`LxWindowsC`, `XmssSegWinSpec`). -/
+theorem lxWindowsC : LxWindowsC := by
+  intro C rd layer hlay cur b0 L hm hL hcur hb
+  obtain ⟨h1, h2⟩ := lxWindowT_out_lt (2 * layer) cur b0
+  obtain ⟨h3, h4⟩ := lxWindowT_out_lt (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
+    (lxWindowT (2 * layer) cur b0).2.1
+  refine ⟨by omega, lxWindows_numBelow hlay hb hcur, fun σ hpad hpp hcc hhis hwin hpow sibs hsc => ?_⟩
+  refine (lxWindows_complete (C := C) hm hL hlay σ ⟨hpad, hpp, hhis, hpow⟩ hwin hb hcur hcc sibs hsc).mono
+    le_rfl le_rfl (fun σ' ⟨hs, _, hc⟩ => ⟨hc, fun σ'' hag => ⟨fun r hr => ?_, fun r hr => ?_⟩⟩)
+  · have := lxSibCell_window (w := 2 * layer) (lxWin_lt L (2 * layer)) hr cur b0
+    rw [lxSibOf, lxSibF, ← hag _ (by omega)]
+    exact (hs r hr).1
+  · have := lxSibCell_window (w := 2 * layer + 1) (lxWin_lt L (2 * layer + 1)) hr
+      (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1
+    rw [lxSibOf, lxSibF, ← hag _ this]
+    exact (hs r hr).2
 
 end
 end LeanVM.Guest.B1.Sig
