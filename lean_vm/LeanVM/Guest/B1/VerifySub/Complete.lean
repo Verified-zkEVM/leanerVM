@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.H.Match
-public import LeanVM.Guest.Lift.OqFitsAll
+public import LeanVM.Guest.B1.VerifySub.H.KidsC
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -19,8 +19,7 @@ body is flat (`completeAt_flatDepR`). Its own buffers hold `S.ownW` (`ChildSegs.
 callees are `S.kids` (`kid_complete`, `term_complete`), reading slices of the caller's words, the
 own buffers and (the terminal) `certify_placement`'s and `open_stacked`'s results; its valuation
 is the honest one (`vs_sig`: the section data `vsCPre_complete` takes, `vs_callsMatch`,
-`vs_loads`). `open_stacked`'s candidates fit their frames (`osFitsAt_all`). The one assumption:
-`verify_keccak` is complete (`VkCompleteAt`).
+`vs_loads`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -45,15 +44,14 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
   obtain ⟨-, hopl, hkpl, hsll, -⟩ := S.runK' hbl
   have hn : S.H.n ≤ 28 := by
     show (Tables.tableHeightsOf S.rowsN).foldl max 0 ≤ 28
-    rcases Tables.foldl_max_mem (Tables.tableHeightsOf S.rowsN) 0 with h | h
+    rcases Tables.VtHonest.vsFoldl_max_mem (Tables.tableHeightsOf S.rowsN) 0 with h | h
     · omega
     · have := S.hh29 hbl _ h
       omega
   simp only [ChildSegs.ownW, vsSizes, List.forall₂_cons, List.forall₂_nil_left_iff, and_true]
-  refine ⟨(S.poolW_length hbl).le, by simp [Tables.VtHonest.cplenW], ?_, by simp [S.hrowsL],
-    by simp [vsDimsW, S.hs_length], by simp [vsKbW, S.hs_length],
-    by simp [vsBkW, Tables.blockKappaWords], hpl.le, S.alphas_length.le, ?_, ?_, ?_, hsll.le,
-    S.rchs_length.le, by simp [ringCoefficients, kBits], (lamW_length _).le⟩
+  refine ⟨(S.poolW_length hbl).le, ?_, by simp [S.hrowsL], by simp [vsDimsW, S.hs_length],
+    by simp [vsKbW, S.hs_length], hpl.le, S.alphas_length.le, ?_, ?_, ?_, hsll.le,
+    S.rchs_length.le, by simp [ringCoefficients, kBits]⟩
   · simp only [vsStreamW, List.length_append, List.length_replicate, Coverage.childStreamCap] at hst ⊢
     omega
   · rw [KeccakGkr.eqKernel_length, S.alphas_length]
@@ -70,15 +68,14 @@ callees read the caller's words, its own buffers and the results before them, th
 memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `completeAt_flatDepRB`'s
 `hkr`, `hkm`, `hσ`). -/
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {lpE sqE outE : ℕ}
-    {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin lpE sqE, q ∈ Lin)
+    {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
+    {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin sqE, q ∈ Lin)
     (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
-    let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE
+    let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
     let args := [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-      (digestHalves seed).2, ofK (addressOfIndex lpE), ofK (addressOfIndex sqE), ofK
-          (addressOfIndex outE)]
+      (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)]
     (∀ fp outs, OutsOk (kidsAt (K fp) [] outs) outs →
       RegionsOk (fun i ↦ Main.RegionL Lin i ∨ Main.RegionL (own fp) i) (fun _ ↦ False)
         (kidsAt (K fp) [] outs) outs) ∧
@@ -102,22 +99,24 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
             outRegion (kidsAt (K fp) [] outs) outs i)) := by
   intro K own args
   dsimp only [K, own, args]
-  -- the terminal's own words
-  have hterm : ∀ b, ∀ q ∈ S.termLin (bases b (vsSizes S.μ)), q ∈ bufL b (vsSizes S.μ) S.ownW := by
+  have hsqm : (sqE, expTableWords) ∈ Lin := hexpL _ (by simp [log2Lin])
+  -- the terminal's own words: the own buffers and the exponent table
+  have hterm : ∀ b, ∀ q ∈ S.termLin (bases b (vsSizes S.μ)) sqE,
+      q ∈ bufL b (vsSizes S.μ) S.ownW ∨ q ∈ Lin := by
     intro b q hq
     simp only [ChildSegs.termLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl | rfl | rfl | rfl
-    · exact vs_own_mem S b (i := 7) (by norm_num)
-    · exact vs_own_mem S b (i := 10) (by norm_num)
-    · exact vs_own_mem S b (i := 1) (by norm_num)
-    · exact vs_own_mem S b (i := 15) (by norm_num)
-    · exact vs_own_mem S b (i := 11) (by norm_num)
-    · exact vs_own_mem S b (i := 14) (by norm_num)
+    · exact Or.inl (vs_own_mem S b (i := 5) (by norm_num))
+    · exact Or.inl (vs_own_mem S b (i := 8) (by norm_num))
+    · exact Or.inl (vs_own_mem S b (i := 4) (by norm_num))
+    · exact Or.inr hsqm
+    · exact Or.inl (vs_own_mem S b (i := 9) (by norm_num))
+    · exact Or.inl (vs_own_mem S b (i := 12) (by norm_num))
   -- the terminal's words when it is entered
   have hLin12 : ∀ (bs : List ℕ) (outs : List (List E × Main.Layout)),
       S.termOk (outs.take 12) →
-      (kidAt (S.kids bs lpE sqE) [] outs 12).Lin =
-        (outs.getD 9 ([], [])).2 ++ (outs.getD 11 ([], [])).2 ++ S.termLin bs := by
+      (kidAt (S.kids bs sqE) [] outs 12).Lin =
+        (outs.getD 9 ([], [])).2 ++ (outs.getD 11 ([], [])).2 ++ S.termLin bs sqE := by
     intro bs outs hok
     show @ite _ (S.termOk (outs.take 12)) (Classical.propDecidable _) _ _ = _
     rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ hok, ChildSegs.cpRes, ChildSegs.osRes,
@@ -139,7 +138,9 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
       rcases hq with (hq | hq) | hq
       · exact Or.inr (Or.inr ⟨9, by norm_num, rfl, q, hq, h1, h2⟩)
       · exact Or.inr (Or.inr ⟨11, by norm_num, rfl, q, hq, h1, h2⟩)
-      · exact Or.inl (Or.inr ⟨q, hterm _ q hq, h1, h2⟩)
+      · rcases hterm _ q hq with h | h
+        · exact Or.inl (Or.inr ⟨q, h, h1, h2⟩)
+        · exact Or.inl (Or.inl ⟨q, h, h1, h2⟩)
   · -- the callees' words are in memory
     intro fp outs ho rd hlow hB hL hLo
     refine memL_lins_kidsAt _ _ _ fun j hj ho' ↦ ?_
@@ -157,26 +158,25 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         rcases hq with (hq | hq) | hq
         · exact memL_outsL_at hLo 9 (by simp [ChildSegs.kids_length]) (by omega) rfl q hq
         · exact memL_outsL_at hLo 11 (by simp [ChildSegs.kids_length]) (by omega) rfl q hq
-        · exact hB q (hterm _ q hq)
+        · rcases hterm _ q hq with h | h
+          · exact hB q h
+          · exact hL q h
       · intro q hq
         have hq' : q ∈ @ite _ (S.termOk (outs.take 12)) (Classical.propDecidable _)
             ((ChildSegs.cpRes (outs.take 12)).2 ++ (ChildSegs.osRes (outs.take 12)).2 ++
-              S.termLin (bases (fp + fs "verify_sub") (vsSizes S.μ))) [] := hq
+              S.termLin (bases (fp + fs "verify_sub") (vsSizes S.μ)) sqE) [] := hq
         rw [@ite_neg' _ _ (Classical.propDecidable _) _ _ hok] at hq'
         simp at hq'
   · -- the honest valuation
     intro fp outs hlen ho rd hlow hB hL hLo
     have hl13 : outs.length = 13 := by rw [hlen]; rfl
-    have O := vs_outs S (bases (fp + fs "verify_sub") (vsSizes S.μ)) lpE sqE outs hl13 ho
-    have hmem : ∀ i < 16, ReadsAt rd
-        (ofK (addressOfIndex ((bases (fp + fs "verify_sub") (vsSizes S.μ)).getD i 0))) (S.ownW.getD
-            i []) :=
+    set bs := bases (fp + fs "verify_sub") (vsSizes S.μ) with hbs
+    have O := vs_outs S bs sqE outs hl13 ho
+    have hmem : ∀ i < 13, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []) :=
       fun i hi ↦ hB _ (vs_own_mem S _ hi)
-    have hlp := hL _ (hexpL _ (by simp [log2Lin]) : (lpE, (List.range 34).map fun j ↦
-      eOfNat (2 ^ j)) ∈ Lin)
-    have hsq := hL _ (hexpL _ (by simp [log2Lin]) : (sqE, Tables.gSquaresList) ∈ Lin)
+    have hsq := hL _ hsqm
     have hfx := hL _ hout
-    obtain ⟨⟨D⟩, G⟩ := vs_sig (rd := rd) hbl S rfl _ outs O hκ hlow hmem hlp hsq hfx
+    obtain ⟨⟨D⟩, G⟩ := vs_sig (rd := rd) hbl S rfl bs outs O hκ hlow hmem hsq hfx
     have hpl := (S.runG' hbl).2.2.1
     have hcl : 24 ≤ (DeferredClaim.cells c.freshClaim).length := by
       rw [DeferredClaim.cells, S.fresh_eq hbl]
@@ -184,15 +184,25 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         S.alphas_length]
       have := (S.μ_bounds hbl).1
       omega
-    refine ⟨_, ?_, vs_dispOk S G.e1901, ?_, vs_alloc_sizes hbl G O, vs_alloc_bases G rfl,
+    -- `col_eval_words` in the stream buffer
+    have hcev : ∃ e, vsσ rd (vsW bs outs) args (.n 645) = ofK (addressOfIndex e) ∧
+        ∀ k < 157, Main.RegionL Lin (e + k) ∨
+          Main.RegionL (bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW) (e + k) := by
+      refine ⟨_, G.e645, fun k hk ↦ Or.inr ⟨_, vs_own_mem S _ (i := 1) (by norm_num), ?_, ?_⟩⟩
+      · simp only [ChildSegs.cT, vcG, vb, hbs]; omega
+      · have := S.stream_pool_lt hbl (j := k + 5) (by omega)
+        have hsl : c.proof.stream.length ≤ (S.ownW.getD 1 []).length := by
+          show c.proof.stream.length ≤ (vsStreamW c.proof.stream).length
+          simp [vsStreamW]
+        simp only [ChildSegs.cT, vcG, vb, ← hbs]
+        omega
+    refine ⟨_, ?_, vs_dispOk S G.e1901, ?_, vs_alloc_sizes hbl G O, vs_alloc_bases G hbs,
       vs_callsMatch hbl rfl G O, vs_loads (fun k hk ↦ vs_own_mem S _ hk) G.ptr
-        (S.ownW_lens hbl) hout hcl (G.par 6 (by norm_num))
-        (hexpL _ (by simp [log2Lin])) G.push⟩
+        (S.ownW_lens hbl) hout hcl (G.par 5 (by norm_num)) hsqm hcev G.push⟩
     · rw [vs_params]
       simp only [List.map_cons, List.map_nil]
       rw [G.par 0 (by norm_num), G.par 1 (by norm_num), G.par 2 (by norm_num),
-        G.par 3 (by norm_num), G.par 4 (by norm_num), G.par 5 (by norm_num),
-        G.par 6 (by norm_num)]
+        G.par 3 (by norm_num), G.par 4 (by norm_num), G.par 5 (by norm_num)]
       rfl
     · rw [show Fn.body Data.core18 = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
