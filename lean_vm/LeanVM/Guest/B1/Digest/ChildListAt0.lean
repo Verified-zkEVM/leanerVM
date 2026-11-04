@@ -385,11 +385,11 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
   · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
 
 set_option maxRecDepth 100000 in
-theorem l17_atomsS : (loopPre (coreProgram.getD 340 default)).all isAtomS = true := by decide +kernel
+theorem l17_atomsS : (loopPre (coreProgram.getD 341 default)).all isAtomS = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem l17_unplaced :
-    (atomsIn (loopPre (coreProgram.getD 340 default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD 341 default))).all atomUnplaced = true := by decide +kernel
 
 /-- **`__loop16` is complete, placed**: the chain buffer's states at `g^chP` and the records'
 marks and cells among the caller's words, the groups `j < m`. -/

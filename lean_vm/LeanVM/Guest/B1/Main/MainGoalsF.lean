@@ -53,10 +53,10 @@ def mfσ1 (x N a b : E) : Val :=
 theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd "__loop0" [1, gen ^ m, a, b] [] := by
   have hf := find_of_idx mfL1_idx (by rw [coreProgram_length]; omega)
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 32 default) (gen ^ j) (gen ^ m) [a, b] := by
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 33 default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 32 default) = Data.core33.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD 33 default) = Data.core33.body.take 10 from rfl]
     intro t ht
     simp only [Data.core33.body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht
@@ -68,10 +68,10 @@ theorem mfL1_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
 theorem mfL2_rel (rd : Reader) (a b : E) {m : ℕ} (hm : m ≠ 0) :
     coreProgram.Rel rd "__loop1" [1, gen ^ m, a, b] [] := by
   have hf := find_of_idx mfL2_idx (by rw [coreProgram_length]; omega)
-  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 33 default) (gen ^ j) (gen ^ m) [a, b] := by
+  have hblk : ∀ j < m, LoopBlock rd (coreProgram.getD 34 default) (gen ^ j) (gen ^ m) [a, b] := by
     intro j _
     refine ⟨mfσ1 (gen ^ j) (gen ^ m) a b, rfl, ?_⟩
-    rw [show loopPre (coreProgram.getD 33 default) = Data.core34.body.take 10 from rfl]
+    rw [show loopPre (coreProgram.getD 34 default) = Data.core34.body.take 10 from rfl]
     intro t ht
     simp only [Data.core34.body, List.take_succ_cons, List.take_zero, List.mem_cons,
       List.not_mem_nil, or_false] at ht

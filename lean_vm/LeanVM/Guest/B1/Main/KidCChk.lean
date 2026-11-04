@@ -80,11 +80,11 @@ def l5Tail : Stmt :=
     11, .n 12, .n 13, .n 14, .n 15]
 
 set_option maxRecDepth 100000 in
-theorem l5_body : Fn.body (coreProgram.getD 36 default) = l5Pre ++ [l5Tail, .ret []] :=
+theorem l5_body : Fn.body (coreProgram.getD 37 default) = l5Pre ++ [l5Tail, .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l5_params : (coreProgram.getD 36 default).params = (List.range 16).map V.n := by
+theorem l5_params : (coreProgram.getD 37 default).params = (List.range 16).map V.n := by
   decide +kernel
 
 /-- `__loop4`'s stores. -/

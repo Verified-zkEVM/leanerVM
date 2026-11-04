@@ -67,23 +67,23 @@ def tailAt (f : String) (c n : ℕ) : List Stmt :=
   [.callIf (.n (c + 2)) f (.n (c + 4) :: (List.range n).map fun k => V.n (k + 1)), .ret []]
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_body : Fn.body (coreProgram.getD 358 default) = l17Pre ++ tailAt "__loop17" 18 3 ∧
-    Fn.body (coreProgram.getD 360 default) = l19Pre ++ tailAt "__loop19" 12 3 ∧
-    Fn.body (coreProgram.getD 361 default) = l20Pre ++ tailAt "__loop20" 10 3 ∧
-    Fn.body (coreProgram.getD 374 default) = l21Pre ++ tailAt "__loop21" 15 5 := by
+theorem dv_loops_body : Fn.body (coreProgram.getD 359 default) = l17Pre ++ tailAt "__loop17" 18 3 ∧
+    Fn.body (coreProgram.getD 361 default) = l19Pre ++ tailAt "__loop19" 12 3 ∧
+    Fn.body (coreProgram.getD 362 default) = l20Pre ++ tailAt "__loop20" 10 3 ∧
+    Fn.body (coreProgram.getD 375 default) = l21Pre ++ tailAt "__loop21" 15 5 := by
   refine ⟨stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_⟩ <;>
     decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem dv_loops_shape :
-    (loopShapeF (coreProgram.getD 358 default) "__loop17" = true ∧
-      (coreProgram.getD 358 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 360 default) "__loop19" = true ∧
-      (coreProgram.getD 360 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 361 default) "__loop20" = true ∧
+    (loopShapeF (coreProgram.getD 359 default) "__loop17" = true ∧
+      (coreProgram.getD 359 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 361 default) "__loop19" = true ∧
       (coreProgram.getD 361 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 374 default) "__loop21" = true ∧
-      (coreProgram.getD 374 default).params.length = 6) := by
+    (loopShapeF (coreProgram.getD 362 default) "__loop20" = true ∧
+      (coreProgram.getD 362 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 375 default) "__loop21" = true ∧
+      (coreProgram.getD 375 default).params.length = 6) := by
   decide +kernel
 
 end

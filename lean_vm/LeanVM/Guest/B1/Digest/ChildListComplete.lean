@@ -53,7 +53,7 @@ theorem recMem_group {cover origin limit entries base : E} {n : ℕ} {o : ℕ �
   rw [e]
   exact h3 c hc
 
-theorem l17_shapeF : loopShapeF (coreProgram.getD 340 default) "__loop16" = true := by
+theorem l17_shapeF : loopShapeF (coreProgram.getD 341 default) "__loop16" = true := by
   have h := l17c_ok
   simp only [l17cOk, Bool.and_eq_true] at h
   exact h.1.1.1.1.1.1.1.1.1.1

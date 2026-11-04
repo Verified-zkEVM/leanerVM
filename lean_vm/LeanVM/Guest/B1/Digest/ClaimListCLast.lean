@@ -186,11 +186,11 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     (hc : AllCanonical cells)
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 322 default) x N [chain, entries] := by
+    LoopBlock rd (coreProgram.getD 323 default) x N [chain, entries] := by
   have hok := l16_ok
   have hcok := l16c_ok
   have hnb := l16_nb
-  set fn := coreProgram.getD 322 default
+  set fn := coreProgram.getD 323 default
   set A := loopAtoms fn with hAdef
   set S := storesOf 4 fn.body with hSdef
   simp only [l16Ok, Bool.and_eq_true, decide_eq_true_eq] at hok

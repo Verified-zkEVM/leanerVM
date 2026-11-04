@@ -53,29 +53,29 @@ def l4Pre : List Stmt :=
     .callIf (.n 22) "__loop3" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]]
 
 set_option maxRecDepth 100000 in
-theorem l3_body : Fn.body (coreProgram.getD 34 default) = l3Pre ++ [.ret []] :=
+theorem l3_body : Fn.body (coreProgram.getD 35 default) = l3Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l4_body : Fn.body (coreProgram.getD 35 default) = l4Pre ++ [.ret []] :=
+theorem l4_body : Fn.body (coreProgram.getD 36 default) = l4Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l3_params : (coreProgram.getD 34 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
+theorem l3_params : (coreProgram.getD 35 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_params : (coreProgram.getD 35 default).params =
+theorem l4_params : (coreProgram.getD 36 default).params =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 35 := by decide +kernel
+theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 36 := by decide +kernel
 
-theorem l3_find : coreProgram.find? "__loop2" = some (coreProgram.getD 34 default) :=
+theorem l3_find : coreProgram.find? "__loop2" = some (coreProgram.getD 35 default) :=
   find_of_idx l3_idx (by rw [coreProgram_length]; omega)
 
-theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 35 default) :=
+theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 36 default) :=
   find_of_idx l4_idx' (by rw [coreProgram_length]; omega)
 
 /-- Every member's body places nothing and calls members only. -/
