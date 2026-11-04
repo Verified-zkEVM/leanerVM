@@ -101,7 +101,7 @@ theorem cellSymsAt_cost (hP : Includes P Decoder.cellSymsAtC.costDeps) (c13 : E)
   rw [Decoder.cellSymsAtC.costEq P hP Vn VnV hVn c13 row rowV hrow]
   set a := [row (.n 6), row (.n 7), row (.n 8)]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.cellSymsAtC.lam0.costIdx
-      [VnV, encodeValue a, encodeValue [c13]]) [encodeValue v] (encodeValue (Vn 32 [c13] a v)) :=
+      [VnV, encodeValue a, encodeValue [c13]]) [encodeValue v] (encodeValue (Vn 31 [c13] a v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.cellSymsAtC.lam0.costSpec P (by includes) Vn VnV hVn a [c13] v)
   rw [Decoder.cellSymsOfC.costEq P (by includes) _ _ hσ]
   have m := rangeMap_le P (by includes) (by includes) _

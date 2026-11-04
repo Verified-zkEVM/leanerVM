@@ -29,23 +29,23 @@ open LeanVM.Guest.Fast in
 /-- The leanXMSS signature checked at slot address `p` (`verify_lean_xmss`, index `20`), the
 readers' tables `R` given. -/
 noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (p : E) : LeanXmss.Signature :=
-  xmssSigOfA R.xmss (Vn 20 [p] [])
+  xmssSigOfA R.xmss (Vn 37 [p] [])
 
 open LeanVM.Guest.Fast in
 /-- The leanSPHINCS signature checked at slot address `p` (`verify_sig_lean_sphincs`, `22`), off
 its frame and its three `sp_wots` frames (`21`), the readers' tables `R` given. -/
 noncomputable def sphincsAtFrame (R : ReaderTabs) (σ : Val) (Vn : NFrames) (p : E) :
     Sphincs.Signature :=
-  let s := Vn 22 [p, σ (.n 68)] []
-  sphincsSigOfA R.sphincs s (Vn 21 (spWotsArgs s 0) (spWotsRets s 0))
-    (Vn 21 (spWotsArgs s 1) (spWotsRets s 1)) (Vn 21 (spWotsArgs s 2) (spWotsRets s 2))
+  let s := Vn 21 [p, σ (.n 68)] []
+  sphincsSigOfA R.sphincs s (Vn 20 (spWotsArgs s 0) (spWotsRets s 0))
+    (Vn 20 (spWotsArgs s 1) (spWotsRets s 1)) (Vn 20 (spWotsArgs s 2) (spWotsRets s 2))
 
 open LeanVM.Guest.Fast in
 /-- The DA matrix `da_verify` (`29`) checks on the call's words, the logarithm's tables `D`
 given. -/
 noncomputable def daAtFrame (D : LeanVM.Extraction.Fast.DiscreteLogTables) (Vn : NFrames)
     (args rets : List E) : LeanVM.Da.MatrixWitness :=
-  dvWitND D (Vn 29 args rets) Vn
+  dvWitND D (Vn 28 args rets) Vn
 
 open LeanVM.Guest.Fast in
 /-- A child's proof at its `verify_sub` (`19`) call's words, the readers' tables `R` given. -/
@@ -56,7 +56,7 @@ noncomputable def proofAtFrame (R : ReaderTabs) (rd : Reader) (Vn : NFrames) (cl
 open LeanVM.Guest.Fast in
 /-- The batching's hints at `aggregate_claims`' (`35`) call's words. -/
 noncomputable def hintsAtFrame (rd : Reader) (Vn : NFrames) (args : List E) : BatchingHints :=
-  aggHints rd (Vn 35 args [])
+  aggHints rd (Vn 34 args [])
 
 cost_enc LeanVM.Guest.Fast.ReaderTabs
 

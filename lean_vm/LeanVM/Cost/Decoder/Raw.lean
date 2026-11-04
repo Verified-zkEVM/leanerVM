@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Signatures
+public import LeanVM.Cost.Decoder.Xmss
 import all LeanVM.Guest.B1.Main.Interface
 
 /-!
