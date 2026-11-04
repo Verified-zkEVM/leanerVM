@@ -16,91 +16,91 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 theorem vtPullSels0 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4569), σ (.n 4576), σ (.n 4583), σ (.n 4590), σ (.n 4597)] =
-      [σ (.n 3051), σ (.n 3066), σ (.n 3081), σ (.n 3096), σ (.n 3111)] := by
-  have a4049 := h.atomAt 4049 (.copy (.n 4569) (.n 3051)) (by decide +kernel)
-  have a4054 := h.atomAt 4054 (.copy (.n 4576) (.n 3066)) (by decide +kernel)
-  have a4059 := h.atomAt 4059 (.copy (.n 4583) (.n 3081)) (by decide +kernel)
-  have a4064 := h.atomAt 4064 (.copy (.n 4590) (.n 3096)) (by decide +kernel)
-  have a4069 := h.atomAt 4069 (.copy (.n 4597) (.n 3111)) (by decide +kernel)
-  simp only [Atom.Holds] at a4049 a4054 a4059 a4064 a4069
-  rw [a4049, a4054, a4059, a4064, a4069]
+    [σ (.n 1952), σ (.n 1954), σ (.n 1956), σ (.n 1958), σ (.n 1960)] =
+      [σ (.n 952), σ (.n 957), σ (.n 962), σ (.n 967), σ (.n 972)] := by
+  have a1978 := h.atomAt 1978 (.copy (.n 1952) (.n 952)) (by decide +kernel)
+  have a1980 := h.atomAt 1980 (.copy (.n 1954) (.n 957)) (by decide +kernel)
+  have a1982 := h.atomAt 1982 (.copy (.n 1956) (.n 962)) (by decide +kernel)
+  have a1984 := h.atomAt 1984 (.copy (.n 1958) (.n 967)) (by decide +kernel)
+  have a1986 := h.atomAt 1986 (.copy (.n 1960) (.n 972)) (by decide +kernel)
+  simp only [Atom.Holds] at a1978 a1980 a1982 a1984 a1986
+  rw [a1978, a1980, a1982, a1984, a1986]
 
 theorem vtPullSels1 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4604), σ (.n 4611), σ (.n 4618), σ (.n 4625), σ (.n 4632)] =
-      [σ (.n 3130), σ (.n 3149), σ (.n 3168), σ (.n 3187), σ (.n 3206)] := by
-  have a4074 := h.atomAt 4074 (.copy (.n 4604) (.n 3130)) (by decide +kernel)
-  have a4079 := h.atomAt 4079 (.copy (.n 4611) (.n 3149)) (by decide +kernel)
-  have a4084 := h.atomAt 4084 (.copy (.n 4618) (.n 3168)) (by decide +kernel)
-  have a4089 := h.atomAt 4089 (.copy (.n 4625) (.n 3187)) (by decide +kernel)
-  have a4094 := h.atomAt 4094 (.copy (.n 4632) (.n 3206)) (by decide +kernel)
-  simp only [Atom.Holds] at a4074 a4079 a4084 a4089 a4094
-  rw [a4074, a4079, a4084, a4089, a4094]
+    [σ (.n 1962), σ (.n 1964), σ (.n 1966), σ (.n 1968), σ (.n 1970)] =
+      [σ (.n 981), σ (.n 990), σ (.n 999), σ (.n 1008), σ (.n 1017)] := by
+  have a1988 := h.atomAt 1988 (.copy (.n 1962) (.n 981)) (by decide +kernel)
+  have a1990 := h.atomAt 1990 (.copy (.n 1964) (.n 990)) (by decide +kernel)
+  have a1992 := h.atomAt 1992 (.copy (.n 1966) (.n 999)) (by decide +kernel)
+  have a1994 := h.atomAt 1994 (.copy (.n 1968) (.n 1008)) (by decide +kernel)
+  have a1996 := h.atomAt 1996 (.copy (.n 1970) (.n 1017)) (by decide +kernel)
+  simp only [Atom.Holds] at a1988 a1990 a1992 a1994 a1996
+  rw [a1988, a1990, a1992, a1994, a1996]
 
 theorem vtPullSels2 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4639), σ (.n 4646), σ (.n 4653)] =
-      [σ (.n 3225), σ (.n 3244), σ (.n 3263)] := by
-  have a4099 := h.atomAt 4099 (.copy (.n 4639) (.n 3225)) (by decide +kernel)
-  have a4104 := h.atomAt 4104 (.copy (.n 4646) (.n 3244)) (by decide +kernel)
-  have a4109 := h.atomAt 4109 (.copy (.n 4653) (.n 3263)) (by decide +kernel)
-  simp only [Atom.Holds] at a4099 a4104 a4109
-  rw [a4099, a4104, a4109]
+    [σ (.n 1972), σ (.n 1974), σ (.n 1976)] =
+      [σ (.n 1026), σ (.n 1035), σ (.n 1044)] := by
+  have a1998 := h.atomAt 1998 (.copy (.n 1972) (.n 1026)) (by decide +kernel)
+  have a2000 := h.atomAt 2000 (.copy (.n 1974) (.n 1035)) (by decide +kernel)
+  have a2002 := h.atomAt 2002 (.copy (.n 1976) (.n 1044)) (by decide +kernel)
+  simp only [Atom.Holds] at a1998 a2000 a2002
+  rw [a1998, a2000, a2002]
 
 theorem vtPullSels3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4660), σ (.n 4667), σ (.n 4674), σ (.n 4681), σ (.n 4688)] =
-      [σ (.n 3282), σ (.n 3301), σ (.n 3320), σ (.n 3339), σ (.n 3358)] := by
-  have a4114 := h.atomAt 4114 (.copy (.n 4660) (.n 3282)) (by decide +kernel)
-  have a4119 := h.atomAt 4119 (.copy (.n 4667) (.n 3301)) (by decide +kernel)
-  have a4124 := h.atomAt 4124 (.copy (.n 4674) (.n 3320)) (by decide +kernel)
-  have a4129 := h.atomAt 4129 (.copy (.n 4681) (.n 3339)) (by decide +kernel)
-  have a4134 := h.atomAt 4134 (.copy (.n 4688) (.n 3358)) (by decide +kernel)
-  simp only [Atom.Holds] at a4114 a4119 a4124 a4129 a4134
-  rw [a4114, a4119, a4124, a4129, a4134]
+    [σ (.n 1978), σ (.n 1980), σ (.n 1982), σ (.n 1984), σ (.n 1986)] =
+      [σ (.n 1053), σ (.n 1062), σ (.n 1071), σ (.n 1080), σ (.n 1089)] := by
+  have a2004 := h.atomAt 2004 (.copy (.n 1978) (.n 1053)) (by decide +kernel)
+  have a2006 := h.atomAt 2006 (.copy (.n 1980) (.n 1062)) (by decide +kernel)
+  have a2008 := h.atomAt 2008 (.copy (.n 1982) (.n 1071)) (by decide +kernel)
+  have a2010 := h.atomAt 2010 (.copy (.n 1984) (.n 1080)) (by decide +kernel)
+  have a2012 := h.atomAt 2012 (.copy (.n 1986) (.n 1089)) (by decide +kernel)
+  simp only [Atom.Holds] at a2004 a2006 a2008 a2010 a2012
+  rw [a2004, a2006, a2008, a2010, a2012]
 
 theorem vtPullSels4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4695), σ (.n 4702), σ (.n 4709), σ (.n 4716), σ (.n 4723)] =
-      [σ (.n 3377), σ (.n 3396), σ (.n 3415), σ (.n 3434), σ (.n 3453)] := by
-  have a4139 := h.atomAt 4139 (.copy (.n 4695) (.n 3377)) (by decide +kernel)
-  have a4144 := h.atomAt 4144 (.copy (.n 4702) (.n 3396)) (by decide +kernel)
-  have a4149 := h.atomAt 4149 (.copy (.n 4709) (.n 3415)) (by decide +kernel)
-  have a4154 := h.atomAt 4154 (.copy (.n 4716) (.n 3434)) (by decide +kernel)
-  have a4159 := h.atomAt 4159 (.copy (.n 4723) (.n 3453)) (by decide +kernel)
-  simp only [Atom.Holds] at a4139 a4144 a4149 a4154 a4159
-  rw [a4139, a4144, a4149, a4154, a4159]
+    [σ (.n 1988), σ (.n 1990), σ (.n 1992), σ (.n 1994), σ (.n 1996)] =
+      [σ (.n 1098), σ (.n 1107), σ (.n 1116), σ (.n 1125), σ (.n 1134)] := by
+  have a2014 := h.atomAt 2014 (.copy (.n 1988) (.n 1098)) (by decide +kernel)
+  have a2016 := h.atomAt 2016 (.copy (.n 1990) (.n 1107)) (by decide +kernel)
+  have a2018 := h.atomAt 2018 (.copy (.n 1992) (.n 1116)) (by decide +kernel)
+  have a2020 := h.atomAt 2020 (.copy (.n 1994) (.n 1125)) (by decide +kernel)
+  have a2022 := h.atomAt 2022 (.copy (.n 1996) (.n 1134)) (by decide +kernel)
+  simp only [Atom.Holds] at a2014 a2016 a2018 a2020 a2022
+  rw [a2014, a2016, a2018, a2020, a2022]
 
 theorem vtPullSels5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    [σ (.n 4730), σ (.n 4737), σ (.n 4744), σ (.n 4751), σ (.n 4758), σ (.n 4765), σ (.n 4772), σ (.n 4779), σ (.n 4786), σ (.n 4793), σ (.n 4800), σ (.n 4807), σ (.n 4814), σ (.n 4821), σ (.n 4828), σ (.n 4835), σ (.n 4842), σ (.n 4849), σ (.n 4856), σ (.n 4863), σ (.n 4870), σ (.n 4877), σ (.n 4884), σ (.n 4891), σ (.n 4898), σ (.n 4905), σ (.n 4912), σ (.n 4919)] =
-      [σ (.n 3472), σ (.n 3491), σ (.n 3510), σ (.n 3529), σ (.n 3548), σ (.n 3567), σ (.n 3586), σ (.n 3605), σ (.n 3624), σ (.n 3643), σ (.n 3662), σ (.n 3681), σ (.n 3700), σ (.n 3719), σ (.n 3738), σ (.n 3757), σ (.n 3776), σ (.n 3795), σ (.n 3814), σ (.n 3833), σ (.n 3852), σ (.n 3871), σ (.n 3890), σ (.n 3909), σ (.n 3928), σ (.n 3947), σ (.n 3966), σ (.n 3985)] := by
-  have a4164 := h.atomAt 4164 (.copy (.n 4730) (.n 3472)) (by decide +kernel)
-  have a4169 := h.atomAt 4169 (.copy (.n 4737) (.n 3491)) (by decide +kernel)
-  have a4174 := h.atomAt 4174 (.copy (.n 4744) (.n 3510)) (by decide +kernel)
-  have a4179 := h.atomAt 4179 (.copy (.n 4751) (.n 3529)) (by decide +kernel)
-  have a4184 := h.atomAt 4184 (.copy (.n 4758) (.n 3548)) (by decide +kernel)
-  have a4189 := h.atomAt 4189 (.copy (.n 4765) (.n 3567)) (by decide +kernel)
-  have a4194 := h.atomAt 4194 (.copy (.n 4772) (.n 3586)) (by decide +kernel)
-  have a4199 := h.atomAt 4199 (.copy (.n 4779) (.n 3605)) (by decide +kernel)
-  have a4204 := h.atomAt 4204 (.copy (.n 4786) (.n 3624)) (by decide +kernel)
-  have a4209 := h.atomAt 4209 (.copy (.n 4793) (.n 3643)) (by decide +kernel)
-  have a4214 := h.atomAt 4214 (.copy (.n 4800) (.n 3662)) (by decide +kernel)
-  have a4219 := h.atomAt 4219 (.copy (.n 4807) (.n 3681)) (by decide +kernel)
-  have a4224 := h.atomAt 4224 (.copy (.n 4814) (.n 3700)) (by decide +kernel)
-  have a4229 := h.atomAt 4229 (.copy (.n 4821) (.n 3719)) (by decide +kernel)
-  have a4234 := h.atomAt 4234 (.copy (.n 4828) (.n 3738)) (by decide +kernel)
-  have a4239 := h.atomAt 4239 (.copy (.n 4835) (.n 3757)) (by decide +kernel)
-  have a4244 := h.atomAt 4244 (.copy (.n 4842) (.n 3776)) (by decide +kernel)
-  have a4249 := h.atomAt 4249 (.copy (.n 4849) (.n 3795)) (by decide +kernel)
-  have a4254 := h.atomAt 4254 (.copy (.n 4856) (.n 3814)) (by decide +kernel)
-  have a4259 := h.atomAt 4259 (.copy (.n 4863) (.n 3833)) (by decide +kernel)
-  have a4264 := h.atomAt 4264 (.copy (.n 4870) (.n 3852)) (by decide +kernel)
-  have a4269 := h.atomAt 4269 (.copy (.n 4877) (.n 3871)) (by decide +kernel)
-  have a4274 := h.atomAt 4274 (.copy (.n 4884) (.n 3890)) (by decide +kernel)
-  have a4279 := h.atomAt 4279 (.copy (.n 4891) (.n 3909)) (by decide +kernel)
-  have a4284 := h.atomAt 4284 (.copy (.n 4898) (.n 3928)) (by decide +kernel)
-  have a4289 := h.atomAt 4289 (.copy (.n 4905) (.n 3947)) (by decide +kernel)
-  have a4294 := h.atomAt 4294 (.copy (.n 4912) (.n 3966)) (by decide +kernel)
-  have a4299 := h.atomAt 4299 (.copy (.n 4919) (.n 3985)) (by decide +kernel)
-  simp only [Atom.Holds] at a4164 a4169 a4174 a4179 a4184 a4189 a4194 a4199 a4204 a4209 a4214 a4219 a4224 a4229 a4234 a4239 a4244 a4249 a4254 a4259 a4264 a4269 a4274 a4279 a4284 a4289 a4294 a4299
-  rw [a4164, a4169, a4174, a4179, a4184, a4189, a4194, a4199, a4204, a4209, a4214, a4219, a4224, a4229, a4234, a4239, a4244, a4249, a4254, a4259, a4264, a4269, a4274, a4279, a4284, a4289, a4294, a4299]
+    [σ (.n 1998), σ (.n 2000), σ (.n 2002), σ (.n 2004), σ (.n 2006), σ (.n 2008), σ (.n 2010), σ (.n 2012), σ (.n 2014), σ (.n 2016), σ (.n 2018), σ (.n 2020), σ (.n 2022), σ (.n 2024), σ (.n 2026), σ (.n 2028), σ (.n 2030), σ (.n 2032), σ (.n 2034), σ (.n 2036), σ (.n 2038), σ (.n 2040), σ (.n 2042), σ (.n 2044), σ (.n 2046), σ (.n 2048), σ (.n 2050), σ (.n 2052)] =
+      [σ (.n 1143), σ (.n 1152), σ (.n 1161), σ (.n 1170), σ (.n 1179), σ (.n 1188), σ (.n 1197), σ (.n 1206), σ (.n 1215), σ (.n 1224), σ (.n 1233), σ (.n 1242), σ (.n 1251), σ (.n 1260), σ (.n 1269), σ (.n 1278), σ (.n 1287), σ (.n 1296), σ (.n 1305), σ (.n 1314), σ (.n 1323), σ (.n 1332), σ (.n 1341), σ (.n 1350), σ (.n 1359), σ (.n 1368), σ (.n 1377), σ (.n 1386)] := by
+  have a2024 := h.atomAt 2024 (.copy (.n 1998) (.n 1143)) (by decide +kernel)
+  have a2026 := h.atomAt 2026 (.copy (.n 2000) (.n 1152)) (by decide +kernel)
+  have a2028 := h.atomAt 2028 (.copy (.n 2002) (.n 1161)) (by decide +kernel)
+  have a2030 := h.atomAt 2030 (.copy (.n 2004) (.n 1170)) (by decide +kernel)
+  have a2032 := h.atomAt 2032 (.copy (.n 2006) (.n 1179)) (by decide +kernel)
+  have a2034 := h.atomAt 2034 (.copy (.n 2008) (.n 1188)) (by decide +kernel)
+  have a2036 := h.atomAt 2036 (.copy (.n 2010) (.n 1197)) (by decide +kernel)
+  have a2038 := h.atomAt 2038 (.copy (.n 2012) (.n 1206)) (by decide +kernel)
+  have a2040 := h.atomAt 2040 (.copy (.n 2014) (.n 1215)) (by decide +kernel)
+  have a2042 := h.atomAt 2042 (.copy (.n 2016) (.n 1224)) (by decide +kernel)
+  have a2044 := h.atomAt 2044 (.copy (.n 2018) (.n 1233)) (by decide +kernel)
+  have a2046 := h.atomAt 2046 (.copy (.n 2020) (.n 1242)) (by decide +kernel)
+  have a2048 := h.atomAt 2048 (.copy (.n 2022) (.n 1251)) (by decide +kernel)
+  have a2050 := h.atomAt 2050 (.copy (.n 2024) (.n 1260)) (by decide +kernel)
+  have a2052 := h.atomAt 2052 (.copy (.n 2026) (.n 1269)) (by decide +kernel)
+  have a2054 := h.atomAt 2054 (.copy (.n 2028) (.n 1278)) (by decide +kernel)
+  have a2056 := h.atomAt 2056 (.copy (.n 2030) (.n 1287)) (by decide +kernel)
+  have a2058 := h.atomAt 2058 (.copy (.n 2032) (.n 1296)) (by decide +kernel)
+  have a2060 := h.atomAt 2060 (.copy (.n 2034) (.n 1305)) (by decide +kernel)
+  have a2062 := h.atomAt 2062 (.copy (.n 2036) (.n 1314)) (by decide +kernel)
+  have a2064 := h.atomAt 2064 (.copy (.n 2038) (.n 1323)) (by decide +kernel)
+  have a2066 := h.atomAt 2066 (.copy (.n 2040) (.n 1332)) (by decide +kernel)
+  have a2068 := h.atomAt 2068 (.copy (.n 2042) (.n 1341)) (by decide +kernel)
+  have a2070 := h.atomAt 2070 (.copy (.n 2044) (.n 1350)) (by decide +kernel)
+  have a2072 := h.atomAt 2072 (.copy (.n 2046) (.n 1359)) (by decide +kernel)
+  have a2074 := h.atomAt 2074 (.copy (.n 2048) (.n 1368)) (by decide +kernel)
+  have a2076 := h.atomAt 2076 (.copy (.n 2050) (.n 1377)) (by decide +kernel)
+  have a2078 := h.atomAt 2078 (.copy (.n 2052) (.n 1386)) (by decide +kernel)
+  simp only [Atom.Holds] at a2024 a2026 a2028 a2030 a2032 a2034 a2036 a2038 a2040 a2042 a2044 a2046 a2048 a2050 a2052 a2054 a2056 a2058 a2060 a2062 a2064 a2066 a2068 a2070 a2072 a2074 a2076 a2078
+  rw [a2024, a2026, a2028, a2030, a2032, a2034, a2036, a2038, a2040, a2042, a2044, a2046, a2048, a2050, a2052, a2054, a2056, a2058, a2060, a2062, a2064, a2066, a2068, a2070, a2072, a2074, a2076, a2078]
 
 end
 end LeanVM.Guest.B1.Tables

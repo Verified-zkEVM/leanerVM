@@ -17,8 +17,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusSide
 /-!
 # The block selectors (G:1977-2064, 2105-2115, 2300-2374)
 
-The guest reads each block's log-size from `block_kappa` (`blockKappaWords`): block `b`'s is
-`vtKap lm τ b`, the side's sizes `vtSizesP` (push: the framework's `0, log_mem, 19`, then each
+Block `b`'s log-size is `kappa_base[BLOCK_KAPPA_SRC[b]]·g^BLOCK_KAPPA_ADJ[b]` in the exponent,
+`vtKap lm τ b` (`Sort`), the side's sizes `vtSizesP` (push: the framework's `0, log_mem, 19`, then each
 table block at its table's height) and `vtSizesC` (count). `vt_sels`: every push block's selector
 (`block_eq_hi[b]`'s copy) is `blockSel (vtSizesP lm τ) |point| b point`, every count block's
 `blockSel (vtSizesC τ) |point| b point`, and the running sums are their sums.
@@ -34,13 +34,6 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel blockOffset eqAbove_aligned)
 
 /-! ## The sizes -/
 
-/-- The tables' heights, in table order. -/
-def vtTauList (τ : ℕ → ℕ) : List ℕ := (List.range 6).map τ
-
-/-- Block `b`'s log-size, as `block_kappa` holds it. -/
-def vtKap (lm : ℕ) (τ : ℕ → ℕ) (b : ℕ) : ℕ :=
-  ([0, lm] ++ vtTauList τ).getD (blockKappaSrc.getD b 0) 0 + blockKappaAdj b
-
 /-- The push side's log-sizes: the framework's, then the table blocks'. -/
 def vtSizesP (lm : ℕ) (τ : ℕ → ℕ) : List ℕ := [0, lm, 19] ++ vtPushPadData.map fun x ↦ τ x.2.1
 
@@ -48,26 +41,6 @@ def vtSizesP (lm : ℕ) (τ : ℕ → ℕ) : List ℕ := [0, lm, 19] ++ vtPushPa
 def vtSizesC (τ : ℕ → ℕ) : List ℕ := vtCountPadData.map fun x ↦ τ x.2.1
 
 theorem vt_src_lt : ∀ b < 153, blockKappaSrc.getD b 0 < 8 := by decide
-
-theorem vt_dims_getD (lm : ℕ) (τ : ℕ → ℕ) {s : ℕ} (hs : s < 8) :
-    (1 :: gen ^ lm :: (vtTauList τ).map (gen ^ ·)).getD s 0 =
-      gen ^ ([0, lm] ++ vtTauList τ).getD s 0 := by
-  match s, hs with
-  | 0, _ => simp
-  | 1, _ => simp
-  | s + 2, hs =>
-    simp only [List.getD_cons_succ, List.cons_append, List.nil_append]
-    rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; omega),
-      List.getD_eq_getElem _ _ (by simp [vtTauList]; omega)]
-    simp
-
-/-- `block_kappa`'s cell `b` is `g^(vtKap lm τ b)`. -/
-theorem vt_kappa_word (lm : ℕ) (τ : ℕ → ℕ) {b : ℕ} (hb : b < 153) :
-    (blockKappaWords (gen ^ lm) ((vtTauList τ).map (gen ^ ·))).getD b 0 = gen ^ vtKap lm τ b := by
-  rw [blockKappaWords, List.getD_eq_getElem _ _ (by simpa using hb)]
-  simp only [List.getElem_map, List.getElem_range]
-  rw [vt_dims_getD lm τ (vt_src_lt b hb), ← pow_add]
-  rfl
 
 theorem vt_srcP : ∀ i < 51, blockKappaSrc.getD (3 + i) 0 = (vtPushPadData.getD i default).2.1 + 2 ∧
     blockKappaAdj (3 + i) = 0 ∧ (vtPushPadData.getD i default).2.1 < 6 := by decide

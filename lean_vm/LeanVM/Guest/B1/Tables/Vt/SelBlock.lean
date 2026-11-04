@@ -24,64 +24,71 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The running sum after a block: the eq weight at the side's first block, else the sum. -/
-def vtSelSum (w t : ℕ) (prev : Option ℕ) : ℕ := if prev.isNone then vtSelE w t else vtSelE w t + 3
+def vtSelSum (w t : ℕ) (prev : Option ℕ) : ℕ := if prev.isNone then vtSelE w t else vtSelE w t + 2
 
 /-- The block's copy of its eq weight. -/
-def vtSelCopy (w t : ℕ) (prev : Option ℕ) : ℕ := if prev.isNone then vtSelE w t + 3 else vtSelE w t + 4
+def vtSelCopy (w t : ℕ) (prev : Option ℕ) : ℕ :=
+  if prev.isNone then vtSelE w t + 2 else vtSelE w t + 3
+
+section
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
+include hμ
 
 /-- **A table block's selector.** -/
-theorem vt_selblock {rd : Reader} {σ : Val} (h : VtH rd σ) {w b t pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtSelT w b t prev) ((vtPre.drop pos).take (vtSelT w b t prev).length) =
-      true) (ht : t < 6) {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
+theorem vt_selblock {σ : Val} (h : VtH Lm.read σ) {w b t pos : ℕ} {prev : Option ℕ}
+    {es gs gw : ℕ}
+    (hcheck : tbStmtsEqb (vtSelT w b t prev es gs gw)
+      ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
+    (hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
+      σ (.n gs) * word gw 0 0 = σ (.n 706) * gen ^ (144 * t))
+    {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hd34 : d + τ ≤ 34)
     (hdv : σ (.n (vtShLen t)) = gen ^ d)
-    (hrun : RunTables rd (σ (.n 2769) * gen ^ (288 * t)) (σ (.n 2770) * gen ^ (144 * t)) d
+    (hrun : RunTables Lm.read (σ (.n 705) * gen ^ (288 * t)) (σ (.n 706) * gen ^ (144 * t)) d
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
-    {off : ℕ} (hoff : LoadHolds rd (σ (.n 185)) b (gen ^ off)) (hob : off < 2 ^ 62) :
+    {off : ℕ} (hoff : σ (.n (vtBoffV b)) = gen ^ off) (hob : off < 2 ^ 62) :
     σ (.n (vtSelE w t)) = Placement.eqAbove ⟨τ, off⟩ point ∧
       σ (.n (vtSelCopy w t prev)) = σ (.n (vtSelE w t)) ∧
       σ (.n (vtSelSum w t prev)) = (match prev with | none => 0 | some p => σ (.n p)) +
         σ (.n (vtSelE w t)) := by
-  obtain ⟨k, hs⟩ := h.slice pos _ hcheck
+  obtain ⟨k, hs⟩ := h.sliceAt pos _ hcheck
   -- the template's facts, uniformly in `t`
-  obtain ⟨eqt, gt, heqt, hgt, hd, hl, hq, hrest⟩ : ∃ eqt gt : V,
-      σ eqt = σ (.n 2769) * gen ^ (288 * t) ∧ σ gt = σ (.n 2770) * gen ^ (144 * t) ∧
+  obtain ⟨eqt, gt, heqt, hgt, hd, hq, hrest⟩ : ∃ eqt gt : V,
+      σ eqt = σ (.n 705) * gen ^ (288 * t) ∧ σ gt = σ (.n 706) * gen ^ (144 * t) ∧
       (∃ (j : ℕ) (hj : j < vtBstNames.length), σ (.n (vtShLen t)) = ofK
           (Parameters.addressOfIndex j) ∧
-        coreProgram.Rel rd vtBstNames[j] [σ (.n (w + 9)), σ eqt, σ gt]
+        coreProgram.Rel Lm.read vtBstNames[j] [σ (.n w), σ eqt, σ gt]
           [σ (.n (vtSelE w t)), σ (.n (vtSelE w t + 1))]) ∧
-      LoadHolds rd (σ (.n 185)) b (σ (.n (vtSelE w t + 2))) ∧
-      σ (.n (vtSelE w t + 1)) = σ (.n (vtSelE w t + 2)) ∧
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ (vtSelTail w t prev) True k := by
+      σ (.n (vtSelE w t + 1)) = σ (.n (vtBoffV b)) ∧
+      Stmt.HoldsList (coreProgram.Rel Lm.read) Lm.read σ (vtSelTail w t prev) True k := by
     rcases Nat.eq_zero_or_pos t with rfl | ht0
-    · simp only [vtSelT, ↓reduceIte, List.nil_append, List.cons_append,
+    · simp only [vtSelT, ↓reduceIte, List.nil_append, List.cons_append, List.append_nil,
         Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hs
-      obtain ⟨-, -, -, -, -, -, -, -, -, hdisp, lE, qE, hr⟩ := hs
-      simp only [Atom.Holds] at lE qE
-      exact ⟨.n 2769, .n 2770, by simp, by simp, hdisp, lE, e_add_eq_zero_iff.mp qE, hr⟩
+      obtain ⟨-, -, hdisp, qE, hr⟩ := hs
+      simp only [Atom.Holds] at qE
+      exact ⟨.n 705, .n 706, by simp, by simp, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
     · have ht' : t ≠ 0 := by omega
       simp only [vtSelT, ht', ↓reduceIte, List.cons_append, List.nil_append,
         Stmt.HoldsList, Stmt.Holds] at hs
-      obtain ⟨-, -, -, -, -, -, -, -, -, c10, m11, c12, m13, hdisp, lE, qE, hr⟩ := hs
-      simp only [Atom.Holds] at c10 m11 c12 m13 lE qE
-      refine ⟨.n (w + 11), .n (w + 13), ?_, ?_, hdisp, lE, e_add_eq_zero_iff.mp qE, hr⟩
-      · rw [m11, c10, vtShC1_word ht]
-      · rw [m13, c12, vtShC2_word ht]
+      obtain ⟨-, -, c1, m2, c3, m4, hdisp, qE, hr⟩ := hs
+      simp only [Atom.Holds] at c1 m2 c3 m4 qE
+      obtain ⟨p1, p2⟩ := hptr ht0
+      refine ⟨.n (w + 2), .n (w + 4), ?_, ?_, hdisp, e_add_eq_zero_iff.mp qE, hr⟩
+      · rw [m2, c1, p1]
+      · rw [m4, c3, p2]
   -- the arm
   obtain ⟨j, hj, hjv, hrel⟩ := hd
   have hj34 : j < 34 := by simpa [vtBstNames] using hj
   rw [hdv, ← gen_pow_eq_ofK] at hjv
   obtain rfl := gen_pow_inj (by omega) (by omega) hjv
   simp only [vtBstNames, List.getElem_map, List.getElem_range] at hrel
-  have hb := block_selector_tab_holds _ hj34 _ _ _ hrel
+  have hb := block_selector_tab_holds _ hj34 _ hμ Lm _ _ hrel
   simp only [BlockSelTabOut] at hb
   obtain ⟨bs, hbl, -, hout⟩ := hb
   rw [heqt, hgt] at hout
-  have hsq := gSquaresList
   obtain ⟨he, hg⟩ := hout _ _ _ (by simp; omega) (by simp; omega)
     (by simp [gSquaresList]; omega) hrun
   rw [vt_bitsPow_sq hbl (by omega)] at hg
-  have hoff' := tb_loadHolds_unique hl hoff
-  rw [← hq, hg] at hoff'
+  have hoff' : gen ^ (2 ^ τ * vtBitsV bs d) = gen ^ off := by rw [← hoff, ← hq, hg]
   have e := vt_offset_bits (by omega) hob hoff'
   refine ⟨by rw [he, vt_eqAbove hbl (by omega), ← e], ?_, ?_⟩
   · cases prev with
@@ -96,6 +103,8 @@ theorem vt_selblock {rd : Reader} {σ : Val} (h : VtH rd σ) {w b t pos : ℕ} {
     | some p =>
       simp only [vtSelTail, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hrest
       simp only [vtSelSum, Option.isNone_some, Bool.false_eq_true, ↓reduceIte]; exact hrest.1
+
+end
 
 end
 end LeanVM.Guest.B1.Tables
