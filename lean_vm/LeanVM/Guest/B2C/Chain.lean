@@ -111,6 +111,13 @@ noncomputable def chainWin (j i : ℕ) : Bool :=
 /-- **The chains' checks of function `j`.** -/
 def ChainOk (j : ℕ) : Prop := chainFn j = true ∧ ∀ i ≤ (certOf j).cuts.length, chainWin j i = true
 
+/-- A function without chains passes. -/
+theorem chainOk_of_nil {j : ℕ} (h : (plumbOf j).chains.isEmpty = true) : ChainOk j := by
+  have h' : (plumbOf j).chains = [] := List.isEmpty_iff.mp h
+  refine ⟨?_, fun i _ ↦ ?_⟩
+  · simp [chainFn, h', chainsPw]
+  · simp [chainWin, h']
+
 /-! ## The static facts -/
 
 theorem testBit_bitsOf' {l : List ℕ} {c : ℕ} (h : (bitsOf l).testBit c = true) : c ∈ l :=

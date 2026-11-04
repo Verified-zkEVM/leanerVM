@@ -2481,6 +2481,29 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     for t in ts do
       if plumb.contains t || used.contains t || tcells.contains t || t < 2 || fsz ≤ t then
         throw s!"{f.name}: chain target cell {t} not apart"
+  -- no value a path through a chained `match`'s arm uses at that arm's target (`B2C.chainWin`),
+  -- by the values' cells here; the kernel's check reads them from each window's cells
+  unless chains.isEmpty do
+    let FA : Std.HashSet ℕ := chains.foldl (fun h ch => ch.2.2.1.foldl (·.insert ·) h) {}
+    let body := cf.body.toArray
+    for v in cf.params do
+      if FA.contains (cell v.idx) then throw s!"{f.name}: parameter {v.idx} at a chain target"
+    for s in [0:body.size] do
+      match chains.find? (·.1 == s), body[s]! with
+      | some ch, .match_ x arms =>
+        if x != Core.V.n ch.2.1 || arms.length != ch.2.2.1.length then
+          throw s!"{f.name}: chain at {s} not its match"
+        if FA.contains (cell x.idx) then throw s!"{f.name}: selector {x.idx} at a chain target"
+        for (a, t) in arms.zip ch.2.2.1 do
+          for v in LeanVM.Guest.Memory.Stmt.usesList a do
+            let c := cell v.idx
+            if FA.contains c && (!ch.2.2.1.contains c || c == t) then
+              throw s!"{f.name}: value {v.idx} of an arm of statement {s} at chain target {c}"
+      | some _, _ => throw s!"{f.name}: chain at {s} not a match"
+      | none, st =>
+        for v in LeanVM.Guest.Memory.Stmt.uses st do
+          if FA.contains (cell v.idx) then
+            throw s!"{f.name}: value {v.idx} of statement {s} at chain target {cell v.idx}"
   let pmax := out.best
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
@@ -3348,6 +3371,63 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     "\n\nend\nend LeanVM.Guest.B2C.Cplw\n"
   return [(dataDir / "CplParts.lean", data)] ++ files ++ [(("LeanVM/Guest/B2C" : System.FilePath) / "Cplw.lean", index)]
 
+/-! ## The chained `match`es' checks
+
+`B2C.chainFn j` and `B2C.chainWin j i` (`B2C/Chain.lean`) of each function with chains, by the
+kernel, `chainedPer` windows a module (`B2C/Chained/K{j}_{n}`); `B2C/Chained.lean` gives
+`ChainOk j` of every function, the others having no chains. -/
+
+def chainedDir : System.FilePath := "LeanVM/Guest/B2C/Chained"
+
+/-- Windows per module. -/
+def chainedPer : ℕ := 6
+
+/-- The chained check's files: per function with chains `(j, name, windows)`. -/
+def chainedFiles (fns : List (ℕ × String × ℕ)) : List (System.FilePath × String) := Id.run do
+  let mut files : Array (System.FilePath × String) := #[]
+  let mut oks : String := ""
+  for (j, name, nw) in fns do
+    let groups := (List.range ((nw + chainedPer - 1) / chainedPer)).map fun g =>
+      ((List.range nw).drop (g * chainedPer)).take chainedPer
+    for (ws, g) in groups.zipIdx do
+      let m := s!"K{j}_{g}"
+      files := files.push (chainedDir / (m ++ ".lean"), header ("B2C.Chained." ++ m)
+        "The kernel's checks of the chained `match`es' targets, window by window." ++
+        "public import LeanVM.Guest.B2C.Chain\n\n" ++ asyncOff ++
+        "namespace LeanVM.Guest.B2C.Chained\n\n@[expose] public section\n\n" ++
+        (if g == 0 then s!"/-- `{name}`: its chains. -/\ntheorem fn{j} : chainFn {j} = true := by decide +kernel\n\n" else "") ++
+        String.join (ws.map fun w =>
+          s!"/-- `{name}`, window {w}. -/\ntheorem cw{j}_{w} : chainWin {j} {w} = true := by decide +kernel\n\n") ++
+        "end\nend LeanVM.Guest.B2C.Chained\n")
+    oks := oks ++ s!"theorem ok{j} : ChainOk {j} := by
+  refine ⟨fn{j}, fun i hi ↦ ?_⟩
+  have hc : (certOf {j}).cuts.length = {nw - 1} := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+" ++ String.join ((List.range nw).map fun w => s!"  · exact cw{j}_{w}\n") ++ "\n"
+  let js := fns.map (·.1)
+  let jsText := listText (js.map toString)
+  let index := header "B2C.Chained" "Every compiled function passes the chained `match`es' check." ++
+    "public import LeanVM.Guest.B2C.Chain\npublic import Mathlib.Tactic.IntervalCases\n" ++
+    String.join (files.toList.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Chained.{(p.fileStem.getD "")}\n") ++
+    "\nnamespace LeanVM.Guest.B2C.Chained\n\n@[expose] public section\n\n" ++ oks ++
+    s!"/-- The functions with chains are `{jsText}`. -/
+theorem chained_only : (List.range nFns).all (fun j ↦ (plumbOf j).chains.isEmpty || {jsText}.contains j) = true := by
+  decide +kernel
+
+/-- **Every compiled function passes the chained `match`es' check.** -/
+theorem chainOk_all : ∀ j, 1 ≤ j → j < nFns → ChainOk j := fun j _ hj ↦ by
+  have h := List.all_eq_true.mp chained_only j (List.mem_range.mpr hj)
+  simp only [Bool.or_eq_true, List.contains_iff_mem] at h
+  rcases h with h | h
+  · exact chainOk_of_nil h
+" ++ (if js.isEmpty then "  · simp at h\n" else
+    "  · simp only [List.mem_cons, List.not_mem_nil, or_false] at h\n" ++
+    s!"    rcases h with {" | ".intercalate (js.map fun _ => "rfl")}\n" ++
+    String.join (js.map fun j => s!"    · exact ok{j}\n")) ++
+    "\nend\nend LeanVM.Guest.B2C.Chained\n"
+  return files.toList ++ [(("LeanVM/Guest/B2C" : System.FilePath) / "Chained.lean", index)]
+
 end CplK
 
 def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
@@ -3371,6 +3451,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let mut splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut shareSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut bigStatics : Std.HashMap ℕ (Array ℕ × List ℕ) := {}
+  let mut chainedFns : Array (ℕ × String × ℕ) := #[]
   for (cf, i) in P.zipIdx do
     -- the smaller windows, or the larger ones where the sharing check cannot cut the smaller, and
     -- for `main` and `verify_sub`, whose windows `Sound`'s obligations name
@@ -3407,6 +3488,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
         | .ok r => pure r
         | .error _ => attempt true
     certs := certs.push c
+    if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
     for (w, gs) in sp do splits := splits.insert (i + 1, w) gs
     for (k, gs) in ssp do shareSplits := shareSplits.insert (i + 1, k) gs
     armRows := armRows.push acs
@@ -3505,7 +3587,8 @@ noncomputable def certs : List Check.Cert :=
     (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
         else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length shareSplits bigStatics ++
-    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)]
+    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)] ++
+    CplK.chainedFiles chainedFns.toList
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
@@ -3517,13 +3600,15 @@ def existing : IO (List System.FilePath) := do
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
   let ss ← if ← sharedDir.isDir then sharedDir.readDir else pure #[]
   let ws ← if ← CplK.cplwDir.isDir then CplK.cplwDir.readDir else pure #[]
+  let ks ← if ← CplK.chainedDir.isDir then CplK.chainedDir.readDir else pure #[]
   return (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName ||
       gen "Snaps" e.fileName)).map (·.path) ++
     (cs.toList.filter fun e => gen "F" e.fileName || gen "G" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName ||
       gen "X" e.fileName).map (·.path) ++
     (ss.toList.filter fun e => gen "S" e.fileName || gen "H" e.fileName || gen "T" e.fileName ||
       gen "B" e.fileName || gen "N" e.fileName).map (·.path) ++
-    (ws.toList.filter fun e => gen "C" e.fileName || gen "D" e.fileName || gen "E" e.fileName).map (·.path)
+    (ws.toList.filter fun e => gen "C" e.fileName || gen "D" e.fileName || gen "E" e.fileName).map (·.path) ++
+    (ks.toList.filter fun e => gen "K" e.fileName).map (·.path)
 
 end GuestCert
 
@@ -3564,6 +3649,7 @@ def main (args : List String) : IO UInt32 := do
     IO.FS.createDirAll checkedDir
     IO.FS.createDirAll sharedDir
     IO.FS.createDirAll CplK.cplwDir
+    IO.FS.createDirAll CplK.chainedDir
   let paths := fs.map (·.1)
   let stale := (← existing).filter (!paths.contains ·)
   let mut bad := false
