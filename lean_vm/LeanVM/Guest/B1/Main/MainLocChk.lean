@@ -30,7 +30,7 @@ theorem mByte_ok : (List.range 256).all (fun v =>
 
 set_option maxRecDepth 100000 in
 theorem mLeafC_ok : (List.range 23).all (fun k =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n (406 + k)) (word 0 0 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n (402 + k)) (word 0 0 0)))) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- Each block's stores. -/
@@ -42,8 +42,8 @@ theorem mStoresIn :
     (atomsIn mDaZ).filter (fun a => decide (a ∈ mStoresL)) =
       [.load (.n 362) (.n 336) 0, .load (.n 363) (.n 336) 1] ∧
     (atomsIn mLeaf).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 23).map (fun k => .load (.n (406 + k)) (.n 402) k) ++
-        [.load (.n 405) (.n 402) 23] := by
+      (List.range 23).map (fun k => .load (.n (402 + k)) (.n 398) k) ++
+        [.load (.n 401) (.n 398) 23] := by
   decide +kernel
 
 theorem mem_storesIn {P : List Stmt} {L : List Atom}

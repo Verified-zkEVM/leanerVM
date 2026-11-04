@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Main.ExpTablesAt
 `MainData`: what `main`'s oracle supplies besides pointers. At `fp`, `main` allocates from
 `b0 = fp + fs "main"` the two claim tables, the coverage table, the byte table, the DA digests, the
 children's digests, fresh and carried claims, the running counts and the deferred claim
-(`mSizes`); its first callee, `exponent_tables`, sits after them, its tables
+(`mSizes`); its first callee, `exponent_tables`, sits after them, its table
 after its frame. `MainData.toIn` is the oracle with those pointers. `mKids`: `main`'s other callees
 in call order, each reading `main`'s words `Lin`, the conditional blocks' only when they run.
 -/
@@ -72,16 +72,15 @@ def MainData.toIn (fs : String → ℕ) (fp : ℕ) : MainIn :=
   let p := mPos d (fp + fs "main")
   let e := etB fs (mK0 d fs fp)
   { nlx := d.nlx, nxd := d.nxd, nrx := d.nrx, nls := d.nls, nsd := d.nsd, nrs := d.nrs, nc := d.nc,
-    nd := d.nd, pick := d.pick, seed := d.seed, et1 := gen ^ e, et2 := gen ^ (e + 34),
+    nd := d.nd, pick := d.pick, seed := d.seed, et := gen ^ e,
     a77 := gen ^ p.getD 0 0, a80 := gen ^ p.getD 1 0, a117 := gen ^ p.getD 2 0,
     a119 := gen ^ p.getD 3 0, aDa := gen ^ p.getD 4 0,
     a394 := gen ^ p.getD 5 0, a400 := gen ^ p.getD 6 0, a406 := gen ^ p.getD 7 0,
     a409 := gen ^ p.getD 8 0, a417 := gen ^ p.getD 9 0, xd := d.xd, sd := d.sd,
     sdg := d.sdg, daR := d.daR, dap := d.dap, leaf := d.leaf }
 
-/-- `exponent_tables`' tables, placed. -/
-def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout :=
-  [(etB fs (mK0 d fs fp), etTabs.getD 0 []), (etB fs (mK0 d fs fp) + 34, etTabs.getD 1 [])]
+/-- `exponent_tables`' table, placed. -/
+def etL (fs : String → ℕ) (fp : ℕ) : B1.Main.Layout := [(etB fs (mK0 d fs fp), expTableWords)]
 
 /-- **`main`'s callees after `exponent_tables`**, in call order, reading `Lin`. -/
 def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
@@ -93,12 +92,12 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     ⟨"__loop0", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
     ⟨"__loop1", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
     ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77], Lin, Returns []⟩,
-    ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117, gen ^ X, gen ^ m.nrx, m.a80,
-      m.a119], Lin, Returns []⟩] ++
-  (if m.nd = 1 then [⟨"da_verify", true, [m.et2], Lin, Returns m.daR⟩] else []) ++
-  [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80, gen ^ Y,
-    m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2, m.a394, m.et1, m.et2,
-    m.a400], Lin, Returns []⟩] ++
+    ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X, gen ^ m.nrx,
+      m.a80, m.a119], Lin, Returns []⟩] ++
+  (if m.nd = 1 then [⟨"da_verify", true, [m.et], Lin, Returns m.daR⟩] else []) ++
+  [⟨"__loop4", decide (m.nc ≠ 0), [one, gen ^ m.nc, m.a409, m.a77, m.a117, gen ^ X, m.a80,
+    m.a117 * gen ^ X, gen ^ Y, m.a406, m.aDa, (digestHalves m.seed).1, (digestHalves m.seed).2,
+    m.a394, m.et, m.a400], Lin, Returns []⟩] ++
   (if m.nc = 0 then [] else
     [⟨"aggregate_claims", true, [gen ^ m.nc, m.a394, m.a400, m.a406, m.a417], Lin, Returns []⟩]) ++
   [⟨"statement_digest", true, [(digestHalves m.seed).1, (digestHalves m.seed).2,

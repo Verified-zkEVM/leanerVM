@@ -41,41 +41,41 @@ def l3Pre : List Stmt :=
 
 /-- `__loop3`'s statements before its `ret []`. -/
 def l4Pre : List Stmt :=
-  [.atom (.hint (.witness "sp_raw_index" (.stack [.n 8]))),
-    .atom (.const (.n 9) (word 9223372036854775821 0 0)), .atom (.mul (.n 10) (.n 2) (.n 9)),
-    .atom (.rangeCheck (.n 8) (.n 11) (.n 12) (.n 13) (.n 10)), .atom (.mul (.n 14) (.n 5) (.n 0)),
-    .atom (.mul (.n 15) (.n 4) (.n 8)), .atom (.mul (.n 16) (.n 3) (.n 15)),
-    .atom (.load (.n 14) (.n 16) 0), .atom (.mul (.n 17) (.n 8) (.n 8)),
-    .atom (.mul (.n 18) (.n 17) (.n 17)), .atom (.mul (.n 19) (.n 6) (.n 18)),
-    .call "verify_sig_lean_sphincs" [.n 19, .n 7] [], .atom (.const (.n 20) (word 2 0 0)),
-    .atom (.mul (.n 21) (.n 0) (.n 20)), .atom (.add (.n 22) (.n 21) (.n 1)),
-    .atom (.const (.n 23) (word 2 0 0)), .atom (.mul (.n 24) (.n 0) (.n 23)),
-    .callIf (.n 22) "__loop3" [.n 24, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]]
+  [.atom (.hint (.witness "sp_raw_index" (.stack [.n 7]))),
+    .atom (.const (.n 8) (word 9223372036854775821 0 0)), .atom (.mul (.n 9) (.n 2) (.n 8)),
+    .atom (.rangeCheck (.n 7) (.n 10) (.n 11) (.n 12) (.n 9)), .atom (.mul (.n 13) (.n 4) (.n 0)),
+    .atom (.mul (.n 14) (.n 3) (.n 7)), .atom (.load (.n 13) (.n 14) 0),
+    .atom (.mul (.n 15) (.n 7) (.n 7)), .atom (.mul (.n 16) (.n 15) (.n 15)),
+    .atom (.mul (.n 17) (.n 5) (.n 16)),
+    .call "verify_sig_lean_sphincs" [.n 17, .n 6] [], .atom (.const (.n 18) (word 2 0 0)),
+    .atom (.mul (.n 19) (.n 0) (.n 18)), .atom (.add (.n 20) (.n 19) (.n 1)),
+    .atom (.const (.n 21) (word 2 0 0)), .atom (.mul (.n 22) (.n 0) (.n 21)),
+    .callIf (.n 20) "__loop3" [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
 
 set_option maxRecDepth 100000 in
-theorem l3_body : Fn.body (coreProgram.getD 35 default) = l3Pre ++ [.ret []] :=
+theorem l3_body : Fn.body (coreProgram.getD 37 default) = l3Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l4_body : Fn.body (coreProgram.getD 36 default) = l4Pre ++ [.ret []] :=
+theorem l4_body : Fn.body (coreProgram.getD 38 default) = l4Pre ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem l3_params : (coreProgram.getD 35 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
+theorem l3_params : (coreProgram.getD 37 default).params = [.n 0, .n 1, .n 2, .n 3, .n 4] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_params : (coreProgram.getD 36 default).params =
-    [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] := by
+theorem l4_params : (coreProgram.getD 38 default).params =
+    [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 36 := by decide +kernel
+theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 38 := by decide +kernel
 
-theorem l3_find : coreProgram.find? "__loop2" = some (coreProgram.getD 35 default) :=
+theorem l3_find : coreProgram.find? "__loop2" = some (coreProgram.getD 37 default) :=
   find_of_idx l3_idx (by rw [coreProgram_length]; omega)
 
-theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 36 default) :=
+theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 38 default) :=
   find_of_idx l4_idx' (by rw [coreProgram_length]; omega)
 
 /-- Every member's body places nothing and calls members only. -/
