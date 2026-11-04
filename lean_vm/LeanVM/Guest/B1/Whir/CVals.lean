@@ -40,36 +40,27 @@ theorem osSqueezes_k (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 
 theorem osQueries_k_ge (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
     s.k + 7 ≤ (osQueries c lvl lv lam lamN s).2.1 := by
-  rw [osQueries_k]
-  have a1 := osMat_next osFch lv.foldsOff (s.k + 2)
-  have a2 := osMat_next osCaps (4 * lv.capOff) (osMat osFch lv.foldsOff (s.k + 2)).2.2
-  have a3 := osMat_next osFlags lv.capOff
-    (osMat osCaps (4 * lv.capOff) (osMat osFch lv.foldsOff (s.k + 2)).2.2).2.2
-  have a4 := osMat_next osCaps (4 * lv.capOff) ((osMat osFlags lv.capOff
-    (osMat osCaps (4 * lv.capOff) (osMat osFch lv.foldsOff (s.k + 2)).2.2).2.2).2.2 + 2)
-  have a5 := osMat_next osFlags lv.capOff (osMat osCaps (4 * lv.capOff) ((osMat osFlags lv.capOff
-    (osMat osCaps (4 * lv.capOff) (osMat osFch lv.foldsOff (s.k + 2)).2.2).2.2).2.2 + 2)).2.2
-  have a6 := osMat_next osQbp lv.posOff (osMat osFlags lv.capOff (osMat osCaps (4 * lv.capOff)
-    ((osMat osFlags lv.capOff (osMat osCaps (4 * lv.capOff)
-      (osMat osFch lv.foldsOff (s.k + 2)).2.2).2.2).2.2 + 2)).2.2).2.2
-  omega
+  obtain ⟨g, hg, hgk⟩ := osQueries_rets c lvl lv lam lamN s
+  rw [hg]; omega
 
 /-- The value holding a level's row weights' pointer. -/
 def wpVar (c : OsCfg) (lvl : ℕ) (lv : OsLv) (a : OsSt) : ℕ :=
-  (osSqueezes c lvl lv a).2.k + lv.queries + 1
+  (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3
 
 theorem osLevelB_k (c : OsCfg) (lvl : ℕ) (lv : OsLv) (a : OsSt) :
     wpVar c lvl lv a + 6 ≤ (osLevelB c lvl lv a).2.k := by
-  have h1 := osQueries_k_ge c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
-    ((osSqueezes c lvl lv a).2.k - 1)
-    { (osSqueezes c lvl lv a).2 with k := (osSqueezes c lvl lv a).2.k + lv.queries }
-  have h2 := osQueries_k_ge c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
-    ((osSqueezes c lvl lv a).2.k + lv.queries - 1)
-    { (osSqueezes c lvl lv a).2 with k := (osSqueezes c lvl lv a).2.k + lv.queries }
+  obtain ⟨g, hg, hgk⟩ := osQueries_rets c lvl lv (bLam c lvl lv a) (bLamN c lvl lv a)
+    { bSq c lvl lv a with k := (bLp c lvl lv a).2.2 }
+  have h2 : (bLp c lvl lv a).2.2 = (bSq c lvl lv a).k + osPowLen lv.queries + 2 := rfl
+  have h3 : (bQ c lvl lv a).2.1 = g + 5 := by rw [hg]
+  simp only at hgk
   unfold wpVar
-  unfold osLevelB
-  dsimp only at h1 h2 ⊢
-  split_ifs <;> simp only [osGlue, osOodGlue] <;> omega
+  rw [osLevelB_eq]
+  split_ifs
+  · show _ ≤ (bQ c lvl lv a).2.1 + 1 + 8
+    simp only [bSq] at h2 ⊢; omega
+  · show _ ≤ (bQ c lvl lv a).2.1 + 13 + 1 + 8
+    simp only [bSq] at h2 ⊢; omega
 
 /-! ## A level's buffers -/
 
@@ -80,22 +71,28 @@ theorem lvBFinF_bufs {c : OsCfg} {lvl : ℕ} {lv : OsLv} {a : OsSt} {σ : Val}
       lvBFinF c lvl lv a σ sqz wp r0 r1 sum ic0 ic2 (wpVar c lvl lv a - 1) = gw c.maxIl ∧
       lvBFinF c lvl lv a σ sqz wp r0 r1 sum ic0 ic2 (wpVar c lvl lv a) = wp := by
   have h1 := osSqueezes_k c lvl lv a
-  have h2 := osQueries_k_ge c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
-    (if lv.queries ≤ 1 then (osSqueezes c lvl lv a).2.k - 1
-      else (osSqueezes c lvl lv a).2.k + lv.queries - 1)
-    { (osSqueezes c lvl lv a).2 with k := (osSqueezes c lvl lv a).2.k + lv.queries }
-  dsimp only at h2
+  have h3 : (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 := rfl
+  have h2 : (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 + 7 ≤
+      (osQueries c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
+        (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.1
+        { (osSqueezes c lvl lv a).2 with
+          k := (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 }).2.1 :=
+    osQueries_k_ge c lvl lv _ _ { (osSqueezes c lvl lv a).2 with
+      k := (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 }
   unfold wpVar lvBFinF
-  dsimp only
+  dsimp only at h2 ⊢
   refine ⟨?_, ?_, ?_, ?_⟩
   · rw [seqF_lt (by omega)]; simp [segLookup, sqzSegs]
   · rw [seqF_lt (by omega)]; simp [segLookup, sqzSegs]
   · rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]
-    simp only [queriesF, show (osSqueezes c lvl lv a).2.k + lv.queries + 1 - 1 =
-      (osSqueezes c lvl lv a).2.k + lv.queries by omega, ↓reduceIte]
+    simp only [queriesF, h3, show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 - 1 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 by omega, ↓reduceIte]
   · rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]
-    simp only [queriesF, show (osSqueezes c lvl lv a).2.k + lv.queries + 1 ≠
-      (osSqueezes c lvl lv a).2.k + lv.queries by omega, ↓reduceIte]
+    simp only [queriesF, h3, show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 ≠
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 by omega,
+      show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 + 1 by omega, ↓reduceIte]
 
 theorem lvBNonF_bufs {c : OsCfg} {lvl : ℕ} {lv : OsLv} {a : OsSt} {σ : Val}
     {sqz wp r0 r1 sum ic0 ic2 y oc0 oc2 : E} :
@@ -105,22 +102,28 @@ theorem lvBNonF_bufs {c : OsCfg} {lvl : ℕ} {lv : OsLv} {a : OsSt} {σ : Val}
         gw c.maxIl ∧
       lvBNonF c lvl lv a σ sqz wp r0 r1 sum ic0 ic2 y oc0 oc2 (wpVar c lvl lv a) = wp := by
   have h1 := osSqueezes_k c lvl lv a
-  have h2 := osQueries_k_ge c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
-    (if lv.queries ≤ 1 then (osSqueezes c lvl lv a).2.k - 1
-      else (osSqueezes c lvl lv a).2.k + lv.queries - 1)
-    { (osSqueezes c lvl lv a).2 with k := (osSqueezes c lvl lv a).2.k + lv.queries }
-  dsimp only at h2
+  have h3 : (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 := rfl
+  have h2 : (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 + 7 ≤
+      (osQueries c lvl lv ((osSqueezes c lvl lv a).2.k - 1)
+        (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.1
+        { (osSqueezes c lvl lv a).2 with
+          k := (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 }).2.1 :=
+    osQueries_k_ge c lvl lv _ _ { (osSqueezes c lvl lv a).2 with
+      k := (osLamPow lvl ((osSqueezes c lvl lv a).2.k - 1) lv.queries (osSqueezes c lvl lv a).2.k).2.2 }
   unfold wpVar lvBNonF
-  dsimp only
+  dsimp only at h2 ⊢
   refine ⟨?_, ?_, ?_, ?_⟩
   · rw [seqF_lt (by omega)]; simp [segLookup, sqzSegs]
   · rw [seqF_lt (by omega)]; simp [segLookup, sqzSegs]
   · rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]
-    simp only [queriesF, show (osSqueezes c lvl lv a).2.k + lv.queries + 1 - 1 =
-      (osSqueezes c lvl lv a).2.k + lv.queries by omega, ↓reduceIte]
+    simp only [queriesF, h3, show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 - 1 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 by omega, ↓reduceIte]
   · rw [seqF_ge (by omega), seqF_ge (by omega), seqF_lt (by omega)]
-    simp only [queriesF, show (osSqueezes c lvl lv a).2.k + lv.queries + 1 ≠
-      (osSqueezes c lvl lv a).2.k + lv.queries by omega, ↓reduceIte]
+    simp only [queriesF, h3, show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 ≠
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 by omega,
+      show (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 3 =
+      (osSqueezes c lvl lv a).2.k + osPowLen lv.queries + 2 + 1 by omega, ↓reduceIte]
 
 theorem osLevelA_k_le (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) :
     st.k ≤ (osLevelA c lvl lv st).2.1.k := by

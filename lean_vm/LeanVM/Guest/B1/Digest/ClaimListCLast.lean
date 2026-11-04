@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCLast
 
-  `claim_list_last__L{k}` and `__loop15`'s block, completely.
+  `claim_list_last__L{k}` and a frame loop's block, completely.
 -/
 
 module
@@ -16,9 +16,9 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 `claimLast_complete`: from a state at `sp` after whole blocks `pre` and `4k` canonical cells at
 `blk`, `claim_list_last__L{k}` returns the digest of `pre ++` the cells: its evaluated valuation
 (`Fwd.ev`) loads them, every atom holds (`Fwd.atoms_holds`), and soundness (`claimLast_sound`)
-names the returns. `l16_block`: `__loop15`'s block at the counter `x` holds when the state after
-`pre` is at `chain · x^13`, the 68 cells at `entries · x^68`, and the state after them at offset
-`13` (its stores, `chain_whole` on the block without them, `check_filter`).
+names the returns. `grp_block`: a frame loop's block (`m` claims) at the counter `x` holds when
+the state after `pre` is at `chain · x^13`, the `4m` cells at `entries · x^(4m)`, and the state
+after them at offset `13` (its stores, `chain_whole` on the block without them, `check_filter`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -31,11 +31,11 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (324 + k) default) = true := by
+theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (333 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 333 + (k - 9) = 324 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 342 + (k - 9) = 333 + k by omega] at this
 
 /-- A load found in the atoms, not a store, reads memory. -/
 theorem load_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V} {o : ℕ}
@@ -74,7 +74,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   have hok := cl_all k hk
   have hcok := clc_all hk
-  set fn := coreProgram.getD (324 + k) default
+  set fn := coreProgram.getD (333 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [clcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff] at hcok
@@ -177,27 +177,28 @@ theorem cl_mem_atoms {ss : List Stmt} {a : Atom} (h : Stmt.atom a ∈ ss) : a �
   List.mem_filterMap.mpr ⟨_, h, rfl⟩
 
 set_option maxRecDepth 20000 in
-/-- **A group of claims** (`__loop15`'s block at the counter `x`): the state after whole blocks
-`pre` at `chain · x^13`, the 68 canonical cells at `entries · x^68`, the state after them at
-`chain · x^13` from offset `13`. -/
-theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
+/-- **A frame of `m` claims** (a frame loop's block at the counter `x`, `grpOk`, `grpcOk`): the
+state after whole blocks `pre` at `chain · x^13`, the `4m` canonical cells at `entries · x^(4m)`,
+the state after them (`nb` blocks) at `chain · x^13` from offset `13`. -/
+theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
+    (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hcok : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true)
+    (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb) (hep : ep ≠ 9)
+    {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     (hpre : pre.length = rate * n) (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
-    {cells : List E} (hl : cells.length = 68) (hr : ReadsAt rd (entries * x ^ 68) cells)
+    {cells : List E} (hl : cells.length = 4 * m) (hr : ReadsAt rd (entries * x ^ (4 * m)) cells)
     (hc : AllCanonical cells)
     (hS' : StateAt rd (chain * x ^ 13) 13
-      (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
-    LoopBlock rd (coreProgram.getD 323 default) x N [chain, entries] := by
-  have hok := l16_ok
-  have hcok := l16c_ok
-  have hnb := l16_nb
-  set fn := coreProgram.getD 323 default
+      (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))) :
+    LoopBlock rd (coreProgram.getD j default) x N [chain, entries] := by
+  set fn := coreProgram.getD j default
   set A := loopAtoms fn with hAdef
   set S := storesOf 4 fn.body with hSdef
-  simp only [l16Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
+  simp only [grpOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨-, hlen4⟩, hck⟩, hst⟩, hl1⟩, -⟩, -⟩, -⟩ := hok
-  simp only [l16cOk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
+  simp only [grpcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩, hcan⟩, hneeds⟩, hstF⟩, hm9⟩, hm17⟩ :=
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩, hcan⟩, hneeds⟩, hstF⟩, hm9⟩, hmE⟩ :=
     hcok
   have heqA' := atomsEqbL_sound heqA
   let args : List E := [x, N, chain, entries]
@@ -218,9 +219,9 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
   have e3 : σ (.n 3) = entries := par 3 (by omega)
   have hP := pure_holds hg
   have v9 : σ (.n 9) = chain * x ^ 13 := by rw [monoIs_sound hm9 hP, e2, e0]
-  have v17 : σ (.n 17) = entries * x ^ 68 := by rw [monoIs_sound hm17 hP, e3, e0]
+  have vE : σ (.n ep) = entries * x ^ (4 * m) := by rw [monoIs_sound hmE hP, e3, e0]
   have hSof : ∀ a ∈ S, ∃ c < 13,
-      a = .load ((l16Spec A).outV ((l16Spec A).nb - 1) c) (.n 9) (13 + c) := by
+      a = .load ((grpSpec m c0 st0 A).outV ((grpSpec m c0 st0 A).nb - 1) c) (.n 9) (13 + c) := by
     intro a ha
     obtain ⟨c, hc', he⟩ := List.any_eq_true.mp (hSsh a ha)
     exact ⟨c, List.mem_range.mp hc', atomEqb_sound he⟩
@@ -229,39 +230,40 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     obtain ⟨c, -, he⟩ := hSof _ h
     simp only [Atom.load.injEq] at he
     omega
-  have hnS17 : ∀ d o, Atom.load d (.n 17) o ∉ S := by
+  have hnSE : ∀ d o, Atom.load d (.n ep) o ∉ S := by
     intro d o h
     obtain ⟨c, -, he⟩ := hSof _ h
     simp only [Atom.load.injEq] at he
-    exact absurd (congrArg V.idx he.2.1) (by decide)
+    exact hep (congrArg V.idx he.2.1)
   have hq : ∀ a, isLoadB a = false → decide (a ∉ S) = true := by
     intro a ha
     simp only [decide_eq_true_eq]
     intro hm
     obtain ⟨c, -, rfl⟩ := hSof a hm
     simp [isLoadB] at ha
-  have vst : ∀ c : Fin 13, σ (l16St.getD c default) =
+  have vst : ∀ c : Fin 13, σ ((grpSt st0).getD c default) =
       cellsOfState (absorbChunks n zeroState pre) false c := by
     intro c
     simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
     have hc13 := c.isLt
     rw [load_val (hst.2 c c.isLt) hg (hnS9 _ _ (by omega)), v9, rdAt_of_load (hS c)]
-  have vc : ∀ i < 68, σ (.n (i + 18)) = cells.getD i 0 := by
+  have vc : ∀ i < 4 * m, σ (.n (i + c0)) = cells.getD i 0 := by
     intro i hi
     simp only [loadsOk, List.all_eq_true, List.mem_range] at hl1
-    have := hl1 i (by simp [l16Spec]; omega)
-    simp only [l16Spec, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi,
+    have := hl1 i (by simp [grpSpec]; omega)
+    simp only [grpSpec, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi,
       Option.map_some, Option.getD_some] at this
-    rw [load_val this hg (hnS17 _ _), v17, rdAt_of_load (hr i (by omega)),
+    rw [load_val this hg (hnSE _ _), vE, rdAt_of_load (hr i (by omega)),
       List.getD_eq_getElem _ _ (by omega)]
-  have hA : ∀ i ∈ l16St.map V.idx ++ (List.range 68).map (· + 18), IsCanonical128 (σ (.n i)) := by
+  have hA : ∀ i ∈ (grpSt st0).map V.idx ++ (List.range (4 * m)).map (· + c0),
+      IsCanonical128 (σ (.n i)) := by
     intro i hi
     rcases List.mem_append.mp hi with hi | hi
     · obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hi
       obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hv
       have hc13 := List.mem_range.mp hc'
       have := vst ⟨c, hc13⟩
-      simp only [l16St, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hc13,
+      simp only [grpSt, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hc13,
         Option.map_some, Option.getD_some] at this
       rw [← hidx, this]
       exact canon_cellsOfState _ _ _
@@ -287,22 +289,22 @@ theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
         rename_i d p o
         obtain ⟨rfl, ho⟩ := h
         have hv := hr o (by omega)
-        rw [← v17] at hv
+        rw [← vE] at hv
         exact load_holds_of hnS' (hg _ ha) hv
     · have hF : ∀ b ∈ A.filter (fun a => decide (a ∉ S)), b.Holds rd σ :=
         fun b hb => h1 b (List.mem_filter.mp hb).1 (by simpa using (List.mem_filter.mp hb).2)
-      have hchk' : (l16Spec A).check (A.filter (fun a => decide (a ∉ S))) = true := by
+      have hchk' : (grpSpec m c0 st0 A).check (A.filter (fun a => decide (a ∉ S))) = true := by
         rw [check_filter hq]; exact hck
-      have h0 := initCell_of_loads (s := l16Spec A) rfl hstF hF
+      have h0 := initCell_of_loads (s := grpSpec m c0 st0 A) rfl hstF hF
         (S := absorbChunks n zeroState pre) (by rw [v9]; exact hS)
       obtain ⟨hw, -, -⟩ := chain_whole hchk' rfl hF hpre h0
-      have hv : (l16Spec A).vals σ = cells := by
-        refine List.ext_getElem (by simp [l16Spec, ChainSpec.vals, hl]) fun i h1 h2 => ?_
-        have hi : i < 68 := by omega
-        simp only [l16Spec, ChainSpec.vals, List.getElem_map, List.getElem_range, srcVal]
+      have hv : (grpSpec m c0 st0 A).vals σ = cells := by
+        refine List.ext_getElem (by simp [grpSpec, ChainSpec.vals, hl]) fun i h1 h2 => ?_
+        have hi : i < 4 * m := by omega
+        simp only [grpSpec, ChainSpec.vals, List.getElem_map, List.getElem_range, srcVal]
         rw [vc i hi, List.getD_eq_getElem _ _ h2]
       obtain ⟨c, hc13, rfl⟩ := hSof a haS
-      show LoadHolds rd (σ (.n 9)) (13 + c) (σ ((l16Spec A).outV ((l16Spec A).nb - 1) c))
+      show LoadHolds rd (σ (.n 9)) (13 + c) (σ ((grpSpec m c0 st0 A).outV ((grpSpec m c0 st0 A).nb - 1) c))
       have hwc := hw ⟨c, hc13⟩
       rw [hv, hnb, show ((⟨c, hc13⟩ : Fin 13) : ℕ) = c from rfl] at hwc
       rw [hnb, hwc, v9]

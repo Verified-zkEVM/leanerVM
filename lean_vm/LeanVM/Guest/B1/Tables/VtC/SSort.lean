@@ -1,23 +1,27 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SSort
 
-  `verify_tables`' statements `0 ..< 2189` hold on the honest valuation: the capacity and claims
-  copied, `sort_order` hinted, `block_side_tab` written, the push and count sides' block orders
-  certified into `block_off_g`.
+  `verify_tables`' block certification holds on the honest valuation: the groups' keys and sizes
+  stored, each side's ranks reading its groups in the honest order, the groups' bases stored, every
+  block's offset `g^stackOffsets`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Tables.VtC.SSide
+public import LeanVM.Guest.B1.Tables.VtC.SGrpT
 
 /-!
-# The block certification (G:1937-1975)
+# The block certification, honestly (G:2117-2158)
 
-The honest buffers, for the blocks' log-sizes `κ`: `vtSortW κ` (`sort_order`: each side's
-`stack_offsets` order, push from `0`, count from `108`; pull's slots `1`), `vtSideW`
-(`block_side_tab`: the blocks' sides), `vtOffW κ` (`block_off_g`: the push and count blocks'
-`g^offset`, pull's `1`). `vtS_sort`: on a memory holding `block_kappa`'s `g^κ`, the squares and the
-three buffers, defined below `2^8`, statements `0 ..< 2189` hold.
+The honest buffers, for the memory's log-size `lm` and the tables' heights `τ` (`vtKg`: a group's
+log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(252 κ - b0)`),
+`vtGSizeW` (`group_size`), `vtGOrdW` (`group_order`: each side's groups sorted by `stackLe`,
+`vtOrd`, the push side's at `0 .. 8`, the count side's at `18 .. 23`), `vtGBaseW` (`group_base`:
+the prefix sums of the sizes in that order, `vtGP`).
+
+`rank0_ok`, `rank_ok`: a rank's statements hold from its equations and the memory; `boff_ok`: a
+group's block offsets. `vtS_sort`: statements `0 ..< 566` hold and every push and count block's
+offset is its side's `stackOffsets` offset.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -25,255 +29,361 @@ namespace LeanVM.Guest.B1.Tables
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Fwd
+open Finset (range)
 
 @[expose] public section
 
-/-! ## The honest buffers -/
+/-! ## The honest order -/
 
-/-- The push side's log-sizes. -/
-def vtKsP (κ : ℕ → ℕ) : List ℕ := (List.range 54).map κ
+/-- Group `gi`'s log-size. -/
+def vtKg (lm : ℕ) (τ : ℕ → ℕ) (gi : ℕ) : ℕ := vtKap lm τ (blockGroupStart.getD gi 0)
 
-/-- The count side's log-sizes. -/
-def vtKsC (κ : ℕ → ℕ) : List ℕ := (List.range 45).map fun c ↦ κ (108 + c)
+/-- Group `gi`'s size, in the exponent. -/
+def vtGsz (lm : ℕ) (τ : ℕ → ℕ) (gi : ℕ) : ℕ :=
+  (blockGroupStart.getD (gi + 1) 0 - blockGroupStart.getD gi 0) * 2 ^ vtKg lm τ gi
 
-/-- `sort_order`'s honest words. -/
-def vtSortW (κ : ℕ → ℕ) : List E := (List.range 153).map fun i ↦
-  if i < 54 then gen ^ (tbStackOrder (vtKsP κ)).getD i 0
-  else if i < 108 then 1 else gen ^ (108 + (tbStackOrder (vtKsC κ)).getD (i - 108) 0)
+/-- Side `s`'s first group and its number of groups (push `0`, count `2`). -/
+def vtG0 (s : ℕ) : ℕ := if s = 0 then 0 else 18
+def vtGm (s : ℕ) : ℕ := if s = 0 then 9 else 6
 
-/-- `block_side_tab`'s words. -/
-def vtSideW : List E := (List.range 153).map fun b ↦ word (vtBlockSide b) 0 0
+/-- **Side `s`'s groups in rank order**, by index in the side: larger first, ties by index. -/
+def vtOrd (lm : ℕ) (τ : ℕ → ℕ) (s : ℕ) : List ℕ :=
+  (List.range (vtGm s)).mergeSort (stackLe fun j ↦ vtKg lm τ (vtG0 s + j))
 
-/-- `block_off_g`'s honest words. -/
-def vtOffW (κ : ℕ → ℕ) : List E := (List.range 153).map fun b ↦
-  if b < 54 then gen ^ (stackOffsets (vtKsP κ)).1.getD b 0
-  else if b < 108 then 1 else gen ^ (stackOffsets (vtKsC κ)).1.getD (b - 108) 0
+/-- Rank `r`'s group, in the side. -/
+def vtPi (lm : ℕ) (τ : ℕ → ℕ) (s r : ℕ) : ℕ := (vtOrd lm τ s).getD r 0
 
-/-! ## Slices -/
+/-- Group `j`'s rank, in the side. -/
+def vtRho (lm : ℕ) (τ : ℕ → ℕ) (s j : ℕ) : ℕ := (vtOrd lm τ s).idxOf j
 
-theorem forall_slice_split {P : Stmt → Prop} (a m n : ℕ) (h1 : ∀ s ∈ (vtPre.drop a).take m, P s)
-    (h2 : ∀ s ∈ (vtPre.drop (a + m)).take n, P s) : ∀ s ∈ (vtPre.drop a).take (m + n), P s := by
-  intro s hs
-  rw [List.take_add, List.mem_append, List.drop_drop] at hs
-  rcases hs with hs | hs
-  · exact h1 s hs
-  · exact h2 s hs
+/-- The sizes of the first `r` ranks' groups. -/
+def vtGP (lm : ℕ) (τ : ℕ → ℕ) (s r : ℕ) : ℕ :=
+  ∑ r' ∈ range r, vtGsz lm τ (vtG0 s + vtPi lm τ s r')
 
-theorem forall_slice_of {P : Stmt → Prop} {a : ℕ} {blk : List Stmt}
-    (heq : tbStmtsEqb blk ((vtPre.drop a).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
-    ∀ s ∈ (vtPre.drop a).take blk.length, P s := by
-  rw [← tbStmtsEqb_sound heq]; exact h
+/-- `group_key`'s honest words. -/
+noncomputable def vtGKeyW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun gi ↦
+  gen ^ (vtKg lm τ gi * 252) * (gen ^ blockGroupStart.getD gi 0)⁻¹
 
-/-- A side's statements: its first rank, then the others. -/
-def vtSideBlk (v0 R0 s n : ℕ) : List Stmt :=
-  vtRank0T v0 R0 s ++ ((List.range (n - 1)).map fun r ↦ vtRankAt v0 R0 s (r + 1)).flatten
+/-- `group_size`'s honest words. -/
+noncomputable def vtGSizeW (lm : ℕ) (τ : ℕ → ℕ) : List E :=
+  (List.range 24).map fun gi ↦ gen ^ vtGsz lm τ gi
 
-theorem vtPushBlk_check :
-    tbStmtsEqb (vtSideBlk 186 0 0 54) ((vtPre.drop 318).take (vtSideBlk 186 0 0 54).length) =
-      true := by simp only [vtPre_drop]; decide +kernel
+/-- `group_order`'s honest words (the pull side's slots unread). -/
+noncomputable def vtGOrdW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun i ↦
+  if i < 9 then gen ^ vtPi lm τ 0 i else if i < 18 then 0 else gen ^ (18 + vtPi lm τ 2 (i - 18))
 
-theorem vtCountBlk_check :
-    tbStmtsEqb (vtSideBlk 1525 108 2 45) ((vtPre.drop 1339).take (vtSideBlk 1525 108 2 45).length) =
-      true := by simp only [vtPre_drop]; decide +kernel
+/-- `group_base`'s honest words (the pull side's slots unwritten). -/
+noncomputable def vtGBaseW (lm : ℕ) (τ : ℕ → ℕ) : List E := (List.range 24).map fun gi ↦
+  if gi < 9 then gen ^ vtGP lm τ 0 (vtRho lm τ 0 gi)
+  else if gi < 18 then 0 else gen ^ vtGP lm τ 2 (vtRho lm τ 2 (gi - 18))
 
-theorem vtPushBlk_length : (vtSideBlk 186 0 0 54).length = 1021 := by decide +kernel
+section Order
+variable {lm : ℕ} {τ : ℕ → ℕ} {s : ℕ}
 
-theorem vtCountBlk_length : (vtSideBlk 1525 108 2 45).length = 850 := by decide +kernel
+theorem vtOrd_perm : (vtOrd lm τ s).Perm (List.range (vtGm s)) := List.mergeSort_perm _ _
 
-theorem vtPush_reads0 : ∀ a ∈ vtRankReads 186 0 ++ [.load (.n (186 + 13)) (.n (186 + 12)) 0],
-    a ∉ vtSL := by decide +kernel
+theorem vtOrd_length : (vtOrd lm τ s).length = vtGm s := by
+  rw [vtOrd_perm.length_eq, List.length_range]
 
-theorem vtCount_reads0 : ∀ a ∈ vtRankReads 1525 108 ++ [.load (.n (1525 + 13)) (.n (1525 + 12)) 0],
-    a ∉ vtSL := by decide +kernel
+theorem vtOrd_nodup : (vtOrd lm τ s).Nodup := vtOrd_perm.nodup_iff.mpr List.nodup_range
 
-theorem vtPush_reads : ∀ r < 54, 1 ≤ r → ∀ a ∈ vtRankReads (vtRv 186 r) (0 + r) ++
-    [.load (.n (vtRv 186 r + 23)) (.n (vtRv 186 r + 22)) 0], a ∉ vtSL := by decide +kernel
+theorem vtPi_lt {r : ℕ} (hr : r < vtGm s) : vtPi lm τ s r < vtGm s := by
+  have hm : (vtOrd lm τ s).getD r 0 ∈ vtOrd lm τ s := by
+    rw [List.getD_eq_getElem _ _ (by rw [vtOrd_length]; exact hr)]; exact List.getElem_mem _
+  exact List.mem_range.mp (vtOrd_perm.subset hm)
 
-theorem vtCount_reads : ∀ r < 45, 1 ≤ r → ∀ a ∈ vtRankReads (vtRv 1525 r) (108 + r) ++
-    [.load (.n (vtRv 1525 r + 23)) (.n (vtRv 1525 r + 22)) 0], a ∉ vtSL := by decide +kernel
+theorem vtOrd_sorted :
+    (vtOrd lm τ s).Pairwise fun a b ↦ stackLe (fun j ↦ vtKg lm τ (vtG0 s + j)) a b = true := by
+  unfold vtOrd
+  apply List.pairwise_mergeSort
+  · intro a b c; simp only [stackLe, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]; omega
+  · intro a b; simp only [stackLe, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]; omega
 
-theorem vtSort_prelude_check : tbStmtsEqb [.atom (.copy (.n 22) (.n 0)), .atom (.copy (.n 23) (.n 1)),
-    .atom (.copy (.n 24) (.n 2)), .atom (.copy (.n 25) (.n 3)), .atom (.copy (.n 26) (.n 4)),
-    .atom (.copy (.n 27) (.n 19)), .atom (.copy (.n 28) (.n 20)), .atom (.copy (.n 29) (.n 21)),
-    .atom (.hint (.alloc (.n 30) 153)), .atom (.hint (.witness "sort_order" (.heap (.n 30) 0 153))),
-    .atom (.hint (.alloc (.n 31) 153))] ((vtPre.drop 0).take 11) = true := by
-      simp only [vtPre_drop]; decide +kernel
+/-- **Adjacent ranks**: sizes do not increase, ties ascend by group. -/
+theorem vtPi_adj {r : ℕ} (hr : r + 1 < vtGm s) :
+    vtKg lm τ (vtG0 s + vtPi lm τ s (r + 1)) ≤ vtKg lm τ (vtG0 s + vtPi lm τ s r) ∧
+      (vtKg lm τ (vtG0 s + vtPi lm τ s (r + 1)) = vtKg lm τ (vtG0 s + vtPi lm τ s r) →
+        vtPi lm τ s r < vtPi lm τ s (r + 1)) := by
+  have hlen := vtOrd_length (lm := lm) (τ := τ) (s := s)
+  have hp := List.pairwise_iff_getElem.mp (vtOrd_sorted (lm := lm) (τ := τ) (s := s)) r (r + 1)
+    (by omega) (by omega) (by omega)
+  have hne : (vtOrd lm τ s)[r]'(by omega) ≠ (vtOrd lm τ s)[r + 1]'(by omega) := fun he ↦
+    absurd ((List.Nodup.getElem_inj_iff (vtOrd_nodup (lm := lm) (τ := τ) (s := s))).mp he)
+      (by omega)
+  simp only [vtPi, List.getD_eq_getElem _ _ (show r < (vtOrd lm τ s).length by omega),
+    List.getD_eq_getElem _ _ (show r + 1 < (vtOrd lm τ s).length by omega)]
+  simp only [stackLe, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
+  omega
 
-theorem vtSort_alloc185 : tbStmtsEqb [.atom (.hint (.alloc (.n 185) 153))]
-    ((vtPre.drop 317).take 1) = true := by simp only [vtPre_drop]; decide +kernel
+theorem vtRho_pi {r : ℕ} (hr : r < vtGm s) : vtRho lm τ s (vtPi lm τ s r) = r := by
+  have hlen := vtOrd_length (lm := lm) (τ := τ) (s := s)
+  have hmem : (vtOrd lm τ s)[r]'(by omega) ∈ vtOrd lm τ s := List.getElem_mem _
+  have hi : (vtOrd lm τ s).idxOf ((vtOrd lm τ s)[r]'(by omega)) < (vtOrd lm τ s).length :=
+    List.idxOf_lt_length_of_mem hmem
+  have hg := List.getElem_idxOf hi
+  rw [vtRho, vtPi, List.getD_eq_getElem _ _ (by omega)]
+  exact (List.Nodup.getElem_inj_iff (vtOrd_nodup (lm := lm) (τ := τ) (s := s))).mp hg
 
-theorem vtSideT_length : vtSideT.length = 306 := by decide +kernel
+theorem vtGP_succ (r : ℕ) :
+    vtGP lm τ s (r + 1) = vtGP lm τ s r + vtGsz lm τ (vtG0 s + vtPi lm τ s r) := by
+  rw [vtGP, vtGP, Finset.sum_range_succ]
 
-/-! ## The statements -/
+end Order
+
+/-! ## The rank templates -/
+
+section
+variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val}
+
+theorem goodL_iff : ∀ {l : List Stmt}, GoodL rd w σ l ↔ ∀ s ∈ l, GoodS rd vtSL w σ (fixNe s)
+  | [] => by simp [GoodL]
+  | s :: l => by simp [GoodL, goodL_iff]
+
+/-- **A side's first rank, honestly.** -/
+theorem rank0_ok (hlow : LowDefB 14 rd) {v R s gi : ℕ} (hv : 40 ≤ v)
+    (hg : GoodL rd w σ (vtRank0T v R s))
+    (s0 : Atom.load (.n v) (.n 39) R ∉ vtSL) (s8 : Atom.load (.n (v + 8)) (.n (v + 7)) 0 ∉ vtSL)
+    (s12 : Atom.load (.n (v + 12)) (.n (v + 11)) 0 ∉ vtSL)
+    (hord : LoadHolds rd (σ (.n 39)) R (gen ^ gi)) (hgi : gi ≤ 23)
+    (hside : LoadHolds rd (σ (.n 12) * gen ^ gi) 212 (word s 0 0))
+    {key sz : E} (hkey : LoadHolds rd (σ (.n 36) * gen ^ gi) 0 key)
+    (hbase : LoadHolds rd (σ (.n 38) * gen ^ gi) 0 1)
+    (hsz : LoadHolds rd (σ (.n 37) * gen ^ gi) 0 sz) :
+    (∀ st ∈ vtRank0T v R s, VSH C rd σ st) ∧ σ (.n v) = gen ^ gi ∧ σ (.n (v + 8)) = key ∧
+      σ (.n (v + 12)) = sz ∧ σ (.n (v + 9)) = 1 := by
+  simp only [vtRank0T, GoodL, GoodS, fixNe, Good, and_true] at hg
+  obtain ⟨g0, g1, g2, g3, g4, -, g6, g7, g8, g9, -, g11, g12⟩ := hg
+  simp only [show (12 : ℕ) < v + 6 ∧ v < v + 6 from ⟨by omega, by omega⟩,
+    show (36 : ℕ) < v + 7 ∧ v < v + 7 from ⟨by omega, by omega⟩,
+    show (38 : ℕ) < v + 10 ∧ v < v + 10 from ⟨by omega, by omega⟩,
+    show (37 : ℕ) < v + 11 ∧ v < v + 11 from ⟨by omega, by omega⟩,
+    show v + 1 < v + 2 by omega, ↓reduceIte] at g4 g6 g9 g11 g2
+  obtain ⟨r1, r2, r3⟩ := g2
+  obtain ⟨ev, l0⟩ := read_of (g0.resolve_left s0) hord
+  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ev (by rw [g1, vtW23_gen]) hgi
+    (by norm_num)
+  have m6 : σ (.n (v + 6)) = σ (.n 12) * gen ^ gi := by rw [g4, ev]
+  have m7 : σ (.n (v + 7)) = σ (.n 36) * gen ^ gi := by rw [g6, ev]
+  obtain ⟨e8, l8⟩ := read_of (g7.resolve_left s8) (by rw [m7]; exact hkey)
+  have m10 : σ (.n (v + 10)) = σ (.n 38) * gen ^ gi := by rw [g9, ev]
+  have m11 : σ (.n (v + 11)) = σ (.n 37) * gen ^ gi := by rw [g11, ev]
+  obtain ⟨e12, l12⟩ := read_of (g12.resolve_left s12) (by rw [m11]; exact hsz)
+  refine ⟨?_, ev, e8, e12, by rw [g8, tb_word_one]⟩
+  simp only [vtRank0T, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
+    implies_true, and_true, vsh_atom]
+  refine ⟨l0, g1, hrc, g3, g4, ?_, g6, l8, g8, g9, ?_, g11, l12⟩
+  · show LoadHolds rd _ _ _
+    rw [m6, g3]; exact hside
+  · show LoadHolds rd _ _ _
+    rw [m10, g8, tb_word_one]; exact hbase
+
+/-- **A later rank, honestly**: the previous rank's key `g^(d+1)` times this one's. -/
+theorem rank_ok (hlow : LowDefB 14 rd) {v R s pk gin gi d : ℕ} (hv : 40 ≤ v) (hpk : pk < v)
+    (hgin : gin < v) (hg : GoodL rd w σ (vtRankT v R s pk gin))
+    (s0 : Atom.load (.n v) (.n 39) R ∉ vtSL) (s8 : Atom.load (.n (v + 8)) (.n (v + 7)) 0 ∉ vtSL)
+    (s18 : Atom.load (.n (v + 18)) (.n (v + 17)) 0 ∉ vtSL)
+    (hord : LoadHolds rd (σ (.n 39)) R (gen ^ gi)) (hgi : gi ≤ 23)
+    (hside : LoadHolds rd (σ (.n 12) * gen ^ gi) 212 (word s 0 0))
+    {key sz : E} (hkey : LoadHolds rd (σ (.n 36) * gen ^ gi) 0 key)
+    (hbase : LoadHolds rd (σ (.n 38) * gen ^ gi) 0 (σ (.n gin)))
+    (hsz : LoadHolds rd (σ (.n 37) * gen ^ gi) 0 sz)
+    (hpkv : σ (.n pk) = gen ^ (d + 1) * key) (hd : d ≤ 8567) (hk0 : key ≠ 0) :
+    (∀ st ∈ vtRankT v R s pk gin, VSH C rd σ st) ∧ σ (.n v) = gen ^ gi ∧
+      σ (.n (v + 8)) = key ∧ σ (.n (v + 18)) = sz ∧ σ (.n (v + 19)) = σ (.n gin) * sz := by
+  simp only [vtRankT, GoodL, GoodS, fixNe, Good, and_true] at hg
+  obtain ⟨g0, g1, g2, g3, g4, -, g6, g7, g8, g9, g10, g11, g12, g13, -, g15, g16, g17⟩ := hg
+  simp only [show (12 : ℕ) < v + 6 ∧ v < v + 6 from ⟨by omega, by omega⟩,
+    show (36 : ℕ) < v + 7 ∧ v < v + 7 from ⟨by omega, by omega⟩,
+    show ¬ (v + 10 < pk ∧ v + 8 < pk) from fun h ↦ by omega,
+    show v + 10 < v + 12 ∧ v + 11 < v + 12 from ⟨by omega, by omega⟩,
+    show (38 : ℕ) < v + 16 ∧ v < v + 16 from ⟨by omega, by omega⟩,
+    show (37 : ℕ) < v + 17 ∧ v < v + 17 from ⟨by omega, by omega⟩,
+    show gin < v + 19 ∧ v + 18 < v + 19 from ⟨by omega, by omega⟩,
+    show v + 1 < v + 2 by omega, show v + 9 < v + 13 by omega, ↓reduceIte]
+    at g4 g6 g9 g11 g13 g15 g17 g2 g12
+  obtain ⟨r1, r2, r3⟩ := g2
+  obtain ⟨ev, l0⟩ := read_of (g0.resolve_left s0) hord
+  obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ev (by rw [g1, vtW23_gen]) hgi
+    (by norm_num)
+  have m6 : σ (.n (v + 6)) = σ (.n 12) * gen ^ gi := by rw [g4, ev]
+  have m7 : σ (.n (v + 7)) = σ (.n 36) * gen ^ gi := by rw [g6, ev]
+  obtain ⟨e8, l8⟩ := read_of (g7.resolve_left s8) (by rw [m7]; exact hkey)
+  have e10 : σ (.n (v + 10)) = gen ^ (d + 1) := by
+    rw [g9, hpkv, e8, mul_assoc, mul_inv_cancel₀ hk0, mul_one]
+  have e12 : σ (.n (v + 12)) = gen ^ d := by
+    rw [g11, e10, g10, pow_succ, mul_assoc, mul_comm gen, ← pow_one gen,
+      vt_wInv (W := 9223372036854775821) (b := 1) (by decide +kernel), mul_one]
+  obtain ⟨q1, q2, q3⟩ := g12
+  obtain ⟨hrc12, -⟩ := rc_holds (κ := 14) hlow q1 q2 q3 e12 (by rw [g8, vtW8567_gen]) hd
+    (by norm_num)
+  have m16 : σ (.n (v + 16)) = σ (.n 38) * gen ^ gi := by rw [g13, ev]
+  have m17 : σ (.n (v + 17)) = σ (.n 37) * gen ^ gi := by rw [g15, ev]
+  obtain ⟨e18, l18⟩ := read_of (g16.resolve_left s18) (by rw [m17]; exact hsz)
+  refine ⟨?_, ev, e8, e18, by rw [g17, e18]⟩
+  simp only [vtRankT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
+    implies_true, and_true, vsh_atom]
+  refine ⟨l0, g1, hrc, g3, g4, ?_, g6, l8, g8, mulDiv_holds g9 (by rw [e8]; exact hk0), g10, g11,
+    hrc12, g13, ?_, g15, l18, g17⟩
+  · show LoadHolds rd _ _ _
+    rw [m6, g3]; exact hside
+  · show LoadHolds rd _ _ _
+    rw [m16]; exact hbase
+
+/-- **A group's block offsets, honestly**: the step `g_squares[κ]` and the base read, each block
+one step on. -/
+theorem boff_ok {kv off gi bv len : ℕ} (hkv : kv + 2 < bv) (h12 : 14 < bv)
+    (hg : GoodL rd w σ (vtBoffT kv off gi bv len))
+    (s1 : Atom.load (.n (bv - 1)) (.n (bv - 2)) off ∉ vtSL) (s2 : Atom.load (.n bv) (.n 38) gi ∉ vtSL)
+    {step base : E} (hst : LoadHolds rd (σ (.n 12) * σ (.n kv)) off step)
+    (hb : LoadHolds rd (σ (.n 38)) gi base) :
+    (∀ st ∈ vtBoffT kv off gi bv len, VSH C rd σ st) ∧ σ (.n (bv - 1)) = step ∧
+      σ (.n bv) = base ∧ ∀ i < len - 1, σ (.n (bv + 1 + i)) = σ (.n (bv + i)) * step := by
+  rw [goodL_iff] at hg
+  have h0 := hg (.atom (.mul (.n (bv - 2)) (.n 12) (.n kv))) (by simp [vtBoffT])
+  have h1 := hg (.atom (.load (.n (bv - 1)) (.n (bv - 2)) off)) (by simp [vtBoffT])
+  have h2 := hg (.atom (.load (.n bv) (.n 38) gi)) (by simp [vtBoffT])
+  simp only [GoodS, fixNe, Good,
+    show (12 : ℕ) < bv - 2 ∧ kv < bv - 2 from ⟨by omega, by omega⟩] at h0
+  simp only [GoodS, fixNe, Good] at h1 h2
+  obtain ⟨e1, l1⟩ := read_of (h1.resolve_left s1) (by rw [h0]; exact hst)
+  obtain ⟨e2, l2⟩ := read_of (h2.resolve_left s2) hb
+  have hm : ∀ i < len - 1, σ (.n (bv + 1 + i)) = σ (.n (bv + i)) * σ (.n (bv - 1)) := by
+    intro i hi
+    have := hg (.atom (.mul (.n (bv + 1 + i)) (.n (bv + i)) (.n (bv - 1))))
+      (by simp only [vtBoffT, List.mem_append, List.mem_cons, List.mem_map, List.mem_range]
+          exact Or.inr ⟨i, hi, rfl⟩)
+    simpa only [GoodS, fixNe, fixA, Good,
+      show bv + i < bv + 1 + i ∧ bv - 1 < bv + 1 + i from ⟨by omega, by omega⟩, and_self,
+      ↓reduceIte] using this
+  refine ⟨?_, e1, e2, fun i hi ↦ by rw [hm i hi, e1]⟩
+  intro st hst'
+  simp only [vtBoffT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false, List.mem_map,
+    List.mem_range] at hst'
+  rcases hst' with (rfl | rfl | rfl) | ⟨i, hi, rfl⟩
+  · exact h0
+  · exact l1
+  · exact l2
+  · exact hm i hi
+
+end
+
+/-! ## A side -/
+
+theorem vtRv_ge (v0 r : ℕ) : v0 ≤ vtRv v0 r := by unfold vtRv; split <;> omega
+
+theorem vtRv_prev {v0 r : ℕ} (hr : 1 ≤ r) : vtRv v0 (r - 1) + 8 < vtRv v0 r := by
+  unfold vtRv; split_ifs <;> omega
+
+theorem vtGin_lt {v0 r : ℕ} (hr : 1 ≤ r) : vtGin v0 r < vtRv v0 r := by
+  unfold vtGin vtRv; split_ifs <;> omega
+
+theorem vtRankAt_length (v0 R0 s r : ℕ) : (vtRankAt v0 R0 s r).length = 18 := rfl
+
+theorem vtRank0T_length (v R s : ℕ) : (vtRank0T v R s).length = 13 := rfl
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vt_alloc (hl : args.length = 22) (n : ℕ) {d : ℕ} {sz : ℕ}
-    (heq : tbStmtsEqb [.atom (.hint (.alloc (.n d) sz))] ((vtPre.drop n).take 1) = true) :
-    vtσ rd w args (.n d) = w d := by
-  have h := vt_goodL (rd := rd) (w := w) hl n _ heq
-  simpa [GoodL, GoodS, fixNe, Good] using h
+local notation "σv" => vtσ rd w args
 
-/-- Side-tab entries. -/
-theorem vtSideW_get {rd : Reader} {p : E} (h : TbReadsAt rd p vtSideW) {b : ℕ} (hb : b < 153) :
-    LoadHolds rd p b (word (vtBlockSide b) 0 0) := by
-  have := h b (by simp [vtSideW]; exact hb)
-  simpa [vtSideW] using this
-
-/-- **The two sides' ranks**, rank by rank. -/
-theorem vtS_sides (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
-    (hκ : ∀ b < 153, κ b < 34)
-    (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
-    (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))
-    (hso : TbReadsAt rd (w 30) (vtSortW κ)) (hst : TbReadsAt rd (w 31) vtSideW)
-    (hoff : TbReadsAt rd (w 185) (vtOffW κ)) :
-    (∀ r < (vtKsP κ).length,
-        (if r = 0 then ∀ st ∈ vtRank0T 186 0 0, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st
-          else ∀ st ∈ vtRankAt 186 0 0 r, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st) ∧
-        RankOut (vtσ rd w args) 186 (fun r => 0 + (tbStackOrder (vtKsP κ)).getD r 0)
-          (fun b => (vtKsP κ).getD (b - 0) 0) (ordPre (vtKsP κ)) r) ∧
-      (∀ r < (vtKsC κ).length,
-        (if r = 0 then ∀ st ∈ vtRank0T 1525 108 2, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st
-          else ∀ st ∈ vtRankAt 1525 108 2 r, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st) ∧
-        RankOut (vtσ rd w args) 1525 (fun r => 108 + (tbStackOrder (vtKsC κ)).getD r 0)
-          (fun b => (vtKsC κ).getD (b - 108) 0) (ordPre (vtKsC κ)) r) := by
-  have e12 : vtσ rd w args (.n 12) = args.getD 12 0 := vt_param hl (by norm_num)
-  have e13 : vtσ rd w args (.n 13) = args.getD 13 0 := vt_param hl (by norm_num)
-  have e30 : vtσ rd w args (.n 30) = w 30 :=
-    vt_alloc hl 8 (sz := 153) (by decide +kernel)
-  have e31 : vtσ rd w args (.n 31) = w 31 :=
-    vt_alloc hl 10 (sz := 153) (by decide +kernel)
-  have e185 : vtσ rd w args (.n 185) = w 185 := vt_alloc hl 317 (sz := 153) vtSort_alloc185
-  have hsq' : ∀ j < 34, LoadHolds rd (vtσ rd w args (.n 13)) j (gen ^ 2 ^ j) := by
-    rw [e13]; exact hsq
-  have hkl : ∀ b < 153, LoadHolds rd (vtσ rd w args (.n 12)) b (gen ^ κ b) := by
-    rw [e12]; exact hbk
-  have hlP : (vtKsP κ).length = 54 := by simp [vtKsP]
-  have hlC : (vtKsC κ).length = 45 := by simp [vtKsC]
-  have H1 := side_ranks (rd := rd) (w := w) hl hlow (v0 := 186) (p0 := 318) (R0 := 0) (s := 0)
-    (base := 0) (vtKsP κ) (by norm_num)
-    vtPush0_check (by rw [hlP]; exact vtPush_check)
-    vtPush_reads0 (by rw [hlP]; exact vtPush_reads) (fun c hc => by
-      rw [hlP] at hc; simp [vtKsP, hc]; exact hκ c (by omega)) (by simp [hlP])
-    (fun r hr => by
-      rw [hlP] at hr; rw [e30]
-      have := hso r (by simp [vtSortW]; omega)
-      simpa [vtSortW, hr] using this)
-    (fun c hc => by
-      rw [hlP] at hc; rw [e31]
-      have := vtSideW_get hst (b := 0 + c) (by omega)
-      rwa [show vtBlockSide (0 + c) = 0 by simp [vtBlockSide]; omega] at this)
-    (fun c hc => by
-      rw [hlP] at hc
-      have := hkl (0 + c) (by omega)
-      simpa [vtKsP, hc] using this)
-    (fun c hc => by
-      rw [hlP] at hc; rw [e185]
-      have := hoff c (by simp [vtOffW]; omega)
-      simpa [vtOffW, hc] using this)
-    hsq'
-  have H2 := side_ranks (rd := rd) (w := w) hl hlow (v0 := 1525) (p0 := 1339) (R0 := 108)
-    (s := 2) (base := 108) (vtKsC κ) (by norm_num)
-    vtCount0_check (by rw [hlC]; exact vtCount_check)
-    vtCount_reads0 (by rw [hlC]; exact vtCount_reads) (fun c hc => by
-      rw [hlC] at hc; simp [vtKsC, hc]; exact hκ _ (by omega)) (by simp [hlC])
-    (fun r hr => by
-      rw [hlC] at hr; rw [e30]
-      have := hso (108 + r) (by simp [vtSortW]; omega)
-      simpa [vtSortW, hr, show ¬ (108 + r < 54) by omega, show ¬ (108 + r < 108) by omega]
-        using this)
-    (fun c hc => by
-      rw [hlC] at hc; rw [e31]
-      have := vtSideW_get hst (b := 108 + c) (by omega)
-      rwa [show vtBlockSide (108 + c) = 2 by simp [vtBlockSide]; omega] at this)
-    (fun c hc => by
-      rw [hlC] at hc
-      have := hkl (108 + c) (by omega)
-      simpa [vtKsC, hc] using this)
-    (fun c hc => by
-      rw [hlC] at hc; rw [e185]
-      have := hoff (108 + c) (by simp [vtOffW]; omega)
-      simpa [vtOffW, hc, show ¬ (108 + c < 54) by omega, show ¬ (108 + c < 108) by omega]
-        using this)
-    hsq'
-  exact ⟨H1, H2⟩
-
-/-- **Statements `0 ..< 2189`.** -/
-theorem vtS_sort (hl : args.length = 22) (hlow : LowDefB 8 rd) (κ : ℕ → ℕ)
-    (hκ : ∀ b < 153, κ b < 34)
-    (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
-    (hsq : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j))
-    (hso : TbReadsAt rd (w 30) (vtSortW κ)) (hst : TbReadsAt rd (w 31) vtSideW)
-    (hoff : TbReadsAt rd (w 185) (vtOffW κ)) :
-    ∀ s ∈ (vtPre.drop 0).take 2189, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
-  have e12 : vtσ rd w args (.n 12) = args.getD 12 0 := vt_param hl (by norm_num)
-  have e13 : vtσ rd w args (.n 13) = args.getD 13 0 := vt_param hl (by norm_num)
-  have e30 : vtσ rd w args (.n 30) = w 30 :=
-    vt_alloc hl 8 (sz := 153) (by decide +kernel)
-  have e31 : vtσ rd w args (.n 31) = w 31 :=
-    vt_alloc hl 10 (sz := 153) (by decide +kernel)
-  have e185 : vtσ rd w args (.n 185) = w 185 := vt_alloc hl 317 (sz := 153) vtSort_alloc185
-  have hsq' : ∀ j < 34, LoadHolds rd (vtσ rd w args (.n 13)) j (gen ^ 2 ^ j) := by
-    rw [e13]; exact hsq
-  have hkl : ∀ b < 153, LoadHolds rd (vtσ rd w args (.n 12)) b (gen ^ κ b) := by
-    rw [e12]; exact hbk
-  have hlP : (vtKsP κ).length = 54 := by simp [vtKsP]
-  have hlC : (vtKsC κ).length = 45 := by simp [vtKsC]
-  have hsides := vtS_sides hl hlow κ hκ hbk hsq hso hst hoff
-  -- the prelude, the side tab, the push and count sides
-  refine forall_slice_split 0 11 2178 ?_ (forall_slice_split 11 306 1872 ?_
-    (forall_slice_split 317 1 1871 ?_ (forall_slice_split 318 1021 850 ?_ ?_)))
-  · rw [← show [Stmt.atom (.copy (.n 22) (.n 0)), .atom (.copy (.n 23) (.n 1)),
-      .atom (.copy (.n 24) (.n 2)), .atom (.copy (.n 25) (.n 3)), .atom (.copy (.n 26) (.n 4)),
-      .atom (.copy (.n 27) (.n 19)), .atom (.copy (.n 28) (.n 20)),
-      .atom (.copy (.n 29) (.n 21)), .atom (.hint (.alloc (.n 30) 153)),
-      .atom (.hint (.witness "sort_order" (.heap (.n 30) 0 153))),
-      .atom (.hint (.alloc (.n 31) 153))].length = 11 from rfl]
-    refine forall_slice_of vtSort_prelude_check ?_
-    exact vt_block hl 0 _ vtSort_prelude_check [] (by decide +kernel) (by simp)
-  · rw [← vtSideT_length]
-    refine forall_slice_of vtSideT_check ?_
-    intro st hst'
-    simp only [vtSideT, List.mem_flatten, List.mem_map, List.mem_range] at hst'
-    obtain ⟨_, ⟨b, hb, rfl⟩, hm⟩ := hst'
-    have hc : vtσ rd w args (.n (32 + b)) = word (vtBlockSide b) 0 0 := by
-      have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice vtSideT_check
-        (show Stmt.atom (.const (.n (32 + b)) (word (vtBlockSide b) 0 0)) ∈ vtSideT by
-          simp only [vtSideT, List.mem_flatten, List.mem_map, List.mem_range]
-          exact ⟨_, ⟨b, hb, rfl⟩, List.mem_cons_self⟩))
-      simpa [fixNe, GoodS, Good] using this
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
-    rcases hm with rfl | rfl
-    · exact hc
-    · show LoadHolds rd _ _ _
-      rw [e31, hc]; exact vtSideW_get hst hb
-  · rw [show (1 : ℕ) = [Stmt.atom (.hint (.alloc (.n 185) 153))].length from rfl]
-    refine forall_slice_of vtSort_alloc185 ?_
-    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq]
-    trivial
-  · -- the push side
-    rw [← vtPushBlk_length]
-    refine forall_slice_of vtPushBlk_check ?_
-    have H := hsides.1
-    intro st hst'
-    simp only [vtSideBlk, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hst'
-    rcases hst' with h0 | ⟨_, ⟨r, hr, rfl⟩, hm⟩
-    · simpa using (H 0 (by rw [hlP]; norm_num)).1 st h0
-    · have := (H (r + 1) (by rw [hlP]; omega)).1
-      simp only [Nat.add_one_ne_zero, ↓reduceIte] at this
-      exact this st hm
-  · -- the count side
-    rw [← vtCountBlk_length]
-    refine forall_slice_of vtCountBlk_check ?_
-    have H := hsides.2
-    intro st hst'
-    simp only [vtSideBlk, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at hst'
-    rcases hst' with h0 | ⟨_, ⟨r, hr, rfl⟩, hm⟩
-    · simpa using (H 0 (by rw [hlC]; norm_num)).1 st h0
-    · have := (H (r + 1) (by rw [hlC]; omega)).1
-      simp only [Nat.add_one_ne_zero, ↓reduceIte] at this
-      exact this st hm
+/-- **A side's ranks, honestly**: rank `r` reads group `g^(gi r)`, its key `key r` and size
+`g^(S r)`; the keys descend by `g^(d+1)`, `d ≤ 8567`; the bases hold the sizes' prefix sums. Every
+rank's statements hold and give `VtRankFacts`, the running offset the prefix sum. -/
+theorem side_ok (hl : args.length = 20) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : ℕ}
+    (hv : 40 ≤ v0) (hm : 1 ≤ m)
+    (h0 : tbStmtsEqb (vtRank0T v0 R0 s) ((vtAt p0).take (vtRank0T v0 R0 s).length) = true)
+    (hr : ∀ r < m, 1 ≤ r →
+      tbStmtsEqb (vtRankAt v0 R0 s r) ((vtAt (vtRp p0 r)).take (vtRankAt v0 R0 s r).length) = true)
+    (hS0 : ∀ a ∈ [Atom.load (.n v0) (.n 39) R0, .load (.n (v0 + 8)) (.n (v0 + 7)) 0,
+      .load (.n (v0 + 12)) (.n (v0 + 11)) 0], a ∉ vtSL)
+    (hS : ∀ r < m, 1 ≤ r → ∀ a ∈ [Atom.load (.n (vtRv v0 r)) (.n 39) (R0 + r),
+      .load (.n (vtRv v0 r + 8)) (.n (vtRv v0 r + 7)) 0,
+      .load (.n (vtRv v0 r + 18)) (.n (vtRv v0 r + 17)) 0], a ∉ vtSL)
+    (gi : ℕ → ℕ) (key : ℕ → E) (S : ℕ → ℕ)
+    (hord : ∀ r < m, LoadHolds rd (σv (.n 39)) (R0 + r) (gen ^ gi r)) (hgi : ∀ r < m, gi r ≤ 23)
+    (hside : ∀ r < m, LoadHolds rd (σv (.n 12) * gen ^ gi r) 212 (word s 0 0))
+    (hkey : ∀ r < m, LoadHolds rd (σv (.n 36) * gen ^ gi r) 0 (key r))
+    (hsz : ∀ r < m, LoadHolds rd (σv (.n 37) * gen ^ gi r) 0 (gen ^ S r))
+    (hbase : ∀ r < m, LoadHolds rd (σv (.n 38) * gen ^ gi r) 0 (gen ^ ∑ r' ∈ range r, S r'))
+    (hstep : ∀ r, r + 1 < m → ∃ d ≤ 8567, key r = gen ^ (d + 1) * key (r + 1))
+    (hk0 : ∀ r < m, key r ≠ 0) :
+    (∀ st ∈ (vtPre.drop p0).take (13 + 18 * (m - 1)), VSH (coreProgram.Rel rd) rd σv st) ∧
+      ∀ r < m, VtRankFacts rd σv v0 s r ∧ σv (.n (vtGin v0 r)) = gen ^ ∑ r' ∈ range r, S r' := by
+  -- rank by rank
+  have P : ∀ r < m, (∀ st ∈ (if r = 0 then vtRank0T v0 R0 s else vtRankAt v0 R0 s r),
+      VSH (coreProgram.Rel rd) rd σv st) ∧ VtRankFacts rd σv v0 s r ∧
+      σv (.n (vtGin v0 r)) = gen ^ ∑ r' ∈ range r, S r' ∧ σv (.n (vtRv v0 r + 8)) = key r ∧
+      σv (.n (vtSz v0 r)) = gen ^ S r := by
+    intro r
+    induction r with
+    | zero =>
+      intro hr0
+      have hg := vt_goodL (rd := rd) (w := w) hl p0 _ (vtPre_drop p0 ▸ h0)
+      simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hS0
+      obtain ⟨hst, ev, e8, e12, e9⟩ := rank0_ok (C := coreProgram.Rel rd) hlow hv hg hS0.1 hS0.2.1
+        hS0.2.2 (hord 0 hr0) (hgi 0 hr0) (hside 0 hr0) (hkey 0 hr0)
+        (by simpa using hbase 0 hr0) (hsz 0 hr0)
+      simp only [↓reduceIte]
+      refine ⟨hst, ?_, by simp [vtGin, e9], by simp [vtRv, e8], by simp [vtSz, e12]⟩
+      simp only [VtRankFacts, vtRv, vtGin, vtSz, vtGout, ↓reduceIte]
+      refine ⟨⟨gi 0, by have := hgi 0 hr0; omega, ev⟩, by rw [ev]; exact hside 0 hr0,
+        by rw [ev, e8]; exact hkey 0 hr0, by rw [ev, e9]; simpa using hbase 0 hr0,
+        by rw [ev, e12]; exact hsz 0 hr0, by rw [e9, one_mul], fun _ ↦ e9,
+        fun h ↦ absurd h (by omega)⟩
+    | succ k ih =>
+      intro hr1
+      obtain ⟨-, hFk, hgk, hkk, hzk⟩ := ih (by omega)
+      have hgo : σv (.n (vtGout v0 k)) = gen ^ ∑ r' ∈ range (k + 1), S r' := by
+        rw [hFk.2.2.2.2.2.1, hgk, hzk, ← pow_add, Finset.sum_range_succ]
+      have hg := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ hr (k + 1) hr1 (by omega))
+      have hS' := hS (k + 1) hr1 (by omega)
+      simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hS'
+      obtain ⟨d, hd, hdk⟩ := hstep k hr1
+      have hgin : σv (.n (vtGin v0 (k + 1))) = gen ^ ∑ r' ∈ range (k + 1), S r' := by
+        rw [vt_gin_succ]; exact hgo
+      rw [vtRankAt, Nat.add_sub_cancel] at hg
+      have hpk : vtRv v0 k + 8 < vtRv v0 (k + 1) := by
+        have := vtRv_prev (v0 := v0) (r := k + 1) (by omega)
+        rwa [Nat.add_sub_cancel] at this
+      obtain ⟨hst, ev, e8, e18, e19⟩ := rank_ok (C := coreProgram.Rel rd) (d := d) hlow
+        (le_trans hv (vtRv_ge v0 (k + 1))) hpk (vtGin_lt (by omega)) hg hS'.1 hS'.2.1 hS'.2.2
+        (hord _ hr1) (hgi _ hr1) (hside _ hr1) (hkey _ hr1) (by rw [hgin]; exact hbase _ hr1)
+        (hsz _ hr1) (by rw [hkk]; exact hdk) hd (hk0 _ hr1)
+      have hsz' : vtSz v0 (k + 1) = vtRv v0 (k + 1) + 18 := by simp [vtSz]
+      have hgo' : vtGout v0 (k + 1) = vtRv v0 (k + 1) + 19 := by simp [vtGout]
+      simp only [show k + 1 ≠ 0 by omega, ↓reduceIte]
+      refine ⟨by rw [vtRankAt, Nat.add_sub_cancel]; exact hst, ?_, hgin, e8,
+        by rw [hsz', e18]⟩
+      rw [VtRankFacts, hsz', hgo']
+      refine ⟨⟨gi (k + 1), by have := hgi _ hr1; omega, ev⟩, by rw [ev]; exact hside _ hr1,
+        by rw [ev, e8]; exact hkey _ hr1, by rw [ev, hgin]; exact hbase _ hr1,
+        by rw [ev, e18]; exact hsz _ hr1, by rw [e19, e18], fun h ↦ absurd h (by omega), fun _ ↦ ?_⟩
+      refine ⟨d, by omega, ?_⟩
+      rw [Nat.add_sub_cancel, hkk, e8, hdk]
+  refine ⟨?_, fun r hr ↦ ⟨(P r hr).2.1, (P r hr).2.2.1⟩⟩
+  -- the statements, rank by rank
+  have hall : ∀ k, k + 1 ≤ m → ∀ st ∈ (vtPre.drop p0).take (13 + 18 * k),
+      VSH (coreProgram.Rel rd) rd σv st := by
+    intro k
+    induction k with
+    | zero =>
+      intro _ st hst
+      have e := tbStmtsEqb_sound (vtPre_drop p0 ▸ h0)
+      rw [vtRank0T_length] at e
+      have := (P 0 (by omega)).1
+      simp only [↓reduceIte] at this
+      exact this st (by rw [e]; simpa using hst)
+    | succ k ih =>
+      intro hk st hst
+      rw [show 13 + 18 * (k + 1) = (13 + 18 * k) + 18 by ring] at hst
+      refine forall_slice_join (ih (by omega)) ?_ st hst
+      intro st' hst'
+      have e := tbStmtsEqb_sound (vtPre_drop _ ▸ hr (k + 1) (by omega) (by omega))
+      rw [vtRankAt_length, show vtRp p0 (k + 1) = p0 + (13 + 18 * k) by simp [vtRp]; omega] at e
+      have := (P (k + 1) (by omega)).1
+      simp only [show k + 1 ≠ 0 by omega, ↓reduceIte] at this
+      exact this st' (by rw [e]; exact hst')
+  exact hall (m - 1) (by omega)
 
 end
 

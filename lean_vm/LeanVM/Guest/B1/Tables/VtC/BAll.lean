@@ -1,31 +1,28 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `2404 ..< 5152` (the bus sides, G:2020-2164) hold on the honest
-  valuation (fork B of B1-c's completeness).
+  `verify_tables`' statements `769 ..< 2573` (the bus sides, G:2216-2381) hold on the honest
+  valuation.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.BSels
-public import LeanVM.Guest.B1.Tables.VtC.BStack
 public import LeanVM.Guest.B1.Tables.VtC.BGlueGen
 public import LeanVM.Guest.B1.Tables.VtC.BTwin
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
-public import LeanVM.Guest.B1.Tables.VtC.SShared
-public import LeanVM.Guest.B1.Tables.VtC.SSort
-public import LeanVM.Guest.B1.Tables.Vt.Fresh
+public import LeanVM.Guest.B1.Tables.Vt.Fw
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
 
 /-!
-# The bus sides (G:2020-2164)
+# The bus sides (G:2216-2381)
 
 `VtBIn`: the honest data: the bus point, the memory's log-size, the tables' row counts (heights
 `vtHt rows`), the bus challenges `alphas` (weights `eqKernel alphas` at `fp_w`), the five framework
 words at the cursor. `VtBHyp`: what the range needs of the memory, the oracle and the earlier
-statements (fork S's `vtS_complete` gives the latter).
+statements (`vtS_complete` gives the latter).
 
-`vtB_complete`: every statement of `2404 ..< 5152` holds; the block selectors, the framework
+`vtB_complete`: every statement of `769 ..< 2573` holds; the block selectors, the framework
 words and the three bus totals are the honest ones (`vtAcc0/1/2`, as `vt_asm_totals`); every
 load reads inside the buffers `vtBufsB`.
 -/
@@ -58,68 +55,68 @@ structure VtBIn where
   /-- The guest's bytecode. -/
   bc : List K
 
-/-- The buffers the bus sides read and write: the cursor, `dims_g`, `block_kappa`, `fp_w`,
-`claim_pool`, `claim_cplen_g`, `block_off_g`, `block_index_mle`. -/
-def vtBufsBIdx : List (ℕ × ℕ) :=
-  [(5, 5), (10, 7), (12, 153), (14, 16), (16, 165), (17, 162), (185, 153), (2851, 153)]
+/-- The buffers the bus sides read and write: the cursor, `fp_w`, `claim_pool`,
+`block_index_mle`. -/
+def vtBufsBIdx : List (ℕ × ℕ) := [(5, 5), (13, 16), (15, 5), (781, 153)]
 
 /-- The buffers, as pointers and lengths. -/
 def vtBufsB (σ : Val) : List (E × ℕ) := vtBufsBIdx.map fun q ↦ (σ (.n q.1), q.2)
 
 /-- **What the bus sides need.** -/
 structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Prop where
-  hl : args.length = 22
-  hlow : LowDefB 8 rd
+  hl : args.length = 20
+  hlow : LowDefB 14 rd
   hml : D.point.length < 33
-  hlm : D.lm ≤ 32
   hlmμ : D.lm ≤ D.point.length
   h19 : 19 ≤ D.point.length
   hr : D.rows.length = 6
-  hτ : ∀ t < 6, vtHt D.rows t < 29
   hτμ : ∀ t < 6, vtHt D.rows t ≤ D.point.length
   hmu : args.getD 9 0 = gen ^ D.point.length
   hz : TbReadsAt rd (args.getD 8 0) D.point
-  hdim : ∀ t < 6, LoadHolds rd (args.getD 10 0) (t + 1) (gen ^ vtHt D.rows t)
-  hbk : TbReadsAt rd (args.getD 12 0)
-    (blockKappaWords (gen ^ D.lm) ((vtTauList (vtHt D.rows)).map (gen ^ ·)))
   hal : D.alphas.length = 4
-  hW : TbReadsAt rd (args.getD 14 0) (eqKernel D.alphas)
+  hW : TbReadsAt rd (args.getD 13 0) (eqKernel D.alphas)
   hxl : D.xs.length = 5
   hcur : TbReadsAt rd (args.getD 5 0) D.xs
-  hpool : ∀ i < 5, LoadHolds rd (args.getD 16 0) i (D.xs.getD i 0)
-  hcpl : ∀ i < 5, LoadHolds rd (args.getD 17 0) i (gen ^ (if i < 4 then D.lm else 19))
+  hpool : ∀ i < 5, LoadHolds rd (args.getD 15 0) i (D.xs.getD i 0)
   hcan : ∀ i < 5, IsCanonical128 (args.getD i 0)
   /-- The earlier statements' values (`vtS_complete`). -/
-  e22 : ∀ i < 5, vtσ rd wo args (.n (22 + i)) = args.getD i 0
-  e185 : vtσ rd wo args (.n 185) = wo 185
+  e20 : ∀ i < 5, vtσ rd wo args (.n (20 + i)) = vtσ rd wo args (.n i)
+  ekb : ∀ i < 8, vtσ rd wo args (.n (28 + i)) = gen ^ ([0, D.lm] ++ vtTauList (vtHt D.rows)).getD i 0
+  eoP : ∀ x < 54, vtσ rd wo args (.n (vtBoffV x)) =
+    gen ^ (stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD x 0
+  eoC : ∀ x < 45, vtσ rd wo args (.n (vtBoffV (108 + x))) =
+    gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD x 0
   eSh : ∀ t < 6, vtσ rd wo args (.n (vtShLen t)) = gen ^ (D.point.length - vtHt D.rows t)
-  e2732 : vtσ rd wo args (.n 2732) = wo 2732
-  e2767 : vtσ rd wo args (.n 2767) = wo 2767
-  e2769 : vtσ rd wo args (.n 2769) = wo 2769
-  e2770 : vtσ rd wo args (.n 2770) = wo 2770
-  /-- The buffers' words. -/
-  hoff : TbReadsAt rd (wo 185) (vtOffW (vtKap D.lm (vtHt D.rows)))
-  hidxc : TbReadsAt rd (wo 2732) vtIdxcW
-  hz1 : TbReadsAt rd (wo 2767) (D.point.map (1 + ·))
-  hrun : ∀ t < 6, RunTables rd (wo 2769 * gen ^ (288 * t)) (wo 2770 * gen ^ (144 * t))
+  e668 : vtσ rd wo args (.n 668) = wo 668
+  e703 : vtσ rd wo args (.n 703) = wo 703
+  e705 : vtσ rd wo args (.n 705) = wo 705
+  e706 : vtσ rd wo args (.n 706) = wo 706
+  hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
+    paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
+  /-- The own buffers' words. -/
+  hidxc : TbReadsAt rd (wo 668) vtIdxcW
+  hz1 : TbReadsAt rd (wo 703) (D.point.map (1 + ·))
+  hrun : ∀ t < 6, RunTables rd (wo 705 * gen ^ (288 * t)) (wo 706 * gen ^ (144 * t))
     (D.point.length - vtHt D.rows t) (D.point.drop (vtHt D.rows t))
     ((D.point.map (1 + ·)).drop (vtHt D.rows t))
     ((gSquaresList.drop (vtHt D.rows t)).take (D.point.length - vtHt D.rows t))
-  hidxB : TbReadsAt rd (wo 2851) (vtIdxBufW D.point D.lm)
+  hidxB : TbReadsAt rd (wo 781) (vtIdxBufW D.point D.lm)
   /-- Each side's blocks fit in the bus cube. -/
   hfitP : ((vtSizesP D.lm (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
   hfitC : ((vtSizesC (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
-  /-- The offsets' bits at the hinted buffers. -/
-  hbitsF : ∀ b < 3, TbReadsAt rd (wo (vtFwV.getD b 0 + 6))
+  /-- The offsets' bits and digits at the hinted buffers. -/
+  hbitsF : ∀ b < 3, TbReadsAt rd (wo (vtFwW b + 6))
     (offBits ((stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD b 0))
-  hbitsP : ∀ i < 51, TbReadsAt rd (wo ((vtPushSel.getD i default).2.2.1 + 6))
-    (offBits ((stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD (3 + i) 0))
-  hbitsC : ∀ i < 45, TbReadsAt rd (wo ((vtCountSel.getD i default).2.2.1 + 6))
-    (offBits ((stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0))
+  hdigP : ∀ i < 51, TbReadsAt rd (wo (vtPushSel.getD i default).2.2.1)
+    (offDigits ((stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD (3 + i) 0)
+      (vtHt D.rows (vtPushSel.getD i default).2.2.2.1))
+  hdigC : ∀ i < 45, TbReadsAt rd (wo (vtCountSel.getD i default).2.2.1)
+    (offDigits ((stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0)
+      (vtHt D.rows (vtCountSel.getD i default).2.2.2.1))
   /-- The callees' returns. -/
-  hwF : ∀ b < 3, wo (vtFwV.getD b 0 + 16) =
+  hwF : ∀ b < 3, wo (vtFwW b + 10) =
       blockSel (vtSizesP D.lm (vtHt D.rows)) D.point.length b D.point ∧
-    wo (vtFwV.getD b 0 + 17) = gen ^ (stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD b 0
+    wo (vtFwW b + 11) = gen ^ (stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD b 0
   hwP : ∀ i < 51, wo (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
       blockSel (vtSizesP D.lm (vtHt D.rows)) D.point.length (3 + i) D.point ∧
     wo (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
@@ -129,18 +126,16 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
       blockSel (vtSizesC (vtHt D.rows)) D.point.length i D.point ∧
     wo (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
       gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0
-  hwI : wo 2908 = indexMle (D.point.take D.lm) ∧ wo 2983 = indexMle (D.point.take 19)
-  /-- The bytecode's size, and the padding weights (`vtS_complete`). -/
+  hwI : wo 824 = indexMle (D.point.take D.lm) ∧ wo 894 = indexMle (D.point.take 19)
+  /-- The bytecode's size. -/
   hbc : D.bc.length = 2 ^ 23
-  hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
-    paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
 
-theorem vtB_loads_check : ((vtPre.drop 2404).take 2748).all (fun s ↦ match s with
+theorem vtB_loads_check : ((vtPre.drop 769).take 1804).all (fun s ↦ match s with
     | .atom (.load _ p off) => vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
 /-- **Every load of the bus sides reads inside `vtBufsB`.** -/
-theorem vtB_loadsInBuf (σ : Val) : LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 2404).take 2748) := by
+theorem vtB_loadsInBuf (σ : Val) : LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 769).take 1804) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
   simp only [List.any_eq_true, Bool.and_eq_true, decide_eq_true_eq] at this

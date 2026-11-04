@@ -55,25 +55,27 @@ theorem basisMem_of_P {σ : Val} {c : OsCfg} {tch bd ls L : ℕ} {lv : OsLv} {β
 
 /-- `ResMem` with its pointers named. -/
 structure ResMemP (C : CallRel) (rd : Reader) (P : OsPtrs) (BD ICH LS : E) (c : OsCfg) (lvl : ℕ)
-    (lv : OsLv) (RC acc Pq W I L : E) (D : ℕ → E) : Prop where
+    (lv : OsLv) (RC acc M I L : E) (Pq D : ℕ → E) : Prop where
   hml : 1 ≤ lv.logCols
-  hn : lv.queries / 2 < u128Bound
-  hL : IsInK (1 + gen ^ (lv.queries / 2)) ∧ (1 + gen ^ (lv.queries / 2) ≠ 0 →
-    C (c.resLoop lvl) [1, gen ^ (lv.queries / 2), P.qpos, P.qw, BD, RC] [])
+  hn : lv.queries / resBatch < u128Bound
+  hM : LoadHolds rd P.mus lvl M
+  hL : IsInK (1 + gen ^ (lv.queries / resBatch)) ∧ (1 + gen ^ (lv.queries / resBatch) ≠ 0 →
+    C (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), P.qpos, BD, RC, M] [])
   h0 : LoadHolds rd RC 0 0
-  hacc : LoadHolds rd RC (lv.queries / 2) acc
-  hP : lv.queries % 2 = 1 → LoadHolds rd P.qpos (lv.posOff + lv.queries - 1) Pq
-  hD : lv.queries % 2 = 1 → ∀ s < lv.logCols, LoadHolds rd BD (lvl * ligColsCap + s) (D s)
-  hW : lv.queries % 2 = 1 → LoadHolds rd P.qw (lvl * c.maxQ + lv.queries - 1) W
+  hacc : LoadHolds rd RC (lv.queries / resBatch) acc
+  hP : ∀ i < lv.queries % resBatch,
+    LoadHolds rd P.qpos (lv.posOff + (lv.queries - lv.queries % resBatch) + i) (Pq i)
+  hD : ∀ s < lv.logCols, LoadHolds rd BD (lvl * ligColsCap + s) (D s)
   hI : LoadHolds rd ICH lvl I
   hLs : LoadHolds rd LS lvl L
-  hout : LoadHolds rd ICH (lvl + 1) (I + L * resSum lv acc W D Pq)
+  hout : LoadHolds rd ICH (lvl + 1)
+    (I + L * resFold D lv.vanish lv.logCols M acc ((List.range (lv.queries % resBatch)).map Pq))
 
-theorem resMem_of_P {σ : Val} {c : OsCfg} {ich bd ls lvl : ℕ} {lv : OsLv} {RC acc Pq W I L : E}
-    {D : ℕ → E}
-    (h : ResMemP C rd (ptrsOf σ) (σ (.n bd)) (σ (.n ich)) (σ (.n ls)) c lvl lv RC acc Pq W I L D) :
-    ResMem C rd σ c ich bd ls lvl lv RC acc Pq W I L D :=
-  ⟨h.hml, h.hn, h.hL, h.h0, h.hacc, h.hP, h.hD, h.hW, h.hI, h.hLs, h.hout⟩
+theorem resMem_of_P {σ : Val} {c : OsCfg} {ich bd ls lvl : ℕ} {lv : OsLv} {RC acc M I L : E}
+    {Pq D : ℕ → E}
+    (h : ResMemP C rd (ptrsOf σ) (σ (.n bd)) (σ (.n ich)) (σ (.n ls)) c lvl lv RC acc M I L Pq D) :
+    ResMem C rd σ c ich bd ls lvl lv RC acc M I L Pq D :=
+  ⟨h.hml, h.hn, h.hM, h.hL, h.h0, h.hacc, h.hP, h.hD, h.hI, h.hLs, h.hout⟩
 
 /-- The pointer an out-of-domain coordinate reads. -/
 def oodPtr (P : OsPtrs) (T : E) (zf t : ℕ) : E := if t < zf then P.fch else T

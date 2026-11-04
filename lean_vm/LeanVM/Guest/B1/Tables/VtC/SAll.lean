@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SAll
 
-  `verify_tables`' statements `0 ..< 2404` hold on the honest valuation (fork S of B1-c's
-  completeness).
+  `verify_tables`' statements before the bus sides (`0 ..< 769`) hold on the honest valuation.
 -/
 
 module
@@ -10,14 +9,12 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SP2
 
 /-!
-# Statements `0 ..< 2404` (G:1937-2019)
+# Statements `0 ..< 769` (G:2096-2215)
 
-`vtS_complete`: for the blocks' log-sizes `κ` (`block_kappa`), the bus point at `zeta`
-(`g_bus_mu = g^|point|`, `|point| < 33`), the tables' row counts `n` and heights
-`τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ |point|`, on a memory defined below `2^8` holding
-`block_kappa`, the squares, `dims_g`, `table_rows`, and the own buffers' honest words
-(`sort_order`: `vtSortW κ`, `block_side_tab`: `vtSideW`, `block_off_g`: `vtOffW κ`, `idxc_tab`:
-`vtIdxcW`, `zeta1`: `1 + ζ`, the shared tables: `RunTables`), the oracle returning
+`vtS_complete`: for the memory's log-size `lm ≤ 32`, the bus point (`|point| < 33`) and the
+tables' heights `τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ |point|`, on a memory defined
+below `2^14` holding `dims_g` (`g^lm` and the heights), `table_rows`, the exponent tables, the
+bus point, the group buffers, `idxc_tab`, `zeta1` and the shared tables, the oracle returning
 `padding_weight`'s outcomes and `plus_one_run`'s `0`: every statement before the bus sides holds,
 and the values later statements read are the honest ones.
 -/
@@ -30,69 +27,63 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem vtS_copies_check : tbStmtsEqb [.atom (.copy (.n 22) (.n 0)), .atom (.copy (.n 23) (.n 1)),
-    .atom (.copy (.n 24) (.n 2)), .atom (.copy (.n 25) (.n 3)), .atom (.copy (.n 26) (.n 4)),
-    .atom (.copy (.n 27) (.n 19)), .atom (.copy (.n 28) (.n 20)), .atom (.copy (.n 29) (.n 21))]
-    ((vtPre.drop 0).take 8) = true := by simp only [vtPre_drop]; decide +kernel
-
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-/-- **`verify_tables`' statements `0 ..< 2404` complete.** -/
-theorem vtS_complete (hl : args.length = 22) (hlow : LowDefB 8 rd)
-    (κ : ℕ → ℕ) (hκ : ∀ b < 153, κ b < 34) (point : List E) (hμ33 : point.length < 33)
-    (τ n : ℕ → ℕ) (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
+local notation "σv" => vtσ rd w args
+
+theorem vtTauList_getD {τ : ℕ → ℕ} {t : ℕ} (ht : t < 6) : (vtTauList τ).getD t 0 = τ t := by
+  rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; exact ht)]
+  simp [vtTauList]
+
+/-- **`verify_tables`' statements `0 ..< 769` complete.** -/
+theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
+    (point : List E) (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
+    (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ29 : ∀ t < 6, τ t < 29) (hτμ : ∀ t < 6, τ t ≤ point.length)
     -- the arguments' buffers
-    (hz : TbReadsAt rd (args.getD 8 0) point) (h9 : args.getD 9 0 = gen ^ point.length)
-    (hdims : ∀ t < 6, LoadHolds rd (args.getD 10 0) (t + 1) (gen ^ τ t))
-    (hrows : ∀ t < 6, LoadHolds rd (args.getD 11 0) t (eOfNat (n t)))
-    (hbk : ∀ b < 153, LoadHolds rd (args.getD 12 0) b (gen ^ κ b))
-    (hsq : TbReadsAt rd (args.getD 13 0) gSquaresList)
+    (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
+    (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
+    (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
+    (hE : ExpTablesAt rd (σv (.n 12)))
     -- the own buffers
-    (hso : TbReadsAt rd (w 30) (vtSortW κ)) (hst : TbReadsAt rd (w 31) vtSideW)
-    (hoff : TbReadsAt rd (w 185) (vtOffW κ)) (hidxc : TbReadsAt rd (w 2732) vtIdxcW)
-    (hz1 : TbReadsAt rd (w 2767) (point.map (1 + ·)))
-    (hrun : ∀ t < 6, RunTables rd (w 2769 * gen ^ (288 * t)) (w 2770 * gen ^ (144 * t))
+    (hkeyW : TbReadsAt rd (w 36) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 37) (vtGSizeW lm τ))
+    (hbaseW : TbReadsAt rd (w 38) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 39) (vtGOrdW lm τ))
+    (hidxc : TbReadsAt rd (w 668) vtIdxcW) (hz1 : TbReadsAt rd (w 703) (point.map (1 + ·)))
+    (hrun : ∀ t < 6, RunTables rd (w 705 * gen ^ (288 * t)) (w 706 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
     -- the callees' returns
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
-    (hw2768 : w 2768 = 0) :
-    (∀ s ∈ (vtPre.drop 0).take 2404, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
-      (∀ i < 5, vtσ rd w args (.n (22 + i)) = args.getD i 0) ∧
-      (∀ i < 3, vtσ rd w args (.n (27 + i)) = args.getD (19 + i) 0) ∧
-      vtσ rd w args (.n 30) = w 30 ∧ vtσ rd w args (.n 31) = w 31 ∧
-      vtσ rd w args (.n 185) = w 185 ∧
-      (∀ t < 6, vtσ rd w args (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
-      (∀ t < 6, vtσ rd w args (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      vtσ rd w args (.n 2639) = w 2639 ∧ vtσ rd w args (.n 2732) = w 2732 ∧
-      vtσ rd w args (.n 2767) = w 2767 ∧ vtσ rd w args (.n 2769) = w 2769 ∧
-      vtσ rd w args (.n 2770) = w 2770 := by
-  have hsq' : ∀ j < 34, LoadHolds rd (args.getD 13 0) j (gen ^ 2 ^ j) := fun j hj => by
-    have := hsq j (by simp [gSquaresList]; exact hj)
-    simpa [gSquaresList] using this
-  obtain ⟨p2, hpw, hsl, e2639, e2732, e2767, e2769, e2770⟩ := vtS_p2 hl hlow point hμ33 τ n hτ
-    hτ29 hτμ hz h9 hdims hrows hsq hwp hidxc hz1 hw2768 hrun
-  have hc := vt_goodL (rd := rd) (w := w) hl 0 _ vtS_copies_check
-  simp only [GoodL, GoodS, fixNe, Good, and_true] at hc
-  obtain ⟨c0, c1, c2, c3, c4, c5, c6, c7⟩ := hc
-  have p := fun i (hi : i < 22) => vt_param (rd := rd) (w := w) hl hi
-  refine ⟨forall_slice_split 0 2189 215 (vtS_sort hl hlow κ hκ hbk hsq' hso hst hoff) p2,
-    fun i hi => ?_, fun i hi => ?_, vt_alloc hl 8 (sz := 153) (by decide +kernel),
-    vt_alloc hl 10 (sz := 153) (by decide +kernel), vt_alloc hl 317 vtSort_alloc185, hpw, hsl,
-    e2639, e2732, e2767, e2769, e2770⟩
-  · interval_cases i
-    · rw [c0, p 0 (by norm_num)]
-    · rw [c1, p 1 (by norm_num)]
-    · rw [c2, p 2 (by norm_num)]
-    · rw [c3, p 3 (by norm_num)]
-    · rw [c4, p 4 (by norm_num)]
-  · interval_cases i
-    · rw [c5, p 19 (by norm_num)]
-    · rw [c6, p 20 (by norm_num)]
-    · rw [c7, p 21 (by norm_num)]
+    (hw704 : w 704 = 0) :
+    (∀ s ∈ (vtPre.drop 0).take 769, VSH (coreProgram.Rel rd) rd σv s) ∧
+      (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧ (∀ i < 3, σv (.n (25 + i)) = σv (.n (17 + i))) ∧
+      (∀ i < 8, σv (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n (36 + i)) = w (36 + i)) ∧
+      (∀ x < 54, σv (.n (vtBoffV x)) =
+        gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
+      (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
+        gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) ∧
+      (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
+      (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
+      σv (.n 581) = w 581 ∧ σv (.n 668) = w 668 ∧ σv (.n 703) = w 703 ∧
+      σv (.n 705) = w 705 ∧ σv (.n 706) = w 706 := by
+  have hτ' : ∀ t < 6, τ t < 29 := hτ29
+  obtain ⟨h1, hcp, hcc, hkb, hal, hP, hC⟩ :=
+    vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
+  have hkbt : ∀ t < 6, σv (.n (30 + t)) = gen ^ τ t := by
+    intro t ht
+    have := hkb (2 + t) (by omega)
+    rw [show 28 + (2 + t) = 30 + t by omega] at this
+    rw [this]
+    rw [show 2 + t = t + 1 + 1 by omega]
+    simp only [List.cons_append, List.nil_append, List.getD_cons_succ]
+    rw [vtTauList_getD ht]
+  obtain ⟨h2, hpw, hsl, e581, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ29
+    hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun
+  exact ⟨forall_slice_join (a := 0) (l1 := 566) (l2 := 203) h1 h2, hcp, hcc, hkb, hal, hP, hC,
+    hpw, hsl, e581, e668, e703, e705, e706⟩
 
 end
 

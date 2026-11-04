@@ -82,6 +82,38 @@ theorem semRel_exp (rd : Reader) (ws : List E) :
     SemRel glob 0 rd ws ↔ B1.ExpTables rd (ws.getD 0 0) := by
   simp [SemRel, SemRel0, tagNe, glob, globSem]
 
+/-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided. -/
+noncomputable def sigSemArgsB : Bool :=
+  (List.range nFns).all fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)
+
+theorem sigSemArgsB_eq : sigSemArgsB = true := by decide +kernel
+
+/-- **Every function's semantic tuples read only its argument words**: their cells are argument
+cells (and a tuple's relation, `SemRel glob t rd ws`, reads only the memory and the words). -/
+theorem sigSem_args {j : ℕ} (hj : j < nFns) :
+    ∀ s ∈ (glob.sig j).sem, ∀ o ∈ s.2, 2 ≤ o ∧ o < 2 + (glob.sig j).nargs := by
+  intro s hs o ho
+  have h := List.all_eq_true.mp sigSemArgsB_eq j (List.mem_range.mpr hj)
+  have h' := List.all_eq_true.mp (List.all_eq_true.mp h s hs) o ho
+  simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at h'
+  exact h'
+
+theorem nameIndex_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : nameIndex (coreOf j).name = j := by
+  have hl : j - 1 < coreProgram.length := by
+    have : coreProgram.length = 947 := coreProgram_length
+    simp only [nFns] at h2
+    omega
+  unfold nameIndex coreOf
+  rw [nth_eq hl, findIdx_name_of_nodup coreProgram_names_nodup hl]
+  omega
+
+/-- Two functions of one name are one (`coreProgram_names_nodup`). -/
+theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j') (h2' : j' < nFns)
+    (h : (glob.sig j).name = (glob.sig j').name) : j = j' := by
+  have e : (coreOf j).name = (coreOf j').name := h
+  rw [← nameIndex_coreOf h1 h2, ← nameIndex_coreOf h1' h2', e]
+
 /-! ## `verify_sub`'s window -/
 
 theorem vs_cuts : (certOf 19).cuts.length = 1 := by decide +kernel

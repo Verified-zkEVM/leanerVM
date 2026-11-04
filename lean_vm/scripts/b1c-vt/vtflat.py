@@ -55,7 +55,7 @@ def load(path=None):
         if s.startswith('.ite'):
             for b in branches(s): flat += [(k, t) for t in b]
         else: flat.append((k, s))
-    c = 22; ctr = []
+    c = 20; ctr = []
     for k, s in flat:
         ctr.append(c); c = chkS(c, s)
     return top, flat, ctr, c

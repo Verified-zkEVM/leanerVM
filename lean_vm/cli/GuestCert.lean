@@ -578,7 +578,10 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
   let mut loads : Option (ℕ × ℕ × ℕ) := none
   for (s, idx) in ss.zipIdx do
     if top then modify fun st => { st with marks := st.marks.push (idx, p, facts.size, loads), curTop := idx }
-    loads := none
+    -- a hint runs no code: the statement after it still starts after the returned words' loads
+    match s with
+    | .atom (.hint _) => pure ()
+    | _ => loads := none
     match s with
     | .atom a =>
       let (p', f') ← try atom a p facts
@@ -803,6 +806,16 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
   m := m.insert "__loop4" [(0, [16])]
+  -- `verify_bus_gkr`'s radix-four layer loop, which dispatches `gkr_rounds` on the layer's parity:
+  -- `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]` (arguments 4, 0, 2, 3, 6)
+  let byName : Std.HashMap String Core.Fn := P.foldl (fun m f => m.insert f.name f) {}
+  for cf in P do
+    if cf.name == "verify_bus_gkr" then
+      for g in loopsOf cf.body do
+        let dispatchesRounds := ((byName.get? g).map fun l => l.body.any fun
+          | .dispatch _ (h :: _) _ _ => h.startsWith "gkr_rounds"
+          | _ => false).getD false
+        if dispatchesRounds then m := m.insert g [(tagGkr, [6, 2, 4, 5, 8])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
       m := m.insert cf.name [(walkTag (2 + base) odd d cd, [6, 8])]
@@ -857,27 +870,35 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
     out := out.push (i, lo, tu)
   return out.toList
 
-/-- The windows a walk function's top-level `match`es dispatch on, a load `L[w·g^i]` each: per
+/-- The windows a walk function's top-level `match`es (and, `dispatches`, `dispatch`es: `GkrPar`'s
+loop) dispatch on, a load `L[w·g^i]` each: per
 pointer `w`, `(statement of its first such match, statement after `w`'s definition, the triples
 (w, i, arms))`; a cut before the first match takes them as bounds on memory read
 (`Cut.knownIf`). -/
-def winObligations (body : List Core.Stmt) : List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
+def winObligations (body : List Core.Stmt) (dispatches : Bool := false) :
+    List (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := Id.run do
   let loads : Std.HashMap ℕ (ℕ × ℕ) := body.foldl (fun m s => match s with
     | .atom (.load d w off) => if m.contains d.idx then m else m.insert d.idx (w.idx, off)
     | _ => m) {}
   let mut out : Array (ℕ × ℕ × List (ℕ × ℕ × ℕ)) := #[]
   for (s, i) in body.zipIdx do
-    if let .match_ v arms := s then
+    let sel : Option (Core.V × ℕ) := match s with
+      | .match_ v arms => some (v, arms.length)
+      | .dispatch v fs _ _ => if dispatches then some (v, fs.length) else none
+      | _ => none
+    if let some (v, n) := sel then
       if let some (w, off) := loads.get? v.idx then
         match out.findIdx? (fun o => o.2.2.any (·.1 == w)) with
-        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, arms.length)])
-        | none => out := out.push (i, defAfter body w, [(w, off, arms.length)])
+        | some k => out := out.modify k fun (a, b, l) => (a, b, l ++ [(w, off, n)])
+        | none => out := out.push (i, defAfter body w, [(w, off, n)])
   return out.toList
 
 /-- The bounds of the functions whose table jumps are bounded outside them (the guest's design,
 `lean_vm/README.md`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
-(argument 9), `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
+(argument 9) and on the tables' certified logs `dims_g[g^t]`, `t < 7` (argument 10, cell 12:
+`kb[1 + t]`, an unadjusted `kappa_g`, `lean_ethereum.py:2118-2121, 2218-2221`),
+`log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
 `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument;
@@ -889,7 +910,7 @@ def bounds (name : String) :
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
   else if name == "list_split" then ([], [(5, 17)], [], [])
   else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
-  else if name == "verify_tables" then ([(11, 34)], [], [], [])
+  else if name == "verify_tables" then ([(11, 34)], [], (List.range 7).map (fun t => (12, t, 34)), [])
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
     name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(4, 34)], [], [])
@@ -1061,8 +1082,13 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
   let cands := marks.filterMap fun m => (cutAtMark segMap f.entryPc m).bind fun c =>
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
   let mut forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × List ℕ)) := []
+  -- a forced cut avoids the start right after a call's returns (the window before would end
+  -- before reading them back)
+  let afterRets (k : ℕ) : Bool := k > 0 && match cf.body[k - 1]? with
+    | some (.call _ _ (_ :: _)) | some (.dispatch _ _ _ (_ :: _)) => true
+    | _ => false
   for (i, lo, kn, ki, sm) in forced0 do
-    match (cands.filter fun c => lo ≤ c.1 && c.1 ≤ i).back? with
+    match (cands.filter fun c => lo ≤ c.1 && c.1 ≤ i && (c.1 == lo || !afterRets c.1)).back? with
     | some c => forced := forced ++ [(c.1, kn, ki, sm)]
     | none => throw s!"{f.name}: no window can start at statements {lo}..{i} (near: {(cands.filter fun c => c.1 + 40 ≥ lo && c.1 ≤ i + 40).toList.map (·.1)}, marks {(marks.filter fun m => m.1 + 40 ≥ lo && m.1 ≤ i + 40).toList.map (·.1)})"
   let mw := maxWin coarse f.name
@@ -1140,7 +1166,12 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
       (cf.body.findIdx? fun
         | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
         | _ => false).bind fun d => if d < idx then some (cellOf (.n v), 2) else none
-    out := out.push ⟨J, envL, idx, handed, pre ++ held, known, knownIf, sems, b⟩
+    -- the bounds earlier top-level calls return (`bounds`' after), handed on as bounds
+    let posts := (cf.body.take idx).flatMap fun
+      | .call g args rets => ((bounds g).2.1).filterMap fun (o, n) =>
+          ((args ++ rets)[o - 2]?).map fun v => (cellOf v, n)
+      | _ => []
+    out := out.push ⟨J, envL, idx, handed, (pre ++ held ++ posts).eraseDups, known, knownIf, sems, b⟩
     a := J
     env := envL
   return out.toList
@@ -1186,7 +1217,8 @@ def forcedOf (semMap : Std.HashMap String (List (ℕ × List ℕ))) (cf : Core.F
     (semsOf cf.body).map (fun (i, q) => (i, i, none3, none3, [(0, [cell q])])) ++
     (← callObligations semMap cf.body).map (fun (i, lo, tu) =>
       (i, lo, none3, none3, tu.map fun (t, vs) => (t, vs.map cell))) ++
-    (if walkFn then (winObligations cf.body).map fun (i, lo, ws) =>
+    (if walkFn then (winObligations cf.body ((semMap.getD cf.name []).any (·.1 == tagGkr))).map
+      fun (i, lo, ws) =>
       (i, lo, none3, ws.map (fun (w, o, n) => (cell w, o, n)), noneS) else [])
 
 /-- The functions whose windows take obligations (`forcedOf`), by index. -/

@@ -28,17 +28,17 @@ theorem cw90_2_0 : cplWin 90 2 0 = true := by decide +kernel
 /-- `__loop6`, window 0, part 0. -/
 theorem cw91_0_0 : cplWin 91 0 0 = true := by decide +kernel
 
+/-- `__loop6`, window 1, part 0. -/
+theorem cw91_1_0 : cplWin 91 1 0 = true := by decide +kernel
+
+/-- `__loop6`, window 2, part 0. -/
+theorem cw91_2_0 : cplWin 91 2 0 = true := by decide +kernel
+
 /-- `__loop7`, window 0, part 0. -/
 theorem cw92_0_0 : cplWin 92 0 0 = true := by decide +kernel
 
 /-- `__loop8`, window 0, part 0. -/
 theorem cw93_0_0 : cplWin 93 0 0 = true := by decide +kernel
-
-/-- `sel_partial_nibble__L0`, window 0, part 0. -/
-theorem cw94_0_0 : cplWin 94 0 0 = true := by decide +kernel
-
-/-- `sel_partial_nibble__L1`, window 0, part 0. -/
-theorem cw95_0_0 : cplWin 95 0 0 = true := by decide +kernel
 
 theorem ok90 : CplOk 90 := by
   intro i hi k hk
@@ -60,13 +60,21 @@ theorem ok90 : CplOk 90 := by
 
 theorem ok91 : CplOk 91 := by
   intro i hi k hk
-  have hc : (certOf 91).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 91).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 91 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw91_0_0
+  · have hn : nParts 91 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw91_1_0
+  · have hn : nParts 91 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw91_2_0
 
 theorem ok92 : CplOk 92 := by
   intro i hi k hk
@@ -87,26 +95,6 @@ theorem ok93 : CplOk 93 := by
     rw [hn] at hk
     interval_cases k
     · exact cw93_0_0
-
-theorem ok94 : CplOk 94 := by
-  intro i hi k hk
-  have hc : (certOf 94).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 94 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw94_0_0
-
-theorem ok95 : CplOk 95 := by
-  intro i hi k hk
-  have hc : (certOf 95).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 95 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw95_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

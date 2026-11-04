@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BBase
 
-  Tools for `verify_tables`' completeness on its bus sides (statements `2404 ..< 5152`): the
+  Tools for `verify_tables`' completeness on its bus sides (statements `769 ..< 2573`): the
   equations of its pure atoms and its weight reads as a predicate the soundness's algebra can be
   replayed on (`VtP`), and the statements' relations from the honest valuation: reads, range
   checks, dispatches, equality checks.
@@ -20,8 +20,8 @@ older values, reads of the bus weights `fp_w` below `16`) holds; `VtP.atom` read
 selection decided. `vtP_honest`: the honest valuation satisfies it when the memory holds `16`
 weights at `fp_w`. The soundness's algebraic lemmas, stated on `VtH`, replay on `VtP`.
 
-`vshB_read`: a read of a word the memory holds; `vshB_rc`: a range check `log x < K` on
-`x = g^e`, `e < K`, the memory defined at `g^i`, `i < K`; `vshB_eq`: an equality check.
+`vtB_readM`: a read of a word the memory holds; `vtB_retsM`: a dispatch's returns, the oracle's;
+`vtB_blockA`: a block holds when its statements beyond evaluation do.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -32,9 +32,9 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The atoms `VtP` keeps: constants, sums, copies, products of older values, reads through
-`fp_w` (`.n 14`) below `16`. -/
+`fp_w` (`.n 13`) below `16`. -/
 def okP : Atom → Bool
-  | .load _ p off => decide (p = .n 14) && decide (off < 16)
+  | .load _ p off => decide (p = .n 13) && decide (off < 16)
   | .const .. => true
   | .add .. => true
   | .copy .. => true
@@ -58,16 +58,16 @@ theorem VtP.atomAt {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
   h n a (vtPre_drop n ▸ heq) hok
 
 /-- No store goes through `fp_w`. -/
-theorem vtSL_no14 : vtSL.all (fun a ↦ match a with
-    | .load _ p _ => !decide (p = .n 14)
+theorem vtSL_no13 : vtSL.all (fun a ↦ match a with
+    | .load _ p _ => !decide (p = .n 13)
     | _ => true) = true := by decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The honest valuation satisfies `VtP`.** -/
-theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
-    (hW : TbReadsAt rd (vtσ rd w args (.n 14)) W) : VtP rd (vtσ rd w args) := by
+theorem vtP_honest (hl : args.length = 20) {W : List E} (hW16 : 16 ≤ W.length)
+    (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) : VtP rd (vtσ rd w args) := by
   intro n a heq hok
   have hs : Stmt.atom a ∈ vtPre := vt_mem_slice (blk := [_]) heq List.mem_cons_self
   have hg := vt_goodS (rd := rd) (w := w) hl hs
@@ -76,9 +76,9 @@ theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
   | load d p off =>
     simp only [okP, Bool.and_eq_true, decide_eq_true_eq] at hok
     obtain ⟨rfl, hoff⟩ := hok
-    have hS : Atom.load d (.n 14) off ∉ vtSL := by
+    have hS : Atom.load d (.n 13) off ∉ vtSL := by
       intro hm
-      have := List.all_eq_true.mp vtSL_no14 _ hm
+      have := List.all_eq_true.mp vtSL_no13 _ hm
       simp at this
     simp only [fixA, GoodS, Good] at hg
     have hm := hW off (by omega)
@@ -95,33 +95,10 @@ theorem vtP_honest (hl : args.length = 22) {W : List E} (hW16 : 16 ≤ W.length)
     exact hg
   | _ => simp [okP] at hok
 
-/-! ## Statements -/
-
-theorem vtB_gpow_isSome {K : ℕ} (hlow : ∀ i < K, (rd (Parameters.addressOfIndex i)).isSome) {e : ℕ}
-    (he : e < K) : ∃ v, LoadHolds rd (gen ^ e) 0 v ∧ rdAt rd (gen ^ e) 0 = v := by
-  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow e he)
-  have ha : (gen ^ e).limb 0 * Parameters.addressOfIndex 0 = Parameters.addressOfIndex e := by
-    rw [gen_pow_eq_ofK]; simp [Parameters.addressOfIndex]
-  refine ⟨v, ⟨tb_gen_pow_isInK e, by rw [ha, hv]⟩, ?_⟩
-  rw [rdAt, ha, hv]; rfl
-
-/-- **An equality check.** -/
-theorem vshB_eq {σ : Val} {x y : V} (h : σ x = σ y) :
-    VSH (coreProgram.Rel rd) rd σ (.atom (.assertEq x y)) := by
-  exact e_add_eq_zero_iff.mpr h
-
-/-- **A dispatch**, its arm `j` named by `g^j`, its returns the oracle's. -/
-theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V} {j : ℕ}
-    (hj : j < fs.length) (hx : σ x = gen ^ j)
-    (hr : coreProgram.Rel rd fs[j] (args'.map σ) (rets.map σ)) :
-    VSH (coreProgram.Rel rd) rd σ (.dispatch x fs args' rets) :=
-  ⟨j, hj, by rw [hx, gen_pow_eq_ofK], hr⟩
-
-
 /-! ## By membership -/
 
 /-- A read of a word the memory holds, the statement in `vtPre`. -/
-theorem vtB_readM (hl : args.length = 22) {d p : V} {off : ℕ}
+theorem vtB_readM (hl : args.length = 20) {d p : V} {off : ℕ}
     (hs : Stmt.atom (.load d p off) ∈ vtPre) (hS : Atom.load d p off ∉ vtSL) {v : E}
     (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) := by
@@ -132,34 +109,13 @@ theorem vtB_readM (hl : args.length = 22) {d p : V} {off : ℕ}
   show LoadHolds rd _ _ _
   rw [e]; exact hm
 
-/-- A range check, the statement in `vtPre`. -/
-theorem vshB_rcM (hl : args.length = 22) {x y t1 t2 k : V}
-    (hs : Stmt.atom (.rangeCheck x y t1 t2 k) ∈ vtPre)
-    (hky : k.idx < y.idx) {K e : ℕ} (hx : vtσ rd w args x = gen ^ e)
-    (hk : vtσ rd w args k = gen ^ (K - 1)) (he : e < K)
-    (hlow : ∀ i < K, (rd (Parameters.addressOfIndex i)).isSome) :
-    VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.rangeCheck x y t1 t2 k)) := by
-  have hg := vt_goodS (rd := rd) (w := w) hl hs
-  simp only [fixNe, GoodS, Good] at hg
-  rw [ite_pos' hky] at hg
-  obtain ⟨g1, g2, g3⟩ := hg
-  have hy : vtσ rd w args y = gen ^ (K - 1 - e) := by
-    rw [g3, hk, hx, ← pow_sub₀ _ gen_ne_zero (by omega : e ≤ K - 1)]
-  obtain ⟨v1, l1, r1⟩ := vtB_gpow_isSome hlow he
-  obtain ⟨v2, l2, r2⟩ := vtB_gpow_isSome hlow (e := K - 1 - e) (by omega)
-  show LoadHolds rd _ 0 _ ∧ _ ∧ LoadHolds rd _ 0 _
-  refine ⟨?_, ?_, ?_⟩
-  · rw [g1, hx, r1]; exact l1
-  · rw [hk, hx, hy, ← pow_add, show e + (K - 1 - e) = K - 1 by omega]
-  · rw [g2, hy, r2]; exact l2
-
 /-- The returns of a dispatch in `vtPre`: the oracle's. -/
-theorem vtB_retsM (hl : args.length = 22) {x : V} {fs : List String} {args' rets : List V}
+theorem vtB_retsM (hl : args.length = 20) {x : V} {fs : List String} {args' rets : List V}
     (hs : Stmt.dispatch x fs args' rets ∈ vtPre) : ∀ v ∈ rets, vtσ rd w args v = w v.idx :=
   vt_goodS (rd := rd) (w := w) hl hs
 
 /-- **A block's statements hold** when those evaluation alone does not settle do. -/
-theorem vtB_blockA (hl : args.length = 22) (n : ℕ) (blk : List Stmt)
+theorem vtB_blockA (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true)
     (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by

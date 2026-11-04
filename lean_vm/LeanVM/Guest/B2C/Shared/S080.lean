@@ -16,108 +16,37 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `list_split`, once. -/
-theorem st24 : shareStatic 24 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 29. -/
+theorem w22_29 : shareWin 22 (snapsOf 22) 29 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `list_split`, window 0. -/
-theorem w24_0 : shareWin 24 (snapsOf 24) 0 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 30. -/
+theorem w22_30 : shareWin 22 (snapsOf 22) 30 = true := by decide +kernel
 
-theorem ok24 : ShareOk 24 := ⟨st24, fun i hi ↦ by
-  have h : (snapsOf 24).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 31. -/
+theorem w22_31 : shareWin 22 (snapsOf 22) 31 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 32. -/
+theorem w22_32 : shareWin 22 (snapsOf 22) 32 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_sig_lean_sphincs`, window 33. -/
+theorem w22_33 : shareWin 22 (snapsOf 22) 33 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `statement_digest`, once. -/
+theorem st23 : shareStatic 23 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `statement_digest`, window 0. -/
+theorem w23_0 : shareWin 23 (snapsOf 23) 0 = true := by decide +kernel
+
+theorem ok23 : ShareOk 23 := ⟨st23, fun i hi ↦ by
+  have h : (snapsOf 23).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w24_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_digest`, once. -/
-theorem st25 : shareStatic 25 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `claim_list_digest`, window 0. -/
-theorem w25_0 : shareWin 25 (snapsOf 25) 0 = true := by decide +kernel
-
-theorem ok25 : ShareOk 25 := ⟨st25, fun i hi ↦ by
-  have h : (snapsOf 25).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w25_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_digest`, once. -/
-theorem st26 : shareStatic 26 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_digest`, window 0. -/
-theorem w26_0 : shareWin 26 (snapsOf 26) 0 = true := by decide +kernel
-
-theorem ok26 : ShareOk 26 := ⟨st26, fun i hi ↦ by
-  have h : (snapsOf 26).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w26_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_any`, once. -/
-theorem st27 : shareStatic 27 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_any`, window 0. -/
-theorem w27_0 : shareWin 27 (snapsOf 27) 0 = true := by decide +kernel
-
-theorem ok27 : ShareOk 27 := ⟨st27, fun i hi ↦ by
-  have h : (snapsOf 27).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w27_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono`, once. -/
-theorem st28 : shareStatic 28 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono`, window 0. -/
-theorem w28_0 : shareWin 28 (snapsOf 28) 0 = true := by decide +kernel
-
-theorem ok28 : ShareOk 28 := ⟨st28, fun i hi ↦ by
-  have h : (snapsOf 28).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w28_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_verify`, once. -/
-theorem st29 : shareStatic 29 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify`, window 0. -/
-theorem w29_0 : shareWin 29 (snapsOf 29) 0 = true := by decide +kernel
-
-theorem ok29 : ShareOk 29 := ⟨st29, fun i hi ↦ by
-  have h : (snapsOf 29).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w29_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_row_shape`, once. -/
-theorem st30 : shareStatic 30 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_row_shape`, window 0. -/
-theorem w30_0 : shareWin 30 (snapsOf 30) 0 = true := by decide +kernel
-
-theorem ok30 : ShareOk 30 := ⟨st30, fun i hi ↦ by
-  have h : (snapsOf 30).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w30_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_column`, once. -/
-theorem st31 : shareStatic 31 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_column`, window 0. -/
-theorem w31_0 : shareWin 31 (snapsOf 31) 0 = true := by decide +kernel
-
-theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
-  have h : (snapsOf 31).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w31_0⟩
+  exact w23_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

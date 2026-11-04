@@ -55,21 +55,22 @@ theorem osTail_bounds (c : OsCfg) (st : OsSt) (hk : 164 ≤ st.k) :
 
 /-- The values of the body. -/
 def bodyF (c : OsCfg) (σ : Val) (P : OsPtrs) (c0 c2 : E) (Ds : List LvDat) (T : E) (xs : List E)
-    (Y PT PT1 BD LS ICH In : E) (Pp β : ℕ → E) (X : ℕ → ℕ → E) (RC acc Pq W I L : ℕ → E)
-    (D : ℕ → ℕ → E) (Λ : ℕ → E) (Z Yo : ℕ → ℕ → E) : ℕ → E :=
-  seqF σ 9 34 (headF c σ P c0 c2) fun σ1 ↦
-  seqF σ1 34 (osLvSt c).k (lvsF c 0 c.levels Ds (osHead c).2 σ1) fun σ2 ↦
+    (Y PT PT1 BD LS ICH In : E) (Pp β : ℕ → E) (X : ℕ → ℕ → E) (RC acc M I L : ℕ → E)
+    (Pq D : ℕ → ℕ → E) (Λ : ℕ → E) (Z Yo : ℕ → ℕ → E) : ℕ → E :=
+  seqF σ 9 164 (headF c σ P c0 c2) fun σ1 ↦
+  seqF σ1 164 (osLvSt c).k (lvsF c 0 c.levels Ds (osHead c).2 σ1) fun σ2 ↦
   seqF σ2 (osLvSt c).k (osTlSt c).2.1.k (tailF c (osLvSt c) σ2 T xs) fun σ3 ↦
-  finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo σ3
+  finishF c (osTlSt c).2.1 (osTlSt c).2.2 Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo σ3
 
 /-- **The body before its `ret`, honestly.** -/
 theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : List LvDat}
     {T : E} {xs : List E} {Y PT PT1 BD LS ICH In : E} {Pp β : ℕ → E} {X : ℕ → ℕ → E}
-    {RC acc Pq W I L : ℕ → E} {D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
+    {RC acc M I L : ℕ → E} {Pq D : ℕ → ℕ → E} {Λ : ℕ → E} {Z Yo : ℕ → ℕ → E}
     (htail : c.levels.tail ≠ [])
     -- the head
     (h0 : LoadHolds rd (σ (.n 8)) 0 c0) (h2 : LoadHolds rd (σ (.n 8)) 1 c2)
     (hr0 : LoadHolds rd P.roots 0 (σ (.n 6))) (hr1 : LoadHolds rd P.roots 1 (σ (.n 7)))
+    (hwin : ∀ i < 128, LoadHolds rd P.win i (word i 0 0))
     (hcan : AllCanonical [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)])
     -- the levels
     (hlv : LvsH C rd P c 0 c.levels Ds (headSponge σ c0 c2) [c0, σ (.n 5) + c2, c2] (σ (.n 5))
@@ -90,11 +91,11 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
     (hbs : ∀ i (hi : i < c.levels.length), BasisMemP rd P T BD LS c i c.levels[i] (β i) (X i))
     (hich0 : LoadHolds rd ICH 0 0)
     (hrs : ∀ i (hi : i < c.levels.length), ResMemP C rd P BD ICH LS c i c.levels[i]
-      (RC i) (acc i) (Pq i) (W i) (I i) (L i) (D i))
+      (RC i) (acc i) (M i) (I i) (L i) (Pq i) (D i))
     (hIn : LoadHolds rd ICH c.levels.length In)
     (hood : OodAllP rd P T c Λ Z Yo ((c.levels.headD default).logCols) 1 c.levels.tail) :
     BlkF C rd σ 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2)
-      (bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc Pq W I L D Λ Z Yo)
+      (bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X RC acc M I L Pq D Λ Z Yo)
       (osBodyA c)
       (fun σ' ↦ (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
         [polyEval (foldsTr (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1 (bodyLvs c σ c0 c2 Ds).2.1
@@ -109,7 +110,7 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
     simp only [osBodyA, List.append_assoc]
   rw [eB]
   unfold bodyF
-  obtain ⟨-, hs10, hP10, -⟩ := osHead_complete (C := C) σ P h0 h2 hr0 hr1 hcan _
+  obtain ⟨-, hs10, hP10, -⟩ := osHead_complete (C := C) σ P h0 h2 hr0 hr1 hwin hcan _
     (agree_fill _ _ _ _) (range_fill _ _ _ _)
   have hlk : 164 ≤ (osLvSt c).k := ((osLevels_complete c.levels Ds 0 (osHead c).2 _ _ _ _ _ hs10
     hP10 hlv) _ (agree_fill _ _ _ _) (range_fill _ _ _ _)).2.2.1
@@ -120,14 +121,14 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
   have b3 : (osTlSt c).2.2 < (osTlSt c).2.1.k := hb.2.2.1
   have b4 : (osTlSt c).2.1.t < (osTlSt c).2.1.k := hb.2.2.2
   -- the head
-  refine BlkF.then (k1 := 34) (by omega) (by omega)
-    (osHead_complete (C := C) σ P h0 h2 hr0 hr1 hcan) fun σ1 ha1 hO1 ↦ ?_
+  refine BlkF.then (k1 := 164) (by omega) (by omega)
+    (osHead_complete (C := C) σ P h0 h2 hr0 hr1 hwin hcan) fun σ1 ha1 hO1 ↦ ?_
   obtain ⟨hs1, hP1, -⟩ := hO1
   -- the levels
   refine BlkF.then (k1 := (osLvSt c).k) hlk (by omega)
     (osLevels_complete c.levels Ds 0 (osHead c).2 σ1 _ _ _ _ hs1 hP1 hlv) fun σ2 ha2 hO2 ↦ ?_
   obtain ⟨hs2, -, -⟩ := hO2
-  have hP2 : ptrsOf σ2 = P := (ptrsOf_agree (le_refl 34) ha2).trans hP1
+  have hP2 : ptrsOf σ2 = P := (ptrsOf_agree (le_refl 164) ha2).trans hP1
   -- the tail
   refine BlkF.then (k1 := (osTlSt c).2.1.k) b1 (by omega)
     (osTail_complete σ2 hF hs2 hp T hxl hrd hT hlast hzero) fun σ3 ha3 hO3 ↦ ?_
