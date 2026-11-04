@@ -43,21 +43,19 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
     (hs : Sig.verify_sig_lean_sphincs_sound_Spec ss) (hv : SubSound bytecode)
     (hd : Da.da_verify_sound_Spec) (ha : aggregate_claims_sound_Spec) {rd : Reader}
     (hm : MemOk rd) :
-    ∃ (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+    ∃ (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
       (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof)
       (wA : List E → BatchingHints), CalleesW bytecode rd wX wS wD wV wA := by
   classical
   obtain ⟨κ, h16, hκ, L, rfl⟩ := hm
   have hm' : MemOk L.read := ⟨κ, h16, hκ, L, rfl⟩
   -- the signatures
-  have ex : ∀ p, ∃ sig, coreProgram.Rel L.read "verify_lean_xmss" [p] [] →
-      Sig.XmssOut L.read p sig := by
-    intro p
-    by_cases h : coreProgram.Rel L.read "verify_lean_xmss" [p] []
-    · obtain ⟨p', hp, -, sig, hsig⟩ := Sig.verify_lean_xmss_signed hx h
-      simp only [List.cons.injEq, and_true] at hp
-      subst hp
-      exact ⟨sig, fun _ => hsig⟩
+  have ex : ∀ args, ∃ sig, coreProgram.Rel L.read "__loop2" args [] →
+      Loop2Out (coreProgram.Rel L.read) L.read args sig := by
+    intro args
+    by_cases h : coreProgram.Rel L.read "__loop2" args []
+    · obtain ⟨σ, hp, hb⟩ := (Sig.rel_iff_body find_loop2 args []).mp h
+      exact ⟨sx σ, fun _ => loop2Out_of_body hx hp hb⟩
     · exact ⟨Classical.ofNonempty, fun h' => absurd h' h⟩
   have es : ∀ p, ∃ sig, ∀ bb, coreProgram.Rel L.read "verify_sig_lean_sphincs" [p, bb] [] →
       Sig.ByteBits L.read bb → Sig.SphincsOut L.read p sig := by
@@ -125,7 +123,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   choose wD hwD using edd
   choose wV hwV using ev
   choose wA hwA using ea
-  exact ⟨wX, wS, wD, wV, wA, fun p hr => hwX p hr, fun p bb hr hbb => hwS p bb hr hbb,
+  exact ⟨wX, wS, wD, wV, wA, fun args hr => hwX args hr, fun p bb hr hbb => hwS p bb hr hbb,
     fun gsq rets hr hsq => hwD [gsq] rets gsq rfl hr hsq,
     fun pi0 pi1 s0 s1 gsq out hr he => hwV _ _ _ _ _ _ _ rfl hr he,
     fun ncg cpi cfresh ccarried dst hr m h1 h16 hn => hwA _ _ _ _ _ _ rfl hr m h1 h16 hn⟩

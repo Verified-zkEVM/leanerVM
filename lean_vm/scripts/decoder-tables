@@ -14,7 +14,7 @@ lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run
 import argparse, glob, os, re, sys
 from pathlib import Path
 
-N = 948
+N = 992
 PART = 512  # rows per part of `guestLocsList`
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
@@ -24,7 +24,7 @@ def cores():
     for f in sorted(glob.glob("LeanVM/Guest/Data/Core*.lean")):
         s = open(f).read()
         for m in re.finditer(r"noncomputable def core(\d+) : Core\.Fn where\n  name := \"[^\"]*\"\n"
-                             r"  params := (\[.*?\])\n", s, re.S):
+                             r"  params := (.*?)\n  body", s, re.S):
             p = m.group(2).strip()
             out[int(m.group(1))] = 0 if p == "[]" else p.count(".n ")
     return out
@@ -63,7 +63,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--entries", required=True)
     ap.add_argument("--check", action="store_true")
-    ap.add_argument("--split-rows", default="21",
+    ap.add_argument("--split-rows", default="37",
                     help="rows whose cells' lists get a name of their own (checked by chunks)")
     a = ap.parse_args()
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]

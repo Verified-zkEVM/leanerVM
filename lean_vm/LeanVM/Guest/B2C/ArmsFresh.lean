@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory.GuestFresh
 
 The compiled functions with table jumps (`armsCheck`, by the kernel over `Data.plumbs`: at leanVM
 `c4f4bc92`, `verify_lean_xmss`, `sp_wots`, the `opening_queries` variants and their window loops)
-have their selectors outside their temporaries: a function's temporaries are the freshness
+(and the chained `match`es) have their selectors outside their temporaries: a function's temporaries are the freshness
 certificates' list for the large functions (`temps19`, …, by `tmps19`, …; `bigTemps`), and computed
 from its body for the others (`armTemps`). So `ArmsFresh` holds (`armsFresh`), and with it `keep`
 (`kfacts_keep_all`).
@@ -45,15 +45,7 @@ theorem armsCheck_spec {q : ℕ → ℕ × ℕ × ℕ → Bool} : ∀ {l : List 
 /-- The large functions' temporaries, from the freshness certificates (`GuestFresh.Temps*`), by
 compiled function index (core index `+ 1`). -/
 def bigTemps : List (ℕ × List ℕ) :=
-  [(20, temps19), (21, temps20), (538, temps537), (666, temps665), (677, temps676), (688, temps687),
-   (699, temps698), (848, temps847), (856, temps855), (862, temps861), (868, temps867),
-   (874, temps873), (880, temps879), (886, temps885), (888, temps887), (890, temps889),
-   (894, temps893), (896, temps895), (898, temps897), (902, temps901), (906, temps905),
-   (908, temps907), (912, temps911), (914, temps913), (916, temps915), (918, temps917),
-   (919, temps918), (920, temps919), (921, temps920), (922, temps921), (923, temps922),
-   (924, temps923), (926, temps925), (928, temps927), (930, temps929), (932, temps931),
-   (933, temps932), (934, temps933), (935, temps934), (936, temps935), (937, temps936),
-   (939, temps938), (941, temps940), (943, temps942), (945, temps944), (947, temps946)]
+  [(20, temps19), (37, temps36), (928, temps927), (930, temps929), (933, temps932), (974, temps973), (975, temps974), (981, temps980), (982, temps981), (983, temps982), (984, temps983), (985, temps984), (986, temps985), (987, temps986), (988, temps987), (989, temps988), (990, temps989), (991, temps990)]
 
 /-- The entry of index `j`, if any. -/
 def tempsFind : List (ℕ × List ℕ) → ℕ → Option (List ℕ)
@@ -74,11 +66,7 @@ theorem bigTemps_ok :
     ∀ p ∈ bigTemps, (Stmt.tmpsList (coreOf p.1).body).map V.idx = p.2 := by
   rw [← List.forall_iff_forall_mem]
   simp only [bigTemps, List.Forall]
-  exact ⟨tmps19, tmps20, tmps537, tmps665, tmps676, tmps687, tmps698, tmps847, tmps855, tmps861,
-    tmps867, tmps873, tmps879, tmps885, tmps887, tmps889, tmps893, tmps895, tmps897, tmps901,
-    tmps905, tmps907, tmps911, tmps913, tmps915, tmps917, tmps918, tmps919, tmps920, tmps921,
-    tmps922, tmps923, tmps925, tmps927, tmps929, tmps931, tmps932, tmps933, tmps934, tmps935,
-    tmps936, tmps938, tmps940, tmps942, tmps944, tmps946⟩
+  exact ⟨tmps19, tmps36, tmps927, tmps929, tmps932, tmps973, tmps974, tmps980, tmps981, tmps982, tmps983, tmps984, tmps985, tmps986, tmps987, tmps988, tmps989, tmps990⟩
 
 /-- Compiled function `j`'s temporaries, by index. -/
 noncomputable def armTemps (j : ℕ) : List ℕ :=
@@ -96,6 +84,28 @@ noncomputable def armOk (k : ℕ) (a : ℕ × ℕ × ℕ) : Bool := !(armTemps k
 
 theorem armsCheck_plumbs : armsCheck armOk Data.plumbs 0 = true := by decide +kernel
 
+/-- Every chained `match` of the plumbs `l`, the first of index `k`, passes `q`. -/
+def chainsCheck (q : ℕ → ℕ × ℕ × List ℕ × ℕ × ℕ → Bool) : List Plumb → ℕ → Bool
+  | [], _ => true
+  | p :: ps, k => p.chains.all (q k) && chainsCheck q ps (k + 1)
+
+theorem chainsCheck_spec {q : ℕ → ℕ × ℕ × List ℕ × ℕ × ℕ → Bool} : ∀ {l : List Plumb} {k : ℕ},
+    chainsCheck q l k = true → ∀ j, ∀ ch ∈ (listElementOrDefault l j {}).chains, q (j + k) ch = true
+  | [], _, _, j, a, ha => by cases j <;> simp [listElementOrDefault] at ha
+  | p :: ps, k, h, j, a, ha => by
+    simp only [chainsCheck, Bool.and_eq_true, List.all_eq_true] at h
+    cases j with
+    | zero => simpa using h.1 a ha
+    | succ j =>
+      have := chainsCheck_spec h.2 j a ha
+      rwa [show j + (k + 1) = j + 1 + k by omega] at this
+
+/-- The chains' check: neither selector of a chained `match` is a temporary of its function. -/
+noncomputable def chainFreshOk (k : ℕ) (ch : ℕ × ℕ × List ℕ × ℕ × ℕ) : Bool :=
+  !(armTemps k).contains ch.2.1 && !(armTemps k).contains ch.2.2.2.1
+
+theorem chainsCheck_plumbs : chainsCheck chainFreshOk Data.plumbs 0 = true := by decide +kernel
+
 private theorem not_tmp {body : List Stmt} {ts : List ℕ} (h : (Stmt.tmpsList body).map V.idx = ts)
     {x : ℕ} (hx : ts.contains x = false) : V.n x ∉ Stmt.tmpsList body := fun hm ↦ by
   have : x ∈ ts := h ▸ List.mem_map_of_mem (f := V.idx) hm
@@ -103,10 +113,13 @@ private theorem not_tmp {body : List Stmt} {ts : List ℕ} (h : (Stmt.tmpsList b
 
 /-- **No table selector is a temporary of its function.** -/
 theorem armsFresh : ArmsFresh := by
-  intro j a ha
-  have h := armsCheck_spec armsCheck_plumbs j a ha
-  simp only [armOk, Nat.add_zero, Bool.not_eq_true'] at h
-  exact not_tmp (armTemps_eq j) h
+  refine ⟨fun j a ha ↦ ?_, fun j ch hc ↦ ?_⟩
+  · have h := armsCheck_spec armsCheck_plumbs j a ha
+    simp only [armOk, Nat.add_zero, Bool.not_eq_true'] at h
+    exact not_tmp (armTemps_eq j) h
+  · have h := chainsCheck_spec chainsCheck_plumbs j ch hc
+    simp only [chainFreshOk, Nat.add_zero, Bool.and_eq_true, Bool.not_eq_true'] at h
+    exact ⟨not_tmp (armTemps_eq j) h.1, not_tmp (armTemps_eq j) h.2⟩
 
 /-- **The checker's `keep`**, outright. -/
 theorem kfacts_keep_all (hdr : E × E) (T : Tree) :

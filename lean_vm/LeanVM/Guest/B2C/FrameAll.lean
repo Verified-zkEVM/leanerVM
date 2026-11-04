@@ -56,7 +56,7 @@ theorem H_eq_kidHdr {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids :
 /-- **A call site's cells hold its callee frame and target.** -/
 theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {j : ℕ} {G : Glob}
     {fc : CompiledFunction} {main : Bool}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
     {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
@@ -94,7 +94,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
         exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inl rfl))))
-      have hx' := cand_site hS hchk ht hj hw hsq h2 hx hxc
+      have hx' := cand_site hS hC hchk ht hj hw hsq h2 hx hxc
       obtain ⟨i', c', kfp', s', hc', hp', hs', hx''⟩ := siteE_cases hx'
       by_cases hii : i' = i
       · subst hii
@@ -116,7 +116,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
         exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inr ⟨ht0, rfl⟩))))
-      have hx' := cand_site hS hchk ht hj hw (hst ht0) h2 hx hxc
+      have hx' := cand_site hS hC hchk ht hj hw (hst ht0) h2 hx hxc
       obtain ⟨i', c', kfp', s', hc', hp', hs', hx''⟩ := siteE_cases hx'
       by_cases hii : i' = i
       · subst hii
@@ -163,7 +163,7 @@ theorem kid_shape {rd : Reader} {J : Inst} {c : Call} {σ : Val} (hn : J.t.name 
 /-- **Every node instance's frame holds what the completeness check reads**, the check keeping
 each path's call sites apart. -/
 theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (coreOf j).body = .ret es vs →
-      SitesApart j es) :
+      SitesApart j es) (hca : ∀ j, 1 ≤ j → j < nFns → ChainApart j) :
     ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" → HonestAt coreProgram fs H C hdr T cert rd [] [] →
       ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ j,
         idxOf f = some j → ∀ es vs, walk σ (coreOf j).body = .ret es vs →
@@ -172,16 +172,18 @@ theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (
   have hH := h.toHonest
   obtain ⟨n, rfl, hn0, hn1, hf, hc, hfs, hcert, h1, h2⟩ := fn_of_idx hj
   have hS := shareOk_of h1 h2
+  have hC := hca _ h1 h2
   have hchk := End.winOk_of h1 h2
   obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (insts_good T 0 hdr hH.valid I hI)
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ : es = es' ∧ vs = vs' := by cases hw'; exact ⟨rfl, rfl⟩
   have hgp : ∀ a o, (honest coreProgram fs H C hdr T).read (addressOfIndex a * addressOfIndex o) =
       (honest coreProgram fs H C hdr T).read (addressOfIndex (a + o)) := fun a o ↦ by rw [addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-  refine ⟨?_, ?_, fun hj1 ↦ ?_, fun v hv h2 hn ↦ read_val hH hS hchk hI ht hj hw he hv h2 hn,
-    fun e he' t ht' h2 hn ↦ ?_, fun p hp h2 hn ↦ read_stat hH hS hchk hI ht hj hw he hp h2 hn,
-    frame_addr h hI ht hj hw, fun a ha h2 hn ↦ read_arm hH hS hchk hI ht hj hw ha h2 hn,
-    frame_len hI ht hk, fun i c kfp s hc hp hs ↦ read_site hH hS hchk hI ht hj hw (hsa _ σ es vs h1 h2 hw) i c kfp s hc hp hs,
+  refine ⟨?_, ?_, fun hj1 ↦ ?_, fun v hv h2 hn ↦ read_val hH hS hC hchk hI ht hj hw he hv h2 hn,
+    fun e he' t ht' h2 hn ↦ ?_, fun p hp h2 hn ↦ read_stat hH hS hC hchk hI ht hj hw he hp h2 hn,
+    frame_addr h hI ht hj hw, fun a ha h2 hn ↦ read_arm hH hS hC hchk hI ht hj hw ha h2 hn,
+    fun ch hch k t hkt hσk ↦ ?_,
+    frame_len hI ht hk, fun i c kfp s hc hp hs ↦ read_site hH hS hC hchk hI ht hj hw (hsa _ σ es vs h1 h2 hw) i c kfp s hc hp hs,
     fun i c kfp hc hp ↦ ?_, fun hl kfp hk' ↦ frame_tail hI ht hj hl hk'⟩
   · rw [← hgp]; exact (hH.read_hdr hI).1
   · rw [← hgp]; exact (hH.read_hdr hI).2
@@ -197,11 +199,14 @@ theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (
       hwi.2.1.subset (List.mem_flatMap.mpr ⟨e, he', ht'⟩)
     have htm : t ∈ coreProgram.temps f := by
       unfold Program.temps; rw [hf, ← hc]; exact htl
-    exact read_tmp hH hS hchk hI ht hj hw htm h2 hn
+    exact read_tmp hH hS hC hchk hI ht hj hw htm h2 hn
+  · obtain ⟨e, pc, he', hpc⟩ := hC.next σ es vs hw ch hch k t hkt hσk
+    exact ⟨e, pc, he', hpc, fun h2 hn ↦ read_chain hH hS hC hchk hI ht hj hw hch hkt hσk h2 hn⟩
   · obtain ⟨J, hJ, rfl, hJh, hJn, hJv⟩ := kid_inst hI ht hk hc hp
     obtain ⟨jc, hjc, hpar, hgood⟩ := kid_shape hJn hJv
     obtain ⟨m, rfl, hm0, hm00, -, -, -, -, hm1, hm2⟩ := fn_of_idx hjc
     have hSc := shareOk_of hm1 hm2
+    have hCc := hca _ hm1 hm2
     have hchkc := End.winOk_of hm1 hm2
     have hgood' : (∃ σJ bufs kids es vs, J.t = .node c.f σJ bufs kids ∧ walk σJ (coreOf (m + 1)).body =
         .ret es vs ∧ ∀ e ∈ es, e.Holds rd σJ) ∨ ∃ σJ, J.t = .phantom c.f σJ := hgood
@@ -211,14 +216,14 @@ theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (
     · have hlen : (coreOf (m + 1)).params.length = c.args.length := by
         have := congrArg List.length hpar; simpa using this
       have hk' : k < (coreOf (m + 1)).params.length := by omega
-      rw [read_args hH hSc hchkc hJ hjc hgood' k hk']
+      rw [read_args hH hSc hCc hchkc hJ hjc hgood' k hk']
       have := congrArg (fun l ↦ l[k]?) hpar
       simp only [List.getElem?_map, List.getElem?_eq_getElem hk', List.getElem?_eq_getElem hk,
         Option.map_some, Option.some.injEq] at this
       rw [this]
     · have ho' : o ∈ (certOf (m + 1)).facts.env.map Prod.fst := by
         unfold selfCells at ho; rw [hjc] at ho; exact ho
-      exact read_self hH hSc hchkc hJ hjc hgood' ho'
+      exact read_self hH hSc hCc hchkc hJ hjc hgood' ho'
 
 end
 end LeanVM.Guest.B2C

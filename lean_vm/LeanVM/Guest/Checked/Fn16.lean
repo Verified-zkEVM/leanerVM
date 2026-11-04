@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F847_0
-public import LeanVM.Guest.Checked.F847_0
-public import LeanVM.Guest.Checked.F850_1
+public import LeanVM.Guest.Checked.F845_0
+public import LeanVM.Guest.Checked.F845_0
+public import LeanVM.Guest.Checked.F849_1
 
 namespace LeanVM.Guest.Checked
 
@@ -108,27 +108,26 @@ theorem plain845 : Plain 845 := plain_of_nil (by decide +kernel)
 
 theorem plain846 : Plain 846 := plain_of_nil (by decide +kernel)
 
-theorem plain847 : Plain 847 := plain_of_nil (by decide +kernel)
-
-theorem ok848 : CheckOk 848 := fun i hi ↦ by
-  have h : (certOf 848).cuts.length = 4 := by decide +kernel
+theorem ok847 : CheckOk 847 := fun i hi ↦ by
+  have h : (certOf 847).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w848_0
-  · exact w848_1
-  · exact w848_2
-  · exact w848_3
-  · exact w848_4
+  · exact w847_0
+  · exact w847_1
+  · exact w847_2
+  · exact w847_3
 
-theorem plain849 : Plain 849 := plain_of_nil (by decide +kernel)
+theorem plain848 : Plain 848 := plain_of_nil (by decide +kernel)
 
-theorem ok850 : CheckOk 850 := fun i hi ↦ by
-  have h : (certOf 850).cuts.length = 2 := by decide +kernel
+theorem ok849 : CheckOk 849 := fun i hi ↦ by
+  have h : (certOf 849).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w850_0
-  · exact w850_1
-  · exact w850_2
+  · exact w849_0
+  · exact w849_1
+  · exact w849_2
+
+theorem plain850 : Plain 850 := plain_of_nil (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

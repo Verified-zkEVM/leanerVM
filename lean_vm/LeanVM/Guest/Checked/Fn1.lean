@@ -8,13 +8,12 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F82_0
-public import LeanVM.Guest.Checked.F82_0
-public import LeanVM.Guest.Checked.F88_1
-public import LeanVM.Guest.Checked.F88_1
-public import LeanVM.Guest.Checked.F88_1
-public import LeanVM.Guest.Checked.F88_1
-public import LeanVM.Guest.Checked.F91_2
+public import LeanVM.Guest.Checked.F85_0
+public import LeanVM.Guest.Checked.F85_0
+public import LeanVM.Guest.Checked.F85_0
+public import LeanVM.Guest.Checked.F85_0
+public import LeanVM.Guest.Checked.F89_1
+public import LeanVM.Guest.Checked.F89_1
 
 namespace LeanVM.Guest.Checked
 
@@ -90,7 +89,16 @@ theorem plain84 : Plain 84 := plain_of_nil (by decide +kernel)
 
 theorem plain85 : Plain 85 := plain_of_nil (by decide +kernel)
 
-theorem plain86 : Plain 86 := plain_of_nil (by decide +kernel)
+theorem ok86 : CheckOk 86 := fun i hi ↦ by
+  have h : (certOf 86).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w86_0
+  · exact w86_1
+
+theorem plain86 : Plain 86 := by
+  unfold Plain
+  decide +kernel
 
 theorem ok87 : CheckOk 87 := fun i hi ↦ by
   have h : (certOf 87).cuts.length = 1 := by decide +kernel
@@ -115,11 +123,12 @@ theorem plain88 : Plain 88 := by
   decide +kernel
 
 theorem ok89 : CheckOk 89 := fun i hi ↦ by
-  have h : (certOf 89).cuts.length = 1 := by decide +kernel
+  have h : (certOf 89).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w89_0
   · exact w89_1
+  · exact w89_2
 
 theorem plain89 : Plain 89 := by
   unfold Plain
@@ -133,17 +142,7 @@ theorem ok90 : CheckOk 90 := fun i hi ↦ by
   · exact w90_1
   · exact w90_2
 
-theorem plain90 : Plain 90 := by
-  unfold Plain
-  decide +kernel
-
-theorem ok91 : CheckOk 91 := fun i hi ↦ by
-  have h : (certOf 91).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w91_0
-  · exact w91_1
-  · exact w91_2
+theorem plain91 : Plain 91 := plain_of_nil (by decide +kernel)
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 

@@ -1308,8 +1308,29 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     s!"{listText (c.bnd.map pairText)}, {listText (c.known.map tripText)}, " ++
     s!"{listText (c.knownIf.map tripText)}, {listText (c.sems.map tagText)}⟩")
   let envT := listText (F.env.map fun (o, s) => s!"({o}, {symText s})")
-  let armsT := listText ((F.arms.toList.mergeSort (·.1 ≤ ·.1)).map fun (i, a) =>
-    s!"({i}, {listText (a.map toString)})")
+  -- the table jumps' arms; many (a chain's arms each end in a table jump into the next `match`'s
+  -- arms): each list of arms defined once, the pairs in chunks, each ending in the next
+  let armsL := F.arms.toList.mergeSort (·.1 ≤ ·.1)
+  let manyArms := armsL.foldl (· + ·.2.length) 0 > 8192
+  let (tabIdx, tabs) := armsL.foldl (fun ((m : Std.HashMap String ℕ), (ts : Array (List ℕ))) (_, a) =>
+    let k := toString a
+    if m.contains k then (m, ts) else (m.insert k ts.size, ts.push a)) ({}, #[])
+  let armsRef (a : List ℕ) : String := match tabIdx.get? (toString a) with
+    | some k => if manyArms then s!"cert{j}_t{k}" else listText (a.map toString)
+    | none => listText (a.map toString)
+  let armChunks := (List.range ((armsL.length + locChunk - 1) / locChunk)).map fun c =>
+    (armsL.drop (c * locChunk)).take locChunk
+  let armsDefs := if !manyArms then "" else
+    String.join (tabs.toList.zipIdx.map fun (a, k) =>
+      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := " ++
+        "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
+    String.join ((armChunks.zipIdx.reverse).map fun (l, c) =>
+      let tl := if c + 1 < armChunks.length then s!"cert{j}_arms_{c + 1}" else "[]"
+      s!"/-- `{f.name}`: the table jumps' arms, from the {c * locChunk}th on. -/\n" ++
+      s!"def cert{j}_arms_{c} : List (ℕ × List ℕ) := (" ++
+        " :: ".intercalate (l.map fun (i, a) => s!"({i}, {armsRef a})") ++ s!" :: {tl})\n\n") ++ winMark
+  let armsT := if manyArms then (if armChunks.isEmpty then "[]" else s!"cert{j}_arms_0")
+    else listText (armsL.map fun (i, a) => s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
   -- each window's cells: the values from where the previous window's end, up to the last value
   -- its statements name, and the earlier values they name with the window holding them
@@ -1335,7 +1356,7 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     insW := insW.push (ins.map fun v => (v, locA.getD v 0, homeOf v))
   let litOf (l : List ℕ) : String := if l.length < 32 then listText (l.map toString)
     else "(" ++ " :: ".intercalate (l.map toString) ++ " :: [])"
-  let mut locDefs := ""
+  let mut locDefs := armsDefs
   let mut cellT : Array String := #[]
   for w in [0:nw] do
     let cs := (locs.drop los[w]!).take (his[w]! - los[w]!)
@@ -1382,7 +1403,7 @@ noncomputable def cert{j} : Check.Cert where
   sem := {listText ((semMap.getD f.name []).map tagText)}
   cuts := {cutT}
   ends := {listText (cuts.map (toString ·.b))}
-  entered := {listText (entW.map fun (i, sel, succ) => s!"({i}, {sel}, {listText (succ.map toString)})")}
+  entered := {listText (entW.map fun (i, sel, succ) => s!"({i}, {sel}, {armsRef succ})")}
 "
 
 end GuestCert
@@ -1499,6 +1520,9 @@ structure St where
   cnt : List ℕ := [0, 0, 0, 0, 0, 0]
   /-- The callee frame pointer and dispatch target cells set up on this path, a bit set. -/
   uq : ℕ := 0
+  /-- A chained `match`'s arm ended in the next `match`'s table jump: through target cell `t`,
+  read through selector cell `o` from the table at `b`, into the arms `succ`. -/
+  chainEnd : Option (ℕ × ℕ × ℕ × List ℕ) := none
 
 /-- What the walk finds: failures, the call sites `(args, rets, q, r, target)` and the table
 jumps `(selector, target, base)`. -/
@@ -1517,6 +1541,11 @@ structure Out where
   flight : Std.HashMap ℕ (Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ)) := {}
   /-- Each separately counted `match`: its selector and each arm's counts to the join. -/
   armCosts : Array (ℕ × List (List ℕ)) := #[]
+  /-- The chained top-level `match`es `(p, x, ts, y, b)` (`B2C.Plumb.chains`). -/
+  chains : Array (ℕ × ℕ × List ℕ × ℕ × ℕ) := #[]
+  /-- The top-level `match`es entered from the arms of the one before: statement ↦ the selector
+  cell and the arms' code offsets. -/
+  entered : Std.HashMap ℕ (ℕ × List ℕ) := {}
 
 abbrev M := ReaderT Ctx (StateT Out (Except String))
 
@@ -1853,8 +1882,8 @@ def midStop (c : Ctx) (st : St) (fl : Std.HashMap ℕ (List (ℕ × FC)) × Std.
   return k
 
 mutual
-partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false) :
-    M (Option (Pos × St)) := do
+partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false)
+    (chainSel : Option ℕ := none) : M (Option (Pos × St)) := do
   let c ← read
   let (st0, pend) := lookahead c.cell st ss
   for (v, cc) in pend do fail s!"share {v} at cell {cc}"
@@ -1866,12 +1895,16 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
   let mut nTop := 0
   let mut prevOk := false
   let mut prevAtom := false
+  -- the next `match` entered from the arms of a chained one: its selector cell and arms
+  let mut entered : Option (ℕ × List ℕ) := none
   repeat
     if top then
       let fl := if moved then 0 else if prevOk then 1 else 2
       modify fun o => { o with marks := o.marks.push (nTop, p, st.cnt, st.uq, fl) }
       if !prevAtom then
         modify fun o => { o with flight := o.flight.insert nTop (st.frames, st.targets) }
+      if let some e := entered then
+        modify fun o => { o with entered := o.entered.insert nTop e }
     nTop := nTop + 1
     prevAtom := match ss with
       | .atom _ :: _ => true
@@ -1882,6 +1915,17 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
       | _ => false
     match ss with
     | [] =>
+      -- an arm of a chained `match` ends in the next one's table jump through selector cell `o`
+      if let some o := chainSel then
+        let s ← getSeg p.1
+        if let .jump (.cell t) _ := s.exit.kind then
+          let base := (s.items.toList.drop p.2).findSome? fun
+            | .ins (.instr _ (.deref o1 o2 o3 .cell)) => if o3 == t then some (o1, o2) else none
+            | _ => none
+          if let some (o1, b) := base then
+            if o1 == o then
+              let (q, st1, _) ← toEnd p { st with targets := st.targets.insert t (o1, b) }
+              return some (q, { st1 with chainEnd := some (t, o1, b, s.exit.succ) })
       -- a block's end at a segment's start stays; otherwise it passes its segment
       if !moved then return some (p, st)
       let (q, st1, _) ← toEnd p st
@@ -1910,18 +1954,48 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
           p := (J, 0); st := st2; moved := false
         | none => return none
       | .match_ xv arms =>
-        let (_, st1, x?) ← toEndPeek p st xv
-        let some x := x? | throw ("match end")
+        -- a `match` entered from the arms of the one before starts at its arms
+        let (st1, succ) ← match entered with
+          | some (o, succ) => do
+            unless o == c.cell xv.idx do fail s!"entered match selector {o}"
+            pure (st, succ)
+          | none => do
+            let (_, st1, x?) ← toEndPeek p st xv
+            let some x := x? | throw ("match end")
+            pure (st1, x.succ)
+        entered := none
+        -- a top-level `match` before another may be chained into it: its arms end in the next
+        -- one's table jump
+        let nextSel : Option Core.V := if top then (match rest with
+          | .match_ yv _ :: _ => some yv
+          | _ => none) else none
         -- a separately counted match's arms each count from zero, and the path after it from the jump
         let keyed := c.keyed.contains xv.idx
-        let rs ← (arms.zip x.succ).mapM fun (a, t) => do
+        let rs ← (arms.zip succ).mapM fun (a, t) => do
           let s ← getSeg t
           envCheck st1 s
           block a (t, 0) (if keyed then { st1 with cnt := [0, 0, 0, 0, 0, 0] } else st1)
+            (chainSel := nextSel.map (c.cell ·.idx))
         let ends := rs.filterMap id
         if keyed then
           modify fun o => { o with armCosts := o.armCosts.push (xv.idx, rs.map fun r =>
             (r.map (·.2.cnt)).getD [0, 0, 0, 0, 0, 0]) }
+        let chs := ends.filterMap (·.2.chainEnd)
+        if !chs.isEmpty then
+          -- chained: every arm ends in the next `match`'s table jump, through one selector
+          -- into one table
+          let some yv := nextSel | throw ("chain without a next match")
+          let (_, o, b, succ') := chs.head!
+          unless chs.length == arms.length && ends.length == arms.length &&
+              chs.all (fun (_, o', b', s') => o' == o && b' == b && s' == succ') && !succ'.isEmpty &&
+              !keyed do
+            fail s!"chained match {xv.idx}: arms end apart"
+            return none
+          modify fun out => { out with chains := out.chains.push (nTop - 1, xv.idx, chs.map (·.1), yv.idx, b) }
+          let st2 := joinSt st1 (ends.map fun e => { e.2 with chainEnd := none })
+          entered := some (o, succ')
+          p := (succ'.headD 0, 0); st := st2; moved := false
+          continue
         match ← meetJ (ends.map (·.1)) with
         | some J =>
           let sj ← getSeg J
@@ -2345,7 +2419,7 @@ end GuestCert
 namespace GuestCert
 
 /-- The functions whose top-level `match`es have their arms counted separately (`Data.cplArms`). -/
-def armedFns : List String := ["verify_lean_xmss"]
+def armedFns : List String := []
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
@@ -2353,7 +2427,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
     (fsz : ℕ) : Except String (String × List (ℕ × Cpl.PC) × List ℕ × List (ℕ × ℕ) × List (ℕ × ℕ) ×
       Array (ℕ × Pos × List ℕ × ℕ × ℕ) × (ℕ → List Core.Stmt → GSeg → ℕ → ℕ) ×
-      Array (ℕ × List (List ℕ))) := do
+      Array (ℕ × List (List ℕ)) × Std.HashMap ℕ (ℕ × List ℕ)) := do
   let f := fns[j]!
   let F := factsOf T f (j == 1)
   let vcells : Std.HashSet ℕ := locs.foldl (·.insert ·) {}
@@ -2403,6 +2477,11 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     if vcells.contains t || plumb.contains t || used.contains t then
       throw s!"{f.name}: table cell {t} not apart"
     used := used.insert t
+  -- a chained `match`'s targets: apart from the fixed cells, call sites and `match` targets
+  -- (`B2C.ChainApart`; they may be other arms' value cells)
+  let chains := out.chains.toList
+  let chainText (ch : ℕ × ℕ × List ℕ × ℕ × ℕ) : String :=
+    s!"({ch.1}, {ch.2.1}, {listText (ch.2.2.1.map toString)}, {ch.2.2.2.1}, {ch.2.2.2.2})"
   let pcText : Cpl.PC → String
     | .k (k0, k1, k2) => s!"(.k {k0} {k1} {k2})"
     | .fpg e => s!"(.fpg {e})"
@@ -2417,11 +2496,16 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
     | .frameAddr _ run => run
     | _ => []).eraseDups
   let vc (v : Core.V) : String := s!"({v.idx}, {cell v.idx})"
+  let tcells : Std.HashSet ℕ := (tmps ++ runs).foldl (fun h v => h.insert (cell v.idx)) {}
+  for (_, _, ts, _, _) in chains do
+    for t in ts do
+      if plumb.contains t || used.contains t || tcells.contains t || t < 2 || fsz ≤ t then
+        throw s!"{f.name}: chain target cell {t} not apart"
   let pmax := out.best
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
   return (·, statL, sh, tmps.map (fun v => (v.idx, cell v.idx)), runs.map (fun v => (v.idx, cell v.idx)),
-    out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {})), out.armCosts) <|
+    out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {})), out.armCosts, out.entered) <|
     s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
@@ -2431,7 +2515,8 @@ noncomputable def plumb{j} : B2C.Plumb where
   runs := {listText (runs.map vc)}
   pmax := {listText (pmax.map toString)}
   sh := {listText (sh.map toString)}
-"
+" ++ (if chains.isEmpty then "" else s!"  chains := {listText (chains.map chainText)}
+")
 
 end GuestCert
 
@@ -3041,7 +3126,8 @@ def insAt (m : ℕ × Pos × List ℕ × ℕ × ℕ) : ℕ := m.2.2.1.foldl (· 
 offsets, `sizes` their instructions), from the completeness walk's marks. -/
 def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs : Array GSeg) (starts : Array ℕ)
     (wins0 : List (ℕ × List (ℕ × Sym) × ℕ)) (sizes : List ℕ) (marks : Array (ℕ × Pos × List ℕ × ℕ × ℕ))
-    (stopAt : ℕ → List Core.Stmt → GSeg → ℕ → ℕ) : FnParts := Id.run do
+    (stopAt : ℕ → List Core.Stmt → GSeg → ℕ → ℕ) (ent : Std.HashMap ℕ (ℕ × List ℕ))
+    (entW : List (ℕ × ℕ × List ℕ)) : Except String FnParts := do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let offs := wins0.map (·.1)
   let body := cf.body.toArray
@@ -3053,6 +3139,12 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
   for w in [0:nw] do
     let a := starts[w]!
     let b := if w + 1 < nw then starts[w + 1]! else body.size
+    -- an entered window starts at the chained `match` the completeness walk enters there
+    match entW.find? (·.1 == w), ent.get? a with
+    | some (_, sel, succ), some e => unless e == (sel, succ) do
+        throw s!"{f.name}: window {w} entered at {sel} {succ}, the completeness walk at {e}"
+    | none, none => pure ()
+    | _, _ => throw s!"{f.name}: window {w} entered in one walk only"
     let (c0, u0) := if w == 0 then (zero, 0) else
       match marks[a]? with
       | some m => atOffset segMap f.entryPc (offs.getD w 0) m
@@ -3078,6 +3170,10 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
             (if cost a u ≥ goal then cost a u - goal else goal - cost a u) then some t else some u
         | none => some t) none
       if let some t := best then cuts := cuts.push t
+    -- a part starts at each chained `match` entered from the one before
+    let entCuts := (List.range (b - a)).filterMap fun d =>
+      if d != 0 && ent.contains (a + d) then some (a + d) else none
+    cuts := ((cuts.toList ++ entCuts).eraseDups.mergeSort (· ≤ ·)).toArray
     -- each part: its first statement, segment and counts and set-up cells there
     let starts0 : List (ℕ × ℕ × List ℕ × ℕ) := (a, offs.getD w 0, c0, u0) :: cuts.toList.map fun t =>
       match marks[t]? with
@@ -3089,7 +3185,9 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
     let mut partCosts : List ℕ := []
     for ((sa, J, cS, uS), se) in starts0.zip ends0 do
       let pc := cost sa se + sizes.getD w 0
-      ps := ps ++ [(sa - a) :: (if sa == a then 0 else J) :: cS ++ [uS]]
+      ps := ps ++ [(sa - a) :: (if sa == a then 0 else J) :: cS ++ [uS] ++ (match ent.get? sa with
+        | some (o, succ) => [0, 1, o] ++ succ
+        | none => [])]
       -- a costly part that is mostly a run of atoms walked inside one segment (from its start):
       -- cut that run inside the segment, by statements
       let isAtom (x : ℕ) : Bool := match body[x]? with
@@ -3131,7 +3229,7 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
               let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 c1
               (s - a) :: sg :: cnt ++ [u1, m]
       partCosts := partCosts ++ (List.range (mids.size + 1)).map fun _ => pc / (mids.size + 1)
-    wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 then [] else ps)
+    wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 && !ent.contains a then [] else ps)
     costs := costs.push partCosts
   return ⟨j, f.name, wins.toList, costs.toList⟩
 
@@ -3272,7 +3370,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
 
 end CplK
 
-def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
+def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
   let T := tables Data.functions
   let index := (fns.toList.zipIdx.map fun (f, j) => (f.name, j)).foldl
@@ -3299,8 +3397,10 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     let attempt (coarse : Bool) := do
       let (c, sizes, fsz, locs, segs, (starts, los, his, insW), offs, entW) ←
         certOf coarse T fns index semMap (i + 1) cf
-      let (pt, statL, sh, tmps, runs, marks, stopAt, acs) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
-      let (sts, costs, wpos) ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
+      let (pt, statL, sh, tmps, runs, marks, stopAt, acs, ent) ← if kOnly then pure default else
+        plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
+      let (sts, costs, wpos) ← if kOnly then pure default else
+        ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
       let nw := starts.size
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
@@ -3322,8 +3422,8 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
       let chain := (List.range nw).foldl (fun (acc : Array ℕ) w =>
         acc.push (((locs.drop los[w]!).take (his[w]! - los[w]!)).foldl (fun s c => s ||| (1 <<< c)) acc.back!)) #[0]
       let counts := (List.range nw).map fun w => his[w]! - los[w]!
-      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW)
-    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, _entW) ←
+      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW, ent)
+    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW, ent) ←
       if i + 1 == 1 || i + 1 == vsIdx then attempt true
       else match attempt false with
         | .ok r => pure r
@@ -3332,8 +3432,9 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     for (w, gs) in sp do splits := splits.insert (i + 1, w) gs
     for (k, gs) in ssp do shareSplits := shareSplits.insert (i + 1, k) gs
     armRows := armRows.push acs
-    cplFns := cplFns.push (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks
-      stopAt)
+    unless kOnly do
+      cplFns := cplFns.push (← CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs
+        sizes marks stopAt ent entW)
     plumbs := plumbs.push pt
     snapTexts := snapTexts.push (i + 1, sts)
     frames := frames.push fsz
@@ -3421,6 +3522,12 @@ noncomputable def certs : List Check.Cert :=
 " ++ "\n".intercalate rows ++ " []
 " ++ tail
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
+  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
+      [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++
+    (checkedFiles (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
+      (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
+        else checkedDir / (n ++ ".lean"), t))
+  if kOnly then return kFiles
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
       [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
@@ -3452,8 +3559,11 @@ end GuestCert
 open GuestCert in
 def main (args : List String) : IO UInt32 := do
   let check := args == ["--check"]
-  unless args.isEmpty || check || args.head? == some "--windows" do
-    IO.eprintln "usage: guest-cert [--check | --windows [j]]"
+  -- `--k`: the soundness certificates and their checks only (`Data/Cert*`, `Pows`, `FrameSizes`,
+  -- `Checked`), the other files left as they are
+  let kOnly := args == ["--k"]
+  unless args.isEmpty || check || kOnly || args.head? == some "--windows" do
+    IO.eprintln "usage: guest-cert [--check | --k | --windows [j]]"
     return 2
   unless ← dataDir.isDir do
     IO.eprintln s!"{dataDir} not found: run from lean_vm"
@@ -3479,7 +3589,7 @@ def main (args : List String) : IO UInt32 := do
       | .error e1, .error e => IO.println s!"{i + 1} {cf.name}: {e1} / coarse: {e}"
       | .ok _, .error _ => pure ()
     return 0
-  let fs ← match files P with
+  let fs ← match files P kOnly with
     | .ok fs => pure fs
     | .error e => do IO.eprintln s!"certificate failed: {e}"; return 1
   unless check do
@@ -3487,7 +3597,8 @@ def main (args : List String) : IO UInt32 := do
     IO.FS.createDirAll sharedDir
     IO.FS.createDirAll CplK.cplwDir
   let paths := fs.map (·.1)
-  let stale := (← existing).filter (!paths.contains ·)
+  let stale := (← existing).filter fun p => !paths.contains p &&
+    (!kOnly || p.toString.startsWith checkedDir.toString || ((p.fileName.getD "").startsWith "Cert"))
   let mut bad := false
   for (path, text) in fs do
     if check then

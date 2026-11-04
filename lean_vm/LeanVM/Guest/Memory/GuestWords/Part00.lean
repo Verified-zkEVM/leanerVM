@@ -21,10 +21,10 @@ theorem wstaticRange_18 : wStaticRange 18 1 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 558) = true ∧
-    blockR (wlookJ 19) (womLookJ 19) true [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 558)
+theorem wsplit_19_0 : noTopRet ((Data.core19.body.drop 0).take 94) = true ∧
+    blockR (wlookJ 19) (womLookJ 19) true [] Data.core19.params Data.core19.name ((Data.core19.body.drop 0).take 94)
       ([], []) = some (⟨0, []⟩, []) ∧
-    blockEnv true [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 558) = ([], []) := by
+    blockEnv true [] Data.core19.params ([], []) ((Data.core19.body.drop 0).take 94) = ([], []) := by
   decide +kernel
 
 end

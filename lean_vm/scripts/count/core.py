@@ -139,7 +139,7 @@ def _load(D):
         defs = {k: P(tokenize(' '.join(v))).expr() for k, v in d.items()}
         h = ' '.join(hdr[i])
         nm = re.search(r'name := "([^"]*)"', h).group(1)
-        ps = [int(x) for x in re.findall(r'\.n (\d+)', re.search(r'params := (\[[^\]]*\])', h).group(1))]
+        ps = [int(x) for x in re.findall(r'\.n (\d+)', re.search(r'params := (.*?) +body :=', h).group(1))]
         fns[i] = dict(name=nm, params=ps, body=block(defs['body'], defs))
     assert sorted(fns) == list(range(len(fns))), 'core indices not contiguous'
     return fns

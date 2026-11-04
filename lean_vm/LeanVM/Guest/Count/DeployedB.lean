@@ -20,29 +20,29 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 /-- **`da_verify`'s constant words.** -/
 theorem dvC_eq : dvC B2C.fs wSB = 187533 := by
   unfold dvC
-  rw [fs_idx (j := 28) (f := "da_verify") (by decide +kernel),
-    fs_idx (j := 29) (f := "da_row_shape") (by decide +kernel),
-    fs_idx (j := 389) (f := "__loop22") (by decide +kernel),
-    fs_idx (j := 30) (f := "da_verify_column") (by decide +kernel),
-    fs_idx (j := 391) (f := "__loop24") (by decide +kernel),
-    wSB_idx (j := 32) (f := "da_vector") (by decide +kernel),
-    wSB_idx (j := 403) (f := "da_expand__L7_L8") (by decide +kernel)]
+  rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
+    fs_idx (j := 28) (f := "da_row_shape") (by decide +kernel),
+    fs_idx (j := 388) (f := "__loop22") (by decide +kernel),
+    fs_idx (j := 29) (f := "da_verify_column") (by decide +kernel),
+    fs_idx (j := 390) (f := "__loop24") (by decide +kernel),
+    wSB_idx (j := 31) (f := "da_vector") (by decide +kernel),
+    wSB_idx (j := 402) (f := "da_expand__L7_L8") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
 theorem dvS_eq : dvS wSK = 227257 := by
   unfold dvS
-  rw [wSK_idx (j := 388) (f := "__loop21") (by decide +kernel),
-    wSK_idx (j := 390) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 391) (f := "__loop24") (by decide +kernel),
-    wSK_idx (j := 404) (f := "__loop25") (by decide +kernel)]
+  rw [wSK_idx (j := 387) (f := "__loop21") (by decide +kernel),
+    wSK_idx (j := 389) (f := "__loop23") (by decide +kernel),
+    wSK_idx (j := 390) (f := "__loop24") (by decide +kernel),
+    wSK_idx (j := 403) (f := "__loop25") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
 theorem dvP_eq : dvP wSB wSK = 136 := by
   unfold dvP
   rw [dlK_eq,
-    wSK_idx (j := 391) (f := "__loop24") (by decide +kernel)]
+    wSK_idx (j := 390) (f := "__loop24") (by decide +kernel)]
   decide +kernel
 
 end

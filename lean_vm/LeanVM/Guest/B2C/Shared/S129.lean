@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 6. -/
-theorem w310_6 : shareWin 310 (snapsOf 310) 6 = true := by decide +kernel
+/-- `open_stacked__L12`, window 8. -/
+theorem w315_8 : shareWin 315 (snapsOf 315) 8 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 7. -/
-theorem w310_7 : shareWin 310 (snapsOf 310) 7 = true := by decide +kernel
+/-- `open_stacked__L12`, window 9. -/
+theorem w315_9 : shareWin 315 (snapsOf 315) 9 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 8. -/
-theorem w310_8 : shareWin 310 (snapsOf 310) 8 = true := by decide +kernel
+/-- `open_stacked__L12`, window 10. -/
+theorem w315_10 : shareWin 315 (snapsOf 315) 10 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 9. -/
-theorem w310_9 : shareWin 310 (snapsOf 310) 9 = true := by decide +kernel
+/-- `open_stacked__L13`, once. -/
+theorem st316 : shareStatic 316 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 10. -/
-theorem w310_10 : shareWin 310 (snapsOf 310) 10 = true := by decide +kernel
+/-- `open_stacked__L13`, window 0. -/
+theorem w316_0 : shareWin 316 (snapsOf 316) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, once. -/
-theorem st311 : shareStatic 311 = true := by decide +kernel
+/-- `open_stacked__L13`, window 1. -/
+theorem w316_1 : shareWin 316 (snapsOf 316) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 0. -/
-theorem w311_0 : shareWin 311 (snapsOf 311) 0 = true := by decide +kernel
+/-- `open_stacked__L13`, window 2. -/
+theorem w316_2 : shareWin 316 (snapsOf 316) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 1. -/
-theorem w311_1 : shareWin 311 (snapsOf 311) 1 = true := by decide +kernel
+/-- `open_stacked__L13`, window 3. -/
+theorem w316_3 : shareWin 316 (snapsOf 316) 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -121,6 +121,22 @@ theorem cw_atom (a : Core.Atom) (ss : List Core.Stmt) (st : CW) :
       cw X ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none, nvVals (Memory.atomUses a) st.nm⟩ := by
   simp [cw, natSeq_eq]
 
+/-- What `chainEnd` checked. -/
+theorem chainEnd_ok {se : CW} {t : ℕ} {ft : Tgt} (h : (chainEnd X se t ft).ok = true) :
+    ∃ o b succ, se.seg.exit.succ = succ ∧ succ ≠ [] ∧ tgAt se.tg t = some (o, b) ∧
+      X.F.self ft = true ∧ armsOk X.G X.entry b 0 succ = true ∧
+      chainEnd X se t ft = .chain o succ se.cnt se.uq := by
+  unfold chainEnd at h ⊢
+  rcases hs : se.seg.exit.succ with _ | ⟨t0, ts⟩
+  · simp [hs, RC.ok] at h
+  · rcases hg : tgAt se.tg t with _ | ⟨o, b⟩
+    · simp [hs, hg, RC.ok] at h
+    · simp only [hs, hg] at h ⊢
+      cases hc : (X.F.self ft && armsOk X.G X.entry b 0 (t0 :: ts))
+      · simp [hc, RC.ok] at h
+      · simp only [Bool.and_eq_true] at hc
+        exact ⟨o, b, t0 :: ts, rfl, List.cons_ne_nil _ _, rfl, hc.1, hc.2, rfl⟩
+
 theorem endC_ok {st : CW} (h : (endC X st).ok = true) :
     (∃ t, st.fresh = some t ∧ endC X st = .join t st.cnt st.uq) ∨
     (st.fresh = none ∧ X.stop = none ∧ ∃ se t, endAtC X st = .ok se ∧ se.seg.exit.kind = .next t ∧
@@ -128,18 +144,32 @@ theorem endC_ok {st : CW} (h : (endC X st).ok = true) :
     (st.fresh = none ∧ ∃ J m c, X.stop = some (J, m) ∧ st.seg.start = J ∧ m ≤ st.seg.items.length ∧
       st.seg.items.length - m ≤ st.its.length ∧
       passL X st (st.its.take (st.its.length - (st.seg.items.length - m))) st.cnt = .ok ([], c) ∧
-      endC X st = .mid J m c st.uq) := by
+      endC X st = .mid J m c st.uq) ∨
+    (st.fresh = none ∧ X.stop = none ∧ ∃ se t ft o b succ, endAtC X st = .ok se ∧
+      se.seg.exit.kind = .jump (.cell t) ft ∧ se.seg.exit.succ = succ ∧ succ ≠ [] ∧
+      tgAt se.tg t = some (o, b) ∧ X.F.self ft = true ∧ armsOk X.G X.entry b 0 succ = true ∧
+      endC X st = .chain o succ se.cnt se.uq) := by
   rcases hf : st.fresh with _ | t
   · rcases hs : X.stop with _ | ⟨J, m⟩
     · rcases he : endAtC X st with e | se
       · simp [endC, hf, hs, he, RC.ok] at h
-      · rcases hk : se.seg.exit.kind with t | _ | _ | _ <;>
-          simp only [endC, hf, hs, he, hk, RC.ok, Bool.false_eq_true] at h
-        cases hb : se.seg.exit.succ == [t]
-        · simp [hb] at h
-        · refine Or.inr (Or.inl ⟨rfl, rfl, se, t, rfl, hk, beq_iff_eq.mp hb, ?_⟩)
-          simp only [endC, hf, hs, he, hk, hb, Bool.cond_true]
-    · right; right
+      · rcases hk : se.seg.exit.kind with t | _ | _ | ⟨tg, ft⟩
+        · simp only [endC, hf, hs, he, hk] at h
+          cases hb : se.seg.exit.succ == [t]
+          · simp [hb, RC.ok] at h
+          · refine Or.inr (Or.inl ⟨rfl, rfl, se, t, rfl, hk, beq_iff_eq.mp hb, ?_⟩)
+            simp only [endC, hf, hs, he, hk, hb, Bool.cond_true]
+        · simp [endC, hf, hs, he, hk, RC.ok] at h
+        · simp [endC, hf, hs, he, hk, RC.ok] at h
+        · rcases tg with e | e | t
+          · simp [endC, hf, hs, he, hk, RC.ok] at h
+          · simp [endC, hf, hs, he, hk, RC.ok] at h
+          · have hc : endC X st = chainEnd X se t ft := by simp only [endC, hf, hs, he, hk]
+            rw [hc] at h
+            obtain ⟨o, b, succ, h1, h2, h3, h4, h5, h6⟩ := chainEnd_ok h
+            exact Or.inr (Or.inr (Or.inr ⟨rfl, rfl, se, t, ft, o, b, succ, rfl, hk, h1, h2, h3, h4, h5,
+              hc.trans h6⟩))
+    · right; right; left
       simp only [endC, hf, hs] at h
       cases hb : (Nat.beq st.seg.start J && Nat.ble m st.seg.items.length &&
           Nat.ble (st.seg.items.length - m) st.its.length)
@@ -431,13 +461,55 @@ theorem cw_callIf (hG : X.G = glob) {c : V} {f : String} {args : List V} {ss : L
 theorem Cnt.get_max (c c' : Cnt) (op : Opcode) : (Cnt.max c c').get op = Nat.max (c.get op) (c'.get op) := by
   cases op <;> rfl
 
-/-- The other arms of a `match` each end at the join with counts at most the result's. -/
-theorem cwArms_spec {J : ℕ} {se : CW} {key : Option (List Cnt)} :
+/-- How an arm ended, by `armEnd`. -/
+theorem armEnd_join {J : ℕ} {r : RC} {c : Cnt} {u : ℕ} (h : armEnd J [] r = some (c, u)) :
+    r = .join J c u := by
+  cases r with
+  | join J' c' u' =>
+    simp only [armEnd, List.isEmpty_nil, Bool.true_and] at h
+    cases hb : Nat.beq J J'
+    · simp [hb] at h
+    · simp only [hb, Bool.cond_true, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      rw [Nat.eq_of_beq_eq_true hb]
+  | chain o s' c' u' => simp [armEnd] at h
+  | mid _ _ _ _ => simp [armEnd] at h
+  | done => simp [armEnd] at h
+  | fail _ => simp [armEnd] at h
+
+theorem armEnd_chain {o : ℕ} {succ : List ℕ} {r : RC} {c : Cnt} {u : ℕ} (hs : succ ≠ [])
+    (h : armEnd o succ r = some (c, u)) : r = .chain o succ c u := by
+  cases r with
+  | join J' c' u' =>
+    cases succ with
+    | nil => exact absurd rfl hs
+    | cons t ts => simp [armEnd] at h
+  | chain o' s' c' u' =>
+    simp only [armEnd] at h
+    cases hb : (!succ.isEmpty && Nat.beq o o' && succ == s')
+    · simp [hb] at h
+    · simp only [hb, Bool.cond_true, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      simp only [Bool.and_eq_true, Bool.not_eq_true', List.isEmpty_eq_false_iff, beq_iff_eq] at hb
+      obtain ⟨⟨-, h2⟩, rfl⟩ := hb
+      rw [Nat.eq_of_beq_eq_true h2]
+  | mid _ _ _ _ => simp [armEnd] at h
+  | done => simp [armEnd] at h
+  | fail _ => simp [armEnd] at h
+
+theorem armEnd_ok {J : ℕ} {succ : List ℕ} {r : RC} {p : Cnt × ℕ} (h : armEnd J succ r = some p) :
+    r.ok = true := by
+  cases r <;> simp_all [armEnd, RC.ok]
+
+/-- The other arms of a `match` each end as `armEnd J succ` says, with counts at most the
+result's. -/
+theorem cwArms_spec {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (List Cnt)} :
     ∀ {as : List (List Core.Stmt)} {ts : List ℕ} {c : Cnt} {u : ℕ} {k : ℕ}
-    {c' : Cnt} {u' : ℕ}, cwArms X J se key as ts c u k = some (c', u') →
+    {c' : Cnt} {u' : ℕ}, cwArms X J succ v se key as ts c u k = some (c', u') →
     as.length = ts.length ∧ (∀ op, c.get op ≤ c'.get op) ∧
     ∀ i (hk : i < as.length) (hk' : i < ts.length), ∃ s ck uk, segAtC X ts[i] se = some s ∧
-      cw X as[i] { s with book := fileB X.loc X.fs as[i] se.book } = .join J ck uk ∧
+      armEnd J succ (cw X as[i] { s with book := (fileB X.loc X.fs as[i] se.book), tg := (armTg X v (k + i) ++ s.tg) })
+        = some (ck, uk) ∧
       (∀ op, ck.get op ≤ c'.get op) ∧ armChkK key (k + i) ck = true
   | [], [], c, u, k, c', u', h => by
     simp only [cwArms, Option.some.injEq, Prod.mk.injEq] at h
@@ -449,13 +521,10 @@ theorem cwArms_spec {J : ℕ} {se : CW} {key : Option (List Cnt)} :
     · rename_i s hs
       simp only [Trie.seq_eq] at h
       split at h
-      · rename_i J' ca ua hca
-        cases hJ : (Nat.beq J J' && armChkK key k ca)
+      · rename_i ca ua hca
+        cases hJ : armChkK key k ca
         · rw [hJ] at h; cases h
         rw [hJ] at h
-        simp only [Bool.and_eq_true] at hJ
-        obtain ⟨hJ, hck⟩ := hJ
-        obtain rfl := Nat.eq_of_beq_eq_true hJ
         simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq] at h
         obtain ⟨hl, hc, hk⟩ := cwArms_spec h
         refine ⟨by simp [hl], fun op ↦ ?_, fun i hk1 hk2 ↦ ?_⟩
@@ -464,34 +533,44 @@ theorem cwArms_spec {J : ℕ} {se : CW} {key : Option (List Cnt)} :
           exact le_trans (Nat.le_max_left _ _) this
         · cases i with
           | zero =>
-            refine ⟨s, ca, ua, hs, hca, fun op ↦ ?_, by simpa using hck⟩
+            refine ⟨s, ca, ua, hs, by simpa using hca, fun op ↦ ?_, by simpa using hJ⟩
             have := hc op
             rw [Cnt.get_max] at this
             exact le_trans (Nat.le_max_right _ _) this
           | succ i =>
             obtain ⟨s', ck, uk, h1, h2, h3, h4⟩ := hk i (by simpa using hk1) (by simpa using hk2)
-            exact ⟨s', ck, uk, h1, h2, h3, by rw [show k + (i + 1) = k + 1 + i by omega]; exact h4⟩
+            exact ⟨s', ck, uk, h1, by rw [show k + (i + 1) = k + 1 + i by omega]; exact h2, h3,
+              by rw [show k + (i + 1) = k + 1 + i by omega]; exact h4⟩
       · cases h
     · cases h
   | [], _ :: _, _, _, _, _, _, h => by simp [cwArms] at h
   | _ :: _, [], _, _, _, _, _, h => by simp [cwArms] at h
 
+/-- **A `match` the walk passes**: its table jump, then arm `0` ending at a join, the other arms
+there, and the walk goes on after it; or, chained, every arm ending in the next `match`'s table
+jump, the `match` the block's last statement. -/
 theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss : List Core.Stmt}
     {st : CW} (h : (cw X (.match_ v (a0 :: as) :: ss) st).ok = true) :
-    ∃ t ft t0 ts base se s0 J c0 u0 c u sj, st.seg.exit.kind = .jump (.cell t) ft ∧
+    ∃ t ft t0 ts base se s0, st.seg.exit.kind = .jump (.cell t) ft ∧
       st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
       X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ selOk X st v = true ∧
       inFrame X.fs [X.loc.cell v, t] = true ∧
       X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) = true ∧
-      armsOk X.G X.entry base 0 (t0 :: ts) = true ∧
+      armsOk X.G X.entry base 0 (t0 :: ts) = true ∧ chainPre X st v (as.length + 1) = true ∧
       endAtC X { st with tg := (t, X.loc.cell v, base) :: st.tg } = .ok se ∧
       segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
-      cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book } = .join J c0 u0 ∧
-      armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
-      cwArms X J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
-      segAtC X J se = some sj ∧
-      cw X (.match_ v (a0 :: as) :: ss) st =
-        cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u } := by
+      ((∃ J c0 u0 c u sj,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+        cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        segAtC X J se = some sj ∧
+        cw X (.match_ v (a0 :: as) :: ss) st =
+          cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
+       (∃ o succ c0 u0 c u,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o succ c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss = [] ∧ succ ≠ [] ∧
+        cwArms X o succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        cw X (.match_ v (a0 :: as) :: ss) st = .chain o succ (armCnt (armKeyD X.acs v.idx) se c) u)) := by
   simp only [cw] at h ⊢
   split at h
   · rename_i t ft t0 ts hk hsu
@@ -500,12 +579,12 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
       cases hc : (X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
           v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v && inFrame X.fs [o1, t] &&
           X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
-          armsOk X.G X.entry base 0 (t0 :: ts))
+          armsOk X.G X.entry base 0 (t0 :: ts) && chainPre X st v (as.length + 1))
       · rw [hc] at h; cases h
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true] at hc
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g7⟩, g8⟩, gsel⟩, g4⟩, g5⟩, g6⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g7⟩, g8⟩, gsel⟩, g4⟩, g5⟩, g6⟩, gch⟩ := hc
       obtain rfl := Nat.eq_of_beq_eq_true g3
       have hvn : v = V.n v.idx := by
         obtain ⟨vp, vt, vi⟩ := v
@@ -518,6 +597,8 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
         split at h
         · rename_i s0 hs0
           simp only [Trie.seq_eq] at h ⊢
+          refine ⟨t, ft, t0, ts, base, se, s0, hk, hsu, htb, g1, Nat.eq_of_beq_eq_true g2, hvn, gsel,
+            g4, g5, g6, gch, hse, hs0, ?_⟩
           split at h
           · rename_i J c0 u0 h0
             cases hck : armChkK (armKeyD X.acs v.idx) 0 c0
@@ -528,13 +609,100 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
             · rename_i c u ha
               split at h
               · rename_i sj hsj
-                exact ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, hk, hsu, htb, g1,
-                  Nat.eq_of_beq_eq_true g2, hvn, gsel, g4, g5, g6, hse, hs0, h0, hck, ha, hsj,
+                exact Or.inl ⟨J, c0, u0, c, u, sj, h0, hck, ha, hsj,
                   by simp only [Cnt.seq_eq, natSeq_eq]⟩
               · cases h
             · cases h
+          · rename_i o succ c0 u0 h0
+            cases hck : (armChkK (armKeyD X.acs v.idx) 0 c0 && ss.isEmpty && !succ.isEmpty)
+            · rw [hck] at h; cases h
+            rw [hck] at h
+            simp only [Bool.cond_true] at h
+            have hck' := hck
+            simp only [Bool.and_eq_true, List.isEmpty_iff, Bool.not_eq_true', List.isEmpty_eq_false_iff] at hck'
+            obtain ⟨⟨hck1, rfl⟩, hsn⟩ := hck'
+            split at h
+            · rename_i c u ha
+              exact Or.inr ⟨o, succ, c0, u0, c, u, h0, hck1, rfl, hsn, ha,
+                by simp only [Cnt.seq_eq, natSeq_eq]; rfl⟩
+            · cases h
           · cases h
           · cases h
+        · cases h
+      · cases h
+    · cases h
+  · cases h
+
+/-- **An entered `match` the walk passes**: arm `0` from the first arm, ending at a join, the
+other arms there, and the walk goes on after it; or, chained, every arm ending in the next
+`match`'s table jump, the `match` the block's last statement. -/
+theorem cwE_ok {o : ℕ} {succ : List ℕ} {se : CW} {ss : List Core.Stmt} (h : (cwE X o succ se ss).ok = true) :
+    ∃ v a0 as ss' t0 ts s0, ss = .match_ v (a0 :: as) :: ss' ∧ succ = t0 :: ts ∧
+      o = X.loc.cell v ∧ v = V.n v.idx ∧ selOk X se v = true ∧ ts.length = as.length ∧
+      inFrame X.fs [o] = true ∧ chainPre X se v (as.length + 1) = true ∧
+      segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0 ∧
+      ((∃ J c0 u0 c u sj,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+        cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        segAtC X J se = some sj ∧
+        cwE X o succ se ss = cw X ss' { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
+       (∃ o' succ' c0 u0 c u,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ' c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss' = [] ∧ succ' ≠ [] ∧
+        cwArms X o' succ' v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        cwE X o succ se ss = .chain o' succ' (armCnt (armKeyD X.acs v.idx) se c) u)) := by
+  unfold cwE at h ⊢
+  split at h
+  · rename_i v a0 as ss'
+    split at h
+    · rename_i t0 ts
+      cases hc : (Nat.beq o (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X se v &&
+          Nat.beq ts.length as.length && inFrame X.fs [o] && chainPre X se v (as.length + 1))
+      · rw [hc] at h; cases h
+      rw [hc] at h
+      simp only [Bool.cond_true] at h ⊢
+      simp only [Bool.and_eq_true] at hc
+      obtain ⟨⟨⟨⟨⟨⟨g1, g7⟩, g8⟩, gsel⟩, g2⟩, g4⟩, gch⟩ := hc
+      have hvn : v = V.n v.idx := by
+        obtain ⟨vp, vt, vi⟩ := v
+        simp only [List.isEmpty_iff] at g7
+        obtain rfl := g7
+        obtain rfl := Nat.eq_of_beq_eq_true g8
+        rfl
+      split at h
+      · rename_i s0 hs0
+        simp only [Trie.seq_eq] at h ⊢
+        refine ⟨v, a0, as, ss', t0, ts, s0, rfl, rfl, Nat.eq_of_beq_eq_true g1, hvn, gsel,
+          Nat.eq_of_beq_eq_true g2, g4, gch, hs0, ?_⟩
+        split at h
+        · rename_i J c0 u0 h0
+          cases hck : armChkK (armKeyD X.acs v.idx) 0 c0
+          · rw [hck] at h; cases h
+          rw [hck] at h
+          simp only [Bool.cond_true] at h ⊢
+          split at h
+          · rename_i c u ha
+            split at h
+            · rename_i sj hsj
+              exact Or.inl ⟨J, c0, u0, c, u, sj, h0, hck, ha, hsj,
+                by simp only [Cnt.seq_eq, natSeq_eq]⟩
+            · cases h
+          · cases h
+        · rename_i o' succ' c0 u0 h0
+          cases hck : (armChkK (armKeyD X.acs v.idx) 0 c0 && ss'.isEmpty && !succ'.isEmpty)
+          · rw [hck] at h; cases h
+          rw [hck] at h
+          simp only [Bool.cond_true] at h
+          have hck' := hck
+          simp only [Bool.and_eq_true, List.isEmpty_iff, Bool.not_eq_true', List.isEmpty_eq_false_iff] at hck'
+          obtain ⟨⟨hck1, rfl⟩, hsn⟩ := hck'
+          split at h
+          · rename_i c u ha
+            exact Or.inr ⟨o', succ', c0, u0, c, u, h0, hck1, rfl, hsn, ha,
+              by simp only [Cnt.seq_eq, natSeq_eq]; rfl⟩
+          · cases h
+        · cases h
         · cases h
       · cases h
     · cases h
