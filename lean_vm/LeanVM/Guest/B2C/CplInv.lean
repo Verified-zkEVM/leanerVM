@@ -497,6 +497,10 @@ theorem armEnd_chain {o : ℕ} {succ : List ℕ} {r : RC} {c : Cnt} {u : ℕ} (h
   | done => simp [armEnd] at h
   | fail _ => simp [armEnd] at h
 
+theorem armEnd_ok {J : ℕ} {succ : List ℕ} {r : RC} {p : Cnt × ℕ} (h : armEnd J succ r = some p) :
+    r.ok = true := by
+  cases r <;> simp_all [armEnd, RC.ok]
+
 /-- The other arms of a `match` each end as `armEnd J succ` says, with counts at most the
 result's. -/
 theorem cwArms_spec {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (List Cnt)} :

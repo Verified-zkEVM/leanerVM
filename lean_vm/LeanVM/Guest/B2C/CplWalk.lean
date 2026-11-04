@@ -185,6 +185,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   nargs : X.nargs = (coreOf j).params.length
   sites : X.sites = (plumbOf j).sites
   arms : X.arms = (plumbOf j).arms
+  chains : X.chains = (plumbOf j).chains
   self : X.self = (certOf j).facts.env.map (·.1)
   entry : X.entry = (fnOf j).entryPc
   /-- A parameter, or a value of one of the body's atoms, is a value the path names. -/
@@ -235,6 +236,13 @@ def Arr (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (c
     (W0 : Registers K) (J : ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
   (∃ cr, RunC guestProgram L W0 ⟨addressOfIndex (X.entry + J), addressOfIndex fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
     EnvAt L fp X wJ wenv J
+
+/-- **The run arrives at the arm of a chained `match` its selector picks**: at offset `succ[e]`
+when the selector cell `o` holds `g^e`, within the counts `c` and the first `n` callees'. -/
+def ArrCh (L : MemoryImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck : List (Opcode → ℕ))
+    (W0 : Registers K) (o : ℕ) (succ : List ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
+  ∀ e (he : e < succ.length), rdc L fp o = some (ofK (addressOfIndex e)) →
+    Arr L fp X wJ wenv ck W0 succ[e] c n x
 
 /-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
 counts `c` and the first `n` callees'. -/
@@ -415,16 +423,79 @@ def WGood (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (ss : List Stmt) (
     (∀ J m c u, cw X ss st = .mid J m c u → ∃ es', o = .fall es' ∧
       ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length (xc + costW X.acs σ ss)) ∧
     (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧
-      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ ss) vs')
+      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ ss) vs') ∧
+    (∀ o' succ c u, cw X ss st = .chain o' succ c u → ∃ es', o = .fall es' ∧
+      ArrCh L fp X wJ wenv ck W0 o' succ c (calls (ebef ++ es')).length (xc + costW X.acs σ ss))
+
+theorem tbl_armsOk {G : Glob} {entry base : ℕ} : ∀ (ts : List ℕ) (i : ℕ), armsOk G entry base i ts = true →
+    ∀ k (hk : k < ts.length), G.jt.get (base + (i + k)) = some (entry + ts[k])
+  | [], _, _, k, hk => absurd hk (Nat.not_lt_zero _)
+  | t :: ts, i, h, k, hk => by
+    simp only [armsOk, Bool.and_eq_true, beq_iff_eq] at h
+    cases k with
+    | zero => simpa using h.1
+    | succ k =>
+      have := tbl_armsOk ts (i + 1) h.2 k (by simpa using hk)
+      rw [show i + (k + 1) = i + 1 + k by omega]
+      simpa using this
+
+/-- A target the check says is the frame's own holds it. -/
+theorem self_is (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {ft : Tgt} (hself : X.F.self ft = true) :
+    ft.Is L (addressOfIndex fp) (addressOfIndex fp) := by
+  unfold Facts.self at hself
+  split at hself
+  · show addressOfIndex fp = addressOfIndex fp * addressOfIndex 0
+    rw [gpow_zero', mul_one]
+  · show addressOfIndex fp = addressOfIndex 0
+    rw [gpow_zero']
+    exact H.ctx.fpOne hself
+  · cases hself
+
+/-- **The table read an arm of a chained `match` sets up holds**, on the arm the path takes. -/
+theorem armTg_ok (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Registers K} {n : ℕ}
+    {x : Opcode → ℕ} (hp : PosZ H st W0 n x) {v : V} {k m : ℕ} (hvn : v = V.n v.idx)
+    (hk : σ v = ofK (addressOfIndex k)) (hkm : k < m) (hpre : chainPre X st v m = true) :
+    TgOk L fp (armTg X v k) := by
+  unfold armTg
+  unfold chainPre at hpre
+  rcases hc : chainOf X v.idx with _ | ⟨ts, y, b⟩
+  · intro q hq; simp at hq
+  rw [hc] at hpre
+  simp only [Bool.and_eq_true] at hpre
+  obtain ⟨⟨hl, hsel⟩, hin⟩ := hpre
+  obtain ⟨ch, hch, hch2⟩ := Option.map_eq_some_iff.mp hc
+  have hch1 : ch.2.1 = v.idx :=
+    Nat.eq_of_beq_eq_true (List.find?_some (p := fun ch : ℕ × ℕ × List ℕ × ℕ × ℕ ↦ Nat.beq ch.2.1 v.idx) hch)
+  have hmem : ch ∈ (plumbOf j).chains := H.chains ▸ List.mem_of_find?_eq_some hch
+  obtain ⟨p, x', ts', y', b'⟩ := ch
+  simp only [Prod.mk.injEq] at hch1 hch2
+  obtain ⟨rfl, rfl, rfl⟩ := hch2
+  subst hch1
+  have hkl : k < ts'.length := by rw [Nat.eq_of_beq_eq_true hl]; exact hkm
+  obtain ⟨w, hiy, hiw, hrd, hrt⟩ := H.frame.chain _ hmem k ts'[k] (List.getElem?_eq_getElem hkl)
+    (by rw [← hvn]; exact hk)
+  have hfr := inFrame_mem hin
+  have hy := hfr _ List.mem_cons_self
+  have ht := hfr _ (List.mem_cons_of_mem _ (List.getElem_mem hkl))
+  intro q hq
+  rw [List.mem_singleton] at hq
+  subst hq
+  rw [nth_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hkl, Option.getD_some]
+  refine ⟨σ (V.n y'), w, val_cell H.frame H.loc (hp.sel rfl hsel) hy.1 (H.fs ▸ hy.2), hiy, ?_, hiw, hrd⟩
+  have := hrt ht.1 (H.fs ▸ ht.2)
+  rw [gpow_addC] at this
+  exact this
 
 theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
   intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   rw [walk] at hw
   subst hw
   rw [cw_nil] at hok ⊢
-  refine ⟨fun J c u hj ↦ ⟨[], rfl, ?_⟩, fun J m c u hj ↦ ⟨[], rfl, ?_⟩, fun hd ↦ ?_⟩
+  refine ⟨fun J c u hj ↦ ⟨[], rfl, ?_⟩, fun J m c u hj ↦ ⟨[], rfl, ?_⟩, fun hd ↦ ?_,
+    fun o' succ c u hj ↦ ⟨[], rfl, ?_⟩⟩
   · rw [List.append_nil]
-    rcases endC_ok hok with ⟨t, hf, he⟩ | ⟨hf, -, se, t, hse, hk, hsu, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩
+    rcases endC_ok hok with ⟨t, hf, he⟩ | ⟨hf, -, se, t, hse, hk, hsu, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ |
+      ⟨-, -, _, _, _, _, _, _, -, -, -, -, -, -, -, he⟩
     · rw [he] at hj
       simp only [RC.join.injEq] at hj
       obtain ⟨rfl, rfl, rfl⟩ := hj
@@ -449,9 +520,11 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
         (by rw [hsu]; exact List.mem_singleton_self _) henv⟩
     · rw [he] at hj
       cases hj
+    · rw [he] at hj
+      cases hj
   · rw [List.append_nil]
     rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ |
-      ⟨-, J', m', c', -, hJ, hm, hlen, hpl, he⟩
+      ⟨-, J', m', c', -, hJ, hm, hlen, hpl, he⟩ | ⟨-, -, _, _, _, _, _, _, -, -, -, -, -, -, -, he⟩
     · rw [he] at hj
       cases hj
     · rw [he] at hj
@@ -479,8 +552,48 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
         have := hc0 op
         simp only [Pi.add_apply, costW, Pi.zero_apply, Nat.add_zero]
         omega
-  · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ <;>
+    · rw [he] at hj
+      cases hj
+  · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ |
+      ⟨-, -, _, _, _, _, _, _, -, -, -, -, -, -, -, he⟩ <;>
       rw [he] at hd <;> cases hd
+  · rw [List.append_nil]
+    rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ |
+      ⟨-, -, se, t, ft, o1, b, succ1, hse, hk, hsu, hne, htg, hself, hao, he⟩
+    · rw [he] at hj; cases hj
+    · rw [he] at hj; cases hj
+    · rw [he] at hj; cases hj
+    rw [he] at hj
+    simp only [RC.chain.injEq] at hj
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := hj
+    intro e hle hoe
+    obtain ⟨hseg, -, -, htgs, -, -, hreach⟩ := endAtC_reach H hp hse
+    rw [hseg] at hk hsu
+    -- the table read into `t`
+    have htg' : tgAt st.tg t = some (o1, b) := by rw [← htgs]; exact htg
+    obtain ⟨q, hq, hq1, hq2⟩ : ∃ q ∈ st.tg, q.1 = t ∧ q.2 = (o1, b) := by
+      unfold tgAt at htg'
+      obtain ⟨q, hq, hq2⟩ := Option.map_eq_some_iff.mp htg'
+      exact ⟨q, List.mem_of_find?_eq_some hq, Nat.eq_of_beq_eq_true (List.find?_some (p := fun q : ℕ × ℕ × ℕ ↦ Nat.beq q.1 t) hq), hq2⟩
+    obtain ⟨p, w, hp1, -, hw1, -, hrw⟩ := hp.ok.tg q hq
+    rw [hq1, hq2] at *
+    simp only at hp1 hrw
+    rw [hoe] at hp1
+    obtain rfl := Option.some.inj hp1
+    have hslot := tbl_armsOk succ1 0 hao e hle
+    rw [Nat.zero_add, H.G] at hslot
+    have hwv : w = ofK (addressOfIndex (X.entry + succ1[e])) := by
+      rw [limb_ofK0, ← gpow_addC, Nat.add_comm e b] at hrw
+      exact Option.some.inj (hrw.symm.trans (H.jt _ _ hslot))
+    subst hwv
+    have hft : ft.Is L (addressOfIndex fp) (addressOfIndex fp) := self_is H hself
+    obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨addressOfIndex (X.entry + succ1[e]), addressOfIndex fp⟩ (by
+      rw [hk]
+      exact ⟨_, _, ⟨_, hw1, isInK_ofK _, by rw [limb_ofK0]⟩, hft, rfl⟩)
+    refine ⟨⟨cr, hcr, fun op ↦ by simpa [costW] using hcle op⟩,
+      envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) ?_ henv⟩
+    rw [hsu]
+    exact List.getElem_mem hle
 
 theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
     (hs : ∀ vs, s ≠ .ret vs) : Stmt.noRet s = true ∧ lastOkC ss = true := by
@@ -491,19 +604,21 @@ theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
 /-- **A statement falling through, then the rest of the block.** -/
 theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt} {ss : List Stmt}
     (ih : ∀ st, WGood H ss st) (hs : Stmt.noRet s = true)
-    {st st'' : CW} {ebef eaft e1 : List Ev} {o : Out} {W0 : Registers K} {pre : List Stmt}
+    {st'' : CW} {ebef eaft e1 : List Ev} {o : Out} {W0 : Registers K} {pre : List Stmt}
     (hw1 : walk1 σ s = .fall e1) (hw : walk σ (s :: ss) = o) (hes : es = ebef ++ o.evs ++ eaft)
     (hstk : o ≠ .stuck)
     (hshape : Stmt.noRetList (s :: ss) = true ∨
       (lastOkC (s :: ss) = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ s :: ss))
     {xc : Opcode → ℕ} (hp'' : PosZ H st'' W0 (calls (ebef ++ e1)).length (xc + cost1 X.acs σ s))
-    (hcw : cw X (s :: ss) st = cw X ss st'') (hok : (cw X (s :: ss) st).ok = true) :
-    (∀ J c u, cw X (s :: ss) st = .join J c u → ∃ es', o = .fall es' ∧
+    {r : RC} (hcw : r = cw X ss st'') (hok : r.ok = true) :
+    (∀ J c u, r = .join J c u → ∃ es', o = .fall es' ∧
       Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss))) ∧
-    (∀ J m c u, cw X (s :: ss) st = .mid J m c u → ∃ es', o = .fall es' ∧
+    (∀ J m c u, r = .mid J m c u → ∃ es', o = .fall es' ∧
       ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss))) ∧
-    (cw X (s :: ss) st = .done → ∃ es' vs', o = .ret es' vs' ∧
-      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss)) vs') := by
+    (r = .done → ∃ es' vs', o = .ret es' vs' ∧
+      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss)) vs') ∧
+    (∀ o' succ c u, r = .chain o' succ c u → ∃ es', o = .fall es' ∧
+      ArrCh L fp X wJ wenv ck W0 o' succ c (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss))) := by
   have ex : xc + costW X.acs σ (s :: ss) = (xc + cost1 X.acs σ s) + costW X.acs σ ss := by
     rw [costW, add_assoc]
   rw [ex]
@@ -525,8 +640,8 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
       rw [hb, List.append_assoc]
       rfl
   rw [hcw] at hok ⊢
-  obtain ⟨h1, hm, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) _ rfl hes' hstk' hshape' hp'' hok
-  refine ⟨fun J c u hj ↦ ?_, fun J m c u hj ↦ ?_, fun hd ↦ ?_⟩
+  obtain ⟨h1, hm, h2, hch⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) _ rfl hes' hstk' hshape' hp'' hok
+  refine ⟨fun J c u hj ↦ ?_, fun J m c u hj ↦ ?_, fun hd ↦ ?_, fun o' succ c u hj ↦ ?_⟩
   · obtain ⟨es', he, ha⟩ := h1 J c u hj
     refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
     rw [← List.append_assoc]
@@ -539,6 +654,10 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
     refine ⟨e1 ++ es', vs', by rw [he]; rfl, ?_⟩
     rw [← List.append_assoc]
     exact hf
+  · obtain ⟨es', he, ha⟩ := hch o' succ c u hj
+    refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
+    rw [← List.append_assoc]
+    exact ha
 
 theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core.Atom)
     (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) : WGood H (.atom a :: ss) st := by
@@ -1144,7 +1263,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         have h2 := Cnt.le_spec hle1 op
         omega
     refine ⟨fun J c' u hj ↦ (by rw [hcw] at hj; cases hj), fun J m c' u hj ↦ (by rw [hcw] at hj; cases hj),
-      fun _ ↦ ⟨[Ev.inK c, ev], [], hwo', ?_⟩⟩
+      fun _ ↦ ⟨[Ev.inK c, ev], [], hwo', ?_⟩, fun o' succ c' u hj ↦ (by rw [hcw] at hj; cases hj)⟩
     rw [hc1]
     unfold FinZ
     refine ⟨⟨_, cr, ?_, hcr, hcle⟩, fun k hk ↦ absurd hk (Nat.not_lt_zero _)⟩
@@ -1177,7 +1296,7 @@ theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : Lis
     rw [← hw, walk]
     rfl
   refine ⟨fun J c u hj ↦ (by rw [hcw] at hj; cases hj), fun J m c u hj ↦ (by rw [hcw] at hj; cases hj),
-    fun _ ↦ ⟨[], vs', hwo, ?_⟩⟩
+    fun _ ↦ ⟨[], vs', hwo, ?_⟩, fun o' succ c u hj ↦ (by rw [hcw] at hj; cases hj)⟩
   obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp hse
   rw [hsg] at hkind
   have hd0 := H.frame.hdr0
