@@ -565,10 +565,10 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $380000$)
-limits any program; it is the compiled decoder's size at leanVM \texttt{ed7d2b9c}, $379524$ (proved
-at most that, measured exactly; the guest's frame-cell table is $349381$ of it), and a slack of
-$476$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1490400$)
+limits any program; it is the compiled decoder's size at leanVM \texttt{c4f4bc92}, $1489895$ (proved
+at most that, measured exactly; the guest's frame-cell table is $1459583$ of it), and a slack of
+$505$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
 (cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its
@@ -695,7 +695,7 @@ $\mathrm{dig}_{iv_G}(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committe
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
 children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
-check costs $G$ about three leanXMSS ones, $17904$ words against $6459$), $\cnt{rows}$ blobs held directly (the rows of
+check costs $G$ about three leanXMSS ones, $17561$ words against $6459$), $\cnt{rows}$ blobs held directly (the rows of
 at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
 \cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
 (a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of

@@ -61,7 +61,7 @@ is several times the compiled decoder's price (at `κ = 32` the address tables, 
 `κ`, are most of it); that a valid execution of the guest program has fewer than `2^51` steps is
 argued in prose, not proved in Lean; literal tables count toward size; the size bounds limit
 programs written like the compiled ones (a decoder written differently could pack the guest's tables
-tighter, or derive them from its input, room for between about `1600` and `2400` signatures); the
+tighter, or derive them from its input, room for between about `3150` and `4700` signatures); the
 extractor's budget is `2^81 + O(N·log³N)` for `N` queries, which passes `2^128` at about `N = 2^100`
 while the soundness bound is still `2^-28` there, and whose constant `2^81` would pay for a search of
 about `2^70` Keccak-f[1600] evaluations, so knowledge of a witness that such a search finds (of low
@@ -320,20 +320,21 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `380000`) limits any program; it is the compiled
-decoder's size at leanVM `ed7d2b9c`, `379524` (proved at most that and measured exactly), and a
-slack of `476`: room for one leanXMSS signature's encoding (`309`) beside its code but not two (the
-bound was `786000` before `542b0353`, whose leanSPHINCS guest has far fewer frame cells), so no
-useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely many
-statements) fits there. That size counts the guest program's per-function tables, literals of the
-program, in full. It does not bound what a program written differently could hold: the guest's
-frame-cell table (`349381` of the size, cells below `2^20`) packs to about a third, three cells to a
-limb, freeing room for about `750` signatures' encodings. Nor is the compiled program compact: its
-size also counts, a literal `0` each, the indices without a body left by the numbering it shares
-with the extractor's compiled functions ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof)
-has the measurements). And a program may compute its tables from its input, which holds the guest
-program: one that derived the frame-cell table at run time instead of carrying it would free most of
-those `349381`, room for up to about `1100` signatures' encodings (an estimate, not measured).
+**The size bound** (`guestWitnessDecoderSizeBound`, `1490400`) limits any program; it is the
+compiled decoder's size at leanVM `c4f4bc92`, `1489895` (proved at most that and measured exactly),
+and a slack of `505`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+(the bound was `380000` at `ed7d2b9c`, whose guest's opening queries had far fewer frame cells), so
+no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
+many statements) fits there. That size counts the guest program's per-function tables, literals of
+the program, in full. It does not bound what a program written differently could hold: the guest's
+frame-cell table (`1459583` of the size, cells below `2^20`) packs to about a third, three cells to
+a limb, freeing room for about `3150` signatures' encodings. Nor is the compiled program compact:
+its size also counts, a literal `0` each, the indices without a body left by the numbering it shares
+with the extractor's compiled functions
+([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the measurements). And a program
+may compute its tables from its input, which holds the guest program: one that derived the
+frame-cell table at run time instead of carrying it would free most of those `1459583`, room for up
+to about `4700` signatures' encodings (an estimate, not measured).
 
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above
