@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.ShiftsT
 
-  `keccak_shifts_eq`'s statements (`shiftsT`, G:2331-2379) compute the shift sums
+  `keccak_shifts_eq`'s statements (`shiftsT`, G:2552-2605) compute the shift sums
   `Σ_z eq(a, z + r) eq(b, z)`.
 -/
 
@@ -56,7 +56,7 @@ theorem bitT_holds {aP bP : V} {t B : ℕ} {next : Prop} {kret : List E → Prop
     · rw [e9, e5, e4, word_one]; ring
     · rw [e10, e3, e2, word_one]; ring
 
-/-- **A `carry_step`** (G:2300-2314): from the carry sums of `t` bits, those of `t + 1`. -/
+/-- **A `carry_step`** (G:2521-2535): from the carry sums of `t` bits, those of `t + 1`. -/
 theorem carryT_holds {c0 c1 : ℕ → ℕ} {e u v t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)
@@ -140,7 +140,7 @@ theorem uv_sum (α β : E) : (α + α * β) + (β + α * β) = α + β := by
   have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
   linear_combination (α * β) * h2
 
-/-- **A `carry_wrap`** (G:2318-2327): the last bit, both carries out (`modK`). -/
+/-- **A `carry_wrap`** (G:2539-2548): the last bit, both carries out (`modK`). -/
 theorem carryWrapT_holds {c0 c1 : ℕ → ℕ} {e s t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)
@@ -195,7 +195,7 @@ theorem carryWrapT_holds {c0 c1 : ℕ → ℕ} {e s t B : ℕ} {as bs : List E} 
       hc0 _ (by omega), hc1 _ (by omega) (by omega), he, hs, w010, w011, w110, w111, uv_sum]
     ring
 
-/-- **The used shifts** (G:2369-2374). -/
+/-- **The used shifts** (G:2595-2600). -/
 theorem shOutT_holds {low0 low1 high : ℕ → ℕ} : ∀ (rs : List ℕ) (b : ℕ) {next : Prop}
     {kret : List E → Prop}, Stmt.HoldsList C rd σ (shOutT low0 low1 high rs b) next kret →
     (∀ r ∈ rs, σ (.n (shOutV rs b r)) = σ (.n (low0 (r % 8))) * σ (.n (high (r / 8))) +

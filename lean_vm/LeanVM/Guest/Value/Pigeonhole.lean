@@ -19,8 +19,8 @@ The guest certifies permutations without sorting: each of `N` writers stores a d
 running count, a g-power) into its slot of a write-once table, so two writers of one slot would
 write two values into one cell, which the memory rejects (`writeOnce_injective`); and a count
 says there are as many writers as slots, so the writers fill every slot exactly once
-(`cover_of_writeOnce`). This is the coverage table of `main` (G:4129-4193, with
-`child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:3852-3899), `sort_order` in
+(`cover_of_writeOnce`). This is the coverage table of `main` (G:4414-4480, with
+`child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:4041-4184), `sort_order` in
 `verify_tables` (G:1942-1968) and `col_sort_order` in `certify_placement` (G:2971-2995) (G for
 `crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `542b035`).
 
@@ -57,7 +57,7 @@ theorem writeOnce_bijective {ι σ α : Type*} [Fintype ι] [Fintype σ] {slot :
 
 /-- **The coverage certificate**, as the guest runs it: `N` writers, writer `i < N` range-checked
 into a slot below `M` and storing a mark distinct from every other writer's into it, with
-`M ≤ N` (the guest's final count, `written == n_total`, G:4193), fill every slot `s < M` exactly
+`M ≤ N` (the guest's final count, `written == n_total`, G:4480), fill every slot `s < M` exactly
 once. -/
 theorem cover_of_writeOnce {α : Type*} {N M : ℕ} {slot : ℕ → ℕ} {mark : ℕ → α} {mem : ℕ → α}
     (hslot : ∀ i < N, slot i < M) (hmark : ∀ i < N, ∀ j < N, mark i = mark j → i = j)

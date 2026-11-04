@@ -22,9 +22,9 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
 
 * `sum_bitE_coordBasis` and `bits_of_reconstruct`: booleanity and `Σ b_i · COORD_BASIS[s + i] = x`
   make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`decode_query_bits`,
-  G:716-761; `grind_check`, G:763-785, whose reconstruction starts at bit `nbits`, G:783);
+  G:716-761; `grind_check`, G:763-785, whose reconstruction starts at bit `nbits`, G:886);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
-  (`g_power_of_word`, G:652-665; `verify_log2_ceil`, G:668-702; `column_selector`, G:3007-3030,
+  (`g_power_of_word`, G:685-712; `verify_log2_ceil`, G:668-702; `column_selector`, G:3007-3030,
   a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
@@ -214,7 +214,7 @@ theorem gen_pow_eq_one_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : gen ^ a = 1 ↔ a =
   · rintro rfl
     exact pow_zero gen
 
-/-- **`g_power_of_word(value)`** (G:652-665, `n = LOG_WORD_BITS`): Boolean bits with
+/-- **`g_power_of_word(value)`** (G:685-712, `n = LOG_WORD_BITS`): Boolean bits with
 `Σ_{j < n} b_j · E(2^j) = value`, `n ≤ 63`, make `value` a word in `K` below `2^n`, and the
 product `Π (1 + b_j·(1 + g^(2^j)))` its g-power, `gpow (kToNat value.limb0)`. -/
 theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j)

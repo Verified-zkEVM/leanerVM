@@ -22,7 +22,7 @@ claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words 
 (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs`, `bc_star_hint`
 (`MeaningAggregateClaims`).
 
-**`main`** (G:4051-4219, `core0`). Its callees with a witness, each through a witness function of
+**`main`** (G:4336-4506, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX p` for the claim at `p`
 (`verify_lean_xmss`, `Sig.XmssOut`), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
@@ -291,7 +291,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature
 
 /-! ## The statement -/
 
-/-- **`main`, soundly, its witness decoded** (G:4051-4219, TRIAGE #96): on a memory image whose
+/-- **`main`, soundly, its witness decoded** (G:4336-4506, TRIAGE #96): on a memory image whose
 public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
 witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness

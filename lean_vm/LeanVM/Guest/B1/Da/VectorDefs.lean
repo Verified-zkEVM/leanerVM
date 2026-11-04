@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.B1.Da.DualMath
 
 /-!
-# The dual codeword's builders: meanings (G:4012-4076)
+# The dual codeword's builders: meanings (G:4297-4361)
 
 `da_vector(z)` (G:4012-4029, `core32`) returns four pointers: the powers `z_j = z^(2^j)`, `j < 14`,
 and `0` at `14` (`zs`, `ZsAt`); the leaves of the product tree over the cell index (`top_leaves`,
@@ -23,10 +23,10 @@ and `0` at `14` (`zs`, `ZsAt`); the leaves of the product tree over the cell ind
 
 A product tree over the bits `top, top - 1, …` of depth `D`, in heap order: node `n = 2^d + y` at
 depth `d` splits the bit `j = top - d`, `y` the bits above it. `da_factors(zs, top, D, at)`
-(G:4032-4040) writes node `n`'s factor `1 + z_j Ŵ_j(y · 2^(j + 1))` (`DA_VHAT[at + n]`, the bits
-above `j` of the point, `factorAt`); `da_expand(root, factors, zs, shifts, top, D)` (G:4043-4055)
+(G:4317-4325) writes node `n`'s factor `1 + z_j Ŵ_j(y · 2^(j + 1))` (`DA_VHAT[at + n]`, the bits
+above `j` of the point, `factorAt`); `da_expand(root, factors, zs, shifts, top, D)` (G:4328-4340)
 multiplies down the tree: a node's children are it times its factor plus the shift of its bit and,
-for the child of bit one, `z_j` (`expandLeaf`). `da_column_offsets(zs)` (G:4058-4076) writes
+for the child of bit one, `z_j` (`expandLeaf`). `da_column_offsets(zs)` (G:4343-4361) writes
 `offsets[8h + j] = z_j · Ŵ_j(256 h)`, one doubling per bit of `h` (`DA_VHAT_COLUMN`, `Ŵ_j` at the
 basis elements `e_(8 + b)`).
 -/
@@ -40,7 +40,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-! ## The values -/
 
-/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4017-4022). -/
+/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4302-4307). -/
 def zsVal (z : E) (j : ℕ) : E := if j < 14 then z ^ 2 ^ j else 0
 
 /-- The factor at node `n` of a product tree over the bits `top, top - 1, …`, with the bit powers

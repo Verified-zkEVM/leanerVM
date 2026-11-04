@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Point
 public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# The finish (G:1505-1595)
+# The finish (G:1654-1744)
 
 `osFinish_sound`: from what the levels and the tail stored (`FinIn`), the returns are the claim,
 the two point buffers, the glued weight `Σ_lvl scale_lvl·sum_lvl + Σ_ol ood_ol` (`finInner`) and

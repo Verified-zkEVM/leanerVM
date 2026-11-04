@@ -35,10 +35,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Coverage
 
-/-- `STREAM_CAP` (`aggregation.rs:1241`): a child's proof stream is zero-padded to it. -/
+/-- `STREAM_CAP` (`aggregation.rs:1342`): a child's proof stream is zero-padded to it. -/
 def childStreamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation.rs:1232`): the least stack log the guest program has an opening arm
+/-- `MU_MIN` (`aggregation.rs:1333`): the least stack log the guest program has an opening arm
 for. -/
 def minChildStackLog : ℕ := 22
 
@@ -140,14 +140,14 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
-  `[22, 28]` (G:3296-3298); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3147);
+  `[22, 28]` (G:3478-3480); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3325-3326);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1235, 1542, 1547). -/
+  challenges and each level's batching challenge `λ`, G:1382, 1691, 1696). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode

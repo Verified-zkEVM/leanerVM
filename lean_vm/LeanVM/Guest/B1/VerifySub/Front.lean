@@ -80,7 +80,7 @@ theorem digest_of_canonical {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical1
     ⟨_, by simp only [digestFromHalves, ha, hb, and_self, ↓reduceIte]; exact rfl⟩
   exact ⟨d, (digestScalars_digestOfScalars hd).symm⟩
 
-/-- **The seed** (G:3144-3146; V:2338): the four cells are two digests' cells, and the capacity
+/-- **The seed** (G:3318-3319; V:2338): the four cells are two digests' cells, and the capacity
 the atom writes is the seed state's. -/
 theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
     (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0) :

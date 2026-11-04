@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `assert_canonical` (G:475-482, TRIAGE #2) -/
+/-! ## `assert_canonical` (G:512-519, TRIAGE #2) -/
 
 /-- **`assert_canonical(word)`**: the word has no `y²` term; it returns `0`. -/
 def MeaningAssertCanonical : List E → List E → Prop

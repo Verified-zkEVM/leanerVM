@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Da.VectorHolds
 public import LeanVM.Guest.B1.Main.LoopsC
 
 /-!
-# `da_verify_column` (G:3969-3983)
+# `da_verify_column` (G:4254-4268)
 
 `da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core30`), at
 `xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell

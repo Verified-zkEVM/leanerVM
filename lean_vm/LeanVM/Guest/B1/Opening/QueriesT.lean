@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 
 `opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd, base, I,
 leaf_cells, depth, cd)` (G:1228-1251) has 56 specializations, one per level shape (`Oq`). One
-query (`opening_query`, G:1161-1225, inline, with `verify_merkle_path`, G:1010-1025) from its first
+query (`opening_query`, G:1161-1225, inline, with `verify_merkle_path`, G:1122-1137) from its first
 value `b` is `oqQueryT`:
 
 * the row: `R` hinted words (`I` at level 0, `base = 1`; `3I` limbs deeper) at `b .. b + R`, packed

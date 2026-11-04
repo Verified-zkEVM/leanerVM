@@ -89,7 +89,7 @@ theorem holds_stageT {lin : V} {b d s : ℕ} (hd : 1 ≤ d) {next : Prop} {kret 
 theorem rmapT_noRet (lin : V) (b : ℕ) : Stmt.noRetList (rmapT lin b) = true := by
   simp only [rmapT, noRetList_append, stageT_noRet]; rfl
 
-/-- **`ring_map`** (G:2930-2936): the six challenges it loads from `map_challenges` (value `2`),
+/-- **`ring_map`** (G:3075-3081): the six challenges it loads from `map_challenges` (value `2`),
 and `Φ` of `lin` at them (`phiMap`, V:2103) at `b + 80`. -/
 theorem holds_rmapT {lin : V} {b : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rmapT lin b) next kret) :

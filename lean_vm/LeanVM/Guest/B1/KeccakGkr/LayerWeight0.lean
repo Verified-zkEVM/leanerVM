@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerWeight0
 
-  A later claim's weight at the local point in `keccak_layer` (G:2673-2676): `keccak_shifts_eq`
+  A later claim's weight at the local point in `keccak_layer` (G:2814-2817): `keccak_shifts_eq`
   then `keccak_form`.
 -/
 

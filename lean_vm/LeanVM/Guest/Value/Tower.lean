@@ -26,12 +26,12 @@ it hints one, derives the next by `y⁻¹` and proves every piece lies in `K` wi
 is unique, so those constraints pin the hint. This module states what they pin, at the level of
 values:
 
-* `pack64x2` (G:470-472) is `E.ofLimbs a b 0` (`pack64x2_eq`);
-* `assert_canonical`, `canonical_limbs` (G:475-492) and `challenge_from_state` (G:510-519)
+* `pack64x2` (G:507-509) is `E.ofLimbs a b 0` (`pack64x2_eq`);
+* `assert_canonical`, `canonical_limbs` (G:512-529) and `challenge_from_state` (G:547-556)
   split a canonical word as `lo + y·hi` (`split_iff`, `split_hi`);
-* `fs_pack` (G:533-541) pins a scalar's top limb by the canonicity of the cell it lands in
+* `fs_pack` (G:570-578) pins a scalar's top limb by the canonicity of the cell it lands in
   (`top_pin_iff`);
-* `pack_pair` (G:496-506, in `statement_digest` and `da_vector_cell`) splits a full word into its
+* `pack_pair` (G:533-543, in `statement_digest` and `da_vector_cell`) splits a full word into its
   three limbs (`split3_iff`, `split3_top`).
 
 The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = 1 + y²` (`y_inv`; `placeholder_map`,
@@ -132,9 +132,9 @@ theorem ofLimbs_add (a0 a1 a2 b0 b1 b2 : K) :
     E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2) :=
   add_limbs a0 a1 a2 b0 b1 b2
 
-/-! ## Packing two limbs (`pack64x2`, G:470-472) -/
+/-! ## Packing two limbs (`pack64x2`, G:507-509) -/
 
-/-- **`pack64x2(a, b)`** (G:470-472): after `assert_in_k(a, b)`, `a + y·b` is the canonical cell
+/-- **`pack64x2(a, b)`** (G:507-509): after `assert_in_k(a, b)`, `a + y·b` is the canonical cell
 with limbs `a`, `b`: `E.ofLimbs a b 0`. -/
 theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
     a + y * b = E.ofLimbs (a.limb 0) (b.limb 0) 0 := by
@@ -143,7 +143,7 @@ theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
   rw [ofK_eq_ofLimbs, ofK_eq_ofLimbs, mul_comm, ofLimbs_mul_y, ofLimbs_add, ofLimbs_inj]
   simp
 
-/-! ## Splitting a canonical word (`assert_canonical`, `canonical_limbs`, G:475-492) -/
+/-! ## Splitting a canonical word (`assert_canonical`, `canonical_limbs`, G:512-529) -/
 
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/
 theorem add_ofK_mul_y_inv (x : E) (c : K) :
@@ -152,8 +152,8 @@ theorem add_ofK_mul_y_inv (x : E) (c : K) :
   rw [eq_ofLimbs x, ofK_eq_ofLimbs, ofLimbs_add, ofLimbs_mul_y_inv]
   simp
 
-/-- **The split of a word** (`assert_canonical`, `canonical_limbs`, G:475-492; the same
-constraints in `challenge_from_state`, G:510-519, and `grind_check`, G:774-785): the hinted
+/-- **The split of a word** (`assert_canonical`, `canonical_limbs`, G:512-529; the same
+constraints in `challenge_from_state`, G:547-556, and `grind_check`, G:877-889): the hinted
 `lo` and the derived `(x + lo)·y⁻¹` both lie in `K` exactly when `x` is canonical
 (`IsCanonical128`) and `lo` is its low limb: the tower representation is unique. -/
 theorem split_iff (x lo : E) :
@@ -172,7 +172,7 @@ theorem split_iff (x lo : E) :
 theorem split_hi {x : E} (hx : IsCanonical128 x) : (x + ofK (x.limb 0)) * y⁻¹ = ofK (x.limb 1) := by
   rw [add_ofK_mul_y_inv, k_add_self, zero_add, hx, ofK_eq_ofLimbs]
 
-/-! ## The top limb, pinned by a canonical cell (`fs_pack`, G:533-541) -/
+/-! ## The top limb, pinned by a canonical cell (`fs_pack`, G:570-578) -/
 
 /-- `x + y²·c`, in limbs. -/
 theorem add_y_mul_y_mul_ofK (x : E) (c : K) :
@@ -183,7 +183,7 @@ theorem add_y_mul_y_mul_ofK (x : E) (c : K) :
   rw [hyy, ofK_eq_ofLimbs, mul_limbs, eq_ofLimbs x, ofLimbs_add]
   simp
 
-/-- **The top limb is pinned** (`fs_pack`, G:533-541): a hinted `l` in `K` makes
+/-- **The top limb is pinned** (`fs_pack`, G:570-578): a hinted `l` in `K` makes
 `x + y²·l` canonical exactly when it is `x`'s top limb. -/
 theorem top_pin_iff (x l : E) : IsInK l ∧ IsCanonical128 (x + y * y * l) ↔ l = ofK (x.limb 2) := by
   constructor
@@ -207,7 +207,7 @@ theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b 0 := by
 
 /-! ## Splitting a full word into three limbs (`pack_pair`) -/
 
-/-- **The three-limb split** (`pack_pair`, G:496-506): two hinted limbs `a`, `b` and the derived
+/-- **The three-limb split** (`pack_pair`, G:533-543): two hinted limbs `a`, `b` and the derived
 top `((x + a)·y⁻¹ + b)·y⁻¹` all lie in `K` (the `pack64x2` calls assert it) exactly when `a`, `b`
 are `x`'s low limbs. -/
 theorem split3_iff (x a b : E) :

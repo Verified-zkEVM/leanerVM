@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.SqLoop
 public import LeanVM.Guest.B1.Whir.Positions
 
 /-!
-# The squeezes of a level (G:1396-1431)
+# The squeezes of a level (G:1546-1580)
 
 After the proof of work the sponge has nothing waiting. The level stores its capacity in the
 squeeze run's row `0`, runs the squeeze loop (`lv.squeezes` squeezes, each decoding `192/depth`

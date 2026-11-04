@@ -14,9 +14,9 @@ public import LeanDa.Subspace
 # The dual codeword, on words
 
 The guest program builds the dual codeword `L(x) = ∏_(j < 14) (1 + z^(2^j) Ŵ_j(x))` of a
-challenge `z` (`da_vector`, `lean_ethereum.py:4012-4076` at leanVM `ed7d2b9c`) from constants
+challenge `z` (`da_vector`, `lean_ethereum.py:4297-4361` at leanVM `c4f4bc92`) from constants
 that are sums of `Ŵ_j` at basis elements (`DA_VHAT`, `DA_VHAT_COLUMN`,
-`aggregation.rs:2445-2464`). Here:
+`aggregation.rs:2717-2736`). Here:
 
 * `rowWords`, `omegaWords`: `W_j` and `Ŵ_j` at `e_j … e_14` as words; `subspaceRow_words`:
   LeanDA's `subspaceRow` is `rowWords` (kernel evaluation, one row from the last);

@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `opening_fold` (G:1085-1097, TRIAGE #35) -/
+/-! ## `opening_fold` (G:1197-1209, TRIAGE #35) -/
 
 /-- **`opening_fold(fs0..fs4, w0, w1, cursor, c0, c1, c2)`**: from the carried capacity
 (canonical cells) with the scalars `w0`, `w1` waiting (`dsObserve`), the challenge `r` is
@@ -88,7 +88,7 @@ def opening_ood_point_Spec : Prop :=
   ∀ p ∈ oodPointNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningOodPoint p.2 rd args rets
 
-/-! ## `opening_final_message` (G:1114-1133, TRIAGE #37) -/
+/-! ## `opening_final_message` (G:1227-1246, TRIAGE #37) -/
 
 /-- **`opening_final_message(fs0..fs4, w0, w1, cursor, out, n)`**: from the carried capacity
 (canonical cells) with `w0`, `w1` waiting, the `n` stream words at the cursor (the final message,
@@ -114,7 +114,7 @@ def opening_final_message_Spec : Prop :=
   ∀ p ∈ finalMessageNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningFinalMessage p.2 rd args rets
 
-/-! ## `opening_row_weights` (G:1136-1157, TRIAGE #38) -/
+/-! ## `opening_row_weights` (G:1249-1270, TRIAGE #38) -/
 
 /-- Slot `i` of a run of `2^m`, reversed when `rev = 1`. -/
 def rwSlot (m rev i : ℕ) : ℕ := if rev = 1 then 2 ^ m - 1 - i else i
@@ -146,7 +146,7 @@ def opening_row_weights_Spec : Prop :=
     coreProgram.Rel rd "opening_row_weights__L4_L0" args rets ↔
       MeaningOpeningRowWeights 4 0 rd args rets
 
-/-! ## `opening_query`, `opening_queries` (G:1161-1250, TRIAGE #39, #40) -/
+/-! ## `opening_query`, `opening_queries` (G:1274-1397, TRIAGE #39, #40) -/
 
 /-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
@@ -161,7 +161,7 @@ def rowWord (base : ℕ) (row : List K) (j : ℕ) : E :=
 /-- The low factor's length of a row of `I` words: `min I 8`. -/
 def rowLo (I : ℕ) : ℕ := if I / 8 = 0 then I else 8
 
-/-- **A row's dot product with its tensor weights** (`opening_query`, G:1187-1204): run `h` of
+/-- **A row's dot product with its tensor weights** (`opening_query`, G:1355-1372): run `h` of
 `lo` words, weighted by `w (lo + h)`, of the sums of its words weighted by `w l`, in the guest's
 order. -/
 def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
@@ -173,7 +173,7 @@ def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
 def climbNode (leaf : Digest) (q : ℕ) (sibs : List Digest) (l : ℕ) : Digest :=
   climbD leaf q (sibs.take l)
 
-/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1010): level `k / 4`'s
+/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1122): level `k / 4`'s
 children, two cells each, the node reached so far on the side of the position's bit at the level,
 the sibling on the other. -/
 def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=

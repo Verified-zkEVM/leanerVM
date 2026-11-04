@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Da.LoopsComplete
 
-  `da_verify`'s loops over the blobs and its columns' row loop, completely (G:3933-3952,
-  G:3975-3982): each block holds on the words an honest run leaves in memory, so each loop runs to
+  `da_verify`'s loops over the blobs and its columns' row loop, completely (G:4218-4237,
+  G:4260-4267): each block holds on the words an honest run leaves in memory, so each loop runs to
   its end.
 -/
 

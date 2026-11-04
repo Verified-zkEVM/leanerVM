@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1270-1600` at leanVM `4af2cdddd`, G below) runs
+(`crates/rec_aggregation/guests/lean_ethereum.py:1417-1749` at leanVM `4af2cdddd`, G below) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`, V:1836;
 `verifier.py:1124-1202`) from `verifyStackedOpening` (V:1854), up to its terminal: the terminal's
 check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3060,
@@ -201,9 +201,9 @@ def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : L
 
 /-! ## What a call establishes -/
 
-/-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor)`** (G:1265-1593;
+/-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor)`** (G:1412-1742;
 TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing waiting (the
-batching challenge of `verifyStackedOpening` was just squeezed, G:3281), the stack's root `root`
+batching challenge of `verifyStackedOpening` was just squeezed, G:3454), the stack's root `root`
 committed with its shape and nothing else, the words `xs` at the cursor and some openings `os`
 run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer holding its point
 (`μ` coordinates, zero-padded to `pointCap`), a buffer holding one plus each of them (one-padded),

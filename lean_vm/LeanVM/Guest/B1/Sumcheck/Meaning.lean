@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-! ## `sumcheck_round4` (G:945-961, TRIAGE #30) -/
+/-! ## `sumcheck_round4` (G:1056-1072, TRIAGE #30) -/
 
 /-- **`sumcheck_round4(rd, msg_cursor, claim)`**: the record at `rd` carries the sponge's
 capacity (canonical cells); the three stream words at the cursor are the round polynomial's
