@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Loop8Complete
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 
 /-!
-# `verify_bus_gkr`'s body, completely (G:1601-1767)
+# `verify_bus_gkr`'s body, completely (G:1755-1927)
 
 `vbg_holds_of`: the body evaluated forward (`vbgEvL`, the allocations answered by the buffers'
 pointers), its regions `vbR1 .. vbR8`: the range check of `g^depth` (the memory defined at `g^depth`
@@ -321,8 +321,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       (fun rs => rs = sF.cap ++ [curF] ++ stF.values) := by
     simp only [vbR3, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨c47, a48, trivial, ⟨m50, by rw [m50, i49, mul_inv_cancel₀ (by rw [e48]; exact hcnt)]⟩,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, c51, m52, ?_, ?_, ?_, ?_, ?_, c53, ?_, c54, ?_, c55, ?_,
-      trivial⟩
+      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, c51, m52, ?_, ?_, ?_, ?_, ?_, c53, ?_, c54, ?_, c55, ?_⟩
     · rw [e15, q22, e0]; exact hcap0 0 (by omega)
     · rw [e15, q23, e1]; exact hcap0 1 (by omega)
     · rw [e15, q24, e2]; exact hcap0 2 (by omega)
@@ -362,9 +361,8 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       refine ⟨by rw [c0, tb_word_two_pow (by omega)], by rw [e56, c0]; exact k0,
         by rw [c1, tb_word_two_pow (by omega)], by rw [e56, c1]; exact k4⟩
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-      exact ⟨trivial, trivial⟩
   -- the tables
-  have gT := vb_goodB hG 63 vbR4 (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  have gT := vb_goodB hG 80 vbR4 (by decide +kernel) (by decide +kernel) (by decide +kernel)
   have hpk : ∀ k < 33, LoadHolds rd pairs k (gen ^ (k / 2)) := fun k hk => by
     have := hpairs k (by simpa using hk)
     simpa using this
