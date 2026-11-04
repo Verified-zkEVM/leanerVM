@@ -48,10 +48,10 @@ theorem vs_e124 (hl : args.length = 6) {w : ℕ → E} {lir : ℕ}
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (h1 : 1 ≤ lir) :
     vsσ rd w args (.n 122) = gen ^ (lir - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
-  have g1 := hG (vsMul 122 124 123) (by
+  have g1 := hG (vsMul 120 122 121) (by
     rw [vsSizesT]
     exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)))
-  have g2 := hG (vsConst 123 (word 2 0 0)) (by
+  have g2 := hG (vsConst 121 (word 2 0 0)) (by
     rw [vsSizesT]; exact List.mem_append_left _ (List.mem_cons_of_mem _ List.mem_cons_self))
   simp only [vsMul, vsConst, GoodS] at g1 g2
   simp only [Good] at g2
