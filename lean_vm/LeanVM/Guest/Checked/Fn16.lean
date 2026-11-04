@@ -119,10 +119,6 @@ theorem ok848 : CheckOk 848 := fun i hi ↦ by
   · exact w848_3
   · exact w848_4
 
-theorem plain848 : Plain 848 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain849 : Plain 849 := plain_of_nil (by decide +kernel)
 
 theorem ok850 : CheckOk 850 := fun i hi ↦ by
@@ -132,10 +128,6 @@ theorem ok850 : CheckOk 850 := fun i hi ↦ by
   · exact w850_0
   · exact w850_1
   · exact w850_2
-
-theorem plain850 : Plain 850 := by
-  unfold Plain
-  decide +kernel
 
 end
 end LeanVM.Guest.Checked

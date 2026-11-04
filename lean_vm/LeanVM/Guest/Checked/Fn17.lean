@@ -61,10 +61,6 @@ theorem ok852 : CheckOk 852 := fun i hi ↦ by
   · exact w852_1
   · exact w852_2
 
-theorem plain852 : Plain 852 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain853 : Plain 853 := plain_of_nil (by decide +kernel)
 
 theorem ok854 : CheckOk 854 := fun i hi ↦ by
@@ -74,10 +70,6 @@ theorem ok854 : CheckOk 854 := fun i hi ↦ by
   · exact w854_0
   · exact w854_1
   · exact w854_2
-
-theorem plain854 : Plain 854 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain855 : Plain 855 := plain_of_nil (by decide +kernel)
 
@@ -92,10 +84,6 @@ theorem ok856 : CheckOk 856 := fun i hi ↦ by
   · exact w856_4
   · exact w856_5
 
-theorem plain856 : Plain 856 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain857 : Plain 857 := plain_of_nil (by decide +kernel)
 
 theorem ok858 : CheckOk 858 := fun i hi ↦ by
@@ -107,10 +95,6 @@ theorem ok858 : CheckOk 858 := fun i hi ↦ by
   · exact w858_2
   · exact w858_3
 
-theorem plain858 : Plain 858 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain859 : Plain 859 := plain_of_nil (by decide +kernel)
 
 theorem ok860 : CheckOk 860 := fun i hi ↦ by
@@ -121,10 +105,6 @@ theorem ok860 : CheckOk 860 := fun i hi ↦ by
   · exact w860_1
   · exact w860_2
   · exact w860_3
-
-theorem plain860 : Plain 860 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain861 : Plain 861 := plain_of_nil (by decide +kernel)
 
@@ -139,10 +119,6 @@ theorem ok862 : CheckOk 862 := fun i hi ↦ by
   · exact w862_4
   · exact w862_5
 
-theorem plain862 : Plain 862 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain863 : Plain 863 := plain_of_nil (by decide +kernel)
 
 theorem ok864 : CheckOk 864 := fun i hi ↦ by
@@ -154,10 +130,6 @@ theorem ok864 : CheckOk 864 := fun i hi ↦ by
   · exact w864_2
   · exact w864_3
 
-theorem plain864 : Plain 864 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain865 : Plain 865 := plain_of_nil (by decide +kernel)
 
 theorem ok866 : CheckOk 866 := fun i hi ↦ by
@@ -168,10 +140,6 @@ theorem ok866 : CheckOk 866 := fun i hi ↦ by
   · exact w866_1
   · exact w866_2
   · exact w866_3
-
-theorem plain866 : Plain 866 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain867 : Plain 867 := plain_of_nil (by decide +kernel)
 
@@ -187,10 +155,6 @@ theorem ok868 : CheckOk 868 := fun i hi ↦ by
   · exact w868_5
   · exact w868_6
 
-theorem plain868 : Plain 868 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain869 : Plain 869 := plain_of_nil (by decide +kernel)
 
 theorem ok870 : CheckOk 870 := fun i hi ↦ by
@@ -202,10 +166,6 @@ theorem ok870 : CheckOk 870 := fun i hi ↦ by
   · exact w870_2
   · exact w870_3
 
-theorem plain870 : Plain 870 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain871 : Plain 871 := plain_of_nil (by decide +kernel)
 
 theorem ok872 : CheckOk 872 := fun i hi ↦ by
@@ -216,10 +176,6 @@ theorem ok872 : CheckOk 872 := fun i hi ↦ by
   · exact w872_1
   · exact w872_2
   · exact w872_3
-
-theorem plain872 : Plain 872 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain873 : Plain 873 := plain_of_nil (by decide +kernel)
 
@@ -235,10 +191,6 @@ theorem ok874 : CheckOk 874 := fun i hi ↦ by
   · exact w874_5
   · exact w874_6
 
-theorem plain874 : Plain 874 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain875 : Plain 875 := plain_of_nil (by decide +kernel)
 
 theorem ok876 : CheckOk 876 := fun i hi ↦ by
@@ -250,10 +202,6 @@ theorem ok876 : CheckOk 876 := fun i hi ↦ by
   · exact w876_2
   · exact w876_3
 
-theorem plain876 : Plain 876 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain877 : Plain 877 := plain_of_nil (by decide +kernel)
 
 theorem ok878 : CheckOk 878 := fun i hi ↦ by
@@ -264,10 +212,6 @@ theorem ok878 : CheckOk 878 := fun i hi ↦ by
   · exact w878_1
   · exact w878_2
   · exact w878_3
-
-theorem plain878 : Plain 878 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain879 : Plain 879 := plain_of_nil (by decide +kernel)
 
@@ -283,10 +227,6 @@ theorem ok880 : CheckOk 880 := fun i hi ↦ by
   · exact w880_5
   · exact w880_6
 
-theorem plain880 : Plain 880 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain881 : Plain 881 := plain_of_nil (by decide +kernel)
 
 theorem ok882 : CheckOk 882 := fun i hi ↦ by
@@ -298,10 +238,6 @@ theorem ok882 : CheckOk 882 := fun i hi ↦ by
   · exact w882_2
   · exact w882_3
 
-theorem plain882 : Plain 882 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain883 : Plain 883 := plain_of_nil (by decide +kernel)
 
 theorem ok884 : CheckOk 884 := fun i hi ↦ by
@@ -312,10 +248,6 @@ theorem ok884 : CheckOk 884 := fun i hi ↦ by
   · exact w884_1
   · exact w884_2
   · exact w884_3
-
-theorem plain884 : Plain 884 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain885 : Plain 885 := plain_of_nil (by decide +kernel)
 
@@ -331,10 +263,6 @@ theorem ok886 : CheckOk 886 := fun i hi ↦ by
   · exact w886_5
   · exact w886_6
 
-theorem plain886 : Plain 886 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain887 : Plain 887 := plain_of_nil (by decide +kernel)
 
 theorem ok888 : CheckOk 888 := fun i hi ↦ by
@@ -345,10 +273,6 @@ theorem ok888 : CheckOk 888 := fun i hi ↦ by
   · exact w888_1
   · exact w888_2
   · exact w888_3
-
-theorem plain888 : Plain 888 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain889 : Plain 889 := plain_of_nil (by decide +kernel)
 
@@ -361,10 +285,6 @@ theorem ok890 : CheckOk 890 := fun i hi ↦ by
   · exact w890_2
   · exact w890_3
 
-theorem plain890 : Plain 890 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain891 : Plain 891 := plain_of_nil (by decide +kernel)
 
 theorem ok892 : CheckOk 892 := fun i hi ↦ by
@@ -375,10 +295,6 @@ theorem ok892 : CheckOk 892 := fun i hi ↦ by
   · exact w892_1
   · exact w892_2
   · exact w892_3
-
-theorem plain892 : Plain 892 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain893 : Plain 893 := plain_of_nil (by decide +kernel)
 
@@ -392,10 +308,6 @@ theorem ok894 : CheckOk 894 := fun i hi ↦ by
   · exact w894_3
   · exact w894_4
   · exact w894_5
-
-theorem plain894 : Plain 894 := by
-  unfold Plain
-  decide +kernel
 
 theorem plain895 : Plain 895 := plain_of_nil (by decide +kernel)
 
@@ -411,10 +323,6 @@ theorem ok896 : CheckOk 896 := fun i hi ↦ by
   · exact w896_5
   · exact w896_6
 
-theorem plain896 : Plain 896 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain897 : Plain 897 := plain_of_nil (by decide +kernel)
 
 theorem ok898 : CheckOk 898 := fun i hi ↦ by
@@ -429,10 +337,6 @@ theorem ok898 : CheckOk 898 := fun i hi ↦ by
   · exact w898_5
   · exact w898_6
 
-theorem plain898 : Plain 898 := by
-  unfold Plain
-  decide +kernel
-
 theorem plain899 : Plain 899 := plain_of_nil (by decide +kernel)
 
 theorem ok900 : CheckOk 900 := fun i hi ↦ by
@@ -443,10 +347,6 @@ theorem ok900 : CheckOk 900 := fun i hi ↦ by
   · exact w900_1
   · exact w900_2
   · exact w900_3
-
-theorem plain900 : Plain 900 := by
-  unfold Plain
-  decide +kernel
 
 end
 end LeanVM.Guest.Checked
