@@ -5,8 +5,8 @@ import LeanVM.Cost.Decoder.PreTable
 
 `preTestAtC` run on a small memory (the word at `g^i` is `g^(i+1)`, `i < 64`), a small table of
 preconditions and the logarithm's tables (`discreteLogTables`, passed in as a value), its output
-the Lean function's value: an entry environment's check, a bound, a memory bound and a semantic
-pair, each holding or not, and the functions without a precondition (`none`) or outside `2 … 878`.
+the Lean function's value: an entry environment's check, a bound and a memory bound, each holding
+or not, and the functions without a precondition (`none`) or outside `2 … 947`.
 -/
 
 namespace LeanVMTests.Cost.DecoderPreTest
@@ -25,10 +25,11 @@ cost_compile smallReaderC := smallReader
 
 /-- A table: function `2` checks cell `6` holds `g^7` and cell `3` holds `g^e`, `e < 10`; `3` that
 cell `6` holds the frame pointer; `4` the bound `e < 4` at cell `3`; `5` the memory bound at cell
-`0`'s address, `3` cells below `g^10`; `6` a semantic pair; `7` nothing (`none`). -/
+`0`'s address, `3` cells below `g^10`; `6` the same below `g^5` (the word there is `g^5`); `7`
+nothing (`none`). -/
 def smallTable : Array (Option FnPre) := #[none, none,
-  some ⟨[(6, .gp 7)], [(3, 10)], [], []⟩, some ⟨[(6, .fpg 0)], [], [], []⟩,
-  some ⟨[], [(3, 4)], [], []⟩, some ⟨[], [], [(0, 3, 10)], []⟩, some ⟨[], [], [], [(1, 2)]⟩, none]
+  some ⟨[(6, .gp 7)], [(3, 10)], []⟩, some ⟨[(6, .fpg 0)], [], []⟩,
+  some ⟨[], [(3, 4)], []⟩, some ⟨[], [], [(0, 3, 10)]⟩, some ⟨[], [], [(0, 3, 5)]⟩, none]
 
 def D : DiscreteLogTables := discreteLogTables
 
