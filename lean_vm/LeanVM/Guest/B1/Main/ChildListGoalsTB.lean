@@ -33,12 +33,13 @@ def ChildListGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     (s : NodeStatement) (w : NodeWitness) (Pxs Pss : ℕ → Tree → Prop) (Bxs Bss : ℕ → ℕ) : Prop :=
   ∀ c, c < w.children.length →
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
+      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (Pxs c) (Bxs c) ∧
     CompleteAtDTB fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
-        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+      [(hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        (hKid s w c).base * gen ^ (hKid s w c).ex,
         gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (Pss c) (Bss c)
 

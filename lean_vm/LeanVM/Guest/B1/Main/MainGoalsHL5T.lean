@@ -356,9 +356,9 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
       [((kid c).pi s0 s1).1, ((kid c).pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)]
       (Returns []) (Pvs c))
     (hXT : ∀ c < nk, CompleteAtDT fs cert 16 "child_claim_list_digest" Lin
-      [lxt, cover, (kid c).base, 1, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2]) (Pxs c))
+      [lxt, cover, (kid c).base, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2]) (Pxs c))
     (hST : ∀ c < nk, CompleteAtDT fs cert 16 "child_claim_list_digest" Lin
-      [lst, cover, (kid c).base * gen ^ (kid c).ex, lxs, lss, gen ^ (kid c).es]
+      [lst, spc, (kid c).base * gen ^ (kid c).ex, lss, gen ^ (kid c).es]
       (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c)) :
     ∀ c < nk, CompleteAtDT fs cert 16 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -411,12 +411,13 @@ def ChildListGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     (s : NodeStatement) (w : NodeWitness) (Pxs Pss : ℕ → Tree → Prop) : Prop :=
   ∀ c, c < w.children.length →
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base, 1,
+      [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (Pxs c) ∧
     CompleteAtDT fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
-      [(hm fs fp seed s w).a80, (hm fs fp seed s w).a117, (hKid s w c).base * gen ^ (hKid s w c).ex,
-        gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+      [(hm fs fp seed s w).a80,
+        (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
+        (hKid s w c).base * gen ^ (hKid s w c).ex,
         gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (Pss c)
 
