@@ -2,8 +2,8 @@
   Statement.Fast.Keccak
 
   Keccak-f[1600] and Keccak-256 as the compiled verifier runs them: the rounds with their lanes
-  written out as scalars, and a block's lanes read from an array, each proved equal to the definition it
-  replaces and swapped in for compilation by `@[csimp]`.
+  written out as scalars, and a block's lanes read from an array, each proved equal to the
+  definition it replaces and swapped in for compilation by `@[csimp]`.
 
   Speed only: `@[csimp]` lemmas, each proved, that change how the statement's definitions are
   compiled and nothing they mean. Not part of what a reviewer of `Statement/` must read.
@@ -58,11 +58,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 /-- `Keccak.round`, its lanes written out: θ's column parities `c` and their mixes `d`, ρ and π
 as the lane each `b` takes, then χ and ι. -/
 def roundLanes (a : KeccakState) (rc : UInt64) : KeccakState :=
-  let c0 := Keccak.lane a 0 ^^^ Keccak.lane a 5 ^^^ Keccak.lane a 10 ^^^ Keccak.lane a 15 ^^^ Keccak.lane a 20
-  let c1 := Keccak.lane a 1 ^^^ Keccak.lane a 6 ^^^ Keccak.lane a 11 ^^^ Keccak.lane a 16 ^^^ Keccak.lane a 21
-  let c2 := Keccak.lane a 2 ^^^ Keccak.lane a 7 ^^^ Keccak.lane a 12 ^^^ Keccak.lane a 17 ^^^ Keccak.lane a 22
-  let c3 := Keccak.lane a 3 ^^^ Keccak.lane a 8 ^^^ Keccak.lane a 13 ^^^ Keccak.lane a 18 ^^^ Keccak.lane a 23
-  let c4 := Keccak.lane a 4 ^^^ Keccak.lane a 9 ^^^ Keccak.lane a 14 ^^^ Keccak.lane a 19 ^^^ Keccak.lane a 24
+  let c0 := Keccak.lane a 0 ^^^ Keccak.lane a 5 ^^^ Keccak.lane a 10 ^^^
+      Keccak.lane a 15 ^^^ Keccak.lane a 20
+  let c1 := Keccak.lane a 1 ^^^ Keccak.lane a 6 ^^^ Keccak.lane a 11 ^^^
+      Keccak.lane a 16 ^^^ Keccak.lane a 21
+  let c2 := Keccak.lane a 2 ^^^ Keccak.lane a 7 ^^^ Keccak.lane a 12 ^^^
+      Keccak.lane a 17 ^^^ Keccak.lane a 22
+  let c3 := Keccak.lane a 3 ^^^ Keccak.lane a 8 ^^^ Keccak.lane a 13 ^^^
+      Keccak.lane a 18 ^^^ Keccak.lane a 23
+  let c4 := Keccak.lane a 4 ^^^ Keccak.lane a 9 ^^^ Keccak.lane a 14 ^^^
+      Keccak.lane a 19 ^^^ Keccak.lane a 24
   let d0 := c4 ^^^ Keccak.rot c1 1
   let d1 := c0 ^^^ Keccak.rot c2 1
   let d2 := c1 ^^^ Keccak.rot c3 1
@@ -144,7 +149,8 @@ def keccakRCArray : Array UInt64 := keccakRC.toArray
 lane `k` read from `ak`, the next round's lanes passed on, so that the compiled loop allocates
 only the final state. -/
 def keccakLoop (i : ℕ)
-    (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 : UInt64) :
+    (a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23
+      a24 : UInt64) :
     KeccakState :=
   if i < 24 then
     let rc := keccakRCArray.getD i 0

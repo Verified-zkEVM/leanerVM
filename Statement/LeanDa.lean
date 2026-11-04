@@ -287,7 +287,8 @@ padding row's is `padding_root`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
-/-- **The root of a matrix** (`commit_codewords`): the Merkle root of the padded rows' blob roots. -/
+/-- **The root of a matrix** (`commit_codewords`): the Merkle root of the padded rows' blob
+roots. -/
 def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
   merkleRootWith π (logPaddedRowCount r) (blobRootWith π cells)
 
