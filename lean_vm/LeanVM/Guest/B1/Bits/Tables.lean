@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.Tables
 
-  B1 for `exponent_tables`: the two read-only tables over the exponent domain.
+  B1 for `exponent_tables`: the read-only exponent table.
 -/
 
 module
@@ -9,12 +9,17 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `exponent_tables` (G:634-649, TRIAGE #16)
+# `exponent_tables` (lean_ethereum.py:676-701 at leanVM `c4f4bc92`)
 
-`exponent_tables()` fills two fresh `HeapBuf(34)` tables: `g_logs_pow2[g^j] = E(2^j)` and
-`g_squares[g^j] = g^(2^j)`, the second's constants folded by the compiler (`gSquaresBits`,
-checked against the squares of `g` by kernel decision, through `squares`, one squaring an entry).
-Ported from the BLAKE2s-era `Value/Tables.lean` and `B1/Tables.lean` (the function is unchanged).
+`exponent_tables()` fills a fresh `HeapBuf(236)` with constants the compiler folds: `236`
+pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and the groups' sides
+`178 .. 235`, then the nibble shares `34 .. 177` (`etOff`). The words (`etWordsN`, by
+offset) are the honest values in `K`, decided by the kernel over `etListK`, which computes
+them as the source does, one product a word: `squares`, `nibRuns` (`powRun` sixteen at a
+time), `powRun (g^252)`.
+
+* `exponent_tables_holds`: its core IR is its meaning (`ExpTables`, `Guest/ExpTables.lean`).
+* `expTables_iff_words`: `ExpTables` is the `236` words `expTableWords` at the pointer.
 -/
 
 namespace LeanVM.Guest.B1
@@ -24,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## The squares of `g` -/
+/-! ## Runs of products -/
 
 /-- `n` successive squares from `x`: `x, x², x⁴, …`, as `sq_run *= sq_run` computes them. -/
 def squares {R : Type} [Mul R] : ℕ → R → List R
@@ -48,88 +53,280 @@ theorem getElem_squares {R : Type} [Monoid R] (n : ℕ) (x : R) (j : ℕ)
       simp only [squares, List.getElem_cons_succ]
       rw [ih (x * x) j (by simpa [squares] using hj), ← sq, ← pow_mul, pow_succ, Nat.mul_comm]
 
-/-- `g^(2^j)` for `j < 34`, as 64-bit words. -/
-def gSquaresBits : List ℕ := [
-  0x2, 0x4, 0x10, 0x100, 0x10000, 0x100000000, 0x1b, 0x145, 0x11011, 0x101000101,
-  0x100000001001a, 0x1a00000144, 0x10dbc, 0x100514550, 0x11011011111b, 0x10001011a1a015e,
-  0x15f0144001a114f, 0x1aad43011ba1e5, 0x11cefef6be466, 0x5455145e48670f13,
-  0xbaf1bebe1ae4ad02, 0xb0ef530df44bb042, 0xe2170b43ee771735, 0x48380fd207a3b527,
-  0xb6d535c542116f62, 0xa6df6baa62f965f5, 0xb9df3947cea0ffe7, 0xe1882807248fe588,
-  0x180d86953ed141c6, 0x1894566cd1db8abf, 0x4cc78bf4ea999e25, 0xe333308087e402ba,
-  0x5c62236777028505, 0xb964dc682c67ddcd]
+/-- `n` successive products by `b` from `s`: `s, s·b, s·b², …` (`share *= base`). -/
+def powRun {R : Type} [Mul R] (b : R) : ℕ → R → List R
+  | 0, _ => []
+  | n + 1, s => s :: powRun b n (s * b)
 
-/-- The words are the squares of `g`, decided by the kernel over `squares`. -/
-theorem gSquaresBits_eq : gSquaresBits.map K.ofBits = squares sizeBits g := by decide +kernel
+theorem length_powRun {R : Type} [Mul R] (b : R) (n : ℕ) (s : R) : (powRun b n s).length = n := by
+  induction n generalizing s with
+  | zero => rfl
+  | succ n ih => simp [powRun, ih]
 
-theorem length_gSquaresBits : gSquaresBits.length = sizeBits := rfl
+theorem getElem_powRun {R : Type} [Monoid R] (b : R) (n : ℕ) (s : R) (i : ℕ)
+    (hi : i < (powRun b n s).length) : (powRun b n s)[i] = s * b ^ i := by
+  induction n generalizing s i with
+  | zero => simp [powRun] at hi
+  | succ n ih =>
+    cases i with
+    | zero => simp [powRun]
+    | succ i =>
+      simp only [powRun, List.getElem_cons_succ]
+      rw [ih (s * b) i (by simpa [powRun] using hi), pow_succ', mul_assoc]
 
-/-- **The `g_squares` constants**: word `j < 34` is `g^(2^j)` in `K`. -/
-theorem ofBits_gSquaresBits (j : ℕ) (hj : j < sizeBits) :
-    K.ofBits (gSquaresBits.getD j 0) = g ^ 2 ^ j := by
-  have h := congrArg (fun l : List K ↦ l[j]?) gSquaresBits_eq
-  have hj1 : j < gSquaresBits.length := by rw [length_gSquaresBits]; exact hj
-  have hj2 : j < (squares sizeBits g).length := by rw [length_squares]; exact hj
-  simp only [List.getElem?_map, List.getElem?_eq_getElem hj1, List.getElem?_eq_getElem hj2,
-    Option.map_some, Option.some.injEq, getElem_squares] at h
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj1, Option.getD_some, h]
+/-- The nibble shares from the base `b`: sixteen powers of `b`, then of `b^16`, … -/
+def nibRuns {R : Type} [Monoid R] (b : R) : ℕ → List R
+  | 0 => []
+  | j + 1 => powRun b 16 1 ++ nibRuns (b ^ 16) j
 
-/-- The same in `E`: the cell `E(word j)` is `GEN^(2^j)`. -/
-theorem eOfNat_gSquaresBits (j : ℕ) (hj : j < sizeBits) :
-    eOfNat (gSquaresBits.getD j 0) = gen ^ 2 ^ j := by
-  rw [eOfNat, ofBits_gSquaresBits j hj, ofK_pow]
-  rfl
+theorem length_nibRuns {R : Type} [Monoid R] (b : R) (j : ℕ) : (nibRuns b j).length = 16 * j := by
+  induction j generalizing b with
+  | zero => rfl
+  | succ j ih => simp [nibRuns, ih, length_powRun]; omega
+
+theorem getElem_nibRuns {R : Type} [Monoid R] (b : R) (J j u : ℕ) (hj : j < J) (hu : u < 16)
+    (h : 16 * j + u < (nibRuns b J).length) : (nibRuns b J)[16 * j + u] = b ^ (u * 16 ^ j) := by
+  induction J generalizing b j with
+  | zero => omega
+  | succ J ih =>
+    simp only [nibRuns]
+    cases j with
+    | zero =>
+      rw [List.getElem_append_left (by rw [length_powRun]; omega)]
+      simp [getElem_powRun]
+    | succ j =>
+      rw [List.getElem_append_right (by rw [length_powRun]; omega)]
+      simp only [length_powRun]
+      have e : 16 * (j + 1) + u - 16 = 16 * j + u := by omega
+      simp only [e]
+      rw [ih (b ^ 16) j (by omega) (by rw [length_nibRuns] at h ⊢; omega), ← pow_mul, pow_succ]
+      congr 1
+      ring
+
+/-! ## The table's words -/
+
+/-- A bus block group's side (`SIDE_GROUP_START`, `[0, 9, 18, 24]`). -/
+def groupSide (gi : ℕ) : ℕ := if gi < 9 then 0 else if gi < 18 then 1 else 2
+
+/-- The table's honest words in `K`, by offset, computed as the source does. -/
+def etListK : List K :=
+  squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1 ++
+    (List.range 24).map fun gi ↦ K.ofBits (groupSide gi)
+
+/-- The table's words, by offset, as the compiler folds them. -/
+def etWordsN : List ℕ := [
+  2, 4, 0x10, 0x100, 0x10000, 0x100000000, 0x1b, 0x145, 0x11011, 0x101000101, 0x100000001001a,
+  0x1a00000144, 0x10dbc, 0x100514550, 0x11011011111b, 0x10001011a1a015e, 0x15f0144001a114f,
+  0x1aad43011ba1e5, 0x11cefef6be466, 0x5455145e48670f13, 0xbaf1bebe1ae4ad02, 0xb0ef530df44bb042,
+  0xe2170b43ee771735, 0x48380fd207a3b527, 0xb6d535c542116f62, 0xa6df6baa62f965f5,
+  0xb9df3947cea0ffe7, 0xe1882807248fe588, 0x180d86953ed141c6, 0x1894566cd1db8abf,
+  0x4cc78bf4ea999e25, 0xe333308087e402ba, 0x5c62236777028505, 0xb964dc682c67ddcd, 1, 2, 4, 8,
+  0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 1, 0x10000,
+  0x100000000, 0x1000000000000, 0x1b, 0x1b0000, 0x1b00000000, 0x1b000000000000, 0x145, 0x1450000,
+  0x14500000000, 0x145000000000000, 0x1db7, 0x1db70000, 0x1db700000000, 0x1db7000000000000, 1,
+  0x11011, 0x101000101, 0x1110110110111, 0x100000001001a, 0x10110001100aa1a1, 0x100011a1b1a011a,
+  0x100baa100bb1aa0a, 0x1a00000144, 0x1ba1ba01505504, 0x1a001b5f4401441a, 0xa0eb1eea544fee41,
+  0x15e0144001a1ce8, 0xf5ee551fbc9d4f5d, 0x1b4543b0eee81b44, 0xb89a98b89a98b894, 1, 0x10dbc,
+  0x100514550, 0x10deeff7bf8c0, 0x11011011111b, 0x11d7617607b1dce4, 0x5555155e522c4b1c,
+  0x1631292a1c9f84e3, 0x10001011a1a015e, 0xbd0cab0bf4085307, 0x1b092fc78d4a92cc,
+  0xaa644ef5214e1933, 0xbbaeaefb0aefad57, 0xe43e44f979305954, 0x1b8c364e2acb3ea9,
+  0x561ccc67eda76752, 1, 0x15f0144001a114f, 0x1aad43011ba1e5, 0xe34916e80106e21d,
+  0x11cefef6be466, 0xab943b855d3d776b, 0x1c77b6cf4edf1bd0, 0x46923ddea5ce4e34,
+  0x5455145e48670f13, 0xfb7d34d8e2b804bb, 0xbbe0dfe164a4d5b4, 0x431d528b1f73a8a2,
+  0xc259794b79e2607, 0x5945c54c76a8d132, 0xf5cb8b3860386917, 0xb345180ffd7a5551, 1,
+  0xbaf1bebe1ae4ad02, 0xb0ef530df44bb042, 0xe1398cba3a3345d1, 0xe2170b43ee771735,
+  0xef974077ab2e410a, 0x195f74d8d767e0ec, 0xe7a9ce1b1009ddf5, 0x48380fd207a3b527,
+  0x1c041e035dbcddcb, 0x5f44de92a000c6c2, 0x46349d7a0998e7db, 0x4ccfb81392b73990,
+  0xb8cfaede33ecc098, 0x1cc1aa9d264d48e7, 0xb8c0690563b0c7a0, 1, 0xb6d535c542116f62,
+  0xa6df6baa62f965f5, 0x43cd877666280ea1, 0xb9df3947cea0ffe7, 0x4914ca4044188719,
+  0xa464732dc19282c6, 0xec96d1ac82c47367, 0xe1882807248fe588, 0xfc1a74c733a2f5ce,
+  0xa6cb1bf736b8b15a, 0x14653a240571ca31, 0xfdb09cb587733b25, 0x46c5665415338185,
+  0x5b728acb7e18bf24, 0x1257c0c0b80081b1, 1, 0x180d86953ed141c6, 0x1894566cd1db8abf,
+  0xe140c4c3e9685529, 0x4cc78bf4ea999e25, 0xa4a5d5d6667950d6, 0x485ba44760a67477,
+  0x130c212db28e3452, 0xe333308087e402ba, 0x47a0b59555acba5e, 0xb9a2b8ed7bac3b92,
+  0x17cd2ccc4fbbeca4, 0xa2c1e9a5b8a1a4c9, 0xb4812ccc0001799e, 0x5e734724690b7a6f,
+  0x4b4f8209fddb26fb, 1, 0x5c62236777028505, 0xb964dc682c67ddcd, 0xb8f3ae623e1592a,
+  0xb58ac9a23d208acb, 0x1a83edcac97c2423, 0x2b4930660ea1998, 0x12bc2b081f75d26c,
+  0xb3fcc2ab3699fc73, 0x1f0ccd02e5018031, 0x4debd5201f7c72a9, 0xfebd6e55fb0a04b,
+  0x146ae2f2da36409c, 0xf4cfd90774d917b7, 0x1a3fa5613bb31290, 0xa7c23c08867ab11f, 1,
+  0x7000000000001105, 0xc70000000101000a, 0xab7000111011011e, 0x71c6000100000005,
+  0x60da710110001105, 0xabb6c60100011a15, 0xcbabbb6100baa10b, 0xc71c71dc00000011,
+  0x6001aac1c001ba1e, 0xdd076dadc61a0011, 0xd1606ad0a07a0ebb, 0xaab1b6da70980150,
+  0xac1d0cecf853f5e, 0x76b1eff5f5b7dc1f, 0xeca5ba460f10ecb, 0x71c71c71c71c6d30,
+  0xc000000001d3dfec, 0x8c00001cefef7154, 0x44c1d20c39754c3e, 0x3c7f0082db6daa2b,
+  0xa0b05fe741d3cfed, 0x2f1ac945daff2e04, 0x5bb67da48a9ea49d, 0xbfaaf65db6da7cf6,
+  0x91c3dfe31004be8d, 0x56fe300d6e526648, 0xcea10886ccb5fd32, 0x93cbf2094a5007e5,
+  0x5e25d0c68e8c7fed, 0x131b23acade5fdf5, 0xb33f7e5dd191f73, 0x970970970820c200, 0x1454400541, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+
+theorem length_etWordsN : etWordsN.length = 236 := by decide +kernel
+
+/-- **The folded words are the honest values**, decided by the kernel. -/
+theorem etWordsN_eq : etWordsN.map K.ofBits = etListK := by decide +kernel
+
+theorem length_etListK : etListK.length = 236 := by rw [← etWordsN_eq, List.length_map]; rfl
+
+/-- The honest words of the table, in `E`. -/
+def expTableWords : List E := etWordsN.map eOfNat
+
+theorem expTableWords_getD (o : ℕ) (ho : o < 236) :
+    expTableWords.getD o 0 = ofK (etListK[o]'(by rw [length_etListK]; exact ho)) := by
+  have h1 : o < etWordsN.length := by rw [length_etWordsN]; exact ho
+  have h2 := congrArg (fun l : List K ↦ l[o]?) etWordsN_eq
+  simp only [List.getElem?_map, List.getElem?_eq_getElem h1,
+    List.getElem?_eq_getElem (show o < etListK.length by rw [length_etListK]; exact ho),
+    Option.map_some, Option.some.injEq] at h2
+  rw [expTableWords, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem h1,
+    Option.map_some, Option.getD_some, eOfNat, h2]
+
+theorem getElem_idx {α : Type} {l : List α} {i j : ℕ} (h : i = j) (hi : i < l.length) :
+    l[i] = l[j]'(h ▸ hi) := by
+  subst h; rfl
+
+theorem length_etA : (squares 34 g ++ nibRuns g 9).length = 178 := by
+  simp [length_squares, length_nibRuns]
+
+theorem length_etB : (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1).length = 212 := by
+  simp [length_squares, length_nibRuns, length_powRun]
+
+theorem etListK_sq (j : ℕ) (hj : j < 34) : etListK[j]'(by rw [length_etListK]; omega) =
+    g ^ 2 ^ j := by
+  simp only [etListK]
+  rw [List.getElem_append_left (by rw [length_etB]; omega),
+    List.getElem_append_left (by rw [length_etA]; omega),
+    List.getElem_append_left (by rw [length_squares]; omega), getElem_squares]
+
+theorem etListK_nib (j u : ℕ) (hj : j < 9) (hu : u < 16) :
+    etListK[34 + 16 * j + u]'(by rw [length_etListK]; omega) = g ^ (u * 16 ^ j) := by
+  simp only [etListK]
+  rw [List.getElem_append_left (by rw [length_etB]; omega),
+    List.getElem_append_left (by rw [length_etA]; omega),
+    List.getElem_append_right (by rw [length_squares]; omega),
+    getElem_idx (show 34 + 16 * j + u - (squares 34 g).length = 16 * j + u by
+      rw [length_squares]; omega)]
+  exact getElem_nibRuns g _ j u hj hu _
+
+theorem etListK_rank (k : ℕ) (hk : k < 34) :
+    etListK[178 + k]'(by rw [length_etListK]; omega) = g ^ (k * 252) := by
+  simp only [etListK]
+  rw [List.getElem_append_left (by rw [length_etB]; omega),
+    List.getElem_append_right (by rw [length_etA]; omega),
+    getElem_idx (show 178 + k - (squares 34 g ++ nibRuns g 9).length = k by
+      rw [length_etA]; omega),
+    getElem_powRun _ _ _ _ (by rw [length_powRun]; omega), one_mul, ← pow_mul, Nat.mul_comm]
+
+theorem etListK_side (gi : ℕ) (hg : gi < 24) :
+    etListK[212 + gi]'(by rw [length_etListK]; omega) = K.ofBits (groupSide gi) := by
+  simp only [etListK]
+  rw [List.getElem_append_right (by rw [length_etB]; omega),
+    getElem_idx (show 212 + gi - (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 252) 34 1).length =
+      gi by rw [length_etB]; omega), List.getElem_map, List.getElem_range]
+
+/-- **The exponent table is its `236` words.** -/
+theorem expTables_iff_words (rd : Reader) (q : E) :
+    ExpTables rd q ↔ ∀ o < 236, LoadHolds rd q o (expTableWords.getD o 0) := by
+  simp only [ExpTables, sizeBits, selTabNibbles, rankKeysAt, rankStride, sideTabAt, nGkrSides]
+  constructor
+  · rintro ⟨h1, h2, h3, h4⟩ o ho
+    rw [expTableWords_getD o ho]
+    by_cases a : o < 34
+    · rw [etListK_sq o a, ofK_pow, ← gen_eq_ofK]; exact h1 o a
+    by_cases b : o < 178
+    · obtain ⟨j, u, hj, hu, rfl⟩ : ∃ j u, j < 9 ∧ u < 16 ∧ o = 34 + 16 * j + u :=
+        ⟨(o - 34) / 16, (o - 34) % 16, by omega, by omega, by omega⟩
+      rw [etListK_nib j u hj hu, ofK_pow, ← gen_eq_ofK]; exact h2 j hj u hu
+    by_cases c : o < 212
+    · obtain ⟨k, hk, rfl⟩ : ∃ k, k < 34 ∧ o = 178 + k := ⟨o - 178, by omega, by omega⟩
+      rw [etListK_rank k hk, ofK_pow, ← gen_eq_ofK]; exact h3 k hk
+    · obtain ⟨gi, hg, rfl⟩ : ∃ gi, gi < 24 ∧ o = 212 + gi := ⟨o - 212, by omega, by omega⟩
+      rw [etListK_side gi hg, ← eOfNat]
+      unfold groupSide
+      split_ifs with s0 s1
+      · exact h4 0 (by decide) gi (by simp [sideGroupStart]) (by simp [sideGroupStart]; omega)
+      · exact h4 1 (by decide) gi (by simp [sideGroupStart]; omega) (by simp [sideGroupStart]; omega)
+      · exact h4 2 (by decide) gi (by simp [sideGroupStart]; omega) (by simp [sideGroupStart]; omega)
+  · intro h
+    refine ⟨fun j hj ↦ ?_, fun j hj u hu ↦ ?_, fun k hk ↦ ?_, fun s hs gi h1 h2 ↦ ?_⟩
+    · have := h j (by omega)
+      rwa [expTableWords_getD j (by omega), etListK_sq j hj, ofK_pow, ← gen_eq_ofK] at this
+    · have := h (34 + 16 * j + u) (by omega)
+      rwa [expTableWords_getD _ (by omega), etListK_nib j u hj hu, ofK_pow, ← gen_eq_ofK] at this
+    · have := h (178 + k) (by omega)
+      rwa [expTableWords_getD _ (by omega), etListK_rank k hk, ofK_pow, ← gen_eq_ofK] at this
+    · have hg : gi < 24 := by
+        interval_cases s <;> simp [sideGroupStart] at h2 <;> omega
+      have := h (212 + gi) (by omega)
+      rw [expTableWords_getD _ (by omega), etListK_side gi hg, ← eOfNat] at this
+      convert this using 2
+      unfold groupSide
+      interval_cases s <;> simp [sideGroupStart] at h1 h2 <;> split_ifs <;> omega
 
 /-! ## The function -/
 
-/-- `g_logs_pow2[g^j] = 2^j`. -/
-def etBlk1 (j : ℕ) : List Stmt :=
-  [.atom (.const (.n (1 + j)) (word (2 ^ j) 0 0)), .atom (.load (.n (1 + j)) (.n 0) j)]
+/-- Body position `t`'s offset: the squares, then the rank keys and sides, then the shares. -/
+def etOff (t : ℕ) : ℕ := if t < 34 then t else if t < 92 then t + 144 else t - 58
 
-/-- `g_squares[g^j] = g^(2^j)`, folded. -/
-def etBlk2 (j : ℕ) : List Stmt :=
-  [.atom (.const (.n (36 + j)) (word (gSquaresBits.getD j 0) 0 0)),
-    .atom (.load (.n (36 + j)) (.n 35) j)]
+/-- `g_squares[g^o] = w`, folded: the word at offset `etOff t`. -/
+def etBlk (t : ℕ) : List Stmt :=
+  [.atom (.const (.n (t + 1)) (word (etWordsN.getD (etOff t) 0) 0 0)),
+    .atom (.load (.n (t + 1)) (.n 0) (etOff t))]
 
 /-- The expansion of `exponent_tables`. -/
 def etBody : List Stmt :=
-  [.atom (.hint (.alloc (.n 0) 34))] ++ ((List.range 34).map etBlk1).flatten ++
-  [.atom (.hint (.alloc (.n 35) 34))] ++ ((List.range 34).map etBlk2).flatten ++
-  [.atom (.copy (.n 70) (.n 0)), .atom (.copy (.n 71) (.n 35)), .ret [.n 70, .n 71]]
+  [.atom (.hint (.alloc (.n 0) 236))] ++ ((List.range 236).map etBlk).flatten ++
+  [.atom (.copy (.n 237) (.n 0)), .ret [.n 237]]
 
 theorem core2_body : Fn.body Data.core2 = etBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some Data.core2 :=
   Program.find?_of_indexOf? (j := 2) (by decide +kernel) rfl
 
+/-- The offsets the body writes are every offset below `236`, once. -/
+theorem etOff_iff (rd : Reader) (q : E) :
+    (∀ t < 236, LoadHolds rd q (etOff t) (expTableWords.getD (etOff t) 0)) ↔
+      ∀ o < 236, LoadHolds rd q o (expTableWords.getD o 0) := by
+  constructor
+  · intro h o ho
+    obtain ⟨t, ht, rfl⟩ : ∃ t < 236, etOff t = o := by
+      by_cases a : o < 34
+      · exact ⟨o, by omega, by simp [etOff, a]⟩
+      by_cases b : o < 178
+      · exact ⟨o + 58, by omega, by simp only [etOff]; split_ifs <;> omega⟩
+      · exact ⟨o - 144, by omega, by simp only [etOff]; split_ifs <;> omega⟩
+    exact h t ht
+  · intro h t ht
+    exact h _ (by simp only [etOff]; split_ifs <;> omega)
+
 /-- **`exponent_tables`' core IR is its meaning.** -/
 theorem exponent_tables_holds : exponent_tables_Spec := by
   intro rd args rets
   rw [rel_iff_sem find_exponent_tables, core2_body, show Fn.params Data.core2 = [] from rfl, etBody]
   simp only [holdsList_append, Stmt.HoldsList]
-  simp only [holdsList_range_flatten 34 etBlk1 (fun _ => rfl),
-    holdsList_range_flatten 34 etBlk2 (fun _ => rfl), etBlk1, etBlk2]
+  simp only [holdsList_range_flatten 236 etBlk (fun _ => rfl), etBlk]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     and_true]
+  have hw : ∀ t, word (etWordsN.getD (etOff t) 0) 0 0 = expTableWords.getD (etOff t) 0 := by
+    intro t
+    rw [word_eOfNat, expTableWords, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+      List.getElem?_map]
+    cases etWordsN[etOff t]? <;> simp [eOfNat_zero]
+  simp only [hw]
   constructor
-  · rintro ⟨σ, hp, ht1, ht2, h70, h71, hret⟩
+  · rintro ⟨σ, hp, ht, h237, hret⟩
     subst hp hret
-    intro j hj
-    obtain ⟨c1, l1⟩ := ht1 j hj
-    obtain ⟨c2, l2⟩ := ht2 j hj
-    rw [h70, h71]
-    rw [c1, word_eOfNat] at l1
-    rw [c2, word_eOfNat, eOfNat_gSquaresBits j hj] at l2
-    exact ⟨l1, l2⟩
+    rw [h237]
+    exact (expTables_iff_words rd _).2 ((etOff_iff rd _).1 fun t h ↦ by
+      obtain ⟨c, l⟩ := ht t h
+      rwa [c] at l)
   · intro hm
-    obtain ⟨rfl, p, q, rfl, ht⟩ : args = [] ∧ ∃ p q, rets = [p, q] ∧ ExpTables rd p q := by
+    obtain ⟨rfl, q, rfl, ht⟩ : args = [] ∧ ∃ q, rets = [q] ∧ ExpTables rd q := by
       match args, rets, hm with
-      | [], [p, q], h => exact ⟨rfl, p, q, rfl, h⟩
-    refine ⟨setl (setv (setl (setv (setl (Val.ofArgs []) 0 [p]) 1 34 fun j => word (2 ^ j) 0 0) 35
-      [q]) 36 34 fun j => word (gSquaresBits.getD j 0) 0 0) 70 [p, q], rfl, fun j hj => ?_,
-      fun j hj => ?_, ?_, ?_, ?_⟩
+      | [], [q], h => exact ⟨rfl, q, rfl, h⟩
+    have hl := (etOff_iff rd q).2 ((expTables_iff_words rd q).1 ht)
+    refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 236 fun t ↦ expTableWords.getD (etOff t) 0)
+      237 [q], rfl, fun t ht ↦ ?_, ?_, ?_⟩
     all_goals (try b1_look)
-    · rw [word_eOfNat]; exact ⟨trivial, (ht j hj).1⟩
-    · rw [word_eOfNat, eOfNat_gSquaresBits j hj]; exact ⟨trivial, (ht j hj).2⟩
+    · exact ⟨by rw [Nat.add_sub_cancel], hl t ht⟩
 
 end
 end LeanVM.Guest.B1
