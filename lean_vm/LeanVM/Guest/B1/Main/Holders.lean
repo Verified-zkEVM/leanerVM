@@ -62,8 +62,8 @@ theorem region_raw (S : Segs) (m : ℕ) :
 section Held
 
 variable (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
-  (hW : Writers rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ))
-  (hC : Cover rd (σ (.n 67)) (segsOf σ Kr) (LXS σ) (LSS σ) sl)
+  (hW : Writers rd (σ (.n 66)) (segsOf σ Kr) (LXS σ) (LSS σ))
+  (hC : Cover rd (σ (.n 66)) (segsOf σ Kr) (LXS σ) (LSS σ) sl)
 include MF hW hC
 
 omit hW in
@@ -164,7 +164,7 @@ theorem xmss_covered :
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
   intro claim hclaim
   obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
-    (show claim ∈ (List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 53))) from hclaim)
+    (show claim ∈ (List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 52))) from hclaim)
   rw [List.mem_range, gLog_lg] at hk
   have hkT : k < LXS σ + LSS σ := by omega
   obtain ⟨hmT, hslm⟩ := hC.mark k hkT
@@ -190,7 +190,7 @@ theorem xmss_covered :
       List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).1.mp hr0
     rw [segsOf_ex] at hj
-    show xmssAt rd (σ (.n 53)) k ∈ (kidStmt rd σ c).claims.xmss
+    show xmssAt rd (σ (.n 52)) k ∈ (kidStmt rd σ c).claims.xmss
     rw [kidStmt_eq MF hK hW hC hc]
     refine List.mem_map.mpr ⟨m - (segsOf σ Kr).a c, List.mem_range.mpr (by omega), ?_⟩
     obtain ⟨hlt', hl⟩ := kid_wx MF hK hc (j := m - (segsOf σ Kr).a c) (by omega)
@@ -208,7 +208,7 @@ theorem sphincs_covered :
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
   intro claim hclaim
   obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
-    (show claim ∈ (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 56))) from hclaim)
+    (show claim ∈ (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 55))) from hclaim)
   rw [List.mem_range, gLog_lg] at hk
   have hkT : LXS σ + k < LXS σ + LSS σ := by omega
   obtain ⟨hmT, hslm⟩ := hC.mark (LXS σ + k) hkT
@@ -233,7 +233,7 @@ theorem sphincs_covered :
       List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).2.mp hr1
     rw [segsOf_ex, segsOf_es] at hj
-    show sphincsAt rd (σ (.n 56)) k ∈ (kidStmt rd σ c).claims.sphincs
+    show sphincsAt rd (σ (.n 55)) k ∈ (kidStmt rd σ c).claims.sphincs
     rw [kidStmt_eq MF hK hW hC hc]
     refine List.mem_map.mpr ⟨m - (segsOf σ Kr).a c - (Kr c).ex, List.mem_range.mpr (by omega), ?_⟩
     obtain ⟨hlt', hl⟩ := kid_ws MF hK hc (j := m - (segsOf σ Kr).a c - (Kr c).ex) (by omega)
@@ -265,7 +265,7 @@ theorem da_rel {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → S
   have hown := MF.own
   by_cases hd : lg σ 7 = 1
   · have hdec : (decWit σ rd wX wS wD wV wA).daMatrix =
-        some (dvClaim σ, wD [σ (.n 50)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]) := by
+        some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)]) := by
       unfold decWit; simp only [nDirect_eq, hd, ↓reduceIte]
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h

@@ -23,7 +23,7 @@ public import LeanVM.Facts.Verifier
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`3375f7a13`, G below) its meaning `Meaning…` on its argument and return words, and two
+`c4f4bc92`, G below) its meaning `Meaning…` on its argument and return words, and two
 statements on its core IR relation (`coreProgram.Rel`): `…_sound_Spec`, the relation gives the
 meaning, and `…_complete_Spec`, the meaning (with what memory an honest run holds) gives the
 relation. A `…_Spec` is a definition (a `Prop`); its proof is the theorem `…_holds` of the
@@ -31,10 +31,10 @@ family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `statement_digest` | 3766-3797 | `core22` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
-| `list_split` | 3812-3824 | `core23` | `n = 17 · groups + rest`, `groups < 2^16`, `rest < 17` |
-| `claim_list_digest` | 3827-3849 | `core24` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
-| `child_claim_list_digest` | 3876-3903 | `core25` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table |
+| `statement_digest` | 3934-3973 | `core22` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
+| `list_split` | 3982-3997 | `core23` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^16`, `groups < 8`, `rest < 17` |
+| `claim_list_digest` | 4000-4043 | `core24` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
+| `child_claim_list_digest` | 4062-4197 | `core25` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
 
 **Cells and bytes.** A cell holds sixteen bytes, limbs `0` and `1` (`Value.Keccak.cellsBytes`;
 the `KECCAK` instruction makes every cell it reads canonical, `AllCanonical`). A digest's two
@@ -68,7 +68,7 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0 0
 
-/-! ## `statement_digest` (G:3752-3783, TRIAGE #86) -/
+/-! ## `statement_digest` (G:3934-3973, TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
@@ -99,19 +99,25 @@ def statement_digest_complete_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     MeaningStatementDigest rd args rets → coreProgram.Rel rd "statement_digest" args rets
 
-/-! ## `list_split` (G:3800-3812, TRIAGE #87) -/
+/-! ## `list_split` (G:3982-3997, TRIAGE #87) -/
 
-/-- `CLAIM_GROUP`: claims hashed a loop frame. -/
+/-- `CLAIM_GROUP`: claims hashed a loop frame of a list's rest. -/
 abbrev claimGroup : ℕ := 17
+
+/-- `BIG_GROUPS`: groups of a big frame. -/
+abbrev bigGroups : ℕ := 8
+
+/-- `CLAIM_BIG = CLAIM_GROUP · BIG_GROUPS`: claims hashed a loop frame of a list's bulk. -/
+abbrev claimBig : ℕ := 136
 
 /-- `MAX_KEYS`. -/
 abbrev maxKeys : ℕ := 65536
 
-/-- **`list_split(n_g)`**: `n_g = g^(17 a + b)` with `a < 2^16`, `b < 17`, and the function returns
-`g^a`, `g^b`. -/
+/-- **`list_split(n_g)`**: `n_g = g^(136 a + 17 b + c)` with `a < 2^16`, `b < 8`, `c < 17`, and
+the function returns `g^a`, `g^b`, `g^c`. -/
 def MeaningListSplit : List E → List E → Prop
-  | [ng], rets => ∃ a < maxKeys, ∃ b < claimGroup, ng = gen ^ (claimGroup * a + b) ∧
-      rets = [gen ^ a, gen ^ b]
+  | [ng], rets => ∃ a < maxKeys, ∃ b < bigGroups, ∃ c < claimGroup,
+      ng = gen ^ (claimBig * a + claimGroup * b + c) ∧ rets = [gen ^ a, gen ^ b, gen ^ c]
   | _, _ => False
 
 /-- `list_split`'s core IR gives its meaning, on a memory image. -/
@@ -124,7 +130,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     MeaningListSplit args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:3815-3847, TRIAGE #88) -/
+/-! ## `claim_list_digest` (G:4000-4043, TRIAGE #88) -/
 
 /-- The `4n` cells of `n` claims at `entries` are canonical, and `rets` is the two cells of their
 Keccak-256 digest (an empty list: the empty string's). -/
@@ -132,10 +138,10 @@ def ClaimListOut (rd : Reader) (entries : E) (n : ℕ) (rets : List E) : Prop :=
   ∃ cells : List E, cells.length = 4 * n ∧ ReadsAt rd entries cells ∧ AllCanonical cells ∧
     rets = digestCells (keccak256 (cellsBytes cells))
 
-/-- **`claim_list_digest(entries, n_g)`**: `n_g = g^n` for a count `n < 17 · 2^16`, and the
+/-- **`claim_list_digest(entries, n_g)`**: `n_g = g^n` for a count `n < 136 · 2^16`, and the
 function returns the digest of the `n` claims at `entries` (`ClaimListOut`). -/
 def MeaningClaimListDigest (rd : Reader) : List E → List E → Prop
-  | [entries, ng], rets => ∃ n < claimGroup * maxKeys, ng = gen ^ n ∧ ClaimListOut rd entries n rets
+  | [entries, ng], rets => ∃ n < claimBig * maxKeys, ng = gen ^ n ∧ ClaimListOut rd entries n rets
   | _, _ => False
 
 /-- `claim_list_digest`'s core IR gives its meaning, on a memory image. -/
@@ -143,25 +149,31 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:3852-3899, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (G:4062-4197, TRIAGE #89) -/
+
+/-- The slot `e` lies below the log of the region's size `b`: `b = g^L`, `e < L < 2^33`. -/
+def SlotBelow (b : E) (e : ℕ) : Prop := ∃ L < 2 ^ 33, b = gen ^ L ∧ e < L
 
 /-- **A child's claim list rebuilt from this node's table**: claim `j < n` sits at slot `o j` of
-the table at `entries` (its four cells at `entries · g^(4 o j)`), the slot below the log of `limit`
-and marked in the coverage table, `cover[origin · g^(o j)] = base · g^j`; the `4n` cells are
-canonical and `rets` is the two cells of their Keccak-256 digest. -/
-def ChildListOut (rd : Reader) (entries cover base origin limit : E) (n : ℕ) (rets : List E) :
-    Prop :=
-  ∃ (o : ℕ → ℕ) (cells : List E), cells.length = 4 * n ∧ AllCanonical cells ∧
-    (∀ j < n, BelowLog limit (o j) ∧ LoadHolds rd (cover * (origin * gen ^ o j)) 0 (base * gen ^ j) ∧
+the table at `entries` (its four cells at `entries · g^(4 o j)`), the slot below the log of
+`limit` and marked in the region's coverage slot `region · g^(o j)`. The walk by hinted indices
+(`child_claim_list_any`) marks claim `j` with `base · g^j`; the walk by hinted gaps
+(`child_claim_list_mono`, `mono`) marks every claim with `base`, its slots strictly increasing.
+The `4n` cells are canonical and `rets` is the two cells of their Keccak-256 digest. -/
+def ChildListOut (rd : Reader) (entries region base limit : E) (n : ℕ) (rets : List E) : Prop :=
+  ∃ (mono : Bool) (o : ℕ → ℕ) (cells : List E), cells.length = 4 * n ∧ AllCanonical cells ∧
+    (mono = true → ∀ i j, i < j → j < n → o i < o j) ∧
+    (∀ j < n, SlotBelow limit (o j) ∧
+      LoadHolds rd region (o j) (base * gen ^ (if mono then 0 else j)) ∧
       ∀ c < 4, LoadHolds rd entries (4 * o j + c) (cells.getD (4 * j + c) 0)) ∧
     rets = digestCells (keccak256 (cellsBytes cells))
 
-/-- **`child_claim_list_digest(entries, cover, base, origin_g, limit_g, n_g)`**: `n_g = g^n`,
-`n < 17 · 2^16`, and the function returns the digest of the claims rebuilt at hinted slots
-(`ChildListOut`). -/
+/-- **`child_claim_list_digest(entries, region, base, limit_g, n_g)`**: `n_g = g^n`,
+`n < 136 · 2^16`, and the function returns the digest of the claims rebuilt at hinted slots
+(`ChildListOut`), by either walk (the prover's hint `child_mono`). -/
 def MeaningChildClaimListDigest (rd : Reader) : List E → List E → Prop
-  | [entries, cover, base, origin, limit, ng], rets => ∃ n < claimGroup * maxKeys,
-      ng = gen ^ n ∧ ChildListOut rd entries cover base origin limit n rets
+  | [entries, region, base, limit, ng], rets => ∃ n < claimBig * maxKeys,
+      ng = gen ^ n ∧ ChildListOut rd entries region base limit n rets
   | _, _ => False
 
 /-- `child_claim_list_digest`'s core IR gives its meaning, on a memory image. -/
