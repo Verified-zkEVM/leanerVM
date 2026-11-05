@@ -159,11 +159,11 @@ theorem announced_honest {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible 
   rfl
 
 /-- **A child's honest proof announces a stack log of at least `22`** when the execution's
-committed size is at least `2^22`. -/
+committed size is above `2^21`. -/
 theorem muMin_le_announced {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog)} {s : Sizes} (hc : ChildFor prog input t ρ w s)
-    (h22 : 2 ^ 22 ≤ t.committedSize) (rest : List E) :
+    (h21 : 2 ^ 21 < t.committedSize) (rest : List E) :
     ∀ layout r, announcedLayoutAndRate (bytecodeWords prog) (announce s ρ ++ rest) = some
         (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog := by
@@ -175,8 +175,7 @@ theorem muMin_le_announced {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
   rw [stackLog_verifierLayout]
   refine le_trans ?_ (le_max_left _ _)
   rw [htot]
-  have := Nat.clog_mono_right 2 h22
-  rwa [Nat.clog_pow _ _ (by norm_num)] at this
+  exact (Nat.lt_clog_iff_pow_lt (by norm_num)).2 h21
 
 end
 end LeanVM.Guest.Child

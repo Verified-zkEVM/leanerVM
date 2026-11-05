@@ -138,13 +138,18 @@ def HonestProofRarelyRefused : Prop :=
 
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program of
-committed size at least `2^22` on its statement's digest under the deployed seed, and the leanVM
-verifier refusing a zero challenge accepts it. `lean_vm` proves that such a child meets what
-the guest program checks of a child (`guest_child_complete`). -/
+committed size above `2^21` on its statement's digest under the deployed seed, and the leanVM
+verifier refusing a zero challenge accepts it. The floor is the one the guest program checks: it
+has an opening arm for a child's stack log `⌈log₂ committedSize⌉` from `22` (`MU_MIN`,
+`aggregation.rs:1338`) to `28` only (`lean_ethereum.py:3493-3497`), and the aggregator pads every
+aggregate's memory, doubling it, until that log is at least `22` (`min_log_committed = MU_MIN`,
+`aggregation.rs:1927`; `execute.rs:1060-1069`; the log is `placements_of`'s `mu`, `⌈log₂⌉` of the
+committed cells, `cpu/layout.rs:279-283`, `witness.rs:80-97`). `lean_vm` proves that such a child
+meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
-    ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 22 ≤ execution.committedSize ∧
+    ∃ (execution : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < execution.committedSize ∧
       LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 25) =
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
@@ -153,7 +158,9 @@ def HonestChild (child : Child) : Prop :=
 program**: for every statement and witness with `NodeRelation` under the deployed seed, within the
 deployed limits, in one of the families `CoveredNode` lists, every child carrying an honest proof
 (`HonestChild`), there is a valid execution of the guest program on the statement's digest of
-committed size in `[2^22, 2^28]`. Reading `HonestProofRarelyRefused` for the deployed Keccak,
+committed size above `2^21` and at most `2^28`, so of stack log `⌈log₂ committedSize⌉` from `22` to
+`28`, the sizes `HonestChild` admits (the aggregator's floor, `aggregation.rs:1927`,
+`execute.rs:1060-1069`). Reading `HonestProofRarelyRefused` for the deployed Keccak,
 so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
 behaves as a random permutation, applied to this prover. Proved by
 `LeanVM.Guest.Completeness.guest_complete_on_honest_children`. -/
@@ -165,7 +172,7 @@ def GuestCompleteOnHonestChildren : Prop :=
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      2 ^ 22 ≤ execution.committedSize ∧ execution.committedSize ≤ 2 ^ 28
+      2 ^ 21 < execution.committedSize ∧ execution.committedSize ≤ 2 ^ 28
 
 end Completeness
 

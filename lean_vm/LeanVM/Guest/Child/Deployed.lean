@@ -49,7 +49,7 @@ proof) is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
     {t : Execution guestProgram} {ρ : ℕ}
     (hA : ChildSpec A guestProgram (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25))
-    (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
+    (h21 : 2 ^ 21 < t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
     (hsome : Budget.honestProofWithDeployedKeccakWithHash A guestProgram
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
@@ -77,7 +77,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   · -- the stack log
     show ∀ layout r, announcedLayoutAndRate bytecode proof.stream = some (layout, r) → _
     rw [hrest]
-    exact muMin_le_announced hchild h22 rest
+    exact muMin_le_announced hchild h21 rest
   · -- the caps
     intro b hb
     have hle : VerifierProgram.Le (deferringVerifierProgram c bytecode d) (leanVmVerifierProgram
@@ -104,7 +104,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
 
 /-- **The child prover's accepted proof is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guestProgram} {ρ : ℕ}
-    (h22 : 2 ^ 22 ≤ t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
+    (h21 : 2 ^ 21 < t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
     (hsome : Budget.honestProofWithDeployedKeccakWithHash childProver guestProgram
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
@@ -112,7 +112,7 @@ theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guestProgram} {
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) proof = true) :
     ∃ fresh, fresh.Holds bytecode ∧
       LeanVM.Guest.AcceptableChild bytecode (deployedSeed guestProgram) ⟨s, fresh, proof⟩ :=
-  childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h22 hsh hsome hacc
+  childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h21 hsh hsome hacc
 
 end
 end LeanVM.Guest.Child

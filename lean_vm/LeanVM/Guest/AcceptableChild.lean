@@ -201,7 +201,7 @@ def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanI
 accepts**:
 1. it is rarely refused (`HonestProofRarelyRefused`);
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the guest program of committed size at least `2^22` on a statement's digest under
+   execution of the guest program of committed size above `2^21` on a statement's digest under
    the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it, forms
    with the statement (its deferred claim shaped) and some claim `fresh` on the bytecode whose
    value is true (`BytecodeClaim.Holds`) a child the guest program accepts (`AcceptableChild`).
@@ -209,7 +209,7 @@ Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
   HonestProofRarelyRefused ∧
   ∀ (statement : NodeStatement) (execution : Execution guestProgram) (ρ : ℕ),
-    2 ^ 22 ≤ execution.committedSize →
+    2 ^ 21 < execution.committedSize →
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
     ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ

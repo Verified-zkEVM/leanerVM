@@ -97,7 +97,7 @@ oracle calls),
    `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
    `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the leanISA guest program of committed size at least `2^22` on a statement's digest
+   execution of the leanISA guest program of committed size above `2^21` on a statement's digest
    under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
    forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
    bytecode (`fresh.Holds`) a child the guest program accepts (`AcceptableChild`).
@@ -114,7 +114,7 @@ def GuestChildCompleteWithHash : Prop :=
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
           false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ), 2 ^ 22 ≤ t.committedSize →
+  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < t.committedSize →
     s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
     ∀ proof,
