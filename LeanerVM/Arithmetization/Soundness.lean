@@ -75,24 +75,29 @@ def statePairs (w : EnsembleWitness (leanIsaEnsemble prog)) : List (Regs K × Re
 /-- The key of a state in the state map: its two words. -/
 def stateKey (r : Regs K) : BitVec 64 × BitVec 64 := (r.pc.toBitVec, r.fp.toBitVec)
 
-/-- The state map of a witness: each pulled state to the state its row pushes. -/
-def stateMap (w : EnsembleWitness (leanIsaEnsemble prog)) :
-    Std.HashMap (BitVec 64 × BitVec 64) (Regs K) :=
-  (statePairs w).foldl (fun m p ↦ m.insert (stateKey p.1) p.2) ∅
+/-- The state map of a list of state pairs: each pulled state to the state its row pushes. -/
+def stateMap (pairs : List (Regs K × Regs K)) : Std.HashMap (BitVec 64 × BitVec 64) (Regs K) :=
+  pairs.foldl (fun m p ↦ m.insert (stateKey p.1) p.2) ∅
 
-/-- The number of steps the map `m` walks from `r` to `final`, within `fuel` steps. -/
+/-- The number of steps the map `m` walks from `r` to `final`, within `fuel` steps, added to
+`acc`. The recursive call is the last thing done, so the walk runs as a loop and a long run does
+not grow the stack. -/
 def walkSteps (m : Std.HashMap (BitVec 64 × BitVec 64) (Regs K)) (final : Regs K) :
-    ℕ → Regs K → Option ℕ
-  | 0, r => if r = final then some 0 else none
-  | fuel + 1, r =>
-    if r = final then some 0
-    else (m[stateKey r]?).bind fun r' ↦ (walkSteps m final fuel r').map (· + 1)
+    ℕ → ℕ → Regs K → Option ℕ
+  | 0, acc, r => if r = final then some acc else none
+  | fuel + 1, acc, r =>
+    if r = final then some acc
+    else match m[stateKey r]? with
+      | none => none
+      | some r' => walkSteps m final fuel (acc + 1) r'
 
 /-- The trace a witness represents: the image its data names, and the number of steps its rows'
-states walk from `(1, 1)` to the final registers, with the number of opcode rows as fuel. -/
+states walk from `(1, 1)` to the final registers, with the number of opcode rows as fuel. The
+rows' states are read once. -/
 def traceOf (prog : Program) (w : EnsembleWitness (leanIsaEnsemble prog)) :
     Option (Trace prog) :=
-  (walkSteps (stateMap w) (Regs.final prog) (statePairs w).length Regs.initial).map
+  let pairs := statePairs w
+  (walkSteps (stateMap pairs) (Regs.final prog) pairs.length 0 Regs.initial).map
     fun n ↦ ⟨(imageOf w.data).1, (imageOf w.data).2, n⟩
 
 /-! ## Proof helpers -/
@@ -231,7 +236,8 @@ private theorem foldl_insert_isSome {l : List (Regs K × Regs K)}
 /-- At a pulled state, the state map holds the state a row pushes from it. -/
 private theorem stateMap_getElem? {w : EnsembleWitness (leanIsaEnsemble prog)}
     (hpairs : ∀ p ∈ statePairs w, ∀ q ∈ statePairs w, p.1 = q.1 → p.2 = q.2)
-    {p : Regs K × Regs K} (hp : p ∈ statePairs w) : (stateMap w)[stateKey p.1]? = some p.2 := by
+    {p : Regs K × Regs K} (hp : p ∈ statePairs w) :
+    (stateMap (statePairs w))[stateKey p.1]? = some p.2 := by
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp
     (foldl_insert_isSome (l := statePairs w) (m := ∅) (Or.inr ⟨p, hp, rfl⟩))
   rcases foldl_insert_getElem? hv with h0 | ⟨q, hq, hk, rfl⟩
@@ -244,12 +250,15 @@ private theorem walkSteps_of_walksIn {κ : ℕ} {L : MemImage κ} {E : List (Reg
     {m : Std.HashMap (BitVec 64 × BitVec 64) (Regs K)} {final : Regs K}
     (hfinal : ∀ v ∈ E, v ≠ final)
     (hm : ∀ v ∈ E, ∀ v', step prog L v = some v' → m[stateKey v]? = some v') :
-    ∀ {n s fuel}, WalksIn (step prog L) E n s final → n ≤ fuel → walkSteps m final fuel s = some n
-  | 0, _, fuel, h, _ => by cases fuel <;> rw [walkSteps, ite_eq_left (show _ = final from h)]
-  | _ + 1, _, 0, _, hn => absurd hn (by omega)
-  | n + 1, s, fuel + 1, ⟨hs, s', hstep, hw⟩, hn => by
-    rw [walkSteps, ite_eq_right (hfinal s hs), hm s hs s' hstep, Option.bind_some,
-      walkSteps_of_walksIn hfinal hm hw (by omega), Option.map_some]
+    ∀ {n s fuel acc}, WalksIn (step prog L) E n s final → n ≤ fuel →
+      walkSteps m final fuel acc s = some (acc + n)
+  | 0, _, fuel, _, h, _ => by
+    cases fuel <;> rw [walkSteps, ite_eq_left (show _ = final from h), Nat.add_zero]
+  | _ + 1, _, 0, _, _, hn => absurd hn (by omega)
+  | n + 1, s, fuel + 1, acc, ⟨hs, s', hstep, hw⟩, hn => by
+    rw [walkSteps, ite_eq_right (hfinal s hs), hm s hs s' hstep]
+    dsimp only
+    rw [walkSteps_of_walksIn hfinal hm hw (by omega), Nat.add_right_comm, Nat.add_assoc]
 
 /-! ## Soundness -/
 
@@ -265,14 +274,12 @@ theorem traceOf_valid (hsafe : SentinelSafe prog) {w : EnsembleWitness (leanIsaE
     intro v hv
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hv
     exact (hspec p hp).2.1
-  obtain ⟨n, hn, hw⟩ := exists_walksIn (states_balanced hsafe h) fun v hv ↦ by
-    obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hv
-    rw [(hspec p hp).1]
-    exact Option.some_ne_none _
+  obtain ⟨n, hn, hw⟩ := exists_walksIn (states_balanced hsafe h)
   have hpairs : ∀ p ∈ statePairs w, ∀ q ∈ statePairs w, p.1 = q.1 → p.2 = q.2 :=
     fun p hp q hq hpq ↦ Option.some.inj ((hspec p hp).1.symm.trans (hpq ▸ (hspec q hq).1))
-  have hwalk : walkSteps (stateMap w) (Regs.final prog) (statePairs w).length Regs.initial =
-      some n := by
+  have hwalk : walkSteps (stateMap (statePairs w)) (Regs.final prog) (statePairs w).length 0
+      Regs.initial = some n := by
+    rw [← Nat.zero_add n]
     refine walkSteps_of_walksIn (fun v hv hvf ↦ hE v hv (by rw [hvf]; rfl)) ?_ hw
       (by rwa [List.length_map] at hn)
     intro v hv v' hstep
@@ -293,7 +300,7 @@ theorem traceOf_valid (hsafe : SentinelSafe prog) {w : EnsembleWitness (leanIsaE
     rw [Option.some.inj ((Trace.regs_getElem (t := t) hrun k (by omega)).symm.trans hu'),
       Option.some.inj ((Trace.regs_getElem (t := t) hrun (k + 1) hk).symm.trans hu1)]
     exact (hspec p hp).2.2
-  exact ⟨t, by rw [traceOf, hwalk]; rfl, ⟨rfl, fun _ _ ↦ rfl, hregs⟩,
+  exact ⟨t, by simp only [traceOf]; rw [hwalk]; rfl, ⟨rfl, fun _ _ ↦ rfl, hregs⟩,
     ⟨⟨h.caps.minLogMem_le, h.caps.le_maxLogMem, h.word0_eq, h.word1_eq⟩, hrun⟩⟩
 
 /-- Specification Proposition 6.1, cut at the first arrival at the final registers: the
@@ -315,7 +322,8 @@ theorem constraintSoundness (hsafe : SentinelSafe prog)
   exact ⟨t, ht⟩
 
 /-- The trace interface of the proof system's headline, for a program whose sentinel slot is not
-a `JUMP`: `traceOf`, and `traceOf_valid`. -/
+a `JUMP`: `traceOf`, and `traceOf_valid`. Computable: a compiled definition whose trace reader is
+the walk `traceOf`, which the tests run. -/
 def leanIsaTraceExtraction (hsafe : SentinelSafe prog) : TraceExtraction prog where
   traceOf _ w := traceOf prog w
   valid _ _ h := traceOf_valid hsafe h

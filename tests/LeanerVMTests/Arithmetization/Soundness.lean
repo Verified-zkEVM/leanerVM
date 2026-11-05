@@ -14,7 +14,8 @@ block, which `traceOf` does not read: `traceOf_fill_eq`). On the zero-count witn
 step the same way, it returns the same four steps: `traceOf` decides nothing about memory or
 counts, and only `traceOf_valid` makes its trace a valid execution. On a witness without the
 `JUMP` row to the sentinel the walk stops at `(g^3, 1)`, which no row pulls, and `traceOf`
-returns nothing.
+returns nothing. On a synthetic chain of two hundred thousand states the walk, a loop,
+returns the length.
 
 **The theorems applied.** `traceOf_valid`, `constraintSoundness`, `exists_run_of_balanced` and
 `leanIsaTraceExtraction` on the honest witness; the run they give is the semantic tests' run.
@@ -71,6 +72,17 @@ theorem traceOf_fill_eq : traceOf fillProg (fillW 1 g memCnt) = traceOf fillProg
 
 -- Without the `JUMP` row to the sentinel the walk stops at `(g^3, 1)`: no trace.
 #guard (traceOf fillProg noExitW).isNone
+
+/-! ## A long walk -/
+
+/-- A chain of `n` states `(i, 0) → (i + 1, 0)`, as a state map. -/
+def chainMap (n : ℕ) : Std.HashMap (BitVec 64 × BitVec 64) (Regs K) :=
+  (List.range n).foldl
+    (fun m i ↦ m.insert (stateKey ⟨K.ofBits i, 0⟩) ⟨K.ofBits (i + 1), 0⟩) ∅
+
+-- The walk is a loop: two hundred thousand steps do not grow the stack.
+#guard walkSteps (chainMap 200000) ⟨K.ofBits 200000, 0⟩ 200000 0 ⟨K.ofBits 0, 0⟩ =
+  some 200000
 
 /-! ## The theorems applied -/
 
