@@ -52,6 +52,8 @@ fn main() {
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_else(|| "unknown".into());
     println!("cargo:rustc-env=LEANVM_REV={rev}");
+    // A new pin with unchanged sources must still rebuild, or the headers keep the old commit.
+    println!("cargo:rerun-if-changed={}", manifest.join("../../../leanvm-rev").display());
     println!("cargo:rustc-env=LEANVM_DIR={}", leanvm.display());
 
     let overlay = format!(
