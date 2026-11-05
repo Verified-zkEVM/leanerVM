@@ -426,7 +426,8 @@ levels at rate `1/2`. It runs the prover's writer in `IO` with the time read at 
 squeeze, writes the proof in the dump format, reads it back, and checks it with `verify` and its
 mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`. `execution` runs the prover
 from an execution, `proveExecution` (the witness generator, then `prove`), on the one-step ladder
-trace of the completeness tests and checks that `verify` accepts the proof.
+trace of the completeness tests, decides the stack hypothesis of `proveExecution_rom_complete`
+(`StackFits`, true there) and checks that `verify` accepts the proof.
 
 ```sh
 lake build leanervm-prove
@@ -444,7 +445,9 @@ lake build leanervm-prove
 the ladder program on `badImage` (memory `2^16`, padded to `2^17`). Recorded on 2026-11-05, one
 thread, two runs: `witnessGen` in 0.6–0.8 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`),
 sizes memory `2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution`
-returns 767 scalars in 103–143 s; `verify` accepts in 1.5–2.3 s; 1.4 GB peak. The executable
+returns 767 scalars in 103–143 s; `verify` accepts in 1.5–2.3 s; 1.4 GB peak. A third run on the
+same day, after the generator's performance work: `witnessGen` 0.15 s, `proveExecution` 83 s,
+`verify` 0.9 s, 1.38 GB peak. The executable
 imports `LeanerVM.Protocol.Headline`; a compiled program that imports it starts only since
 `VerifierQueries.sizesBox` is noncomputable (before, the start-up built its `33^7 · 5` points and
 ran out of memory).

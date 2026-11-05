@@ -348,6 +348,15 @@ example : (padTrace badTrace (fillStarts ladderJumpProg)).PaddedFrom badTrace �
           proveExecution fuel ladderJumpProg badInput badTrace ρ ≠ none) :=
   proveExecution_complete ladderJump_wellFormed badTrace_valid badTrace_fits
 
+/- **The random-oracle completeness headline at the same instance**, at the default fuel and rate
+`1`. Three of its hypotheses are proved here; the fourth, `StackFits`, evaluates the generator,
+which the kernel does not, and `leanervm-prove execution` decides it natively on this trace. -/
+example (hstack : StackFits ladderJumpProg badInput badTrace) :
+    Pr{let z ← runRandom (honestExecutionGame (2 ^ 24) ladderJumpProg badInput badTrace 1)}[
+      z.1 = false] ≤ (2 ^ 154 : ℝ≥0∞)⁻¹ :=
+  proveExecution_rom_complete_default ladderJump_wellFormed badTrace_valid badTrace_fits hstack
+    (by decide)
+
 /-! ## The adaptive theorems -/
 
 /-- **The adaptive replayer**: it outputs a stored statement and proof and asks nothing. -/

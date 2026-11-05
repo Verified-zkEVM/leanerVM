@@ -1525,9 +1525,15 @@ proof":
     memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
     generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
     resource hypothesis on the trace that bounds `leanIsaμ` closes it;
-  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
-    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
-    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
+  - the honest grind bound, at BLAKE2s: no deterministic form can drop the grind clause, since a
+    fixed function can fail a grind at any given fuel. In the random-oracle model it is built:
+    `proveExecution_rom_complete` bounds the probability that the honest run from an execution
+    (`honestExecutionGame`: `witnessGen`, the prover and the verifier at one lazy random oracle)
+    rejects by `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel` the
+    prover's query count (`Prove.isTotalQueryBound_proveWith_closed`), below `2^-154` at fuel
+    `2^24` (`proveExecution_rom_complete_default`); its stack hypothesis `StackFits` is the
+    generated witness's and is decided by evaluating the generator. The constraint forms are
+    `honestGame_rom_rejects_le` and `prove_rom_eq_none_le`.
 
 ## Upstream watch
 

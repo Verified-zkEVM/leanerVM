@@ -439,6 +439,10 @@ def executionChecks (fuel ρ steps : ℕ) : IO UInt32 := do
   IO.println s!"sizes: memory 2^{s.logMem}, tables {List.ofFn s.τ}, \
     stack 2^{stackMu ladderJumpProg s}, rate {ρ}, \
     admissible: {decide (s.Admissible ladderJumpProg ∧ validRate ρ)}"
+  -- The stack hypothesis of `proveExecution_rom_complete`, decided (the generator runs again).
+  let fits ← force (decide (StackFits ladderJumpProg badInput t))
+  IO.println s!"{if fits then "ok  " else "FAIL"} StackFits = {fits}"
+  unless fits do return 1
   (← IO.getStdout).flush
   let t2 ← IO.monoNanosNow
   let some (p : Proof PrunedMerklePaths) ←

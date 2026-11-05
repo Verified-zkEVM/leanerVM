@@ -75,6 +75,13 @@ first rounds of the run, so every round boundary, a superset of the states the g
 
 ## Completeness in the random-oracle model
 
+`proveExecution_rom_complete`: for `WellFormedBytecode`, a valid execution `t` that fits the caps,
+a generated witness whose stack fits (`StackFits`) and a valid rate, the honest run from the
+execution (`honestExecutionGame`: the witness generator, the deployed prover with every hash a
+query to one lazy random oracle, then the verifier on its proof at the same oracle) is rejected
+with probability at most `(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`,
+`N = 264246250 + 6 · fuel`; below `2^-154` at the default fuel `2^24`
+(`proveExecution_rom_complete_default`). It is proved from the constraint form:
 `honestGame_rom_rejects_le`: for a witness of the constraint statement whose sizes keep the stack
 within `2^maxMu`, at a valid rate, the deployed prover and then the verifier on its proof, both
 asking one lazy random oracle (`honestGame`), reject with probability at most
@@ -641,12 +648,22 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
 
 /-! ## Completeness -/
 
+/-- **The honest prover from an execution at a hash `H`** in a monad `m`: the witness generator
+`witnessGen`, then `proveWith` on its witness; `none` when either returns none. -/
+def proveExecutionWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ)
+    (F : FlockSpec) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    m (Option (Proof PrunedMerklePaths)) :=
+  match witnessGen prog input t with
+  | some w => proveWith H fuel F prog input w ρ
+  | none => pure none
+
 /-- **leanVM's honest prover from an execution**: the witness generator `witnessGen`, then the
 deployed prover `prove` on its witness, at `fuel` candidate nonces per grind and the WHIR rate
-`ρ`; `none` when either returns none. -/
+`ρ`; `none` when either returns none. It is `proveExecutionWith` at BLAKE2s-256 and the deployed
+Flock specification, as `prove` is `proveWith`. -/
 def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
     Option (Proof PrunedMerklePaths) :=
-  (witnessGen prog input t).bind fun w ↦ prove fuel prog input w ρ
+  proveExecutionWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input t ρ
 
 /-- **Completeness of the deployed pair, the constraint form**, from which
 `proveExecution_complete` is proved. For a witness that satisfies leanISA's constraint
@@ -793,6 +810,78 @@ theorem honestGame_rom_rejects_le_default {prog : Program} {input : PublicInput}
   (honestGame_rom_rejects_le (2 ^ 24) hsat hs hμ hρ).trans
     (rom_bound_default _ Prove.one_sub_pow_fuel_le)
 
+/-- **The stack of the generated witness fits**: the witness generator returns a witness for `t`,
+and its sizes `s` (`Sizes.ofWitness`, determined by the witness) keep leanVM's stack within
+`2^maxMu` cells (`leanIsaμ prog s ≤ maxMu`), which `prove` needs to return a proof. It is decided
+by evaluating the generator. `Trace.Fits` does not imply it: the generator pads the memory to
+log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells, and from `t.κ ≥ 26`
+on it fails. -/
+def StackFits (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
+  ∃ s, (witnessGen prog input t).bind Sizes.ofWitness = some s ∧ leanIsaμ prog s ≤ maxMu
+
+instance (prog : Program) (input : PublicInput) (t : Trace prog) :
+    Decidable (StackFits prog input t) :=
+  decidable_of_iff (((witnessGen prog input t).bind Sizes.ofWitness).any
+    fun s ↦ decide (leanIsaμ prog s ≤ maxMu)) <| by
+    unfold StackFits
+    generalize (witnessGen prog input t).bind Sizes.ofWitness = o
+    cases o <;> simp
+
+/-- The honest run from an execution in the random-oracle model: the witness generator on `t`,
+then the deployed prover on its witness with every hash a query to the oracle, then the verifier
+on the proof, asking the same oracle; a generator or prover returning none is rejected. -/
+def honestExecutionGame (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog)
+    (ρ : ℕ) : OracleComp hashSpec Bool := do
+  match ← proveExecutionWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input t ρ with
+  | none => pure false
+  | some proof => verifyWith hashQuery prog input proof
+
+/-- **The headline: completeness from an execution in the random-oracle model.**
+
+*The game* (`honestExecutionGame`): the hash is a lazily sampled random function from byte strings
+to 32-byte digests (`runRandom`). The witness generator runs on the execution `t`, the deployed
+prover runs on its witness at `fuel` candidate nonces per grind and WHIR rate `ρ` with every hash a
+query to that function, and the deployed verifier checks the proof, asking the same function.
+
+*The bound*: the verifier rejects with probability at most
+`(N + 1) · (1 - 2^-17)^min(fuel, 2^64) + N² / 2^256`, with `N = 264246250 + 6 · fuel` a bound on
+the prover's queries; the first term is a grind running out of fuel, the second a collision.
+
+*The assumptions*: `prog` is well-formed bytecode (its last slot no `JUMP`, the compiler's fill
+blocks present), `t` is a valid execution of `prog` on `input` that fits the caps (`Trace.Fits`),
+the stack of the generated witness fits (`StackFits`, which fails from `t.κ ≥ 26` on), and `ρ` is
+a valid rate. Each is decided by a computation: `wellFormedB`, `checkTrace`, `fitsB` (on a valid
+execution), and the `Decidable` instances of `StackFits` and `validRate`. -/
+theorem proveExecution_rom_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hfit : t.Fits) (hstack : StackFits prog input t) (hρ : validRate ρ) :
+    Pr{let z ← runRandom (honestExecutionGame fuel prog input t ρ)}[z.1 = false] ≤
+      (((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) + 1) *
+          (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min fuel (2 ^ 64) +
+        ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) * ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
+  obtain ⟨w, hw, hsat, -⟩ := witnessGen_correct hwf ht hfit
+  obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hsat
+  have hb : (witnessGen prog input t).bind Sizes.ofWitness = some s := by
+    rw [hw, Option.bind_some, hs]
+  have hμ : leanIsaμ prog s ≤ maxMu := by
+    obtain ⟨s', hs', hμ⟩ := hstack
+    exact Option.some.inj (hb.symm.trans hs') ▸ hμ
+  have hgame : honestExecutionGame fuel prog input t ρ = honestGame fuel prog input w ρ := by
+    unfold honestExecutionGame proveExecutionWith honestGame
+    rw [hw]
+  rw [hgame]
+  exact honestGame_rom_rejects_le fuel hsat hs hμ hρ
+
+/-- **Completeness from an execution in the random-oracle model at the default fuel `2^24`**: the
+honest run of `proveExecution_rom_complete` is rejected with probability below `2^-154`. -/
+theorem proveExecution_rom_complete_default {prog : Program} {input : PublicInput}
+    {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
+    (hfit : t.Fits) (hstack : StackFits prog input t) (hρ : validRate ρ) :
+    Pr{let z ← runRandom (honestExecutionGame (2 ^ 24) prog input t ρ)}[z.1 = false] ≤
+      (2 ^ 154 : ℝ≥0∞)⁻¹ :=
+  (proveExecution_rom_complete (2 ^ 24) hwf ht hfit hstack hρ).trans
+    (rom_bound_default _ Prove.one_sub_pow_fuel_le)
+
 /-- **The headline: completeness of the deployed prover from an execution.** For well-formed
 bytecode and a valid execution `t` that fits the caps, the witness generator returns a witness
 `w`, which satisfies the constraint statement and represents the padded trace
@@ -821,7 +910,7 @@ theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trac
   obtain ⟨w, hw, hsat, hrep⟩ := witnessGen_correct hwf ht hfit
   obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hsat
   have hp : ∀ fuel ρ, proveExecution fuel prog input t ρ = prove fuel prog input w ρ :=
-    fun _ _ ↦ by simp only [proveExecution, hw, Option.bind_some]
+    fun _ _ ↦ by simp only [proveExecution, proveExecutionWith, hw]; rfl
   refine ⟨padTrace_from t _, (padTrace_from t _).valid hfit.room ht, w, hw, hsat, hrep, s, hs,
     fun fuel ρ ↦ ?_⟩
   rw [hp]

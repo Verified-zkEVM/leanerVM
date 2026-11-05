@@ -59,6 +59,11 @@ proveExecution_complete (hwf : WellFormedBytecode prog) (h : ValidExecution prog
   2^maxMu, the rate is invalid, or a grind runs out of fuel at a chain state the prover's run
   reaches (ProveReaches); t.Fits does not keep the stack within 2^maxMu (from t.κ ≥ 26 on it is
   not)
+proveExecution_rom_complete (hwf) (h) (hfit) (hstack : StackFits prog input t) (hρ : validRate ρ) :
+  Pr over a lazy random oracle that the honest run from t (witnessGen, then the prover and the
+      verifier asking the oracle) rejects
+    ≤ (N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256,  N = 264246250 + 6 · fuel
+  (below 2^-154 at fuel 2^24); StackFits: the generated witness's stack is within 2^maxMu
 ```
 
 Every step to it is a theorem: Flock's security (with the Flock roadmap's inhabitant, #3), WHIR's
@@ -680,7 +685,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `QueryLog.HasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `VerifierFlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant on `QueryHistory.freshLog` |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-prove` and its vectors | the compiled verifier; the adaptor; for the vectors, a witness whose `SatisfiedBy` is proved (`fill_satisfiedBy` for the hand-built one, `witnessGen_correct` for a generated one), or leanISA's `checkSatisfiedBy` once it exists |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, `misbehaves_rom_adaptive_coins`, **`baseVerifier_extractsWitness_rom_adaptive`**, `baseVerifier_extractsWitness_rom_adaptive_coins`, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `prove_eq_none`, `proveExecution`, **`proveExecution_complete`**, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution_coins`**, **`baseVerifier_extractsExecution_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive_wellFormed`**, **`baseVerifier_extractsExecution_rom_adaptive`**, **`baseVerifier_extractsExecution_rom_adaptive_wellFormed`**, **`baseVerifier_extractsExecution_rom_adaptive_coins`** | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's witness generator (`witnessGen`, `witnessGen_correct`) |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, `misbehaves_rom_adaptive_coins`, **`baseVerifier_extractsWitness_rom_adaptive`**, `baseVerifier_extractsWitness_rom_adaptive_coins`, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `prove_eq_none`, `proveExecution`, **`proveExecution_complete`**, `StackFits`, `honestExecutionGame`, **`proveExecution_rom_complete`**, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution_coins`**, **`baseVerifier_extractsExecution_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive_wellFormed`**, **`baseVerifier_extractsExecution_rom_adaptive`**, **`baseVerifier_extractsExecution_rom_adaptive_wellFormed`**, **`baseVerifier_extractsExecution_rom_adaptive_coins`** | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's witness generator (`witnessGen`, `witnessGen_correct`) |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -2236,7 +2241,12 @@ starts the generator searches in the bytecode, the same steps), not the executio
 
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random
-function (each nonce passes with probability `2^{−17}`) and is not claimed for BLAKE2s. So the
+function (each nonce passes with probability `2^{−17}`) and is not claimed for BLAKE2s: in the
+random-oracle model, `proveExecution_rom_complete` bounds the probability that the honest run from
+an execution (`honestExecutionGame`: the generator, the prover and the verifier at one lazy random
+oracle) rejects by `(N + 1)(1 − 2^{−17})^{min(fuel, 2^64)} + N²/2^{256}`, `N = 264246250 + 6 · fuel`
+the prover's query count, when the generated witness's stack fits (`StackFits`), and
+`honestGame_rom_rejects_le` is its constraint form. So the
 completeness theorems conclude that every proof `prove` returns is accepted, not that one exists;
 `prove_complete` states it for the deployed pair `prove` and `verify`. For a satisfying witness
 `prove` returns no proof only when its sizes put the stack above `2^maxMu` (the statement's caps
@@ -2600,6 +2610,7 @@ Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_tru
                       baseVerifier_extractsExecution_rom_adaptive_coins
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
                       baseProver_complete  prove_complete  prove_eq_none  proveExecution  proveExecution_complete
+                      StackFits  honestExecutionGame  proveExecution_rom_complete  proveExecution_rom_complete_default
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
                       queryGrindingBits  the Flock constants (Parameters/Flock.lean)
 ```
