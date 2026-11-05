@@ -1178,18 +1178,18 @@ below proves.
   in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
   read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
-  constraint statement tests' witness at the smallest admissible sizes in 181 s, writes the proof
-  in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
-  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
-  executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
-  beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
-  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
+  constraint statement tests' witness at the smallest admissible sizes in 52.7 s (1.06 GB at the
+  peak), writes the proof in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The witness is the
+  hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`); leanISA's decidable
+  `checkSatisfiedBy`, which generated witnesses would need, is still owed. Beside the proof's
   mutations, both executables run the algebra on the honest wire with one message changed in each
   front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
   one front phase's message as the prover sends it and checks that each phase rejects its own.
-  The prover is about 50 times slower than the Rust's, within the blueprint's two orders of
-  magnitude, since the transform builds each half once a step (`fwd_eq_fwdFast`); the batched
-  weight's table dominates (`bench/README.md`).
+  The prover is about 15 times slower than the Rust's on another program at the same sizes,
+  within the blueprint's two orders of magnitude, since the transform builds each half once a
+  step (`fwd_eq_fwdFast`) and the Flock and WHIR provers run on words; the Flock phase and WHIR
+  dominate (`bench/README.md`, 2026-10-25).
 - **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
   not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
   oracle protocol's completeness reaches `runWith` through the run on given challenges,
@@ -1371,7 +1371,11 @@ Also owed:
   the last challenge is bad as soon as the state function of `listBinding_deployed` is false, at
   the round before it, at the extractor's witness; if some phase's state function failed on honest
   transcripts, every accepted run would flip, and `baseVerifier_extractsWitness` would hold only of
-  rejected adversaries. Acceptance test 37 is met on the collision and hit clauses only, natively.
+  rejected adversaries. In the random-oracle model that scenario is excluded once the honest query
+  bound and the grind bound below land, with the identity of the honest run under a consistent log
+  and `proveWith (m := Id)` at that log's answers: the honest adversary is then accepted except
+  when a grind fails, so `misbehaves_rom` forbids every accepted run flipping. `δ = 0` at BLAKE2s
+  on the test vector stays open; only the first route below gives it. Acceptance test 37 is met on the collision and hit clauses only, natively.
   Two routes:
   - *State-function completeness on the honest transcript* (the cheaper and the one to build): one
     lemma per phase family (`BusSolved`, `TableSolved`, `FlockSolved` and `WhirSolved` carry the
