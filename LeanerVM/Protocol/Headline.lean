@@ -119,23 +119,22 @@ Completeness from an execution is leanISA's `constraintCompleteness` followed by
 `prove_complete`, `prove_eq_none` and `prove_ne_none`.
 
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
-`BlakeMisbehavesAdaptive` at `δ < 1` says that this run does not misbehave; an adversary with
-coins gets the bound with `δ` the probability over its coins. The hypothesis is about one adversary
-and is false for some: the replayer of a stored accepted proof fails it at every `δ < 1`, and so
-does an adversary that hashes in its own code. No theorem shows it met by an adversary whose proof
-is accepted. The flip clause counts a bad challenge only on a group the verifier itself asked: a
-chain of the statement that the adversary explored and abandoned, a bad challenge on it, does not
-fail the hypothesis, since the verifier never walks it, and `core` finds its flip on the
-verifier's own walk. The broader event, a flip on any chain of the statement
-(`leanVmReader.FlipFor`), contains it (`SlotReader.flipFor_of_verifierFlipFor`); the
-random-oracle bounds hold for both. Completeness says that every proof `prove` returns is
-accepted, and when it returns one, not that it does: nothing bounds how often a grind on the run
-runs out of fuel, and `Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof
-picks has memory log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells,
-above `2^28` from `t.κ ≥ 26` on, where `prove` returns none at every fuel and rate; so it does
-whenever the filled tables exceed `2^28` cells. The completeness witness represents the padded trace, not the given
-one, and its proof is about that witness, not about a prover that takes the trace.
--/
+`BlakeMisbehavesAdaptive` at `δ < 1` says that this run does not misbehave; an adversary with coins
+gets the bound with `δ` the probability over its coins. The hypothesis is about one adversary and is
+false for some: the replayer of a stored accepted proof fails it at every `δ < 1`, and so does an
+adversary that hashes in its own code. No theorem shows it met by an adversary whose proof is
+accepted. The flip clause counts a bad challenge only on a group the verifier itself asked: a chain
+of the statement that the adversary explored and abandoned, a bad challenge on it, does not fail the
+hypothesis, since the verifier never walks it, and `core` finds its flip on the verifier's own walk.
+The broader event, a flip on any chain of the statement (`leanVmReader.FlipFor`), contains it
+(`SlotReader.flipFor_of_verifierFlipFor`); the random-oracle bounds hold for both. Completeness says
+that every proof `prove` returns is accepted, and when it returns one, not that it does: nothing
+bounds how often a grind on the run runs out of fuel, and `Trace.Fits` does not keep the stack
+within `2^maxMu`. The padding the proof picks has memory log-size `t.κ + 1`, so its four memory
+columns alone hold `2^(t.κ+3)` cells, above `2^28` from `t.κ ≥ 26` on, where `prove` returns none at
+every fuel and rate; so it does whenever the filled tables exceed `2^28` cells. The completeness
+witness represents the padded trace, not the given one, and its proof is about that witness, not
+about a prover that takes the trace. -/
 
 namespace LeanerVM.Protocol
 
