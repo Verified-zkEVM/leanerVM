@@ -106,9 +106,11 @@ the same checksums at the same size.
 The fast paths are `Sumcheck.roundPoly_eq_roundPolyFolded`,
 `ProductSum.roundPoly_eq_roundPolyFolded`, `TableSumcheck.formula_eq_formulaFast`,
 `CMvPolynomial.eval₂_eq_eval₂Fast` and `SumcheckRound.evaluate_eq_evaluateHorner` (see
-`docs/architecture.md`). Recorded on 2026-10-22 on the same machine, shared with other builds; "before" is `6ebb3f2`, the same bench source
-compiled against the library without these fast paths, where the fast and the specification's
-lines run the same algorithm. Total milliseconds for all `n` rounds:
+`docs/architecture.md`). Recorded on 2026-10-22 on the same machine, shared with other builds;
+"before" is `6ebb3f2`, the same bench source compiled against the library without these fast
+paths, where the fast and the specification's lines run the same algorithm. `6ebb3f2` is a
+pre-rebase snapshot of `8ba05f2b3` (the field fast paths), made on `main` at `a37b2b0`, and is on no
+published branch, so the "before" column is a record, not a reproduction. Total milliseconds for all `n` rounds:
 
 | Workload | `n` | Before (ms) | After (ms) | Speedup |
 | --- | ---: | ---: | ---: | ---: |
@@ -179,7 +181,8 @@ workloads whose name contains it (`.lake/build/bin/leanervm-bench 1 provers "GKR
 
 The fast paths are the `@[csimp]` theorems listed in `docs/architecture.md`, "Performance backend
 contract". Recorded on 2026-10-23 on the same machine as above, shared with other builds; "before"
-is `6ebb3f2`, the same bench source compiled against the library without these fast paths. Each
+is `6ebb3f2`, the same bench source compiled against the library without these fast paths (a
+pre-rebase snapshot of `8ba05f2b3`, on no published branch: a record, not a reproduction). Each
 "before" and "after" pair printed the same checksum.
 
 | Workload | Before | After |
@@ -326,8 +329,9 @@ Rust leanVM at the pin (`a386121f`, its release build, `leanvm fibonacci --n 100
 `RAYON_NUM_THREADS=1`) proves its smallest run on the same machine in 3.5 s: memory `2^16`,
 `2^19.06` committed cells, a different program from the bench's witness at the same sizes.
 Execution and witness 16 ms, commitment 48 ms, bus 1.89 s (of which GKR 1.47 s), constraints
-0.20 s, Flock reduction 0.35 s, PCS opening 1.00 s. The Lean prover is about five times slower in
-the bus phase, three times in the table sumcheck and fifty times in the Flock phase.
+0.20 s, Flock reduction 0.35 s, PCS opening 1.00 s. Across the two programs, so indicative only,
+the Lean prover is about five times slower in the bus phase, three times in the table sumcheck and
+fifty times in the Flock phase.
 
 ### WHIR's opening
 
