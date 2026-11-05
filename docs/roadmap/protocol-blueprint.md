@@ -653,7 +653,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
-| the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
+| the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-prove` and its vectors | the compiled verifier; the adaptor; for the vectors, a witness whose `SatisfiedBy` is proved (`fill_satisfiedBy`), or leanISA's `checkSatisfiedBy` once it exists |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`); for the instantiated execution form and completeness from an execution, leanISA Layers 9–10 |
 
 What can start is what the column *Needs* allows; the status file says what is built.
@@ -1960,14 +1960,15 @@ Tests:
 
 #### The executable prover and the test vectors
 
-`verify` and `prove` run as a native executable, the `lean_exe` target `leanervm-vectors`, whose
-root is under `tests/` because it carries the witness generator. The generator builds an
-`EnsembleWitness` for a small program and input. It is test-only and untrusted: no theorem is
-claimed of it (T2 stays out of scope), and a witness it builds is used only once leanISA's
-decidable `checkSatisfiedBy` accepts it (`checkSatisfiedBy_eq_true_iff`); one that fails is a bug
-of the generator. The executable writes test vectors (the program, the public input and the
-proof, in the encoding Layer 12's fixture reads) and checks them: `verify` accepts each and
-rejects its mutations. The kernel-evaluated fixtures stay on toy instances; the end-to-end run of
+`verify` and `prove` run as a native executable, the `lean_exe` target `leanervm-prove`
+(`bench/LeanerVMProve.lean`, beside `leanervm-verify`). Its witness is the constraint statement
+tests' hand-built one (`fillW 1 g memCnt` in `LeanerVMTests.Arithmetization.Statement`), whose
+`SatisfiedBy` is a proved theorem (`fill_satisfiedBy`), so no theorem is claimed of how it was
+built (T2 stays out of scope). The intended form for more witnesses is a test-only, untrusted
+generator whose witnesses are used only once leanISA's decidable `checkSatisfiedBy` accepts them
+(`checkSatisfiedBy_eq_true_iff`), still requested. The executable writes test vectors
+(`tests/vectors/`: the program, the public input and the proof, in the encoding Layer 12's fixture
+reads) and checks them: `verify` accepts each and rejects its mutations. The kernel-evaluated fixtures stay on toy instances; the end-to-end run of
 the honest prover is native (decision 5).
 
 The performance target is the prover within one to two orders of magnitude of the Rust prover on
@@ -2331,7 +2332,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 2. The statement and the family | `input : I.Stmt` is the statement; the instance, hence the sizes, indexes the protocol family | *Statements and parameters* |
 | 3. Where the zerocheck is paid | the bus phase's state function carries it; there is no zerocheck phase | *Seams* |
 | 4. Where generic code lives | `LeanerVM/Protocol/To<Library>/` until the upstream pull request merges | *Generic code* |
-| 5. The honest prover runs natively | `verify` and `prove` run as a native executable that writes and checks test vectors, on witnesses from a test-only, untrusted generator that a decidable check of `SatisfiedBy` accepts, with the prover's target one to two orders of magnitude of the Rust prover, single-threaded, in pure Lean; the kernel-evaluated fixtures stay on toy instances | Layer 13, [The executable prover and the test vectors](#the-executable-prover-and-the-test-vectors); *Scope* |
+| 5. The honest prover runs natively | `verify` and `prove` run as a native executable (`leanervm-prove`, under `bench/`) that writes and checks test vectors, on witnesses whose `SatisfiedBy` is a proved theorem (`fill_satisfiedBy`) or, once it exists, a decidable check of `SatisfiedBy` accepts, with the prover's target one to two orders of magnitude of the Rust prover, single-threaded, in pure Lean; the kernel-evaluated fixtures stay on toy instances | Layer 13, [The executable prover and the test vectors](#the-executable-prover-and-the-test-vectors); *Scope* |
 | 6. The witness is the stack | the protocol's witness is the committed column, in `Type 0` | *The relation ladder* |
 | 7. Phases over an abstract instance | every phase is written over `I : M3Instance` and tested on the toy | *The wall* |
 | 8. Five clauses, caps outside | the caps are the compiled verifier's check and a hypothesis of the adaptor's soundness | *What the spine fixes* |

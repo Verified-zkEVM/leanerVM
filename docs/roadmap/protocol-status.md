@@ -1171,10 +1171,9 @@ below proves.
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
   constraint statement tests' witness at the smallest admissible sizes in 434 s, writes the proof
   in the dump format, and checks that `verify` accepts it (1.4 s) and rejects every mutation of
-  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
-  executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
-  beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
-  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The witness is the
+  hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`); leanISA's decidable
+  `checkSatisfiedBy`, which generated witnesses would need, is still owed. Beside the proof's
   mutations, both executables run the algebra on the honest wire with one message changed in each
   front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
   one front phase's message as the prover sends it and checks that each phase rejects its own.
