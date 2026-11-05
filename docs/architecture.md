@@ -278,29 +278,39 @@ The public theorem ladder is:
    hashing, termination, and the exact final boundary. A completeness companion constructs a
    terminating execution from well-formed aggregation inputs within the published caps.
 
-4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution`).** First
-   prove the proof-system bridge, a random-oracle statement about a prover that makes at most `Q`
-   queries to the hash `H`, with a straight-line extractor that reads the witness off its query
-   log:
+4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution`).** First prove
+   the proof-system bridge, a random-oracle statement about a prover that makes at most `Q` queries
+   to the hash `H`, chooses the statement itself, and is answered by a straight-line extractor that
+   reads the witness off its query log (`baseVerifier_extractsWitness_rom_adaptive`):
 
    ```text
-   WellFormedBytecode program →
-     Pr_H [ the Q-query prover makes BaseVerifier^H accept on (program, publicInput) ∧
-            ¬ Constraints.SatisfiedBy version program publicInput (extract log) ] ≤ baseError Q
+   IsTotalQueryBound A Q →
+     Pr_H [ A outputs (program, publicInput, proof) ∧ BaseVerifier^H accepts it ∧
+            ¬ Constraints.SatisfiedBy program publicInput (extract log) ]
+       ≤ (Q + 13700)/2^128 + hashTerm 13700 Q
    ```
 
-   then compose it with T1-S to obtain an ISA execution, keeping the extracted witness for T6.
-   `Accepts … → except with probability …` is not a statement: acceptance of fixed values has no
-   randomness in it. The theorem must expose the component knowledge-soundness bounds, the
-   list-binding compilation of the commitment, the Fiat–Shamir and Merkle theorems for the
-   deployed construction with its proof of work, the family over the prover's announced sizes,
-   transcript/serialization agreement, and executable-verifier refinement. The headline theorem
-   is about the deployed verifier, with `H` the deployed hash, and its one assumption is a named
-   hypothesis in its statement, never an axiom: for the adversary at hand, the deployed hash
-   raises its chance of beating the extractor by at most `δ` over a random function (per
-   adversary, since the form for all adversaries is false; the protocol blueprint's Layer 13).
-   Its completeness dual composes T2 with the honest prover and records the failure and resource
-   conditions: a valid execution may need more memory than the verifier accepts, and the
+   then compose it with T1-S to obtain an ISA execution
+   (`baseVerifier_extractsExecution_rom_adaptive`), keeping the extracted witness for T6. T1-S needs
+   the program's last slot not to hold a `JUMP` (`SentinelSafe`), which the verifier does not check,
+   so the execution form puts it in the event; the `_wellFormed` corollary takes
+   `WellFormedBytecode` of every program the adversary outputs instead. `Accepts … → except with
+   probability …` is not a statement: acceptance of fixed values has no randomness in it. The
+   theorem exposes the component knowledge-soundness bounds, the list-binding compilation of the
+   commitment, the Fiat–Shamir and Merkle theorems for the deployed construction with its proof of
+   work, the family over the prover's announced sizes, and the agreement of the executable verifier
+   with the compiled oracle verifier, proved in two directions (`compiled_of_algebra`,
+   `phasesAgree`) rather than as one biconditional. The headline theorem is about the deployed
+   verifier, with `H` the deployed hash (`baseVerifier_extractsExecution_adaptive`, with
+   fixed-statement and coins forms as instances), and its one assumption is a named hypothesis in
+   its statement, never an axiom: for the adversary at hand, BLAKE2s misbehaves on its run with
+   probability at most `δ` (`BlakeMisbehavesAdaptive`: a collision, a fresh digest equal to one
+   already in play, or a bad challenge on a Fiat–Shamir group the verifier itself queried). It is
+   stated per adversary, since the form for all adversaries is false. The comparison with a random
+   function is a corollary (`blakeMisbehavesAdaptive_of_comparison`), not the hypothesis (the
+   protocol blueprint's Layer 13). Its completeness dual (`prove_complete_of_execution`) composes T2
+   with the honest prover and records the failure and resource conditions: a valid execution may
+   need more memory than the verifier accepts (from `t.κ ≥ 26` the stack exceeds `2^maxMu`), and the
    prover's proof-of-work search has no proved bound.
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction

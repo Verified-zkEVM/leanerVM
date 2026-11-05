@@ -335,7 +335,7 @@ pin, so the spine stays on it (decision 24).
 | Declaration | Contract used here |
 | --- | --- |
 | `SampleableType`, `uniformSample`, `$ᵗ` (VCVio `OracleComp/Constructions/SampleableType`) | Challenge sampling; Layer 0 supplies the `E` instance, built from the `K` one. |
-| `OracleSpec.randomOracle`, `cachingLoggingOracle`, `QueryCache`, `QueryLog`, `withQueryLog`, `IsTotalQueryBound`, `IsUniformSpec.ofFintypeInhabited`, `𝒟`, `probEvent` (VCVio `OracleComp/QueryTracking/`, `EvalDist/`) | The hash oracle answered lazily and uniformly from a cache, the ordered logs the extractor and the charged invariant read, the query bound of an adversary, and the distribution of a run: the random-oracle model of Layer 12. |
+| `OracleSpec.randomOracle`, `cachingLoggingOracle`, `QueryCache`, `QueryLog`, `withQueryLog`, `IsTotalQueryBound`, `SampleableType` (its `Vector` instance for `Digest`), `𝒟`, `probEvent` (VCVio `OracleComp/QueryTracking/`, `EvalDist/`) | The hash oracle answered lazily and uniformly from a cache, the ordered logs the extractor and the charged invariant read, the query bound of an adversary, and the distribution of a run: the random-oracle model of Layer 12. |
 | `NodeQueryModel`, `Skeleton.perfect`, `BatchOpening`, `getPutativeBatchRootWithHash` (VCVio `CryptoFoundations/MerkleTree/`) | Binary Merkle trees whose node hash is a query to one function, and path-pruned openings of several leaves. Layer 11 reads its trees as these (decision 32); no proof here depends on the reading. |
 | `BF64`, `BF64.Ext3`, `card_bf64`, `card_ext3`, `Ext.coeff`, `Ext.ofFn` (CompPoly) | As in the leanISA roadmap; `Fintype.card E = 2^192` is the only cardinality fact the errors use. |
 | `CMlPolynomialEval R n`, `evalMle`, `evalMleLayer`, `eval₂Mle`, `eqTilde`, `lagrangeBasis`, `evalManyMleByLayers` (CompPoly `Multilinear/`) | Hypercube tables and their multilinear evaluation, computable; `eval₂Mle` is the `K → E` lift. |
@@ -1411,7 +1411,7 @@ generic `ToVCVio/ChargedInvariant.lean` (with `ToVCVio/ScalarExpectation.lean`),
 abbrev Digest := Vector UInt32 8
 -- `Fintype Digest`, `SampleableType Digest`: VCVio's instances on `Vector` at the pin (`instFintypeVector`)
 theorem card_digest : Fintype.card Digest = 2 ^ 256   -- through `arrayVectorEquivFin UInt32 8`
-abbrev hashSpec := List UInt8 →ₒ Digest     -- `IsUniformSpec hashSpec`: a local instance, `IsUniformSpec.ofFintypeInhabited`
+abbrev hashSpec := List UInt8 →ₒ Digest     -- answers drawn by VCVio's `SampleableType (Vector UInt32 8)`
 def hashQuery (t : List UInt8) : OracleComp hashSpec Digest := liftM (hashSpec.query t)
 abbrev Adversary := OracleComp hashSpec Proof   -- a cheating prover: hash queries, no coins; `IsTotalQueryBound A Q`
 def runRandom (oa : OracleComp hashSpec α) : ProbComp (α × hashSpec.QueryCache) :=
