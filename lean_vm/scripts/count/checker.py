@@ -80,6 +80,10 @@ def siteB(cx, rho, g, args):
         _, pre, b, ks = c
         return transB(cx, rho, args, pre, b)
     _, endc, pre, b, ks = c
+    # `iterB`: counting words, each iteration charged the run's phantom frame too
+    if cx.alpha:
+        if g not in cx.om: return None
+        b = (b[0] + cx.om[g], b[1])
     if not args: return None
     v0 = cx.cls(rho, args[0])
     if v0[0] != 'pow': return None
@@ -100,14 +104,6 @@ def siteB(cx, rho, g, args):
         if r is None or r[1] != []: return None
         return (0, [(k, r[0])], [(k, a0)] + r[2])
     return None
-
-def siteW(cx, rho, g, args):
-    """A call site's charge (`siteW`): its callee's bound (`siteB`) and, counting words, a loop run's
-    phantom, its one untaken tail call (`siteP`)."""
-    c = cx.cert.get(g)
-    ph = ((cx.om[g], [], []) if g in cx.om else None) if (c is not None and c[0] == 'loop' and cx.alpha) \
-        else acc0()
-    return add(siteB(cx, rho, g, args), ph)
 
 TRACK = 2 ** 20
 
@@ -164,13 +160,13 @@ def blockB(cx, rho, ss):
     if t == 'match':
         return add(armsB(cx, rho, s[2]), blockB(cx, rho, rest))
     if t == 'call':
-        return add(siteW(cx, rho, s[1], s[2]), blockB(cx, rho, rest))
+        return add(siteB(cx, rho, s[1], s[2]), blockB(cx, rho, rest))
     if t == 'callIf':
         if s[2] == cx.self: return None
         ph = ((cx.om[s[2]], [], []) if s[2] in cx.om else None) if cx.alpha else acc0()
-        return add(siteW(cx, rho, s[2], s[3]), add(ph, blockB(cx, rho, rest)))
+        return add(siteB(cx, rho, s[2], s[3]), add(ph, blockB(cx, rho, rest)))
     if t == 'dispatch':
-        return add(maxB(lambda g: siteW(cx, rho, g, s[3]), s[2]), blockB(cx, rho, rest))
+        return add(maxB(lambda g: siteB(cx, rho, g, s[3]), s[2]), blockB(cx, rho, rest))
     if t == 'ret':
         return acc0()
     raise ValueError(t)

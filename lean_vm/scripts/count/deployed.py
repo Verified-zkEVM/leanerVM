@@ -200,7 +200,7 @@ set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
 theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
     (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
+  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, B1.Main.iterK, deployedWords]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
 

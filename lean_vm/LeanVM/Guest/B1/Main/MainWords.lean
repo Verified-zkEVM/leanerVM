@@ -344,9 +344,9 @@ def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
     fs "__loop2" + fs "__loop3" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
   declared := clS SK
-  coverage := 5 + SK "__loop0" + SK "__loop1"
-  rawXmss := SK "__loop2"
-  rawSphincs := SK "__loop3"
+  coverage := 5 + iterK fs SK "__loop0" + iterK fs SK "__loop1"
+  rawXmss := iterK fs SK "__loop2"
+  rawSphincs := iterK fs SK "__loop3"
   rawDa := dvC fs SB + fs "da_verify"
   rawDaRows := dvS SK
   rawDaPad := dvP SB SK
@@ -364,10 +364,10 @@ theorem mSizes_sum (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
 /-- **`main`'s callees' words**: each callee's bound and frame, the children's loop's frame
 alone when there is no child. -/
 theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
-    kidsBoundL fs (mKids m L) (mBs SB SK m b) ≤
-      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * SK "__loop0" + fs "__loop0" +
-      m.nsd * SK "__loop1" + fs "__loop1" + m.nrx * SK "__loop2" + fs "__loop2" +
-      m.nrs * SK "__loop3" + fs "__loop3" +
+    kidsBoundL fs (mKids m L) (mBs fs SB SK m b) ≤
+      b.Bx + b.Bs + 2 * fs "claim_list_digest" + m.nxd * iterK fs SK "__loop0" + fs "__loop0" +
+      m.nsd * iterK fs SK "__loop1" + fs "__loop1" + m.nrx * iterK fs SK "__loop2" + fs "__loop2" +
+      m.nrs * iterK fs SK "__loop3" + fs "__loop3" +
       (if m.nd = 1 then b.Bd + fs "da_verify" else 0) +
       (if m.nc = 0 then fs "__loop4" else b.B5 + fs "__loop4" + b.Ba + fs "aggregate_claims") +
       SB "statement_digest" + fs "statement_digest" := by
@@ -390,17 +390,17 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hA := aggB_eq fs SB SK w.children.length
   have hcov := coverage_eq (s := s) (w := w)
   simp only [List.length_append] at hcov
-  have c1 : (xPlan s w).duplicates.length * SK "__loop0" ≤ Coverage.planSlots s w * SK "__loop0" :=
+  have c1 : (xPlan s w).duplicates.length * iterK fs SK "__loop0" ≤ Coverage.planSlots s w * iterK fs SK "__loop0" :=
     Nat.mul_le_mul_right _ (by omega)
-  have c2 : (sPlan s w).duplicates.length * SK "__loop1" ≤ Coverage.planSlots s w * SK "__loop1" :=
+  have c2 : (sPlan s w).duplicates.length * iterK fs SK "__loop1" ≤ Coverage.planSlots s w * iterK fs SK "__loop1" :=
     Nat.mul_le_mul_right _ (by omega)
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
   have hB : Bmain fs SB SK (childBv Bvf w) 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
       (fs "exponent_tables" + 236 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-        (mBs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
+        (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
   generalize kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
-    (mBs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
+    (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
   rw [hB, hmsz]
   have hd : (hm fs 0 seed s w).nd ≤ 1 := (hData_bounds hl fs 0).nd
   have hcl : s.claims.xmss.length + s.claims.sphincs.length ≤ (End.work s w).declared := by
@@ -427,12 +427,12 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have r1 : clS SK * (End.work s w).declared = (End.work s w).declared * clS SK := Nat.mul_comm _ _
   have r2 : (s.claims.xmss.length + s.claims.sphincs.length) * clS SK =
       s.claims.xmss.length * clS SK + s.claims.sphincs.length * clS SK := Nat.add_mul _ _ _
-  have r3 : (5 + SK "__loop0" + SK "__loop1") * (End.work s w).coverage =
-      5 * (End.work s w).coverage + (End.work s w).coverage * SK "__loop0" +
-        (End.work s w).coverage * SK "__loop1" := by ring
-  have r4 : SK "__loop2" * (End.work s w).rawXmss = (End.work s w).rawXmss * SK "__loop2" :=
+  have r3 : (5 + iterK fs SK "__loop0" + iterK fs SK "__loop1") * (End.work s w).coverage =
+      5 * (End.work s w).coverage + (End.work s w).coverage * iterK fs SK "__loop0" +
+        (End.work s w).coverage * iterK fs SK "__loop1" := by ring
+  have r4 : iterK fs SK "__loop2" * (End.work s w).rawXmss = (End.work s w).rawXmss * iterK fs SK "__loop2" :=
     Nat.mul_comm _ _
-  have r5 : SK "__loop3" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * SK "__loop3" :=
+  have r5 : iterK fs SK "__loop3" * (End.work s w).rawSphincs = (End.work s w).rawSphincs * iterK fs SK "__loop3" :=
     Nat.mul_comm _ _
   have r6 : dvS SK * (End.work s w).rawDaRows = (End.work s w).rawDaRows * dvS SK :=
     Nat.mul_comm _ _

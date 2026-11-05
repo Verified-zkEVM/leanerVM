@@ -372,20 +372,11 @@ def Bound (P : Core.Program) (α : Bool) (cert : String → Cert) (ω : String �
       a0 < e → e < 2 ^ 64 - 1 → ArgsPre pre args →
         t.cost P α ω ≤ (e - a0) * b.eval args + (if α then ω t.name else 0)
 
-/-- **A loop run's phantom frame**, counting words: a loop helper's run leaves one; `0` for another
-callee. -/
-def loopPh (cert : String → Cert) (α : Bool) (ω : String → ℕ) (g : String) : ℕ :=
-  match cert g with
-  | .loop .. => if α then ω g else 0
-  | _ => 0
-
-/-- **A call site's bound bounds its callee**, a tree satisfying its certificate, but a loop run's
-phantom (`loopPh`). -/
+/-- **A call site's bound bounds its callee**, a tree satisfying its certificate. -/
 theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω : String → ℕ}
-    (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
-    {g : String} {r : Acc} (h : siteB cert ρ ps g a = some r) (hr : ArgsPre r.2 args) {t : Tree}
-    (hn : t.name = g) (hb : Bound P α cert ω t (a.map σ)) :
-    t.cost P α ω ≤ r.1.eval args + loopPh cert α ω g := by
+    {wl : String → Option ℕ} (hwl : WlOk wl ω) (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
+    {g : String} {r : Acc} (h : siteB cert wl α ρ ps g a = some r) (hr : ArgsPre r.2 args) {t : Tree}
+    (hn : t.name = g) (hb : Bound P α cert ω t (a.map σ)) : t.cost P α ω ≤ r.1.eval args := by
   unfold Bound at hb
   rw [hn] at hb
   unfold siteB at h
@@ -394,12 +385,32 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
   | stat pre b ks =>
       rw [hc] at h hb
       obtain ⟨h1, h2⟩ := transB_sound hρ hp h hr
-      rw [show loopPh cert α ω g = 0 by simp [loopPh, hc], Nat.add_zero]
       exact (hb h2).trans h1
-  | loop endc pre b ks =>
+  | loop endc pre b0 ks =>
       rw [hc] at h hb
-      rw [show loopPh cert α ω g = (if α then ω g else 0) by simp [loopPh, hc]]
       simp only at h hb
+      split at h
+      · cases h
+      rename_i b hib
+      -- each iteration charged the phantom frame: `e - a0 ≥ 1` iterations cover the run's one
+      replace hb : ∀ a0 e, (a.map σ).getD 0 0 = ofK (addressOfIndex a0) →
+          endOf endc (a.map σ) = ofK (addressOfIndex e) → a0 < e → e < 2 ^ 64 - 1 →
+          ArgsPre pre (a.map σ) → t.cost P α ω ≤ (e - a0) * b.eval (a.map σ) := by
+        intro a0 e h0 h1 h2 h3 h4
+        have := hb a0 e h0 h1 h2 h3 h4
+        obtain ⟨p, hph, rfl⟩ := Option.map_eq_some_iff.mp hib
+        have hpe : (if α then ω g else 0) ≤ p.1.eval (a.map σ) := by
+          unfold phB at hph
+          cases α with
+          | false => simp
+          | true =>
+              simp only [↓reduceIte, Option.map_eq_some_iff] at hph ⊢
+              obtain ⟨n, hn', rfl⟩ := hph
+              simpa [Aff.eval] using hwl g n hn'
+        have hm : p.1.eval (a.map σ) ≤ (e - a0) * p.1.eval (a.map σ) :=
+          Nat.le_mul_of_pos_left _ (by omega)
+        rw [Aff.eval_add, Nat.mul_add]
+        omega
       split at h
       · cases h
       · rename_i v0 hv0
@@ -428,7 +439,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
               obtain ⟨t1, t2⟩ := transB_sound hρ hp hR hr
               have := hb a0 e (by rw [hget0, hs0]) hend hlt.1 hlt.2 t2
               rw [Aff.eval_scale]
-              exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_left _ t1) _)
+              exact this.trans (Nat.mul_le_mul_left _ t1)
             · cases h
           · rename_i k hk
             split at h
@@ -464,44 +475,14 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                     List.sum_cons, List.sum_nil]
                   omega
                 rw [hev]
-                calc t.cost P α ω ≤ (eb - a0) * b.eval (a.map σ) + (if α then ω g else 0) := this
-                  _ ≤ (eb - a0) * R.1.c + (if α then ω g else 0) :=
-                    Nat.add_le_add_right (Nat.mul_le_mul_left _ t1) _
-                  _ ≤ eb * R.1.c + (if α then ω g else 0) :=
-                    Nat.add_le_add_right (Nat.mul_le_mul_right _ (Nat.sub_le _ _)) _
-                  _ = R.1.c * eb + (if α then ω g else 0) := by rw [Nat.mul_comm]
+                calc t.cost P α ω ≤ (eb - a0) * b.eval (a.map σ) := this
+                  _ ≤ (eb - a0) * R.1.c := Nat.mul_le_mul_left _ t1
+                  _ ≤ eb * R.1.c := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
+                  _ = R.1.c * eb := Nat.mul_comm _ _
               · cases h
             · cases h
           · cases h
         · cases h
-
-/-- **A call site's charge bounds its callee**: its bound (`siteB_sound`) and a loop run's phantom
-(`siteP`). -/
-theorem siteW_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω : String → ℕ}
-    {wl : String → Option ℕ} (hwl : WlOk wl ω) (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
-    {g : String} {r : Acc} (h : siteW cert wl α ρ ps g a = some r) (hr : ArgsPre r.2 args) {t : Tree}
-    (hn : t.name = g) (hb : Bound P α cert ω t (a.map σ)) : t.cost P α ω ≤ r.1.eval args := by
-  obtain ⟨r1, r2, h1, h2, rfl⟩ := addAcc_some h
-  simp only [Acc.add, argsPre_append] at hr
-  have h3 := siteB_sound hρ hp h1 hr.1 hn hb
-  have h4 : loopPh cert α ω g ≤ r2.1.eval args := by
-    unfold siteP at h2
-    unfold loopPh
-    cases hc : cert g with
-    | loop =>
-        rw [hc] at h2
-        simp only at h2 ⊢
-        unfold phB at h2
-        cases α with
-        | false => simp
-        | true =>
-            simp only [↓reduceIte, Option.map_eq_some_iff] at h2 ⊢
-            obtain ⟨n, hn', rfl⟩ := h2
-            simpa [Aff.eval] using hwl g n hn'
-    | none => simp
-    | stat => simp
-  simp only [Acc.add, Aff.eval_add]
-  omega
 
 end Site
 
@@ -643,7 +624,7 @@ theorem maxB_mem {α : Type} {f : α → Option Acc} {args : List E} :
 /-- A call site's callee: its bound bounds the callee of one frame. -/
 theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps : List V} {args : List E}
     (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
-    {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteW cert wl α ρ ps g a = some R)
+    {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert wl α ρ ps g a = some R)
     (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0)
     {Y : ℕ} (hY : t = false → (if α then ω g else 0) ≤ Y) :
     KB P rd σ cert ω α es (R.1.eval args + Y) := by
@@ -657,7 +638,7 @@ theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps :
       simp only [Tree.BufsOkKids] at ho
       by_cases ht : t = true
       · rw [ite_eq_left ht] at hkv
-        have := siteW_sound hwl hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv ho.1)
+        have := siteB_sound hwl hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv ho.1)
         omega
       · rw [ite_eq_right ht] at hkv
         obtain ⟨⟨f, σ', rfl⟩, -⟩ := hkv
@@ -930,7 +911,7 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α k
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | call g args rets =>
           simp only [stmtR, blockB]
-          cases siteW cert wl α ρ.1 ps g args with
+          cases siteB cert wl α ρ.1 ps g args with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | callIf c g args =>
@@ -938,12 +919,12 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α k
           split_ifs
           · rfl
           · rw [← addAcc_assoc]
-            cases Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g) with
+            cases Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g) with
             | none => rfl
             | some r => simp only [Option.map_some]; rw [blockR_eq]
       | dispatch x gs args rets =>
           simp only [stmtR, blockB]
-          cases maxB (fun g => siteW cert wl α ρ.1 ps g args) gs with
+          cases maxB (fun g => siteB cert wl α ρ.1 ps g args) gs with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | ret vs => simp only [stmtR, blockB]; rfl
@@ -1041,7 +1022,7 @@ variable {look cert : String → Cert} {wl : String → Option ℕ} {α : Bool} 
   {self : String}
 
 theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} {r : Acc}
-    (h : siteB look ρ ps g a = some r) : siteB cert ρ ps g a = some r := by
+    (h : siteB look wl α ρ ps g a = some r) : siteB cert wl α ρ ps g a = some r := by
   have hg : look g ≠ .none := by
     intro h0
     unfold siteB at h
@@ -1051,26 +1032,14 @@ theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} 
   rw [← hl g hg]
   exact h
 
-theorem siteW_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} {r : Acc}
-    (h : siteW look wl α ρ ps g a = some r) : siteW cert wl α ρ ps g a = some r := by
-  obtain ⟨r1, r2, h1, h2, rfl⟩ := addAcc_some h
-  have hg : look g ≠ .none := by
-    intro h0
-    unfold siteB at h1
-    rw [h0] at h1
-    cases h1
-  unfold siteW siteP at *
-  rw [siteB_mono hl h1, ← hl g hg, h2]
-  rfl
-
 theorem maxB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
-    ∀ {gs : List String} {r : Acc}, maxB (fun g => siteW look wl α ρ ps g a) gs = some r →
-      maxB (fun g => siteW cert wl α ρ ps g a) gs = some r
+    ∀ {gs : List String} {r : Acc}, maxB (fun g => siteB look wl α ρ ps g a) gs = some r →
+      maxB (fun g => siteB cert wl α ρ ps g a) gs = some r
   | [], _, h => h
   | g :: gs, r, h => by
       simp only [maxB] at h ⊢
       obtain ⟨rx, ry, hx, hy, rfl⟩ := maxAcc_some h
-      rw [siteW_mono hl hx, maxB_site_mono hl hy]
+      rw [siteB_mono hl hx, maxB_site_mono hl hy]
       rfl
 
 mutual
@@ -1103,7 +1072,7 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
       | call g a rets =>
           simp only [blockB] at h ⊢
           obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
-          rw [siteW_mono hl ha, blockB_mono hl ss ρ hrr]
+          rw [siteB_mono hl ha, blockB_mono hl ss ρ hrr]
           rfl
       | callIf c g a =>
           simp only [blockB] at h ⊢
@@ -1112,7 +1081,7 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
           · rw [ite_eq_right (by assumption)]
             obtain ⟨ra, rpr, ha, hpr, rfl⟩ := addAcc_some h
             obtain ⟨rph, rr, hph, hrr, rfl⟩ := addAcc_some hpr
-            rw [siteW_mono hl ha, hph, blockB_mono hl ss ρ hrr]
+            rw [siteB_mono hl ha, hph, blockB_mono hl ss ρ hrr]
             rfl
       | dispatch x gs a rets =>
           simp only [blockB] at h ⊢

@@ -37,9 +37,10 @@ checked without its tail call, against its shape (`loopShape`). Counting words (
 one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s, `x`'s bound plus
 `c` (`logG_mul_le`), threaded in the environment's bounds (`BEnv`); a `callIf` adds its callee's frame, which an
 untaken one leaves as a phantom (`phB`, the weight looked up by `wl`), and a loop's iteration its
-own frame, and a call site a loop run's phantom once (`siteP`): a run's last iteration leaves its
-untaken tail call, a phantom of the helper, the run's only one. Counting words at the frame sizes,
-the cost is then the words a tree allocates.
+own frame once: a run's last iteration leaves its untaken tail call, a phantom of the helper, the
+run's only one, which the run's bound adds once; a call site charges it with each iteration
+(`iterB`), an upper bound. Counting words at the frame sizes, the cost is then the words a tree
+allocates.
 
 **Soundness** (`chk_sound`): if the checker accepts every function of a program but those of a set
 `X`, whose trees satisfy their certificates by hypothesis, every valid tree of a function costs at
@@ -193,36 +194,50 @@ def transB (ρ : Env) (ps : List V) (args : List V) (pre : List (ℕ × ℕ)) (b
   Option.addAcc (some (⟨b.c, []⟩, []))
     (Option.addAcc (sumB (termB ρ ps args) b.cs) (sumB (preB ρ ps args) pre))
 
-/-- **A call site's bound**: a callee's certificate at the site's arguments. -/
-def siteB (cert : String → Cert) (ρ : Env) (ps : List V) (g : String) (args : List V) :
-    Option Acc :=
+/-- The zero bound. -/
+def Acc.zero : Acc := (⟨0, []⟩, [])
+
+/-- A `callIf`'s phantom, counting words: its callee's frame, by `wl`. -/
+def phB (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
+  if α then (wl g).map fun n => (⟨n, []⟩, []) else some Acc.zero
+
+/-- **A loop helper's iteration at a call site**: its certificate's bound and, counting words, its
+run's phantom frame (`phB`) charged to each iteration, which covers the run's one phantom (a run
+has an iteration). -/
+def iterB (wl : String → Option ℕ) (α : Bool) (g : String) (b : Aff) : Option Aff :=
+  (phB wl α g).map fun p => b.add p.1
+
+/-- **A call site's bound**: a callee's certificate at the site's arguments, a loop helper's
+iterations at `iterB`. -/
+def siteB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env) (ps : List V)
+    (g : String) (args : List V) : Option Acc :=
   match cert g with
   | .none => none
   | .stat pre b _ => transB ρ ps args pre b
-  | .loop endc pre b _ =>
-      match args[0]? with
+  | .loop endc pre b0 _ =>
+      match iterB wl α g b0 with
       | none => none
-      | some v0 => match cls ρ ps v0 with
-        | .pow a0 =>
-            let endv : VCls := match endc with
-              | some e => .pow e
-              | none => match args[1]? with
-                | some v1 => cls ρ ps v1
-                | none => .none
-            match endv with
-            | .pow e =>
-                if a0 < e ∧ e < 2 ^ 64 - 1 then
-                  (transB ρ ps args pre b).map fun r => (r.1.scale (e - a0), r.2)
-                else none
-            | .param k =>
-                match transB ρ ps args pre b with
-                | some r => if r.1.cs = [] then some (⟨0, [(k, r.1.c)]⟩, (k, a0) :: r.2) else none
-                | none => none
-            | .none => none
-        | _ => none
-
-/-- The zero bound. -/
-def Acc.zero : Acc := (⟨0, []⟩, [])
+      | some b =>
+        match args[0]? with
+        | none => none
+        | some v0 => match cls ρ ps v0 with
+          | .pow a0 =>
+              let endv : VCls := match endc with
+                | some e => .pow e
+                | none => match args[1]? with
+                  | some v1 => cls ρ ps v1
+                  | none => .none
+              match endv with
+              | .pow e =>
+                  if a0 < e ∧ e < 2 ^ 64 - 1 then
+                    (transB ρ ps args pre b).map fun r => (r.1.scale (e - a0), r.2)
+                  else none
+              | .param k =>
+                  match transB ρ ps args pre b with
+                  | some r => if r.1.cs = [] then some (⟨0, [(k, r.1.c)]⟩, (k, a0) :: r.2) else none
+                  | none => none
+              | .none => none
+          | _ => none
 
 /-- **An atom's bound and the constants after it**: a certified constant joins them; counting
 words (`α`), a tracked product `d = x·g^c` is bounded by `x`'s bound plus `c`, a `HeapBuf(n)` adds
@@ -247,23 +262,6 @@ def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env × BEnv) :
       else some (Acc.zero, ρ)
   | _ => some (Acc.zero, ρ)
 
-/-- A `callIf`'s phantom, counting words: its callee's frame, by `wl`. -/
-def phB (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
-  if α then (wl g).map fun n => (⟨n, []⟩, []) else some Acc.zero
-
-/-- **A loop run's phantom**, counting words: a loop helper's run leaves one phantom of itself,
-its last iteration's untaken tail call, whose frame the call site charges once (`phB`); another
-callee none. -/
-def siteP (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
-  match cert g with
-  | .loop .. => phB wl α g
-  | _ => some Acc.zero
-
-/-- **A call site's charge**: its callee's bound at the site (`siteB`), and a loop run's phantom
-(`siteP`). -/
-def siteW (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env) (ps : List V)
-    (g : String) (args : List V) : Option Acc :=
-  Option.addAcc (siteB cert ρ ps g args) (siteP cert wl α g)
 
 mutual
 /-- **A block's bound**: its call sites' bounds (and, counting words, its `HeapBuf`s) summed, the
@@ -281,13 +279,13 @@ def blockB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks
       (blockB cert wl α ks ps self ρ ss)
   | ρ, .match_ _ arms :: ss =>
       Option.addAcc (armsB cert wl α ks ps self ρ arms) (blockB cert wl α ks ps self ρ ss)
-  | ρ, .call g args _ :: ss => Option.addAcc (siteW cert wl α ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
+  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert wl α ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
   | ρ, .callIf _ g args :: ss =>
       if g = self then none
-      else Option.addAcc (siteW cert wl α ρ.1 ps g args)
+      else Option.addAcc (siteB cert wl α ρ.1 ps g args)
         (Option.addAcc (phB wl α g) (blockB cert wl α ks ps self ρ ss))
   | ρ, .dispatch _ gs args _ :: ss =>
-      Option.addAcc (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
+      Option.addAcc (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
   | _, .ret _ :: _ => some (⟨0, []⟩, [])
 
 /-- The arms' bounds, summed. -/
@@ -309,10 +307,10 @@ noncomputable def stmtR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -331,10 +329,10 @@ noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -353,10 +351,10 @@ noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteB cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
