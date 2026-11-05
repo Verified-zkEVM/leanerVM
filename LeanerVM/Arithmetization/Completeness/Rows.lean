@@ -84,7 +84,7 @@ noncomputable def readAddrs {κ : ℕ} (mem : MemImage κ) (fp : K) : Instr → 
   | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
   | .setConstant o _ => [fp * o]
-  | .deref o1 o2 o3 _ => [fp * o1, fp * o3, (mem.limbsAt (fp * o1))[0] * o2]
+  | .deref o1 o2 o3 _ => [fp * o1, (mem.limbsAt (fp * o1))[0] * o2, fp * o3]
   | .jump oc od of => [fp * oc, fp * od, fp * of]
   | .blake2s om ocv oout omd =>
       [fp * om 0, fp * om 1, fp * om 2, fp * om 3, fp * ocv, fp * (g * ocv), fp * oout,
@@ -162,8 +162,9 @@ private theorem deref_exec_sends {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 
     rowSends derefComponent
         (Environment.fromArray (rawRow (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc)) data) =
       sendsOf pc fp next rbc (entry (.deref o1 o2 o3 mode))
-        [(fp * o1, r1, mem.limbsAt (fp * o1)), (fp * o3, r3, mem.limbsAt (fp * o3)),
-          ((mem.limbsAt (fp * o1))[0] * o2, r2, mem.limbsAt ((mem.limbsAt (fp * o1))[0] * o2))] := by
+        [(fp * o1, r1, mem.limbsAt (fp * o1)),
+          ((mem.limbsAt (fp * o1))[0] * o2, r2, mem.limbsAt ((mem.limbsAt (fp * o1))[0] * o2)),
+          (fp * o3, r3, mem.limbsAt (fp * o3))] := by
   obtain ⟨mode', ⟨hflags, h1, h3⟩, h2, rfl⟩ :=
     (deref_refines_iff _ _ _).mp (derefRowOf_refines hexec r1 r2 r3 rbc)
   rw [show rowSends derefComponent _ = _ from
@@ -304,7 +305,7 @@ theorem readAddrs_valid {κ : ℕ} {mem : MemImage κ} {pc fp : K} {ins : Instr}
       (deref_refines_iff _ _ _).mp (derefRowOf_refines hexec 1 1 1 1)
     simp only [readAddrs, List.mem_cons, List.not_mem_nil, or_false]
     rintro a (rfl | rfl | rfl)
-    exacts [⟨_, h1⟩, ⟨_, h3⟩, ⟨_, h2⟩]
+    exacts [⟨_, h1⟩, ⟨_, h2⟩, ⟨_, h3⟩]
   | jump oc od of =>
     obtain ⟨⟨hc, hd, hf⟩, -⟩ := (jump_refines_iff _ _ _).mp (jumpRowOf_refines hexec 1 1 1 1)
     simp only [readAddrs, List.mem_cons, List.not_mem_nil, or_false]
@@ -361,7 +362,7 @@ noncomputable def rowOf {κ : ℕ} (mem : MemImage κ) (pc fp : K) (cnt : ℕ �
   | .mulNative oA oB oC => rawRow (mulRowOf mem pc fp oA oB oC (cnt 0) (cnt 1) (cnt 2) rbc)
   | .setConstant o k => rawRow (setRowOf pc fp o k (cnt 0) rbc)
   | .deref o1 o2 o3 mode =>
-      rawRow (derefRowOf mem pc fp o1 o2 o3 mode (cnt 0) (cnt 2) (cnt 1) rbc)
+      rawRow (derefRowOf mem pc fp o1 o2 o3 mode (cnt 0) (cnt 1) (cnt 2) rbc)
   | .jump oc od of =>
       jumpRaw (jumpRowOf mem pc fp oc od of (cnt 0) (cnt 1) (cnt 2) rbc)
         (if (mem.limbsAt (fp * oc))[0] = 0 then 0 else ((mem.limbsAt (fp * oc))[0])⁻¹)

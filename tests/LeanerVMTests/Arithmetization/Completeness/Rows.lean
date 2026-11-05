@@ -47,7 +47,7 @@ example : readAddrs zeroImage 1 (.xor (gpow 0) (gpow 1) (gpow 2)) =
 
 /-- A `DEREF` reads its target at `p · o₂`, with `p` the word at `fp · o₁`, not at `fp · o₂`. -/
 example {κ : ℕ} (mem : MemImage κ) (fp o1 o2 o3 : K) (m : DerefMode) :
-    readAddrs mem fp (.deref o1 o2 o3 m) = [fp * o1, fp * o3, (mem.limbsAt (fp * o1))[0] * o2] :=
+    readAddrs mem fp (.deref o1 o2 o3 m) = [fp * o1, (mem.limbsAt (fp * o1))[0] * o2, fp * o3] :=
   rfl
 
 /-! ## The execution is load-bearing -/

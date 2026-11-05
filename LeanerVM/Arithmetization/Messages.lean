@@ -276,14 +276,14 @@ theorem deref_sends_gen (x : Var DerefRow K) (env : Environment K) (n : ℕ) (r 
         #[r.pc, g * r.rbc, Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]),
        (MemChannel.name, .pull, #[r.fp * r.o1, r.r1, r.p, 0, 0]),
        (MemChannel.name, .push, #[r.fp * r.o1, g * r.r1, r.p, 0, 0]),
-       (MemChannel.name, .pull, #[r.fp * r.o3, r.r3, r.v3[0], r.v3[1], r.v3[2]]),
-       (MemChannel.name, .push, #[r.fp * r.o3, g * r.r3, r.v3[0], r.v3[1], r.v3[2]]),
        (MemChannel.name, .pull, #[r.p * r.o2, r.r2,
           (1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
           (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]),
        (MemChannel.name, .push, #[r.p * r.o2, g * r.r2,
           (1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
-          (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]])] := by
+          (1 + r.fpc + r.ffp) * r.v3[1], (1 + r.fpc + r.ffp) * r.v3[2]]),
+       (MemChannel.name, .pull, #[r.fp * r.o3, r.r3, r.v3[0], r.v3[1], r.v3[2]]),
+       (MemChannel.name, .push, #[r.fp * r.o3, g * r.r3, r.v3[0], r.v3[1], r.v3[2]])] := by
   subst hx
   obtain ⟨pc, fp, o1, o2, o3, fpc, ffp, p, v3, r1, r2, r3, rbc⟩ := x
   simp only [Operations.interactionValues, circuit_norm, derefTable, instructionStep, memRead,
