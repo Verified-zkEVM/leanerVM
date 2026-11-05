@@ -1655,7 +1655,7 @@ there. The chain is any the log holds from that first state: the proof's own, or
 def FlipFor (st : Program × PublicInput) (g : Run) : Prop :=
   ∃ G σ hs, G's queries are in g.log, its proof of work passing ∧ chainHistory g.log (stmtOf g.log · |>.isSome)
     ⟨G.cv⟩ = some (σ, hs) ∧ stmtOf g.log σ = some st ∧ decodePrefix st (hs ++ G's nonce step) = some ⟨s, ρ, i, tr⟩ ∧
-    `i` is a challenge ∧ (the challenge of G's squeezes) ∈ Bad st.1 s ρ st i tr
+    `i` is a challenge ∧ (the challenge of G's squeezes) ∈ Bad st.1 s ρ (st.2, no oracles) i tr
     -- `tr` carries the words zero-filled `extractRows` reads under `hs`'s roots
 /-- A flip on the chain of any statement: `∃ st, FlipFor st g`, what the random-oracle bound bounds. -/
 def Flip (g : Run) : Prop
