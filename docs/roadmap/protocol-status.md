@@ -7,9 +7,9 @@ blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly
-`572f9973`, Clean `42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
-([dependencies.md](../dependencies.md#lean-434-port-review)).
+The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, CompPoly `572f9973`,
+Clean `ce2eee63`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean
+and Mathlib `v4.34.1` ([dependencies.md](../dependencies.md#lean-434-port-review)).
 
 ## On `main`
 
@@ -706,11 +706,8 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle extraction with hashed leaves; the random-oracle theorems | `ToVCVio/MerkleLeaves.lean`; the reduction from an adversary with coins | VCVio proves extraction with hashed leaves, or for an adversary with coins |
-| Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
-| Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 
-One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
-any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
+Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
 budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
 (least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
 ([whir-mca-budget.md](../reviews/whir-mca-budget.md)).
