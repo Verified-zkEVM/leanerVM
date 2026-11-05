@@ -2141,10 +2141,9 @@ hypothesis, `BlakeMisbehavesAdaptive`, which the random-oracle bound supports: t
 the statement's three hashes and the reader reads the statement off the log (Layer 12), so
 `misbehaves_rom_adaptive` bounds misbehaving on the adversary's run with the flips on every
 statement's chain, which contain the hypothesis's flips, those the verifier asked for on the
-chosen statement's chain (`flip_of_verifierFlipFor`), the adversary's game being a game in two
-runs on its output
-(`adaptiveGame_eq_twoRunGame`), at `13700` verifier queries. The existential corollary, "an
-accepted proof implies some valid execution", is not stated: it carries no knowledge
+chosen statement's chain (`flip_of_verifierFlipFor`), the adversary's game being a game in two runs
+on its output (`adaptiveGame_eq_twoRunGame`), at `13700` verifier queries. The existential
+corollary, "an accepted proof implies some valid execution", is not stated: it carries no knowledge
 (decision 34).
 
 With the statement's seed hashed through the oracle (decision 43), the fixed-statement hypothesis

@@ -1440,11 +1440,10 @@ flip on a chain of `(prog, input)` the adversary explored and the verifier never
 it would fail the hypothesis for an adversary that abandons a cheating chain of the statement and
 outputs an honest proof, though `core`'s conclusion holds of it (the toy reader's
 `not_verifierFlipFor_proverRun` against `flipFor_proverRun`). The broad event `FlipFor` stays,
-with `flipFor_of_verifierFlipFor` between them, and the random-oracle bounds still count every
-flip. Tests: an
-adversary that picks one of two statements from one hash is bounded at `Q = 1`, the adaptive
-replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before its
-program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,
+with `flipFor_of_verifierFlipFor` between them, and the random-oracle bounds still count every flip.
+Tests: an adversary that picks one of two statements from one hash is bounded at `Q = 1`, the
+adaptive replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before
+its program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,
 `leanervm-verify` accepts the Rust fixture and the test vector and rejects every mutation,
 `leanervm-prove` writes the vector byte for byte, and `leanervm-prove log` finds no collision and no
 hit in the honest run (487253 prover and 3294 verifier queries).
