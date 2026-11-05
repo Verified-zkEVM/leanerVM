@@ -12,6 +12,7 @@ import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.FillBlocks
 import LeanerVM.Arithmetization.WitnessGen
 import LeanerVM.Arithmetization.HypothesisChecks
+import LeanerVM.Protocol.Headline
 
 /-!
 # The `leanervm-witgen` executable
@@ -33,6 +34,7 @@ timed:
   run reads through a table of powers grown along the run;
 * `t.Fits`, decided by `fitsBy` from the rows of the run counted by a forward pass
   (`fitsBy_eq_true_iff`, on a valid execution);
+* `StackFits prog t`, decided by `stackFitsRowsB` on the same counts (`stackFitsRowsB_eq_true_iff`);
 * the rows: the main run's states, replayed, are each table's first `main` rows in order, and the
   remaining rows of every table, the fill rows, step to a permutation of themselves away from the
   sentinel (`FillerRowsValid`, checked by sorting; a diagnostic, not proved equal to
@@ -456,6 +458,9 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   failed := failed + (← report "fitsBy (= Fits)" (← force (fitsBy e.prog t pows)) t6f)
   let runCounts := countsOf (runCountTableBy e.prog t pows)
   let owed := jumpOwed runCounts
+  let t6s ← IO.monoNanosNow
+  failed := failed + (← report "stackFitsRowsB (= StackFits)"
+    (← force (stackFitsRowsB e.prog t.κ runCounts)) t6s)
   IO.println s!"  κ = {t.κ}, run rows {fillTables.map runCounts}, JUMP owes {owed}, \
     least JUMP exponent {jumpHeight owed}"
   let t7 ← IO.monoNanosNow
