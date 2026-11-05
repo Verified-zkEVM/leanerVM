@@ -54,9 +54,12 @@ order either way. Single-threaded.
 
 **Fuel.** A grind of 17 bits tries `2^17` candidates on average. In the random-oracle model a
 search of `fuel = 2^24` candidates fails with probability `(1 − 2^-17)^(2^24) ≈ e^-128` per level,
-three or four levels a proof. At BLAKE2s, a fixed function, an input on which no nonce below the
-fuel clears the bits cannot be excluded; `prove` then returns `none`, never a proof the verifier
-rejects. The Rust's search is unbounded over `u64` (`fiat_shamir/src/lib.rs:126-156`), so the
+two to six levels a proof; `Prove.prEvent_proveWith_eq_none_le`
+(`LeanerVM.Protocol.Prove.RomComplete`) bounds the prover's failure by
+`(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N^2/2^256` for a run of at most `N` queries. At BLAKE2s, a
+fixed function, an input on which no nonce below the fuel clears the bits cannot be excluded;
+`prove` then returns `none`, never a proof the verifier rejects. The Rust's search is unbounded
+over `u64` (`fiat_shamir/src/lib.rs:126-156`), so the
 two nonces agree whenever the Rust's is below the fuel.
 
 **Target.** Layer 13's honest prover: the executable artefact of T4's completeness direction.

@@ -11,6 +11,7 @@ import LeanerVM.Protocol.Verify
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.FillBlocks
 import LeanerVM.Arithmetization.WitnessGen
+import LeanerVM.Arithmetization.HypothesisChecks
 
 /-!
 # The `leanervm-witgen` executable
@@ -26,9 +27,12 @@ timed:
 * `SentinelSafe prog`, decided, and the fill blocks the Rust lists: each of the 48 pairs of table
   and size has a listed block whose slots hold the dummies and the closing jump (`IsFillBlock` at
   that start; a diagnostic of the listed starts, not a decision procedure for `HasFillBlocks`);
+* `WellFormedBytecode prog`, decided by `wellFormedB` (`wellFormedB_eq_true_iff`);
 * with `--hash`, `programHash prog` against the Rust bytecode digest;
 * the execution: `checkTrace` (`checkTrace_eq_true_iff`, so it decides `ValidExecution`), whose
   run reads through a table of powers grown along the run;
+* `t.Fits`, decided by `fitsBy` from the rows of the run counted by a forward pass
+  (`fitsBy_eq_true_iff`, on a valid execution);
 * the rows: the main run's states, replayed, are each table's first `main` rows in order, and the
   remaining rows of every table, the fill rows, step to a permutation of themselves away from the
   sentinel (`FillerRowsValid`, checked by sorting; a diagnostic, not proved equal to
@@ -438,6 +442,9 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   let t4 ← IO.monoNanosNow
   failed := failed + (← report s!"fill blocks ({e.filler.size} listed)"
     (fillBlocksListed e.prog e.filler) t4)
+  let t4w ← IO.monoNanosNow
+  failed := failed + (← report "wellFormedB (= WellFormedBytecode)" (← force (wellFormedB e.prog))
+    t4w)
   if opts.hash then
     let t5 ← IO.monoNanosNow
     failed := failed + (← report "programHash = the Rust bytecode digest"
@@ -445,6 +452,12 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   let t6 ← IO.monoNanosNow
   let ok ← force (checkTrace e.prog e.input t)
   failed := failed + (← report "checkTrace (= ValidExecution)" ok t6)
+  let t6f ← IO.monoNanosNow
+  failed := failed + (← report "fitsBy (= Fits)" (← force (fitsBy e.prog t pows)) t6f)
+  let runCounts := countsOf (runCountTableBy e.prog t pows)
+  let owed := jumpOwed runCounts
+  IO.println s!"  κ = {t.κ}, run rows {fillTables.map runCounts}, JUMP owes {owed}, \
+    least JUMP exponent {jumpHeight owed}"
   let t7 ← IO.monoNanosNow
   let main := e.traceInput.mainCounts
   let rowRegs (i : Fin 6) : Array (Regs K) :=
