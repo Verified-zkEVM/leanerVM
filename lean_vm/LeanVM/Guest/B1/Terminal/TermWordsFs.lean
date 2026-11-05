@@ -54,7 +54,7 @@ theorem fs_rs : B2C.fs "rs_eq_run" = 50 := by
   rw [fsB_idx (j := 6) (by decide +kernel)]; decide +kernel
 
 theorem fs_l6 : B2C.fs "__loop5" = 27 := by
-  rw [fsB_idx (j := 81) (by decide +kernel)]; decide +kernel
+  rw [fsB_idx (j := 80) (by decide +kernel)]; decide +kernel
 
 /-! ## The callees' words -/
 
@@ -78,20 +78,20 @@ theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
 /-- `__loop14` within `38` words per iteration. -/
 theorem l15_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * 38 :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 271) (by decide +kernel)]; rfl :
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 270) (by decide +kernel)]; rfl :
     wcertOf "__loop14" = .loop none [] ⟨38, []⟩ [])
 
 /-- `__loop5` within `1671` words per iteration. -/
 theorem l6_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop5" LoopPre fun a => logG (a.getD 1 0) * 1671 :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 81) (by decide +kernel)]; rfl :
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 80) (by decide +kernel)]; rfl :
     wcertOf "__loop5" = .loop none [] ⟨1671, []⟩ [])
 
 /-- `__loop13` from `1` (to its constant end `g^8`) within `8 · 1322` words. -/
 theorem l14_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 10576 := by
   intro rd t args rets hn ha hv hb
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 270) (by decide +kernel)]; rfl :
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 269) (by decide +kernel)]; rfl :
       wcertOf "__loop13" = .loop (some 8) [] ⟨1322, []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)

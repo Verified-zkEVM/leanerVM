@@ -175,19 +175,19 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
     | exact hcls rd t _ rets hn hv' hb' hT'.1
     | exact hdv hd rd t _ rets hn hv' hb' hT'.1
     | exact h5 rd t _ rets hn hv' hb' hT'.1
-    | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g383] using ht))
+    | exact absurd hc0 (ne_zero_of_guard (by simpa [hMV.g434] using ht))
     | exact loop_case H.l1 hn hv' hb' (by simpa using hMV.g62)
         (by simpa [MainIn.cnt] using hx 1 (by norm_num))
         (ne_zero_of_guard (by simpa [hMV.g61] using ht)) hB.xd (by simp)
     | exact loop_case H.l2 hn hv' hb' (by simpa using hMV.g65)
         (by simpa [MainIn.cnt] using hx 4 (by norm_num))
         (ne_zero_of_guard (by simpa [hMV.g64] using ht)) hB.sd (by simp)
-    | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g327)
+    | exact loop_case H.l3 hn hv' hb' (by simpa using hMV.g378)
         (by simpa [MainIn.cnt] using hx 2 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g326] using ht)) hB.rx (by simp)
-    | exact loop_case H.l4 hn hv' hb' (by simpa using hMV.g330)
+        (ne_zero_of_guard (by simpa [hMV.g377] using ht)) hB.rx (by simp)
+    | exact loop_case H.l4 hn hv' hb' (by simpa using hMV.g381)
         (by simpa [MainIn.cnt] using hx 5 (by norm_num))
-        (ne_zero_of_guard (by simpa [hMV.g329] using ht)) hB.rs (by simp)
+        (ne_zero_of_guard (by simpa [hMV.g380] using ht)) hB.rs (by simp)
     | exact H.agg rd t _ rets m.nc hn hv' hb'
         (by simpa [MainIn.cnt, Value.gen_pow_eq_ofK] using hx 6 (by norm_num))
         (Nat.pos_of_ne_zero hc0) (by have := hB.nc; omega)
