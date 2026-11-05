@@ -57,7 +57,7 @@ deterministic: two runs write the same plain file. The compressed file also depe
 `a386121f84292f6fa663aaa3e570c15bc0240ea2` (`Program::execute_to_floor`, the run `prove` makes),
 written by [`scripts/dump-execution-rust.sh`](../../scripts/dump-execution-rust.sh), whose header
 gives the format: the program, the public input, the final memory image, the main-run and total
-row counts, and every table row `(pc, fp)`. `leanervm-witgen` (`bench/LeanerVMWitgen.lean`) reads
+row counts, the Rust prover's committed-size floor, and every table row `(pc, fp)`. `leanervm-witgen` (`bench/LeanerVMWitgen.lean`) reads
 them into `Program`, `PublicInput` and `Trace prog` and checks them against the reference
 semantics; they are the inputs of the witness generator's end-to-end runs.
 

@@ -575,9 +575,12 @@ powers, an 18 MB file); the program hash of the guest's `2^19` instructions take
 through `programBytes`' list of bytes.
 
 With `--gen`, `witnessGen` gives each checked-in execution the Rust's table heights at memory
-`2^18` (the Rust's `2^17` plus the padding's doubling), in 1.0 to 2.0 s, 1.6 s on
+`2^18` (the Rust's `2^17` plus the padding's doubling), in 1.0 to 2.5 s, 1.6 s on
 `fibonacci_1000` and 32 s on `fibonacci_20000`. With `--prove`, `field_div` end to end: generation
 1.3 s, `prove` 290 s (818 scalars, 1.9 GB resident), `verify` accepts in 1.9 s.
+The guest's witness takes 6.1 s, at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to
+`2^17` (and JUMP with it) to reach its `2^22` committed floor, a prover choice `--gen` does not
+compare.
 
 Once the corresponding semantics exist, versioned target workloads should include opcode mixes,
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive

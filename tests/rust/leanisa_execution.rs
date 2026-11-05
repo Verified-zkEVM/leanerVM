@@ -78,6 +78,7 @@ fn write(name: &str, program: &Program, exec: &Execution, public_input: [F192; 2
     writeln!(out, "cycles {}", exec.cycles).unwrap();
     writeln!(out, "mem_used {}", exec.mem_used).unwrap();
     writeln!(out, "unconstrained_reads {}", exec.unconstrained_reads.len()).unwrap();
+    writeln!(out, "min_log_committed {}", program.min_log_committed).unwrap();
     writeln!(out, "main {}", counts(&exec.base_counts)).unwrap();
     writeln!(out, "rows {}", counts(&exec.trace.row_counts())).unwrap();
     let cells: Vec<_> = exec.mem.iter().enumerate().filter(|(_, v)| **v != F192::ZERO).collect();

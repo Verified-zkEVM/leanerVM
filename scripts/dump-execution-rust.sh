@@ -23,7 +23,8 @@
 # of `g^j`); `program_hash <hex>` (the Rust bytecode digest); `filler <n>` and n lines
 # `<pc> <size> <table>`; `public` and the six limbs of the two public words; `kappa <κ>` (memory
 # 2^κ); `steps <n>` (main-run transitions to the sentinel, sum of `base_counts`); `cycles <n>`
-# (rows including the fill); `mem_used <n>`; `unconstrained_reads <n>`; `main <6 counts>`
+# (rows including the fill); `mem_used <n>`; `unconstrained_reads <n>`; `min_log_committed <n>`
+# (the prover's floor on the committed size, which the fill meets; 0 = none); `main <6 counts>`
 # (`base_counts`); `rows <6 counts>` (rows per table after the fill); `memory <n>` and n lines
 # `<index> <c0> <c1> <c2>`, the nonzero words of the final image, limbs in hexadecimal;
 # `accessed <n>` and n cell indices some row accessed (an untrusted hint for the reader); for each

@@ -38,7 +38,8 @@ timed:
   accessed and the row counters); with `--scan`, also with no hints (the exhaustive scan).
 
 With `--gen`, `runGenerator` runs `witnessGen` (a function of the shape `Generator`) and reports
-the witness's sizes, whose table heights must be the Rust's; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and checks
+the witness's sizes, whose table heights must be the Rust's unless the Rust prover raised them to a
+floor on the committed size; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and checks
 the proof with `verify`; each timed. The exit code is `1` if a check fails.
 -/
 
@@ -190,6 +191,8 @@ structure Execution where
   memUsed : ℕ
   /-- The number of cells read and never written. -/
   unconstrainedReads : ℕ
+  /-- The Rust prover's floor on the committed size, `0` for none. -/
+  floor : ℕ
   /-- The final image and the Rust counts. -/
   traceInput : TraceInput
   /-- The cells some row accessed. -/
@@ -301,6 +304,7 @@ def parse (pows : Array K) : ParseM Execution := do
   let cycles ← keyedNum "cycles"
   let memUsed ← keyedNum "mem_used"
   let unconstrained ← keyedNum "unconstrained_reads"
+  let floor ← keyedNum "min_log_committed"
   let six (k : String) : ParseM (Vector ℕ 6) := do
     let vs ← (← keyed k).mapM num
     if h : vs.length = 6 then return ⟨vs.toArray, h⟩ else throw s!"{k} takes six counts"
@@ -328,7 +332,7 @@ def parse (pows : Array K) : ParseM Execution := do
   return {
     pin := pin, name := name, prog := prog, programHash := hash, filler := filler,
     input := input, κ := κ, steps := steps, memUsed := memUsed,
-    unconstrainedReads := unconstrained, traceInput := ⟨memory, mainCounts, rowCounts, cycles⟩,
+    unconstrainedReads := unconstrained, floor := floor, traceInput := ⟨memory, mainCounts, rowCounts, cycles⟩,
     accessed := accessed, rows := tables }
 
 /-- The largest exponent a file names: its program and its memory's sizes. -/
@@ -419,7 +423,7 @@ def since (t0 : ℕ) : IO Float := do return ((← IO.monoNanosNow) - t0).toFloa
 /-- Generate a witness and report its sizes; with `proveToo`, prove at rate `ρ` with `fuel`
 nonces a grind and verify; each timed. -/
 def runGenerator (gen : Generator) (proveToo : Bool) (fuel ρ : ℕ) (prog : Program)
-    (input : PublicInput) (t : Trace prog) (rustRows : Vector ℕ 6) : IO Bool := do
+    (input : PublicInput) (t : Trace prog) (rustRows : Option (Vector ℕ 6)) : IO Bool := do
   let t0 ← IO.monoNanosNow
   match gen prog input t with
   | none =>
@@ -430,9 +434,12 @@ def runGenerator (gen : Generator) (proveToo : Bool) (fuel ρ : ℕ) (prog : Pro
   let some s := sizes | do
     IO.println s!"FAIL the witness has no sizes, in {← since t0} s"
     return false
-  let same := (List.finRange 6).all fun j ↦ 2 ^ s.τ j == rustRows[j]
+  let same := rustRows.all fun rs ↦ (List.finRange 6).all fun j ↦ 2 ^ s.τ j == rs[j]
+  let versus := match rustRows with
+    | some rs => s!"the Rust's heights {rs.toList}: {if same then "equal" else "differ"}"
+    | none => "the Rust's heights are floored, not compared"
   IO.println s!"{if same then "ok  " else "FAIL"} witnessGen: memory 2^{s.logMem}, tables \
-    2^{List.ofFn s.τ} (the Rust's heights: {same}), in {← since t0} s"
+    2^{List.ofFn s.τ} ({versus}), in {← since t0} s"
   unless same do return false
   unless proveToo do return true
   let t1 ← IO.monoNanosNow
@@ -491,7 +498,7 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
     | .error msg => do IO.println s!"FAIL parse: {msg}"; return 1
   IO.println s!"  {e.name} (leanVM {e.pin.take 8}): program 2^{e.prog.logSize}, memory 2^{e.κ}, \
     steps {e.steps}, cycles {e.traceInput.cycles}, main {e.traceInput.mainCounts.toList}, \
-    rows {e.traceInput.rowCounts.toList}, unconstrained reads {e.unconstrainedReads}"
+    rows {e.traceInput.rowCounts.toList}, unconstrained reads {e.unconstrainedReads}, committed floor 2^{e.floor}"
   let mut failed ← report "parse" true t1
   let t2 ← IO.monoNanosNow
   let some t := e.traceInput.adapt e.prog | do
@@ -539,7 +546,8 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
     let t10 ← IO.monoNanosNow
     failed := failed + (← report "checkTrace with no hints" (← force (checkTrace e.prog e.input t [])) t10)
   if opts.gen || opts.prove then
-    unless ← runGenerator gen opts.prove (2 ^ 24) 1 e.prog e.input t e.traceInput.rowCounts do failed := failed + 1
+    unless ← runGenerator gen opts.prove (2 ^ 24) 1 e.prog e.input t
+      (if e.floor = 0 then some e.traceInput.rowCounts else none) do failed := failed + 1
   IO.println s!"  {failed} failed, {← since t0} s in all"
   return failed
 
