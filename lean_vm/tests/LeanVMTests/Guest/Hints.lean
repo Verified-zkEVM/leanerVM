@@ -6,8 +6,8 @@ import LeanVM.Guest.AcceptableChild
 
 A leaf holding one leanXMSS claim by a signature: the streams it pops and the number of entries
 of each, the node's own entries in full, and the signature's entries as `lean_xmss_hints` lays
-them out (its leaf index's bits, then per layer 16 ordered pairs, the randomizer, 20 digit groups
-and 58 chain values). The signature is not a valid one: the generator computes what an honest
+them out (its leaf index shifted by each multiple of 8 and those windows, then per layer the 16
+siblings on its path, the randomizer, its 15 digit groups in one push and 58 chain values). The signature is not a valid one: the generator computes what an honest
 run pops, whatever it is given. And the coverage planner on claims held twice: by a raw signature
 and two children, and by both children. `lake exe guest-diff` checks the generator against Rust
 aggregations.
@@ -37,7 +37,7 @@ def streams : Streams := honestStreams [] seed leaf witness
 /- The streams, in the order of their first push, and their entry counts. -/
 #guard streams.map (fun s ↦ (s.1, s.2.length)) ==
   [("meta", 1), ("fs_seed", 1), ("signers_split", 1), ("claims", 1), ("raw_index", 1),
-    ("leaf_index_bits", 1), ("siblings", 32), ("randomizer", 2), ("digits", 40),
+    ("lx_index", 1), ("lx_windows", 1), ("lx_path", 32), ("randomizer", 2), ("lx_digits", 2),
     ("chain_starts", 116), ("leaf_defer", 1), ("da_pick", 1)]
 
 def get (n : String) : List Entry := (streams.lookup n).getD []
@@ -51,20 +51,26 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 /- No blob matrix and no child: the node publishes its own slot, zeros. -/
 #guard get "da_pick" == [[count 0]]
 
-/- The leaf index `2^16 + 2`, little endian. -/
-#guard get "leaf_index_bits" ==
-  [(List.range 32).map fun b ↦ if b = 1 ∨ b = 16 then 1 else 0]
+/- The leaf index `2^16 + 2` shifted right by `0, 8, 16, 24`, and those shifts' low bytes in the
+exponent. -/
+#guard get "lx_index" == [[word 0x10002 0 0, word 0x100 0 0, word 1 0 0, word 0 0 0]]
+#guard get "lx_windows" == [[count 2, count 0, count 1, count 0]]
 
 /- The randomizers and the chain values, bottom layer first. -/
 #guard get "randomizer" == [[cell128 (BitVec.ofNat 128 7)], [cell128 (BitVec.ofNat 128 8)]]
 #guard get "chain_starts" == (List.range 116).map fun i ↦ [cell128 (BitVec.ofNat 128 (i % 58))]
 
-/- Every node on the path is with its sibling: at level `l` of the bottom tree, sibling `100 + l`
-on the right below level `1`, at it on the left (bit `1` of the key `2^16 + 2` is set). -/
-#guard ((get "siblings").take 16).zipIdx.all fun (pair, l) ↦
-  pair.length == 2 && pair.getD (if l = 1 then 0 else 1) 0 == cell128 (BitVec.ofNat 128 (100 + l))
+/- The sibling of every node on the path, bottom first: at level `l` of the bottom tree, `100 + l`
+(the guest orders each pair by the index's bit, which its window's dispatch arm fixes). -/
+#guard ((get "lx_path").take 16).zipIdx.all fun (e, l) ↦
+  e == [cell128 (BitVec.ofNat 128 (100 + l))]
 
-/- A digit group's index: its digits little endian in base 4, in the exponent. -/
+/- Each layer's digits in one push, 15 groups of 4 (58 digits): an entry of 15 cells. -/
+#guard (get "lx_digits").map List.length == [15, 15]
+
+/- A digit group's index: its digits little endian in base 4, in the exponent; leanXMSS's groups of
+4, leanSPHINCS's of 3, one push each. -/
+#guard digitHints lxDigitGroup [1, 2, 3, 0, 1] == [[count 57], [count 1]]
 #guard digitGroups [1, 2, 3, 0] == [("digits", [count 57]), ("digits", [count 0])]
 
 /- A list of `n` claims splits into `n / 136` whole frames of eight groups, then the rest's whole

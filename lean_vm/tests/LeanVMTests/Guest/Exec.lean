@@ -28,9 +28,9 @@ def F0 : Facts := {}
 /-- Its atoms: the instructions it executes, the not-taken `JUMP` reading its cells in `K`, and
 the return. -/
 def canonicalAtoms : List Atom :=
-  [.instr 17795 (.xor 2 4 5), .instr 17796 (.set 6 1 0 1), .instr 17797 (.mul 5 6 7),
-    .instr 17798 (.set 8 0 0 0), .jump 8 4 7, .instr 17800 (.set 3 0 0 0),
-    .instr 17801 (.set 9 1 0 0), .jump 9 0 1]
+  [.instr 17401 (.xor 2 4 5), .instr 17402 (.set 6 1 0 1), .instr 17403 (.mul 5 6 7),
+    .instr 17404 (.set 8 0 0 0), .jump 8 4 7, .instr 17406 (.set 3 0 0 0),
+    .instr 17407 (.set 9 1 0 0), .jump 9 0 1]
 
 theorem canonical_name : Data.f2.name = "assert_canonical" := by decide +kernel
 
@@ -42,13 +42,13 @@ theorem canonical_shape : (exec F0 Data.f2).segs.map (fun s ↦ (s.start, s.env.
 /-- **`assert_canonical`'s contract**, from the executor: a halting run entering it, on the run from
 `(g^0, 1)`, returns, in fewer steps, with every atom holding. -/
 theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 17795 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
+    FunSpecReached guestProgram L 17401 (fun _ ↦ True) (fun fp ↦ ∀ a ∈ canonicalAtoms, a.Holds L fp) := by
   intro fp k _ h
   obtain ⟨s, hs, he⟩ := List.mem_map.mp (canonical_shape ▸ List.mem_singleton_self _)
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hatoms, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f2.entryPc + s.start = 17795 := by rw [h0]; rfl
+  have hentry : Data.f2.entryPc + s.start = 17401 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 2) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
@@ -62,11 +62,11 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 `fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f334.name = "claim_list_last__L0" ∧ Data.f334.entryPc = 200666 := by
+theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 293059 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f334).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 200687 hashIns),
+theorem hash_shape : (exec F0 Data.f333).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 293080 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -74,7 +74,7 @@ theorem hash_shape : (exec F0 Data.f334).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600] the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 200666 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 293059 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
@@ -84,8 +84,8 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f334.entryPc + s.start = 200666 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 334) rfl)) hs
+  have hentry : Data.f333.entryPc + s.start = 293059 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 333) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun
