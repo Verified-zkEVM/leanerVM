@@ -130,10 +130,10 @@ verifier's own walk. The broader event, a flip on any chain of the statement
 (`leanVmReader.FlipFor`), contains it (`SlotReader.flipFor_of_verifierFlipFor`); the
 random-oracle bounds hold for both. Completeness says that every proof `prove` returns is
 accepted, and when it returns one, not that it does: nothing bounds how often a grind on the run
-runs out of fuel, and `Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof picks has memory
-log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells, above `2^28` from
-`t.κ ≥ 26` on, where `prove` returns none at every fuel and rate; so it does whenever the filled
-tables exceed `2^28` cells. The completeness witness represents the padded trace, not the given
+runs out of fuel, and `Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof
+picks has memory log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells,
+above `2^28` from `t.κ ≥ 26` on, where `prove` returns none at every fuel and rate; so it does
+whenever the filled tables exceed `2^28` cells. The completeness witness represents the padded trace, not the given
 one, and its proof is about that witness, not about a prover that takes the trace.
 -/
 
