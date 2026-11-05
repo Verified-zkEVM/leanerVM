@@ -18,8 +18,9 @@ The combinatorial core of specification Proposition 6.1 (`doc/leanvm/body/06-bus
 at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`), for a deterministic transition: the
 edges of the graph are `v → f v` for the states `v` of a list `E`, and the multiset of their
 targets together with a start `s` is the multiset of their sources together with an end `t`
-(so each `f v` is defined: the two multisets have the same size). Then `f` walks from `s` to `t` in at most `|E|` steps, each from a state of
-`E` (`exists_walksIn`). Category A: no source is transcribed.
+(so each `f v` is defined: the two multisets have the same size). Then `f` walks from `s` to `t`
+in at most `|E|` steps, each from a state of `E` (`exists_walksIn`). Category A: no source is
+transcribed.
 
 The proof follows the walk: if `s = t` it is empty; otherwise `s` is a source, so `s ∈ E`, and
 removing one occurrence of `s` from `E` and of `f s` from the targets leaves a balanced graph
