@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Main.KidCoverAtB
 public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.B1.Main.IterK
 
 /-!
 # `main`'s static callees, bounded
@@ -20,7 +21,7 @@ The static bounds' convention: `SB g` bounds every valid tree of a statically bo
 (`TotalLe coreProgram fs g (fun _ => SB g)`), `SK g` an iteration of a statically bounded loop
 helper `g` (`TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g)`), the phantom
 frame `fs g` its run leaves once (its last iteration's untaken tail call) charged to each iteration;
-`main`'s own loops are charged it once, `iterK fs SK g` words per iteration and `fs g` for the run.
+a call site charges it once, `iterK fs SK g` words per iteration and `fs g` for the run.
 `rawX_completeAtB`, `rawS_completeAtB`: the raw signatures' loops within those bounds
 (`statement_completeAtB` is in `KidCoverAtB`).
 -/
@@ -43,10 +44,6 @@ theorem loopPre_pow {i e : ℕ} (hie : i < e) (he : e < 2 ^ 64 - 1) (rest : List
 
 theorem logG_gen {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
   rw [gen_pow_eq_ofK]; exact logG_spec he
-
-/-- **A static loop helper's words per iteration, its run's phantom frame apart**: `SK g` charges
-each iteration the phantom frame `fs g` that a run leaves once. -/
-def iterK (fs SK : String → ℕ) (g : String) : ℕ := SK g - fs g
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 

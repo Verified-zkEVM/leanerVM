@@ -55,7 +55,8 @@ def numbers(g, certs):
         """`wSKt`: a loop's words per iteration, its run's phantom frame apart."""
         c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
     def SK(n):
-        """`wSK`: the run's phantom frame charged to each iteration."""
+        """`wSK`: the run's phantom frame charged to each iteration (`SKt` and `fs` once at a call
+        site, `B1.Main.iterK`, but for `aggregate_claims`' loops)."""
         c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
     for n in DL + CL + CCL: assert n in g.by, n
     v = {}
@@ -63,30 +64,35 @@ def numbers(g, certs):
     v['cl'] = sum(SB(n) for n in CL)
     v['ccl'] = sum(fs(n) for n in CCL)
     # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
-    # loops' untaken frames and the last digests in the constant; per claim `13` words and a
-    # `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration per `17`.
+    # loops' frames (a run's phantom or an untaken call's) and the last digests in the constant; per
+    # claim `13` words and a `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration
+    # per `17`.
     v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs('__loop15') + fs('__loop16') + v['cl'])
     # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
-    # iterations (each its frame, the column's and the weights' expansion's) and its untaken tail
-    # call's frame, the padding loop's frame when it does not run; per row its region (641), its
-    # base (1), the regions' loop, the column's row loop in each of the 128 columns and the trees'
-    # loop past the padding loop; per padded row the roots (4), the padding loop and the levels.
-    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector')
-                + 128 * (fs('__loop22') + fs('da_verify_column') + SB('da_expand__L7_L8')) + fs('__loop22')
-                + fs('__loop24'))
-    v['dvS'] = 642 + SK('__loop21') + 128 * SK('__loop25') + max(0, SK('__loop23') - SK('__loop24'))
-    v['dvP'] = 4 + SK('__loop24') + v['dlK']
+    # iterations (each its frame, the column's, the weights' expansion's and the row loop's
+    # phantom) and its untaken tail call's frame, the regions', the trees' and the padding loop's
+    # phantoms (the padding loop's frame when it does not run); per row its region (641), its base
+    # (1), the regions' loop, the column's row loop in each of the 128 columns and the trees' loop
+    # past the padding loop; per padded row the roots (4), the padding loop and the levels: each
+    # static loop's iteration at `SKt`, its run's phantom in the constant.
+    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector') + fs('__loop21')
+                + 128 * (fs('__loop22') + fs('da_verify_column') + SB('da_expand__L7_L8') + fs('__loop25'))
+                + fs('__loop22') + fs('__loop23') + fs('__loop24'))
+    v['dvS'] = 642 + SKt('__loop21') + 128 * SKt('__loop25') + max(0, SKt('__loop23') - SKt('__loop24'))
+    v['dvP'] = 4 + SKt('__loop24') + v['dlK']
     # A child's claim list (`B1.Main.ccC`, `ccS`): the `child_claim_list_any` walk (the honest one),
     # `__loop17`'s and `__loop18`'s frames twice and the last digests' frames in the constant; per
     # claim `13` words, a `__loop17` frame per `136` claims and a `__loop18` frame per `17`.
     v['ccC'] = (fs('child_claim_list_digest') + KS + SB('list_split') + fs('child_claim_list_any')
                 + 2 * fs('__loop17') + 2 * fs('__loop18') + v['ccl'])
-    v['clS'] = 1 + -(-SK('__loop15') // 136) + -(-SK('__loop16') // 17)
+    v['clS'] = 1 + -(-SKt('__loop15') // 136) + -(-SKt('__loop16') // 17)
     v['ccS'] = 1 + -(-fs('__loop17') // 136) + -(-fs('__loop18') // 17)
     v['l5A0'] = fs('__loop4')
     v['l5A1'] = fs('__loop4') + 2 * v['ccC'] + SB('statement_digest')
     v['l5A2'] = v['ccS']
     v['agA0'] = fs('aggregate_claims') + 108 + SB('batch_sumcheck__L23')
+    # `aggregate_claims`' loops: their phantoms per child (`SKt + fs`), as the base is charged
+    # without a child.
     v['agA1'] = 18 + SK('__loop33') + SK('__loop34') + SK('__loop35')
     base = (fs('main') + 283 + fs('exponent_tables') + 236 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
@@ -156,10 +162,14 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
     dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
-              fs=['da_verify', 'da_row_shape', '__loop22', 'da_verify_column', '__loop24'],
+              fs=['da_verify', 'da_row_shape', '__loop21', '__loop22', 'da_verify_column', '__loop25',
+                  '__loop23', '__loop24'],
               sb=['da_vector', 'da_expand__L7_L8'])
-    dvs = thm('dvS_eq', 'dvS wSK', v['dvS'], 'dvS', [], sk=['__loop21', '__loop23', '__loop24', '__loop25'])
-    dvp = thm('dvP_eq', 'dvP wSB wSK', v['dvP'], 'dvP', ['dlK_eq'], sk=['__loop24'])
+    dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
+              fs=['__loop21', '__loop23', '__loop24', '__loop25'],
+              sk=['__loop21', '__loop23', '__loop24', '__loop25'])
+    dvp = thm('dvP_eq', 'dvP B2C.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=['__loop24'],
+              sk=['__loop24'])
     mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
         '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
@@ -172,13 +182,15 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
             fs=['child_claim_list_digest', 'child_claim_list_any', '__loop17', '__loop18'],
             sb=['list_split']),
         thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=['__loop4']),
-        thm('clS_eq', 'clS wSK', v['clS'], 'clS', [], sk=['__loop15', '__loop16']),
+        thm('clS_eq', 'clS B2C.fs wSK', v['clS'], 'clS B1.Main.iterK', [], fs=['__loop15', '__loop16'],
+            sk=['__loop15', '__loop16']),
         thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
             fs=['__loop4'], sb=['statement_digest']),
         thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=['__loop17', '__loop18']),
         thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 wSK', v['agA1'], 'agA1', [], sk=['__loop33', '__loop34', '__loop35'])])
+        thm('agA1_eq', 'agA1 B2C.fs wSK', v['agA1'], 'agA1 B1.Main.iterK', [],
+            fs=['__loop33', '__loop34', '__loop35'], sk=['__loop33', '__loop34', '__loop35'])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
     wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)

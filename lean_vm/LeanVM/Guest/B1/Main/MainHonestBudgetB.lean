@@ -23,7 +23,8 @@ public import LeanVM.Guest.AcceptableChild
 
 `MainStatics fs SB SK`: the static bounds every statically bounded callee in `main`'s tree takes
 (G7-cnt's certificates): `SB g` bounds every valid tree of a static callee `g`
-(`TotalLe`), `SK g` an iteration of a static loop helper `g` (`TotalLeOn … LoopPre`).
+(`TotalLe`), a static loop helper `g`'s run `iterK fs SK g` words per iteration and its phantom
+frame `fs g` once (`TotalLeOn … LoopPre`).
 `mainBsH`: the non-static callees' bounds (`clB`, `hDvB`, `aggB`, `l5B` with `ccB`), `Bmain`:
 `main`'s, `mainBH` at those. `main_honest_budgetB`: `main` within `Bmain`, its callees' trees
 `mainPredsH`, each non-static one within its bound (`MainPreds.withTotal`).
@@ -42,12 +43,17 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   main : MainStaticsMain fs SB SK
   dv : Da.DvStaticB fs SB SK
   ls : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")
-  l15 : TotalLeOn coreProgram fs "__loop15" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop15")
-  l16 : TotalLeOn coreProgram fs "__loop16" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop16")
+  l15 : TotalLeOn coreProgram fs "__loop15" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15")
+  l16 : TotalLeOn coreProgram fs "__loop16" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16")
   cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
-  l25 : TotalLeOn coreProgram fs "__loop33" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop33")
-  l26 : TotalLeOn coreProgram fs "__loop34" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop34")
-  l27 : TotalLeOn coreProgram fs "__loop35" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop35")
+  l25 : TotalLeOn coreProgram fs "__loop33" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33")
+  l26 : TotalLeOn coreProgram fs "__loop34" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop34" + fs "__loop34")
+  l27 : TotalLeOn coreProgram fs "__loop35" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop35" + fs "__loop35")
   bs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")
 
 /-- **The bounds of `main`'s non-static callees** on the honest run: its claim lists' digests

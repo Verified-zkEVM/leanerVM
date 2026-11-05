@@ -37,7 +37,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB Kid KidD kidsAt outsL KidsDepBP OutsOk RegionsOk CallsMatch
   Returns completeAt_flatDepRet flatCalls namedP)
 open LeanVM.Guest.Budget (NodeHonest)
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
@@ -94,14 +94,16 @@ theorem dvVb_spec {z : E} {pv : List (List E × Layout)} (h : vecOut z (pv.getD 
     (q.2.2.1, facCells (zsVal z) 7 8) ∈ Lo ∧ (q.2.2.2, offCells (zsVal z)) ∈ Lo)
     ⟨(bz, bt, bc, bo), h1, h2, h3, h4, h5⟩
 
-/-- A column's words bound, its callees' frames and its row loop's `r` iterations. -/
+/-- A column's words bound, its callees' frames and its row loop's `r` iterations and phantom
+frame. -/
 def colBf (fs : String → ℕ) (SK : String → ℕ) (r : ℕ) : ℕ :=
-  fs "da_verify_column" + (fs "da_expand__L7_L8" + r * SK "__loop25")
+  fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK "__loop25" + fs "__loop25"))
 
 /-- `da_verify`'s callees' bounds, in call order, at the frame sizes. -/
 def dvBs (fs : String → ℕ) (SB SK : String → ℕ) (r L : ℕ) : List ℕ :=
-  [fs "da_row_shape", vecB fs SK, r * SK "__loop21", clB fs "__loop22" (colBf fs SK r) 128,
-    r * SK "__loop23", if 2 ^ L - r ≠ 0 then (2 ^ L - r) * SK "__loop24" else fs "__loop24",
+  [fs "da_row_shape", vecB fs SK, r * iterK fs SK "__loop21" + fs "__loop21",
+    clB fs "__loop22" (colBf fs SK r) 128, r * iterK fs SK "__loop23" + fs "__loop23",
+    if 2 ^ L - r ≠ 0 then (2 ^ L - r) * iterK fs SK "__loop24" + fs "__loop24" else fs "__loop24",
     SB (daLevelsName L)]
 
 /-- `da_verify`'s callees, on its buffers at `bb`. -/
@@ -246,11 +248,15 @@ buffers and its callees' bounds**, on `r` blobs of cells `syms` orthogonal to th
 `z`, the exponent table's `g^(2^L)` at `g^(s + L)`. -/
 theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
-      (fun a => logG (a.getD 1 0) * SK (offLoopName b)))
-    (h17 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21"))
-    (h19 : TotalLeOn coreProgram fs "__loop23" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop23"))
-    (h20 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24"))
-    (h21 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
+      (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b)))
+    (h17 : TotalLeOn coreProgram fs "__loop21" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop21" + fs "__loop21"))
+    (h19 : TotalLeOn coreProgram fs "__loop23" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop23" + fs "__loop23"))
+    (h20 : TotalLeOn coreProgram fs "__loop24" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop24" + fs "__loop24"))
+    (h21 : TotalLeOn coreProgram fs "__loop25" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop25" + fs "__loop25"))
     {r L : ℕ} (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
     (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.paddedRowCount r)
     {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
