@@ -1352,7 +1352,12 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     los := los.push lo
     his := his.push hi
     let homeOf (v : ℕ) : ℕ := ((List.range w).reverse.find? fun u => los[u]! ≤ v).getD 0
-    let ins := (vs.filter (· < lo)).eraseDups.mergeSort
+    -- a window ending in a `match` before another names the next one's selector: a chained
+    -- `match`'s arms read the next table through it (`B2C.armTg`, `B2C.chainPre`)
+    let nextSel : List ℕ := match ws.getLast?, cf.body[b]? with
+      | some (.match_ _ _), some (.match_ y _) => [y.idx]
+      | _, _ => []
+    let ins := ((vs ++ nextSel).filter (· < lo)).eraseDups.mergeSort
     insW := insW.push (ins.map fun v => (v, locA.getD v 0, homeOf v))
   let litOf (l : List ℕ) : String := if l.length < 32 then listText (l.map toString)
     else "(" ++ " :: ".intercalate (l.map toString) ++ " :: [])"
