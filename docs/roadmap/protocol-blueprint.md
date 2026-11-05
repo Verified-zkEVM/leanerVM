@@ -643,7 +643,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`**, **`mcaBound_of_mcaJohnson`**, **`listBound_johnson`**, `johnsonPar`, **`deployed_rbrSoundness`** | field instances; tables and stacking; sumcheck: definitions |
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `MerkleTree.fold`, `MerkleTree.prunedRoot`, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`** (a cross-check, kept as a test), **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
 | the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `QueryHistory.freshLog`, **`QueryHistory.potential_le_expected_charge`** (generic over the history, the cache form its instance) | VCVio only |
-| Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
+| Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `QueryLog.Consistent`, `QueryLog.HasCollision`, `QueryLog.Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `QueryLog.HasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant on `QueryHistory.freshLog` |
@@ -1536,9 +1536,7 @@ def extractLeaf (node?) (leaf?) (log) (root) (depth p) : Option P :=
   (extractTree node? log root depth p).bind (leafPreimage leaf? log)
 def extractLeaves (node?) (leaf?) (log) (root) (depth) : List (Option P)   -- one pass, hash maps
 theorem extractLeaves_eq : extractLeaves … = (List.range (2 ^ depth)).map (extractLeaf …)
-def Consistent (log) : Prop      -- no input with two answers
-def HasCollision (log) : Prop    -- two inputs, one answer
-def Fresh (log) (q) : Prop       -- `log` never asks `q`
+-- `Consistent`, `HasCollision`, `Fresh`: `QueryLog`'s (`ToVCVio/QueryLog.lean`)
 def Known (node?) (roots) (logA) (d) : Prop   -- a root, or a child of a query of `logA` parsing as a node
 def FreshHit (node?) (roots) (logA logV) : Prop := ∃ e ∈ logV, Fresh logA e.1 ∧ Known node? roots logA e.2
 theorem MerkleTree.binding_of_log (hnode : node? (nodeEnc l r) = some (l, r))
@@ -1614,6 +1612,7 @@ positions, and a bad one passes the check. -/
 def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
   {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
   -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
+  -- `st`: the instance's statement, the public input with no oracles; `prog` is a parameter
 theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ st i tr | $ᵗ Chal i] ≤ εquery
 /-- A challenge of the proof's own chain in the bad set of its prefix: at its first occurrence `k` in the log, the
 query closing a challenge of the verifier's chain walk on `proof` has a history decoding to an admissible prefix that
@@ -1622,7 +1621,7 @@ missing rows zero. -/
 def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
-    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (prog, input) i tr
+    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (input, no oracles) i tr
     -- `tr` carries the words zero-filled `extractRows (g.log.take k)` reads
 def HashMisbehaves (rootsOf) (Flip) (prog input) (g : Run) : Prop := QueryLog.HasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g
   -- the proof's roots and the flip are parameters until the transcript decoder defines both from the verifier's
@@ -1798,10 +1797,10 @@ The charged invariant holds from any initial cache, with no hypothesis at the st
 initial potential, bounds events on the run's output and final state, and runs VCVio's
 `randomOracle`; it is not built on VCVio's `withAddCost`, which charges cached queries too.
 `misbehaves_rom` needs its logged form, the invariant on `QueryHistory.freshLog`, whose state
-carries the ordered log, since the hit and flip clauses are on the log and not on the cache. `extract` is the
-straight-line extractor; it is computable (decision 11) and runs on toy instances. `Pr[p | mx]` is
-VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the sketches keep the readable
-form.
+carries the ordered log, since the hit and flip clauses are on the log and not on the cache.
+`extract` is the straight-line extractor; it is computable (decision 11) and runs on toy
+instances. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the
+sketches keep the readable form.
 
 The bytecode multilinear and the Flock matrices are evaluated inside `verify` through one function
 `settleFixedClaims`, the seam for T5; its Flock walk is the Flock phase's.
@@ -1903,10 +1902,11 @@ leanISA's inhabitant, `leanIsaTraceExtraction`, takes `SentinelSafe prog`, and s
 corollary at it. `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
 execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the execution
 form takes `SentinelSafe prog` through the interface's inhabitant, and completeness from an
-execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
-establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
-implies some valid execution", is not stated: it carries no knowledge (decision 34).
+execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A
+bytecode with a `JUMP` in the sentinel slot has balancing steps and no execution (a proved
+repository test); leanVM's compiler establishes it (`lean_compiler/src/lib.rs:162`). The
+existential corollary, "an accepted proof implies some valid execution", is not stated: it
+carries no knowledge (decision 34).
 
 `BlakeMisbehaves` is about one adversary, one statement and one run, and its three clauses name
 what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). An
