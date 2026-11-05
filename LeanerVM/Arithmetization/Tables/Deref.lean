@@ -52,7 +52,7 @@ program paragraph).
 **The component** `derefTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
 `fp·o₁` as `(p, 0, 0)`, the target cell `p·o₂` and the local cell `fp·o₃`, in the Rust's flush
-order (`tables.rs:641-643`; §7.4's flush list has the local cell second, its prose the target),
+order (`tables.rs:640-642`; §7.4's flush list has the local cell second, its prose the target),
 which places the reads' blocks on the bus; `Spec` is `DerefSpec`. Soundness reads the instruction
 the pulled tuple decodes to through Layer 4's `decode_deref_eq_some_iff`, the one use a table
 makes of the bytecode guarantee: the pulled tuple *is* an instruction, so its flag pair is a
@@ -200,7 +200,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
     let fbar : Expression K := 1 + r.fpc + r.ffp
     instructionStep r.pc r.fp r.rbc next .deref #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
-    -- The three reads in the Rust's flush order, pointer, target, local (`tables.rs:641-643`):
+    -- The three reads in the Rust's flush order, pointer, target, local (`tables.rs:640-642`):
     -- the order places their blocks on the bus.
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
     memRead (r.p * r.o2) r.r2
