@@ -1934,9 +1934,9 @@ def honestAdversary (fuel prog input w ρ) : Adversary := do
   match ← proveWith hashQuery fuel prog input w ρ with
   | some proof => pure proof
   | none => pure ⟨[], []⟩
-theorem baseProver_complete (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
-    (hadm : s.Admissible prog) (hρ : validRate ρ) (H : List UInt8 → Digest) :
-    proveWith (m := Id) H fuel prog input w ρ = some proof → verifyWith (m := Id) H prog input proof = true
+theorem baseProver_complete (H : List UInt8 → Digest) (fuel) (hsat : SatisfiedBy prog input w)
+    (hp : proveWith (m := Id) H fuel prog input w ρ = some proof) : verifyWith (m := Id) H prog input proof = true
+  -- the sizes, their admissibility and the rate are checked inside: `proveWith` returns `none` otherwise
 -- The deployed pair side by side (Headline.lean): `baseProver_complete` at `blake2sBytes`
 theorem prove_complete (h : SatisfiedBy prog input w) :
     prove fuel prog input w ρ = some proof → verify prog input proof = true
