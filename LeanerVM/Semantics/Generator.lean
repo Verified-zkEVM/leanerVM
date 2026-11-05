@@ -20,12 +20,13 @@ uses them only through their specifications, so no equality with a chosen value 
 
 * `fillStarts prog` is, for each table and size, the first slot of the bytecode that starts a
   fill block of that table and size (`findStart`, decided by `isFillBlockB` over `prog.code`),
-  tabulated once. On well-formed bytecode every one is a fill block (`fillStarts_spec`).
+  tabulated once (`fillStartTable`); the tables are values, not closures, so that compiled code
+  evaluates each search once. On well-formed bytecode every one is a fill block (`fillStarts_spec`).
 * `jumpHeight owed` is the least `τ ≤ maxLogRows` with `owed ≤ 2^τ ≠ owed + 1`; it exists
   exactly when `JumpFeasible owed` (`jumpHeight_spec`, `jumpHeight_isSome`).
 * `runSkelsBy` steps a run forward once from a state, at any fetch and execute functions,
-  collecting the skeletons (state and fetched instruction) it steps from; `skelCounts` tabulates
-  the skeletons of each table. Their agreement with `Trace.runSkels` and `Trace.runRows` is proved
+  collecting the skeletons (state and fetched instruction) it steps from; `skelCountTable`
+  tabulates the skeletons of each table. Their agreement with `Trace.runSkels` and `Trace.runRows` is proved
   where the run's states are named (`Arithmetization.WitnessGen`).
 
 ## Wrong readings excluded
@@ -57,12 +58,19 @@ def isFillBlockB (prog : Program) (t : Opcode) (s p : ℕ) : Bool :=
 def findStart (prog : Program) (t : Opcode) (s : ℕ) : Option ℕ :=
   (List.range (2 ^ prog.logSize)).find? (isFillBlockB prog t s)
 
-/-- The starting slots of the fill blocks, searched once for the six tables and eight sizes and
-tabulated; `0` where there is none. -/
-def fillStarts (prog : Program) : Opcode → ℕ → ℕ :=
-  let tab : Array ℕ := Array.ofFn (n := 48) fun c ↦
+/-- The starting slots of the fill blocks, searched once for the six tables and eight sizes: entry
+`8 * tableIdx t + k` for table `t` and size `sizeAt k`, `0` where there is none. -/
+def fillStartTable (prog : Program) : Array ℕ :=
+  Array.ofFn (n := 48) fun c ↦
     (findStart prog (fillTables.getD (c / 8) .xor) (sizeAt (c % 8))).getD 0
-  fun t s ↦ tab.getD (8 * tableIdx t + fillSizes.idxOf s) 0
+
+/-- The starting slot of table `t` and size `s` in a table of starts. -/
+def startsOf (tab : Array ℕ) (t : Opcode) (s : ℕ) : ℕ :=
+  tab.getD (8 * tableIdx t + fillSizes.idxOf s) 0
+
+/-- The starting slots of the fill blocks, searched once. Executable code should evaluate
+`fillStartTable prog` once and use `startsOf` of it, as `witnessGen` does. -/
+def fillStarts (prog : Program) : Opcode → ℕ → ℕ := startsOf (fillStartTable prog)
 
 /-- Inside the program, `codeAt` is the reference fetch at the slot's address. -/
 theorem fetch_gpow_eq_codeAt (prog : Program) {j : ℕ} (hj : j < 2 ^ prog.logSize) :
@@ -103,7 +111,7 @@ theorem fillStarts_eq (prog : Program) (t : Opcode) {k : ℕ} (hk : k < 8) :
   have hc : 8 * tableIdx t + k < 48 := by omega
   have h8 : (8 * tableIdx t + k) / 8 = tableIdx t := by omega
   have h8' : (8 * tableIdx t + k) % 8 = k := by omega
-  simp only [fillStarts, hidx, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, hc,
+  simp only [fillStarts, startsOf, fillStartTable, hidx, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, hc,
     ↓reduceDIte, Option.getD_some, h8, h8', fillTables_getD_tableIdx]
 
 /-- **On bytecode with fill blocks, every tabulated start is a fill block.** -/
@@ -151,13 +159,15 @@ def runSkelsBy (fetch : K → Option Instr) (exec : Regs K → Instr → Option 
       | none => acc.push ⟨r.pc, r.fp, ins⟩
       | some r' => runSkelsBy fetch exec n r' (acc.push ⟨r.pc, r.fp, ins⟩)
 
-/-- The number of skeletons of each table, counted once and tabulated. -/
-def skelCounts (S : List Skel) : Opcode → ℕ :=
-  let tab : Array ℕ := (fillTables.map fun op ↦ Skel.count op S).toArray
-  fun op ↦ tab.getD (tableIdx op) 0
+/-- The number of skeletons of each table, counted once: entry `tableIdx op` for `op`. -/
+def skelCountTable (S : List Skel) : Array ℕ := (fillTables.map fun op ↦ Skel.count op S).toArray
+
+/-- The count of table `op` in a table of counts. -/
+def countsOf (tab : Array ℕ) (op : Opcode) : ℕ := tab.getD (tableIdx op) 0
 
 /-- The tabulated counts are the counts. -/
-theorem skelCounts_eq (S : List Skel) : skelCounts S = fun op ↦ Skel.count op S := by
+theorem countsOf_skelCountTable (S : List Skel) :
+    countsOf (skelCountTable S) = fun op ↦ Skel.count op S := by
   funext op
   cases op <;> rfl
 

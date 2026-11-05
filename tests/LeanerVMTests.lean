@@ -16,6 +16,7 @@ import LeanerVMTests.Arithmetization.Equivalence
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Tables
+import LeanerVMTests.Arithmetization.WitnessGen
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s
 import LeanerVMTests.Parameters.CleanField

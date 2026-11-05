@@ -18,11 +18,11 @@ public import LeanerVM.Semantics.Generator
 leanISA roadmap Layer 10 companion, `T2` of `docs/architecture.md`, at Clean pin `ce2eee63`.
 `witnessGen prog input t` computes the witness `constraintCompleteness` proves exists:
 
-* the fill starts are searched in the bytecode (`fillStarts`), the image padded with their frames
+* the fill starts are searched in the bytecode (`fillStartTable`, read by `startsOf`), the image padded with their frames
   (`padImage`), and the `JUMP` exponent searched (`jumpHeight`);
 * the run is stepped forward once (`runSkelsBy`) at the checked-guess reader (`readBy`,
-  `fetchBy`, with one table of powers `powGuess`), its skeletons counted per table
-  (`skelCounts`), and the fill's skeletons appended (`padSkels`, `planCount`);
+  `fetchBy`, with one table of powers `powTable`), its skeletons counted per table
+  (`skelCountTable`), and the fill's skeletons appended (`padSkels`, `planCount`);
 * the rows are written at the checked-guess reader (`rowOfBy`, a copy of `rowOf` reading through
   `limbsBy`/`cellBy`), with the read counters in hash maps (`mkRowsH`), and the tables are those of
   `padWitness` with the same rows (`padWitnessBy`).
@@ -356,11 +356,11 @@ once and count its rows per table; search the `JUMP` exponent; append the fill's
 the tables. Addresses are read through one table of powers, checked on every read. -/
 def witnessGen (prog : Program) (input : PublicInput) (t : Trace prog) :
     Option (EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) :=
-  let pcs := fillStarts prog
-  let guess := powGuess (2 ^ max (t.κ + 1) prog.logSize)
+  let pcs := startsOf (fillStartTable prog)
+  let guess := guessOf (powTable (2 ^ max (t.κ + 1) prog.logSize))
   let runS := (runSkelsBy (fetchBy prog guess) (executeWith (readBy t.image guess)) t.steps
     Regs.initial #[]).toList
-  let rows := skelCounts runS
+  let rows := countsOf (skelCountTable runS)
   match jumpHeight (jumpOwed rows) with
   | none => none
   | some τ => witnessAt prog input t pcs guess (runS ++ padSkels t.κ pcs (planCount rows τ))
@@ -377,8 +377,8 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
       t.steps Regs.initial #[]).toList = t.runSkels := fun guess ↦
     runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog guess))
       (executeWith_readBy hκ64 t.image guess)
-  have hrows : skelCounts t.runSkels = t.runRows := by
-    rw [skelCounts_eq]
+  have hrows : countsOf (skelCountTable t.runSkels) = t.runRows := by
+    rw [countsOf_skelCountTable]
     funext op
     exact t.count_runSkels op
   obtain ⟨τ, hτeq⟩ := Option.isSome_iff_exists.mp (jumpHeight_isSome hfit.jump)
@@ -390,8 +390,8 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
   simp only [witnessGen, hrun, hrows]
   rw [show jumpOwed t.runRows = t.owed from rfl, hτeq]
   have hcap' : t.κ + 1 ≤ maxLogMem := hcap
-  have hlen' : (t.runSkels ++ padSkels t.κ (fillStarts prog) (planCount t.runRows τ)).length ≤
-      UInt64.size := hlen
+  have hlen' : (t.runSkels ++ padSkels t.κ (startsOf (fillStartTable prog))
+      (planCount t.runRows τ)).length ≤ UInt64.size := hlen
   simp only [witnessAt]
   rw [dite_eq_left hcap', dite_eq_left hlen']
   exact congrArg some (padWitnessBy_eq _ _ _ _ _ _ _ _)

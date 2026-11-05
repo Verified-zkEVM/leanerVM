@@ -352,11 +352,13 @@ def powTableFrom : ℕ → ℕ → K → Std.HashMap UInt64 ℕ → Std.HashMap 
   | 0, _, _, m => m
   | fuel + 1, i, cur, m => powTableFrom fuel (i + 1) (g * cur) (m.insert (wordKey cur) i)
 
-/-- A guess of the index of every power `g ^ i` with `i < n`, from one table built once. Untrusted:
-`addressIndexBy` checks every guess. -/
-def powGuess (n : ℕ) : K → Option ℕ :=
-  let m := powTableFrom n 0 1 (Std.HashMap.emptyWithCapacity n)
-  fun a ↦ m[wordKey a]?
+/-- The table of the powers `g ^ i`, `i < n`. -/
+def powTable (n : ℕ) : Std.HashMap UInt64 ℕ :=
+  powTableFrom n 0 1 (Std.HashMap.emptyWithCapacity n)
+
+/-- The guess a table of powers makes. Untrusted: `addressIndexBy` checks every guess. Executable
+code should evaluate the table once and pass `guessOf` of it. -/
+def guessOf (m : Std.HashMap UInt64 ℕ) (a : K) : Option ℕ := m[wordKey a]?
 
 /-- A guess is used only when it is checked, so the guessed search is the reference logarithm
 for every guess function. -/
