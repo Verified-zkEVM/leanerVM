@@ -579,9 +579,24 @@ noncomputable def addEdge (t : ℕ) (e : Trie Sym) : Pend → Pend
     else if t = u then (u, Trie.inter Sym.beq a e) :: ps
     else headSeq (addEdge t e ps) fun ps ↦ (u, a) :: ps
 
-/-- Add the edges of an exit, the last first: a table jump's arms are increasing, so each goes in
-front of those added before it. -/
-noncomputable def addExit (x : Exit) (p : Pend) : Pend := x.succ.foldr (fun t p ↦ addEdge t x.env p) p
+/-- Add edges into the targets `ts`, each with environment `e`, merged into `p` in one pass when
+`ts` is increasing (a table jump's arms): those below each pending target go in front of it. -/
+noncomputable def addEdges (e : Trie Sym) (ts : List ℕ) : Pend → Pend
+  | [] => ts.map fun t ↦ (t, e)
+  | (u, a) :: ps =>
+    (ts.takeWhile fun t ↦ decide (t < u)).map (fun t ↦ (t, e)) ++
+      match ts.dropWhile fun t ↦ decide (t < u) with
+      | t :: ts' =>
+        if t = u then headSeq (addEdges e ts' ps) fun ps ↦ (u, Trie.inter Sym.beq a e) :: ps
+        else headSeq (addEdges e (t :: ts') ps) fun ps ↦ (u, a) :: ps
+      | [] => (u, a) :: ps
+
+/-- Add the edges of an exit: one by `addEdge`, a table jump's arms (increasing) merged at once
+(`addEdges`; an exit into each arm of the next chained `match` adds as many edges). -/
+noncomputable def addExit (x : Exit) (p : Pend) : Pend :=
+  match x.succ with
+  | [t] => addEdge t x.env p
+  | ts => addEdges x.env ts p
 
 /-- Add the edges of the branches among `its`. -/
 noncomputable def addItems : List Item → Pend → Pend
