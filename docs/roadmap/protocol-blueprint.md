@@ -642,7 +642,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, **`kValued_of_cl`**, `Msgs.toColumn`, **`Component.Front.relist`**, `commitWord`, **`commitWordSecurity`**, **`listBinding_compile`** | the phases' knowledge soundness; WHIR opening |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `QueryLog.HasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`); for the instantiated execution form and completeness from an execution, leanISA Layers 9–10 |
 
@@ -1327,9 +1327,8 @@ generic `ToVCVio/ChargedInvariant.lean` (with `ToVCVio/ScalarExpectation.lean`),
 ```lean
 -- The one oracle: BLAKE2s-256 on byte strings (RandomOracle.lean)
 abbrev Digest := Vector UInt32 8
-noncomputable instance : Fintype Digest     -- through `Fintype.ofFinite`: nothing enumerates at load; none at the pin
-theorem card_digest : Fintype.card Digest = 2 ^ 256
-instance : SampleableType Digest            -- through an equivalence, as Layer 0 samples `K`
+-- `Fintype Digest`, `SampleableType Digest`: VCVio's instances on `Vector` at the pin (`instFintypeVector`)
+theorem card_digest : Fintype.card Digest = 2 ^ 256   -- through `arrayVectorEquivFin UInt32 8`
 abbrev hashSpec := List UInt8 →ₒ Digest     -- `IsUniformSpec hashSpec`: a local instance, `IsUniformSpec.ofFintypeInhabited`
 def hashQuery (t : List UInt8) : OracleComp hashSpec Digest := liftM (hashSpec.query t)
 abbrev Adversary := OracleComp hashSpec Proof   -- a cheating prover: hash queries, no coins; `IsTotalQueryBound A Q`
@@ -1343,7 +1342,8 @@ def FsState.seed (prog) (input) : FsState     -- cv₀ = compress (iv, the publi
 inductive Block | observe (x : E) | squeeze | nonce (n : E)     -- tags 1, 2, 4 in lane 3
 def FsState.step [Monad m] (H : List UInt8 → m Digest) : FsState → Block → m FsState   -- cv ← H (cv ‖ b)
 def FsState.checkPow [Monad m] (H) (s : FsState) (bits : ℕ) (n : E) : m (Bool × FsState)
-  -- the check `H (H (cv ‖ tag 3) ‖ n ‖ tag 4)` has `bits` low zero bits; the nonce is absorbed either way
+  -- the check `H (H (cv ‖ tag 3) ‖ n ‖ tag 4)` has `bits` low zero bits; at `bits = 0` the base is still asked, no
+  -- check hash is, and only `n = 0` passes; the nonce is absorbed either way (`lib.rs:165-175`)
 def FsState.challengeOf (d : Digest) : E                         -- the first three 64-bit words; 2^64 preimages each
 def chainHistory (log : hashSpec.QueryLog) (s : FsState) : Option (List (Block × Digest))
   -- from `s` back to `cv₀`, each step the one logged query `cv ‖ b` answered by the current state; `none` otherwise
@@ -1463,28 +1463,34 @@ def extract (prog input proof) (log : hashSpec.QueryLog) : Option (Σ s, Column 
   -- satisfying `M3Holds`, or `none`
 def Extracts (prog input proof log) : Prop :=
   ∃ s q, extract prog input proof log = some ⟨s, q⟩ ∧ M3Holds (leanIsaInstance F prog s) input q
-/-- Two different inputs in the log with one answer. -/
-def LogHasCollision (log) : Prop := ∃ i j, log[i].1 ≠ log[j].1 ∧ log[i].2 = log[j].2
+/-- Two different inputs in the log with one answer (`ToVCVio/QueryLog.lean`). -/
+def QueryLog.HasCollision (log) : Prop := ∃ e₁ ∈ log, ∃ e₂ ∈ log, e₁.1 ≠ e₂.1 ∧ e₁.2 = e₂.2
 /-- A digest, on its input's first query, equal to one already in play: an earlier answer, a 32-byte block of an
 earlier input, a digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)` of two consecutive observe blocks of a
 chain, as a root is), or the seed's `iv` and `cv₀`; for the verifier's queries, also a digest of the proof it reads. -/
 def Hit (prog input) (g : Run) : Prop :=
   ∃ k, g.log[k] is its input's first query ∧
     (g.log[k].2 ∈ inPlay prog input (g.log.take k) ∨ (g.logA.length ≤ k ∧ g.log[k].2 ∈ readDigests g.proof))
-/-- The bad challenges at a prefix of the compiled transcript ending at a challenge `i`: those that turn the state
-function of `listBinding_compile` at `leanVmSecurity`, `ListDecoder.bruteForce` and `F` from false to true, the
-committed words given. A query group's challenge is the pair of the grinding check's digest and the positions, and a
-bad one passes the check. -/
-def Bad (prog s ρ i) (tr : Transcript i) (words) : Set (Chal i) := {c | ¬ kSF i tr words ∧ kSF (i + 1) (tr.concat c) words}
-theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ i tr words | $ᵗ Chal i] ≤ εquery
+/-- The bad challenges at a prefix `tr` of the compiled transcript on the statement `st`, ending before a
+challenge `i`: those at which some witness `w` of the next round makes the knowledge state function of
+`listBinding_compile` at `leanVmSecurity`, `ListDecoder.bruteForce` and `F` true, while the round extractor's
+`extractMid … w` makes it false at the prefix: the event of ArkLib's `rbrKnowledgeSoundnessWorstCaseWith`. The
+committed words are messages of `tr`. A query group's challenge is the pair of the grinding check's digest and the
+positions, and a bad one passes the check. -/
+def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
+  {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
+  -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
+theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ st i tr | $ᵗ Chal i] ≤ εquery
 /-- A challenge of the proof's own chain in the bad set of its prefix: at its first occurrence `k` in the log, the
 query closing a challenge of the verifier's chain walk on `proof` has a history decoding to an admissible prefix that
-ends at a challenge, and the challenge is bad there, the words read off `log.take k` with missing rows zero. -/
+ends at a challenge, and the challenge is bad there, the prefix carrying the words read off `log.take k` with
+missing rows zero. -/
 def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
-    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ i tr (zero-filled `extractRows (g.log.take k)`)
-def HashMisbehaves (prog input) (g : Run) : Prop := LogHasCollision g.log ∨ Hit prog input g ∨ Flip prog input g
+    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (prog, input) i tr
+    -- `tr` carries the words zero-filled `extractRows (g.log.take k)` reads
+def HashMisbehaves (prog input) (g : Run) : Prop := QueryLog.HasCollision g.log ∨ Hit prog input g ∨ Flip prog input g
 -- Deterministic, for every function answering the hash
 theorem core (hcons : g.log is consistent with a function) (hV : g.logV is the log of `verifyWith` on `g.proof`,
     its verdict `true`) (hX : ¬ Extracts prog input g.proof g.logA) : HashMisbehaves prog input g
@@ -1555,9 +1561,10 @@ on the one hash oracle, `loggedGame`: the adversary runs, then `verifyWith`, eac
 collision (two inputs, one digest), a hit (a digest, on its input's first query, equal to a value
 already in play, the proof's digests counting against the verifier's queries only), or a flip (a
 challenge of the proof's own chain that lies in the bad set of its prefix). `Bad` is the
-round-by-round bound made into a set: the challenges that turn the state function of
-`listBinding_compile` from false to true at a given prefix and committed words, of density at most
-`εquery` by `bad_density`. `core` is deterministic and holds for every log consistent with a
+round-by-round bound made into a set: the challenges at a given prefix (its messages carry the
+committed words) at which some witness of the next round makes the knowledge state function of
+`listBinding_compile` true while the round extractor's witness from it makes the function false at
+the prefix, of density at most `εquery` by `bad_density`. `core` is deterministic and holds for every log consistent with a
 function. The extractor reads only the adversary's log, never the verifier's queries, and reads a
 row no query formed as zero, so the word it decodes is defined whenever the root is. The state
 function is false at the start when the extractor fails and true at the end when the verifier
@@ -1663,8 +1670,9 @@ BLAKE2s answering its hash queries, then the verifier on its proof; the joint lo
   statement's seed; for the verifier's queries, also a digest of the proof (unpredictability: no digest
   is known before it is computed);
 - a flip: a Fiat–Shamir challenge of the proof's own chain that lies in the bad set of its prefix, a set
-  fixed by the prefix and the committed words, of density at most `2^{−128}` (`bad_density`; correlation
-  intractability of the chain against a sparse relation).
+  fixed by the prefix and the committed words: the challenges that turn the knowledge state function from
+  false to true through the round extractor (`Bad`), of density at most `2^{−128}` (`bad_density`;
+  correlation intractability of the chain against a sparse relation).
 The bad sets are those of the deployed protocol, with `leanVmSecurity` (and so `flockSecurity`),
 `ListDecoder.bruteForce` and `blake2sFlockSpec` fixed inside this definition. -/
 def BlakeMisbehaves (prog input) (A : Adversary) (δ : ℝ≥0) : Prop :=
@@ -2035,7 +2043,7 @@ Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBl
                       verifyWith  verify  verifyWith_simulateQ  rounds  verifierQueries  proofDigests
                       rounds_bound  verifierQueries_bound  proofDigests_bound  verify_iff_compiled
                       settleFixedClaims
-Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  Hit  Bad  bad_density  Flip
+Random oracle:        Run  loggedGame  extract  Extracts  QueryLog.HasCollision  Hit  Bad  bad_density  Flip
                       HashMisbehaves  core  hashTerm  niError  misbehaves_rom  niError_le  verify_knowledgeSound_rom
 Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_true_iff (leanISA's)
                       BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness  baseVerifier_extractsExecution
@@ -2157,7 +2165,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 34. The heuristic is a named hypothesis, per adversary | the headline is knowledge soundness of the deployed `verify`, with a computable extractor. Its one assumption is a hypothesis on BLAKE2s for the adversary at hand, with slack `δ`, named in the statement; its form is decision 37's. The random-oracle steps are theorems, not interfaces. One `verifyWith` serves every setting. No existential soundness corollary is stated | *For zkVM engineers*; Layers 12, 13; tests 24, 36–38 |
 | 35. Correlated agreement at Annex B's constant | `McaJohnson` takes Annex B's `a` (`johnsonComparisonEstimate`), inhabited by ArkLib's proved theorem; the admitted [BCHKS25] theorem is not consumed; `η` is the exact value of the Rust's double, dumped from the pinned Rust | Layer 11; the ledger |
 | 36. The direct random-oracle route | one logged game on the one hash oracle, split into the deterministic `core` and the bound `misbehaves_rom` over the generic charged invariant, takes the place of state restoration, a BCS compilation, a chain lemma and role separation, none of which is stated | Layer 12; the ledger; tests 39, 40 |
-| 37. The hypothesis is about the hash | the headline assumes `BlakeMisbehaves`, a bound on the collisions, the hits (the proof's digests against the verifier's queries only) and the flips (a challenge of the proof's own chain in a bad set of density at most `εquery`, `bad_density`) of BLAKE2s on the adversary's run, and the comparison with a random function becomes the corollary `blakeMisbehaves_of_comparison` (amends decision 34's form) | Layer 13; tests 36, 37, 40 |
+| 37. The hypothesis is about the hash | the headline assumes `BlakeMisbehaves`, a bound on the collisions, the hits (the proof's digests against the verifier's queries only) and the flips (a challenge of the proof's own chain in a bad set, `Bad` through the round extractor, of density at most `εquery`, `bad_density`) of BLAKE2s on the adversary's run, and the comparison with a random function becomes the corollary `blakeMisbehaves_of_comparison` (amends decision 34's form) | Layer 13; tests 36, 37, 40 |
 | 38. Adversaries draw no coins | an adversary is `OracleComp hashSpec Proof`, bounded by `IsTotalQueryBound`, and one with coins is a distribution over these | Layers 12, 13 |
 | 39. Merkle binding by log replay | the rows are read top-down off the adversary's log (`extractRows`, on `MerkleTree.fold`), `extract` reading a missing row as zero, and `binding_of_log` proves the opened rows equal to them unless the joint log shows a collision or a hit; VCVio's extraction is not consumed (amends decision 32) | Layer 12; the ledger |
 | 40. List binding through a decoder interface | the extractor list-decodes through `ListDecoder`, specified by WHIR's list relation at level 0's threshold and inhabited by brute force, with the `exactFast` path proved to agree and faster decoders as further inhabitants | Layer 12; *Extractors*; test 24 |
