@@ -18,7 +18,7 @@ leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
 `crates/lean_vm/src/cpu/filler.rs:36-87` (the sizes and the frame offsets), which are identical
 at leanVM `48a904208d682848dac0e18ef8b01ebfc40df9ad`. Artifact: a shape of the public program.
 Direction: none, a definition. Contribution: the program-shape hypothesis of T1-C
-(`WellFormedBytecode`, roadmap acceptance test 15).
+(`WellFormedBytecode`).
 
 **The ladder.** A table is proven over a power-of-two number of rows, so a run whose counts are
 not powers of two makes up the difference by executing more instructions. The compiler appends,
@@ -38,16 +38,16 @@ each of its operands, which is why a block costs one cell whatever its size.
 **What is defined.** `fillDummy t` is the dummy of table `t`, `fillClose` the closing jump,
 `IsFillBlock prog t s p` says the block of size `s` for `t` starts at slot `p`, and
 `HasFillBlocks prog` says every table has a block of every size. `WellFormedBytecode` is the
-roadmap's pair of program-shape conditions, the sentinel slot is not a `JUMP`
-(Layer 3's `SentinelSafe`, not restated) and the fill blocks are present; both T1 theorems take
-it, and a further condition the Clean proofs need is one more field here, never a new hypothesis
-on a theorem.
+pair of program-shape conditions, the sentinel slot is not a `JUMP` (`SentinelSafe`, not
+restated) and the fill blocks are present; constraint soundness needs the first and constraint
+completeness the second, and a further condition the Clean proofs need is one more field here,
+never a new hypothesis on a theorem.
 
 ## Wrong readings excluded
 
 * The closing jump is not the sentinel: `IsFillBlock.below` places the block, closing jump
-  included, strictly below the last slot, since a row at the sentinel counter is the
-  roadmap's acceptance test 20.
+  included, strictly below the last slot, since a `JUMP` row at the sentinel counter pushes a
+  counter outside the bytecode.
 * Blocks are found by `Program.fetch`, the lookup `step` uses, so a block is present exactly
   when the machine would fetch its instructions; there is no second reading of the code.
 * No disjointness of blocks is required: the fill blocks of one table may share slots (a size-`s`
@@ -66,7 +66,7 @@ open LeanerVM.Parameters
 traversals of the largest block and then one per set bit of the remainder. -/
 def fillSizes : List ℕ := [128, 64, 32, 16, 8, 4, 2, 1]
 
-/-- The six tables in the order of their bus codes (Layer 2's `Opcode`, `tables.rs:95-100`). -/
+/-- The six tables in the order of their bus codes (`Opcode`, `tables.rs:95-100`). -/
 def fillTables : List Opcode := [.xor, .mulNative, .setConstant, .deref, .jump, .blake2s]
 
 /-! ## The frame
@@ -138,13 +138,14 @@ the prover pads the tables with. -/
 def HasFillBlocks (prog : Program) : Prop :=
   ∀ t : Opcode, ∀ s ∈ fillSizes, ∃ p, IsFillBlock prog t s p
 
-/-- The program-shape conditions the two T1 theorems need (roadmap Layer 10). A further condition
-the Clean proofs require is one more field here, never a new hypothesis on a theorem. -/
+/-- The program-shape conditions of constraint soundness (the first field) and constraint
+completeness (the second). A further condition the Clean proofs require is one more field here,
+never a new hypothesis on a theorem. -/
 structure WellFormedBytecode (prog : Program) : Prop where
-  /-- The sentinel slot is not a `JUMP`: a row there pushes a counter outside the bytecode
-  (acceptance test 20). Layer 3's `SentinelSafe`, not restated here. -/
+  /-- The sentinel slot is not a `JUMP`: a row there pushes a counter outside the bytecode.
+  This is `SentinelSafe`, not restated here. -/
   sentinelSafe : SentinelSafe prog
-  /-- The fill blocks are present (acceptance test 15). -/
+  /-- The fill blocks are present, so the prover can pad every table to a power-of-two height. -/
   hasFillBlocks : HasFillBlocks prog
 
 /-! ## Load-bearing lemmas -/
