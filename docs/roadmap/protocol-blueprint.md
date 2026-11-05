@@ -1983,8 +1983,8 @@ built (T2 stays out of scope). The intended form for more witnesses is a test-on
 generator whose witnesses are used only once leanISA's decidable `checkSatisfiedBy` accepts them
 (`checkSatisfiedBy_eq_true_iff`), still requested. The executable writes test vectors
 (`tests/vectors/`: the program, the public input and the proof, in the encoding Layer 12's fixture
-reads) and checks them: `verify` accepts each and rejects its mutations. The kernel-evaluated fixtures stay on toy instances; the end-to-end run of
-the honest prover is native (decision 5).
+reads) and checks them: `verify` accepts each and rejects its mutations. The kernel-evaluated
+fixtures stay on toy instances; the end-to-end run of the honest prover is native (decision 5).
 
 The performance target is the prover within one to two orders of magnitude of the Rust prover on
 the same witness, single-threaded and in pure Lean (no FFI), measured at the smallest admissible
