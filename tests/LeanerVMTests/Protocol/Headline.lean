@@ -328,23 +328,24 @@ example (proof : Proof PrunedMerklePaths) (log : hashSpec.QueryLog) :
 
 /- **The completeness headline at an instance**: its hypotheses hold of the one-step trace of
 well-formed bytecode in the completeness tests, so its conclusion is not vacuous there, the
-conjunct on when `prove` returns a proof included. -/
-example : ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
-    ValidExecution ladderJumpProg badInput t' ∧
-      ∃ w : Air.Flat.EnsembleWitness (leanIsaEnsemble ladderJumpProg t'.κ),
-        SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
-          ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
-            (∀ proof, prove fuel ladderJumpProg badInput w ρ = some proof →
-              verify ladderJumpProg badInput proof = true) ∧
-            (prove fuel ladderJumpProg badInput w ρ = none →
-              maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
-                ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
-                  Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
-            (leanIsaμ ladderJumpProg s ≤ maxMu → validRate ρ →
-              (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
-                Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
-              prove fuel ladderJumpProg badInput w ρ ≠ none) :=
-  prove_complete_of_execution ladderJump_wellFormed badTrace_valid badTrace_fits
+conjunct on when `proveExecution` returns a proof included. The witness is the generator's. -/
+example : (padTrace badTrace (fillStarts ladderJumpProg)).PaddedFrom badTrace ∧
+    ValidExecution ladderJumpProg badInput (padTrace badTrace (fillStarts ladderJumpProg)) ∧
+    ∃ w, witnessGen ladderJumpProg badInput badTrace = some w ∧
+      SatisfiedBy ladderJumpProg badInput w ∧
+      AssignmentRepresents w (padTrace badTrace (fillStarts ladderJumpProg)) ∧
+      ∃ s, Sizes.ofWitness w = some s ∧ ∀ fuel ρ,
+        (∀ proof, proveExecution fuel ladderJumpProg badInput badTrace ρ = some proof →
+          verify ladderJumpProg badInput proof = true) ∧
+        (proveExecution fuel ladderJumpProg badInput badTrace ρ = none →
+          maxMu < leanIsaμ ladderJumpProg s ∨ ¬ validRate ρ ∨
+            ∃ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs ∧
+              Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none) ∧
+        (leanIsaμ ladderJumpProg s ≤ maxMu → validRate ρ →
+          (∀ fs, ProveReaches fuel ladderJumpProg badInput w ρ fs →
+            Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) →
+          proveExecution fuel ladderJumpProg badInput badTrace ρ ≠ none) :=
+  proveExecution_complete ladderJump_wellFormed badTrace_valid badTrace_fits
 
 /-! ## The adaptive theorems -/
 

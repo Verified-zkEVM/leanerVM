@@ -12,13 +12,15 @@ import LeanerVMTests.Arithmetization.SentinelFixture
 import LeanerVMTests.Protocol.Verify
 import LeanerVM.Protocol.ProofRoots
 import LeanerVMTests.Protocol.LogScan
+import LeanerVM.Protocol.ProveExecution
+import LeanerVMTests.Semantics.PaddedImageRefutation
 
 /-!
 # The `leanervm-prove` executable
 
 `leanervm-prove [file] [rate] [fuel] [pure]` (or `leanervm-prove probe [rate]`, or
 `leanervm-prove tamper [file]`, or `leanervm-prove log [file]`, or `leanervm-prove m3 [lm]`, or
-`leanervm-prove sentinel [rate] [fuel]`)
+`leanervm-prove sentinel [rate] [fuel]`, or `leanervm-prove execution [rate] [fuel] [steps]`)
 proves the hand-built leanISA witness of the constraint statement tests
 (`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the executor's `mul_192bit_word`
 with its fill blocks, `fill_satisfiedBy`) for its program
@@ -46,7 +48,11 @@ reads it as the witness's stack alone, and that `extract` returns the witness's 
 its sizes or with the memory log-size replaced by `lm + 1`, each timed. `sentinel` runs `prove`
 on the sentinel tests' witness (`LeanerVMTests.Arithmetization.SentinelFixture.sentW`), whose
 program has a `JUMP` in its sentinel slot and no valid execution on the input over any memory, and
-checks that `verify` accepts the proof. The exit code is `1` if a check fails.
+checks that `verify` accepts the proof. `execution` runs the prover from an execution,
+`proveExecution`, on the one-`JUMP` run of the ladder program of the completeness tests (memory
+`2^16`, padded to `2^17`; `steps` steps, default `1`, the valid run), timing the witness generator
+alone and then the whole prover, and checks that `verify` accepts the proof. The exit code is `1`
+if a check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -55,6 +61,7 @@ open LeanerVM.Protocol.Verify LeanerVM.Protocol.LeanIsa LeanerVM.Protocol.Blake2
 open LeanerVMTests.Arithmetization.Statement LeanerVMTests.Protocol.RustProof
 open LeanerVMTests.Protocol.Verify
 open LeanerVMTests.Arithmetization.Sentinel (sentProg sentW)
+open LeanerVMTests.Semantics.PaddedImageRefutation (ladderJumpProg badImage badInput)
 
 namespace LeanerVMProve
 
@@ -415,6 +422,37 @@ def sentinelChecks (fuel ρ : ℕ) : IO UInt32 := do
   IO.println s!"{if ok then "ok  " else "FAIL"} verify = {ok}, for a program with no execution"
   return if ok then 0 else 1
 
+/-- `proveExecution` on the run of `steps` steps of the ladder program, timed, and `verify` on its
+proof. The steps come from the command line, so the trace is not a closed term evaluated at
+start-up. -/
+def executionChecks (fuel ρ steps : ℕ) : IO UInt32 := do
+  let t : Trace ladderJumpProg := ⟨minLogMem, badImage (gpow 2047), steps⟩
+  let t0 ← IO.monoNanosNow
+  -- The witness lives in `Type 1`; its table heights and sizes come out of the timed call.
+  let some (hs, sz) ← force ((witnessGen ladderJumpProg badInput t).map fun w ↦
+      (w.tables.map (·.table.length), Sizes.ofWitness w)) | do
+    IO.println "FAIL witnessGen returned no witness"
+    return 1
+  let t1 ← IO.monoNanosNow
+  IO.println s!"witnessGen: table heights {hs}, in {(t1 - t0).toFloat / 1e9} s"
+  let some s := sz | do IO.println "FAIL the witness gives no sizes"; return 1
+  IO.println s!"sizes: memory 2^{s.logMem}, tables {List.ofFn s.τ}, \
+    stack 2^{stackMu ladderJumpProg s}, rate {ρ}, \
+    admissible: {decide (s.Admissible ladderJumpProg ∧ validRate ρ)}"
+  (← IO.getStdout).flush
+  let t2 ← IO.monoNanosNow
+  let some (p : Proof PrunedMerklePaths) ←
+      force (proveExecution fuel ladderJumpProg badInput t ρ) | do
+    IO.println "FAIL proveExecution returned no proof"
+    return 1
+  let t3 ← IO.monoNanosNow
+  IO.println s!"proveExecution: {p.stream.length} scalars, openings of \
+    {p.merkle.map (·.leafData.length)} rows, in {(t3 - t2).toFloat / 1e9} s"
+  let ok ← force (verify ladderJumpProg badInput p)
+  let t4 ← IO.monoNanosNow
+  IO.println s!"{if ok then "ok  " else "FAIL"} verify = {ok}, in {(t4 - t3).toFloat / 1e6} ms"
+  return if ok then 0 else 1
+
 end LeanerVMProve
 
 open LeanerVMProve in
@@ -424,6 +462,9 @@ def main (args : List String) : IO UInt32 := do
   if args.head? == some "sentinel" then
     return ← sentinelChecks (((args[2]?).bind String.toNat?).getD (2 ^ 24))
       (((args[1]?).bind String.toNat?).getD 1)
+  if args.head? == some "execution" then
+    return ← executionChecks (((args[2]?).bind String.toNat?).getD (2 ^ 24))
+      (((args[1]?).bind String.toNat?).getD 1) (((args[3]?).bind String.toNat?).getD 1)
   if args.head? == some "probe" then
     probeCommit (2 ^ 24) (((args[1]?).bind String.toNat?).getD 1)
     return 0
