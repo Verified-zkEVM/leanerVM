@@ -114,16 +114,16 @@ def rrBody (n : ℕ) : List Stmt :=
     [.atom (.const (.n (rrT n)) (word 27 0 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
-theorem core82_body : Fn.body Data.core82 = [.atom (.copy (.n 3) (.n 0)), .ret [.n 3]] :=
+theorem core81_body : Fn.body Data.core81 = [.atom (.copy (.n 3) (.n 0)), .ret [.n 3]] :=
   stmtsEqb_sound (by decide +kernel)
-theorem core83_body : Fn.body Data.core83 = rrBody 1 := stmtsEqb_sound (by decide +kernel)
-theorem core84_body : Fn.body Data.core84 = rrBody 2 := stmtsEqb_sound (by decide +kernel)
-theorem core85_body : Fn.body Data.core85 = rrBody 3 := stmtsEqb_sound (by decide +kernel)
-theorem core86_body : Fn.body Data.core86 = rrBody 4 := stmtsEqb_sound (by decide +kernel)
-theorem core87_body : Fn.body Data.core87 = rrBody 5 := stmtsEqb_sound (by decide +kernel)
-theorem core88_body : Fn.body Data.core88 = rrBody 6 := stmtsEqb_sound (by decide +kernel)
-theorem core89_body : Fn.body Data.core89 = rrBody 7 := stmtsEqb_sound (by decide +kernel)
-theorem core419_body : Fn.body Data.core419 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core82_body : Fn.body Data.core82 = rrBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core83_body : Fn.body Data.core83 = rrBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core84_body : Fn.body Data.core84 = rrBody 3 := stmtsEqb_sound (by decide +kernel)
+theorem core85_body : Fn.body Data.core85 = rrBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem core86_body : Fn.body Data.core86 = rrBody 5 := stmtsEqb_sound (by decide +kernel)
+theorem core87_body : Fn.body Data.core87 = rrBody 6 := stmtsEqb_sound (by decide +kernel)
+theorem core88_body : Fn.body Data.core88 = rrBody 7 := stmtsEqb_sound (by decide +kernel)
+theorem core418_body : Fn.body Data.core418 = rrBody 8 := stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
 
@@ -444,8 +444,8 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
 
 theorem rr0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "rs_eq_rows__L0" args rets ↔ MeaningRsEqRows 0 rd args rets := by
-  rw [rel_iff_sem (Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl), core82_body,
-    show Fn.params Data.core82 = [.n 0, .n 1, .n 2] from rfl]
+  rw [rel_iff_sem (Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl), core81_body,
+    show Fn.params Data.core81 = [.n 0, .n 1, .n 2] from rfl]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, h3, hret⟩
@@ -464,22 +464,22 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
   intro n hn rd args rets
   interval_cases n
   · exact rr0_iff rd args rets
-  · exact rr_iff 1 (by decide) (Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl) rfl
+  · exact rr_iff 1 (by decide) (Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl) rfl
+      core82_body rd args rets
+  · exact rr_iff 2 (by decide) (Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl) rfl
       core83_body rd args rets
-  · exact rr_iff 2 (by decide) (Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl) rfl
+  · exact rr_iff 3 (by decide) (Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl) rfl
       core84_body rd args rets
-  · exact rr_iff 3 (by decide) (Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl) rfl
+  · exact rr_iff 4 (by decide) (Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl) rfl
       core85_body rd args rets
-  · exact rr_iff 4 (by decide) (Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl) rfl
+  · exact rr_iff 5 (by decide) (Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl) rfl
       core86_body rd args rets
-  · exact rr_iff 5 (by decide) (Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl) rfl
+  · exact rr_iff 6 (by decide) (Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl) rfl
       core87_body rd args rets
-  · exact rr_iff 6 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
+  · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
       core88_body rd args rets
-  · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 89) (by decide +kernel) rfl) rfl
-      core89_body rd args rets
-  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 419) (by decide +kernel) rfl) rfl
-      core419_body rd args rets
+  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl) rfl
+      core418_body rd args rets
 
 end
 end LeanVM.Guest.B1

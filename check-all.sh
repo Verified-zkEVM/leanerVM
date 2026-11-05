@@ -127,6 +127,14 @@ lean_vm() {
   (cd lean_vm && capped .lake/build/bin/guest-cert --check)
   step "lean_vm: the guest's memory-layer checks are current"
   (cd lean_vm && capped .lake/build/bin/guest-memory --check)
+  # Their inputs evaluated from the build just made (`decoder-tables-inputs.lean`: one line each).
+  step "lean_vm: the guest decoder's tables and their chunked checks are current"
+  (cd lean_vm && capped lake env lean scripts/decoder-tables-inputs.lean) > "$log/decoder.txt"
+  local k
+  for k in entries rows split; do sed -n "s/^$k: //p" "$log/decoder.txt" > "$log/$k.txt"; done
+  python3 -I lean_vm/scripts/decoder-tables --entries "$log/entries.txt" --check
+  python3 -I lean_vm/scripts/decoder-table-chunks --row-lengths "$log/rows.txt" \
+    --split-lengths "$log/split.txt" --check
 }
 
 # Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to

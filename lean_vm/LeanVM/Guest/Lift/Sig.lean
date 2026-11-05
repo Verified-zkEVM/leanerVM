@@ -10,14 +10,15 @@ module
 
 public import LeanVM.Guest.Lift.SpWotsLeaf
 public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.XmssSegData
+public import LeanVM.Guest.Lift.XmssLeaf
 
 /-!
 # The signature verifiers, placed
 
-**`verify_lean_xmss`** is a leaf body (`Memory/LiftPure.lean`) whose only loads are the claim's four
-words at its argument (`claimLoad`, by the kernel: `xmss_leafOk`). With B1's completeness
-(`verify_lean_xmss_rel`), on a memory defined below `2^κ`, `κ ≥ 6`, holding a signed claim at `p`
-whose four words lie in the caller's words, it is complete placed (`verify_lean_xmss_completeAtD`).
+**`verify_lean_xmss`** is inline in `__loop2`: its statements `xSeg` are a leaf block whose only
+loads are the claim's four words at the pointer `.n 65` (`segLoad`, by the kernel on the data:
+`xSeg_leafOk`; `loads_seg`), for the placed form of `__loop2`.
 
 **`sp_wots`** is a leaf body loading nothing (`spWots_leafOk`): with B1's completeness
 (`sp_wots_complete_Spec`), on a memory defined below `2^6`, every honest call of it holds in any
@@ -40,19 +41,27 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-! ## `verify_lean_xmss` -/
+/-! ## `verify_lean_xmss`, inline in `__loop2` -/
 
-/-- A load of the argument `.n 0` at an offset below 4; no other load. -/
-def claimLoad : Atom → Bool
-  | .load _ p off => decide (p = .n 0) && decide (off < 4)
-  | _ => true
+/-- `xSeg`, `__loop2`'s statements `9` to `321`. -/
+theorem xSeg_length : B1.Sig.xSeg.length = 313 := by
+  have h := congrArg List.length B1.Sig.loop2_split
+  rw [core36_length, List.length_append, List.length_append] at h
+  have h9 : B1.Sig.l2Pre.length = 9 := rfl
+  have h7 : B1.Sig.l2Post.length = 7 := rfl
+  omega
 
-set_option maxRecDepth 100000 in
-/-- **`verify_lean_xmss`'s body**: atoms, branches and arms, its loads the claim's words. -/
-theorem xmss_leafOk : Stmt.leafOkList claimLoad Data.core19.body = true := by decide +kernel
+theorem xSeg_eq_data : B1.Sig.xSeg = (Data.core36.body.drop 9).take 313 := by
+  rw [B1.Sig.loop2_split, List.drop_left' (show B1.Sig.l2Pre.length = 9 from rfl),
+    List.take_left' xSeg_length]
 
-theorem loads_claim {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk claimLoad e) :
-    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n 0)).limb 0 * addressOfIndex off := by
+/-- **The check loads only the claim**: atoms, branches and arms, its loads the claim's words at
+`.n 65`. -/
+theorem xSeg_leafOk : Stmt.leafOkList segLoad B1.Sig.xSeg = true := by
+  rw [xSeg_eq_data]; exact loop2Seg_leafOk
+
+theorem loads_seg {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk segLoad e) :
+    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n 65)).limb 0 * addressOfIndex off := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he
@@ -61,32 +70,10 @@ theorem loads_claim {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk claimL
     cases a with
     | load d p off =>
       simp only [Ev.loadAddr?, Option.some.injEq] at hea
-      simp only [EvLeafOk, claimLoad, Bool.and_eq_true, decide_eq_true_eq] at hok
+      simp only [EvLeafOk, segLoad, Bool.and_eq_true, decide_eq_true_eq] at hok
       exact ⟨off, hok.2, by rw [← hea, hok.1]⟩
     | _ => simp [Ev.loadAddr?] at hea
   | _ => simp [Ev.loadAddr?] at hea
-
-set_option maxRecDepth 100000 in
-/-- **`verify_lean_xmss` loads only the claim**, from B1's completeness. -/
-theorem verify_lean_xmss_relIn (hc : B1.Sig.verify_lean_xmss_complete_Spec) {rd : Reader}
-    {R : ℕ → Prop} {p : E} {pk : HashSig.PublicKey} {m : HashSig.Message}
-    {sig : LeanXmss.Signature} (hrd : B1.Sig.MemOK rd 64)
-    (hat : B1.Sig.ClaimAt rd p (B1.Sig.cellOf128 pk.root) (B1.Sig.cellOf128 pk.parameter)
-      (B1.Sig.cellOf128 (m.extractLsb' 0 128)) (B1.Sig.cellOf128 (m.extractLsb' 128 128)))
-    (hv : LeanXmss.verifyWithKeccak pk m sig = true)
-    (hreg : ∀ k < 4, ∃ i, p.limb 0 * addressOfIndex k = addressOfIndex i ∧ R i) :
-    coreProgram.RelIn rd R "verify_lean_xmss" [p] [] :=
-  relIn_of_leaf B1.Sig.find_verify_lean_xmss xmss_leafOk
-    (fun σ es vs hp hw A hA => by
-      have hall : (Out.ret es vs).All (EvLeafOk claimLoad) := by
-        have := walk_leafOk (σ := σ) Data.core19.body xmss_leafOk
-        exact (show walk σ Data.core19.body = .ret es vs from hw) ▸ this
-      obtain ⟨off, hoff, rfl⟩ := loads_claim hall A hA
-      rw [B1.Sig.core19_params] at hp
-      simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
-      rw [hp]
-      exact hreg off hoff)
-    (B1.Sig.verify_lean_xmss_rel hc hrd hat hv)
 
 /-! ## `sp_wots` -/
 
@@ -101,8 +88,8 @@ theorem sp_wots_relIn (hc : B1.Sig.sp_wots_complete_Spec) {rd : Reader} (R : ℕ
     ((B1.Sig.rel_iff_body B1.Sig.find_sp_wots _ _).mpr
       ⟨σ, by rw [B1.Sig.sp_wots_params]; simp [h0, h1, h2], hb⟩)
   have hall : (Out.ret es vs).All (EvLeafOk noLoad) := by
-    have := walk_leafOk (σ := σ') Data.core20.body spWots_leafOk
-    exact (show walk σ' Data.core20.body = .ret es vs from hw) ▸ this
+    have := walk_leafOk (σ := σ') Data.core19.body spWots_leafOk
+    exact (show walk σ' Data.core19.body = .ret es vs from hw) ▸ this
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := hall e he
   cases e with
@@ -128,9 +115,9 @@ theorem verify_sig_lean_sphincs_relIn (hc : B1.Sig.SphincsCompleteSpecs)
     coreProgram.RelIn rd R "verify_sig_lean_sphincs" [p, bb] [] := by
   obtain ⟨σ, h0, h1, hb, hloads⟩ := hc.verify (coreProgram.RelIn rd R) rd p bb pk m sig
     (sp_wots_relIn hc.sp_wots R fun i hi => hrd i (by omega)) hrd hbb hat hv
-  have hsat := walk_sat (P := coreProgram) Data.core21.body
+  have hsat := walk_sat (P := coreProgram) Data.core20.body
     (coreProgram_wf _ (List.mem_of_find?_eq_some B1.Sig.find_verify_sig_lean_sphincs)) hb
-  cases hw : walk σ Data.core21.body with
+  cases hw : walk σ Data.core20.body with
   | fall es => rw [hw] at hsat; exact hsat.2.elim
   | stuck => rw [hw] at hsat; exact hsat.elim
   | ret es vs =>

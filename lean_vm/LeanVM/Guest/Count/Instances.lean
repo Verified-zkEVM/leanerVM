@@ -28,12 +28,21 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
+/-- **A loop helper's run at `B2C.fs`**: `B1.Main.iterK` (`wSKt`) words per iteration and its
+phantom frame once. -/
+theorem iterK_totalLeOn {j : ℕ} {f : String} (h : wOkK j f = true) :
+    TotalLeOn coreProgram B2C.fs f LoopPre
+      fun a => logG (a.getD 1 0) * B1.Main.iterK B2C.fs wSK f + B2C.fs f := by
+  unfold B1.Main.iterK
+  rw [← wSKt_eq]
+  exact wSKt_totalLeOn h
+
 /-- **`main`'s statically bounded callees' words.** -/
 theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
-  l1 := wSK_totalLeOn (j := wIdxL 0) (by decide +kernel)
-  l2 := wSK_totalLeOn (j := wIdxL 1) (by decide +kernel)
-  l3 := wSK_totalLeOn (j := wIdxL 2) (by decide +kernel)
-  l4 := wSK_totalLeOn (j := wIdxL 3) (by decide +kernel)
+  l1 := iterK_totalLeOn (j := wIdxL 0) (by decide +kernel)
+  l2 := iterK_totalLeOn (j := wIdxL 1) (by decide +kernel)
+  l3 := iterK_totalLeOn (j := wIdxL 2) (by decide +kernel)
+  l4 := iterK_totalLeOn (j := wIdxL 3) (by decide +kernel)
   st := wSB_totalLe (j := wIdx "statement_digest") (by decide +kernel)
 
 /-- `da_levels__L{2^k}_L{k}`, `k ≤ 10`, checked. -/

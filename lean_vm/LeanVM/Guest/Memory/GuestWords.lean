@@ -37,7 +37,7 @@ theorem womegaJ_eq' {j : ℕ} (hj : j < coreProgram.length) : womegaJ j = wfsJ j
 
 /-- `wfsJ` is `B2C.fs` by index. -/
 theorem wfs_eq {j : ℕ} (hj : j < coreProgram.length) : B2C.fs coreProgram[j].name = wfsJ j := by
-  have hl : j < 947 := by rw [coreProgram_length] at hj; exact hj
+  have hl : j < 991 := by rw [coreProgram_length] at hj; exact hj
   unfold B2C.fs
   rw [coreProgram_indexOf?_getElem hj]
   rcases j with _ | k
@@ -151,7 +151,7 @@ theorem core_total_le_of_loop {fs : String → ℕ}
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) {a e : ℕ}
     (ha : args.getD 0 0 = ofK (addressOfIndex a))
     (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e)
-    (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args :=
+    (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args + fs f :=
   total_le_of_loop (coreProgram_wchecked hF) hX hcf hn hv hb ha he hae heo hpre
 
 /-- **A guest function's words, constant.** -/
@@ -184,7 +184,7 @@ theorem fs_total_le_of_loop {f : String} {endc : Option ℕ} {pre : List (ℕ ×
     {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) {a e : ℕ} (ha : args.getD 0 0 = ofK (addressOfIndex a))
     (he : endOf endc args = ofK (addressOfIndex e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
-    (hpre : ArgsPre pre args) : t.total B2C.fs ≤ (e - a) * b.eval args :=
+    (hpre : ArgsPre pre args) : t.total B2C.fs ≤ (e - a) * b.eval args + B2C.fs f :=
   core_total_le_of_loop (fun _ hj => wfs_eq hj) whand_none hcf hn hv hb ha he hae heo hpre
 
 /-- **A guest function's words at `B2C.fs`, constant.** -/

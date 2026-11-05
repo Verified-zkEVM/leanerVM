@@ -29,12 +29,12 @@ open LeanVM.Protocol.Verifier LeanVM.Node
 
 open LeanVM.Guest.Fast in
 /-- **`decWitN`, staged**: `decWitStaged` with each callee's witness off its frame, by partial
-application, the leanSPHINCS signatures' reader `wS` given (the top's, `sphincsAtFrameT`, looks
-its frames up once; `sphincsAtFrame` at the frame map). -/
+application, the signatures' readers `wX`, `wS` given (the top's, `xmssAtFrameT`, `sphincsAtFrameT`,
+look their frames up once; `xmssAtFrame`, `sphincsAtFrame` at the frame map). -/
 noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (R : ReaderTabs)
-    (σ : Val) (rd : Reader) (Vn : NFrames) (wS : E → Sphincs.Signature) (cl : E → E → ℕ) :
-    NodeWitness :=
-  decWitStaged D σ rd (xmssAtFrame R Vn) wS (daAtFrame D Vn) (proofAtFrame R rd Vn cl)
+    (σ : Val) (rd : Reader) (Vn : NFrames) (wX : List E → LeanXmss.Signature)
+    (wS : E → Sphincs.Signature) (cl : E → E → ℕ) : NodeWitness :=
+  decWitStaged D σ rd wX wS (daAtFrame D Vn) (proofAtFrame R rd Vn cl)
     (hintsAtFrame rd Vn)
 
 -- a frame cell's word, under a name of its own (the bounds name it, not an index)

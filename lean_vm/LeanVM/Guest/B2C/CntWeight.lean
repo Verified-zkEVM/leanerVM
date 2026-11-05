@@ -115,16 +115,16 @@ end
 
 /-! ## The separately counted arms -/
 
-/-- The weights: the most a path runs, and for `verify_lean_xmss` its arms' counts `C`. -/
+/-- The weights: the most a path runs, and for `__loop2` its arms' counts `C`. -/
 noncomputable def ωArm (C : Opcode → ℕ) (op : Opcode) (f : String) : ℕ :=
-  pathMax f op + if f = "verify_lean_xmss" then C op else 0
+  pathMax f op + if f = "__loop2" then C op else 0
 
-/-- Only `verify_lean_xmss` (function `20`) counts arms separately. -/
-theorem cplArms_only20 : ∀ j, j ≠ 20 → listElementOrDefault Data.cplArms j [] = [] := by
+/-- Only `__loop2` (function `37`, leanXMSS's check inline) counts arms separately. -/
+theorem cplArms_only37 : ∀ j, j ≠ 37 → listElementOrDefault Data.cplArms j [] = [] := by
   intro j hj
   by_cases hl : j < Data.cplArms.length
   · have h : (List.range Data.cplArms.length).all
-        (fun j ↦ Nat.beq j 20
+        (fun j ↦ Nat.beq j 37
             || (listElementOrDefault Data.cplArms j []).isEmpty) = true := by decide +kernel
     have := List.all_eq_true.mp h j (List.mem_range.mpr hl)
     simp only [Bool.or_eq_true, List.isEmpty_iff] at this
@@ -133,14 +133,14 @@ theorem cplArms_only20 : ∀ j, j ≠ 20 → listElementOrDefault Data.cplArms j
     · exact h1
   · exact Check.nth_of_le (by omega)
 
-theorem coreOf20_name : (coreOf 20).name = "verify_lean_xmss" := by decide +kernel
+theorem coreOf37_name : (coreOf 37).name = "__loop2" := by decide +kernel
 
-/-- **A valid instance's path count within its weight**, given `verify_lean_xmss`'s arms within
+/-- **A valid instance's path count within its weight**, given `__loop2`'s arms within
 `C` on its valid instances. -/
 theorem pathCountN_le_arm (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
-      (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
+      (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
+        costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ C op)
     (op : Opcode) (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) (rd : Reader)
     (args rets : List E) (hv : (Memory.Tree.node f σ bufs kids).Valid coreProgram rd args rets) :
     pathCountN f σ op ≤ ωArm C op f := by
@@ -148,23 +148,23 @@ theorem pathCountN_le_arm (C : Opcode → ℕ)
   split
   · rename_i j hj
     unfold pathCount
-    by_cases h20 : j = 20
-    · subst h20
+    by_cases h37 : j = 37
+    · subst h37
       obtain ⟨i, hi1, hi, hn, -, hcore, -⟩ := fn_of_idx hj
-      have hf : f = "verify_lean_xmss" := by rw [← hn, ← hcore, coreOf20_name]
+      have hf : f = "__loop2" := by rw [← hn, ← hcore, coreOf37_name]
       subst hf
       simp only [↓reduceIte]
       have := hC op σ bufs kids rd args rets hv
       omega
-    · rw [cplArms_only20 j h20, costW_nil, Pi.zero_apply]
+    · rw [cplArms_only37 j h37, costW_nil, Pi.zero_apply]
       omega
   · exact Nat.zero_le _
 
 /-- **The counts within the weights `ωArm C`** on valid trees. -/
 theorem cnt_le_weight_arm (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
-      (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op) :
+      (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
+        costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ C op) :
     ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ωArm C op) + jtSets op :=
   cnt_le_weight_valid (ωArm C) fun op f σ bufs kids rd args rets hv ↦

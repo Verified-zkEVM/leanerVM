@@ -107,6 +107,25 @@ def xIdxNat (layer L : Nat) : Nat := 2 ^ 32 * (2 ^ 23 * layer) + L >>> (16 * lay
 theorem key_lt (L layer : Nat) (hL : L < 2 ^ 32) : L >>> (16 * layer) < 2 ^ 32 :=
   lt_of_le_of_lt (Nat.shiftRight_le _ _) hL
 
+theorem xIdxNat_zero (L : Nat) : xIdxNat 0 L = L := by simp [xIdxNat]
+
+theorem xIdxNat_one {L : Nat} (hL : L < 2 ^ 32) :
+    eOfNat (L >>> 16) + word lxTop 0 0 = eOfNat (xIdxNat 1 L) := by
+  rw [add_comm, show lxTop = 2 ^ 32 * 2 ^ 23 by simp [lxTop], word_add_eOfNat (key_lt L 1 hL)]
+  simp [xIdxNat]
+
+/-- A message's bytes are its two cells', the first low. -/
+theorem bytesLE_cellPairVal (c d : E) : HashSig.littleEndianBytes 32 (cellPairVal c d) = cellBytes c ++ cellBytes d := by
+  have h0 := cellNat_lt c
+  have h1 := cellNat_lt d
+  have ht : (cellPairVal c d).toNat = cellNat c + 2 ^ 128 * cellNat d := by
+    rw [cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal, Nat.shiftLeft_eq, mul_comm,
+      two_pow_mul_or h0]
+    ring
+  rw [bytesLE_eq, ht, cellBytes_eq_leBytes, cellBytes_eq_leBytes,
+    show (2 : Nat) ^ 128 = 256 ^ 16 by norm_num, show 32 = 16 + 16 from rfl,
+    leBytes_add_mul _ _ _ _ (by norm_num; omega)]
+
 /-! ## Chains and folds -/
 
 theorem xFold_congr {pp : E} {A A' : Nat → E} {bits bits' : Nat → Bool} {sibs sibs' : Nat → E} :

@@ -192,7 +192,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
       subst hs
       show IsInK (σ (.n 59))
       rw [hV.v59]; exact gen_pow_add_isInK _ _
-  have hparams : (coreProgram.getD 39 default).params.map σ = args := by
+  have hparams : (coreProgram.getD 38 default).params.map σ = args := by
     rw [l5_params]
     refine List.ext_getElem (by simp [hargs]) fun i h1 h2 => ?_
     simp only [List.getElem_map, List.getElem_range]

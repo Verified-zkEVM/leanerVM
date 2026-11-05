@@ -17,9 +17,11 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `__loop4`);
 * `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
-  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1397-1421` at `c4f4bc92`): `kind` `0`
-  `WinWalk` on `[t, x, N]` (a deeper loop), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop), `2 + base`
-  `OqMainWins` on `[t, N]` (the function's window pointers and iteration count).
+  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1397-1419` at `b7a8d0cb`): `kind` `0`
+  `WinWalk` on `[t, x, N]` (a deeper loop, `odd = 0`), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop),
+  `2 + base` `OqMainWins` on `[t, N]` (the function's window pointers and iteration count);
+  `winsTag d cd = walkTag 0 1 d cd`: `WinsAt` on `[wins]`, the windows `walk_path__L{pd}_L{cd}`
+  dispatches on (`lean_ethereum.py:1312-1347` at `b7a8d0cb`), which its callers hand it.
 
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
   radix-four layer loop `__loop6` (`lean_ethereum.py:1872-1938` at `c4f4bc92`): the parity word
@@ -53,9 +55,14 @@ def walkD (t : ℕ) : ℕ := (t - 2) / 512
 /-- **The relation of walk tag `t`** on the words `ws`. -/
 def walkSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
   match walkKind t with
-  | 0 => B1.WinWalk rd (walkD t) (walkCd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
+  | 0 => if walkOdd t = 1 then B1.WinsAt rd (walkD t) (walkCd t) (ws.getD 0 0)
+    else B1.WinWalk rd (walkD t) (walkCd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
   | 1 => B1.WinWalk2 rd (walkD t) (walkCd t) (walkOdd t) (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0)
   | k => B1.OqMainWins rd (walkD t) (walkCd t) (walkOdd t) (k - 2) (ws.getD 0 0) (ws.getD 1 0)
+
+/-- The tag of `walk_path__L{pd}_L{cd}`'s windows (`WinsAt` on its `wins`), `d = pd + cd`: kind `0`
+with `odd = 1`, which no deeper loop has (a deeper loop's specialization has `odd = 0`). -/
+def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
 
 /-- The tag of `GkrPar`, above every walk tag. -/
 def tagGkr : ℕ := 2 ^ 20

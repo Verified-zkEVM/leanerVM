@@ -41,7 +41,7 @@ def cellCOk (fn : Fn) : Bool :=
   | none => false
 
 set_option maxRecDepth 100000 in
-theorem cellc_ok : cellCOk Data.core31 = true := by decide +kernel
+theorem cellc_ok : cellCOk Data.core30 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

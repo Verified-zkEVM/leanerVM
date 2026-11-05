@@ -10,7 +10,7 @@ written under `LeanVM/Guest/`. `CMD` is one of
   the deployed frame sizes `B2C.fs`, over every function;
 * `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
   certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
-  `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
+  `__loop2`'s separately counted arms), over the closure of `ROOTS`;
 * `cntv`: `Memory/GuestCntV{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntVPm.lean`, the same
   over the closure of `VROOTS` (`verify_sub`'s statically bounded callees, each child's opening arm
   among them, and `child_claim_list_digest`'s callees);
@@ -40,8 +40,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
-XMSS = 'verify_lean_xmss'
-MAIN_FRAME = 404 + 17051  # B2C.mainFrame
+XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4491-4496)
+MAIN_FRAME = 455 + 16555  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -92,7 +92,7 @@ class G:
         assert len(self.pm) == self.N and len(self.fsz) == self.N + 1, 'data out of step'
         self.xj = self.by[XMSS]
         for j, a in enumerate(self.arms):
-            assert not a or j == self.xj + 1, 'only verify_lean_xmss counts arms separately'
+            assert not a or j == self.xj + 1, 'only __loop2 counts arms separately'
         self.C = [self.arm_max(k) for k in range(6)]
         lean = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'ArmBound.lean'), encoding='utf-8').read()
         m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
@@ -100,8 +100,8 @@ class G:
             'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
 
     def arm_max(self, k):
-        """`B2C.costMaxW` of `verify_lean_xmss`'s body at opcode `k`."""
-        acs = self.arms[self.xj + 1]
+        """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
+        acs = self.arms[self.xj + 1] if self.xj + 1 < len(self.arms) else []
         def key(x):
             for p in acs:
                 if p[0] == x: return max([l[k] if k < len(l) else 0 for l in p[1]] + [0])
@@ -291,11 +291,9 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
         c = wcert.get(n)
         if c is None or not (c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == []):
             o.append('-- `%s`: no words certificate per iteration.\n' % n); continue
-        o.append('/-- **`%s`**: at most %d words per iteration. -/\ntheorem kw%s_loopTotalLe : LoopTotalLe B2C.fs "%s" %d := by\n'
-                 '  intro rd t args rets a e hn hv hb ha he hae heo\n'
-                 '  have := fs_total_le_of_loop %s hn hv hb ha he hae heo\n'
-                 '    (fun _ h => (List.not_mem_nil h).elim)\n'
-                 '  simpa [Aff.eval] using this\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
+        o.append('/-- **`%s`**: at most %d words per iteration and its run\'s phantom frame. -/\n'
+                 'theorem kw%s_loopRunLe : LoopRunLe B2C.fs "%s" %d :=\n'
+                 '  kw_loopRunLe_of %s\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
     o.append('end\nend LeanVM.Guest.Count\n')
     path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Static.lean')
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -340,7 +338,7 @@ def show(c):
 
 def cmd_report(g):
     wcert = g.words_certs()
-    print('functions', g.N, '; verify_lean_xmss arms (B2C.xmssArmC):', g.C)
+    print('functions', g.N, '; __loop2 arms (B2C.xmssArmC):', g.C)
     print('words: certified %d of %d; not: %s' % (len(wcert), g.N,
           [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in wcert]))
     allc = []

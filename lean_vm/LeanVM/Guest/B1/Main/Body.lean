@@ -31,25 +31,25 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The shape -/
 
-noncomputable def mPre : List Stmt := (Fn.body Data.core0).take 571
-noncomputable def mDa : List Stmt := match (Fn.body Data.core0).getD 571 default with
+noncomputable def mPre : List Stmt := (Fn.body Data.core0).take 622
+noncomputable def mDa : List Stmt := match (Fn.body Data.core0).getD 622 default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mDaZ : List Stmt := match (Fn.body Data.core0).getD 571 default with
+noncomputable def mDaZ : List Stmt := match (Fn.body Data.core0).getD 622 default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mMid : List Stmt := ((Fn.body Data.core0).drop 572).take 39
-noncomputable def mLeaf : List Stmt := match (Fn.body Data.core0).getD 611 default with
+noncomputable def mMid : List Stmt := ((Fn.body Data.core0).drop 623).take 39
+noncomputable def mLeaf : List Stmt := match (Fn.body Data.core0).getD 662 default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mAgg : List Stmt := match (Fn.body Data.core0).getD 611 default with
+noncomputable def mAgg : List Stmt := match (Fn.body Data.core0).getD 662 default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mPost : List Stmt := ((Fn.body Data.core0).drop 612).take 11
+noncomputable def mPost : List Stmt := ((Fn.body Data.core0).drop 663).take 11
 
 set_option maxRecDepth 100000 in
 theorem core0_shape : Fn.body Data.core0 =
-    mPre ++ [.ite (.n 338) mDa mDaZ] ++ mMid ++ [.ite (.n 400) mLeaf mAgg] ++ mPost ++ [.ret []] :=
+    mPre ++ [.ite (.n 389) mDa mDaZ] ++ mMid ++ [.ite (.n 451) mLeaf mAgg] ++ mPost ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-! ## The facts, by evaluation -/
@@ -76,6 +76,17 @@ theorem rcDir_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom}
   obtain ⟨e, e', he, he', hx, hk⟩ := rc_sound hm ⟨h1, h2, h3⟩
   exact ⟨e, hx, he, e', he', by rw [hk, ← pow_succ]⟩
 
+/-- `lx_tags` (lean_ethereum.py:4493-4496): the `LX_N_TAGS = 51` constants `.n 325 ..< .n 376`,
+the carried chain indices, passed whole to `__loop2` after its four parameters. -/
+def lxTagsV : List V := (List.range 51).map fun j => .n (325 + j)
+
+/-- The chain indices `lx_tags` holds, by slot: the carried indices below `LX_V = 58` (neither `0`
+nor a power of two), in increasing order (`LX_TAG_SLOT`). -/
+def lxTagVals : List ℕ := (List.range 58).filter Sig.lxTagCarried
+
+/-- `lx_tags`' words. -/
+def lxTagWords : List E := lxTagVals.map fun i => word i 0 0
+
 noncomputable def preOk : Bool :=
   let P := mPre
   let A := atomsIn mPre
@@ -91,58 +102,60 @@ noncomputable def preOk : Bool :=
   ((List.range 256).all fun v => A.any (isConstAt (.n (69 + v)) v 0) &&
     A.any (isLoadAt (.n (69 + v)) (.n 68) v)) &&
   isMul A (.n 67) (.n 66) (.n 40) &&
-  guardOk P (.n 326) "__loop2" (.n 327) (.n 2) [.n 40, .n 66, .n 52] &&
-  guardOk P (.n 329) "__loop3" (.n 330) (.n 5) [.n 41, .n 67, .n 2, .n 55, .n 68] &&
-  isMul A (.n 335) (.n 6) (.n 6) && isMul A (.n 336) (.n 334) (.n 335) &&
-  A.any (isAddAt (.n 338) (.n 7) (.n 337)) && A.any (isConstAt (.n 337) 2 0)
+  guardOk P (.n 377) "__loop2" (.n 378) (.n 2) ([.n 40, .n 66, .n 52] ++ lxTagsV) &&
+  ((List.range 58).all fun i => !Sig.lxTagCarried i ||
+    A.any (isConstAt (.n (325 + (Sig.lxTagSlot i - 1))) i 0)) &&
+  guardOk P (.n 380) "__loop3" (.n 381) (.n 5) [.n 41, .n 67, .n 2, .n 55, .n 68] &&
+  isMul A (.n 386) (.n 6) (.n 6) && isMul A (.n 387) (.n 385) (.n 386) &&
+  A.any (isAddAt (.n 389) (.n 7) (.n 388)) && A.any (isConstAt (.n 388) 2 0)
 
 noncomputable def daOk : Bool :=
   let D := mDa
   D.all Stmt.flat &&
-  hasCall D "da_verify" [.n 49] [.n 339, .n 340, .n 341, .n 342] &&
-  pairHashOk (atomsIn D) (.n 339) (.n 340) (.n 341) (.n 342) (.n 336)
+  hasCall D "da_verify" [.n 49] [.n 390, .n 391, .n 392, .n 393] &&
+  pairHashOk (atomsIn D) (.n 390) (.n 391) (.n 392) (.n 393) (.n 387)
 
 noncomputable def daZOk : Bool :=
   let A := atomsIn mDaZ
   mDaZ.all Stmt.flat &&
-  A.any (isConstAt (.n 362) 0 0) && isLoad A (.n 362) (.n 336) 0 &&
-  A.any (isConstAt (.n 363) 0 0) && isLoad A (.n 363) (.n 336) 1
+  A.any (isConstAt (.n 413) 0 0) && isLoad A (.n 413) (.n 387) 0 &&
+  A.any (isConstAt (.n 414) 0 0) && isLoad A (.n 414) (.n 387) 1
 
 noncomputable def midOk : Bool :=
   let M := mMid
   let A := atomsIn mMid
   M.all Stmt.flat &&
-  isMul A (.n 381) (.n 2) (.n 5) && isLoad A (.n 381) (.n 380) 0 &&
-  guardOk M (.n 383) "__loop4" (.n 384) (.n 6) [.n 380, .n 52, .n 66, .n 40, .n 55, .n 67,
-    .n 41, .n 377, .n 334, .n 47, .n 48, .n 365, .n 49, .n 371] &&
-  isMul A (.n 385) (.n 380) (.n 6) && isLoad A (.n 386) (.n 385) 0 &&
-  A.any (isAssertEqAt (.n 386) (.n 42)) &&
-  decide (rcOf A (.n 387) = some (.n 6)) &&
-  A.any (isAddAt (.n 391) (.n 387) (.n 6)) && A.any (isAddAt (.n 393) (.n 7) (.n 392)) &&
-  A.any (isConstAt (.n 392) 1 0) && isMul A (.n 394) (.n 391) (.n 393) &&
-  A.any (isConstAt (.n 395) 0 0) && A.any (isAssertEqAt (.n 394) (.n 395)) &&
-  isMul A (.n 396) (.n 387) (.n 387) && isMul A (.n 397) (.n 334) (.n 396) &&
-  A.any (isAddAt (.n 400) (.n 6) (.n 399)) && A.any (isConstAt (.n 399) 1 0)
+  isMul A (.n 432) (.n 2) (.n 5) && isLoad A (.n 432) (.n 431) 0 &&
+  guardOk M (.n 434) "__loop4" (.n 435) (.n 6) [.n 431, .n 52, .n 66, .n 40, .n 55, .n 67,
+    .n 41, .n 428, .n 385, .n 47, .n 48, .n 416, .n 49, .n 422] &&
+  isMul A (.n 436) (.n 431) (.n 6) && isLoad A (.n 437) (.n 436) 0 &&
+  A.any (isAssertEqAt (.n 437) (.n 42)) &&
+  decide (rcOf A (.n 438) = some (.n 6)) &&
+  A.any (isAddAt (.n 442) (.n 438) (.n 6)) && A.any (isAddAt (.n 444) (.n 7) (.n 443)) &&
+  A.any (isConstAt (.n 443) 1 0) && isMul A (.n 445) (.n 442) (.n 444) &&
+  A.any (isConstAt (.n 446) 0 0) && A.any (isAssertEqAt (.n 445) (.n 446)) &&
+  isMul A (.n 447) (.n 438) (.n 438) && isMul A (.n 448) (.n 385) (.n 447) &&
+  A.any (isAddAt (.n 451) (.n 6) (.n 450)) && A.any (isConstAt (.n 450) 1 0)
 
 noncomputable def leafOk : Bool :=
   mLeaf.all Stmt.flat &&
-  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (402 + k)) 0 0) &&
-    isLoad (atomsIn mLeaf) (.n (402 + k)) (.n 398) k) &&
-  isLoad (atomsIn mLeaf) (.n 401) (.n 398) 23 &&
+  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (453 + k)) 0 0) &&
+    isLoad (atomsIn mLeaf) (.n (453 + k)) (.n 449) k) &&
+  isLoad (atomsIn mLeaf) (.n 452) (.n 449) 23 &&
   mAgg.all Stmt.flat &&
-  hasCall mAgg "aggregate_claims" [.n 6, .n 365, .n 371, .n 377, .n 398] []
+  hasCall mAgg "aggregate_claims" [.n 6, .n 416, .n 422, .n 428, .n 449] []
 
 noncomputable def postOk : Bool :=
   let A := atomsIn mPost
   mPost.all Stmt.flat &&
-  isLoad A (.n 425) (.n 397) 0 && isLoad A (.n 426) (.n 397) 1 &&
-  hasCall mPost "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 425, .n 426, .n 398]
-    [.n 427, .n 428] &&
-  A.any (isConstAt (.n 429) 1 0) && isLoad A (.n 430) (.n 429) 0 &&
-  A.any (isAssertEqAt (.n 430) (.n 427)) &&
-  A.any (isConstAt (.n 431) 1 0) && A.any (isConstAt (.n 432) 2 0) &&
-  isMul A (.n 433) (.n 431) (.n 432) && isLoad A (.n 434) (.n 433) 0 &&
-  A.any (isAssertEqAt (.n 434) (.n 428))
+  isLoad A (.n 476) (.n 448) 0 && isLoad A (.n 477) (.n 448) 1 &&
+  hasCall mPost "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 476, .n 477, .n 449]
+    [.n 478, .n 479] &&
+  A.any (isConstAt (.n 480) 1 0) && isLoad A (.n 481) (.n 480) 0 &&
+  A.any (isAssertEqAt (.n 481) (.n 478)) &&
+  A.any (isConstAt (.n 482) 1 0) && A.any (isConstAt (.n 483) 2 0) &&
+  isMul A (.n 484) (.n 482) (.n 483) && isLoad A (.n 485) (.n 484) 0 &&
+  A.any (isAssertEqAt (.n 485) (.n 479))
 
 set_option maxRecDepth 100000 in
 theorem pre_ok : preOk = true := by decide +kernel

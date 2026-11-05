@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core11
+public import LeanVM.Guest.Data.Core05
 public import LeanVM.Guest.B1.Sig.SphincsT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.SphincsData0
@@ -21,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- **`verify_sig_lean_sphincs`'s body is the template**, checked by the kernel in slices of 500
 statements. -/
-theorem sBody_eq : Data.core21.body = sBody := by
+theorem sBody_eq : Data.core20.body = sBody := by
   have h4000 := sBody_drop_4000
   have h3500 := drop_eq_of_take sBody_slice_3500 h4000
   have h3000 := drop_eq_of_take sBody_slice_3000 h3500

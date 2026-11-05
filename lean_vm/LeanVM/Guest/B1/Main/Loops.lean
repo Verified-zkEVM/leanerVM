@@ -17,12 +17,13 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`)
 `x` gives one iteration's facts (`LoopsC`: `RawXStepC`, `RawSStepC`, `KidStepC`) and the run at
 `x·g` (`loop_stepF`).
 
-* `__loop2` (G:4173-4182): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
-  `cover[g^s] = g^i`, `verify_lean_xmss(lx_table · g^(4s))`;
-* `__loop3` (G:4183-4187): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
+* `__loop2` (G:4497-4506): a raw leanXMSS signature `i`: a slot `s` below the leanXMSS region,
+  `cover[g^s] = g^i`, the leanXMSS segment (`verify_lean_xmss(lx_table · g^(4s), lx_tags)`,
+  inline) on the signer `lx_table · g^(4s)` and the carried tags;
+* `__loop3` (G:4507-4511): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
   `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
-* `__loop4` (G:4207-4231): child `c`, its DA digest hinted at `da_digests · c^2`.
+* `__loop4` (G:4531-4555): child `c`, its DA digest hinted at `da_digests · c^2`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -75,18 +76,23 @@ theorem guard_sound {rd : Reader} {σ : Val} {P : List Stmt} {gc : V} {f : Strin
 
 /-! ## `__loop2`: raw leanXMSS signatures -/
 
+/-- `__loop2` with the leanXMSS segment cut out (`Sig.loop2_split`): its prelude (the slot `s`
+hinted, range-checked below the region, `cover[g^s] = x`, the signer `lx_table · g^(4s)` at
+`.n 65`), then its counter's self-call. -/
+noncomputable def l2Fn : Fn := { Data.core36 with body := Sig.l2Pre ++ Sig.l2Post }
+
 def l3Ok (fn : Fn) : Bool :=
-  loopShapeF fn "__loop2" && decide (fn.params.length = 5) &&
-    rcBoundOk (atomsIn (loopPre fn)) (.n 5) (.n 2) && isMul (atomsIn (loopPre fn)) (.n 11) (.n 3) (.n 5) &&
-    (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 11) 0) &&
-    monoIs (atomsIn (loopPre fn)) (.n 14) (.n 4) (.n 5) 4 &&
-    hasCall (loopPre fn) "verify_lean_xmss" [.n 14] []
+  loopShapeF fn "__loop2" && decide (fn.params.length = 56) &&
+    rcBoundOk (atomsIn (loopPre fn)) (.n 56) (.n 2) &&
+    isMul (atomsIn (loopPre fn)) (.n 62) (.n 3) (.n 56) &&
+    (atomsIn (loopPre fn)).any (isLoadAt (.n 0) (.n 62) 0) &&
+    monoIs (atomsIn (loopPre fn)) (.n 65) (.n 4) (.n 56) 4
 
 set_option maxRecDepth 100000 in
-theorem l3_ok : l3Ok (coreProgram.getD 37 default) = true := by decide +kernel
+theorem l3_ok : l3Ok l2Fn = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop2" = some 37 := by decide +kernel
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 36 := by decide +kernel
 
 /-! ## `__loop3`: raw leanSPHINCS signatures -/
 
@@ -100,10 +106,10 @@ def l4Ok (fn : Fn) : Bool :=
     hasCall (loopPre fn) "verify_sig_lean_sphincs" [.n 17, .n 6] []
 
 set_option maxRecDepth 100000 in
-theorem l4_ok : l4Ok (coreProgram.getD 38 default) = true := by decide +kernel
+theorem l4_ok : l4Ok (coreProgram.getD 37 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop3" = some 38 := by decide +kernel
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 37 := by decide +kernel
 
 /-! ## A two-digest hash in a block -/
 
@@ -176,10 +182,10 @@ def l5Ok (fn : Fn) : Bool :=
   isLoad A (.n 55) (.n 56) 1
 
 set_option maxRecDepth 100000 in
-theorem l5_ok : l5Ok (coreProgram.getD 39 default) = true := by decide +kernel
+theorem l5_ok : l5Ok (coreProgram.getD 38 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop4" = some 39 := by decide +kernel
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 38 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Main

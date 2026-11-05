@@ -3,7 +3,7 @@
 
   The zkDSL front end in Lean: a source function and its `Const` arguments to the core IR function
   the compiler lowers, by the compiler's own rules (`crates/lean_compiler/src/lower.rs` and
-  `lower/*.rs`, leanVM `c4f4bc92`).
+  `lower/*.rs`, leanVM `b7a8d0cb`).
 -/
 
 module
@@ -28,7 +28,11 @@ same way, from the same readings:
 * `Const` specialization (`f__L3_G1`), `@inline` expansion in the caller's frame, `unroll` by
   substitution, folded `if` (bindings persist) and its rejection rule, runtime `if` (bindings
   revert), `match` with fused dispatch when every arm calls one function on the same runtime
-  arguments, `mul_range` lifted to a tail-recursive helper `__loopN` taking its captured values;
+  arguments, chained `match`es (back to back in an `unroll`, all arms `@inline`, the next
+  scrutinee a free frame cell: the entered one sets nothing above its arms; a chain is the
+  sequence of its `match`es in the core IR, which only the bytecode's jumps tell apart),
+  `mul_range` lifted to a tail-recursive helper `__loopN` taking its captured values, a captured
+  `StackBuf` as a `StackBuf(n)` parameter;
 * `StackBuf` runs, slices, list literals and `addr`, heap addressing, and the hints;
 * the Keccak builtins (`lower/builtins.rs`): `keccak(a, b, out, tail=, len=, cap=)` and
   `keccak_cells(cells, out, state=, len=, final=)`, a list comprehension expanded once its bounds
@@ -152,6 +156,11 @@ structure St where
   mats : List (V × List Mat) := []
   /-- The run each `addr` pointer names. -/
   addrRuns : List (V × List V) := []
+  /-- The scrutinee of the `match` the one being lowered enters directly, its arms ending in
+  the next one's dispatch (`chain_next`). -/
+  chainNext : Option V := none
+  /-- Set for a `match` an earlier one's arms dispatch into: its scrutinee (`chain_in`). -/
+  chainIn : Option V := none
   /-- Every function queued so far, originals first. -/
   queue : Array Func
   loopCtr : Nat
@@ -888,6 +897,28 @@ def keccakLen (kwargs : List (String × Expr)) (n : Nat) : M Nat := do
   if 16 * n < len then fail s!"keccak len= {len} is past the {16 * n} bytes of its {n} cells"
   return len
 
+/-- Whether every arm is an `@inline` call (`all_inline`). -/
+def allInline (arms : List Expr) : M Bool :=
+  arms.allM fun
+    | .call f _ => return (← origDef f).any (·.inline)
+    | _ => return false
+
+/-- The frame cell `e` names, if reading it emits nothing and names nothing `targets` rebinds: a
+scalar variable, or a `StackBuf` cell at a compile-time index (`free_cell`). -/
+def freeCell (e : Expr) (targets : List Expr) : M (Option V) := do
+  let names := e.freeVars []
+  if names.any (fun n => targets.any (Expr.isVarNamed n)) then return none
+  match e with
+  | .var n =>
+      match ← lookup n with
+      | some ⟨.scalar o, _⟩ => return some o
+      | _ => return none
+  | .index (.var n) i =>
+      let some k ← tryConstIndex i | return none
+      let some cells ← stackOfName n | return none
+      return cells[k]?
+  | _ => return none
+
 /-! ## Lowering -/
 
 mutual
@@ -1366,11 +1397,17 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
       let rt0 := specialized.head!.2
       if specialized.all (·.2 == rt0) then
         return ← lowerDispatchedCall n targets x (specialized.map (·.1)) rt0
-    let xo ← expr n x
+    -- A chained `match` is entered from the previous one's arms: its scrutinee is the free
+    -- cell the chain named, and nothing is set above its arms (`lower_match`).
+    let (chainNext, chainIn) := ((← get).chainNext, (← get).chainIn)
+    modify fun st => { st with chainNext := none, chainIn := none }
+    let xo ← match chainIn with
+      | some c => pure c
+      | none => expr n x
     let (rcells, binds) ← retTargets targets
     -- Arms that are all `@inline` calls: the padding run and a two-to-one hash's closing lane
-    -- are set once above the dispatch (`lower_match`).
-    if ← arms.allM isInlineArm then
+    -- are set once above the dispatch (`lower_match`), unless the match is entered.
+    if chainIn.isNone && (← arms.allM isInlineArm) then
       discard keccakPadRun
       discard <| constCell twoToOneClose
     let mut blocks := #[]
@@ -1402,6 +1439,8 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
       modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
       blocks := blocks.push blk
     emit (.match_ xo blocks.toList)
+    -- Chained: every arm ends in the next match's dispatch (`lower_match_dispatch`).
+    modify fun st => { st with chainIn := chainNext }
     bindTargets binds
 
 /-- A fused `match` of calls (`lower_dispatched_call`). -/
@@ -1441,25 +1480,30 @@ def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt 
       | .runtime e => (Expr.var boundVar, e)
     let (refs, bound) := Source.Stmt.freeVarsList body ([], [var])
     let shadowed := Source.Stmt.bindsList body
-    let mut captures := #[]
+    -- A captured `StackBuf` becomes a `StackBuf(n)` parameter, which each iteration's
+    -- self-call copies on, cell by cell.
+    let mut captures : Array (String × Shape) := #[]
     for r in refs do
       if bound.contains r then continue
-      if (← stackOfName r).isSome && !shadowed.contains r then
-        fail s!"StackBuf `{r}` cannot be captured into a `for` loop"
+      if let some cells ← stackOfName r then
+        if !shadowed.contains r then
+          if !captures.any (·.1 == r) then captures := captures.push (r, .stackBuf cells.length)
+          continue
       match ← lookup r with
       | some ⟨.scalar _, _⟩ | some ⟨.gaddr _, _⟩ | some ⟨.fconst _, _⟩ =>
-          if !captures.contains r then captures := captures.push r
+          if !captures.any (·.1 == r) then captures := captures.push (r, .scalar)
       | _ => pure ()
     let runtime := match hi with | .runtime _ => true | .const _ => false
-    let params := [var] ++ (if runtime then [boundVar] else []) ++ captures.toList
+    let params := [(var, Shape.scalar)] ++ (if runtime then [(boundVar, Shape.scalar)] else []) ++
+      captures.toList
     let capArgs : Expr → Expr → List Expr := fun first b =>
-      [first] ++ (if runtime then [b] else []) ++ captures.toList.map .var
+      [first] ++ (if runtime then [b] else []) ++ captures.toList.map (.var ·.1)
     let nextVar := s!"__next{id}"
     let loopBody := body ++ [
       .mk line (.let_ nextVar (.mul (.var var) .gen)),
       .mk line (.callIfNe (.var nextVar) exit loopName (capArgs (.var nextVar) (.var boundVar))),
       .mk line (.ret [])]
-    let helper : Func := { name := loopName, params := params.map fun q => ⟨q, .runtime .scalar⟩,
+    let helper : Func := { name := loopName, params := params.map fun q => ⟨q.1, .runtime q.2⟩,
                            returnShapes := [], body := loopBody, inline := false }
     modify fun st => { st with queue := st.queue.push helper }
     match hi with
@@ -1763,9 +1807,26 @@ def stmtKind : Nat → Nat → StmtKind → M Unit
         let some l ← tryConstIndex lo | fail "unroll bounds must be compile-time integers"
         let some h ← tryConstIndex hi | fail "unroll bounds must be compile-time integers"
         if h < l then fail s!"unroll(a, b) needs a <= b, got ({l}, {h})"
-        let blocks ← (List.range' l (h - l)).mapM fun j =>
-          capture (withSeg (.u j) (stmts n (Source.Stmt.substList var (.lit j) body)))
-        appendBlocks (blocks.map fun ((), pd, b) => (pd, b))
+        -- Back-to-back dispatches chain: each arm of one enters the next (`unroll`).
+        let iters := (List.range' l (h - l)).map fun j => (j, Source.Stmt.substList var (.lit j) body)
+        let flat := iters.flatMap fun (j, ss) => ((List.range ss.length).zip ss).map fun (i, s) => (j, i, s)
+        let nexts := (flat.drop 1).map (some ·.2.2) ++ [none]
+        let mut blocks := #[]
+        let mut k := 0
+        for (j, ss) in iters do
+          let here := (flat.zip nexts).drop k |>.take ss.length
+          k := k + ss.length
+          let blk ← capture <| withSeg (.u j) do
+            for ((_, i, s), nx) in here do
+              if let .match_ targets _ arms := s.kind then
+                if let some nxs := nx then
+                  if let .match_ _ nxx narms := nxs.kind then
+                    if (← allInline arms) && (← allInline narms) then
+                      if let some c ← freeCell nxx targets then
+                        modify fun st => { st with chainNext := some c }
+              withSeg (.s i) (stmtKind n s.line s.kind)
+          blocks := blocks.push blk
+        appendBlocks (blocks.toList.map fun ((), pd, b) => (pd, b))
 
 /-- The value binding of `name = e` (the general arm of `Let`). -/
 def letValue : Nat → String → Expr → M Unit

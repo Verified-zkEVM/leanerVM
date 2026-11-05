@@ -72,6 +72,36 @@ structure SeedKeyed (S : SchemeWithHash Seed PK SK Req Resp F) (D : Type) where
   keygen_eq : ∀ seed, S.keygen seed = derive seed >>= rest seed
   sign_eq : ∀ seed d, ∀ keys ∈ support (rest seed d), S.sign keys.2 = signWith d
 
+/-- **A kept-key form of a scheme**: key generation derives `D` from the seed and continues, as in
+`SeedKeyed`, but the secret key keeps `keep seed d` (the seed and part of what it derived, as the
+leanXMSS crate's key keeps the seed and the public parameter), from which the signer derives the
+rest again (`rederive`) and signs as `signWith` of the derived value. (`Common.SeedKey` moves a
+random-oracle bound from the scheme to `scheme`, when `rederive` reruns queries of `derive`.) -/
+structure KeptKey (S : SchemeWithHash Seed PK SK Req Resp F) (D SK' : Type) where
+  /-- What the signer needs, derived from the seed. -/
+  derive : Seed → OracleComp SchemeHashSpec D
+  /-- The rest of key generation. -/
+  rest : Seed → D → OracleComp SchemeHashSpec (PK × SK)
+  /-- The signer, from the derived value. -/
+  signWith : D → Req → OracleComp SchemeHashSpec Resp
+  /-- The secret key kept, from the seed and the derived value. -/
+  keep : Seed → D → SK'
+  /-- What the signer derives again from the kept key. -/
+  rederive : SK' → OracleComp SchemeHashSpec D
+  keygen_eq : ∀ seed, S.keygen seed = derive seed >>= rest seed
+  sign_eq : ∀ seed d, ∀ keys ∈ support (rest seed d), S.sign keys.2 = signWith d
+  rederive_support : ∀ seed d, d ∈ support (derive seed) → d ∈ support (rederive (keep seed d))
+
+/-- The scheme with the kept key: key generation as `S`'s, keeping `keep seed d` as the key, the
+signer deriving its value from the kept key first. -/
+def KeptKey.scheme {S : SchemeWithHash Seed PK SK Req Resp F} {D SK' : Type}
+    (K : KeptKey S D SK') : SchemeWithHash Seed PK SK' Req Resp F where
+  sample := S.sample
+  keygen seed := K.derive seed >>= fun d ↦ (fun keys ↦ (keys.1, K.keep seed d)) <$> K.rest seed d
+  sign key request := K.rederive key >>= fun d ↦ K.signWith d request
+  verify := S.verify
+  win := S.win
+
 /-- The scheme whose secret key is the seed: key generation as `S`'s, the seed kept as the key, the
 signer deriving its value from the seed first. -/
 def SeedKeyed.scheme {S : SchemeWithHash Seed PK SK Req Resp F} {D : Type} (K : SeedKeyed S D) :
@@ -344,6 +374,12 @@ def deriveSchemeSeedKey (keySeed : MasterSeed) : OracleComp HashSpec SchemeSeedK
   let parameter ← thWithHash 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
   return ⟨seed, parameter⟩
 
+/-- `S` again from the secret key's seed `S_0`, beside its public parameter, as the crate's signer
+derives it. -/
+def rederiveSchemeSeedKey (secretKey : SecretKey) : OracleComp HashSpec SchemeSeedKey := do
+  let seed ← taggedSeedWithHash seedTag secretKey.keySeed
+  return ⟨seed, secretKey.parameter⟩
+
 end KeyGenerationAndSigning
 
 namespace RandomPermutationModel
@@ -390,18 +426,29 @@ theorem keygenRest_key (key : SchemeSeedKey) :
   obtain ⟨_, _, rfl⟩ := hkeys
   rfl
 
-/-- leanXMSS's key generation derives `S` and `P` first; its signer signs with them. -/
-noncomputable def seedKeyed : SeedKeyed schemeWithHash SchemeSeedKey where
+/-- leanXMSS's key generation derives `S` and `P` first and keeps `S_0` and `P` as the key; its
+signer derives `S` again and signs with `S` and `P`. -/
+noncomputable def keptKey : KeptKey schemeWithHash SchemeSeedKey SecretKey where
   derive := KeyGenerationAndSigning.deriveSchemeSeedKey
   rest _ := keygenRest
   signWith key request := schemeWithHash.sign key request
+  keep seed key := ⟨seed, key.parameter⟩
+  rederive := KeyGenerationAndSigning.rederiveSchemeSeedKey
   keygen_eq := keygen_eq_derive
   sign_eq _ key keys hkeys := by rw [keygenRest_key key keys hkeys]
+  rederive_support seed key hkey := by
+    simp only [KeyGenerationAndSigning.deriveSchemeSeedKey, support_bind, support_pure,
+      Set.mem_iUnion, Set.mem_singleton_iff] at hkey
+    obtain ⟨schemeSeed, hseed, parameter, -, rfl⟩ := hkey
+    simp only [KeyGenerationAndSigning.rederiveSchemeSeedKey, support_bind, support_pure,
+      Set.mem_iUnion, Set.mem_singleton_iff]
+    exact ⟨schemeSeed, hseed, rfl⟩
 
-/-- leanXMSS with the crate's secret key, the seed `S_0`: the signer derives `S` and `P` first. -/
+/-- leanXMSS with the crate's secret key, the seed `S_0` and the public parameter: the signer
+derives `S` first. -/
 noncomputable abbrev schemeWithHashFromSeed :
-    SchemeWithHash MasterSeed PublicKey MasterSeed SigningRequest (Option Signature) Forgery :=
-  seedKeyed.scheme
+    SchemeWithHash MasterSeed PublicKey SecretKey SigningRequest (Option Signature) Forgery :=
+  keptKey.scheme
 
 /-- **leanXMSS in the random-permutation model**: an adversary whose game makes at most `Q`
 permutation calls, `Q ≥ 1`, forges with probability at most `(Q + 1) · 2^-127`

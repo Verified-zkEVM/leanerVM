@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Digest.Basic
 seed's two cells, the two claim lists' digests' two each, the DA digest's two, then the 24
 deferred cells (read at `defer`) two at a time as three canonical cells each (`pack_pair`), `704`
 bytes in six `KECCAK` blocks, the last holding bytes `680 … 703`, the padding's `0x01` (byte
-`704`, cell `44`) and `0x80` (byte `815`, cell `50`). Its core IR (`Data.core22`) is the template
-`sdAtoms` (`core21_body`, by kernel evaluation); `keccak_final_digest` makes the chain Keccak-256 of
+`704`, cell `44`) and `0x80` (byte `815`, cell `50`). Its core IR (`Data.core21`) is the template
+`sdAtoms` (`core20_body`, by kernel evaluation); `keccak_final_digest` makes the chain Keccak-256 of
 the cells' bytes, which are the header cells' and the deferred cells' limbs (`pair_bytes`).
 -/
 
@@ -80,10 +80,10 @@ def sdAtoms : List Atom :=
     [.copy (.n 465) (.n 452), .copy (.n 466) (.n 453)]
 
 set_option maxRecDepth 100000 in
-theorem core21_body : Fn.body Data.core22 = sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]] :=
+theorem core20_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 465, .n 466]] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem core21_params : Fn.params Data.core22 =
+theorem core20_params : Fn.params Data.core21 =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
 
 /-! ## The cells -/
@@ -151,7 +151,7 @@ set_option maxRecDepth 100000 in
 theorem statement_digest_sound : statement_digest_sound_Spec := by
   intro rd args rets h
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_statement_digest args rets).mp h
-  rw [core21_body, holdsList_atoms_ret] at hb
+  rw [core20_body, holdsList_atoms_ret] at hb
   obtain ⟨hat, hr⟩ := hb
   simp only [sdAtoms, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
     IsEmpty.forall_iff, implies_true, and_true] at hat
@@ -276,7 +276,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     rw [range44_split, e1, e2, cellsBytes_append, stmtBytes, hcells, List.flatMap_assoc]
     congr 1
   -- the meaning
-  simp only [core21_params, List.map_cons, List.map_nil] at hp
+  simp only [core20_params, List.map_cons, List.map_nil] at hp
   subst hp
   refine ⟨cells, by simp [cells], fun k hk => ?_, ?_, ?_⟩
   · have hk' : k < 24 := by simpa [cells] using hk

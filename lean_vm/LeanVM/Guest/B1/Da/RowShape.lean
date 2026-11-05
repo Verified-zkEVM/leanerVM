@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Main.Loops
 /-!
 # `da_row_shape` (G:4297-4306)
 
-`da_row_shape(n_blob_g, g_log_pad, g_squares)` (`core29`): `n_blob_g ≠ 1` (an inverse),
+`da_row_shape(n_blob_g, g_log_pad, g_squares)` (`core28`): `n_blob_g ≠ 1` (an inverse),
 `n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against
 `g^1024`, `g^10`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
 (`d ≤ 1024`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`, `e ≤ 1023`. So
@@ -83,7 +83,7 @@ def rsOk (fn : Fn) : Bool :=
   | none => false
 
 set_option maxRecDepth 100000 in
-theorem rs_ok : rsOk Data.core29 = true := by decide +kernel
+theorem rs_ok : rsOk Data.core28 = true := by decide +kernel
 
 /-- The padded count: `2^L` when `2^L < 2r ≤ 2^(L+1)`. -/
 theorem nPad_of {r L : ℕ} (h1 : r ≤ 2 ^ L) (h2 : 2 ^ L < 2 * r) : LeanDa.paddedRowCount r = 2 ^ L := by

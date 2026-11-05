@@ -3,7 +3,7 @@
 
   The guest's completeness within the explicit budget `mainBudget` at the deployed frame sizes,
   certificates and counts (`B2C`), from what is still supplied by hypothesis: the static callees'
-  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `verify_lean_xmss`'s arms within
+  words (`MainStatics`), `main`'s callees' weights (`MainCounts`), `__loop2`'s arms (leanXMSS's check, inline) within
   `C`, each child's `verify_sub` within `Bvf` at its announced stack log and rate, and the
   children's loop's instructions within `l5Lin`.
 -/
@@ -14,7 +14,7 @@ public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.B2C.RunsFit
 public import LeanVM.Guest.B2C.CntWeight
-public import LeanVM.Guest.B1.Sig.XmssComplete
+public import LeanVM.Guest.B1.Sig.XmssSegComplete
 public import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 public import LeanVM.Guest.AcceptableChild
 
@@ -33,8 +33,8 @@ open LeanVM.Guest.B1.Main (VerifySubGoalsTB MainStatics childBv mainPredsH hDvNH
 theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
-      (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
-        B2C.costW (listElementOrDefault Data.cplArms 20 []) σ (coreOf 20).body op ≤ C op)
+      (Memory.Tree.node "__loop2" σ bufs kids).Valid coreProgram rd args rets →
+        B2C.costW (listElementOrDefault Data.cplArms 37 []) σ (coreOf 37).body op ≤ C op)
     (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
       ChildrenOk bytecode seed w →

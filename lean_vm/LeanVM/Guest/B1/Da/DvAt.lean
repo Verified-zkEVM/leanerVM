@@ -169,7 +169,7 @@ theorem dv_sholds {rd : Reader} (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ �
     (c0 c1 : E) :
     ∀ st ∈ dvP, SHolds (fun _ _ _ => True) rd (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, Data.core28, Data.core28.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, Data.core27, Data.core27.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, dvVals, List.getD_cons_succ,
@@ -190,7 +190,7 @@ set_option maxRecDepth 20000 in
 theorem dv_dispOk (r L s : ℕ) (hL : L ≤ 10) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bb : ℕ) (c0 c1 : E) :
     ∀ st ∈ dvP, B1.DispOk (Val.ofArgs (dvVals r L s z q bb c0 c1)) st := by
   intro st hs
-  simp only [dvP, Data.core28, Data.core28.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [dvP, Data.core27, Data.core27.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals first
@@ -274,7 +274,7 @@ theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body Data.core28 = dvP ++ [.ret [.n 48, .n 49, .n 50, .n 51]] := rfl
+  have hb : Fn.body Data.core27 = dvP ++ [.ret [.n 48, .n 49, .n 50, .n 51]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [blobsCells r syms z, rowbaseCells r bb, rootsCells r L syms] =
       [(bb, blobsCells r syms z), (bb + 641 * r, rowbaseCells r bb), (bb + 641 * r + r, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]

@@ -23,7 +23,7 @@ at `g^ecap` (the cap), `g^eflags`, `g^eqp` (the window pointers), `g^ewp` (the w
 
 `oqMain1_completeAtB`: the function is `CompleteAtB` on `Lin`, returning the chain's end times
 `λ_n`, its own layout its chain buffer (`oqChainVals`), by a tree of at most
-`fs name + (N + 1) + (N + 1) * fs loop` words.
+`fs name + (N + 1) + (N + 1) * fs loop + (odd + 2N) * fs walk` words (a `walk_path` frame a query).
 -/
 
 namespace LeanVM.Guest.B1
@@ -95,12 +95,12 @@ theorem regionL_nil (i : ℕ) : ¬ RegionL [] i := by simp [RegionL]
 /-- **`opening_queries` at level 0 is `CompleteAtB`.** -/
 theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
-    (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}
+    (hodd : odd ≤ 1) {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
     (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
-    (hbm : fm.body = oqMainT s odd loop)
+    (hbm : fm.body = oqMainT s odd wlk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
-    (hbl : fl.body = oqLoop1T s odd loop) (hlp : coreProgram.loop loop = true)
+    (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
     {Lin : Main.Layout} {N : ℕ} (hN : N + 1 < ordG) {ecap eflags eqp ewp : ℕ} {lam lamN : E}
     (hlam : lam ≠ 0) {w : ℕ → E} {eb qs : ℕ → ℕ} {rows : ℕ → List K} {sibs : ℕ → List Digest}
     (hst : ∀ k < odd + 2 * N, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = s.R ∧
@@ -114,7 +114,7 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
       [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
         ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
       (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
-      (fs name + (N + 1) + (N + 1) * fs loop) := by
+      (fs name + (N + 1) + (N + 1) * fs loop + (odd + 2 * N) * fs wlk) := by
   intro fp
   set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
   obtain ⟨chainL, hchainL⟩ : ∃ L : Main.Layout,
@@ -124,11 +124,11 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     simp only [hchainL, List.mem_singleton] at hx
     subst hx
     simp [oqChainVals]
-  set n := fs name + (N + 1) + (N + 1) * fs loop with hn
+  set n := fs name + (N + 1) + odd * fs wlk + ((N + 1) * fs loop + N * (2 * fs wlk)) with hn
   have wAll : Within chainL fp n := wChain.mono (by omega) (by omega)
   have dAll : DisjL chainL := by rw [hchainL]; exact List.pairwise_singleton _ _
   refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll,
-    by simpa using dAll, le_rfl, fun rd hlow hm ↦ ?_⟩
+    by simpa using dAll, le_of_eq (by rw [hn]; ring), fun rd hlow hm ↦ ?_⟩
   rw [List.nil_append, Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
@@ -148,7 +148,7 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     (sb2 := fun j ↦ sibs (odd + 2 * j + 1)) (bp1 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j))))
     (bp2 := fun j ↦ ofK (Parameters.addressOfIndex (eb (odd + 2 * j + 1))))
     (v := fun j ↦ oqChain odd s.base lam⁻¹ ds j)
-    coreProgram_wf fs cert hs hpd1 hcd hodd hfm hpm hbm hfl hpl hbl hlp hN hlam
+    coreProgram_wf fs cert hs hpd1 hcd hodd hW hfm hpm hbm hfl hpl hbl hlp hN hlam
     (fun ho ↦ ?_) (fun ho ↦ ?_) (hch N le_rfl) (fun j hj ↦ ?_)
   · -- the odd first query
     subst ho

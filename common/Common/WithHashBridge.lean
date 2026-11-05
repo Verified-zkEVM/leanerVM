@@ -294,21 +294,20 @@ end KeyGenerationAndSigning
 
 namespace RandomPermutationModel
 
-/-- **The statement's leanXMSS is the hash-query scheme with the seed as the key, over `π`.** -/
+/-- **The statement's leanXMSS is the hash-query scheme with the crate's key, over `π`.** -/
 theorem scheme_eq : sufCmaScheme = schemeWithHashFromSeed.overPermutation := by
-  simp only [sufCmaScheme, schemeWithHashFromSeed, SeedKeyed.scheme, seedKeyed,
+  simp only [sufCmaScheme, schemeWithHashFromSeed, KeptKey.scheme, keptKey,
     SchemeWithHash.overPermutation]
   congr 1
   · funext keySeed
-    rw [keygen_eq_derive, simulateQ_map, simulateQ_bind,
-      KeyGenerationAndSigning.simulateQ_deriveSchemeSeedKey]
+    rw [simulateQ_bind, KeyGenerationAndSigning.simulateQ_deriveSchemeSeedKey]
     simp only [KeyGenerationAndSigning.keygenFromSeed, keygenRest, bind_assoc, pure_bind,
       map_bind, simulateQ_bind, simulateQ_pure, KeyGenerationAndSigning.simulateQ_treeNodeWithHash,
       map_pure]
-  · funext keySeed request
-    simp only [simulateQ_bind, KeyGenerationAndSigning.simulateQ_deriveSchemeSeedKey,
+  · funext secretKey request
+    simp only [simulateQ_bind, KeyGenerationAndSigning.rederiveSchemeSeedKey,
       KeyGenerationAndSigning.sign, bind_assoc, pure_bind, schemeWithHash,
-      KeyGenerationAndSigning.simulateQ_signWithHash]
+      Verification.simulateQ_taggedSeedWithHash, KeyGenerationAndSigning.simulateQ_signWithHash]
   · funext publicKey forgery
     simp only [schemeWithHash, Verification.simulateQ_verifyWithHash]
 

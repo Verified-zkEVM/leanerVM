@@ -9,10 +9,10 @@ The decoder reads the witness off the frames of the functions that checked it, t
 map keyed by the function's name (`FrameMap`, `B1/Main/Frames.lean`). Its readers, made programs
 of the cost machine, key it by a number instead (`NFrames`): **the function's index**, one past
 its position in `coreProgram` (`main` is `1`), the index `certOf` and the replayed frame map's
-entry table (`Located/ReplayFast.lean`) use, `nameIndex f` for the function named `f` (`948` for
+entry table (`Located/ReplayFast.lean`) use, `nameIndex f` for the function named `f` (`992` for
 no function, `Guest/NameIndex.lean`).
 
-* `decoderFunctionName j`: the name of function `j` (`main`'s off the indices `1 ..< 948`);
+* `decoderFunctionName j`: the name of function `j` (`main`'s off the indices `1 ..< 992`);
 * `nameIndex_decoderFunctionName`: the index of function `j`'s name is `canonIndex j` (`j` on the
   indices, `1` off them), so a frame map keyed by name `V` and one keyed by index agree when the
   latter is `V` re-keyed (`fun j ↦ V (decoderFunctionName j)`) and reads its index through
@@ -33,7 +33,7 @@ open LeanVM.Parameters LeanVM.Guest.Core
 abbrev NFrames : Type := ℕ → List E → List E → Val
 
 /-- Whether `j` is a function's index. -/
-def isFunctionIndex (j : ℕ) : Bool := 1 ≤ j && j ≤ 947
+def isFunctionIndex (j : ℕ) : Bool := 1 ≤ j && j ≤ 991
 
 /-- **The name of function `j`** (`main`'s off the indices). -/
 noncomputable def decoderFunctionName (j : ℕ) : String :=
@@ -65,29 +65,29 @@ theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (
     decoderFunctionName (nameIndex f) = f := by
   obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hf
   obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hg
-  have hl : coreProgram.length = 947 := coreProgram_length
+  have hl : coreProgram.length = 991 := coreProgram_length
   unfold nameIndex decoderFunctionName
   rw [findIdx_name_of_nodup coreProgram_names_nodup hi]
-  simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 947 by omega, decide_true, Bool.and_self,
+  simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 991 by omega, decide_true, Bool.and_self,
     ↓reduceIte, Nat.add_sub_cancel, List.getD_eq_getElem _ _ hi]
 
 /-! ## The indices the readers name -/
 
 theorem name_main : decoderFunctionName 1 = "main" := by decide +kernel
 theorem name_verify_sub : decoderFunctionName 19 = "verify_sub" := by decide +kernel
-theorem name_verify_lean_xmss : decoderFunctionName 20 = "verify_lean_xmss" := by decide +kernel
-theorem name_sp_wots : decoderFunctionName 21 = "sp_wots" := by decide +kernel
-theorem name_verify_sig_lean_sphincs : decoderFunctionName 22 = "verify_sig_lean_sphincs" := by
+theorem name_loop2 : decoderFunctionName 37 = "__loop2" := by decide +kernel
+theorem name_sp_wots : decoderFunctionName 20 = "sp_wots" := by decide +kernel
+theorem name_verify_sig_lean_sphincs : decoderFunctionName 21 = "verify_sig_lean_sphincs" := by
   decide +kernel
-theorem name_da_verify : decoderFunctionName 29 = "da_verify" := by decide +kernel
-theorem name_da_verify_column : decoderFunctionName 31 = "da_verify_column" := by decide +kernel
-theorem name_da_verify_cell : decoderFunctionName 32 = "da_verify_cell" := by decide +kernel
-theorem name_aggregate_claims : decoderFunctionName 35 = "aggregate_claims" := by decide +kernel
-theorem name_da_expand_L7_L8 : decoderFunctionName 404 = "da_expand__L7_L8" := by decide +kernel
-theorem name_loop25 : decoderFunctionName 405 = "__loop25" := by decide +kernel
+theorem name_da_verify : decoderFunctionName 28 = "da_verify" := by decide +kernel
+theorem name_da_verify_column : decoderFunctionName 30 = "da_verify_column" := by decide +kernel
+theorem name_da_verify_cell : decoderFunctionName 31 = "da_verify_cell" := by decide +kernel
+theorem name_aggregate_claims : decoderFunctionName 34 = "aggregate_claims" := by decide +kernel
+theorem name_da_expand_L7_L8 : decoderFunctionName 403 = "da_expand__L7_L8" := by decide +kernel
+theorem name_loop25 : decoderFunctionName 404 = "__loop25" := by decide +kernel
 
-/-- `open_stacked__L{m}` is function `304 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 304 + m
+/-- `open_stacked__L{m}` is function `303 + m`. -/
+def openStackedIdx (m : ℕ) : ℕ := 303 + m
 
 end
 end LeanVM.Guest.Fast

@@ -36,14 +36,27 @@ end LeanVM.Guest.Count
 '''
 
 
+def jt_sets(lv):
+    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`B2C/Defs.lean`)."""
+    import re
+    t = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
+    m = re.search(r'def jtSets \(op : Opcode\) : ℕ := if op = \.setConstant then (\d+) else 0', t)
+    assert m, 'B2C.jtSets not found'
+    return int(m.group(1))
+
+
 def numbers(g, certs):
     fsd = g.fs_words()
     w = g.words_certs()
     def fs(n): return fsd.get(n, 2)
     def SB(n):
         c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
-    def SK(n):
+    def SKt(n):
+        """`wSKt`: a loop's words per iteration, its run's phantom frame apart."""
         c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
+    def SK(n):
+        """`wSK`: the run's phantom frame charged to each iteration."""
+        c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
     for n in DL + CL + CCL: assert n in g.by, n
     v = {}
     v['dlK'] = max(-(-SB(n) // 2 ** j) for j, n in enumerate(DL))
@@ -79,9 +92,11 @@ def numbers(g, certs):
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
-    words = [base, v['clS'], 5 + SK('__loop0') + SK('__loop1'), SK('__loop2'),
-             SK('__loop3'), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
+    # `main`'s own loops at `B1.Main.iterK`, their runs' phantoms in the base.
+    words = [base, v['clS'], 5 + SKt('__loop0') + SKt('__loop1'), SKt('__loop2'),
+             SKt('__loop3'), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
+    JT_SETS = jt_sets(g.lv)
     tbl = vscount.tables(g)
     _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
     for lop, P, k in OPS_:
@@ -90,7 +105,7 @@ def numbers(g, certs):
         lp = lambda n: c[n][3][0]
         agg = c['aggregate_claims']
         aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
-        jt = 17051 if lop == 'setConstant' else 0
+        jt = JT_SETS if lop == 'setConstant' else 0
         clA, clS = cl_aff(k)
         dvA, dvR, dvP = dv_aff(k)
         om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
@@ -185,7 +200,7 @@ set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
 theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
     (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
+  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, B1.Main.iterK, deployedWords]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
 

@@ -959,14 +959,18 @@ theorem chkL_ite {c : Core.V} {z n ss : List Core.Stmt} {st : CS} {P : List Core
 
 theorem chkL_match {v : Core.V} {arms : List (List Core.Stmt)} {ss : List Core.Stmt} {st : CS}
     {P : List Core.Atom} (h : chkL X (.match_ v arms :: ss) st P ≠ .fail) :
-    ∃ se t ft t0 ts a0 as base s0 J sj, endAt st = some se ∧
+    ∃ se t ft t0 ts a0 as base s0, endAt st = some se ∧
       se.seg.exit.kind = .jump (.cell t) ft ∧ se.seg.exit.succ = t0 :: ts ∧ arms = a0 :: as ∧
       X.F.self ft = true ∧ ts.length = as.length ∧
       boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) (as.length + 1) = true ∧
       tableBase se.book t (cellOf X.loc v) = some base ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧ segAt X t0 se.book se.bnd = some s0 ∧
-      chkL X a0 s0 [] = .join J ∧ chkArms X J as ts se.book se.bnd = true ∧
-      segAt X J se.book se.bnd = some sj ∧ chkL X (.match_ v arms :: ss) st P = chkL X ss sj P := by
+      ((∃ J sj, chkL X a0 s0 [] = .join J ∧ chkArms X (.join J) as ts se.book se.bnd = true ∧
+          segAt X J se.book se.bnd = some sj ∧ chkL X (.match_ v arms :: ss) st P = chkL X ss sj P) ∨
+        (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
+          chkArms X (.chain x succ) as ts se.book se.bnd = true ∧
+          chkL X (.match_ v arms :: ss) st P =
+            chainTo x succ ss P (chainL X x succ se.book se.psi se.bnd ss P))) := by
   revert h
   simp only [chkL]
   split
@@ -986,9 +990,15 @@ theorem chkL_match {v : Core.V} {arms : List (List Core.Stmt)} {ss : List Core.S
                 · split
                   · rename_i sj hsj
                     intro _
-                    exact ⟨se, t, ft, t0, ts, a0, as, base, s0, J, sj, hse, hk, hs, rfl, hc.1.1,
-                      hc.1.2, hc.2, hb, ha, hs0, hJ, harms, hsj, rfl⟩
+                    exact ⟨se, t, ft, t0, ts, a0, as, base, s0, hse, hk, hs, rfl, hc.1.1,
+                      hc.1.2, hc.2, hb, ha, hs0, Or.inl ⟨J, sj, hJ, harms, hsj, rfl⟩⟩
                   · simp
+                · simp
+              · rename_i x succ hJ
+                split_ifs with harms
+                · intro _
+                  exact ⟨se, t, ft, t0, ts, a0, as, base, s0, hse, hk, hs, rfl, hc.1.1,
+                    hc.1.2, hc.2, hb, ha, hs0, Or.inr ⟨x, succ, hJ, harms, rfl⟩⟩
                 · simp
               · simp
             · simp
@@ -997,6 +1007,46 @@ theorem chkL_match {v : Core.V} {arms : List (List Core.Stmt)} {ss : List Core.S
       · simp
     · simp
   · simp
+
+/-- A chained `match` from its arms: its selector cell, each arm from its offset, all ending
+alike, and the walk after it. -/
+theorem chainL_match {x : ℕ} {succ : List ℕ} {B : Book} {ψ : Trie Sym} {bnd : List (ℕ × ℕ)}
+    {v : Core.V} {arms : List (List Core.Stmt)} {ss : List Core.Stmt} {P : List Core.Atom}
+    (h : chainL X x succ B ψ bnd (.match_ v arms :: ss) P ≠ .fail) :
+    ∃ t0 ts a0 as s0, succ = t0 :: ts ∧ arms = a0 :: as ∧ cellOf X.loc v = x ∧
+      ts.length = as.length ∧ segAt X t0 B bnd = some s0 ∧
+      ((∃ J sj, chkL X a0 s0 [] = .join J ∧ chkArms X (.join J) as ts B bnd = true ∧
+          segAt X J B bnd = some sj ∧ chainL X x succ B ψ bnd (.match_ v arms :: ss) P = chkL X ss sj P) ∨
+        (∃ x' succ', chkL X a0 s0 [] = .chain x' succ' ∧
+          chkArms X (.chain x' succ') as ts B bnd = true ∧
+          chainL X x succ B ψ bnd (.match_ v arms :: ss) P =
+            chainTo x' succ' ss P (chainL X x' succ' B ψ bnd ss P))) := by
+  generalize hr : chainL X x succ B ψ bnd (.match_ v arms :: ss) P = r at h ⊢
+  unfold chainL at hr
+  split at hr
+  · rename_i t0 ts a0 as
+    simp only [Bool.cond_eq_ite, Bool.and_eq_true, beq_iff_eq] at hr
+    split_ifs at hr with hc
+    · split at hr
+      · rename_i s0 hs0
+        split at hr
+        · rename_i J hJ
+          split_ifs at hr with harms
+          · split at hr
+            · rename_i sj hsj
+              exact ⟨t0, ts, a0, as, s0, rfl, rfl, hc.1, hc.2, hs0,
+                Or.inl ⟨J, sj, hJ, harms, hsj, hr.symm⟩⟩
+            · exact absurd hr.symm h
+          · exact absurd hr.symm h
+        · rename_i x' succ' hJ
+          split_ifs at hr with harms
+          · exact ⟨t0, ts, a0, as, s0, rfl, rfl, hc.1, hc.2, hs0,
+              Or.inr ⟨x', succ', hJ, harms, hr.symm⟩⟩
+          · exact absurd hr.symm h
+        · exact absurd hr.symm h
+      · exact absurd hr.symm h
+    · exact absurd hr.symm h
+  · exact absurd hr.symm h
 
 theorem chkL_call {f : String} {args rets : List Core.V} {ss : List Core.Stmt} {st : CS}
     {P : List Core.Atom} (h : chkL X (.call f args rets :: ss) st P ≠ .fail) :
@@ -1120,15 +1170,45 @@ theorem chkL_ret {vs : List Core.V} {ss : List Core.Stmt} {st : CS} {P : List Co
   · simp
 
 theorem blockEnd_join {st : CS} {P : List Core.Atom} (h : blockEnd X st P ≠ .fail) :
-    ∃ J se, endOf st = some (J, se) ∧ pendOk X se P = true ∧ handOk X J se = true ∧
-      blockEnd X st P = .join J := by
+    (∃ J se, endOf st = some (J, se) ∧ pendOk X se P = true ∧ handOk X J se = true ∧
+      blockEnd X st P = .join J) ∨ (endOf st = none ∧ blockEnd X st P = chainEnd X st P) := by
   revert h
   unfold blockEnd
   split
   · rename_i J se he
     simp only [Bool.cond_eq_ite, Bool.and_eq_true]
     split_ifs with hp
-    · exact fun _ ↦ ⟨J, se, he, hp.1, hp.2, rfl⟩
+    · exact fun _ ↦ Or.inl ⟨J, se, he, hp.1, hp.2, rfl⟩
+    · simp
+  · rename_i he
+    exact fun _ ↦ Or.inr ⟨he, rfl⟩
+
+theorem chainEnd_dec {st : CS} {P : List Core.Atom} (h : chainEnd X st P ≠ .fail) :
+    ∃ se t ft t0 ts x base, endAt st = some se ∧ se.seg.exit.kind = .jump (.cell t) ft ∧
+      se.seg.exit.succ = t0 :: ts ∧ tableSrc se.book t = some (x, base) ∧ X.F.self ft = true ∧
+      armsOk X.G X.entry base 0 (t0 :: ts) = true ∧
+      boundOk X.F se.psi X.mem se.book se.bnd x (ts.length + 1) = true ∧ pendOk X se P = true ∧
+      handOk X t0 se = true ∧ (t0 = X.wJ → X.wenv.sub Sym.beq se.seg.exit.env = true) ∧
+      chainEnd X st P = .chain x (t0 :: ts) := by
+  revert h
+  unfold chainEnd
+  split
+  · rename_i se hse
+    split
+    · rename_i t ft t0 ts hk hs
+      split
+      · rename_i x base hsrc
+        cases hc : chainOk X se ft t0 ts x base P
+        · simp
+        · intro _
+          simp only [chainOk, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true',
+            beq_eq_false_iff_ne] at hc
+          obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := hc
+          refine ⟨se, t, ft, t0, ts, x, base, hse, hk, hs, hsrc, h1, h2, h3, h4, h5, fun hw ↦ ?_, rfl⟩
+          rcases h6 with h6 | h6
+          · exact absurd hw h6
+          · exact h6
+      · simp
     · simp
   · simp
 
@@ -1632,11 +1712,27 @@ theorem tableBase_sound (hB : BookHolds L fp B) {t c base : ℕ} (h : tableBase 
     exact ⟨pv, h1, hK, v3, h3, h2⟩
   · simp at hp
 
-theorem chkArms_get {X : Fx} {J : ℕ} :
+theorem tableSrc_sound (hB : BookHolds L fp B) {t x base : ℕ} (h : tableSrc B t = some (x, base)) :
+    ∃ pv, L.read (fp * addressOfIndex x) = some pv ∧ IsInK pv ∧
+      ∃ v, L.read (fp * addressOfIndex t) = some v ∧ L.read (pv.limb 0 * addressOfIndex base) = some
+          v := by
+  obtain ⟨a, ha, hp⟩ := List.exists_of_findSome?_eq_some h
+  have hh := hB t a ha
+  split at hp
+  · rename_i pc o1 o2 o3
+    simp only [Bool.cond_eq_ite, beq_iff_eq] at hp
+    split_ifs at hp with hc
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hp)
+    subst hc
+    obtain ⟨pv, v3, h1, hK, h3, h2⟩ := hh
+    exact ⟨pv, h1, hK, v3, h3, h2⟩
+  · simp at hp
+
+theorem chkArms_get {X : Fx} {r : Res} :
     ∀ {as : List (List Core.Stmt)} {ts : List ℕ} {B : Book} {bnd : List (ℕ × ℕ)},
-      chkArms X J as ts B bnd = true → ts.length = as.length ∧
+      chkArms X r as ts B bnd = true → ts.length = as.length ∧
         ∀ e (he : e < as.length) (ht : e < ts.length), ∃ st, segAt X ts[e] B bnd = some st ∧
-          chkL X as[e] st [] = .join J
+          chkL X as[e] st [] = r
   | [], [], _, _, _ => ⟨rfl, fun _ he ↦ absurd he (Nat.not_lt_zero _)⟩
   | a :: as, t :: ts, B, bnd, h => by
     simp only [chkArms, Bool.and_eq_true] at h
@@ -1746,16 +1842,58 @@ structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (A : String →
   sems : SemHolds X.G L fp X.sems
   callees : ∀ j, FunSpecLtReached guestProgram L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L cert A j)
 
+/-- What a walk's continuation may assume where the walk ends in a chained `match`'s table jump
+through `fp[x]` into the arms `succ`: the run at arm `e`'s offset, `fp[x] = g^e`. -/
+def ChainK (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb x : ℕ) (succ : List ℕ)
+    (k : ℕ) (N : Prop) : Prop :=
+  ∀ e (he : e < succ.length) k', wd L fp x = ofK (addressOfIndex e) → k' ≤ k →
+    SegRun L fp f X Kb succ[e] k' → N
+
+/-- **The run takes a chained `match`'s table jump**: it is at arm `e`'s offset, `fp[x] = g^e`,
+with a window's hand-over at the arms' first offset in place, and its environment if that is the
+window's end. -/
+def ChainArr (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb x : ℕ) (succ : List ℕ)
+    (k : ℕ) : Prop :=
+  ∃ e, ∃ _ : e < succ.length, wd L fp x = ofK (addressOfIndex e) ∧ ∃ k' ≤ k,
+    SegRun L fp f X Kb succ[e] k' ∧ HandHolds L fp X (succ.headD 0) ∧
+      (succ.headD 0 = X.wJ → EnvHolds L fp X.wenv)
+
+theorem ChainK.mono {x : ℕ} {succ : List ℕ} {k k' : ℕ} {N : Prop}
+    (h : ChainK L fp f X Kb x succ k N) (hk : k' ≤ k) : ChainK L fp f X Kb x succ k' N :=
+  fun e he k'' hx hk'' hr ↦ h e he k'' hx (le_trans hk'' hk) hr
+
+theorem ChainArr.mono {x : ℕ} {succ : List ℕ} {k k' : ℕ} (h : ChainArr L fp f X Kb x succ k')
+    (hk : k' ≤ k) : ChainArr L fp f X Kb x succ k := by
+  obtain ⟨e, he, hx, k'', hk'', hr⟩ := h
+  exact ⟨e, he, hx, k'', le_trans hk'' hk, hr⟩
+
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
-check's valuation, with any continuation the run's arrival at the join gives; the pending atoms;
-and that the run arrives at the join. -/
+check's valuation, with any continuation the run's arrival at the join, or at a chained `match`'s
+arm, gives; the pending atoms; and that the run arrives at the join, or at the arm. -/
 def WalkGood (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb : ℕ)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom) : Prop :=
   ∀ k (N : Prop), PosOk L fp f X Kb st k → chkL X ss st P ≠ .fail →
     (∀ J, chkL X ss st P = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N) →
+    (∀ x succ, chkL X ss st P = .chain x succ → ChainK L fp f X Kb x succ k N) →
     Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
       (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-      (∀ J, chkL X ss st P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k')
+      (∀ J, chkL X ss st P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') ∧
+      (∀ x succ, chkL X ss st P = .chain x succ → ChainArr L fp f X Kb x succ k)
+
+/-- **What the walk of a chained `match` gives** (`chainL`): entered at arm `e`'s offset with
+`fp[x] = g^e`, the book, bounds of the chain's first dispatch holding, as `WalkGood`. -/
+def ChainGood (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb : ℕ)
+    (x : ℕ) (succ : List ℕ) (B : Book) (ψ : Trie Sym) (bnd : List (ℕ × ℕ)) (ss : List Core.Stmt)
+    (P : List Core.Atom) : Prop :=
+  ∀ k (N : Prop), BookHolds L fp B → BndHolds L fp bnd →
+    (∃ e, ∃ _ : e < succ.length, wd L fp x = ofK (addressOfIndex e) ∧ SegRun L fp f X Kb succ[e] k) →
+    chainL X x succ B ψ bnd ss P ≠ .fail →
+    (∀ J, chainL X x succ B ψ bnd ss P = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N) →
+    (∀ x' succ', chainL X x succ B ψ bnd ss P = .chain x' succ' → ChainK L fp f X Kb x' succ' k N) →
+    Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+      (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
+      (∀ J, chainL X x succ B ψ bnd ss P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') ∧
+      (∀ x' succ', chainL X x succ B ψ bnd ss P = .chain x' succ' → ChainArr L fp f X Kb x' succ' k)
 
 theorem handOk_sound (hF : X.F.pows.Ok) (hm : MemIf L fp X.mem) {st : CS}
     (hψ : EnvHolds L fp st.psi) (hB : BookHolds L fp st.book)
@@ -1774,82 +1912,123 @@ theorem pendOk_sound (W : WalkEnv Prog cert A L fp f X Kb) {st : CS} {k : ℕ} (
 
 theorem walk_nil (W : WalkEnv Prog cert A L fp f X Kb) (st : CS) (P : List Core.Atom) :
     WalkGood Prog cert A L fp f X Kb [] st P := by
-  intro k N hp hne hj
-  rw [chkL_nil] at hne hj ⊢
-  obtain ⟨J, se, he, hpd, hhand, hr⟩ := blockEnd_join hne
-  obtain ⟨k', hk', hse, hsr⟩ := endOf_ok W.hyp hp he
-  refine ⟨hj J hr k' hk' hsr, pendOk_sound W hse hpd, fun J' hJ' ↦ ⟨k', hk', ?_⟩⟩
-  rw [hr] at hJ'
-  cases hJ'
-  exact ⟨hsr, handOk_sound W.hyp.ctx.pows W.mem hse.psi hse.book hse.bnd hhand⟩
+  intro k N hp hne hj hcn
+  rw [chkL_nil] at hne hj hcn ⊢
+  rcases blockEnd_join hne with ⟨J, se, he, hpd, hhand, hr⟩ | ⟨-, hce⟩
+  · obtain ⟨k', hk', hse, hsr⟩ := endOf_ok W.hyp hp he
+    refine ⟨hj J hr k' hk' hsr, pendOk_sound W hse hpd, fun J' hJ' ↦ ⟨k', hk', ?_⟩,
+      fun _ _ h ↦ by rw [hr] at h; cases h⟩
+    rw [hr] at hJ'
+    cases hJ'
+    exact ⟨hsr, handOk_sound W.hyp.ctx.pows W.mem hse.psi hse.book hse.bnd hhand⟩
+  · rw [hce] at hne hj hcn ⊢
+    obtain ⟨se, t, ft, t0, ts, x, base, hse, hk, hs, hsrc, hself, harms, hbd, hpd, hhand, hwenv,
+      heq⟩ := chainEnd_dec hne
+    rw [heq] at hj hcn ⊢
+    obtain ⟨k1, hk1, hpse, -, -, -, k₀, hk₀, hr⟩ := endAt_ok hp hse
+    obtain ⟨hlt, henv, -, r, hreg, hsafe⟩ := hr
+    rw [hk] at hreg
+    obtain ⟨a, b, ⟨w, hw, -, rfl⟩, hb, rfl⟩ := hreg
+    obtain rfl := self_is W.hyp.ctx.fpOne hself hb
+    obtain ⟨e, he, hce⟩ := boundOk_sound W.hyp.ctx.pows hpse.psi W.mem hpse.book hpse.bnd hbd
+    obtain ⟨pv, hpv, -, w', hw', hload⟩ := tableSrc_sound hpse.book hsrc
+    obtain rfl := Option.some.inj (hpv.symm.trans hce)
+    obtain rfl := Option.some.inj (hw.symm.trans hw')
+    have heA : e < (t0 :: ts).length := by simp; omega
+    have hslot := W.jt _ _ (armsOk_get harms e heA)
+    have hadd : addressOfIndex e * addressOfIndex base = addressOfIndex (base + (0 + e)) := by
+      rw [Nat.zero_add, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.add_comm]
+    rw [limb_ofK0, hadd, hslot] at hload
+    obtain rfl := Option.some.inj hload
+    rw [limb_ofK0, W.hyp.entry] at hsafe
+    have hrun := segRun_of_safe W.hyp hpse.seg (hpse.exits _ (Or.inl rfl))
+      (by rw [hs]; exact List.getElem_mem heA) henv (K := Kb) (by omega) hsafe
+    have hx := wd_of hce
+    refine ⟨hcn x (t0 :: ts) rfl e heA k1 hx hk1 hrun, pendOk_sound W hpse hpd,
+      fun _ h ↦ Res.noConfusion h, fun x' s' h ↦ ?_⟩
+    obtain ⟨rfl, rfl⟩ := Res.chain.inj h
+    refine ⟨e, heA, hx, k1, hk1, hrun,
+      handOk_sound W.hyp.ctx.pows W.mem hpse.psi hpse.book hpse.bnd hhand, fun hJ ↦ ?_⟩
+    exact henv.sub (hwenv hJ)
 
 theorem walk_atom (W : WalkEnv Prog cert A L fp f X Kb) (a : Core.Atom) (ss : List Core.Stmt) (st : CS)
     (P : List Core.Atom) (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
     WalkGood Prog cert A L fp f X Kb (.atom a :: ss) st P := by
-  intro k N hp hne hj
-  rw [chkL_atom] at hne hj ⊢
+  intro k N hp hne hj hcn
+  rw [chkL_atom] at hne hj hcn ⊢
   obtain ⟨k', hk', hp', htest, -, hpsi, -⟩ :=
     fwd_ok (test := fun B ↦ atomOk X.F B st.psi X.loc a) hp
-  revert hne hj htest hp'
+  revert hne hj hcn htest hp'
   rcases hf : fwd (fun B ↦ atomOk X.F B st.psi X.loc a) st with ⟨st', b⟩
-  intro hne hj hp' htest
-  simp only at hp' htest hne hj ⊢
+  intro hne hj hcn hp' htest
+  simp only at hp' htest hne hj hcn ⊢
   cases b with
   | false =>
-    obtain ⟨hl, hP, hr⟩ := ih st' (a :: P) k' N hp' hne
+    obtain ⟨hl, hP, hr, hrc⟩ := ih st' (a :: P) k' N hp' hne
       (fun J hJ k'' hk'' h ↦ hj J hJ k'' (le_trans hk'' hk') h)
+      (fun x s h ↦ (hcn x s h).mono hk')
     refine ⟨⟨hP a List.mem_cons_self, hl⟩, fun b hb ↦ hP b (List.mem_cons_of_mem _ hb),
-      fun J hJ ↦ ?_⟩
+      fun J hJ ↦ ?_, fun x s h ↦ (hrc x s h).mono hk'⟩
     obtain ⟨k'', hk'', h⟩ := hr J hJ
     exact ⟨k'', le_trans hk'' hk', h⟩
   | true =>
-    obtain ⟨hl, hP, hr⟩ := ih st' P k' N hp' hne
+    obtain ⟨hl, hP, hr, hrc⟩ := ih st' P k' N hp' hne
       (fun J hJ k'' hk'' h ↦ hj J hJ k'' (le_trans hk'' hk') h)
+      (fun x s h ↦ (hcn x s h).mono hk')
     have ha := atomOk_sound W.hyp.ctx.pows hp'.book hp.psi (htest rfl)
-    refine ⟨⟨ha, hl⟩, hP, fun J hJ ↦ ?_⟩
+    refine ⟨⟨ha, hl⟩, hP, fun J hJ ↦ ?_, fun x s h ↦ (hrc x s h).mono hk'⟩
     obtain ⟨k'', hk'', h⟩ := hr J hJ
     exact ⟨k'', le_trans hk'' hk', h⟩
+
+/-- What the rest of a walk gives from the join `J`, at `k2 ≤ k` steps. -/
+def RestGood (Prog : Core.Program) (cert : String → Cert) (A : String → K → List E → List E → Prop) (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (X : Fx) (Kb : ℕ)
+    (r : Res) (ss : List Core.Stmt) (N : Prop) (P : List Core.Atom) (k : ℕ) : Prop :=
+  Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+    (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
+    (∀ J, r = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') ∧
+    (∀ x succ, r = .chain x succ → ChainArr L fp f X Kb x succ k)
 
 theorem walk_ite (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (z n ss : List Core.Stmt) (st : CS)
     (P : List Core.Atom) (ihz : ∀ st P, WalkGood Prog cert A L fp f X Kb z st P)
     (ihn : ∀ st P, WalkGood Prog cert A L fp f X Kb n st P)
     (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
     WalkGood Prog cert A L fp f X Kb (.ite c z n :: ss) st P := by
-  intro k N hp hne hj
+  intro k N hp hne hj hcn
   obtain ⟨st', x, t, sn, J, sj, hb, hk, hsucc, hsn, hz, hn, hsj, heq⟩ := chkL_ite hne
-  rw [heq] at hne hj ⊢
+  rw [heq] at hne hj hcn ⊢
   obtain ⟨k1, hk1, cv, hc, hcK, hx, hseg, -, hbnd, hB', hcase⟩ := branchAt_ok hp hb
   have rest : ∀ k2, k2 ≤ k → SegRun L fp f X Kb J k2 →
-      Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
-        (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-        (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
+      RestGood Prog cert A L fp f X Kb (chkL X ss sj P) ss N P k := by
     intro k2 hk2 hr
-    obtain ⟨h1, h2, h3⟩ := ih sj P k2 N (segAt_ok W.hyp hsj hr hB' (hbnd ▸ hp.bnd)) hne
+    obtain ⟨h1, h2, h3, h4⟩ := ih sj P k2 N (segAt_ok W.hyp hsj hr hB' (hbnd ▸ hp.bnd)) hne
       (fun J' hJ' k3 hk3 hr3 ↦ hj J' hJ' k3 (by omega) hr3)
-    exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩⟩
+      (fun x s h ↦ (hcn x s h).mono hk2)
+    exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩,
+      fun x s h ↦ (h4 x s h).mono hk2⟩
   have hσ : val L fp X.loc c = cv := wd_of hc
   have hblk : ∀ (b : List Core.Stmt) (sb : CS), (∀ st P, WalkGood Prog cert A L fp f X Kb b st P) →
       PosOk L fp f X Kb sb k1 → chkL X b sb [] = .join J →
       Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) b
           (Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N
             (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
-        (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-        (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
+        RestGood Prog cert A L fp f X Kb (chkL X ss sj P) [] True P k := by
     intro b sb ihb hpb hjb
-    obtain ⟨hl, -, hr⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
+    obtain ⟨hl, -, hr, -⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
       (fun J' hJ' k2 hk2 hr2 ↦ by
         rw [hjb] at hJ'
         cases hJ'
         exact (rest k2 (by omega) hr2).1)
+      (fun _ _ h ↦ by rw [hjb] at h; cases h)
     obtain ⟨k2, hk2, hr2⟩ := hr J hjb
-    obtain ⟨-, hP, hreach⟩ := rest k2 (by omega) hr2.1
-    exact ⟨hl, hP, hreach⟩
+    obtain ⟨-, hP, hreach, hrc⟩ := rest k2 (by omega) hr2.1
+    exact ⟨hl, trivial, hP, hreach, hrc⟩
   rcases hcase with ⟨rfl, hp'⟩ | ⟨hc0, k₀, hk₀, hr⟩
-  · obtain ⟨hl, hP, hreach⟩ := hblk z st' ihz hp' hz
-    exact ⟨⟨hσ ▸ hcK, fun _ ↦ hl, fun h0 ↦ absurd hσ h0⟩, hP, hreach⟩
+  · obtain ⟨hl, -, hP, hreach, hrc⟩ := hblk z st' ihz hp' hz
+    exact ⟨⟨hσ ▸ hcK, fun _ ↦ hl, fun h0 ↦ absurd hσ h0⟩, hP, hreach, hrc⟩
   · have hrt := segRun_of_next W.hyp hp.seg (hseg ▸ hx) hk hsucc hk₀ hr
-    obtain ⟨hl, hP, hreach⟩ := hblk n sn ihn (segAt_ok W.hyp hsn hrt hB' (hbnd ▸ hp.bnd)) hn
-    exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd (hσ.symm.trans h0) hc0, fun _ ↦ hl⟩, hP, hreach⟩
+    obtain ⟨hl, -, hP, hreach, hrc⟩ :=
+      hblk n sn ihn (segAt_ok W.hyp hsn hrt hB' (hbnd ▸ hp.bnd)) hn
+    exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd (hσ.symm.trans h0) hc0, fun _ ↦ hl⟩, hP, hreach, hrc⟩
 
 /-- A block walked from `sb` to the join `J`, the rest walked from the join's segment `sj`. -/
 theorem walk_block (W : WalkEnv Prog cert A L fp f X Kb) {b ss : List Core.Stmt} {sb sj : CS}
@@ -1858,39 +2037,140 @@ theorem walk_block (W : WalkEnv Prog cert A L fp f X Kb) {b ss : List Core.Stmt}
     (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) (hpb : PosOk L fp f X Kb sb k1)
     (hjb : chkL X b sb [] = .join J) (hsj : segAt X J B bnd = some sj)
     (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd) (hne : chkL X ss sj P ≠ .fail)
-    (hj : ∀ J', chkL X ss sj P = .join J' → ∀ k', k' ≤ k → SegRun L fp f X Kb J' k' → N) :
+    (hj : ∀ J', chkL X ss sj P = .join J' → ∀ k', k' ≤ k → SegRun L fp f X Kb J' k' → N)
+    (hcn : ∀ x succ, chkL X ss sj P = .chain x succ → ChainK L fp f X Kb x succ k N) :
     Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) b
         (Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N
           (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
-      (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-      (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
+      RestGood Prog cert A L fp f X Kb (chkL X ss sj P) [] True P k := by
   have rest : ∀ k2, k2 ≤ k1 → SegRun L fp f X Kb J k2 →
-      Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
-        (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-        (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
+      RestGood Prog cert A L fp f X Kb (chkL X ss sj P) ss N P k := by
     intro k2 hk2 hr
-    obtain ⟨h1, h2, h3⟩ := ih sj P k2 N (segAt_ok W.hyp hsj hr hB hbnd) hne
+    obtain ⟨h1, h2, h3, h4⟩ := ih sj P k2 N (segAt_ok W.hyp hsj hr hB hbnd) hne
       (fun J' hJ' k3 hk3 hr3 ↦ hj J' hJ' k3 (by omega) hr3)
-    exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩⟩
-  obtain ⟨hl, -, hr⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
+      (fun x s h ↦ (hcn x s h).mono (by omega))
+    exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩,
+      fun x s h ↦ (h4 x s h).mono (by omega)⟩
+  obtain ⟨hl, -, hr, -⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
     (fun J' hJ' k2 hk2 hr2 ↦ by
       rw [hjb] at hJ'
       cases hJ'
       exact (rest k2 hk2 hr2).1)
+    (fun _ _ h ↦ by rw [hjb] at h; cases h)
   obtain ⟨k2, hk2, hr2⟩ := hr J hjb
-  obtain ⟨-, hP, hreach⟩ := rest k2 hk2 hr2.1
-  exact ⟨hl, hP, hreach⟩
+  obtain ⟨-, hP, hreach, hrc⟩ := rest k2 hk2 hr2.1
+  exact ⟨hl, trivial, hP, hreach, hrc⟩
+
+/-- A block walked from `sb` into a chained `match`'s table jump, the rest walked by `chainL`, or,
+at the end of the statements, that table jump the end. -/
+theorem walk_blockC (_W : WalkEnv Prog cert A L fp f X Kb) {b ss : List Core.Stmt} {sb : CS}
+    {P : List Core.Atom} {x : ℕ} {succ : List ℕ} {k k1 : ℕ} {N : Prop} {B : Book} {ψ : Trie Sym}
+    {bnd : List (ℕ × ℕ)}
+    (hk1 : k1 ≤ k) (ihb : ∀ st P, WalkGood Prog cert A L fp f X Kb b st P)
+    (ihc : ∀ x succ P, ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P)
+    (hpb : PosOk L fp f X Kb sb k1) (hjb : chkL X b sb [] = .chain x succ)
+    (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd)
+    (hne : chainTo x succ ss P (chainL X x succ B ψ bnd ss P) ≠ .fail)
+    (hj : ∀ J', chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = .join J' → ∀ k', k' ≤ k →
+      SegRun L fp f X Kb J' k' → N)
+    (hcn : ∀ x' s', chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = .chain x' s' →
+      ChainK L fp f X Kb x' s' k N) :
+    Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) b
+        (Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N
+          (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
+      RestGood Prog cert A L fp f X Kb (chainTo x succ ss P (chainL X x succ B ψ bnd ss P)) [] True
+        P k := by
+  by_cases hss : ss = []
+  · subst hss
+    by_cases hP : P = []
+    · subst hP
+      have hc : chainTo x succ [] [] (chainL X x succ B ψ bnd [] []) = .chain x succ := by
+        simp [chainTo]
+      rw [hc] at hcn ⊢
+      have hK := hcn x succ rfl
+      obtain ⟨hl, -, -, hr⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
+        (fun _ h ↦ by rw [hjb] at h; cases h)
+        (fun x' s' h ↦ by rw [hjb] at h; cases h; exact hK.mono hk1)
+      refine ⟨hl, trivial, by simp, ⟨fun _ h ↦ Res.noConfusion h, fun x' s' h ↦ ?_⟩⟩
+      obtain ⟨rfl, rfl⟩ := Res.chain.inj h
+      exact (hr x succ hjb).mono hk1
+    · exfalso
+      apply hne
+      simp [chainTo, hP]
+  have hc : chainTo x succ ss P (chainL X x succ B ψ bnd ss P) = chainL X x succ B ψ bnd ss P := by
+    simp [chainTo, hss]
+  rw [hc] at hne hj hcn ⊢
+  have rest : ∀ e (he : e < succ.length) k2, wd L fp x = ofK (addressOfIndex e) → k2 ≤ k1 →
+      SegRun L fp f X Kb succ[e] k2 →
+      RestGood Prog cert A L fp f X Kb (chainL X x succ B ψ bnd ss P) ss N P k := by
+    intro e he k2 hx hk2 hr
+    obtain ⟨h1, h2, h3, h4⟩ := ihc x succ P k2 N hB hbnd ⟨e, he, hx, hr⟩ hne
+      (fun J' hJ' k3 hk3 hr3 ↦ hj J' hJ' k3 (by omega) hr3)
+      (fun x' s h ↦ (hcn x' s h).mono (by omega))
+    exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩,
+      fun x' s h ↦ (h4 x' s h).mono (by omega)⟩
+  obtain ⟨hl, -, -, hr⟩ := ihb sb [] k1 _ hpb (by rw [hjb]; simp)
+    (fun _ h ↦ by rw [hjb] at h; cases h)
+    (fun x' s' h ↦ by
+      rw [hjb] at h
+      cases h
+      exact fun e he k2 hx hk2 hr2 ↦ (rest e he k2 hx hk2 hr2).1)
+  obtain ⟨e, he, hx, k2, hk2, hr2, -⟩ := hr x succ hjb
+  obtain ⟨-, hP, hreach, hrc⟩ := rest e he k2 hx hk2 hr2
+  exact ⟨hl, trivial, hP, hreach, hrc⟩
+
+/-- **A `match` entered at arm `e`**, `fp[cellOf v] = g^e`, the arms walked from their offsets
+`ts` with the book and bounds `(B, bnd)`, all ending at `r` (a join or a chained `match`'s
+table jump), the walk going on as `r` says. -/
+theorem walk_enter (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (a0 : List Core.Stmt)
+    (as : List (List Core.Stmt)) (ss : List Core.Stmt) (P : List Core.Atom)
+    (iha : ∀ e (he : e < (a0 :: as).length) st P, WalkGood Prog cert A L fp f X Kb (a0 :: as)[e] st P)
+    (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P)
+    (ihc : ∀ x succ B ψ bnd P, ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P)
+    {B : Book} {ψ : Trie Sym} {bnd : List (ℕ × ℕ)} (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd)
+    {t0 : ℕ} {ts : List ℕ} {s0 : CS} (hs0 : segAt X t0 B bnd = some s0)
+    {e k1 k : ℕ} (hk1 : k1 ≤ k) (heL : e < (a0 :: as).length)
+    (hv : wd L fp (cellOf X.loc v) = ofK (addressOfIndex e)) (heT : e < (t0 :: ts).length)
+    (hrun : SegRun L fp f X Kb (t0 :: ts)[e] k1) {N : Prop}
+    (rest : Res) (hrest : rest ≠ .fail)
+    (hcase : (∃ J sj, chkL X a0 s0 [] = .join J ∧ chkArms X (.join J) as ts B bnd = true ∧
+          segAt X J B bnd = some sj ∧ rest = chkL X ss sj P) ∨
+        (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
+          chkArms X (.chain x succ) as ts B bnd = true ∧
+          rest = chainTo x succ ss P (chainL X x succ B ψ bnd ss P)))
+    (hj : ∀ J, rest = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N)
+    (hcn : ∀ x succ, rest = .chain x succ → ChainK L fp f X Kb x succ k N) :
+    Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) (.match_ v (a0 :: as) :: ss) N
+        (RetWords L fp X Kb) ∧
+      RestGood Prog cert A L fp f X Kb rest [] True P k := by
+  have harm : ∀ r, chkL X a0 s0 [] = r → chkArms X r as ts B bnd = true →
+      ∃ sb, segAt X (t0 :: ts)[e] B bnd = some sb ∧ chkL X (a0 :: as)[e] sb [] = r := by
+    intro r h0 hch
+    cases e with
+    | zero => exact ⟨s0, hs0, h0⟩
+    | succ e =>
+      obtain ⟨-, hg⟩ := chkArms_get hch
+      exact hg e (by simp at heL; omega) (by simp at heT; omega)
+  have hpb := fun sb (hsb : segAt X (t0 :: ts)[e] B bnd = some sb) ↦ segAt_ok W.hyp hsb hrun hB hbnd
+  rcases hcase with ⟨J, sj, h0, hch, hsj, rfl⟩ | ⟨x, succ, h0, hch, rfl⟩
+  · obtain ⟨sb, hsb, hjb⟩ := harm _ h0 hch
+    obtain ⟨hl, hres⟩ := walk_block W hk1 (iha e heL) ih (hpb sb hsb) hjb hsj hB hbnd hrest hj hcn
+    exact ⟨(Core.holds_match_iff _ _ _ _).mpr ⟨e, heL, hv, hl⟩, hres⟩
+  · obtain ⟨sb, hsb, hjb⟩ := harm _ h0 hch
+    obtain ⟨hl, hres⟩ := walk_blockC W hk1 (iha e heL) (fun x succ P ↦ ihc x succ B ψ bnd P)
+      (hpb sb hsb) hjb hB hbnd hrest hj hcn
+    exact ⟨(Core.holds_match_iff _ _ _ _).mpr ⟨e, heL, hv, hl⟩, hres⟩
 
 theorem walk_match (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (arms : List (List Core.Stmt))
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
     (iha : ∀ e (he : e < arms.length) st P, WalkGood Prog cert A L fp f X Kb arms[e] st P)
-    (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
+    (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P)
+    (ihc : ∀ x succ B ψ bnd P, ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P) :
     WalkGood Prog cert A L fp f X Kb (.match_ v arms :: ss) st P := by
-  intro k N hp hne hj
-  obtain ⟨se, t, ft, t0, ts, a0, as, base, s0, J, sj, hse, hk, hs, harms0, hself, hlen, hbd, htb,
-    harms, hs0, hJ, hchk, hsj, heq⟩ := chkL_match hne
+  intro k N hp hne hj hcn
+  obtain ⟨se, t, ft, t0, ts, a0, as, base, s0, hse, hk, hs, harms0, hself, hlen, hbd, htb,
+    harms, hs0, hcase⟩ := chkL_match hne
   subst harms0
-  rw [heq] at hne hj ⊢
   obtain ⟨k1, hk1, hpse, -, -, -, k₀, hk₀, hr⟩ := endAt_ok hp hse
   obtain ⟨hlt, henv, -, r, hreg, hsafe⟩ := hr
   rw [hk] at hreg
@@ -1909,18 +2189,49 @@ theorem walk_match (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (arms : Li
   rw [limb_ofK0, W.hyp.entry] at hsafe
   have hrun := segRun_of_safe W.hyp hpse.seg (hpse.exits _ (Or.inl rfl))
     (by rw [hs]; exact List.getElem_mem heA) henv (K := Kb) (by omega) hsafe
-  have harm : ∃ sb, segAt X (t0 :: ts)[e] se.book se.bnd = some sb ∧
-      chkL X (a0 :: as)[e] sb [] = .join J := by
-    cases e with
-    | zero => exact ⟨s0, hs0, hJ⟩
-    | succ e =>
-      obtain ⟨-, hg⟩ := chkArms_get hchk
-      exact hg e (by simp at he; omega) (by simp at heA; omega)
-  obtain ⟨sb, hsb, hjb⟩ := harm
   have heL : e < (a0 :: as).length := by simp; omega
-  obtain ⟨hl, hP, hreach⟩ := walk_block W hk1 (iha e heL) ih
-    (segAt_ok W.hyp hsb hrun hpse.book hpse.bnd) hjb hsj hpse.book hpse.bnd hne hj
-  refine ⟨(Core.holds_match_iff _ _ _ _).mpr ⟨e, heL, wd_of hce, hl⟩, hP, hreach⟩
+  set rest := chkL X (.match_ v (a0 :: as) :: ss) st P with hrestdef
+  have hcase' : (∃ J sj, chkL X a0 s0 [] = .join J ∧ chkArms X (.join J) as ts se.book se.bnd = true ∧
+          segAt X J se.book se.bnd = some sj ∧ rest = chkL X ss sj P) ∨
+        (∃ x succ, chkL X a0 s0 [] = .chain x succ ∧
+          chkArms X (.chain x succ) as ts se.book se.bnd = true ∧
+          rest = chainTo x succ ss P (chainL X x succ se.book se.psi se.bnd ss P)) := hcase
+  obtain ⟨hl, -, hP, hreach, hrc⟩ := walk_enter W v a0 as ss P iha ih ihc hpse.book hpse.bnd hs0
+    hk1 heL (wd_of hce) heA hrun rest hne hcase' hj hcn
+  exact ⟨hl, hP, hreach, hrc⟩
+
+/-- **The walk of a chained `match`** (`chainL`) from the arm the run is at. -/
+theorem chain_match (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (arms : List (List Core.Stmt))
+    (ss : List Core.Stmt) (x : ℕ) (succ : List ℕ) (B : Book) (ψ : Trie Sym) (bnd : List (ℕ × ℕ))
+    (P : List Core.Atom)
+    (iha : ∀ e (he : e < arms.length) st P, WalkGood Prog cert A L fp f X Kb arms[e] st P)
+    (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P)
+    (ihc : ∀ x succ B ψ bnd P, ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P) :
+    ChainGood Prog cert A L fp f X Kb x succ B ψ bnd (.match_ v arms :: ss) P := by
+  intro k N hB hbnd harr hne hj hcn
+  obtain ⟨t0, ts, a0, as, s0, rfl, rfl, hv, hlen, hs0, hcase⟩ := chainL_match hne
+  obtain ⟨e, heT, hx, hrun⟩ := harr
+  have heL : e < (a0 :: as).length := by simp at heT ⊢; omega
+  obtain ⟨hl, -, hP, hreach, hrc⟩ := walk_enter W v a0 as ss P iha ih ihc hB hbnd hs0
+    le_rfl heL (by rw [hv]; exact hx) heT hrun _ hne hcase hj hcn
+  exact ⟨hl, hP, hreach, hrc⟩
+
+theorem chain_other (x : ℕ) (succ : List ℕ) (B : Book) (ψ : Trie Sym) (bnd : List (ℕ × ℕ))
+    (P : List Core.Atom) (ss : List Core.Stmt)
+    (h : ∀ v arms ss', ss ≠ .match_ v arms :: ss') :
+    ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P := by
+  intro k N _ _ _ hne
+  exfalso
+  apply hne
+  match ss, h with
+  | [], _ => simp [chainL]
+  | .match_ v arms :: ss', h => exact absurd rfl (h v arms ss')
+  | .atom _ :: _, _ => simp [chainL]
+  | .ite .. :: _, _ => simp [chainL]
+  | .call .. :: _, _ => simp [chainL]
+  | .callIf .. :: _, _ => simp [chainL]
+  | .dispatch .. :: _, _ => simp [chainL]
+  | .ret _ :: _, _ => simp [chainL]
 
 /-- What a call into frame `fp[q] = pv` gives the caller: the callee ran from its entry and came
 back to the return point, its contract holding of its frame. -/
@@ -1958,9 +2269,9 @@ theorem walk_call (W : WalkEnv Prog cert A L fp f X Kb) (f' : String) (args rets
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
     (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
     WalkGood Prog cert A L fp f X Kb (.call f' args rets :: ss) st P := by
-  intro k N hp hne hjn
+  intro k N hp hne hjn hcn
   obtain ⟨se, e, q, r, j, st', hse, hk, hj, hco, hle, hsucc, hac, heq⟩ := chkL_call hne
-  rw [heq] at hne hjn ⊢
+  rw [heq] at hne hjn hcn ⊢
   obtain ⟨k1, hk1, hpse, -, -, -, k₀, hk₀, hr⟩ := endAt_ok hp hse
   obtain ⟨hlt, henv, hextra, rr, hreg, hsafe⟩ := hr
   rw [hk] at hextra hreg
@@ -2005,18 +2316,20 @@ theorem walk_call (W : WalkEnv Prog cert A L fp f X Kb) (f' : String) (args rets
       postBnd (cellsOf X.loc args ++ cellsOf X.loc rets) (X.G.sig j).post ++ st'.bnd,
       st'.fresh⟩ k3 :=
     ⟨hp3.seg, hp3.book, hp3.psi, hb4, hp3.run, hp3.exits, hp3.fresh⟩
-  obtain ⟨hl, hP, hreach⟩ := ih _ P k3 N hp4 hne
+  obtain ⟨hl, hP, hreach, hrc⟩ := ih _ P k3 N hp4 hne
     (fun J hJ k4 hk4 h ↦ hjn J hJ k4 (by omega) h)
-  exact ⟨⟨hcall, hl⟩, hP, fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩⟩
+    (fun x s h ↦ (hcn x s h).mono (by omega))
+  exact ⟨⟨hcall, hl⟩, hP, fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩,
+    fun x s h ↦ (hrc x s h).mono (by omega)⟩
 
 theorem walk_dispatch (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (fs : List String)
     (args rets : List Core.V) (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
     (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
     WalkGood Prog cert A L fp f X Kb (.dispatch v fs args rets :: ss) st P := by
-  intro k N hp hne hjn
+  intro k N hp hne hjn hcn
   obtain ⟨se, t, q, r, base, st', hse, hk, htb, hbd, hle, hsucc, htc, hac, heq⟩ :=
     chkL_dispatch hne
-  rw [heq] at hne hjn ⊢
+  rw [heq] at hne hjn hcn ⊢
   obtain ⟨k1, hk1, hpse, -, -, -, k₀, hk₀, hr⟩ := endAt_ok hp hse
   obtain ⟨hlt, henv, hextra, rr, hreg, hsafe⟩ := hr
   rw [hk] at hextra hreg
@@ -2057,10 +2370,11 @@ theorem walk_dispatch (W : WalkEnv Prog cert A L fp f X Kb) (v : Core.V) (fs : L
   have hcall : RL Prog L cert A fs[e] (args.map (val L fp X.loc)) (rets.map (val L fp X.loc)) := by
     rw [hname, map_val, map_val, hargs, storesOk_words hp3.book hloads hq, hcr, hnr, hna']
     exact hPost.rl
-  obtain ⟨hl, hP, hreach⟩ := ih st' P k3 N hp3 hne
+  obtain ⟨hl, hP, hreach, hrc⟩ := ih st' P k3 N hp3 hne
     (fun J hJ k4 hk4 h ↦ hjn J hJ k4 (by omega) h)
+    (fun x s h ↦ (hcn x s h).mono (by omega))
   exact ⟨⟨⟨e, he, wd_of hce, hcall⟩, hl⟩, hP,
-    fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩⟩
+    fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩, fun x s h ↦ (hrc x s h).mono (by omega)⟩
 
 theorem frameWords_zero (L : MemoryImage κ) (fp : K) (o : ℕ) : frameWords L fp o 0 = [] := rfl
 
@@ -2068,26 +2382,29 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
     (ih : ∀ st P, WalkGood Prog cert A L fp f X Kb ss st P) :
     WalkGood Prog cert A L fp f X Kb (.callIf c f' args :: ss) st P := by
-  intro k N hp hne hjn
+  intro k N hp hne hjn hcn
   obtain ⟨st', x, hb, hform⟩ := chkL_callIf hne
   obtain ⟨k1, hk1, cv, hc, hcK, hx, hseg, hpsi, hbnd, hB', hcase⟩ := branchAt_ok hp hb
   have hσ : val L fp X.loc c = cv := wd_of hc
   obtain ⟨k₀', hk₀', hkk₀, -⟩ := hp.run
   rcases hform with ⟨e, q, r, j, se, sr, hk, hj, hco, hpost0, hle, hsucc, hend, hsr, heq⟩ |
     ⟨e, S, j, hk, hj, rfl, htail, heq⟩
-  · rw [heq] at hne hjn ⊢
+  · rw [heq] at hne hjn hcn ⊢
     have cont : ∀ k2, k2 < k → SegRun L fp f X Kb (r - X.entry) k2 →
         Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
           (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
-          (∀ J, chkL X ss sr P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') := by
+          (∀ J, chkL X ss sr P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') ∧
+          (∀ x s, chkL X ss sr P = .chain x s → ChainArr L fp f X Kb x s k) := by
       intro k2 hk2 hr2
-      obtain ⟨hl, hP, hreach⟩ := ih sr P k2 N (segAt_ok W.hyp hsr hr2 hB' (hbnd ▸ hp.bnd)) hne
+      obtain ⟨hl, hP, hreach, hrc⟩ := ih sr P k2 N (segAt_ok W.hyp hsr hr2 hB' (hbnd ▸ hp.bnd)) hne
         (fun J hJ k4 hk4 h ↦ hjn J hJ k4 (by omega) h)
-      exact ⟨hl, hP, fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩⟩
+        (fun x s h ↦ (hcn x s h).mono (by omega))
+      exact ⟨hl, hP, fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩,
+        fun x s h ↦ (hrc x s h).mono (by omega)⟩
     rcases hcase with ⟨rfl, hp'⟩ | ⟨hc0, k₀, hk₀, hr⟩
     · obtain ⟨k2, hk2, -, hr2⟩ := endOf_ok W.hyp hp' hend
-      obtain ⟨hl, hP, hreach⟩ := cont k2 (by omega) hr2
-      exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd hσ h0, hl⟩, hP, hreach⟩
+      obtain ⟨hl, hP, hreach, hrc⟩ := cont k2 (by omega) hr2
+      exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd hσ h0, hl⟩, hP, hreach, hrc⟩
     · obtain ⟨hlt, henv, hextra, rr, hreg, hsafe⟩ := hr
       rw [hk] at hextra hreg
       obtain ⟨pv, hq, hret⟩ := hextra
@@ -2104,12 +2421,12 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         refine segRun_of_safe W.hyp hp.seg hx (by rw [hsucc]; simp) henv (by omega) ?_
         rw [← W.hyp.entry, Nat.add_sub_cancel' hle]
         exact hsafe2
-      obtain ⟨hl, hP, hreach⟩ := cont k2 (by omega) hr2
+      obtain ⟨hl, hP, hreach, hrc⟩ := cont k2 (by omega) hr2
       have hcall : RL Prog L cert A f' (args.map (val L fp X.loc)) [] := by
         have h1 := hPost.rl
         rw [← hnr, frameWords_zero, ← hargs, ← map_val, ← hname] at h1
         exact h1
-      exact ⟨⟨hσ ▸ hcK, fun _ ↦ hcall, hl⟩, hP, hreach⟩
+      exact ⟨⟨hσ ▸ hcK, fun _ ↦ hcall, hl⟩, hP, hreach, hrc⟩
   · rw [heq]
     simp only [tailOk, Bool.and_eq_true, beq_iff_eq, List.isEmpty_iff, Bool.not_eq_true',
       List.all_eq_true] at htail
@@ -2130,7 +2447,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         obtain ⟨hlt, -, -, rr, hreg, hsafe⟩ := hr2
         rw [hkind] at hreg
         exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd hσ h0, hwords ⟨k2, by omega, rr, hreg, hsafe⟩⟩, hP,
-          fun J hJ ↦ by simp at hJ⟩
+          fun J hJ ↦ by simp at hJ, fun _ _ h ↦ by simp at h⟩
       · simp at hend
     · obtain ⟨hlt, hxenv, -, rr, hreg, hsafe⟩ := hr
       rw [hk] at hreg
@@ -2185,7 +2502,7 @@ theorem walk_callIf (W : WalkEnv Prog cert A L fp f X Kb) (c : Core.V) (f' : Str
         unfold wd
         rw [mul_assoc, addressOfIndex, addressOfIndex, ← pow_add]
       exact ⟨⟨hσ ▸ hcK, fun _ ↦ hcall, hwords ⟨k2, by omega, rr, hrr, hsafe2⟩⟩, hP,
-        fun J hJ ↦ by simp at hJ⟩
+        fun J hJ ↦ by simp at hJ, fun _ _ h ↦ by simp at h⟩
 
 theorem runAt_words {loc : Trie ℕ} {base : ℕ} {vs : List Core.V} (h : runAt loc base vs = true) :
     vs.map (val L fp loc) = frameWords L fp base vs.length := by
@@ -2196,7 +2513,7 @@ theorem runAt_words {loc : Trie ℕ} {base : ℕ} {vs : List Core.V} (h : runAt 
 
 theorem walk_ret (W : WalkEnv Prog cert A L fp f X Kb) (vs : List Core.V) (ss : List Core.Stmt) (st : CS)
     (P : List Core.Atom) : WalkGood Prog cert A L fp f X Kb (.ret vs :: ss) st P := by
-  intro k N hp hne hjn
+  intro k N hp hne hjn hcn
   obtain ⟨hr, heq⟩ := chkL_ret hne
   rw [heq]
   unfold retOk at hr
@@ -2207,7 +2524,7 @@ theorem walk_ret (W : WalkEnv Prog cert A L fp f X Kb) (vs : List Core.V) (ss : 
     obtain ⟨k2, hk2, hpse, -, -, -, k₀, hk₀, hreach⟩ := endAt_ok hp hse
     refine ⟨⟨by rw [runAt_words hrun, hlen], fun hm ↦ ?_, fun p hp' ↦
       boundOk_sound W.hyp.ctx.pows hpse.psi W.mem hpse.book hpse.bnd (hpost p hp')⟩, pendOk_sound W hpse hpend,
-      fun J hJ ↦ by simp at hJ⟩
+      fun J hJ ↦ by simp at hJ, fun _ _ h ↦ by simp at h⟩
     rw [hm] at hkind
     simp only [Bool.cond_false, decide_eq_true_eq] at hkind
     obtain ⟨hlt, -, -, rr, hreg, hsafe⟩ := hreach
@@ -2223,11 +2540,32 @@ theorem walk_sound (W : WalkEnv Prog cert A L fp f X Kb) :
   | .atom a :: ss, st, P => walk_atom W a ss st P (walk_sound W ss)
   | .ite c z n :: ss, st, P =>
     walk_ite W c z n ss st P (walk_sound W z) (walk_sound W n) (walk_sound W ss)
-  | .match_ v arms :: ss, st, P => walk_match W v arms ss st P (arms_sound W arms) (walk_sound W ss)
+  | .match_ v arms :: ss, st, P =>
+    walk_match W v arms ss st P (arms_sound W arms) (walk_sound W ss) (chain_sound W ss)
   | .call f' args rets :: ss, st, P => walk_call W f' args rets ss st P (walk_sound W ss)
   | .callIf c f' args :: ss, st, P => walk_callIf W c f' args ss st P (walk_sound W ss)
   | .dispatch v fs args rets :: ss, st, P => walk_dispatch W v fs args rets ss st P (walk_sound W ss)
   | .ret vs :: ss, st, P => walk_ret W vs ss st P
+
+/-- **The walk of a chained `match` is sound.** -/
+theorem chain_sound (W : WalkEnv Prog cert A L fp f X Kb) :
+    ∀ (ss : List Core.Stmt) (x : ℕ) (succ : List ℕ) (B : Book) (ψ : Trie Sym) (bnd : List (ℕ × ℕ))
+      (P : List Core.Atom), ChainGood Prog cert A L fp f X Kb x succ B ψ bnd ss P
+  | [], x, succ, B, ψ, bnd, P => chain_other x succ B ψ bnd P [] (fun _ _ _ h ↦ by cases h)
+  | .match_ v arms :: ss, x, succ, B, ψ, bnd, P =>
+    chain_match W v arms ss x succ B ψ bnd P (arms_sound W arms) (walk_sound W ss) (chain_sound W ss)
+  | .atom a :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
+  | .ite c z n :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
+  | .call f' args rets :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
+  | .callIf c f' args :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
+  | .dispatch v fs args rets :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
+  | .ret vs :: ss, x, succ, B, ψ, bnd, P =>
+    chain_other x succ B ψ bnd P _ (fun _ _ _ h ↦ by cases h)
 
 theorem arms_sound (W : WalkEnv Prog cert A L fp f X Kb) :
     ∀ (arms : List (List Core.Stmt)) (e : ℕ) (he : e < arms.length) (st : CS)
@@ -2483,7 +2821,11 @@ end Congr
 /-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
 and bounds handed on hold. -/
 def WinStart (L : MemoryImage κ) (fp : K) (f : CompiledFunction) (C : Cert) (i k : ℕ) : Prop :=
-  SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
+  (if C.succAt i = [] then
+    SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + (C.cutAt i).J), fp⟩
+  else ∃ e, ∃ _ : e < (C.succAt i).length, wd L fp (C.selAt i) = ofK (addressOfIndex e) ∧
+    SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + (C.succAt i)[e]), fp⟩) ∧
+    EnvHolds L fp (envOf (C.cutAt i).env) ∧
     (∀ p ∈ (C.cutAt i).facts, p.2.Holds L fp) ∧ BndHolds L fp (C.cutAt i).bnd
 
 /-- What a function's return does, in every window's context. -/
@@ -2495,7 +2837,8 @@ abbrev RetOf (L : MemoryImage κ) (fp : K) (G : Glob) (f : CompiledFunction) (cf
 theorem checkWin_parts {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = true) :
     C.contOk i = true ∧ C.insOk (listElementOrDefault C.ins i []) = true := by
   unfold checkWin at hc
-  rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
+  rcases hR : execWinS C.facts f (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1) (C.endAt f i) with
+    ⟨segs, dead⟩
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
   exact ⟨hc.1.1.1.1.1, hc.1.1.1.1.2⟩
@@ -2503,7 +2846,8 @@ theorem checkWin_parts {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = 
 /-- The first window's check fixes whether the frame is `main`'s. -/
 theorem checkWin_fpOne {main : Bool} (hc : checkWin G f cf C main 0 = true) : main = C.facts.fpOne := by
   unfold checkWin at hc
-  rcases hR : execWin C.facts f (C.cutAt 0).J (C.cutAt 0).env (C.endAt f 0) with ⟨segs, dead⟩
+  rcases hR : execWinS C.facts f (C.cutAt 0).J (C.cutAt 0).env ((C.succAt 0).drop 1) (C.endAt f 0) with
+    ⟨segs, dead⟩
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true, beq_self_eq_true, Bool.cond_true,
     beq_iff_eq] at hc
@@ -2528,7 +2872,8 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
         (C.stmtsAt cf i) False (RetOf L fp G f cf C main Kb)) := by
   have hins := (checkWin_parts hc).2
   unfold checkWin at hc
-  rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
+  rcases hR : execWinS C.facts f (C.cutAt i).J (C.cutAt i).env ((C.succAt i).drop 1) (C.endAt f i) with
+    ⟨segs, dead⟩
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
   obtain ⟨⟨⟨⟨⟨-, -⟩, hcov⟩, hlink⟩, h0⟩, hc⟩ := hc
@@ -2543,7 +2888,7 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
   set X : Fx := C.fxAt G f cf main i segs (index segs) (C.locAt i) with hX
   have hctx : Exec.Ctx C.facts κ fp := ⟨hpows, hfp, hκ⟩
   have H : WalkHyp L fp f X := ⟨hctx, guest_fetches hf, rfl, fun s hs ↦
-    execWin_good hctx (guest_fetches hf) _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
+    execWinS_good hctx (guest_fetches hf) _ _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
   have W : WalkEnv Prog cert A L fp f X Kb :=
     ⟨H, hjt, (memIf_of_pre hmem).append ((memIf_of_known hknown).append hknownIf), hknown, hsems, hC⟩
   have hret : RetWords L fp X Kb = RetOf L fp G f cf C main Kb := rfl
@@ -2565,52 +2910,142 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
   · rename_i st hst
     simp only [Bool.and_eq_true] at hc
     obtain ⟨hsub, hend⟩ := hc
-    have hrun : SegRun L fp f X Kb (C.cutAt i).J k := by
-      refine ⟨hs.1, fun s hs' hs0 ↦ ?_, fun _ hn ↦ ?_⟩
-      swap
-      · unfold segAt at hst
-        rw [getF_eq, hn] at hst
-        cases hst
+    have hstB : st.book = bookOf (C.cutAt i).facts .nil ∧ st.bnd = (C.cutAt i).bnd := by
+      unfold segAt at hst
+      split at hst
+      · simp only [Bool.cond_eq_ite, beq_iff_eq] at hst
+        split_ifs at hst
+        obtain rfl := Option.some.inj hst
+        exact ⟨rfl, rfl⟩
+      · cases hst
+    have hB0 : BookHolds L fp st.book := hstB.1 ▸ bookOf_holds _ BookHolds.nil hs.2.2.1
+    have hb0 : BndHolds L fp st.bnd := hstB.2 ▸ hs.2.2.2
+    -- The run at an offset `t` starting a segment of the window, its environment holding there.
+    have hrunAt : ∀ t, SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + t), fp⟩ →
+        (∀ s, X.idx.get t = some s → s.start = t → s.env.sub Sym.beq (envOf (C.cutAt i).env) = true) →
+        (X.idx.get t ≠ none) → SegRun L fp f X Kb t k := by
+      intro t hsafe hsub' hsome
+      refine ⟨hsafe, fun s hs' hs0 ↦ ?_, fun _ hn ↦ absurd hn hsome⟩
       have hmem : s ∈ X.segs := index_get hs'
-      have hs'' : st.seg = s := by
-        unfold segAt at hst
-        rw [getF_eq, hs'] at hst
-        simp only [hs0, beq_self_eq_true, Bool.cond_true, Option.some.injEq] at hst
-        rw [← hst]
-      have he : EnvHolds L fp s.env := hs'' ▸ hs.2.1.sub hsub
+      have he : EnvHolds L fp s.env := hs.2.1.sub (hsub' s hs' hs0)
       refine ⟨hmem, he, k, hk, le_rfl, (H.good s hmem).1 k he ?_⟩
       rw [hs0]
-      exact hs.1
-    have hp := segAt_ok H hst hrun (bookOf_holds _ BookHolds.nil hs.2.2.1) hs.2.2.2
+      exact hsafe
+    have hwalk : ∀ (N : Prop), walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st ≠ .fail →
+        (∀ J, walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st = .join J → ∀ k', k' ≤ k →
+          SegRun L fp f X Kb J k' → N) →
+        (∀ x s, walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st = .chain x s → ChainK L fp f X Kb x s k N) →
+        Core.Stmt.HoldsList (RL Prog L cert A) L.read (val L fp X.loc) (C.stmtsAt cf i) N
+            (RetWords L fp X Kb) ∧
+          (∀ J, walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') ∧
+          (∀ x s, walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st = .chain x s → ChainArr L fp f X Kb x s k) := by
+      intro N hne hj hcn
+      by_cases hnil : C.succAt i = []
+      · have hw : walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st = chkL X (C.stmtsAt cf i) st [] := by
+          simp [walkFrom, hnil]
+        rw [hw] at hne hj hcn ⊢
+        have h1 : SafeReached guestProgram L k ⟨addressOfIndex (f.entryPc + (C.cutAt i).J), fp⟩ := by
+          have := hs.1
+          simp only [hnil, ↓reduceIte] at this
+          exact this
+        have hrun : SegRun L fp f X Kb (C.cutAt i).J k := by
+          refine ⟨h1, fun s hs' hs0 ↦ ?_, fun _ hn ↦ ?_⟩
+          swap
+          · unfold segAt at hst
+            rw [getF_eq, hn] at hst
+            cases hst
+          have hmem : s ∈ X.segs := index_get hs'
+          have hs'' : st.seg = s := by
+            unfold segAt at hst
+            rw [getF_eq, hs'] at hst
+            simp only [hs0, beq_self_eq_true, Bool.cond_true, Option.some.injEq] at hst
+            rw [← hst]
+          have he : EnvHolds L fp s.env := hs'' ▸ hs.2.1.sub hsub
+          refine ⟨hmem, he, k, hk, le_rfl, (H.good s hmem).1 k he ?_⟩
+          rw [hs0]
+          exact h1
+        have hp := segAt_ok H hst hrun (bookOf_holds _ BookHolds.nil hs.2.2.1) hs.2.2.2
+        obtain ⟨h1, -, h3, h4⟩ := walk_sound W (C.stmtsAt cf i) st [] k N hp hne hj hcn
+        exact ⟨h1, h3, h4⟩
+      · have hst' : startsOk X.idx (C.cutAt i).env (C.succAt i) = true := by
+          by_contra hn
+          apply hne
+          simp [walkFrom, hnil, hn]
+        have hw : walkFrom X (C.cutAt i).env (C.selAt i) (C.succAt i) (C.stmtsAt cf i) st =
+            chainL X (C.selAt i) (C.succAt i) st.book st.psi st.bnd (C.stmtsAt cf i) [] := by
+          simp [walkFrom, hnil, hst']
+        rw [hw] at hne hj hcn ⊢
+        have h1 := hs.1
+        simp only [hnil, ↓reduceIte] at h1
+        obtain ⟨e, he, hx, hsafe⟩ := h1
+        have hrun : SegRun L fp f X Kb (C.succAt i)[e] k := by
+          have hok := List.all_eq_true.mp hst' _ (List.getElem_mem he)
+          split at hok
+          · rename_i s hs'
+            simp only [Bool.and_eq_true, beq_iff_eq] at hok
+            rw [getF_eq] at hs'
+            refine hrunAt _ hsafe (fun s' hs'' _ ↦ ?_) (by rw [hs']; simp)
+            rw [hs'] at hs''
+            obtain rfl := Option.some.inj hs''
+            exact hok.2
+          · simp at hok
+        obtain ⟨h1, -, h3, h4⟩ := chain_sound W (C.stmtsAt cf i) _ _ _ _ _ [] k N hB0 hb0
+          ⟨e, he, hx, hrun⟩ hne hj hcn
+        exact ⟨h1, h3, h4⟩
     unfold winEnd at hend
     by_cases hi : i < C.cuts.length
     · have hb : Nat.blt i C.cuts.length = true := Nat.blt_eq.mpr hi
       rw [hb] at hend
-      simp only [Bool.cond_true, Bool.and_eq_true, beq_iff_eq, Nat.ble_eq] at hend
+      simp only [Bool.cond_true, Bool.and_eq_true, Nat.ble_eq] at hend
       obtain ⟨⟨hchk, hle⟩, henv⟩ := hend
+      have hw : X.win = some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd) := by
+        simp only [hX, Cert.fxAt, hb, Bool.cond_true]
+      have hwJ : X.wJ = (C.cutAt (i + 1)).J := by simp only [hX, Cert.fxAt, hb, Bool.cond_true]
+      have hwenv : X.wenv = envOf (C.cutAt (i + 1)).env := by
+        simp only [hX, Cert.fxAt, hb, Bool.cond_true]
       refine ⟨fun _ ↦ ?_, fun h ↦ absurd hi (Nat.not_lt.mpr h)⟩
-      obtain ⟨hl, -, harr⟩ := walk_sound W (C.stmtsAt cf i) st [] k True hp
-        (by rw [hchk]; simp) (fun _ _ _ _ _ ↦ trivial)
-      obtain ⟨k', hk', ⟨hsafe, hseg, hwend⟩, hhand⟩ := harr _ hchk
-      refine ⟨hconv hl, hle, k', hk', hsafe, ?_, ?_⟩
-      · split at henv
-        · rename_i s hs'
-          simp only [Bool.and_eq_true, beq_iff_eq] at henv
-          rw [getF_eq] at hs'
-          exact (hseg s hs' henv.1).2.1.sub henv.2
-        · rename_i hs'
-          rw [getF_eq] at hs'
-          have := hwend (by simp only [hX, Cert.fxAt, hb, Bool.cond_true]) hs'
-          simpa only [hX, Cert.fxAt, hb, Bool.cond_true] using this
-      · have hw : X.win = some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd) := by
-          simp only [hX, Cert.fxAt, hb, Bool.cond_true]
-        exact hhand _ _ _ hw rfl
+      by_cases hnil : C.succAt (i + 1) = []
+      · simp only [hnil, List.isEmpty_nil, Bool.cond_true, beq_iff_eq] at hchk
+        obtain ⟨hl, harr, -⟩ := hwalk True (by rw [hchk]; simp) (fun _ _ _ _ _ ↦ trivial)
+          (fun _ _ h ↦ by rw [hchk] at h; cases h)
+        obtain ⟨k', hk', ⟨hsafe, hseg, hwend⟩, hhand⟩ := harr _ hchk
+        refine ⟨hconv hl, hle, k', hk', ?_, ?_, hhand _ _ _ hw rfl⟩
+        · simp only [hnil, ↓reduceIte]
+          exact hsafe
+        · split at henv
+          · rename_i s hs'
+            simp only [Bool.and_eq_true, beq_iff_eq] at henv
+            rw [getF_eq] at hs'
+            exact (hseg s hs' henv.1).2.1.sub henv.2
+          · rename_i hs'
+            rw [getF_eq] at hs'
+            have := hwend hwJ.symm hs'
+            rwa [hwenv] at this
+      · have hne' : (C.succAt (i + 1)).isEmpty = false := by
+          cases h : C.succAt (i + 1) with
+          | nil => exact absurd h hnil
+          | cons _ _ => rfl
+        simp only [hne', Bool.cond_false, Bool.and_eq_true, beq_iff_eq] at hchk
+        obtain ⟨hchk, hhead⟩ := hchk
+        obtain ⟨hl, -, hrc⟩ := hwalk True (by rw [hchk]; simp)
+          (fun _ h ↦ by rw [hchk] at h; cases h) (fun _ _ _ _ _ _ _ _ _ ↦ trivial)
+        obtain ⟨e, he, hx, k', hk', hrun, hhand, hen⟩ := hrc _ _ hchk
+        have hJ0 : (C.succAt (i + 1)).headD 0 = (C.cutAt (i + 1)).J := by
+          cases h : C.succAt (i + 1) with
+          | nil => exact absurd h hnil
+          | cons a as => rw [h] at hhead; simpa using hhead
+        rw [hJ0] at hhand hen
+        refine ⟨hconv hl, hle, k', hk', ?_, ?_, hhand _ _ _ hw rfl⟩
+        · simp only [hnil, ↓reduceIte]
+          exact ⟨e, he, hx, hrun.1⟩
+        · have := hen hwJ.symm
+          rwa [hwenv] at this
     · have hb : Nat.blt i C.cuts.length = false := blt_false (Nat.not_lt.mp hi)
       rw [hb] at hend
       simp only [Bool.cond_false, beq_iff_eq] at hend
       refine ⟨fun h ↦ absurd h hi, fun _ ↦ ?_⟩
-      obtain ⟨hl, -, -⟩ := walk_sound W (C.stmtsAt cf i) st [] k False hp
-        (by rw [hend]; simp) (fun J hJ ↦ by rw [hend] at hJ; cases hJ)
+      obtain ⟨hl, -, -⟩ := hwalk False (by rw [hend]; simp) (fun J hJ ↦ by rw [hend] at hJ; cases hJ)
+        (fun _ _ h ↦ by rw [hend] at h; cases h)
       exact hconv hl
   · simp at hc
 
@@ -2667,7 +3102,7 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
       SemHolds G L fp (C.cutAt 0).sems :=
     ⟨fun _ h ↦ by simp [Cert.cutAt] at h, fun _ h ↦ by simp [Cert.cutAt] at h, hsem⟩
   have hs0 : WinStart L fp f C 0 k :=
-    ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
+    ⟨by simpa [Cert.cutAt, Cert.succAt, Cert.enteredAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
   have reach : ∀ i ≤ C.cuts.length, ∃ k' ≤ k, WinStart L fp f C i k' ∧
       Core.Stmt.HoldsList (RL Prog L cert A) L.read (valG L fp C)
         (cf.body.take (C.cutAt i).start) True (RetOf L fp G f cf C main k) := by

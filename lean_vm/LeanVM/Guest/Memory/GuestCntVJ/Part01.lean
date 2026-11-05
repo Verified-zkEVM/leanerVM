@@ -41,11 +41,11 @@ theorem kvjstaticRange_258 : kvjStaticRange 258 30 := by
   unfold kvjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_288 : kvjStaticRange 288 16 := by
+theorem kvjstaticRange_288 : kvjStaticRange 288 15 := by
   unfold kvjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_304 : kvjStaticRange 304 1 := by
+theorem kvjstaticRange_303 : kvjStaticRange 303 1 := by
   unfold kvjStaticRange; decide +kernel
 
 end

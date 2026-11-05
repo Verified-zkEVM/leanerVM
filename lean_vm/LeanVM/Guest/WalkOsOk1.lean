@@ -18,31 +18,31 @@ open LeanVM.Guest.B1.Whir
 
 theorem osLvB_7 : osLvB (osCfg 7) = true := by decide +kernel
 
-theorem osOk_311 : osOk 311 (osCfg 7) = true := by decide +kernel
+theorem osOk_310 : osOk 310 (osCfg 7) = true := by decide +kernel
 
 theorem osLvB_8 : osLvB (osCfg 8) = true := by decide +kernel
 
-theorem osOk_312 : osOk 312 (osCfg 8) = true := by decide +kernel
+theorem osOk_311 : osOk 311 (osCfg 8) = true := by decide +kernel
 
 theorem osLvB_9 : osLvB (osCfg 9) = true := by decide +kernel
 
-theorem osOk_313 : osOk 313 (osCfg 9) = true := by decide +kernel
+theorem osOk_312 : osOk 312 (osCfg 9) = true := by decide +kernel
 
 theorem osLvB_10 : osLvB (osCfg 10) = true := by decide +kernel
 
-theorem osOk_314 : osOk 314 (osCfg 10) = true := by decide +kernel
+theorem osOk_313 : osOk 313 (osCfg 10) = true := by decide +kernel
 
 theorem osLvB_11 : osLvB (osCfg 11) = true := by decide +kernel
 
-theorem osOk_315 : osOk 315 (osCfg 11) = true := by decide +kernel
+theorem osOk_314 : osOk 314 (osCfg 11) = true := by decide +kernel
 
 theorem osLvB_12 : osLvB (osCfg 12) = true := by decide +kernel
 
-theorem osOk_316 : osOk 316 (osCfg 12) = true := by decide +kernel
+theorem osOk_315 : osOk 315 (osCfg 12) = true := by decide +kernel
 
 theorem osLvB_13 : osLvB (osCfg 13) = true := by decide +kernel
 
-theorem osOk_317 : osOk 317 (osCfg 13) = true := by decide +kernel
+theorem osOk_316 : osOk 316 (osCfg 13) = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

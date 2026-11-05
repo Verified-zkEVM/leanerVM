@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedBW
 
 The words certificates (`Count.Words`) give, at the deployed frame sizes: the copy loops
 `__loop10`, `__loop11`, `__loop12` (cores `263`, `267`, `269`) at most `34` words per iteration;
-`keccak_plain_rounds__L6_L0` (core `266`, `plainName 0`) at most `325`,
-`keccak_plain_rounds__L4_L1` (core `268`, `plainName 1`) at most `229`; the layers' eight-round
+`keccak_plain_rounds__L6_L0` (core `265`, `plainName 0`) at most `325`,
+`keccak_plain_rounds__L4_L1` (core `267`, `plainName 1`) at most `229`; the layers' eight-round
 loops `946` per iteration and remainder loops `184` (`LayerCPlacedBW`). So `verify_keccak`'s callees
 are complete within `D.kidsB B2C.fs 34 946 184 325 229` (`kids_completeB_fs`), whose sum is at most
 `3 * ((τ - 4) * 34) + 879 + 12 * (2624 + (y + 171) + (473 + y / 8 * 946) + (92 + y % 8 * 184))`

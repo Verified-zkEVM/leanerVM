@@ -13,8 +13,9 @@ public import LeanVM.Guest.Count.Static
 /-!
 # Words by name
 
-`wSB f` is the constant of `f`'s words certificate, `wSK f` a loop helper's per iteration (`0`
-otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
+`wSB f` is the constant of `f`'s words certificate, `wSKt f` a loop helper's per iteration, its
+run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame charged to each
+iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
 `wIdxN` gives the core index of some functions by name, `wIdxLoop` of each loop helper
 `__loop{n}` by `n`, for the checks that range over names.
@@ -32,10 +33,18 @@ noncomputable def wSB (f : String) : ℕ :=
   | .stat _ b _ => b.c
   | _ => 0
 
-/-- The words per iteration of loop helper `f`'s certificate, `0` if it has none. -/
-noncomputable def wSK (f : String) : ℕ :=
+/-- The words per iteration of loop helper `f`'s certificate, its run's phantom frame apart, `0`
+if it has none. -/
+noncomputable def wSKt (f : String) : ℕ :=
   match wcertOf f with
   | .loop _ _ b _ => b.c
+  | _ => 0
+
+/-- The words per iteration of loop helper `f`, its run's phantom frame charged to each iteration
+(`wSKt f + B2C.fs f`), `0` if it has no certificate. -/
+noncomputable def wSK (f : String) : ℕ :=
+  match wcertOf f with
+  | .loop _ _ b _ => b.c + B2C.fs f
   | _ => 0
 
 /-- A constant certificate. -/
@@ -73,7 +82,34 @@ theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
     exact fs_totalLe hf
   · rw [hw] at hk; cases hk
 
-/-- **Loop helper `f`'s words within `wSK f` per iteration.** -/
+/-- **Loop helper `f`'s run within `wSKt f` words per iteration and its phantom frame.** -/
+theorem wSKt_loopRunLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopRunLe B2C.fs f (wSKt f) := by
+  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨hn, hk⟩ := h
+  have hc := wcertOf_of_idx hn
+  rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
+  · rw [hw] at hk; cases hk
+  · rw [hw] at hk; cases hk
+  · rw [hw] at hk
+    simp only [certLoopB, Bool.and_eq_true, List.isEmpty_iff, Option.isNone_iff_eq_none] at hk
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hk
+    have hf : wcertOf f = .loop none [] ⟨K, []⟩ ks := hc.trans hw
+    have hK : wSKt f = K := by unfold wSKt; rw [hf]
+    rw [hK]
+    exact kw_loopRunLe_of hf
+
+/-- **Loop helper `f`'s run from a start below its end**: `wSKt f` per unit of the end's exponent,
+and its phantom frame. -/
+theorem wSKt_totalLeOn {j : ℕ} {f : String} (h : wOkK j f = true) :
+    TotalLeOn coreProgram B2C.fs f LoopPre fun a => logG (a.getD 1 0) * wSKt f + B2C.fs f :=
+  (wSKt_loopRunLe h).totalLeOn
+
+/-- `wSKt` is `wSK` without the phantom frame. -/
+theorem wSKt_eq (f : String) : wSKt f = wSK f - B2C.fs f := by
+  unfold wSK wSKt
+  split <;> simp
+
+/-- **Loop helper `f`'s words within `wSK f` per iteration**, its run's phantom charged to each. -/
 theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotalLe B2C.fs f (wSK f) := by
   simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
@@ -85,7 +121,7 @@ theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotal
     simp only [certLoopB, Bool.and_eq_true, List.isEmpty_iff, Option.isNone_iff_eq_none] at hk
     obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hk
     have hf : wcertOf f = .loop none [] ⟨K, []⟩ ks := hc.trans hw
-    have hK : wSK f = K := by unfold wSK; rw [hf]
+    have hK : wSK f = K + B2C.fs f := by unfold wSK; rw [hf]
     rw [hK]
     exact kw_loopTotalLe_of hf
 
@@ -116,10 +152,16 @@ noncomputable def wSBJ (j : ℕ) : ℕ :=
   | .stat _ b _ => b.c
   | _ => 0
 
+/-- `wSKt` of core function `j`. -/
+noncomputable def wSKtJ (j : ℕ) : ℕ :=
+  match wcertJ j with
+  | .loop _ _ b _ => b.c
+  | _ => 0
+
 /-- `wSK` of core function `j`. -/
 noncomputable def wSKJ (j : ℕ) : ℕ :=
   match wcertJ j with
-  | .loop _ _ b _ => b.c
+  | .loop _ _ b _ => b.c + wfsJ j
   | _ => 0
 
 /-- `wSB` by core index. -/
@@ -128,91 +170,95 @@ theorem wSB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
 
 /-- `wSK` by core index. -/
 theorem wSK_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSK f = wSKJ j := by
-  unfold wSK wSKJ; rw [wcertOf_of_idx h]
+  unfold wSK wSKJ; rw [wcertOf_of_idx h, fs_idx h]
+
+/-- `wSKt` by core index. -/
+theorem wSKt_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSKt f = wSKtJ j := by
+  unfold wSKt wSKtJ; rw [wcertOf_of_idx h]
 
 
 /-- The core indices of the functions the checks name, by name. -/
-def wIdxN : List (String × ℕ) := [("assert_canonical", 1), ("batch_sumcheck__L23", 417),
-    ("claim_list_last__L0", 333), ("claim_list_last__L1", 334), ("claim_list_last__L10", 343),
-    ("claim_list_last__L11", 344), ("claim_list_last__L12", 345), ("claim_list_last__L13", 346),
-    ("claim_list_last__L14", 347), ("claim_list_last__L15", 348), ("claim_list_last__L16", 349),
-    ("claim_list_last__L2", 335), ("claim_list_last__L3", 336), ("claim_list_last__L4", 337),
-    ("claim_list_last__L5", 338), ("claim_list_last__L6", 339), ("claim_list_last__L7", 340),
-    ("claim_list_last__L8", 341), ("claim_list_last__L9", 342), ("da_levels__L1024_L10", 402),
-    ("da_levels__L128_L7", 399), ("da_levels__L16_L4", 396), ("da_levels__L1_L0", 392),
-    ("da_levels__L256_L8", 400), ("da_levels__L2_L1", 393), ("da_levels__L32_L5", 397),
-    ("da_levels__L4_L2", 394), ("da_levels__L512_L9", 401), ("da_levels__L64_L6", 398),
-    ("da_levels__L8_L3", 395), ("exponent_tables", 2), ("fold_final_msg__L2", 482),
-    ("fold_final_msg__L3", 501), ("fold_final_msg__L4", 448), ("fold_final_msg__L5", 464),
-    ("grind_check__L17", 431), ("list_split", 23), ("opening_final_message__L16", 445),
-    ("opening_final_message__L32", 462), ("opening_final_message__L4", 480),
-    ("opening_final_message__L8", 499), ("opening_fold", 8), ("opening_ood_point__L10", 475),
-    ("opening_ood_point__L11", 494), ("opening_ood_point__L12", 436),
-    ("opening_ood_point__L13", 456), ("opening_ood_point__L14", 472),
-    ("opening_ood_point__L15", 491), ("opening_ood_point__L16", 430),
-    ("opening_ood_point__L17", 453), ("opening_ood_point__L18", 469),
-    ("opening_ood_point__L19", 488), ("opening_ood_point__L20", 507),
-    ("opening_ood_point__L21", 521), ("opening_ood_point__L22", 535),
-    ("opening_ood_point__L6", 478), ("opening_ood_point__L7", 497), ("opening_ood_point__L8", 441),
-    ("opening_ood_point__L9", 459), ("opening_row_weights__L4_L0", 438),
-    ("opening_row_weights__L6_L1", 433), ("statement_digest", 22), ("verify_merkle_cap__L4", 545),
-    ("verify_merkle_cap__L5", 443), ("verify_merkle_cap__L6", 439), ("verify_merkle_cap__L7", 554),
-    ("verify_merkle_cap__L8", 434)]
+def wIdxN : List (String × ℕ) := [("assert_canonical", 1), ("batch_sumcheck__L23", 416),
+    ("claim_list_last__L0", 332), ("claim_list_last__L1", 333), ("claim_list_last__L10", 342),
+    ("claim_list_last__L11", 343), ("claim_list_last__L12", 344), ("claim_list_last__L13", 345),
+    ("claim_list_last__L14", 346), ("claim_list_last__L15", 347), ("claim_list_last__L16", 348),
+    ("claim_list_last__L2", 334), ("claim_list_last__L3", 335), ("claim_list_last__L4", 336),
+    ("claim_list_last__L5", 337), ("claim_list_last__L6", 338), ("claim_list_last__L7", 339),
+    ("claim_list_last__L8", 340), ("claim_list_last__L9", 341), ("da_levels__L1024_L10", 401),
+    ("da_levels__L128_L7", 398), ("da_levels__L16_L4", 395), ("da_levels__L1_L0", 391),
+    ("da_levels__L256_L8", 399), ("da_levels__L2_L1", 392), ("da_levels__L32_L5", 396),
+    ("da_levels__L4_L2", 393), ("da_levels__L512_L9", 400), ("da_levels__L64_L6", 397),
+    ("da_levels__L8_L3", 394), ("exponent_tables", 2), ("fold_final_msg__L2", 481),
+    ("fold_final_msg__L3", 500), ("fold_final_msg__L4", 447), ("fold_final_msg__L5", 463),
+    ("grind_check__L17", 430), ("list_split", 22), ("opening_final_message__L16", 444),
+    ("opening_final_message__L32", 461), ("opening_final_message__L4", 479),
+    ("opening_final_message__L8", 498), ("opening_fold", 8), ("opening_ood_point__L10", 474),
+    ("opening_ood_point__L11", 493), ("opening_ood_point__L12", 435),
+    ("opening_ood_point__L13", 455), ("opening_ood_point__L14", 471),
+    ("opening_ood_point__L15", 490), ("opening_ood_point__L16", 429),
+    ("opening_ood_point__L17", 452), ("opening_ood_point__L18", 468),
+    ("opening_ood_point__L19", 487), ("opening_ood_point__L20", 506),
+    ("opening_ood_point__L21", 520), ("opening_ood_point__L22", 534),
+    ("opening_ood_point__L6", 477), ("opening_ood_point__L7", 496), ("opening_ood_point__L8", 440),
+    ("opening_ood_point__L9", 458), ("opening_row_weights__L4_L0", 437),
+    ("opening_row_weights__L6_L1", 432), ("statement_digest", 21), ("verify_merkle_cap__L4", 544),
+    ("verify_merkle_cap__L5", 442), ("verify_merkle_cap__L6", 438), ("verify_merkle_cap__L7", 553),
+    ("verify_merkle_cap__L8", 433)]
 
 /-- The core indices of the loop helpers `__loop{n}`, by `n`. -/
-def wIdxLoop : List (ℕ × ℕ) := [(0, 35), (1, 36), (2, 37), (3, 38), (5, 81), (7, 91), (8, 92),
-    (9, 262), (10, 263), (11, 267), (12, 269), (13, 270), (14, 271), (15, 331), (16, 332),
-    (17, 350), (18, 351), (19, 369), (20, 370), (21, 388), (22, 389), (23, 390), (24, 391),
-    (25, 404), (26, 408), (27, 409), (28, 410), (29, 411), (30, 412), (31, 413), (32, 414),
-    (33, 415), (34, 416), (35, 418), (36, 420), (37, 426), (38, 427), (39, 428), (40, 429),
-    (41, 432), (42, 437), (43, 442), (44, 446), (45, 449), (46, 450), (47, 451), (48, 452),
-    (49, 454), (50, 457), (51, 460), (52, 463), (53, 465), (54, 466), (55, 467), (56, 468),
-    (57, 470), (58, 473), (59, 476), (60, 479), (61, 481), (62, 483), (63, 484), (64, 485),
-    (65, 486), (66, 487), (67, 489), (68, 492), (69, 495), (70, 498), (71, 500), (72, 502),
-    (73, 503), (74, 504), (75, 505), (76, 506), (77, 508), (78, 510), (79, 512), (80, 514),
-    (81, 515), (82, 516), (83, 517), (84, 518), (85, 519), (86, 520), (87, 522), (88, 524),
-    (89, 526), (90, 528), (91, 529), (92, 530), (93, 531), (94, 532), (95, 533), (96, 534),
-    (97, 536), (98, 538), (99, 540), (100, 542), (101, 543), (102, 544), (103, 547), (104, 548),
-    (105, 549), (106, 550), (107, 551), (108, 552), (109, 553), (110, 556), (111, 557), (112, 558),
-    (113, 559), (114, 560), (115, 561), (116, 562), (117, 563), (118, 565), (119, 566), (120, 567),
-    (121, 568), (122, 569), (123, 570), (124, 571), (125, 572), (126, 574), (127, 575), (128, 576),
-    (129, 577), (130, 579), (131, 580), (132, 581), (133, 582), (134, 583), (135, 584), (136, 586),
-    (137, 587), (138, 588), (139, 589), (140, 591), (141, 592), (142, 593), (143, 594), (144, 595),
-    (145, 596), (146, 598), (147, 599), (148, 600), (149, 601), (150, 602), (151, 603), (152, 604),
-    (153, 605), (154, 606), (155, 607), (156, 609), (157, 610), (158, 611), (159, 612), (160, 614),
-    (161, 615), (162, 616), (163, 617), (164, 618), (165, 619), (166, 621), (167, 623), (168, 625),
-    (169, 626), (170, 628), (171, 629), (172, 630), (173, 631), (174, 632), (175, 633), (176, 634),
-    (177, 635), (178, 637), (179, 638), (180, 639), (181, 640), (182, 641), (183, 642), (184, 643),
-    (185, 644), (186, 646), (187, 647), (188, 648), (189, 649), (190, 650), (191, 651), (192, 652),
-    (193, 653), (194, 655), (195, 656), (196, 657), (197, 658), (198, 659), (199, 660), (200, 661),
-    (201, 662), (202, 663), (203, 664), (204, 666), (205, 667), (206, 668), (207, 669), (208, 670),
-    (209, 671), (210, 672), (211, 673), (212, 674), (213, 675), (214, 677), (215, 678), (216, 679),
-    (217, 680), (218, 681), (219, 682), (220, 683), (221, 684), (222, 685), (223, 686), (224, 688),
-    (225, 689), (226, 690), (227, 691), (228, 692), (229, 693), (230, 694), (231, 695), (232, 696),
-    (233, 697), (234, 699), (235, 701), (236, 703), (237, 704), (238, 706), (239, 707), (240, 708),
-    (241, 709), (242, 710), (243, 711), (244, 712), (245, 713), (246, 715), (247, 716), (248, 717),
-    (249, 718), (250, 719), (251, 720), (252, 721), (253, 722), (254, 724), (255, 725), (256, 726),
-    (257, 727), (258, 728), (259, 729), (260, 730), (261, 731), (262, 733), (263, 734), (264, 735),
-    (265, 736), (266, 737), (267, 738), (268, 739), (269, 740), (270, 741), (271, 742), (272, 744),
-    (273, 745), (274, 746), (275, 747), (276, 748), (277, 749), (278, 750), (279, 751), (280, 752),
-    (281, 753), (282, 755), (283, 756), (284, 757), (285, 758), (286, 759), (287, 760), (288, 761),
-    (289, 762), (290, 763), (291, 764), (292, 766), (293, 768), (294, 769), (295, 770), (296, 771),
-    (297, 772), (298, 773), (299, 774), (300, 775), (301, 776), (302, 778), (303, 780), (304, 781),
-    (305, 782), (306, 784), (307, 785), (308, 786), (309, 787), (310, 788), (311, 789), (312, 790),
-    (313, 791), (314, 792), (315, 793), (316, 794), (317, 795), (318, 796), (319, 797), (320, 798),
-    (321, 799), (322, 800), (323, 801), (324, 802), (325, 803), (326, 804), (327, 805), (328, 806),
-    (329, 807), (330, 808), (331, 809), (332, 810), (333, 811), (334, 812), (335, 813), (336, 814),
-    (337, 815), (338, 816), (339, 817), (340, 818), (341, 819), (342, 820), (343, 821), (344, 822),
-    (345, 823), (346, 824), (347, 825), (348, 826), (349, 827), (350, 828), (351, 829), (352, 830),
-    (353, 831), (354, 832), (355, 833), (356, 834), (357, 835), (358, 836), (359, 837), (360, 838),
-    (361, 839), (362, 840), (363, 841), (364, 842), (365, 843), (366, 844), (367, 845), (368, 847),
-    (369, 849), (370, 851), (371, 853), (372, 855), (373, 857), (374, 859), (375, 861), (376, 863),
-    (377, 865), (378, 867), (379, 869), (380, 871), (381, 873), (382, 875), (383, 877), (384, 879),
-    (385, 881), (386, 883), (387, 885), (388, 887), (389, 889), (390, 891), (391, 893), (392, 895),
-    (393, 897), (394, 899), (395, 901), (396, 903), (397, 905), (398, 907), (399, 909), (400, 911),
-    (401, 913), (402, 915), (403, 917), (404, 918), (405, 919), (406, 920), (407, 921), (408, 922),
-    (409, 923), (410, 925), (411, 927), (412, 929), (413, 931), (414, 932), (415, 933), (416, 934),
-    (417, 935), (418, 936), (419, 938), (420, 940), (421, 942), (422, 944), (423, 946)]
+def wIdxLoop : List (ℕ × ℕ) := [(0, 34), (1, 35), (2, 36), (3, 37), (5, 80), (7, 90), (8, 91),
+    (9, 261), (10, 262), (11, 266), (12, 268), (13, 269), (14, 270), (15, 330), (16, 331),
+    (17, 349), (18, 350), (19, 368), (20, 369), (21, 387), (22, 388), (23, 389), (24, 390),
+    (25, 403), (26, 407), (27, 408), (28, 409), (29, 410), (30, 411), (31, 412), (32, 413),
+    (33, 414), (34, 415), (35, 417), (36, 419), (37, 425), (38, 426), (39, 427), (40, 428),
+    (41, 431), (42, 436), (43, 441), (44, 445), (45, 448), (46, 449), (47, 450), (48, 451),
+    (49, 453), (50, 456), (51, 459), (52, 462), (53, 464), (54, 465), (55, 466), (56, 467),
+    (57, 469), (58, 472), (59, 475), (60, 478), (61, 480), (62, 482), (63, 483), (64, 484),
+    (65, 485), (66, 486), (67, 488), (68, 491), (69, 494), (70, 497), (71, 499), (72, 501),
+    (73, 502), (74, 503), (75, 504), (76, 505), (77, 507), (78, 509), (79, 511), (80, 513),
+    (81, 514), (82, 515), (83, 516), (84, 517), (85, 518), (86, 519), (87, 521), (88, 523),
+    (89, 525), (90, 527), (91, 528), (92, 529), (93, 530), (94, 531), (95, 532), (96, 533),
+    (97, 535), (98, 537), (99, 539), (100, 541), (101, 542), (102, 543), (103, 546), (104, 547),
+    (105, 548), (106, 549), (107, 550), (108, 551), (109, 552), (110, 555), (111, 556), (112, 557),
+    (113, 558), (114, 559), (115, 560), (116, 561), (117, 562), (118, 564), (119, 565), (120, 566),
+    (121, 567), (122, 568), (123, 569), (124, 570), (125, 571), (126, 573), (127, 574), (128, 575),
+    (129, 576), (130, 578), (131, 579), (132, 580), (133, 581), (134, 582), (135, 583), (136, 585),
+    (137, 586), (138, 587), (139, 588), (140, 590), (141, 591), (142, 592), (143, 593), (144, 594),
+    (145, 595), (146, 597), (147, 598), (148, 599), (149, 600), (150, 601), (151, 602), (152, 603),
+    (153, 604), (154, 605), (155, 606), (156, 608), (157, 609), (158, 610), (159, 611), (160, 613),
+    (161, 614), (162, 615), (163, 616), (164, 617), (165, 618), (166, 620), (167, 622), (168, 624),
+    (169, 625), (170, 627), (171, 628), (172, 629), (173, 630), (174, 631), (175, 632), (176, 633),
+    (177, 634), (178, 636), (179, 637), (180, 638), (181, 639), (182, 640), (183, 641), (184, 642),
+    (185, 643), (186, 645), (187, 646), (188, 647), (189, 648), (190, 649), (191, 650), (192, 651),
+    (193, 652), (194, 654), (195, 655), (196, 656), (197, 657), (198, 658), (199, 659), (200, 660),
+    (201, 661), (202, 662), (203, 663), (204, 665), (205, 666), (206, 667), (207, 668), (208, 669),
+    (209, 670), (210, 671), (211, 672), (212, 673), (213, 674), (214, 676), (215, 677), (216, 678),
+    (217, 679), (218, 680), (219, 681), (220, 682), (221, 683), (222, 684), (223, 685), (224, 687),
+    (225, 688), (226, 689), (227, 690), (228, 691), (229, 692), (230, 693), (231, 694), (232, 695),
+    (233, 696), (234, 698), (235, 700), (236, 702), (237, 703), (238, 705), (239, 706), (240, 707),
+    (241, 708), (242, 709), (243, 710), (244, 711), (245, 712), (246, 714), (247, 715), (248, 716),
+    (249, 717), (250, 718), (251, 719), (252, 720), (253, 721), (254, 723), (255, 724), (256, 725),
+    (257, 726), (258, 727), (259, 728), (260, 729), (261, 730), (262, 732), (263, 733), (264, 734),
+    (265, 735), (266, 736), (267, 737), (268, 738), (269, 739), (270, 740), (271, 741), (272, 743),
+    (273, 744), (274, 745), (275, 746), (276, 747), (277, 748), (278, 749), (279, 750), (280, 751),
+    (281, 752), (282, 754), (283, 755), (284, 756), (285, 757), (286, 758), (287, 759), (288, 760),
+    (289, 761), (290, 762), (291, 763), (292, 765), (293, 767), (294, 768), (295, 769), (296, 770),
+    (297, 771), (298, 772), (299, 773), (300, 774), (301, 775), (302, 777), (303, 779), (304, 780),
+    (305, 781), (306, 783), (307, 784), (308, 785), (309, 786), (310, 787), (311, 788), (312, 789),
+    (313, 790), (314, 791), (315, 792), (316, 793), (317, 794), (318, 795), (319, 796), (320, 797),
+    (321, 798), (322, 799), (323, 800), (324, 801), (325, 802), (326, 803), (327, 804), (328, 805),
+    (329, 806), (330, 807), (331, 808), (332, 809), (333, 810), (334, 811), (335, 812), (336, 813),
+    (337, 814), (338, 815), (339, 816), (340, 817), (341, 818), (342, 819), (343, 820), (344, 821),
+    (345, 822), (346, 823), (347, 824), (348, 825), (349, 826), (350, 827), (351, 828), (352, 829),
+    (353, 830), (354, 831), (355, 832), (356, 833), (357, 834), (358, 835), (359, 836), (360, 837),
+    (361, 838), (362, 839), (363, 840), (364, 841), (365, 842), (366, 843), (367, 844), (368, 846),
+    (369, 848), (370, 850), (371, 852), (372, 854), (373, 856), (374, 858), (375, 860), (376, 862),
+    (377, 864), (378, 866), (379, 868), (380, 870), (381, 872), (382, 874), (383, 876), (384, 879),
+    (385, 881), (386, 883), (387, 886), (388, 888), (389, 890), (390, 892), (391, 894), (392, 896),
+    (393, 898), (394, 900), (395, 902), (396, 904), (397, 906), (398, 908), (399, 910), (400, 912),
+    (401, 914), (402, 916), (403, 918), (404, 920), (405, 922), (406, 924), (407, 926), (408, 928),
+    (409, 930), (410, 933), (411, 935), (412, 937), (413, 939), (414, 940), (415, 941), (416, 942),
+    (417, 943), (418, 944), (419, 946), (420, 948), (421, 950), (422, 952), (423, 954)]
 
 /-- The core index of a function by name, from `wIdxN`. -/
 def wIdx (f : String) : ℕ := (wIdxN.lookup f).getD 0

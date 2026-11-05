@@ -133,7 +133,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       [(a + 1) * fs "__loop17", (b + 1) * fs "__loop18", fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 350)
+      refine anyLoop_completeAtB fs cert (j := 349)
         (find_of_idx any136_idx (by rw [coreProgram_length]; omega)) any136_ok any136c_head
         any136c_canon any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
@@ -148,7 +148,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         exact this
       · rw [Nat.add_assoc]; exact hOR _ (by omega)
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 351)
+      refine anyLoop_completeAtB fs cert (j := 350)
         (find_of_idx any17_idx (by rw [coreProgram_length]; omega)) any17_ok any17c_parts.1
         any17c_parts.2.1 any17c_parts.2.2.1 any17c_parts.2.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)
@@ -229,7 +229,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       _ = last := by rw [hV.v8, e3]
   -- the path
   have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
-  have hw : walk σ (Fn.body Data.core26) =
+  have hw : walk σ (Fn.body Data.core25) =
       .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
         [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 66, .n 67] := by
     rw [any_body]

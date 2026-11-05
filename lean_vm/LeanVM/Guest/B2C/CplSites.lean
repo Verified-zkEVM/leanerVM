@@ -136,11 +136,40 @@ variable {j : ℕ} {σ : Val} {X : CX}
 
 /-- **What the walk of a block keeps of the site cells**: on a path through it, its calls' site
 cells are apart and unset at its start, and set where it joins. -/
+abbrev UOut (j : ℕ) (σ : Val) (ss : List Stmt) (r : RC) (U : ℕ) : Prop :=
+  (∀ e, walk σ ss = .fall e → ∀ J c u, (r = .join J c u ∨ (∃ m, r = .mid J m c u) ∨
+      ∃ succ, r = .chain J succ c u) → SitesG j U (calls e) u) ∧
+  (∀ e vs, walk σ ss = .ret e vs → SitesP j U (calls e))
+
 def UGood (X : CX) (j : ℕ) (σ : Val) (ss : List Stmt) (st : CW) : Prop :=
-  (cw X ss st).ok = true →
-    (∀ e, walk σ ss = .fall e → ∀ J c u, (cw X ss st = .join J c u ∨ ∃ m, cw X ss st = .mid J m c u) →
-      SitesG j st.uq (calls e) u) ∧
-    (∀ e vs, walk σ ss = .ret e vs → SitesP j st.uq (calls e))
+  (cw X ss st).ok = true → UOut j σ ss (cw X ss st) st.uq
+
+theorem u_stepR {s : Stmt} {ss : List Stmt} {st'' : CW} {e1 : List Ev} {U : ℕ} {r : RC}
+    (ih : UGood X j σ ss st'') (hw1 : walk1 σ s = .fall e1) (hcw : r = cw X ss st'')
+    (hg : SitesG j U (calls e1) st''.uq) (hok : r.ok = true) : UOut j σ (s :: ss) r U := by
+  rw [hcw] at hok
+  obtain ⟨h1, h2⟩ := ih hok
+  refine ⟨fun e hw J c u hj ↦ ?_, fun e vs hw ↦ ?_⟩
+  · rw [walk, hw1] at hw
+    cases hws : walk σ ss with
+    | fall e2 =>
+      rw [hws] at hw
+      simp only [Out.seq, Out.pre, Out.fall.injEq] at hw
+      subst hw
+      rw [calls_appendC]
+      exact sitesG_append hg (h1 e2 hws J c u (hcw ▸ hj))
+    | ret _ _ => rw [hws] at hw; cases hw
+    | stuck => rw [hws] at hw; cases hw
+  · rw [walk, hw1] at hw
+    cases hws : walk σ ss with
+    | fall _ => rw [hws] at hw; cases hw
+    | ret e2 v2 =>
+      rw [hws] at hw
+      simp only [Out.seq, Out.pre, Out.ret.injEq] at hw
+      obtain ⟨rfl, rfl⟩ := hw
+      rw [calls_appendC]
+      exact sitesP_append hg (h2 e2 _ hws)
+    | stuck => rw [hws] at hw; cases hw
 
 theorem u_step {s : Stmt} {ss : List Stmt} {st st'' : CW} {e1 : List Ev}
     (ih : UGood X j σ ss st'') (hw1 : walk1 σ s = .fall e1) (hcw : cw X (s :: ss) st = cw X ss st'')
@@ -176,25 +205,37 @@ theorem u_nil (st : CW) : UGood X j σ [] st := by
   refine ⟨fun e hw J c u hj ↦ ?_, fun e vs hw ↦ (by rw [walk] at hw; cases hw)⟩
   rw [walk] at hw
   cases hw
-  rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, hse, -, -, he⟩ | ⟨-, J', m', c', -, -, -, -, -, he⟩
+  rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, hse, -, -, he⟩ | ⟨-, J', m', c', -, -, -, -, -, he⟩ |
+    ⟨-, -, se, t, ft, o1, b, succ1, hse, -, -, -, -, -, -, he⟩
   · rw [he] at hj
-    rcases hj with hj | ⟨m, hj⟩
+    rcases hj with hj | ⟨m, hj⟩ | ⟨sx, hj⟩
     · simp only [RC.join.injEq] at hj
       obtain ⟨-, -, rfl⟩ := hj
       exact sitesG_nil fun _ h ↦ h
     · cases hj
+    · cases hj
   · rw [he] at hj
-    rcases hj with hj | ⟨m, hj⟩
+    rcases hj with hj | ⟨m, hj⟩ | ⟨sx, hj⟩
     · simp only [RC.join.injEq] at hj
       obtain ⟨-, -, rfl⟩ := hj
       obtain ⟨c, -, rfl⟩ := endAtC_eq hse
       exact sitesG_nil fun _ h ↦ h
     · cases hj
+    · cases hj
   · rw [he] at hj
-    rcases hj with hj | ⟨m, hj⟩
+    rcases hj with hj | ⟨m, hj⟩ | ⟨sx, hj⟩
     · cases hj
     · simp only [RC.mid.injEq] at hj
       obtain ⟨-, -, -, rfl⟩ := hj
+      exact sitesG_nil fun _ h ↦ h
+    · cases hj
+  · rw [he] at hj
+    rcases hj with hj | ⟨m, hj⟩ | ⟨sx, hj⟩
+    · cases hj
+    · cases hj
+    · simp only [RC.chain.injEq] at hj
+      obtain ⟨-, -, -, rfl⟩ := hj
+      obtain ⟨c, -, rfl⟩ := endAtC_eq hse
       exact sitesG_nil fun _ h ↦ h
 
 theorem u_atom (a : Core.Atom) (ss : List Stmt) (st : CW) (ih : ∀ st, UGood X j σ ss st) :
@@ -326,12 +367,13 @@ theorem u_callIf (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (c : V) (f
     rw [List.mem_singleton.mp hc', hnil] at hy
     cases hy
 
-theorem cwArms_u {J : ℕ} {se : CW} {key : Option (List Cnt)} :
+theorem cwArms_u {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (List Cnt)} :
     ∀ {as : List (List Core.Stmt)} {ts : List ℕ} {c : Cnt} {u : ℕ} {i : ℕ}
-    {c' : Cnt} {u' : ℕ}, cwArms X J se key as ts c u i = some (c', u') →
+    {c' : Cnt} {u' : ℕ}, cwArms X J succ v se key as ts c u i = some (c', u') →
     (∀ x, u.testBit x = true → u'.testBit x = true) ∧
     ∀ k (hk : k < as.length) (hk' : k < ts.length) s ck uk, segAtC X ts[k] se = some s →
-      cw X as[k] { s with book := fileB X.loc X.fs as[k] se.book } = .join J ck uk →
+      armEnd J succ (cw X as[k] { s with book := (fileB X.loc X.fs as[k] se.book), tg := (armTg X v (i + k) ++ s.tg) })
+        = some (ck, uk) →
       ∀ x, uk.testBit x = true → u'.testBit x = true
   | [], [], c, u, _, c', u', h => by
     simp only [cwArms, Option.some.injEq, Prod.mk.injEq] at h
@@ -343,26 +385,27 @@ theorem cwArms_u {J : ℕ} {se : CW} {key : Option (List Cnt)} :
     · rename_i s hs
       simp only [Trie.seq_eq] at h
       split at h
-      · rename_i J' ca ua hca
-        cases hJ : (Nat.beq J J' && armChkK key i ca)
+      · rename_i ca ua hca
+        cases hJ : armChkK key i ca
         · rw [hJ] at h; cases h
         rw [hJ] at h
-        simp only [Bool.and_eq_true] at hJ
-        obtain rfl := Nat.eq_of_beq_eq_true hJ.1
         simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq] at h
         obtain ⟨hu, hk⟩ := cwArms_u h
         refine ⟨fun x hx ↦ hu x (by rw [testBit_lorC, hx, Bool.true_or]), fun k hk1 hk2 s' ck uk hs' hck ↦ ?_⟩
         cases k with
         | zero =>
-          simp only [List.getElem_cons_zero] at hs' hck
+          simp only [List.getElem_cons_zero, Nat.add_zero] at hs' hck
           rw [hs] at hs'
           obtain rfl := Option.some.inj hs'
           rw [hca] at hck
-          simp only [RC.join.injEq] at hck
-          obtain ⟨-, -, rfl⟩ := hck
+          simp only [Option.some.injEq, Prod.mk.injEq] at hck
+          obtain ⟨-, rfl⟩ := hck
           exact fun x hx ↦ hu x (by rw [testBit_lorC, hx, Bool.or_true])
         | succ k =>
-          exact hk k (by simpa using hk1) (by simpa using hk2) s' ck uk hs' hck
+          refine hk k (by simpa using hk1) (by simpa using hk2) s' ck uk hs' ?_
+          simp only [List.getElem_cons_succ] at hck
+          rw [show i + 1 + k = i + (k + 1) by omega]
+          exact hck
       · cases h
     · cases h
   | [], _ :: _, _, _, _, _, _, h => by simp [cwArms] at h
@@ -420,58 +463,129 @@ theorem u_ite (c : V) (z n ss : List Stmt) (st : CW) (ihz : ∀ st, UGood X j σ
     rw [walk, hw1, hwbo] at hw
     cases hw
 
-theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt) (st : CW)
+/-- **The arms of a `match`** from its dispatch state `se`, the site cells set up `U` there: on a
+path, the arm taken keeps them apart, and the walk goes on after the join, or ends chained. -/
+theorem u_armsG {v : V} {a0 : List Stmt} {as : List (List Stmt)} {ss : List Stmt} {se s0 : CW}
+    {t0 : ℕ} {ts : List ℕ} {r : RC}
     (iha : ∀ k (hk : k < (a0 :: as).length) st, UGood X j σ (a0 :: as)[k] st)
-    (ih : ∀ st, UGood X j σ ss st) : UGood X j σ (.match_ v (a0 :: as) :: ss) st := by
-  intro hok
-  obtain ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, -, -, -, -, hl, -, -, -, -, -, hse, hs0,
-    h0, -, ha, hsj, hcw⟩ := cw_match hok
-  obtain ⟨cse, -, rfl⟩ := endAtC_eq hse
-  obtain ⟨s2, -, -, rfl⟩ := segAtC_eq hsj
-  obtain ⟨hl', -, hks⟩ := cwArms_spec ha
-  obtain ⟨hu0, huk⟩ := cwArms_u ha
-  -- each arm's walk, from its segment, keeps the cells apart and joins within `u`
-  have harm : ∀ k (hk : k < (a0 :: as).length),
-      (∀ eb, walk σ (a0 :: as)[k] = .fall eb → SitesG j st.uq (calls eb) u) ∧
-      ∀ eb vb, walk σ (a0 :: as)[k] = .ret eb vb → SitesP j st.uq (calls eb) := by
-    intro k hk
+    (ih : ∀ st, UGood X j σ ss st) (hl : ts.length = as.length)
+    (hs0 : segAtC X t0 (armSt (armKeyD X.acs v.idx) se) = some s0)
+    (hr : (∃ J c0 u0 c u sj,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .join J c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧
+        cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        segAtC X J se = some sj ∧
+        r = cw X ss { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u }) ∨
+       (∃ o' succ c0 u0 c u,
+        cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } = .chain o' succ c0 u0 ∧
+        armChkK (armKeyD X.acs v.idx) 0 c0 = true ∧ ss = [] ∧ succ ≠ [] ∧
+        cwArms X o' succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
+        r = .chain o' succ (armCnt (armKeyD X.acs v.idx) se c) u))
+    (hok : r.ok = true) : UOut j σ (.match_ v (a0 :: as) :: ss) r se.uq := by
+  -- each arm's walk, from its segment, keeps the cells apart and ends within the arms' `u`
+  have harm : ∀ (Jx : ℕ) (sx : List ℕ) (c0 : Cnt) (u0 : ℕ) (c : Cnt) (u : ℕ),
+      (sx = [] → cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } =
+        .join Jx c0 u0) →
+      (sx ≠ [] → cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg } =
+        .chain Jx sx c0 u0) →
+      cwArms X Jx sx v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) →
+      ∀ k (hk : k < (a0 :: as).length),
+      (∀ eb, walk σ (a0 :: as)[k] = .fall eb → SitesG j se.uq (calls eb) u) ∧
+      ∀ eb vb, walk σ (a0 :: as)[k] = .ret eb vb → SitesP j se.uq (calls eb) := by
+    intro Jx sx c0 u0 c u h0j h0c ha k hk
+    obtain ⟨hl', -, hks⟩ := cwArms_spec ha
+    obtain ⟨hu0, huk⟩ := cwArms_u ha
+    have hend : ∀ (st : CW) (ck : Cnt) (uk : ℕ) (w : List Stmt), armEnd Jx sx (cw X w st) = some (ck, uk) →
+        UGood X j σ w st → (∀ x, uk.testBit x = true → u.testBit x = true) →
+        (∀ eb, walk σ w = .fall eb → SitesG j st.uq (calls eb) u) ∧
+        ∀ eb vb, walk σ w = .ret eb vb → SitesP j st.uq (calls eb) := by
+      intro st ck uk w he hU hsub
+      have hok' := armEnd_ok he
+      obtain ⟨h1, h2⟩ := hU hok'
+      refine ⟨fun eb hw ↦ sitesG_mono (h1 eb hw Jx ck uk ?_) hsub, h2⟩
+      by_cases hsx : sx = []
+      · subst hsx
+        exact Or.inl (armEnd_join he)
+      · exact Or.inr (Or.inr ⟨sx, armEnd_chain hsx he⟩)
+    have hu0' : s0.uq = se.uq := by obtain ⟨_, _, _, hs⟩ := segAtC_eq hs0; rw [hs, armSt_uq]
     cases k with
     | zero =>
-      obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs0
-      have := iha 0 hk _ (by simp only [List.getElem_cons_zero]; rw [h0]; rfl)
-      simp only [List.getElem_cons_zero] at this ⊢
-      refine ⟨fun eb hw ↦ sitesG_mono ?_ hu0, fun eb vb hw ↦ ?_⟩
-      · have r := this.1 eb hw J c0 u0 (Or.inl h0)
-        simpa only [armSt_uq] using r
-      · have r := this.2 eb vb hw
-        simpa only [armSt_uq] using r
+      have he0 : armEnd Jx sx (cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book, tg := armTg X v 0 ++ s0.tg })
+          = some (c0, u0) := by
+        by_cases hsx : sx = []
+        · rw [h0j hsx, hsx]; simp [armEnd]
+        · rw [h0c hsx]; simp [armEnd, hsx]
+      have := hend _ c0 u0 _ he0 (iha 0 hk _) hu0
+      simpa [hu0'] using this
     | succ k =>
       have hk1 : k < as.length := by simpa using hk
       obtain ⟨s, ck, uk, hs, hck, -, -⟩ := hks k hk1 (by omega)
       obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs
-      have := iha (k + 1) hk _ (by simp only [List.getElem_cons_succ]; rw [hck]; rfl)
-      simp only [List.getElem_cons_succ] at this ⊢
-      refine ⟨fun eb hw ↦ sitesG_mono ?_ (huk k hk1 (by omega) _ ck uk hs hck), fun eb vb hw ↦ ?_⟩
-      · have r := this.1 eb hw J ck uk (Or.inl hck)
-        simpa only [armSt_uq] using r
-      · have r := this.2 eb vb hw
-        simpa only [armSt_uq] using r
+      have := hend _ ck uk _ (by simpa using hck) (iha (k + 1) hk _) (huk k hk1 (by omega) _ ck uk hs hck)
+      simpa only [armSt_uq, List.getElem_cons_succ] using this
   have hw1 : walk1 σ (.match_ v (a0 :: as)) = walkArms σ v 0 (a0 :: as) := rfl
-  cases hwa : walkArms σ v 0 (a0 :: as) with
-  | fall eb =>
-    obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
-    exact u_step (ih _) (by rw [hw1, hwa]) hcw ((harm k hk).1 eb hwk) hok
-  | ret eb vb =>
-    obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
-    refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
-    rw [walk, hw1, hwa] at hw
-    simp only [Out.seq, Out.ret.injEq] at hw
-    rw [← hw.1]
-    exact (harm k hk).2 eb vb hwk
-  | stuck =>
-    refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
-    rw [walk, hw1, hwa] at hw
-    cases hw
+  rcases hr with ⟨J, c0, u0, c, u, sj, h0, -, ha, hsj, hcw⟩ | ⟨o', succ, c0, u0, c, u, h0, -, rfl, hsn, ha, hcw⟩
+  · have harm' := harm J [] c0 u0 c u (fun _ ↦ h0) (fun h ↦ absurd rfl h) ha
+    obtain ⟨s2, -, -, rfl⟩ := segAtC_eq hsj
+    cases hwa : walkArms σ v 0 (a0 :: as) with
+    | fall eb =>
+      obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
+      exact u_stepR (ih _) (by rw [hw1, hwa]) hcw ((harm' k hk).1 eb hwk) hok
+    | ret eb vb =>
+      obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
+      refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
+      rw [walk, hw1, hwa] at hw
+      simp only [Out.seq, Out.ret.injEq] at hw
+      rw [← hw.1]
+      exact (harm' k hk).2 eb vb hwk
+    | stuck =>
+      refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
+      rw [walk, hw1, hwa] at hw
+      cases hw
+  · have harm' := harm o' succ c0 u0 c u (fun h ↦ absurd h hsn) (fun _ ↦ h0) ha
+    subst hcw
+    cases hwa : walkArms σ v 0 (a0 :: as) with
+    | fall eb =>
+      obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
+      refine ⟨fun e hw J c' u' hj ↦ ?_, fun e vs hw ↦ ?_⟩
+      · rw [walk, hw1, hwa] at hw
+        simp only [walk, Out.seq, Out.pre, List.append_nil, Out.fall.injEq] at hw
+        subst hw
+        rcases hj with hj | ⟨m, hj⟩ | ⟨sx, hj⟩
+        · cases hj
+        · cases hj
+        · simp only [RC.chain.injEq] at hj
+          obtain ⟨-, -, -, rfl⟩ := hj
+          exact (harm' k hk).1 eb hwk
+      · rw [walk, hw1, hwa] at hw
+        simp [walk, Out.seq, Out.pre] at hw
+    | ret eb vb =>
+      obtain ⟨k, hk, hwk⟩ := walkArms_some (σ := σ) (a0 :: as) 0 hwa (fun h ↦ by cases h)
+      refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
+      rw [walk, hw1, hwa] at hw
+      simp only [Out.seq, Out.ret.injEq] at hw
+      rw [← hw.1]
+      exact (harm' k hk).2 eb vb hwk
+    | stuck =>
+      refine ⟨fun e hw ↦ (by rw [walk, hw1, hwa] at hw; cases hw), fun e vs hw ↦ ?_⟩
+      rw [walk, hw1, hwa] at hw
+      cases hw
+
+theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt) (st : CW)
+    (iha : ∀ k (hk : k < (a0 :: as).length) st, UGood X j σ (a0 :: as)[k] st)
+    (ih : ∀ st, UGood X j σ ss st) : UGood X j σ (.match_ v (a0 :: as) :: ss) st := by
+  intro hok
+  obtain ⟨t, ft, t0, ts, base, se, s0, -, -, -, -, hl, -, -, -, -, -, -, hse, hs0, hr⟩ := cw_match hok
+  have hseu : se.uq = st.uq := by obtain ⟨cse, -, rfl⟩ := endAtC_eq hse; rfl
+  rw [← hseu]
+  exact u_armsG iha ih hl hs0 hr hok
+
+/-- **An entered `match`**: as `u_armsG`, from the state the part starts with. -/
+theorem u_enter (hW : ∀ ss st, UGood X j σ ss st) {o : ℕ} {succ : List ℕ} {se : CW} {ss : List Stmt}
+    (hok : (cwE X o succ se ss).ok = true) : UOut j σ ss (cwE X o succ se ss) se.uq := by
+  obtain ⟨v, a0, as, ss', t0, ts, s0, rfl, rfl, -, -, -, hl, -, -, hs0, hr⟩ := cwE_ok hok
+  exact u_armsG (fun k _ st ↦ hW _ st) (hW ss') hl hs0 hr hok
+
 
 mutual
 /-- **The walk keeps the site cells apart**, for every block and position. -/
@@ -538,14 +652,19 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
       have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (hchk i hi)).2.2.2.2 h).1) hc
       have hend := cplWin_end (hc k hk)
       obtain ⟨s, -, -, hres⟩ := cplRes_some hend
-      have hU := sites_Z (σ := σ) (X := Xp j i k) (j := j) rfl rfl (partStmts j i k) (st0 j i k s)
-        (cw_ok_of hres hend)
+      have hU : UOut j σ (partStmts j i k) (cplRes j i k) (partU j i k) := by
+        have hok' := cw_ok_of rfl hend
+        rcases hres with ⟨-, hres⟩ | ⟨o, succ, -, hres⟩
+        · rw [hres] at hok' ⊢
+          exact sites_Z (σ := σ) (X := Xp j i k) (j := j) rfl rfl (partStmts j i k) (st0 j i k s) hok'
+        · rw [hres] at hok' ⊢
+          exact u_enter (sites_Z rfl rfl) hok'
       unfold partPos at he
       rw [hsplit, walk_appendC] at he
       -- a part before the last: it joins within what the next part starts with
       have hmid : lastPart j i k = false → ∀ i' k', nextPos j i k = partPos j i' k' →
-          (∀ J c u, (cplRes j i k = .join J c u ∨ ∃ m, cplRes j i k = .mid J m c u) →
-            subK u (partU j i' k') = true) →
+          (∀ J c u, (cplRes j i k = .join J c u ∨ (∃ m, cplRes j i k = .mid J m c u) ∨
+            ∃ succ, cplRes j i k = .chain J succ c u) → subK u (partU j i' k') = true) →
           (∀ e, walk σ ((coreOf j).body.drop (partPos j i' k')) = .ret e vs →
             SitesP j (partU j i' k') (calls e)) → SitesP j (partU j i k) (calls e) := by
         intro hlp i' k' hnx hsub hih
@@ -553,13 +672,18 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
         · rw [hw1] at he
           obtain ⟨e2, hw2, rfl⟩ := seq_fall_ret he
           rw [hnx] at hw2
-          rcases hcr : cplRes j i k with ⟨J, c, u⟩ | ⟨J, m, c, u⟩ | _ | e
-          · have hg := hU.1 e1 hw1 J c u (Or.inl (hres.symm.trans hcr))
+          rcases hcr : cplRes j i k with ⟨J, c, u⟩ | ⟨o, succ, c, u⟩ | ⟨J, m, c, u⟩ | _ | e
+          · have hg := hU.1 e1 hw1 J c u (Or.inl hcr)
             rw [calls_appendC]
             exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u (Or.inl hcr)))) (hih e2 hw2)
-          · have hg := hU.1 e1 hw1 J c u (Or.inr ⟨m, hres.symm.trans hcr⟩)
+          · have hg := hU.1 e1 hw1 o c u (Or.inr (Or.inr ⟨succ, hcr⟩))
             rw [calls_appendC]
-            exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u (Or.inr ⟨m, hcr⟩)))) (hih e2 hw2)
+            exact sitesP_append (sitesG_mono hg (subK_spec (hsub o c u (Or.inr (Or.inr ⟨succ, hcr⟩)))))
+              (hih e2 hw2)
+          · have hg := hU.1 e1 hw1 J c u (Or.inr (Or.inl ⟨m, hcr⟩))
+            rw [calls_appendC]
+            exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u (Or.inr (Or.inl ⟨m, hcr⟩)))))
+              (hih e2 hw2)
           · rw [hcr] at hend
             have hl : lastPart j i k = true := hend
             rw [hl] at hlp
@@ -572,13 +696,16 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
       · have hb : Nat.blt (k + 1) (nParts j i) = true := Nat.blt_eq.mpr hn
         refine hmid (by simp only [lastPart, hb]; rfl) i (k + 1) (by unfold nextPos; rw [hb]; rfl)
           (fun J c u hcr ↦ ?_) (ih (k + 1) (by omega) hn)
-        rcases hcr with hcr | ⟨m, hcr⟩
+        rcases hcr with hcr | ⟨m, hcr⟩ | ⟨succ, hcr⟩
         · rw [hcr] at hend
           simp only [partEnd, hb, Bool.cond_true, Bool.and_eq_true] at hend
           exact hend.2
         · rw [hcr] at hend
           simp only [partEnd, Bool.and_eq_true] at hend
           exact hend.2
+        · rw [hcr] at hend
+          simp only [partEnd, hb, Bool.cond_true, Bool.and_eq_true] at hend
+          exact hend.2.2
       · by_cases hci : i < (certOf j).cuts.length
         · have hbi : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hci
           refine hmid (by simp only [lastPart, blt_falseC hn, hbi]; rfl) (i + 1) 0 ?_
@@ -586,7 +713,7 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
           · unfold nextPos partPos
             rw [blt_falseC hn, hbi, partS_zero (hok (i + 1) hci 0 (one_le_nParts j (i + 1)))]
             rfl
-          · rcases hcr with hcr | ⟨m, hcr⟩
+          · rcases hcr with hcr | ⟨m, hcr⟩ | ⟨succ, hcr⟩
             · rw [hcr] at hend
               simp only [partEnd, blt_falseC hn, hbi, Bool.cond_false, Bool.true_and,
                 Bool.and_eq_true] at hend
@@ -594,6 +721,10 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
             · rw [hcr] at hend
               simp only [partEnd, blt_falseC hn, Bool.false_and] at hend
               cases hend
+            · rw [hcr] at hend
+              simp only [partEnd, blt_falseC hn, hbi, Bool.cond_false, Bool.true_and,
+                Bool.and_eq_true] at hend
+              exact hend.2.2
         · have hlp : lastPart j i k = true := by
             simp only [lastPart, blt_falseC hn, blt_falseC hci]
             rfl

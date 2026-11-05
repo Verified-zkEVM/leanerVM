@@ -72,9 +72,9 @@ def ccAnyArm : List Stmt :=
 /-- The nonempty arm. -/
 def ccElse : List Stmt := ccE4 ++ [.ite (.n 31) ccMonoArm ccAnyArm]
 
-theorem ccd_body : Fn.body Data.core25 =
+theorem ccd_body : Fn.body Data.core24 =
     ccdHead ++ .ite (.n 6) cc25Zero ccElse :: (ccdTail ++ [.ret [.n 36, .n 37]]) := by
-  rw [core25_shape]; rfl
+  rw [core24_shape]; rfl
 
 set_option maxRecDepth 100000 in
 theorem cc25Zero_straight : cc25Zero.all Main.Stmt.straight = true := by decide +kernel
@@ -88,7 +88,7 @@ set_option maxRecDepth 100000 in
 theorem ccd_loop : coreProgram.loop "child_claim_list_digest" = false := by
   rw [Program.loop_of_find? find_child_claim_list_digest]; decide +kernel
 
-theorem ccd_param (σ : Val) : (Fn.params Data.core25).map σ =
+theorem ccd_param (σ : Val) : (Fn.params Data.core24).map σ =
     [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := rfl
 
 /-- A straight run, then a branch between straight arms, falls through. -/
@@ -245,8 +245,8 @@ theorem list_split_completeAtK (fs : String → ℕ) (cert : String → V → �
     Lift.relIn_of_leaf find_list_split list_split_leafOk
       (fun σ es vs _ hw A hA => by
         have hall : (Out.ret es vs).All (Lift.EvLeafOk noLoad) := by
-          have := Lift.walk_leafOk (σ := σ) Data.core23.body list_split_leafOk
-          exact (show walk σ Data.core23.body = .ret es vs from hw) ▸ this
+          have := Lift.walk_leafOk (σ := σ) Data.core22.body list_split_leafOk
+          exact (show walk σ Data.core22.body = .ret es vs from hw) ▸ this
         rw [loads_none hall] at hA
         exact absurd hA List.not_mem_nil)
       (list_split_complete' rd (hl.mono hκ) _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)

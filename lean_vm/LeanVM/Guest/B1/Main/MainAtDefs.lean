@@ -91,7 +91,8 @@ def mKids (m : MainIn) (Lin : B1.Main.Layout) : List Kid :=
     ⟨"claim_list_digest", true, [m.a80, gen ^ m.nls], Lin, Returns (digestCells m.sd)⟩,
     ⟨"__loop0", decide (m.nxd ≠ 0), [one, gen ^ m.nxd, m.a77, gen ^ m.nlx], Lin, Returns []⟩,
     ⟨"__loop1", decide (m.nsd ≠ 0), [one, gen ^ m.nsd, m.a80, gen ^ m.nls], Lin, Returns []⟩,
-    ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77], Lin, Returns []⟩,
+    ⟨"__loop2", decide (m.nrx ≠ 0), [one, gen ^ m.nrx, gen ^ X, m.a117, m.a77] ++ lxTagWords, Lin,
+      Returns []⟩,
     ⟨"__loop3", decide (m.nrs ≠ 0), [one, gen ^ m.nrs, gen ^ Y, m.a117 * gen ^ X, gen ^ m.nrx,
       m.a80, m.a119], Lin, Returns []⟩] ++
   (if m.nd = 1 then [⟨"da_verify", true, [m.et], Lin, Returns m.daR⟩] else []) ++

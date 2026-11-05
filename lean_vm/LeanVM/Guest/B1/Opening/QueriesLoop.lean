@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesSound
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# One iteration of `opening_queries`' loop (lean_ethereum.py:1412-1420 at c4f4bc92)
+# One iteration of `opening_queries`' loop (lean_ethereum.py:1410-1418 at b7a8d0cb)
 
 * `oqQuery_sound_wins`: a query whose window pointer names a run of a position's windows reads
   them all and opens at that position.
@@ -30,24 +30,14 @@ variable {rd : Reader} {σ : Val}
 
 /-! ## One query, its windows read -/
 
-/-- The padding run a query emits: `1, 0, 0, 0, 0`. -/
-theorem oqPad_values {pr : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPadT pr → a.Holds rd σ) :
-    σ (.n pr) = word 1 0 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 := by
-  refine ⟨hA _ (by simp [oqPadT] : Stmt.atom (.const (.n pr) (word 1 0 0)) ∈ _), fun i hi => ?_⟩
-  interval_cases i
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 1)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 2)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 3)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 4)) (word 0 0 0)) ∈ _)).trans word_zero
-
 /-- A run of the windows of a position below `2^depth`. -/
 def WinRun (rd : Reader) (bp : E) (depth cd : ℕ) : Prop :=
   ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
 /-- **A query whose window pointer names a position's windows** reads them and opens at it. -/
-theorem oqQuery_sound_wins {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd)
+theorem oqQuery_sound_wins {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
     {bp cap flags wp : V} {b : ℕ} {emit : Bool} {pr : ℕ}
-    (hA : BlockOk rd σ (oqQueryT s bp cap flags wp b emit pr))
+    (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqQueryT s bp cap flags wp b emit pr walk))
     (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
     (hrun : WinRun rd (σ bp) (s.pd + s.cd) s.cd) :
@@ -58,28 +48,26 @@ theorem oqQuery_sound_wins {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd)
   obtain ⟨q, hq, -, hfr⟩ := hrun
   have hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
       v = gen ^ qwVal (s.pd + s.cd) s.cd q i := fun i v hv hi ↦ hfr i hi v hv.2
-  refine ⟨q, hq, fun i hi ↦ ?_, oqQuery_sound hs (by omega) hA hpad hz hq hwin⟩
-  obtain ⟨v, hv⟩ := oqQuery_winLoads hA i hi
-  rwa [← hwin i v hv hi]
+  exact ⟨q, hq, oqQuery_sound hs hW hA hpad hz hq hwin⟩
 
 /-! ## The level-0 iteration -/
 
-theorem oqLoop1A_mem_q1 {s : Oq} {odd : ℕ} {a : Stmt}
-    (h : a ∈ oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0) :
-    a ∈ oqLoop1A s odd := by
+theorem oqLoop1A_mem_q1 {s : Oq} {odd : ℕ} {walk : String} {a : Stmt}
+    (h : a ∈ oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0 walk) :
+    a ∈ oqLoop1A s odd walk := by
   simp only [oqLoop1A, List.mem_append]; simp_all
 
-theorem oqLoop1A_mem_q2 {s : Oq} {odd : ℕ} {a : Stmt}
+theorem oqLoop1A_mem_q2 {s : Oq} {odd : ℕ} {walk : String} {a : Stmt}
     (h : a ∈ oqQueryT s (.n (oqE1 s)) (.n 3) (.n 4) (.n 5) (oqE1 s + 1) false
-      (oqK1 11 s.R + s.D)) :
-    a ∈ oqLoop1A s odd := by
+      (oqK1 11 s.R + s.D) walk) :
+    a ∈ oqLoop1A s odd walk := by
   simp only [oqLoop1A, List.mem_append]; simp_all
 
 /-- **A level-0 iteration** at `x = g^i` (G:1260-1264): its two queries open at the positions the
 window pointers `qptrs[2i + odd]`, `qptrs[2i + odd + 1]` name, and the chain steps by their
 values. -/
-theorem oqIter1_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {odd i : ℕ}
-    (hA : BlockOk rd σ (oqLoop1A s odd)) (hx : σ (.n 0) = gen ^ i)
+theorem oqIter1_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
+    {odd i : ℕ} (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqLoop1A s odd walk)) (hx : σ (.n 0) = gen ^ i)
     (hbool : ∀ k, k = 2 * i + odd ∨ k = 2 * i + odd + 1 → ∀ bp, LoadHolds rd (σ (.n 2)) k bp →
       WinRun rd bp (s.pd + s.cd) s.cd) :
     ∃ (bp1 bp2 : E) (q1 q2 : ℕ) (r1 r2 : List K) (d0 d1 v : E),
@@ -101,11 +89,11 @@ theorem oqIter1_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {odd i : ℕ
   -- the queries
   have hq1 := hA.mono fun a h => oqLoop1A_mem_q1 (odd := odd) h
   have hq2 := hA.mono fun a h => oqLoop1A_mem_q2 (odd := odd) h
-  obtain ⟨-, -, hpd, -, -, -⟩ := oqQuery_pieces hq1
+  obtain ⟨-, -, hpd, -, -⟩ := oqQuery_pieces hq1
   obtain ⟨e1, z⟩ := oqPad_values (hpd rfl)
-  obtain ⟨q1, hq1lt, hb1, ho1⟩ := oqQuery_sound_wins hs hcd hq1 e1 z
+  obtain ⟨q1, hq1lt, hb1, ho1⟩ := oqQuery_sound_wins hs hW hq1 e1 z
     (hbool _ (Or.inl rfl) _ p10)
-  obtain ⟨q2, hq2lt, hb2, ho2⟩ := oqQuery_sound_wins hs hcd hq2 e1 z
+  obtain ⟨q2, hq2lt, hb2, ho2⟩ := oqQuery_sound_wins hs hW hq2 e1 z
     (hbool (2 * i + odd + 1) (Or.inr rfl) _
       (by rw [show 2 * i + odd + 1 = 2 * i + (odd + 1) by omega]; exact pe1))
   -- the chain
@@ -128,15 +116,15 @@ theorem oqIter1_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {odd i : ℕ
 
 /-! ## The deeper iteration -/
 
-theorem oqLoop0A_mem_q {s : Oq} {a : Stmt}
-    (h : a ∈ oqQueryT s (.n 9) (.n 3) (.n 4) (.n 5) 10 true 0) :
-    a ∈ oqLoop0A s := by
+theorem oqLoop0A_mem_q {s : Oq} {walk : String} {a : Stmt}
+    (h : a ∈ oqQueryT s (.n 9) (.n 3) (.n 4) (.n 5) 10 true 0 walk) :
+    a ∈ oqLoop0A s walk := by
   simp only [oqLoop0A, List.mem_append]; simp_all
 
 /-- **A deeper iteration** at `x = g^i` (G:1265-1267): its query opens at the position the window
 pointer `qptrs[i]` names, and the chain steps by its value. -/
-theorem oqIter0_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {i : ℕ}
-    (hA : BlockOk rd σ (oqLoop0A s)) (hx : σ (.n 0) = gen ^ i)
+theorem oqIter0_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
+    {i : ℕ} (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqLoop0A s walk)) (hx : σ (.n 0) = gen ^ i)
     (hbool : ∀ bp, LoadHolds rd (σ (.n 2)) i bp → WinRun rd bp (s.pd + s.cd) s.cd) :
     ∃ (bp : E) (q : ℕ) (r : List K) (d v : E),
       LoadHolds rd (σ (.n 2)) i bp ∧ q < 2 ^ (s.pd + s.cd) ∧
@@ -148,9 +136,9 @@ theorem oqIter0_sound {s : Oq} (hs : s.RowShape) (hcd : 2 ≤ s.cd) {i : ℕ}
   simp only [Atom.Holds] at p8 p9
   rw [p8, hx, loadHolds_mul_gen_pow, Nat.add_zero] at p9
   have hq := hA.mono fun a h => oqLoop0A_mem_q h
-  obtain ⟨-, -, hpd, -, -, -⟩ := oqQuery_pieces hq
+  obtain ⟨-, -, hpd, -, -⟩ := oqQuery_pieces hq
   obtain ⟨e1, z⟩ := oqPad_values (hpd rfl)
-  obtain ⟨q, hqlt, hb, ho⟩ := oqQuery_sound_wins hs hcd hq e1 z (hbool _ p9)
+  obtain ⟨q, hqlt, hb, ho⟩ := oqQuery_sound_wins hs hW hq e1 z (hbool _ p9)
   set c := oqC0 s with hc
   have c0 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n c) (.n 6) (.n 0)) ∈ _)
   have c1 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.load (.n (c + 1)) (.n c) 0) ∈ _)

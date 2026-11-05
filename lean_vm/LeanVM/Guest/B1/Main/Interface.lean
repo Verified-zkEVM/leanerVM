@@ -15,16 +15,17 @@ public import LeanVM.Guest.B1.Sig.Interface
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (G:4261-4360, `core32`): from the batching seed (`AGG_SEED_*`), the
+**`aggregate_claims`** (G:4585-4689, `core33`): from the batching seed (`AGG_SEED_*`), the
 duplex sponge absorbs the children's count and every child's words, squeezes two coefficients per
 child, and one sumcheck (`batch_sumcheck`) reduces the children's claims on the bytecode to the
 claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words the memory holds
 (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs`, `bc_star_hint`
 (`MeaningAggregateClaims`).
 
-**`main`** (G:4375-4551, `core0`). Its callees with a witness, each through a witness function of
-the call's words (`CalleesW`): a leanXMSS signature `wX p` for the claim at `p`
-(`verify_lean_xmss`, `Sig.XmssOut`), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
+**`main`** (G:4406-4582, `core0`). Its callees with a witness, each through a witness function of
+the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
+`__loop2` at `args` (the leanXMSS check is inline there at b7a8d0cb: `Loop2Out`, its segment read
+as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
 a child's proof `wV args` (`verify_sub`: `verifyDeferred` of the child's public input under the
 seed, its fresh claim at the call's pointer, `VerifySubOut`), and the batching's hints
@@ -41,7 +42,8 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
   its claims are the slots whose marks lie in its segment from its base `written[c]`, by slot
   for a gap-walked list, else by mark, `kidStmt`; its fresh
   claim at `child_fresh · g^(24c)`; its proof `wV` at its `verify_sub` call's words); the raw
-  signatures, the `j`-th leanXMSS one at the slot holding the mark `j` (`slotOf`), the `j`-th
+  signatures, the `j`-th leanXMSS one at the slot holding the mark `j` (`slotOf`), its signature
+  `wX` of `__loop2`'s iteration `j` (`l2Args`), the `j`-th
   leanSPHINCS one at the slot holding `n_raw_x + j`, each with its slot's claim (`rawXmss`,
   `rawSphincs`); the matrix `da_verify` checks, with the claim it returns, when `n_direct_da = g`;
   and the batching's hints `wA`.
@@ -133,12 +135,22 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
       (pi0, pi1) = digestHalves pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
       ReadsAt rd out (DeferredClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
+/-- **A run of `__loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of its
+parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),
+and, when the tag parameters hold the chain indices, `sig` verifies the claim at the signer
+`.n 65`. -/
+def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signature) : Prop :=
+  ∃ σ : Val, Data.core36.params.map σ = args ∧
+    Stmt.HoldsList C rd σ (Sig.l2Pre ++ Sig.l2Post) False (fun rs => rs = []) ∧
+    (Sig.LxTagsHold (fun j => σ (.n (5 + j))) → Sig.XmssOut rd (σ (.n 65)) sig)
+
 /-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
-structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signature)
+structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.Signature)
     (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
-  /-- A leanXMSS check: the signature `wX p` verifies the claim at `p`. -/
-  xmss : ∀ p, coreProgram.Rel rd "verify_lean_xmss" [p] [] → Sig.XmssOut rd p (wX p)
+  /-- A raw leanXMSS iteration (`__loop2`, the leanXMSS check inline): its body around the
+  segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
+  xmss : ∀ args, coreProgram.Rel rd "__loop2" args [] → Loop2Out (coreProgram.Rel rd) rd args (wX args)
   /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
@@ -165,9 +177,9 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : E → LeanXmss.Signat
 `n_ls = .n 3`, `n_sdup = .n 4`, `n_raw_s = .n 5`, `n_children = .n 6`, `n_direct_da = .n 7`
 (each `g^count`); the region sizes `lx_slots = .n 40`, `ls_slots = .n 41`, `n_total = .n 42`;
 `fs_seed = .n 47, .n 48`; the exponent table `.n 49`; the pointers
-`lx_table = .n 52`, `ls_table = .n 55`, `cover = .n 66`, `da_digests = .n 334`,
-`child_pi = .n 365`, `child_fresh = .n 371`, `child_carried = .n 377`, `written = .n 380`,
-`defer_stmt = .n 398`; the direct DA check's words `.n 339 … .n 342`; `da_pick = .n 387`. -/
+`lx_table = .n 52`, `ls_table = .n 55`, `cover = .n 66`, `da_digests = .n 385`,
+`child_pi = .n 416`, `child_fresh = .n 422`, `child_carried = .n 428`, `written = .n 431`,
+`defer_stmt = .n 449`; the direct DA check's words `.n 390 … .n 393`; `da_pick = .n 438`. -/
 
 /-- The four cells of slot `s` of a table at `p`. -/
 noncomputable def slotCells (rd : Reader) (p : E) (s : ℕ) : List E := readCells rd (p * gen ^ (4 * s)) 4
@@ -187,7 +199,7 @@ noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : LeanSphincsClaim :
 noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 66)) s)
 
 /-- The running count `written[c]`, as a log. -/
-noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 380)) c)
+noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 431)) c)
 
 /-- The number of children. -/
 noncomputable def nKids (σ : Val) : ℕ := gLog (σ (.n 6))
@@ -207,7 +219,7 @@ noncomputable def lsSlots (σ : Val) : ℕ := gLog (σ (.n 41))
 /-- The DA digest of slot `k` of `da_digests`: its two cells at `g^(2k)` (child `c`'s at `k = c`,
 the node's own at `k = n_children`). -/
 noncomputable def daDigestAt (rd : Reader) (σ : Val) (k : ℕ) : Digest :=
-  digestOfCells (cellAt rd (σ (.n 334)) (2 * k)) (cellAt rd (σ (.n 334)) (2 * k + 1))
+  digestOfCells (cellAt rd (σ (.n 385)) (2 * k)) (cellAt rd (σ (.n 385)) (2 * k + 1))
 
 /-- **A child's list's slots** in the region `[lo, lo + len)` of the coverage table, its marks in
 `[a, b)`: when as many of the region's slots hold the list's first mark `a` as hold a mark of
@@ -230,17 +242,17 @@ noncomputable def kidStmt (rd : Reader) (σ : Val) (c : ℕ) : NodeStatement :=
   ⟨⟨(kidSlots rd σ 0 (lxSlots σ) a b).map (xmssAt rd (σ (.n 52))),
     (kidSlots rd σ (lxSlots σ) (lsSlots σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
-   deferOfCells (readCells rd (σ (.n 377) * gen ^ (24 * c)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 428) * gen ^ (24 * c)) 24)⟩
 
 /-- The words of child `c`'s `verify_sub` call. -/
 noncomputable def subArgs (rd : Reader) (σ : Val) (c : ℕ) : List E :=
-  [cellAt rd (σ (.n 365)) (2 * c), cellAt rd (σ (.n 365)) (2 * c + 1), σ (.n 47), σ (.n 48),
-    σ (.n 49), σ (.n 371) * gen ^ (24 * c)]
+  [cellAt rd (σ (.n 416)) (2 * c), cellAt rd (σ (.n 416)) (2 * c + 1), σ (.n 47), σ (.n 48),
+    σ (.n 49), σ (.n 422) * gen ^ (24 * c)]
 
 /-- **Child `c`**: its statement (`kidStmt`), its fresh claim at `child_fresh · g^(24c)`, its
 proof `wV` at its `verify_sub` call's words. -/
 noncomputable def decKid (rd : Reader) (σ : Val) (wV : List E → Proof) (c : ℕ) : Child :=
-  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 371) * gen ^ (24 * c)) 24),
+  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 422) * gen ^ (24 * c)) 24),
     wV (subArgs rd σ c)⟩
 
 /-- **The seed**: the cells `fs_seed`. -/
@@ -251,8 +263,8 @@ at the slot `da_pick` of `da_digests`, the deferred claim at `defer_stmt`. -/
 noncomputable def decStmt (σ : Val) (rd : Reader) : NodeStatement :=
   ⟨⟨(List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 52))),
     (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 55))),
-    daDigestAt rd σ (gLog (σ (.n 387)))⟩,
-   deferOfCells (readCells rd (σ (.n 398)) 24)⟩
+    daDigestAt rd σ (gLog (σ (.n 438)))⟩,
+   deferOfCells (readCells rd (σ (.n 449)) 24)⟩
 
 /-- The number of raw leanXMSS signatures, raw leanSPHINCS signatures, direct DA checks. -/
 noncomputable def nRawX (σ : Val) : ℕ := gLog (σ (.n 2))
@@ -261,14 +273,19 @@ noncomputable def nDirect (σ : Val) : ℕ := gLog (σ (.n 7))
 
 /-- The DA claim `da_verify` returns: its root and the challenge of its rate cells. -/
 noncomputable def dvClaim (σ : Val) : DaClaim :=
-  ⟨digestOfCells (σ (.n 339)) (σ (.n 340)), Da.scalarOfCells (σ (.n 341)) (σ (.n 342))⟩
+  ⟨digestOfCells (σ (.n 390)) (σ (.n 391)), Da.scalarOfCells (σ (.n 392)) (σ (.n 393))⟩
+
+/-- `__loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
+the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4493-4506). -/
+def l2Args (σ : Val) : List E :=
+  [σ (.n 2), σ (.n 40), σ (.n 66), σ (.n 52)] ++ (List.range 51).map fun j => σ (.n (325 + j))
 
 /-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
-signature `wX` at the slot. -/
-noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : E → LeanXmss.Signature) (j : ℕ) :
+signature `wX` of `__loop2`'s iteration `j` (its arguments `g^j :: l2Args σ`). -/
+noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : List E → LeanXmss.Signature) (j : ℕ) :
     LeanXmssClaim × LeanXmss.Signature :=
   let s := slotOf rd σ 0 (lxSlots σ) j
-  (xmssAt rd (σ (.n 52)) s, wX (σ (.n 52) * gen ^ (4 * s)))
+  (xmssAt rd (σ (.n 52)) s, wX (gen ^ j :: l2Args σ))
 
 /-- The raw leanSPHINCS signature of mark `n_raw_x + j`, in the leanSPHINCS region (`rawXmss`). -/
 noncomputable def rawSphincs (rd : Reader) (σ : Val) (wS : E → Sphincs.Signature) (j : ℕ) :
@@ -278,16 +295,16 @@ noncomputable def rawSphincs (rd : Reader) (σ : Val) (wS : E → Sphincs.Signat
 
 /-- **The witness**: the children, the raw signatures by their marks (`rawXmss`, `rawSphincs`),
 the matrix `da_verify` checks with the claim it returns, the batching's hints. -/
-noncomputable def decWit (σ : Val) (rd : Reader) (wX : E → LeanXmss.Signature)
+noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Signature)
     (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : NodeWitness :=
   ⟨(List.range (nKids σ)).map (decKid rd σ wV),
     (List.range (nRawX σ)).map (rawXmss rd σ wX),
     (List.range (nRawS σ)).map (rawSphincs rd σ wS),
     if nDirect σ = 1 then
-      some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
+      some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
     else none,
-    wA [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 377), σ (.n 398)]⟩
+    wA [σ (.n 6), σ (.n 416), σ (.n 422), σ (.n 428), σ (.n 449)]⟩
 
 /-! ## The statement -/
 
@@ -299,7 +316,7 @@ witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives th
 def main_sound_Spec (bytecode : List K) : Prop :=
   bytecode.length = 2 ^ bytecodeVars →
   ∀ (rd : Reader), MemOk rd →
-  ∀ (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+  ∀ (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof) (wA : List E → BatchingHints),
     CalleesW bytecode rd wX wS wD wV wA →
   ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestHalves D).1 →
@@ -313,8 +330,8 @@ def main_sound_Spec (bytecode : List K) : Prop :=
 theorem find_main : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core34 :=
-  Program.find?_of_indexOf? (j := 34) (by decide +kernel) rfl
+theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core33 :=
+  Program.find?_of_indexOf? (j := 33) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Main

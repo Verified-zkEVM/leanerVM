@@ -17,115 +17,115 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem oqBody_533 : Data.core555.body = oqMainT ⟨1, 64, 11, 7⟩ 0 "__loop391" :=
+theorem oqBody_533 : Data.core554.body = oqMainT ⟨1, 64, 11, 7⟩ 0 (oqWalkOf ⟨1, 64, 11, 7⟩) "__loop391" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_859 : Data.core893.body = oqLoop1T ⟨1, 64, 11, 7⟩ 0 "__loop391" :=
+theorem oqBody_859 : Data.core894.body = oqLoop1T ⟨1, 64, 11, 7⟩ 0 (oqWalkOf ⟨1, 64, 11, 7⟩) "__loop391" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_692 : Data.core714.body = oqMainT ⟨1, 64, 14, 6⟩ 0 "__loop414" :=
+theorem oqBody_692 : Data.core713.body = oqMainT ⟨1, 64, 14, 6⟩ 0 (oqWalkOf ⟨1, 64, 14, 6⟩) "__loop414" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_884 : Data.core932.body = oqLoop1T ⟨1, 64, 14, 6⟩ 0 "__loop414" :=
+theorem oqBody_884 : Data.core940.body = oqLoop1T ⟨1, 64, 14, 6⟩ 0 (oqWalkOf ⟨1, 64, 14, 6⟩) "__loop414" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_563 : Data.core585.body = oqMainT ⟨1, 64, 14, 7⟩ 0 "__loop395" :=
+theorem oqBody_563 : Data.core584.body = oqMainT ⟨1, 64, 14, 7⟩ 0 (oqWalkOf ⟨1, 64, 14, 7⟩) "__loop395" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_863 : Data.core901.body = oqLoop1T ⟨1, 64, 14, 7⟩ 0 "__loop395" :=
+theorem oqBody_863 : Data.core902.body = oqLoop1T ⟨1, 64, 14, 7⟩ 0 (oqWalkOf ⟨1, 64, 14, 7⟩) "__loop395" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_721 : Data.core743.body = oqMainT ⟨1, 64, 17, 6⟩ 0 "__loop417" :=
+theorem oqBody_721 : Data.core742.body = oqMainT ⟨1, 64, 17, 6⟩ 0 (oqWalkOf ⟨1, 64, 17, 6⟩) "__loop417" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_887 : Data.core935.body = oqLoop1T ⟨1, 64, 17, 6⟩ 0 "__loop417" :=
+theorem oqBody_887 : Data.core943.body = oqLoop1T ⟨1, 64, 17, 6⟩ 0 (oqWalkOf ⟨1, 64, 17, 6⟩) "__loop417" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_743 : Data.core765.body = oqMainT ⟨1, 64, 19, 6⟩ 0 "__loop419" :=
+theorem oqBody_743 : Data.core764.body = oqMainT ⟨1, 64, 19, 6⟩ 0 (oqWalkOf ⟨1, 64, 19, 6⟩) "__loop419" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_889 : Data.core938.body = oqLoop1T ⟨1, 64, 19, 6⟩ 0 "__loop419" :=
+theorem oqBody_889 : Data.core946.body = oqLoop1T ⟨1, 64, 19, 6⟩ 0 (oqWalkOf ⟨1, 64, 19, 6⟩) "__loop419" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_632 : Data.core654.body = oqMainT ⟨1, 64, 14, 7⟩ 1 "__loop406" :=
+theorem oqBody_632 : Data.core653.body = oqMainT ⟨1, 64, 14, 7⟩ 1 (oqWalkOf ⟨1, 64, 14, 7⟩) "__loop406" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_875 : Data.core920.body = oqLoop1T ⟨1, 64, 14, 7⟩ 1 "__loop406" :=
+theorem oqBody_875 : Data.core924.body = oqLoop1T ⟨1, 64, 14, 7⟩ 1 (oqWalkOf ⟨1, 64, 14, 7⟩) "__loop406" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_515 : Data.core537.body = oqMainT ⟨1, 64, 15, 8⟩ 1 "__loop387" :=
+theorem oqBody_515 : Data.core536.body = oqMainT ⟨1, 64, 15, 8⟩ 1 (oqWalkOf ⟨1, 64, 15, 8⟩) "__loop387" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_855 : Data.core885.body = oqLoop1T ⟨1, 64, 15, 8⟩ 1 "__loop387" :=
+theorem oqBody_855 : Data.core886.body = oqLoop1T ⟨1, 64, 15, 8⟩ 1 (oqWalkOf ⟨1, 64, 15, 8⟩) "__loop387" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_422 : Data.core444.body = oqMainT ⟨0, 16, 10, 5⟩ 0 "__loop370" :=
+theorem oqBody_422 : Data.core443.body = oqMainT ⟨0, 16, 10, 5⟩ 0 (oqWalkOf ⟨0, 16, 10, 5⟩) "__loop370" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_831 : Data.core851.body = oqLoop0T ⟨0, 16, 10, 5⟩ "__loop370" :=
+theorem oqBody_831 : Data.core850.body = oqLoop0T ⟨0, 16, 10, 5⟩ (oqWalkOf ⟨0, 16, 10, 5⟩) "__loop370" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_568 : Data.core590.body = oqMainT ⟨0, 16, 13, 4⟩ 0 "__loop396" :=
+theorem oqBody_568 : Data.core589.body = oqMainT ⟨0, 16, 13, 4⟩ 0 (oqWalkOf ⟨0, 16, 13, 4⟩) "__loop396" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_864 : Data.core903.body = oqLoop0T ⟨0, 16, 13, 4⟩ "__loop396" :=
+theorem oqBody_864 : Data.core904.body = oqLoop0T ⟨0, 16, 13, 4⟩ (oqWalkOf ⟨0, 16, 13, 4⟩) "__loop396" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_474 : Data.core496.body = oqMainT ⟨0, 16, 13, 5⟩ 0 "__loop380" :=
+theorem oqBody_474 : Data.core495.body = oqMainT ⟨0, 16, 13, 5⟩ 0 (oqWalkOf ⟨0, 16, 13, 5⟩) "__loop380" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_845 : Data.core871.body = oqLoop0T ⟨0, 16, 13, 5⟩ "__loop380" :=
+theorem oqBody_845 : Data.core870.body = oqLoop0T ⟨0, 16, 13, 5⟩ (oqWalkOf ⟨0, 16, 13, 5⟩) "__loop380" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_471 : Data.core493.body = oqMainT ⟨0, 16, 13, 6⟩ 0 "__loop379" :=
+theorem oqBody_471 : Data.core492.body = oqMainT ⟨0, 16, 13, 6⟩ 0 (oqWalkOf ⟨0, 16, 13, 6⟩) "__loop379" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_844 : Data.core869.body = oqLoop0T ⟨0, 16, 13, 6⟩ "__loop379" :=
+theorem oqBody_844 : Data.core868.body = oqLoop0T ⟨0, 16, 13, 6⟩ (oqWalkOf ⟨0, 16, 13, 6⟩) "__loop379" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_683 : Data.core705.body = oqMainT ⟨0, 16, 17, 4⟩ 0 "__loop413" :=
+theorem oqBody_683 : Data.core704.body = oqMainT ⟨0, 16, 17, 4⟩ 0 (oqWalkOf ⟨0, 16, 17, 4⟩) "__loop413" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_883 : Data.core931.body = oqLoop0T ⟨0, 16, 17, 4⟩ "__loop413" :=
+theorem oqBody_883 : Data.core939.body = oqLoop0T ⟨0, 16, 17, 4⟩ (oqWalkOf ⟨0, 16, 17, 4⟩) "__loop413" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_602 : Data.core624.body = oqMainT ⟨0, 16, 17, 5⟩ 0 "__loop402" :=
+theorem oqBody_602 : Data.core623.body = oqMainT ⟨0, 16, 17, 5⟩ 0 (oqWalkOf ⟨0, 16, 17, 5⟩) "__loop402" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_871 : Data.core915.body = oqLoop0T ⟨0, 16, 17, 5⟩ "__loop402" :=
+theorem oqBody_871 : Data.core916.body = oqLoop0T ⟨0, 16, 17, 5⟩ (oqWalkOf ⟨0, 16, 17, 5⟩) "__loop402" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_745 : Data.core767.body = oqMainT ⟨0, 16, 19, 5⟩ 0 "__loop420" :=
+theorem oqBody_745 : Data.core766.body = oqMainT ⟨0, 16, 19, 5⟩ 0 (oqWalkOf ⟨0, 16, 19, 5⟩) "__loop420" :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem oqBody_890 : Data.core940.body = oqLoop0T ⟨0, 16, 19, 5⟩ "__loop420" :=
+theorem oqBody_890 : Data.core948.body = oqLoop0T ⟨0, 16, 19, 5⟩ (oqWalkOf ⟨0, 16, 19, 5⟩) "__loop420" :=
   stmtsEqb_sound (by decide +kernel)
 
 end

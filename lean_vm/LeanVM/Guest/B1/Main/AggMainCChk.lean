@@ -59,7 +59,7 @@ theorem mem_aggA {a : Atom} : a ∈ aggA ↔ a ∈ atomsIn aggP ∧ a ∉ aggSto
   simp [aggA]
 
 set_option maxRecDepth 100000 in
-theorem agg_stores : storesOf 5 (Fn.body Data.core34) = aggStores := by decide +kernel
+theorem agg_stores : storesOf 5 (Fn.body Data.core33) = aggStores := by decide +kernel
 
 /-- **`aggregate_claims`' body, evaluated**: its values defined in order, its atoms but its stores
 holding from its loads, its packs and the final check, its statements atoms or its calls, the
@@ -67,7 +67,7 @@ sums of `bc_point1` pure. -/
 noncomputable def aggCOk : Bool :=
   let A := atomsIn aggP
   let P := A.filter pureB
-  (chk 5 (Fn.body Data.core34)).isSome && canonChk ((List.range 13).map (70 + ·)) aggA &&
+  (chk 5 (Fn.body Data.core33)).isSome && canonChk ((List.range 13).map (70 + ·)) aggA &&
   aggA.all (fun a => !needsSide a || isPackInK aggPacks a || decide (a ∈ aggLoads) ||
     decide (a = .assertInK (.n 100) (.n 103)) || decide (a = .assertEq (.n 126) (.n 206))) &&
   aggPacks.all (fun p => packIn aggA p.1 p.2) &&

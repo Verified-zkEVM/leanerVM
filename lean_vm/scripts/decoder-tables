@@ -5,14 +5,16 @@ For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its nu
 (`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
 cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i}_{k}`). Read off
 the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entry list
-(`--entries FILE`, the output of `#eval (List.range nFns).map fun j ↦ (fnOf j).entryPc`);
+(`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
+`lake env lean scripts/decoder-tables-inputs.lean` prints after `lake build`);
 `Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions by kernel
-evaluation. Run from lean_vm: `python3 -I scripts/decoder-tables --entries FILE`; `--check`
-fails when the file differs.
+evaluation. `python3 -I scripts/decoder-tables --entries FILE`, from any directory (the paths are
+lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run it).
 """
-import argparse, glob, re, sys
+import argparse, glob, os, re, sys
+from pathlib import Path
 
-N = 948
+N = 992
 PART = 512  # rows per part of `guestLocsList`
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
@@ -22,7 +24,7 @@ def cores():
     for f in sorted(glob.glob("LeanVM/Guest/Data/Core*.lean")):
         s = open(f).read()
         for m in re.finditer(r"noncomputable def core(\d+) : Core\.Fn where\n  name := \"[^\"]*\"\n"
-                             r"  params := (\[.*?\])\n", s, re.S):
+                             r"  params := (.*?)\n  body", s, re.S):
             p = m.group(2).strip()
             out[int(m.group(1))] = 0 if p == "[]" else p.count(".n ")
     return out
@@ -61,10 +63,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--entries", required=True)
     ap.add_argument("--check", action="store_true")
-    ap.add_argument("--split-rows", default="21",
+    ap.add_argument("--split-rows", default="37",
                     help="rows whose cells' lists get a name of their own (checked by chunks)")
     a = ap.parse_args()
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
+    os.chdir(Path(__file__).resolve().parent.parent)
     assert len(entries) == N, len(entries)
     co, ce = cores(), certs()
     args = [co[max(j - 1, 0)] for j in range(N)]

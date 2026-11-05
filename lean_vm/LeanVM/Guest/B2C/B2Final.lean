@@ -12,6 +12,8 @@ public import LeanVM.Guest.B2C.B2
 public import LeanVM.Guest.B2C.Cplw
 public import LeanVM.Guest.B2C.FrameAll
 public import LeanVM.Guest.B2C.KFacts
+public import LeanVM.Guest.B2C.Chained
+public import LeanVM.Guest.B2C.Chain
 
 /-!
 # B2's completeness at the deployed instance
@@ -19,7 +21,8 @@ public import LeanVM.Guest.B2C.KFacts
 The instance is the certificates' (`B2C.fs`, `B2C.H`, `B2C.C`, `B2C.cert`) with the counts
 `B2C.cnt` (each instance's path count at each opcode, plus the jump table's `SET`s, `jtSets`).
 Every compiled function runs by the kernel's completeness checks (`cplRun_all`, `Cplw.cplOk_all`),
-and every running instance's frame holds what its check reads (`frameHolds_all`), so the honest
+and every running instance's frame holds what its check reads (`frameHolds_all`; the chained
+`match`es' targets by `Chained.chainOk_all`, `chainApart_of`), so the honest
 memory runs from `main`'s entry to the end (`b2cB2`) within the counts (`b2cCount`). With the
 checker's facts (`kFactsAll`), the counts' invariance under the re-choice of temporaries
 (`cntRetemp`, by `coreProgram_fresh`) and the jump table in `main`'s cells (`tableC_node`), every
@@ -40,7 +43,8 @@ theorem cplRun_all : ∀ j, 1 ≤ j → j < nFns → CplRun j := cplRun_of_ok Cp
 
 /-- **B2's hypotheses**: every function runs, and every running instance's frame holds what the
 check reads (the call sites of a path apart, by the completeness checks). -/
-theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_all (sitesApart_all_of Cplw.cplOk_all)⟩
+theorem b2Hyps : B2Hyps := ⟨cplRun_all, frameHolds_all (sitesApart_all_of Cplw.cplOk_all)
+  fun j h1 h2 ↦ chainApart_of (Cplw.cplOk_all j h1 h2) (End.winOk_of h1 h2) (Chained.chainOk_all j h1 h2)⟩
 
 /-- **B2**: the honest memory runs from `main`'s entry to the end. -/
 theorem b2cB2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →

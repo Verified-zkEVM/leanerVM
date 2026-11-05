@@ -38,7 +38,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 @[expose] public section
 
 /-- `da_verify_column`'s block. -/
-noncomputable def colPre : List Stmt := (Fn.body Data.core30).dropLast
+noncomputable def colPre : List Stmt := (Fn.body Data.core29).dropLast
 
 /-- Its calls. -/
 def colCallsS : List (Option V × String × List V × List V) :=
@@ -158,7 +158,7 @@ theorem col_sholds {rd : Reader} (r : ℕ) (z : E) (bz bt bc bo bR h : ℕ) (r13
     (htop : LoadHolds rd (gen ^ (bt + 2 ^ 7) * gen ^ h) 0 (topLeaf z h)) :
     ∀ s ∈ colPre, SHolds (fun _ _ _ => True) rd (Val.ofArgs (colVals r z bz bt bc bo bR h r13)) s := by
   intro s hs
-  simp only [colPre, Data.core30, Data.core30.body, List.dropLast_cons_cons, List.dropLast_singleton,
+  simp only [colPre, Data.core29, Data.core29.body, List.dropLast_cons_cons, List.dropLast_singleton,
     List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals simp only [SHolds, Atom.Holds, ofArgs_n, colVals, List.getD_cons_succ,
@@ -181,7 +181,7 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   unfold colCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨⟨⟨hflat, hnd⟩, hni⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hcok
-  have hb : Fn.body Data.core30 = colPre ++ [.ret []] := rfl
+  have hb : Fn.body Data.core29 = colPre ++ [.ret []] := rfl
   have hLz : ∀ {rd : Reader} {L : Layout}, (bz, zsCells z) ∈ L → MemL rd L →
       ∀ j < 15, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by
     have := reads_of_memL hm hq j (by simp [zsCells]; exact hj)

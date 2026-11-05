@@ -382,6 +382,12 @@ theorem execWin_z (hctx : Ctx F κ fp) {f : CompiledFunction} (hf : Fetches prog
   passZ_good hctx _ a _ [] [] 0 (hf.window a (b - a))
     (fun _ h ↦ Option.some.inj h ▸ curZ_init a _) (fun _ h ↦ by cases h) s hs
 
+theorem execWinS_z (hctx : Ctx F κ fp) {f : CompiledFunction} (hf : Fetches prog f.entryPc f.code)
+    {a b : ℕ} {env : List (ℕ × Sym)} {seeds : List ℕ} {s : Seg} (hs : s ∈ (execWinS F f a env seeds b).segs) :
+    SegZ L fp prog f.entryPc s :=
+  passZ_good hctx _ a _ _ [] 0 (hf.window a (b - a))
+    (fun _ h ↦ Option.some.inj h ▸ curZ_init a _) (fun _ h ↦ by cases h) s hs
+
 end Pass
 
 end
