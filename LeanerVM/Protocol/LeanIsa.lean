@@ -9,7 +9,6 @@ module
 
 public import LeanerVM.Protocol.ToClean.ComponentPolynomial
 public import LeanerVM.Arithmetization.Statement
-public import LeanerVM.Protocol.Bus
 public import LeanerVM.Protocol.FixedColumns
 public import LeanerVM.Protocol.FlockSpec
 public import LeanerVM.Protocol.Stack
@@ -18,7 +17,7 @@ public import LeanerVM.Protocol.Stack
 # The leanISA instance
 
 The proof system is stated over an abstract `M3Instance`; this module builds the one leanVM
-proves, from leanISA's constraint system (`leanIsaEnsemble prog`, Clean), the public program
+proves, from leanISA's constraint system (`leanIsaEnsemble prog κ`, Clean), the public program
 `prog`, the announced sizes `s` and a Flock specification `F`. It is the only place where the
 proof system meets leanISA, and it is data: what the adaptor's theorems say of it is in
 `LeanIsa/Sound.lean` and `LeanIsa/Complete.lean`.
@@ -35,8 +34,9 @@ the commitment, not by the instance.
 memory columns `MEM_LO, MEM_HI, MEM_TOP, MFCNT` at height `2^logMem`; the bytecode finalize
 count `BFCNT` at `2^prog.logSize`; the Flock region `QFLOCK` at `2^(8 + τ_BLAKE2S)`
 (`layout.rs:151-157`, `qflock_kappa`); then the six opcode tables at their announced heights,
-each `Component.toM3` of its Clean component with leanISA's separators, directions and counted
-channels (`channelSep`, `channelDir`, the memory and bytecode pulls). The first three are column
+each `Component.toM3` of its Clean component with leanISA's separators and counted interactions
+(`channelSep`; the memory and bytecode pulls), each flush on the side of its interaction's
+direction. The first three are column
 groups: no constraint, flush or count, so the table sumcheck never visits them.
 
 **The bus.** The opcode tables' flushes, and six boundary blocks written from the Rust's
@@ -65,16 +65,16 @@ third line pins the top limbs, which the statement's words have zero by type.
 
 **The maps.** `stackOf F s w` stacks the columns a witness `w` carries: the memory and bytecode
 blocks' committed cells, the opcode tables' rows, and `F.gen` of the `BLAKE2S` rows' limbs as the
-Flock region. `witnessOf F prog s q` reads a witness off any stack `q`: the six opcode tables
-from their rows, the memory block from the memory columns and the index `g^i`, the bytecode
-block from the program and `BFCNT`, the prover data's image from the memory columns, the public
-input from cells `0, 1` of `MEM_LO, MEM_HI`. Both are total and computable.
+Flock region. `witnessOf F prog s q`, a witness of `leanIsaEnsemble prog s.logMem`, reads one off
+any stack `q`: the six opcode tables from their rows, the memory block from the memory columns
+and its fixed index `g^i`, the bytecode block from its fixed program columns and `BFCNT`, the
+public input from cells `0, 1` of `MEM_LO, MEM_HI`; the prover data, and so the image, is
+derived from the memory block (`witnessOfTables`). A table holds at most `2^64` rows (Clean's
+row indices), so a table taller than that is read as empty; within the caps none is. Both maps
+are total and computable.
 
-**The bus phase's conditions.** `leanIsa_conditions`: at every size the instance meets
-`Bus.Conditions`, so leanVM's master theorems apply to it: the pull side has as many leaves as the
-push side (each table pulls as often as it pushes, and the boundary blocks pair up), the count
-side has no more (each count is a pull's), and `JUMP`, the one table with constraints, pushes.
-With `d = 2` it meets the table sumcheck's degree bound by definition.
+**The bus phase's conditions** are `LeanIsa/Conditions.lean`'s `leanIsa_conditions`. With
+`d = 2` the instance meets the table sumcheck's degree bound by definition.
 
 Category B for the layout, the boundary blocks and the sizes, transcribed from
 `crates/lean_vm/src` at `a386121f84292f6fa663aaa3e570c15bc0240ea2`; the instance's
@@ -104,17 +104,20 @@ namespace LeanIsa
 
 /-- The six opcode tables, in the ensemble's order. -/
 def opcodeComponent : Fin 6 → Component K :=
-  ![⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩]
+  ![xorComponent, mulComponent, setComponent, derefComponent, jumpComponent, blake2sComponent]
 
-/-- The channels whose coordinate `1` is a read count: the memory and bytecode pulls (§6.2). -/
-def counted (c : RawChannel K) : Bool := c.name = MemPull.name || c.name = BytecodePull.name
+/-- The interactions whose coordinate `1` is a read count: the memory and bytecode pulls
+(§6.2). -/
+def counted (i : AbstractInteraction K) : Bool :=
+  (i.channel.name = MemChannel.name || i.channel.name = BytecodeChannel.name) &&
+    i.direction == .pull
 
-/-- Opcode table `j` as an M3 table. -/
-def opcodeTable (j : Fin 6) : M3Table K Arithmetization.Direction :=
-  (opcodeComponent j).toM3 channelSep channelDir counted
+/-- Opcode table `j` as an M3 table, each flush with its interaction's direction. -/
+def opcodeTable (j : Fin 6) : M3Table K BusDir :=
+  (opcodeComponent j).toM3 channelSep (·.direction) counted
 
 /-- The side of the bus a direction flushes on. -/
-def sideOf : Arithmetization.Direction → Side
+def sideOf : BusDir → Side
   | .push => .push
   | .pull => .pull
 
@@ -169,12 +172,12 @@ def counts : (j : Fin 9) → List (Fin (width j))
   | ⟨j + 3, h⟩ => (opcodeTable ⟨j, by omega⟩).count
 
 /-- Every assert expression of an opcode table has syntactic degree at most two. -/
-theorem opcode_constraints_degreeBound :
+private theorem opcode_constraints_degreeBound :
     ∀ j : Fin 6, ∀ e ∈ (opcodeComponent j).rowOperations.constraints, e.degreeBound ≤ 2 := by
   decide +kernel
 
 /-- Every message coordinate of an opcode table has syntactic degree at most two. -/
-theorem opcode_flushes_degreeBound :
+private theorem opcode_flushes_degreeBound :
     ∀ j : Fin 6, ∀ i ∈ (opcodeComponent j).rowOperations.interactions,
       ∀ e ∈ i.msg.toList, e.degreeBound ≤ 2 := by
   decide +kernel
@@ -342,16 +345,16 @@ finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
     (List.finRange 8).map fun k ↦ .known (entryColumn prog k)
-  [⟨0, .push, coords [.const (channelSep StatePush.toRaw), .const 1, .const 1]⟩,
-    ⟨s.logMem, .push, coords [.const (channelSep MemPush.toRaw), .known (idxColumn s.logMem),
+  [⟨0, .push, coords [.const (channelSep StateChannel.toRaw), .const 1, .const 1]⟩,
+    ⟨s.logMem, .push, coords [.const (channelSep MemChannel.toRaw), .known (idxColumn s.logMem),
       .const 1, .committed (memCol 0) rfl, .committed (memCol 1) rfl, .committed (memCol 2) rfl]⟩,
-    ⟨prog.logSize, .push, coords ([.const (channelSep BytecodePush.toRaw),
+    ⟨prog.logSize, .push, coords ([.const (channelSep BytecodeChannel.toRaw),
       .known (idxColumn prog.logSize), .const 1] ++ entries)⟩,
-    ⟨0, .pull, coords [.const (channelSep StatePull.toRaw), .const prog.finalPc, .const 1]⟩,
-    ⟨s.logMem, .pull, coords [.const (channelSep MemPull.toRaw), .known (idxColumn s.logMem),
+    ⟨0, .pull, coords [.const (channelSep StateChannel.toRaw), .const prog.finalPc, .const 1]⟩,
+    ⟨s.logMem, .pull, coords [.const (channelSep MemChannel.toRaw), .known (idxColumn s.logMem),
       .committed (memCol 3) rfl, .committed (memCol 0) rfl, .committed (memCol 1) rfl,
       .committed (memCol 2) rfl]⟩,
-    ⟨prog.logSize, .pull, coords ([.const (channelSep BytecodePull.toRaw),
+    ⟨prog.logSize, .pull, coords ([.const (channelSep BytecodeChannel.toRaw),
       .known (idxColumn prog.logSize), .committed bfcntCol rfl] ++ entries)⟩]
 
 /-- The three public lines (§8.2): `MEM_LO` holds `input₀, input₂` at cells `0, 1`, `MEM_HI`
@@ -406,12 +409,20 @@ def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4
 
 instance (ρ : ℕ) : Decidable (validRate ρ) := inferInstanceAs (Decidable (_ ∧ _))
 
-/-- The sizes a witness carries: the memory log-size of its image and the log-heights of its six
-opcode tables; none when the image has a single word. -/
-def Sizes.ofWitness {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
+/-- The announced sizes fit Clean's tables, whose row indices are 64-bit: the memory block below
+`2^64` rows, the opcode tables at most `2^64`. Admissible sizes fit (`Sizes.Admissible.fits`). -/
+def Sizes.Fits (s : Sizes) : Prop := s.logMem < 64 ∧ ∀ j, s.τ j ≤ 64
+
+/-- Admissible sizes fit Clean's tables. -/
+theorem Sizes.Admissible.fits {prog : Program} {s : Sizes} (h : s.Admissible prog) : s.Fits :=
+  ⟨lt_of_le_of_lt h.2.1 (by decide), fun j ↦ (h.2.2.1 j).trans (by decide)⟩
+
+/-- The sizes a witness carries: the memory log-size `κ` of its ensemble and the log-heights of
+its six opcode tables; none when `κ = 0`. -/
+def Sizes.ofWitness {prog : Program} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     Option Sizes :=
-  if h : 0 < (imageOf w.data).1 then
-    some ⟨_, h, fun j ↦ Nat.log 2 (tableAt w ⟨j, by omega⟩).table.length⟩
+  if h : 0 < κ then
+    some ⟨κ, h, fun j ↦ Nat.log 2 (tableAt w ⟨j, by omega⟩).table.length⟩
   else none
 
 /-! ## The witness read off a stack -/
@@ -439,15 +450,6 @@ def bytecodeBlockRowsOf : List (Array K) :=
   List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
     (toElements (bytecodeRowOf prog i (cell F prog s q bfcntCol i))).toArray
 
-/-- The memory image: the three limb columns, word by word. -/
-def imageRows : Array (Vector K 3) :=
-  Array.ofFn fun x : Fin (2 ^ s.logMem) ↦
-    #v[cell F prog s q (memCol 0) x, cell F prog s q (memCol 1) x, cell F prog s q (memCol 2) x]
-
-/-- Prover data whose one table is the memory image, `"mem"`. -/
-def dataOf (mem : Array (Vector K 3)) : ProverData K := fun name n ↦
-  if h : name = memDataName ∧ n = 3 then h.2 ▸ mem else #[]
-
 /-- Cell `0` of a memory column. -/
 def cell0 (i : Fin 4) : K := cell F prog s q (memCol i) ⟨0, Nat.two_pow_pos _⟩
 
@@ -459,10 +461,14 @@ def publicInputOf : PublicIO K :=
   ⟨#v[cell0 F prog s q 0, cell0 F prog s q 1, cell1 F prog s q 0, cell1 F prog s q 1]⟩
 
 /-- The memory block has five columns. -/
-theorem width_memTable : (⟨memTable⟩ : Component K).width = 5 := by decide +kernel
+theorem width_memComponent (κ : ℕ) : (memComponent κ).width = 5 := by
+  change (memComponent 0).width = 5
+  decide +kernel
 
 /-- The bytecode block has ten columns. -/
-theorem width_bytecodeTable : (⟨bytecodeTable⟩ : Component K).width = 10 := by decide +kernel
+theorem width_bytecodeComponent : (bytecodeComponent prog).width = 10 := by
+  change (bytecodeComponent ⟨0, Nat.zero_le _, fun _ ↦ .jump 0 0 0⟩).width = 10
+  decide +kernel
 
 /-- The rows of opcode table `j` have its width. -/
 private theorem size_of_mem_opcodeRows (j : Fin 6) :
@@ -473,45 +479,123 @@ private theorem size_of_mem_opcodeRows (j : Fin 6) :
 
 /-- The memory block's rows have its width. -/
 private theorem size_of_mem_memBlockRowsOf :
-    ∀ r ∈ memBlockRowsOf F prog s q, r.size = (⟨memTable⟩ : Component K).width := by
+    ∀ r ∈ memBlockRowsOf F prog s q, r.size = (memComponent s.logMem).width := by
   simp only [memBlockRowsOf, List.mem_ofFn, forall_exists_index]
   rintro _ x rfl
-  rw [Vector.size_toArray, width_memTable]
+  rw [Vector.size_toArray, width_memComponent]
   rfl
 
 /-- The bytecode block's rows have its width. -/
 private theorem size_of_mem_bytecodeBlockRowsOf :
-    ∀ r ∈ bytecodeBlockRowsOf F prog s q, r.size = (⟨bytecodeTable⟩ : Component K).width := by
+    ∀ r ∈ bytecodeBlockRowsOf F prog s q, r.size = (bytecodeComponent prog).width := by
   simp only [bytecodeBlockRowsOf, List.mem_ofFn, forall_exists_index]
   rintro _ x rfl
-  rw [Vector.size_toArray, width_bytecodeTable]
+  rw [Vector.size_toArray, width_bytecodeComponent]
   rfl
 
-/-- A table of the witness: a component, its rows of its width, the data. -/
-def tableOf (c : Component K) (rows : List (Array K)) (data : ProverData K)
-    (h : ∀ r ∈ rows, r.size = c.width) : Air.Flat.Table K :=
-  ⟨c, c.width, rows, data, h⟩
+/-- An opcode table has no fixed cells. -/
+private theorem opcode_fixedRowsMatch (j : Fin 6) (rows : List (Array K)) :
+    (opcodeComponent j).FixedRowsMatch rows := by
+  fin_cases j <;> exact trivial
 
-/-- The witness a stack carries: the six opcode tables from their rows, the memory and
-bytecode blocks from the memory columns, the program and `BFCNT`, the image from the memory
-columns, the public input from the first two cells of `MEM_LO` and `MEM_HI`. -/
-def witnessOf : EnsembleWitness (leanIsaEnsemble prog) :=
-  let data := dataOf (imageRows F prog s q)
-  let op (j : Fin 6) : Air.Flat.Table K :=
-    tableOf (opcodeComponent j) (opcodeRows F prog s q j) data
+/-- A typed row written as a raw row is read back by the fixed-cell check. -/
+private theorem fromElements_rowPrefix {Row : TypeMap} [ProvableType Row] (r : Row K) :
+    fromElements (Air.Flat.rowPrefix (size Row) (toElements r).toArray) = r :=
+  (Air.Flat.valueFromOffset_fromArray (Input := Row) _ fun _ _ ↦ #[]).symm.trans
+    (rowAt_toElements _ r)
+
+/-- A table of at most `2^64` rows. -/
+private theorem pow_le_uint64Size {τ : ℕ} (h : τ ≤ 64) : 2 ^ τ ≤ UInt64.size :=
+  Nat.pow_le_pow_right (by norm_num) h
+
+/-- The memory block's rows agree with its fixed index column. -/
+private theorem memBlockRowsOf_fixed (h : s.logMem < 64) :
+    (memComponent s.logMem).FixedRowsMatch (memBlockRowsOf F prog s q) := by
+  have h64 : 2 ^ s.logMem < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) h
+  show _ ∧ ∀ i (hi : i < _), (memMode s.logMem).FixedAt (UInt64.ofNat i)
+    (fromElements (Air.Flat.rowPrefix (size MemRow) (memBlockRowsOf F prog s q)[i]))
+  refine ⟨?_, fun i hi ↦ ?_⟩
+  · rw [memBlockRowsOf, List.length_ofFn]
+    exact (UInt64.toNat_ofNat_of_lt' h64).symm
+  · have hi' : i < 2 ^ s.logMem := by simpa only [memBlockRowsOf, List.length_ofFn] using hi
+    refine (memMode_fixedAt_iff hi' h _).mpr ?_
+    simp only [memBlockRowsOf, List.getElem_ofFn, fromElements_rowPrefix]
+
+/-- A memory block of `2^64` rows or more has no row index of Clean's: its rows are none. -/
+private theorem memBlock_fixed_nil (h : ¬ s.logMem < 64) :
+    (memComponent s.logMem).FixedRowsMatch [] := by
+  show _ ∧ _
+  refine ⟨?_, fun i hi ↦ absurd hi (Nat.not_lt_zero _)⟩
+  show 0 = (UInt64.ofNat (2 ^ s.logMem)).toNat
+  rw [UInt64.toNat_ofNat', Nat.mod_eq_zero_of_dvd (Nat.pow_dvd_pow 2 (by omega))]
+
+/-- The bytecode block's rows agree with its fixed index and program columns. -/
+private theorem bytecodeBlockRowsOf_fixed :
+    (bytecodeComponent prog).FixedRowsMatch (bytecodeBlockRowsOf F prog s q) := by
+  have h64 : 2 ^ prog.logSize < 2 ^ 64 :=
+    Nat.pow_lt_pow_right (by norm_num) (lt_of_le_of_lt prog.logSize_le (by decide))
+  show _ ∧ ∀ i (hi : i < _), (bytecodeMode prog).FixedAt (UInt64.ofNat i)
+    (fromElements (Air.Flat.rowPrefix (size BytecodeRow) (bytecodeBlockRowsOf F prog s q)[i]))
+  refine ⟨?_, fun i hi ↦ ?_⟩
+  · rw [bytecodeBlockRowsOf, List.length_ofFn]
+    exact (UInt64.toNat_ofNat_of_lt' h64).symm
+  · have hi' : i < 2 ^ prog.logSize := by
+      simpa only [bytecodeBlockRowsOf, List.length_ofFn] using hi
+    refine (bytecodeMode_fixedAt_iff prog hi' _).mpr ?_
+    simp only [bytecodeBlockRowsOf, List.getElem_ofFn, fromElements_rowPrefix]
+    exact ⟨rfl, by ext k hk; interval_cases k <;> rfl⟩
+
+/-- Opcode table `j` read off the stack: its rows, or none past `2^64` rows. -/
+def opTableOf (j : Fin 6) : Air.Flat.Table K :=
+  if h : s.τ j ≤ 64 then
+    tableOf (opcodeComponent j) (opcodeRows F prog s q j)
       (by exact size_of_mem_opcodeRows F prog s q j)
-  { tables := [op 0, op 1, op 2, op 3, op 4, op 5,
-      tableOf ⟨memTable⟩ (memBlockRowsOf F prog s q) data
-        (by exact size_of_mem_memBlockRowsOf F prog s q),
-      tableOf ⟨bytecodeTable⟩ (bytecodeBlockRowsOf F prog s q) data
-        (by exact size_of_mem_bytecodeBlockRowsOf F prog s q)]
-    data := data
-    publicInput := publicInputOf F prog s q
-    same_length := rfl
-    same_circuits := fun i hi ↦ by
-      change i < 8 at hi
-      interval_cases i <;> rfl
-    same_data := by simp [tableOf, op] }
+      (by rw [opcodeRows, List.length_ofFn]; exact pow_le_uint64Size h)
+      (by exact opcode_fixedRowsMatch j _)
+  else tableOf (opcodeComponent j) [] (by simp) (by simp) (by exact opcode_fixedRowsMatch j _)
+
+/-- The memory block read off the stack: its rows, or none past `2^64` rows. -/
+def memTableOf : Air.Flat.Table K :=
+  if h : s.logMem < 64 then
+    tableOf (memComponent s.logMem) (memBlockRowsOf F prog s q)
+      (by exact size_of_mem_memBlockRowsOf F prog s q)
+      (by rw [memBlockRowsOf, List.length_ofFn]; exact pow_le_uint64Size h.le)
+      (by exact memBlockRowsOf_fixed F prog s q h)
+  else tableOf (memComponent s.logMem) [] (by simp) (by simp) (by exact memBlock_fixed_nil s h)
+
+/-- The bytecode block read off the stack. -/
+def bytecodeTableOf : Air.Flat.Table K :=
+  tableOf (bytecodeComponent prog) (bytecodeBlockRowsOf F prog s q)
+    (by exact size_of_mem_bytecodeBlockRowsOf F prog s q)
+    (by
+      rw [bytecodeBlockRowsOf, List.length_ofFn]
+      exact pow_le_uint64Size (prog.logSize_le.trans (by decide)))
+    (by exact bytecodeBlockRowsOf_fixed F prog s q)
+
+/-- The tables read off the stack, in the ensemble's order. -/
+def tablesOf : List (Air.Flat.Table K) :=
+  [opTableOf F prog s q 0, opTableOf F prog s q 1, opTableOf F prog s q 2, opTableOf F prog s q 3,
+    opTableOf F prog s q 4, opTableOf F prog s q 5, memTableOf F prog s q,
+    bytecodeTableOf F prog s q]
+
+/-- The tables read off the stack run the ensemble's components. -/
+theorem tablesOf_components :
+    (tablesOf F prog s q).map (·.component) = (leanIsaEnsemble prog s.logMem).tables := by
+  have ho : ∀ j, (opTableOf F prog s q j).component = opcodeComponent j := fun j ↦ by
+    unfold opTableOf
+    split <;> rfl
+  have hm : (memTableOf F prog s q).component = memComponent s.logMem := by
+    unfold memTableOf
+    split <;> rfl
+  simp only [tablesOf, List.map_cons, List.map_nil, ho, hm]
+  rfl
+
+/-- The witness a stack carries: the six opcode tables from their rows, the memory and bytecode
+blocks from the memory columns, the program and `BFCNT`, the public input from the first two
+cells of `MEM_LO` and `MEM_HI`; its prover data is derived from the tables. -/
+def witnessOf : EnsembleWitness (leanIsaEnsemble prog s.logMem) :=
+  witnessOfTables prog s.logMem (publicInputOf F prog s q) (tablesOf F prog s q)
+    (tablesOf_components F prog s q)
 
 end WitnessOf
 
@@ -528,12 +612,13 @@ def cellOf (t : Air.Flat.Table K) (x i : ℕ) : K := ((t.table[x]?).bind (·[i]?
 def memRowCell : Fin 4 → ℕ := ![2, 3, 4, 1]
 
 /-- The `BLAKE2S` rows' eighteen limbs, columns `9 … 26`. -/
-def blake2sLimbs (w : EnsembleWitness (leanIsaEnsemble prog)) : Vector (Fin 18 → K) (2 ^ s.τ 5) :=
+def blake2sLimbs {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
+    Vector (Fin 18 → K) (2 ^ s.τ 5) :=
   Vector.ofFn fun x ↦ fun k ↦ cellOf (tableAt w 5) x (9 + k)
 
 /-- The column `c` a witness carries: the memory and bytecode blocks' committed cells, `F.gen` of
 the `BLAKE2S` limbs as the Flock region, the opcode tables' cells. -/
-def witnessColumn (w : EnsembleWitness (leanIsaEnsemble prog)) :
+def witnessColumn {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) :
     (c : Col) → Vector K (2 ^ kappa prog s c)
   | ⟨⟨0, _⟩, i⟩ => Vector.ofFn fun x ↦ cellOf (tableAt w 6) x (memRowCell i)
   | ⟨⟨1, _⟩, _⟩ => Vector.ofFn fun x ↦ cellOf (tableAt w 7) x 1
@@ -542,95 +627,11 @@ def witnessColumn (w : EnsembleWitness (leanIsaEnsemble prog)) :
 
 /-- The stack of a witness at the sizes `s`: its committed columns at their blocks, zero past
 the last. -/
-def stackOf (w : EnsembleWitness (leanIsaEnsemble prog)) : Column (leanIsaμ prog s) :=
+def stackOf {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Column (leanIsaμ prog s) :=
   (blocks prog s).stackColumn (fun b ↦ witnessColumn F prog s w (stackOrder prog s)[b])
     (leanIsaμ prog s)
 
 end StackOf
-
-end LeanIsa
-
-/-! ## The bus phase's conditions -/
-
-namespace LeanIsa
-
-/-- Summing over a list with repetitions. -/
-private theorem sum_flatMap_replicate {α : Type} (l : List α) (a : α → ℕ) (f : α → ℕ)
-    (g : ℕ → ℕ) :
-    ((l.flatMap fun x ↦ List.replicate (a x) (f x)).map g).sum =
-      (l.map fun x ↦ a x * g (f x)).sum := by
-  induction l with
-  | nil => rfl
-  | cons x l ih =>
-    rw [List.flatMap_cons, List.map_append, List.sum_append, ih, List.map_replicate,
-      List.sum_replicate, smul_eq_mul, List.map_cons, List.sum_cons]
-
-/-- Every table has at most as many count columns as push flushes. -/
-theorem counts_le_pushes : ∀ j : Fin 9,
-    (counts j).length ≤ ((flushes j).filter fun f ↦ decide (f.1 = Side.push)).length := by
-  decide +kernel
-
-/-- A table with a constraint has a push flush. -/
-theorem constrained_pushes : ∀ j : Fin 9, 0 < (LeanIsa.constraints j).length →
-    0 < ((LeanIsa.flushes j).filter fun f ↦ decide (f.1 = Side.push)).length := by
-  decide +kernel
-
-variable (F : FlockSpec) (prog : Program) (s : Sizes)
-
-/-- A side's leaf count, from its blocks' log-heights. -/
-private theorem leafCount_eq (I : M3Instance) (k : Fin 3) :
-    Bus.leafCount I k = (((Bus.sources I k).map Bus.Source.κ).map (2 ^ ·)).sum := by
-  rw [Bus.leafCount, List.map_map]
-  rfl
-
-/-- The leaves of the push side, by table. -/
-private theorem leafCount_push :
-    Bus.leafCount (leanIsaInstance F prog s) 0 =
-      (((boundary prog s).filter fun b ↦ decide (b.side = .push)).map fun b ↦ 2 ^ b.κ).sum +
-      ((List.finRange 9).map fun j ↦
-        ((LeanIsa.flushes j).filter fun f ↦ decide (f.1 = Side.push)).length *
-          2 ^ height prog s j).sum := by
-  rw [leafCount_eq]
-  change ((((Bus.sideSources _ .push).map Bus.Source.κ).map (2 ^ ·))).sum = _
-  rw [Bus.sideSources_map_κ, List.map_append, List.sum_append, sum_flatMap_replicate,
-    List.map_map]
-  rfl
-
-/-- The pull side has as many leaves as the push side: a table pulls as often as it pushes, and the
-boundary blocks pair up. -/
-private theorem leafCount_pull :
-    Bus.leafCount (leanIsaInstance F prog s) 1 = Bus.leafCount (leanIsaInstance F prog s) 0 := by
-  rw [leafCount_push, leafCount_eq]
-  change ((((Bus.sideSources _ .pull).map Bus.Source.κ).map (2 ^ ·))).sum = _
-  rw [Bus.sideSources_map_κ, List.map_append, List.sum_append, sum_flatMap_replicate,
-    List.map_map]
-  congr 1
-
-/-- The count side has at most as many leaves as the push side. -/
-private theorem leafCount_count_le :
-    Bus.leafCount (leanIsaInstance F prog s) 2 ≤ Bus.leafCount (leanIsaInstance F prog s) 0 := by
-  rw [leafCount_push, leafCount_eq]
-  change ((((Bus.countSources _).map Bus.Source.κ).map (2 ^ ·))).sum ≤ _
-  rw [Bus.countSources_map_κ, sum_flatMap_replicate]
-  refine le_add_left (List.sum_le_sum fun j _ ↦ ?_)
-  exact Nat.mul_le_mul_right _ (counts_le_pushes j)
-
-/-- The leanISA instance meets the bus phase's side conditions, at every size. -/
-theorem leanIsa_conditions : Bus.Conditions (leanIsaInstance F prog s) where
-  one_le_d := by norm_num
-  constrained j hj := by
-    have hfit : Bus.leafCount (leanIsaInstance F prog s) 0 ≤ 2 ^ (leanIsaInstance F prog s).μBus :=
-      (Bus.blocks_total _ 0).symm.trans_le (Bus.push_fits _)
-    have hpos := constrained_pushes j (List.length_pos_iff.mpr hj)
-    refine (Nat.pow_le_pow_iff_right (by norm_num : 1 < 2)).mp (le_trans ?_ hfit)
-    rw [leafCount_push]
-    refine le_add_left ((Nat.le_mul_of_pos_left _ hpos).trans ?_)
-    exact List.le_sum_of_mem (List.mem_map.mpr ⟨j, List.mem_finRange j, rfl⟩)
-  pull_fits := by
-    rw [leafCount_pull, ← Bus.blocks_total]
-    exact Bus.push_fits _
-  count_fits := (leafCount_count_le F prog s).trans
-    ((Bus.blocks_total _ 0).symm.trans_le (Bus.push_fits _))
 
 end LeanIsa
 

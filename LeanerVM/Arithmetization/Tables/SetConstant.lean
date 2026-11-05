@@ -17,7 +17,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `SET_CONSTANT` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:527-538` (`mod set`, in that order) and the flushes
 `tables.rs:548-561` (`SetTable::flushes`), matching specification §7.3
 (`doc/leanvm/body/07-instruction-tables.tex:52-64`). There is no constraint.
@@ -124,13 +124,14 @@ def SetSpec (r : SetRow K) (next : Regs K) (data : ProverData K) : Prop :=
 read of `(SET, o, k₀, k₁, k₂, 0, 0, 0)`, and the read of `fp·o` carrying the immediate. Returns
 the pushed successor `(g·pc, fp)`. -/
 def setTable : GeneralFormalCircuit K SetRow Regs where
+  name := "set_constant"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     instructionStep r.pc r.fp r.rbc next .setConstant #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0]
     memRead (r.fp * r.o) r.r r.k
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -141,16 +142,18 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
   -- the row built from any valid execution by `setRowOf_refines`; see `set_exec_complete`.
   ProverAssumptions r data _ := ∃ next, SetSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
-    obtain ⟨-, hk⟩ := h_holds
+    -- The bytecode guarantee, that the tuple decodes, serves only its push (see `XOR`).
+    obtain ⟨hbc, hk⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ hbc, fun _ ↦ hk⟩
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
     refine (set_refines_iff _ _ _).mpr ⟨?_, rfl⟩
     simpa only [Vector.getElem_map] using hk
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The two pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4).

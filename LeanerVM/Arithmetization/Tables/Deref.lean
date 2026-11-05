@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:586-609` (`mod deref`, in that order), the store coordinates
 `tables.rs:616-623` (`deref_store`), the flushes `tables.rs:633-643` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
@@ -51,14 +51,16 @@ program paragraph).
 
 **The component** `derefTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
-`fp·o₁` as `(p, 0, 0)`, the local cell `fp·o₃`, and the target cell `p·o₂`, in the order of
-§7.4; `Spec` is `DerefSpec`. Soundness reads the instruction the pulled tuple decodes to
-through Layer 4's `decode_deref_eq_some_iff`, the one use a table makes of the bytecode
-guarantee: the pulled tuple *is* an instruction, so its flag pair is a store mode's (a pair that
-is no mode's decodes to nothing, so such a row cannot satisfy the lookup guarantee), and the
-target read's coordinates are that mode's source (`storeCoords_eval`). Completeness discharges the four pulls
-from the semantic premise through `deref_refines_iff`: the tuple `main` emits decodes (Layer
-4's `decode_entry`), and the target coordinates it emits are the mode's source.
+`fp·o₁` as `(p, 0, 0)`, the target cell `p·o₂` and the local cell `fp·o₃`, in the Rust's flush
+order (`tables.rs:640-642`; §7.4's flush list has the local cell second, its prose the target),
+which places the reads' blocks on the bus; `Spec` is `DerefSpec`. Soundness reads the instruction
+the pulled tuple decodes to through Layer 4's `decode_deref_eq_some_iff`, the one use a table
+makes of the bytecode guarantee: the pulled tuple *is* an instruction, so its flag pair is a
+store mode's (a pair that is no mode's decodes to nothing, so such a row cannot satisfy the
+lookup guarantee), and the target read's coordinates are that mode's source
+(`storeCoords_eval`). Completeness discharges the four pulls from the semantic premise through
+`deref_refines_iff`: the tuple `main` emits decodes (Layer 4's `decode_entry`), and the target
+coordinates it emits are the mode's source.
 
 **Rows from executions.** `derefRowOf mem pc fp o₁ o₂ o₃ mode r₁ r₂ r₃ rbc` is the row of an
 execution of `DEREF o₁ o₂ o₃ mode` over the image `mem`: the mode's flags, the pointer's low
@@ -164,8 +166,8 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next 
   constructor
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, hexec⟩
     refine ⟨mode, ⟨hflags, h1, h3⟩, ?_⟩
-    simp only [execute, executeWith, h1, h3, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
-      isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hexec
+    simp only [execute, executeWith, h1, h3, Option.bind_eq_bind, Option.bind_some,
+      guard_bind_eq_some_iff, isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hexec
     cases hc : mem.read (r.p * r.o2) with
     | none => rw [hc] at hexec; exact absurd hexec (by simp)
     | some c =>
@@ -193,19 +195,22 @@ def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
 at `fp·o₃`, and the target read at `p·o₂` carrying the flag-selected source. Returns the
 pushed successor `(g·pc, fp)`. -/
 def derefTable : GeneralFormalCircuit K DerefRow Regs where
+  name := "deref"
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
     let fbar : Expression K := 1 + r.fpc + r.ffp
     instructionStep r.pc r.fp r.rbc next .deref #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
+    -- The three reads in the Rust's flush order, pointer, target, local (`tables.rs:640-642`):
+    -- the order places their blocks on the bus.
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
-    memRead (r.fp * r.o3) r.r3 r.v3
     memRead (r.p * r.o2) r.r2
       #v[fbar * r.v3[0] + r.fpc * (Expression.const (g ^ 2) * r.pc) + r.ffp * r.fp,
          fbar * r.v3[1], fbar * r.v3[2]]
+    memRead (r.fp * r.o3) r.r3 r.v3
     pure next
-  -- The push channels: their requirements are vacuous (Layer 5), the obligation is `Spec`.
-  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  -- The three channels: each push owes its channel's guarantee (Layer 5).
+  channelsWithRequirements := [StateChannel.toRaw, MemChannel.toRaw, BytecodeChannel.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -216,9 +221,11 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
   -- instruction. Proved of the row built from any valid execution by `derefRowOf_refines`.
   ProverAssumptions r data _ := ∃ next, DerefSpec r next data
   soundness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
-    obtain ⟨⟨ins, hdec⟩, h1, h3, h2⟩ := h_holds
+    obtain ⟨⟨ins, hdec⟩, h1, h2, h3⟩ := h_holds
+    -- Each push re-sends its pull's message: what it owes is what the pull is granted.
+    refine ⟨?_, fun _ ↦ ⟨ins, hdec⟩, fun _ ↦ h1, fun _ ↦ h2, fun _ ↦ h3⟩
     obtain ⟨_, _, _, _, _, _, _, _, hv3, _, _, _, _⟩ := h_input
     subst hv3
     -- The pulled tuple is an instruction (Layer 4): `DEREF` with the row's operands, the flags
@@ -232,7 +239,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     · simpa only [Vector.getElem_map] using h3
     · simpa only [Vector.getElem_map] using h2
   completeness := by
-    circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
+    circuit_proof_start [StateChannel, MemChannel, BytecodeChannel,
       instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the target read carries the coordinates of the mode's source
@@ -245,7 +252,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     subst h4 h5
     rw [← storeCoords_eval] at h2
     simp only [Vector.getElem_map] at h3 h2 ⊢
-    exact ⟨⟨_, decode_entry (.deref _ _ _ mode)⟩, h1, h3, h2⟩
+    exact ⟨⟨_, decode_entry (.deref _ _ _ mode)⟩, h1, h2, h3⟩
 
 /-! ## Rows from executions -/
 
