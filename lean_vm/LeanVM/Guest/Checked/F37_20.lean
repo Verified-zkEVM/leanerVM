@@ -20,11 +20,5 @@ open LeanVM.Guest.Check
 /-- `__loop2`, window 20. -/
 theorem w37_20 : WinOk 37 20 := winOk_of_C (by decide +kernel)
 
-/-- `__loop2`, window 21. -/
-theorem w37_21 : WinOk 37 21 := winOk_of_C (by decide +kernel)
-
-/-- `__loop2`, window 22. -/
-theorem w37_22 : WinOk 37 22 := winOk_of_C (by decide +kernel)
-
 end
 end LeanVM.Guest.Checked

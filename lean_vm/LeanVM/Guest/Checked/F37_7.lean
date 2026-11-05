@@ -17,11 +17,9 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
+set_option maxHeartbeats 1000000 in
 /-- `__loop2`, window 7. -/
 theorem w37_7 : WinOk 37 7 := winOk_of_C (by decide +kernel)
-
-/-- `__loop2`, window 8. -/
-theorem w37_8 : WinOk 37 8 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

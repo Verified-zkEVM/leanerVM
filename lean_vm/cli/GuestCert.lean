@@ -2697,6 +2697,9 @@ def splitOf (cf : Core.Fn) (start stop size lo : ℕ) (ins : List ℕ) : List (�
 windows (`perFile`), functions together, the windows of a function in order. -/
 def maxChecked : ℕ := 6400
 
+/-- The instructions of a window whose check is a module of its own, at a larger budget. -/
+def bigWin : ℕ := 2000
+
 /-- What a window costs a module of checks besides its instructions. -/
 def winFixed : ℕ := 100
 
@@ -2756,13 +2759,20 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
   let mut groups : Array (Array (ℕ × ℕ)) := #[#[]]
   let mut size := 0
   for (j, w, l) in wins do
-    let split := splits.contains (j, w)
+    -- a split window alone, and a large one (a chained `match`'s, about 32 GB in the kernel)
+    let split := splits.contains (j, w) || l > bigWin
     if (size + l + winFixed > maxChecked || split || (groups.back!).size ≥ perFile) && size > 0 then
       groups := groups.push #[]
       size := 0
     groups := groups.modify (groups.size - 1) (·.push (j, w))
     size := if split then maxChecked + 1 else size + l + winFixed
   let key (js : Array (ℕ × ℕ)) : String := checkedName (js[0]?.getD (0, 0))
+  -- a large window's kernel check passes the default budget (`__loop2`'s chained `match`es:
+  -- about 140 s each, the executor and walk of 2816 instructions and 256 arms)
+  let winThm (j w : ℕ) : String :=
+    (if ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0 > bigWin then
+      "set_option maxHeartbeats 1000000 in\n" else "") ++
+    s!"/-- `{fns[j]!.name}`, window {w}. -/\ntheorem w{j}_{w} : WinOk {j} {w} := winOk_of_C (by decide +kernel)\n\n"
   let gText (g : ℕ × ℕ × List (ℕ × ℕ)) : String :=
     s!"({g.1}, {g.2.1}, {listText (g.2.2.map pairText)})"
   let splitFiles (j w : ℕ) (gs : List (ℕ × ℕ × List (ℕ × ℕ))) : List (String × String) :=
@@ -2809,14 +2819,13 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
       | none => [(key js, checkedHeader (key js) "The kernel's checks of windows of compiled functions." ++
           "public import LeanVM.Guest.CheckWinC\n\n" ++ asyncOff ++
           "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
-          s!"/-- `{fns[j]!.name}`, window {w}. -/\ntheorem w{j}_{w} : WinOk {j} {w} := winOk_of_C (by decide +kernel)\n\n" ++
+          winThm j w ++
           (if cut j then "" else s!"theorem ok{j} : CheckOk {j} := checkOk_one (by decide +kernel) w{j}_0\n\n") ++
           "end\nend LeanVM.Guest.Checked\n")]
     | _ => [(key js, checkedHeader (key js) "The kernel's checks of windows of compiled functions." ++
       "public import LeanVM.Guest.CheckWinC\n\n" ++ asyncOff ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
-      String.join (js.toList.map fun (j, w) =>
-        s!"/-- `{fns[j]!.name}`, window {w}. -/\ntheorem w{j}_{w} : WinOk {j} {w} := winOk_of_C (by decide +kernel)\n\n") ++
+      String.join (js.toList.map fun (j, w) => winThm j w) ++
       String.join ((js.toList.filter fun (j, _) => !cut j).map fun (j, _) =>
         s!"theorem ok{j} : CheckOk {j} := checkOk_one (by decide +kernel) w{j}_0\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")]
