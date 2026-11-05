@@ -98,8 +98,11 @@ import LeanerVM.Protocol.ProofRoots
 import LeanerVM.Protocol.Prove
 import LeanerVM.Protocol.Prove.Compiled
 import LeanerVM.Protocol.Prove.Complete
+import LeanerVM.Protocol.Prove.Hom
 import LeanerVM.Protocol.Prove.Openings
+import LeanerVM.Protocol.Prove.Queries
 import LeanerVM.Protocol.Prove.ReadBack
+import LeanerVM.Protocol.Prove.RomComplete
 import LeanerVM.Protocol.Prove.Wire
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.RandomOracle
@@ -167,6 +170,8 @@ import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.Relist
 import LeanerVM.Protocol.ToArkLib.RunCodec
+import LeanerVM.Protocol.ToArkLib.RunCodecGrade
+import LeanerVM.Protocol.ToArkLib.RunCodecHom
 import LeanerVM.Protocol.ToArkLib.RunTrace
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
@@ -216,6 +221,7 @@ import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.MerkleQueries
 import LeanerVM.Protocol.ToVCVio.MonadRel
+import LeanerVM.Protocol.ToVCVio.ProofOfWork
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.ScalarExpectation
 import LeanerVM.Protocol.ToVCVio.UniformCondition

@@ -85,6 +85,7 @@ import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.RandomOracleBound
 import LeanerVMTests.Protocol.RandomOracleGame
+import LeanerVMTests.Protocol.RomComplete
 import LeanerVMTests.Protocol.RustProof
 import LeanerVMTests.Protocol.RustProofData
 import LeanerVMTests.Protocol.SideProduct
