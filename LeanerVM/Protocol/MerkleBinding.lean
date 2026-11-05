@@ -43,6 +43,7 @@ namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash MerkleTree
 open MerkleTreeExtractor (QueryLog)
+open LeanerVM.Protocol.QueryLog (Consistent HasCollision)
 
 @[expose] public section
 
@@ -167,14 +168,14 @@ theorem nodeOfBytes?_eq_some {q : List UInt8} {l r : Digest} (h : nodeOfBytes? q
   · cases h
 
 /-- The `K` word of eight little-endian bytes. -/
-def kOfBytes (b0 b1 b2 b3 b4 b5 b6 b7 : UInt8) : K :=
+def kOfLeBytes (b0 b1 b2 b3 b4 b5 b6 b7 : UInt8) : K :=
   ofWords (leWord b0 b1 b2 b3) (leWord b4 b5 b6 b7)
 
 /-- The words of a byte string, eight little-endian bytes each, a trailing partial word dropped;
-it inverts `leafBytes` (`wordsOfBytes_leafBytes`). -/
-def wordsOfBytes : List UInt8 → List K
+it inverts `leafBytes` (`kWordsOfBytes_leafBytes`). -/
+def kWordsOfBytes : List UInt8 → List K
   | b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 :: rest =>
-    kOfBytes b0 b1 b2 b3 b4 b5 b6 b7 :: wordsOfBytes rest
+    kOfLeBytes b0 b1 b2 b3 b4 b5 b6 b7 :: kWordsOfBytes rest
   | _ => []
 
 /-- The row of `rowWords` words whose leaf image in leaves of `leafWords` words has the bytes
@@ -185,7 +186,7 @@ so a query of another length is skipped without decoding. -/
 def leafRow? (rowWords leafWords : ℕ) (q : List UInt8) : Option (List K) :=
   let pad := 8 * (leafWords - rowWords)
   if q.length = pad + 8 * rowWords ∧ (q.take pad).all (· == 0) then
-    some (wordsOfBytes (q.drop pad))
+    some (kWordsOfBytes (q.drop pad))
   else none
 
 /-- Splitting a `K` word into its two words and joining them again is the identity. -/
@@ -196,12 +197,12 @@ private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord
   simpa [ofWords, lowWord, highWord] using this
 
 /-- The words of a leaf are read back from its bytes. -/
-theorem wordsOfBytes_leafBytes : ∀ words : List K, wordsOfBytes (leafBytes words) = words
+theorem kWordsOfBytes_leafBytes : ∀ words : List K, kWordsOfBytes (leafBytes words) = words
   | [] => rfl
   | a :: words => by
     simp only [leafBytes, List.flatMap_cons, kBytes, wordBytes, List.cons_append, List.nil_append,
-      wordsOfBytes, kOfBytes, leWord_wordBytes, ofWords_lowWord_highWord]
-    exact congrArg _ (wordsOfBytes_leafBytes words)
+      kWordsOfBytes, kOfLeBytes, leWord_wordBytes, ofWords_lowWord_highWord]
+    exact congrArg _ (kWordsOfBytes_leafBytes words)
 
 /-- A leaf of `n` words has `8n` bytes. -/
 theorem length_leafBytes (words : List K) : (leafBytes words).length = 8 * words.length := by
@@ -219,7 +220,7 @@ theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
     split <;> rfl
   rw [leafImage, hrow, leafBytes, List.flatMap_append, ← leafBytes, ← leafBytes]
   simp only [leafRow?, List.length_append, hpad, length_leafBytes, hrow, List.take_left' hpad,
-    List.drop_left' hpad, hzero, wordsOfBytes_leafBytes, and_self, ↓reduceIte]
+    List.drop_left' hpad, hzero, kWordsOfBytes_leafBytes, and_self, ↓reduceIte]
 
 /-! ## The rows read off a log -/
 

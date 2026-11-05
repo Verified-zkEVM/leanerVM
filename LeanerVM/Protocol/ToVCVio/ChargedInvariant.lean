@@ -82,6 +82,15 @@ per charged query; `prEvent_randomOracle_le_expectedFreshQueryCharge` (pull requ
 bad event of the random oracle by the expected charge of its fresh keys, a key charged by itself
 and the event read off a fixed table. Here a query is charged by the state at the time it is
 made, and the bound is a supermartingale over that state.
+
+Neighbours already in VCVio, each a special case or a different kind of bound:
+`probEvent_logCollision_le_birthday_total` bounds a collision in a run's log, the collision
+charge alone; `probEvent_cache_hits_targets_le_of_noCollision` bounds fresh hits on a set of
+targets fixed before the run, where here the targets may depend on the state;
+`probEvent_adaptivePrefixRunFrom_le` charges an adaptive prefix's collisions by a potential in
+`ℕ` over the cache size and the queries left, the suffix's fresh-hit bound supplied by the
+caller; and `expectedQuerySlack` sums a per-query charge that depends on the state, but bounds a
+total-variation distance under `simulateQ`, not the probability of an event of the run.
 -/
 
 namespace LeanerVM.Protocol

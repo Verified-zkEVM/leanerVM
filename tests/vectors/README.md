@@ -30,8 +30,11 @@ with one message changed in each front phase and in WHIR at that phase (`frontCh
 the prover with one front phase's message changed and checks that each proof is read to its end
 and rejected by that phase (recorded in `bench/README.md`); with a fourth argument `pure` it
 also runs `prove` itself, in `Id`, and checks it returns the same proof. The prover is
-deterministic: two runs write the same plain file. The compressed file also depends on the
-`gzip` version; compare the decompressed files.
+deterministic: two runs write the same plain file. On every pull request to `main` the
+`Executables` workflow (`.github/workflows/executables.yml`) runs `leanervm-verify` on the Rust
+proof and on the committed file, and `leanervm-prove` without `pure`, comparing its proof with the
+committed one; it also runs `leanervm-prove log`, `tamper`, `m3` and `sentinel`. The compressed
+file also depends on the `gzip` version; compare the decompressed files.
 
 ## Differences from the Rust prover's dumps
 

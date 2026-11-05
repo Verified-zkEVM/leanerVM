@@ -42,9 +42,10 @@ things shows on the finite log:
   asks it) is answered by a digest `Known` from `logA` and the roots: a root, or a child of a
   query of `logA` that parses as a node.
 
-All three are decidable. An answer of `logA` need not be known, since a fresh query answered by
-one is a collision, and the opening's siblings need not be, since the extraction never descends
-into a sibling. Several commitments, each opened once, are the instance with `roots` all their
+`Consistent`, `HasCollision` and `Fresh` are those of `QueryLog`. All three conditions are
+decidable. An answer of `logA` need not be known, since a fresh query answered by one is a
+collision, and the opening's siblings need not be, since the extraction never descends into a
+sibling. Several commitments, each opened once, are the instance with `roots` all their
 roots: the hypotheses on the log are shared, and each opening is bound to its own root.
 
 `not_freshHit_of_not_hasHit`: a fresh hit is a hit (`QueryLog.HasHit`) on any values in play that
@@ -58,6 +59,7 @@ log under a root are those read off `logA`, so no leaf joins a root once the roo
 namespace LeanerVM.Protocol.MerkleTree
 
 open MerkleTreeExtractor (QueryLog)
+open LeanerVM.Protocol.QueryLog (Consistent HasCollision Fresh)
 
 @[expose] public section
 
@@ -78,18 +80,6 @@ theorem mem_of_logAnswer_eq_some [DecidableEq Q] {log : QueryLog Q D} {q : Q} {d
   obtain rfl : e.1 = q := by simpa using List.find?_some he
   exact List.mem_of_find?_eq_some he
 
-/-- A log is consistent when no input appears in it with two answers: it is the trace of a
-function. -/
-def Consistent (log : QueryLog Q D) : Prop :=
-  ∀ e₁ ∈ log, ∀ e₂ ∈ log, e₁.1 = e₂.1 → e₁.2 = e₂.2
-
-/-- A collision: two different inputs of the log with one answer. -/
-def HasCollision (log : QueryLog Q D) : Prop :=
-  ∃ e₁ ∈ log, ∃ e₂ ∈ log, e₁.1 ≠ e₂.1 ∧ e₁.2 = e₂.2
-
-/-- A query is fresh with respect to a log when the log never asks it. -/
-def Fresh (log : QueryLog Q D) (q : Q) : Prop := ∀ e ∈ log, e.1 ≠ q
-
 /-- The children a query names when it parses as a node: none, or both. -/
 def queryChildren (node? : Q → Option (D × D)) (q : Q) : List D :=
   match node? q with
@@ -108,15 +98,6 @@ def FreshHit (node? : Q → Option (D × D)) (roots : List D) (logA logV : Query
 
 variable [DecidableEq Q] [DecidableEq D]
 
-instance (log : QueryLog Q D) : Decidable (Consistent log) := by
-  unfold Consistent; infer_instance
-
-instance (log : QueryLog Q D) : Decidable (HasCollision log) := by
-  unfold HasCollision; infer_instance
-
-instance (log : QueryLog Q D) (q : Q) : Decidable (Fresh log q) := by
-  unfold Fresh; infer_instance
-
 instance (node? : Q → Option (D × D)) (roots : List D) (log : QueryLog Q D) (d : D) :
     Decidable (Known node? roots log d) := by
   unfold Known; infer_instance
@@ -129,11 +110,6 @@ instance (node? : Q → Option (D × D)) (roots : List D) (logA logV : QueryLog 
 
 variable {node? : Q → Option (D × D)} {roots roots' : List D}
   {log log' logA logV logV' : QueryLog Q D}
-
-omit [DecidableEq Q] [DecidableEq D] in
-/-- A query fresh with respect to a log is fresh with respect to any part of it. -/
-theorem Fresh.anti {q : Q} (h : log ⊆ log') : Fresh log' q → Fresh log q :=
-  fun hf e he ↦ hf e (h he)
 
 omit [DecidableEq Q] [DecidableEq D] in
 /-- A digest known from some roots and a log is known from more roots and a larger log. -/

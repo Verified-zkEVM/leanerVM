@@ -16,10 +16,11 @@ public import Mathlib.Data.List.Perm.Basic
 
 The combinatorial core of specification Proposition 6.1 (`doc/leanvm/body/06-bus-interactions.tex:9`
 at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`), for a deterministic transition: the
-edges of the graph are `v → f v` for the states `v` of a list `E`, each `f v` defined, and the
-multiset of their targets together with a start `s` is the multiset of their sources together
-with an end `t`. Then `f` walks from `s` to `t` in at most `|E|` steps, each from a state of
-`E` (`exists_walksIn`). Category A: no source is transcribed.
+edges of the graph are `v → f v` for the states `v` of a list `E`, and the multiset of their
+targets together with a start `s` is the multiset of their sources together with an end `t`
+(so each `f v` is defined: the two multisets have the same size). Then `f` walks from `s` to `t`
+in at most `|E|` steps, each from a state of `E` (`exists_walksIn`). Category A: no source is
+transcribed.
 
 The proof follows the walk: if `s = t` it is empty; otherwise `s` is a source, so `s ∈ E`, and
 removing one occurrence of `s` from `E` and of `f s` from the targets leaves a balanced graph
@@ -51,16 +52,17 @@ theorem WalksIn.mono {f : V → Option V} {E E' : List V} (hE : E ⊆ E') :
 targets and an end `t` among the sources, `f` walks from `s` to `t` in at most `|E|` steps,
 each taken from a state of `E`. -/
 theorem exists_walksIn [DecidableEq V] {f : V → Option V} :
-    ∀ {E : List V} {s t : V}, (s :: E.filterMap f).Perm (t :: E) → (∀ v ∈ E, f v ≠ none) →
+    ∀ {E : List V} {s t : V}, (s :: E.filterMap f).Perm (t :: E) →
       ∃ n ≤ E.length, WalksIn f E n s t := by
   intro E
   induction hlen : E.length using Nat.strongRecOn generalizing E with
   | _ len ih =>
-    intro s t hbal hE
+    intro s t hbal
     by_cases hst : s = t
     · exact ⟨0, Nat.zero_le _, hst⟩
     have hs : s ∈ E := (List.mem_cons.mp (hbal.subset List.mem_cons_self)).resolve_left hst
-    obtain ⟨s', hs'⟩ := Option.ne_none_iff_exists'.mp (hE s hs)
+    have hE : ∀ v ∈ E, (f v).isSome := by simpa using hbal.length_eq
+    obtain ⟨s', hs'⟩ := Option.isSome_iff_exists.mp (hE s hs)
     have hperm : E.Perm (s :: E.erase s) := List.perm_cons_erase hs
     have hbal' : (s' :: (E.erase s).filterMap f).Perm (t :: E.erase s) := by
       have h1 := hperm.filterMap f
@@ -70,7 +72,7 @@ theorem exists_walksIn [DecidableEq V] {f : V → Option V} :
     have hlt : (E.erase s).length < len := by
       rw [List.length_erase_of_mem hs, ← hlen]
       exact Nat.sub_lt (List.length_pos_of_mem hs) Nat.one_pos
-    obtain ⟨n, hn, hw⟩ := ih _ hlt rfl hbal' fun v hv ↦ hE v (List.mem_of_mem_erase hv)
+    obtain ⟨n, hn, hw⟩ := ih _ hlt rfl hbal'
     refine ⟨n + 1, ?_, hs, s', hs', hw.mono fun v hv ↦ List.mem_of_mem_erase hv⟩
     rw [List.length_erase_of_mem hs] at hn
     have := List.length_pos_of_mem hs

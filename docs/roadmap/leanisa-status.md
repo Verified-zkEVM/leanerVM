@@ -149,7 +149,9 @@ BLAKE2s validity Flock proves (`Blake2sRowsValid`, with `assumptions_of_blake2sR
 turning it into Clean's `w.Assumptions`), the statement `SatisfiedBy prog input w` (a
 structure of named conjuncts, the public words through `MemImage.read`) and the trace a witness represents
 (`RowSteps`, `AssignmentRepresents`), and proves `memRowAt_toElements` and
-`assignmentRepresents_image`; Layer 9's two state statements are block comments at its end, and its two lookup theorems are proved in `Arithmetization/Bus.lean`.
+`assignmentRepresents_image`; Layer 9's lookup theorems are proved in `Arithmetization/Bus.lean`
+and its state statements in `Steps.lean` and `Soundness.lean`, which replace the block comments
+the module once carried at its end.
 `./scripts/validate.sh` is green, the axiom closure of every
 declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in
 CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
@@ -180,8 +182,9 @@ module (P3).
 - **Layer 8 is built** and fully proved on this branch (2026-09-17). Its reading list is
   `LeanerVM/Arithmetization/Statement.lean`, `tests/LeanerVMTests/Arithmetization/Statement.lean`,
   and the roadmap's Layer 8 section, which shows the built shapes. Every Layer 8 target of the
-  roadmap is present and proved, and Layer 9's four statements are block comments at the end of
-  the module. The roadmap's sketch was adjusted in seven places, each written into the roadmap:
+  roadmap is present and proved; the Layer 9 block comments the module once carried at its end
+  are now the theorems of `Bus.lean`, `Steps.lean` and `Soundness.lean`. The roadmap's sketch
+  was adjusted in seven places, each written into the roadmap:
   - `SatisfiedBy` and `Caps` are structures with named fields, as the tables' `*Refines` are
     (decision 11), so that Layers 9 and 10 project the conjunct they consume by name; and
     `AssignmentRepresents` is one too, its image as two fields (`κ_eq`, `image_eq`) with
@@ -357,7 +360,8 @@ module (P3).
   `addVm_soundVmChannel_of_soundChannels` is not consumed. (On this branch it has: balance is
   Clean's `Balance.multiset`, read through `SatisfiedBy.perm`, the block conjuncts are the
   components' fixed columns, and the test with cell `29`'s word seeded at `g^2` is a memory block
-  whose rows fail `FixedRowsMatch`, so no witness has them.) Built in two stacked branches:
+  whose rows fail `FixedRowsMatch`, so no witness has them.) Built in four stacked branches,
+  folded into PR #166:
   - `feat/leanisa-row-messages`: `LeanerVM/Arithmetization/Rows.lean`, what one row of each
     component sends on each of the six channels, as functions of its typed row, on arbitrary
     raw rows: an `OpcodeSends` for the six opcode tables (the state pull and push, the bytecode
@@ -391,7 +395,8 @@ module (P3).
     under `SentinelSafe prog`, with `leanIsaTraceExtraction` inhabiting `TraceExtraction prog`
     (declared in `Statement.lean`). Layer 9 is complete; Layer 10's soundness half is built.
     `traceOf` is a hash map from each opcode row's pulled state to its pushed state, walked
-    from `(1, 1)` to the final registers with the number of opcode rows as fuel; no discrete
+    from `(1, 1)` to the final registers with the number of opcode rows as fuel, as a loop
+    that counts in an accumulator, so a long run does not grow the stack; no discrete
     logarithm. `SentinelSafe` is load-bearing: some program with a `JUMP` in its sentinel slot
     has a satisfying witness and no valid execution on the input over any memory
     (`exists_satisfiedBy_without_execution`, `tests/LeanerVMTests/Arithmetization/Sentinel.lean`).
@@ -589,7 +594,12 @@ module (P3).
 - **Clean's bus is no longer an external item** for Layers 9–10: Clean main `9dd71e82` carries
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
-  The name clash of C13 is resolved upstream (Clean #497), so no Clean item is left.
+  The name clash of C13 is resolved upstream (Clean #497), so no Clean item is owed.
+- **Clean main has moved past the pin `ce2eee63`** (watched, 2026-11-05): `21247235`
+  (2026-11-02) drops `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions
+  per channel, which `interactionsWith_length_lt` now discharges from the caps; Clean
+  PR [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moves Clean to
+  Lean `v4.34.1`, the root toolchain. Neither is needed; both arrive with the next bump.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound
@@ -731,9 +741,11 @@ saying that the flag *words* enter the state unchanged (decision 6). S8 the BLAK
 (`τ_BLAKE2S ≥ 3`) is enforced by the verifier (`cpu/mod.rs:166`) and the filler (`filler.rs:43`)
 but appears in no section of the specification; Layer 2 binds `minLogRowsBlake2s` to the Rust
 and to Flock's `min_n_blocks_log` (`crates/flock/src/hash.rs:283-286`). S9 §7.4 lists the
-`DEREF` memory flushes as pointer, local, target while `tables.rs:645-650` emits pointer,
-target, local; Layer 6 follows §7.4, the order of a row's interactions being immaterial to
-balance.
+`DEREF` memory flushes as pointer, local, target while `tables.rs:640-642` emits pointer,
+target, local. The order is immaterial to balance, but it places the reads' blocks on the bus
+and so fixes the table sumcheck's forms: Layer 6 followed §7.4 until the executable verifier
+rejected the Rust proof there, and the `DEREF` flushes now follow the Rust order
+(`Arithmetization/Tables/Deref.lean`; [leanvm-target.md](../leanvm-target.md)).
 
 **Rust executor** (`crates/lean_vm/src/cpu/execute.rs`), all witness-generation behaviour, none
 a second meaning of the machine (test 19): R1 registers and operands are `u32` exponents

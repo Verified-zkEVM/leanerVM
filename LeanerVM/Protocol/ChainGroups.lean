@@ -44,7 +44,11 @@ group's squeezes so far, `Group.check?` the answer to its check; `isOpen` says s
 group is logged and not all; `isClosed` that all are. `Flips` says the group is closed on a bad
 challenge, its proof of work passing (`PowPasses`); `FlipAt` that some group flips. `FlipsFor st`
 and `FlipAtFor st` are the same on the chain of the statement `st`: the group's history starts at
-a digest that opens `st`. A flip on one statement's chain is a flip (`flip_of_flipFor`). `π` is
+a digest that opens `st`. `FlipsForIn st lV` and `FlipAtForIn st lV` add that the log `lV` asked
+the group (`Group.AskedIn`: the chain step its queries open with, `Group.stepInput`, is a query of
+`lV`); on a run, `VerifierFlipFor st` is a flip on the chain of `st` on a group the verifier
+asked. A flip the verifier asked for is a flip on the statement's chain, which is a flip
+(`flipFor_of_verifierFlipFor`, `flip_of_flipFor`). `π` is
 the probability, over fresh uniform answers to its unasked queries, that the group closes on a bad
 challenge, `1` on a group that flips (`π_eq_one_of_flips`).
 
@@ -299,6 +303,17 @@ def asked (m : ℕ) : Bool :=
 def complete (m : ℕ) : Bool :=
   (G.nonce.isNone || (G.check? l).isSome) && (G.run l m).length == m
 
+/-- The chain step the group's queries open with: its nonce step for a group with a nonce, its
+first squeeze for a plain one. -/
+def stepInput : List UInt8 :=
+  match G.nonce with
+  | none => squeezeInput G.cv
+  | some n => absorbInput G.cv n
+
+/-- **A log asked the group**: the chain step its queries open with is one of the log's
+queries. -/
+def AskedIn (lV : hashSpec.QueryLog) : Prop := ∃ d : Digest, ⟨G.stepInput, d⟩ ∈ lV
+
 end Group
 
 /-- The proof of work of the nonce `n` from the state `cv` passes in the log: its base and check
@@ -374,6 +389,37 @@ theorem flipAt_of_flipAtFor {st : R.Stmt} (h : R.FlipAtFor l st) : R.FlipAt l :=
 /-- **A flip on the chain of a statement is a flip** on a run. -/
 theorem flip_of_flipFor {st : R.Stmt} {g : Run} (h : R.FlipFor st g) : R.Flip g :=
   R.flipAt_of_flipAtFor g.log h
+
+/-- **A group flips on the chain of the statement `st`, and the log `lV` asked it**: it flips on
+the chain of `st` at the end of `l`, and the chain step its queries open with is a query of
+`lV`. -/
+def FlipsForIn (st : R.Stmt) (lV : hashSpec.QueryLog) (G : Group) : Prop :=
+  R.FlipsFor l st G ∧ G.AskedIn lV
+
+/-- A flip on the chain of the statement `st` at the end of a log, on a group that `lV` asked. -/
+def FlipAtForIn (st : R.Stmt) (lV : hashSpec.QueryLog) : Prop := ∃ G, R.FlipsForIn l st lV G
+
+/-- **A flip the verifier asked for**, on a run of the game: a bad challenge on a group of the
+chain of the statement `st` at the end of the joint log, whose chain step (its nonce step, or its
+first squeeze) is one of the verifier's own queries. A chain the prover explored and the verifier
+never walked does not count. -/
+def VerifierFlipFor (st : R.Stmt) (g : Run) : Prop := R.FlipAtForIn g.log st g.logV
+
+/-- A flip on a group a log asked is a flip on the chain of the statement. -/
+theorem flipAtFor_of_flipAtForIn {st : R.Stmt} {lV : hashSpec.QueryLog}
+    (h : R.FlipAtForIn l st lV) : R.FlipAtFor l st :=
+  let ⟨G, hG, _⟩ := h
+  ⟨G, hG⟩
+
+/-- **A flip the verifier asked for is a flip on the chain of the statement**, on a run. -/
+theorem flipFor_of_verifierFlipFor {st : R.Stmt} {g : Run} (h : R.VerifierFlipFor st g) :
+    R.FlipFor st g :=
+  R.flipAtFor_of_flipAtForIn g.log h
+
+/-- **A flip the verifier asked for is a flip** on a run. -/
+theorem flip_of_verifierFlipFor {st : R.Stmt} {g : Run} (h : R.VerifierFlipFor st g) :
+    R.Flip g :=
+  R.flip_of_flipFor (R.flipFor_of_verifierFlipFor h)
 
 /-- **The probability a group closes on a bad challenge**, over fresh uniform answers to its check
 (ignored when logged, or for a plain group) and to its unasked squeezes, the logged ones fixed. -/

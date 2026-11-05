@@ -144,11 +144,12 @@ def setSends (r : SetRow K) : OpcodeSends where
   bc := ⟨r.pc, r.rbc, Opcode.setConstant.code, #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0]⟩
   mem := [⟨r.fp * r.o, r.r, r.k⟩]
 
-/-- What a `DEREF` row sends (specification §7.4; `tables.rs:616-623`): the fall-through step,
-the bytecode tuple `(DEREF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`, and three memory reads, the pointer,
-the target, which carries the store coordinates of the flags, and the local word. The reads are
-in the Rust's flush order (`tables.rs:641-643`), the circuit's; the specification's flush list
-has the local word second, which balance, a multiset equality, does not see. -/
+/-- What a `DEREF` row sends (specification §7.4; `tables.rs:633-643`, the store coordinates
+`:616-623`): the fall-through step, the bytecode tuple `(DEREF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)`,
+and three memory reads, the pointer, the target, which carries the store coordinates of the
+flags, and the local word. The reads are in the Rust's flush order (`tables.rs:640-642`), the
+circuit's; the specification's flush list has the local word second, which balance, a multiset
+equality, does not see. -/
 def derefSends (r : DerefRow K) : OpcodeSends where
   pull := ⟨r.pc, r.fp⟩
   push := ⟨g * r.pc, r.fp⟩
