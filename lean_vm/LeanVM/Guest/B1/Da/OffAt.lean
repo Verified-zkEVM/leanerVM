@@ -22,7 +22,8 @@ The buffers at `b0 = fp + fs f`: the offsets (`offCells Z`, `1024` words), then 
 (`stepCells Z b`) at `b0 + 1024 + 8 b`. `offLoop_rel`: bit `b`'s loop runs to its end on them
 (`off_block`, `wK_two_pow_add`). The body is evaluated (`Fwd.ev`); its loads read `zs`, its stores
 find the zeros and the steps. `off_completeAtB`: complete, placed, within its frame, its buffers
-and `offKB SK`, its loops' `2^b` iterations each, returning the offsets (`offOut`).
+and `offKB fs SK`, its loops' `2^b` iterations each and their runs' phantom frames, returning
+the offsets (`offOut`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -31,7 +32,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol.Verifier (gen eOfNat)
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB completeAt_flatOutDTB flatCalls flatMap_loadsEv Kid Returns)
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
@@ -46,8 +47,9 @@ def offKid (Z : ℕ → E) (b0 b : ℕ) : Kid :=
   ⟨offLoopName b, true, [1, gen ^ 2 ^ b, gen ^ b0, gen ^ (b0 + 1024 + 8 * b)],
     [(b0, offCells Z), (b0 + 1024 + 8 * b, stepCells Z b)], Returns []⟩
 
-/-- **The loops' words bound**: bit `b`'s `2^b` iterations. -/
-def offKB (SK : String → ℕ) : ℕ := ((List.range 7).map fun b => 2 ^ b * SK (offLoopName b)).sum
+/-- **The loops' words bound**: bit `b`'s `2^b` iterations and its run's phantom frame. -/
+def offKB (fs SK : String → ℕ) : ℕ :=
+  ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum
 
 theorem bufL_off (Z : ℕ → E) (b0 : ℕ) : bufL b0 offSizes (offOwn Z) =
     (b0, offCells Z) :: (List.range 7).map fun b => (b0 + 1024 + 8 * b, stepCells Z b) := by
@@ -126,15 +128,15 @@ theorem isOffStmt_spec {s : Stmt} (h : isOffStmt s = true) :
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 4000 in
-/-- **`da_column_offsets` is complete, placed, within its frame, its buffers and `offKB SK`**,
+/-- **`da_column_offsets` is complete, placed, within its frame, its buffers and `offKB fs SK`**,
 returning its offsets, the powers `Z` read at `g^c`. -/
 theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     (hzs : ∀ rd, MemL rd Lin → ∀ j < 8, LoadHolds rd (gen ^ c) j (Z j))
     (hzr : ∀ j < 8, RegionL Lin (c + j)) {SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
-      (fun a => logG (a.getD 1 0) * SK (offLoopName b))) :
+      (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))) :
     CompleteAtDTB fs cert 16 "da_column_offsets" Lin [gen ^ c] (offOut Z) (fun _ => True)
-      (fs "da_column_offsets" + 1080 + offKB SK) := by
+      (fs "da_column_offsets" + 1080 + offKB fs SK) := by
   have hok := off_ok
   unfold offOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
@@ -148,7 +150,8 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   have hS := atomsEqb_sound hst
   have hNb : ∀ b < 7, word (offN b) 0 0 = gen ^ 2 ^ b := fun b hb' => by
     rw [word_eOfNat, eOfNat, hN b hb', gen_pow_eq_ofK]
-  have hKB : ((List.range 7).map fun b => 2 ^ b * SK (offLoopName b)).sum = offKB SK := rfl
+  have hKB : ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) +
+      fs (offLoopName b)).sum = offKB fs SK := rfl
   rw [show 1080 = offSizes.sum from rfl, ← hKB]
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) find_da_column_offsets
     (by rw [Program.loop_of_find? find_da_column_offsets]; decide +kernel) 16 Lin [gen ^ c]
@@ -158,7 +161,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
       rw [bufL_off]; exact List.mem_cons_self ..⟩)
     (fun fp ↦ (List.range 7).map (offKid Z (fp + fs "da_column_offsets")))
     (fun _ ↦ True) ((List.range 7).map fun _ => fun _ => True)
-    ((List.range 7).map fun b => 2 ^ b * SK (offLoopName b)) _
+    ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)) _
     (fun fp ↦ kidsDTB_map _ _ _ fun b hb' _ => ?_)
     (fun fp ↦ le_of_eq (kidsBoundL_map _ _ _ fun _ _ => rfl)) (fun _ ↦ by simp)
     (fun fp k hk _ i hi => ?_) (fun fp rd hB _ k hk => ?_) ?_).mono (by simp) fun _ _ ↦ trivial

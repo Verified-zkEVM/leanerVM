@@ -13,15 +13,15 @@ public import LeanVM.Guest.Count.Words
 /-!
 # `keccak_layer` within its words at `B2C.fs`
 
-At the deployed frame sizes the words certificates (`Count.Words`) give the callees' words: the
-eight-round pack loops `__loop37`, `__loop39` (core `425`, `427`, frame `473`) at most `946` words
-per iteration (its frame and its last, skipped call's), the remainder loops `__loop38`, `__loop40`
-(core `426`, `428`, frame `92`) at most `184`. So `keccak_layer__L{first}` (core `264` for
-`first = 0`, frame `2624`; core `263` for `first = 1`, frame `2245`) is complete within
-`layerWords B2C.fs first y 946 184`
-`= fs (layerName first) + (y + 171) + (473 + ⌊y/8⌋ * 946) + (92 + (y % 8) * 184)`
-(`layer_completeAtFB_fs`), at most `2624 + (y + 171) + (473 + ⌊y/8⌋ * 946) + (92 + (y % 8) * 184)`
-(`layerWords_fs_le_y`): at most `6563` words for `y ≤ 25` (at `y = 23`), `7332` for `y ≤ 30`
+At the deployed frame sizes the words certificates (`Count.Words`) give the callees' runs' words:
+the eight-round pack loops `__loop37`, `__loop39` (core `425`, `427`, frame `473`) at most `473`
+words per iteration and the run's one phantom frame (its last, skipped call's), the remainder loops
+`__loop38`, `__loop40` (core `426`, `428`, frame `92`) at most `92` and their frame. So
+`keccak_layer__L{first}` (core `264` for `first = 0`, frame `2624`; core `263` for `first = 1`,
+frame `2245`) is complete within `layerWords B2C.fs first y 473 92`
+`= fs (layerName first) + (y + 171) + (473 + ⌊y/8⌋ * 473) + (92 + (y % 8) * 92)`
+(`layer_completeAtFB_fs`), at most `2624 + (y + 171) + (473 + ⌊y/8⌋ * 473) + (92 + (y % 8) * 92)`
+(`layerWords_fs_le_y`): at most `4973` words for `y ≤ 25` (at `y = 23`), `5361` for `y ≤ 30`
 (`layerWords_fs_le`).
 -/
 
@@ -35,25 +35,29 @@ open LeanVM.Protocol.KeccakGkr
 
 @[expose] public section
 
-/-- A loop's words at `B2C.fs`, from its certificate: `K` per iteration. -/
-theorem loop_totalLeOn_at {j K : ℕ} {f : String} (h : wOkK j f = true) (he : wSKJ j = K)
+/-- A loop's run's words at `B2C.fs`, from its certificate: `K` per iteration and its one phantom
+frame. -/
+theorem loop_totalLeOn_at {j K : ℕ} {f : String} (h : wOkK j f = true) (he : wSKtJ j = K)
     (hj : (coreProgram[j]?).map Fn.name = some f) :
-    TotalLeOn coreProgram LeanVM.Guest.B2C.fs f LoopPre fun a ↦ logG (a.getD 1 0) * K := by
-  have h1 := wSK_totalLeOn h
-  rwa [wSK_idx hj, he] at h1
+    TotalLeOn coreProgram LeanVM.Guest.B2C.fs f LoopPre fun a ↦
+      logG (a.getD 1 0) * K + LeanVM.Guest.B2C.fs f := by
+  have h1 := wSKt_totalLeOn h
+  rwa [wSKt_idx hj, he] at h1
 
-/-- **The eight-round pack loops' words at `B2C.fs`**: at most `946` per iteration. -/
+/-- **The eight-round pack loops' runs' words at `B2C.fs`**: at most `473` per iteration and
+their frame. -/
 theorem packLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * 946 := by
+      fun a ↦ logG (a.getD 1 0) * 473 + LeanVM.Guest.B2C.fs (packLoopName first) := by
   interval_cases first
   · exact loop_totalLeOn_at (j := 427) (by decide +kernel) (by decide +kernel) (by decide +kernel)
   · exact loop_totalLeOn_at (j := 425) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
-/-- **The remainder loops' words at `B2C.fs`**: at most `184` per iteration. -/
+/-- **The remainder loops' runs' words at `B2C.fs`**: at most `92` per iteration and their
+frame. -/
 theorem remLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (remLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * 184 := by
+      fun a ↦ logG (a.getD 1 0) * 92 + LeanVM.Guest.B2C.fs (remLoopName first) := by
   interval_cases first
   · exact loop_totalLeOn_at (j := 428) (by decide +kernel) (by decide +kernel) (by decide +kernel)
   · exact loop_totalLeOn_at (j := 426) (by decide +kernel) (by decide +kernel) (by decide +kernel)
@@ -93,24 +97,24 @@ theorem layerName_fs {first : ℕ} (hf : first < 2) :
 
 /-- **A layer's words at `B2C.fs`**, its frame at most `2624`. -/
 theorem layerWords_fs_le_y {first : ℕ} (hf : first < 2) (y : ℕ) :
-    layerWords LeanVM.Guest.B2C.fs first y 946 184 ≤
-      2624 + (y + 171) + (473 + y / 8 * 946) + (92 + y % 8 * 184) := by
+    layerWords LeanVM.Guest.B2C.fs first y 473 92 ≤
+      2624 + (y + 171) + (473 + y / 8 * 473) + (92 + y % 8 * 92) := by
   have := layerName_fs hf
   simp only [layerWords, packLoopName_fs hf, remLoopName_fs hf]
   omega
 
-/-- **A layer's words at `B2C.fs`, in numbers**: at most `6563` for `y ≤ 25`, `7332` for
+/-- **A layer's words at `B2C.fs`, in numbers**: at most `4973` for `y ≤ 25`, `5361` for
 `y ≤ 30`. -/
 theorem layerWords_fs_le {first y : ℕ} (hf : first < 2) :
-    (y ≤ 25 → layerWords LeanVM.Guest.B2C.fs first y 946 184 ≤ 6563) ∧
-      (y ≤ 30 → layerWords LeanVM.Guest.B2C.fs first y 946 184 ≤ 7332) := by
+    (y ≤ 25 → layerWords LeanVM.Guest.B2C.fs first y 473 92 ≤ 4973) ∧
+      (y ≤ 30 → layerWords LeanVM.Guest.B2C.fs first y 473 92 ≤ 5361) := by
   have h := layerWords_fs_le_y hf y
   constructor <;> intro hy <;> refine h.trans ?_ <;> interval_cases y <;> norm_num
 
 variable {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
-/-- **`keccak_layer` is complete, placed, within `layerWords B2C.fs first D.y 946 184` words** at
+/-- **`keccak_layer` is complete, placed, within `layerWords B2C.fs first D.y 473 92` words** at
 the deployed frame sizes. -/
 theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) (κ : ℕ) (D : LayerData)
     (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E}
@@ -127,7 +131,7 @@ theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) (κ : ℕ) (D : Lay
         ptr bout, iota])
       (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
         Lout = layerBufs D first (ptr bcur) (fp + LeanVM.Guest.B2C.fs (layerName first)))
-      (layerWords LeanVM.Guest.B2C.fs first D.y 946 184) :=
+      (layerWords LeanVM.Guest.B2C.fs first D.y 473 92) :=
   layer_completeAtFB hf κ D CL bcur bout (packLoop_totalLeOn_fs hf) (remLoop_totalLeOn_fs hf)
     hcl hcap hw hy1 hy30 hpl hpm hlm hproj hfin hCL
 

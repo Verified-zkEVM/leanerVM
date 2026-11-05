@@ -5,8 +5,9 @@ putting them together.
 
     python3 -I scripts/count/vsos.py LEAN_VM
 
-The numbers come from a mirror of `B1.osBos` at `B2C.fs`, `Count.osBnd`, `wSK` (the named callees'
-words on `osKindTable`'s names only); a mirror the Lean definitions disagree with fails the
+The numbers come from a mirror of `B1.osBos` at `B2C.fs`, `Count.osBnd`, `wSK - B2C.fs` (the named
+callees' words on `osKindTable`'s names only; a residual loop's words per iteration, its run's one
+phantom frame charged once); a mirror the Lean definitions disagree with fails the
 part's `decide +kernel`."""
 import sys, os, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,9 +19,9 @@ fsd = g.fs_words(); w = g.words_certs()
 fs = lambda n: fsd.get(n, 2)
 def SB(n):
     c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
-def SK(n):
-    """`wSK`: a loop's words per iteration, its run's phantom frame charged to each."""
-    c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
+def SKt(n):
+    """`wSK n - B2C.fs n` (`wSKt`): a loop's words per iteration, its run's phantom frame apart."""
+    c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
 B1 = os.path.join(LV, 'LeanVM', 'Guest', 'B1')
 def names(path, name):
     s = open(os.path.join(B1, path), encoding='utf-8').read()
@@ -82,7 +83,8 @@ def osBos(m):
         wk = odd + 2 * N if base == 1 else N
         sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
                   + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))
-        sp[resL] = sp.get(resL, 0) + q // 8 * SK(resL)
+        # `B1.osSpB`: the residual loop's run, `q / 8` iterations and its one phantom frame
+        sp[resL] = sp.get(resL, 0) + q // 8 * SKt(resL) + fs(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 
 

@@ -234,29 +234,30 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hg := wSB_totalLe (j := 3) (by decide +kernel)
   Ba := wSB "assert_canonical"
   ha := wSB_totalLe (j := 1) (by decide +kernel)
-  K29 := wSK "__loop36"
+  K29 := wSK "__loop36" - B2C.fs "__loop36"
   R := kGr
-  K8 := wSK "__loop7"
-  h29 := wSK_totalLeOn (j := 419) (by decide +kernel)
+  K8 := wSK "__loop7" - B2C.fs "__loop7"
+  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 419) (by decide +kernel)
   hR := gr_totalLe
-  h8 := wSK_totalLeOn (j := 90) (by decide +kernel)
+  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 90) (by decide +kernel)
   Kf := wSB
-  Ksh := B2C.fs "shared_selector_tables" + (B2C.fs "__loop8" + 15 * wSK "__loop8") + kSp
-  K10 := wSK "__loop9"
+  Ksh := B2C.fs "shared_selector_tables" +
+    (B2C.fs "__loop8" + 15 * (wSK "__loop8" - B2C.fs "__loop8")) + kSp
+  K10 := wSK "__loop9" - B2C.fs "__loop9"
   hKf := vt_kids_totalLe
-  hsh := B1.Tables.ss_totalLeOn (wSK "__loop8") kSp (wSK_totalLeOn (j := 91) (by decide +kernel))
-    sp_totalLe
-  h10 := wSK_totalLeOn (j := 261) (by decide +kernel)
-  B14 := 10576
+  hsh := B1.Tables.ss_totalLeOn (wSK "__loop8" - B2C.fs "__loop8") kSp
+    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 91) (by decide +kernel)) sp_totalLe
+  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 261) (by decide +kernel)
+  B14 := 5949
   hl14 := B1.VerifySub.l14_totalLeOn_fs
   Bnd := osBnd
-  Kr := wSK
+  Kr := fun f => wSK f - B2C.fs f
   hleaf := osLeafBoundsB
   hloop := fun μ r h1 h2 h3 h4 => osLoopBounds _ (by unfold B1.Whir.candidate; omega)
   Beqc := 184
-  K15 := 38
+  K15 := 19
   Bcs := 157
-  Brs := 16433
+  Brs := 8142
   hEqc := B1.VerifySub.eqc_totalLe_fs
   hL15 := B1.VerifySub.l15_totalLeOn_fs
   hCsF := B1.VerifySub.cs_fs_le
@@ -278,8 +279,10 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hEqcW := fun op => kuSB_weightLe (j := 5) (by cases op <;> decide +kernel)
   hStW := fun op => kuSB_weightLe (j := 16) (by cases op <;> decide +kernel)
   hCsW := cs_weightLe
-  h15W := fun op rd t args rets hn hv hb ht => ratio_le (krVl15_weight op rd t args rets hn hv hb) ht
-  hrswW := fun op rd t args rets hn hv hb ht => ratio_le (krVrsw_weight op rd t args rets hn hv hb) ht
+  h15W := fun op rd t args rets hn hv hb ht => ratio_le (krVl15_weight op rd t args rets hn hv hb)
+    (ht.trans (by rw [B1.VerifySub.fs_l15]; decide))
+  hrswW := fun op rd t args rets hn hv hb ht => ratio_le (krVrsw_weight op rd t args rets hn hv hb)
+    (ht.trans (by omega))
 
 end
 end LeanVM.Guest.Count

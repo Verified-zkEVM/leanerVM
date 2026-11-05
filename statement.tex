@@ -671,24 +671,24 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 36514 + 65\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 17531\cnt{sphincs} + 187595\cnt{da}
-  + 227257\cnt{rows} \\ + 136\cnt{pad} + 25793\cnt{child} + 51\cnt{childclaims}
+W = 36514 + 33\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 17531\cnt{sphincs} + 186063\cnt{da}
+  + 218735\cnt{rows} \\ + 101\cnt{pad} + 25793\cnt{child} + 51\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
 words, where $\beta(\mu,r)$, the words of verifying one child, is:
 \begin{center}\small
 \begin{tabular}{l|rrrrrrr}
 $\mu$ & 22 & 23 & 24 & 25 & 26 & 27 & 28\\\hline
-$r=1$ & 521794 & 530285 & 549368 & 559713 & 571284 & 581731 & 599563\\
-$r=2$ & 423307 & 427748 & 446157 & 451912 & 457552 & 462932 & 477572\\
-$r=3$ & 386167 & 391987 & 407075 & 411123 & 415363 & 419593 & 433901\\
-$r=4$ & 367142 & 370350 & 383585 & 386548 & 389699 & 395725 & 409202
+$r=1$ & 446313 & 453546 & 471273 & 480326 & 490605 & 499760 & 516300\\
+$r=2$ & 357012 & 360773 & 378404 & 383445 & 388371 & 393037 & 406963\\
+$r=3$ & 323170 & 328514 & 343126 & 346698 & 350462 & 354216 & 368048\\
+$r=4$ & 305591 & 308425 & 321286 & 323875 & 326652 & 332304 & 345407
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
 (\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 876\cnt{sphincs} +
 2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
-$\gamma$ between $5012$ and $10069$). The
+$\gamma$ between $4460$ and $9517$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
@@ -725,7 +725,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2627$ leanXMSS or $949$ leanSPHINCS signatures (each declared once), and a node holding one DA
+$2627$ leanXMSS or $950$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at

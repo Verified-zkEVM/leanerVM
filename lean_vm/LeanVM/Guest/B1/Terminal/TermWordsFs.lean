@@ -18,14 +18,14 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
 `B2C.fs`:
 
 * `eqc_totalLe_fs`: `eq_prefix_chain` within `184` (its certificate);
-* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `__loop14`, `__loop5` within `38`, `1671` words per
-  iteration (their certificates);
+* `l15_totalLeOn_fs`, `l6_totalLeOn_fs`: `__loop14`, `__loop5` within `19`, `1644` words per
+  iteration and their runs' one phantom frame, `19`, `27` (their certificates);
 * `rsRows_totalLe_fs`: each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words (their certificates);
-* `l14_totalLeOn_fs`: `__loop13` from `1` (to its constant end `g^8`) within `8 · 1322`;
+* `l14_totalLeOn_fs`: `__loop13` from `1` (to its constant end `g^8`) within `8 · 661 + 661`;
 * `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 29`, within `157` words, its frame
   at most `157` (its certificate is its frame);
-* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `16433` (`rs_totalLeOn34`:
-  `50 + max 27 (4 · 1671) + 1489 = 8223`).
+* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8142` (`rs_totalLeOn34`:
+  `50 + (27 + 4 · 1644) + 1489`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -69,49 +69,45 @@ theorem eqc_totalLe_fs : TotalLe coreProgram B2C.fs "eq_prefix_chain" fun _ => 1
   fs_totalLe (by rw [wcertOf_of_idx (j := 5) (by decide +kernel)]; rfl :
     wcertOf "eq_prefix_chain" = .stat [] ⟨184, []⟩ [])
 
-/-- A loop helper ending at its argument `1`, `K` words per iteration by its certificate: within
-`K + B2C.fs f` (its run's phantom frame charged to each iteration) per unit of its end's exponent
-from a start below its end. -/
+/-- A loop helper ending at its argument `1`, `K` words per iteration by its certificate: its run
+from a start below its end within `K` per unit of its end's exponent and its one phantom frame,
+`B2C.fs f`. -/
 theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
     (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) :
-    TotalLeOn coreProgram B2C.fs f LoopPre fun a => logG (a.getD 1 0) * (K + B2C.fs f) := by
+    TotalLeOn coreProgram B2C.fs f LoopPre fun a => logG (a.getD 1 0) * K + B2C.fs f := by
   intro rd t args rets hn ⟨a, e, ha, he, hae, heo⟩ hv hb
   have := fs_total_le_of_loop hcf hn hv hb ha he hae heo (fun _ h => (List.not_mem_nil h).elim)
-  show _ ≤ logG (args.getD 1 0) * (K + B2C.fs f)
+  show _ ≤ logG (args.getD 1 0) * K + B2C.fs f
   rw [he, logG_spec heo]
   simp only [Aff.eval, List.map_nil, List.sum_nil, add_zero] at this
-  have h1 : B2C.fs f ≤ (e - a) * B2C.fs f := Nat.le_mul_of_pos_left _ (by omega)
-  have h2 : (e - a) * (K + B2C.fs f) ≤ e * (K + B2C.fs f) := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
-  simp only [Nat.mul_add] at h2 ⊢
+  have h2 : (e - a) * K ≤ e * K := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
   omega
 
-/-- `__loop14` within `38` words per iteration. -/
+/-- `__loop14` within `19` words per iteration and its run's phantom frame, `19`. -/
 theorem l15_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * 38 := by
-  have h := loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 270) (by decide +kernel)]; rfl :
+    TotalLeOn coreProgram B2C.fs "__loop14" LoopPre
+      fun a => logG (a.getD 1 0) * 19 + B2C.fs "__loop14" :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 270) (by decide +kernel)]; rfl :
     wcertOf "__loop14" = .loop none [] ⟨19, []⟩ [])
-  rw [fs_l15] at h
-  exact h
 
-/-- `__loop5` within `1671` words per iteration. -/
+/-- `__loop5` within `1644` words per iteration and its run's phantom frame, `27`. -/
 theorem l6_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop5" LoopPre fun a => logG (a.getD 1 0) * 1671 := by
-  have h := loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 80) (by decide +kernel)]; rfl :
+    TotalLeOn coreProgram B2C.fs "__loop5" LoopPre
+      fun a => logG (a.getD 1 0) * 1644 + B2C.fs "__loop5" :=
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 80) (by decide +kernel)]; rfl :
     wcertOf "__loop5" = .loop none [] ⟨1644, []⟩ [])
-  rw [fs_l6] at h
-  exact h
 
-/-- `__loop13` from `1` (to its constant end `g^8`) within `8 · 1322` words (`8 · 661` and its run's
-phantom frame, `661`). -/
+/-- `__loop13` from `1` (to its constant end `g^8`) within `8 · 661 + 661` words (`8 · 661` and its
+run's phantom frame, `661`). -/
 theorem l14_totalLeOn_fs :
-    TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 10576 := by
+    TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 5949 := by
   intro rd t args rets hn ha hv hb
   have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 269) (by decide +kernel)]; rfl :
       wcertOf "__loop13" = .loop (some 8) [] ⟨661, []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
   rw [fs_l14] at this
-  show t.total B2C.fs ≤ 10576
+  show t.total B2C.fs ≤ 5949
   simp only [Aff.eval, List.map_nil, List.sum_nil, add_zero] at this
   omega
 
@@ -172,15 +168,14 @@ theorem rsRows_totalLe_fs : ∀ r < 8,
   obtain ⟨b, ks, hcb, hbB⟩ := certLe_spec h.2
   exact (fs_totalLe ((wcertOf_of_idx h.1).trans hcb) rd t args rets hn hv hb).trans hbB
 
-/-- **`rs_eq_run` on at most `34` coordinates within `16433` words** (`rs_totalLeOn34`:
-`50 + max 27 (4 · 1671) + 1489 = 8223`). -/
+/-- **`rs_eq_run` on at most `34` coordinates within `8142` words** (`rs_totalLeOn34`:
+`50 + (27 + 4 · 1644) + 1489`). -/
 theorem rs_totalLeOn_fs : ∀ c ≤ 34,
-    TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 16433 := by
+    TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 8142 := by
   intro c hc rd t args rets hn hp hv hb
   refine (rs_totalLeOn34 l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show B2C.fs "rs_eq_run" + max (B2C.fs "__loop5") (4 * 1671) + 1489 ≤ 16433
+  show B2C.fs "rs_eq_run" + (B2C.fs "__loop5" + 4 * 1644) + 1489 ≤ 8142
   rw [fs_rs, fs_l6]
-  decide
 
 /-! ## At `B2C.fs` -/
 

@@ -45,17 +45,17 @@ instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ
 challenge, is (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
-    ([[521794, 530285, 549368, 559713, 571284, 581731, 599563],
-      [423307, 427748, 446157, 451912, 457552, 462932, 477572],
-      [386167, 391987, 407075, 411123, 415363, 419593, 433901],
-      [367142, 370350, 383585, 386548, 389699, 395725, 409202]].getD (r - 1) []).getD (μ - 22) 0
+    ([[446313, 453546, 471273, 480326, 490605, 499760, 516300],
+      [357012, 360773, 378404, 383445, 388371, 393037, 406963],
+      [323170, 328514, 343126, 346698, 350462, 354216, 368048],
+      [305591, 308425, 321286, 323875, 326652, 332304, 345407]].getD (r - 1) []).getD (μ - 22) 0
   else 0
 
 /-- `open_stacked`'s words at the 28 candidates (`Count/VsOsAll`). -/
 theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
-    [268827, 277318, 296401, 306746, 318317, 328764, 346596, 170340, 174781, 193190, 198945,
-      204585, 209965, 224605, 133200, 139020, 154108, 158156, 162396, 166626, 180934, 114175,
-      117383, 130618, 133581, 136732, 142758, 156235].getD c 0 := by
+    [249683, 256916, 274643, 283696, 293975, 303130, 319670, 160382, 164143, 181774, 186815,
+      191741, 196407, 210333, 126540, 131884, 146496, 150068, 153832, 157586, 171418, 108961,
+      111795, 124656, 127245, 130022, 135674, 148777].getD c 0 := by
   interval_cases c
   · exact Count.osC_0
   · exact Count.osC_1
@@ -105,7 +105,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 28` at rate `1`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 599563 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 516300 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, h3, h4⟩ := h

@@ -32,13 +32,13 @@ noncomputable def osBndFast (f : String) : ℕ :=
 
 /-- `open_stacked`'s words at candidate `c` (`osC`), by the search tree's lookups. -/
 noncomputable def osCF (c : ℕ) : ℕ :=
-  B1.osBos fsFast (B1.osBk fsFast osBndFast wSKFast (osCfg c)) ("open_stacked__L" ++ natStr c)
+  B1.osBos fsFast (B1.osBk fsFast osBndFast (fun f => wSKFast f - fsFast f) (osCfg c)) ("open_stacked__L" ++ natStr c)
     (osCfg c)
 
 /-- Its calls' bounds, in order. -/
 noncomputable def osCallsF (c : ℕ) : List ℕ :=
   ((osBodyA (osCfg c)).filterMap B1.Main.Stmt.callS).map fun x =>
-    B1.osCallB fsFast (B1.osBk fsFast osBndFast wSKFast (osCfg c)) x.2.1
+    B1.osCallB fsFast (B1.osBk fsFast osBndFast (fun f => wSKFast f - fsFast f) (osCfg c)) x.2.1
 
 /-- Its frame and buffers. -/
 noncomputable def osHeadF (c : ℕ) : ℕ :=

@@ -18,8 +18,8 @@ public import LeanVM.Guest.B1.Tables.FlatLiftT
 * `vbg_loop7_total`: there, a valid tree of `__loop6` from `1` below `g^(depth/2)` has at most
   `ly7Total` words.
 * `verify_bus_gkr_completeAtTB`: `verify_bus_gkr` placed within `vbgBound`: its frame, its
-  buffers, `__loop6`'s chain and `__loop7`'s words (`depth · K8`), and the frames of its two
-  conditional calls (`flat_completeAtTB`).
+  buffers, `__loop6`'s chain and `__loop7`'s words (`depth · K8` and its run's phantom frame), and
+  the frames of its two conditional calls (`flat_completeAtTB`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -77,7 +77,8 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK ePa eD : ℕ} {rd : Reader}
     (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK ePa eD))
     {K29 R : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop36" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K29 + fs "__loop36"))
     (hR : ∀ n ∈ grCounts, TotalLe coreProgram fs (lName "gkr_rounds" n) (fun _ ↦ R))
     (hm0 : 0 < depth / 2) {t : Tree} {rets : List E} (hn : t.name = "__loop6")
     (hv : t.Valid coreProgram rd [1, gen ^ (depth / 2), ofK (addressOfIndex eD), gen ^ depth,
@@ -108,25 +109,28 @@ theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
   rw [e, vbg_callS]
   rfl
 
-/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop6`'s chain, `__loop7`'s `depth`
-iterations of at most `K8` words, and the frames of its two conditional calls. -/
+/-- `verify_bus_gkr`'s words: its frame, its buffers, `__loop6`'s chain, `__loop7`'s run (`depth`
+iterations of at most `K8` words and its one phantom frame), and the frames of its two conditional
+calls. -/
 def vbgBound (fs : String → ℕ) (K29 R K8 depth : ℕ) : ℕ :=
   fs "verify_bus_gkr" + (vbgSizes depth).sum +
-    ([ly7Total fs K29 R depth, depth * K8].sum + ifFrames fs vbgPre)
+    ([ly7Total fs K29 R depth, depth * K8 + fs "__loop7"].sum + ifFrames fs vbgPre)
 
 variable {cert : String → V → ℕ}
 
 /-- **`verify_bus_gkr` is complete, placed, within `vbgBound` words** (TRIAGE G #43), given the
-words of `__loop36` (linear in its end's exponent, `K29`), of the rounds `gkr_rounds__L{n}`,
-`n ∈ {0, 1, 2, 4, 6}` (`R`) and of `__loop7` (linear in its end's exponent, `K8`), on every
-reader. -/
+words of `__loop36`'s and `__loop7`'s runs (linear in their ends' exponents, `K29`, `K8`, and
+their phantom frames once) and of the rounds `gkr_rounds__L{n}`, `n ∈ {0, 1, 2, 4, 6}` (`R`), on
+every reader. -/
 theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32)
     (hκ : 6 ≤ κ) {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (ec ez : ℕ) {K29 R K8 : ℕ}
-    (h29 : TotalLeOn coreProgram fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn coreProgram fs "__loop36" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K29 + fs "__loop36"))
     (hR : ∀ n ∈ grCounts, TotalLe coreProgram fs (lName "gkr_rounds" n) (fun _ ↦ R))
-    (h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)) :
+    (h8 : TotalLeOn coreProgram fs "__loop7" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K8 + fs "__loop7")) :
     CompleteAtDTB fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
       (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez)])
       (Returns (cap' ++ [ofK (addressOfIndex ec) * gen ^ xs.length] ++ r.2.2)) (fun _ ↦ True)
@@ -147,7 +151,7 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd1 : 1 ≤ depth) (hd : d
     (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
     (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
     (fun _ _ _ _ i _ _ _ _ _ _ _ _ ↦ by rcases i with _ | _ | _ <;> trivial)
-    [ly7Total fs K29 R depth, depth * K8] _ (fun fp rd hlow hL i c hci ht rd' hlow' hL' t rr hn hv hb ↦ ?_)
+    [ly7Total fs K29 R depth, depth * K8 + fs "__loop7"] _ (fun fp rd hlow hL i c hci ht rd' hlow' hL' t rr hn hv hb ↦ ?_)
     (fun σ ↦ callsBound_le vbgPre σ _)).mono le_rfl (fun _ _ ↦ trivial)
   obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hL
   have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex

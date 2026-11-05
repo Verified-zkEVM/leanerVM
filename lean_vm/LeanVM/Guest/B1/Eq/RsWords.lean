@@ -22,10 +22,10 @@ statements' (the dispatch `rsD` names a callee: else the walk is stuck, `rs_walk
 frames are `__loop5`'s and the remainder's `rs_eq_rows__L{r}` (`rs_calls`); it allocates nothing.
 Its first `43` atoms (`rsA`, events of the walk) hold, so `q_g = σ 37 = g^q`, `r_g = σ 23 = g^r`
 and `g^(8q + r) = count_g = g^c` (as in `rs_eq_run_sound`): `q = c / 8`, `r = c % 8`. With
-`__loop5`'s words per iteration (`TotalLeOn … LoopPre`, as `Count.wSK_totalLeOn` gives it) and
-each `rs_eq_rows__L{r}`, `r < 8`, within `R`, `rs_totalLeOn` bounds the tree by
-`fs "rs_eq_run" + max (fs "__loop5") (c / 8 · K6) + R`; `rs_totalLeOn34`, for `c ≤ 34`, by
-`fs "rs_eq_run" + max (fs "__loop5") (4 · K6) + R`.
+`__loop5`'s run's words (`TotalLeOn … LoopPre`: `K6` per iteration and its one phantom frame, as
+`Count.wSKt_totalLeOn` gives it) and each `rs_eq_rows__L{r}`, `r < 8`, within `R`, `rs_totalLeOn`
+bounds the tree by `fs "rs_eq_run" + (fs "__loop5" + c / 8 · K6) + R`; `rs_totalLeOn34`, for
+`c ≤ 34`, by `fs "rs_eq_run" + (fs "__loop5" + 4 · K6) + R`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -209,15 +209,16 @@ theorem rsA_vals {rd : Reader} {σ : Val}
 
 variable {fs : String → ℕ}
 
-/-- **`rs_eq_run` is within its words**: on a count `g^c`, `c < 64`, its frame, `__loop5`'s
-`c / 8` iterations of at most `K6` words (or `__loop5`'s frame when skipped) and the remainder's
-`rs_eq_rows__L{c % 8}`, within `R`. -/
+/-- **`rs_eq_run` is within its words**: on a count `g^c`, `c < 64`, its frame, `__loop5`'s run
+(`c / 8` iterations of at most `K6` words and its one phantom frame; its frame when skipped) and the
+remainder's `rs_eq_rows__L{c % 8}`, within `R`. -/
 theorem rs_totalLeOn {K6 R : ℕ}
-    (h6 : TotalLeOn coreProgram fs "__loop5" LoopPre fun a ↦ logG (a.getD 1 0) * K6)
+    (h6 : TotalLeOn coreProgram fs "__loop5" LoopPre
+      fun a ↦ logG (a.getD 1 0) * K6 + fs "__loop5")
     (hR : ∀ r < 8, TotalLe coreProgram fs (rsEqRowsNames.getD r "") fun _ ↦ R) {c : ℕ}
     (hc : c < 64) :
     TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-      (fun _ ↦ fs "rs_eq_run" + max (fs "__loop5") (c / 8 * K6) + R) := by
+      (fun _ ↦ fs "rs_eq_run" + (fs "__loop5" + c / 8 * K6) + R) := by
   intro rd t args rets hname h3 hv hb
   cases t with
   | phantom => exact hv.elim
@@ -253,7 +254,8 @@ theorem rs_totalLeOn {K6 R : ℕ}
     rw [(flat_parts σ _ rs_flat).2.1, rs_allocSz] at h
     simpa using h
   subst hbufs
-  have htot := Budget.node_total_le fs (fun cl ↦ if cl.f = "__loop5" then c / 8 * K6 else R)
+  have htot := Budget.node_total_le fs
+    (fun cl ↦ if cl.f = "__loop5" then fs "__loop5" + c / 8 * K6 else R)
     [fun _ ↦ True, fun _ ↦ True] (cs := rsCalls σ) hv hb
     (fun fn' es' vs' hf' hw' ↦ by
       rw [find_rs_eq_run, Option.some.injEq] at hf'
@@ -268,10 +270,12 @@ theorem rs_totalLeOn {K6 R : ℕ}
     have hne : rsEqRowsNames.getD r "" ≠ "__loop5" := by interval_cases r <;> decide
     rw [ite_neg' hne]
     generalize c / 8 * K6 = X
-    have h1 := le_max_left (fs "__loop5") X
-    have h2 := le_max_right (fs "__loop5") X
-    generalize max (fs "__loop5") X = M at h1 h2 ⊢
-    split <;> omega
+    have h1 : (if decide (σ (.n 43) ≠ 0) = true then fs "__loop5" + X else fs "__loop5") ≤
+        fs "__loop5" + X := by
+      split <;> simp
+    generalize (if decide (σ (.n 43) ≠ 0) = true then fs "__loop5" + X else fs "__loop5") = Y at h1 ⊢
+    generalize fs "__loop5" + X = Z at h1 ⊢
+    omega
   · simp only [rsCalls, List.zip_cons_cons, List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false,
       Prod.mk.injEq] at hc'
     rcases hc' with ⟨rfl, -⟩ | ⟨rfl, -⟩
@@ -289,23 +293,26 @@ theorem rs_totalLeOn {K6 R : ℕ}
       simp only [List.map_cons, List.map_nil, List.getD_cons_succ, List.getD_cons_zero, hg,
         gen_pow_eq_ofK, logG_spec (show q < 2 ^ 64 - 1 by omega)] at this
       rw [ite_pos' rfl, hc8]
-      exact this
+      generalize q * K6 = X at this ⊢
+      omega
     · rw [hlog, rsNames_getD r hr] at htn ⊢
       have hne : rsEqRowsNames.getD r "" ≠ "__loop5" := by interval_cases r <;> decide
       rw [ite_neg' hne]
       exact hR r hr rd t' _ rets' htn htv htb
 
-/-- **`rs_eq_run` on at most `34` coordinates is within `fs "rs_eq_run" + max (fs "__loop5")
-(4 · K6) + R` words** (`rs_totalLeOn`, `c / 8 ≤ 4`). -/
+/-- **`rs_eq_run` on at most `34` coordinates is within `fs "rs_eq_run" + (fs "__loop5" + 4 · K6) +
+R` words** (`rs_totalLeOn`, `c / 8 ≤ 4`). -/
 theorem rs_totalLeOn34 {K6 R : ℕ}
-    (h6 : TotalLeOn coreProgram fs "__loop5" LoopPre fun a ↦ logG (a.getD 1 0) * K6)
+    (h6 : TotalLeOn coreProgram fs "__loop5" LoopPre
+      fun a ↦ logG (a.getD 1 0) * K6 + fs "__loop5")
     (hR : ∀ r < 8, TotalLe coreProgram fs (rsEqRowsNames.getD r "") fun _ ↦ R) :
     ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-      (fun _ ↦ fs "rs_eq_run" + max (fs "__loop5") (4 * K6) + R) := by
+      (fun _ ↦ fs "rs_eq_run" + (fs "__loop5" + 4 * K6) + R) := by
   intro c hc rd t args rets hn hp hv hb
   have h := rs_totalLeOn h6 hR (c := c) (by omega) rd t args rets hn hp hv hb
-  refine h.trans (Nat.add_le_add_right (Nat.add_le_add_left
-    (max_le_max le_rfl (Nat.mul_le_mul_right _ ?_)) _) _)
+  have := Nat.mul_le_mul_right K6 (show c / 8 ≤ 4 by omega)
+  dsimp only at h ⊢
+  generalize c / 8 * K6 = X at h this
   omega
 
 end

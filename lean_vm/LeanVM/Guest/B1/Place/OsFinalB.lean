@@ -17,8 +17,8 @@ public import LeanVM.Guest.Memory.LoopPre
 # `open_stacked`, placed within its bound
 
 `OsCalleeBounds fs Bk c`: the callees' words within `Bk` of their names: the named callees'
-(`OsLeafBounds`), each residual loop's `K` words an iteration (`TotalLeOn … LoopPre`, G7-cnt's
-`LoopTotalLe.totalLeOn`) within `Bk`, each squeeze loop's `sqTot` and `opening_queries`' `oqBound`
+(`OsLeafBounds`), each residual loop's run, `K` words an iteration and its one phantom frame
+(`TotalLeOn … LoopPre`, G7-cnt's `LoopRunLe.totalLeOn`), within `Bk`, each squeeze loop's `sqTot` and `opening_queries`' `oqBound`
 within `Bk`.
 
 **`os_completeAtB_cfg`**: `os_completeAtD_cfg` within `osBos fs Bk name c` words.
@@ -40,7 +40,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 structure OsCalleeBounds (fs : String → ℕ) (Bk : String → ℕ) (c : OsCfg) : Prop where
   leaf : OsLeafBounds fs Bk
   res : ∀ l < c.levels.length, ∃ K, TotalLeOn coreProgram fs (c.resLoop l) LoopPre
-    (fun a ↦ logG (a.getD 1 0) * K) ∧ (lvAt c l).queries / resBatch * K ≤ Bk (c.resLoop l)
+    (fun a ↦ logG (a.getD 1 0) * K + fs (c.resLoop l)) ∧
+      (lvAt c l).queries / resBatch * K + fs (c.resLoop l) ≤ Bk (c.resLoop l)
   sq : ∀ l < c.levels.length,
     sqTot fs (lvAt c l) (c.sqLoop l) (lvAt c l).squeezes 0 ≤ Bk (c.sqLoop l)
   q : ∀ l < c.levels.length, oqBound fs (osQueriesName l (lvAt c l))
@@ -48,13 +49,13 @@ structure OsCalleeBounds (fs : String → ℕ) (Bk : String → ℕ) (c : OsCfg)
       Bk (osQueriesName l (lvAt c l))
 
 /-- The special callees' bounds: each level's squeeze loop's `sqTot`, its `opening_queries`'
-`oqBound`, its residual loop's `K` words an iteration. -/
+`oqBound`, its residual loop's run (`Kr` words an iteration and its one phantom frame). -/
 def osSpB (fs Kr : String → ℕ) (c : OsCfg) : List (String × ℕ) :=
   (List.range c.levels.length).flatMap fun l ↦
     [(c.sqLoop l, sqTot fs (lvAt c l) (c.sqLoop l) (lvAt c l).squeezes 0),
      (osQueriesName l (lvAt c l), oqBound fs (osQueriesName l (lvAt c l))
        (oqLoopOf (osQueriesName l (lvAt c l))) ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))),
-     (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l))]
+     (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l) + fs (c.resLoop l))]
 
 /-- **The callees' bounds by name**: a named callee's `Bnd`, plus the special callees' bounds of
 that name. -/
@@ -74,14 +75,16 @@ theorem osSpB_mem {fs Kr : String → ℕ} {c : OsCfg} {l : ℕ} (hl : l < c.lev
     (osQueriesName l (lvAt c l), oqBound fs (osQueriesName l (lvAt c l))
        (oqLoopOf (osQueriesName l (lvAt c l))) ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))) ∈
       osSpB fs Kr c ∧
-    (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l)) ∈ osSpB fs Kr c := by
+    (c.resLoop l, (lvAt c l).queries / resBatch * Kr (c.resLoop l) + fs (c.resLoop l)) ∈
+      osSpB fs Kr c := by
   have hr : l ∈ List.range c.levels.length := List.mem_range.mpr hl
   refine ⟨?_, ?_, ?_⟩ <;> exact List.mem_flatMap.mpr ⟨l, hr, by simp⟩
 
-/-- The residual loops' words, `Kr` an iteration (G7-cnt's `LoopTotalLe.totalLeOn`). -/
+/-- The residual loops' runs' words, `Kr` an iteration and the run's one phantom frame (G7-cnt's
+`LoopRunLe.totalLeOn`). -/
 def OsLoopBounds (fs Kr : String → ℕ) (c : OsCfg) : Prop :=
   ∀ l < c.levels.length, TotalLeOn coreProgram fs (c.resLoop l) LoopPre
-    (fun a ↦ logG (a.getD 1 0) * Kr (c.resLoop l))
+    (fun a ↦ logG (a.getD 1 0) * Kr (c.resLoop l) + fs (c.resLoop l))
 
 /-- **The callees within `osBk`**, from the named callees' and the residual loops' bounds. -/
 theorem osCalleeBounds_of {fs Bnd Kr : String → ℕ} {c : OsCfg} (hT : OsLeafBounds fs Bnd)
@@ -165,7 +168,8 @@ theorem os_completeAtB_cfg (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert
         obtain ⟨K, hK, hKB⟩ := hBk.res l hl
         refine (os_res_completeAtB fs cert κ hF hfit hP.sizes hl h1 h2 h3 hq8
           (one_add_gen_pow_ne_zero hq0 hqo) (fp + fs name) Lin
-          (B := (lvAt c l).queries / resBatch * K) fun rd t hn hv hbo ↦ ?_).mono le_rfl hKB
+          (B := (lvAt c l).queries / resBatch * K + fs (c.resLoop l)) fun rd t hn hv hbo ↦ ?_).mono
+          le_rfl hKB
         have := hK rd t _ [] hn (loopPre_gen hq0 hqo _) hv hbo
         simp only [List.getD_cons_succ, List.getD_cons_zero, logG_gen_pow hqo] at this
         exact this

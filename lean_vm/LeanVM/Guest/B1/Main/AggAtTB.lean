@@ -10,12 +10,14 @@ module
 public import LeanVM.Guest.B1.Main.AggAtT
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Guest.B1.Main.IterK
 
 /-!
 # `aggregate_claims`, bounded
 
-`aggBs SB SK m`: its callees' bounds, `__loop33`/`__loop34`/`__loop35` from `1` to `g^m` within `m`
-times their per-iteration words `SK`, `batch_sumcheck__L23` within its static bound `SB`.
+`aggBs fs SB SK m`: its callees' bounds, `__loop33`/`__loop34`/`__loop35` from `1` to `g^m` within
+`m` times their per-iteration words `iterK fs SK` and their runs' phantom frames,
+`batch_sumcheck__L23` within its static bound `SB`.
 `aggB fs SB SK m`: its frame, its `HeapBuf`s (`aggSizes m`) and those. `aggregate_claims_completeAtTB`.
 -/
 
@@ -33,25 +35,30 @@ open LeanVM.Guest.Budget (NodeHonest)
 @[expose] public section
 
 /-- `aggregate_claims`' callees' bounds, in call order. -/
-def aggBs (SB SK : String → ℕ) (m : ℕ) : List ℕ :=
-  [m * SK "__loop33", m * SK "__loop34", SB "batch_sumcheck__L23", m * SK "__loop35"]
+def aggBs (fs SB SK : String → ℕ) (m : ℕ) : List ℕ :=
+  [m * iterK fs SK "__loop33" + fs "__loop33", m * iterK fs SK "__loop34" + fs "__loop34",
+    SB "batch_sumcheck__L23", m * iterK fs SK "__loop35" + fs "__loop35"]
 
 /-- `aggregate_claims`' callees' words. -/
-def aggKB (SB SK : String → ℕ) (m : ℕ) : ℕ :=
-  m * SK "__loop33" + m * SK "__loop34" + SB "batch_sumcheck__L23" + m * SK "__loop35"
+def aggKB (fs SB SK : String → ℕ) (m : ℕ) : ℕ :=
+  (m * iterK fs SK "__loop33" + fs "__loop33") + (m * iterK fs SK "__loop34" + fs "__loop34") +
+    SB "batch_sumcheck__L23" + (m * iterK fs SK "__loop35" + fs "__loop35")
 
 /-- **`aggregate_claims`' words bound** on `m` children: its frame, its `HeapBuf`s, its callees'. -/
 def aggB (fs : String → ℕ) (SB SK : String → ℕ) (m : ℕ) : ℕ :=
-  fs "aggregate_claims" + (aggSizes m).sum + aggKB SB SK m
+  fs "aggregate_claims" + (aggSizes m).sum + aggKB fs SB SK m
 
 set_option maxRecDepth 20000 in
 /-- **`aggregate_claims` is complete, placed**: on `m ≤ 16` children whose words the caller's
 words `Lin` hold, the hints of an accepting batching, writing the batching's claim, which `Lin`
 holds at `g^ds`. -/
 theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs "__loop33" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop33"))
-    (h26 : TotalLeOn coreProgram fs "__loop34" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop34"))
-    (h27 : TotalLeOn coreProgram fs "__loop35" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop35"))
+    (h25 : TotalLeOn coreProgram fs "__loop33" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33"))
+    (h26 : TotalLeOn coreProgram fs "__loop34" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop34" + fs "__loop34"))
+    (h27 : TotalLeOn coreProgram fs "__loop35" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop35" + fs "__loop35"))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
     {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
@@ -88,14 +95,15 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
       ⟨"__loop35", true, [1, gen ^ m, P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs], Own ++ Lin,
         Returns []⟩]
   have hm' : m < 2 ^ 64 - 1 := by omega
-  have hL : ∀ {g : String} (hT : TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g))
+  have hL : ∀ {g : String} (hT : TotalLeOn coreProgram fs g LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK g + fs g))
       (rest rets : List E) (rd : Reader) (t : Tree), t.name = g →
       t.Valid coreProgram rd ((1 : E) :: gen ^ m :: rest) rets → t.BufsOk coreProgram →
-      t.total fs ≤ m * SK g := fun hT rest rets rd t hn hv hb => by
+      t.total fs ≤ m * iterK fs SK g + fs g := fun hT rest rets rd t hn hv hb => by
     have := hT rd t _ rets hn (loopPre_gen (by omega) hm' rest) hv hb
     simp only [List.getD_cons_succ, List.getD_cons_zero] at this
     rwa [logG_gen_pow hm'] at this
-  have hokB : KidsDTB fs cert 16 ks aggTs (aggBs SB SK m) :=
+  have hokB : KidsDTB fs cert 16 ks aggTs (aggBs fs SB SK m) :=
     ⟨fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l25 l25_shape' (rest := [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi])
           (agg_l25 (hcw' rd hm) (hbm rd hm))).2 hne) 16 (hL h25 _ _)).toDTB,
@@ -110,8 +118,9 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
         (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs])
           (agg_l27 (hcw' rd hm) hrl (hbm rd hm))).2 hne) 16 (hL h27 _ _)).toDTB, trivial⟩
   obtain ⟨Nk, Lk, outs, hNB, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 ks aggTs (aggBs SB SK m) hokB (b0 + (aggSizes m).sum)
-  have hNB' : Nk ≤ aggKB SB SK m := by
+    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 ks aggTs (aggBs fs SB SK m) hokB
+      (b0 + (aggSizes m).sum)
+  have hNB' : Nk ≤ aggKB fs SB SK m := by
     refine hNB.trans (le_of_eq ?_)
     simp [ks, kidsBoundL, aggBs, aggKB, Nat.add_assoc]
   have hl0 : outs.length = 4 := hoo.length

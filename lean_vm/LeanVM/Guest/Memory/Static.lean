@@ -30,7 +30,7 @@ counting words, its run's one phantom (its last iteration's untaken tail call) m
 (`siteB`): a callee's affine bound with its arguments classified (`cls`) as constants `g^e`,
 collapsing their terms and checking their preconditions, or as the caller's parameters, which
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
-iteration's bound. Exclusive branches take the larger bound: an `ite`'s two sides, a `match`'s arms,
+iteration's bound, and, counting words, its run's one phantom frame. Exclusive branches take the larger bound: an `ite`'s two sides, a `match`'s arms,
 a fused dispatch's callees. A loop helper's own body is
 checked without its tail call, against its shape (`loopShape`). Counting words (`α`), each
 `HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, a bound on the exponent of a dynamic
@@ -38,8 +38,7 @@ one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s
 `c` (`logG_mul_le`), threaded in the environment's bounds (`BEnv`); a `callIf` adds its callee's frame, which an
 untaken one leaves as a phantom (`phB`, the weight looked up by `wl`), and a loop's iteration its
 own frame once: a run's last iteration leaves its untaken tail call, a phantom of the helper, the
-run's only one, which the run's bound adds once; a call site charges it with each iteration
-(`iterB`), an upper bound. Counting words at the frame sizes, the cost is then the words a tree
+run's only one, which the run's bound, and so a call site, adds once. Counting words at the frame sizes, the cost is then the words a tree
 allocates.
 
 **Soundness** (`chk_sound`): if the checker accepts every function of a program but those of a set
@@ -201,23 +200,18 @@ def Acc.zero : Acc := (⟨0, []⟩, [])
 def phB (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
   if α then (wl g).map fun n => (⟨n, []⟩, []) else some Acc.zero
 
-/-- **A loop helper's iteration at a call site**: its certificate's bound and, counting words, its
-run's phantom frame (`phB`) charged to each iteration, which covers the run's one phantom (a run
-has an iteration). -/
-def iterB (wl : String → Option ℕ) (α : Bool) (g : String) (b : Aff) : Option Aff :=
-  (phB wl α g).map fun p => b.add p.1
-
-/-- **A call site's bound**: a callee's certificate at the site's arguments, a loop helper's
-iterations at `iterB`. -/
+/-- **A call site's bound**: a callee's certificate at the site's arguments; a loop helper's run,
+its iterations at its certificate's bound and, counting words, its run's one phantom frame (`phB`)
+once. -/
 def siteB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env) (ps : List V)
     (g : String) (args : List V) : Option Acc :=
   match cert g with
   | .none => none
   | .stat pre b _ => transB ρ ps args pre b
-  | .loop endc pre b0 _ =>
-      match iterB wl α g b0 with
+  | .loop endc pre b _ =>
+      match phB wl α g with
       | none => none
-      | some b =>
+      | some p =>
         match args[0]? with
         | none => none
         | some v0 => match cls ρ ps v0 with
@@ -230,11 +224,12 @@ def siteB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ 
               match endv with
               | .pow e =>
                   if a0 < e ∧ e < 2 ^ 64 - 1 then
-                    (transB ρ ps args pre b).map fun r => (r.1.scale (e - a0), r.2)
+                    (transB ρ ps args pre b).map fun r => ((r.1.scale (e - a0)).add p.1, r.2)
                   else none
               | .param k =>
                   match transB ρ ps args pre b with
-                  | some r => if r.1.cs = [] then some (⟨0, [(k, r.1.c)]⟩, (k, a0) :: r.2) else none
+                  | some r => if r.1.cs = [] then some ((⟨0, [(k, r.1.c)]⟩ : Aff).add p.1, (k, a0) :: r.2)
+                    else none
                   | none => none
               | .none => none
           | _ => none

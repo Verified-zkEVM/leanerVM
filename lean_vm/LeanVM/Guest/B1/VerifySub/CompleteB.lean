@@ -61,7 +61,7 @@ theorem le_lmax2 (f : ℕ → ℕ → ℕ) {A B a b : ℕ} (ha : a < A) (hb : b 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
 noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
   fs "verify_tables" + (3841 + m + 9 * (n + 1)) +
-    ((Tables.vtBs Kf Ksh (n * K10)).sum + Tables.ifFrames fs Tables.vtPre)
+    ((Tables.vtBs Kf Ksh (Tables.vtRunB fs K10 n)).sum + Tables.ifFrames fs Tables.vtPre)
 
 /-- `verify_tables`' bound over the depths below `30` and the heights below `29`. -/
 @[irreducible] noncomputable def vtMax (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 : ℕ) : ℕ :=
@@ -75,7 +75,8 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 `assert_canonical`'s (`Bg`, `Ba`), `verify_bus_gkr`'s loops and rounds (`K29`, `R`, `K8`),
 `verify_tables`' callees (`Kf`, `Ksh`, `K10`), `ring_switch_target`'s loop (`B14`),
 `open_stacked`'s leaves and residual loops (`Bnd`, `Kr`), the terminal's pure callees (`Beqc`,
-`K15`, `Bcs`, `Brs`); and, at the weights `ωv op` (an opcode's instructions per frame), the weights
+`K15`, `Bcs`, `Brs`) — a loop's words per iteration, its run's one phantom frame charged once by the
+`TotalLeOn … LoopPre` fact; and, at the weights `ωv op` (an opcode's instructions per frame), the weights
 of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`) and of the terminal's (`Weqc`, `W15`, `Wst`,
 `Wcs`, `Wrsw`), which bound those two callees' trees (`vtWB`, `termWB`). -/
 structure VsWords (fs : String → ℕ) : Type where
@@ -86,9 +87,10 @@ structure VsWords (fs : String → ℕ) : Type where
   K29 : ℕ
   R : ℕ
   K8 : ℕ
-  h29 : TotalLeOn coreProgram fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29)
+  h29 : TotalLeOn coreProgram fs "__loop36" LoopPre
+    (fun a ↦ logG (a.getD 1 0) * K29 + fs "__loop36")
   hR : ∀ n ∈ Tables.grCounts, TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
-  h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8)
+  h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8 + fs "__loop7")
   Kf : String → ℕ
   Ksh : ℕ
   K10 : ℕ
@@ -96,7 +98,7 @@ structure VsWords (fs : String → ℕ) : Type where
     TotalLe coreProgram fs g (fun _ ↦ Kf g)
   hsh : TotalLeOn coreProgram fs "shared_selector_tables"
     (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
-  h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10)
+  h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9")
   B14 : ℕ
   hl14 : TotalLeOn coreProgram fs "__loop13" (fun a ↦ a.getD 0 0 = 1) fun _ ↦ B14
   Bnd : String → ℕ
@@ -109,7 +111,8 @@ structure VsWords (fs : String → ℕ) : Type where
   Bcs : ℕ
   Brs : ℕ
   hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ ↦ Beqc
-  hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a ↦ logG (a.getD 1 0) * K15
+  hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
+    fun a ↦ logG (a.getD 1 0) * K15 + fs "__loop14"
   hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
@@ -134,7 +137,7 @@ structure VsWords (fs : String → ℕ) : Type where
     fun _ ↦ Wcs op
   h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-    t.total fs ≤ max (fs "__loop14") (32 * K15) → t.weight (ωv op) ≤ W15 op
+    t.total fs ≤ (32 * K15 + fs "__loop14") → t.weight (ωv op) ≤ W15 op
   hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
     t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ωv op) ≤ Wrsw op
@@ -289,7 +292,7 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       show S.point.length < 30
       rw [(S.runG' hbl).2.2.1]; omega
     have hn : S.H.n < 29 := by have := S.n_le hbl; omega
-    have hB : fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh (S.H.n * W.K10)).sum +
+    have hB : fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh (Tables.vtRunB fs W.K10 S.H.n)).sum +
         Tables.ifFrames fs Tables.vtPre) ≤ vtMax fs W.Kf W.Ksh W.K10 := by
       rw [S.vt_sizes_sum]
       unfold vtMax

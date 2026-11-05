@@ -27,7 +27,8 @@ theorem term_completeBW {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {se
     (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
     (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
+    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
+      fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
     (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs)
@@ -38,7 +39,7 @@ theorem term_completeBW {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {se
       fun _ => Wcs i)
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      t.total fs ≤ max (fs "__loop14") (32 * K15) → t.weight (ω i) ≤ W15 i)
+      t.total fs ≤ (32 * K15 + fs "__loop14") → t.weight (ω i) ≤ W15 i)
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i) :

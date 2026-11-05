@@ -16,9 +16,10 @@ public import LeanVM.Guest.Memory.LoopPre
 
 The callees' words come as hypotheses in G7's forms: every statically bounded callee `g` of
 `vtKidS` within a constant `Kf g` (`TotalLe`), `shared_selector_tables` within `Ksh` on a run
-length `g^n`, `n < 64` (`TotalLeOn`), `__loop9` within `K10` words an iteration (`TotalLeOn …
-LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh` for the shared tables), a
-dispatch's largest arm's, the rounds loop's `n·K10` at the honest round count `n`.
+length `g^n`, `n < 64` (`TotalLeOn`), `__loop9`'s run within `K10` words an iteration and its one
+phantom frame (`TotalLeOn … LoopPre`). Call by call (`vtCallBnd`): a call's callee's constant (`Ksh`
+for the shared tables), a dispatch's largest arm's, the rounds loop's run `vtRunB` at the honest
+round count `n`.
 `verify_tables_completeAtTB`: within `fs "verify_tables" + Σ sizes + Σ vtBs + ifFrames`.
 -/
 
@@ -61,6 +62,9 @@ def vtCallBnd (Kf : String → ℕ) (Ksh K10n : ℕ) : Stmt → ℕ
   | .dispatch _ fs' _ _ => (fs'.map Kf).foldr max 0
   | .callIf _ _ _ => K10n
   | _ => 0
+
+/-- `__loop9`'s run at `n` rounds: `n · K10` words and, when it runs, its one phantom frame. -/
+def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 0 else fs "__loop9"
 
 /-- The calls' bounds, in order. -/
 noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ := (vtPre.filter callB).map (vtCallBnd Kf Ksh K10n)
@@ -106,10 +110,11 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10)) :
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9")) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun _ ↦ True)
-      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (H.n * K10)).sum + ifFrames fs vtPre)) := by
+      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) := by
   have hrun : ∀ fp rd, LowDef κ rd → MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       (∀ s ∈ vtPre, VSH (coreProgram.RelIn rd (RegionL (vtL (H.linL B) H.sizes
         (fun _ ↦ H.ownW B) fs fp))) rd (vtσ rd (vtW H (B.at (fp + fs "verify_tables")))
@@ -182,8 +187,8 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
     (List.replicate 116 fun _ ↦ True) (fun _ _ _ _ ↦ trivial) (by change (vtPre.filter callB).length ≤ _; rw [vt_ncalls]; simp)
     (fun _ _ _ _ i _ _ _ t _ _ _ _ ↦ by
       simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> trivial)
-    (vtBs Kf Ksh (H.n * K10)) _ ?hB
-    (fun σ ↦ callsBound_le vtPre σ (vtBs Kf Ksh (H.n * K10)))).mono le_rfl fun _ _ ↦ trivial
+    (vtBs Kf Ksh (vtRunB fs K10 H.n)) _ ?hB
+    (fun σ ↦ callsBound_le vtPre σ (vtBs Kf Ksh (vtRunB fs K10 H.n)))).mono le_rfl fun _ _ ↦ trivial
   case hbufs =>
     intro fp q hq
     obtain ⟨q', hq', rfl⟩ := List.mem_map.mp hq
@@ -205,7 +210,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 hc hv
     obtain ⟨s, hs, tup, hst, rfl⟩ := flatCalls_getElem vtPre i c hc
     obtain ⟨hsm, -⟩ := getElem?_filter_mem hs
-    have hbi : (vtBs Kf Ksh (H.n * K10)).getD i 0 = vtCallBnd Kf Ksh (H.n * K10) s := by
+    have hbi : (vtBs Kf Ksh (vtRunB fs K10 H.n)).getD i 0 = vtCallBnd Kf Ksh (vtRunB fs K10 H.n) s := by
       simp [vtBs, List.getD_eq_getElem?_getD, hs]
     rw [hbi]
     have hok := List.all_eq_true.mp vtFlat.hcall s hsm
@@ -254,7 +259,10 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
       have := h10 rd' t _ r hn hpre hv hbo
       simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero, v17,
         gen_pow_eq_ofK] at this
-      rwa [logG_spec (by omega)] at this
+      rw [logG_spec (by omega)] at this
+      unfold vtRunB
+      rw [ite_neg' (show ¬H.n = 0 by omega)]
+      exact this
     | dispatch x fs' a rr =>
       simp only [Stmt.callSF, Option.some.injEq] at hst
       subst hst

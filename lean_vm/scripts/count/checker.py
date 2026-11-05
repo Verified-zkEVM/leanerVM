@@ -80,10 +80,11 @@ def siteB(cx, rho, g, args):
         _, pre, b, ks = c
         return transB(cx, rho, args, pre, b)
     _, endc, pre, b, ks = c
-    # `iterB`: counting words, each iteration charged the run's phantom frame too
+    # `phB`: counting words, the run's one phantom frame, charged once
     if cx.alpha:
         if g not in cx.om: return None
-        b = (b[0] + cx.om[g], b[1])
+        ph = cx.om[g]
+    else: ph = 0
     if not args: return None
     v0 = cx.cls(rho, args[0])
     if v0[0] != 'pow': return None
@@ -97,12 +98,12 @@ def siteB(cx, rho, g, args):
         r = transB(cx, rho, args, pre, b)
         if r is None: return None
         n = e - a0
-        return (n * r[0], [(k, n * a) for (k, a) in r[1]], r[2])
+        return (n * r[0] + ph, [(k, n * a) for (k, a) in r[1]], r[2])
     if endv[0] == 'param':
         k = endv[1]
         r = transB(cx, rho, args, pre, b)
         if r is None or r[1] != []: return None
-        return (0, [(k, r[0])], [(k, a0)] + r[2])
+        return (ph, [(k, r[0])], [(k, a0)] + r[2])
     return None
 
 TRACK = 2 ** 20
