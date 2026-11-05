@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `ce2eee63`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:586-609` (`mod deref`, in that order), the store coordinates
 `tables.rs:616-623` (`deref_store`), the flushes `tables.rs:633-643` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
@@ -52,7 +52,7 @@ program paragraph).
 **The component** `derefTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
 `fp·o₁` as `(p, 0, 0)`, the target cell `p·o₂` and the local cell `fp·o₃`, in the Rust's flush
-order (`tables.rs:641-643`; §7.4's flush list has the local cell second, its prose the target),
+order (`tables.rs:640-642`; §7.4's flush list has the local cell second, its prose the target),
 which places the reads' blocks on the bus; `Spec` is `DerefSpec`. Soundness reads the instruction
 the pulled tuple decodes to through Layer 4's `decode_deref_eq_some_iff`, the one use a table
 makes of the bytecode guarantee: the pulled tuple *is* an instruction, so its flag pair is a
@@ -201,7 +201,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
     let fbar : Expression K := 1 + r.fpc + r.ffp
     instructionStep r.pc r.fp r.rbc next .deref #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
-    -- The three reads in the Rust's flush order, pointer, target, local (`tables.rs:641-643`):
+    -- The three reads in the Rust's flush order, pointer, target, local (`tables.rs:640-642`):
     -- the order places their blocks on the bus.
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
     memRead (r.p * r.o2) r.r2
