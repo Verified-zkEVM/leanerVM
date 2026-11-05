@@ -664,7 +664,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`**, **`mcaBound_of_mcaJohnson`**, **`listBound_johnson`**, `johnsonPar`, **`deployed_rbrSoundness`** | field instances; tables and stacking; sumcheck: definitions |
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `MerkleTree.fold`, `MerkleTree.prunedRoot`, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`** (a cross-check, kept as a test), **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
 | the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `QueryHistory.freshLog`, **`QueryHistory.potential_le_expected_charge`** (generic over the history, the cache form its instance) | VCVio only |
-| Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
+| Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `QueryLog.Consistent`, `QueryLog.HasCollision`, `QueryLog.Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `QueryLog.HasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `VerifierFlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant on `QueryHistory.freshLog` |
@@ -1567,9 +1567,7 @@ def extractLeaf (node?) (leaf?) (log) (root) (depth p) : Option P :=
   (extractTree node? log root depth p).bind (leafPreimage leaf? log)
 def extractLeaves (node?) (leaf?) (log) (root) (depth) : List (Option P)   -- one pass, hash maps
 theorem extractLeaves_eq : extractLeaves … = (List.range (2 ^ depth)).map (extractLeaf …)
-def Consistent (log) : Prop      -- no input with two answers
-def HasCollision (log) : Prop    -- two inputs, one answer
-def Fresh (log) (q) : Prop       -- `log` never asks `q`
+-- `Consistent`, `HasCollision`, `Fresh`: `QueryLog`'s (`ToVCVio/QueryLog.lean`)
 def Known (node?) (roots) (logA) (d) : Prop   -- a root, or a child of a query of `logA` parsing as a node
 def FreshHit (node?) (roots) (logA logV) : Prop := ∃ e ∈ logV, Fresh logA e.1 ∧ Known node? roots logA e.2
 theorem MerkleTree.binding_of_log (hnode : node? (nodeEnc l r) = some (l, r))
@@ -1646,6 +1644,7 @@ positions, and a bad one passes the check. -/
 def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
   {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
   -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
+  -- `st`: the instance's statement, the public input with no oracles; `prog` is a parameter
 theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ st i tr | $ᵗ Chal i] ≤ εquery
 /-- A flip on the chain of the statement `st`: a group of queries fixing a challenge (its squeezes, after a nonce's
 check and absorption when a proof of work precedes it) is in the log, its proof of work passing; read by leanVM's
@@ -1874,10 +1873,10 @@ The charged invariant holds from any initial cache, with no hypothesis at the st
 initial potential, bounds events on the run's output and final state, and runs VCVio's
 `randomOracle`; it is not built on VCVio's `withAddCost`, which charges cached queries too.
 `misbehaves_rom` needs its logged form, the invariant on `QueryHistory.freshLog`, whose state
-carries the ordered log, since the hit and flip clauses are on the log and not on the cache. `extract` is the
-straight-line extractor; it is computable (decision 11) and runs on toy instances. `Pr[p | mx]` is
-VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the sketches keep the readable
-form.
+carries the ordered log, since the hit and flip clauses are on the log and not on the cache.
+`extract` is the straight-line extractor; it is computable (decision 11) and runs on toy
+instances. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the
+sketches keep the readable form.
 
 The bytecode multilinear and the Flock matrices are evaluated inside `verify` through one function
 `settleFixedClaims`, the seam for T5; its Flock walk is the Flock phase's.
@@ -2036,9 +2035,9 @@ def honestAdversary (fuel prog input w ρ) : Adversary := do
   match ← proveWith hashQuery fuel prog input w ρ with
   | some proof => pure proof
   | none => pure ⟨[], []⟩
-theorem baseProver_complete (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
-    (hadm : s.Admissible prog) (hρ : validRate ρ) (H : List UInt8 → Digest) :
-    proveWith (m := Id) H fuel prog input w ρ = some proof → verifyWith (m := Id) H prog input proof = true
+theorem baseProver_complete (H : List UInt8 → Digest) (fuel) (hsat : SatisfiedBy prog input w)
+    (hp : proveWith (m := Id) H fuel prog input w ρ = some proof) : verifyWith (m := Id) H prog input proof = true
+  -- the sizes, their admissibility and the rate are checked inside: `proveWith` returns `none` otherwise
 -- The deployed pair side by side (Headline.lean): `baseProver_complete` at `blake2sBytes`
 theorem prove_complete (h : SatisfiedBy prog input w) :
     prove fuel prog input w ρ = some proof → verify prog input proof = true
@@ -2208,8 +2207,8 @@ built (T2 stays out of scope). The intended form for more witnesses is a test-on
 generator whose witnesses are used only once leanISA's decidable `checkSatisfiedBy` accepts them
 (`checkSatisfiedBy_eq_true_iff`), still requested. The executable writes test vectors
 (`tests/vectors/`: the program, the public input and the proof, in the encoding Layer 12's fixture
-reads) and checks them: `verify` accepts each and rejects its mutations. The kernel-evaluated fixtures stay on toy instances; the end-to-end run of
-the honest prover is native (decision 5).
+reads) and checks them: `verify` accepts each and rejects its mutations. The kernel-evaluated
+fixtures stay on toy instances; the end-to-end run of the honest prover is native (decision 5).
 
 The performance target is the prover within one to two orders of magnitude of the Rust prover on
 the same witness, single-threaded and in pure Lean (no FFI), measured at the smallest admissible
@@ -2625,7 +2624,7 @@ then, and reads with its amendment.
 | 2. The statement and the family | `input : I.Stmt` is the statement; the instance, hence the sizes, indexes the protocol family | *Statements and parameters* |
 | 3. Where the zerocheck is paid | the bus phase's state function carries it; there is no zerocheck phase | *Seams* |
 | 4. Where generic code lives | `LeanerVM/Protocol/To<Library>/` until the upstream pull request merges | *Generic code* |
-| 5. The honest prover runs natively | `verify` and `prove` run as a native executable (`leanervm-prove`, under `bench/`) that writes and checks test vectors, on witnesses whose `SatisfiedBy` is a proved theorem (`fill_satisfiedBy`) or, once it exists, a decidable check of `SatisfiedBy` accepts, with the prover's target one to two orders of magnitude of the Rust prover, single-threaded, in pure Lean; the kernel-evaluated fixtures stay on toy instances | Layer 13, [The executable prover and the test vectors](#the-executable-prover-and-the-test-vectors); *Scope* |
+| 5. The honest prover runs natively | `verify` and `prove` run as a native executable (`leanervm-prove`, under `bench/`) that writes and checks test vectors, on witnesses whose `SatisfiedBy` is a proved theorem (`fill_satisfiedBy`) or, once it exists, that a decidable check of `SatisfiedBy` accepts, with the prover's target one to two orders of magnitude of the Rust prover, single-threaded, in pure Lean; the kernel-evaluated fixtures stay on toy instances | Layer 13, [The executable prover and the test vectors](#the-executable-prover-and-the-test-vectors); *Scope* |
 | 6. The witness is the stack | the protocol's witness is the committed column, in `Type 0` | *The relation ladder* |
 | 7. Phases over an abstract instance | every phase is written over `I : M3Instance` and tested on the toy | *The wall* |
 | 8. Five clauses, caps outside | the caps are the compiled verifier's check and a hypothesis of the adaptor's soundness | *What the spine fixes* |
