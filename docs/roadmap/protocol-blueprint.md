@@ -2369,7 +2369,8 @@ witness is executable it is a test under `tests/`.
     `ListDecoder.bruteForce` (an efficient decoder is another inhabitant of `ListDecoder`), and for
     `extractTrace`, whose `traceOf` leanISA's inhabitant of `TraceExtraction` defines without
     `noncomputable`. Witness: `piopExtractedStack_eq`, the `#guard` of Layer 3, the commitment's
-    pick run on the honest prover's log on a toy instance.
+    pick run on the honest prover's log on a toy instance, and, natively, `extract` run on the test
+    vector's honest log by `leanervm-prove log`, which the `Executables` workflow runs.
 25. **The wall holds.** No module above the adaptor imports `LeanerVM.Arithmetization`; a phase
     that mentions `leanIsaEnsemble` cannot be tested on the toy. Witness:
     `scripts/check-layers.sh`'s allow-list, with a planted violation in the policy tests.
@@ -2420,9 +2421,9 @@ witness is executable it is a test under `tests/`.
     about the statement the adversary chose: under BLAKE2s a coin-free adversary has one run, and in
     the random-oracle evidence the statement's hashes are queries like the chain's. Witness:
     `extract_nil`, and `replayer_not_blakeMisbehaves`: with `core`, if `verify` accepts a proof,
-    the replayer of that proof fails `BlakeMisbehaves` at every `δ < 1`; `verify`
-    accepts Layer 12's fixture and the test vector natively (`leanervm-verify`; interpreted,
-    `verify` alone takes over a minute).
+    the replayer of that proof fails `BlakeMisbehaves` at every `δ < 1`; `verify` accepts Layer
+    12's fixture and the test vector natively (`leanervm-verify`, which the `Executables` workflow
+    runs; interpreted, `verify` alone takes over a minute).
 37. **The hypothesis is satisfiable by an accepted adversary.** A hypothesis that only rejected
     adversaries meet would make the headline vacuous where it matters. The test is met on two of the
     hypothesis's three clauses: `honestAdversary`'s run under BLAKE2s on the test vector has no
@@ -2433,16 +2434,17 @@ witness is executable it is a test under `tests/`.
     chain flips; without it, a phase whose state function failed on honest transcripts would make
     every accepted run flip and the headline hold only of rejected adversaries. Out of fuel
     `honestAdversary` returns the empty proof, which `verify` rejects (the stream is not consumed).
-    Witness: `leanervm-prove log`, natively, the prover and the verifier with every hash logged: no
-    collision and no hit in the joint log, by a one-pass scan that `#guard`s match against
-    `QueryLog.HasCollision` and `HitFrom` on small logs; and the prover's log holds the rows it
-    committed: the level-0 word `extract` reads off it is the committed word, and the commitment's
-    decoder reads it as the witness's stack alone; `extract` itself, run on the honest log, returns
-    the witness's sizes and stack (compiled code decides `M3Holds` by sorting the bus's tuples). A
-    hit clause that counted the proof's digests against the adversary's own queries would fail it:
-    the honest prover computes its roots and nodes through the oracle, each a fresh answer that is a
-    digest of the proof it outputs. "It meets it at `δ = 0` for every satisfying witness" is not
-    claimed: colliding rows exist, and nothing excludes a witness that commits two of them.
+    Witness: `leanervm-prove log`, natively (the `Executables` workflow runs it), the prover and the
+    verifier with every hash logged: no collision and no hit in the joint log, by a one-pass scan
+    that `#guard`s match against `QueryLog.HasCollision` and `HitFrom` on small logs; and the
+    prover's log holds the rows it committed: the level-0 word `extract` reads off it is the
+    committed word, and the commitment's decoder reads it as the witness's stack alone; `extract`
+    itself, run on the honest log, returns the witness's sizes and stack (compiled code decides
+    `M3Holds` by sorting the bus's tuples). A hit clause that counted the proof's digests against
+    the adversary's own queries would fail it: the honest prover computes its roots and nodes
+    through the oracle, each a fresh answer that is a digest of the proof it outputs. "It meets it
+    at `δ = 0` for every satisfying witness" is not claimed: colliding rows exist, and nothing
+    excludes a witness that commits two of them.
 38. **One verifier.** The random-oracle theorems run `verifyWith`, and the headline is about
     `verify`. A verifier written separately for the model would make the headline a statement
     about the model. Witness: `verify` defined as `verifyWith (m := Id) blake2sBytes`, and
@@ -2473,7 +2475,7 @@ witness is executable it is a test under `tests/`.
     `exists_satisfiedBy_without_execution` and `verify_accepts_without_execution`, whose program
     pins by `SET_CONSTANT` the cells its run's `JUMP` reads, so that every run over every memory
     holding the public input either faults or halts at `(g^31, g^5)`; natively,
-    `leanervm-prove sentinel`.
+    `leanervm-prove sentinel`, which the `Executables` workflow runs.
 42. **The adversary may choose the statement.** In the random-oracle model an adversary that picks
     the program and the public input after its queries is bounded as one with a fixed statement,
     at `13700` verifier queries: the statement's seed hashes are queries, and a seed preimage puts
