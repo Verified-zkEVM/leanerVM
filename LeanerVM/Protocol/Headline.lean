@@ -111,11 +111,12 @@ game is one of the game at the statement the prover chose (`mem_support_loggedGa
 On such a run, an accepted proof whose extraction fails puts the run inside `HashMisbehavesFrom`,
 its flip on the chain of the statement on a group the verifier asked (`Core.core_of_mem_support`),
 and `satisfiedBy_witnessOf` turns the extracted stack's `M3Holds` into `SatisfiedBy` at the
-admissible sizes `extract` returns; `TraceExtraction.valid` (leanISA's constraint soundness) turns that into a valid
-execution. The random-oracle bound is `misbehaves_rom_of` on the adaptive game in two runs
-(`adaptiveGame_eq_twoRunGame`), for flips on every statement's chain, which include those the
-verifier asked for on the chosen one (`SlotReader.flip_of_verifierFlipFor`). Completeness from an
-execution is leanISA's `constraintCompleteness` followed by `prove_complete`, `prove_eq_none` and `prove_ne_none`.
+admissible sizes `extract` returns; `TraceExtraction.valid` (leanISA's constraint soundness)
+turns that into a valid execution. The random-oracle bound is `misbehaves_rom_of` on the adaptive
+game in two runs (`adaptiveGame_eq_twoRunGame`), for flips on every statement's chain, which
+include those the verifier asked for on the chosen one (`SlotReader.flip_of_verifierFlipFor`).
+Completeness from an execution is leanISA's `constraintCompleteness` followed by
+`prove_complete`, `prove_eq_none` and `prove_ne_none`.
 
 **What they do not say.** An adversary with no coins has one run under BLAKE2s, so
 `BlakeMisbehavesAdaptive` at `δ < 1` says that this run does not misbehave; an adversary with
@@ -128,8 +129,8 @@ fail the hypothesis, since the verifier never walks it, and `core` finds its fli
 verifier's own walk. The broader event, a flip on any chain of the statement
 (`leanVmReader.FlipFor`), contains it (`SlotReader.flipFor_of_verifierFlipFor`); the
 random-oracle bounds hold for both. Completeness says that every proof `prove` returns is
-accepted, and when it returns one, not that it does: nothing bounds how often a grind on the run runs out of fuel, and
-`Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof picks has memory
+accepted, and when it returns one, not that it does: nothing bounds how often a grind on the run
+runs out of fuel, and `Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof picks has memory
 log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells, above `2^28` from
 `t.κ ≥ 26` on, where `prove` returns none at every fuel and rate; so it does whenever the filled
 tables exceed `2^28` cells. The completeness witness represents the padded trace, not the given
