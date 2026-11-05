@@ -26,6 +26,7 @@ lake build leanervm-bench                   # compiles every transitive module t
 .lake/build/bin/leanervm-bench 1 protocol pub 15 # leanVM's phases up to the public input
 .lake/build/bin/leanervm-bench 1 flockpieces 15  # the cached Flock prover's pieces
 .lake/build/bin/leanervm-bench 1 whir 16 1 spec  # WHIR's opening at mu = 16, rate 1/2
+.lake/build/bin/leanervm-bench 1 witgen          # witnessGen on a one-JUMP test trace
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -42,6 +43,7 @@ leaves) is outside the timed interval.
 | `BLAKE2s 64 B`, `512 B` | `Blake2sHash.blake2sBytes` |
 | `Merkle root 2^12 rows x 8 K` | `merkleRoot` of 4096 leaves of eight `K` words |
 | `evalMle 2^16 E-table` | `CMlPolynomialEval.evalMle` of a 2^16-entry `E` table at an `E` point |
+| `witnessGen, one-JUMP ladder run` (group `witgen`) | `Arithmetization.witnessGen` on the trace of `tests/LeanerVMTests/Semantics/PaddedImageRefutation.lean`, memory padded to `2^17` cells; checksum: the eight table heights |
 
 The fast paths are the `@[csimp]` theorems of `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
 `LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and

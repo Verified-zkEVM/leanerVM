@@ -121,7 +121,7 @@ theorem regs_eq_map (hv : run prog t.image t.steps Regs.initial = some (Regs.fin
     simp only [run_stateAt hv (Nat.lt_succ_iff.mp (List.mem_range.mp hk))]
 
 /-- Every state stepped from fetches an instruction that executes to the next state. -/
-private theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
+theorem stateAt_exec (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog))
     {k : ℕ} (hk : k < t.steps) :
     ∃ ins, prog.fetch (stateAt t k).pc = some ins ∧
       execute t.image (stateAt t k) ins = some (stateAt t (k + 1)) := by
@@ -136,7 +136,7 @@ private theorem skAt_ins {k : ℕ} {ins : Instr} (hf : prog.fetch (stateAt t k).
   simp only [skAt, hf, Option.getD_some]
 
 /-- The skeletons of a valid run are those stepped from, one per step. -/
-private theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
+theorem runSkels_eq (hv : run prog t.image t.steps Regs.initial = some (Regs.final prog)) :
     t.runSkels = (List.range t.steps).map (skAt t) := by
   unfold Trace.runSkels
   rw [regs_eq_map hv, List.range_succ, List.map_append, List.map_singleton, List.dropLast_concat,
@@ -326,20 +326,42 @@ theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace 
 
 /-! ## The theorem -/
 
-/-- **Constraint completeness for a padded trace** (leanISA roadmap Layer 10, `T1`, Category A).
-A valid execution of well-formed bytecode that fits has a padded trace `t'`, valid, and a witness
-of the ensemble at the padded trace's memory log-size, satisfying the constraint statement and
-representing `t'`. The witness is the rows of the run and the closed walks of the fill, in the
-six tables, the image as the memory block and the program as the bytecode block, with the counts
-that balance the buses. -/
-theorem constraintCompleteness {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t) (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w : EnsembleWitness (leanIsaEnsemble prog t'.κ),
-        SatisfiedBy prog input w ∧ AssignmentRepresents w t' := by
-  obtain ⟨pcs, hpcs⟩ := hwf.hasFillBlocks.exists_starts
-  obtain ⟨τ, hτ, h1, h2⟩ := hfit.jump
-  have hcap : (padTrace t pcs).κ ≤ maxLogMem := hfit.room
+section Padded
+
+variable {prog : Program} {input : PublicInput} {t : Trace prog} {pcs : Opcode → ℕ → ℕ} {τ : ℕ}
+
+/-- The skeletons of the padded execution for the fill starts `pcs` and the `JUMP` height `2^τ`:
+the run's, then the fill's. -/
+noncomputable def padSkelsOf (t : Trace prog) (pcs : Opcode → ℕ → ℕ) (τ : ℕ) : List Skel :=
+  t.runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)
+
+/-- Every table of the padded skeletons has a power-of-two height within the cap. -/
+theorem padSkelsOf_heights (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
+    (h2 : 2 ^ τ ≠ t.owed + 1) (hfit : t.Fits) :
+    ∀ op, ∃ σ ≤ maxLogRows, Skel.count op (padSkelsOf t pcs τ) = 2 ^ σ := by
+  intro op
+  rw [padSkelsOf, Trace.count_rows t t.κ pcs h1 h2 op]
+  exact tableHeight_pow hτ hfit.rows op
+
+/-- The padded skeletons index every table by `u64` values. -/
+theorem padSkelsOf_length_le (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ)
+    (h2 : 2 ^ τ ≠ t.owed + 1) (hfit : t.Fits) :
+    (padSkelsOf t pcs τ).length ≤ UInt64.size :=
+  (skels_length_le (padSkelsOf_heights hτ h1 h2 hfit)).trans (by decide)
+
+/-- **The padded witness for given fill starts and `JUMP` height.** For any fill starts `pcs` that
+are fill blocks of the program and any feasible `JUMP` exponent `τ`, the witness of the padded
+skeletons over the padded image satisfies the constraint statement and represents the padded
+trace. `constraintCompleteness` is this at the starts and exponent the hypotheses provide. -/
+theorem padWitness_complete
+    (hpcs : ∀ t, ∀ k < 8, IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k)))
+    (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ) (h2 : 2 ^ τ ≠ t.owed + 1)
+    (h : ValidExecution prog input t) (hfit : t.Fits) (hcap : (padTrace t pcs).κ ≤ maxLogMem)
+    (hlen : (padSkelsOf t pcs τ).length ≤ UInt64.size) :
+    SatisfiedBy prog input (padWitness prog input (padTrace t pcs).image (padSkelsOf t pcs τ)
+        hcap hlen) ∧
+      AssignmentRepresents (padWitness prog input (padTrace t pcs).image (padSkelsOf t pcs τ)
+        hcap hlen) (padTrace t pcs) := by
   have hp := padTrace_from t pcs
   have hT : ValidExecution prog input (padTrace t pcs) := hp.valid hcap h
   obtain ⟨⟨hmin, -, hw0, hw1⟩, hrunT⟩ := hT
@@ -361,31 +383,18 @@ theorem constraintCompleteness {prog : Program} {input : PublicInput} {t : Trace
     rw [runSkels_eq hrunT] at hsk
     obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hsk
     exact skAt_ok hrunT (List.mem_range.mp hk)
-  have hS : ∀ sk ∈ (padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ),
-      SkelOk prog (padTrace t pcs).image sk := by
+  have hS : ∀ sk ∈ padSkelsOf t pcs τ, SkelOk prog (padTrace t pcs).image sk := by
     intro sk hsk
     rcases List.mem_append.mp hsk with hsk | hsk
-    · exact hrunok sk hsk
+    · exact hrunok sk (hrs ▸ hsk)
     · exact hFok sk hsk
-  have hcount := fun op ↦ Trace.count_rows t t.κ pcs h1 h2 op
-  rw [← hrs] at hcount
-  have hheights : ∀ op, ∃ σ ≤ maxLogRows,
-      Skel.count op ((padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)) =
-        2 ^ σ := by
-    intro op
-    rw [hcount op]
-    exact tableHeight_pow hτ hfit.rows op
-  have hlen : ((padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)).length ≤
-      UInt64.size :=
-    (skels_length_le hheights).trans (by decide)
-  refine ⟨padTrace t pcs, hp, ⟨⟨hmin, hcap, hw0, hw1⟩, hrunT⟩,
-    padWitness prog input (padTrace t pcs).image
-      ((padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)) hcap hlen, ?_, ?_⟩
+  refine ⟨?_, ?_⟩
   · refine padWitness_satisfiedBy prog input (padTrace t pcs).image _ hmin hcap hlen hS ?_
-      hheights ?_ hw0 hw1
-    · simp only [List.map_append, ← List.cons_append]
+      (padSkelsOf_heights hτ h1 h2 hfit) ?_ hw0 hw1
+    · simp only [padSkelsOf, List.map_append, ← List.cons_append]
+      rw [← hrs]
       exact (runSkels_state_perm hrunT).append (perm_of_skelsValid hF hFok)
-    · rw [hcount .blake2s]
+    · rw [padSkelsOf, Trace.count_rows t t.κ pcs h1 h2 .blake2s]
       have := floor_le_fillTarget (t.runRows .blake2s) (minRows .blake2s)
       simp only [tableHeight, reduceCtorEq, ↓reduceIte]
       refine le_trans ?_ this
@@ -393,7 +402,27 @@ theorem constraintCompleteness {prog : Program} {input : PublicInput} {t : Trace
   · refine padWitness_represents prog input hcap hrunT _ hlen (fun sk hsk ↦ (hS sk hsk).2) ?_
     intro k hk
     refine List.mem_append_left _ ?_
-    rw [runSkels_eq hrunT]
+    rw [← hrs, runSkels_eq hrunT]
     exact List.mem_map_of_mem (List.mem_range.mpr hk)
+
+end Padded
+
+/-- **Constraint completeness for a padded trace** (leanISA roadmap Layer 10, `T1`, Category A).
+A valid execution of well-formed bytecode that fits has a padded trace `t'`, valid, and a witness
+of the ensemble at the padded trace's memory log-size, satisfying the constraint statement and
+representing `t'`. The witness is the rows of the run and the closed walks of the fill, in the
+six tables, the image as the memory block and the program as the bytecode block, with the counts
+that balance the buses. -/
+theorem constraintCompleteness {prog : Program} {input : PublicInput} {t : Trace prog}
+    (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t) (hfit : t.Fits) :
+    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
+      ∃ w : EnsembleWitness (leanIsaEnsemble prog t'.κ),
+        SatisfiedBy prog input w ∧ AssignmentRepresents w t' := by
+  obtain ⟨pcs, hpcs⟩ := hwf.hasFillBlocks.exists_starts
+  obtain ⟨τ, hτ, h1, h2⟩ := hfit.jump
+  have hcap : (padTrace t pcs).κ ≤ maxLogMem := hfit.room
+  have hlen := padSkelsOf_length_le (pcs := pcs) hτ h1 h2 hfit
+  exact ⟨padTrace t pcs, padTrace_from t pcs, (padTrace_from t pcs).valid hcap h, _,
+    padWitness_complete hpcs hτ h1 h2 h hfit hcap hlen⟩
 
 end LeanerVM.Arithmetization

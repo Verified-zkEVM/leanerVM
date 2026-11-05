@@ -23,6 +23,7 @@ import LeanerVM.Arithmetization.Tables.Jump
 import LeanerVM.Arithmetization.Tables.MulNative
 import LeanerVM.Arithmetization.Tables.SetConstant
 import LeanerVM.Arithmetization.Tables.Xor
+import LeanerVM.Arithmetization.WitnessGen
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
 import LeanerVM.Parameters.CleanField
@@ -270,6 +271,7 @@ import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillRows
 import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows
+import LeanerVM.Semantics.Generator
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.PaddedImage
