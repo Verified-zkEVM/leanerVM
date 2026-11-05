@@ -313,5 +313,85 @@ theorem checkTrace_eq_true_iff (prog : Program) (input : PublicInput) (t : Trace
   rw [checkTrace, decide_eq_true_iff, checkWithinFuel_eq_ok_iff]
   exact ⟨fun h ↦ h.2, fun h ↦ ⟨le_rfl, h⟩⟩
 
+/-! ## Checked guesses -/
+
+/-- The index of address `a` from an untrusted guess: the guessed index `i` when it is inside the
+address space and `g ^ i = a`, else the scan from index `0`. -/
+def addressIndexBy (κ : ℕ) (guess : K → Option ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
+  match guess a with
+  | some i => if h : i < 2 ^ κ ∧ gpow i = a then some ⟨i, h.1⟩ else scan κ a (2 ^ κ) 0 1
+  | none => scan κ a (2 ^ κ) 0 1
+
+/-- Read a fixed image through `addressIndexBy`. -/
+def readBy {κ : ℕ} (image : MemImage κ) (guess : K → Option ℕ) (a : K) : Option E :=
+  (addressIndexBy κ guess a).map image
+
+/-- Fetch the typed instruction at a program address through `addressIndexBy`. -/
+def fetchBy (prog : Program) (guess : K → Option ℕ) (pc : K) : Option Instr :=
+  (addressIndexBy prog.logSize guess pc).map prog.code
+
+/-- The limbs of the word a reader holds at `a`, zero when there is none: `MemImage.limbsAt` at
+any reader. -/
+def limbsBy (rd : K → Option E) (a : K) : Vector K 3 :=
+  match rd a with
+  | some v => #v[v.limb 0, v.limb 1, v.limb 2]
+  | none => #v[0, 0, 0]
+
+/-- The two limbs of the word a reader holds at `a`, zero when there is none: `MemImage.cellAt` at
+any reader. -/
+def cellBy (rd : K → Option E) (a : K) : Vector K 2 :=
+  match rd a with
+  | some v => #v[v.limb 0, v.limb 1]
+  | none => #v[0, 0]
+
+/-- The machine word of a field element, the key of a guess table. -/
+def wordKey (a : K) : UInt64 := UInt64.ofBitVec a.toBitVec
+
+/-- The powers `g ^ i`, `i < n`, keyed by their words, from the running product `cur = g ^ i`. -/
+def powTableFrom : ℕ → ℕ → K → Std.HashMap UInt64 ℕ → Std.HashMap UInt64 ℕ
+  | 0, _, _, m => m
+  | fuel + 1, i, cur, m => powTableFrom fuel (i + 1) (g * cur) (m.insert (wordKey cur) i)
+
+/-- A guess of the index of every power `g ^ i` with `i < n`, from one table built once. Untrusted:
+`addressIndexBy` checks every guess. -/
+def powGuess (n : ℕ) : K → Option ℕ :=
+  let m := powTableFrom n 0 1 (Std.HashMap.emptyWithCapacity n)
+  fun a ↦ m[wordKey a]?
+
+/-- A guess is used only when it is checked, so the guessed search is the reference logarithm
+for every guess function. -/
+theorem addressIndexBy_eq_gLog {κ : ℕ} (hκ : κ < 64) (guess : K → Option ℕ) (a : K) :
+    addressIndexBy κ guess a = gLog? κ a := by
+  have hscan : scan κ a (2 ^ κ) 0 1 = gLog? κ a := addressIndex_eq_gLog hκ [] a
+  unfold addressIndexBy
+  split
+  · split_ifs with h
+    · exact ((gLog?_spec hκ).mpr h.2.symm).symm
+    · exact hscan
+  · exact hscan
+
+/-- Guessed reads are the reference reads. -/
+theorem readBy_eq_read {κ : ℕ} (hκ : κ < 64) (image : MemImage κ) (guess : K → Option ℕ)
+    (a : K) : readBy image guess a = image.read a := by
+  rw [readBy, MemImage.read, addressIndexBy_eq_gLog hκ]
+
+/-- Guessed fetches are the reference fetches. -/
+theorem fetchBy_eq_fetch (prog : Program) (guess : K → Option ℕ) (pc : K) :
+    fetchBy prog guess pc = prog.fetch pc := by
+  have hκ : prog.logSize < 64 := lt_of_le_of_lt prog.logSize_le (by decide)
+  rw [fetchBy, Program.fetch, addressIndexBy_eq_gLog hκ]
+
+/-- The limbs at the reference reader are `MemImage.limbsAt`. -/
+theorem limbsBy_read {κ : ℕ} (L : MemImage κ) : limbsBy L.read = L.limbsAt := rfl
+
+/-- The cell at the reference reader is `MemImage.cellAt`. -/
+theorem cellBy_read {κ : ℕ} (L : MemImage κ) : cellBy L.read = L.cellAt := rfl
+
+/-- Execution at a guessed reader is the reference execution. -/
+theorem executeWith_readBy {κ : ℕ} (hκ : κ < 64) (image : MemImage κ) (guess : K → Option ℕ) :
+    executeWith (readBy image guess) = execute image := by
+  funext r ins
+  rw [execute, show readBy image guess = image.read from funext (readBy_eq_read hκ image guess)]
+
 end
 end LeanerVM.Semantics

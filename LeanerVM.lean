@@ -270,6 +270,7 @@ import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillRows
 import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows
+import LeanerVM.Semantics.Generator
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.PaddedImage
