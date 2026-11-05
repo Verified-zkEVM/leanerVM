@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)` (G:2113-2539, at c4f4bc92)
+fp_w, beta, claim_pool, chi, claim_push, claim_pull, claim_count)` (G:2113-2539, at b7a8d0cb)
 settles the bus against the six tables: it certifies each side's blocks' offsets by a hinted order
 of its block groups (`busLayout`, V:548), certifies every table's log-height to be
 `max (log2Ceil rows) floor` (V:1294, by `padding_weight`), decomposes the three GKR leaf values
@@ -171,7 +171,7 @@ def claimLowDim (logMem : ℕ) (taus : List ℕ) (j : ℕ) : ℕ :=
 `[zeta, chi, rm, g_bus_mu, g_zc_n]`: the claims are `claimColumns`'s; the bus's lie on a prefix of
 the bus point at `zeta`, the tables' on a prefix of the table sumcheck's point `chis` at `chi`, the
 public input's at `(rm, 0, …, 0)`; and the first `162` have the low dimension `claimLowDim` of the
-layout (at c4f4bc92 the terminal derives it from `kappa_base`, where `verify_tables` stored it in
+layout (at b7a8d0cb the terminal derives it from `kappa_base`, where `verify_tables` stored it in
 `claim_cplen_g` before). -/
 def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :
     List E → Prop

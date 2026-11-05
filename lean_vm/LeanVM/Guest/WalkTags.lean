@@ -24,7 +24,7 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   dispatches on (`lean_ethereum.py:1312-1347` at `b7a8d0cb`), which its callers hand it.
 
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `__loop6` (`lean_ethereum.py:1872-1938` at `c4f4bc92`): the parity word
+  radix-four layer loop `__loop6` (`lean_ethereum.py:1872-1938` at `b7a8d0cb`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsDigestComplete
 
   The message digest of `verify_sig_lean_sphincs` (`lean_ethereum.py:3885-3893` at leanVM
-  `c4f4bc92`) is complete: the parameter loaded, the randomizer hinted and both digest calls hashed
+  `b7a8d0cb`) is complete: the parameter loaded, the randomizer hinted and both digest calls hashed
   over the claim's message.
 -/
 

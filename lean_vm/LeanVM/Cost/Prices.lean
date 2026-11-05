@@ -148,17 +148,17 @@ are priced at the execution's `κ` and the program's `ℓ`
 `ℓ = 19`, `2^31.21` at `κ = 20`, `2^43.28` at `κ = 32`). A frame lookup (`guestDecoderFramePrice`,
 one binary search, growing as `log(steps)`) is paid about `2^25.28` times
 (`guestDecoderFrameLookupCountAtValidCounts`; a search on `__loop2`'s `56` arguments counts as
-four), `2^40.15` in all at `2^20` steps and `2^41.25` at `2^51`.
+four), `2^40.15` in all at `2^20` steps and `2^41.26` at `2^51`.
 
 So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
 through the positions' limbs), plus the address tables, `O(κ·2^κ + ℓ·2^ℓ)` in the memory's size
 `2^κ` and the program's `2^ℓ`: per step about `2^20.4` to `2^20.8` (`2^20.41` at `κ = 16` and no
 step, `2^20.75` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price,
-`runnerStepPrice`). At the guest's `ℓ = 19` it is `2^41.90` at `κ = 20` and `2^20` steps, `2^44.71`
-at `κ = 24` and `2^24`, `2^48.60` at `κ = 28` and `2^28`, `2^50.61` at `κ = 32` and `2^30`,
+`runnerStepPrice`). At the guest's `ℓ = 19` it is `2^41.56` at `κ = 20` and `2^20` steps, `2^44.66`
+at `κ = 24` and `2^24`, `2^48.59` at `κ = 28` and `2^28`, `2^50.61` at `κ = 32` and `2^30`,
 `2^71.71` at `κ = 32` and `2^51`, and `2^80.75` at `κ = 32` and `2^60`: the terms besides the steps'
-(the address tables included: `2^41.19` at `κ = 20` and `2^20` steps to `2^43.89` at `κ = 32` and
-`2^60`) dominate up to about `2^21` steps at `κ ≤ 28` and `2^24` at `κ = 32`, the per-step price
+(the address tables included: `2^40.58` at `κ = 20` and `2^20` steps to `2^43.69` at `κ = 32` and
+`2^60`) dominate up to about `2^21` steps at `κ ≤ 28` and `2^23` at `κ = 32`, the per-step price
 beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by

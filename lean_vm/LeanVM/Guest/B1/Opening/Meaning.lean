@@ -181,7 +181,7 @@ def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
     else sibs.getD (k / 4) (Vector.replicate 4 0)
   if k % 2 = 0 then (digestHalves d).1 else (digestHalves d).2
 
-/-- **One query** (`opening_query`, lean_ethereum.py:1351-1394 at c4f4bc92, with `walk_path`,
+/-- **One query** (`opening_query`, lean_ethereum.py:1351-1394 at b7a8d0cb, with `walk_path`,
 :1295-1331; TRIAGE #33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words
 of `K`, hashed (`merkleLeafDigest`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels
 by hinted siblings (`climb`, V:492, the position's low bits: `climbD`); the node reached is
@@ -219,7 +219,7 @@ def QueryWinsOk (rd : Reader) (qptrs : E) (Q depth cd : ℕ) : Prop :=
     ∃ q < 2 ^ depth, FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
 /-- **`opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_iters_g, odd,
-base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1397-1421 at c4f4bc92; TRIAGE #40):
+base, I, leaf_cells, depth, cd)`** (lean_ethereum.py:1397-1421 at b7a8d0cb; TRIAGE #40):
 `n_iters_g = g^N`, `λ ≠ 0`; query `k < Q` (`oqCount`) reads its window pointer and the windows
 `g^(qwVal …)` of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the

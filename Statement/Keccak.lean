@@ -11,7 +11,7 @@ Keccak-256 over the permutation it is given, `π` in the model (`RandomPermutati
 permutation's state is one type throughout, `KeccakState`: `25` lanes of `64` bits, lane `x + 5y`
 at index `x + 5y`.
 
-Transcribed from `python-verifier/verifier.py` at leanVM `c4f4bc92f800a7023147b8742d8c5f68596e4c82`
+Transcribed from `python-verifier/verifier.py` at leanVM `b7a8d0cb264c12f02e90d17196565eb920da62cd`
 (branch `opt/recursion-guest-cycles`): the round constants, rotation offsets and lane permutation
 (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`), the permutation `keccak_f`
 (`verifier.py:360-375`) and the hash `keccak_hash` (`verifier.py:191-209`): Keccak-256 as Ethereum
