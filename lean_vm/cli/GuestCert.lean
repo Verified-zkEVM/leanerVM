@@ -3372,8 +3372,8 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
       "public import LeanVM.Guest.B2C.Cpl\npublic import Mathlib.Tactic.IntervalCases\n\n" ++ asyncOff ++
       "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, i, k) =>
-        s!"/-- `{names.getD j ""}`, window {i}, part {k}. -/\n" ++
         (if bigWin j i then "set_option maxHeartbeats 1000000 in\n" else "") ++
+        s!"/-- `{names.getD j ""}`, window {i}, part {k}. -/\n" ++
         s!"theorem cw{j}_{i}_{k} : cplWin {j} {i} {k} = true := by decide +kernel\n\n") ++
       String.join ((fps.filter fun fp => homeOf fp == some g).map okText) ++
       "end\nend LeanVM.Guest.B2C.Cplw\n")
