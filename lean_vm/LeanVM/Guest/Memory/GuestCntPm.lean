@@ -53,7 +53,7 @@ def kcIn (j : ℕ) : Prop := kcST.find j = some j
 instance (j : ℕ) : Decidable (kcIn j) := inferInstanceAs (Decidable (_ = _))
 
 /-- `B2C.xmssArmC` at function `j`, by `Opcode`'s index. -/
-def kcArmJ (j i : ℕ) : ℕ := if j = 36 then [0, 0, 0, 0, 0, 0].getD i 0 else 0
+def kcArmJ (j i : ℕ) : ℕ := if j = 36 then [57, 84, 66, 28, 34, 380].getD i 0 else 0
 
 theorem kc_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
     coreProgram[j].name = "verify_lean_xmss" ↔ j = 36 := by

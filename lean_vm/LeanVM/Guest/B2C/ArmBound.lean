@@ -102,9 +102,8 @@ end
 end Le
 
 /-- **`__loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
-of its counted `match`es' largest arms; none are counted apart since b7a8d0cb (its `match`es are
-chained), so their arms are in its path's maximum. -/
-def xmssArmC (op : Opcode) : ℕ := [0, 0, 0, 0, 0, 0].getD (opIdx op) 0
+of its counted `match`es' largest arms. -/
+def xmssArmC (op : Opcode) : ℕ := [57, 84, 66, 28, 34, 380].getD (opIdx op) 0
 
 set_option maxRecDepth 100000 in
 theorem costMaxW_xmss (op : Opcode) :
