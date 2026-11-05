@@ -66,8 +66,7 @@ noncomputable def cplWinSP (p : WinPre) (j i lo hi gm gn am an : ℕ) : Bool :=
   (partEnt j i 0).isNone &&
   match p.pst with
   | [.match_ v (a0 :: as)] =>
-    matchAtoms lo hi [.match_ v (a0 :: as)] && (armKeyD (listElementOrDefault Data.cplArms j [])
-        v.idx).isNone &&
+    matchAtoms lo hi [.match_ v (a0 :: as)] &&
       (clocG (certOf j) i gm gn am an).seq fun loc ↦
       (partC j i 0).seq fun c ↦ natSeq (partU j i 0) fun u ↦ natSeq (partJ j i 0) fun J ↦
       (stmtsVals (selStmts lo hi [.match_ v (a0 :: as)])).all (fun x ↦ (loc.get? x.idx).isSome) &&
