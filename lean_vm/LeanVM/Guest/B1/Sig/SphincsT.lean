@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3691-3929` at leanVM c4f4bc92) with the values numbered as the renumbered
+  (`lean_ethereum.py:3730-3968` at leanVM b7a8d0cb) with the values numbered as the renumbered
   expansion numbers them.
 -/
 
@@ -13,25 +13,25 @@ public import LeanVM.Guest.B1.Sig.SpWotsT
 /-!
 # `verify_sig_lean_sphincs` as a template
 
-`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3842-3929`; `G` is `lean_ethereum.py`): `signer` is
+`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3881-3968`; `G` is `lean_ethereum.py`): `signer` is
 the parameter `n0`, `byte_bits` `n1`, `P` the cell `n2` (`sPP`). The message digest's first call
 allocates the padding run, at `n12 … n16` (`sPad`); every later one-block hash reads it.
 
-* `sDigest`, `sDigests` (`G:3848-3854`): digest call `c`, `D_c = H(P | A_msg(c) | m | ρ)`, 80
+* `sDigest`, `sDigests` (`G:3887-3893`): digest call `c`, `D_c = H(P | A_msg(c) | m | ρ)`, 80
   bytes;
-* `sBits`, `sBooleans`, `sShifts` (`G:3860-3874`): the digest's bits hinted (`bits0`, `bits1`, the
+* `sBits`, `sBooleans`, `sShifts` (`G:3899-3913`): the digest's bits hinted (`bits0`, `bits1`, the
   first ten of `bits2`, all the run `n51 …`, `sBit i`), pinned Boolean, and each field's value and
   right shifts (`sp_shifts`, the shared `shifts`; `sVal i` the value from bit `i`);
-* `sPlace`, `sPlaces` (`sp_place`, `G:3734-3753`): the fields placed into the 64-bit lanes, the
+* `sPlace`, `sPlaces` (`sp_place`, `G:3773-3792`): the fields placed into the 64-bit lanes, the
   index `idx` the lane after the hypertree's fields (`sIdx`);
-* `sFromBytes` (`sp_from_bytes`, `G:3694-3708`): each byte mark range checked and read off
+* `sFromBytes` (`sp_from_bytes`, `G:3733-3747`): each byte mark range checked and read off
   `byte_bits`, the value folded high byte first;
-* `sCheck` (`G:3876-3884`): the digest's cells rebuilt from the lanes, the unused bytes, and the
+* `sCheck` (`G:3915-3923`): the digest's cells rebuilt from the lanes, the unused bytes, and the
   high lane checked to be a lane;
-* `sForsTree` (`sp_fors_tree`, `G:3756-3775`): a FORS tree's leaf hashed from its secret, climbed
+* `sForsTree` (`sp_fors_tree`, `G:3795-3814`): a FORS tree's leaf hashed from its secret, climbed
   up the hinted ordered pairs, its two top nodes hinted into the FORS key;
-* `sLanes` (`G:3897-3906`): the hypertree's addresses; `sPath` (`sp_path`, `G:3811-3828`): a path
-  in one tree; `sUpper` (`sp_upper_layer`, `G:3831-3839`): a layer above the bottom;
+* `sLanes` (`G:3936-3945`): the hypertree's addresses; `sPath` (`sp_path`, `G:3847-3864`): a path
+  in one tree; `sUpper` (`sp_upper_layer`, `G:3870-3878`): a layer above the bottom;
 * `sBody`.
 -/
 
@@ -229,7 +229,7 @@ def sForsTrees : Nat → Nat → Nat → List Stmt × Nat × List V
 
 /-! ## The hypertree -/
 
-/-- The hypertree's addresses from base `b` (`G:3897-3906`): `lane_b` at `b + 4`, `lane_m` at
+/-- The hypertree's addresses from base `b` (`G:3936-3945`): `lane_b` at `b + 4`, `lane_m` at
 `b + 8`, `at_b` at `b + 9`, `at_m` at `b + 10`, `at_t` at `b + 12`. -/
 def sLanes (b : Nat) : List Stmt :=
   [cst b (word 256 0 0), mulS (.n (b + 1)) (sVal 16) (.n b), addS (.n (b + 2)) (sVal 8) (.n (b + 1)),

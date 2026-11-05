@@ -21,10 +21,10 @@ definition (a `Prop`); its proof is the theorem `…_holds : …_Spec` of the fa
 | function | G | meaning |
 | --- | --- | --- |
 | `assert_canonical` | 493-501 | `IsCanonical128` |
-| `exponent_tables` | 676-701 (c4f4bc92) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
-| `g_power_of_word` | 704-717 (c4f4bc92) | `v = E(n)`, `n < 64`, returns `g^n` |
-| `assert_small_g_power` | 720-735 (c4f4bc92) | `x = g^e`, `e < 2^36` |
-| `log2_ceil_in_the_exponent` | 738-753 (c4f4bc92) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
+| `exponent_tables` | 694-719 (b7a8d0cb) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
+| `g_power_of_word` | 722-735 (b7a8d0cb) | `v = E(n)`, `n < 64`, returns `g^n` |
+| `assert_small_g_power` | 738-753 (b7a8d0cb) | `x = g^e`, `e < 2^36` |
+| `log2_ceil_in_the_exponent` | 756-771 (b7a8d0cb) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
 | `grind_check` | 781-807 | `powOk` (V:427): the low `bits` bits of the first limb are zero |
 
 The range checks (`assert_small_g_power`, `log2_ceil_in_the_exponent`) are stated on a memory
@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `assert_canonical` (G:512-519, TRIAGE #2) -/
+/-! ## `assert_canonical` (G:530-537, TRIAGE #2) -/
 
 /-- **`assert_canonical(word)`**: the word has no `y²` term; it returns `0`. -/
 def MeaningAssertCanonical : List E → List E → Prop
@@ -50,7 +50,7 @@ def assert_canonical_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "assert_canonical" args rets ↔ MeaningAssertCanonical args rets
 
-/-! ## `exponent_tables` (lean_ethereum.py:676-701) -/
+/-! ## `exponent_tables` (lean_ethereum.py:694-719) -/
 
 /-- **`exponent_tables()`**: it returns a pointer holding the exponent table (`ExpTables`). -/
 def MeaningExponentTables (rd : Reader) : List E → List E → Prop
@@ -62,7 +62,7 @@ def exponent_tables_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (lean_ethereum.py:704-717) -/
+/-! ## `g_power_of_word` (lean_ethereum.py:722-735) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/
@@ -75,7 +75,7 @@ def g_power_of_word_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
 
-/-! ## `assert_small_g_power` (lean_ethereum.py:720-735) -/
+/-! ## `assert_small_g_power` (lean_ethereum.py:738-753) -/
 
 /-- **`assert_small_g_power(x, g_squares)`**: `x = g^e` with `e < 2^36` (nine hinted nibbles,
 each range checked below `16`, their shares multiplied over the table); it returns nothing. -/
@@ -90,7 +90,7 @@ def assert_small_g_power_Spec : Prop :=
     ∀ rets : List E, coreProgram.Rel L.read "assert_small_g_power" [x, q] rets ↔
       MeaningAssertSmallGPower [x, q] rets
 
-/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:738-753) -/
+/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:756-771) -/
 
 /-- **`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)`**: the hinted `L`, `floor ≤ L < 34`,
 pinned by `g^(2^L) / g_N = g^e` and, above the floor, `g_N / g^(2^(L-1) + 1) = g^e'`, both
@@ -113,7 +113,7 @@ def log2_Spec : Prop :=
   log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L0_L34" 0 ∧
     log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L15_L34" 15
 
-/-! ## `grind_check` (G:763-785, TRIAGE #21) -/
+/-! ## `grind_check` (G:781-803, TRIAGE #21) -/
 
 /-- **`grind_check(word, bits)`** (`bits > 0`): the word, the first cell of the permutation the
 nonce's challenge comes from, is canonical and the low `bits` bits of its first limb are zero:

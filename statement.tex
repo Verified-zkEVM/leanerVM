@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{c4f4bc92}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{b7a8d0cb}}
 \date{1 November 2026}
 \begin{document}
 \maketitle
@@ -26,10 +26,11 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{c4f4bc92} of its \texttt{opt/recursion-guest-cycles} branch.
+leanVM at commit \texttt{b7a8d0cb} of its \texttt{opt/recursion-guest-cycles} branch (the head of
+its pull request 661).
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
-of definitions and end statements ($7645$ lines with their documentation), which import Mathlib,
+of definitions and end statements ($6989$ lines with their documentation), which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}, $2531$ lines; it is proved to make the specification's
 honest moves, so a reviewer only needs to see that it is a genuine prover), the guest program's
@@ -366,7 +367,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{c4f4bc92}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{b7a8d0cb}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -398,7 +399,7 @@ satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation.rs:311-340}) is
+\texttt{aggregation.rs:316-345}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
@@ -458,7 +459,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:663-680})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:668-685})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
@@ -542,12 +543,12 @@ exhibit a Keccak-256 collision; what excludes it is that none is known.
 \paragraph{The decoder's budget.} The budget (\lean{guestWitnessDecoderBudget}) is
 $(\mathit{steps} + 1)(2^{21} + 2^{13}\lambda) + (70\kappa + 374)\cdot 2^\kappa + 2^{37}(\lambda + 16)$,
 $\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_vm} proves of the
-compiled decoder (within $0.21$ to $1.24$ bits of it, about $0.55$ to $0.84$ at the six points
+compiled decoder (within $0.23$ to $1.58$ bits of it, about $0.55$ to $1.18$ at the six points
 below): per step $2^{20.41}$ to $2^{20.75}$, against the budget's $2^{21}$ to $2^{21.3}$ (the replay
 and the filing of the state in a sorted array, its share of one sort, growing as $\log$ of the
 steps); the sorted table of the memory's addresses at the execution's $\kappa$; and
 $2^{37}(\lambda + 16)$, about $2^{42}$ to $2^{43}$, for the witness read at the counts and the
-cursors a valid execution bounds, with about $2^{26.07}$ frame lookups: $G$'s own asserts give at
+cursors a valid execution bounds, with about $2^{25.28}$ frame lookups: $G$'s own asserts give at
 most $16$ children, $65535$ claims of each scheme and $65535$ coverage slots (\lean{valid_counts});
 each child's cursor is at most $8192$ words, as the stream of its proof is, which the deferring
 verifier accepts on a valid execution (\lean{valid_cursor}, from
@@ -555,7 +556,7 @@ verifier accepts on a valid execution (\lean{valid_cursor}, from
 budget is $2^{42.74}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{45.32}$ at $\kappa = 24$ and
 $2^{24}$, $2^{49.17}$ at $\kappa = 28$ and $2^{28}$, $2^{51.17}$ at $\kappa = 32$ and $2^{30}$,
 $2^{72.26}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.30}$ at $\kappa = 32$ and $2^{60}$ (the price
-there: $2^{41.90}$, $2^{44.71}$, $2^{48.60}$, $2^{50.61}$, $2^{71.71}$, $2^{80.75}$). The constant
+there: $2^{41.56}$, $2^{44.66}$, $2^{48.59}$, $2^{50.61}$, $2^{71.71}$, $2^{80.75}$). The constant
 prices the witness at the bounds above, not at the run's, so with fewer children and claims, at
 $\kappa \le 28$ and well below $2^{22}$ steps, the budget is several times the compiled decoder's
 price. There is no cap on the steps in the budget. A valid execution of $G$ (\lean{ValidExecution})
@@ -566,10 +567,10 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1490400$)
-limits any program; it is the compiled decoder's size at leanVM \texttt{c4f4bc92}, $1489895$ (proved
-at most that, measured exactly; the guest's frame-cell table is $1459583$ of it), and a slack of
-$505$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $1126600$)
+limits any program; it is the compiled decoder's size at leanVM \texttt{b7a8d0cb}, $1126129$ (proved
+at most that, measured exactly; the guest's frame-cell table is $1087078$ of it), and a slack of
+$471$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
 (cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its
@@ -667,7 +668,7 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 30827 + 65\cnt{decl} + 77\cnt{cover} + 6459\cnt{xmss} + 17561\cnt{sphincs} + 187595\cnt{da}
+W = 36514 + 65\cnt{decl} + 41\cnt{cover} + 6159\cnt{xmss} + 17531\cnt{sphincs} + 187595\cnt{da}
   + 227257\cnt{rows} \\ + 136\cnt{pad} + 25793\cnt{child} + 51\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu, r)
 \end{multline*}
@@ -675,10 +676,10 @@ words, where $\beta(\mu,r)$, the words of verifying one child, is:
 \begin{center}\small
 \begin{tabular}{l|rrrrrrr}
 $\mu$ & 22 & 23 & 24 & 25 & 26 & 27 & 28\\\hline
-$r=1$ & 517303 & 525859 & 544944 & 555377 & 567024 & 577540 & 595495\\
-$r=2$ & 421044 & 425550 & 444024 & 449867 & 455585 & 461043 & 475836\\
-$r=3$ & 384786 & 390691 & 405864 & 409990 & 414308 & 418616 & 433090\\
-$r=4$ & 366349 & 369627 & 382972 & 386013 & 389242 & 395344 & 409022
+$r=1$ & 521794 & 530285 & 549368 & 559713 & 571284 & 581731 & 599563\\
+$r=2$ & 423307 & 427748 & 446157 & 451912 & 457552 & 462932 & 477572\\
+$r=3$ & 386167 & 391987 & 407075 & 411123 & 415363 & 419593 & 433901\\
+$r=4$ & 367142 & 370350 & 383585 & 386548 & 389699 & 395725 & 409202
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
@@ -696,7 +697,7 @@ $\mathrm{dig}_{iv_G}(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committe
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
 children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
-check costs $G$ about three leanXMSS ones, $17561$ words against $6459$), $\cnt{rows}$ blobs held directly (the rows of
+check costs $G$ about three leanXMSS ones, $17531$ words against $6159$), $\cnt{rows}$ blobs held directly (the rows of
 at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
 \cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
 (a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
@@ -719,11 +720,11 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [22,28]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2536$ leanXMSS or $945$ leanSPHINCS signatures (each declared once), and a node holding one DA
+$2627$ leanXMSS or $949$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{c4f4bc92}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
+\texttt{c4f4bc92} and \texttt{b7a8d0cb}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.

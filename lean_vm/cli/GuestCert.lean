@@ -818,7 +818,7 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 def vsIdx : ℕ := 19
 
 /-- `opening_queries__L{odd}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
-`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1380` at `c4f4bc92`). -/
+`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1397` at `b7a8d0cb`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
@@ -945,14 +945,14 @@ def winObligations (body : List Core.Stmt) (dispatches : Bool := false) :
 `lean_vm/README.md`): before, after, and on memory (`(cell, offset, n)`, one word each), and the
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
 (argument 9) and on `dims_g[g^0]` (argument 10, cell 12: `kb[1]`, an unadjusted `kappa_g`,
-`lean_ethereum.py:2118-2121, 2218-2221`; the logs `t ≥ 1` it range checks itself, G:2176-2186),
+`lean_ethereum.py:2135-2138, 2235-2238`; the logs `t ≥ 1` it range checks itself, G:2193-2203),
 `log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_digest` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
 `CLAIM_GROUP = 17`; their argument 6);
 `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument;
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
 `kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^29`,
-`kb[7] < g^23` (`lean_ethereum.py:3242-3250`). -/
+`kb[7] < g^23` (`lean_ethereum.py:3259-3267`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
@@ -968,7 +968,7 @@ def bounds (name : String) :
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
 windows after the one computing them: each window hands on their bound `2`. None at `c4f4bc92`
-(`verify_keccak`'s `rem_g`, G:2936-2939, is passed on, not dispatched on). -/
+(`verify_keccak`'s `rem_g`, G:2953-2956, is passed on, not dispatched on). -/
 def selsHeld (_name : String) : List ℕ := []
 
 /-! ## Windows -/

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# `assert_small_g_power` (lean_ethereum.py:720-735 at leanVM `c4f4bc92`)
+# `assert_small_g_power` (lean_ethereum.py:738-753 at leanVM `b7a8d0cb`)
 
 `assert_small_g_power(x, g_squares)` hints nine digits `d_j` (`hint_decompose_digits_exponent`),
 range checks each below `16` (`log(d) < 16`, against `g^15`), reads the share

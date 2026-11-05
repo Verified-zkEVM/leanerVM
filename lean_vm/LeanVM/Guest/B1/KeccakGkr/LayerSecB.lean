@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecB
 
-  `keccak_layer`'s middle sections (G:2733-2800): the product at `s` (Horner), the pack rounds'
+  `keccak_layer`'s middle sections (G:2750-2817): the product at `s` (Horner), the pack rounds'
   first record and their two loops, and the last record read.
 -/
 
@@ -32,7 +32,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- The value after `j` steps of the chain. -/
 def hornerV (a : ℕ → ℕ) (b j : ℕ) : ℕ := if j = 0 then a 46 else b + 2 * j - 1
 
-/-- **Horner** (G:2733-2735): the chain's last value is the product at `s`. -/
+/-- **Horner** (G:2750-2752): the chain's last value is the product at `s`. -/
 theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.length = 47)
     (hc : ∀ k < 47, σ (.n (a k)) = cs.getD k 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (hornerT a s b) next kret) :
@@ -69,7 +69,7 @@ theorem hornerT_holds {a : ℕ → ℕ} {s b : ℕ} {cs : List E} (hl : cs.lengt
 theorem gen47 : word 140737488355328 0 0 = gen ^ 47 := by
   rw [show (140737488355328 : ℕ) = 2 ^ 47 from rfl]; exact word_two_pow (by decide)
 
-/-- **The pack rounds' setup** (G:2737-2777): the first record at `rounds` (value `1053`), the
+/-- **The pack rounds' setup** (G:2754-2794): the first record at `rounds` (value `1053`), the
 eight-round loop's call, and the remainder loop's on `rounds·step_g`, `prev_point·step_g⁸`,
 `point·step_g⁸`. -/
 theorem packSetupT_holds {first : ℕ} {next : Prop} {kret : List E → Prop}
@@ -104,7 +104,7 @@ theorem packSetupT_holds {first : ℕ} {next : Prop} {kret : List E → Prop}
   · have := hcall' (by rw [e70']; exact hne)
     rwa [e71, word_one, e60, e64, h8, e68, h8'] at this
 
-/-- **The last record** (G:2796-2800): `rounds·step_g·rem_g` (value `1072`) and its capacity,
+/-- **The last record** (G:2813-2817): `rounds·step_g·rem_g` (value `1072`) and its capacity,
 cursor, claim and scale. -/
 theorem lastT_holds {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ lastT next kret) :

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SP2
 
 /-!
-# Statements `0 ..< 769` (G:2096-2215)
+# Statements `0 ..< 769` (G:2113-2232)
 
 `vtS_complete`: for the memory's log-size `lm ≤ 32`, the bus point (`|point| < 33`) and the
 tables' heights `τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ |point|`, on a memory defined

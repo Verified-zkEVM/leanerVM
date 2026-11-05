@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsComplete
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!
-# `decode_query_windows`, placed (lean_ethereum.py:757-868 at c4f4bc92)
+# `decode_query_windows`, placed (lean_ethereum.py:775-886 at b7a8d0cb)
 
 **The form** (`QwDecodeAtD`, the windowed successor of `OsDecodeAtD`): at every frame pointer
 `fp`, for arguments whose loads lie in the caller's words (`QwRegs`: `positions` and `win_ptrs`

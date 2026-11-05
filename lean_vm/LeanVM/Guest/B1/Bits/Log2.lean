@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Bits.SmallGPower
 
 /-!
-# `log2_ceil_in_the_exponent` (lean_ethereum.py:738-753 at leanVM `c4f4bc92`)
+# `log2_ceil_in_the_exponent` (lean_ethereum.py:756-771 at leanVM `b7a8d0cb`)
 
 `log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)` hints `N`'s bits into a fresh run (only
 the hint reads them) and the log `g^L`, range checks `L < 34` and `L - floor < 34`, and asserts

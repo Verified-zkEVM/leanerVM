@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Selectors.SelPartial
 /-!
 # `block_selector_tab` (TRIAGE G #49)
 
-`block_selector_tab(digits, eq_tab, g_tab, n)` (G:2022-2041) reads, for each nibble `j` of the
+`block_selector_tab(digits, eq_tab, g_tab, n)` (G:2039-2058) reads, for each nibble `j` of the
 `n` bits (the last `n - 4j` wide, `w`), its hinted digit `d = g^u` at `digits`, range-checks
-`u < 2^w` (`assert_digit`, G:2009-2019), and multiplies the eq weight at `eq_tab·g^u` (offset
+`u < 2^w` (`assert_digit`, G:2026-2036), and multiplies the eq weight at `eq_tab·g^u` (offset
 `32j + 2^w - 2`) and the share at `g_tab·g^u` (offset `16j`). The bits are the digits' (`u`'s bit
 `t` the bit `4j + t`): the caller pins their `g`-power product to a certified offset.
 

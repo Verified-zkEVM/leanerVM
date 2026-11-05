@@ -16,7 +16,7 @@ public import Statement.Field
 Defined here, apart from B1's proofs, so that the check context, and with it the kernel-checked
 certificates of the compiled functions (`B2C`), do not import them.
 
-`exponent_tables()` (`lean_ethereum.py:676-701` at leanVM `c4f4bc92`) fills one read-only
+`exponent_tables()` (`lean_ethereum.py:694-719` at leanVM `b7a8d0cb`) fills one read-only
 `HeapBuf(SIDE_TAB_AT + N_BLOCK_GROUPS)`, `236` words, indexed by g-powers, in four sections:
 
 | offsets | words | readers |
@@ -57,7 +57,7 @@ abbrev nGkrSides : ℕ := 3
 /-- `N_BLOCK_GROUPS`. -/
 abbrev nBlockGroups : ℕ := 24
 
-/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:676-701`): the squares
+/-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:694-719`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
 `u < 16`; the rank keys `q[g^(178 + k)] = g^(k·252)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/

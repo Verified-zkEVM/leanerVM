@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFieldsComplete
 
-  The digest's fields of `verify_sig_lean_sphincs` (`lean_ethereum.py:3860-3884` at leanVM
-  `c4f4bc92`) are complete: the bits of the two digest calls' cells hinted, pinned Boolean, shifted,
+  The digest's fields of `verify_sig_lean_sphincs` (`lean_ethereum.py:3899-3923` at leanVM
+  `b7a8d0cb`) are complete: the bits of the two digest calls' cells hinted, pinned Boolean, shifted,
   placed into the lanes, the digest rebuilt from them and the unused bits read off the byte table.
 -/
 

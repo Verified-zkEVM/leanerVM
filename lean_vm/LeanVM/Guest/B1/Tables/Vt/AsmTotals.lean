@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SpecPhase
 
 /-!
-# The totals (G:2291-2352)
+# The totals (G:2308-2369)
 
 `vt_asm_totals`: with the facts `verify_sub` hands `verify_tables` (the point, the heights and
 row counts, `kappa_base`, the exponent tables, the bus weights), `bus_table_total[PUSH]`,
