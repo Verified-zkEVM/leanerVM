@@ -68,8 +68,13 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
   have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
-  exact main_facts (unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv))
-    (Located.rlg_le_rel t.memory) hm exponent_tables_holds (End.mainBodyL_of End.b2SoundL hv).1
+  have hU := unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv)
+  refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
+    (End.mainBodyL_of End.b2SoundL hv).1
+  obtain ⟨fn, σ, hf, hp, hb⟩ := hU _ _ _ h
+  rw [find_loop2] at hf
+  cases hf
+  exact ⟨_, loop2Out_of_body Sig.verify_lean_xmss_sound_holds hp hb⟩
 
 /-- The counts of `main`'s facts, read by `gLog`. -/
 theorem validCounts_of {C : CallRel} {rd : Reader} {σ : Val} (MF : MainFacts C rd σ) :
@@ -135,6 +140,10 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
   have hrel := hk.2.2.2.1
   let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd
     (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
+      (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
+        (memoryVector t.memory)) rd) rd)
+    (xmssAtFrameT Fast.readerTabs (entryArrayT pcTableT
+      (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
         (memoryVector t.memory)) rd) rd)
     (sphincsAtFrameT Fast.readerTabs (entryArrayT pcTableT

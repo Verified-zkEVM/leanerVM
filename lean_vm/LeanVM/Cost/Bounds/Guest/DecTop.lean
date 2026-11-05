@@ -381,7 +381,7 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
 /-- The frames stage's price: the witness (at most `Wn`) and the decoding (at most `X` declared
 claims a scheme). -/
 @[expose] def framesPrice (G R S X Wn : ℕ) : ℕ :=
-  Wn + (2 * S + 45) + decStmtPrice G R S X + 15 + 31
+  Wn + (2 * S + 45) + decStmtPrice G R S X + 15 + 33
 
 /-- **The frames stage** (`decTopFramesC`): the witness at its closures (at most `Wn`), then the
 decoding (the seed, the statement), the counts within `K N X`: at most `framesPrice G R S X Wn`. -/
