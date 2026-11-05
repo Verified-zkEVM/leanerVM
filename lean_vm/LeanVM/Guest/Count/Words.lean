@@ -13,8 +13,9 @@ public import LeanVM.Guest.Count.Static
 /-!
 # Words by name
 
-`wSB f` is the constant of `f`'s words certificate, `wSK f` a loop helper's per iteration (`0`
-otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
+`wSB f` is the constant of `f`'s words certificate, `wSKt f` a loop helper's per iteration, its
+run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame charged to each
+iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
 `wIdxN` gives the core index of some functions by name, `wIdxLoop` of each loop helper
 `__loop{n}` by `n`, for the checks that range over names.
@@ -32,10 +33,18 @@ noncomputable def wSB (f : String) : ℕ :=
   | .stat _ b _ => b.c
   | _ => 0
 
-/-- The words per iteration of loop helper `f`'s certificate, `0` if it has none. -/
-noncomputable def wSK (f : String) : ℕ :=
+/-- The words per iteration of loop helper `f`'s certificate, its run's phantom frame apart, `0`
+if it has none. -/
+noncomputable def wSKt (f : String) : ℕ :=
   match wcertOf f with
   | .loop _ _ b _ => b.c
+  | _ => 0
+
+/-- The words per iteration of loop helper `f`, its run's phantom frame charged to each iteration
+(`wSKt f + B2C.fs f`), `0` if it has no certificate. -/
+noncomputable def wSK (f : String) : ℕ :=
+  match wcertOf f with
+  | .loop _ _ b _ => b.c + B2C.fs f
   | _ => 0
 
 /-- A constant certificate. -/
@@ -73,7 +82,34 @@ theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
     exact fs_totalLe hf
   · rw [hw] at hk; cases hk
 
-/-- **Loop helper `f`'s words within `wSK f` per iteration.** -/
+/-- **Loop helper `f`'s run within `wSKt f` words per iteration and its phantom frame.** -/
+theorem wSKt_loopRunLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopRunLe B2C.fs f (wSKt f) := by
+  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨hn, hk⟩ := h
+  have hc := wcertOf_of_idx hn
+  rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
+  · rw [hw] at hk; cases hk
+  · rw [hw] at hk; cases hk
+  · rw [hw] at hk
+    simp only [certLoopB, Bool.and_eq_true, List.isEmpty_iff, Option.isNone_iff_eq_none] at hk
+    obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hk
+    have hf : wcertOf f = .loop none [] ⟨K, []⟩ ks := hc.trans hw
+    have hK : wSKt f = K := by unfold wSKt; rw [hf]
+    rw [hK]
+    exact kw_loopRunLe_of hf
+
+/-- **Loop helper `f`'s run from a start below its end**: `wSKt f` per unit of the end's exponent,
+and its phantom frame. -/
+theorem wSKt_totalLeOn {j : ℕ} {f : String} (h : wOkK j f = true) :
+    TotalLeOn coreProgram B2C.fs f LoopPre fun a => logG (a.getD 1 0) * wSKt f + B2C.fs f :=
+  (wSKt_loopRunLe h).totalLeOn
+
+/-- `wSKt` is `wSK` without the phantom frame. -/
+theorem wSKt_eq (f : String) : wSKt f = wSK f - B2C.fs f := by
+  unfold wSK wSKt
+  split <;> simp
+
+/-- **Loop helper `f`'s words within `wSK f` per iteration**, its run's phantom charged to each. -/
 theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotalLe B2C.fs f (wSK f) := by
   simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
@@ -85,7 +121,7 @@ theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotal
     simp only [certLoopB, Bool.and_eq_true, List.isEmpty_iff, Option.isNone_iff_eq_none] at hk
     obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hk
     have hf : wcertOf f = .loop none [] ⟨K, []⟩ ks := hc.trans hw
-    have hK : wSK f = K := by unfold wSK; rw [hf]
+    have hK : wSK f = K + B2C.fs f := by unfold wSK; rw [hf]
     rw [hK]
     exact kw_loopTotalLe_of hf
 
@@ -116,10 +152,16 @@ noncomputable def wSBJ (j : ℕ) : ℕ :=
   | .stat _ b _ => b.c
   | _ => 0
 
+/-- `wSKt` of core function `j`. -/
+noncomputable def wSKtJ (j : ℕ) : ℕ :=
+  match wcertJ j with
+  | .loop _ _ b _ => b.c
+  | _ => 0
+
 /-- `wSK` of core function `j`. -/
 noncomputable def wSKJ (j : ℕ) : ℕ :=
   match wcertJ j with
-  | .loop _ _ b _ => b.c
+  | .loop _ _ b _ => b.c + wfsJ j
   | _ => 0
 
 /-- `wSB` by core index. -/
@@ -128,7 +170,11 @@ theorem wSB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
 
 /-- `wSK` by core index. -/
 theorem wSK_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSK f = wSKJ j := by
-  unfold wSK wSKJ; rw [wcertOf_of_idx h]
+  unfold wSK wSKJ; rw [wcertOf_of_idx h, fs_idx h]
+
+/-- `wSKt` by core index. -/
+theorem wSKt_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) : wSKt f = wSKtJ j := by
+  unfold wSKt wSKtJ; rw [wcertOf_of_idx h]
 
 
 /-- The core indices of the functions the checks name, by name. -/

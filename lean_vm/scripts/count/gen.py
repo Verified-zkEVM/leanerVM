@@ -291,11 +291,9 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
         c = wcert.get(n)
         if c is None or not (c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == []):
             o.append('-- `%s`: no words certificate per iteration.\n' % n); continue
-        o.append('/-- **`%s`**: at most %d words per iteration. -/\ntheorem kw%s_loopTotalLe : LoopTotalLe B2C.fs "%s" %d := by\n'
-                 '  intro rd t args rets a e hn hv hb ha he hae heo\n'
-                 '  have := fs_total_le_of_loop %s hn hv hb ha he hae heo\n'
-                 '    (fun _ h => (List.not_mem_nil h).elim)\n'
-                 '  simpa [Aff.eval] using this\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
+        o.append('/-- **`%s`**: at most %d words per iteration and its run\'s phantom frame. -/\n'
+                 'theorem kw%s_loopRunLe : LoopRunLe B2C.fs "%s" %d :=\n'
+                 '  kw_loopRunLe_of %s\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
     o.append('end\nend LeanVM.Guest.Count\n')
     path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Static.lean')
     os.makedirs(os.path.dirname(path), exist_ok=True)

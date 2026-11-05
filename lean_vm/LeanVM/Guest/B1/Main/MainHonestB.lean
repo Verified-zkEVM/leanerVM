@@ -40,15 +40,15 @@ structure MainBs where
   B5 : ℕ
 
 /-- **Every callee's bound**, aligned with `mKids`. -/
-def mBs (SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
-  [b.Bx, b.Bs, m.nxd * SK "__loop0", m.nsd * SK "__loop1", m.nrx * SK "__loop2",
-    m.nrs * SK "__loop3"] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
+def mBs (fs SB SK : String → ℕ) (m : MainIn) (b : MainBs) : List ℕ :=
+  [b.Bx, b.Bs, m.nxd * iterK fs SK "__loop0" + fs "__loop0", m.nsd * iterK fs SK "__loop1" + fs "__loop1",
+    m.nrx * iterK fs SK "__loop2" + fs "__loop2", m.nrs * iterK fs SK "__loop3" + fs "__loop3"] ++ (if m.nd = 1 then [b.Bd] else []) ++ [b.B5] ++
     (if m.nc = 0 then [] else [b.Ba]) ++ [SB "statement_digest"]
 
 /-- **`main`'s words**, its callees within `mBs`. -/
 def mainBH (fs : String → ℕ) (SB SK : String → ℕ) (d : MainData) (m : MainIn) (Lin : Layout)
     (b : MainBs) : ℕ :=
-  mainB fs d (mKids m Lin) (mBs SB SK m b)
+  mainB fs d (mKids m Lin) (mBs fs SB SK m b)
 
 /-- Each non-static callee's predicate, its tree's words within its bound. -/
 def MainPreds.withTotal (p : MainPreds) (fs : String → ℕ) (b : MainBs) : MainPreds :=
@@ -105,7 +105,7 @@ theorem MainGoalsTB.withTotal {p : MainPreds} {b : MainBs} (h : MainGoalsTB fs c
 theorem mainKidsDTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
     KidsDTB fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
-      (mTs (hm fs fp seed s w) p) (mBs SB SK (hm fs fp seed s w) b) := by
+      (mTs (hm fs fp seed s w) p) (mBs fs SB SK (hm fs fp seed s w) b) := by
   unfold mKids mTs mBs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
     simp only [hnd, hnc, ↓reduceIte]
@@ -151,10 +151,14 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
 
 /-- **The static bounds of `main`'s own static callees** (G7-cnt's certificates). -/
 structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l1 : TotalLeOn coreProgram fs "__loop0" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop0")
-  l2 : TotalLeOn coreProgram fs "__loop1" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop1")
-  l3 : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")
-  l4 : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")
+  l1 : TotalLeOn coreProgram fs "__loop0" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop0" + fs "__loop0")
+  l2 : TotalLeOn coreProgram fs "__loop1" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop1" + fs "__loop1")
+  l3 : TotalLeOn coreProgram fs "__loop2" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")
+  l4 : TotalLeOn coreProgram fs "__loop3" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")
   st : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest")
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/
