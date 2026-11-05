@@ -60,8 +60,8 @@ theorem shapes_sum_le_of {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M K
 theorem instr_shapes {ps : List (ℕ × ℕ)} {K : ℕ} (hl : ps.length ≤ K) (op : Opcode) :
     (ps.map fun p ↦ (Count.deployedInstrs op).childShape p.1 p.2).sum ≤
       K * (match op with
-        | .xor => 103793 | .mulNative => 195843 | .setConstant => 53828 | .deref => 108827
-        | .jump => 38601 | .keccak => 10069) := by
+        | .xor => 103793 | .mulNative => 195843 | .setConstant => 56291 | .deref => 112137
+        | .jump => 39337 | .keccak => 10069) := by
   cases op <;>
     exact shapes_sum_le_of _ (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hl
 

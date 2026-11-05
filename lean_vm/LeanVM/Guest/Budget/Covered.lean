@@ -95,17 +95,17 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 53828)
+    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 56291)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 108827)
+    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 112137)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 38601)
+    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 39337)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
