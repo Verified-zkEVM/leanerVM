@@ -695,9 +695,11 @@ saying that the flag *words* enter the state unchanged (decision 6). S8 the BLAK
 (`τ_BLAKE2S ≥ 3`) is enforced by the verifier (`cpu/mod.rs:166`) and the filler (`filler.rs:43`)
 but appears in no section of the specification; Layer 2 binds `minLogRowsBlake2s` to the Rust
 and to Flock's `min_n_blocks_log` (`crates/flock/src/hash.rs:283-286`). S9 §7.4 lists the
-`DEREF` memory flushes as pointer, local, target while `tables.rs:645-650` emits pointer,
-target, local; Layer 6 follows §7.4, the order of a row's interactions being immaterial to
-balance.
+`DEREF` memory flushes as pointer, local, target while `tables.rs:640-642` emits pointer,
+target, local. The order is immaterial to balance, but it places the reads' blocks on the bus
+and so fixes the table sumcheck's forms: Layer 6 followed §7.4 until the executable verifier
+rejected the Rust proof there, and the `DEREF` flushes now follow the Rust order
+(`Arithmetization/Tables/Deref.lean`; [leanvm-target.md](../leanvm-target.md)).
 
 **Rust executor** (`crates/lean_vm/src/cpu/execute.rs`), all witness-generation behaviour, none
 a second meaning of the machine (test 19): R1 registers and operands are `u32` exponents
