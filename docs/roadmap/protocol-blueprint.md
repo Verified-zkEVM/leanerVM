@@ -641,11 +641,11 @@ no other; the hole is built when the names in bold of its row are declared and m
 | opening phase | [Layer 10](#layer-10-the-opening-phase-and-the-oracle-protocol) | **`openingPhase`**, **`openingComplete`**, **`openingSecurity`**, **`leanVmPhases`** | the spine; batching by powers; tables and stacking |
 | WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`**, **`mcaBound_of_mcaJohnson`**, **`listBound_johnson`**, `johnsonPar`, **`deployed_rbrSoundness`** | field instances; tables and stacking; sumcheck: definitions |
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `MerkleTree.fold`, `MerkleTree.prunedRoot`, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`** (a cross-check, kept as a test), **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
-| the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `chargedLoggingOracle`, **`potential_log_le_expected_charge`** | VCVio only |
+| the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `QueryHistory.freshLog`, **`QueryHistory.potential_le_expected_charge`** (generic over the history, the cache form its instance) | VCVio only |
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `rounds`, `verifierQueries`, `proofDigests`, **`rounds_bound`**, **`verifierQueries_bound`**, **`proofDigests_bound`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `QueryLog.HasCollision`, `Hit`, `Bad`, **`bad_density`**, `Flip`, `HashMisbehaves`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom`**, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant on `QueryHistory.freshLog` |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`BlakeMisbehaves`**, `extractTrace`, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`); for the instantiated execution form and completeness from an execution, leanISA Layers 9–10 |
 
@@ -1571,9 +1571,13 @@ theorem prEvent_le_of_potential ; prEvent_not_good_le_expected_charge   -- an ev
 theorem expected_charge_le_mul (hκ : charge ≤ κ on the caches reachable within the budget) (hn : IsTotalQueryBound oa n) :
     expected total ≤ n * κ          -- so the charges `|c|/|Y|` and `|inPlay|/|Y|` give `n·(|c₀| + n)/|Y|`
 theorem expected_fresh_in_le (S : Finset Y) (hn : IsTotalQueryBound oa n) : expected fresh answers in S ≤ n * (|S| / |Y|)
-def chargedLoggingOracle (charge : spec.QueryLog → spec.Domain → ℝ≥0∞) :   -- the same, its state also the ordered log
-    QueryImpl spec (StateT (spec.QueryCache × spec.QueryLog × ℝ≥0∞) ProbComp)   -- for the hit clause
-theorem potential_log_le_expected_charge (Φ : spec.QueryLog → ℝ≥0∞) …   -- the expected potential, read on the log
+-- The logged form: the same over any record of the queries (`QueryHistory spec σ`: the cache it shows and how
+-- a fresh query is recorded), the cache form above its instance at `QueryHistory.cache`
+def QueryHistory.freshLog : QueryHistory spec (spec.QueryCache × spec.QueryLog)   -- the cache and the fresh queries
+                                                                                 -- in order, for the hit clause
+theorem QueryHistory.potential_le_expected_charge (H : QueryHistory spec σ) (Φ : σ → ℝ≥0∞) (charge : σ → spec.Domain → ℝ≥0∞)
+    (hstep) (oa) (s) : 𝔼[Φ of the final state | simulateQ H.randomOracle oa from s] ≤
+      Φ s + 𝔼[total charge | simulateQ (H.chargedOracle charge) oa from (s, 0)]
 -- The game, the extractor and the hash's misbehaviour (RandomOracle.lean)
 structure Run where (proof : Proof) (logA logV : hashSpec.QueryLog) (ok : Bool)   -- `ok`, the verdict
 def Run.log (g : Run) := g.logA ++ g.logV
@@ -1591,8 +1595,8 @@ def extract (prog input proof) (log : hashSpec.QueryLog) : Option (Σ s, Column 
 def Extracts (prog input proof log) : Prop :=
   ∃ s q, extract prog input proof log = some ⟨s, q⟩ ∧ M3Holds (leanIsaInstance F prog s) input q
 theorem extracts_iff_isSome : Extracts prog input proof log ↔ (extract prog input proof log).isSome   -- `M3Holds` automatic
-/-- Two different inputs in the log with one answer. -/
-def LogHasCollision (log) : Prop := ∃ i j, log[i].1 ≠ log[j].1 ∧ log[i].2 = log[j].2
+/-- Two different inputs in the log with one answer (`ToVCVio/QueryLog.lean`). -/
+def QueryLog.HasCollision (log) : Prop := ∃ e₁ ∈ log, ∃ e₂ ∈ log, e₁.1 ≠ e₂.1 ∧ e₁.2 = e₂.2
 /-- A digest, on its input's first query, equal to one already in play: a 32-byte block of an earlier input, a
 digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)` of two consecutive observe blocks of a chain, as a root
 is), or the seed's digests; for the verifier's queries, also one of the proof's roots. An earlier answer to another
@@ -1613,7 +1617,7 @@ def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
     `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ i tr (zero-filled `extractRows (g.log.take k)`)
-def HashMisbehaves (rootsOf) (Flip) (prog input) (g : Run) : Prop := LogHasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g
+def HashMisbehaves (rootsOf) (Flip) (prog input) (g : Run) : Prop := QueryLog.HasCollision g.log ∨ Hit rootsOf prog input g ∨ Flip g
   -- the proof's roots and the flip are parameters until the transcript decoder defines both from the verifier's
   -- chain walk; `core` instantiates them with the decoder's, and `HashMisbehaves prog input` below stands for
   -- `HashMisbehaves (rootsOf prog input) (Flip prog input) prog input`
@@ -1785,8 +1789,8 @@ multi-round protocol, so `misbehaves_rom` proves it.
 The charged invariant holds from any initial cache, with no hypothesis at the start beyond the
 initial potential, bounds events on the run's output and final state, and runs VCVio's
 `randomOracle`; it is not built on VCVio's `withAddCost`, which charges cached queries too.
-`misbehaves_rom` needs its logged form, whose state carries the ordered log, since the hit and
-flip clauses are on the log and not on the cache. `extract` is the
+`misbehaves_rom` needs its logged form, the invariant on `QueryHistory.freshLog`, whose state
+carries the ordered log, since the hit and flip clauses are on the log and not on the cache. `extract` is the
 straight-line extractor; it is computable (decision 11) and runs on toy instances. `Pr[p | mx]` is
 VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the sketches keep the readable
 form.
@@ -2192,7 +2196,7 @@ WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_co
                       MerkleTree.fold  MerkleTree.prunedRoot  nodeModel  toBatchOpening  merkle_fits  blake2sBytes
 Generic, Layer 12:    chargedRandomOracle  potential_le_expected_charge  prEvent_le_of_potential
                       prEvent_not_good_le_expected_charge  expected_charge_le_mul  expected_fresh_in_le
-                      chargedLoggingOracle  potential_log_le_expected_charge
+                      QueryHistory.freshLog  QueryHistory.potential_le_expected_charge
                       nodePreimage  leafPreimage  extractTree  extractLeaf  extractLeaves  extractLeaves_eq
                       Consistent  HasCollision  Fresh  Known  FreshHit  MerkleTree.binding_of_log
                       MerkleTree.extractLeaf_determined  extractRows  extractAllRows  extractAllRows_eq
@@ -2217,7 +2221,7 @@ Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBl
                       verifyWith  verify  verifyWith_simulateQ  rounds  verifierQueries  proofDigests
                       rounds_bound  verifierQueries_bound  proofDigests_bound  verify_iff_compiled
                       settleFixedClaims
-Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  Hit  Bad  bad_density  Flip
+Random oracle:        Run  loggedGame  extract  Extracts  QueryLog.HasCollision  Hit  Bad  bad_density  Flip
                       HashMisbehaves  core  hashTerm  niError  misbehaves_rom  niError_le  verify_knowledgeSound_rom
 Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_true_iff (leanISA's)
                       BlakeMisbehaves  extractTrace  baseVerifier_extractsWitness  baseVerifier_extractsExecution
