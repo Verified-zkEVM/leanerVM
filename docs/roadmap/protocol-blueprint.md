@@ -142,9 +142,12 @@ are asked, and the random-oracle bound covers an adversary that picks the progra
 input after its queries; at a statement fixed before it runs, the bound is the same. The headline
 theorem's one assumption, `BlakeMisbehavesAdaptive`, is about BLAKE2s on the adversary's run: except
 with probability `δ`, no two inputs share a digest, no fresh digest equals a value already in play,
-and no challenge of a Fiat–Shamir chain from the chosen statement's seed (the proof's own, or
-another the adversary explored) lands in the bad set of its prefix, a set of density at most
-`2^{−128}` that the prefix and the committed words fix (a theorem, `bad_density`). These are
+and no challenge of a Fiat–Shamir chain from the chosen statement's seed that the verifier itself
+asked for (a group of hash queries whose nonce step or first squeeze is among the verifier's own
+queries: the proof's chain as the verifier walks it) lands in the bad set of its prefix, a set of
+density at most `2^{−128}` that the prefix and the committed words fix (a theorem,
+`bad_density`); a bad challenge on a chain the adversary explored and the verifier never walked
+does not count. These are
 collision resistance, unpredictability and correlation intractability against a sparse relation,
 asked of one run. The adversary's BLAKE2s calls must be its oracle queries: an adversary that hashes
 in its own code fails the hypothesis, since the verifier's query on a Merkle node the adversary
@@ -662,7 +665,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `KWord`, `kwordOf`, `ListDecoder`, **`ListDecoder.bruteForce`**, `exactFast`, **`exactFast_eq`**, `ListDecoder.exactFirst`, `ListDecoder.exact`, **`isInK_of_cl`**, `stackOfMsgs`, `stackList`, `Component.relistRel`, **`Component.Front.relist`**, **`Component.Front.overComplete`**, `commitWord`, `commitPick`, **`commitWordSecurity`**, `openInput`, **`relist_of_relOpen`**, **`openInputSecurity`**, **`listBinding_compile`**, **`listBinding_kSF_one`**, **`listBinding_extractedStack_eq`**, **`listBinding_perfectCompleteness`**, `Whir.Transform` (`fwd`, `inv`, **`fwd_getElem`**, **`fwd_inv`**, **`inv_fwd`**, `encodeFast`, **`encodeFast_getElem`**), `exactNtt`, **`exactNtt_spec`**, **`exactNtt_of_codeword`**, `ListDecoder.nttFirst`, **`ListDecoder.decode_eq_of_codeword`**, `kwordOfFast`, **`kwordOfFast_eq`**, `deployedDecoder`, **`deployedChain_head`**, **`listBinding_deployed`**, **`listBinding_deployed_rbrKnowledgeSoundness`**, **`listBinding_deployed_perfectCompleteness`**, `deployedPick`, **`deployedPick_eq_commitPick`**, **`listBinding_deployed_kSF_one`**, **`listBinding_deployed_extractedStack_eq`**, **`commitPick_isSome_iff`**, **`commitPick_eq_some`** | the phases' knowledge soundness and completeness; WHIR opening; WHIR opening in the Johnson regime (`deployedChain`) |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `VerifierFlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, **`baseVerifier_extractsWitness_rom_adaptive`**, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `baseProver_complete_of_execution` (an unproved target) | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
 
@@ -1620,8 +1623,8 @@ def Extracts (prog input proof log) : Prop :=
 theorem extracts_iff_isSome : Extracts prog input proof log ↔ (extract prog input proof log).isSome   -- `M3Holds` automatic
 /-- Two different inputs in the log with one answer. -/
 def LogHasCollision (log) : Prop := ∃ i j, log[i].1 ≠ log[j].1 ∧ log[i].2 = log[j].2
-/-- A digest, on its input's first query, equal to one already in play: a 32-byte block of an earlier input, the
-program hash an earlier 78-byte seed preimage carries, a digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)`
+/-- A digest, on its input's first query, equal to one already in play: a 32-byte half of an earlier 64-byte input,
+the program hash an earlier 78-byte seed preimage carries, a digest absorbed as two scalars (`scalars_to_hash (s₁, s₂)`
 of two consecutive observe blocks of a chain, as a root is), or a root in play from the start (none at leanVM); for
 the verifier's queries, also one of the proof's roots. An earlier answer to another input is not in play: equal to
 it, the answer is a collision. -/
@@ -1646,16 +1649,23 @@ def FlipFor (st : Program × PublicInput) (g : Run) : Prop :=
     `i` is a challenge ∧ (the challenge of G's squeezes) ∈ Bad st s ρ i tr (the words under `hs`'s roots)
 /-- A flip on the chain of any statement: `∃ st, FlipFor st g`, what the random-oracle bound bounds. -/
 def Flip (g : Run) : Prop
+/-- A flip the verifier asked for: a flip on the chain of `st` on a group the verifier itself asked, the chain step
+the group's queries open with (its nonce step, or its first squeeze, `Group.stepInput`) being one of the verifier's
+queries. A chain of `st` the adversary explored and the verifier never walked does not count. -/
+def VerifierFlipFor (st : Program × PublicInput) (g : Run) : Prop :=
+  ∃ G, FlipFor st g holds of G ∧ ∃ d, ⟨G.stepInput, d⟩ ∈ g.logV
+theorem flipFor_of_verifierFlipFor : VerifierFlipFor st g → FlipFor st g   -- and `flip_of_verifierFlipFor`
 def HashMisbehavesFrom (seedRoots) (rootsOf) (Flip) (g : Run) : Prop :=
   LogHasCollision g.log ∨ HitFrom seedRoots rootsOf g ∨ Flip g
   -- the proof's roots and the flip are parameters: at leanVM, the roots the verifier's chain walk reads off the
-  -- proof (`rootsOf prog input`) and the flips of leanVM's reader. `core` concludes the event with the flips on
-  -- the statement's chain, `FlipFor (prog, input)`, which the hypotheses bound; the random-oracle bounds bound the
-  -- larger event with `Flip`, which contains it (`flip_of_flipFor`, `HashMisbehavesFrom.mono`)
+  -- proof (`rootsOf prog input`) and the flips of leanVM's reader. `core` concludes the event with the flips the
+  -- verifier asked for on the statement's chain, `VerifierFlipFor (prog, input)`, which the hypotheses bound; the
+  -- random-oracle bounds bound the larger event with `Flip`, which contains it (`flip_of_verifierFlipFor`,
+  -- `HashMisbehavesFrom.mono`)
 -- Deterministic, for every function answering the hash
 theorem core (hcons : g.log is consistent with a function) (hV : g.logV is the log of `verifyWith` on `g.proof`,
     its verdict `true`) (hX : ¬ Extracts prog input g.proof g.logA) :
-    HashMisbehavesFrom [] (rootsOf prog input) (FlipFor (prog, input)) g
+    HashMisbehavesFrom [] (rootsOf prog input) (VerifierFlipFor (prog, input)) g
 -- The random-oracle model
 def hashTerm (V Q) : ℝ≥0 := (Q + V) * (4 * (Q + V) + 8) / 2 ^ 256
 def niError (ε : ℝ≥0) (V Q) : ℝ≥0 := (Q + V) * ε + hashTerm V Q   -- ε the density of every bad set
@@ -1764,11 +1774,13 @@ on the one hash oracle, `loggedGame`: the adversary runs, then `verifyWith`, eac
 **The core.** `HashMisbehavesFrom` is the event the hash must avoid on that game's joint log: a
 collision (two inputs, one digest), a hit (a digest, on its input's first query, equal to a value
 already in play, the proof's digests counting against the verifier's queries only), or a flip (a
-challenge that lies in the bad set of its prefix). `core` concludes it with the flips on the
-statement's chain (`FlipFor (prog, input)`): read off a chain of the log from the first state at
-which the log holds the statement's seed hashes, the proof's own chain or another the adversary
-explored from that state; the random-oracle bound bounds the flips on every statement's chain
-(`Flip`), a larger event (`flip_of_flipFor`). `Bad` is the round-by-round bound made into a set: the
+challenge that lies in the bad set of its prefix). `core` concludes it with the flips the verifier
+asked for on the statement's chain (`VerifierFlipFor (prog, input)`): read off a chain of the log
+from the first state at which the log holds the statement's seed hashes, on a group whose chain
+step is one of the verifier's own queries, so the proof's chain as the verifier walks it, not
+another the adversary explored from that state; the random-oracle bound bounds the flips on every
+statement's chain (`Flip`), a larger event (`flip_of_verifierFlipFor`). `Bad` is the
+round-by-round bound made into a set: the
 challenges that turn the state function of `listBinding_compile` from false to true at a given
 prefix and committed words, of density at most `εquery` by `bad_density`. `core` is deterministic
 and holds for every log consistent with a function. The extractor reads only the adversary's log,
@@ -1902,23 +1914,26 @@ def adaptiveGame (V : VerifierWith) (A : AdaptiveAdversary) : OracleComp hashSpe
 BLAKE2s answering its hash queries, then the verifier on the statement and proof it output; the joint log
 shows none of
 - a collision: two different inputs with one digest (collision resistance);
-- a hit: a digest, on its input's first query, equal to a value already in play: a 32-byte block of an
-  earlier input, the program hash an earlier seed preimage carries, or a digest the chain absorbed as two
-  scalars (a Merkle root); for the verifier's queries, also a digest of the proof (unpredictability: no
-  digest is known before it is computed);
+- a hit: a digest, on its input's first query, equal to a value already in play: a 32-byte half of an
+  earlier 64-byte input, the program hash an earlier seed preimage carries, or a digest the chain absorbed
+  as two scalars (a Merkle root); for the verifier's queries, also a digest of the proof (unpredictability:
+  no digest is known before it is computed);
 - a flip: a Fiat–Shamir challenge read off a chain of the log from the first state at which the log holds
-  the seed of the statement the adversary output (the proof's own chain, or another the adversary explored
-  from that state), that lies in the bad set of its prefix at that statement, a set fixed by the prefix and
-  the committed words, of density at most `2^{−128}` (`bad_density`; correlation intractability of the
-  chain against a sparse relation). Chains from other statements' seeds are not read.
+  the seed of the statement the adversary output, on a group of queries the verifier itself asked (its nonce
+  step or its first squeeze among the verifier's queries: the proof's chain as the verifier walks it), that
+  lies in the bad set of its prefix at that statement, a set fixed by the prefix and the committed words, of
+  density at most `2^{−128}` (`bad_density`; correlation intractability of the chain against a sparse
+  relation). Chains from other statements' seeds are not read, nor a chain of this statement the verifier
+  never walked.
 The bad sets are those of the deployed protocol, with `leanVmSecurity` (and so `flockSecurity`),
 `deployedDecoder` and `blake2sFlockSpec` fixed inside this definition. With no coins the run
 is one value, and the probability is `0` or `1`. -/
 def BlakeMisbehavesAdaptive (A : AdaptiveAdversary) (δ : ℝ≥0∞) : Prop :=
-  Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input)) g.toRun
+  Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.VerifierFlipFor (g.prog, g.input)) g.toRun
     | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
 -- The random-oracle forms, with no hypothesis but the query bound; the bound is on the flips on every
--- statement's chain, which contain those on the chosen statement's (`flip_of_flipFor`)
+-- statement's chain, which contain those the verifier asked for on the chosen statement's
+-- (`flip_of_verifierFlipFor`)
 theorem misbehaves_rom_adaptive (hQ : IsTotalQueryBound A Q) :
     Pr[fun z ↦ HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input) leanVmReader.Flip z.1.toRun
       | runRandom (adaptiveGame verifyWith A)] ≤ niError εquery 13700 Q
@@ -1947,7 +1962,7 @@ theorem baseVerifier_extractsWitness_adaptive (hB : BlakeMisbehavesAdaptive A δ
       | runBlake2s (adaptiveGame verifyWith A)] ≤ δ
 -- An adversary with coins: a distribution over coin-free ones, `δ` a probability over the coins
 theorem baseVerifier_extractsWitness_adaptive_coins {coins : ProbComp AdaptiveAdversary}
-    (hB : Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
+    (hB : Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.VerifierFlipFor (g.prog, g.input))
         g.toRun | do let A ← coins; runBlake2s (adaptiveGame verifyWith A)] ≤ δ) :
     Pr[fun g ↦ verify g.prog g.input g.proof = true ∧ ¬ ∃ e, extract F g.prog g.input g.proof g.logA = some e ∧
           SatisfiedBy g.prog g.input (witnessOf F g.prog e.1 e.2)
@@ -1967,11 +1982,11 @@ def Blake2sActsAsRandomOracle (G : OracleComp hashSpec α) (bad : α → Prop) (
   Pr[bad | runBlake2s G] ≤ Pr[fun z ↦ bad z.1 | runRandom G] + δ
 theorem blakeMisbehavesAdaptive_of_comparison (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (adaptiveGame verifyWith A)
-      (fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input)) g.toRun) δ) :
+      (fun g ↦ HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.VerifierFlipFor (g.prog, g.input)) g.toRun) δ) :
     BlakeMisbehavesAdaptive A ((Q + 13700) / 2^128 + hashTerm 13700 Q + δ)
 -- At a statement fixed before the adversary runs: the forms above at the adversary that outputs it
 def BlakeMisbehaves (prog input) (A : Adversary) (δ : ℝ≥0∞) : Prop :=
-  Pr[HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))
+  Pr[HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))
     | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 theorem blakeMisbehavesAdaptive_const :
     BlakeMisbehavesAdaptive ((prog, input, ·) <$> A) δ ↔ BlakeMisbehaves prog input A δ
@@ -1984,7 +1999,7 @@ theorem baseVerifier_extractsWitness (hB : BlakeMisbehaves prog input A δ) :
           ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
       | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 theorem baseVerifier_extractsWitness_coins {coins : ProbComp Adversary}
-    (hB : Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g
+    (hB : Pr[fun g ↦ HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input)) g
       | do let A ← coins; runBlake2s (loggedGame verifyWith prog input A)] ≤ δ) :
     Pr[fun g ↦ verify prog input g.proof = true ∧
           ¬ ∃ e, extract F prog input g.proof g.logA = some e ∧ SatisfiedBy prog input (witnessOf F prog e.1 e.2)
@@ -1996,7 +2011,7 @@ theorem baseVerifier_extractsExecution (hsafe : SentinelSafe prog) (hB : BlakeMi
       | runBlake2s (loggedGame verifyWith prog input A)] ≤ δ
 theorem blakeMisbehaves_of_comparison (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (loggedGame verifyWith prog input A)
-      (HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))) δ) :
+      (HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))) δ) :
     BlakeMisbehaves prog input A ((Q + 13700) / 2^128 + hashTerm 13700 Q + δ)
 -- Completeness, for every function answering the hash, so at BLAKE2s with no hypothesis (Prove.lean)
 def proveWith [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (prog input) (w) (ρ) : m (Option Proof)   -- grinding searches
@@ -2027,7 +2042,7 @@ event inside `HashMisbehavesFrom` at the chosen statement, its flips on that sta
 (BLAKE2s is a function, so the log is consistent with one, and `verifyWith_simulateQ` makes the
 game's verdict `verify`'s), and `satisfiedBy_witnessOf` turns `M3Holds` into `SatisfiedBy` at the
 admissible sizes `extract` returns. Under the lazy random oracle the run is a possible run with a
-consistent log as well, so the same step, `flip_of_flipFor` and `misbehaves_rom_adaptive`'s closed
+consistent log as well, so the same step, `flip_of_verifierFlipFor` and `misbehaves_rom_adaptive`'s closed
 form give `baseVerifier_extractsWitness_rom_adaptive`, whose event reads the game's verdict, not
 `verify`'s.
 The mathematics is in `core`, `misbehaves_rom_of` and what they rest on. At a statement fixed
@@ -2066,8 +2081,9 @@ BLAKE2s theorems are the proof at the chosen statement, and adaptivity's cost si
 hypothesis, `BlakeMisbehavesAdaptive`, which the random-oracle bound supports: the verifier asks
 the statement's three hashes and the reader reads the statement off the log (Layer 12), so
 `misbehaves_rom_adaptive` bounds misbehaving on the adversary's run with the flips on every
-statement's chain, which contain the hypothesis's flips on the chosen statement's chain
-(`flip_of_flipFor`), the adversary's game being a game in two runs on its output
+statement's chain, which contain the hypothesis's flips, those the verifier asked for on the
+chosen statement's chain (`flip_of_verifierFlipFor`), the adversary's game being a game in two
+runs on its output
 (`adaptiveGame_eq_twoRunGame`), at `13700` verifier queries. The existential corollary, "an
 accepted proof implies some valid execution", is not stated: it carries no knowledge
 (decision 34).
@@ -2077,11 +2093,16 @@ With the statement's seed hashed through the oracle (decision 43), the fixed-sta
 the joint log holds the verifier's three seed queries, the program hash that a logged seed preimage
 carries is in play (`programHashSlot`), and the chain's first state is no longer in play from the
 start (it was the one root in play, `seedDigests`), only once a logged input carries it as a half,
-so an answer equal to it before then is no hit. Its flips are still those on the chain of
-`(prog, input)` alone (`FlipFor (prog, input)`), now read from the first state at which the log
-holds that statement's three seed hashes (`stmtOf`, unique on a log with no collision) rather than
-from the first state computed outside the oracle; a flip on another statement's chain, which the
-adversary may explore before it outputs a proof of `(prog, input)`, does not count.
+so an answer equal to it before then is no hit. Its flips are those on the chain of
+`(prog, input)` alone, read from the first state at which the log holds that statement's three
+seed hashes (`stmtOf`, unique on a log with no collision) rather than from the first state computed
+outside the oracle, and on a group the verifier itself asked (`VerifierFlipFor (prog, input)`,
+decision 44: the group's nonce step or first squeeze is one of the verifier's queries). A flip on
+another statement's chain, which the adversary may explore before it outputs a proof of
+`(prog, input)`, does not count, nor does one on a chain of `(prog, input)` the adversary explored
+and abandoned: `core` finds its flip on the verifier's own walk, whose steps are in `g.logV`, so
+the hypothesis asks less and the headline says more. The broad event `FlipFor` stays as the
+record of the chain, with `flipFor_of_verifierFlipFor` between them.
 
 `BlakeMisbehavesAdaptive` is about one adversary and one run, and its three clauses name what of
 BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). An adversary with
@@ -2481,6 +2502,7 @@ Compilation:          Digest  card_digest  hashSpec  hashQuery  Adversary  runBl
                       settleFixedClaims
 Random oracle:        Run  loggedGame  extract  Extracts  LogHasCollision  HitFrom  Bad  bad_density
                       FsState.seedWith  SeedLogged  stmtOf  programHashSlot  StartsSafe  Flip  FlipFor
+                      VerifierFlipFor
                       HashMisbehavesFrom  core  hashTerm  niError  misbehaves_rom_of  misbehaves_rom
                       niError_le  verify_knowledgeSound_rom
 Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_true_iff (leanISA's)
@@ -2502,12 +2524,17 @@ parts.
 - **Its definitions:** `verify`, `adaptiveGame`, `runBlake2s`, `extract`, `witnessOf`,
   `SatisfiedBy`, and `BlakeMisbehavesAdaptive` with `HashMisbehavesFrom` and its three clauses:
   the collision (`QueryLog.HasCollision`), the hit (`HitFrom`, with `inPlay` and
-  `programHashSlot`, the program-hash slot of a logged seed preimage), and the flip on the chosen
-  statement's chain (`leanVmReader.FlipFor`). The flip clause reads the statement a chain starts
-  from through `stmtOf`, a classical choice among the statements whose seed hashes the log holds
-  (`SeedLogged`), unique on a log with no collision, which the collision clause covers. Its bad
-  sets need not be read: their density is a theorem (`bad_density`), and the protocol they come
-  from is fixed inside the definition. The execution form adds `extractExecution` (or
+  `programHashSlot`, the program-hash slot of a logged seed preimage), and the flip the verifier
+  asked for on the chosen statement's chain (`leanVmReader.VerifierFlipFor`: the group's nonce
+  step or first squeeze is one of the verifier's queries, `Group.stepInput`). The flip clause
+  reads the statement a chain starts from through `stmtOf`, a classical choice among the
+  statements whose seed hashes the log holds (`SeedLogged`), unique on a log with no collision,
+  which the collision clause covers. Its bad sets need not be read: their density is a theorem
+  (`bad_density`), and the protocol they come from is fixed inside the definition; but a change to
+  any phase's `Security` changes the bad sets, and so the hypothesis's event, and is reviewed as a
+  trust-surface change. `ListDecoder.mem_iff` makes the decoder's speed irrelevant to the surface:
+  the list the extractor decodes from is specified by membership, not by the algorithm. The
+  execution form adds `extractExecution` (or
   `extractTrace`), `ValidExecution` and leanISA's `TraceExtraction`, an argument whose `valid`
   field carries leanISA's obligation. At a fixed statement, `baseVerifier_extractsWitness` reads
   `loggedGame` and `BlakeMisbehaves` in their place, the adaptive forms at the adversary that
@@ -2578,7 +2605,9 @@ in `Arithmetization/`.
 ## Decisions
 
 A decision taken is written into the convention, signature or acceptance test it settles, and
-recorded here in one row. Each is reversible by a pull request to this document.
+recorded here in one row. Each is reversible by a pull request to this document. A later row that
+amends an earlier one supersedes it; the earlier row is kept as the record of what was decided
+then, and reads with its amendment.
 
 | Decision | The choice | Recorded in |
 | --- | --- | --- |
@@ -2624,6 +2653,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 41. leanISA's trace through an interface | the execution-level headline takes `TraceExtraction prog`, which leanISA declares beside `SatisfiedBy` and inhabits, and the witness-level headline is stated without it | Layer 13; *Boundaries* |
 | 42. Adaptive forms at BLAKE2s | the adversary may output the program and the public input (`AdaptiveAdversary`, `adaptiveGame`); the BLAKE2s headline, its coins form and the execution form are restated over the chosen statement (`…_adaptive`), the execution form with `SentinelSafe` in the event, extracting through `leanIsaTraceExtraction` at the chosen program (`extractExecution`, amends decision 41 for the adaptive form), and a `WellFormedBytecode` corollary; `WellFormedBytecode` holds the `sentinelSafe` field, the fill blocks a later field; the random-oracle forms are adaptive by decision 43 | Layer 13; test 41 |
 | 43. Adaptive forms in the random-oracle model | the verifier and the prover compute the statement's seed through the hash (`FsState.seedWith`: the program's bytes, the seed's preimage, the first state's input), the values at BLAKE2s unchanged; one reader for every statement (`leanVmReader`), its starts the states the log logs a statement's seed at (`stmtOf`), its announcements carrying the statement; a logged 78-byte input puts its program hash in play (`programHashSlot`), each entry still at most two digests; no root in play at the start (`HashMisbehavesFrom []`, `StartsSafe []`); the verifier's bound `13700`, the seed's three queries added; `misbehaves_rom_adaptive` and the `_rom_adaptive` theorems, with the fixed-statement theorems their instances; the random-oracle bound counts the flips on every statement's chain (`Flip`), and `core` and the BLAKE2s hypotheses those on the chosen statement's chain (`FlipFor`), a smaller event. So `BlakeMisbehaves` changed meaning in its hits only: the verifier's seed queries are in the log, a logged preimage's program hash is in play, and the first state is no longer in play from the start; its flips stay those on the chain of `(prog, input)`, read from the first state at which the log holds its seed hashes (amends decisions 36, 37 and 42) | Layers 12, 13; tests 36, 42 |
+| 44. The flip clause counts the groups the verifier asked | `core` finds its flip on the verifier's own chain walk, whose steps are in `g.logV`, so the hypotheses ask for less: a flip is a bad challenge on a group of the chosen statement's chain whose chain step, its nonce step or its first squeeze (`Group.stepInput`), is one of the verifier's queries (`SlotReader.VerifierFlipFor`; a verifier query of the same 64 bytes read as a Merkle node counts as well). `core`'s conclusion, `BlakeMisbehaves`, `BlakeMisbehavesAdaptive` and the comparison corollaries read it; a chain of the statement the adversary explored and the verifier never walked no longer fails the hypothesis. The random-oracle bounds still count every flip (`Flip`), which contains it (`flip_of_verifierFlipFor`), so their numbers are unchanged; `FlipFor` stays as the broad event, with `flipFor_of_verifierFlipFor` between them (amends decisions 37 and 43) | Layers 12, 13; tests 36, 42 |
 
 Open:
 

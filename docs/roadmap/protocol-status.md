@@ -1404,26 +1404,37 @@ gone), the starts are safe with none (`leanVmReader_startsSafe`: the empty histo
 nothing, which covers a first state that answers a grinding base, the lanes `0, 0, 0, 3`), and the
 charge stays `ε` per query. The verifier's bound is `13700`, its seed's three queries added
 (`verifierQueriesBound_eq`). `core` concludes
-`HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input))` from the
+`HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))` from the
 verifier's first state, which opens its statement while no later state of its chain opens one
 (`start_of_seedWith`): the flipping group's history starts there, so the flip is on the chain of
-`(prog, input)` (`SlotReader.FlipFor`). `misbehaves_rom_adaptive` bounds the adaptive game
-(`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q` with the flips on every statement's chain
-(`leanVmReader.Flip`), which contain those (`flip_of_flipFor`, `HashMisbehavesFrom.mono`), and
-`baseVerifier_extractsWitness_rom_adaptive`, `baseVerifier_extractsExecution_rom_adaptive`, its
-`_wellFormed` corollary and `blakeMisbehavesAdaptive_of_comparison` follow at
-`(Q + 13700)/2^128 + hashTerm 13700 Q`. The theorems at a fixed statement keep their names and are
+`(prog, input)` (`SlotReader.FlipFor`), and its chain step is a step of the verifier's walk, so a
+query of `g.logV`, which holds every step of the history (`flipAt_of_bad` at `lV := g.logV`,
+`SlotReader.FlipAtForIn`): the verifier itself asked the group (`SlotReader.VerifierFlipFor`,
+`Group.stepInput`). `misbehaves_rom_adaptive` bounds the adaptive
+game (`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q` with the flips on every statement's
+chain (`leanVmReader.Flip`), which contain those (`flip_of_verifierFlipFor`,
+`HashMisbehavesFrom.mono`), and `baseVerifier_extractsWitness_rom_adaptive`,
+`baseVerifier_extractsExecution_rom_adaptive`, its `_wellFormed` corollary and
+`blakeMisbehavesAdaptive_of_comparison` follow at `(Q + 13700)/2^128 + hashTerm 13700 Q`. The theorems at a fixed statement keep their names and are
 their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`.
-`BlakeMisbehaves prog input A δ` keeps its form; its meaning changed in its hits only. The joint log
-now holds the verifier's three seed queries, the program hash a logged seed preimage carries is in
-play (`programHashSlot`), and the chain's first state is no longer in play from the start (it was
-the one root, `seedDigests`), only once a logged input carries it as a half. Its flips are still
-those on the chain of `(prog, input)` alone (`leanVmReader.FlipFor (prog, input)`), read from the
-first state at which the log holds that statement's three seed hashes (`stmtOf`) rather than from
-the first state computed outside the oracle; `BlakeMisbehavesAdaptive` reads them on the chosen
+`BlakeMisbehaves prog input A δ` keeps its form; its meaning changed in its hits and in its flips.
+The joint log now holds the verifier's three seed queries, the program hash a logged seed preimage
+carries is in play (`programHashSlot`), and the chain's first state is no longer in play from the
+start (it was the one root, `seedDigests`), only once a logged input carries it as a half. Its
+flips are those on the chain of `(prog, input)` alone, read from the first state at which the log
+holds that statement's three seed hashes (`stmtOf`) rather than from the first state computed
+outside the oracle, and only on a group the verifier itself asked
+(`leanVmReader.VerifierFlipFor (prog, input)`, decision 44: the group's nonce step or first
+squeeze is one of the verifier's queries); `BlakeMisbehavesAdaptive` reads them on the chosen
 statement's chain. A flip on another statement's chain does not count: counted, it would fail the
 hypothesis for an adversary that explores a cheating chain of another statement and then outputs an
-honest proof (a toy reader with two starts shows the restriction, `not_flipAtFor_true`). Tests: an
+honest proof (a toy reader with two starts shows the restriction, `not_flipAtFor_true`). Nor does a
+flip on a chain of `(prog, input)` the adversary explored and the verifier never walked: counted,
+it would fail the hypothesis for an adversary that abandons a cheating chain of the statement and
+outputs an honest proof, though `core`'s conclusion holds of it (the toy reader's
+`not_verifierFlipFor_proverRun` against `flipFor_proverRun`). The broad event `FlipFor` stays,
+with `flipFor_of_verifierFlipFor` between them, and the random-oracle bounds still count every
+flip. Tests: an
 adversary that picks one of two statements from one hash is bounded at `Q = 1`, the adaptive
 replayer's acceptance at `Q = 0` (`adaptiveReplayer_ok_le`), and a preimage asked before its
 program's bytes is a hit, none without the slot (acceptance test 42, decision 43). Natively,

@@ -188,7 +188,8 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     ¬ BlakeMisbehaves prog input (replayer proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (loggedGame verifyWith prog input (replayer proof))}[
-      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g] = 1 :=
+      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input)) g] =
+        1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
       obtain ⟨hp, hl⟩ := replayer_run hg'
@@ -329,8 +330,8 @@ theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInp
     ¬ BlakeMisbehavesAdaptive (adaptiveReplayer prog input proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
-      HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
-        g.toRun] = 1 :=
+      HashMisbehavesFrom [] (rootsOf g.prog g.input)
+        (leanVmReader.VerifierFlipFor (g.prog, g.input)) g.toRun] = 1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s_adaptive hg
       obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (QueryLog.support_simulateQ_subset _ _ hg)
