@@ -1010,7 +1010,7 @@ end Seeded
 
 /-! ### The crate's signer
 
-`sign_with` of `crates/signatures/src/lean_sphincs/scheme.rs` (leanVM `b7a8d0cb`), call for call,
+`sign_with` of `crates/signatures/src/lean_sphincs/scheme.rs` (leanVM `9d8bce81`), call for call,
 for a full or layered key (`subtreeHeight = totalHeight`, every index lands, every tree is whole):
 the randomizer, the digest, each FORS tree built once for its key and its opening, then the layers
 from the bottom up, each a WOTS+C signature followed by its tree built once, whose root the layer

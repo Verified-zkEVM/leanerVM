@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
-  The completeness statements of leanSPHINCS's guest functions at leanVM `b7a8d0cb`: `sp_wots`
+  The completeness statements of leanSPHINCS's guest functions at leanVM `9d8bce81`: `sp_wots`
   (`Data.core19`), a leaf, and `verify_sig_lean_sphincs` (`Data.core20`), which calls it three
   times, in the forms `main`'s completeness consumes.
 -/

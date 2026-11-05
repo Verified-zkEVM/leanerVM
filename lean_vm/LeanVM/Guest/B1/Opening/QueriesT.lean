@@ -205,10 +205,10 @@ def oqBlockT (s : Oq) (b pr kL k : ℕ) : List Stmt :=
 def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
   ((List.range s.B).map (oqBlockT s b pr kL)).flatten
 
-/-! ## The path (`walk_path`, a function of its own at b7a8d0cb) -/
+/-! ## The path (`walk_path`, a function of its own at 9d8bce81) -/
 
 /-- The path's windows: six levels each from the bottom, the last the remainder
-(`walk_path`, lean_ethereum.py:1312-1347 at b7a8d0cb). -/
+(`walk_path`, lean_ethereum.py:1312-1347 at 9d8bce81). -/
 def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
 /-- Window `i`'s levels. -/
@@ -303,7 +303,7 @@ def wpCh : ℕ := 5
 /-- `walk_path`'s padding run: after its children and its first window's word. -/
 def wpPr (s : Oq) : ℕ := wpCh + 4 * s.pd + 1
 
-/-- **`walk_path__L{pd}_L{cd}`'s body** (lean_ethereum.py:1312-1347 at b7a8d0cb): the path from the
+/-- **`walk_path__L{pd}_L{cd}`'s body** (lean_ethereum.py:1312-1347 at 9d8bce81): the path from the
 node `n0, n1` (`.n 0`, `.n 1`) by the windows at `wins` (`.n 2`), the cap leaf into `cap`
 (`.n 3`), the flag into `flags` (`.n 4`). -/
 def wpBodyT (s : Oq) : List Stmt :=

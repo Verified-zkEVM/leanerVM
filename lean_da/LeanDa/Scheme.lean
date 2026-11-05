@@ -9,7 +9,7 @@ public import LeanDa.WithHash
 # LeanDA
 
 The erasure code commitment of `crates/lean_da` at leanVM
-`b7a8d0cb264c12f02e90d17196565eb920da62cd`, specified in `doc/leanvm/body/10-ethereum.tex`
+`9d8bce818aa7c7e18e67026e522a9b1539d0a57d`, specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on

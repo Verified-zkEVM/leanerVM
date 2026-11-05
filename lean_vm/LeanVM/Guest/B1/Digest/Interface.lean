@@ -23,7 +23,7 @@ public import LeanVM.Facts.Verifier
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
 
 For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`b7a8d0cb`, G below) its meaning `Meaning…` on its argument and return words, and two
+`9d8bce81`, G below) its meaning `Meaning…` on its argument and return words, and two
 statements on its core IR relation (`coreProgram.Rel`): `…_sound_Spec`, the relation gives the
 meaning, and `…_complete_Spec`, the meaning (with what memory an honest run holds) gives the
 relation. A `…_Spec` is a definition (a `Prop`); its proof is the theorem `…_holds` of the

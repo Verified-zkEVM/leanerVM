@@ -26,7 +26,7 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`b7a8d0cb264c12f02e90d17196565eb920da62cd` (branch `opt/recursion-guest-cycles`, the head of PR
+`9d8bce818aa7c7e18e67026e522a9b1539d0a57d` (branch `opt/recursion-guest-cycles`, the head of PR
 #661, [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
 sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
@@ -326,9 +326,9 @@ execution within its budget. The program is that decoder compiled
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `1126600`) limits any program; it is the
-compiled decoder's size at leanVM `b7a8d0cb`, `1126129` (proved at most that and measured exactly),
+compiled decoder's size at leanVM `9d8bce81`, `1126129` (proved at most that and measured exactly),
 and a slack of `471`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
-(the bound was `1490400` at `c4f4bc92`, whose opening queries walked their Merkle paths inline, in
+(the bound was `1490400` at `1a379148`, whose opening queries walked their Merkle paths inline, in
 more frame cells, and `380000` at `ed7d2b9c`, whose had far fewer), so
 no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely
 many statements) fits there. That size counts the guest program's per-function tables, literals of

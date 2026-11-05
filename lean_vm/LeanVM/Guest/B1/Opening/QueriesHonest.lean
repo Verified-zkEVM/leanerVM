@@ -23,7 +23,7 @@ flags' pointers.
   (`qPartV`), per group the weight, the product, the running dot product (`qDotAfterV`);
 * the padding run `1, 0, 0, 0, 0`;
 * the leaf hash: per block the XORed inputs and the permutation's output (`qLeafO`, `qLeafI`);
-  then the query calls `walk_path` (lean_ethereum.py:1312-1347 at b7a8d0cb), whose frame is `WD`'s.
+  then the query calls `walk_path` (lean_ethereum.py:1312-1347 at 9d8bce81), whose frame is `WD`'s.
 
 `WD` is an honest `walk_path` frame: the shape, the leaf's digest, the position, the siblings, the
 window pointer, the cap's and the flags' pointers. `WD.val i` is the value of index `i` of its body

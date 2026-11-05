@@ -24,7 +24,7 @@ claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words 
 
 **`main`** (G:4406-4582, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
-`__loop2` at `args` (the leanXMSS check is inline there at b7a8d0cb: `Loop2Out`, its segment read
+`__loop2` at `args` (the leanXMSS check is inline there at 9d8bce81: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
 a child's proof `wV args` (`verify_sub`: `verifyDeferred` of the child's public input under the

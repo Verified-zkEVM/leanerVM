@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 /-!
 # Frame runs apart
 
-At b7a8d0cb neither `opening_queries`' queries nor their `walk_path` frames place a frame run (the
+At 9d8bce81 neither `opening_queries`' queries nor their `walk_path` frames place a frame run (the
 path children are hinted into `walk_path`'s frame cells), so its frame facts `OqFits` are `True`; `RunsApart` stays, a fact of the
 certificates the completeness statements read (`VerifySub.CompleteSpec`).
 -/

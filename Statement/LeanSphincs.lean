@@ -10,7 +10,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 
 The scheme of `crates/signatures/src/lean_sphincs` (`mod.rs`, `hash.rs`, `wots.rs`, `fors.rs`,
 `scheme.rs`; the addresses in `crates/signatures/src/tweak.rs`), specified in `doc/lean_sphincs`,
-at leanVM `b7a8d0cb`: FORS without its root hash under a hypertree of WOTS+C keys.
+at leanVM `9d8bce81`: FORS without its root hash under a hypertree of WOTS+C keys.
 
 * A message digest of two calls picks an index `idx < 2^26` (a bottom leaf, and so a FORS instance)
   and one leaf in each of the instance's 24 FORS trees of height 10 (§sec:fts). The FORS key is the

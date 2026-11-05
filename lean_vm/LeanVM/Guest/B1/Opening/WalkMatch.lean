@@ -13,7 +13,7 @@ public import LeanVM.Guest.Memory.Straight
 /-!
 # Walking `match`es of quiet arms
 
-A query of `opening_queries` (c4f4bc92) walks its Merkle path by `match`es whose arms are
+A query of `opening_queries` (1a379148) walks its Merkle path by `match`es whose arms are
 keccaks, constants and copies (`walk_window`): no load, no `HeapBuf`, no `frameAddr`
 (`Atom.quiet`). `Stmt.flatM`: an atom, a call, a conditional call, or such a `match`.
 

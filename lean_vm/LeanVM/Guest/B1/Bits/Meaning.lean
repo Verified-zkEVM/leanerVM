@@ -21,10 +21,10 @@ definition (a `Prop`); its proof is the theorem `…_holds : …_Spec` of the fa
 | function | G | meaning |
 | --- | --- | --- |
 | `assert_canonical` | 493-501 | `IsCanonical128` |
-| `exponent_tables` | 694-719 (b7a8d0cb) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
-| `g_power_of_word` | 722-735 (b7a8d0cb) | `v = E(n)`, `n < 64`, returns `g^n` |
-| `assert_small_g_power` | 738-753 (b7a8d0cb) | `x = g^e`, `e < 2^36` |
-| `log2_ceil_in_the_exponent` | 756-771 (b7a8d0cb) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
+| `exponent_tables` | 694-719 (9d8bce81) | `ExpTables`: squares, nibble shares, rank keys, groups' sides |
+| `g_power_of_word` | 722-735 (9d8bce81) | `v = E(n)`, `n < 64`, returns `g^n` |
+| `assert_small_g_power` | 738-753 (9d8bce81) | `x = g^e`, `e < 2^36` |
+| `log2_ceil_in_the_exponent` | 756-771 (9d8bce81) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
 | `grind_check` | 781-807 | `powOk` (V:427): the low `bits` bits of the first limb are zero |
 
 The range checks (`assert_small_g_power`, `log2_ceil_in_the_exponent`) are stated on a memory

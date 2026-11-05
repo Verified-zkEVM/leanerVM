@@ -16,7 +16,7 @@ public import Statement.Field
 Defined here, apart from B1's proofs, so that the check context, and with it the kernel-checked
 certificates of the compiled functions (`B2C`), do not import them.
 
-`exponent_tables()` (`lean_ethereum.py:694-719` at leanVM `b7a8d0cb`) fills one read-only
+`exponent_tables()` (`lean_ethereum.py:694-719` at leanVM `9d8bce81`) fills one read-only
 `HeapBuf(SIDE_TAB_AT + N_BLOCK_GROUPS)`, `236` words, indexed by g-powers, in four sections:
 
 | offsets | words | readers |

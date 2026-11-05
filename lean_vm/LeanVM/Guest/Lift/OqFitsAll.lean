@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Place.OsCandAll
 /-!
 # `opening_queries`' frames, every specialization
 
-At b7a8d0cb a query places no frame run, nor does its `walk_path` (its path children are hinted
+At 9d8bce81 a query places no frame run, nor does its `walk_path` (its path children are hinted
 into the walk's frame cells), so
 `OqFits` asks nothing (`True`, `QueriesPlacedD2`): every specialization and every candidate fits,
 for any certificates.

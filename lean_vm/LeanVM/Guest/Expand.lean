@@ -3,7 +3,7 @@
 
   The zkDSL front end in Lean: a source function and its `Const` arguments to the core IR function
   the compiler lowers, by the compiler's own rules (`crates/lean_compiler/src/lower.rs` and
-  `lower/*.rs`, leanVM `b7a8d0cb`).
+  `lower/*.rs`, leanVM `9d8bce81`).
 -/
 
 module
