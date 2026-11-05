@@ -537,6 +537,41 @@ memory across those modes without labelling the difference. Current upstream ARM
 are useful context, not a substitute for measurements on the hardware and source revision named
 by a leanerVM benchmark.
 
+## `leanervm-witgen`: executions of compiled programs
+
+`bench/LeanerVMWitgen.lean` is the `leanervm-witgen` executable. It reads the executions of
+`tests/vectors/executions/` (`scripts/dump-execution-rust.sh`: compiled programs run by the Rust
+executor at the pin) into `Program`, `PublicInput` and `Trace prog` (through `TraceInput.adapt`)
+and checks each, timed: `SentinelSafe`, the listed fill blocks, with `--hash` the program hash
+against the Rust digest, `ValidExecution` through `checkTraceGuess`, the main rows against the
+replayed run table by table, and the fill rows as a permutation of their successors; with
+`--prod` the production `checkTrace` with the Rust hint list, with `--scan` with none.
+`runGenerator` generates a witness with a supplied generator, proves and verifies it.
+
+```sh
+lake build leanervm-witgen
+.lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
+.lake/build/bin/leanervm-witgen --prod --scan --hash tests/vectors/executions/fibonacci_1000.exec.gz
+```
+
+`checkTraceGuess` is `checkTrace` with the address search taking an untrusted guess, the index
+of the address in a hash table of `g^0, …, g^(n-1)` built once, used only after `g^i = a` and
+`i < 2^κ` are checked (`checkTraceGuess_eq_checkTrace`, so it decides `ValidExecution` for every
+guess). The production carrier takes its hints as a list it searches linearly and powers each
+candidate, so a read costs the hint list's length; the scan without hints costs the address's
+index. Measured on 2026-11-05 (one run each, the machine shared):
+
+| Execution | Main steps | `checkTraceGuess` | `checkTrace`, Rust hints | `checkTrace`, no hints |
+| --- | --- | --- | --- | --- |
+| `py_*`, `field_div`, `hash_chain_8` | 10 to 198 | 0.1 to 5 ms | 1 to 120 ms (30 to 410 hints) | 0.1 to 260 ms |
+| `fibonacci_1000` | 1031 | 8 to 40 ms | 2.4 to 5.6 s (2093 hints) | 0.8 to 1.3 s |
+| `fibonacci_20000` | 20336 | 0.13 to 0.22 s | FIB_PROD | FIB_SCAN |
+| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 35 to 62 ms | 170 s (11572 hints) | GUEST_SCAN |
+
+Reading a file and the table of powers take 0.1 s at `2^17` and 2.7 s for the guest (`2^19`
+powers, an 18 MB file); the program hash of the guest's `2^19` instructions takes 36 s and 3 GB,
+through `programBytes`' list of bytes.
+
 Once the corresponding semantics exist, versioned target workloads should include opcode mixes,
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive
 aggregation. Match public inputs and workload parameters across implementations; do not copy
