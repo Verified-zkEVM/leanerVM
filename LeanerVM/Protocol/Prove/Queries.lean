@@ -17,7 +17,20 @@ public import LeanerVM.Protocol.Compile.Agree
 
 `Prove.queryGrade` is the property of a computation of the prover at the random oracle,
 `ProveM (OracleComp hashSpec)`, that every run of it from any book and writer state asks at most
-`k` queries (`IsTotalQueryBound`).
+`k` queries (`IsTotalQueryBound`). The writer's primitives have their counts: a scalar sent one
+query, a challenge one, a grind `fuel + 2` (the base, at most `fuel` candidates, the absorption),
+a commitment to `2 ^ d` rows `2 ^ (d + 1) + 2` (the leaves, the tree, the root sent).
+
+Each phase's wire is counted round by round (`RoundCodec.GradedOn`): the bus phase, the table
+sumcheck, the public input and the Flock phase at the verifier's counts
+(`VerifierQueries.queryCounts`), WHIR's levels at the verifier's counts with each commitment's
+tree and each grind's candidates (`ladderQueries`). The public input's message is a list; it is
+counted on the honest transcripts, whose message has one value per sent line, as the compiled
+protocol's perfect completeness and the verifiers' agreement give (`writeProof_grade`).
+`isTotalQueryBound_proveWith`: the prover asks at most the seed's three, the announcement's eight
+and the wire's `wireQueries`. Over the window of WHIR's parameters (one decision,
+`window_key`) and the admissible sizes, that is at most `264246250 + 6 · fuel`
+(`isTotalQueryBound_proveWith_closed`).
 -/
 
 namespace LeanerVM.Protocol
@@ -448,15 +461,6 @@ theorem tail_eq (c : Verify.StepCounts) (hs : c.sample = 1) (hc : c.scalar = 1) 
     simp [hs, hc]
     omega
 
-/-- The largest rate exponent of a chain of levels. -/
-def ladderRmax : {sh : Whir.Shape} → {κ : ℕ} → Ladder sh κ → ℕ
-  | _, _, .last sh _ => sh.R
-  | _, _, .cons sh L => max sh.R (ladderRmax L)
-
-theorem R_le_ladderRmax : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ), sh.R ≤ ladderRmax L
-  | _, _, .last _ _ => le_rfl
-  | _, _, .cons _ _ => le_max_left _ _
-
 theorem finalCodec_graded (sh : Whir.Shape) (nf D : ℕ) :
     (finalCodec (qops fuel) sh nf).GradedOn queryGrade (fun _ ↦ True)
       ((proverCounts fuel D).level ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩) :=
@@ -507,19 +511,18 @@ theorem levelCodec_graded (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step}
       simp only [proverCounts, Whir.Shape.ℓ]
       omega)
 
-theorem ladder_graded : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ) (D : ℕ),
-    κ + ladderRmax L ≤ D →
-    (ladderCodec (qops fuel) L).GradedOn queryGrade (fun _ ↦ True)
-      ((proverCounts fuel D).levels L.shapes)
-  | _, _, .last sh nf, D, _ => (finalCodec_graded fuel sh nf D).mono (fun _ _ ↦ trivial)
-      (by simp [Verify.StepCounts.levels, Ladder.shapes])
-  | _, _, @Ladder.cons sh sh' κ' L, D, hD => by
-    have h₁ := R_le_ladderRmax L
-    have h₂ : κ' + ladderRmax L ≤ D := by
-      simp only [ladderRmax, Kap, Whir.Shape.ℓ] at hD
-      omega
-    exact (levelCodec_graded fuel sh sh' κ' (D := D) (ladder_graded L D h₂) (by omega)).mono
-      (fun _ _ ↦ trivial) (by simp [Verify.StepCounts.levels, Ladder.shapes])
+/-- The prover's queries on WHIR's levels: each level's at the commitment it makes, of the next
+level's word. -/
+def ladderQueries : {sh : Whir.Shape} → {κ : ℕ} → Ladder sh κ → ℕ
+  | _, _, .last sh nf => (proverCounts fuel 0).level ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩
+  | _, _, @Ladder.cons sh sh' κ' L =>
+    (proverCounts fuel (κ' + sh'.R)).level ⟨sh.ℓ, Kap sh' κ', sh.R, sh.t, false⟩ +
+      ladderQueries L
+
+theorem ladder_graded : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+    (ladderCodec (qops fuel) L).GradedOn queryGrade (fun _ ↦ True) (ladderQueries fuel L)
+  | _, _, .last sh nf => finalCodec_graded fuel sh nf 0
+  | _, _, @Ladder.cons sh sh' κ' L => levelCodec_graded fuel sh sh' κ' (ladder_graded L) le_rfl
 
 /-! ## The compiled schedule's wire -/
 
@@ -537,21 +540,21 @@ theorem flockCodecOpt_graded (I : M3Instance) (o : Option (FlockRegion I.toShape
 /-- **The wire of the compiled schedule, counted**, on every transcript whose public-input
 message has `nSent` values. -/
 theorem compiledCodec_graded (I : M3Instance) (n : ℕ) {sh : Whir.Shape} {κ : ℕ}
-    (L : Ladder sh κ) (D K nSent : ℕ) (hD : κ + ladderRmax L ≤ D)
-    (hK : ∀ r, I.flock = some r → r.kBatch ≤ K) :
+    (L : Ladder sh κ) (K nSent : ℕ) (hK : ∀ r, I.flock = some r → r.kBatch ≤ K) :
     (compiledCodec (qops fuel) I n L).GradedOn queryGrade
       (fun tr ↦ (pubMessage tr).length = nSent)
-      ((proverCounts fuel D).root + qc.bus I.μBus I.busClaims + qc.tables I.τmax I.tableColumns +
-        qc.pub nSent + qc.flock K + 1 + (2 + (proverCounts fuel D).levels L.shapes)) := by
+      ((proverCounts fuel (κ + sh.R)).root + qc.bus I.μBus I.busClaims +
+        qc.tables I.τmax I.tableColumns + qc.pub nSent + qc.flock K + 1 +
+        (2 + ladderQueries fuel L)) := by
   exact GradedOn.mono ((((((((gradedOn_sendOne (G := fun _ ↦ True) fun _ ↦ commit_le fuel
-      ((Nat.add_le_add_left (R_le_ladderRmax L) κ).trans hD)).append
+      le_rfl).append
       (busCodec_graded fuel I)).append
       (tableCodec_graded fuel I)).append (pubCodec_graded fuel nSent)).append
       (flockCodecOpt_graded fuel I I.flock K hK)).append
       (gradedOn_chal (G := fun _ ↦ True) (sample_grade fuel))).append
       (gradedOn_empty (G := fun _ ↦ True))).append
       (gapp gradedOn_empty (gapp (gradedOn_msg (sendPlain_grade fuel (d := 2) (by norm_num)))
-        (ladder_graded fuel L D hD))))
+        (ladder_graded fuel L))))
     (fun tr h ↦ ⟨⟨⟨⟨⟨⟨⟨trivial, trivial⟩, trivial⟩, h⟩, trivial⟩, trivial⟩, trivial⟩, trivial⟩)
     (by simp only [proverCounts]; omega)
 
@@ -624,12 +627,12 @@ theorem flock_kBatch (prog : Program) (s : Sizes) :
 /-- The queries of the compiled schedule's wire at the deployed instance. -/
 def wireQueries (fuel : ℕ) (prog : Program) (s : Sizes) (input : PublicInput) {sh : Whir.Shape}
     {κ : ℕ} (L : Ladder sh κ) : ℕ :=
-  (proverCounts fuel (κ + ladderRmax L)).root +
+  (proverCounts fuel (κ + sh.R)).root +
     qc.bus (Verify.leanVm prog s).μBus (Verify.leanVm prog s).busClaims +
     qc.tables (Verify.leanVm prog s).τmax (Verify.leanVm prog s).tableColumns +
     qc.pub (PublicInput.sentCount (Verify.leanVm prog s)
       ((Verify.leanVm prog s).publicLines input)) + qc.flock (s.τ 5) + 1 +
-    (2 + (proverCounts fuel (κ + ladderRmax L)).levels L.shapes)
+    (2 + ladderQueries fuel L)
 
 theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} (hsat : SatisfiedBy prog input w)
@@ -646,7 +649,7 @@ theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
   refine Prover.runWith_graded _ _ _ (𝓖 := queryGrade) (fun f x k h ↦ queryGrade_of_map f x k h)
     (fun x k k' h hk ↦ queryGrade_mono h hk)
     (compiledCodec_graded fuel (Verify.leanVm prog s) (Verify.nLanes prog s)
-      (leanIsaChain prog s hs ρ hρ).ladder _ (s.τ 5) _ le_rfl (flock_kBatch prog s)) fun ch ↦ ?_
+      (leanIsaChain prog s hs ρ hρ).ladder (s.τ 5) _ (flock_kBatch prog s)) fun ch ↦ ?_
   have hr := Prover.runWithChallenges_eq_of_run_eq _ (compiledProver_run (Verify.leanVm prog s)
     (leanIsa_conditions Blake2sFlock.blake2sFlockSpec prog s)
     (leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ)
@@ -687,6 +690,141 @@ theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ :
     simp only [runWrite, runQ, StateT.run'_eq, StateT.run_map, OptionT.run_map]
   rw [this]
   exact (isQueryBound_map_iff _ _ _ _ _).mpr (hw.mono (le_of_eq (by simp)))
+
+/-! ## In closed form -/
+
+/-- The prover's counts with the grinds left out. -/
+def proverCounts0 (D : ℕ) : Verify.StepCounts := ⟨1, 1, 2 ^ (D + 1) + 2, fun _ ↦ 0⟩
+
+/-- WHIR's levels by their shapes, the grinds left out: a level before the last commits to the
+next level's word, of `msgLog - fold' + rate'` positions' bits. -/
+def shapeQueries0 : List Verify.LevelShape → ℕ
+  | [] => 0
+  | [sh] => (proverCounts0 0).level sh
+  | sh :: sh₂ :: rest =>
+    (proverCounts0 (sh.msgLog - sh₂.fold + sh₂.rate)).level sh + shapeQueries0 (sh₂ :: rest)
+
+theorem tail_counts (c c' : Verify.StepCounts) (h₁ : c.sample = c'.sample)
+    (h₂ : c.scalar = c'.scalar) : ∀ k, c.tail k = c'.tail k
+  | 0 => rfl
+  | k + 1 => by simp only [Verify.StepCounts.tail, h₁, h₂, tail_counts c c' h₁ h₂ k]
+
+theorem level_split (D : ℕ) (sh : Verify.LevelShape) :
+    (proverCounts fuel D).level sh = (proverCounts0 D).level sh + (fuel + 2) := by
+  have hp := positions_counts (proverCounts fuel D) (proverCounts0 D) rfl (sh.msgLog + sh.rate)
+    sh.queries sh.queries
+  have ht := tail_counts (proverCounts fuel D) (proverCounts0 D) rfl rfl sh.msgLog
+  simp only [Verify.StepCounts.level, hp, ht]
+  simp only [proverCounts, proverCounts0, Verify.StepCounts.folds]
+  split <;> omega
+
+theorem shapes_head : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+    ∃ x rest, L.shapes = x :: rest ∧ x.fold = sh.ℓ ∧ x.rate = sh.R
+  | _, _, .last _ _ => ⟨_, _, rfl, rfl, rfl⟩
+  | _, _, .cons _ _ => ⟨_, _, rfl, rfl, rfl⟩
+
+theorem ladderQueries_eq : ∀ {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ),
+    ladderQueries fuel L = shapeQueries0 L.shapes + L.shapes.length * (fuel + 2)
+  | _, _, .last sh nf => by
+    simp only [ladderQueries, Ladder.shapes, shapeQueries0, level_split, List.length_singleton]
+    omega
+  | _, _, @Ladder.cons sh sh' κ' L => by
+    obtain ⟨x, rest, hL, hf, hr⟩ := shapes_head L
+    have ih := ladderQueries_eq L
+    simp only [ladderQueries, Ladder.shapes, hL, shapeQueries0, level_split, List.length_cons]
+      at ih ⊢
+    rw [ih, hf, hr]
+    have : Kap sh' κ' - sh'.ℓ + sh'.R = κ' + sh'.R := by simp only [Kap]; omega
+    rw [this]
+    ring
+
+/-- WHIR's levels over the window of its parameters: the levels' counts without the grinds, the
+number of levels, and the level-0 commitment's positions' bits. One decision on the window. -/
+theorem window_key : ∀ μ < Parameters.Whir.maxLogStack + 1,
+    ∀ r < Parameters.Whir.maxLogInvRate + 1, ∀ ls ∈ Parameters.Whir.ladder μ r,
+      shapeQueries0 (Verify.levelShapes μ ls) ≤ 130023647 ∧
+        (Verify.levelShapes μ ls).length ≤ 6 ∧
+        ∀ x ∈ (Verify.levelShapes μ ls).head?, μ - x.fold + x.rate ≤ 26 := by
+  decide +kernel
+
+/-- **The wire's queries in closed form**, at admissible sizes and a valid rate. -/
+theorem wireQueries_le {prog : Program} {input : PublicInput} {s : Sizes}
+    (hs : s.Admissible prog) {ρ : ℕ} (hρ : validRate ρ) :
+    wireQueries fuel prog s input (leanIsaChain prog s hs ρ hρ).ladder ≤
+      (2 ^ 27 + 2) + qc.bus 55 192 + qc.tables 40 110 + qc.pub 2 + qc.flock maxLogRows + 1 +
+        (2 + (130023647 + 6 * (fuel + 2))) := by
+  obtain ⟨levels, hl, hsh, -, -⟩ := leanIsaChain_walk hs hρ
+  have hadm := admissible_of_sizes hs hρ
+  obtain ⟨hW, hlen, hd⟩ := window_key _ (Nat.lt_succ_of_le hadm.2.1) ρ
+    (Nat.lt_succ_of_le hadm.2.2.2) levels hl
+  rw [hsh] at hW hlen hd
+  have hm : s.logMem ≤ maxLogMem := hs.2.1
+  have hτ : ∀ j, s.τ j ≤ maxLogRows := hs.2.2.1
+  -- the level-0 commitment
+  obtain ⟨x, rest, hL, hf, hr⟩ := shapes_head (leanIsaChain prog s hs ρ hρ).ladder
+  have hd0 := hd x (by rw [hL]; rfl)
+  have hh := leanIsaChain_height Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ
+  have hroot : (proverCounts fuel ((leanIsaChain prog s hs ρ hρ).κ +
+      (leanIsaChain prog s hs ρ hρ).sh.R)).root ≤ 2 ^ 27 + 2 := by
+    simp only [proverCounts]
+    have : (leanIsaChain prog s hs ρ hρ).κ + (leanIsaChain prog s hs ρ hρ).sh.R ≤ 26 := by
+      rw [hf, hr] at hd0
+      change _ = leanIsaμ prog s at hh
+      omega
+    have := Nat.pow_le_pow_right (n := 2) (by norm_num) (Nat.succ_le_succ this)
+    omega
+  -- the phases
+  have hbus : qc.bus (Verify.leanVm prog s).μBus (Verify.leanVm prog s).busClaims ≤
+      qc.bus 55 192 := by
+    have hμ : (Verify.leanVm prog s).μBus ≤ 55 :=
+      leanIsa_μBus_le_of Blake2sFlock.blake2sFlockSpec (prog := prog) hm hτ
+    have hc := busClaims_le (Verify.leanVm prog s)
+    rw [show (Verify.leanVm prog s).boundary.length = 6 from rfl] at hc
+    have key : ∀ m < 56, qc.layers (Verify.gkrRadices m) 0 ≤
+        qc.layers (Verify.gkrRadices 55) 0 := by decide +kernel
+    have := key _ (Nat.lt_succ_of_le hμ)
+    simp only [Verify.StepCounts.bus, VerifierQueries.queryCounts] at this ⊢
+    omega
+  have htab : qc.tables (Verify.leanVm prog s).τmax (Verify.leanVm prog s).tableColumns ≤
+      qc.tables 40 110 := by
+    have hτmax : (Verify.leanVm prog s).τmax ≤ 40 :=
+      Finset.sup_le fun j _ ↦ leanIsa_height_le_of hm hτ j.1
+    have hw : ∑ j, (Verify.leanVm prog s).width j = 110 := by
+      show ∑ j : Fin 9, LeanIsa.width j = 110
+      decide +kernel
+    have hc : (Verify.leanVm prog s).tableColumns ≤ 110 :=
+      (sum_sumcheckTables_le (Verify.leanVm prog s) (Verify.leanVm prog s).width).trans hw.le
+    simp only [Verify.StepCounts.tables, Verify.StepCounts.rounds, Verify.StepCounts.round,
+      VerifierQueries.queryCounts]
+    omega
+  have hfl : qc.flock (s.τ 5) ≤ qc.flock maxLogRows := by
+    have := hτ 5
+    simp only [Verify.StepCounts.flock, Verify.StepCounts.rounds, Verify.StepCounts.round,
+      VerifierQueries.queryCounts]
+    omega
+  have hpub : PublicInput.sentCount (Verify.leanVm prog s)
+      ((Verify.leanVm prog s).publicLines input) = 2 := rfl
+  have hlad := ladderQueries_eq fuel (leanIsaChain prog s hs ρ hρ).ladder
+  have hmul : (leanIsaChain prog s hs ρ hρ).ladder.shapes.length * (fuel + 2) ≤
+      6 * (fuel + 2) := Nat.mul_le_mul_right _ hlen
+  unfold wireQueries
+  rw [hpub, hlad]
+  omega
+
+/-- **The honest prover's queries in closed form**, at a witness of the constraint statement whose
+sizes keep the stack within `2^maxMu`, at a valid rate: at most `264246250 + 6 · fuel`. -/
+theorem isTotalQueryBound_proveWith_closed {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} (hsat : SatisfiedBy prog input w)
+    (hws : Sizes.ofWitness w = some s) (hμ : leanIsaμ prog s ≤ maxMu) {ρ : ℕ}
+    (hρ : validRate ρ) :
+    IsTotalQueryBound (proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ)
+      (264246250 + 6 * fuel) := by
+  have hs := (admissible_iff_of_satisfiedBy hsat hws).mpr hμ
+  refine (isTotalQueryBound_proveWith fuel hsat hws hs hρ).mono ?_
+  have := wireQueries_le fuel (input := input) hs hρ
+  have e : (2 ^ 27 + 2) + qc.bus 55 192 + qc.tables 40 110 + qc.pub 2 + qc.flock maxLogRows + 1 +
+      2 + 130023647 = 264246227 := by decide +kernel
+  omega
 
 end Ops
 

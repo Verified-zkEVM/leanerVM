@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Prove.Complete
 public import LeanerVM.Protocol.ChainGroups
 public import LeanerVM.Protocol.ToVCVio.ProofOfWork
 public import LeanerVM.Protocol.ToVCVio.LogReplay
+public import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
 # The honest prover's grinds in the random-oracle model
@@ -34,7 +35,8 @@ The proof needs nothing about where the grinds sit in the run:
 3. `PowSearch.prEvent_exhausted_le` bounds the probability of an exhausted search.
 
 The candidate nonces are `nonceOf n` for `n < fuel`; `nonceOf` repeats from `2^64` on, so only
-`min fuel (2^64)` of them are distinct.
+`min fuel (2^64)` of them are distinct. At the executable's default fuel, `2^24`, a search fails
+with probability `(1 - 2^-17)^(2^24) ≤ e^-128 ≤ 2^-184` (`one_sub_pow_fuel_le`).
 -/
 
 namespace LeanerVM.Protocol
@@ -203,6 +205,42 @@ theorem prEvent_proveWith_eq_none_le (fuel : ℕ) (F : FlockSpec) {prog : Progra
     (prEvent_not_lowBitsZero (by decide)) (by simp) hN).trans_eq ?_
   rw [card_digest, Nat.cast_pow, Nat.cast_ofNat]
   rfl
+
+/-! ## At the default fuel -/
+
+private theorem pow_le_exp :
+    ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-128) := by
+  have h1 : (1 : ℝ) - (2 ^ 17 : ℝ)⁻¹ ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) := by
+    have := Real.add_one_le_exp (-(2 ^ 17 : ℝ)⁻¹)
+    linarith
+  calc ((1 : ℝ) - (2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) ≤ Real.exp (-(2 ^ 17 : ℝ)⁻¹) ^ (2 ^ 24 : ℕ) :=
+        pow_le_pow_left₀ (by norm_num) h1 _
+    _ = Real.exp (-128) := by
+        rw [← Real.exp_nat_mul]
+        norm_num
+
+private theorem exp_le : Real.exp (-128) ≤ (2 ^ 184 : ℝ)⁻¹ := by
+  rw [Real.exp_neg, inv_le_inv₀ (Real.exp_pos _) (by positivity)]
+  have h := Real.log_two_lt_d9
+  have : (2 : ℝ) ^ 184 = Real.exp (((184 : ℕ) : ℝ) * Real.log 2) := by
+    rw [Real.exp_nat_mul, Real.exp_log (by norm_num)]
+  rw [this]
+  exact Real.exp_le_exp.mpr (by push_cast; linarith)
+
+/-- **A grind of 17 bits with `2^24` candidates** fails at a random function with probability
+`(1 - 2^-17)^(2^24) ≤ e^-128 ≤ 2^-184`. -/
+theorem one_sub_pow_fuel_le :
+    (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min (2 ^ 24) (2 ^ 64) ≤ (2 ^ 184 : ℝ≥0∞)⁻¹ := by
+  rw [min_eq_left (by norm_num)]
+  have e : (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) = ENNReal.ofReal (1 - (2 ^ 17 : ℝ)⁻¹) := by
+    rw [ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one,
+      ENNReal.ofReal_inv_of_pos (by positivity)]
+    norm_num [queryGrindingBits]
+  have e2 : (2 ^ 184 : ℝ≥0∞)⁻¹ = ENNReal.ofReal ((2 ^ 184 : ℝ)⁻¹) := by
+    rw [ENNReal.ofReal_inv_of_pos (by positivity)]
+    norm_num
+  rw [e, e2, ← ENNReal.ofReal_pow (by norm_num)]
+  exact ENNReal.ofReal_le_ofReal (pow_le_exp.trans exp_le)
 
 end Prove
 
