@@ -357,11 +357,12 @@ structure AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog κ)) (
 
 /-! ## The trace interface -/
 
-/-- A computable execution of every satisfying witness: `traceOf` returns, on every witness of
-the constraint statement at any memory log-size, a trace the witness represents and that is a
-valid execution of the program on the input. The interface the proof system's execution-level
-headline takes; it is inhabited, for a program whose sentinel slot is not a `JUMP`, by
-`leanIsaTraceExtraction` (`LeanerVM.Arithmetization.Soundness`). -/
+/-- A trace reader for every satisfying witness: `traceOf` returns, on every witness of the
+constraint statement at any memory log-size, a trace the witness represents and that is a valid
+execution of the program on the input. The interface the proof system's execution-level headline
+takes. The type does not make `traceOf` computable; its inhabitant for a program whose sentinel
+slot is not a `JUMP`, `leanIsaTraceExtraction` (`LeanerVM.Arithmetization.Soundness`), is a
+compiled definition, which the headline's extractor runs. -/
 structure TraceExtraction (prog : Program) where
   /-- The trace of a witness, if one is found. -/
   traceOf : PublicInput → (κ : ℕ) → EnsembleWitness (leanIsaEnsemble prog κ) → Option (Trace prog)

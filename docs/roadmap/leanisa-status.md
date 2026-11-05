@@ -149,7 +149,9 @@ BLAKE2s validity Flock proves (`Blake2sRowsValid`, with `assumptions_of_blake2sR
 turning it into Clean's `w.Assumptions`), the statement `SatisfiedBy prog input w` (a
 structure of named conjuncts, the public words through `MemImage.read`) and the trace a witness represents
 (`RowSteps`, `AssignmentRepresents`), and proves `memRowAt_toElements` and
-`assignmentRepresents_image`; Layer 9's two state statements are block comments at its end, and its two lookup theorems are proved in `Arithmetization/Bus.lean`.
+`assignmentRepresents_image`; Layer 9's lookup theorems are proved in `Arithmetization/Bus.lean`
+and its state statements in `Steps.lean` and `Soundness.lean`, which replace the block comments
+the module once carried at its end.
 `./scripts/validate.sh` is green, the axiom closure of every
 declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in
 CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
@@ -180,8 +182,9 @@ module (P3).
 - **Layer 8 is built** and fully proved on this branch (2026-09-17). Its reading list is
   `LeanerVM/Arithmetization/Statement.lean`, `tests/LeanerVMTests/Arithmetization/Statement.lean`,
   and the roadmap's Layer 8 section, which shows the built shapes. Every Layer 8 target of the
-  roadmap is present and proved, and Layer 9's four statements are block comments at the end of
-  the module. The roadmap's sketch was adjusted in seven places, each written into the roadmap:
+  roadmap is present and proved; the Layer 9 block comments the module once carried at its end
+  are now the theorems of `Bus.lean`, `Steps.lean` and `Soundness.lean`. The roadmap's sketch
+  was adjusted in seven places, each written into the roadmap:
   - `SatisfiedBy` and `Caps` are structures with named fields, as the tables' `*Refines` are
     (decision 11), so that Layers 9 and 10 project the conjunct they consume by name; and
     `AssignmentRepresents` is one too, its image as two fields (`κ_eq`, `image_eq`) with
@@ -357,7 +360,8 @@ module (P3).
   `addVm_soundVmChannel_of_soundChannels` is not consumed. (On this branch it has: balance is
   Clean's `Balance.multiset`, read through `SatisfiedBy.perm`, the block conjuncts are the
   components' fixed columns, and the test with cell `29`'s word seeded at `g^2` is a memory block
-  whose rows fail `FixedRowsMatch`, so no witness has them.) Built in two stacked branches:
+  whose rows fail `FixedRowsMatch`, so no witness has them.) Built in four stacked branches,
+  folded into PR #166:
   - `feat/leanisa-row-messages`: `LeanerVM/Arithmetization/Rows.lean`, what one row of each
     component sends on each of the six channels, as functions of its typed row, on arbitrary
     raw rows: an `OpcodeSends` for the six opcode tables (the state pull and push, the bytecode
@@ -391,7 +395,8 @@ module (P3).
     under `SentinelSafe prog`, with `leanIsaTraceExtraction` inhabiting `TraceExtraction prog`
     (declared in `Statement.lean`). Layer 9 is complete; Layer 10's soundness half is built.
     `traceOf` is a hash map from each opcode row's pulled state to its pushed state, walked
-    from `(1, 1)` to the final registers with the number of opcode rows as fuel; no discrete
+    from `(1, 1)` to the final registers with the number of opcode rows as fuel, as a loop
+    that counts in an accumulator, so a long run does not grow the stack; no discrete
     logarithm. `SentinelSafe` is load-bearing: a satisfying witness of the fixture's program
     with a `JUMP` in its sentinel slot represents no valid execution
     (`tests/LeanerVMTests/Arithmetization/Sentinel.lean`).
