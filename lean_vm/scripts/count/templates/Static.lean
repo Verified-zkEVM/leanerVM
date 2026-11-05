@@ -25,8 +25,9 @@ From the certificates counting each opcode's instructions (`Memory/GuestCnt*`): 
 `g^a` to `g^e`
 (`e - a` iterations, `LoopWeightLe`), and affine in `n` for `aggregate_claims` on `g^n`
 (`kcAgg_le`). From the certificates counting words (`Memory/GuestWords`), at `B2C.fs`: the
-constants' `TotalLe` and the loops' words per iteration (`LoopTotalLe`, and `TotalLeOn` from a
-start below the end, `LoopTotalLe.totalLeOn`).
+constants' `TotalLe` and the loops' runs, words per iteration and the run's one phantom frame
+(`LoopRunLe`, `LoopRunLe.totalLeOn` from a start below the end), or that phantom charged to each
+iteration (`LoopTotalLe`, `LoopTotalLe.totalLeOn`).
 
 `claim_list_digest`, `child_claim_list_digest`, `da_verify`, `verify_sub` and `__loop4` have no
 static bound (their loops end at hinted values), nor `aggregate_claims` a words certificate (its
@@ -51,6 +52,32 @@ def LoopTotalLe (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
     args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K
+
+/-- **A loop helper's run from `g^a` to `g^e` allocates at most `K` words per iteration and its
+phantom frame**, the last iteration's untaken tail call, on every valid tree. -/
+def LoopRunLe (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
+  ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
+    args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K + fs f
+
+/-- A run's phantom charged to each iteration: at most `K + fs f` words per iteration. -/
+theorem LoopRunLe.loopTotalLe {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopRunLe fs f K) :
+    LoopTotalLe fs f (K + fs f) := by
+  intro rd t args rets a e hn hv hb ha he hae heo
+  have := h rd t args rets a e hn hv hb ha he hae heo
+  have h1 : fs f ≤ (e - a) * fs f := Nat.le_mul_of_pos_left _ (by omega)
+  rw [Nat.mul_add]
+  omega
+
+/-- A run's words from a start below its end: at most `K` per unit of the end's exponent, and the
+phantom frame. -/
+theorem LoopRunLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopRunLe fs f K) :
+    TotalLeOn coreProgram fs f LoopPre fun a => logG (a.getD 1 0) * K + fs f := by
+  intro rd t args rets hn ⟨a, e, ha, he, hae, heo⟩ hv hb
+  have := h rd t args rets a e hn hv hb ha he hae heo
+  dsimp only
+  rw [he, logG_spec heo]
+  exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ (Nat.sub_le _ _)) _)
 
 /-- A loop's words from a start below its end: at most `K` per unit of the end's exponent. -/
 theorem LoopTotalLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopTotalLe fs f K) :
@@ -101,9 +128,14 @@ theorem kc_loopWeightLe_of {op : Opcode} {f : String} {K : ℕ} {ks : List (V ×
   simpa [Aff.eval] using this
 
 /-- A loop helper ending at its argument `1`, with a constant certificate per iteration counting
-words. -/
-theorem kw_loopTotalLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
-    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopTotalLe B2C.fs f K := by
+words: its run within `K` words per iteration and its phantom frame. -/
+theorem kw_loopRunLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
+    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopRunLe B2C.fs f K := by
   intro rd t args rets a e hn hv hb ha he hae heo
   have := fs_total_le_of_loop hcf hn hv hb ha he hae heo (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
+
+/-- The same, its run's phantom charged to each iteration: `K + B2C.fs f` words per iteration. -/
+theorem kw_loopTotalLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
+    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopTotalLe B2C.fs f (K + B2C.fs f) :=
+  (kw_loopRunLe_of hcf).loopTotalLe

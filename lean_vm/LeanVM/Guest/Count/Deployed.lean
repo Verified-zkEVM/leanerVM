@@ -20,7 +20,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 /-- **The deployed budget's words**, `Bvf μ r` for `verify_sub` on a child of announced stack log
 `μ` and rate `r`. -/
-def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨36514, 65, 77, 12318, 17561, 187595, 227257, 136, 25793, 51, Bvf⟩
+def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨36514, 65, 41, 6159, 17531, 187595, 227257, 136, 25793, 51, Bvf⟩
 
 /-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
 stack log `μ` and rate `r` at its candidate `B1.Whir.candidate μ r` (`Budget.vsCnt`). -/
@@ -42,7 +42,7 @@ set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
 theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
     (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, deployedWords]
+  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, B1.Main.iterK, deployedWords]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
 

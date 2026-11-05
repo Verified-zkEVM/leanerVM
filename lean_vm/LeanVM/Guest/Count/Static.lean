@@ -25,8 +25,9 @@ From the certificates counting each opcode's instructions (`Memory/GuestCnt*`): 
 `g^a` to `g^e`
 (`e - a` iterations, `LoopWeightLe`), and affine in `n` for `aggregate_claims` on `g^n`
 (`kcAgg_le`). From the certificates counting words (`Memory/GuestWords`), at `B2C.fs`: the
-constants' `TotalLe` and the loops' words per iteration (`LoopTotalLe`, and `TotalLeOn` from a
-start below the end, `LoopTotalLe.totalLeOn`).
+constants' `TotalLe` and the loops' runs, words per iteration and the run's one phantom frame
+(`LoopRunLe`, `LoopRunLe.totalLeOn` from a start below the end), or that phantom charged to each
+iteration (`LoopTotalLe`, `LoopTotalLe.totalLeOn`).
 
 `claim_list_digest`, `child_claim_list_digest`, `da_verify`, `verify_sub` and `__loop4` have no
 static bound (their loops end at hinted values), nor `aggregate_claims` a words certificate (its
@@ -51,6 +52,32 @@ def LoopTotalLe (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
     args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K
+
+/-- **A loop helper's run from `g^a` to `g^e` allocates at most `K` words per iteration and its
+phantom frame**, the last iteration's untaken tail call, on every valid tree. -/
+def LoopRunLe (fs : String → ℕ) (f : String) (K : ℕ) : Prop :=
+  ∀ (rd : Reader) (t : Tree) (args rets : List E) (a e : ℕ), t.name = f →
+    t.Valid coreProgram rd args rets → t.BufsOk coreProgram → args.getD 0 0 = ofK (addressOfIndex a) →
+    args.getD 1 0 = ofK (addressOfIndex e) → a < e → e < 2 ^ 64 - 1 → t.total fs ≤ (e - a) * K + fs f
+
+/-- A run's phantom charged to each iteration: at most `K + fs f` words per iteration. -/
+theorem LoopRunLe.loopTotalLe {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopRunLe fs f K) :
+    LoopTotalLe fs f (K + fs f) := by
+  intro rd t args rets a e hn hv hb ha he hae heo
+  have := h rd t args rets a e hn hv hb ha he hae heo
+  have h1 : fs f ≤ (e - a) * fs f := Nat.le_mul_of_pos_left _ (by omega)
+  rw [Nat.mul_add]
+  omega
+
+/-- A run's words from a start below its end: at most `K` per unit of the end's exponent, and the
+phantom frame. -/
+theorem LoopRunLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopRunLe fs f K) :
+    TotalLeOn coreProgram fs f LoopPre fun a => logG (a.getD 1 0) * K + fs f := by
+  intro rd t args rets hn ⟨a, e, ha, he, hae, heo⟩ hv hb
+  have := h rd t args rets a e hn hv hb ha he hae heo
+  dsimp only
+  rw [he, logG_spec heo]
+  exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ (Nat.sub_le _ _)) _)
 
 /-- A loop's words from a start below its end: at most `K` per unit of the end's exponent. -/
 theorem LoopTotalLe.totalLeOn {fs : String → ℕ} {f : String} {K : ℕ} (h : LoopTotalLe fs f K) :
@@ -101,12 +128,17 @@ theorem kc_loopWeightLe_of {op : Opcode} {f : String} {K : ℕ} {ks : List (V ×
   simpa [Aff.eval] using this
 
 /-- A loop helper ending at its argument `1`, with a constant certificate per iteration counting
-words. -/
-theorem kw_loopTotalLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
-    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopTotalLe B2C.fs f K := by
+words: its run within `K` words per iteration and its phantom frame. -/
+theorem kw_loopRunLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
+    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopRunLe B2C.fs f K := by
   intro rd t args rets a e hn hv hb ha he hae heo
   have := fs_total_le_of_loop hcf hn hv hb ha he hae heo (fun _ h => (List.not_mem_nil h).elim)
   simpa [Aff.eval] using this
+
+/-- The same, its run's phantom charged to each iteration: `K + B2C.fs f` words per iteration. -/
+theorem kw_loopTotalLe_of {f : String} {K : ℕ} {ks : List (V × ℕ)}
+    (hcf : wcertOf f = .loop none [] ⟨K, []⟩ ks) : LoopTotalLe B2C.fs f (K + B2C.fs f) :=
+  (kw_loopRunLe_of hcf).loopTotalLe
 
 /-- `exponent_tables`'s instructions. -/
 def kcExp : Opcode → ℕ
@@ -316,33 +348,21 @@ theorem kwExp_totalLe : TotalLe coreProgram B2C.fs "exponent_tables" fun _ => 41
 theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 389 :=
   fs_totalLe (by rw [wcertOf_of_idx (j := 21) (by decide +kernel)]; rfl : wcertOf "statement_digest" = .stat [] ⟨389, []⟩ [])
 
-/-- **`__loop0`**: at most 36 words per iteration. -/
-theorem kwL1_loopTotalLe : LoopTotalLe B2C.fs "__loop0" 36 := by
-  intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
-    (fun _ h => (List.not_mem_nil h).elim)
-  simpa [Aff.eval] using this
+/-- **`__loop0`**: at most 18 words per iteration and its run's phantom frame. -/
+theorem kwL1_loopRunLe : LoopRunLe B2C.fs "__loop0" 18 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨18, []⟩ [])
 
-/-- **`__loop1`**: at most 36 words per iteration. -/
-theorem kwL2_loopTotalLe : LoopTotalLe B2C.fs "__loop1" 36 := by
-  intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨36, []⟩ []) hn hv hb ha he hae heo
-    (fun _ h => (List.not_mem_nil h).elim)
-  simpa [Aff.eval] using this
+/-- **`__loop1`**: at most 18 words per iteration and its run's phantom frame. -/
+theorem kwL2_loopRunLe : LoopRunLe B2C.fs "__loop1" 18 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨18, []⟩ [])
 
-/-- **`__loop2`**: at most 12318 words per iteration. -/
-theorem kwL3_loopTotalLe : LoopTotalLe B2C.fs "__loop2" 12318 := by
-  intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨12318, []⟩ []) hn hv hb ha he hae heo
-    (fun _ h => (List.not_mem_nil h).elim)
-  simpa [Aff.eval] using this
+/-- **`__loop2`**: at most 6159 words per iteration and its run's phantom frame. -/
+theorem kwL3_loopRunLe : LoopRunLe B2C.fs "__loop2" 6159 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨6159, []⟩ [])
 
-/-- **`__loop3`**: at most 17561 words per iteration. -/
-theorem kwL4_loopTotalLe : LoopTotalLe B2C.fs "__loop3" 17561 := by
-  intro rd t args rets a e hn hv hb ha he hae heo
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨17561, []⟩ []) hn hv hb ha he hae heo
-    (fun _ h => (List.not_mem_nil h).elim)
-  simpa [Aff.eval] using this
+/-- **`__loop3`**: at most 17531 words per iteration and its run's phantom frame. -/
+theorem kwL4_loopRunLe : LoopRunLe B2C.fs "__loop3" 17531 :=
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨17531, []⟩ [])
 
 end
 end LeanVM.Guest.Count

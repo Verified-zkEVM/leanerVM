@@ -80,6 +80,10 @@ def siteB(cx, rho, g, args):
         _, pre, b, ks = c
         return transB(cx, rho, args, pre, b)
     _, endc, pre, b, ks = c
+    # `iterB`: counting words, each iteration charged the run's phantom frame too
+    if cx.alpha:
+        if g not in cx.om: return None
+        b = (b[0] + cx.om[g], b[1])
     if not args: return None
     v0 = cx.cls(rho, args[0])
     if v0[0] != 'pow': return None
@@ -325,7 +329,7 @@ def gen(fns, omega, alpha=False, hand=None, only=None):
                 if pre is None: continue
                 r = blockB(cx, ([], []), pre)
                 if r is None: continue
-                b = (omega[name] + (omega[name] if alpha else 0) + r[0], r[1]); pr = dedup(r[2])
+                b = (omega[name] + r[0], r[1]); pr = dedup(r[2])
                 if all(k != 0 for k, _ in b[1]) and all(k != 0 for k, _ in pr):
                     c = ('loop', endc, pr, b, ks)
                 break
