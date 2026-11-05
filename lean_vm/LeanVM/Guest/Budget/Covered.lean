@@ -85,32 +85,32 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
     omega
   · intro op
     cases op
-    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 103793)
+    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 95265)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 195843)
+    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 175466)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 56291)
+    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 47763)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 112137)
+    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 100593)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 39337)
+    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 35073)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .keccak).childShape (M := 10069)
+    · have hb := shapes_sum_le (Count.deployedInstrs .keccak).childShape (M := 9517)
         (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
