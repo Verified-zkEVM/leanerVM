@@ -14,9 +14,9 @@ public import LeanVM.Guest.Count.Words
 # `keccak_layer` within its words at `B2C.fs`
 
 At the deployed frame sizes the words certificates (`Count.Words`) give the callees' words: the
-eight-round pack loops `__loop37`, `__loop39` (core `425`, `428`, frame `473`) at most `946` words
+eight-round pack loops `__loop37`, `__loop39` (core `425`, `427`, frame `473`) at most `946` words
 per iteration (its frame and its last, skipped call's), the remainder loops `__loop38`, `__loop40`
-(core `426`, `429`, frame `92`) at most `184`. So `keccak_layer__L{first}` (core `264` for
+(core `426`, `428`, frame `92`) at most `184`. So `keccak_layer__L{first}` (core `264` for
 `first = 0`, frame `2624`; core `263` for `first = 1`, frame `2245`) is complete within
 `layerWords B2C.fs first y 946 184`
 `= fs (layerName first) + (y + 171) + (473 + ⌊y/8⌋ * 946) + (92 + (y % 8) * 184)`
@@ -47,26 +47,26 @@ theorem packLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 946 := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := 428) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 426) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 427) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 425) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **The remainder loops' words at `B2C.fs`**: at most `184` per iteration. -/
 theorem remLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (remLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 184 := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := 429) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 427) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 428) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 426) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- The pack loops' frame at `B2C.fs`: `473`. -/
 theorem packLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (packLoopName first) = 473 := by
   interval_cases first
   · rw [show packLoopName 0 = "__loop39" from rfl,
-      fs_idx (j := 428) (f := "__loop39") (by decide +kernel)]
+      fs_idx (j := 427) (f := "__loop39") (by decide +kernel)]
     decide +kernel
   · rw [show packLoopName 1 = "__loop37" from rfl,
-      fs_idx (j := 426) (f := "__loop37") (by decide +kernel)]
+      fs_idx (j := 425) (f := "__loop37") (by decide +kernel)]
     decide +kernel
 
 /-- The remainder loops' frame at `B2C.fs`: `92`. -/
@@ -74,10 +74,10 @@ theorem remLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (remLoopName first) = 92 := by
   interval_cases first
   · rw [show remLoopName 0 = "__loop40" from rfl,
-      fs_idx (j := 429) (f := "__loop40") (by decide +kernel)]
+      fs_idx (j := 428) (f := "__loop40") (by decide +kernel)]
     decide +kernel
   · rw [show remLoopName 1 = "__loop38" from rfl,
-      fs_idx (j := 427) (f := "__loop38") (by decide +kernel)]
+      fs_idx (j := 426) (f := "__loop38") (by decide +kernel)]
     decide +kernel
 
 /-- The layers' frames at `B2C.fs`: `2624` (`keccak_layer__L0`), `2245` (`keccak_layer__L1`). -/
@@ -85,10 +85,10 @@ theorem layerName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (layerName first) ≤ 2624 := by
   interval_cases first
   · rw [show layerName 0 = "keccak_layer__L0" from rfl,
-      fs_idx (j := 265) (f := "keccak_layer__L0") (by decide +kernel)]
+      fs_idx (j := 264) (f := "keccak_layer__L0") (by decide +kernel)]
     decide +kernel
   · rw [show layerName 1 = "keccak_layer__L1" from rfl,
-      fs_idx (j := 264) (f := "keccak_layer__L1") (by decide +kernel)]
+      fs_idx (j := 263) (f := "keccak_layer__L1") (by decide +kernel)]
     decide +kernel
 
 /-- **A layer's words at `B2C.fs`**, its frame at most `2624`. -/
