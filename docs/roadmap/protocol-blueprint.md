@@ -50,13 +50,15 @@ baseVerifier_extractsExecution_adaptive (hB : BlakeMisbehavesAdaptive A δ) :
 -- ≤ (Q + 13700)/2^128 + hashTerm 13700 Q; at a statement fixed before A runs these are
 -- baseVerifier_extractsExecution and baseVerifier_extractsExecution_rom; each is proved from its
 -- constraint form (baseVerifier_extractsWitness…), whose event has SatisfiedBy for ValidExecution
-prove_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+proveExecution_complete (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
     (hfit : t.Fits) :
-  some padding t' of t (same steps) is a valid execution and has a witness w of SatisfiedBy that
-  represents it, and for every fuel and rate every proof prove returns on w is accepted by verify;
-  prove returns none only if the stack exceeds 2^maxMu, the rate is invalid, or a grind runs out
-  of fuel at a chain state the prover's run reaches (ProveReaches); t.Fits does not keep the
-  stack within 2^maxMu (from t.κ ≥ 26 on it is not)
+  proveExecution fuel prog input t ρ := (witnessGen prog input t).bind (prove fuel prog input · ρ);
+  witnessGen returns a witness w of SatisfiedBy representing the padded trace
+  padTrace t (fillStarts prog) (same steps, a valid execution), and for every fuel and rate every
+  proof proveExecution returns is accepted by verify; it returns none only if the stack exceeds
+  2^maxMu, the rate is invalid, or a grind runs out of fuel at a chain state the prover's run
+  reaches (ProveReaches); t.Fits does not keep the stack within 2^maxMu (from t.κ ≥ 26 on it is
+  not)
 ```
 
 Every step to it is a theorem: Flock's security (with the Flock roadmap's inhabitant, #3), WHIR's
@@ -673,7 +675,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Digest`, **`card_digest`**, `hashSpec`, `hashQuery`, `runBlake2s`, `runRandom`, `FsState`, `Block`, `FsState.checkPow`, **`FsState.challengeOf`**, `chainHistory`, **`chainHistory_determined`**, `Proof`, `Proof.sizes?`, `RoundPoly.decode`, `decodePrefix`, **`decodePrefix_mono`**, `decode`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verifyWith_simulateQ`**, `verifierQueries`, `proofDigests`, **`verifierQueries_bound`**, **`length_rootsOf_le`**, **`compiled_of_algebra`**, **`phasesAgree`** (with `accepts_of_replay` and `solved_of_decode`, the two directions between `verify` and the compiled verifier; no biconditional is stated, and the headline needs none), `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
 | the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `Adversary`, `Run`, `loggedGame`, `extract`, `Extracts`, `LogHasCollision`, `HitFrom`, `Bad`, **`bad_density`**, `FsState.seedWith`, `SeedLogged`, `stmtOf`, `programHashSlot`, `StartsSafe`, `Flip`, `FlipFor`, `HashMisbehavesFrom`, **`core`**, `hashTerm`, `niError`, **`misbehaves_rom_of`**, **`misbehaves_rom`**, `misbehaves_rom_coins`, **`niError_le`**, **`verify_knowledgeSound_rom`** | the compiled verifier; list-binding compilation; Merkle binding by log replay; the charged invariant in its logged form |
 | the honest prover and the test vectors | [Layer 13](#the-executable-prover-and-the-test-vectors) | `proveWith`, **`prove`**, `honestAdversary`, **`baseProver_complete`**, the executable `leanervm-vectors` and its vectors | the compiled verifier; the adaptor; for the vectors, leanISA's `checkSatisfiedBy` |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, **`baseVerifier_extractsWitness_rom_adaptive`**, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `prove_eq_none`, **`prove_complete_of_execution`**, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution_coins`**, **`baseVerifier_extractsExecution_adaptive_coins`** | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's constraint completeness at the trace level |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | `AdaptiveAdversary`, `adaptiveGame`, **`BlakeMisbehavesAdaptive`**, **`misbehaves_rom_adaptive`**, **`baseVerifier_extractsWitness_rom_adaptive`**, **`baseVerifier_extractsWitness_adaptive`**, **`baseVerifier_extractsWitness_adaptive_coins`**, **`baseVerifier_extractsExecution_adaptive`**, **`blakeMisbehavesAdaptive_of_comparison`**, **`blakeMisbehavesAdaptive_const`**, **`BlakeMisbehaves`**, `extractTrace`, `extractExecution`, **`baseVerifier_extractsWitness_rom`**, **`baseVerifier_extractsWitness`**, **`baseVerifier_extractsWitness_coins`**, **`baseVerifier_extractsExecution`**, `Blake2sActsAsRandomOracle`, **`blakeMisbehaves_of_comparison`**, **`prove_complete`**, `prove_eq_none`, `proveExecution`, **`proveExecution_complete`**, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution_coins`**, **`baseVerifier_extractsExecution_adaptive_coins`** | the random-oracle theorems; the adaptor; the honest prover; leanISA's `TraceExtraction` (declared beside `SatisfiedBy`) and its inhabitant `leanIsaTraceExtraction`; for completeness from an execution, leanISA's witness generator (`witnessGen`, `witnessGen_correct`) |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -2047,16 +2049,22 @@ theorem prove_ne_none (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = s
     (hg : ∀ fs, ProveReaches fuel prog input w ρ fs →
       Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) :
     prove fuel prog input w ρ ≠ none
--- The headline's completeness: from an execution, through leanISA's constraintCompleteness
-theorem prove_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+-- The prover from an execution: the witness generator, then prove (ProveExecution.lean)
+def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    Option (Proof PrunedMerklePaths) :=
+  (witnessGen prog input t).bind fun w ↦ prove fuel prog input w ρ
+-- The headline's completeness: from an execution, through witnessGen_correct
+theorem proveExecution_complete (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
     (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w : EnsembleWitness (leanIsaEnsemble prog t'.κ), SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        ∃ s, Sizes.ofWitness w = some s ∧
-        ∀ fuel ρ, (∀ proof, prove fuel prog input w ρ = some proof → verify prog input proof = true) ∧
-          (prove fuel prog input w ρ = none → …as prove_eq_none at s…) ∧
-          (leanIsaμ prog s ≤ maxMu → validRate ρ → …no grind out of fuel on the run… →
-            prove fuel prog input w ρ ≠ none)
+    (padTrace t (fillStarts prog)).PaddedFrom t ∧
+    ValidExecution prog input (padTrace t (fillStarts prog)) ∧
+    ∃ w, witnessGen prog input t = some w ∧ SatisfiedBy prog input w ∧
+      AssignmentRepresents w (padTrace t (fillStarts prog)) ∧ ∃ s, Sizes.ofWitness w = some s ∧
+      ∀ fuel ρ,
+        (∀ proof, proveExecution fuel prog input t ρ = some proof → verify prog input proof = true) ∧
+        (proveExecution fuel prog input t ρ = none → …as prove_eq_none at s…) ∧
+        (leanIsaμ prog s ≤ maxMu → validRate ρ → …no grind out of fuel on the run… →
+          proveExecution fuel prog input t ρ ≠ none)
 ```
 
 The headline is `baseVerifier_extractsExecution_adaptive`, proved from its constraint form
@@ -2168,7 +2176,7 @@ over witnesses), so `δ = 0` is not claimed for it; in the random-oracle model a
 satisfying witness is not claimed either: rows of 384 or 512 bytes hash to 32, so colliding rows
 exist, and nothing excludes a satisfying witness that commits two of them.
 
-Completeness is stated from an execution (`prove_complete_of_execution`) and proved from the
+Completeness is stated from an execution (`proveExecution_complete`) and proved from the
 constraint form, which starts from a satisfying witness (decision 28). `baseProver_complete` holds
 for every function answering the hash, so at BLAKE2s with no hypothesis. It composes
 `m3Holds_stackOf`, the compiled protocol's completeness
@@ -2178,14 +2186,14 @@ for every function answering the hash, so at BLAKE2s with no hypothesis. It comp
 transcript's wire but for the roots, the grinding nonces and the positions' reduction, which the
 algebra does not read: the oracle prover sends `0` where the wire carries the grind's nonce), the
 executable algebra's agreement with the oracle verifiers on the honest transcript, Merkle
-completeness and the determinism of the chain. From an execution, `prove_complete_of_execution`
-adds leanISA's `constraintCompleteness`, under `WellFormedBytecode` (the fill blocks) and `hfit`,
-the resource condition [architecture.md](../architecture.md) asks for: a valid execution may need
-`κ_mem = 32`, which leaves no room for the fill frames, or more rows than a table's cap. The
-witness represents the padding `t'` of the execution (the fill frames above the image, the same
-steps), not the execution itself, and it exists without being computed: leanISA's padded witness
-reads the image through `MemImage.read`, whose index is a classical discrete logarithm, and takes
-the fill blocks' slots from the proposition `HasFillBlocks`.
+completeness and the determinism of the chain. From an execution, the prover is one computable
+term, `proveExecution`: leanISA's witness generator `witnessGen`, then `prove`.
+`proveExecution_complete` adds the generator's correctness (`witnessGen_correct`), under
+`WellFormedBytecode` (the fill blocks) and `hfit`, the resource condition
+[architecture.md](../architecture.md) asks for: a valid execution may need `κ_mem = 32`, which
+leaves no room for the fill frames, or more rows than a table's cap. The witness represents the
+padded trace `padTrace t (fillStarts prog)` (the fill frames above the image at the fill-block
+starts the generator searches in the bytecode, the same steps), not the execution itself.
 
 Perfect completeness does not survive the transform unconditionally. The honest prover's grinding
 is a search, so `prove` takes fuel. That the search succeeds within its fuel holds for a random
@@ -2215,12 +2223,12 @@ Tests:
 
 #### The executable prover and the test vectors
 
-`verify` and `prove` run as a native executable, the `lean_exe` target `leanervm-vectors`, whose
-root is under `tests/` because it carries the witness generator. The generator builds an
-`EnsembleWitness` for a small program and input. It is test-only and untrusted: no theorem is
-claimed of it (T2 stays out of scope), and a witness it builds is used only once leanISA's
-decidable `checkSatisfiedBy` accepts it (`checkSatisfiedBy_eq_true_iff`); one that fails is a bug
-of the generator. The executable writes test vectors (the program, the public input and the
+`verify` and `prove` run as a native executable, the `lean_exe` target `leanervm-vectors`. The
+witness generator is production code with its theorem (`witnessGen_correct`, T2), and
+`proveExecution` is the prover from an execution; the executable runs it on a trace of the
+completeness tests and checks that `verify` accepts the proof. The test vectors prove a hand-built witness of the constraint
+statement tests, which leanISA's decidable `checkSatisfiedBy` accepts
+(`checkSatisfiedBy_eq_true_iff`). The executable writes test vectors (the program, the public input and the
 proof, in the encoding Layer 12's fixture reads) and checks them: `verify` accepts each and
 rejects its mutations. The kernel-evaluated fixtures stay on toy instances; the end-to-end run of
 the honest prover is native (decision 5).
@@ -2545,7 +2553,7 @@ Base theorems:        TraceExtraction  checkSatisfiedBy  checkSatisfiedBy_eq_tru
                       baseVerifier_extractsExecution  baseVerifier_extractsExecution_rom
                       baseVerifier_extractsExecution_coins  baseVerifier_extractsExecution_adaptive_coins
                       Blake2sActsAsRandomOracle  blakeMisbehaves_of_comparison  proveWith  prove  honestAdversary
-                      baseProver_complete  prove_complete  prove_eq_none  prove_complete_of_execution
+                      baseProver_complete  prove_complete  prove_eq_none  proveExecution  proveExecution_complete
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
                       queryGrindingBits  the Flock constants (Parameters/Flock.lean)
 ```

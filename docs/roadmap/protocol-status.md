@@ -1179,7 +1179,8 @@ below proves.
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
   constraint statement tests' witness at the smallest admissible sizes in 181 s, writes the proof
   in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
-  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof; `leanervm-prove execution`
+  proves a trace through `proveExecution` and checks that `verify` accepts. The blueprint names the
   executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
   beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
   not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
@@ -1355,7 +1356,7 @@ vector with every hash logged (487250 prover and 3291 verifier queries), with no
 hit (test 37, reduced: the flip clause is not decidable), and `extract` on the prover's log
 returning the witness's sizes and stack (in 22 s compiled, `M3Holds` decided by sorting the bus's
 tuples); `verify` as `verifyWith` at BLAKE2s and `verifyWith_simulateQ` (test 38). Owed:
-`extract_honest` (completeness from an execution is now `prove_complete_of_execution`, below), that
+`extract_honest` (completeness from an execution is now `proveExecution_complete`, below), that
 `extract` on a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test
 24 needs at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three
 pieces: on a codeword the deployed decoder's list is the exact path's singleton
@@ -1483,15 +1484,18 @@ adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_
 `baseVerifier_extractsExecution_coins` and `baseVerifier_extractsExecution_adaptive_coins`, and
 `baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
 `baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
-Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
-and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
-constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
-accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
-grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
-proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
-`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
-witness exists and is not computed (leanISA's padded witness reads the image through the classical
-`MemImage.read`). The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
+Completeness is about one computable prover, `proveExecution` (`Protocol/ProveExecution.lean`):
+leanISA's witness generator `witnessGen`, then `prove`. `proveExecution_complete`, for
+`WellFormedBytecode` (now with the fill blocks) and a valid execution `t` that `Fits`: the
+generator returns a witness of the constraint statement representing the padded trace
+`padTrace t (fillStarts prog)` (same steps, valid), with sizes `s`; every proof `proveExecution`
+returns is accepted; it returns none only when the stack is above `2^maxMu`, the rate is invalid,
+or a grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and
+returns a proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility).
+`leanervm-prove execution` runs it on the one-step ladder trace of the completeness tests (memory
+`2^16` padded to `2^17`, stack `2^20`): the generator in 0.8 s, the whole prover in 143 s, and
+`verify` accepts the proof. The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
 stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
 check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
 proof":

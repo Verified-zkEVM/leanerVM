@@ -419,7 +419,9 @@ phases' own checks are exercised on the honest wire by the phase test modules an
 smallest admissible: memory `2^16`, a stack of `2^19` cells, `2^3` BLAKE2s blocks, three WHIR
 levels at rate `1/2`. It runs the prover's writer in `IO` with the time read at each phase's first
 squeeze, writes the proof in the dump format, reads it back, and checks it with `verify` and its
-mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`.
+mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`. `execution` runs the prover
+from an execution, `proveExecution` (the witness generator, then `prove`), on the one-step ladder
+trace of the completeness tests and checks that `verify` accepts the proof.
 
 ```sh
 lake build leanervm-prove
@@ -430,7 +432,14 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on the witness's stack
 .lake/build/bin/leanervm-prove m3 9                         # the same at memory 2^10
 .lake/build/bin/leanervm-prove sentinel                     # a proof of a statement with no execution
+.lake/build/bin/leanervm-prove execution                    # witnessGen, prove, verify on a trace
 ```
+
+`execution [rate] [fuel] [steps]` proves the trace of `steps` steps (default `1`, the valid run) of
+the ladder program on `badImage` (memory `2^16`, padded to `2^17`). Recorded on 2026-11-05, one
+thread: `witnessGen` in 0.77 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`), sizes memory
+`2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution` returns 767 scalars
+in 142.7 s; `verify` accepts in 1.45 s; 1.4 GB peak.
 
 `sentinel` runs `prove` on the sentinel tests' witness (`SentinelFixture.sentW`), whose program has
 a `JUMP` in its sentinel slot and no valid execution on the input over any memory

@@ -253,7 +253,10 @@ The public theorem ladder is:
    `Constraints.AssignmentRepresents assignment trace`. Together with an explicit success/resource
    hypothesis, every supported execution is accepted by witness generation. This strengthens
    T1-C from existence of some assignment to correctness of the implementation actually used by
-   the prover.
+   the prover. The generator is `witnessGen prog input t` (`Arithmetization/WitnessGen.lean`);
+   `witnessGen_correct` says that, for well-formed bytecode and a valid execution that fits, it
+   returns a witness that satisfies the constraint statement and represents the padded trace
+   `padTrace t (fillStarts prog)`, at fill-block starts it searches in the bytecode.
 
 3. **T3 — exact guest correctness (`aggregationProgram_correct`).** Establish both the source
    boundary and the application claim:
@@ -299,8 +302,9 @@ The public theorem ladder is:
    hypothesis in its statement, never an axiom: for the adversary at hand, the deployed hash
    raises its chance of beating the extractor by at most `δ` over a random function (per
    adversary, since the form for all adversaries is false; the protocol blueprint's Layer 13).
-   Its completeness dual composes T2 with the honest prover and records the failure and resource
-   conditions: a valid execution may need more memory than the verifier accepts, and the
+   Its completeness dual (`proveExecution_complete`) composes T2 with the honest prover, as one
+   computable prover from an execution (`proveExecution`: `witnessGen`, then `prove`), and
+   records the failure and resource conditions: a valid execution may need more memory than the verifier accepts, and the
    prover's proof-of-work search has no proved bound.
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
