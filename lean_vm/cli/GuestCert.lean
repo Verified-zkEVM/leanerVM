@@ -1987,12 +1987,13 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
           let some yv := nextSel | throw ("chain without a next match")
           let (_, o, b, succ') := chs.head!
           unless chs.length == arms.length && ends.length == arms.length &&
-              chs.all (fun (_, o', b', s') => o' == o && b' == b && s' == succ') && !succ'.isEmpty &&
-              !keyed do
+              chs.all (fun (_, o', b', s') => o' == o && b' == b && s' == succ') && !succ'.isEmpty do
             fail s!"chained match {xv.idx}: arms end apart"
             return none
           modify fun out => { out with chains := out.chains.push (nTop - 1, xv.idx, chs.map (·.1), yv.idx, b) }
           let st2 := joinSt st1 (ends.map fun e => { e.2 with chainEnd := none })
+          -- separately counted arms: the path after them counts from the jump
+          let st2 := if keyed then { st2 with cnt := st1.cnt } else st2
           entered := some (o, succ')
           p := (succ'.headD 0, 0); st := st2; moved := false
           continue
@@ -2419,7 +2420,7 @@ end GuestCert
 namespace GuestCert
 
 /-- The functions whose top-level `match`es have their arms counted separately (`Data.cplArms`). -/
-def armedFns : List String := []
+def armedFns : List String := ["__loop2"]
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
@@ -3253,15 +3254,22 @@ def partText (p : List ℕ) : String := listText (p.map toString)
 each arm. -/
 def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
   let n := (rows.zipIdx.filter (!·.1.isEmpty)).foldl (fun m (_, j) => max m (j + 1)) 0
-  let rowText (r : Array (ℕ × List (List ℕ))) : String :=
-    listText (r.toList.map fun (x, cs) => s!"({x}, {listText (cs.map partText)})")
+  -- each counted `match`'s arms a definition of its own, a list of `::`s (no `[…]` notation's
+  -- nesting)
+  let defs := String.join ((rows.take n).zipIdx.flatMap fun (r, j) =>
+    r.toList.zipIdx.map fun ((_, cs), k) =>
+      s!"/-- Function {j}'s counted `match` {k}: its arms' counts. -/\ndef cplArms{j}_{k} : List (List ℕ) :=\n  (" ++
+        " ::\n    ".intercalate (cs.map partText) ++ " :: [])\n\n")
+  let rowText (r : Array (ℕ × List (List ℕ))) (j : ℕ) : String :=
+    listText (r.toList.zipIdx.map fun ((x, _), k) => s!"({x}, cplArms{j}_{k})")
   header "Data.CplArms" "The per-arm instruction counts of the `match`es whose arms the completeness walk counts\n  separately." ++
     "public import LeanVM.Guest.Code\n\n/-!\nFunction `j`'s entry is a list of `(x, costs)`: the `match` on the renumbered value `x` has its\n" ++
     "arms counted separately, arm `k` at most `costs[k]` instructions of each opcode (in `Opcode`'s\n" ++
     "order) from its segment to the join, the callees' apart. Every other `match` counts its arms by\n" ++
-    "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
+    "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\nset_option maxRecDepth 100000\n\n@[expose] public section\n\n" ++
+    defs ++
     "/-- The per-arm counts, by function. -/\ndef cplArms : List (List (ℕ × List (List ℕ))) := " ++
-    (if n == 0 then "[]" else "[\n  " ++ ",\n  ".intercalate ((rows.take n).map rowText) ++ "]") ++
+    (if n == 0 then "[]" else "[\n  " ++ ",\n  ".intercalate ((rows.take n).zipIdx.map fun (r, j) => rowText r j) ++ "]") ++
     "\n\nend\nend LeanVM.Guest.Data\n"
 
 /-- `Data/CplParts.lean`, the decide modules `B2C/Cplw/C*.lean` and their index `B2C/Cplw.lean`. -/
@@ -3277,7 +3285,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     "counts of each opcode (in `Opcode`'s order) the walk's paths pass at most up to there, and the\n" ++
     "bit set `u` of the callee frame pointer and dispatch target cells they set up, and, for a part\n" ++
     "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
-    "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
+    "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\nset_option maxRecDepth 100000\n\n@[expose] public section\n\n" ++
     "/-- The parts of each window, by function and window. -/\ndef cplParts : List (List (List (List ℕ))) := [\n  [],\n" ++
     ",\n".intercalate rows ++ "]\n\nend\nend LeanVM.Guest.Data\n"
   -- the checks, in modules of consecutive parts

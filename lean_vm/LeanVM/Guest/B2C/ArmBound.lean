@@ -102,10 +102,11 @@ end
 end Le
 
 /-- **`__loop2`'s separately counted arms, per opcode** (leanXMSS's check, inline in it): the sum
-of its counted `match`es' largest arms; none are counted apart since b7a8d0cb (its `match`es are
-chained), so their arms are in its path's maximum. -/
-def xmssArmC (op : Opcode) : ℕ := [0, 0, 0, 0, 0, 0].getD (opIdx op) 0
+of its counted `match`es' largest arms. -/
+def xmssArmC (op : Opcode) : ℕ := [57, 84, 66, 28, 34, 380].getD (opIdx op) 0
 
+-- a kernel evaluation over `__loop2`'s whole body (329 statements, 34 counted `match`es of 256 arms)
+set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 100000 in
 theorem costMaxW_xmss (op : Opcode) :
     costMaxW (listElementOrDefault Data.cplArms 37 []) op (coreOf 37).body = xmssArmC op := by

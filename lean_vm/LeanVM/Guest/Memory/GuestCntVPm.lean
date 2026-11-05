@@ -59,7 +59,7 @@ def kcvIn (j : ℕ) : Prop := kcvST.find j = some j
 instance (j : ℕ) : Decidable (kcvIn j) := inferInstanceAs (Decidable (_ = _))
 
 /-- `B2C.xmssArmC` at function `j`, by `Opcode`'s index. -/
-def kcvArmJ (j i : ℕ) : ℕ := if j = 36 then [0, 0, 0, 0, 0, 0].getD i 0 else 0
+def kcvArmJ (j i : ℕ) : ℕ := if j = 36 then [57, 84, 66, 28, 34, 380].getD i 0 else 0
 
 theorem kcv_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
     coreProgram[j].name = "verify_lean_xmss" ↔ j = 36 := by

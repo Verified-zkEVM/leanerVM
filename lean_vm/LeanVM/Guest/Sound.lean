@@ -136,16 +136,18 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
 
 /-! ## The walks' obligations -/
 
-/-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, ostack's
-`open_stacked`, gkr's `verify_bus_gkr` and its layer loop `__loop6`; REC-GUEST-IFACE 'tool: walk
-obligations — IMPLEMENTED', 'tool: gkr obligations'): the cut obligations (`CutsKnown`) of every
-function the certificates hand something on at its cuts (`Checked.oblFns`) but `main` and
-`verify_sub`. Checker K hands on there the window bounds of the windowed Merkle walk (`knownIf`:
-the dispatch selector `L[w·g^i]` below `g^(2^width)`, from `decode_query_windows`' range checks in
-`open_stacked`), the parity of a GKR layer (`L[layer·g^12]` below `g^4`) and the tuples at the
-calls (`sems`); B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the
-certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`;
-`walkKnown_proved`). -/
+/-- **The walks' obligations** (B1's: whir's `opening_queries*` and their loops, `walk_path`'s
+specializations, ostack's `open_stacked`, gkr's `verify_bus_gkr` and its layer loop `__loop6`;
+REC-GUEST-IFACE 'tool: walk obligations — IMPLEMENTED', 'tool: gkr obligations', PR661-IFACE
+'walk-K'): the cut obligations (`CutsKnown`) of every function the certificates hand something on
+at its cuts (`Checked.oblFns`) but `main` and `verify_sub`. Checker K hands on there the window
+bounds of the windowed Merkle walk (`knownIf`, in `walk_path`: the dispatch selector `L[w·g^i]`
+below `g^(2^width)`, from its precondition `WinsAt`, which `decode_query_windows`' range checks in
+`open_stacked` give), the parity of a GKR layer (`L[layer·g^12]` below `g^4`) and the tuples at the
+calls (`sems`: the walk along `opening_queries`' loop, `WinsAt` of the window pointer before each
+`walk_path` call); B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the
+certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`,
+`wp_cutsKnown`; `walkKnown_proved`). -/
 def WalkKnown : Prop :=
   ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ 19 → CutsKnown j
 

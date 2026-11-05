@@ -16,61 +16,61 @@ open LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem walkOk_445 : mainOkS 445 0 ⟨0, 16, 10, 5⟩ = true := by decide +kernel
+theorem walkOk_444 : mainOkS 444 0 ⟨0, 16, 10, 5⟩ = true := by decide +kernel
 
-theorem walkOk_494 : mainOkS 494 0 ⟨0, 16, 13, 6⟩ = true := by decide +kernel
+theorem walkOk_493 : mainOkS 493 0 ⟨0, 16, 13, 6⟩ = true := by decide +kernel
 
-theorem walkOk_497 : mainOkS 497 0 ⟨0, 16, 13, 5⟩ = true := by decide +kernel
+theorem walkOk_496 : mainOkS 496 0 ⟨0, 16, 13, 5⟩ = true := by decide +kernel
 
-theorem walkOk_538 : mainOkS 538 1 ⟨1, 64, 15, 8⟩ = true := by decide +kernel
+theorem walkOk_537 : mainOkS 537 1 ⟨1, 64, 15, 8⟩ = true := by decide +kernel
 
-theorem walkOk_556 : mainOkS 556 0 ⟨1, 64, 11, 7⟩ = true := by decide +kernel
+theorem walkOk_555 : mainOkS 555 0 ⟨1, 64, 11, 7⟩ = true := by decide +kernel
 
-theorem walkOk_586 : mainOkS 586 0 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
+theorem walkOk_585 : mainOkS 585 0 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
 
-theorem walkOk_591 : mainOkS 591 0 ⟨0, 16, 13, 4⟩ = true := by decide +kernel
+theorem walkOk_590 : mainOkS 590 0 ⟨0, 16, 13, 4⟩ = true := by decide +kernel
 
-theorem walkOk_625 : mainOkS 625 0 ⟨0, 16, 17, 5⟩ = true := by decide +kernel
+theorem walkOk_624 : mainOkS 624 0 ⟨0, 16, 17, 5⟩ = true := by decide +kernel
 
-theorem walkOk_655 : mainOkS 655 1 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
+theorem walkOk_654 : mainOkS 654 1 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
 
-theorem walkOk_706 : mainOkS 706 0 ⟨0, 16, 17, 4⟩ = true := by decide +kernel
+theorem walkOk_705 : mainOkS 705 0 ⟨0, 16, 17, 4⟩ = true := by decide +kernel
 
-theorem walkOk_715 : mainOkS 715 0 ⟨1, 64, 14, 6⟩ = true := by decide +kernel
+theorem walkOk_714 : mainOkS 714 0 ⟨1, 64, 14, 6⟩ = true := by decide +kernel
 
-theorem walkOk_744 : mainOkS 744 0 ⟨1, 64, 17, 6⟩ = true := by decide +kernel
+theorem walkOk_743 : mainOkS 743 0 ⟨1, 64, 17, 6⟩ = true := by decide +kernel
 
-theorem walkOk_766 : mainOkS 766 0 ⟨1, 64, 19, 6⟩ = true := by decide +kernel
+theorem walkOk_765 : mainOkS 765 0 ⟨1, 64, 19, 6⟩ = true := by decide +kernel
 
-theorem walkOk_768 : mainOkS 768 0 ⟨0, 16, 19, 5⟩ = true := by decide +kernel
+theorem walkOk_767 : mainOkS 767 0 ⟨0, 16, 19, 5⟩ = true := by decide +kernel
 
-theorem walkOk_852 : loop0Ok 852 0 ⟨0, 16, 10, 5⟩ = true := by decide +kernel
+theorem walkOk_851 : loop0Ok 851 ⟨0, 16, 10, 5⟩ = true := by decide +kernel
 
-theorem walkOk_870 : loop0Ok 870 0 ⟨0, 16, 13, 6⟩ = true := by decide +kernel
+theorem walkOk_869 : loop0Ok 869 ⟨0, 16, 13, 6⟩ = true := by decide +kernel
 
-theorem walkOk_872 : loop0Ok 872 0 ⟨0, 16, 13, 5⟩ = true := by decide +kernel
+theorem walkOk_871 : loop0Ok 871 ⟨0, 16, 13, 5⟩ = true := by decide +kernel
 
-theorem walkOk_886 : loop1Ok 886 1 ⟨1, 64, 15, 8⟩ = true := by decide +kernel
+theorem walkOk_887 : loop1Ok 887 1 ⟨1, 64, 15, 8⟩ = true := by decide +kernel
 
-theorem walkOk_894 : loop1Ok 894 0 ⟨1, 64, 11, 7⟩ = true := by decide +kernel
+theorem walkOk_895 : loop1Ok 895 0 ⟨1, 64, 11, 7⟩ = true := by decide +kernel
 
-theorem walkOk_902 : loop1Ok 902 0 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
+theorem walkOk_903 : loop1Ok 903 0 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
 
-theorem walkOk_904 : loop0Ok 904 0 ⟨0, 16, 13, 4⟩ = true := by decide +kernel
+theorem walkOk_905 : loop0Ok 905 ⟨0, 16, 13, 4⟩ = true := by decide +kernel
 
-theorem walkOk_916 : loop0Ok 916 0 ⟨0, 16, 17, 5⟩ = true := by decide +kernel
+theorem walkOk_917 : loop0Ok 917 ⟨0, 16, 17, 5⟩ = true := by decide +kernel
 
-theorem walkOk_921 : loop1Ok 921 1 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
+theorem walkOk_925 : loop1Ok 925 1 ⟨1, 64, 14, 7⟩ = true := by decide +kernel
 
-theorem walkOk_932 : loop0Ok 932 0 ⟨0, 16, 17, 4⟩ = true := by decide +kernel
+theorem walkOk_940 : loop0Ok 940 ⟨0, 16, 17, 4⟩ = true := by decide +kernel
 
-theorem walkOk_933 : loop1Ok 933 0 ⟨1, 64, 14, 6⟩ = true := by decide +kernel
+theorem walkOk_941 : loop1Ok 941 0 ⟨1, 64, 14, 6⟩ = true := by decide +kernel
 
-theorem walkOk_936 : loop1Ok 936 0 ⟨1, 64, 17, 6⟩ = true := by decide +kernel
+theorem walkOk_944 : loop1Ok 944 0 ⟨1, 64, 17, 6⟩ = true := by decide +kernel
 
-theorem walkOk_939 : loop1Ok 939 0 ⟨1, 64, 19, 6⟩ = true := by decide +kernel
+theorem walkOk_947 : loop1Ok 947 0 ⟨1, 64, 19, 6⟩ = true := by decide +kernel
 
-theorem walkOk_941 : loop0Ok 941 0 ⟨0, 16, 19, 5⟩ = true := by decide +kernel
+theorem walkOk_949 : loop0Ok 949 ⟨0, 16, 19, 5⟩ = true := by decide +kernel
 
 end
 end LeanVM.Guest.End
