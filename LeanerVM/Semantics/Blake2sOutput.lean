@@ -58,18 +58,30 @@ theorem isCanonical128_wordsCell (w : Vector UInt32 4) : IsCanonical128 (wordsCe
   simp only [wordsCell, limb_ofLimbs]
   rfl
 
+/-- The output cells of a compression: the cells holding the eight words of the compression of
+the message, chaining-value and metadata cells. -/
+def compressOut (m : Fin 4 → E) (cv0 cv1 md : E) : E × E :=
+  let h := compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
+    (unpackMetadata md).2.1 (unpackMetadata md).2.2
+  (wordsCell #v[h[0], h[1], h[2], h[3]], wordsCell #v[h[4], h[5], h[6], h[7]])
+
+/-- On canonical inputs, the output cells of a compression satisfy `CompressCells`. -/
+theorem compressCells_compressOut (m : Fin 4 → E) (cv0 cv1 md : E)
+    (hm : ∀ i, IsCanonical128 (m i)) (hcv0 : IsCanonical128 cv0) (hcv1 : IsCanonical128 cv1)
+    (hmd : IsCanonical128 md) :
+    CompressCells m cv0 cv1 (compressOut m cv0 cv1 md).1 (compressOut m cv0 cv1 md).2 md := by
+  refine ⟨hm, hcv0, hcv1, isCanonical128_wordsCell _, isCanonical128_wordsCell _, hmd, ?_⟩
+  simp only [compressOut]
+  rw [cellWords_wordsCell, cellWords_wordsCell]
+  ext i hi
+  interval_cases i <;> rfl
+
 /-- Every compression has output cells: on canonical inputs, the two cells holding the words of the
 compression satisfy `CompressCells`. -/
 theorem compressCells_exists (m : Fin 4 → E) (cv0 cv1 md : E) (hm : ∀ i, IsCanonical128 (m i))
     (hcv0 : IsCanonical128 cv0) (hcv1 : IsCanonical128 cv1) (hmd : IsCanonical128 md) :
-    ∃ out0 out1 : E, CompressCells m cv0 cv1 out0 out1 md := by
-  set h := compress (cellWords cv0 ++ cellWords cv1) (messageWords m) (unpackMetadata md).1
-    (unpackMetadata md).2.1 (unpackMetadata md).2.2 with hh
-  refine ⟨wordsCell #v[h[0], h[1], h[2], h[3]], wordsCell #v[h[4], h[5], h[6], h[7]],
-    hm, hcv0, hcv1, isCanonical128_wordsCell _, isCanonical128_wordsCell _, hmd, ?_⟩
-  rw [cellWords_wordsCell, cellWords_wordsCell]
-  ext i hi
-  interval_cases i <;> rfl
+    ∃ out0 out1 : E, CompressCells m cv0 cv1 out0 out1 md :=
+  ⟨_, _, compressCells_compressOut m cv0 cv1 md hm hcv0 hcv1 hmd⟩
 
 /-- The compression of the all-zero cells has output cells. -/
 theorem compressCells_zero : ∃ out0 out1 : E, CompressCells ![0, 0, 0, 0] 0 0 out0 out1 0 :=
