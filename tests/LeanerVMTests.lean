@@ -82,6 +82,7 @@ import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
+import LeanerVMTests.Semantics.Walk
 
 /-!
 # leanerVM test aggregate
