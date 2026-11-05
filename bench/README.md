@@ -110,7 +110,8 @@ The fast paths are `Sumcheck.roundPoly_eq_roundPolyFolded`,
 "before" is `6ebb3f2`, the same bench source compiled against the library without these fast
 paths, where the fast and the specification's lines run the same algorithm. `6ebb3f2` is a
 pre-rebase snapshot of `8ba05f2b3` (the field fast paths), made on `main` at `a37b2b0`, and is on no
-published branch, so the "before" column is a record, not a reproduction. Total milliseconds for all `n` rounds:
+published branch, so the "before" column is a record, not a reproduction.
+Total milliseconds for all `n` rounds:
 
 | Workload | `n` | Before (ms) | After (ms) | Speedup |
 | --- | ---: | ---: | ---: | ---: |
