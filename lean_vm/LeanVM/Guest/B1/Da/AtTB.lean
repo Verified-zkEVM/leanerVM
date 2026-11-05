@@ -16,14 +16,16 @@ public import LeanVM.Guest.B1.Da.PureAt
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Da.Offsets
+public import LeanVM.Guest.B1.Main.IterK
 
 /-!
 # Bounded helpers
 
 `pureB_static`, `pureB_loop`: a pure callee complete within the words its static bound gives
-(`TotalLe`; for a loop helper from `1` to `g^m`, `TotalLeOn … LoopPre` of `m` iterations).
-`DvStaticB fs SB SK`: the static bounds `da_verify`'s completeness rests on, `SB g` the words of
-`g`, `SK g` a loop helper's words per iteration. `row_shape_completeAtB`:
+(`TotalLe`; for a loop helper from `1` to `g^m`, `TotalLeOn … LoopPre` of `m` iterations and its
+run's phantom frame). `DvStaticB fs SB SK`: the static bounds `da_verify`'s completeness rests on,
+`SB g` the words of `g`, `SK g` a loop helper's words per iteration with its run's phantom frame,
+which a run charges once (`iterK fs SK g` per iteration and `fs g`). `row_shape_completeAtB`:
 `row_shape_completeAt` (same proof) within its frame.
 -/
 
@@ -34,25 +36,31 @@ open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1 (LowDef CompleteAtD CompleteAtDT CompleteAtDTB Returns disj_nil
   completeAt_of_rel_pureBat)
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
-/-- **The static bounds `da_verify` rests on**: its loop helpers' words per iteration
-(`TotalLeOn … LoopPre`: the regions' bases, the blobs' trees, the padding, a column's cells, the
-column offsets' doublings), the DA levels' words (`TotalLe`), and the statically bounded callees
-`da_vector` and `da_expand__L7_L8` within their static words (`vecB`, a frame). -/
+/-- **The static bounds `da_verify` rests on**: its loop helpers' runs, `iterK fs SK g` words per
+iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the regions' bases, the
+blobs' trees, the padding, a column's cells, the column offsets' doublings), the DA levels' words
+(`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L7_L8` within their
+static words (`vecB`, a frame). -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l17 : TotalLeOn coreProgram fs "__loop21" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop21")
-  l19 : TotalLeOn coreProgram fs "__loop23" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop23")
-  l20 : TotalLeOn coreProgram fs "__loop24" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop24")
-  l21 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25")
+  l17 : TotalLeOn coreProgram fs "__loop21" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop21" + fs "__loop21")
+  l19 : TotalLeOn coreProgram fs "__loop23" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop23" + fs "__loop23")
+  l20 : TotalLeOn coreProgram fs "__loop24" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop24" + fs "__loop24")
+  l21 : TotalLeOn coreProgram fs "__loop25" LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK "__loop25" + fs "__loop25")
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
-    (fun a => logG (a.getD 1 0) * SK (offLoopName b))
+    (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
   vec : fs "da_vector" + 30 + (fs "da_factors__L14_L7_L0" + 256 + (fs "da_expand__L14_L7" +
     (fs "da_factors__L7_L8_L128" + 256 + (fs "da_column_offsets" + 1080 +
-      ((List.range 7).map fun b => 2 ^ b * SK (offLoopName b)).sum + 0)))) ≤ SB "da_vector"
+      ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum +
+        0)))) ≤ SB "da_vector"
   exp : fs "da_expand__L7_L8" ≤ SB "da_expand__L7_L8"
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
@@ -64,13 +72,15 @@ theorem pureB_static {S : List String} (hS : coreProgram.PureIn S) {g : String} 
     CompleteAtDTB fs cert κ g Lin args (Returns rets) (fun _ => True) (B args) :=
   (completeAt_of_rel_pureBat hS hg h κ fun rd t hn hv hb => hT rd t args rets hn hv hb).toDTB
 
-/-- **A pure loop helper from `1` to `g^m` within `m` iterations.** -/
+/-- **A pure loop helper from `1` to `g^m` within `m` iterations** and a constant (its run's
+phantom frame). -/
 theorem pureB_loop {S : List String} (hS : coreProgram.PureIn S) {g : String} (hg : g ∈ S)
-    {κ : ℕ} {Lin : Layout} {m K : ℕ} {rest rets : List E}
+    {κ : ℕ} {Lin : Layout} {m K F : ℕ} {rest rets : List E}
     (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g (1 :: gen ^ m :: rest) rets)
-    (hT : TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * K)) (h0 : 0 < m)
+    (hT : TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * K + F)) (h0 : 0 < m)
     (hm : m < 2 ^ 64 - 1) :
-    CompleteAtDTB fs cert κ g Lin (1 :: gen ^ m :: rest) (Returns rets) (fun _ => True) (m * K) :=
+    CompleteAtDTB fs cert κ g Lin (1 :: gen ^ m :: rest) (Returns rets) (fun _ => True)
+      (m * K + F) :=
   (completeAt_of_rel_pureBat hS hg h κ fun rd t hn hv hb => by
     have := hT rd t _ rets hn (loopPre_gen h0 hm rest) hv hb
     simpa [logG_gen_pow hm] using this).toDTB

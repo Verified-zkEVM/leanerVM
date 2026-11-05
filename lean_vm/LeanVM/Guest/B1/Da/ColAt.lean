@@ -33,7 +33,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB Kid KidD kidsAt outsL KidsDepBP OutsOk RegionsOk CallsMatch
   Returns completeAt_flatDepRet flatCalls namedP)
 open LeanVM.Guest.Budget (NodeHonest)
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
@@ -169,14 +169,17 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 set_option maxRecDepth 20000 in
 /-- **Column `h` is complete, placed, by a tree of its honest shape, within its frame and its
-callees' bounds.** -/
+callees' bounds**: the expansion's frame, the row loop's `r` iterations and its run's phantom
+frame. -/
 theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
-    (h21 : TotalLeOn coreProgram fs "__loop25" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop25"))
+    (h21 : TotalLeOn coreProgram fs "__loop25" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop25" + fs "__loop25"))
     {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 1024) {syms : ℕ → ℕ → List K} (hsl : ∀ i j, (syms i j).length = 256)
     {z : E} {bz bt bc bo bb bR h : ℕ} (hh : h < 128) :
     CompleteAtDTB fs cert 16 "da_verify_column" (colLin r syms z bz bt bc bo bb bR)
       [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo] (Returns [])
-      (colNH r) (fs "da_verify_column" + (fs "da_expand__L7_L8" + r * SK "__loop25")) := by
+      (colNH r)
+      (fs "da_verify_column" + (fs "da_expand__L7_L8" + (r * iterK fs SK "__loop25" + fs "__loop25"))) := by
   have hcok := col_cok
   unfold colCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
@@ -192,7 +195,8 @@ theorem col_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     [gen ^ h, gen ^ r, gen ^ bR, gen ^ bz, gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bo]
     (fun _ _ => []) [] hb hflat haddr hni [] (fun _ => []) (fun _ => .nil)
     (fun _ => colKids r syms z bz bc bo bb bR h) ["da_expand__L7_L8", "__loop25"]
-    [fs "da_expand__L7_L8", r * SK "__loop25"] [fun _ => True, fun _ => True] (colQ r)
+    [fs "da_expand__L7_L8", r * iterK fs SK "__loop25" + fs "__loop25"] [fun _ => True, fun _ => True]
+    (colQ r)
     (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) .nil))
     (fun fp => ?_) (fun _ _ _ _ => rfl)
     (fun fp outs ho => ?_) (fun fp outs ho rd _ _ hLin hO => ?_) ?_).mono (by simp)

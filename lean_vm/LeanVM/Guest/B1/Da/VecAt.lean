@@ -32,7 +32,7 @@ open LeanVM.Protocol.Verifier (gen eOfNat)
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB Kid KidD kidsAt outsL KidsDepBP OutsOk RegionsOk CallsMatch
   Returns completeAt_flatDepOut flatCalls)
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
@@ -40,7 +40,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 the offsets'. -/
 def vecBs (fs : String → ℕ) (SK : String → ℕ) : List ℕ :=
   [fs "da_factors__L14_L7_L0" + 256, fs "da_expand__L14_L7", fs "da_factors__L7_L8_L128" + 256,
-    fs "da_column_offsets" + 1080 + offKB SK]
+    fs "da_column_offsets" + 1080 + offKB fs SK]
 
 /-- **`da_vector`'s words bound**: its frame, its two buffers, its callees'. -/
 def vecB (fs : String → ℕ) (SK : String → ℕ) : ℕ := fs "da_vector" + 30 + (vecBs fs SK).sum
@@ -95,7 +95,8 @@ set_option maxRecDepth 20000 in
 run, the cell factors and the column offsets of `z`. -/
 theorem vec_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
     (hT : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
-      (fun a => logG (a.getD 1 0) * SK (offLoopName b))) (Lin : Layout) (z : E) :
+      (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b)))
+    (Lin : Layout) (z : E) :
     CompleteAtDTB fs cert 16 "da_vector" Lin [z] (vecOut z) (fun _ => True) (vecB fs SK) := by
   have hcok := vec_cok
   unfold vecCOk at hcok
