@@ -29,11 +29,17 @@ The secret key is the seed `S0`; every secret derives from `S = H(leanSPHINCS �
 generation builds the top tree. The message digest hashes `m ‖ ρ` (the root is not: `P` binds the
 key), the randomizer `S ‖ m`.
 
-**The signer** is the crate's, call for call (`sign`, `sign_with`, `scheme.rs:323-351`): the scheme
-seed hashed again from the key's seed, the public parameter, the randomizer, the digest's two
-calls, each FORS tree built once for its key and opening, then the layers from the bottom up, each
-a one-time signature followed by its tree built once, whose root the layer above signs. So the hash
-calls the end statement counts are the crate's.
+**The signer** is the crate's, hash call for hash call (`sign`, `sign_with`, `scheme.rs:323-351`):
+the scheme seed hashed again from the key's seed, the public parameter, the randomizer, the digest's
+two calls, each FORS tree built once for its key and opening, then the layers from the bottom up,
+each a one-time signature followed by its tree built once, whose root the layer above signs. So its
+hash calls are the crate's, but not its permutation calls: the crate's counter search absorbs
+`P ‖ A ‖ M` once and finishes a copy of the sponge per counter (`encoder`, `encode_from`,
+`wots_sign`, `wots.rs:67-76, 96-102`), one permutation a counter, where `encode` below hashes its
+whole input again for each counter: 6 permutations at the bottom layer, whose input before the
+counter is 800 bytes (the FORS key's 48 nodes), 1 at the layers above. On the worst path (`2^32`
+counters on each of the three layers) the signer charged here makes about `2^35` permutation calls a
+signature, the crate's about `2^33.6`; the end statement's `Q` counts the former.
 
 Then the SUF-CMA game of `Statement/SufCma.lean` with that signer, and the end statement
 `Sphincs.LeanSphincsStronglyUnforgeable`, proved by `Sphincs.leanSphincsStronglyUnforgeable`

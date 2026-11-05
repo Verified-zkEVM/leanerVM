@@ -513,7 +513,12 @@ structure CompiledFunction where
 def CompiledFunction.instructionAt (f : CompiledFunction) (i : ℕ) : OffsetInstruction :=
   listElementOrDefault (listElementOrDefault f.chunks (i / chunkSize) []) (i % chunkSize) .padding
 
-/-- The instruction at pc `pc` of the functions `functions`, the padding outside them. -/
+/-- The instruction at pc `pc` of the functions `functions`, the padding outside them. It reads
+`functions` as laid out contiguously from pc `0`, each function's entry pc its predecessor's end
+(the first function whose end exceeds `pc` holds it; its `entryPc` is not compared with `pc`), as
+the guest's are: `lean_vm/scripts/guest-export` asserts it of the compiled guest
+(`src/export/bytecode.rs`, "not laid out after its predecessor") before it writes
+`Statement/Data/`. -/
 def instructionAtPc : List CompiledFunction → ℕ → OffsetInstruction
   | [], _ => .padding
   | f :: fs, pc => if pc < f.entryPc + f.instructionCount then f.instructionAt (pc - f.entryPc) else

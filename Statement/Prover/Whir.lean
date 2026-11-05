@@ -6,10 +6,10 @@ public import Statement.Prover.Mle
 /-!
 # Ring switching and the WHIR opening
 
-The honest prover of ring switching (`ringSwitch`, `verifier.py:1408-1444` at leanVM
-`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) and of the stacked opening (`verifyStackedOpening`,
-then `verify_whir`, `verifier.py:1124-1202, 1453-1459` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`), on arrays.
+The honest prover of ring switching (`ringSwitch`: `ring_switch`, `verifier.py:1436-1452`, with
+`_phi` and `_ring_weight`, `:1415-1433`) and of the stacked opening (`verifyStackedOpening`:
+`verify_stacked_opening`, `verifier.py:1454-1461`, then `verify_whir`, `:1125-1203`), at leanVM
+`b7a8d0cb264c12f02e90d17196565eb920da62cd`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built

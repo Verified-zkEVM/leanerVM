@@ -22,7 +22,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   `256 j … 256 j + 255`. A matrix of `r` codewords has `128 r` cells, cell `j` of row `i` at
   position `128 i + j`: the positions of the erasure code commitment are the cells sampling
   opens.
-* **The commitment** (`commit.rs:1-125`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs:1-127`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes. Each padded row, a
   blob, has the Merkle root of its `128` cell digests (`blob_trees`), and the commitment is the
   Merkle root of the padded rows' blob roots (`commit_codewords`); a padding row's blob root is

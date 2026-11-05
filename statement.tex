@@ -248,14 +248,16 @@ randomizers in each of its two layers, so one request alone may cost over $2^{33
 
 \paragraph{leanSPHINCS} has the same game and the same bound, $(Q+1)\cdot 2^{-127}$ for every
 $Q \ge 1$ (\lean{Sphincs.LeanSphincsStronglyUnforgeable}, \lean{Statement/LeanSphincs.lean}), with
-the crate's deterministic signer, call for call (each tree built once, the layers from the bottom
-up), and at most $N = 1\,182\,000\,000$ signing requests
+the crate's deterministic signer, hash call for hash call (each tree built once, the layers from
+the bottom up; the crate absorbs a one-time signature's input before the counter once, the
+statement hashes it again per counter, so its permutation calls are more than the crate's), and at most $N = 1\,182\,000\,000$ signing requests
 (\lean{Sphincs.leanSphincsStronglyUnforgeable}, from leanVM's own random-oracle theorem
 \lean{FORS.h26_layered}); staying within $N$ signatures is the key holder's duty (the signer does not
 count them). In both schemes the secret key is the crate's: the key's seed $S_0$ (for leanXMSS
 with the public parameter $P$ key generation derived), from which the signer derives the scheme
 seed $S = H(\mathit{tag} \Vert S_0)$ again at each signature. A signature costs about $2^{19}$ permutations in expectation but $2^{35}$ in the worst
-case ($2^{32}$ encoding counters on each of its three layers), so with every request used the bound is
+case ($2^{32}$ encoding counters on each of its three layers, the bottom one's encoding 6
+permutations long; the crate's signer, absorbing that encoding's input once, about $2^{33.6}$), so with every request used the bound is
 about $2^{-62}$. Both schemes are stated through one game, \lean{Common.SufCma.StronglyUnforgeable},
 and share one tweakable hash (\texttt{tweak.rs}), hash chain, path fold and tree.
 
@@ -641,7 +643,9 @@ coverage table, one slot per raw signature and per entry of a child's lists
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
 ($2^{25}$ nonces per proof of work) of an execution of $G$ of
-committed size at least $2^{22}$ on $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
+committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
+the guest program checks and leanVM's aggregator pads every aggregate to) on
+$\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
@@ -691,7 +695,9 @@ bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest
 counted from its code, not measurements.
 
 \paragraph{The theorems.} Each concludes that $G$ has a valid execution $t$ on public input
-$\mathrm{dig}_{iv_G}(s)$ with $2^{22} \le \mathrm{size}(t) \le 2^{28}$ (committed size).
+$\mathrm{dig}_{iv_G}(s)$ with $2^{21} < \mathrm{size}(t) \le 2^{28}$ (committed size; the
+\lean{lean_vm} theorems give $2^{22} \le \mathrm{size}(t)$), so that its honest proof is a child
+\lean{HonestChild} admits.
 \begin{itemize}
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$

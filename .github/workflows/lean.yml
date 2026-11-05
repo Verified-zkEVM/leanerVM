@@ -377,8 +377,9 @@ jobs:
       - name: Check out leanVM at the pin
         run: ../leanvm-tree.sh
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them at the pin, on the
-      # statement's schemes compiled: key generation, signing, verification.
-      - name: The statement's signature schemes are the crate's (scheme-vectors)
+      # statement's schemes compiled: verification only (key generation and signing are checked by
+      # hand: `scheme-vectors --sphincs-sign --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
+      - name: The statement's verifiers are the crate's (scheme-vectors)
         run: |
           lake build scheme-vectors
           .lake/build/bin/scheme-vectors

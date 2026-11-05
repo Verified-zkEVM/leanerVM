@@ -40,7 +40,7 @@ transcribe their sources; that the Rust verifier's expansion of the pruned Merkl
 prover ships into the full paths the statement's proofs carry is right (`LeanVm.lean`, not
 formalized); and that `Data/`, the guest program's bytecode, is leanVM's (CI regenerates it,
 `guest-export --check`, and ties the deployed seed to the Rust's, `node-vectors`). **The outer
-verifier** (`EthereumProof::verify`, `aggregation.rs:668-687`) checks of a root more than any end
+verifier** (`EthereumProof::verify`, `aggregation.rs:668-685`) checks of a root more than any end
 statement models: it recomputes the root's deferred claim (`AggregateSound` assumes that it holds,
 `DeferredClaim.HoldsWithShape`), derives the DA digest's membership challenge from the root (no
 end statement does: `MatrixWitness.Opens` accepts any challenge the digest binds, the zero one
@@ -101,8 +101,11 @@ theorems, then read the files in this order.
 6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; FORS of
    24 trees of height 10 under a hypertree of three WOTS+C layers of heights 8, 8, 10, its signature
    the randomizer, the FORS opening and each layer's counter, chain values and path), its secret
-   key the crate's, the key's seed `S_0`, with the crate's deterministic signer, call for call
-   (each tree built once, the layers from the bottom up), and
+   key the crate's, the key's seed `S_0`, with the crate's deterministic signer, hash call for hash
+   call (each tree built once, the layers from the bottom up; not permutation call for permutation
+   call: the crate absorbs a one-time signature's input before the counter once, the statement
+   hashes it again per counter, so a signature's worst case charged is about `2^35` permutations,
+   the crate's about `2^33.6`), and
    `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
    bits up to `1,182,000,000` signatures, `Q` counting the honest signer's worst-case grinding too;
    a key used past its signature limit is not covered).

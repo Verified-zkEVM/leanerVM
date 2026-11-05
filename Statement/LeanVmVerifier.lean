@@ -46,7 +46,7 @@ one out-of-domain sample binds the level's commitment (`whir_config.rs:107-114`;
 The query counts are the Rust's *output*, not its derivation: `optimize_johnson_level`
 (`whir_config.rs:607-675`) minimises the queries of each level subject to the 128-bit
 round-by-round targets of Annex B's Theorem B.2 under a floating-point MCA formula
-(`paper_thm_ca_johnson_log_a`, `whir_config.rs:431-447`), and this module does not restate that
+(`paper_thm_ca_johnson_log_a`, `whir_config.rs:434-447`), and this module does not restate that
 search. The table is the one the Python verifier carries, indexed by rate exponent `1..4` and
 stack size `15..28`; outside that window `ladder` is `none`, as both verifiers reject
 (`validate_log_inv_rate`, `whir_config.rs:48-56`; `verifier.py:1042`). `ladder` takes the stack

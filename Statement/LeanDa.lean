@@ -117,7 +117,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   transcribed here.
 * **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
   at position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs:1-125`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs:1-127`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
   commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
@@ -127,7 +127,7 @@ The erasure code commitment of `crates/lean_da` at leanVM
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + ⌈log₂ r⌉` that the two make. The crate keeps the trees for this (`DaWitness::blob_tree`,
   `commit.rs:15-36`) but verifies no sample: `verifyCellWith` is the check these paths determine.
-* **Membership** (`membership.rs:1-15`, `verifier/src/da.rs:1-19`). One challenge `z ∈ E` gives
+* **Membership** (`membership.rs:1-15`, `verifier/src/da.rs:1-17`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
   `e_0 … e_(j-1)`. A matrix passes when every row is orthogonal to `L` (the guest program's
