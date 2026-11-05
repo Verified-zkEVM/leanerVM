@@ -589,7 +589,12 @@ module (P3).
 - **Clean's bus is no longer an external item** for Layers 9–10: Clean main `9dd71e82` carries
   direction tags and `Balance.multiset` (Clean #493, #495; #16) and fixed columns (Clean PR
   [#446](https://github.com/Verified-zkEVM/clean/pull/446)), and this branch consumes all three.
-  The name clash of C13 is resolved upstream (Clean #497), so no Clean item is left.
+  The name clash of C13 is resolved upstream (Clean #497), so no Clean item is owed.
+- **Clean main has moved past the pin `ce2eee63`** (watched, 2026-11-05): `21247235`
+  (2026-11-02) drops `Balance.multiset`'s bound of fewer than `FiniteField.size F` interactions
+  per channel, which `interactionsWith_length_lt` now discharges from the caps; Clean
+  PR [#499](https://github.com/Verified-zkEVM/clean/pull/499) (merged 2026-11-02) moves Clean to
+  Lean `v4.34.1`, the root toolchain. Neither is needed; both arrive with the next bump.
 - **Clean's VM theory does not replace the state walk** (`Clean/Air/Vm.lean`, assessed
   2026-10-29). `addVm` cannot take the place of `exists_run_of_balanced`: with the state
   channel's guarantee `True` its conclusion is vacuous, the counted memory is not a Clean sound

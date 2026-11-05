@@ -80,8 +80,9 @@ semantic changes rather than mechanical ones (status page, "Clean main"):
   channels, and every table's soundness now also proves what its pushes owe.
 * **Multiset balance** (#493, `Clean/Air/Balance.lean`): `Balance.multiset` (multiplicities `0`
   or `1`, fewer than `FiniteField.size F` interactions per channel, active pushes a permutation of
-  active pulls) and `EnsembleWitness.Balanced`. It replaces leanerVM's `BalancedPair`; Clean's
-  field-sum `Balance.logUp` stays unused over `K`.
+  active pulls) and `EnsembleWitness.Balanced`. The bound on the number of interactions is the
+  pin's; Clean main drops it after the pin (`21247235`). It replaces leanerVM's `BalancedPair`;
+  Clean's field-sum `Balance.logUp` stays unused over `K`.
 * **Fixed columns and derived data** (#446, #495): a component's `generation` is `demand` or
   `preallocated`; a preallocated component's height is part of it, its fixed cells are checked of
   every row (`Table.fixed_rows_match`), and a witness's prover data is derived from its tables'
@@ -90,7 +91,7 @@ semantic changes rather than mechanical ones (status page, "Clean main"):
   κ`, and the three named hypotheses of Layer 8 are deleted (issue #23).
 
 `Clean/Circuit/ExpressionPolynomial.lean` (Clean #466) is upstream at the pin, so the verbatim
-copy under `LeanerVM/Protocol/ToClean/` is deleted. The published fork commit is pinned directly;
+copy under `LeanerVM/Protocol/ToClean/` is deleted. The upstream `main` commit is pinned directly;
 local package overrides must never be written into the committed manifest.
 
 VCVio's query-log counting bridge needs one proof adjustment for current PolyFun's sealed
