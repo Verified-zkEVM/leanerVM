@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3691-3929` at leanVM c4f4bc92) with the values numbered as the renumbered
+  (`lean_ethereum.py:3691-3929` at leanVM 1a379148) with the values numbered as the renumbered
   expansion numbers them.
 -/
 

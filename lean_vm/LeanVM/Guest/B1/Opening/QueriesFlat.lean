@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Common.Loops
 /-!
 # Flat blocks
 
-A query of `opening_queries` (c4f4bc92) walks its Merkle path by `match`es on window words
+A query of `opening_queries` (1a379148) walks its Merkle path by `match`es on window words
 (`walk_path`), each arm a run of atoms (`walk_window`). `Flat ss`: every statement is an atom or a
 `match` whose arms are atoms only. `holdsList_flat`: such a block holds exactly when every
 statement does (`StmtOk`: an atom holds; a `match` on `x` picks an arm `j` with `x = g^j` whose

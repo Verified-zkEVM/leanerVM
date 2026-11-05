@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsSoundDigest
 
   The message digest and its fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3842-3884` at
-  leanVM `c4f4bc92`) are sound: whatever bits are hinted, they are the low `266` bits of the two
+  leanVM `1a379148`) are sound: whatever bits are hinted, they are the low `266` bits of the two
   digest calls, and each field's values and the index are theirs.
 -/
 

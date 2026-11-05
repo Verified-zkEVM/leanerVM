@@ -782,7 +782,7 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 def vsIdx : ℕ := 19
 
 /-- `opening_queries__L{odd}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
-`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1380` at `c4f4bc92`). -/
+`(odd, base, depth, cap_depth)` (`lean_ethereum.py:1380` at `1a379148`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with
@@ -919,7 +919,7 @@ def bounds (name : String) :
   else ([], [], [], [])
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
-windows after the one computing them: each window hands on their bound `2`. None at `c4f4bc92`
+windows after the one computing them: each window hands on their bound `2`. None at `1a379148`
 (`verify_keccak`'s `rem_g`, G:2936-2939, is passed on, not dispatched on). -/
 def selsHeld (_name : String) : List ℕ := []
 

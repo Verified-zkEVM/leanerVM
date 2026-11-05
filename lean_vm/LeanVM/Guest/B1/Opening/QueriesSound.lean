@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesCap
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# One query, assembled (`opening_query`, lean_ethereum.py:1334-1377 at c4f4bc92)
+# One query, assembled (`opening_query`, lean_ethereum.py:1334-1377 at 1a379148)
 
 `oqQuery_sound`: the statements of `oqQueryT` (the row, the dot product, the padding run, the
 leaf hash, the path's windows, the cap leaf) give `QueryOpens` at the position whose windows the

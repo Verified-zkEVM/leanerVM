@@ -19,7 +19,7 @@ public import Statement.Fast.FieldWords
 /-!
 # The walk decomposition of the state channel
 
-At leanVM pin `c4f4bc92f800a7023147b8742d8c5f68596e4c82`. Specification Proposition 6.1
+At leanVM pin `1a37914825149f1a4f621bea4b90cb3a3dbd51f2`. Specification Proposition 6.1
 (`doc/leanvm/body/06-bus-interactions.tex`, §6.1), stated over an abstract list of edges so that
 `Soundness.StateWalk` applies it to the rows of the six tables. It uses only the semantics'
 `run`, nothing about the witness.

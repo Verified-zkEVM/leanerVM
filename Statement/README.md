@@ -26,7 +26,7 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`c4f4bc92f800a7023147b8742d8c5f68596e4c82` (branch `opt/recursion-guest-cycles`,
+`1a37914825149f1a4f621bea4b90cb3a3dbd51f2` (branch `opt/recursion-guest-cycles`,
 [`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
 sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
@@ -323,7 +323,7 @@ execution within its budget. The program is that decoder compiled
 ## The guest decoder's size bound and budget
 
 **The size bound** (`guestWitnessDecoderSizeBound`, `1490400`) limits any program; it is the
-compiled decoder's size at leanVM `c4f4bc92`, `1489895` (proved at most that and measured exactly),
+compiled decoder's size at leanVM `1a379148`, `1489895` (proved at most that and measured exactly),
 and a slack of `505`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
 (the bound was `380000` at `ed7d2b9c`, whose guest's opening queries had far fewer frame cells), so
 no useful table of witnesses (hard-coded signatures masking a bug of the guest program on finitely

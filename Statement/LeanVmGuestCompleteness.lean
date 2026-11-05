@@ -70,7 +70,7 @@ signatures; `8` children and `2^15` slots; `4` children, `1024` raw signatures a
 of `32` rows and `8192` slots; `2` children, a matrix of `32` rows and `2^14` slots. A node of no
 child and no raw signature, so of no claim, with a matrix of `32` rows, is of the fifth. The raw
 signatures are counted with a leanSPHINCS signature as three (`raw`): its check costs the guest
-program about three leanXMSS ones (at leanVM `c4f4bc92`, `17561` memory words against `6459`,
+program about three leanXMSS ones (at leanVM `1a379148`, `17561` memory words against `6459`,
 `876` `KECCAK`s against `398`). -/
 def CoveredNode (witness : NodeWitness) : Prop :=
   let n := witness.children.length

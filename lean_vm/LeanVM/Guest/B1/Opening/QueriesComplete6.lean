@@ -279,7 +279,7 @@ theorem oqMain0_complete {s : Oq} (hs : s.RowShape) (hb0 : s.base = 0) (hpd : 1 
       simpa only [oqChain, h1, ↓reduceIte] using this)
   exact oqMainT_complete hfm hpm hbm hnG (hch m le_rfl) hp h8 h11 hT hA hK hcall
 
-/-- **`opening_queries` at level 0 is its meaning** (lean_ethereum.py:1380-1404 at c4f4bc92), the
+/-- **`opening_queries` at level 0 is its meaning** (lean_ethereum.py:1380-1404 at 1a379148), the
 window pointers naming positions' windows. -/
 theorem oqMain1_iff {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String} {fm fl : Fn}

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Names
 /-!
 # `verify_sub` as a template
 
-The sections, in order (G = `lean_ethereum.py` at leanVM `c4f4bc92`):
+The sections, in order (G = `lean_ethereum.py` at leanVM `1a379148`):
 
 * `vsHeadT`: the pool, the seed's permutation (`keccak_cells`), the stream (G:3318-3327);
 * `vsReadsT`: the eight announced words read (`fs_next`), the table rows stored, the first four

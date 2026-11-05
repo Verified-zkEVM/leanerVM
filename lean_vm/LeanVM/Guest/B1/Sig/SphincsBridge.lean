@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsBridge
 
   The statement's leanSPHINCS verification (`Sphincs.verifyWithKeccak`, `Statement/LeanSphincs.lean`
-  at leanVM `c4f4bc92`) over cells: its message digest, its FORS key, and its walk up the layers,
+  at leanVM `1a379148`) over cells: its message digest, its FORS key, and its walk up the layers,
   stage by stage.
 -/
 

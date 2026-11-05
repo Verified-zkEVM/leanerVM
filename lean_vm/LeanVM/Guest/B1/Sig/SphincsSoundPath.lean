@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundPath
 
-  `sp_path` (`lean_ethereum.py:3811-3828` at leanVM `c4f4bc92`) is sound: whatever children are
+  `sp_path` (`lean_ethereum.py:3811-3828` at leanVM `1a379148`) is sound: whatever children are
   hinted, the node a path reaches is the tree's fold of the hinted siblings.
 -/
 

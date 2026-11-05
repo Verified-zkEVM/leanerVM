@@ -214,7 +214,7 @@ def oqLeafT (s : Oq) (b pr kL : ℕ) : List Stmt :=
 /-! ## The path -/
 
 /-- The path's windows: six levels each from the bottom, the last the remainder
-(`walk_path`, lean_ethereum.py:1295-1331 at c4f4bc92). -/
+(`walk_path`, lean_ethereum.py:1295-1331 at 1a379148). -/
 def oqNpw (s : Oq) : ℕ := (s.pd + 5) / 6
 
 /-- Window `i`'s levels. -/

@@ -27,7 +27,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-/-- The frames fit a specialization's frame runs: at c4f4bc92 its queries place no frame run
+/-- The frames fit a specialization's frame runs: at 1a379148 its queries place no frame run
 (their path children are hinted into frame cells), so nothing is asked; kept so the statements
 reading it stand. -/
 def OqFits (_fs : String → ℕ) (_cert : String → V → ℕ) (_name _loop : String) (_s : Oq) (_odd : ℕ) :

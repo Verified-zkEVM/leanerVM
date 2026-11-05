@@ -13,7 +13,7 @@ public import LeanVM.Guest.Memory.GuestFresh
 # The table selectors are not temporaries
 
 The compiled functions with table jumps (`armsCheck`, by the kernel over `Data.plumbs`: at leanVM
-`c4f4bc92`, `verify_lean_xmss`, `sp_wots`, the `opening_queries` variants and their window loops)
+`1a379148`, `verify_lean_xmss`, `sp_wots`, the `opening_queries` variants and their window loops)
 have their selectors outside their temporaries: a function's temporaries are the freshness
 certificates' list for the large functions (`temps19`, …, by `tmps19`, …; `bigTemps`), and computed
 from its body for the others (`armTemps`). So `ArmsFresh` holds (`armsFresh`), and with it `keep`

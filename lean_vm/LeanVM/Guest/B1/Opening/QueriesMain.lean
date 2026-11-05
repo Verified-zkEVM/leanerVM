@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesLoop
 
 /-!
-# `opening_queries` is sound (lean_ethereum.py:1380-1404 at c4f4bc92, TRIAGE #40)
+# `opening_queries` is sound (lean_ethereum.py:1380-1404 at 1a379148, TRIAGE #40)
 
 `oqLoop_step`: the loop helper satisfies `loop_iff`'s step with its flat body
 (`loop_step_flat`). `oqMain1_sound`, `oqMain0_sound`: the function's relation, its loop's
