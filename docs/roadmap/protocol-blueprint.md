@@ -1797,10 +1797,10 @@ The charged invariant holds from any initial cache, with no hypothesis at the st
 initial potential, bounds events on the run's output and final state, and runs VCVio's
 `randomOracle`; it is not built on VCVio's `withAddCost`, which charges cached queries too.
 `misbehaves_rom` needs its logged form, the invariant on `QueryHistory.freshLog`, whose state
-carries the ordered log, since the hit and flip clauses are on the log and not on the cache. `extract` is the
-straight-line extractor; it is computable (decision 11) and runs on toy instances. `Pr[p | mx]` is
-VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the sketches keep the readable
-form.
+carries the ordered log, since the hit and flip clauses are on the log and not on the cache.
+`extract` is the straight-line extractor; it is computable (decision 11) and runs on toy
+instances. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the
+sketches keep the readable form.
 
 The bytecode multilinear and the Flock matrices are evaluated inside `verify` through one function
 `settleFixedClaims`, the seam for T5; its Flock walk is the Flock phase's.
