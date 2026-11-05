@@ -709,9 +709,10 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
 | ArkLib #615, #1295 (merged after the pin) | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | a verbatim copy of #1295 at the next refactor; deleted at the bump that contains it |
-| ArkLib's typed framework (its roadmap items 3–4; #1251; a knowledge notion since #1259–#1261) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
+| ArkLib's typed framework (its roadmap items 3–4; a knowledge notion since #1259–#1260) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
 | ArkLib #1263, #1264 (merged after the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
-| ArkLib #1245 | none | the round-by-round-to-plain corollary, which no theorem here uses | reference only |
+| ArkLib #1349 (merged after the pin; #1245 closed unmerged) | none | the round-by-round-to-plain corollary, as guarded bridges, which no theorem here uses | reference only |
+| ArkLib #1413 (merged after the pin) | every `Security` field; the knowledge-soundness composition | the fixed-prefix names: `rbrKnowledgeSoundnessWorstCaseWith` becomes `rbrKnowledgeSoundnessWith` | at the bump that contains it, rename every consumer |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
 | ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
@@ -722,7 +723,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
-| VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
+| VCVio #823, #824, #826 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
