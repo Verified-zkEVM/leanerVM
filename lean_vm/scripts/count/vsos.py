@@ -19,7 +19,8 @@ fs = lambda n: fsd.get(n, 2)
 def SB(n):
     c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
 def SK(n):
-    c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
+    """`wSK`: a loop's words per iteration, its run's phantom frame charged to each."""
+    c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
 B1 = os.path.join(LV, 'LeanVM', 'Guest', 'B1')
 def names(path, name):
     s = open(os.path.join(B1, path), encoding='utf-8').read()

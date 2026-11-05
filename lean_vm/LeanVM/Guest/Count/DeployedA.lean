@@ -18,7 +18,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 @[expose] public section
 
 /-- The DA levels' words per padded row, the largest over the levels. -/
-theorem dlK_eq : dlK wSB = 92 := by decide +kernel
+theorem dlK_eq : dlK wSB = 77 := by decide +kernel
 
 end
 end LeanVM.Guest.Count

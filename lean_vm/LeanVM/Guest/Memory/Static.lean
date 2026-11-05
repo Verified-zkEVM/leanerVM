@@ -22,7 +22,8 @@ under preconditions on their exponents (`ArgsPre`: `a < b`).
 A **certificate** (`Cert`) gives each function either a bound (`stat`), or, for a loop helper
 `L(i, end, …)` (step `i ↦ i·g`, guard `i·g ≠ end`, its parameters but the counter passed
 through), the bound of one iteration (`loop`): a valid tree started at `i = g^a` with
-`end = g^e`, `a < e`, runs `e - a` iterations, so weighs at most `(e - a)` times it.
+`end = g^e`, `a < e`, runs `e - a` iterations, so weighs at most `(e - a)` times it, and,
+counting words, its run's one phantom (its last iteration's untaken tail call) more.
 
 **The checker** (`chkFn`) walks a body once (`blockB`), threading the constants its atoms make
 (those the certificate names, each checked `g^e` by `Pow.gpowW`), and sums each call site's bound
@@ -36,8 +37,9 @@ checked without its tail call, against its shape (`loopShape`). Counting words (
 one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s, `x`'s bound plus
 `c` (`logG_mul_le`), threaded in the environment's bounds (`BEnv`); a `callIf` adds its callee's frame, which an
 untaken one leaves as a phantom (`phB`, the weight looked up by `wl`), and a loop's iteration its
-own frame twice, the last leaving a phantom of itself. Counting words at the frame sizes, the cost
-is then the words a tree allocates.
+own frame, and a call site a loop run's phantom once (`siteP`): a run's last iteration leaves its
+untaken tail call, a phantom of the helper, the run's only one. Counting words at the frame sizes,
+the cost is then the words a tree allocates.
 
 **Soundness** (`chk_sound`): if the checker accepts every function of a program but those of a set
 `X`, whose trees satisfy their certificates by hypothesis, every valid tree of a function costs at
@@ -82,7 +84,7 @@ inductive Cert where
   exponent `trackE` marking a value whose exponent bound it tracks instead. -/
   | stat (pre : List (ℕ × ℕ)) (b : Aff) (ks : List (V × ℕ))
   /-- A loop helper, its end its parameter 1 (`none`) or `g^e`: each iteration weighs at most
-  `b`, under `pre`, neither naming the counter. -/
+  `b`, under `pre`, neither naming the counter; counting words, the run's phantom frame more. -/
   | loop (endc : Option ℕ) (pre : List (ℕ × ℕ)) (b : Aff) (ks : List (V × ℕ))
   deriving Inhabited
 
@@ -249,6 +251,20 @@ def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env × BEnv) :
 def phB (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
   if α then (wl g).map fun n => (⟨n, []⟩, []) else some Acc.zero
 
+/-- **A loop run's phantom**, counting words: a loop helper's run leaves one phantom of itself,
+its last iteration's untaken tail call, whose frame the call site charges once (`phB`); another
+callee none. -/
+def siteP (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (g : String) : Option Acc :=
+  match cert g with
+  | .loop .. => phB wl α g
+  | _ => some Acc.zero
+
+/-- **A call site's charge**: its callee's bound at the site (`siteB`), and a loop run's phantom
+(`siteP`). -/
+def siteW (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ : Env) (ps : List V)
+    (g : String) (args : List V) : Option Acc :=
+  Option.addAcc (siteB cert ρ ps g args) (siteP cert wl α g)
+
 mutual
 /-- **A block's bound**: its call sites' bounds (and, counting words, its `HeapBuf`s) summed, the
 certified constants threaded. -/
@@ -265,13 +281,13 @@ def blockB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks
       (blockB cert wl α ks ps self ρ ss)
   | ρ, .match_ _ arms :: ss =>
       Option.addAcc (armsB cert wl α ks ps self ρ arms) (blockB cert wl α ks ps self ρ ss)
-  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
+  | ρ, .call g args _ :: ss => Option.addAcc (siteW cert wl α ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
   | ρ, .callIf _ g args :: ss =>
       if g = self then none
-      else Option.addAcc (siteB cert ρ.1 ps g args)
+      else Option.addAcc (siteW cert wl α ρ.1 ps g args)
         (Option.addAcc (phB wl α g) (blockB cert wl α ks ps self ρ ss))
   | ρ, .dispatch _ gs args _ :: ss =>
-      Option.addAcc (maxB (fun g => siteB cert ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
+      Option.addAcc (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
   | _, .ret _ :: _ => some (⟨0, []⟩, [])
 
 /-- The arms' bounds, summed. -/
@@ -293,10 +309,10 @@ noncomputable def stmtR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -315,10 +331,10 @@ noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -337,10 +353,10 @@ noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (�
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteW cert wl α ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
-      else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+      else (Option.addAcc (siteW cert wl α ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteW cert wl α ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -466,7 +482,7 @@ noncomputable def chkFn (look : String → Cert) (wl : String → Option ℕ) (�
   | .loop endc pre b ks =>
       match loopShape fn endc with
       | some pre' => match blockR look wl α ks fn.params fn.name pre' ([], []) with
-        | some r => Aff.leB ⟨w + (if α then w else 0) + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
+        | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
             b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
         | none => false
       | none => false
