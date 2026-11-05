@@ -148,25 +148,26 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 947 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 991 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
 /-! ## Access
 
 By index, by name and against the compiled functions, at the first, a middle and the last
-function, at the two largest (`verify_lean_xmss`, `sp_wots`) and at `verify_sig_lean_sphincs`, the
-first function past `sp_wots` (core 21, compiled function 22). -/
+function, at the two largest (`__loop2`, the raw leanXMSS loop with `verify_lean_xmss` inlined, and
+`sp_wots`) and at `verify_sig_lean_sphincs`, the first function past `sp_wots` (core 20, compiled
+function 21). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 947 := coreProgram_length
+example : coreProgram.length = 991 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-example : coreProgram.find? "verify_lean_xmss" = some Data.core19 :=
-  Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
+example : coreProgram.find? "__loop2" = some Data.core36 :=
+  Program.find?_of_indexOf? (j := 36) (by decide +kernel) rfl
 
 example : coreProgram.find? "sp_wots" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
@@ -177,13 +178,15 @@ example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
 example : coreProgram.find? "opening_ood_point__L14" = some Data.core471 :=
   Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop423" = some Data.core954 :=
-  Program.find?_of_indexOf? (j := 954) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core990 :=
+  Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl
 
-example : Data.core19.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
+example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
-example : Data.core20.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
+example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core954.name = Data.f947.name := name_eq_compiled (j := 946) rfl rfl
+example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
+
+example : Data.core990.name = Data.f991.name := name_eq_compiled (j := 990) rfl rfl
 
 end LeanVMTests.Guest.CoreData
