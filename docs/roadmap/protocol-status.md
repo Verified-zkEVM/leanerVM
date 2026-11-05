@@ -716,10 +716,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 ## What can start now
 
-The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening with the WHIR parameters (Layer 11), and the charged invariant (Layer 12). The Merkle
-trees (`Protocol/Merkle.lean`) and their binding by log replay (`Protocol/MerkleBinding.lean`)
-land with #169.
+The WHIR opening and the Merkle trees are on `main`; their binding by log replay lands with #169,
+the charged invariant with #170, the headline with #174 and its execution form with #185, the
+stack's top. On that top, what can start is what *Also owed* below names: the hypothesis met by an
+accepted adversary (state-function completeness on the honest transcript), completeness's remainder
+(the honest query bound and the random-oracle bound on the grind), and deployed values of `fuel` and
+`ρ`. leanISA owes the decidable `checkSatisfiedBy` that generated test vectors need.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -837,9 +839,10 @@ state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.le
 generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
 a hit is a fresh answer in play after the entries before it, for an in-play function of the
 prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
-fixed roots (the seed among them), the halves of every logged 64-byte input, and the Merkle roots
-the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of
-the prefix, as the charged invariant needs.
+fixed roots (none at leanVM's), the halves of every logged 64-byte input, the program hash every
+logged 78-byte seed preimage carries (`programHashSlot`), and the Merkle roots the log's chains
+absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of the prefix, as the
+charged invariant needs.
 `chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
 and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
 collision and no hit, the history is in the log before any query from the chain's last state that
