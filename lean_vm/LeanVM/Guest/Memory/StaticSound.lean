@@ -20,7 +20,8 @@ public import LeanVM.Guest.Value.FieldBits
 allocate; without, the weight (`cost_false`). `Bound P α cert ω t args`: what the certificate of
 `t`'s function claims of `t` on `args` (`stat`: under its preconditions, `t` costs at most its
 bound; `loop`: started at `g^a` with end `g^e`, `a < e`, at most `e - a` times its iteration's
-bound). `siteB_sound`: a call site's bound bounds a callee tree satisfying `Bound`.
+bound and, counting words, its run's one phantom frame). `siteB_sound`: a call site's bound bounds a
+callee tree satisfying `Bound`.
 `blockB_sound`: a block's bound bounds the cost of its path's callees and its `HeapBuf`s. `chk_sound`: if every function of the program passes `chkFn`, every valid tree
 satisfies `Bound`, by induction on the instances, a loop helper's iterations one at a time.
 -/
