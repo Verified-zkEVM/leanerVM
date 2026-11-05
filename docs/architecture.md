@@ -278,10 +278,10 @@ The public theorem ladder is:
    hashing, termination, and the exact final boundary. A completeness companion constructs a
    terminating execution from well-formed aggregation inputs within the published caps.
 
-4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution`).** First prove
-   the proof-system bridge, a random-oracle statement about a prover that makes at most `Q` queries
-   to the hash `H`, chooses the statement itself, and is answered by a straight-line extractor that
-   reads the witness off its query log (`baseVerifier_extractsWitness_rom_adaptive`):
+4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution_adaptive`).**
+   First prove the proof-system bridge, a random-oracle statement about a prover that makes at most
+   `Q` queries to the hash `H`, chooses the statement itself, and is answered by a straight-line
+   extractor that reads the witness off its query log (`baseVerifier_extractsWitness_rom_adaptive`):
 
    ```text
    IsTotalQueryBound A Q →
@@ -671,10 +671,9 @@ one product (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination o
 builds each table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS,
 `blake2sR1CS`, runs as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the
 compiled circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`),
-whose matrices are
-`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). Over `E` the additive transform runs
-as three transforms of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
-`LeanerVM.Protocol.Whir.TransformWords`).
+whose matrices are `ProductCircuit.toBlockR1CS`'s by `rfl` and whose walks are proved equal to
+theirs (`toBlockR1CSE_eq`). Over `E` the additive transform runs as three transforms of the limbs'
+words (`Whir.encodeE`, `Whir.encodeE_getElem`, `LeanerVM.Protocol.Whir.TransformWords`).
 The query batch's weight takes its values on words (`Whir.queryWeight_eq_queryWeightFast`,
 `LeanerVM.Protocol.Whir.QueryWords`), and the opening's batched weight its column claims' equality
 kernels on their blocks (`Opening.weight_eq_weightFast`, by
