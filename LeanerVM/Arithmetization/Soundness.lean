@@ -274,10 +274,7 @@ theorem traceOf_valid (hsafe : SentinelSafe prog) {w : EnsembleWitness (leanIsaE
     intro v hv
     obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hv
     exact (hspec p hp).2.1
-  obtain ⟨n, hn, hw⟩ := exists_walksIn (states_balanced hsafe h) fun v hv ↦ by
-    obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hv
-    rw [(hspec p hp).1]
-    exact Option.some_ne_none _
+  obtain ⟨n, hn, hw⟩ := exists_walksIn (states_balanced hsafe h)
   have hpairs : ∀ p ∈ statePairs w, ∀ q ∈ statePairs w, p.1 = q.1 → p.2 = q.2 :=
     fun p hp q hq hpq ↦ Option.some.inj ((hspec p hp).1.symm.trans (hpq ▸ (hspec q hq).1))
   have hwalk : walkSteps (stateMap (statePairs w)) (Regs.final prog) (statePairs w).length 0
