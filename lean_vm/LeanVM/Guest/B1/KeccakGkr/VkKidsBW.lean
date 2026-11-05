@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedBW
 # `verify_keccak`'s callees within their words at `B2C.fs`
 
 The words certificates (`Count.Words`) give, at the deployed frame sizes: the copy loops
-`__loop10`, `__loop11`, `__loop12` (cores `263`, `267`, `269`) at most `34` words per iteration;
+`__loop10`, `__loop11`, `__loop12` (cores `262`, `266`, `268`) at most `34` words per iteration;
 `keccak_plain_rounds__L6_L0` (core `265`, `plainName 0`) at most `325`,
 `keccak_plain_rounds__L4_L1` (core `267`, `plainName 1`) at most `229`; the layers' eight-round
 loops `946` per iteration and remainder loops `184` (`LayerCPlacedBW`). So `verify_keccak`'s callees
@@ -37,23 +37,23 @@ theorem copyLoop_totalLeOn_fs : ∀ name ∈ ["__loop10", "__loop11", "__loop12"
   intro name hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl
-  · exact loop_totalLeOn_at (j := 263) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 267) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 269) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 262) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 266) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 268) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_plain_rounds__L6_L0`'s words at `B2C.fs`**: `325`. -/
 theorem plain0_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 0) fun _ ↦ 325 := by
-  have h1 := wSB_totalLe (j := 266) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
-  rwa [wSB_idx (j := 266) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
-    show wSBJ 266 = 325 by decide +kernel] at h1
+  have h1 := wSB_totalLe (j := 265) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
+  rwa [wSB_idx (j := 265) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
+    show wSBJ 265 = 325 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `229`. -/
 theorem plain1_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 1) fun _ ↦ 229 := by
-  have h1 := wSB_totalLe (j := 268) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
-  rwa [wSB_idx (j := 268) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
-    show wSBJ 268 = 229 by decide +kernel] at h1
+  have h1 := wSB_totalLe (j := 267) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
+  rwa [wSB_idx (j := 267) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
+    show wSBJ 267 = 229 by decide +kernel] at h1
 
 namespace VkData
 
