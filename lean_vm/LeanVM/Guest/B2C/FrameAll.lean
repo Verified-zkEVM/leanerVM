@@ -93,7 +93,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
       refine frameE_cell ⟨(s.q, ofK (addressOfIndex kfp)), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
-        exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inl rfl))))
+        exact Or.inl (Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inl rfl)))))
       have hx' := cand_site hS hC hchk ht hj hw hsq h2 hx hxc
       obtain ⟨i', c', kfp', s', hc', hp', hs', hx''⟩ := siteE_cases hx'
       by_cases hii : i' = i
@@ -115,7 +115,7 @@ theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {
           hxc ↦ ?_
       · obtain ⟨hev, -⟩ := node_path ht hj hw
         simp only [nodeE, List.mem_append, hev]
-        exact Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inr ⟨ht0, rfl⟩))))
+        exact Or.inl (Or.inl (Or.inl (Or.inr (by rw [← hev]; exact hev ▸ hin _ (Or.inr ⟨ht0, rfl⟩)))))
       have hx' := cand_site hS hC hchk ht hj hw (hst ht0) h2 hx hxc
       obtain ⟨i', c', kfp', s', hc', hp', hs', hx''⟩ := siteE_cases hx'
       by_cases hii : i' = i
