@@ -1482,6 +1482,7 @@ positions, and a bad one passes the check. -/
 def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
   {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
   -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
+  -- `st`: the instance's statement, the public input with no oracles; `prog` is a parameter
 theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ st i tr | $ᵗ Chal i] ≤ εquery
 /-- A challenge of the proof's own chain in the bad set of its prefix: at its first occurrence `k` in the log, the
 query closing a challenge of the verifier's chain walk on `proof` has a history decoding to an admissible prefix that
@@ -1490,7 +1491,7 @@ missing rows zero. -/
 def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
-    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (prog, input) i tr
+    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (input, no oracles) i tr
     -- `tr` carries the words zero-filled `extractRows (g.log.take k)` reads
 def HashMisbehaves (prog input) (g : Run) : Prop := QueryLog.HasCollision g.log ∨ Hit prog input g ∨ Flip prog input g
 -- Deterministic, for every function answering the hash
@@ -1730,10 +1731,11 @@ leanISA's inhabitant, `leanIsaTraceExtraction`, takes `SentinelSafe prog`, and s
 corollary at it. `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
 execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the execution
 form takes `SentinelSafe prog` through the interface's inhabitant, and completeness from an
-execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
-establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
-implies some valid execution", is not stated: it carries no knowledge (decision 34).
+execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A
+bytecode with a `JUMP` in the sentinel slot has balancing steps and no execution (a proved
+repository test); leanVM's compiler establishes it (`lean_compiler/src/lib.rs:162`). The
+existential corollary, "an accepted proof implies some valid execution", is not stated: it
+carries no knowledge (decision 34).
 
 `BlakeMisbehaves` is about one adversary, one statement and one run, and its three clauses name
 what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). An
