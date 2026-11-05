@@ -2096,33 +2096,34 @@ is read off the deployed functions: `verify` accepts the statement and proof the
 and the stack `extract` reads off the adversary's queries gives no satisfying witness at that
 statement through the adaptor. Its one hypothesis is `hB`. The proof is short by design: on every
 run `core` puts the event inside `HashMisbehavesFrom` at the chosen statement, its flips those the
-verifier asked for on that statement's chain (BLAKE2s is a function, so the log is consistent with one, and
-`verifyWith_simulateQ` makes the game's verdict `verify`'s), and `satisfiedBy_witnessOf` turns
-`M3Holds` into `SatisfiedBy` at the admissible sizes `extract` returns. Under the lazy random oracle
-the run is a possible run with a consistent log as well, so the same step, `flip_of_verifierFlipFor` and
-`misbehaves_rom_adaptive`'s closed form give `baseVerifier_extractsWitness_rom_adaptive`, whose
-event reads the game's verdict, not `verify`'s. The mathematics is in `core`, `misbehaves_rom_of`
-and what they rest on. At a statement fixed before the adversary runs, each theorem is the adaptive
-one at the adversary that outputs that statement with its proof (`adaptiveGame_const`):
-`baseVerifier_extractsWitness`, `baseVerifier_extractsWitness_rom` and the rest keep their names,
-bound for bound. Every BLAKE2s, random-oracle, coins and adaptive constraint form has its execution
-form, and the execution forms are the headline.
+verifier asked for on that statement's chain (BLAKE2s is a function, so the log is consistent with
+one, and `verifyWith_simulateQ` makes the game's verdict `verify`'s), and `satisfiedBy_witnessOf`
+turns `M3Holds` into `SatisfiedBy` at the admissible sizes `extract` returns. Under the lazy random
+oracle the run is a possible run with a consistent log as well, so the same step,
+`flip_of_verifierFlipFor` and `misbehaves_rom_adaptive`'s closed form give
+`baseVerifier_extractsWitness_rom_adaptive`, whose event reads the game's verdict, not `verify`'s.
+The mathematics is in `core`, `misbehaves_rom_of` and what they rest on. At a statement fixed before
+the adversary runs, each theorem is the adaptive one at the adversary that outputs that statement
+with its proof (`adaptiveGame_const`): `baseVerifier_extractsWitness`,
+`baseVerifier_extractsWitness_rom` and the rest keep their names, bound for bound. Every BLAKE2s,
+random-oracle, coins and adaptive constraint form has its execution form, and the execution forms
+are the headline.
 
 `extractTrace` takes any inhabitant of leanISA's trace interface (decision 41), and the execution
 forms read it through `extractExecution`, leanISA's inhabitant `leanIsaTraceExtraction`, which takes
 `SentinelSafe prog` (the sentinel slot is not a `JUMP`), the part of the bytecode's well-formedness
 its `constraintSoundness` needs. Its extractor is computable end to end (acceptance test 24).
 `extract`, `witnessOf` and `extractTrace` keep the extracted witness and execution, which recursion
-(T6) needs. The witness form takes no bytecode hypothesis; the execution form takes `SentinelSafe prog` through the
-interface's inhabitant, and completeness from an execution takes `WellFormedBytecode prog` through
-`constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the sentinel slot can have a
-witness of the constraint statement and no valid execution on any memory
-(`exists_satisfiedBy_without_execution`), and `verify` accepts every proof `prove` returns for that
-witness (`verify_accepts_without_execution`): constraint soundness cannot drop the condition, and no
-extractor finds an execution there because there is none (acceptance test 41). That the
-probabilistic execution form fails without it is not proved: it needs an adversary outputting that
-program that meets `BlakeMisbehavesAdaptive`, the owed "hypothesis met by an accepted adversary".
-leanVM's compiler establishes the condition (`lean_compiler/src/lib.rs:162`).
+(T6) needs. The witness form takes no bytecode hypothesis; the execution form takes
+`SentinelSafe prog` through the interface's inhabitant, and completeness from an execution takes
+`WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP`
+in the sentinel slot can have a witness of the constraint statement and no valid execution on any
+memory (`exists_satisfiedBy_without_execution`), and `verify` accepts every proof `prove` returns
+for that witness (`verify_accepts_without_execution`): constraint soundness cannot drop the
+condition, and no extractor finds an execution there because there is none (acceptance test 41).
+That the probabilistic execution form fails without it is not proved: it needs an adversary
+outputting that program that meets `BlakeMisbehavesAdaptive`, the owed "hypothesis met by an
+accepted adversary". leanVM's compiler establishes the condition (`lean_compiler/src/lib.rs:162`).
 
 The adaptive forms (`AdaptiveGame.lean`, `Headline.lean`; decisions 42, 43) let the adversary
 output the program and the public input with its proof. `core` is stated per statement and per
