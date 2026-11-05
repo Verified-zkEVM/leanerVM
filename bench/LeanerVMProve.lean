@@ -12,7 +12,7 @@ import LeanerVMTests.Arithmetization.SentinelFixture
 import LeanerVMTests.Protocol.Verify
 import LeanerVM.Protocol.ProofRoots
 import LeanerVMTests.Protocol.LogScan
-import LeanerVM.Protocol.ProveExecution
+import LeanerVM.Protocol.Headline
 import LeanerVMTests.Semantics.PaddedImageRefutation
 
 /-!

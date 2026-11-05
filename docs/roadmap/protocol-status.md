@@ -1484,7 +1484,7 @@ adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_
 `baseVerifier_extractsExecution_coins` and `baseVerifier_extractsExecution_adaptive_coins`, and
 `baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
 `baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
-Completeness is about one computable prover, `proveExecution` (`Protocol/ProveExecution.lean`):
+Completeness is about one computable prover, `proveExecution` (`Protocol/Headline.lean`):
 leanISA's witness generator `witnessGen`, then `prove`. `proveExecution_complete`, for
 `WellFormedBytecode` (now with the fill blocks) and a valid execution `t` that `Fits`: the
 generator returns a witness of the constraint statement representing the padded trace

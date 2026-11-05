@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.Core
 public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Protocol.LeanIsa.Complete
 public import LeanerVM.Arithmetization.Soundness
-public import LeanerVM.Protocol.ProveExecution
+public import LeanerVM.Arithmetization.WitnessGen
 public import LeanerVM.Protocol.Compile.Agree
 public import LeanerVM.Protocol.AdaptiveGame
 public import LeanerVM.Semantics.FillBlocks
@@ -569,6 +569,13 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
     (leanVm_misbehaves_rom_closed prog input A hQ)) δ)
 
 /-! ## Completeness -/
+
+/-- **leanVM's honest prover from an execution**: the witness generator `witnessGen`, then the
+deployed prover `prove` on its witness, at `fuel` candidate nonces per grind and the WHIR rate
+`ρ`; `none` when either returns none. -/
+def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    Option (Proof PrunedMerklePaths) :=
+  (witnessGen prog input t).bind fun w ↦ prove fuel prog input w ρ
 
 /-- **Completeness of the deployed pair, the constraint form**, from which
 `proveExecution_complete` is proved. For a witness that satisfies leanISA's constraint

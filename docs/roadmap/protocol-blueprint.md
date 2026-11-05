@@ -2049,7 +2049,7 @@ theorem prove_ne_none (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = s
     (hg : ∀ fs, ProveReaches fuel prog input w ρ fs →
       Id.run (fs.grind blake2sBytes fuel queryGrindingBits) ≠ none) :
     prove fuel prog input w ρ ≠ none
--- The prover from an execution: the witness generator, then prove (ProveExecution.lean)
+-- The prover from an execution: the witness generator, then prove (Headline.lean)
 def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
     Option (Proof PrunedMerklePaths) :=
   (witnessGen prog input t).bind fun w ↦ prove fuel prog input w ρ
