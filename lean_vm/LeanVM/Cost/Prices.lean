@@ -152,13 +152,13 @@ four), `2^40.15` in all at `2^20` steps and `2^41.26` at `2^51`.
 
 So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
 through the positions' limbs), plus the address tables, `O(κ·2^κ + ℓ·2^ℓ)` in the memory's size
-`2^κ` and the program's `2^ℓ`: per step about `2^20.4` to `2^20.8` (`2^20.41` at `κ = 16` and no
-step, `2^20.75` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price,
-`runnerStepPrice`). At the guest's `ℓ = 19` it is `2^41.56` at `κ = 20` and `2^20` steps, `2^44.66`
-at `κ = 24` and `2^24`, `2^48.59` at `κ = 28` and `2^28`, `2^50.61` at `κ = 32` and `2^30`,
-`2^71.71` at `κ = 32` and `2^51`, and `2^80.75` at `κ = 32` and `2^60`: the terms besides the steps'
+`2^κ` and the program's `2^ℓ`: per step about `2^20.5` to `2^21` (`2^20.55` at `κ = 16` and no
+step, `2^20.98` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price,
+`runnerStepPrice`). At the guest's `ℓ = 19` it is `2^41.65` at `κ = 20` and `2^20` steps, `2^44.83`
+at `κ = 24` and `2^24`, `2^48.78` at `κ = 28` and `2^28`, `2^50.80` at `κ = 32` and `2^30`,
+`2^71.93` at `κ = 32` and `2^51`, and `2^80.98` at `κ = 32` and `2^60`: the terms besides the steps'
 (the address tables included: `2^40.58` at `κ = 20` and `2^20` steps to `2^43.69` at `κ = 32` and
-`2^60`) dominate up to about `2^21` steps at `κ ≤ 28` and `2^23` at `κ = 32`, the per-step price
+`2^60`) dominate up to about `2^20` steps at `κ ≤ 24`, `2^21` at `κ = 28` and `2^23` at `κ = 32`, the per-step price
 beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
@@ -176,7 +176,7 @@ well below `2^22` steps, the budget is several times what the compiled decoder s
 the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
 trade-off.
 
-The literals (`5969`, `17734`, `12758`, `8112592`, `2935`, `2965`, `1584`, the `+ 39`, `+ 36`,
+The literals (`5969`, `41252`, `12758`, `8112592`, `4343`, `4373`, `1584`, the `+ 39`, `+ 36`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
@@ -200,12 +200,13 @@ def guestDecoderPreconditionPrice : ℕ := 269 * 1271 + 99 * 706 + 24834 + 11
 
 /-- Filing one state of the run in the entry table, a sorted array: a lookup of its pc (`5969`),
 and for each of the at most two functions entered there the precondition test, the call's key
-(`32` reads, and `17734` for the rest of the key and the pair), then its share of the one stable
-sort and the deduplication of the pairs (`(2935 + 5·limbs)·exponent + 7·limbs + 2965` a pair). -/
+(`66` reads: at most `56` arguments, `__loop2`'s, and `10` returns; and `41252` for the rest of the
+key and the pair), then its share of the one stable sort and the deduplication of the pairs
+(`(4343 + 5·limbs)·exponent + 7·limbs + 4373` a pair). -/
 def guestDecoderStateFilingPrice (exponent : ℕ) : ℕ :=
-  5969 + (guestDecoderPreconditionPrice + 32 * 1271 + 17734) * 2 + 36 +
-    2 * ((2935 + 5 * guestDecoderEntryTablePositionLimbs exponent) * exponent +
-      7 * guestDecoderEntryTablePositionLimbs exponent + 2965)
+  5969 + (guestDecoderPreconditionPrice + 66 * 1271 + 41252) * 2 + 36 +
+    2 * ((4343 + 5 * guestDecoderEntryTablePositionLimbs exponent) * exponent +
+      7 * guestDecoderEntryTablePositionLimbs exponent + 4373)
 
 /-- A lookup of a call's frame in the entry table, one binary search (at most `16` words of
 arguments and returns), and a word of the frame. -/

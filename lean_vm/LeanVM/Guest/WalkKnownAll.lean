@@ -35,6 +35,7 @@ namespace LeanVM.Guest.End
 
 @[expose] public section
 
+set_option maxRecDepth 4000 in
 /-- **The walks' obligations**, given `verify_bus_gkr`'s and its layer loop's. -/
 theorem walkKnown_of_gkr (h10 : CutsKnown 10) (h91 : CutsKnown 90) : WalkKnown := by
   intro j hj h1 h19
