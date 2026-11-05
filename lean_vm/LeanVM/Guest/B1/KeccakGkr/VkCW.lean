@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkKidsBW
 
 `VkCompleteAtBK fs cert κ Bvk`: `VkCompleteAtK` by trees of at most `Bvk` words.
 `verify_keccak_completeAtB_fs`: it holds at the deployed frame sizes `B2C.fs` with
-`vkBound = B2C.fs "verify_keccak" + 440 + 81879`: the frame, the seven buffers (`τ + 412`
+`vkBound = B2C.fs "verify_keccak" + 440 + 61728`: the frame, the seven buffers (`τ + 412`
 words, `τ ≤ 28`) and the callees (`kidsB_fs_le`), by `completeAt_flatGB` on the same
 obligations as the unbounded form (`vk_obl`).
 -/
@@ -44,7 +44,7 @@ def VkCompleteAtBK (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk :
       (Returns (cap' ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word, m0])) Bvk
 
 /-- `verify_keccak`'s words at `B2C.fs`. -/
-noncomputable def vkBound : ℕ := LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 81879
+noncomputable def vkBound : ℕ := LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 61728
 
 theorem VkData.sizes_sum {D : VkData} (h : D.Ok) : D.sizes.sum = D.τ + 412 := by
   have := h.1
@@ -70,12 +70,12 @@ theorem verify_keccak_completeAtB_fs (κ : ℕ) :
     (fun fp fps ↦ own_fit h _ _)
     (fun fp ↦ D.kids LeanVM.Guest.B2C.fs (fp + LeanVM.Guest.B2C.fs "verify_keccak") curE chiE olE
       zvE slE)
-    (D.kidsB LeanVM.Guest.B2C.fs 34 946 184 325 229) 81879
+    (D.kidsB LeanVM.Guest.B2C.fs 17 473 92 325 229) 61728
     (fun fp ↦ kids_completeB_fs h κ _ curE chiE olE zvE slE)
-    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE 34 946 184 325 229).trans (kidsB_fs_le h).2)
+    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE 17 473 92 325 229).trans (kidsB_fs_le h).2)
     (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
       vk_obl h hfin curE chiE olE zvE slE fp fps outs hlen hout rd hB hLin hto)) le_rfl ?_
-  show _ ≤ LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 81879
+  show _ ≤ LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 61728
   rw [sizes_sum h]
   have := h.2.1
   generalize LeanVM.Guest.B2C.fs "verify_keccak" = a

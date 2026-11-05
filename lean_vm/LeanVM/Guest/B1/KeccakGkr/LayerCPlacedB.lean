@@ -22,12 +22,13 @@ memory, by
 
 the layer's frame; its buffers (`allocDyn` of `y` words for the pack challenges, then 128 for the
 round records, 11 for the local point, 25 for the next claim's lanes and 7 for its flips); the
-eight-round pack loop's call (`⌊y/8⌋` iterations of at most `KP` words each when it is entered,
-its frame `fs (packLoopName first)` when it is skipped, which is when `y < 8`); the remainder
-loop's likewise (`y % 8` iterations of at most `KR` words, its frame when `8 ∣ y`).
+eight-round pack loop's call (`⌊y/8⌋` iterations of at most `KP` words each and its run's one
+phantom frame `fs (packLoopName first)` when it is entered, that frame alone when it is skipped,
+which is when `y < 8`); the remainder loop's likewise (`y % 8` iterations of at most `KR` words and
+its frame, its frame alone when `8 ∣ y`).
 
-The hypotheses on the callees are fs-generic: each loop's words per iteration
-(`TotalLeOn … LoopPre`, the form of `Count.wSK_totalLeOn`). The proof is `layer_completeAtF`'s
+The hypotheses on the callees are fs-generic: each loop's run's words, per iteration and its one
+phantom frame (`TotalLeOn … LoopPre`, the form of `Count.wSKt_totalLeOn`). The proof is `layer_completeAtF`'s
 with `completeAt_flatOutFB`, the pure callees placed within their bounds by
 `completeAtDTB_of_relIn`, the honest valuation `layer_obl`.
 -/
@@ -43,8 +44,8 @@ open LeanVM.Protocol.KeccakGkr
 @[expose] public section
 
 /-- **`keccak_layer`'s words**: its frame, its buffers (`y + 128 + 11 + 25 + 7`), the eight-round
-pack loop's (`⌊y/8⌋` iterations of at most `KP` words, or its frame when skipped) and the
-remainder loop's (`y % 8` iterations of at most `KR` words, or its frame when skipped). -/
+pack loop's (its frame and `⌊y/8⌋` iterations of at most `KP` words) and the remainder loop's (its
+frame and `y % 8` iterations of at most `KR` words). -/
 def layerWords (fs : String → ℕ) (first y KP KR : ℕ) : ℕ :=
   fs (layerName first) + (y + 171) + (fs (packLoopName first) + y / 8 * KP) +
     (fs (remLoopName first) + y % 8 * KR)
@@ -52,14 +53,16 @@ def layerWords (fs : String → ℕ) (first y KP KR : ℕ) : ℕ :=
 theorem packLoopName_ne_rem (first : ℕ) : packLoopName first ≠ remLoopName first := by
   unfold packLoopName remLoopName; split <;> decide
 
-/-- The callees' bounds: the pack loop's iterations, the remainder loop's. -/
-def layerKidBd (first y KP KR : ℕ) (k : Kid) : ℕ :=
-  if k.f = packLoopName first then y / 8 * KP else y % 8 * KR
+/-- The callees' bounds: the pack loop's run (its iterations and its one phantom frame), the
+remainder loop's. -/
+def layerKidBd (fs : String → ℕ) (first y KP KR : ℕ) (k : Kid) : ℕ :=
+  if k.f = packLoopName first then y / 8 * KP + fs (packLoopName first)
+  else y % 8 * KR + fs (remLoopName first)
 
 /-- The words of the layer's callees, an entered one's bound, a skipped one's frame. -/
 theorem layerKids_bound (fs : String → ℕ) (D : LayerData) (first : ℕ)
     (CL : ClaimLay) (bcur bout b KP KR : ℕ) :
-    kidsBound fs (layerKidBd first D.y KP KR) (layerKids D first CL bcur bout b) ≤
+    kidsBound fs (layerKidBd fs first D.y KP KR) (layerKids D first CL bcur bout b) ≤
       fs (packLoopName first) + D.y / 8 * KP + (fs (remLoopName first) + D.y % 8 * KR) := by
   have hne := packLoopName_ne_rem first
   simp only [kidsBound, layerKids, layerKidBd, hne.symm, List.map_cons, List.map_nil,
@@ -76,14 +79,14 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
 /-- **`keccak_layer` is complete, placed, within `layerWords fs first D.y KP KR` words**, for
-its two specializations: `layer_completeAtF` with the pack loop at most `KP` words per iteration
-and the remainder loop at most `KR`. -/
+its two specializations: `layer_completeAtF` with the pack loop's run at most `KP` words per
+iteration and its frame, the remainder loop's at most `KR` and its frame. -/
 theorem layer_completeAtFB {first : ℕ} (hf : first < 2) (κ : ℕ) (D : LayerData)
     (CL : ClaimLay) (bcur bout : ℕ) {p0 p1 iota : E} {KP KR : ℕ}
     (hP : TotalLeOn coreProgram fs (packLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KP)
+      fun a ↦ logG (a.getD 1 0) * KP + fs (packLoopName first))
     (hR : TotalLeOn coreProgram fs (remLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KR)
+      fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
     (hcl : D.cap.length = 5) (hcap : AllCanonical D.cap)
     (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
     (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
@@ -112,7 +115,7 @@ theorem layer_completeAtFB {first : ℕ} (hf : first < 2) (κ : ℕ) (D : LayerD
     (layerPre_noLoadIte hf)
     (layerSizes D) (fun _ ↦ layerOwn D first (ptr bcur)) (fun _ ↦ ?_) (fun _ ↦ ⟨rfl, rfl⟩)
     (fun fp ↦ layerKids D first CL bcur bout (fp + fs (layerName first)))
-    (layerKidBd first D.y KP KR)
+    (layerKidBd fs first D.y KP KR)
     (fs (packLoopName first) + D.y / 8 * KP + (fs (remLoopName first) + D.y % 8 * KR)) ?_
     (fun fp ↦ layerKids_bound fs D first CL bcur bout _ KP KR) ?_ ?_ ?_
   · -- the buffers' words fit

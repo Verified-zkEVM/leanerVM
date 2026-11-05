@@ -15,10 +15,10 @@ public import LeanVM.Guest.B1.Place.OsFinalB
 **`open_stacked_completeAtB`** proves `open_stacked_completeAtB_Spec`: `open_stacked_completeAtD_Spec`
 within `osBos fs (osBk fs Bnd Kr c) (openName μ r) c` words, `c` the candidate's configuration,
 given the named callees' words bounds `Bnd` (`OsLeafBounds`, constants by name) and the residual
-loops' words an iteration `Kr` (`OsLoopBounds`, G7-cnt's `LoopTotalLe.totalLeOn`). The bound is the
-frame, the buffers, and for each call statement of the body the larger of its callee's frame and
-bound (`osBk`: `Bnd`, each squeeze loop's `sqTot`, each `opening_queries`' `oqBound`, each residual
-loop's `queries / 8 * Kr`).
+loops' words an iteration `Kr` (`OsLoopBounds`, G7-cnt's `LoopRunLe.totalLeOn`: and the run's one
+phantom frame). The bound is the frame, the buffers, and for each call statement of the body the
+larger of its callee's frame and bound (`osBk`: `Bnd`, each squeeze loop's `sqTot`, each
+`opening_queries`' `oqBound`, each residual loop's `queries / 8 * Kr` and its frame).
 -/
 
 namespace LeanVM.Guest.B1

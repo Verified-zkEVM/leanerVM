@@ -109,9 +109,11 @@ theorem osRes_ok : ∀ m < 28, ∀ l < (B1.Whir.osCfg m).levels.length,
       ((B1.Whir.osCfg m).resLoop l) = true := by
   decide +kernel
 
-/-- **Each candidate's residual loops within `wSK` per iteration.** -/
-theorem osLoopBounds : ∀ m < 28, B1.OsLoopBounds B2C.fs wSK (B1.Whir.osCfg m) :=
-  fun m hm l hl => wSK_totalLeOn (osRes_ok m hm l hl)
+/-- **Each candidate's residual loops' runs within `wSKt` (`wSK` less the frame) per iteration
+and their one phantom frame.** -/
+theorem osLoopBounds :
+    ∀ m < 28, B1.OsLoopBounds B2C.fs (fun f => wSK f - B2C.fs f) (B1.Whir.osCfg m) :=
+  fun m hm l hl => by simpa only [wSKt_eq] using wSKt_totalLeOn (osRes_ok m hm l hl)
 
 end
 end LeanVM.Guest.Count

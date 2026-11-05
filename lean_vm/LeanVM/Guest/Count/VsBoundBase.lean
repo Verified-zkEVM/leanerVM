@@ -70,7 +70,7 @@ theorem osBndFast_eq : osBndFast = osBnd := by
 
 /-- `open_stacked`'s words at candidate `c`, its name spelled by `natStr`. -/
 noncomputable def osC (c : ℕ) : ℕ :=
-  B1.osBos B2C.fs (B1.osBk B2C.fs osBnd wSK (osCfg c)) ("open_stacked__L" ++ natStr c) (osCfg c)
+  B1.osBos B2C.fs (B1.osBk B2C.fs osBnd (fun f => wSK f - B2C.fs f) (osCfg c)) ("open_stacked__L" ++ natStr c) (osCfg c)
 
 theorem osC_eq_fast (c : ℕ) : osC c = osCF c := by
   unfold osC osCF
@@ -78,7 +78,7 @@ theorem osC_eq_fast (c : ℕ) : osC c = osCF c := by
 
 /-- `osBosAt` at a candidate is `osC`. -/
 theorem osBosAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
-    B1.osBosAt B2C.fs osBnd wSK μ r = osC (candidate μ r) := by
+    B1.osBosAt B2C.fs osBnd (fun f => wSK f - B2C.fs f) μ r = osC (candidate μ r) := by
   unfold B1.osBosAt osC openName openNames
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h, Option.map_some,
     Option.getD_some, natStr_eq]

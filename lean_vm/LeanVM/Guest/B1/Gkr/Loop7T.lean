@@ -255,7 +255,8 @@ theorem ly7_chain {rd : Reader} {dsh gmu layers rounds kmn : E} {sh M : ℕ} (hs
 
 /-! ## The chain's words -/
 
-/-- The words of `__loop36` called below `g^(c/4)`: its frame when not entered. -/
+/-- The words of `__loop36` called below `g^(c/4)`: its run's iterations and its one phantom
+frame, or its frame when not entered. -/
 def ly7W29 (fs : String → ℕ) (K29 c : ℕ) : ℕ := fs "__loop36" + c / 4 * K29
 
 /-- The rounds the body calls: `gkr_rounds__L{2r}` (the dispatch), `gkr_rounds__L1` at an odd
@@ -307,10 +308,11 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
     simp [this, hs]
 
 /-- **`__loop6`'s chain's words**: within the iterations' bounds `ly7B` and the last tail's
-frame, given `__loop36`'s words linear in its end's exponent and the rounds' bound `R`. -/
+frame, given `__loop36`'s run's words (linear in its end's exponent, its phantom frame once) and
+the rounds' bound `R`. -/
 theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29 R : ℕ}
     (hsh2 : sh < 2)
-    (h29 : TotalLeOn P fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29))
+    (h29 : TotalLeOn P fs "__loop36" LoopPre (fun a ↦ logG (a.getD 1 0) * K29 + fs "__loop36"))
     (hR : ∀ n ∈ grCounts, TotalLe P fs (lName "gkr_rounds" n) (fun _ ↦ R)) :
     ∀ m c (t : Tree) args rets,
       Budget.ChainHonest P "__loop6" (ly7Q sh) ly7Csb ly7Tl (fun _ ↦ []) (ly7Tsb sh) m c t →

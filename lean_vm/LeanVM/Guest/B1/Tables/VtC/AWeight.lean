@@ -51,7 +51,8 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9"))
     {ι : Type} (ω : ι → String → ℕ) (Wss K10w : ι → ℕ)
     (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
       (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
@@ -60,7 +61,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
         (flatCalls vtPre) (fun _ ↦ H.sizes) (List.replicate 116 (vtKidW ω Wss fun i ↦ 28 * K10w i)))
-      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (H.n * K10)).sum + ifFrames fs vtPre)) := by
+      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) := by
   have hrun : ∀ fp rd, LowDef κ rd → MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       (∀ s ∈ vtPre, VSH (coreProgram.RelIn rd (RegionL (vtL (H.linL B) H.sizes
         (fun _ ↦ H.ownW B) fs fp))) rd (vtσ rd (vtW H (B.at (fp + fs "verify_tables")))
@@ -197,8 +198,8 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     (fun fp rd hlow hL i c hc ht t r hn hv hbo ↦ by
       have hk := hkw fp rd hlow hL i c hc ht t r hn hv hbo
       simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> simp_all)
-    (vtBs Kf Ksh (H.n * K10)) _ ?hB
-    (fun σ ↦ callsBound_le vtPre σ (vtBs Kf Ksh (H.n * K10)))).mono le_rfl fun _ h ↦ h
+    (vtBs Kf Ksh (vtRunB fs K10 H.n)) _ ?hB
+    (fun σ ↦ callsBound_le vtPre σ (vtBs Kf Ksh (vtRunB fs K10 H.n)))).mono le_rfl fun _ h ↦ h
   case hQ =>
     intro fp rd hlow hL s hs
     cases s with
@@ -229,7 +230,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 hc hv
     obtain ⟨s, hs, tup, hst, rfl⟩ := flatCalls_getElem vtPre i c hc
     obtain ⟨hsm, -⟩ := getElem?_filter_mem hs
-    have hbi : (vtBs Kf Ksh (H.n * K10)).getD i 0 = vtCallBnd Kf Ksh (H.n * K10) s := by
+    have hbi : (vtBs Kf Ksh (vtRunB fs K10 H.n)).getD i 0 = vtCallBnd Kf Ksh (vtRunB fs K10 H.n) s := by
       simp [vtBs, List.getD_eq_getElem?_getD, hs]
     rw [hbi]
     have hok := List.all_eq_true.mp vtFlat.hcall s hsm
@@ -278,7 +279,10 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
       have := h10 rd' t _ r hn hpre hv hbo
       simp only [List.map_cons, List.getD_cons_succ, List.getD_cons_zero, v17,
         gen_pow_eq_ofK] at this
-      rwa [logG_spec (by omega)] at this
+      rw [logG_spec (by omega)] at this
+      unfold vtRunB
+      rw [ite_neg' (show ¬H.n = 0 by omega)]
+      exact this
     | dispatch x fs' a rr =>
       simp only [Stmt.callSF, Option.some.injEq] at hst
       subst hst
@@ -422,7 +426,8 @@ theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
       (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10))
+    (h10 : TotalLeOn coreProgram fs "__loop9" LoopPre
+      (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9"))
     {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)
     (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
       WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
@@ -433,7 +438,7 @@ theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (fun t ↦ ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "verify_tables" + (vtBs (Kw i) (Wss i) (28 * K10w i)).sum) t)
-      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (H.n * K10)).sum + ifFrames fs vtPre)) :=
+      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) :=
   (verify_tables_completeAtTBW hκ h hs B Kf Ksh K10 hKf hsh h10 ω Wss K10w hssw h10w).mono le_rfl
     fun _ ht i _ _ _ hv hb ↦ vt_weight_le ω Kw Wss K10w hKw ht hv hb i
 

@@ -122,7 +122,7 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
       show S.point.length < 30
       rw [(S.runG' hbl).2.2.1]; omega
     have hn : S.H.n < 29 := by have := S.n_le hbl; omega
-    have hB : fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh (S.H.n * W.K10)).sum +
+    have hB : fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh (Tables.vtRunB fs W.K10 S.H.n)).sum +
         Tables.ifFrames fs Tables.vtPre) ≤ vtMax fs W.Kf W.Ksh W.K10 := by
       rw [S.vt_sizes_sum]
       unfold vtMax

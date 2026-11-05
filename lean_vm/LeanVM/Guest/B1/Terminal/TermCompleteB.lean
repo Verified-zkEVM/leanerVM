@@ -17,16 +17,16 @@ public import LeanVM.Guest.Memory.LoopPre
 
 `check_opening_terminal_completeAtB`: `check_opening_terminal_completeAt` with the size at most
 
-  `fs "check_opening_terminal" + 146 + 3·Beqc + max (fs "__loop14") (32·K15)
+  `fs "check_opening_terminal" + 146 + 3·Beqc + (32·K15 + fs "__loop14")
     + (fs "selector_tables" + 448) + 99·Bcs + (fs "ring_switch_weight" + 2240 + Brs)`
 
 (`completeAt_flatDepRB`, the callees within `termBs`, `termKids_completeB`). The pure callees'
 words are fs-generic hypotheses, in the forms the words certificates give at `B2C.fs`:
 
 * `hEqc`: `eq_prefix_chain` within `Beqc` (`TotalLe`, constant; its certificate: `184`), three calls;
-* `hL15`: `__loop14` within `K15` per unit of its end's exponent (`TotalLeOn … LoopPre`, as
-  `Count.wSK_totalLeOn`; its certificate: `38`); its end is `g^m`, `m ≤ 32`, so `32·K15` (or its
-  frame when skipped, `m = 1`);
+* `hL15`: `__loop14`'s run within `K15` per unit of its end's exponent and its one phantom frame
+  (`TotalLeOn … LoopPre`, as `Count.wSKt_totalLeOn`; its certificate: `19`); its end is `g^m`,
+  `m ≤ 32`, so `32·K15` and its frame (its frame alone when skipped, `m = 1`);
 * `hCsF`: each `column_selector__L{κ}`, `κ < 29`, has its frame within `Bcs` (it has no buffer and
   no callee: `cs_completeAtB`; its certificates: at most `157`), `99` calls;
 * `hrs`: `rs_eq_run` on `c ≤ 34` coordinates within `Brs` (`TotalLeOn`; it has no words
@@ -72,23 +72,26 @@ theorem eqc_kid_completeB (κ : ℕ) (hκ : 6 ≤ κ) {b ba bb : ℕ} {as bs : L
   · have := hm0 j (by rw [eqChain_length]; omega)
     simpa [eqChain, word_one] using this
 
-/-- **The public input's chain's loop, complete, placed, within `m·K15`** (`l15_kid_complete`),
-`__loop14`'s words at most `K15` per unit of its end's exponent. -/
+/-- **The public input's chain's loop, complete, placed, within `m·K15` and its frame**
+(`l15_kid_complete`), `__loop14`'s run's words at most `K15` per unit of its end's exponent and its
+one phantom frame. -/
 theorem l15_kid_completeB (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {L : Main.Layout}
     (hm2 : 2 ≤ m) (hmo : m < 2 ^ 64 - 1) (hglm : glm = gen ^ m) (hps : m ≤ ps.length)
     (hrd : ∀ rd, LowDef κ rd → MemL rd L → ReadsAt rd (ofK (addressOfIndex bp)) ps)
     (hR : ∀ i, bp ≤ i ∧ i < bp + m → RegionL L i) {K15 : ℕ}
-    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15) :
+    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
+      fun a => logG (a.getD 1 0) * K15 + fs "__loop14") :
     CompleteAtB fs cert κ "__loop14" ((b, piW rm ps m) :: L)
-      [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] (Returns []) (m *
-          K15) := by
+      [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] (Returns [])
+      (m * K15 + fs "__loop14") := by
   have hpre : LoopPre [word 2 0 0, glm, ofK (addressOfIndex b), ofK (addressOfIndex bp)] :=
     ⟨1, m, by show word 2 0 0 = _; rw [word_gen, ← gen_pow_eq_ofK, pow_one],
       by show glm = _; rw [hglm, gen_pow_eq_ofK], by omega, hmo⟩
   have hlog : logG glm = m := by rw [hglm, gen_pow_eq_ofK, logG_spec hmo]
-  refine (completeAtDTB_of_relIn (B := m * K15) l15_pure List.mem_cons_self
+  refine (completeAtDTB_of_relIn (B := m * K15 + fs "__loop14") l15_pure List.mem_cons_self
     (fun rd t rets' hn hv hb => le_of_le_of_eq (hL15 rd t _ rets' hn hpre hv hb)
-      (by show logG glm * K15 = m * K15; rw [hlog])) fun rd hl hm => ?_).toCompleteAtB
+      (by show logG glm * K15 + fs "__loop14" = m * K15 + fs "__loop14"; rw [hlog]))
+    fun rd hl hm => ?_).toCompleteAtB
   have hm0 : ReadsAt rd (ofK (addressOfIndex b)) (piW rm ps m) := hm _ List.mem_cons_self
   have hmL : MemL rd L := fun q hq => hm q (List.mem_cons_of_mem _ hq)
   have hstep : ∀ k, 1 ≤ k → k < m →
@@ -106,15 +109,15 @@ theorem l15_kid_completeB (κ : ℕ) {b bp m : ℕ} {rm glm : E} {ps : List E} {
   rw [← hglm, pow_one, ← word_gen] at h
   exact h
 
-/-- **The terminal's callees' bounds**: the three prefix chains `Beqc`, `__loop14` `32·K15` (its
-frame when skipped), `selector_tables` its frame and buffers, each column selector `Bcs`,
+/-- **The terminal's callees' bounds**: the three prefix chains `Beqc`, `__loop14` `32·K15` and its
+frame (its frame alone when skipped), `selector_tables` its frame and buffers, each column selector `Bcs`,
 `ring_switch_weight` its frame, its chain (`64·35`) and `rs_eq_run`'s `Brs`. -/
 def termBs (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : List ℕ :=
-  [Beqc, Beqc, max (fs "__loop14") (32 * K15), fs "selector_tables" + 448] ++
+  [Beqc, Beqc, (32 * K15 + fs "__loop14"), fs "selector_tables" + 448] ++
     List.replicate Tables.nCommittedCols Bcs ++ [Beqc, fs "ring_switch_weight" + 2240 + Brs]
 
 theorem termBs_sum (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) :
-    (termBs fs Beqc K15 Bcs Brs).sum = 3 * Beqc + max (fs "__loop14") (32 * K15) +
+    (termBs fs Beqc K15 Bcs Brs).sum = 3 * Beqc + (32 * K15 + fs "__loop14") +
       (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs) := by
   simp only [termBs, List.sum_append, List.sum_cons, List.sum_nil, List.sum_replicate,
     smul_eq_mul, Tables.nCommittedCols]
@@ -135,7 +138,8 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
           D.outPt ∧
       ReadsAt rd (ofK (addressOfIndex D.B.pt1)) (p1Of D.x))
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
+    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
+      fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
     (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
@@ -146,7 +150,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
   unfold termKids termBs
   refine KidsDepB.append (KidsDepB.append ?_ ?_) ?_
   · refine ⟨fun pv => ⟨fun _ => ?_, fun h => by simp at h⟩, fun pv => ⟨fun _ => ?_, fun h => by simp at h⟩,
-      fun pv => ⟨fun ht => ?_, fun _ => le_max_left _ _⟩,
+      fun pv => ⟨fun ht => ?_, fun _ => Nat.le_add_left _ _⟩,
       fun pv => ⟨fun _ => ?_, fun h => by simp at h⟩, trivial⟩
     · exact eqc_kid_completeB κ hκ (by omega) (by simp; omega) hgmu
         (fun rd hl hm => ⟨(hrd rd hl hm).1, readsAt_take (hrd rd hl hm).2.2.2 _⟩)
@@ -166,7 +170,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
       exact (l15_kid_completeB κ hm2 (by omega) hglm (by omega)
         (fun rd hl hm => (hrd rd hl hm).2.2.2)
         (fun i hi => hreg i (by simp only [TermRegion]; omega)) hL15).mono le_rfl
-        (le_trans (Nat.mul_le_mul_right _ hm) (le_max_right _ _))
+        (Nat.add_le_add_right (Nat.mul_le_mul_right _ hm) _)
     · exact ((Tables.selector_tables_completeAtB fs cert κ _ _ _ _ (by simp [pt28]; omega)
         (by simp [pt128]; omega)).toCompleteAtB).mono le_rfl (by simp)
   · have h : KidsDepB fs cert κ ((List.range Tables.nCommittedCols).map (selKid D))
@@ -217,7 +221,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
 set_option maxHeartbeats 1000000 in
 /-- **`check_opening_terminal` is complete, placed, within a bound**
 (`check_opening_terminal_completeAt` with its size at most
-`fs "check_opening_terminal" + 146 + 3·Beqc + max (fs "__loop14") (32·K15) + (fs "selector_tables"
+`fs "check_opening_terminal" + 146 + 3·Beqc + (32·K15 + fs "__loop14") + (fs "selector_tables"
 + 448) + 99·Bcs + (fs "ring_switch_weight" + 2240 + Brs)` at every frame pointer, before the
 memory): its frame, its buffers (`35 + 35 + 35 + 41`) and its callees' bounds (`termBs`), the pure
 callees' words by the hypotheses `hEqc`, `hL15`, `hCsF`, `hrs`. -/
@@ -234,13 +238,14 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
     (hfin : (inner + stackWeight layout (openedClaims claims [out]) ringPoint coeffs lam x) * yr =
       target)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
-    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre fun a => logG (a.getD 1 0) * K15)
+    (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
+      fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
     (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
     CompleteAtB fs cert κ "check_opening_terminal" Lin
       (termArgs B rm gmu gzcn glm gtau lamCl inner yr target) (Returns [])
-      (fs "check_opening_terminal" + 146 + 3 * Beqc + max (fs "__loop14") (32 * K15) +
+      (fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
         (fs "selector_tables" + 448) + 99 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap

@@ -16,15 +16,16 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCPlacedB
 
 `kids_completeB` is `kids_complete` with each call within its bound in `D.kidsB` (in order):
 
-* the copy loops `__loop10`, `__loop11`, `__loop12` (`τ - 4` words each): `(τ - 4) * KC`, from
-  their words per iteration (`TotalLeOn … LoopPre`, at most `KC`);
+* the copy loops `__loop10`, `__loop11`, `__loop12` (`τ - 4` words each): `(τ - 4) * KC` and the
+  loop's frame, from their runs' words (`TotalLeOn … LoopPre`, at most `KC` per iteration and
+  their one phantom frame);
 * the twelve layers: `layerWords fs (firstOf s) (D.layer s).y KP KR` (`layer_completeAtFB`);
 * the committed outputs' and the inputs' opening's rounds (`plainName 0`): `KO`; the inputs'
   rounds (`plainName 1`): `KI` (`TotalLe`).
 
 Every call is entered, so the callees' words (`kidsGBound`) are at most `(D.kidsB …).sum`
-(`kids_boundB`), which is `3 * ((τ - 4) * KC) + 2 * KO + KI + Σ_{s < 12} layerWords …`
-(`kidsB_sum`).
+(`kids_boundB`), which is `3 * ((τ - 4) * KC)` and the copy loops' frames, `2 * KO + KI` and
+`Σ_{s < 12} layerWords …` (`kidsB_sum`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -67,17 +68,18 @@ theorem kidsGBound_le_sum : ∀ (ks : List KidG) (Bs : List ℕ), (∀ k ∈ ks,
       List.sum_cons]
     omega
 
-/-- **A copy loop, complete within `m * KC`**: `loop_complete` with its words per iteration. -/
+/-- **A copy loop, complete within `m * KC` and its frame**: `loop_complete` with its run's words,
+per iteration and its one phantom frame. -/
 theorem loop_completeB {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
     (hb : fn.body = copyLoopT name) (hpar : fn.params = [.n 0, .n 1, .n 2, .n 3])
     (hS : name ∈ vkKidS) {KC : ℕ}
-    (hT : TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC)
+    (hT : TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC + fs name)
     (κ : ℕ) {L : Main.Layout} {m : ℕ} (hm1 : 0 < m) (hm2 : m < ordG)
     {db sb dj sj : ℕ} {dw sw : List E} (hd : (db, dw) ∈ L) (hs : (sb, sw) ∈ L)
     (hdl : dj + m ≤ dw.length) (hsl : sj + m ≤ sw.length)
     (heq : ∀ j < m, dw.getD (dj + j) 0 = sw.getD (sj + j) 0) {dst src : E}
     (hdst : dst = ptr db * gen ^ dj) (hsrc : src = ptr sb * gen ^ sj) :
-    CompleteAtB fs cert κ name L [1, gen ^ m, dst, src] (Returns []) (m * KC) := by
+    CompleteAtB fs cert κ name L [1, gen ^ m, dst, src] (Returns []) (m * KC + fs name) := by
   refine CompleteAtDTB.toCompleteAtB (completeAtDTB_of_relIn vkKidS_pure hS
     (fun rd t rets' hn hv hb' ↦ ?_) fun rd _ hmem ↦ ?_)
   · have h1 := hT rd t _ rets' hn (loopPre_gen hm1 (by unfold ordG at hm2; omega) _) hv hb'
@@ -113,15 +115,16 @@ namespace VkData
 /-- **The calls' bounds**, in order: `__loop10`, the twelve layers, the committed outputs'
 rounds, `__loop11`, the inputs' rounds, their opening's rounds, `__loop12`. -/
 def kidsB (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) : List ℕ :=
-  [(D.τ - 4) * KC] ++
+  [(D.τ - 4) * KC + fs "__loop10"] ++
   (List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR) ++
-  [KO, (D.τ - 4) * KC, KI, KO, (D.τ - 4) * KC]
+  [KO, (D.τ - 4) * KC + fs "__loop11", KI, KO, (D.τ - 4) * KC + fs "__loop12"]
 
 variable {D : VkData}
 
 /-- The bounds' sum. -/
 theorem kidsB_sum (D : VkData) (fs : String → ℕ) (KC KP KR KO KI : ℕ) :
-    (D.kidsB fs KC KP KR KO KI).sum = 3 * ((D.τ - 4) * KC) + 2 * KO + KI +
+    (D.kidsB fs KC KP KR KO KI).sum = 3 * ((D.τ - 4) * KC) +
+      (fs "__loop10" + fs "__loop11" + fs "__loop12") + 2 * KO + KI +
       ((List.range 12).map (fun s ↦ layerWords fs (firstOf s) (D.layer s).y KP KR)).sum := by
   simp only [kidsB, List.sum_append, List.sum_cons, List.sum_nil]
   omega
@@ -136,15 +139,16 @@ theorem kids_boundB (B curE chiE olE zvE slE KC KP KR KO KI : ℕ) :
   rcases hk with ((rfl | ⟨s, -, rfl⟩) | rfl | rfl | rfl | rfl | rfl) <;> rfl
 
 /-- **The calls, complete where `verify_keccak` places them, within `D.kidsB`**: the copy loops
-at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR`, the
-openings' rounds `KO` (`plainName 0`) and `KI` (`plainName 1`). -/
+at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR` (each
+loop's run and its one phantom frame), the openings' rounds `KO` (`plainName 0`) and `KI`
+(`plainName 1`). -/
 theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE : ℕ) {KC KP KR KO KI : ℕ}
     (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
-      TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC)
+      TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC + fs name)
     (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KP)
+      fun a ↦ logG (a.getD 1 0) * KP + fs (packLoopName first))
     (hR : ∀ first < 2, TotalLeOn coreProgram fs (remLoopName first) LoopPre
-      fun a ↦ logG (a.getD 1 0) * KR)
+      fun a ↦ logG (a.getD 1 0) * KR + fs (remLoopName first))
     (hO : TotalLe coreProgram fs (plainName 0) fun _ ↦ KO)
     (hI : TotalLe coreProgram fs (plainName 1) fun _ ↦ KI) :
     KidsGB fs cert κ (D.kids fs B curE chiE olE zvE slE) (D.kidsB fs KC KP KR KO KI) := by
