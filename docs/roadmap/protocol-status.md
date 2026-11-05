@@ -1415,7 +1415,9 @@ game (`adaptiveGame_eq_twoRunGame`) at `niError εquery 13700 Q` with the flips 
 chain (`leanVmReader.Flip`), which contain those (`flip_of_verifierFlipFor`,
 `HashMisbehavesFrom.mono`), and `baseVerifier_extractsWitness_rom_adaptive`,
 `baseVerifier_extractsExecution_rom_adaptive`, its `_wellFormed` corollary and
-`blakeMisbehavesAdaptive_of_comparison` follow at `(Q + 13700)/2^128 + hashTerm 13700 Q`. The theorems at a fixed statement keep their names and are
+`blakeMisbehavesAdaptive_of_comparison` follow at `(Q + 13700)/2^128 + hashTerm 13700 Q`;
+`misbehaves_rom_adaptive_coins` and `baseVerifier_extractsWitness_rom_adaptive_coins` average the
+two bounds over an adversary's coins. The theorems at a fixed statement keep their names and are
 their instances (`adaptiveGame_const`, `blakeMisbehavesAdaptive_const`), at `13700`.
 `BlakeMisbehaves prog input A δ` keeps its form; its meaning changed in its hits and in its flips.
 The joint log now holds the verifier's three seed queries, the program hash a logged seed preimage

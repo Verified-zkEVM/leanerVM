@@ -41,9 +41,12 @@ at a program whose sentinel slot is not a `JUMP`.
   `13700 = 3 + 13697` queries. The event the headline theorems use, its flips restricted to
   groups of the chosen statement's chain that the verifier itself asked
   (`leanVmReader.VerifierFlipFor`), is smaller, so the bound holds for it.
+  `misbehaves_rom_adaptive_coins`: the bound for an adaptive adversary with coins, a distribution
+  over coin-free ones.
 * `baseVerifier_extractsWitness_rom_adaptive`: in the same model, the verifier accepts the chosen
   statement and proof while the extracted witness fails leanISA's constraint statement
-  (`SatisfiedBy`) at it with probability at most `(Q + 13700)/2^128 + hashTerm 13700 Q`.
+  (`SatisfiedBy`) at it with probability at most `(Q + 13700)/2^128 + hashTerm 13700 Q`;
+  `baseVerifier_extractsWitness_rom_adaptive_coins` for an adversary with coins.
   `baseVerifier_extractsExecution_rom_adaptive`: the same for a valid execution, the event
   requiring that the chosen program's sentinel slot is not a `JUMP`;
   `baseVerifier_extractsExecution_rom_adaptive_wellFormed`: the same for an adversary whose
@@ -269,6 +272,17 @@ theorem misbehaves_rom_adaptive {A : AdaptiveAdversary} {Q : ℕ} (hQ : IsTotalQ
   rw [adaptiveGame_eq_twoRunGame, runRandom_map, prEvent_map]
   exact h
 
+/-- **The random-oracle bound for an adversary with coins that chooses the statement**: a
+distribution `coins` over adaptive adversaries each making at most `Q` queries is a mixture of
+coin-free ones, each meeting the bound. -/
+theorem misbehaves_rom_adaptive_coins {coins : ProbComp AdaptiveAdversary} {Q : ℕ}
+    (hQ : ∀ A ∈ support coins, IsTotalQueryBound A Q) :
+    Pr{let A ← coins; let z ← runRandom (adaptiveGame verifyWith A)}[
+      HashMisbehavesFrom [] (rootsOf z.1.prog z.1.input) leanVmReader.Flip z.1.toRun] ≤
+      niError εquery 13700 Q := by
+  rw [← bind_assoc]
+  exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦ misbehaves_rom_adaptive (hQ A hA)
+
 /-- The random-oracle error at `13700` verifier queries in closed form. -/
 private theorem niError_closed (Q : ℕ) :
     (niError εquery 13700 Q : ℝ≥0∞) ≤ ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) :=
@@ -290,6 +304,19 @@ theorem baseVerifier_extractsWitness_rom_adaptive {A : AdaptiveAdversary} {Q : �
       (mem_support_runRandom_adaptive hz).2 h.1 h.2).mono
       fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
     ((misbehaves_rom_adaptive hQ).trans (niError_closed Q))
+
+/-- **Adaptive knowledge soundness in the random-oracle model for an adversary with coins**, a
+distribution `coins` over adaptive adversaries each making at most `Q` queries: the bound of
+`baseVerifier_extractsWitness_rom_adaptive`, each coin-free adversary meeting it. -/
+theorem baseVerifier_extractsWitness_rom_adaptive_coins {coins : ProbComp AdaptiveAdversary}
+    {Q : ℕ} (hQ : ∀ A ∈ support coins, IsTotalQueryBound A Q) :
+    Pr{let A ← coins; let z ← runRandom (adaptiveGame verifyWith A)}[z.1.ok = true ∧ ¬ ∃ e,
+      extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
+        SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
+      ((Q + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 Q : ℝ≥0) := by
+  rw [← bind_assoc]
+  exact prEvent_bind_le_of_forall_le_of_support _ _ _ fun A hA ↦
+    baseVerifier_extractsWitness_rom_adaptive (hQ A hA)
 
 /-- **Adaptive knowledge soundness in the random-oracle model, for an execution.** With the hash a
 uniformly random function and an adaptive adversary `A` of at most `Q` queries, the game's verifier

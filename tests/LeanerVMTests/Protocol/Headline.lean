@@ -383,6 +383,18 @@ example (proof : Proof PrunedMerklePaths) :
       ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
   baseVerifier_extractsWitness_rom_adaptive (chooser_queries _ _ _)
 
+-- The adaptive random-oracle theorem for an adversary with coins, at the coins that draw the
+-- chooser alone.
+example (proof : Proof PrunedMerklePaths) :
+    Pr{let A ← (pure (chooser (program, input) (fillProg, mulInput) proof) : ProbComp _)
+       let z ← runRandom (adaptiveGame verifyWith A)}[z.1.ok = true ∧ ¬ ∃ e,
+      extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
+        SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
+      ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
+  baseVerifier_extractsWitness_rom_adaptive_coins fun A hA ↦ by
+    simp only [support_pure, Set.mem_singleton_iff] at hA
+    exact hA ▸ chooser_queries _ _ _
+
 /- The execution form for an adversary that only ever outputs the test vector's program, which
 is well-formed: the hypothesis on the adversary's programs is met. -/
 example (A : Adversary) {δ : ℝ≥0∞}
