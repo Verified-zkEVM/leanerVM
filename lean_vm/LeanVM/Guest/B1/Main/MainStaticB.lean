@@ -18,7 +18,9 @@ public import LeanVM.Guest.Memory.LoopPre
 
 The static bounds' convention: `SB g` bounds every valid tree of a statically bounded callee `g`
 (`TotalLe coreProgram fs g (fun _ => SB g)`), `SK g` an iteration of a statically bounded loop
-helper `g` (`TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g)`).
+helper `g` (`TotalLeOn coreProgram fs g LoopPre (fun a => logG (a.getD 1 0) * SK g)`), the phantom
+frame `fs g` its run leaves once (its last iteration's untaken tail call) charged to each iteration;
+`main`'s own loops are charged it once, `iterK fs SK g` words per iteration and `fs g` for the run.
 `rawX_completeAtB`, `rawS_completeAtB`: the raw signatures' loops within those bounds
 (`statement_completeAtB` is in `KidCoverAtB`).
 -/
@@ -42,15 +44,20 @@ theorem loopPre_pow {i e : ℕ} (hie : i < e) (he : e < 2 ^ 64 - 1) (rest : List
 theorem logG_gen {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
   rw [gen_pow_eq_ofK]; exact logG_spec he
 
+/-- **A static loop helper's words per iteration, its run's phantom frame apart**: `SK g` charges
+each iteration the phantom frame `fs g` that a run leaves once. -/
+def iterK (fs SK : String → ℕ) (g : String) : ℕ := SK g - fs g
+
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`__loop2` within its static bound**, from every counter below the count. -/
 theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
     (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop2" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop2")) :
+    (hT : TotalLeOn coreProgram fs "__loop2" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")) :
     ∀ i < nrx, CompleteAtDTB fs cert 16 "__loop2" Lin
       ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns []) (fun _ => True)
-      (nrx * SK "__loop2") := fun i hi =>
+      (nrx * iterK fs SK "__loop2" + fs "__loop2") := fun i hi =>
   completeAtDTB_of_relIn raw3_pure (by simp)
     (fun rd t rets' hn hv hb => by
       have := hT rd t _ rets' hn (loopPre_pow hi (by omega) _) hv hb
@@ -61,10 +68,11 @@ theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb 
 theorem rawS_completeAtB (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
     (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {SK : String → ℕ}
-    (hT : TotalLeOn coreProgram fs "__loop3" LoopPre (fun a => logG (a.getD 1 0) * SK "__loop3")) :
+    (hT : TotalLeOn coreProgram fs "__loop3" LoopPre
+      (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")) :
     ∀ j < nrs, CompleteAtDTB fs cert 16 "__loop3" Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
-      (fun _ => True) (nrs * SK "__loop3") := fun j hj =>
+      (fun _ => True) (nrs * iterK fs SK "__loop3" + fs "__loop3") := fun j hj =>
   completeAtDTB_of_relIn raw4_pure (by simp)
     (fun rd t rets' hn hv hb => by
       have := hT rd t _ rets' hn (loopPre_pow hj (by omega) _) hv hb

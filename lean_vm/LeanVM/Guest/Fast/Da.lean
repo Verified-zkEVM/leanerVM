@@ -19,18 +19,18 @@ open LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- Column `h`'s valuation (`da_verify_column`, function `31`). -/
-def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 31 (dvColArgs σ h) []
+/-- Column `h`'s valuation (`da_verify_column`, function `30`). -/
+def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 30 (dvColArgs σ h) []
 
 /-- Blob `i`'s iteration of column `h`'s blob loop (`__loop25`, function `405`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn 405 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn 404 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 32), gen ^ h, dvColVN σ Vn h (.n 14)] []
 
-/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `32`'s. -/
+/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `31`'s. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
   if i < dvRows σ ∧ h < 128 then
-    cellSymsOf (Vn 32 [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn 31 [dvColVN σ Vn h (.n 13)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
   else List.replicate 256 0
 

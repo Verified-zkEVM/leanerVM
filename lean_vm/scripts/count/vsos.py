@@ -19,7 +19,8 @@ fs = lambda n: fsd.get(n, 2)
 def SB(n):
     c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
 def SK(n):
-    c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
+    """`wSK`: a loop's words per iteration, its run's phantom frame charged to each."""
+    c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
 B1 = os.path.join(LV, 'LeanVM', 'Guest', 'B1')
 def names(path, name):
     s = open(os.path.join(B1, path), encoding='utf-8').read()
@@ -75,7 +76,12 @@ def osBos(m):
         base = 1 if l == 0 else 0
         oq = 'opening_queries__L%d_L%d_L%d_L%d_L%d_L%d' % (q % 2 * base, base, il, lc, depth, cd)
         N = q // (1 + base)
-        sp[oq] = sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
+        # `B1.oqBound`: its frame, chain buffer, `N + 1` iterations and a `walk_path` frame a query
+        # (`oqWalkCount`: `odd + 2N` at level 0, `N` deeper)
+        odd = q % 2 * base
+        wk = odd + 2 * N if base == 1 else N
+        sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
+                  + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))
         sp[resL] = sp.get(resL, 0) + q // 8 * SK(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 

@@ -29,7 +29,7 @@ attribute [local instance] lexOrd
 theorem decTop_eq {κ : ℕ} (L : MemoryImage κ) :
     decTop LeanVM.Guest.guestProgram κ (memoryVector L) = LeanVM.Guest.End.decode L := by
   rw [decode_eq_ends discreteLog_discreteLogSpec L]
-  simp only [decTop, decTopTables, decTopStates, decTopFrames, sphincsAtFrameT_eq, frameAtA_eq,
+  simp only [decTop, decTopTables, decTopStates, decTopFrames, sphincsAtFrameT_eq, xmssAtFrameT_eq, frameAtA_eq,
     ← preTest_eq_preTable, decWitNStaged_eq, cursorLength_tables]
 
 end

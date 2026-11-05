@@ -63,16 +63,16 @@ theorem total_le_of_stat {X : String → Prop} (hchk : CheckedExcept P true cert
   exact cost_le_of_stat hchk (fun f hf => hX f hf rd) hcf hn hv hb hpre
 
 /-- **A loop checked counting words**: from `g^a` to `g^e`, `e - a` times its iteration's
-bound. -/
+bound, and its run's phantom frame (its last iteration's untaken tail call). -/
 theorem total_le_of_loop {X : String → Prop} (hchk : CheckedExcept P true cert fs X)
     (hX : HandOk P fs cert X) {f : String} {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff}
     {ks : List (V × ℕ)} (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E}
     (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ}
     (ha : args.getD 0 0 = ofK (addressOfIndex a)) (he : endOf endc args = ofK (addressOfIndex e))
         (hae : a < e)
-    (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args := by
+    (heo : e < 2 ^ 64 - 1) (hpre : ArgsPre pre args) : t.total fs ≤ (e - a) * b.eval args + fs f := by
   rw [total_eq_cost t hb]
-  exact cost_le_of_loop hchk (fun f hf => hX f hf rd) hcf hn hv hb ha he hae heo hpre
+  exact (cost_le_of_loop hchk (fun f hf => hX f hf rd) hcf hn hv hb ha he hae heo hpre).trans (by simp)
 
 /-- **A constant certificate checked counting words** is a `TotalLe`. -/
 theorem totalLe_of_stat {X : String → Prop} (hchk : CheckedExcept P true cert fs X)

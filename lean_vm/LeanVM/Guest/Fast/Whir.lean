@@ -39,18 +39,32 @@ open LeanVM.Guest.B1.VerifySub LeanVM.Guest.B1.Sig LeanVM.Protocol.Compile LeanV
 
 @[expose] public section
 
-/-- **The queries of `opening_queries`** from its frame `σ`, its loop the frames `loop` of `Vn`
-(`oqsOf`). -/
-def oqsOfN (s : Oq) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
-  (if odd = 1 then [oqQueryW s rd (σ (.n 12)) 13 true σ] else []) ++
-    (List.range N).flatMap fun j ↦ oqIterOf s rd (Vn loop (gen ^ j :: oqLoopArgs σ) [])
+/-- **The query hinted at `b`** (`oqQueryW`), its walk the frames `walk` of `Vn`. -/
+def oqQueryN (s : Oq) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool) (σ : Val)
+    (Vn : NFrames) : QW :=
+  (winPosOf rd bp (s.pd + s.cd) s.cd, oqRow b s.R σ,
+    oqSibsOf s.pd wpCh (winPosOf rd bp (s.pd + s.cd) s.cd)
+      (Vn walk (oqWalkArgs s b emit bp cap flags σ) []))
+
+/-- A loop iteration's queries, from its frame (`oqIterOf`), its walk the frames `walk` of `Vn`. -/
+def oqIterN (s : Oq) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
+  if s.base = 1 then
+    [oqQueryN s walk rd (σ (.n 10)) (σ (.n 3)) (σ (.n 4)) 11 true σ Vn,
+      oqQueryN s walk rd (σ (.n (oqE1 s))) (σ (.n 3)) (σ (.n 4)) (oqE1 s + 1) false σ Vn]
+  else [oqQueryN s walk rd (σ (.n 9)) (σ (.n 3)) (σ (.n 4)) 10 true σ Vn]
+
+/-- **The queries of `opening_queries`** from its frame `σ`, its loop and its walk the frames
+`loop` and `walk` of `Vn` (`oqsOf`). -/
+def oqsOfN (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) : List QW :=
+  (if odd = 1 then [oqQueryN s walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn] else []) ++
+    (List.range N).flatMap fun j ↦ oqIterN s walk rd (Vn loop (gen ^ j :: oqLoopArgs σ) []) Vn
 
 /-- **A level's openings** from its `opening_queries` call `c`, the caller's frame `σ`
 (`osLevelOs`). -/
 def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening :=
   let a := c.args.map fun k ↦ σ (.n k)
-  (oqsOfN ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.N rd (Vn c.fn a (c.rets.map fun k ↦ σ (.n k)))
-    Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
+  (oqsOfN ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.walk c.N rd
+    (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
 
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/
@@ -81,15 +95,36 @@ theorem map_vIdx {σ : Val} : ∀ {l : List V}, l.all isN = true →
       simp only [List.all_cons, Bool.and_eq_true, isN, beq_iff_eq] at h
       simp only [List.map_cons, vIdx, map_vIdx h.2, ← h.1]
 
+theorem oqQueryN_eq (s : Oq) {walk : ℕ} (hw : decoderFunctionName walk = oqWalkOf s)
+    (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool) (σ : Val) (Fm : FrameMap) :
+    oqQueryN s walk rd bp cap flags b emit σ (fun k ↦ Fm (decoderFunctionName k)) =
+      oqQueryW s rd bp cap flags b emit σ Fm := by
+  simp only [oqQueryN, oqQueryW, hw]
+
+theorem oqIterN_eq (s : Oq) {walk : ℕ} (hw : decoderFunctionName walk = oqWalkOf s)
+    (rd : Reader) (σ : Val) (Fm : FrameMap) :
+    oqIterN s walk rd σ (fun k ↦ Fm (decoderFunctionName k)) = oqIterOf s rd σ Fm := by
+  simp only [oqIterN, oqIterOf, oqQueryN_eq s hw]
+
+theorem oqsOfN_eq (s : Oq) {walk : ℕ} (hw : decoderFunctionName walk = oqWalkOf s)
+    (odd loop N : ℕ) (rd : Reader) (σ : Val) (Fm : FrameMap) :
+    oqsOfN s odd loop walk N rd σ (fun k ↦ Fm (decoderFunctionName k)) =
+      oqsOf s odd (decoderFunctionName loop) N rd σ Fm := by
+  simp only [oqsOfN, oqsOf, oqQueryN_eq s hw, oqIterN_eq s hw]
+
 theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {r : OsCall}
     {c : ℕ × OsLv × String × List V × List V} (h : callMatch r c = true) :
     levelOsN rd σ (fun k ↦ Fm (decoderFunctionName k)) r = osLevelOs rd σ Fm c := by
   obtain ⟨lvl, lv, name, args, rets⟩ := c
-  obtain ⟨base, I, pd, cd, odd, N, fn, loop, depth, rargs, rrets⟩ := r
+  obtain ⟨base, I, pd, cd, odd, N, fn, loop, walk, depth, rargs, rrets⟩ := r
   simp only [callMatch, Bool.and_eq_true, beq_iff_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hI⟩, hpd⟩, hcd⟩, hodd⟩, hN⟩, hdep⟩, hra⟩, hrr⟩, ha⟩, hr⟩, hn⟩, hl⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hI⟩, hpd⟩, hcd⟩, hodd⟩, hN⟩, hdep⟩, hra⟩, hrr⟩, ha⟩, hr⟩, hn⟩, hl⟩, hw⟩ :=
+    h
   subst hb hI hpd hcd hodd hN hdep hra hrr
-  simp only [levelOsN, osLevelOs, lvOpenings, lvW, oqsOfN, oqsOf, map_vIdx ha, map_vIdx hr, hn, hl]
+  have hw' : decoderFunctionName walk = oqWalkOf ⟨(lvOq lvl lv).base, (lvOq lvl lv).I,
+      (lvOq lvl lv).pd, (lvOq lvl lv).cd⟩ := hw
+  simp only [levelOsN, osLevelOs, lvOpenings, lvW, oqsOfN_eq _ hw', map_vIdx ha, map_vIdx hr, hn,
+    hl]
   rfl
 
 theorem flatMap_zip {α β γ : Type} {g : α → List γ} {h : β → List γ} :
@@ -239,56 +274,62 @@ theorem winPosOfW_eq (rd : Reader) (bp : E) (d cd : ℕ) :
 
 /-! ## The queries, each position once, the loop's frames stepped -/
 
-/-- The query hinted at `b`, its position `pos` given (`oqQueryW`). -/
-def oqQueryAt (s : Oq) (σ : Val) (b : ℕ) (emit : Bool) (pos : ℕ) : QW :=
-  (pos, oqRow b s.R σ, oqSibsOf s.pd (oqCh s b emit) pos σ)
+/-- The query hinted at `b`, its position `pos` given (`oqQueryN`). -/
+def oqQueryAt (s : Oq) (walk : ℕ) (bp cap flags : E) (σ : Val) (Vn : NFrames) (b : ℕ)
+    (emit : Bool) (pos : ℕ) : QW :=
+  (pos, oqRow b s.R σ, oqSibsOf s.pd wpCh pos (Vn walk (oqWalkArgs s b emit bp cap flags σ) []))
 
-/-- **The query hinted at `b`**, its position read once off its windows (`oqQueryW`). -/
-def oqQueryA (s : Oq) (lanes : List ℕ) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) :
-    QW :=
-  oqQueryAt s σ b emit (winPosOfW lanes rd bp (s.pd + s.cd) s.cd)
+/-- **The query hinted at `b`**, its position read once off its windows (`oqQueryN`). -/
+def oqQueryA (s : Oq) (lanes : List ℕ) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : ℕ)
+    (emit : Bool) (σ : Val) (Vn : NFrames) : QW :=
+  oqQueryAt s walk bp cap flags σ Vn b emit (winPosOfW lanes rd bp (s.pd + s.cd) s.cd)
 
-theorem oqQueryA_eq (s : Oq) (rd : Reader) (bp : E) (b : ℕ) (emit : Bool) (σ : Val) :
-    oqQueryA s gLanes rd bp b emit σ = oqQueryW s rd bp b emit σ := by
-  rw [oqQueryA, oqQueryAt, oqQueryW, winPosOfW_eq]
+theorem oqQueryA_eq (s : Oq) (walk : ℕ) (rd : Reader) (bp cap flags : E) (b : ℕ) (emit : Bool)
+    (σ : Val) (Vn : NFrames) :
+    oqQueryA s gLanes walk rd bp cap flags b emit σ Vn =
+      oqQueryN s walk rd bp cap flags b emit σ Vn := by
+  rw [oqQueryA, oqQueryAt, oqQueryN, winPosOfW_eq]
 
-/-- A loop iteration's queries, from its frame (`oqIterOf`). -/
-def oqIterA (s : Oq) (lanes : List ℕ) (rd : Reader) (σ : Val) : List QW :=
+/-- A loop iteration's queries, from its frame (`oqIterN`). -/
+def oqIterA (s : Oq) (lanes : List ℕ) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
+    List QW :=
   if s.base = 1 then
-    [oqQueryA s lanes rd (σ (.n 10)) 11 true σ,
-      oqQueryA s lanes rd (σ (.n (oqE1 s))) (oqE1 s + 1) false σ]
-  else [oqQueryA s lanes rd (σ (.n 9)) 10 true σ]
+    [oqQueryA s lanes walk rd (σ (.n 10)) (σ (.n 3)) (σ (.n 4)) 11 true σ Vn,
+      oqQueryA s lanes walk rd (σ (.n (oqE1 s))) (σ (.n 3)) (σ (.n 4)) (oqE1 s + 1) false σ Vn]
+  else [oqQueryA s lanes walk rd (σ (.n 9)) (σ (.n 3)) (σ (.n 4)) 10 true σ Vn]
 
-theorem oqIterA_eq (s : Oq) (rd : Reader) (σ : Val) :
-    oqIterA s gLanes rd σ = oqIterOf s rd σ := by
-  simp only [oqIterA, oqIterOf, oqQueryA_eq]
+theorem oqIterA_eq (s : Oq) (walk : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
+    oqIterA s gLanes walk rd σ Vn = oqIterN s walk rd σ Vn := by
+  simp only [oqIterA, oqIterN, oqQueryA_eq]
 
 /-- **The loop's iterations from the frame at `x`**, `n` of them, the next at `x·g`: each the
 queries of the frame of the loop's call `x :: la` (`la` the loop's other arguments). -/
-def oqItersFrom (s : Oq) (lanes : List ℕ) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
-    ℕ → E → List QW
+def oqItersFrom (s : Oq) (lanes : List ℕ) (loop walk : ℕ) (rd : Reader) (Vn : NFrames)
+    (la : List E) : ℕ → E → List QW
   | 0, _ => []
   | n + 1, x =>
-    oqIterA s lanes rd (Vn loop (x :: la) []) ++ oqItersFrom s lanes loop rd Vn la n (x * gen)
+    oqIterA s lanes walk rd (Vn loop (x :: la) []) Vn ++
+      oqItersFrom s lanes loop walk rd Vn la n (x * gen)
 
-theorem oqItersFrom_gen (s : Oq) (loop : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
-    ∀ n k, oqItersFrom s gLanes loop rd Vn la n (gen ^ k) =
-      (List.range' k n).flatMap fun j ↦ oqIterOf s rd (Vn loop (gen ^ j :: la) [])
+theorem oqItersFrom_gen (s : Oq) (loop walk : ℕ) (rd : Reader) (Vn : NFrames) (la : List E) :
+    ∀ n k, oqItersFrom s gLanes loop walk rd Vn la n (gen ^ k) =
+      (List.range' k n).flatMap fun j ↦ oqIterN s walk rd (Vn loop (gen ^ j :: la) []) Vn
   | 0, _ => rfl
   | n + 1, k => by
-    rw [oqItersFrom, ← pow_succ, oqItersFrom_gen s loop rd Vn la n (k + 1), List.range'_succ,
+    rw [oqItersFrom, ← pow_succ, oqItersFrom_gen s loop walk rd Vn la n (k + 1), List.range'_succ,
       List.flatMap_cons, oqIterA_eq]
 
 /-- **`opening_queries`' queries** (`oqsOfN`): its loop's other arguments read once, each
 iteration's frame at the next power of `g`, each query's position once. -/
-def oqsOfA (s : Oq) (lanes : List ℕ) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
-    List QW :=
-  (if odd = 1 then [oqQueryA s lanes rd (σ (.n 12)) 13 true σ] else []) ++
-    oqItersFrom s lanes loop rd Vn (oqLoopArgs σ) N 1
+def oqsOfA (s : Oq) (lanes : List ℕ) (odd loop walk N : ℕ) (rd : Reader) (σ : Val)
+    (Vn : NFrames) : List QW :=
+  (if odd = 1 then [oqQueryA s lanes walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn]
+    else []) ++
+    oqItersFrom s lanes loop walk rd Vn (oqLoopArgs σ) N 1
 
-theorem oqsOfA_eq (s : Oq) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
-    oqsOfA s gLanes odd loop N rd σ Vn = oqsOfN s odd loop N rd σ Vn := by
-  have h := oqItersFrom_gen s loop rd Vn (oqLoopArgs σ) N 0
+theorem oqsOfA_eq (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) :
+    oqsOfA s gLanes odd loop walk N rd σ Vn = oqsOfN s odd loop walk N rd σ Vn := by
+  have h := oqItersFrom_gen s loop walk rd Vn (oqLoopArgs σ) N 0
   rw [pow_zero] at h
   unfold oqsOfA oqsOfN
   rw [h, oqQueryA_eq, List.range_eq_range']
@@ -296,7 +337,7 @@ theorem oqsOfA_eq (s : Oq) (odd loop N : ℕ) (rd : Reader) (σ : Val) (Vn : NFr
 /-- A level's openings from its call `c`, the call's argument words `a` given (`levelOsN`). -/
 def levelOsAt (lanes : List ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) (a : List E) :
     List Opening :=
-  (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ lanes c.odd c.loop c.N rd
+  (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ lanes c.odd c.loop c.walk c.N rd
     (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
 
 /-- **A level's openings** (`levelOsN`), its call's argument words read once. -/
