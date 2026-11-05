@@ -556,8 +556,10 @@ by a leanerVM benchmark.
 `bench/LeanerVMWitgen.lean` is the `leanervm-witgen` executable. It reads the executions of
 `tests/vectors/executions/` (`scripts/dump-execution-rust.sh`: compiled programs run by the Rust
 executor at the pin) into `Program`, `PublicInput` and `Trace prog` (through `TraceInput.adapt`)
-and checks each, timed: `SentinelSafe`, the listed fill blocks, with `--hash` the program hash
-against the Rust digest, `ValidExecution` through `checkTraceGuess`, the main rows against the
+and checks each, timed: `SentinelSafe`, the listed fill blocks, `WellFormedBytecode` through
+`wellFormedB`, with `--hash` the program hash against the Rust digest, `ValidExecution` through
+`checkTraceGuess`, `Trace.Fits` through `fitsBy` (the two hypotheses of completeness besides
+`ValidExecution`, `Semantics.HypothesisChecks`), the main rows against the
 replayed run table by table, and the fill rows as a permutation of their successors; with
 `--prod` the production `checkTrace` with the Rust hint list, with `--scan` with none.
 `runGenerator` generates a witness with a supplied generator, proves and verifies it.
@@ -581,6 +583,11 @@ index. Measured on 2026-11-05 (one run each, the machine shared):
 | `fibonacci_1000` | 1031 | 8 to 40 ms | 2.4 to 5.6 s (2093 hints) | 0.8 to 1.3 s |
 | `fibonacci_20000` | 20336 | 0.13 to 0.22 s | 1115 s (20405 hints) | 364 s |
 | the guest on one XMSS signature (bytecode `2^19`) | 5725 | 35 to 62 ms | 170 s (11572 hints) | 302 s |
+
+Every checked-in execution and the guest are well formed bytecode and fit (2026-11-05):
+`wellFormedB` takes 1 to 2 ms at bytecode `2^11`/`2^12` and 0.21 s on the guest's `2^19` slots
+(one pass collecting the closing jumps); `fitsBy` takes 0.05 ms to 0.12 s, a forward pass over the
+main run.
 
 Reading a file and the table of powers take 0.1 s at `2^17` and 2.7 s for the guest (`2^19`
 powers, an 18 MB file); the program hash of the guest's `2^19` instructions takes 36 s and 3 GB,

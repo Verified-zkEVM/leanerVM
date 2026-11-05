@@ -79,7 +79,7 @@ example : fitsBy ladderJumpProg badTrace (guessOf powers) = true :=
   (fitsBy_eq_true_iff badTrace_valid _).mpr badTrace_fits
 
 -- The forward pass counts the one `JUMP` row.
-#guard fillTables.map (runCountsBy ladderJumpProg badTrace (guessOf powers)) = [0, 0, 0, 0, 1, 0]
+#guard (runCountTableBy ladderJumpProg badTrace (guessOf powers)).toList = [0, 0, 0, 0, 1, 0]
 
 -- The statement's four-step trace fits.
 #guard fitsBy fillProg fillTrace (guessOf powers)
