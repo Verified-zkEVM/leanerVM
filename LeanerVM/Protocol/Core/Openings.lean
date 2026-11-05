@@ -225,13 +225,13 @@ private theorem rows_eq_of_merkle {l : hashSpec.QueryLog} (hc : QueryLog.Consist
 
 /-! ## Rows read off a log -/
 
-private theorem length_wordsOfBytes : ∀ q : List UInt8,
-    (LeanerVM.Protocol.wordsOfBytes q).length = q.length / 8
+private theorem length_kWordsOfBytes : ∀ q : List UInt8,
+    (kWordsOfBytes q).length = q.length / 8
   | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: rest => by
-    simp only [LeanerVM.Protocol.wordsOfBytes, List.length_cons, length_wordsOfBytes rest]
+    simp only [kWordsOfBytes, List.length_cons, length_kWordsOfBytes rest]
     omega
   | [] | [_] | [_, _] | [_, _, _] | [_, _, _, _] | [_, _, _, _, _] | [_, _, _, _, _, _]
-  | [_, _, _, _, _, _, _] => by simp [LeanerVM.Protocol.wordsOfBytes]
+  | [_, _, _, _, _, _, _] => by simp [kWordsOfBytes]
 
 /-- A row read off a log has the row's width. -/
 private theorem length_of_extractRows {l : hashSpec.QueryLog} {root : Digest}
@@ -247,7 +247,7 @@ private theorem length_of_extractRows {l : hashSpec.QueryLog} {root : Digest}
     split at he
     · rename_i hq
       cases he
-      rw [length_wordsOfBytes, List.length_drop, hq.1]
+      rw [length_kWordsOfBytes, List.length_drop, hq.1]
       omega
     · cases he
   · cases he

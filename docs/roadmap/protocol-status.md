@@ -125,21 +125,18 @@ from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
 the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). The byte
 hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parameters
-(`Parameters/Whir.lean`) are on `main` (#67). On the branch `feat/protocol-merkle-octopus`, the
-Merkle trees over a byte hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root
-(`merkleRootWith`, `merkleRoot`), a phase's pruned opening as the verifier checks it
-(`merkleVerifyWith`, `merkleVerify`), the prover's commitment, with the tree built once, and
-its openings (`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness
-(`merkleVerifyWith_merkleOpen`), the node query model (`nodeModel`), and the reading as VCVio's
-batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the single-path
-check of #67 and its binding as a computed collision. On the branch
-`feat/protocol-merkle-binding`, their binding by replaying the hash log
+(`Parameters/Whir.lean`) are on `main` (#67). *On merge* of #169, the Merkle trees over a byte
+hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root (`merkleRootWith`,
+`merkleRoot`), a phase's pruned opening as the verifier checks it (`merkleVerifyWith`,
+`merkleVerify`), the prover's commitment, with the tree built once, and its openings
+(`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness (`merkleVerifyWith_merkleOpen`),
+the node query model (`nodeModel`), and the reading as VCVio's batch opening for every hash
+(`toBatchOpening`, `merkle_fits`); they replace the single-path check of #67 and its binding as a
+computed collision. With them, their binding by replaying the hash log
 (`Protocol/MerkleBinding.lean`, generic in `ToVCVio/MerkleLog.lean`): the rows read off a log
 (`extractRows`, in one pass `extractAllRows`), `binding_of_log`, which equates an accepted
 opening's rows with them unless the log is inconsistent or shows a collision or a fresh hit, and
 `extractRows_determined`.
-Nothing else is built: the other generic components, the WHIR opening, the compiled verifier and
-the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -655,9 +652,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     theorems apply `satisfiedBy_witnessOf` inside their event, so no knowledge transport along it
     is owed.
 - **The Merkle trees (Layer 11)** are the Rust's over a byte hash, read as VCVio's (decision 32),
-  on the branch `feat/protocol-merkle-octopus`. `merkleVerifyWith` is a phase's pruned opening in
-  any monad, calling the hash once per stored row and once per rebuilt node, in the Rust's order
-  (nine calls for the octopus of the Rust's test). Where it differs from the sketch:
+  in `Protocol/Merkle.lean`. `merkleVerifyWith` is a phase's pruned opening in any monad, calling
+  the hash once per stored row and once per rebuilt node, in the Rust's order (nine calls for the
+  octopus of the Rust's test). Where it differs from the sketch:
   - `merkle_fits` reads the result through `Id.run`, and its row conjunct includes
     `rowWords ≤ leafWords`, without which it is false (a four-word row in three-word leaves has
     itself as its leaf image); the blueprint's sketch now says so.
@@ -665,12 +662,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
     to read at the top. The Rust also returns each query's full path, which is dropped.
   - The single-path check, its completeness and its binding as a computed collision are deleted.
-  - Binding is log replay, on the branch `feat/protocol-merkle-binding`, deterministic and over
-    any encoding of leaves and nodes into one query domain (`ToVCVio/MerkleLog.lean`).
-    `extractTree` reads a tree top-down off a log, a node's children those of the first logged
-    query answered by it that parses as a node (`nodePreimage`), and `leafPreimage` a leaf's
-    payload; `extractLeaves` does it for every position in one pass, by hash maps
-    (`extractLeaves_eq`). `MerkleTree.binding_of_log`: if the walk over a pruned opening at
+  - Binding is log replay (`Protocol/MerkleBinding.lean`), deterministic and over any encoding
+    of leaves and nodes into one query domain (`ToVCVio/MerkleLog.lean`). `extractTree` reads a
+    tree top-down off a log, a node's children those of the first logged query answered by it
+    that parses as a node (`nodePreimage`), and `leafPreimage` a leaf's payload; `extractLeaves`
+    does it for every position in one pass, by hash maps (`extractLeaves_eq`).
+    `MerkleTree.binding_of_log`: if the walk over a pruned opening at
     strictly increasing positions in the tree, every hash answered from the log
     `logA ++ logV`, reaches `root`, the log is `Consistent`, has no collision (`HasCollision`) and
     no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
@@ -722,8 +719,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
 WHIR opening with the WHIR parameters (Layer 11), and the charged invariant (Layer 12). The Merkle
-trees are on the branch `feat/protocol-merkle-octopus`, and their binding by log replay on
-`feat/protocol-merkle-binding`.
+trees (`Protocol/Merkle.lean`) and their binding by log replay (`Protocol/MerkleBinding.lean`)
+land with #169.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -840,10 +837,10 @@ probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or 
 state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
 generic log predicates `Consistent`, `HasCollision`, `Fresh` and `HasHit` (`ToVCVio/QueryLog.lean`;
 a hit is a fresh answer in play after the entries before it, for an in-play function of the
-prefix), which have the shapes of the Merkle log replay's and are for it to reuse. The digests in
-play (`inPlay`) are fixed roots (the seed among them), the halves of every logged 64-byte input,
-and the Merkle roots the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the
-hit is a function of the prefix, as the charged invariant needs.
+prefix), in which the Merkle log replay states its binding too. The digests in play (`inPlay`) are
+fixed roots (the seed among them), the halves of every logged 64-byte input, and the Merkle roots
+the log's chains absorb as two consecutive observes (`rebuiltRoots`), so the hit is a function of
+the prefix, as the charged invariant needs.
 `chainHistory_of_noCollision_noSeed` (a logged chain is its history when the log has no collision
 and no answer is the seed); `chainHistory_take_of_noCollision_noHit` (in a consistent log with no
 collision and no hit, the history is in the log before any query from the chain's last state that
@@ -1178,18 +1175,18 @@ below proves.
   in 90 minutes. The commitment and WHIR's next words are built as data when their step starts and
   read through (`commitWordCached`, `Cached.sendEncoded`, `Whir.commitNextCached`).
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
-  constraint statement tests' witness at the smallest admissible sizes in 181 s, writes the proof
-  in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
-  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The blueprint names the
-  executable `leanervm-vectors` with its root under `tests/`; it is `leanervm-prove` under `bench/`,
-  beside `leanervm-verify`, and the witness is the hand-built one, since `checkSatisfiedBy` does
-  not exist yet (the witness's `SatisfiedBy` is a proved theorem instead). Beside the proof's
+  constraint statement tests' witness at the smallest admissible sizes in 52.7 s (1.06 GB at the
+  peak), writes the proof in the dump format, and checks that `verify` accepts it (0.6 s) and rejects every mutation of
+  `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The witness is the
+  hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`); leanISA's decidable
+  `checkSatisfiedBy`, which generated witnesses would need, is still owed. Beside the proof's
   mutations, both executables run the algebra on the honest wire with one message changed in each
   front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper` changes
   one front phase's message as the prover sends it and checks that each phase rejects its own.
-  The prover is about 50 times slower than the Rust's, within the blueprint's two orders of
-  magnitude, since the transform builds each half once a step (`fwd_eq_fwdFast`); the batched
-  weight's table dominates (`bench/README.md`).
+  The prover is about 15 times slower than the Rust's on another program at the same sizes,
+  within the blueprint's two orders of magnitude, since the transform builds each half once a
+  step (`fwd_eq_fwdFast`) and the Flock and WHIR provers run on words; the Flock phase and WHIR
+  dominate (`bench/README.md`, 2026-10-25).
 - **`baseProver_complete`, the generic half** (`ToArkLib/RunCodec.lean`): ArkLib's `Prover.run` is
   not what the prover calls, and its challenge oracle cannot interleave the chain's sends, so the
   oracle protocol's completeness reaches `runWith` through the run on given challenges,
@@ -1451,7 +1448,11 @@ Also owed:
   the last challenge is bad as soon as the state function of `listBinding_deployed` is false, at
   the round before it, at the extractor's witness; if some phase's state function failed on honest
   transcripts, every accepted run would flip, and `baseVerifier_extractsWitness` would hold only of
-  rejected adversaries. Acceptance test 37 is met on the collision and hit clauses only, natively.
+  rejected adversaries. In the random-oracle model that scenario is excluded once the honest query
+  bound and the grind bound below land, with the identity of the honest run under a consistent log
+  and `proveWith (m := Id)` at that log's answers: the honest adversary is then accepted except
+  when a grind fails, so `misbehaves_rom` forbids every accepted run flipping. `δ = 0` at BLAKE2s
+  on the test vector stays open; only the first route below gives it. Acceptance test 37 is met on the collision and hit clauses only, natively.
   Two routes:
   - *State-function completeness on the honest transcript* (the cheaper and the one to build): one
     lemma per phase family (`BusSolved`, `TableSolved`, `FlockSolved` and `WhirSolved` carry the
@@ -1494,20 +1495,21 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
 | ArkLib #615, #1295 (merged after the pin) | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | a verbatim copy of #1295 at the next refactor; deleted at the bump that contains it |
-| ArkLib's typed framework (its roadmap items 3–4; #1251; a knowledge notion since #1259–#1261) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
+| ArkLib's typed framework (its roadmap items 3–4; a knowledge notion since #1259–#1260) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition at the pin |
 | ArkLib #1263, #1264 (merged after the pin) | the random-oracle theorems | state-restoration knowledge soundness from local round-by-round certificates, in the typed framework | reference only (decision 36) |
-| ArkLib #1245 | none | the round-by-round-to-plain corollary, which no theorem here uses | reference only |
+| ArkLib #1349 (merged after the pin; #1245 closed unmerged) | none | the round-by-round-to-plain corollary, as guarded bridges, which no theorem here uses | reference only |
+| ArkLib #1413 (merged after the pin) | every `Security` field; the knowledge-soundness composition | the fixed-prefix names: `rbrKnowledgeSoundnessWorstCaseWith` becomes `rbrKnowledgeSoundnessWith` | at the bump that contains it, rename every consumer |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
 | ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
-| ArkLib's compiled snocs and appends of `Fin` tuples (proposed upstream from `scaraven/ArkLib` branch `perf/fin-append-compiled-forms`, `f1a1e7deb`); the pin's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `OracleInterface` instance) and `FullTranscript.append` | every phase run through `Prover.run` or an appended transcript | `ToArkLib/TupleCompiledForms.lean`, a verbatim copy of the proposal: `Fin.vconcat`, `Fin.fconcat`, `Fin.fconcat₂`, `Fin.hconcat`, `Fin.fappend`, `Fin.fappend₂` and `Fin.happend` read by one comparison, by `@[csimp]`; compiled as defined they are exponential in the length of the second tuple (261 s for 9 trivial sumcheck rounds, each prepended to the rest). `ToArkLib/AppendLazy.lean` compiles the pin's instances and `FullTranscript.append` again after them | a pin contains the proposal; then delete both files, and their importers import `ArkLib.Data.Fin.Tuple.Lemmas` |
+| ArkLib's compiled snocs and appends of `Fin` tuples (ArkLib #1344, from `scaraven/ArkLib` branch `perf/fin-append-compiled-forms`, `f1a1e7deb`; merged on 2026-10-27 as `1beb99cc`, after the pin, with the same names); the pin's appended-schedule instances (`ProtocolSpec.instSampleableTypeChallengeAppend`, the `OracleInterface` instance) and `FullTranscript.append` | every phase run through `Prover.run` or an appended transcript | `ToArkLib/TupleCompiledForms.lean`, a verbatim copy of the proposal: `Fin.vconcat`, `Fin.fconcat`, `Fin.fconcat₂`, `Fin.hconcat`, `Fin.fappend`, `Fin.fappend₂` and `Fin.happend` read by one comparison, by `@[csimp]`; compiled as defined they are exponential in the length of the second tuple (261 s for 9 trivial sumcheck rounds, each prepended to the rest). `ToArkLib/AppendLazy.lean` compiles the pin's instances and `FullTranscript.append` again after them | a pin contains `1beb99cc` (49 commits past the pin, ArkLib there on Lean v4.35.0: a toolchain drift review); then delete both files, and their importers import `ArkLib.Data.Fin.Tuple.Lemmas` |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleLog.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
 | VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
-| VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
+| VCVio #823, #824, #826 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |

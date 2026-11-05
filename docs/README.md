@@ -131,7 +131,8 @@ This directory contains stable project and operating knowledge.
     headline theorems with the random-oracle heuristic as a named hypothesis (2026-10-19), which
     found no statement vacuous or tautological, and whose findings the branch meets (the Merkle
     nodes share the chain's domain, the error's closed form, the `η` dumped from the Rust, the
-    hash-only query bound, the honest prover as an adversary).
+    hash-only query bound, the honest prover as an adversary). Its comparison-form hypothesis is
+    superseded by decision 37 of the protocol blueprint, which makes it a corollary.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

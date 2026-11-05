@@ -25,6 +25,7 @@ namespace LeanerVMTests.Protocol.MerkleBinding
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
 open LeanerVM.Protocol.MerkleTree
 open MerkleTreeExtractor (QueryLog)
+open LeanerVM.Protocol.QueryLog (Consistent HasCollision)
 
 /-! ## A toy tree -/
 
