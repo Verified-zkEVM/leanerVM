@@ -11,6 +11,12 @@ This directory contains stable project and operating knowledge.
   adapters, filler validation, and the pinned Rust comparison lane.
 - [development.md](development.md): local commands, module workflow, and testing guidance.
 - [ci.md](ci.md): workflow responsibilities, required checks, and automation secrets.
+- [design/](design/): design notes and proposals for review, each dated and pinned to the
+  revisions it describes.
+  - [rust-verifier-correspondence.md](design/rust-verifier-correspondence.md): how to prove
+    leanVM's Rust verifier against the Lean `verify` — the one inclusion that carries knowledge
+    soundness, the portable crate backported to the pin, the routes compared, the obstructions,
+    and the recommended Charon and Aeneas plan (2026-11-05).
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)
   per formalization effort.
   - [leanisa-blueprint.md](roadmap/leanisa-blueprint.md): the leanISA roadmap — scope,
