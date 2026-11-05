@@ -32,49 +32,66 @@ public import LeanVM.Guest.B2C.Cplw.C21_11_0
 public import LeanVM.Guest.B2C.Cplw.C21_18_1
 public import LeanVM.Guest.B2C.Cplw.C28_0_0
 public import LeanVM.Guest.B2C.Cplw.C35_0_0
+public import LeanVM.Guest.B2C.Cplw.C37_1_0
+public import LeanVM.Guest.B2C.Cplw.C37_2_0
 public import LeanVM.Guest.B2C.Cplw.C37_3_0
+public import LeanVM.Guest.B2C.Cplw.C37_4_0
 public import LeanVM.Guest.B2C.Cplw.C37_5_0
+public import LeanVM.Guest.B2C.Cplw.C37_6_0
 public import LeanVM.Guest.B2C.Cplw.C37_7_0
+public import LeanVM.Guest.B2C.Cplw.C37_8_0
 public import LeanVM.Guest.B2C.Cplw.C37_9_0
+public import LeanVM.Guest.B2C.Cplw.C37_10_0
 public import LeanVM.Guest.B2C.Cplw.C37_11_0
+public import LeanVM.Guest.B2C.Cplw.C37_12_0
 public import LeanVM.Guest.B2C.Cplw.C37_13_0
+public import LeanVM.Guest.B2C.Cplw.C37_14_0
+public import LeanVM.Guest.B2C.Cplw.C37_15_0
 public import LeanVM.Guest.B2C.Cplw.C37_21_0
+public import LeanVM.Guest.B2C.Cplw.C37_22_0
 public import LeanVM.Guest.B2C.Cplw.C37_23_0
+public import LeanVM.Guest.B2C.Cplw.C37_24_0
 public import LeanVM.Guest.B2C.Cplw.C37_25_0
+public import LeanVM.Guest.B2C.Cplw.C37_26_0
 public import LeanVM.Guest.B2C.Cplw.C37_27_0
+public import LeanVM.Guest.B2C.Cplw.C37_28_0
 public import LeanVM.Guest.B2C.Cplw.C37_29_0
+public import LeanVM.Guest.B2C.Cplw.C37_30_0
 public import LeanVM.Guest.B2C.Cplw.C37_31_0
+public import LeanVM.Guest.B2C.Cplw.C37_32_0
 public import LeanVM.Guest.B2C.Cplw.C37_33_0
-public import LeanVM.Guest.B2C.Cplw.C39_0_0
-public import LeanVM.Guest.B2C.Cplw.C47_0_0
-public import LeanVM.Guest.B2C.Cplw.C55_0_0
-public import LeanVM.Guest.B2C.Cplw.C63_0_0
-public import LeanVM.Guest.B2C.Cplw.C71_0_0
-public import LeanVM.Guest.B2C.Cplw.C79_0_0
-public import LeanVM.Guest.B2C.Cplw.C86_1_0
-public import LeanVM.Guest.B2C.Cplw.C88_1_0
-public import LeanVM.Guest.B2C.Cplw.C92_0_0
-public import LeanVM.Guest.B2C.Cplw.C100_0_0
-public import LeanVM.Guest.B2C.Cplw.C108_0_0
-public import LeanVM.Guest.B2C.Cplw.C116_0_0
-public import LeanVM.Guest.B2C.Cplw.C124_0_0
-public import LeanVM.Guest.B2C.Cplw.C132_0_0
-public import LeanVM.Guest.B2C.Cplw.C140_0_0
-public import LeanVM.Guest.B2C.Cplw.C148_0_0
-public import LeanVM.Guest.B2C.Cplw.C156_0_0
-public import LeanVM.Guest.B2C.Cplw.C164_0_0
-public import LeanVM.Guest.B2C.Cplw.C172_0_0
-public import LeanVM.Guest.B2C.Cplw.C180_0_0
-public import LeanVM.Guest.B2C.Cplw.C188_0_0
-public import LeanVM.Guest.B2C.Cplw.C196_0_0
-public import LeanVM.Guest.B2C.Cplw.C204_0_0
-public import LeanVM.Guest.B2C.Cplw.C212_0_0
-public import LeanVM.Guest.B2C.Cplw.C220_0_0
-public import LeanVM.Guest.B2C.Cplw.C228_0_0
-public import LeanVM.Guest.B2C.Cplw.C236_0_0
-public import LeanVM.Guest.B2C.Cplw.C244_0_0
-public import LeanVM.Guest.B2C.Cplw.C252_0_0
-public import LeanVM.Guest.B2C.Cplw.C260_0_0
+public import LeanVM.Guest.B2C.Cplw.C37_34_0
+public import LeanVM.Guest.B2C.Cplw.C37_35_0
+public import LeanVM.Guest.B2C.Cplw.C42_0_0
+public import LeanVM.Guest.B2C.Cplw.C50_0_0
+public import LeanVM.Guest.B2C.Cplw.C58_0_0
+public import LeanVM.Guest.B2C.Cplw.C66_0_0
+public import LeanVM.Guest.B2C.Cplw.C74_0_0
+public import LeanVM.Guest.B2C.Cplw.C82_0_0
+public import LeanVM.Guest.B2C.Cplw.C87_0_0
+public import LeanVM.Guest.B2C.Cplw.C89_0_0
+public import LeanVM.Guest.B2C.Cplw.C93_0_0
+public import LeanVM.Guest.B2C.Cplw.C101_0_0
+public import LeanVM.Guest.B2C.Cplw.C109_0_0
+public import LeanVM.Guest.B2C.Cplw.C117_0_0
+public import LeanVM.Guest.B2C.Cplw.C125_0_0
+public import LeanVM.Guest.B2C.Cplw.C133_0_0
+public import LeanVM.Guest.B2C.Cplw.C141_0_0
+public import LeanVM.Guest.B2C.Cplw.C149_0_0
+public import LeanVM.Guest.B2C.Cplw.C157_0_0
+public import LeanVM.Guest.B2C.Cplw.C165_0_0
+public import LeanVM.Guest.B2C.Cplw.C173_0_0
+public import LeanVM.Guest.B2C.Cplw.C181_0_0
+public import LeanVM.Guest.B2C.Cplw.C189_0_0
+public import LeanVM.Guest.B2C.Cplw.C197_0_0
+public import LeanVM.Guest.B2C.Cplw.C205_0_0
+public import LeanVM.Guest.B2C.Cplw.C213_0_0
+public import LeanVM.Guest.B2C.Cplw.C221_0_0
+public import LeanVM.Guest.B2C.Cplw.C229_0_0
+public import LeanVM.Guest.B2C.Cplw.C237_0_0
+public import LeanVM.Guest.B2C.Cplw.C245_0_0
+public import LeanVM.Guest.B2C.Cplw.C253_0_0
+public import LeanVM.Guest.B2C.Cplw.C261_0_0
 public import LeanVM.Guest.B2C.Cplw.C265_0_0
 public import LeanVM.Guest.B2C.Cplw.C266_0_0
 public import LeanVM.Guest.B2C.Cplw.C274_0_0
@@ -736,34 +753,6 @@ theorem ok37 : CplOk 37 := by
     rw [hn] at hk
     interval_cases k
     · exact cw37_40_0
-
-theorem ok86 : CplOk 86 := by
-  intro i hi k hk
-  have hc : (certOf 86).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 86 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw86_0_0
-  · have hn : nParts 86 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw86_1_0
-
-theorem ok88 : CplOk 88 := by
-  intro i hi k hk
-  have hc : (certOf 88).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 88 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw88_0_0
-  · have hn : nParts 88 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw88_1_0
 
 theorem ok303 : CplOk 303 := by
   intro i hi k hk

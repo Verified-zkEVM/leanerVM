@@ -17,10 +17,8 @@ namespace LeanVM.Guest.B2C.Cplw
 @[expose] public section
 
 /-- `__loop2`, window 5, part 0. -/
+set_option maxHeartbeats 1000000 in
 theorem cw37_5_0 : cplWin 37 5 0 = true := by decide +kernel
-
-/-- `__loop2`, window 6, part 0. -/
-theorem cw37_6_0 : cplWin 37 6 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

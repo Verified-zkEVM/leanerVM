@@ -3120,6 +3120,8 @@ structure FnParts where
   name : String
   wins : List (List (List ℕ))
   costs : List (List ℕ)
+  /-- The windows' instructions. -/
+  sizes : List ℕ := []
 
 /-- The selectors of the `match`es and dispatches of a statement. -/
 partial def selectors : Core.Stmt → List Core.V
@@ -3273,7 +3275,7 @@ def partsOf (j : ℕ) (f : CompiledFunction) (F : GFacts) (cf : Core.Fn) (segs :
       partCosts := partCosts ++ (List.range (mids.size + 1)).map fun _ => pc / (mids.size + 1)
     wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 && !ent.contains a then [] else ps)
     costs := costs.push partCosts
-  return ⟨j, f.name, wins.toList, costs.toList⟩
+  return ⟨j, f.name, wins.toList, costs.toList, sizes⟩
 
 def header (mod what : String) : String :=
   s!"/-
@@ -3331,10 +3333,16 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     ",\n".intercalate rows ++ "]\n\nend\nend LeanVM.Guest.Data\n"
   -- the checks, in modules of consecutive parts
   -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
+  -- a window of more than `bigWin` instructions (`__loop2`'s chained `match`es, 2816: ~170 s,
+  -- ~35 GB each in the kernel) is checked in a module of its own at 1M heartbeats, as its
+  -- soundness check (`Checked`)
+  let bigSet : Std.HashSet (ℕ × ℕ) := fps.foldl (fun h fp =>
+    fp.sizes.zipIdx.foldl (fun h (sz, i) => if sz > 2000 then h.insert (fp.j, i) else h) h) {}
+  let bigWin (j i : ℕ) : Bool := bigSet.contains (j, i)
   let items := fps.flatMap fun fp => (fp.costs.zipIdx.flatMap fun (cs, i) =>
     if splits.contains (fp.j, i) then [] else
     cs.zipIdx.map fun (c, k) =>
-      (fp.j, i, k, if heavyCost ≤ c || heavyFns.contains fp.name then modCost else c))
+      (fp.j, i, k, if heavyCost ≤ c || heavyFns.contains fp.name || bigWin fp.j i then modCost else c))
   let mut groups : Array (Array (ℕ × ℕ × ℕ)) := #[#[]]
   let mut size := 0
   for (j, i, k, c) in items do
@@ -3365,6 +3373,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
       "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, i, k) =>
         s!"/-- `{names.getD j ""}`, window {i}, part {k}. -/\n" ++
+        (if bigWin j i then "set_option maxHeartbeats 1000000 in\n" else "") ++
         s!"theorem cw{j}_{i}_{k} : cplWin {j} {i} {k} = true := by decide +kernel\n\n") ++
       String.join ((fps.filter fun fp => homeOf fp == some g).map okText) ++
       "end\nend LeanVM.Guest.B2C.Cplw\n")
