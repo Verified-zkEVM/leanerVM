@@ -1787,9 +1787,10 @@ already in play, the proof's digests counting against the verifier's queries onl
 challenge that lies in the bad set of its prefix). `core` concludes it with the flips the verifier
 asked for on the statement's chain (`VerifierFlipFor (prog, input)`): read off a chain of the log
 from the first state at which the log holds the statement's seed hashes, on a group whose chain
-step is one of the verifier's own queries, so the proof's chain as the verifier walks it, not
-another the adversary explored from that state; the random-oracle bound bounds the flips on every
-statement's chain (`Flip`), a larger event (`flip_of_verifierFlipFor`). `Bad` is the
+step is one of the verifier's own queries: in effect the proof's chain as the verifier walks it,
+not another the adversary explored from that state, though a verifier query of the same 64 bytes
+read as a Merkle node counts as well (decision 44). The random-oracle bound bounds the flips on
+every statement's chain (`Flip`), a larger event (`flip_of_verifierFlipFor`). `Bad` is the
 round-by-round bound made into a set: the challenges at a given prefix (its messages carry the
 committed words) at which some witness of the next round makes the knowledge state function of
 `listBinding_compile` true while the round extractor's witness from it makes the function false at
