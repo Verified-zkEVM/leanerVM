@@ -1242,7 +1242,8 @@ below proves.
     `proveWith` returns `none` only when the witness gives no sizes, its sizes are not admissible,
     the rate is not valid, or a grind finds no nonce within its fuel at a chain state the run
     reaches (`Prove.RunReaches`: the writer's state after the announcement and some first rounds
-    of the compiled protocol's honest prover).
+    of the compiled protocol's honest prover, at every round boundary, so a superset of the
+    states the grinds start at).
   - Owed: the honest prover's query bound and the random-oracle bound on a grind running out of
     fuel; the headline's branch below states both.
 

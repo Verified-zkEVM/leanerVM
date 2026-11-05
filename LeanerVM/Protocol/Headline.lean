@@ -581,7 +581,8 @@ theorem prove_complete (fuel : ℕ) {prog : Program} {input : PublicInput} {κ :
 /-- **When the deployed prover returns no proof** for a witness of the constraint statement: the
 witness has sizes, within the statement's caps, and either they put the stack above `2^maxMu`, or
 the rate `ρ` is not valid, or a grind finds no nonce among its `fuel` candidates at a chain state
-the prover's run reaches (`ProveReaches`). Nothing bounds how often the last happens. -/
+the prover's run reaches (`ProveReaches`, every round boundary of the run, so the grind named may
+be one the run does not make). Nothing bounds how often the last happens. -/
 theorem prove_eq_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} (hsat : SatisfiedBy prog input w)
     (h : prove fuel prog input w ρ = none) :
@@ -595,7 +596,8 @@ theorem prove_eq_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : 
 
 /-- **When the deployed prover returns a proof** for a witness of the constraint statement, at
 its sizes `s`: when they put the stack within `2^maxMu`, the rate `ρ` is valid, and no grind runs
-out of its `fuel` candidates at a chain state the prover's run reaches (`ProveReaches`). -/
+out of its `fuel` candidates at a chain state the prover's run reaches (`ProveReaches`): at
+every round boundary of the run, which asks more than the grinds the run makes. -/
 theorem prove_ne_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
     (hsat : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)

@@ -2041,7 +2041,8 @@ theorem prove_eq_none (h : SatisfiedBy prog input w) (hp : prove fuel prog input
       ∃ fs, ProveReaches fuel prog input w ρ fs ∧
         Id.run (fs.grind blake2sBytes fuel queryGrindingBits) = none)
 -- ProveReaches fuel prog input w ρ fs: the writer of `prove`'s run, from the statement's seed,
--- reaches the chain state fs after the announcement and some first rounds (Prove.RunReaches)
+-- reaches the chain state fs after the announcement and some first rounds (Prove.RunReaches;
+-- every round boundary, a superset of the grinds' start states)
 theorem prove_ne_none (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
     (hμ : leanIsaμ prog s ≤ maxMu) (hρ : validRate ρ)
     (hg : ∀ fs, ProveReaches fuel prog input w ρ fs →
@@ -2197,8 +2198,9 @@ give the other admissibility conditions, `admissible_iff_of_satisfiedBy`), the r
 or a grind runs out of fuel at a chain state the prover's run reaches (`prove_eq_none`, from
 `proveWith_eq_none`; `prove_ne_none` and `proveWith_ne_none` say the same as a sufficient
 condition). The run's states are `Prove.RunReaches`: the writer's chain state after the
-announcement and some first rounds of the compiled protocol's honest prover, which is where each
-grind starts; so the grind clause depends on the witness, not on every chain state there is.
+announcement and some first rounds of the compiled protocol's honest prover. Each grind starts at
+one of them, and not every one of them starts a grind, so the clause over-approximates the
+grinds the run makes; it still depends on the witness, not on every chain state there is.
 `hfit` does not keep the stack within `2^maxMu`: four memory columns of height `2^(t.κ+1)` exceed
 it from `t.κ ≥ 26` on, so there `prove` returns none at every fuel and rate, as it does whenever
 the filled tables exceed `2^28` cells (each table's cap is `2^32` rows).
