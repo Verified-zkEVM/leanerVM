@@ -373,6 +373,17 @@ def Bound (P : Core.Program) (α : Bool) (cert : String → Cert) (ω : String �
       a0 < e → e < 2 ^ 64 - 1 → ArgsPre pre args →
         t.cost P α ω ≤ (e - a0) * b.eval args + (if α then ω t.name else 0)
 
+/-- **A phantom's bound bounds its frame**, counting words. -/
+theorem phB_sound {α : Bool} {ω : String → ℕ} {wl : String → Option ℕ} (hwl : WlOk wl ω) {g : String}
+    {r : Acc} (h : phB wl α g = some r) : (if α then ω g else 0) ≤ r.1.eval args := by
+  unfold phB at h
+  cases α with
+  | false => simp
+  | true =>
+      simp only [↓reduceIte, Option.map_eq_some_iff] at h ⊢
+      obtain ⟨n, hn, rfl⟩ := h
+      simpa [Aff.eval] using hwl g n hn
+
 /-- **A call site's bound bounds its callee**, a tree satisfying its certificate. -/
 theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω : String → ℕ}
     {wl : String → Option ℕ} (hwl : WlOk wl ω) (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
@@ -387,31 +398,14 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
       rw [hc] at h hb
       obtain ⟨h1, h2⟩ := transB_sound hρ hp h hr
       exact (hb h2).trans h1
-  | loop endc pre b0 ks =>
+  | loop endc pre b ks =>
       rw [hc] at h hb
       simp only at h hb
       split at h
       · cases h
-      rename_i b hib
-      -- each iteration charged the phantom frame: `e - a0 ≥ 1` iterations cover the run's one
-      replace hb : ∀ a0 e, (a.map σ).getD 0 0 = ofK (addressOfIndex a0) →
-          endOf endc (a.map σ) = ofK (addressOfIndex e) → a0 < e → e < 2 ^ 64 - 1 →
-          ArgsPre pre (a.map σ) → t.cost P α ω ≤ (e - a0) * b.eval (a.map σ) := by
-        intro a0 e h0 h1 h2 h3 h4
-        have := hb a0 e h0 h1 h2 h3 h4
-        obtain ⟨p, hph, rfl⟩ := Option.map_eq_some_iff.mp hib
-        have hpe : (if α then ω g else 0) ≤ p.1.eval (a.map σ) := by
-          unfold phB at hph
-          cases α with
-          | false => simp
-          | true =>
-              simp only [↓reduceIte, Option.map_eq_some_iff] at hph ⊢
-              obtain ⟨n, hn', rfl⟩ := hph
-              simpa [Aff.eval] using hwl g n hn'
-        have hm : p.1.eval (a.map σ) ≤ (e - a0) * p.1.eval (a.map σ) :=
-          Nat.le_mul_of_pos_left _ (by omega)
-        rw [Aff.eval_add, Nat.mul_add]
-        omega
+      rename_i p hph
+      -- the run's one phantom frame, charged once
+      have hpe : (if α then ω g else 0) ≤ p.1.eval args := phB_sound hwl hph
       split at h
       · cases h
       · rename_i v0 hv0
@@ -439,8 +433,9 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                     · cases he
               obtain ⟨t1, t2⟩ := transB_sound hρ hp hR hr
               have := hb a0 e (by rw [hget0, hs0]) hend hlt.1 hlt.2 t2
-              rw [Aff.eval_scale]
-              exact this.trans (Nat.mul_le_mul_left _ t1)
+              rw [Aff.eval_add, Aff.eval_scale]
+              have := Nat.mul_le_mul_left (e - a0) t1
+              omega
             · cases h
           · rename_i k hk
             split at h
@@ -475,11 +470,12 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                   simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
                     List.sum_cons, List.sum_nil]
                   omega
-                rw [hev]
-                calc t.cost P α ω ≤ (eb - a0) * b.eval (a.map σ) := this
-                  _ ≤ (eb - a0) * R.1.c := Nat.mul_le_mul_left _ t1
-                  _ ≤ eb * R.1.c := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
-                  _ = R.1.c * eb := Nat.mul_comm _ _
+                rw [Aff.eval_add, hev]
+                have h3 : (eb - a0) * b.eval (a.map σ) ≤ R.1.c * eb :=
+                  calc (eb - a0) * b.eval (a.map σ) ≤ (eb - a0) * R.1.c := Nat.mul_le_mul_left _ t1
+                    _ ≤ eb * R.1.c := Nat.mul_le_mul_right _ (Nat.sub_le _ _)
+                    _ = R.1.c * eb := Nat.mul_comm _ _
+                omega
               · cases h
             · cases h
           · cases h
@@ -650,17 +646,6 @@ theorem KB_site {wl : String → Option ℕ} (hwl : WlOk wl ω) {ρ : Env} {ps :
         omega
 
 variable {ks : List (V × ℕ)} {ps : List V} {self : String} {args : List E} {wl : String → Option ℕ}
-
-/-- **A phantom's bound bounds its frame**, counting words. -/
-theorem phB_sound (hwl : WlOk wl ω) {g : String} {r : Acc} (h : phB wl α g = some r) :
-    (if α then ω g else 0) ≤ r.1.eval args := by
-  unfold phB at h
-  cases α with
-  | false => simp
-  | true =>
-      simp only [↓reduceIte, Option.map_eq_some_iff] at h ⊢
-      obtain ⟨n, hn, rfl⟩ := h
-      simpa [Aff.eval] using hwl g n hn
 
 /-- **An atom's bound bounds its `HeapBuf`**, and keeps the constants and the bounds true. -/
 theorem atomB_sound {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (hρ : Env2Ok σ args ρ)
