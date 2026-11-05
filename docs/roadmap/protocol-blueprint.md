@@ -270,7 +270,7 @@ Consumed as named declarations of its
 | `StatePull` … `BytecodePush`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `channelDir`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus. |
 | `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
 | `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13: `constraintCompleteness` by completeness from an execution; `constraintSoundness` through the trace interface. |
-| `TraceExtraction`, `checkSatisfiedBy`, `checkSatisfiedBy_eq_true_iff` (requested, beside `SatisfiedBy` in `Arithmetization/`) | The trace interface the execution-level headline takes, inhabited from Layers 9–10, and the decidable check the test vectors pass ([Boundaries](#boundaries)). |
+| `TraceExtraction`, `leanIsaTraceExtraction` (declared and inhabited beside `SatisfiedBy` in `Arithmetization/`; the inhabitant takes `SentinelSafe prog`); `checkSatisfiedBy`, `checkSatisfiedBy_eq_true_iff` (requested) | The trace interface the execution-level headline takes, its inhabitant from Layers 9–10, and the decidable check the test vectors pass ([Boundaries](#boundaries)). |
 
 ### ArkLib
 
@@ -1654,9 +1654,11 @@ cache; and `niError (2^64) ≤ 2^{−60}`. The fixture waits on the Flock phase'
 execution form at leanVM's program needs leanISA's Layers 9–10.
 
 ```lean
--- leanISA's, declared in LeanerVM/Arithmetization/ beside SatisfiedBy (requested; see Boundaries)
-/-- A computable execution for every satisfying witness. Owner: leanISA, whose inhabitant takes the bytecode's
-well-formedness, defines `traceOf` without `noncomputable`, and proves `valid` from `constraintSoundness`. -/
+-- leanISA's, declared in LeanerVM/Arithmetization/ beside SatisfiedBy; inhabited by
+-- leanIsaTraceExtraction (hsafe : SentinelSafe prog)
+/-- A computable execution for every satisfying witness. Owner: leanISA, whose inhabitant takes `SentinelSafe prog`
+(the sentinel slot is not a `JUMP`), defines `traceOf` without `noncomputable`, and proves `valid` from
+`constraintSoundness`. -/
 structure TraceExtraction (prog : Program) where
   traceOf : PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Option (Trace prog)
   valid : ∀ input w, SatisfiedBy prog input w →
@@ -1722,11 +1724,11 @@ returns. The mathematics is in `core`, `misbehaves_rom` and what they rest on.
 
 `baseVerifier_extractsExecution` takes leanISA's trace interface as an argument (decision 41).
 Its extractor is computable end to end when the interface's `traceOf` is (acceptance test 24).
-Until leanISA's Layers 9–10 inhabit the interface, the corollary at that inhabitant is a block
-comment (convention *Unproved targets*). `extract`, `witnessOf` and `extractTrace` keep the
-extracted witness and execution, which recursion (T6) needs. The witness form takes no bytecode
-hypothesis; the execution form takes it through the interface's inhabitant, and completeness from
-an execution through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
+leanISA's inhabitant, `leanIsaTraceExtraction`, takes `SentinelSafe prog`, and so does the
+corollary at it. `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
+execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the execution
+form takes `SentinelSafe prog` through the interface's inhabitant, and completeness from an
+execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
 sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
 establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
 implies some valid execution", is not stated: it carries no knowledge (decision 34).
@@ -2109,19 +2111,12 @@ and execution.
 witness, and `valid`, which is `constraintSoundness` with the trace named. leanISA declares it in
 `LeanerVM/Arithmetization/`, beside `SatisfiedBy` (its fields mention only `Trace`,
 `ValidExecution`, `SatisfiedBy` and `AssignmentRepresents`, and the layer order forbids an
-inhabitant there of a structure declared in `Protocol/`), and inhabits it when its Layers 9–10 land,
-the inhabitant taking the bytecode's well-formedness; Layer 13 consumes it. `traceOf` needs no
+inhabitant there of a structure declared in `Protocol/`), and inhabits it
+(`leanIsaTraceExtraction`, under `SentinelSafe prog`); Layer 13 consumes it. `traceOf` needs no
 discrete logarithm: it walks a map from each row's pulled state to its pushed state, from
-`Regs.initial` to `Regs.final prog`, with the total row count as fuel. Three facts bear on leanISA's
-Layers 9 and 10, from this roadmap's reading of its statements. Layer 9 needs no change to Clean:
-`SatisfiedBy` counts its balances in ℕ (`BalancedPair`) beside `CountsNonzero`, and the per-row step
-is Clean's `Air.Flat.Component.weakSoundness`. `no_row_at_sentinel`, as the block comment of
-`Arithmetization/Statement.lean` states it, is false: `leanIsaVerifier prog` pulls `⟨finalPc, 1⟩` on
-`StatePull` and its row is among `w.interactions`; the statement is to be restated over the opcode
-tables' rows. The lookup theorems and Layer 10 need only the `sentinelSafe` field of
-`WellFormedBytecode`. One more request: the test vectors of Layer 13 need a decidable check of
-`SatisfiedBy`, `checkSatisfiedBy` with `checkSatisfiedBy_eq_true_iff`, declared beside the relation
-in `Arithmetization/`.
+`Regs.initial` to `Regs.final prog`, with the total row count as fuel. One request remains: the
+test vectors of Layer 13 need a decidable check of `SatisfiedBy`, `checkSatisfiedBy` with
+`checkSatisfiedBy_eq_true_iff`, declared beside the relation in `Arithmetization/`.
 
 ## Decisions
 
@@ -2156,7 +2151,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 24. Stay on `OracleReduction` | the spine stays on ArkLib's legacy framework, the only one with a knowledge notion, until the typed framework has round-by-round knowledge soundness and its composition | the ledger |
 | 25. Flock enters through two structures | an instance-free `FlockSpec` from the Flock roadmap; a `FlockRegion` in the instance, from which the auxiliary clause is defined | the spine; Layers 3, 9 |
 | 26. The wire drops a coefficient | the oracle protocol sends every coefficient and checks the round; the compiled verifier decodes the wire, and Layer 4 proves the transport lemma | *Sumcheck messages* |
-| 27. The program hypothesis | the theorems that reach an execution take `WellFormedBytecode prog`, the execution-level headline through the inhabitant of the trace interface (decision 41) and completeness from an execution through `constraintCompleteness`; the witness-level theorems take none | Layer 13 |
+| 27. The program hypothesis | the execution-level headline takes `SentinelSafe prog` through the inhabitant of the trace interface (decision 41), and completeness from an execution takes `WellFormedBytecode prog` through `constraintCompleteness`; the witness-level theorems take none | Layer 13 |
 | 28. Completeness resources | base completeness starts from a satisfying witness with admissible sizes; its form from an execution takes a fit hypothesis | Layer 13 |
 | 29. One theorem for the family | the non-interactive theorem is stated for the family over announced sizes, its error the maximum over admissible sizes | *Statements and parameters*; Layer 12 |
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |
