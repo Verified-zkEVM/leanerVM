@@ -11,7 +11,8 @@ tests (`LeanerVMTests.Arithmetization.Statement`).
 `JUMP` row to the sentinel the step `(g^3, 1) → (g^31, 1)` of the fixture's program over its
 image, the step the semantic tests compute directly (`fill_step3`); and the `XOR` fill row
 the step `(g^4, g^5) → (g^5, g^5)`, which is not on the run: the fill blocks are closed walks
-of steps. `no_row_at_sentinel` applies, the fixture's sentinel slot being an `XOR`.
+of steps. The `MUL_NATIVE` and first `SET_CONSTANT` rows are steps of the run, and the `DEREF`
+and fourth `BLAKE2S` rows fill-block steps, so every opcode's step lemma is exercised. `no_row_at_sentinel` applies, the fixture's sentinel slot being an `XOR`.
 
 **The sentinel hypothesis.** A program whose sentinel slot holds a `JUMP` is not
 `SentinelSafe`; there a row may pull the sentinel counter and jump on. The counter-witness, a
@@ -49,6 +50,44 @@ example : step fillProg fillImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
 example : step fillProg fillImage ⟨gpow 4, gpow 5⟩ = some ⟨gpow 5, gpow 5⟩ := by
   have h := rowSteps_of_satisfiedBy fill_satisfiedBy xorT List.mem_cons_self _
     List.mem_cons_self ⟨gpow 4, gpow 5⟩ ⟨gpow 5, gpow 5⟩
+    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
+  rw [data_eq, fill_imageOf] at h
+  exact h
+
+/-- The `MUL_NATIVE` row is the run's third step. -/
+example : step fillProg fillImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy (mulT g)
+    (List.mem_cons_of_mem _ List.mem_cons_self) _ List.mem_cons_self ⟨gpow 2, 1⟩ ⟨gpow 3, 1⟩
+    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
+  rw [data_eq, fill_imageOf] at h
+  exact h
+
+/-- The first `SET_CONSTANT` row is the run's first step. -/
+example : step fillProg fillImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy (setT 1)
+    (List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ List.mem_cons_self) _ List.mem_cons_self
+    ⟨1, 1⟩ ⟨gpow 1, 1⟩
+    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
+  rw [data_eq, fill_imageOf] at h
+  exact h
+
+/-- The `DEREF` fill row is a step, off the run. -/
+example : step fillProg fillImage ⟨gpow 6, gpow 5⟩ = some ⟨gpow 7, gpow 5⟩ := by
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy derefT
+    (List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _
+      List.mem_cons_self)
+    _ List.mem_cons_self ⟨gpow 6, gpow 5⟩ ⟨gpow 7, gpow 5⟩
+    (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
+  rw [data_eq, fill_imageOf] at h
+  exact h
+
+/-- A `BLAKE2S` fill row, the fourth, is a step, off the run. -/
+example : step fillProg fillImage ⟨gpow 11, gpow 14⟩ = some ⟨gpow 12, gpow 14⟩ := by
+  have h := rowSteps_of_satisfiedBy fill_satisfiedBy blakeT
+    (List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <|
+      List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ List.mem_cons_self)
+    (rawRow (blakeRow 3)) (List.mem_map_of_mem (List.mem_ofFn.mpr ⟨3, rfl⟩))
+    ⟨gpow 11, gpow 14⟩ ⟨gpow 12, gpow 14⟩
     (by rw [rowMessagesOn_eq]; decide +kernel) (by rw [rowMessagesOn_eq]; decide +kernel)
   rw [data_eq, fill_imageOf] at h
   exact h
