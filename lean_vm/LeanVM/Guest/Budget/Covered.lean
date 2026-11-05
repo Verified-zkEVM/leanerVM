@@ -117,8 +117,8 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
       omega
 
 /-- **A leaf of at most `2048` raw signatures fits**: no child and no blob held directly, at
-most `2048` raw signatures, a leanSPHINCS one counted as three (`17561` words against leanXMSS's
-`6459`), at most `2048` declared claims and coverage slots. -/
+most `2048` raw signatures, a leanSPHINCS one counted as three (`17531` words against leanXMSS's
+`6159`), at most `2048` declared claims and coverage slots. -/
 theorem leaf_size_le (u : End.Work) (hxs : u.rawXmss + 3 * u.rawSphincs ≤ 2048) (hd : u.rawDa = 0)
     (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2048) (hcov : u.coverage ≤ 2048)
     (hch : u.children = 0) (hcc : u.childClaims = 0) (hsh : u.childShapes = []) :
