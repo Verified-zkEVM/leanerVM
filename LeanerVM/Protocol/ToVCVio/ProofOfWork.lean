@@ -29,6 +29,9 @@ candidate query keeps the expectation (a martingale step); a fresh base-shaped q
 base, `q^F` in expectation, or up to `1` when the new base already has a cached candidate, which
 happens with probability at most `|c| / |Y|`. Nothing about the order of the queries, or about
 the bases being fresh, is used.
+
+`exists_isTotalQueryBound`: over finite answer types every computation has some query bound, so the
+bound's hypothesis is met by some `N`.
 -/
 
 namespace LeanerVM.Protocol
@@ -390,6 +393,21 @@ theorem prEvent_exhausted_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     ring
 
 end PowSearch
+
+/-- **Every computation has a query bound** when every oracle answers in a finite type: a
+computation is a finitely branching tree of finite depth. -/
+theorem exists_isTotalQueryBound {ι : Type} {spec : OracleSpec.{0, 0} ι}
+    [∀ t, Fintype (spec.Range t)] {α : Type} (oa : OracleComp spec α) :
+    ∃ n, IsTotalQueryBound oa n := by
+  classical
+  induction oa using OracleComp.inductionOn with
+  | pure x => exact ⟨0, trivial⟩
+  | query_bind t k ih =>
+    choose n hn using ih
+    refine ⟨Finset.univ.sup n + 1, isTotalQueryBound_query_bind_iff.mpr ⟨Nat.succ_pos _,
+      fun u ↦ (hn u).mono ?_⟩⟩
+    rw [Nat.add_sub_cancel]
+    exact Finset.le_sup (Finset.mem_univ u)
 
 end
 

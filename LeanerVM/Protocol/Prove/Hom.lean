@@ -93,7 +93,8 @@ theorem buildLevelsM_hom {D : Type} (hashPairM : D → D → m D) :
 end MerkleTree
 
 theorem merkleCommitWithM_hom (leafWords : ℕ) {k : ℕ} (rows : Vector (List K) (2 ^ k)) :
-    φ (merkleCommitWithM H leafWords rows) = merkleCommitWithM (fun t ↦ φ (H t)) leafWords rows := by
+    φ (merkleCommitWithM H leafWords rows) =
+      merkleCommitWithM (fun t ↦ φ (H t)) leafWords rows := by
   simp only [merkleCommitWithM, MonadHom.mmap_bind, MonadHom.mmap_pure, Vector.mapM_hom,
     MerkleTree.buildLevelsM_hom]
 
@@ -215,7 +216,8 @@ theorem samples_hom (k : ℕ) : ψ (samples ops k) = samples (ops.map ψ) k := b
   | zero => simp [samples]
   | succ k ih => simp [samples, ih, WireOps.map]
 
-theorem positions_hom (depth t : ℕ) : ψ (positions ops depth t) = positions (ops.map ψ) depth t := by
+theorem positions_hom (depth t : ℕ) :
+    ψ (positions ops depth t) = positions (ops.map ψ) depth t := by
   simp [positions, Verify.positionsWith_hom, WireOps.map]
 
 omit [LawfulMonad w] [LawfulMonad w'] in

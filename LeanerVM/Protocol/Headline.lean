@@ -18,6 +18,7 @@ public import LeanerVM.Arithmetization.Completeness.Theorem
 public import LeanerVM.Protocol.Compile.Agree
 public import LeanerVM.Protocol.AdaptiveGame
 public import LeanerVM.Semantics.FillBlocks
+public import LeanerVM.Protocol.Prove.RomComplete
 
 /-!
 # The headline theorems
@@ -69,6 +70,18 @@ announcement and some first rounds of the run). The witness exists; it is not co
 leanISA's padded witness reads the memory image through `MemImage.read`, a classical discrete
 logarithm, and takes the fill blocks from the proposition `HasFillBlocks`.
 
+## Completeness in the random-oracle model
+
+`honestGame_rom_rejects_le`: for a witness of the constraint statement whose sizes keep the stack
+within `2^maxMu`, at a valid rate, the deployed prover and then the verifier on its proof, both
+asking one lazy random oracle (`honestGame`), reject with probability at most
+`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`, where `N` bounds the prover's queries
+(`IsTotalQueryBound`); `prove_rom_eq_none_le` bounds the prover's failure alone. The bound needs
+no structure of the run: the run is the deterministic run at the hash its final cache defines,
+where a failing grind leaves an exhausted proof-of-work search in the cache
+(`Prove.exhausted_of_grind_eq_none`), which `PowSearch.prEvent_exhausted_le` bounds. `N` is a
+hypothesis: some `N` always exists (`exists_isTotalQueryBound`), but no closed form is proved.
+
 ## The lemmas they are proved from
 
 * The constraint forms: the same bounds for the witness `witnessOf` reads off the extracted stack
@@ -117,7 +130,8 @@ coins gets the bound with `δ` the probability over its coins. The hypothesis is
 and is false for some: the replayer of a stored accepted proof fails it at every `δ < 1`, and so
 does an adversary that hashes in its own code. No theorem shows it met by an adversary whose proof
 is accepted. Completeness says that every proof `prove` returns is accepted, and when it returns
-one, not that it does: nothing bounds how often a grind on the run runs out of fuel, and
+one, not that it does: at BLAKE2s nothing bounds how often a grind on the run runs out of fuel
+(the random-oracle bound above is about a random function, and its `N` is a hypothesis), and
 `Trace.Fits` does not keep the stack within `2^maxMu`. The padding the proof picks has memory
 log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells, above `2^28` from
 `t.κ ≥ 26` on, where `prove` returns none at every fuel and rate; so it does whenever the filled
@@ -605,6 +619,68 @@ theorem prove_ne_none (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : 
     prove fuel prog input w ρ ≠ none :=
   Prove.proveWith_ne_none blake2sBytes fuel _ hs ((admissible_iff_of_satisfiedBy hsat hs).mpr hμ)
     hρ hg
+
+/-- **The deployed prover in the random-oracle model returns a proof, except with small
+probability.** For a witness of the constraint statement with sizes `s` that keep the stack within
+`2^maxMu`, at a valid rate, the deployed prover with every hash a query to the lazy random oracle,
+a run of at most `N` queries, returns no proof with probability at most
+`(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`. -/
+theorem prove_rom_eq_none_le (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
+    (hsat : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
+    (hμ : leanIsaμ prog s ≤ maxMu) (hρ : validRate ρ) {N : ℕ}
+    (hN : IsTotalQueryBound
+      (proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ) N) :
+    Pr{let z ← runRandom (proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ)}[
+      z.1 = none] ≤
+      (N + 1) * (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min fuel (2 ^ 64) + N * N / 2 ^ 256 :=
+  Prove.prEvent_proveWith_eq_none_le fuel _ hs ((admissible_iff_of_satisfiedBy hsat hs).mpr hμ)
+    hρ hN
+
+/-- The honest run in the random-oracle model: the deployed prover's proof, then the verifier on
+it, both asking the one hash oracle; a prover out of fuel is rejected. -/
+def honestGame (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
+    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) : OracleComp hashSpec Bool := do
+  match ← proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ with
+  | none => pure false
+  | some proof => verifyWith hashQuery prog input proof
+
+/-- **Completeness of the deployed pair in the random-oracle model.** For a witness of the
+constraint statement with sizes `s` that keep the stack within `2^maxMu`, at a valid rate, the
+honest run with the hash a lazy random oracle, the prover's run of at most `N` queries, is
+rejected with probability at most `(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`: every proof
+the prover returns is accepted by the verifier asking the same oracle. -/
+theorem honestGame_rom_rejects_le (fuel : ℕ) {prog : Program} {input : PublicInput} {κ : ℕ}
+    {w : EnsembleWitness (leanIsaEnsemble prog κ)} {ρ : ℕ} {s : Sizes}
+    (hsat : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s)
+    (hμ : leanIsaμ prog s ≤ maxMu) (hρ : validRate ρ) {N : ℕ}
+    (hN : IsTotalQueryBound
+      (proveWith hashQuery fuel Blake2sFlock.blake2sFlockSpec prog input w ρ) N) :
+    Pr{let z ← runRandom (honestGame fuel prog input w ρ)}[z.1 = false] ≤
+      (N + 1) * (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min fuel (2 ^ 64) + N * N / 2 ^ 256 := by
+  unfold runRandom honestGame
+  rw [simulateQ_bind, StateT.run_bind]
+  refine (prEvent_bind_le_add_iSup _ _ (fun z₁ ↦ z₁.1 = none) _).trans ?_
+  refine le_of_le_of_eq (add_le_add (prove_rom_eq_none_le fuel hsat hs hμ hρ hN)
+    (le_of_eq (ENNReal.iSup_eq_zero.mpr fun z₁ ↦ ENNReal.iSup_eq_zero.mpr fun hz₁ ↦
+      ENNReal.iSup_eq_zero.mpr fun hne ↦ ?_)))
+    (add_zero _)
+  obtain ⟨p, c⟩ := z₁
+  obtain ⟨proof, rfl⟩ := Option.ne_none_iff_exists'.mp hne
+  refine (OracleComp.prEvent_eq_zero_iff _ _).mpr fun z hz hrej ↦ ?_
+  set H : List UInt8 → Digest := fun t ↦ (z.2 t).getD Prove.zeroDigest
+  have hagree : ∀ t u, z.2 t = some u → H t = u := fun t u h ↦ by simp [H, h]
+  obtain ⟨hle, hver⟩ := run_simulateQ_pure_of_mem_support_randomOracle _ c hz H hagree
+  have hpro := (run_simulateQ_pure_of_mem_support_randomOracle _ ∅ hz₁ H
+    fun t u h ↦ hagree t u (hle h)).2
+  have hp : proveWith (m := Id) H fuel Blake2sFlock.blake2sFlockSpec prog input w ρ =
+      some proof :=
+    (proveWith_simulateQ (r := Id) (fun t ↦ pure (H t)) fuel _ prog input w ρ).symm.trans hpro
+  have hv : verifyWith (m := Id) H prog input proof = z.1 :=
+    (verifyWith_simulateQ (r := Id) (fun t ↦ pure (H t)) prog input proof).symm.trans hver
+  rw [Prove.baseProver_complete H fuel hsat hp] at hv
+  rw [← hv] at hrej
+  cases hrej
 
 /-- **The headline: completeness of the deployed pair from an execution.** For well-formed
 bytecode, a valid execution `t` that fits the caps has a padding `t'` with the same steps, itself a

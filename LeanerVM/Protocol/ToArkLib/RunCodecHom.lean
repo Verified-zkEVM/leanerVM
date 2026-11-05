@@ -14,10 +14,11 @@ public import LeanerVM.Protocol.ToArkLib.RunCodec
 
 `RoundCodec.map ψ c` is the wire `c` with every encoder's and every source's computation mapped
 along the monad morphism `ψ : w →ᵐ w'`. `Prover.runWith_hom`: mapping the run of a prover with no
-shared oracle against `c` is its run against `c.map ψ`. The wires of `LeanerVM.Protocol.ToArkLib.RunCodec`
-map to the same wires over the mapped encoders and sources (`RoundCodec.map_append`, `map_msg`,
-`map_chal`, `map_rounds`, `map_gkr`, …); `map_append` rests on `Fin.fappend₂` commuting with a
-map applied at every index (`Fin.fappend₂_map`).
+shared oracle against `c` is its run against `c.map ψ`. The wires of
+`LeanerVM.Protocol.ToArkLib.RunCodec` map to the same wires over the mapped encoders and sources
+(`RoundCodec.map_append`, `map_msg`, `map_chal`, `map_rounds`, `map_gkr`, …); `map_append` rests on
+`Fin.fappend₂` commuting with a map applied at every index (`Fin.fappend₂_map`). The `_of` forms
+(`map_append_of`, …) conclude at a given target wire, so that `apply` unfolds a composite wire.
 -/
 
 namespace LeanerVM.Protocol
@@ -240,7 +241,8 @@ theorem map_gkr_of {C : Type} {nside : ℕ} (μ : ℕ)
     (h₁ : ∀ x, ψ (enc₁ x) = enc₁' x) (h₂ : ∀ x, ψ (children₁ x) = children₁' x)
     (h₃ : ∀ x, ψ (enc₂ x) = enc₂' x) (h₄ : ∀ x, ψ (children₂ x) = children₂' x)
     (h₅ : ψ smp = smp') :
-    (gkr μ enc₁ children₁ enc₂ children₂ smp).map ψ = gkr μ enc₁' children₁' enc₂' children₂' smp' := by
+    (gkr μ enc₁ children₁ enc₂ children₂ smp).map ψ =
+      gkr μ enc₁' children₁' enc₂' children₂' smp' := by
   rw [map_gkr, h₅]
   congr <;> funext x
   exacts [h₁ x, h₂ x, h₃ x, h₄ x]
