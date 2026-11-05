@@ -1481,6 +1481,7 @@ positions, and a bad one passes the check. -/
 def Bad (prog s ρ) (st) (i) (tr : Transcript i) : Set (Chal i) :=
   {c | ∃ w, ¬ kSF i st tr (extractMid i st (tr.concat c) w) ∧ kSF (i + 1) st (tr.concat c) w}
   -- `kSF`, `extractMid`: the knowledge state function and round extractor of `listBinding_compile`
+  -- `st`: the instance's statement, the public input with no oracles; `prog` is a parameter
 theorem bad_density (hs : s.Admissible prog) : Pr[fun c ↦ c ∈ Bad prog s ρ st i tr | $ᵗ Chal i] ≤ εquery
 /-- A challenge of the proof's own chain in the bad set of its prefix: at its first occurrence `k` in the log, the
 query closing a challenge of the verifier's chain walk on `proof` has a history decoding to an admissible prefix that
@@ -1489,7 +1490,7 @@ missing rows zero. -/
 def Flip (prog input) (g : Run) : Prop :=
   ∃ k hs s ρ i tr, g.log[k] closes a challenge of `g.proof`'s chain and is its input's first query ∧
     chainHistory (g.log.take k) (its state) = some hs ∧ decodePrefix prog hs = some ⟨s, ρ, i, tr⟩ ∧
-    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (prog, input) i tr
+    `i` is a challenge ∧ s.Admissible prog ∧ (its challenge) ∈ Bad prog s ρ (input, no oracles) i tr
     -- `tr` carries the words zero-filled `extractRows (g.log.take k)` reads
 def HashMisbehaves (prog input) (g : Run) : Prop := QueryLog.HasCollision g.log ∨ Hit prog input g ∨ Flip prog input g
 -- Deterministic, for every function answering the hash
