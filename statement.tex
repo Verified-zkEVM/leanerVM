@@ -543,8 +543,7 @@ exhibit a Keccak-256 collision; what excludes it is that none is known.
 \paragraph{The decoder's budget.} The budget (\lean{guestWitnessDecoderBudget}) is
 $(\mathit{steps} + 1)(2^{21} + 2^{13}\lambda) + (70\kappa + 374)\cdot 2^\kappa + 2^{37}(\lambda + 16)$,
 $\lambda = \log_2(\mathit{steps} + 1)$, above the closed-form price \lean{lean_vm} proves of the
-compiled decoder (within $0.23$ to $1.58$ bits of it, about $0.55$ to $1.18$ at the six points
-below): per step $2^{20.41}$ to $2^{20.75}$, against the budget's $2^{21}$ to $2^{21.3}$ (the replay
+compiled decoder (about $0.32$ to $1.09$ bits above it at the six points below): per step $2^{20.55}$ to $2^{20.98}$, against the budget's $2^{21}$ to $2^{21.3}$ (the replay
 and the filing of the state in a sorted array, its share of one sort, growing as $\log$ of the
 steps); the sorted table of the memory's addresses at the execution's $\kappa$; and
 $2^{37}(\lambda + 16)$, about $2^{42}$ to $2^{43}$, for the witness read at the counts and the
@@ -556,7 +555,7 @@ verifier accepts on a valid execution (\lean{valid_cursor}, from
 budget is $2^{42.74}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{45.32}$ at $\kappa = 24$ and
 $2^{24}$, $2^{49.17}$ at $\kappa = 28$ and $2^{28}$, $2^{51.17}$ at $\kappa = 32$ and $2^{30}$,
 $2^{72.26}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.30}$ at $\kappa = 32$ and $2^{60}$ (the price
-there: $2^{41.56}$, $2^{44.66}$, $2^{48.59}$, $2^{50.61}$, $2^{71.71}$, $2^{80.75}$). The constant
+there: $2^{41.65}$, $2^{44.83}$, $2^{48.78}$, $2^{50.80}$, $2^{71.93}$, $2^{80.98}$). The constant
 prices the witness at the bounds above, not at the run's, so with fewer children and claims, at
 $\kappa \le 28$ and well below $2^{22}$ steps, the budget is several times the compiled decoder's
 price. There is no cap on the steps in the budget. A valid execution of $G$ (\lean{ValidExecution})

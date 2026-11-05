@@ -342,9 +342,9 @@ to about `3500` signatures' encodings (an estimate, not measured).
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)` with `lg = log₂(steps + 1)`, above
 the closed-form price `lean_vm` proves of the compiled decoder (`lean_vm/LeanVM/Cost/Prices.lean`,
-within `0.23` to `1.58` bits of it, about `0.55` to `1.18` at the six points below): a price per
+about `0.32` to `1.09` bits above it at the six points below): a price per
 step of the run (the replay and the filing of the state in the table of function entries, its share
-of one sort, `2^20.41` to `2^20.75` against the budget's `2^21` to `2^21.3`, growing as
+of one sort, `2^20.55` to `2^20.98` against the budget's `2^21` to `2^21.3`, growing as
 `log(steps)`); the sorted table of the memory's addresses, at the execution's `κ`; and the witness
 read at the counts and the cursors a valid execution bounds (`2^37·(lg + 16)`, about `2^42` to
 `2^43`: the guest's own asserts give at most `16` children, `65535` claims of each scheme and
@@ -353,8 +353,8 @@ most `8192` words, since the deferring verifier accepts that proof on a valid ex
 (`valid_cursor`); the decoder clamps `da_verify`'s row count at `1024`), with about `2^25.28` frame
 lookups. It is `2^42.74` at `κ = 20` and `2^20` steps, `2^45.32` at `κ = 24` and `2^24`, `2^49.17`
 at `κ = 28` and `2^28`, `2^51.17` at `κ = 32` and `2^30`, `2^72.26` at `κ = 32` and `2^51`,
-`2^81.30` at `κ = 32` and `2^60` (the price there: `2^41.56`, `2^44.66`, `2^48.59`, `2^50.61`,
-`2^71.71`, `2^80.75`). A valid execution of the guest program has fewer than `2^51` steps: the
+`2^81.30` at `κ = 32` and `2^60` (the price there: `2^41.65`, `2^44.83`, `2^48.78`, `2^50.80`,
+`2^71.93`, `2^80.98`). A valid execution of the guest program has fewer than `2^51` steps: the
 memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by `pc`, so at
 each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by `(pc, fp)`, and
 a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`; argued, not a
