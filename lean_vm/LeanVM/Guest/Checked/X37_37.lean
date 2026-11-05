@@ -16,6 +16,7 @@ open LeanVM.Guest.B2C
 
 @[expose] public section
 
+set_option maxHeartbeats 2000000 in
 /-- `__loop2`, window 37: what its groups of arms compute alike. -/
 kernel_lit x37_37 : WinPre := winPre 37 37
 

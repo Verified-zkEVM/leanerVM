@@ -2765,6 +2765,10 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
     let xfile := (xname, checkedHeader xname "What the groups of arms of a window of one `match` compute alike, once." ++
       "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.KernelLit\n\n" ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.B2C\n\n@[expose] public section\n\n" ++
+      -- the executor over a window of many instructions (`__loop2`'s path windows: 8960, about
+      -- 35 s) passes the default budget
+      (if ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0 > 4000 then
+        "set_option maxHeartbeats 2000000 in\n" else "") ++
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
       s!"kernel_lit x{j}_{w} : WinPre := winPre {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
     let chunks := chunksOf groupsPerFile gs.zipIdx
