@@ -18,7 +18,9 @@ A log is the list of a run's queries with their answers, in the order asked:
 both unfold. Every predicate here is decidable.
 
 * `Consistent`: no input appears with two answers; the log is the trace of a function.
-* `HasCollision`: two different inputs have one answer.
+* `HasCollision`: two different inputs have one answer. On `(Q →ₒ D).QueryLog` it is equivalent
+  to VCVio's `OracleComp.LogHasCollision`, stated by log positions with `HEq` answers over a
+  dependent range; the form here, by entries over a plain range, needs no `OracleSpec`.
 * `Fresh log q`: the log never asks `q`.
 * `HasHit inPlay log`: some entry, at its input's first occurrence, is answered by a value in play
   before it, `inPlay` giving the values in play after each prefix of the log.
