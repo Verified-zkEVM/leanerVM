@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.Signatures
+public import LeanVM.Cost.Decoder.Xmss
 import all LeanVM.Guest.B1.Main.Interface
 
 /-!
@@ -37,9 +37,9 @@ theorem nDirectD_tables : nDirectD discreteLogTables = nDirect := by
 
 /-- **The raw leanXMSS signature of mark `j`** (`rawXmss`). -/
 noncomputable def rawXmssD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : E → LeanXmss.Signature) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+    (wX : List E → LeanXmss.Signature) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
   let s := slotOfD D rd σ 0 (lxSlotsD D σ) j
-  (xmssAt rd (σ (.n 52)) s, wX (σ (.n 52) * gen ^ (4 * s)))
+  (xmssAt rd (σ (.n 52)) s, wX (gen ^ j :: l2Args σ))
 
 /-- **The raw leanSPHINCS signature of mark `n_raw_x + j`** (`rawSphincs`). -/
 noncomputable def rawSphincsD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
@@ -58,11 +58,26 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342)])
+    some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
   else none
 
+/-- `__loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,
+`cover`, `lx_table` and the `51` carried chain indices (`main`'s `.n 325` to `.n 375`). -/
+def l2ArgsD (σ : Val) : List E :=
+  [σ (.n 2), σ (.n 40), σ (.n 66), σ (.n 52), σ (.n 325), σ (.n 326), σ (.n 327), σ (.n 328),
+    σ (.n 329), σ (.n 330), σ (.n 331), σ (.n 332), σ (.n 333), σ (.n 334), σ (.n 335), σ (.n 336),
+    σ (.n 337), σ (.n 338), σ (.n 339), σ (.n 340), σ (.n 341), σ (.n 342), σ (.n 343), σ (.n 344),
+    σ (.n 345), σ (.n 346), σ (.n 347), σ (.n 348), σ (.n 349), σ (.n 350), σ (.n 351), σ (.n 352),
+    σ (.n 353), σ (.n 354), σ (.n 355), σ (.n 356), σ (.n 357), σ (.n 358), σ (.n 359), σ (.n 360),
+    σ (.n 361), σ (.n 362), σ (.n 363), σ (.n 364), σ (.n 365), σ (.n 366), σ (.n 367), σ (.n 368),
+    σ (.n 369), σ (.n 370), σ (.n 371), σ (.n 372), σ (.n 373), σ (.n 374), σ (.n 375)]
+
+theorem l2ArgsD_eq : l2ArgsD = l2Args := by
+  funext σ
+  simp [l2ArgsD, l2Args, List.range_succ]
+
 /-- The words of `aggregate_claims`' call. -/
-def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 365), σ (.n 371), σ (.n 377), σ (.n 398)]
+def aggArgs (σ : Val) : List E := [σ (.n 6), σ (.n 416), σ (.n 422), σ (.n 428), σ (.n 449)]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
@@ -71,6 +86,7 @@ cost_compile scalarOfCellsC := LeanVM.Guest.B1.Da.scalarOfCells
 cost_compile dvClaimC := dvClaim
 cost_compile daWitnessC := daWitness
 cost_compile aggArgsC := aggArgs
+cost_compile l2ArgsDC := l2ArgsD
 
 /-! ## The raw signatures, off the regions' tables
 
@@ -79,15 +95,17 @@ of the region's table (`regionTable`, built once by the caller; `slotIn_regionTa
 address by a power in `K` (`mulK`), computed once. `xmssRawT_eq`, `sphincsRawT_eq`: at the tables
 built they are `rawXmssD`, `rawSphincsD`. -/
 
-/-- The raw leanXMSS signature at the address `p53 · a`: its slot's claim and `wX` there. -/
-noncomputable def xmssRawAt (rd : Reader) (p53 : E) (wX : E → LeanXmss.Signature) (a : K) :
-    LeanXmssClaim × LeanXmss.Signature :=
-  (xmssAtK rd (p53.limb 0 * a), wX (mulK p53 a))
+/-- The raw leanXMSS signature of mark `j` at the address `p53 · a`: its slot's claim and `wX` at
+`__loop2`'s iteration `j` (its arguments `g^j :: args`, `args` the loop's others, `l2Args`). -/
+noncomputable def xmssRawAt (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
+    (args : List E) (a : K) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+  (xmssAtK rd (p53.limb 0 * a), wX (ofK (Parameters.g ^ j) :: args))
 
-/-- **The raw leanXMSS signature of mark `j`** (`rawXmssD`), off the region's table `tm`, `ts`. -/
-noncomputable def xmssRawT (rd : Reader) (p53 : E) (wX : E → LeanXmss.Signature)
-    (tm ts : Array ℕ) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
-  xmssRawAt rd p53 wX (Parameters.g ^ (4 * slotIn tm ts j))
+/-- **The raw leanXMSS signature of mark `j`** (`rawXmssD`), off the region's table `tm`, `ts`,
+`__loop2`'s other arguments `args` read once. -/
+noncomputable def xmssRawT (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
+    (args : List E) (tm ts : Array ℕ) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+  xmssRawAt rd p53 wX args (Parameters.g ^ (4 * slotIn tm ts j)) j
 
 /-- The raw leanSPHINCS signature at the address `p56 · a`. -/
 noncomputable def sphincsRawAt (rd : Reader) (p56 : E) (wS : E → Sphincs.Signature) (a : K) :
@@ -100,10 +118,11 @@ noncomputable def sphincsRawT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signat
   sphincsRawAt rd p56 wS (Parameters.g ^ (4 * slotIn tm ts (nrx + j)))
 
 theorem xmssRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : E → LeanXmss.Signature) (j : ℕ) :
-    xmssRawT rd (σ (.n 52)) wX (lxTable D rd σ).1 (lxTable D rd σ).2 j = rawXmssD D rd σ wX j := by
+    (wX : List E → LeanXmss.Signature) (j : ℕ) :
+    xmssRawT rd (σ (.n 52)) wX (l2Args σ) (lxTable D rd σ).1 (lxTable D rd σ).2 j =
+      rawXmssD D rd σ wX j := by
   unfold xmssRawT xmssRawAt rawXmssD
-  rw [slotIn_regionTable, mulK_gen_pow, ← xmssAt_eq_K]
+  rw [slotIn_regionTable, ← xmssAt_eq_K, LeanVM.Guest.Value.gen_pow_eq_ofK]
 
 theorem sphincsRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) :

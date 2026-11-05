@@ -10,7 +10,7 @@ written under `LeanVM/Guest/`. `CMD` is one of
   the deployed frame sizes `B2C.fs`, over every function;
 * `cnt`: `Memory/GuestCnt{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntPm.lean`, the
   certificates counting each opcode's instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and
-  `verify_lean_xmss`'s separately counted arms), over the closure of `ROOTS`;
+  `__loop2`'s separately counted arms), over the closure of `ROOTS`;
 * `cntv`: `Memory/GuestCntV{X,M,S,D,J,K}/`, their tops and `Memory/GuestCntVPm.lean`, the same
   over the closure of `VROOTS` (`verify_sub`'s statically bounded callees, each child's opening arm
   among them, and `child_claim_list_digest`'s callees);
@@ -92,7 +92,7 @@ class G:
         assert len(self.pm) == self.N and len(self.fsz) == self.N + 1, 'data out of step'
         self.xj = self.by[XMSS]
         for j, a in enumerate(self.arms):
-            assert not a or j == self.xj + 1, 'only verify_lean_xmss counts arms separately'
+            assert not a or j == self.xj + 1, 'only __loop2 counts arms separately'
         self.C = [self.arm_max(k) for k in range(6)]
         lean = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'ArmBound.lean'), encoding='utf-8').read()
         m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
@@ -100,7 +100,7 @@ class G:
             'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
 
     def arm_max(self, k):
-        """`B2C.costMaxW` of `verify_lean_xmss`'s body at opcode `k`."""
+        """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
         acs = self.arms[self.xj + 1] if self.xj + 1 < len(self.arms) else []
         def key(x):
             for p in acs:
@@ -338,7 +338,7 @@ def show(c):
 
 def cmd_report(g):
     wcert = g.words_certs()
-    print('functions', g.N, '; verify_lean_xmss arms (B2C.xmssArmC):', g.C)
+    print('functions', g.N, '; __loop2 arms (B2C.xmssArmC):', g.C)
     print('words: certified %d of %d; not: %s' % (len(wcert), g.N,
           [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in wcert]))
     allc = []

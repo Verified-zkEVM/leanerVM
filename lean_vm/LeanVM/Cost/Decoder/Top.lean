@@ -32,37 +32,49 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
-/-- The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer `o` (`22`): each layer's
-`sp_wots` frame (`21`) looked up once (`frameFpA`), the words read off the frame pointers
-(`frameValAt`). A function of the pointer, so that the search of `22` is not repeated at each word
+/-- The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer `o` (`21`): each layer's
+`sp_wots` frame (`20`) looked up once (`frameFpA`), the words read off the frame pointers
+(`frameValAt`). A function of the pointer, so that the search of `21` is not repeated at each word
 of that frame the reader reads. -/
 noncomputable def sphincsAtFp (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (o : Option K) : Sphincs.Signature :=
-  sphincsSigOfA R.sphincs (frameValAt rd o 22)
-    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 0)
-      (spWotsRets (frameValAt rd o 22) 0)) 21)
-    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 1)
-      (spWotsRets (frameValAt rd o 22) 1)) 21)
-    (frameValAt rd (frameFpA table 21 (spWotsArgs (frameValAt rd o 22) 2)
-      (spWotsRets (frameValAt rd o 22) 2)) 21)
+  sphincsSigOfA R.sphincs (frameValAt rd o 21)
+    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 0)
+      (spWotsRets (frameValAt rd o 21) 0)) 20)
+    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 1)
+      (spWotsRets (frameValAt rd o 21) 1)) 20)
+    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 2)
+      (spWotsRets (frameValAt rd o 21) 2)) 20)
 
 /-- **The leanSPHINCS signature checked at slot address `p`, its frames looked up once**
 (`sphincsAtFrame` at `frameAtA table rd`, `sphincsAtFrameT_eq`): `verify_sig_lean_sphincs`' frame
-(`22`) one binary search (`frameFpA`), then `sphincsAtFp`. -/
+(`21`) one binary search (`frameFpA`), then `sphincsAtFp`. -/
 noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) (p : E) : Sphincs.Signature :=
-  sphincsAtFp R table rd (frameFpA table 22 [p, σ (.n 68)] [])
+  sphincsAtFp R table rd (frameFpA table 21 [p, σ (.n 68)] [])
 
 theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by
   funext p
   simp only [sphincsAtFrameT, sphincsAtFp, sphincsAtFrame, frameAtA_eq_frameValAt]
 
+/-- **The leanXMSS signature `__loop2`'s iteration on `args` checks, its frame looked up once**
+(`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `__loop2`'s frame (`37`) one binary
+search (`frameFpA`, its key the `56` arguments), then the reader off the frame pointer. -/
+noncomputable def xmssAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
+    (args : List E) : LeanXmss.Signature :=
+  xmssSigOfA R.xmss (frameValAt rd (frameFpA table 37 args []) 37)
+
+theorem xmssAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader) :
+    xmssAtFrameT R table rd = xmssAtFrame R (frameAtA table rd) := by
+  funext args
+  simp only [xmssAtFrameT, xmssAtFrame, frameAtA_eq_frameValAt]
+
 /-- The decoding off `main`'s valuation and the entry table. -/
 noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Reader) (σ : Val)
     (table : Array (CallKey × K)) : SeedStatementAndWitness :=
-  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (sphincsAtFrameT R table rd σ)
-    (cursorLength D))
+  decoderOutput D σ rd (decWitNStaged D R σ rd (frameAtA table rd) (xmssAtFrameT R table rd)
+    (sphincsAtFrameT R table rd σ) (cursorLength D))
 
 /-- The decoding off the reader and the replayed states. -/
 noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
@@ -93,6 +105,8 @@ set_option maxRecDepth 100000 in
 cost_compile sphincsAtFpC := sphincsAtFp
 set_option maxRecDepth 100000 in
 cost_compile sphincsAtFrameTC := sphincsAtFrameT
+set_option maxRecDepth 100000 in
+cost_compile xmssAtFrameTC := xmssAtFrameT
 set_option maxRecDepth 100000 in
 cost_compile decTopFramesC := decTopFrames
 set_option maxRecDepth 100000 in

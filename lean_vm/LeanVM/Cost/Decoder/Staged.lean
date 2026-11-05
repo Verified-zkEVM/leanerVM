@@ -35,7 +35,7 @@ noncomputable def kidsAt (D : DiscreteLogTables) (rd : Reader) (σ : Val)
 
 /-- The raw leanXMSS signatures of marks `0 … n - 1`. -/
 noncomputable def xmssRawsAt (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : E → LeanXmss.Signature) (n : ℕ) : List (LeanXmssClaim × LeanXmss.Signature) :=
+    (wX : List E → LeanXmss.Signature) (n : ℕ) : List (LeanXmssClaim × LeanXmss.Signature) :=
   (List.range n).map (rawXmssD D rd σ wX)
 
 /-- The raw leanSPHINCS signatures `0 … n - 1`. -/
@@ -59,10 +59,11 @@ noncomputable def kidsT (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (n : ℕ) : List Child :=
   (List.range n).map (decKidT D rd σ wV w380 p53 p56 tx ts)
 
-/-- The raw leanXMSS signatures `0 … n - 1`, off the leanXMSS region's table. -/
-noncomputable def xmssRawsT (rd : Reader) (p53 : E) (wX : E → LeanXmss.Signature)
-    (tx : Array ℕ × Array ℕ) (n : ℕ) : List (LeanXmssClaim × LeanXmss.Signature) :=
-  (List.range n).map (xmssRawT rd p53 wX tx.1 tx.2)
+/-- The raw leanXMSS signatures `0 … n - 1`, off the leanXMSS region's table, `__loop2`'s other
+arguments `args` read once. -/
+noncomputable def xmssRawsT (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
+    (args : List E) (tx : Array ℕ × Array ℕ) (n : ℕ) : List (LeanXmssClaim × LeanXmss.Signature) :=
+  (List.range n).map (xmssRawT rd p53 wX args tx.1 tx.2)
 
 /-- The raw leanSPHINCS signatures `0 … n - 1`, their marks from `nrx`, off the leanSPHINCS
 region's table. -/
@@ -72,13 +73,13 @@ noncomputable def sphincsRawsT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signa
 
 theorem kidsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (n : ℕ) :
-    kidsT D rd σ wV (σ (.n 380)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) n =
+    kidsT D rd σ wV (σ (.n 431)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) n =
       kidsAt D rd σ wV n :=
   List.map_congr_left fun c _ ↦ decKidT_eq D rd σ wV c
 
 theorem xmssRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : E → LeanXmss.Signature) (n : ℕ) :
-    xmssRawsT rd (σ (.n 52)) wX (lxTable D rd σ) n = xmssRawsAt D rd σ wX n :=
+    (wX : List E → LeanXmss.Signature) (n : ℕ) :
+    xmssRawsT rd (σ (.n 52)) wX (l2Args σ) (lxTable D rd σ) n = xmssRawsAt D rd σ wX n :=
   List.map_congr_left fun j _ ↦ xmssRawT_eq D rd σ wX j
 
 theorem sphincsRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
@@ -87,29 +88,31 @@ theorem sphincsRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
   List.map_congr_left fun j _ ↦ sphincsRawT_eq D rd σ wS j
 
 /-- The witness off the tables: `nk` children, `nrx`, `nrs` raw signatures, `main`'s word
-`written` (`w380`), the tables' pointers and the regions' tables `tx`, `ts`. -/
+`written` (`w380`), the tables' pointers, the regions' tables `tx`, `ts` and `__loop2`'s other
+arguments `args`. -/
 noncomputable def decWitTab (D : DiscreteLogTables) (σ : Val) (rd : Reader)
-    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+    (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints)
-    (nk nrx nrs : ℕ) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) : NodeWitness :=
-  nodeWitnessOf (kidsT D rd σ wV w380 p53 p56 tx ts nk) (xmssRawsT rd p53 wX tx nrx)
+    (nk nrx nrs : ℕ) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (args : List E) :
+    NodeWitness :=
+  nodeWitnessOf (kidsT D rd σ wV w380 p53 p56 tx ts nk) (xmssRawsT rd p53 wX args tx nrx)
     (sphincsRawsT rd p56 wS ts nrx nrs) (daWitness D σ wD) (wA (aggArgs σ))
 
 /-- The witness, the counts given: the tables built here, once. -/
 noncomputable def decWitAt (D : DiscreteLogTables) (σ : Val) (rd : Reader)
-    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+    (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints)
     (nk lx ls nrx nrs : ℕ) : NodeWitness :=
-  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 380)) (σ (.n 52)) (σ (.n 55))
-    (regionTable D rd (σ (.n 66)) 0 lx) (regionTable D rd (σ (.n 66)) lx ls)
+  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 431)) (σ (.n 52)) (σ (.n 55))
+    (regionTable D rd (σ (.n 66)) 0 lx) (regionTable D rd (σ (.n 66)) lx ls) (l2ArgsD σ)
 
 /-- **The witness, staged**: `decWit`'s fields through `decWitAt`, the counts (logarithms)
 computed here, each list through a function of one entry by partial application, the logarithm's
 tables `D` given. -/
 noncomputable def decWitStaged (D : DiscreteLogTables) (σ : Val) (rd : Reader)
-    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+    (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints) : NodeWitness :=
   decWitAt D σ rd wX wS wD wV wA (nKidsD D σ) (lxSlotsD D σ) (lsSlotsD D σ) (nRawXD D σ)
@@ -117,14 +120,14 @@ noncomputable def decWitStaged (D : DiscreteLogTables) (σ : Val) (rd : Reader)
 
 /-- **Off the tables, the witness is the unstaged lists'.** -/
 theorem decWitStaged_eq_lists (D : DiscreteLogTables) (σ : Val) (rd : Reader)
-    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
+    (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints) :
     decWitStaged D σ rd wX wS wD wV wA =
       nodeWitnessOf (kidsAt D rd σ wV (nKidsD D σ)) (xmssRawsAt D rd σ wX (nRawXD D σ))
         (sphincsRawsAt D rd σ wS (nRawSD D σ)) (daWitness D σ wD) (wA (aggArgs σ)) := by
   unfold decWitStaged decWitAt decWitTab
-  rw [kidsT_eq, xmssRawsT_eq, sphincsRawsT_eq]
+  rw [kidsT_eq, l2ArgsD_eq, xmssRawsT_eq, sphincsRawsT_eq]
 
 cost_compile kidsTC := kidsT
 cost_compile xmssRawsTC := xmssRawsT

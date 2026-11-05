@@ -76,7 +76,12 @@ def osBos(m):
         base = 1 if l == 0 else 0
         oq = 'opening_queries__L%d_L%d_L%d_L%d_L%d_L%d' % (q % 2 * base, base, il, lc, depth, cd)
         N = q // (1 + base)
-        sp[oq] = sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
+        # `B1.oqBound`: its frame, chain buffer, `N + 1` iterations and a `walk_path` frame a query
+        # (`oqWalkCount`: `odd + 2N` at level 0, `N` deeper)
+        odd = q % 2 * base
+        wk = odd + 2 * N if base == 1 else N
+        sp[oq] = (sp.get(oq, 0) + fs(oq) + (N + 1) + (N + 1) * fs(oql.get(oq, ''))
+                  + wk * fs('walk_path__L%d_L%d' % (depth - cd, cd)))
         sp[resL] = sp.get(resL, 0) + q // 8 * SK(resL)
     return fs(name) + sum(sizes), [max(fs(f), Bnd(f) + sp.get(f, 0)) for f in calls(name)]
 
