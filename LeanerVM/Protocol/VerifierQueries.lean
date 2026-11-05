@@ -441,8 +441,9 @@ def queryCountAt (prog : Program) (input : PublicInput) (s : Sizes) (ρ : ℕ) :
   | some levels => queryCount prog input s (levelShapes (stackMu prog s) levels)
 
 /-- The box the admissible announcements lie in: the memory's log-size, the six tables'
-log-heights and the rate. Irreducible: a unification that unfolds it would enumerate it. -/
-@[irreducible] def sizesBox : Finset (ℕ × (Fin 6 → Fin (maxLogRows + 1)) × ℕ) :=
+log-heights and the rate. Irreducible: a unification that unfolds it would enumerate it.
+Noncomputable: compiled, it is a constant of `33^7 · 5` points built when a program starts. -/
+@[irreducible] noncomputable def sizesBox : Finset (ℕ × (Fin 6 → Fin (maxLogRows + 1)) × ℕ) :=
   Finset.range (maxLogMem + 1) ×ˢ Finset.univ ×ˢ Finset.range 5
 
 /-- The queries at a point of the box, `0` off the sizes. -/
@@ -451,7 +452,7 @@ def queryCountOf (prog : Program) (input : PublicInput)
   if h : 0 < p.1 then queryCountAt prog input ⟨p.1, h, fun j ↦ p.2.1 j⟩ p.2.2 else 0
 
 /-- **The verifier's queries**, maximised over the admissible sizes and rates. -/
-def verifierQueries (prog : Program) (input : PublicInput) : ℕ :=
+noncomputable def verifierQueries (prog : Program) (input : PublicInput) : ℕ :=
   sizesBox.sup (queryCountOf prog input)
 
 /-- The sizes and rate the setup accepts pass its checks. -/

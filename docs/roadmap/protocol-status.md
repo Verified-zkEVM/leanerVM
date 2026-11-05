@@ -1494,7 +1494,7 @@ or a grind runs out of fuel at a chain state the prover's run reaches (`ProveRea
 returns a proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
 `admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility).
 `leanervm-prove execution` runs it on the one-step ladder trace of the completeness tests (memory
-`2^16` padded to `2^17`, stack `2^20`): the generator in 0.8 s, the whole prover in 143 s, and
+`2^16` padded to `2^17`, stack `2^20`): the generator in under 1 s, the whole prover in 103–143 s, and
 `verify` accepts the proof. The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
 stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
 check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a

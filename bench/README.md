@@ -437,9 +437,12 @@ lake build leanervm-prove
 
 `execution [rate] [fuel] [steps]` proves the trace of `steps` steps (default `1`, the valid run) of
 the ladder program on `badImage` (memory `2^16`, padded to `2^17`). Recorded on 2026-11-05, one
-thread: `witnessGen` in 0.77 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`), sizes memory
-`2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution` returns 767 scalars
-in 142.7 s; `verify` accepts in 1.45 s; 1.4 GB peak.
+thread, two runs: `witnessGen` in 0.6–0.8 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`),
+sizes memory `2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution`
+returns 767 scalars in 103–143 s; `verify` accepts in 1.5–2.3 s; 1.4 GB peak. The executable
+imports `LeanerVM.Protocol.Headline`; a compiled program that imports it starts only since
+`VerifierQueries.sizesBox` is noncomputable (before, the start-up built its `33^7 · 5` points and
+ran out of memory).
 
 `sentinel` runs `prove` on the sentinel tests' witness (`SentinelFixture.sentW`), whose program has
 a `JUMP` in its sentinel slot and no valid execution on the input over any memory
