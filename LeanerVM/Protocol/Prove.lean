@@ -193,7 +193,8 @@ def prove (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
   proveWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input w ρ
 
 /-- **A chain state the deployed prover's run reaches**: `Prove.RunReaches` as `prove` runs, at
-BLAKE2s-256 from the statement's seed, at the deployed Flock specification. -/
+BLAKE2s-256 from the statement's seed, at the deployed Flock specification. These are the states at
+every round boundary of the run, a superset of the states its grinds start at. -/
 def ProveReaches (fuel : ℕ) (prog : Program) (input : PublicInput) {κ : ℕ}
     (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) (fs : FsState) : Prop :=
   Prove.RunReaches blake2sBytes (FsState.seedWith blake2sBytes prog input) fuel

@@ -66,9 +66,10 @@ constraint statement representing the padding, with sizes `s`, on which, at ever
 `verify` accepts every proof the deployed `prove` returns, and `prove` returns a proof unless the
 stack exceeds `2^maxMu`, the rate is not valid, or a grind finds no nonce among its `fuel`
 candidates at a chain state the prover's run reaches (`ProveReaches`: the state after the
-announcement and some first rounds of the run). The witness exists; it is not computed, since
-leanISA's padded witness reads the memory image through `MemImage.read`, a classical discrete
-logarithm, and takes the fill blocks from the proposition `HasFillBlocks`.
+announcement and some first rounds of the run, so every round boundary, a superset of the states
+the grinds start at). The witness exists; it is not computed, since leanISA's padded witness reads
+the memory image through `MemImage.read`, a classical discrete logarithm, and takes the fill blocks
+from the proposition `HasFillBlocks`.
 
 ## The lemmas they are proved from
 
