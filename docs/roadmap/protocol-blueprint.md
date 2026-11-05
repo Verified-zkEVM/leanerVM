@@ -2057,13 +2057,13 @@ event inside `HashMisbehavesFrom` at the chosen statement, its flips on that sta
 (BLAKE2s is a function, so the log is consistent with one, and `verifyWith_simulateQ` makes the
 game's verdict `verify`'s), and `satisfiedBy_witnessOf` turns `M3Holds` into `SatisfiedBy` at the
 admissible sizes `extract` returns. Under the lazy random oracle the run is a possible run with a
-consistent log as well, so the same step, `flip_of_verifierFlipFor` and `misbehaves_rom_adaptive`'s closed
-form give `baseVerifier_extractsWitness_rom_adaptive`, whose event reads the game's verdict, not
-`verify`'s.
-The mathematics is in `core`, `misbehaves_rom_of` and what they rest on. At a statement fixed
-before the adversary runs, each theorem is the adaptive one at the adversary that outputs that
-statement with its proof (`adaptiveGame_const`): `baseVerifier_extractsWitness`,
-`baseVerifier_extractsWitness_rom` and the rest keep their names, bound for bound.
+consistent log as well, so the same step, `flip_of_verifierFlipFor` and
+`misbehaves_rom_adaptive`'s closed form give `baseVerifier_extractsWitness_rom_adaptive`, whose
+event reads the game's verdict, not `verify`'s. The mathematics is in `core`, `misbehaves_rom_of`
+and what they rest on. At a statement fixed before the adversary runs, each theorem is the
+adaptive one at the adversary that outputs that statement with its proof (`adaptiveGame_const`):
+`baseVerifier_extractsWitness`, `baseVerifier_extractsWitness_rom` and the rest keep their names,
+bound for bound.
 
 `extractTrace` takes any inhabitant of leanISA's trace interface (decision 41), and
 `baseVerifier_extractsExecution` is stated and proved at leanISA's, `leanIsaTraceExtraction`,
@@ -2072,8 +2072,9 @@ well-formedness its `constraintSoundness` needs. Its extractor is computable end
 (acceptance test 24). `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
 execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the
 execution form takes `SentinelSafe prog` through the interface's inhabitant, and completeness from
-an execution would take `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot can have a witness of the constraint statement and no valid execution on any memory
+an execution would take `WellFormedBytecode prog` through `constraintCompleteness` (decision 27).
+A bytecode with a `JUMP` in the sentinel slot can have a witness of the constraint statement and
+no valid execution on any memory
 (`exists_satisfiedBy_without_execution`), and `verify` accepts every proof `prove` returns for that
 witness (`verify_accepts_without_execution`): constraint soundness cannot drop the condition, and
 no extractor finds an execution there because there is none (acceptance test 41). That the
