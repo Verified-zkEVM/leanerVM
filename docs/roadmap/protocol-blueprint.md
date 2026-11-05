@@ -1730,10 +1730,11 @@ leanISA's inhabitant, `leanIsaTraceExtraction`, takes `SentinelSafe prog`, and s
 corollary at it. `extract`, `witnessOf` and `extractTrace` keep the extracted witness and
 execution, which recursion (T6) needs. The witness form takes no bytecode hypothesis; the execution
 form takes `SentinelSafe prog` through the interface's inhabitant, and completeness from an
-execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A bytecode with a `JUMP` in the
-sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
-establishes it (`lean_compiler/src/lib.rs:162`). The existential corollary, "an accepted proof
-implies some valid execution", is not stated: it carries no knowledge (decision 34).
+execution takes `WellFormedBytecode prog` through `constraintCompleteness` (decision 27). A
+bytecode with a `JUMP` in the sentinel slot has balancing steps and no execution (a proved
+repository test); leanVM's compiler establishes it (`lean_compiler/src/lib.rs:162`). The
+existential corollary, "an accepted proof implies some valid execution", is not stated: it
+carries no knowledge (decision 34).
 
 `BlakeMisbehaves` is about one adversary, one statement and one run, and its three clauses name
 what of BLAKE2s is relied on (*For zkVM engineers* says what that makes of the headline). An
