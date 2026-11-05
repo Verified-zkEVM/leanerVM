@@ -195,7 +195,8 @@ theorem replayer_not_blakeMisbehaves {prog : Program} {input : PublicInput}
     ¬ BlakeMisbehaves prog input (replayer proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (loggedGame verifyWith prog input (replayer proof))}[
-      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g] = 1 :=
+      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input)) g] =
+        1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s hg
       obtain ⟨hp, hl⟩ := replayer_run hg'
@@ -371,8 +372,8 @@ theorem adaptiveReplayer_not_blakeMisbehaves {prog : Program} {input : PublicInp
     ¬ BlakeMisbehavesAdaptive (adaptiveReplayer prog input proof) δ := by
   intro hB
   have h1 : Pr{let g ← runBlake2s (adaptiveGame verifyWith (adaptiveReplayer prog input proof))}[
-      HashMisbehavesFrom [] (rootsOf g.prog g.input) (leanVmReader.FlipFor (g.prog, g.input))
-        g.toRun] = 1 :=
+      HashMisbehavesFrom [] (rootsOf g.prog g.input)
+        (leanVmReader.VerifierFlipFor (g.prog, g.input)) g.toRun] = 1 :=
     OracleComp.prEvent_eq_one_of_forall_mem_support _ _ fun g hg ↦ by
       obtain ⟨hg', hc, hok⟩ := mem_support_runBlake2s_adaptive hg
       obtain ⟨hp, hi, hpr, hl⟩ := adaptiveReplayer_run (QueryLog.support_simulateQ_subset _ _ hg)
@@ -423,6 +424,29 @@ example (proof : Proof PrunedMerklePaths) :
         SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
       ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
   baseVerifier_extractsWitness_rom_adaptive (chooser_queries _ _ _)
+
+-- The adaptive random-oracle theorem for an adversary with coins, at the coins that draw the
+-- chooser alone.
+example (proof : Proof PrunedMerklePaths) :
+    Pr{let A ← (pure (chooser (program, input) (fillProg, mulInput) proof) : ProbComp _)
+       let z ← runRandom (adaptiveGame verifyWith A)}[z.1.ok = true ∧ ¬ ∃ e,
+      extract Blake2sFlock.blake2sFlockSpec z.1.prog z.1.input z.1.proof z.1.logA = some e ∧
+        SatisfiedBy z.1.prog z.1.input (witnessOf Blake2sFlock.blake2sFlockSpec z.1.prog e.1 e.2)] ≤
+      ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
+  baseVerifier_extractsWitness_rom_adaptive_coins fun A hA ↦ by
+    simp only [support_pure, Set.mem_singleton_iff] at hA
+    exact hA ▸ chooser_queries _ _ _
+
+-- Its execution form, at the same coins.
+example (proof : Proof PrunedMerklePaths) :
+    Pr{let A ← (pure (chooser (program, input) (fillProg, mulInput) proof) : ProbComp _)
+       let z ← runRandom (adaptiveGame verifyWith A)}[z.1.ok = true ∧ SentinelSafe z.1.prog ∧
+      ¬ ∃ t, extractExecution z.1.prog z.1.input z.1.proof z.1.logA = some t ∧
+        ValidExecution z.1.prog z.1.input t] ≤
+      ((1 + 13700 : ℕ) / 2 ^ 128 + hashTerm 13700 1 : NNReal) :=
+  baseVerifier_extractsExecution_rom_adaptive_coins fun A hA ↦ by
+    simp only [support_pure, Set.mem_singleton_iff] at hA
+    exact hA ▸ chooser_queries _ _ _
 
 /- The execution form for an adversary that only ever outputs the fill-block ladder's program,
 which is well-formed: the hypothesis on the adversary's programs is met. -/

@@ -10,7 +10,8 @@ import LeanerVM.Protocol.Core
   history announces nothing.
 * `core_of_mem_support` gives the core implication in the form the base theorems use it: on every
   possible run of the game with a consistent joint log and an accepting verdict, a failed
-  extraction means the hash misbehaves, a flip being one on the chain of the statement.
+  extraction means the hash misbehaves, a flip being one on the chain of the statement on a group
+  the verifier asked, which is a flip on the statement's chain, which is a flip.
 -/
 
 namespace LeanerVMTests.Protocol.Core
@@ -43,14 +44,20 @@ example (prog : Program) (input : PublicInput) (A : Adversary) :
     ∀ g ∈ support (loggedGame Verify.verifyWith prog input A),
       QueryLog.Consistent g.log → g.ok = true →
       ¬ Extracts Blake2sFlock.blake2sFlockSpec prog input g.proof g.logA →
-      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
+      HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input)) g :=
   fun _ hg hc hok hX ↦ Core.core_of_mem_support hg hc hok hX
 
--- A flip on the chain of the statement is a flip, so the event the core concludes lies inside
--- the one the random-oracle bound bounds.
+-- A flip the verifier asked for is a flip on the chain of the statement, which is a flip, so the
+-- event the core concludes lies inside the one the random-oracle bound bounds.
 example (prog : Program) (input : PublicInput) (g : Run)
-    (h : HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g) :
+    (h : HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))
+      g) :
+    HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.FlipFor (prog, input)) g :=
+  h.mono fun _ ↦ leanVmReader.flipFor_of_verifierFlipFor
+example (prog : Program) (input : PublicInput) (g : Run)
+    (h : HashMisbehavesFrom [] (rootsOf prog input) (leanVmReader.VerifierFlipFor (prog, input))
+      g) :
     HashMisbehavesFrom [] (rootsOf prog input) leanVmReader.Flip g :=
-  h.mono fun _ ↦ leanVmReader.flip_of_flipFor
+  h.mono fun _ ↦ leanVmReader.flip_of_verifierFlipFor
 
 end LeanerVMTests.Protocol.Core

@@ -19,6 +19,11 @@ hashing is needed), from the seed:
 * the flip is on the chain of the statement the seed opens (`FlipAtFor`), and a flip on a
   statement's chain is a flip; with a second start opening a second statement, the log has no
   flip on that statement's chain (`not_flipAtFor_true`): the start is not in play;
+* on a run whose verifier asked the log, the flip is one the verifier asked for
+  (`VerifierFlipFor`, the group's nonce step among the verifier's queries); on the run whose
+  prover asked the same log and whose verifier asked nothing, it is a flip on the statement's
+  chain but not one the verifier asked for (`not_verifierFlipFor_proverRun`): the narrower event
+  excludes a chain the prover explored alone;
 * with the challenge unmarked, the nonce's group fixes nothing, and the plain group at the
   nonce's answer fixes it, opened and closed by its one squeeze;
 * a log whose base is answered by the seed has a hit, and a check answered by its own base is a
@@ -318,6 +323,40 @@ example : R.π log₃ G₁ = 1 := R.π_eq_one_of_flips flips₃
 -- on that statement's chain. A flip on a statement's chain is a flip.
 example : R.FlipAtFor log₃ () := ⟨G₁, flips₃, (s₀, []), rfl, rfl⟩
 example (st : Unit) (g : Run) (h : R.FlipFor st g) : R.Flip g := R.flip_of_flipFor h
+
+/-! ## A flip the verifier asked for -/
+
+/-- The log's queries asked by the verifier alone, the prover asking nothing. -/
+def verifierRun : Run := ⟨⟨[], []⟩, [], log₃, true⟩
+
+/-- The log's queries asked by the prover alone, the verifier asking nothing. -/
+def proverRun : Run := ⟨⟨[], []⟩, log₃, [], true⟩
+
+-- The group's chain step is its nonce step, which the log holds.
+#guard G₁.stepInput == absorbInput s₀ n₁
+
+/-- **The verifier asked the flipping group**: on the run whose verifier asked the log, the flip
+is one the verifier asked for. -/
+theorem verifierFlipFor_verifierRun : R.VerifierFlipFor () verifierRun :=
+  ⟨G₁, ⟨flips₃, (s₀, []), rfl, rfl⟩, d 3, by simp [verifierRun, log₃, log₂, G₁, Group.stepInput]⟩
+
+/-- **A flip the prover explored alone is not one the verifier asked for**: the same log as the
+prover's, the verifier asking nothing. -/
+theorem not_verifierFlipFor_proverRun : ¬ R.VerifierFlipFor () proverRun :=
+  fun ⟨_, _, _, h⟩ ↦ nomatch h
+
+/-- It is a flip on the statement's chain all the same: the event the verifier asked for is
+strictly smaller. -/
+theorem flipFor_proverRun : R.FlipFor () proverRun := by
+  show R.FlipAtFor proverRun.log ()
+  rw [show proverRun.log = log₃ from List.append_nil _]
+  exact ⟨G₁, flips₃, (s₀, []), rfl, rfl⟩
+
+-- A flip the verifier asked for is a flip on the statement's chain, and a flip.
+example (st : Unit) (g : Run) (h : R.VerifierFlipFor st g) : R.FlipFor st g :=
+  R.flipFor_of_verifierFlipFor h
+example (st : Unit) (g : Run) (h : R.VerifierFlipFor st g) : R.Flip g :=
+  R.flip_of_verifierFlipFor h
 
 -- Before the squeeze the group is not closed, so it does not flip.
 example : ¬ R.Flips log₂ G₁ := fun h ↦ by
