@@ -10,11 +10,12 @@ import LeanerVM.Protocol.Prove
 import LeanerVM.Protocol.Verify
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Semantics.FillBlocks
+import LeanerVM.Arithmetization.WitnessGen
 
 /-!
 # The `leanervm-witgen` executable
 
-`leanervm-witgen [--prod] [--scan] [--hash] file…` reads each file written by
+`leanervm-witgen [--prod] [--scan] [--hash] [--gen] [--prove] file…` reads each file written by
 `scripts/dump-execution-rust.sh` (an execution of a compiled program by the Rust executor at
 leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`, plain or `gzip`ped) and checks, each step
 timed:
@@ -36,8 +37,9 @@ timed:
 * with `--prod`, the production `checkTrace` with the Rust hint list (the cells some row
   accessed and the row counters); with `--scan`, also with no hints (the exhaustive scan).
 
-`runGenerator` is the hook for a witness generator of the shape `Generator`: generate, `prove`,
-`verify`, each timed. The exit code is `1` if a check fails.
+With `--gen`, `runGenerator` runs `witnessGen` (a function of the shape `Generator`) and reports
+the witness's sizes, whose table heights must be the Rust's; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and checks
+the proof with `verify`; each timed. The exit code is `1` if a check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -414,16 +416,25 @@ interval. -/
 /-- Seconds since `t0`. -/
 def since (t0 : ℕ) : IO Float := do return ((← IO.monoNanosNow) - t0).toFloat / 1e9
 
-/-- Generate a witness, prove at rate `ρ` with `fuel` nonces a grind, verify; each timed. -/
-def runGenerator (gen : Generator) (fuel ρ : ℕ) (prog : Program) (input : PublicInput)
-    (t : Trace prog) : IO Bool := do
+/-- Generate a witness and report its sizes; with `proveToo`, prove at rate `ρ` with `fuel`
+nonces a grind and verify; each timed. -/
+def runGenerator (gen : Generator) (proveToo : Bool) (fuel ρ : ℕ) (prog : Program)
+    (input : PublicInput) (t : Trace prog) (rustRows : Vector ℕ 6) : IO Bool := do
   let t0 ← IO.monoNanosNow
   match gen prog input t with
   | none =>
     IO.println s!"FAIL the generator returned none, in {← since t0} s"
     return false
   | some w =>
-  IO.println s!"  generate: {← since t0} s"
+  let sizes ← force (LeanIsa.Sizes.ofWitness w)
+  let some s := sizes | do
+    IO.println s!"FAIL the witness has no sizes, in {← since t0} s"
+    return false
+  let same := (List.finRange 6).all fun j ↦ 2 ^ s.τ j == rustRows[j]
+  IO.println s!"{if same then "ok  " else "FAIL"} witnessGen: memory 2^{s.logMem}, tables \
+    2^{List.ofFn s.τ} (the Rust's heights: {same}), in {← since t0} s"
+  unless same do return false
+  unless proveToo do return true
   let t1 ← IO.monoNanosNow
   let some p ← force (prove fuel prog input w ρ) | do
     IO.println s!"FAIL prove returned none, in {← since t1} s"
@@ -444,6 +455,10 @@ structure Options where
   scan : Bool := false
   /-- Check the program hash. -/
   hash : Bool := false
+  /-- Run the witness generator. -/
+  gen : Bool := false
+  /-- Also prove and verify. -/
+  prove : Bool := false
 
 /-- Print a check's outcome and time; `1` if it failed. -/
 def report (name : String) (ok : Bool) (t0 : ℕ) : IO ℕ := do
@@ -460,7 +475,7 @@ def readText (file : String) : IO String := do
   else IO.FS.readFile file
 
 /-- Check one file; the number of failed checks. -/
-def runFile (opts : Options) (gen? : Option Generator) (file : String) : IO ℕ := do
+def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   IO.println s!"== {file}"
   let t0 ← IO.monoNanosNow
   let text ← readText file
@@ -523,22 +538,22 @@ def runFile (opts : Options) (gen? : Option Generator) (file : String) : IO ℕ 
   if opts.scan then
     let t10 ← IO.monoNanosNow
     failed := failed + (← report "checkTrace with no hints" (← force (checkTrace e.prog e.input t [])) t10)
-  match gen? with
-  | some gen => unless ← runGenerator gen (2 ^ 24) 1 e.prog e.input t do failed := failed + 1
-  | none => IO.println "  no generator linked"
+  if opts.gen || opts.prove then
+    unless ← runGenerator gen opts.prove (2 ^ 24) 1 e.prog e.input t e.traceInput.rowCounts do failed := failed + 1
   IO.println s!"  {failed} failed, {← since t0} s in all"
   return failed
 
 end LeanerVMWitgen
 
 open LeanerVMWitgen in
-/-- `leanervm-witgen [--prod] [--scan] [--hash] file…`. -/
+/-- `leanervm-witgen [--prod] [--scan] [--hash] [--gen] [--prove] file…`. -/
 def main (args : List String) : IO UInt32 := do
   let opts : Options := {
     prod := args.contains "--prod", scan := args.contains "--scan",
-    hash := args.contains "--hash" }
+    hash := args.contains "--hash", gen := args.contains "--gen",
+    prove := args.contains "--prove" }
   let mut failed := 0
   for file in args.filter (!·.startsWith "--") do
-    failed := failed + (← runFile opts none file)
+    failed := failed + (← runFile opts witnessGen file)
   IO.println s!"{failed} failed"
   return if failed = 0 then 0 else 1

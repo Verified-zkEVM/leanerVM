@@ -567,12 +567,17 @@ index. Measured on 2026-11-05 (one run each, the machine shared):
 | --- | --- | --- | --- | --- |
 | `py_*`, `field_div`, `hash_chain_8` | 10 to 198 | 0.1 to 5 ms | 1 to 120 ms (30 to 410 hints) | 0.1 to 260 ms |
 | `fibonacci_1000` | 1031 | 8 to 40 ms | 2.4 to 5.6 s (2093 hints) | 0.8 to 1.3 s |
-| `fibonacci_20000` | 20336 | 0.13 to 0.22 s | FIB_PROD | FIB_SCAN |
-| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 35 to 62 ms | 170 s (11572 hints) | GUEST_SCAN |
+| `fibonacci_20000` | 20336 | 0.13 to 0.22 s | 1115 s (20405 hints) | 364 s |
+| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 35 to 62 ms | 170 s (11572 hints) | 302 s |
 
 Reading a file and the table of powers take 0.1 s at `2^17` and 2.7 s for the guest (`2^19`
 powers, an 18 MB file); the program hash of the guest's `2^19` instructions takes 36 s and 3 GB,
 through `programBytes`' list of bytes.
+
+With `--gen`, `witnessGen` gives each checked-in execution the Rust's table heights at memory
+`2^18` (the Rust's `2^17` plus the padding's doubling), in 1.0 to 2.0 s, 1.6 s on
+`fibonacci_1000` and 32 s on `fibonacci_20000`. With `--prove`, `field_div` end to end: generation
+1.3 s, `prove` 290 s (818 scalars, 1.9 GB resident), `verify` accepts in 1.9 s.
 
 Once the corresponding semantics exist, versioned target workloads should include opcode mixes,
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive
