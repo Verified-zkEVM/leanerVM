@@ -3,9 +3,10 @@
 
   Below this header, a verbatim copy of the section "Compiled forms of the snocs and appends" of
   ArkLib's `ArkLib/Data/Fin/Tuple/Lemmas.lean` at `f1a1e7deb` (branch
-  `perf/fin-append-compiled-forms` of `scaraven/ArkLib`, proposed to ArkLib), which the pin does
-  not contain. Deleted when the pin contains it, with `ToArkLib/AppendLazy.lean`; their importers
-  then import `ArkLib.Data.Fin.Tuple.Lemmas`, and the aggregate drops both.
+  `perf/fin-append-compiled-forms` of `scaraven/ArkLib`), merged into ArkLib as pull request 1344
+  (`1beb99cc`, 2026-10-27) with the same names, which the pin does not contain. Deleted when the
+  pin contains it, with `ToArkLib/AppendLazy.lean`; their importers then import
+  `ArkLib.Data.Fin.Tuple.Lemmas`, and the aggregate drops both.
 
   ArkLib's licence notice:
 
