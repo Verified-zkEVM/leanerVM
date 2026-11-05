@@ -15,7 +15,7 @@ import LeanerVM.Arithmetization.WitnessGen
 /-!
 # The `leanervm-witgen` executable
 
-`leanervm-witgen [--prod] [--scan] [--hash] [--gen] [--prove] file…` reads each file written by
+`leanervm-witgen [--prod] [--hash] [--gen] [--prove] [--stages] file…` reads each file written by
 `scripts/dump-execution-rust.sh` (an execution of a compiled program by the Rust executor at
 leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`, plain or `gzip`ped) and checks, each step
 timed:
@@ -27,20 +27,20 @@ timed:
   and size has a listed block whose slots hold the dummies and the closing jump (`IsFillBlock` at
   that start; a diagnostic of the listed starts, not a decision procedure for `HasFillBlocks`);
 * with `--hash`, `programHash prog` against the Rust bytecode digest;
-* the execution: `checkTraceGuess`, which is `checkTrace` with the address search taking an
-  untrusted index guess from a table of powers (`checkTraceGuess_eq_checkTrace`, so it decides
-  `ValidExecution`);
+* the execution: `checkTrace` (`checkTrace_eq_true_iff`, so it decides `ValidExecution`), whose
+  run reads through a table of powers grown along the run;
 * the rows: the main run's states, replayed, are each table's first `main` rows in order, and the
   remaining rows of every table, the fill rows, step to a permutation of themselves away from the
   sentinel (`FillerRowsValid`, checked by sorting; a diagnostic, not proved equal to
   `checkFillerRows`);
-* with `--prod`, the production `checkTrace` with the Rust hint list (the cells some row
-  accessed and the row counters); with `--scan`, also with no hints (the exhaustive scan).
+* with `--prod`, `checkTrace` again, its table seeded with the Rust hint list (the cells some row
+  accessed and the row counters).
 
 With `--gen`, `runGenerator` runs `witnessGen` (a function of the shape `Generator`) and reports
 the witness's sizes, whose table heights must be the Rust's unless the Rust prover raised them to a
 floor on the committed size; with `--prove`, it also proves the witness (`prove`, rate `1/2`) and checks
-the proof with `verify`; each timed. The exit code is `1` if a check fails.
+the proof with `verify`; each timed. With `--stages`, the stages of `witnessGen` are forced and
+timed one by one (`stages`). The exit code is `1` if a check fails.
 -/
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol
@@ -48,124 +48,15 @@ open LeanerVM.Protocol.Verify
 
 namespace LeanerVMWitgen
 
-/-! ## The address search from a guess -/
-
-/-- The index of address `a` from an untrusted guess: the guess `i` is taken only when
-`i < 2 ^ κ` and `g ^ i = a`, else the carrier's exhaustive scan. -/
-def addressIndexGuess (κ : ℕ) (guess : K → Option ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
-  match guess a with
-  | some i => if h : i < 2 ^ κ ∧ gpow i = a then some ⟨i, h.1⟩ else addressIndex κ [] a
-  | none => addressIndex κ [] a
-
-/-- The guessed search is the reference logarithm, for every guess. -/
-theorem addressIndexGuess_eq {κ : ℕ} (hκ : κ < 64) (guess : K → Option ℕ) (a : K) :
-    addressIndexGuess κ guess a = addressIndex κ [] a := by
-  unfold addressIndexGuess
-  split
-  · split_ifs with h
-    · rw [addressIndex_eq_gLog hκ]
-      exact ((gLog?_spec hκ).mpr h.2.symm).symm
-    · rfl
-  · rfl
-
-/-- Read the image through the guessed search. -/
-def readGuess {κ : ℕ} (image : MemImage κ) (guess : K → Option ℕ) (a : K) : Option E :=
-  (addressIndexGuess κ guess a).map image
-
-/-- Fetch through the guessed search. -/
-def fetchGuess (prog : Program) (guess : K → Option ℕ) (pc : K) : Option Instr :=
-  (addressIndexGuess prog.logSize guess pc).map prog.code
-
-/-- One checked step through the guessed search. -/
-def stepGuess {κ : ℕ} (prog : Program) (image : MemImage κ) (guess : K → Option ℕ)
-    (r : Regs K) : Option (Regs K) :=
-  fetchGuess prog guess r.pc >>= executeWith (readGuess image guess) r
-
-theorem stepGuess_eq {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ)
-    (guess : K → Option ℕ) (r : Regs K) :
-    stepGuess prog image guess r = stepChecked prog image [] r := by
-  have hp : prog.logSize < 64 := lt_of_le_of_lt prog.logSize_le (by decide)
-  have hr : readGuess image guess = readImage image [] := funext fun a ↦ by
-    rw [readGuess, readImage, addressIndexGuess_eq hκ]
-    rfl
-  have hf : fetchGuess prog guess r.pc = fetchInstruction prog [] r.pc := by
-    rw [fetchGuess, fetchInstruction, addressIndexGuess_eq hp]
-    rfl
-  rw [stepGuess, stepChecked, hf, hr]
-  rfl
-
-/-- `runToHalt` through the guessed search. -/
-def runToHaltGuess {κ : ℕ} (prog : Program) (image : MemImage κ) (guess : K → Option ℕ) :
-    ℕ → Regs K → Except CheckError ℕ
-  | fuel, r =>
-    if r.pc = prog.finalPc then
-      if r.fp = 1 then .ok 0 else .error .finalFrame
-    else match fuel with
-      | 0 => .error .fuelExhausted
-      | fuel + 1 => match stepGuess prog image guess r with
-        | none => .error .invalidStep
-        | some next => (runToHaltGuess prog image guess fuel next).map (· + 1)
-
-theorem runToHaltGuess_eq {κ : ℕ} (hκ : κ < 64) (prog : Program) (image : MemImage κ)
-    (guess : K → Option ℕ) (fuel : ℕ) (r : Regs K) :
-    runToHaltGuess prog image guess fuel r = runToHalt prog image [] fuel r := by
-  induction fuel generalizing r with
-  | zero => rw [runToHaltGuess, runToHalt]
-  | succ fuel ih =>
-    rw [runToHaltGuess, runToHalt, stepGuess_eq hκ]
-    split_ifs
-    · rfl
-    · rfl
-    · cases stepChecked prog image [] r with
-      | none => rfl
-      | some next => simp only [ih]
-
-/-- `checkTrace` through the guessed search. -/
-def checkTraceGuess (prog : Program) (input : PublicInput) (t : Trace prog)
-    (guess : K → Option ℕ) : Bool :=
-  decide ((if checkBoundary input (⟨t.κ, t.image, 0⟩ : Trace prog) then
-    runToHaltGuess prog t.image guess t.steps Regs.initial else .error .publicBoundary) =
-      .ok t.steps)
-
-/-- The guessed check is the production check without hints, for every guess; so it holds
-exactly on valid executions (`checkTrace_eq_true_iff`). -/
-theorem checkTraceGuess_eq_checkTrace (prog : Program) (input : PublicInput) (t : Trace prog)
-    (guess : K → Option ℕ) : checkTraceGuess prog input t guess = checkTrace prog input t [] := by
-  unfold checkTraceGuess checkTrace checkWithinFuel
-  split_ifs with hb
-  · have hκ : t.κ < 64 :=
-      lt_of_le_of_lt ((checkBoundary_eq_true_iff input _).mp hb).2.1 (by decide)
-    rw [runToHaltGuess_eq hκ]
-  · rfl
-
-theorem checkTraceGuess_eq_true_iff (prog : Program) (input : PublicInput) (t : Trace prog)
-    (guess : K → Option ℕ) :
-    checkTraceGuess prog input t guess = true ↔ ValidExecution prog input t := by
-  rw [checkTraceGuess_eq_checkTrace, checkTrace_eq_true_iff]
-
 /-! ## The powers of `g` -/
 
-/-- A word of `K` as a hash key. -/
-def key (x : K) : UInt64 := x.toBitVec.toNat.toUInt64
+/-- The power `g ^ i`, from the table. -/
+def powAt (P : PowTable) (i : ℕ) : K := P.pow i
 
-/-- `g ^ 0, …, g ^ (n - 1)`. -/
-def powersOf (n : ℕ) : Array K := Id.run do
-  let mut a := Array.mkEmpty n
-  let mut x : K := 1
-  for _ in [0:n] do
-    a := a.push x
-    x := x * g
-  return a
-
-/-- The index of each power in the table, by its word. -/
-def indexOf (pows : Array K) : Std.HashMap UInt64 ℕ := Id.run do
-  let mut m : Std.HashMap UInt64 ℕ := Std.HashMap.emptyWithCapacity pows.size
-  for h : i in [0:pows.size] do
-    m := m.insert (key pows[i]) i
-  return m
-
-/-- The power `g ^ i`, from the table when it holds it. -/
-def powAt (pows : Array K) (i : ℕ) : K := pows[i]?.getD (gpow i)
+/-- One step through a table of powers. -/
+def stepWith {κ : ℕ} (prog : Program) (image : MemImage κ) (P : PowTable) (r : Regs K) :
+    Option (Regs K) :=
+  fetchBy prog P r.pc >>= executeWith (readBy image P) r
 
 /-! ## The file -/
 
@@ -240,7 +131,7 @@ def keyedNum (k : String) : ParseM ℕ := do
   | _ => throw s!"line {← get}: {k} takes one number"
 
 /-- One instruction line (`scripts/dump-proof-rust.sh`), operands `g ^ j` from the table. -/
-def instrOf (pows : Array K) : List String → ParseM Instr
+def instrOf (pows : PowTable) : List String → ParseM Instr
   | ["xor", a, b, c] => do return .xor (← o a) (← o b) (← o c)
   | ["mul", a, b, c] => do return .mulNative (← o a) (← o b) (← o c)
   | ["set", a, k0, k1, k2] => do return .setConstant (← o a) (E.ofLimbs (← hexK k0) (← hexK k1) (← hexK k2))
@@ -278,7 +169,7 @@ def many {α : Type} (n : ℕ) (f : List String → ParseM α) : ParseM (Array �
   return a
 
 /-- Read a file; `pows` must hold the powers the operands name. -/
-def parse (pows : Array K) : ParseM Execution := do
+def parse (pows : PowTable) : ParseM Execution := do
   let (pin, name) ← match ← keyed "leanisa-execution" with
     | [p, n] => pure (p, n)
     | _ => throw "bad header"
@@ -374,34 +265,34 @@ def fillBlocksListed (prog : Program) (filler : Array (ℕ × ℕ × ℕ)) : Boo
   filler.all blockOk && opcodes.all fun op ↦ fillSizes.all fun s ↦
     filler.any fun (_, s', t) ↦ s' == s && opcodes[t]? == some op
 
-/-- The main run replayed through the guessed search: each table's states in order; `none` on a
+/-- The main run replayed through a table of powers: each table's states in order; `none` on a
 failed step. -/
-def mainRows {κ : ℕ} (prog : Program) (image : MemImage κ) (guess : K → Option ℕ) (n : ℕ) :
+def mainRows {κ : ℕ} (prog : Program) (image : MemImage κ) (P : PowTable) (n : ℕ) :
     Option (Vector (Array (Regs K)) 6) := Id.run do
   let mut acc : Vector (Array (Regs K)) 6 := Vector.replicate 6 #[]
   let mut r := Regs.initial
   for _ in [0:n] do
-    let some ins := fetchGuess prog guess r.pc | return none
+    let some ins := fetchBy prog P r.pc | return none
     let i := tableOf ins.opcode
     acc := acc.set i (acc[i].push r)
-    let some next := executeWith (readGuess image guess) r ins | return none
+    let some next := executeWith (readBy image P) r ins | return none
     r := next
   return some acc
 
 /-- Two states as a sort key. -/
-def regsKey (r : Regs K) : UInt64 × UInt64 := (key r.pc, key r.fp)
+def regsKey (r : Regs K) : UInt64 × UInt64 := (wordKey r.pc, wordKey r.fp)
 
 /-- Lexicographic order on keys. -/
 def keyLt (a b : UInt64 × UInt64) : Bool := a.1 < b.1 || (a.1 == b.1 && a.2 < b.2)
 
 /-- The fill rows: away from the sentinel, each steps, and the successors are a permutation of
 the starts (compared sorted). -/
-def fillRowsOk {κ : ℕ} (prog : Program) (image : MemImage κ) (guess : K → Option ℕ)
+def fillRowsOk {κ : ℕ} (prog : Program) (image : MemImage κ) (P : PowTable)
     (starts : Array (Regs K)) : Bool := Id.run do
   let mut next : Array (UInt64 × UInt64) := Array.mkEmpty starts.size
   for r in starts do
     if r.pc = prog.finalPc then return false
-    let some s := stepGuess prog image guess r | return false
+    let some s := stepWith prog image P r | return false
     next := next.push (regsKey s)
   return (starts.map regsKey).qsort keyLt == next.qsort keyLt
 
@@ -452,20 +343,57 @@ def runGenerator (gen : Generator) (proveToo : Bool) (fuel ρ : ℕ) (prog : Pro
   IO.println s!"{if ok then "ok  " else "FAIL"} verify = {ok}, in {← since t2} s"
   return ok
 
+/-- The stages of `witnessGen`, each forced and timed (`--stages`). -/
+def stages (prog : Program) (input : PublicInput) (t : Trace prog) : IO Unit := do
+  let mut t0 ← IO.monoNanosNow
+  let lap (name : String) (t0 : ℕ) : IO ℕ := do
+    IO.println s!"  stage {name}: {← since t0} s"
+    IO.monoNanosNow
+  let tab ← force (fillStartTable prog)
+  t0 ← lap "fillStartTable" t0
+  let pcs := startsOf tab
+  let P ← force (powTable (2 ^ max (t.κ + 1) prog.logSize))
+  t0 ← lap s!"powTable ({P.pows.size})" t0
+  let runA ← force (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P)) t.steps
+    Regs.initial #[])
+  t0 ← lap s!"runSkelsBy ({runA.size})" t0
+  let runS ← force runA.toList
+  let tabc ← force (skelCountTable runS)
+  t0 ← lap "skelCountTable" t0
+  let rows := countsOf tabc
+  let some τ := jumpHeight (jumpOwed rows) | IO.println "no τ"
+  let pad ← force (padSkels t.κ pcs (planCount rows τ))
+  t0 ← lap s!"padSkels ({pad.length})" t0
+  let S ← force (runS ++ pad)
+  let img := padImage t.image pcs
+  let rd := readBy img P
+  let res ← force (mkRowsH rd ∅ ∅ S #[])
+  t0 ← lap s!"mkRowsH ({res.1.size})" t0
+  let R ← force res.1.toList
+  for op in opcodes do
+    let rs ← force (opRowsBy P rd R op)
+    t0 ← lap s!"opRowsBy {tableOf op} ({rs.length})" t0
+  let bc ← force (bcRowsBy P prog res.2.2.get)
+  t0 ← lap s!"bcRowsBy ({bc.length})" t0
+  let memP ← force (memRowsBy P img res.2.1.get)
+  t0 ← lap s!"memRowsBy ({memP.length})" t0
+  let w ← force ((witnessGen prog input t).map fun w ↦ (LeanIsa.Sizes.ofWitness w).isSome)
+  discard <| lap s!"witnessGen ({w})" t0
+
 /-! ## The run -/
 
 /-- The options of a run. -/
 structure Options where
-  /-- Run the production `checkTrace` with the Rust hint list. -/
+  /-- Run `checkTrace` with the Rust hint list. -/
   prod : Bool := false
-  /-- Also run it with no hints. -/
-  scan : Bool := false
   /-- Check the program hash. -/
   hash : Bool := false
   /-- Run the witness generator. -/
   gen : Bool := false
   /-- Also prove and verify. -/
   prove : Bool := false
+  /-- Time the generator's stages. -/
+  stages : Bool := false
 
 /-- Print a check's outcome and time; `1` if it failed. -/
 def report (name : String) (ok : Bool) (t0 : ℕ) : IO ℕ := do
@@ -488,10 +416,9 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   let text ← readText file
   let lines := (text.splitOn "\n").toArray
   let (b, κ) := sizesOf lines
-  let pows ← force (powersOf (max b (2 ^ min κ 40)))
-  let index ← force (indexOf pows)
-  let guess : K → Option ℕ := fun a ↦ index[key a]?
-  IO.println s!"  read {text.length} bytes, powers of g to 2^{Nat.log 2 pows.size}: {← since t0} s"
+  let pows ← force (powTable (max b (2 ^ min κ 40)))
+  IO.println s!"  read {text.length} bytes, powers of g to 2^{Nat.log 2 pows.pows.size}: \
+    {← since t0} s"
   let t1 ← IO.monoNanosNow
   let e ← match (parse pows).run 0 |>.run lines with
     | .ok (e, _) => pure e
@@ -516,13 +443,13 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
     failed := failed + (← report "programHash = the Rust bytecode digest"
       (programHash e.prog == e.programHash) t5)
   let t6 ← IO.monoNanosNow
-  let ok ← force (checkTraceGuess e.prog e.input t guess)
-  failed := failed + (← report "checkTraceGuess (= ValidExecution)" ok t6)
+  let ok ← force (checkTrace e.prog e.input t)
+  failed := failed + (← report "checkTrace (= ValidExecution)" ok t6)
   let t7 ← IO.monoNanosNow
   let main := e.traceInput.mainCounts
   let rowRegs (i : Fin 6) : Array (Regs K) :=
     e.rows[i].map fun (pc, fp) ↦ ⟨powAt pows pc, powAt pows fp⟩
-  let replay ← force (mainRows e.prog t.image guess t.steps)
+  let replay ← force (mainRows e.prog t.image pows t.steps)
   let mainOk := match replay with
     | none => false
     | some acc => (List.finRange 6).all fun i ↦
@@ -533,18 +460,16 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
   let t8 ← IO.monoNanosNow
   let sizesOk := (List.finRange 6).all fun i ↦ e.rows[i].size == e.traceInput.rowCounts[i]
   let fillStarts := (List.finRange 6).foldl (fun a i ↦ a ++ (rowRegs i).extract main[i]) #[]
-  let fillOk ← force (fillRowsOk e.prog t.image guess fillStarts)
+  let fillOk ← force (fillRowsOk e.prog t.image pows fillStarts)
   failed := failed + (← report s!"fill rows ({fillStarts.size}) step to a permutation of themselves"
     (sizesOk && fillOk) t8)
   if opts.prod then
     let pcs := (e.rows.toList.flatMap fun rs ↦ rs.toList.map (·.1))
-    let hints := (e.accessed.toList ++ pcs).mergeSort.eraseDups
+    let hints ← force (e.accessed.toList ++ pcs).mergeSort.eraseDups
     let t9 ← IO.monoNanosNow
     failed := failed + (← report s!"checkTrace with the Rust hints ({hints.length})"
       (← force (checkTrace e.prog e.input t hints)) t9)
-  if opts.scan then
-    let t10 ← IO.monoNanosNow
-    failed := failed + (← report "checkTrace with no hints" (← force (checkTrace e.prog e.input t [])) t10)
+  if opts.stages then stages e.prog e.input t
   if opts.gen || opts.prove then
     unless ← runGenerator gen opts.prove (2 ^ 24) 1 e.prog e.input t
       (if e.floor = 0 then some e.traceInput.rowCounts else none) do failed := failed + 1
@@ -554,12 +479,12 @@ def runFile (opts : Options) (gen : Generator) (file : String) : IO ℕ := do
 end LeanerVMWitgen
 
 open LeanerVMWitgen in
-/-- `leanervm-witgen [--prod] [--scan] [--hash] [--gen] [--prove] file…`. -/
+/-- `leanervm-witgen [--prod] [--hash] [--gen] [--prove] [--stages] file…`. -/
 def main (args : List String) : IO UInt32 := do
   let opts : Options := {
-    prod := args.contains "--prod", scan := args.contains "--scan",
+    prod := args.contains "--prod",
     hash := args.contains "--hash", gen := args.contains "--gen",
-    prove := args.contains "--prove" }
+    prove := args.contains "--prove", stages := args.contains "--stages" }
   let mut failed := 0
   for file in args.filter (!·.startsWith "--") do
     failed := failed + (← runFile opts witnessGen file)

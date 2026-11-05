@@ -21,7 +21,8 @@ leanISA roadmap Layer 10 companion, `T2` of `docs/architecture.md`, at Clean pin
 * the fill starts are searched in the bytecode (`fillStartTable`, read by `startsOf`), the image padded with their frames
   (`padImage`), and the `JUMP` exponent searched (`jumpHeight`);
 * the run is stepped forward once (`runSkelsBy`) at the checked-guess reader (`readBy`,
-  `fetchBy`, with one table of powers `powTable`), its skeletons counted per table
+  `fetchBy`, with one table of powers `powTable`, which also writes the counts' powers and the
+  memory block's addresses), its skeletons counted per table
   (`skelCountTable`), and the fill's skeletons appended (`padSkels`, `planCount`);
 * the rows are written at the checked-guess reader (`rowOfBy`, a copy of `rowOf` reading through
   `limbsBy`/`cellBy`), with the read counters in hash maps (`mkRowsH`), and the tables are those of
@@ -92,17 +93,6 @@ def rowOfBy (rd : K → Option E) (pc fp : K) (cnt : ℕ → K) (rbc : K) : Inst
       rawRow (blake2sRowBy rd pc fp (om 0) (om 1) (om 2) (om 3) ocv oout omd
         (cnt 0) (cnt 1) (cnt 2) (cnt 3) (cnt 4) (cnt 5) (cnt 6) (cnt 7) (cnt 8) rbc)
 
-/-- `readAddrs` at a reader. -/
-def readAddrsBy (rd : K → Option E) (fp : K) : Instr → List K
-  | .xor oA oB oC => [fp * oA, fp * oB, fp * oC]
-  | .mulNative oA oB oC => [fp * oA, fp * oB, fp * oC]
-  | .setConstant o _ => [fp * o]
-  | .deref o1 o2 o3 _ => [fp * o1, (limbsBy rd (fp * o1))[0] * o2, fp * o3]
-  | .jump oc od of => [fp * oc, fp * od, fp * of]
-  | .blake2s om ocv oout omd =>
-      [fp * om 0, fp * om 1, fp * om 2, fp * om 3, fp * ocv, fp * (g * ocv), fp * oout,
-        fp * (g * oout), fp * omd]
-
 /-- At the image's reader, the rows are `rowOf`'s. -/
 theorem rowOfBy_read {κ : ℕ} (mem : MemImage κ) : rowOfBy mem.read = rowOf mem := by
   funext pc fp cnt rbc ins
@@ -124,12 +114,14 @@ def Counts.get (m : Counts) (a : K) : ℕ := m.getD (wordKey a) 0
 /-- One more read of an address. -/
 def Counts.bump (m : Counts) (a : K) : Counts := m.insert (wordKey a) (m.get a + 1)
 
-/-- The numbers of a sequence of reads and the counters after it: `readExps` and `readBump`. -/
+/-- The numbers of a sequence of reads and the counters after it: `readExps` and `readBump`.
+The count is read before the map is bumped, so that the map is updated in place. -/
 def readExpsH : Counts → List K → List ℕ × Counts
   | m, [] => ([], m)
   | m, a :: rest =>
-    let p := readExpsH (m.bump a) rest
-    (m.get a :: p.1, p.2)
+    let c := m.get a
+    let p := readExpsH (m.insert (wordKey a) (c + 1)) rest
+    (c :: p.1, p.2)
 
 /-- The rows of a list of skeletons with their counters: `mkRows` at a reader, appended to `acc`,
 and the counters after it. -/
@@ -138,7 +130,8 @@ def mkRowsH (rd : K → Option E) : Counts → Counts → List Skel → Array PR
   | sm, sb, [], acc => (acc, sm, sb)
   | sm, sb, sk :: rest, acc =>
     let p := readExpsH sm (readAddrsBy rd sk.fp sk.ins)
-    mkRowsH rd p.2 (sb.bump sk.pc) rest (acc.push ⟨sk, p.1, sb.get sk.pc⟩)
+    let c := sb.get sk.pc
+    mkRowsH rd p.2 (sb.insert (wordKey sk.pc) (c + 1)) rest (acc.push ⟨sk, p.1, c⟩)
 
 /-- Machine words determine field elements. -/
 theorem wordKey_inj {a b : K} : wordKey a = wordKey b ↔ a = b := by
@@ -162,6 +155,18 @@ theorem Counts.get_bump (m : Counts) (a : K) :
     rw [h', Function.update_of_ne (Ne.symm h)]
     rfl
 
+/-- A step of `readExpsH`: bump, then count the rest. -/
+theorem readExpsH_cons (m : Counts) (a : K) (rest : List K) :
+    readExpsH m (a :: rest) =
+      (m.get a :: (readExpsH (m.bump a) rest).1, (readExpsH (m.bump a) rest).2) := rfl
+
+/-- A step of `mkRowsH`: number the reads, bump the slot, write the row. -/
+theorem mkRowsH_cons (rd : K → Option E) (sm sb : Counts) (sk : Skel) (rest : List Skel)
+    (acc : Array PRow) :
+    mkRowsH rd sm sb (sk :: rest) acc =
+      mkRowsH rd (readExpsH sm (readAddrsBy rd sk.fp sk.ins)).2 (sb.bump sk.pc) rest
+        (acc.push ⟨sk, (readExpsH sm (readAddrsBy rd sk.fp sk.ins)).1, sb.get sk.pc⟩) := rfl
+
 /-- The hash-map counters number the reads as `readExps` and leave `readBump`. -/
 theorem readExpsH_spec (m : Counts) (l : List K) :
     (readExpsH m l).1 = readExps m.get l ∧ (readExpsH m l).2.get = readBump m.get l := by
@@ -170,7 +175,7 @@ theorem readExpsH_spec (m : Counts) (l : List K) :
   | cons a l ih =>
     obtain ⟨h1, h2⟩ := ih (m.bump a)
     rw [Counts.get_bump] at h1 h2
-    exact ⟨by simp only [readExpsH, readExps, h1], h2⟩
+    exact ⟨by rw [readExpsH_cons]; simp only [readExps, h1], h2⟩
 
 /-- At the image's reader, the hash-map rows are `mkRows`, and the counters left are the reads'. -/
 theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S : List Skel)
@@ -186,7 +191,8 @@ theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S : List S
     obtain ⟨h1, h2, h3⟩ := ih (readExpsH sm (readAddrs mem sk.fp sk.ins)).2 (sb.bump sk.pc)
       (acc.push ⟨sk, (readExpsH sm (readAddrs mem sk.fp sk.ins)).1, sb.get sk.pc⟩)
     simp only [e2, Counts.get_bump] at h1 h2 h3
-    simp only [mkRowsH, readAddrsBy_read]
+    rw [mkRowsH_cons]
+    simp only [readAddrsBy_read]
     refine ⟨?_, ?_, ?_⟩
     · rw [h1, mkRows]
       simp [readBump, e1]
@@ -196,15 +202,59 @@ theorem mkRowsH_spec {κ : ℕ} (mem : MemImage κ) (sm sb : Counts) (S : List S
 
 /-! ## The witness at a reader -/
 
-/-- `opRows` at a reader. -/
-def opRowsBy (rd : K → Option E) (R : List PRow) (op : Opcode) : List (Array K) :=
+/-- `opRows` at a reader, the counts' powers read from a table of powers. -/
+def opRowsBy (P : PowTable) (rd : K → Option E) (R : List PRow) (op : Opcode) :
+    List (Array K) :=
   (R.filter fun r ↦ r.sk.ins.opcode = op).map fun r ↦
-    rowOfBy rd r.sk.pc r.sk.fp r.cnt (g ^ r.bc) r.sk.ins
+    rowOfBy rd r.sk.pc r.sk.fp (fun j ↦ P.pow (r.exps.getD j 0)) (P.pow r.bc) r.sk.ins
 
 /-- At the image's reader, the table rows are `opRows`'. -/
-theorem opRowsBy_read {κ : ℕ} (mem : MemImage κ) (R : List PRow) (op : Opcode) :
-    opRowsBy mem.read R op = opRows mem R op := by
-  rw [opRowsBy, rowOfBy_read]
+theorem opRowsBy_read (P : PowTable) {κ : ℕ} (mem : MemImage κ) (R : List PRow)
+    (op : Opcode) : opRowsBy P mem.read R op = opRows mem R op := by
+  rw [opRowsBy, opRows, rowOfBy_read]
+  congr 1
+  funext r
+  simp only [PowTable.pow_eq]
+  rfl
+
+/-- A memory row's raw row, written out. -/
+theorem rawRow_memRow (a b : K) (v : Vector K 3) :
+    rawRow (⟨a, b, v⟩ : MemRow K) = #[a, b, v[0], v[1], v[2]] := by
+  simp only [rawRow, circuit_norm, toElements]
+  simp only [Vector.toArray_cast, Vector.append_empty]
+  rcases v with ⟨⟨_ | ⟨x, _ | ⟨y, _ | ⟨z, _ | _⟩⟩⟩⟩, h⟩ <;> simp at h
+  rfl
+
+/-- `memRowsOf`, the addresses and the finalize counts read from a table of powers. -/
+def memRowsBy (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) : List (Array K) :=
+  List.ofFn fun i : Fin (2 ^ κ) ↦
+    let a := P.pow i
+    let w := img i
+    #[a, P.pow (fin a), w.limb 0, w.limb 1, w.limb 2]
+
+/-- They are `memRowsOf`. -/
+theorem memRowsBy_eq (P : PowTable) {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) :
+    memRowsBy P img fin = memRowsOf img fin := by
+  unfold memRowsBy memRowsOf
+  congr 1
+  funext i
+  rw [memRowOf, rawRow_memRow]
+  simp only [PowTable.pow_eq]
+  rfl
+
+/-- The memory block from rows equal to `memRowsOf`'s. -/
+def memBlockOf {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
+    (rows : List (Array K)) (h : rows = memRowsOf img fin) : Air.Flat.Table K :=
+  tableOf (memComponent κ) rows (h ▸ memRowsOf_width img fin)
+    (h ▸ (memRowsOf_length img fin).trans_le
+      ((Nat.pow_le_pow_right (by norm_num) (hκ.trans (by decide) : κ ≤ 64)).trans (by decide)))
+    (h ▸ memRowsOf_fixed hκ img fin)
+
+/-- It is `memBlock`. -/
+theorem memBlockOf_eq {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ)
+    (rows : List (Array K)) (h : rows = memRowsOf img fin) :
+    memBlockOf hκ img fin rows h = memBlock hκ img fin := by
+  subst h
   rfl
 
 /-- The table of an opcode from rows equal to `opRows`'. -/
@@ -234,36 +284,82 @@ theorem mkRowsH_rows {κ : ℕ} {img : MemImage κ} {rd : K → Option E} (hrd :
   rw [(mkRowsH_spec img ∅ ∅ S #[]).1, Counts.get_empty]
   rfl
 
+/-- A bytecode row's raw row, written out. -/
+theorem rawRow_bytecodeRow (a b c : K) (v : Vector K 7) :
+    rawRow (⟨a, b, c, v⟩ : BytecodeRow K) =
+      #[a, b, c, v[0], v[1], v[2], v[3], v[4], v[5], v[6]] := by
+  simp only [rawRow, circuit_norm, toElements]
+  simp only [Vector.toArray_cast, Vector.append_empty]
+  rw [Vector.toArray_append, Vector.toArray_append, Vector.toArray_append]
+  apply Array.ext (by simp)
+  intro i _ h
+  simp at h
+  interval_cases i <;> simp
+
+/-- `bcRowsOf`, the addresses and the finalize counts read from a table of powers. -/
+def bcRowsBy (P : PowTable) (prog : Program) (fin : K → ℕ) : List (Array K) :=
+  List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
+    let a := P.pow i
+    let e := entry (prog.code i)
+    #[a, P.pow (fin a), e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7]]
+
+/-- They are `bcRowsOf`. -/
+theorem bcRowsBy_eq (P : PowTable) (prog : Program) (fin : K → ℕ) :
+    bcRowsBy P prog fin = bcRowsOf prog fin := by
+  unfold bcRowsBy bcRowsOf
+  congr 1
+  funext i
+  rw [bytecodeRowOf, rawRow_bytecodeRow]
+  simp only [PowTable.pow_eq]
+  rfl
+
+/-- The bytecode block from rows equal to `bcRowsOf`'s. -/
+def bcBlockOf (prog : Program) (fin : K → ℕ) (rows : List (Array K))
+    (h : rows = bcRowsOf prog fin) : Air.Flat.Table K :=
+  tableOf (bytecodeComponent prog) rows (h ▸ bcRowsOf_width prog fin)
+    (h ▸ (bcRowsOf_length prog fin).trans_le
+      ((Nat.pow_le_pow_right (by norm_num)
+        (prog.logSize_le.trans (by decide) : prog.logSize ≤ 64)).trans (by decide)))
+    (h ▸ bcRowsOf_fixed prog fin)
+
+/-- It is `bcBlock`. -/
+theorem bcBlockOf_eq (prog : Program) (fin : K → ℕ) (rows : List (Array K))
+    (h : rows = bcRowsOf prog fin) : bcBlockOf prog fin rows h = bcBlock prog fin := by
+  subst h
+  rfl
+
 /-- The eight tables of `padTables` from the hash-map rows `res` of the skeletons at a reader
-equal to the image's. -/
-def padTablesOf (prog : Program) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
+equal to the image's, the powers read from a table. -/
+def padTablesOf (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
     (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size)
     (res : Array PRow × Counts × Counts) (hres : res = mkRowsH rd ∅ ∅ S #[]) :
     List (Air.Flat.Table K) :=
   have hRl : res.1.toList.length ≤ UInt64.size := by
     rw [hres, mkRowsH_rows hrd S]
     exact (padRows_length img S).trans_le hS
-  have hrows : ∀ op, opRowsBy rd res.1.toList op = opRows img res.1.toList op := fun op ↦ by
+  have hrows : ∀ op, opRowsBy P rd res.1.toList op = opRows img res.1.toList op := fun op ↦ by
     rw [hrd, opRowsBy_read]
-  [opTableOf img res.1.toList hRl .xor (opRowsBy rd res.1.toList .xor) (hrows _),
-    opTableOf img res.1.toList hRl .mulNative (opRowsBy rd res.1.toList .mulNative) (hrows _),
-    opTableOf img res.1.toList hRl .setConstant (opRowsBy rd res.1.toList .setConstant)
+  [opTableOf img res.1.toList hRl .xor (opRowsBy P rd res.1.toList .xor) (hrows _),
+    opTableOf img res.1.toList hRl .mulNative (opRowsBy P rd res.1.toList .mulNative) (hrows _),
+    opTableOf img res.1.toList hRl .setConstant (opRowsBy P rd res.1.toList .setConstant)
       (hrows _),
-    opTableOf img res.1.toList hRl .deref (opRowsBy rd res.1.toList .deref) (hrows _),
-    opTableOf img res.1.toList hRl .jump (opRowsBy rd res.1.toList .jump) (hrows _),
-    opTableOf img res.1.toList hRl .blake2s (opRowsBy rd res.1.toList .blake2s) (hrows _),
-    memBlock hκ img res.2.1.get, bcBlock prog res.2.2.get]
+    opTableOf img res.1.toList hRl .deref (opRowsBy P rd res.1.toList .deref) (hrows _),
+    opTableOf img res.1.toList hRl .jump (opRowsBy P rd res.1.toList .jump) (hrows _),
+    opTableOf img res.1.toList hRl .blake2s (opRowsBy P rd res.1.toList .blake2s) (hrows _),
+    memBlockOf hκ img res.2.1.get (memRowsBy P img res.2.1.get) (memRowsBy_eq P img _),
+    bcBlockOf prog res.2.2.get (bcRowsBy P prog res.2.2.get) (bcRowsBy_eq P prog _)]
 
 /-- The eight tables of `padTables`, computed at a reader equal to the image's. -/
-def padTablesBy (prog : Program) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
+def padTablesBy (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
     (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
     List (Air.Flat.Table K) :=
-  padTablesOf prog img rd hrd S hκ hS (mkRowsH rd ∅ ∅ S #[]) rfl
+  padTablesOf prog P img rd hrd S hκ hS (mkRowsH rd ∅ ∅ S #[]) rfl
 
 /-- The computed tables are `padTables`. -/
-theorem padTablesBy_eq (prog : Program) {κ : ℕ} (img : MemImage κ) (rd : K → Option E)
-    (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
-    padTablesBy prog img rd hrd S hκ hS = padTables prog img S hκ hS := by
+theorem padTablesBy_eq (prog : Program) (P : PowTable) {κ : ℕ} (img : MemImage κ)
+    (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
+    (hS : S.length ≤ UInt64.size) :
+    padTablesBy prog P img rd hrd S hκ hS = padTables prog img S hκ hS := by
   have hm : (mkRowsH rd ∅ ∅ S #[]).2.1.get = padMemFin img S := by
     subst hrd
     rw [(mkRowsH_spec img ∅ ∅ S #[]).2.1, Counts.get_empty]
@@ -272,8 +368,8 @@ theorem padTablesBy_eq (prog : Program) {κ : ℕ} (img : MemImage κ) (rd : K �
     subst hrd
     rw [(mkRowsH_spec img ∅ ∅ S #[]).2.2, Counts.get_empty]
     rfl
-  simp only [padTablesBy, padTablesOf, opTableOf_eq, padTables, hm, hb,
-    opTable_congr img (mkRowsH_rows hrd S)]
+  simp only [padTablesBy, padTablesOf, opTableOf_eq, memBlockOf_eq, bcBlockOf_eq, padTables, hm,
+    hb, opTable_congr img (mkRowsH_rows hrd S)]
 
 /-- Witnesses of equal tables are equal. -/
 theorem witnessOfTables_congr {prog : Program} {κ : ℕ} {pi : PublicIO K}
@@ -285,19 +381,20 @@ theorem witnessOfTables_congr {prog : Program} {κ : ℕ} {pi : PublicIO K}
   rfl
 
 /-- `padWitness`, computed at a reader equal to the image's. -/
-def padWitnessBy (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
-    (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
-    (hS : S.length ≤ UInt64.size) : EnsembleWitness (leanIsaEnsemble prog κ) :=
-  witnessOfTables prog κ (PublicIO.ofInput input) (padTablesBy prog img rd hrd S hκ hS)
-    ((congrArg _ (padTablesBy_eq prog img rd hrd S hκ hS)).trans
+def padWitnessBy (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
+    (img : MemImage κ) (rd : K → Option E) (hrd : rd = img.read) (S : List Skel)
+    (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
+    EnsembleWitness (leanIsaEnsemble prog κ) :=
+  witnessOfTables prog κ (PublicIO.ofInput input) (padTablesBy prog P img rd hrd S hκ hS)
+    ((congrArg _ (padTablesBy_eq prog P img rd hrd S hκ hS)).trans
       (padTables_components prog img S hκ hS))
 
 /-- **The computed witness is `padWitness`.** -/
-theorem padWitnessBy_eq (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
-    (rd : K → Option E) (hrd : rd = img.read) (S : List Skel) (hκ : κ ≤ maxLogMem)
-    (hS : S.length ≤ UInt64.size) :
-    padWitnessBy prog input img rd hrd S hκ hS = padWitness prog input img S hκ hS :=
-  witnessOfTables_congr (padTablesBy_eq prog img rd hrd S hκ hS) _ _
+theorem padWitnessBy_eq (prog : Program) (input : PublicInput) (P : PowTable) {κ : ℕ}
+    (img : MemImage κ) (rd : K → Option E) (hrd : rd = img.read) (S : List Skel)
+    (hκ : κ ≤ maxLogMem) (hS : S.length ≤ UInt64.size) :
+    padWitnessBy prog input P img rd hrd S hκ hS = padWitness prog input img S hκ hS :=
+  witnessOfTables_congr (padTablesBy_eq prog P img rd hrd S hκ hS) _ _
 
 /-! ## The run's skeletons -/
 
@@ -340,14 +437,14 @@ end Run
 /-! ## The generator -/
 
 /-- The witness of the skeletons `S` over the image padded at the fill starts `pcs`, read through
-the guess `guess`; `none` when the padded memory or the skeletons exceed the caps. -/
+the table of powers `P`; `none` when the padded memory or the skeletons exceed the caps. -/
 def witnessAt (prog : Program) (input : PublicInput) (t : Trace prog) (pcs : Opcode → ℕ → ℕ)
-    (guess : K → Option ℕ) (S : List Skel) :
+    (P : PowTable) (S : List Skel) :
     Option (EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) :=
   if hκ : t.κ + 1 ≤ maxLogMem then
     if hS : S.length ≤ UInt64.size then
-      some (padWitnessBy prog input (padImage t.image pcs) (readBy (padImage t.image pcs) guess)
-        (funext (readBy_eq_read (by unfold maxLogMem at hκ; omega) _ guess)) S hκ hS)
+      some (padWitnessBy prog input P (padImage t.image pcs) (readBy (padImage t.image pcs) P)
+        (funext (readBy_eq_read (by unfold maxLogMem at hκ; omega) _ P)) S hκ hS)
     else none
   else none
 
@@ -357,13 +454,13 @@ the tables. Addresses are read through one table of powers, checked on every rea
 def witnessGen (prog : Program) (input : PublicInput) (t : Trace prog) :
     Option (EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))) :=
   let pcs := startsOf (fillStartTable prog)
-  let guess := guessOf (powTable (2 ^ max (t.κ + 1) prog.logSize))
-  let runS := (runSkelsBy (fetchBy prog guess) (executeWith (readBy t.image guess)) t.steps
+  let P := powTable (2 ^ max (t.κ + 1) prog.logSize)
+  let runS := (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P)) t.steps
     Regs.initial #[]).toList
   let rows := countsOf (skelCountTable runS)
   match jumpHeight (jumpOwed rows) with
   | none => none
-  | some τ => witnessAt prog input t pcs guess (runS ++ padSkels t.κ pcs (planCount rows τ))
+  | some τ => witnessAt prog input t pcs P (runS ++ padSkels t.κ pcs (planCount rows τ))
 
 /-- **Correctness of the witness generator** (`T2`). On well-formed bytecode, every valid
 execution that fits gets a witness, which satisfies the constraint statement and represents the
@@ -373,10 +470,10 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
     ∃ w, witnessGen prog input t = some w ∧ SatisfiedBy prog input w ∧
       AssignmentRepresents w (padTrace t (fillStarts prog)) := by
   have hκ64 : t.κ < 64 := lt_of_le_of_lt h.1.2.1 (by decide)
-  have hrun : ∀ guess, (runSkelsBy (fetchBy prog guess) (executeWith (readBy t.image guess))
-      t.steps Regs.initial #[]).toList = t.runSkels := fun guess ↦
-    runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog guess))
-      (executeWith_readBy hκ64 t.image guess)
+  have hrun : ∀ P, (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P))
+      t.steps Regs.initial #[]).toList = t.runSkels := fun P ↦
+    runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog P))
+      (executeWith_readBy hκ64 t.image P)
   have hrows : countsOf (skelCountTable t.runSkels) = t.runRows := by
     rw [countsOf_skelCountTable]
     funext op
@@ -394,6 +491,6 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
       (planCount t.runRows τ)).length ≤ UInt64.size := hlen
   simp only [witnessAt]
   rw [dite_eq_left hcap', dite_eq_left hlen']
-  exact congrArg some (padWitnessBy_eq _ _ _ _ _ _ _ _)
+  exact congrArg some (padWitnessBy_eq _ _ _ _ _ _ _ _ _)
 
 end LeanerVM.Arithmetization

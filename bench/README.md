@@ -557,40 +557,44 @@ by a leanerVM benchmark.
 `tests/vectors/executions/` (`scripts/dump-execution-rust.sh`: compiled programs run by the Rust
 executor at the pin) into `Program`, `PublicInput` and `Trace prog` (through `TraceInput.adapt`)
 and checks each, timed: `SentinelSafe`, the listed fill blocks, with `--hash` the program hash
-against the Rust digest, `ValidExecution` through `checkTraceGuess`, the main rows against the
+against the Rust digest, `ValidExecution` through `checkTrace`, the main rows against the
 replayed run table by table, and the fill rows as a permutation of their successors; with
-`--prod` the production `checkTrace` with the Rust hint list, with `--scan` with none.
-`runGenerator` generates a witness with a supplied generator, proves and verifies it.
+`--prod` `checkTrace` again with the Rust hint list. `runGenerator` generates a witness with a
+supplied generator, proves and verifies it; `--stages` forces and times the generator's stages.
 
 ```sh
 lake build leanervm-witgen
 .lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
-.lake/build/bin/leanervm-witgen --prod --scan --hash tests/vectors/executions/fibonacci_1000.exec.gz
+.lake/build/bin/leanervm-witgen --prod --hash tests/vectors/executions/fibonacci_1000.exec.gz
+.lake/build/bin/leanervm-witgen --stages --gen tests/vectors/executions/fibonacci_20000.exec.gz
 ```
 
-`checkTraceGuess` is `checkTrace` with the address search taking an untrusted guess, the index
-of the address in a hash table of `g^0, …, g^(n-1)` built once, used only after `g^i = a` and
-`i < 2^κ` are checked (`checkTraceGuess_eq_checkTrace`, so it decides `ValidExecution` for every
-guess). The production carrier takes its hints as a list it searches linearly and powers each
-candidate, so a read costs the hint list's length; the scan without hints costs the address's
-index. Measured on 2026-11-05 (one run each, the machine shared):
+`checkTrace`'s run reads through a table of powers grown along the run (`runToHaltBy`,
+`stepTable`), seeded with the hints; before 2026-11-05 it searched its hint list linearly and
+scanned the address space on a miss. Measured on 2026-11-05 (one run each, the machine shared):
 
-| Execution | Main steps | `checkTraceGuess` | `checkTrace`, Rust hints | `checkTrace`, no hints |
-| --- | --- | --- | --- | --- |
-| `py_*`, `field_div`, `hash_chain_8` | 10 to 198 | 0.1 to 5 ms | 1 to 120 ms (30 to 410 hints) | 0.1 to 260 ms |
-| `fibonacci_1000` | 1031 | 8 to 40 ms | 2.4 to 5.6 s (2093 hints) | 0.8 to 1.3 s |
-| `fibonacci_20000` | 20336 | 0.13 to 0.22 s | 1115 s (20405 hints) | 364 s |
-| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 35 to 62 ms | 170 s (11572 hints) | 302 s |
+| Execution | Main steps | `checkTrace`, no hints | with the Rust hints | before: Rust hints | before: no hints |
+| --- | --- | --- | --- | --- | --- |
+| `py_*`, `field_div`, `hash_chain_8` | 10 to 198 | 0.1 to 1.3 ms | 0.2 to 1.8 ms | 1 to 120 ms | 0.1 to 260 ms |
+| `fibonacci_1000` | 1031 | 6 to 23 ms | 8 ms | 2.4 to 5.6 s | 0.8 to 1.3 s |
+| `fibonacci_20000` | 20336 | 0.13 to 0.17 s | 0.14 to 0.15 s | 1115 s | 364 s |
+| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 0.33 to 0.42 s | 0.31 s | 170 s | 302 s |
+
+The "before" columns with hints include the bench's own `eraseDups` of the hint list (quadratic),
+which ran inside the timed interval until 2026-11-05.
 
 Reading a file and the table of powers take 0.1 s at `2^17` and 2.7 s for the guest (`2^19`
 powers, an 18 MB file); the program hash of the guest's `2^19` instructions takes 36 s and 3 GB,
 through `programBytes`' list of bytes.
 
 With `--gen`, `witnessGen` gives each checked-in execution the Rust's table heights at memory
-`2^18` (the Rust's `2^17` plus the padding's doubling), in 1.0 to 2.5 s, 1.6 s on
-`fibonacci_1000` and 32 s on `fibonacci_20000`. With `--prove`, `field_div` end to end: generation
-1.3 s, `prove` 290 s (818 scalars, 1.9 GB resident), `verify` accepts in 1.9 s.
-The guest's witness takes 6.1 s, at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to
+`2^18` (the Rust's `2^17` plus the padding's doubling), in 0.27 to 0.47 s, 0.3 s on
+`fibonacci_1000` and 0.6 to 0.7 s on `fibonacci_20000` (before the fixes of 2026-11-05: 0.7 to
+1.0 s, and 23 to 32 s on `fibonacci_20000`, whose read counters were copied at every read). The
+floor is the memory block's `2^18` rows (0.2 to 0.4 s) and the table of `2^18` powers (0.1 to
+0.15 s). With `--prove`, `field_div` end to end: generation 1.3 s, `prove` 290 s (818 scalars,
+1.9 GB resident), `verify` accepts in 1.9 s.
+The guest's witness takes 1.5 to 1.9 s (6.1 s before), at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to
 `2^17` (and JUMP with it) to reach its `2^22` committed floor, a prover choice `--gen` does not
 compare.
 

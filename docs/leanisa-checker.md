@@ -20,7 +20,11 @@ statements are.
   tries an untrusted hint list first, accepting an index only after `g ^ i = a` has been
   checked, and otherwise scans the address space carrying `g ^ i` as a running product, one
   multiplication per candidate; `addressIndex_eq_gLog` says it equals the reference logarithm
-  for every hint list. `stepChecked` is `executeWith` at that reader and equals `step`.
+  for every hint list. `stepChecked` is `executeWith` at that reader and equals `step`. The run
+  of `runToHalt` reads through a table of powers (`PowTable`: an array of `g ^ i`, proved, and
+  an untrusted index of their words) seeded with the hints and grown along the run to the cells
+  it reaches (`stepTable`); `addressIndexBy_eq_gLog` holds for every table, so a run costs the
+  powers up to its highest cell once instead of a scan per read.
   `checkWithinFuel_eq_ok_iff` proves that success with count `n` within a budget is equivalent
   to a valid exact-length execution with `n ≤ fuel`; exhaustion makes no claim about larger
   budgets. `checkTrace` runs the bounded search with the announced count as its budget and

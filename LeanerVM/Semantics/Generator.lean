@@ -47,12 +47,12 @@ open LeanerVM.Parameters
 def codeAt (prog : Program) (j : ℕ) : Option Instr :=
   if h : j < 2 ^ prog.logSize then some (prog.code ⟨j, h⟩) else none
 
-/-- Whether slot `p` starts a fill block of table `t` and size `s`. -/
+/-- Whether slot `p` starts a fill block of table `t` and size `s`; the closing jump is checked
+first, since most slots fail there. -/
 def isFillBlockB (prog : Program) (t : Opcode) (s p : ℕ) : Bool :=
   let d := fillDummy t
-  decide (p + s + 1 < 2 ^ prog.logSize) &&
-    ((List.range s).all fun i ↦ decide (codeAt prog (p + i) = some d)) &&
-    decide (codeAt prog (p + s) = some fillClose)
+  decide (p + s + 1 < 2 ^ prog.logSize) && decide (codeAt prog (p + s) = some fillClose) &&
+    ((List.range s).all fun i ↦ decide (codeAt prog (p + i) = some d))
 
 /-- The first slot that starts a fill block of table `t` and size `s`. -/
 def findStart (prog : Program) (t : Opcode) (s : ℕ) : Option ℕ :=
@@ -84,12 +84,12 @@ theorem isFillBlockB_iff (prog : Program) (t : Opcode) (s p : ℕ) :
   simp only [isFillBlockB, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true,
     List.mem_range]
   constructor
-  · rintro ⟨⟨hb, hd⟩, hc⟩
+  · rintro ⟨⟨hb, hc⟩, hd⟩
     exact ⟨hb, fun i hi ↦ (fetch_gpow_eq_codeAt prog (by omega)).trans (hd i hi),
       (fetch_gpow_eq_codeAt prog (by omega)).trans hc⟩
   · rintro ⟨hb, hd, hc⟩
-    exact ⟨⟨hb, fun i hi ↦ (fetch_gpow_eq_codeAt prog (by omega)).symm.trans (hd i hi)⟩,
-      (fetch_gpow_eq_codeAt prog (by omega)).symm.trans hc⟩
+    exact ⟨⟨hb, (fetch_gpow_eq_codeAt prog (by omega)).symm.trans hc⟩,
+      fun i hi ↦ (fetch_gpow_eq_codeAt prog (by omega)).symm.trans (hd i hi)⟩
 
 /-- A found start is a fill block. -/
 theorem findStart_spec {prog : Program} {t : Opcode} {s p : ℕ}

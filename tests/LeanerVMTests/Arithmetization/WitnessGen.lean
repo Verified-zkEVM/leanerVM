@@ -53,20 +53,25 @@ def starts : Array ℕ := fillStartTable ladderJumpProg
 
 /-! ## The run -/
 
-/-- The guess table of the padded memory. -/
-def powers : Std.HashMap UInt64 ℕ := powTable (2 ^ 12)
+/-- A table of powers covering the program. -/
+def powers : PowTable := powTable (2 ^ 12)
 
 /-- The run's skeletons, stepped forward once. -/
 def runS : List Skel :=
-  (runSkelsBy (fetchBy ladderJumpProg (guessOf powers))
-    (executeWith (readBy badTrace.image (guessOf powers)))
+  (runSkelsBy (fetchBy ladderJumpProg powers) (executeWith (readBy badTrace.image powers))
     badTrace.steps Regs.initial #[]).toList
 
 -- One step, the `JUMP` at slot `0`, from the initial registers.
 #guard runS.map (fun sk ↦ (sk.ins.opcode, sk.pc == 1, sk.fp == 1)) = [(.jump, true, true)]
 
+/-- A table whose index guesses `5` for `g ^ 7`. -/
+def wrongIndex : PowTable := ⟨#[], by simp, (∅ : Std.HashMap UInt64 ℕ).insert (wordKey (gpow 7)) 5⟩
+
 -- A wrong guess is checked and falls back to the scan.
-#guard addressIndexBy 12 (fun _ ↦ some 5) (gpow 7) = some 7
+#guard addressIndexBy 12 wrongIndex (gpow 7) = some 7
+
+-- The table holds the powers and indexes them.
+#guard (List.range 4096).all fun i ↦ powers.pow i == gpow i && powers.guess (gpow i) == some i
 
 -- The `JUMP` table owes its one run row and a closing jump per traversal of the other tables'
 -- fill, one each: six rows, so `2^3`.
