@@ -400,9 +400,9 @@ theorem baseVerifier_extractsExecution_rom_adaptive_coins {coins : ProbComp Adap
 
 /-- **The hypothesis from the comparison form.** If misbehaving on the run of an adaptive adversary
 of at most `Q` queries, its flips those the verifier asked for on the chain of the statement it
-chose, is at most `δ` likelier
-with BLAKE2s-256 answering than with a uniformly random function, BLAKE2s misbehaves on it with
-probability at most the random-oracle bound `(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
+chose, is at most `δ` likelier with BLAKE2s-256 answering than with a uniformly random function,
+BLAKE2s misbehaves on it with probability at most the random-oracle bound
+`(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
 theorem blakeMisbehavesAdaptive_of_comparison {A : AdaptiveAdversary} {Q : ℕ} {δ : ℝ≥0∞}
     (hQ : IsTotalQueryBound A Q)
     (h : Blake2sActsAsRandomOracle (adaptiveGame verifyWith A)
@@ -610,9 +610,8 @@ theorem baseVerifier_extractsExecution_coins {prog : Program} {input : PublicInp
 
 /-- **The hypothesis from the comparison form** at a statement fixed before the adversary runs. If
 misbehaving on the run of an adversary of at most `Q` queries, its flips those the verifier asked
-for on the chain of `(prog, input)`, is at most `δ` likelier with BLAKE2s-256 answering than with
-a uniformly random
-function, BLAKE2s misbehaves on it with probability at most the random-oracle bound
+for on the chain of `(prog, input)`, is at most `δ` likelier with BLAKE2s-256 answering than with a
+uniformly random function, BLAKE2s misbehaves on it with probability at most the random-oracle bound
 `(Q + 13700)/2^128 + hashTerm 13700 Q` plus `δ`. -/
 theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A : Adversary}
     {Q : ℕ} {δ : ℝ≥0∞} (hQ : IsTotalQueryBound A Q)
