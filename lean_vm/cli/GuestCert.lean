@@ -3277,18 +3277,21 @@ def partText (p : List ℕ) : String := listText (p.map toString)
 each arm. -/
 def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
   let n := (rows.zipIdx.filter (!·.1.isEmpty)).foldl (fun m (_, j) => max m (j + 1)) 0
-  -- each `match`'s arms in a definition of its own (one literal of them all is too slow to
-  -- elaborate)
+  -- each counted `match`'s arms a definition of its own, a list of `::`s (no `[…]` notation's
+  -- nesting)
+  let defs := String.join ((rows.take n).zipIdx.flatMap fun (r, j) =>
+    r.toList.zipIdx.map fun ((_, cs), k) =>
+      s!"/-- Function {j}'s counted `match` {k}: its arms' counts. -/\ndef cplArms{j}_{k} : List (List ℕ) :=\n  (" ++
+        " ::\n    ".intercalate (cs.map partText) ++ " :: [])\n\n")
   let rowText (r : Array (ℕ × List (List ℕ))) (j : ℕ) : String :=
-    listText (r.toList.map fun (x, _) => s!"({x}, cplArms{j}_{x})")
-  let defs := String.join ((rows.take n).zipIdx.map fun (r, j) => String.join (r.toList.map fun (x, cs) =>
-    s!"/-- Function {j}, the `match` on value {x}. -/\ndef cplArms{j}_{x} : List (List ℕ) := {listText (cs.map partText)}\n\n"))
+    listText (r.toList.zipIdx.map fun ((x, _), k) => s!"({x}, cplArms{j}_{k})")
   header "Data.CplArms" "The per-arm instruction counts of the `match`es whose arms the completeness walk counts\n  separately." ++
     "public import LeanVM.Guest.Code\n\n/-!\nFunction `j`'s entry is a list of `(x, costs)`: the `match` on the renumbered value `x` has its\n" ++
     "arms counted separately, arm `k` at most `costs[k]` instructions of each opcode (in `Opcode`'s\n" ++
     "order) from its segment to the join, the callees' apart. Every other `match` counts its arms by\n" ++
-    "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
-    defs ++ "/-- The per-arm counts, by function. -/\ndef cplArms : List (List (ℕ × List (List ℕ))) := " ++
+    "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\nset_option maxRecDepth 100000\n\n@[expose] public section\n\n" ++
+    defs ++
+    "/-- The per-arm counts, by function. -/\ndef cplArms : List (List (ℕ × List (List ℕ))) := " ++
     (if n == 0 then "[]" else "[\n  " ++ ",\n  ".intercalate ((rows.take n).zipIdx.map fun (r, j) => rowText r j) ++ "]") ++
     "\n\nend\nend LeanVM.Guest.Data\n"
 
@@ -3296,26 +3299,17 @@ def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
 def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ)))) :
     List (System.FilePath × String) := Id.run do
   let n := fps.length
-  -- a function with many part numbers has its windows in a definition of its own (one literal
-  -- of them all exceeds the elaborator's recursion depth)
-  let big (fp : FnParts) : Bool := (fp.wins.map fun w => (w.map List.length).foldl (· + ·) 0).foldl (· + ·) 0 > 2000
   let rows := fps.map fun fp =>
     if fp.wins.all (·.isEmpty) then "  []"
-    else if big fp then s!"  cplParts{fp.j}"
     else "  [" ++ ",\n   ".intercalate (fp.wins.map fun w => listText (w.map partText)) ++ "]"
-  let bigDefs := String.join ((fps.filter big).map fun fp =>
-    String.join (fp.wins.zipIdx.map fun (w, i) =>
-      s!"/-- `{fp.name}`, window {i}. -/\ndef cplParts{fp.j}_{i} : List (List ℕ) := {listText (w.map partText)}\n\n") ++
-    s!"/-- `{fp.name}`'s windows. -/\ndef cplParts{fp.j} : List (List (List ℕ)) :=\n  " ++
-      listText ((List.range fp.wins.length).map fun i => s!"cplParts{fp.j}_{i}") ++ "\n\n")
   let data := header "Data.CplParts" "The parts of the completeness walk's windows, and what each part's start is handed." ++
     "public import LeanVM.Guest.Code\n\n/-!\nPart `k` of window `i` of function `j` is `[s, J, x, m, c, d, jp, b, u, mo]`: it starts at the\n" ++
     "window's statement `s` and code offset `J` (the window's start for the first part), with the\n" ++
     "counts of each opcode (in `Opcode`'s order) the walk's paths pass at most up to there, and the\n" ++
     "bit set `u` of the callee frame pointer and dispatch target cells they set up, and, for a part\n" ++
     "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
-    "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
-    bigDefs ++ "/-- The parts of each window, by function and window. -/\ndef cplParts : List (List (List (List ℕ))) := [\n  [],\n" ++
+    "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\nset_option maxRecDepth 100000\n\n@[expose] public section\n\n" ++
+    "/-- The parts of each window, by function and window. -/\ndef cplParts : List (List (List (List ℕ))) := [\n  [],\n" ++
     ",\n".intercalate rows ++ "]\n\nend\nend LeanVM.Guest.Data\n"
   -- the checks, in modules of consecutive parts
   -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
