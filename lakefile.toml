@@ -83,3 +83,10 @@ root = "LeanerVMVerify"
 name = "leanervm-prove"
 srcDir = "bench"
 root = "LeanerVMProve"
+
+[[lean_exe]]
+# Executions of compiled programs by the Rust executor, read and checked natively; the witness
+# generator's end-to-end harness. See bench/README.md. Not a default target.
+name = "leanervm-witgen"
+srcDir = "bench"
+root = "LeanerVMWitgen"
