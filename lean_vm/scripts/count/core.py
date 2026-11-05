@@ -192,8 +192,12 @@ def load_cpl_arms(D):
     """`Data.cplArms`, by compiled index: the separately counted `match`es, `[(x, [[count per
     opcode] per arm])]`."""
     s = open(os.path.join(D, 'CplArms.lean'), encoding='utf-8').read()
-    body = s.split('def cplArms : List (List (ℕ × List (List ℕ))) :=', 1)[1]
     import ast
+    # each counted `match`'s arms are a definition of its own, a list of `::`s
+    defs = {m.group(1): '[' + m.group(2).replace(' ::', ',').rsplit(',', 1)[0] + ']'
+            for m in re.finditer(r'def (cplArms\d+_\d+) : List \(List ℕ\) :=\s*\((.*?)\)\n\n', s, re.S)}
+    body = s.split('def cplArms : List (List (ℕ × List (List ℕ))) :=', 1)[1]
+    body = re.sub(r'cplArms\d+_\d+', lambda m: defs[m.group(0)], body)
     body = body.strip()
     # The literal is a Lean list of lists of pairs: valid Python once `(`..`)` stay tuples.
     end = body.index('\n\nend') if '\n\nend' in body else len(body)
