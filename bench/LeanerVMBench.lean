@@ -825,10 +825,9 @@ not a closed term the compiler could precompute. -/
 def runWitgen (seed : UInt64) : IO Unit := do
   let steps := if seed == 0 then 2 else 1
   timeOnce "witnessGen, one-JUMP ladder run, memory 2^16 padded to 2^17"
-    (fun _ ↦ witnessGen ladderJumpProg badInput ⟨minLogMem, badImage (gpow 2047), steps⟩)
-    fun w? ↦ match w? with
-      | none => "none"
-      | some w => toString (w.tables.map (·.table.length))
+    (fun _ ↦ (witnessGen ladderJumpProg badInput ⟨minLogMem, badImage (gpow 2047), steps⟩).map
+      fun w ↦ w.tables.map (·.table.length))
+    fun h ↦ toString h
 
 end Witgen
 
