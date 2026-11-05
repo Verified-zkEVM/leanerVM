@@ -78,6 +78,11 @@ theorem HasCollision.mono {log log' : List ((_ : Q) × D)} (h : HasCollision log
   let ⟨e₁, h₁, e₂, h₂, h⟩ := h
   ⟨e₁, hsub e₁ h₁, e₂, hsub e₂ h₂, h⟩
 
+/-- A query fresh with respect to a log is fresh with respect to any part of it. -/
+theorem Fresh.anti {log log' : List ((_ : Q) × D)} {q : Q} (h : log ⊆ log') :
+    Fresh log' q → Fresh log q :=
+  fun hf e he ↦ hf e (h he)
+
 variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
 
 /-- The first occurrence of a logged input: a position before which the log never asks it, and

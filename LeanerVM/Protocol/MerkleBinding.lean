@@ -41,6 +41,7 @@ namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters LeanerVM.Semantics Blake2sHash MerkleTree
 open MerkleTreeExtractor (QueryLog)
+open LeanerVM.Protocol.QueryLog (Consistent HasCollision)
 
 @[expose] public section
 
