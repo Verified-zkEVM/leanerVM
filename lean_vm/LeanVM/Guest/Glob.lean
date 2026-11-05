@@ -49,10 +49,10 @@ noncomputable def coreOf (j : ℕ) : Core.Fn := listElementOrDefault coreProgram
 checked once) as its executor's. -/
 noncomputable def certOf (j : ℕ) : Cert :=
   match listElementOrDefault Data.certs j default with
-  | ⟨⟨env, fpOne, _, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts, ends,
+  | ⟨⟨env, fpOne, _, arms, scaled, armsT⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts, ends,
       entered⟩ =>
-    ⟨⟨env, fpOne, Data.powTree, arms, scaled⟩, los, cells, ins, nret, callees, pre, post, mem, sem, cuts,
-      ends, entered⟩
+    ⟨⟨env, fpOne, Data.powTree, arms, scaled, armsT⟩, los, cells, ins, nret, callees, pre, post, mem, sem,
+      cuts, ends, entered⟩
 
 /-- What a caller knows of function `j`. -/
 noncomputable def sigOf (j : ℕ) : Sig :=

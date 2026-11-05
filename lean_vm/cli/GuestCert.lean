@@ -1309,7 +1309,7 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     s!"{listText (c.knownIf.map tripText)}, {listText (c.sems.map tagText)}⟩")
   let envT := listText (F.env.map fun (o, s) => s!"({o}, {symText s})")
   -- the table jumps' arms; many (a chain's arms each end in a table jump into the next `match`'s
-  -- arms): each list of arms defined once, the pairs in chunks, each ending in the next
+  -- arms): each list of arms defined once, the jumps' in a trie by offset (`Exec.Facts.armsT`)
   let armsL := F.arms.toList.mergeSort (·.1 ≤ ·.1)
   let manyArms := armsL.foldl (· + ·.2.length) 0 > 8192
   let (tabIdx, tabs) := armsL.foldl (fun ((m : Std.HashMap String ℕ), (ts : Array (List ℕ))) (_, a) =>
@@ -1318,18 +1318,14 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
   let armsRef (a : List ℕ) : String := match tabIdx.get? (toString a) with
     | some k => if manyArms then s!"cert{j}_t{k}" else listText (a.map toString)
     | none => listText (a.map toString)
-  let armChunks := (List.range ((armsL.length + locChunk - 1) / locChunk)).map fun c =>
-    (armsL.drop (c * locChunk)).take locChunk
   let armsDefs := if !manyArms then "" else
     String.join (tabs.toList.zipIdx.map fun (a, k) =>
       s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := " ++
         "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
-    String.join ((armChunks.zipIdx.reverse).map fun (l, c) =>
-      let tl := if c + 1 < armChunks.length then s!"cert{j}_arms_{c + 1}" else "[]"
-      s!"/-- `{f.name}`: the table jumps' arms, from the {c * locChunk}th on. -/\n" ++
-      s!"def cert{j}_arms_{c} : List (ℕ × List ℕ) := (" ++
-        " :: ".intercalate (l.map fun (i, a) => s!"({i}, {armsRef a})") ++ s!" :: {tl})\n\n") ++ winMark
-  let armsT := if manyArms then (if armChunks.isEmpty then "[]" else s!"cert{j}_arms_0")
+    -- by offset: the executor looks up a table jump's arms in the trie, not along the list
+    s!"/-- `{f.name}`: the table jumps' arms, by offset. -/\n" ++
+    s!"def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
+  let armsT := if manyArms then "[], armsT := " ++ s!"cert{j}_armsT"
     else listText (armsL.map fun (i, a) => s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
   -- each window's cells: the values from where the previous window's end, up to the last value

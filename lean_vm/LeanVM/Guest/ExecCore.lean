@@ -277,6 +277,9 @@ structure Facts where
   pows : PowTree := .leaf
   /-- The arm offsets of the table dispatch at each offset. -/
   arms : List (ℕ × List ℕ) := []
+  /-- More of them, by offset (a function of many table jumps: `__loop2`'s chained `match`es,
+  each arm's end one), looked up first. -/
+  armsT : Trie (List ℕ) := .nil
   /-- The cells whose products by a power of `g` are tracked (a loop's self frame pointer). -/
   scaled : List ℕ := []
 
@@ -509,7 +512,9 @@ noncomputable def jumpKind (F : Facts) (entry len i : ℕ) (st : St) (od of : �
       match pt with
       | .gp e => if entry + i < e ∧ e < entry + len then (.next (e - entry), [e - entry])
         else (.jump pt ft, [])
-      | .cell _ => (.jump pt ft, ((F.arms.find? (·.1 == i)).map (·.2)).getD [])
+      | .cell _ => (.jump pt ft, match F.armsT.get i with
+        | some l => l
+        | none => ((F.arms.find? (·.1 == i)).map (·.2)).getD [])
       | .fpg _ => (.jump pt ft, [])
     else
       match ft with
