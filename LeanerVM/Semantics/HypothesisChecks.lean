@@ -12,10 +12,10 @@ public import LeanerVM.Semantics.Generator
 /-!
 # Checking the hypotheses of completeness
 
-leanISA roadmap Layer 10 companion (`docs/architecture.md`, `T2`). Besides `ValidExecution`, which
-`checkTrace` decides, completeness takes `WellFormedBytecode prog` and `t.Fits`. Both are decided
-here by Boolean functions proved equivalent to them, so a compiled program and its execution can
-be checked to meet the hypotheses by running code.
+Besides `ValidExecution`, which `checkTrace` decides, completeness takes
+`WellFormedBytecode prog` and `t.Fits`. Both are decided here by Boolean functions proved
+equivalent to them, so a compiled program and its execution can be checked to meet the hypotheses
+by running code.
 
 * `wellFormedB prog` decides `WellFormedBytecode prog` (`wellFormedB_eq_true_iff`), and gives it a
   `Decidable` instance. The fill blocks are found in one pass over the bytecode: a block of size

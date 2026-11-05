@@ -314,12 +314,16 @@ The public theorem ladder is:
    protocol blueprint's Layer 13). Its completeness dual (`proveExecution_complete`) composes T2
    with the honest prover, as one computable prover from an execution (`proveExecution`:
    `witnessGen`, then `prove`), and records the failure and resource conditions: a valid execution
-   may need more memory than the verifier accepts (from `t.κ ≥ 26` the stack exceeds `2^maxMu`),
+   may need more memory than the verifier accepts (from `t.κ ≥ 25` the stack exceeds `2^maxMu`,
+   `not_stackFits_of_le`),
    and the prover's proof-of-work search has no proved bound at BLAKE2s. In the random-oracle model
    (`proveExecution_rom_complete`) the honest run from an execution, the generator, the prover and
    the verifier at one random function, is rejected with probability at most
    `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel`, below `2^-154` at
-   fuel `2^24`, when the generated witness's stack fits (`StackFits`).
+   fuel `2^24`, when the stack of the execution fits (`StackFits`, a predicate on the trace through
+   the generated witness's sizes `execSizes`). The guarded prover `proveChecked` decides every
+   hypothesis first, and every proof it returns is accepted with no hypothesis
+   (`verify_proveChecked`).
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
    for the verifier-in-circuit is equivalent to the specified base-verifier decision for every

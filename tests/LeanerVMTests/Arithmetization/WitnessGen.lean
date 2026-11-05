@@ -2,7 +2,7 @@ import LeanerVM.Arithmetization.WitnessGen
 import LeanerVMTests.Arithmetization.Completeness.Theorem
 
 /-!
-# Layer 10 tests: the witness generator
+# The witness generator: tests
 
 `witnessGen_correct` is inhabited at the trace of `PaddedImageRefutation` (one `JUMP` to the
 sentinel of the ladder program), and the generator's choices are evaluated there: the fill
@@ -40,7 +40,7 @@ def starts : Array ℕ := fillStartTable ladderJumpProg
 #guard fillTables.all fun t ↦ (List.range 8).all fun k ↦
   isFillBlockB ladderJumpProg t (sizeAt k) (startsOf starts t (sizeAt k))
 
--- The program without `XOR` blocks has none to find (acceptance test 15).
+-- The program without `XOR` blocks has none to find.
 #guard findStart ladderNoXor .xor 128 = none
 
 /-! ## The `JUMP` exponent -/

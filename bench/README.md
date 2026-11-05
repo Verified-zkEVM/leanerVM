@@ -424,10 +424,12 @@ phases' own checks are exercised on the honest wire by the phase test modules an
 smallest admissible: memory `2^16`, a stack of `2^19` cells, `2^3` BLAKE2s blocks, three WHIR
 levels at rate `1/2`. It runs the prover's writer in `IO` with the time read at each phase's first
 squeeze, writes the proof in the dump format, reads it back, and checks it with `verify` and its
-mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`. `execution` runs the prover
-from an execution, `proveExecution` (the witness generator, then `prove`), on the one-step ladder
-trace of the completeness tests, decides the stack hypothesis of `proveExecution_rom_complete`
-(`StackFits`, true there) and checks that `verify` accepts the proof.
+mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`. `execution` runs the guarded
+prover from an execution, `proveChecked` (the checks of every hypothesis of completeness, then the
+witness generator and `prove`), on the one-step ladder trace of the completeness tests: it times
+each check (`wellFormedB`, `checkTrace`, `fitsB`, `stackFitsB`, `validRate`) and the generator,
+checks that the generated sizes are `execSizes` of the forward pass's counts, and checks that
+`verify` accepts the proof.
 
 ```sh
 lake build leanervm-prove

@@ -65,7 +65,7 @@ private theorem runAt_bind {α β : Type} (a : W α) (f : α → W β)
   cases r <;> rfl
 
 /-- `pure` asks no query. -/
-private theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
+theorem isTotalQueryBound_pure {α : Type} (x : α) (n : ℕ) :
     IsTotalQueryBound (pure x : OracleComp hashSpec α) n :=
   isQueryBound_pure x n _ _
 
@@ -141,7 +141,7 @@ private theorem lift_grade {α : Type} {c : OracleComp hashSpec α} {n : ℕ} (h
     rfl⟩
 
 /-- A hash is one query. -/
-private theorem isTotalQueryBound_hashQuery (t : List UInt8) :
+theorem isTotalQueryBound_hashQuery (t : List UInt8) :
     IsTotalQueryBound (hashQuery t) 1 := by
   have h := (isTotalQueryBound_query_bind_iff (spec := hashSpec) (t := t)
     (mx := (pure : Digest → OracleComp hashSpec Digest)) (n := 1)).mpr

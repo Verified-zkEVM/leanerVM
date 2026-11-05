@@ -1521,19 +1521,24 @@ stay in the Rust's flush order, to which leanISA's completeness rows were brough
 check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
 proof":
   - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
-    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
-    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
-    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
-    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
+    The generated witness's sizes are a formula of the trace (`sizes_witnessGen`, `execSizes`,
+    `LeanIsa.blocks_total_eq`), and `StackFits prog t`, the stack at those sizes within
+    `2^maxMu`, is the hypothesis, decided by `stackFitsB`. It fails for every `t.κ ≥ 25`
+    (`not_stackFits_of_le`: the four memory columns at height `2^(t.κ+1)` hold
+    `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is more), where `prove` returns none at
+    every fuel and rate, and holds for `t.κ ≤ 24`, at most `2^25` program slots and `2^16` steps
+    (`StackFits.of_short`). An unpadded memory, as Rust commits, would fail from `κ ≥ 26`;
   - the honest grind bound, at BLAKE2s: no deterministic form can drop the grind clause, since a
     fixed function can fail a grind at any given fuel. In the random-oracle model it is built:
     `proveExecution_rom_complete` bounds the probability that the honest run from an execution
     (`honestExecutionGame`: `witnessGen`, the prover and the verifier at one lazy random oracle)
     rejects by `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel` the
     prover's query count (`Prove.isTotalQueryBound_proveWith_closed`), below `2^-154` at fuel
-    `2^24` (`proveExecution_rom_complete_default`); its stack hypothesis `StackFits` is the
-    generated witness's and is decided by evaluating the generator. The constraint forms are
-    `honestGame_rom_rejects_le` and `prove_rom_eq_none_le`.
+    `2^24` (`proveExecution_rom_complete_default`); its stack hypothesis `StackFits` is a
+    predicate on the trace, decided by one forward pass (`stackFitsB`). The constraint forms are
+    `honestGame_rom_rejects_le` and `prove_rom_eq_none_le`. `proveChecked` runs the decided
+    checks before proving: every proof it returns is accepted (`verify_proveChecked`), and under
+    the hypotheses it is `proveExecution` (`proveChecked_eq`).
 
 ## Upstream watch
 

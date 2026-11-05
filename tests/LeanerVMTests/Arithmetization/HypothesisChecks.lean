@@ -3,7 +3,7 @@ import LeanerVMTests.Arithmetization.Completeness.Theorem
 import LeanerVMTests.Arithmetization.Statement
 
 /-!
-# Layer 10 tests: checking the hypotheses of completeness
+# Checking the hypotheses of completeness: tests
 
 The checks are evaluated on the fixtures of completeness and of the constraint statement, and
 agree there with what is proved: the ladder program with a `JUMP` at slot `0` is well formed and
@@ -35,7 +35,7 @@ example : wellFormedB ladderJumpProg = true :=
 -- The closing jumps of the ladder: eight per table, below the sentinel.
 #guard (closeSlots ladderJumpProg).length = 48
 
--- No `XOR` block at all (acceptance test 15).
+-- No `XOR` block at all.
 #guard !wellFormedB ladderNoXor
 
 /-- The check agrees with the proof. -/

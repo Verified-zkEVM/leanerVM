@@ -15,11 +15,10 @@ public import LeanerVM.Semantics.Generator
 /-!
 # The witness generator
 
-leanISA roadmap Layer 10 companion, `T2` of `docs/architecture.md`, at Clean pin `ce2eee63`.
 `witnessGen prog input t` computes the witness `constraintCompleteness` proves exists:
 
-* the fill starts are searched in the bytecode (`fillStartTable`, read by `startsOf`), the image padded with their frames
-  (`padImage`), and the `JUMP` exponent searched (`jumpHeight`);
+* the fill starts are searched in the bytecode (`fillStartTable`, read by `startsOf`), the image
+  padded with their frames (`padImage`), and the `JUMP` exponent searched (`jumpHeight`);
 * the run is stepped forward once (`runSkelsBy`) at the checked-guess reader (`readBy`,
   `fetchBy`, with one table of powers `powTable`, which also writes the counts' powers and the
   memory block's addresses), its skeletons counted per table
@@ -33,6 +32,8 @@ valid execution that fits gets `some w`, with `w` satisfying `SatisfiedBy` and r
 `padTrace t (fillStarts prog)`. The proof reduces it to `padWitness_complete`: each computed
 piece is proved equal to the reference one (`padWitnessBy_eq`, `runSkelsBy_eq_runSkels`), and the
 searched choices are used through their specifications only.
+`witnessGen_heights` gives the generated tables' heights in closed form: `tableHeight` of the
+run's rows at the searched `JUMP` exponent.
 
 ## Wrong readings excluded
 
@@ -462,7 +463,7 @@ def witnessGen (prog : Program) (input : PublicInput) (t : Trace prog) :
   | none => none
   | some τ => witnessAt prog input t pcs P (runS ++ padSkels t.κ pcs (planCount rows τ))
 
-/-- **Correctness of the witness generator** (`T2`). On well-formed bytecode, every valid
+/-- **Correctness of the witness generator**. On well-formed bytecode, every valid
 execution that fits gets a witness, which satisfies the constraint statement and represents the
 trace padded at the searched fill starts. -/
 theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace prog}
@@ -492,5 +493,44 @@ theorem witnessGen_correct {prog : Program} {input : PublicInput} {t : Trace pro
   simp only [witnessAt]
   rw [dite_eq_left hcap', dite_eq_left hlen']
   exact congrArg some (padWitnessBy_eq _ _ _ _ _ _ _ _ _)
+
+/-- An opcode table of the padded witness has a row per skeleton of its opcode. -/
+theorem padWitness_opLength {prog : Program} {input : PublicInput} {κ : ℕ} {img : MemImage κ}
+    {S : List Skel} {hκ : κ ≤ maxLogMem} {hS : S.length ≤ UInt64.size} (j : Fin 6) :
+    (tableAt (padWitness prog input img S hκ hS) ⟨j, by omega⟩).table.length =
+      Skel.count (fillTables.getD j .xor) S := by
+  rw [(padWitness_tableAt _).2]
+  fin_cases j <;> exact opRows_length img S _
+
+/-- **The heights of the generated tables.** On a valid execution, the generator's `JUMP`
+exponent is `jumpHeight t.owed`, and opcode table `j` of its witness has `tableHeight` rows: the
+target of its run rows, `2^τ` for `JUMP`. -/
+theorem witnessGen_heights {prog : Program} {input : PublicInput} {t : Trace prog}
+    {w : EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))}
+    (h : ValidExecution prog input t) (hw : witnessGen prog input t = some w) :
+    ∃ τ, jumpHeight t.owed = some τ ∧ ∀ j : Fin 6,
+      (tableAt w ⟨j, by omega⟩).table.length =
+        tableHeight t.runRows τ (fillTables.getD j .xor) := by
+  have hκ64 : t.κ < 64 := lt_of_le_of_lt h.1.2.1 (by decide)
+  have hrun : ∀ P, (runSkelsBy (fetchBy prog P) (executeWith (readBy t.image P))
+      t.steps Regs.initial #[]).toList = t.runSkels := fun P ↦
+    runSkelsBy_eq_runSkels h.2 (funext (fetchBy_eq_fetch prog P))
+      (executeWith_readBy hκ64 t.image P)
+  have hrows : countsOf (skelCountTable t.runSkels) = t.runRows := by
+    rw [countsOf_skelCountTable]
+    funext op
+    exact t.count_runSkels op
+  simp only [witnessGen, hrun, hrows] at hw
+  rw [show jumpOwed t.runRows = t.owed from rfl] at hw
+  rcases hτ : jumpHeight t.owed with _ | τ
+  · rw [hτ] at hw
+    cases hw
+  rw [hτ] at hw
+  obtain ⟨-, h1, h2⟩ := jumpHeight_spec hτ
+  refine ⟨τ, rfl, fun j ↦ ?_⟩
+  simp only [witnessAt] at hw
+  split_ifs at hw with hκ hS
+  obtain rfl := Option.some.inj hw
+  rw [padWitnessBy_eq, padWitness_opLength, Trace.count_rows t t.κ _ h1 h2]
 
 end LeanerVM.Arithmetization

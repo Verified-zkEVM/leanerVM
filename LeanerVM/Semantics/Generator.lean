@@ -13,21 +13,22 @@ public import LeanerVM.Semantics.PaddedRows
 /-!
 # The choices of witness generation
 
-leanISA roadmap Layer 10 companion (`docs/architecture.md`, `T2`). Constraint completeness
-(`Arithmetization.Completeness.Theorem`) takes the fill blocks of the bytecode and the exponent of
-the `JUMP` table's height from propositions; a witness generator searches for them instead, and
-uses them only through their specifications, so no equality with a chosen value is needed.
+Constraint completeness (`Arithmetization.Completeness.Theorem`) takes the fill blocks of the
+bytecode and the exponent of the `JUMP` table's height from propositions; a witness generator
+searches for them instead, and uses them only through their specifications, so no equality with a
+chosen value is needed.
 
 * `fillStarts prog` is, for each table and size, the first slot of the bytecode that starts a
   fill block of that table and size (`findStart`, decided by `isFillBlockB` over `prog.code`),
   tabulated once (`fillStartTable`); the tables are values, not closures, so that compiled code
   evaluates each search once. On well-formed bytecode every one is a fill block (`fillStarts_spec`).
 * `jumpHeight owed` is the least `τ ≤ maxLogRows` with `owed ≤ 2^τ ≠ owed + 1`; it exists
-  exactly when `JumpFeasible owed` (`jumpHeight_spec`, `jumpHeight_isSome`).
+  exactly when `JumpFeasible owed` (`jumpHeight_spec`, `jumpHeight_isSome`), and is at most
+  `k + 1` when `owed ≤ 2^k` (`jumpHeight_le`).
 * `runSkelsBy` steps a run forward once from a state, at any fetch and execute functions,
   collecting the skeletons (state and fetched instruction) it steps from; `skelCountTable`
-  tabulates the skeletons of each table. Their agreement with `Trace.runSkels` and `Trace.runRows` is proved
-  where the run's states are named (`Arithmetization.WitnessGen`).
+  tabulates the skeletons of each table. Their agreement with `Trace.runSkels` and
+  `Trace.runRows` is proved where the run's states are named (`Arithmetization.WitnessGen`).
 
 ## Wrong readings excluded
 
@@ -111,8 +112,8 @@ theorem fillStarts_eq (prog : Program) (t : Opcode) {k : ℕ} (hk : k < 8) :
   have hc : 8 * tableIdx t + k < 48 := by omega
   have h8 : (8 * tableIdx t + k) / 8 = tableIdx t := by omega
   have h8' : (8 * tableIdx t + k) % 8 = k := by omega
-  simp only [fillStarts, startsOf, fillStartTable, hidx, Array.getD_eq_getD_getElem?, Array.getElem?_ofFn, hc,
-    ↓reduceDIte, Option.getD_some, h8, h8', fillTables_getD_tableIdx]
+  simp only [fillStarts, startsOf, fillStartTable, hidx, Array.getD_eq_getD_getElem?,
+    Array.getElem?_ofFn, hc, ↓reduceDIte, Option.getD_some, h8, h8', fillTables_getD_tableIdx]
 
 /-- **On bytecode with fill blocks, every tabulated start is a fill block.** -/
 theorem fillStarts_spec {prog : Program} (h : HasFillBlocks prog) :
@@ -143,6 +144,21 @@ theorem jumpHeight_isSome {owed : ℕ} (h : JumpFeasible owed) : (jumpHeight owe
   obtain ⟨τ, hτ, h1, h2⟩ := h
   rw [jumpHeight, List.find?_isSome]
   exact ⟨τ, List.mem_range.mpr (by omega), by simp [h1, h2]⟩
+
+/-- The found exponent is the least: when `owed ≤ 2^k`, it is at most `k + 1`. -/
+theorem jumpHeight_le {owed τ k : ℕ} (h : jumpHeight owed = some τ) (hk : owed ≤ 2 ^ k) :
+    τ ≤ k + 1 := by
+  by_contra hlt
+  obtain ⟨-, i, hi, hiτ, hmin⟩ := List.find?_eq_some_iff_getElem.mp h
+  simp only [List.getElem_range] at hiτ
+  subst hiτ
+  have h0 := hmin k (by omega)
+  have h1 := hmin (k + 1) (by omega)
+  simp only [List.getElem_range, Bool.not_eq_true', Bool.and_eq_false_iff,
+    decide_eq_false_iff_not, not_not] at h0 h1
+  have hk1 : owed ≤ 2 ^ (k + 1) := hk.trans (Nat.pow_le_pow_right (by norm_num) (by omega))
+  rw [pow_succ] at h1 hk1
+  omega
 
 /-! ## The skeletons of a run -/
 

@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Protocol.LeanIsa.Complete
 public import LeanerVM.Arithmetization.Soundness
 public import LeanerVM.Arithmetization.WitnessGen
+public import LeanerVM.Arithmetization.HypothesisChecks
 public import LeanerVM.Protocol.Compile.Agree
 public import LeanerVM.Protocol.AdaptiveGame
 public import LeanerVM.Semantics.FillBlocks
@@ -72,11 +73,22 @@ padded trace `padTrace t (fillStarts prog)`, a valid execution with the same ste
 `2^maxMu`, the rate is not valid, or a grind finds no nonce among its `fuel` candidates at a
 chain state the prover's run reaches (`ProveReaches`: the state after the announcement and some
 first rounds of the run, so every round boundary, a superset of the states the grinds start at).
+`proveChecked` runs the decided checks of the hypotheses first and `proveExecution` only when they
+pass: every proof it returns is accepted, with no hypothesis (`verify_proveChecked`), and under
+the hypotheses it is `proveExecution` (`proveChecked_eq`).
+
+**The stack of an execution.** The generated witness has memory log-size `t.κ + 1` and each
+table at its filled height (`sizes_witnessGen`, `execSizes`), so the stack's height is a formula
+of `t.κ`, the run's rows and the `JUMP` exponent (`LeanIsa.blocks_total_eq`). `StackFits prog t`
+says it is at most `2^maxMu`; it is decided by one forward pass (`stackFitsB`), fails from
+`t.κ ≥ 25` on (`not_stackFits_of_le`: the four memory columns alone hold `2^(t.κ+3) ≥ 2^28`
+cells, and the bytecode column is more), and holds when `t.κ ≤ 24`, the program has at most
+`2^25` slots and the run at most `2^16` steps (`StackFits.of_short`).
 
 ## Completeness in the random-oracle model
 
-`proveExecution_rom_complete`: for `WellFormedBytecode`, a valid execution `t` that fits the caps,
-a generated witness whose stack fits (`StackFits`) and a valid rate, the honest run from the
+`proveExecution_rom_complete`: for `WellFormedBytecode`, a valid execution `t` that fits the caps
+and whose stack fits (`StackFits`), and a valid rate, the honest run from the
 execution (`honestExecutionGame`: the witness generator, the deployed prover with every hash a
 query to one lazy random oracle, then the verifier on its proof at the same oracle) is rejected
 with probability at most `(N + 1) (1 - 2^-17)^min(fuel, 2^64) + N^2 / 2^256`,
@@ -154,10 +166,9 @@ The broader event, a flip on any chain of the statement (`leanVmReader.FlipFor`)
 (`SlotReader.flipFor_of_verifierFlipFor`); the random-oracle bounds hold for both. Completeness says
 that every proof `proveExecution` returns is accepted, and when it returns one, not that it does: at
 BLAKE2s nothing bounds how often a grind on the run runs out of fuel (the random-oracle bound above
-is about a random function), and `Trace.Fits` does not keep the stack within `2^maxMu`. The padding
-the proof picks has memory log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)`
-cells, above `2^28` from `t.κ ≥ 26` on, where `proveExecution` returns none at every fuel and rate;
-so it does whenever the filled tables exceed `2^28` cells. The generated witness represents the
+is about a random function), and `Trace.Fits` does not keep the stack within `2^maxMu`: from
+`t.κ ≥ 25` on it never fits (`not_stackFits_of_le`), and `proveExecution` returns none at every
+fuel and rate. The generated witness represents the
 padded trace, not the given one: the proof is of the same steps over a memory with the fill frames
 above the image. -/
 
@@ -646,6 +657,131 @@ theorem blakeMisbehaves_of_comparison {prog : Program} {input : PublicInput} {A 
     h.mono fun _ ↦ leanVmReader.flip_of_verifierFlipFor).trans
     (leanVm_misbehaves_rom_closed prog input A hQ)) δ)
 
+/-! ## The stack of an execution -/
+
+/-- The sizes of the witness `witnessGen` returns for a trace of memory log-size `κ` whose run
+has `rows op` rows of each table, at the `JUMP` exponent `τ`: memory log-size `κ + 1`, each
+opcode table at its filled log-height. -/
+def execSizes (κ : ℕ) (rows : Opcode → ℕ) (τ : ℕ) : Sizes :=
+  ⟨κ + 1, Nat.succ_pos κ, fun j ↦ tableLog rows τ (fillTables.getD j .xor)⟩
+
+/-- **The sizes of the generated witness.** On a valid execution, the witness `witnessGen`
+returns has the sizes `execSizes` of the trace's memory log-size, the run's rows and the `JUMP`
+exponent `jumpHeight t.owed`. -/
+theorem sizes_witnessGen {prog : Program} {input : PublicInput} {t : Trace prog}
+    {w : EnsembleWitness (leanIsaEnsemble prog (t.κ + 1))}
+    (h : ValidExecution prog input t) (hw : witnessGen prog input t = some w) :
+    ∃ τ, jumpHeight t.owed = some τ ∧ Sizes.ofWitness w = some (execSizes t.κ t.runRows τ) := by
+  obtain ⟨τ, hτ, hl⟩ := witnessGen_heights h hw
+  refine ⟨τ, hτ, ?_⟩
+  unfold Sizes.ofWitness
+  rw [dite_eq_left (Nat.succ_pos _)]
+  simp only [execSizes, Option.some.injEq, Sizes.mk.injEq, true_and]
+  funext j
+  rw [hl j, tableHeight_eq_pow, Nat.log_pow (by norm_num)]
+
+/-- **The stack of an execution fits**: the `JUMP` table can be filled, at the exponent
+`jumpHeight t.owed`, and the sizes `execSizes` of the generated witness keep leanVM's stack
+within `2^maxMu` cells, which `prove` needs to return a proof. A predicate on the trace: the
+stack's height is `LeanIsa.blocks_total_eq` at these sizes. -/
+def StackFits (prog : Program) (t : Trace prog) : Prop :=
+  ∃ τ, jumpHeight t.owed = some τ ∧ leanIsaμ prog (execSizes t.κ t.runRows τ) ≤ maxMu
+
+/-- **No stack fits from `t.κ ≥ 25` on**: the generated memory has log-size `t.κ + 1`, so its four
+columns alone hold `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is one more block. -/
+theorem not_stackFits_of_le {prog : Program} {t : Trace prog} (h : 25 ≤ t.κ) :
+    ¬ StackFits prog t := by
+  rintro ⟨τ, -, hμ⟩
+  rw [leanIsaμ_le_iff, blocks_total_eq] at hμ
+  have hm : 2 ^ 28 ≤ 4 * 2 ^ (t.κ + 1) := by
+    rw [show 4 * 2 ^ (t.κ + 1) = 2 ^ (t.κ + 3) by ring]
+    exact Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hb := Nat.one_le_two_pow (n := prog.logSize)
+  simp only [execSizes, maxMu, pow_add] at hμ hm
+  omega
+
+/-- **A short run's stack fits**: a run of at most `2^16` steps over a memory of log-size at most
+`24`, of a program of at most `2^25` slots. A sufficient condition, so `25` is the exact bound on
+`t.κ`. -/
+theorem StackFits.of_short {prog : Program} {t : Trace prog} {rf : Regs K}
+    (h : run prog t.image t.steps Regs.initial = some rf) (hκ : t.κ ≤ 24)
+    (hL : prog.logSize ≤ 25) (hs : t.steps ≤ 2 ^ 16) : StackFits prog t := by
+  have hrows : ∀ op, t.runRows op ≤ 2 ^ 16 := fun op ↦ (t.runRows_le_steps h op).trans hs
+  have howed : t.owed ≤ 2 ^ 17 :=
+    (jumpOwed_le (rows := t.runRows) (k := 16) (by norm_num) hrows).trans (by norm_num)
+  obtain ⟨τ, hτ⟩ := Option.isSome_iff_exists.mp
+    (jumpHeight_isSome (jumpFeasible_of_le (howed.trans (by norm_num))))
+  have hτ18 : τ ≤ 18 := jumpHeight_le hτ howed
+  have hlog : ∀ op, op ≠ .jump → tableLog t.runRows τ op ≤ 16 := fun op hop ↦ by
+    simp only [tableLog, hop, ↓reduceIte]
+    rw [Nat.clog_le_iff_le_pow (by norm_num)]
+    refine max_le (max_le (hrows op) ?_) (by norm_num)
+    cases op <;> simp [minRows]
+  refine ⟨τ, hτ, ?_⟩
+  rw [leanIsaμ_le_iff, blocks_total_eq]
+  have p : ∀ {a b : ℕ}, a ≤ b → 2 ^ a ≤ 2 ^ b := fun h ↦ Nat.pow_le_pow_right (by norm_num) h
+  have e0 := p (hlog .xor (by decide))
+  have e1 := p (hlog .mulNative (by decide))
+  have e2 := p (hlog .setConstant (by decide))
+  have e3 := p (hlog .deref (by decide))
+  have e4 : 2 ^ tableLog t.runRows τ .jump ≤ 2 ^ 18 := p (by simpa [tableLog] using hτ18)
+  have e5 := p (hlog .blake2s (by decide))
+  have e8 : 2 ^ (8 + tableLog t.runRows τ .blake2s) ≤ 2 ^ 24 :=
+    p (by have := hlog .blake2s (by decide); omega)
+  have em : 4 * 2 ^ (t.κ + 1) ≤ 2 ^ 27 := by
+    rw [show 4 * 2 ^ (t.κ + 1) = 2 ^ (t.κ + 3) by ring]
+    exact p (by omega)
+  have eb := p hL
+  simp only [execSizes, maxMu]
+  change 4 * 2 ^ (t.κ + 1) + 2 ^ prog.logSize + 2 ^ (8 + tableLog t.runRows τ .blake2s) +
+    15 * 2 ^ tableLog t.runRows τ .xor + 15 * 2 ^ tableLog t.runRows τ .mulNative +
+    8 * 2 ^ tableLog t.runRows τ .setConstant + 15 * 2 ^ tableLog t.runRows τ .deref +
+    14 * 2 ^ tableLog t.runRows τ .jump + 19 * 2 ^ tableLog t.runRows τ .blake2s ≤ 2 ^ 28
+  norm_num at e0 e1 e2 e3 e4 e5 e8 em eb ⊢
+  omega
+
+/-- Whether the stack of a trace of memory log-size `κ` whose run has `rows op` rows of each
+table fits. -/
+def stackFitsRowsB (prog : Program) (κ : ℕ) (rows : Opcode → ℕ) : Bool :=
+  match jumpHeight (jumpOwed rows) with
+  | some τ => decide (leanIsaμ prog (execSizes κ rows τ) ≤ maxMu)
+  | none => false
+
+/-- The check decides `StackFits` from the run's rows. -/
+theorem stackFitsRowsB_eq_true_iff {prog : Program} (t : Trace prog) :
+    stackFitsRowsB prog t.κ t.runRows = true ↔ StackFits prog t := by
+  unfold stackFitsRowsB StackFits Trace.owed
+  rcases jumpHeight (jumpOwed t.runRows) with _ | τ <;> simp
+
+/-- Whether the stack of a trace fits, its rows counted by the generator's forward pass. -/
+def stackFitsB (prog : Program) (t : Trace prog) : Bool :=
+  stackFitsRowsB prog t.κ
+    (countsOf (runCountTableBy prog t (powTable (2 ^ max t.κ prog.logSize))))
+
+/-- **The check decides `StackFits` on a valid execution.** -/
+theorem stackFitsB_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace prog}
+    (h : ValidExecution prog input t) : stackFitsB prog t = true ↔ StackFits prog t := by
+  rw [stackFitsB, countsOf_runCountTableBy h]
+  exact stackFitsRowsB_eq_true_iff t
+
+/-- **`StackFits` is the stack of the generated witness fitting**: under the hypotheses of
+completeness, it holds exactly when the generator returns a witness whose sizes keep the stack
+within `2^maxMu`, the condition of `prove_ne_none` and `honestGame_rom_rejects_le`. -/
+theorem stackFits_iff {prog : Program} {input : PublicInput} {t : Trace prog}
+    (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t) (hfit : t.Fits) :
+    StackFits prog t ↔ ∃ w s, witnessGen prog input t = some w ∧ Sizes.ofWitness w = some s ∧
+      leanIsaμ prog s ≤ maxMu := by
+  obtain ⟨w, hw, -⟩ := witnessGen_correct hwf ht hfit
+  obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+  constructor
+  · rintro ⟨τ', hτ', hμ⟩
+    obtain rfl := Option.some.inj (hτ.symm.trans hτ')
+    exact ⟨w, _, hw, hs, hμ⟩
+  · rintro ⟨w', s, hw', hs', hμ⟩
+    obtain rfl := Option.some.inj (hw.symm.trans hw')
+    obtain rfl := Option.some.inj (hs.symm.trans hs')
+    exact ⟨τ, hτ, hμ⟩
+
 /-! ## Completeness -/
 
 /-- **The honest prover from an execution at a hash `H`** in a monad `m`: the witness generator
@@ -664,6 +800,19 @@ Flock specification, as `prove` is `proveWith`. -/
 def proveExecution (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
     Option (Proof PrunedMerklePaths) :=
   proveExecutionWith (m := Id) blake2sBytes fuel Blake2sFlock.blake2sFlockSpec prog input t ρ
+
+/-- The hypotheses of completeness from an execution, decided: well-formed bytecode
+(`wellFormedB`), a valid execution (`checkTrace`), a trace that fits (`fitsB`), a stack that fits
+(`stackFitsB`) and a valid rate. -/
+def checkExecution (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) : Bool :=
+  wellFormedB prog && checkTrace prog input t && fitsB prog t && stackFitsB prog t &&
+    decide (validRate ρ)
+
+/-- **leanVM's honest prover from an execution, guarded**: `proveExecution` when the hypotheses
+of completeness pass their checks (`checkExecution`), none otherwise. -/
+def proveChecked (fuel : ℕ) (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ) :
+    Option (Proof PrunedMerklePaths) :=
+  if checkExecution prog input t ρ then proveExecution fuel prog input t ρ else none
 
 /-- **Completeness of the deployed pair, the constraint form**, from which
 `proveExecution_complete` is proved. For a witness that satisfies leanISA's constraint
@@ -810,23 +959,6 @@ theorem honestGame_rom_rejects_le_default {prog : Program} {input : PublicInput}
   (honestGame_rom_rejects_le (2 ^ 24) hsat hs hμ hρ).trans
     (rom_bound_default _ Prove.one_sub_pow_fuel_le)
 
-/-- **The stack of the generated witness fits**: the witness generator returns a witness for `t`,
-and its sizes `s` (`Sizes.ofWitness`, determined by the witness) keep leanVM's stack within
-`2^maxMu` cells (`leanIsaμ prog s ≤ maxMu`), which `prove` needs to return a proof. It is decided
-by evaluating the generator. `Trace.Fits` does not imply it: the generator pads the memory to
-log-size `t.κ + 1`, so its four memory columns alone hold `2^(t.κ+3)` cells, and from `t.κ ≥ 26`
-on it fails. -/
-def StackFits (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
-  ∃ s, (witnessGen prog input t).bind Sizes.ofWitness = some s ∧ leanIsaμ prog s ≤ maxMu
-
-instance (prog : Program) (input : PublicInput) (t : Trace prog) :
-    Decidable (StackFits prog input t) :=
-  decidable_of_iff (((witnessGen prog input t).bind Sizes.ofWitness).any
-    fun s ↦ decide (leanIsaμ prog s ≤ maxMu)) <| by
-    unfold StackFits
-    generalize (witnessGen prog input t).bind Sizes.ofWitness = o
-    cases o <;> simp
-
 /-- The honest run from an execution in the random-oracle model: the witness generator on `t`,
 then the deployed prover on its witness with every hash a query to the oracle, then the verifier
 on the proof, asking the same oracle; a generator or prover returning none is rejected. -/
@@ -848,24 +980,21 @@ query to that function, and the deployed verifier checks the proof, asking the s
 the prover's queries; the first term is a grind running out of fuel, the second a collision.
 
 *The assumptions*: `prog` is well-formed bytecode (its last slot no `JUMP`, the compiler's fill
-blocks present), `t` is a valid execution of `prog` on `input` that fits the caps (`Trace.Fits`),
-the stack of the generated witness fits (`StackFits`, which fails from `t.κ ≥ 26` on), and `ρ` is
-a valid rate. Each is decided by a computation: `wellFormedB`, `checkTrace`, `fitsB` (on a valid
-execution), and the `Decidable` instances of `StackFits` and `validRate`. -/
+blocks present), `t` is a valid execution of `prog` on `input` that fits the caps (`Trace.Fits`)
+and whose stack fits (`StackFits`, which fails from `t.κ ≥ 25` on), and `ρ` is a valid rate. Each
+is decided by a computation: `wellFormedB`, `checkTrace`, `fitsB` and `stackFitsB` (on a valid
+execution), and the `Decidable` instance of `validRate`; `proveChecked` runs them. -/
 theorem proveExecution_rom_complete (fuel : ℕ) {prog : Program} {input : PublicInput}
     {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
-    (hfit : t.Fits) (hstack : StackFits prog input t) (hρ : validRate ρ) :
+    (hfit : t.Fits) (hstack : StackFits prog t) (hρ : validRate ρ) :
     Pr{let z ← runRandom (honestExecutionGame fuel prog input t ρ)}[z.1 = false] ≤
       (((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) + 1) *
           (1 - (2 ^ queryGrindingBits : ℝ≥0∞)⁻¹) ^ min fuel (2 ^ 64) +
         ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) * ((264246250 + 6 * fuel : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
   obtain ⟨w, hw, hsat, -⟩ := witnessGen_correct hwf ht hfit
-  obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hsat
-  have hb : (witnessGen prog input t).bind Sizes.ofWitness = some s := by
-    rw [hw, Option.bind_some, hs]
-  have hμ : leanIsaμ prog s ≤ maxMu := by
-    obtain ⟨s', hs', hμ⟩ := hstack
-    exact Option.some.inj (hb.symm.trans hs') ▸ hμ
+  obtain ⟨τ, hτ, hs⟩ := sizes_witnessGen ht hw
+  obtain ⟨τ', hτ', hμ⟩ := hstack
+  obtain rfl := Option.some.inj (hτ.symm.trans hτ')
   have hgame : honestExecutionGame fuel prog input t ρ = honestGame fuel prog input w ρ := by
     unfold honestExecutionGame proveExecutionWith honestGame
     rw [hw]
@@ -876,7 +1005,7 @@ theorem proveExecution_rom_complete (fuel : ℕ) {prog : Program} {input : Publi
 honest run of `proveExecution_rom_complete` is rejected with probability below `2^-154`. -/
 theorem proveExecution_rom_complete_default {prog : Program} {input : PublicInput}
     {t : Trace prog} {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t)
-    (hfit : t.Fits) (hstack : StackFits prog input t) (hρ : validRate ρ) :
+    (hfit : t.Fits) (hstack : StackFits prog t) (hρ : validRate ρ) :
     Pr{let z ← runRandom (honestExecutionGame (2 ^ 24) prog input t ρ)}[z.1 = false] ≤
       (2 ^ 154 : ℝ≥0∞)⁻¹ :=
   (proveExecution_rom_complete (2 ^ 24) hwf ht hfit hstack hρ).trans
@@ -890,7 +1019,8 @@ with the fill frames above `t`'s image. At every fuel and rate, `verify` accepts
 `proveExecution` returns; it returns none only when, at the witness's sizes `s`, the stack
 exceeds `2^maxMu`, the rate is not valid, or a grind runs out of fuel at a chain state the
 prover's run reaches; the last conjunct says the same as a sufficient condition for a proof.
-`Trace.Fits` does not keep the stack within `2^maxMu`: from `t.κ ≥ 26` on it is not. -/
+`Trace.Fits` does not keep the stack within `2^maxMu`: from `t.κ ≥ 25` on it is not
+(`not_stackFits_of_le`, with `stackFits_iff`). -/
 theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trace prog}
     (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t) (hfit : t.Fits) :
     (padTrace t (fillStarts prog)).PaddedFrom t ∧
@@ -917,6 +1047,38 @@ theorem proveExecution_complete {prog : Program} {input : PublicInput} {t : Trac
   refine ⟨fun _ ↦ prove_complete fuel hsat, fun h ↦ ?_, prove_ne_none fuel hsat hs⟩
   obtain ⟨s', hs', hc⟩ := prove_eq_none fuel hsat h
   exact Option.some.inj (hs.symm.trans hs') ▸ hc
+
+/-- The checks of `checkExecution` decide the hypotheses of completeness from an execution. -/
+theorem checkExecution_eq_true_iff {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} : checkExecution prog input t ρ = true ↔ WellFormedBytecode prog ∧
+      ValidExecution prog input t ∧ t.Fits ∧ StackFits prog t ∧ validRate ρ := by
+  simp only [checkExecution, Bool.and_eq_true, decide_eq_true_eq, wellFormedB_eq_true_iff,
+    checkTrace_eq_true_iff]
+  constructor
+  · rintro ⟨⟨⟨⟨hwf, ht⟩, hfit⟩, hst⟩, hρ⟩
+    exact ⟨hwf, ht, (fitsB_eq_true_iff ht).mp hfit, (stackFitsB_eq_true_iff ht).mp hst, hρ⟩
+  · rintro ⟨hwf, ht, hfit, hst, hρ⟩
+    exact ⟨⟨⟨⟨hwf, ht⟩, (fitsB_eq_true_iff ht).mpr hfit⟩, (stackFitsB_eq_true_iff ht).mpr hst⟩, hρ⟩
+
+/-- **Every proof the guarded prover returns is accepted**, with no hypothesis: it proves only
+after its checks pass, and then `proveExecution_complete` applies. -/
+theorem verify_proveChecked {fuel : ℕ} {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} {proof : Proof PrunedMerklePaths} (h : proveChecked fuel prog input t ρ = some proof) :
+    verify prog input proof = true := by
+  unfold proveChecked at h
+  split_ifs at h with hc
+  obtain ⟨hwf, ht, hfit, -, -⟩ := checkExecution_eq_true_iff.mp hc
+  obtain ⟨-, -, w, -, -, -, s, -, hall⟩ := proveExecution_complete hwf ht hfit
+  exact (hall fuel ρ).1 proof h
+
+/-- **Under the hypotheses of completeness the guarded prover is `proveExecution`.** -/
+theorem proveChecked_eq (fuel : ℕ) {prog : Program} {input : PublicInput} {t : Trace prog}
+    {ρ : ℕ} (hwf : WellFormedBytecode prog) (ht : ValidExecution prog input t) (hfit : t.Fits)
+    (hstack : StackFits prog t) (hρ : validRate ρ) :
+    proveChecked fuel prog input t ρ = proveExecution fuel prog input t ρ := by
+  have hc : checkExecution prog input t ρ = true :=
+    checkExecution_eq_true_iff.mpr ⟨hwf, ht, hfit, hstack, hρ⟩
+  simp only [proveChecked, hc, ↓reduceIte]
 
 end
 

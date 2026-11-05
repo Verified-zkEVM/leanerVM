@@ -85,13 +85,13 @@ noncomputable def asked (c : (D →ₒ Y).QueryCache) (b : Y) : ℕ :=
 open Classical in
 /-- The probability that the search from `b` fails, given the cache: `0` once a candidate
 passed, `q` to the number of candidates not yet asked otherwise. -/
-noncomputable def π (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (b : Y) : ℝ≥0∞ :=
+noncomputable def failProb (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) (b : Y) : ℝ≥0∞ :=
   if S.Found c b then 0 else q ^ (S.F - S.asked c b)
 
 open Classical in
 /-- The potential: the failure probabilities of the counted bases, summed. -/
-noncomputable def Φ [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) : ℝ≥0∞ :=
-  ∑ b, if S.Counted c b then S.π q c b else 0
+noncomputable def potential [Fintype Y] (q : ℝ≥0∞) (c : (D →ₒ Y).QueryCache) : ℝ≥0∞ :=
+  ∑ b, if S.Counted c b then S.failProb q c b else 0
 
 open Classical in
 /-- The charge of a fresh query: a base-shaped one adds `q^F`, and `|c| / |Y|` for a base whose
@@ -105,12 +105,14 @@ section Step
 
 variable [DecidableEq D] {c : (D →ₒ Y).QueryCache} {t : D}
 
+/-- A query that is not base-shaped counts no new base. -/
 theorem counted_cacheQuery_of_not_base (ht : ¬ S.isBase t) (u : Y) (b : Y) :
     S.Counted (c.cacheQuery t u) b ↔ S.Counted c b := by
   refine or_congr Iff.rfl (exists_congr fun x ↦ and_congr_right fun hx ↦ ?_)
   have hxt : x ≠ t := fun h ↦ ht (h ▸ hx)
   rw [QueryCache.cacheQuery_of_ne _ _ hxt]
 
+/-- A fresh base-shaped query counts its answer as one more base. -/
 theorem counted_cacheQuery_of_base (hc : c t = none) (ht : S.isBase t) (u : Y) (b : Y) :
     S.Counted (c.cacheQuery t u) b ↔ S.Counted c b ∨ b = u := by
   constructor
@@ -130,8 +132,8 @@ theorem counted_cacheQuery_of_base (hc : c t = none) (ht : S.isBase t) (u : Y) (
     · exact .inr ⟨t, ht, QueryCache.cacheQuery_self _ _ _⟩
 
 /-- A query no candidate of `b` below `F` leaves `b`'s failure probability as it was. -/
-theorem π_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b n ≠ t) (u : Y) :
-    S.π q (c.cacheQuery t u) b = S.π q c b := by
+theorem failProb_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b n ≠ t) (u : Y) :
+    S.failProb q (c.cacheQuery t u) b = S.failProb q c b := by
   have hc : ∀ n < S.F, (c.cacheQuery t u) (S.cand b n) = c (S.cand b n) := fun n hn ↦
     QueryCache.cacheQuery_of_ne _ _ (hb n hn)
   have hF : S.Found (c.cacheQuery t u) b ↔ S.Found c b :=
@@ -140,7 +142,7 @@ theorem π_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b
     unfold asked
     congr 1
     exact Finset.filter_congr fun n hn ↦ by rw [hc n (Finset.mem_range.mp hn)]
-  unfold π
+  unfold failProb
   rw [ha]
   by_cases h : S.Found c b
   · rw [ite_eq_left (hF.mpr h), ite_eq_left h]
@@ -148,28 +150,30 @@ theorem π_cacheQuery_of_ne (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, S.cand b
 
 omit [DecidableEq D] in
 /-- A search with no candidate asked fails with probability `q^F`. -/
-theorem π_of_not_asked (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, c (S.cand b n) = none) :
-    S.π q c b = q ^ S.F := by
+theorem failProb_of_not_asked (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, c (S.cand b n) = none) :
+    S.failProb q c b = q ^ S.F := by
   have hF : ¬ S.Found c b := fun ⟨n, hn, d, hd, _⟩ ↦ by rw [hb n hn] at hd; cases hd
   have ha : S.asked c b = 0 := by
     unfold asked
     rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
     intro n hn
     simp [hb n (Finset.mem_range.mp hn)]
-  unfold π
+  unfold failProb
   rw [ite_eq_right hF, ha, Nat.sub_zero]
 
 omit [DecidableEq D] in
-theorem π_le_one {q : ℝ≥0∞} (hq1 : q ≤ 1) (b : Y) : S.π q c b ≤ 1 := by
-  unfold π
+/-- A failure probability is at most `1`. -/
+theorem failProb_le_one {q : ℝ≥0∞} (hq1 : q ≤ 1) (b : Y) : S.failProb q c b ≤ 1 := by
+  unfold failProb
   split_ifs
   exacts [zero_le_one, pow_le_one₀ zero_le hq1]
 
 omit [DecidableEq D] in
 /-- A search whose `F` candidates are all cached with failing answers has failed: probability
 `1`. -/
-theorem π_eq_one (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, ∃ d, c (S.cand b n) = some d ∧ ¬ S.ok d) :
-    S.π q c b = 1 := by
+theorem failProb_eq_one (q : ℝ≥0∞) (b : Y)
+    (hb : ∀ n < S.F, ∃ d, c (S.cand b n) = some d ∧ ¬ S.ok d) :
+    S.failProb q c b = 1 := by
   have hF : ¬ S.Found c b := fun ⟨n, hn, d, hd, hok⟩ ↦ by
     obtain ⟨d', hd', hnok⟩ := hb n hn
     rw [hd] at hd'
@@ -179,7 +183,7 @@ theorem π_eq_one (q : ℝ≥0∞) (b : Y) (hb : ∀ n < S.F, ∃ d, c (S.cand b
     rw [Finset.filter_true_of_mem fun n hn ↦ ?_, Finset.card_range]
     obtain ⟨d, hd, -⟩ := hb n (Finset.mem_range.mp hn)
     simp [hd]
-  unfold π
+  unfold failProb
   rw [ite_eq_right hF, ha, Nat.sub_self, pow_zero]
 
 /-- The expectation of `K` on an event is `K` times its probability. -/
@@ -195,9 +199,9 @@ private theorem lintegral_ite_const {α : Type} (mx : ProbComp α) (p : α → P
 
 /-- At a fresh query, the expected failure probability of any base's search is at most what it
 was: unchanged unless the query is one of its candidates, a martingale step if it is. -/
-theorem lintegral_π_le [SampleableType Y] {q : ℝ≥0∞}
+theorem lintegral_failProb_le [SampleableType Y] {q : ℝ≥0∞}
     (hq : Pr{let u ← $ᵗ Y}[¬ S.ok u] ≤ q) (hc : c t = none) (b : Y) :
-    ∫⁻ r, r ∂𝒟[(fun u ↦ S.π q (c.cacheQuery t u) b) <$> ($ᵗ Y)] ≤ S.π q c b := by
+    ∫⁻ r, r ∂𝒟[(fun u ↦ S.failProb q (c.cacheQuery t u) b) <$> ($ᵗ Y)] ≤ S.failProb q c b := by
   classical
   by_cases hcand : ∃ n < S.F, S.cand b n = t
   · obtain ⟨n, hn, rfl⟩ := hcand
@@ -208,7 +212,7 @@ theorem lintegral_π_le [SampleableType Y] {q : ℝ≥0∞}
       have hd' : (c.cacheQuery (S.cand b n) u) (S.cand b n') = some d := by
         rwa [QueryCache.cacheQuery_of_ne _ _ hne]
       have : S.Found (c.cacheQuery (S.cand b n) u) b := ⟨n', hn', d, hd', hok⟩
-      simp only [π, ite_eq_left this, zero_le]
+      simp only [failProb, ite_eq_left this, zero_le]
     -- the candidate is new: it passes, or one more candidate is asked
     have hset : ∀ u, ((Finset.range S.F).filter fun n' ↦
         ((c.cacheQuery (S.cand b n) u) (S.cand b n')).isSome) =
@@ -232,12 +236,12 @@ theorem lintegral_π_le [SampleableType Y] {q : ℝ≥0∞}
       rw [Finset.card_erase_of_mem (Finset.mem_range.mpr hn), Finset.card_range] at this
       unfold asked
       omega
-    have hpt : ∀ u, S.π q (c.cacheQuery (S.cand b n) u) b =
+    have hpt : ∀ u, S.failProb q (c.cacheQuery (S.cand b n) u) b =
         if ¬ S.ok u then q ^ (S.F - (S.asked c b + 1)) else 0 := fun u ↦ by
       by_cases hok : S.ok u
       · have : S.Found (c.cacheQuery (S.cand b n) u) b :=
           ⟨n, hn, u, QueryCache.cacheQuery_self _ _ _, hok⟩
-        simp only [π, ite_eq_left this, hok, not_true_eq_false, ite_false]
+        simp only [failProb, ite_eq_left this, hok, not_true_eq_false, ite_false]
       · have hF : ¬ S.Found (c.cacheQuery (S.cand b n) u) b := by
           rintro ⟨n', hn', d, hd, hokd⟩
           by_cases h : n' = n
@@ -250,14 +254,14 @@ theorem lintegral_π_le [SampleableType Y] {q : ℝ≥0∞}
         have ha : S.asked (c.cacheQuery (S.cand b n) u) b = S.asked c b + 1 := by
           unfold asked
           rw [hset u, Finset.card_insert_of_notMem hnotin]
-        simp only [π, ite_eq_right hF, ha, hok, not_false_eq_true, ite_true]
+        simp only [failProb, ite_eq_right hF, ha, hok, not_false_eq_true, ite_true]
     simp only [hpt, lintegral_ite_const]
-    rw [π, ite_eq_right hfound, show S.F - S.asked c b = (S.F - (S.asked c b + 1)) + 1 by omega,
-      pow_succ]
+    rw [failProb, ite_eq_right hfound,
+      show S.F - S.asked c b = (S.F - (S.asked c b + 1)) + 1 by omega, pow_succ]
     gcongr
   · push Not at hcand
     refine lintegral_id_evalDist_map_le_of_le _ fun u ↦ ?_
-    rw [S.π_cacheQuery_of_ne q b hcand u]
+    rw [S.failProb_cacheQuery_of_ne q b hcand u]
 
 omit [DecidableEq D] in
 /-- At most `|c|` bases have a candidate the cache holds. -/
@@ -289,17 +293,17 @@ theorem card_asked_le [Fintype Y] (c : (D →ₒ Y).QueryCache) [DecidablePred f
 omit [DecidableEq D] in
 /-- The expected failure probability of the search from a uniform base: `q^F`, or up to `1` for
 the at most `|c|` bases the cache holds a candidate of. -/
-theorem lintegral_π_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞} (hq1 : q ≤ 1)
+theorem lintegral_failProb_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞} (hq1 : q ≤ 1)
     (c : (D →ₒ Y).QueryCache) :
-    ∫⁻ r, r ∂𝒟[(fun u ↦ S.π q c u) <$> ($ᵗ Y)] ≤ q ^ S.F + c.enncard / Fintype.card Y := by
+    ∫⁻ r, r ∂𝒟[(fun u ↦ S.failProb q c u) <$> ($ᵗ Y)] ≤ q ^ S.F + c.enncard / Fintype.card Y := by
   classical
   let T : Y → Prop := fun b ↦ ∃ n < S.F, (c (S.cand b n)).isSome
-  have hpt : ∀ u, S.π q c u ≤ q ^ S.F + if T u then 1 else 0 := fun u ↦ by
+  have hpt : ∀ u, S.failProb q c u ≤ q ^ S.F + if T u then 1 else 0 := fun u ↦ by
     by_cases hT : T u
     · simp only [hT, ite_true]
-      exact (S.π_le_one hq1 u).trans le_add_self
+      exact (S.failProb_le_one hq1 u).trans le_add_self
     · simp only [hT, ite_false, add_zero]
-      refine (S.π_of_not_asked q u fun n hn ↦ ?_).le
+      refine (S.failProb_of_not_asked q u fun n hn ↦ ?_).le
       exact Option.not_isSome_iff_eq_none.mp fun h ↦ hT ⟨n, hn, h⟩
   refine (lintegral_id_evalDist_map_mono _ hpt).trans ?_
   rw [lintegral_id_evalDist_map_const_add _ (OracleComp.prEvent_true_eq_one _),
@@ -312,35 +316,36 @@ theorem lintegral_π_uniform_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞} 
 answer is at most the potential before plus the charge. -/
 theorem potential_step [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     (hq : Pr{let u ← $ᵗ Y}[¬ S.ok u] ≤ q) (hq1 : q ≤ 1) (hc : c t = none) :
-    ∫⁻ r, r ∂𝒟[(fun u ↦ S.Φ q (c.cacheQuery t u)) <$> ($ᵗ Y)] ≤
-      S.Φ q c + S.charge q c t := by
+    ∫⁻ r, r ∂𝒟[(fun u ↦ S.potential q (c.cacheQuery t u)) <$> ($ᵗ Y)] ≤
+      S.potential q c + S.charge q c t := by
   classical
   by_cases ht : S.isBase t
   · -- one more base is counted; no search's candidates change
     have hne : ∀ b, ∀ n < S.F, S.cand b n ≠ t := fun b n hn h ↦ S.cand_not_base b hn (h ▸ ht)
-    have hpt : ∀ u, S.Φ q (c.cacheQuery t u) ≤ S.Φ q c + S.π q c u := fun u ↦ by
-      unfold Φ
-      calc _ = ∑ b, if S.Counted c b ∨ b = u then S.π q c b else 0 :=
+    have hpt : ∀ u, S.potential q (c.cacheQuery t u) ≤ S.potential q c + S.failProb q c u := by
+      intro u
+      unfold potential
+      calc _ = ∑ b, if S.Counted c b ∨ b = u then S.failProb q c b else 0 :=
             Finset.sum_congr rfl fun b _ ↦ by
               rw [if_congr (S.counted_cacheQuery_of_base hc ht u b)
-                (S.π_cacheQuery_of_ne q b (hne b) u) rfl]
-        _ ≤ ∑ b, ((if S.Counted c b then S.π q c b else 0) +
-              if b = u then S.π q c b else 0) :=
+                (S.failProb_cacheQuery_of_ne q b (hne b) u) rfl]
+        _ ≤ ∑ b, ((if S.Counted c b then S.failProb q c b else 0) +
+              if b = u then S.failProb q c b else 0) :=
             Finset.sum_le_sum fun b _ ↦ by split_ifs <;> simp_all
         _ = _ := by rw [Finset.sum_add_distrib, Finset.sum_ite_eq']; simp
     refine (lintegral_id_evalDist_map_mono _ hpt).trans ?_
     rw [lintegral_id_evalDist_map_const_add _ (OracleComp.prEvent_true_eq_one _), charge,
       ite_eq_left ht]
-    exact add_le_add le_rfl (S.lintegral_π_uniform_le hq1 c)
+    exact add_le_add le_rfl (S.lintegral_failProb_uniform_le hq1 c)
   · -- the counted bases stay; each search is a martingale
-    have hpt : (fun u ↦ S.Φ q (c.cacheQuery t u)) =
-        fun u ↦ ∑ b, if S.Counted c b then S.π q (c.cacheQuery t u) b else 0 :=
+    have hpt : (fun u ↦ S.potential q (c.cacheQuery t u)) =
+        fun u ↦ ∑ b, if S.Counted c b then S.failProb q (c.cacheQuery t u) b else 0 :=
       funext fun u ↦ Finset.sum_congr rfl fun b _ ↦ by
         rw [if_congr (S.counted_cacheQuery_of_not_base ht u b) rfl rfl]
     rw [hpt, lintegral_id_evalDist_map_finset_sum]
     refine le_trans (Finset.sum_le_sum fun b _ ↦ ?_) le_self_add
     split_ifs
-    · exact S.lintegral_π_le hq hc b
+    · exact S.lintegral_failProb_le hq hc b
     · simp
 
 end Step
@@ -351,24 +356,25 @@ variable [DecidableEq D]
 
 omit [DecidableEq D] in
 /-- An exhausted search makes the potential at least `1`. -/
-theorem one_le_Φ [Fintype Y] {q : ℝ≥0∞} {c : (D →ₒ Y).QueryCache} (h : S.Exhausted c) :
-    1 ≤ S.Φ q c := by
+theorem one_le_potential [Fintype Y] {q : ℝ≥0∞} {c : (D →ₒ Y).QueryCache} (h : S.Exhausted c) :
+    1 ≤ S.potential q c := by
   classical
   obtain ⟨b, hb, hfail⟩ := h
-  unfold Φ
+  unfold potential
   refine le_trans ?_ (Finset.single_le_sum (fun b _ ↦ zero_le) (Finset.mem_univ b))
-  rw [ite_eq_left hb, S.π_eq_one q b hfail]
+  rw [ite_eq_left hb, S.failProb_eq_one q b hfail]
 
 omit [DecidableEq D] in
 /-- From the empty cache only the start is counted, with nothing asked. -/
-theorem Φ_empty [Fintype Y] (q : ℝ≥0∞) : S.Φ q (∅ : (D →ₒ Y).QueryCache) = q ^ S.F := by
+theorem potential_empty [Fintype Y] (q : ℝ≥0∞) :
+    S.potential q (∅ : (D →ₒ Y).QueryCache) = q ^ S.F := by
   classical
-  unfold Φ
+  unfold potential
   have : ∀ b, S.Counted (∅ : (D →ₒ Y).QueryCache) b ↔ b = S.start := fun b ↦
     ⟨fun h ↦ h.elim id (fun ⟨_, _, h⟩ ↦ by cases h), .inl⟩
   rw [Finset.sum_congr rfl fun b _ ↦ if_congr (this b) rfl rfl, Finset.sum_ite_eq']
   simp only [Finset.mem_univ, ite_true]
-  exact S.π_of_not_asked q _ fun _ _ ↦ rfl
+  exact S.failProb_of_not_asked q _ fun _ _ ↦ rfl
 
 /-- **A proof-of-work search is exhausted with small probability.** If a uniform answer fails
 with probability at most `q ≤ 1`, a computation making at most `N` queries to the lazy random
@@ -379,9 +385,9 @@ theorem prEvent_exhausted_le [Fintype Y] [SampleableType Y] {q : ℝ≥0∞}
     {N : ℕ} (hN : IsTotalQueryBound oa N) :
     Pr{let z ← (simulateQ (D →ₒ Y).randomOracle oa).run ∅}[S.Exhausted z.2] ≤
       (N + 1) * q ^ S.F + N * N / Fintype.card Y := by
-  refine (prEvent_le_of_potential _ (S.Φ q) (fun z hz ↦ S.one_le_Φ hz) (S.charge q)
+  refine (prEvent_le_of_potential _ (S.potential q) (fun z hz ↦ S.one_le_potential hz) (S.charge q)
     (fun c t hc ↦ S.potential_step hq hq1 hc) oa ∅).trans ?_
-  rw [S.Φ_empty]
+  rw [S.potential_empty]
   refine (add_le_add le_rfl (QueryHistory.cache.expected_charge_le_mul (κ := q ^ S.F +
     N / Fintype.card Y) hN ∅ fun c t _ hc ↦ ?_)).trans_eq ?_
   · simp only [QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc

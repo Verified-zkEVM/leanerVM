@@ -48,10 +48,11 @@ reads it as the witness's stack alone, and that `extract` returns the witness's 
 its sizes or with the memory log-size replaced by `lm + 1`, each timed. `sentinel` runs `prove`
 on the sentinel tests' witness (`LeanerVMTests.Arithmetization.SentinelFixture.sentW`), whose
 program has a `JUMP` in its sentinel slot and no valid execution on the input over any memory, and
-checks that `verify` accepts the proof. `execution` runs the prover from an execution,
-`proveExecution`, on the one-`JUMP` run of the ladder program of the completeness tests (memory
-`2^16`, padded to `2^17`; `steps` steps, default `1`, the valid run), timing the witness generator
-alone and then the whole prover, and checks that `verify` accepts the proof. The exit code is `1`
+checks that `verify` accepts the proof. `execution` runs the guarded prover from an execution,
+`proveChecked`, on the one-`JUMP` run of the ladder program of the completeness tests (memory
+`2^16`, padded to `2^17`; `steps` steps, default `1`, the valid run): its checks one by one, the
+witness generator alone, whose sizes must be `execSizes` of the counts, then the whole prover, and
+checks that `verify` accepts the proof. The exit code is `1`
 if a check fails.
 -/
 
@@ -422,11 +423,23 @@ def sentinelChecks (fuel ρ : ℕ) : IO UInt32 := do
   IO.println s!"{if ok then "ok  " else "FAIL"} verify = {ok}, for a program with no execution"
   return if ok then 0 else 1
 
-/-- `proveExecution` on the run of `steps` steps of the ladder program, timed, and `verify` on its
-proof. The steps come from the command line, so the trace is not a closed term evaluated at
-start-up. -/
+/-- `proveChecked` on the run of `steps` steps of the ladder program, timed, and `verify` on its
+proof. The checks it runs are first run one by one, and the generated witness's sizes compared with
+`execSizes` of the forward pass's counts. The steps come from the command line, so the trace is not
+a closed term evaluated at start-up. -/
 def executionChecks (fuel ρ steps : ℕ) : IO UInt32 := do
   let t : Trace ladderJumpProg := ⟨minLogMem, badImage (gpow 2047), steps⟩
+  let mut failed : UInt32 := 0
+  for (name, check) in [("wellFormedB", fun _ : Unit ↦ wellFormedB ladderJumpProg),
+      ("checkTrace", fun _ ↦ checkTrace ladderJumpProg badInput t),
+      ("fitsB", fun _ ↦ fitsB ladderJumpProg t),
+      ("stackFitsB", fun _ ↦ stackFitsB ladderJumpProg t),
+      ("validRate", fun _ ↦ decide (validRate ρ))] do
+    let c0 ← IO.monoNanosNow
+    let ok ← force (check ())
+    let c1 ← IO.monoNanosNow
+    IO.println s!"{if ok then "ok  " else "FAIL"} {name} = {ok}, in {(c1 - c0).toFloat / 1e6} ms"
+    unless ok do failed := failed + 1
   let t0 ← IO.monoNanosNow
   -- The witness lives in `Type 1`; its table heights and sizes come out of the timed call.
   let some (hs, sz) ← force ((witnessGen ladderJumpProg badInput t).map fun w ↦
@@ -439,18 +452,24 @@ def executionChecks (fuel ρ steps : ℕ) : IO UInt32 := do
   IO.println s!"sizes: memory 2^{s.logMem}, tables {List.ofFn s.τ}, \
     stack 2^{stackMu ladderJumpProg s}, rate {ρ}, \
     admissible: {decide (s.Admissible ladderJumpProg ∧ validRate ρ)}"
-  -- The stack hypothesis of `proveExecution_rom_complete`, decided (the generator runs again).
-  let fits ← force (decide (StackFits ladderJumpProg badInput t))
-  IO.println s!"{if fits then "ok  " else "FAIL"} StackFits = {fits}"
-  unless fits do return 1
+  -- `sizes_witnessGen`: the sizes are `execSizes` of the run's rows and the `JUMP` exponent.
+  let pows := powTable (2 ^ max t.κ ladderJumpProg.logSize)
+  let rows := countsOf (runCountTableBy ladderJumpProg t pows)
+  let same := match jumpHeight (jumpOwed rows) with
+    | some τ => (execSizes t.κ rows τ).logMem == s.logMem &&
+        List.ofFn (execSizes t.κ rows τ).τ == List.ofFn s.τ
+    | none => false
+  IO.println s!"{if same then "ok  " else "FAIL"} the sizes are execSizes of the counts"
+  unless same do failed := failed + 1
+  if failed ≠ 0 then return failed
   (← IO.getStdout).flush
   let t2 ← IO.monoNanosNow
   let some (p : Proof PrunedMerklePaths) ←
-      force (proveExecution fuel ladderJumpProg badInput t ρ) | do
-    IO.println "FAIL proveExecution returned no proof"
+      force (proveChecked fuel ladderJumpProg badInput t ρ) | do
+    IO.println "FAIL proveChecked returned no proof"
     return 1
   let t3 ← IO.monoNanosNow
-  IO.println s!"proveExecution: {p.stream.length} scalars, openings of \
+  IO.println s!"proveChecked: {p.stream.length} scalars, openings of \
     {p.merkle.map (·.leafData.length)} rows, in {(t3 - t2).toFloat / 1e9} s"
   let ok ← force (verify ladderJumpProg badInput p)
   let t4 ← IO.monoNanosNow

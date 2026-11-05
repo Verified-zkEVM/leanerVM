@@ -21,8 +21,7 @@ public import PolyFun.Control.Monad.Hom.Loops
 `proveFrom H seed` by `φ` is `proveFrom (fun t ↦ φ (H t)) (φ seed)`, and `proveWith_hom` is the
 instance at the statement's seed. `proveWith_simulateQ` is the instance at VCVio's
 `simulateQ impl`: the prover with every hash a query to the oracle `List UInt8 →ₒ Digest`,
-simulated by `impl`, is the prover with `impl` answering; `proveWith_pure` makes the run
-answering by `pure (H t)` the `pure` of the prover in `Id`.
+simulated by `impl`, is the prover with `impl` answering.
 
 The proof follows the definitions: the writer's primitives along the lifted morphism
 (`Prove.liftHom`), the Merkle commitment, the wire of the compiled schedule mapped along any
@@ -383,17 +382,6 @@ theorem proveWith_hom (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : Pub
 end Prove
 
 end Prove
-
-/-- **The deterministic run**: the prover with every hash answered by `pure (H t)` in a lawful
-monad is `pure` of the prover in `Id`. -/
-theorem proveWith_pure {m : Type → Type} [Monad m] [LawfulMonad m] (H : List UInt8 → Digest)
-    (fuel : ℕ) (F : FlockSpec) (prog : Program) (input : PublicInput) {κ : ℕ}
-    (w : EnsembleWitness (leanIsaEnsemble prog κ)) (ρ : ℕ) :
-    proveWith (fun t ↦ (pure (H t) : m Digest)) fuel F prog input w ρ =
-      pure (proveWith (m := Id) H fuel F prog input w ρ) := by
-  have h := Prove.proveWith_hom (MonadHom.pure m) (m := Id) H fuel F prog input w ρ
-  simp only [MonadHom.pure_apply] at h
-  exact h.symm
 
 /-- **The random-oracle run is the prover at the oracle**: the prover with every hash a query to
 the oracle `List UInt8 →ₒ Digest`, simulated by `impl`, is the prover with `impl` answering. -/

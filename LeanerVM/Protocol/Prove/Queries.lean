@@ -11,6 +11,7 @@ public import LeanerVM.Protocol.Prove.Hom
 public import LeanerVM.Protocol.ToArkLib.RunCodecGrade
 public import LeanerVM.Protocol.LeanVmReader
 public import LeanerVM.Protocol.Compile.Agree
+public import LeanerVM.Protocol.ToVCVio.UniformSample
 
 /-!
 # The prover's queries
@@ -43,6 +44,8 @@ open Air.Flat (EnsembleWitness)
 
 namespace Prove
 
+open VerifierQueries (isTotalQueryBound_pure isTotalQueryBound_hashQuery)
+
 /-- The prover's monad at the random oracle. -/
 abbrev QM : Type → Type := ProveM (OracleComp hashSpec)
 
@@ -60,23 +63,6 @@ theorem runQ_bind {α β : Type} (a : QM α) (f : α → QM β) (b : Book)
   congr 1
   funext o
   rcases o with _ | ⟨⟨x, b'⟩, ws'⟩ <;> rfl
-
-/-- A hash is one query. -/
-theorem isTotalQueryBound_hashQuery' (t : List UInt8) : IsTotalQueryBound (hashQuery t) 1 := by
-  have h := (isTotalQueryBound_query_bind_iff (spec := hashSpec) (t := t)
-    (mx := (pure : Digest → OracleComp hashSpec Digest)) (n := 1)).mpr
-    ⟨Nat.one_pos, fun u ↦ isQueryBound_pure u 0 _ _⟩
-  rwa [bind_pure] at h
-
-theorem itqb_pure {α : Type} (x : α) (n : ℕ) :
-    IsTotalQueryBound (pure x : OracleComp hashSpec α) n :=
-  isQueryBound_pure x n _ _
-
-/-- Oracle computations of at most `n` queries. -/
-def ocGrade : MonadGrade (OracleComp hashSpec) where
-  P c n := IsTotalQueryBound c n
-  pure x := isQueryBound_pure x 0 _ _
-  bind ha hf := isTotalQueryBound_bind ha hf
 
 /-- **The prover's computations of at most `k` queries** on every run, from every book and
 writer state. -/
@@ -142,7 +128,7 @@ theorem queryGrade_failure {α : Type} : queryGrade.P (failure : QM α) 0 :=
   fun _ _ ↦ by
   simp only [runQ]
   simp
-  exact itqb_pure _ _
+  exact isTotalQueryBound_pure _ _
 
 section Writer
 
@@ -151,7 +137,7 @@ variable (fuel : ℕ) {M : Type}
 theorem addScalar_queries (x : E) (ws : WriterState M) :
     IsTotalQueryBound ((Writer.addScalar hashQuery x).run ws).run 1 := by
   simp [Writer.addScalar, FsState.observe, hashQuery]
-  exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery' _)
+  exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _)
 
 theorem addScalars_queries : ∀ (xs : List E) (ws : WriterState M),
     IsTotalQueryBound ((Writer.addScalars hashQuery xs).run ws).run xs.length
@@ -161,45 +147,45 @@ theorem addScalars_queries : ∀ (xs : List E) (ws : WriterState M),
     refine (isTotalQueryBound_bind (n₁ := 1) (n₂ := xs.length) (addScalar_queries x ws)
       fun o ↦ ?_).mono (by simp only [List.length_cons]; omega)
     rcases o with _ | ⟨u, ws'⟩
-    · exact itqb_pure _ _
+    · exact isTotalQueryBound_pure _ _
     · exact addScalars_queries xs ws'
 
 theorem sample_queries (ws : WriterState M) :
     IsTotalQueryBound ((Writer.sample hashQuery).run ws).run 1 := by
   simp [Writer.sample, FsState.sample, hashQuery]
-  exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery' _)
+  exact (isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _)
 
 theorem findNonce_queries (base : Digest) (bits : ℕ) :
     ∀ f n, IsTotalQueryBound (FsState.findNonce hashQuery base bits f n) f
-  | 0, _ => itqb_pure _ _
+  | 0, _ => isTotalQueryBound_pure _ _
   | f + 1, n => by
     unfold FsState.findNonce FsState.powOk
     refine (isTotalQueryBound_bind (n₁ := 1) (n₂ := f) (isTotalQueryBound_bind (n₁ := 1)
-      (n₂ := 0) (isTotalQueryBound_hashQuery' _) fun _ ↦ itqb_pure _ _) fun ok ↦ ?_).mono
-      (by omega)
+      (n₂ := 0) (isTotalQueryBound_hashQuery _) fun _ ↦ isTotalQueryBound_pure _ _)
+      fun ok ↦ ?_).mono (by omega)
     split
-    · exact itqb_pure _ _
+    · exact isTotalQueryBound_pure _ _
     · exact findNonce_queries base bits f (n + 1)
 
 theorem fsGrind_queries (s : FsState) (bits : ℕ) :
     IsTotalQueryBound (s.grind hashQuery fuel bits) (fuel + 2) := by
   unfold FsState.grind FsState.powBase FsState.absorbNonce
   rw [show fuel + 2 = 1 + (fuel + 1) by omega]
-  refine isTotalQueryBound_bind (isTotalQueryBound_hashQuery' _) fun base ↦ ?_
+  refine isTotalQueryBound_bind (isTotalQueryBound_hashQuery _) fun base ↦ ?_
   have habs : ∀ n, IsTotalQueryBound (do
       let fs ← FsState.mk <$> hashQuery (FsState.stepBytes s.cv (FsState.nonceOf n)
         FsState.powNonceTag)
       pure (some (FsState.nonceOf n, fs)) : OracleComp hashSpec (Option (E × FsState))) 1 :=
     fun n ↦ isTotalQueryBound_bind (n₂ := 0)
-      ((isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery' _))
-      fun _ ↦ itqb_pure _ _
+      ((isQueryBound_map_iff _ _ _ _ _).mpr (isTotalQueryBound_hashQuery _))
+      fun _ ↦ isTotalQueryBound_pure _ _
   dsimp only
   split
   · rw [pure_bind]
     exact (habs 0).mono (by omega)
   · refine isTotalQueryBound_bind (n₁ := fuel) (n₂ := 1) (findNonce_queries _ _ _ _) fun n? ↦ ?_
     rcases n? with _ | n
-    · exact itqb_pure _ _
+    · exact isTotalQueryBound_pure _ _
     · exact habs n
 
 theorem grind_queries (bits : ℕ) (ws : WriterState M) :
@@ -209,8 +195,8 @@ theorem grind_queries (bits : ℕ) (ws : WriterState M) :
     (by omega)
   rcases o with _ | p
   · simp
-    exact itqb_pure _ _
-  · exact itqb_pure _ _
+    exact isTotalQueryBound_pure _ _
+  · exact isTotalQueryBound_pure _ _
 
 end Writer
 
@@ -219,11 +205,11 @@ end Writer
 theorem list_mapM_queries {α β : Type} (f : α → OracleComp hashSpec β) (k : ℕ)
     (hf : ∀ x, IsTotalQueryBound (f x) k) :
     ∀ l : List α, IsTotalQueryBound (l.mapM f) (l.length * k)
-  | [] => itqb_pure _ _
+  | [] => isTotalQueryBound_pure _ _
   | x :: l => by
     rw [List.mapM_cons, List.length_cons, Nat.succ_mul, Nat.add_comm]
     exact isTotalQueryBound_bind (hf x) fun _ ↦ isTotalQueryBound_bind (n₂ := 0)
-      (list_mapM_queries f k hf l) fun _ ↦ itqb_pure _ _
+      (list_mapM_queries f k hf l) fun _ ↦ isTotalQueryBound_pure _ _
 
 theorem vector_mapM_queries {α β : Type} {n : ℕ} (f : α → OracleComp hashSpec β) (k : ℕ)
     (hf : ∀ x, IsTotalQueryBound (f x) k) (v : Vector α n) :
@@ -240,25 +226,27 @@ theorem parentsM_queries {k : ℕ} (level : Vector Digest (2 ^ (k + 1))) :
     IsTotalQueryBound (MerkleTree.parentsM (fun l r ↦ hashQuery (nodeBytes l r)) level)
       (2 ^ k) := by
   unfold MerkleTree.parentsM
-  simpa using vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery' _) _
+  simpa using vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery _) _
 
 theorem buildLevelsM_queries :
     ∀ (k : ℕ) (level : Vector Digest (2 ^ k)),
       IsTotalQueryBound (MerkleTree.buildLevelsM (fun l r ↦ hashQuery (nodeBytes l r)) k level)
         (2 ^ k)
-  | 0, _ => itqb_pure _ _
+  | 0, _ => isTotalQueryBound_pure _ _
   | k + 1, level => by
     unfold MerkleTree.buildLevelsM
     rw [pow_succ, Nat.mul_two]
     exact isTotalQueryBound_bind (parentsM_queries level) fun ps ↦
-      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦ itqb_pure _ _
+      isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries k ps) fun _ ↦
+        isTotalQueryBound_pure _ _
 
 theorem merkleCommitWithM_queries (leafWords : ℕ) {d : ℕ} (rows : Vector (List K) (2 ^ d)) :
     IsTotalQueryBound (merkleCommitWithM hashQuery leafWords rows) (2 ^ d + 2 ^ d) := by
   unfold merkleCommitWithM
-  refine isTotalQueryBound_bind (vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery' _)
+  refine isTotalQueryBound_bind (vector_mapM_queries _ 1 (fun _ ↦ isTotalQueryBound_hashQuery _)
     rows |>.mono (by omega)) fun leaves ↦ ?_
-  exact isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries d leaves) fun _ ↦ itqb_pure _ _
+  exact isTotalQueryBound_bind (n₂ := 0) (buildLevelsM_queries d leaves) fun _ ↦
+    isTotalQueryBound_pure _ _
 
 /-! ## The writer's primitives at the oracle -/
 
@@ -575,7 +563,7 @@ theorem forIn_openings_grade : ∀ l : List ((Σ k, MerkleCommitment k) × List 
   | (c, ps) :: l => by
     rw [List.forIn_cons]
     refine queryGrade.of_eq (queryGrade.bind (k := 0) (queryGrade.of_eq (queryGrade.bind
-      (queryGrade_lift (k := 0) fun _ ↦ itqb_pure _ _) fun _ ↦ queryGrade.pure _) rfl)
+      (queryGrade_lift (k := 0) fun _ ↦ isTotalQueryBound_pure _ _) fun _ ↦ queryGrade.pure _) rfl)
       fun r ↦ ?_) rfl
     rcases r with _ | _
     · exact queryGrade.pure _
@@ -590,34 +578,6 @@ theorem hintOpenings_grade : queryGrade.P (hintOpenings : QM Unit) 0 := by
       rfl
   · exact queryGrade.of_eq (queryGrade.bind (forIn_openings_grade _) fun _ ↦
       queryGrade.pure _) rfl
-
-/-- An accepted wire carries one public value per sent line. -/
-private theorem pubLength_of_algebra' {prog : Program} {s : Sizes} {input : PublicInput}
-    {shs : List Verify.LevelShape} {w : Verify.Wire} {rows : List (List (List K))}
-    (h : Verify.algebra prog s input shs w rows = true) :
-    w.pub.values.length =
-      PublicInput.sentCount (Verify.leanVm prog s) ((Verify.leanVm prog s).publicLines input) := by
-  unfold Verify.algebra at h
-  rcases hb : Verify.leanVmBus prog s input w.bus with _ | b <;> simp only [hb] at h
-  · cases h
-  rcases ht : Verify.tableStep (Verify.leanVm prog s) b w.table with _ | t <;> simp only [ht] at h
-  · cases h
-  rcases hp : Verify.pubStep (Verify.leanVm prog s) t w.pub with _ | p <;> simp only [hp] at h
-  · cases h
-  simp only [Verify.leanVmBus, Option.bind_eq_bind, Option.bind_eq_some_iff] at hb
-  obtain ⟨_, -, _, -, hb⟩ := hb
-  cases hb
-  simp only [Verify.tableStep, Option.bind_eq_bind, Option.bind_eq_some_iff] at ht
-  obtain ⟨_, -, _, -, _, -, ht⟩ := ht
-  split_ifs at ht
-  cases ht
-  simp only [Verify.pubStep] at hp
-  split_ifs at hp with hacc
-  simp only [PublicInput.accepts, Bool.and_eq_true, decide_eq_true_eq] at hacc
-  exact hacc.1
-
-theorem nonempty_of_sampleable (α : Type) [SampleableType α] : Nonempty α :=
-  (support_nonempty ($ᵗ α)).elim fun x _ ↦ ⟨x⟩
 
 theorem flock_kBatch (prog : Program) (s : Sizes) :
     ∀ r, (Verify.leanVm prog s).flock = some r → r.kBatch ≤ s.τ 5 := fun r h ↦ by
@@ -662,7 +622,7 @@ theorem writeProof_grade {prog : Program} {input : PublicInput} {κ : ℕ}
       (pure ()) (fun t ↦ isEmptyElim t)) (stmt := (input, fun i ↦ i.elim0))
     (m3Holds_stackOf hsat hws) ch
   have halg := Compile.phasesAgree prog s hs ρ hρ input _ so hacc
-  have h₁ := pubLength_of_algebra' halg
+  have h₁ := pubLength_of_algebra halg
   simp only [DecodeChain.wireOf, DecodeChain.pubWireOf] at h₁
   rw [hr]
   exact h₁
@@ -680,7 +640,7 @@ theorem isTotalQueryBound_proveWith {prog : Program} {input : PublicInput} {κ :
   rw [dite_eq_left ⟨hs, hρ⟩]
   unfold runProofFrom
   refine isTotalQueryBound_bind (VerifierQueries.isTotalQueryBound_seedWith prog input)
-    fun fs ↦ isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ itqb_pure _ _
+    fun fs ↦ isTotalQueryBound_bind (n₂ := 0) ?_ fun _ ↦ isTotalQueryBound_pure _ _
   have hw := writeProof_grade fuel hsat hws hs hρ ⟨#[], #[]⟩ ⟨fs, #[], #[]⟩
   have : runWrite ((writeProof hashQuery (qops fuel) Blake2sFlock.blake2sFlockSpec prog s hs ρ hρ
       input (stackOf Blake2sFlock.blake2sFlockSpec prog s w)).run' ⟨#[], #[]⟩) fs =

@@ -58,14 +58,6 @@ def zeroDigest : Digest := Vector.replicate 8 0
 theorem lowBitsZero_zeroDigest (bits : ℕ) : FsState.lowBitsZero zeroDigest bits = true := by
   simp [FsState.lowBitsZero, zeroDigest]
 
-/-- `K.ofBits` is injective below `2^64`. -/
-theorem K.ofBits_inj {n n' : ℕ} (hn : n < 2 ^ 64) (hn' : n' < 2 ^ 64)
-    (h : K.ofBits n = K.ofBits n') : n = n' := by
-  have h₁ := congrArg BF64.toBitVec h
-  simp only [K.ofBits, BF64.toBitVec_ofBitVec] at h₁
-  have h₂ := congrArg BitVec.toNat h₁
-  simpa [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn, Nat.mod_eq_of_lt hn'] using h₂
-
 /-- The proof-of-work search of a grind of `bits` bits with `fuel` candidates: the bases are the
 answers to grinding-base queries `stepBytes cv 0 3`, a candidate is `stepBytes b (nonceOf n) 4`,
 and the zero digest is counted from the start. -/

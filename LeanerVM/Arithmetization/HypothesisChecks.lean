@@ -12,13 +12,12 @@ public import LeanerVM.Arithmetization.WitnessGen
 /-!
 # Deciding that a trace fits
 
-leanISA roadmap Layer 10 companion (`docs/architecture.md`, `T2`). `Trace.Fits` reads the rows of
-the run (`Trace.runRows`), which are defined from the run's register sequence and the reference
-fetch and so cannot be evaluated. `fitsBy prog t P` counts them instead with the witness
-generator's forward pass (`runSkelsBy`, read through the table of powers `P`, whose index guesses
-are checked) and decides `Fits` from the counts (`fitsRowsB`). On a valid execution the counts are
-the run's rows (`runSkelsBy_eq_runSkels`), so the check decides `Fits` for every table
-(`fitsBy_eq_true_iff`).
+`Trace.Fits` reads the rows of the run (`Trace.runRows`), which are defined from the run's register
+sequence and the reference fetch and so cannot be evaluated. `fitsBy prog t P` counts them instead
+with the witness generator's forward pass (`runSkelsBy`, read through the table of powers `P`, whose
+index guesses are checked) and decides `Fits` from the counts (`fitsRowsB`). On a valid execution
+the counts are the run's rows (`runSkelsBy_eq_runSkels`), so the check decides `Fits` for every
+table (`fitsBy_eq_true_iff`).
 -/
 
 namespace LeanerVM.Arithmetization
