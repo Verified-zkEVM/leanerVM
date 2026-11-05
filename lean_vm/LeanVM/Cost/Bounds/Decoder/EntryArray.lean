@@ -17,11 +17,11 @@ up to `2·2^E` of at most `W = wl E` limbs.
   of at most `W` limbs: `(B + 62 + 5W)·n·⌈log₂ n⌉ + (7W + 77)·n + 3` (`mergeSortList_cost` at
   `W = 1`, any length);
 * `statePairs_cost`, `entryPairs_cost`: the pairs filed, per state at most
-  `pairsStatePrice Gpc M Pr R = Gpc + (Pr + 32R + 17734)·M + 36`;
-* `dedupFirst_cost`: `2887` per pair, `11`;
+  `pairsStatePrice Gpc M Pr R = Gpc + (Pr + 66R + 41252)·M + 36`;
+* `dedupFirst_cost`: `4295` per pair, `11`;
 * **`entryArrayT_cost`**: the states' table, `M·|states| < 2^E`: at most
   `entryArrayStatePrice Gpc M Pr R E·|states| + 26`, per state the pairs and, per pair, the
-  sort's `(2935 + 5·wl E)·E + 7·wl E + 77`, the dedup's `2887` and `1`;
+  sort's `(4343 + 5·wl E)·E + 7·wl E + 77`, the dedup's `4295` and `1`;
 * **`frameAtA_cost`**: one binary search of the call's key (`w = |args| + |rets|` words), at most
   `(64w + 78 + 9·wl E)·(E + 2) + 27w + R + 1584`.
 -/
@@ -60,17 +60,23 @@ theorem keyCmp_cost (hP : Includes P keyCmpC.costDeps) (a b : CallKey) {L L' : �
   generalize compareOn (fun x ↦ x.1) a.2 b.2 = o3
   cases o1 <;> cases o3 <;> dsimp only <;> split_ifs <;> omega
 
-/-- The pairs' order (`keyLeC`'s closure in `entryArrayTC`), keys of at most `22` codes: at most
-`128·22 + 57`. -/
+/-- A state's key as filed (`entryKeyT_ok`): word-sized, at most `56` argument codes (`__loop2`'s)
+and `10` return codes. -/
+@[expose, reducible] def EntryKeyOK (k : CallKey) : Prop := KeyOK 56 k ∧ k.2.2.length ≤ 10
+
+/-- A filed key's comparison price: at most `64·66 + 41`. -/
+theorem keyCmpPrice_le {k : CallKey} (h : EntryKeyOK k) : keyCmpPrice k ≤ 64 * 66 + 41 := by
+  unfold keyCmpPrice; have := h.1.2.1; have := h.2; omega
+
+/-- The pairs' order (`keyLeC`'s closure in `entryArrayTC`), filed keys: at most `64·66 + 57`. -/
 theorem keyLeLam_cost (hP : Includes P entryArrayTC.lam0.costDeps) (a b : CallKey × K)
-    (ha : KeyOK 22 a.1) (hb : KeyOK 22 b.1) :
+    (ha : EntryKeyOK a.1) (hb : EntryKeyOK b.1) :
     appCost P (.closure entryArrayTC.lam0.costIdx []) [encodeValue a, encodeValue b] ≤
-      128 * 22 + 57 := by
+      64 * 66 + 57 := by
   rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, entryArrayTC.lam0.costEq P hP,
     keyLeC.costEq P (by includes)]
-  have := keyCmp_cost P (by includes) a.1 b.1 ha hb
-  have hk : keyCmpPrice b.1 ≤ 128 * 22 + 41 := by
-    unfold keyCmpPrice; have := hb.2.1; have := hb.2.2.1; omega
+  have := keyCmp_cost P (by includes) a.1 b.1 ha.1 hb.1
+  have hk := keyCmpPrice_le hb
   generalize keyCmp a.1 b.1 = o
   cases o <;> dsimp only <;> omega
 
@@ -250,18 +256,17 @@ theorem length_dedupFirst_le : ∀ l : List (CallKey × K), (dedupFirst l).lengt
     cases keyCmp a.1 b.1 <;> simp only [List.length_cons] at h1 h2 ⊢ <;> omega
 termination_by l => l.length
 
-/-- **Of each run, the first** (`dedupFirstC`), keys of at most `22` codes: `2887` per pair, `11`. -/
+/-- **Of each run, the first** (`dedupFirstC`), filed keys: `4295` per pair, `11`. -/
 theorem dedupFirst_cost (hP : Includes P dedupFirstC.costDeps) :
-    ∀ l : List (CallKey × K), (∀ e ∈ l, KeyOK 22 e.1) →
-      machineCost P dedupFirstC.costIdx [encodeValue l] ≤ 2887 * l.length + 11
+    ∀ l : List (CallKey × K), (∀ e ∈ l, EntryKeyOK e.1) →
+      machineCost P dedupFirstC.costIdx [encodeValue l] ≤ 4295 * l.length + 11
   | [], _ => by rw [dedupFirstC.costEq P hP]; simp
   | [_], _ => by rw [dedupFirstC.costEq P hP]; simp
   | a :: b :: l, hl => by
     rw [dedupFirstC.costEq P hP]
     dsimp only
-    have hk := keyCmp_cost P (by includes) a.1 b.1 (hl a (by simp)) (hl b (by simp))
-    have hkb : keyCmpPrice b.1 ≤ 128 * 22 + 41 := by
-      unfold keyCmpPrice; have := (hl b (by simp)).2.1; have := (hl b (by simp)).2.2.1; omega
+    have hk := keyCmp_cost P (by includes) a.1 b.1 (hl a (by simp)).1 (hl b (by simp)).1
+    have hkb := keyCmpPrice_le (hl b (by simp))
     have h1 := dedupFirst_cost hP (a :: l) (fun e he ↦ hl e (by
       rcases List.mem_cons.1 he with rfl | he
       · simp
@@ -285,25 +290,25 @@ variable (rd : Reader) (rdVal : MachineValue)
 
 /-- The price of the pairs one state files: the pc lookup, per function entered there its
 precondition's test and its key. -/
-@[expose] def pairsStatePrice (Gpc M Pr R : ℕ) : ℕ := Gpc + (Pr + 32 * R + 17734) * M + 36
+@[expose] def pairsStatePrice (Gpc M Pr R : ℕ) : ℕ := Gpc + (Pr + 66 * R + 41252) * M + 36
 
 /-- The price per state of the sorted entry array: its pairs, and per pair the sort and the dedup. -/
 @[expose] def entryArrayStatePrice (Gpc M Pr R E : ℕ) : ℕ :=
-  pairsStatePrice Gpc M Pr R + M * ((2935 + 5 * wl E) * E + 7 * wl E + 2965)
+  pairsStatePrice Gpc M Pr R + M * ((4343 + 5 * wl E) * E + 7 * wl E + 4373)
 
 include hrd hR hpre hPr in
 /-- The pair state `s` files for function `j` (`pairOfC`): its precondition's test and its key. -/
 theorem pairOf_cost (hP : Includes P pairOfC.costDeps) (s : Registers K) (j : ℕ) (hj : j < 2 ^ 64) :
     machineCost P pairOfC.costIdx [preVal, rdVal, encodeValue s, encodeValue j] ≤
-      Pr + 32 * R + 17699 := by
+      Pr + 66 * R + 41217 := by
   rw [pairOfC.costEq P hP pre preVal hpre rd rdVal hrd]
   have h1 := hPr j s.fp hj
   have h2 := entryKeyT_cost P rd rdVal hrd R hR (by includes) s j
   split_ifs <;> omega
 
-/-- The pairs a state files: keys of at most `22` codes, at most one per function entered. -/
+/-- The pairs a state files: filed keys, at most one per function entered. -/
 theorem statePairs_ok (pcT : SortedMap ℕ (List ℕ)) (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64)
-    (s : Registers K) : ∀ p ∈ statePairs pcT pre rd s, KeyOK 22 p.1 := by
+    (s : Registers K) : ∀ p ∈ statePairs pcT pre rd s, EntryKeyOK p.1 := by
   intro p hp
   unfold statePairs at hp
   obtain ⟨j, hj, hpj⟩ := List.mem_filterMap.1 hp
@@ -318,33 +323,33 @@ theorem length_statePairs (pcT : SortedMap ℕ (List ℕ)) (s : Registers K) :
 
 include hrd hR hpre hPr in
 /-- **The pairs a state files** (`statePairsC`), at most `M` functions per pc, a pc lookup at most
-`Gpc`: at most `Gpc + (Pr + 32R + 17723)·M + 18`. -/
+`Gpc`: at most `Gpc + (Pr + 66R + 41241)·M + 18`. -/
 theorem statePairs_cost (hP : Includes P statePairsC.costDeps) (pcT : SortedMap ℕ (List ℕ))
     (M Gpc : ℕ) (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64) (hM : ∀ k, (pcT.getD k []).length ≤ M)
     (hG : ∀ k, NatKey k → machineCost P getPcC.costIdx [encodeValue pcT, encodeValue k] ≤ Gpc)
     (s : Registers K) :
     machineCost P statePairsC.costIdx [encodeValue pcT, preVal, rdVal, encodeValue s] ≤
-      Gpc + (Pr + 32 * R + 17723) * M + 18 := by
+      Gpc + (Pr + 66 * R + 41241) * M + 18 := by
   rw [statePairsC.costEq P hP pcT pre preVal hpre rd rdVal hrd]
   have hg := hG (laneCode s.pc) (UInt64.toNat_lt _)
   have hf := filterMap_cost P (by includes) _
     (.closure statePairsC.lam0.costIdx [preVal, rdVal, encodeValue s])
     (fun j ↦ RunsApp.of_spec (statePairsC.lam0.costSpec P (by includes) pre preVal hpre rd rdVal
       hrd s j))
-    (Pr + 32 * R + 17707) (pcT.getD (laneCode s.pc) []) (fun j hj ↦ by
+    (Pr + 66 * R + 41225) (pcT.getD (laneCode s.pc) []) (fun j hj ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
         statePairsC.lam0.costEq P (by includes) pre preVal hpre rd rdVal hrd]
       simp only [List.length_cons, List.length_nil]
       have := pairOf_cost P rd rdVal hrd R hR pre preVal hpre Pr hPr (by includes) s j
         (hpc _ j hj)
       omega)
-  have hm := Nat.mul_le_mul_left (Pr + 32 * R + 17707 + 16) (hM (laneCode s.pc))
+  have hm := Nat.mul_le_mul_left (Pr + 66 * R + 41225 + 16) (hM (laneCode s.pc))
   generalize pcT.get? (laneCode s.pc) = o
   cases o <;> dsimp only <;> nlinarith
 
-/-- The pairs the states file: keys of at most `22` codes, at most `M` per state. -/
+/-- The pairs the states file: filed keys, at most `M` per state. -/
 theorem entryPairs_ok (pcT : SortedMap ℕ (List ℕ)) (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64) :
-    ∀ (states : List (Registers K)), ∀ p ∈ entryPairs pcT pre rd states, KeyOK 22 p.1
+    ∀ (states : List (Registers K)), ∀ p ∈ entryPairs pcT pre rd states, EntryKeyOK p.1
   | [] => by simp [entryPairs]
   | s :: ss => by
     intro p hp
@@ -383,21 +388,21 @@ theorem entryPairs_cost (hP : Includes P entryPairsC.costDeps) (pcT : SortedMap 
     have h4 := length_statePairs rd pre pcT s
     have h5 := hM (laneCode s.pc)
     unfold pairsStatePrice at h2 ⊢
-    have e : (Pr + 32 * R + 17734) * M = (Pr + 32 * R + 17723) * M + 11 * M := by ring
+    have e : (Pr + 66 * R + 41252) * M = (Pr + 66 * R + 41241) * M + 11 * M := by ring
     simp only [List.length_cons, Nat.mul_succ]
     omega
 
-/-- The sorted array: keys of at most `22` codes, at most `M` per state. -/
+/-- The sorted array: keys of at most `56` codes (filed keys), at most `M` per state. -/
 theorem entryArrayT_ok (pcT : SortedMap ℕ (List ℕ)) (M : ℕ)
     (hpc : ∀ k, ∀ j ∈ pcT.getD k [], j < 2 ^ 64) (hM : ∀ k, (pcT.getD k []).length ≤ M)
     (states : List (Registers K)) :
-    (∀ e ∈ entryArrayT pcT pre states rd, KeyOK 22 e.1) ∧
+    (∀ e ∈ entryArrayT pcT pre states rd, KeyOK 56 e.1) ∧
       (entryArrayT pcT pre states rd).size ≤ M * states.length := by
   unfold entryArrayT
   refine ⟨fun e he ↦ ?_, ?_⟩
   · rw [List.mem_toArray] at he
     exact entryPairs_ok rd pre pcT hpc states e
-      (List.mem_mergeSort.1 (mem_dedupFirst _ e he))
+      (List.mem_mergeSort.1 (mem_dedupFirst _ e he)) |>.1
   · rw [List.size_toArray]
     have := length_dedupFirst_le ((entryPairs pcT pre rd states).mergeSort keyLe)
     rw [List.length_mergeSort] at this
@@ -422,7 +427,7 @@ theorem entryArrayT_cost (hP : Includes P entryArrayTC.costDeps) (pcT : SortedMa
   have h2 := mergeSortList_cost_wl P (wl E) (2 * 2 ^ E) (fun x hx ↦ limbs_le_wl' hx)
     (by includes) keyLe (.closure entryArrayTC.lam0.costIdx [])
     (fun a b ↦ RunsApp.of_spec (entryArrayTC.lam0.costSpec P (by includes) a b))
-    (128 * 22 + 57) (fun e ↦ KeyOK 22 e.1)
+    (64 * 66 + 57) (fun e ↦ EntryKeyOK e.1)
     (fun a b ha hb ↦ keyLeLam_cost P (by includes) a b ha hb)
     (entryPairs pcT pre rd states) (by omega) hok
   have h3 := dedupFirst_cost P (by includes) ((entryPairs pcT pre rd states).mergeSort keyLe)
@@ -434,10 +439,10 @@ theorem entryArrayT_cost (hP : Includes P entryArrayTC.costDeps) (pcT : SortedMa
   -- `⌈log₂ n⌉ ≤ E`
   have hclog : Nat.clog 2 n ≤ E := Nat.clog_le_of_le_pow (by omega)
   have hnE : n * Nat.clog 2 n ≤ n * E := Nat.mul_le_mul_left _ hclog
-  have hc1 := Nat.mul_le_mul_left (128 * 22 + 57 + 62 + 5 * wl E) hnE
+  have hc1 := Nat.mul_le_mul_left (64 * 66 + 57 + 62 + 5 * wl E) hnE
   have hpos := wl_pos E
-  have hMs : ((2935 + 5 * wl E) * E + 7 * wl E + 2965) * n ≤
-      ((2935 + 5 * wl E) * E + 7 * wl E + 2965) * (M * states.length) :=
+  have hMs : ((4343 + 5 * wl E) * E + 7 * wl E + 4373) * n ≤
+      ((4343 + 5 * wl E) * E + 7 * wl E + 4373) * (M * states.length) :=
     Nat.mul_le_mul_left _ hlen
   unfold entryArrayStatePrice
   nlinarith
@@ -447,13 +452,13 @@ end Pairs
 /-! ## A frame lookup -/
 
 /-- **The frame map on the sorted array** (`frameAtAC`): one binary search of the call's key
-(`w = |args| + |rets|` words) in a table of keys of at most `22` codes and at most `2^E` pairs,
+(`w = |args| + |rets|` words) in a table of keys of at most `56` codes and at most `2^E` pairs,
 two frame reads: at most `(64w + 78 + 9·wl E)·(E + 2) + 27w + R + 1584`. -/
 theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
     (hrd : ∀ a : K, RunsApp P rdVal [encodeValue a] (encodeValue (rd a)))
     (R : ℕ) (hR : ∀ a : K, appCost P rdVal [encodeValue a] ≤ R)
     (hP : Includes P frameAtAC.costDeps) (E : ℕ)
-    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 22 e.1) (hs : table.size ≤ 2 ^ E)
+    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 56 e.1) (hs : table.size ≤ 2 ^ E)
     (j : ℕ) (hj : j < 2 ^ 64) (args rets : List LeanVM.Parameters.E) (v : V) :
     machineCost P frameAtAC.costIdx [encodeValue table, rdVal, encodeValue j, encodeValue args,
         encodeValue rets, encodeValue v] ≤
@@ -464,7 +469,7 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
   have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
     callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
-  have h3 := searchInKey_cost P (by includes) 22 table ht _ hk (2 ^ E) (wl E)
+  have h3 := searchInKey_cost P (by includes) 56 table ht _ hk (2 ^ E) (wl E)
     (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
   have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
       64 * (args.length + rets.length) + 41 := by
@@ -488,7 +493,7 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
 /-- **A frame looked up once** (`frameFpAC`, `frameAtA`'s search): one binary search of the call's
 key (`w = |args| + |rets|` words): at most `(64w + 78 + 9·wl E)·(E + 2) + 27w + 49`. -/
 theorem frameFpA_cost (hP : Includes P frameFpAC.costDeps) (E : ℕ)
-    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 22 e.1) (hs : table.size ≤ 2 ^ E)
+    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 56 e.1) (hs : table.size ≤ 2 ^ E)
     (j : ℕ) (hj : j < 2 ^ 64) (args rets : List LeanVM.Parameters.E) :
     machineCost P frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
         encodeValue rets] ≤
@@ -499,7 +504,7 @@ theorem frameFpA_cost (hP : Includes P frameFpAC.costDeps) (E : ℕ)
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
   have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
     callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
-  have h3 := searchInKey_cost P (by includes) 22 table ht _ hk (2 ^ E) (wl E)
+  have h3 := searchInKey_cost P (by includes) 56 table ht _ hk (2 ^ E) (wl E)
     (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
   have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
       64 * (args.length + rets.length) + 41 := by

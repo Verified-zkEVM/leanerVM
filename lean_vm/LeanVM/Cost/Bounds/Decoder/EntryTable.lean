@@ -14,9 +14,9 @@ Parameters: `R` a memory read (the reader closure).
 * `listFoldl_amortized'`: a fold amortized, its final potential and invariant kept;
 * the guest's tables' maxima (`argCount_le`, `retCount_le`, `loc_lt`, from
   `GuestTablesBounds.lean`);
-* `wordsWith_cost`, `callKey_cost`, **`entryKeyT_cost`**: a state's key, its `22 + 10` words read
-  (`guestArgCounts`, `guestRetCounts`), at most `32R + 17682`, of at most `22` codes per list
-  (`entryKeyT_ok`);
+* `wordsWith_cost`, `callKey_cost`, **`entryKeyT_cost`**: a state's key, its `56 + 10` words read
+  (`guestArgCounts`, `guestRetCounts`), at most `66R + 41200`, of at most `56` argument and `10`
+  return codes (`entryKeyT_ok`);
 * `isFunctionIndex_cost` (`11`), **`frameWordAt_cost`**: a frame's word, the table of frame cells
   and a read, at most `R + 1535`.
 -/
@@ -75,7 +75,7 @@ theorem toArray_getD_le_of_all {l : List ℕ} {B : ℕ} (h : l.all (· ≤ B) = 
     simp only [Option.getD_some]
     exact of_decide_eq_true (h x (List.mem_of_getElem? hj))
 
-theorem argCount_le (j : ℕ) : guestArgCounts.getD j 0 ≤ 22 :=
+theorem argCount_le (j : ℕ) : guestArgCounts.getD j 0 ≤ 56 :=
   toArray_getD_le_of_all guestArgCountsList_le j
 
 theorem retCount_le (j : ℕ) : guestRetCounts.getD j 0 ≤ 10 :=
@@ -179,19 +179,19 @@ theorem wordsWith_cost (hP : Includes P wordsWithC.costDeps) {W : ℕ} (hW : 0 <
   nlinarith
 
 include hrd hR in
-/-- **A state's key** (`entryKeyTC`): its `≤ 22` argument and `≤ 10` return words read, at most
-`32R + 17682`. -/
+/-- **A state's key** (`entryKeyTC`): its `≤ 56` argument and `≤ 10` return words read, at most
+`66R + 41200`. -/
 theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (j : ℕ) :
-    machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 32 * R + 17682 := by
+    machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 66 * R + 41200 := by
   have ha := argCount_le j
   have hr := retCount_le j
   rw [entryKeyTC.costEq P hP rd rdVal hrd, limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64),
     limbs_of_lt (by omega : 2 + guestArgCounts.getD j 0 < 2 ^ 64)]
-  have h1 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 6) (by norm_num) (by norm_num)
-    s.fp 2 (guestArgCounts.getD j 0) (show 2 + guestArgCounts.getD j 0 ≤ 2 ^ 6 by omega)
-  have h2 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 6) (by norm_num) (by norm_num)
+  have h1 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)
+    s.fp 2 (guestArgCounts.getD j 0) (show 2 + guestArgCounts.getD j 0 ≤ 2 ^ 7 by omega)
+  have h2 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)
     s.fp (2 + guestArgCounts.getD j 0) (guestRetCounts.getD j 0)
-    (show 2 + guestArgCounts.getD j 0 + guestRetCounts.getD j 0 ≤ 2 ^ 6 by omega)
+    (show 2 + guestArgCounts.getD j 0 + guestRetCounts.getD j 0 ≤ 2 ^ 7 by omega)
   have h3 := callKey_cost P (by includes) j (wordsWith rd s.fp 2 (guestArgCounts.getD j 0))
     (wordsWith rd s.fp (2 + guestArgCounts.getD j 0) (guestRetCounts.getD j 0))
   rw [length_wordsWith, length_wordsWith] at h3
@@ -201,10 +201,12 @@ theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (
   generalize guestRetCounts.getD j 0 = b at *
   nlinarith
 
-/-- A state's key: of at most `22` codes per list. -/
-theorem entryKeyT_ok (s : Registers K) {j : ℕ} (hj : j < 2 ^ 64) : KeyOK 22 (entryKeyT rd s j) :=
-  callKey_ok hj (by rw [length_wordsWith]; exact argCount_le j)
-    (by rw [length_wordsWith]; have := retCount_le j; omega)
+/-- A state's key: of at most `56` argument codes and `10` return codes. -/
+theorem entryKeyT_ok (s : Registers K) {j : ℕ} (hj : j < 2 ^ 64) :
+    KeyOK 56 (entryKeyT rd s j) ∧ (entryKeyT rd s j).2.2.length ≤ 10 :=
+  ⟨callKey_ok hj (by rw [length_wordsWith]; exact argCount_le j)
+    (by rw [length_wordsWith]; have := retCount_le j; omega),
+   by simp only [entryKeyT, callKey, List.length_map, length_wordsWith]; exact retCount_le j⟩
 
 /-! ## The frame map -/
 
