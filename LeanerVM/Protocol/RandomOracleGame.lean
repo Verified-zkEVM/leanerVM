@@ -199,10 +199,10 @@ def HitFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → Lis
 hit, or a flip (`Flip`, a chain of the log choosing a bad challenge). `Flip` and `rootsOf` are
 parameters, so that the random-oracle bound holds for any reader of chain histories; it bounds the
 flips of a reader on every statement's chain (`SlotReader.Flip`). `Core.core` and the headline
-theorems instantiate them at leanVM's, from no root, with the flips of the deployed reader on the
-statement's chain (`leanVmReader.FlipFor (prog, input)`) and the proof's roots at the statement
-(`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the event is trivial, so only
-those instances are evidence about the hash. -/
+theorems instantiate them at leanVM's, from no root, with the flips of the deployed reader that the
+verifier asked for on the statement's chain (`leanVmReader.VerifierFlipFor (prog, input)`) and the
+proof's roots at the statement (`ProofRoots.rootsOf prog input`). With `Flip := fun _ ↦ True` the
+event is trivial, so only those instances are evidence about the hash. -/
 def HashMisbehavesFrom (seedRoots : List Digest) (rootsOf : Proof PrunedMerklePaths → List Digest)
     (Flip : Run → Prop) (g : Run) : Prop :=
   QueryLog.HasCollision g.log ∨ HitFrom seedRoots rootsOf g ∨ Flip g
