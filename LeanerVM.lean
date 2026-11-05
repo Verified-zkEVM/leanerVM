@@ -11,6 +11,7 @@ import LeanerVM.Arithmetization.Completeness.Satisfied
 import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
 import LeanerVM.Arithmetization.Equivalence
+import LeanerVM.Arithmetization.HypothesisChecks
 import LeanerVM.Arithmetization.Messages
 import LeanerVM.Arithmetization.Rows
 import LeanerVM.Arithmetization.Soundness
@@ -272,6 +273,7 @@ import LeanerVM.Semantics.FillRows
 import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows
 import LeanerVM.Semantics.Generator
+import LeanerVM.Semantics.HypothesisChecks
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.PaddedImage
