@@ -126,14 +126,14 @@ theorem chainArms_spec (hl : LocOk j loc) {F own : ℕ} : ∀ {arms : List (List
       exact avoidA_spec hl h.1
     | succ k => exact hk k a' t' (by simpa using ha) (by simpa using ht)
 
-theorem mem_usesArms {v : V} : ∀ {arms : List (List Stmt)}, v ∈ Stmt.usesArms arms →
+theorem chain_mem_usesArms {v : V} : ∀ {arms : List (List Stmt)}, v ∈ Stmt.usesArms arms →
     ∃ (k : ℕ) (a : List Stmt), arms[k]? = some a ∧ v ∈ Stmt.usesList a
   | [], hv => by simp [Stmt.usesArms] at hv
   | a :: as, hv => by
     simp only [Stmt.usesArms, List.mem_append] at hv
     rcases hv with hv | hv
     · exact ⟨0, a, rfl, hv⟩
-    · obtain ⟨k, a', h1, h2⟩ := mem_usesArms hv
+    · obtain ⟨k, a', h1, h2⟩ := chain_mem_usesArms hv
       exact ⟨k + 1, a', by simpa using h1, h2⟩
 
 /-- **A top-level statement's check.** -/
@@ -167,7 +167,7 @@ theorem chainStmt_spec (hl : LocOk j loc) (hpw : (plumbOf j).chains.Pairwise ChR
         simp only [Stmt.uses, List.mem_cons] at hv
         rcases hv with rfl | hv
         · exact hF ch hch _ (avoidL_spec hl hxa _ List.mem_cons_self)
-        · obtain ⟨k, a, hka, hva⟩ := mem_usesArms hv
+        · obtain ⟨k, a, hka, hva⟩ := chain_mem_usesArms hv
           have hlen := (chainArms_spec hl harms).1
           have hkt : k < ch0.2.2.1.length := by
             rw [← hlen]; exact (List.getElem?_eq_some_iff.mp hka).1
