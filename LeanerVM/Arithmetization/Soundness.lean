@@ -322,7 +322,8 @@ theorem constraintSoundness (hsafe : SentinelSafe prog)
   exact ⟨t, ht⟩
 
 /-- The trace interface of the proof system's headline, for a program whose sentinel slot is not
-a `JUMP`: `traceOf`, and `traceOf_valid`. -/
+a `JUMP`: `traceOf`, and `traceOf_valid`. Computable: a compiled definition whose trace reader is
+the walk `traceOf`, which the tests run. -/
 def leanIsaTraceExtraction (hsafe : SentinelSafe prog) : TraceExtraction prog where
   traceOf _ w := traceOf prog w
   valid _ _ h := traceOf_valid hsafe h
