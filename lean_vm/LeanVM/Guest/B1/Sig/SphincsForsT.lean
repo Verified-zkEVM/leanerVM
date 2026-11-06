@@ -33,8 +33,8 @@ type's low byte at bit `24` of limb `0`, the key pair's two low bytes at bits `4
   hinted secret and climbed up the hinted ordered pairs to its root;
 * `sForsBlock` (`G:4053-4058`): `fors_at`, the 24 trees, then `T_k` over the roots (432 bytes);
 * `sPath` (`sp_path`, `G:3935-3954`): a path up a tree of the hypertree;
-* `sHtLayer` (`sp_layer`, `G:3957-3969`, after its counter): the encoding of `signed`, the key's leaf
-  by `sp_wots`, the path.
+* `sHtLayer` (`sp_layer`, `G:3957-3969`, after its counter): the encoding of `signed`, the key's
+  leaf by `sp_wots`, the path.
 -/
 
 namespace LeanVM.Guest.B1.Sig
