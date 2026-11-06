@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PushFw
 
 /-!
-# The pull side's total (G:2232-2234, 2322-2326)
+# The pull side's total (G:2262-2264, 2352-2356)
 
 The pull side's blocks mirror the push side's: their eq weights are the push blocks' copies, and
 their padding sum is the push side's. `vt_pull_total`: `bus_table_total[PULL]`.
