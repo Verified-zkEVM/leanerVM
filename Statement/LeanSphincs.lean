@@ -54,6 +54,77 @@ namespace Sphincs
 
 open HashSig
 
+/-! ### Temporary (fips205-xmss): the 9d8bce81 16-byte address, until the FIPS 205 rewrite
+
+`crates/signatures/src/tweak.rs` is gone at 834e6614 and its 16-byte address is leanXMSS's own
+(`LeanXmss.TweakFields`); these are its 9d8bce81 definitions, with the layer and tree, so that this
+file builds until the stmt track's FIPS 205 rewrite replaces it. -/
+
+/-- The 9d8bce81 address (`Tweak`, `tweak.rs:32-40` at 9d8bce81). -/
+structure TweakFields where
+  /-- The hash call's type. -/
+  tag : BitVec 5
+  /-- The chain step. -/
+  step : BitVec 3
+  /-- The hypertree layer. -/
+  layer : BitVec 8
+  /-- The tree on that layer. -/
+  tree : BitVec 32
+  /-- The high field. -/
+  hi : BitVec 24
+  /-- The low field. -/
+  lo : BitVec 32
+deriving DecidableEq
+
+/-- `lo || hi || (tag + 32 * step) || layer || tree || 0^24` (`address`, `tweak.rs:78-86`). -/
+def addressBytes (fields : TweakFields) : HashInput :=
+  littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++
+    littleEndianBytes 1 (fields.step ++ fields.tag) ++ littleEndianBytes 1 fields.layer ++
+    littleEndianBytes 4 fields.tree ++ littleEndianBytes 3 0
+
+/-- `tweak`, layer and tree zero (`tweak.rs:42-52`). -/
+def tweakFields (tag step hi lo : Nat) : TweakFields :=
+  ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, 0, 0, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
+
+/-- `Tweak::at` (`tweak.rs:66-72`). -/
+def TweakFields.at (fields : TweakFields) (layer tree : Nat) : TweakFields :=
+  { fields with layer := BitVec.ofNat 8 layer, tree := BitVec.ofNat 32 tree }
+
+/-- `P || A || payload` (`hasher`, `tweak.rs:95-99`). -/
+def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
+    HashInput :=
+  hasherInput parameter (addressBytes fields) payload
+
+/-- The second 16 bytes of a hash output. -/
+def upperHalfOfHash (output : HashOutput) : Digest :=
+  output.extractLsb' digestBits digestBits
+
+/-- The first half for even `chainIndex`, the second for odd. -/
+def hashHalfForChain (chainIndex : Nat) (output : HashOutput) : Digest :=
+  if chainIndex % 2 = 0 then truncateHash output else upperHalfOfHash output
+
+section TweakableHash
+
+open LeanVM.Semantics (KeccakState)
+open HashSig.OverPermutation
+
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+
+/-- `th` (`tweak.rs:102-104`). -/
+def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
+  return truncateHash (← keccakHash π (thInput parameter fields payload))
+
+/-- `th_pair` (`tweak.rs:112-115`). -/
+def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
+    m HashOutput :=
+  keccakHash π (thInput parameter fields payload)
+
+/-- `tagged_seed` (`tweak.rs:130-132`). -/
+def taggedSeed (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
+  keccakHash π (tag ++ littleEndianBytes 32 seed)
+
+end TweakableHash
+
 /-! ### The instance: parameters, types, and hash-input layout -/
 
 /-- The encoding counter's bits, `32` (`COUNTER_LEN`, `mod.rs:42`). -/
