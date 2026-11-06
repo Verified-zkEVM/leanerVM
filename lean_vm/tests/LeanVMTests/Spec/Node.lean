@@ -131,14 +131,14 @@ def seed0 : Digest := keccak256 (utf8 "seed")
 def defer0 : DeferredClaim :=
   ⟨[e 1 2 3, e 4 5 6, e 7 8 9, e 10 11 12, e 0xffffffffffffffff 0 1], e 13 14 15⟩
 
-#guard claimListDigest xmss =
+#guard claimListDigest xmssPublicKeyBytes xmss =
   #v[0x414fd0b2c209e3b8, 0x6538b0954fa462a9, 0xe56f9cc0c9d4fdc7, 0xa490bc2e93724856]
 
-#guard claimListDigest sphincs =
+#guard claimListDigest Sphincs.PublicKey.toBytes sphincs =
   #v[0xe8d78086d65bb925, 0x7ace3a6c82dbaf4e, 0xbf24729b60a19887, 0xc1ffa4b8c5dee59e]
 
 /- An empty list hashes the empty string. -/
-#guard claimListDigest [] =
+#guard claimListDigest xmssPublicKeyBytes [] =
   #v[0x3c23f7860146d2c5, 0xc003c7dcb27d7e92, 0x3b2782ca53b600e5, 0x70a4855d04d8fa7b]
 
 /- The DA claim's digest: Keccak-256 of the root, the challenge's three limbs and a zero word
@@ -233,8 +233,8 @@ def batchedPoint : List E :=
 
 /-! ## The Rust vectors -/
 
-#guard claimListDigest NodeVectors.xmss = NodeVectors.xmssListDigest
-#guard claimListDigest NodeVectors.sphincs = NodeVectors.sphincsListDigest
+#guard claimListDigest xmssPublicKeyBytes NodeVectors.xmss = NodeVectors.xmssListDigest
+#guard claimListDigest Sphincs.PublicKey.toBytes NodeVectors.sphincs = NodeVectors.sphincsListDigest
 #guard daClaimDigest NodeVectors.daClaim = NodeVectors.daDigest
 #guard zeroDigest = NodeVectors.daNone
 
