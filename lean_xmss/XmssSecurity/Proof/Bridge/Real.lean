@@ -80,7 +80,7 @@ theorem queryCount_otsSecrets (parameter : PublicParameter) (lay : LeanXmss.Laye
     queryCount_oracleHash (LeanXmss.keygenHashInput parameter (.oneTimeChainPair lay key pair)
         seed)).bind
       (f := fun outputs => (pure fun chainIdx : LeanXmss.ChainIndex =>
-        HashSig.hashHalfForChain chainIdx.val (outputs (LeanXmss.chainPair chainIdx)) :
+        LeanXmss.hashHalfForChain chainIdx.val (outputs (LeanXmss.chainPair chainIdx)) :
           OracleComp HashSpec (LeanXmss.ChainIndex → HashSig.Digest))) fun _ => QueryCount.pure _
   exact h
 

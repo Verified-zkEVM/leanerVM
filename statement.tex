@@ -14,7 +14,7 @@
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
-\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{9d8bce81}}
+\author{leanerVM, branch \texttt{mumbai}, about leanVM \texttt{834e6614}}
 \date{1 November 2026}
 \begin{document}
 \maketitle
@@ -26,8 +26,8 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{9d8bce81} of its \texttt{main} branch (its pull request 661,
-squash-merged).
+leanVM at commit \texttt{834e6614} of its \texttt{sphincs-fips205} branch (leanSPHINCS on FIPS
+205's layout, with \texttt{main} merged in).
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements ($6989$ lines with their documentation), which import Mathlib,
@@ -369,7 +369,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{9d8bce81}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{834e6614}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -401,7 +401,7 @@ satisfies $\widehat{B}(z) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation.rs:316-345}) is
+\texttt{aggregation/statement.rs:85-114}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
@@ -461,7 +461,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation.rs:668-685})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:194-211})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(z) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below

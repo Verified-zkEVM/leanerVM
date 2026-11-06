@@ -93,7 +93,8 @@ def digestR : R Digest := do return digestOfBytes (← bytesR)
 
 def d128 : R (BitVec 128) := do return bitsOf 128 (← bytesR)
 
-/-- A key as its 32 bytes, root then parameter, and a message. -/
+/-- A key as its 32 bytes, split in halves, and a message: a leanXMSS key is its root then its
+parameter, a leanSPHINCS key `PK.seed` then `PK.root` (`to_bytes`). -/
 def claimR : R ((BitVec 128 × BitVec 128) × BitVec 256) := do
   let pk ← bytesR
   let m ← bytesR
@@ -107,7 +108,7 @@ def statementR : R NodeStatement := do
   expect "xmss"
   let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
   expect "sphincs"
-  let sphincs ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
+  let sphincs ← many do let ((p, r), m) ← claimR; return ((⟨p, r⟩ : Sphincs.PublicKey), m)
   expect "da"
   let da ← digestR
   return ⟨⟨xmss, sphincs, da⟩, ← deferR⟩
@@ -150,8 +151,8 @@ def rawXmssR : R (LeanXmssClaim × LeanXmss.Signature) := do
 
 /-- A raw leanSPHINCS signature with its claim. -/
 def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
-  let ((r, p), m) ← claimR
-  return (((⟨r, p⟩ : HashSig.PublicKey), m), ← sphincsSigR)
+  let ((p, r), m) ← claimR
+  return (((⟨p, r⟩ : Sphincs.PublicKey), m), ← sphincsSigR)
 
 def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR)⟩
 
