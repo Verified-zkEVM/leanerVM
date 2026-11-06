@@ -29,7 +29,7 @@ open LeanerVM.Parameters LeanerVM.Semantics
 def flag : UInt32 := 0xFFFFFFFF
 
 /-- The initial chaining value of an unkeyed BLAKE2s-256: `iv` with the parameter word
-`0x01010020` (digest length 32, fanout 1, depth 1) XORed into word 0 (RFC 7693 §2.8). -/
+`0x01010020` (digest length 32, fanout 1, depth 1) XORed into word 0 (RFC 7693 §2.5). -/
 def paramIv : Vector UInt32 8 := iv.set 0 (iv[0] ^^^ 0x01010020)
 
 /-- The single, zero-padded block of `"abc"`. -/
