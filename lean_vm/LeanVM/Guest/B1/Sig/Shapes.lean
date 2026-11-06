@@ -119,7 +119,7 @@ def kXor (pad : Nat) (st : V) (k : KC) (b : Nat) : List Stmt × V × Nat :=
 /-- A fresh run of the four tail cells (`sponge_run`'s copy): constants and copies, from `b`. -/
 def kRunFresh : List KC → Nat → List Stmt
   | [], _ => []
-  | .zero :: ks, b => cst b 0 :: kRunFresh ks (b + 1)
+  | .zero :: ks, b => cst b (word 0 0 0) :: kRunFresh ks (b + 1)
   | .const c :: ks, b => cst b c :: kRunFresh ks (b + 1)
   | .cell o :: ks, b => copyS (.n b) o :: kRunFresh ks (b + 1)
 
