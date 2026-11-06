@@ -376,7 +376,7 @@ set_option maxRecDepth 100000 in
 /-- **127 bits for the deterministic signer**, from the small-route check at `qh` (with
 a table whose rate is checked at `qh`) and a checked chain of light covers, then heavy covers, of the
 large budgets from `qh + 1` up to `2^127 − 1 − keygenCost`. -/
-theorem det_bitsFH (hfull : subtreeHeight = totalHeight) (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : totalHeight = H)
+theorem det_bitsFH (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : totalHeight = H)
     (hb : subtreeHeight = b) (hk : forsTrees = k) (ha : forsHeight = a)
     (hK : Prefix.keygenHashCost = K) (hN : signatureLimit = N)
     (qh : ℕ) (ρ : ℚ) (t : H0.PoisT) (o : H0.Opt) (on : H0.OptN) (hpt : H0.checkPT t = true)
@@ -433,7 +433,7 @@ theorem det_bitsFH (hfull : subtreeHeight = totalHeight) (hb0 : 0 < keptHeight t
         field_simp
       rw [hκR, he]
       linarith
-    refine le_trans (det_smallF hfull hb0 adversary q hbound (by omega) (ρ : ℝ) hnum' κ hκ0 hκ1 hκq
+    refine le_trans (det_smallF hb0 adversary q hbound (by omega) (ρ : ℝ) hnum' κ hκ0 hκ1 hκq
       H b k a N hH hb hk ha hN t o on hpt qh hrt hs ho hon hcthr) ?_
     exact small_closeFF q qh hq1 hs hqh hN70' (ρ : ℝ) (by linarith [hnum.low]) o.B (κ * c) hB hc2 hcheck'
   · have hKq : keygenCost ≤ q := by omega
@@ -443,14 +443,14 @@ theorem det_bitsFH (hfull : subtreeHeight = totalHeight) (hb0 : 0 < keptHeight t
       (by omega) (by rw [← hkg]; omega) with ⟨cover, -, qs, hcv, hqs, hqt⟩ | ⟨cover, -, qs, hcv, hqs, hqt⟩
     · have hcovb := H0.h0W_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
       have hfairq := H0.fair_of_cover H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
-      have h := det_largeW hfull hb0 hN70' adversary q hbound hq127 hKq hfairq (by
+      have h := det_largeW hb0 hN70' adversary q hbound hq127 hKq hfairq (by
         rw [e1] at hcovb
         exact hcovb)
       refine le_trans h (le_of_eq ?_)
       rw [Nat.cast_pow, Nat.cast_ofNat]
     · have hcovb := H0.h0H_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
       have hfairq := H0.fair_of_coverH H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
-      have h := det_largeH hfull hb0 adversary q hbound hq127 hKq (H0.wbarH (q - keygenCost))
+      have h := det_largeH hb0 adversary q hbound hq127 hKq (H0.wbarH (q - keygenCost))
         (H0.LmaxOf (q - keygenCost)) (H0.fair_ofH (q - keygenCost) hfairq) (lam_start_leF (q - keygenCost)) (by
         rw [e1] at hcovb
         exact hcovb)
