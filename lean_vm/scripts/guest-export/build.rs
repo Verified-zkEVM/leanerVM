@@ -35,6 +35,53 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// A named field's line, `    name: T,`, made crate-visible.
+fn widen_named_field(l: &str) -> String {
+    match l.strip_prefix("    ") {
+        Some(rest)
+            if rest.split_once(':').is_some_and(|(n, _)| {
+                !n.is_empty() && n.chars().all(|c| c.is_alphanumeric() || c == '_')
+            }) =>
+        {
+            format!("    pub(crate) {rest}")
+        }
+        _ => l.to_string(),
+    }
+}
+
+/// A one-line tuple struct `pub(crate) struct N(A, B);` with its private fields made crate-visible.
+fn widen_tuple_fields(l: &str) -> String {
+    let Some(head_end) = l.strip_prefix("pub(crate) struct ").and_then(|r| {
+        let name_len = r.find(|c: char| !(c.is_alphanumeric() || c == '_'))?;
+        r[name_len..].starts_with('(').then_some("pub(crate) struct ".len() + name_len + 1)
+    }) else {
+        return l.to_string();
+    };
+    let Some(body) = l[head_end..].strip_suffix(");") else { return l.to_string() };
+    // The fields, split at the commas outside brackets.
+    let (mut fields, mut depth, mut start) = (Vec::new(), 0i32, 0);
+    for (i, c) in body.char_indices() {
+        match c {
+            '(' | '<' | '[' => depth += 1,
+            ')' | '>' | ']' => depth -= 1,
+            ',' if depth == 0 => {
+                fields.push(&body[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    fields.push(&body[start..]);
+    let fields: Vec<String> = fields
+        .iter()
+        .map(|f| {
+            let f = f.trim();
+            if f.is_empty() || f.starts_with("pub") { f.to_string() } else { format!("pub(crate) {f}") }
+        })
+        .collect();
+    format!("{}{});", &l[..head_end], fields.join(", "))
+}
+
 fn main() {
     println!("cargo:rerun-if-env-changed=LEANVM_DIR");
     println!("cargo:rerun-if-changed=build.rs");
@@ -58,12 +105,15 @@ fn main() {
         .expect("rec_aggregation has an aggregation module");
     // Since #670 the module's private items live in its submodules: the exporters, a child of
     // `aggregation`, read them as they read `aggregation.rs`'s, so every top-level item there is
-    // made crate-visible (only the copy; the module's own `pub` items are unchanged).
+    // made crate-visible, and so is every field of a struct declared there (a tuple struct's on
+    // its line, a named struct's at four spaces in its block); only the copy, the module's own
+    // `pub` items are unchanged.
     if aggregation.ends_with("mod.rs") {
         let mut files = Vec::new();
         rust_files(aggregation.parent().unwrap(), &mut files);
         for f in files.iter().filter(|f| **f != aggregation) {
             let text = std::fs::read_to_string(f).unwrap();
+            let mut in_struct = false;
             let text: String = text
                 .lines()
                 .map(|l| {
@@ -72,7 +122,14 @@ fn main() {
                         .any(|k| l.starts_with(k))
                         && !l.starts_with("const _");
                     let l = l.replacen("pub(super) ", "pub(crate) ", 1);
-                    if item { format!("pub(crate) {l}\n") } else { format!("{l}\n") }
+                    let l = if item { format!("pub(crate) {l}") } else { l };
+                    let l = if in_struct { widen_named_field(&l) } else { widen_tuple_fields(&l) };
+                    if l.starts_with("pub(crate) struct ") && l.ends_with('{') {
+                        in_struct = true;
+                    } else if l.starts_with('}') {
+                        in_struct = false;
+                    }
+                    format!("{l}\n")
                 })
                 .collect();
             std::fs::write(f, text).unwrap();

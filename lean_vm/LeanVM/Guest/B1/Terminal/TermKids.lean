@@ -54,7 +54,7 @@ structure TermBases where
   pt : ℕ
   pt1 : ℕ
 
-/-- `check_opening_terminal`'s arguments, its pointers at their bases (G:3238). -/
+/-- `check_opening_terminal`'s arguments, its pointers at their bases (G:3268). -/
 def termArgs (B : TermBases) (rm gmu gzcn glm gtau lamCl inner yr target : E) : List E :=
   [ofK (addressOfIndex B.gsq), ofK (addressOfIndex B.zeta), ofK (addressOfIndex B.chi), rm, gmu,
     gzcn, glm, gtau, ofK (addressOfIndex B.kb), lamCl, ofK (addressOfIndex B.off),

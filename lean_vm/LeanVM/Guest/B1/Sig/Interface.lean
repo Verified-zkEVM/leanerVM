@@ -25,7 +25,7 @@ public import LeanVM.Guest.B1.Sig.Frame
 /-!
 # The signature verifiers' interface
 
-`verify_lean_xmss(signer, tags)` (`lean_ethereum.py:3651-3724`, inline in `main`'s raw-leanXMSS loop
+`verify_lean_xmss(signer, tags)` (`lean_ethereum.py:3689-3762`, inline in `main`'s raw-leanXMSS loop
 `__loop2`, `Data.core36`, as its statements `xSeg`) and
 `verify_sig_lean_sphincs(signer, byte_bits)` (`lean_ethereum.py:3972-4073` at leanVM 834e6614,
 `Data.core20`) check one signature of the claim at `signer`: four cells, the key (leanXMSS: its root
@@ -120,7 +120,7 @@ def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-! ## Preconditions -/
 
-/-- **The byte table** `main` writes (`lean_ethereum.py:4488-4490`): `byte_bits[g^v] = v` for every
+/-- **The byte table** `main` writes (`lean_ethereum.py:4595-4597`): `byte_bits[g^v] = v` for every
 byte `v`, the word whose bits spell `v`. -/
 def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0 0)
 

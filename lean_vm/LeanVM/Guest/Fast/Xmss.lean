@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegSound
 /-!
 # leanXMSS's signature reader, computable
 
-The leanXMSS check is inline in `main`'s raw-signature loop `__loop2` (9d8bce81,
+The leanXMSS check is inline in `main`'s raw-signature loop `__loop2` (834e6614,
 `B1/Sig/XmssSegT.lean`: `xSeg`, statements `9` to `321` of its body), so a signature is read off
 an iteration's frame `σ`, at the cells the template gives:
 
