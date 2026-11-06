@@ -158,7 +158,9 @@ former code in parentheses is for reading older pull requests.
   F1)
 - *Grinding.* Annex B does not mention it; every WHIR level grinds 17 bits before its queries,
   the nonce is bound even when the check fails, and `ood_samples[0] = 0`
-  (`pcs/src/whir_config.rs:60`, `fiat_shamir/src/lib.rs:165-174`). (S12, F13)
+  (`pcs/src/whir_config.rs:60`, `fiat_shamir/src/lib.rs:165-174`). (S12, F13) The verifier
+  accepts any element of `E` as a nonce, and at 0 bits only `0`; the honest prover sends the
+  smallest 64-bit nonce (`lib.rs:126-174`; `Protocol/Transcript.lean`).
 - *Stack size and ties.* §4.1's `M = ⌈log₂ N⌉` has no floor or ceiling and no order for blocks of
   equal size; the verifiers floor at 15, reject above 28, and order ties by the column index, the
   six shared columns first (`04-committing-the-witness.tex:6-10`; `lean_vm/src/witness.rs:67-97`,

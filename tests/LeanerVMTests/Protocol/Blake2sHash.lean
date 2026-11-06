@@ -8,7 +8,8 @@ reference implementation: the empty message, `"abc"` (RFC 7693 Appendix B), and 
 of lengths 64, 65 and 128, which sit on both sides of a block boundary and cover the one-block,
 two-block and whole-blocks paths of the pinned `hash` (`crates/primitives/src/hash.rs:209-224`).
 Then `hash_pair` and `hash_words` on known inputs, the one-compression form of a 64-byte
-message, and the digest encoding: a round trip and the rejection of a nonzero top limb.
+message, the digest encoding: a round trip and the rejection of a nonzero top limb, and the
+digest's bytes: the `"abc"` digest is the RFC's byte string, read back by `digestOfBytes`.
 
 The compiled checks are `#guard`; the `"abc"` vector is also decided in the kernel.
 -/
@@ -79,5 +80,13 @@ fast path (`hash.rs:212-220`) and the streaming path agree. -/
 #guard digestOfScalars
   ((digestScalars abcDigest).1,
     E.ofLimbs (K.ofBits 0x293ad69e208b4537) (K.ofBits 0x825967864c9b994d) (K.ofBits 1)) = none
+
+/-! ## The digest's bytes -/
+
+/- The `"abc"` digest as RFC 7693 Appendix B prints it, and back. -/
+#guard digestBytes abcDigest =
+  [0x50, 0x8C, 0x5E, 0x8C, 0x32, 0x7C, 0x14, 0xE2, 0xE1, 0xA7, 0x2B, 0xA3, 0x4E, 0xEB, 0x45, 0x2F,
+   0x37, 0x45, 0x8B, 0x20, 0x9E, 0xD6, 0x3A, 0x29, 0x4D, 0x99, 0x9B, 0x4C, 0x86, 0x67, 0x59, 0x82]
+#guard digestOfBytes (digestBytes abcDigest) = abcDigest
 
 end LeanerVMTests.Protocol.Blake2sHash

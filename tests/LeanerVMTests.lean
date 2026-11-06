@@ -43,6 +43,7 @@ import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
 import LeanerVMTests.Protocol.Merkle
+import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.NovelBasis
 import LeanerVMTests.Protocol.NovelBasisNtt
@@ -52,8 +53,10 @@ import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
+import LeanerVMTests.Protocol.Proof
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
+import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
@@ -62,6 +65,7 @@ import LeanerVMTests.Protocol.StatefulProvers
 import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
+import LeanerVMTests.Protocol.Transcript
 import LeanerVMTests.Protocol.WhirCached
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold

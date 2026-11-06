@@ -29,7 +29,8 @@ elements of `E`, each holding sixteen bytes in its two low limbs with the top li
 (`hash_to_scalars`), and the decoder rejects a nonzero top limb (`scalars_to_hash`), since the
 two halves come off the proof stream.
 
-A digest is its eight chaining words; `digestBytes` is its byte form.
+A digest is its eight chaining words; `digestBytes` is its byte form, and `digestOfBytes` and
+`kOfBytes` read a digest and a `K` word back off the front of a byte string.
 -/
 
 namespace LeanerVM.Protocol
@@ -97,6 +98,26 @@ def digestBytes (d : Digest) : List UInt8 := d.toList.flatMap wordBytes
 /-- The eight little-endian bytes of a `K` word (`merkle.rs:61-67`, `hash_words`). -/
 def kBytes (a : K) : List UInt8 := wordBytes (lowWord a) ++ wordBytes (highWord a)
 
+/-- The word of four little-endian bytes, the inverse of `wordBytes`. -/
+def wordOfBytes (b0 b1 b2 b3 : UInt8) : UInt32 :=
+  UInt32.ofNat (b0.toNat + 2 ^ 8 * b1.toNat + 2 ^ 16 * b2.toNat + 2 ^ 24 * b3.toNat)
+
+/-- The little-endian words of a byte string, four bytes each; a trailing partial word is
+dropped. -/
+def wordsOfBytes : List UInt8 → List UInt32
+  | b0 :: b1 :: b2 :: b3 :: rest => wordOfBytes b0 b1 b2 b3 :: wordsOfBytes rest
+  | _ => []
+
+/-- The digest whose bytes begin a byte string, the inverse of `digestBytes`; a missing word reads
+as zero. -/
+def digestOfBytes (bs : List UInt8) : Digest :=
+  Vector.ofFn fun i : Fin 8 ↦ (wordsOfBytes bs).getD i 0
+
+/-- The `K` word whose eight little-endian bytes begin a byte string, the inverse of `kBytes`; a
+missing word reads as zero. -/
+def kOfBytes (bs : List UInt8) : K :=
+  ofWords ((wordsOfBytes bs).getD 0 0) ((wordsOfBytes bs).getD 1 0)
+
 /-! ## The Merkle hashes -/
 
 /-- The digest of a leaf: BLAKE2s-256 of its words as bytes (`merkle.rs:61-67`, `hash_words`). -/
@@ -121,12 +142,14 @@ def digestOfScalars (s : E × E) : Option Digest :=
 
 /-! ## The encoding round trip -/
 
-private theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
+/-- The low word of the `K` word with words `lo` and `hi` is `lo`. -/
+theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
   apply UInt32.toBitVec_inj.mp
   simp only [lowWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
   exact BitVec.extractLsb'_append_eq_right
 
-private theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
+/-- The high word of the `K` word with words `lo` and `hi` is `hi`. -/
+theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
   apply UInt32.toBitVec_inj.mp
   simp only [highWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
   exact BitVec.extractLsb'_append_eq_left
@@ -186,6 +209,71 @@ theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
     show (wordsCell _, wordsCell _) = (a, b)
     rw [append_left4, append_right4, wordsCell_cellWords hc.1, wordsCell_cellWords hc.2]
   · cases h
+
+/-! ## The byte round trip -/
+
+/-- A word read back from its four little-endian bytes. -/
+theorem leWord_wordBytes (w : UInt32) :
+    leWord w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
+  apply UInt32.toBitVec_inj.mp
+  ext i hi
+  simp only [leWord, UInt32.toBitVec_or, UInt32.toBitVec_shiftLeft, UInt8.toBitVec_toUInt32,
+    UInt32.toBitVec_toUInt8, UInt32.toBitVec_shiftRight, UInt32.toBitVec_ofNat,
+    BitVec.ofNat_eq_ofNat, BitVec.reduceMod, BitVec.ushiftRight_eq', BitVec.toNat_ofNat,
+    Nat.reducePow, Nat.reduceMod, BitVec.shiftLeft_eq', BitVec.getElem_or,
+    BitVec.getElem_setWidth, BitVec.getLsbD_setWidth, BitVec.getElem_shiftLeft,
+    BitVec.getLsbD_ushiftRight]
+  grind
+
+/-- A word is the word of its four bytes. -/
+private theorem wordOfBytes_wordBytes (w : UInt32) :
+    wordOfBytes w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
+  apply UInt32.toNat_inj.mp
+  have hw := w.toNat_lt
+  simp only [wordOfBytes, UInt32.toNat_ofNat', UInt32.toNat_toUInt8, UInt32.toNat_shiftRight,
+    Nat.shiftRight_eq_div_pow]
+  simp
+  omega
+
+/-- Reading the words of the bytes of a list of words gives the words back. -/
+private theorem wordsOfBytes_flatMap (rest : List UInt8) :
+    ∀ ws : List UInt32, wordsOfBytes (ws.flatMap wordBytes ++ rest) = ws ++ wordsOfBytes rest
+  | [] => rfl
+  | w :: ws => by
+    simp only [List.flatMap_cons, wordBytes, List.cons_append, List.nil_append, wordsOfBytes,
+      wordOfBytes_wordBytes, wordsOfBytes_flatMap rest ws]
+
+/-- Splitting a `K` word into its two words and joining them is the identity. -/
+private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
+  have h := congrArg (·.limb 0)
+    (wordsCell_cellWords (x := E.ofLimbs a 0 0) (by show (E.ofLimbs a 0 0).limb 2 = 0; simp))
+  simpa [wordsCell, cellWords] using h
+
+/-- A digest is 32 bytes. -/
+theorem length_digestBytes (d : Digest) : (digestBytes d).length = 32 := by
+  simp [digestBytes, wordBytes, List.length_flatMap]
+
+/-- A `K` word is eight bytes. -/
+theorem length_kBytes (a : K) : (kBytes a).length = 8 := rfl
+
+/-- The digest whose bytes begin a byte string is read back by `digestOfBytes`. -/
+theorem digestOfBytes_append (d : Digest) (rest : List UInt8) :
+    digestOfBytes (digestBytes d ++ rest) = d := by
+  ext i hi
+  simp only [digestOfBytes, digestBytes, wordsOfBytes_flatMap, Vector.getElem_ofFn]
+  rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_append_left (by simp; omega)]
+  simp
+
+/-- The `K` word whose bytes begin a byte string is read back by `kOfBytes`. -/
+theorem kOfBytes_append (a : K) (rest : List UInt8) : kOfBytes (kBytes a ++ rest) = a := by
+  have h := wordsOfBytes_flatMap rest [lowWord a, highWord a]
+  simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil] at h
+  simp only [kOfBytes, kBytes, h, List.cons_append, List.nil_append, List.getD_cons_zero,
+    List.getD_cons_succ, ofWords_lowWord_highWord]
+
+/-- Reading the bytes of a digest gives the digest back. -/
+theorem digestOfBytes_digestBytes (d : Digest) : digestOfBytes (digestBytes d) = d := by
+  simpa using digestOfBytes_append d []
 
 end Blake2sHash
 
