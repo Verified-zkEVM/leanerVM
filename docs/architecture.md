@@ -54,7 +54,9 @@ VCVio, or ArkLib. Until its upstream pull request merges, a generic candidate is
 one module each. A staged module imports nothing leanVM-specific and is written for that
 library's other consumers: general definitions and helper lemmas, with no special case the
 protocol chose and no protocol vocabulary. The special cases are derived in the leanVM modules,
-which is where the specification is cited.
+which is where the specification is cited. A candidate that a lower layer must compile against
+is staged under that layer instead, under the same rules: the compiled field arithmetic every
+layer runs lives in `LeanerVM/Parameters/ToCompPoly/`.
 
 The proof system has a wall: every module of the protocol layer is written over an abstract
 instance of the arithmetization and imports nothing from `LeanerVM/Arithmetization/`, so that a
@@ -572,7 +574,68 @@ Add a native or generated-code boundary when all of these are present:
 6. a CI lane isolated from the proof-only library.
 
 Optimize Lean's native C output before or alongside foreign backends so it remains a meaningful
-baseline. Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
+baseline. A pure-Lean fast path for an existing definition is registered with a `@[csimp]`
+theorem, a kernel-checked equation the compiler uses to substitute one constant for another in
+code compiled after it; it changes no definition a theorem mentions and is not a native boundary.
+The substituted constant must be one that compiled call sites name: for an operation reached
+through a type-class instance that is the instance constant, since the instance's own compiled
+body is fixed in the module that defined it; for a function a component's prover closes over, it
+is that function, registered in its own module before the component that names it is compiled.
+`LeanerVM.Parameters.ToCompPoly.BF64Fast`, `LeanerVM.Parameters.ToCompPoly.ExtensionFast`,
+`LeanerVM.Semantics.Blake2sFast` and `LeanerVM.Protocol.Blake2sHashFast` are the field and hashing
+fast paths. `LeanerVM.Protocol.ToCompPoly.Doubling` (the Lagrange basis by doubling, the
+multilinear extension with one product per entry), `LeanerVM.Protocol.ToCompPoly.MvEval` (sparse
+polynomial evaluation, through `CMvPolynomial.eval` and `CMvPolynomial.eval₂`) and
+`LeanerVM.Protocol.ToCompPoly.FinLoop` (sums and products as loops) serve every Protocol module.
+The sumcheck provers' round messages run on tables bound once to the challenges
+(`LeanerVM.Protocol.ToCompPoly.TableFold`, through `Sumcheck.roundPoly_eq_roundPolyFolded` and
+`ProductSum.roundPoly_eq_roundPolyFolded`), and the table sumcheck's formula on precomputed
+offsets and powers (`TableSumcheck.formula_eq_formulaFast`). Beside the definitions they replace
+are the fast paths of the bit-product table, the cube weights, the cube decoder, the stack, the
+aligned, strided and leanISA layouts, the witness's columns, an instance's column reads, rows and
+virtual tables, the bus leaves and the grand-product prover's messages
+(`Gkr.roundPoly_eq_roundPolyFast`, `Bus.sideLeaves_eq_sideLeavesFast`). The Flock rounds
+(`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round
+message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route, and the
+BLAKE2s inhabitant's honest column traces the circuit on 64-bit words
+(`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`, `Blake2sFlock.genColumn_eq_genColumnFast`,
+registered in `LeanerVM.Protocol.FlockSpec` before the inhabitant, so that the inhabitant's own
+compiled body is the fast one; no `@[csimp]` theorem is about a `FlockSpec` value).
+
+A round message is a function of the context and the challenges, so an honest prover that is a
+composition of one-round components rebuilds what it reads each round. Prover-only state is
+carried beside the witness by a cached prover (`Component.Cached`,
+`LeanerVM.Protocol.ToArkLib.CachedProver`): a prover whose run, from the cache of its input, is
+the component's honest run with the cache of its output. Cached provers compose, and one with no
+cache on either side is a prover of the component's statements whose run is the honest prover's
+(`Component.Cached.toProver_run`), with the component's verifier and its completeness
+(`Component.Cached.complete`); no definition changes. The sumcheck's tables are bound once per
+challenge (`SumcheckRound.RoundCache`, `Sumcheck.cachedRounds`), the grand-product argument
+builds every tree's levels once and binds the children of each layer's level below once per
+challenge (`cachedGkr`), and the Flock argument walks each block once and builds its skip tables
+once at `z_skip` and its lincheck tables once at `α` (`Flock.flockCached`,
+`LeanerVM.Protocol.ToArkLib.Flock.Cached`). `leanVmFastProver` (`LeanerVM.Protocol.HonestProver`)
+is the oracle protocol's prover with the bus phase, the table sumcheck and the Flock phase cached
+and the bus phase's output tabulated once (`Bus.memoOut_eq`), proved to run as
+`leanVmProver (leanVmPhases I h)` (`leanVmFastProver_run`). WHIR's opening has a cached prover of
+its own (`Whir.whirOpenCached`, `LeanerVM.Protocol.Whir.Cached`, from the generic steps of
+`LeanerVM.Protocol.ToArkLib.CachedSteps` and `LeanerVM.Protocol.ToArkLib.ProductSumCached`): the
+fold rounds' tables bound once per challenge and the next level's word encoded once by the
+additive transform (`Whir.wordFast_eq`, `LeanerVM.Protocol.Whir.Transform`). This is an
+honest-prover refinement, not a `@[csimp]` substitution: a caller runs `leanVmFastProver` or
+`whirOpenCached`. Running any prover through
+ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
+appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
+right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
+`@[csimp]`, imported where the schedules are built. A block's selector weight is one product
+(`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers builds each
+table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS walks the compiled
+circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`): its
+matrices are `ProductCircuit.toBlockR1CS`'s by `rfl`, and its walks are proved equal to theirs
+(`toBlockR1CSE_eq`). All are timed by the `leanervm-bench` executable
+([bench/README.md](../bench/README.md)).
+
+Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A
 domain-specific compiler additionally requires source/target semantics, validation fixtures, and
 a clear preservation-proof plan.

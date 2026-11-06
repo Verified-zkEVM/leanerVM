@@ -31,6 +31,8 @@ block over any commutative ring, so one layout serves tables over different ring
 * `total_eq_sum`, `prod_stackAt`: the total height is the sum of the blocks' heights, and the
   product of a stack's cells is the product of its blocks' cells times the pad once per cell no
   block covers.
+* Compiled code (`@[csimp]`): `offsetNatLoop` sums the heights by recursion, and `stackAtFast`
+  lays the tables end to end once, where `stackAt` searches every block for every cell.
 
 Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table or
 its evaluation. The request it answers is tracked upstream as
@@ -82,6 +84,18 @@ abbrev Tables (R : Type*) : Type _ := (b : Fin B.n) → CMlPolynomialEval R (B.s
 /-- The sum of the heights of the first `k` blocks. -/
 def offsetNat (k : ℕ) : ℕ :=
   ∑ c ∈ Finset.range k, if h : c < B.n then 2 ^ B.size ⟨c, h⟩ else 0
+
+/-- `offsetNat` by recursion on `k`, without the list a `Finset` sum builds. -/
+def offsetNatLoop : ℕ → ℕ
+  | 0 => 0
+  | k + 1 => offsetNatLoop k + if h : k < B.n then 2 ^ B.size ⟨k, h⟩ else 0
+
+/-- Compiled code computes offsets by recursion. -/
+@[csimp] theorem offsetNat_eq_offsetNatLoop : @offsetNat = @offsetNatLoop := by
+  funext B k
+  induction k with
+  | zero => rfl
+  | succ k ih => rw [offsetNat, Finset.sum_range_succ, ← offsetNat, ih, offsetNatLoop]
 
 /-- The offset of block `b`: the sum of the heights of the blocks before it. -/
 def offset (b : Fin B.n) : ℕ := B.offsetNat b.val
@@ -207,6 +221,56 @@ theorem stackAt_eq_of_total_eq (t : B.Tables R) {μ : ℕ} (h : B.total = 2 ^ μ
   apply Vector.ext
   intro i hi
   simp [stackAt, h, Nat.not_le.mpr hi]
+
+/-! ## The stack, compiled -/
+
+/-- The tables of the first `k` blocks, end to end. -/
+def concatBlocks (t : B.Tables R) : (k : ℕ) → k ≤ B.n → Array R
+  | 0, _ => #[]
+  | k + 1, h => concatBlocks t k (Nat.le_of_succ_le h) ++ (t ⟨k, h⟩).toArray
+
+omit [CommRing R] in
+/-- The first `k` blocks end to end have their offset's length. -/
+theorem size_concatBlocks (t : B.Tables R) :
+    ∀ (k : ℕ) (h : k ≤ B.n), (B.concatBlocks t k h).size = B.offsetNat k
+  | 0, _ => by simp [concatBlocks, offsetNat]
+  | k + 1, h => by
+    rw [concatBlocks, Array.size_append, size_concatBlocks t k, Vector.size_toArray,
+      B.offsetNat_succ k h]
+
+omit [CommRing R] in
+/-- A cell of the first `k` blocks, end to end, is the cell of its block. -/
+theorem getElem_concatBlocks (t : B.Tables R) :
+    ∀ (k : ℕ) (h : k ≤ B.n) (b : Fin B.n), b.val < k → ∀ (x : ℕ) (hx : B.InWindow b x)
+      (hlt : x < (B.concatBlocks t k h).size),
+      (B.concatBlocks t k h)[x] = (t b)[x - B.offset b]'(by have := hx.2; omega)
+  | 0, _, _, hb, _, _, _ => absurd hb (Nat.not_lt_zero _)
+  | k + 1, h, b, hb, x, hx, hlt => by
+    simp only [concatBlocks]
+    rw [Array.getElem_append]
+    have hs := B.size_concatBlocks t k (Nat.le_of_succ_le h)
+    split_ifs with h'
+    · have hbk : b.val < k := by
+        by_contra hc
+        have hbk : b = ⟨k, h⟩ := Fin.ext (show b.val = k by omega)
+        have h1 : B.offsetNat k ≤ x := by
+          have := hx.1
+          rw [hbk] at this
+          exact this
+        rw [hs] at h'
+        omega
+      exact getElem_concatBlocks t k _ b hbk x hx h'
+    · have hbk : b = ⟨k, h⟩ := by
+        by_contra hc
+        have hne : b.val ≠ k := fun he ↦ hc (Fin.ext he)
+        have hlt' : b < ⟨k, h⟩ := Fin.lt_def.mpr (by simp only; omega)
+        have h1 : B.offset b + 2 ^ B.size b ≤ B.offsetNat k := B.offset_add_pow_le_offset hlt'
+        have h2 := hx.2
+        rw [hs] at h'
+        omega
+      subst hbk
+      simp only [Vector.getElem_toArray, hs, offset]
+
 
 /-! ## Selectors -/
 
@@ -416,6 +480,34 @@ theorem prod_stackAt (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad
     rw [dite_eq_left hx, B.stackAt_getElem_of_total_le t pad hx (by omega)]
 
 end Blocks
+
+/-- The stack built once: the tables end to end, then the pad. Each table is read once, where
+`stackAt` searches every block for every cell. -/
+def Blocks.stackAtFast {S : Type*} [CommRing S] (B : Blocks) (t : B.Tables S) (μ : ℕ) (pad : S) :
+    CMlPolynomialEval S μ :=
+  let all := B.concatBlocks t B.n le_rfl
+  Vector.ofFn fun x ↦ all.getD x.val pad
+
+/-- The stack built once is the stack. -/
+theorem Blocks.stackAtFast_eq (B : Blocks) (t : B.Tables R) (μ : ℕ) (pad : R) :
+    B.stackAtFast t μ pad = B.stackAt t μ pad := by
+  apply Vector.ext
+  intro x hx
+  have hs := B.size_concatBlocks t B.n le_rfl
+  simp only [Blocks.stackAtFast, Vector.getElem_ofFn, Array.getD_eq_getD_getElem?]
+  by_cases hT : B.total ≤ x
+  · rw [B.stackAt_getElem_of_total_le t pad hx hT, Array.getElem?_eq_none (by
+      rw [hs]; exact hT)]
+    rfl
+  · obtain ⟨b, hb⟩ := B.exists_inWindow (Nat.lt_of_not_le hT)
+    have hlt : x < (B.concatBlocks t B.n le_rfl).size := by rw [hs]; exact Nat.lt_of_not_le hT
+    rw [B.stackAt_getElem_of_inWindow t pad hx hb, Array.getElem?_eq_getElem hlt,
+      Option.getD_some, B.getElem_concatBlocks t B.n le_rfl b b.isLt x hb hlt]
+
+/-- Compiled code builds a stack once. -/
+@[csimp] theorem Blocks.stackAt_eq_stackAtFast : @Blocks.stackAt = @Blocks.stackAtFast := by
+  funext S _ B t μ pad
+  exact (B.stackAtFast_eq t μ pad).symm
 
 end
 end LeanerVM.Protocol

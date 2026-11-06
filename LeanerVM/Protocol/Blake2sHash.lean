@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Semantics.Blake2s
+public import LeanerVM.Semantics.Blake2sFast
 
 /-!
 # The BLAKE2s byte hasher and the digest encoding

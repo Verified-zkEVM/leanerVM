@@ -168,6 +168,60 @@ def counts : (j : Fin 9) → List (Fin (width j))
   | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ => []
   | ⟨j + 3, h⟩ => (opcodeTable ⟨j, by omega⟩).count
 
+/-! ### The tables' polynomials, compiled
+
+`constraints`, `flushes` and `counts` convert an opcode table's Clean component on every call.
+Their compiled versions name each table by a literal, so that each table's polynomials are a
+closed term the compiler computes once. -/
+
+/-- `constraints`, one literal case per table. -/
+def constraintsFast : (j : Fin 9) → List (CMvPolynomial (width j) K)
+  | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ => []
+  | ⟨3, _⟩ => (opcodeTable 0).constraints
+  | ⟨4, _⟩ => (opcodeTable 1).constraints
+  | ⟨5, _⟩ => (opcodeTable 2).constraints
+  | ⟨6, _⟩ => (opcodeTable 3).constraints
+  | ⟨7, _⟩ => (opcodeTable 4).constraints
+  | ⟨8, _⟩ => (opcodeTable 5).constraints
+  | ⟨_ + 9, h⟩ => absurd h (by omega)
+
+/-- Compiled code computes each table's constraints once. -/
+@[csimp] theorem constraints_eq_constraintsFast : @constraints = @constraintsFast := by
+  funext j
+  fin_cases j <;> rfl
+
+/-- `flushes`, one literal case per table. -/
+def flushesFast : (j : Fin 9) → List (Side × Vector (CMvPolynomial (width j) K) 16)
+  | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ => []
+  | ⟨3, _⟩ => (opcodeTable 0).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨4, _⟩ => (opcodeTable 1).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨5, _⟩ => (opcodeTable 2).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨6, _⟩ => (opcodeTable 3).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨7, _⟩ => (opcodeTable 4).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨8, _⟩ => (opcodeTable 5).flushes.map fun f ↦ (sideOf f.1, f.2)
+  | ⟨_ + 9, h⟩ => absurd h (by omega)
+
+/-- Compiled code computes each table's flushes once. -/
+@[csimp] theorem flushes_eq_flushesFast : @flushes = @flushesFast := by
+  funext j
+  fin_cases j <;> rfl
+
+/-- `counts`, one literal case per table. -/
+def countsFast : (j : Fin 9) → List (Fin (width j))
+  | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ => []
+  | ⟨3, _⟩ => (opcodeTable 0).count
+  | ⟨4, _⟩ => (opcodeTable 1).count
+  | ⟨5, _⟩ => (opcodeTable 2).count
+  | ⟨6, _⟩ => (opcodeTable 3).count
+  | ⟨7, _⟩ => (opcodeTable 4).count
+  | ⟨8, _⟩ => (opcodeTable 5).count
+  | ⟨_ + 9, h⟩ => absurd h (by omega)
+
+/-- Compiled code computes each table's count columns once. -/
+@[csimp] theorem counts_eq_countsFast : @counts = @countsFast := by
+  funext j
+  fin_cases j <;> rfl
+
 /-- Every assert expression of an opcode table has syntactic degree at most two. -/
 theorem opcode_constraints_degreeBound :
     ∀ j : Fin 6, ∀ e ∈ (opcodeComponent j).rowOperations.constraints, e.degreeBound ≤ 2 := by
@@ -264,6 +318,30 @@ def blocks : Blocks where
   size b := kappa prog s (stackOrder prog s)[b]
   descending := stackOrder_antitone prog s
 
+/-- The heights of the blocks, in stacking order, as an array. -/
+def blockSizes : Array ℕ := (stackOrder prog s).toArray.map (kappa prog s)
+
+/-- The array holds the blocks' heights. -/
+theorem getD_blockSizes (b : Fin (stackOrder prog s).length) :
+    (blockSizes prog s).getD b.val 0 = kappa prog s (stackOrder prog s)[b] := by
+  simp [blockSizes, Array.getD_eq_getD_getElem?]
+
+/-- `blocks` with the heights read off an array, where `blocks` walks the stacking order for
+every height. -/
+def blocksFast : Blocks :=
+  let bs := blockSizes prog s
+  { n := (stackOrder prog s).length
+    size := fun b ↦ bs.getD b.val 0
+    descending := fun a b h ↦ by
+      simp only [bs, getD_blockSizes]
+      exact stackOrder_antitone prog s h }
+
+/-- Compiled code reads the blocks' heights off an array. -/
+@[csimp] theorem blocks_eq_blocksFast : @blocks = @blocksFast := by
+  funext prog s
+  unfold blocks blocksFast
+  simp only [getD_blockSizes]
+
 /-- The minimum stacked size, `MIN_MU` (`pcs.rs:49`). -/
 def minMu : ℕ := 15
 
@@ -325,6 +403,50 @@ def layout (slot : Fin 18 → Fin 256) : Layout (leanIsaμ prog s) Col (kappa pr
     ((blocks prog s).stridedLayout (blocks_fits prog s) (flockBlock prog s) 8 slot
       (κ := fun _ ↦ s.τ 5) fun _ ↦ size_flockBlock prog s)).comap (route prog s)
     (route_kappa prog s)
+
+/-- Every committed column's place in the stacking order, table by table: what `blockOf`
+computes. -/
+def positions : Vector (Array ℕ) 9 :=
+  let order := stackOrder prog s
+  Vector.ofFn fun j ↦ Array.ofFn fun i : Fin (width j) ↦ order.idxOf ⟨j, i⟩
+
+/-- The table holds every column's place in the stacking order. -/
+theorem positions_getD (c : Col) :
+    (positions prog s)[c.1].getD c.2.val 0 = (stackOrder prog s).idxOf c := by
+  obtain ⟨j, i⟩ := c
+  simp [positions, Array.getD_eq_getD_getElem?]
+
+/-- `route`, the places read off `positions`. -/
+def routeWith (pos : Vector (Array ℕ) 9) (hpos : pos = positions prog s) (c : Col) :
+    Fin (blocks prog s).n ⊕ Fin 18 :=
+  if h : IsLimb c then .inr ⟨c.2.val - 9, by have := h.2.2; omega⟩ else
+    .inl ⟨pos[c.1].getD c.2.val 0, by
+      rw [hpos, positions_getD]
+      exact List.idxOf_lt_length_of_mem (List.mem_mergeSort.mpr (mem_committedColumns h))⟩
+
+/-- Read off `positions`, the route is `route`. -/
+theorem routeWith_eq (pos : Vector (Array ℕ) 9) (hpos : pos = positions prog s) :
+    routeWith prog s pos hpos = route prog s := by
+  funext c
+  unfold routeWith route blockOf
+  split_ifs with h
+  · rfl
+  · exact congrArg Sum.inl (Fin.ext (by simp only [hpos, positions_getD]))
+
+/-- `layout` with every column's place in the stacking order computed once, where `route` sorts
+the committed columns again on every lift. -/
+def layoutFast (slot : Fin 18 → Fin 256) : Layout (leanIsaμ prog s) Col (kappa prog s) :=
+  let pos := positions prog s
+  (((blocks prog s).layout (blocks_fits prog s)).piecewise
+    ((blocks prog s).stridedLayout (blocks_fits prog s) (flockBlock prog s) 8 slot
+      (κ := fun _ ↦ s.τ 5) fun _ ↦ size_flockBlock prog s)).comap (routeWith prog s pos rfl)
+    (by rw [routeWith_eq]; exact route_kappa prog s)
+
+/-- Compiled code places the committed columns once per layout. -/
+@[csimp] theorem layout_eq_layoutFast : @layout = @layoutFast := by
+  funext prog s slot
+  unfold layout layoutFast
+  simp only [routeWith_eq]
 
 /-! ## The bus -/
 
@@ -531,6 +653,26 @@ def memRowCell : Fin 4 → ℕ := ![2, 3, 4, 1]
 def blake2sLimbs (w : EnsembleWitness (leanIsaEnsemble prog)) : Vector (Fin 18 → K) (2 ^ s.τ 5) :=
   Vector.ofFn fun x ↦ fun k ↦ cellOf (tableAt w 5) x (9 + k)
 
+/-- Cell `i` of row `x` of rows held in an array, `0` when missing. -/
+def cellOfRows (rows : Array (Array K)) (x i : ℕ) : K := ((rows[x]?).bind (·[i]?)).getD 0
+
+/-- A table's cell, read off its rows as an array. -/
+theorem cellOf_eq_cellOfRows (t : Air.Flat.Table K) (x i : ℕ) :
+    cellOf t x i = cellOfRows t.table.toArray x i := by
+  simp [cellOf, cellOfRows]
+
+/-- `blake2sLimbs` with the rows read as an array once, where `cellOf` walks the list of rows
+for every cell. -/
+def blake2sLimbsFast (w : EnsembleWitness (leanIsaEnsemble prog)) :
+    Vector (Fin 18 → K) (2 ^ s.τ 5) :=
+  let rows := (tableAt w 5).table.toArray
+  Vector.ofFn fun x ↦ fun k ↦ cellOfRows rows x (9 + k)
+
+/-- Compiled code reads the limbs off an array of rows. -/
+@[csimp] theorem blake2sLimbs_eq_blake2sLimbsFast : @blake2sLimbs = @blake2sLimbsFast := by
+  funext prog s w
+  simp only [blake2sLimbs, blake2sLimbsFast, cellOf_eq_cellOfRows]
+
 /-- The column `c` a witness carries: the memory and bytecode blocks' committed cells, `F.gen` of
 the `BLAKE2S` limbs as the Flock region, the opcode tables' cells. -/
 def witnessColumn (w : EnsembleWitness (leanIsaEnsemble prog)) :
@@ -539,6 +681,28 @@ def witnessColumn (w : EnsembleWitness (leanIsaEnsemble prog)) :
   | ⟨⟨1, _⟩, _⟩ => Vector.ofFn fun x ↦ cellOf (tableAt w 7) x 1
   | ⟨⟨2, _⟩, _⟩ => (F.gen (blake2sLimbs prog s w)).values
   | ⟨⟨j + 3, h⟩, i⟩ => Vector.ofFn fun x ↦ cellOf (tableAt w ⟨j, by omega⟩) x i
+
+/-- `witnessColumn` with each table's rows read as an array once, where `cellOf` walks the list
+of rows for every cell. -/
+def witnessColumnFast (w : EnsembleWitness (leanIsaEnsemble prog)) :
+    (c : Col) → Vector K (2 ^ kappa prog s c)
+  | ⟨⟨0, _⟩, i⟩ =>
+    let rows := (tableAt w 6).table.toArray
+    Vector.ofFn fun x ↦ cellOfRows rows x (memRowCell i)
+  | ⟨⟨1, _⟩, _⟩ =>
+    let rows := (tableAt w 7).table.toArray
+    Vector.ofFn fun x ↦ cellOfRows rows x 1
+  | ⟨⟨2, _⟩, _⟩ => (F.gen (blake2sLimbs prog s w)).values
+  | ⟨⟨j + 3, h⟩, i⟩ =>
+    let rows := (tableAt w ⟨j, by omega⟩).table.toArray
+    Vector.ofFn fun x ↦ cellOfRows rows x i
+
+/-- Compiled code reads a witness's columns off arrays of rows. -/
+@[csimp] theorem witnessColumn_eq_witnessColumnFast : @witnessColumn = @witnessColumnFast := by
+  funext F prog s w c
+  obtain ⟨⟨j, hj⟩, i⟩ := c
+  rcases j with _ | _ | _ | j <;>
+    (simp only [witnessColumn, witnessColumnFast, cellOf_eq_cellOfRows]; try rfl)
 
 /-- The stack of a witness at the sizes `s`: its committed columns at their blocks, zero past
 the last. -/

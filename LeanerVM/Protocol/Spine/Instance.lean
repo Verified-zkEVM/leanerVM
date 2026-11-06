@@ -11,6 +11,7 @@ public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 public import LeanerVM.Protocol.ToArkLib.Oracles
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.MvEval
 public import CompPoly.Multivariate.Basic
 
 /-!
@@ -80,6 +81,23 @@ of the stack at the cube point the lift sends `x` to. -/
 def Layout.readWith {μ : ℕ} {ι : Type} {κ : ι → ℕ}
     (extend : (c : ι) → Vector E (κ c) → Vector E μ) (q : Column μ) (c : ι) : Column (κ c) :=
   ⟨Vector.ofFn fun x ↦ q.values.get (boolIndex (extend c (boolVec x)))⟩
+
+/-! ### Reading a column, compiled
+
+A generic `boolVec` or `boolIndex` over `E` builds `1 : E`, and `boolVec` `0 : E`, again for
+every coordinate. `Layout.readWithFast` goes through `boolVecE` and `boolIndexE`
+(`LeanerVM.Protocol.Field`), which read the two words off constants computed once;
+`Layout.readWith_eq_readWithFast` is a `@[csimp]` theorem. -/
+
+/-- `Layout.readWith` through `boolVecE` and `boolIndexE`. -/
+def Layout.readWithFast {μ : ℕ} {ι : Type} {κ : ι → ℕ}
+    (extend : (c : ι) → Vector E (κ c) → Vector E μ) (q : Column μ) (c : ι) : Column (κ c) :=
+  ⟨Vector.ofFn fun x ↦ q.values.get (boolIndexE (extend c (boolVecE x)))⟩
+
+/-- Compiled code reads a column with the words `0` and `1` computed once. -/
+@[csimp] theorem Layout.readWith_eq_readWithFast : @Layout.readWith = @Layout.readWithFast := by
+  funext μ ι κ extend q c
+  simp only [Layout.readWith, Layout.readWithFast, boolVecE_eq, boolIndexE_eq]
 
 /-- How a point of a column of height `2 ^ κ c` lifts to a point of the stack of height `2 ^ μ`
 (for an aligned block at selector bits `sel`, `extend c z = (z, sel)`; for a strided slot, the
@@ -219,6 +237,17 @@ def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read
 /-- Row `x` of table `j`, read off the stack. -/
 def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
   fun i ↦ (I.column q ⟨j, i⟩).values.get x
+
+/-- Row `x` of table `j`, each cell read off the stack alone, where `row` reads the whole column
+of each cell. -/
+def rowFast (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
+  fun i ↦ q.values.get (boolIndexE (I.layout.extend ⟨j, i⟩ (boolVecE x)))
+
+/-- Compiled code reads a row cell by cell. -/
+@[csimp] theorem row_eq_rowFast : @row = @rowFast := by
+  funext I q j x i
+  simp only [row, rowFast, column, Layout.read, Layout.readWith, Vector.get_ofFn, boolVecE_eq,
+    boolIndexE_eq]
 
 /-- The value of a boundary coordinate at row `x` of its block. -/
 def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ) → K

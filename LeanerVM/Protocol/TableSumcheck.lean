@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.Batch
 public import LeanerVM.Protocol.ToArkLib.Sumcheck
+public import LeanerVM.Protocol.ToCompPoly.MvEval
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import Mathlib.Algebra.BigOperators.Fin
 
@@ -59,6 +60,11 @@ same bound, is at the slot's error: `(B + 2)/|E|` on `ξ`, since a false claim a
 batched survives only at a root of a nonzero polynomial of degree at most `B + 2` in `ξ`, the
 true values being fixed before it (`trueValues`); `3/|E|` on each round's challenge; nothing on
 the final values, which the table seam determines (`finalClaims_holds_iff`).
+
+Compiled code evaluates the formula as `formulaFast` (`formula_eq_formulaFast`, a `@[csimp]`
+theorem): offsets per table instead of `position` per read, the powers of `ξ` by Horner's rule,
+and no evaluation of a table whose weight is zero at the point. The rounds' messages are
+`Sumcheck.roundPolyFolded`'s.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
 the order of the final values are checked against `crates/lean_vm/src/cpu/mod.rs:404-441,
@@ -170,6 +176,98 @@ table by table, the multilinear weight of its coordinates times what it owes. -/
 def formula (x : Data I) (z : Vector E I.τmax) (v : Vector E I.tableColumns) : E :=
   ∑ t : I.SumcheckTables,
     prodWeight (tableWeights I x.1.2.point t) z * rowValue I x t (tableValues I v t)
+
+/-! ## The formula, as the compiled prover evaluates it
+
+The prover evaluates the formula at every point of every round. The compiled code runs
+`formulaFast` instead, through the `@[csimp]` theorem `formula_eq_formulaFast`: the positions of a
+table's columns and constraints are its offset plus the index (`offsetBefore`, `position_val'`),
+computed once per table rather than through `position` per read; the powers of `ξ` are Horner's
+rule after one power per table (`rowValueFast`); the weight of a table's coordinates is a loop
+that reads a Boolean coordinate's factor off without a product (`prodWeightFast`), and a table
+whose weight is zero at the point, a padding coordinate at `0`, is not evaluated. -/
+
+/-- The number of items of the sumcheck tables before table `t`, for a family of sizes. -/
+def offsetBefore (f : Fin I.ntab → ℕ) (t : Fin I.ntab) : ℕ :=
+  sumFin fun j : Fin t.val ↦ onSumcheck I f (Fin.castLE t.isLt.le j)
+
+/-- Item `i` of table `t` is at the table's offset plus `i`. -/
+theorem position_val' (f : Fin I.ntab → ℕ) (t : I.SumcheckTables) (i : Fin (f t.1)) :
+    (position I f ⟨t, i⟩ : ℕ) = offsetBefore I f t.1 + i := by
+  rw [position_val, offsetBefore, sumFin_eq_sum]
+
+/-- `rowValue` with the powers of `ξ` by Horner's rule after one power per table, `ξB` standing
+for `ξ ^ B`, which the tables share. -/
+def rowValueFast (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.1) → E) (ξB : E) : E :=
+  x.2 ^ offsetBefore I (fun j ↦ (I.constraints j).length) t.1 *
+      hornerFin (fun i : Fin (I.constraints t.1).length ↦ evalRow (I.constraints t.1)[i] e) x.2 +
+    ξB * hornerFin (fun s : Fin 3 ↦ formAt (x.1.2.forms s t) e) x.2
+
+theorem rowValueFast_eq (x : Data I) (t : I.SumcheckTables) (e : Fin (I.width t.1) → E) :
+    rowValueFast I x t e (x.2 ^ I.B) = rowValue I x t e := by
+  rw [rowValueFast, rowValue, hornerFin_eq_sum, hornerFin_eq_sum, Finset.mul_sum, Finset.mul_sum]
+  refine congrArg₂ (· + ·) ?_ ?_
+  · refine Finset.sum_congr rfl fun i _ ↦ ?_
+    have hp : (constraintPos I ⟨t, i⟩ : ℕ) =
+        offsetBefore I (fun j ↦ (I.constraints j).length) t.1 + i :=
+      position_val' I (fun j ↦ (I.constraints j).length) t i
+    rw [hp]
+    ring
+  · exact Finset.sum_congr rfl fun s _ ↦ by ring
+
+/-- A column's position through the table's offset is in range. -/
+theorem offset_add_lt (t : I.SumcheckTables) (i : Fin (I.width t.1)) :
+    offsetBefore I I.width t.1 + i < I.tableColumns := by
+  rw [← position_val']
+  exact (columnPos I ⟨t, i⟩).isLt
+
+/-- The formula as the compiled prover evaluates it. -/
+def formulaFast (x : Data I) (z : Vector E I.τmax) (v : Vector E I.tableColumns) : E :=
+  let ξB := x.2 ^ I.B
+  sumFin fun j : Fin I.ntab ↦
+    if h : I.SumcheckTable j then
+      let w := prodWeightFast (tableWeights I x.1.2.point ⟨j, h⟩) z
+      if w == 0 then 0
+      else
+        let off := offsetBefore I I.width j
+        w * rowValueFast I x ⟨j, h⟩ (fun i ↦ v[off + i]'(offset_add_lt I ⟨j, h⟩ i)) ξB
+    else 0
+
+/-- The formula as the compiled prover evaluates it is the formula. -/
+@[csimp] theorem formula_eq_formulaFast : @formula = @formulaFast := by
+  funext I x z v
+  have hv : ∀ t : I.SumcheckTables,
+      (fun i : Fin (I.width t.1) ↦ v[offsetBefore I I.width t.1 + i]'(offset_add_lt I t i)) =
+        tableValues I v t := fun t ↦ by
+    funext i
+    simp only [tableValues, Fin.getElem_fin]
+    congr 1
+    exact (position_val' I I.width t i).symm
+  have hterm : ∀ t : I.SumcheckTables,
+      (let w := prodWeightFast (tableWeights I x.1.2.point t) z
+        if w == 0 then 0
+        else
+          let off := offsetBefore I I.width t.1
+          w * rowValueFast I x t (fun i ↦ v[off + i]'(offset_add_lt I t i)) (x.2 ^ I.B)) =
+        prodWeight (tableWeights I x.1.2.point t) z * rowValue I x t (tableValues I v t) := by
+    intro t
+    simp only [prodWeightFast_eq]
+    split
+    next h => rw [beq_iff_eq.mp h, zero_mul]
+    next => rw [hv, rowValueFast_eq]
+  let g : Fin I.ntab → E := fun j ↦ if h : I.SumcheckTable j then
+    prodWeight (tableWeights I x.1.2.point ⟨j, h⟩) z *
+      rowValue I x ⟨j, h⟩ (tableValues I v ⟨j, h⟩) else 0
+  have hg : ∀ t : I.SumcheckTables,
+      prodWeight (tableWeights I x.1.2.point t) z * rowValue I x t (tableValues I v t) =
+        g t.1 := fun t ↦ by simp only [g, t.2, dite_true]
+  rw [formula, formulaFast, sumFin_eq_sum]
+  simp only [hterm]
+  rw [Finset.sum_congr rfl fun t _ ↦ hg t,
+    ← Finset.sum_subtype (Finset.univ.filter I.SumcheckTable) (fun j ↦ by simp) g,
+    Finset.sum_filter]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  by_cases h : I.SumcheckTable j <;> simp only [h, ite_true, ite_false, g, dite_false]
 
 /-- The virtual polynomial of the table sumcheck: the sumcheck tables' columns and the formula. -/
 def tableSummand : Sumcheck.Virtual E (Data I) (TheOracle I) Unit I.τmax I.tableColumns where

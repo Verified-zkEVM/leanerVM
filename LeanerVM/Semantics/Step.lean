@@ -7,6 +7,7 @@
 module
 
 public import LeanerVM.Semantics.Blake2s
+public import LeanerVM.Semantics.Blake2sFast
 public import LeanerVM.Semantics.Instruction
 
 /-!

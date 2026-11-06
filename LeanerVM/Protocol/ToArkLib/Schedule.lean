@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.Component
+public import LeanerVM.Protocol.ToArkLib.AppendLazy
 
 /-!
 # Schedules and their errors
@@ -40,7 +41,8 @@ per combination challenge; `stepsError`, `oddError` and `gkrError C u nside μ` 
 Instance search finds ArkLib's instances for the messages and challenges of two schedules side
 by side only when the left schedule is not a literal (a literal's type vector reduces under the
 appending, and the instance no longer matches), so every appended schedule declares its own by
-applying ArkLib's by name (`msgAppend`, `chalAppend`). A one-message schedule writes its
+applying ArkLib's by name (`msgAppend`, `chalAppend`); compiled code reads them through the
+lazy forms of `LeanerVM.Protocol.ToArkLib.AppendLazy`. A one-message schedule writes its
 direction as a function, not as ArkLib's one-message literal, whose message interface is the
 message type's own; here it is the trivial one, and the two must not be confused by instance
 search.

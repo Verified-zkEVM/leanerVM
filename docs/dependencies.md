@@ -19,6 +19,11 @@ dependency files automatically. The leanVM pin names the exact behavior being fo
 tested even though its branch is monitored for drift. See
 [leanvm-target.md](leanvm-target.md) before updating it.
 
+A `lakefile.toml` change that adds or edits a first-party target (a `[[lean_lib]]` or
+`[[lean_exe]]` over this repository's sources, such as `LeanerVMBench` and `leanervm-bench`) is not
+a dependency change and needs none of the review below; see
+[development.md](development.md#benchmarks).
+
 Add a dependency only with a named first-party use and a narrow import. A dependency PR must:
 
 1. update the toolchain/Lake requirement, `upstreams.json`, and manifest together;
@@ -26,9 +31,9 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 3. review API changes used by theorem statements;
 4. audit the first-party namespace's transitive kernel dependencies;
 5. record semantic changes separately from mechanical porting; and
-6. delete every `LeanerVM/Protocol/To*/` file or declaration that the new pin contains, move its
-   consumers to the upstream names, and update the protocol blueprint's upstream ledger and the
-   status page's watch list.
+6. delete every `LeanerVM/Protocol/To*/` and `LeanerVM/Parameters/To*/` file or declaration that
+   the new pin contains, move its consumers to the upstream names, and update the protocol
+   blueprint's upstream ledger and the status page's watch list.
 
 ## Lean 4.34 port review
 

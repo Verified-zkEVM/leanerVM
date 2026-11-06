@@ -8,6 +8,8 @@
 module
 
 public import CompPoly.Fields.Binary.BF64
+public import LeanerVM.Parameters.ToCompPoly.BF64Fast
+public import LeanerVM.Parameters.ToCompPoly.ExtensionFast
 import Mathlib.Tactic.LinearCombination
 
 /-!
@@ -50,6 +52,13 @@ kernel reduces `K` arithmetic, `E.ofLimbs`, `E.limb`, and the two predicates on 
 `@[expose]`d, and a `module` importer sees only exposed bodies. Executable checks of those go
 through compiled evaluation (`#guard` under `meta import`), and any later-layer plan to decide an
 execution by `decide` depends on CompPoly or core lifting this.
+
+## Compiled arithmetic
+
+The two imports under `LeanerVM.Parameters.ToCompPoly` change no definition: their `@[csimp]`
+theorems make every module compiled after this one run `K` arithmetic on machine words and `E`
+products by Karatsuba (`LeanerVM.Parameters.ToCompPoly.BF64Fast`,
+`LeanerVM.Parameters.ToCompPoly.ExtensionFast`). The kernel never sees them.
 
 ## Clean's field interface
 

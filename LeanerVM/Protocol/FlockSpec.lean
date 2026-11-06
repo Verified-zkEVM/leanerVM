@@ -11,6 +11,7 @@ module
 
 public import LeanerVM.Protocol.Blake2sCircuit
 public import LeanerVM.Protocol.Spine.Instance
+public import LeanerVM.Protocol.FlockWalks
 
 /-!
 # The Flock specification and its BLAKE2s inhabitant
@@ -33,16 +34,18 @@ A `FlockSpec` says what that predicate means, with no instance in sight:
 * `slots_gen`: the column carries every row that is a compression at its block's slots.
 
 `compress_of_region`, `region_holds_gen`: the two directions for a Flock region whose matrices
-are the specification's, whatever walks it evaluates them by. The inhabitant's `r1cs` carries the
-naive walks of `ProductCircuit.toBlockR1CS`, which sum `2 ^ 28` entries and do not run at
-leanVM's size; a region with fast walks of the same matrices inherits both directions through
-these two theorems.
+are the specification's, whatever walks it evaluates them by.
 
 `blake2sFlockSpec` is the inhabitant: the R1CS of `blake2sCircuit` and the deployed slots
 (Category B: `crates/lean_vm/src/hash_flock.rs:83-115` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`, `SLOTS` in the order of
 `tables::BLAKE2S_VALUE_COLS`); its generator places each row's input limbs at their slots and
-runs the circuit's trace.
+runs the circuit's trace. Its R1CS has the matrices of `ProductCircuit.toBlockR1CS` with the walks
+on words (`ProductCircuit.toBlockR1CSE`, equal to it by `toBlockR1CSE_eq`): the naive walks sum
+`2 ^ 28` entries and do not run at leanVM's size. Compiled code runs the generator as
+`genColumnFast`, by the `@[csimp]` theorem `genColumn_eq_genColumnFast`, registered before the
+inhabitant is: the circuit compiled once (`ProductCircuit.compile`), each block traced on its
+64-bit words (`Compiled.traceW`), the cells read off the words (`cellOfW`).
 -/
 
 namespace LeanerVM.Protocol
@@ -427,14 +430,53 @@ theorem slots_gen (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ))
 
 end Completeness
 
-/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, the deployed
-slots, and the honest column of the circuit's traces. -/
+/-! ### The honest column, compiled -/
+
+section Compiled
+
+variable {κ : ℕ}
+
+/-- Cell `s` of a block given by its words: word `s`. -/
+def cellOfW (zw : Array UInt64) (s : Fin 256) : K := BF64.ofBitVec (zw.getD s 0).toBitVec
+
+/-- A cell of a bitset is the word of the words that hold it. -/
+theorem packCell_of_rep {zw : Array UInt64} {z : Form m} (h : Rep zw z) (s : Fin 256) :
+    packCell z s = cellOfW zw s := by
+  rw [packCell, cellOfW]
+  congr 1
+  apply BitVec.eq_of_getLsbD_eq
+  intro c hc
+  have hs := s.isLt
+  have hj : 64 * s.val + c < 64 * nWords m := by show _ < 64 * 256; omega
+  rw [BitVec.getLsbD_extractLsb', decide_eq_true hc, Bool.true_and, ← h.2 _ hj,
+    show (64 * s.val + c) / 64 = s.val by omega, show (64 * s.val + c) % 64 = c by omega]
+
+/-- The honest column, as compiled code computes it: the circuit compiled once, each block traced
+on its words, the cells read off the words. -/
+def genColumnFast (rows : Vector (Fin 18 → K) (2 ^ κ)) : Column (8 + κ) :=
+  let pc := compile (blake2sCircuit : ProductCircuit m)
+  let blocks : Vector (Array UInt64) (2 ^ κ) := rows.map fun l ↦ pc.traceW (inputForm l)
+  ⟨Vector.ofFn fun u ↦ cellOfW blocks[((cubeSplit 8 κ).symm u).2] ((cubeSplit 8 κ).symm u).1⟩
+
+/-- The compiled column is the honest column. -/
+@[csimp] theorem genColumn_eq_genColumnFast : @genColumn = @genColumnFast := by
+  funext κ rows
+  simp only [genColumn, genColumnFast, columnOf]
+  congr 2
+  funext u
+  simp only [Fin.getElem_fin, Vector.getElem_map, honestBlock]
+  exact packCell_of_rep (rep_traceW _ _) _
+
+end Compiled
+
+/-- The BLAKE2s inhabitant of the Flock specification: the R1CS of `blake2sCircuit`, its walks on
+words, the deployed slots, and the honest column of the circuit's traces. -/
 def blake2sFlockSpec : FlockSpec where
-  r1cs := blake2sCircuit.toBlockR1CS E
+  r1cs := blake2sCircuit.toBlockR1CSE
   slot := slots
-  compress_of_holds := compress_of_holds
+  compress_of_holds := fun c h ↦ compress_of_holds c (by rwa [toBlockR1CSE_eq] at h)
   gen := genColumn
-  holds_gen := holds_gen
+  holds_gen := fun rows ↦ by rw [toBlockR1CSE_eq]; exact holds_gen rows
   slots_gen := slots_gen
 
 end Blake2sFlock
