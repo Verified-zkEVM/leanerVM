@@ -236,7 +236,8 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
     (hs : StepSound rd σ W f) (hpow : ∀ s < 10, σ (W.power s) = gen ^ s) {G : Nat} (hG : 0 < G)
     (hG21 : G ≤ 21) {b : Nat}
     (hgrp : ∀ p ≤ G, ∃ k < 4 ^ cwN G p, σ (.n (cwState W b p).2.2) = ofK (addressOfIndex k) ∧
-        AtomsHold rd σ (cwArm W G b p k).1) :
+        AtomsHold rd σ (cwArm W G b p k).1)
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
       (∀ i < 3 * G + 1, cwDigit W G b σ i < 4 ∧
         σ (cwTip W b i) = chainT f i (3 - cwDigit W G b σ i) (cwDigit W G b σ i)
           (σ (cwStart W G b σ i))) ∧
@@ -328,12 +329,14 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
       induction p with
       | zero =>
           have := (harm 0 (by omega)).enc
+          rw [hE] at this
           simp only [cwN, hp, ↓reduceIte, beq_self_eq_true] at this
           simp only [beq_self_eq_true]
           rw [this, zero_add, lit_eq _ (group_lit_bound (hK64 0 hp) (by omega))]
           simp
       | succ p ih =>
           have := (harm (p + 1) (by omega)).enc
+          rw [hE] at this
           simp only [cwN, hp, ↓reduceIte, Nat.add_one_ne_zero, beq_iff_eq] at this
           have hlt := sum_lt_pow64 K' hK' (p + 1)
           rw [hsum (p + 1) (by omega)] at hlt
@@ -343,6 +346,7 @@ theorem codeword_vals {W : WotsT} {f : Nat → Nat → E → E}
           rw [ih (by omega), show K (p + 1) * 4 ^ (3 * (p + 1)) = 2 ^ (6 * (p + 1)) * K (p + 1) by
             rw [h4, mul_comm], eOfNat192_add_shift hlt]
     have hlast := (harm G le_rfl).enc
+    rw [hE] at hlast
     simp only [cwN, lt_irrefl, ↓reduceIte, show (G == 0) = false by simp; omega,
       Bool.false_eq_true] at hlast
     rw [hlast]
@@ -386,7 +390,8 @@ cell is their base-4 number. -/
 theorem codewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E → E}
     (hs : StepSound rd σ W f) (hpow : ∀ s < 10, σ (W.power s) = gen ^ s) {G : Nat} (hG : 0 < G)
     (hG21 : G ≤ 21) {target : E} {d0 : V} {b : Nat} {rest : List Stmt} {next : Prop}
-    (h : Stmt.HoldsList C rd σ ((codewordT W G target d0 b).1 ++ rest) next kret) :
+    (h : Stmt.HoldsList C rd σ ((codewordT W G target d0 b).1 ++ rest) next kret)
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Stmt.HoldsList C rd σ rest next kret ∧
       (∀ i < 3 * G + 1, cwDigit W G b σ i < 4 ∧
         σ (cwTip W b i) = chainT f i (3 - cwDigit W G b σ i) (cwDigit W G b σ i)
@@ -394,7 +399,7 @@ theorem codewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E �
       gen ^ (∑ i ∈ Finset.range (3 * G + 1), cwDigit W G b σ i) = target ∧
       σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), cwDigit W G b σ i * 4 ^ i) := by
   obtain ⟨hrest, hgrp, hd0, hprod⟩ := codewordT_groups hW hG h
-  obtain ⟨ht, hp, he⟩ := codeword_vals hs hpow hG hG21 hgrp
+  obtain ⟨ht, hp, he⟩ := codeword_vals hs hpow hG hG21 hgrp hE
   exact ⟨hrest, ht, hp.symm.trans hprod, hd0.trans he⟩
 
 theorem map_range_three_mul {α : Type} (g : Nat → α) :

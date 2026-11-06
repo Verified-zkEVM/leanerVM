@@ -48,6 +48,12 @@ structure WotsT where
   size : Nat
   /-- The cell holding `g^s`. -/
   power : Nat → V
+  /-- The constant arm `k` of a group of `n` digits from digit `first` adds to the encoding: by
+  default the base-4 number `k·4^first` (leanXMSS's, low digit first); leanSPHINCS's places each
+  digit most significant first in its byte (`base_2b`). -/
+  enc : Nat → Nat → Nat → Nat := fun first _ k => k * 4 ^ first
+  /-- Arm `0` adds nothing (it copies the running encoding). -/
+  enc_zero : ∀ first n, enc first n 0 = 0 := by intros; simp
 
 /-- Chain `i`'s walk from digit `d` (`walk`). -/
 def walkT (W : WotsT) (i : Nat) (slot : Nat → Nat) (stride d b : Nat) : List Stmt :=
@@ -78,7 +84,7 @@ def armT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
   let prod := if fold then copyS prodOut (W.power (digitSum k n))
     else mulS prodOut prodIn (W.power (digitSum k n))
   if k = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
-  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (k * 4 ^ first)), addS encOut enc0 (.n ws.2)], ws.2 + 1)
+  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (W.enc first n k)), addS encOut enc0 (.n ws.2)], ws.2 + 1)
 
 /-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/
 def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
