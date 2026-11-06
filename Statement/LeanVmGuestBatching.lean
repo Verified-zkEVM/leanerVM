@@ -9,11 +9,11 @@ The batching program `LeanVmGuest.lean`'s `DeferredClaimBatched` runs, transcrib
 node defers on the guest program's bytecode (`DeferredClaim`), what a node knows of each child
 (`ChildClaims`), and the batching of the children's deferred claims as a program of the verifier's
 language (`Batch.nodeBatchingProgram`). Reference material: a first reading takes the program as
-the batching of `aggregation.rs` and looks things up here.
+the batching of `aggregation/deferred.rs` and looks things up here.
 
-Transcribed from leanVM at the pin (`../leanvm-rev`): `crates/rec_aggregation/src/aggregation.rs`
-and `crates/rec_aggregation/guests/lean_ethereum.py`; `aggregation.rs:N` and `lean_ethereum.py:N`
-are lines of those files at the pin.
+Transcribed from leanVM at the pin (`../leanvm-rev`): the modules of
+`crates/rec_aggregation/src/aggregation/` and `crates/rec_aggregation/guests/lean_ethereum.py`;
+`aggregation/<module>.rs:N` and `lean_ethereum.py:N` are lines of those files at the pin.
 -/
 
 @[expose] public section
@@ -26,25 +26,25 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-! ## The deferred claim -/
 
 /-- The claim a statement defers on the stacked bytecode: its value at a point (`DeferredClaim`,
-`aggregation.rs:227-230`), the shape of a proof's claim (`BytecodeClaim`). -/
+`aggregation/deferred.rs:29-32`), the shape of a proof's claim (`BytecodeClaim`). -/
 abbrev DeferredClaim : Type := BytecodeClaim
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
-exported as: the point, then the value (`DeferredClaim::cells`, `aggregation.rs:282-286`; the guest
-program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3512-3517`). -/
+exported as: the point, then the value (`DeferredClaim::cells`, `aggregation/deferred.rs:84-88`; the
+guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py:3542-3547`). -/
 def DeferredClaim.cells (claim : DeferredClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-! ## The batching program
 
-The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4585-4689`;
-`aggregate_deferred_claims`, `aggregation.rs:832-940`), as a program of the verifier's language
-(`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the count `n`
-as `g^n`, then each child's words, each padded with zeros to a whole rate), then one challenge,
-whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds (`sumcheckRoundsProgram`) and
-the final value, accepted if the final claim is the value times the batched weight and the deferred
-claim meets a check (`batchingAfterChildren`); run from the batching transcript's seed
-(`runBatching`). -/
+The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py:4692-4796`;
+`aggregate_deferred_claims`, `aggregation/deferred.rs:244-352`), as a program of the verifier's
+language (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the
+count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then one
+challenge, whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds
+(`sumcheckRoundsProgram`) and the final value, accepted if the final claim is the value times the
+batched weight and the deferred claim meets a check (`batchingAfterChildren`); run from the batching
+transcript's seed (`runBatching`). -/
 
 /-- What a node knows of one child: the child's public input, the claim its proof makes
 (`freshClaim`), and the claim its statement defers (`carriedClaim`). -/
@@ -70,7 +70,7 @@ structure BatchingHints where
   /-- The bytecode's value at the sumcheck's final point. -/
   finalBytecodeValue : E
 
-/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation.rs:72`). -/
+/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation/deferred.rs:13`). -/
 def batchingLabel : List UInt8 := "leanvm/recursion-aggregation/v1".toUTF8.toList
 
 end LeanVM.Node
@@ -84,12 +84,12 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateScalars) % rateScalars
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation.rs:843-847`; `AGG_CHILD_PAD`). -/
+`aggregation/deferred.rs:255-259`; `AGG_CHILD_PAD`). -/
 def _root_.LeanVM.Node.padToRate (words : List E) : List E :=
   words ++ List.replicate (zerosToWholeRate words.length) 0
 
 /-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh
-claim and its carried one (`lean_ethereum.py:4647-4661`, `aggregation.rs:863-867`). -/
+claim and its carried one (`lean_ethereum.py:4754-4768`, `aggregation/deferred.rs:275-279`). -/
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 
@@ -159,7 +159,7 @@ noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredClaim → Pr
 
 /-- **The batching transcript run**, over a permutation `π` in any monad: from the seed
 `π(H(label) ‖ 0)`, `H` Keccak-256 over `π` (`FiatShamirState::from_label`; the guest program bakes
-its capacity, `AGG_SEED_*`, `aggregation.rs:2719-2722`), the program on the proof. -/
+its capacity, `AGG_SEED_*`, `aggregation/placeholders.rs:833-836`), the program on the proof. -/
 noncomputable def runBatching {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : VerifierProgram Bool) (proof : Proof) : m Bool := do
   let seed ← π (seedInput (← keccak256With π batchingLabel) (Vector.replicate 4 0))
