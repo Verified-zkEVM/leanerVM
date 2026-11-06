@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmGuest
+public import LeanVM.Facts.ClaimBytes
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
 public import Statement.Fast.Schemes
@@ -119,9 +120,10 @@ def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
-/-- A claim's four cells: the key's root and parameter, the message (`claim_cells`). -/
+/-- A claim's four cells: the key's two halves (leanXMSS: root, parameter; leanSPHINCS: `PK.seed`,
+`PK.root`), the message (`claim_cells`). -/
 def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
-  cellsOfBytes (claimBytes root parameter message)
+  cellsOfBytes (claimBytesOf root parameter message)
 
 /-- The bytes of a `bits`-bit value, low first, each in the exponent (`exponent_bytes`,
 `aggregation.rs:123-127`). -/
@@ -460,7 +462,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
-  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.root c.1.parameter c.2
+  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.publicSeed c.1.root c.2
   let slots := fun (offsets : List ℕ) ↦ childSlotPushes offsets
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
