@@ -29,8 +29,9 @@ blocks; Layer 8 supplies the constraint statement `SatisfiedBy` and one hand-bui
 The reference `step` and `run` are noncomputable; fixed-image executable
 checkers are proved equivalent to them for exact and fuel-bounded runs. Finite traces and a
 pinned Rust comparison lane provide the first ISA validation boundary. The bus theorems and
-the two T1 theorems are the layers still to come, and no
-proof-system claim has landed. See the [checker guide](docs/leanisa-checker.md).
+constraint soundness (`constraintSoundness`, with the computable trace of `traceOf_valid`, for
+bytecode whose sentinel slot is not a `JUMP`) are proved; constraint completeness is in review
+(#184), and no proof-system claim has landed. See the [checker guide](docs/leanisa-checker.md).
 
 Recursive CTE is an open research problem: the intended knowledge-soundness arguments for the
 concrete inner SNARKs live in the random-oracle model, while the known outer recursion-topology

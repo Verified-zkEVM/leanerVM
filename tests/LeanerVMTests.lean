@@ -1,7 +1,12 @@
 import LeanerVMTests.Arithmetization.Boundary
+import LeanerVMTests.Arithmetization.Bus
 import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
+import LeanerVMTests.Arithmetization.Rows
+import LeanerVMTests.Arithmetization.Sentinel
+import LeanerVMTests.Arithmetization.Soundness
 import LeanerVMTests.Arithmetization.Statement
+import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Tables
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s
@@ -64,6 +69,7 @@ import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
+import LeanerVMTests.Semantics.Walk
 
 /-!
 # leanerVM test aggregate

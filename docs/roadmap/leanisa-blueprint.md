@@ -176,11 +176,12 @@ Until Clean supplies both, each interaction is a *pair* of channels (pull, push)
 `Channel.pull` on the pull channel and `Channel.push` on the push channel, whose multiplicities
 `-1` and `1` coincide in `K`, so every interaction has multiplicity `1`, guarantees attach only
 to pulls, and pushes are constrained by `Spec`; and balance is the three-line `BalancedPair` of
-Layer 8. The ensemble theorems
-`addVm_soundVmChannel_of_soundChannels` (`Clean/Air/Vm.lean:703`) and the `SoundChannels`
-machinery (`Clean/Air/OrderedChannel.lean`) are the Layer 9 consumers once the change lands;
-Clean issue [#452](https://github.com/Verified-zkEVM/clean/issues/452) is the tracker for the
-balance side. Two further named hypotheses of Layer 8 (`IndexColumnsAreRowIndices`,
+Layer 8. Layer 9 proves the bus lemmas from `BalancedPair` and does not consume Clean's
+ensemble theorems `addVm_soundVmChannel_of_soundChannels` (`Clean/Air/Vm.lean:703`) or the
+`SoundChannels` machinery (`Clean/Air/OrderedChannel.lean`); once Clean tags directions and
+counts balance in `ℕ`, the channel pairs become single channels and the proofs read the tag
+instead of the name. Clean issue [#452](https://github.com/Verified-zkEVM/clean/issues/452) is
+the tracker for the balance side. Two further named hypotheses of Layer 8 (`IndexColumnsAreRowIndices`,
 `SeedRowsAreTheImage`/`BytecodeRowsAreTheProgram`) are removed by Clean PR
 [#446](https://github.com/Verified-zkEVM/clean/pull/446), which adds indexed fixed columns and
 proof-committed `ProverData`: `BytecodeRowsAreTheProgram prog` becomes the `fixedColumns` field
@@ -225,6 +226,7 @@ not change (decision 14).
 | Numerals over `K` | At the current CompPoly pin, `K` wraps `BitVec 64` and natural casts follow characteristic two: `(2 : K) = 0`. Use `K.ofBits` for encoded wire words; the generator is `K.ofBits 2`. Historical E6 describes the previous bare-`BitVec` representation. |
 | Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (`ite_feq`, applied as a `↓` simp lemma). |
 | Large witnesses | A block of `2^κ_mem` rows is a `List.ofFn` no proof enumerates: its facts are stated through equation lemmas and `getElem?`, an `imageOf` equality is proved once and substituted, and a conjunct with dependent binders over `imageOf w.data` is proved for a destructured witness by `subst`, never by `rw`; a definitional comparison of a stuck projection against a `List.ofFn`/`Array.ofFn`, or of the data's log-size against a numeral, evaluates the block in both the elaborator and the kernel (status finding E8). The kernel reads a table's interactions through `Component.rowOperations` (`table_interactions_eq`), never `Component.operations`. |
+| Row closed forms | What a row sends is proved once per component over a row variable (`Arithmetization/Rows.lean`), with the vector fields of the variable destructured as literals and the typed row substituted by its evaluation, written field by field, before the circuit is evaluated: a projection of an evaluated vector left under a product in `K` makes the kernel unfold `K` multiplication, and in a `module` the check does not return (status finding E9). |
 | Module system | Production declaration files use Lean `module`s, including the Clean bridges now that Clean itself is modular. Kernel-evaluation tests and root aggregates stay classic for full-body access and axiom inspection. |
 
 ## The build, in eleven layers
@@ -1069,8 +1071,8 @@ theorem assumptions_of_blake2sRowsValid : Blake2sRowsValid w → w.Assumptions
   (`RowSteps`): occurrence, not an injection of steps into rows, since the image determines the
   run. The remaining rows are the closed walks of §8.3, about which nothing is claimed
   (acceptance test 21).
-- **Layer 9's four statements** are block comments at the end of the file, as the pinned
-  convention requires, each with its consumed dependency.
+- **Layer 9's two state statements** are block comments at the end of the file, as the pinned
+  convention requires; its two lookup theorems are proved in `Bus.lean`.
 
 Tests: one hand-built `SatisfiedBy` witness for the Layer 3 program, the executor's
 `mul_192bit_word`, extended in the shape of the compiler's fill blocks: a `JUMP` to the
@@ -1114,12 +1116,28 @@ components. Independent of the balance side of Clean (#16, #20).
 
 ### Layer 9: bus soundness
 
-`LeanerVM/Arithmetization/Statement.lean`, consuming Clean's direction-tagged, `ℕ`-counted
-balance and `addVm_soundVmChannel_of_soundChannels`. Prove:
+`LeanerVM/Arithmetization/Rows.lean`, what one row of each component sends, in closed form on
+arbitrary raw rows; `LeanerVM/Arithmetization/Bus.lean`, the two lookups;
+`LeanerVM/Arithmetization/Steps.lean`, every row a step (`rowSteps_of_satisfiedBy`, through
+Clean's `Air.Flat.Component.weakSoundness` per row) and the sentinel; the run. Everything is proved from `SatisfiedBy` alone, whose balance is
+`BalancedPair`, a `List.Perm` counted in `ℕ`: no Clean change is consumed. Prove:
 
 ```lean
-/-- Specification Lemma 6.3, Thm. 6.4, Cor. 6.5: with nonzero counts and fewer than `2^64 - 1`
-reads, balance of the memory pair makes every pulled memory tuple a correct read. -/
+/-- Specification Lemma 6.3: a list of counts that is a permutation of itself multiplied by `g`,
+with fewer than `2^64 - 1` elements, holds only `0`. -/
+theorem eq_zero_of_perm_map_mul_g {C : List K} (h : (C.map (g * ·)).Perm C)
+    (hlen : C.length < 2 ^ 64 - 1) : ∀ c ∈ C, c = 0
+/-- Specification Thm. 6.4, for any messages with a key, a count and a bump that keeps the key
+and multiplies the count by `g`. -/
+theorem lookup_sound {M κ : Type} [DecidableEq κ] {key : M → κ} {count : M → K}
+    {bump : M → M} (key_bump : ∀ m, key (bump m) = key m)
+    (count_bump : ∀ m, count (bump m) = g * count m) {Good : κ → Prop}
+    {reads seeds fins : List M} (balanced : (reads.map bump ++ seeds).Perm (reads ++ fins))
+    (seeds_good : ∀ m ∈ seeds, Good (key m)) (fins_good : ∀ m ∈ fins, Good (key m))
+    (counts_ne : ∀ m ∈ reads, count m ≠ 0) (length_lt : reads.length < 2 ^ 64 - 1) :
+    ∀ m ∈ reads, Good (key m)
+/-- Specification Thm. 6.4 and Cor. 6.5 on the memory pair: every pulled memory tuple is a
+correct read. -/
 theorem mem_channel_sound (h : SatisfiedBy prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
       ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data
@@ -1130,26 +1148,46 @@ theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
         ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧ #v[m.opcode] ++ m.op = entry (prog.code k)
-/-- No row sits at the sentinel counter: its bytecode entry is not a `JUMP`, so the row would
-push `(g^N_prog, fp)`, a counter no bytecode read can balance (acceptance test 20). -/
-theorem no_row_at_sentinel (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc
+/-- No row of a table pulls the sentinel counter: its bytecode entry is not a `JUMP`, so the
+row would push `(g^N_prog, fp)`, a counter no bytecode read can balance (acceptance test 20). -/
+theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
+    ∀ t ∈ w.tables, ∀ row ∈ t.table, ∀ pc fp : K,
+      #[pc, fp] ∈ rowMessagesOn t row StatePull.toRaw → pc ≠ prog.finalPc
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
 from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
+theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
-`mem_channel_sound` is the one leanVM-specific bus argument: a multiset of counts closed under
-multiplication by `g` with fewer than `2^64 - 1` elements is empty (Lemma 6.3), because `g` has
-full order (Layer 0). The read bound is derived from `Caps` (`≤ 10 · 6 · 2^32`), not assumed.
-`exists_run_of_balanced` is Proposition 6.1 with the walk cut at its first arrival at the final
-registers: the decomposition gives a walk of steps from `(1, 1)` to `(g^(N_prog - 1), 1)`,
-`no_row_at_sentinel` says no state before the last carries the sentinel counter, and
-`run_succ_of_ne` chains the walk into `run` (issue #10; acceptance tests 20 and 21). Both consume
-only the `sentinelSafe` field of `WellFormedBytecode`. The remaining rows are the closed walks
-`AssignmentRepresents` names; nothing is claimed about them beyond being steps.
+The lookups are the one leanVM-specific bus argument: a list of counts closed under
+multiplication by `g` with fewer than `2^64 - 1` elements holds only `0` (Lemma 6.3), because
+`g` has full order (Layer 0), and the count product then makes the reads at a bad key, which
+are the only messages at that key and sit on both sides, absent (`lookup_sound`). The two
+lookup theorems apply it with the messages as coordinate lists, the key every coordinate but
+the count, the reads the six opcode tables' pulls (Rows: each lookup push is its pull with the
+count multiplied by `g`), and the seeds and finalizes the block rows, whose keys
+`SeedRowsAreTheImage` with `IndexColumnsAreRowIndices`, respectively
+`BytecodeRowsAreTheProgram prog`, fix. The read bounds are derived from `Caps`
+(`≤ 9 · 6 · 2^32` memory reads and `≤ 6 · 2^32` bytecode reads), not assumed. Both conclusions
+cover every pull on the channel, the blocks' finalizes included. `no_row_at_sentinel`
+quantifies over the tables' rows: over `w.interactions`, as the roadmap first stated it, it is
+false, since the verifier's own row pulls `(g^(N_prog - 1), 1)`; it needs only
+`SentinelSafe prog`. `exists_run_of_balanced` is Proposition 6.1 with the walk cut at its first
+arrival at the final registers: the decomposition gives a walk of steps from `(1, 1)` to
+`(g^(N_prog - 1), 1)`, `no_row_at_sentinel` says no state before the last carries the sentinel
+counter, and `run_succ_of_ne` chains the walk into `run` (issue #10; acceptance tests 20 and 21);
+like `no_row_at_sentinel` it takes `SentinelSafe prog`, the `sentinelSafe` field of
+`WellFormedBytecode`. The remaining rows are the
+closed walks `AssignmentRepresents` names; nothing is claimed about them beyond being steps.
+
+Tests: the closed forms against Clean's own evaluation of every component on the Layer 8
+witness's rows; the two lookup theorems applied to that witness; Lemma 6.3's `[0, 0]`; a
+zero-count read balancing itself, which `lookup_sound` rejects only through the count
+hypothesis (`zero_count_witness`, whose zero-count read is a correct one, shows the count
+product independent of the other conjuncts); and a witness whose memory block
+seeds cell `29`'s word `0` at the address `g^2`, which satisfies every conjunct
+`mem_channel_sound` consumes but `IndexColumnsAreRowIndices` and pulls a read the image does not
+hold.
 
 ### Layer 10: constraint soundness and completeness
 
@@ -1174,11 +1212,17 @@ theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecuti
     ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
 ```
 
-Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's
-`TableSoundness`, applied directly to the witness with `w.Assumptions` supplied by
+Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's per-row
+`Air.Flat.Component.weakSoundness`, with each row's `Assumptions` supplied by
 `assumptions_of_blake2sRowsValid h.blake2s_valid` (never through
 `soundness_of_tableSoundness_and_specConsistency`, whose `AssumptionsConsistency` sources a
-table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`.
+table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`, so it is
+stated under `SentinelSafe prog` with the `WellFormedBytecode` form a wrapper. The trace is
+computable: a map from each opcode row's pulled state to its pushed state, walked from `(1, 1)`
+to the final registers with the number of opcode rows as fuel, needs no discrete logarithm,
+and the walk is the generic Euler-walk lemma of a balanced functional graph. The proof system's
+execution-level headline takes the trace through an interface, `TraceExtraction prog`, declared
+beside `SatisfiedBy`.
 Completeness builds the rows of the run, then pads each table to a power of two — and the
 BLAKE2S table to at least eight rows — with closed walks from the fill blocks, and uses only
 `hwf.hasFillBlocks`. Both take the whole structure so that T1 reads "for well-formed bytecode".
@@ -1377,8 +1421,7 @@ Layers 0, 1, and 4 are independent and can begin at once. Layer 2 needs Layer 0;
 Layers 1 and 2; Layer 5 needs Layers 3 and 4; Layer 6 needs Layer 5, and its six tables are
 independent of one another; Layer 7 needs Layer 5 and the shared vocabulary of Layer 6
 (`Tables/Basic.lean`, `rowEnv`); Layer 8 needs Layers 6 and 7. Layer 9 needs
-Layer 8 and the Clean contract of the dependency table; until that contract is met its
-statements are block comments at their places. Layer 10 needs Layer 9, and its completeness
+Layer 8 alone; its statements not yet proved are block comments at their places. Layer 10 needs Layer 9, and its completeness
 half additionally needs the fill-block lemma.
 
 Each layer is one pull request (Layer 6 may be two), titled `feat(<layer>): …`, and it lands
