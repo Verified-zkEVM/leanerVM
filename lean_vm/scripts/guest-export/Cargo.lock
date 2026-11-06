@@ -65,7 +65,6 @@ dependencies = [
  "parallel",
  "pcs",
  "primitives",
- "serde",
  "tracing",
 ]
 
@@ -74,6 +73,7 @@ name = "leanvm-guest-export"
 version = "0.0.0"
 dependencies = [
  "bincode",
+ "fiat_shamir",
  "keccak_gkr",
  "lean_compiler",
  "lean_da",

@@ -6,7 +6,10 @@
 //! (`.listComp body var lo hi`, a `keccak_cells` argument).
 
 use super::*;
-use lean_compiler::{Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, parse, parse_const};
+use crate::compiler_overlay::{
+    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, compile, parse, parse_const,
+    parse_with_replacements,
+};
 use std::fmt::Write as _;
 
 fn string(s: &str) -> String {

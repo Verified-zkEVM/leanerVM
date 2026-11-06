@@ -17,6 +17,20 @@ fn copy_dir(from: &Path, to: &Path) {
         if path.is_file() {
             println!("cargo:rerun-if-changed={}", path.display());
             std::fs::copy(&path, to.join(entry.file_name())).unwrap();
+        } else if path.is_dir() {
+            copy_dir(&path, &to.join(entry.file_name()));
+        }
+    }
+}
+
+/// Every `.rs` file under `dir`.
+fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            rust_files(&path, out);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            out.push(path);
         }
     }
 }
@@ -31,17 +45,59 @@ fn main() {
         .unwrap_or_else(|e| panic!("leanVM's checkout {}: {e}; run leanvm-tree.sh", leanvm.display()));
     let crate_dir = leanvm.join("crates/rec_aggregation");
     let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
+    // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
+    let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
     copy_dir(&crate_dir.join("guests"), &out.join("guests"));
 
     let export = manifest.join("src/export/mod.rs");
-    let aggregation = out.join("src/aggregation.rs");
+    // `aggregation` is a directory module (`aggregation/mod.rs`) since leanVM #670.
+    let aggregation = [out.join("src/aggregation/mod.rs"), out.join("src/aggregation.rs")]
+        .into_iter()
+        .find(|p| p.is_file())
+        .expect("rec_aggregation has an aggregation module");
+    // Since #670 the module's private items live in its submodules: the exporters, a child of
+    // `aggregation`, read them as they read `aggregation.rs`'s, so every top-level item there is
+    // made crate-visible (only the copy; the module's own `pub` items are unchanged).
+    if aggregation.ends_with("mod.rs") {
+        let mut files = Vec::new();
+        rust_files(aggregation.parent().unwrap(), &mut files);
+        for f in files.iter().filter(|f| **f != aggregation) {
+            let text = std::fs::read_to_string(f).unwrap();
+            let text: String = text
+                .lines()
+                .map(|l| {
+                    let item = ["fn ", "struct ", "enum ", "const ", "type ", "static ", "trait ", "mod "]
+                        .iter()
+                        .any(|k| l.starts_with(k))
+                        && !l.starts_with("const _");
+                    let l = l.replacen("pub(super) ", "pub(crate) ", 1);
+                    if item { format!("pub(crate) {l}\n") } else { format!("{l}\n") }
+                })
+                .collect();
+            std::fs::write(f, text).unwrap();
+        }
+    }
     let mut text = std::fs::read_to_string(&aggregation).unwrap();
     text.push_str(&format!(
         "\n// Appended by leanvm-guest-export's build.rs.\n#[path = {:?}]\npub mod lean_export;\n",
         export.display().to_string()
     ));
     std::fs::write(&aggregation, text).unwrap();
+
+    // leanVM's `lean_compiler` as this crate's module `compiler_overlay`, for the exporters that
+    // read the parsed guest (`Ast`'s functions are crate-private since leanVM #669): its sources
+    // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
+    let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
+    let _ = std::fs::remove_dir_all(&compiler);
+    copy_dir(&leanvm.join("crates/lean_compiler/src"), &compiler);
+    std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
+    let mut files = Vec::new();
+    rust_files(&compiler, &mut files);
+    for f in files {
+        let text = std::fs::read_to_string(&f).unwrap();
+        std::fs::write(&f, text.replace("crate::", "crate::compiler_overlay::")).unwrap();
+    }
 
     // The leanVM checkout and commit the data is exported from, for the generated headers.
     let rev = std::process::Command::new("git")
@@ -57,9 +113,10 @@ fn main() {
     println!("cargo:rustc-env=LEANVM_DIR={}", leanvm.display());
 
     let overlay = format!(
-        "#[path = {:?}]\npub mod aggregation;\n\n#[cfg(feature = \"signers-cache\")]\n#[path = {:?}]\npub mod signers_cache;\n",
+        "#[path = {:?}]\npub mod aggregation;\n\n#[cfg(feature = \"signers-cache\")]\n#[path = {:?}]\npub mod signers_cache;\n\n#[path = {:?}]\npub mod compiler_overlay;\n",
         aggregation.display().to_string(),
-        out.join("src/signers_cache.rs").display().to_string()
+        out.join("src/signers_cache.rs").display().to_string(),
+        compiler.join("mod.rs").display().to_string()
     );
     std::fs::write(out.join("overlay.rs"), overlay).unwrap();
 }

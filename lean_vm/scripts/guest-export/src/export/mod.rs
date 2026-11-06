@@ -3,6 +3,15 @@
 //! defines, private items included, as the BLAKE2s-era in-tree tests had it.
 
 use super::*;
+// The module's pieces, since leanVM #670 split `aggregation.rs` (`build.rs` widens their items).
+use super::{
+    cells::*, child::*, claim_pool::*, coverage::*, deferred::*, error::*, guest::*, hints::*, node::*,
+    placeholders::*, proof::*, statement::*,
+};
+use leanvm_core::cpu::{Program, from_scalar};
+use primitives::field::F192;
+use primitives::multilinear::mle_eval_par;
+use std::collections::BTreeMap;
 
 pub mod bytecode;
 #[cfg(test)]

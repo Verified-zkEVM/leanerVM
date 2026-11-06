@@ -29,6 +29,7 @@ path = "src/main.rs"
 [dependencies]
 # rec_aggregation's own dependencies (crates/rec_aggregation/Cargo.toml), by path.
 primitives = { path = "../../../.leanvm/crates/primitives" }
+fiat_shamir = { path = "../../../.leanvm/crates/fiat_shamir" }
 parallel = { path = "../../../.leanvm/crates/parallel" }
 pcs = { path = "../../../.leanvm/crates/pcs" }
 keccak_gkr = { path = "../../../.leanvm/crates/keccak_gkr" }
