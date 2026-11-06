@@ -98,14 +98,17 @@ theorems, then read the files in this order.
    `LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable` (`StronglyUnforgeable` at 127 bits,
    `Q` counting every permutation call of the game, key generation and the honest signer's
    worst-case grinding included: about `2^-62` at a full lifetime).
-6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme (on the shared part; FORS of
-   24 trees of height 10 under a hypertree of three WOTS+C layers of heights 8, 8, 10, its signature
-   the randomizer, the FORS opening and each layer's counter, chain values and path), its secret
-   key the crate's, the key's seed `S_0`, with the crate's deterministic signer, hash call for hash
-   call (each tree built once, the layers from the bottom up; not permutation call for permutation
-   call: the crate absorbs a one-time signature's input before the counter once, the statement
-   hashes it again per counter, so a signature's worst case charged is about `2^35` permutations,
-   the crate's about `2^33.6`), and
+6. [`LeanSphincs.lean`](LeanSphincs.lean): the leanSPHINCS scheme, SLH-DSA (FIPS 205) on
+   Keccak-256 with WOTS+C (FIPS 205's 32-byte address, `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` for every
+   tree, chain and secret hash; FORS of 24 trees of height 10, hashed to their roots and `T_k`,
+   under a hypertree of three WOTS+C layers of heights 8, 8, 10; the digest `H_msg`, two
+   counter-mode calls read as FIPS 205's Algorithm 19; its signature the randomizer, the FORS
+   opening and each layer's counter, chain values and path), its secret key the crate's, `SK.seed`
+   (`PK.seed` and `SK.prf` its hashes), its public key `(PK.seed, PK.root)`, with the crate's
+   deterministic signer, hash call for hash call (`expand_key`, the top tree level by level and
+   reused for the top path, `PRF_msg`, `H_msg`, each FORS tree built once, the layers from the
+   bottom up; every counter's input one Keccak block, so permutation call for permutation call
+   too: a signature's worst case is about `2^33.6` permutations), and
    `Sphincs.LeanSphincsStronglyUnforgeable` (`StronglyUnforgeable` at 127
    bits up to `1,182,000,000` signatures, `Q` counting the honest signer's worst-case grinding too;
    a key used past its signature limit is not covered).
