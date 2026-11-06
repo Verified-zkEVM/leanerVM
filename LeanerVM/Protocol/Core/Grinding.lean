@@ -20,10 +20,11 @@ along the walk by a grade on the replayed reader (`walkChain_grade`) that counts
 deployed bits as nothing and every other check as one: the walk checks only at the deployed bits,
 so its count is zero (`nonceChecked_of_walkChain`).
 
-On a log with no collision and no answer equal to the seed, no state of a history is the answer
-to a grinding base, since it is the answer to the history's previous step; so every nonce of a
-history whose steps keep the invariant passes its grinding check in the log
-(`powPasses_of_history`).
+On a log with no collision, no state of a history past its start is the answer to a grinding
+base, since it is the answer to the history's previous step; so every nonce of a history whose
+steps keep the invariant and that opens with an observe passes its grinding check in the log
+(`powPasses_of_history`). The start itself may answer a grinding base: a first state's input with
+the lanes `0, 0, 0, 3` is the grinding base's input from the seed.
 -/
 
 namespace LeanerVM.Protocol
@@ -258,34 +259,36 @@ theorem mem_queries_of_getElem {cv : Digest} {hist : List (Block × Digest)} {j 
   have := key (hist.take j) (hist.drop (j + 1))
   rwa [hsplit] at this
 
-/-- **The grinding checks of a history pass in the log**: on a log with no collision and no
-answer equal to the seed, holding every step of a history whose steps keep the grinding
-invariant, every nonce of the history passes its grinding check in the log. -/
+/-- **The grinding checks of a history pass in the log**: on a log with no collision, holding
+every step of a history from a start `σ` that opens with an observe and whose steps keep the
+grinding invariant, every nonce of the history passes its grinding check in the log. -/
 theorem powPasses_of_history {l : hashSpec.QueryLog} (hcoll : ¬ QueryLog.HasCollision l)
-    {seed : Digest} (hseed : ∀ e ∈ l, e.2 ≠ seed) {hist : List Reading}
-    (hchain : ∀ e ∈ HashChain.queries Block.input seed hist, e ∈ l)
-    (hinv : ∀ e ∈ HashChain.queries Block.input seed hist, NonceChecked l e) :
+    {σ : Digest} {hist : List Reading} (h₀ : ∃ x d, hist[0]? = some (.observe x, d))
+    (hchain : ∀ e ∈ HashChain.queries Block.input σ hist, e ∈ l)
+    (hinv : ∀ e ∈ HashChain.queries Block.input σ hist, NonceChecked l e) :
     ∀ (j : ℕ) n d, hist[j]? = some (.nonce n, d) →
       PowPasses LeanerVM.Parameters.Whir.queryGrindingBits l
-        (HashChain.last seed (hist.take j)) n := by
+        (HashChain.last σ (hist.take j)) n := by
   intro j n d hj
   rcases hinv _ (mem_queries_of_getElem hj) _ n rfl with hp | ⟨cv', hb⟩
   · exact hp
   exfalso
   have hbm := MerkleTree.mem_of_logAnswer_eq_some hb
   rcases j with _ | k
-  · exact hseed _ hbm rfl
+  · obtain ⟨x, d', h₀⟩ := h₀
+    rw [hj, Option.some.injEq, Prod.mk.injEq] at h₀
+    cases h₀.1
   have hk : k < hist.length := by
     by_contra hn
     rw [List.getElem?_eq_none (by omega)] at hj
     cases hj
   have hk' : hist[k]? = some (hist[k].1, hist[k].2) := by rw [List.getElem?_eq_getElem hk]
-  have hlast : HashChain.last seed (hist.take (k + 1)) = hist[k].2 := by
+  have hlast : HashChain.last σ (hist.take (k + 1)) = hist[k].2 := by
     rw [List.take_succ_eq_append_getElem hk, HashChain.last_append]
     rfl
   have hq := hchain _ (mem_queries_of_getElem hk')
   refine hcoll ⟨_, hbm, _, hq, fun he ↦ ?_, by rw [hlast]⟩
-  have he' : baseInput cv' = Block.input (HashChain.last seed (hist.take k)) hist[k].1 := he
+  have he' : baseInput cv' = Block.input (HashChain.last σ (hist.take k)) hist[k].1 := he
   have h₁ := parse?_baseInput cv'
   rw [he', Block.parse?_input] at h₁
   cases h₁

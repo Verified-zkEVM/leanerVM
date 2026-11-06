@@ -41,16 +41,22 @@ challenges' 192 bits (`challengeBits`), `⌊192/b⌋` to a squeeze, low bits fir
 (`challengePositions`); with `t ≤ m⌊192/b⌋`, the `t` positions of `m` fresh squeezes are a uniform
 tuple in `Fin t → Fin (2^b)` (`prEvent_positions_uniform`).
 
-**The chain read off a log.** `chainHistory log seed s` is the chain `HashChain.history` reads back
-from the state `s` to `seed`: at each state, the unique logged query answered by it that parses as
-a step (`Block.parse?`), with the state each block leads to. A Merkle node is also a 64-byte input
-of the same oracle and may parse as a step; it is one more entry of the log. The digests in play
-after a log (`inPlay`) are a fixed list of roots, the two halves of every logged 64-byte input
-(`halves`: the chaining value and the block of a step, the two children of a node), and the Merkle
-roots the log's chains absorb as two consecutive observes (`rebuiltRoots`, one per observe step).
+**The chain read off a log.** `chainHistory log isStart s` is the chain `HashChain.history` reads
+back from the state `s` to a start: at each state that is no start, the unique logged query
+answered by it that parses as a step (`Block.parse?`), with the state each block leads to. A
+Merkle node is also a 64-byte input of the same oracle and may parse as a step; it is one more
+entry of the log. A chain from one fixed seed is read with `HashChain.isSeed seed`. The digests in
+play after a log (`inPlay`) are a fixed list of roots, the two halves of every logged 64-byte
+input (`halves`: the chaining value and the block of a step, the two children of a node), the
+program hash every logged 78-byte input carries in its last 32 bytes (`programHashSlot`, the slot
+of a seed's preimage), and the Merkle roots the log's chains absorb as two consecutive observes
+(`rebuiltRoots`, one per observe step). A query is 64 or 78 bytes, never both, so an entry puts at
+most two digests in play besides its absorbed root.
 
-* `chainHistory_of_noCollision_noSeed`: a chain whose every step is logged is its history, when the
-  log has no collision and no answer is the seed.
+* `chainHistory_of_noCollision`: a chain whose every step is logged is its history, when the log
+  has no collision and no later state of the chain is a start; `chainHistory_of_noCollision_noSeed`
+  is the case of one seed that answers no query, and `states_ne_seed_of_noHit` gives that from a
+  seed among the roots and no hit.
 * `chainHistory_take_of_noCollision_noHit`: in a consistent log with no collision and no hit on the
   digests in play, the history is already in the log before a query from the chain's last state
   that is none of its steps: the next step (`chainHistory_take_of_step`), the grinding base or the
@@ -58,12 +64,13 @@ roots the log's chains absorb as two consecutive observes (`rebuiltRoots`, one p
 * `chainHistory_take_of_mem_inPlay`: under the same hypotheses, a history whose last state is in
   play after `m` entries is already in them.
 * `chainHistory_determined`: without a collision, a history once in the log does not change.
+* `start_of_chainHistory`: a history starts at a start, the state read from or a digest in play.
 * `chainHistory_append`: a query answered by a digest not in play leaves every other state's
-  history unchanged.
+  history unchanged, under start tests that agree off the answer.
 * `chainHistory_dedupKeys`, `inPlay_dedupKeys`: in a consistent log, histories and the digests in
   play are those of the log with each query at its first occurrence only (`List.dedupKeys`),
   the fresh log of a lazy random oracle.
-* `length_inPlay_le`: at most the roots, two halves and one absorbed root per entry are in play.
+* `length_inPlay_le`: at most the roots, two digests and one absorbed root per entry are in play.
 -/
 
 namespace LeanerVM.Protocol
@@ -286,10 +293,28 @@ def rebuiltRoots (log : hashSpec.QueryLog) : List Digest :=
   log.filterMap fun e ↦ (observed? e.1).bind fun p ↦
     (observedInto log p.1).bind fun x₁ ↦ digestOfScalars (x₁, p.2)
 
-/-- The digests in play after a log: `roots` (the seed among them), the halves of every logged
-input, and the roots the log's chains absorb. -/
+/-- The program hash a 78-byte input carries: its last 32 bytes, read as a digest, the slot of
+a seed's preimage (`seedPreimageOf`). Other inputs carry none. -/
+def programHashSlot (q : List UInt8) : List Digest :=
+  if q.length = 78 then [digestOfBytes (q.drop 46)] else []
+
+/-- A seed's preimage carries its program hash. -/
+theorem mem_programHashSlot_seedPreimageOf (ph : Digest) :
+    ph ∈ programHashSlot (seedPreimageOf ph) := by
+  have h : (seedPreimageOf ph).drop 46 = digestBytes ph :=
+    List.drop_left' (by simp [length_kBytes, r1csDigest])
+  simp [programHashSlot, length_seedPreimageOf, h, digestOfBytes_digestBytes]
+
+/-- The seed of a first state's input is its first half. -/
+theorem mem_halves_seedInput (iv : Digest) (input : PublicInput) :
+    iv ∈ halves (seedInput iv input) := by
+  simp only [halves, length_seedInput, ↓reduceIte, List.mem_cons]
+  exact .inl (by simp [seedInput, digestOfBytes_append])
+
+/-- The digests in play after a log: `roots`, the halves of every logged input and the program
+hash it carries, and the roots the log's chains absorb. -/
 def inPlay (roots : List Digest) (log : hashSpec.QueryLog) : List Digest :=
-  roots ++ log.flatMap (fun e ↦ halves e.1) ++ rebuiltRoots log
+  roots ++ log.flatMap (fun e ↦ halves e.1 ++ programHashSlot e.1) ++ rebuiltRoots log
 
 /-- The digests in play only grow along a log. -/
 theorem inPlay_mono (roots : List Digest) :
@@ -312,75 +337,115 @@ theorem halves_mem_inPlay (roots : List Digest) :
       d ∈ inPlay roots (l ++ [e]) :=
   fun _ e _ hd ↦ by simp [inPlay, hd]
 
-/-- The chain's history in a log: from the state `s` back to `seed`, at each state the unique
-logged query answered by it that parses as a step, each block with the state it leads to; `none`
-when a step is missing or ambiguous. -/
-def chainHistory (log : hashSpec.QueryLog) (seed s : FsState) :
-    Option (List (Block × Digest)) :=
-  HashChain.history Block.parse? log seed.cv s.cv
+/-- The halves of a logged input are in play. -/
+theorem mem_inPlay_of_mem_halves {roots : List Digest} {l : hashSpec.QueryLog}
+    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ halves e.1) :
+    x ∈ inPlay roots l := by
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e, he, .inl hx⟩)
 
-/-- **The history of a logged chain.** If every step of a chain from `seed` is in the log, the
-log has no collision, and no answer is the seed, then the history of the chain's last state is the
-chain. -/
+/-- The program hash a logged input carries is in play. -/
+theorem mem_inPlay_of_mem_programHashSlot {roots : List Digest} {l : hashSpec.QueryLog}
+    {e : (_ : List UInt8) × Digest} (he : e ∈ l) {x : Digest} (hx : x ∈ programHashSlot e.1) :
+    x ∈ inPlay roots l := by
+  simp only [inPlay, List.mem_append, List.mem_flatMap]
+  exact .inl (.inr ⟨e, he, .inr hx⟩)
+
+/-- The chain's history in a log: from the state `s` back to a start, at each state other than a
+start the unique logged query answered by it that parses as a step, each block with the state it
+leads to; the start and the steps, `none` when a step is missing or ambiguous. A chain from one
+fixed seed is read with `HashChain.isSeed`. -/
+def chainHistory (log : hashSpec.QueryLog) (isStart : Digest → Bool) (s : FsState) :
+    Option (Digest × List (Block × Digest)) :=
+  HashChain.history Block.parse? log isStart s.cv
+
+/-- **The history of a logged chain.** If every step of a chain from a start is in the log, the
+log has no collision, and no later state of the chain is a start, then the history of the chain's
+last state is the chain, from that start. -/
+theorem chainHistory_of_noCollision {log : hashSpec.QueryLog} {isStart : Digest → Bool}
+    (hcoll : ¬ QueryLog.HasCollision log) {start : Digest} (hstart : isStart start = true)
+    (steps : List (Block × Digest)) (hlater : ∀ x ∈ steps.map (·.2), isStart x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input start steps, e ∈ log) :
+    chainHistory log isStart ⟨HashChain.last start steps⟩ = some (start, steps) :=
+  HashChain.history_of_noCollision Block.parse?_input hcoll hstart steps hlater hchain
+
+/-- **The history of a logged chain from a seed.** If every step of a chain from `seed` is in the
+log, the log has no collision, and no answer is the seed, then the history of the chain's last
+state is the chain. -/
 theorem chainHistory_of_noCollision_noSeed {log : hashSpec.QueryLog} {seed : FsState}
     (hcoll : ¬ QueryLog.HasCollision log) (hseed : ∀ e ∈ log, e.2 ≠ seed.cv)
     (steps : List (Block × Digest))
     (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e ∈ log) :
-    chainHistory log seed ⟨HashChain.last seed.cv steps⟩ = some steps :=
+    chainHistory log (HashChain.isSeed seed.cv) ⟨HashChain.last seed.cv steps⟩ =
+      some (seed.cv, steps) :=
   HashChain.history_of_noCollision_noSeed Block.parse?_input hcoll hseed steps hchain
 
-/-- **The history before a query.** If every step of a chain from `seed` is in a consistent log
-with no collision and no hit on the digests in play (`roots`, which hold the seed, the halves of
-earlier inputs, the roots earlier chains absorb), then at a position whose query has the chain's
-last state as a half and is none of the chain's own queries (the next step, the grinding base or
-check), the history of the chain's last state in the entries before it is the chain. -/
-theorem chainHistory_take_of_noCollision_noHit {log : hashSpec.QueryLog} {seed : FsState}
+/-- **The history before a query.** If every step of a chain from a start is in a consistent log
+with no collision and no hit on the digests in play (`roots`, the halves of earlier inputs, the
+roots earlier chains absorb), and no later state of the chain is a start, then at a position whose
+query has the chain's last state as a half and is none of the chain's own queries (the next step,
+the grinding base or check), the history of the chain's last state in the entries before it is the
+chain. -/
+theorem chainHistory_take_of_noCollision_noHit {log : hashSpec.QueryLog} {isStart : Digest → Bool}
     {roots : List Digest} (hcons : QueryLog.Consistent log) (hcoll : ¬ QueryLog.HasCollision log)
-    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) (hseed : seed.cv ∈ roots)
-    (steps : List (Block × Digest))
-    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e ∈ log) {m : ℕ}
-    (hm : m < log.length) (hq : HashChain.last seed.cv steps ∈ halves log[m].1)
-    (hnew : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e.1 ≠ log[m].1) :
-    chainHistory (log.take m) seed ⟨HashChain.last seed.cv steps⟩ = some steps :=
+    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) {start : Digest} (hstart : isStart start = true)
+    (steps : List (Block × Digest)) (hlater : ∀ x ∈ steps.map (·.2), isStart x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input start steps, e ∈ log) {m : ℕ}
+    (hm : m < log.length) (hq : HashChain.last start steps ∈ halves log[m].1)
+    (hnew : ∀ e ∈ HashChain.queries Block.input start steps, e.1 ≠ log[m].1) :
+    chainHistory (log.take m) isStart ⟨HashChain.last start steps⟩ = some (start, steps) :=
   HashChain.history_take_of_noCollision_noHit Block.parse?_input
     (fun cv b ↦ mem_halves_stepBytes cv b.elem b.tag) (halves_mem_inPlay roots)
-    (inPlay_mono roots) (by simp [inPlay, hseed]) hcons hcoll hhit steps hchain hm hq hnew
+    (inPlay_mono roots) hcons hcoll hhit hstart steps hlater hchain hm hq hnew
 
 /-- **The history before the next step.** Under the hypotheses of
 `chainHistory_take_of_noCollision_noHit`, at a position where the chain's next step is asked, the
 history of the chain's last state in the entries before it is the chain. -/
-theorem chainHistory_take_of_step {log : hashSpec.QueryLog} {seed : FsState}
+theorem chainHistory_take_of_step {log : hashSpec.QueryLog} {isStart : Digest → Bool}
     {roots : List Digest} (hcons : QueryLog.Consistent log) (hcoll : ¬ QueryLog.HasCollision log)
-    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) (hseed : seed.cv ∈ roots)
-    (steps : List (Block × Digest))
-    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e ∈ log) {m : ℕ}
+    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) {start : Digest} (hstart : isStart start = true)
+    (steps : List (Block × Digest)) (hlater : ∀ x ∈ steps.map (·.2), isStart x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input start steps, e ∈ log) {m : ℕ}
     (hm : m < log.length) {b : Block}
-    (hq : log[m].1 = Block.input (HashChain.last seed.cv steps) b) :
-    chainHistory (log.take m) seed ⟨HashChain.last seed.cv steps⟩ = some steps :=
+    (hq : log[m].1 = Block.input (HashChain.last start steps) b) :
+    chainHistory (log.take m) isStart ⟨HashChain.last start steps⟩ = some (start, steps) :=
   HashChain.history_take_of_step Block.parse?_input
     (fun cv b ↦ mem_halves_stepBytes cv b.elem b.tag) (halves_mem_inPlay roots)
-    (inPlay_mono roots) (by simp [inPlay, hseed]) hcons hcoll hhit steps hchain hm hq
+    (inPlay_mono roots) hcons hcoll hhit hstart steps hlater hchain hm hq
 
 /-- **Histories are determined.** Without a collision in the log, a history found in the log's
 first `k` entries is the history in the whole log. -/
-theorem chainHistory_determined {log : hashSpec.QueryLog} {seed s : FsState} {k : ℕ}
-    {hs : List (Block × Digest)} (hcoll : ¬ QueryLog.HasCollision log)
-    (h : chainHistory (log.take k) seed s = some hs) : chainHistory log seed s = some hs :=
+theorem chainHistory_determined {log : hashSpec.QueryLog} {isStart : Digest → Bool} {s : FsState}
+    {k : ℕ} {hs : Digest × List (Block × Digest)} (hcoll : ¬ QueryLog.HasCollision log)
+    (h : chainHistory (log.take k) isStart s = some hs) : chainHistory log isStart s = some hs :=
   HashChain.history_determined hcoll h
 
 /-- **The history before a state is in play.** Under the hypotheses of
 `chainHistory_take_of_noCollision_noHit`, if the chain's last state is in play after the first
 `m` entries, its history in those entries is the chain. -/
-theorem chainHistory_take_of_mem_inPlay {log : hashSpec.QueryLog} {seed : FsState}
+theorem chainHistory_take_of_mem_inPlay {log : hashSpec.QueryLog} {isStart : Digest → Bool}
     {roots : List Digest} (hcons : QueryLog.Consistent log) (hcoll : ¬ QueryLog.HasCollision log)
-    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) (hseed : seed.cv ∈ roots)
-    (steps : List (Block × Digest))
-    (hchain : ∀ e ∈ HashChain.queries Block.input seed.cv steps, e ∈ log) {m : ℕ}
-    (hq : HashChain.last seed.cv steps ∈ inPlay roots (log.take m)) :
-    chainHistory (log.take m) seed ⟨HashChain.last seed.cv steps⟩ = some steps :=
+    (hhit : ¬ QueryLog.HasHit (inPlay roots) log) {start : Digest} (hstart : isStart start = true)
+    (steps : List (Block × Digest)) (hlater : ∀ x ∈ steps.map (·.2), isStart x = false)
+    (hchain : ∀ e ∈ HashChain.queries Block.input start steps, e ∈ log) {m : ℕ}
+    (hq : HashChain.last start steps ∈ inPlay roots (log.take m)) :
+    chainHistory (log.take m) isStart ⟨HashChain.last start steps⟩ = some (start, steps) :=
   HashChain.history_take_of_mem_inPlay Block.parse?_input
     (fun cv b ↦ mem_halves_stepBytes cv b.elem b.tag) (halves_mem_inPlay roots)
-    (inPlay_mono roots) (by simp [inPlay, hseed]) hcons hcoll hhit steps hchain hq
+    (inPlay_mono roots) hcons hcoll hhit hstart steps hlater hchain hq
+
+/-- On a consistent log with no hit on the digests in play, a seed among the roots is no state a
+logged chain leads to. -/
+theorem states_ne_seed_of_noHit {log : hashSpec.QueryLog} {roots : List Digest}
+    (hcons : QueryLog.Consistent log) (hhit : ¬ QueryLog.HasHit (inPlay roots) log)
+    {seed : Digest} (hseed : seed ∈ roots) {cv : Digest} {steps : List (Block × Digest)}
+    (hchain : ∀ e ∈ HashChain.queries Block.input cv steps, e ∈ log) :
+    ∀ x ∈ steps.map (·.2), HashChain.isSeed seed x = false := fun x hx ↦ by
+  obtain ⟨e, he, rfl⟩ := HashChain.answer_of_mem_states hchain hx
+  have := QueryLog.answer_not_mem_inPlay_nil (inPlay_mono roots) hcons hhit he
+  simp only [Bool.eq_false_iff, ne_eq, HashChain.isSeed_eq_true]
+  rintro rfl
+  exact this (by simp [inPlay, hseed])
 
 /-- The state a step parses from is a half of its input. -/
 theorem mem_halves_of_parse? {q : List UInt8} {x : Digest} {b : Block}
@@ -400,22 +465,35 @@ theorem mem_halves_of_parse? {q : List UInt8} {x : Digest} {b : Block}
     simp [halves, hlen, hx]
   · cases h
 
+/-- **Where a history starts**: at a start that is the state read from, when the history has no
+step, and otherwise a half of a logged input, so in play after the log. -/
+theorem start_of_chainHistory {log : hashSpec.QueryLog} {isStart : Digest → Bool} {s : FsState}
+    {σ : Digest} {hs : List (Block × Digest)} (h : chainHistory log isStart s = some (σ, hs))
+    (roots : List Digest) : isStart σ = true ∧ (σ = s.cv ∨ σ ∈ inPlay roots log) := by
+  refine ⟨(HashChain.start_of_history h).1, ?_⟩
+  rcases hs with _ | ⟨r, rest⟩
+  · exact .inl (HashChain.start_of_history h).2
+  · obtain ⟨e, he, -, hp⟩ := HashChain.step_of_history h 0 (by simp)
+    simp only [List.take_zero, HashChain.last] at hp
+    exact .inr (mem_inPlay_of_mem_halves he (mem_halves_of_parse? hp))
+
 /-- **One more query.** An answer not in play before its query leaves the history of every other
-state unchanged. -/
+state unchanged, under start tests that agree off the answer. -/
 theorem chainHistory_append {log : hashSpec.QueryLog} {roots : List Digest}
-    {e : (_ : List UInt8) × Digest} (hu : e.2 ∉ inPlay roots log) (seed : FsState) {s : FsState}
-    (hs : s.cv ≠ e.2) : chainHistory (log ++ [e]) seed s = chainHistory log seed s := by
-  refine HashChain.history_append_of_not_start (fun e' he p hp hpu ↦ hu ?_) hs
+    {e : (_ : List UInt8) × Digest} (hu : e.2 ∉ inPlay roots log) {isStart isStart' : Digest → Bool}
+    (hst : ∀ d, d ≠ e.2 → isStart' d = isStart d) {s : FsState} (hs : s.cv ≠ e.2) :
+    chainHistory (log ++ [e]) isStart' s = chainHistory log isStart s := by
+  refine HashChain.history_append_of_not_start (fun e' he p hp hpu ↦ hu ?_) hst hs
   obtain ⟨x, b⟩ := p
   simp only at hpu
   subst hpu
-  simp only [inPlay, List.mem_append, List.mem_flatMap]
-  exact .inl (.inr ⟨e', he, mem_halves_of_parse? hp⟩)
+  exact mem_inPlay_of_mem_halves he (mem_halves_of_parse? hp)
 
 /-- **Deduplication.** In a consistent log, a history is that of the log with each input at its
 first occurrence only. -/
 theorem chainHistory_dedupKeys {log : hashSpec.QueryLog} (hcons : QueryLog.Consistent log)
-    (seed s : FsState) : chainHistory (List.dedupKeys log) seed s = chainHistory log seed s :=
+    (isStart : Digest → Bool) (s : FsState) :
+    chainHistory (List.dedupKeys log) isStart s = chainHistory log isStart s :=
   HashChain.history_dedupKeys hcons s.cv
 
 /-- In a consistent log, the observe step into a state is the one found after deduplication. -/
@@ -436,15 +514,23 @@ theorem length_halves_le (q : List UInt8) : (halves q).length ≤ 2 := by
   unfold halves
   split <;> simp
 
-/-- At most the roots, two halves per entry and one absorbed root per entry are in play. -/
+/-- A query puts at most two digests in play: two halves of 64 bytes, or the program hash of 78
+bytes. -/
+theorem length_halves_append_programHashSlot_le (q : List UInt8) :
+    (halves q ++ programHashSlot q).length ≤ 2 := by
+  unfold halves programHashSlot
+  split_ifs with h₁ h₂ <;> simp_all
+
+/-- At most the roots, two digests per entry and one absorbed root per entry are in play. -/
 theorem length_inPlay_le (roots : List Digest) (log : hashSpec.QueryLog) :
     (inPlay roots log).length ≤ roots.length + 3 * log.length := by
-  have h1 : (log.flatMap fun e ↦ halves e.1).length ≤ 2 * log.length := by
+  have h1 : (log.flatMap fun e ↦ halves e.1 ++ programHashSlot e.1).length ≤ 2 * log.length := by
     induction log with
     | nil => simp
     | cons e log ih =>
-      simp only [List.flatMap_cons, List.length_append, List.length_cons]
-      have := length_halves_le e.1
+      simp only [List.flatMap_cons, List.length_append, List.length_cons] at ih ⊢
+      have := length_halves_append_programHashSlot_le e.1
+      simp only [List.length_append] at this
       omega
   have h2 : (rebuiltRoots log).length ≤ log.length := List.length_filterMap_le _ _
   simp only [inPlay, List.length_append]

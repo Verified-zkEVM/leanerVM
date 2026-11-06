@@ -19,8 +19,9 @@ so the history's announcement is the proof's (`announcementOf_of_setup`) and its
 is the proof's (`rootAt_eq_level0Root`). Every level of WHIR's opening with a successor reads a
 root (`RootsShaped`, `rootsShaped_of_walkChain`), so when the decoded transcript carries the
 words read off a log under the roots the history carries, each later word is the one read under
-its level's root (`ladderRoots_of`). With no hit on the seed, no answer of the log is the seed
-(`seed_not_answer`).
+its level's root (`ladderRoots_of`). The verifier's first state opens its statement and no later
+state of its chain opens one (`start_of_seedWith`): the seed's three hashes are logged, and on a
+log with no collision they determine the statement.
 -/
 
 namespace LeanerVM.Protocol
@@ -32,15 +33,22 @@ open DecodeChain Whir SlotDecoder ProofRoots OracleSpec
 
 namespace Core
 
-/-! ## The seed and the setup -/
+/-! ## The start and the setup -/
 
-
-/-- With no hit on the seed, no answer of a consistent log is the seed. -/
-theorem seed_not_answer {prog : Program} {input : PublicInput} {l : hashSpec.QueryLog}
-    (hc : QueryLog.Consistent l)
-    (hhit : ¬ QueryLog.HasHit (inPlay (seedDigests prog input)) l) :
-    ∀ e ∈ l, e.2 ≠ (FsState.seed prog input).cv := fun e he h ↦
-  QueryLog.answer_not_mem_inPlay_nil (inPlay_mono _) hc hhit he (by simp [inPlay, seedDigests, h])
+/-- **The verifier's start opens its statement**: if the seed's hashes, replayed, give the state
+`fs` and record `log₀`, then on a log with no collision holding `log₀` and every step of a chain
+from `fs`, the first state opens `(prog, input)` and no later state of the chain opens a
+statement. -/
+theorem start_of_seedWith {ans : List UInt8 → Option Digest} {prog : Program}
+    {input : PublicInput} {fs : FsState} {log₀ l : hashSpec.QueryLog}
+    (h : (FsState.seedWith (QueryLog.replayImpl ans) prog input).run [] = some (fs, log₀))
+    (hsub : ∀ e ∈ log₀, e ∈ l) (hcoll : ¬ QueryLog.HasCollision l) {hist : List Reading}
+    (hchain : ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ l) :
+    stmtOf l fs.cv = some (prog, input) ∧ ∀ x ∈ hist.map (·.2), stmtOf l x = none := by
+  obtain ⟨ph, iv, -, -, -, rfl⟩ := FsState.seedWith_replay h
+  have h₃ : ⟨seedInput iv input, fs.cv⟩ ∈ l := hsub _ (by simp)
+  exact ⟨stmtOf_eq_of_seedLogged hcoll ⟨ph, iv, hsub _ (by simp), hsub _ (by simp), h₃⟩,
+    stmtOf_states_eq_none hcoll (length_seedInput iv input) h₃ hchain⟩
 
 /-- `k` scalars read off a history are `k` observes. -/
 private theorem observes_of_nextScalars : ∀ (k : ℕ) {l : List Reading} {x : List E}

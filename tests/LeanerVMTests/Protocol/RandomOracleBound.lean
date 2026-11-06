@@ -13,7 +13,9 @@ work of one bit precedes, the challenges with a low zero bit bad):
   `1/4` (`π_le_of_not_asked`), the nonce group before its check among them; the bound is one
   draw: the same group once its check passes is bounded by `1/2` only;
 * the charge of a query from a clean state within `L` queries is at most
-  `(4L + 1) / 2^256 + 1/4`.
+  `(4L + 1) / 2^256 + 1/4`;
+* the toy's starts are safe with its seed among the roots and not with no roots, since it
+  announces at the empty history; a reader announcing nothing there is safe with no roots.
 -/
 
 namespace LeanerVMTests.Protocol.RandomOracleBound
@@ -59,6 +61,21 @@ example : R.π log₀ G₁ ≤ 4⁻¹ := R.π_le_of_not_asked (toy_bad s₀) (by
 -- The charge within `L` queries.
 example (s : OracleState) (L : ℕ) (hL : s.1.enncard + 1 ≤ L) (t : List UInt8) :
     R.charge [s₀] [] 0 s t ≤ ((4 * L + 1 + 0 : ℕ) : ℝ≥0∞) / 2 ^ 256 + 4⁻¹ :=
-  R.charge_le (List.mem_singleton_self _) (toy_bad s₀) hL t
+  R.charge_le (R.startsSafe_of_seed _ rfl (List.mem_singleton_self _)) (toy_bad s₀) hL t
+
+-- The toy's start is safe among the roots, and not without them: the toy announces at the empty
+-- history, so its seed, were it a fresh answer, would open a group that fixes a challenge.
+example : R.StartsSafe [s₀] := R.startsSafe_of_seed _ rfl (List.mem_singleton_self _)
+example : ¬ R.StartsSafe [] := fun h ↦ by
+  rcases h [] s₀ () (ChainStarts.stmtAt_startAt s₀ []) with h | h
+  · simp at h
+  · exact Option.some_ne_none _ h
+
+/-- The toy reader announcing nothing at the empty history. -/
+def lateToy : SlotReader :=
+  { R with announcementOf := fun _ hs ↦ if hs.isEmpty then none else some () }
+
+-- A start that announces nothing at the empty history is safe with no roots.
+example : lateToy.StartsSafe [] := fun _ _ _ _ ↦ .inr rfl
 
 end LeanerVMTests.Protocol.RandomOracleBound

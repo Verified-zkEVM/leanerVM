@@ -403,11 +403,11 @@ verifier, its steps logged, succeeds on a proof at the sizes, rate and levels it
 roots it reads are `rootsOf prog input proof`, in order. -/
 theorem rootsOf_eq_of_walkChainLogged {prog : Program} {input : PublicInput}
     {proof : Proof PrunedMerklePaths} {s : Sizes} {ρ : ℕ} {levels : List Whir.Level}
-    {H : List UInt8 → Id Digest} {st' : ReaderState PrunedMerklePaths} {w : Wire}
+    {H : List UInt8 → Id Digest} {fs : FsState} {st' : ReaderState PrunedMerklePaths} {w : Wire}
     {hist : List Reading} (hs : setup? prog proof = some (s, ρ))
     (hl : ladderOf prog s ρ = some levels)
     (h : walkChainLogged prog s input (levelShapes (stackMu prog s) levels) H
-      ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ = .ok ((w, hist), st')) :
+      ⟨fs, proof.stream, proof.merkle⟩ = .ok ((w, hist), st')) :
     rootsOf prog input proof = w.root :: w.whir.filterMap (·.root) := by
   obtain ⟨hw, hst⟩ := walkChain_history H h
   have hr := walkChain_roots hw

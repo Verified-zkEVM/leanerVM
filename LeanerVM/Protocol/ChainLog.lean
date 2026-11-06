@@ -22,12 +22,14 @@ the queries the replay recorded contain every step of the history it logs
 (`HashChain.queries Block.input`), from the starting state to the final one
 (`HashChain.last`).
 
-`accepts_of_replay`: a replay of the verifier that accepts walks the chain first, then the
-openings, only appending to the log (`prefix_of_runReplay_walkOpenings`, through the replay as a
-morphism of the readers' monads), and its algebra accepts their wire and rows. So
-`chain_in_log_of_replay`: when the verifier replayed on a log accepts, the
-logged chain walk at the log's hash succeeds on the proof and the replay's log holds every step of
-its history from the statement's seed.
+`accepts_of_runFrom`: a replay of the verifier from a computed start (`verifyFrom`) that accepts
+runs the start first, its queries a prefix `log₀` of the log, then walks the chain from its state
+with `log₀` recorded, then the openings, only appending to the log
+(`prefix_of_runReplay_walkOpenings`, through the replay as a morphism of the readers' monads), and
+its algebra accepts their wire and rows. So `chain_in_log_of_runFrom`: when it accepts, the logged
+chain walk at the log's hash succeeds on the proof from the start's state and the replay's log
+holds every step of its history. `accepts_of_replay` and `chain_in_log_of_replay` are the same
+for the verifier, whose start is the seed's three hashes (`FsState.seedWith`).
 -/
 
 namespace LeanerVM.Protocol
@@ -313,24 +315,28 @@ theorem prefix_of_runReplay_walkOpenings {nLanes : ℕ} {first : Bool} {root : D
   rw [← walkOpenings_replay] at h
   exact QueryLog.prefix_of_run_simulateQ_replayImpl ans _ h
 
-/-- **A replay the verifier accepts**: if the verifier replayed on a log accepts a proof,
-recording the queries `logV`, the proof announces sizes and a rate with a ladder, the chain walk
-replayed from the proof's start succeeds with a wire, recording a prefix of `logV`, the openings
-replayed after it succeed with rows, and the algebra accepts the wire and the rows. -/
-theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
+/-- **A replay of the verifier from a computed start that accepts**: if the verifier from the
+start `seed`, replayed on a log, accepts a proof, recording the queries `logV`, the proof
+announces sizes and a rate with a ladder, the start runs with a state `fs` and the queries `log₀`,
+the chain walk replayed from `fs` succeeds with a wire, recording `log₀` and then a prefix of
+`logV`, the openings replayed after it succeed with rows, and the algebra accepts the wire and the
+rows. -/
+theorem accepts_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
+    {seed : StateT (List UInt8 →ₒ Digest).QueryLog Option FsState} {prog : Program}
     {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
-    (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ levels w st₁ log₁ rows st₂ log₂, setup? prog proof = some (s, ρ) ∧
-      ladderOf prog s ρ = some levels ∧
+    (h : (verifyFrom (QueryLog.replayImpl (MerkleTree.logAnswer log)) seed prog input proof).run
+      [] = some (true, logV)) :
+    ∃ s ρ levels fs log₀ w st₁ log₁ rows st₂ log₂, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧ seed.run [] = some (fs, log₀) ∧
       runReplay (walkChain (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log))) prog s
         input (levelShapes (stackMu prog s) levels))
-        ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ [] = some (.ok (w, st₁), log₁) ∧
+        ⟨fs, proof.stream, proof.merkle⟩ log₀ = some (.ok (w, st₁), log₁) ∧
       runReplay (walkOpenings (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log)))
         (nLanes prog s) true w.root (levelShapes (stackMu prog s) levels) w.whir) st₁ log₁ =
         some (.ok (rows, st₂), log₂) ∧
       algebra prog s input (levelShapes (stackMu prog s) levels) w rows = true ∧
       log₁ <+: logV := by
-  unfold replay verifyWith at h
+  unfold verifyFrom at h
   rcases hs : setup? prog proof with _ | ⟨s, ρ⟩
   · simp [hs] at h
   rcases hl : ladderOf prog s ρ with _ | levels
@@ -340,15 +346,18 @@ theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Pr
   · simp at h
   let shs := levelShapes (stackMu prog s) levels
   let ops := readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log))
-  let st₀ : ReaderState PrunedMerklePaths := ⟨FsState.seed prog input, proof.stream, proof.merkle⟩
   let X : RW (Wire × List (List (List K))) := do
     let x ← walkProof ops prog s input shs
     Reader.finish
     return x
-  have h' : (((X.run' st₀).run) >>= fun r ↦ match r with
+  have h' : (seed >>= fun fs ↦ ((X.run' ⟨fs, proof.stream, proof.merkle⟩).run) >>= fun r ↦
+      match r with
       | .error _ => pure false
       | .ok (w, rows) => pure (algebra prog s input shs w rows) :
       StateT (List UInt8 →ₒ Digest).QueryLog Option Bool).run [] = some (true, logV) := h
+  rw [StateT.run_bind] at h'
+  obtain ⟨⟨fs, log₀⟩, hseed, h'⟩ := Option.bind_eq_some_iff.mp h'
+  let st₀ : ReaderState PrunedMerklePaths := ⟨fs, proof.stream, proof.merkle⟩
   rw [StateT.run_bind] at h'
   obtain ⟨⟨r, l⟩, hr, hK⟩ := Option.bind_eq_some_iff.mp h'
   rcases r with _ | ⟨w, rows⟩
@@ -359,11 +368,11 @@ theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Pr
   obtain ⟨⟨r', l'⟩, hr', he⟩ := Option.map_eq_some_iff.mp hr
   simp only [Prod.mk.injEq] at he
   obtain ⟨hr'', rfl⟩ := he
-  change runReplay X st₀ [] = _ at hr'
+  change runReplay X st₀ log₀ = _ at hr'
   simp only [X, walkProof, bind_assoc] at hr'
   rw [runReplay_bind] at hr'
-  rcases hc : runReplay (walkChain ops prog s input shs) st₀ [] with _ | ⟨_ | ⟨w₁, st₁⟩, log₁⟩ <;>
-    rw [hc] at hr'
+  rcases hc : runReplay (walkChain ops prog s input shs) st₀ log₀ with
+    _ | ⟨_ | ⟨w₁, st₁⟩, log₁⟩ <;> rw [hc] at hr'
   · cases hr'
   · cases hr'
     cases hr''
@@ -395,25 +404,73 @@ theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Pr
   simp only [runReplay_pure, Option.some.injEq, Prod.mk.injEq] at hr'
   obtain ⟨rfl, rfl⟩ := hr'
   cases hr''
-  exact ⟨s, ρ, levels, w, st₁, log₁, rows, st₃, log₂, rfl, hl, hc, ho, halg, hpre⟩
+  exact ⟨s, ρ, levels, fs, log₀, w, st₁, log₁, rows, st₃, log₂, rfl, hl, hseed, hc, ho, halg,
+    hpre⟩
+
+/-- **A replay the verifier accepts**: if the verifier replayed on a log accepts a proof,
+recording the queries `logV`, the proof announces sizes and a rate with a ladder, the seed's
+hashes replayed give a state `fs`, recording `log₀`, the chain walk replayed from `fs` succeeds
+with a wire, recording `log₀` and then a prefix of `logV`, the openings replayed after it succeed
+with rows, and the algebra accepts the wire and the rows. -/
+theorem accepts_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
+    {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
+    (h : replay log prog input proof = some (true, logV)) :
+    ∃ s ρ levels fs log₀ w st₁ log₁ rows st₂ log₂, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧
+      (FsState.seedWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input).run [] =
+        some (fs, log₀) ∧
+      runReplay (walkChain (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log))) prog s
+        input (levelShapes (stackMu prog s) levels))
+        ⟨fs, proof.stream, proof.merkle⟩ log₀ = some (.ok (w, st₁), log₁) ∧
+      runReplay (walkOpenings (readerOps (QueryLog.replayImpl (MerkleTree.logAnswer log)))
+        (nLanes prog s) true w.root (levelShapes (stackMu prog s) levels) w.whir) st₁ log₁ =
+        some (.ok (rows, st₂), log₂) ∧
+      algebra prog s input (levelShapes (stackMu prog s) levels) w rows = true ∧
+      log₁ <+: logV :=
+  accepts_of_runFrom h
+
+/-- **An accepted replay from a computed start holds the chain**: if the verifier from the start
+`seed`, replayed on a log, accepts a proof, recording `logV`, the proof announces sizes and a rate
+with a ladder, the start runs with a state `fs` and the queries `log₀`, a prefix of `logV`, the
+chain walk with its steps logged at the log's hash succeeds on the proof from `fs`, and every
+step of the history it logs is in `logV`, from `fs`. -/
+theorem chain_in_log_of_runFrom {log : (List UInt8 →ₒ Digest).QueryLog}
+    {seed : StateT (List UInt8 →ₒ Digest).QueryLog Option FsState} {prog : Program}
+    {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
+    (h : (verifyFrom (QueryLog.replayImpl (MerkleTree.logAnswer log)) seed prog input proof).run
+      [] = some (true, logV)) :
+    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧ seed.run [] = some (fs, log₀) ∧ log₀ <+: logV ∧
+      walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
+        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
+        .ok ((w, hist), st₁) ∧
+      ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV := by
+  obtain ⟨s, ρ, levels, fs, log₀, w, st₁, log₁, -, -, -, hs, hl, hseed, hc, -, -, hpre⟩ :=
+    accepts_of_runFrom h
+  obtain ⟨hist, hw, ⟨L, hL, hq⟩, -⟩ := walkChain_log _ hc
+  refine ⟨s, ρ, levels, fs, log₀, w, st₁, hist, hs, hl, hseed, ?_, hw, fun e he ↦ hpre.subset ?_⟩
+  · rw [hL] at hpre
+    exact (List.prefix_append log₀ L).trans hpre
+  · rw [hL]
+    exact List.mem_append_right _ (hq e he)
 
 /-- **An accepted replay's log holds the chain**: if the verifier replayed on a log accepts a
-proof, recording `logV`, the proof announces sizes and a rate with a ladder, the chain walk with its
-steps logged at the log's hash succeeds on the proof, and every step of the history it logs is in
-`logV`, from the statement's seed. -/
+proof, recording `logV`, the proof announces sizes and a rate with a ladder, the seed's hashes
+replayed give a state `fs`, recording `log₀`, a prefix of `logV`, the chain walk with its steps
+logged at the log's hash succeeds on the proof from `fs`, and every step of the history it logs is
+in `logV`, from `fs`. -/
 theorem chain_in_log_of_replay {log : (List UInt8 →ₒ Digest).QueryLog} {prog : Program}
     {input : PublicInput} {proof : Proof PrunedMerklePaths} {logV : (List UInt8 →ₒ Digest).QueryLog}
     (h : replay log prog input proof = some (true, logV)) :
-    ∃ s ρ levels w st₁ hist, setup? prog proof = some (s, ρ) ∧ ladderOf prog s ρ = some levels ∧
+    ∃ s ρ levels fs log₀ w st₁ hist, setup? prog proof = some (s, ρ) ∧
+      ladderOf prog s ρ = some levels ∧
+      (FsState.seedWith (QueryLog.replayImpl (MerkleTree.logAnswer log)) prog input).run [] =
+        some (fs, log₀) ∧ log₀ <+: logV ∧
       walkChainLogged prog s input (levelShapes (stackMu prog s) levels)
-        (hashOf (MerkleTree.logAnswer log)) ⟨FsState.seed prog input, proof.stream, proof.merkle⟩ =
+        (hashOf (MerkleTree.logAnswer log)) ⟨fs, proof.stream, proof.merkle⟩ =
         .ok ((w, hist), st₁) ∧
-      ∀ e ∈ HashChain.queries Block.input (FsState.seed prog input).cv hist, e ∈ logV := by
-  obtain ⟨s, ρ, levels, w, st₁, log₁, -, -, -, hs, hl, hc, -, -, hpre⟩ := accepts_of_replay h
-  obtain ⟨hist, hw, ⟨L, hL, hq⟩, -⟩ := walkChain_log _ hc
-  refine ⟨s, ρ, levels, w, st₁, hist, hs, hl, hw, fun e he ↦ hpre.subset ?_⟩
-  rw [hL]
-  exact List.mem_append_right _ (hq e he)
+      ∀ e ∈ HashChain.queries Block.input fs.cv hist, e ∈ logV :=
+  chain_in_log_of_runFrom h
 
 end ChainLog
 
