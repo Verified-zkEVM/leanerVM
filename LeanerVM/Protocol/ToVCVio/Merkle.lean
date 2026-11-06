@@ -14,6 +14,7 @@ module
 public import VCVio.CryptoFoundations.MerkleTree.ExtractionKernel
 public import VCVio.CryptoFoundations.MerkleTree.Inductive.Batch.Opening
 public import ToMathlib.Data.IndexedBinaryTree.Perfect
+public import PolyFun.Control.Monad.Hom
 
 /-!
 # Merkle trees and their pruned openings
@@ -34,6 +35,8 @@ fails when the siblings run out or are left over, and reads the first node of th
 `prunedRoot_eq_some_iff` is the reading: for every node hash, the walk reaches a root exactly
 when `toBatchOpening` reads the opening as VCVio's and VCVio's putative root is that root.
 `fold_map` carries the walk along a map of node algebras, of which the reading is an instance.
+`prunedRoot_hom` carries the walk along a monad morphism: mapping the walk under a node hash is
+walking under the mapped hash.
 `openSiblings` is the honest prover and `prunedRoot_openSiblings` its completeness. A prover
 builds the tree once, as its `Levels` (`buildLevels`), and reads the root and the siblings of
 every opening off it (`Levels.root`, `Levels.siblings`); `root_buildLevels` and
@@ -143,6 +146,67 @@ their positions and the supplied siblings, with every parent a call of `hash`. -
 def prunedRoot (hash : D → D → m D) (depth : ℕ) (leaves : List (ℕ × D)) (sibs : List D) :
     m (Option D) :=
   fold (NodeAlgebra.ofHash hash) depth 0 depth (Nat.zero_add depth) leaves sibs
+
+/-! ## The walk along a monad morphism -/
+
+section Hom
+
+variable {m' : Type → Type} [Monad m']
+
+/-- A node algebra carried along a monad morphism. -/
+def NodeAlgebra.map (φ : m →ᵐ m') (A : NodeAlgebra m D T) : NodeAlgebra m' D T where
+  both a b := φ (A.both a b)
+  withRight a s := φ (A.withRight a s)
+  withLeft s b := φ (A.withLeft s b)
+
+variable (φ : m →ᵐ m')
+
+/-- A level of the walk, mapped, is the level over the mapped algebra. -/
+theorem levelStep_hom (A : NodeAlgebra m D T) {h : ℕ} (nodes : List (ℕ × T h)) (sibs : List D) :
+    φ (levelStep A nodes sibs) = levelStep (A.map φ) nodes sibs := by
+  fun_induction levelStep A nodes sibs with
+  | case1 sibs => simp [levelStep]
+  | case2 i a sibs j b rest hp ih =>
+    simp only [levelStep, hp, and_self, ↓reduceIte, consParent, MonadHom.mmap_bind,
+      MonadHom.mmap_pure, ih]
+    rfl
+  | case3 i a sibs j b rest hp ih =>
+    simp only [levelStep, hp, ↓reduceIte]
+    cases sibs with
+    | nil => simp [withNext]
+    | cons s sibs =>
+      simp only [withNext, consParent, MonadHom.mmap_bind, MonadHom.mmap_pure, withSupplied,
+        MonadHom.mmap_ite, ih]
+      rfl
+  | case4 i a sibs =>
+    cases sibs with
+    | nil => simp [levelStep, withNext]
+    | cons s sibs =>
+      simp only [levelStep, withNext, consParent, MonadHom.mmap_bind, MonadHom.mmap_pure,
+        withSupplied, MonadHom.mmap_ite]
+      rfl
+
+/-- The walk, mapped, is the walk over the mapped algebra. -/
+theorem fold_hom (A : NodeAlgebra m D T) :
+    ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × T h)) (sibs : List D),
+      φ (fold A k h t e nodes sibs) = fold (A.map φ) k h t e nodes sibs
+  | 0, _, _, rfl, nodes, sibs => by simp [fold]
+  | k + 1, h, t, e, nodes, sibs => by
+    simp only [fold, MonadHom.mmap_bind, levelStep_hom]
+    congr 1
+    funext r
+    cases r with
+    | none => simp
+    | some p => exact fold_hom A k (h + 1) t (by omega) p.1 p.2
+
+/-- The walk under a node hash, mapped, is the walk under the mapped hash. -/
+theorem prunedRoot_hom (hash : D → D → m D) (depth : ℕ) (leaves : List (ℕ × D))
+    (sibs : List D) :
+    φ (prunedRoot hash depth leaves sibs) =
+      prunedRoot (fun a b ↦ φ (hash a b)) depth leaves sibs :=
+  fold_hom φ (NodeAlgebra.ofHash hash) depth 0 depth (Nat.zero_add depth) leaves sibs
+
+end Hom
 
 /-! ## The walk in `Id` -/
 

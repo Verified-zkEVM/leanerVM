@@ -28,6 +28,7 @@ import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial
+import LeanerVMTests.Protocol.DecodeTranscript
 import LeanerVMTests.Protocol.FastProvers
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
@@ -62,6 +63,8 @@ import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.RandomOracleGame
+import LeanerVMTests.Protocol.RustProof
+import LeanerVMTests.Protocol.RustProofData
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
@@ -72,6 +75,10 @@ import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
 import LeanerVMTests.Protocol.UniformSample
+import LeanerVMTests.Protocol.Verify
+import LeanerVMTests.Protocol.VerifyBus
+import LeanerVMTests.Protocol.VerifyFlock
+import LeanerVMTests.Protocol.VerifyTables
 import LeanerVMTests.Protocol.WhirCached
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold

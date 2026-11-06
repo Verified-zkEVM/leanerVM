@@ -69,3 +69,10 @@ allowNonModules = true
 name = "leanervm-bench"
 srcDir = "bench"
 root = "LeanerVMBench"
+
+[[lean_exe]]
+# The executable verifier on the Rust proof fixture, compiled; see bench/README.md.
+# Not a default target.
+name = "leanervm-verify"
+srcDir = "bench"
+root = "LeanerVMVerify"

@@ -124,11 +124,18 @@ abbrev Layout.read {μ : ℕ} {ι : Type} {κ : ι → ℕ} (L : Layout μ ι κ
 
 /-- One coordinate of a boundary tuple on a block of height `2 ^ κ`: a constant, a column both
 parties know (the index column `g^i`, the bytecode column), or a committed column of the same
-height. -/
+height. A known column comes with the evaluator of its extension the verifier runs, and its
+cells are built only when read: a verifier that evaluates the extension never builds the
+`2 ^ κ` cells, as for a `Weight`. -/
 inductive Coord (S : Shape) (κ : ℕ)
   | const (c : K)
-  | known (col : Column κ)
+  | known (col : Thunk (Column κ)) (ext : Vector E κ → E)
+      (ext_eq : ∀ z, ext z = eval₂Mle col.get.values (algebraMap K E) z)
   | committed (c : S.ColumnId) (h : S.τ c.1 = κ)
+
+/-- A known column whose extension is evaluated from its cells. -/
+def Coord.ofColumn {S : Shape} {κ : ℕ} (col : Column κ) : Coord S κ :=
+  .known (.mk fun _ ↦ col) (fun z ↦ eval₂Mle col.values (algebraMap K E) z) fun _ ↦ rfl
 
 /-- The committed column a coordinate names, if it names one. -/
 def Coord.committed? {S : Shape} {κ : ℕ} : Coord S κ → Option S.ColumnId
@@ -252,7 +259,7 @@ def rowFast (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.w
 /-- The value of a boundary coordinate at row `x` of its block. -/
 def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ) → K
   | .const c, _ => c
-  | .known col, x => col.values.get x
+  | .known col _ _, x => col.get.values.get x
   | .committed c h, x => (I.column q c).values.get (Fin.cast (congrArg (2 ^ ·) h.symm) x)
 
 /-- The tuples of one side flushed by the tables: every table, every flush of that side, every

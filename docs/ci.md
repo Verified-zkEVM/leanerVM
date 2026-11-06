@@ -31,6 +31,10 @@ when the project has a concrete milestone release process to automate.
 
 Workflows have read-only repository contents unless they must post pull-request output.
 
+`CI` and `Build timing` allow 60 minutes on a hosted runner. A cold build of the protocol layer,
+without the Actions cache, takes about 25 minutes, and `lake test` about 6 more; both grow with
+the executable verifier and the theorems above it.
+
 Native/FFI isolation, CUDA, generated-blueprint, and VM-runtime benchmark jobs are deliberately
 absent. Add each only alongside the artifact it protects. Runtime benchmarks should follow the
 contract in [../bench/README.md](../bench/README.md).

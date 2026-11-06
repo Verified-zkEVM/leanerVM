@@ -176,7 +176,7 @@ private def colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) : UIn
 
 /-- The input word at `32 w` of block `t` denotes word `w` of the block. -/
 private theorem den_colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) {b : ℕ}
-    (hb : b = 32 * w.val) : Den (blockBits c t) (inW b) (colWord c t w) := by
+    (hb : b = 32 * w.val) : Den (blockBits c t) (inW (formLin _) b) (colWord c t w) := by
   refine den_inW fun i ↦ ?_
   subst hb
   unfold colWord
