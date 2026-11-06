@@ -30,15 +30,15 @@ theorem spWotsLeaf_60 : Stmt.leafOkList noLoad ((Data.core19.body.drop 60).take 
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spWotsLeaf_110 : Stmt.leafOkList noLoad ((Data.core19.body.drop 110).take 98) = true := by
+theorem spWotsLeaf_110 : Stmt.leafOkList noLoad ((Data.core19.body.drop 110).take 100) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- **`sp_wots`'s body is a leaf loading nothing.** -/
 theorem spWots_leafOk : Stmt.leafOkList noLoad Data.core19.body = true := by
-  have h208 : Stmt.leafOkList noLoad (Data.core19.body.drop 208) = true :=
+  have h210 : Stmt.leafOkList noLoad (Data.core19.body.drop 210) = true :=
     leafOk_end (l := Data.core19.body) (by decide +kernel)
-  have h110 := leafOk_drop (l := Data.core19.body) (a := 110) (n := 98) spWotsLeaf_110 h208
+  have h110 := leafOk_drop (l := Data.core19.body) (a := 110) (n := 100) spWotsLeaf_110 h210
   have h60 := leafOk_drop (l := Data.core19.body) (a := 60) (n := 50) spWotsLeaf_60 h110
   have h0 := leafOk_drop (l := Data.core19.body) (a := 0) (n := 60) spWotsLeaf_0 h60
   simpa using h0
