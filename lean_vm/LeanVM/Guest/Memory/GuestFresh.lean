@@ -28,6 +28,7 @@ public import LeanVM.Guest.Memory.GuestFresh.Part17
 public import LeanVM.Guest.Memory.GuestFresh.Part18
 public import LeanVM.Guest.Memory.GuestFresh.Part19
 public import LeanVM.Guest.Memory.GuestFresh.Fresh19
+public import LeanVM.Guest.Memory.GuestFresh.Fresh20
 public import LeanVM.Guest.Memory.GuestFresh.Fresh36
 public import LeanVM.Guest.Memory.GuestFresh.Fresh927
 public import LeanVM.Guest.Memory.GuestFresh.Fresh929
@@ -73,10 +74,10 @@ theorem coreProgram_fresh : coreProgram.Fresh := by
     h2.append' (freshRange_17.on) rfl rfl
   have h4 : FreshOn 0 20 :=
     h3.append' (freshOn_one (j := 19) rfl core19_fresh) rfl rfl
-  have h5 : FreshOn 0 30 :=
-    h4.append' (freshRange_20.on) rfl rfl
+  have h5 : FreshOn 0 21 :=
+    h4.append' (freshOn_one (j := 20) rfl core20_fresh) rfl rfl
   have h6 : FreshOn 0 36 :=
-    h5.append' (freshRange_30.on) rfl rfl
+    h5.append' (freshRange_21.on) rfl rfl
   have h7 : FreshOn 0 37 :=
     h6.append' (freshOn_one (j := 36) rfl core36_fresh) rfl rfl
   have h8 : FreshOn 0 86 :=

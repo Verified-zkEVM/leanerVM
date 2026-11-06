@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop382`, window 1. -/
-theorem w875_1 : shareWin 875 (snapsOf 875) 1 = true := by decide +kernel
+/-- `__loop379`, once. -/
+theorem st869 : shareStatic 869 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop382`, window 2. -/
-theorem w875_2 : shareWin 875 (snapsOf 875) 2 = true := by decide +kernel
+/-- `__loop379`, window 0. -/
+theorem w869_0 : shareWin 869 (snapsOf 869) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L19_L5`, once. -/
-theorem st876 : shareStatic 876 = true := by decide +kernel
+/-- `__loop379`, window 1. -/
+theorem w869_1 : shareWin 869 (snapsOf 869) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L19_L5`, window 0. -/
-theorem w876_0 : shareWin 876 (snapsOf 876) 0 = true := by decide +kernel
+/-- `__loop379`, window 2. -/
+theorem w869_2 : shareWin 869 (snapsOf 869) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L19_L5`, window 1. -/
-theorem w876_1 : shareWin 876 (snapsOf 876) 1 = true := by decide +kernel
+/-- `decode_query_windows__L18_L5`, once. -/
+theorem st870 : shareStatic 870 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop383`, once. -/
-theorem st877 : shareStatic 877 = true := by decide +kernel
+/-- `decode_query_windows__L18_L5`, window 0. -/
+theorem w870_0 : shareWin 870 (snapsOf 870) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop383`, window 0. -/
-theorem w877_0 : shareWin 877 (snapsOf 877) 0 = true := by decide +kernel
+/-- `decode_query_windows__L18_L5`, window 1. -/
+theorem w870_1 : shareWin 870 (snapsOf 870) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop383`, window 1. -/
-theorem w877_1 : shareWin 877 (snapsOf 877) 1 = true := by decide +kernel
+/-- `__loop380`, once. -/
+theorem st871 : shareStatic 871 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

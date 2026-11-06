@@ -16,90 +16,72 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop13`, window 0. -/
-theorem w270_0 : shareWin 270 (snapsOf 270) 0 = true := by decide +kernel
+/-- `block_selector_tab__L32`, once. -/
+theorem st260 : shareStatic 260 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop13`, window 1. -/
-theorem w270_1 : shareWin 270 (snapsOf 270) 1 = true := by decide +kernel
+/-- `block_selector_tab__L32`, window 0. -/
+theorem w260_0 : shareWin 260 (snapsOf 260) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `__loop14`, once. -/
-theorem st271 : shareStatic 271 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop14`, window 0. -/
-theorem w271_0 : shareWin 271 (snapsOf 271) 0 = true := by decide +kernel
-
-theorem ok271 : ShareOk 271 := ⟨st271, fun i hi ↦ by
-  have h : (snapsOf 271).length = 0 := by decide +kernel
+theorem ok260 : ShareOk 260 := ⟨st260, fun i hi ↦ by
+  have h : (snapsOf 260).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w271_0⟩
+  exact w260_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L0`, once. -/
-theorem st272 : shareStatic 272 = true := by decide +kernel
+/-- `block_selector_tab__L33`, once. -/
+theorem st261 : shareStatic 261 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L0`, window 0. -/
-theorem w272_0 : shareWin 272 (snapsOf 272) 0 = true := by decide +kernel
+/-- `block_selector_tab__L33`, window 0. -/
+theorem w261_0 : shareWin 261 (snapsOf 261) 0 = true := by decide +kernel
 
-theorem ok272 : ShareOk 272 := ⟨st272, fun i hi ↦ by
-  have h : (snapsOf 272).length = 0 := by decide +kernel
+theorem ok261 : ShareOk 261 := ⟨st261, fun i hi ↦ by
+  have h : (snapsOf 261).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w272_0⟩
+  exact w261_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L1`, once. -/
-theorem st273 : shareStatic 273 = true := by decide +kernel
+/-- `__loop9`, once. -/
+theorem st262 : shareStatic 262 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L1`, window 0. -/
-theorem w273_0 : shareWin 273 (snapsOf 273) 0 = true := by decide +kernel
+/-- `__loop9`, window 0. -/
+theorem w262_0 : shareWin 262 (snapsOf 262) 0 = true := by decide +kernel
 
-theorem ok273 : ShareOk 273 := ⟨st273, fun i hi ↦ by
-  have h : (snapsOf 273).length = 0 := by decide +kernel
+theorem ok262 : ShareOk 262 := ⟨st262, fun i hi ↦ by
+  have h : (snapsOf 262).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w273_0⟩
+  exact w262_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L2`, once. -/
-theorem st274 : shareStatic 274 = true := by decide +kernel
+/-- `__loop10`, once. -/
+theorem st263 : shareStatic 263 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L2`, window 0. -/
-theorem w274_0 : shareWin 274 (snapsOf 274) 0 = true := by decide +kernel
+/-- `__loop10`, window 0. -/
+theorem w263_0 : shareWin 263 (snapsOf 263) 0 = true := by decide +kernel
 
-theorem ok274 : ShareOk 274 := ⟨st274, fun i hi ↦ by
-  have h : (snapsOf 274).length = 0 := by decide +kernel
+theorem ok263 : ShareOk 263 := ⟨st263, fun i hi ↦ by
+  have h : (snapsOf 263).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w274_0⟩
+  exact w263_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L3`, once. -/
-theorem st275 : shareStatic 275 = true := by decide +kernel
+/-- `keccak_layer__L1`, once. -/
+theorem st264 : shareStatic 264 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L3`, window 0. -/
-theorem w275_0 : shareWin 275 (snapsOf 275) 0 = true := by decide +kernel
-
-theorem ok275 : ShareOk 275 := ⟨st275, fun i hi ↦ by
-  have h : (snapsOf 275).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w275_0⟩
+/-- `keccak_layer__L1`, window 0. -/
+theorem w264_0 : shareWin 264 (snapsOf 264) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L4`, once. -/
-theorem st276 : shareStatic 276 = true := by decide +kernel
+/-- `keccak_layer__L1`, window 1. -/
+theorem w264_1 : shareWin 264 (snapsOf 264) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L4`, window 0. -/
-theorem w276_0 : shareWin 276 (snapsOf 276) 0 = true := by decide +kernel
-
-theorem ok276 : ShareOk 276 := ⟨st276, fun i hi ↦ by
-  have h : (snapsOf 276).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w276_0⟩
+/-- `keccak_layer__L1`, window 2. -/
+theorem w264_2 : shareWin 264 (snapsOf 264) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

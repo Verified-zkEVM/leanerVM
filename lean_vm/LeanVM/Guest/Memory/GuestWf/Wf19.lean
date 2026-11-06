@@ -18,14 +18,14 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `sp_wots` is well formed. -/
 theorem core19_wf : Stmt.wfList coreProgram Data.core19.body = true := by
-  have h208 : Stmt.wfList coreProgram (Data.core19.body.drop 208) = true :=
+  have h210 : Stmt.wfList coreProgram (Data.core19.body.drop 210) = true :=
     wfStmts_end (by decide +kernel)
-  have h109 : Stmt.wfList coreProgram (Data.core19.body.drop 109) = true :=
-    wfStmts_drop (a := 109) (n := 99) wf19_109 h208
-  have h64 : Stmt.wfList coreProgram (Data.core19.body.drop 64) = true :=
-    wfStmts_drop (a := 64) (n := 45) wf19_64 h109
+  have h111 : Stmt.wfList coreProgram (Data.core19.body.drop 111) = true :=
+    wfStmts_drop (a := 111) (n := 99) wf19_111 h210
+  have h66 : Stmt.wfList coreProgram (Data.core19.body.drop 66) = true :=
+    wfStmts_drop (a := 66) (n := 45) wf19_66 h111
   have h0 : Stmt.wfList coreProgram (Data.core19.body.drop 0) = true :=
-    wfStmts_drop (a := 0) (n := 64) wf19_0 h64
+    wfStmts_drop (a := 0) (n := 66) wf19_0 h66
   simpa using h0
 
 end
