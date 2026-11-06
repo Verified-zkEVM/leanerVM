@@ -25,6 +25,7 @@ import LeanerVMTests.Protocol.Blake2sHash
 import LeanerVMTests.Protocol.Blake2sHashFast
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
+import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial
 import LeanerVMTests.Protocol.FastProvers
@@ -42,6 +43,9 @@ import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
+import LeanerVMTests.Protocol.ListBinding
+import LeanerVMTests.Protocol.ListBindingBudget
+import LeanerVMTests.Protocol.ListBindingDeployed
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear
@@ -57,6 +61,7 @@ import LeanerVMTests.Protocol.Proof
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
+import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
@@ -66,10 +71,12 @@ import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
+import LeanerVMTests.Protocol.UniformSample
 import LeanerVMTests.Protocol.WhirCached
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold
 import LeanerVMTests.Protocol.WhirGlue
+import LeanerVMTests.Protocol.WhirJohnson
 import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound

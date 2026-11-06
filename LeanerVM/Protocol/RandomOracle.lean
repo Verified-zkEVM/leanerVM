@@ -11,6 +11,7 @@ module
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.Transcript
 public import LeanerVM.Protocol.ToVCVio.HashChain
+public import LeanerVM.Protocol.ToVCVio.UniformSample
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
 
@@ -33,6 +34,12 @@ enumeration of `UInt32`; `card_digest` counts `2^256` digests.
 digests, so the challenge of a uniform digest is uniform on `E` (`prEvent_challengeOf`). The
 grinding check asks for `bits` low zero bits in the first 64-bit word (`FsState.lowBitsZero`), which
 a uniform digest has with probability `2^-bits` for `bits ≤ 64` (`prEvent_lowBitsZero`).
+
+**Tuples and positions.** The challenges of `m` fresh uniform digests are a uniform tuple in
+`Fin m → E` (`prEvent_challengeOf_tuple`). WHIR's query positions of `b` bits are chunks of the
+challenges' 192 bits (`challengeBits`), `⌊192/b⌋` to a squeeze, low bits first
+(`challengePositions`); with `t ≤ m⌊192/b⌋`, the `t` positions of `m` fresh squeezes are a uniform
+tuple in `Fin t → Fin (2^b)` (`prEvent_positions_uniform`).
 
 **The chain read off a log.** `chainHistory log seed s` is the chain `HashChain.history` reads back
 from the state `s` to `seed`: at each state, the unique logged query answered by it that parses as
@@ -85,14 +92,6 @@ def runRandom {α : Type} (oa : OracleComp hashSpec α) : ProbComp (α × hashSp
   (simulateQ hashSpec.randomOracle oa).run ∅
 
 /-! ## Challenges and grinding checks of a uniform digest -/
-
-/-- The first half of a bijection pushes a uniform sample to a uniform sample. -/
-private theorem prEvent_uniformSample_fst_of_bijective {α β γ : Type} [SampleableType α]
-    [SampleableType β] [SampleableType γ] {f : α → β} {g : α → γ}
-    (h : Function.Bijective fun x ↦ (f x, g x)) (p : β → Prop) :
-    Pr{let x ← $ᵗ α}[p (f x)] = Pr{let y ← $ᵗ β}[p y] :=
-  (SampleableType.prEvent_uniformSample_comp_of_bijective h fun z ↦ p z.1).trans
-    (SampleableType.prEvent_uniformSample_fst p)
 
 /-- A digest is its challenge and its last two words. -/
 private theorem challengeOf_bijective :
@@ -168,6 +167,85 @@ theorem prEvent_lowBitsZero {bits : ℕ} (hb : bits ≤ 64) :
   simp only [FsState.lowBitsZero, beq_iff_eq, ← firstWord.eq_def, h,
     SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fin, Nat.cast_pow,
     Nat.cast_ofNat]
+
+/-! ## Tuples of challenges and query positions -/
+
+/-- **The challenges of fresh digests are a uniform tuple.** The challenges of `m` independent
+uniform digests, the answers to `m` fresh squeezes, are `m` independent uniform elements of
+`E`. -/
+theorem prEvent_challengeOf_tuple (m : ℕ) (p : (Fin m → E) → Prop) :
+    Pr{let d ← $ᵗ (Fin m → Digest)}[p fun i ↦ FsState.challengeOf (d i)] =
+      Pr{let x ← $ᵗ (Fin m → E)}[p x] :=
+  prEvent_uniformSample_pi_of_bijective challengeOf_bijective m p
+
+/-- The integer of a challenge's 192 bits, limb `0` lowest: the bits `sample_queries_ordered`
+chunks into query positions. -/
+def challengeBits (x : E) : ℕ :=
+  (x.limb 0).toBitVec.toNat + 2 ^ 64 * (x.limb 1).toBitVec.toNat +
+    2 ^ 128 * (x.limb 2).toBitVec.toNat
+
+/-- The `t` query positions of `b` bits that the challenges `xs` of successive squeezes give
+(`sample_queries_ordered`, `crates/pcs/src/whir.rs:1175-1193` at
+`a386121f84292f6fa663aaa3e570c15bc0240ea2`): `⌊192/b⌋` to a challenge, low bits first, so position
+`q` is bits `[c·b, c·b + b)` of the 192 bits of challenge `q / ⌊192/b⌋`, `c = q % ⌊192/b⌋`. The
+Rust reads a chunk off at most two limbs into a `u64` and masks it with `2^b - 1`, which is these
+bits for `1 ≤ b < 64` (`b = 0` divides by zero, `b = 64` overflows the mask); the deployed `b`, a
+level's `κ + R`, is in that range. A position past the challenges given reads `0`. -/
+def challengePositions (b t : ℕ) (xs : List E) : Fin t → Fin (2 ^ b) := fun q ↦
+  ⟨challengeBits (xs.getD (q / (192 / b)) 0) / 2 ^ (q % (192 / b) * b) % 2 ^ b,
+    Nat.mod_lt _ (Nat.two_pow_pos b)⟩
+
+/-- A challenge's bits are below `2^192`. -/
+private theorem challengeBits_lt (x : E) : challengeBits x < 2 ^ 192 := by
+  have := (x.limb 0).toBitVec.isLt
+  have := (x.limb 1).toBitVec.isLt
+  have := (x.limb 2).toBitVec.isLt
+  simp only [challengeBits]
+  omega
+
+/-- A challenge is its 192 bits. -/
+private theorem challengeBits_bijective :
+    Function.Bijective fun x : E ↦ (⟨challengeBits x, challengeBits_lt x⟩ : Fin (2 ^ 192)) := by
+  rw [Fintype.bijective_iff_injective_and_card, card_E, Fintype.card_fin]
+  refine ⟨fun x y h ↦ ?_, rfl⟩
+  simp only [Fin.mk.injEq, challengeBits] at h
+  have := (x.limb 0).toBitVec.isLt
+  have := (x.limb 1).toBitVec.isLt
+  have := (x.limb 2).toBitVec.isLt
+  have := (y.limb 0).toBitVec.isLt
+  have := (y.limb 1).toBitVec.isLt
+  have := (y.limb 2).toBitVec.isLt
+  have h0 : (x.limb 0).toBitVec.toNat = (y.limb 0).toBitVec.toNat := by omega
+  have h1 : (x.limb 1).toBitVec.toNat = (y.limb 1).toBitVec.toNat := by omega
+  have h2 : (x.limb 2).toBitVec.toNat = (y.limb 2).toBitVec.toNat := by omega
+  refine E.ext fun i ↦ BF64.toBitVec_injective (BitVec.toNat_inj.mp ?_)
+  fin_cases i
+  exacts [h0, h1, h2]
+
+/-- **Query positions are uniform.** Let `m` fresh squeezes give `m` independent uniform digests,
+enough for `t` positions of `b` bits: `t ≤ m * ⌊192/b⌋`. The `t` positions their challenges give
+are `t` independent uniform elements of `Fin (2^b)`: every event of them has its probability
+under a uniform `Fin t → Fin (2^b)`. The top `192 - b⌊192/b⌋` bits of each challenge and the
+chunks of the last squeeze past position `t` are not read. -/
+theorem prEvent_positions_uniform {b t m : ℕ} (ht : t ≤ m * (192 / b))
+    (p : (Fin t → Fin (2 ^ b)) → Prop) :
+    Pr{let d ← $ᵗ (Fin m → Digest)}[
+      p (challengePositions b t (List.ofFn fun i ↦ FsState.challengeOf (d i)))] =
+      Pr{let y ← $ᵗ (Fin t → Fin (2 ^ b))}[p y] := by
+  have hdvd : (2 ^ b) ^ (192 / b) ∣ 2 ^ 192 := by
+    rw [← pow_mul]
+    exact pow_dvd_pow 2 (Nat.mul_div_le 192 b)
+  refine (prEvent_challengeOf_tuple m fun x ↦ p (challengePositions b t (List.ofFn x))).trans
+    (Eq.trans ?_ (prEvent_uniformSample_digitChunks hdvd ht p))
+  rw [← SampleableType.prEvent_uniformSample_equiv
+    (Equiv.arrowCongr (Equiv.refl (Fin m)) (Equiv.ofBijective _ challengeBits_bijective))]
+  congr! with x q
+  simp only [challengePositions, Equiv.arrowCongr_apply, Equiv.coe_refl, Function.comp_apply,
+    Equiv.refl_symm, id_eq, Equiv.ofBijective_apply, Fin.coe_modNat, Fin.val_castLE, ← pow_mul,
+    mul_comm b, List.getD_eq_getElem?_getD, List.getElem?_ofFn,
+    Nat.div_lt_of_lt_mul (q.2.trans_le (ht.trans_eq (mul_comm _ _))), dite_true,
+    Option.getD_some]
+  rfl
 
 /-! ## The chain read off a log -/
 
