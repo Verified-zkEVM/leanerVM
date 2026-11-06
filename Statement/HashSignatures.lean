@@ -36,7 +36,7 @@ abbrev Digest := BitVec digestBits
 abbrev HashOutput := BitVec 256
 /-- A message to sign, `256` bits. -/
 abbrev Message := BitVec 256
-/-- The public parameter `P`, `128` bits, prefixed to every hash call. -/
+/-- The public parameter `P`, `128` bits, prefixed to every addressed (tweakable) hash call. -/
 abbrev PublicParameter := BitVec 128
 /-- A signature's randomizer, one digest. -/
 abbrev Randomizer := Digest
