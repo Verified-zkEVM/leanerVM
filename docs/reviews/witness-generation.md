@@ -1,6 +1,6 @@
 # A verified witness generator for leanVM, and completeness without an efficiency assumption
 
-Branch `witgen-fv`, rebased onto `main` after #185 (`25da57d32`). Written 2026-11-05, rebased 2026-11-06.
+Pull request #192, branch `feat/witness-generator` on `main` after #185 (`25da57d32`). Written 2026-11-05, rebased 2026-11-06.
 
 ## Result
 
@@ -129,7 +129,7 @@ probabilistic; Clean's IR is version-dependent; the base PR moved during the wor
 
 ## Open issues found by the witness-generation work (drafts, not posted)
 
-Base: branch `witgen-fv` on `main` `25da57d32`. Each item: what is
+Base: branch `feat/witness-generator` on `main` `25da57d32`. Each item: what is
 wrong or missing, evidence, proposed fix, scope.
 
 ### 1. The generator doubles memory; Rust places the fill frames in free space
