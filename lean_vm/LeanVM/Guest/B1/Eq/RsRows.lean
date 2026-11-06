@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# `rs_eq_rows` (lean_ethereum.py:1007-1026 at leanVM `9d8bce81`)
+# `rs_eq_rows` (lean_ethereum.py:1037-1056 at leanVM `834e6614`)
 
 `rs_eq_rows(row, zs, ps, n)` at `n = 0` returns `row`. Otherwise it reads the `n` coordinates
 `zs[i]`, `ps[i]` (`rrHead`), and for each `k < 64` the row word `row[k]`, multiplies it by

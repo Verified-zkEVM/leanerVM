@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.WalkPath
 
-  `walk_path` (a function of its own at 9d8bce81): from a node and a position's windows, the path
+  `walk_path` (a function of its own at 834e6614): from a node and a position's windows, the path
   climbs by hinted siblings into the cap leaf, whose parent it flags; soundly.
 -/
 
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesCap
 public import LeanVM.Guest.B1.Opening.QueriesFlatC
 
 /-!
-# `walk_path`, soundly (lean_ethereum.py:1312-1347 at 9d8bce81)
+# `walk_path`, soundly (lean_ethereum.py:1342-1377 at 834e6614)
 
 `walk_path__L{pd}_L{cd}(n0, n1, wins, cap, flags)`: the children hinted (`merkle_children`), the
 windows of the position at `wins` dispatched a window at a time (`walk_window`, the arm's order
