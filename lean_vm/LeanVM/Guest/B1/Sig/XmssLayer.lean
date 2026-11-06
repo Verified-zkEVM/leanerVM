@@ -218,7 +218,7 @@ theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs 
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)
       ⟨s, _⟩) =
-      HashSig.addressBytes (HashSig.tweakFields 1 s (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+      LeanXmss.addressBytes (LeanXmss.tweakFields 1 s (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 1 + s * stepMul = 2 ^ 32 * (2 ^ 24 + 2 ^ 29 * s) by simp [tw, stepMul]; ring,
     idx_add_word hk]
@@ -233,7 +233,7 @@ theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
       LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) := by
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) =
-      HashSig.addressBytes (HashSig.tweakFields 2 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+      LeanXmss.addressBytes (LeanXmss.tweakFields 2 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 2 = 2 ^ 32 * 2 ^ 25 by simp [tw], idx_add_word hk]
   congr 2
@@ -249,7 +249,7 @@ theorem xMsgAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
       hl⟩)) =
-      HashSig.addressBytes (HashSig.tweakFields 12 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
+      LeanXmss.addressBytes (LeanXmss.tweakFields 12 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
       rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
     show tw 12 = 2 ^ 32 * (12 * 2 ^ 24) by simp [tw], idx_add_word hk]
   congr 2
@@ -266,7 +266,7 @@ theorem xNodeAdr_bytes {L layer l : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hl1
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
         ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) =
-      HashSig.addressBytes (HashSig.tweakFields 3 0 (l + 1 + 2 ^ 23 * layer)
+      LeanXmss.addressBytes (LeanXmss.tweakFields 3 0 (l + 1 + 2 ^ 23 * layer)
         ((L >>> (16 * layer)) / 2 ^ (l + 1))) by rw [← keyAt_val L hL layer hl]; rfl,
     fieldBytes_tweakFields,
     show xAddrOf layer l = 2 ^ 32 * (3 * 2 ^ 24 + (l + 1) + 2 ^ 23 * layer) by
