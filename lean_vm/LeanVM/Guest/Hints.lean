@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmGuest
+public import LeanVM.Facts.ClaimBytes
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
 public import Statement.Fast.Schemes
@@ -119,12 +120,10 @@ def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
-/-- A claim's four cells: the key's two 16-byte halves as `to_bytes` lays them out (a leanXMSS key's
-root and parameter, a leanSPHINCS key's `PK.seed` and `PK.root`), then the message (`claim_cells`,
-`aggregation/statement.rs:38-55`). -/
-def claimCells (first second : BitVec 128) (message : BitVec 256) : Entry :=
-  cellsOfBytes (HashSig.littleEndianBytes 16 first ++ HashSig.littleEndianBytes 16 second ++
-    HashSig.littleEndianBytes 32 message)
+/-- A claim's four cells: the key's two halves (leanXMSS: root, parameter; leanSPHINCS: `PK.seed`,
+`PK.root`), the message (`claim_cells`, `aggregation/statement.rs:38-55`). -/
+def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
+  cellsOfBytes (claimBytesOf root parameter message)
 
 /-- Bytes, each in the exponent (`exponent_bytes`, `aggregation/cells.rs:12-14`). -/
 def exponentBytes (bytes : List UInt8) : Entry :=
