@@ -208,6 +208,10 @@ def test_layer_gate() -> None:
         write(allowed, "module\n\npublic import LeanerVM.Arithmetization.Basic\n")
         require_pass(run(root, "check-layers.sh"), "wall allow-list")
         allowed.unlink()
+        headline = root / "LeanerVM" / "Protocol" / "Headline.lean"
+        write(headline, "module\n\npublic import LeanerVM.Arithmetization.Soundness\n")
+        require_pass(run(root, "check-layers.sh"), "wall allow-list: the base theorems")
+        headline.unlink()
         # The adaptor's modules under `LeanIsa/` are inside the wall; a sibling of the name is not.
         adaptor = root / "LeanerVM" / "Protocol" / "LeanIsa" / "Sound.lean"
         write(adaptor, "module\n\npublic import LeanerVM.Arithmetization.Basic\n")

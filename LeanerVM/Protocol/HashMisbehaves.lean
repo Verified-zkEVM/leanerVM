@@ -31,9 +31,10 @@ distribution over coin-free ones, each meeting the bound (`misbehaves_rom_coins`
 
 The proof runs the game on the lazy random oracle that records its fresh queries
 (`QueryHistory.freshLog`). On every run the fresh log is the joint log with each query at its first
-occurrence, and a misbehaving hash on the joint log leaves the fresh log unclean
-(`badLog_of_hashMisbehaves`): a collision, a hit and a flip survive deduplication, and the proof's
-roots are answers past the prover's part. The potential of `RandomOracleBound.lean` then
+occurrence (so a run under the lazy random oracle is a possible run of the game whose joint log is
+consistent, `mem_support_runRandom`), and a misbehaving hash on the joint log leaves the fresh log
+unclean (`badLog_of_hashMisbehaves`): a collision, a hit and a flip survive deduplication, and the
+proof's roots are answers past the prover's part. The potential of `RandomOracleBound.lean` then
 bounds the two runs in sequence (`QueryHistory.prEvent_bind_le_of_potential`, the integral form):
 the verifier's run starts from the potential the prover's leaves, which `Φ_start` identifies with
 the prover's potential, and each run's charges total at most its queries times the per-query bound
@@ -134,6 +135,28 @@ private theorem loggedGame_support {V : VerifierWith} {prog : Program} {input : 
         obtain ⟨u', hu'⟩ := Option.ne_none_iff_exists'.mp hs
         exact hm (List.mem_map.mpr ⟨⟨e.1, u'⟩, hf₁.2.1 _ _ hu', rfl⟩)
     exact Bool.eq_iff_iff.mpr (hkey.trans (by simp))
+
+/-- **A run under the lazy random oracle** is a possible run of the game, and its joint log is
+consistent: every logged answer is the final cache's. -/
+theorem mem_support_runRandom {V : VerifierWith} {prog : Program} {input : PublicInput}
+    {A : Adversary} {z : Run × hashSpec.QueryCache}
+    (hz : z ∈ support (runRandom (loggedGame V prog input A))) :
+    z.1 ∈ support (loggedGame V prog input A) ∧ QueryLog.Consistent z.1.log := by
+  have hrun : runRandom (loggedGame V prog input A) = Prod.map id QueryHistory.freshLog.view <$>
+      (simulateQ QueryHistory.freshLog.randomOracle (loggedGame V prog input A)).run
+        ((∅ : hashSpec.QueryCache), []) :=
+    ((QueryHistory.freshLog (spec := hashSpec)).randomOracle_run_view
+      (loggedGame V prog input A) ((∅ : hashSpec.QueryCache), [])).symm
+  rw [hrun, support_map] at hz
+  obtain ⟨z', hz', rfl⟩ := hz
+  refine ⟨support_simulateQ_run'_subset QueryHistory.freshLog.randomOracle _
+    ((∅ : hashSpec.QueryCache), []) ?_, ?_⟩
+  · rw [StateT.run'_eq, support_map]
+    exact Set.mem_image_of_mem _ hz'
+  rw [loggedGame_eq] at hz'
+  simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz'
+  obtain ⟨z₁, hz₁, hz₂⟩ := hz'
+  exact (loggedGame_support hz₁ hz₂).2.2.1
 
 /-! ## A misbehaving hash leaves the fresh log unclean -/
 

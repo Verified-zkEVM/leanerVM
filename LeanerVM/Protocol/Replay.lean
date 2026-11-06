@@ -24,7 +24,8 @@ does not answer. It is the verifier on the oracle, simulated by `QueryLog.replay
 `g.log` is consistent, the replay on `g.log` returns the verdict `g.ok` and the verifier's log
 `g.logV`. A possible run is one in the support of `loggedGame`, where a query may be answered by
 anything, so the same holds of a run under the lazy random oracle or under BLAKE2s
-(`QueryLog.support_simulateQ_subset`).
+(`QueryLog.support_simulateQ_subset`). `mem_support_runBlake2s`: a run under BLAKE2s is a possible
+run whose joint log is consistent, and its verdict is `verify`'s.
 -/
 
 namespace LeanerVM.Protocol
@@ -71,6 +72,33 @@ theorem replay_of_mem_support_loggedGame {prog : Program} {input : PublicInput} 
     (verifyWith hashQuery prog input proof) hV
     (fun e he ↦ logAnswer_of_consistent hc (List.mem_append_right _ he)) []
   simpa [Run.log] using h
+
+/-- A log whose every answer a partial function gives at its input is consistent. -/
+private theorem consistent_of_answers {log : hashSpec.QueryLog}
+    (f : List UInt8 → Option Digest) (h : ∀ e ∈ log, f e.1 = some e.2) : QueryLog.Consistent log :=
+  fun e₁ he₁ e₂ he₂ he ↦ Option.some.inj ((h e₁ he₁).symm.trans (he ▸ h e₂ he₂))
+
+/-- **A run under BLAKE2s** is a possible run of the game, its joint log is BLAKE2s's and so
+consistent, and its verdict is `verify`'s. -/
+theorem mem_support_runBlake2s {prog : Program} {input : PublicInput} {A : Adversary} {g : Run}
+    (hg : g ∈ support (runBlake2s (loggedGame verifyWith prog input A))) :
+    g ∈ support (loggedGame verifyWith prog input A) ∧ QueryLog.Consistent g.log ∧
+      g.ok = verify prog input g.proof := by
+  refine ⟨QueryLog.support_simulateQ_subset _ _ hg, ?_⟩
+  rw [runBlake2s, show loggedGame verifyWith prog input A = A.withQueryLog >>= fun p ↦
+    (verifyWith hashQuery prog input p.1).withQueryLog >>= fun q ↦
+      pure ⟨p.1, p.2, q.2, q.1⟩ from rfl] at hg
+  simp only [simulateQ_bind, simulateQ_pure, mem_support_bind_iff, support_pure,
+    Set.mem_singleton_iff] at hg
+  obtain ⟨⟨proof, logA⟩, hA, ⟨ok, logV⟩, hV, rfl⟩ := hg
+  obtain ⟨-, hlA⟩ := QueryLog.mem_support_simulateQ_pure_withQueryLog blake2sBytes A hA
+  obtain ⟨hok, hlV⟩ := QueryLog.mem_support_simulateQ_pure_withQueryLog blake2sBytes _ hV
+  have hv : simulateQ (fun t ↦ (pure (blake2sBytes t) : ProbComp Digest))
+      (verifyWith hashQuery prog input proof) = pure (verify prog input proof) :=
+    (verifyWith_simulateQ _ prog input proof).trans (verifyWith_pure _ _ _ _)
+  rw [hv, support_pure, Set.mem_singleton_iff] at hok
+  exact ⟨consistent_of_answers (some ∘ blake2sBytes) fun e he ↦
+    congrArg some ((List.mem_append.mp he).elim (hlA e) (hlV e)).symm, hok⟩
 
 end
 

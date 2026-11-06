@@ -5,12 +5,13 @@ import LeanerVM.Protocol.ToArkLib.Oracles
 /-!
 # The lazy instances of appended schedules
 
-The `@[csimp]` theorems of `LeanerVM.Protocol.ToArkLib.AppendLazy` read the challenge samplers and
-the message interfaces of an appended schedule by one comparison with the seam. ArkLib's
-`Fin.fappend₂`, compiled, evaluates entries of the inner schedules at every step, so that a prover
-run of `SumcheckRound.rounds`, whose schedule is appended on the right once per round, grows about
-fourteenfold per round. These guards run twenty and forty rounds through ArkLib's `Prover.run`,
-and check that they draw the challenges that draws appended on the left draw.
+The `@[csimp]` theorems of `LeanerVM.Protocol.ToArkLib.TupleCompiledForms` and
+`LeanerVM.Protocol.ToArkLib.AppendLazy` read the challenge samplers and the message interfaces of
+an appended schedule by one comparison with the seam. ArkLib's `Fin.fappend₂`, compiled as
+defined, evaluates entries of the inner schedules at every step, so that a prover run of
+`SumcheckRound.rounds`, each of whose rounds is prepended to the rest, grows about fourteenfold
+per round. These guards run twenty and forty rounds through ArkLib's `Prover.run`, and check that
+they draw the challenges that draws appended one at a time on the right draw.
 -/
 
 namespace LeanerVMTests.Protocol.AppendLazy

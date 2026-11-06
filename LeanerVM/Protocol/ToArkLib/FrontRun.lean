@@ -10,6 +10,7 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
+public import LeanerVM.Protocol.ToArkLib.AppendLazy
 
 /-!
 # Runs of front components
@@ -33,10 +34,6 @@ The transcripts of the one-round schedules are built from their values (`msgTr`,
 empty schedule's is `nilTr`, and every transcript of these schedules is so built (`eq_msgTr`,
 `eq_chalTr`, `eq_nilTr`). `chalsTr` builds the transcript of `k` challenges, the first one
 first.
-
-Compiled code appends transcripts entry by entry (`appendFast`, `@[csimp]`): ArkLib's
-`FullTranscript.append` recurses on the second transcript's length at every read, which the
-nested appends of a long protocol cannot afford; the two are equal (`append_eq_appendFast`).
 -/
 
 namespace LeanerVM.Protocol
@@ -44,45 +41,6 @@ namespace LeanerVM.Protocol
 open OracleComp OracleSpec ProtocolSpec
 
 @[expose] public section
-
-/-! ## Appending transcripts, as compiled code does -/
-
-section Append
-
-variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-
-/-- Two transcripts appended entry by entry: the first's entries, then the second's. It is
-`FullTranscript.append` (`append_eq_appendFast`), which compiled code runs as this: that one
-recurses on the second transcript's length at every read, which nested appends cannot afford. -/
-def appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
-    (pSpec₁ ++ₚ pSpec₂).FullTranscript := fun i ↦
-  Fin.addCases (motive := fun i ↦ (pSpec₁ ++ₚ pSpec₂).«Type» i)
-    (fun j ↦ cast (by simp [Fin.vappend_eq_append]) (T₁ j))
-    (fun j ↦ cast (by simp [Fin.vappend_eq_append]) (T₂ j)) i
-
-/-- The first part of two transcripts appended entry by entry is the first. -/
-private theorem fst_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
-    (appendFast T₁ T₂).fst = T₁ := by
-  funext i
-  simp [FullTranscript.fst, appendFast]
-
-/-- The second part of two transcripts appended entry by entry is the second. -/
-private theorem snd_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
-    (appendFast T₁ T₂).snd = T₂ := by
-  funext i
-  simp [FullTranscript.snd, appendFast]
-
-/-- Appending entry by entry is ArkLib's append. -/
-theorem append_eq_appendFast (T₁ : pSpec₁.FullTranscript) (T₂ : pSpec₂.FullTranscript) :
-    T₁ ++ₜ T₂ = appendFast T₁ T₂ := by
-  rw [← FullTranscript.append_fst_snd (appendFast T₁ T₂), fst_appendFast, snd_appendFast]
-
-end Append
-
-/-- Compiled code appends transcripts entry by entry. -/
-@[csimp] theorem append_eq_appendFast' : @FullTranscript.append = @appendFast := by
-  funext m n pSpec₁ pSpec₂ T₁ T₂
-  exact append_eq_appendFast T₁ T₂
 
 /-! ## Transcripts of the small schedules -/
 

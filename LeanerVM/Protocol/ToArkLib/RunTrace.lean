@@ -111,36 +111,36 @@ omit [Monad w] in
 /-- Below the seam, the appended wire writes as the first. -/
 private theorem send_append_left (i : Fin m) :
     HEq ((c₁.append c₂).send (Fin.castAdd n i)) (c₁.send i) := by
-  change HEq (fappend₂Lazy (A := Direction) (B := Type)
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.castAdd n i)) _
-  rw [← fappend₂_eq_fappend₂Lazy, Fin.fappend₂_left]
+  rw [Fin.fappend₂_left]
   exact cast_heq _ _
 
 omit [Monad w] in
 /-- Past the seam, the appended wire writes as the second. -/
 private theorem send_append_right (i : Fin n) :
     HEq ((c₁.append c₂).send (Fin.natAdd m i)) (c₂.send i) := by
-  change HEq (fappend₂Lazy (A := Direction) (B := Type)
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .P_to_V → type → w Unit) c₁.send c₂.send (Fin.natAdd m i)) _
-  rw [← fappend₂_eq_fappend₂Lazy, Fin.fappend₂_right]
+  rw [Fin.fappend₂_right]
   exact cast_heq _ _
 
 omit [Monad w] in
 /-- Below the seam, the appended wire reads as the first. -/
 private theorem draw_append_left (i : Fin m) :
     HEq ((c₁.append c₂).draw (Fin.castAdd n i)) (c₁.draw i) := by
-  change HEq (fappend₂Lazy (A := Direction) (B := Type)
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.castAdd n i)) _
-  rw [← fappend₂_eq_fappend₂Lazy, Fin.fappend₂_left]
+  rw [Fin.fappend₂_left]
   exact cast_heq _ _
 
 omit [Monad w] in
 /-- Past the seam, the appended wire reads as the second. -/
 private theorem draw_append_right (i : Fin n) :
     HEq ((c₁.append c₂).draw (Fin.natAdd m i)) (c₂.draw i) := by
-  change HEq (fappend₂Lazy (A := Direction) (B := Type)
+  change HEq (Fin.fappend₂ (A := Direction) (B := Type)
     (F := fun dir type ↦ dir = .V_to_P → w type) c₁.draw c₂.draw (Fin.natAdd m i)) _
-  rw [← fappend₂_eq_fappend₂Lazy, Fin.fappend₂_right]
+  rw [Fin.fappend₂_right]
   exact cast_heq _ _
 
 /-- A round below the seam steps as the first wire's. -/

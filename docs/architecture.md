@@ -63,7 +63,7 @@ instance of the arithmetization and imports nothing from `LeanerVM/Arithmetizati
 change to leanISA touches only the modules that meet it. Those are the fixed columns
 (`FixedColumns.lean`), the adaptor (`LeanIsa.lean` and the modules under `LeanIsa/`), the
 compiled verifier (`Transcript.lean`, `Proof.lean`, `Compile.lean`, `Verify.lean`) and the base
-theorems (`Soundness.lean`);
+theorems (`Headline.lean`);
 `scripts/check-layers.sh` enforces the wall with that allow-list.
 
 The target-theorem ownership is:
@@ -600,7 +600,13 @@ message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route
 BLAKE2s inhabitant's honest column traces the circuit on 64-bit words
 (`LeanerVM.Protocol.ToArkLib.Flock.CircuitFast`, `Blake2sFlock.genColumn_eq_genColumnFast`,
 registered in `LeanerVM.Protocol.FlockSpec` before the inhabitant, so that the inhabitant's own
-compiled body is the fast one; no `@[csimp]` theorem is about a `FlockSpec` value).
+compiled body is the fast one; no `@[csimp]` theorem is about a `FlockSpec` value). The relation
+`M3Holds`, which the extractor decides, is decided by sorting the bus's tuples' keys
+(`M3Instance.instDecidableBalanced_eq`, where `List.decidablePerm` is quadratic), with each column
+a boundary block or a count names read once (`M3Instance.boundaryTuples_eq_boundaryTuplesFast`,
+`M3Instance.instDecidableCountsNonzero_eq`) and each of the Flock region's bit tables built once
+(`BlockR1CS.instDecidableBatchHolds_eq`); the additive transform builds each half once a step
+(`fwd_eq_fwdFast`).
 
 A round message is a function of the context and the challenges, so an honest prover that is a
 composition of one-round components rebuilds what it reads each round. Prover-only state is
@@ -635,17 +641,19 @@ code expands a closure returning a word, a one-field structure of a function, to
 as an argument, which rebuilds the word at every read (`commitWordCached`, `Whir.wordRows`).
 Running any prover through
 ArkLib's `Prover.run` needs the challenge samplers of its schedule, which ArkLib builds for an
-appended schedule with `Fin.fappend₂`, exponential in the depth of a schedule appended on the
-right when compiled; `LeanerVM.Protocol.ToArkLib.AppendLazy` substitutes lazy forms by
-`@[csimp]`, imported where the schedules are built. A block's selector weight is one product
-(`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers builds each
-table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS, `blake2sR1CS`, runs
-as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the compiled circuit's
-64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`), whose matrices are
-`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). The additive transform reads each
-node's halves once (`fwd_eq_fwdLet`, `encodeFast_eq_encodeFastLet`, over any ring: `fwd` reads
-them inside the closures that build a node's outputs), and over `E` it runs as three transforms
-of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
+appended schedule with `Fin.fappend₂`, and transcripts are appended with `Fin.happend`; compiled as
+defined, both are exponential in the length of the second schedule. The forms that read an entry by
+one comparison with the seam, proposed to ArkLib with `@[csimp]` theorems, are copied in
+`LeanerVM.Protocol.ToArkLib.TupleCompiledForms`, and `LeanerVM.Protocol.ToArkLib.AppendLazy`
+compiles ArkLib's instances and `FullTranscript.append` again after them, since the pinned ArkLib
+compiled them before; both are imported where the schedules are built. A block's selector weight is
+one product (`Blocks.selectorWeight_eq_selectorWeightFast`), and a combination of tables by powers
+builds each table once (`batchWeight_eq_batchWeightFast`). The BLAKE2s inhabitant's R1CS,
+`blake2sR1CS`, runs as `blake2sR1CSFast` (`blake2sR1CS_eq_blake2sR1CSFast`), the walks on the
+compiled circuit's 64-bit words (`ProductCircuit.toBlockR1CSE`, `LeanerVM.Protocol.FlockWalks`),
+whose matrices are
+`ProductCircuit.toBlockR1CS`'s by `rfl` (`toBlockR1CSE_eq`). Over `E` the additive transform runs
+as three transforms of the limbs' words (`Whir.encodeE`, `Whir.encodeE_getElem`,
 `LeanerVM.Protocol.Whir.TransformWords`).
 The query batch's weight takes its values on words (`Whir.queryWeight_eq_queryWeightFast`,
 `LeanerVM.Protocol.Whir.QueryWords`), and the opening's batched weight its column claims' equality

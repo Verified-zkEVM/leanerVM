@@ -39,9 +39,12 @@ their constraints, `μBus` the log-height of the bus's leaf stacks, and the clai
 multiset (a permutation, counted in the integers: in characteristic two a tuple pushed twice and
 never pulled would sum to zero), count cells are nonzero, the public lines hold, the Flock
 predicate holds of its region. It is decidable, and every value is read from `q` through
-`I.layout`, so knowledge of `q` is exactly as strong as the layout is. Polynomials are CompPoly's
-computable `CMvPolynomial` and degrees its `totalDegree`; `fromCMvPolynomial` bridges to
-Mathlib's, whose degree lemmas prove a concrete instance's bound. The announced sizes are not a
+`I.layout`, so knowledge of `q` is exactly as strong as the layout is. Compiled code decides the
+bus by sorting the tuples' keys (`perm_iff_mergeSort_map_eq`), `O(n log n)` in the bus's length
+where `List.decidablePerm` is quadratic, and reads each column a boundary block or a count names
+once (`@[csimp]` theorems beside each clause). Polynomials are CompPoly's computable
+`CMvPolynomial` and degrees its `totalDegree`; `fromCMvPolynomial` bridges to Mathlib's, whose
+degree lemmas prove a concrete instance's bound. The announced sizes are not a
 clause: the compiled verifier rejects inadmissible sizes before the protocol starts, so the
 protocol is a family over admissible instances.
 
@@ -262,6 +265,17 @@ def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ)
   | .known col _ _, x => col.get.values.get x
   | .committed c h, x => (I.column q c).values.get (Fin.cast (congrArg (2 ^ ·) h.symm) x)
 
+/-- The cells of a boundary coordinate as one table, a committed column read once. -/
+def coordColumn (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Vector K (2 ^ κ)
+  | .const c => Vector.replicate _ c
+  | .known col _ _ => col.get.values
+  | .committed c h => Vector.cast (congrArg (2 ^ ·) h) (I.column q c).values
+
+/-- Cell `x` of a coordinate's table is the coordinate's cell `x`. -/
+theorem getElem_coordColumn (q : Column I.μ) {κ : ℕ} (co : Coord I.toShape κ) (x : Fin (2 ^ κ)) :
+    (I.coordColumn q co)[x] = I.coordCell q co x := by
+  cases co <;> simp [coordColumn, coordCell, Vector.get]
+
 /-- The tuples of one side flushed by the tables: every table, every flush of that side, every
 row. -/
 def flushTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -273,6 +287,20 @@ def flushTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 def boundaryTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
   (I.boundary.filter fun b ↦ decide (b.side = s)).flatMap fun b ↦
     (List.finRange (2 ^ b.κ)).map fun x ↦ b.coords.map fun co ↦ I.coordCell q co x
+
+/-- `boundaryTuples` with each coordinate's cells read once per block. -/
+def boundaryTuplesFast (q : Column I.μ) (s : Side) : List (Vector K 16) :=
+  (I.boundary.filter fun b ↦ decide (b.side = s)).flatMap fun b ↦
+    let cols := b.coords.map (I.coordColumn q)
+    (List.finRange (2 ^ b.κ)).map fun x ↦ cols.map (·[x])
+
+/-- Compiled code reads a committed coordinate's column once per block, not once per tuple. -/
+@[csimp] theorem boundaryTuples_eq_boundaryTuplesFast :
+    @boundaryTuples = @boundaryTuplesFast := by
+  funext I q s
+  simp only [boundaryTuples, boundaryTuplesFast, Vector.map_map]
+  congr!
+  exact (I.getElem_coordColumn q _ _).symm
 
 /-- Every tuple of one side of the bus. -/
 def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -348,6 +376,55 @@ abbrev poolSize : ℕ := I.pubClaims + I.flockClaims
 
 end M3Instance
 
+/-! ## Deciding a permutation by sorting -/
+
+/-- Two lists are permutations of each other exactly when they sort to one list, under a Boolean
+order that is transitive, total and antisymmetric. -/
+theorem perm_iff_mergeSort_eq {α : Type*} {le : α → α → Bool}
+    (trans : ∀ a b c, le a b → le b c → le a c) (total : ∀ a b, (le a b || le b a))
+    (antisymm : ∀ a b, le a b → le b a → a = b) {l₁ l₂ : List α} :
+    l₁.Perm l₂ ↔ l₁.mergeSort le = l₂.mergeSort le :=
+  ⟨fun h ↦ List.Perm.eq_of_pairwise (fun a b _ _ ↦ antisymm a b)
+      (List.pairwise_mergeSort trans total l₁) (List.pairwise_mergeSort trans total l₂)
+      ((List.mergeSort_perm l₁ le).trans (h.trans (List.mergeSort_perm l₂ le).symm)),
+    fun h ↦ (List.mergeSort_perm l₁ le).symm.trans (h ▸ List.mergeSort_perm l₂ le)⟩
+
+/-- Two lists are permutations of each other exactly when their keys sort to one list, for keys
+in `ℕ` that tell elements apart. -/
+theorem perm_iff_mergeSort_map_eq {α : Type*} {f : α → ℕ} (hf : f.Injective) {l₁ l₂ : List α} :
+    l₁.Perm l₂ ↔ (l₁.map f).mergeSort (fun a b ↦ decide (a ≤ b)) =
+      (l₂.map f).mergeSort (fun a b ↦ decide (a ≤ b)) := by
+  rw [← List.map_perm_map_iff hf]
+  exact perm_iff_mergeSort_eq (by simp; omega) (by simp; omega) (by simp; omega)
+
+/-- A permutation decided by sorting keys that tell elements apart: `O(n log n)` comparisons of
+keys, where `List.decidablePerm` makes `O(n²)` comparisons of elements. -/
+def decidablePermOfKey {α : Type*} (f : α → ℕ) (hf : f.Injective) (l₁ l₂ : List α) :
+    Decidable (l₁.Perm l₂) :=
+  decidable_of_iff _ (perm_iff_mergeSort_map_eq hf).symm
+
+/-- A list of words as one natural number, the words its digits in base `2 ^ 64`. -/
+def wordsKey (l : List K) : ℕ := l.foldr (fun x n ↦ x.toBitVec.toNat + 2 ^ 64 * n) 0
+
+/-- Lists of words of one length with one key are equal. -/
+theorem wordsKey_inj : ∀ {l₁ l₂ : List K}, l₁.length = l₂.length → wordsKey l₁ = wordsKey l₂ →
+    l₁ = l₂
+  | [], [], _, _ => rfl
+  | a :: l₁, b :: l₂, hl, h => by
+    simp only [wordsKey, List.foldr_cons] at h
+    have ha := a.toBitVec.isLt
+    have hb := b.toBitVec.isLt
+    have h₁ : a.toBitVec.toNat = b.toBitVec.toNat := by omega
+    have h₂ : wordsKey l₁ = wordsKey l₂ := by unfold wordsKey; omega
+    rw [BF64.toBitVec_injective (BitVec.toNat_inj.mp h₁), wordsKey_inj (Nat.succ.inj hl) h₂]
+
+/-- A tuple of the bus as one natural number. -/
+def tupleKey (v : Vector K 16) : ℕ := wordsKey v.toList
+
+/-- Tuples with one key are equal. -/
+theorem tupleKey_injective : tupleKey.Injective := fun _ _ h ↦
+  Vector.toList_inj.mp (wordsKey_inj (by simp) h)
+
 /-! ## The relation, clause by clause -/
 
 namespace M3Instance
@@ -380,6 +457,27 @@ instance instDecidableAux (q : Column I.μ) : Decidable (I.aux q) :=
   inferInstanceAs (Decidable (∀ r ∈ I.flock, r.Holds (I.flockColumn r q)))
 
 deriving instance Decidable for ConstraintsVanish, Balanced, CountsNonzero, PublicLinesHold
+
+/-- `Balanced` decided by sorting the tuples' keys. -/
+def decBalancedFast (q : Column I.μ) : Decidable (I.Balanced q) :=
+  decidablePermOfKey tupleKey tupleKey_injective _ _
+
+/-- Compiled code decides the bus by sorting. -/
+@[csimp] theorem instDecidableBalanced_eq : @instDecidableBalanced = @decBalancedFast := by
+  funext I q
+  exact Subsingleton.elim _ _
+
+/-- `CountsNonzero` decided with each count column read once. -/
+def decCountsNonzeroFast (q : Column I.μ) : Decidable (I.CountsNonzero q) :=
+  decidable_of_iff (∀ j, ∀ i ∈ I.counts j, (I.column q ⟨j, i⟩).values.all (· != 0)) <| by
+    simp only [CountsNonzero, Vector.all_eq_true, bne_iff_ne, ne_eq]
+    exact forall_congr' fun j ↦ forall₂_congr fun i _ ↦ ⟨fun h x ↦ h x x.2, fun h x hx ↦ h ⟨x, hx⟩⟩
+
+/-- Compiled code reads each count column once, not once per cell. -/
+@[csimp] theorem instDecidableCountsNonzero_eq :
+    @instDecidableCountsNonzero = @decCountsNonzeroFast := by
+  funext I q
+  exact Subsingleton.elim _ _
 
 end M3Instance
 
