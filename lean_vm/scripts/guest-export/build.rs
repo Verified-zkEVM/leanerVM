@@ -71,7 +71,14 @@ fn main() {
                         .iter()
                         .any(|k| l.starts_with(k))
                         && !l.starts_with("const _");
-                    let l = l.replacen("pub(super) ", "pub(crate) ", 1);
+                    let mut l = l.replacen("pub(super) ", "pub(crate) ", 1);
+                    // A one-line tuple struct's field too (`Hints`, which `guest_diff` reads).
+                    if let Some(s) = ["struct ", "pub(crate) struct "].iter().find(|k| l.starts_with(**k)).map(|k| k.len())
+                        && l.ends_with(");")
+                        && let Some(p) = l[s..].find('(').map(|p| s + p).filter(|&p| !l[p + 1..].starts_with("pub"))
+                    {
+                        l.insert_str(p + 1, "pub(crate) ");
+                    }
                     if item { format!("pub(crate) {l}\n") } else { format!("{l}\n") }
                 })
                 .collect();
