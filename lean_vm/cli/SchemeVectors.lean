@@ -16,10 +16,12 @@ directories above it; leanVM `834e6614` has no EthLib leanSPHINCS vectors):
 * by default, leanXMSS's verification (`verify`) and its signature's leaf index
   (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept, and
   of the same signature with one byte flipped, which must reject;
-* with `--sphincs-sign`, leanSPHINCS's key generation and signing on the known answer's seed and
-  message, byte for byte, and with `--xmss-sign` leanXMSS's (`key_gen`, `sign`): slow (the
-  statement's hashes go through its byte and bit-vector conversions; a leanSPHINCS signature builds
-  its top tree of `2^10` one-time keys, a leanXMSS key one of `2^16`), so run by hand.
+* with `--xmss-sign`, leanXMSS's key generation and signing (`key_gen`, `sign`): slow (the
+  statement's hashes go through its byte and bit-vector conversions, and a key builds a tree of
+  `2^16` one-time keys), so run by hand.
+
+leanSPHINCS's key generation and signing on the known answer are `lean_sphincs`'s
+`signature-kat`, which compiles the statement's signer with the `@[csimp]` restatements it needs.
 
 A case whose output is `null` is an input the crate rejects for its length: the statement's
 schemes take values of fixed sizes, so it is skipped. The exit code is `0` when every case passes.
@@ -118,19 +120,18 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
     return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
   | _ => return .fail
 
-/-- The known answer's seed `SK.seed[i] = 37 i + 11` and message `m[i] = 7 i + 3` (`known_answer`,
-`scheme.rs:380-400`), from the file's line count, so that the compiler does not evaluate them as
-closed terms at start-up. -/
-def knownAnswerInputs (lineCount : Nat) : BitVec 256 × BitVec 256 :=
-  let (a, b) := if lineCount = 2 then (37, 7) else (0, 0)
-  (le 256 ((List.range 32).map fun i => (a * i + 11) % 256),
-    le 256 ((List.range 32).map fun i => (b * i + 3) % 256))
+/-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `scheme.rs:380-400`; its key's
+`SK.seed[i] = 37 i + 11`), from the file's line count, so that the compiler does not evaluate it as
+a closed term at start-up. -/
+def knownAnswerMessage (lineCount : Nat) : BitVec 256 :=
+  let b := if lineCount = 2 then 7 else 0
+  le 256 ((List.range 32).map fun i => (b * i + 3) % 256)
 
 /-- leanSPHINCS's known answer, its two lines the public key's and the signature's hex: its
-verification, which must accept, then (`sign`) key generation and signing, byte for byte; and the
-signature with its last byte flipped, which must reject. -/
-def knownAnswerCases (lines : List String) (sign : Bool) : List (String × Verdict) :=
-  let (seed, message) := knownAnswerInputs lines.length
+verification, which must accept, and the signature with its last byte flipped, which must
+reject. -/
+def knownAnswerCases (lines : List String) : List (String × Verdict) :=
+  let message := knownAnswerMessage lines.length
   let publicKeyBytes := hexBytes ("0x" ++ lines.getD 0 "")
   let signatureBytes := hexBytes ("0x" ++ lines.getD 1 "")
   let publicKey := sphincsPublicKeyOf publicKeyBytes
@@ -138,16 +139,9 @@ def knownAnswerCases (lines : List String) (sign : Bool) : List (String × Verdi
   let flipped := sphincsSignatureOf
     (signatureBytes.dropLast ++ [(signatureBytes.getLastD 0) ^^^ 1])
   let verdict (ok : Bool) : Verdict := if ok then .pass else .fail
-  let verify := [("verify", verdict (signatureBytes.length == 7740 &&
+  [("verify", verdict (signatureBytes.length == 7740 &&
       Sphincs.verifyWithKeccak publicKey message signature)),
     ("verify, a byte flipped", verdict !(Sphincs.verifyWithKeccak publicKey message flipped))]
-  if !sign then verify else
-    let (generated, secretKey) := Id.run (Sphincs.KeyGenerationAndSigning.keygenFromSeed
-      (m := Id) LeanVM.Semantics.keccakF1600 seed)
-    let signed := Id.run (Sphincs.KeyGenerationAndSigning.sign (m := Id)
-      LeanVM.Semantics.keccakF1600 secretKey message)
-    verify ++ [("key_gen", verdict (generated == publicKey)),
-      ("sign", verdict (signed == some signature))]
 
 end SchemeVectors
 
@@ -163,7 +157,7 @@ def main (args : List String) : IO UInt32 := do
   let mut skipped := 0
   let knownAnswer := root / ".." / ".." / ".." / "src" / "lean_sphincs" / "known_answer.hex"
   let lines := (← IO.FS.readFile knownAnswer).splitOn "\n" |>.filter (· ≠ "")
-  for (name, verdict) in knownAnswerCases lines (args.contains "--sphincs-sign") do
+  for (name, verdict) in knownAnswerCases lines do
     match verdict with
     | .pass => passed := passed + 1; IO.println s!"sphincs/known_answer {name}: ok"
     | .skip => skipped := skipped + 1
