@@ -1,0 +1,63 @@
+name: Owned Lean artifact audit (Mumbai launcher)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Mumbai ref or full commit containing the owned-artifact auditor
+        type: string
+        required: true
+        default: mumbai
+      project:
+        description: First-party package whose complete module inventory is audited
+        type: choice
+        required: true
+        default: Statement
+        options: [Statement, common, lean_vm, lean_xmss, lean_sphincs, lean_da]
+
+permissions:
+  contents: read
+
+jobs:
+  artifact-audit:
+    runs-on: ubuntu-latest
+    env:
+      AUDIT_PROJECT: ${{ inputs.project }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+      - name: Require the Mumbai audit worker
+        run: |
+          test -f scripts/check-owned-axioms.py
+          test -f scripts/test-owned-axioms.py
+          test -f "$AUDIT_PROJECT/lakefile.toml"
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: ${{ inputs.project }}
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      - name: Build every configured library, test library and executable normally
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, tomllib
+          from pathlib import Path
+          project = os.environ["AUDIT_PROJECT"]
+          config = tomllib.loads((Path(project) / "lakefile.toml").read_text())
+          targets = [t["name"] for kind in ("lean_lib", "lean_exe") for t in config.get(kind, [])]
+          subprocess.run(["python3", "-I", "lake-build.py", project, *targets], check=True)
+          PY
+      - name: Exercise source-owner axiom controls
+        run: python3 -I scripts/test-owned-axioms.py
+      - name: Audit every source-owned declaration
+        run: python3 -I scripts/check-owned-axioms.py "$AUDIT_PROJECT" --receipt "$RUNNER_TEMP/owned-axioms.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lean-artifact-audit-${{ inputs.project }}
+          path: |
+            ${{ runner.temp }}/owned-axioms.json
