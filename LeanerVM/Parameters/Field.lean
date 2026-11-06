@@ -188,6 +188,12 @@ theorem limb_add (x z : E) (i : Fin 3) : (x + z).limb i = x.limb i + z.limb i :=
 theorem limb_zero (i : Fin 3) : (0 : E).limb i = 0 :=
   Ext.coeff_zero (P := BF64.ext3Params) i
 
+/-- Limb `i` of a sum is the sum of the limbs. -/
+theorem limb_sum {ι : Type*} (s : Finset ι) (f : ι → E) (i : Fin 3) :
+    (∑ j ∈ s, f j).limb i = ∑ j ∈ s, (f j).limb i :=
+  map_sum ({ toFun := (·.limb i), map_zero' := limb_zero i, map_add' := (limb_add · · i) } : E →+ K)
+    f s
+
 /-- `ofK` preserves sums: it is `algebraMap K E`. -/
 theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
 
@@ -232,6 +238,15 @@ theorem mul_limbs (a0 a1 a2 b0 b1 b2 : K) :
   simp only [ofLimbs_eq, ofK_add, ofK_mul]
   -- The product is `p₀ + p₁·y + p₂·y² + p₃·y³ + p₄·y⁴`; `y³ = y + 1` folds `p₃` and `p₄`.
   linear_combination (ofK a1 * ofK b2 + ofK a2 * ofK b1 + ofK a2 * ofK b2 * y) * y_pow_three
+
+/-- A product by an element of `K` acts on each limb. -/
+theorem limb_ofK_mul (c : K) (x : E) (i : Fin 3) : (ofK c * x).limb i = c * x.limb i := by
+  have h : ofK c * x = E.ofLimbs (c * x.limb 0) (c * x.limb 1) (c * x.limb 2) := by
+    conv_lhs => rw [E.eq_sum_limbs x]
+    rw [ofLimbs_eq, ofK_mul, ofK_mul, ofK_mul]
+    ring
+  rw [h, limb_ofLimbs]
+  fin_cases i <;> rfl
 
 end
 end LeanerVM.Parameters

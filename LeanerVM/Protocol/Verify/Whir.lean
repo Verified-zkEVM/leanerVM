@@ -177,17 +177,21 @@ def chalBits (x : E) : ℕ :=
   (x.limb 0).toBitVec.toNat + 2 ^ 64 * (x.limb 1).toBitVec.toNat +
     2 ^ 128 * (x.limb 2).toBitVec.toNat
 
-/-- `need` positions of `depth` bits: each squeeze gives `⌊192/depth⌋` of them, low bits first
-(`sample_queries_ordered`). -/
-def walkPositions (depth : ℕ) : (fuel need : ℕ) → n (List ℕ)
+/-- `need` positions of `depth` bits from successive squeezes of `sample`: each squeeze gives
+`⌊192/depth⌋` of them, low bits first (`sample_queries_ordered`). The prover squeezes its
+positions by the same function. -/
+def positionsWith (sample : n E) (depth : ℕ) : (fuel need : ℕ) → n (List ℕ)
   | 0, _ => pure []
   | _, 0 => pure []
   | fuel + 1, need + 1 => do
-    let x ← ops.sample
+    let x ← sample
     let k := min (192 / depth) (need + 1)
     let ps := (List.range k).map fun c ↦ chalBits x / 2 ^ (c * depth) % 2 ^ depth
-    let rest ← walkPositions depth fuel (need + 1 - k)
+    let rest ← positionsWith sample depth fuel (need + 1 - k)
     return ps ++ rest
+
+/-- The walk's positions: `positionsWith` on the walk's squeeze. -/
+abbrev walkPositions (depth fuel need : ℕ) : n (List ℕ) := positionsWith ops.sample depth fuel need
 
 /-- A level's reads. -/
 def walkLevel (sh : LevelShape) : n WhirLevel := do

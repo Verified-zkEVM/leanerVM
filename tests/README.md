@@ -13,6 +13,10 @@ instance is proof-only; whether the tests can again be an executable is unchecke
 module may be a `module` or plain, and a plain one can decide `E` arithmetic in the kernel,
 which a `module` cannot.
 
+`vectors/` holds proofs written by the honest prover, checked by the `leanervm-prove` and
+`leanervm-verify` executables rather than by `lake test` (see
+[`vectors/README.md`](vectors/README.md)).
+
 As executable definitions arrive, add focused unit, differential, and mutation tests here.
 Put their modules under `tests/LeanerVMTests/` and import each one from `LeanerVMTests.lean`.
 Tests must not be imported by the production `LeanerVM/` library.

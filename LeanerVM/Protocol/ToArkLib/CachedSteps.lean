@@ -13,6 +13,7 @@ public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryRecord
 public import LeanerVM.Protocol.ToArkLib.PassCheck
 public import LeanerVM.Protocol.ToArkLib.SendOracleBeside
+public import LeanerVM.Protocol.ToArkLib.SendEncoded
 
 /-!
 # Cached forms of the remaining one-step components
@@ -25,6 +26,8 @@ whose run from the cache of its input is the component's honest run (`Component.
 * `Cached.queryRecord`, `Cached.passCheck`: the cache updated, the run the honest one;
 * `Cached.sendOracleBeside`: the oracle message read off the cache, as a value equal to the honest
   one (a table whose entries are stored, where the honest message computes them on demand);
+* `Cached.sendEncoded`: the encoded witness read off the cache likewise, and handed on as the
+  oracle;
 * `Cached.drawPushesKeep`: challenges pushed onto a vector, a cache read off the statement before
   them carried through.
 -/
@@ -162,6 +165,37 @@ def Cached.sendOracleBeside (hmsg : ∀ p, msg p (cin p) = honest p)
       hmsg, hupd]
 
 end Beside
+
+/-! ## An encoded witness sent as the oracle -/
+
+section Encoded
+
+variable {S M W CIn : Type} [OracleInterface M] (msg : W → CIn → M)
+
+/-- The cached prover of an encoded witness: the message read off the cache once, sent, and handed
+on as the oracle. -/
+def cachedEncodedProver :
+    OracleProver []ₒ S NoOracle (W × CIn) S (OneOracle M) (W × Unit) (sendSpec M) where
+  PrvState := fun _ ↦ (S × W) × M
+  input := fun p ↦ ((p.1.1, p.2.1), msg p.2.1 p.2.2)
+  sendMessage | ⟨0, _⟩ => fun st ↦ pure (st.2, st)
+  receiveChallenge | ⟨0, h⟩ => nomatch h
+  output := fun st ↦ pure ((st.1.1, fun _ ↦ st.2), (st.1.2, ()))
+
+variable {msg} {enc : W → M} {cin : (S × ∀ i, NoOracle i) × W → CIn}
+
+/-- The cached form of `Component.sendEncoded`: the message read off the cache, which must be the
+encoding of the witness. -/
+def Cached.sendEncoded (hmsg : ∀ p, msg p.2 (cin p) = enc p.2) :
+    Cached (Component.sendEncoded S M W enc) cin (fun _ ↦ ()) where
+  prover := cachedEncodedProver msg
+  run_eq s w := by
+    change (pure _ : OracleComp _ _) = _ <$> (pure _ : OracleComp _ _)
+    rw [map_pure]
+    simp only [cachedEncodedProver, Component.sendEncoded, Component.sendEncodedProver,
+      hmsg (s, w)]
+
+end Encoded
 
 /-! ## Challenges pushed onto a vector -/
 

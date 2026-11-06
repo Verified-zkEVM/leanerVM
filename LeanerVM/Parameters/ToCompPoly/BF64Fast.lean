@@ -480,6 +480,32 @@ theorem ofWord_mulWord (a b : UInt64) : ofWord (mulWord a b) = ofWord a * ofWord
   rw [ofWord, ofWord, ofWord, toBitVec_ofBitVec, toBitVec_ofBitVec, toBitVec_ofBitVec,
     toPoly_mulWord, toPoly_reduce, toPoly_carryLessMul _ _ (by norm_num)]
 
+/-- The word of a product is `mulWord` of the words. -/
+theorem toWord_mul (a b : BF64) : toWord (a * b) = mulWord (toWord a) (toWord b) := by
+  rw [← ofWord_toWord a, ← ofWord_toWord b, ← ofWord_mulWord]
+  rfl
+
+/-- The element of the zero word is zero. -/
+theorem ofWord_zero : ofWord 0 = 0 := rfl
+
+/-- The element of a `xor` is the sum of the elements. -/
+theorem ofWord_xor (a b : UInt64) : ofWord (a ^^^ b) = ofWord a + ofWord b := by
+  rw [BF64.add_def]
+  rfl
+
+/-- The word of a sum is the `xor` of the words. -/
+theorem toWord_add (a b : BF64) : toWord (a + b) = toWord a ^^^ toWord b := by
+  rw [BF64.add_def]
+  rfl
+
+/-- A `xor` of words is the sum of their elements. -/
+theorem ofWord_foldl_xor : ∀ {n : ℕ} (g : Fin n → UInt64) (init : UInt64),
+    ofWord (Fin.foldl n (fun acc i ↦ acc ^^^ g i) init) = ofWord init + ∑ i, ofWord (g i)
+  | 0, _, init => by simp
+  | n + 1, g, init => by
+    rw [Fin.foldl_succ_last, ofWord_xor, ofWord_foldl_xor (fun i : Fin n ↦ g i.castSucc),
+      Fin.sum_univ_castSucc, add_assoc]
+
 /-- Multiplication on words, with the products by `0` and `1` short-cut. -/
 def mulFast (a b : BF64) : BF64 :=
   let y := toWord b

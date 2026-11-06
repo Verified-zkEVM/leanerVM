@@ -28,6 +28,8 @@ import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ChainGroups
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
+import LeanerVMTests.Protocol.Compile
+import LeanerVMTests.Protocol.CompileWhir
 import LeanerVMTests.Protocol.ComponentPolynomial
 import LeanerVMTests.Protocol.DecodeChain
 import LeanerVMTests.Protocol.DecodeTranscript
@@ -64,6 +66,7 @@ import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.Proof
+import LeanerVMTests.Protocol.Prove
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
@@ -95,6 +98,7 @@ import LeanerVMTests.Protocol.WhirJohnson
 import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound
+import LeanerVMTests.Protocol.WordArithmetic
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Blake2sFast
 import LeanerVMTests.Semantics.Executable

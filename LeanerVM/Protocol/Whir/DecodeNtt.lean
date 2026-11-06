@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.Whir.Decode
+public import LeanerVM.Protocol.Whir.WordFast
 
 /-!
 # The exact path by the transform
@@ -88,28 +89,6 @@ theorem exactNtt_of_codeword (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs �
   unfold exactNtt
   simp only [Fin.getElem_fin, Vector.getElem_ofFn]
   simp only [hms, hcols, implies_true, ↓reduceIte]
-
-/-- **The honest word by the transform**: `kwordOf`, with one fast encoding per lane and the rows
-stored. -/
-def kwordOfFast (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) : KWord ℓ (κ + R) t :=
-  let r := relayout (κ := κ) (ℓ := ℓ) q
-  let enc : Vector (Vector K (2 ^ (κ + R))) (2 ^ ℓ) :=
-    Vector.ofFn fun u ↦ encodeFast (RingHom.id K) κ R (sliceLow r u)
-  let rows : Vector (Vector K (2 ^ ℓ)) (2 ^ (κ + R)) :=
-    Vector.ofFn fun y ↦ Vector.ofFn fun u ↦ enc[u][y]
-  ⟨fun y ↦ rows[y]⟩
-
-/-- The honest word by the transform is the honest word, on `κ + R ≤ 64` variables. -/
-theorem kwordOfFast_eq {ℓ t : ℕ} (hb : κ + R ≤ 64) (q : CMlPolynomialEval K (κ + ℓ)) :
-    kwordOfFast ℓ κ R t q = kwordOf ℓ κ R t q := by
-  unfold kwordOfFast kwordOf
-  dsimp only
-  congr 1
-  funext y
-  apply Vector.ext
-  intro u hu
-  simp only [Fin.getElem_fin, Vector.getElem_ofFn]
-  exact encodeFast_getElem _ hb _ y
 
 /-- A decoder that takes the transform's exact path first and falls back to `D`. -/
 def ListDecoder.nttFirst (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a)

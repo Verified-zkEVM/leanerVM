@@ -22,8 +22,9 @@ definitions it stands for.
   dot products on `2 ^ 3` tables of `0`s and `1`s, and the byte sums at an entry's bytes on
   `2 ^ 4`.
 * **Runs.** ArkLib's `Prover.run` of the cached Flock prover and of the honest one, at fixed
-  challenge sequences, output the same weighted claim's value, on the tiny argument's batch and on
-  a batch of `E` tables, and with the circuit's R1CS on words in place of the matrices'.
+  challenge sequences, output the same weighted claim's value and the same switched weight's
+  values, on the tiny argument's batch and on a batch of `E` tables, and with the circuit's R1CS
+  on words in place of the matrices'.
 * **Mutations.** The skip message with the witness tables in place of the left products, a
   backward walk with the two matrices swapped, and the byte sums at another entry's bytes differ
   from the honest values.
@@ -177,6 +178,24 @@ private def runValue (C : BlockR1CS E (toyP.s + toyP.m))
   else
     (runAt (flock toyP C z side0 0 (RingHom.id E) y id finishT (W := Unit)).red.prover
       ((), noO) () seed).2.1.1
+
+/-- The switched weight's values handed on. -/
+private def finishW : Unit → Weight E 2 → E → CMlPolynomialEval E 2 := fun _ W _ ↦ W.onCube
+
+/-- The switched weight's values an honest run of a Flock prover hands on: the cached prover
+builds them by `eqBatch` (`ringWeightFast`), the honest one by combining the Lagrange bases. -/
+private def runWeight
+    (z : (∀ i, NoOracle i) → Fin (2 ^ toyP.s) → CMlPolynomialEval E (toyP.m + toyP.κ))
+    (cached : Bool) (seed : UInt64) : CMlPolynomialEval E 2 :=
+  if cached then
+    (runAt (flockCached toyP toyC z side0 0 (RingHom.id E) y id finishW (W := Unit)).toProver
+      ((), noO) () seed).2.1.1
+  else
+    (runAt (flock toyP toyC z side0 0 (RingHom.id E) y id finishW (W := Unit)).red.prover
+      ((), noO) () seed).2.1.1
+
+#guard [3, 5].all fun seed ↦ decide (runWeight toyZ true seed = runWeight toyZ false seed)
+#guard [3, 5].all fun seed ↦ decide (runWeight zE true seed = runWeight zE false seed)
 
 #guard [3, 5, 8].all fun seed ↦ decide (runValue toyC toyZ true seed = runValue toyC toyZ false seed)
 #guard [3, 5].all fun seed ↦ decide (runValue toyC zE true seed = runValue toyC zE false seed)
