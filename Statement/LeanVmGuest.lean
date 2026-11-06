@@ -66,7 +66,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation.rs:66`). -/
-abbrev LeanSphincsClaim : Type := HashSig.PublicKey × HashSig.Message
+abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's `da_root`,
 `aggregation.rs:377-379`) and the membership challenge whose dual codeword its rows are orthogonal
@@ -102,21 +102,31 @@ structure NodeStatement where
 Each digest is Keccak-256 of its preimage; the preimages are also the inputs of the candidate
 collisions (`collisionCandidates`, below). -/
 
-/-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
-(`claim_cells`, `aggregation.rs:202-209`). -/
-def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
-  HashSig.littleEndianBytes 16 root ++ HashSig.littleEndianBytes 16 parameter ++
-    HashSig.littleEndianBytes 32 message
+/-- A leanXMSS key's `32` bytes, its root then its parameter (`LeanXmssPublicKey::to_bytes`,
+`crates/signatures/src/lean_xmss/scheme.rs:26-31`); a leanSPHINCS key's are `PK.seed ‖ PK.root`
+(`Sphincs.PublicKey.toBytes`). -/
+def xmssPublicKeyBytes (publicKey : HashSig.PublicKey) : List UInt8 :=
+  HashSig.littleEndianBytes 16 publicKey.root ++ HashSig.littleEndianBytes 16 publicKey.parameter
 
-/-- The bytes `claimListDigest claims` hashes, for leanXMSS and leanSPHINCS claims alike: both
-schemes' keys are a root and a parameter. -/
-def claimListPreimage (claims : List (HashSig.PublicKey × HashSig.Message)) : List UInt8 :=
-  claims.flatMap fun claim ↦ claimBytes claim.1.root claim.1.parameter claim.2
+/-- A claim as the `64` bytes its list hashes: the key's bytes (`to_bytes`, by `publicKeyBytes`),
+then the message (`claim_cells`, `lean_xmss_claim_cells`, `lean_sphincs_claim_cells`,
+`aggregation/statement.rs:39-56`). -/
+def claimBytes {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
+    (claim : PublicKey × HashSig.Message) : List UInt8 :=
+  publicKeyBytes claim.1 ++ HashSig.littleEndianBytes 32 claim.2
 
-/-- The digest of a list of leanXMSS or leanSPHINCS claims (`claim_list_digest`,
-`aggregation.rs:196-198`, `lean_ethereum.py:4039-4070`). -/
-def claimListDigest (claims : List (HashSig.PublicKey × HashSig.Message)) : Digest :=
-  keccak256 (claimListPreimage claims)
+/-- The bytes `claimListDigest publicKeyBytes claims` hashes: the claims' bytes one after the
+other. -/
+def claimListPreimage {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
+    (claims : List (PublicKey × HashSig.Message)) : List UInt8 :=
+  claims.flatMap (claimBytes publicKeyBytes)
+
+/-- The digest of a list of leanXMSS claims (`publicKeyBytes = xmssPublicKeyBytes`) or of
+leanSPHINCS claims (`Sphincs.PublicKey.toBytes`) (`claim_list_digest`,
+`aggregation/statement.rs:32-37`, `lean_ethereum.py:4039-4070`). -/
+def claimListDigest {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
+    (claims : List (PublicKey × HashSig.Message)) : Digest :=
+  keccak256 (claimListPreimage publicKeyBytes claims)
 
 /-- A DA claim's digest, which a statement carries: Keccak-256 of the root, then the challenge as
 its three limbs and a zero word, little-endian (`digest`, `crates/verifier/src/da.rs:19-26`; the
@@ -136,8 +146,8 @@ def paddedDeferredClaimCells (claim : DeferredClaim) : List E :=
 claims' digests, the DA digest, then the padded deferred cells. Each list's digest binds its length
 through Keccak's padding. -/
 def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :=
-  digestBytes seed ++ digestBytes (claimListDigest statement.claims.xmss) ++
-    digestBytes (claimListDigest statement.claims.sphincs) ++
+  digestBytes seed ++ digestBytes (claimListDigest xmssPublicKeyBytes statement.claims.xmss) ++
+    digestBytes (claimListDigest Sphincs.PublicKey.toBytes statement.claims.sphincs) ++
     digestBytes statement.claims.daDigest ++
     (paddedDeferredClaimCells statement.deferredClaim).flatMap E.toBytes
 
@@ -319,8 +329,10 @@ preimage as it is. -/
 def collisionCandidates (seed : Digest) (statement : NodeStatement) (seed' : Digest)
     (statement' : NodeStatement) : List (List UInt8 × List UInt8) :=
   [(statementPreimage seed statement, statementPreimage seed' statement'),
-    (claimListPreimage statement.claims.xmss, claimListPreimage statement'.claims.xmss),
-    (claimListPreimage statement.claims.sphincs, claimListPreimage statement'.claims.sphincs)]
+    (claimListPreimage xmssPublicKeyBytes statement.claims.xmss,
+      claimListPreimage xmssPublicKeyBytes statement'.claims.xmss),
+    (claimListPreimage Sphincs.PublicKey.toBytes statement.claims.sphincs,
+      claimListPreimage Sphincs.PublicKey.toBytes statement'.claims.sphincs)]
 
 /-- **A collision**: a pair of different inputs with the same Keccak-256 digest, among
 `pairs`. -/
@@ -375,6 +387,9 @@ order -/
 
 instance : MachineEncoding HashSig.PublicKey :=
   ⟨fun k ↦ .constructor 0 [encodeValue k.root, encodeValue k.parameter]⟩
+
+instance : MachineEncoding Sphincs.PublicKey :=
+  ⟨fun k ↦ .constructor 0 [encodeValue k.publicSeed, encodeValue k.root]⟩
 
 instance : MachineEncoding LeanXmss.LayerSignature :=
   ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.chainValues,
