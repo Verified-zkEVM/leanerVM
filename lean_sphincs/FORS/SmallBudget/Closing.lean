@@ -230,7 +230,7 @@ theorem small_seedFree_boundF (hb : 0 < keptHeight topLayer) (adversary : Advers
   exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
 /-- **Small budgets, deterministic signer.** -/
-theorem det_smallF (hfull : subtreeHeight = totalHeight) (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ)
+theorem det_smallF (hb : 0 < keptHeight topLayer) (adversary : Adversary) (q : ℕ)
     (hbound : HasHashQueryBound adversary q) (hq : q < 2 ^ 256)
     (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
     (κ : ℚ) (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
@@ -243,7 +243,7 @@ theorem det_smallF (hfull : subtreeHeight = totalHeight) (hb : 0 < keptHeight to
     forgeAdvantage adversary ≤
       smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
         2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := by
-  refine le_trans (Det.forgeAdvantage_le_seedFree hfull adversary q hbound _ fun steps =>
+  refine le_trans (Det.forgeAdvantage_le_seedFree adversary q hbound _ fun steps =>
     small_seedFree_boundF hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q steps hq ρ hN
       κ hκ0 hκ1 hκ H b k a N hHH hbb hkk haa hNN t o on hpt qtop hrt hqtop ho hon hcthr)
     (add_le_add ?_ le_rfl)

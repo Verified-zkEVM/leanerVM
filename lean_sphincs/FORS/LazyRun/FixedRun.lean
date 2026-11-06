@@ -329,78 +329,53 @@ theorem costRun_withReveals_sequenceDep_quiet : ∀ {n : Nat} {α : Fin n → Ty
   | n + 1, α, comp, v, h, result, hresult => by
       rw [Concrete.sequenceDep] at hresult
       obtain ⟨r1, h1, r2, h2, rfl⟩ := costRun_withReveals_bind f table _ _ result hresult
-      have hv1 := h 0 r1 h1
+      have hv1 := h (Fin.last _) r1 h1
       obtain ⟨⟨x1, L1⟩, E1⟩ := r1
       simp only [Prod.mk.injEq] at hv1
       obtain ⟨rfl, rfl⟩ := hv1
       dsimp only at h2 ⊢
-      cases hhead : v 0 with
+      cases hhead : v (Fin.last _) with
       | none =>
           rw [hhead] at h2
           rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h2
           subst r2
           simp only [List.nil_append, Prod.mk.injEq, and_true]
           unfold Completeness.allSome
-          rw [dite_eq_right (fun hall => by simpa [hhead] using hall 0)]
+          rw [dite_eq_right (fun hall => by simpa [hhead] using hall (Fin.last _))]
       | some head =>
           rw [hhead] at h2
           obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ r2 h2
-          have hv3 := costRun_withReveals_sequenceDep_quiet (α := fun i => α i.succ)
-            (fun i => comp i.succ) (fun i => v i.succ) (fun i => h i.succ) r3 h3
+          have hv3 := costRun_withReveals_sequenceDep_quiet (α := fun i => α i.castSucc)
+            (fun i => comp i.castSucc) (fun i => v i.castSucc) (fun i => h i.castSucc) r3 h3
           obtain ⟨⟨x3, L3⟩, E3⟩ := r3
           simp only [Prod.mk.injEq] at hv3
           obtain ⟨rfl, rfl⟩ := hv3
           dsimp only at h4 ⊢
-          by_cases hall : ∀ i : Fin n, (v i.succ).isSome
-          · have hsome : Completeness.allSome (fun i : Fin n => v i.succ) =
-                some fun i => (v i.succ).get (hall i) := dite_eq_left hall
+          by_cases hall : ∀ i : Fin n, (v i.castSucc).isSome
+          · have hsome : Completeness.allSome (fun i : Fin n => v i.castSucc) =
+                some fun i => (v i.castSucc).get (hall i) := dite_eq_left hall
             rw [hsome] at h4
             rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h4
             subst r4
             have hall' : ∀ i : Fin (n + 1), (v i).isSome := by
               intro i
-              refine Fin.cases ?_ (fun j => hall j) i
+              refine Fin.lastCases ?_ (fun j => hall j) i
               simp [hhead]
             have hsome' : Completeness.allSome v = some fun i => (v i).get (hall' i) := dite_eq_left hall'
             simp only [List.nil_append, Prod.mk.injEq, and_true, hsome']
             congr 1
             funext i
-            refine Fin.cases ?_ (fun j => ?_) i
+            refine Fin.lastCases ?_ (fun j => ?_) i
             · simp [hhead]
             · simp
-          · have hnone : Completeness.allSome (fun i : Fin n => v i.succ) = none := dite_eq_right hall
+          · have hnone : Completeness.allSome (fun i : Fin n => v i.castSucc) = none := dite_eq_right hall
             rw [hnone] at h4
             rw [costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h4
             subst r4
             simp only [List.nil_append, Prod.mk.injEq, and_true]
             have hnone' : Completeness.allSome v = none :=
-              dite_eq_right (fun hall' : ∀ i : Fin (n + 1), (v i).isSome => hall fun i => hall' i.succ)
+              dite_eq_right (fun hall' : ∀ i : Fin (n + 1), (v i).isSome => hall fun i => hall' i.castSucc)
             exact hnone'.symm
-
-theorem costRun_withReveals_sequenceLayersUp_quiet {α : Type}
-    (comp : Layer → OracleComp CostSpec (Option α)) (v : Layer → Option α)
-    (h : ∀ lay r, r ∈ support (costRun f table (withReveals (comp lay))) → r.1 = (v lay, []))
-    (result : RunResult (Option (Layer → α)))
-    (hresult : result ∈ support (costRun f table (withReveals (Concrete.sequenceLayersUp comp)))) :
-    result.1 = (Completeness.allSome (α := fun _ => α) v, []) := by
-  unfold Concrete.sequenceLayersUp at hresult
-  obtain ⟨r1, h1, r2, h2, rfl⟩ := costRun_withReveals_bind f table _ _ result hresult
-  have hv1 := costRun_withReveals_sequenceDep_quiet f table (α := fun _ => α) (fun i => comp i.rev)
-    (fun i => v i.rev) (fun i r hr => h i.rev r hr) r1 h1
-  obtain ⟨⟨x1, L1⟩, E1⟩ := r1
-  simp only [Prod.mk.injEq] at hv1
-  obtain ⟨rfl, rfl⟩ := hv1
-  dsimp only at h2 ⊢
-  rw [← GraphView.allSome_rev v]
-  cases hc : Completeness.allSome (α := fun _ => α) (fun i => v i.rev) with
-  | none =>
-      rw [hc, costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h2
-      subst r2
-      rfl
-  | some found =>
-      rw [hc, costRun_withReveals_pure, support_pure, Set.mem_singleton_iff] at h2
-      subst r2
-      rfl
 
 theorem finish_support (parameter : PublicParameter) (data : PublicData) (message : Message)
     (randomness : Randomness) (result : RunResult (Option Signature))
@@ -414,7 +389,7 @@ theorem finish_support (parameter : PublicParameter) (data : PublicData) (messag
   obtain ⟨r3, h3, r4, h4, rfl⟩ := costRun_withReveals_bind f table _ _ r2 h2
   obtain rfl := costRun_withReveals_tick f table _ r3 h3
   obtain ⟨r5, h5, r6, h6, rfl⟩ := costRun_withReveals_bind f table _ _ r4 h4
-  have hv5 := costRun_withReveals_sequenceLayersUp_quiet f table _ _
+  have hv5 := costRun_withReveals_sequenceDep_quiet f table _ _
     (fun lay r hr => costRun_withReveals_layerCostSearch f table parameter data _ lay r hr) r5 h5
   obtain ⟨⟨x5, L5⟩, E5⟩ := r5
   simp only [Prod.mk.injEq] at hv5
@@ -451,8 +426,8 @@ def SignOutcome (parameter : PublicParameter) (seed : MasterSeed) (data : Public
     (message : Message) (result : Option Signature × List HiddenGraph.Coordinate) : Prop :=
   (result.1 = none → result.2 = []) ∧
   ∀ signature, result.1 = some signature → ∃ randomness,
-    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter, data.root⟩ message randomness)) ∧
-    evalWithAnswerFn f (Seeded.finishSign ⟨seed, parameter, data.root⟩ message randomness) =
+    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, 0, parameter, data.root⟩ message randomness)) ∧
+    evalWithAnswerFn f (Seeded.finishSign ⟨seed, 0, parameter, data.root⟩ message randomness) =
       some signature ∧
     result.2 = revealsOf f parameter data message randomness
 
@@ -488,11 +463,10 @@ theorem signLoop_support (parameter : PublicParameter) (seed : MasterSeed) (data
       split at h4
       · rename_i hland
         have hland' : Landed parameter (digestIndex (Completeness.digestValue f
-            ⟨seed, parameter, data.root⟩ message randomness)) := by
-          simpa only [Completeness.digestValue, messageDigest, evalWithAnswerFn_bind,
-            evalWithAnswerFn_pure, Completeness.eval_sequenceFin, digestIndex_truncate] using hland
+            ⟨seed, 0, parameter, data.root⟩ message randomness)) := landed_full _ _
         obtain ⟨hvalue, hreveals⟩ := finish_support f table parameter data message randomness r4 h4
-        have hsign := eval_finishSign_assembled f parameter seed data table hdata htable message randomness hland'
+        have hsign := eval_finishSign_assembled f parameter seed data table hdata htable 0 message randomness
+          (landed_full _ _)
         refine ⟨fun hnone => ?_, fun signature hsome => ⟨randomness, hland', ?_, hreveals⟩⟩
         · rw [hreveals]
           exact revealsOf_of_assembled_none f table parameter data message _ (hvalue ▸ hnone)
@@ -516,8 +490,8 @@ revealed by some logged signature. -/
 def LogGood (parameter : PublicParameter) (seed : MasterSeed) (data : PublicData)
     (log : QueryLog SigningSpec) (reveals : List HiddenGraph.Coordinate) : Prop :=
   (∀ entry ∈ log, ∀ signature, entry.2 = some signature → ∃ randomness,
-    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, parameter, data.root⟩ entry.1 randomness)) ∧
-    evalWithAnswerFn f (Seeded.finishSign ⟨seed, parameter, data.root⟩ entry.1 randomness) =
+    Landed parameter (digestIndex (Completeness.digestValue f ⟨seed, 0, parameter, data.root⟩ entry.1 randomness)) ∧
+    evalWithAnswerFn f (Seeded.finishSign ⟨seed, 0, parameter, data.root⟩ entry.1 randomness) =
       some signature) ∧
   ∀ coordinate ∈ reveals, ∃ entry ∈ log, ∃ signature, entry.2 = some signature ∧
     coordinate ∈ revealsOf f parameter data entry.1 signature.randomness
