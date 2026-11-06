@@ -119,9 +119,12 @@ def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 /-- A digest's two cells (`pack_hash_state`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
-/-- A claim's four cells: the key's root and parameter, the message (`claim_cells`). -/
-def claimCells (root parameter : BitVec 128) (message : BitVec 256) : Entry :=
-  cellsOfBytes (claimBytes root parameter message)
+/-- A claim's four cells: the key's two 16-byte halves as `to_bytes` lays them out (a leanXMSS key's
+root and parameter, a leanSPHINCS key's `PK.seed` and `PK.root`), then the message (`claim_cells`,
+`aggregation/statement.rs:38-55`). -/
+def claimCells (first second : BitVec 128) (message : BitVec 256) : Entry :=
+  cellsOfBytes (HashSig.littleEndianBytes 16 first ++ HashSig.littleEndianBytes 16 second ++
+    HashSig.littleEndianBytes 32 message)
 
 /-- Bytes, each in the exponent (`exponent_bytes`, `aggregation/cells.rs:12-14`). -/
 def exponentBytes (bytes : List UInt8) : Entry :=
@@ -222,7 +225,7 @@ def sphincsForsNodes (publicSeed : HashSig.PublicParameter) (index : Sphincs.Ind
     if h : level < Sphincs.forsTreeHeight then opening.path ⟨level, h⟩ else 0
   let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 publicSeed index
     tree leaf opening.secret)
-  let fold := fun levels ↦ Id.run (HashSig.foldPath (m := Id)
+  let fold := fun levels ↦ Id.run (HashSig.OverPermutation.foldPath (m := Id)
     (fun level node ↦ Sphincs.Verification.tweakableHash keccakF1600 publicSeed
       (.forsNode index tree (level + 1) node))
     leaf.val path levels value)
@@ -256,9 +259,9 @@ def sphincsLayer (publicSeed : HashSig.PublicParameter) (index : Sphincs.Index)
 message's bytes, the randomizer, `H_msg`'s bytes past its `34`, every FORS tree's secret, every
 tree's climb, then each layer's, bottom first, the bottom one-time key signing the FORS key and
 each above the root below. -/
-def sphincsHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
+def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
-  let publicSeed := pk.parameter
+  let publicSeed := pk.publicSeed
   let outputs := fun call ↦ Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600
     σ.randomizer publicSeed pk.root message call)
   let digest := Sphincs.truncateMessageDigest outputs
@@ -471,8 +474,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
   let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
-  -- A leanSPHINCS key's bytes are `PK.seed ‖ PK.root` (`to_bytes`, `scheme.rs:29-35`).
-  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.parameter c.1.root c.2
+  let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.publicSeed c.1.root c.2
   let slots := fun (offsets : List ℕ) ↦ childSlotPushes offsets
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,
       count s.claims.sphincs.length, count sr.duplicates.length, count rawS.length,
