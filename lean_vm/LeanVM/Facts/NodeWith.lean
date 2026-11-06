@@ -49,11 +49,11 @@ def xmssVerifyWith (pk : HashSig.PublicKey) (message : HashSig.Message)
 
 /-- `claimListDigest` with the hash `H`. -/
 def xmssListDigestWith (claims : List LeanXmssClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+  H (claimListPreimage xmssPublicKeyBytes claims)
 
 /-- `claimListDigest` with the hash `H`. -/
 def sphincsListDigestWith (claims : List LeanSphincsClaim) : m Digest :=
-  H (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
+  H (claimListPreimage Sphincs.PublicKey.toBytes claims)
 
 /-- **`statementDigest` with the hash `H`.** -/
 def statementDigestWith (seed : Digest) (s : NodeStatement) : m Digest := do
