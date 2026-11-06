@@ -57,19 +57,16 @@ theorem bitVec_append_inj {n m : Nat} {a a' : BitVec n} {b b' : BitVec m}
     have := congrArg (fun v : BitVec (n + m) => v.getLsbD i) h
     simpa [BitVec.getLsbD_append, hi] using this
 
-/-- The 16 address bytes determine the type, the step, the layer, the tree and the two fields. -/
+/-- The 16 address bytes determine the type, the step and the two fields. -/
 theorem fieldBytes_injective {t1 t2 : TweakFields} (h : addressBytes t1 = addressBytes t2) : t1 = t2 := by
-  obtain ⟨tag1, step1, layer1, tree1, hi1, lo1⟩ := t1
-  obtain ⟨tag2, step2, layer2, tree2, hi2, lo2⟩ := t2
+  obtain ⟨tag1, step1, hi1, lo1⟩ := t1
+  obtain ⟨tag2, step2, hi2, lo2⟩ := t2
   simp only [addressBytes] at h
   obtain ⟨h, _⟩ := List.append_inj' h (by simp [bytesLE_length])
-  obtain ⟨h, htree⟩ := List.append_inj' h (by simp [bytesLE_length])
-  obtain ⟨h, hlayer⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨h, htag⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨hlo, hhi⟩ := List.append_inj' h (by simp [bytesLE_length])
   obtain ⟨hstep, htag⟩ := bitVec_append_inj (bytesLE_injective htag)
-  simp only [bytesLE_injective hlo, bytesLE_injective hhi, bytesLE_injective hlayer,
-    bytesLE_injective htree, hstep, htag]
+  simp only [bytesLE_injective hlo, bytesLE_injective hhi, hstep, htag]
 
 /-- `P || A || payload` determines the parameter, the address and the payload. -/
 theorem fieldInput_injective {fields fields' : TweakFields}
@@ -107,7 +104,7 @@ theorem tweakFields_inj {tag tag' step step' hi hi' lo lo' : Nat}
     (hhi : hi < 2 ^ 24) (hhi' : hi' < 2 ^ 24) (hlo : lo < 2 ^ 32) (hlo' : lo' < 2 ^ 32)
     (h : tweakFields tag step hi lo = tweakFields tag' step' hi' lo') :
     tag = tag' ∧ step = step' ∧ hi = hi' ∧ lo = lo' := by
-  simp only [tweakFields, TweakFields.mk.injEq, true_and] at h
+  simp only [tweakFields, TweakFields.mk.injEq] at h
   exact ⟨ofNat_inj_of_lt htag htag' h.1, ofNat_inj_of_lt hstep hstep' h.2.1,
     ofNat_inj_of_lt hhi hhi' h.2.2.1, ofNat_inj_of_lt hlo hlo' h.2.2.2⟩
 
