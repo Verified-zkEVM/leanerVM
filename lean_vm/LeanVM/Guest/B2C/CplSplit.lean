@@ -73,7 +73,7 @@ theorem cw_atoms_loc (X : CX) (L : CLoc) : ∀ (ss : List Core.Stmt) (st : CW), 
   | [], st, _ => by simp only [cw]; exact endC_loc X L st
   | .atom a :: ss, st, hs => by
     simp only [List.all_cons, isAtomS, Bool.true_and] at hs
-    simp only [cw, natSeq_eq]
+    simp only [cw, natSeqC_eq]
     exact cw_atoms_loc X L ss _ hs
   | .ite .. :: _, _, hs => by simp [isAtomS] at hs
   | .match_ .. :: _, _, hs => by simp [isAtomS] at hs
@@ -286,7 +286,7 @@ theorem cwArms_cons (J : ℕ) (se : CW) (key : Option (List Cnt)) (v : V) (a : L
       obtain ⟨c', u'⟩ := r
       dsimp only
       cases hb : armChkK key k c' <;>
-        simp only [Bool.cond_true, Bool.cond_false, Cnt.seq_eq, natSeq_eq]
+        simp only [Bool.cond_true, Bool.cond_false, Cnt.seq_eq, natSeqC_eq]
 
 /-- The arms `lo ≤ k < hi` of a `match` (from index `k`) walked, the others skipped: the most
 counts. -/
@@ -443,7 +443,7 @@ noncomputable def cwMatchS (X : CX) (lo hi : ℕ) (v : V) (arms : List (List Cor
                   match cwArmsS X J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) v lo hi as ts
                       c0 u0 1 with
                   | some (c, u) => match segAtC X J se with
-                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeqC u fun u ↦
                         cw X [] { sj with cnt := c, uq := u }
                     | none => .fail 20
                   | none => .fail 21
@@ -507,7 +507,7 @@ theorem cwMatchS_dec {X : CX} {lo hi : ℕ} {v : V} {a0 : List Core.Stmt} {as : 
                     exact ⟨t, ft, t0, ts, o1, base, se, s0, J, c0, u0, c, u, sj,
                       ⟨hk, hs, hb, by simp only [Bool.and_eq_true]; exact hc, hch, hse, hs0, hJ, hk0⟩,
                       harms, hsj, by
-                        simp only [Cnt.seq_eq, natSeq_eq]⟩
+                        simp only [Cnt.seq_eq, natSeqC_eq]⟩
                   · intro h; exact absurd rfl (h 20)
                 · intro h; exact absurd rfl (h 21)
               · intro h; exact absurd rfl (h 24)
@@ -528,7 +528,7 @@ theorem cw_match_of {X : CX} {v : V} {a0 : List Core.Stmt} {as : List (List Core
     cw X [.match_ v (a0 :: as)] st = cw X [] { sj with cnt := armCnt (armKeyD X.acs v.idx) se c, uq := u } := by
   obtain ⟨hk, hs, hb, hc, -, hse, hs0, hJ, hk0⟩ := hp
   simp only [cw, hk, hs, hb, hc, Bool.cond_true, hse, hs0, Exec.Trie.seq_eq, hJ, hk0, ha, hsj,
-    Cnt.seq_eq, natSeq_eq]
+    Cnt.seq_eq, natSeqC_eq]
 
 theorem cw_nil_fresh (X : CX) {J : ℕ} {st sj : CW} (h : segAtC X J st = some sj) (c : Cnt) (u : ℕ) :
     cw X [] { sj with cnt := c, uq := u } = .join J c u := by
@@ -761,7 +761,7 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
   -- the window's walk
   unfold cplRes
   rw [hsucc, List.drop_nil, execWinCS_nil, hR]
-  simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq, hm, hs, hst,
+  simp only [listSeq_eq, Exec.Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeqC_eq, hm, hs, hst,
     Nat.beq_refl, Bool.cond_true, List.drop_zero, hss, hpe]
   have hfile : fileB (clocW (certOf j) i) (fsN j) [.match_ v (a0 :: as)] .nil = .nil := rfl
   rw [hfile]

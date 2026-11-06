@@ -389,7 +389,7 @@ theorem cwArms_u {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option (Li
         cases hJ : armChkK key i ca
         · rw [hJ] at h; cases h
         rw [hJ] at h
-        simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq] at h
+        simp only [Bool.cond_true, Cnt.seq_eq, natSeqC_eq] at h
         obtain ⟨hu, hk⟩ := cwArms_u h
         refine ⟨fun x hx ↦ hu x (by rw [testBit_lorC, hx, Bool.true_or]), fun k hk1 hk2 s' ck uk hs' hck ↦ ?_⟩
         cases k with

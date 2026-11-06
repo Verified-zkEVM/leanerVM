@@ -15,7 +15,8 @@ Among the waiting modules the longest path to the end of the build goes first, t
 first that cannot be admitted holds its memory back, so a large module is not starved. The estimates are the peak
 anonymous memory from `DIR/.lake/lake-build.tsv`, which every run updates with each module's wall time, CPU time,
 peak RSS and peak anonymous memory, over `DIR/lake-build.tsv` (the heavy modules, committed, which `--seed`
-rewrites); an unknown module is taken at 2 GB.
+rewrites); an unknown module is taken at 2 GB. Both tables drop the records of modules that no `.lean` file of the
+package or its dependencies has any longer (removed or renamed), unless a dependency is missing on disk.
 
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
 module killed by the kernel there is run again, alone. After the first module that fails nothing more is admitted
@@ -134,6 +135,27 @@ def write_table(path: Path, table: dict[str, list[float]]) -> None:
 def seed_rows(table: dict[str, list[float]]) -> dict[str, list[float]]:
     """The heavy modules, rounded so that a rewrite changes few lines: 3 GB of anonymous memory or a minute."""
     return {m: [round(w, -1), round(c, -1), round(r, -2), round(a, -2)] for m, (w, c, r, a) in table.items() if a >= 3000 or w >= 60}
+
+
+def source_modules(pkg: Path) -> set[str] | None:
+    """Every name a `.lean` file of the package or of a dependency in its manifest can have as a module: each suffix of
+    its path from the package directory's parent, so that any `srcDir` (`.`, `tests`, `..`) is covered. None if a
+    dependency is not on disk: its modules cannot be told apart from removed ones."""
+    manifest = json.loads((pkg / "lake-manifest.json").read_text(encoding="utf-8"))
+    dirs = [pkg] + [(pkg / p["dir"]).resolve() if p["type"] == "path"
+                    else pkg / ".lake" / "packages" / p["name"].strip("«»")  # `«doc-gen4»` is in `doc-gen4`
+                    for p in manifest["packages"]]
+    if not all(top.is_dir() for top in dirs):
+        return None
+    names = set()
+    for top in dirs:
+        for root, subdirs, files in os.walk(top):
+            subdirs[:] = [d for d in subdirs if not d.startswith(".") and d not in ("target", "node_modules")]
+            for name in files:
+                if name.endswith(".lean"):
+                    parts = (top.name, *(Path(root) / name).relative_to(top).with_suffix("").parts)
+                    names.update(".".join(parts[i:]) for i in range(len(parts)))
+    return names
 
 
 def header_imports(path: Path) -> list[str]:
@@ -473,6 +495,14 @@ def main() -> None:
         scheduler.stop.set()
     finally:
         shutil.rmtree(work, ignore_errors=True)
+    # A module removed or renamed keeps no record: its stale row would mislead the priorities and `deps.py`.
+    sources = source_modules(pkg)
+    stale = [] if sources is None else sorted(m for m in scheduler.table if m not in sources)
+    for module in stale:
+        del scheduler.table[module]
+    if stale:
+        log(f"dropped the records of {len(stale)} modules without a source file: {', '.join(stale[:5])}"
+            + (", ..." if len(stale) > 5 else ""))
     local.parent.mkdir(exist_ok=True)
     write_table(local, scheduler.table)
     if opts.seed:

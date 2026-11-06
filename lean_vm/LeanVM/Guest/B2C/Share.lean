@@ -26,10 +26,10 @@ may be pending at a branch, at the end of a block, or after a statement that may
 join the walk goes on with the facts from before the branch, the values known in every branch,
 and every cell a branch occupied as occupied.
 
-The occupied cells and the known values are bit sets (`ℕ`), whose operations the kernel does in
-one step each. A function is walked in windows, each within a window of its soundness certificate
-and reading that window's cells (`locW`): window `k + 1` starts from a `Snap` of the state window
-`k` ends in, which the end state must refine (`refines`).
+The occupied cells and the known values are salted bit sets (`ℕ`, `bitS`), whose operations the
+kernel does in one step each. A function is walked in windows, each within a window of its
+soundness certificate and reading that window's cells (`locW`): window `k + 1` starts from a `Snap`
+of the state window `k` ends in, which the end state must refine (`refines`).
 
 The walk also confirms, per atom, the certificate's lists of temporaries and frame runs
 (`Plumb.tmps`, `Plumb.runs`), from which the honest memory's cells are built.
@@ -55,6 +55,27 @@ def setBit (s n : ℕ) : ℕ := Nat.lor s (Nat.shiftLeft 1 n)
 /-- The bit set of a list. -/
 def bitsOf (l : List ℕ) : ℕ := l.foldl setBit 0
 
+/-! ## Salted bit sets
+
+The walk's occupied cells and known values change at almost every step, and the kernel hashes a
+`ℕ` literal by its low 64 bits only (`Expr.lit`'s hash is `UInt64.ofNat`). Two such sets that
+differ only above bit 64 collide in the kernel's caches, which then compare the colliding terms
+in full, one entry after another, so a window's check took time quadratic in its steps. A salted
+set keeps element `n` at bit `n + 64` and in its low 64 bits a salt, the exclusive or of the
+elements added, which changes its hash at every addition. Adding a new element is one exclusive
+or with the set, which builds one number. -/
+
+/-- Element `n` of a salted set. -/
+def bitS (s n : ℕ) : Bool := bitN s (Nat.add n 64)
+
+/-- A salted set with `n` added, its salt changed (if `n` is new). -/
+def setS (s n : ℕ) : ℕ :=
+  bif bitS s n then s
+  else Nat.xor s (Nat.add (Nat.shiftLeft 1 (Nat.add n 64)) (Nat.mod n 18446744073709551616))
+
+/-- The salted set of a bit set. -/
+def saltOf (s : ℕ) : ℕ := Nat.shiftLeft s 64
+
 /-! ## A window's cells -/
 
 /-- The cells of a list packed, cell `m` in the `m`-th base-`2^16` digit. -/
@@ -73,7 +94,7 @@ structure Loc where
 /-- The cell of value number `v`, if the window has it. -/
 noncomputable def Loc.get? (L : Loc) (v : ℕ) : Option ℕ :=
   bif Nat.ble L.lo v && Nat.blt v (Nat.add L.lo L.len) then
-    some (Nat.mod (Nat.div L.pk (Nat.pow 65536 (Nat.sub v L.lo))) 65536)
+    some (Nat.mod (Nat.shiftRight L.pk (Nat.mul 16 (Nat.sub v L.lo))) 65536)
   else getF L.ins v
 
 /-- The cell of a value (`0` if the window has none). -/
@@ -112,14 +133,15 @@ structure SSt where
   named : ℕ
   pend : List PF
 
-/-- `k st`, its parts evaluated first. -/
+/-- `k st`, its tries evaluated first. Its bit sets are not: evaluating one here (`natSeq`)
+builds copies of it (`n - 1`, `n`), and the kernel evaluates it where it is first read. -/
 def SSt.seq {β : Type} (st : SSt) (k : SSt → β) : β :=
   match st with
-  | ⟨o, c, ky, n, p⟩ => natSeq o fun o ↦ c.seq fun c ↦ ky.seq fun ky ↦ natSeq n fun n ↦ k ⟨o, c, ky, n, p⟩
+  | ⟨o, c, ky, n, p⟩ => c.seq fun c ↦ ky.seq fun ky ↦ k ⟨o, c, ky, n, p⟩
 
 theorem SSt.seq_eq {β : Type} (st : SSt) (k : SSt → β) : st.seq k = k st := by
   cases st
-  simp only [SSt.seq, Trie.seq_eq, natSeq_eq]
+  simp only [SSt.seq, Trie.seq_eq]
 
 /-! ## Atoms -/
 
@@ -183,7 +205,7 @@ noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
 /-! ## Steps -/
 
 /-- Value `v` is known to hold its cell's word. -/
-def isNamed (st : SSt) (v : ℕ) : Bool := bitN st.named v
+def isNamed (st : SSt) (v : ℕ) : Bool := bitS st.named v
 
 /-- Value `v` is pending. -/
 def isPend (st : SSt) (v : ℕ) : Bool := st.pend.any fun p ↦ Nat.beq p.v v
@@ -200,9 +222,9 @@ noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SSt) (v 
   bif isNamed st v.idx || isPend st v.idx then st
   else
     natSeq (loc.cell v) fun c ↦
-    bif Nat.blt c 2 then ⟨st.occ, st.cst, st.keys, setBit st.named v.idx, st.pend⟩
-    else bif bitN st.occ c then ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, c, none, [], []⟩ :: st.pend⟩
-    else ⟨setBit st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setBit st.named v.idx, st.pend⟩
+    bif Nat.blt c 2 then ⟨st.occ, st.cst, st.keys, setS st.named v.idx, st.pend⟩
+    else bif bitS st.occ c then ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, c, none, [], []⟩ :: st.pend⟩
+    else ⟨setS st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setS st.named v.idx, st.pend⟩
 
 /-- Name values in order. -/
 noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ × ℕ)) : SSt → List V → SSt
@@ -244,8 +266,8 @@ noncomputable def discharge : ℕ → SSt → SSt
     match splitPend loc st st.pend with
     | ([], _) => st
     | (ok, rest) =>
-      (natSeq (ok.foldl (fun s p ↦ setBit s p.v) st.named) fun nm ↦
-        (⟨st.occ, st.cst, st.keys, nm, rest⟩ : SSt)).seq fun st ↦ discharge n st
+      (⟨st.occ, st.cst, st.keys, ok.foldl (fun s p ↦ setS s p.v) st.named, rest⟩ : SSt).seq fun st ↦
+        discharge n st
 
 /-- The constant an atom gives its output's shared cell, if none is known there. -/
 noncomputable def recCst (a : Core.Atom) (cst : Trie (ℕ × ℕ × ℕ)) : Trie (ℕ × ℕ × ℕ) :=
@@ -384,7 +406,7 @@ end Walk
 
 /-- The state a function starts with: its fixed cells occupied, their constants known. -/
 noncomputable def initSt (P : Plumb) : SSt :=
-  ⟨bitsOf (P.stat.map Prod.fst), P.stat.foldl (fun t q ↦ match q.2 with
+  ⟨saltOf (bitsOf (P.stat.map Prod.fst)), P.stat.foldl (fun t q ↦ match q.2 with
     | .k a b c => setF (a, b, c) envDepth t q.1
     | .fpg _ => t) .nil, .nil, 0, []⟩
 
@@ -428,13 +450,14 @@ noncomputable def snapsOf (j : ℕ) : List Snap :=
 
 /-- The state of a snapshot. -/
 noncomputable def Snap.st (s : Snap) : SSt :=
-  ⟨s.occ, s.cst.foldl (fun t q ↦ setF q.2 envDepth t q.1) .nil,
-    s.keys.foldl (fun t q ↦ setF (q.2 :: (getF t q.1).getD []) envDepth t q.1) .nil, bitsOf s.named, []⟩
+  ⟨saltOf s.occ, s.cst.foldl (fun t q ↦ setF q.2 envDepth t q.1) .nil,
+    s.keys.foldl (fun t q ↦ setF (q.2 :: (getF t q.1).getD []) envDepth t q.1) .nil, saltOf (bitsOf s.named), []⟩
 
 /-- A window's end state refines the next one's start: its occupied cells are occupied there,
 and what that knows it knows. -/
 noncomputable def refines (m : SSt) (s : Snap) : Bool :=
-  Nat.beq (Nat.land m.occ s.occ) m.occ && s.named.all (bitN m.named) &&
+  Nat.beq (Nat.land (Nat.shiftRight m.occ 64) s.occ) (Nat.shiftRight m.occ 64) &&
+    s.named.all (bitS m.named) &&
     s.cst.all (fun q ↦ getF m.cst q.1 == some q.2) &&
     s.keys.all (fun q ↦ ((getF m.keys q.1).getD []).any fun k ↦ k == q.2)
 

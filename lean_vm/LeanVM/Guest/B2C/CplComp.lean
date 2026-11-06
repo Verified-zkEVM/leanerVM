@@ -436,7 +436,7 @@ theorem posZ_start {i k : ℕ}
     fun _ h ↦ (by cases h), fun _ h ↦ (by cases h), fun _ h ↦ (by cases h)⟩,
     ⟨s'.items.take (partM j i k), cr, List.take_append_drop _ _, hf,
       (by simp only [st0]; rw [hst]; exact hr), hle⟩,
-    fun t ht ↦ ?_, fun _ h ↦ absurd h (by simp [st0]), (by simp only [st0]; rw [hst]; exact hs)⟩
+    fun t ht ↦ ?_, fun _ h ↦ absurd h (by simp [st0, bitKS_zero]), (by simp only [st0]; rw [hst]; exact hs)⟩
   unfold st0 at ht
   cases h0 : Nat.beq (partM j i k) 0
   · rw [h0] at ht
@@ -488,7 +488,7 @@ theorem part_walk (F : FnH L j fp σ es vs kfps hdr ck)
   · obtain ⟨hJ, hne, hA'⟩ := (partArr_ent hent).mp hA
     rw [hres] at hok ⊢
     exact walk_enterZ H (walk_Z H) hw hes hstk hshape (okE_start H hs hst hA' hJ hne hatoms)
-      (fun n h ↦ by simp [st0E] at h) hA' hok
+      (fun n h ↦ by simp [st0E, bitKS_zero] at h) hA' hok
 
 /-- **A part before the last**: its walk takes the run to where it ends. -/
 theorem part_mid (F : FnH L j fp σ es vs kfps hdr ck)

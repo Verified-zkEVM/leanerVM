@@ -119,7 +119,7 @@ theorem cw_nil (st : CW) : cw X [] st = endC X st := by simp [cw]
 theorem cw_atom (a : Core.Atom) (ss : List Core.Stmt) (st : CW) :
     cw X (.atom a :: ss) st =
       cw X ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none, nvVals (Memory.atomUses a) st.nm⟩ := by
-  simp [cw, natSeq_eq]
+  simp [cw, natSeqC_eq]
 
 /-- What `chainEnd` checked. -/
 theorem chainEnd_ok {se : CW} {t : ℕ} {ft : Tgt} (h : (chainEnd X se t ft).ok = true) :
@@ -232,7 +232,7 @@ theorem cw_ite {c : V} {z n ss : List Core.Stmt} {st : CW}
           · rename_i sj hsj
             refine ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, rfl, hk, hfr, hod, hof, hsu, hsn,
               h1, h2, hsj, ?_⟩
-            simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq]
+            simp only [Bool.cond_true, Cnt.seq_eq, natSeqC_eq]
           · cases h
         · cases h
         · cases h
@@ -420,7 +420,7 @@ theorem cw_callIf (hG : X.G = glob) {c : V} {f : String} {args : List V} {ss : L
                   Nat.eq_of_beq_eq_true g2, Nat.eq_of_beq_eq_true g3, Nat.le_of_ble_eq_true g4,
                   g5, g6, g7, g8, by simpa using g9, hb, hk2.1, hk2.2, hse, ht,
                   Nat.eq_of_beq_eq_true hk3.1, hk3.2,
-                  hsr, by simp only [Cnt.seq_eq, natSeq_eq]⟩
+                  hsr, by simp only [Cnt.seq_eq, natSeqC_eq]⟩
               · cases h
             · cases h
           · cases h
@@ -525,7 +525,7 @@ theorem cwArms_spec {J : ℕ} {succ : List ℕ} {v : V} {se : CW} {key : Option 
         cases hJ : armChkK key k ca
         · rw [hJ] at h; cases h
         rw [hJ] at h
-        simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq] at h
+        simp only [Bool.cond_true, Cnt.seq_eq, natSeqC_eq] at h
         obtain ⟨hl, hc, hk⟩ := cwArms_spec h
         refine ⟨by simp [hl], fun op ↦ ?_, fun i hk1 hk2 ↦ ?_⟩
         · have := hc op
@@ -610,7 +610,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
               split at h
               · rename_i sj hsj
                 exact Or.inl ⟨J, c0, u0, c, u, sj, h0, hck, ha, hsj,
-                  by simp only [Cnt.seq_eq, natSeq_eq]⟩
+                  by simp only [Cnt.seq_eq, natSeqC_eq]⟩
               · cases h
             · cases h
           · rename_i o succ c0 u0 h0
@@ -624,7 +624,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
             split at h
             · rename_i c u ha
               exact Or.inr ⟨o, succ, c0, u0, c, u, h0, hck1, rfl, hsn, ha,
-                by simp only [Cnt.seq_eq, natSeq_eq]; rfl⟩
+                by simp only [Cnt.seq_eq, natSeqC_eq]; rfl⟩
             · cases h
           · cases h
           · cases h
@@ -686,7 +686,7 @@ theorem cwE_ok {o : ℕ} {succ : List ℕ} {se : CW} {ss : List Core.Stmt} (h : 
             split at h
             · rename_i sj hsj
               exact Or.inl ⟨J, c0, u0, c, u, sj, h0, hck, ha, hsj,
-                by simp only [Cnt.seq_eq, natSeq_eq]⟩
+                by simp only [Cnt.seq_eq, natSeqC_eq]⟩
             · cases h
           · cases h
         · rename_i o' succ' c0 u0 h0
@@ -700,7 +700,7 @@ theorem cwE_ok {o : ℕ} {succ : List ℕ} {se : CW} {ss : List Core.Stmt} (h : 
           split at h
           · rename_i c u ha
             exact Or.inr ⟨o', succ', c0, u0, c, u, h0, hck1, rfl, hsn, ha,
-              by simp only [Cnt.seq_eq, natSeq_eq]; rfl⟩
+              by simp only [Cnt.seq_eq, natSeqC_eq]; rfl⟩
           · cases h
         · cases h
         · cases h
