@@ -224,28 +224,36 @@ def sLeafShifts : List Stmt :=
 
 /-! ## The digest's bytes -/
 
+/-- A byte inside FORS tree `c`'s leaf from base `b`: the leaf shifted by `z`, masked to its low byte
+(`mask`) unless nothing is above it. The statements, the next base and the value. -/
+def mdIn (c z b : Nat) (mask : Bool) : List Stmt × Nat × V :=
+  if mask then
+    ([cst b (word 256 0 0), mulS (.n (b + 1)) (sFVal c (z + 8)) (.n b),
+      addS (.n (b + 2)) (sFVal c z) (.n (b + 1))], b + 3, .n (b + 2))
+  else ([], b, sFVal c z)
+
+/-- A byte placed at bit `s` of its cell: none for `s = 0`. -/
+def mdScale (s : Nat) (m : List Stmt × Nat × V) : List Stmt × Nat × V :=
+  if s = 0 then m
+  else (m.1 ++ [cst m.2.1 (pw s), mulS (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)], m.2.1 + 2, .n (m.2.1 + 1))
+
+/-- A byte across FORS trees `c` and `c + 1` from base `b`, placed at bit `s`: `c`'s low `k1` bits
+raised past `c + 1`'s high `8 - k1` ones. -/
+def mdAcross (c k1 s b : Nat) : List Stmt × Nat × V :=
+  let hi : List Stmt := [cst b (pw k1), mulS (.n (b + 1)) (sFVal c k1) (.n b),
+    addS (.n (b + 2)) (sFVal c 0) (.n (b + 1)), cst (b + 3) (pw (s + 8 - k1)),
+    mulS (.n (b + 4)) (.n (b + 2)) (.n (b + 3))]
+  if s = 0 then (hi ++ [addS (.n (b + 5)) (.n (b + 4)) (sFVal (c + 1) (2 + k1))], b + 6, .n (b + 5))
+  else (hi ++ [cst (b + 5) (pw s), mulS (.n (b + 6)) (sFVal (c + 1) (2 + k1)) (.n (b + 5)),
+    addS (.n (b + 7)) (.n (b + 4)) (.n (b + 6))], b + 8, .n (b + 7))
+
 /-- **`sp_md_byte(vals, i, 8 i / 10)` from base `b`**: digest byte `i < 30` placed at bit
 `8 (i % 16)` of its cell, from the field its first bit is in and the next if it reaches it. The
 statements, the next base and the value. -/
 def sMdByte (i b : Nat) : List Stmt × Nat × V :=
-  let c := 8 * i / 10
-  let s := 8 * (i % 16)
-  if (8 * i + 7) / 10 = c then
-    let z := 10 * c + 2 - 8 * i
-    let m : List Stmt × Nat × V :=
-      if 8 * i = 10 * c then ([], b, sFVal c z)
-      else ([cst b (word 256 0 0), mulS (.n (b + 1)) (sFVal c (z + 8)) (.n b),
-        addS (.n (b + 2)) (sFVal c z) (.n (b + 1))], b + 3, .n (b + 2))
-    if s = 0 then m
-    else (m.1 ++ [cst m.2.1 (pw s), mulS (.n (m.2.1 + 1)) m.2.2 (.n m.2.1)], m.2.1 + 2, .n (m.2.1 + 1))
-  else
-    let k1 := 10 * c + 10 - 8 * i
-    let hi : List Stmt := [cst b (pw k1), mulS (.n (b + 1)) (sFVal c k1) (.n b),
-      addS (.n (b + 2)) (sFVal c 0) (.n (b + 1)), cst (b + 3) (pw (s + 8 - k1)),
-      mulS (.n (b + 4)) (.n (b + 2)) (.n (b + 3))]
-    if s = 0 then (hi ++ [addS (.n (b + 5)) (.n (b + 4)) (sFVal (c + 1) (2 + k1))], b + 6, .n (b + 5))
-    else (hi ++ [cst (b + 5) (pw s), mulS (.n (b + 6)) (sFVal (c + 1) (2 + k1)) (.n (b + 5)),
-      addS (.n (b + 7)) (.n (b + 4)) (.n (b + 6))], b + 8, .n (b + 7))
+  if (8 * i + 7) / 10 = 8 * i / 10 then
+    mdScale (8 * (i % 16)) (mdIn (8 * i / 10) (10 * (8 * i / 10) + 2 - 8 * i) b (8 * i != 10 * (8 * i / 10)))
+  else mdAcross (8 * i / 10) (10 * (8 * i / 10) + 10 - 8 * i) (8 * (i % 16)) b
 
 /-- Bytes `i ..< i + m` added to the running sum `acc` from base `b`: the statements, the next base,
 the sum. -/

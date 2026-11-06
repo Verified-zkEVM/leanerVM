@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.Ctab
 
-  Two sections of `verify_sub`: the bus challenges' equality weights `fp_w` (G:3410-3413) and the
-  ring map's Frobenius coefficients `c_table` (G:3443-3452).
+  Two sections of `verify_sub`: the bus challenges' equality weights `fp_w` (G:3440-3443) and the
+  ring map's Frobenius coefficients `c_table` (G:3473-3482).
 -/
 
 module
@@ -94,7 +94,7 @@ theorem fpw_loop {a0 a1 a2 a3 : E} (ha : ReadsAt rd (σ (.n 346)) [a0, a1, a2, a
     · rw [← e]; exact lx
     · exact hl y hy
 
-/-- **`fp_w`** (G:3410-3413): the bus challenges' equality weights, then `β`'s squeeze. -/
+/-- **`fp_w`** (G:3440-3443): the bus challenges' equality weights, then `β`'s squeeze. -/
 theorem vsFpwT_holds {alphas : List E} (hl : alphas.length = 4)
     (ha : ReadsAt rd (σ (.n 346)) alphas) (h : Stmt.HoldsList C rd σ vsFpwT next kret) :
     ReadsAt rd (σ (.n 427)) (eqKernel alphas) ∧ Stmt.HoldsList C rd σ (vsSqzT 415 604) next kret := by
@@ -148,7 +148,7 @@ theorem ringCoefficients_getElem {chs : List E} (hl : chs.length = 6) {k : ℕ} 
       List.getD_cons_zero, List.getD_cons_succ, one_mul, mul_one, decide_eq_true_eq]
     ring
 
-/-- **`c_table`** (G:3443-3452): the ring map's Frobenius coefficients are `ringCoefficients` of
+/-- **`c_table`** (G:3473-3482): the ring map's Frobenius coefficients are `ringCoefficients` of
 its six challenges, then `ring_switch_target` is called. -/
 theorem vsCtabT_holds {chs : List E} (hl : chs.length = 6) (hc : ReadsAt rd (σ (.n 664)) chs)
     (h : Stmt.HoldsList C rd σ vsCtabT next kret) :

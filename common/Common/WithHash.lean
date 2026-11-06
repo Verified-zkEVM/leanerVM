@@ -185,7 +185,7 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def oracleHashWithHash (input : HashInput) : m HashOutput :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
-/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `tweak.rs`). -/
+/-- `Th(P, A, M) = Truncate_n(H(P || A || M))` (`th`, `lean_xmss/hash.rs`). -/
 def thWithHash (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     m Digest := do
   return truncateHash (← oracleHashWithHash (thInput parameter fields payload))
@@ -195,7 +195,7 @@ def thPairWithHash (parameter : PublicParameter) (fields : TweakFields) (payload
     m HashOutput :=
   oracleHashWithHash (thInput parameter fields payload)
 
-/-- `H(tag || S_0)`, all 32 bytes (`tagged_seed`): the seed `S` a scheme derives from. -/
+/-- `H(tag || S_0)`, all 32 bytes: at `seedTag` the scheme seed `S` (`scheme_seed`). -/
 def taggedSeedWithHash (tag : HashInput) (seed : MasterSeed) : m MasterSeed :=
   oracleHashWithHash (tag ++ littleEndianBytes 32 seed)
 

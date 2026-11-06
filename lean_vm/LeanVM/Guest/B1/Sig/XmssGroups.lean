@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssGroups
 
   leanXMSS's codeword digits, dispatched four at a time (`verify_lean_xmss`, `walk_group`,
-  `lean_ethereum.py:3577-3584, 3687-3707`): fourteen groups of four and a group of the last two,
+  `lean_ethereum.py:3608-3622, 3725-3745`): fourteen groups of four and a group of the last two,
   their digit sums and their encoding.
 -/
 

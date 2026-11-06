@@ -201,8 +201,8 @@ theorem sample_boundW (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
     (tg : Targeting HashInput HashOutput Coordinate)
     (hhit : ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
       ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
-        (CorrectGuess table s ∨ CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-          (compTable parameterOutput fixed highs remaining table prepared.1)) s.cache) →
+        (CorrectGuess table s ∨
+          CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) s.cache) →
         Hit tg prepared.2 table s)
     (hcompat : Compatible tg (sampleModel parameterOutput highs)) (htrunc : UniformTruncation (R := HashOutput) tg)
     (hmsg : ∀ x, IsMsgInput x → tg.kind x = .none ∧ tg.digest x)
@@ -285,8 +285,8 @@ theorem large_seedFree_boundW (hb : 0 < keptHeight topLayer) (adversary : Advers
         (∀ x, IsMsgInput x → tg.kind x = .none ∧ tg.digest x) ∧
         ∀ table, tableExtending (knownOf (truncateHash parameterOutput) fixed) table = table →
           ∀ s : State, Prepared prepared.2 s → Agrees s.known table →
-            (CorrectGuess table s ∨ CacheMatch.Bad (TargetAssignment.targets (truncateHash parameterOutput)
-              (compTable parameterOutput fixed highs remaining table prepared.1)) s.cache) →
+            (CorrectGuess table s ∨
+              CacheMatch.Bad (digestFreeTargets parameterOutput fixed highs remaining table prepared.1) s.cache) →
             Hit tg prepared.2 table s)
     (hclean : ∀ parameterOutput fixed highs remaining prepared,
       prepared ∈ support (preparation parameterOutput fixed highs remaining) → ∀ x, IsMsgInput x → prepared.2 x = none)
@@ -333,7 +333,7 @@ set_option maxRecDepth 100000 in
 /-- **Large budgets, deterministic signer, weighted baseline.** If the large-budget inequality `hH0`
 with the weighted baseline holds at the adversary's budget after key generation, the deterministic
 signer's advantage is at most `q / 2^127`. -/
-theorem det_largeW (hfull : subtreeHeight = totalHeight) (hb : 0 < keptHeight topLayer) (hN : signatureLimit ≤ 2 ^ 70) (adversary : Adversary) (q : ℕ)
+theorem det_largeW (hb : 0 < keptHeight topLayer) (hN : signatureLimit ≤ 2 ^ 70) (adversary : Adversary) (q : ℕ)
     (hbound : HasHashQueryBound adversary q) (hq : q < 2 ^ 127) (hK : keygenCost ≤ q)
     (hfairq : q - keygenCost + 2 ^ 32 + (H0.scanM - 1) * H0.LmaxOf (q - keygenCost) + (2 * H0.scanM - 1) ≤ 2 ^ 128)
     (hH0 : (1 - budget 0 (q - keygenCost)) + ((q - keygenCost : ℕ) : ℝ≥0∞) *
@@ -351,7 +351,7 @@ theorem det_largeW (hfull : subtreeHeight = totalHeight) (hb : 0 < keptHeight to
   have hmain := fun steps => large_seedFree_boundW hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q
     steps (by omega) (fun _ _ _ _ _ hprep => targetingAll hb _ _ _ _ _ hprep)
     (fun _ _ _ _ _ hprep => prepared_clean _ _ _ _ _ hprep) (H0.wbarOf q') (H0.LmaxOf q') (H0.fair_of q' hfairq) htotal
-  refine le_trans (Det.forgeAdvantage_le_seedFree hfull adversary q hbound _ hmain) ?_
+  refine le_trans (Det.forgeAdvantage_le_seedFree adversary q hbound _ hmain) ?_
   have hE := expectedFail_le
   -- the negligible terms fit in the slack
   have hK1 : 1 ≤ keygenCost := by
