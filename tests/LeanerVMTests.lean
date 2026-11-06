@@ -13,9 +13,11 @@ import LeanerVMTests.Arithmetization.Completeness.Satisfied
 import LeanerVMTests.Arithmetization.Completeness.Theorem
 import LeanerVMTests.Arithmetization.Completeness.Witness
 import LeanerVMTests.Arithmetization.Equivalence
+import LeanerVMTests.Arithmetization.HypothesisChecks
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Tables
+import LeanerVMTests.Arithmetization.WitnessGen
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s
 import LeanerVMTests.Parameters.CleanField
@@ -83,6 +85,7 @@ import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.RandomOracleBound
 import LeanerVMTests.Protocol.RandomOracleGame
+import LeanerVMTests.Protocol.RomComplete
 import LeanerVMTests.Protocol.RustProof
 import LeanerVMTests.Protocol.RustProofData
 import LeanerVMTests.Protocol.SideProduct

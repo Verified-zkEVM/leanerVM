@@ -31,8 +31,8 @@ needs no knowledge of how much of the memory the run used.
   `ptr` holds `1 = g^0`, the address of memory cell `0`, which the `DEREF` dummy follows.
 * The `DEREF` frame's scratch cell holds the word at memory cell `0`, the public input's first
   word: the dummy checks that cell against memory cell `0`.
-* The `BLAKE2S` frame's digest pair holds the compression of the all-zero cells (`zeroDigest`,
-  chosen, never computed); every other `BLAKE2S` cell is zero.
+* The `BLAKE2S` frame's digest pair holds the compression of the all-zero cells (`zeroDigest`);
+  every other `BLAKE2S` cell is zero.
 * Every other cell is zero, the value of a cell nobody writes (`execute.rs:261`).
 
 `padTrace t pcs` is the padded trace; it is a `PaddedFrom` of `t` (`padTrace_from`), so by
@@ -76,19 +76,19 @@ theorem sizeAt_mem {k : ℕ} (hk : k < 8) : sizeAt k ∈ fillSizes := by
 /-! ## The frames -/
 
 /-- The output cells of a compression of the all-zero cells, the pair the `BLAKE2S` dummy writes
-(`lower.rs:514-519`). Chosen: it is never computed. -/
-noncomputable def zeroDigest : E × E :=
-  ⟨Classical.choose compressCells_zero, Classical.choose (Classical.choose_spec compressCells_zero)⟩
+(`lower.rs:514-519`). -/
+def zeroDigest : E × E := compressOut ![0, 0, 0, 0] 0 0 0
 
 /-- The zero input compresses to the digest. -/
 theorem zeroDigest_spec :
     CompressCells ![0, 0, 0, 0] 0 0 zeroDigest.1 zeroDigest.2 0 :=
-  Classical.choose_spec (Classical.choose_spec compressCells_zero)
+  compressCells_compressOut _ 0 0 0 (fun i ↦ by fin_cases i <;> exact limb_zero 2) (limb_zero 2)
+    (limb_zero 2) (limb_zero 2)
 
 /-- The first cell of the frame of the cycles of table `t` whose block starts at slot `pc`, at
 cell index `base` (so the frame pointer is `g^base`): the word at offset `o`. `w0` is the word at
 memory cell `0`, which the `DEREF` dummy checks. -/
-noncomputable def frameCell (w0 : E) (pc base : ℕ) (t : Opcode) (o : ℕ) : E :=
+def frameCell (w0 : E) (pc base : ℕ) (t : Opcode) (o : ℕ) : E :=
   if o = FillFrame.dest then ofK (gpow pc)
   else if o = FillFrame.nextFp then ofK (gpow base)
   else if o = FillFrame.ptr then ofK 1
@@ -109,20 +109,20 @@ theorem frameBase_succ (κ c : ℕ) : frameBase κ (c + 1) = frameBase κ c + Fi
 
 /-- The cell `j` above the committed image, `j = 12 c + o`: offset `o` of frame `c` when `c` is one
 of the forty-eight, `0` past them. The block of size `s` of table `t` starts at slot `pcs t s`. -/
-noncomputable def padCell (w0 : E) (pcs : Opcode → ℕ → ℕ) (κ j : ℕ) : E :=
+def padCell (w0 : E) (pcs : Opcode → ℕ → ℕ) (κ j : ℕ) : E :=
   if j / 12 < 48 then
     frameCell w0 (pcs (fillTables.getD (j / 12 / 8) .xor) (sizeAt (j / 12 % 8)))
       (frameBase κ (j / 12)) (fillTables.getD (j / 12 / 8) .xor) (j % 12)
   else 0
 
 /-- The padded image: the committed words below `2^κ`, and above them the forty-eight frames. -/
-noncomputable def padImage {κ : ℕ} (img : MemImage κ) (pcs : Opcode → ℕ → ℕ) :
+def padImage {κ : ℕ} (img : MemImage κ) (pcs : Opcode → ℕ → ℕ) :
     MemImage (κ + 1) := fun i ↦
   if h : (i : ℕ) < 2 ^ κ then img ⟨i, h⟩
   else padCell (img ⟨0, Nat.two_pow_pos κ⟩) pcs κ ((i : ℕ) - 2 ^ κ)
 
 /-- The trace of the padded image: the same steps, one more doubling of memory. -/
-noncomputable def padTrace {prog : Program} (t : Trace prog) (pcs : Opcode → ℕ → ℕ) :
+def padTrace {prog : Program} (t : Trace prog) (pcs : Opcode → ℕ → ℕ) :
     Trace prog :=
   ⟨t.κ + 1, padImage t.image pcs, t.steps⟩
 

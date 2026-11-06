@@ -26,6 +26,7 @@ lake build leanervm-bench                   # compiles every transitive module t
 .lake/build/bin/leanervm-bench 1 protocol pub 15 # leanVM's phases up to the public input
 .lake/build/bin/leanervm-bench 1 flockpieces 15  # the cached Flock prover's pieces
 .lake/build/bin/leanervm-bench 1 whir 16 1 spec  # WHIR's opening at mu = 16, rate 1/2
+.lake/build/bin/leanervm-bench 1 witgen          # witnessGen on a one-JUMP test trace
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -42,6 +43,7 @@ leaves) is outside the timed interval.
 | `BLAKE2s 64 B`, `512 B` | `Blake2sHash.blake2sBytes` |
 | `Merkle root 2^12 rows x 8 K` | `merkleRoot` of 4096 leaves of eight `K` words |
 | `evalMle 2^16 E-table` | `CMlPolynomialEval.evalMle` of a 2^16-entry `E` table at an `E` point |
+| `witnessGen, one-JUMP ladder run` (group `witgen`) | `Arithmetization.witnessGen` on the trace of `tests/LeanerVMTests/Semantics/PaddedImageRefutation.lean`, memory padded to `2^17` cells; checksum: the eight table heights |
 
 The fast paths are the `@[csimp]` theorems of `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
 `LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
@@ -422,7 +424,12 @@ phases' own checks are exercised on the honest wire by the phase test modules an
 smallest admissible: memory `2^16`, a stack of `2^19` cells, `2^3` BLAKE2s blocks, three WHIR
 levels at rate `1/2`. It runs the prover's writer in `IO` with the time read at each phase's first
 squeeze, writes the proof in the dump format, reads it back, and checks it with `verify` and its
-mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`.
+mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`. `execution` runs the guarded
+prover from an execution, `proveChecked` (the checks of every hypothesis of completeness, then the
+witness generator and `prove`), on the one-step ladder trace of the completeness tests: it times
+each check (`wellFormedB`, `checkTrace`, `fitsB`, `stackFitsB`, `validRate`) and the generator,
+checks that the generated sizes are `execSizes` of the forward pass's counts, and checks that
+`verify` accepts the proof.
 
 ```sh
 lake build leanervm-prove
@@ -433,7 +440,19 @@ lake build leanervm-prove
 .lake/build/bin/leanervm-prove m3                           # M3Holds's clauses on the witness's stack
 .lake/build/bin/leanervm-prove m3 9                         # the same at memory 2^10
 .lake/build/bin/leanervm-prove sentinel                     # a proof of a statement with no execution
+.lake/build/bin/leanervm-prove execution                    # witnessGen, prove, verify on a trace
 ```
+
+`execution [rate] [fuel] [steps]` proves the trace of `steps` steps (default `1`, the valid run) of
+the ladder program on `badImage` (memory `2^16`, padded to `2^17`). Recorded on 2026-11-05, one
+thread, two runs: `witnessGen` in 0.6–0.8 s (table heights `[1, 1, 1, 1, 8, 8, 131072, 2048]`),
+sizes memory `2^17`, tables `[0, 0, 0, 0, 3, 3]`, stack `2^20`, rate `1`; `proveExecution`
+returns 767 scalars in 103–143 s; `verify` accepts in 1.5–2.3 s; 1.4 GB peak. A third run on the
+same day, after the generator's performance work: `witnessGen` 0.15 s, `proveExecution` 83 s,
+`verify` 0.9 s, 1.38 GB peak. The executable
+imports `LeanerVM.Protocol.Headline`; a compiled program that imports it starts only since
+`VerifierQueries.sizesBox` is noncomputable (before, the start-up built its `33^7 · 5` points and
+ran out of memory).
 
 `sentinel` runs `prove` on the sentinel tests' witness (`SentinelFixture.sentW`), whose program has
 a `JUMP` in its sentinel slot and no valid execution on the input over any memory
@@ -541,6 +560,60 @@ arena or `setup_prover_without_arena` with the system allocator. Do not compare 
 memory across those modes without labelling the difference. Current upstream ARM and x86 results
 are useful context, not a substitute for measurements on the hardware and source revision named
 by a leanerVM benchmark.
+
+## `leanervm-witgen`: executions of compiled programs
+
+`bench/LeanerVMWitgen.lean` is the `leanervm-witgen` executable. It reads the executions of
+`tests/vectors/executions/` (`scripts/dump-execution-rust.sh`: compiled programs run by the Rust
+executor at the pin) into `Program`, `PublicInput` and `Trace prog` (through `TraceInput.adapt`)
+and checks each, timed: `SentinelSafe`, the listed fill blocks, `WellFormedBytecode` through
+`wellFormedB`, with `--hash` the program hash against the Rust digest, `ValidExecution` through
+`checkTrace`, `Trace.Fits` through `fitsBy` (the two hypotheses of completeness besides
+`ValidExecution`, `Semantics.HypothesisChecks`), the main rows against the
+replayed run table by table, and the fill rows as a permutation of their successors; with
+`--prod` `checkTrace` again with the Rust hint list. `runGenerator` generates a witness with a
+supplied generator, proves and verifies it; `--stages` forces and times the generator's stages.
+
+```sh
+lake build leanervm-witgen
+.lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
+.lake/build/bin/leanervm-witgen --prod --hash tests/vectors/executions/fibonacci_1000.exec.gz
+.lake/build/bin/leanervm-witgen --stages --gen tests/vectors/executions/fibonacci_20000.exec.gz
+```
+
+`checkTrace`'s run reads through a table of powers grown along the run (`runToHaltBy`,
+`stepTable`), seeded with the hints; before 2026-11-05 it searched its hint list linearly and
+scanned the address space on a miss. Measured on 2026-11-05 (one run each, the machine shared):
+
+| Execution | Main steps | `checkTrace`, no hints | with the Rust hints | before: Rust hints | before: no hints |
+| --- | --- | --- | --- | --- | --- |
+| `py_*`, `field_div`, `hash_chain_8` | 10 to 198 | 0.1 to 1.3 ms | 0.2 to 1.8 ms | 1 to 120 ms | 0.1 to 260 ms |
+| `fibonacci_1000` | 1031 | 6 to 23 ms | 8 ms | 2.4 to 5.6 s | 0.8 to 1.3 s |
+| `fibonacci_20000` | 20336 | 0.13 to 0.17 s | 0.14 to 0.15 s | 1115 s | 364 s |
+| the guest on one XMSS signature (bytecode `2^19`) | 5725 | 0.33 to 0.42 s | 0.31 s | 170 s | 302 s |
+
+The "before" columns with hints include the bench's own `eraseDups` of the hint list (quadratic),
+which ran inside the timed interval until 2026-11-05.
+
+Every checked-in execution and the guest are well formed bytecode and fit (2026-11-05):
+`wellFormedB` takes 1 to 2 ms at bytecode `2^11`/`2^12` and 0.21 s on the guest's `2^19` slots
+(one pass collecting the closing jumps); `fitsBy` takes 0.05 ms to 0.12 s, a forward pass over the
+main run.
+
+Reading a file and the table of powers take 0.1 s at `2^17` and 2.7 s for the guest (`2^19`
+powers, an 18 MB file); the program hash of the guest's `2^19` instructions takes 36 s and 3 GB,
+through `programBytes`' list of bytes.
+
+With `--gen`, `witnessGen` gives each checked-in execution the Rust's table heights at memory
+`2^18` (the Rust's `2^17` plus the padding's doubling), in 0.27 to 0.47 s, 0.3 s on
+`fibonacci_1000` and 0.6 to 0.7 s on `fibonacci_20000` (before the fixes of 2026-11-05: 0.7 to
+1.0 s, and 23 to 32 s on `fibonacci_20000`, whose read counters were copied at every read). The
+floor is the memory block's `2^18` rows (0.2 to 0.4 s) and the table of `2^18` powers (0.1 to
+0.15 s). With `--prove`, `field_div` end to end: generation 1.3 s, `prove` 290 s (818 scalars,
+1.9 GB resident), `verify` accepts in 1.9 s.
+The guest's witness takes 1.5 to 1.9 s (6.1 s before), at heights `2^[11, 11, 10, 11, 9, 8]`: the Rust raises SET to
+`2^17` (and JUMP with it) to reach its `2^22` committed floor, a prover choice `--gen` does not
+compare.
 
 Once the corresponding semantics exist, versioned target workloads should include opcode mixes,
 BLAKE2s batches, XMSS-only aggregation, SPHINCS-only aggregation, mixed aggregation, and recursive

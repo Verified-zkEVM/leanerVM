@@ -83,6 +83,14 @@ abbrev K : Type := BF64
 This is a wire encoding, distinct from the characteristic-two natural-number cast. -/
 def K.ofBits (n : ℕ) : K := BF64.ofBitVec (BitVec.ofNat 64 n)
 
+/-- `K.ofBits` is injective below `2^64`. -/
+theorem K.ofBits_inj {n n' : ℕ} (hn : n < 2 ^ 64) (hn' : n' < 2 ^ 64)
+    (h : K.ofBits n = K.ofBits n') : n = n' := by
+  have h₁ := congrArg BF64.toBitVec h
+  simp only [K.ofBits, BF64.toBitVec_ofBitVec] at h₁
+  have h₂ := congrArg BitVec.toNat h₁
+  rwa [BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn, Nat.mod_eq_of_lt hn'] at h₂
+
 /-- Decide equality through bit coordinates, keeping kernel comparisons of computed words
 free of the dependent transport introduced by the upstream derived instance. -/
 instance instDecidableEqK : DecidableEq K := fun a b ↦

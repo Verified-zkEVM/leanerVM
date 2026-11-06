@@ -116,7 +116,7 @@ structure PRow where
   bc : ℕ
 
 /-- The count of the `j`-th memory read of a row. -/
-noncomputable def PRow.cnt (r : PRow) (j : ℕ) : K := g ^ r.exps.getD j 0
+def PRow.cnt (r : PRow) (j : ℕ) : K := g ^ r.exps.getD j 0
 
 /-- The state a skeleton steps to over the image `img`: the successor `execute` computes, the
 state itself if the instruction fails. -/

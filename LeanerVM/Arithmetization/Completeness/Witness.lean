@@ -63,7 +63,7 @@ noncomputable def padMemFin {κ : ℕ} (img : MemImage κ) (S : List Skel) : K �
   readBump (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
 
 /-- How many times each bytecode slot is read by the rows of `S`. -/
-noncomputable def padBcFin (S : List Skel) : K → ℕ :=
+def padBcFin (S : List Skel) : K → ℕ :=
   readBump (fun _ ↦ 0) (S.map (·.pc))
 
 /-- A row of the rows of `S` is a row of a skeleton of `S`. -/
@@ -124,7 +124,7 @@ noncomputable def opTable {κ : ℕ} (img : MemImage κ) (R : List PRow)
     ((opRows_length_le img R op).trans hR) (by cases op <;> exact trivial)
 
 /-- The rows of the memory block: one per cell, `(g^i, g^(fin (g^i)), the word at i)`. -/
-noncomputable def memRowsOf {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) : List (Array K) :=
+def memRowsOf {κ : ℕ} (img : MemImage κ) (fin : K → ℕ) : List (Array K) :=
   List.ofFn fun i : Fin (2 ^ κ) ↦ rawRow (memRowOf img i (g ^ fin (gpow i)))
 
 /-- The memory block has `2^κ` rows. -/
@@ -155,7 +155,7 @@ theorem memRowsOf_fixed {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) 
     rfl
 
 /-- The memory block: `memComponent κ` with one row per cell. -/
-noncomputable def memBlock {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ) :
+def memBlock {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ) (fin : K → ℕ) :
     Air.Flat.Table K :=
   tableOf (memComponent κ) (memRowsOf img fin) (memRowsOf_width img fin)
     ((memRowsOf_length img fin).trans_le
@@ -163,7 +163,7 @@ noncomputable def memBlock {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage �
     (memRowsOf_fixed hκ img fin)
 
 /-- The rows of the bytecode block: one per slot of the program. -/
-noncomputable def bcRowsOf (prog : Program) (fin : K → ℕ) : List (Array K) :=
+def bcRowsOf (prog : Program) (fin : K → ℕ) : List (Array K) :=
   List.ofFn fun i : Fin (2 ^ prog.logSize) ↦ rawRow (bytecodeRowOf prog i (g ^ fin (gpow i)))
 
 /-- The bytecode block has `2^prog.logSize` rows. -/
@@ -194,7 +194,7 @@ theorem bcRowsOf_fixed (prog : Program) (fin : K → ℕ) :
     exact ⟨rfl, cons_append_ops _⟩
 
 /-- The bytecode block: `bytecodeComponent prog` with one row per slot. -/
-noncomputable def bcBlock (prog : Program) (fin : K → ℕ) : Air.Flat.Table K :=
+def bcBlock (prog : Program) (fin : K → ℕ) : Air.Flat.Table K :=
   tableOf (bytecodeComponent prog) (bcRowsOf prog fin) (bcRowsOf_width prog fin)
     ((bcRowsOf_length prog fin).trans_le
       ((Nat.pow_le_pow_right (by norm_num)
