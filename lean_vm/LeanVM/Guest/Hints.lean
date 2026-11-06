@@ -48,9 +48,10 @@ Choices the witness does not fix, made as the Rust makes them:
 
 * **Coverage slots** (`plan`, `take_slot`, `aggregation/coverage.rs:49-116`): the raw signatures
   first, in the witness's order (`NodeWitness.xmssSignatures`, `sphincsSignatures`; the Rust's
-  sorted and deduplicated, `aggregation/node.rs:105-112`), then every child's claims, child by child; a claim takes its
-  declared slot if it is still free, else the next duplicate slot. The deployed lists are
-  strictly sorted, where the first free match is the slot `binary_search` finds.
+  sorted and deduplicated, `aggregation/node.rs:105-112`), then every child's claims, child by
+  child; a claim takes its declared slot if it is still free, else the next duplicate slot. The
+  deployed lists are strictly sorted, where the first free match is the slot `binary_search`
+  finds.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
 
 What the bump allocator hands out is not a hint: the interpreter's allocator chooses it.
@@ -88,12 +89,12 @@ def claimGroup : ℕ := 17
 `BIG_GROUPS = 8` groups. -/
 def claimBig : ℕ := claimGroup * 8
 
-/-- `DIGIT_GROUP` (`aggregation/hints.rs:15`): the leanSPHINCS codeword digits the guest dispatches on at
-a time. -/
+/-- `DIGIT_GROUP` (`aggregation/hints.rs:15`): the leanSPHINCS codeword digits the guest dispatches
+on at a time. -/
 def digitGroup : ℕ := 3
 
-/-- `LX_DIGIT_GROUP` (`aggregation/hints.rs:17`): the leanXMSS codeword digits the guest dispatches on at
-a time. -/
+/-- `LX_DIGIT_GROUP` (`aggregation/hints.rs:17`): the leanXMSS codeword digits the guest
+dispatches on at a time. -/
 def lxDigitGroup : ℕ := 4
 
 /-- `LX_WINDOW` (`aggregation/hints.rs:19`): the leaf index bits a leanXMSS path dispatch covers. -/
@@ -140,7 +141,8 @@ def listPushes (item : String) (entries : List Entry) : List (String × Entry) :
     entries.map (item, ·)
 
 /-- A codeword's digits as the guest dispatches on them: `size` at a time, then the rest, each
-group's index little endian in base 4, in the exponent (`digit_hints`, `aggregation/hints.rs:83-91`). -/
+group's index little endian in base 4, in the exponent (`digit_hints`,
+`aggregation/hints.rs:83-91`). -/
 def digitHints (size : ℕ) (digits : List ℕ) : List Entry :=
   (List.range ((digits.length + size - 1) / size)).map fun i ↦
     [count (((digits.drop (size * i)).take size).foldr (· + 4 * ·) 0)]
