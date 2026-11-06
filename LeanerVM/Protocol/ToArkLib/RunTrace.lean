@@ -28,9 +28,10 @@ challenge round reading `tr`'s challenge.
   its first half, then those of `c₂` on its second half;
 * the steps of the one-round wires (`runsAs_msg`, `runsAs_sendOne`, `runsAs_chal`) and of the
   empty one (`runsAs_empty`);
-* `Prover.runWith_total`: in a reading where `pure` and `bind` also run forward, a run against a
-  wire every round of which runs from every state (`RoundCodec.Every`) runs from every state; the
-  property of every round is carried along `append` and the schedules' builders (`every_*`).
+* `Prover.runWith_total_or`: in a reading where `pure` and `bind` also run forward, a run against
+  a wire every round of which runs from every state but the bad ones (`RoundCodec.Every`) returns,
+  or its first rounds reach a bad state; the property of every round is carried along `append` and
+  the schedules' builders (`every_*`).
 
 So a property of what a run writes is proved on the wire's schedule, phase by phase, with the
 transcript in hand and no prover state.
@@ -398,40 +399,44 @@ theorem runWith_runsAs (stmt : St) (wit : Wt) {s s' : σ}
   obtain ⟨st, h0, hl, hs⟩ := runToRoundWith_runsAs sem c P stmt wit (Fin.last n) h₁
   exact ⟨st, h0, hl, fun i ↦ hs i i.isLt⟩
 
-/-- **A run against a wire runs from every state** when every round of the wire does, in a
-reading where `pure` and `bind` run forward. -/
-theorem runWith_total (hpure : ∀ {α : Type} (a : α) (s : σ), sem.Runs (pure a) s a s)
+/-- **A run against a wire runs, or stops at a bad state it reaches**, when every round of the
+wire runs from every state but the bad ones: from `s`, either the run returns, or for some `i` the
+first `i` rounds run from `s` to a bad state. -/
+theorem runWith_total_or (Bad : σ → Prop)
+    (hpure : ∀ {α : Type} (a : α) (s : σ), sem.Runs (pure a) s a s)
     (hbind : ∀ {α β : Type} {x : w α} {f : α → w β} {s sm s' : σ} {a : α} {b : β},
       sem.Runs x s a sm → sem.Runs (f a) sm b s' → sem.Runs (x >>= f) s b s')
-    (hc : c.Every fun _ x ↦ sem.Total x) (stmt : St) (wit : Wt) :
-    sem.Total (runWith c P stmt wit) := by
-  have hstep : ∀ (j : Fin n) tr st, sem.Total (stepWith c P j tr st) := by
-    intro j tr st s
+    (hc : c.Every fun _ x ↦ ∀ s, (∃ a s', sem.Runs x s a s') ∨ Bad s) (stmt : St) (wit : Wt)
+    (s : σ) :
+    (∃ r s', sem.Runs (runWith c P stmt wit) s r s') ∨
+      ∃ i r s', sem.Runs (runToRoundWith c P i stmt wit) s r s' ∧ Bad s' := by
+  have hstep : ∀ (j : Fin n) tr st sm,
+      (∃ b s', sem.Runs (stepWith c P j tr st) sm b s') ∨ Bad sm := by
+    intro j tr st sm
     unfold stepWith
     split
     · rename_i hDir
-      obtain ⟨x, sm, h₁⟩ := hc.2 j hDir s
       simp only [runNoOracle_eq_pure (w := w), pure_bind]
-      exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
+      exact (hc.2 j hDir sm).imp_left fun ⟨_, s', h₁⟩ ↦ ⟨_, s', hbind h₁ (hpure _ s')⟩
     · rename_i hDir
       simp only [runNoOracle_eq_pure (w := w), pure_bind]
-      obtain ⟨u, sm, h₁⟩ := hc.1 j hDir _ s
-      exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
-  have hround : ∀ i : Fin (n + 1), sem.Total (runToRoundWith c P i stmt wit) := by
+      exact (hc.1 j hDir _ sm).imp_left fun ⟨_, s', h₁⟩ ↦ ⟨_, s', hbind h₁ (hpure _ s')⟩
+  have hround : ∀ i : Fin (n + 1), (∃ r s', sem.Runs (runToRoundWith c P i stmt wit) s r s') ∨
+      ∃ i r s', sem.Runs (runToRoundWith c P i stmt wit) s r s' ∧ Bad s' := by
     intro i
     induction i using Fin.induction with
     | zero =>
       simp only [runToRoundWith, Fin.induction_zero]
-      exact fun s ↦ ⟨_, s, hpure _ s⟩
+      exact .inl ⟨_, s, hpure _ s⟩
     | succ j ih =>
-      intro s
-      rw [runToRoundWith_succ, processRoundWith]
-      obtain ⟨r, sm, h₁⟩ := ih s
-      obtain ⟨b, s', h₂⟩ := hstep j r.1 r.2 sm
-      exact ⟨b, s', hbind h₁ h₂⟩
-  intro s
+      rcases ih with ⟨r, sm, h₁⟩ | hb
+      · rcases hstep j r.1 r.2 sm with ⟨b, s', h₂⟩ | hb
+        · rw [runToRoundWith_succ, processRoundWith]
+          exact .inl ⟨b, s', hbind h₁ h₂⟩
+        · exact .inr ⟨_, r, sm, h₁, hb⟩
+      · exact .inr hb
+  refine (hround (Fin.last n)).imp_left fun ⟨r, sm, h₁⟩ ↦ ?_
   unfold runWith
-  obtain ⟨r, sm, h₁⟩ := hround (Fin.last n) s
   simp only [runNoOracle_eq_pure (w := w), pure_bind]
   exact ⟨_, sm, hbind h₁ (hpure _ sm)⟩
 

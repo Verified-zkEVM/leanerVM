@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.Verify.Setup
+public import LeanerVM.Protocol.LeanIsa.Conditions
 
 /-!
 # The bus phase of the verifier
@@ -241,8 +242,7 @@ def settleFixedClaims (prog : Program) {μ : ℕ} (ζ : Vector E μ) (α : Fin 4
 their slots `3` to `10` are the program's entry columns. -/
 def isBytecodeBlock {S : Shape} {κ : ℕ} (cs : Vector (Coord S κ) 16) : Bool :=
   match cs[0] with
-  | .const c => c == Arithmetization.channelSep Arithmetization.BytecodePush.toRaw ||
-      c == Arithmetization.channelSep Arithmetization.BytecodePull.toRaw
+  | .const c => c == Arithmetization.channelSep Arithmetization.BytecodeChannel.toRaw
   | _ => false
 
 /-- A block's part evaluated from the values sent (`Bus.Source.boundaryValue`), the program's
@@ -341,20 +341,14 @@ open Arithmetization in
 /-- `isBytecodeBlock` reads coordinate 0 only. -/
 private theorem isBytecodeBlock_coords {S : Shape} {κ : ℕ} (c : K) (rest : List (Coord S κ)) :
     isBytecodeBlock (coords (.const c :: rest)) =
-      (c == channelSep BytecodePush.toRaw || c == channelSep BytecodePull.toRaw) := by
+      (c == channelSep BytecodeChannel.toRaw) := by
   simp [isBytecodeBlock, coords]
 
 open Arithmetization in
-/-- The state and memory separators are not the bytecode channels'. -/
+/-- The state and memory separators are not the bytecode channel's. -/
 private theorem seps_ne :
-    (channelSep StatePush.toRaw == channelSep BytecodePush.toRaw ||
-      channelSep StatePush.toRaw == channelSep BytecodePull.toRaw) = false ∧
-    (channelSep StatePull.toRaw == channelSep BytecodePush.toRaw ||
-      channelSep StatePull.toRaw == channelSep BytecodePull.toRaw) = false ∧
-    (channelSep MemPush.toRaw == channelSep BytecodePush.toRaw ||
-      channelSep MemPush.toRaw == channelSep BytecodePull.toRaw) = false ∧
-    (channelSep MemPull.toRaw == channelSep BytecodePush.toRaw ||
-      channelSep MemPull.toRaw == channelSep BytecodePull.toRaw) = false := by
+    (channelSep StateChannel.toRaw == channelSep BytecodeChannel.toRaw) = false ∧
+    (channelSep MemChannel.toRaw == channelSep BytecodeChannel.toRaw) = false := by
   decide +kernel
 
 /-- Of leanISA's six boundary blocks, `isBytecodeBlock` holds of the two bytecode blocks only:
@@ -364,13 +358,10 @@ private theorem bytecode_blocks (prog : Program) (s : Sizes) (b : BoundaryBlock 
     b.κ = prog.logSize ∧
       ∀ k : Fin 8, HEq b.coords[3 + k.val] (entryCoord (S := shape prog s) prog k) := by
   simp only [boundary, List.mem_cons, List.not_mem_nil, or_false] at hb
-  rcases hb with rfl | rfl | rfl | rfl | rfl | rfl
-  · rw [isBytecodeBlock_coords, seps_ne.1] at h; exact absurd h Bool.false_ne_true
-  · rw [isBytecodeBlock_coords, seps_ne.2.2.1] at h; exact absurd h Bool.false_ne_true
-  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
-  · rw [isBytecodeBlock_coords, seps_ne.2.1] at h; exact absurd h Bool.false_ne_true
-  · rw [isBytecodeBlock_coords, seps_ne.2.2.2] at h; exact absurd h Bool.false_ne_true
-  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+  rcases hb with rfl | rfl | rfl | rfl | rfl | rfl <;>
+    first
+    | exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+    | simp only [isBytecodeBlock_coords, seps_ne, Bool.false_eq_true] at h
 
 /-- A boundary source of a side is a boundary block of the instance. -/
 private theorem mem_boundary_of_mem {I : M3Instance} {k : Fin 3} {b : BoundaryBlock I.toShape}

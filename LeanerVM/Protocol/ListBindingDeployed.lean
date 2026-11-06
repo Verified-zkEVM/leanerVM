@@ -9,7 +9,7 @@
 module
 
 public import LeanerVM.Protocol.ListBinding
-public import LeanerVM.Protocol.LeanIsa
+public import LeanerVM.Protocol.LeanIsa.Conditions
 public import LeanerVM.Protocol.Piop
 public import LeanerVM.Protocol.Whir.Deployed
 public import LeanerVM.Protocol.Whir.DecodeNtt

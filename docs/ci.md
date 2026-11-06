@@ -10,6 +10,7 @@ keeping only checks justified by leanerVM's current Lean-only surface.
 | `Imports and layers` | Keep the aggregate import complete and enforce the architecture DAG | Required |
 | `Documentation integrity` | Reject broken or unsafe local Markdown links | Required |
 | `Build timing` | Measure clean build, warm build, and test-path wall time | Informational |
+| `Executables` | Build `leanervm-verify` and `leanervm-prove`, run the verifier on the Rust proof and the committed vector with their mutations, regenerate the vector, and run the prover's log, tamper, relation and sentinel checks | Informational |
 | `PR summary` | Post an automated summary using policy from the trusted base revision | Informational |
 | `PR review` | Run a member-triggered `/review` pass | Informational |
 | `Upstream drift` | Report newer Lean and tracked library releases each week | Informational |
@@ -34,6 +35,13 @@ Workflows have read-only repository contents unless they must post pull-request 
 `CI` and `Build timing` allow 60 minutes on a hosted runner. A cold build of the protocol layer,
 without the Actions cache, takes about 25 minutes, and `lake test` about 6 more; both grow with
 the executable verifier and the theorems above it.
+
+`Executables` runs the checks that live in compiled executables rather than in `lake test`: most
+of the verifier's mutations, the test vector, the extractor on the honest prover's log, and the
+proof of a statement with no execution. Linking an executable compiles every transitive module,
+Mathlib's included, to C and then to objects, so the job allows 180 minutes. It is not a merge
+gate while its cost is measured; a failure is still a failed check of the claims these
+executables witness, and is fixed, not ignored.
 
 Native/FFI isolation, CUDA, generated-blueprint, and VM-runtime benchmark jobs are deliberately
 absent. Add each only alongside the artifact it protects. Runtime benchmarks should follow the
