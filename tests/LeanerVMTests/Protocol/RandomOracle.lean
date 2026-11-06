@@ -21,6 +21,12 @@ grinding base, a squeeze with an element and a 65-byte input. Then one mutation 
 a collision makes a step ambiguous, an answer equal to the seed cuts the history short, and a
 state produced after the query that uses it leaves the history out of the log before that query.
 A root absorbed as two observes is in play, so a fresh node answered by it is a hit.
+
+Deduplication: the honest log asked twice deduplicates to the honest log, with the same history
+and digests in play; a query asked again with another answer is inconsistent, and deduplication
+keeps the first answer; a hit survives deduplication. One more query answered by a digest not in
+play leaves the last state's history as it was; the late log, whose second answer is in play,
+makes a history appear.
 -/
 
 namespace LeanerVMTests.Protocol.RandomOracle
@@ -295,5 +301,47 @@ def rootLog : Log :=
 #guard !decide (QueryLog.HasCollision rootLog)
 #guard decide (QueryLog.HasHit (inPlay [seed.cv]) rootLog)
 #guard !decide (QueryLog.HasHit (fun l ↦ seed.cv :: l.flatMap fun e ↦ halves e.1) rootLog)
+
+/-! ## Each query at its first occurrence -/
+
+/-- The honest log, asked twice. -/
+def doubledLog : Log := honestLog ++ honestLog
+
+-- Deduplication keeps the first occurrences, which on a consistent log changes neither a
+-- history nor the digests in play.
+#guard decide (QueryLog.Consistent doubledLog)
+#guard List.dedupKeys doubledLog = honestLog
+#guard chainHistory doubledLog seed final = chainHistory (List.dedupKeys doubledLog) seed final
+#guard (inPlay [seed.cv] doubledLog).all (· ∈ inPlay [seed.cv] (List.dedupKeys doubledLog))
+
+-- A repeated query with a second answer: the log is not consistent, and deduplication keeps
+-- the first answer, so the second is lost.
+/-- The honest log with its first query asked again, answered otherwise. -/
+def reansweredLog : Log := honestLog ++ [⟨honestLog[0]!.1, d 9⟩]
+
+#guard !decide (QueryLog.Consistent reansweredLog)
+#guard List.dedupKeys reansweredLog = honestLog
+
+-- A hit is at a first occurrence: the late log asked twice keeps its hit after deduplication.
+#guard decide (QueryLog.HasHit (inPlay [seed.cv]) (lateLog ++ lateLog))
+#guard decide (QueryLog.HasHit (inPlay [seed.cv]) (List.dedupKeys (lateLog ++ lateLog)))
+
+-- At most two halves and one absorbed root per entry are in play.
+#guard (inPlay [seed.cv] honestLog).length ≤ 1 + 3 * honestLog.length
+#guard (inPlay [seed.cv] rootLog).length = 1 + 2 * 4 + 1
+
+/-! ## One more query -/
+
+-- A query answered by a digest not in play leaves every other history as it was, here with a
+-- squeeze from the last state.
+#guard !(d 99 ∈ inPlay [seed.cv] honestLog)
+#guard chainHistory (honestLog ++ [⟨Block.input final.cv .squeeze, d 99⟩]) seed final =
+  chainHistory honestLog seed final
+
+-- The mutation: the late log's second query is answered by `d 1`, a half of the first, in play.
+-- The history of `d 2` appears.
+#guard d 1 ∈ inPlay [seed.cv] (lateLog.take 1)
+#guard chainHistory (lateLog.take 1) seed ⟨d 2⟩ = none
+#guard chainHistory lateLog seed ⟨d 2⟩ = some [(.observe x, d 1), (.squeeze, d 2)]
 
 end LeanerVMTests.Protocol.RandomOracle

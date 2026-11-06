@@ -485,6 +485,32 @@ theorem decodeAnnouncement_announcement {prog : Program} {s : Sizes} {ρ : ℕ}
   funext j
   fin_cases j <;> rfl
 
+private theorem sizeScalar_of_sizeOf? {x : E} {n : ℕ} (h : sizeOf? x = some n) :
+    sizeScalar n = x := by
+  unfold sizeOf? at h
+  split_ifs at h with hl
+  cases h
+  conv_rhs => rw [← ofLimbs_limb x, hl.1, hl.2]
+  refine congrArg (E.ofLimbs · 0 0) (BF64.toBitVec_injective ?_)
+  simp [K.ofBits]
+
+/-- **Eight scalars that decode to sizes and a rate are their announcement.** -/
+theorem eq_announcement_of_decodeAnnouncement {xs : List E} {s : Sizes} {ρ : ℕ}
+    (h : decodeAnnouncement xs = some (s, ρ)) : xs = announcement s ρ := by
+  match xs, h with
+  | [lm, t0, t1, t2, t3, t4, t5, r], h =>
+    simp only [decodeAnnouncement, Option.bind_eq_bind, Option.bind_eq_some_iff,
+      Option.dite_none_right_eq_some, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨n₀, h₀, n₁, h₁, n₂, h₂, n₃, h₃, n₄, h₄, n₅, h₅, n₆, h₆, n₇, h₇, -, rfl, rfl⟩ := h
+    simp [announcement, List.ofFn_succ, sizeScalar_of_sizeOf? h₀, sizeScalar_of_sizeOf? h₁,
+      sizeScalar_of_sizeOf? h₂, sizeScalar_of_sizeOf? h₃, sizeScalar_of_sizeOf? h₄,
+      sizeScalar_of_sizeOf? h₅, sizeScalar_of_sizeOf? h₆, sizeScalar_of_sizeOf? h₇]
+
+/-- **A proof's stream opens with the announcement of the sizes and the rate it announces.** -/
+theorem take_eq_announcement_of_announced? {M : Type} {p : Proof M} {s : Sizes} {ρ : ℕ}
+    (h : p.announced? = some (s, ρ)) : p.stream.take 8 = announcement s ρ :=
+  eq_announcement_of_decodeAnnouncement h
+
 /-! ## Round trips: the reader reads back what the writer writes -/
 
 /-- The reader `rd` reads back what the writer `wr` writes: whenever `wr`, run from a writer

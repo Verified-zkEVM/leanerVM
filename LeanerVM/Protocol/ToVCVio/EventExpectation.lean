@@ -16,7 +16,9 @@ public import VCVio.EvalDist.ProbabilityBounds
 Laws of the expectation `∫⁻ r, r ∂𝒟[f <$> mx]`, for any lawful measure semantics: the
 probability of an event is the expectation of its indicator, a constant comes out of the
 expectation over a computation that does not fail, and the expectation is monotone in an
-observation bounded on the support (`lintegral_id_evalDist_map_mono_of_mem_support`).
+observation bounded on the support (`lintegral_id_evalDist_map_mono_of_mem_support`), and the
+expectation of a finite sum is the sum of the expectations
+(`lintegral_id_evalDist_map_finset_sum`).
 
 An event after a draw: its probability is the expectation over the draw of its probability after
 each output (`prEvent_bind_eq_lintegral_id_evalDist_map`), and at most the probability of an
@@ -53,6 +55,14 @@ theorem lintegral_id_evalDist_map_const_add (mx : m α) (hmx : Pr{let _ ← mx}[
   let : MeasurableSpace α := ⊤
   rw [lintegral_id_evalDist_map, lintegral_const, ← prEvent_true_eq_evalDist_apply_univ, hmx,
     mul_one]
+
+/-- The expectation of a finite sum of scalar observations is the sum of their expectations. -/
+theorem lintegral_id_evalDist_map_finset_sum {ι : Type} (S : Finset ι) (mx : m α)
+    (f : ι → α → ℝ≥0∞) :
+    ∫⁻ r, r ∂𝒟[(fun x ↦ ∑ i ∈ S, f i x) <$> mx] = ∑ i ∈ S, ∫⁻ r, r ∂𝒟[f i <$> mx] := by
+  let : MeasurableSpace α := ⊤
+  simp only [lintegral_id_evalDist_map]
+  exact lintegral_finsetSum S fun _ _ ↦ Measurable.of_discrete
 
 /-- An event after a draw has as probability the expectation, over the draw, of its probability
 after each output. -/

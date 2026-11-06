@@ -25,9 +25,11 @@ import LeanerVMTests.Protocol.Blake2sHash
 import LeanerVMTests.Protocol.Blake2sHashFast
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
+import LeanerVMTests.Protocol.ChainGroups
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial
+import LeanerVMTests.Protocol.DecodeChain
 import LeanerVMTests.Protocol.DecodeTranscript
 import LeanerVMTests.Protocol.FastProvers
 import LeanerVMTests.Protocol.Field
@@ -41,12 +43,15 @@ import LeanerVMTests.Protocol.FlockSpec
 import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
+import LeanerVMTests.Protocol.HashMisbehaves
 import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
+import LeanerVMTests.Protocol.LeanVmReader
 import LeanerVMTests.Protocol.ListBinding
 import LeanerVMTests.Protocol.ListBindingBudget
 import LeanerVMTests.Protocol.ListBindingDeployed
+import LeanerVMTests.Protocol.LogReplay
 import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.MerkleBinding
 import LeanerVMTests.Protocol.Multilinear
@@ -62,6 +67,7 @@ import LeanerVMTests.Protocol.Proof
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
+import LeanerVMTests.Protocol.RandomOracleBound
 import LeanerVMTests.Protocol.RandomOracleGame
 import LeanerVMTests.Protocol.RustProof
 import LeanerVMTests.Protocol.RustProofData
@@ -74,7 +80,9 @@ import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
+import LeanerVMTests.Protocol.UniformCondition
 import LeanerVMTests.Protocol.UniformSample
+import LeanerVMTests.Protocol.VerifierQueries
 import LeanerVMTests.Protocol.Verify
 import LeanerVMTests.Protocol.VerifyBus
 import LeanerVMTests.Protocol.VerifyFlock
