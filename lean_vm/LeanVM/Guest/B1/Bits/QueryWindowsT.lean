@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.WalkWindows
 
 /-!
-# The template of `decode_query_windows` (lean_ethereum.py:775-886 at 9d8bce81)
+# The template of `decode_query_windows` (lean_ethereum.py:805-916 at 834e6614)
 
 `decode_query_windows(word, positions, win_ptrs, tabs, d, cd)` hints the squeezed word's bits in
 windows: each of the `192 / d` positions `j` (from bit `j·d`) in `qwN d cd` windows (`qwWin`: the
