@@ -156,7 +156,7 @@ theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {
     {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
     (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + J), addressOfIndex fp⟩ cr)
     (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)
-    (hnm : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
+    (hnm : ∀ n, bitKS se.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sj with cnt := c, uq := u } W0 n xc := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
   have h' : segAtC X J { se with cnt := c, uq := u } =
@@ -209,7 +209,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
     (hshape : Stmt.noRetList (.match_ v (a0 :: as) :: ss) = true ∨ (lastOkC (.match_ v (a0 :: as) :: ss) = true ∧
       eaft = [] ∧ (coreOf j).body = pre ++ .match_ v (a0 :: as) :: ss))
     {se s0 : CW} {t0 : ℕ} {ts : List ℕ} (hok0 : CWOk L fp X se)
-    (hnm0 : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs)
+    (hnm0 : ∀ n, bitKS se.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs)
     (hvn : v = V.n v.idx) (hl : ts.length = as.length) (hpre : chainPre X se v (as.length + 1) = true)
     (harr : ∀ k (hk : k < (t0 :: ts).length), σ v = ofK (addressOfIndex k) → ∃ cr,
       RunC guestProgram L W0 ⟨addressOfIndex (X.entry + (t0 :: ts)[k]), addressOfIndex fp⟩ cr ∧
@@ -261,7 +261,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
     cases key
     · exact le_rfl
     · cases op <;> exact Nat.zero_le _
-  have hnm0' : ∀ n, (armSt key se).nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
+  have hnm0' : ∀ n, bitKS (armSt key se).nm n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
     rw [hse'n]; exact hnm0
   let xa : Opcode → ℕ := fun op ↦ xc op + (se.cnt.get op - (armSt key se).cnt.get op)
   have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v (armRaw X.acs v.idx) 0 (a0 :: as) :=
@@ -419,7 +419,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   have hok0 : CWOk L fp X se :=
     ⟨by rw [hseg]; exact hp.ok.env, by rw [hbk]; exact hp.ok.book, by rw [hfr']; exact hp.ok.fr,
       by rw [htg]; exact htg1, by rw [hnx]; exact hp.ok.nx⟩
-  have hnm0 : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
+  have hnm0 : ∀ n, bitKS se.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
     rw [endAtC_nm hse]
     exact hp.nm
   refine tbl_armsZ H iha ih hw hes hs hshape hok0 hnm0 hvn hl
@@ -440,7 +440,7 @@ theorem walk_enterZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (hW : �
     {W0 : Registers K} {pre : List Stmt} {xc : Opcode → ℕ} (hw : walk σ ss = out)
     (hes : es = ebef ++ out.evs ++ eaft) (hs : out ≠ .stuck)
     (hshape : Stmt.noRetList ss = true ∨ (lastOkC ss = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ ss))
-    (hok0 : CWOk L fp X se) (hnm0 : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs)
+    (hok0 : CWOk L fp X se) (hnm0 : ∀ n, bitKS se.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs)
     (harr : ArrCh L fp X wJ wenv ck W0 o succ se.cnt (calls ebef).length xc)
     (hok : (cwE X o succ se ss).ok = true) : WOut H (cwE X o succ se ss) out ebef W0 xc ss := by
   obtain ⟨v, a0, as, ss', t0, ts, s0, rfl, rfl, rfl, hvn, hsel, hl, hin, hpre, hs0, hr⟩ := cwE_ok hok
@@ -451,8 +451,7 @@ theorem walk_enterZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (hW : �
     rw [hvn]
     rcases Bool.or_eq_true_iff.mp hsel with h | h
     · exact H.named _ h
-    · rw [bitK_eq] at h
-      exact hnm0 _ h
+    · exact hnm0 _ h
   have hcv : rdc L fp (X.loc.cell v) = some (σ v) :=
     val_cell H.frame H.loc hnamed hv2.1 (H.fs ▸ hv2.2)
   refine tbl_armsZ H (fun k hk st ↦ hW _ st) (hW ss') hw hes hs hshape hok0 hnm0 hvn hl hpre

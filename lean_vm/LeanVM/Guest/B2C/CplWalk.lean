@@ -122,17 +122,41 @@ theorem testBit_setK (s n m : ℕ) : (setK s n).testBit m = (s.testBit m || deci
   show (s ||| 1 <<< n).testBit m = _
   rw [Nat.testBit_or, Nat.one_shiftLeft, Nat.testBit_two_pow]
 
-theorem nvVals_spec : ∀ (l : List V) (s n : ℕ), (nvVals l s).testBit n = true →
-    s.testBit n = true ∨ V.n n ∈ l
+theorem bitKS_eq (s n : ℕ) : bitKS s n = s.testBit (n + 64) := bitK_eq _ _
+
+theorem bitKS_setKS (s n m : ℕ) : bitKS (setKS s n) m = (bitKS s m || decide (n = m)) := by
+  unfold setKS
+  cases hs : bitKS s n
+  · have hlt : ∀ k, n * 11400714819323198485 % 18446744073709551616 < 2 ^ (k + 64) := fun k ↦
+      lt_of_lt_of_le (Nat.mod_lt _ (by norm_num))
+        (by rw [pow_add]; exact Nat.le_mul_of_pos_left _ (by positivity))
+    rw [Bool.cond_false, bitKS_eq, bitKS_eq]
+    show (s ^^^ (1 <<< (n + 64) + n * 11400714819323198485 % 18446744073709551616)).testBit (m + 64) = _
+    rw [Nat.one_shiftLeft, Nat.add_comm (2 ^ (n + 64)), ← Nat.or_two_pow_eq_add_of_lt (hlt n),
+      Nat.testBit_xor, Nat.testBit_or, Nat.testBit_lt_two_pow (hlt m), Bool.false_or]
+    by_cases h : n = m
+    · subst h
+      rw [bitKS_eq] at hs
+      simp [hs]
+    · simp [h]
+  · rw [Bool.cond_true]
+    by_cases h : n = m
+    · subst h; simp [hs]
+    · simp [h]
+
+theorem bitKS_zero (n : ℕ) : bitKS 0 n = false := by simp [bitKS_eq]
+
+theorem nvVals_spec : ∀ (l : List V) (s n : ℕ), bitKS (nvVals l s) n = true →
+    bitKS s n = true ∨ V.n n ∈ l
   | [], s, n, h => Or.inl h
   | v :: l, s, n, h => by
     simp only [nvVals] at h
     cases hb : (v.path.isEmpty && Nat.beq v.tag 0)
     · rw [hb, Bool.cond_false] at h
       exact (nvVals_spec l s n h).imp id fun h' ↦ List.mem_cons_of_mem _ h'
-    · rw [hb, Bool.cond_true, natSeq_eq] at h
+    · rw [hb, Bool.cond_true, natSeqC_eq] at h
       rcases nvVals_spec l _ n h with h' | h'
-      · rw [testBit_setK, Bool.or_eq_true, decide_eq_true_eq] at h'
+      · rw [bitKS_setKS, Bool.or_eq_true, decide_eq_true_eq] at h'
         rcases h' with h' | rfl
         · exact Or.inl h'
         · right
@@ -145,11 +169,11 @@ theorem nvVals_spec : ∀ (l : List V) (s n : ℕ), (nvVals l s).testBit n = tru
       · exact Or.inr (List.mem_cons_of_mem _ h')
 
 /-- A renumbered value whose bit a block's atoms set is a value of one of its atoms. -/
-theorem nvOf_spec : ∀ (ss : List Stmt) (s n : ℕ), (nvOf ss s).testBit n = true →
-    s.testBit n = true ∨ ∃ a, Stmt.atom a ∈ ss ∧ V.n n ∈ atomUses a
+theorem nvOf_spec : ∀ (ss : List Stmt) (s n : ℕ), bitKS (nvOf ss s) n = true →
+    bitKS s n = true ∨ ∃ a, Stmt.atom a ∈ ss ∧ V.n n ∈ atomUses a
   | [], s, n, h => Or.inl h
   | .atom a :: ss, s, n, h => by
-    simp only [nvOf, natSeq_eq] at h
+    simp only [nvOf, natSeqC_eq] at h
     rcases nvOf_spec ss _ n h with h' | ⟨b, hb, hm⟩
     · rcases nvVals_spec _ s n h' with h'' | h''
       · exact Or.inl h''
@@ -190,7 +214,7 @@ structure WH (L : MemoryImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (
   self : X.self = (certOf j).facts.env.map (·.1)
   entry : X.entry = (fnOf j).entryPc
   /-- A parameter, or a value of one of the body's atoms, is a value the path names. -/
-  named : ∀ n, (Nat.blt n X.nargs || bitK X.nv n) = true → V.n n ∈ namedOf (coreOf j).params es vs
+  named : ∀ n, (Nat.blt n X.nargs || bitKS X.nv n) = true → V.n n ∈ namedOf (coreOf j).params es vs
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
   hev : ∀ e ∈ es, e.Holds L.read σ
@@ -211,7 +235,7 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
     RunC guestProgram L W0 ⟨addressOfIndex (X.entry + st.seg.start), addressOfIndex fp⟩ c ∧
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + x op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
-  nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
+  nm : ∀ n, bitKS st.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs
   ix : getF X.idx st.seg.start = some st.seg
 
 /-- **A selector the check accepts is a value the path names.** -/
@@ -222,8 +246,7 @@ theorem PosZ.sel {H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck} {st : CW} {
   rw [hv]
   rcases Bool.or_eq_true_iff.mp hs with h | h
   · exact H.named _ h
-  · rw [bitK_eq] at h
-    exact hp.nm _ h
+  · exact hp.nm _ h
 
 /-- The environment of the segment at offset `J` holds; at the window's end, where none starts,
 the next window's. -/
@@ -277,7 +300,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
     (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + t), addressOfIndex fp⟩ c)
     (hc : ∀ op, c op ≤ st.cnt.get op + xc op + ksum ck n op)
-    (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
+    (hnm : ∀ n, bitKS st.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H sn W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
       sn.cnt = st.cnt ∧ sn.uq = st.uq ∧ sn.seg.start = t := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
@@ -961,7 +984,7 @@ theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ
     {W0 : Registers K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
     (hr : RunC guestProgram L W0 ⟨addressOfIndex (X.entry + t), addressOfIndex fp⟩ c)
     {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + xc op + ksum ck n op)
-    (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
+    (hnm : ∀ n, bitKS st.nm n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sn with cnt := C, uq := U } W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
       sn.tg = st.tg ∧ sn.nx = st.nx := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h

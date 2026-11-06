@@ -152,7 +152,7 @@ theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i))
   rw [execWinCS_eq]
   rcases execWinS (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
     (((certOf j).succAt i).drop 1) ((certOf j).endAt (fnOf j) i) with ⟨segs, dead⟩
-  simp only [listSeq_eq, Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq]
+  simp only [listSeq_eq, Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeqC_eq]
   rfl
 
 /-! ## A loop helper's last call -/
@@ -253,9 +253,8 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
     rw [this] at h
     rw [hpe]
     exact List.mem_map.mpr ⟨n, List.mem_range.mpr h, rfl⟩
-  · rw [bitK_eq] at h
-    rcases nvOf_spec _ 0 n h with h' | ⟨a, ha, hm⟩
-    · simp at h'
+  · rcases nvOf_spec _ 0 n h with h' | ⟨a, ha, hm⟩
+    · simp [bitKS_zero] at h'
     · exact List.mem_append_left _ (List.mem_append_right _
         (List.mem_flatMap.mpr ⟨_, atoms_last hlb F.walk (fun h ↦ by cases h) ha, hm⟩))
 

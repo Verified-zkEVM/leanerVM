@@ -61,14 +61,23 @@ def CLoc.get? (L : CLoc) (v : ℕ) : Option ℕ :=
 /-- The cell of a value (`0` if the window has none). -/
 def CLoc.cell (L : CLoc) (v : V) : ℕ := (L.get? v.idx).getD 0
 
+/-- `k n`, `n` evaluated first and handed on as a literal (`natSeq` hands on `m + 1` for the
+literal `m`, which each use reduces again). -/
+def natSeqC {β : Type} (n : ℕ) (k : ℕ → β) : β :=
+  match Nat.add n 1 with
+  | 0 => k 0
+  | m + 1 => k m
+
+theorem natSeqC_eq {β : Type} (n : ℕ) (k : ℕ → β) : natSeqC n k = k n := rfl
+
 /-- `k L`, its packed cells evaluated first. -/
 def CLoc.seq {β : Type} (L : CLoc) (k : CLoc → β) : β :=
   match L with
-  | ⟨lo, len, pk, ins⟩ => natSeq lo fun lo ↦ natSeq len fun len ↦ natSeq pk fun pk ↦ k ⟨lo, len, pk, ins⟩
+  | ⟨lo, len, pk, ins⟩ => natSeqC lo fun lo ↦ natSeqC len fun len ↦ natSeqC pk fun pk ↦ k ⟨lo, len, pk, ins⟩
 
 theorem CLoc.seq_eq {β : Type} (L : CLoc) (k : CLoc → β) : L.seq k = k L := by
   cases L
-  simp only [CLoc.seq, natSeq_eq]
+  simp only [CLoc.seq, natSeqC_eq]
 
 /-- Window `i`'s cells in certificate `C`. -/
 def clocW (C : Cert) (i : ℕ) : CLoc :=
@@ -99,12 +108,12 @@ def Cnt.get (c : Cnt) : Opcode → ℕ
 /-- `k c`, its counts evaluated first. -/
 def Cnt.seq {β : Type} (c : Cnt) (k : Cnt → β) : β :=
   match c with
-  | ⟨x, m, s, d, j, kc⟩ => natSeq x fun x ↦ natSeq m fun m ↦ natSeq s fun s ↦ natSeq d fun d ↦
-      natSeq j fun j ↦ natSeq kc fun kc ↦ k ⟨x, m, s, d, j, kc⟩
+  | ⟨x, m, s, d, j, kc⟩ => natSeqC x fun x ↦ natSeqC m fun m ↦ natSeqC s fun s ↦ natSeqC d fun d ↦
+      natSeqC j fun j ↦ natSeqC kc fun kc ↦ k ⟨x, m, s, d, j, kc⟩
 
 theorem Cnt.seq_eq {β : Type} (c : Cnt) (k : Cnt → β) : c.seq k = k c := by
   cases c
-  simp only [Cnt.seq, natSeq_eq]
+  simp only [Cnt.seq, natSeqC_eq]
 
 /-- One more instruction of `ins`'s opcode. -/
 def Cnt.bump (c : Cnt) : OffsetInstruction → Cnt
@@ -250,7 +259,7 @@ structure CX where
   self : List ℕ
   /-- The most instructions a path runs. -/
   pmax : Cnt
-  /-- The renumbered values the body's top-level atoms name (a bit set by number). -/
+  /-- The renumbered values the body's top-level atoms name (a salted set by number, `bitKS`). -/
   nv : ℕ
   /-- Where the part stops inside a segment: the segment's start and the items passed. -/
   stop : Option (ℕ × ℕ)
@@ -274,7 +283,8 @@ structure CW where
   cnt : Cnt
   uq : ℕ
   fresh : Option ℕ
-  /-- The renumbered values `V.n k` the atoms walked in the enclosing blocks name, as bits. -/
+  /-- The renumbered values `V.n k` the atoms walked in the enclosing blocks name (a salted set,
+  `bitKS`). -/
   nm : ℕ
 
 /-! ## Justifying instructions -/
@@ -515,6 +525,19 @@ def setK (s n : ℕ) : ℕ := Nat.lor s (Nat.shiftLeft 1 n)
 /-- Every bit of `s` is one of `t`'s. -/
 def subK (s t : ℕ) : Bool := Nat.beq (Nat.land s t) s
 
+/-- Element `n` of a salted set: bit `n + 64`. The kernel hashes a `ℕ` literal by its low 64 bits
+only, so sets that differ only above them collide in its caches, which then compare them in full,
+one entry after another: the walk's set of named values changes at almost every atom, and a
+window's check took time quadratic in its atoms. A salted set keeps in its low 64 bits the
+exclusive or of a hash of each element, which changes with every element added. -/
+def bitKS (s n : ℕ) : Bool := bitK s (Nat.add n 64)
+
+/-- A salted set with `n` added, its salt changed by `n`'s hash (Fibonacci hashing, so the salts
+spread over the 64 bits; if `n` is new). -/
+def setKS (s n : ℕ) : ℕ :=
+  bif bitKS s n then s else
+    Nat.xor s (Nat.add (Nat.shiftLeft 1 (Nat.add n 64)) (Nat.mod (Nat.mul n 11400714819323198485) 18446744073709551616))
+
 /-- How a block's walk ends: at a join with the counts of the path there (the most of any), by
 the return, in a chained `match`'s table jump into the arms `succ` through the selector in cell
 `o`, or not at all (with a code saying where). -/
@@ -559,10 +582,10 @@ noncomputable def calleeS (pc : ℕ) : Option (ℕ × Sig) :=
 /-- The callee at `pc`. -/
 noncomputable def calleeC (pc : ℕ) : Option ℕ := (calleeS X pc).map Prod.fst
 
-/-- The renumbered values `V.n k` a value list names, set in `s`. -/
+/-- The renumbered values `V.n k` a value list names, added to the salted set `s`. -/
 def nvVals : List V → ℕ → ℕ
   | [], s => s
-  | v :: vs, s => bif v.path.isEmpty && Nat.beq v.tag 0 then natSeq (setK s v.idx) fun s ↦ nvVals vs s
+  | v :: vs, s => bif v.path.isEmpty && Nat.beq v.tag 0 then natSeqC (setKS s v.idx) fun s ↦ nvVals vs s
     else nvVals vs s
 
 /-- The arms' counts of the `match` on `x`, if counted separately. -/
@@ -589,7 +612,7 @@ def armCnt (key : Option (List Cnt)) (se : CW) (c : Cnt) : Cnt :=
 
 /-- A selector the path names: a parameter, a value of one of the body's atoms, or of one of the
 atoms walked, or calls returned from, in the enclosing blocks. -/
-def selOk (st : CW) (v : V) : Bool := Nat.blt v.idx X.nargs || bitK X.nv v.idx || bitK st.nm v.idx
+def selOk (st : CW) (v : V) : Bool := Nat.blt v.idx X.nargs || bitKS X.nv v.idx || bitKS st.nm v.idx
 
 /-- The call site of a call with these argument and return values (`siteOf`). -/
 def siteC (args rets : List V) : Option Site :=
@@ -696,7 +719,7 @@ mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
   | [], st => endC X st
-  | .atom a :: ss, st => natSeq (nvVals (atomUses a) st.nm) fun m ↦
+  | .atom a :: ss, st => natSeqC (nvVals (atomUses a) st.nm) fun m ↦
     cw ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none, m⟩
   | .ite c z n :: ss, st =>
     match brAtC X st with
@@ -712,7 +735,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
             | .join J c1 u1, .join J' c2 u2 =>
               bif Nat.beq J J' then
                 match segAtC X J st' with
-                | some sj => (Cnt.max c1 c2).seq fun c ↦ natSeq (Nat.lor u1 u2) fun u ↦
+                | some sj => (Cnt.max c1 c2).seq fun c ↦ natSeqC (Nat.lor u1 u2) fun u ↦
                     cw ss { sj with cnt := c, uq := u }
                 | none => .fail 10
               else .fail (1000000000 + J * 100000 + J')
@@ -744,7 +767,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
                 bif armChkK (armKeyD X.acs v.idx) 0 c0 then
                   match cwArms J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
                   | some (c, u) => match segAtC X J se with
-                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeqC u fun u ↦
                         cw ss { sj with cnt := c, uq := u }
                     | none => .fail 20
                   | none => .fail 21
@@ -752,7 +775,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
               | .chain o succ c0 u0 =>
                 bif armChkK (armKeyD X.acs v.idx) 0 c0 && ss.isEmpty && !succ.isEmpty then
                   match cwArms o succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
-                  | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                  | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeqC u fun u ↦
                         .chain o succ c u
                   | none => .fail 21
                 else .fail 24
@@ -816,7 +839,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
                     | .next t =>
                       bif Nat.beq t (r - X.entry) && se.seg.exit.succ == [t] then
                         match segAtC X t st' with
-                        | some sr => (Cnt.max se.cnt st'.cnt).seq fun c ↦ natSeq (setK st.uq q) fun u ↦
+                        | some sr => (Cnt.max se.cnt st'.cnt).seq fun c ↦ natSeqC (setK st.uq q) fun u ↦
                             cw ss { sr with cnt := c, uq := u }
                         | none => .fail 50
                       else .fail 51
@@ -865,7 +888,7 @@ noncomputable def cwArms (J : ℕ) (succ : List ℕ) (v : V) (se : CW) (key : Op
     | some s => (fileB X.loc X.fs a se.book).seq fun B ↦
       match armEnd J succ (cw a { s with book := B, tg := armTg X v k ++ s.tg }) with
       | some (c', u') => bif armChkK key k c' then
-          (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦ cwArms J succ v se key as ts c u (k + 1)
+          (Cnt.max c c').seq fun c ↦ natSeqC (Nat.lor u u') fun u ↦ cwArms J succ v se key as ts c u (k + 1)
           else none
       | none => none
     | none => none
@@ -890,7 +913,7 @@ noncomputable def cwE (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) : List Core
             bif armChkK (armKeyD X.acs v.idx) 0 c0 then
               match cwArms X J [] v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
               | some (c, u) => match segAtC X J se with
-                | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeqC u fun u ↦
                     cw X ss { sj with cnt := c, uq := u }
                 | none => .fail 80
               | none => .fail 81
@@ -898,7 +921,7 @@ noncomputable def cwE (X : CX) (o : ℕ) (succ : List ℕ) (se : CW) : List Core
           | .chain o' succ' c0 u0 =>
             bif armChkK (armKeyD X.acs v.idx) 0 c0 && ss.isEmpty && !succ'.isEmpty then
               match cwArms X o' succ' v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
-              | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+              | some (c, u) => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeqC u fun u ↦
                   .chain o' succ' c u
               | none => .fail 81
             else .fail 84
@@ -987,7 +1010,7 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
   | [], s => s
-  | .atom a :: ss, s => natSeq (nvVals (atomUses a) s) fun s ↦ nvOf ss s
+  | .atom a :: ss, s => natSeqC (nvVals (atomUses a) s) fun s ↦ nvOf ss s
   | _ :: ss, s => nvOf ss s
 
 /-- How part `k` of window `i` must end: at the next part's start, the next window's, within
@@ -1019,8 +1042,8 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
-    (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
-    natSeq (nvOf (coreOf j).body 0) fun nv ↦ natSeq (partM j i k) fun m ↦
+    (partC j i k).seq fun c ↦ natSeqC (partU j i k) fun u ↦ natSeqC (partJ j i k) fun J ↦
+    natSeqC (nvOf (coreOf j).body 0) fun nv ↦ natSeqC (partM j i k) fun m ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
         match partEnt j i k with
