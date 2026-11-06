@@ -11,7 +11,7 @@ Keccak-256 over the permutation it is given, `π` in the model (`RandomPermutati
 permutation's state is one type throughout, `KeccakState`: `25` lanes of `64` bits, lane `x + 5y`
 at index `x + 5y`.
 
-Transcribed from `python-verifier/verifier.py` at leanVM `9d8bce818aa7c7e18e67026e522a9b1539d0a57d`
+Transcribed from `python-verifier/verifier.py` at leanVM `834e6614b1fe856646de252360e7373447f13654`
 (branch `main`): the round constants, rotation offsets and lane permutation
 (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`, `verifier.py:1208-1215`), the permutation `keccak_f`
 (`verifier.py:360-375`) and the hash `keccak_hash` (`verifier.py:200-209`, its constants

@@ -36,7 +36,7 @@ import LeanVMTests.Spec.NodeVectors
 * `batch` on no children is inhabited; the outer verifier's membership challenge
   (`membershipChallengeOf`) of a root is not zero.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
-  `crates/rec_aggregation/src/aggregation.rs` at the guest's shape, `bytecode_vars = 23`): the
+  `crates/rec_aggregation/src/aggregation/` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked
   bytecode are the Spec's, and a batching hint off by one rejects. What is slow in the
   interpreter, `lake exe node-vectors` (`cli/NodeVectors.lean`) checks compiled: that their seed

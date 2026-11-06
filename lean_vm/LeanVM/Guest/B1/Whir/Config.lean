@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.MatPlan
 /-!
 # The `LIG_*` tables and a candidate's configuration (TRIAGE G #42)
 
-`open_stacked(m_idx, …)` (`lean_ethereum.py:1434-1764` at leanVM `4af2cdddd`) reads, at compile
+`open_stacked(m_idx, …)` (`lean_ethereum.py:1464-1794` at leanVM `834e6614`) reads, at compile
 time, the row `m_idx` of the per-candidate tables (`LIG_N_LEVELS`, `LIG_YR_LEVEL`, …) and the rows
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones (`LIG_FOLDS`, `LIG_QUERIES`, …). The
 tables are the deployed placeholders, as the source data holds them (`Data.arr_LIG_*`,

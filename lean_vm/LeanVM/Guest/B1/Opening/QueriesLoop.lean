@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesSound
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# One iteration of `opening_queries`' loop (lean_ethereum.py:1410-1418 at 9d8bce81)
+# One iteration of `opening_queries`' loop (lean_ethereum.py:1440-1448 at 834e6614)
 
 * `oqQuery_sound_wins`: a query whose window pointer names a run of a position's windows reads
   them all and opens at that position.
@@ -63,7 +63,7 @@ theorem oqLoop1A_mem_q2 {s : Oq} {odd : ℕ} {walk : String} {a : Stmt}
     a ∈ oqLoop1A s odd walk := by
   simp only [oqLoop1A, List.mem_append]; simp_all
 
-/-- **A level-0 iteration** at `x = g^i` (G:1260-1264): its two queries open at the positions the
+/-- **A level-0 iteration** at `x = g^i` (G:1290-1294): its two queries open at the positions the
 window pointers `qptrs[2i + odd]`, `qptrs[2i + odd + 1]` name, and the chain steps by their
 values. -/
 theorem oqIter1_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
@@ -121,7 +121,7 @@ theorem oqLoop0A_mem_q {s : Oq} {walk : String} {a : Stmt}
     a ∈ oqLoop0A s walk := by
   simp only [oqLoop0A, List.mem_append]; simp_all
 
-/-- **A deeper iteration** at `x = g^i` (G:1265-1267): its query opens at the position the window
+/-- **A deeper iteration** at `x = g^i` (G:1295-1297): its query opens at the position the window
 pointer `qptrs[i]` names, and the chain steps by its value. -/
 theorem oqIter0_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
     {i : ℕ} (hA : BlockOkC (coreProgram.Rel rd) rd σ (oqLoop0A s walk)) (hx : σ (.n 0) = gen ^ i)

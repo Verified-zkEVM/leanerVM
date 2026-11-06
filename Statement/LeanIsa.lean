@@ -154,7 +154,7 @@ noncomputable def LeanIsaProgram.fetch (program : LeanIsaProgram) (pc : K) : Opt
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
 `_keccak_cell_lanes`, `verifier.py:872-884`; `cell_lanes`,
-`crates/leanvm_core/src/keccak.rs:59-80`):
+`crates/leanvm_core/src/keccak.rs:60-81`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
@@ -172,7 +172,7 @@ def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   else (some (2 * c), some (2 * c + 1))
 
 /-- The state thirteen cells hold in the layout `odd`: lane `l` is the limb of the cell that holds
-it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:82-100`). -/
+it (`state_of_cells`, `crates/leanvm_core/src/keccak.rs:83-101`). -/
 def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
   (List.finRange 13).foldl (fun s (c : Fin 13) ↦
     let (lo, hi) := cellLanes odd c.val
@@ -184,7 +184,7 @@ def stateOfCells (cells : Fin 13 → E) (odd : Bool) : KeccakState :=
       | none => s) (Vector.replicate 25 0)
 
 /-- The thirteen cells holding a state in the layout `odd`, a limb holding no lane zero, the `y²`
-limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:102-113`). -/
+limb zero (`cells_of_state`, `crates/leanvm_core/src/keccak.rs:103-114`). -/
 def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
   let limb := fun (l : Option ℕ) ↦ match l with
     | some l => K.ofLane (Keccak.lane s l)
@@ -393,11 +393,11 @@ def derefFlags : DerefMode → K × K
   | .fp => (0, 1)
 
 /-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
-`crates/leanvm_core/src/cpu/layout.rs:297`). -/
+`crates/leanvm_core/src/cpu/layout.rs:301`). -/
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₀)`: slots 3 to 13 of specification
-§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:288-353`): offsets as
+§8.1, the eleven public columns of `bytecode_columns` (`cpu/layout.rs:292-357`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout flags as `0` or `1`, unused slots zero. -/
 def busEntry : LeanIsaInstruction → Vector K 11
@@ -414,7 +414,7 @@ def busEntry : LeanIsaInstruction → Vector K 11
         layoutFlagWord outOdd]
 
 /-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`crates/leanvm_core/src/leaf.rs:775`): the entry at slots 3 to 13, zero elsewhere. -/
+`crates/leanvm_core/src/leaf.rs:776`): the entry at slots 3 to 13, zero elsewhere. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
   let e := busEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], 0, 0]
@@ -432,7 +432,7 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:607-614`; `Digest.halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:618-625`; `Digest.halves`,
 `verifier.py:225-228`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
