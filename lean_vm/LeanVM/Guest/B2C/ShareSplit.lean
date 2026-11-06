@@ -104,7 +104,7 @@ theorem discharge_congr : ∀ (n : ℕ) (st : SSt), PendIn A st → discharge L 
     cases ok with
     | nil => rfl
     | cons p ok =>
-      simp only [natSeq_eq, SSt.seq_eq]
+      simp only [SSt.seq_eq]
       apply discharge_congr n
       intro q hq
       exact h q ((splitPend_spec (loc := L') st st.pend hs).2.1 q hq)
@@ -150,7 +150,7 @@ theorem discharge_pendIn {A : ℕ → Prop} {L : Loc} : ∀ (n : ℕ) {st : SSt}
     cases ok with
     | nil => exact h
     | cons p ok =>
-      simp only [natSeq_eq, SSt.seq_eq]
+      simp only [SSt.seq_eq]
       exact discharge_pendIn n fun q hq ↦ h q ((splitPend_spec (loc := L) st st.pend hs).2.1 q hq)
 
 /-- The values an atom's keys and equalities name are its own. -/
@@ -348,13 +348,13 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
       simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq]
       exact ⟨hv, by show v < lo + cells.length; omega⟩
     show (bif Nat.ble lo v && Nat.blt v (Nat.add lo cells.length) then
-      some (Nat.mod (Nat.div (packCells cells) (Nat.pow 65536 (Nat.sub v lo))) 65536)
+      some (Nat.mod (Nat.shiftRight (packCells cells) (Nat.mul 16 (Nat.sub v lo))) 65536)
       else getF (insTrie (listElementOrDefault C.ins i []) .nil) v) = _
-    rw [hcond, Bool.cond_true]
+    rw [hcond, Bool.cond_true, shr_digit]
     exact congrArg some (packCells_digit cells _ hm hc)
   have hg : (locG C i gm gn am an).get? v =
       (bif Nat.ble (lo + gm) v && Nat.blt v ((lo + gm) + ((cells.drop gm).take gn).length) then
-        some (packCells ((cells.drop gm).take gn) / 65536 ^ (v - (lo + gm)) % 65536)
+        some (Nat.mod (Nat.shiftRight (packCells ((cells.drop gm).take gn)) (Nat.mul 16 (v - (lo + gm)))) 65536)
       else getF (locTrieFrom ((cells.drop am).take an) (lo + am) (insTrie (listElementOrDefault C.ins i []) .nil)) v) := rfl
   rw [hg] at h
   cases hr : (Nat.ble (lo + gm) v && Nat.blt v ((lo + gm) + ((cells.drop gm).take gn).length))
@@ -385,7 +385,7 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
           rw [Bool.eq_false_iff]; intro h'; rw [Nat.ble_eq] at h'; omega
         rw [this, Bool.false_and]
       show (bif Nat.ble lo p.1 && Nat.blt p.1 (Nat.add lo cells.length) then
-        some (Nat.mod (Nat.div (packCells cells) (Nat.pow 65536 (Nat.sub p.1 lo))) 65536)
+        some (Nat.mod (Nat.shiftRight (packCells cells) (Nat.mul 16 (Nat.sub p.1 lo))) 65536)
         else getF (insTrie (listElementOrDefault C.ins i []) .nil) p.1) = _
       rw [hcond, Bool.cond_false]
       exact h
@@ -398,7 +398,7 @@ theorem locG_get {C : Cert} {i gm gn am an : ℕ} (hf : shareFits C i = true)
     have e : ((cells.drop gm).take gn)[v - (lo + gm)] = cells[v - lo]'(by omega) := by
       simp only [List.getElem_take, List.getElem_drop]
       congr 1; omega
-    rw [hdg, e] at h
+    rw [shr_digit, hdg, e] at h
     rw [hwin (by omega) (by omega)]
     exact h
 
@@ -424,14 +424,14 @@ end Congr4
 /-- The next snapshot's facts on cells and keys, which a join keeps from the state before its
 branches, and the cells that state occupies. -/
 noncomputable def refinesPre (m : SSt) (s : Snap) : Bool :=
-  Nat.beq (Nat.land m.occ s.occ) m.occ &&
+  Nat.beq (Nat.land (Nat.shiftRight m.occ 64) s.occ) (Nat.shiftRight m.occ 64) &&
     s.cst.all (fun q ↦ getF m.cst q.1 == some q.2) &&
     s.keys.all (fun q ↦ ((getF m.keys q.1).getD []).any fun k ↦ k == q.2)
 
 /-- An arm's end and the next snapshot: the cells it occupies occupied there, the values named
 there named. -/
 noncomputable def armRef (b : SSt) (s : Snap) : Bool :=
-  Nat.beq (Nat.land b.occ s.occ) b.occ && s.named.all (bitN b.named)
+  Nat.beq (Nat.land (Nat.shiftRight b.occ 64) s.occ) (Nat.shiftRight b.occ 64) && s.named.all (bitS b.named)
 
 /-- Arm `0` and the arms `lo ≤ k < hi` (from index `k`), walked from `st1`, end in states
 refining `s`. -/
@@ -496,15 +496,21 @@ theorem land_beq_iff (x y : ℕ) : Nat.beq (Nat.land x y) x = true ↔ ∀ i, x.
     · simp
     · simp [h i hx]
 
-theorem testBit_foldl_land_of (bs : List SSt) : ∀ (s n : ℕ), s.testBit n = true →
-    (∀ b ∈ bs, b.named.testBit n = true) → (bs.foldl (fun t b ↦ Nat.land t b.named) s).testBit n = true := by
+theorem land_shr_beq_iff (x y : ℕ) :
+    Nat.beq (Nat.land (Nat.shiftRight x 64) y) (Nat.shiftRight x 64) = true ↔ ∀ i, bitS x i → y.testBit i := by
+  rw [land_beq_iff]
+  refine forall_congr' fun i ↦ ?_
+  rw [testBit_shiftRight', bitS_eq, Nat.add_comm]
+
+theorem bitS_foldl_land_of (bs : List SSt) : ∀ (s n : ℕ), bitS s n = true →
+    (∀ b ∈ bs, bitS b.named n = true) → bitS (bs.foldl (fun t b ↦ Nat.land t b.named) s) n = true := by
   induction bs with
   | nil => intro s n h _; simpa using h
   | cons b bs ih =>
     intro s n hs hb
     rw [List.foldl_cons]
     apply ih
-    · rw [testBit_land', hs, hb b List.mem_cons_self]; rfl
+    · rw [bitS_land, hs, hb b List.mem_cons_self]; rfl
     · exact fun b' hb' ↦ hb b' (List.mem_cons_of_mem _ hb')
 
 /-- **The join refines the snapshot** when the state before the arms and every arm's end do. -/
@@ -514,22 +520,20 @@ theorem refines_join {st1 : SSt} {bs : List SSt} {s : Snap} (h1 : refinesPre st1
   obtain ⟨⟨hocc, hcst⟩, hkeys⟩ := h1
   simp only [refines, joinSt, Bool.and_eq_true]
   refine ⟨⟨⟨?_, ?_⟩, hcst⟩, hkeys⟩
-  · rw [land_beq_iff]
+  · rw [land_shr_beq_iff]
     intro i hi
-    rcases (testBit_foldl_lor bs st1.occ i).mp hi with hi | ⟨b, hbm, hbi⟩
-    · exact (land_beq_iff _ _).mp hocc i hi
+    rcases (bitS_foldl_lor bs st1.occ i).mp hi with hi | ⟨b, hbm, hbi⟩
+    · exact (land_shr_beq_iff _ _).mp hocc i hi
     · have := hb b hbm
       simp only [armRef, Bool.and_eq_true] at this
-      exact (land_beq_iff _ _).mp this.1 i hbi
+      exact (land_shr_beq_iff _ _).mp this.1 i hbi
   · obtain ⟨b, bs', rfl⟩ := List.exists_cons_of_ne_nil hne
     refine List.all_eq_true.mpr fun n hn ↦ ?_
-    have hall : ∀ b' ∈ b :: bs', b'.named.testBit n = true := fun b' hb' ↦ by
+    have hall : ∀ b' ∈ b :: bs', bitS b'.named n = true := fun b' hb' ↦ by
       have := hb b' hb'
       simp only [armRef, Bool.and_eq_true, List.all_eq_true] at this
-      rw [← bitN_eq]
       exact this.2 n hn
-    rw [bitN_eq]
-    exact testBit_foldl_land_of bs' _ n (hall b List.mem_cons_self)
+    exact bitS_foldl_land_of bs' _ n (hall b List.mem_cons_self)
       (fun b' hb' ↦ hall b' (List.mem_cons_of_mem _ hb'))
 
 theorem mem_usesArms {x : V} : ∀ {as : List (List Stmt)}, x ∈ Memory.Stmt.usesArms as ↔

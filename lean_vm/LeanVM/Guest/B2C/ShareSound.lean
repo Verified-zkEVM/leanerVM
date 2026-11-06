@@ -80,6 +80,50 @@ theorem testBit_lor' (x y i : ℕ) : (Nat.lor x y).testBit i = (x.testBit i || y
 theorem testBit_land' (x y i : ℕ) : (Nat.land x y).testBit i = (x.testBit i && y.testBit i) :=
   Nat.testBit_and x y i
 
+theorem testBit_shiftRight' (x i j : ℕ) : (Nat.shiftRight x i).testBit j = x.testBit (i + j) :=
+  Nat.testBit_shiftRight x
+
+/-! ## Salted bit sets -/
+
+theorem bitS_eq (s n : ℕ) : bitS s n = s.testBit (n + 64) := bitN_eq _ _
+
+theorem bitS_setS (s n m : ℕ) : bitS (setS s n) m = (bitS s m || decide (n = m)) := by
+  unfold setS
+  cases hs : bitS s n
+  · have hlt : n % 18446744073709551616 < 2 ^ (n + 64) :=
+      lt_of_lt_of_le (Nat.mod_lt _ (by norm_num))
+        (by rw [pow_add]; exact Nat.le_mul_of_pos_left _ (by positivity))
+    have hlt' : n % 18446744073709551616 < 2 ^ (m + 64) :=
+      lt_of_lt_of_le (Nat.mod_lt _ (by norm_num))
+        (by rw [pow_add]; exact Nat.le_mul_of_pos_left _ (by positivity))
+    rw [Bool.cond_false, bitS_eq, bitS_eq]
+    show (s ^^^ (1 <<< (n + 64) + n % 18446744073709551616)).testBit (m + 64) = _
+    rw [Nat.one_shiftLeft, Nat.add_comm (2 ^ (n + 64)), ← Nat.or_two_pow_eq_add_of_lt hlt,
+      Nat.testBit_xor, Nat.testBit_or, Nat.testBit_lt_two_pow hlt', Bool.false_or]
+    by_cases h : n = m
+    · subst h
+      rw [bitS_eq] at hs
+      simp [hs]
+    · simp [h]
+  · rw [Bool.cond_true]
+    by_cases h : n = m
+    · subst h; simp [hs]
+    · simp [h]
+
+theorem bitS_lor (x y n : ℕ) : bitS (Nat.lor x y) n = (bitS x n || bitS y n) := by
+  simp only [bitS_eq, testBit_lor']
+
+theorem bitS_land (x y n : ℕ) : bitS (Nat.land x y) n = (bitS x n && bitS y n) := by
+  simp only [bitS_eq, testBit_land']
+
+theorem bitS_saltOf (s n : ℕ) : bitS (saltOf s) n = s.testBit n := by
+  rw [bitS_eq]
+  show (s <<< 64).testBit (n + 64) = _
+  rw [Nat.testBit_shiftLeft]
+  simp
+
+theorem bitS_zero (n : ℕ) : bitS 0 n = false := by simp [bitS_eq]
+
 
 /-! ## Keys -/
 
@@ -210,21 +254,21 @@ variable (cg : V → ℕ) (rd : Reader) (σ : Val)
 `Ψ`, the values' cells being `cg`. -/
 structure Inv (st : SSt) (pre : List V) (Ψ : ℕ → E) : Prop where
   vn : ∀ v ∈ pre, v = V.n v.idx
-  occ : ∀ v ∈ pre, 2 ≤ cg v → st.occ.testBit (cg v)
+  occ : ∀ v ∈ pre, 2 ≤ cg v → bitS st.occ (cg v)
   good : ∀ v ∈ pre, 2 ≤ cg v → isPend st v.idx = false → σ v = Ψ (cg v)
   named : ∀ n, isNamed st n = true → 2 ≤ cg (V.n n) →
-    σ (V.n n) = Ψ (cg (V.n n)) ∧ st.occ.testBit (cg (V.n n))
-  kc : ∀ c x, getF st.cst c = some x → st.occ.testBit c ∧ Ψ c = tw x
+    σ (V.n n) = Ψ (cg (V.n n)) ∧ bitS st.occ (cg (V.n n))
+  kc : ∀ c x, getF st.cst c = some x → bitS st.occ c ∧ Ψ c = tw x
   keys : ∀ c, ∀ k ∈ (getF st.keys c).getD [], KeyHolds rd (Ψ c) k.1 (k.2.map Ψ) ∧
-    st.occ.testBit c ∧ ∀ c' ∈ k.2, st.occ.testBit c'
-  pend : ∀ p ∈ st.pend, cg (V.n p.v) = p.c ∧ 2 ≤ p.c ∧ st.occ.testBit p.c ∧
+    bitS st.occ c ∧ ∀ c' ∈ k.2, bitS st.occ c'
+  pend : ∀ p ∈ st.pend, cg (V.n p.v) = p.c ∧ 2 ≤ p.c ∧ bitS st.occ p.c ∧
     (∀ x, p.kc = some x → σ (V.n p.v) = tw x) ∧
     (∀ k ∈ p.keys, KeyHolds rd (σ (V.n p.v)) k.1 (k.2.map fun u ↦ σ (V.n u))) ∧
     (∀ x ∈ p.eqs, σ (V.n p.v) = σ (V.n x))
 
 /-- From `st` to `st'`: every occupied cell stays occupied with its word. -/
 def Step (st : SSt) (Ψ : ℕ → E) (st' : SSt) (Ψ' : ℕ → E) : Prop :=
-  ∀ c, st.occ.testBit c → st'.occ.testBit c ∧ Ψ' c = Ψ c
+  ∀ c, bitS st.occ c → bitS st'.occ c ∧ Ψ' c = Ψ c
 
 theorem Step.refl (st : SSt) (Ψ : ℕ → E) : Step st Ψ st Ψ := fun _ h ↦ ⟨h, rfl⟩
 
@@ -233,7 +277,7 @@ theorem Step.trans {st₁ st₂ st₃ : SSt} {Ψ₁ Ψ₂ Ψ₃ : ℕ → E} (h�
   ⟨(h₂ c (h₁ c hc).1).1, (h₂ c (h₁ c hc).1).2.trans (h₁ c hc).2⟩
 
 /-- A step with the occupancy and the words unchanged. -/
-theorem Step.of_occ {st st' : SSt} {Ψ : ℕ → E} (h : ∀ c, st.occ.testBit c → st'.occ.testBit c) :
+theorem Step.of_occ {st st' : SSt} {Ψ : ℕ → E} (h : ∀ c, bitS st.occ c → bitS st'.occ c) :
     Step st Ψ st' Ψ := fun c hc ↦ ⟨h c hc, rfl⟩
 
 variable {cg rd σ}
@@ -242,7 +286,7 @@ theorem isPend_iff {st : SSt} {v : ℕ} : isPend st v = true ↔ ∃ p ∈ st.pe
   simp only [isPend, List.any_eq_true]
   exact exists_congr fun p ↦ and_congr_right fun _ ↦ ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl _⟩
 
-theorem isNamed_eq (st : SSt) (n : ℕ) : isNamed st n = st.named.testBit n := bitN_eq _ _
+theorem isNamed_eq (st : SSt) (n : ℕ) : isNamed st n = bitS st.named n := rfl
 
 variable {loc : Loc} {sh : ℕ}
 
@@ -252,25 +296,25 @@ theorem nameV_skip {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
 
 theorem nameV_low {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : loc.cell v < 2) :
-    nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, setBit st.named v.idx, st.pend⟩ := by
+    nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, setS st.named v.idx, st.pend⟩ := by
   unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, Nat.blt_eq.mpr h2, Bool.cond_true]
 
 theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
-    (ho : st.occ.testBit (loc.cell v) = true) :
+    (ho : bitS st.occ (loc.cell v) = true) :
     nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, loc.cell v, none, [], []⟩ :: st.pend⟩ := by
   have : Nat.blt (loc.cell v) 2 = false :=
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
-  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho, Bool.cond_true]
+  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, ho, Bool.cond_true]
 
 theorem nameV_fresh {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
-    (ho : st.occ.testBit (loc.cell v) = false) :
-    nameV loc sh kc st v = ⟨setBit st.occ (loc.cell v), cstAt sh st.cst (loc.cell v) (kc v.idx), st.keys,
-      setBit st.named v.idx, st.pend⟩ := by
+    (ho : bitS st.occ (loc.cell v) = false) :
+    nameV loc sh kc st v = ⟨setS st.occ (loc.cell v), cstAt sh st.cst (loc.cell v) (kc v.idx), st.keys,
+      setS st.named v.idx, st.pend⟩ := by
   have : Nat.blt (loc.cell v) 2 = false :=
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
-  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho]
+  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, ho]
 
 theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c c' : ℕ} {k : Option (ℕ × ℕ × ℕ)} {x : ℕ × ℕ × ℕ}
     (h : getF (cstAt sh cst c k) c' = some x) : (c' = c ∧ k = some x) ∨ getF cst c' = some x := by
@@ -309,20 +353,20 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : Li
       · rcases List.mem_append.mp hu with hu | hu
         · exact hI.good u hu hc hpe
         · rw [List.mem_singleton.mp hu] at hc; omega
-      · simp only [isNamed_eq, testBit_setBit, Bool.or_eq_true, decide_eq_true_eq] at hn'
+      · simp only [isNamed_eq, bitS_setS, Bool.or_eq_true, decide_eq_true_eq] at hn'
         rcases hn' with hn' | rfl
         · exact hI.named n (by rw [isNamed_eq]; exact hn') hc
         · rw [hcv] at hc; omega
     · have h2' : 2 ≤ loc.cell v := by omega
-      cases ho : st.occ.testBit (loc.cell v)
+      cases ho : bitS st.occ (loc.cell v)
       · -- the first value at its cell
         rw [nameV_fresh hnp h2' ho]
-        have ho' : st.occ.testBit (cg v) = false := by rw [← hcg]; exact ho
-        have hne : ∀ c', st.occ.testBit c' = true → c' ≠ cg v := fun c' h he ↦ by
+        have ho' : bitS st.occ (cg v) = false := by rw [← hcg]; exact ho
+        have hne : ∀ c', bitS st.occ c' = true → c' ≠ cg v := fun c' h he ↦ by
           rw [he, ho'] at h; cases h
         refine ⟨Function.update Ψ (cg v) (σ v), ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_,
           fun n hn' hc ↦ ?_, fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp ↦ ?_⟩, fun c hc ↦ ?_⟩
-        · rw [testBit_setBit, Bool.or_eq_true, decide_eq_true_eq]
+        · rw [bitS_setS, Bool.or_eq_true, decide_eq_true_eq]
           rcases List.mem_append.mp hu with hu | hu
           · exact Or.inl (hI.occ u hu hc)
           · rw [List.mem_singleton.mp hu, hcg]; exact Or.inr rfl
@@ -330,28 +374,28 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : Li
           · rw [Function.update_of_ne (hne _ (hI.occ u hu hc))]
             exact hI.good u hu hc hpe
           · rw [List.mem_singleton.mp hu, Function.update_self]
-        · simp only [isNamed_eq, testBit_setBit, Bool.or_eq_true, decide_eq_true_eq] at hn'
+        · simp only [isNamed_eq, bitS_setS, Bool.or_eq_true, decide_eq_true_eq] at hn'
           rcases hn' with hn' | rfl
           · obtain ⟨h1, h3⟩ := hI.named n (by rw [isNamed_eq]; exact hn') hc
-            rw [Function.update_of_ne (hne _ h3), testBit_setBit, h3, Bool.true_or]
+            rw [Function.update_of_ne (hne _ h3), bitS_setS, h3, Bool.true_or]
             exact ⟨h1, rfl⟩
-          · rw [hcv, ← hv, Function.update_self, testBit_setBit, hcg]
+          · rw [hcv, ← hv, Function.update_self, bitS_setS, hcg]
             simp
         · rcases getF_cstAt hx with ⟨rfl, hk⟩ | hx
-          · rw [hcg, testBit_setBit, Function.update_self]
+          · rw [hcg, bitS_setS, Function.update_self]
             exact ⟨by simp, hkc x hk⟩
           · obtain ⟨h1, h3⟩ := hI.kc c x hx
-            rw [testBit_setBit, h1, Bool.true_or, Function.update_of_ne (hne c h1)]
+            rw [bitS_setS, h1, Bool.true_or, Function.update_of_ne (hne c h1)]
             exact ⟨rfl, h3⟩
         · obtain ⟨h1, h3, h4⟩ := hI.keys c k hk
-          rw [Function.update_of_ne (hne c h3), testBit_setBit, h3, Bool.true_or]
-          refine ⟨?_, rfl, fun c' hc' ↦ by rw [testBit_setBit, h4 c' hc', Bool.true_or]⟩
+          rw [Function.update_of_ne (hne c h3), bitS_setS, h3, Bool.true_or]
+          refine ⟨?_, rfl, fun c' hc' ↦ by rw [bitS_setS, h4 c' hc', Bool.true_or]⟩
           have : k.2.map (Function.update Ψ (cg v) (σ v)) = k.2.map Ψ :=
             List.map_congr_left fun c' hc' ↦ Function.update_of_ne (hne c' (h4 c' hc')) _ _
           rw [this]; exact h1
         · obtain ⟨h1, h3, h4, h5⟩ := hI.pend p hp
-          exact ⟨h1, h3, by rw [testBit_setBit, h4, Bool.true_or], h5⟩
-        · exact ⟨by rw [testBit_setBit, hc, Bool.true_or], Function.update_of_ne (hne c hc) _ _⟩
+          exact ⟨h1, h3, by rw [bitS_setS, h4, Bool.true_or], h5⟩
+        · exact ⟨by rw [bitS_setS, hc, Bool.true_or], Function.update_of_ne (hne c hc) _ _⟩
       · -- pending
         rw [nameV_occ hnp h2' ho]
         refine ⟨Ψ, ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_, hI.named, hI.kc, hI.keys, ?_⟩,
@@ -630,12 +674,16 @@ theorem splitPend_spec (st : SSt) : ∀ (ps : List PF) {ok rest : List PF},
           · exact Or.inr h
 
 
-theorem testBit_foldl_pf (ps : List PF) (s n : ℕ) :
-    (ps.foldl (fun s p ↦ setBit s p.v) s).testBit n = true → (∃ p ∈ ps, p.v = n) ∨ s.testBit n = true := by
-  intro h
-  rcases (testBit_foldl_setBit (fun p : PF ↦ p.v) ps s n).mp h with h | ⟨p, hp, he⟩
-  · exact Or.inr h
-  · exact Or.inl ⟨p, hp, he⟩
+theorem bitS_foldl_pf : ∀ (ps : List PF) (s n : ℕ),
+    bitS (ps.foldl (fun s p ↦ setS s p.v) s) n = true → (∃ p ∈ ps, p.v = n) ∨ bitS s n = true
+  | [], s, n, h => Or.inr h
+  | p :: ps, s, n, h => by
+    rcases bitS_foldl_pf ps _ n h with ⟨q, hq, he⟩ | h
+    · exact Or.inl ⟨q, List.mem_cons_of_mem _ hq, he⟩
+    · rw [bitS_setS, Bool.or_eq_true, decide_eq_true_eq] at h
+      rcases h with h | h
+      · exact Or.inr h
+      · exact Or.inl ⟨p, List.mem_cons_self, h⟩
 
 /-- **Showing pending values** keeps the invariant. -/
 theorem discharge_inv (hA : LocAgree loc cg) : ∀ (n : ℕ) {st : SSt} {pre : List V} {Ψ : ℕ → E},
@@ -648,7 +696,7 @@ theorem discharge_inv (hA : LocAgree loc cg) : ∀ (n : ℕ) {st : SSt} {pre : L
     cases ok with
     | nil => exact ⟨hI, rfl⟩
     | cons p ok =>
-      simp only [natSeq_eq, SSt.seq_eq]
+      simp only [SSt.seq_eq]
       have hokv : ∀ q ∈ p :: ok, σ (V.n q.v) = Ψ q.c := fun q hq ↦
         pfOk_sound hA hI (h1 q hq).1 (h1 q hq).2
       refine (discharge_inv hA n ?_).imp id (fun h ↦ h)
@@ -659,12 +707,12 @@ theorem discharge_inv (hA : LocAgree loc cg) : ∀ (n : ℕ) {st : SSt} {pre : L
           rcases h3 q hq with hq' | hq'
           · obtain ⟨e1, -⟩ := hI.pend q hq
             rw [hI.vn u hu, ← hqv, hokv q hq', ← e1]
-          · have : isPend ⟨st.occ, st.cst, st.keys, (p :: ok).foldl (fun s p ↦ setBit s p.v) st.named,
+          · have : isPend ⟨st.occ, st.cst, st.keys, (p :: ok).foldl (fun s p ↦ setS s p.v) st.named,
                 rest⟩ u.idx = true := isPend_iff.mpr ⟨q, hq', hqv⟩
             rw [hpe] at this; cases this
         · exact hI.good u hu hc (by simpa using hold)
       · rw [isNamed_eq] at hm
-        rcases testBit_foldl_pf _ _ _ hm with ⟨q, hq, rfl⟩ | hm
+        rcases bitS_foldl_pf _ _ _ hm with ⟨q, hq, rfl⟩ | hm
         · obtain ⟨e1, -, e3, -⟩ := hI.pend q (h1 q hq).1
           rw [e1]
           exact ⟨hokv q hq, e3⟩
@@ -807,7 +855,7 @@ theorem record_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
   simp only [List.all_eq_true] at hall
   -- every value of the atom holds its cell's word, its cell occupied
   have hval : ∀ u ∈ Memory.atomUses a, 2 ≤ loc.cell u →
-      σ u = Ψ (loc.cell u) ∧ st.occ.testBit (loc.cell u) := fun u hu hc ↦ by
+      σ u = Ψ (loc.cell u) ∧ bitS st.occ (loc.cell u) := fun u hu hc ↦ by
     obtain ⟨hv, hcg⟩ := hfit u hu
     have hcv : cg (V.n u.idx) = loc.cell u := by rw [← hv, hcg]
     have := hI.named u.idx (hall u hu) (by rw [hcv]; exact hc)
@@ -879,24 +927,24 @@ end Atoms
 
 section Join
 
-theorem testBit_foldl_lor (bs : List SSt) (s c : ℕ) :
-    (bs.foldl (fun o b ↦ Nat.lor o b.occ) s).testBit c = true ↔ s.testBit c = true ∨ ∃ b ∈ bs, b.occ.testBit c = true := by
+theorem bitS_foldl_lor (bs : List SSt) (s c : ℕ) :
+    bitS (bs.foldl (fun o b ↦ Nat.lor o b.occ) s) c = true ↔ bitS s c = true ∨ ∃ b ∈ bs, bitS b.occ c = true := by
   induction bs generalizing s with
   | nil => simp
   | cons b bs ih =>
-    rw [List.foldl_cons, ih, testBit_lor']
+    rw [List.foldl_cons, ih, bitS_lor]
     simp only [Bool.or_eq_true, List.mem_cons, exists_eq_or_imp]
     tauto
 
-theorem testBit_foldl_land (bs : List SSt) (s n : ℕ) :
-    (bs.foldl (fun t b ↦ Nat.land t b.named) s).testBit n = true → s.testBit n = true ∧ ∀ b ∈ bs, b.named.testBit n = true := by
+theorem bitS_foldl_land (bs : List SSt) (s n : ℕ) :
+    bitS (bs.foldl (fun t b ↦ Nat.land t b.named) s) n = true → bitS s n = true ∧ ∀ b ∈ bs, bitS b.named n = true := by
   induction bs generalizing s with
   | nil => simp
   | cons b bs ih =>
     intro h
     rw [List.foldl_cons] at h
     obtain ⟨h1, h2⟩ := ih _ h
-    rw [testBit_land', Bool.and_eq_true] at h1
+    rw [bitS_land, Bool.and_eq_true] at h1
     exact ⟨h1.1, fun b' hb' ↦ by
       rcases List.mem_cons.mp hb' with rfl | hb'
       · exact h1.2
@@ -910,10 +958,10 @@ theorem joinSt_inv {st1 b : SSt} {bs : List SSt} {pre1 preb : List V} {Ψ1 Ψb :
     (hI1 : Inv cg rd σ st1 pre1 Ψ1) (hIb : Inv cg rd σ b preb Ψb) (hs : Step st1 Ψ1 b Ψb)
     (hb : b ∈ bs) (hp : b.pend = []) :
     Inv cg rd σ (joinSt st1 bs) preb Ψb ∧ Step st1 Ψ1 (joinSt st1 bs) Ψb := by
-  have hsome : ∀ c, b.occ.testBit c = true → (joinSt st1 bs).occ.testBit c = true := fun c h ↦
-    (testBit_foldl_lor bs st1.occ c).mpr (Or.inr ⟨b, hb, h⟩)
-  have hsome1 : ∀ c, st1.occ.testBit c = true → (joinSt st1 bs).occ.testBit c = true := fun c h ↦
-    (testBit_foldl_lor bs st1.occ c).mpr (Or.inl h)
+  have hsome : ∀ c, bitS b.occ c = true → bitS (joinSt st1 bs).occ c = true := fun c h ↦
+    (bitS_foldl_lor bs st1.occ c).mpr (Or.inr ⟨b, hb, h⟩)
+  have hsome1 : ∀ c, bitS st1.occ c = true → bitS (joinSt st1 bs).occ c = true := fun c h ↦
+    (bitS_foldl_lor bs st1.occ c).mpr (Or.inl h)
   refine ⟨⟨hIb.vn, fun u hu hc ↦ hsome _ (hIb.occ u hu hc), fun u hu hc _ ↦ ?_, fun n hn hc ↦ ?_,
     fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp' ↦ by simp [joinSt] at hp'⟩,
     fun c hc ↦ ⟨hsome1 c hc, (hs c hc).2⟩⟩
@@ -924,7 +972,7 @@ theorem joinSt_inv {st1 b : SSt} {bs : List SSt} {pre1 preb : List V} {Ψ1 Ψb :
       cases bs with
       | nil => cases hb
       | cons b0 bs' =>
-        obtain ⟨h1, h2⟩ := testBit_foldl_land bs' b0.named n hn
+        obtain ⟨h1, h2⟩ := bitS_foldl_land bs' b0.named n hn
         rcases List.mem_cons.mp hb with rfl | hb'
         · exact h1
         · exact h2 b hb'
@@ -1483,6 +1531,12 @@ end Atoms2
 
 section Cells
 
+theorem shr_digit (x k : ℕ) :
+    Nat.mod (Nat.shiftRight x (Nat.mul 16 k)) 65536 = x / 65536 ^ k % 65536 := by
+  show x >>> (16 * k) % 65536 = _
+  rw [Nat.shiftRight_eq_div_pow, pow_mul]
+  rfl
+
 theorem packCells_digit : ∀ (l : List ℕ) (m : ℕ) (hm : m < l.length), (∀ c ∈ l, c < 65536) →
     packCells l / 65536 ^ m % 65536 = l[m]
   | [], _, hm, _ => absurd hm (by simp)
@@ -1516,7 +1570,7 @@ theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
     have e1 := cont_locs hcont hi hm
     rw [show listElementOrDefault C.los i 0 + (v - listElementOrDefault C.los i 0) = v
         by omega] at e1
-    rw [e1]; exact hd.symm
+    rw [e1, shr_digit]; exact hd.symm
   · obtain ⟨j, hj⟩ := (insTrie_get _ _ h).resolve_right (by simp [getF_eq])
     have := List.all_eq_true.mp hins _ hj
     simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
@@ -1566,17 +1620,18 @@ theorem refines_inv {m : SSt} {pre : List V} {Ψ : ℕ → E} {s : Snap} (hI : I
     (hr : refines m s = true) : Inv cg rd σ s.st [] Ψ ∧ Step m Ψ s.st Ψ := by
   simp only [refines, Bool.and_eq_true, List.all_eq_true, nbeq_iff, beq_iff_eq, List.any_eq_true] at hr
   obtain ⟨⟨⟨hocc, hnm⟩, hcst⟩, hky⟩ := hr
-  have hsub : ∀ c, m.occ.testBit c = true → s.occ.testBit c = true := fun c h ↦ by
+  have hsub : ∀ c, bitS m.occ c = true → bitS s.st.occ c = true := fun c h ↦ by
     have := congrArg (fun x ↦ x.testBit c) hocc
-    simp only [testBit_land', h, Bool.true_and] at this
+    rw [bitS_eq, Nat.add_comm] at h
+    simp only [testBit_land', testBit_shiftRight', h, Bool.true_and] at this
+    simp only [Snap.st, bitS_saltOf]
     exact this
   refine ⟨⟨fun _ h ↦ absurd h List.not_mem_nil, fun _ h ↦ absurd h List.not_mem_nil,
     fun _ h ↦ absurd h List.not_mem_nil, fun n hn hc ↦ ?_, fun c x hx ↦ ?_, fun c k hk ↦ ?_,
     fun p hp ↦ by simp [Snap.st] at hp⟩, fun c hc ↦ ⟨hsub c hc, rfl⟩⟩
   · rw [isNamed_eq] at hn
-    simp only [Snap.st] at hn
+    simp only [Snap.st, bitS_saltOf] at hn
     have hn' := hnm n ((testBit_bitsOf _ _).mp hn)
-    rw [bitN_eq] at hn'
     obtain ⟨h1, h2⟩ := hI.named n (by rw [isNamed_eq]; exact hn') hc
     exact ⟨h1, hsub _ h2⟩
   · simp only [Snap.st] at hx
@@ -1636,7 +1691,7 @@ theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
       (initSt (plumbOf j)) (coreOf j).params else (snapAt (snapsOf j) i).st) := by
     unfold startSt
     cases hi : i == 0
-    · rfl
+    · simp only [Bool.cond_false]
     · obtain rfl := beq_iff_eq.mp hi; rfl
   rw [hs]
   split at hw
@@ -1728,7 +1783,7 @@ theorem chain_sound (hS : ShareOk j)
       Inv (cellJ j) rd σ (startSt j i) pre Ψ → ∀ es vs, walk σ (fromW (coreOf j).body (snapsOf j) i) = .ret es vs →
       (∀ e ∈ es, e.Holds rd σ) → ∃ Ψf : ℕ → E,
         (∀ v ∈ pre ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v → σ v = Ψf (cellJ j v)) ∧
-        ∀ c, (startSt j i).occ.testBit c = true → Ψf c = Ψ c := by
+        ∀ c, bitS (startSt j i).occ c = true → Ψf c = Ψ c := by
   intro k
   induction k with
   | zero =>
@@ -1802,7 +1857,7 @@ theorem chain_sound (hS : ShareOk j)
         have hst : startSt j (i + 1) = (snapAt (snapsOf j) (i + 1)).st := rfl
         obtain ⟨Ψf, hf1, hf2⟩ := ih (i + 1) (by omega) [] Ψ' (hst ▸ hIs) es2 vs2 hD
           fun e he' ↦ he e (List.mem_append_right _ he')
-        have hkeep : ∀ c, m.occ.testBit c = true → Ψf c = Ψ' c := fun c hc ↦
+        have hkeep : ∀ c, bitS m.occ c = true → Ψf c = Ψ' c := fun c hc ↦
           hf2 c (by rw [hst]; exact (hss c hc).1)
         refine ⟨Ψf, fun v hv hc ↦ ?_, fun c hc ↦ ?_⟩
         · have old : v ∈ pre' → σ v = Ψf (cellJ j v) := fun hv' ↦ by
@@ -1854,11 +1909,11 @@ theorem initSt_inv (P : Plumb) (cg : V → ℕ) : Inv cg rd σ (initSt P) [] (in
   vn _ h := absurd h List.not_mem_nil
   occ _ h := absurd h List.not_mem_nil
   good _ h := absurd h List.not_mem_nil
-  named n hn _ := by simp [isNamed_eq, initSt] at hn
+  named n hn _ := by simp [isNamed_eq, initSt, bitS_zero] at hn
   kc c x hx := by
     refine ⟨?_, by simp only [initW, hx]⟩
     rcases getF_initCst _ _ hx with ⟨q, hq, rfl⟩ | hx
-    · simp only [initSt]
+    · simp only [initSt, bitS_saltOf]
       exact (testBit_bitsOf _ _).mpr (List.mem_map_of_mem hq)
     · simp [getF_eq] at hx
   keys c k hk := by simp [initSt, getF_eq] at hk
@@ -1891,8 +1946,9 @@ theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
   simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
   have := hlists.1.1.1.1.1 _ ho
   simp only [beq_iff_eq] at this
-  have hocc : (initSt (plumbOf j)).occ.testBit o = true :=
-    (testBit_bitsOf _ _).mpr (List.mem_map_of_mem (f := Prod.fst) ho)
+  have hocc : bitS (initSt (plumbOf j)).occ o = true := by
+    simp only [initSt, bitS_saltOf]
+    exact (testBit_bitsOf _ _).mpr (List.mem_map_of_mem (f := Prod.fst) ho)
   have h0 : initW (plumbOf j) o = OffsetInstruction.immediateWord a b c :=
       by simp only [initW, this.2]; rfl
   rw [hf2 o (by rw [hst0]; exact (hs1 o hocc).1), (hs1 o hocc).2, h0]
