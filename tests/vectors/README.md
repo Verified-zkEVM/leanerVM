@@ -53,3 +53,35 @@ file also depends on the `gzip` version; compare the decompressed files.
   `prove` then returns no proof. The Rust's search is unbounded over `u64`.
 - The openings are written after the stream in level order, from the commitments kept; the Rust
   hands each level's opening to the proof as it opens it. The proof's opening list is the same.
+
+## Executions of compiled programs
+
+`executions/*.exec.gz` are runs of compiled leanVM programs by the Rust executor at leanVM
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` (`Program::execute_to_floor`, the run `prove` makes),
+written by [`scripts/dump-execution-rust.sh`](../../scripts/dump-execution-rust.sh), whose header
+gives the format: the program, the public input, the final memory image, the main-run and total
+row counts, the Rust prover's committed-size floor, and every table row `(pc, fp)`. `leanervm-witgen` (`bench/LeanerVMWitgen.lean`) reads
+them into `Program`, `PublicInput` and `Trace prog` and checks them against the reference
+semantics; they are the inputs of the witness generator's end-to-end runs.
+
+| File | Program | Bytecode | Memory | Main steps | Rows after the fill (XOR, MUL, SET, DEREF, JUMP, BLAKE2S) |
+| --- | --- | --- | --- | --- | --- |
+| `field_div` | the division test (`lean_compiler/tests/suite/field_div.rs`), the program of `scripts/dump-proof-rust.sh` | `2^11` | `2^17` | 13 | 1, 8, 8, 2, 16, 8 |
+| `hash_chain_8` | eight chained compressions (`rec_aggregation/src/hash_chain.rs`) | `2^11` | `2^17` | 66 | 2, 8, 32, 32, 16, 8 |
+| `py_*` | the fifteen programs of `lean_compiler/tests/programs`, with their annotated inputs | `2^11` | `2^17` | 10 to 198 | at most 16, 32, 64, 128, 64, 8 |
+| `fibonacci_1000` | Fibonacci in the exponent (`rec_aggregation/src/fibonacci.rs`), `n = 1000` | `2^12` | `2^17` | 1031 | 1, 1024, 8, 16, 16, 8 |
+| `fibonacci_20000` | the same, `n = 20000` | `2^12` | `2^17` | 20336 | 32, 32768, 128, 256, 256, 8 |
+
+Every program has its 48 fill blocks, every run reads no unwritten cell, and memory is `2^17`
+because the fill frames start at `2^16`. The recursion guest on one XMSS signature
+(`scripts/dump-execution-rust.sh -g`: bytecode `2^19`, memory `2^17`, 5725 main steps, SET filled
+to `2^17` rows by the `2^22` committed floor) is 1.7 MB compressed and is regenerated, not
+checked in.
+
+```sh
+scripts/dump-execution-rust.sh -f 1000 -f 20000 <leanVM checkout> tests/vectors/executions
+lake build leanervm-witgen
+.lake/build/bin/leanervm-witgen tests/vectors/executions/*.exec.gz
+```
+
+The Rust writes the files deterministically; compare decompressed files.

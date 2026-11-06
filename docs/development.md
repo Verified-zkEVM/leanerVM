@@ -86,6 +86,7 @@ lake build leanervm-verify
 .lake/build/bin/leanervm-verify [runs] [file]
 lake build leanervm-prove
 .lake/build/bin/leanervm-prove [file] [rate] [fuel] [pure]   # or: leanervm-prove probe [rate]
+.lake/build/bin/leanervm-prove execution [rate] [fuel]       # proveExecution on a trace, verified
 ```
 
 **Test vectors.** [`tests/vectors/`](../tests/vectors/README.md) holds proofs of the prover, each

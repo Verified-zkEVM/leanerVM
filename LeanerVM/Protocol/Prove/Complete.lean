@@ -100,7 +100,7 @@ def PhasesAgree (prog : Program) (s : Sizes) (hs : s.Admissible prog) (ρ : ℕ)
       (rowsOf (Verify.leanVm prog s) (leanIsaChain prog s hs ρ hρ).ladder @tr) = true
 
 /-- An accepted wire carries one public value per sent line. -/
-private theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
+theorem pubLength_of_algebra {prog : Program} {s : Sizes} {input : PublicInput}
     {shs : List Verify.LevelShape} {w : Verify.Wire} {rows : List (List (List K))}
     (h : Verify.algebra prog s input shs w rows = true) :
     w.pub.values.length =

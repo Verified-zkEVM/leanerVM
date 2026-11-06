@@ -186,6 +186,16 @@ def planCount (rows : Opcode → ℕ) (τ : ℕ) (t : Opcode) (k : ℕ) : ℕ :=
 def tableHeight (rows : Opcode → ℕ) (τ : ℕ) (op : Opcode) : ℕ :=
   if op = .jump then 2 ^ τ else fillTarget (rows op) (minRows op)
 
+/-- The log-height of the table of `op` once filled: `tableHeight` is `2` to it. -/
+def tableLog (rows : Opcode → ℕ) (τ : ℕ) (op : Opcode) : ℕ :=
+  if op = .jump then τ else Nat.clog 2 (max (max (rows op) (minRows op)) 1)
+
+/-- The filled height is a power of two: `2` to the log-height. -/
+theorem tableHeight_eq_pow (rows : Opcode → ℕ) (τ : ℕ) (op : Opcode) :
+    tableHeight rows τ op = 2 ^ tableLog rows τ op := by
+  unfold tableHeight tableLog fillTarget
+  split_ifs <;> rfl
+
 /-- A table other than `JUMP` fills itself: its own dummies are the fill. -/
 theorem planDummies_of_ne (rows : Opcode → ℕ) (τ : ℕ) {t : Opcode} (ht : t ≠ .jump) :
     planDummies (planCount rows τ) t = fillTarget (rows t) (minRows t) - rows t := by

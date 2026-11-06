@@ -20,6 +20,7 @@ of whose witnesses are equal has probability at most `1/|α|`. It takes its hypo
 statement about witnesses, so that no caller has to name the finite set of all elements of
 the type, and its right-hand side is a non-negative real coerced to an extended one, the type
 of a round-by-round error.
+`nonempty_of_sampleable`: a sampleable type is inhabited.
 
 ## Pushing a uniform sample forward
 
@@ -43,6 +44,10 @@ open OracleComp
 open scoped NNReal ENNReal
 
 public section
+
+/-- A sampleable type is inhabited: its uniform sample has an outcome. -/
+theorem nonempty_of_sampleable (α : Type) [SampleableType α] : Nonempty α :=
+  (support_nonempty ($ᵗ α)).elim fun x _ ↦ ⟨x⟩
 
 section Subsingleton
 

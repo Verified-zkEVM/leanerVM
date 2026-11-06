@@ -276,8 +276,10 @@ the constraint statement tests' witness at the smallest admissible sizes (`tests
 stream is the Rust's order of messages and challenges (`cpu/mod.rs:520-640`): the sizes and the
 rate announced, the commitment, the bus phase, the table sumcheck, the public input, the Flock
 phase, the opening's batching, WHIR; round polynomials without the dropped coefficient, roots as
-two scalars. It differs from the Rust prover in its witness, which is given rather than built from
-an execution, so the two agree on a proof only where the witnesses and the honest messages agree;
+two scalars. From an execution, `proveExecution` builds the witness with leanISA's generator
+`witnessGen` and proves it. It differs from the Rust prover in its witness, built by that generator
+rather than the Rust's, so the two agree on a proof only where the witnesses and the honest
+messages agree;
 in the grind, whose nonce is the smallest that clears the bits as the Rust's parallel search
 returns, but within a fuel of candidates; and in the openings, written after the stream in level
 order where the Rust hands each to the proof as it opens it (the list is the same). The dump of a

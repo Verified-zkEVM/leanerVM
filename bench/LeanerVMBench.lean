@@ -20,6 +20,8 @@ import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Transform
 import LeanerVM.Parameters.Whir
 import LeanerVMTests.Arithmetization.Statement
+import LeanerVM.Arithmetization.WitnessGen
+import LeanerVMTests.Semantics.PaddedImageRefutation
 
 /-!
 # The `leanervm-bench` executable
@@ -810,6 +812,25 @@ def whirOpenPieces (seed : UInt64) (κ t : ℕ) : IO Unit := do
 
 end Provers
 
+/-! ## Witness generation -/
+
+section Witgen
+
+open LeanerVM.Semantics LeanerVM.Arithmetization
+open LeanerVMTests.Semantics.PaddedImageRefutation LeanerVMTests.Semantics.FillBlocks
+
+/-- `witnessGen` on the one-`JUMP` run of the ladder program (memory `2^16`, padded to `2^17`),
+the table heights as the checksum. The number of steps comes from the seed, so the witness is
+not a closed term the compiler could precompute. -/
+def runWitgen (seed : UInt64) : IO Unit := do
+  let steps := if seed == 0 then 2 else 1
+  timeOnce "witnessGen, one-JUMP ladder run, memory 2^16 padded to 2^17"
+    (fun _ ↦ (witnessGen ladderJumpProg badInput ⟨minLogMem, badImage (gpow 2047), steps⟩).map
+      fun w ↦ w.tables.map (·.table.length))
+    fun h ↦ toString h
+
+end Witgen
+
 end LeanerVMBench
 
 /-- `leanervm-bench [percent] [group] [filter] [lm] [spec]`: run the workloads of `group` (`arith`,
@@ -817,7 +838,7 @@ end LeanerVMBench
 memory log-size `lm + 1`, the stateless provers beside when the fifth argument is `spec`; or
 `flockpieces` at memory log-size `filter + 1`; or `whir` at `μ = filter` and rate exponent `lm`;
 or `whirpieces` at `κ = filter` and rate exponent `lm`; or `whiropen` at `κ = filter`, `lm`
-positions),
+positions; or `witgen`, the witness generator on a test trace),
 arithmetic iteration counts scaled to `percent` per cent (default `100`), keeping only the prover
 workloads whose name contains `filter`. -/
 def main (args : List String) : IO Unit := do
@@ -856,6 +877,7 @@ def main (args : List String) : IO Unit := do
     let R := ((args.drop 3).head?.bind String.toNat?).getD 1
     LeanerVMBench.runWhir seed μ R ((args.drop 4).head? == some "spec")
       ((args.drop 5).head? == some "one")
+  if group == "witgen" then LeanerVMBench.runWitgen seed
   if group == "protocol" then
     -- `protocol`: the leanISA phases' provers up to the phase named by the filter (`bus`,
     -- `table`, `pub`, `flock`, or `whole` for every phase and the whole protocol), at memory

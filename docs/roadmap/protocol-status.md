@@ -1179,9 +1179,11 @@ below proves.
 - **The vectors** (`tests/vectors/`, `bench/LeanerVMProve.lean`): `leanervm-prove` proves the
   constraint statement tests' witness at the smallest admissible sizes in 52.7 s (1.06 GB at the
   peak), writes the proof in the dump format, and checks that `verify` accepts it (0.6 s) and
-  rejects every mutation of `mutationsOf` at its stage; `prove` in `Id` returns the same proof. The
-  witness is the hand-built one, its `SatisfiedBy` a proved theorem (`fill_satisfiedBy`); leanISA's
-  decidable `checkSatisfiedBy`, which generated witnesses would need, is still owed. Beside the
+  rejects every mutation of `mutationsOf` at its stage; `prove` in `Id` returns the same proof;
+  `leanervm-prove execution` proves a trace through `proveExecution` and checks that `verify`
+  accepts. The vectors' witness is the hand-built one, its `SatisfiedBy` a proved theorem
+  (`fill_satisfiedBy`); a generated witness's is `witnessGen_correct`, so leanISA's decidable
+  `checkSatisfiedBy`, still owed, is not needed for either. Beside the
   proof's mutations, both executables run the algebra on the honest wire with one message changed
   in each front phase and in WHIR (`frontChecksOf`, `whirChecksOf`), and `leanervm-prove tamper`
   changes one front phase's message as the prover sends it and checks that each phase rejects its
@@ -1357,7 +1359,7 @@ vector with every hash logged (487250 prover and 3291 verifier queries), with no
 hit (test 37, reduced: the flip clause is not decidable), and `extract` on the prover's log
 returning the witness's sizes and stack (in 22 s compiled, `M3Holds` decided by sorting the bus's
 tuples); `verify` as `verifyWith` at BLAKE2s and `verifyWith_simulateQ` (test 38). Owed:
-`extract_honest` (completeness from an execution is now `prove_complete_of_execution`, below), that
+`extract_honest` (completeness from an execution is now `proveExecution_complete`, below), that
 `extract` on a run of `honestAdversary` returns the witness's sizes and stack, which acceptance test
 24 needs at leanVM (its witness there is the toy's commitment pick) as test 37 does. Its three
 pieces: on a codeword the deployed decoder's list is the exact path's singleton
@@ -1503,26 +1505,40 @@ adversary's queries a `ValidExecution`; new are `baseVerifier_extractsExecution_
 `baseVerifier_extractsExecution_rom_adaptive_coins`, and
 `baseVerifier_extractsExecution` now reads through `extractExecution` like the others. The
 `baseVerifier_extractsWitness…` forms stay as the constraint forms they are proved from.
-Completeness: `prove_complete_of_execution`, for `WellFormedBytecode` (now with the fill blocks)
-and a valid execution that `Fits`, gives a padding with the same steps, valid, and a witness of the
-constraint statement representing it, with sizes `s`, on which every proof `prove` returns is
-accepted; `prove` returns none only when the stack is above `2^maxMu`, the rate is invalid, or a
-grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and returns a
-proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
-`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility). The
-witness exists and is not computed (leanISA's padded witness reads the image through the classical
-`MemImage.read`). The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
+Completeness is about one computable prover, `proveExecution` (`Protocol/Headline.lean`):
+leanISA's witness generator `witnessGen`, then `prove`. `proveExecution_complete`, for
+`WellFormedBytecode` (now with the fill blocks) and a valid execution `t` that `Fits`: the
+generator returns a witness of the constraint statement representing the padded trace
+`padTrace t (fillStarts prog)` (same steps, valid), with sizes `s`; every proof `proveExecution`
+returns is accepted; it returns none only when the stack is above `2^maxMu`, the rate is invalid,
+or a grind runs out of fuel at a chain state the prover's run reaches (`ProveReaches`), and
+returns a proof when none of these holds (`prove_eq_none`, `prove_ne_none`;
+`admissible_iff_of_satisfiedBy`: the statement's caps give the rest of admissibility).
+`leanervm-prove execution` runs it on the one-step ladder trace of the completeness tests (memory
+`2^16` padded to `2^17`, stack `2^20`): the generator in under 1 s, the whole prover in 103–143 s, and
+`verify` accepts the proof. The stack's statements took the κ of `leanIsaEnsemble prog κ`; the DEREF reads
 stay in the Rust's flush order, to which leanISA's completeness rows were brought; the separator
 check of the bytecode blocks reads one channel. Owed, for an unconditional "`prove` returns a
 proof":
   - a fit at the level of `Sizes`: `Trace.Fits` bounds the memory and each table, not the stack.
-    `prove` returns none at every fuel and rate for every `t.κ ≥ 26`, because the witness's four
-    memory columns at height `2^(t.κ+1)` hold `2^(t.κ+3)` cells, above `2^maxMu = 2^28`; more
-    generally whenever the filled tables exceed `2^28` cells, within the per-table cap `2^32`. A
-    resource hypothesis on the trace that bounds `leanIsaμ` closes it;
-  - the honest grind bound above: for `honestAdversary` under `runRandom`, the probability that a
-    grind runs out of fuel is at most `grinds · (1 − 2^-17)^fuel`. No deterministic form at
-    BLAKE2s can drop the grind clause: a fixed function can fail a grind at any given fuel.
+    The generated witness's sizes are a formula of the trace (`sizes_witnessGen`, `execSizes`,
+    `LeanIsa.blocks_total_eq`), and `StackFits prog t`, the stack at those sizes within
+    `2^maxMu`, is the hypothesis, decided by `stackFitsB`. It fails for every `t.κ ≥ 25`
+    (`not_stackFits_of_le`: the four memory columns at height `2^(t.κ+1)` hold
+    `2^(t.κ+3) ≥ 2^28` cells, and the bytecode column is more), where `prove` returns none at
+    every fuel and rate, and holds for `t.κ ≤ 24`, at most `2^25` program slots and `2^16` steps
+    (`StackFits.of_short`). An unpadded memory, as Rust commits, would fail from `κ ≥ 26`;
+  - the honest grind bound, at BLAKE2s: no deterministic form can drop the grind clause, since a
+    fixed function can fail a grind at any given fuel. In the random-oracle model it is built:
+    `proveExecution_rom_complete` bounds the probability that the honest run from an execution
+    (`honestExecutionGame`: `witnessGen`, the prover and the verifier at one lazy random oracle)
+    rejects by `(N + 1)(1 − 2^-17)^min(fuel, 2^64) + N²/2^256`, `N = 264246250 + 6 · fuel` the
+    prover's query count (`Prove.isTotalQueryBound_proveWith_closed`), below `2^-154` at fuel
+    `2^24` (`proveExecution_rom_complete_default`); its stack hypothesis `StackFits` is a
+    predicate on the trace, decided by one forward pass (`stackFitsB`). The constraint forms are
+    `honestGame_rom_rejects_le` and `prove_rom_eq_none_le`. `proveChecked` runs the decided
+    checks before proving: every proof it returns is accepted (`verify_proveChecked`), and under
+    the hypotheses it is `proveExecution` (`proveChecked_eq`).
 
 ## Upstream watch
 

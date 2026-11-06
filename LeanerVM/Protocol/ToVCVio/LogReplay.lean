@@ -10,6 +10,7 @@ module
 
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.SimSemantics.StateT.Basic.Native
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 
 /-!
 # Replaying a logged run
@@ -24,6 +25,9 @@ so the same holds of a logged run under any implementation of the oracle: a stat
 `pure ∘ f` (`replay_of_mem_support_simulateQ`), or a stateful one such as a lazy random oracle
 (`replay_of_mem_support_simulateQ_run'`). Under a function `f`, a stateless implementation, every
 logged answer is `f`'s (`mem_support_simulateQ_pure_withQueryLog`).
+
+A run of the lazy random oracle needs no log: it is the run with every query answered by any
+function that agrees with its final cache (`run_simulateQ_pure_of_mem_support_randomOracle`).
 -/
 
 namespace LeanerVM.Protocol.QueryLog
@@ -147,3 +151,45 @@ theorem mem_support_simulateQ_pure_withQueryLog {α : Type} (f : Q → D)
 end
 
 end LeanerVM.Protocol.QueryLog
+
+namespace LeanerVM.Protocol
+
+open OracleComp OracleSpec
+
+@[expose] public section
+
+/-- **A lazy random oracle's run, replayed from its cache**: a run of `oa` against the lazy random
+oracle from the cache `c₀`, ending at `(x, c)`, extends the cache, and `oa` with every query
+answered by a function agreeing with `c` returns `x`. -/
+theorem run_simulateQ_pure_of_mem_support_randomOracle {Q D α : Type} [DecidableEq Q]
+    [SampleableType D] (oa : OracleComp (Q →ₒ D) α) (c₀ : (Q →ₒ D).QueryCache)
+    {z : α × (Q →ₒ D).QueryCache}
+    (hz : z ∈ support ((simulateQ (Q →ₒ D).randomOracle oa).run c₀)) (f : Q → D)
+    (hf : ∀ t u, z.2 t = some u → f t = u) :
+    c₀ ≤ z.2 ∧ Id.run (simulateQ (fun t ↦ (pure (f t) : Id D)) oa) = z.1 := by
+  induction oa using OracleComp.inductionOn generalizing c₀ with
+  | pure a =>
+    obtain rfl : z = (a, c₀) := by simpa using hz
+    exact ⟨le_rfl, rfl⟩
+  | query_bind t k ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨p, hp, hz⟩ := hz
+    have hstep : c₀ ≤ p.2 ∧ p.2 t = some p.1 := by
+      cases h : c₀ t with
+      | some u =>
+        rw [QueryImpl.withCaching_run_some _ h, support_pure, Set.mem_singleton_iff] at hp
+        subst hp
+        exact ⟨le_rfl, h⟩
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ h, support_map] at hp
+        obtain ⟨u, -, rfl⟩ := hp
+        exact ⟨QueryCache.le_cacheQuery _ h, QueryCache.cacheQuery_self _ _ _⟩
+    obtain ⟨hle, hrun⟩ := ih p.1 p.2 hz
+    refine ⟨hstep.1.trans hle, ?_⟩
+    rw [simulateQ_bind, simulateQ_spec_query]
+    simp only [Id.run_bind, hf t p.1 (hle hstep.2)]
+    exact hrun
+
+end
+
+end LeanerVM.Protocol
