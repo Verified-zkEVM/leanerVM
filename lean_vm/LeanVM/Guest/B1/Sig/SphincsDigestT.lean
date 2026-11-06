@@ -21,9 +21,9 @@ the parameter `n0`, `byte_bits` `n1`; `PK.seed` is `n2` (`sPP`, `signer[1]`, off
   `j` rebuilt as its three low bytes (`sLo j`) and five high ones (`sHi j`) by `sp_from_bytes`
   (`sFromBytes`, `G:3769-3779`), the lanes checked to be the claim's two message cells (offsets `2`,
   `3`), and the cells `M'` puts `M` in after its 13 framing bytes (`sM0`, `sM1`, `sM2`);
-* `sDigests` (`G:4020-4023`): `R` hinted (`sRho`), `H_msg`'s two calls `H(R | PK.seed | PK.root | M' |
+* `sDigests` (`G:4020-4023`): `R` hinted (`sRand`), `H_msg`'s two calls `H(R | PK.seed | PK.root | M' |
   BE_32(i))`, 97 bytes, one block each, the first setting the padding run (`n353 …`, `sPad`); their
-  outputs from `sD0` (`n358`) and `sD1` (`n379`);
+  outputs from `sHm0` (`n358`) and `sHm1` (`n379`);
 * `sBitsHint`, `sBooleans` (`G:4030-4040`): the first call's two cells' bits hinted (`n392 …`, `n520 …`)
   and the second's low sixteen (`n648 …`), each pinned Boolean;
 * `sForsFields` (`sp_fors_field`, `G:3793-3801`, through `sp_md_bit`, `G:3783-3790`): each FORS leaf
@@ -53,12 +53,12 @@ def sRoot : V := .n 3
 /-- The padding run of `verify_sig_lean_sphincs`, set by `H_msg`'s first call. -/
 def sPad : Nat := 353
 /-- `R`, the randomizer. -/
-def sRho : V := .n 347
+def sRand : V := .n 347
 /-- The first call's output run and its two digest cells. -/
-def sD0 : V := .n 358
-def sD0b : V := .n 359
+def sHm0 : V := .n 358
+def sHm0b : V := .n 359
 /-- The second call's output run and its first cell. -/
-def sD1 : V := .n 379
+def sHm1 : V := .n 379
 
 /-- `g^255`, as the compiler writes it: the bound of a byte's range check. -/
 def g255W : E := word 9223372036854810629 0 0
@@ -151,13 +151,13 @@ def sMsg : List Stmt :=
 /-- The inputs of `H_msg`'s call whose tail run is at `t`: `R`, `PK.seed`, `PK.root`, `m0`, the tail
 `[m1, m2, BE_32(i)'s last byte with the 0x01 after it, 0]`, the `0x80` at `t + 4`, the zero run. -/
 def sHIns (t : Nat) : List V :=
-  [sRho, sPP, sRoot, sM0, .n t, .n (t + 1), .n (t + 2), .n (t + 3), .n (t + 4),
+  [sRand, sPP, sRoot, sM0, .n t, .n (t + 1), .n (t + 2), .n (t + 3), .n (t + 4),
     .n (sPad + 1), .n (sPad + 2), .n (sPad + 3), .n (sPad + 4)]
 
 /-- `R` hinted, then `H_msg`'s two calls: the first (`i = 0`) with the padding run after its
 inputs, the second (`i = 1`) with its counter `1` XORed with the `0x01` byte. -/
 def sDigests : List Stmt :=
-  [hintW "sp_rand" [sRho], copyS (.n 348) sM1, copyS (.n 349) sM2, cst 350 (word 256 0 0),
+  [hintW "sp_rand" [sRand], copyS (.n 348) sM1, copyS (.n 349) sM2, cst 350 (word 256 0 0),
     cst 351 (word 0 0 0), cst 352 (word (2 ^ 63) 0 0)] ++ padRun sPad ++
   [kecS (sHIns 348) (runV 358 13) false false,
     cst 371 (word 1 0 0), cst 372 (word 256 0 0), addS (.n 373) (.n 371) (.n 372),
@@ -169,9 +169,9 @@ def sDigests : List Stmt :=
 /-- The first call's two cells' bits (`bits0`, `bits1`: one run from `n392`) and the second's low
 sixteen (`bits2`, from `n648`), hinted. -/
 def sBitsHint : List Stmt :=
-  [.atom (.hint (.bits sD0 0 128 (.stack (runV 392 128)))),
-    .atom (.hint (.bits sD0b 0 128 (.stack (runV 520 128)))),
-    .atom (.hint (.bits sD1 0 16 (.stack (runV 648 16))))]
+  [.atom (.hint (.bits sHm0 0 128 (.stack (runV 392 128)))),
+    .atom (.hint (.bits sHm0b 0 128 (.stack (runV 520 128)))),
+    .atom (.hint (.bits sHm1 0 16 (.stack (runV 648 16))))]
 
 /-- The bits pinned Boolean: `bits0[b]`, `bits1[b]` in turn, then `bits2`. -/
 def sBooleans : List Stmt :=
@@ -288,11 +288,11 @@ def sUnused : List Stmt × Nat × V := sFromMarks 1644 6 1650
 def sCheck : List Stmt :=
   [cst 1618 (word 256 0 0), mulS (.n 1619) (sLVal 24) (.n 1618), addS sTreeMid (sLVal 16) (.n 1619)] ++
     sPadBits ++
-  [copyS sD0 sMd0.2.2, cst 1636 (word 4 0 0), mulS (.n 1637) (.n 1635) (.n 1636),
+  [copyS sHm0 sMd0.2.2, cst 1636 (word 4 0 0), mulS (.n 1637) (.n 1635) (.n 1636),
     addS (.n 1638) (sLVal 24) (.n 1637), cst 1639 (pw 112), mulS (.n 1640) (.n 1638) (.n 1639),
     addS (.n 1641) sMd1.2.2 (.n 1640), cst 1642 (pw 120), mulS (.n 1643) sTreeMid (.n 1642),
-    addS sD0b (.n 1641) (.n 1643), hintW "sp_unused" (runV 1644 6)] ++ sUnused.1 ++
-  [addS (.n 1701) sD1 (sLVal 8), cst 1702 (word 256 0 0), mulS (.n 1703) (sLVal 0) (.n 1702),
+    addS sHm0b (.n 1641) (.n 1643), hintW "sp_unused" (runV 1644 6)] ++ sUnused.1 ++
+  [addS (.n 1701) sHm1 (sLVal 8), cst 1702 (word 256 0 0), mulS (.n 1703) (sLVal 0) (.n 1702),
     addS (.n 1704) (.n 1701) (.n 1703), cst 1705 (word 65536 0 0),
     mulS (.n 1706) sUnused.2.2 (.n 1705), addS (.n 1707) (.n 1704) (.n 1706),
     cst 1708 (word 1 0 1), mulS (.n 1709) (.n 1707) (.n 1708),
