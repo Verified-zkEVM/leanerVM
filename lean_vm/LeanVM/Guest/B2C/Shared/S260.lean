@@ -16,108 +16,108 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop346`, once. -/
-theorem st824 : shareStatic 824 = true := by decide +kernel
+/-- `__loop322`, once. -/
+theorem st800 : shareStatic 800 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop346`, window 0. -/
-theorem w824_0 : shareWin 824 (snapsOf 824) 0 = true := by decide +kernel
+/-- `__loop322`, window 0. -/
+theorem w800_0 : shareWin 800 (snapsOf 800) 0 = true := by decide +kernel
 
-theorem ok824 : ShareOk 824 := ⟨st824, fun i hi ↦ by
-  have h : (snapsOf 824).length = 0 := by decide +kernel
+theorem ok800 : ShareOk 800 := ⟨st800, fun i hi ↦ by
+  have h : (snapsOf 800).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w824_0⟩
+  exact w800_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop347`, once. -/
-theorem st825 : shareStatic 825 = true := by decide +kernel
+/-- `__loop323`, once. -/
+theorem st801 : shareStatic 801 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop347`, window 0. -/
-theorem w825_0 : shareWin 825 (snapsOf 825) 0 = true := by decide +kernel
+/-- `__loop323`, window 0. -/
+theorem w801_0 : shareWin 801 (snapsOf 801) 0 = true := by decide +kernel
 
-theorem ok825 : ShareOk 825 := ⟨st825, fun i hi ↦ by
-  have h : (snapsOf 825).length = 0 := by decide +kernel
+theorem ok801 : ShareOk 801 := ⟨st801, fun i hi ↦ by
+  have h : (snapsOf 801).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w825_0⟩
+  exact w801_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop348`, once. -/
-theorem st826 : shareStatic 826 = true := by decide +kernel
+/-- `__loop324`, once. -/
+theorem st802 : shareStatic 802 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop348`, window 0. -/
-theorem w826_0 : shareWin 826 (snapsOf 826) 0 = true := by decide +kernel
+/-- `__loop324`, window 0. -/
+theorem w802_0 : shareWin 802 (snapsOf 802) 0 = true := by decide +kernel
 
-theorem ok826 : ShareOk 826 := ⟨st826, fun i hi ↦ by
-  have h : (snapsOf 826).length = 0 := by decide +kernel
+theorem ok802 : ShareOk 802 := ⟨st802, fun i hi ↦ by
+  have h : (snapsOf 802).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w826_0⟩
+  exact w802_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop349`, once. -/
-theorem st827 : shareStatic 827 = true := by decide +kernel
+/-- `__loop325`, once. -/
+theorem st803 : shareStatic 803 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop349`, window 0. -/
-theorem w827_0 : shareWin 827 (snapsOf 827) 0 = true := by decide +kernel
+/-- `__loop325`, window 0. -/
+theorem w803_0 : shareWin 803 (snapsOf 803) 0 = true := by decide +kernel
 
-theorem ok827 : ShareOk 827 := ⟨st827, fun i hi ↦ by
-  have h : (snapsOf 827).length = 0 := by decide +kernel
+theorem ok803 : ShareOk 803 := ⟨st803, fun i hi ↦ by
+  have h : (snapsOf 803).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w827_0⟩
+  exact w803_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop350`, once. -/
-theorem st828 : shareStatic 828 = true := by decide +kernel
+/-- `__loop326`, once. -/
+theorem st804 : shareStatic 804 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop350`, window 0. -/
-theorem w828_0 : shareWin 828 (snapsOf 828) 0 = true := by decide +kernel
+/-- `__loop326`, window 0. -/
+theorem w804_0 : shareWin 804 (snapsOf 804) 0 = true := by decide +kernel
 
-theorem ok828 : ShareOk 828 := ⟨st828, fun i hi ↦ by
-  have h : (snapsOf 828).length = 0 := by decide +kernel
+theorem ok804 : ShareOk 804 := ⟨st804, fun i hi ↦ by
+  have h : (snapsOf 804).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w828_0⟩
+  exact w804_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop351`, once. -/
-theorem st829 : shareStatic 829 = true := by decide +kernel
+/-- `__loop327`, once. -/
+theorem st805 : shareStatic 805 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop351`, window 0. -/
-theorem w829_0 : shareWin 829 (snapsOf 829) 0 = true := by decide +kernel
+/-- `__loop327`, window 0. -/
+theorem w805_0 : shareWin 805 (snapsOf 805) 0 = true := by decide +kernel
 
-theorem ok829 : ShareOk 829 := ⟨st829, fun i hi ↦ by
-  have h : (snapsOf 829).length = 0 := by decide +kernel
+theorem ok805 : ShareOk 805 := ⟨st805, fun i hi ↦ by
+  have h : (snapsOf 805).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w829_0⟩
+  exact w805_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop352`, once. -/
-theorem st830 : shareStatic 830 = true := by decide +kernel
+/-- `__loop328`, once. -/
+theorem st806 : shareStatic 806 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop352`, window 0. -/
-theorem w830_0 : shareWin 830 (snapsOf 830) 0 = true := by decide +kernel
+/-- `__loop328`, window 0. -/
+theorem w806_0 : shareWin 806 (snapsOf 806) 0 = true := by decide +kernel
 
-theorem ok830 : ShareOk 830 := ⟨st830, fun i hi ↦ by
-  have h : (snapsOf 830).length = 0 := by decide +kernel
+theorem ok806 : ShareOk 806 := ⟨st806, fun i hi ↦ by
+  have h : (snapsOf 806).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w830_0⟩
+  exact w806_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop353`, once. -/
-theorem st831 : shareStatic 831 = true := by decide +kernel
+/-- `__loop329`, once. -/
+theorem st807 : shareStatic 807 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop353`, window 0. -/
-theorem w831_0 : shareWin 831 (snapsOf 831) 0 = true := by decide +kernel
+/-- `__loop329`, window 0. -/
+theorem w807_0 : shareWin 807 (snapsOf 807) 0 = true := by decide +kernel
 
-theorem ok831 : ShareOk 831 := ⟨st831, fun i hi ↦ by
-  have h : (snapsOf 831).length = 0 := by decide +kernel
+theorem ok807 : ShareOk 807 := ⟨st807, fun i hi ↦ by
+  have h : (snapsOf 807).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w831_0⟩
+  exact w807_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

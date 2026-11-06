@@ -30,4353 +30,6193 @@ end core19
 /-- `sp_wots`. -/
 noncomputable def core19 : Core.Fn where
   name := "sp_wots"
-  params := [.n 0, .n 1, .n 2]
+  params := [.n 0, .n 1, .n 2, .n 3]
   body := core19.body
 
 namespace core20
 
-/-- `verify_sig_lean_sphincs`: statements 0 to 539 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 0 to 495 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
-  .atom (.load (.n 2) (.n 0) 1) ::
-  .atom (.hint (.witness "sp_rand" (.stack [.n 3]))) ::
-  .atom (.const (.n 4) (word 864691128455135232 0 0)) ::
-  .atom (.load (.n 5) (.n 0) 2) ::
-  .atom (.load (.n 6) (.n 0) 3) ::
-  .atom (.copy (.n 7) (.n 3)) ::
-  .atom (.const (.n 8) (word 1 0 0)) ::
-  .atom (.const (.n 9) (word 0 0 0)) ::
-  .atom (.const (.n 10) (word 0 0 0)) ::
-  .atom (.const (.n 11) (word 9223372036854775808 0 0)) ::
-  .atom (.const (.n 12) (word 1 0 0)) ::
-  .atom (.const (.n 13) (word 0 0 0)) ::
-  .atom (.const (.n 14) (word 0 0 0)) ::
-  .atom (.const (.n 15) (word 0 0 0)) ::
-  .atom (.const (.n 16) (word 0 0 0)) ::
-  .atom (.keccak [.n 2, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 13, .n 14, .n 15, .n 16] [.n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29] false false) ::
-  .atom (.const (.n 30) (word 864691132750102528 0 0)) ::
-  .atom (.load (.n 31) (.n 0) 2) ::
-  .atom (.load (.n 32) (.n 0) 3) ::
-  .atom (.copy (.n 33) (.n 3)) ::
-  .atom (.const (.n 34) (word 1 0 0)) ::
-  .atom (.const (.n 35) (word 0 0 0)) ::
-  .atom (.const (.n 36) (word 0 0 0)) ::
-  .atom (.const (.n 37) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 13, .n 14, .n 15, .n 16] [.n 38, .n 39, .n 40, .n 41, .n 42, .n 43, .n 44, .n 45, .n 46, .n 47, .n 48, .n 49, .n 50] false false) ::
-  .atom (.hint (.bits (.n 17) 0 128 (.stack (.n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: .n 56 :: .n 57 :: .n 58 :: .n 59 :: .n 60 :: .n 61 :: .n 62 :: .n 63 :: .n 64 :: .n 65 :: .n 66 :: .n 67 :: .n 68 :: .n 69 :: .n 70 :: .n 71 :: .n 72 :: .n 73 :: .n 74 :: .n 75 :: .n 76 :: .n 77 :: .n 78 :: .n 79 :: .n 80 :: .n 81 :: .n 82 :: .n 83 :: .n 84 :: .n 85 :: .n 86 :: .n 87 :: .n 88 :: .n 89 :: .n 90 :: .n 91 :: .n 92 :: .n 93 :: .n 94 :: .n 95 :: .n 96 :: .n 97 :: .n 98 :: .n 99 :: .n 100 :: .n 101 :: .n 102 :: .n 103 :: .n 104 :: .n 105 :: .n 106 :: .n 107 :: .n 108 :: .n 109 :: .n 110 :: .n 111 :: .n 112 :: .n 113 :: .n 114 :: .n 115 :: .n 116 :: .n 117 :: .n 118 :: .n 119 :: .n 120 :: .n 121 :: .n 122 :: .n 123 :: .n 124 :: .n 125 :: .n 126 :: .n 127 :: .n 128 :: .n 129 :: .n 130 :: .n 131 :: .n 132 :: .n 133 :: .n 134 :: .n 135 :: .n 136 :: .n 137 :: .n 138 :: .n 139 :: .n 140 :: .n 141 :: .n 142 :: .n 143 :: .n 144 :: .n 145 :: .n 146 :: .n 147 :: .n 148 :: .n 149 :: .n 150 :: .n 151 :: .n 152 :: .n 153 :: .n 154 :: .n 155 :: .n 156 :: .n 157 :: .n 158 :: .n 159 :: .n 160 :: .n 161 :: .n 162 :: .n 163 :: .n 164 :: .n 165 :: .n 166 :: .n 167 :: .n 168 :: .n 169 :: .n 170 :: .n 171 :: .n 172 :: .n 173 :: .n 174 :: .n 175 :: .n 176 :: .n 177 :: .n 178 :: [])))) ::
-  .atom (.hint (.bits (.n 18) 0 128 (.stack (.n 179 :: .n 180 :: .n 181 :: .n 182 :: .n 183 :: .n 184 :: .n 185 :: .n 186 :: .n 187 :: .n 188 :: .n 189 :: .n 190 :: .n 191 :: .n 192 :: .n 193 :: .n 194 :: .n 195 :: .n 196 :: .n 197 :: .n 198 :: .n 199 :: .n 200 :: .n 201 :: .n 202 :: .n 203 :: .n 204 :: .n 205 :: .n 206 :: .n 207 :: .n 208 :: .n 209 :: .n 210 :: .n 211 :: .n 212 :: .n 213 :: .n 214 :: .n 215 :: .n 216 :: .n 217 :: .n 218 :: .n 219 :: .n 220 :: .n 221 :: .n 222 :: .n 223 :: .n 224 :: .n 225 :: .n 226 :: .n 227 :: .n 228 :: .n 229 :: .n 230 :: .n 231 :: .n 232 :: .n 233 :: .n 234 :: .n 235 :: .n 236 :: .n 237 :: .n 238 :: .n 239 :: .n 240 :: .n 241 :: .n 242 :: .n 243 :: .n 244 :: .n 245 :: .n 246 :: .n 247 :: .n 248 :: .n 249 :: .n 250 :: .n 251 :: .n 252 :: .n 253 :: .n 254 :: .n 255 :: .n 256 :: .n 257 :: .n 258 :: .n 259 :: .n 260 :: .n 261 :: .n 262 :: .n 263 :: .n 264 :: .n 265 :: .n 266 :: .n 267 :: .n 268 :: .n 269 :: .n 270 :: .n 271 :: .n 272 :: .n 273 :: .n 274 :: .n 275 :: .n 276 :: .n 277 :: .n 278 :: .n 279 :: .n 280 :: .n 281 :: .n 282 :: .n 283 :: .n 284 :: .n 285 :: .n 286 :: .n 287 :: .n 288 :: .n 289 :: .n 290 :: .n 291 :: .n 292 :: .n 293 :: .n 294 :: .n 295 :: .n 296 :: .n 297 :: .n 298 :: .n 299 :: .n 300 :: .n 301 :: .n 302 :: .n 303 :: .n 304 :: .n 305 :: .n 306 :: [])))) ::
-  .atom (.hint (.bits (.n 38) 0 10 (.stack [.n 307, .n 308, .n 309, .n 310, .n 311, .n 312, .n 313, .n 314, .n 315, .n 316]))) ::
-  .atom (.mul (.n 51) (.n 51) (.n 51)) ::
-  .atom (.mul (.n 179) (.n 179) (.n 179)) ::
-  .atom (.mul (.n 52) (.n 52) (.n 52)) ::
-  .atom (.mul (.n 180) (.n 180) (.n 180)) ::
-  .atom (.mul (.n 53) (.n 53) (.n 53)) ::
-  .atom (.mul (.n 181) (.n 181) (.n 181)) ::
-  .atom (.mul (.n 54) (.n 54) (.n 54)) ::
-  .atom (.mul (.n 182) (.n 182) (.n 182)) ::
-  .atom (.mul (.n 55) (.n 55) (.n 55)) ::
-  .atom (.mul (.n 183) (.n 183) (.n 183)) ::
-  .atom (.mul (.n 56) (.n 56) (.n 56)) ::
-  .atom (.mul (.n 184) (.n 184) (.n 184)) ::
-  .atom (.mul (.n 57) (.n 57) (.n 57)) ::
-  .atom (.mul (.n 185) (.n 185) (.n 185)) ::
-  .atom (.mul (.n 58) (.n 58) (.n 58)) ::
-  .atom (.mul (.n 186) (.n 186) (.n 186)) ::
-  .atom (.mul (.n 59) (.n 59) (.n 59)) ::
-  .atom (.mul (.n 187) (.n 187) (.n 187)) ::
-  .atom (.mul (.n 60) (.n 60) (.n 60)) ::
-  .atom (.mul (.n 188) (.n 188) (.n 188)) ::
-  .atom (.mul (.n 61) (.n 61) (.n 61)) ::
-  .atom (.mul (.n 189) (.n 189) (.n 189)) ::
-  .atom (.mul (.n 62) (.n 62) (.n 62)) ::
-  .atom (.mul (.n 190) (.n 190) (.n 190)) ::
-  .atom (.mul (.n 63) (.n 63) (.n 63)) ::
-  .atom (.mul (.n 191) (.n 191) (.n 191)) ::
-  .atom (.mul (.n 64) (.n 64) (.n 64)) ::
-  .atom (.mul (.n 192) (.n 192) (.n 192)) ::
-  .atom (.mul (.n 65) (.n 65) (.n 65)) ::
-  .atom (.mul (.n 193) (.n 193) (.n 193)) ::
-  .atom (.mul (.n 66) (.n 66) (.n 66)) ::
-  .atom (.mul (.n 194) (.n 194) (.n 194)) ::
-  .atom (.mul (.n 67) (.n 67) (.n 67)) ::
-  .atom (.mul (.n 195) (.n 195) (.n 195)) ::
-  .atom (.mul (.n 68) (.n 68) (.n 68)) ::
-  .atom (.mul (.n 196) (.n 196) (.n 196)) ::
-  .atom (.mul (.n 69) (.n 69) (.n 69)) ::
-  .atom (.mul (.n 197) (.n 197) (.n 197)) ::
-  .atom (.mul (.n 70) (.n 70) (.n 70)) ::
-  .atom (.mul (.n 198) (.n 198) (.n 198)) ::
-  .atom (.mul (.n 71) (.n 71) (.n 71)) ::
-  .atom (.mul (.n 199) (.n 199) (.n 199)) ::
-  .atom (.mul (.n 72) (.n 72) (.n 72)) ::
-  .atom (.mul (.n 200) (.n 200) (.n 200)) ::
-  .atom (.mul (.n 73) (.n 73) (.n 73)) ::
-  .atom (.mul (.n 201) (.n 201) (.n 201)) ::
-  .atom (.mul (.n 74) (.n 74) (.n 74)) ::
-  .atom (.mul (.n 202) (.n 202) (.n 202)) ::
-  .atom (.mul (.n 75) (.n 75) (.n 75)) ::
-  .atom (.mul (.n 203) (.n 203) (.n 203)) ::
-  .atom (.mul (.n 76) (.n 76) (.n 76)) ::
-  .atom (.mul (.n 204) (.n 204) (.n 204)) ::
-  .atom (.mul (.n 77) (.n 77) (.n 77)) ::
-  .atom (.mul (.n 205) (.n 205) (.n 205)) ::
-  .atom (.mul (.n 78) (.n 78) (.n 78)) ::
-  .atom (.mul (.n 206) (.n 206) (.n 206)) ::
-  .atom (.mul (.n 79) (.n 79) (.n 79)) ::
-  .atom (.mul (.n 207) (.n 207) (.n 207)) ::
-  .atom (.mul (.n 80) (.n 80) (.n 80)) ::
-  .atom (.mul (.n 208) (.n 208) (.n 208)) ::
-  .atom (.mul (.n 81) (.n 81) (.n 81)) ::
-  .atom (.mul (.n 209) (.n 209) (.n 209)) ::
-  .atom (.mul (.n 82) (.n 82) (.n 82)) ::
-  .atom (.mul (.n 210) (.n 210) (.n 210)) ::
-  .atom (.mul (.n 83) (.n 83) (.n 83)) ::
-  .atom (.mul (.n 211) (.n 211) (.n 211)) ::
-  .atom (.mul (.n 84) (.n 84) (.n 84)) ::
-  .atom (.mul (.n 212) (.n 212) (.n 212)) ::
-  .atom (.mul (.n 85) (.n 85) (.n 85)) ::
-  .atom (.mul (.n 213) (.n 213) (.n 213)) ::
-  .atom (.mul (.n 86) (.n 86) (.n 86)) ::
-  .atom (.mul (.n 214) (.n 214) (.n 214)) ::
-  .atom (.mul (.n 87) (.n 87) (.n 87)) ::
-  .atom (.mul (.n 215) (.n 215) (.n 215)) ::
-  .atom (.mul (.n 88) (.n 88) (.n 88)) ::
-  .atom (.mul (.n 216) (.n 216) (.n 216)) ::
-  .atom (.mul (.n 89) (.n 89) (.n 89)) ::
-  .atom (.mul (.n 217) (.n 217) (.n 217)) ::
-  .atom (.mul (.n 90) (.n 90) (.n 90)) ::
-  .atom (.mul (.n 218) (.n 218) (.n 218)) ::
-  .atom (.mul (.n 91) (.n 91) (.n 91)) ::
-  .atom (.mul (.n 219) (.n 219) (.n 219)) ::
-  .atom (.mul (.n 92) (.n 92) (.n 92)) ::
-  .atom (.mul (.n 220) (.n 220) (.n 220)) ::
-  .atom (.mul (.n 93) (.n 93) (.n 93)) ::
-  .atom (.mul (.n 221) (.n 221) (.n 221)) ::
-  .atom (.mul (.n 94) (.n 94) (.n 94)) ::
-  .atom (.mul (.n 222) (.n 222) (.n 222)) ::
-  .atom (.mul (.n 95) (.n 95) (.n 95)) ::
-  .atom (.mul (.n 223) (.n 223) (.n 223)) ::
-  .atom (.mul (.n 96) (.n 96) (.n 96)) ::
-  .atom (.mul (.n 224) (.n 224) (.n 224)) ::
-  .atom (.mul (.n 97) (.n 97) (.n 97)) ::
-  .atom (.mul (.n 225) (.n 225) (.n 225)) ::
-  .atom (.mul (.n 98) (.n 98) (.n 98)) ::
-  .atom (.mul (.n 226) (.n 226) (.n 226)) ::
-  .atom (.mul (.n 99) (.n 99) (.n 99)) ::
-  .atom (.mul (.n 227) (.n 227) (.n 227)) ::
-  .atom (.mul (.n 100) (.n 100) (.n 100)) ::
-  .atom (.mul (.n 228) (.n 228) (.n 228)) ::
-  .atom (.mul (.n 101) (.n 101) (.n 101)) ::
-  .atom (.mul (.n 229) (.n 229) (.n 229)) ::
-  .atom (.mul (.n 102) (.n 102) (.n 102)) ::
-  .atom (.mul (.n 230) (.n 230) (.n 230)) ::
-  .atom (.mul (.n 103) (.n 103) (.n 103)) ::
-  .atom (.mul (.n 231) (.n 231) (.n 231)) ::
-  .atom (.mul (.n 104) (.n 104) (.n 104)) ::
-  .atom (.mul (.n 232) (.n 232) (.n 232)) ::
-  .atom (.mul (.n 105) (.n 105) (.n 105)) ::
-  .atom (.mul (.n 233) (.n 233) (.n 233)) ::
-  .atom (.mul (.n 106) (.n 106) (.n 106)) ::
-  .atom (.mul (.n 234) (.n 234) (.n 234)) ::
-  .atom (.mul (.n 107) (.n 107) (.n 107)) ::
-  .atom (.mul (.n 235) (.n 235) (.n 235)) ::
-  .atom (.mul (.n 108) (.n 108) (.n 108)) ::
-  .atom (.mul (.n 236) (.n 236) (.n 236)) ::
-  .atom (.mul (.n 109) (.n 109) (.n 109)) ::
-  .atom (.mul (.n 237) (.n 237) (.n 237)) ::
-  .atom (.mul (.n 110) (.n 110) (.n 110)) ::
-  .atom (.mul (.n 238) (.n 238) (.n 238)) ::
-  .atom (.mul (.n 111) (.n 111) (.n 111)) ::
-  .atom (.mul (.n 239) (.n 239) (.n 239)) ::
-  .atom (.mul (.n 112) (.n 112) (.n 112)) ::
-  .atom (.mul (.n 240) (.n 240) (.n 240)) ::
-  .atom (.mul (.n 113) (.n 113) (.n 113)) ::
-  .atom (.mul (.n 241) (.n 241) (.n 241)) ::
-  .atom (.mul (.n 114) (.n 114) (.n 114)) ::
-  .atom (.mul (.n 242) (.n 242) (.n 242)) ::
-  .atom (.mul (.n 115) (.n 115) (.n 115)) ::
-  .atom (.mul (.n 243) (.n 243) (.n 243)) ::
-  .atom (.mul (.n 116) (.n 116) (.n 116)) ::
-  .atom (.mul (.n 244) (.n 244) (.n 244)) ::
-  .atom (.mul (.n 117) (.n 117) (.n 117)) ::
-  .atom (.mul (.n 245) (.n 245) (.n 245)) ::
-  .atom (.mul (.n 118) (.n 118) (.n 118)) ::
-  .atom (.mul (.n 246) (.n 246) (.n 246)) ::
-  .atom (.mul (.n 119) (.n 119) (.n 119)) ::
-  .atom (.mul (.n 247) (.n 247) (.n 247)) ::
-  .atom (.mul (.n 120) (.n 120) (.n 120)) ::
-  .atom (.mul (.n 248) (.n 248) (.n 248)) ::
-  .atom (.mul (.n 121) (.n 121) (.n 121)) ::
-  .atom (.mul (.n 249) (.n 249) (.n 249)) ::
-  .atom (.mul (.n 122) (.n 122) (.n 122)) ::
-  .atom (.mul (.n 250) (.n 250) (.n 250)) ::
-  .atom (.mul (.n 123) (.n 123) (.n 123)) ::
-  .atom (.mul (.n 251) (.n 251) (.n 251)) ::
-  .atom (.mul (.n 124) (.n 124) (.n 124)) ::
-  .atom (.mul (.n 252) (.n 252) (.n 252)) ::
-  .atom (.mul (.n 125) (.n 125) (.n 125)) ::
-  .atom (.mul (.n 253) (.n 253) (.n 253)) ::
-  .atom (.mul (.n 126) (.n 126) (.n 126)) ::
-  .atom (.mul (.n 254) (.n 254) (.n 254)) ::
-  .atom (.mul (.n 127) (.n 127) (.n 127)) ::
-  .atom (.mul (.n 255) (.n 255) (.n 255)) ::
-  .atom (.mul (.n 128) (.n 128) (.n 128)) ::
-  .atom (.mul (.n 256) (.n 256) (.n 256)) ::
-  .atom (.mul (.n 129) (.n 129) (.n 129)) ::
-  .atom (.mul (.n 257) (.n 257) (.n 257)) ::
-  .atom (.mul (.n 130) (.n 130) (.n 130)) ::
-  .atom (.mul (.n 258) (.n 258) (.n 258)) ::
-  .atom (.mul (.n 131) (.n 131) (.n 131)) ::
-  .atom (.mul (.n 259) (.n 259) (.n 259)) ::
-  .atom (.mul (.n 132) (.n 132) (.n 132)) ::
-  .atom (.mul (.n 260) (.n 260) (.n 260)) ::
-  .atom (.mul (.n 133) (.n 133) (.n 133)) ::
-  .atom (.mul (.n 261) (.n 261) (.n 261)) ::
-  .atom (.mul (.n 134) (.n 134) (.n 134)) ::
-  .atom (.mul (.n 262) (.n 262) (.n 262)) ::
-  .atom (.mul (.n 135) (.n 135) (.n 135)) ::
-  .atom (.mul (.n 263) (.n 263) (.n 263)) ::
-  .atom (.mul (.n 136) (.n 136) (.n 136)) ::
-  .atom (.mul (.n 264) (.n 264) (.n 264)) ::
-  .atom (.mul (.n 137) (.n 137) (.n 137)) ::
-  .atom (.mul (.n 265) (.n 265) (.n 265)) ::
-  .atom (.mul (.n 138) (.n 138) (.n 138)) ::
-  .atom (.mul (.n 266) (.n 266) (.n 266)) ::
-  .atom (.mul (.n 139) (.n 139) (.n 139)) ::
-  .atom (.mul (.n 267) (.n 267) (.n 267)) ::
-  .atom (.mul (.n 140) (.n 140) (.n 140)) ::
-  .atom (.mul (.n 268) (.n 268) (.n 268)) ::
-  .atom (.mul (.n 141) (.n 141) (.n 141)) ::
-  .atom (.mul (.n 269) (.n 269) (.n 269)) ::
-  .atom (.mul (.n 142) (.n 142) (.n 142)) ::
-  .atom (.mul (.n 270) (.n 270) (.n 270)) ::
-  .atom (.mul (.n 143) (.n 143) (.n 143)) ::
-  .atom (.mul (.n 271) (.n 271) (.n 271)) ::
-  .atom (.mul (.n 144) (.n 144) (.n 144)) ::
-  .atom (.mul (.n 272) (.n 272) (.n 272)) ::
-  .atom (.mul (.n 145) (.n 145) (.n 145)) ::
-  .atom (.mul (.n 273) (.n 273) (.n 273)) ::
-  .atom (.mul (.n 146) (.n 146) (.n 146)) ::
-  .atom (.mul (.n 274) (.n 274) (.n 274)) ::
-  .atom (.mul (.n 147) (.n 147) (.n 147)) ::
-  .atom (.mul (.n 275) (.n 275) (.n 275)) ::
-  .atom (.mul (.n 148) (.n 148) (.n 148)) ::
-  .atom (.mul (.n 276) (.n 276) (.n 276)) ::
-  .atom (.mul (.n 149) (.n 149) (.n 149)) ::
-  .atom (.mul (.n 277) (.n 277) (.n 277)) ::
-  .atom (.mul (.n 150) (.n 150) (.n 150)) ::
-  .atom (.mul (.n 278) (.n 278) (.n 278)) ::
-  .atom (.mul (.n 151) (.n 151) (.n 151)) ::
-  .atom (.mul (.n 279) (.n 279) (.n 279)) ::
-  .atom (.mul (.n 152) (.n 152) (.n 152)) ::
-  .atom (.mul (.n 280) (.n 280) (.n 280)) ::
-  .atom (.mul (.n 153) (.n 153) (.n 153)) ::
-  .atom (.mul (.n 281) (.n 281) (.n 281)) ::
-  .atom (.mul (.n 154) (.n 154) (.n 154)) ::
-  .atom (.mul (.n 282) (.n 282) (.n 282)) ::
-  .atom (.mul (.n 155) (.n 155) (.n 155)) ::
-  .atom (.mul (.n 283) (.n 283) (.n 283)) ::
-  .atom (.mul (.n 156) (.n 156) (.n 156)) ::
-  .atom (.mul (.n 284) (.n 284) (.n 284)) ::
-  .atom (.mul (.n 157) (.n 157) (.n 157)) ::
-  .atom (.mul (.n 285) (.n 285) (.n 285)) ::
-  .atom (.mul (.n 158) (.n 158) (.n 158)) ::
-  .atom (.mul (.n 286) (.n 286) (.n 286)) ::
-  .atom (.mul (.n 159) (.n 159) (.n 159)) ::
-  .atom (.mul (.n 287) (.n 287) (.n 287)) ::
-  .atom (.mul (.n 160) (.n 160) (.n 160)) ::
-  .atom (.mul (.n 288) (.n 288) (.n 288)) ::
-  .atom (.mul (.n 161) (.n 161) (.n 161)) ::
-  .atom (.mul (.n 289) (.n 289) (.n 289)) ::
-  .atom (.mul (.n 162) (.n 162) (.n 162)) ::
-  .atom (.mul (.n 290) (.n 290) (.n 290)) ::
-  .atom (.mul (.n 163) (.n 163) (.n 163)) ::
-  .atom (.mul (.n 291) (.n 291) (.n 291)) ::
-  .atom (.mul (.n 164) (.n 164) (.n 164)) ::
-  .atom (.mul (.n 292) (.n 292) (.n 292)) ::
-  .atom (.mul (.n 165) (.n 165) (.n 165)) ::
-  .atom (.mul (.n 293) (.n 293) (.n 293)) ::
-  .atom (.mul (.n 166) (.n 166) (.n 166)) ::
-  .atom (.mul (.n 294) (.n 294) (.n 294)) ::
-  .atom (.mul (.n 167) (.n 167) (.n 167)) ::
-  .atom (.mul (.n 295) (.n 295) (.n 295)) ::
-  .atom (.mul (.n 168) (.n 168) (.n 168)) ::
-  .atom (.mul (.n 296) (.n 296) (.n 296)) ::
-  .atom (.mul (.n 169) (.n 169) (.n 169)) ::
-  .atom (.mul (.n 297) (.n 297) (.n 297)) ::
-  .atom (.mul (.n 170) (.n 170) (.n 170)) ::
-  .atom (.mul (.n 298) (.n 298) (.n 298)) ::
-  .atom (.mul (.n 171) (.n 171) (.n 171)) ::
-  .atom (.mul (.n 299) (.n 299) (.n 299)) ::
-  .atom (.mul (.n 172) (.n 172) (.n 172)) ::
-  .atom (.mul (.n 300) (.n 300) (.n 300)) ::
-  .atom (.mul (.n 173) (.n 173) (.n 173)) ::
-  .atom (.mul (.n 301) (.n 301) (.n 301)) ::
-  .atom (.mul (.n 174) (.n 174) (.n 174)) ::
-  .atom (.mul (.n 302) (.n 302) (.n 302)) ::
-  .atom (.mul (.n 175) (.n 175) (.n 175)) ::
-  .atom (.mul (.n 303) (.n 303) (.n 303)) ::
-  .atom (.mul (.n 176) (.n 176) (.n 176)) ::
-  .atom (.mul (.n 304) (.n 304) (.n 304)) ::
-  .atom (.mul (.n 177) (.n 177) (.n 177)) ::
-  .atom (.mul (.n 305) (.n 305) (.n 305)) ::
-  .atom (.mul (.n 178) (.n 178) (.n 178)) ::
-  .atom (.mul (.n 306) (.n 306) (.n 306)) ::
-  .atom (.mul (.n 307) (.n 307) (.n 307)) ::
-  .atom (.mul (.n 308) (.n 308) (.n 308)) ::
-  .atom (.mul (.n 309) (.n 309) (.n 309)) ::
-  .atom (.mul (.n 310) (.n 310) (.n 310)) ::
-  .atom (.mul (.n 311) (.n 311) (.n 311)) ::
-  .atom (.mul (.n 312) (.n 312) (.n 312)) ::
-  .atom (.mul (.n 313) (.n 313) (.n 313)) ::
-  .atom (.mul (.n 314) (.n 314) (.n 314)) ::
-  .atom (.mul (.n 315) (.n 315) (.n 315)) ::
-  .atom (.mul (.n 316) (.n 316) (.n 316)) ::
-  .atom (.copy (.n 317) (.n 58)) ::
-  .atom (.const (.n 318) (word 2 0 0)) ::
-  .atom (.mul (.n 319) (.n 318) (.n 317)) ::
-  .atom (.add (.n 320) (.n 57) (.n 319)) ::
-  .atom (.const (.n 321) (word 2 0 0)) ::
-  .atom (.mul (.n 322) (.n 321) (.n 320)) ::
-  .atom (.add (.n 323) (.n 56) (.n 322)) ::
-  .atom (.const (.n 324) (word 2 0 0)) ::
-  .atom (.mul (.n 325) (.n 324) (.n 323)) ::
-  .atom (.add (.n 326) (.n 55) (.n 325)) ::
-  .atom (.const (.n 327) (word 2 0 0)) ::
-  .atom (.mul (.n 328) (.n 327) (.n 326)) ::
-  .atom (.add (.n 329) (.n 54) (.n 328)) ::
-  .atom (.const (.n 330) (word 2 0 0)) ::
-  .atom (.mul (.n 331) (.n 330) (.n 329)) ::
-  .atom (.add (.n 332) (.n 53) (.n 331)) ::
-  .atom (.const (.n 333) (word 2 0 0)) ::
-  .atom (.mul (.n 334) (.n 333) (.n 332)) ::
-  .atom (.add (.n 335) (.n 52) (.n 334)) ::
-  .atom (.const (.n 336) (word 2 0 0)) ::
-  .atom (.mul (.n 337) (.n 336) (.n 335)) ::
-  .atom (.add (.n 338) (.n 51) (.n 337)) ::
-  .atom (.copy (.n 339) (.n 66)) ::
-  .atom (.const (.n 340) (word 2 0 0)) ::
-  .atom (.mul (.n 341) (.n 340) (.n 339)) ::
-  .atom (.add (.n 342) (.n 65) (.n 341)) ::
-  .atom (.const (.n 343) (word 2 0 0)) ::
-  .atom (.mul (.n 344) (.n 343) (.n 342)) ::
-  .atom (.add (.n 345) (.n 64) (.n 344)) ::
-  .atom (.const (.n 346) (word 2 0 0)) ::
-  .atom (.mul (.n 347) (.n 346) (.n 345)) ::
-  .atom (.add (.n 348) (.n 63) (.n 347)) ::
-  .atom (.const (.n 349) (word 2 0 0)) ::
-  .atom (.mul (.n 350) (.n 349) (.n 348)) ::
-  .atom (.add (.n 351) (.n 62) (.n 350)) ::
-  .atom (.const (.n 352) (word 2 0 0)) ::
-  .atom (.mul (.n 353) (.n 352) (.n 351)) ::
-  .atom (.add (.n 354) (.n 61) (.n 353)) ::
-  .atom (.const (.n 355) (word 2 0 0)) ::
-  .atom (.mul (.n 356) (.n 355) (.n 354)) ::
-  .atom (.add (.n 357) (.n 60) (.n 356)) ::
-  .atom (.const (.n 358) (word 2 0 0)) ::
-  .atom (.mul (.n 359) (.n 358) (.n 357)) ::
-  .atom (.add (.n 360) (.n 59) (.n 359)) ::
-  .atom (.copy (.n 361) (.n 76)) ::
-  .atom (.const (.n 362) (word 2 0 0)) ::
-  .atom (.mul (.n 363) (.n 362) (.n 361)) ::
-  .atom (.add (.n 364) (.n 75) (.n 363)) ::
-  .atom (.const (.n 365) (word 2 0 0)) ::
-  .atom (.mul (.n 366) (.n 365) (.n 364)) ::
-  .atom (.add (.n 367) (.n 74) (.n 366)) ::
-  .atom (.const (.n 368) (word 2 0 0)) ::
-  .atom (.mul (.n 369) (.n 368) (.n 367)) ::
-  .atom (.add (.n 370) (.n 73) (.n 369)) ::
-  .atom (.const (.n 371) (word 2 0 0)) ::
-  .atom (.mul (.n 372) (.n 371) (.n 370)) ::
-  .atom (.add (.n 373) (.n 72) (.n 372)) ::
-  .atom (.const (.n 374) (word 2 0 0)) ::
-  .atom (.mul (.n 375) (.n 374) (.n 373)) ::
-  .atom (.add (.n 376) (.n 71) (.n 375)) ::
-  .atom (.const (.n 377) (word 2 0 0)) ::
-  .atom (.mul (.n 378) (.n 377) (.n 376)) ::
-  .atom (.add (.n 379) (.n 70) (.n 378)) ::
-  .atom (.const (.n 380) (word 2 0 0)) ::
-  .atom (.mul (.n 381) (.n 380) (.n 379)) ::
-  .atom (.add (.n 382) (.n 69) (.n 381)) ::
-  .atom (.const (.n 383) (word 2 0 0)) ::
-  .atom (.mul (.n 384) (.n 383) (.n 382)) ::
-  .atom (.add (.n 385) (.n 68) (.n 384)) ::
-  .atom (.const (.n 386) (word 2 0 0)) ::
-  .atom (.mul (.n 387) (.n 386) (.n 385)) ::
-  .atom (.add (.n 388) (.n 67) (.n 387)) ::
-  .atom (.copy (.n 389) (.n 86)) ::
-  .atom (.const (.n 390) (word 2 0 0)) ::
-  .atom (.mul (.n 391) (.n 390) (.n 389)) ::
-  .atom (.add (.n 392) (.n 85) (.n 391)) ::
-  .atom (.const (.n 393) (word 2 0 0)) ::
-  .atom (.mul (.n 394) (.n 393) (.n 392)) ::
-  .atom (.add (.n 395) (.n 84) (.n 394)) ::
-  .atom (.const (.n 396) (word 2 0 0)) ::
-  .atom (.mul (.n 397) (.n 396) (.n 395)) ::
-  .atom (.add (.n 398) (.n 83) (.n 397)) ::
-  .atom (.const (.n 399) (word 2 0 0)) ::
-  .atom (.mul (.n 400) (.n 399) (.n 398)) ::
-  .atom (.add (.n 401) (.n 82) (.n 400)) ::
-  .atom (.const (.n 402) (word 2 0 0)) ::
-  .atom (.mul (.n 403) (.n 402) (.n 401)) ::
-  .atom (.add (.n 404) (.n 81) (.n 403)) ::
-  .atom (.const (.n 405) (word 2 0 0)) ::
-  .atom (.mul (.n 406) (.n 405) (.n 404)) ::
-  .atom (.add (.n 407) (.n 80) (.n 406)) ::
-  .atom (.const (.n 408) (word 2 0 0)) ::
-  .atom (.mul (.n 409) (.n 408) (.n 407)) ::
-  .atom (.add (.n 410) (.n 79) (.n 409)) ::
-  .atom (.const (.n 411) (word 2 0 0)) ::
-  .atom (.mul (.n 412) (.n 411) (.n 410)) ::
-  .atom (.add (.n 413) (.n 78) (.n 412)) ::
-  .atom (.const (.n 414) (word 2 0 0)) ::
-  .atom (.mul (.n 415) (.n 414) (.n 413)) ::
-  .atom (.add (.n 416) (.n 77) (.n 415)) ::
-  .atom (.copy (.n 417) (.n 96)) ::
-  .atom (.const (.n 418) (word 2 0 0)) ::
-  .atom (.mul (.n 419) (.n 418) (.n 417)) ::
-  .atom (.add (.n 420) (.n 95) (.n 419)) ::
-  .atom (.const (.n 421) (word 2 0 0)) ::
-  .atom (.mul (.n 422) (.n 421) (.n 420)) ::
-  .atom (.add (.n 423) (.n 94) (.n 422)) ::
-  .atom (.const (.n 424) (word 2 0 0)) ::
-  .atom (.mul (.n 425) (.n 424) (.n 423)) ::
-  .atom (.add (.n 426) (.n 93) (.n 425)) ::
-  .atom (.const (.n 427) (word 2 0 0)) ::
-  .atom (.mul (.n 428) (.n 427) (.n 426)) ::
-  .atom (.add (.n 429) (.n 92) (.n 428)) ::
-  .atom (.const (.n 430) (word 2 0 0)) ::
-  .atom (.mul (.n 431) (.n 430) (.n 429)) ::
-  .atom (.add (.n 432) (.n 91) (.n 431)) ::
-  .atom (.const (.n 433) (word 2 0 0)) ::
-  .atom (.mul (.n 434) (.n 433) (.n 432)) ::
-  .atom (.add (.n 435) (.n 90) (.n 434)) ::
-  .atom (.const (.n 436) (word 2 0 0)) ::
-  .atom (.mul (.n 437) (.n 436) (.n 435)) ::
-  .atom (.add (.n 438) (.n 89) (.n 437)) ::
-  .atom (.const (.n 439) (word 2 0 0)) ::
-  .atom (.mul (.n 440) (.n 439) (.n 438)) ::
-  .atom (.add (.n 441) (.n 88) (.n 440)) ::
-  .atom (.const (.n 442) (word 2 0 0)) ::
-  .atom (.mul (.n 443) (.n 442) (.n 441)) ::
-  .atom (.add (.n 444) (.n 87) (.n 443)) ::
-  .atom (.copy (.n 445) (.n 106)) ::
-  .atom (.const (.n 446) (word 2 0 0)) ::
-  .atom (.mul (.n 447) (.n 446) (.n 445)) ::
-  .atom (.add (.n 448) (.n 105) (.n 447)) ::
-  .atom (.const (.n 449) (word 2 0 0)) ::
-  .atom (.mul (.n 450) (.n 449) (.n 448)) ::
-  .atom (.add (.n 451) (.n 104) (.n 450)) ::
-  .atom (.const (.n 452) (word 2 0 0)) ::
-  .atom (.mul (.n 453) (.n 452) (.n 451)) ::
-  .atom (.add (.n 454) (.n 103) (.n 453)) ::
-  .atom (.const (.n 455) (word 2 0 0)) ::
-  .atom (.mul (.n 456) (.n 455) (.n 454)) ::
-  .atom (.add (.n 457) (.n 102) (.n 456)) ::
-  .atom (.const (.n 458) (word 2 0 0)) ::
-  .atom (.mul (.n 459) (.n 458) (.n 457)) ::
-  .atom (.add (.n 460) (.n 101) (.n 459)) ::
-  .atom (.const (.n 461) (word 2 0 0)) ::
-  .atom (.mul (.n 462) (.n 461) (.n 460)) ::
-  .atom (.add (.n 463) (.n 100) (.n 462)) ::
-  .atom (.const (.n 464) (word 2 0 0)) ::
-  .atom (.mul (.n 465) (.n 464) (.n 463)) ::
-  .atom (.add (.n 466) (.n 99) (.n 465)) ::
-  .atom (.const (.n 467) (word 2 0 0)) ::
-  .atom (.mul (.n 468) (.n 467) (.n 466)) ::
-  .atom (.add (.n 469) (.n 98) (.n 468)) ::
-  .atom (.const (.n 470) (word 2 0 0)) ::
-  .atom (.mul (.n 471) (.n 470) (.n 469)) ::
-  .atom (.add (.n 472) (.n 97) (.n 471)) ::
-  .atom (.copy (.n 473) (.n 116)) ::
-  .atom (.const (.n 474) (word 2 0 0)) ::
-  .atom (.mul (.n 475) (.n 474) (.n 473)) ::
-  .atom (.add (.n 476) (.n 115) (.n 475)) ::
-  .atom (.const (.n 477) (word 2 0 0)) ::
-  .atom (.mul (.n 478) (.n 477) (.n 476)) ::
-  .atom (.add (.n 479) (.n 114) (.n 478)) ::
-  .atom (.const (.n 480) (word 2 0 0)) ::
-  .atom (.mul (.n 481) (.n 480) (.n 479)) ::
-  .atom (.add (.n 482) (.n 113) (.n 481)) ::
-  .atom (.const (.n 483) (word 2 0 0)) ::
-  .atom (.mul (.n 484) (.n 483) (.n 482)) ::
-  .atom (.add (.n 485) (.n 112) (.n 484)) ::
-  .atom (.const (.n 486) (word 2 0 0)) ::
-  .atom (.mul (.n 487) (.n 486) (.n 485)) ::
-  .atom (.add (.n 488) (.n 111) (.n 487)) ::
-  .atom (.const (.n 489) (word 2 0 0)) ::
-  .atom (.mul (.n 490) (.n 489) (.n 488)) ::
-  .atom (.add (.n 491) (.n 110) (.n 490)) ::
-  .atom (.const (.n 492) (word 2 0 0)) ::
-  .atom (.mul (.n 493) (.n 492) (.n 491)) ::
-  .atom (.add (.n 494) (.n 109) (.n 493)) ::
-  .atom (.const (.n 495) (word 2 0 0)) ::
-  .atom (.mul (.n 496) (.n 495) (.n 494)) ::
-  .atom (.add (.n 497) (.n 108) (.n 496)) ::
-  .atom (.const (.n 498) (word 2 0 0)) ::
-  .atom (.mul (.n 499) (.n 498) (.n 497)) ::
-  .atom (.add (.n 500) (.n 107) (.n 499)) ::
-  .atom (.copy (.n 501) (.n 126)) ::
-  .atom (.const (.n 502) (word 2 0 0)) ::
-  .atom (.mul (.n 503) (.n 502) (.n 501)) ::
-  .atom (.add (.n 504) (.n 125) (.n 503)) ::
-  .atom (.const (.n 505) (word 2 0 0)) ::
-  .atom (.mul (.n 506) (.n 505) (.n 504)) ::
-  .atom (.add (.n 507) (.n 124) (.n 506)) ::
-  .atom (.const (.n 508) (word 2 0 0)) ::
-  .atom (.mul (.n 509) (.n 508) (.n 507)) ::
-  .atom (.add (.n 510) (.n 123) (.n 509)) ::
-  .atom (.const (.n 511) (word 2 0 0)) ::
-  .atom (.mul (.n 512) (.n 511) (.n 510)) ::
-  .atom (.add (.n 513) (.n 122) (.n 512)) ::
-  .atom (.const (.n 514) (word 2 0 0)) ::
-  .atom (.mul (.n 515) (.n 514) (.n 513)) ::
-  .atom (.add (.n 516) (.n 121) (.n 515)) ::
-  .atom (.const (.n 517) (word 2 0 0)) ::
-  .atom (.mul (.n 518) (.n 517) (.n 516)) ::
-  .atom (.add (.n 519) (.n 120) (.n 518)) ::
-  .atom (.const (.n 520) (word 2 0 0)) ::
-  .atom (.mul (.n 521) (.n 520) (.n 519)) ::
-  .atom (.add (.n 522) (.n 119) (.n 521)) ::
-  .atom (.const (.n 523) (word 2 0 0)) ::
-  .atom (.mul (.n 524) (.n 523) (.n 522)) ::
-  .atom (.add (.n 525) (.n 118) (.n 524)) ::
-  .atom (.const (.n 526) (word 2 0 0)) ::
-  .atom (.mul (.n 527) (.n 526) (.n 525)) ::
-  .atom (.add (.n 528) (.n 117) (.n 527)) ::
-  .atom (.copy (.n 529) (.n 136)) ::
-  .atom (.const (.n 530) (word 2 0 0)) ::
-  .atom (.mul (.n 531) (.n 530) (.n 529)) ::
-  .atom (.add (.n 532) (.n 135) (.n 531)) ::
-  .atom (.const (.n 533) (word 2 0 0)) ::
-  .atom (.mul (.n 534) (.n 533) (.n 532)) ::
-  .atom (.add (.n 535) (.n 134) (.n 534)) ::
-  .atom (.const (.n 536) (word 2 0 0)) ::
-  .atom (.mul (.n 537) (.n 536) (.n 535)) ::
-  .atom (.add (.n 538) (.n 133) (.n 537)) ::
-  .atom (.const (.n 539) (word 2 0 0)) ::
-  .atom (.mul (.n 540) (.n 539) (.n 538)) ::
-  .atom (.add (.n 541) (.n 132) (.n 540)) ::
-  .atom (.const (.n 542) (word 2 0 0)) ::
-  .atom (.mul (.n 543) (.n 542) (.n 541)) ::
-  .atom (.add (.n 544) (.n 131) (.n 543)) ::
-  .atom (.const (.n 545) (word 2 0 0)) ::
-  .atom (.mul (.n 546) (.n 545) (.n 544)) ::
-  .atom (.add (.n 547) (.n 130) (.n 546)) ::
-  .atom (.const (.n 548) (word 2 0 0)) ::
-  .atom (.mul (.n 549) (.n 548) (.n 547)) ::
-  .atom (.add (.n 550) (.n 129) (.n 549)) ::
-  .atom (.const (.n 551) (word 2 0 0)) ::
-  .atom (.mul (.n 552) (.n 551) (.n 550)) ::
-  .atom (.add (.n 553) (.n 128) (.n 552)) ::
-  .atom (.const (.n 554) (word 2 0 0)) ::
-  .atom (.mul (.n 555) (.n 554) (.n 553)) ::
-  .atom (.add (.n 556) (.n 127) (.n 555)) ::
-  .atom (.copy (.n 557) (.n 146)) ::
-  .atom (.const (.n 558) (word 2 0 0)) ::
-  .atom (.mul (.n 559) (.n 558) (.n 557)) ::
-  .atom (.add (.n 560) (.n 145) (.n 559)) ::
-  .atom (.const (.n 561) (word 2 0 0)) ::
-  .atom (.mul (.n 562) (.n 561) (.n 560)) ::
+  .atom (.load (.n 2) (.n 0) 0) ::
+  .atom (.load (.n 3) (.n 0) 1) ::
+  .atom (.hint (.witness "sp_msg" (.stack (.n 4 :: .n 5 :: .n 6 :: .n 7 :: .n 8 :: .n 9 :: .n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: [])))) ::
+  .atom (.const (.n 36) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
+  .atom (.mul (.n 40) (.n 1) (.n 6)) ::
+  .atom (.load (.n 41) (.n 40) 0) ::
+  .atom (.const (.n 42) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 43) (.n 44) (.n 45) (.n 42)) ::
+  .atom (.mul (.n 46) (.n 1) (.n 5)) ::
+  .atom (.load (.n 47) (.n 46) 0) ::
+  .atom (.const (.n 48) (word 256 0 0)) ::
+  .atom (.mul (.n 49) (.n 41) (.n 48)) ::
+  .atom (.add (.n 50) (.n 47) (.n 49)) ::
+  .atom (.const (.n 51) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 52) (.n 53) (.n 54) (.n 51)) ::
+  .atom (.mul (.n 55) (.n 1) (.n 4)) ::
+  .atom (.load (.n 56) (.n 55) 0) ::
+  .atom (.const (.n 57) (word 256 0 0)) ::
+  .atom (.mul (.n 58) (.n 50) (.n 57)) ::
+  .atom (.add (.n 59) (.n 56) (.n 58)) ::
+  .atom (.copy (.n 60) (.n 59)) ::
+  .atom (.const (.n 61) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 11) (.n 62) (.n 63) (.n 64) (.n 61)) ::
+  .atom (.mul (.n 65) (.n 1) (.n 11)) ::
+  .atom (.load (.n 66) (.n 65) 0) ::
+  .atom (.const (.n 67) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 10) (.n 68) (.n 69) (.n 70) (.n 67)) ::
+  .atom (.mul (.n 71) (.n 1) (.n 10)) ::
+  .atom (.load (.n 72) (.n 71) 0) ::
+  .atom (.const (.n 73) (word 256 0 0)) ::
+  .atom (.mul (.n 74) (.n 66) (.n 73)) ::
+  .atom (.add (.n 75) (.n 72) (.n 74)) ::
+  .atom (.const (.n 76) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 77) (.n 78) (.n 79) (.n 76)) ::
+  .atom (.mul (.n 80) (.n 1) (.n 9)) ::
+  .atom (.load (.n 81) (.n 80) 0) ::
+  .atom (.const (.n 82) (word 256 0 0)) ::
+  .atom (.mul (.n 83) (.n 75) (.n 82)) ::
+  .atom (.add (.n 84) (.n 81) (.n 83)) ::
+  .atom (.const (.n 85) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 86) (.n 87) (.n 88) (.n 85)) ::
+  .atom (.mul (.n 89) (.n 1) (.n 8)) ::
+  .atom (.load (.n 90) (.n 89) 0) ::
+  .atom (.const (.n 91) (word 256 0 0)) ::
+  .atom (.mul (.n 92) (.n 84) (.n 91)) ::
+  .atom (.add (.n 93) (.n 90) (.n 92)) ::
+  .atom (.const (.n 94) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 95) (.n 96) (.n 97) (.n 94)) ::
+  .atom (.mul (.n 98) (.n 1) (.n 7)) ::
+  .atom (.load (.n 99) (.n 98) 0) ::
+  .atom (.const (.n 100) (word 256 0 0)) ::
+  .atom (.mul (.n 101) (.n 93) (.n 100)) ::
+  .atom (.add (.n 102) (.n 99) (.n 101)) ::
+  .atom (.copy (.n 103) (.n 102)) ::
+  .atom (.const (.n 104) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 14) (.n 105) (.n 106) (.n 107) (.n 104)) ::
+  .atom (.mul (.n 108) (.n 1) (.n 14)) ::
+  .atom (.load (.n 109) (.n 108) 0) ::
+  .atom (.const (.n 110) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 13) (.n 111) (.n 112) (.n 113) (.n 110)) ::
+  .atom (.mul (.n 114) (.n 1) (.n 13)) ::
+  .atom (.load (.n 115) (.n 114) 0) ::
+  .atom (.const (.n 116) (word 256 0 0)) ::
+  .atom (.mul (.n 117) (.n 109) (.n 116)) ::
+  .atom (.add (.n 118) (.n 115) (.n 117)) ::
+  .atom (.const (.n 119) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 12) (.n 120) (.n 121) (.n 122) (.n 119)) ::
+  .atom (.mul (.n 123) (.n 1) (.n 12)) ::
+  .atom (.load (.n 124) (.n 123) 0) ::
+  .atom (.const (.n 125) (word 256 0 0)) ::
+  .atom (.mul (.n 126) (.n 118) (.n 125)) ::
+  .atom (.add (.n 127) (.n 124) (.n 126)) ::
+  .atom (.copy (.n 128) (.n 127)) ::
+  .atom (.const (.n 129) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 19) (.n 130) (.n 131) (.n 132) (.n 129)) ::
+  .atom (.mul (.n 133) (.n 1) (.n 19)) ::
+  .atom (.load (.n 134) (.n 133) 0) ::
+  .atom (.const (.n 135) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 18) (.n 136) (.n 137) (.n 138) (.n 135)) ::
+  .atom (.mul (.n 139) (.n 1) (.n 18)) ::
+  .atom (.load (.n 140) (.n 139) 0) ::
+  .atom (.const (.n 141) (word 256 0 0)) ::
+  .atom (.mul (.n 142) (.n 134) (.n 141)) ::
+  .atom (.add (.n 143) (.n 140) (.n 142)) ::
+  .atom (.const (.n 144) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 17) (.n 145) (.n 146) (.n 147) (.n 144)) ::
+  .atom (.mul (.n 148) (.n 1) (.n 17)) ::
+  .atom (.load (.n 149) (.n 148) 0) ::
+  .atom (.const (.n 150) (word 256 0 0)) ::
+  .atom (.mul (.n 151) (.n 143) (.n 150)) ::
+  .atom (.add (.n 152) (.n 149) (.n 151)) ::
+  .atom (.const (.n 153) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 16) (.n 154) (.n 155) (.n 156) (.n 153)) ::
+  .atom (.mul (.n 157) (.n 1) (.n 16)) ::
+  .atom (.load (.n 158) (.n 157) 0) ::
+  .atom (.const (.n 159) (word 256 0 0)) ::
+  .atom (.mul (.n 160) (.n 152) (.n 159)) ::
+  .atom (.add (.n 161) (.n 158) (.n 160)) ::
+  .atom (.const (.n 162) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 15) (.n 163) (.n 164) (.n 165) (.n 162)) ::
+  .atom (.mul (.n 166) (.n 1) (.n 15)) ::
+  .atom (.load (.n 167) (.n 166) 0) ::
+  .atom (.const (.n 168) (word 256 0 0)) ::
+  .atom (.mul (.n 169) (.n 161) (.n 168)) ::
+  .atom (.add (.n 170) (.n 167) (.n 169)) ::
+  .atom (.copy (.n 171) (.n 170)) ::
+  .atom (.const (.n 172) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 22) (.n 173) (.n 174) (.n 175) (.n 172)) ::
+  .atom (.mul (.n 176) (.n 1) (.n 22)) ::
+  .atom (.load (.n 177) (.n 176) 0) ::
+  .atom (.const (.n 178) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 21) (.n 179) (.n 180) (.n 181) (.n 178)) ::
+  .atom (.mul (.n 182) (.n 1) (.n 21)) ::
+  .atom (.load (.n 183) (.n 182) 0) ::
+  .atom (.const (.n 184) (word 256 0 0)) ::
+  .atom (.mul (.n 185) (.n 177) (.n 184)) ::
+  .atom (.add (.n 186) (.n 183) (.n 185)) ::
+  .atom (.const (.n 187) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 20) (.n 188) (.n 189) (.n 190) (.n 187)) ::
+  .atom (.mul (.n 191) (.n 1) (.n 20)) ::
+  .atom (.load (.n 192) (.n 191) 0) ::
+  .atom (.const (.n 193) (word 256 0 0)) ::
+  .atom (.mul (.n 194) (.n 186) (.n 193)) ::
+  .atom (.add (.n 195) (.n 192) (.n 194)) ::
+  .atom (.copy (.n 196) (.n 195)) ::
+  .atom (.const (.n 197) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 27) (.n 198) (.n 199) (.n 200) (.n 197)) ::
+  .atom (.mul (.n 201) (.n 1) (.n 27)) ::
+  .atom (.load (.n 202) (.n 201) 0) ::
+  .atom (.const (.n 203) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 26) (.n 204) (.n 205) (.n 206) (.n 203)) ::
+  .atom (.mul (.n 207) (.n 1) (.n 26)) ::
+  .atom (.load (.n 208) (.n 207) 0) ::
+  .atom (.const (.n 209) (word 256 0 0)) ::
+  .atom (.mul (.n 210) (.n 202) (.n 209)) ::
+  .atom (.add (.n 211) (.n 208) (.n 210)) ::
+  .atom (.const (.n 212) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 25) (.n 213) (.n 214) (.n 215) (.n 212)) ::
+  .atom (.mul (.n 216) (.n 1) (.n 25)) ::
+  .atom (.load (.n 217) (.n 216) 0) ::
+  .atom (.const (.n 218) (word 256 0 0)) ::
+  .atom (.mul (.n 219) (.n 211) (.n 218)) ::
+  .atom (.add (.n 220) (.n 217) (.n 219)) ::
+  .atom (.const (.n 221) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 24) (.n 222) (.n 223) (.n 224) (.n 221)) ::
+  .atom (.mul (.n 225) (.n 1) (.n 24)) ::
+  .atom (.load (.n 226) (.n 225) 0) ::
+  .atom (.const (.n 227) (word 256 0 0)) ::
+  .atom (.mul (.n 228) (.n 220) (.n 227)) ::
+  .atom (.add (.n 229) (.n 226) (.n 228)) ::
+  .atom (.const (.n 230) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 23) (.n 231) (.n 232) (.n 233) (.n 230)) ::
+  .atom (.mul (.n 234) (.n 1) (.n 23)) ::
+  .atom (.load (.n 235) (.n 234) 0) ::
+  .atom (.const (.n 236) (word 256 0 0)) ::
+  .atom (.mul (.n 237) (.n 229) (.n 236)) ::
+  .atom (.add (.n 238) (.n 235) (.n 237)) ::
+  .atom (.copy (.n 239) (.n 238)) ::
+  .atom (.const (.n 240) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 30) (.n 241) (.n 242) (.n 243) (.n 240)) ::
+  .atom (.mul (.n 244) (.n 1) (.n 30)) ::
+  .atom (.load (.n 245) (.n 244) 0) ::
+  .atom (.const (.n 246) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 29) (.n 247) (.n 248) (.n 249) (.n 246)) ::
+  .atom (.mul (.n 250) (.n 1) (.n 29)) ::
+  .atom (.load (.n 251) (.n 250) 0) ::
+  .atom (.const (.n 252) (word 256 0 0)) ::
+  .atom (.mul (.n 253) (.n 245) (.n 252)) ::
+  .atom (.add (.n 254) (.n 251) (.n 253)) ::
+  .atom (.const (.n 255) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 28) (.n 256) (.n 257) (.n 258) (.n 255)) ::
+  .atom (.mul (.n 259) (.n 1) (.n 28)) ::
+  .atom (.load (.n 260) (.n 259) 0) ::
+  .atom (.const (.n 261) (word 256 0 0)) ::
+  .atom (.mul (.n 262) (.n 254) (.n 261)) ::
+  .atom (.add (.n 263) (.n 260) (.n 262)) ::
+  .atom (.copy (.n 264) (.n 263)) ::
+  .atom (.const (.n 265) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 35) (.n 266) (.n 267) (.n 268) (.n 265)) ::
+  .atom (.mul (.n 269) (.n 1) (.n 35)) ::
+  .atom (.load (.n 270) (.n 269) 0) ::
+  .atom (.const (.n 271) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 34) (.n 272) (.n 273) (.n 274) (.n 271)) ::
+  .atom (.mul (.n 275) (.n 1) (.n 34)) ::
+  .atom (.load (.n 276) (.n 275) 0) ::
+  .atom (.const (.n 277) (word 256 0 0)) ::
+  .atom (.mul (.n 278) (.n 270) (.n 277)) ::
+  .atom (.add (.n 279) (.n 276) (.n 278)) ::
+  .atom (.const (.n 280) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 33) (.n 281) (.n 282) (.n 283) (.n 280)) ::
+  .atom (.mul (.n 284) (.n 1) (.n 33)) ::
+  .atom (.load (.n 285) (.n 284) 0) ::
+  .atom (.const (.n 286) (word 256 0 0)) ::
+  .atom (.mul (.n 287) (.n 279) (.n 286)) ::
+  .atom (.add (.n 288) (.n 285) (.n 287)) ::
+  .atom (.const (.n 289) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 32) (.n 290) (.n 291) (.n 292) (.n 289)) ::
+  .atom (.mul (.n 293) (.n 1) (.n 32)) ::
+  .atom (.load (.n 294) (.n 293) 0) ::
+  .atom (.const (.n 295) (word 256 0 0)) ::
+  .atom (.mul (.n 296) (.n 288) (.n 295)) ::
+  .atom (.add (.n 297) (.n 294) (.n 296)) ::
+  .atom (.const (.n 298) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 31) (.n 299) (.n 300) (.n 301) (.n 298)) ::
+  .atom (.mul (.n 302) (.n 1) (.n 31)) ::
+  .atom (.load (.n 303) (.n 302) 0) ::
+  .atom (.const (.n 304) (word 256 0 0)) ::
+  .atom (.mul (.n 305) (.n 297) (.n 304)) ::
+  .atom (.add (.n 306) (.n 303) (.n 305)) ::
+  .atom (.copy (.n 307) (.n 306)) ::
+  .atom (.const (.n 308) (word 16777216 0 0)) ::
+  .atom (.mul (.n 309) (.n 103) (.n 308)) ::
+  .atom (.add (.n 310) (.n 60) (.n 309)) ::
+  .atom (.const (.n 311) (word 16777216 0 0)) ::
+  .atom (.mul (.n 312) (.n 171) (.n 311)) ::
+  .atom (.add (.n 313) (.n 128) (.n 312)) ::
+  .atom (.const (.n 314) (word 16777216 0 0)) ::
+  .atom (.mul (.n 315) (.n 239) (.n 314)) ::
+  .atom (.add (.n 316) (.n 196) (.n 315)) ::
+  .atom (.const (.n 317) (word 16777216 0 0)) ::
+  .atom (.mul (.n 318) (.n 307) (.n 317)) ::
+  .atom (.add (.n 319) (.n 264) (.n 318)) ::
+  .atom (.const (.n 320) (word 0 1 0)) ::
+  .atom (.mul (.n 321) (.n 313) (.n 320)) ::
+  .atom (.add (.n 322) (.n 310) (.n 321)) ::
+  .atom (.load (.n 323) (.n 0) 2) ::
+  .atom (.assertEq (.n 322) (.n 323)) ::
+  .atom (.const (.n 324) (word 0 1 0)) ::
+  .atom (.mul (.n 325) (.n 319) (.n 324)) ::
+  .atom (.add (.n 326) (.n 316) (.n 325)) ::
+  .atom (.load (.n 327) (.n 0) 3) ::
+  .atom (.assertEq (.n 326) (.n 327)) ::
+  .atom (.const (.n 328) (word 5788091310693681920 357611489608 0)) ::
+  .atom (.const (.n 329) (word 0 1099511627776 0)) ::
+  .atom (.mul (.n 330) (.n 60) (.n 329)) ::
+  .atom (.add (.n 331) (.n 328) (.n 330)) ::
+  .atom (.const (.n 332) (word 1099511627776 0 0)) ::
+  .atom (.mul (.n 333) (.n 128) (.n 332)) ::
+  .atom (.add (.n 334) (.n 103) (.n 333)) ::
+  .atom (.const (.n 335) (word 1099511627776 0 0)) ::
+  .atom (.mul (.n 336) (.n 196) (.n 335)) ::
+  .atom (.add (.n 337) (.n 171) (.n 336)) ::
+  .atom (.const (.n 338) (word 0 1 0)) ::
+  .atom (.mul (.n 339) (.n 337) (.n 338)) ::
+  .atom (.add (.n 340) (.n 334) (.n 339)) ::
+  .atom (.const (.n 341) (word 1099511627776 0 0)) ::
+  .atom (.mul (.n 342) (.n 264) (.n 341)) ::
+  .atom (.add (.n 343) (.n 239) (.n 342)) ::
+  .atom (.const (.n 344) (word 0 1 0)) ::
+  .atom (.mul (.n 345) (.n 307) (.n 344)) ::
+  .atom (.add (.n 346) (.n 343) (.n 345)) ::
+  .atom (.hint (.witness "sp_rand" (.stack [.n 347]))) ::
+  .atom (.copy (.n 348) (.n 340)) ::
+  .atom (.copy (.n 349) (.n 346)) ::
+  .atom (.const (.n 350) (word 256 0 0)) ::
+  .atom (.const (.n 351) (word 0 0 0)) ::
+  .atom (.const (.n 352) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 353) (word 1 0 0)) ::
+  .atom (.const (.n 354) (word 0 0 0)) ::
+  .atom (.const (.n 355) (word 0 0 0)) ::
+  .atom (.const (.n 356) (word 0 0 0)) ::
+  .atom (.const (.n 357) (word 0 0 0)) ::
+  .atom (.keccak [.n 347, .n 2, .n 3, .n 331, .n 348, .n 349, .n 350, .n 351, .n 352, .n 354, .n 355, .n 356, .n 357] [.n 358, .n 359, .n 360, .n 361, .n 362, .n 363, .n 364, .n 365, .n 366, .n 367, .n 368, .n 369, .n 370] false false) ::
+  .atom (.const (.n 371) (word 1 0 0)) ::
+  .atom (.const (.n 372) (word 256 0 0)) ::
+  .atom (.add (.n 373) (.n 371) (.n 372)) ::
+  .atom (.copy (.n 374) (.n 340)) ::
+  .atom (.copy (.n 375) (.n 346)) ::
+  .atom (.copy (.n 376) (.n 373)) ::
+  .atom (.const (.n 377) (word 0 0 0)) ::
+  .atom (.const (.n 378) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 347, .n 2, .n 3, .n 331, .n 374, .n 375, .n 376, .n 377, .n 378, .n 354, .n 355, .n 356, .n 357] [.n 379, .n 380, .n 381, .n 382, .n 383, .n 384, .n 385, .n 386, .n 387, .n 388, .n 389, .n 390, .n 391] false false) ::
+  .atom (.hint (.bits (.n 358) 0 128 (.stack (.n 392 :: .n 393 :: .n 394 :: .n 395 :: .n 396 :: .n 397 :: .n 398 :: .n 399 :: .n 400 :: .n 401 :: .n 402 :: .n 403 :: .n 404 :: .n 405 :: .n 406 :: .n 407 :: .n 408 :: .n 409 :: .n 410 :: .n 411 :: .n 412 :: .n 413 :: .n 414 :: .n 415 :: .n 416 :: .n 417 :: .n 418 :: .n 419 :: .n 420 :: .n 421 :: .n 422 :: .n 423 :: .n 424 :: .n 425 :: .n 426 :: .n 427 :: .n 428 :: .n 429 :: .n 430 :: .n 431 :: .n 432 :: .n 433 :: .n 434 :: .n 435 :: .n 436 :: .n 437 :: .n 438 :: .n 439 :: .n 440 :: .n 441 :: .n 442 :: .n 443 :: .n 444 :: .n 445 :: .n 446 :: .n 447 :: .n 448 :: .n 449 :: .n 450 :: .n 451 :: .n 452 :: .n 453 :: .n 454 :: .n 455 :: .n 456 :: .n 457 :: .n 458 :: .n 459 :: .n 460 :: .n 461 :: .n 462 :: .n 463 :: .n 464 :: .n 465 :: .n 466 :: .n 467 :: .n 468 :: .n 469 :: .n 470 :: .n 471 :: .n 472 :: .n 473 :: .n 474 :: .n 475 :: .n 476 :: .n 477 :: .n 478 :: .n 479 :: .n 480 :: .n 481 :: .n 482 :: .n 483 :: .n 484 :: .n 485 :: .n 486 :: .n 487 :: .n 488 :: .n 489 :: .n 490 :: .n 491 :: .n 492 :: .n 493 :: .n 494 :: .n 495 :: .n 496 :: .n 497 :: .n 498 :: .n 499 :: .n 500 :: .n 501 :: .n 502 :: .n 503 :: .n 504 :: .n 505 :: .n 506 :: .n 507 :: .n 508 :: .n 509 :: .n 510 :: .n 511 :: .n 512 :: .n 513 :: .n 514 :: .n 515 :: .n 516 :: .n 517 :: .n 518 :: .n 519 :: [])))) ::
+  .atom (.hint (.bits (.n 359) 0 128 (.stack (.n 520 :: .n 521 :: .n 522 :: .n 523 :: .n 524 :: .n 525 :: .n 526 :: .n 527 :: .n 528 :: .n 529 :: .n 530 :: .n 531 :: .n 532 :: .n 533 :: .n 534 :: .n 535 :: .n 536 :: .n 537 :: .n 538 :: .n 539 :: .n 540 :: .n 541 :: .n 542 :: .n 543 :: .n 544 :: .n 545 :: .n 546 :: .n 547 :: .n 548 :: .n 549 :: .n 550 :: .n 551 :: .n 552 :: .n 553 :: .n 554 :: .n 555 :: .n 556 :: .n 557 :: .n 558 :: .n 559 :: .n 560 :: .n 561 :: .n 562 :: .n 563 :: .n 564 :: .n 565 :: .n 566 :: .n 567 :: .n 568 :: .n 569 :: .n 570 :: .n 571 :: .n 572 :: .n 573 :: .n 574 :: .n 575 :: .n 576 :: .n 577 :: .n 578 :: .n 579 :: .n 580 :: .n 581 :: .n 582 :: .n 583 :: .n 584 :: .n 585 :: .n 586 :: .n 587 :: .n 588 :: .n 589 :: .n 590 :: .n 591 :: .n 592 :: .n 593 :: .n 594 :: .n 595 :: .n 596 :: .n 597 :: .n 598 :: .n 599 :: .n 600 :: .n 601 :: .n 602 :: .n 603 :: .n 604 :: .n 605 :: .n 606 :: .n 607 :: .n 608 :: .n 609 :: .n 610 :: .n 611 :: .n 612 :: .n 613 :: .n 614 :: .n 615 :: .n 616 :: .n 617 :: .n 618 :: .n 619 :: .n 620 :: .n 621 :: .n 622 :: .n 623 :: .n 624 :: .n 625 :: .n 626 :: .n 627 :: .n 628 :: .n 629 :: .n 630 :: .n 631 :: .n 632 :: .n 633 :: .n 634 :: .n 635 :: .n 636 :: .n 637 :: .n 638 :: .n 639 :: .n 640 :: .n 641 :: .n 642 :: .n 643 :: .n 644 :: .n 645 :: .n 646 :: .n 647 :: [])))) ::
+  .atom (.hint (.bits (.n 379) 0 16 (.stack [.n 648, .n 649, .n 650, .n 651, .n 652, .n 653, .n 654, .n 655, .n 656, .n 657, .n 658, .n 659, .n 660, .n 661, .n 662, .n 663]))) ::
+  .atom (.mul (.n 392) (.n 392) (.n 392)) ::
+  .atom (.mul (.n 520) (.n 520) (.n 520)) ::
+  .atom (.mul (.n 393) (.n 393) (.n 393)) ::
+  .atom (.mul (.n 521) (.n 521) (.n 521)) ::
+  .atom (.mul (.n 394) (.n 394) (.n 394)) ::
+  .atom (.mul (.n 522) (.n 522) (.n 522)) ::
+  .atom (.mul (.n 395) (.n 395) (.n 395)) ::
+  .atom (.mul (.n 523) (.n 523) (.n 523)) ::
+  .atom (.mul (.n 396) (.n 396) (.n 396)) ::
+  .atom (.mul (.n 524) (.n 524) (.n 524)) ::
+  .atom (.mul (.n 397) (.n 397) (.n 397)) ::
+  .atom (.mul (.n 525) (.n 525) (.n 525)) ::
+  .atom (.mul (.n 398) (.n 398) (.n 398)) ::
+  .atom (.mul (.n 526) (.n 526) (.n 526)) ::
+  .atom (.mul (.n 399) (.n 399) (.n 399)) ::
+  .atom (.mul (.n 527) (.n 527) (.n 527)) ::
+  .atom (.mul (.n 400) (.n 400) (.n 400)) ::
+  .atom (.mul (.n 528) (.n 528) (.n 528)) ::
+  .atom (.mul (.n 401) (.n 401) (.n 401)) ::
+  .atom (.mul (.n 529) (.n 529) (.n 529)) ::
+  .atom (.mul (.n 402) (.n 402) (.n 402)) ::
+  .atom (.mul (.n 530) (.n 530) (.n 530)) ::
+  .atom (.mul (.n 403) (.n 403) (.n 403)) ::
+  .atom (.mul (.n 531) (.n 531) (.n 531)) ::
+  .atom (.mul (.n 404) (.n 404) (.n 404)) ::
+  .atom (.mul (.n 532) (.n 532) (.n 532)) ::
+  .atom (.mul (.n 405) (.n 405) (.n 405)) ::
+  .atom (.mul (.n 533) (.n 533) (.n 533)) ::
+  .atom (.mul (.n 406) (.n 406) (.n 406)) ::
+  .atom (.mul (.n 534) (.n 534) (.n 534)) ::
+  .atom (.mul (.n 407) (.n 407) (.n 407)) ::
+  .atom (.mul (.n 535) (.n 535) (.n 535)) ::
+  .atom (.mul (.n 408) (.n 408) (.n 408)) ::
+  .atom (.mul (.n 536) (.n 536) (.n 536)) ::
+  .atom (.mul (.n 409) (.n 409) (.n 409)) ::
+  .atom (.mul (.n 537) (.n 537) (.n 537)) ::
+  .atom (.mul (.n 410) (.n 410) (.n 410)) ::
+  .atom (.mul (.n 538) (.n 538) (.n 538)) ::
+  .atom (.mul (.n 411) (.n 411) (.n 411)) ::
+  .atom (.mul (.n 539) (.n 539) (.n 539)) ::
+  .atom (.mul (.n 412) (.n 412) (.n 412)) ::
+  .atom (.mul (.n 540) (.n 540) (.n 540)) ::
+  .atom (.mul (.n 413) (.n 413) (.n 413)) ::
+  .atom (.mul (.n 541) (.n 541) (.n 541)) ::
+  .atom (.mul (.n 414) (.n 414) (.n 414)) ::
+  .atom (.mul (.n 542) (.n 542) (.n 542)) ::
+  .atom (.mul (.n 415) (.n 415) (.n 415)) ::
+  .atom (.mul (.n 543) (.n 543) (.n 543)) ::
+  .atom (.mul (.n 416) (.n 416) (.n 416)) ::
+  .atom (.mul (.n 544) (.n 544) (.n 544)) ::
+  .atom (.mul (.n 417) (.n 417) (.n 417)) ::
+  .atom (.mul (.n 545) (.n 545) (.n 545)) ::
+  .atom (.mul (.n 418) (.n 418) (.n 418)) ::
+  .atom (.mul (.n 546) (.n 546) (.n 546)) ::
+  .atom (.mul (.n 419) (.n 419) (.n 419)) ::
+  .atom (.mul (.n 547) (.n 547) (.n 547)) ::
+  .atom (.mul (.n 420) (.n 420) (.n 420)) ::
+  .atom (.mul (.n 548) (.n 548) (.n 548)) ::
+  .atom (.mul (.n 421) (.n 421) (.n 421)) ::
+  .atom (.mul (.n 549) (.n 549) (.n 549)) ::
+  .atom (.mul (.n 422) (.n 422) (.n 422)) ::
+  .atom (.mul (.n 550) (.n 550) (.n 550)) ::
+  .atom (.mul (.n 423) (.n 423) (.n 423)) ::
+  .atom (.mul (.n 551) (.n 551) (.n 551)) ::
+  .atom (.mul (.n 424) (.n 424) (.n 424)) ::
+  .atom (.mul (.n 552) (.n 552) (.n 552)) ::
+  .atom (.mul (.n 425) (.n 425) (.n 425)) ::
+  .atom (.mul (.n 553) (.n 553) (.n 553)) ::
+  .atom (.mul (.n 426) (.n 426) (.n 426)) ::
+  .atom (.mul (.n 554) (.n 554) (.n 554)) ::
+  .atom (.mul (.n 427) (.n 427) (.n 427)) ::
+  .atom (.mul (.n 555) (.n 555) (.n 555)) ::
+  .atom (.mul (.n 428) (.n 428) (.n 428)) ::
+  .atom (.mul (.n 556) (.n 556) (.n 556)) ::
+  .atom (.mul (.n 429) (.n 429) (.n 429)) ::
+  .atom (.mul (.n 557) (.n 557) (.n 557)) ::
+  .atom (.mul (.n 430) (.n 430) (.n 430)) ::
+  .atom (.mul (.n 558) (.n 558) (.n 558)) ::
+  .atom (.mul (.n 431) (.n 431) (.n 431)) ::
+  .atom (.mul (.n 559) (.n 559) (.n 559)) ::
+  .atom (.mul (.n 432) (.n 432) (.n 432)) ::
+  .atom (.mul (.n 560) (.n 560) (.n 560)) ::
+  .atom (.mul (.n 433) (.n 433) (.n 433)) ::
+  .atom (.mul (.n 561) (.n 561) (.n 561)) ::
+  .atom (.mul (.n 434) (.n 434) (.n 434)) ::
+  .atom (.mul (.n 562) (.n 562) (.n 562)) ::
+  .atom (.mul (.n 435) (.n 435) (.n 435)) ::
+  .atom (.mul (.n 563) (.n 563) (.n 563)) ::
+  .atom (.mul (.n 436) (.n 436) (.n 436)) ::
+  .atom (.mul (.n 564) (.n 564) (.n 564)) ::
+  .atom (.mul (.n 437) (.n 437) (.n 437)) ::
+  .atom (.mul (.n 565) (.n 565) (.n 565)) ::
+  .atom (.mul (.n 438) (.n 438) (.n 438)) ::
+  .atom (.mul (.n 566) (.n 566) (.n 566)) ::
+  .atom (.mul (.n 439) (.n 439) (.n 439)) ::
+  .atom (.mul (.n 567) (.n 567) (.n 567)) ::
+  .atom (.mul (.n 440) (.n 440) (.n 440)) ::
+  .atom (.mul (.n 568) (.n 568) (.n 568)) ::
+  .atom (.mul (.n 441) (.n 441) (.n 441)) ::
+  .atom (.mul (.n 569) (.n 569) (.n 569)) ::
+  .atom (.mul (.n 442) (.n 442) (.n 442)) ::
+  .atom (.mul (.n 570) (.n 570) (.n 570)) ::
+  .atom (.mul (.n 443) (.n 443) (.n 443)) ::
+  .atom (.mul (.n 571) (.n 571) (.n 571)) ::
+  .atom (.mul (.n 444) (.n 444) (.n 444)) ::
+  .atom (.mul (.n 572) (.n 572) (.n 572)) ::
+  .atom (.mul (.n 445) (.n 445) (.n 445)) ::
+  .atom (.mul (.n 573) (.n 573) (.n 573)) ::
+  .atom (.mul (.n 446) (.n 446) (.n 446)) ::
+  .atom (.mul (.n 574) (.n 574) (.n 574)) ::
+  .atom (.mul (.n 447) (.n 447) (.n 447)) ::
+  .atom (.mul (.n 575) (.n 575) (.n 575)) ::
+  .atom (.mul (.n 448) (.n 448) (.n 448)) ::
+  .atom (.mul (.n 576) (.n 576) (.n 576)) ::
+  .atom (.mul (.n 449) (.n 449) (.n 449)) ::
+  .atom (.mul (.n 577) (.n 577) (.n 577)) ::
+  .atom (.mul (.n 450) (.n 450) (.n 450)) ::
+  .atom (.mul (.n 578) (.n 578) (.n 578)) ::
+  .atom (.mul (.n 451) (.n 451) (.n 451)) ::
+  .atom (.mul (.n 579) (.n 579) (.n 579)) ::
+  .atom (.mul (.n 452) (.n 452) (.n 452)) ::
+  .atom (.mul (.n 580) (.n 580) (.n 580)) ::
+  .atom (.mul (.n 453) (.n 453) (.n 453)) ::
+  .atom (.mul (.n 581) (.n 581) (.n 581)) ::
+  .atom (.mul (.n 454) (.n 454) (.n 454)) ::
+  .atom (.mul (.n 582) (.n 582) (.n 582)) ::
+  .atom (.mul (.n 455) (.n 455) (.n 455)) ::
+  .atom (.mul (.n 583) (.n 583) (.n 583)) ::
+  .atom (.mul (.n 456) (.n 456) (.n 456)) ::
+  .atom (.mul (.n 584) (.n 584) (.n 584)) ::
+  .atom (.mul (.n 457) (.n 457) (.n 457)) ::
+  .atom (.mul (.n 585) (.n 585) (.n 585)) ::
+  .atom (.mul (.n 458) (.n 458) (.n 458)) ::
+  .atom (.mul (.n 586) (.n 586) (.n 586)) ::
+  .atom (.mul (.n 459) (.n 459) (.n 459)) ::
+  .atom (.mul (.n 587) (.n 587) (.n 587)) ::
+  .atom (.mul (.n 460) (.n 460) (.n 460)) ::
+  .atom (.mul (.n 588) (.n 588) (.n 588)) ::
+  .atom (.mul (.n 461) (.n 461) (.n 461)) ::
+  .atom (.mul (.n 589) (.n 589) (.n 589)) ::
+  .atom (.mul (.n 462) (.n 462) (.n 462)) ::
+  .atom (.mul (.n 590) (.n 590) (.n 590)) ::
+  .atom (.mul (.n 463) (.n 463) (.n 463)) ::
+  .atom (.mul (.n 591) (.n 591) (.n 591)) ::
+  .atom (.mul (.n 464) (.n 464) (.n 464)) ::
+  .atom (.mul (.n 592) (.n 592) (.n 592)) ::
+  .atom (.mul (.n 465) (.n 465) (.n 465)) ::
+  .atom (.mul (.n 593) (.n 593) (.n 593)) ::
+  .atom (.mul (.n 466) (.n 466) (.n 466)) ::
+  .atom (.mul (.n 594) (.n 594) (.n 594)) ::
+  .atom (.mul (.n 467) (.n 467) (.n 467)) ::
+  .atom (.mul (.n 595) (.n 595) (.n 595)) ::
+  .atom (.mul (.n 468) (.n 468) (.n 468)) ::
+  .atom (.mul (.n 596) (.n 596) (.n 596)) ::
+  .atom (.mul (.n 469) (.n 469) (.n 469)) ::
+  .atom (.mul (.n 597) (.n 597) (.n 597)) ::
+  .atom (.mul (.n 470) (.n 470) (.n 470)) ::
+  .atom (.mul (.n 598) (.n 598) (.n 598)) ::
+  .atom (.mul (.n 471) (.n 471) (.n 471)) ::
+  .atom (.mul (.n 599) (.n 599) (.n 599)) ::
+  .atom (.mul (.n 472) (.n 472) (.n 472)) ::
+  .atom (.mul (.n 600) (.n 600) (.n 600)) ::
+  .atom (.mul (.n 473) (.n 473) (.n 473)) ::
+  .atom (.mul (.n 601) (.n 601) (.n 601)) ::
+  .atom (.mul (.n 474) (.n 474) (.n 474)) ::
+  .atom (.mul (.n 602) (.n 602) (.n 602)) ::
+  .atom (.mul (.n 475) (.n 475) (.n 475)) ::
+  .atom (.mul (.n 603) (.n 603) (.n 603)) ::
+  .atom (.mul (.n 476) (.n 476) (.n 476)) ::
+  .atom (.mul (.n 604) (.n 604) (.n 604)) ::
+  .atom (.mul (.n 477) (.n 477) (.n 477)) ::
+  .atom (.mul (.n 605) (.n 605) (.n 605)) ::
+  .atom (.mul (.n 478) (.n 478) (.n 478)) ::
+  .atom (.mul (.n 606) (.n 606) (.n 606)) ::
+  .atom (.mul (.n 479) (.n 479) (.n 479)) ::
+  .atom (.mul (.n 607) (.n 607) (.n 607)) ::
+  .atom (.mul (.n 480) (.n 480) (.n 480)) ::
+  .atom (.mul (.n 608) (.n 608) (.n 608)) ::
+  .atom (.mul (.n 481) (.n 481) (.n 481)) ::
+  .atom (.mul (.n 609) (.n 609) (.n 609)) ::
+  .atom (.mul (.n 482) (.n 482) (.n 482)) ::
+  .atom (.mul (.n 610) (.n 610) (.n 610)) ::
+  .atom (.mul (.n 483) (.n 483) (.n 483)) ::
+  .atom (.mul (.n 611) (.n 611) (.n 611)) ::
+  .atom (.mul (.n 484) (.n 484) (.n 484)) ::
+  .atom (.mul (.n 612) (.n 612) (.n 612)) ::
+  .atom (.mul (.n 485) (.n 485) (.n 485)) ::
+  .atom (.mul (.n 613) (.n 613) (.n 613)) ::
+  .atom (.mul (.n 486) (.n 486) (.n 486)) ::
+  .atom (.mul (.n 614) (.n 614) (.n 614)) ::
+  .atom (.mul (.n 487) (.n 487) (.n 487)) ::
+  .atom (.mul (.n 615) (.n 615) (.n 615)) ::
+  .atom (.mul (.n 488) (.n 488) (.n 488)) ::
+  .atom (.mul (.n 616) (.n 616) (.n 616)) ::
+  .atom (.mul (.n 489) (.n 489) (.n 489)) ::
+  .atom (.mul (.n 617) (.n 617) (.n 617)) ::
+  .atom (.mul (.n 490) (.n 490) (.n 490)) ::
+  .atom (.mul (.n 618) (.n 618) (.n 618)) ::
+  .atom (.mul (.n 491) (.n 491) (.n 491)) ::
+  .atom (.mul (.n 619) (.n 619) (.n 619)) ::
+  .atom (.mul (.n 492) (.n 492) (.n 492)) ::
+  .atom (.mul (.n 620) (.n 620) (.n 620)) ::
+  .atom (.mul (.n 493) (.n 493) (.n 493)) ::
+  .atom (.mul (.n 621) (.n 621) (.n 621)) ::
+  .atom (.mul (.n 494) (.n 494) (.n 494)) ::
+  .atom (.mul (.n 622) (.n 622) (.n 622)) ::
+  .atom (.mul (.n 495) (.n 495) (.n 495)) ::
+  .atom (.mul (.n 623) (.n 623) (.n 623)) ::
+  .atom (.mul (.n 496) (.n 496) (.n 496)) ::
+  .atom (.mul (.n 624) (.n 624) (.n 624)) ::
+  .atom (.mul (.n 497) (.n 497) (.n 497)) ::
+  .atom (.mul (.n 625) (.n 625) (.n 625)) ::
+  .atom (.mul (.n 498) (.n 498) (.n 498)) ::
+  .atom (.mul (.n 626) (.n 626) (.n 626)) ::
+  .atom (.mul (.n 499) (.n 499) (.n 499)) ::
+  .atom (.mul (.n 627) (.n 627) (.n 627)) ::
+  .atom (.mul (.n 500) (.n 500) (.n 500)) ::
+  .atom (.mul (.n 628) (.n 628) (.n 628)) ::
+  .atom (.mul (.n 501) (.n 501) (.n 501)) ::
+  .atom (.mul (.n 629) (.n 629) (.n 629)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 540 to 1139 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 496 to 1101 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
-  .atom (.add (.n 563) (.n 144) (.n 562)) ::
-  .atom (.const (.n 564) (word 2 0 0)) ::
-  .atom (.mul (.n 565) (.n 564) (.n 563)) ::
-  .atom (.add (.n 566) (.n 143) (.n 565)) ::
-  .atom (.const (.n 567) (word 2 0 0)) ::
-  .atom (.mul (.n 568) (.n 567) (.n 566)) ::
-  .atom (.add (.n 569) (.n 142) (.n 568)) ::
-  .atom (.const (.n 570) (word 2 0 0)) ::
-  .atom (.mul (.n 571) (.n 570) (.n 569)) ::
-  .atom (.add (.n 572) (.n 141) (.n 571)) ::
-  .atom (.const (.n 573) (word 2 0 0)) ::
-  .atom (.mul (.n 574) (.n 573) (.n 572)) ::
-  .atom (.add (.n 575) (.n 140) (.n 574)) ::
-  .atom (.const (.n 576) (word 2 0 0)) ::
-  .atom (.mul (.n 577) (.n 576) (.n 575)) ::
-  .atom (.add (.n 578) (.n 139) (.n 577)) ::
-  .atom (.const (.n 579) (word 2 0 0)) ::
-  .atom (.mul (.n 580) (.n 579) (.n 578)) ::
-  .atom (.add (.n 581) (.n 138) (.n 580)) ::
-  .atom (.const (.n 582) (word 2 0 0)) ::
-  .atom (.mul (.n 583) (.n 582) (.n 581)) ::
-  .atom (.add (.n 584) (.n 137) (.n 583)) ::
-  .atom (.copy (.n 585) (.n 156)) ::
-  .atom (.const (.n 586) (word 2 0 0)) ::
-  .atom (.mul (.n 587) (.n 586) (.n 585)) ::
-  .atom (.add (.n 588) (.n 155) (.n 587)) ::
-  .atom (.const (.n 589) (word 2 0 0)) ::
-  .atom (.mul (.n 590) (.n 589) (.n 588)) ::
-  .atom (.add (.n 591) (.n 154) (.n 590)) ::
-  .atom (.const (.n 592) (word 2 0 0)) ::
-  .atom (.mul (.n 593) (.n 592) (.n 591)) ::
-  .atom (.add (.n 594) (.n 153) (.n 593)) ::
-  .atom (.const (.n 595) (word 2 0 0)) ::
-  .atom (.mul (.n 596) (.n 595) (.n 594)) ::
-  .atom (.add (.n 597) (.n 152) (.n 596)) ::
-  .atom (.const (.n 598) (word 2 0 0)) ::
-  .atom (.mul (.n 599) (.n 598) (.n 597)) ::
-  .atom (.add (.n 600) (.n 151) (.n 599)) ::
-  .atom (.const (.n 601) (word 2 0 0)) ::
-  .atom (.mul (.n 602) (.n 601) (.n 600)) ::
-  .atom (.add (.n 603) (.n 150) (.n 602)) ::
-  .atom (.const (.n 604) (word 2 0 0)) ::
-  .atom (.mul (.n 605) (.n 604) (.n 603)) ::
-  .atom (.add (.n 606) (.n 149) (.n 605)) ::
-  .atom (.const (.n 607) (word 2 0 0)) ::
-  .atom (.mul (.n 608) (.n 607) (.n 606)) ::
-  .atom (.add (.n 609) (.n 148) (.n 608)) ::
-  .atom (.const (.n 610) (word 2 0 0)) ::
-  .atom (.mul (.n 611) (.n 610) (.n 609)) ::
-  .atom (.add (.n 612) (.n 147) (.n 611)) ::
-  .atom (.copy (.n 613) (.n 166)) ::
-  .atom (.const (.n 614) (word 2 0 0)) ::
-  .atom (.mul (.n 615) (.n 614) (.n 613)) ::
-  .atom (.add (.n 616) (.n 165) (.n 615)) ::
-  .atom (.const (.n 617) (word 2 0 0)) ::
-  .atom (.mul (.n 618) (.n 617) (.n 616)) ::
-  .atom (.add (.n 619) (.n 164) (.n 618)) ::
-  .atom (.const (.n 620) (word 2 0 0)) ::
-  .atom (.mul (.n 621) (.n 620) (.n 619)) ::
-  .atom (.add (.n 622) (.n 163) (.n 621)) ::
-  .atom (.const (.n 623) (word 2 0 0)) ::
-  .atom (.mul (.n 624) (.n 623) (.n 622)) ::
-  .atom (.add (.n 625) (.n 162) (.n 624)) ::
-  .atom (.const (.n 626) (word 2 0 0)) ::
-  .atom (.mul (.n 627) (.n 626) (.n 625)) ::
-  .atom (.add (.n 628) (.n 161) (.n 627)) ::
-  .atom (.const (.n 629) (word 2 0 0)) ::
-  .atom (.mul (.n 630) (.n 629) (.n 628)) ::
-  .atom (.add (.n 631) (.n 160) (.n 630)) ::
-  .atom (.const (.n 632) (word 2 0 0)) ::
-  .atom (.mul (.n 633) (.n 632) (.n 631)) ::
-  .atom (.add (.n 634) (.n 159) (.n 633)) ::
-  .atom (.const (.n 635) (word 2 0 0)) ::
-  .atom (.mul (.n 636) (.n 635) (.n 634)) ::
-  .atom (.add (.n 637) (.n 158) (.n 636)) ::
-  .atom (.const (.n 638) (word 2 0 0)) ::
-  .atom (.mul (.n 639) (.n 638) (.n 637)) ::
-  .atom (.add (.n 640) (.n 157) (.n 639)) ::
-  .atom (.copy (.n 641) (.n 176)) ::
-  .atom (.const (.n 642) (word 2 0 0)) ::
-  .atom (.mul (.n 643) (.n 642) (.n 641)) ::
-  .atom (.add (.n 644) (.n 175) (.n 643)) ::
-  .atom (.const (.n 645) (word 2 0 0)) ::
-  .atom (.mul (.n 646) (.n 645) (.n 644)) ::
-  .atom (.add (.n 647) (.n 174) (.n 646)) ::
-  .atom (.const (.n 648) (word 2 0 0)) ::
-  .atom (.mul (.n 649) (.n 648) (.n 647)) ::
-  .atom (.add (.n 650) (.n 173) (.n 649)) ::
-  .atom (.const (.n 651) (word 2 0 0)) ::
-  .atom (.mul (.n 652) (.n 651) (.n 650)) ::
-  .atom (.add (.n 653) (.n 172) (.n 652)) ::
-  .atom (.const (.n 654) (word 2 0 0)) ::
-  .atom (.mul (.n 655) (.n 654) (.n 653)) ::
-  .atom (.add (.n 656) (.n 171) (.n 655)) ::
-  .atom (.const (.n 657) (word 2 0 0)) ::
-  .atom (.mul (.n 658) (.n 657) (.n 656)) ::
-  .atom (.add (.n 659) (.n 170) (.n 658)) ::
-  .atom (.const (.n 660) (word 2 0 0)) ::
-  .atom (.mul (.n 661) (.n 660) (.n 659)) ::
-  .atom (.add (.n 662) (.n 169) (.n 661)) ::
-  .atom (.const (.n 663) (word 2 0 0)) ::
-  .atom (.mul (.n 664) (.n 663) (.n 662)) ::
-  .atom (.add (.n 665) (.n 168) (.n 664)) ::
-  .atom (.const (.n 666) (word 2 0 0)) ::
-  .atom (.mul (.n 667) (.n 666) (.n 665)) ::
-  .atom (.add (.n 668) (.n 167) (.n 667)) ::
-  .atom (.copy (.n 669) (.n 186)) ::
-  .atom (.const (.n 670) (word 2 0 0)) ::
-  .atom (.mul (.n 671) (.n 670) (.n 669)) ::
-  .atom (.add (.n 672) (.n 185) (.n 671)) ::
-  .atom (.const (.n 673) (word 2 0 0)) ::
-  .atom (.mul (.n 674) (.n 673) (.n 672)) ::
-  .atom (.add (.n 675) (.n 184) (.n 674)) ::
-  .atom (.const (.n 676) (word 2 0 0)) ::
-  .atom (.mul (.n 677) (.n 676) (.n 675)) ::
-  .atom (.add (.n 678) (.n 183) (.n 677)) ::
-  .atom (.const (.n 679) (word 2 0 0)) ::
-  .atom (.mul (.n 680) (.n 679) (.n 678)) ::
-  .atom (.add (.n 681) (.n 182) (.n 680)) ::
-  .atom (.const (.n 682) (word 2 0 0)) ::
-  .atom (.mul (.n 683) (.n 682) (.n 681)) ::
-  .atom (.add (.n 684) (.n 181) (.n 683)) ::
-  .atom (.const (.n 685) (word 2 0 0)) ::
-  .atom (.mul (.n 686) (.n 685) (.n 684)) ::
-  .atom (.add (.n 687) (.n 180) (.n 686)) ::
-  .atom (.const (.n 688) (word 2 0 0)) ::
-  .atom (.mul (.n 689) (.n 688) (.n 687)) ::
-  .atom (.add (.n 690) (.n 179) (.n 689)) ::
-  .atom (.const (.n 691) (word 2 0 0)) ::
-  .atom (.mul (.n 692) (.n 691) (.n 690)) ::
-  .atom (.add (.n 693) (.n 178) (.n 692)) ::
-  .atom (.const (.n 694) (word 2 0 0)) ::
-  .atom (.mul (.n 695) (.n 694) (.n 693)) ::
-  .atom (.add (.n 696) (.n 177) (.n 695)) ::
-  .atom (.copy (.n 697) (.n 196)) ::
-  .atom (.const (.n 698) (word 2 0 0)) ::
-  .atom (.mul (.n 699) (.n 698) (.n 697)) ::
-  .atom (.add (.n 700) (.n 195) (.n 699)) ::
-  .atom (.const (.n 701) (word 2 0 0)) ::
-  .atom (.mul (.n 702) (.n 701) (.n 700)) ::
-  .atom (.add (.n 703) (.n 194) (.n 702)) ::
-  .atom (.const (.n 704) (word 2 0 0)) ::
-  .atom (.mul (.n 705) (.n 704) (.n 703)) ::
-  .atom (.add (.n 706) (.n 193) (.n 705)) ::
-  .atom (.const (.n 707) (word 2 0 0)) ::
-  .atom (.mul (.n 708) (.n 707) (.n 706)) ::
-  .atom (.add (.n 709) (.n 192) (.n 708)) ::
-  .atom (.const (.n 710) (word 2 0 0)) ::
-  .atom (.mul (.n 711) (.n 710) (.n 709)) ::
-  .atom (.add (.n 712) (.n 191) (.n 711)) ::
-  .atom (.const (.n 713) (word 2 0 0)) ::
-  .atom (.mul (.n 714) (.n 713) (.n 712)) ::
-  .atom (.add (.n 715) (.n 190) (.n 714)) ::
-  .atom (.const (.n 716) (word 2 0 0)) ::
-  .atom (.mul (.n 717) (.n 716) (.n 715)) ::
-  .atom (.add (.n 718) (.n 189) (.n 717)) ::
-  .atom (.const (.n 719) (word 2 0 0)) ::
-  .atom (.mul (.n 720) (.n 719) (.n 718)) ::
-  .atom (.add (.n 721) (.n 188) (.n 720)) ::
-  .atom (.const (.n 722) (word 2 0 0)) ::
-  .atom (.mul (.n 723) (.n 722) (.n 721)) ::
-  .atom (.add (.n 724) (.n 187) (.n 723)) ::
-  .atom (.copy (.n 725) (.n 206)) ::
-  .atom (.const (.n 726) (word 2 0 0)) ::
-  .atom (.mul (.n 727) (.n 726) (.n 725)) ::
-  .atom (.add (.n 728) (.n 205) (.n 727)) ::
-  .atom (.const (.n 729) (word 2 0 0)) ::
-  .atom (.mul (.n 730) (.n 729) (.n 728)) ::
-  .atom (.add (.n 731) (.n 204) (.n 730)) ::
-  .atom (.const (.n 732) (word 2 0 0)) ::
-  .atom (.mul (.n 733) (.n 732) (.n 731)) ::
-  .atom (.add (.n 734) (.n 203) (.n 733)) ::
-  .atom (.const (.n 735) (word 2 0 0)) ::
-  .atom (.mul (.n 736) (.n 735) (.n 734)) ::
-  .atom (.add (.n 737) (.n 202) (.n 736)) ::
-  .atom (.const (.n 738) (word 2 0 0)) ::
-  .atom (.mul (.n 739) (.n 738) (.n 737)) ::
-  .atom (.add (.n 740) (.n 201) (.n 739)) ::
-  .atom (.const (.n 741) (word 2 0 0)) ::
-  .atom (.mul (.n 742) (.n 741) (.n 740)) ::
-  .atom (.add (.n 743) (.n 200) (.n 742)) ::
-  .atom (.const (.n 744) (word 2 0 0)) ::
-  .atom (.mul (.n 745) (.n 744) (.n 743)) ::
-  .atom (.add (.n 746) (.n 199) (.n 745)) ::
-  .atom (.const (.n 747) (word 2 0 0)) ::
-  .atom (.mul (.n 748) (.n 747) (.n 746)) ::
-  .atom (.add (.n 749) (.n 198) (.n 748)) ::
-  .atom (.const (.n 750) (word 2 0 0)) ::
-  .atom (.mul (.n 751) (.n 750) (.n 749)) ::
-  .atom (.add (.n 752) (.n 197) (.n 751)) ::
-  .atom (.copy (.n 753) (.n 216)) ::
-  .atom (.const (.n 754) (word 2 0 0)) ::
-  .atom (.mul (.n 755) (.n 754) (.n 753)) ::
-  .atom (.add (.n 756) (.n 215) (.n 755)) ::
-  .atom (.const (.n 757) (word 2 0 0)) ::
-  .atom (.mul (.n 758) (.n 757) (.n 756)) ::
-  .atom (.add (.n 759) (.n 214) (.n 758)) ::
-  .atom (.const (.n 760) (word 2 0 0)) ::
-  .atom (.mul (.n 761) (.n 760) (.n 759)) ::
-  .atom (.add (.n 762) (.n 213) (.n 761)) ::
-  .atom (.const (.n 763) (word 2 0 0)) ::
-  .atom (.mul (.n 764) (.n 763) (.n 762)) ::
-  .atom (.add (.n 765) (.n 212) (.n 764)) ::
-  .atom (.const (.n 766) (word 2 0 0)) ::
-  .atom (.mul (.n 767) (.n 766) (.n 765)) ::
-  .atom (.add (.n 768) (.n 211) (.n 767)) ::
-  .atom (.const (.n 769) (word 2 0 0)) ::
-  .atom (.mul (.n 770) (.n 769) (.n 768)) ::
-  .atom (.add (.n 771) (.n 210) (.n 770)) ::
-  .atom (.const (.n 772) (word 2 0 0)) ::
-  .atom (.mul (.n 773) (.n 772) (.n 771)) ::
-  .atom (.add (.n 774) (.n 209) (.n 773)) ::
-  .atom (.const (.n 775) (word 2 0 0)) ::
-  .atom (.mul (.n 776) (.n 775) (.n 774)) ::
-  .atom (.add (.n 777) (.n 208) (.n 776)) ::
-  .atom (.const (.n 778) (word 2 0 0)) ::
-  .atom (.mul (.n 779) (.n 778) (.n 777)) ::
-  .atom (.add (.n 780) (.n 207) (.n 779)) ::
-  .atom (.copy (.n 781) (.n 226)) ::
-  .atom (.const (.n 782) (word 2 0 0)) ::
-  .atom (.mul (.n 783) (.n 782) (.n 781)) ::
-  .atom (.add (.n 784) (.n 225) (.n 783)) ::
-  .atom (.const (.n 785) (word 2 0 0)) ::
-  .atom (.mul (.n 786) (.n 785) (.n 784)) ::
-  .atom (.add (.n 787) (.n 224) (.n 786)) ::
-  .atom (.const (.n 788) (word 2 0 0)) ::
-  .atom (.mul (.n 789) (.n 788) (.n 787)) ::
-  .atom (.add (.n 790) (.n 223) (.n 789)) ::
-  .atom (.const (.n 791) (word 2 0 0)) ::
-  .atom (.mul (.n 792) (.n 791) (.n 790)) ::
-  .atom (.add (.n 793) (.n 222) (.n 792)) ::
-  .atom (.const (.n 794) (word 2 0 0)) ::
-  .atom (.mul (.n 795) (.n 794) (.n 793)) ::
-  .atom (.add (.n 796) (.n 221) (.n 795)) ::
-  .atom (.const (.n 797) (word 2 0 0)) ::
-  .atom (.mul (.n 798) (.n 797) (.n 796)) ::
-  .atom (.add (.n 799) (.n 220) (.n 798)) ::
-  .atom (.const (.n 800) (word 2 0 0)) ::
-  .atom (.mul (.n 801) (.n 800) (.n 799)) ::
-  .atom (.add (.n 802) (.n 219) (.n 801)) ::
-  .atom (.const (.n 803) (word 2 0 0)) ::
-  .atom (.mul (.n 804) (.n 803) (.n 802)) ::
-  .atom (.add (.n 805) (.n 218) (.n 804)) ::
-  .atom (.const (.n 806) (word 2 0 0)) ::
-  .atom (.mul (.n 807) (.n 806) (.n 805)) ::
-  .atom (.add (.n 808) (.n 217) (.n 807)) ::
-  .atom (.copy (.n 809) (.n 236)) ::
-  .atom (.const (.n 810) (word 2 0 0)) ::
-  .atom (.mul (.n 811) (.n 810) (.n 809)) ::
-  .atom (.add (.n 812) (.n 235) (.n 811)) ::
-  .atom (.const (.n 813) (word 2 0 0)) ::
-  .atom (.mul (.n 814) (.n 813) (.n 812)) ::
-  .atom (.add (.n 815) (.n 234) (.n 814)) ::
-  .atom (.const (.n 816) (word 2 0 0)) ::
-  .atom (.mul (.n 817) (.n 816) (.n 815)) ::
-  .atom (.add (.n 818) (.n 233) (.n 817)) ::
-  .atom (.const (.n 819) (word 2 0 0)) ::
-  .atom (.mul (.n 820) (.n 819) (.n 818)) ::
-  .atom (.add (.n 821) (.n 232) (.n 820)) ::
-  .atom (.const (.n 822) (word 2 0 0)) ::
-  .atom (.mul (.n 823) (.n 822) (.n 821)) ::
-  .atom (.add (.n 824) (.n 231) (.n 823)) ::
-  .atom (.const (.n 825) (word 2 0 0)) ::
-  .atom (.mul (.n 826) (.n 825) (.n 824)) ::
-  .atom (.add (.n 827) (.n 230) (.n 826)) ::
-  .atom (.const (.n 828) (word 2 0 0)) ::
-  .atom (.mul (.n 829) (.n 828) (.n 827)) ::
-  .atom (.add (.n 830) (.n 229) (.n 829)) ::
-  .atom (.const (.n 831) (word 2 0 0)) ::
-  .atom (.mul (.n 832) (.n 831) (.n 830)) ::
-  .atom (.add (.n 833) (.n 228) (.n 832)) ::
-  .atom (.const (.n 834) (word 2 0 0)) ::
-  .atom (.mul (.n 835) (.n 834) (.n 833)) ::
-  .atom (.add (.n 836) (.n 227) (.n 835)) ::
-  .atom (.copy (.n 837) (.n 246)) ::
-  .atom (.const (.n 838) (word 2 0 0)) ::
-  .atom (.mul (.n 839) (.n 838) (.n 837)) ::
-  .atom (.add (.n 840) (.n 245) (.n 839)) ::
-  .atom (.const (.n 841) (word 2 0 0)) ::
-  .atom (.mul (.n 842) (.n 841) (.n 840)) ::
-  .atom (.add (.n 843) (.n 244) (.n 842)) ::
-  .atom (.const (.n 844) (word 2 0 0)) ::
-  .atom (.mul (.n 845) (.n 844) (.n 843)) ::
-  .atom (.add (.n 846) (.n 243) (.n 845)) ::
-  .atom (.const (.n 847) (word 2 0 0)) ::
-  .atom (.mul (.n 848) (.n 847) (.n 846)) ::
-  .atom (.add (.n 849) (.n 242) (.n 848)) ::
-  .atom (.const (.n 850) (word 2 0 0)) ::
-  .atom (.mul (.n 851) (.n 850) (.n 849)) ::
-  .atom (.add (.n 852) (.n 241) (.n 851)) ::
-  .atom (.const (.n 853) (word 2 0 0)) ::
-  .atom (.mul (.n 854) (.n 853) (.n 852)) ::
-  .atom (.add (.n 855) (.n 240) (.n 854)) ::
-  .atom (.const (.n 856) (word 2 0 0)) ::
-  .atom (.mul (.n 857) (.n 856) (.n 855)) ::
-  .atom (.add (.n 858) (.n 239) (.n 857)) ::
-  .atom (.const (.n 859) (word 2 0 0)) ::
-  .atom (.mul (.n 860) (.n 859) (.n 858)) ::
-  .atom (.add (.n 861) (.n 238) (.n 860)) ::
-  .atom (.const (.n 862) (word 2 0 0)) ::
-  .atom (.mul (.n 863) (.n 862) (.n 861)) ::
-  .atom (.add (.n 864) (.n 237) (.n 863)) ::
-  .atom (.copy (.n 865) (.n 256)) ::
-  .atom (.const (.n 866) (word 2 0 0)) ::
-  .atom (.mul (.n 867) (.n 866) (.n 865)) ::
-  .atom (.add (.n 868) (.n 255) (.n 867)) ::
-  .atom (.const (.n 869) (word 2 0 0)) ::
-  .atom (.mul (.n 870) (.n 869) (.n 868)) ::
-  .atom (.add (.n 871) (.n 254) (.n 870)) ::
-  .atom (.const (.n 872) (word 2 0 0)) ::
-  .atom (.mul (.n 873) (.n 872) (.n 871)) ::
-  .atom (.add (.n 874) (.n 253) (.n 873)) ::
-  .atom (.const (.n 875) (word 2 0 0)) ::
-  .atom (.mul (.n 876) (.n 875) (.n 874)) ::
-  .atom (.add (.n 877) (.n 252) (.n 876)) ::
-  .atom (.const (.n 878) (word 2 0 0)) ::
-  .atom (.mul (.n 879) (.n 878) (.n 877)) ::
-  .atom (.add (.n 880) (.n 251) (.n 879)) ::
-  .atom (.const (.n 881) (word 2 0 0)) ::
-  .atom (.mul (.n 882) (.n 881) (.n 880)) ::
-  .atom (.add (.n 883) (.n 250) (.n 882)) ::
-  .atom (.const (.n 884) (word 2 0 0)) ::
-  .atom (.mul (.n 885) (.n 884) (.n 883)) ::
-  .atom (.add (.n 886) (.n 249) (.n 885)) ::
-  .atom (.const (.n 887) (word 2 0 0)) ::
-  .atom (.mul (.n 888) (.n 887) (.n 886)) ::
-  .atom (.add (.n 889) (.n 248) (.n 888)) ::
-  .atom (.const (.n 890) (word 2 0 0)) ::
-  .atom (.mul (.n 891) (.n 890) (.n 889)) ::
-  .atom (.add (.n 892) (.n 247) (.n 891)) ::
-  .atom (.copy (.n 893) (.n 266)) ::
-  .atom (.const (.n 894) (word 2 0 0)) ::
-  .atom (.mul (.n 895) (.n 894) (.n 893)) ::
-  .atom (.add (.n 896) (.n 265) (.n 895)) ::
-  .atom (.const (.n 897) (word 2 0 0)) ::
-  .atom (.mul (.n 898) (.n 897) (.n 896)) ::
-  .atom (.add (.n 899) (.n 264) (.n 898)) ::
-  .atom (.const (.n 900) (word 2 0 0)) ::
-  .atom (.mul (.n 901) (.n 900) (.n 899)) ::
-  .atom (.add (.n 902) (.n 263) (.n 901)) ::
-  .atom (.const (.n 903) (word 2 0 0)) ::
-  .atom (.mul (.n 904) (.n 903) (.n 902)) ::
-  .atom (.add (.n 905) (.n 262) (.n 904)) ::
-  .atom (.const (.n 906) (word 2 0 0)) ::
-  .atom (.mul (.n 907) (.n 906) (.n 905)) ::
-  .atom (.add (.n 908) (.n 261) (.n 907)) ::
-  .atom (.const (.n 909) (word 2 0 0)) ::
-  .atom (.mul (.n 910) (.n 909) (.n 908)) ::
-  .atom (.add (.n 911) (.n 260) (.n 910)) ::
-  .atom (.const (.n 912) (word 2 0 0)) ::
-  .atom (.mul (.n 913) (.n 912) (.n 911)) ::
-  .atom (.add (.n 914) (.n 259) (.n 913)) ::
-  .atom (.const (.n 915) (word 2 0 0)) ::
-  .atom (.mul (.n 916) (.n 915) (.n 914)) ::
-  .atom (.add (.n 917) (.n 258) (.n 916)) ::
-  .atom (.const (.n 918) (word 2 0 0)) ::
-  .atom (.mul (.n 919) (.n 918) (.n 917)) ::
-  .atom (.add (.n 920) (.n 257) (.n 919)) ::
-  .atom (.copy (.n 921) (.n 276)) ::
-  .atom (.const (.n 922) (word 2 0 0)) ::
-  .atom (.mul (.n 923) (.n 922) (.n 921)) ::
-  .atom (.add (.n 924) (.n 275) (.n 923)) ::
-  .atom (.const (.n 925) (word 2 0 0)) ::
-  .atom (.mul (.n 926) (.n 925) (.n 924)) ::
-  .atom (.add (.n 927) (.n 274) (.n 926)) ::
-  .atom (.const (.n 928) (word 2 0 0)) ::
-  .atom (.mul (.n 929) (.n 928) (.n 927)) ::
-  .atom (.add (.n 930) (.n 273) (.n 929)) ::
-  .atom (.const (.n 931) (word 2 0 0)) ::
-  .atom (.mul (.n 932) (.n 931) (.n 930)) ::
-  .atom (.add (.n 933) (.n 272) (.n 932)) ::
-  .atom (.const (.n 934) (word 2 0 0)) ::
-  .atom (.mul (.n 935) (.n 934) (.n 933)) ::
-  .atom (.add (.n 936) (.n 271) (.n 935)) ::
-  .atom (.const (.n 937) (word 2 0 0)) ::
-  .atom (.mul (.n 938) (.n 937) (.n 936)) ::
-  .atom (.add (.n 939) (.n 270) (.n 938)) ::
-  .atom (.const (.n 940) (word 2 0 0)) ::
-  .atom (.mul (.n 941) (.n 940) (.n 939)) ::
-  .atom (.add (.n 942) (.n 269) (.n 941)) ::
-  .atom (.const (.n 943) (word 2 0 0)) ::
-  .atom (.mul (.n 944) (.n 943) (.n 942)) ::
-  .atom (.add (.n 945) (.n 268) (.n 944)) ::
-  .atom (.const (.n 946) (word 2 0 0)) ::
-  .atom (.mul (.n 947) (.n 946) (.n 945)) ::
-  .atom (.add (.n 948) (.n 267) (.n 947)) ::
-  .atom (.copy (.n 949) (.n 286)) ::
-  .atom (.const (.n 950) (word 2 0 0)) ::
-  .atom (.mul (.n 951) (.n 950) (.n 949)) ::
-  .atom (.add (.n 952) (.n 285) (.n 951)) ::
-  .atom (.const (.n 953) (word 2 0 0)) ::
-  .atom (.mul (.n 954) (.n 953) (.n 952)) ::
-  .atom (.add (.n 955) (.n 284) (.n 954)) ::
-  .atom (.const (.n 956) (word 2 0 0)) ::
-  .atom (.mul (.n 957) (.n 956) (.n 955)) ::
-  .atom (.add (.n 958) (.n 283) (.n 957)) ::
-  .atom (.const (.n 959) (word 2 0 0)) ::
-  .atom (.mul (.n 960) (.n 959) (.n 958)) ::
-  .atom (.add (.n 961) (.n 282) (.n 960)) ::
-  .atom (.const (.n 962) (word 2 0 0)) ::
-  .atom (.mul (.n 963) (.n 962) (.n 961)) ::
-  .atom (.add (.n 964) (.n 281) (.n 963)) ::
-  .atom (.const (.n 965) (word 2 0 0)) ::
-  .atom (.mul (.n 966) (.n 965) (.n 964)) ::
-  .atom (.add (.n 967) (.n 280) (.n 966)) ::
-  .atom (.const (.n 968) (word 2 0 0)) ::
-  .atom (.mul (.n 969) (.n 968) (.n 967)) ::
-  .atom (.add (.n 970) (.n 279) (.n 969)) ::
-  .atom (.const (.n 971) (word 2 0 0)) ::
-  .atom (.mul (.n 972) (.n 971) (.n 970)) ::
-  .atom (.add (.n 973) (.n 278) (.n 972)) ::
-  .atom (.const (.n 974) (word 2 0 0)) ::
-  .atom (.mul (.n 975) (.n 974) (.n 973)) ::
-  .atom (.add (.n 976) (.n 277) (.n 975)) ::
-  .atom (.copy (.n 977) (.n 296)) ::
-  .atom (.const (.n 978) (word 2 0 0)) ::
-  .atom (.mul (.n 979) (.n 978) (.n 977)) ::
-  .atom (.add (.n 980) (.n 295) (.n 979)) ::
-  .atom (.const (.n 981) (word 2 0 0)) ::
-  .atom (.mul (.n 982) (.n 981) (.n 980)) ::
-  .atom (.add (.n 983) (.n 294) (.n 982)) ::
-  .atom (.const (.n 984) (word 2 0 0)) ::
-  .atom (.mul (.n 985) (.n 984) (.n 983)) ::
-  .atom (.add (.n 986) (.n 293) (.n 985)) ::
-  .atom (.const (.n 987) (word 2 0 0)) ::
-  .atom (.mul (.n 988) (.n 987) (.n 986)) ::
-  .atom (.add (.n 989) (.n 292) (.n 988)) ::
-  .atom (.const (.n 990) (word 2 0 0)) ::
-  .atom (.mul (.n 991) (.n 990) (.n 989)) ::
-  .atom (.add (.n 992) (.n 291) (.n 991)) ::
-  .atom (.const (.n 993) (word 2 0 0)) ::
-  .atom (.mul (.n 994) (.n 993) (.n 992)) ::
-  .atom (.add (.n 995) (.n 290) (.n 994)) ::
-  .atom (.const (.n 996) (word 2 0 0)) ::
-  .atom (.mul (.n 997) (.n 996) (.n 995)) ::
-  .atom (.add (.n 998) (.n 289) (.n 997)) ::
-  .atom (.const (.n 999) (word 2 0 0)) ::
-  .atom (.mul (.n 1000) (.n 999) (.n 998)) ::
-  .atom (.add (.n 1001) (.n 288) (.n 1000)) ::
-  .atom (.const (.n 1002) (word 2 0 0)) ::
-  .atom (.mul (.n 1003) (.n 1002) (.n 1001)) ::
-  .atom (.add (.n 1004) (.n 287) (.n 1003)) ::
-  .atom (.copy (.n 1005) (.n 306)) ::
-  .atom (.const (.n 1006) (word 2 0 0)) ::
-  .atom (.mul (.n 1007) (.n 1006) (.n 1005)) ::
-  .atom (.add (.n 1008) (.n 305) (.n 1007)) ::
-  .atom (.const (.n 1009) (word 2 0 0)) ::
-  .atom (.mul (.n 1010) (.n 1009) (.n 1008)) ::
-  .atom (.add (.n 1011) (.n 304) (.n 1010)) ::
-  .atom (.const (.n 1012) (word 2 0 0)) ::
-  .atom (.mul (.n 1013) (.n 1012) (.n 1011)) ::
-  .atom (.add (.n 1014) (.n 303) (.n 1013)) ::
-  .atom (.const (.n 1015) (word 2 0 0)) ::
-  .atom (.mul (.n 1016) (.n 1015) (.n 1014)) ::
-  .atom (.add (.n 1017) (.n 302) (.n 1016)) ::
-  .atom (.const (.n 1018) (word 2 0 0)) ::
-  .atom (.mul (.n 1019) (.n 1018) (.n 1017)) ::
-  .atom (.add (.n 1020) (.n 301) (.n 1019)) ::
-  .atom (.const (.n 1021) (word 2 0 0)) ::
-  .atom (.mul (.n 1022) (.n 1021) (.n 1020)) ::
-  .atom (.add (.n 1023) (.n 300) (.n 1022)) ::
-  .atom (.const (.n 1024) (word 2 0 0)) ::
-  .atom (.mul (.n 1025) (.n 1024) (.n 1023)) ::
-  .atom (.add (.n 1026) (.n 299) (.n 1025)) ::
-  .atom (.const (.n 1027) (word 2 0 0)) ::
-  .atom (.mul (.n 1028) (.n 1027) (.n 1026)) ::
-  .atom (.add (.n 1029) (.n 298) (.n 1028)) ::
-  .atom (.const (.n 1030) (word 2 0 0)) ::
-  .atom (.mul (.n 1031) (.n 1030) (.n 1029)) ::
-  .atom (.add (.n 1032) (.n 297) (.n 1031)) ::
-  .atom (.copy (.n 1033) (.n 316)) ::
-  .atom (.const (.n 1034) (word 2 0 0)) ::
-  .atom (.mul (.n 1035) (.n 1034) (.n 1033)) ::
-  .atom (.add (.n 1036) (.n 315) (.n 1035)) ::
-  .atom (.const (.n 1037) (word 2 0 0)) ::
-  .atom (.mul (.n 1038) (.n 1037) (.n 1036)) ::
-  .atom (.add (.n 1039) (.n 314) (.n 1038)) ::
-  .atom (.const (.n 1040) (word 2 0 0)) ::
-  .atom (.mul (.n 1041) (.n 1040) (.n 1039)) ::
-  .atom (.add (.n 1042) (.n 313) (.n 1041)) ::
-  .atom (.const (.n 1043) (word 2 0 0)) ::
-  .atom (.mul (.n 1044) (.n 1043) (.n 1042)) ::
-  .atom (.add (.n 1045) (.n 312) (.n 1044)) ::
-  .atom (.const (.n 1046) (word 2 0 0)) ::
-  .atom (.mul (.n 1047) (.n 1046) (.n 1045)) ::
-  .atom (.add (.n 1048) (.n 311) (.n 1047)) ::
-  .atom (.const (.n 1049) (word 2 0 0)) ::
-  .atom (.mul (.n 1050) (.n 1049) (.n 1048)) ::
-  .atom (.add (.n 1051) (.n 310) (.n 1050)) ::
-  .atom (.const (.n 1052) (word 2 0 0)) ::
-  .atom (.mul (.n 1053) (.n 1052) (.n 1051)) ::
-  .atom (.add (.n 1054) (.n 309) (.n 1053)) ::
-  .atom (.const (.n 1055) (word 2 0 0)) ::
-  .atom (.mul (.n 1056) (.n 1055) (.n 1054)) ::
-  .atom (.add (.n 1057) (.n 308) (.n 1056)) ::
-  .atom (.const (.n 1058) (word 2 0 0)) ::
-  .atom (.mul (.n 1059) (.n 1058) (.n 1057)) ::
-  .atom (.add (.n 1060) (.n 307) (.n 1059)) ::
-  .atom (.const (.n 1061) (word 0 0 0)) ::
-  .atom (.const (.n 1062) (word 256 0 0)) ::
-  .atom (.mul (.n 1063) (.n 360) (.n 1062)) ::
-  .atom (.add (.n 1064) (.n 338) (.n 1063)) ::
-  .atom (.const (.n 1065) (word 65536 0 0)) ::
-  .atom (.mul (.n 1066) (.n 388) (.n 1065)) ::
-  .atom (.add (.n 1067) (.n 1064) (.n 1066)) ::
-  .atom (.const (.n 1068) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1069) (.n 416) (.n 1068)) ::
-  .atom (.add (.n 1070) (.n 1067) (.n 1069)) ::
-  .atom (.const (.n 1071) (word 68719476736 0 0)) ::
-  .atom (.mul (.n 1072) (.n 444) (.n 1071)) ::
-  .atom (.add (.n 1073) (.n 1070) (.n 1072)) ::
-  .atom (.const (.n 1074) (word 70368744177664 0 0)) ::
-  .atom (.mul (.n 1075) (.n 472) (.n 1074)) ::
-  .atom (.add (.n 1076) (.n 1073) (.n 1075)) ::
-  .atom (.const (.n 1077) (word 256 0 0)) ::
-  .atom (.mul (.n 1078) (.n 476) (.n 1077)) ::
-  .atom (.add (.n 1079) (.n 500) (.n 1078)) ::
-  .atom (.const (.n 1080) (word 72057594037927936 0 0)) ::
-  .atom (.mul (.n 1081) (.n 1079) (.n 1080)) ::
-  .atom (.add (.n 1082) (.n 1076) (.n 1081)) ::
-  .atom (.const (.n 1083) (word 4 0 0)) ::
-  .atom (.mul (.n 1084) (.n 528) (.n 1083)) ::
-  .atom (.add (.n 1085) (.n 476) (.n 1084)) ::
-  .atom (.const (.n 1086) (word 4096 0 0)) ::
-  .atom (.mul (.n 1087) (.n 556) (.n 1086)) ::
-  .atom (.add (.n 1088) (.n 1085) (.n 1087)) ::
-  .atom (.const (.n 1089) (word 4194304 0 0)) ::
-  .atom (.mul (.n 1090) (.n 584) (.n 1089)) ::
-  .atom (.add (.n 1091) (.n 1088) (.n 1090)) ::
-  .atom (.const (.n 1092) (word 4294967296 0 0)) ::
-  .atom (.mul (.n 1093) (.n 612) (.n 1092)) ::
-  .atom (.add (.n 1094) (.n 1091) (.n 1093)) ::
-  .atom (.const (.n 1095) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1096) (.n 640) (.n 1095)) ::
-  .atom (.add (.n 1097) (.n 1094) (.n 1096)) ::
-  .atom (.const (.n 1098) (word 4503599627370496 0 0)) ::
-  .atom (.mul (.n 1099) (.n 668) (.n 1098)) ::
-  .atom (.add (.n 1100) (.n 1097) (.n 1099)) ::
-  .atom (.const (.n 1101) (word 4 0 0)) ::
-  .atom (.mul (.n 1102) (.n 690) (.n 1101)) ::
-  .atom (.add (.n 1103) (.n 696) (.n 1102)) ::
-  .atom (.const (.n 1104) (word 4611686018427387904 0 0)) ::
-  .atom (.mul (.n 1105) (.n 1103) (.n 1104)) ::
-  .atom (.add (.n 1106) (.n 1100) (.n 1105)) ::
-  .atom (.const (.n 1107) (word 256 0 0)) ::
-  .atom (.mul (.n 1108) (.n 724) (.n 1107)) ::
-  .atom (.add (.n 1109) (.n 690) (.n 1108)) ::
-  .atom (.const (.n 1110) (word 262144 0 0)) ::
-  .atom (.mul (.n 1111) (.n 752) (.n 1110)) ::
-  .atom (.add (.n 1112) (.n 1109) (.n 1111)) ::
-  .atom (.const (.n 1113) (word 268435456 0 0)) ::
-  .atom (.mul (.n 1114) (.n 780) (.n 1113)) ::
-  .atom (.add (.n 1115) (.n 1112) (.n 1114)) ::
-  .atom (.const (.n 1116) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 1117) (.n 808) (.n 1116)) ::
-  .atom (.add (.n 1118) (.n 1115) (.n 1117)) ::
-  .atom (.const (.n 1119) (word 281474976710656 0 0)) ::
-  .atom (.mul (.n 1120) (.n 836) (.n 1119)) ::
-  .atom (.add (.n 1121) (.n 1118) (.n 1120)) ::
-  .atom (.const (.n 1122) (word 64 0 0)) ::
-  .atom (.mul (.n 1123) (.n 846) (.n 1122)) ::
-  .atom (.add (.n 1124) (.n 864) (.n 1123)) ::
-  .atom (.const (.n 1125) (word 288230376151711744 0 0)) ::
-  .atom (.mul (.n 1126) (.n 1124) (.n 1125)) ::
-  .atom (.add (.n 1127) (.n 1121) (.n 1126)) ::
-  .atom (.const (.n 1128) (word 16 0 0)) ::
-  .atom (.mul (.n 1129) (.n 892) (.n 1128)) ::
-  .atom (.add (.n 1130) (.n 846) (.n 1129)) ::
-  .atom (.const (.n 1131) (word 16384 0 0)) ::
-  .atom (.mul (.n 1132) (.n 920) (.n 1131)) ::
-  .atom (.add (.n 1133) (.n 1130) (.n 1132)) ::
-  .atom (.const (.n 1134) (word 16777216 0 0)) ::
-  .atom (.mul (.n 1135) (.n 948) (.n 1134)) ::
-  .atom (.add (.n 1136) (.n 1133) (.n 1135)) ::
-  .atom (.const (.n 1137) (word 17179869184 0 0)) ::
-  .atom (.mul (.n 1138) (.n 976) (.n 1137)) ::
-  .atom (.add (.n 1139) (.n 1136) (.n 1138)) ::
-  .atom (.const (.n 1140) (word 17592186044416 0 0)) ::
-  .atom (.mul (.n 1141) (.n 1004) (.n 1140)) ::
-  .atom (.add (.n 1142) (.n 1139) (.n 1141)) ::
-  .atom (.const (.n 1143) (word 18014398509481984 0 0)) ::
-  .atom (.mul (.n 1144) (.n 1032) (.n 1143)) ::
-  .atom (.add (.n 1145) (.n 1142) (.n 1144)) ::
-  .atom (.copy (.n 1146) (.n 1145)) ::
-  .atom (.const (.n 1147) (word 0 1 0)) ::
-  .atom (.mul (.n 1148) (.n 1106) (.n 1147)) ::
-  .atom (.add (.n 17) (.n 1082) (.n 1148)) ::
-  .atom (.const (.n 1149) (word 0 1 0)) ::
-  .atom (.mul (.n 1150) (.n 1146) (.n 1149)) ::
-  .atom (.add (.n 18) (.n 1127) (.n 1150)) ::
-  .atom (.hint (.witness "sp_unused" (.stack [.n 1151, .n 1152, .n 1153, .n 1154, .n 1155, .n 1156, .n 1157]))) ::
-  .atom (.const (.n 1158) (word 9223372036854775808 0 0)) ::
-  .atom (.rangeCheck (.n 1157) (.n 1159) (.n 1160) (.n 1161) (.n 1158)) ::
-  .atom (.mul (.n 1162) (.n 1) (.n 1157)) ::
-  .atom (.load (.n 1163) (.n 1162) 0) ::
-  .atom (.const (.n 1164) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1156) (.n 1165) (.n 1166) (.n 1167) (.n 1164)) ::
-  .atom (.mul (.n 1168) (.n 1) (.n 1156)) ::
-  .atom (.load (.n 1169) (.n 1168) 0) ::
-  .atom (.const (.n 1170) (word 256 0 0)) ::
+  .atom (.mul (.n 502) (.n 502) (.n 502)) ::
+  .atom (.mul (.n 630) (.n 630) (.n 630)) ::
+  .atom (.mul (.n 503) (.n 503) (.n 503)) ::
+  .atom (.mul (.n 631) (.n 631) (.n 631)) ::
+  .atom (.mul (.n 504) (.n 504) (.n 504)) ::
+  .atom (.mul (.n 632) (.n 632) (.n 632)) ::
+  .atom (.mul (.n 505) (.n 505) (.n 505)) ::
+  .atom (.mul (.n 633) (.n 633) (.n 633)) ::
+  .atom (.mul (.n 506) (.n 506) (.n 506)) ::
+  .atom (.mul (.n 634) (.n 634) (.n 634)) ::
+  .atom (.mul (.n 507) (.n 507) (.n 507)) ::
+  .atom (.mul (.n 635) (.n 635) (.n 635)) ::
+  .atom (.mul (.n 508) (.n 508) (.n 508)) ::
+  .atom (.mul (.n 636) (.n 636) (.n 636)) ::
+  .atom (.mul (.n 509) (.n 509) (.n 509)) ::
+  .atom (.mul (.n 637) (.n 637) (.n 637)) ::
+  .atom (.mul (.n 510) (.n 510) (.n 510)) ::
+  .atom (.mul (.n 638) (.n 638) (.n 638)) ::
+  .atom (.mul (.n 511) (.n 511) (.n 511)) ::
+  .atom (.mul (.n 639) (.n 639) (.n 639)) ::
+  .atom (.mul (.n 512) (.n 512) (.n 512)) ::
+  .atom (.mul (.n 640) (.n 640) (.n 640)) ::
+  .atom (.mul (.n 513) (.n 513) (.n 513)) ::
+  .atom (.mul (.n 641) (.n 641) (.n 641)) ::
+  .atom (.mul (.n 514) (.n 514) (.n 514)) ::
+  .atom (.mul (.n 642) (.n 642) (.n 642)) ::
+  .atom (.mul (.n 515) (.n 515) (.n 515)) ::
+  .atom (.mul (.n 643) (.n 643) (.n 643)) ::
+  .atom (.mul (.n 516) (.n 516) (.n 516)) ::
+  .atom (.mul (.n 644) (.n 644) (.n 644)) ::
+  .atom (.mul (.n 517) (.n 517) (.n 517)) ::
+  .atom (.mul (.n 645) (.n 645) (.n 645)) ::
+  .atom (.mul (.n 518) (.n 518) (.n 518)) ::
+  .atom (.mul (.n 646) (.n 646) (.n 646)) ::
+  .atom (.mul (.n 519) (.n 519) (.n 519)) ::
+  .atom (.mul (.n 647) (.n 647) (.n 647)) ::
+  .atom (.mul (.n 648) (.n 648) (.n 648)) ::
+  .atom (.mul (.n 649) (.n 649) (.n 649)) ::
+  .atom (.mul (.n 650) (.n 650) (.n 650)) ::
+  .atom (.mul (.n 651) (.n 651) (.n 651)) ::
+  .atom (.mul (.n 652) (.n 652) (.n 652)) ::
+  .atom (.mul (.n 653) (.n 653) (.n 653)) ::
+  .atom (.mul (.n 654) (.n 654) (.n 654)) ::
+  .atom (.mul (.n 655) (.n 655) (.n 655)) ::
+  .atom (.mul (.n 656) (.n 656) (.n 656)) ::
+  .atom (.mul (.n 657) (.n 657) (.n 657)) ::
+  .atom (.mul (.n 658) (.n 658) (.n 658)) ::
+  .atom (.mul (.n 659) (.n 659) (.n 659)) ::
+  .atom (.mul (.n 660) (.n 660) (.n 660)) ::
+  .atom (.mul (.n 661) (.n 661) (.n 661)) ::
+  .atom (.mul (.n 662) (.n 662) (.n 662)) ::
+  .atom (.mul (.n 663) (.n 663) (.n 663)) ::
+  .atom (.copy (.n 664) (.n 399)) ::
+  .atom (.const (.n 665) (word 2 0 0)) ::
+  .atom (.mul (.n 666) (.n 665) (.n 664)) ::
+  .atom (.add (.n 667) (.n 398) (.n 666)) ::
+  .atom (.const (.n 668) (word 2 0 0)) ::
+  .atom (.mul (.n 669) (.n 668) (.n 667)) ::
+  .atom (.add (.n 670) (.n 397) (.n 669)) ::
+  .atom (.const (.n 671) (word 2 0 0)) ::
+  .atom (.mul (.n 672) (.n 671) (.n 670)) ::
+  .atom (.add (.n 673) (.n 396) (.n 672)) ::
+  .atom (.const (.n 674) (word 2 0 0)) ::
+  .atom (.mul (.n 675) (.n 674) (.n 673)) ::
+  .atom (.add (.n 676) (.n 395) (.n 675)) ::
+  .atom (.const (.n 677) (word 2 0 0)) ::
+  .atom (.mul (.n 678) (.n 677) (.n 676)) ::
+  .atom (.add (.n 679) (.n 394) (.n 678)) ::
+  .atom (.const (.n 680) (word 2 0 0)) ::
+  .atom (.mul (.n 681) (.n 680) (.n 679)) ::
+  .atom (.add (.n 682) (.n 393) (.n 681)) ::
+  .atom (.const (.n 683) (word 2 0 0)) ::
+  .atom (.mul (.n 684) (.n 683) (.n 682)) ::
+  .atom (.add (.n 685) (.n 392) (.n 684)) ::
+  .atom (.const (.n 686) (word 2 0 0)) ::
+  .atom (.mul (.n 687) (.n 686) (.n 685)) ::
+  .atom (.add (.n 688) (.n 407) (.n 687)) ::
+  .atom (.const (.n 689) (word 2 0 0)) ::
+  .atom (.mul (.n 690) (.n 689) (.n 688)) ::
+  .atom (.add (.n 691) (.n 406) (.n 690)) ::
+  .atom (.copy (.n 692) (.n 405)) ::
+  .atom (.const (.n 693) (word 2 0 0)) ::
+  .atom (.mul (.n 694) (.n 693) (.n 692)) ::
+  .atom (.add (.n 695) (.n 404) (.n 694)) ::
+  .atom (.const (.n 696) (word 2 0 0)) ::
+  .atom (.mul (.n 697) (.n 696) (.n 695)) ::
+  .atom (.add (.n 698) (.n 403) (.n 697)) ::
+  .atom (.const (.n 699) (word 2 0 0)) ::
+  .atom (.mul (.n 700) (.n 699) (.n 698)) ::
+  .atom (.add (.n 701) (.n 402) (.n 700)) ::
+  .atom (.const (.n 702) (word 2 0 0)) ::
+  .atom (.mul (.n 703) (.n 702) (.n 701)) ::
+  .atom (.add (.n 704) (.n 401) (.n 703)) ::
+  .atom (.const (.n 705) (word 2 0 0)) ::
+  .atom (.mul (.n 706) (.n 705) (.n 704)) ::
+  .atom (.add (.n 707) (.n 400) (.n 706)) ::
+  .atom (.const (.n 708) (word 2 0 0)) ::
+  .atom (.mul (.n 709) (.n 708) (.n 707)) ::
+  .atom (.add (.n 710) (.n 415) (.n 709)) ::
+  .atom (.const (.n 711) (word 2 0 0)) ::
+  .atom (.mul (.n 712) (.n 711) (.n 710)) ::
+  .atom (.add (.n 713) (.n 414) (.n 712)) ::
+  .atom (.const (.n 714) (word 2 0 0)) ::
+  .atom (.mul (.n 715) (.n 714) (.n 713)) ::
+  .atom (.add (.n 716) (.n 413) (.n 715)) ::
+  .atom (.const (.n 717) (word 2 0 0)) ::
+  .atom (.mul (.n 718) (.n 717) (.n 716)) ::
+  .atom (.add (.n 719) (.n 412) (.n 718)) ::
+  .atom (.copy (.n 720) (.n 411)) ::
+  .atom (.const (.n 721) (word 2 0 0)) ::
+  .atom (.mul (.n 722) (.n 721) (.n 720)) ::
+  .atom (.add (.n 723) (.n 410) (.n 722)) ::
+  .atom (.const (.n 724) (word 2 0 0)) ::
+  .atom (.mul (.n 725) (.n 724) (.n 723)) ::
+  .atom (.add (.n 726) (.n 409) (.n 725)) ::
+  .atom (.const (.n 727) (word 2 0 0)) ::
+  .atom (.mul (.n 728) (.n 727) (.n 726)) ::
+  .atom (.add (.n 729) (.n 408) (.n 728)) ::
+  .atom (.const (.n 730) (word 2 0 0)) ::
+  .atom (.mul (.n 731) (.n 730) (.n 729)) ::
+  .atom (.add (.n 732) (.n 423) (.n 731)) ::
+  .atom (.const (.n 733) (word 2 0 0)) ::
+  .atom (.mul (.n 734) (.n 733) (.n 732)) ::
+  .atom (.add (.n 735) (.n 422) (.n 734)) ::
+  .atom (.const (.n 736) (word 2 0 0)) ::
+  .atom (.mul (.n 737) (.n 736) (.n 735)) ::
+  .atom (.add (.n 738) (.n 421) (.n 737)) ::
+  .atom (.const (.n 739) (word 2 0 0)) ::
+  .atom (.mul (.n 740) (.n 739) (.n 738)) ::
+  .atom (.add (.n 741) (.n 420) (.n 740)) ::
+  .atom (.const (.n 742) (word 2 0 0)) ::
+  .atom (.mul (.n 743) (.n 742) (.n 741)) ::
+  .atom (.add (.n 744) (.n 419) (.n 743)) ::
+  .atom (.const (.n 745) (word 2 0 0)) ::
+  .atom (.mul (.n 746) (.n 745) (.n 744)) ::
+  .atom (.add (.n 747) (.n 418) (.n 746)) ::
+  .atom (.copy (.n 748) (.n 417)) ::
+  .atom (.const (.n 749) (word 2 0 0)) ::
+  .atom (.mul (.n 750) (.n 749) (.n 748)) ::
+  .atom (.add (.n 751) (.n 416) (.n 750)) ::
+  .atom (.const (.n 752) (word 2 0 0)) ::
+  .atom (.mul (.n 753) (.n 752) (.n 751)) ::
+  .atom (.add (.n 754) (.n 431) (.n 753)) ::
+  .atom (.const (.n 755) (word 2 0 0)) ::
+  .atom (.mul (.n 756) (.n 755) (.n 754)) ::
+  .atom (.add (.n 757) (.n 430) (.n 756)) ::
+  .atom (.const (.n 758) (word 2 0 0)) ::
+  .atom (.mul (.n 759) (.n 758) (.n 757)) ::
+  .atom (.add (.n 760) (.n 429) (.n 759)) ::
+  .atom (.const (.n 761) (word 2 0 0)) ::
+  .atom (.mul (.n 762) (.n 761) (.n 760)) ::
+  .atom (.add (.n 763) (.n 428) (.n 762)) ::
+  .atom (.const (.n 764) (word 2 0 0)) ::
+  .atom (.mul (.n 765) (.n 764) (.n 763)) ::
+  .atom (.add (.n 766) (.n 427) (.n 765)) ::
+  .atom (.const (.n 767) (word 2 0 0)) ::
+  .atom (.mul (.n 768) (.n 767) (.n 766)) ::
+  .atom (.add (.n 769) (.n 426) (.n 768)) ::
+  .atom (.const (.n 770) (word 2 0 0)) ::
+  .atom (.mul (.n 771) (.n 770) (.n 769)) ::
+  .atom (.add (.n 772) (.n 425) (.n 771)) ::
+  .atom (.const (.n 773) (word 2 0 0)) ::
+  .atom (.mul (.n 774) (.n 773) (.n 772)) ::
+  .atom (.add (.n 775) (.n 424) (.n 774)) ::
+  .atom (.copy (.n 776) (.n 439)) ::
+  .atom (.const (.n 777) (word 2 0 0)) ::
+  .atom (.mul (.n 778) (.n 777) (.n 776)) ::
+  .atom (.add (.n 779) (.n 438) (.n 778)) ::
+  .atom (.const (.n 780) (word 2 0 0)) ::
+  .atom (.mul (.n 781) (.n 780) (.n 779)) ::
+  .atom (.add (.n 782) (.n 437) (.n 781)) ::
+  .atom (.const (.n 783) (word 2 0 0)) ::
+  .atom (.mul (.n 784) (.n 783) (.n 782)) ::
+  .atom (.add (.n 785) (.n 436) (.n 784)) ::
+  .atom (.const (.n 786) (word 2 0 0)) ::
+  .atom (.mul (.n 787) (.n 786) (.n 785)) ::
+  .atom (.add (.n 788) (.n 435) (.n 787)) ::
+  .atom (.const (.n 789) (word 2 0 0)) ::
+  .atom (.mul (.n 790) (.n 789) (.n 788)) ::
+  .atom (.add (.n 791) (.n 434) (.n 790)) ::
+  .atom (.const (.n 792) (word 2 0 0)) ::
+  .atom (.mul (.n 793) (.n 792) (.n 791)) ::
+  .atom (.add (.n 794) (.n 433) (.n 793)) ::
+  .atom (.const (.n 795) (word 2 0 0)) ::
+  .atom (.mul (.n 796) (.n 795) (.n 794)) ::
+  .atom (.add (.n 797) (.n 432) (.n 796)) ::
+  .atom (.const (.n 798) (word 2 0 0)) ::
+  .atom (.mul (.n 799) (.n 798) (.n 797)) ::
+  .atom (.add (.n 800) (.n 447) (.n 799)) ::
+  .atom (.const (.n 801) (word 2 0 0)) ::
+  .atom (.mul (.n 802) (.n 801) (.n 800)) ::
+  .atom (.add (.n 803) (.n 446) (.n 802)) ::
+  .atom (.copy (.n 804) (.n 445)) ::
+  .atom (.const (.n 805) (word 2 0 0)) ::
+  .atom (.mul (.n 806) (.n 805) (.n 804)) ::
+  .atom (.add (.n 807) (.n 444) (.n 806)) ::
+  .atom (.const (.n 808) (word 2 0 0)) ::
+  .atom (.mul (.n 809) (.n 808) (.n 807)) ::
+  .atom (.add (.n 810) (.n 443) (.n 809)) ::
+  .atom (.const (.n 811) (word 2 0 0)) ::
+  .atom (.mul (.n 812) (.n 811) (.n 810)) ::
+  .atom (.add (.n 813) (.n 442) (.n 812)) ::
+  .atom (.const (.n 814) (word 2 0 0)) ::
+  .atom (.mul (.n 815) (.n 814) (.n 813)) ::
+  .atom (.add (.n 816) (.n 441) (.n 815)) ::
+  .atom (.const (.n 817) (word 2 0 0)) ::
+  .atom (.mul (.n 818) (.n 817) (.n 816)) ::
+  .atom (.add (.n 819) (.n 440) (.n 818)) ::
+  .atom (.const (.n 820) (word 2 0 0)) ::
+  .atom (.mul (.n 821) (.n 820) (.n 819)) ::
+  .atom (.add (.n 822) (.n 455) (.n 821)) ::
+  .atom (.const (.n 823) (word 2 0 0)) ::
+  .atom (.mul (.n 824) (.n 823) (.n 822)) ::
+  .atom (.add (.n 825) (.n 454) (.n 824)) ::
+  .atom (.const (.n 826) (word 2 0 0)) ::
+  .atom (.mul (.n 827) (.n 826) (.n 825)) ::
+  .atom (.add (.n 828) (.n 453) (.n 827)) ::
+  .atom (.const (.n 829) (word 2 0 0)) ::
+  .atom (.mul (.n 830) (.n 829) (.n 828)) ::
+  .atom (.add (.n 831) (.n 452) (.n 830)) ::
+  .atom (.copy (.n 832) (.n 451)) ::
+  .atom (.const (.n 833) (word 2 0 0)) ::
+  .atom (.mul (.n 834) (.n 833) (.n 832)) ::
+  .atom (.add (.n 835) (.n 450) (.n 834)) ::
+  .atom (.const (.n 836) (word 2 0 0)) ::
+  .atom (.mul (.n 837) (.n 836) (.n 835)) ::
+  .atom (.add (.n 838) (.n 449) (.n 837)) ::
+  .atom (.const (.n 839) (word 2 0 0)) ::
+  .atom (.mul (.n 840) (.n 839) (.n 838)) ::
+  .atom (.add (.n 841) (.n 448) (.n 840)) ::
+  .atom (.const (.n 842) (word 2 0 0)) ::
+  .atom (.mul (.n 843) (.n 842) (.n 841)) ::
+  .atom (.add (.n 844) (.n 463) (.n 843)) ::
+  .atom (.const (.n 845) (word 2 0 0)) ::
+  .atom (.mul (.n 846) (.n 845) (.n 844)) ::
+  .atom (.add (.n 847) (.n 462) (.n 846)) ::
+  .atom (.const (.n 848) (word 2 0 0)) ::
+  .atom (.mul (.n 849) (.n 848) (.n 847)) ::
+  .atom (.add (.n 850) (.n 461) (.n 849)) ::
+  .atom (.const (.n 851) (word 2 0 0)) ::
+  .atom (.mul (.n 852) (.n 851) (.n 850)) ::
+  .atom (.add (.n 853) (.n 460) (.n 852)) ::
+  .atom (.const (.n 854) (word 2 0 0)) ::
+  .atom (.mul (.n 855) (.n 854) (.n 853)) ::
+  .atom (.add (.n 856) (.n 459) (.n 855)) ::
+  .atom (.const (.n 857) (word 2 0 0)) ::
+  .atom (.mul (.n 858) (.n 857) (.n 856)) ::
+  .atom (.add (.n 859) (.n 458) (.n 858)) ::
+  .atom (.copy (.n 860) (.n 457)) ::
+  .atom (.const (.n 861) (word 2 0 0)) ::
+  .atom (.mul (.n 862) (.n 861) (.n 860)) ::
+  .atom (.add (.n 863) (.n 456) (.n 862)) ::
+  .atom (.const (.n 864) (word 2 0 0)) ::
+  .atom (.mul (.n 865) (.n 864) (.n 863)) ::
+  .atom (.add (.n 866) (.n 471) (.n 865)) ::
+  .atom (.const (.n 867) (word 2 0 0)) ::
+  .atom (.mul (.n 868) (.n 867) (.n 866)) ::
+  .atom (.add (.n 869) (.n 470) (.n 868)) ::
+  .atom (.const (.n 870) (word 2 0 0)) ::
+  .atom (.mul (.n 871) (.n 870) (.n 869)) ::
+  .atom (.add (.n 872) (.n 469) (.n 871)) ::
+  .atom (.const (.n 873) (word 2 0 0)) ::
+  .atom (.mul (.n 874) (.n 873) (.n 872)) ::
+  .atom (.add (.n 875) (.n 468) (.n 874)) ::
+  .atom (.const (.n 876) (word 2 0 0)) ::
+  .atom (.mul (.n 877) (.n 876) (.n 875)) ::
+  .atom (.add (.n 878) (.n 467) (.n 877)) ::
+  .atom (.const (.n 879) (word 2 0 0)) ::
+  .atom (.mul (.n 880) (.n 879) (.n 878)) ::
+  .atom (.add (.n 881) (.n 466) (.n 880)) ::
+  .atom (.const (.n 882) (word 2 0 0)) ::
+  .atom (.mul (.n 883) (.n 882) (.n 881)) ::
+  .atom (.add (.n 884) (.n 465) (.n 883)) ::
+  .atom (.const (.n 885) (word 2 0 0)) ::
+  .atom (.mul (.n 886) (.n 885) (.n 884)) ::
+  .atom (.add (.n 887) (.n 464) (.n 886)) ::
+  .atom (.copy (.n 888) (.n 479)) ::
+  .atom (.const (.n 889) (word 2 0 0)) ::
+  .atom (.mul (.n 890) (.n 889) (.n 888)) ::
+  .atom (.add (.n 891) (.n 478) (.n 890)) ::
+  .atom (.const (.n 892) (word 2 0 0)) ::
+  .atom (.mul (.n 893) (.n 892) (.n 891)) ::
+  .atom (.add (.n 894) (.n 477) (.n 893)) ::
+  .atom (.const (.n 895) (word 2 0 0)) ::
+  .atom (.mul (.n 896) (.n 895) (.n 894)) ::
+  .atom (.add (.n 897) (.n 476) (.n 896)) ::
+  .atom (.const (.n 898) (word 2 0 0)) ::
+  .atom (.mul (.n 899) (.n 898) (.n 897)) ::
+  .atom (.add (.n 900) (.n 475) (.n 899)) ::
+  .atom (.const (.n 901) (word 2 0 0)) ::
+  .atom (.mul (.n 902) (.n 901) (.n 900)) ::
+  .atom (.add (.n 903) (.n 474) (.n 902)) ::
+  .atom (.const (.n 904) (word 2 0 0)) ::
+  .atom (.mul (.n 905) (.n 904) (.n 903)) ::
+  .atom (.add (.n 906) (.n 473) (.n 905)) ::
+  .atom (.const (.n 907) (word 2 0 0)) ::
+  .atom (.mul (.n 908) (.n 907) (.n 906)) ::
+  .atom (.add (.n 909) (.n 472) (.n 908)) ::
+  .atom (.const (.n 910) (word 2 0 0)) ::
+  .atom (.mul (.n 911) (.n 910) (.n 909)) ::
+  .atom (.add (.n 912) (.n 487) (.n 911)) ::
+  .atom (.const (.n 913) (word 2 0 0)) ::
+  .atom (.mul (.n 914) (.n 913) (.n 912)) ::
+  .atom (.add (.n 915) (.n 486) (.n 914)) ::
+  .atom (.copy (.n 916) (.n 485)) ::
+  .atom (.const (.n 917) (word 2 0 0)) ::
+  .atom (.mul (.n 918) (.n 917) (.n 916)) ::
+  .atom (.add (.n 919) (.n 484) (.n 918)) ::
+  .atom (.const (.n 920) (word 2 0 0)) ::
+  .atom (.mul (.n 921) (.n 920) (.n 919)) ::
+  .atom (.add (.n 922) (.n 483) (.n 921)) ::
+  .atom (.const (.n 923) (word 2 0 0)) ::
+  .atom (.mul (.n 924) (.n 923) (.n 922)) ::
+  .atom (.add (.n 925) (.n 482) (.n 924)) ::
+  .atom (.const (.n 926) (word 2 0 0)) ::
+  .atom (.mul (.n 927) (.n 926) (.n 925)) ::
+  .atom (.add (.n 928) (.n 481) (.n 927)) ::
+  .atom (.const (.n 929) (word 2 0 0)) ::
+  .atom (.mul (.n 930) (.n 929) (.n 928)) ::
+  .atom (.add (.n 931) (.n 480) (.n 930)) ::
+  .atom (.const (.n 932) (word 2 0 0)) ::
+  .atom (.mul (.n 933) (.n 932) (.n 931)) ::
+  .atom (.add (.n 934) (.n 495) (.n 933)) ::
+  .atom (.const (.n 935) (word 2 0 0)) ::
+  .atom (.mul (.n 936) (.n 935) (.n 934)) ::
+  .atom (.add (.n 937) (.n 494) (.n 936)) ::
+  .atom (.const (.n 938) (word 2 0 0)) ::
+  .atom (.mul (.n 939) (.n 938) (.n 937)) ::
+  .atom (.add (.n 940) (.n 493) (.n 939)) ::
+  .atom (.const (.n 941) (word 2 0 0)) ::
+  .atom (.mul (.n 942) (.n 941) (.n 940)) ::
+  .atom (.add (.n 943) (.n 492) (.n 942)) ::
+  .atom (.copy (.n 944) (.n 491)) ::
+  .atom (.const (.n 945) (word 2 0 0)) ::
+  .atom (.mul (.n 946) (.n 945) (.n 944)) ::
+  .atom (.add (.n 947) (.n 490) (.n 946)) ::
+  .atom (.const (.n 948) (word 2 0 0)) ::
+  .atom (.mul (.n 949) (.n 948) (.n 947)) ::
+  .atom (.add (.n 950) (.n 489) (.n 949)) ::
+  .atom (.const (.n 951) (word 2 0 0)) ::
+  .atom (.mul (.n 952) (.n 951) (.n 950)) ::
+  .atom (.add (.n 953) (.n 488) (.n 952)) ::
+  .atom (.const (.n 954) (word 2 0 0)) ::
+  .atom (.mul (.n 955) (.n 954) (.n 953)) ::
+  .atom (.add (.n 956) (.n 503) (.n 955)) ::
+  .atom (.const (.n 957) (word 2 0 0)) ::
+  .atom (.mul (.n 958) (.n 957) (.n 956)) ::
+  .atom (.add (.n 959) (.n 502) (.n 958)) ::
+  .atom (.const (.n 960) (word 2 0 0)) ::
+  .atom (.mul (.n 961) (.n 960) (.n 959)) ::
+  .atom (.add (.n 962) (.n 501) (.n 961)) ::
+  .atom (.const (.n 963) (word 2 0 0)) ::
+  .atom (.mul (.n 964) (.n 963) (.n 962)) ::
+  .atom (.add (.n 965) (.n 500) (.n 964)) ::
+  .atom (.const (.n 966) (word 2 0 0)) ::
+  .atom (.mul (.n 967) (.n 966) (.n 965)) ::
+  .atom (.add (.n 968) (.n 499) (.n 967)) ::
+  .atom (.const (.n 969) (word 2 0 0)) ::
+  .atom (.mul (.n 970) (.n 969) (.n 968)) ::
+  .atom (.add (.n 971) (.n 498) (.n 970)) ::
+  .atom (.copy (.n 972) (.n 497)) ::
+  .atom (.const (.n 973) (word 2 0 0)) ::
+  .atom (.mul (.n 974) (.n 973) (.n 972)) ::
+  .atom (.add (.n 975) (.n 496) (.n 974)) ::
+  .atom (.const (.n 976) (word 2 0 0)) ::
+  .atom (.mul (.n 977) (.n 976) (.n 975)) ::
+  .atom (.add (.n 978) (.n 511) (.n 977)) ::
+  .atom (.const (.n 979) (word 2 0 0)) ::
+  .atom (.mul (.n 980) (.n 979) (.n 978)) ::
+  .atom (.add (.n 981) (.n 510) (.n 980)) ::
+  .atom (.const (.n 982) (word 2 0 0)) ::
+  .atom (.mul (.n 983) (.n 982) (.n 981)) ::
+  .atom (.add (.n 984) (.n 509) (.n 983)) ::
+  .atom (.const (.n 985) (word 2 0 0)) ::
+  .atom (.mul (.n 986) (.n 985) (.n 984)) ::
+  .atom (.add (.n 987) (.n 508) (.n 986)) ::
+  .atom (.const (.n 988) (word 2 0 0)) ::
+  .atom (.mul (.n 989) (.n 988) (.n 987)) ::
+  .atom (.add (.n 990) (.n 507) (.n 989)) ::
+  .atom (.const (.n 991) (word 2 0 0)) ::
+  .atom (.mul (.n 992) (.n 991) (.n 990)) ::
+  .atom (.add (.n 993) (.n 506) (.n 992)) ::
+  .atom (.const (.n 994) (word 2 0 0)) ::
+  .atom (.mul (.n 995) (.n 994) (.n 993)) ::
+  .atom (.add (.n 996) (.n 505) (.n 995)) ::
+  .atom (.const (.n 997) (word 2 0 0)) ::
+  .atom (.mul (.n 998) (.n 997) (.n 996)) ::
+  .atom (.add (.n 999) (.n 504) (.n 998)) ::
+  .atom (.copy (.n 1000) (.n 519)) ::
+  .atom (.const (.n 1001) (word 2 0 0)) ::
+  .atom (.mul (.n 1002) (.n 1001) (.n 1000)) ::
+  .atom (.add (.n 1003) (.n 518) (.n 1002)) ::
+  .atom (.const (.n 1004) (word 2 0 0)) ::
+  .atom (.mul (.n 1005) (.n 1004) (.n 1003)) ::
+  .atom (.add (.n 1006) (.n 517) (.n 1005)) ::
+  .atom (.const (.n 1007) (word 2 0 0)) ::
+  .atom (.mul (.n 1008) (.n 1007) (.n 1006)) ::
+  .atom (.add (.n 1009) (.n 516) (.n 1008)) ::
+  .atom (.const (.n 1010) (word 2 0 0)) ::
+  .atom (.mul (.n 1011) (.n 1010) (.n 1009)) ::
+  .atom (.add (.n 1012) (.n 515) (.n 1011)) ::
+  .atom (.const (.n 1013) (word 2 0 0)) ::
+  .atom (.mul (.n 1014) (.n 1013) (.n 1012)) ::
+  .atom (.add (.n 1015) (.n 514) (.n 1014)) ::
+  .atom (.const (.n 1016) (word 2 0 0)) ::
+  .atom (.mul (.n 1017) (.n 1016) (.n 1015)) ::
+  .atom (.add (.n 1018) (.n 513) (.n 1017)) ::
+  .atom (.const (.n 1019) (word 2 0 0)) ::
+  .atom (.mul (.n 1020) (.n 1019) (.n 1018)) ::
+  .atom (.add (.n 1021) (.n 512) (.n 1020)) ::
+  .atom (.const (.n 1022) (word 2 0 0)) ::
+  .atom (.mul (.n 1023) (.n 1022) (.n 1021)) ::
+  .atom (.add (.n 1024) (.n 527) (.n 1023)) ::
+  .atom (.const (.n 1025) (word 2 0 0)) ::
+  .atom (.mul (.n 1026) (.n 1025) (.n 1024)) ::
+  .atom (.add (.n 1027) (.n 526) (.n 1026)) ::
+  .atom (.copy (.n 1028) (.n 525)) ::
+  .atom (.const (.n 1029) (word 2 0 0)) ::
+  .atom (.mul (.n 1030) (.n 1029) (.n 1028)) ::
+  .atom (.add (.n 1031) (.n 524) (.n 1030)) ::
+  .atom (.const (.n 1032) (word 2 0 0)) ::
+  .atom (.mul (.n 1033) (.n 1032) (.n 1031)) ::
+  .atom (.add (.n 1034) (.n 523) (.n 1033)) ::
+  .atom (.const (.n 1035) (word 2 0 0)) ::
+  .atom (.mul (.n 1036) (.n 1035) (.n 1034)) ::
+  .atom (.add (.n 1037) (.n 522) (.n 1036)) ::
+  .atom (.const (.n 1038) (word 2 0 0)) ::
+  .atom (.mul (.n 1039) (.n 1038) (.n 1037)) ::
+  .atom (.add (.n 1040) (.n 521) (.n 1039)) ::
+  .atom (.const (.n 1041) (word 2 0 0)) ::
+  .atom (.mul (.n 1042) (.n 1041) (.n 1040)) ::
+  .atom (.add (.n 1043) (.n 520) (.n 1042)) ::
+  .atom (.const (.n 1044) (word 2 0 0)) ::
+  .atom (.mul (.n 1045) (.n 1044) (.n 1043)) ::
+  .atom (.add (.n 1046) (.n 535) (.n 1045)) ::
+  .atom (.const (.n 1047) (word 2 0 0)) ::
+  .atom (.mul (.n 1048) (.n 1047) (.n 1046)) ::
+  .atom (.add (.n 1049) (.n 534) (.n 1048)) ::
+  .atom (.const (.n 1050) (word 2 0 0)) ::
+  .atom (.mul (.n 1051) (.n 1050) (.n 1049)) ::
+  .atom (.add (.n 1052) (.n 533) (.n 1051)) ::
+  .atom (.const (.n 1053) (word 2 0 0)) ::
+  .atom (.mul (.n 1054) (.n 1053) (.n 1052)) ::
+  .atom (.add (.n 1055) (.n 532) (.n 1054)) ::
+  .atom (.copy (.n 1056) (.n 531)) ::
+  .atom (.const (.n 1057) (word 2 0 0)) ::
+  .atom (.mul (.n 1058) (.n 1057) (.n 1056)) ::
+  .atom (.add (.n 1059) (.n 530) (.n 1058)) ::
+  .atom (.const (.n 1060) (word 2 0 0)) ::
+  .atom (.mul (.n 1061) (.n 1060) (.n 1059)) ::
+  .atom (.add (.n 1062) (.n 529) (.n 1061)) ::
+  .atom (.const (.n 1063) (word 2 0 0)) ::
+  .atom (.mul (.n 1064) (.n 1063) (.n 1062)) ::
+  .atom (.add (.n 1065) (.n 528) (.n 1064)) ::
+  .atom (.const (.n 1066) (word 2 0 0)) ::
+  .atom (.mul (.n 1067) (.n 1066) (.n 1065)) ::
+  .atom (.add (.n 1068) (.n 543) (.n 1067)) ::
+  .atom (.const (.n 1069) (word 2 0 0)) ::
+  .atom (.mul (.n 1070) (.n 1069) (.n 1068)) ::
+  .atom (.add (.n 1071) (.n 542) (.n 1070)) ::
+  .atom (.const (.n 1072) (word 2 0 0)) ::
+  .atom (.mul (.n 1073) (.n 1072) (.n 1071)) ::
+  .atom (.add (.n 1074) (.n 541) (.n 1073)) ::
+  .atom (.const (.n 1075) (word 2 0 0)) ::
+  .atom (.mul (.n 1076) (.n 1075) (.n 1074)) ::
+  .atom (.add (.n 1077) (.n 540) (.n 1076)) ::
+  .atom (.const (.n 1078) (word 2 0 0)) ::
+  .atom (.mul (.n 1079) (.n 1078) (.n 1077)) ::
+  .atom (.add (.n 1080) (.n 539) (.n 1079)) ::
+  .atom (.const (.n 1081) (word 2 0 0)) ::
+  .atom (.mul (.n 1082) (.n 1081) (.n 1080)) ::
+  .atom (.add (.n 1083) (.n 538) (.n 1082)) ::
+  .atom (.copy (.n 1084) (.n 537)) ::
+  .atom (.const (.n 1085) (word 2 0 0)) ::
+  .atom (.mul (.n 1086) (.n 1085) (.n 1084)) ::
+  .atom (.add (.n 1087) (.n 536) (.n 1086)) ::
+  .atom (.const (.n 1088) (word 2 0 0)) ::
+  .atom (.mul (.n 1089) (.n 1088) (.n 1087)) ::
+  .atom (.add (.n 1090) (.n 551) (.n 1089)) ::
+  .atom (.const (.n 1091) (word 2 0 0)) ::
+  .atom (.mul (.n 1092) (.n 1091) (.n 1090)) ::
+  .atom (.add (.n 1093) (.n 550) (.n 1092)) ::
+  .atom (.const (.n 1094) (word 2 0 0)) ::
+  .atom (.mul (.n 1095) (.n 1094) (.n 1093)) ::
+  .atom (.add (.n 1096) (.n 549) (.n 1095)) ::
+  .atom (.const (.n 1097) (word 2 0 0)) ::
+  .atom (.mul (.n 1098) (.n 1097) (.n 1096)) ::
+  .atom (.add (.n 1099) (.n 548) (.n 1098)) ::
+  .atom (.const (.n 1100) (word 2 0 0)) ::
+  .atom (.mul (.n 1101) (.n 1100) (.n 1099)) ::
+  .atom (.add (.n 1102) (.n 547) (.n 1101)) ::
+  .atom (.const (.n 1103) (word 2 0 0)) ::
+  .atom (.mul (.n 1104) (.n 1103) (.n 1102)) ::
+  .atom (.add (.n 1105) (.n 546) (.n 1104)) ::
+  .atom (.const (.n 1106) (word 2 0 0)) ::
+  .atom (.mul (.n 1107) (.n 1106) (.n 1105)) ::
+  .atom (.add (.n 1108) (.n 545) (.n 1107)) ::
+  .atom (.const (.n 1109) (word 2 0 0)) ::
+  .atom (.mul (.n 1110) (.n 1109) (.n 1108)) ::
+  .atom (.add (.n 1111) (.n 544) (.n 1110)) ::
+  .atom (.copy (.n 1112) (.n 559)) ::
+  .atom (.const (.n 1113) (word 2 0 0)) ::
+  .atom (.mul (.n 1114) (.n 1113) (.n 1112)) ::
+  .atom (.add (.n 1115) (.n 558) (.n 1114)) ::
+  .atom (.const (.n 1116) (word 2 0 0)) ::
+  .atom (.mul (.n 1117) (.n 1116) (.n 1115)) ::
+  .atom (.add (.n 1118) (.n 557) (.n 1117)) ::
+  .atom (.const (.n 1119) (word 2 0 0)) ::
+  .atom (.mul (.n 1120) (.n 1119) (.n 1118)) ::
+  .atom (.add (.n 1121) (.n 556) (.n 1120)) ::
+  .atom (.const (.n 1122) (word 2 0 0)) ::
+  .atom (.mul (.n 1123) (.n 1122) (.n 1121)) ::
+  .atom (.add (.n 1124) (.n 555) (.n 1123)) ::
+  .atom (.const (.n 1125) (word 2 0 0)) ::
+  .atom (.mul (.n 1126) (.n 1125) (.n 1124)) ::
+  .atom (.add (.n 1127) (.n 554) (.n 1126)) ::
+  .atom (.const (.n 1128) (word 2 0 0)) ::
+  .atom (.mul (.n 1129) (.n 1128) (.n 1127)) ::
+  .atom (.add (.n 1130) (.n 553) (.n 1129)) ::
+  .atom (.const (.n 1131) (word 2 0 0)) ::
+  .atom (.mul (.n 1132) (.n 1131) (.n 1130)) ::
+  .atom (.add (.n 1133) (.n 552) (.n 1132)) ::
+  .atom (.const (.n 1134) (word 2 0 0)) ::
+  .atom (.mul (.n 1135) (.n 1134) (.n 1133)) ::
+  .atom (.add (.n 1136) (.n 567) (.n 1135)) ::
+  .atom (.const (.n 1137) (word 2 0 0)) ::
+  .atom (.mul (.n 1138) (.n 1137) (.n 1136)) ::
+  .atom (.add (.n 1139) (.n 566) (.n 1138)) ::
+  .atom (.copy (.n 1140) (.n 565)) ::
+  .atom (.const (.n 1141) (word 2 0 0)) ::
+  .atom (.mul (.n 1142) (.n 1141) (.n 1140)) ::
+  .atom (.add (.n 1143) (.n 564) (.n 1142)) ::
+  .atom (.const (.n 1144) (word 2 0 0)) ::
+  .atom (.mul (.n 1145) (.n 1144) (.n 1143)) ::
+  .atom (.add (.n 1146) (.n 563) (.n 1145)) ::
+  .atom (.const (.n 1147) (word 2 0 0)) ::
+  .atom (.mul (.n 1148) (.n 1147) (.n 1146)) ::
+  .atom (.add (.n 1149) (.n 562) (.n 1148)) ::
+  .atom (.const (.n 1150) (word 2 0 0)) ::
+  .atom (.mul (.n 1151) (.n 1150) (.n 1149)) ::
+  .atom (.add (.n 1152) (.n 561) (.n 1151)) ::
+  .atom (.const (.n 1153) (word 2 0 0)) ::
+  .atom (.mul (.n 1154) (.n 1153) (.n 1152)) ::
+  .atom (.add (.n 1155) (.n 560) (.n 1154)) ::
+  .atom (.const (.n 1156) (word 2 0 0)) ::
+  .atom (.mul (.n 1157) (.n 1156) (.n 1155)) ::
+  .atom (.add (.n 1158) (.n 575) (.n 1157)) ::
+  .atom (.const (.n 1159) (word 2 0 0)) ::
+  .atom (.mul (.n 1160) (.n 1159) (.n 1158)) ::
+  .atom (.add (.n 1161) (.n 574) (.n 1160)) ::
+  .atom (.const (.n 1162) (word 2 0 0)) ::
+  .atom (.mul (.n 1163) (.n 1162) (.n 1161)) ::
+  .atom (.add (.n 1164) (.n 573) (.n 1163)) ::
+  .atom (.const (.n 1165) (word 2 0 0)) ::
+  .atom (.mul (.n 1166) (.n 1165) (.n 1164)) ::
+  .atom (.add (.n 1167) (.n 572) (.n 1166)) ::
+  .atom (.copy (.n 1168) (.n 571)) ::
+  .atom (.const (.n 1169) (word 2 0 0)) ::
+  .atom (.mul (.n 1170) (.n 1169) (.n 1168)) ::
+  .atom (.add (.n 1171) (.n 570) (.n 1170)) ::
+  .atom (.const (.n 1172) (word 2 0 0)) ::
+  .atom (.mul (.n 1173) (.n 1172) (.n 1171)) ::
+  .atom (.add (.n 1174) (.n 569) (.n 1173)) ::
+  .atom (.const (.n 1175) (word 2 0 0)) ::
+  .atom (.mul (.n 1176) (.n 1175) (.n 1174)) ::
+  .atom (.add (.n 1177) (.n 568) (.n 1176)) ::
+  .atom (.const (.n 1178) (word 2 0 0)) ::
+  .atom (.mul (.n 1179) (.n 1178) (.n 1177)) ::
+  .atom (.add (.n 1180) (.n 583) (.n 1179)) ::
+  .atom (.const (.n 1181) (word 2 0 0)) ::
+  .atom (.mul (.n 1182) (.n 1181) (.n 1180)) ::
+  .atom (.add (.n 1183) (.n 582) (.n 1182)) ::
+  .atom (.const (.n 1184) (word 2 0 0)) ::
+  .atom (.mul (.n 1185) (.n 1184) (.n 1183)) ::
+  .atom (.add (.n 1186) (.n 581) (.n 1185)) ::
+  .atom (.const (.n 1187) (word 2 0 0)) ::
+  .atom (.mul (.n 1188) (.n 1187) (.n 1186)) ::
+  .atom (.add (.n 1189) (.n 580) (.n 1188)) ::
+  .atom (.const (.n 1190) (word 2 0 0)) ::
+  .atom (.mul (.n 1191) (.n 1190) (.n 1189)) ::
+  .atom (.add (.n 1192) (.n 579) (.n 1191)) ::
+  .atom (.const (.n 1193) (word 2 0 0)) ::
+  .atom (.mul (.n 1194) (.n 1193) (.n 1192)) ::
+  .atom (.add (.n 1195) (.n 578) (.n 1194)) ::
+  .atom (.copy (.n 1196) (.n 577)) ::
+  .atom (.const (.n 1197) (word 2 0 0)) ::
+  .atom (.mul (.n 1198) (.n 1197) (.n 1196)) ::
+  .atom (.add (.n 1199) (.n 576) (.n 1198)) ::
+  .atom (.const (.n 1200) (word 2 0 0)) ::
+  .atom (.mul (.n 1201) (.n 1200) (.n 1199)) ::
+  .atom (.add (.n 1202) (.n 591) (.n 1201)) ::
+  .atom (.const (.n 1203) (word 2 0 0)) ::
+  .atom (.mul (.n 1204) (.n 1203) (.n 1202)) ::
+  .atom (.add (.n 1205) (.n 590) (.n 1204)) ::
+  .atom (.const (.n 1206) (word 2 0 0)) ::
+  .atom (.mul (.n 1207) (.n 1206) (.n 1205)) ::
+  .atom (.add (.n 1208) (.n 589) (.n 1207)) ::
+  .atom (.const (.n 1209) (word 2 0 0)) ::
+  .atom (.mul (.n 1210) (.n 1209) (.n 1208)) ::
+  .atom (.add (.n 1211) (.n 588) (.n 1210)) ::
+  .atom (.const (.n 1212) (word 2 0 0)) ::
+  .atom (.mul (.n 1213) (.n 1212) (.n 1211)) ::
+  .atom (.add (.n 1214) (.n 587) (.n 1213)) ::
+  .atom (.const (.n 1215) (word 2 0 0)) ::
+  .atom (.mul (.n 1216) (.n 1215) (.n 1214)) ::
+  .atom (.add (.n 1217) (.n 586) (.n 1216)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 1140 to 1518 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 1102 to 1645 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
-  .atom (.mul (.n 1171) (.n 1163) (.n 1170)) ::
-  .atom (.add (.n 1172) (.n 1169) (.n 1171)) ::
-  .atom (.const (.n 1173) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1155) (.n 1174) (.n 1175) (.n 1176) (.n 1173)) ::
-  .atom (.mul (.n 1177) (.n 1) (.n 1155)) ::
-  .atom (.load (.n 1178) (.n 1177) 0) ::
-  .atom (.const (.n 1179) (word 256 0 0)) ::
-  .atom (.mul (.n 1180) (.n 1172) (.n 1179)) ::
-  .atom (.add (.n 1181) (.n 1178) (.n 1180)) ::
-  .atom (.const (.n 1182) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1154) (.n 1183) (.n 1184) (.n 1185) (.n 1182)) ::
-  .atom (.mul (.n 1186) (.n 1) (.n 1154)) ::
-  .atom (.load (.n 1187) (.n 1186) 0) ::
-  .atom (.const (.n 1188) (word 256 0 0)) ::
-  .atom (.mul (.n 1189) (.n 1181) (.n 1188)) ::
-  .atom (.add (.n 1190) (.n 1187) (.n 1189)) ::
-  .atom (.const (.n 1191) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1153) (.n 1192) (.n 1193) (.n 1194) (.n 1191)) ::
-  .atom (.mul (.n 1195) (.n 1) (.n 1153)) ::
-  .atom (.load (.n 1196) (.n 1195) 0) ::
-  .atom (.const (.n 1197) (word 256 0 0)) ::
-  .atom (.mul (.n 1198) (.n 1190) (.n 1197)) ::
-  .atom (.add (.n 1199) (.n 1196) (.n 1198)) ::
-  .atom (.const (.n 1200) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1152) (.n 1201) (.n 1202) (.n 1203) (.n 1200)) ::
-  .atom (.mul (.n 1204) (.n 1) (.n 1152)) ::
-  .atom (.load (.n 1205) (.n 1204) 0) ::
-  .atom (.const (.n 1206) (word 256 0 0)) ::
-  .atom (.mul (.n 1207) (.n 1199) (.n 1206)) ::
-  .atom (.add (.n 1208) (.n 1205) (.n 1207)) ::
-  .atom (.const (.n 1209) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 1151) (.n 1210) (.n 1211) (.n 1212) (.n 1209)) ::
-  .atom (.mul (.n 1213) (.n 1) (.n 1151)) ::
-  .atom (.load (.n 1214) (.n 1213) 0) ::
-  .atom (.const (.n 1215) (word 256 0 0)) ::
-  .atom (.mul (.n 1216) (.n 1208) (.n 1215)) ::
-  .atom (.add (.n 1217) (.n 1214) (.n 1216)) ::
-  .atom (.add (.n 1218) (.n 38) (.n 1060)) ::
-  .atom (.const (.n 1219) (word 1024 0 0)) ::
-  .atom (.mul (.n 1220) (.n 1217) (.n 1219)) ::
-  .atom (.add (.n 1221) (.n 1218) (.n 1220)) ::
-  .atom (.const (.n 1222) (word 1 0 1)) ::
-  .atom (.mul (.n 1223) (.n 1221) (.n 1222)) ::
-  .atom (.assertInK (.n 1223) (.n 1217)) ::
-  .atom (.copy (.n 1224) (.n 2)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 1225]))) ::
-  .atom (.const (.n 1226) (word 1080863910568919040 0 0)) ::
-  .atom (.add (.n 1227) (.n 1067) (.n 1226)) ::
-  .atom (.const (.n 1228) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 1229) (.n 416) (.n 1228)) ::
-  .atom (.add (.n 1230) (.n 1227) (.n 1229)) ::
-  .atom (.const (.n 1231) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1230, .n 1225, .n 12, .n 13, .n 14, .n 15, .n 16, .n 1231, .n 13, .n 14, .n 15, .n 16] [.n 1232, .n 1233, .n 1234, .n 1235, .n 1236, .n 1237, .n 1238, .n 1239, .n 1240, .n 1241, .n 1242, .n 1243, .n 1244] false false) ::
-  .atom (.const (.n 1245) (word 1224979098644774912 0 0)) ::
-  .atom (.add (.n 1246) (.n 1067) (.n 1245)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1247, .n 1248]))) ::
-  .atom (.add (.n 1249) (.n 1232) (.n 1247)) ::
-  .atom (.add (.n 1250) (.n 1247) (.n 1248)) ::
-  .atom (.mul (.n 1249) (.n 77) (.n 1250)) ::
-  .atom (.const (.n 1251) (word 274877906944 0 0)) ::
-  .atom (.add (.n 1252) (.n 1246) (.n 1251)) ::
-  .atom (.const (.n 1253) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1254) (.n 413) (.n 1253)) ::
-  .atom (.add (.n 1255) (.n 1252) (.n 1254)) ::
-  .atom (.const (.n 1256) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1255, .n 1247, .n 1248, .n 12, .n 13, .n 14, .n 15, .n 1256, .n 13, .n 14, .n 15, .n 16] [.n 1257, .n 1258, .n 1259, .n 1260, .n 1261, .n 1262, .n 1263, .n 1264, .n 1265, .n 1266, .n 1267, .n 1268, .n 1269] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1270, .n 1271]))) ::
-  .atom (.add (.n 1272) (.n 1257) (.n 1270)) ::
-  .atom (.add (.n 1273) (.n 1270) (.n 1271)) ::
-  .atom (.mul (.n 1272) (.n 78) (.n 1273)) ::
-  .atom (.const (.n 1274) (word 549755813888 0 0)) ::
-  .atom (.add (.n 1275) (.n 1246) (.n 1274)) ::
-  .atom (.const (.n 1276) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1277) (.n 410) (.n 1276)) ::
-  .atom (.add (.n 1278) (.n 1275) (.n 1277)) ::
-  .atom (.const (.n 1279) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1278, .n 1270, .n 1271, .n 12, .n 13, .n 14, .n 15, .n 1279, .n 13, .n 14, .n 15, .n 16] [.n 1280, .n 1281, .n 1282, .n 1283, .n 1284, .n 1285, .n 1286, .n 1287, .n 1288, .n 1289, .n 1290, .n 1291, .n 1292] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1293, .n 1294]))) ::
-  .atom (.add (.n 1295) (.n 1280) (.n 1293)) ::
-  .atom (.add (.n 1296) (.n 1293) (.n 1294)) ::
-  .atom (.mul (.n 1295) (.n 79) (.n 1296)) ::
-  .atom (.const (.n 1297) (word 824633720832 0 0)) ::
-  .atom (.add (.n 1298) (.n 1246) (.n 1297)) ::
-  .atom (.const (.n 1299) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1300) (.n 407) (.n 1299)) ::
-  .atom (.add (.n 1301) (.n 1298) (.n 1300)) ::
-  .atom (.const (.n 1302) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1301, .n 1293, .n 1294, .n 12, .n 13, .n 14, .n 15, .n 1302, .n 13, .n 14, .n 15, .n 16] [.n 1303, .n 1304, .n 1305, .n 1306, .n 1307, .n 1308, .n 1309, .n 1310, .n 1311, .n 1312, .n 1313, .n 1314, .n 1315] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1316, .n 1317]))) ::
-  .atom (.add (.n 1318) (.n 1303) (.n 1316)) ::
-  .atom (.add (.n 1319) (.n 1316) (.n 1317)) ::
-  .atom (.mul (.n 1318) (.n 80) (.n 1319)) ::
-  .atom (.const (.n 1320) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 1321) (.n 1246) (.n 1320)) ::
-  .atom (.const (.n 1322) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1323) (.n 404) (.n 1322)) ::
-  .atom (.add (.n 1324) (.n 1321) (.n 1323)) ::
-  .atom (.const (.n 1325) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1324, .n 1316, .n 1317, .n 12, .n 13, .n 14, .n 15, .n 1325, .n 13, .n 14, .n 15, .n 16] [.n 1326, .n 1327, .n 1328, .n 1329, .n 1330, .n 1331, .n 1332, .n 1333, .n 1334, .n 1335, .n 1336, .n 1337, .n 1338] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1339, .n 1340]))) ::
-  .atom (.add (.n 1341) (.n 1326) (.n 1339)) ::
-  .atom (.add (.n 1342) (.n 1339) (.n 1340)) ::
-  .atom (.mul (.n 1341) (.n 81) (.n 1342)) ::
-  .atom (.const (.n 1343) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 1344) (.n 1246) (.n 1343)) ::
-  .atom (.const (.n 1345) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1346) (.n 401) (.n 1345)) ::
-  .atom (.add (.n 1347) (.n 1344) (.n 1346)) ::
-  .atom (.const (.n 1348) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1347, .n 1339, .n 1340, .n 12, .n 13, .n 14, .n 15, .n 1348, .n 13, .n 14, .n 15, .n 16] [.n 1349, .n 1350, .n 1351, .n 1352, .n 1353, .n 1354, .n 1355, .n 1356, .n 1357, .n 1358, .n 1359, .n 1360, .n 1361] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1362, .n 1363]))) ::
-  .atom (.add (.n 1364) (.n 1349) (.n 1362)) ::
-  .atom (.add (.n 1365) (.n 1362) (.n 1363)) ::
-  .atom (.mul (.n 1364) (.n 82) (.n 1365)) ::
-  .atom (.const (.n 1366) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 1367) (.n 1246) (.n 1366)) ::
-  .atom (.const (.n 1368) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1369) (.n 398) (.n 1368)) ::
-  .atom (.add (.n 1370) (.n 1367) (.n 1369)) ::
-  .atom (.const (.n 1371) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1370, .n 1362, .n 1363, .n 12, .n 13, .n 14, .n 15, .n 1371, .n 13, .n 14, .n 15, .n 16] [.n 1372, .n 1373, .n 1374, .n 1375, .n 1376, .n 1377, .n 1378, .n 1379, .n 1380, .n 1381, .n 1382, .n 1383, .n 1384] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1385, .n 1386]))) ::
-  .atom (.add (.n 1387) (.n 1372) (.n 1385)) ::
-  .atom (.add (.n 1388) (.n 1385) (.n 1386)) ::
-  .atom (.mul (.n 1387) (.n 83) (.n 1388)) ::
-  .atom (.const (.n 1389) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 1390) (.n 1246) (.n 1389)) ::
-  .atom (.const (.n 1391) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1392) (.n 395) (.n 1391)) ::
-  .atom (.add (.n 1393) (.n 1390) (.n 1392)) ::
-  .atom (.const (.n 1394) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1393, .n 1385, .n 1386, .n 12, .n 13, .n 14, .n 15, .n 1394, .n 13, .n 14, .n 15, .n 16] [.n 1395, .n 1396, .n 1397, .n 1398, .n 1399, .n 1400, .n 1401, .n 1402, .n 1403, .n 1404, .n 1405, .n 1406, .n 1407] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1408, .n 1409]))) ::
-  .atom (.add (.n 1410) (.n 1395) (.n 1408)) ::
-  .atom (.add (.n 1411) (.n 1408) (.n 1409)) ::
-  .atom (.mul (.n 1410) (.n 84) (.n 1411)) ::
-  .atom (.const (.n 1412) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 1413) (.n 1246) (.n 1412)) ::
-  .atom (.const (.n 1414) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1415) (.n 392) (.n 1414)) ::
-  .atom (.add (.n 1416) (.n 1413) (.n 1415)) ::
-  .atom (.const (.n 1417) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1416, .n 1408, .n 1409, .n 12, .n 13, .n 14, .n 15, .n 1417, .n 13, .n 14, .n 15, .n 16] [.n 1418, .n 1419, .n 1420, .n 1421, .n 1422, .n 1423, .n 1424, .n 1425, .n 1426, .n 1427, .n 1428, .n 1429, .n 1430] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1431, .n 1432]))) ::
-  .atom (.add (.n 1433) (.n 1418) (.n 1431)) ::
-  .atom (.add (.n 1434) (.n 1431) (.n 1432)) ::
-  .atom (.mul (.n 1433) (.n 85) (.n 1434)) ::
-  .atom (.const (.n 1435) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 1436) (.n 1246) (.n 1435)) ::
-  .atom (.const (.n 1437) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1438) (.n 389) (.n 1437)) ::
-  .atom (.add (.n 1439) (.n 1436) (.n 1438)) ::
-  .atom (.const (.n 1440) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1439, .n 1431, .n 1432, .n 12, .n 13, .n 14, .n 15, .n 1440, .n 13, .n 14, .n 15, .n 16] [.n 1441, .n 1442, .n 1443, .n 1444, .n 1445, .n 1446, .n 1447, .n 1448, .n 1449, .n 1450, .n 1451, .n 1452, .n 1453] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1454, .n 1455]))) ::
-  .atom (.add (.n 1456) (.n 1441) (.n 1454)) ::
-  .atom (.add (.n 1457) (.n 1454) (.n 1455)) ::
-  .atom (.mul (.n 1456) (.n 86) (.n 1457)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 1458]))) ::
-  .atom (.const (.n 1459) (word 1080863914863886336 0 0)) ::
-  .atom (.add (.n 1460) (.n 1067) (.n 1459)) ::
-  .atom (.const (.n 1461) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 1462) (.n 444) (.n 1461)) ::
-  .atom (.add (.n 1463) (.n 1460) (.n 1462)) ::
-  .atom (.const (.n 1464) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1463, .n 1458, .n 12, .n 13, .n 14, .n 15, .n 16, .n 1464, .n 13, .n 14, .n 15, .n 16] [.n 1465, .n 1466, .n 1467, .n 1468, .n 1469, .n 1470, .n 1471, .n 1472, .n 1473, .n 1474, .n 1475, .n 1476, .n 1477] false false) ::
-  .atom (.const (.n 1478) (word 1224979102939742208 0 0)) ::
-  .atom (.add (.n 1479) (.n 1067) (.n 1478)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1480, .n 1481]))) ::
-  .atom (.add (.n 1482) (.n 1465) (.n 1480)) ::
-  .atom (.add (.n 1483) (.n 1480) (.n 1481)) ::
-  .atom (.mul (.n 1482) (.n 87) (.n 1483)) ::
-  .atom (.const (.n 1484) (word 274877906944 0 0)) ::
-  .atom (.add (.n 1485) (.n 1479) (.n 1484)) ::
-  .atom (.const (.n 1486) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1487) (.n 441) (.n 1486)) ::
-  .atom (.add (.n 1488) (.n 1485) (.n 1487)) ::
-  .atom (.const (.n 1489) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1488, .n 1480, .n 1481, .n 12, .n 13, .n 14, .n 15, .n 1489, .n 13, .n 14, .n 15, .n 16] [.n 1490, .n 1491, .n 1492, .n 1493, .n 1494, .n 1495, .n 1496, .n 1497, .n 1498, .n 1499, .n 1500, .n 1501, .n 1502] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1503, .n 1504]))) ::
-  .atom (.add (.n 1505) (.n 1490) (.n 1503)) ::
-  .atom (.add (.n 1506) (.n 1503) (.n 1504)) ::
-  .atom (.mul (.n 1505) (.n 88) (.n 1506)) ::
-  .atom (.const (.n 1507) (word 549755813888 0 0)) ::
-  .atom (.add (.n 1508) (.n 1479) (.n 1507)) ::
-  .atom (.const (.n 1509) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1510) (.n 438) (.n 1509)) ::
-  .atom (.add (.n 1511) (.n 1508) (.n 1510)) ::
-  .atom (.const (.n 1512) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1511, .n 1503, .n 1504, .n 12, .n 13, .n 14, .n 15, .n 1512, .n 13, .n 14, .n 15, .n 16] [.n 1513, .n 1514, .n 1515, .n 1516, .n 1517, .n 1518, .n 1519, .n 1520, .n 1521, .n 1522, .n 1523, .n 1524, .n 1525] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1526, .n 1527]))) ::
-  .atom (.add (.n 1528) (.n 1513) (.n 1526)) ::
-  .atom (.add (.n 1529) (.n 1526) (.n 1527)) ::
-  .atom (.mul (.n 1528) (.n 89) (.n 1529)) ::
-  .atom (.const (.n 1530) (word 824633720832 0 0)) ::
-  .atom (.add (.n 1531) (.n 1479) (.n 1530)) ::
-  .atom (.const (.n 1532) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1533) (.n 435) (.n 1532)) ::
-  .atom (.add (.n 1534) (.n 1531) (.n 1533)) ::
-  .atom (.const (.n 1535) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1534, .n 1526, .n 1527, .n 12, .n 13, .n 14, .n 15, .n 1535, .n 13, .n 14, .n 15, .n 16] [.n 1536, .n 1537, .n 1538, .n 1539, .n 1540, .n 1541, .n 1542, .n 1543, .n 1544, .n 1545, .n 1546, .n 1547, .n 1548] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1549, .n 1550]))) ::
-  .atom (.add (.n 1551) (.n 1536) (.n 1549)) ::
-  .atom (.add (.n 1552) (.n 1549) (.n 1550)) ::
-  .atom (.mul (.n 1551) (.n 90) (.n 1552)) ::
-  .atom (.const (.n 1553) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 1554) (.n 1479) (.n 1553)) ::
-  .atom (.const (.n 1555) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1556) (.n 432) (.n 1555)) ::
-  .atom (.add (.n 1557) (.n 1554) (.n 1556)) ::
-  .atom (.const (.n 1558) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1557, .n 1549, .n 1550, .n 12, .n 13, .n 14, .n 15, .n 1558, .n 13, .n 14, .n 15, .n 16] [.n 1559, .n 1560, .n 1561, .n 1562, .n 1563, .n 1564, .n 1565, .n 1566, .n 1567, .n 1568, .n 1569, .n 1570, .n 1571] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1572, .n 1573]))) ::
-  .atom (.add (.n 1574) (.n 1559) (.n 1572)) ::
-  .atom (.add (.n 1575) (.n 1572) (.n 1573)) ::
-  .atom (.mul (.n 1574) (.n 91) (.n 1575)) ::
-  .atom (.const (.n 1576) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 1577) (.n 1479) (.n 1576)) ::
-  .atom (.const (.n 1578) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1579) (.n 429) (.n 1578)) ::
-  .atom (.add (.n 1580) (.n 1577) (.n 1579)) ::
-  .atom (.const (.n 1581) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1580, .n 1572, .n 1573, .n 12, .n 13, .n 14, .n 15, .n 1581, .n 13, .n 14, .n 15, .n 16] [.n 1582, .n 1583, .n 1584, .n 1585, .n 1586, .n 1587, .n 1588, .n 1589, .n 1590, .n 1591, .n 1592, .n 1593, .n 1594] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1595, .n 1596]))) ::
-  .atom (.add (.n 1597) (.n 1582) (.n 1595)) ::
-  .atom (.add (.n 1598) (.n 1595) (.n 1596)) ::
-  .atom (.mul (.n 1597) (.n 92) (.n 1598)) ::
-  .atom (.const (.n 1599) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 1600) (.n 1479) (.n 1599)) ::
-  .atom (.const (.n 1601) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1602) (.n 426) (.n 1601)) ::
-  .atom (.add (.n 1603) (.n 1600) (.n 1602)) ::
-  .atom (.const (.n 1604) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1603, .n 1595, .n 1596, .n 12, .n 13, .n 14, .n 15, .n 1604, .n 13, .n 14, .n 15, .n 16] [.n 1605, .n 1606, .n 1607, .n 1608, .n 1609, .n 1610, .n 1611, .n 1612, .n 1613, .n 1614, .n 1615, .n 1616, .n 1617] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1618, .n 1619]))) ::
-  .atom (.add (.n 1620) (.n 1605) (.n 1618)) ::
-  .atom (.add (.n 1621) (.n 1618) (.n 1619)) ::
-  .atom (.mul (.n 1620) (.n 93) (.n 1621)) ::
-  .atom (.const (.n 1622) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 1623) (.n 1479) (.n 1622)) ::
-  .atom (.const (.n 1624) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1625) (.n 423) (.n 1624)) ::
-  .atom (.add (.n 1626) (.n 1623) (.n 1625)) ::
-  .atom (.const (.n 1627) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1626, .n 1618, .n 1619, .n 12, .n 13, .n 14, .n 15, .n 1627, .n 13, .n 14, .n 15, .n 16] [.n 1628, .n 1629, .n 1630, .n 1631, .n 1632, .n 1633, .n 1634, .n 1635, .n 1636, .n 1637, .n 1638, .n 1639, .n 1640] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1641, .n 1642]))) ::
-  .atom (.add (.n 1643) (.n 1628) (.n 1641)) ::
-  .atom (.add (.n 1644) (.n 1641) (.n 1642)) ::
-  .atom (.mul (.n 1643) (.n 94) (.n 1644)) ::
-  .atom (.const (.n 1645) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 1646) (.n 1479) (.n 1645)) ::
-  .atom (.const (.n 1647) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1648) (.n 420) (.n 1647)) ::
-  .atom (.add (.n 1649) (.n 1646) (.n 1648)) ::
-  .atom (.const (.n 1650) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1649, .n 1641, .n 1642, .n 12, .n 13, .n 14, .n 15, .n 1650, .n 13, .n 14, .n 15, .n 16] [.n 1651, .n 1652, .n 1653, .n 1654, .n 1655, .n 1656, .n 1657, .n 1658, .n 1659, .n 1660, .n 1661, .n 1662, .n 1663] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1664, .n 1665]))) ::
-  .atom (.add (.n 1666) (.n 1651) (.n 1664)) ::
-  .atom (.add (.n 1667) (.n 1664) (.n 1665)) ::
-  .atom (.mul (.n 1666) (.n 95) (.n 1667)) ::
-  .atom (.const (.n 1668) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 1669) (.n 1479) (.n 1668)) ::
-  .atom (.const (.n 1670) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1671) (.n 417) (.n 1670)) ::
-  .atom (.add (.n 1672) (.n 1669) (.n 1671)) ::
-  .atom (.const (.n 1673) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1672, .n 1664, .n 1665, .n 12, .n 13, .n 14, .n 15, .n 1673, .n 13, .n 14, .n 15, .n 16] [.n 1674, .n 1675, .n 1676, .n 1677, .n 1678, .n 1679, .n 1680, .n 1681, .n 1682, .n 1683, .n 1684, .n 1685, .n 1686] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1687, .n 1688]))) ::
-  .atom (.add (.n 1689) (.n 1674) (.n 1687)) ::
-  .atom (.add (.n 1690) (.n 1687) (.n 1688)) ::
-  .atom (.mul (.n 1689) (.n 96) (.n 1690)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 1691]))) ::
-  .atom (.const (.n 1692) (word 1080863919158853632 0 0)) ::
-  .atom (.add (.n 1693) (.n 1067) (.n 1692)) ::
-  .atom (.const (.n 1694) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 1695) (.n 472) (.n 1694)) ::
-  .atom (.add (.n 1696) (.n 1693) (.n 1695)) ::
-  .atom (.const (.n 1697) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1696, .n 1691, .n 12, .n 13, .n 14, .n 15, .n 16, .n 1697, .n 13, .n 14, .n 15, .n 16] [.n 1698, .n 1699, .n 1700, .n 1701, .n 1702, .n 1703, .n 1704, .n 1705, .n 1706, .n 1707, .n 1708, .n 1709, .n 1710] false false) ::
-  .atom (.const (.n 1711) (word 1224979107234709504 0 0)) ::
-  .atom (.add (.n 1712) (.n 1067) (.n 1711)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1713, .n 1714]))) ::
-  .atom (.add (.n 1715) (.n 1698) (.n 1713)) ::
-  .atom (.add (.n 1716) (.n 1713) (.n 1714)) ::
-  .atom (.mul (.n 1715) (.n 97) (.n 1716)) ::
-  .atom (.const (.n 1717) (word 274877906944 0 0)) ::
-  .atom (.add (.n 1718) (.n 1712) (.n 1717)) ::
-  .atom (.const (.n 1719) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1720) (.n 469) (.n 1719)) ::
-  .atom (.add (.n 1721) (.n 1718) (.n 1720)) ::
-  .atom (.const (.n 1722) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1721, .n 1713, .n 1714, .n 12, .n 13, .n 14, .n 15, .n 1722, .n 13, .n 14, .n 15, .n 16] [.n 1723, .n 1724, .n 1725, .n 1726, .n 1727, .n 1728, .n 1729, .n 1730, .n 1731, .n 1732, .n 1733, .n 1734, .n 1735] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1736, .n 1737]))) ::
-  .atom (.add (.n 1738) (.n 1723) (.n 1736)) ::
-  .atom (.add (.n 1739) (.n 1736) (.n 1737)) ::
-  .atom (.mul (.n 1738) (.n 98) (.n 1739)) ::
-  .atom (.const (.n 1740) (word 549755813888 0 0)) ::
-  .atom (.add (.n 1741) (.n 1712) (.n 1740)) ::
-  .atom (.const (.n 1742) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1743) (.n 466) (.n 1742)) ::
-  .atom (.add (.n 1744) (.n 1741) (.n 1743)) ::
-  .atom (.const (.n 1745) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1744, .n 1736, .n 1737, .n 12, .n 13, .n 14, .n 15, .n 1745, .n 13, .n 14, .n 15, .n 16] [.n 1746, .n 1747, .n 1748, .n 1749, .n 1750, .n 1751, .n 1752, .n 1753, .n 1754, .n 1755, .n 1756, .n 1757, .n 1758] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1759, .n 1760]))) ::
-  .atom (.add (.n 1761) (.n 1746) (.n 1759)) ::
-  .atom (.add (.n 1762) (.n 1759) (.n 1760)) ::
-  .atom (.mul (.n 1761) (.n 99) (.n 1762)) ::
-  .atom (.const (.n 1763) (word 824633720832 0 0)) ::
-  .atom (.add (.n 1764) (.n 1712) (.n 1763)) ::
-  .atom (.const (.n 1765) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1766) (.n 463) (.n 1765)) ::
-  .atom (.add (.n 1767) (.n 1764) (.n 1766)) ::
-  .atom (.const (.n 1768) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1767, .n 1759, .n 1760, .n 12, .n 13, .n 14, .n 15, .n 1768, .n 13, .n 14, .n 15, .n 16] [.n 1769, .n 1770, .n 1771, .n 1772, .n 1773, .n 1774, .n 1775, .n 1776, .n 1777, .n 1778, .n 1779, .n 1780, .n 1781] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1782, .n 1783]))) ::
-  .atom (.add (.n 1784) (.n 1769) (.n 1782)) ::
-  .atom (.add (.n 1785) (.n 1782) (.n 1783)) ::
-  .atom (.mul (.n 1784) (.n 100) (.n 1785)) ::
-  .atom (.const (.n 1786) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 1787) (.n 1712) (.n 1786)) ::
-  .atom (.const (.n 1788) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1789) (.n 460) (.n 1788)) ::
-  .atom (.add (.n 1790) (.n 1787) (.n 1789)) ::
-  .atom (.const (.n 1791) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1790, .n 1782, .n 1783, .n 12, .n 13, .n 14, .n 15, .n 1791, .n 13, .n 14, .n 15, .n 16] [.n 1792, .n 1793, .n 1794, .n 1795, .n 1796, .n 1797, .n 1798, .n 1799, .n 1800, .n 1801, .n 1802, .n 1803, .n 1804] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1805, .n 1806]))) ::
-  .atom (.add (.n 1807) (.n 1792) (.n 1805)) ::
-  .atom (.add (.n 1808) (.n 1805) (.n 1806)) ::
-  .atom (.mul (.n 1807) (.n 101) (.n 1808)) ::
-  .atom (.const (.n 1809) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 1810) (.n 1712) (.n 1809)) ::
-  .atom (.const (.n 1811) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1812) (.n 457) (.n 1811)) ::
-  .atom (.add (.n 1813) (.n 1810) (.n 1812)) ::
-  .atom (.const (.n 1814) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1813, .n 1805, .n 1806, .n 12, .n 13, .n 14, .n 15, .n 1814, .n 13, .n 14, .n 15, .n 16] [.n 1815, .n 1816, .n 1817, .n 1818, .n 1819, .n 1820, .n 1821, .n 1822, .n 1823, .n 1824, .n 1825, .n 1826, .n 1827] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1828, .n 1829]))) ::
-  .atom (.add (.n 1830) (.n 1815) (.n 1828)) ::
-  .atom (.add (.n 1831) (.n 1828) (.n 1829)) ::
-  .atom (.mul (.n 1830) (.n 102) (.n 1831)) ::
-  .atom (.const (.n 1832) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 1833) (.n 1712) (.n 1832)) ::
-  .atom (.const (.n 1834) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1835) (.n 454) (.n 1834)) ::
-  .atom (.add (.n 1836) (.n 1833) (.n 1835)) ::
-  .atom (.const (.n 1837) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1836, .n 1828, .n 1829, .n 12, .n 13, .n 14, .n 15, .n 1837, .n 13, .n 14, .n 15, .n 16] [.n 1838, .n 1839, .n 1840, .n 1841, .n 1842, .n 1843, .n 1844, .n 1845, .n 1846, .n 1847, .n 1848, .n 1849, .n 1850] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1851, .n 1852]))) ::
-  .atom (.add (.n 1853) (.n 1838) (.n 1851)) ::
-  .atom (.add (.n 1854) (.n 1851) (.n 1852)) ::
-  .atom (.mul (.n 1853) (.n 103) (.n 1854)) ::
-  .atom (.const (.n 1855) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 1856) (.n 1712) (.n 1855)) ::
-  .atom (.const (.n 1857) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1858) (.n 451) (.n 1857)) ::
-  .atom (.add (.n 1859) (.n 1856) (.n 1858)) ::
-  .atom (.const (.n 1860) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1859, .n 1851, .n 1852, .n 12, .n 13, .n 14, .n 15, .n 1860, .n 13, .n 14, .n 15, .n 16] [.n 1861, .n 1862, .n 1863, .n 1864, .n 1865, .n 1866, .n 1867, .n 1868, .n 1869, .n 1870, .n 1871, .n 1872, .n 1873] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1874, .n 1875]))) ::
-  .atom (.add (.n 1876) (.n 1861) (.n 1874)) ::
-  .atom (.add (.n 1877) (.n 1874) (.n 1875)) ::
-  .atom (.mul (.n 1876) (.n 104) (.n 1877)) ::
-  .atom (.const (.n 1878) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 1879) (.n 1712) (.n 1878)) ::
-  .atom (.const (.n 1880) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1881) (.n 448) (.n 1880)) ::
-  .atom (.add (.n 1882) (.n 1879) (.n 1881)) ::
-  .atom (.const (.n 1883) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1882, .n 1874, .n 1875, .n 12, .n 13, .n 14, .n 15, .n 1883, .n 13, .n 14, .n 15, .n 16] [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890, .n 1891, .n 1892, .n 1893, .n 1894, .n 1895, .n 1896] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1897, .n 1898]))) ::
-  .atom (.add (.n 1899) (.n 1884) (.n 1897)) ::
-  .atom (.add (.n 1900) (.n 1897) (.n 1898)) ::
-  .atom (.mul (.n 1899) (.n 105) (.n 1900)) ::
-  .atom (.const (.n 1901) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 1902) (.n 1712) (.n 1901)) ::
-  .atom (.const (.n 1903) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1904) (.n 445) (.n 1903)) ::
-  .atom (.add (.n 1905) (.n 1902) (.n 1904)) ::
-  .atom (.const (.n 1906) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 1218) (word 2 0 0)) ::
+  .atom (.mul (.n 1219) (.n 1218) (.n 1217)) ::
+  .atom (.add (.n 1220) (.n 585) (.n 1219)) ::
+  .atom (.const (.n 1221) (word 2 0 0)) ::
+  .atom (.mul (.n 1222) (.n 1221) (.n 1220)) ::
+  .atom (.add (.n 1223) (.n 584) (.n 1222)) ::
+  .atom (.copy (.n 1224) (.n 599)) ::
+  .atom (.const (.n 1225) (word 2 0 0)) ::
+  .atom (.mul (.n 1226) (.n 1225) (.n 1224)) ::
+  .atom (.add (.n 1227) (.n 598) (.n 1226)) ::
+  .atom (.const (.n 1228) (word 2 0 0)) ::
+  .atom (.mul (.n 1229) (.n 1228) (.n 1227)) ::
+  .atom (.add (.n 1230) (.n 597) (.n 1229)) ::
+  .atom (.const (.n 1231) (word 2 0 0)) ::
+  .atom (.mul (.n 1232) (.n 1231) (.n 1230)) ::
+  .atom (.add (.n 1233) (.n 596) (.n 1232)) ::
+  .atom (.const (.n 1234) (word 2 0 0)) ::
+  .atom (.mul (.n 1235) (.n 1234) (.n 1233)) ::
+  .atom (.add (.n 1236) (.n 595) (.n 1235)) ::
+  .atom (.const (.n 1237) (word 2 0 0)) ::
+  .atom (.mul (.n 1238) (.n 1237) (.n 1236)) ::
+  .atom (.add (.n 1239) (.n 594) (.n 1238)) ::
+  .atom (.const (.n 1240) (word 2 0 0)) ::
+  .atom (.mul (.n 1241) (.n 1240) (.n 1239)) ::
+  .atom (.add (.n 1242) (.n 593) (.n 1241)) ::
+  .atom (.const (.n 1243) (word 2 0 0)) ::
+  .atom (.mul (.n 1244) (.n 1243) (.n 1242)) ::
+  .atom (.add (.n 1245) (.n 592) (.n 1244)) ::
+  .atom (.const (.n 1246) (word 2 0 0)) ::
+  .atom (.mul (.n 1247) (.n 1246) (.n 1245)) ::
+  .atom (.add (.n 1248) (.n 607) (.n 1247)) ::
+  .atom (.const (.n 1249) (word 2 0 0)) ::
+  .atom (.mul (.n 1250) (.n 1249) (.n 1248)) ::
+  .atom (.add (.n 1251) (.n 606) (.n 1250)) ::
+  .atom (.copy (.n 1252) (.n 605)) ::
+  .atom (.const (.n 1253) (word 2 0 0)) ::
+  .atom (.mul (.n 1254) (.n 1253) (.n 1252)) ::
+  .atom (.add (.n 1255) (.n 604) (.n 1254)) ::
+  .atom (.const (.n 1256) (word 2 0 0)) ::
+  .atom (.mul (.n 1257) (.n 1256) (.n 1255)) ::
+  .atom (.add (.n 1258) (.n 603) (.n 1257)) ::
+  .atom (.const (.n 1259) (word 2 0 0)) ::
+  .atom (.mul (.n 1260) (.n 1259) (.n 1258)) ::
+  .atom (.add (.n 1261) (.n 602) (.n 1260)) ::
+  .atom (.const (.n 1262) (word 2 0 0)) ::
+  .atom (.mul (.n 1263) (.n 1262) (.n 1261)) ::
+  .atom (.add (.n 1264) (.n 601) (.n 1263)) ::
+  .atom (.const (.n 1265) (word 2 0 0)) ::
+  .atom (.mul (.n 1266) (.n 1265) (.n 1264)) ::
+  .atom (.add (.n 1267) (.n 600) (.n 1266)) ::
+  .atom (.const (.n 1268) (word 2 0 0)) ::
+  .atom (.mul (.n 1269) (.n 1268) (.n 1267)) ::
+  .atom (.add (.n 1270) (.n 615) (.n 1269)) ::
+  .atom (.const (.n 1271) (word 2 0 0)) ::
+  .atom (.mul (.n 1272) (.n 1271) (.n 1270)) ::
+  .atom (.add (.n 1273) (.n 614) (.n 1272)) ::
+  .atom (.const (.n 1274) (word 2 0 0)) ::
+  .atom (.mul (.n 1275) (.n 1274) (.n 1273)) ::
+  .atom (.add (.n 1276) (.n 613) (.n 1275)) ::
+  .atom (.const (.n 1277) (word 2 0 0)) ::
+  .atom (.mul (.n 1278) (.n 1277) (.n 1276)) ::
+  .atom (.add (.n 1279) (.n 612) (.n 1278)) ::
+  .atom (.copy (.n 1280) (.n 611)) ::
+  .atom (.const (.n 1281) (word 2 0 0)) ::
+  .atom (.mul (.n 1282) (.n 1281) (.n 1280)) ::
+  .atom (.add (.n 1283) (.n 610) (.n 1282)) ::
+  .atom (.const (.n 1284) (word 2 0 0)) ::
+  .atom (.mul (.n 1285) (.n 1284) (.n 1283)) ::
+  .atom (.add (.n 1286) (.n 609) (.n 1285)) ::
+  .atom (.const (.n 1287) (word 2 0 0)) ::
+  .atom (.mul (.n 1288) (.n 1287) (.n 1286)) ::
+  .atom (.add (.n 1289) (.n 608) (.n 1288)) ::
+  .atom (.const (.n 1290) (word 2 0 0)) ::
+  .atom (.mul (.n 1291) (.n 1290) (.n 1289)) ::
+  .atom (.add (.n 1292) (.n 623) (.n 1291)) ::
+  .atom (.const (.n 1293) (word 2 0 0)) ::
+  .atom (.mul (.n 1294) (.n 1293) (.n 1292)) ::
+  .atom (.add (.n 1295) (.n 622) (.n 1294)) ::
+  .atom (.const (.n 1296) (word 2 0 0)) ::
+  .atom (.mul (.n 1297) (.n 1296) (.n 1295)) ::
+  .atom (.add (.n 1298) (.n 621) (.n 1297)) ::
+  .atom (.const (.n 1299) (word 2 0 0)) ::
+  .atom (.mul (.n 1300) (.n 1299) (.n 1298)) ::
+  .atom (.add (.n 1301) (.n 620) (.n 1300)) ::
+  .atom (.const (.n 1302) (word 2 0 0)) ::
+  .atom (.mul (.n 1303) (.n 1302) (.n 1301)) ::
+  .atom (.add (.n 1304) (.n 619) (.n 1303)) ::
+  .atom (.const (.n 1305) (word 2 0 0)) ::
+  .atom (.mul (.n 1306) (.n 1305) (.n 1304)) ::
+  .atom (.add (.n 1307) (.n 618) (.n 1306)) ::
+  .atom (.copy (.n 1308) (.n 617)) ::
+  .atom (.const (.n 1309) (word 2 0 0)) ::
+  .atom (.mul (.n 1310) (.n 1309) (.n 1308)) ::
+  .atom (.add (.n 1311) (.n 616) (.n 1310)) ::
+  .atom (.const (.n 1312) (word 2 0 0)) ::
+  .atom (.mul (.n 1313) (.n 1312) (.n 1311)) ::
+  .atom (.add (.n 1314) (.n 631) (.n 1313)) ::
+  .atom (.const (.n 1315) (word 2 0 0)) ::
+  .atom (.mul (.n 1316) (.n 1315) (.n 1314)) ::
+  .atom (.add (.n 1317) (.n 630) (.n 1316)) ::
+  .atom (.const (.n 1318) (word 2 0 0)) ::
+  .atom (.mul (.n 1319) (.n 1318) (.n 1317)) ::
+  .atom (.add (.n 1320) (.n 629) (.n 1319)) ::
+  .atom (.const (.n 1321) (word 2 0 0)) ::
+  .atom (.mul (.n 1322) (.n 1321) (.n 1320)) ::
+  .atom (.add (.n 1323) (.n 628) (.n 1322)) ::
+  .atom (.const (.n 1324) (word 2 0 0)) ::
+  .atom (.mul (.n 1325) (.n 1324) (.n 1323)) ::
+  .atom (.add (.n 1326) (.n 627) (.n 1325)) ::
+  .atom (.const (.n 1327) (word 2 0 0)) ::
+  .atom (.mul (.n 1328) (.n 1327) (.n 1326)) ::
+  .atom (.add (.n 1329) (.n 626) (.n 1328)) ::
+  .atom (.const (.n 1330) (word 2 0 0)) ::
+  .atom (.mul (.n 1331) (.n 1330) (.n 1329)) ::
+  .atom (.add (.n 1332) (.n 625) (.n 1331)) ::
+  .atom (.const (.n 1333) (word 2 0 0)) ::
+  .atom (.mul (.n 1334) (.n 1333) (.n 1332)) ::
+  .atom (.add (.n 1335) (.n 624) (.n 1334)) ::
+  .atom (.copy (.n 1336) (.n 663)) ::
+  .atom (.const (.n 1337) (word 2 0 0)) ::
+  .atom (.mul (.n 1338) (.n 1337) (.n 1336)) ::
+  .atom (.add (.n 1339) (.n 662) (.n 1338)) ::
+  .atom (.const (.n 1340) (word 2 0 0)) ::
+  .atom (.mul (.n 1341) (.n 1340) (.n 1339)) ::
+  .atom (.add (.n 1342) (.n 661) (.n 1341)) ::
+  .atom (.const (.n 1343) (word 2 0 0)) ::
+  .atom (.mul (.n 1344) (.n 1343) (.n 1342)) ::
+  .atom (.add (.n 1345) (.n 660) (.n 1344)) ::
+  .atom (.const (.n 1346) (word 2 0 0)) ::
+  .atom (.mul (.n 1347) (.n 1346) (.n 1345)) ::
+  .atom (.add (.n 1348) (.n 659) (.n 1347)) ::
+  .atom (.const (.n 1349) (word 2 0 0)) ::
+  .atom (.mul (.n 1350) (.n 1349) (.n 1348)) ::
+  .atom (.add (.n 1351) (.n 658) (.n 1350)) ::
+  .atom (.const (.n 1352) (word 2 0 0)) ::
+  .atom (.mul (.n 1353) (.n 1352) (.n 1351)) ::
+  .atom (.add (.n 1354) (.n 657) (.n 1353)) ::
+  .atom (.const (.n 1355) (word 2 0 0)) ::
+  .atom (.mul (.n 1356) (.n 1355) (.n 1354)) ::
+  .atom (.add (.n 1357) (.n 656) (.n 1356)) ::
+  .atom (.copy (.n 1358) (.n 655)) ::
+  .atom (.const (.n 1359) (word 2 0 0)) ::
+  .atom (.mul (.n 1360) (.n 1359) (.n 1358)) ::
+  .atom (.add (.n 1361) (.n 654) (.n 1360)) ::
+  .atom (.const (.n 1362) (word 2 0 0)) ::
+  .atom (.mul (.n 1363) (.n 1362) (.n 1361)) ::
+  .atom (.add (.n 1364) (.n 653) (.n 1363)) ::
+  .atom (.const (.n 1365) (word 2 0 0)) ::
+  .atom (.mul (.n 1366) (.n 1365) (.n 1364)) ::
+  .atom (.add (.n 1367) (.n 652) (.n 1366)) ::
+  .atom (.const (.n 1368) (word 2 0 0)) ::
+  .atom (.mul (.n 1369) (.n 1368) (.n 1367)) ::
+  .atom (.add (.n 1370) (.n 651) (.n 1369)) ::
+  .atom (.const (.n 1371) (word 2 0 0)) ::
+  .atom (.mul (.n 1372) (.n 1371) (.n 1370)) ::
+  .atom (.add (.n 1373) (.n 650) (.n 1372)) ::
+  .atom (.const (.n 1374) (word 2 0 0)) ::
+  .atom (.mul (.n 1375) (.n 1374) (.n 1373)) ::
+  .atom (.add (.n 1376) (.n 649) (.n 1375)) ::
+  .atom (.const (.n 1377) (word 2 0 0)) ::
+  .atom (.mul (.n 1378) (.n 1377) (.n 1376)) ::
+  .atom (.add (.n 1379) (.n 648) (.n 1378)) ::
+  .atom (.copy (.n 1380) (.n 633)) ::
+  .atom (.const (.n 1381) (word 2 0 0)) ::
+  .atom (.mul (.n 1382) (.n 1381) (.n 1380)) ::
+  .atom (.add (.n 1383) (.n 632) (.n 1382)) ::
+  .atom (.const (.n 1384) (word 2 0 0)) ::
+  .atom (.mul (.n 1385) (.n 1384) (.n 1383)) ::
+  .atom (.add (.n 1386) (.n 647) (.n 1385)) ::
+  .atom (.const (.n 1387) (word 2 0 0)) ::
+  .atom (.mul (.n 1388) (.n 1387) (.n 1386)) ::
+  .atom (.add (.n 1389) (.n 646) (.n 1388)) ::
+  .atom (.const (.n 1390) (word 2 0 0)) ::
+  .atom (.mul (.n 1391) (.n 1390) (.n 1389)) ::
+  .atom (.add (.n 1392) (.n 645) (.n 1391)) ::
+  .atom (.const (.n 1393) (word 2 0 0)) ::
+  .atom (.mul (.n 1394) (.n 1393) (.n 1392)) ::
+  .atom (.add (.n 1395) (.n 644) (.n 1394)) ::
+  .atom (.const (.n 1396) (word 2 0 0)) ::
+  .atom (.mul (.n 1397) (.n 1396) (.n 1395)) ::
+  .atom (.add (.n 1398) (.n 643) (.n 1397)) ::
+  .atom (.const (.n 1399) (word 2 0 0)) ::
+  .atom (.mul (.n 1400) (.n 1399) (.n 1398)) ::
+  .atom (.add (.n 1401) (.n 642) (.n 1400)) ::
+  .atom (.const (.n 1402) (word 2 0 0)) ::
+  .atom (.mul (.n 1403) (.n 1402) (.n 1401)) ::
+  .atom (.add (.n 1404) (.n 641) (.n 1403)) ::
+  .atom (.const (.n 1405) (word 2 0 0)) ::
+  .atom (.mul (.n 1406) (.n 1405) (.n 1404)) ::
+  .atom (.add (.n 1407) (.n 640) (.n 1406)) ::
+  .atom (.const (.n 1408) (word 4 0 0)) ::
+  .atom (.mul (.n 1409) (.n 685) (.n 1408)) ::
+  .atom (.add (.n 1410) (.n 691) (.n 1409)) ::
+  .atom (.const (.n 1411) (word 16384 0 0)) ::
+  .atom (.mul (.n 1412) (.n 1410) (.n 1411)) ::
+  .atom (.const (.n 1413) (word 256 0 0)) ::
+  .atom (.mul (.n 1414) (.n 707) (.n 1413)) ::
+  .atom (.add (.n 1415) (.n 1412) (.n 1414)) ::
+  .atom (.add (.n 1416) (.n 685) (.n 1415)) ::
+  .atom (.const (.n 1417) (word 16 0 0)) ::
+  .atom (.mul (.n 1418) (.n 707) (.n 1417)) ::
+  .atom (.add (.n 1419) (.n 719) (.n 1418)) ::
+  .atom (.const (.n 1420) (word 1048576 0 0)) ::
+  .atom (.mul (.n 1421) (.n 1419) (.n 1420)) ::
+  .atom (.const (.n 1422) (word 65536 0 0)) ::
+  .atom (.mul (.n 1423) (.n 729) (.n 1422)) ::
+  .atom (.add (.n 1424) (.n 1421) (.n 1423)) ::
+  .atom (.add (.n 1425) (.n 1416) (.n 1424)) ::
+  .atom (.const (.n 1426) (word 64 0 0)) ::
+  .atom (.mul (.n 1427) (.n 729) (.n 1426)) ::
+  .atom (.add (.n 1428) (.n 747) (.n 1427)) ::
+  .atom (.const (.n 1429) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1430) (.n 1428) (.n 1429)) ::
+  .atom (.const (.n 1431) (word 16777216 0 0)) ::
+  .atom (.mul (.n 1432) (.n 751) (.n 1431)) ::
+  .atom (.add (.n 1433) (.n 1430) (.n 1432)) ::
+  .atom (.add (.n 1434) (.n 1425) (.n 1433)) ::
+  .atom (.const (.n 1435) (word 256 0 0)) ::
+  .atom (.mul (.n 1436) (.n 751) (.n 1435)) ::
+  .atom (.add (.n 1437) (.n 775) (.n 1436)) ::
+  .atom (.const (.n 1438) (word 4294967296 0 0)) ::
+  .atom (.mul (.n 1439) (.n 1437) (.n 1438)) ::
+  .atom (.add (.n 1440) (.n 1434) (.n 1439)) ::
+  .atom (.const (.n 1441) (word 1099511627776 0 0)) ::
+  .atom (.mul (.n 1442) (.n 797) (.n 1441)) ::
+  .atom (.add (.n 1443) (.n 1440) (.n 1442)) ::
+  .atom (.const (.n 1444) (word 4 0 0)) ::
+  .atom (.mul (.n 1445) (.n 797) (.n 1444)) ::
+  .atom (.add (.n 1446) (.n 803) (.n 1445)) ::
+  .atom (.const (.n 1447) (word 18014398509481984 0 0)) ::
+  .atom (.mul (.n 1448) (.n 1446) (.n 1447)) ::
+  .atom (.const (.n 1449) (word 281474976710656 0 0)) ::
+  .atom (.mul (.n 1450) (.n 819) (.n 1449)) ::
+  .atom (.add (.n 1451) (.n 1448) (.n 1450)) ::
+  .atom (.add (.n 1452) (.n 1443) (.n 1451)) ::
+  .atom (.const (.n 1453) (word 16 0 0)) ::
+  .atom (.mul (.n 1454) (.n 819) (.n 1453)) ::
+  .atom (.add (.n 1455) (.n 831) (.n 1454)) ::
+  .atom (.const (.n 1456) (word 1152921504606846976 0 0)) ::
+  .atom (.mul (.n 1457) (.n 1455) (.n 1456)) ::
+  .atom (.const (.n 1458) (word 72057594037927936 0 0)) ::
+  .atom (.mul (.n 1459) (.n 841) (.n 1458)) ::
+  .atom (.add (.n 1460) (.n 1457) (.n 1459)) ::
+  .atom (.add (.n 1461) (.n 1452) (.n 1460)) ::
+  .atom (.const (.n 1462) (word 64 0 0)) ::
+  .atom (.mul (.n 1463) (.n 841) (.n 1462)) ::
+  .atom (.add (.n 1464) (.n 859) (.n 1463)) ::
+  .atom (.const (.n 1465) (word 0 4 0)) ::
+  .atom (.mul (.n 1466) (.n 1464) (.n 1465)) ::
+  .atom (.const (.n 1467) (word 0 1 0)) ::
+  .atom (.mul (.n 1468) (.n 863) (.n 1467)) ::
+  .atom (.add (.n 1469) (.n 1466) (.n 1468)) ::
+  .atom (.add (.n 1470) (.n 1461) (.n 1469)) ::
+  .atom (.const (.n 1471) (word 256 0 0)) ::
+  .atom (.mul (.n 1472) (.n 863) (.n 1471)) ::
+  .atom (.add (.n 1473) (.n 887) (.n 1472)) ::
+  .atom (.const (.n 1474) (word 0 256 0)) ::
+  .atom (.mul (.n 1475) (.n 1473) (.n 1474)) ::
+  .atom (.add (.n 1476) (.n 1470) (.n 1475)) ::
+  .atom (.const (.n 1477) (word 0 65536 0)) ::
+  .atom (.mul (.n 1478) (.n 909) (.n 1477)) ::
+  .atom (.add (.n 1479) (.n 1476) (.n 1478)) ::
+  .atom (.const (.n 1480) (word 4 0 0)) ::
+  .atom (.mul (.n 1481) (.n 909) (.n 1480)) ::
+  .atom (.add (.n 1482) (.n 915) (.n 1481)) ::
+  .atom (.const (.n 1483) (word 0 1073741824 0)) ::
+  .atom (.mul (.n 1484) (.n 1482) (.n 1483)) ::
+  .atom (.const (.n 1485) (word 0 16777216 0)) ::
+  .atom (.mul (.n 1486) (.n 931) (.n 1485)) ::
+  .atom (.add (.n 1487) (.n 1484) (.n 1486)) ::
+  .atom (.add (.n 1488) (.n 1479) (.n 1487)) ::
+  .atom (.const (.n 1489) (word 16 0 0)) ::
+  .atom (.mul (.n 1490) (.n 931) (.n 1489)) ::
+  .atom (.add (.n 1491) (.n 943) (.n 1490)) ::
+  .atom (.const (.n 1492) (word 0 68719476736 0)) ::
+  .atom (.mul (.n 1493) (.n 1491) (.n 1492)) ::
+  .atom (.const (.n 1494) (word 0 4294967296 0)) ::
+  .atom (.mul (.n 1495) (.n 953) (.n 1494)) ::
+  .atom (.add (.n 1496) (.n 1493) (.n 1495)) ::
+  .atom (.add (.n 1497) (.n 1488) (.n 1496)) ::
+  .atom (.const (.n 1498) (word 64 0 0)) ::
+  .atom (.mul (.n 1499) (.n 953) (.n 1498)) ::
+  .atom (.add (.n 1500) (.n 971) (.n 1499)) ::
+  .atom (.const (.n 1501) (word 0 4398046511104 0)) ::
+  .atom (.mul (.n 1502) (.n 1500) (.n 1501)) ::
+  .atom (.const (.n 1503) (word 0 1099511627776 0)) ::
+  .atom (.mul (.n 1504) (.n 975) (.n 1503)) ::
+  .atom (.add (.n 1505) (.n 1502) (.n 1504)) ::
+  .atom (.add (.n 1506) (.n 1497) (.n 1505)) ::
+  .atom (.const (.n 1507) (word 256 0 0)) ::
+  .atom (.mul (.n 1508) (.n 975) (.n 1507)) ::
+  .atom (.add (.n 1509) (.n 999) (.n 1508)) ::
+  .atom (.const (.n 1510) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 1511) (.n 1509) (.n 1510)) ::
+  .atom (.add (.n 1512) (.n 1506) (.n 1511)) ::
+  .atom (.const (.n 1513) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1514) (.n 1021) (.n 1513)) ::
+  .atom (.add (.n 1515) (.n 1512) (.n 1514)) ::
+  .atom (.const (.n 1516) (word 4 0 0)) ::
+  .atom (.mul (.n 1517) (.n 1021) (.n 1516)) ::
+  .atom (.add (.n 1518) (.n 1027) (.n 1517)) ::
+  .atom (.const (.n 1519) (word 64 0 0)) ::
+  .atom (.mul (.n 1520) (.n 1518) (.n 1519)) ::
+  .atom (.add (.n 1521) (.n 1520) (.n 1043)) ::
+  .atom (.const (.n 1522) (word 16 0 0)) ::
+  .atom (.mul (.n 1523) (.n 1043) (.n 1522)) ::
+  .atom (.add (.n 1524) (.n 1055) (.n 1523)) ::
+  .atom (.const (.n 1525) (word 4096 0 0)) ::
+  .atom (.mul (.n 1526) (.n 1524) (.n 1525)) ::
+  .atom (.const (.n 1527) (word 256 0 0)) ::
+  .atom (.mul (.n 1528) (.n 1065) (.n 1527)) ::
+  .atom (.add (.n 1529) (.n 1526) (.n 1528)) ::
+  .atom (.add (.n 1530) (.n 1521) (.n 1529)) ::
+  .atom (.const (.n 1531) (word 64 0 0)) ::
+  .atom (.mul (.n 1532) (.n 1065) (.n 1531)) ::
+  .atom (.add (.n 1533) (.n 1083) (.n 1532)) ::
+  .atom (.const (.n 1534) (word 262144 0 0)) ::
+  .atom (.mul (.n 1535) (.n 1533) (.n 1534)) ::
+  .atom (.const (.n 1536) (word 65536 0 0)) ::
+  .atom (.mul (.n 1537) (.n 1087) (.n 1536)) ::
+  .atom (.add (.n 1538) (.n 1535) (.n 1537)) ::
+  .atom (.add (.n 1539) (.n 1530) (.n 1538)) ::
+  .atom (.const (.n 1540) (word 256 0 0)) ::
+  .atom (.mul (.n 1541) (.n 1087) (.n 1540)) ::
+  .atom (.add (.n 1542) (.n 1111) (.n 1541)) ::
+  .atom (.const (.n 1543) (word 16777216 0 0)) ::
+  .atom (.mul (.n 1544) (.n 1542) (.n 1543)) ::
+  .atom (.add (.n 1545) (.n 1539) (.n 1544)) ::
+  .atom (.const (.n 1546) (word 4294967296 0 0)) ::
+  .atom (.mul (.n 1547) (.n 1133) (.n 1546)) ::
+  .atom (.add (.n 1548) (.n 1545) (.n 1547)) ::
+  .atom (.const (.n 1549) (word 4 0 0)) ::
+  .atom (.mul (.n 1550) (.n 1133) (.n 1549)) ::
+  .atom (.add (.n 1551) (.n 1139) (.n 1550)) ::
+  .atom (.const (.n 1552) (word 70368744177664 0 0)) ::
+  .atom (.mul (.n 1553) (.n 1551) (.n 1552)) ::
+  .atom (.const (.n 1554) (word 1099511627776 0 0)) ::
+  .atom (.mul (.n 1555) (.n 1155) (.n 1554)) ::
+  .atom (.add (.n 1556) (.n 1553) (.n 1555)) ::
+  .atom (.add (.n 1557) (.n 1548) (.n 1556)) ::
+  .atom (.const (.n 1558) (word 16 0 0)) ::
+  .atom (.mul (.n 1559) (.n 1155) (.n 1558)) ::
+  .atom (.add (.n 1560) (.n 1167) (.n 1559)) ::
+  .atom (.const (.n 1561) (word 4503599627370496 0 0)) ::
+  .atom (.mul (.n 1562) (.n 1560) (.n 1561)) ::
+  .atom (.const (.n 1563) (word 281474976710656 0 0)) ::
+  .atom (.mul (.n 1564) (.n 1177) (.n 1563)) ::
+  .atom (.add (.n 1565) (.n 1562) (.n 1564)) ::
+  .atom (.add (.n 1566) (.n 1557) (.n 1565)) ::
+  .atom (.const (.n 1567) (word 64 0 0)) ::
+  .atom (.mul (.n 1568) (.n 1177) (.n 1567)) ::
+  .atom (.add (.n 1569) (.n 1195) (.n 1568)) ::
+  .atom (.const (.n 1570) (word 288230376151711744 0 0)) ::
+  .atom (.mul (.n 1571) (.n 1569) (.n 1570)) ::
+  .atom (.const (.n 1572) (word 72057594037927936 0 0)) ::
+  .atom (.mul (.n 1573) (.n 1199) (.n 1572)) ::
+  .atom (.add (.n 1574) (.n 1571) (.n 1573)) ::
+  .atom (.add (.n 1575) (.n 1566) (.n 1574)) ::
+  .atom (.const (.n 1576) (word 256 0 0)) ::
+  .atom (.mul (.n 1577) (.n 1199) (.n 1576)) ::
+  .atom (.add (.n 1578) (.n 1223) (.n 1577)) ::
+  .atom (.const (.n 1579) (word 0 1 0)) ::
+  .atom (.mul (.n 1580) (.n 1578) (.n 1579)) ::
+  .atom (.add (.n 1581) (.n 1575) (.n 1580)) ::
+  .atom (.const (.n 1582) (word 0 256 0)) ::
+  .atom (.mul (.n 1583) (.n 1245) (.n 1582)) ::
+  .atom (.add (.n 1584) (.n 1581) (.n 1583)) ::
+  .atom (.const (.n 1585) (word 4 0 0)) ::
+  .atom (.mul (.n 1586) (.n 1245) (.n 1585)) ::
+  .atom (.add (.n 1587) (.n 1251) (.n 1586)) ::
+  .atom (.const (.n 1588) (word 0 4194304 0)) ::
+  .atom (.mul (.n 1589) (.n 1587) (.n 1588)) ::
+  .atom (.const (.n 1590) (word 0 65536 0)) ::
+  .atom (.mul (.n 1591) (.n 1267) (.n 1590)) ::
+  .atom (.add (.n 1592) (.n 1589) (.n 1591)) ::
+  .atom (.add (.n 1593) (.n 1584) (.n 1592)) ::
+  .atom (.const (.n 1594) (word 16 0 0)) ::
+  .atom (.mul (.n 1595) (.n 1267) (.n 1594)) ::
+  .atom (.add (.n 1596) (.n 1279) (.n 1595)) ::
+  .atom (.const (.n 1597) (word 0 268435456 0)) ::
+  .atom (.mul (.n 1598) (.n 1596) (.n 1597)) ::
+  .atom (.const (.n 1599) (word 0 16777216 0)) ::
+  .atom (.mul (.n 1600) (.n 1289) (.n 1599)) ::
+  .atom (.add (.n 1601) (.n 1598) (.n 1600)) ::
+  .atom (.add (.n 1602) (.n 1593) (.n 1601)) ::
+  .atom (.const (.n 1603) (word 64 0 0)) ::
+  .atom (.mul (.n 1604) (.n 1289) (.n 1603)) ::
+  .atom (.add (.n 1605) (.n 1307) (.n 1604)) ::
+  .atom (.const (.n 1606) (word 0 17179869184 0)) ::
+  .atom (.mul (.n 1607) (.n 1605) (.n 1606)) ::
+  .atom (.const (.n 1608) (word 0 4294967296 0)) ::
+  .atom (.mul (.n 1609) (.n 1311) (.n 1608)) ::
+  .atom (.add (.n 1610) (.n 1607) (.n 1609)) ::
+  .atom (.add (.n 1611) (.n 1602) (.n 1610)) ::
+  .atom (.const (.n 1612) (word 256 0 0)) ::
+  .atom (.mul (.n 1613) (.n 1311) (.n 1612)) ::
+  .atom (.add (.n 1614) (.n 1335) (.n 1613)) ::
+  .atom (.const (.n 1615) (word 0 1099511627776 0)) ::
+  .atom (.mul (.n 1616) (.n 1614) (.n 1615)) ::
+  .atom (.add (.n 1617) (.n 1611) (.n 1616)) ::
+  .atom (.const (.n 1618) (word 256 0 0)) ::
+  .atom (.mul (.n 1619) (.n 1383) (.n 1618)) ::
+  .atom (.add (.n 1620) (.n 1407) (.n 1619)) ::
+  .atom (.const (.n 1621) (word 2 0 0)) ::
+  .atom (.mul (.n 1622) (.n 639) (.n 1621)) ::
+  .atom (.add (.n 1623) (.n 638) (.n 1622)) ::
+  .atom (.const (.n 1624) (word 2 0 0)) ::
+  .atom (.mul (.n 1625) (.n 1623) (.n 1624)) ::
+  .atom (.add (.n 1626) (.n 637) (.n 1625)) ::
+  .atom (.const (.n 1627) (word 2 0 0)) ::
+  .atom (.mul (.n 1628) (.n 1626) (.n 1627)) ::
+  .atom (.add (.n 1629) (.n 636) (.n 1628)) ::
+  .atom (.const (.n 1630) (word 2 0 0)) ::
+  .atom (.mul (.n 1631) (.n 1629) (.n 1630)) ::
+  .atom (.add (.n 1632) (.n 635) (.n 1631)) ::
+  .atom (.const (.n 1633) (word 2 0 0)) ::
+  .atom (.mul (.n 1634) (.n 1632) (.n 1633)) ::
+  .atom (.add (.n 1635) (.n 634) (.n 1634)) ::
+  .atom (.copy (.n 358) (.n 1515)) ::
+  .atom (.const (.n 1636) (word 4 0 0)) ::
+  .atom (.mul (.n 1637) (.n 1635) (.n 1636)) ::
+  .atom (.add (.n 1638) (.n 1383) (.n 1637)) ::
+  .atom (.const (.n 1639) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 1640) (.n 1638) (.n 1639)) ::
+  .atom (.add (.n 1641) (.n 1617) (.n 1640)) ::
+  .atom (.const (.n 1642) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1643) (.n 1620) (.n 1642)) ::
+  .atom (.add (.n 359) (.n 1641) (.n 1643)) ::
+  .atom (.hint (.witness "sp_unused" (.stack [.n 1644, .n 1645, .n 1646, .n 1647, .n 1648, .n 1649]))) ::
+  .atom (.const (.n 1650) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1649) (.n 1651) (.n 1652) (.n 1653) (.n 1650)) ::
+  .atom (.mul (.n 1654) (.n 1) (.n 1649)) ::
+  .atom (.load (.n 1655) (.n 1654) 0) ::
+  .atom (.const (.n 1656) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1648) (.n 1657) (.n 1658) (.n 1659) (.n 1656)) ::
+  .atom (.mul (.n 1660) (.n 1) (.n 1648)) ::
+  .atom (.load (.n 1661) (.n 1660) 0) ::
+  .atom (.const (.n 1662) (word 256 0 0)) ::
+  .atom (.mul (.n 1663) (.n 1655) (.n 1662)) ::
+  .atom (.add (.n 1664) (.n 1661) (.n 1663)) ::
+  .atom (.const (.n 1665) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1647) (.n 1666) (.n 1667) (.n 1668) (.n 1665)) ::
+  .atom (.mul (.n 1669) (.n 1) (.n 1647)) ::
+  .atom (.load (.n 1670) (.n 1669) 0) ::
+  .atom (.const (.n 1671) (word 256 0 0)) ::
+  .atom (.mul (.n 1672) (.n 1664) (.n 1671)) ::
+  .atom (.add (.n 1673) (.n 1670) (.n 1672)) ::
+  .atom (.const (.n 1674) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1646) (.n 1675) (.n 1676) (.n 1677) (.n 1674)) ::
+  .atom (.mul (.n 1678) (.n 1) (.n 1646)) ::
+  .atom (.load (.n 1679) (.n 1678) 0) ::
+  .atom (.const (.n 1680) (word 256 0 0)) ::
+  .atom (.mul (.n 1681) (.n 1673) (.n 1680)) ::
+  .atom (.add (.n 1682) (.n 1679) (.n 1681)) ::
+  .atom (.const (.n 1683) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1645) (.n 1684) (.n 1685) (.n 1686) (.n 1683)) ::
+  .atom (.mul (.n 1687) (.n 1) (.n 1645)) ::
+  .atom (.load (.n 1688) (.n 1687) 0) ::
+  .atom (.const (.n 1689) (word 256 0 0)) ::
+  .atom (.mul (.n 1690) (.n 1682) (.n 1689)) ::
+  .atom (.add (.n 1691) (.n 1688) (.n 1690)) ::
+  .atom (.const (.n 1692) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 1644) (.n 1693) (.n 1694) (.n 1695) (.n 1692)) ::
+  .atom (.mul (.n 1696) (.n 1) (.n 1644)) ::
+  .atom (.load (.n 1697) (.n 1696) 0) ::
+  .atom (.const (.n 1698) (word 256 0 0)) ::
+  .atom (.mul (.n 1699) (.n 1691) (.n 1698)) ::
+  .atom (.add (.n 1700) (.n 1697) (.n 1699)) ::
+  .atom (.add (.n 1701) (.n 379) (.n 1379)) ::
+  .atom (.const (.n 1702) (word 256 0 0)) ::
+  .atom (.mul (.n 1703) (.n 1357) (.n 1702)) ::
+  .atom (.add (.n 1704) (.n 1701) (.n 1703)) ::
+  .atom (.const (.n 1705) (word 65536 0 0)) ::
+  .atom (.mul (.n 1706) (.n 1700) (.n 1705)) ::
+  .atom (.add (.n 1707) (.n 1704) (.n 1706)) ::
+  .atom (.const (.n 1708) (word 1 0 1)) ::
+  .atom (.mul (.n 1709) (.n 1707) (.n 1708)) ::
+  .atom (.assertInK (.n 1709) (.n 1700)) ::
+  .atom (.const (.n 1710) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1711) (.n 1379) (.n 1710)) ::
+  .atom (.const (.n 1712) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 1713) (.n 1620) (.n 1712)) ::
+  .atom (.add (.n 1714) (.n 1711) (.n 1713)) ::
+  .atom (.const (.n 1715) (word 0 1099511627776 0)) ::
+  .atom (.mul (.n 1716) (.n 1383) (.n 1715)) ::
+  .atom (.add (.n 1717) (.n 1714) (.n 1716)) ::
+  .atom (.const (.n 1718) (word 72057594037927936 0 0)) ::
+  .atom (.mul (.n 1719) (.n 1357) (.n 1718)) ::
+  .atom (.const (.n 1720) (word 50331648 0 0)) ::
+  .atom (.add (.n 1721) (.n 1719) (.n 1720)) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 1722]))) ::
+  .atom (.const (.n 1723) (word 256 0 0)) ::
+  .atom (.mul (.n 1724) (.n 667) (.n 1723)) ::
+  .atom (.add (.n 1725) (.n 691) (.n 1724)) ::
+  .atom (.const (.n 1726) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1727) (.n 1725) (.n 1726)) ::
+  .atom (.const (.n 1728) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 1729) (.n 667) (.n 1728)) ::
+  .atom (.add (.n 1730) (.n 1727) (.n 1729)) ::
+  .atom (.add (.n 1731) (.n 1721) (.n 1730)) ::
+  .atom (.const (.n 1732) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1731, .n 1722, .n 353, .n 354, .n 355, .n 356, .n 1732, .n 354, .n 355, .n 356, .n 357] [.n 1733, .n 1734, .n 1735, .n 1736, .n 1737, .n 1738, .n 1739, .n 1740, .n 1741, .n 1742, .n 1743, .n 1744, .n 1745] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1746, .n 1747]))) ::
+  .atom (.add (.n 1748) (.n 1733) (.n 1746)) ::
+  .atom (.add (.n 1749) (.n 1746) (.n 1747)) ::
+  .atom (.mul (.n 1748) (.n 406) (.n 1749)) ::
+  .atom (.const (.n 1750) (word 0 16777216 0)) ::
+  .atom (.add (.n 1751) (.n 1721) (.n 1750)) ::
+  .atom (.const (.n 1752) (word 256 0 0)) ::
+  .atom (.mul (.n 1753) (.n 664) (.n 1752)) ::
+  .atom (.add (.n 1754) (.n 688) (.n 1753)) ::
+  .atom (.const (.n 1755) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1756) (.n 1754) (.n 1755)) ::
+  .atom (.const (.n 1757) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 1758) (.n 664) (.n 1757)) ::
+  .atom (.add (.n 1759) (.n 1756) (.n 1758)) ::
+  .atom (.add (.n 1760) (.n 1751) (.n 1759)) ::
+  .atom (.copy (.n 1761) (.n 1747)) ::
+  .atom (.const (.n 1762) (word 1 0 0)) ::
+  .atom (.const (.n 1763) (word 0 0 0)) ::
+  .atom (.const (.n 1764) (word 0 0 0)) ::
+  .atom (.const (.n 1765) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1760, .n 1746, .n 1761, .n 1762, .n 1763, .n 1764, .n 1765, .n 354, .n 355, .n 356, .n 357] [.n 1766, .n 1767, .n 1768, .n 1769, .n 1770, .n 1771, .n 1772, .n 1773, .n 1774, .n 1775, .n 1776, .n 1777, .n 1778] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1779, .n 1780]))) ::
+  .atom (.add (.n 1781) (.n 1766) (.n 1779)) ::
+  .atom (.add (.n 1782) (.n 1779) (.n 1780)) ::
+  .atom (.mul (.n 1781) (.n 407) (.n 1782)) ::
+  .atom (.const (.n 1783) (word 0 33554432 0)) ::
+  .atom (.add (.n 1784) (.n 1721) (.n 1783)) ::
+  .atom (.const (.n 1785) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1786) (.n 685) (.n 1785)) ::
+  .atom (.add (.n 1787) (.n 1784) (.n 1786)) ::
+  .atom (.copy (.n 1788) (.n 1780)) ::
+  .atom (.const (.n 1789) (word 1 0 0)) ::
+  .atom (.const (.n 1790) (word 0 0 0)) ::
+  .atom (.const (.n 1791) (word 0 0 0)) ::
+  .atom (.const (.n 1792) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1787, .n 1779, .n 1788, .n 1789, .n 1790, .n 1791, .n 1792, .n 354, .n 355, .n 356, .n 357] [.n 1793, .n 1794, .n 1795, .n 1796, .n 1797, .n 1798, .n 1799, .n 1800, .n 1801, .n 1802, .n 1803, .n 1804, .n 1805] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1806, .n 1807]))) ::
+  .atom (.add (.n 1808) (.n 1793) (.n 1806)) ::
+  .atom (.add (.n 1809) (.n 1806) (.n 1807)) ::
+  .atom (.mul (.n 1808) (.n 392) (.n 1809)) ::
+  .atom (.const (.n 1810) (word 0 50331648 0)) ::
+  .atom (.add (.n 1811) (.n 1721) (.n 1810)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 1519 to 1882 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 1646 to 2048 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
-  .atom (.keccak [.n 2, .n 1905, .n 1897, .n 1898, .n 12, .n 13, .n 14, .n 15, .n 1906, .n 13, .n 14, .n 15, .n 16] [.n 1907, .n 1908, .n 1909, .n 1910, .n 1911, .n 1912, .n 1913, .n 1914, .n 1915, .n 1916, .n 1917, .n 1918, .n 1919] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1920, .n 1921]))) ::
-  .atom (.add (.n 1922) (.n 1907) (.n 1920)) ::
-  .atom (.add (.n 1923) (.n 1920) (.n 1921)) ::
-  .atom (.mul (.n 1922) (.n 106) (.n 1923)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 1924]))) ::
-  .atom (.const (.n 1925) (word 1080863923453820928 0 0)) ::
-  .atom (.add (.n 1926) (.n 1067) (.n 1925)) ::
-  .atom (.const (.n 1927) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 1928) (.n 500) (.n 1927)) ::
-  .atom (.add (.n 1929) (.n 1926) (.n 1928)) ::
-  .atom (.const (.n 1930) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1929, .n 1924, .n 12, .n 13, .n 14, .n 15, .n 16, .n 1930, .n 13, .n 14, .n 15, .n 16] [.n 1931, .n 1932, .n 1933, .n 1934, .n 1935, .n 1936, .n 1937, .n 1938, .n 1939, .n 1940, .n 1941, .n 1942, .n 1943] false false) ::
-  .atom (.const (.n 1944) (word 1224979111529676800 0 0)) ::
-  .atom (.add (.n 1945) (.n 1067) (.n 1944)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1946, .n 1947]))) ::
-  .atom (.add (.n 1948) (.n 1931) (.n 1946)) ::
-  .atom (.add (.n 1949) (.n 1946) (.n 1947)) ::
-  .atom (.mul (.n 1948) (.n 107) (.n 1949)) ::
-  .atom (.const (.n 1950) (word 274877906944 0 0)) ::
-  .atom (.add (.n 1951) (.n 1945) (.n 1950)) ::
-  .atom (.const (.n 1952) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1953) (.n 497) (.n 1952)) ::
-  .atom (.add (.n 1954) (.n 1951) (.n 1953)) ::
-  .atom (.const (.n 1955) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1954, .n 1946, .n 1947, .n 12, .n 13, .n 14, .n 15, .n 1955, .n 13, .n 14, .n 15, .n 16] [.n 1956, .n 1957, .n 1958, .n 1959, .n 1960, .n 1961, .n 1962, .n 1963, .n 1964, .n 1965, .n 1966, .n 1967, .n 1968] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1969, .n 1970]))) ::
-  .atom (.add (.n 1971) (.n 1956) (.n 1969)) ::
-  .atom (.add (.n 1972) (.n 1969) (.n 1970)) ::
-  .atom (.mul (.n 1971) (.n 108) (.n 1972)) ::
-  .atom (.const (.n 1973) (word 549755813888 0 0)) ::
-  .atom (.add (.n 1974) (.n 1945) (.n 1973)) ::
-  .atom (.const (.n 1975) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1976) (.n 494) (.n 1975)) ::
-  .atom (.add (.n 1977) (.n 1974) (.n 1976)) ::
-  .atom (.const (.n 1978) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 1977, .n 1969, .n 1970, .n 12, .n 13, .n 14, .n 15, .n 1978, .n 13, .n 14, .n 15, .n 16] [.n 1979, .n 1980, .n 1981, .n 1982, .n 1983, .n 1984, .n 1985, .n 1986, .n 1987, .n 1988, .n 1989, .n 1990, .n 1991] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1992, .n 1993]))) ::
-  .atom (.add (.n 1994) (.n 1979) (.n 1992)) ::
-  .atom (.add (.n 1995) (.n 1992) (.n 1993)) ::
-  .atom (.mul (.n 1994) (.n 109) (.n 1995)) ::
-  .atom (.const (.n 1996) (word 824633720832 0 0)) ::
-  .atom (.add (.n 1997) (.n 1945) (.n 1996)) ::
-  .atom (.const (.n 1998) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 1999) (.n 491) (.n 1998)) ::
-  .atom (.add (.n 2000) (.n 1997) (.n 1999)) ::
-  .atom (.const (.n 2001) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2000, .n 1992, .n 1993, .n 12, .n 13, .n 14, .n 15, .n 2001, .n 13, .n 14, .n 15, .n 16] [.n 2002, .n 2003, .n 2004, .n 2005, .n 2006, .n 2007, .n 2008, .n 2009, .n 2010, .n 2011, .n 2012, .n 2013, .n 2014] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2015, .n 2016]))) ::
-  .atom (.add (.n 2017) (.n 2002) (.n 2015)) ::
-  .atom (.add (.n 2018) (.n 2015) (.n 2016)) ::
-  .atom (.mul (.n 2017) (.n 110) (.n 2018)) ::
-  .atom (.const (.n 2019) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 2020) (.n 1945) (.n 2019)) ::
-  .atom (.const (.n 2021) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2022) (.n 488) (.n 2021)) ::
-  .atom (.add (.n 2023) (.n 2020) (.n 2022)) ::
-  .atom (.const (.n 2024) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2023, .n 2015, .n 2016, .n 12, .n 13, .n 14, .n 15, .n 2024, .n 13, .n 14, .n 15, .n 16] [.n 2025, .n 2026, .n 2027, .n 2028, .n 2029, .n 2030, .n 2031, .n 2032, .n 2033, .n 2034, .n 2035, .n 2036, .n 2037] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2038, .n 2039]))) ::
-  .atom (.add (.n 2040) (.n 2025) (.n 2038)) ::
-  .atom (.add (.n 2041) (.n 2038) (.n 2039)) ::
-  .atom (.mul (.n 2040) (.n 111) (.n 2041)) ::
-  .atom (.const (.n 2042) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 2043) (.n 1945) (.n 2042)) ::
-  .atom (.const (.n 2044) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2045) (.n 485) (.n 2044)) ::
-  .atom (.add (.n 2046) (.n 2043) (.n 2045)) ::
-  .atom (.const (.n 2047) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2046, .n 2038, .n 2039, .n 12, .n 13, .n 14, .n 15, .n 2047, .n 13, .n 14, .n 15, .n 16] [.n 2048, .n 2049, .n 2050, .n 2051, .n 2052, .n 2053, .n 2054, .n 2055, .n 2056, .n 2057, .n 2058, .n 2059, .n 2060] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2061, .n 2062]))) ::
-  .atom (.add (.n 2063) (.n 2048) (.n 2061)) ::
-  .atom (.add (.n 2064) (.n 2061) (.n 2062)) ::
-  .atom (.mul (.n 2063) (.n 112) (.n 2064)) ::
-  .atom (.const (.n 2065) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 2066) (.n 1945) (.n 2065)) ::
-  .atom (.const (.n 2067) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2068) (.n 482) (.n 2067)) ::
-  .atom (.add (.n 2069) (.n 2066) (.n 2068)) ::
-  .atom (.const (.n 2070) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2069, .n 2061, .n 2062, .n 12, .n 13, .n 14, .n 15, .n 2070, .n 13, .n 14, .n 15, .n 16] [.n 2071, .n 2072, .n 2073, .n 2074, .n 2075, .n 2076, .n 2077, .n 2078, .n 2079, .n 2080, .n 2081, .n 2082, .n 2083] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2084, .n 2085]))) ::
-  .atom (.add (.n 2086) (.n 2071) (.n 2084)) ::
-  .atom (.add (.n 2087) (.n 2084) (.n 2085)) ::
-  .atom (.mul (.n 2086) (.n 113) (.n 2087)) ::
-  .atom (.const (.n 2088) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 2089) (.n 1945) (.n 2088)) ::
-  .atom (.const (.n 2090) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2091) (.n 479) (.n 2090)) ::
-  .atom (.add (.n 2092) (.n 2089) (.n 2091)) ::
-  .atom (.const (.n 2093) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2092, .n 2084, .n 2085, .n 12, .n 13, .n 14, .n 15, .n 2093, .n 13, .n 14, .n 15, .n 16] [.n 2094, .n 2095, .n 2096, .n 2097, .n 2098, .n 2099, .n 2100, .n 2101, .n 2102, .n 2103, .n 2104, .n 2105, .n 2106] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2107, .n 2108]))) ::
-  .atom (.add (.n 2109) (.n 2094) (.n 2107)) ::
-  .atom (.add (.n 2110) (.n 2107) (.n 2108)) ::
-  .atom (.mul (.n 2109) (.n 114) (.n 2110)) ::
-  .atom (.const (.n 2111) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 2112) (.n 1945) (.n 2111)) ::
-  .atom (.const (.n 2113) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2114) (.n 476) (.n 2113)) ::
-  .atom (.add (.n 2115) (.n 2112) (.n 2114)) ::
-  .atom (.const (.n 2116) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2115, .n 2107, .n 2108, .n 12, .n 13, .n 14, .n 15, .n 2116, .n 13, .n 14, .n 15, .n 16] [.n 2117, .n 2118, .n 2119, .n 2120, .n 2121, .n 2122, .n 2123, .n 2124, .n 2125, .n 2126, .n 2127, .n 2128, .n 2129] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2130, .n 2131]))) ::
-  .atom (.add (.n 2132) (.n 2117) (.n 2130)) ::
-  .atom (.add (.n 2133) (.n 2130) (.n 2131)) ::
-  .atom (.mul (.n 2132) (.n 115) (.n 2133)) ::
-  .atom (.const (.n 2134) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 2135) (.n 1945) (.n 2134)) ::
-  .atom (.const (.n 2136) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2137) (.n 473) (.n 2136)) ::
-  .atom (.add (.n 2138) (.n 2135) (.n 2137)) ::
-  .atom (.const (.n 2139) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2138, .n 2130, .n 2131, .n 12, .n 13, .n 14, .n 15, .n 2139, .n 13, .n 14, .n 15, .n 16] [.n 2140, .n 2141, .n 2142, .n 2143, .n 2144, .n 2145, .n 2146, .n 2147, .n 2148, .n 2149, .n 2150, .n 2151, .n 2152] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2153, .n 2154]))) ::
-  .atom (.add (.n 2155) (.n 2140) (.n 2153)) ::
-  .atom (.add (.n 2156) (.n 2153) (.n 2154)) ::
-  .atom (.mul (.n 2155) (.n 116) (.n 2156)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2157]))) ::
-  .atom (.const (.n 2158) (word 1080863927748788224 0 0)) ::
-  .atom (.add (.n 2159) (.n 1067) (.n 2158)) ::
-  .atom (.const (.n 2160) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 2161) (.n 528) (.n 2160)) ::
-  .atom (.add (.n 2162) (.n 2159) (.n 2161)) ::
-  .atom (.const (.n 2163) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2162, .n 2157, .n 12, .n 13, .n 14, .n 15, .n 16, .n 2163, .n 13, .n 14, .n 15, .n 16] [.n 2164, .n 2165, .n 2166, .n 2167, .n 2168, .n 2169, .n 2170, .n 2171, .n 2172, .n 2173, .n 2174, .n 2175, .n 2176] false false) ::
-  .atom (.const (.n 2177) (word 1224979115824644096 0 0)) ::
-  .atom (.add (.n 2178) (.n 1067) (.n 2177)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2179, .n 2180]))) ::
-  .atom (.add (.n 2181) (.n 2164) (.n 2179)) ::
-  .atom (.add (.n 2182) (.n 2179) (.n 2180)) ::
-  .atom (.mul (.n 2181) (.n 117) (.n 2182)) ::
-  .atom (.const (.n 2183) (word 274877906944 0 0)) ::
-  .atom (.add (.n 2184) (.n 2178) (.n 2183)) ::
-  .atom (.const (.n 2185) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2186) (.n 525) (.n 2185)) ::
-  .atom (.add (.n 2187) (.n 2184) (.n 2186)) ::
-  .atom (.const (.n 2188) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2187, .n 2179, .n 2180, .n 12, .n 13, .n 14, .n 15, .n 2188, .n 13, .n 14, .n 15, .n 16] [.n 2189, .n 2190, .n 2191, .n 2192, .n 2193, .n 2194, .n 2195, .n 2196, .n 2197, .n 2198, .n 2199, .n 2200, .n 2201] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2202, .n 2203]))) ::
-  .atom (.add (.n 2204) (.n 2189) (.n 2202)) ::
-  .atom (.add (.n 2205) (.n 2202) (.n 2203)) ::
-  .atom (.mul (.n 2204) (.n 118) (.n 2205)) ::
-  .atom (.const (.n 2206) (word 549755813888 0 0)) ::
-  .atom (.add (.n 2207) (.n 2178) (.n 2206)) ::
-  .atom (.const (.n 2208) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2209) (.n 522) (.n 2208)) ::
-  .atom (.add (.n 2210) (.n 2207) (.n 2209)) ::
-  .atom (.const (.n 2211) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2210, .n 2202, .n 2203, .n 12, .n 13, .n 14, .n 15, .n 2211, .n 13, .n 14, .n 15, .n 16] [.n 2212, .n 2213, .n 2214, .n 2215, .n 2216, .n 2217, .n 2218, .n 2219, .n 2220, .n 2221, .n 2222, .n 2223, .n 2224] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2225, .n 2226]))) ::
-  .atom (.add (.n 2227) (.n 2212) (.n 2225)) ::
-  .atom (.add (.n 2228) (.n 2225) (.n 2226)) ::
-  .atom (.mul (.n 2227) (.n 119) (.n 2228)) ::
-  .atom (.const (.n 2229) (word 824633720832 0 0)) ::
-  .atom (.add (.n 2230) (.n 2178) (.n 2229)) ::
-  .atom (.const (.n 2231) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2232) (.n 519) (.n 2231)) ::
-  .atom (.add (.n 2233) (.n 2230) (.n 2232)) ::
-  .atom (.const (.n 2234) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2233, .n 2225, .n 2226, .n 12, .n 13, .n 14, .n 15, .n 2234, .n 13, .n 14, .n 15, .n 16] [.n 2235, .n 2236, .n 2237, .n 2238, .n 2239, .n 2240, .n 2241, .n 2242, .n 2243, .n 2244, .n 2245, .n 2246, .n 2247] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2248, .n 2249]))) ::
-  .atom (.add (.n 2250) (.n 2235) (.n 2248)) ::
-  .atom (.add (.n 2251) (.n 2248) (.n 2249)) ::
-  .atom (.mul (.n 2250) (.n 120) (.n 2251)) ::
-  .atom (.const (.n 2252) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 2253) (.n 2178) (.n 2252)) ::
-  .atom (.const (.n 2254) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2255) (.n 516) (.n 2254)) ::
-  .atom (.add (.n 2256) (.n 2253) (.n 2255)) ::
-  .atom (.const (.n 2257) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2256, .n 2248, .n 2249, .n 12, .n 13, .n 14, .n 15, .n 2257, .n 13, .n 14, .n 15, .n 16] [.n 2258, .n 2259, .n 2260, .n 2261, .n 2262, .n 2263, .n 2264, .n 2265, .n 2266, .n 2267, .n 2268, .n 2269, .n 2270] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2271, .n 2272]))) ::
-  .atom (.add (.n 2273) (.n 2258) (.n 2271)) ::
-  .atom (.add (.n 2274) (.n 2271) (.n 2272)) ::
-  .atom (.mul (.n 2273) (.n 121) (.n 2274)) ::
-  .atom (.const (.n 2275) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 2276) (.n 2178) (.n 2275)) ::
-  .atom (.const (.n 2277) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2278) (.n 513) (.n 2277)) ::
-  .atom (.add (.n 2279) (.n 2276) (.n 2278)) ::
+  .atom (.const (.n 1812) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1813) (.n 682) (.n 1812)) ::
+  .atom (.add (.n 1814) (.n 1811) (.n 1813)) ::
+  .atom (.copy (.n 1815) (.n 1807)) ::
+  .atom (.const (.n 1816) (word 1 0 0)) ::
+  .atom (.const (.n 1817) (word 0 0 0)) ::
+  .atom (.const (.n 1818) (word 0 0 0)) ::
+  .atom (.const (.n 1819) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1814, .n 1806, .n 1815, .n 1816, .n 1817, .n 1818, .n 1819, .n 354, .n 355, .n 356, .n 357] [.n 1820, .n 1821, .n 1822, .n 1823, .n 1824, .n 1825, .n 1826, .n 1827, .n 1828, .n 1829, .n 1830, .n 1831, .n 1832] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1833, .n 1834]))) ::
+  .atom (.add (.n 1835) (.n 1820) (.n 1833)) ::
+  .atom (.add (.n 1836) (.n 1833) (.n 1834)) ::
+  .atom (.mul (.n 1835) (.n 393) (.n 1836)) ::
+  .atom (.const (.n 1837) (word 0 67108864 0)) ::
+  .atom (.add (.n 1838) (.n 1721) (.n 1837)) ::
+  .atom (.const (.n 1839) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1840) (.n 679) (.n 1839)) ::
+  .atom (.add (.n 1841) (.n 1838) (.n 1840)) ::
+  .atom (.copy (.n 1842) (.n 1834)) ::
+  .atom (.const (.n 1843) (word 1 0 0)) ::
+  .atom (.const (.n 1844) (word 0 0 0)) ::
+  .atom (.const (.n 1845) (word 0 0 0)) ::
+  .atom (.const (.n 1846) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1841, .n 1833, .n 1842, .n 1843, .n 1844, .n 1845, .n 1846, .n 354, .n 355, .n 356, .n 357] [.n 1847, .n 1848, .n 1849, .n 1850, .n 1851, .n 1852, .n 1853, .n 1854, .n 1855, .n 1856, .n 1857, .n 1858, .n 1859] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1860, .n 1861]))) ::
+  .atom (.add (.n 1862) (.n 1847) (.n 1860)) ::
+  .atom (.add (.n 1863) (.n 1860) (.n 1861)) ::
+  .atom (.mul (.n 1862) (.n 394) (.n 1863)) ::
+  .atom (.const (.n 1864) (word 0 83886080 0)) ::
+  .atom (.add (.n 1865) (.n 1721) (.n 1864)) ::
+  .atom (.const (.n 1866) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1867) (.n 676) (.n 1866)) ::
+  .atom (.add (.n 1868) (.n 1865) (.n 1867)) ::
+  .atom (.copy (.n 1869) (.n 1861)) ::
+  .atom (.const (.n 1870) (word 1 0 0)) ::
+  .atom (.const (.n 1871) (word 0 0 0)) ::
+  .atom (.const (.n 1872) (word 0 0 0)) ::
+  .atom (.const (.n 1873) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1868, .n 1860, .n 1869, .n 1870, .n 1871, .n 1872, .n 1873, .n 354, .n 355, .n 356, .n 357] [.n 1874, .n 1875, .n 1876, .n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882, .n 1883, .n 1884, .n 1885, .n 1886] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1887, .n 1888]))) ::
+  .atom (.add (.n 1889) (.n 1874) (.n 1887)) ::
+  .atom (.add (.n 1890) (.n 1887) (.n 1888)) ::
+  .atom (.mul (.n 1889) (.n 395) (.n 1890)) ::
+  .atom (.const (.n 1891) (word 0 100663296 0)) ::
+  .atom (.add (.n 1892) (.n 1721) (.n 1891)) ::
+  .atom (.const (.n 1893) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1894) (.n 673) (.n 1893)) ::
+  .atom (.add (.n 1895) (.n 1892) (.n 1894)) ::
+  .atom (.copy (.n 1896) (.n 1888)) ::
+  .atom (.const (.n 1897) (word 1 0 0)) ::
+  .atom (.const (.n 1898) (word 0 0 0)) ::
+  .atom (.const (.n 1899) (word 0 0 0)) ::
+  .atom (.const (.n 1900) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1895, .n 1887, .n 1896, .n 1897, .n 1898, .n 1899, .n 1900, .n 354, .n 355, .n 356, .n 357] [.n 1901, .n 1902, .n 1903, .n 1904, .n 1905, .n 1906, .n 1907, .n 1908, .n 1909, .n 1910, .n 1911, .n 1912, .n 1913] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1914, .n 1915]))) ::
+  .atom (.add (.n 1916) (.n 1901) (.n 1914)) ::
+  .atom (.add (.n 1917) (.n 1914) (.n 1915)) ::
+  .atom (.mul (.n 1916) (.n 396) (.n 1917)) ::
+  .atom (.const (.n 1918) (word 0 117440512 0)) ::
+  .atom (.add (.n 1919) (.n 1721) (.n 1918)) ::
+  .atom (.const (.n 1920) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1921) (.n 670) (.n 1920)) ::
+  .atom (.add (.n 1922) (.n 1919) (.n 1921)) ::
+  .atom (.copy (.n 1923) (.n 1915)) ::
+  .atom (.const (.n 1924) (word 1 0 0)) ::
+  .atom (.const (.n 1925) (word 0 0 0)) ::
+  .atom (.const (.n 1926) (word 0 0 0)) ::
+  .atom (.const (.n 1927) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1922, .n 1914, .n 1923, .n 1924, .n 1925, .n 1926, .n 1927, .n 354, .n 355, .n 356, .n 357] [.n 1928, .n 1929, .n 1930, .n 1931, .n 1932, .n 1933, .n 1934, .n 1935, .n 1936, .n 1937, .n 1938, .n 1939, .n 1940] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1941, .n 1942]))) ::
+  .atom (.add (.n 1943) (.n 1928) (.n 1941)) ::
+  .atom (.add (.n 1944) (.n 1941) (.n 1942)) ::
+  .atom (.mul (.n 1943) (.n 397) (.n 1944)) ::
+  .atom (.const (.n 1945) (word 0 134217728 0)) ::
+  .atom (.add (.n 1946) (.n 1721) (.n 1945)) ::
+  .atom (.const (.n 1947) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1948) (.n 667) (.n 1947)) ::
+  .atom (.add (.n 1949) (.n 1946) (.n 1948)) ::
+  .atom (.copy (.n 1950) (.n 1942)) ::
+  .atom (.const (.n 1951) (word 1 0 0)) ::
+  .atom (.const (.n 1952) (word 0 0 0)) ::
+  .atom (.const (.n 1953) (word 0 0 0)) ::
+  .atom (.const (.n 1954) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1949, .n 1941, .n 1950, .n 1951, .n 1952, .n 1953, .n 1954, .n 354, .n 355, .n 356, .n 357] [.n 1955, .n 1956, .n 1957, .n 1958, .n 1959, .n 1960, .n 1961, .n 1962, .n 1963, .n 1964, .n 1965, .n 1966, .n 1967] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1968, .n 1969]))) ::
+  .atom (.add (.n 1970) (.n 1955) (.n 1968)) ::
+  .atom (.add (.n 1971) (.n 1968) (.n 1969)) ::
+  .atom (.mul (.n 1970) (.n 398) (.n 1971)) ::
+  .atom (.const (.n 1972) (word 0 150994944 0)) ::
+  .atom (.add (.n 1973) (.n 1721) (.n 1972)) ::
+  .atom (.const (.n 1974) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 1975) (.n 664) (.n 1974)) ::
+  .atom (.add (.n 1976) (.n 1973) (.n 1975)) ::
+  .atom (.copy (.n 1977) (.n 1969)) ::
+  .atom (.const (.n 1978) (word 1 0 0)) ::
+  .atom (.const (.n 1979) (word 0 0 0)) ::
+  .atom (.const (.n 1980) (word 0 0 0)) ::
+  .atom (.const (.n 1981) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 1976, .n 1968, .n 1977, .n 1978, .n 1979, .n 1980, .n 1981, .n 354, .n 355, .n 356, .n 357] [.n 1982, .n 1983, .n 1984, .n 1985, .n 1986, .n 1987, .n 1988, .n 1989, .n 1990, .n 1991, .n 1992, .n 1993, .n 1994] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 1995, .n 1996]))) ::
+  .atom (.add (.n 1997) (.n 1982) (.n 1995)) ::
+  .atom (.add (.n 1998) (.n 1995) (.n 1996)) ::
+  .atom (.mul (.n 1997) (.n 399) (.n 1998)) ::
+  .atom (.const (.n 1999) (word 0 167772160 0)) ::
+  .atom (.add (.n 2000) (.n 1721) (.n 1999)) ::
+  .atom (.copy (.n 2001) (.n 1996)) ::
+  .atom (.const (.n 2002) (word 1 0 0)) ::
+  .atom (.const (.n 2003) (word 0 0 0)) ::
+  .atom (.const (.n 2004) (word 0 0 0)) ::
+  .atom (.const (.n 2005) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2000, .n 1995, .n 2001, .n 2002, .n 2003, .n 2004, .n 2005, .n 354, .n 355, .n 356, .n 357] [.n 2006, .n 2007, .n 2008, .n 2009, .n 2010, .n 2011, .n 2012, .n 2013, .n 2014, .n 2015, .n 2016, .n 2017, .n 2018] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2019]))) ::
+  .atom (.const (.n 2020) (word 0 1125899906842624 0)) ::
+  .atom (.add (.n 2021) (.n 1721) (.n 2020)) ::
+  .atom (.const (.n 2022) (word 256 0 0)) ::
+  .atom (.mul (.n 2023) (.n 695) (.n 2022)) ::
+  .atom (.add (.n 2024) (.n 719) (.n 2023)) ::
+  .atom (.const (.n 2025) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2026) (.n 2024) (.n 2025)) ::
+  .atom (.const (.n 2027) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2028) (.n 695) (.n 2027)) ::
+  .atom (.add (.n 2029) (.n 2026) (.n 2028)) ::
+  .atom (.add (.n 2030) (.n 2021) (.n 2029)) ::
+  .atom (.const (.n 2031) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2030, .n 2019, .n 353, .n 354, .n 355, .n 356, .n 2031, .n 354, .n 355, .n 356, .n 357] [.n 2032, .n 2033, .n 2034, .n 2035, .n 2036, .n 2037, .n 2038, .n 2039, .n 2040, .n 2041, .n 2042, .n 2043, .n 2044] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2045, .n 2046]))) ::
+  .atom (.add (.n 2047) (.n 2032) (.n 2045)) ::
+  .atom (.add (.n 2048) (.n 2045) (.n 2046)) ::
+  .atom (.mul (.n 2047) (.n 412) (.n 2048)) ::
+  .atom (.const (.n 2049) (word 0 562949970198528 0)) ::
+  .atom (.add (.n 2050) (.n 1721) (.n 2049)) ::
+  .atom (.const (.n 2051) (word 256 0 0)) ::
+  .atom (.mul (.n 2052) (.n 692) (.n 2051)) ::
+  .atom (.add (.n 2053) (.n 716) (.n 2052)) ::
+  .atom (.const (.n 2054) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2055) (.n 2053) (.n 2054)) ::
+  .atom (.const (.n 2056) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2057) (.n 692) (.n 2056)) ::
+  .atom (.add (.n 2058) (.n 2055) (.n 2057)) ::
+  .atom (.add (.n 2059) (.n 2050) (.n 2058)) ::
+  .atom (.copy (.n 2060) (.n 2046)) ::
+  .atom (.const (.n 2061) (word 1 0 0)) ::
+  .atom (.const (.n 2062) (word 0 0 0)) ::
+  .atom (.const (.n 2063) (word 0 0 0)) ::
+  .atom (.const (.n 2064) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2059, .n 2045, .n 2060, .n 2061, .n 2062, .n 2063, .n 2064, .n 354, .n 355, .n 356, .n 357] [.n 2065, .n 2066, .n 2067, .n 2068, .n 2069, .n 2070, .n 2071, .n 2072, .n 2073, .n 2074, .n 2075, .n 2076, .n 2077] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2078, .n 2079]))) ::
+  .atom (.add (.n 2080) (.n 2065) (.n 2078)) ::
+  .atom (.add (.n 2081) (.n 2078) (.n 2079)) ::
+  .atom (.mul (.n 2080) (.n 413) (.n 2081)) ::
+  .atom (.const (.n 2082) (word 0 281475010265088 0)) ::
+  .atom (.add (.n 2083) (.n 1721) (.n 2082)) ::
+  .atom (.const (.n 2084) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2085) (.n 713) (.n 2084)) ::
+  .atom (.add (.n 2086) (.n 2083) (.n 2085)) ::
+  .atom (.copy (.n 2087) (.n 2079)) ::
+  .atom (.const (.n 2088) (word 1 0 0)) ::
+  .atom (.const (.n 2089) (word 0 0 0)) ::
+  .atom (.const (.n 2090) (word 0 0 0)) ::
+  .atom (.const (.n 2091) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2086, .n 2078, .n 2087, .n 2088, .n 2089, .n 2090, .n 2091, .n 354, .n 355, .n 356, .n 357] [.n 2092, .n 2093, .n 2094, .n 2095, .n 2096, .n 2097, .n 2098, .n 2099, .n 2100, .n 2101, .n 2102, .n 2103, .n 2104] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2105, .n 2106]))) ::
+  .atom (.add (.n 2107) (.n 2092) (.n 2105)) ::
+  .atom (.add (.n 2108) (.n 2105) (.n 2106)) ::
+  .atom (.mul (.n 2107) (.n 414) (.n 2108)) ::
+  .atom (.const (.n 2109) (word 0 9223372036905107456 0)) ::
+  .atom (.add (.n 2110) (.n 1721) (.n 2109)) ::
+  .atom (.const (.n 2111) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2112) (.n 710) (.n 2111)) ::
+  .atom (.add (.n 2113) (.n 2110) (.n 2112)) ::
+  .atom (.copy (.n 2114) (.n 2106)) ::
+  .atom (.const (.n 2115) (word 1 0 0)) ::
+  .atom (.const (.n 2116) (word 0 0 0)) ::
+  .atom (.const (.n 2117) (word 0 0 0)) ::
+  .atom (.const (.n 2118) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2113, .n 2105, .n 2114, .n 2115, .n 2116, .n 2117, .n 2118, .n 354, .n 355, .n 356, .n 357] [.n 2119, .n 2120, .n 2121, .n 2122, .n 2123, .n 2124, .n 2125, .n 2126, .n 2127, .n 2128, .n 2129, .n 2130, .n 2131] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2132, .n 2133]))) ::
+  .atom (.add (.n 2134) (.n 2119) (.n 2132)) ::
+  .atom (.add (.n 2135) (.n 2132) (.n 2133)) ::
+  .atom (.mul (.n 2134) (.n 415) (.n 2135)) ::
+  .atom (.const (.n 2136) (word 0 4611686018494496768 0)) ::
+  .atom (.add (.n 2137) (.n 1721) (.n 2136)) ::
+  .atom (.const (.n 2138) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2139) (.n 707) (.n 2138)) ::
+  .atom (.add (.n 2140) (.n 2137) (.n 2139)) ::
+  .atom (.copy (.n 2141) (.n 2133)) ::
+  .atom (.const (.n 2142) (word 1 0 0)) ::
+  .atom (.const (.n 2143) (word 0 0 0)) ::
+  .atom (.const (.n 2144) (word 0 0 0)) ::
+  .atom (.const (.n 2145) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2140, .n 2132, .n 2141, .n 2142, .n 2143, .n 2144, .n 2145, .n 354, .n 355, .n 356, .n 357] [.n 2146, .n 2147, .n 2148, .n 2149, .n 2150, .n 2151, .n 2152, .n 2153, .n 2154, .n 2155, .n 2156, .n 2157, .n 2158] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2159, .n 2160]))) ::
+  .atom (.add (.n 2161) (.n 2146) (.n 2159)) ::
+  .atom (.add (.n 2162) (.n 2159) (.n 2160)) ::
+  .atom (.mul (.n 2161) (.n 400) (.n 2162)) ::
+  .atom (.const (.n 2163) (word 0 2305843009297580032 0)) ::
+  .atom (.add (.n 2164) (.n 1721) (.n 2163)) ::
+  .atom (.const (.n 2165) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2166) (.n 704) (.n 2165)) ::
+  .atom (.add (.n 2167) (.n 2164) (.n 2166)) ::
+  .atom (.copy (.n 2168) (.n 2160)) ::
+  .atom (.const (.n 2169) (word 1 0 0)) ::
+  .atom (.const (.n 2170) (word 0 0 0)) ::
+  .atom (.const (.n 2171) (word 0 0 0)) ::
+  .atom (.const (.n 2172) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2167, .n 2159, .n 2168, .n 2169, .n 2170, .n 2171, .n 2172, .n 354, .n 355, .n 356, .n 357] [.n 2173, .n 2174, .n 2175, .n 2176, .n 2177, .n 2178, .n 2179, .n 2180, .n 2181, .n 2182, .n 2183, .n 2184, .n 2185] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2186, .n 2187]))) ::
+  .atom (.add (.n 2188) (.n 2173) (.n 2186)) ::
+  .atom (.add (.n 2189) (.n 2186) (.n 2187)) ::
+  .atom (.mul (.n 2188) (.n 401) (.n 2189)) ::
+  .atom (.const (.n 2190) (word 0 1152921504707510272 0)) ::
+  .atom (.add (.n 2191) (.n 1721) (.n 2190)) ::
+  .atom (.const (.n 2192) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2193) (.n 701) (.n 2192)) ::
+  .atom (.add (.n 2194) (.n 2191) (.n 2193)) ::
+  .atom (.copy (.n 2195) (.n 2187)) ::
+  .atom (.const (.n 2196) (word 1 0 0)) ::
+  .atom (.const (.n 2197) (word 0 0 0)) ::
+  .atom (.const (.n 2198) (word 0 0 0)) ::
+  .atom (.const (.n 2199) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2194, .n 2186, .n 2195, .n 2196, .n 2197, .n 2198, .n 2199, .n 354, .n 355, .n 356, .n 357] [.n 2200, .n 2201, .n 2202, .n 2203, .n 2204, .n 2205, .n 2206, .n 2207, .n 2208, .n 2209, .n 2210, .n 2211, .n 2212] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2213, .n 2214]))) ::
+  .atom (.add (.n 2215) (.n 2200) (.n 2213)) ::
+  .atom (.add (.n 2216) (.n 2213) (.n 2214)) ::
+  .atom (.mul (.n 2215) (.n 402) (.n 2216)) ::
+  .atom (.const (.n 2217) (word 0 576460752420864000 0)) ::
+  .atom (.add (.n 2218) (.n 1721) (.n 2217)) ::
+  .atom (.const (.n 2219) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2220) (.n 698) (.n 2219)) ::
+  .atom (.add (.n 2221) (.n 2218) (.n 2220)) ::
+  .atom (.copy (.n 2222) (.n 2214)) ::
+  .atom (.const (.n 2223) (word 1 0 0)) ::
+  .atom (.const (.n 2224) (word 0 0 0)) ::
+  .atom (.const (.n 2225) (word 0 0 0)) ::
+  .atom (.const (.n 2226) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2221, .n 2213, .n 2222, .n 2223, .n 2224, .n 2225, .n 2226, .n 354, .n 355, .n 356, .n 357] [.n 2227, .n 2228, .n 2229, .n 2230, .n 2231, .n 2232, .n 2233, .n 2234, .n 2235, .n 2236, .n 2237, .n 2238, .n 2239] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2240, .n 2241]))) ::
+  .atom (.add (.n 2242) (.n 2227) (.n 2240)) ::
+  .atom (.add (.n 2243) (.n 2240) (.n 2241)) ::
+  .atom (.mul (.n 2242) (.n 403) (.n 2243)) ::
+  .atom (.const (.n 2244) (word 0 288230376285929472 0)) ::
+  .atom (.add (.n 2245) (.n 1721) (.n 2244)) ::
+  .atom (.const (.n 2246) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2247) (.n 695) (.n 2246)) ::
+  .atom (.add (.n 2248) (.n 2245) (.n 2247)) ::
+  .atom (.copy (.n 2249) (.n 2241)) ::
+  .atom (.const (.n 2250) (word 1 0 0)) ::
+  .atom (.const (.n 2251) (word 0 0 0)) ::
+  .atom (.const (.n 2252) (word 0 0 0)) ::
+  .atom (.const (.n 2253) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2248, .n 2240, .n 2249, .n 2250, .n 2251, .n 2252, .n 2253, .n 354, .n 355, .n 356, .n 357] [.n 2254, .n 2255, .n 2256, .n 2257, .n 2258, .n 2259, .n 2260, .n 2261, .n 2262, .n 2263, .n 2264, .n 2265, .n 2266] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2267, .n 2268]))) ::
+  .atom (.add (.n 2269) (.n 2254) (.n 2267)) ::
+  .atom (.add (.n 2270) (.n 2267) (.n 2268)) ::
+  .atom (.mul (.n 2269) (.n 404) (.n 2270)) ::
+  .atom (.const (.n 2271) (word 0 144115188226850816 0)) ::
+  .atom (.add (.n 2272) (.n 1721) (.n 2271)) ::
+  .atom (.const (.n 2273) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2274) (.n 692) (.n 2273)) ::
+  .atom (.add (.n 2275) (.n 2272) (.n 2274)) ::
+  .atom (.copy (.n 2276) (.n 2268)) ::
+  .atom (.const (.n 2277) (word 1 0 0)) ::
+  .atom (.const (.n 2278) (word 0 0 0)) ::
+  .atom (.const (.n 2279) (word 0 0 0)) ::
   .atom (.const (.n 2280) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2279, .n 2271, .n 2272, .n 12, .n 13, .n 14, .n 15, .n 2280, .n 13, .n 14, .n 15, .n 16] [.n 2281, .n 2282, .n 2283, .n 2284, .n 2285, .n 2286, .n 2287, .n 2288, .n 2289, .n 2290, .n 2291, .n 2292, .n 2293] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2275, .n 2267, .n 2276, .n 2277, .n 2278, .n 2279, .n 2280, .n 354, .n 355, .n 356, .n 357] [.n 2281, .n 2282, .n 2283, .n 2284, .n 2285, .n 2286, .n 2287, .n 2288, .n 2289, .n 2290, .n 2291, .n 2292, .n 2293] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2294, .n 2295]))) ::
   .atom (.add (.n 2296) (.n 2281) (.n 2294)) ::
   .atom (.add (.n 2297) (.n 2294) (.n 2295)) ::
-  .atom (.mul (.n 2296) (.n 122) (.n 2297)) ::
-  .atom (.const (.n 2298) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 2299) (.n 2178) (.n 2298)) ::
-  .atom (.const (.n 2300) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2301) (.n 510) (.n 2300)) ::
-  .atom (.add (.n 2302) (.n 2299) (.n 2301)) ::
-  .atom (.const (.n 2303) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2302, .n 2294, .n 2295, .n 12, .n 13, .n 14, .n 15, .n 2303, .n 13, .n 14, .n 15, .n 16] [.n 2304, .n 2305, .n 2306, .n 2307, .n 2308, .n 2309, .n 2310, .n 2311, .n 2312, .n 2313, .n 2314, .n 2315, .n 2316] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2317, .n 2318]))) ::
-  .atom (.add (.n 2319) (.n 2304) (.n 2317)) ::
-  .atom (.add (.n 2320) (.n 2317) (.n 2318)) ::
-  .atom (.mul (.n 2319) (.n 123) (.n 2320)) ::
-  .atom (.const (.n 2321) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 2322) (.n 2178) (.n 2321)) ::
-  .atom (.const (.n 2323) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2324) (.n 507) (.n 2323)) ::
-  .atom (.add (.n 2325) (.n 2322) (.n 2324)) ::
-  .atom (.const (.n 2326) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2325, .n 2317, .n 2318, .n 12, .n 13, .n 14, .n 15, .n 2326, .n 13, .n 14, .n 15, .n 16] [.n 2327, .n 2328, .n 2329, .n 2330, .n 2331, .n 2332, .n 2333, .n 2334, .n 2335, .n 2336, .n 2337, .n 2338, .n 2339] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2340, .n 2341]))) ::
-  .atom (.add (.n 2342) (.n 2327) (.n 2340)) ::
-  .atom (.add (.n 2343) (.n 2340) (.n 2341)) ::
-  .atom (.mul (.n 2342) (.n 124) (.n 2343)) ::
-  .atom (.const (.n 2344) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 2345) (.n 2178) (.n 2344)) ::
-  .atom (.const (.n 2346) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2347) (.n 504) (.n 2346)) ::
-  .atom (.add (.n 2348) (.n 2345) (.n 2347)) ::
-  .atom (.const (.n 2349) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2348, .n 2340, .n 2341, .n 12, .n 13, .n 14, .n 15, .n 2349, .n 13, .n 14, .n 15, .n 16] [.n 2350, .n 2351, .n 2352, .n 2353, .n 2354, .n 2355, .n 2356, .n 2357, .n 2358, .n 2359, .n 2360, .n 2361, .n 2362] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2363, .n 2364]))) ::
-  .atom (.add (.n 2365) (.n 2350) (.n 2363)) ::
-  .atom (.add (.n 2366) (.n 2363) (.n 2364)) ::
-  .atom (.mul (.n 2365) (.n 125) (.n 2366)) ::
-  .atom (.const (.n 2367) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 2368) (.n 2178) (.n 2367)) ::
-  .atom (.const (.n 2369) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2370) (.n 501) (.n 2369)) ::
-  .atom (.add (.n 2371) (.n 2368) (.n 2370)) ::
-  .atom (.const (.n 2372) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2371, .n 2363, .n 2364, .n 12, .n 13, .n 14, .n 15, .n 2372, .n 13, .n 14, .n 15, .n 16] [.n 2373, .n 2374, .n 2375, .n 2376, .n 2377, .n 2378, .n 2379, .n 2380, .n 2381, .n 2382, .n 2383, .n 2384, .n 2385] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2386, .n 2387]))) ::
-  .atom (.add (.n 2388) (.n 2373) (.n 2386)) ::
-  .atom (.add (.n 2389) (.n 2386) (.n 2387)) ::
-  .atom (.mul (.n 2388) (.n 126) (.n 2389)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2390]))) ::
-  .atom (.const (.n 2391) (word 1080863932043755520 0 0)) ::
-  .atom (.add (.n 2392) (.n 1067) (.n 2391)) ::
-  .atom (.const (.n 2393) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 2394) (.n 556) (.n 2393)) ::
-  .atom (.add (.n 2395) (.n 2392) (.n 2394)) ::
-  .atom (.const (.n 2396) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2395, .n 2390, .n 12, .n 13, .n 14, .n 15, .n 16, .n 2396, .n 13, .n 14, .n 15, .n 16] [.n 2397, .n 2398, .n 2399, .n 2400, .n 2401, .n 2402, .n 2403, .n 2404, .n 2405, .n 2406, .n 2407, .n 2408, .n 2409] false false) ::
-  .atom (.const (.n 2410) (word 1224979120119611392 0 0)) ::
-  .atom (.add (.n 2411) (.n 1067) (.n 2410)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2412, .n 2413]))) ::
-  .atom (.add (.n 2414) (.n 2397) (.n 2412)) ::
-  .atom (.add (.n 2415) (.n 2412) (.n 2413)) ::
-  .atom (.mul (.n 2414) (.n 127) (.n 2415)) ::
-  .atom (.const (.n 2416) (word 274877906944 0 0)) ::
-  .atom (.add (.n 2417) (.n 2411) (.n 2416)) ::
-  .atom (.const (.n 2418) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2419) (.n 553) (.n 2418)) ::
-  .atom (.add (.n 2420) (.n 2417) (.n 2419)) ::
-  .atom (.const (.n 2421) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2420, .n 2412, .n 2413, .n 12, .n 13, .n 14, .n 15, .n 2421, .n 13, .n 14, .n 15, .n 16] [.n 2422, .n 2423, .n 2424, .n 2425, .n 2426, .n 2427, .n 2428, .n 2429, .n 2430, .n 2431, .n 2432, .n 2433, .n 2434] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2435, .n 2436]))) ::
-  .atom (.add (.n 2437) (.n 2422) (.n 2435)) ::
-  .atom (.add (.n 2438) (.n 2435) (.n 2436)) ::
-  .atom (.mul (.n 2437) (.n 128) (.n 2438)) ::
-  .atom (.const (.n 2439) (word 549755813888 0 0)) ::
-  .atom (.add (.n 2440) (.n 2411) (.n 2439)) ::
-  .atom (.const (.n 2441) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2442) (.n 550) (.n 2441)) ::
-  .atom (.add (.n 2443) (.n 2440) (.n 2442)) ::
+  .atom (.mul (.n 2296) (.n 405) (.n 2297)) ::
+  .atom (.const (.n 2298) (word 0 72057594205700096 0)) ::
+  .atom (.add (.n 2299) (.n 1721) (.n 2298)) ::
+  .atom (.copy (.n 2300) (.n 2295)) ::
+  .atom (.const (.n 2301) (word 1 0 0)) ::
+  .atom (.const (.n 2302) (word 0 0 0)) ::
+  .atom (.const (.n 2303) (word 0 0 0)) ::
+  .atom (.const (.n 2304) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2299, .n 2294, .n 2300, .n 2301, .n 2302, .n 2303, .n 2304, .n 354, .n 355, .n 356, .n 357] [.n 2305, .n 2306, .n 2307, .n 2308, .n 2309, .n 2310, .n 2311, .n 2312, .n 2313, .n 2314, .n 2315, .n 2316, .n 2317] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2318]))) ::
+  .atom (.const (.n 2319) (word 0 2251799813685248 0)) ::
+  .atom (.add (.n 2320) (.n 1721) (.n 2319)) ::
+  .atom (.const (.n 2321) (word 256 0 0)) ::
+  .atom (.mul (.n 2322) (.n 723) (.n 2321)) ::
+  .atom (.add (.n 2323) (.n 747) (.n 2322)) ::
+  .atom (.const (.n 2324) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2325) (.n 2323) (.n 2324)) ::
+  .atom (.const (.n 2326) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2327) (.n 723) (.n 2326)) ::
+  .atom (.add (.n 2328) (.n 2325) (.n 2327)) ::
+  .atom (.add (.n 2329) (.n 2320) (.n 2328)) ::
+  .atom (.const (.n 2330) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2329, .n 2318, .n 353, .n 354, .n 355, .n 356, .n 2330, .n 354, .n 355, .n 356, .n 357] [.n 2331, .n 2332, .n 2333, .n 2334, .n 2335, .n 2336, .n 2337, .n 2338, .n 2339, .n 2340, .n 2341, .n 2342, .n 2343] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2344, .n 2345]))) ::
+  .atom (.add (.n 2346) (.n 2331) (.n 2344)) ::
+  .atom (.add (.n 2347) (.n 2344) (.n 2345)) ::
+  .atom (.mul (.n 2346) (.n 418) (.n 2347)) ::
+  .atom (.const (.n 2348) (word 0 1125899923619840 0)) ::
+  .atom (.add (.n 2349) (.n 1721) (.n 2348)) ::
+  .atom (.const (.n 2350) (word 256 0 0)) ::
+  .atom (.mul (.n 2351) (.n 720) (.n 2350)) ::
+  .atom (.add (.n 2352) (.n 744) (.n 2351)) ::
+  .atom (.const (.n 2353) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2354) (.n 2352) (.n 2353)) ::
+  .atom (.const (.n 2355) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2356) (.n 720) (.n 2355)) ::
+  .atom (.add (.n 2357) (.n 2354) (.n 2356)) ::
+  .atom (.add (.n 2358) (.n 2349) (.n 2357)) ::
+  .atom (.copy (.n 2359) (.n 2345)) ::
+  .atom (.const (.n 2360) (word 1 0 0)) ::
+  .atom (.const (.n 2361) (word 0 0 0)) ::
+  .atom (.const (.n 2362) (word 0 0 0)) ::
+  .atom (.const (.n 2363) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2358, .n 2344, .n 2359, .n 2360, .n 2361, .n 2362, .n 2363, .n 354, .n 355, .n 356, .n 357] [.n 2364, .n 2365, .n 2366, .n 2367, .n 2368, .n 2369, .n 2370, .n 2371, .n 2372, .n 2373, .n 2374, .n 2375, .n 2376] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2377, .n 2378]))) ::
+  .atom (.add (.n 2379) (.n 2364) (.n 2377)) ::
+  .atom (.add (.n 2380) (.n 2377) (.n 2378)) ::
+  .atom (.mul (.n 2379) (.n 419) (.n 2380)) ::
+  .atom (.const (.n 2381) (word 0 562949986975744 0)) ::
+  .atom (.add (.n 2382) (.n 1721) (.n 2381)) ::
+  .atom (.const (.n 2383) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2384) (.n 741) (.n 2383)) ::
+  .atom (.add (.n 2385) (.n 2382) (.n 2384)) ::
+  .atom (.copy (.n 2386) (.n 2378)) ::
+  .atom (.const (.n 2387) (word 1 0 0)) ::
+  .atom (.const (.n 2388) (word 0 0 0)) ::
+  .atom (.const (.n 2389) (word 0 0 0)) ::
+  .atom (.const (.n 2390) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2385, .n 2377, .n 2386, .n 2387, .n 2388, .n 2389, .n 2390, .n 354, .n 355, .n 356, .n 357] [.n 2391, .n 2392, .n 2393, .n 2394, .n 2395, .n 2396, .n 2397, .n 2398, .n 2399, .n 2400, .n 2401, .n 2402, .n 2403] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2404, .n 2405]))) ::
+  .atom (.add (.n 2406) (.n 2391) (.n 2404)) ::
+  .atom (.add (.n 2407) (.n 2404) (.n 2405)) ::
+  .atom (.mul (.n 2406) (.n 420) (.n 2407)) ::
+  .atom (.const (.n 2408) (word 0 281475027042304 0)) ::
+  .atom (.add (.n 2409) (.n 1721) (.n 2408)) ::
+  .atom (.const (.n 2410) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2411) (.n 738) (.n 2410)) ::
+  .atom (.add (.n 2412) (.n 2409) (.n 2411)) ::
+  .atom (.copy (.n 2413) (.n 2405)) ::
+  .atom (.const (.n 2414) (word 1 0 0)) ::
+  .atom (.const (.n 2415) (word 0 0 0)) ::
+  .atom (.const (.n 2416) (word 0 0 0)) ::
+  .atom (.const (.n 2417) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2412, .n 2404, .n 2413, .n 2414, .n 2415, .n 2416, .n 2417, .n 354, .n 355, .n 356, .n 357] [.n 2418, .n 2419, .n 2420, .n 2421, .n 2422, .n 2423, .n 2424, .n 2425, .n 2426, .n 2427, .n 2428, .n 2429, .n 2430] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2431, .n 2432]))) ::
+  .atom (.add (.n 2433) (.n 2418) (.n 2431)) ::
+  .atom (.add (.n 2434) (.n 2431) (.n 2432)) ::
+  .atom (.mul (.n 2433) (.n 421) (.n 2434)) ::
+  .atom (.const (.n 2435) (word 0 9223372036921884672 0)) ::
+  .atom (.add (.n 2436) (.n 1721) (.n 2435)) ::
+  .atom (.const (.n 2437) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2438) (.n 735) (.n 2437)) ::
+  .atom (.add (.n 2439) (.n 2436) (.n 2438)) ::
+  .atom (.copy (.n 2440) (.n 2432)) ::
+  .atom (.const (.n 2441) (word 1 0 0)) ::
+  .atom (.const (.n 2442) (word 0 0 0)) ::
+  .atom (.const (.n 2443) (word 0 0 0)) ::
   .atom (.const (.n 2444) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2443, .n 2435, .n 2436, .n 12, .n 13, .n 14, .n 15, .n 2444, .n 13, .n 14, .n 15, .n 16] [.n 2445, .n 2446, .n 2447, .n 2448, .n 2449, .n 2450, .n 2451, .n 2452, .n 2453, .n 2454, .n 2455, .n 2456, .n 2457] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2439, .n 2431, .n 2440, .n 2441, .n 2442, .n 2443, .n 2444, .n 354, .n 355, .n 356, .n 357] [.n 2445, .n 2446, .n 2447, .n 2448, .n 2449, .n 2450, .n 2451, .n 2452, .n 2453, .n 2454, .n 2455, .n 2456, .n 2457] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2458, .n 2459]))) ::
   .atom (.add (.n 2460) (.n 2445) (.n 2458)) ::
   .atom (.add (.n 2461) (.n 2458) (.n 2459)) ::
-  .atom (.mul (.n 2460) (.n 129) (.n 2461)) ::
-  .atom (.const (.n 2462) (word 824633720832 0 0)) ::
-  .atom (.add (.n 2463) (.n 2411) (.n 2462)) ::
-  .atom (.const (.n 2464) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2465) (.n 547) (.n 2464)) ::
+  .atom (.mul (.n 2460) (.n 422) (.n 2461)) ::
+  .atom (.const (.n 2462) (word 0 4611686018511273984 0)) ::
+  .atom (.add (.n 2463) (.n 1721) (.n 2462)) ::
+  .atom (.const (.n 2464) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2465) (.n 732) (.n 2464)) ::
   .atom (.add (.n 2466) (.n 2463) (.n 2465)) ::
-  .atom (.const (.n 2467) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2466, .n 2458, .n 2459, .n 12, .n 13, .n 14, .n 15, .n 2467, .n 13, .n 14, .n 15, .n 16] [.n 2468, .n 2469, .n 2470, .n 2471, .n 2472, .n 2473, .n 2474, .n 2475, .n 2476, .n 2477, .n 2478, .n 2479, .n 2480] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2481, .n 2482]))) ::
-  .atom (.add (.n 2483) (.n 2468) (.n 2481)) ::
-  .atom (.add (.n 2484) (.n 2481) (.n 2482)) ::
-  .atom (.mul (.n 2483) (.n 130) (.n 2484)) ::
-  .atom (.const (.n 2485) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 2486) (.n 2411) (.n 2485)) ::
-  .atom (.const (.n 2487) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2488) (.n 544) (.n 2487)) ::
-  .atom (.add (.n 2489) (.n 2486) (.n 2488)) ::
-  .atom (.const (.n 2490) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2489, .n 2481, .n 2482, .n 12, .n 13, .n 14, .n 15, .n 2490, .n 13, .n 14, .n 15, .n 16] [.n 2491, .n 2492, .n 2493, .n 2494, .n 2495, .n 2496, .n 2497, .n 2498, .n 2499, .n 2500, .n 2501, .n 2502, .n 2503] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2504, .n 2505]))) ::
-  .atom (.add (.n 2506) (.n 2491) (.n 2504)) ::
-  .atom (.add (.n 2507) (.n 2504) (.n 2505)) ::
-  .atom (.mul (.n 2506) (.n 131) (.n 2507)) ::
-  .atom (.const (.n 2508) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 2509) (.n 2411) (.n 2508)) ::
-  .atom (.const (.n 2510) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2511) (.n 541) (.n 2510)) ::
-  .atom (.add (.n 2512) (.n 2509) (.n 2511)) ::
-  .atom (.const (.n 2513) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2512, .n 2504, .n 2505, .n 12, .n 13, .n 14, .n 15, .n 2513, .n 13, .n 14, .n 15, .n 16] [.n 2514, .n 2515, .n 2516, .n 2517, .n 2518, .n 2519, .n 2520, .n 2521, .n 2522, .n 2523, .n 2524, .n 2525, .n 2526] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2527, .n 2528]))) ::
-  .atom (.add (.n 2529) (.n 2514) (.n 2527)) ::
-  .atom (.add (.n 2530) (.n 2527) (.n 2528)) ::
-  .atom (.mul (.n 2529) (.n 132) (.n 2530)) ::
-  .atom (.const (.n 2531) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 2532) (.n 2411) (.n 2531)) ::
-  .atom (.const (.n 2533) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2534) (.n 538) (.n 2533)) ::
-  .atom (.add (.n 2535) (.n 2532) (.n 2534)) ::
-  .atom (.const (.n 2536) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2535, .n 2527, .n 2528, .n 12, .n 13, .n 14, .n 15, .n 2536, .n 13, .n 14, .n 15, .n 16] [.n 2537, .n 2538, .n 2539, .n 2540, .n 2541, .n 2542, .n 2543, .n 2544, .n 2545, .n 2546, .n 2547, .n 2548, .n 2549] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2550, .n 2551]))) ::
-  .atom (.add (.n 2552) (.n 2537) (.n 2550)) ::
-  .atom (.add (.n 2553) (.n 2550) (.n 2551)) ::
-  .atom (.mul (.n 2552) (.n 133) (.n 2553)) ::
-  .atom (.const (.n 2554) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 2555) (.n 2411) (.n 2554)) ::
-  .atom (.const (.n 2556) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2557) (.n 535) (.n 2556)) ::
-  .atom (.add (.n 2558) (.n 2555) (.n 2557)) ::
-  .atom (.const (.n 2559) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2558, .n 2550, .n 2551, .n 12, .n 13, .n 14, .n 15, .n 2559, .n 13, .n 14, .n 15, .n 16] [.n 2560, .n 2561, .n 2562, .n 2563, .n 2564, .n 2565, .n 2566, .n 2567, .n 2568, .n 2569, .n 2570, .n 2571, .n 2572] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2573, .n 2574]))) ::
-  .atom (.add (.n 2575) (.n 2560) (.n 2573)) ::
-  .atom (.add (.n 2576) (.n 2573) (.n 2574)) ::
-  .atom (.mul (.n 2575) (.n 134) (.n 2576)) ::
-  .atom (.const (.n 2577) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 2578) (.n 2411) (.n 2577)) ::
-  .atom (.const (.n 2579) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2580) (.n 532) (.n 2579)) ::
-  .atom (.add (.n 2581) (.n 2578) (.n 2580)) ::
-  .atom (.const (.n 2582) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2581, .n 2573, .n 2574, .n 12, .n 13, .n 14, .n 15, .n 2582, .n 13, .n 14, .n 15, .n 16] [.n 2583, .n 2584, .n 2585, .n 2586, .n 2587, .n 2588, .n 2589, .n 2590, .n 2591, .n 2592, .n 2593, .n 2594, .n 2595] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2596, .n 2597]))) ::
-  .atom (.add (.n 2598) (.n 2583) (.n 2596)) ::
-  .atom (.add (.n 2599) (.n 2596) (.n 2597)) ::
-  .atom (.mul (.n 2598) (.n 135) (.n 2599)) ::
-  .atom (.const (.n 2600) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 2601) (.n 2411) (.n 2600)) ::
-  .atom (.const (.n 2602) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2603) (.n 529) (.n 2602)) ::
-  .atom (.add (.n 2604) (.n 2601) (.n 2603)) ::
-  .atom (.const (.n 2605) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2604, .n 2596, .n 2597, .n 12, .n 13, .n 14, .n 15, .n 2605, .n 13, .n 14, .n 15, .n 16] [.n 2606, .n 2607, .n 2608, .n 2609, .n 2610, .n 2611, .n 2612, .n 2613, .n 2614, .n 2615, .n 2616, .n 2617, .n 2618] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2619, .n 2620]))) ::
-  .atom (.add (.n 2621) (.n 2606) (.n 2619)) ::
-  .atom (.add (.n 2622) (.n 2619) (.n 2620)) ::
-  .atom (.mul (.n 2621) (.n 136) (.n 2622)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2623]))) ::
-  .atom (.const (.n 2624) (word 1080863936338722816 0 0)) ::
-  .atom (.add (.n 2625) (.n 1067) (.n 2624)) ::
-  .atom (.const (.n 2626) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 2627) (.n 584) (.n 2626)) ::
-  .atom (.add (.n 2628) (.n 2625) (.n 2627)) ::
-  .atom (.const (.n 2629) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2628, .n 2623, .n 12, .n 13, .n 14, .n 15, .n 16, .n 2629, .n 13, .n 14, .n 15, .n 16] [.n 2630, .n 2631, .n 2632, .n 2633, .n 2634, .n 2635, .n 2636, .n 2637, .n 2638, .n 2639, .n 2640, .n 2641, .n 2642] false false) ::
-  .atom (.const (.n 2643) (word 1224979124414578688 0 0)) ::
-  .atom (.add (.n 2644) (.n 1067) (.n 2643)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2645, .n 2646]))) ::
-  .atom (.add (.n 2647) (.n 2630) (.n 2645)) ::
-  .atom (.add (.n 2648) (.n 2645) (.n 2646)) ::
-  .atom (.mul (.n 2647) (.n 137) (.n 2648)) ::
-  .atom (.const (.n 2649) (word 274877906944 0 0)) ::
-  .atom (.add (.n 2650) (.n 2644) (.n 2649)) ::
-  .atom (.const (.n 2651) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2652) (.n 581) (.n 2651)) ::
-  .atom (.add (.n 2653) (.n 2650) (.n 2652)) ::
-  .atom (.const (.n 2654) (word 9223372036854775808 0 0)) ::
+  .atom (.copy (.n 2467) (.n 2459)) ::
+  .atom (.const (.n 2468) (word 1 0 0)) ::
+  .atom (.const (.n 2469) (word 0 0 0)) ::
+  .atom (.const (.n 2470) (word 0 0 0)) ::
+  .atom (.const (.n 2471) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2466, .n 2458, .n 2467, .n 2468, .n 2469, .n 2470, .n 2471, .n 354, .n 355, .n 356, .n 357] [.n 2472, .n 2473, .n 2474, .n 2475, .n 2476, .n 2477, .n 2478, .n 2479, .n 2480, .n 2481, .n 2482, .n 2483, .n 2484] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2485, .n 2486]))) ::
+  .atom (.add (.n 2487) (.n 2472) (.n 2485)) ::
+  .atom (.add (.n 2488) (.n 2485) (.n 2486)) ::
+  .atom (.mul (.n 2487) (.n 423) (.n 2488)) ::
+  .atom (.const (.n 2489) (word 0 2305843009314357248 0)) ::
+  .atom (.add (.n 2490) (.n 1721) (.n 2489)) ::
+  .atom (.const (.n 2491) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2492) (.n 729) (.n 2491)) ::
+  .atom (.add (.n 2493) (.n 2490) (.n 2492)) ::
+  .atom (.copy (.n 2494) (.n 2486)) ::
+  .atom (.const (.n 2495) (word 1 0 0)) ::
+  .atom (.const (.n 2496) (word 0 0 0)) ::
+  .atom (.const (.n 2497) (word 0 0 0)) ::
+  .atom (.const (.n 2498) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2493, .n 2485, .n 2494, .n 2495, .n 2496, .n 2497, .n 2498, .n 354, .n 355, .n 356, .n 357] [.n 2499, .n 2500, .n 2501, .n 2502, .n 2503, .n 2504, .n 2505, .n 2506, .n 2507, .n 2508, .n 2509, .n 2510, .n 2511] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2512, .n 2513]))) ::
+  .atom (.add (.n 2514) (.n 2499) (.n 2512)) ::
+  .atom (.add (.n 2515) (.n 2512) (.n 2513)) ::
+  .atom (.mul (.n 2514) (.n 408) (.n 2515)) ::
+  .atom (.const (.n 2516) (word 0 1152921504724287488 0)) ::
+  .atom (.add (.n 2517) (.n 1721) (.n 2516)) ::
+  .atom (.const (.n 2518) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2519) (.n 726) (.n 2518)) ::
+  .atom (.add (.n 2520) (.n 2517) (.n 2519)) ::
+  .atom (.copy (.n 2521) (.n 2513)) ::
+  .atom (.const (.n 2522) (word 1 0 0)) ::
+  .atom (.const (.n 2523) (word 0 0 0)) ::
+  .atom (.const (.n 2524) (word 0 0 0)) ::
+  .atom (.const (.n 2525) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2520, .n 2512, .n 2521, .n 2522, .n 2523, .n 2524, .n 2525, .n 354, .n 355, .n 356, .n 357] [.n 2526, .n 2527, .n 2528, .n 2529, .n 2530, .n 2531, .n 2532, .n 2533, .n 2534, .n 2535, .n 2536, .n 2537, .n 2538] false false) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 1883 to 2244 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 2049 to 2453 of the body. -/
 noncomputable def c4 : List Core.Stmt := (
-  .atom (.keccak [.n 2, .n 2653, .n 2645, .n 2646, .n 12, .n 13, .n 14, .n 15, .n 2654, .n 13, .n 14, .n 15, .n 16] [.n 2655, .n 2656, .n 2657, .n 2658, .n 2659, .n 2660, .n 2661, .n 2662, .n 2663, .n 2664, .n 2665, .n 2666, .n 2667] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2668, .n 2669]))) ::
-  .atom (.add (.n 2670) (.n 2655) (.n 2668)) ::
-  .atom (.add (.n 2671) (.n 2668) (.n 2669)) ::
-  .atom (.mul (.n 2670) (.n 138) (.n 2671)) ::
-  .atom (.const (.n 2672) (word 549755813888 0 0)) ::
-  .atom (.add (.n 2673) (.n 2644) (.n 2672)) ::
-  .atom (.const (.n 2674) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2675) (.n 578) (.n 2674)) ::
-  .atom (.add (.n 2676) (.n 2673) (.n 2675)) ::
-  .atom (.const (.n 2677) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2676, .n 2668, .n 2669, .n 12, .n 13, .n 14, .n 15, .n 2677, .n 13, .n 14, .n 15, .n 16] [.n 2678, .n 2679, .n 2680, .n 2681, .n 2682, .n 2683, .n 2684, .n 2685, .n 2686, .n 2687, .n 2688, .n 2689, .n 2690] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2691, .n 2692]))) ::
-  .atom (.add (.n 2693) (.n 2678) (.n 2691)) ::
-  .atom (.add (.n 2694) (.n 2691) (.n 2692)) ::
-  .atom (.mul (.n 2693) (.n 139) (.n 2694)) ::
-  .atom (.const (.n 2695) (word 824633720832 0 0)) ::
-  .atom (.add (.n 2696) (.n 2644) (.n 2695)) ::
-  .atom (.const (.n 2697) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2698) (.n 575) (.n 2697)) ::
-  .atom (.add (.n 2699) (.n 2696) (.n 2698)) ::
-  .atom (.const (.n 2700) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2699, .n 2691, .n 2692, .n 12, .n 13, .n 14, .n 15, .n 2700, .n 13, .n 14, .n 15, .n 16] [.n 2701, .n 2702, .n 2703, .n 2704, .n 2705, .n 2706, .n 2707, .n 2708, .n 2709, .n 2710, .n 2711, .n 2712, .n 2713] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2714, .n 2715]))) ::
-  .atom (.add (.n 2716) (.n 2701) (.n 2714)) ::
-  .atom (.add (.n 2717) (.n 2714) (.n 2715)) ::
-  .atom (.mul (.n 2716) (.n 140) (.n 2717)) ::
-  .atom (.const (.n 2718) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 2719) (.n 2644) (.n 2718)) ::
-  .atom (.const (.n 2720) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2721) (.n 572) (.n 2720)) ::
-  .atom (.add (.n 2722) (.n 2719) (.n 2721)) ::
-  .atom (.const (.n 2723) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2722, .n 2714, .n 2715, .n 12, .n 13, .n 14, .n 15, .n 2723, .n 13, .n 14, .n 15, .n 16] [.n 2724, .n 2725, .n 2726, .n 2727, .n 2728, .n 2729, .n 2730, .n 2731, .n 2732, .n 2733, .n 2734, .n 2735, .n 2736] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2737, .n 2738]))) ::
-  .atom (.add (.n 2739) (.n 2724) (.n 2737)) ::
-  .atom (.add (.n 2740) (.n 2737) (.n 2738)) ::
-  .atom (.mul (.n 2739) (.n 141) (.n 2740)) ::
-  .atom (.const (.n 2741) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 2742) (.n 2644) (.n 2741)) ::
-  .atom (.const (.n 2743) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2744) (.n 569) (.n 2743)) ::
-  .atom (.add (.n 2745) (.n 2742) (.n 2744)) ::
-  .atom (.const (.n 2746) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2745, .n 2737, .n 2738, .n 12, .n 13, .n 14, .n 15, .n 2746, .n 13, .n 14, .n 15, .n 16] [.n 2747, .n 2748, .n 2749, .n 2750, .n 2751, .n 2752, .n 2753, .n 2754, .n 2755, .n 2756, .n 2757, .n 2758, .n 2759] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2760, .n 2761]))) ::
-  .atom (.add (.n 2762) (.n 2747) (.n 2760)) ::
-  .atom (.add (.n 2763) (.n 2760) (.n 2761)) ::
-  .atom (.mul (.n 2762) (.n 142) (.n 2763)) ::
-  .atom (.const (.n 2764) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 2765) (.n 2644) (.n 2764)) ::
-  .atom (.const (.n 2766) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2767) (.n 566) (.n 2766)) ::
-  .atom (.add (.n 2768) (.n 2765) (.n 2767)) ::
-  .atom (.const (.n 2769) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2768, .n 2760, .n 2761, .n 12, .n 13, .n 14, .n 15, .n 2769, .n 13, .n 14, .n 15, .n 16] [.n 2770, .n 2771, .n 2772, .n 2773, .n 2774, .n 2775, .n 2776, .n 2777, .n 2778, .n 2779, .n 2780, .n 2781, .n 2782] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2783, .n 2784]))) ::
-  .atom (.add (.n 2785) (.n 2770) (.n 2783)) ::
-  .atom (.add (.n 2786) (.n 2783) (.n 2784)) ::
-  .atom (.mul (.n 2785) (.n 143) (.n 2786)) ::
-  .atom (.const (.n 2787) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 2788) (.n 2644) (.n 2787)) ::
-  .atom (.const (.n 2789) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2790) (.n 563) (.n 2789)) ::
-  .atom (.add (.n 2791) (.n 2788) (.n 2790)) ::
-  .atom (.const (.n 2792) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2791, .n 2783, .n 2784, .n 12, .n 13, .n 14, .n 15, .n 2792, .n 13, .n 14, .n 15, .n 16] [.n 2793, .n 2794, .n 2795, .n 2796, .n 2797, .n 2798, .n 2799, .n 2800, .n 2801, .n 2802, .n 2803, .n 2804, .n 2805] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2806, .n 2807]))) ::
-  .atom (.add (.n 2808) (.n 2793) (.n 2806)) ::
-  .atom (.add (.n 2809) (.n 2806) (.n 2807)) ::
-  .atom (.mul (.n 2808) (.n 144) (.n 2809)) ::
-  .atom (.const (.n 2810) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 2811) (.n 2644) (.n 2810)) ::
-  .atom (.const (.n 2812) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2813) (.n 560) (.n 2812)) ::
-  .atom (.add (.n 2814) (.n 2811) (.n 2813)) ::
-  .atom (.const (.n 2815) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2814, .n 2806, .n 2807, .n 12, .n 13, .n 14, .n 15, .n 2815, .n 13, .n 14, .n 15, .n 16] [.n 2816, .n 2817, .n 2818, .n 2819, .n 2820, .n 2821, .n 2822, .n 2823, .n 2824, .n 2825, .n 2826, .n 2827, .n 2828] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2829, .n 2830]))) ::
-  .atom (.add (.n 2831) (.n 2816) (.n 2829)) ::
-  .atom (.add (.n 2832) (.n 2829) (.n 2830)) ::
-  .atom (.mul (.n 2831) (.n 145) (.n 2832)) ::
-  .atom (.const (.n 2833) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 2834) (.n 2644) (.n 2833)) ::
-  .atom (.const (.n 2835) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2836) (.n 557) (.n 2835)) ::
-  .atom (.add (.n 2837) (.n 2834) (.n 2836)) ::
-  .atom (.const (.n 2838) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2837, .n 2829, .n 2830, .n 12, .n 13, .n 14, .n 15, .n 2838, .n 13, .n 14, .n 15, .n 16] [.n 2839, .n 2840, .n 2841, .n 2842, .n 2843, .n 2844, .n 2845, .n 2846, .n 2847, .n 2848, .n 2849, .n 2850, .n 2851] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2852, .n 2853]))) ::
-  .atom (.add (.n 2854) (.n 2839) (.n 2852)) ::
-  .atom (.add (.n 2855) (.n 2852) (.n 2853)) ::
-  .atom (.mul (.n 2854) (.n 146) (.n 2855)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2856]))) ::
-  .atom (.const (.n 2857) (word 1080863940633690112 0 0)) ::
-  .atom (.add (.n 2858) (.n 1067) (.n 2857)) ::
-  .atom (.const (.n 2859) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 2860) (.n 612) (.n 2859)) ::
-  .atom (.add (.n 2861) (.n 2858) (.n 2860)) ::
-  .atom (.const (.n 2862) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2861, .n 2856, .n 12, .n 13, .n 14, .n 15, .n 16, .n 2862, .n 13, .n 14, .n 15, .n 16] [.n 2863, .n 2864, .n 2865, .n 2866, .n 2867, .n 2868, .n 2869, .n 2870, .n 2871, .n 2872, .n 2873, .n 2874, .n 2875] false false) ::
-  .atom (.const (.n 2876) (word 1224979128709545984 0 0)) ::
-  .atom (.add (.n 2877) (.n 1067) (.n 2876)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2878, .n 2879]))) ::
-  .atom (.add (.n 2880) (.n 2863) (.n 2878)) ::
-  .atom (.add (.n 2881) (.n 2878) (.n 2879)) ::
-  .atom (.mul (.n 2880) (.n 147) (.n 2881)) ::
-  .atom (.const (.n 2882) (word 274877906944 0 0)) ::
-  .atom (.add (.n 2883) (.n 2877) (.n 2882)) ::
-  .atom (.const (.n 2884) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2885) (.n 609) (.n 2884)) ::
-  .atom (.add (.n 2886) (.n 2883) (.n 2885)) ::
-  .atom (.const (.n 2887) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2886, .n 2878, .n 2879, .n 12, .n 13, .n 14, .n 15, .n 2887, .n 13, .n 14, .n 15, .n 16] [.n 2888, .n 2889, .n 2890, .n 2891, .n 2892, .n 2893, .n 2894, .n 2895, .n 2896, .n 2897, .n 2898, .n 2899, .n 2900] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2901, .n 2902]))) ::
-  .atom (.add (.n 2903) (.n 2888) (.n 2901)) ::
-  .atom (.add (.n 2904) (.n 2901) (.n 2902)) ::
-  .atom (.mul (.n 2903) (.n 148) (.n 2904)) ::
-  .atom (.const (.n 2905) (word 549755813888 0 0)) ::
-  .atom (.add (.n 2906) (.n 2877) (.n 2905)) ::
-  .atom (.const (.n 2907) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2908) (.n 606) (.n 2907)) ::
-  .atom (.add (.n 2909) (.n 2906) (.n 2908)) ::
-  .atom (.const (.n 2910) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2909, .n 2901, .n 2902, .n 12, .n 13, .n 14, .n 15, .n 2910, .n 13, .n 14, .n 15, .n 16] [.n 2911, .n 2912, .n 2913, .n 2914, .n 2915, .n 2916, .n 2917, .n 2918, .n 2919, .n 2920, .n 2921, .n 2922, .n 2923] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2924, .n 2925]))) ::
-  .atom (.add (.n 2926) (.n 2911) (.n 2924)) ::
-  .atom (.add (.n 2927) (.n 2924) (.n 2925)) ::
-  .atom (.mul (.n 2926) (.n 149) (.n 2927)) ::
-  .atom (.const (.n 2928) (word 824633720832 0 0)) ::
-  .atom (.add (.n 2929) (.n 2877) (.n 2928)) ::
-  .atom (.const (.n 2930) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2931) (.n 603) (.n 2930)) ::
-  .atom (.add (.n 2932) (.n 2929) (.n 2931)) ::
-  .atom (.const (.n 2933) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2932, .n 2924, .n 2925, .n 12, .n 13, .n 14, .n 15, .n 2933, .n 13, .n 14, .n 15, .n 16] [.n 2934, .n 2935, .n 2936, .n 2937, .n 2938, .n 2939, .n 2940, .n 2941, .n 2942, .n 2943, .n 2944, .n 2945, .n 2946] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2947, .n 2948]))) ::
-  .atom (.add (.n 2949) (.n 2934) (.n 2947)) ::
-  .atom (.add (.n 2950) (.n 2947) (.n 2948)) ::
-  .atom (.mul (.n 2949) (.n 150) (.n 2950)) ::
-  .atom (.const (.n 2951) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 2952) (.n 2877) (.n 2951)) ::
-  .atom (.const (.n 2953) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2954) (.n 600) (.n 2953)) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2539, .n 2540]))) ::
+  .atom (.add (.n 2541) (.n 2526) (.n 2539)) ::
+  .atom (.add (.n 2542) (.n 2539) (.n 2540)) ::
+  .atom (.mul (.n 2541) (.n 409) (.n 2542)) ::
+  .atom (.const (.n 2543) (word 0 576460752437641216 0)) ::
+  .atom (.add (.n 2544) (.n 1721) (.n 2543)) ::
+  .atom (.const (.n 2545) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2546) (.n 723) (.n 2545)) ::
+  .atom (.add (.n 2547) (.n 2544) (.n 2546)) ::
+  .atom (.copy (.n 2548) (.n 2540)) ::
+  .atom (.const (.n 2549) (word 1 0 0)) ::
+  .atom (.const (.n 2550) (word 0 0 0)) ::
+  .atom (.const (.n 2551) (word 0 0 0)) ::
+  .atom (.const (.n 2552) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2547, .n 2539, .n 2548, .n 2549, .n 2550, .n 2551, .n 2552, .n 354, .n 355, .n 356, .n 357] [.n 2553, .n 2554, .n 2555, .n 2556, .n 2557, .n 2558, .n 2559, .n 2560, .n 2561, .n 2562, .n 2563, .n 2564, .n 2565] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2566, .n 2567]))) ::
+  .atom (.add (.n 2568) (.n 2553) (.n 2566)) ::
+  .atom (.add (.n 2569) (.n 2566) (.n 2567)) ::
+  .atom (.mul (.n 2568) (.n 410) (.n 2569)) ::
+  .atom (.const (.n 2570) (word 0 288230376302706688 0)) ::
+  .atom (.add (.n 2571) (.n 1721) (.n 2570)) ::
+  .atom (.const (.n 2572) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2573) (.n 720) (.n 2572)) ::
+  .atom (.add (.n 2574) (.n 2571) (.n 2573)) ::
+  .atom (.copy (.n 2575) (.n 2567)) ::
+  .atom (.const (.n 2576) (word 1 0 0)) ::
+  .atom (.const (.n 2577) (word 0 0 0)) ::
+  .atom (.const (.n 2578) (word 0 0 0)) ::
+  .atom (.const (.n 2579) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2574, .n 2566, .n 2575, .n 2576, .n 2577, .n 2578, .n 2579, .n 354, .n 355, .n 356, .n 357] [.n 2580, .n 2581, .n 2582, .n 2583, .n 2584, .n 2585, .n 2586, .n 2587, .n 2588, .n 2589, .n 2590, .n 2591, .n 2592] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2593, .n 2594]))) ::
+  .atom (.add (.n 2595) (.n 2580) (.n 2593)) ::
+  .atom (.add (.n 2596) (.n 2593) (.n 2594)) ::
+  .atom (.mul (.n 2595) (.n 411) (.n 2596)) ::
+  .atom (.const (.n 2597) (word 0 144115188243628032 0)) ::
+  .atom (.add (.n 2598) (.n 1721) (.n 2597)) ::
+  .atom (.copy (.n 2599) (.n 2594)) ::
+  .atom (.const (.n 2600) (word 1 0 0)) ::
+  .atom (.const (.n 2601) (word 0 0 0)) ::
+  .atom (.const (.n 2602) (word 0 0 0)) ::
+  .atom (.const (.n 2603) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2598, .n 2593, .n 2599, .n 2600, .n 2601, .n 2602, .n 2603, .n 354, .n 355, .n 356, .n 357] [.n 2604, .n 2605, .n 2606, .n 2607, .n 2608, .n 2609, .n 2610, .n 2611, .n 2612, .n 2613, .n 2614, .n 2615, .n 2616] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2617]))) ::
+  .atom (.const (.n 2618) (word 0 3377699720527872 0)) ::
+  .atom (.add (.n 2619) (.n 1721) (.n 2618)) ::
+  .atom (.const (.n 2620) (word 256 0 0)) ::
+  .atom (.mul (.n 2621) (.n 751) (.n 2620)) ::
+  .atom (.add (.n 2622) (.n 775) (.n 2621)) ::
+  .atom (.const (.n 2623) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2624) (.n 2622) (.n 2623)) ::
+  .atom (.const (.n 2625) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2626) (.n 751) (.n 2625)) ::
+  .atom (.add (.n 2627) (.n 2624) (.n 2626)) ::
+  .atom (.add (.n 2628) (.n 2619) (.n 2627)) ::
+  .atom (.const (.n 2629) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2628, .n 2617, .n 353, .n 354, .n 355, .n 356, .n 2629, .n 354, .n 355, .n 356, .n 357] [.n 2630, .n 2631, .n 2632, .n 2633, .n 2634, .n 2635, .n 2636, .n 2637, .n 2638, .n 2639, .n 2640, .n 2641, .n 2642] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2643, .n 2644]))) ::
+  .atom (.add (.n 2645) (.n 2630) (.n 2643)) ::
+  .atom (.add (.n 2646) (.n 2643) (.n 2644)) ::
+  .atom (.mul (.n 2645) (.n 424) (.n 2646)) ::
+  .atom (.const (.n 2647) (word 0 1688849877041152 0)) ::
+  .atom (.add (.n 2648) (.n 1721) (.n 2647)) ::
+  .atom (.const (.n 2649) (word 256 0 0)) ::
+  .atom (.mul (.n 2650) (.n 748) (.n 2649)) ::
+  .atom (.add (.n 2651) (.n 772) (.n 2650)) ::
+  .atom (.const (.n 2652) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2653) (.n 2651) (.n 2652)) ::
+  .atom (.const (.n 2654) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2655) (.n 748) (.n 2654)) ::
+  .atom (.add (.n 2656) (.n 2653) (.n 2655)) ::
+  .atom (.add (.n 2657) (.n 2648) (.n 2656)) ::
+  .atom (.copy (.n 2658) (.n 2644)) ::
+  .atom (.const (.n 2659) (word 1 0 0)) ::
+  .atom (.const (.n 2660) (word 0 0 0)) ::
+  .atom (.const (.n 2661) (word 0 0 0)) ::
+  .atom (.const (.n 2662) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2657, .n 2643, .n 2658, .n 2659, .n 2660, .n 2661, .n 2662, .n 354, .n 355, .n 356, .n 357] [.n 2663, .n 2664, .n 2665, .n 2666, .n 2667, .n 2668, .n 2669, .n 2670, .n 2671, .n 2672, .n 2673, .n 2674, .n 2675] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2676, .n 2677]))) ::
+  .atom (.add (.n 2678) (.n 2663) (.n 2676)) ::
+  .atom (.add (.n 2679) (.n 2676) (.n 2677)) ::
+  .atom (.mul (.n 2678) (.n 425) (.n 2679)) ::
+  .atom (.const (.n 2680) (word 0 844424963686400 0)) ::
+  .atom (.add (.n 2681) (.n 1721) (.n 2680)) ::
+  .atom (.const (.n 2682) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2683) (.n 769) (.n 2682)) ::
+  .atom (.add (.n 2684) (.n 2681) (.n 2683)) ::
+  .atom (.copy (.n 2685) (.n 2677)) ::
+  .atom (.const (.n 2686) (word 1 0 0)) ::
+  .atom (.const (.n 2687) (word 0 0 0)) ::
+  .atom (.const (.n 2688) (word 0 0 0)) ::
+  .atom (.const (.n 2689) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2684, .n 2676, .n 2685, .n 2686, .n 2687, .n 2688, .n 2689, .n 354, .n 355, .n 356, .n 357] [.n 2690, .n 2691, .n 2692, .n 2693, .n 2694, .n 2695, .n 2696, .n 2697, .n 2698, .n 2699, .n 2700, .n 2701, .n 2702] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2703, .n 2704]))) ::
+  .atom (.add (.n 2705) (.n 2690) (.n 2703)) ::
+  .atom (.add (.n 2706) (.n 2703) (.n 2704)) ::
+  .atom (.mul (.n 2705) (.n 426) (.n 2706)) ::
+  .atom (.const (.n 2707) (word 0 9223653511881818112 0)) ::
+  .atom (.add (.n 2708) (.n 1721) (.n 2707)) ::
+  .atom (.const (.n 2709) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2710) (.n 766) (.n 2709)) ::
+  .atom (.add (.n 2711) (.n 2708) (.n 2710)) ::
+  .atom (.copy (.n 2712) (.n 2704)) ::
+  .atom (.const (.n 2713) (word 1 0 0)) ::
+  .atom (.const (.n 2714) (word 0 0 0)) ::
+  .atom (.const (.n 2715) (word 0 0 0)) ::
+  .atom (.const (.n 2716) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2711, .n 2703, .n 2712, .n 2713, .n 2714, .n 2715, .n 2716, .n 354, .n 355, .n 356, .n 357] [.n 2717, .n 2718, .n 2719, .n 2720, .n 2721, .n 2722, .n 2723, .n 2724, .n 2725, .n 2726, .n 2727, .n 2728, .n 2729] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2730, .n 2731]))) ::
+  .atom (.add (.n 2732) (.n 2717) (.n 2730)) ::
+  .atom (.add (.n 2733) (.n 2730) (.n 2731)) ::
+  .atom (.mul (.n 2732) (.n 427) (.n 2733)) ::
+  .atom (.const (.n 2734) (word 0 13835058055349272576 0)) ::
+  .atom (.add (.n 2735) (.n 1721) (.n 2734)) ::
+  .atom (.const (.n 2736) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2737) (.n 763) (.n 2736)) ::
+  .atom (.add (.n 2738) (.n 2735) (.n 2737)) ::
+  .atom (.copy (.n 2739) (.n 2731)) ::
+  .atom (.const (.n 2740) (word 1 0 0)) ::
+  .atom (.const (.n 2741) (word 0 0 0)) ::
+  .atom (.const (.n 2742) (word 0 0 0)) ::
+  .atom (.const (.n 2743) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2738, .n 2730, .n 2739, .n 2740, .n 2741, .n 2742, .n 2743, .n 354, .n 355, .n 356, .n 357] [.n 2744, .n 2745, .n 2746, .n 2747, .n 2748, .n 2749, .n 2750, .n 2751, .n 2752, .n 2753, .n 2754, .n 2755, .n 2756] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2757, .n 2758]))) ::
+  .atom (.add (.n 2759) (.n 2744) (.n 2757)) ::
+  .atom (.add (.n 2760) (.n 2757) (.n 2758)) ::
+  .atom (.mul (.n 2759) (.n 428) (.n 2760)) ::
+  .atom (.const (.n 2761) (word 0 6917529027724967936 0)) ::
+  .atom (.add (.n 2762) (.n 1721) (.n 2761)) ::
+  .atom (.const (.n 2763) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2764) (.n 760) (.n 2763)) ::
+  .atom (.add (.n 2765) (.n 2762) (.n 2764)) ::
+  .atom (.copy (.n 2766) (.n 2758)) ::
+  .atom (.const (.n 2767) (word 1 0 0)) ::
+  .atom (.const (.n 2768) (word 0 0 0)) ::
+  .atom (.const (.n 2769) (word 0 0 0)) ::
+  .atom (.const (.n 2770) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2765, .n 2757, .n 2766, .n 2767, .n 2768, .n 2769, .n 2770, .n 354, .n 355, .n 356, .n 357] [.n 2771, .n 2772, .n 2773, .n 2774, .n 2775, .n 2776, .n 2777, .n 2778, .n 2779, .n 2780, .n 2781, .n 2782, .n 2783] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2784, .n 2785]))) ::
+  .atom (.add (.n 2786) (.n 2771) (.n 2784)) ::
+  .atom (.add (.n 2787) (.n 2784) (.n 2785)) ::
+  .atom (.mul (.n 2786) (.n 429) (.n 2787)) ::
+  .atom (.const (.n 2788) (word 0 3458764513921204224 0)) ::
+  .atom (.add (.n 2789) (.n 1721) (.n 2788)) ::
+  .atom (.const (.n 2790) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2791) (.n 757) (.n 2790)) ::
+  .atom (.add (.n 2792) (.n 2789) (.n 2791)) ::
+  .atom (.copy (.n 2793) (.n 2785)) ::
+  .atom (.const (.n 2794) (word 1 0 0)) ::
+  .atom (.const (.n 2795) (word 0 0 0)) ::
+  .atom (.const (.n 2796) (word 0 0 0)) ::
+  .atom (.const (.n 2797) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2792, .n 2784, .n 2793, .n 2794, .n 2795, .n 2796, .n 2797, .n 354, .n 355, .n 356, .n 357] [.n 2798, .n 2799, .n 2800, .n 2801, .n 2802, .n 2803, .n 2804, .n 2805, .n 2806, .n 2807, .n 2808, .n 2809, .n 2810] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2811, .n 2812]))) ::
+  .atom (.add (.n 2813) (.n 2798) (.n 2811)) ::
+  .atom (.add (.n 2814) (.n 2811) (.n 2812)) ::
+  .atom (.mul (.n 2813) (.n 430) (.n 2814)) ::
+  .atom (.const (.n 2815) (word 0 1729382257027710976 0)) ::
+  .atom (.add (.n 2816) (.n 1721) (.n 2815)) ::
+  .atom (.const (.n 2817) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2818) (.n 754) (.n 2817)) ::
+  .atom (.add (.n 2819) (.n 2816) (.n 2818)) ::
+  .atom (.copy (.n 2820) (.n 2812)) ::
+  .atom (.const (.n 2821) (word 1 0 0)) ::
+  .atom (.const (.n 2822) (word 0 0 0)) ::
+  .atom (.const (.n 2823) (word 0 0 0)) ::
+  .atom (.const (.n 2824) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2819, .n 2811, .n 2820, .n 2821, .n 2822, .n 2823, .n 2824, .n 354, .n 355, .n 356, .n 357] [.n 2825, .n 2826, .n 2827, .n 2828, .n 2829, .n 2830, .n 2831, .n 2832, .n 2833, .n 2834, .n 2835, .n 2836, .n 2837] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2838, .n 2839]))) ::
+  .atom (.add (.n 2840) (.n 2825) (.n 2838)) ::
+  .atom (.add (.n 2841) (.n 2838) (.n 2839)) ::
+  .atom (.mul (.n 2840) (.n 431) (.n 2841)) ::
+  .atom (.const (.n 2842) (word 0 864691128589352960 0)) ::
+  .atom (.add (.n 2843) (.n 1721) (.n 2842)) ::
+  .atom (.const (.n 2844) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2845) (.n 751) (.n 2844)) ::
+  .atom (.add (.n 2846) (.n 2843) (.n 2845)) ::
+  .atom (.copy (.n 2847) (.n 2839)) ::
+  .atom (.const (.n 2848) (word 1 0 0)) ::
+  .atom (.const (.n 2849) (word 0 0 0)) ::
+  .atom (.const (.n 2850) (word 0 0 0)) ::
+  .atom (.const (.n 2851) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2846, .n 2838, .n 2847, .n 2848, .n 2849, .n 2850, .n 2851, .n 354, .n 355, .n 356, .n 357] [.n 2852, .n 2853, .n 2854, .n 2855, .n 2856, .n 2857, .n 2858, .n 2859, .n 2860, .n 2861, .n 2862, .n 2863, .n 2864] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2865, .n 2866]))) ::
+  .atom (.add (.n 2867) (.n 2852) (.n 2865)) ::
+  .atom (.add (.n 2868) (.n 2865) (.n 2866)) ::
+  .atom (.mul (.n 2867) (.n 416) (.n 2868)) ::
+  .atom (.const (.n 2869) (word 0 432345564378562560 0)) ::
+  .atom (.add (.n 2870) (.n 1721) (.n 2869)) ::
+  .atom (.const (.n 2871) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2872) (.n 748) (.n 2871)) ::
+  .atom (.add (.n 2873) (.n 2870) (.n 2872)) ::
+  .atom (.copy (.n 2874) (.n 2866)) ::
+  .atom (.const (.n 2875) (word 1 0 0)) ::
+  .atom (.const (.n 2876) (word 0 0 0)) ::
+  .atom (.const (.n 2877) (word 0 0 0)) ::
+  .atom (.const (.n 2878) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2873, .n 2865, .n 2874, .n 2875, .n 2876, .n 2877, .n 2878, .n 354, .n 355, .n 356, .n 357] [.n 2879, .n 2880, .n 2881, .n 2882, .n 2883, .n 2884, .n 2885, .n 2886, .n 2887, .n 2888, .n 2889, .n 2890, .n 2891] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2892, .n 2893]))) ::
+  .atom (.add (.n 2894) (.n 2879) (.n 2892)) ::
+  .atom (.add (.n 2895) (.n 2892) (.n 2893)) ::
+  .atom (.mul (.n 2894) (.n 417) (.n 2895)) ::
+  .atom (.const (.n 2896) (word 0 216172782281555968 0)) ::
+  .atom (.add (.n 2897) (.n 1721) (.n 2896)) ::
+  .atom (.copy (.n 2898) (.n 2893)) ::
+  .atom (.const (.n 2899) (word 1 0 0)) ::
+  .atom (.const (.n 2900) (word 0 0 0)) ::
+  .atom (.const (.n 2901) (word 0 0 0)) ::
+  .atom (.const (.n 2902) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2897, .n 2892, .n 2898, .n 2899, .n 2900, .n 2901, .n 2902, .n 354, .n 355, .n 356, .n 357] [.n 2903, .n 2904, .n 2905, .n 2906, .n 2907, .n 2908, .n 2909, .n 2910, .n 2911, .n 2912, .n 2913, .n 2914, .n 2915] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 2916]))) ::
+  .atom (.const (.n 2917) (word 0 4503599627370496 0)) ::
+  .atom (.add (.n 2918) (.n 1721) (.n 2917)) ::
+  .atom (.const (.n 2919) (word 256 0 0)) ::
+  .atom (.mul (.n 2920) (.n 779) (.n 2919)) ::
+  .atom (.add (.n 2921) (.n 803) (.n 2920)) ::
+  .atom (.const (.n 2922) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2923) (.n 2921) (.n 2922)) ::
+  .atom (.const (.n 2924) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2925) (.n 779) (.n 2924)) ::
+  .atom (.add (.n 2926) (.n 2923) (.n 2925)) ::
+  .atom (.add (.n 2927) (.n 2918) (.n 2926)) ::
+  .atom (.const (.n 2928) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2927, .n 2916, .n 353, .n 354, .n 355, .n 356, .n 2928, .n 354, .n 355, .n 356, .n 357] [.n 2929, .n 2930, .n 2931, .n 2932, .n 2933, .n 2934, .n 2935, .n 2936, .n 2937, .n 2938, .n 2939, .n 2940, .n 2941] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2942, .n 2943]))) ::
+  .atom (.add (.n 2944) (.n 2929) (.n 2942)) ::
+  .atom (.add (.n 2945) (.n 2942) (.n 2943)) ::
+  .atom (.mul (.n 2944) (.n 446) (.n 2945)) ::
+  .atom (.const (.n 2946) (word 0 2251799830462464 0)) ::
+  .atom (.add (.n 2947) (.n 1721) (.n 2946)) ::
+  .atom (.const (.n 2948) (word 256 0 0)) ::
+  .atom (.mul (.n 2949) (.n 776) (.n 2948)) ::
+  .atom (.add (.n 2950) (.n 800) (.n 2949)) ::
+  .atom (.const (.n 2951) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2952) (.n 2950) (.n 2951)) ::
+  .atom (.const (.n 2953) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 2954) (.n 776) (.n 2953)) ::
   .atom (.add (.n 2955) (.n 2952) (.n 2954)) ::
-  .atom (.const (.n 2956) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2955, .n 2947, .n 2948, .n 12, .n 13, .n 14, .n 15, .n 2956, .n 13, .n 14, .n 15, .n 16] [.n 2957, .n 2958, .n 2959, .n 2960, .n 2961, .n 2962, .n 2963, .n 2964, .n 2965, .n 2966, .n 2967, .n 2968, .n 2969] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2970, .n 2971]))) ::
-  .atom (.add (.n 2972) (.n 2957) (.n 2970)) ::
-  .atom (.add (.n 2973) (.n 2970) (.n 2971)) ::
-  .atom (.mul (.n 2972) (.n 151) (.n 2973)) ::
-  .atom (.const (.n 2974) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 2975) (.n 2877) (.n 2974)) ::
-  .atom (.const (.n 2976) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 2977) (.n 597) (.n 2976)) ::
-  .atom (.add (.n 2978) (.n 2975) (.n 2977)) ::
-  .atom (.const (.n 2979) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 2978, .n 2970, .n 2971, .n 12, .n 13, .n 14, .n 15, .n 2979, .n 13, .n 14, .n 15, .n 16] [.n 2980, .n 2981, .n 2982, .n 2983, .n 2984, .n 2985, .n 2986, .n 2987, .n 2988, .n 2989, .n 2990, .n 2991, .n 2992] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2993, .n 2994]))) ::
-  .atom (.add (.n 2995) (.n 2980) (.n 2993)) ::
-  .atom (.add (.n 2996) (.n 2993) (.n 2994)) ::
-  .atom (.mul (.n 2995) (.n 152) (.n 2996)) ::
-  .atom (.const (.n 2997) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 2998) (.n 2877) (.n 2997)) ::
-  .atom (.const (.n 2999) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3000) (.n 594) (.n 2999)) ::
-  .atom (.add (.n 3001) (.n 2998) (.n 3000)) ::
-  .atom (.const (.n 3002) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3001, .n 2993, .n 2994, .n 12, .n 13, .n 14, .n 15, .n 3002, .n 13, .n 14, .n 15, .n 16] [.n 3003, .n 3004, .n 3005, .n 3006, .n 3007, .n 3008, .n 3009, .n 3010, .n 3011, .n 3012, .n 3013, .n 3014, .n 3015] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3016, .n 3017]))) ::
-  .atom (.add (.n 3018) (.n 3003) (.n 3016)) ::
-  .atom (.add (.n 3019) (.n 3016) (.n 3017)) ::
-  .atom (.mul (.n 3018) (.n 153) (.n 3019)) ::
-  .atom (.const (.n 3020) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 3021) (.n 2877) (.n 3020)) ::
-  .atom (.const (.n 3022) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3023) (.n 591) (.n 3022)) ::
-  .atom (.add (.n 3024) (.n 3021) (.n 3023)) ::
-  .atom (.const (.n 3025) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3024, .n 3016, .n 3017, .n 12, .n 13, .n 14, .n 15, .n 3025, .n 13, .n 14, .n 15, .n 16] [.n 3026, .n 3027, .n 3028, .n 3029, .n 3030, .n 3031, .n 3032, .n 3033, .n 3034, .n 3035, .n 3036, .n 3037, .n 3038] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3039, .n 3040]))) ::
-  .atom (.add (.n 3041) (.n 3026) (.n 3039)) ::
-  .atom (.add (.n 3042) (.n 3039) (.n 3040)) ::
-  .atom (.mul (.n 3041) (.n 154) (.n 3042)) ::
-  .atom (.const (.n 3043) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 3044) (.n 2877) (.n 3043)) ::
-  .atom (.const (.n 3045) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3046) (.n 588) (.n 3045)) ::
-  .atom (.add (.n 3047) (.n 3044) (.n 3046)) ::
-  .atom (.const (.n 3048) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3047, .n 3039, .n 3040, .n 12, .n 13, .n 14, .n 15, .n 3048, .n 13, .n 14, .n 15, .n 16] [.n 3049, .n 3050, .n 3051, .n 3052, .n 3053, .n 3054, .n 3055, .n 3056, .n 3057, .n 3058, .n 3059, .n 3060, .n 3061] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3062, .n 3063]))) ::
-  .atom (.add (.n 3064) (.n 3049) (.n 3062)) ::
-  .atom (.add (.n 3065) (.n 3062) (.n 3063)) ::
-  .atom (.mul (.n 3064) (.n 155) (.n 3065)) ::
-  .atom (.const (.n 3066) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 3067) (.n 2877) (.n 3066)) ::
-  .atom (.const (.n 3068) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3069) (.n 585) (.n 3068)) ::
-  .atom (.add (.n 3070) (.n 3067) (.n 3069)) ::
-  .atom (.const (.n 3071) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3070, .n 3062, .n 3063, .n 12, .n 13, .n 14, .n 15, .n 3071, .n 13, .n 14, .n 15, .n 16] [.n 3072, .n 3073, .n 3074, .n 3075, .n 3076, .n 3077, .n 3078, .n 3079, .n 3080, .n 3081, .n 3082, .n 3083, .n 3084] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3085, .n 3086]))) ::
-  .atom (.add (.n 3087) (.n 3072) (.n 3085)) ::
-  .atom (.add (.n 3088) (.n 3085) (.n 3086)) ::
-  .atom (.mul (.n 3087) (.n 156) (.n 3088)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3089]))) ::
-  .atom (.const (.n 3090) (word 1080863944928657408 0 0)) ::
-  .atom (.add (.n 3091) (.n 1067) (.n 3090)) ::
-  .atom (.const (.n 3092) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 3093) (.n 640) (.n 3092)) ::
-  .atom (.add (.n 3094) (.n 3091) (.n 3093)) ::
-  .atom (.const (.n 3095) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3094, .n 3089, .n 12, .n 13, .n 14, .n 15, .n 16, .n 3095, .n 13, .n 14, .n 15, .n 16] [.n 3096, .n 3097, .n 3098, .n 3099, .n 3100, .n 3101, .n 3102, .n 3103, .n 3104, .n 3105, .n 3106, .n 3107, .n 3108] false false) ::
-  .atom (.const (.n 3109) (word 1224979133004513280 0 0)) ::
-  .atom (.add (.n 3110) (.n 1067) (.n 3109)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3111, .n 3112]))) ::
-  .atom (.add (.n 3113) (.n 3096) (.n 3111)) ::
-  .atom (.add (.n 3114) (.n 3111) (.n 3112)) ::
-  .atom (.mul (.n 3113) (.n 157) (.n 3114)) ::
-  .atom (.const (.n 3115) (word 274877906944 0 0)) ::
-  .atom (.add (.n 3116) (.n 3110) (.n 3115)) ::
-  .atom (.const (.n 3117) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3118) (.n 637) (.n 3117)) ::
-  .atom (.add (.n 3119) (.n 3116) (.n 3118)) ::
-  .atom (.const (.n 3120) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3119, .n 3111, .n 3112, .n 12, .n 13, .n 14, .n 15, .n 3120, .n 13, .n 14, .n 15, .n 16] [.n 3121, .n 3122, .n 3123, .n 3124, .n 3125, .n 3126, .n 3127, .n 3128, .n 3129, .n 3130, .n 3131, .n 3132, .n 3133] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3134, .n 3135]))) ::
-  .atom (.add (.n 3136) (.n 3121) (.n 3134)) ::
-  .atom (.add (.n 3137) (.n 3134) (.n 3135)) ::
-  .atom (.mul (.n 3136) (.n 158) (.n 3137)) ::
-  .atom (.const (.n 3138) (word 549755813888 0 0)) ::
-  .atom (.add (.n 3139) (.n 3110) (.n 3138)) ::
-  .atom (.const (.n 3140) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3141) (.n 634) (.n 3140)) ::
-  .atom (.add (.n 3142) (.n 3139) (.n 3141)) ::
-  .atom (.const (.n 3143) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3142, .n 3134, .n 3135, .n 12, .n 13, .n 14, .n 15, .n 3143, .n 13, .n 14, .n 15, .n 16] [.n 3144, .n 3145, .n 3146, .n 3147, .n 3148, .n 3149, .n 3150, .n 3151, .n 3152, .n 3153, .n 3154, .n 3155, .n 3156] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3157, .n 3158]))) ::
-  .atom (.add (.n 3159) (.n 3144) (.n 3157)) ::
-  .atom (.add (.n 3160) (.n 3157) (.n 3158)) ::
-  .atom (.mul (.n 3159) (.n 159) (.n 3160)) ::
-  .atom (.const (.n 3161) (word 824633720832 0 0)) ::
-  .atom (.add (.n 3162) (.n 3110) (.n 3161)) ::
-  .atom (.const (.n 3163) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3164) (.n 631) (.n 3163)) ::
-  .atom (.add (.n 3165) (.n 3162) (.n 3164)) ::
-  .atom (.const (.n 3166) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3165, .n 3157, .n 3158, .n 12, .n 13, .n 14, .n 15, .n 3166, .n 13, .n 14, .n 15, .n 16] [.n 3167, .n 3168, .n 3169, .n 3170, .n 3171, .n 3172, .n 3173, .n 3174, .n 3175, .n 3176, .n 3177, .n 3178, .n 3179] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3180, .n 3181]))) ::
-  .atom (.add (.n 3182) (.n 3167) (.n 3180)) ::
-  .atom (.add (.n 3183) (.n 3180) (.n 3181)) ::
-  .atom (.mul (.n 3182) (.n 160) (.n 3183)) ::
-  .atom (.const (.n 3184) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 3185) (.n 3110) (.n 3184)) ::
-  .atom (.const (.n 3186) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3187) (.n 628) (.n 3186)) ::
-  .atom (.add (.n 3188) (.n 3185) (.n 3187)) ::
-  .atom (.const (.n 3189) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3188, .n 3180, .n 3181, .n 12, .n 13, .n 14, .n 15, .n 3189, .n 13, .n 14, .n 15, .n 16] [.n 3190, .n 3191, .n 3192, .n 3193, .n 3194, .n 3195, .n 3196, .n 3197, .n 3198, .n 3199, .n 3200, .n 3201, .n 3202] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3203, .n 3204]))) ::
-  .atom (.add (.n 3205) (.n 3190) (.n 3203)) ::
-  .atom (.add (.n 3206) (.n 3203) (.n 3204)) ::
-  .atom (.mul (.n 3205) (.n 161) (.n 3206)) ::
-  .atom (.const (.n 3207) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 3208) (.n 3110) (.n 3207)) ::
-  .atom (.const (.n 3209) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3210) (.n 625) (.n 3209)) ::
-  .atom (.add (.n 3211) (.n 3208) (.n 3210)) ::
-  .atom (.const (.n 3212) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3211, .n 3203, .n 3204, .n 12, .n 13, .n 14, .n 15, .n 3212, .n 13, .n 14, .n 15, .n 16] [.n 3213, .n 3214, .n 3215, .n 3216, .n 3217, .n 3218, .n 3219, .n 3220, .n 3221, .n 3222, .n 3223, .n 3224, .n 3225] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3226, .n 3227]))) ::
-  .atom (.add (.n 3228) (.n 3213) (.n 3226)) ::
-  .atom (.add (.n 3229) (.n 3226) (.n 3227)) ::
-  .atom (.mul (.n 3228) (.n 162) (.n 3229)) ::
-  .atom (.const (.n 3230) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 3231) (.n 3110) (.n 3230)) ::
-  .atom (.const (.n 3232) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3233) (.n 622) (.n 3232)) ::
-  .atom (.add (.n 3234) (.n 3231) (.n 3233)) ::
-  .atom (.const (.n 3235) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3234, .n 3226, .n 3227, .n 12, .n 13, .n 14, .n 15, .n 3235, .n 13, .n 14, .n 15, .n 16] [.n 3236, .n 3237, .n 3238, .n 3239, .n 3240, .n 3241, .n 3242, .n 3243, .n 3244, .n 3245, .n 3246, .n 3247, .n 3248] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3249, .n 3250]))) ::
-  .atom (.add (.n 3251) (.n 3236) (.n 3249)) ::
-  .atom (.add (.n 3252) (.n 3249) (.n 3250)) ::
-  .atom (.mul (.n 3251) (.n 163) (.n 3252)) ::
-  .atom (.const (.n 3253) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 3254) (.n 3110) (.n 3253)) ::
-  .atom (.const (.n 3255) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3256) (.n 619) (.n 3255)) ::
-  .atom (.add (.n 3257) (.n 3254) (.n 3256)) ::
-  .atom (.const (.n 3258) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3257, .n 3249, .n 3250, .n 12, .n 13, .n 14, .n 15, .n 3258, .n 13, .n 14, .n 15, .n 16] [.n 3259, .n 3260, .n 3261, .n 3262, .n 3263, .n 3264, .n 3265, .n 3266, .n 3267, .n 3268, .n 3269, .n 3270, .n 3271] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3272, .n 3273]))) ::
-  .atom (.add (.n 3274) (.n 3259) (.n 3272)) ::
-  .atom (.add (.n 3275) (.n 3272) (.n 3273)) ::
-  .atom (.mul (.n 3274) (.n 164) (.n 3275)) ::
-  .atom (.const (.n 3276) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 3277) (.n 3110) (.n 3276)) ::
-  .atom (.const (.n 3278) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3279) (.n 616) (.n 3278)) ::
-  .atom (.add (.n 3280) (.n 3277) (.n 3279)) ::
-  .atom (.const (.n 3281) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3280, .n 3272, .n 3273, .n 12, .n 13, .n 14, .n 15, .n 3281, .n 13, .n 14, .n 15, .n 16] [.n 3282, .n 3283, .n 3284, .n 3285, .n 3286, .n 3287, .n 3288, .n 3289, .n 3290, .n 3291, .n 3292, .n 3293, .n 3294] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3295, .n 3296]))) ::
-  .atom (.add (.n 3297) (.n 3282) (.n 3295)) ::
-  .atom (.add (.n 3298) (.n 3295) (.n 3296)) ::
-  .atom (.mul (.n 3297) (.n 165) (.n 3298)) ::
-  .atom (.const (.n 3299) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 3300) (.n 3110) (.n 3299)) ::
-  .atom (.const (.n 3301) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3302) (.n 613) (.n 3301)) ::
-  .atom (.add (.n 3303) (.n 3300) (.n 3302)) ::
-  .atom (.const (.n 3304) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3303, .n 3295, .n 3296, .n 12, .n 13, .n 14, .n 15, .n 3304, .n 13, .n 14, .n 15, .n 16] [.n 3305, .n 3306, .n 3307, .n 3308, .n 3309, .n 3310, .n 3311, .n 3312, .n 3313, .n 3314, .n 3315, .n 3316, .n 3317] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3318, .n 3319]))) ::
-  .atom (.add (.n 3320) (.n 3305) (.n 3318)) ::
-  .atom (.add (.n 3321) (.n 3318) (.n 3319)) ::
-  .atom (.mul (.n 3320) (.n 166) (.n 3321)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3322]))) ::
-  .atom (.const (.n 3323) (word 1080863949223624704 0 0)) ::
-  .atom (.add (.n 3324) (.n 1067) (.n 3323)) ::
-  .atom (.const (.n 3325) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 3326) (.n 668) (.n 3325)) ::
-  .atom (.add (.n 3327) (.n 3324) (.n 3326)) ::
-  .atom (.const (.n 3328) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3327, .n 3322, .n 12, .n 13, .n 14, .n 15, .n 16, .n 3328, .n 13, .n 14, .n 15, .n 16] [.n 3329, .n 3330, .n 3331, .n 3332, .n 3333, .n 3334, .n 3335, .n 3336, .n 3337, .n 3338, .n 3339, .n 3340, .n 3341] false false) ::
-  .atom (.const (.n 3342) (word 1224979137299480576 0 0)) ::
-  .atom (.add (.n 3343) (.n 1067) (.n 3342)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3344, .n 3345]))) ::
-  .atom (.add (.n 3346) (.n 3329) (.n 3344)) ::
-  .atom (.add (.n 3347) (.n 3344) (.n 3345)) ::
-  .atom (.mul (.n 3346) (.n 167) (.n 3347)) ::
-  .atom (.const (.n 3348) (word 274877906944 0 0)) ::
-  .atom (.add (.n 3349) (.n 3343) (.n 3348)) ::
-  .atom (.const (.n 3350) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3351) (.n 665) (.n 3350)) ::
-  .atom (.add (.n 3352) (.n 3349) (.n 3351)) ::
-  .atom (.const (.n 3353) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3352, .n 3344, .n 3345, .n 12, .n 13, .n 14, .n 15, .n 3353, .n 13, .n 14, .n 15, .n 16] [.n 3354, .n 3355, .n 3356, .n 3357, .n 3358, .n 3359, .n 3360, .n 3361, .n 3362, .n 3363, .n 3364, .n 3365, .n 3366] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3367, .n 3368]))) ::
-  .atom (.add (.n 3369) (.n 3354) (.n 3367)) ::
-  .atom (.add (.n 3370) (.n 3367) (.n 3368)) ::
-  .atom (.mul (.n 3369) (.n 168) (.n 3370)) ::
-  .atom (.const (.n 3371) (word 549755813888 0 0)) ::
-  .atom (.add (.n 3372) (.n 3343) (.n 3371)) ::
-  .atom (.const (.n 3373) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3374) (.n 662) (.n 3373)) ::
-  .atom (.add (.n 3375) (.n 3372) (.n 3374)) ::
-  .atom (.const (.n 3376) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3375, .n 3367, .n 3368, .n 12, .n 13, .n 14, .n 15, .n 3376, .n 13, .n 14, .n 15, .n 16] [.n 3377, .n 3378, .n 3379, .n 3380, .n 3381, .n 3382, .n 3383, .n 3384, .n 3385, .n 3386, .n 3387, .n 3388, .n 3389] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3390, .n 3391]))) ::
-  .atom (.add (.n 3392) (.n 3377) (.n 3390)) ::
-  .atom (.add (.n 3393) (.n 3390) (.n 3391)) ::
-  .atom (.mul (.n 3392) (.n 169) (.n 3393)) ::
-  .atom (.const (.n 3394) (word 824633720832 0 0)) ::
-  .atom (.add (.n 3395) (.n 3343) (.n 3394)) ::
-  .atom (.const (.n 3396) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3397) (.n 659) (.n 3396)) ::
-  .atom (.add (.n 3398) (.n 3395) (.n 3397)) ::
-  .atom (.const (.n 3399) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3398, .n 3390, .n 3391, .n 12, .n 13, .n 14, .n 15, .n 3399, .n 13, .n 14, .n 15, .n 16] [.n 3400, .n 3401, .n 3402, .n 3403, .n 3404, .n 3405, .n 3406, .n 3407, .n 3408, .n 3409, .n 3410, .n 3411, .n 3412] false false) ::
+  .atom (.add (.n 2956) (.n 2947) (.n 2955)) ::
+  .atom (.copy (.n 2957) (.n 2943)) ::
+  .atom (.const (.n 2958) (word 1 0 0)) ::
+  .atom (.const (.n 2959) (word 0 0 0)) ::
+  .atom (.const (.n 2960) (word 0 0 0)) ::
+  .atom (.const (.n 2961) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2956, .n 2942, .n 2957, .n 2958, .n 2959, .n 2960, .n 2961, .n 354, .n 355, .n 356, .n 357] [.n 2962, .n 2963, .n 2964, .n 2965, .n 2966, .n 2967, .n 2968, .n 2969, .n 2970, .n 2971, .n 2972, .n 2973, .n 2974] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 2975, .n 2976]))) ::
+  .atom (.add (.n 2977) (.n 2962) (.n 2975)) ::
+  .atom (.add (.n 2978) (.n 2975) (.n 2976)) ::
+  .atom (.mul (.n 2977) (.n 447) (.n 2978)) ::
+  .atom (.const (.n 2979) (word 0 1125899940397056 0)) ::
+  .atom (.add (.n 2980) (.n 1721) (.n 2979)) ::
+  .atom (.const (.n 2981) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 2982) (.n 797) (.n 2981)) ::
+  .atom (.add (.n 2983) (.n 2980) (.n 2982)) ::
+  .atom (.copy (.n 2984) (.n 2976)) ::
+  .atom (.const (.n 2985) (word 1 0 0)) ::
+  .atom (.const (.n 2986) (word 0 0 0)) ::
+  .atom (.const (.n 2987) (word 0 0 0)) ::
+  .atom (.const (.n 2988) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 2983, .n 2975, .n 2984, .n 2985, .n 2986, .n 2987, .n 2988, .n 354, .n 355, .n 356, .n 357] [.n 2989, .n 2990, .n 2991, .n 2992, .n 2993, .n 2994, .n 2995, .n 2996, .n 2997, .n 2998, .n 2999, .n 3000, .n 3001] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3002, .n 3003]))) ::
+  .atom (.add (.n 3004) (.n 2989) (.n 3002)) ::
+  .atom (.add (.n 3005) (.n 3002) (.n 3003)) ::
+  .atom (.mul (.n 3004) (.n 432) (.n 3005)) ::
+  .atom (.const (.n 3006) (word 0 562950003752960 0)) ::
+  .atom (.add (.n 3007) (.n 1721) (.n 3006)) ::
+  .atom (.const (.n 3008) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3009) (.n 794) (.n 3008)) ::
+  .atom (.add (.n 3010) (.n 3007) (.n 3009)) ::
+  .atom (.copy (.n 3011) (.n 3003)) ::
+  .atom (.const (.n 3012) (word 1 0 0)) ::
+  .atom (.const (.n 3013) (word 0 0 0)) ::
+  .atom (.const (.n 3014) (word 0 0 0)) ::
+  .atom (.const (.n 3015) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3010, .n 3002, .n 3011, .n 3012, .n 3013, .n 3014, .n 3015, .n 354, .n 355, .n 356, .n 357] [.n 3016, .n 3017, .n 3018, .n 3019, .n 3020, .n 3021, .n 3022, .n 3023, .n 3024, .n 3025, .n 3026, .n 3027, .n 3028] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3029, .n 3030]))) ::
+  .atom (.add (.n 3031) (.n 3016) (.n 3029)) ::
+  .atom (.add (.n 3032) (.n 3029) (.n 3030)) ::
+  .atom (.mul (.n 3031) (.n 433) (.n 3032)) ::
+  .atom (.const (.n 3033) (word 0 281475043819520 0)) ::
+  .atom (.add (.n 3034) (.n 1721) (.n 3033)) ::
+  .atom (.const (.n 3035) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3036) (.n 791) (.n 3035)) ::
+  .atom (.add (.n 3037) (.n 3034) (.n 3036)) ::
+  .atom (.copy (.n 3038) (.n 3030)) ::
+  .atom (.const (.n 3039) (word 1 0 0)) ::
+  .atom (.const (.n 3040) (word 0 0 0)) ::
+  .atom (.const (.n 3041) (word 0 0 0)) ::
+  .atom (.const (.n 3042) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3037, .n 3029, .n 3038, .n 3039, .n 3040, .n 3041, .n 3042, .n 354, .n 355, .n 356, .n 357] [.n 3043, .n 3044, .n 3045, .n 3046, .n 3047, .n 3048, .n 3049, .n 3050, .n 3051, .n 3052, .n 3053, .n 3054, .n 3055] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3056, .n 3057]))) ::
+  .atom (.add (.n 3058) (.n 3043) (.n 3056)) ::
+  .atom (.add (.n 3059) (.n 3056) (.n 3057)) ::
+  .atom (.mul (.n 3058) (.n 434) (.n 3059)) ::
+  .atom (.const (.n 3060) (word 0 9223372036938661888 0)) ::
+  .atom (.add (.n 3061) (.n 1721) (.n 3060)) ::
+  .atom (.const (.n 3062) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3063) (.n 788) (.n 3062)) ::
+  .atom (.add (.n 3064) (.n 3061) (.n 3063)) ::
+  .atom (.copy (.n 3065) (.n 3057)) ::
+  .atom (.const (.n 3066) (word 1 0 0)) ::
+  .atom (.const (.n 3067) (word 0 0 0)) ::
+  .atom (.const (.n 3068) (word 0 0 0)) ::
+  .atom (.const (.n 3069) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3064, .n 3056, .n 3065, .n 3066, .n 3067, .n 3068, .n 3069, .n 354, .n 355, .n 356, .n 357] [.n 3070, .n 3071, .n 3072, .n 3073, .n 3074, .n 3075, .n 3076, .n 3077, .n 3078, .n 3079, .n 3080, .n 3081, .n 3082] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3083, .n 3084]))) ::
+  .atom (.add (.n 3085) (.n 3070) (.n 3083)) ::
+  .atom (.add (.n 3086) (.n 3083) (.n 3084)) ::
+  .atom (.mul (.n 3085) (.n 435) (.n 3086)) ::
+  .atom (.const (.n 3087) (word 0 4611686018528051200 0)) ::
+  .atom (.add (.n 3088) (.n 1721) (.n 3087)) ::
+  .atom (.const (.n 3089) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3090) (.n 785) (.n 3089)) ::
+  .atom (.add (.n 3091) (.n 3088) (.n 3090)) ::
+  .atom (.copy (.n 3092) (.n 3084)) ::
+  .atom (.const (.n 3093) (word 1 0 0)) ::
+  .atom (.const (.n 3094) (word 0 0 0)) ::
+  .atom (.const (.n 3095) (word 0 0 0)) ::
+  .atom (.const (.n 3096) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3091, .n 3083, .n 3092, .n 3093, .n 3094, .n 3095, .n 3096, .n 354, .n 355, .n 356, .n 357] [.n 3097, .n 3098, .n 3099, .n 3100, .n 3101, .n 3102, .n 3103, .n 3104, .n 3105, .n 3106, .n 3107, .n 3108, .n 3109] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3110, .n 3111]))) ::
+  .atom (.add (.n 3112) (.n 3097) (.n 3110)) ::
+  .atom (.add (.n 3113) (.n 3110) (.n 3111)) ::
+  .atom (.mul (.n 3112) (.n 436) (.n 3113)) ::
+  .atom (.const (.n 3114) (word 0 2305843009331134464 0)) ::
+  .atom (.add (.n 3115) (.n 1721) (.n 3114)) ::
+  .atom (.const (.n 3116) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3117) (.n 782) (.n 3116)) ::
+  .atom (.add (.n 3118) (.n 3115) (.n 3117)) ::
+  .atom (.copy (.n 3119) (.n 3111)) ::
+  .atom (.const (.n 3120) (word 1 0 0)) ::
+  .atom (.const (.n 3121) (word 0 0 0)) ::
+  .atom (.const (.n 3122) (word 0 0 0)) ::
+  .atom (.const (.n 3123) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3118, .n 3110, .n 3119, .n 3120, .n 3121, .n 3122, .n 3123, .n 354, .n 355, .n 356, .n 357] [.n 3124, .n 3125, .n 3126, .n 3127, .n 3128, .n 3129, .n 3130, .n 3131, .n 3132, .n 3133, .n 3134, .n 3135, .n 3136] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3137, .n 3138]))) ::
+  .atom (.add (.n 3139) (.n 3124) (.n 3137)) ::
+  .atom (.add (.n 3140) (.n 3137) (.n 3138)) ::
+  .atom (.mul (.n 3139) (.n 437) (.n 3140)) ::
+  .atom (.const (.n 3141) (word 0 1152921504741064704 0)) ::
+  .atom (.add (.n 3142) (.n 1721) (.n 3141)) ::
+  .atom (.const (.n 3143) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3144) (.n 779) (.n 3143)) ::
+  .atom (.add (.n 3145) (.n 3142) (.n 3144)) ::
+  .atom (.copy (.n 3146) (.n 3138)) ::
+  .atom (.const (.n 3147) (word 1 0 0)) ::
+  .atom (.const (.n 3148) (word 0 0 0)) ::
+  .atom (.const (.n 3149) (word 0 0 0)) ::
+  .atom (.const (.n 3150) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3145, .n 3137, .n 3146, .n 3147, .n 3148, .n 3149, .n 3150, .n 354, .n 355, .n 356, .n 357] [.n 3151, .n 3152, .n 3153, .n 3154, .n 3155, .n 3156, .n 3157, .n 3158, .n 3159, .n 3160, .n 3161, .n 3162, .n 3163] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3164, .n 3165]))) ::
+  .atom (.add (.n 3166) (.n 3151) (.n 3164)) ::
+  .atom (.add (.n 3167) (.n 3164) (.n 3165)) ::
+  .atom (.mul (.n 3166) (.n 438) (.n 3167)) ::
+  .atom (.const (.n 3168) (word 0 576460752454418432 0)) ::
+  .atom (.add (.n 3169) (.n 1721) (.n 3168)) ::
+  .atom (.const (.n 3170) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3171) (.n 776) (.n 3170)) ::
+  .atom (.add (.n 3172) (.n 3169) (.n 3171)) ::
+  .atom (.copy (.n 3173) (.n 3165)) ::
+  .atom (.const (.n 3174) (word 1 0 0)) ::
+  .atom (.const (.n 3175) (word 0 0 0)) ::
+  .atom (.const (.n 3176) (word 0 0 0)) ::
+  .atom (.const (.n 3177) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3172, .n 3164, .n 3173, .n 3174, .n 3175, .n 3176, .n 3177, .n 354, .n 355, .n 356, .n 357] [.n 3178, .n 3179, .n 3180, .n 3181, .n 3182, .n 3183, .n 3184, .n 3185, .n 3186, .n 3187, .n 3188, .n 3189, .n 3190] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3191, .n 3192]))) ::
+  .atom (.add (.n 3193) (.n 3178) (.n 3191)) ::
+  .atom (.add (.n 3194) (.n 3191) (.n 3192)) ::
+  .atom (.mul (.n 3193) (.n 439) (.n 3194)) ::
+  .atom (.const (.n 3195) (word 0 288230376319483904 0)) ::
+  .atom (.add (.n 3196) (.n 1721) (.n 3195)) ::
+  .atom (.copy (.n 3197) (.n 3192)) ::
+  .atom (.const (.n 3198) (word 1 0 0)) ::
+  .atom (.const (.n 3199) (word 0 0 0)) ::
+  .atom (.const (.n 3200) (word 0 0 0)) ::
+  .atom (.const (.n 3201) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3196, .n 3191, .n 3197, .n 3198, .n 3199, .n 3200, .n 3201, .n 354, .n 355, .n 356, .n 357] [.n 3202, .n 3203, .n 3204, .n 3205, .n 3206, .n 3207, .n 3208, .n 3209, .n 3210, .n 3211, .n 3212, .n 3213, .n 3214] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3215]))) ::
+  .atom (.const (.n 3216) (word 0 5629499534213120 0)) ::
+  .atom (.add (.n 3217) (.n 1721) (.n 3216)) ::
+  .atom (.const (.n 3218) (word 256 0 0)) ::
+  .atom (.mul (.n 3219) (.n 807) (.n 3218)) ::
+  .atom (.add (.n 3220) (.n 831) (.n 3219)) ::
+  .atom (.const (.n 3221) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3222) (.n 3220) (.n 3221)) ::
+  .atom (.const (.n 3223) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3224) (.n 807) (.n 3223)) ::
+  .atom (.add (.n 3225) (.n 3222) (.n 3224)) ::
+  .atom (.add (.n 3226) (.n 3217) (.n 3225)) ::
+  .atom (.const (.n 3227) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3226, .n 3215, .n 353, .n 354, .n 355, .n 356, .n 3227, .n 354, .n 355, .n 356, .n 357] [.n 3228, .n 3229, .n 3230, .n 3231, .n 3232, .n 3233, .n 3234, .n 3235, .n 3236, .n 3237, .n 3238, .n 3239, .n 3240] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3241, .n 3242]))) ::
+  .atom (.add (.n 3243) (.n 3228) (.n 3241)) ::
+  .atom (.add (.n 3244) (.n 3241) (.n 3242)) ::
+  .atom (.mul (.n 3243) (.n 452) (.n 3244)) ::
+  .atom (.const (.n 3245) (word 0 2814749783883776 0)) ::
+  .atom (.add (.n 3246) (.n 1721) (.n 3245)) ::
+  .atom (.const (.n 3247) (word 256 0 0)) ::
+  .atom (.mul (.n 3248) (.n 804) (.n 3247)) ::
+  .atom (.add (.n 3249) (.n 828) (.n 3248)) ::
+  .atom (.const (.n 3250) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3251) (.n 3249) (.n 3250)) ::
+  .atom (.const (.n 3252) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3253) (.n 804) (.n 3252)) ::
+  .atom (.add (.n 3254) (.n 3251) (.n 3253)) ::
+  .atom (.add (.n 3255) (.n 3246) (.n 3254)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 2245 to 2610 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 2454 to 2854 of the body. -/
 noncomputable def c5 : List Core.Stmt := (
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3413, .n 3414]))) ::
-  .atom (.add (.n 3415) (.n 3400) (.n 3413)) ::
-  .atom (.add (.n 3416) (.n 3413) (.n 3414)) ::
-  .atom (.mul (.n 3415) (.n 170) (.n 3416)) ::
-  .atom (.const (.n 3417) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 3418) (.n 3343) (.n 3417)) ::
-  .atom (.const (.n 3419) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3420) (.n 656) (.n 3419)) ::
-  .atom (.add (.n 3421) (.n 3418) (.n 3420)) ::
+  .atom (.copy (.n 3256) (.n 3242)) ::
+  .atom (.const (.n 3257) (word 1 0 0)) ::
+  .atom (.const (.n 3258) (word 0 0 0)) ::
+  .atom (.const (.n 3259) (word 0 0 0)) ::
+  .atom (.const (.n 3260) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3255, .n 3241, .n 3256, .n 3257, .n 3258, .n 3259, .n 3260, .n 354, .n 355, .n 356, .n 357] [.n 3261, .n 3262, .n 3263, .n 3264, .n 3265, .n 3266, .n 3267, .n 3268, .n 3269, .n 3270, .n 3271, .n 3272, .n 3273] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3274, .n 3275]))) ::
+  .atom (.add (.n 3276) (.n 3261) (.n 3274)) ::
+  .atom (.add (.n 3277) (.n 3274) (.n 3275)) ::
+  .atom (.mul (.n 3276) (.n 453) (.n 3277)) ::
+  .atom (.const (.n 3278) (word 0 1407374917107712 0)) ::
+  .atom (.add (.n 3279) (.n 1721) (.n 3278)) ::
+  .atom (.const (.n 3280) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3281) (.n 825) (.n 3280)) ::
+  .atom (.add (.n 3282) (.n 3279) (.n 3281)) ::
+  .atom (.copy (.n 3283) (.n 3275)) ::
+  .atom (.const (.n 3284) (word 1 0 0)) ::
+  .atom (.const (.n 3285) (word 0 0 0)) ::
+  .atom (.const (.n 3286) (word 0 0 0)) ::
+  .atom (.const (.n 3287) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3282, .n 3274, .n 3283, .n 3284, .n 3285, .n 3286, .n 3287, .n 354, .n 355, .n 356, .n 357] [.n 3288, .n 3289, .n 3290, .n 3291, .n 3292, .n 3293, .n 3294, .n 3295, .n 3296, .n 3297, .n 3298, .n 3299, .n 3300] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3301, .n 3302]))) ::
+  .atom (.add (.n 3303) (.n 3288) (.n 3301)) ::
+  .atom (.add (.n 3304) (.n 3301) (.n 3302)) ::
+  .atom (.mul (.n 3303) (.n 454) (.n 3304)) ::
+  .atom (.const (.n 3305) (word 0 9223934986858528768 0)) ::
+  .atom (.add (.n 3306) (.n 1721) (.n 3305)) ::
+  .atom (.const (.n 3307) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3308) (.n 822) (.n 3307)) ::
+  .atom (.add (.n 3309) (.n 3306) (.n 3308)) ::
+  .atom (.copy (.n 3310) (.n 3302)) ::
+  .atom (.const (.n 3311) (word 1 0 0)) ::
+  .atom (.const (.n 3312) (word 0 0 0)) ::
+  .atom (.const (.n 3313) (word 0 0 0)) ::
+  .atom (.const (.n 3314) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3309, .n 3301, .n 3310, .n 3311, .n 3312, .n 3313, .n 3314, .n 354, .n 355, .n 356, .n 357] [.n 3315, .n 3316, .n 3317, .n 3318, .n 3319, .n 3320, .n 3321, .n 3322, .n 3323, .n 3324, .n 3325, .n 3326, .n 3327] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3328, .n 3329]))) ::
+  .atom (.add (.n 3330) (.n 3315) (.n 3328)) ::
+  .atom (.add (.n 3331) (.n 3328) (.n 3329)) ::
+  .atom (.mul (.n 3330) (.n 455) (.n 3331)) ::
+  .atom (.const (.n 3332) (word 0 4611967493471207424 0)) ::
+  .atom (.add (.n 3333) (.n 1721) (.n 3332)) ::
+  .atom (.const (.n 3334) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3335) (.n 819) (.n 3334)) ::
+  .atom (.add (.n 3336) (.n 3333) (.n 3335)) ::
+  .atom (.copy (.n 3337) (.n 3329)) ::
+  .atom (.const (.n 3338) (word 1 0 0)) ::
+  .atom (.const (.n 3339) (word 0 0 0)) ::
+  .atom (.const (.n 3340) (word 0 0 0)) ::
+  .atom (.const (.n 3341) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3336, .n 3328, .n 3337, .n 3338, .n 3339, .n 3340, .n 3341, .n 354, .n 355, .n 356, .n 357] [.n 3342, .n 3343, .n 3344, .n 3345, .n 3346, .n 3347, .n 3348, .n 3349, .n 3350, .n 3351, .n 3352, .n 3353, .n 3354] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3355, .n 3356]))) ::
+  .atom (.add (.n 3357) (.n 3342) (.n 3355)) ::
+  .atom (.add (.n 3358) (.n 3355) (.n 3356)) ::
+  .atom (.mul (.n 3357) (.n 440) (.n 3358)) ::
+  .atom (.const (.n 3359) (word 0 11529215046152355840 0)) ::
+  .atom (.add (.n 3360) (.n 1721) (.n 3359)) ::
+  .atom (.const (.n 3361) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3362) (.n 816) (.n 3361)) ::
+  .atom (.add (.n 3363) (.n 3360) (.n 3362)) ::
+  .atom (.copy (.n 3364) (.n 3356)) ::
+  .atom (.const (.n 3365) (word 1 0 0)) ::
+  .atom (.const (.n 3366) (word 0 0 0)) ::
+  .atom (.const (.n 3367) (word 0 0 0)) ::
+  .atom (.const (.n 3368) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3363, .n 3355, .n 3364, .n 3365, .n 3366, .n 3367, .n 3368, .n 354, .n 355, .n 356, .n 357] [.n 3369, .n 3370, .n 3371, .n 3372, .n 3373, .n 3374, .n 3375, .n 3376, .n 3377, .n 3378, .n 3379, .n 3380, .n 3381] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3382, .n 3383]))) ::
+  .atom (.add (.n 3384) (.n 3369) (.n 3382)) ::
+  .atom (.add (.n 3385) (.n 3382) (.n 3383)) ::
+  .atom (.mul (.n 3384) (.n 441) (.n 3385)) ::
+  .atom (.const (.n 3386) (word 0 5764607523134898176 0)) ::
+  .atom (.add (.n 3387) (.n 1721) (.n 3386)) ::
+  .atom (.const (.n 3388) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3389) (.n 813) (.n 3388)) ::
+  .atom (.add (.n 3390) (.n 3387) (.n 3389)) ::
+  .atom (.copy (.n 3391) (.n 3383)) ::
+  .atom (.const (.n 3392) (word 1 0 0)) ::
+  .atom (.const (.n 3393) (word 0 0 0)) ::
+  .atom (.const (.n 3394) (word 0 0 0)) ::
+  .atom (.const (.n 3395) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3390, .n 3382, .n 3391, .n 3392, .n 3393, .n 3394, .n 3395, .n 354, .n 355, .n 356, .n 357] [.n 3396, .n 3397, .n 3398, .n 3399, .n 3400, .n 3401, .n 3402, .n 3403, .n 3404, .n 3405, .n 3406, .n 3407, .n 3408] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3409, .n 3410]))) ::
+  .atom (.add (.n 3411) (.n 3396) (.n 3409)) ::
+  .atom (.add (.n 3412) (.n 3409) (.n 3410)) ::
+  .atom (.mul (.n 3411) (.n 442) (.n 3412)) ::
+  .atom (.const (.n 3413) (word 0 2882303761634557952 0)) ::
+  .atom (.add (.n 3414) (.n 1721) (.n 3413)) ::
+  .atom (.const (.n 3415) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3416) (.n 810) (.n 3415)) ::
+  .atom (.add (.n 3417) (.n 3414) (.n 3416)) ::
+  .atom (.copy (.n 3418) (.n 3410)) ::
+  .atom (.const (.n 3419) (word 1 0 0)) ::
+  .atom (.const (.n 3420) (word 0 0 0)) ::
+  .atom (.const (.n 3421) (word 0 0 0)) ::
   .atom (.const (.n 3422) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3421, .n 3413, .n 3414, .n 12, .n 13, .n 14, .n 15, .n 3422, .n 13, .n 14, .n 15, .n 16] [.n 3423, .n 3424, .n 3425, .n 3426, .n 3427, .n 3428, .n 3429, .n 3430, .n 3431, .n 3432, .n 3433, .n 3434, .n 3435] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3417, .n 3409, .n 3418, .n 3419, .n 3420, .n 3421, .n 3422, .n 354, .n 355, .n 356, .n 357] [.n 3423, .n 3424, .n 3425, .n 3426, .n 3427, .n 3428, .n 3429, .n 3430, .n 3431, .n 3432, .n 3433, .n 3434, .n 3435] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3436, .n 3437]))) ::
   .atom (.add (.n 3438) (.n 3423) (.n 3436)) ::
   .atom (.add (.n 3439) (.n 3436) (.n 3437)) ::
-  .atom (.mul (.n 3438) (.n 171) (.n 3439)) ::
-  .atom (.const (.n 3440) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 3441) (.n 3343) (.n 3440)) ::
-  .atom (.const (.n 3442) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3443) (.n 653) (.n 3442)) ::
+  .atom (.mul (.n 3438) (.n 443) (.n 3439)) ::
+  .atom (.const (.n 3440) (word 0 1441151880892776448 0)) ::
+  .atom (.add (.n 3441) (.n 1721) (.n 3440)) ::
+  .atom (.const (.n 3442) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3443) (.n 807) (.n 3442)) ::
   .atom (.add (.n 3444) (.n 3441) (.n 3443)) ::
-  .atom (.const (.n 3445) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3444, .n 3436, .n 3437, .n 12, .n 13, .n 14, .n 15, .n 3445, .n 13, .n 14, .n 15, .n 16] [.n 3446, .n 3447, .n 3448, .n 3449, .n 3450, .n 3451, .n 3452, .n 3453, .n 3454, .n 3455, .n 3456, .n 3457, .n 3458] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3459, .n 3460]))) ::
-  .atom (.add (.n 3461) (.n 3446) (.n 3459)) ::
-  .atom (.add (.n 3462) (.n 3459) (.n 3460)) ::
-  .atom (.mul (.n 3461) (.n 172) (.n 3462)) ::
-  .atom (.const (.n 3463) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 3464) (.n 3343) (.n 3463)) ::
-  .atom (.const (.n 3465) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3466) (.n 650) (.n 3465)) ::
-  .atom (.add (.n 3467) (.n 3464) (.n 3466)) ::
-  .atom (.const (.n 3468) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3467, .n 3459, .n 3460, .n 12, .n 13, .n 14, .n 15, .n 3468, .n 13, .n 14, .n 15, .n 16] [.n 3469, .n 3470, .n 3471, .n 3472, .n 3473, .n 3474, .n 3475, .n 3476, .n 3477, .n 3478, .n 3479, .n 3480, .n 3481] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3482, .n 3483]))) ::
-  .atom (.add (.n 3484) (.n 3469) (.n 3482)) ::
-  .atom (.add (.n 3485) (.n 3482) (.n 3483)) ::
-  .atom (.mul (.n 3484) (.n 173) (.n 3485)) ::
-  .atom (.const (.n 3486) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 3487) (.n 3343) (.n 3486)) ::
-  .atom (.const (.n 3488) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3489) (.n 647) (.n 3488)) ::
-  .atom (.add (.n 3490) (.n 3487) (.n 3489)) ::
-  .atom (.const (.n 3491) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3490, .n 3482, .n 3483, .n 12, .n 13, .n 14, .n 15, .n 3491, .n 13, .n 14, .n 15, .n 16] [.n 3492, .n 3493, .n 3494, .n 3495, .n 3496, .n 3497, .n 3498, .n 3499, .n 3500, .n 3501, .n 3502, .n 3503, .n 3504] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3505, .n 3506]))) ::
-  .atom (.add (.n 3507) (.n 3492) (.n 3505)) ::
-  .atom (.add (.n 3508) (.n 3505) (.n 3506)) ::
-  .atom (.mul (.n 3507) (.n 174) (.n 3508)) ::
-  .atom (.const (.n 3509) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 3510) (.n 3343) (.n 3509)) ::
-  .atom (.const (.n 3511) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3512) (.n 644) (.n 3511)) ::
-  .atom (.add (.n 3513) (.n 3510) (.n 3512)) ::
-  .atom (.const (.n 3514) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3513, .n 3505, .n 3506, .n 12, .n 13, .n 14, .n 15, .n 3514, .n 13, .n 14, .n 15, .n 16] [.n 3515, .n 3516, .n 3517, .n 3518, .n 3519, .n 3520, .n 3521, .n 3522, .n 3523, .n 3524, .n 3525, .n 3526, .n 3527] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3528, .n 3529]))) ::
-  .atom (.add (.n 3530) (.n 3515) (.n 3528)) ::
-  .atom (.add (.n 3531) (.n 3528) (.n 3529)) ::
-  .atom (.mul (.n 3530) (.n 175) (.n 3531)) ::
-  .atom (.const (.n 3532) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 3533) (.n 3343) (.n 3532)) ::
-  .atom (.const (.n 3534) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3535) (.n 641) (.n 3534)) ::
-  .atom (.add (.n 3536) (.n 3533) (.n 3535)) ::
-  .atom (.const (.n 3537) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3536, .n 3528, .n 3529, .n 12, .n 13, .n 14, .n 15, .n 3537, .n 13, .n 14, .n 15, .n 16] [.n 3538, .n 3539, .n 3540, .n 3541, .n 3542, .n 3543, .n 3544, .n 3545, .n 3546, .n 3547, .n 3548, .n 3549, .n 3550] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3551, .n 3552]))) ::
-  .atom (.add (.n 3553) (.n 3538) (.n 3551)) ::
-  .atom (.add (.n 3554) (.n 3551) (.n 3552)) ::
-  .atom (.mul (.n 3553) (.n 176) (.n 3554)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3555]))) ::
-  .atom (.const (.n 3556) (word 1080863953518592000 0 0)) ::
-  .atom (.add (.n 3557) (.n 1067) (.n 3556)) ::
-  .atom (.const (.n 3558) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 3559) (.n 696) (.n 3558)) ::
-  .atom (.add (.n 3560) (.n 3557) (.n 3559)) ::
-  .atom (.const (.n 3561) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3560, .n 3555, .n 12, .n 13, .n 14, .n 15, .n 16, .n 3561, .n 13, .n 14, .n 15, .n 16] [.n 3562, .n 3563, .n 3564, .n 3565, .n 3566, .n 3567, .n 3568, .n 3569, .n 3570, .n 3571, .n 3572, .n 3573, .n 3574] false false) ::
-  .atom (.const (.n 3575) (word 1224979141594447872 0 0)) ::
-  .atom (.add (.n 3576) (.n 1067) (.n 3575)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3577, .n 3578]))) ::
-  .atom (.add (.n 3579) (.n 3562) (.n 3577)) ::
-  .atom (.add (.n 3580) (.n 3577) (.n 3578)) ::
-  .atom (.mul (.n 3579) (.n 177) (.n 3580)) ::
-  .atom (.const (.n 3581) (word 274877906944 0 0)) ::
-  .atom (.add (.n 3582) (.n 3576) (.n 3581)) ::
-  .atom (.const (.n 3583) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3584) (.n 693) (.n 3583)) ::
-  .atom (.add (.n 3585) (.n 3582) (.n 3584)) ::
+  .atom (.copy (.n 3445) (.n 3437)) ::
+  .atom (.const (.n 3446) (word 1 0 0)) ::
+  .atom (.const (.n 3447) (word 0 0 0)) ::
+  .atom (.const (.n 3448) (word 0 0 0)) ::
+  .atom (.const (.n 3449) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3444, .n 3436, .n 3445, .n 3446, .n 3447, .n 3448, .n 3449, .n 354, .n 355, .n 356, .n 357] [.n 3450, .n 3451, .n 3452, .n 3453, .n 3454, .n 3455, .n 3456, .n 3457, .n 3458, .n 3459, .n 3460, .n 3461, .n 3462] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3463, .n 3464]))) ::
+  .atom (.add (.n 3465) (.n 3450) (.n 3463)) ::
+  .atom (.add (.n 3466) (.n 3463) (.n 3464)) ::
+  .atom (.mul (.n 3465) (.n 444) (.n 3466)) ::
+  .atom (.const (.n 3467) (word 0 720575940530274304 0)) ::
+  .atom (.add (.n 3468) (.n 1721) (.n 3467)) ::
+  .atom (.const (.n 3469) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3470) (.n 804) (.n 3469)) ::
+  .atom (.add (.n 3471) (.n 3468) (.n 3470)) ::
+  .atom (.copy (.n 3472) (.n 3464)) ::
+  .atom (.const (.n 3473) (word 1 0 0)) ::
+  .atom (.const (.n 3474) (word 0 0 0)) ::
+  .atom (.const (.n 3475) (word 0 0 0)) ::
+  .atom (.const (.n 3476) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3471, .n 3463, .n 3472, .n 3473, .n 3474, .n 3475, .n 3476, .n 354, .n 355, .n 356, .n 357] [.n 3477, .n 3478, .n 3479, .n 3480, .n 3481, .n 3482, .n 3483, .n 3484, .n 3485, .n 3486, .n 3487, .n 3488, .n 3489] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3490, .n 3491]))) ::
+  .atom (.add (.n 3492) (.n 3477) (.n 3490)) ::
+  .atom (.add (.n 3493) (.n 3490) (.n 3491)) ::
+  .atom (.mul (.n 3492) (.n 445) (.n 3493)) ::
+  .atom (.const (.n 3494) (word 0 360287970357411840 0)) ::
+  .atom (.add (.n 3495) (.n 1721) (.n 3494)) ::
+  .atom (.copy (.n 3496) (.n 3491)) ::
+  .atom (.const (.n 3497) (word 1 0 0)) ::
+  .atom (.const (.n 3498) (word 0 0 0)) ::
+  .atom (.const (.n 3499) (word 0 0 0)) ::
+  .atom (.const (.n 3500) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3495, .n 3490, .n 3496, .n 3497, .n 3498, .n 3499, .n 3500, .n 354, .n 355, .n 356, .n 357] [.n 3501, .n 3502, .n 3503, .n 3504, .n 3505, .n 3506, .n 3507, .n 3508, .n 3509, .n 3510, .n 3511, .n 3512, .n 3513] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3514]))) ::
+  .atom (.const (.n 3515) (word 0 6755399441055744 0)) ::
+  .atom (.add (.n 3516) (.n 1721) (.n 3515)) ::
+  .atom (.const (.n 3517) (word 256 0 0)) ::
+  .atom (.mul (.n 3518) (.n 835) (.n 3517)) ::
+  .atom (.add (.n 3519) (.n 859) (.n 3518)) ::
+  .atom (.const (.n 3520) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3521) (.n 3519) (.n 3520)) ::
+  .atom (.const (.n 3522) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3523) (.n 835) (.n 3522)) ::
+  .atom (.add (.n 3524) (.n 3521) (.n 3523)) ::
+  .atom (.add (.n 3525) (.n 3516) (.n 3524)) ::
+  .atom (.const (.n 3526) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3525, .n 3514, .n 353, .n 354, .n 355, .n 356, .n 3526, .n 354, .n 355, .n 356, .n 357] [.n 3527, .n 3528, .n 3529, .n 3530, .n 3531, .n 3532, .n 3533, .n 3534, .n 3535, .n 3536, .n 3537, .n 3538, .n 3539] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3540, .n 3541]))) ::
+  .atom (.add (.n 3542) (.n 3527) (.n 3540)) ::
+  .atom (.add (.n 3543) (.n 3540) (.n 3541)) ::
+  .atom (.mul (.n 3542) (.n 458) (.n 3543)) ::
+  .atom (.const (.n 3544) (word 0 3377699737305088 0)) ::
+  .atom (.add (.n 3545) (.n 1721) (.n 3544)) ::
+  .atom (.const (.n 3546) (word 256 0 0)) ::
+  .atom (.mul (.n 3547) (.n 832) (.n 3546)) ::
+  .atom (.add (.n 3548) (.n 856) (.n 3547)) ::
+  .atom (.const (.n 3549) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3550) (.n 3548) (.n 3549)) ::
+  .atom (.const (.n 3551) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3552) (.n 832) (.n 3551)) ::
+  .atom (.add (.n 3553) (.n 3550) (.n 3552)) ::
+  .atom (.add (.n 3554) (.n 3545) (.n 3553)) ::
+  .atom (.copy (.n 3555) (.n 3541)) ::
+  .atom (.const (.n 3556) (word 1 0 0)) ::
+  .atom (.const (.n 3557) (word 0 0 0)) ::
+  .atom (.const (.n 3558) (word 0 0 0)) ::
+  .atom (.const (.n 3559) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3554, .n 3540, .n 3555, .n 3556, .n 3557, .n 3558, .n 3559, .n 354, .n 355, .n 356, .n 357] [.n 3560, .n 3561, .n 3562, .n 3563, .n 3564, .n 3565, .n 3566, .n 3567, .n 3568, .n 3569, .n 3570, .n 3571, .n 3572] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3573, .n 3574]))) ::
+  .atom (.add (.n 3575) (.n 3560) (.n 3573)) ::
+  .atom (.add (.n 3576) (.n 3573) (.n 3574)) ::
+  .atom (.mul (.n 3575) (.n 459) (.n 3576)) ::
+  .atom (.const (.n 3577) (word 0 1688849893818368 0)) ::
+  .atom (.add (.n 3578) (.n 1721) (.n 3577)) ::
+  .atom (.const (.n 3579) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3580) (.n 853) (.n 3579)) ::
+  .atom (.add (.n 3581) (.n 3578) (.n 3580)) ::
+  .atom (.copy (.n 3582) (.n 3574)) ::
+  .atom (.const (.n 3583) (word 1 0 0)) ::
+  .atom (.const (.n 3584) (word 0 0 0)) ::
+  .atom (.const (.n 3585) (word 0 0 0)) ::
   .atom (.const (.n 3586) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3585, .n 3577, .n 3578, .n 12, .n 13, .n 14, .n 15, .n 3586, .n 13, .n 14, .n 15, .n 16] [.n 3587, .n 3588, .n 3589, .n 3590, .n 3591, .n 3592, .n 3593, .n 3594, .n 3595, .n 3596, .n 3597, .n 3598, .n 3599] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3581, .n 3573, .n 3582, .n 3583, .n 3584, .n 3585, .n 3586, .n 354, .n 355, .n 356, .n 357] [.n 3587, .n 3588, .n 3589, .n 3590, .n 3591, .n 3592, .n 3593, .n 3594, .n 3595, .n 3596, .n 3597, .n 3598, .n 3599] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3600, .n 3601]))) ::
   .atom (.add (.n 3602) (.n 3587) (.n 3600)) ::
   .atom (.add (.n 3603) (.n 3600) (.n 3601)) ::
-  .atom (.mul (.n 3602) (.n 178) (.n 3603)) ::
-  .atom (.const (.n 3604) (word 549755813888 0 0)) ::
-  .atom (.add (.n 3605) (.n 3576) (.n 3604)) ::
-  .atom (.const (.n 3606) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3607) (.n 690) (.n 3606)) ::
+  .atom (.mul (.n 3602) (.n 460) (.n 3603)) ::
+  .atom (.const (.n 3604) (word 0 844424980463616 0)) ::
+  .atom (.add (.n 3605) (.n 1721) (.n 3604)) ::
+  .atom (.const (.n 3606) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3607) (.n 850) (.n 3606)) ::
   .atom (.add (.n 3608) (.n 3605) (.n 3607)) ::
-  .atom (.const (.n 3609) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3608, .n 3600, .n 3601, .n 12, .n 13, .n 14, .n 15, .n 3609, .n 13, .n 14, .n 15, .n 16] [.n 3610, .n 3611, .n 3612, .n 3613, .n 3614, .n 3615, .n 3616, .n 3617, .n 3618, .n 3619, .n 3620, .n 3621, .n 3622] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3623, .n 3624]))) ::
-  .atom (.add (.n 3625) (.n 3610) (.n 3623)) ::
-  .atom (.add (.n 3626) (.n 3623) (.n 3624)) ::
-  .atom (.mul (.n 3625) (.n 179) (.n 3626)) ::
-  .atom (.const (.n 3627) (word 824633720832 0 0)) ::
-  .atom (.add (.n 3628) (.n 3576) (.n 3627)) ::
-  .atom (.const (.n 3629) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3630) (.n 687) (.n 3629)) ::
-  .atom (.add (.n 3631) (.n 3628) (.n 3630)) ::
-  .atom (.const (.n 3632) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3631, .n 3623, .n 3624, .n 12, .n 13, .n 14, .n 15, .n 3632, .n 13, .n 14, .n 15, .n 16] [.n 3633, .n 3634, .n 3635, .n 3636, .n 3637, .n 3638, .n 3639, .n 3640, .n 3641, .n 3642, .n 3643, .n 3644, .n 3645] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3646, .n 3647]))) ::
-  .atom (.add (.n 3648) (.n 3633) (.n 3646)) ::
-  .atom (.add (.n 3649) (.n 3646) (.n 3647)) ::
-  .atom (.mul (.n 3648) (.n 180) (.n 3649)) ::
-  .atom (.const (.n 3650) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 3651) (.n 3576) (.n 3650)) ::
-  .atom (.const (.n 3652) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3653) (.n 684) (.n 3652)) ::
-  .atom (.add (.n 3654) (.n 3651) (.n 3653)) ::
-  .atom (.const (.n 3655) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3654, .n 3646, .n 3647, .n 12, .n 13, .n 14, .n 15, .n 3655, .n 13, .n 14, .n 15, .n 16] [.n 3656, .n 3657, .n 3658, .n 3659, .n 3660, .n 3661, .n 3662, .n 3663, .n 3664, .n 3665, .n 3666, .n 3667, .n 3668] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3669, .n 3670]))) ::
-  .atom (.add (.n 3671) (.n 3656) (.n 3669)) ::
-  .atom (.add (.n 3672) (.n 3669) (.n 3670)) ::
-  .atom (.mul (.n 3671) (.n 181) (.n 3672)) ::
-  .atom (.const (.n 3673) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 3674) (.n 3576) (.n 3673)) ::
-  .atom (.const (.n 3675) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3676) (.n 681) (.n 3675)) ::
-  .atom (.add (.n 3677) (.n 3674) (.n 3676)) ::
-  .atom (.const (.n 3678) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3677, .n 3669, .n 3670, .n 12, .n 13, .n 14, .n 15, .n 3678, .n 13, .n 14, .n 15, .n 16] [.n 3679, .n 3680, .n 3681, .n 3682, .n 3683, .n 3684, .n 3685, .n 3686, .n 3687, .n 3688, .n 3689, .n 3690, .n 3691] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3692, .n 3693]))) ::
-  .atom (.add (.n 3694) (.n 3679) (.n 3692)) ::
-  .atom (.add (.n 3695) (.n 3692) (.n 3693)) ::
-  .atom (.mul (.n 3694) (.n 182) (.n 3695)) ::
-  .atom (.const (.n 3696) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 3697) (.n 3576) (.n 3696)) ::
-  .atom (.const (.n 3698) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3699) (.n 678) (.n 3698)) ::
-  .atom (.add (.n 3700) (.n 3697) (.n 3699)) ::
-  .atom (.const (.n 3701) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3700, .n 3692, .n 3693, .n 12, .n 13, .n 14, .n 15, .n 3701, .n 13, .n 14, .n 15, .n 16] [.n 3702, .n 3703, .n 3704, .n 3705, .n 3706, .n 3707, .n 3708, .n 3709, .n 3710, .n 3711, .n 3712, .n 3713, .n 3714] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3715, .n 3716]))) ::
-  .atom (.add (.n 3717) (.n 3702) (.n 3715)) ::
-  .atom (.add (.n 3718) (.n 3715) (.n 3716)) ::
-  .atom (.mul (.n 3717) (.n 183) (.n 3718)) ::
-  .atom (.const (.n 3719) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 3720) (.n 3576) (.n 3719)) ::
-  .atom (.const (.n 3721) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3722) (.n 675) (.n 3721)) ::
-  .atom (.add (.n 3723) (.n 3720) (.n 3722)) ::
-  .atom (.const (.n 3724) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3723, .n 3715, .n 3716, .n 12, .n 13, .n 14, .n 15, .n 3724, .n 13, .n 14, .n 15, .n 16] [.n 3725, .n 3726, .n 3727, .n 3728, .n 3729, .n 3730, .n 3731, .n 3732, .n 3733, .n 3734, .n 3735, .n 3736, .n 3737] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3738, .n 3739]))) ::
-  .atom (.add (.n 3740) (.n 3725) (.n 3738)) ::
-  .atom (.add (.n 3741) (.n 3738) (.n 3739)) ::
-  .atom (.mul (.n 3740) (.n 184) (.n 3741)) ::
-  .atom (.const (.n 3742) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 3743) (.n 3576) (.n 3742)) ::
-  .atom (.const (.n 3744) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3745) (.n 672) (.n 3744)) ::
-  .atom (.add (.n 3746) (.n 3743) (.n 3745)) ::
-  .atom (.const (.n 3747) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3746, .n 3738, .n 3739, .n 12, .n 13, .n 14, .n 15, .n 3747, .n 13, .n 14, .n 15, .n 16] [.n 3748, .n 3749, .n 3750, .n 3751, .n 3752, .n 3753, .n 3754, .n 3755, .n 3756, .n 3757, .n 3758, .n 3759, .n 3760] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3761, .n 3762]))) ::
-  .atom (.add (.n 3763) (.n 3748) (.n 3761)) ::
-  .atom (.add (.n 3764) (.n 3761) (.n 3762)) ::
-  .atom (.mul (.n 3763) (.n 185) (.n 3764)) ::
-  .atom (.const (.n 3765) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 3766) (.n 3576) (.n 3765)) ::
-  .atom (.const (.n 3767) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3768) (.n 669) (.n 3767)) ::
-  .atom (.add (.n 3769) (.n 3766) (.n 3768)) ::
-  .atom (.const (.n 3770) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3769, .n 3761, .n 3762, .n 12, .n 13, .n 14, .n 15, .n 3770, .n 13, .n 14, .n 15, .n 16] [.n 3771, .n 3772, .n 3773, .n 3774, .n 3775, .n 3776, .n 3777, .n 3778, .n 3779, .n 3780, .n 3781, .n 3782, .n 3783] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3784, .n 3785]))) ::
-  .atom (.add (.n 3786) (.n 3771) (.n 3784)) ::
-  .atom (.add (.n 3787) (.n 3784) (.n 3785)) ::
-  .atom (.mul (.n 3786) (.n 186) (.n 3787)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3788]))) ::
-  .atom (.const (.n 3789) (word 1080863957813559296 0 0)) ::
-  .atom (.add (.n 3790) (.n 1067) (.n 3789)) ::
-  .atom (.const (.n 3791) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 3792) (.n 724) (.n 3791)) ::
-  .atom (.add (.n 3793) (.n 3790) (.n 3792)) ::
-  .atom (.const (.n 3794) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3793, .n 3788, .n 12, .n 13, .n 14, .n 15, .n 16, .n 3794, .n 13, .n 14, .n 15, .n 16] [.n 3795, .n 3796, .n 3797, .n 3798, .n 3799, .n 3800, .n 3801, .n 3802, .n 3803, .n 3804, .n 3805, .n 3806, .n 3807] false false) ::
-  .atom (.const (.n 3808) (word 1224979145889415168 0 0)) ::
-  .atom (.add (.n 3809) (.n 1067) (.n 3808)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3810, .n 3811]))) ::
-  .atom (.add (.n 3812) (.n 3795) (.n 3810)) ::
-  .atom (.add (.n 3813) (.n 3810) (.n 3811)) ::
-  .atom (.mul (.n 3812) (.n 187) (.n 3813)) ::
-  .atom (.const (.n 3814) (word 274877906944 0 0)) ::
-  .atom (.add (.n 3815) (.n 3809) (.n 3814)) ::
-  .atom (.const (.n 3816) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3817) (.n 721) (.n 3816)) ::
-  .atom (.add (.n 3818) (.n 3815) (.n 3817)) ::
-  .atom (.const (.n 3819) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3818, .n 3810, .n 3811, .n 12, .n 13, .n 14, .n 15, .n 3819, .n 13, .n 14, .n 15, .n 16] [.n 3820, .n 3821, .n 3822, .n 3823, .n 3824, .n 3825, .n 3826, .n 3827, .n 3828, .n 3829, .n 3830, .n 3831, .n 3832] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3833, .n 3834]))) ::
-  .atom (.add (.n 3835) (.n 3820) (.n 3833)) ::
-  .atom (.add (.n 3836) (.n 3833) (.n 3834)) ::
-  .atom (.mul (.n 3835) (.n 188) (.n 3836)) ::
-  .atom (.const (.n 3837) (word 549755813888 0 0)) ::
-  .atom (.add (.n 3838) (.n 3809) (.n 3837)) ::
-  .atom (.const (.n 3839) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3840) (.n 718) (.n 3839)) ::
-  .atom (.add (.n 3841) (.n 3838) (.n 3840)) ::
-  .atom (.const (.n 3842) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3841, .n 3833, .n 3834, .n 12, .n 13, .n 14, .n 15, .n 3842, .n 13, .n 14, .n 15, .n 16] [.n 3843, .n 3844, .n 3845, .n 3846, .n 3847, .n 3848, .n 3849, .n 3850, .n 3851, .n 3852, .n 3853, .n 3854, .n 3855] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3856, .n 3857]))) ::
-  .atom (.add (.n 3858) (.n 3843) (.n 3856)) ::
-  .atom (.add (.n 3859) (.n 3856) (.n 3857)) ::
-  .atom (.mul (.n 3858) (.n 189) (.n 3859)) ::
-  .atom (.const (.n 3860) (word 824633720832 0 0)) ::
-  .atom (.add (.n 3861) (.n 3809) (.n 3860)) ::
-  .atom (.const (.n 3862) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3863) (.n 715) (.n 3862)) ::
-  .atom (.add (.n 3864) (.n 3861) (.n 3863)) ::
-  .atom (.const (.n 3865) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3864, .n 3856, .n 3857, .n 12, .n 13, .n 14, .n 15, .n 3865, .n 13, .n 14, .n 15, .n 16] [.n 3866, .n 3867, .n 3868, .n 3869, .n 3870, .n 3871, .n 3872, .n 3873, .n 3874, .n 3875, .n 3876, .n 3877, .n 3878] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3879, .n 3880]))) ::
-  .atom (.add (.n 3881) (.n 3866) (.n 3879)) ::
-  .atom (.add (.n 3882) (.n 3879) (.n 3880)) ::
-  .atom (.mul (.n 3881) (.n 190) (.n 3882)) ::
-  .atom (.const (.n 3883) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 3884) (.n 3809) (.n 3883)) ::
-  .atom (.const (.n 3885) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3886) (.n 712) (.n 3885)) ::
-  .atom (.add (.n 3887) (.n 3884) (.n 3886)) ::
-  .atom (.const (.n 3888) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3887, .n 3879, .n 3880, .n 12, .n 13, .n 14, .n 15, .n 3888, .n 13, .n 14, .n 15, .n 16] [.n 3889, .n 3890, .n 3891, .n 3892, .n 3893, .n 3894, .n 3895, .n 3896, .n 3897, .n 3898, .n 3899, .n 3900, .n 3901] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3902, .n 3903]))) ::
-  .atom (.add (.n 3904) (.n 3889) (.n 3902)) ::
-  .atom (.add (.n 3905) (.n 3902) (.n 3903)) ::
-  .atom (.mul (.n 3904) (.n 191) (.n 3905)) ::
-  .atom (.const (.n 3906) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 3907) (.n 3809) (.n 3906)) ::
-  .atom (.const (.n 3908) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3909) (.n 709) (.n 3908)) ::
-  .atom (.add (.n 3910) (.n 3907) (.n 3909)) ::
-  .atom (.const (.n 3911) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3910, .n 3902, .n 3903, .n 12, .n 13, .n 14, .n 15, .n 3911, .n 13, .n 14, .n 15, .n 16] [.n 3912, .n 3913, .n 3914, .n 3915, .n 3916, .n 3917, .n 3918, .n 3919, .n 3920, .n 3921, .n 3922, .n 3923, .n 3924] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3925, .n 3926]))) ::
-  .atom (.add (.n 3927) (.n 3912) (.n 3925)) ::
-  .atom (.add (.n 3928) (.n 3925) (.n 3926)) ::
-  .atom (.mul (.n 3927) (.n 192) (.n 3928)) ::
-  .atom (.const (.n 3929) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 3930) (.n 3809) (.n 3929)) ::
-  .atom (.const (.n 3931) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3932) (.n 706) (.n 3931)) ::
-  .atom (.add (.n 3933) (.n 3930) (.n 3932)) ::
-  .atom (.const (.n 3934) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3933, .n 3925, .n 3926, .n 12, .n 13, .n 14, .n 15, .n 3934, .n 13, .n 14, .n 15, .n 16] [.n 3935, .n 3936, .n 3937, .n 3938, .n 3939, .n 3940, .n 3941, .n 3942, .n 3943, .n 3944, .n 3945, .n 3946, .n 3947] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3948, .n 3949]))) ::
-  .atom (.add (.n 3950) (.n 3935) (.n 3948)) ::
-  .atom (.add (.n 3951) (.n 3948) (.n 3949)) ::
-  .atom (.mul (.n 3950) (.n 193) (.n 3951)) ::
-  .atom (.const (.n 3952) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 3953) (.n 3809) (.n 3952)) ::
-  .atom (.const (.n 3954) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3955) (.n 703) (.n 3954)) ::
-  .atom (.add (.n 3956) (.n 3953) (.n 3955)) ::
-  .atom (.const (.n 3957) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3956, .n 3948, .n 3949, .n 12, .n 13, .n 14, .n 15, .n 3957, .n 13, .n 14, .n 15, .n 16] [.n 3958, .n 3959, .n 3960, .n 3961, .n 3962, .n 3963, .n 3964, .n 3965, .n 3966, .n 3967, .n 3968, .n 3969, .n 3970] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3971, .n 3972]))) ::
-  .atom (.add (.n 3973) (.n 3958) (.n 3971)) ::
-  .atom (.add (.n 3974) (.n 3971) (.n 3972)) ::
-  .atom (.mul (.n 3973) (.n 194) (.n 3974)) ::
-  .atom (.const (.n 3975) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 3976) (.n 3809) (.n 3975)) ::
-  .atom (.const (.n 3977) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 3978) (.n 700) (.n 3977)) ::
-  .atom (.add (.n 3979) (.n 3976) (.n 3978)) ::
-  .atom (.const (.n 3980) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 3979, .n 3971, .n 3972, .n 12, .n 13, .n 14, .n 15, .n 3980, .n 13, .n 14, .n 15, .n 16] [.n 3981, .n 3982, .n 3983, .n 3984, .n 3985, .n 3986, .n 3987, .n 3988, .n 3989, .n 3990, .n 3991, .n 3992, .n 3993] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3994, .n 3995]))) ::
-  .atom (.add (.n 3996) (.n 3981) (.n 3994)) ::
-  .atom (.add (.n 3997) (.n 3994) (.n 3995)) ::
-  .atom (.mul (.n 3996) (.n 195) (.n 3997)) ::
-  .atom (.const (.n 3998) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 3999) (.n 3809) (.n 3998)) ::
-  .atom (.const (.n 4000) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4001) (.n 697) (.n 4000)) ::
-  .atom (.add (.n 4002) (.n 3999) (.n 4001)) ::
-  .atom (.const (.n 4003) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4002, .n 3994, .n 3995, .n 12, .n 13, .n 14, .n 15, .n 4003, .n 13, .n 14, .n 15, .n 16] [.n 4004, .n 4005, .n 4006, .n 4007, .n 4008, .n 4009, .n 4010, .n 4011, .n 4012, .n 4013, .n 4014, .n 4015, .n 4016] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4017, .n 4018]))) ::
-  .atom (.add (.n 4019) (.n 4004) (.n 4017)) ::
-  .atom (.add (.n 4020) (.n 4017) (.n 4018)) ::
-  .atom (.mul (.n 4019) (.n 196) (.n 4020)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4021]))) ::
-  .atom (.const (.n 4022) (word 1080863962108526592 0 0)) ::
-  .atom (.add (.n 4023) (.n 1067) (.n 4022)) ::
-  .atom (.const (.n 4024) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 4025) (.n 752) (.n 4024)) ::
-  .atom (.add (.n 4026) (.n 4023) (.n 4025)) ::
-  .atom (.const (.n 4027) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4026, .n 4021, .n 12, .n 13, .n 14, .n 15, .n 16, .n 4027, .n 13, .n 14, .n 15, .n 16] [.n 4028, .n 4029, .n 4030, .n 4031, .n 4032, .n 4033, .n 4034, .n 4035, .n 4036, .n 4037, .n 4038, .n 4039, .n 4040] false false) ::
-  .atom (.const (.n 4041) (word 1224979150184382464 0 0)) ::
-  .atom (.add (.n 4042) (.n 1067) (.n 4041)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4043, .n 4044]))) ::
-  .atom (.add (.n 4045) (.n 4028) (.n 4043)) ::
-  .atom (.add (.n 4046) (.n 4043) (.n 4044)) ::
-  .atom (.mul (.n 4045) (.n 197) (.n 4046)) ::
-  .atom (.const (.n 4047) (word 274877906944 0 0)) ::
-  .atom (.add (.n 4048) (.n 4042) (.n 4047)) ::
-  .atom (.const (.n 4049) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4050) (.n 749) (.n 4049)) ::
-  .atom (.add (.n 4051) (.n 4048) (.n 4050)) ::
-  .atom (.const (.n 4052) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4051, .n 4043, .n 4044, .n 12, .n 13, .n 14, .n 15, .n 4052, .n 13, .n 14, .n 15, .n 16] [.n 4053, .n 4054, .n 4055, .n 4056, .n 4057, .n 4058, .n 4059, .n 4060, .n 4061, .n 4062, .n 4063, .n 4064, .n 4065] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4066, .n 4067]))) ::
-  .atom (.add (.n 4068) (.n 4053) (.n 4066)) ::
-  .atom (.add (.n 4069) (.n 4066) (.n 4067)) ::
-  .atom (.mul (.n 4068) (.n 198) (.n 4069)) ::
-  .atom (.const (.n 4070) (word 549755813888 0 0)) ::
-  .atom (.add (.n 4071) (.n 4042) (.n 4070)) ::
-  .atom (.const (.n 4072) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4073) (.n 746) (.n 4072)) ::
-  .atom (.add (.n 4074) (.n 4071) (.n 4073)) ::
-  .atom (.const (.n 4075) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4074, .n 4066, .n 4067, .n 12, .n 13, .n 14, .n 15, .n 4075, .n 13, .n 14, .n 15, .n 16] [.n 4076, .n 4077, .n 4078, .n 4079, .n 4080, .n 4081, .n 4082, .n 4083, .n 4084, .n 4085, .n 4086, .n 4087, .n 4088] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4089, .n 4090]))) ::
-  .atom (.add (.n 4091) (.n 4076) (.n 4089)) ::
-  .atom (.add (.n 4092) (.n 4089) (.n 4090)) ::
-  .atom (.mul (.n 4091) (.n 199) (.n 4092)) ::
-  .atom (.const (.n 4093) (word 824633720832 0 0)) ::
-  .atom (.add (.n 4094) (.n 4042) (.n 4093)) ::
-  .atom (.const (.n 4095) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4096) (.n 743) (.n 4095)) ::
-  .atom (.add (.n 4097) (.n 4094) (.n 4096)) ::
-  .atom (.const (.n 4098) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4097, .n 4089, .n 4090, .n 12, .n 13, .n 14, .n 15, .n 4098, .n 13, .n 14, .n 15, .n 16] [.n 4099, .n 4100, .n 4101, .n 4102, .n 4103, .n 4104, .n 4105, .n 4106, .n 4107, .n 4108, .n 4109, .n 4110, .n 4111] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4112, .n 4113]))) ::
-  .atom (.add (.n 4114) (.n 4099) (.n 4112)) ::
-  .atom (.add (.n 4115) (.n 4112) (.n 4113)) ::
-  .atom (.mul (.n 4114) (.n 200) (.n 4115)) ::
-  .atom (.const (.n 4116) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 4117) (.n 4042) (.n 4116)) ::
-  .atom (.const (.n 4118) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4119) (.n 740) (.n 4118)) ::
-  .atom (.add (.n 4120) (.n 4117) (.n 4119)) ::
-  .atom (.const (.n 4121) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4120, .n 4112, .n 4113, .n 12, .n 13, .n 14, .n 15, .n 4121, .n 13, .n 14, .n 15, .n 16] [.n 4122, .n 4123, .n 4124, .n 4125, .n 4126, .n 4127, .n 4128, .n 4129, .n 4130, .n 4131, .n 4132, .n 4133, .n 4134] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4135, .n 4136]))) ::
-  .atom (.add (.n 4137) (.n 4122) (.n 4135)) ::
-  .atom (.add (.n 4138) (.n 4135) (.n 4136)) ::
-  .atom (.mul (.n 4137) (.n 201) (.n 4138)) ::
-  .atom (.const (.n 4139) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 4140) (.n 4042) (.n 4139)) ::
-  .atom (.const (.n 4141) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4142) (.n 737) (.n 4141)) ::
-  .atom (.add (.n 4143) (.n 4140) (.n 4142)) ::
-  .atom (.const (.n 4144) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4143, .n 4135, .n 4136, .n 12, .n 13, .n 14, .n 15, .n 4144, .n 13, .n 14, .n 15, .n 16] [.n 4145, .n 4146, .n 4147, .n 4148, .n 4149, .n 4150, .n 4151, .n 4152, .n 4153, .n 4154, .n 4155, .n 4156, .n 4157] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4158, .n 4159]))) ::
-  .atom (.add (.n 4160) (.n 4145) (.n 4158)) ::
-  .atom (.add (.n 4161) (.n 4158) (.n 4159)) ::
-  .atom (.mul (.n 4160) (.n 202) (.n 4161)) ::
-  .atom (.const (.n 4162) (word 1649267441664 0 0)) ::
+  .atom (.copy (.n 3609) (.n 3601)) ::
+  .atom (.const (.n 3610) (word 1 0 0)) ::
+  .atom (.const (.n 3611) (word 0 0 0)) ::
+  .atom (.const (.n 3612) (word 0 0 0)) ::
+  .atom (.const (.n 3613) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3608, .n 3600, .n 3609, .n 3610, .n 3611, .n 3612, .n 3613, .n 354, .n 355, .n 356, .n 357] [.n 3614, .n 3615, .n 3616, .n 3617, .n 3618, .n 3619, .n 3620, .n 3621, .n 3622, .n 3623, .n 3624, .n 3625, .n 3626] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3627, .n 3628]))) ::
+  .atom (.add (.n 3629) (.n 3614) (.n 3627)) ::
+  .atom (.add (.n 3630) (.n 3627) (.n 3628)) ::
+  .atom (.mul (.n 3629) (.n 461) (.n 3630)) ::
+  .atom (.const (.n 3631) (word 0 9223653511898595328 0)) ::
+  .atom (.add (.n 3632) (.n 1721) (.n 3631)) ::
+  .atom (.const (.n 3633) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3634) (.n 847) (.n 3633)) ::
+  .atom (.add (.n 3635) (.n 3632) (.n 3634)) ::
+  .atom (.copy (.n 3636) (.n 3628)) ::
+  .atom (.const (.n 3637) (word 1 0 0)) ::
+  .atom (.const (.n 3638) (word 0 0 0)) ::
+  .atom (.const (.n 3639) (word 0 0 0)) ::
+  .atom (.const (.n 3640) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3635, .n 3627, .n 3636, .n 3637, .n 3638, .n 3639, .n 3640, .n 354, .n 355, .n 356, .n 357] [.n 3641, .n 3642, .n 3643, .n 3644, .n 3645, .n 3646, .n 3647, .n 3648, .n 3649, .n 3650, .n 3651, .n 3652, .n 3653] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3654, .n 3655]))) ::
+  .atom (.add (.n 3656) (.n 3641) (.n 3654)) ::
+  .atom (.add (.n 3657) (.n 3654) (.n 3655)) ::
+  .atom (.mul (.n 3656) (.n 462) (.n 3657)) ::
+  .atom (.const (.n 3658) (word 0 13835058055366049792 0)) ::
+  .atom (.add (.n 3659) (.n 1721) (.n 3658)) ::
+  .atom (.const (.n 3660) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3661) (.n 844) (.n 3660)) ::
+  .atom (.add (.n 3662) (.n 3659) (.n 3661)) ::
+  .atom (.copy (.n 3663) (.n 3655)) ::
+  .atom (.const (.n 3664) (word 1 0 0)) ::
+  .atom (.const (.n 3665) (word 0 0 0)) ::
+  .atom (.const (.n 3666) (word 0 0 0)) ::
+  .atom (.const (.n 3667) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3662, .n 3654, .n 3663, .n 3664, .n 3665, .n 3666, .n 3667, .n 354, .n 355, .n 356, .n 357] [.n 3668, .n 3669, .n 3670, .n 3671, .n 3672, .n 3673, .n 3674, .n 3675, .n 3676, .n 3677, .n 3678, .n 3679, .n 3680] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3681, .n 3682]))) ::
+  .atom (.add (.n 3683) (.n 3668) (.n 3681)) ::
+  .atom (.add (.n 3684) (.n 3681) (.n 3682)) ::
+  .atom (.mul (.n 3683) (.n 463) (.n 3684)) ::
+  .atom (.const (.n 3685) (word 0 6917529027741745152 0)) ::
+  .atom (.add (.n 3686) (.n 1721) (.n 3685)) ::
+  .atom (.const (.n 3687) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3688) (.n 841) (.n 3687)) ::
+  .atom (.add (.n 3689) (.n 3686) (.n 3688)) ::
+  .atom (.copy (.n 3690) (.n 3682)) ::
+  .atom (.const (.n 3691) (word 1 0 0)) ::
+  .atom (.const (.n 3692) (word 0 0 0)) ::
+  .atom (.const (.n 3693) (word 0 0 0)) ::
+  .atom (.const (.n 3694) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3689, .n 3681, .n 3690, .n 3691, .n 3692, .n 3693, .n 3694, .n 354, .n 355, .n 356, .n 357] [.n 3695, .n 3696, .n 3697, .n 3698, .n 3699, .n 3700, .n 3701, .n 3702, .n 3703, .n 3704, .n 3705, .n 3706, .n 3707] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3708, .n 3709]))) ::
+  .atom (.add (.n 3710) (.n 3695) (.n 3708)) ::
+  .atom (.add (.n 3711) (.n 3708) (.n 3709)) ::
+  .atom (.mul (.n 3710) (.n 448) (.n 3711)) ::
+  .atom (.const (.n 3712) (word 0 3458764513937981440 0)) ::
+  .atom (.add (.n 3713) (.n 1721) (.n 3712)) ::
+  .atom (.const (.n 3714) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3715) (.n 838) (.n 3714)) ::
+  .atom (.add (.n 3716) (.n 3713) (.n 3715)) ::
+  .atom (.copy (.n 3717) (.n 3709)) ::
+  .atom (.const (.n 3718) (word 1 0 0)) ::
+  .atom (.const (.n 3719) (word 0 0 0)) ::
+  .atom (.const (.n 3720) (word 0 0 0)) ::
+  .atom (.const (.n 3721) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3716, .n 3708, .n 3717, .n 3718, .n 3719, .n 3720, .n 3721, .n 354, .n 355, .n 356, .n 357] [.n 3722, .n 3723, .n 3724, .n 3725, .n 3726, .n 3727, .n 3728, .n 3729, .n 3730, .n 3731, .n 3732, .n 3733, .n 3734] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3735, .n 3736]))) ::
+  .atom (.add (.n 3737) (.n 3722) (.n 3735)) ::
+  .atom (.add (.n 3738) (.n 3735) (.n 3736)) ::
+  .atom (.mul (.n 3737) (.n 449) (.n 3738)) ::
+  .atom (.const (.n 3739) (word 0 1729382257044488192 0)) ::
+  .atom (.add (.n 3740) (.n 1721) (.n 3739)) ::
+  .atom (.const (.n 3741) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3742) (.n 835) (.n 3741)) ::
+  .atom (.add (.n 3743) (.n 3740) (.n 3742)) ::
+  .atom (.copy (.n 3744) (.n 3736)) ::
+  .atom (.const (.n 3745) (word 1 0 0)) ::
+  .atom (.const (.n 3746) (word 0 0 0)) ::
+  .atom (.const (.n 3747) (word 0 0 0)) ::
+  .atom (.const (.n 3748) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3743, .n 3735, .n 3744, .n 3745, .n 3746, .n 3747, .n 3748, .n 354, .n 355, .n 356, .n 357] [.n 3749, .n 3750, .n 3751, .n 3752, .n 3753, .n 3754, .n 3755, .n 3756, .n 3757, .n 3758, .n 3759, .n 3760, .n 3761] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3762, .n 3763]))) ::
+  .atom (.add (.n 3764) (.n 3749) (.n 3762)) ::
+  .atom (.add (.n 3765) (.n 3762) (.n 3763)) ::
+  .atom (.mul (.n 3764) (.n 450) (.n 3765)) ::
+  .atom (.const (.n 3766) (word 0 864691128606130176 0)) ::
+  .atom (.add (.n 3767) (.n 1721) (.n 3766)) ::
+  .atom (.const (.n 3768) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3769) (.n 832) (.n 3768)) ::
+  .atom (.add (.n 3770) (.n 3767) (.n 3769)) ::
+  .atom (.copy (.n 3771) (.n 3763)) ::
+  .atom (.const (.n 3772) (word 1 0 0)) ::
+  .atom (.const (.n 3773) (word 0 0 0)) ::
+  .atom (.const (.n 3774) (word 0 0 0)) ::
+  .atom (.const (.n 3775) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3770, .n 3762, .n 3771, .n 3772, .n 3773, .n 3774, .n 3775, .n 354, .n 355, .n 356, .n 357] [.n 3776, .n 3777, .n 3778, .n 3779, .n 3780, .n 3781, .n 3782, .n 3783, .n 3784, .n 3785, .n 3786, .n 3787, .n 3788] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3789, .n 3790]))) ::
+  .atom (.add (.n 3791) (.n 3776) (.n 3789)) ::
+  .atom (.add (.n 3792) (.n 3789) (.n 3790)) ::
+  .atom (.mul (.n 3791) (.n 451) (.n 3792)) ::
+  .atom (.const (.n 3793) (word 0 432345564395339776 0)) ::
+  .atom (.add (.n 3794) (.n 1721) (.n 3793)) ::
+  .atom (.copy (.n 3795) (.n 3790)) ::
+  .atom (.const (.n 3796) (word 1 0 0)) ::
+  .atom (.const (.n 3797) (word 0 0 0)) ::
+  .atom (.const (.n 3798) (word 0 0 0)) ::
+  .atom (.const (.n 3799) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3794, .n 3789, .n 3795, .n 3796, .n 3797, .n 3798, .n 3799, .n 354, .n 355, .n 356, .n 357] [.n 3800, .n 3801, .n 3802, .n 3803, .n 3804, .n 3805, .n 3806, .n 3807, .n 3808, .n 3809, .n 3810, .n 3811, .n 3812] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 3813]))) ::
+  .atom (.const (.n 3814) (word 0 7881299347898368 0)) ::
+  .atom (.add (.n 3815) (.n 1721) (.n 3814)) ::
+  .atom (.const (.n 3816) (word 256 0 0)) ::
+  .atom (.mul (.n 3817) (.n 863) (.n 3816)) ::
+  .atom (.add (.n 3818) (.n 887) (.n 3817)) ::
+  .atom (.const (.n 3819) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3820) (.n 3818) (.n 3819)) ::
+  .atom (.const (.n 3821) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3822) (.n 863) (.n 3821)) ::
+  .atom (.add (.n 3823) (.n 3820) (.n 3822)) ::
+  .atom (.add (.n 3824) (.n 3815) (.n 3823)) ::
+  .atom (.const (.n 3825) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3824, .n 3813, .n 353, .n 354, .n 355, .n 356, .n 3825, .n 354, .n 355, .n 356, .n 357] [.n 3826, .n 3827, .n 3828, .n 3829, .n 3830, .n 3831, .n 3832, .n 3833, .n 3834, .n 3835, .n 3836, .n 3837, .n 3838] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3839, .n 3840]))) ::
+  .atom (.add (.n 3841) (.n 3826) (.n 3839)) ::
+  .atom (.add (.n 3842) (.n 3839) (.n 3840)) ::
+  .atom (.mul (.n 3841) (.n 464) (.n 3842)) ::
+  .atom (.const (.n 3843) (word 0 3940649690726400 0)) ::
+  .atom (.add (.n 3844) (.n 1721) (.n 3843)) ::
+  .atom (.const (.n 3845) (word 256 0 0)) ::
+  .atom (.mul (.n 3846) (.n 860) (.n 3845)) ::
+  .atom (.add (.n 3847) (.n 884) (.n 3846)) ::
+  .atom (.const (.n 3848) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3849) (.n 3847) (.n 3848)) ::
+  .atom (.const (.n 3850) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 3851) (.n 860) (.n 3850)) ::
+  .atom (.add (.n 3852) (.n 3849) (.n 3851)) ::
+  .atom (.add (.n 3853) (.n 3844) (.n 3852)) ::
+  .atom (.copy (.n 3854) (.n 3840)) ::
+  .atom (.const (.n 3855) (word 1 0 0)) ::
+  .atom (.const (.n 3856) (word 0 0 0)) ::
+  .atom (.const (.n 3857) (word 0 0 0)) ::
+  .atom (.const (.n 3858) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3853, .n 3839, .n 3854, .n 3855, .n 3856, .n 3857, .n 3858, .n 354, .n 355, .n 356, .n 357] [.n 3859, .n 3860, .n 3861, .n 3862, .n 3863, .n 3864, .n 3865, .n 3866, .n 3867, .n 3868, .n 3869, .n 3870, .n 3871] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3872, .n 3873]))) ::
+  .atom (.add (.n 3874) (.n 3859) (.n 3872)) ::
+  .atom (.add (.n 3875) (.n 3872) (.n 3873)) ::
+  .atom (.mul (.n 3874) (.n 465) (.n 3875)) ::
+  .atom (.const (.n 3876) (word 0 1970324870529024 0)) ::
+  .atom (.add (.n 3877) (.n 1721) (.n 3876)) ::
+  .atom (.const (.n 3878) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3879) (.n 881) (.n 3878)) ::
+  .atom (.add (.n 3880) (.n 3877) (.n 3879)) ::
+  .atom (.copy (.n 3881) (.n 3873)) ::
+  .atom (.const (.n 3882) (word 1 0 0)) ::
+  .atom (.const (.n 3883) (word 0 0 0)) ::
+  .atom (.const (.n 3884) (word 0 0 0)) ::
+  .atom (.const (.n 3885) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3880, .n 3872, .n 3881, .n 3882, .n 3883, .n 3884, .n 3885, .n 354, .n 355, .n 356, .n 357] [.n 3886, .n 3887, .n 3888, .n 3889, .n 3890, .n 3891, .n 3892, .n 3893, .n 3894, .n 3895, .n 3896, .n 3897, .n 3898] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3899, .n 3900]))) ::
+  .atom (.add (.n 3901) (.n 3886) (.n 3899)) ::
+  .atom (.add (.n 3902) (.n 3899) (.n 3900)) ::
+  .atom (.mul (.n 3901) (.n 466) (.n 3902)) ::
+  .atom (.const (.n 3903) (word 0 9224216461835239424 0)) ::
+  .atom (.add (.n 3904) (.n 1721) (.n 3903)) ::
+  .atom (.const (.n 3905) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3906) (.n 878) (.n 3905)) ::
+  .atom (.add (.n 3907) (.n 3904) (.n 3906)) ::
+  .atom (.copy (.n 3908) (.n 3900)) ::
+  .atom (.const (.n 3909) (word 1 0 0)) ::
+  .atom (.const (.n 3910) (word 0 0 0)) ::
+  .atom (.const (.n 3911) (word 0 0 0)) ::
+  .atom (.const (.n 3912) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3907, .n 3899, .n 3908, .n 3909, .n 3910, .n 3911, .n 3912, .n 354, .n 355, .n 356, .n 357] [.n 3913, .n 3914, .n 3915, .n 3916, .n 3917, .n 3918, .n 3919, .n 3920, .n 3921, .n 3922, .n 3923, .n 3924, .n 3925] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3926, .n 3927]))) ::
+  .atom (.add (.n 3928) (.n 3913) (.n 3926)) ::
+  .atom (.add (.n 3929) (.n 3926) (.n 3927)) ::
+  .atom (.mul (.n 3928) (.n 467) (.n 3929)) ::
+  .atom (.const (.n 3930) (word 0 13835339530325983232 0)) ::
+  .atom (.add (.n 3931) (.n 1721) (.n 3930)) ::
+  .atom (.const (.n 3932) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3933) (.n 875) (.n 3932)) ::
+  .atom (.add (.n 3934) (.n 3931) (.n 3933)) ::
+  .atom (.copy (.n 3935) (.n 3927)) ::
+  .atom (.const (.n 3936) (word 1 0 0)) ::
+  .atom (.const (.n 3937) (word 0 0 0)) ::
+  .atom (.const (.n 3938) (word 0 0 0)) ::
+  .atom (.const (.n 3939) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3934, .n 3926, .n 3935, .n 3936, .n 3937, .n 3938, .n 3939, .n 354, .n 355, .n 356, .n 357] [.n 3940, .n 3941, .n 3942, .n 3943, .n 3944, .n 3945, .n 3946, .n 3947, .n 3948, .n 3949, .n 3950, .n 3951, .n 3952] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3953, .n 3954]))) ::
+  .atom (.add (.n 3955) (.n 3940) (.n 3953)) ::
+  .atom (.add (.n 3956) (.n 3953) (.n 3954)) ::
+  .atom (.mul (.n 3955) (.n 468) (.n 3956)) ::
+  .atom (.const (.n 3957) (word 0 16140901064579743744 0)) ::
+  .atom (.add (.n 3958) (.n 1721) (.n 3957)) ::
+  .atom (.const (.n 3959) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3960) (.n 872) (.n 3959)) ::
+  .atom (.add (.n 3961) (.n 3958) (.n 3960)) ::
+  .atom (.copy (.n 3962) (.n 3954)) ::
+  .atom (.const (.n 3963) (word 1 0 0)) ::
+  .atom (.const (.n 3964) (word 0 0 0)) ::
+  .atom (.const (.n 3965) (word 0 0 0)) ::
+  .atom (.const (.n 3966) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3961, .n 3953, .n 3962, .n 3963, .n 3964, .n 3965, .n 3966, .n 354, .n 355, .n 356, .n 357] [.n 3967, .n 3968, .n 3969, .n 3970, .n 3971, .n 3972, .n 3973, .n 3974, .n 3975, .n 3976, .n 3977, .n 3978, .n 3979] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 3980, .n 3981]))) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 2611 to 2976 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 2855 to 3258 of the body. -/
 noncomputable def c6 : List Core.Stmt := (
-  .atom (.add (.n 4163) (.n 4042) (.n 4162)) ::
-  .atom (.const (.n 4164) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4165) (.n 734) (.n 4164)) ::
-  .atom (.add (.n 4166) (.n 4163) (.n 4165)) ::
-  .atom (.const (.n 4167) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4166, .n 4158, .n 4159, .n 12, .n 13, .n 14, .n 15, .n 4167, .n 13, .n 14, .n 15, .n 16] [.n 4168, .n 4169, .n 4170, .n 4171, .n 4172, .n 4173, .n 4174, .n 4175, .n 4176, .n 4177, .n 4178, .n 4179, .n 4180] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4181, .n 4182]))) ::
-  .atom (.add (.n 4183) (.n 4168) (.n 4181)) ::
-  .atom (.add (.n 4184) (.n 4181) (.n 4182)) ::
-  .atom (.mul (.n 4183) (.n 203) (.n 4184)) ::
-  .atom (.const (.n 4185) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 4186) (.n 4042) (.n 4185)) ::
-  .atom (.const (.n 4187) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4188) (.n 731) (.n 4187)) ::
-  .atom (.add (.n 4189) (.n 4186) (.n 4188)) ::
-  .atom (.const (.n 4190) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4189, .n 4181, .n 4182, .n 12, .n 13, .n 14, .n 15, .n 4190, .n 13, .n 14, .n 15, .n 16] [.n 4191, .n 4192, .n 4193, .n 4194, .n 4195, .n 4196, .n 4197, .n 4198, .n 4199, .n 4200, .n 4201, .n 4202, .n 4203] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4204, .n 4205]))) ::
-  .atom (.add (.n 4206) (.n 4191) (.n 4204)) ::
-  .atom (.add (.n 4207) (.n 4204) (.n 4205)) ::
-  .atom (.mul (.n 4206) (.n 204) (.n 4207)) ::
-  .atom (.const (.n 4208) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 4209) (.n 4042) (.n 4208)) ::
-  .atom (.const (.n 4210) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4211) (.n 728) (.n 4210)) ::
-  .atom (.add (.n 4212) (.n 4209) (.n 4211)) ::
-  .atom (.const (.n 4213) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4212, .n 4204, .n 4205, .n 12, .n 13, .n 14, .n 15, .n 4213, .n 13, .n 14, .n 15, .n 16] [.n 4214, .n 4215, .n 4216, .n 4217, .n 4218, .n 4219, .n 4220, .n 4221, .n 4222, .n 4223, .n 4224, .n 4225, .n 4226] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4227, .n 4228]))) ::
-  .atom (.add (.n 4229) (.n 4214) (.n 4227)) ::
-  .atom (.add (.n 4230) (.n 4227) (.n 4228)) ::
-  .atom (.mul (.n 4229) (.n 205) (.n 4230)) ::
-  .atom (.const (.n 4231) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 4232) (.n 4042) (.n 4231)) ::
-  .atom (.const (.n 4233) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4234) (.n 725) (.n 4233)) ::
-  .atom (.add (.n 4235) (.n 4232) (.n 4234)) ::
-  .atom (.const (.n 4236) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4235, .n 4227, .n 4228, .n 12, .n 13, .n 14, .n 15, .n 4236, .n 13, .n 14, .n 15, .n 16] [.n 4237, .n 4238, .n 4239, .n 4240, .n 4241, .n 4242, .n 4243, .n 4244, .n 4245, .n 4246, .n 4247, .n 4248, .n 4249] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4250, .n 4251]))) ::
-  .atom (.add (.n 4252) (.n 4237) (.n 4250)) ::
-  .atom (.add (.n 4253) (.n 4250) (.n 4251)) ::
-  .atom (.mul (.n 4252) (.n 206) (.n 4253)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4254]))) ::
-  .atom (.const (.n 4255) (word 1080863966403493888 0 0)) ::
-  .atom (.add (.n 4256) (.n 1067) (.n 4255)) ::
-  .atom (.const (.n 4257) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 4258) (.n 780) (.n 4257)) ::
-  .atom (.add (.n 4259) (.n 4256) (.n 4258)) ::
-  .atom (.const (.n 4260) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4259, .n 4254, .n 12, .n 13, .n 14, .n 15, .n 16, .n 4260, .n 13, .n 14, .n 15, .n 16] [.n 4261, .n 4262, .n 4263, .n 4264, .n 4265, .n 4266, .n 4267, .n 4268, .n 4269, .n 4270, .n 4271, .n 4272, .n 4273] false false) ::
-  .atom (.const (.n 4274) (word 1224979154479349760 0 0)) ::
-  .atom (.add (.n 4275) (.n 1067) (.n 4274)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4276, .n 4277]))) ::
-  .atom (.add (.n 4278) (.n 4261) (.n 4276)) ::
-  .atom (.add (.n 4279) (.n 4276) (.n 4277)) ::
-  .atom (.mul (.n 4278) (.n 207) (.n 4279)) ::
-  .atom (.const (.n 4280) (word 274877906944 0 0)) ::
-  .atom (.add (.n 4281) (.n 4275) (.n 4280)) ::
-  .atom (.const (.n 4282) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4283) (.n 777) (.n 4282)) ::
-  .atom (.add (.n 4284) (.n 4281) (.n 4283)) ::
-  .atom (.const (.n 4285) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4284, .n 4276, .n 4277, .n 12, .n 13, .n 14, .n 15, .n 4285, .n 13, .n 14, .n 15, .n 16] [.n 4286, .n 4287, .n 4288, .n 4289, .n 4290, .n 4291, .n 4292, .n 4293, .n 4294, .n 4295, .n 4296, .n 4297, .n 4298] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4299, .n 4300]))) ::
-  .atom (.add (.n 4301) (.n 4286) (.n 4299)) ::
-  .atom (.add (.n 4302) (.n 4299) (.n 4300)) ::
-  .atom (.mul (.n 4301) (.n 208) (.n 4302)) ::
-  .atom (.const (.n 4303) (word 549755813888 0 0)) ::
-  .atom (.add (.n 4304) (.n 4275) (.n 4303)) ::
-  .atom (.const (.n 4305) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4306) (.n 774) (.n 4305)) ::
-  .atom (.add (.n 4307) (.n 4304) (.n 4306)) ::
-  .atom (.const (.n 4308) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4307, .n 4299, .n 4300, .n 12, .n 13, .n 14, .n 15, .n 4308, .n 13, .n 14, .n 15, .n 16] [.n 4309, .n 4310, .n 4311, .n 4312, .n 4313, .n 4314, .n 4315, .n 4316, .n 4317, .n 4318, .n 4319, .n 4320, .n 4321] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4322, .n 4323]))) ::
-  .atom (.add (.n 4324) (.n 4309) (.n 4322)) ::
-  .atom (.add (.n 4325) (.n 4322) (.n 4323)) ::
-  .atom (.mul (.n 4324) (.n 209) (.n 4325)) ::
-  .atom (.const (.n 4326) (word 824633720832 0 0)) ::
-  .atom (.add (.n 4327) (.n 4275) (.n 4326)) ::
-  .atom (.const (.n 4328) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4329) (.n 771) (.n 4328)) ::
-  .atom (.add (.n 4330) (.n 4327) (.n 4329)) ::
-  .atom (.const (.n 4331) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4330, .n 4322, .n 4323, .n 12, .n 13, .n 14, .n 15, .n 4331, .n 13, .n 14, .n 15, .n 16] [.n 4332, .n 4333, .n 4334, .n 4335, .n 4336, .n 4337, .n 4338, .n 4339, .n 4340, .n 4341, .n 4342, .n 4343, .n 4344] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4345, .n 4346]))) ::
-  .atom (.add (.n 4347) (.n 4332) (.n 4345)) ::
-  .atom (.add (.n 4348) (.n 4345) (.n 4346)) ::
-  .atom (.mul (.n 4347) (.n 210) (.n 4348)) ::
-  .atom (.const (.n 4349) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 4350) (.n 4275) (.n 4349)) ::
-  .atom (.const (.n 4351) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4352) (.n 768) (.n 4351)) ::
-  .atom (.add (.n 4353) (.n 4350) (.n 4352)) ::
-  .atom (.const (.n 4354) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4353, .n 4345, .n 4346, .n 12, .n 13, .n 14, .n 15, .n 4354, .n 13, .n 14, .n 15, .n 16] [.n 4355, .n 4356, .n 4357, .n 4358, .n 4359, .n 4360, .n 4361, .n 4362, .n 4363, .n 4364, .n 4365, .n 4366, .n 4367] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4368, .n 4369]))) ::
-  .atom (.add (.n 4370) (.n 4355) (.n 4368)) ::
-  .atom (.add (.n 4371) (.n 4368) (.n 4369)) ::
-  .atom (.mul (.n 4370) (.n 211) (.n 4371)) ::
-  .atom (.const (.n 4372) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 4373) (.n 4275) (.n 4372)) ::
-  .atom (.const (.n 4374) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4375) (.n 765) (.n 4374)) ::
-  .atom (.add (.n 4376) (.n 4373) (.n 4375)) ::
-  .atom (.const (.n 4377) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4376, .n 4368, .n 4369, .n 12, .n 13, .n 14, .n 15, .n 4377, .n 13, .n 14, .n 15, .n 16] [.n 4378, .n 4379, .n 4380, .n 4381, .n 4382, .n 4383, .n 4384, .n 4385, .n 4386, .n 4387, .n 4388, .n 4389, .n 4390] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4391, .n 4392]))) ::
-  .atom (.add (.n 4393) (.n 4378) (.n 4391)) ::
-  .atom (.add (.n 4394) (.n 4391) (.n 4392)) ::
-  .atom (.mul (.n 4393) (.n 212) (.n 4394)) ::
-  .atom (.const (.n 4395) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 4396) (.n 4275) (.n 4395)) ::
-  .atom (.const (.n 4397) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4398) (.n 762) (.n 4397)) ::
-  .atom (.add (.n 4399) (.n 4396) (.n 4398)) ::
-  .atom (.const (.n 4400) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4399, .n 4391, .n 4392, .n 12, .n 13, .n 14, .n 15, .n 4400, .n 13, .n 14, .n 15, .n 16] [.n 4401, .n 4402, .n 4403, .n 4404, .n 4405, .n 4406, .n 4407, .n 4408, .n 4409, .n 4410, .n 4411, .n 4412, .n 4413] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4414, .n 4415]))) ::
-  .atom (.add (.n 4416) (.n 4401) (.n 4414)) ::
-  .atom (.add (.n 4417) (.n 4414) (.n 4415)) ::
-  .atom (.mul (.n 4416) (.n 213) (.n 4417)) ::
-  .atom (.const (.n 4418) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 4419) (.n 4275) (.n 4418)) ::
-  .atom (.const (.n 4420) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4421) (.n 759) (.n 4420)) ::
-  .atom (.add (.n 4422) (.n 4419) (.n 4421)) ::
+  .atom (.add (.n 3982) (.n 3967) (.n 3980)) ::
+  .atom (.add (.n 3983) (.n 3980) (.n 3981)) ::
+  .atom (.mul (.n 3982) (.n 469) (.n 3983)) ::
+  .atom (.const (.n 3984) (word 0 8070450532348592128 0)) ::
+  .atom (.add (.n 3985) (.n 1721) (.n 3984)) ::
+  .atom (.const (.n 3986) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 3987) (.n 869) (.n 3986)) ::
+  .atom (.add (.n 3988) (.n 3985) (.n 3987)) ::
+  .atom (.copy (.n 3989) (.n 3981)) ::
+  .atom (.const (.n 3990) (word 1 0 0)) ::
+  .atom (.const (.n 3991) (word 0 0 0)) ::
+  .atom (.const (.n 3992) (word 0 0 0)) ::
+  .atom (.const (.n 3993) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 3988, .n 3980, .n 3989, .n 3990, .n 3991, .n 3992, .n 3993, .n 354, .n 355, .n 356, .n 357] [.n 3994, .n 3995, .n 3996, .n 3997, .n 3998, .n 3999, .n 4000, .n 4001, .n 4002, .n 4003, .n 4004, .n 4005, .n 4006] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4007, .n 4008]))) ::
+  .atom (.add (.n 4009) (.n 3994) (.n 4007)) ::
+  .atom (.add (.n 4010) (.n 4007) (.n 4008)) ::
+  .atom (.mul (.n 4009) (.n 470) (.n 4010)) ::
+  .atom (.const (.n 4011) (word 0 4035225266241404928 0)) ::
+  .atom (.add (.n 4012) (.n 1721) (.n 4011)) ::
+  .atom (.const (.n 4013) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4014) (.n 866) (.n 4013)) ::
+  .atom (.add (.n 4015) (.n 4012) (.n 4014)) ::
+  .atom (.copy (.n 4016) (.n 4008)) ::
+  .atom (.const (.n 4017) (word 1 0 0)) ::
+  .atom (.const (.n 4018) (word 0 0 0)) ::
+  .atom (.const (.n 4019) (word 0 0 0)) ::
+  .atom (.const (.n 4020) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4015, .n 4007, .n 4016, .n 4017, .n 4018, .n 4019, .n 4020, .n 354, .n 355, .n 356, .n 357] [.n 4021, .n 4022, .n 4023, .n 4024, .n 4025, .n 4026, .n 4027, .n 4028, .n 4029, .n 4030, .n 4031, .n 4032, .n 4033] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4034, .n 4035]))) ::
+  .atom (.add (.n 4036) (.n 4021) (.n 4034)) ::
+  .atom (.add (.n 4037) (.n 4034) (.n 4035)) ::
+  .atom (.mul (.n 4036) (.n 471) (.n 4037)) ::
+  .atom (.const (.n 4038) (word 0 2017612633196199936 0)) ::
+  .atom (.add (.n 4039) (.n 1721) (.n 4038)) ::
+  .atom (.const (.n 4040) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4041) (.n 863) (.n 4040)) ::
+  .atom (.add (.n 4042) (.n 4039) (.n 4041)) ::
+  .atom (.copy (.n 4043) (.n 4035)) ::
+  .atom (.const (.n 4044) (word 1 0 0)) ::
+  .atom (.const (.n 4045) (word 0 0 0)) ::
+  .atom (.const (.n 4046) (word 0 0 0)) ::
+  .atom (.const (.n 4047) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4042, .n 4034, .n 4043, .n 4044, .n 4045, .n 4046, .n 4047, .n 354, .n 355, .n 356, .n 357] [.n 4048, .n 4049, .n 4050, .n 4051, .n 4052, .n 4053, .n 4054, .n 4055, .n 4056, .n 4057, .n 4058, .n 4059, .n 4060] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4061, .n 4062]))) ::
+  .atom (.add (.n 4063) (.n 4048) (.n 4061)) ::
+  .atom (.add (.n 4064) (.n 4061) (.n 4062)) ::
+  .atom (.mul (.n 4063) (.n 456) (.n 4064)) ::
+  .atom (.const (.n 4065) (word 0 1008806316681986048 0)) ::
+  .atom (.add (.n 4066) (.n 1721) (.n 4065)) ::
+  .atom (.const (.n 4067) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4068) (.n 860) (.n 4067)) ::
+  .atom (.add (.n 4069) (.n 4066) (.n 4068)) ::
+  .atom (.copy (.n 4070) (.n 4062)) ::
+  .atom (.const (.n 4071) (word 1 0 0)) ::
+  .atom (.const (.n 4072) (word 0 0 0)) ::
+  .atom (.const (.n 4073) (word 0 0 0)) ::
+  .atom (.const (.n 4074) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4069, .n 4061, .n 4070, .n 4071, .n 4072, .n 4073, .n 4074, .n 354, .n 355, .n 356, .n 357] [.n 4075, .n 4076, .n 4077, .n 4078, .n 4079, .n 4080, .n 4081, .n 4082, .n 4083, .n 4084, .n 4085, .n 4086, .n 4087] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4088, .n 4089]))) ::
+  .atom (.add (.n 4090) (.n 4075) (.n 4088)) ::
+  .atom (.add (.n 4091) (.n 4088) (.n 4089)) ::
+  .atom (.mul (.n 4090) (.n 457) (.n 4091)) ::
+  .atom (.const (.n 4092) (word 0 504403158433267712 0)) ::
+  .atom (.add (.n 4093) (.n 1721) (.n 4092)) ::
+  .atom (.copy (.n 4094) (.n 4089)) ::
+  .atom (.const (.n 4095) (word 1 0 0)) ::
+  .atom (.const (.n 4096) (word 0 0 0)) ::
+  .atom (.const (.n 4097) (word 0 0 0)) ::
+  .atom (.const (.n 4098) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4093, .n 4088, .n 4094, .n 4095, .n 4096, .n 4097, .n 4098, .n 354, .n 355, .n 356, .n 357] [.n 4099, .n 4100, .n 4101, .n 4102, .n 4103, .n 4104, .n 4105, .n 4106, .n 4107, .n 4108, .n 4109, .n 4110, .n 4111] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4112]))) ::
+  .atom (.const (.n 4113) (word 0 9007199254740992 0)) ::
+  .atom (.add (.n 4114) (.n 1721) (.n 4113)) ::
+  .atom (.const (.n 4115) (word 256 0 0)) ::
+  .atom (.mul (.n 4116) (.n 891) (.n 4115)) ::
+  .atom (.add (.n 4117) (.n 915) (.n 4116)) ::
+  .atom (.const (.n 4118) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4119) (.n 4117) (.n 4118)) ::
+  .atom (.const (.n 4120) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4121) (.n 891) (.n 4120)) ::
+  .atom (.add (.n 4122) (.n 4119) (.n 4121)) ::
+  .atom (.add (.n 4123) (.n 4114) (.n 4122)) ::
+  .atom (.const (.n 4124) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4123, .n 4112, .n 353, .n 354, .n 355, .n 356, .n 4124, .n 354, .n 355, .n 356, .n 357] [.n 4125, .n 4126, .n 4127, .n 4128, .n 4129, .n 4130, .n 4131, .n 4132, .n 4133, .n 4134, .n 4135, .n 4136, .n 4137] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4138, .n 4139]))) ::
+  .atom (.add (.n 4140) (.n 4125) (.n 4138)) ::
+  .atom (.add (.n 4141) (.n 4138) (.n 4139)) ::
+  .atom (.mul (.n 4140) (.n 486) (.n 4141)) ::
+  .atom (.const (.n 4142) (word 0 4503599644147712 0)) ::
+  .atom (.add (.n 4143) (.n 1721) (.n 4142)) ::
+  .atom (.const (.n 4144) (word 256 0 0)) ::
+  .atom (.mul (.n 4145) (.n 888) (.n 4144)) ::
+  .atom (.add (.n 4146) (.n 912) (.n 4145)) ::
+  .atom (.const (.n 4147) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4148) (.n 4146) (.n 4147)) ::
+  .atom (.const (.n 4149) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4150) (.n 888) (.n 4149)) ::
+  .atom (.add (.n 4151) (.n 4148) (.n 4150)) ::
+  .atom (.add (.n 4152) (.n 4143) (.n 4151)) ::
+  .atom (.copy (.n 4153) (.n 4139)) ::
+  .atom (.const (.n 4154) (word 1 0 0)) ::
+  .atom (.const (.n 4155) (word 0 0 0)) ::
+  .atom (.const (.n 4156) (word 0 0 0)) ::
+  .atom (.const (.n 4157) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4152, .n 4138, .n 4153, .n 4154, .n 4155, .n 4156, .n 4157, .n 354, .n 355, .n 356, .n 357] [.n 4158, .n 4159, .n 4160, .n 4161, .n 4162, .n 4163, .n 4164, .n 4165, .n 4166, .n 4167, .n 4168, .n 4169, .n 4170] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4171, .n 4172]))) ::
+  .atom (.add (.n 4173) (.n 4158) (.n 4171)) ::
+  .atom (.add (.n 4174) (.n 4171) (.n 4172)) ::
+  .atom (.mul (.n 4173) (.n 487) (.n 4174)) ::
+  .atom (.const (.n 4175) (word 0 2251799847239680 0)) ::
+  .atom (.add (.n 4176) (.n 1721) (.n 4175)) ::
+  .atom (.const (.n 4177) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4178) (.n 909) (.n 4177)) ::
+  .atom (.add (.n 4179) (.n 4176) (.n 4178)) ::
+  .atom (.copy (.n 4180) (.n 4172)) ::
+  .atom (.const (.n 4181) (word 1 0 0)) ::
+  .atom (.const (.n 4182) (word 0 0 0)) ::
+  .atom (.const (.n 4183) (word 0 0 0)) ::
+  .atom (.const (.n 4184) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4179, .n 4171, .n 4180, .n 4181, .n 4182, .n 4183, .n 4184, .n 354, .n 355, .n 356, .n 357] [.n 4185, .n 4186, .n 4187, .n 4188, .n 4189, .n 4190, .n 4191, .n 4192, .n 4193, .n 4194, .n 4195, .n 4196, .n 4197] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4198, .n 4199]))) ::
+  .atom (.add (.n 4200) (.n 4185) (.n 4198)) ::
+  .atom (.add (.n 4201) (.n 4198) (.n 4199)) ::
+  .atom (.mul (.n 4200) (.n 472) (.n 4201)) ::
+  .atom (.const (.n 4202) (word 0 1125899957174272 0)) ::
+  .atom (.add (.n 4203) (.n 1721) (.n 4202)) ::
+  .atom (.const (.n 4204) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4205) (.n 906) (.n 4204)) ::
+  .atom (.add (.n 4206) (.n 4203) (.n 4205)) ::
+  .atom (.copy (.n 4207) (.n 4199)) ::
+  .atom (.const (.n 4208) (word 1 0 0)) ::
+  .atom (.const (.n 4209) (word 0 0 0)) ::
+  .atom (.const (.n 4210) (word 0 0 0)) ::
+  .atom (.const (.n 4211) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4206, .n 4198, .n 4207, .n 4208, .n 4209, .n 4210, .n 4211, .n 354, .n 355, .n 356, .n 357] [.n 4212, .n 4213, .n 4214, .n 4215, .n 4216, .n 4217, .n 4218, .n 4219, .n 4220, .n 4221, .n 4222, .n 4223, .n 4224] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4225, .n 4226]))) ::
+  .atom (.add (.n 4227) (.n 4212) (.n 4225)) ::
+  .atom (.add (.n 4228) (.n 4225) (.n 4226)) ::
+  .atom (.mul (.n 4227) (.n 473) (.n 4228)) ::
+  .atom (.const (.n 4229) (word 0 562950020530176 0)) ::
+  .atom (.add (.n 4230) (.n 1721) (.n 4229)) ::
+  .atom (.const (.n 4231) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4232) (.n 903) (.n 4231)) ::
+  .atom (.add (.n 4233) (.n 4230) (.n 4232)) ::
+  .atom (.copy (.n 4234) (.n 4226)) ::
+  .atom (.const (.n 4235) (word 1 0 0)) ::
+  .atom (.const (.n 4236) (word 0 0 0)) ::
+  .atom (.const (.n 4237) (word 0 0 0)) ::
+  .atom (.const (.n 4238) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4233, .n 4225, .n 4234, .n 4235, .n 4236, .n 4237, .n 4238, .n 354, .n 355, .n 356, .n 357] [.n 4239, .n 4240, .n 4241, .n 4242, .n 4243, .n 4244, .n 4245, .n 4246, .n 4247, .n 4248, .n 4249, .n 4250, .n 4251] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4252, .n 4253]))) ::
+  .atom (.add (.n 4254) (.n 4239) (.n 4252)) ::
+  .atom (.add (.n 4255) (.n 4252) (.n 4253)) ::
+  .atom (.mul (.n 4254) (.n 474) (.n 4255)) ::
+  .atom (.const (.n 4256) (word 0 281475060596736 0)) ::
+  .atom (.add (.n 4257) (.n 1721) (.n 4256)) ::
+  .atom (.const (.n 4258) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4259) (.n 900) (.n 4258)) ::
+  .atom (.add (.n 4260) (.n 4257) (.n 4259)) ::
+  .atom (.copy (.n 4261) (.n 4253)) ::
+  .atom (.const (.n 4262) (word 1 0 0)) ::
+  .atom (.const (.n 4263) (word 0 0 0)) ::
+  .atom (.const (.n 4264) (word 0 0 0)) ::
+  .atom (.const (.n 4265) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4260, .n 4252, .n 4261, .n 4262, .n 4263, .n 4264, .n 4265, .n 354, .n 355, .n 356, .n 357] [.n 4266, .n 4267, .n 4268, .n 4269, .n 4270, .n 4271, .n 4272, .n 4273, .n 4274, .n 4275, .n 4276, .n 4277, .n 4278] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4279, .n 4280]))) ::
+  .atom (.add (.n 4281) (.n 4266) (.n 4279)) ::
+  .atom (.add (.n 4282) (.n 4279) (.n 4280)) ::
+  .atom (.mul (.n 4281) (.n 475) (.n 4282)) ::
+  .atom (.const (.n 4283) (word 0 9223372036955439104 0)) ::
+  .atom (.add (.n 4284) (.n 1721) (.n 4283)) ::
+  .atom (.const (.n 4285) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4286) (.n 897) (.n 4285)) ::
+  .atom (.add (.n 4287) (.n 4284) (.n 4286)) ::
+  .atom (.copy (.n 4288) (.n 4280)) ::
+  .atom (.const (.n 4289) (word 1 0 0)) ::
+  .atom (.const (.n 4290) (word 0 0 0)) ::
+  .atom (.const (.n 4291) (word 0 0 0)) ::
+  .atom (.const (.n 4292) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4287, .n 4279, .n 4288, .n 4289, .n 4290, .n 4291, .n 4292, .n 354, .n 355, .n 356, .n 357] [.n 4293, .n 4294, .n 4295, .n 4296, .n 4297, .n 4298, .n 4299, .n 4300, .n 4301, .n 4302, .n 4303, .n 4304, .n 4305] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4306, .n 4307]))) ::
+  .atom (.add (.n 4308) (.n 4293) (.n 4306)) ::
+  .atom (.add (.n 4309) (.n 4306) (.n 4307)) ::
+  .atom (.mul (.n 4308) (.n 476) (.n 4309)) ::
+  .atom (.const (.n 4310) (word 0 4611686018544828416 0)) ::
+  .atom (.add (.n 4311) (.n 1721) (.n 4310)) ::
+  .atom (.const (.n 4312) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4313) (.n 894) (.n 4312)) ::
+  .atom (.add (.n 4314) (.n 4311) (.n 4313)) ::
+  .atom (.copy (.n 4315) (.n 4307)) ::
+  .atom (.const (.n 4316) (word 1 0 0)) ::
+  .atom (.const (.n 4317) (word 0 0 0)) ::
+  .atom (.const (.n 4318) (word 0 0 0)) ::
+  .atom (.const (.n 4319) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4314, .n 4306, .n 4315, .n 4316, .n 4317, .n 4318, .n 4319, .n 354, .n 355, .n 356, .n 357] [.n 4320, .n 4321, .n 4322, .n 4323, .n 4324, .n 4325, .n 4326, .n 4327, .n 4328, .n 4329, .n 4330, .n 4331, .n 4332] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4333, .n 4334]))) ::
+  .atom (.add (.n 4335) (.n 4320) (.n 4333)) ::
+  .atom (.add (.n 4336) (.n 4333) (.n 4334)) ::
+  .atom (.mul (.n 4335) (.n 477) (.n 4336)) ::
+  .atom (.const (.n 4337) (word 0 2305843009347911680 0)) ::
+  .atom (.add (.n 4338) (.n 1721) (.n 4337)) ::
+  .atom (.const (.n 4339) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4340) (.n 891) (.n 4339)) ::
+  .atom (.add (.n 4341) (.n 4338) (.n 4340)) ::
+  .atom (.copy (.n 4342) (.n 4334)) ::
+  .atom (.const (.n 4343) (word 1 0 0)) ::
+  .atom (.const (.n 4344) (word 0 0 0)) ::
+  .atom (.const (.n 4345) (word 0 0 0)) ::
+  .atom (.const (.n 4346) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4341, .n 4333, .n 4342, .n 4343, .n 4344, .n 4345, .n 4346, .n 354, .n 355, .n 356, .n 357] [.n 4347, .n 4348, .n 4349, .n 4350, .n 4351, .n 4352, .n 4353, .n 4354, .n 4355, .n 4356, .n 4357, .n 4358, .n 4359] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4360, .n 4361]))) ::
+  .atom (.add (.n 4362) (.n 4347) (.n 4360)) ::
+  .atom (.add (.n 4363) (.n 4360) (.n 4361)) ::
+  .atom (.mul (.n 4362) (.n 478) (.n 4363)) ::
+  .atom (.const (.n 4364) (word 0 1152921504757841920 0)) ::
+  .atom (.add (.n 4365) (.n 1721) (.n 4364)) ::
+  .atom (.const (.n 4366) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4367) (.n 888) (.n 4366)) ::
+  .atom (.add (.n 4368) (.n 4365) (.n 4367)) ::
+  .atom (.copy (.n 4369) (.n 4361)) ::
+  .atom (.const (.n 4370) (word 1 0 0)) ::
+  .atom (.const (.n 4371) (word 0 0 0)) ::
+  .atom (.const (.n 4372) (word 0 0 0)) ::
+  .atom (.const (.n 4373) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4368, .n 4360, .n 4369, .n 4370, .n 4371, .n 4372, .n 4373, .n 354, .n 355, .n 356, .n 357] [.n 4374, .n 4375, .n 4376, .n 4377, .n 4378, .n 4379, .n 4380, .n 4381, .n 4382, .n 4383, .n 4384, .n 4385, .n 4386] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4387, .n 4388]))) ::
+  .atom (.add (.n 4389) (.n 4374) (.n 4387)) ::
+  .atom (.add (.n 4390) (.n 4387) (.n 4388)) ::
+  .atom (.mul (.n 4389) (.n 479) (.n 4390)) ::
+  .atom (.const (.n 4391) (word 0 576460752471195648 0)) ::
+  .atom (.add (.n 4392) (.n 1721) (.n 4391)) ::
+  .atom (.copy (.n 4393) (.n 4388)) ::
+  .atom (.const (.n 4394) (word 1 0 0)) ::
+  .atom (.const (.n 4395) (word 0 0 0)) ::
+  .atom (.const (.n 4396) (word 0 0 0)) ::
+  .atom (.const (.n 4397) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4392, .n 4387, .n 4393, .n 4394, .n 4395, .n 4396, .n 4397, .n 354, .n 355, .n 356, .n 357] [.n 4398, .n 4399, .n 4400, .n 4401, .n 4402, .n 4403, .n 4404, .n 4405, .n 4406, .n 4407, .n 4408, .n 4409, .n 4410] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4411]))) ::
+  .atom (.const (.n 4412) (word 0 10133099161583616 0)) ::
+  .atom (.add (.n 4413) (.n 1721) (.n 4412)) ::
+  .atom (.const (.n 4414) (word 256 0 0)) ::
+  .atom (.mul (.n 4415) (.n 919) (.n 4414)) ::
+  .atom (.add (.n 4416) (.n 943) (.n 4415)) ::
+  .atom (.const (.n 4417) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4418) (.n 4416) (.n 4417)) ::
+  .atom (.const (.n 4419) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4420) (.n 919) (.n 4419)) ::
+  .atom (.add (.n 4421) (.n 4418) (.n 4420)) ::
+  .atom (.add (.n 4422) (.n 4413) (.n 4421)) ::
   .atom (.const (.n 4423) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4422, .n 4414, .n 4415, .n 12, .n 13, .n 14, .n 15, .n 4423, .n 13, .n 14, .n 15, .n 16] [.n 4424, .n 4425, .n 4426, .n 4427, .n 4428, .n 4429, .n 4430, .n 4431, .n 4432, .n 4433, .n 4434, .n 4435, .n 4436] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4422, .n 4411, .n 353, .n 354, .n 355, .n 356, .n 4423, .n 354, .n 355, .n 356, .n 357] [.n 4424, .n 4425, .n 4426, .n 4427, .n 4428, .n 4429, .n 4430, .n 4431, .n 4432, .n 4433, .n 4434, .n 4435, .n 4436] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4437, .n 4438]))) ::
   .atom (.add (.n 4439) (.n 4424) (.n 4437)) ::
   .atom (.add (.n 4440) (.n 4437) (.n 4438)) ::
-  .atom (.mul (.n 4439) (.n 214) (.n 4440)) ::
-  .atom (.const (.n 4441) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 4442) (.n 4275) (.n 4441)) ::
-  .atom (.const (.n 4443) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4444) (.n 756) (.n 4443)) ::
-  .atom (.add (.n 4445) (.n 4442) (.n 4444)) ::
-  .atom (.const (.n 4446) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4445, .n 4437, .n 4438, .n 12, .n 13, .n 14, .n 15, .n 4446, .n 13, .n 14, .n 15, .n 16] [.n 4447, .n 4448, .n 4449, .n 4450, .n 4451, .n 4452, .n 4453, .n 4454, .n 4455, .n 4456, .n 4457, .n 4458, .n 4459] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4460, .n 4461]))) ::
-  .atom (.add (.n 4462) (.n 4447) (.n 4460)) ::
-  .atom (.add (.n 4463) (.n 4460) (.n 4461)) ::
-  .atom (.mul (.n 4462) (.n 215) (.n 4463)) ::
-  .atom (.const (.n 4464) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 4465) (.n 4275) (.n 4464)) ::
-  .atom (.const (.n 4466) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4467) (.n 753) (.n 4466)) ::
-  .atom (.add (.n 4468) (.n 4465) (.n 4467)) ::
-  .atom (.const (.n 4469) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4468, .n 4460, .n 4461, .n 12, .n 13, .n 14, .n 15, .n 4469, .n 13, .n 14, .n 15, .n 16] [.n 4470, .n 4471, .n 4472, .n 4473, .n 4474, .n 4475, .n 4476, .n 4477, .n 4478, .n 4479, .n 4480, .n 4481, .n 4482] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4483, .n 4484]))) ::
-  .atom (.add (.n 4485) (.n 4470) (.n 4483)) ::
-  .atom (.add (.n 4486) (.n 4483) (.n 4484)) ::
-  .atom (.mul (.n 4485) (.n 216) (.n 4486)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4487]))) ::
-  .atom (.const (.n 4488) (word 1080863970698461184 0 0)) ::
-  .atom (.add (.n 4489) (.n 1067) (.n 4488)) ::
-  .atom (.const (.n 4490) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 4491) (.n 808) (.n 4490)) ::
-  .atom (.add (.n 4492) (.n 4489) (.n 4491)) ::
-  .atom (.const (.n 4493) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4492, .n 4487, .n 12, .n 13, .n 14, .n 15, .n 16, .n 4493, .n 13, .n 14, .n 15, .n 16] [.n 4494, .n 4495, .n 4496, .n 4497, .n 4498, .n 4499, .n 4500, .n 4501, .n 4502, .n 4503, .n 4504, .n 4505, .n 4506] false false) ::
-  .atom (.const (.n 4507) (word 1224979158774317056 0 0)) ::
-  .atom (.add (.n 4508) (.n 1067) (.n 4507)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4509, .n 4510]))) ::
-  .atom (.add (.n 4511) (.n 4494) (.n 4509)) ::
-  .atom (.add (.n 4512) (.n 4509) (.n 4510)) ::
-  .atom (.mul (.n 4511) (.n 217) (.n 4512)) ::
-  .atom (.const (.n 4513) (word 274877906944 0 0)) ::
-  .atom (.add (.n 4514) (.n 4508) (.n 4513)) ::
-  .atom (.const (.n 4515) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4516) (.n 805) (.n 4515)) ::
-  .atom (.add (.n 4517) (.n 4514) (.n 4516)) ::
-  .atom (.const (.n 4518) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4517, .n 4509, .n 4510, .n 12, .n 13, .n 14, .n 15, .n 4518, .n 13, .n 14, .n 15, .n 16] [.n 4519, .n 4520, .n 4521, .n 4522, .n 4523, .n 4524, .n 4525, .n 4526, .n 4527, .n 4528, .n 4529, .n 4530, .n 4531] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4532, .n 4533]))) ::
-  .atom (.add (.n 4534) (.n 4519) (.n 4532)) ::
-  .atom (.add (.n 4535) (.n 4532) (.n 4533)) ::
-  .atom (.mul (.n 4534) (.n 218) (.n 4535)) ::
-  .atom (.const (.n 4536) (word 549755813888 0 0)) ::
-  .atom (.add (.n 4537) (.n 4508) (.n 4536)) ::
-  .atom (.const (.n 4538) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4539) (.n 802) (.n 4538)) ::
-  .atom (.add (.n 4540) (.n 4537) (.n 4539)) ::
-  .atom (.const (.n 4541) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4540, .n 4532, .n 4533, .n 12, .n 13, .n 14, .n 15, .n 4541, .n 13, .n 14, .n 15, .n 16] [.n 4542, .n 4543, .n 4544, .n 4545, .n 4546, .n 4547, .n 4548, .n 4549, .n 4550, .n 4551, .n 4552, .n 4553, .n 4554] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4555, .n 4556]))) ::
-  .atom (.add (.n 4557) (.n 4542) (.n 4555)) ::
-  .atom (.add (.n 4558) (.n 4555) (.n 4556)) ::
-  .atom (.mul (.n 4557) (.n 219) (.n 4558)) ::
-  .atom (.const (.n 4559) (word 824633720832 0 0)) ::
-  .atom (.add (.n 4560) (.n 4508) (.n 4559)) ::
-  .atom (.const (.n 4561) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4562) (.n 799) (.n 4561)) ::
-  .atom (.add (.n 4563) (.n 4560) (.n 4562)) ::
+  .atom (.mul (.n 4439) (.n 492) (.n 4440)) ::
+  .atom (.const (.n 4441) (word 0 5066549597569024 0)) ::
+  .atom (.add (.n 4442) (.n 1721) (.n 4441)) ::
+  .atom (.const (.n 4443) (word 256 0 0)) ::
+  .atom (.mul (.n 4444) (.n 916) (.n 4443)) ::
+  .atom (.add (.n 4445) (.n 940) (.n 4444)) ::
+  .atom (.const (.n 4446) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4447) (.n 4445) (.n 4446)) ::
+  .atom (.const (.n 4448) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4449) (.n 916) (.n 4448)) ::
+  .atom (.add (.n 4450) (.n 4447) (.n 4449)) ::
+  .atom (.add (.n 4451) (.n 4442) (.n 4450)) ::
+  .atom (.copy (.n 4452) (.n 4438)) ::
+  .atom (.const (.n 4453) (word 1 0 0)) ::
+  .atom (.const (.n 4454) (word 0 0 0)) ::
+  .atom (.const (.n 4455) (word 0 0 0)) ::
+  .atom (.const (.n 4456) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4451, .n 4437, .n 4452, .n 4453, .n 4454, .n 4455, .n 4456, .n 354, .n 355, .n 356, .n 357] [.n 4457, .n 4458, .n 4459, .n 4460, .n 4461, .n 4462, .n 4463, .n 4464, .n 4465, .n 4466, .n 4467, .n 4468, .n 4469] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4470, .n 4471]))) ::
+  .atom (.add (.n 4472) (.n 4457) (.n 4470)) ::
+  .atom (.add (.n 4473) (.n 4470) (.n 4471)) ::
+  .atom (.mul (.n 4472) (.n 493) (.n 4473)) ::
+  .atom (.const (.n 4474) (word 0 2533274823950336 0)) ::
+  .atom (.add (.n 4475) (.n 1721) (.n 4474)) ::
+  .atom (.const (.n 4476) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4477) (.n 937) (.n 4476)) ::
+  .atom (.add (.n 4478) (.n 4475) (.n 4477)) ::
+  .atom (.copy (.n 4479) (.n 4471)) ::
+  .atom (.const (.n 4480) (word 1 0 0)) ::
+  .atom (.const (.n 4481) (word 0 0 0)) ::
+  .atom (.const (.n 4482) (word 0 0 0)) ::
+  .atom (.const (.n 4483) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4478, .n 4470, .n 4479, .n 4480, .n 4481, .n 4482, .n 4483, .n 354, .n 355, .n 356, .n 357] [.n 4484, .n 4485, .n 4486, .n 4487, .n 4488, .n 4489, .n 4490, .n 4491, .n 4492, .n 4493, .n 4494, .n 4495, .n 4496] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4497, .n 4498]))) ::
+  .atom (.add (.n 4499) (.n 4484) (.n 4497)) ::
+  .atom (.add (.n 4500) (.n 4497) (.n 4498)) ::
+  .atom (.mul (.n 4499) (.n 494) (.n 4500)) ::
+  .atom (.const (.n 4501) (word 0 9224497936811950080 0)) ::
+  .atom (.add (.n 4502) (.n 1721) (.n 4501)) ::
+  .atom (.const (.n 4503) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4504) (.n 934) (.n 4503)) ::
+  .atom (.add (.n 4505) (.n 4502) (.n 4504)) ::
+  .atom (.copy (.n 4506) (.n 4498)) ::
+  .atom (.const (.n 4507) (word 1 0 0)) ::
+  .atom (.const (.n 4508) (word 0 0 0)) ::
+  .atom (.const (.n 4509) (word 0 0 0)) ::
+  .atom (.const (.n 4510) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4505, .n 4497, .n 4506, .n 4507, .n 4508, .n 4509, .n 4510, .n 354, .n 355, .n 356, .n 357] [.n 4511, .n 4512, .n 4513, .n 4514, .n 4515, .n 4516, .n 4517, .n 4518, .n 4519, .n 4520, .n 4521, .n 4522, .n 4523] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4524, .n 4525]))) ::
+  .atom (.add (.n 4526) (.n 4511) (.n 4524)) ::
+  .atom (.add (.n 4527) (.n 4524) (.n 4525)) ::
+  .atom (.mul (.n 4526) (.n 495) (.n 4527)) ::
+  .atom (.const (.n 4528) (word 0 4612248968447918080 0)) ::
+  .atom (.add (.n 4529) (.n 1721) (.n 4528)) ::
+  .atom (.const (.n 4530) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4531) (.n 931) (.n 4530)) ::
+  .atom (.add (.n 4532) (.n 4529) (.n 4531)) ::
+  .atom (.copy (.n 4533) (.n 4525)) ::
+  .atom (.const (.n 4534) (word 1 0 0)) ::
+  .atom (.const (.n 4535) (word 0 0 0)) ::
+  .atom (.const (.n 4536) (word 0 0 0)) ::
+  .atom (.const (.n 4537) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4532, .n 4524, .n 4533, .n 4534, .n 4535, .n 4536, .n 4537, .n 354, .n 355, .n 356, .n 357] [.n 4538, .n 4539, .n 4540, .n 4541, .n 4542, .n 4543, .n 4544, .n 4545, .n 4546, .n 4547, .n 4548, .n 4549, .n 4550] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4551, .n 4552]))) ::
+  .atom (.add (.n 4553) (.n 4538) (.n 4551)) ::
+  .atom (.add (.n 4554) (.n 4551) (.n 4552)) ::
+  .atom (.mul (.n 4553) (.n 480) (.n 4554)) ::
+  .atom (.const (.n 4555) (word 0 2306124484274290688 0)) ::
+  .atom (.add (.n 4556) (.n 1721) (.n 4555)) ::
+  .atom (.const (.n 4557) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4558) (.n 928) (.n 4557)) ::
+  .atom (.add (.n 4559) (.n 4556) (.n 4558)) ::
+  .atom (.copy (.n 4560) (.n 4552)) ::
+  .atom (.const (.n 4561) (word 1 0 0)) ::
+  .atom (.const (.n 4562) (word 0 0 0)) ::
+  .atom (.const (.n 4563) (word 0 0 0)) ::
   .atom (.const (.n 4564) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4563, .n 4555, .n 4556, .n 12, .n 13, .n 14, .n 15, .n 4564, .n 13, .n 14, .n 15, .n 16] [.n 4565, .n 4566, .n 4567, .n 4568, .n 4569, .n 4570, .n 4571, .n 4572, .n 4573, .n 4574, .n 4575, .n 4576, .n 4577] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4559, .n 4551, .n 4560, .n 4561, .n 4562, .n 4563, .n 4564, .n 354, .n 355, .n 356, .n 357] [.n 4565, .n 4566, .n 4567, .n 4568, .n 4569, .n 4570, .n 4571, .n 4572, .n 4573, .n 4574, .n 4575, .n 4576, .n 4577] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4578, .n 4579]))) ::
   .atom (.add (.n 4580) (.n 4565) (.n 4578)) ::
   .atom (.add (.n 4581) (.n 4578) (.n 4579)) ::
-  .atom (.mul (.n 4580) (.n 220) (.n 4581)) ::
-  .atom (.const (.n 4582) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 4583) (.n 4508) (.n 4582)) ::
-  .atom (.const (.n 4584) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4585) (.n 796) (.n 4584)) ::
+  .atom (.mul (.n 4580) (.n 481) (.n 4581)) ::
+  .atom (.const (.n 4582) (word 0 10376293541562286080 0)) ::
+  .atom (.add (.n 4583) (.n 1721) (.n 4582)) ::
+  .atom (.const (.n 4584) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4585) (.n 925) (.n 4584)) ::
   .atom (.add (.n 4586) (.n 4583) (.n 4585)) ::
-  .atom (.const (.n 4587) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4586, .n 4578, .n 4579, .n 12, .n 13, .n 14, .n 15, .n 4587, .n 13, .n 14, .n 15, .n 16] [.n 4588, .n 4589, .n 4590, .n 4591, .n 4592, .n 4593, .n 4594, .n 4595, .n 4596, .n 4597, .n 4598, .n 4599, .n 4600] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4601, .n 4602]))) ::
-  .atom (.add (.n 4603) (.n 4588) (.n 4601)) ::
-  .atom (.add (.n 4604) (.n 4601) (.n 4602)) ::
-  .atom (.mul (.n 4603) (.n 221) (.n 4604)) ::
-  .atom (.const (.n 4605) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 4606) (.n 4508) (.n 4605)) ::
-  .atom (.const (.n 4607) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4608) (.n 793) (.n 4607)) ::
-  .atom (.add (.n 4609) (.n 4606) (.n 4608)) ::
-  .atom (.const (.n 4610) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4609, .n 4601, .n 4602, .n 12, .n 13, .n 14, .n 15, .n 4610, .n 13, .n 14, .n 15, .n 16] [.n 4611, .n 4612, .n 4613, .n 4614, .n 4615, .n 4616, .n 4617, .n 4618, .n 4619, .n 4620, .n 4621, .n 4622, .n 4623] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4624, .n 4625]))) ::
-  .atom (.add (.n 4626) (.n 4611) (.n 4624)) ::
-  .atom (.add (.n 4627) (.n 4624) (.n 4625)) ::
-  .atom (.mul (.n 4626) (.n 222) (.n 4627)) ::
-  .atom (.const (.n 4628) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 4629) (.n 4508) (.n 4628)) ::
-  .atom (.const (.n 4630) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4631) (.n 790) (.n 4630)) ::
-  .atom (.add (.n 4632) (.n 4629) (.n 4631)) ::
-  .atom (.const (.n 4633) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4632, .n 4624, .n 4625, .n 12, .n 13, .n 14, .n 15, .n 4633, .n 13, .n 14, .n 15, .n 16] [.n 4634, .n 4635, .n 4636, .n 4637, .n 4638, .n 4639, .n 4640, .n 4641, .n 4642, .n 4643, .n 4644, .n 4645, .n 4646] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4647, .n 4648]))) ::
-  .atom (.add (.n 4649) (.n 4634) (.n 4647)) ::
-  .atom (.add (.n 4650) (.n 4647) (.n 4648)) ::
-  .atom (.mul (.n 4649) (.n 223) (.n 4650)) ::
-  .atom (.const (.n 4651) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 4652) (.n 4508) (.n 4651)) ::
-  .atom (.const (.n 4653) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4654) (.n 787) (.n 4653)) ::
-  .atom (.add (.n 4655) (.n 4652) (.n 4654)) ::
-  .atom (.const (.n 4656) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4655, .n 4647, .n 4648, .n 12, .n 13, .n 14, .n 15, .n 4656, .n 13, .n 14, .n 15, .n 16] [.n 4657, .n 4658, .n 4659, .n 4660, .n 4661, .n 4662, .n 4663, .n 4664, .n 4665, .n 4666, .n 4667, .n 4668, .n 4669] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4670, .n 4671]))) ::
-  .atom (.add (.n 4672) (.n 4657) (.n 4670)) ::
-  .atom (.add (.n 4673) (.n 4670) (.n 4671)) ::
-  .atom (.mul (.n 4672) (.n 224) (.n 4673)) ::
-  .atom (.const (.n 4674) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 4675) (.n 4508) (.n 4674)) ::
-  .atom (.const (.n 4676) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4677) (.n 784) (.n 4676)) ::
-  .atom (.add (.n 4678) (.n 4675) (.n 4677)) ::
-  .atom (.const (.n 4679) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4678, .n 4670, .n 4671, .n 12, .n 13, .n 14, .n 15, .n 4679, .n 13, .n 14, .n 15, .n 16] [.n 4680, .n 4681, .n 4682, .n 4683, .n 4684, .n 4685, .n 4686, .n 4687, .n 4688, .n 4689, .n 4690, .n 4691, .n 4692] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4693, .n 4694]))) ::
-  .atom (.add (.n 4695) (.n 4680) (.n 4693)) ::
-  .atom (.add (.n 4696) (.n 4693) (.n 4694)) ::
-  .atom (.mul (.n 4695) (.n 225) (.n 4696)) ::
-  .atom (.const (.n 4697) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 4698) (.n 4508) (.n 4697)) ::
-  .atom (.const (.n 4699) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4700) (.n 781) (.n 4699)) ::
-  .atom (.add (.n 4701) (.n 4698) (.n 4700)) ::
-  .atom (.const (.n 4702) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4701, .n 4693, .n 4694, .n 12, .n 13, .n 14, .n 15, .n 4702, .n 13, .n 14, .n 15, .n 16] [.n 4703, .n 4704, .n 4705, .n 4706, .n 4707, .n 4708, .n 4709, .n 4710, .n 4711, .n 4712, .n 4713, .n 4714, .n 4715] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4716, .n 4717]))) ::
-  .atom (.add (.n 4718) (.n 4703) (.n 4716)) ::
-  .atom (.add (.n 4719) (.n 4716) (.n 4717)) ::
-  .atom (.mul (.n 4718) (.n 226) (.n 4719)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4720]))) ::
-  .atom (.const (.n 4721) (word 1080863974993428480 0 0)) ::
-  .atom (.add (.n 4722) (.n 1067) (.n 4721)) ::
-  .atom (.const (.n 4723) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 4724) (.n 836) (.n 4723)) ::
-  .atom (.add (.n 4725) (.n 4722) (.n 4724)) ::
-  .atom (.const (.n 4726) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4725, .n 4720, .n 12, .n 13, .n 14, .n 15, .n 16, .n 4726, .n 13, .n 14, .n 15, .n 16] [.n 4727, .n 4728, .n 4729, .n 4730, .n 4731, .n 4732, .n 4733, .n 4734, .n 4735, .n 4736, .n 4737, .n 4738, .n 4739] false false) ::
-  .atom (.const (.n 4740) (word 1224979163069284352 0 0)) ::
-  .atom (.add (.n 4741) (.n 1067) (.n 4740)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4742, .n 4743]))) ::
-  .atom (.add (.n 4744) (.n 4727) (.n 4742)) ::
-  .atom (.add (.n 4745) (.n 4742) (.n 4743)) ::
-  .atom (.mul (.n 4744) (.n 227) (.n 4745)) ::
-  .atom (.const (.n 4746) (word 274877906944 0 0)) ::
-  .atom (.add (.n 4747) (.n 4741) (.n 4746)) ::
-  .atom (.const (.n 4748) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4749) (.n 833) (.n 4748)) ::
-  .atom (.add (.n 4750) (.n 4747) (.n 4749)) ::
-  .atom (.const (.n 4751) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4750, .n 4742, .n 4743, .n 12, .n 13, .n 14, .n 15, .n 4751, .n 13, .n 14, .n 15, .n 16] [.n 4752, .n 4753, .n 4754, .n 4755, .n 4756, .n 4757, .n 4758, .n 4759, .n 4760, .n 4761, .n 4762, .n 4763, .n 4764] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4765, .n 4766]))) ::
-  .atom (.add (.n 4767) (.n 4752) (.n 4765)) ::
-  .atom (.add (.n 4768) (.n 4765) (.n 4766)) ::
-  .atom (.mul (.n 4767) (.n 228) (.n 4768)) ::
-  .atom (.const (.n 4769) (word 549755813888 0 0)) ::
-  .atom (.add (.n 4770) (.n 4741) (.n 4769)) ::
-  .atom (.const (.n 4771) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4772) (.n 830) (.n 4771)) ::
-  .atom (.add (.n 4773) (.n 4770) (.n 4772)) ::
-  .atom (.const (.n 4774) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4773, .n 4765, .n 4766, .n 12, .n 13, .n 14, .n 15, .n 4774, .n 13, .n 14, .n 15, .n 16] [.n 4775, .n 4776, .n 4777, .n 4778, .n 4779, .n 4780, .n 4781, .n 4782, .n 4783, .n 4784, .n 4785, .n 4786, .n 4787] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4788, .n 4789]))) ::
-  .atom (.add (.n 4790) (.n 4775) (.n 4788)) ::
-  .atom (.add (.n 4791) (.n 4788) (.n 4789)) ::
-  .atom (.mul (.n 4790) (.n 229) (.n 4791)) ::
-  .atom (.const (.n 4792) (word 824633720832 0 0)) ::
-  .atom (.add (.n 4793) (.n 4741) (.n 4792)) ::
-  .atom (.const (.n 4794) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4795) (.n 827) (.n 4794)) ::
-  .atom (.add (.n 4796) (.n 4793) (.n 4795)) ::
-  .atom (.const (.n 4797) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4796, .n 4788, .n 4789, .n 12, .n 13, .n 14, .n 15, .n 4797, .n 13, .n 14, .n 15, .n 16] [.n 4798, .n 4799, .n 4800, .n 4801, .n 4802, .n 4803, .n 4804, .n 4805, .n 4806, .n 4807, .n 4808, .n 4809, .n 4810] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4811, .n 4812]))) ::
-  .atom (.add (.n 4813) (.n 4798) (.n 4811)) ::
-  .atom (.add (.n 4814) (.n 4811) (.n 4812)) ::
-  .atom (.mul (.n 4813) (.n 230) (.n 4814)) ::
-  .atom (.const (.n 4815) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 4816) (.n 4741) (.n 4815)) ::
-  .atom (.const (.n 4817) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4818) (.n 824) (.n 4817)) ::
-  .atom (.add (.n 4819) (.n 4816) (.n 4818)) ::
-  .atom (.const (.n 4820) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4819, .n 4811, .n 4812, .n 12, .n 13, .n 14, .n 15, .n 4820, .n 13, .n 14, .n 15, .n 16] [.n 4821, .n 4822, .n 4823, .n 4824, .n 4825, .n 4826, .n 4827, .n 4828, .n 4829, .n 4830, .n 4831, .n 4832, .n 4833] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4834, .n 4835]))) ::
-  .atom (.add (.n 4836) (.n 4821) (.n 4834)) ::
-  .atom (.add (.n 4837) (.n 4834) (.n 4835)) ::
-  .atom (.mul (.n 4836) (.n 231) (.n 4837)) ::
-  .atom (.const (.n 4838) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 4839) (.n 4741) (.n 4838)) ::
-  .atom (.const (.n 4840) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4841) (.n 821) (.n 4840)) ::
-  .atom (.add (.n 4842) (.n 4839) (.n 4841)) ::
-  .atom (.const (.n 4843) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4842, .n 4834, .n 4835, .n 12, .n 13, .n 14, .n 15, .n 4843, .n 13, .n 14, .n 15, .n 16] [.n 4844, .n 4845, .n 4846, .n 4847, .n 4848, .n 4849, .n 4850, .n 4851, .n 4852, .n 4853, .n 4854, .n 4855, .n 4856] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4857, .n 4858]))) ::
-  .atom (.add (.n 4859) (.n 4844) (.n 4857)) ::
-  .atom (.add (.n 4860) (.n 4857) (.n 4858)) ::
-  .atom (.mul (.n 4859) (.n 232) (.n 4860)) ::
-  .atom (.const (.n 4861) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 4862) (.n 4741) (.n 4861)) ::
-  .atom (.const (.n 4863) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4864) (.n 818) (.n 4863)) ::
-  .atom (.add (.n 4865) (.n 4862) (.n 4864)) ::
-  .atom (.const (.n 4866) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4865, .n 4857, .n 4858, .n 12, .n 13, .n 14, .n 15, .n 4866, .n 13, .n 14, .n 15, .n 16] [.n 4867, .n 4868, .n 4869, .n 4870, .n 4871, .n 4872, .n 4873, .n 4874, .n 4875, .n 4876, .n 4877, .n 4878, .n 4879] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4880, .n 4881]))) ::
-  .atom (.add (.n 4882) (.n 4867) (.n 4880)) ::
-  .atom (.add (.n 4883) (.n 4880) (.n 4881)) ::
-  .atom (.mul (.n 4882) (.n 233) (.n 4883)) ::
-  .atom (.const (.n 4884) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 4885) (.n 4741) (.n 4884)) ::
-  .atom (.const (.n 4886) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4887) (.n 815) (.n 4886)) ::
-  .atom (.add (.n 4888) (.n 4885) (.n 4887)) ::
-  .atom (.const (.n 4889) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4888, .n 4880, .n 4881, .n 12, .n 13, .n 14, .n 15, .n 4889, .n 13, .n 14, .n 15, .n 16] [.n 4890, .n 4891, .n 4892, .n 4893, .n 4894, .n 4895, .n 4896, .n 4897, .n 4898, .n 4899, .n 4900, .n 4901, .n 4902] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4903, .n 4904]))) ::
-  .atom (.add (.n 4905) (.n 4890) (.n 4903)) ::
-  .atom (.add (.n 4906) (.n 4903) (.n 4904)) ::
-  .atom (.mul (.n 4905) (.n 234) (.n 4906)) ::
-  .atom (.const (.n 4907) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 4908) (.n 4741) (.n 4907)) ::
-  .atom (.const (.n 4909) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4910) (.n 812) (.n 4909)) ::
-  .atom (.add (.n 4911) (.n 4908) (.n 4910)) ::
-  .atom (.const (.n 4912) (word 9223372036854775808 0 0)) ::
+  .atom (.copy (.n 4587) (.n 4579)) ::
+  .atom (.const (.n 4588) (word 1 0 0)) ::
+  .atom (.const (.n 4589) (word 0 0 0)) ::
+  .atom (.const (.n 4590) (word 0 0 0)) ::
+  .atom (.const (.n 4591) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4586, .n 4578, .n 4587, .n 4588, .n 4589, .n 4590, .n 4591, .n 354, .n 355, .n 356, .n 357] [.n 4592, .n 4593, .n 4594, .n 4595, .n 4596, .n 4597, .n 4598, .n 4599, .n 4600, .n 4601, .n 4602, .n 4603, .n 4604] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4605, .n 4606]))) ::
+  .atom (.add (.n 4607) (.n 4592) (.n 4605)) ::
+  .atom (.add (.n 4608) (.n 4605) (.n 4606)) ::
+  .atom (.mul (.n 4607) (.n 482) (.n 4608)) ::
+  .atom (.const (.n 4609) (word 0 5188146770848251904 0)) ::
+  .atom (.add (.n 4610) (.n 1721) (.n 4609)) ::
+  .atom (.const (.n 4611) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4612) (.n 922) (.n 4611)) ::
+  .atom (.add (.n 4613) (.n 4610) (.n 4612)) ::
+  .atom (.copy (.n 4614) (.n 4606)) ::
+  .atom (.const (.n 4615) (word 1 0 0)) ::
+  .atom (.const (.n 4616) (word 0 0 0)) ::
+  .atom (.const (.n 4617) (word 0 0 0)) ::
+  .atom (.const (.n 4618) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4613, .n 4605, .n 4614, .n 4615, .n 4616, .n 4617, .n 4618, .n 354, .n 355, .n 356, .n 357] [.n 4619, .n 4620, .n 4621, .n 4622, .n 4623, .n 4624, .n 4625, .n 4626, .n 4627, .n 4628, .n 4629, .n 4630, .n 4631] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4632, .n 4633]))) ::
+  .atom (.add (.n 4634) (.n 4619) (.n 4632)) ::
+  .atom (.add (.n 4635) (.n 4632) (.n 4633)) ::
+  .atom (.mul (.n 4634) (.n 483) (.n 4635)) ::
+  .atom (.const (.n 4636) (word 0 2594073385499623424 0)) ::
+  .atom (.add (.n 4637) (.n 1721) (.n 4636)) ::
+  .atom (.const (.n 4638) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4639) (.n 919) (.n 4638)) ::
+  .atom (.add (.n 4640) (.n 4637) (.n 4639)) ::
+  .atom (.copy (.n 4641) (.n 4633)) ::
+  .atom (.const (.n 4642) (word 1 0 0)) ::
+  .atom (.const (.n 4643) (word 0 0 0)) ::
+  .atom (.const (.n 4644) (word 0 0 0)) ::
+  .atom (.const (.n 4645) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4640, .n 4632, .n 4641, .n 4642, .n 4643, .n 4644, .n 4645, .n 354, .n 355, .n 356, .n 357] [.n 4646, .n 4647, .n 4648, .n 4649, .n 4650, .n 4651, .n 4652, .n 4653, .n 4654, .n 4655, .n 4656, .n 4657, .n 4658] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4659, .n 4660]))) ::
+  .atom (.add (.n 4661) (.n 4646) (.n 4659)) ::
+  .atom (.add (.n 4662) (.n 4659) (.n 4660)) ::
+  .atom (.mul (.n 4661) (.n 484) (.n 4662)) ::
+  .atom (.const (.n 4663) (word 0 1297036692833697792 0)) ::
+  .atom (.add (.n 4664) (.n 1721) (.n 4663)) ::
+  .atom (.const (.n 4665) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4666) (.n 916) (.n 4665)) ::
+  .atom (.add (.n 4667) (.n 4664) (.n 4666)) ::
+  .atom (.copy (.n 4668) (.n 4660)) ::
+  .atom (.const (.n 4669) (word 1 0 0)) ::
+  .atom (.const (.n 4670) (word 0 0 0)) ::
+  .atom (.const (.n 4671) (word 0 0 0)) ::
+  .atom (.const (.n 4672) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4667, .n 4659, .n 4668, .n 4669, .n 4670, .n 4671, .n 4672, .n 354, .n 355, .n 356, .n 357] [.n 4673, .n 4674, .n 4675, .n 4676, .n 4677, .n 4678, .n 4679, .n 4680, .n 4681, .n 4682, .n 4683, .n 4684, .n 4685] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4686, .n 4687]))) ::
+  .atom (.add (.n 4688) (.n 4673) (.n 4686)) ::
+  .atom (.add (.n 4689) (.n 4686) (.n 4687)) ::
+  .atom (.mul (.n 4688) (.n 485) (.n 4689)) ::
+  .atom (.const (.n 4690) (word 0 648518346509123584 0)) ::
+  .atom (.add (.n 4691) (.n 1721) (.n 4690)) ::
+  .atom (.copy (.n 4692) (.n 4687)) ::
+  .atom (.const (.n 4693) (word 1 0 0)) ::
+  .atom (.const (.n 4694) (word 0 0 0)) ::
+  .atom (.const (.n 4695) (word 0 0 0)) ::
+  .atom (.const (.n 4696) (word 9223372036854775808 0 0)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 2977 to 3338 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 3259 to 3658 of the body. -/
 noncomputable def c7 : List Core.Stmt := (
-  .atom (.keccak [.n 2, .n 4911, .n 4903, .n 4904, .n 12, .n 13, .n 14, .n 15, .n 4912, .n 13, .n 14, .n 15, .n 16] [.n 4913, .n 4914, .n 4915, .n 4916, .n 4917, .n 4918, .n 4919, .n 4920, .n 4921, .n 4922, .n 4923, .n 4924, .n 4925] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4926, .n 4927]))) ::
-  .atom (.add (.n 4928) (.n 4913) (.n 4926)) ::
-  .atom (.add (.n 4929) (.n 4926) (.n 4927)) ::
-  .atom (.mul (.n 4928) (.n 235) (.n 4929)) ::
-  .atom (.const (.n 4930) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 4931) (.n 4741) (.n 4930)) ::
-  .atom (.const (.n 4932) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4933) (.n 809) (.n 4932)) ::
-  .atom (.add (.n 4934) (.n 4931) (.n 4933)) ::
-  .atom (.const (.n 4935) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4934, .n 4926, .n 4927, .n 12, .n 13, .n 14, .n 15, .n 4935, .n 13, .n 14, .n 15, .n 16] [.n 4936, .n 4937, .n 4938, .n 4939, .n 4940, .n 4941, .n 4942, .n 4943, .n 4944, .n 4945, .n 4946, .n 4947, .n 4948] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4949, .n 4950]))) ::
-  .atom (.add (.n 4951) (.n 4936) (.n 4949)) ::
-  .atom (.add (.n 4952) (.n 4949) (.n 4950)) ::
-  .atom (.mul (.n 4951) (.n 236) (.n 4952)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4953]))) ::
-  .atom (.const (.n 4954) (word 1080863979288395776 0 0)) ::
-  .atom (.add (.n 4955) (.n 1067) (.n 4954)) ::
-  .atom (.const (.n 4956) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 4957) (.n 864) (.n 4956)) ::
-  .atom (.add (.n 4958) (.n 4955) (.n 4957)) ::
-  .atom (.const (.n 4959) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4958, .n 4953, .n 12, .n 13, .n 14, .n 15, .n 16, .n 4959, .n 13, .n 14, .n 15, .n 16] [.n 4960, .n 4961, .n 4962, .n 4963, .n 4964, .n 4965, .n 4966, .n 4967, .n 4968, .n 4969, .n 4970, .n 4971, .n 4972] false false) ::
-  .atom (.const (.n 4973) (word 1224979167364251648 0 0)) ::
-  .atom (.add (.n 4974) (.n 1067) (.n 4973)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4975, .n 4976]))) ::
-  .atom (.add (.n 4977) (.n 4960) (.n 4975)) ::
-  .atom (.add (.n 4978) (.n 4975) (.n 4976)) ::
-  .atom (.mul (.n 4977) (.n 237) (.n 4978)) ::
-  .atom (.const (.n 4979) (word 274877906944 0 0)) ::
-  .atom (.add (.n 4980) (.n 4974) (.n 4979)) ::
-  .atom (.const (.n 4981) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 4982) (.n 861) (.n 4981)) ::
-  .atom (.add (.n 4983) (.n 4980) (.n 4982)) ::
-  .atom (.const (.n 4984) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 4983, .n 4975, .n 4976, .n 12, .n 13, .n 14, .n 15, .n 4984, .n 13, .n 14, .n 15, .n 16] [.n 4985, .n 4986, .n 4987, .n 4988, .n 4989, .n 4990, .n 4991, .n 4992, .n 4993, .n 4994, .n 4995, .n 4996, .n 4997] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4998, .n 4999]))) ::
-  .atom (.add (.n 5000) (.n 4985) (.n 4998)) ::
-  .atom (.add (.n 5001) (.n 4998) (.n 4999)) ::
-  .atom (.mul (.n 5000) (.n 238) (.n 5001)) ::
-  .atom (.const (.n 5002) (word 549755813888 0 0)) ::
-  .atom (.add (.n 5003) (.n 4974) (.n 5002)) ::
-  .atom (.const (.n 5004) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5005) (.n 858) (.n 5004)) ::
-  .atom (.add (.n 5006) (.n 5003) (.n 5005)) ::
-  .atom (.const (.n 5007) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5006, .n 4998, .n 4999, .n 12, .n 13, .n 14, .n 15, .n 5007, .n 13, .n 14, .n 15, .n 16] [.n 5008, .n 5009, .n 5010, .n 5011, .n 5012, .n 5013, .n 5014, .n 5015, .n 5016, .n 5017, .n 5018, .n 5019, .n 5020] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5021, .n 5022]))) ::
-  .atom (.add (.n 5023) (.n 5008) (.n 5021)) ::
-  .atom (.add (.n 5024) (.n 5021) (.n 5022)) ::
-  .atom (.mul (.n 5023) (.n 239) (.n 5024)) ::
-  .atom (.const (.n 5025) (word 824633720832 0 0)) ::
-  .atom (.add (.n 5026) (.n 4974) (.n 5025)) ::
-  .atom (.const (.n 5027) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5028) (.n 855) (.n 5027)) ::
-  .atom (.add (.n 5029) (.n 5026) (.n 5028)) ::
-  .atom (.const (.n 5030) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5029, .n 5021, .n 5022, .n 12, .n 13, .n 14, .n 15, .n 5030, .n 13, .n 14, .n 15, .n 16] [.n 5031, .n 5032, .n 5033, .n 5034, .n 5035, .n 5036, .n 5037, .n 5038, .n 5039, .n 5040, .n 5041, .n 5042, .n 5043] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5044, .n 5045]))) ::
-  .atom (.add (.n 5046) (.n 5031) (.n 5044)) ::
-  .atom (.add (.n 5047) (.n 5044) (.n 5045)) ::
-  .atom (.mul (.n 5046) (.n 240) (.n 5047)) ::
-  .atom (.const (.n 5048) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 5049) (.n 4974) (.n 5048)) ::
-  .atom (.const (.n 5050) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5051) (.n 852) (.n 5050)) ::
-  .atom (.add (.n 5052) (.n 5049) (.n 5051)) ::
-  .atom (.const (.n 5053) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5052, .n 5044, .n 5045, .n 12, .n 13, .n 14, .n 15, .n 5053, .n 13, .n 14, .n 15, .n 16] [.n 5054, .n 5055, .n 5056, .n 5057, .n 5058, .n 5059, .n 5060, .n 5061, .n 5062, .n 5063, .n 5064, .n 5065, .n 5066] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5067, .n 5068]))) ::
-  .atom (.add (.n 5069) (.n 5054) (.n 5067)) ::
-  .atom (.add (.n 5070) (.n 5067) (.n 5068)) ::
-  .atom (.mul (.n 5069) (.n 241) (.n 5070)) ::
-  .atom (.const (.n 5071) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 5072) (.n 4974) (.n 5071)) ::
-  .atom (.const (.n 5073) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5074) (.n 849) (.n 5073)) ::
-  .atom (.add (.n 5075) (.n 5072) (.n 5074)) ::
-  .atom (.const (.n 5076) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5075, .n 5067, .n 5068, .n 12, .n 13, .n 14, .n 15, .n 5076, .n 13, .n 14, .n 15, .n 16] [.n 5077, .n 5078, .n 5079, .n 5080, .n 5081, .n 5082, .n 5083, .n 5084, .n 5085, .n 5086, .n 5087, .n 5088, .n 5089] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5090, .n 5091]))) ::
-  .atom (.add (.n 5092) (.n 5077) (.n 5090)) ::
-  .atom (.add (.n 5093) (.n 5090) (.n 5091)) ::
-  .atom (.mul (.n 5092) (.n 242) (.n 5093)) ::
-  .atom (.const (.n 5094) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 5095) (.n 4974) (.n 5094)) ::
-  .atom (.const (.n 5096) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5097) (.n 846) (.n 5096)) ::
-  .atom (.add (.n 5098) (.n 5095) (.n 5097)) ::
-  .atom (.const (.n 5099) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5098, .n 5090, .n 5091, .n 12, .n 13, .n 14, .n 15, .n 5099, .n 13, .n 14, .n 15, .n 16] [.n 5100, .n 5101, .n 5102, .n 5103, .n 5104, .n 5105, .n 5106, .n 5107, .n 5108, .n 5109, .n 5110, .n 5111, .n 5112] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5113, .n 5114]))) ::
-  .atom (.add (.n 5115) (.n 5100) (.n 5113)) ::
-  .atom (.add (.n 5116) (.n 5113) (.n 5114)) ::
-  .atom (.mul (.n 5115) (.n 243) (.n 5116)) ::
-  .atom (.const (.n 5117) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 5118) (.n 4974) (.n 5117)) ::
-  .atom (.const (.n 5119) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5120) (.n 843) (.n 5119)) ::
-  .atom (.add (.n 5121) (.n 5118) (.n 5120)) ::
-  .atom (.const (.n 5122) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5121, .n 5113, .n 5114, .n 12, .n 13, .n 14, .n 15, .n 5122, .n 13, .n 14, .n 15, .n 16] [.n 5123, .n 5124, .n 5125, .n 5126, .n 5127, .n 5128, .n 5129, .n 5130, .n 5131, .n 5132, .n 5133, .n 5134, .n 5135] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5136, .n 5137]))) ::
-  .atom (.add (.n 5138) (.n 5123) (.n 5136)) ::
-  .atom (.add (.n 5139) (.n 5136) (.n 5137)) ::
-  .atom (.mul (.n 5138) (.n 244) (.n 5139)) ::
-  .atom (.const (.n 5140) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 5141) (.n 4974) (.n 5140)) ::
-  .atom (.const (.n 5142) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5143) (.n 840) (.n 5142)) ::
-  .atom (.add (.n 5144) (.n 5141) (.n 5143)) ::
-  .atom (.const (.n 5145) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5144, .n 5136, .n 5137, .n 12, .n 13, .n 14, .n 15, .n 5145, .n 13, .n 14, .n 15, .n 16] [.n 5146, .n 5147, .n 5148, .n 5149, .n 5150, .n 5151, .n 5152, .n 5153, .n 5154, .n 5155, .n 5156, .n 5157, .n 5158] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5159, .n 5160]))) ::
-  .atom (.add (.n 5161) (.n 5146) (.n 5159)) ::
-  .atom (.add (.n 5162) (.n 5159) (.n 5160)) ::
-  .atom (.mul (.n 5161) (.n 245) (.n 5162)) ::
-  .atom (.const (.n 5163) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 5164) (.n 4974) (.n 5163)) ::
-  .atom (.const (.n 5165) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5166) (.n 837) (.n 5165)) ::
-  .atom (.add (.n 5167) (.n 5164) (.n 5166)) ::
-  .atom (.const (.n 5168) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5167, .n 5159, .n 5160, .n 12, .n 13, .n 14, .n 15, .n 5168, .n 13, .n 14, .n 15, .n 16] [.n 5169, .n 5170, .n 5171, .n 5172, .n 5173, .n 5174, .n 5175, .n 5176, .n 5177, .n 5178, .n 5179, .n 5180, .n 5181] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5182, .n 5183]))) ::
-  .atom (.add (.n 5184) (.n 5169) (.n 5182)) ::
-  .atom (.add (.n 5185) (.n 5182) (.n 5183)) ::
-  .atom (.mul (.n 5184) (.n 246) (.n 5185)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5186]))) ::
-  .atom (.const (.n 5187) (word 1080863983583363072 0 0)) ::
-  .atom (.add (.n 5188) (.n 1067) (.n 5187)) ::
-  .atom (.const (.n 5189) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 5190) (.n 892) (.n 5189)) ::
-  .atom (.add (.n 5191) (.n 5188) (.n 5190)) ::
-  .atom (.const (.n 5192) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5191, .n 5186, .n 12, .n 13, .n 14, .n 15, .n 16, .n 5192, .n 13, .n 14, .n 15, .n 16] [.n 5193, .n 5194, .n 5195, .n 5196, .n 5197, .n 5198, .n 5199, .n 5200, .n 5201, .n 5202, .n 5203, .n 5204, .n 5205] false false) ::
-  .atom (.const (.n 5206) (word 1224979171659218944 0 0)) ::
-  .atom (.add (.n 5207) (.n 1067) (.n 5206)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5208, .n 5209]))) ::
-  .atom (.add (.n 5210) (.n 5193) (.n 5208)) ::
-  .atom (.add (.n 5211) (.n 5208) (.n 5209)) ::
-  .atom (.mul (.n 5210) (.n 247) (.n 5211)) ::
-  .atom (.const (.n 5212) (word 274877906944 0 0)) ::
-  .atom (.add (.n 5213) (.n 5207) (.n 5212)) ::
-  .atom (.const (.n 5214) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5215) (.n 889) (.n 5214)) ::
-  .atom (.add (.n 5216) (.n 5213) (.n 5215)) ::
-  .atom (.const (.n 5217) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5216, .n 5208, .n 5209, .n 12, .n 13, .n 14, .n 15, .n 5217, .n 13, .n 14, .n 15, .n 16] [.n 5218, .n 5219, .n 5220, .n 5221, .n 5222, .n 5223, .n 5224, .n 5225, .n 5226, .n 5227, .n 5228, .n 5229, .n 5230] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5231, .n 5232]))) ::
-  .atom (.add (.n 5233) (.n 5218) (.n 5231)) ::
-  .atom (.add (.n 5234) (.n 5231) (.n 5232)) ::
-  .atom (.mul (.n 5233) (.n 248) (.n 5234)) ::
-  .atom (.const (.n 5235) (word 549755813888 0 0)) ::
-  .atom (.add (.n 5236) (.n 5207) (.n 5235)) ::
-  .atom (.const (.n 5237) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5238) (.n 886) (.n 5237)) ::
-  .atom (.add (.n 5239) (.n 5236) (.n 5238)) ::
-  .atom (.const (.n 5240) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5239, .n 5231, .n 5232, .n 12, .n 13, .n 14, .n 15, .n 5240, .n 13, .n 14, .n 15, .n 16] [.n 5241, .n 5242, .n 5243, .n 5244, .n 5245, .n 5246, .n 5247, .n 5248, .n 5249, .n 5250, .n 5251, .n 5252, .n 5253] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5254, .n 5255]))) ::
-  .atom (.add (.n 5256) (.n 5241) (.n 5254)) ::
-  .atom (.add (.n 5257) (.n 5254) (.n 5255)) ::
-  .atom (.mul (.n 5256) (.n 249) (.n 5257)) ::
-  .atom (.const (.n 5258) (word 824633720832 0 0)) ::
-  .atom (.add (.n 5259) (.n 5207) (.n 5258)) ::
-  .atom (.const (.n 5260) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5261) (.n 883) (.n 5260)) ::
-  .atom (.add (.n 5262) (.n 5259) (.n 5261)) ::
-  .atom (.const (.n 5263) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5262, .n 5254, .n 5255, .n 12, .n 13, .n 14, .n 15, .n 5263, .n 13, .n 14, .n 15, .n 16] [.n 5264, .n 5265, .n 5266, .n 5267, .n 5268, .n 5269, .n 5270, .n 5271, .n 5272, .n 5273, .n 5274, .n 5275, .n 5276] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5277, .n 5278]))) ::
-  .atom (.add (.n 5279) (.n 5264) (.n 5277)) ::
-  .atom (.add (.n 5280) (.n 5277) (.n 5278)) ::
-  .atom (.mul (.n 5279) (.n 250) (.n 5280)) ::
-  .atom (.const (.n 5281) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 5282) (.n 5207) (.n 5281)) ::
-  .atom (.const (.n 5283) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5284) (.n 880) (.n 5283)) ::
-  .atom (.add (.n 5285) (.n 5282) (.n 5284)) ::
-  .atom (.const (.n 5286) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5285, .n 5277, .n 5278, .n 12, .n 13, .n 14, .n 15, .n 5286, .n 13, .n 14, .n 15, .n 16] [.n 5287, .n 5288, .n 5289, .n 5290, .n 5291, .n 5292, .n 5293, .n 5294, .n 5295, .n 5296, .n 5297, .n 5298, .n 5299] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5300, .n 5301]))) ::
-  .atom (.add (.n 5302) (.n 5287) (.n 5300)) ::
-  .atom (.add (.n 5303) (.n 5300) (.n 5301)) ::
-  .atom (.mul (.n 5302) (.n 251) (.n 5303)) ::
-  .atom (.const (.n 5304) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 5305) (.n 5207) (.n 5304)) ::
-  .atom (.const (.n 5306) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5307) (.n 877) (.n 5306)) ::
-  .atom (.add (.n 5308) (.n 5305) (.n 5307)) ::
-  .atom (.const (.n 5309) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5308, .n 5300, .n 5301, .n 12, .n 13, .n 14, .n 15, .n 5309, .n 13, .n 14, .n 15, .n 16] [.n 5310, .n 5311, .n 5312, .n 5313, .n 5314, .n 5315, .n 5316, .n 5317, .n 5318, .n 5319, .n 5320, .n 5321, .n 5322] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5323, .n 5324]))) ::
-  .atom (.add (.n 5325) (.n 5310) (.n 5323)) ::
-  .atom (.add (.n 5326) (.n 5323) (.n 5324)) ::
-  .atom (.mul (.n 5325) (.n 252) (.n 5326)) ::
-  .atom (.const (.n 5327) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 5328) (.n 5207) (.n 5327)) ::
-  .atom (.const (.n 5329) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5330) (.n 874) (.n 5329)) ::
-  .atom (.add (.n 5331) (.n 5328) (.n 5330)) ::
-  .atom (.const (.n 5332) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5331, .n 5323, .n 5324, .n 12, .n 13, .n 14, .n 15, .n 5332, .n 13, .n 14, .n 15, .n 16] [.n 5333, .n 5334, .n 5335, .n 5336, .n 5337, .n 5338, .n 5339, .n 5340, .n 5341, .n 5342, .n 5343, .n 5344, .n 5345] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5346, .n 5347]))) ::
-  .atom (.add (.n 5348) (.n 5333) (.n 5346)) ::
-  .atom (.add (.n 5349) (.n 5346) (.n 5347)) ::
-  .atom (.mul (.n 5348) (.n 253) (.n 5349)) ::
-  .atom (.const (.n 5350) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 5351) (.n 5207) (.n 5350)) ::
-  .atom (.const (.n 5352) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5353) (.n 871) (.n 5352)) ::
-  .atom (.add (.n 5354) (.n 5351) (.n 5353)) ::
-  .atom (.const (.n 5355) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5354, .n 5346, .n 5347, .n 12, .n 13, .n 14, .n 15, .n 5355, .n 13, .n 14, .n 15, .n 16] [.n 5356, .n 5357, .n 5358, .n 5359, .n 5360, .n 5361, .n 5362, .n 5363, .n 5364, .n 5365, .n 5366, .n 5367, .n 5368] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5369, .n 5370]))) ::
-  .atom (.add (.n 5371) (.n 5356) (.n 5369)) ::
-  .atom (.add (.n 5372) (.n 5369) (.n 5370)) ::
-  .atom (.mul (.n 5371) (.n 254) (.n 5372)) ::
-  .atom (.const (.n 5373) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 5374) (.n 5207) (.n 5373)) ::
-  .atom (.const (.n 5375) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5376) (.n 868) (.n 5375)) ::
-  .atom (.add (.n 5377) (.n 5374) (.n 5376)) ::
-  .atom (.const (.n 5378) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5377, .n 5369, .n 5370, .n 12, .n 13, .n 14, .n 15, .n 5378, .n 13, .n 14, .n 15, .n 16] [.n 5379, .n 5380, .n 5381, .n 5382, .n 5383, .n 5384, .n 5385, .n 5386, .n 5387, .n 5388, .n 5389, .n 5390, .n 5391] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5392, .n 5393]))) ::
-  .atom (.add (.n 5394) (.n 5379) (.n 5392)) ::
-  .atom (.add (.n 5395) (.n 5392) (.n 5393)) ::
-  .atom (.mul (.n 5394) (.n 255) (.n 5395)) ::
-  .atom (.const (.n 5396) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 5397) (.n 5207) (.n 5396)) ::
-  .atom (.const (.n 5398) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5399) (.n 865) (.n 5398)) ::
-  .atom (.add (.n 5400) (.n 5397) (.n 5399)) ::
-  .atom (.const (.n 5401) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5400, .n 5392, .n 5393, .n 12, .n 13, .n 14, .n 15, .n 5401, .n 13, .n 14, .n 15, .n 16] [.n 5402, .n 5403, .n 5404, .n 5405, .n 5406, .n 5407, .n 5408, .n 5409, .n 5410, .n 5411, .n 5412, .n 5413, .n 5414] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5415, .n 5416]))) ::
-  .atom (.add (.n 5417) (.n 5402) (.n 5415)) ::
-  .atom (.add (.n 5418) (.n 5415) (.n 5416)) ::
-  .atom (.mul (.n 5417) (.n 256) (.n 5418)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5419]))) ::
-  .atom (.const (.n 5420) (word 1080863987878330368 0 0)) ::
-  .atom (.add (.n 5421) (.n 1067) (.n 5420)) ::
-  .atom (.const (.n 5422) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 5423) (.n 920) (.n 5422)) ::
-  .atom (.add (.n 5424) (.n 5421) (.n 5423)) ::
-  .atom (.const (.n 5425) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5424, .n 5419, .n 12, .n 13, .n 14, .n 15, .n 16, .n 5425, .n 13, .n 14, .n 15, .n 16] [.n 5426, .n 5427, .n 5428, .n 5429, .n 5430, .n 5431, .n 5432, .n 5433, .n 5434, .n 5435, .n 5436, .n 5437, .n 5438] false false) ::
-  .atom (.const (.n 5439) (word 1224979175954186240 0 0)) ::
-  .atom (.add (.n 5440) (.n 1067) (.n 5439)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5441, .n 5442]))) ::
-  .atom (.add (.n 5443) (.n 5426) (.n 5441)) ::
-  .atom (.add (.n 5444) (.n 5441) (.n 5442)) ::
-  .atom (.mul (.n 5443) (.n 257) (.n 5444)) ::
-  .atom (.const (.n 5445) (word 274877906944 0 0)) ::
-  .atom (.add (.n 5446) (.n 5440) (.n 5445)) ::
-  .atom (.const (.n 5447) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5448) (.n 917) (.n 5447)) ::
-  .atom (.add (.n 5449) (.n 5446) (.n 5448)) ::
-  .atom (.const (.n 5450) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5449, .n 5441, .n 5442, .n 12, .n 13, .n 14, .n 15, .n 5450, .n 13, .n 14, .n 15, .n 16] [.n 5451, .n 5452, .n 5453, .n 5454, .n 5455, .n 5456, .n 5457, .n 5458, .n 5459, .n 5460, .n 5461, .n 5462, .n 5463] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5464, .n 5465]))) ::
-  .atom (.add (.n 5466) (.n 5451) (.n 5464)) ::
-  .atom (.add (.n 5467) (.n 5464) (.n 5465)) ::
-  .atom (.mul (.n 5466) (.n 258) (.n 5467)) ::
-  .atom (.const (.n 5468) (word 549755813888 0 0)) ::
-  .atom (.add (.n 5469) (.n 5440) (.n 5468)) ::
-  .atom (.const (.n 5470) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5471) (.n 914) (.n 5470)) ::
-  .atom (.add (.n 5472) (.n 5469) (.n 5471)) ::
-  .atom (.const (.n 5473) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5472, .n 5464, .n 5465, .n 12, .n 13, .n 14, .n 15, .n 5473, .n 13, .n 14, .n 15, .n 16] [.n 5474, .n 5475, .n 5476, .n 5477, .n 5478, .n 5479, .n 5480, .n 5481, .n 5482, .n 5483, .n 5484, .n 5485, .n 5486] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5487, .n 5488]))) ::
-  .atom (.add (.n 5489) (.n 5474) (.n 5487)) ::
-  .atom (.add (.n 5490) (.n 5487) (.n 5488)) ::
-  .atom (.mul (.n 5489) (.n 259) (.n 5490)) ::
-  .atom (.const (.n 5491) (word 824633720832 0 0)) ::
-  .atom (.add (.n 5492) (.n 5440) (.n 5491)) ::
-  .atom (.const (.n 5493) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5494) (.n 911) (.n 5493)) ::
-  .atom (.add (.n 5495) (.n 5492) (.n 5494)) ::
-  .atom (.const (.n 5496) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5495, .n 5487, .n 5488, .n 12, .n 13, .n 14, .n 15, .n 5496, .n 13, .n 14, .n 15, .n 16] [.n 5497, .n 5498, .n 5499, .n 5500, .n 5501, .n 5502, .n 5503, .n 5504, .n 5505, .n 5506, .n 5507, .n 5508, .n 5509] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5510, .n 5511]))) ::
-  .atom (.add (.n 5512) (.n 5497) (.n 5510)) ::
-  .atom (.add (.n 5513) (.n 5510) (.n 5511)) ::
-  .atom (.mul (.n 5512) (.n 260) (.n 5513)) ::
-  .atom (.const (.n 5514) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 5515) (.n 5440) (.n 5514)) ::
-  .atom (.const (.n 5516) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5517) (.n 908) (.n 5516)) ::
-  .atom (.add (.n 5518) (.n 5515) (.n 5517)) ::
-  .atom (.const (.n 5519) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5518, .n 5510, .n 5511, .n 12, .n 13, .n 14, .n 15, .n 5519, .n 13, .n 14, .n 15, .n 16] [.n 5520, .n 5521, .n 5522, .n 5523, .n 5524, .n 5525, .n 5526, .n 5527, .n 5528, .n 5529, .n 5530, .n 5531, .n 5532] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5533, .n 5534]))) ::
-  .atom (.add (.n 5535) (.n 5520) (.n 5533)) ::
-  .atom (.add (.n 5536) (.n 5533) (.n 5534)) ::
-  .atom (.mul (.n 5535) (.n 261) (.n 5536)) ::
-  .atom (.const (.n 5537) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 5538) (.n 5440) (.n 5537)) ::
-  .atom (.const (.n 5539) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5540) (.n 905) (.n 5539)) ::
-  .atom (.add (.n 5541) (.n 5538) (.n 5540)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4691, .n 4686, .n 4692, .n 4693, .n 4694, .n 4695, .n 4696, .n 354, .n 355, .n 356, .n 357] [.n 4697, .n 4698, .n 4699, .n 4700, .n 4701, .n 4702, .n 4703, .n 4704, .n 4705, .n 4706, .n 4707, .n 4708, .n 4709] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 4710]))) ::
+  .atom (.const (.n 4711) (word 0 11258999068426240 0)) ::
+  .atom (.add (.n 4712) (.n 1721) (.n 4711)) ::
+  .atom (.const (.n 4713) (word 256 0 0)) ::
+  .atom (.mul (.n 4714) (.n 947) (.n 4713)) ::
+  .atom (.add (.n 4715) (.n 971) (.n 4714)) ::
+  .atom (.const (.n 4716) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4717) (.n 4715) (.n 4716)) ::
+  .atom (.const (.n 4718) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4719) (.n 947) (.n 4718)) ::
+  .atom (.add (.n 4720) (.n 4717) (.n 4719)) ::
+  .atom (.add (.n 4721) (.n 4712) (.n 4720)) ::
+  .atom (.const (.n 4722) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4721, .n 4710, .n 353, .n 354, .n 355, .n 356, .n 4722, .n 354, .n 355, .n 356, .n 357] [.n 4723, .n 4724, .n 4725, .n 4726, .n 4727, .n 4728, .n 4729, .n 4730, .n 4731, .n 4732, .n 4733, .n 4734, .n 4735] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4736, .n 4737]))) ::
+  .atom (.add (.n 4738) (.n 4723) (.n 4736)) ::
+  .atom (.add (.n 4739) (.n 4736) (.n 4737)) ::
+  .atom (.mul (.n 4738) (.n 498) (.n 4739)) ::
+  .atom (.const (.n 4740) (word 0 5629499550990336 0)) ::
+  .atom (.add (.n 4741) (.n 1721) (.n 4740)) ::
+  .atom (.const (.n 4742) (word 256 0 0)) ::
+  .atom (.mul (.n 4743) (.n 944) (.n 4742)) ::
+  .atom (.add (.n 4744) (.n 968) (.n 4743)) ::
+  .atom (.const (.n 4745) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4746) (.n 4744) (.n 4745)) ::
+  .atom (.const (.n 4747) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 4748) (.n 944) (.n 4747)) ::
+  .atom (.add (.n 4749) (.n 4746) (.n 4748)) ::
+  .atom (.add (.n 4750) (.n 4741) (.n 4749)) ::
+  .atom (.copy (.n 4751) (.n 4737)) ::
+  .atom (.const (.n 4752) (word 1 0 0)) ::
+  .atom (.const (.n 4753) (word 0 0 0)) ::
+  .atom (.const (.n 4754) (word 0 0 0)) ::
+  .atom (.const (.n 4755) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4750, .n 4736, .n 4751, .n 4752, .n 4753, .n 4754, .n 4755, .n 354, .n 355, .n 356, .n 357] [.n 4756, .n 4757, .n 4758, .n 4759, .n 4760, .n 4761, .n 4762, .n 4763, .n 4764, .n 4765, .n 4766, .n 4767, .n 4768] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4769, .n 4770]))) ::
+  .atom (.add (.n 4771) (.n 4756) (.n 4769)) ::
+  .atom (.add (.n 4772) (.n 4769) (.n 4770)) ::
+  .atom (.mul (.n 4771) (.n 499) (.n 4772)) ::
+  .atom (.const (.n 4773) (word 0 2814749800660992 0)) ::
+  .atom (.add (.n 4774) (.n 1721) (.n 4773)) ::
+  .atom (.const (.n 4775) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4776) (.n 965) (.n 4775)) ::
+  .atom (.add (.n 4777) (.n 4774) (.n 4776)) ::
+  .atom (.copy (.n 4778) (.n 4770)) ::
+  .atom (.const (.n 4779) (word 1 0 0)) ::
+  .atom (.const (.n 4780) (word 0 0 0)) ::
+  .atom (.const (.n 4781) (word 0 0 0)) ::
+  .atom (.const (.n 4782) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4777, .n 4769, .n 4778, .n 4779, .n 4780, .n 4781, .n 4782, .n 354, .n 355, .n 356, .n 357] [.n 4783, .n 4784, .n 4785, .n 4786, .n 4787, .n 4788, .n 4789, .n 4790, .n 4791, .n 4792, .n 4793, .n 4794, .n 4795] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4796, .n 4797]))) ::
+  .atom (.add (.n 4798) (.n 4783) (.n 4796)) ::
+  .atom (.add (.n 4799) (.n 4796) (.n 4797)) ::
+  .atom (.mul (.n 4798) (.n 500) (.n 4799)) ::
+  .atom (.const (.n 4800) (word 0 1407374933884928 0)) ::
+  .atom (.add (.n 4801) (.n 1721) (.n 4800)) ::
+  .atom (.const (.n 4802) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4803) (.n 962) (.n 4802)) ::
+  .atom (.add (.n 4804) (.n 4801) (.n 4803)) ::
+  .atom (.copy (.n 4805) (.n 4797)) ::
+  .atom (.const (.n 4806) (word 1 0 0)) ::
+  .atom (.const (.n 4807) (word 0 0 0)) ::
+  .atom (.const (.n 4808) (word 0 0 0)) ::
+  .atom (.const (.n 4809) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4804, .n 4796, .n 4805, .n 4806, .n 4807, .n 4808, .n 4809, .n 354, .n 355, .n 356, .n 357] [.n 4810, .n 4811, .n 4812, .n 4813, .n 4814, .n 4815, .n 4816, .n 4817, .n 4818, .n 4819, .n 4820, .n 4821, .n 4822] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4823, .n 4824]))) ::
+  .atom (.add (.n 4825) (.n 4810) (.n 4823)) ::
+  .atom (.add (.n 4826) (.n 4823) (.n 4824)) ::
+  .atom (.mul (.n 4825) (.n 501) (.n 4826)) ::
+  .atom (.const (.n 4827) (word 0 9223934986875305984 0)) ::
+  .atom (.add (.n 4828) (.n 1721) (.n 4827)) ::
+  .atom (.const (.n 4829) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4830) (.n 959) (.n 4829)) ::
+  .atom (.add (.n 4831) (.n 4828) (.n 4830)) ::
+  .atom (.copy (.n 4832) (.n 4824)) ::
+  .atom (.const (.n 4833) (word 1 0 0)) ::
+  .atom (.const (.n 4834) (word 0 0 0)) ::
+  .atom (.const (.n 4835) (word 0 0 0)) ::
+  .atom (.const (.n 4836) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4831, .n 4823, .n 4832, .n 4833, .n 4834, .n 4835, .n 4836, .n 354, .n 355, .n 356, .n 357] [.n 4837, .n 4838, .n 4839, .n 4840, .n 4841, .n 4842, .n 4843, .n 4844, .n 4845, .n 4846, .n 4847, .n 4848, .n 4849] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4850, .n 4851]))) ::
+  .atom (.add (.n 4852) (.n 4837) (.n 4850)) ::
+  .atom (.add (.n 4853) (.n 4850) (.n 4851)) ::
+  .atom (.mul (.n 4852) (.n 502) (.n 4853)) ::
+  .atom (.const (.n 4854) (word 0 4611967493487984640 0)) ::
+  .atom (.add (.n 4855) (.n 1721) (.n 4854)) ::
+  .atom (.const (.n 4856) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4857) (.n 956) (.n 4856)) ::
+  .atom (.add (.n 4858) (.n 4855) (.n 4857)) ::
+  .atom (.copy (.n 4859) (.n 4851)) ::
+  .atom (.const (.n 4860) (word 1 0 0)) ::
+  .atom (.const (.n 4861) (word 0 0 0)) ::
+  .atom (.const (.n 4862) (word 0 0 0)) ::
+  .atom (.const (.n 4863) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4858, .n 4850, .n 4859, .n 4860, .n 4861, .n 4862, .n 4863, .n 354, .n 355, .n 356, .n 357] [.n 4864, .n 4865, .n 4866, .n 4867, .n 4868, .n 4869, .n 4870, .n 4871, .n 4872, .n 4873, .n 4874, .n 4875, .n 4876] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4877, .n 4878]))) ::
+  .atom (.add (.n 4879) (.n 4864) (.n 4877)) ::
+  .atom (.add (.n 4880) (.n 4877) (.n 4878)) ::
+  .atom (.mul (.n 4879) (.n 503) (.n 4880)) ::
+  .atom (.const (.n 4881) (word 0 11529215046169133056 0)) ::
+  .atom (.add (.n 4882) (.n 1721) (.n 4881)) ::
+  .atom (.const (.n 4883) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4884) (.n 953) (.n 4883)) ::
+  .atom (.add (.n 4885) (.n 4882) (.n 4884)) ::
+  .atom (.copy (.n 4886) (.n 4878)) ::
+  .atom (.const (.n 4887) (word 1 0 0)) ::
+  .atom (.const (.n 4888) (word 0 0 0)) ::
+  .atom (.const (.n 4889) (word 0 0 0)) ::
+  .atom (.const (.n 4890) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4885, .n 4877, .n 4886, .n 4887, .n 4888, .n 4889, .n 4890, .n 354, .n 355, .n 356, .n 357] [.n 4891, .n 4892, .n 4893, .n 4894, .n 4895, .n 4896, .n 4897, .n 4898, .n 4899, .n 4900, .n 4901, .n 4902, .n 4903] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4904, .n 4905]))) ::
+  .atom (.add (.n 4906) (.n 4891) (.n 4904)) ::
+  .atom (.add (.n 4907) (.n 4904) (.n 4905)) ::
+  .atom (.mul (.n 4906) (.n 488) (.n 4907)) ::
+  .atom (.const (.n 4908) (word 0 5764607523151675392 0)) ::
+  .atom (.add (.n 4909) (.n 1721) (.n 4908)) ::
+  .atom (.const (.n 4910) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4911) (.n 950) (.n 4910)) ::
+  .atom (.add (.n 4912) (.n 4909) (.n 4911)) ::
+  .atom (.copy (.n 4913) (.n 4905)) ::
+  .atom (.const (.n 4914) (word 1 0 0)) ::
+  .atom (.const (.n 4915) (word 0 0 0)) ::
+  .atom (.const (.n 4916) (word 0 0 0)) ::
+  .atom (.const (.n 4917) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4912, .n 4904, .n 4913, .n 4914, .n 4915, .n 4916, .n 4917, .n 354, .n 355, .n 356, .n 357] [.n 4918, .n 4919, .n 4920, .n 4921, .n 4922, .n 4923, .n 4924, .n 4925, .n 4926, .n 4927, .n 4928, .n 4929, .n 4930] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4931, .n 4932]))) ::
+  .atom (.add (.n 4933) (.n 4918) (.n 4931)) ::
+  .atom (.add (.n 4934) (.n 4931) (.n 4932)) ::
+  .atom (.mul (.n 4933) (.n 489) (.n 4934)) ::
+  .atom (.const (.n 4935) (word 0 2882303761651335168 0)) ::
+  .atom (.add (.n 4936) (.n 1721) (.n 4935)) ::
+  .atom (.const (.n 4937) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4938) (.n 947) (.n 4937)) ::
+  .atom (.add (.n 4939) (.n 4936) (.n 4938)) ::
+  .atom (.copy (.n 4940) (.n 4932)) ::
+  .atom (.const (.n 4941) (word 1 0 0)) ::
+  .atom (.const (.n 4942) (word 0 0 0)) ::
+  .atom (.const (.n 4943) (word 0 0 0)) ::
+  .atom (.const (.n 4944) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4939, .n 4931, .n 4940, .n 4941, .n 4942, .n 4943, .n 4944, .n 354, .n 355, .n 356, .n 357] [.n 4945, .n 4946, .n 4947, .n 4948, .n 4949, .n 4950, .n 4951, .n 4952, .n 4953, .n 4954, .n 4955, .n 4956, .n 4957] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4958, .n 4959]))) ::
+  .atom (.add (.n 4960) (.n 4945) (.n 4958)) ::
+  .atom (.add (.n 4961) (.n 4958) (.n 4959)) ::
+  .atom (.mul (.n 4960) (.n 490) (.n 4961)) ::
+  .atom (.const (.n 4962) (word 0 1441151880909553664 0)) ::
+  .atom (.add (.n 4963) (.n 1721) (.n 4962)) ::
+  .atom (.const (.n 4964) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 4965) (.n 944) (.n 4964)) ::
+  .atom (.add (.n 4966) (.n 4963) (.n 4965)) ::
+  .atom (.copy (.n 4967) (.n 4959)) ::
+  .atom (.const (.n 4968) (word 1 0 0)) ::
+  .atom (.const (.n 4969) (word 0 0 0)) ::
+  .atom (.const (.n 4970) (word 0 0 0)) ::
+  .atom (.const (.n 4971) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4966, .n 4958, .n 4967, .n 4968, .n 4969, .n 4970, .n 4971, .n 354, .n 355, .n 356, .n 357] [.n 4972, .n 4973, .n 4974, .n 4975, .n 4976, .n 4977, .n 4978, .n 4979, .n 4980, .n 4981, .n 4982, .n 4983, .n 4984] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 4985, .n 4986]))) ::
+  .atom (.add (.n 4987) (.n 4972) (.n 4985)) ::
+  .atom (.add (.n 4988) (.n 4985) (.n 4986)) ::
+  .atom (.mul (.n 4987) (.n 491) (.n 4988)) ::
+  .atom (.const (.n 4989) (word 0 720575940547051520 0)) ::
+  .atom (.add (.n 4990) (.n 1721) (.n 4989)) ::
+  .atom (.copy (.n 4991) (.n 4986)) ::
+  .atom (.const (.n 4992) (word 1 0 0)) ::
+  .atom (.const (.n 4993) (word 0 0 0)) ::
+  .atom (.const (.n 4994) (word 0 0 0)) ::
+  .atom (.const (.n 4995) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 4990, .n 4985, .n 4991, .n 4992, .n 4993, .n 4994, .n 4995, .n 354, .n 355, .n 356, .n 357] [.n 4996, .n 4997, .n 4998, .n 4999, .n 5000, .n 5001, .n 5002, .n 5003, .n 5004, .n 5005, .n 5006, .n 5007, .n 5008] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5009]))) ::
+  .atom (.const (.n 5010) (word 0 12384898975268864 0)) ::
+  .atom (.add (.n 5011) (.n 1721) (.n 5010)) ::
+  .atom (.const (.n 5012) (word 256 0 0)) ::
+  .atom (.mul (.n 5013) (.n 975) (.n 5012)) ::
+  .atom (.add (.n 5014) (.n 999) (.n 5013)) ::
+  .atom (.const (.n 5015) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5016) (.n 5014) (.n 5015)) ::
+  .atom (.const (.n 5017) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5018) (.n 975) (.n 5017)) ::
+  .atom (.add (.n 5019) (.n 5016) (.n 5018)) ::
+  .atom (.add (.n 5020) (.n 5011) (.n 5019)) ::
+  .atom (.const (.n 5021) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5020, .n 5009, .n 353, .n 354, .n 355, .n 356, .n 5021, .n 354, .n 355, .n 356, .n 357] [.n 5022, .n 5023, .n 5024, .n 5025, .n 5026, .n 5027, .n 5028, .n 5029, .n 5030, .n 5031, .n 5032, .n 5033, .n 5034] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5035, .n 5036]))) ::
+  .atom (.add (.n 5037) (.n 5022) (.n 5035)) ::
+  .atom (.add (.n 5038) (.n 5035) (.n 5036)) ::
+  .atom (.mul (.n 5037) (.n 504) (.n 5038)) ::
+  .atom (.const (.n 5039) (word 0 6192449504411648 0)) ::
+  .atom (.add (.n 5040) (.n 1721) (.n 5039)) ::
+  .atom (.const (.n 5041) (word 256 0 0)) ::
+  .atom (.mul (.n 5042) (.n 972) (.n 5041)) ::
+  .atom (.add (.n 5043) (.n 996) (.n 5042)) ::
+  .atom (.const (.n 5044) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5045) (.n 5043) (.n 5044)) ::
+  .atom (.const (.n 5046) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5047) (.n 972) (.n 5046)) ::
+  .atom (.add (.n 5048) (.n 5045) (.n 5047)) ::
+  .atom (.add (.n 5049) (.n 5040) (.n 5048)) ::
+  .atom (.copy (.n 5050) (.n 5036)) ::
+  .atom (.const (.n 5051) (word 1 0 0)) ::
+  .atom (.const (.n 5052) (word 0 0 0)) ::
+  .atom (.const (.n 5053) (word 0 0 0)) ::
+  .atom (.const (.n 5054) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5049, .n 5035, .n 5050, .n 5051, .n 5052, .n 5053, .n 5054, .n 354, .n 355, .n 356, .n 357] [.n 5055, .n 5056, .n 5057, .n 5058, .n 5059, .n 5060, .n 5061, .n 5062, .n 5063, .n 5064, .n 5065, .n 5066, .n 5067] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5068, .n 5069]))) ::
+  .atom (.add (.n 5070) (.n 5055) (.n 5068)) ::
+  .atom (.add (.n 5071) (.n 5068) (.n 5069)) ::
+  .atom (.mul (.n 5070) (.n 505) (.n 5071)) ::
+  .atom (.const (.n 5072) (word 0 3096224777371648 0)) ::
+  .atom (.add (.n 5073) (.n 1721) (.n 5072)) ::
+  .atom (.const (.n 5074) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5075) (.n 993) (.n 5074)) ::
+  .atom (.add (.n 5076) (.n 5073) (.n 5075)) ::
+  .atom (.copy (.n 5077) (.n 5069)) ::
+  .atom (.const (.n 5078) (word 1 0 0)) ::
+  .atom (.const (.n 5079) (word 0 0 0)) ::
+  .atom (.const (.n 5080) (word 0 0 0)) ::
+  .atom (.const (.n 5081) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5076, .n 5068, .n 5077, .n 5078, .n 5079, .n 5080, .n 5081, .n 354, .n 355, .n 356, .n 357] [.n 5082, .n 5083, .n 5084, .n 5085, .n 5086, .n 5087, .n 5088, .n 5089, .n 5090, .n 5091, .n 5092, .n 5093, .n 5094] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5095, .n 5096]))) ::
+  .atom (.add (.n 5097) (.n 5082) (.n 5095)) ::
+  .atom (.add (.n 5098) (.n 5095) (.n 5096)) ::
+  .atom (.mul (.n 5097) (.n 506) (.n 5098)) ::
+  .atom (.const (.n 5099) (word 0 9224779411788660736 0)) ::
+  .atom (.add (.n 5100) (.n 1721) (.n 5099)) ::
+  .atom (.const (.n 5101) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5102) (.n 990) (.n 5101)) ::
+  .atom (.add (.n 5103) (.n 5100) (.n 5102)) ::
+  .atom (.copy (.n 5104) (.n 5096)) ::
+  .atom (.const (.n 5105) (word 1 0 0)) ::
+  .atom (.const (.n 5106) (word 0 0 0)) ::
+  .atom (.const (.n 5107) (word 0 0 0)) ::
+  .atom (.const (.n 5108) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5103, .n 5095, .n 5104, .n 5105, .n 5106, .n 5107, .n 5108, .n 354, .n 355, .n 356, .n 357] [.n 5109, .n 5110, .n 5111, .n 5112, .n 5113, .n 5114, .n 5115, .n 5116, .n 5117, .n 5118, .n 5119, .n 5120, .n 5121] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5122, .n 5123]))) ::
+  .atom (.add (.n 5124) (.n 5109) (.n 5122)) ::
+  .atom (.add (.n 5125) (.n 5122) (.n 5123)) ::
+  .atom (.mul (.n 5124) (.n 507) (.n 5125)) ::
+  .atom (.const (.n 5126) (word 0 13835621005302693888 0)) ::
+  .atom (.add (.n 5127) (.n 1721) (.n 5126)) ::
+  .atom (.const (.n 5128) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5129) (.n 987) (.n 5128)) ::
+  .atom (.add (.n 5130) (.n 5127) (.n 5129)) ::
+  .atom (.copy (.n 5131) (.n 5123)) ::
+  .atom (.const (.n 5132) (word 1 0 0)) ::
+  .atom (.const (.n 5133) (word 0 0 0)) ::
+  .atom (.const (.n 5134) (word 0 0 0)) ::
+  .atom (.const (.n 5135) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5130, .n 5122, .n 5131, .n 5132, .n 5133, .n 5134, .n 5135, .n 354, .n 355, .n 356, .n 357] [.n 5136, .n 5137, .n 5138, .n 5139, .n 5140, .n 5141, .n 5142, .n 5143, .n 5144, .n 5145, .n 5146, .n 5147, .n 5148] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5149, .n 5150]))) ::
+  .atom (.add (.n 5151) (.n 5136) (.n 5149)) ::
+  .atom (.add (.n 5152) (.n 5149) (.n 5150)) ::
+  .atom (.mul (.n 5151) (.n 508) (.n 5152)) ::
+  .atom (.const (.n 5153) (word 0 6917810502701678592 0)) ::
+  .atom (.add (.n 5154) (.n 1721) (.n 5153)) ::
+  .atom (.const (.n 5155) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5156) (.n 984) (.n 5155)) ::
+  .atom (.add (.n 5157) (.n 5154) (.n 5156)) ::
+  .atom (.copy (.n 5158) (.n 5150)) ::
+  .atom (.const (.n 5159) (word 1 0 0)) ::
+  .atom (.const (.n 5160) (word 0 0 0)) ::
+  .atom (.const (.n 5161) (word 0 0 0)) ::
+  .atom (.const (.n 5162) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5157, .n 5149, .n 5158, .n 5159, .n 5160, .n 5161, .n 5162, .n 354, .n 355, .n 356, .n 357] [.n 5163, .n 5164, .n 5165, .n 5166, .n 5167, .n 5168, .n 5169, .n 5170, .n 5171, .n 5172, .n 5173, .n 5174, .n 5175] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5176, .n 5177]))) ::
+  .atom (.add (.n 5178) (.n 5163) (.n 5176)) ::
+  .atom (.add (.n 5179) (.n 5176) (.n 5177)) ::
+  .atom (.mul (.n 5178) (.n 509) (.n 5179)) ::
+  .atom (.const (.n 5180) (word 0 12682136550775980032 0)) ::
+  .atom (.add (.n 5181) (.n 1721) (.n 5180)) ::
+  .atom (.const (.n 5182) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5183) (.n 981) (.n 5182)) ::
+  .atom (.add (.n 5184) (.n 5181) (.n 5183)) ::
+  .atom (.copy (.n 5185) (.n 5177)) ::
+  .atom (.const (.n 5186) (word 1 0 0)) ::
+  .atom (.const (.n 5187) (word 0 0 0)) ::
+  .atom (.const (.n 5188) (word 0 0 0)) ::
+  .atom (.const (.n 5189) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5184, .n 5176, .n 5185, .n 5186, .n 5187, .n 5188, .n 5189, .n 354, .n 355, .n 356, .n 357] [.n 5190, .n 5191, .n 5192, .n 5193, .n 5194, .n 5195, .n 5196, .n 5197, .n 5198, .n 5199, .n 5200, .n 5201, .n 5202] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5203, .n 5204]))) ::
+  .atom (.add (.n 5205) (.n 5190) (.n 5203)) ::
+  .atom (.add (.n 5206) (.n 5203) (.n 5204)) ::
+  .atom (.mul (.n 5205) (.n 510) (.n 5206)) ::
+  .atom (.const (.n 5207) (word 0 6341068275455098880 0)) ::
+  .atom (.add (.n 5208) (.n 1721) (.n 5207)) ::
+  .atom (.const (.n 5209) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5210) (.n 978) (.n 5209)) ::
+  .atom (.add (.n 5211) (.n 5208) (.n 5210)) ::
+  .atom (.copy (.n 5212) (.n 5204)) ::
+  .atom (.const (.n 5213) (word 1 0 0)) ::
+  .atom (.const (.n 5214) (word 0 0 0)) ::
+  .atom (.const (.n 5215) (word 0 0 0)) ::
+  .atom (.const (.n 5216) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5211, .n 5203, .n 5212, .n 5213, .n 5214, .n 5215, .n 5216, .n 354, .n 355, .n 356, .n 357] [.n 5217, .n 5218, .n 5219, .n 5220, .n 5221, .n 5222, .n 5223, .n 5224, .n 5225, .n 5226, .n 5227, .n 5228, .n 5229] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5230, .n 5231]))) ::
+  .atom (.add (.n 5232) (.n 5217) (.n 5230)) ::
+  .atom (.add (.n 5233) (.n 5230) (.n 5231)) ::
+  .atom (.mul (.n 5232) (.n 511) (.n 5233)) ::
+  .atom (.const (.n 5234) (word 0 3170534137803046912 0)) ::
+  .atom (.add (.n 5235) (.n 1721) (.n 5234)) ::
+  .atom (.const (.n 5236) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5237) (.n 975) (.n 5236)) ::
+  .atom (.add (.n 5238) (.n 5235) (.n 5237)) ::
+  .atom (.copy (.n 5239) (.n 5231)) ::
+  .atom (.const (.n 5240) (word 1 0 0)) ::
+  .atom (.const (.n 5241) (word 0 0 0)) ::
+  .atom (.const (.n 5242) (word 0 0 0)) ::
+  .atom (.const (.n 5243) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5238, .n 5230, .n 5239, .n 5240, .n 5241, .n 5242, .n 5243, .n 354, .n 355, .n 356, .n 357] [.n 5244, .n 5245, .n 5246, .n 5247, .n 5248, .n 5249, .n 5250, .n 5251, .n 5252, .n 5253, .n 5254, .n 5255, .n 5256] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5257, .n 5258]))) ::
+  .atom (.add (.n 5259) (.n 5244) (.n 5257)) ::
+  .atom (.add (.n 5260) (.n 5257) (.n 5258)) ::
+  .atom (.mul (.n 5259) (.n 496) (.n 5260)) ::
+  .atom (.const (.n 5261) (word 0 1585267068985409536 0)) ::
+  .atom (.add (.n 5262) (.n 1721) (.n 5261)) ::
+  .atom (.const (.n 5263) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5264) (.n 972) (.n 5263)) ::
+  .atom (.add (.n 5265) (.n 5262) (.n 5264)) ::
+  .atom (.copy (.n 5266) (.n 5258)) ::
+  .atom (.const (.n 5267) (word 1 0 0)) ::
+  .atom (.const (.n 5268) (word 0 0 0)) ::
+  .atom (.const (.n 5269) (word 0 0 0)) ::
+  .atom (.const (.n 5270) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5265, .n 5257, .n 5266, .n 5267, .n 5268, .n 5269, .n 5270, .n 354, .n 355, .n 356, .n 357] [.n 5271, .n 5272, .n 5273, .n 5274, .n 5275, .n 5276, .n 5277, .n 5278, .n 5279, .n 5280, .n 5281, .n 5282, .n 5283] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5284, .n 5285]))) ::
+  .atom (.add (.n 5286) (.n 5271) (.n 5284)) ::
+  .atom (.add (.n 5287) (.n 5284) (.n 5285)) ::
+  .atom (.mul (.n 5286) (.n 497) (.n 5287)) ::
+  .atom (.const (.n 5288) (word 0 792633534584979456 0)) ::
+  .atom (.add (.n 5289) (.n 1721) (.n 5288)) ::
+  .atom (.copy (.n 5290) (.n 5285)) ::
+  .atom (.const (.n 5291) (word 1 0 0)) ::
+  .atom (.const (.n 5292) (word 0 0 0)) ::
+  .atom (.const (.n 5293) (word 0 0 0)) ::
+  .atom (.const (.n 5294) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5289, .n 5284, .n 5290, .n 5291, .n 5292, .n 5293, .n 5294, .n 354, .n 355, .n 356, .n 357] [.n 5295, .n 5296, .n 5297, .n 5298, .n 5299, .n 5300, .n 5301, .n 5302, .n 5303, .n 5304, .n 5305, .n 5306, .n 5307] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5308]))) ::
+  .atom (.const (.n 5309) (word 0 13510798882111488 0)) ::
+  .atom (.add (.n 5310) (.n 1721) (.n 5309)) ::
+  .atom (.const (.n 5311) (word 256 0 0)) ::
+  .atom (.mul (.n 5312) (.n 1003) (.n 5311)) ::
+  .atom (.add (.n 5313) (.n 1027) (.n 5312)) ::
+  .atom (.const (.n 5314) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5315) (.n 5313) (.n 5314)) ::
+  .atom (.const (.n 5316) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5317) (.n 1003) (.n 5316)) ::
+  .atom (.add (.n 5318) (.n 5315) (.n 5317)) ::
+  .atom (.add (.n 5319) (.n 5310) (.n 5318)) ::
+  .atom (.const (.n 5320) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5319, .n 5308, .n 353, .n 354, .n 355, .n 356, .n 5320, .n 354, .n 355, .n 356, .n 357] [.n 5321, .n 5322, .n 5323, .n 5324, .n 5325, .n 5326, .n 5327, .n 5328, .n 5329, .n 5330, .n 5331, .n 5332, .n 5333] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5334, .n 5335]))) ::
+  .atom (.add (.n 5336) (.n 5321) (.n 5334)) ::
+  .atom (.add (.n 5337) (.n 5334) (.n 5335)) ::
+  .atom (.mul (.n 5336) (.n 526) (.n 5337)) ::
+  .atom (.const (.n 5338) (word 0 6755399457832960 0)) ::
+  .atom (.add (.n 5339) (.n 1721) (.n 5338)) ::
+  .atom (.const (.n 5340) (word 256 0 0)) ::
+  .atom (.mul (.n 5341) (.n 1000) (.n 5340)) ::
+  .atom (.add (.n 5342) (.n 1024) (.n 5341)) ::
+  .atom (.const (.n 5343) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5344) (.n 5342) (.n 5343)) ::
+  .atom (.const (.n 5345) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5346) (.n 1000) (.n 5345)) ::
+  .atom (.add (.n 5347) (.n 5344) (.n 5346)) ::
+  .atom (.add (.n 5348) (.n 5339) (.n 5347)) ::
+  .atom (.copy (.n 5349) (.n 5335)) ::
+  .atom (.const (.n 5350) (word 1 0 0)) ::
+  .atom (.const (.n 5351) (word 0 0 0)) ::
+  .atom (.const (.n 5352) (word 0 0 0)) ::
+  .atom (.const (.n 5353) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5348, .n 5334, .n 5349, .n 5350, .n 5351, .n 5352, .n 5353, .n 354, .n 355, .n 356, .n 357] [.n 5354, .n 5355, .n 5356, .n 5357, .n 5358, .n 5359, .n 5360, .n 5361, .n 5362, .n 5363, .n 5364, .n 5365, .n 5366] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5367, .n 5368]))) ::
+  .atom (.add (.n 5369) (.n 5354) (.n 5367)) ::
+  .atom (.add (.n 5370) (.n 5367) (.n 5368)) ::
+  .atom (.mul (.n 5369) (.n 527) (.n 5370)) ::
+  .atom (.const (.n 5371) (word 0 3377699754082304 0)) ::
+  .atom (.add (.n 5372) (.n 1721) (.n 5371)) ::
+  .atom (.const (.n 5373) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5374) (.n 1021) (.n 5373)) ::
+  .atom (.add (.n 5375) (.n 5372) (.n 5374)) ::
+  .atom (.copy (.n 5376) (.n 5368)) ::
+  .atom (.const (.n 5377) (word 1 0 0)) ::
+  .atom (.const (.n 5378) (word 0 0 0)) ::
+  .atom (.const (.n 5379) (word 0 0 0)) ::
+  .atom (.const (.n 5380) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5375, .n 5367, .n 5376, .n 5377, .n 5378, .n 5379, .n 5380, .n 354, .n 355, .n 356, .n 357] [.n 5381, .n 5382, .n 5383, .n 5384, .n 5385, .n 5386, .n 5387, .n 5388, .n 5389, .n 5390, .n 5391, .n 5392, .n 5393] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5394, .n 5395]))) ::
+  .atom (.add (.n 5396) (.n 5381) (.n 5394)) ::
+  .atom (.add (.n 5397) (.n 5394) (.n 5395)) ::
+  .atom (.mul (.n 5396) (.n 512) (.n 5397)) ::
+  .atom (.const (.n 5398) (word 0 1688849910595584 0)) ::
+  .atom (.add (.n 5399) (.n 1721) (.n 5398)) ::
+  .atom (.const (.n 5400) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5401) (.n 1018) (.n 5400)) ::
+  .atom (.add (.n 5402) (.n 5399) (.n 5401)) ::
+  .atom (.copy (.n 5403) (.n 5395)) ::
+  .atom (.const (.n 5404) (word 1 0 0)) ::
+  .atom (.const (.n 5405) (word 0 0 0)) ::
+  .atom (.const (.n 5406) (word 0 0 0)) ::
+  .atom (.const (.n 5407) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5402, .n 5394, .n 5403, .n 5404, .n 5405, .n 5406, .n 5407, .n 354, .n 355, .n 356, .n 357] [.n 5408, .n 5409, .n 5410, .n 5411, .n 5412, .n 5413, .n 5414, .n 5415, .n 5416, .n 5417, .n 5418, .n 5419, .n 5420] false false) ::
+  [])
+
+/-- `verify_sig_lean_sphincs`: statements 3659 to 4062 of the body. -/
+noncomputable def c8 : List Core.Stmt := (
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5421, .n 5422]))) ::
+  .atom (.add (.n 5423) (.n 5408) (.n 5421)) ::
+  .atom (.add (.n 5424) (.n 5421) (.n 5422)) ::
+  .atom (.mul (.n 5423) (.n 513) (.n 5424)) ::
+  .atom (.const (.n 5425) (word 0 844424997240832 0)) ::
+  .atom (.add (.n 5426) (.n 1721) (.n 5425)) ::
+  .atom (.const (.n 5427) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5428) (.n 1015) (.n 5427)) ::
+  .atom (.add (.n 5429) (.n 5426) (.n 5428)) ::
+  .atom (.copy (.n 5430) (.n 5422)) ::
+  .atom (.const (.n 5431) (word 1 0 0)) ::
+  .atom (.const (.n 5432) (word 0 0 0)) ::
+  .atom (.const (.n 5433) (word 0 0 0)) ::
+  .atom (.const (.n 5434) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5429, .n 5421, .n 5430, .n 5431, .n 5432, .n 5433, .n 5434, .n 354, .n 355, .n 356, .n 357] [.n 5435, .n 5436, .n 5437, .n 5438, .n 5439, .n 5440, .n 5441, .n 5442, .n 5443, .n 5444, .n 5445, .n 5446, .n 5447] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5448, .n 5449]))) ::
+  .atom (.add (.n 5450) (.n 5435) (.n 5448)) ::
+  .atom (.add (.n 5451) (.n 5448) (.n 5449)) ::
+  .atom (.mul (.n 5450) (.n 514) (.n 5451)) ::
+  .atom (.const (.n 5452) (word 0 9223653511915372544 0)) ::
+  .atom (.add (.n 5453) (.n 1721) (.n 5452)) ::
+  .atom (.const (.n 5454) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5455) (.n 1012) (.n 5454)) ::
+  .atom (.add (.n 5456) (.n 5453) (.n 5455)) ::
+  .atom (.copy (.n 5457) (.n 5449)) ::
+  .atom (.const (.n 5458) (word 1 0 0)) ::
+  .atom (.const (.n 5459) (word 0 0 0)) ::
+  .atom (.const (.n 5460) (word 0 0 0)) ::
+  .atom (.const (.n 5461) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5456, .n 5448, .n 5457, .n 5458, .n 5459, .n 5460, .n 5461, .n 354, .n 355, .n 356, .n 357] [.n 5462, .n 5463, .n 5464, .n 5465, .n 5466, .n 5467, .n 5468, .n 5469, .n 5470, .n 5471, .n 5472, .n 5473, .n 5474] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5475, .n 5476]))) ::
+  .atom (.add (.n 5477) (.n 5462) (.n 5475)) ::
+  .atom (.add (.n 5478) (.n 5475) (.n 5476)) ::
+  .atom (.mul (.n 5477) (.n 515) (.n 5478)) ::
+  .atom (.const (.n 5479) (word 0 13835058055382827008 0)) ::
+  .atom (.add (.n 5480) (.n 1721) (.n 5479)) ::
+  .atom (.const (.n 5481) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5482) (.n 1009) (.n 5481)) ::
+  .atom (.add (.n 5483) (.n 5480) (.n 5482)) ::
+  .atom (.copy (.n 5484) (.n 5476)) ::
+  .atom (.const (.n 5485) (word 1 0 0)) ::
+  .atom (.const (.n 5486) (word 0 0 0)) ::
+  .atom (.const (.n 5487) (word 0 0 0)) ::
+  .atom (.const (.n 5488) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5483, .n 5475, .n 5484, .n 5485, .n 5486, .n 5487, .n 5488, .n 354, .n 355, .n 356, .n 357] [.n 5489, .n 5490, .n 5491, .n 5492, .n 5493, .n 5494, .n 5495, .n 5496, .n 5497, .n 5498, .n 5499, .n 5500, .n 5501] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5502, .n 5503]))) ::
+  .atom (.add (.n 5504) (.n 5489) (.n 5502)) ::
+  .atom (.add (.n 5505) (.n 5502) (.n 5503)) ::
+  .atom (.mul (.n 5504) (.n 516) (.n 5505)) ::
+  .atom (.const (.n 5506) (word 0 6917529027758522368 0)) ::
+  .atom (.add (.n 5507) (.n 1721) (.n 5506)) ::
+  .atom (.const (.n 5508) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5509) (.n 1006) (.n 5508)) ::
+  .atom (.add (.n 5510) (.n 5507) (.n 5509)) ::
+  .atom (.copy (.n 5511) (.n 5503)) ::
+  .atom (.const (.n 5512) (word 1 0 0)) ::
+  .atom (.const (.n 5513) (word 0 0 0)) ::
+  .atom (.const (.n 5514) (word 0 0 0)) ::
+  .atom (.const (.n 5515) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5510, .n 5502, .n 5511, .n 5512, .n 5513, .n 5514, .n 5515, .n 354, .n 355, .n 356, .n 357] [.n 5516, .n 5517, .n 5518, .n 5519, .n 5520, .n 5521, .n 5522, .n 5523, .n 5524, .n 5525, .n 5526, .n 5527, .n 5528] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5529, .n 5530]))) ::
+  .atom (.add (.n 5531) (.n 5516) (.n 5529)) ::
+  .atom (.add (.n 5532) (.n 5529) (.n 5530)) ::
+  .atom (.mul (.n 5531) (.n 517) (.n 5532)) ::
+  .atom (.const (.n 5533) (word 0 3458764513954758656 0)) ::
+  .atom (.add (.n 5534) (.n 1721) (.n 5533)) ::
+  .atom (.const (.n 5535) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5536) (.n 1003) (.n 5535)) ::
+  .atom (.add (.n 5537) (.n 5534) (.n 5536)) ::
+  .atom (.copy (.n 5538) (.n 5530)) ::
+  .atom (.const (.n 5539) (word 1 0 0)) ::
+  .atom (.const (.n 5540) (word 0 0 0)) ::
+  .atom (.const (.n 5541) (word 0 0 0)) ::
   .atom (.const (.n 5542) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5541, .n 5533, .n 5534, .n 12, .n 13, .n 14, .n 15, .n 5542, .n 13, .n 14, .n 15, .n 16] [.n 5543, .n 5544, .n 5545, .n 5546, .n 5547, .n 5548, .n 5549, .n 5550, .n 5551, .n 5552, .n 5553, .n 5554, .n 5555] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5537, .n 5529, .n 5538, .n 5539, .n 5540, .n 5541, .n 5542, .n 354, .n 355, .n 356, .n 357] [.n 5543, .n 5544, .n 5545, .n 5546, .n 5547, .n 5548, .n 5549, .n 5550, .n 5551, .n 5552, .n 5553, .n 5554, .n 5555] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5556, .n 5557]))) ::
   .atom (.add (.n 5558) (.n 5543) (.n 5556)) ::
   .atom (.add (.n 5559) (.n 5556) (.n 5557)) ::
-  .atom (.mul (.n 5558) (.n 262) (.n 5559)) ::
-  .atom (.const (.n 5560) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 5561) (.n 5440) (.n 5560)) ::
-  .atom (.const (.n 5562) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5563) (.n 902) (.n 5562)) ::
+  .atom (.mul (.n 5558) (.n 518) (.n 5559)) ::
+  .atom (.const (.n 5560) (word 0 1729382257061265408 0)) ::
+  .atom (.add (.n 5561) (.n 1721) (.n 5560)) ::
+  .atom (.const (.n 5562) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5563) (.n 1000) (.n 5562)) ::
   .atom (.add (.n 5564) (.n 5561) (.n 5563)) ::
-  .atom (.const (.n 5565) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5564, .n 5556, .n 5557, .n 12, .n 13, .n 14, .n 15, .n 5565, .n 13, .n 14, .n 15, .n 16] [.n 5566, .n 5567, .n 5568, .n 5569, .n 5570, .n 5571, .n 5572, .n 5573, .n 5574, .n 5575, .n 5576, .n 5577, .n 5578] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5579, .n 5580]))) ::
-  .atom (.add (.n 5581) (.n 5566) (.n 5579)) ::
-  .atom (.add (.n 5582) (.n 5579) (.n 5580)) ::
-  .atom (.mul (.n 5581) (.n 263) (.n 5582)) ::
-  .atom (.const (.n 5583) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 5584) (.n 5440) (.n 5583)) ::
-  .atom (.const (.n 5585) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5586) (.n 899) (.n 5585)) ::
-  .atom (.add (.n 5587) (.n 5584) (.n 5586)) ::
-  .atom (.const (.n 5588) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5587, .n 5579, .n 5580, .n 12, .n 13, .n 14, .n 15, .n 5588, .n 13, .n 14, .n 15, .n 16] [.n 5589, .n 5590, .n 5591, .n 5592, .n 5593, .n 5594, .n 5595, .n 5596, .n 5597, .n 5598, .n 5599, .n 5600, .n 5601] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5602, .n 5603]))) ::
-  .atom (.add (.n 5604) (.n 5589) (.n 5602)) ::
-  .atom (.add (.n 5605) (.n 5602) (.n 5603)) ::
-  .atom (.mul (.n 5604) (.n 264) (.n 5605)) ::
-  .atom (.const (.n 5606) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 5607) (.n 5440) (.n 5606)) ::
-  .atom (.const (.n 5608) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5609) (.n 896) (.n 5608)) ::
-  .atom (.add (.n 5610) (.n 5607) (.n 5609)) ::
-  .atom (.const (.n 5611) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5610, .n 5602, .n 5603, .n 12, .n 13, .n 14, .n 15, .n 5611, .n 13, .n 14, .n 15, .n 16] [.n 5612, .n 5613, .n 5614, .n 5615, .n 5616, .n 5617, .n 5618, .n 5619, .n 5620, .n 5621, .n 5622, .n 5623, .n 5624] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5625, .n 5626]))) ::
-  .atom (.add (.n 5627) (.n 5612) (.n 5625)) ::
-  .atom (.add (.n 5628) (.n 5625) (.n 5626)) ::
-  .atom (.mul (.n 5627) (.n 265) (.n 5628)) ::
-  .atom (.const (.n 5629) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 5630) (.n 5440) (.n 5629)) ::
-  .atom (.const (.n 5631) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5632) (.n 893) (.n 5631)) ::
-  .atom (.add (.n 5633) (.n 5630) (.n 5632)) ::
-  .atom (.const (.n 5634) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5633, .n 5625, .n 5626, .n 12, .n 13, .n 14, .n 15, .n 5634, .n 13, .n 14, .n 15, .n 16] [.n 5635, .n 5636, .n 5637, .n 5638, .n 5639, .n 5640, .n 5641, .n 5642, .n 5643, .n 5644, .n 5645, .n 5646, .n 5647] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5648, .n 5649]))) ::
-  .atom (.add (.n 5650) (.n 5635) (.n 5648)) ::
-  .atom (.add (.n 5651) (.n 5648) (.n 5649)) ::
-  .atom (.mul (.n 5650) (.n 266) (.n 5651)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5652]))) ::
-  .atom (.const (.n 5653) (word 1080863992173297664 0 0)) ::
-  .atom (.add (.n 5654) (.n 1067) (.n 5653)) ::
-  .atom (.const (.n 5655) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 5656) (.n 948) (.n 5655)) ::
-  .atom (.add (.n 5657) (.n 5654) (.n 5656)) ::
-  .atom (.const (.n 5658) (word 9223372036854775808 0 0)) ::
-  [])
-
-/-- `verify_sig_lean_sphincs`: statements 3339 to 3701 of the body. -/
-noncomputable def c8 : List Core.Stmt := (
-  .atom (.keccak [.n 2, .n 5657, .n 5652, .n 12, .n 13, .n 14, .n 15, .n 16, .n 5658, .n 13, .n 14, .n 15, .n 16] [.n 5659, .n 5660, .n 5661, .n 5662, .n 5663, .n 5664, .n 5665, .n 5666, .n 5667, .n 5668, .n 5669, .n 5670, .n 5671] false false) ::
-  .atom (.const (.n 5672) (word 1224979180249153536 0 0)) ::
-  .atom (.add (.n 5673) (.n 1067) (.n 5672)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5674, .n 5675]))) ::
-  .atom (.add (.n 5676) (.n 5659) (.n 5674)) ::
-  .atom (.add (.n 5677) (.n 5674) (.n 5675)) ::
-  .atom (.mul (.n 5676) (.n 267) (.n 5677)) ::
-  .atom (.const (.n 5678) (word 274877906944 0 0)) ::
-  .atom (.add (.n 5679) (.n 5673) (.n 5678)) ::
-  .atom (.const (.n 5680) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5681) (.n 945) (.n 5680)) ::
-  .atom (.add (.n 5682) (.n 5679) (.n 5681)) ::
-  .atom (.const (.n 5683) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5682, .n 5674, .n 5675, .n 12, .n 13, .n 14, .n 15, .n 5683, .n 13, .n 14, .n 15, .n 16] [.n 5684, .n 5685, .n 5686, .n 5687, .n 5688, .n 5689, .n 5690, .n 5691, .n 5692, .n 5693, .n 5694, .n 5695, .n 5696] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5697, .n 5698]))) ::
-  .atom (.add (.n 5699) (.n 5684) (.n 5697)) ::
-  .atom (.add (.n 5700) (.n 5697) (.n 5698)) ::
-  .atom (.mul (.n 5699) (.n 268) (.n 5700)) ::
-  .atom (.const (.n 5701) (word 549755813888 0 0)) ::
-  .atom (.add (.n 5702) (.n 5673) (.n 5701)) ::
-  .atom (.const (.n 5703) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5704) (.n 942) (.n 5703)) ::
-  .atom (.add (.n 5705) (.n 5702) (.n 5704)) ::
+  .atom (.copy (.n 5565) (.n 5557)) ::
+  .atom (.const (.n 5566) (word 1 0 0)) ::
+  .atom (.const (.n 5567) (word 0 0 0)) ::
+  .atom (.const (.n 5568) (word 0 0 0)) ::
+  .atom (.const (.n 5569) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5564, .n 5556, .n 5565, .n 5566, .n 5567, .n 5568, .n 5569, .n 354, .n 355, .n 356, .n 357] [.n 5570, .n 5571, .n 5572, .n 5573, .n 5574, .n 5575, .n 5576, .n 5577, .n 5578, .n 5579, .n 5580, .n 5581, .n 5582] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5583, .n 5584]))) ::
+  .atom (.add (.n 5585) (.n 5570) (.n 5583)) ::
+  .atom (.add (.n 5586) (.n 5583) (.n 5584)) ::
+  .atom (.mul (.n 5585) (.n 519) (.n 5586)) ::
+  .atom (.const (.n 5587) (word 0 864691128622907392 0)) ::
+  .atom (.add (.n 5588) (.n 1721) (.n 5587)) ::
+  .atom (.copy (.n 5589) (.n 5584)) ::
+  .atom (.const (.n 5590) (word 1 0 0)) ::
+  .atom (.const (.n 5591) (word 0 0 0)) ::
+  .atom (.const (.n 5592) (word 0 0 0)) ::
+  .atom (.const (.n 5593) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5588, .n 5583, .n 5589, .n 5590, .n 5591, .n 5592, .n 5593, .n 354, .n 355, .n 356, .n 357] [.n 5594, .n 5595, .n 5596, .n 5597, .n 5598, .n 5599, .n 5600, .n 5601, .n 5602, .n 5603, .n 5604, .n 5605, .n 5606] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5607]))) ::
+  .atom (.const (.n 5608) (word 0 14636698788954112 0)) ::
+  .atom (.add (.n 5609) (.n 1721) (.n 5608)) ::
+  .atom (.const (.n 5610) (word 256 0 0)) ::
+  .atom (.mul (.n 5611) (.n 1031) (.n 5610)) ::
+  .atom (.add (.n 5612) (.n 1055) (.n 5611)) ::
+  .atom (.const (.n 5613) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5614) (.n 5612) (.n 5613)) ::
+  .atom (.const (.n 5615) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5616) (.n 1031) (.n 5615)) ::
+  .atom (.add (.n 5617) (.n 5614) (.n 5616)) ::
+  .atom (.add (.n 5618) (.n 5609) (.n 5617)) ::
+  .atom (.const (.n 5619) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5618, .n 5607, .n 353, .n 354, .n 355, .n 356, .n 5619, .n 354, .n 355, .n 356, .n 357] [.n 5620, .n 5621, .n 5622, .n 5623, .n 5624, .n 5625, .n 5626, .n 5627, .n 5628, .n 5629, .n 5630, .n 5631, .n 5632] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5633, .n 5634]))) ::
+  .atom (.add (.n 5635) (.n 5620) (.n 5633)) ::
+  .atom (.add (.n 5636) (.n 5633) (.n 5634)) ::
+  .atom (.mul (.n 5635) (.n 532) (.n 5636)) ::
+  .atom (.const (.n 5637) (word 0 7318349411254272 0)) ::
+  .atom (.add (.n 5638) (.n 1721) (.n 5637)) ::
+  .atom (.const (.n 5639) (word 256 0 0)) ::
+  .atom (.mul (.n 5640) (.n 1028) (.n 5639)) ::
+  .atom (.add (.n 5641) (.n 1052) (.n 5640)) ::
+  .atom (.const (.n 5642) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5643) (.n 5641) (.n 5642)) ::
+  .atom (.const (.n 5644) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5645) (.n 1028) (.n 5644)) ::
+  .atom (.add (.n 5646) (.n 5643) (.n 5645)) ::
+  .atom (.add (.n 5647) (.n 5638) (.n 5646)) ::
+  .atom (.copy (.n 5648) (.n 5634)) ::
+  .atom (.const (.n 5649) (word 1 0 0)) ::
+  .atom (.const (.n 5650) (word 0 0 0)) ::
+  .atom (.const (.n 5651) (word 0 0 0)) ::
+  .atom (.const (.n 5652) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5647, .n 5633, .n 5648, .n 5649, .n 5650, .n 5651, .n 5652, .n 354, .n 355, .n 356, .n 357] [.n 5653, .n 5654, .n 5655, .n 5656, .n 5657, .n 5658, .n 5659, .n 5660, .n 5661, .n 5662, .n 5663, .n 5664, .n 5665] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5666, .n 5667]))) ::
+  .atom (.add (.n 5668) (.n 5653) (.n 5666)) ::
+  .atom (.add (.n 5669) (.n 5666) (.n 5667)) ::
+  .atom (.mul (.n 5668) (.n 533) (.n 5669)) ::
+  .atom (.const (.n 5670) (word 0 3659174730792960 0)) ::
+  .atom (.add (.n 5671) (.n 1721) (.n 5670)) ::
+  .atom (.const (.n 5672) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5673) (.n 1049) (.n 5672)) ::
+  .atom (.add (.n 5674) (.n 5671) (.n 5673)) ::
+  .atom (.copy (.n 5675) (.n 5667)) ::
+  .atom (.const (.n 5676) (word 1 0 0)) ::
+  .atom (.const (.n 5677) (word 0 0 0)) ::
+  .atom (.const (.n 5678) (word 0 0 0)) ::
+  .atom (.const (.n 5679) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5674, .n 5666, .n 5675, .n 5676, .n 5677, .n 5678, .n 5679, .n 354, .n 355, .n 356, .n 357] [.n 5680, .n 5681, .n 5682, .n 5683, .n 5684, .n 5685, .n 5686, .n 5687, .n 5688, .n 5689, .n 5690, .n 5691, .n 5692] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5693, .n 5694]))) ::
+  .atom (.add (.n 5695) (.n 5680) (.n 5693)) ::
+  .atom (.add (.n 5696) (.n 5693) (.n 5694)) ::
+  .atom (.mul (.n 5695) (.n 534) (.n 5696)) ::
+  .atom (.const (.n 5697) (word 0 9225060886765371392 0)) ::
+  .atom (.add (.n 5698) (.n 1721) (.n 5697)) ::
+  .atom (.const (.n 5699) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5700) (.n 1046) (.n 5699)) ::
+  .atom (.add (.n 5701) (.n 5698) (.n 5700)) ::
+  .atom (.copy (.n 5702) (.n 5694)) ::
+  .atom (.const (.n 5703) (word 1 0 0)) ::
+  .atom (.const (.n 5704) (word 0 0 0)) ::
+  .atom (.const (.n 5705) (word 0 0 0)) ::
   .atom (.const (.n 5706) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5705, .n 5697, .n 5698, .n 12, .n 13, .n 14, .n 15, .n 5706, .n 13, .n 14, .n 15, .n 16] [.n 5707, .n 5708, .n 5709, .n 5710, .n 5711, .n 5712, .n 5713, .n 5714, .n 5715, .n 5716, .n 5717, .n 5718, .n 5719] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5701, .n 5693, .n 5702, .n 5703, .n 5704, .n 5705, .n 5706, .n 354, .n 355, .n 356, .n 357] [.n 5707, .n 5708, .n 5709, .n 5710, .n 5711, .n 5712, .n 5713, .n 5714, .n 5715, .n 5716, .n 5717, .n 5718, .n 5719] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5720, .n 5721]))) ::
   .atom (.add (.n 5722) (.n 5707) (.n 5720)) ::
   .atom (.add (.n 5723) (.n 5720) (.n 5721)) ::
-  .atom (.mul (.n 5722) (.n 269) (.n 5723)) ::
-  .atom (.const (.n 5724) (word 824633720832 0 0)) ::
-  .atom (.add (.n 5725) (.n 5673) (.n 5724)) ::
-  .atom (.const (.n 5726) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5727) (.n 939) (.n 5726)) ::
+  .atom (.mul (.n 5722) (.n 535) (.n 5723)) ::
+  .atom (.const (.n 5724) (word 0 4612530443424628736 0)) ::
+  .atom (.add (.n 5725) (.n 1721) (.n 5724)) ::
+  .atom (.const (.n 5726) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5727) (.n 1043) (.n 5726)) ::
   .atom (.add (.n 5728) (.n 5725) (.n 5727)) ::
-  .atom (.const (.n 5729) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5728, .n 5720, .n 5721, .n 12, .n 13, .n 14, .n 15, .n 5729, .n 13, .n 14, .n 15, .n 16] [.n 5730, .n 5731, .n 5732, .n 5733, .n 5734, .n 5735, .n 5736, .n 5737, .n 5738, .n 5739, .n 5740, .n 5741, .n 5742] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5743, .n 5744]))) ::
-  .atom (.add (.n 5745) (.n 5730) (.n 5743)) ::
-  .atom (.add (.n 5746) (.n 5743) (.n 5744)) ::
-  .atom (.mul (.n 5745) (.n 270) (.n 5746)) ::
-  .atom (.const (.n 5747) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 5748) (.n 5673) (.n 5747)) ::
-  .atom (.const (.n 5749) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5750) (.n 936) (.n 5749)) ::
-  .atom (.add (.n 5751) (.n 5748) (.n 5750)) ::
-  .atom (.const (.n 5752) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5751, .n 5743, .n 5744, .n 12, .n 13, .n 14, .n 15, .n 5752, .n 13, .n 14, .n 15, .n 16] [.n 5753, .n 5754, .n 5755, .n 5756, .n 5757, .n 5758, .n 5759, .n 5760, .n 5761, .n 5762, .n 5763, .n 5764, .n 5765] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5766, .n 5767]))) ::
-  .atom (.add (.n 5768) (.n 5753) (.n 5766)) ::
-  .atom (.add (.n 5769) (.n 5766) (.n 5767)) ::
-  .atom (.mul (.n 5768) (.n 271) (.n 5769)) ::
-  .atom (.const (.n 5770) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 5771) (.n 5673) (.n 5770)) ::
-  .atom (.const (.n 5772) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5773) (.n 933) (.n 5772)) ::
-  .atom (.add (.n 5774) (.n 5771) (.n 5773)) ::
-  .atom (.const (.n 5775) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5774, .n 5766, .n 5767, .n 12, .n 13, .n 14, .n 15, .n 5775, .n 13, .n 14, .n 15, .n 16] [.n 5776, .n 5777, .n 5778, .n 5779, .n 5780, .n 5781, .n 5782, .n 5783, .n 5784, .n 5785, .n 5786, .n 5787, .n 5788] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5789, .n 5790]))) ::
-  .atom (.add (.n 5791) (.n 5776) (.n 5789)) ::
-  .atom (.add (.n 5792) (.n 5789) (.n 5790)) ::
-  .atom (.mul (.n 5791) (.n 272) (.n 5792)) ::
-  .atom (.const (.n 5793) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 5794) (.n 5673) (.n 5793)) ::
-  .atom (.const (.n 5795) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5796) (.n 930) (.n 5795)) ::
-  .atom (.add (.n 5797) (.n 5794) (.n 5796)) ::
-  .atom (.const (.n 5798) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5797, .n 5789, .n 5790, .n 12, .n 13, .n 14, .n 15, .n 5798, .n 13, .n 14, .n 15, .n 16] [.n 5799, .n 5800, .n 5801, .n 5802, .n 5803, .n 5804, .n 5805, .n 5806, .n 5807, .n 5808, .n 5809, .n 5810, .n 5811] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5812, .n 5813]))) ::
-  .atom (.add (.n 5814) (.n 5799) (.n 5812)) ::
-  .atom (.add (.n 5815) (.n 5812) (.n 5813)) ::
-  .atom (.mul (.n 5814) (.n 273) (.n 5815)) ::
-  .atom (.const (.n 5816) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 5817) (.n 5673) (.n 5816)) ::
-  .atom (.const (.n 5818) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5819) (.n 927) (.n 5818)) ::
-  .atom (.add (.n 5820) (.n 5817) (.n 5819)) ::
-  .atom (.const (.n 5821) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5820, .n 5812, .n 5813, .n 12, .n 13, .n 14, .n 15, .n 5821, .n 13, .n 14, .n 15, .n 16] [.n 5822, .n 5823, .n 5824, .n 5825, .n 5826, .n 5827, .n 5828, .n 5829, .n 5830, .n 5831, .n 5832, .n 5833, .n 5834] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5835, .n 5836]))) ::
-  .atom (.add (.n 5837) (.n 5822) (.n 5835)) ::
-  .atom (.add (.n 5838) (.n 5835) (.n 5836)) ::
-  .atom (.mul (.n 5837) (.n 274) (.n 5838)) ::
-  .atom (.const (.n 5839) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 5840) (.n 5673) (.n 5839)) ::
-  .atom (.const (.n 5841) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5842) (.n 924) (.n 5841)) ::
-  .atom (.add (.n 5843) (.n 5840) (.n 5842)) ::
-  .atom (.const (.n 5844) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5843, .n 5835, .n 5836, .n 12, .n 13, .n 14, .n 15, .n 5844, .n 13, .n 14, .n 15, .n 16] [.n 5845, .n 5846, .n 5847, .n 5848, .n 5849, .n 5850, .n 5851, .n 5852, .n 5853, .n 5854, .n 5855, .n 5856, .n 5857] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5858, .n 5859]))) ::
-  .atom (.add (.n 5860) (.n 5845) (.n 5858)) ::
-  .atom (.add (.n 5861) (.n 5858) (.n 5859)) ::
-  .atom (.mul (.n 5860) (.n 275) (.n 5861)) ::
-  .atom (.const (.n 5862) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 5863) (.n 5673) (.n 5862)) ::
-  .atom (.const (.n 5864) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5865) (.n 921) (.n 5864)) ::
-  .atom (.add (.n 5866) (.n 5863) (.n 5865)) ::
-  .atom (.const (.n 5867) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5866, .n 5858, .n 5859, .n 12, .n 13, .n 14, .n 15, .n 5867, .n 13, .n 14, .n 15, .n 16] [.n 5868, .n 5869, .n 5870, .n 5871, .n 5872, .n 5873, .n 5874, .n 5875, .n 5876, .n 5877, .n 5878, .n 5879, .n 5880] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5881, .n 5882]))) ::
-  .atom (.add (.n 5883) (.n 5868) (.n 5881)) ::
-  .atom (.add (.n 5884) (.n 5881) (.n 5882)) ::
-  .atom (.mul (.n 5883) (.n 276) (.n 5884)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5885]))) ::
-  .atom (.const (.n 5886) (word 1080863996468264960 0 0)) ::
-  .atom (.add (.n 5887) (.n 1067) (.n 5886)) ::
-  .atom (.const (.n 5888) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 5889) (.n 976) (.n 5888)) ::
-  .atom (.add (.n 5890) (.n 5887) (.n 5889)) ::
-  .atom (.const (.n 5891) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5890, .n 5885, .n 12, .n 13, .n 14, .n 15, .n 16, .n 5891, .n 13, .n 14, .n 15, .n 16] [.n 5892, .n 5893, .n 5894, .n 5895, .n 5896, .n 5897, .n 5898, .n 5899, .n 5900, .n 5901, .n 5902, .n 5903, .n 5904] false false) ::
-  .atom (.const (.n 5905) (word 1224979184544120832 0 0)) ::
-  .atom (.add (.n 5906) (.n 1067) (.n 5905)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5907, .n 5908]))) ::
-  .atom (.add (.n 5909) (.n 5892) (.n 5907)) ::
-  .atom (.add (.n 5910) (.n 5907) (.n 5908)) ::
-  .atom (.mul (.n 5909) (.n 277) (.n 5910)) ::
-  .atom (.const (.n 5911) (word 274877906944 0 0)) ::
-  .atom (.add (.n 5912) (.n 5906) (.n 5911)) ::
-  .atom (.const (.n 5913) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5914) (.n 973) (.n 5913)) ::
-  .atom (.add (.n 5915) (.n 5912) (.n 5914)) ::
-  .atom (.const (.n 5916) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5915, .n 5907, .n 5908, .n 12, .n 13, .n 14, .n 15, .n 5916, .n 13, .n 14, .n 15, .n 16] [.n 5917, .n 5918, .n 5919, .n 5920, .n 5921, .n 5922, .n 5923, .n 5924, .n 5925, .n 5926, .n 5927, .n 5928, .n 5929] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5930, .n 5931]))) ::
-  .atom (.add (.n 5932) (.n 5917) (.n 5930)) ::
-  .atom (.add (.n 5933) (.n 5930) (.n 5931)) ::
-  .atom (.mul (.n 5932) (.n 278) (.n 5933)) ::
-  .atom (.const (.n 5934) (word 549755813888 0 0)) ::
-  .atom (.add (.n 5935) (.n 5906) (.n 5934)) ::
-  .atom (.const (.n 5936) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5937) (.n 970) (.n 5936)) ::
-  .atom (.add (.n 5938) (.n 5935) (.n 5937)) ::
-  .atom (.const (.n 5939) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5938, .n 5930, .n 5931, .n 12, .n 13, .n 14, .n 15, .n 5939, .n 13, .n 14, .n 15, .n 16] [.n 5940, .n 5941, .n 5942, .n 5943, .n 5944, .n 5945, .n 5946, .n 5947, .n 5948, .n 5949, .n 5950, .n 5951, .n 5952] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5953, .n 5954]))) ::
-  .atom (.add (.n 5955) (.n 5940) (.n 5953)) ::
-  .atom (.add (.n 5956) (.n 5953) (.n 5954)) ::
-  .atom (.mul (.n 5955) (.n 279) (.n 5956)) ::
-  .atom (.const (.n 5957) (word 824633720832 0 0)) ::
-  .atom (.add (.n 5958) (.n 5906) (.n 5957)) ::
-  .atom (.const (.n 5959) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5960) (.n 967) (.n 5959)) ::
-  .atom (.add (.n 5961) (.n 5958) (.n 5960)) ::
-  .atom (.const (.n 5962) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5961, .n 5953, .n 5954, .n 12, .n 13, .n 14, .n 15, .n 5962, .n 13, .n 14, .n 15, .n 16] [.n 5963, .n 5964, .n 5965, .n 5966, .n 5967, .n 5968, .n 5969, .n 5970, .n 5971, .n 5972, .n 5973, .n 5974, .n 5975] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5976, .n 5977]))) ::
-  .atom (.add (.n 5978) (.n 5963) (.n 5976)) ::
-  .atom (.add (.n 5979) (.n 5976) (.n 5977)) ::
-  .atom (.mul (.n 5978) (.n 280) (.n 5979)) ::
-  .atom (.const (.n 5980) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 5981) (.n 5906) (.n 5980)) ::
-  .atom (.const (.n 5982) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 5983) (.n 964) (.n 5982)) ::
-  .atom (.add (.n 5984) (.n 5981) (.n 5983)) ::
-  .atom (.const (.n 5985) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 5984, .n 5976, .n 5977, .n 12, .n 13, .n 14, .n 15, .n 5985, .n 13, .n 14, .n 15, .n 16] [.n 5986, .n 5987, .n 5988, .n 5989, .n 5990, .n 5991, .n 5992, .n 5993, .n 5994, .n 5995, .n 5996, .n 5997, .n 5998] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5999, .n 6000]))) ::
-  .atom (.add (.n 6001) (.n 5986) (.n 5999)) ::
-  .atom (.add (.n 6002) (.n 5999) (.n 6000)) ::
-  .atom (.mul (.n 6001) (.n 281) (.n 6002)) ::
-  .atom (.const (.n 6003) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 6004) (.n 5906) (.n 6003)) ::
-  .atom (.const (.n 6005) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6006) (.n 961) (.n 6005)) ::
-  .atom (.add (.n 6007) (.n 6004) (.n 6006)) ::
-  .atom (.const (.n 6008) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6007, .n 5999, .n 6000, .n 12, .n 13, .n 14, .n 15, .n 6008, .n 13, .n 14, .n 15, .n 16] [.n 6009, .n 6010, .n 6011, .n 6012, .n 6013, .n 6014, .n 6015, .n 6016, .n 6017, .n 6018, .n 6019, .n 6020, .n 6021] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6022, .n 6023]))) ::
-  .atom (.add (.n 6024) (.n 6009) (.n 6022)) ::
-  .atom (.add (.n 6025) (.n 6022) (.n 6023)) ::
-  .atom (.mul (.n 6024) (.n 282) (.n 6025)) ::
-  .atom (.const (.n 6026) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 6027) (.n 5906) (.n 6026)) ::
-  .atom (.const (.n 6028) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6029) (.n 958) (.n 6028)) ::
-  .atom (.add (.n 6030) (.n 6027) (.n 6029)) ::
-  .atom (.const (.n 6031) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6030, .n 6022, .n 6023, .n 12, .n 13, .n 14, .n 15, .n 6031, .n 13, .n 14, .n 15, .n 16] [.n 6032, .n 6033, .n 6034, .n 6035, .n 6036, .n 6037, .n 6038, .n 6039, .n 6040, .n 6041, .n 6042, .n 6043, .n 6044] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6045, .n 6046]))) ::
-  .atom (.add (.n 6047) (.n 6032) (.n 6045)) ::
-  .atom (.add (.n 6048) (.n 6045) (.n 6046)) ::
-  .atom (.mul (.n 6047) (.n 283) (.n 6048)) ::
-  .atom (.const (.n 6049) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 6050) (.n 5906) (.n 6049)) ::
-  .atom (.const (.n 6051) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6052) (.n 955) (.n 6051)) ::
-  .atom (.add (.n 6053) (.n 6050) (.n 6052)) ::
-  .atom (.const (.n 6054) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6053, .n 6045, .n 6046, .n 12, .n 13, .n 14, .n 15, .n 6054, .n 13, .n 14, .n 15, .n 16] [.n 6055, .n 6056, .n 6057, .n 6058, .n 6059, .n 6060, .n 6061, .n 6062, .n 6063, .n 6064, .n 6065, .n 6066, .n 6067] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6068, .n 6069]))) ::
-  .atom (.add (.n 6070) (.n 6055) (.n 6068)) ::
-  .atom (.add (.n 6071) (.n 6068) (.n 6069)) ::
-  .atom (.mul (.n 6070) (.n 284) (.n 6071)) ::
-  .atom (.const (.n 6072) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 6073) (.n 5906) (.n 6072)) ::
-  .atom (.const (.n 6074) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6075) (.n 952) (.n 6074)) ::
-  .atom (.add (.n 6076) (.n 6073) (.n 6075)) ::
-  .atom (.const (.n 6077) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6076, .n 6068, .n 6069, .n 12, .n 13, .n 14, .n 15, .n 6077, .n 13, .n 14, .n 15, .n 16] [.n 6078, .n 6079, .n 6080, .n 6081, .n 6082, .n 6083, .n 6084, .n 6085, .n 6086, .n 6087, .n 6088, .n 6089, .n 6090] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6091, .n 6092]))) ::
-  .atom (.add (.n 6093) (.n 6078) (.n 6091)) ::
-  .atom (.add (.n 6094) (.n 6091) (.n 6092)) ::
-  .atom (.mul (.n 6093) (.n 285) (.n 6094)) ::
-  .atom (.const (.n 6095) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 6096) (.n 5906) (.n 6095)) ::
-  .atom (.const (.n 6097) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6098) (.n 949) (.n 6097)) ::
-  .atom (.add (.n 6099) (.n 6096) (.n 6098)) ::
-  .atom (.const (.n 6100) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6099, .n 6091, .n 6092, .n 12, .n 13, .n 14, .n 15, .n 6100, .n 13, .n 14, .n 15, .n 16] [.n 6101, .n 6102, .n 6103, .n 6104, .n 6105, .n 6106, .n 6107, .n 6108, .n 6109, .n 6110, .n 6111, .n 6112, .n 6113] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6114, .n 6115]))) ::
-  .atom (.add (.n 6116) (.n 6101) (.n 6114)) ::
-  .atom (.add (.n 6117) (.n 6114) (.n 6115)) ::
-  .atom (.mul (.n 6116) (.n 286) (.n 6117)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6118]))) ::
-  .atom (.const (.n 6119) (word 1080864000763232256 0 0)) ::
-  .atom (.add (.n 6120) (.n 1067) (.n 6119)) ::
-  .atom (.const (.n 6121) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 6122) (.n 1004) (.n 6121)) ::
-  .atom (.add (.n 6123) (.n 6120) (.n 6122)) ::
-  .atom (.const (.n 6124) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6123, .n 6118, .n 12, .n 13, .n 14, .n 15, .n 16, .n 6124, .n 13, .n 14, .n 15, .n 16] [.n 6125, .n 6126, .n 6127, .n 6128, .n 6129, .n 6130, .n 6131, .n 6132, .n 6133, .n 6134, .n 6135, .n 6136, .n 6137] false false) ::
-  .atom (.const (.n 6138) (word 1224979188839088128 0 0)) ::
-  .atom (.add (.n 6139) (.n 1067) (.n 6138)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6140, .n 6141]))) ::
-  .atom (.add (.n 6142) (.n 6125) (.n 6140)) ::
-  .atom (.add (.n 6143) (.n 6140) (.n 6141)) ::
-  .atom (.mul (.n 6142) (.n 287) (.n 6143)) ::
-  .atom (.const (.n 6144) (word 274877906944 0 0)) ::
-  .atom (.add (.n 6145) (.n 6139) (.n 6144)) ::
-  .atom (.const (.n 6146) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6147) (.n 1001) (.n 6146)) ::
-  .atom (.add (.n 6148) (.n 6145) (.n 6147)) ::
-  .atom (.const (.n 6149) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6148, .n 6140, .n 6141, .n 12, .n 13, .n 14, .n 15, .n 6149, .n 13, .n 14, .n 15, .n 16] [.n 6150, .n 6151, .n 6152, .n 6153, .n 6154, .n 6155, .n 6156, .n 6157, .n 6158, .n 6159, .n 6160, .n 6161, .n 6162] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6163, .n 6164]))) ::
-  .atom (.add (.n 6165) (.n 6150) (.n 6163)) ::
-  .atom (.add (.n 6166) (.n 6163) (.n 6164)) ::
-  .atom (.mul (.n 6165) (.n 288) (.n 6166)) ::
-  .atom (.const (.n 6167) (word 549755813888 0 0)) ::
-  .atom (.add (.n 6168) (.n 6139) (.n 6167)) ::
-  .atom (.const (.n 6169) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6170) (.n 998) (.n 6169)) ::
-  .atom (.add (.n 6171) (.n 6168) (.n 6170)) ::
-  .atom (.const (.n 6172) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6171, .n 6163, .n 6164, .n 12, .n 13, .n 14, .n 15, .n 6172, .n 13, .n 14, .n 15, .n 16] [.n 6173, .n 6174, .n 6175, .n 6176, .n 6177, .n 6178, .n 6179, .n 6180, .n 6181, .n 6182, .n 6183, .n 6184, .n 6185] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6186, .n 6187]))) ::
-  .atom (.add (.n 6188) (.n 6173) (.n 6186)) ::
-  .atom (.add (.n 6189) (.n 6186) (.n 6187)) ::
-  .atom (.mul (.n 6188) (.n 289) (.n 6189)) ::
-  .atom (.const (.n 6190) (word 824633720832 0 0)) ::
-  .atom (.add (.n 6191) (.n 6139) (.n 6190)) ::
-  .atom (.const (.n 6192) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6193) (.n 995) (.n 6192)) ::
-  .atom (.add (.n 6194) (.n 6191) (.n 6193)) ::
-  .atom (.const (.n 6195) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6194, .n 6186, .n 6187, .n 12, .n 13, .n 14, .n 15, .n 6195, .n 13, .n 14, .n 15, .n 16] [.n 6196, .n 6197, .n 6198, .n 6199, .n 6200, .n 6201, .n 6202, .n 6203, .n 6204, .n 6205, .n 6206, .n 6207, .n 6208] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6209, .n 6210]))) ::
-  .atom (.add (.n 6211) (.n 6196) (.n 6209)) ::
-  .atom (.add (.n 6212) (.n 6209) (.n 6210)) ::
-  .atom (.mul (.n 6211) (.n 290) (.n 6212)) ::
-  .atom (.const (.n 6213) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 6214) (.n 6139) (.n 6213)) ::
-  .atom (.const (.n 6215) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6216) (.n 992) (.n 6215)) ::
-  .atom (.add (.n 6217) (.n 6214) (.n 6216)) ::
-  .atom (.const (.n 6218) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6217, .n 6209, .n 6210, .n 12, .n 13, .n 14, .n 15, .n 6218, .n 13, .n 14, .n 15, .n 16] [.n 6219, .n 6220, .n 6221, .n 6222, .n 6223, .n 6224, .n 6225, .n 6226, .n 6227, .n 6228, .n 6229, .n 6230, .n 6231] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6232, .n 6233]))) ::
-  .atom (.add (.n 6234) (.n 6219) (.n 6232)) ::
-  .atom (.add (.n 6235) (.n 6232) (.n 6233)) ::
-  .atom (.mul (.n 6234) (.n 291) (.n 6235)) ::
-  .atom (.const (.n 6236) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 6237) (.n 6139) (.n 6236)) ::
-  .atom (.const (.n 6238) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6239) (.n 989) (.n 6238)) ::
-  .atom (.add (.n 6240) (.n 6237) (.n 6239)) ::
-  .atom (.const (.n 6241) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6240, .n 6232, .n 6233, .n 12, .n 13, .n 14, .n 15, .n 6241, .n 13, .n 14, .n 15, .n 16] [.n 6242, .n 6243, .n 6244, .n 6245, .n 6246, .n 6247, .n 6248, .n 6249, .n 6250, .n 6251, .n 6252, .n 6253, .n 6254] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6255, .n 6256]))) ::
-  .atom (.add (.n 6257) (.n 6242) (.n 6255)) ::
-  .atom (.add (.n 6258) (.n 6255) (.n 6256)) ::
-  .atom (.mul (.n 6257) (.n 292) (.n 6258)) ::
-  .atom (.const (.n 6259) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 6260) (.n 6139) (.n 6259)) ::
-  .atom (.const (.n 6261) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6262) (.n 986) (.n 6261)) ::
-  .atom (.add (.n 6263) (.n 6260) (.n 6262)) ::
-  .atom (.const (.n 6264) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6263, .n 6255, .n 6256, .n 12, .n 13, .n 14, .n 15, .n 6264, .n 13, .n 14, .n 15, .n 16] [.n 6265, .n 6266, .n 6267, .n 6268, .n 6269, .n 6270, .n 6271, .n 6272, .n 6273, .n 6274, .n 6275, .n 6276, .n 6277] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6278, .n 6279]))) ::
-  .atom (.add (.n 6280) (.n 6265) (.n 6278)) ::
-  .atom (.add (.n 6281) (.n 6278) (.n 6279)) ::
-  .atom (.mul (.n 6280) (.n 293) (.n 6281)) ::
-  .atom (.const (.n 6282) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 6283) (.n 6139) (.n 6282)) ::
-  .atom (.const (.n 6284) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6285) (.n 983) (.n 6284)) ::
-  .atom (.add (.n 6286) (.n 6283) (.n 6285)) ::
-  .atom (.const (.n 6287) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6286, .n 6278, .n 6279, .n 12, .n 13, .n 14, .n 15, .n 6287, .n 13, .n 14, .n 15, .n 16] [.n 6288, .n 6289, .n 6290, .n 6291, .n 6292, .n 6293, .n 6294, .n 6295, .n 6296, .n 6297, .n 6298, .n 6299, .n 6300] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6301, .n 6302]))) ::
-  .atom (.add (.n 6303) (.n 6288) (.n 6301)) ::
-  .atom (.add (.n 6304) (.n 6301) (.n 6302)) ::
-  .atom (.mul (.n 6303) (.n 294) (.n 6304)) ::
-  .atom (.const (.n 6305) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 6306) (.n 6139) (.n 6305)) ::
-  .atom (.const (.n 6307) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6308) (.n 980) (.n 6307)) ::
-  .atom (.add (.n 6309) (.n 6306) (.n 6308)) ::
-  .atom (.const (.n 6310) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6309, .n 6301, .n 6302, .n 12, .n 13, .n 14, .n 15, .n 6310, .n 13, .n 14, .n 15, .n 16] [.n 6311, .n 6312, .n 6313, .n 6314, .n 6315, .n 6316, .n 6317, .n 6318, .n 6319, .n 6320, .n 6321, .n 6322, .n 6323] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6324, .n 6325]))) ::
-  .atom (.add (.n 6326) (.n 6311) (.n 6324)) ::
-  .atom (.add (.n 6327) (.n 6324) (.n 6325)) ::
-  .atom (.mul (.n 6326) (.n 295) (.n 6327)) ::
-  .atom (.const (.n 6328) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 6329) (.n 6139) (.n 6328)) ::
-  .atom (.const (.n 6330) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6331) (.n 977) (.n 6330)) ::
-  .atom (.add (.n 6332) (.n 6329) (.n 6331)) ::
-  .atom (.const (.n 6333) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6332, .n 6324, .n 6325, .n 12, .n 13, .n 14, .n 15, .n 6333, .n 13, .n 14, .n 15, .n 16] [.n 6334, .n 6335, .n 6336, .n 6337, .n 6338, .n 6339, .n 6340, .n 6341, .n 6342, .n 6343, .n 6344, .n 6345, .n 6346] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6347, .n 6348]))) ::
-  .atom (.add (.n 6349) (.n 6334) (.n 6347)) ::
-  .atom (.add (.n 6350) (.n 6347) (.n 6348)) ::
-  .atom (.mul (.n 6349) (.n 296) (.n 6350)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6351]))) ::
-  .atom (.const (.n 6352) (word 1080864005058199552 0 0)) ::
-  .atom (.add (.n 6353) (.n 1067) (.n 6352)) ::
-  .atom (.const (.n 6354) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 6355) (.n 1032) (.n 6354)) ::
-  .atom (.add (.n 6356) (.n 6353) (.n 6355)) ::
-  .atom (.const (.n 6357) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6356, .n 6351, .n 12, .n 13, .n 14, .n 15, .n 16, .n 6357, .n 13, .n 14, .n 15, .n 16] [.n 6358, .n 6359, .n 6360, .n 6361, .n 6362, .n 6363, .n 6364, .n 6365, .n 6366, .n 6367, .n 6368, .n 6369, .n 6370] false false) ::
-  .atom (.const (.n 6371) (word 1224979193134055424 0 0)) ::
-  .atom (.add (.n 6372) (.n 1067) (.n 6371)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6373, .n 6374]))) ::
-  .atom (.add (.n 6375) (.n 6358) (.n 6373)) ::
-  .atom (.add (.n 6376) (.n 6373) (.n 6374)) ::
-  .atom (.mul (.n 6375) (.n 297) (.n 6376)) ::
-  .atom (.const (.n 6377) (word 274877906944 0 0)) ::
-  .atom (.add (.n 6378) (.n 6372) (.n 6377)) ::
-  .atom (.const (.n 6379) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6380) (.n 1029) (.n 6379)) ::
-  .atom (.add (.n 6381) (.n 6378) (.n 6380)) ::
-  .atom (.const (.n 6382) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6381, .n 6373, .n 6374, .n 12, .n 13, .n 14, .n 15, .n 6382, .n 13, .n 14, .n 15, .n 16] [.n 6383, .n 6384, .n 6385, .n 6386, .n 6387, .n 6388, .n 6389, .n 6390, .n 6391, .n 6392, .n 6393, .n 6394, .n 6395] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6396, .n 6397]))) ::
-  .atom (.add (.n 6398) (.n 6383) (.n 6396)) ::
-  .atom (.add (.n 6399) (.n 6396) (.n 6397)) ::
-  .atom (.mul (.n 6398) (.n 298) (.n 6399)) ::
-  .atom (.const (.n 6400) (word 549755813888 0 0)) ::
-  .atom (.add (.n 6401) (.n 6372) (.n 6400)) ::
-  .atom (.const (.n 6402) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6403) (.n 1026) (.n 6402)) ::
-  .atom (.add (.n 6404) (.n 6401) (.n 6403)) ::
-  .atom (.const (.n 6405) (word 9223372036854775808 0 0)) ::
+  .atom (.copy (.n 5729) (.n 5721)) ::
+  .atom (.const (.n 5730) (word 1 0 0)) ::
+  .atom (.const (.n 5731) (word 0 0 0)) ::
+  .atom (.const (.n 5732) (word 0 0 0)) ::
+  .atom (.const (.n 5733) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5728, .n 5720, .n 5729, .n 5730, .n 5731, .n 5732, .n 5733, .n 354, .n 355, .n 356, .n 357] [.n 5734, .n 5735, .n 5736, .n 5737, .n 5738, .n 5739, .n 5740, .n 5741, .n 5742, .n 5743, .n 5744, .n 5745, .n 5746] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5747, .n 5748]))) ::
+  .atom (.add (.n 5749) (.n 5734) (.n 5747)) ::
+  .atom (.add (.n 5750) (.n 5747) (.n 5748)) ::
+  .atom (.mul (.n 5749) (.n 520) (.n 5750)) ::
+  .atom (.const (.n 5751) (word 0 11529496521129066496 0)) ::
+  .atom (.add (.n 5752) (.n 1721) (.n 5751)) ::
+  .atom (.const (.n 5753) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5754) (.n 1040) (.n 5753)) ::
+  .atom (.add (.n 5755) (.n 5752) (.n 5754)) ::
+  .atom (.copy (.n 5756) (.n 5748)) ::
+  .atom (.const (.n 5757) (word 1 0 0)) ::
+  .atom (.const (.n 5758) (word 0 0 0)) ::
+  .atom (.const (.n 5759) (word 0 0 0)) ::
+  .atom (.const (.n 5760) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5755, .n 5747, .n 5756, .n 5757, .n 5758, .n 5759, .n 5760, .n 354, .n 355, .n 356, .n 357] [.n 5761, .n 5762, .n 5763, .n 5764, .n 5765, .n 5766, .n 5767, .n 5768, .n 5769, .n 5770, .n 5771, .n 5772, .n 5773] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5774, .n 5775]))) ::
+  .atom (.add (.n 5776) (.n 5761) (.n 5774)) ::
+  .atom (.add (.n 5777) (.n 5774) (.n 5775)) ::
+  .atom (.mul (.n 5776) (.n 521) (.n 5777)) ::
+  .atom (.const (.n 5778) (word 0 14987979559989673984 0)) ::
+  .atom (.add (.n 5779) (.n 1721) (.n 5778)) ::
+  .atom (.const (.n 5780) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5781) (.n 1037) (.n 5780)) ::
+  .atom (.add (.n 5782) (.n 5779) (.n 5781)) ::
+  .atom (.copy (.n 5783) (.n 5775)) ::
+  .atom (.const (.n 5784) (word 1 0 0)) ::
+  .atom (.const (.n 5785) (word 0 0 0)) ::
+  .atom (.const (.n 5786) (word 0 0 0)) ::
+  .atom (.const (.n 5787) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5782, .n 5774, .n 5783, .n 5784, .n 5785, .n 5786, .n 5787, .n 354, .n 355, .n 356, .n 357] [.n 5788, .n 5789, .n 5790, .n 5791, .n 5792, .n 5793, .n 5794, .n 5795, .n 5796, .n 5797, .n 5798, .n 5799, .n 5800] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5801, .n 5802]))) ::
+  .atom (.add (.n 5803) (.n 5788) (.n 5801)) ::
+  .atom (.add (.n 5804) (.n 5801) (.n 5802)) ::
+  .atom (.mul (.n 5803) (.n 522) (.n 5804)) ::
+  .atom (.const (.n 5805) (word 0 7493989780061945856 0)) ::
+  .atom (.add (.n 5806) (.n 1721) (.n 5805)) ::
+  .atom (.const (.n 5807) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5808) (.n 1034) (.n 5807)) ::
+  .atom (.add (.n 5809) (.n 5806) (.n 5808)) ::
+  .atom (.copy (.n 5810) (.n 5802)) ::
+  .atom (.const (.n 5811) (word 1 0 0)) ::
+  .atom (.const (.n 5812) (word 0 0 0)) ::
+  .atom (.const (.n 5813) (word 0 0 0)) ::
+  .atom (.const (.n 5814) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5809, .n 5801, .n 5810, .n 5811, .n 5812, .n 5813, .n 5814, .n 354, .n 355, .n 356, .n 357] [.n 5815, .n 5816, .n 5817, .n 5818, .n 5819, .n 5820, .n 5821, .n 5822, .n 5823, .n 5824, .n 5825, .n 5826, .n 5827] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5828, .n 5829]))) ::
+  .atom (.add (.n 5830) (.n 5815) (.n 5828)) ::
+  .atom (.add (.n 5831) (.n 5828) (.n 5829)) ::
+  .atom (.mul (.n 5830) (.n 523) (.n 5831)) ::
+  .atom (.const (.n 5832) (word 0 3746994890106470400 0)) ::
+  .atom (.add (.n 5833) (.n 1721) (.n 5832)) ::
+  .atom (.const (.n 5834) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5835) (.n 1031) (.n 5834)) ::
+  .atom (.add (.n 5836) (.n 5833) (.n 5835)) ::
+  .atom (.copy (.n 5837) (.n 5829)) ::
+  .atom (.const (.n 5838) (word 1 0 0)) ::
+  .atom (.const (.n 5839) (word 0 0 0)) ::
+  .atom (.const (.n 5840) (word 0 0 0)) ::
+  .atom (.const (.n 5841) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5836, .n 5828, .n 5837, .n 5838, .n 5839, .n 5840, .n 5841, .n 354, .n 355, .n 356, .n 357] [.n 5842, .n 5843, .n 5844, .n 5845, .n 5846, .n 5847, .n 5848, .n 5849, .n 5850, .n 5851, .n 5852, .n 5853, .n 5854] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5855, .n 5856]))) ::
+  .atom (.add (.n 5857) (.n 5842) (.n 5855)) ::
+  .atom (.add (.n 5858) (.n 5855) (.n 5856)) ::
+  .atom (.mul (.n 5857) (.n 524) (.n 5858)) ::
+  .atom (.const (.n 5859) (word 0 1873497445137121280 0)) ::
+  .atom (.add (.n 5860) (.n 1721) (.n 5859)) ::
+  .atom (.const (.n 5861) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5862) (.n 1028) (.n 5861)) ::
+  .atom (.add (.n 5863) (.n 5860) (.n 5862)) ::
+  .atom (.copy (.n 5864) (.n 5856)) ::
+  .atom (.const (.n 5865) (word 1 0 0)) ::
+  .atom (.const (.n 5866) (word 0 0 0)) ::
+  .atom (.const (.n 5867) (word 0 0 0)) ::
+  .atom (.const (.n 5868) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5863, .n 5855, .n 5864, .n 5865, .n 5866, .n 5867, .n 5868, .n 354, .n 355, .n 356, .n 357] [.n 5869, .n 5870, .n 5871, .n 5872, .n 5873, .n 5874, .n 5875, .n 5876, .n 5877, .n 5878, .n 5879, .n 5880, .n 5881] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5882, .n 5883]))) ::
+  .atom (.add (.n 5884) (.n 5869) (.n 5882)) ::
+  .atom (.add (.n 5885) (.n 5882) (.n 5883)) ::
+  .atom (.mul (.n 5884) (.n 525) (.n 5885)) ::
+  .atom (.const (.n 5886) (word 0 936748722660835328 0)) ::
+  .atom (.add (.n 5887) (.n 1721) (.n 5886)) ::
+  .atom (.copy (.n 5888) (.n 5883)) ::
+  .atom (.const (.n 5889) (word 1 0 0)) ::
+  .atom (.const (.n 5890) (word 0 0 0)) ::
+  .atom (.const (.n 5891) (word 0 0 0)) ::
+  .atom (.const (.n 5892) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5887, .n 5882, .n 5888, .n 5889, .n 5890, .n 5891, .n 5892, .n 354, .n 355, .n 356, .n 357] [.n 5893, .n 5894, .n 5895, .n 5896, .n 5897, .n 5898, .n 5899, .n 5900, .n 5901, .n 5902, .n 5903, .n 5904, .n 5905] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 5906]))) ::
+  .atom (.const (.n 5907) (word 0 15762598695796736 0)) ::
+  .atom (.add (.n 5908) (.n 1721) (.n 5907)) ::
+  .atom (.const (.n 5909) (word 256 0 0)) ::
+  .atom (.mul (.n 5910) (.n 1059) (.n 5909)) ::
+  .atom (.add (.n 5911) (.n 1083) (.n 5910)) ::
+  .atom (.const (.n 5912) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5913) (.n 5911) (.n 5912)) ::
+  .atom (.const (.n 5914) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5915) (.n 1059) (.n 5914)) ::
+  .atom (.add (.n 5916) (.n 5913) (.n 5915)) ::
+  .atom (.add (.n 5917) (.n 5908) (.n 5916)) ::
+  .atom (.const (.n 5918) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5917, .n 5906, .n 353, .n 354, .n 355, .n 356, .n 5918, .n 354, .n 355, .n 356, .n 357] [.n 5919, .n 5920, .n 5921, .n 5922, .n 5923, .n 5924, .n 5925, .n 5926, .n 5927, .n 5928, .n 5929, .n 5930, .n 5931] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5932, .n 5933]))) ::
+  .atom (.add (.n 5934) (.n 5919) (.n 5932)) ::
+  .atom (.add (.n 5935) (.n 5932) (.n 5933)) ::
+  .atom (.mul (.n 5934) (.n 538) (.n 5935)) ::
+  .atom (.const (.n 5936) (word 0 7881299364675584 0)) ::
+  .atom (.add (.n 5937) (.n 1721) (.n 5936)) ::
+  .atom (.const (.n 5938) (word 256 0 0)) ::
+  .atom (.mul (.n 5939) (.n 1056) (.n 5938)) ::
+  .atom (.add (.n 5940) (.n 1080) (.n 5939)) ::
+  .atom (.const (.n 5941) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5942) (.n 5940) (.n 5941)) ::
+  .atom (.const (.n 5943) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 5944) (.n 1056) (.n 5943)) ::
+  .atom (.add (.n 5945) (.n 5942) (.n 5944)) ::
+  .atom (.add (.n 5946) (.n 5937) (.n 5945)) ::
+  .atom (.copy (.n 5947) (.n 5933)) ::
+  .atom (.const (.n 5948) (word 1 0 0)) ::
+  .atom (.const (.n 5949) (word 0 0 0)) ::
+  .atom (.const (.n 5950) (word 0 0 0)) ::
+  .atom (.const (.n 5951) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5946, .n 5932, .n 5947, .n 5948, .n 5949, .n 5950, .n 5951, .n 354, .n 355, .n 356, .n 357] [.n 5952, .n 5953, .n 5954, .n 5955, .n 5956, .n 5957, .n 5958, .n 5959, .n 5960, .n 5961, .n 5962, .n 5963, .n 5964] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5965, .n 5966]))) ::
+  .atom (.add (.n 5967) (.n 5952) (.n 5965)) ::
+  .atom (.add (.n 5968) (.n 5965) (.n 5966)) ::
+  .atom (.mul (.n 5967) (.n 539) (.n 5968)) ::
+  .atom (.const (.n 5969) (word 0 3940649707503616 0)) ::
+  .atom (.add (.n 5970) (.n 1721) (.n 5969)) ::
+  .atom (.const (.n 5971) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5972) (.n 1077) (.n 5971)) ::
+  .atom (.add (.n 5973) (.n 5970) (.n 5972)) ::
+  .atom (.copy (.n 5974) (.n 5966)) ::
+  .atom (.const (.n 5975) (word 1 0 0)) ::
+  .atom (.const (.n 5976) (word 0 0 0)) ::
+  .atom (.const (.n 5977) (word 0 0 0)) ::
+  .atom (.const (.n 5978) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 5973, .n 5965, .n 5974, .n 5975, .n 5976, .n 5977, .n 5978, .n 354, .n 355, .n 356, .n 357] [.n 5979, .n 5980, .n 5981, .n 5982, .n 5983, .n 5984, .n 5985, .n 5986, .n 5987, .n 5988, .n 5989, .n 5990, .n 5991] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 5992, .n 5993]))) ::
+  .atom (.add (.n 5994) (.n 5979) (.n 5992)) ::
+  .atom (.add (.n 5995) (.n 5992) (.n 5993)) ::
+  .atom (.mul (.n 5994) (.n 540) (.n 5995)) ::
+  .atom (.const (.n 5996) (word 0 1970324887306240 0)) ::
+  .atom (.add (.n 5997) (.n 1721) (.n 5996)) ::
+  .atom (.const (.n 5998) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 5999) (.n 1074) (.n 5998)) ::
+  .atom (.add (.n 6000) (.n 5997) (.n 5999)) ::
+  .atom (.copy (.n 6001) (.n 5993)) ::
+  .atom (.const (.n 6002) (word 1 0 0)) ::
+  .atom (.const (.n 6003) (word 0 0 0)) ::
+  .atom (.const (.n 6004) (word 0 0 0)) ::
+  .atom (.const (.n 6005) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6000, .n 5992, .n 6001, .n 6002, .n 6003, .n 6004, .n 6005, .n 354, .n 355, .n 356, .n 357] [.n 6006, .n 6007, .n 6008, .n 6009, .n 6010, .n 6011, .n 6012, .n 6013, .n 6014, .n 6015, .n 6016, .n 6017, .n 6018] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6019, .n 6020]))) ::
+  .atom (.add (.n 6021) (.n 6006) (.n 6019)) ::
+  .atom (.add (.n 6022) (.n 6019) (.n 6020)) ::
+  .atom (.mul (.n 6021) (.n 541) (.n 6022)) ::
+  .atom (.const (.n 6023) (word 0 9224216461852016640 0)) ::
+  .atom (.add (.n 6024) (.n 1721) (.n 6023)) ::
+  .atom (.const (.n 6025) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6026) (.n 1071) (.n 6025)) ::
+  .atom (.add (.n 6027) (.n 6024) (.n 6026)) ::
+  .atom (.copy (.n 6028) (.n 6020)) ::
+  .atom (.const (.n 6029) (word 1 0 0)) ::
+  .atom (.const (.n 6030) (word 0 0 0)) ::
+  .atom (.const (.n 6031) (word 0 0 0)) ::
+  .atom (.const (.n 6032) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6027, .n 6019, .n 6028, .n 6029, .n 6030, .n 6031, .n 6032, .n 354, .n 355, .n 356, .n 357] [.n 6033, .n 6034, .n 6035, .n 6036, .n 6037, .n 6038, .n 6039, .n 6040, .n 6041, .n 6042, .n 6043, .n 6044, .n 6045] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6046, .n 6047]))) ::
+  .atom (.add (.n 6048) (.n 6033) (.n 6046)) ::
+  .atom (.add (.n 6049) (.n 6046) (.n 6047)) ::
+  .atom (.mul (.n 6048) (.n 542) (.n 6049)) ::
+  .atom (.const (.n 6050) (word 0 13835339530342760448 0)) ::
+  .atom (.add (.n 6051) (.n 1721) (.n 6050)) ::
+  .atom (.const (.n 6052) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6053) (.n 1068) (.n 6052)) ::
+  .atom (.add (.n 6054) (.n 6051) (.n 6053)) ::
+  .atom (.copy (.n 6055) (.n 6047)) ::
+  .atom (.const (.n 6056) (word 1 0 0)) ::
+  .atom (.const (.n 6057) (word 0 0 0)) ::
+  .atom (.const (.n 6058) (word 0 0 0)) ::
+  .atom (.const (.n 6059) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6054, .n 6046, .n 6055, .n 6056, .n 6057, .n 6058, .n 6059, .n 354, .n 355, .n 356, .n 357] [.n 6060, .n 6061, .n 6062, .n 6063, .n 6064, .n 6065, .n 6066, .n 6067, .n 6068, .n 6069, .n 6070, .n 6071, .n 6072] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6073, .n 6074]))) ::
+  .atom (.add (.n 6075) (.n 6060) (.n 6073)) ::
+  .atom (.add (.n 6076) (.n 6073) (.n 6074)) ::
+  .atom (.mul (.n 6075) (.n 543) (.n 6076)) ::
+  .atom (.const (.n 6077) (word 0 16140901064596520960 0)) ::
+  .atom (.add (.n 6078) (.n 1721) (.n 6077)) ::
+  .atom (.const (.n 6079) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6080) (.n 1065) (.n 6079)) ::
+  .atom (.add (.n 6081) (.n 6078) (.n 6080)) ::
+  .atom (.copy (.n 6082) (.n 6074)) ::
+  .atom (.const (.n 6083) (word 1 0 0)) ::
+  .atom (.const (.n 6084) (word 0 0 0)) ::
+  .atom (.const (.n 6085) (word 0 0 0)) ::
+  .atom (.const (.n 6086) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6081, .n 6073, .n 6082, .n 6083, .n 6084, .n 6085, .n 6086, .n 354, .n 355, .n 356, .n 357] [.n 6087, .n 6088, .n 6089, .n 6090, .n 6091, .n 6092, .n 6093, .n 6094, .n 6095, .n 6096, .n 6097, .n 6098, .n 6099] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6100, .n 6101]))) ::
+  .atom (.add (.n 6102) (.n 6087) (.n 6100)) ::
+  .atom (.add (.n 6103) (.n 6100) (.n 6101)) ::
+  .atom (.mul (.n 6102) (.n 528) (.n 6103)) ::
+  .atom (.const (.n 6104) (word 0 8070450532365369344 0)) ::
+  .atom (.add (.n 6105) (.n 1721) (.n 6104)) ::
+  .atom (.const (.n 6106) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6107) (.n 1062) (.n 6106)) ::
+  .atom (.add (.n 6108) (.n 6105) (.n 6107)) ::
+  .atom (.copy (.n 6109) (.n 6101)) ::
+  .atom (.const (.n 6110) (word 1 0 0)) ::
+  .atom (.const (.n 6111) (word 0 0 0)) ::
+  .atom (.const (.n 6112) (word 0 0 0)) ::
+  .atom (.const (.n 6113) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6108, .n 6100, .n 6109, .n 6110, .n 6111, .n 6112, .n 6113, .n 354, .n 355, .n 356, .n 357] [.n 6114, .n 6115, .n 6116, .n 6117, .n 6118, .n 6119, .n 6120, .n 6121, .n 6122, .n 6123, .n 6124, .n 6125, .n 6126] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6127, .n 6128]))) ::
+  .atom (.add (.n 6129) (.n 6114) (.n 6127)) ::
+  .atom (.add (.n 6130) (.n 6127) (.n 6128)) ::
+  .atom (.mul (.n 6129) (.n 529) (.n 6130)) ::
+  .atom (.const (.n 6131) (word 0 4035225266258182144 0)) ::
+  .atom (.add (.n 6132) (.n 1721) (.n 6131)) ::
+  .atom (.const (.n 6133) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6134) (.n 1059) (.n 6133)) ::
+  .atom (.add (.n 6135) (.n 6132) (.n 6134)) ::
+  .atom (.copy (.n 6136) (.n 6128)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 3702 to 4071 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 4063 to 4462 of the body. -/
 noncomputable def c9 : List Core.Stmt := (
-  .atom (.keccak [.n 2, .n 6404, .n 6396, .n 6397, .n 12, .n 13, .n 14, .n 15, .n 6405, .n 13, .n 14, .n 15, .n 16] [.n 6406, .n 6407, .n 6408, .n 6409, .n 6410, .n 6411, .n 6412, .n 6413, .n 6414, .n 6415, .n 6416, .n 6417, .n 6418] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6419, .n 6420]))) ::
-  .atom (.add (.n 6421) (.n 6406) (.n 6419)) ::
-  .atom (.add (.n 6422) (.n 6419) (.n 6420)) ::
-  .atom (.mul (.n 6421) (.n 299) (.n 6422)) ::
-  .atom (.const (.n 6423) (word 824633720832 0 0)) ::
-  .atom (.add (.n 6424) (.n 6372) (.n 6423)) ::
-  .atom (.const (.n 6425) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6426) (.n 1023) (.n 6425)) ::
-  .atom (.add (.n 6427) (.n 6424) (.n 6426)) ::
-  .atom (.const (.n 6428) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6427, .n 6419, .n 6420, .n 12, .n 13, .n 14, .n 15, .n 6428, .n 13, .n 14, .n 15, .n 16] [.n 6429, .n 6430, .n 6431, .n 6432, .n 6433, .n 6434, .n 6435, .n 6436, .n 6437, .n 6438, .n 6439, .n 6440, .n 6441] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6442, .n 6443]))) ::
-  .atom (.add (.n 6444) (.n 6429) (.n 6442)) ::
-  .atom (.add (.n 6445) (.n 6442) (.n 6443)) ::
-  .atom (.mul (.n 6444) (.n 300) (.n 6445)) ::
-  .atom (.const (.n 6446) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 6447) (.n 6372) (.n 6446)) ::
-  .atom (.const (.n 6448) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6449) (.n 1020) (.n 6448)) ::
-  .atom (.add (.n 6450) (.n 6447) (.n 6449)) ::
-  .atom (.const (.n 6451) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6450, .n 6442, .n 6443, .n 12, .n 13, .n 14, .n 15, .n 6451, .n 13, .n 14, .n 15, .n 16] [.n 6452, .n 6453, .n 6454, .n 6455, .n 6456, .n 6457, .n 6458, .n 6459, .n 6460, .n 6461, .n 6462, .n 6463, .n 6464] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6465, .n 6466]))) ::
-  .atom (.add (.n 6467) (.n 6452) (.n 6465)) ::
-  .atom (.add (.n 6468) (.n 6465) (.n 6466)) ::
-  .atom (.mul (.n 6467) (.n 301) (.n 6468)) ::
-  .atom (.const (.n 6469) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 6470) (.n 6372) (.n 6469)) ::
-  .atom (.const (.n 6471) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6472) (.n 1017) (.n 6471)) ::
-  .atom (.add (.n 6473) (.n 6470) (.n 6472)) ::
-  .atom (.const (.n 6474) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6473, .n 6465, .n 6466, .n 12, .n 13, .n 14, .n 15, .n 6474, .n 13, .n 14, .n 15, .n 16] [.n 6475, .n 6476, .n 6477, .n 6478, .n 6479, .n 6480, .n 6481, .n 6482, .n 6483, .n 6484, .n 6485, .n 6486, .n 6487] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6488, .n 6489]))) ::
-  .atom (.add (.n 6490) (.n 6475) (.n 6488)) ::
-  .atom (.add (.n 6491) (.n 6488) (.n 6489)) ::
-  .atom (.mul (.n 6490) (.n 302) (.n 6491)) ::
-  .atom (.const (.n 6492) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 6493) (.n 6372) (.n 6492)) ::
-  .atom (.const (.n 6494) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6495) (.n 1014) (.n 6494)) ::
-  .atom (.add (.n 6496) (.n 6493) (.n 6495)) ::
-  .atom (.const (.n 6497) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6496, .n 6488, .n 6489, .n 12, .n 13, .n 14, .n 15, .n 6497, .n 13, .n 14, .n 15, .n 16] [.n 6498, .n 6499, .n 6500, .n 6501, .n 6502, .n 6503, .n 6504, .n 6505, .n 6506, .n 6507, .n 6508, .n 6509, .n 6510] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6511, .n 6512]))) ::
-  .atom (.add (.n 6513) (.n 6498) (.n 6511)) ::
-  .atom (.add (.n 6514) (.n 6511) (.n 6512)) ::
-  .atom (.mul (.n 6513) (.n 303) (.n 6514)) ::
-  .atom (.const (.n 6515) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 6516) (.n 6372) (.n 6515)) ::
-  .atom (.const (.n 6517) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6518) (.n 1011) (.n 6517)) ::
-  .atom (.add (.n 6519) (.n 6516) (.n 6518)) ::
-  .atom (.const (.n 6520) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6519, .n 6511, .n 6512, .n 12, .n 13, .n 14, .n 15, .n 6520, .n 13, .n 14, .n 15, .n 16] [.n 6521, .n 6522, .n 6523, .n 6524, .n 6525, .n 6526, .n 6527, .n 6528, .n 6529, .n 6530, .n 6531, .n 6532, .n 6533] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6534, .n 6535]))) ::
-  .atom (.add (.n 6536) (.n 6521) (.n 6534)) ::
-  .atom (.add (.n 6537) (.n 6534) (.n 6535)) ::
-  .atom (.mul (.n 6536) (.n 304) (.n 6537)) ::
-  .atom (.const (.n 6538) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 6539) (.n 6372) (.n 6538)) ::
-  .atom (.const (.n 6540) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6541) (.n 1008) (.n 6540)) ::
-  .atom (.add (.n 6542) (.n 6539) (.n 6541)) ::
-  .atom (.const (.n 6543) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6542, .n 6534, .n 6535, .n 12, .n 13, .n 14, .n 15, .n 6543, .n 13, .n 14, .n 15, .n 16] [.n 6544, .n 6545, .n 6546, .n 6547, .n 6548, .n 6549, .n 6550, .n 6551, .n 6552, .n 6553, .n 6554, .n 6555, .n 6556] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6557, .n 6558]))) ::
-  .atom (.add (.n 6559) (.n 6544) (.n 6557)) ::
-  .atom (.add (.n 6560) (.n 6557) (.n 6558)) ::
-  .atom (.mul (.n 6559) (.n 305) (.n 6560)) ::
-  .atom (.const (.n 6561) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 6562) (.n 6372) (.n 6561)) ::
-  .atom (.const (.n 6563) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6564) (.n 1005) (.n 6563)) ::
-  .atom (.add (.n 6565) (.n 6562) (.n 6564)) ::
-  .atom (.const (.n 6566) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6565, .n 6557, .n 6558, .n 12, .n 13, .n 14, .n 15, .n 6566, .n 13, .n 14, .n 15, .n 16] [.n 6567, .n 6568, .n 6569, .n 6570, .n 6571, .n 6572, .n 6573, .n 6574, .n 6575, .n 6576, .n 6577, .n 6578, .n 6579] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6580, .n 6581]))) ::
-  .atom (.add (.n 6582) (.n 6567) (.n 6580)) ::
-  .atom (.add (.n 6583) (.n 6580) (.n 6581)) ::
-  .atom (.mul (.n 6582) (.n 306) (.n 6583)) ::
-  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6584]))) ::
-  .atom (.const (.n 6585) (word 1080864009353166848 0 0)) ::
-  .atom (.add (.n 6586) (.n 1067) (.n 6585)) ::
-  .atom (.const (.n 6587) (word 274877906944 0 0)) ::
-  .atom (.mul (.n 6588) (.n 1060) (.n 6587)) ::
-  .atom (.add (.n 6589) (.n 6586) (.n 6588)) ::
-  .atom (.const (.n 6590) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6589, .n 6584, .n 12, .n 13, .n 14, .n 15, .n 16, .n 6590, .n 13, .n 14, .n 15, .n 16] [.n 6591, .n 6592, .n 6593, .n 6594, .n 6595, .n 6596, .n 6597, .n 6598, .n 6599, .n 6600, .n 6601, .n 6602, .n 6603] false false) ::
-  .atom (.const (.n 6604) (word 1224979197429022720 0 0)) ::
-  .atom (.add (.n 6605) (.n 1067) (.n 6604)) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6606, .n 6607]))) ::
-  .atom (.add (.n 6608) (.n 6591) (.n 6606)) ::
-  .atom (.add (.n 6609) (.n 6606) (.n 6607)) ::
-  .atom (.mul (.n 6608) (.n 307) (.n 6609)) ::
-  .atom (.const (.n 6610) (word 274877906944 0 0)) ::
-  .atom (.add (.n 6611) (.n 6605) (.n 6610)) ::
-  .atom (.const (.n 6612) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6613) (.n 1057) (.n 6612)) ::
-  .atom (.add (.n 6614) (.n 6611) (.n 6613)) ::
-  .atom (.const (.n 6615) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6614, .n 6606, .n 6607, .n 12, .n 13, .n 14, .n 15, .n 6615, .n 13, .n 14, .n 15, .n 16] [.n 6616, .n 6617, .n 6618, .n 6619, .n 6620, .n 6621, .n 6622, .n 6623, .n 6624, .n 6625, .n 6626, .n 6627, .n 6628] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6629, .n 6630]))) ::
-  .atom (.add (.n 6631) (.n 6616) (.n 6629)) ::
-  .atom (.add (.n 6632) (.n 6629) (.n 6630)) ::
-  .atom (.mul (.n 6631) (.n 308) (.n 6632)) ::
-  .atom (.const (.n 6633) (word 549755813888 0 0)) ::
-  .atom (.add (.n 6634) (.n 6605) (.n 6633)) ::
-  .atom (.const (.n 6635) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6636) (.n 1054) (.n 6635)) ::
-  .atom (.add (.n 6637) (.n 6634) (.n 6636)) ::
-  .atom (.const (.n 6638) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6637, .n 6629, .n 6630, .n 12, .n 13, .n 14, .n 15, .n 6638, .n 13, .n 14, .n 15, .n 16] [.n 6639, .n 6640, .n 6641, .n 6642, .n 6643, .n 6644, .n 6645, .n 6646, .n 6647, .n 6648, .n 6649, .n 6650, .n 6651] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6652, .n 6653]))) ::
-  .atom (.add (.n 6654) (.n 6639) (.n 6652)) ::
-  .atom (.add (.n 6655) (.n 6652) (.n 6653)) ::
-  .atom (.mul (.n 6654) (.n 309) (.n 6655)) ::
-  .atom (.const (.n 6656) (word 824633720832 0 0)) ::
-  .atom (.add (.n 6657) (.n 6605) (.n 6656)) ::
-  .atom (.const (.n 6658) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6659) (.n 1051) (.n 6658)) ::
-  .atom (.add (.n 6660) (.n 6657) (.n 6659)) ::
-  .atom (.const (.n 6661) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6660, .n 6652, .n 6653, .n 12, .n 13, .n 14, .n 15, .n 6661, .n 13, .n 14, .n 15, .n 16] [.n 6662, .n 6663, .n 6664, .n 6665, .n 6666, .n 6667, .n 6668, .n 6669, .n 6670, .n 6671, .n 6672, .n 6673, .n 6674] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6675, .n 6676]))) ::
-  .atom (.add (.n 6677) (.n 6662) (.n 6675)) ::
-  .atom (.add (.n 6678) (.n 6675) (.n 6676)) ::
-  .atom (.mul (.n 6677) (.n 310) (.n 6678)) ::
-  .atom (.const (.n 6679) (word 1099511627776 0 0)) ::
-  .atom (.add (.n 6680) (.n 6605) (.n 6679)) ::
-  .atom (.const (.n 6681) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6682) (.n 1048) (.n 6681)) ::
-  .atom (.add (.n 6683) (.n 6680) (.n 6682)) ::
+  .atom (.const (.n 6137) (word 1 0 0)) ::
+  .atom (.const (.n 6138) (word 0 0 0)) ::
+  .atom (.const (.n 6139) (word 0 0 0)) ::
+  .atom (.const (.n 6140) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6135, .n 6127, .n 6136, .n 6137, .n 6138, .n 6139, .n 6140, .n 354, .n 355, .n 356, .n 357] [.n 6141, .n 6142, .n 6143, .n 6144, .n 6145, .n 6146, .n 6147, .n 6148, .n 6149, .n 6150, .n 6151, .n 6152, .n 6153] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6154, .n 6155]))) ::
+  .atom (.add (.n 6156) (.n 6141) (.n 6154)) ::
+  .atom (.add (.n 6157) (.n 6154) (.n 6155)) ::
+  .atom (.mul (.n 6156) (.n 530) (.n 6157)) ::
+  .atom (.const (.n 6158) (word 0 2017612633212977152 0)) ::
+  .atom (.add (.n 6159) (.n 1721) (.n 6158)) ::
+  .atom (.const (.n 6160) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6161) (.n 1056) (.n 6160)) ::
+  .atom (.add (.n 6162) (.n 6159) (.n 6161)) ::
+  .atom (.copy (.n 6163) (.n 6155)) ::
+  .atom (.const (.n 6164) (word 1 0 0)) ::
+  .atom (.const (.n 6165) (word 0 0 0)) ::
+  .atom (.const (.n 6166) (word 0 0 0)) ::
+  .atom (.const (.n 6167) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6162, .n 6154, .n 6163, .n 6164, .n 6165, .n 6166, .n 6167, .n 354, .n 355, .n 356, .n 357] [.n 6168, .n 6169, .n 6170, .n 6171, .n 6172, .n 6173, .n 6174, .n 6175, .n 6176, .n 6177, .n 6178, .n 6179, .n 6180] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6181, .n 6182]))) ::
+  .atom (.add (.n 6183) (.n 6168) (.n 6181)) ::
+  .atom (.add (.n 6184) (.n 6181) (.n 6182)) ::
+  .atom (.mul (.n 6183) (.n 531) (.n 6184)) ::
+  .atom (.const (.n 6185) (word 0 1008806316698763264 0)) ::
+  .atom (.add (.n 6186) (.n 1721) (.n 6185)) ::
+  .atom (.copy (.n 6187) (.n 6182)) ::
+  .atom (.const (.n 6188) (word 1 0 0)) ::
+  .atom (.const (.n 6189) (word 0 0 0)) ::
+  .atom (.const (.n 6190) (word 0 0 0)) ::
+  .atom (.const (.n 6191) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6186, .n 6181, .n 6187, .n 6188, .n 6189, .n 6190, .n 6191, .n 354, .n 355, .n 356, .n 357] [.n 6192, .n 6193, .n 6194, .n 6195, .n 6196, .n 6197, .n 6198, .n 6199, .n 6200, .n 6201, .n 6202, .n 6203, .n 6204] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6205]))) ::
+  .atom (.const (.n 6206) (word 0 16888498602639360 0)) ::
+  .atom (.add (.n 6207) (.n 1721) (.n 6206)) ::
+  .atom (.const (.n 6208) (word 256 0 0)) ::
+  .atom (.mul (.n 6209) (.n 1087) (.n 6208)) ::
+  .atom (.add (.n 6210) (.n 1111) (.n 6209)) ::
+  .atom (.const (.n 6211) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6212) (.n 6210) (.n 6211)) ::
+  .atom (.const (.n 6213) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6214) (.n 1087) (.n 6213)) ::
+  .atom (.add (.n 6215) (.n 6212) (.n 6214)) ::
+  .atom (.add (.n 6216) (.n 6207) (.n 6215)) ::
+  .atom (.const (.n 6217) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6216, .n 6205, .n 353, .n 354, .n 355, .n 356, .n 6217, .n 354, .n 355, .n 356, .n 357] [.n 6218, .n 6219, .n 6220, .n 6221, .n 6222, .n 6223, .n 6224, .n 6225, .n 6226, .n 6227, .n 6228, .n 6229, .n 6230] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6231, .n 6232]))) ::
+  .atom (.add (.n 6233) (.n 6218) (.n 6231)) ::
+  .atom (.add (.n 6234) (.n 6231) (.n 6232)) ::
+  .atom (.mul (.n 6233) (.n 544) (.n 6234)) ::
+  .atom (.const (.n 6235) (word 0 8444249318096896 0)) ::
+  .atom (.add (.n 6236) (.n 1721) (.n 6235)) ::
+  .atom (.const (.n 6237) (word 256 0 0)) ::
+  .atom (.mul (.n 6238) (.n 1084) (.n 6237)) ::
+  .atom (.add (.n 6239) (.n 1108) (.n 6238)) ::
+  .atom (.const (.n 6240) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6241) (.n 6239) (.n 6240)) ::
+  .atom (.const (.n 6242) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6243) (.n 1084) (.n 6242)) ::
+  .atom (.add (.n 6244) (.n 6241) (.n 6243)) ::
+  .atom (.add (.n 6245) (.n 6236) (.n 6244)) ::
+  .atom (.copy (.n 6246) (.n 6232)) ::
+  .atom (.const (.n 6247) (word 1 0 0)) ::
+  .atom (.const (.n 6248) (word 0 0 0)) ::
+  .atom (.const (.n 6249) (word 0 0 0)) ::
+  .atom (.const (.n 6250) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6245, .n 6231, .n 6246, .n 6247, .n 6248, .n 6249, .n 6250, .n 354, .n 355, .n 356, .n 357] [.n 6251, .n 6252, .n 6253, .n 6254, .n 6255, .n 6256, .n 6257, .n 6258, .n 6259, .n 6260, .n 6261, .n 6262, .n 6263] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6264, .n 6265]))) ::
+  .atom (.add (.n 6266) (.n 6251) (.n 6264)) ::
+  .atom (.add (.n 6267) (.n 6264) (.n 6265)) ::
+  .atom (.mul (.n 6266) (.n 545) (.n 6267)) ::
+  .atom (.const (.n 6268) (word 0 4222124684214272 0)) ::
+  .atom (.add (.n 6269) (.n 1721) (.n 6268)) ::
+  .atom (.const (.n 6270) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6271) (.n 1105) (.n 6270)) ::
+  .atom (.add (.n 6272) (.n 6269) (.n 6271)) ::
+  .atom (.copy (.n 6273) (.n 6265)) ::
+  .atom (.const (.n 6274) (word 1 0 0)) ::
+  .atom (.const (.n 6275) (word 0 0 0)) ::
+  .atom (.const (.n 6276) (word 0 0 0)) ::
+  .atom (.const (.n 6277) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6272, .n 6264, .n 6273, .n 6274, .n 6275, .n 6276, .n 6277, .n 354, .n 355, .n 356, .n 357] [.n 6278, .n 6279, .n 6280, .n 6281, .n 6282, .n 6283, .n 6284, .n 6285, .n 6286, .n 6287, .n 6288, .n 6289, .n 6290] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6291, .n 6292]))) ::
+  .atom (.add (.n 6293) (.n 6278) (.n 6291)) ::
+  .atom (.add (.n 6294) (.n 6291) (.n 6292)) ::
+  .atom (.mul (.n 6293) (.n 546) (.n 6294)) ::
+  .atom (.const (.n 6295) (word 0 9225342361742082048 0)) ::
+  .atom (.add (.n 6296) (.n 1721) (.n 6295)) ::
+  .atom (.const (.n 6297) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6298) (.n 1102) (.n 6297)) ::
+  .atom (.add (.n 6299) (.n 6296) (.n 6298)) ::
+  .atom (.copy (.n 6300) (.n 6292)) ::
+  .atom (.const (.n 6301) (word 1 0 0)) ::
+  .atom (.const (.n 6302) (word 0 0 0)) ::
+  .atom (.const (.n 6303) (word 0 0 0)) ::
+  .atom (.const (.n 6304) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6299, .n 6291, .n 6300, .n 6301, .n 6302, .n 6303, .n 6304, .n 354, .n 355, .n 356, .n 357] [.n 6305, .n 6306, .n 6307, .n 6308, .n 6309, .n 6310, .n 6311, .n 6312, .n 6313, .n 6314, .n 6315, .n 6316, .n 6317] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6318, .n 6319]))) ::
+  .atom (.add (.n 6320) (.n 6305) (.n 6318)) ::
+  .atom (.add (.n 6321) (.n 6318) (.n 6319)) ::
+  .atom (.mul (.n 6320) (.n 547) (.n 6321)) ::
+  .atom (.const (.n 6322) (word 0 13835902480279404544 0)) ::
+  .atom (.add (.n 6323) (.n 1721) (.n 6322)) ::
+  .atom (.const (.n 6324) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6325) (.n 1099) (.n 6324)) ::
+  .atom (.add (.n 6326) (.n 6323) (.n 6325)) ::
+  .atom (.copy (.n 6327) (.n 6319)) ::
+  .atom (.const (.n 6328) (word 1 0 0)) ::
+  .atom (.const (.n 6329) (word 0 0 0)) ::
+  .atom (.const (.n 6330) (word 0 0 0)) ::
+  .atom (.const (.n 6331) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6326, .n 6318, .n 6327, .n 6328, .n 6329, .n 6330, .n 6331, .n 354, .n 355, .n 356, .n 357] [.n 6332, .n 6333, .n 6334, .n 6335, .n 6336, .n 6337, .n 6338, .n 6339, .n 6340, .n 6341, .n 6342, .n 6343, .n 6344] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6345, .n 6346]))) ::
+  .atom (.add (.n 6347) (.n 6332) (.n 6345)) ::
+  .atom (.add (.n 6348) (.n 6345) (.n 6346)) ::
+  .atom (.mul (.n 6347) (.n 548) (.n 6348)) ::
+  .atom (.const (.n 6349) (word 0 16141182539556454400 0)) ::
+  .atom (.add (.n 6350) (.n 1721) (.n 6349)) ::
+  .atom (.const (.n 6351) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6352) (.n 1096) (.n 6351)) ::
+  .atom (.add (.n 6353) (.n 6350) (.n 6352)) ::
+  .atom (.copy (.n 6354) (.n 6346)) ::
+  .atom (.const (.n 6355) (word 1 0 0)) ::
+  .atom (.const (.n 6356) (word 0 0 0)) ::
+  .atom (.const (.n 6357) (word 0 0 0)) ::
+  .atom (.const (.n 6358) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6353, .n 6345, .n 6354, .n 6355, .n 6356, .n 6357, .n 6358, .n 354, .n 355, .n 356, .n 357] [.n 6359, .n 6360, .n 6361, .n 6362, .n 6363, .n 6364, .n 6365, .n 6366, .n 6367, .n 6368, .n 6369, .n 6370, .n 6371] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6372, .n 6373]))) ::
+  .atom (.add (.n 6374) (.n 6359) (.n 6372)) ::
+  .atom (.add (.n 6375) (.n 6372) (.n 6373)) ::
+  .atom (.mul (.n 6374) (.n 549) (.n 6375)) ::
+  .atom (.const (.n 6376) (word 0 17293822569203367936 0)) ::
+  .atom (.add (.n 6377) (.n 1721) (.n 6376)) ::
+  .atom (.const (.n 6378) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6379) (.n 1093) (.n 6378)) ::
+  .atom (.add (.n 6380) (.n 6377) (.n 6379)) ::
+  .atom (.copy (.n 6381) (.n 6373)) ::
+  .atom (.const (.n 6382) (word 1 0 0)) ::
+  .atom (.const (.n 6383) (word 0 0 0)) ::
+  .atom (.const (.n 6384) (word 0 0 0)) ::
+  .atom (.const (.n 6385) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6380, .n 6372, .n 6381, .n 6382, .n 6383, .n 6384, .n 6385, .n 354, .n 355, .n 356, .n 357] [.n 6386, .n 6387, .n 6388, .n 6389, .n 6390, .n 6391, .n 6392, .n 6393, .n 6394, .n 6395, .n 6396, .n 6397, .n 6398] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6399, .n 6400]))) ::
+  .atom (.add (.n 6401) (.n 6386) (.n 6399)) ::
+  .atom (.add (.n 6402) (.n 6399) (.n 6400)) ::
+  .atom (.mul (.n 6401) (.n 550) (.n 6402)) ::
+  .atom (.const (.n 6403) (word 0 8646911284668792832 0)) ::
+  .atom (.add (.n 6404) (.n 1721) (.n 6403)) ::
+  .atom (.const (.n 6405) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6406) (.n 1090) (.n 6405)) ::
+  .atom (.add (.n 6407) (.n 6404) (.n 6406)) ::
+  .atom (.copy (.n 6408) (.n 6400)) ::
+  .atom (.const (.n 6409) (word 1 0 0)) ::
+  .atom (.const (.n 6410) (word 0 0 0)) ::
+  .atom (.const (.n 6411) (word 0 0 0)) ::
+  .atom (.const (.n 6412) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6407, .n 6399, .n 6408, .n 6409, .n 6410, .n 6411, .n 6412, .n 354, .n 355, .n 356, .n 357] [.n 6413, .n 6414, .n 6415, .n 6416, .n 6417, .n 6418, .n 6419, .n 6420, .n 6421, .n 6422, .n 6423, .n 6424, .n 6425] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6426, .n 6427]))) ::
+  .atom (.add (.n 6428) (.n 6413) (.n 6426)) ::
+  .atom (.add (.n 6429) (.n 6426) (.n 6427)) ::
+  .atom (.mul (.n 6428) (.n 551) (.n 6429)) ::
+  .atom (.const (.n 6430) (word 0 4323455642409893888 0)) ::
+  .atom (.add (.n 6431) (.n 1721) (.n 6430)) ::
+  .atom (.const (.n 6432) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6433) (.n 1087) (.n 6432)) ::
+  .atom (.add (.n 6434) (.n 6431) (.n 6433)) ::
+  .atom (.copy (.n 6435) (.n 6427)) ::
+  .atom (.const (.n 6436) (word 1 0 0)) ::
+  .atom (.const (.n 6437) (word 0 0 0)) ::
+  .atom (.const (.n 6438) (word 0 0 0)) ::
+  .atom (.const (.n 6439) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6434, .n 6426, .n 6435, .n 6436, .n 6437, .n 6438, .n 6439, .n 354, .n 355, .n 356, .n 357] [.n 6440, .n 6441, .n 6442, .n 6443, .n 6444, .n 6445, .n 6446, .n 6447, .n 6448, .n 6449, .n 6450, .n 6451, .n 6452] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6453, .n 6454]))) ::
+  .atom (.add (.n 6455) (.n 6440) (.n 6453)) ::
+  .atom (.add (.n 6456) (.n 6453) (.n 6454)) ::
+  .atom (.mul (.n 6455) (.n 536) (.n 6456)) ::
+  .atom (.const (.n 6457) (word 0 2161727821288833024 0)) ::
+  .atom (.add (.n 6458) (.n 1721) (.n 6457)) ::
+  .atom (.const (.n 6459) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6460) (.n 1084) (.n 6459)) ::
+  .atom (.add (.n 6461) (.n 6458) (.n 6460)) ::
+  .atom (.copy (.n 6462) (.n 6454)) ::
+  .atom (.const (.n 6463) (word 1 0 0)) ::
+  .atom (.const (.n 6464) (word 0 0 0)) ::
+  .atom (.const (.n 6465) (word 0 0 0)) ::
+  .atom (.const (.n 6466) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6461, .n 6453, .n 6462, .n 6463, .n 6464, .n 6465, .n 6466, .n 354, .n 355, .n 356, .n 357] [.n 6467, .n 6468, .n 6469, .n 6470, .n 6471, .n 6472, .n 6473, .n 6474, .n 6475, .n 6476, .n 6477, .n 6478, .n 6479] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6480, .n 6481]))) ::
+  .atom (.add (.n 6482) (.n 6467) (.n 6480)) ::
+  .atom (.add (.n 6483) (.n 6480) (.n 6481)) ::
+  .atom (.mul (.n 6482) (.n 537) (.n 6483)) ::
+  .atom (.const (.n 6484) (word 0 1080863910736691200 0)) ::
+  .atom (.add (.n 6485) (.n 1721) (.n 6484)) ::
+  .atom (.copy (.n 6486) (.n 6481)) ::
+  .atom (.const (.n 6487) (word 1 0 0)) ::
+  .atom (.const (.n 6488) (word 0 0 0)) ::
+  .atom (.const (.n 6489) (word 0 0 0)) ::
+  .atom (.const (.n 6490) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6485, .n 6480, .n 6486, .n 6487, .n 6488, .n 6489, .n 6490, .n 354, .n 355, .n 356, .n 357] [.n 6491, .n 6492, .n 6493, .n 6494, .n 6495, .n 6496, .n 6497, .n 6498, .n 6499, .n 6500, .n 6501, .n 6502, .n 6503] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6504]))) ::
+  .atom (.const (.n 6505) (word 0 18014398509481984 0)) ::
+  .atom (.add (.n 6506) (.n 1721) (.n 6505)) ::
+  .atom (.const (.n 6507) (word 256 0 0)) ::
+  .atom (.mul (.n 6508) (.n 1115) (.n 6507)) ::
+  .atom (.add (.n 6509) (.n 1139) (.n 6508)) ::
+  .atom (.const (.n 6510) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6511) (.n 6509) (.n 6510)) ::
+  .atom (.const (.n 6512) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6513) (.n 1115) (.n 6512)) ::
+  .atom (.add (.n 6514) (.n 6511) (.n 6513)) ::
+  .atom (.add (.n 6515) (.n 6506) (.n 6514)) ::
+  .atom (.const (.n 6516) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6515, .n 6504, .n 353, .n 354, .n 355, .n 356, .n 6516, .n 354, .n 355, .n 356, .n 357] [.n 6517, .n 6518, .n 6519, .n 6520, .n 6521, .n 6522, .n 6523, .n 6524, .n 6525, .n 6526, .n 6527, .n 6528, .n 6529] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6530, .n 6531]))) ::
+  .atom (.add (.n 6532) (.n 6517) (.n 6530)) ::
+  .atom (.add (.n 6533) (.n 6530) (.n 6531)) ::
+  .atom (.mul (.n 6532) (.n 566) (.n 6533)) ::
+  .atom (.const (.n 6534) (word 0 9007199271518208 0)) ::
+  .atom (.add (.n 6535) (.n 1721) (.n 6534)) ::
+  .atom (.const (.n 6536) (word 256 0 0)) ::
+  .atom (.mul (.n 6537) (.n 1112) (.n 6536)) ::
+  .atom (.add (.n 6538) (.n 1136) (.n 6537)) ::
+  .atom (.const (.n 6539) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6540) (.n 6538) (.n 6539)) ::
+  .atom (.const (.n 6541) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6542) (.n 1112) (.n 6541)) ::
+  .atom (.add (.n 6543) (.n 6540) (.n 6542)) ::
+  .atom (.add (.n 6544) (.n 6535) (.n 6543)) ::
+  .atom (.copy (.n 6545) (.n 6531)) ::
+  .atom (.const (.n 6546) (word 1 0 0)) ::
+  .atom (.const (.n 6547) (word 0 0 0)) ::
+  .atom (.const (.n 6548) (word 0 0 0)) ::
+  .atom (.const (.n 6549) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6544, .n 6530, .n 6545, .n 6546, .n 6547, .n 6548, .n 6549, .n 354, .n 355, .n 356, .n 357] [.n 6550, .n 6551, .n 6552, .n 6553, .n 6554, .n 6555, .n 6556, .n 6557, .n 6558, .n 6559, .n 6560, .n 6561, .n 6562] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6563, .n 6564]))) ::
+  .atom (.add (.n 6565) (.n 6550) (.n 6563)) ::
+  .atom (.add (.n 6566) (.n 6563) (.n 6564)) ::
+  .atom (.mul (.n 6565) (.n 567) (.n 6566)) ::
+  .atom (.const (.n 6567) (word 0 4503599660924928 0)) ::
+  .atom (.add (.n 6568) (.n 1721) (.n 6567)) ::
+  .atom (.const (.n 6569) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6570) (.n 1133) (.n 6569)) ::
+  .atom (.add (.n 6571) (.n 6568) (.n 6570)) ::
+  .atom (.copy (.n 6572) (.n 6564)) ::
+  .atom (.const (.n 6573) (word 1 0 0)) ::
+  .atom (.const (.n 6574) (word 0 0 0)) ::
+  .atom (.const (.n 6575) (word 0 0 0)) ::
+  .atom (.const (.n 6576) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6571, .n 6563, .n 6572, .n 6573, .n 6574, .n 6575, .n 6576, .n 354, .n 355, .n 356, .n 357] [.n 6577, .n 6578, .n 6579, .n 6580, .n 6581, .n 6582, .n 6583, .n 6584, .n 6585, .n 6586, .n 6587, .n 6588, .n 6589] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6590, .n 6591]))) ::
+  .atom (.add (.n 6592) (.n 6577) (.n 6590)) ::
+  .atom (.add (.n 6593) (.n 6590) (.n 6591)) ::
+  .atom (.mul (.n 6592) (.n 552) (.n 6593)) ::
+  .atom (.const (.n 6594) (word 0 2251799864016896 0)) ::
+  .atom (.add (.n 6595) (.n 1721) (.n 6594)) ::
+  .atom (.const (.n 6596) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6597) (.n 1130) (.n 6596)) ::
+  .atom (.add (.n 6598) (.n 6595) (.n 6597)) ::
+  .atom (.copy (.n 6599) (.n 6591)) ::
+  .atom (.const (.n 6600) (word 1 0 0)) ::
+  .atom (.const (.n 6601) (word 0 0 0)) ::
+  .atom (.const (.n 6602) (word 0 0 0)) ::
+  .atom (.const (.n 6603) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6598, .n 6590, .n 6599, .n 6600, .n 6601, .n 6602, .n 6603, .n 354, .n 355, .n 356, .n 357] [.n 6604, .n 6605, .n 6606, .n 6607, .n 6608, .n 6609, .n 6610, .n 6611, .n 6612, .n 6613, .n 6614, .n 6615, .n 6616] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6617, .n 6618]))) ::
+  .atom (.add (.n 6619) (.n 6604) (.n 6617)) ::
+  .atom (.add (.n 6620) (.n 6617) (.n 6618)) ::
+  .atom (.mul (.n 6619) (.n 553) (.n 6620)) ::
+  .atom (.const (.n 6621) (word 0 1125899973951488 0)) ::
+  .atom (.add (.n 6622) (.n 1721) (.n 6621)) ::
+  .atom (.const (.n 6623) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6624) (.n 1127) (.n 6623)) ::
+  .atom (.add (.n 6625) (.n 6622) (.n 6624)) ::
+  .atom (.copy (.n 6626) (.n 6618)) ::
+  .atom (.const (.n 6627) (word 1 0 0)) ::
+  .atom (.const (.n 6628) (word 0 0 0)) ::
+  .atom (.const (.n 6629) (word 0 0 0)) ::
+  .atom (.const (.n 6630) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6625, .n 6617, .n 6626, .n 6627, .n 6628, .n 6629, .n 6630, .n 354, .n 355, .n 356, .n 357] [.n 6631, .n 6632, .n 6633, .n 6634, .n 6635, .n 6636, .n 6637, .n 6638, .n 6639, .n 6640, .n 6641, .n 6642, .n 6643] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6644, .n 6645]))) ::
+  .atom (.add (.n 6646) (.n 6631) (.n 6644)) ::
+  .atom (.add (.n 6647) (.n 6644) (.n 6645)) ::
+  .atom (.mul (.n 6646) (.n 554) (.n 6647)) ::
+  .atom (.const (.n 6648) (word 0 562950037307392 0)) ::
+  .atom (.add (.n 6649) (.n 1721) (.n 6648)) ::
+  .atom (.const (.n 6650) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6651) (.n 1124) (.n 6650)) ::
+  .atom (.add (.n 6652) (.n 6649) (.n 6651)) ::
+  .atom (.copy (.n 6653) (.n 6645)) ::
+  .atom (.const (.n 6654) (word 1 0 0)) ::
+  .atom (.const (.n 6655) (word 0 0 0)) ::
+  .atom (.const (.n 6656) (word 0 0 0)) ::
+  .atom (.const (.n 6657) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6652, .n 6644, .n 6653, .n 6654, .n 6655, .n 6656, .n 6657, .n 354, .n 355, .n 356, .n 357] [.n 6658, .n 6659, .n 6660, .n 6661, .n 6662, .n 6663, .n 6664, .n 6665, .n 6666, .n 6667, .n 6668, .n 6669, .n 6670] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6671, .n 6672]))) ::
+  .atom (.add (.n 6673) (.n 6658) (.n 6671)) ::
+  .atom (.add (.n 6674) (.n 6671) (.n 6672)) ::
+  .atom (.mul (.n 6673) (.n 555) (.n 6674)) ::
+  .atom (.const (.n 6675) (word 0 281475077373952 0)) ::
+  .atom (.add (.n 6676) (.n 1721) (.n 6675)) ::
+  .atom (.const (.n 6677) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6678) (.n 1121) (.n 6677)) ::
+  .atom (.add (.n 6679) (.n 6676) (.n 6678)) ::
+  .atom (.copy (.n 6680) (.n 6672)) ::
+  .atom (.const (.n 6681) (word 1 0 0)) ::
+  .atom (.const (.n 6682) (word 0 0 0)) ::
+  .atom (.const (.n 6683) (word 0 0 0)) ::
   .atom (.const (.n 6684) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6683, .n 6675, .n 6676, .n 12, .n 13, .n 14, .n 15, .n 6684, .n 13, .n 14, .n 15, .n 16] [.n 6685, .n 6686, .n 6687, .n 6688, .n 6689, .n 6690, .n 6691, .n 6692, .n 6693, .n 6694, .n 6695, .n 6696, .n 6697] false false) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6679, .n 6671, .n 6680, .n 6681, .n 6682, .n 6683, .n 6684, .n 354, .n 355, .n 356, .n 357] [.n 6685, .n 6686, .n 6687, .n 6688, .n 6689, .n 6690, .n 6691, .n 6692, .n 6693, .n 6694, .n 6695, .n 6696, .n 6697] false false) ::
   .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6698, .n 6699]))) ::
   .atom (.add (.n 6700) (.n 6685) (.n 6698)) ::
   .atom (.add (.n 6701) (.n 6698) (.n 6699)) ::
-  .atom (.mul (.n 6700) (.n 311) (.n 6701)) ::
-  .atom (.const (.n 6702) (word 1374389534720 0 0)) ::
-  .atom (.add (.n 6703) (.n 6605) (.n 6702)) ::
-  .atom (.const (.n 6704) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6705) (.n 1045) (.n 6704)) ::
+  .atom (.mul (.n 6700) (.n 556) (.n 6701)) ::
+  .atom (.const (.n 6702) (word 0 9223372036972216320 0)) ::
+  .atom (.add (.n 6703) (.n 1721) (.n 6702)) ::
+  .atom (.const (.n 6704) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6705) (.n 1118) (.n 6704)) ::
   .atom (.add (.n 6706) (.n 6703) (.n 6705)) ::
-  .atom (.const (.n 6707) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6706, .n 6698, .n 6699, .n 12, .n 13, .n 14, .n 15, .n 6707, .n 13, .n 14, .n 15, .n 16] [.n 6708, .n 6709, .n 6710, .n 6711, .n 6712, .n 6713, .n 6714, .n 6715, .n 6716, .n 6717, .n 6718, .n 6719, .n 6720] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6721, .n 6722]))) ::
-  .atom (.add (.n 6723) (.n 6708) (.n 6721)) ::
-  .atom (.add (.n 6724) (.n 6721) (.n 6722)) ::
-  .atom (.mul (.n 6723) (.n 312) (.n 6724)) ::
-  .atom (.const (.n 6725) (word 1649267441664 0 0)) ::
-  .atom (.add (.n 6726) (.n 6605) (.n 6725)) ::
-  .atom (.const (.n 6727) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6728) (.n 1042) (.n 6727)) ::
-  .atom (.add (.n 6729) (.n 6726) (.n 6728)) ::
-  .atom (.const (.n 6730) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6729, .n 6721, .n 6722, .n 12, .n 13, .n 14, .n 15, .n 6730, .n 13, .n 14, .n 15, .n 16] [.n 6731, .n 6732, .n 6733, .n 6734, .n 6735, .n 6736, .n 6737, .n 6738, .n 6739, .n 6740, .n 6741, .n 6742, .n 6743] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6744, .n 6745]))) ::
-  .atom (.add (.n 6746) (.n 6731) (.n 6744)) ::
-  .atom (.add (.n 6747) (.n 6744) (.n 6745)) ::
-  .atom (.mul (.n 6746) (.n 313) (.n 6747)) ::
-  .atom (.const (.n 6748) (word 1924145348608 0 0)) ::
-  .atom (.add (.n 6749) (.n 6605) (.n 6748)) ::
-  .atom (.const (.n 6750) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6751) (.n 1039) (.n 6750)) ::
-  .atom (.add (.n 6752) (.n 6749) (.n 6751)) ::
-  .atom (.const (.n 6753) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6752, .n 6744, .n 6745, .n 12, .n 13, .n 14, .n 15, .n 6753, .n 13, .n 14, .n 15, .n 16] [.n 6754, .n 6755, .n 6756, .n 6757, .n 6758, .n 6759, .n 6760, .n 6761, .n 6762, .n 6763, .n 6764, .n 6765, .n 6766] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6767, .n 6768]))) ::
-  .atom (.add (.n 6769) (.n 6754) (.n 6767)) ::
-  .atom (.add (.n 6770) (.n 6767) (.n 6768)) ::
-  .atom (.mul (.n 6769) (.n 314) (.n 6770)) ::
-  .atom (.const (.n 6771) (word 2199023255552 0 0)) ::
-  .atom (.add (.n 6772) (.n 6605) (.n 6771)) ::
-  .atom (.const (.n 6773) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6774) (.n 1036) (.n 6773)) ::
-  .atom (.add (.n 6775) (.n 6772) (.n 6774)) ::
-  .atom (.const (.n 6776) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6775, .n 6767, .n 6768, .n 12, .n 13, .n 14, .n 15, .n 6776, .n 13, .n 14, .n 15, .n 16] [.n 6777, .n 6778, .n 6779, .n 6780, .n 6781, .n 6782, .n 6783, .n 6784, .n 6785, .n 6786, .n 6787, .n 6788, .n 6789] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6790, .n 6791]))) ::
-  .atom (.add (.n 6792) (.n 6777) (.n 6790)) ::
-  .atom (.add (.n 6793) (.n 6790) (.n 6791)) ::
-  .atom (.mul (.n 6792) (.n 315) (.n 6793)) ::
-  .atom (.const (.n 6794) (word 2473901162496 0 0)) ::
-  .atom (.add (.n 6795) (.n 6605) (.n 6794)) ::
-  .atom (.const (.n 6796) (word 4398046511104 0 0)) ::
-  .atom (.mul (.n 6797) (.n 1033) (.n 6796)) ::
-  .atom (.add (.n 6798) (.n 6795) (.n 6797)) ::
-  .atom (.const (.n 6799) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 6798, .n 6790, .n 6791, .n 12, .n 13, .n 14, .n 15, .n 6799, .n 13, .n 14, .n 15, .n 16] [.n 6800, .n 6801, .n 6802, .n 6803, .n 6804, .n 6805, .n 6806, .n 6807, .n 6808, .n 6809, .n 6810, .n 6811, .n 6812] false false) ::
-  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6813, .n 6814]))) ::
-  .atom (.add (.n 6815) (.n 6800) (.n 6813)) ::
-  .atom (.add (.n 6816) (.n 6813) (.n 6814)) ::
-  .atom (.mul (.n 6815) (.n 316) (.n 6816)) ::
-  .atom (.const (.n 6817) (word 256 0 0)) ::
-  .atom (.mul (.n 6818) (.n 388) (.n 6817)) ::
-  .atom (.add (.n 6819) (.n 360) (.n 6818)) ::
-  .atom (.const (.n 6820) (word 0 256 0)) ::
-  .atom (.mul (.n 6821) (.n 6819) (.n 6820)) ::
-  .atom (.const (.n 6822) (word 0 256 0)) ::
-  .atom (.mul (.n 6823) (.n 388) (.n 6822)) ::
-  .atom (.const (.n 6824) (word 0 1 0)) ::
-  .atom (.add (.n 6825) (.n 6823) (.n 6824)) ::
-  .atom (.add (.n 6826) (.n 338) (.n 6821)) ::
-  .atom (.add (.n 6827) (.n 360) (.n 6825)) ::
-  .atom (.const (.n 6828) (word 0 2 0)) ::
-  .atom (.add (.n 6829) (.n 388) (.n 6828)) ::
-  .atom (.const (.n 6830) (word 288230376151711744 0 0)) ::
-  .atom (.add (.n 6831) (.n 6826) (.n 6830)) ::
-  .atom (.hint (.witness "sp_counter" (.stack [.n 6832, .n 6833, .n 6834, .n 6835]))) ::
-  .atom (.const (.n 6836) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 6835) (.n 6837) (.n 6838) (.n 6839) (.n 6836)) ::
-  .atom (.mul (.n 6840) (.n 1) (.n 6835)) ::
-  .atom (.load (.n 6841) (.n 6840) 0) ::
-  .atom (.const (.n 6842) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 6834) (.n 6843) (.n 6844) (.n 6845) (.n 6842)) ::
-  .atom (.mul (.n 6846) (.n 1) (.n 6834)) ::
-  .atom (.load (.n 6847) (.n 6846) 0) ::
-  .atom (.const (.n 6848) (word 256 0 0)) ::
-  .atom (.mul (.n 6849) (.n 6841) (.n 6848)) ::
-  .atom (.add (.n 6850) (.n 6847) (.n 6849)) ::
-  .atom (.const (.n 6851) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 6833) (.n 6852) (.n 6853) (.n 6854) (.n 6851)) ::
-  .atom (.mul (.n 6855) (.n 1) (.n 6833)) ::
-  .atom (.load (.n 6856) (.n 6855) 0) ::
-  .atom (.const (.n 6857) (word 256 0 0)) ::
-  .atom (.mul (.n 6858) (.n 6850) (.n 6857)) ::
-  .atom (.add (.n 6859) (.n 6856) (.n 6858)) ::
-  .atom (.const (.n 6860) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 6832) (.n 6861) (.n 6862) (.n 6863) (.n 6860)) ::
-  .atom (.mul (.n 6864) (.n 1) (.n 6832)) ::
-  .atom (.load (.n 6865) (.n 6864) 0) ::
-  .atom (.const (.n 6866) (word 256 0 0)) ::
-  .atom (.mul (.n 6867) (.n 6859) (.n 6866)) ::
-  .atom (.add (.n 6868) (.n 6865) (.n 6867)) ::
-  .atom (.copy (.n 6869) (.n 6868)) ::
-  .atom (.const (.n 6870) (word 4294967296 0 0)) ::
-  .atom (.add (.n 6871) (.n 6869) (.n 6870)) ::
-  .atom (.const (.n 6872) (word 0 9223372036854775808 0)) ::
-  .atom (.add (.n 6873) (.n 6871) (.n 6872)) ::
-  .atom (.keccak [.n 1224, .n 6831, .n 1454, .n 1455, .n 1687, .n 1688, .n 1920, .n 1921, .n 2153, .n 13, .n 14, .n 15, .n 16] [.n 6874, .n 6875, .n 6876, .n 6877, .n 6878, .n 6879, .n 6880, .n 6881, .n 6882, .n 6883, .n 6884, .n 6885, .n 6886] false true) ::
-  .atom (.add (.n 6887) (.n 6874) (.n 2153)) ::
-  .atom (.add (.n 6888) (.n 6875) (.n 2154)) ::
-  .atom (.add (.n 6889) (.n 6876) (.n 2386)) ::
-  .atom (.add (.n 6890) (.n 6877) (.n 2387)) ::
-  .atom (.add (.n 6891) (.n 6878) (.n 2619)) ::
-  .atom (.add (.n 6892) (.n 6879) (.n 2620)) ::
-  .atom (.add (.n 6893) (.n 6880) (.n 2852)) ::
-  .atom (.add (.n 6894) (.n 6881) (.n 2853)) ::
-  .atom (.add (.n 6895) (.n 6882) (.n 3085)) ::
-  .atom (.keccak [.n 6887, .n 6888, .n 6889, .n 6890, .n 6891, .n 6892, .n 6893, .n 6894, .n 6895, .n 6883, .n 6884, .n 6885, .n 6886] [.n 6896, .n 6897, .n 6898, .n 6899, .n 6900, .n 6901, .n 6902, .n 6903, .n 6904, .n 6905, .n 6906, .n 6907, .n 6908] true false) ::
-  .atom (.add (.n 6909) (.n 6896) (.n 3086)) ::
-  .atom (.add (.n 6910) (.n 6897) (.n 3318)) ::
-  .atom (.add (.n 6911) (.n 6898) (.n 3319)) ::
-  .atom (.add (.n 6912) (.n 6899) (.n 3551)) ::
-  .atom (.add (.n 6913) (.n 6900) (.n 3552)) ::
-  .atom (.add (.n 6914) (.n 6901) (.n 3784)) ::
-  .atom (.add (.n 6915) (.n 6902) (.n 3785)) ::
-  .atom (.add (.n 6916) (.n 6903) (.n 4017)) ::
-  .atom (.add (.n 6917) (.n 6904) (.n 4018)) ::
-  .atom (.keccak [.n 6909, .n 6910, .n 6911, .n 6912, .n 6913, .n 6914, .n 6915, .n 6916, .n 6917, .n 6905, .n 6906, .n 6907, .n 6908] [.n 6918, .n 6919, .n 6920, .n 6921, .n 6922, .n 6923, .n 6924, .n 6925, .n 6926, .n 6927, .n 6928, .n 6929, .n 6930] false true) ::
-  .atom (.add (.n 6931) (.n 6918) (.n 4018)) ::
-  .atom (.add (.n 6932) (.n 6919) (.n 4250)) ::
-  .atom (.add (.n 6933) (.n 6920) (.n 4251)) ::
-  .atom (.add (.n 6934) (.n 6921) (.n 4483)) ::
-  .atom (.add (.n 6935) (.n 6922) (.n 4484)) ::
-  .atom (.add (.n 6936) (.n 6923) (.n 4716)) ::
-  .atom (.add (.n 6937) (.n 6924) (.n 4717)) ::
-  .atom (.add (.n 6938) (.n 6925) (.n 4949)) ::
-  .atom (.add (.n 6939) (.n 6926) (.n 4950)) ::
-  .atom (.keccak [.n 6931, .n 6932, .n 6933, .n 6934, .n 6935, .n 6936, .n 6937, .n 6938, .n 6939, .n 6927, .n 6928, .n 6929, .n 6930] [.n 6940, .n 6941, .n 6942, .n 6943, .n 6944, .n 6945, .n 6946, .n 6947, .n 6948, .n 6949, .n 6950, .n 6951, .n 6952] true false) ::
-  .atom (.add (.n 6953) (.n 6940) (.n 5182)) ::
-  .atom (.add (.n 6954) (.n 6941) (.n 5183)) ::
-  .atom (.add (.n 6955) (.n 6942) (.n 5415)) ::
-  .atom (.add (.n 6956) (.n 6943) (.n 5416)) ::
-  .atom (.add (.n 6957) (.n 6944) (.n 5648)) ::
-  .atom (.add (.n 6958) (.n 6945) (.n 5649)) ::
-  .atom (.add (.n 6959) (.n 6946) (.n 5881)) ::
-  .atom (.add (.n 6960) (.n 6947) (.n 5882)) ::
-  .atom (.add (.n 6961) (.n 6948) (.n 6114)) ::
-  .atom (.keccak [.n 6953, .n 6954, .n 6955, .n 6956, .n 6957, .n 6958, .n 6959, .n 6960, .n 6961, .n 6949, .n 6950, .n 6951, .n 6952] [.n 6962, .n 6963, .n 6964, .n 6965, .n 6966, .n 6967, .n 6968, .n 6969, .n 6970, .n 6971, .n 6972, .n 6973, .n 6974] false true) ::
-  .atom (.add (.n 6975) (.n 6962) (.n 6114)) ::
-  .atom (.add (.n 6976) (.n 6963) (.n 6115)) ::
-  .atom (.add (.n 6977) (.n 6964) (.n 6347)) ::
-  .atom (.add (.n 6978) (.n 6965) (.n 6348)) ::
-  .atom (.add (.n 6979) (.n 6966) (.n 6580)) ::
-  .atom (.add (.n 6980) (.n 6967) (.n 6581)) ::
-  .atom (.add (.n 6981) (.n 6968) (.n 6813)) ::
-  .atom (.add (.n 6982) (.n 6969) (.n 6814)) ::
-  .atom (.add (.n 6983) (.n 6970) (.n 6873)) ::
-  .atom (.keccak [.n 6975, .n 6976, .n 6977, .n 6978, .n 6979, .n 6980, .n 6981, .n 6982, .n 6983, .n 6971, .n 6972, .n 6973, .n 6974] [.n 6984, .n 6985, .n 6986, .n 6987, .n 6988, .n 6989, .n 6990, .n 6991, .n 6992, .n 6993, .n 6994, .n 6995, .n 6996] true false) ::
-  .call "sp_wots" [.n 2, .n 6826, .n 6984] [.n 6997] ::
-  .atom (.hint (.witness "siblings" (.stack [.n 6998, .n 6999]))) ::
-  .atom (.add (.n 7000) (.n 6997) (.n 6998)) ::
-  .atom (.add (.n 7001) (.n 6998) (.n 6999)) ::
-  .atom (.mul (.n 7000) (.n 51) (.n 7001)) ::
-  .atom (.const (.n 7002) (word 216172786408751104 0 0)) ::
-  .atom (.add (.n 7003) (.n 6821) (.n 7002)) ::
-  .atom (.add (.n 7004) (.n 7003) (.n 335)) ::
-  .atom (.const (.n 7005) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7004, .n 6998, .n 6999, .n 12, .n 13, .n 14, .n 15, .n 7005, .n 13, .n 14, .n 15, .n 16] [.n 7006, .n 7007, .n 7008, .n 7009, .n 7010, .n 7011, .n 7012, .n 7013, .n 7014, .n 7015, .n 7016, .n 7017, .n 7018] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7019, .n 7020]))) ::
-  .atom (.add (.n 7021) (.n 7006) (.n 7019)) ::
-  .atom (.add (.n 7022) (.n 7019) (.n 7020)) ::
-  .atom (.mul (.n 7021) (.n 52) (.n 7022)) ::
-  .atom (.const (.n 7023) (word 216172790703718400 0 0)) ::
-  .atom (.add (.n 7024) (.n 6821) (.n 7023)) ::
-  .atom (.add (.n 7025) (.n 7024) (.n 332)) ::
-  .atom (.const (.n 7026) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7025, .n 7019, .n 7020, .n 12, .n 13, .n 14, .n 15, .n 7026, .n 13, .n 14, .n 15, .n 16] [.n 7027, .n 7028, .n 7029, .n 7030, .n 7031, .n 7032, .n 7033, .n 7034, .n 7035, .n 7036, .n 7037, .n 7038, .n 7039] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7040, .n 7041]))) ::
-  .atom (.add (.n 7042) (.n 7027) (.n 7040)) ::
-  .atom (.add (.n 7043) (.n 7040) (.n 7041)) ::
-  .atom (.mul (.n 7042) (.n 53) (.n 7043)) ::
-  .atom (.const (.n 7044) (word 216172794998685696 0 0)) ::
-  .atom (.add (.n 7045) (.n 6821) (.n 7044)) ::
-  .atom (.add (.n 7046) (.n 7045) (.n 329)) ::
-  .atom (.const (.n 7047) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7046, .n 7040, .n 7041, .n 12, .n 13, .n 14, .n 15, .n 7047, .n 13, .n 14, .n 15, .n 16] [.n 7048, .n 7049, .n 7050, .n 7051, .n 7052, .n 7053, .n 7054, .n 7055, .n 7056, .n 7057, .n 7058, .n 7059, .n 7060] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7061, .n 7062]))) ::
-  .atom (.add (.n 7063) (.n 7048) (.n 7061)) ::
-  .atom (.add (.n 7064) (.n 7061) (.n 7062)) ::
-  .atom (.mul (.n 7063) (.n 54) (.n 7064)) ::
-  .atom (.const (.n 7065) (word 216172799293652992 0 0)) ::
-  .atom (.add (.n 7066) (.n 6821) (.n 7065)) ::
-  .atom (.add (.n 7067) (.n 7066) (.n 326)) ::
-  .atom (.const (.n 7068) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7067, .n 7061, .n 7062, .n 12, .n 13, .n 14, .n 15, .n 7068, .n 13, .n 14, .n 15, .n 16] [.n 7069, .n 7070, .n 7071, .n 7072, .n 7073, .n 7074, .n 7075, .n 7076, .n 7077, .n 7078, .n 7079, .n 7080, .n 7081] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7082, .n 7083]))) ::
-  .atom (.add (.n 7084) (.n 7069) (.n 7082)) ::
-  .atom (.add (.n 7085) (.n 7082) (.n 7083)) ::
-  .atom (.mul (.n 7084) (.n 55) (.n 7085)) ::
-  .atom (.const (.n 7086) (word 216172803588620288 0 0)) ::
-  .atom (.add (.n 7087) (.n 6821) (.n 7086)) ::
-  .atom (.add (.n 7088) (.n 7087) (.n 323)) ::
-  .atom (.const (.n 7089) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7088, .n 7082, .n 7083, .n 12, .n 13, .n 14, .n 15, .n 7089, .n 13, .n 14, .n 15, .n 16] [.n 7090, .n 7091, .n 7092, .n 7093, .n 7094, .n 7095, .n 7096, .n 7097, .n 7098, .n 7099, .n 7100, .n 7101, .n 7102] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7103, .n 7104]))) ::
-  .atom (.add (.n 7105) (.n 7090) (.n 7103)) ::
-  .atom (.add (.n 7106) (.n 7103) (.n 7104)) ::
-  .atom (.mul (.n 7105) (.n 56) (.n 7106)) ::
-  .atom (.const (.n 7107) (word 216172807883587584 0 0)) ::
-  .atom (.add (.n 7108) (.n 6821) (.n 7107)) ::
-  .atom (.add (.n 7109) (.n 7108) (.n 320)) ::
-  .atom (.const (.n 7110) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7109, .n 7103, .n 7104, .n 12, .n 13, .n 14, .n 15, .n 7110, .n 13, .n 14, .n 15, .n 16] [.n 7111, .n 7112, .n 7113, .n 7114, .n 7115, .n 7116, .n 7117, .n 7118, .n 7119, .n 7120, .n 7121, .n 7122, .n 7123] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7124, .n 7125]))) ::
-  .atom (.add (.n 7126) (.n 7111) (.n 7124)) ::
-  .atom (.add (.n 7127) (.n 7124) (.n 7125)) ::
-  .atom (.mul (.n 7126) (.n 57) (.n 7127)) ::
-  .atom (.const (.n 7128) (word 216172812178554880 0 0)) ::
-  .atom (.add (.n 7129) (.n 6821) (.n 7128)) ::
-  .atom (.add (.n 7130) (.n 7129) (.n 317)) ::
-  .atom (.const (.n 7131) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7130, .n 7124, .n 7125, .n 12, .n 13, .n 14, .n 15, .n 7131, .n 13, .n 14, .n 15, .n 16] [.n 7132, .n 7133, .n 7134, .n 7135, .n 7136, .n 7137, .n 7138, .n 7139, .n 7140, .n 7141, .n 7142, .n 7143, .n 7144] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7145, .n 7146]))) ::
-  .atom (.add (.n 7147) (.n 7132) (.n 7145)) ::
-  .atom (.add (.n 7148) (.n 7145) (.n 7146)) ::
-  .atom (.mul (.n 7147) (.n 58) (.n 7148)) ::
-  .atom (.const (.n 7149) (word 216172816473522176 0 0)) ::
-  .atom (.add (.n 7150) (.n 6821) (.n 7149)) ::
-  .atom (.const (.n 7151) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7150, .n 7145, .n 7146, .n 12, .n 13, .n 14, .n 15, .n 7151, .n 13, .n 14, .n 15, .n 16] [.n 7152, .n 7153, .n 7154, .n 7155, .n 7156, .n 7157, .n 7158, .n 7159, .n 7160, .n 7161, .n 7162, .n 7163, .n 7164] false false) ::
-  .atom (.hint (.witness "sp_counter" (.stack [.n 7165, .n 7166, .n 7167, .n 7168]))) ::
-  .atom (.const (.n 7169) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7168) (.n 7170) (.n 7171) (.n 7172) (.n 7169)) ::
-  .atom (.mul (.n 7173) (.n 1) (.n 7168)) ::
-  .atom (.load (.n 7174) (.n 7173) 0) ::
-  .atom (.const (.n 7175) (word 9223372036854810629 0 0)) ::
+  .atom (.copy (.n 6707) (.n 6699)) ::
+  .atom (.const (.n 6708) (word 1 0 0)) ::
+  .atom (.const (.n 6709) (word 0 0 0)) ::
+  .atom (.const (.n 6710) (word 0 0 0)) ::
+  .atom (.const (.n 6711) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6706, .n 6698, .n 6707, .n 6708, .n 6709, .n 6710, .n 6711, .n 354, .n 355, .n 356, .n 357] [.n 6712, .n 6713, .n 6714, .n 6715, .n 6716, .n 6717, .n 6718, .n 6719, .n 6720, .n 6721, .n 6722, .n 6723, .n 6724] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6725, .n 6726]))) ::
+  .atom (.add (.n 6727) (.n 6712) (.n 6725)) ::
+  .atom (.add (.n 6728) (.n 6725) (.n 6726)) ::
+  .atom (.mul (.n 6727) (.n 557) (.n 6728)) ::
+  .atom (.const (.n 6729) (word 0 4611686018561605632 0)) ::
+  .atom (.add (.n 6730) (.n 1721) (.n 6729)) ::
+  .atom (.const (.n 6731) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6732) (.n 1115) (.n 6731)) ::
+  .atom (.add (.n 6733) (.n 6730) (.n 6732)) ::
+  .atom (.copy (.n 6734) (.n 6726)) ::
+  .atom (.const (.n 6735) (word 1 0 0)) ::
+  .atom (.const (.n 6736) (word 0 0 0)) ::
+  .atom (.const (.n 6737) (word 0 0 0)) ::
+  .atom (.const (.n 6738) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6733, .n 6725, .n 6734, .n 6735, .n 6736, .n 6737, .n 6738, .n 354, .n 355, .n 356, .n 357] [.n 6739, .n 6740, .n 6741, .n 6742, .n 6743, .n 6744, .n 6745, .n 6746, .n 6747, .n 6748, .n 6749, .n 6750, .n 6751] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6752, .n 6753]))) ::
+  .atom (.add (.n 6754) (.n 6739) (.n 6752)) ::
+  .atom (.add (.n 6755) (.n 6752) (.n 6753)) ::
+  .atom (.mul (.n 6754) (.n 558) (.n 6755)) ::
+  .atom (.const (.n 6756) (word 0 2305843009364688896 0)) ::
+  .atom (.add (.n 6757) (.n 1721) (.n 6756)) ::
+  .atom (.const (.n 6758) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6759) (.n 1112) (.n 6758)) ::
+  .atom (.add (.n 6760) (.n 6757) (.n 6759)) ::
+  .atom (.copy (.n 6761) (.n 6753)) ::
+  .atom (.const (.n 6762) (word 1 0 0)) ::
+  .atom (.const (.n 6763) (word 0 0 0)) ::
+  .atom (.const (.n 6764) (word 0 0 0)) ::
+  .atom (.const (.n 6765) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6760, .n 6752, .n 6761, .n 6762, .n 6763, .n 6764, .n 6765, .n 354, .n 355, .n 356, .n 357] [.n 6766, .n 6767, .n 6768, .n 6769, .n 6770, .n 6771, .n 6772, .n 6773, .n 6774, .n 6775, .n 6776, .n 6777, .n 6778] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6779, .n 6780]))) ::
+  .atom (.add (.n 6781) (.n 6766) (.n 6779)) ::
+  .atom (.add (.n 6782) (.n 6779) (.n 6780)) ::
+  .atom (.mul (.n 6781) (.n 559) (.n 6782)) ::
+  .atom (.const (.n 6783) (word 0 1152921504774619136 0)) ::
+  .atom (.add (.n 6784) (.n 1721) (.n 6783)) ::
+  .atom (.copy (.n 6785) (.n 6780)) ::
+  .atom (.const (.n 6786) (word 1 0 0)) ::
+  .atom (.const (.n 6787) (word 0 0 0)) ::
+  .atom (.const (.n 6788) (word 0 0 0)) ::
+  .atom (.const (.n 6789) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6784, .n 6779, .n 6785, .n 6786, .n 6787, .n 6788, .n 6789, .n 354, .n 355, .n 356, .n 357] [.n 6790, .n 6791, .n 6792, .n 6793, .n 6794, .n 6795, .n 6796, .n 6797, .n 6798, .n 6799, .n 6800, .n 6801, .n 6802] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 6803]))) ::
+  .atom (.const (.n 6804) (word 0 19140298416324608 0)) ::
+  .atom (.add (.n 6805) (.n 1721) (.n 6804)) ::
+  .atom (.const (.n 6806) (word 256 0 0)) ::
+  .atom (.mul (.n 6807) (.n 1143) (.n 6806)) ::
+  .atom (.add (.n 6808) (.n 1167) (.n 6807)) ::
+  .atom (.const (.n 6809) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6810) (.n 6808) (.n 6809)) ::
+  .atom (.const (.n 6811) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6812) (.n 1143) (.n 6811)) ::
+  .atom (.add (.n 6813) (.n 6810) (.n 6812)) ::
+  .atom (.add (.n 6814) (.n 6805) (.n 6813)) ::
+  .atom (.const (.n 6815) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6814, .n 6803, .n 353, .n 354, .n 355, .n 356, .n 6815, .n 354, .n 355, .n 356, .n 357] [.n 6816, .n 6817, .n 6818, .n 6819, .n 6820, .n 6821, .n 6822, .n 6823, .n 6824, .n 6825, .n 6826, .n 6827, .n 6828] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6829, .n 6830]))) ::
+  .atom (.add (.n 6831) (.n 6816) (.n 6829)) ::
+  .atom (.add (.n 6832) (.n 6829) (.n 6830)) ::
+  .atom (.mul (.n 6831) (.n 572) (.n 6832)) ::
+  .atom (.const (.n 6833) (word 0 9570149224939520 0)) ::
+  .atom (.add (.n 6834) (.n 1721) (.n 6833)) ::
+  .atom (.const (.n 6835) (word 256 0 0)) ::
+  .atom (.mul (.n 6836) (.n 1140) (.n 6835)) ::
+  .atom (.add (.n 6837) (.n 1164) (.n 6836)) ::
+  .atom (.const (.n 6838) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6839) (.n 6837) (.n 6838)) ::
+  .atom (.const (.n 6840) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 6841) (.n 1140) (.n 6840)) ::
+  .atom (.add (.n 6842) (.n 6839) (.n 6841)) ::
+  .atom (.add (.n 6843) (.n 6834) (.n 6842)) ::
+  .atom (.copy (.n 6844) (.n 6830)) ::
+  .atom (.const (.n 6845) (word 1 0 0)) ::
+  .atom (.const (.n 6846) (word 0 0 0)) ::
+  .atom (.const (.n 6847) (word 0 0 0)) ::
+  .atom (.const (.n 6848) (word 9223372036854775808 0 0)) ::
   [])
 
-/-- `verify_sig_lean_sphincs`: statements 4072 to 4295 of the body. -/
+/-- `verify_sig_lean_sphincs`: statements 4463 to 4861 of the body. -/
 noncomputable def c10 : List Core.Stmt := (
-  .atom (.rangeCheck (.n 7167) (.n 7176) (.n 7177) (.n 7178) (.n 7175)) ::
-  .atom (.mul (.n 7179) (.n 1) (.n 7167)) ::
-  .atom (.load (.n 7180) (.n 7179) 0) ::
-  .atom (.const (.n 7181) (word 256 0 0)) ::
-  .atom (.mul (.n 7182) (.n 7174) (.n 7181)) ::
-  .atom (.add (.n 7183) (.n 7180) (.n 7182)) ::
-  .atom (.const (.n 7184) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7166) (.n 7185) (.n 7186) (.n 7187) (.n 7184)) ::
-  .atom (.mul (.n 7188) (.n 1) (.n 7166)) ::
-  .atom (.load (.n 7189) (.n 7188) 0) ::
-  .atom (.const (.n 7190) (word 256 0 0)) ::
-  .atom (.mul (.n 7191) (.n 7183) (.n 7190)) ::
-  .atom (.add (.n 7192) (.n 7189) (.n 7191)) ::
-  .atom (.const (.n 7193) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7165) (.n 7194) (.n 7195) (.n 7196) (.n 7193)) ::
-  .atom (.mul (.n 7197) (.n 1) (.n 7165)) ::
-  .atom (.load (.n 7198) (.n 7197) 0) ::
-  .atom (.const (.n 7199) (word 256 0 0)) ::
-  .atom (.mul (.n 7200) (.n 7192) (.n 7199)) ::
-  .atom (.add (.n 7201) (.n 7198) (.n 7200)) ::
-  .atom (.const (.n 7202) (word 288230376151711744 0 0)) ::
-  .atom (.add (.n 7203) (.n 6827) (.n 7202)) ::
-  .atom (.const (.n 7204) (word 4294967296 0 0)) ::
-  .atom (.add (.n 7205) (.n 7201) (.n 7204)) ::
-  .atom (.const (.n 7206) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7203, .n 7152, .n 7205, .n 13, .n 14, .n 15, .n 16, .n 7206, .n 13, .n 14, .n 15, .n 16] [.n 7207, .n 7208, .n 7209, .n 7210, .n 7211, .n 7212, .n 7213, .n 7214, .n 7215, .n 7216, .n 7217, .n 7218, .n 7219] false false) ::
-  .call "sp_wots" [.n 2, .n 6827, .n 7207] [.n 7220] ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7221, .n 7222]))) ::
-  .atom (.add (.n 7223) (.n 7220) (.n 7221)) ::
-  .atom (.add (.n 7224) (.n 7221) (.n 7222)) ::
-  .atom (.mul (.n 7223) (.n 59) (.n 7224)) ::
-  .atom (.const (.n 7225) (word 216172786408751104 0 0)) ::
-  .atom (.add (.n 7226) (.n 6825) (.n 7225)) ::
-  .atom (.add (.n 7227) (.n 7226) (.n 357)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6843, .n 6829, .n 6844, .n 6845, .n 6846, .n 6847, .n 6848, .n 354, .n 355, .n 356, .n 357] [.n 6849, .n 6850, .n 6851, .n 6852, .n 6853, .n 6854, .n 6855, .n 6856, .n 6857, .n 6858, .n 6859, .n 6860, .n 6861] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6862, .n 6863]))) ::
+  .atom (.add (.n 6864) (.n 6849) (.n 6862)) ::
+  .atom (.add (.n 6865) (.n 6862) (.n 6863)) ::
+  .atom (.mul (.n 6864) (.n 573) (.n 6865)) ::
+  .atom (.const (.n 6866) (word 0 4785074637635584 0)) ::
+  .atom (.add (.n 6867) (.n 1721) (.n 6866)) ::
+  .atom (.const (.n 6868) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6869) (.n 1161) (.n 6868)) ::
+  .atom (.add (.n 6870) (.n 6867) (.n 6869)) ::
+  .atom (.copy (.n 6871) (.n 6863)) ::
+  .atom (.const (.n 6872) (word 1 0 0)) ::
+  .atom (.const (.n 6873) (word 0 0 0)) ::
+  .atom (.const (.n 6874) (word 0 0 0)) ::
+  .atom (.const (.n 6875) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6870, .n 6862, .n 6871, .n 6872, .n 6873, .n 6874, .n 6875, .n 354, .n 355, .n 356, .n 357] [.n 6876, .n 6877, .n 6878, .n 6879, .n 6880, .n 6881, .n 6882, .n 6883, .n 6884, .n 6885, .n 6886, .n 6887, .n 6888] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6889, .n 6890]))) ::
+  .atom (.add (.n 6891) (.n 6876) (.n 6889)) ::
+  .atom (.add (.n 6892) (.n 6889) (.n 6890)) ::
+  .atom (.mul (.n 6891) (.n 574) (.n 6892)) ::
+  .atom (.const (.n 6893) (word 0 9225623836718792704 0)) ::
+  .atom (.add (.n 6894) (.n 1721) (.n 6893)) ::
+  .atom (.const (.n 6895) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6896) (.n 1158) (.n 6895)) ::
+  .atom (.add (.n 6897) (.n 6894) (.n 6896)) ::
+  .atom (.copy (.n 6898) (.n 6890)) ::
+  .atom (.const (.n 6899) (word 1 0 0)) ::
+  .atom (.const (.n 6900) (word 0 0 0)) ::
+  .atom (.const (.n 6901) (word 0 0 0)) ::
+  .atom (.const (.n 6902) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6897, .n 6889, .n 6898, .n 6899, .n 6900, .n 6901, .n 6902, .n 354, .n 355, .n 356, .n 357] [.n 6903, .n 6904, .n 6905, .n 6906, .n 6907, .n 6908, .n 6909, .n 6910, .n 6911, .n 6912, .n 6913, .n 6914, .n 6915] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6916, .n 6917]))) ::
+  .atom (.add (.n 6918) (.n 6903) (.n 6916)) ::
+  .atom (.add (.n 6919) (.n 6916) (.n 6917)) ::
+  .atom (.mul (.n 6918) (.n 575) (.n 6919)) ::
+  .atom (.const (.n 6920) (word 0 4612811918401339392 0)) ::
+  .atom (.add (.n 6921) (.n 1721) (.n 6920)) ::
+  .atom (.const (.n 6922) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6923) (.n 1155) (.n 6922)) ::
+  .atom (.add (.n 6924) (.n 6921) (.n 6923)) ::
+  .atom (.copy (.n 6925) (.n 6917)) ::
+  .atom (.const (.n 6926) (word 1 0 0)) ::
+  .atom (.const (.n 6927) (word 0 0 0)) ::
+  .atom (.const (.n 6928) (word 0 0 0)) ::
+  .atom (.const (.n 6929) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6924, .n 6916, .n 6925, .n 6926, .n 6927, .n 6928, .n 6929, .n 354, .n 355, .n 356, .n 357] [.n 6930, .n 6931, .n 6932, .n 6933, .n 6934, .n 6935, .n 6936, .n 6937, .n 6938, .n 6939, .n 6940, .n 6941, .n 6942] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6943, .n 6944]))) ::
+  .atom (.add (.n 6945) (.n 6930) (.n 6943)) ::
+  .atom (.add (.n 6946) (.n 6943) (.n 6944)) ::
+  .atom (.mul (.n 6945) (.n 560) (.n 6946)) ::
+  .atom (.const (.n 6947) (word 0 2306405959251001344 0)) ::
+  .atom (.add (.n 6948) (.n 1721) (.n 6947)) ::
+  .atom (.const (.n 6949) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6950) (.n 1152) (.n 6949)) ::
+  .atom (.add (.n 6951) (.n 6948) (.n 6950)) ::
+  .atom (.copy (.n 6952) (.n 6944)) ::
+  .atom (.const (.n 6953) (word 1 0 0)) ::
+  .atom (.const (.n 6954) (word 0 0 0)) ::
+  .atom (.const (.n 6955) (word 0 0 0)) ::
+  .atom (.const (.n 6956) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6951, .n 6943, .n 6952, .n 6953, .n 6954, .n 6955, .n 6956, .n 354, .n 355, .n 356, .n 357] [.n 6957, .n 6958, .n 6959, .n 6960, .n 6961, .n 6962, .n 6963, .n 6964, .n 6965, .n 6966, .n 6967, .n 6968, .n 6969] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6970, .n 6971]))) ::
+  .atom (.add (.n 6972) (.n 6957) (.n 6970)) ::
+  .atom (.add (.n 6973) (.n 6970) (.n 6971)) ::
+  .atom (.mul (.n 6972) (.n 561) (.n 6973)) ::
+  .atom (.const (.n 6974) (word 0 1153202979684220928 0)) ::
+  .atom (.add (.n 6975) (.n 1721) (.n 6974)) ::
+  .atom (.const (.n 6976) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 6977) (.n 1149) (.n 6976)) ::
+  .atom (.add (.n 6978) (.n 6975) (.n 6977)) ::
+  .atom (.copy (.n 6979) (.n 6971)) ::
+  .atom (.const (.n 6980) (word 1 0 0)) ::
+  .atom (.const (.n 6981) (word 0 0 0)) ::
+  .atom (.const (.n 6982) (word 0 0 0)) ::
+  .atom (.const (.n 6983) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 6978, .n 6970, .n 6979, .n 6980, .n 6981, .n 6982, .n 6983, .n 354, .n 355, .n 356, .n 357] [.n 6984, .n 6985, .n 6986, .n 6987, .n 6988, .n 6989, .n 6990, .n 6991, .n 6992, .n 6993, .n 6994, .n 6995, .n 6996] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 6997, .n 6998]))) ::
+  .atom (.add (.n 6999) (.n 6984) (.n 6997)) ::
+  .atom (.add (.n 7000) (.n 6997) (.n 6998)) ::
+  .atom (.mul (.n 6999) (.n 562) (.n 7000)) ::
+  .atom (.const (.n 7001) (word 0 9799832789275639808 0)) ::
+  .atom (.add (.n 7002) (.n 1721) (.n 7001)) ::
+  .atom (.const (.n 7003) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7004) (.n 1146) (.n 7003)) ::
+  .atom (.add (.n 7005) (.n 7002) (.n 7004)) ::
+  .atom (.copy (.n 7006) (.n 6998)) ::
+  .atom (.const (.n 7007) (word 1 0 0)) ::
+  .atom (.const (.n 7008) (word 0 0 0)) ::
+  .atom (.const (.n 7009) (word 0 0 0)) ::
+  .atom (.const (.n 7010) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7005, .n 6997, .n 7006, .n 7007, .n 7008, .n 7009, .n 7010, .n 354, .n 355, .n 356, .n 357] [.n 7011, .n 7012, .n 7013, .n 7014, .n 7015, .n 7016, .n 7017, .n 7018, .n 7019, .n 7020, .n 7021, .n 7022, .n 7023] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7024, .n 7025]))) ::
+  .atom (.add (.n 7026) (.n 7011) (.n 7024)) ::
+  .atom (.add (.n 7027) (.n 7024) (.n 7025)) ::
+  .atom (.mul (.n 7026) (.n 563) (.n 7027)) ::
+  .atom (.const (.n 7028) (word 0 4899916394713317376 0)) ::
+  .atom (.add (.n 7029) (.n 1721) (.n 7028)) ::
+  .atom (.const (.n 7030) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7031) (.n 1143) (.n 7030)) ::
+  .atom (.add (.n 7032) (.n 7029) (.n 7031)) ::
+  .atom (.copy (.n 7033) (.n 7025)) ::
+  .atom (.const (.n 7034) (word 1 0 0)) ::
+  .atom (.const (.n 7035) (word 0 0 0)) ::
+  .atom (.const (.n 7036) (word 0 0 0)) ::
+  .atom (.const (.n 7037) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7032, .n 7024, .n 7033, .n 7034, .n 7035, .n 7036, .n 7037, .n 354, .n 355, .n 356, .n 357] [.n 7038, .n 7039, .n 7040, .n 7041, .n 7042, .n 7043, .n 7044, .n 7045, .n 7046, .n 7047, .n 7048, .n 7049, .n 7050] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7051, .n 7052]))) ::
+  .atom (.add (.n 7053) (.n 7038) (.n 7051)) ::
+  .atom (.add (.n 7054) (.n 7051) (.n 7052)) ::
+  .atom (.mul (.n 7053) (.n 564) (.n 7054)) ::
+  .atom (.const (.n 7055) (word 0 2449958197440544768 0)) ::
+  .atom (.add (.n 7056) (.n 1721) (.n 7055)) ::
+  .atom (.const (.n 7057) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7058) (.n 1140) (.n 7057)) ::
+  .atom (.add (.n 7059) (.n 7056) (.n 7058)) ::
+  .atom (.copy (.n 7060) (.n 7052)) ::
+  .atom (.const (.n 7061) (word 1 0 0)) ::
+  .atom (.const (.n 7062) (word 0 0 0)) ::
+  .atom (.const (.n 7063) (word 0 0 0)) ::
+  .atom (.const (.n 7064) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7059, .n 7051, .n 7060, .n 7061, .n 7062, .n 7063, .n 7064, .n 354, .n 355, .n 356, .n 357] [.n 7065, .n 7066, .n 7067, .n 7068, .n 7069, .n 7070, .n 7071, .n 7072, .n 7073, .n 7074, .n 7075, .n 7076, .n 7077] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7078, .n 7079]))) ::
+  .atom (.add (.n 7080) (.n 7065) (.n 7078)) ::
+  .atom (.add (.n 7081) (.n 7078) (.n 7079)) ::
+  .atom (.mul (.n 7080) (.n 565) (.n 7081)) ::
+  .atom (.const (.n 7082) (word 0 1224979098812547072 0)) ::
+  .atom (.add (.n 7083) (.n 1721) (.n 7082)) ::
+  .atom (.copy (.n 7084) (.n 7079)) ::
+  .atom (.const (.n 7085) (word 1 0 0)) ::
+  .atom (.const (.n 7086) (word 0 0 0)) ::
+  .atom (.const (.n 7087) (word 0 0 0)) ::
+  .atom (.const (.n 7088) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7083, .n 7078, .n 7084, .n 7085, .n 7086, .n 7087, .n 7088, .n 354, .n 355, .n 356, .n 357] [.n 7089, .n 7090, .n 7091, .n 7092, .n 7093, .n 7094, .n 7095, .n 7096, .n 7097, .n 7098, .n 7099, .n 7100, .n 7101] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 7102]))) ::
+  .atom (.const (.n 7103) (word 0 20266198323167232 0)) ::
+  .atom (.add (.n 7104) (.n 1721) (.n 7103)) ::
+  .atom (.const (.n 7105) (word 256 0 0)) ::
+  .atom (.mul (.n 7106) (.n 1171) (.n 7105)) ::
+  .atom (.add (.n 7107) (.n 1195) (.n 7106)) ::
+  .atom (.const (.n 7108) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7109) (.n 7107) (.n 7108)) ::
+  .atom (.const (.n 7110) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7111) (.n 1171) (.n 7110)) ::
+  .atom (.add (.n 7112) (.n 7109) (.n 7111)) ::
+  .atom (.add (.n 7113) (.n 7104) (.n 7112)) ::
+  .atom (.const (.n 7114) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7113, .n 7102, .n 353, .n 354, .n 355, .n 356, .n 7114, .n 354, .n 355, .n 356, .n 357] [.n 7115, .n 7116, .n 7117, .n 7118, .n 7119, .n 7120, .n 7121, .n 7122, .n 7123, .n 7124, .n 7125, .n 7126, .n 7127] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7128, .n 7129]))) ::
+  .atom (.add (.n 7130) (.n 7115) (.n 7128)) ::
+  .atom (.add (.n 7131) (.n 7128) (.n 7129)) ::
+  .atom (.mul (.n 7130) (.n 578) (.n 7131)) ::
+  .atom (.const (.n 7132) (word 0 10133099178360832 0)) ::
+  .atom (.add (.n 7133) (.n 1721) (.n 7132)) ::
+  .atom (.const (.n 7134) (word 256 0 0)) ::
+  .atom (.mul (.n 7135) (.n 1168) (.n 7134)) ::
+  .atom (.add (.n 7136) (.n 1192) (.n 7135)) ::
+  .atom (.const (.n 7137) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7138) (.n 7136) (.n 7137)) ::
+  .atom (.const (.n 7139) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7140) (.n 1168) (.n 7139)) ::
+  .atom (.add (.n 7141) (.n 7138) (.n 7140)) ::
+  .atom (.add (.n 7142) (.n 7133) (.n 7141)) ::
+  .atom (.copy (.n 7143) (.n 7129)) ::
+  .atom (.const (.n 7144) (word 1 0 0)) ::
+  .atom (.const (.n 7145) (word 0 0 0)) ::
+  .atom (.const (.n 7146) (word 0 0 0)) ::
+  .atom (.const (.n 7147) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7142, .n 7128, .n 7143, .n 7144, .n 7145, .n 7146, .n 7147, .n 354, .n 355, .n 356, .n 357] [.n 7148, .n 7149, .n 7150, .n 7151, .n 7152, .n 7153, .n 7154, .n 7155, .n 7156, .n 7157, .n 7158, .n 7159, .n 7160] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7161, .n 7162]))) ::
+  .atom (.add (.n 7163) (.n 7148) (.n 7161)) ::
+  .atom (.add (.n 7164) (.n 7161) (.n 7162)) ::
+  .atom (.mul (.n 7163) (.n 579) (.n 7164)) ::
+  .atom (.const (.n 7165) (word 0 5066549614346240 0)) ::
+  .atom (.add (.n 7166) (.n 1721) (.n 7165)) ::
+  .atom (.const (.n 7167) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7168) (.n 1189) (.n 7167)) ::
+  .atom (.add (.n 7169) (.n 7166) (.n 7168)) ::
+  .atom (.copy (.n 7170) (.n 7162)) ::
+  .atom (.const (.n 7171) (word 1 0 0)) ::
+  .atom (.const (.n 7172) (word 0 0 0)) ::
+  .atom (.const (.n 7173) (word 0 0 0)) ::
+  .atom (.const (.n 7174) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7169, .n 7161, .n 7170, .n 7171, .n 7172, .n 7173, .n 7174, .n 354, .n 355, .n 356, .n 357] [.n 7175, .n 7176, .n 7177, .n 7178, .n 7179, .n 7180, .n 7181, .n 7182, .n 7183, .n 7184, .n 7185, .n 7186, .n 7187] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7188, .n 7189]))) ::
+  .atom (.add (.n 7190) (.n 7175) (.n 7188)) ::
+  .atom (.add (.n 7191) (.n 7188) (.n 7189)) ::
+  .atom (.mul (.n 7190) (.n 580) (.n 7191)) ::
+  .atom (.const (.n 7192) (word 0 2533274840727552 0)) ::
+  .atom (.add (.n 7193) (.n 1721) (.n 7192)) ::
+  .atom (.const (.n 7194) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7195) (.n 1186) (.n 7194)) ::
+  .atom (.add (.n 7196) (.n 7193) (.n 7195)) ::
+  .atom (.copy (.n 7197) (.n 7189)) ::
+  .atom (.const (.n 7198) (word 1 0 0)) ::
+  .atom (.const (.n 7199) (word 0 0 0)) ::
+  .atom (.const (.n 7200) (word 0 0 0)) ::
+  .atom (.const (.n 7201) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7196, .n 7188, .n 7197, .n 7198, .n 7199, .n 7200, .n 7201, .n 354, .n 355, .n 356, .n 357] [.n 7202, .n 7203, .n 7204, .n 7205, .n 7206, .n 7207, .n 7208, .n 7209, .n 7210, .n 7211, .n 7212, .n 7213, .n 7214] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7215, .n 7216]))) ::
+  .atom (.add (.n 7217) (.n 7202) (.n 7215)) ::
+  .atom (.add (.n 7218) (.n 7215) (.n 7216)) ::
+  .atom (.mul (.n 7217) (.n 581) (.n 7218)) ::
+  .atom (.const (.n 7219) (word 0 9224497936828727296 0)) ::
+  .atom (.add (.n 7220) (.n 1721) (.n 7219)) ::
+  .atom (.const (.n 7221) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7222) (.n 1183) (.n 7221)) ::
+  .atom (.add (.n 7223) (.n 7220) (.n 7222)) ::
+  .atom (.copy (.n 7224) (.n 7216)) ::
+  .atom (.const (.n 7225) (word 1 0 0)) ::
+  .atom (.const (.n 7226) (word 0 0 0)) ::
+  .atom (.const (.n 7227) (word 0 0 0)) ::
   .atom (.const (.n 7228) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7227, .n 7221, .n 7222, .n 12, .n 13, .n 14, .n 15, .n 7228, .n 13, .n 14, .n 15, .n 16] [.n 7229, .n 7230, .n 7231, .n 7232, .n 7233, .n 7234, .n 7235, .n 7236, .n 7237, .n 7238, .n 7239, .n 7240, .n 7241] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7242, .n 7243]))) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7223, .n 7215, .n 7224, .n 7225, .n 7226, .n 7227, .n 7228, .n 354, .n 355, .n 356, .n 357] [.n 7229, .n 7230, .n 7231, .n 7232, .n 7233, .n 7234, .n 7235, .n 7236, .n 7237, .n 7238, .n 7239, .n 7240, .n 7241] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7242, .n 7243]))) ::
   .atom (.add (.n 7244) (.n 7229) (.n 7242)) ::
   .atom (.add (.n 7245) (.n 7242) (.n 7243)) ::
-  .atom (.mul (.n 7244) (.n 60) (.n 7245)) ::
-  .atom (.const (.n 7246) (word 216172790703718400 0 0)) ::
-  .atom (.add (.n 7247) (.n 6825) (.n 7246)) ::
-  .atom (.add (.n 7248) (.n 7247) (.n 354)) ::
-  .atom (.const (.n 7249) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7248, .n 7242, .n 7243, .n 12, .n 13, .n 14, .n 15, .n 7249, .n 13, .n 14, .n 15, .n 16] [.n 7250, .n 7251, .n 7252, .n 7253, .n 7254, .n 7255, .n 7256, .n 7257, .n 7258, .n 7259, .n 7260, .n 7261, .n 7262] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7263, .n 7264]))) ::
-  .atom (.add (.n 7265) (.n 7250) (.n 7263)) ::
-  .atom (.add (.n 7266) (.n 7263) (.n 7264)) ::
-  .atom (.mul (.n 7265) (.n 61) (.n 7266)) ::
-  .atom (.const (.n 7267) (word 216172794998685696 0 0)) ::
-  .atom (.add (.n 7268) (.n 6825) (.n 7267)) ::
-  .atom (.add (.n 7269) (.n 7268) (.n 351)) ::
-  .atom (.const (.n 7270) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7269, .n 7263, .n 7264, .n 12, .n 13, .n 14, .n 15, .n 7270, .n 13, .n 14, .n 15, .n 16] [.n 7271, .n 7272, .n 7273, .n 7274, .n 7275, .n 7276, .n 7277, .n 7278, .n 7279, .n 7280, .n 7281, .n 7282, .n 7283] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7284, .n 7285]))) ::
-  .atom (.add (.n 7286) (.n 7271) (.n 7284)) ::
-  .atom (.add (.n 7287) (.n 7284) (.n 7285)) ::
-  .atom (.mul (.n 7286) (.n 62) (.n 7287)) ::
-  .atom (.const (.n 7288) (word 216172799293652992 0 0)) ::
-  .atom (.add (.n 7289) (.n 6825) (.n 7288)) ::
-  .atom (.add (.n 7290) (.n 7289) (.n 348)) ::
-  .atom (.const (.n 7291) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7290, .n 7284, .n 7285, .n 12, .n 13, .n 14, .n 15, .n 7291, .n 13, .n 14, .n 15, .n 16] [.n 7292, .n 7293, .n 7294, .n 7295, .n 7296, .n 7297, .n 7298, .n 7299, .n 7300, .n 7301, .n 7302, .n 7303, .n 7304] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7305, .n 7306]))) ::
-  .atom (.add (.n 7307) (.n 7292) (.n 7305)) ::
-  .atom (.add (.n 7308) (.n 7305) (.n 7306)) ::
-  .atom (.mul (.n 7307) (.n 63) (.n 7308)) ::
-  .atom (.const (.n 7309) (word 216172803588620288 0 0)) ::
-  .atom (.add (.n 7310) (.n 6825) (.n 7309)) ::
-  .atom (.add (.n 7311) (.n 7310) (.n 345)) ::
-  .atom (.const (.n 7312) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7311, .n 7305, .n 7306, .n 12, .n 13, .n 14, .n 15, .n 7312, .n 13, .n 14, .n 15, .n 16] [.n 7313, .n 7314, .n 7315, .n 7316, .n 7317, .n 7318, .n 7319, .n 7320, .n 7321, .n 7322, .n 7323, .n 7324, .n 7325] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7326, .n 7327]))) ::
-  .atom (.add (.n 7328) (.n 7313) (.n 7326)) ::
-  .atom (.add (.n 7329) (.n 7326) (.n 7327)) ::
-  .atom (.mul (.n 7328) (.n 64) (.n 7329)) ::
-  .atom (.const (.n 7330) (word 216172807883587584 0 0)) ::
-  .atom (.add (.n 7331) (.n 6825) (.n 7330)) ::
-  .atom (.add (.n 7332) (.n 7331) (.n 342)) ::
-  .atom (.const (.n 7333) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7332, .n 7326, .n 7327, .n 12, .n 13, .n 14, .n 15, .n 7333, .n 13, .n 14, .n 15, .n 16] [.n 7334, .n 7335, .n 7336, .n 7337, .n 7338, .n 7339, .n 7340, .n 7341, .n 7342, .n 7343, .n 7344, .n 7345, .n 7346] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7347, .n 7348]))) ::
-  .atom (.add (.n 7349) (.n 7334) (.n 7347)) ::
-  .atom (.add (.n 7350) (.n 7347) (.n 7348)) ::
-  .atom (.mul (.n 7349) (.n 65) (.n 7350)) ::
-  .atom (.const (.n 7351) (word 216172812178554880 0 0)) ::
-  .atom (.add (.n 7352) (.n 6825) (.n 7351)) ::
-  .atom (.add (.n 7353) (.n 7352) (.n 339)) ::
-  .atom (.const (.n 7354) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7353, .n 7347, .n 7348, .n 12, .n 13, .n 14, .n 15, .n 7354, .n 13, .n 14, .n 15, .n 16] [.n 7355, .n 7356, .n 7357, .n 7358, .n 7359, .n 7360, .n 7361, .n 7362, .n 7363, .n 7364, .n 7365, .n 7366, .n 7367] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7368, .n 7369]))) ::
-  .atom (.add (.n 7370) (.n 7355) (.n 7368)) ::
-  .atom (.add (.n 7371) (.n 7368) (.n 7369)) ::
-  .atom (.mul (.n 7370) (.n 66) (.n 7371)) ::
-  .atom (.const (.n 7372) (word 216172816473522176 0 0)) ::
-  .atom (.add (.n 7373) (.n 6825) (.n 7372)) ::
-  .atom (.const (.n 7374) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7373, .n 7368, .n 7369, .n 12, .n 13, .n 14, .n 15, .n 7374, .n 13, .n 14, .n 15, .n 16] [.n 7375, .n 7376, .n 7377, .n 7378, .n 7379, .n 7380, .n 7381, .n 7382, .n 7383, .n 7384, .n 7385, .n 7386, .n 7387] false false) ::
-  .atom (.const (.n 7388) (word 0 2 0)) ::
-  .atom (.hint (.witness "sp_counter" (.stack [.n 7389, .n 7390, .n 7391, .n 7392]))) ::
-  .atom (.const (.n 7393) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7392) (.n 7394) (.n 7395) (.n 7396) (.n 7393)) ::
-  .atom (.mul (.n 7397) (.n 1) (.n 7392)) ::
-  .atom (.load (.n 7398) (.n 7397) 0) ::
-  .atom (.const (.n 7399) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7391) (.n 7400) (.n 7401) (.n 7402) (.n 7399)) ::
-  .atom (.mul (.n 7403) (.n 1) (.n 7391)) ::
-  .atom (.load (.n 7404) (.n 7403) 0) ::
-  .atom (.const (.n 7405) (word 256 0 0)) ::
-  .atom (.mul (.n 7406) (.n 7398) (.n 7405)) ::
-  .atom (.add (.n 7407) (.n 7404) (.n 7406)) ::
-  .atom (.const (.n 7408) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7390) (.n 7409) (.n 7410) (.n 7411) (.n 7408)) ::
-  .atom (.mul (.n 7412) (.n 1) (.n 7390)) ::
-  .atom (.load (.n 7413) (.n 7412) 0) ::
-  .atom (.const (.n 7414) (word 256 0 0)) ::
-  .atom (.mul (.n 7415) (.n 7407) (.n 7414)) ::
-  .atom (.add (.n 7416) (.n 7413) (.n 7415)) ::
-  .atom (.const (.n 7417) (word 9223372036854810629 0 0)) ::
-  .atom (.rangeCheck (.n 7389) (.n 7418) (.n 7419) (.n 7420) (.n 7417)) ::
-  .atom (.mul (.n 7421) (.n 1) (.n 7389)) ::
-  .atom (.load (.n 7422) (.n 7421) 0) ::
-  .atom (.const (.n 7423) (word 256 0 0)) ::
-  .atom (.mul (.n 7424) (.n 7416) (.n 7423)) ::
-  .atom (.add (.n 7425) (.n 7422) (.n 7424)) ::
-  .atom (.const (.n 7426) (word 288230376151711744 0 0)) ::
-  .atom (.add (.n 7427) (.n 6829) (.n 7426)) ::
-  .atom (.const (.n 7428) (word 4294967296 0 0)) ::
-  .atom (.add (.n 7429) (.n 7425) (.n 7428)) ::
-  .atom (.const (.n 7430) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7427, .n 7375, .n 7429, .n 13, .n 14, .n 15, .n 16, .n 7430, .n 13, .n 14, .n 15, .n 16] [.n 7431, .n 7432, .n 7433, .n 7434, .n 7435, .n 7436, .n 7437, .n 7438, .n 7439, .n 7440, .n 7441, .n 7442, .n 7443] false false) ::
-  .call "sp_wots" [.n 2, .n 6829, .n 7431] [.n 7444] ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7445, .n 7446]))) ::
-  .atom (.add (.n 7447) (.n 7444) (.n 7445)) ::
-  .atom (.add (.n 7448) (.n 7445) (.n 7446)) ::
-  .atom (.mul (.n 7447) (.n 67) (.n 7448)) ::
-  .atom (.const (.n 7449) (word 216172786408751104 0 0)) ::
-  .atom (.add (.n 7450) (.n 7388) (.n 7449)) ::
-  .atom (.add (.n 7451) (.n 7450) (.n 385)) ::
-  .atom (.const (.n 7452) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7451, .n 7445, .n 7446, .n 12, .n 13, .n 14, .n 15, .n 7452, .n 13, .n 14, .n 15, .n 16] [.n 7453, .n 7454, .n 7455, .n 7456, .n 7457, .n 7458, .n 7459, .n 7460, .n 7461, .n 7462, .n 7463, .n 7464, .n 7465] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7466, .n 7467]))) ::
-  .atom (.add (.n 7468) (.n 7453) (.n 7466)) ::
-  .atom (.add (.n 7469) (.n 7466) (.n 7467)) ::
-  .atom (.mul (.n 7468) (.n 68) (.n 7469)) ::
-  .atom (.const (.n 7470) (word 216172790703718400 0 0)) ::
-  .atom (.add (.n 7471) (.n 7388) (.n 7470)) ::
-  .atom (.add (.n 7472) (.n 7471) (.n 382)) ::
+  .atom (.mul (.n 7244) (.n 582) (.n 7245)) ::
+  .atom (.const (.n 7246) (word 0 4612248968464695296 0)) ::
+  .atom (.add (.n 7247) (.n 1721) (.n 7246)) ::
+  .atom (.const (.n 7248) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7249) (.n 1180) (.n 7248)) ::
+  .atom (.add (.n 7250) (.n 7247) (.n 7249)) ::
+  .atom (.copy (.n 7251) (.n 7243)) ::
+  .atom (.const (.n 7252) (word 1 0 0)) ::
+  .atom (.const (.n 7253) (word 0 0 0)) ::
+  .atom (.const (.n 7254) (word 0 0 0)) ::
+  .atom (.const (.n 7255) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7250, .n 7242, .n 7251, .n 7252, .n 7253, .n 7254, .n 7255, .n 354, .n 355, .n 356, .n 357] [.n 7256, .n 7257, .n 7258, .n 7259, .n 7260, .n 7261, .n 7262, .n 7263, .n 7264, .n 7265, .n 7266, .n 7267, .n 7268] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7269, .n 7270]))) ::
+  .atom (.add (.n 7271) (.n 7256) (.n 7269)) ::
+  .atom (.add (.n 7272) (.n 7269) (.n 7270)) ::
+  .atom (.mul (.n 7271) (.n 583) (.n 7272)) ::
+  .atom (.const (.n 7273) (word 0 2306124484291067904 0)) ::
+  .atom (.add (.n 7274) (.n 1721) (.n 7273)) ::
+  .atom (.const (.n 7275) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7276) (.n 1177) (.n 7275)) ::
+  .atom (.add (.n 7277) (.n 7274) (.n 7276)) ::
+  .atom (.copy (.n 7278) (.n 7270)) ::
+  .atom (.const (.n 7279) (word 1 0 0)) ::
+  .atom (.const (.n 7280) (word 0 0 0)) ::
+  .atom (.const (.n 7281) (word 0 0 0)) ::
+  .atom (.const (.n 7282) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7277, .n 7269, .n 7278, .n 7279, .n 7280, .n 7281, .n 7282, .n 354, .n 355, .n 356, .n 357] [.n 7283, .n 7284, .n 7285, .n 7286, .n 7287, .n 7288, .n 7289, .n 7290, .n 7291, .n 7292, .n 7293, .n 7294, .n 7295] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7296, .n 7297]))) ::
+  .atom (.add (.n 7298) (.n 7283) (.n 7296)) ::
+  .atom (.add (.n 7299) (.n 7296) (.n 7297)) ::
+  .atom (.mul (.n 7298) (.n 568) (.n 7299)) ::
+  .atom (.const (.n 7300) (word 0 10376293541579063296 0)) ::
+  .atom (.add (.n 7301) (.n 1721) (.n 7300)) ::
+  .atom (.const (.n 7302) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7303) (.n 1174) (.n 7302)) ::
+  .atom (.add (.n 7304) (.n 7301) (.n 7303)) ::
+  .atom (.copy (.n 7305) (.n 7297)) ::
+  .atom (.const (.n 7306) (word 1 0 0)) ::
+  .atom (.const (.n 7307) (word 0 0 0)) ::
+  .atom (.const (.n 7308) (word 0 0 0)) ::
+  .atom (.const (.n 7309) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7304, .n 7296, .n 7305, .n 7306, .n 7307, .n 7308, .n 7309, .n 354, .n 355, .n 356, .n 357] [.n 7310, .n 7311, .n 7312, .n 7313, .n 7314, .n 7315, .n 7316, .n 7317, .n 7318, .n 7319, .n 7320, .n 7321, .n 7322] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7323, .n 7324]))) ::
+  .atom (.add (.n 7325) (.n 7310) (.n 7323)) ::
+  .atom (.add (.n 7326) (.n 7323) (.n 7324)) ::
+  .atom (.mul (.n 7325) (.n 569) (.n 7326)) ::
+  .atom (.const (.n 7327) (word 0 5188146770865029120 0)) ::
+  .atom (.add (.n 7328) (.n 1721) (.n 7327)) ::
+  .atom (.const (.n 7329) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7330) (.n 1171) (.n 7329)) ::
+  .atom (.add (.n 7331) (.n 7328) (.n 7330)) ::
+  .atom (.copy (.n 7332) (.n 7324)) ::
+  .atom (.const (.n 7333) (word 1 0 0)) ::
+  .atom (.const (.n 7334) (word 0 0 0)) ::
+  .atom (.const (.n 7335) (word 0 0 0)) ::
+  .atom (.const (.n 7336) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7331, .n 7323, .n 7332, .n 7333, .n 7334, .n 7335, .n 7336, .n 354, .n 355, .n 356, .n 357] [.n 7337, .n 7338, .n 7339, .n 7340, .n 7341, .n 7342, .n 7343, .n 7344, .n 7345, .n 7346, .n 7347, .n 7348, .n 7349] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7350, .n 7351]))) ::
+  .atom (.add (.n 7352) (.n 7337) (.n 7350)) ::
+  .atom (.add (.n 7353) (.n 7350) (.n 7351)) ::
+  .atom (.mul (.n 7352) (.n 570) (.n 7353)) ::
+  .atom (.const (.n 7354) (word 0 2594073385516400640 0)) ::
+  .atom (.add (.n 7355) (.n 1721) (.n 7354)) ::
+  .atom (.const (.n 7356) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7357) (.n 1168) (.n 7356)) ::
+  .atom (.add (.n 7358) (.n 7355) (.n 7357)) ::
+  .atom (.copy (.n 7359) (.n 7351)) ::
+  .atom (.const (.n 7360) (word 1 0 0)) ::
+  .atom (.const (.n 7361) (word 0 0 0)) ::
+  .atom (.const (.n 7362) (word 0 0 0)) ::
+  .atom (.const (.n 7363) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7358, .n 7350, .n 7359, .n 7360, .n 7361, .n 7362, .n 7363, .n 354, .n 355, .n 356, .n 357] [.n 7364, .n 7365, .n 7366, .n 7367, .n 7368, .n 7369, .n 7370, .n 7371, .n 7372, .n 7373, .n 7374, .n 7375, .n 7376] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7377, .n 7378]))) ::
+  .atom (.add (.n 7379) (.n 7364) (.n 7377)) ::
+  .atom (.add (.n 7380) (.n 7377) (.n 7378)) ::
+  .atom (.mul (.n 7379) (.n 571) (.n 7380)) ::
+  .atom (.const (.n 7381) (word 0 1297036692850475008 0)) ::
+  .atom (.add (.n 7382) (.n 1721) (.n 7381)) ::
+  .atom (.copy (.n 7383) (.n 7378)) ::
+  .atom (.const (.n 7384) (word 1 0 0)) ::
+  .atom (.const (.n 7385) (word 0 0 0)) ::
+  .atom (.const (.n 7386) (word 0 0 0)) ::
+  .atom (.const (.n 7387) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7382, .n 7377, .n 7383, .n 7384, .n 7385, .n 7386, .n 7387, .n 354, .n 355, .n 356, .n 357] [.n 7388, .n 7389, .n 7390, .n 7391, .n 7392, .n 7393, .n 7394, .n 7395, .n 7396, .n 7397, .n 7398, .n 7399, .n 7400] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 7401]))) ::
+  .atom (.const (.n 7402) (word 0 21392098230009856 0)) ::
+  .atom (.add (.n 7403) (.n 1721) (.n 7402)) ::
+  .atom (.const (.n 7404) (word 256 0 0)) ::
+  .atom (.mul (.n 7405) (.n 1199) (.n 7404)) ::
+  .atom (.add (.n 7406) (.n 1223) (.n 7405)) ::
+  .atom (.const (.n 7407) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7408) (.n 7406) (.n 7407)) ::
+  .atom (.const (.n 7409) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7410) (.n 1199) (.n 7409)) ::
+  .atom (.add (.n 7411) (.n 7408) (.n 7410)) ::
+  .atom (.add (.n 7412) (.n 7403) (.n 7411)) ::
+  .atom (.const (.n 7413) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7412, .n 7401, .n 353, .n 354, .n 355, .n 356, .n 7413, .n 354, .n 355, .n 356, .n 357] [.n 7414, .n 7415, .n 7416, .n 7417, .n 7418, .n 7419, .n 7420, .n 7421, .n 7422, .n 7423, .n 7424, .n 7425, .n 7426] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7427, .n 7428]))) ::
+  .atom (.add (.n 7429) (.n 7414) (.n 7427)) ::
+  .atom (.add (.n 7430) (.n 7427) (.n 7428)) ::
+  .atom (.mul (.n 7429) (.n 584) (.n 7430)) ::
+  .atom (.const (.n 7431) (word 0 10696049131782144 0)) ::
+  .atom (.add (.n 7432) (.n 1721) (.n 7431)) ::
+  .atom (.const (.n 7433) (word 256 0 0)) ::
+  .atom (.mul (.n 7434) (.n 1196) (.n 7433)) ::
+  .atom (.add (.n 7435) (.n 1220) (.n 7434)) ::
+  .atom (.const (.n 7436) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7437) (.n 7435) (.n 7436)) ::
+  .atom (.const (.n 7438) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7439) (.n 1196) (.n 7438)) ::
+  .atom (.add (.n 7440) (.n 7437) (.n 7439)) ::
+  .atom (.add (.n 7441) (.n 7432) (.n 7440)) ::
+  .atom (.copy (.n 7442) (.n 7428)) ::
+  .atom (.const (.n 7443) (word 1 0 0)) ::
+  .atom (.const (.n 7444) (word 0 0 0)) ::
+  .atom (.const (.n 7445) (word 0 0 0)) ::
+  .atom (.const (.n 7446) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7441, .n 7427, .n 7442, .n 7443, .n 7444, .n 7445, .n 7446, .n 354, .n 355, .n 356, .n 357] [.n 7447, .n 7448, .n 7449, .n 7450, .n 7451, .n 7452, .n 7453, .n 7454, .n 7455, .n 7456, .n 7457, .n 7458, .n 7459] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7460, .n 7461]))) ::
+  .atom (.add (.n 7462) (.n 7447) (.n 7460)) ::
+  .atom (.add (.n 7463) (.n 7460) (.n 7461)) ::
+  .atom (.mul (.n 7462) (.n 585) (.n 7463)) ::
+  .atom (.const (.n 7464) (word 0 5348024591056896 0)) ::
+  .atom (.add (.n 7465) (.n 1721) (.n 7464)) ::
+  .atom (.const (.n 7466) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7467) (.n 1217) (.n 7466)) ::
+  .atom (.add (.n 7468) (.n 7465) (.n 7467)) ::
+  .atom (.copy (.n 7469) (.n 7461)) ::
+  .atom (.const (.n 7470) (word 1 0 0)) ::
+  .atom (.const (.n 7471) (word 0 0 0)) ::
+  .atom (.const (.n 7472) (word 0 0 0)) ::
   .atom (.const (.n 7473) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7472, .n 7466, .n 7467, .n 12, .n 13, .n 14, .n 15, .n 7473, .n 13, .n 14, .n 15, .n 16] [.n 7474, .n 7475, .n 7476, .n 7477, .n 7478, .n 7479, .n 7480, .n 7481, .n 7482, .n 7483, .n 7484, .n 7485, .n 7486] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7487, .n 7488]))) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7468, .n 7460, .n 7469, .n 7470, .n 7471, .n 7472, .n 7473, .n 354, .n 355, .n 356, .n 357] [.n 7474, .n 7475, .n 7476, .n 7477, .n 7478, .n 7479, .n 7480, .n 7481, .n 7482, .n 7483, .n 7484, .n 7485, .n 7486] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7487, .n 7488]))) ::
   .atom (.add (.n 7489) (.n 7474) (.n 7487)) ::
   .atom (.add (.n 7490) (.n 7487) (.n 7488)) ::
-  .atom (.mul (.n 7489) (.n 69) (.n 7490)) ::
-  .atom (.const (.n 7491) (word 216172794998685696 0 0)) ::
-  .atom (.add (.n 7492) (.n 7388) (.n 7491)) ::
-  .atom (.add (.n 7493) (.n 7492) (.n 379)) ::
-  .atom (.const (.n 7494) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7493, .n 7487, .n 7488, .n 12, .n 13, .n 14, .n 15, .n 7494, .n 13, .n 14, .n 15, .n 16] [.n 7495, .n 7496, .n 7497, .n 7498, .n 7499, .n 7500, .n 7501, .n 7502, .n 7503, .n 7504, .n 7505, .n 7506, .n 7507] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7508, .n 7509]))) ::
-  .atom (.add (.n 7510) (.n 7495) (.n 7508)) ::
-  .atom (.add (.n 7511) (.n 7508) (.n 7509)) ::
-  .atom (.mul (.n 7510) (.n 70) (.n 7511)) ::
-  .atom (.const (.n 7512) (word 216172799293652992 0 0)) ::
-  .atom (.add (.n 7513) (.n 7388) (.n 7512)) ::
-  .atom (.add (.n 7514) (.n 7513) (.n 376)) ::
-  .atom (.const (.n 7515) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7514, .n 7508, .n 7509, .n 12, .n 13, .n 14, .n 15, .n 7515, .n 13, .n 14, .n 15, .n 16] [.n 7516, .n 7517, .n 7518, .n 7519, .n 7520, .n 7521, .n 7522, .n 7523, .n 7524, .n 7525, .n 7526, .n 7527, .n 7528] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7529, .n 7530]))) ::
-  .atom (.add (.n 7531) (.n 7516) (.n 7529)) ::
-  .atom (.add (.n 7532) (.n 7529) (.n 7530)) ::
-  .atom (.mul (.n 7531) (.n 71) (.n 7532)) ::
-  .atom (.const (.n 7533) (word 216172803588620288 0 0)) ::
-  .atom (.add (.n 7534) (.n 7388) (.n 7533)) ::
-  .atom (.add (.n 7535) (.n 7534) (.n 373)) ::
-  .atom (.const (.n 7536) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7535, .n 7529, .n 7530, .n 12, .n 13, .n 14, .n 15, .n 7536, .n 13, .n 14, .n 15, .n 16] [.n 7537, .n 7538, .n 7539, .n 7540, .n 7541, .n 7542, .n 7543, .n 7544, .n 7545, .n 7546, .n 7547, .n 7548, .n 7549] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7550, .n 7551]))) ::
-  .atom (.add (.n 7552) (.n 7537) (.n 7550)) ::
-  .atom (.add (.n 7553) (.n 7550) (.n 7551)) ::
-  .atom (.mul (.n 7552) (.n 72) (.n 7553)) ::
-  .atom (.const (.n 7554) (word 216172807883587584 0 0)) ::
-  .atom (.add (.n 7555) (.n 7388) (.n 7554)) ::
-  .atom (.add (.n 7556) (.n 7555) (.n 370)) ::
-  .atom (.const (.n 7557) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7556, .n 7550, .n 7551, .n 12, .n 13, .n 14, .n 15, .n 7557, .n 13, .n 14, .n 15, .n 16] [.n 7558, .n 7559, .n 7560, .n 7561, .n 7562, .n 7563, .n 7564, .n 7565, .n 7566, .n 7567, .n 7568, .n 7569, .n 7570] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7571, .n 7572]))) ::
-  .atom (.add (.n 7573) (.n 7558) (.n 7571)) ::
-  .atom (.add (.n 7574) (.n 7571) (.n 7572)) ::
-  .atom (.mul (.n 7573) (.n 73) (.n 7574)) ::
-  .atom (.const (.n 7575) (word 216172812178554880 0 0)) ::
-  .atom (.add (.n 7576) (.n 7388) (.n 7575)) ::
-  .atom (.add (.n 7577) (.n 7576) (.n 367)) ::
-  .atom (.const (.n 7578) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7577, .n 7571, .n 7572, .n 12, .n 13, .n 14, .n 15, .n 7578, .n 13, .n 14, .n 15, .n 16] [.n 7579, .n 7580, .n 7581, .n 7582, .n 7583, .n 7584, .n 7585, .n 7586, .n 7587, .n 7588, .n 7589, .n 7590, .n 7591] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7592, .n 7593]))) ::
-  .atom (.add (.n 7594) (.n 7579) (.n 7592)) ::
-  .atom (.add (.n 7595) (.n 7592) (.n 7593)) ::
-  .atom (.mul (.n 7594) (.n 74) (.n 7595)) ::
-  .atom (.const (.n 7596) (word 216172816473522176 0 0)) ::
-  .atom (.add (.n 7597) (.n 7388) (.n 7596)) ::
-  .atom (.add (.n 7598) (.n 7597) (.n 364)) ::
-  .atom (.const (.n 7599) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7598, .n 7592, .n 7593, .n 12, .n 13, .n 14, .n 15, .n 7599, .n 13, .n 14, .n 15, .n 16] [.n 7600, .n 7601, .n 7602, .n 7603, .n 7604, .n 7605, .n 7606, .n 7607, .n 7608, .n 7609, .n 7610, .n 7611, .n 7612] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7613, .n 7614]))) ::
-  .atom (.add (.n 7615) (.n 7600) (.n 7613)) ::
-  .atom (.add (.n 7616) (.n 7613) (.n 7614)) ::
-  .atom (.mul (.n 7615) (.n 75) (.n 7616)) ::
-  .atom (.const (.n 7617) (word 216172820768489472 0 0)) ::
-  .atom (.add (.n 7618) (.n 7388) (.n 7617)) ::
-  .atom (.add (.n 7619) (.n 7618) (.n 361)) ::
-  .atom (.const (.n 7620) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7619, .n 7613, .n 7614, .n 12, .n 13, .n 14, .n 15, .n 7620, .n 13, .n 14, .n 15, .n 16] [.n 7621, .n 7622, .n 7623, .n 7624, .n 7625, .n 7626, .n 7627, .n 7628, .n 7629, .n 7630, .n 7631, .n 7632, .n 7633] false false) ::
-  .atom (.hint (.witness "siblings" (.stack [.n 7634, .n 7635]))) ::
-  .atom (.add (.n 7636) (.n 7621) (.n 7634)) ::
-  .atom (.add (.n 7637) (.n 7634) (.n 7635)) ::
-  .atom (.mul (.n 7636) (.n 76) (.n 7637)) ::
-  .atom (.const (.n 7638) (word 216172825063456768 0 0)) ::
-  .atom (.add (.n 7639) (.n 7388) (.n 7638)) ::
-  .atom (.const (.n 7640) (word 9223372036854775808 0 0)) ::
-  .atom (.keccak [.n 2, .n 7639, .n 7634, .n 7635, .n 12, .n 13, .n 14, .n 15, .n 7640, .n 13, .n 14, .n 15, .n 16] [.n 7641, .n 7642, .n 7643, .n 7644, .n 7645, .n 7646, .n 7647, .n 7648, .n 7649, .n 7650, .n 7651, .n 7652, .n 7653] false false) ::
-  .atom (.load (.n 7654) (.n 0) 0) ::
-  .atom (.assertEq (.n 7641) (.n 7654)) ::
+  .atom (.mul (.n 7489) (.n 586) (.n 7490)) ::
+  .atom (.const (.n 7491) (word 0 9225905311695503360 0)) ::
+  .atom (.add (.n 7492) (.n 1721) (.n 7491)) ::
+  .atom (.const (.n 7493) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7494) (.n 1214) (.n 7493)) ::
+  .atom (.add (.n 7495) (.n 7492) (.n 7494)) ::
+  .atom (.copy (.n 7496) (.n 7488)) ::
+  .atom (.const (.n 7497) (word 1 0 0)) ::
+  .atom (.const (.n 7498) (word 0 0 0)) ::
+  .atom (.const (.n 7499) (word 0 0 0)) ::
+  .atom (.const (.n 7500) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7495, .n 7487, .n 7496, .n 7497, .n 7498, .n 7499, .n 7500, .n 354, .n 355, .n 356, .n 357] [.n 7501, .n 7502, .n 7503, .n 7504, .n 7505, .n 7506, .n 7507, .n 7508, .n 7509, .n 7510, .n 7511, .n 7512, .n 7513] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7514, .n 7515]))) ::
+  .atom (.add (.n 7516) (.n 7501) (.n 7514)) ::
+  .atom (.add (.n 7517) (.n 7514) (.n 7515)) ::
+  .atom (.mul (.n 7516) (.n 587) (.n 7517)) ::
+  .atom (.const (.n 7518) (word 0 13836183955256115200 0)) ::
+  .atom (.add (.n 7519) (.n 1721) (.n 7518)) ::
+  .atom (.const (.n 7520) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7521) (.n 1211) (.n 7520)) ::
+  .atom (.add (.n 7522) (.n 7519) (.n 7521)) ::
+  .atom (.copy (.n 7523) (.n 7515)) ::
+  .atom (.const (.n 7524) (word 1 0 0)) ::
+  .atom (.const (.n 7525) (word 0 0 0)) ::
+  .atom (.const (.n 7526) (word 0 0 0)) ::
+  .atom (.const (.n 7527) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7522, .n 7514, .n 7523, .n 7524, .n 7525, .n 7526, .n 7527, .n 354, .n 355, .n 356, .n 357] [.n 7528, .n 7529, .n 7530, .n 7531, .n 7532, .n 7533, .n 7534, .n 7535, .n 7536, .n 7537, .n 7538, .n 7539, .n 7540] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7541, .n 7542]))) ::
+  .atom (.add (.n 7543) (.n 7528) (.n 7541)) ::
+  .atom (.add (.n 7544) (.n 7541) (.n 7542)) ::
+  .atom (.mul (.n 7543) (.n 588) (.n 7544)) ::
+  .atom (.const (.n 7545) (word 0 6918091977678389248 0)) ::
+  .atom (.add (.n 7546) (.n 1721) (.n 7545)) ::
+  .atom (.const (.n 7547) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7548) (.n 1208) (.n 7547)) ::
+  .atom (.add (.n 7549) (.n 7546) (.n 7548)) ::
+  .atom (.copy (.n 7550) (.n 7542)) ::
+  .atom (.const (.n 7551) (word 1 0 0)) ::
+  .atom (.const (.n 7552) (word 0 0 0)) ::
+  .atom (.const (.n 7553) (word 0 0 0)) ::
+  .atom (.const (.n 7554) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7549, .n 7541, .n 7550, .n 7551, .n 7552, .n 7553, .n 7554, .n 354, .n 355, .n 356, .n 357] [.n 7555, .n 7556, .n 7557, .n 7558, .n 7559, .n 7560, .n 7561, .n 7562, .n 7563, .n 7564, .n 7565, .n 7566, .n 7567] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7568, .n 7569]))) ::
+  .atom (.add (.n 7570) (.n 7555) (.n 7568)) ::
+  .atom (.add (.n 7571) (.n 7568) (.n 7569)) ::
+  .atom (.mul (.n 7570) (.n 589) (.n 7571)) ::
+  [])
+
+/-- `verify_sig_lean_sphincs`: statements 4862 to 5262 of the body. -/
+noncomputable def c11 : List Core.Stmt := (
+  .atom (.const (.n 7572) (word 0 3459045988897914880 0)) ::
+  .atom (.add (.n 7573) (.n 1721) (.n 7572)) ::
+  .atom (.const (.n 7574) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7575) (.n 1205) (.n 7574)) ::
+  .atom (.add (.n 7576) (.n 7573) (.n 7575)) ::
+  .atom (.copy (.n 7577) (.n 7569)) ::
+  .atom (.const (.n 7578) (word 1 0 0)) ::
+  .atom (.const (.n 7579) (word 0 0 0)) ::
+  .atom (.const (.n 7580) (word 0 0 0)) ::
+  .atom (.const (.n 7581) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7576, .n 7568, .n 7577, .n 7578, .n 7579, .n 7580, .n 7581, .n 354, .n 355, .n 356, .n 357] [.n 7582, .n 7583, .n 7584, .n 7585, .n 7586, .n 7587, .n 7588, .n 7589, .n 7590, .n 7591, .n 7592, .n 7593, .n 7594] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7595, .n 7596]))) ::
+  .atom (.add (.n 7597) (.n 7582) (.n 7595)) ::
+  .atom (.add (.n 7598) (.n 7595) (.n 7596)) ::
+  .atom (.mul (.n 7597) (.n 590) (.n 7598)) ::
+  .atom (.const (.n 7599) (word 0 10952754293882486784 0)) ::
+  .atom (.add (.n 7600) (.n 1721) (.n 7599)) ::
+  .atom (.const (.n 7601) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7602) (.n 1202) (.n 7601)) ::
+  .atom (.add (.n 7603) (.n 7600) (.n 7602)) ::
+  .atom (.copy (.n 7604) (.n 7596)) ::
+  .atom (.const (.n 7605) (word 1 0 0)) ::
+  .atom (.const (.n 7606) (word 0 0 0)) ::
+  .atom (.const (.n 7607) (word 0 0 0)) ::
+  .atom (.const (.n 7608) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7603, .n 7595, .n 7604, .n 7605, .n 7606, .n 7607, .n 7608, .n 354, .n 355, .n 356, .n 357] [.n 7609, .n 7610, .n 7611, .n 7612, .n 7613, .n 7614, .n 7615, .n 7616, .n 7617, .n 7618, .n 7619, .n 7620, .n 7621] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7622, .n 7623]))) ::
+  .atom (.add (.n 7624) (.n 7609) (.n 7622)) ::
+  .atom (.add (.n 7625) (.n 7622) (.n 7623)) ::
+  .atom (.mul (.n 7624) (.n 591) (.n 7625)) ::
+  .atom (.const (.n 7626) (word 0 5476377147016740864 0)) ::
+  .atom (.add (.n 7627) (.n 1721) (.n 7626)) ::
+  .atom (.const (.n 7628) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7629) (.n 1199) (.n 7628)) ::
+  .atom (.add (.n 7630) (.n 7627) (.n 7629)) ::
+  .atom (.copy (.n 7631) (.n 7623)) ::
+  .atom (.const (.n 7632) (word 1 0 0)) ::
+  .atom (.const (.n 7633) (word 0 0 0)) ::
+  .atom (.const (.n 7634) (word 0 0 0)) ::
+  .atom (.const (.n 7635) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7630, .n 7622, .n 7631, .n 7632, .n 7633, .n 7634, .n 7635, .n 354, .n 355, .n 356, .n 357] [.n 7636, .n 7637, .n 7638, .n 7639, .n 7640, .n 7641, .n 7642, .n 7643, .n 7644, .n 7645, .n 7646, .n 7647, .n 7648] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7649, .n 7650]))) ::
+  .atom (.add (.n 7651) (.n 7636) (.n 7649)) ::
+  .atom (.add (.n 7652) (.n 7649) (.n 7650)) ::
+  .atom (.mul (.n 7651) (.n 576) (.n 7652)) ::
+  .atom (.const (.n 7653) (word 0 2738188573592256512 0)) ::
+  .atom (.add (.n 7654) (.n 1721) (.n 7653)) ::
+  .atom (.const (.n 7655) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7656) (.n 1196) (.n 7655)) ::
+  .atom (.add (.n 7657) (.n 7654) (.n 7656)) ::
+  .atom (.copy (.n 7658) (.n 7650)) ::
+  .atom (.const (.n 7659) (word 1 0 0)) ::
+  .atom (.const (.n 7660) (word 0 0 0)) ::
+  .atom (.const (.n 7661) (word 0 0 0)) ::
+  .atom (.const (.n 7662) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7657, .n 7649, .n 7658, .n 7659, .n 7660, .n 7661, .n 7662, .n 354, .n 355, .n 356, .n 357] [.n 7663, .n 7664, .n 7665, .n 7666, .n 7667, .n 7668, .n 7669, .n 7670, .n 7671, .n 7672, .n 7673, .n 7674, .n 7675] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7676, .n 7677]))) ::
+  .atom (.add (.n 7678) (.n 7663) (.n 7676)) ::
+  .atom (.add (.n 7679) (.n 7676) (.n 7677)) ::
+  .atom (.mul (.n 7678) (.n 577) (.n 7679)) ::
+  .atom (.const (.n 7680) (word 0 1369094286888402944 0)) ::
+  .atom (.add (.n 7681) (.n 1721) (.n 7680)) ::
+  .atom (.copy (.n 7682) (.n 7677)) ::
+  .atom (.const (.n 7683) (word 1 0 0)) ::
+  .atom (.const (.n 7684) (word 0 0 0)) ::
+  .atom (.const (.n 7685) (word 0 0 0)) ::
+  .atom (.const (.n 7686) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7681, .n 7676, .n 7682, .n 7683, .n 7684, .n 7685, .n 7686, .n 354, .n 355, .n 356, .n 357] [.n 7687, .n 7688, .n 7689, .n 7690, .n 7691, .n 7692, .n 7693, .n 7694, .n 7695, .n 7696, .n 7697, .n 7698, .n 7699] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 7700]))) ::
+  .atom (.const (.n 7701) (word 0 22517998136852480 0)) ::
+  .atom (.add (.n 7702) (.n 1721) (.n 7701)) ::
+  .atom (.const (.n 7703) (word 256 0 0)) ::
+  .atom (.mul (.n 7704) (.n 1227) (.n 7703)) ::
+  .atom (.add (.n 7705) (.n 1251) (.n 7704)) ::
+  .atom (.const (.n 7706) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7707) (.n 7705) (.n 7706)) ::
+  .atom (.const (.n 7708) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7709) (.n 1227) (.n 7708)) ::
+  .atom (.add (.n 7710) (.n 7707) (.n 7709)) ::
+  .atom (.add (.n 7711) (.n 7702) (.n 7710)) ::
+  .atom (.const (.n 7712) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7711, .n 7700, .n 353, .n 354, .n 355, .n 356, .n 7712, .n 354, .n 355, .n 356, .n 357] [.n 7713, .n 7714, .n 7715, .n 7716, .n 7717, .n 7718, .n 7719, .n 7720, .n 7721, .n 7722, .n 7723, .n 7724, .n 7725] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7726, .n 7727]))) ::
+  .atom (.add (.n 7728) (.n 7713) (.n 7726)) ::
+  .atom (.add (.n 7729) (.n 7726) (.n 7727)) ::
+  .atom (.mul (.n 7728) (.n 606) (.n 7729)) ::
+  .atom (.const (.n 7730) (word 0 11258999085203456 0)) ::
+  .atom (.add (.n 7731) (.n 1721) (.n 7730)) ::
+  .atom (.const (.n 7732) (word 256 0 0)) ::
+  .atom (.mul (.n 7733) (.n 1224) (.n 7732)) ::
+  .atom (.add (.n 7734) (.n 1248) (.n 7733)) ::
+  .atom (.const (.n 7735) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7736) (.n 7734) (.n 7735)) ::
+  .atom (.const (.n 7737) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 7738) (.n 1224) (.n 7737)) ::
+  .atom (.add (.n 7739) (.n 7736) (.n 7738)) ::
+  .atom (.add (.n 7740) (.n 7731) (.n 7739)) ::
+  .atom (.copy (.n 7741) (.n 7727)) ::
+  .atom (.const (.n 7742) (word 1 0 0)) ::
+  .atom (.const (.n 7743) (word 0 0 0)) ::
+  .atom (.const (.n 7744) (word 0 0 0)) ::
+  .atom (.const (.n 7745) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7740, .n 7726, .n 7741, .n 7742, .n 7743, .n 7744, .n 7745, .n 354, .n 355, .n 356, .n 357] [.n 7746, .n 7747, .n 7748, .n 7749, .n 7750, .n 7751, .n 7752, .n 7753, .n 7754, .n 7755, .n 7756, .n 7757, .n 7758] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7759, .n 7760]))) ::
+  .atom (.add (.n 7761) (.n 7746) (.n 7759)) ::
+  .atom (.add (.n 7762) (.n 7759) (.n 7760)) ::
+  .atom (.mul (.n 7761) (.n 607) (.n 7762)) ::
+  .atom (.const (.n 7763) (word 0 5629499567767552 0)) ::
+  .atom (.add (.n 7764) (.n 1721) (.n 7763)) ::
+  .atom (.const (.n 7765) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7766) (.n 1245) (.n 7765)) ::
+  .atom (.add (.n 7767) (.n 7764) (.n 7766)) ::
+  .atom (.copy (.n 7768) (.n 7760)) ::
+  .atom (.const (.n 7769) (word 1 0 0)) ::
+  .atom (.const (.n 7770) (word 0 0 0)) ::
+  .atom (.const (.n 7771) (word 0 0 0)) ::
+  .atom (.const (.n 7772) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7767, .n 7759, .n 7768, .n 7769, .n 7770, .n 7771, .n 7772, .n 354, .n 355, .n 356, .n 357] [.n 7773, .n 7774, .n 7775, .n 7776, .n 7777, .n 7778, .n 7779, .n 7780, .n 7781, .n 7782, .n 7783, .n 7784, .n 7785] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7786, .n 7787]))) ::
+  .atom (.add (.n 7788) (.n 7773) (.n 7786)) ::
+  .atom (.add (.n 7789) (.n 7786) (.n 7787)) ::
+  .atom (.mul (.n 7788) (.n 592) (.n 7789)) ::
+  .atom (.const (.n 7790) (word 0 2814749817438208 0)) ::
+  .atom (.add (.n 7791) (.n 1721) (.n 7790)) ::
+  .atom (.const (.n 7792) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7793) (.n 1242) (.n 7792)) ::
+  .atom (.add (.n 7794) (.n 7791) (.n 7793)) ::
+  .atom (.copy (.n 7795) (.n 7787)) ::
+  .atom (.const (.n 7796) (word 1 0 0)) ::
+  .atom (.const (.n 7797) (word 0 0 0)) ::
+  .atom (.const (.n 7798) (word 0 0 0)) ::
+  .atom (.const (.n 7799) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7794, .n 7786, .n 7795, .n 7796, .n 7797, .n 7798, .n 7799, .n 354, .n 355, .n 356, .n 357] [.n 7800, .n 7801, .n 7802, .n 7803, .n 7804, .n 7805, .n 7806, .n 7807, .n 7808, .n 7809, .n 7810, .n 7811, .n 7812] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7813, .n 7814]))) ::
+  .atom (.add (.n 7815) (.n 7800) (.n 7813)) ::
+  .atom (.add (.n 7816) (.n 7813) (.n 7814)) ::
+  .atom (.mul (.n 7815) (.n 593) (.n 7816)) ::
+  .atom (.const (.n 7817) (word 0 1407374950662144 0)) ::
+  .atom (.add (.n 7818) (.n 1721) (.n 7817)) ::
+  .atom (.const (.n 7819) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7820) (.n 1239) (.n 7819)) ::
+  .atom (.add (.n 7821) (.n 7818) (.n 7820)) ::
+  .atom (.copy (.n 7822) (.n 7814)) ::
+  .atom (.const (.n 7823) (word 1 0 0)) ::
+  .atom (.const (.n 7824) (word 0 0 0)) ::
+  .atom (.const (.n 7825) (word 0 0 0)) ::
+  .atom (.const (.n 7826) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7821, .n 7813, .n 7822, .n 7823, .n 7824, .n 7825, .n 7826, .n 354, .n 355, .n 356, .n 357] [.n 7827, .n 7828, .n 7829, .n 7830, .n 7831, .n 7832, .n 7833, .n 7834, .n 7835, .n 7836, .n 7837, .n 7838, .n 7839] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7840, .n 7841]))) ::
+  .atom (.add (.n 7842) (.n 7827) (.n 7840)) ::
+  .atom (.add (.n 7843) (.n 7840) (.n 7841)) ::
+  .atom (.mul (.n 7842) (.n 594) (.n 7843)) ::
+  .atom (.const (.n 7844) (word 0 9223934986892083200 0)) ::
+  .atom (.add (.n 7845) (.n 1721) (.n 7844)) ::
+  .atom (.const (.n 7846) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7847) (.n 1236) (.n 7846)) ::
+  .atom (.add (.n 7848) (.n 7845) (.n 7847)) ::
+  .atom (.copy (.n 7849) (.n 7841)) ::
+  .atom (.const (.n 7850) (word 1 0 0)) ::
+  .atom (.const (.n 7851) (word 0 0 0)) ::
+  .atom (.const (.n 7852) (word 0 0 0)) ::
+  .atom (.const (.n 7853) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7848, .n 7840, .n 7849, .n 7850, .n 7851, .n 7852, .n 7853, .n 354, .n 355, .n 356, .n 357] [.n 7854, .n 7855, .n 7856, .n 7857, .n 7858, .n 7859, .n 7860, .n 7861, .n 7862, .n 7863, .n 7864, .n 7865, .n 7866] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7867, .n 7868]))) ::
+  .atom (.add (.n 7869) (.n 7854) (.n 7867)) ::
+  .atom (.add (.n 7870) (.n 7867) (.n 7868)) ::
+  .atom (.mul (.n 7869) (.n 595) (.n 7870)) ::
+  .atom (.const (.n 7871) (word 0 4611967493504761856 0)) ::
+  .atom (.add (.n 7872) (.n 1721) (.n 7871)) ::
+  .atom (.const (.n 7873) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7874) (.n 1233) (.n 7873)) ::
+  .atom (.add (.n 7875) (.n 7872) (.n 7874)) ::
+  .atom (.copy (.n 7876) (.n 7868)) ::
+  .atom (.const (.n 7877) (word 1 0 0)) ::
+  .atom (.const (.n 7878) (word 0 0 0)) ::
+  .atom (.const (.n 7879) (word 0 0 0)) ::
+  .atom (.const (.n 7880) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7875, .n 7867, .n 7876, .n 7877, .n 7878, .n 7879, .n 7880, .n 354, .n 355, .n 356, .n 357] [.n 7881, .n 7882, .n 7883, .n 7884, .n 7885, .n 7886, .n 7887, .n 7888, .n 7889, .n 7890, .n 7891, .n 7892, .n 7893] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7894, .n 7895]))) ::
+  .atom (.add (.n 7896) (.n 7881) (.n 7894)) ::
+  .atom (.add (.n 7897) (.n 7894) (.n 7895)) ::
+  .atom (.mul (.n 7896) (.n 596) (.n 7897)) ::
+  .atom (.const (.n 7898) (word 0 11529215046185910272 0)) ::
+  .atom (.add (.n 7899) (.n 1721) (.n 7898)) ::
+  .atom (.const (.n 7900) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7901) (.n 1230) (.n 7900)) ::
+  .atom (.add (.n 7902) (.n 7899) (.n 7901)) ::
+  .atom (.copy (.n 7903) (.n 7895)) ::
+  .atom (.const (.n 7904) (word 1 0 0)) ::
+  .atom (.const (.n 7905) (word 0 0 0)) ::
+  .atom (.const (.n 7906) (word 0 0 0)) ::
+  .atom (.const (.n 7907) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7902, .n 7894, .n 7903, .n 7904, .n 7905, .n 7906, .n 7907, .n 354, .n 355, .n 356, .n 357] [.n 7908, .n 7909, .n 7910, .n 7911, .n 7912, .n 7913, .n 7914, .n 7915, .n 7916, .n 7917, .n 7918, .n 7919, .n 7920] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7921, .n 7922]))) ::
+  .atom (.add (.n 7923) (.n 7908) (.n 7921)) ::
+  .atom (.add (.n 7924) (.n 7921) (.n 7922)) ::
+  .atom (.mul (.n 7923) (.n 597) (.n 7924)) ::
+  .atom (.const (.n 7925) (word 0 5764607523168452608 0)) ::
+  .atom (.add (.n 7926) (.n 1721) (.n 7925)) ::
+  .atom (.const (.n 7927) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7928) (.n 1227) (.n 7927)) ::
+  .atom (.add (.n 7929) (.n 7926) (.n 7928)) ::
+  .atom (.copy (.n 7930) (.n 7922)) ::
+  .atom (.const (.n 7931) (word 1 0 0)) ::
+  .atom (.const (.n 7932) (word 0 0 0)) ::
+  .atom (.const (.n 7933) (word 0 0 0)) ::
+  .atom (.const (.n 7934) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7929, .n 7921, .n 7930, .n 7931, .n 7932, .n 7933, .n 7934, .n 354, .n 355, .n 356, .n 357] [.n 7935, .n 7936, .n 7937, .n 7938, .n 7939, .n 7940, .n 7941, .n 7942, .n 7943, .n 7944, .n 7945, .n 7946, .n 7947] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7948, .n 7949]))) ::
+  .atom (.add (.n 7950) (.n 7935) (.n 7948)) ::
+  .atom (.add (.n 7951) (.n 7948) (.n 7949)) ::
+  .atom (.mul (.n 7950) (.n 598) (.n 7951)) ::
+  .atom (.const (.n 7952) (word 0 2882303761668112384 0)) ::
+  .atom (.add (.n 7953) (.n 1721) (.n 7952)) ::
+  .atom (.const (.n 7954) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 7955) (.n 1224) (.n 7954)) ::
+  .atom (.add (.n 7956) (.n 7953) (.n 7955)) ::
+  .atom (.copy (.n 7957) (.n 7949)) ::
+  .atom (.const (.n 7958) (word 1 0 0)) ::
+  .atom (.const (.n 7959) (word 0 0 0)) ::
+  .atom (.const (.n 7960) (word 0 0 0)) ::
+  .atom (.const (.n 7961) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7956, .n 7948, .n 7957, .n 7958, .n 7959, .n 7960, .n 7961, .n 354, .n 355, .n 356, .n 357] [.n 7962, .n 7963, .n 7964, .n 7965, .n 7966, .n 7967, .n 7968, .n 7969, .n 7970, .n 7971, .n 7972, .n 7973, .n 7974] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 7975, .n 7976]))) ::
+  .atom (.add (.n 7977) (.n 7962) (.n 7975)) ::
+  .atom (.add (.n 7978) (.n 7975) (.n 7976)) ::
+  .atom (.mul (.n 7977) (.n 599) (.n 7978)) ::
+  .atom (.const (.n 7979) (word 0 1441151880926330880 0)) ::
+  .atom (.add (.n 7980) (.n 1721) (.n 7979)) ::
+  .atom (.copy (.n 7981) (.n 7976)) ::
+  .atom (.const (.n 7982) (word 1 0 0)) ::
+  .atom (.const (.n 7983) (word 0 0 0)) ::
+  .atom (.const (.n 7984) (word 0 0 0)) ::
+  .atom (.const (.n 7985) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 7980, .n 7975, .n 7981, .n 7982, .n 7983, .n 7984, .n 7985, .n 354, .n 355, .n 356, .n 357] [.n 7986, .n 7987, .n 7988, .n 7989, .n 7990, .n 7991, .n 7992, .n 7993, .n 7994, .n 7995, .n 7996, .n 7997, .n 7998] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 7999]))) ::
+  .atom (.const (.n 8000) (word 0 23643898043695104 0)) ::
+  .atom (.add (.n 8001) (.n 1721) (.n 8000)) ::
+  .atom (.const (.n 8002) (word 256 0 0)) ::
+  .atom (.mul (.n 8003) (.n 1255) (.n 8002)) ::
+  .atom (.add (.n 8004) (.n 1279) (.n 8003)) ::
+  .atom (.const (.n 8005) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8006) (.n 8004) (.n 8005)) ::
+  .atom (.const (.n 8007) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8008) (.n 1255) (.n 8007)) ::
+  .atom (.add (.n 8009) (.n 8006) (.n 8008)) ::
+  .atom (.add (.n 8010) (.n 8001) (.n 8009)) ::
+  .atom (.const (.n 8011) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8010, .n 7999, .n 353, .n 354, .n 355, .n 356, .n 8011, .n 354, .n 355, .n 356, .n 357] [.n 8012, .n 8013, .n 8014, .n 8015, .n 8016, .n 8017, .n 8018, .n 8019, .n 8020, .n 8021, .n 8022, .n 8023, .n 8024] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8025, .n 8026]))) ::
+  .atom (.add (.n 8027) (.n 8012) (.n 8025)) ::
+  .atom (.add (.n 8028) (.n 8025) (.n 8026)) ::
+  .atom (.mul (.n 8027) (.n 612) (.n 8028)) ::
+  .atom (.const (.n 8029) (word 0 11821949038624768 0)) ::
+  .atom (.add (.n 8030) (.n 1721) (.n 8029)) ::
+  .atom (.const (.n 8031) (word 256 0 0)) ::
+  .atom (.mul (.n 8032) (.n 1252) (.n 8031)) ::
+  .atom (.add (.n 8033) (.n 1276) (.n 8032)) ::
+  .atom (.const (.n 8034) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8035) (.n 8033) (.n 8034)) ::
+  .atom (.const (.n 8036) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8037) (.n 1252) (.n 8036)) ::
+  .atom (.add (.n 8038) (.n 8035) (.n 8037)) ::
+  .atom (.add (.n 8039) (.n 8030) (.n 8038)) ::
+  .atom (.copy (.n 8040) (.n 8026)) ::
+  .atom (.const (.n 8041) (word 1 0 0)) ::
+  .atom (.const (.n 8042) (word 0 0 0)) ::
+  .atom (.const (.n 8043) (word 0 0 0)) ::
+  .atom (.const (.n 8044) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8039, .n 8025, .n 8040, .n 8041, .n 8042, .n 8043, .n 8044, .n 354, .n 355, .n 356, .n 357] [.n 8045, .n 8046, .n 8047, .n 8048, .n 8049, .n 8050, .n 8051, .n 8052, .n 8053, .n 8054, .n 8055, .n 8056, .n 8057] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8058, .n 8059]))) ::
+  .atom (.add (.n 8060) (.n 8045) (.n 8058)) ::
+  .atom (.add (.n 8061) (.n 8058) (.n 8059)) ::
+  .atom (.mul (.n 8060) (.n 613) (.n 8061)) ::
+  .atom (.const (.n 8062) (word 0 5910974544478208 0)) ::
+  .atom (.add (.n 8063) (.n 1721) (.n 8062)) ::
+  .atom (.const (.n 8064) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8065) (.n 1273) (.n 8064)) ::
+  .atom (.add (.n 8066) (.n 8063) (.n 8065)) ::
+  .atom (.copy (.n 8067) (.n 8059)) ::
+  .atom (.const (.n 8068) (word 1 0 0)) ::
+  .atom (.const (.n 8069) (word 0 0 0)) ::
+  .atom (.const (.n 8070) (word 0 0 0)) ::
+  .atom (.const (.n 8071) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8066, .n 8058, .n 8067, .n 8068, .n 8069, .n 8070, .n 8071, .n 354, .n 355, .n 356, .n 357] [.n 8072, .n 8073, .n 8074, .n 8075, .n 8076, .n 8077, .n 8078, .n 8079, .n 8080, .n 8081, .n 8082, .n 8083, .n 8084] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8085, .n 8086]))) ::
+  .atom (.add (.n 8087) (.n 8072) (.n 8085)) ::
+  .atom (.add (.n 8088) (.n 8085) (.n 8086)) ::
+  .atom (.mul (.n 8087) (.n 614) (.n 8088)) ::
+  .atom (.const (.n 8089) (word 0 9226186786672214016 0)) ::
+  .atom (.add (.n 8090) (.n 1721) (.n 8089)) ::
+  .atom (.const (.n 8091) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8092) (.n 1270) (.n 8091)) ::
+  .atom (.add (.n 8093) (.n 8090) (.n 8092)) ::
+  .atom (.copy (.n 8094) (.n 8086)) ::
+  .atom (.const (.n 8095) (word 1 0 0)) ::
+  .atom (.const (.n 8096) (word 0 0 0)) ::
+  .atom (.const (.n 8097) (word 0 0 0)) ::
+  .atom (.const (.n 8098) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8093, .n 8085, .n 8094, .n 8095, .n 8096, .n 8097, .n 8098, .n 354, .n 355, .n 356, .n 357] [.n 8099, .n 8100, .n 8101, .n 8102, .n 8103, .n 8104, .n 8105, .n 8106, .n 8107, .n 8108, .n 8109, .n 8110, .n 8111] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8112, .n 8113]))) ::
+  .atom (.add (.n 8114) (.n 8099) (.n 8112)) ::
+  .atom (.add (.n 8115) (.n 8112) (.n 8113)) ::
+  .atom (.mul (.n 8114) (.n 615) (.n 8115)) ::
+  .atom (.const (.n 8116) (word 0 4613093393378050048 0)) ::
+  .atom (.add (.n 8117) (.n 1721) (.n 8116)) ::
+  .atom (.const (.n 8118) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8119) (.n 1267) (.n 8118)) ::
+  .atom (.add (.n 8120) (.n 8117) (.n 8119)) ::
+  .atom (.copy (.n 8121) (.n 8113)) ::
+  .atom (.const (.n 8122) (word 1 0 0)) ::
+  .atom (.const (.n 8123) (word 0 0 0)) ::
+  .atom (.const (.n 8124) (word 0 0 0)) ::
+  .atom (.const (.n 8125) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8120, .n 8112, .n 8121, .n 8122, .n 8123, .n 8124, .n 8125, .n 354, .n 355, .n 356, .n 357] [.n 8126, .n 8127, .n 8128, .n 8129, .n 8130, .n 8131, .n 8132, .n 8133, .n 8134, .n 8135, .n 8136, .n 8137, .n 8138] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8139, .n 8140]))) ::
+  .atom (.add (.n 8141) (.n 8126) (.n 8139)) ::
+  .atom (.add (.n 8142) (.n 8139) (.n 8140)) ::
+  .atom (.mul (.n 8141) (.n 600) (.n 8142)) ::
+  .atom (.const (.n 8143) (word 0 11529777996105777152 0)) ::
+  .atom (.add (.n 8144) (.n 1721) (.n 8143)) ::
+  .atom (.const (.n 8145) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8146) (.n 1264) (.n 8145)) ::
+  .atom (.add (.n 8147) (.n 8144) (.n 8146)) ::
+  .atom (.copy (.n 8148) (.n 8140)) ::
+  .atom (.const (.n 8149) (word 1 0 0)) ::
+  .atom (.const (.n 8150) (word 0 0 0)) ::
+  .atom (.const (.n 8151) (word 0 0 0)) ::
+  .atom (.const (.n 8152) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8147, .n 8139, .n 8148, .n 8149, .n 8150, .n 8151, .n 8152, .n 354, .n 355, .n 356, .n 357] [.n 8153, .n 8154, .n 8155, .n 8156, .n 8157, .n 8158, .n 8159, .n 8160, .n 8161, .n 8162, .n 8163, .n 8164, .n 8165] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8166, .n 8167]))) ::
+  .atom (.add (.n 8168) (.n 8153) (.n 8166)) ::
+  .atom (.add (.n 8169) (.n 8166) (.n 8167)) ::
+  .atom (.mul (.n 8168) (.n 601) (.n 8169)) ::
+  .atom (.const (.n 8170) (word 0 5764888998111608832 0)) ::
+  .atom (.add (.n 8171) (.n 1721) (.n 8170)) ::
+  .atom (.const (.n 8172) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8173) (.n 1261) (.n 8172)) ::
+  .atom (.add (.n 8174) (.n 8171) (.n 8173)) ::
+  .atom (.copy (.n 8175) (.n 8167)) ::
+  .atom (.const (.n 8176) (word 1 0 0)) ::
+  .atom (.const (.n 8177) (word 0 0 0)) ::
+  .atom (.const (.n 8178) (word 0 0 0)) ::
+  .atom (.const (.n 8179) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8174, .n 8166, .n 8175, .n 8176, .n 8177, .n 8178, .n 8179, .n 354, .n 355, .n 356, .n 357] [.n 8180, .n 8181, .n 8182, .n 8183, .n 8184, .n 8185, .n 8186, .n 8187, .n 8188, .n 8189, .n 8190, .n 8191, .n 8192] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8193, .n 8194]))) ::
+  .atom (.add (.n 8195) (.n 8180) (.n 8193)) ::
+  .atom (.add (.n 8196) (.n 8193) (.n 8194)) ::
+  .atom (.mul (.n 8195) (.n 602) (.n 8196)) ::
+  .atom (.const (.n 8197) (word 0 12105675798489333760 0)) ::
+  .atom (.add (.n 8198) (.n 1721) (.n 8197)) ::
+  .atom (.const (.n 8199) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8200) (.n 1258) (.n 8199)) ::
+  .atom (.add (.n 8201) (.n 8198) (.n 8200)) ::
+  .atom (.copy (.n 8202) (.n 8194)) ::
+  .atom (.const (.n 8203) (word 1 0 0)) ::
+  .atom (.const (.n 8204) (word 0 0 0)) ::
+  .atom (.const (.n 8205) (word 0 0 0)) ::
+  .atom (.const (.n 8206) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8201, .n 8193, .n 8202, .n 8203, .n 8204, .n 8205, .n 8206, .n 354, .n 355, .n 356, .n 357] [.n 8207, .n 8208, .n 8209, .n 8210, .n 8211, .n 8212, .n 8213, .n 8214, .n 8215, .n 8216, .n 8217, .n 8218, .n 8219] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8220, .n 8221]))) ::
+  .atom (.add (.n 8222) (.n 8207) (.n 8220)) ::
+  .atom (.add (.n 8223) (.n 8220) (.n 8221)) ::
+  .atom (.mul (.n 8222) (.n 603) (.n 8223)) ::
+  .atom (.const (.n 8224) (word 0 6052837899320164352 0)) ::
+  .atom (.add (.n 8225) (.n 1721) (.n 8224)) ::
+  .atom (.const (.n 8226) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8227) (.n 1255) (.n 8226)) ::
+  .atom (.add (.n 8228) (.n 8225) (.n 8227)) ::
+  .atom (.copy (.n 8229) (.n 8221)) ::
+  .atom (.const (.n 8230) (word 1 0 0)) ::
+  .atom (.const (.n 8231) (word 0 0 0)) ::
+  .atom (.const (.n 8232) (word 0 0 0)) ::
+  .atom (.const (.n 8233) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8228, .n 8220, .n 8229, .n 8230, .n 8231, .n 8232, .n 8233, .n 354, .n 355, .n 356, .n 357] [.n 8234, .n 8235, .n 8236, .n 8237, .n 8238, .n 8239, .n 8240, .n 8241, .n 8242, .n 8243, .n 8244, .n 8245, .n 8246] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8247, .n 8248]))) ::
+  .atom (.add (.n 8249) (.n 8234) (.n 8247)) ::
+  .atom (.add (.n 8250) (.n 8247) (.n 8248)) ::
+  .atom (.mul (.n 8249) (.n 604) (.n 8250)) ::
+  .atom (.const (.n 8251) (word 0 3026418949743968256 0)) ::
+  .atom (.add (.n 8252) (.n 1721) (.n 8251)) ::
+  .atom (.const (.n 8253) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8254) (.n 1252) (.n 8253)) ::
+  .atom (.add (.n 8255) (.n 8252) (.n 8254)) ::
+  .atom (.copy (.n 8256) (.n 8248)) ::
+  .atom (.const (.n 8257) (word 1 0 0)) ::
+  .atom (.const (.n 8258) (word 0 0 0)) ::
+  .atom (.const (.n 8259) (word 0 0 0)) ::
+  .atom (.const (.n 8260) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8255, .n 8247, .n 8256, .n 8257, .n 8258, .n 8259, .n 8260, .n 354, .n 355, .n 356, .n 357] [.n 8261, .n 8262, .n 8263, .n 8264, .n 8265, .n 8266, .n 8267, .n 8268, .n 8269, .n 8270, .n 8271, .n 8272, .n 8273] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8274, .n 8275]))) ::
+  .atom (.add (.n 8276) (.n 8261) (.n 8274)) ::
+  .atom (.add (.n 8277) (.n 8274) (.n 8275)) ::
+  .atom (.mul (.n 8276) (.n 605) (.n 8277)) ::
+  .atom (.const (.n 8278) (word 0 1513209474964258816 0)) ::
+  .atom (.add (.n 8279) (.n 1721) (.n 8278)) ::
+  .atom (.copy (.n 8280) (.n 8275)) ::
+  .atom (.const (.n 8281) (word 1 0 0)) ::
+  .atom (.const (.n 8282) (word 0 0 0)) ::
+  .atom (.const (.n 8283) (word 0 0 0)) ::
+  .atom (.const (.n 8284) (word 9223372036854775808 0 0)) ::
+  [])
+
+/-- `verify_sig_lean_sphincs`: statements 5263 to 5662 of the body. -/
+noncomputable def c12 : List Core.Stmt := (
+  .atom (.keccak [.n 2, .n 1717, .n 8279, .n 8274, .n 8280, .n 8281, .n 8282, .n 8283, .n 8284, .n 354, .n 355, .n 356, .n 357] [.n 8285, .n 8286, .n 8287, .n 8288, .n 8289, .n 8290, .n 8291, .n 8292, .n 8293, .n 8294, .n 8295, .n 8296, .n 8297] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 8298]))) ::
+  .atom (.const (.n 8299) (word 0 24769797950537728 0)) ::
+  .atom (.add (.n 8300) (.n 1721) (.n 8299)) ::
+  .atom (.const (.n 8301) (word 256 0 0)) ::
+  .atom (.mul (.n 8302) (.n 1283) (.n 8301)) ::
+  .atom (.add (.n 8303) (.n 1307) (.n 8302)) ::
+  .atom (.const (.n 8304) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8305) (.n 8303) (.n 8304)) ::
+  .atom (.const (.n 8306) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8307) (.n 1283) (.n 8306)) ::
+  .atom (.add (.n 8308) (.n 8305) (.n 8307)) ::
+  .atom (.add (.n 8309) (.n 8300) (.n 8308)) ::
+  .atom (.const (.n 8310) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8309, .n 8298, .n 353, .n 354, .n 355, .n 356, .n 8310, .n 354, .n 355, .n 356, .n 357] [.n 8311, .n 8312, .n 8313, .n 8314, .n 8315, .n 8316, .n 8317, .n 8318, .n 8319, .n 8320, .n 8321, .n 8322, .n 8323] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8324, .n 8325]))) ::
+  .atom (.add (.n 8326) (.n 8311) (.n 8324)) ::
+  .atom (.add (.n 8327) (.n 8324) (.n 8325)) ::
+  .atom (.mul (.n 8326) (.n 618) (.n 8327)) ::
+  .atom (.const (.n 8328) (word 0 12384898992046080 0)) ::
+  .atom (.add (.n 8329) (.n 1721) (.n 8328)) ::
+  .atom (.const (.n 8330) (word 256 0 0)) ::
+  .atom (.mul (.n 8331) (.n 1280) (.n 8330)) ::
+  .atom (.add (.n 8332) (.n 1304) (.n 8331)) ::
+  .atom (.const (.n 8333) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8334) (.n 8332) (.n 8333)) ::
+  .atom (.const (.n 8335) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8336) (.n 1280) (.n 8335)) ::
+  .atom (.add (.n 8337) (.n 8334) (.n 8336)) ::
+  .atom (.add (.n 8338) (.n 8329) (.n 8337)) ::
+  .atom (.copy (.n 8339) (.n 8325)) ::
+  .atom (.const (.n 8340) (word 1 0 0)) ::
+  .atom (.const (.n 8341) (word 0 0 0)) ::
+  .atom (.const (.n 8342) (word 0 0 0)) ::
+  .atom (.const (.n 8343) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8338, .n 8324, .n 8339, .n 8340, .n 8341, .n 8342, .n 8343, .n 354, .n 355, .n 356, .n 357] [.n 8344, .n 8345, .n 8346, .n 8347, .n 8348, .n 8349, .n 8350, .n 8351, .n 8352, .n 8353, .n 8354, .n 8355, .n 8356] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8357, .n 8358]))) ::
+  .atom (.add (.n 8359) (.n 8344) (.n 8357)) ::
+  .atom (.add (.n 8360) (.n 8357) (.n 8358)) ::
+  .atom (.mul (.n 8359) (.n 619) (.n 8360)) ::
+  .atom (.const (.n 8361) (word 0 6192449521188864 0)) ::
+  .atom (.add (.n 8362) (.n 1721) (.n 8361)) ::
+  .atom (.const (.n 8363) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8364) (.n 1301) (.n 8363)) ::
+  .atom (.add (.n 8365) (.n 8362) (.n 8364)) ::
+  .atom (.copy (.n 8366) (.n 8358)) ::
+  .atom (.const (.n 8367) (word 1 0 0)) ::
+  .atom (.const (.n 8368) (word 0 0 0)) ::
+  .atom (.const (.n 8369) (word 0 0 0)) ::
+  .atom (.const (.n 8370) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8365, .n 8357, .n 8366, .n 8367, .n 8368, .n 8369, .n 8370, .n 354, .n 355, .n 356, .n 357] [.n 8371, .n 8372, .n 8373, .n 8374, .n 8375, .n 8376, .n 8377, .n 8378, .n 8379, .n 8380, .n 8381, .n 8382, .n 8383] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8384, .n 8385]))) ::
+  .atom (.add (.n 8386) (.n 8371) (.n 8384)) ::
+  .atom (.add (.n 8387) (.n 8384) (.n 8385)) ::
+  .atom (.mul (.n 8386) (.n 620) (.n 8387)) ::
+  .atom (.const (.n 8388) (word 0 3096224794148864 0)) ::
+  .atom (.add (.n 8389) (.n 1721) (.n 8388)) ::
+  .atom (.const (.n 8390) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8391) (.n 1298) (.n 8390)) ::
+  .atom (.add (.n 8392) (.n 8389) (.n 8391)) ::
+  .atom (.copy (.n 8393) (.n 8385)) ::
+  .atom (.const (.n 8394) (word 1 0 0)) ::
+  .atom (.const (.n 8395) (word 0 0 0)) ::
+  .atom (.const (.n 8396) (word 0 0 0)) ::
+  .atom (.const (.n 8397) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8392, .n 8384, .n 8393, .n 8394, .n 8395, .n 8396, .n 8397, .n 354, .n 355, .n 356, .n 357] [.n 8398, .n 8399, .n 8400, .n 8401, .n 8402, .n 8403, .n 8404, .n 8405, .n 8406, .n 8407, .n 8408, .n 8409, .n 8410] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8411, .n 8412]))) ::
+  .atom (.add (.n 8413) (.n 8398) (.n 8411)) ::
+  .atom (.add (.n 8414) (.n 8411) (.n 8412)) ::
+  .atom (.mul (.n 8413) (.n 621) (.n 8414)) ::
+  .atom (.const (.n 8415) (word 0 9224779411805437952 0)) ::
+  .atom (.add (.n 8416) (.n 1721) (.n 8415)) ::
+  .atom (.const (.n 8417) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8418) (.n 1295) (.n 8417)) ::
+  .atom (.add (.n 8419) (.n 8416) (.n 8418)) ::
+  .atom (.copy (.n 8420) (.n 8412)) ::
+  .atom (.const (.n 8421) (word 1 0 0)) ::
+  .atom (.const (.n 8422) (word 0 0 0)) ::
+  .atom (.const (.n 8423) (word 0 0 0)) ::
+  .atom (.const (.n 8424) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8419, .n 8411, .n 8420, .n 8421, .n 8422, .n 8423, .n 8424, .n 354, .n 355, .n 356, .n 357] [.n 8425, .n 8426, .n 8427, .n 8428, .n 8429, .n 8430, .n 8431, .n 8432, .n 8433, .n 8434, .n 8435, .n 8436, .n 8437] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8438, .n 8439]))) ::
+  .atom (.add (.n 8440) (.n 8425) (.n 8438)) ::
+  .atom (.add (.n 8441) (.n 8438) (.n 8439)) ::
+  .atom (.mul (.n 8440) (.n 622) (.n 8441)) ::
+  .atom (.const (.n 8442) (word 0 13835621005319471104 0)) ::
+  .atom (.add (.n 8443) (.n 1721) (.n 8442)) ::
+  .atom (.const (.n 8444) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8445) (.n 1292) (.n 8444)) ::
+  .atom (.add (.n 8446) (.n 8443) (.n 8445)) ::
+  .atom (.copy (.n 8447) (.n 8439)) ::
+  .atom (.const (.n 8448) (word 1 0 0)) ::
+  .atom (.const (.n 8449) (word 0 0 0)) ::
+  .atom (.const (.n 8450) (word 0 0 0)) ::
+  .atom (.const (.n 8451) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8446, .n 8438, .n 8447, .n 8448, .n 8449, .n 8450, .n 8451, .n 354, .n 355, .n 356, .n 357] [.n 8452, .n 8453, .n 8454, .n 8455, .n 8456, .n 8457, .n 8458, .n 8459, .n 8460, .n 8461, .n 8462, .n 8463, .n 8464] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8465, .n 8466]))) ::
+  .atom (.add (.n 8467) (.n 8452) (.n 8465)) ::
+  .atom (.add (.n 8468) (.n 8465) (.n 8466)) ::
+  .atom (.mul (.n 8467) (.n 623) (.n 8468)) ::
+  .atom (.const (.n 8469) (word 0 6917810502718455808 0)) ::
+  .atom (.add (.n 8470) (.n 1721) (.n 8469)) ::
+  .atom (.const (.n 8471) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8472) (.n 1289) (.n 8471)) ::
+  .atom (.add (.n 8473) (.n 8470) (.n 8472)) ::
+  .atom (.copy (.n 8474) (.n 8466)) ::
+  .atom (.const (.n 8475) (word 1 0 0)) ::
+  .atom (.const (.n 8476) (word 0 0 0)) ::
+  .atom (.const (.n 8477) (word 0 0 0)) ::
+  .atom (.const (.n 8478) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8473, .n 8465, .n 8474, .n 8475, .n 8476, .n 8477, .n 8478, .n 354, .n 355, .n 356, .n 357] [.n 8479, .n 8480, .n 8481, .n 8482, .n 8483, .n 8484, .n 8485, .n 8486, .n 8487, .n 8488, .n 8489, .n 8490, .n 8491] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8492, .n 8493]))) ::
+  .atom (.add (.n 8494) (.n 8479) (.n 8492)) ::
+  .atom (.add (.n 8495) (.n 8492) (.n 8493)) ::
+  .atom (.mul (.n 8494) (.n 608) (.n 8495)) ::
+  .atom (.const (.n 8496) (word 0 12682136550792757248 0)) ::
+  .atom (.add (.n 8497) (.n 1721) (.n 8496)) ::
+  .atom (.const (.n 8498) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8499) (.n 1286) (.n 8498)) ::
+  .atom (.add (.n 8500) (.n 8497) (.n 8499)) ::
+  .atom (.copy (.n 8501) (.n 8493)) ::
+  .atom (.const (.n 8502) (word 1 0 0)) ::
+  .atom (.const (.n 8503) (word 0 0 0)) ::
+  .atom (.const (.n 8504) (word 0 0 0)) ::
+  .atom (.const (.n 8505) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8500, .n 8492, .n 8501, .n 8502, .n 8503, .n 8504, .n 8505, .n 354, .n 355, .n 356, .n 357] [.n 8506, .n 8507, .n 8508, .n 8509, .n 8510, .n 8511, .n 8512, .n 8513, .n 8514, .n 8515, .n 8516, .n 8517, .n 8518] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8519, .n 8520]))) ::
+  .atom (.add (.n 8521) (.n 8506) (.n 8519)) ::
+  .atom (.add (.n 8522) (.n 8519) (.n 8520)) ::
+  .atom (.mul (.n 8521) (.n 609) (.n 8522)) ::
+  .atom (.const (.n 8523) (word 0 6341068275471876096 0)) ::
+  .atom (.add (.n 8524) (.n 1721) (.n 8523)) ::
+  .atom (.const (.n 8525) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8526) (.n 1283) (.n 8525)) ::
+  .atom (.add (.n 8527) (.n 8524) (.n 8526)) ::
+  .atom (.copy (.n 8528) (.n 8520)) ::
+  .atom (.const (.n 8529) (word 1 0 0)) ::
+  .atom (.const (.n 8530) (word 0 0 0)) ::
+  .atom (.const (.n 8531) (word 0 0 0)) ::
+  .atom (.const (.n 8532) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8527, .n 8519, .n 8528, .n 8529, .n 8530, .n 8531, .n 8532, .n 354, .n 355, .n 356, .n 357] [.n 8533, .n 8534, .n 8535, .n 8536, .n 8537, .n 8538, .n 8539, .n 8540, .n 8541, .n 8542, .n 8543, .n 8544, .n 8545] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8546, .n 8547]))) ::
+  .atom (.add (.n 8548) (.n 8533) (.n 8546)) ::
+  .atom (.add (.n 8549) (.n 8546) (.n 8547)) ::
+  .atom (.mul (.n 8548) (.n 610) (.n 8549)) ::
+  .atom (.const (.n 8550) (word 0 3170534137819824128 0)) ::
+  .atom (.add (.n 8551) (.n 1721) (.n 8550)) ::
+  .atom (.const (.n 8552) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8553) (.n 1280) (.n 8552)) ::
+  .atom (.add (.n 8554) (.n 8551) (.n 8553)) ::
+  .atom (.copy (.n 8555) (.n 8547)) ::
+  .atom (.const (.n 8556) (word 1 0 0)) ::
+  .atom (.const (.n 8557) (word 0 0 0)) ::
+  .atom (.const (.n 8558) (word 0 0 0)) ::
+  .atom (.const (.n 8559) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8554, .n 8546, .n 8555, .n 8556, .n 8557, .n 8558, .n 8559, .n 354, .n 355, .n 356, .n 357] [.n 8560, .n 8561, .n 8562, .n 8563, .n 8564, .n 8565, .n 8566, .n 8567, .n 8568, .n 8569, .n 8570, .n 8571, .n 8572] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8573, .n 8574]))) ::
+  .atom (.add (.n 8575) (.n 8560) (.n 8573)) ::
+  .atom (.add (.n 8576) (.n 8573) (.n 8574)) ::
+  .atom (.mul (.n 8575) (.n 611) (.n 8576)) ::
+  .atom (.const (.n 8577) (word 0 1585267069002186752 0)) ::
+  .atom (.add (.n 8578) (.n 1721) (.n 8577)) ::
+  .atom (.copy (.n 8579) (.n 8574)) ::
+  .atom (.const (.n 8580) (word 1 0 0)) ::
+  .atom (.const (.n 8581) (word 0 0 0)) ::
+  .atom (.const (.n 8582) (word 0 0 0)) ::
+  .atom (.const (.n 8583) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8578, .n 8573, .n 8579, .n 8580, .n 8581, .n 8582, .n 8583, .n 354, .n 355, .n 356, .n 357] [.n 8584, .n 8585, .n 8586, .n 8587, .n 8588, .n 8589, .n 8590, .n 8591, .n 8592, .n 8593, .n 8594, .n 8595, .n 8596] false false) ::
+  .atom (.hint (.witness "sp_fors_secrets" (.stack [.n 8597]))) ::
+  .atom (.const (.n 8598) (word 0 25895697857380352 0)) ::
+  .atom (.add (.n 8599) (.n 1721) (.n 8598)) ::
+  .atom (.const (.n 8600) (word 256 0 0)) ::
+  .atom (.mul (.n 8601) (.n 1311) (.n 8600)) ::
+  .atom (.add (.n 8602) (.n 1335) (.n 8601)) ::
+  .atom (.const (.n 8603) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8604) (.n 8602) (.n 8603)) ::
+  .atom (.const (.n 8605) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8606) (.n 1311) (.n 8605)) ::
+  .atom (.add (.n 8607) (.n 8604) (.n 8606)) ::
+  .atom (.add (.n 8608) (.n 8599) (.n 8607)) ::
+  .atom (.const (.n 8609) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8608, .n 8597, .n 353, .n 354, .n 355, .n 356, .n 8609, .n 354, .n 355, .n 356, .n 357] [.n 8610, .n 8611, .n 8612, .n 8613, .n 8614, .n 8615, .n 8616, .n 8617, .n 8618, .n 8619, .n 8620, .n 8621, .n 8622] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8623, .n 8624]))) ::
+  .atom (.add (.n 8625) (.n 8610) (.n 8623)) ::
+  .atom (.add (.n 8626) (.n 8623) (.n 8624)) ::
+  .atom (.mul (.n 8625) (.n 624) (.n 8626)) ::
+  .atom (.const (.n 8627) (word 0 12947848945467392 0)) ::
+  .atom (.add (.n 8628) (.n 1721) (.n 8627)) ::
+  .atom (.const (.n 8629) (word 256 0 0)) ::
+  .atom (.mul (.n 8630) (.n 1308) (.n 8629)) ::
+  .atom (.add (.n 8631) (.n 1332) (.n 8630)) ::
+  .atom (.const (.n 8632) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8633) (.n 8631) (.n 8632)) ::
+  .atom (.const (.n 8634) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 8635) (.n 1308) (.n 8634)) ::
+  .atom (.add (.n 8636) (.n 8633) (.n 8635)) ::
+  .atom (.add (.n 8637) (.n 8628) (.n 8636)) ::
+  .atom (.copy (.n 8638) (.n 8624)) ::
+  .atom (.const (.n 8639) (word 1 0 0)) ::
+  .atom (.const (.n 8640) (word 0 0 0)) ::
+  .atom (.const (.n 8641) (word 0 0 0)) ::
+  .atom (.const (.n 8642) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8637, .n 8623, .n 8638, .n 8639, .n 8640, .n 8641, .n 8642, .n 354, .n 355, .n 356, .n 357] [.n 8643, .n 8644, .n 8645, .n 8646, .n 8647, .n 8648, .n 8649, .n 8650, .n 8651, .n 8652, .n 8653, .n 8654, .n 8655] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8656, .n 8657]))) ::
+  .atom (.add (.n 8658) (.n 8643) (.n 8656)) ::
+  .atom (.add (.n 8659) (.n 8656) (.n 8657)) ::
+  .atom (.mul (.n 8658) (.n 625) (.n 8659)) ::
+  .atom (.const (.n 8660) (word 0 6473924497899520 0)) ::
+  .atom (.add (.n 8661) (.n 1721) (.n 8660)) ::
+  .atom (.const (.n 8662) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8663) (.n 1329) (.n 8662)) ::
+  .atom (.add (.n 8664) (.n 8661) (.n 8663)) ::
+  .atom (.copy (.n 8665) (.n 8657)) ::
+  .atom (.const (.n 8666) (word 1 0 0)) ::
+  .atom (.const (.n 8667) (word 0 0 0)) ::
+  .atom (.const (.n 8668) (word 0 0 0)) ::
+  .atom (.const (.n 8669) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8664, .n 8656, .n 8665, .n 8666, .n 8667, .n 8668, .n 8669, .n 354, .n 355, .n 356, .n 357] [.n 8670, .n 8671, .n 8672, .n 8673, .n 8674, .n 8675, .n 8676, .n 8677, .n 8678, .n 8679, .n 8680, .n 8681, .n 8682] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8683, .n 8684]))) ::
+  .atom (.add (.n 8685) (.n 8670) (.n 8683)) ::
+  .atom (.add (.n 8686) (.n 8683) (.n 8684)) ::
+  .atom (.mul (.n 8685) (.n 626) (.n 8686)) ::
+  .atom (.const (.n 8687) (word 0 9226468261648924672 0)) ::
+  .atom (.add (.n 8688) (.n 1721) (.n 8687)) ::
+  .atom (.const (.n 8689) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8690) (.n 1326) (.n 8689)) ::
+  .atom (.add (.n 8691) (.n 8688) (.n 8690)) ::
+  .atom (.copy (.n 8692) (.n 8684)) ::
+  .atom (.const (.n 8693) (word 1 0 0)) ::
+  .atom (.const (.n 8694) (word 0 0 0)) ::
+  .atom (.const (.n 8695) (word 0 0 0)) ::
+  .atom (.const (.n 8696) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8691, .n 8683, .n 8692, .n 8693, .n 8694, .n 8695, .n 8696, .n 354, .n 355, .n 356, .n 357] [.n 8697, .n 8698, .n 8699, .n 8700, .n 8701, .n 8702, .n 8703, .n 8704, .n 8705, .n 8706, .n 8707, .n 8708, .n 8709] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8710, .n 8711]))) ::
+  .atom (.add (.n 8712) (.n 8697) (.n 8710)) ::
+  .atom (.add (.n 8713) (.n 8710) (.n 8711)) ::
+  .atom (.mul (.n 8712) (.n 627) (.n 8713)) ::
+  .atom (.const (.n 8714) (word 0 13836465430232825856 0)) ::
+  .atom (.add (.n 8715) (.n 1721) (.n 8714)) ::
+  .atom (.const (.n 8716) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8717) (.n 1323) (.n 8716)) ::
+  .atom (.add (.n 8718) (.n 8715) (.n 8717)) ::
+  .atom (.copy (.n 8719) (.n 8711)) ::
+  .atom (.const (.n 8720) (word 1 0 0)) ::
+  .atom (.const (.n 8721) (word 0 0 0)) ::
+  .atom (.const (.n 8722) (word 0 0 0)) ::
+  .atom (.const (.n 8723) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8718, .n 8710, .n 8719, .n 8720, .n 8721, .n 8722, .n 8723, .n 354, .n 355, .n 356, .n 357] [.n 8724, .n 8725, .n 8726, .n 8727, .n 8728, .n 8729, .n 8730, .n 8731, .n 8732, .n 8733, .n 8734, .n 8735, .n 8736] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8737, .n 8738]))) ::
+  .atom (.add (.n 8739) (.n 8724) (.n 8737)) ::
+  .atom (.add (.n 8740) (.n 8737) (.n 8738)) ::
+  .atom (.mul (.n 8739) (.n 628) (.n 8740)) ::
+  .atom (.const (.n 8741) (word 0 16141464014533165056 0)) ::
+  .atom (.add (.n 8742) (.n 1721) (.n 8741)) ::
+  .atom (.const (.n 8743) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8744) (.n 1320) (.n 8743)) ::
+  .atom (.add (.n 8745) (.n 8742) (.n 8744)) ::
+  .atom (.copy (.n 8746) (.n 8738)) ::
+  .atom (.const (.n 8747) (word 1 0 0)) ::
+  .atom (.const (.n 8748) (word 0 0 0)) ::
+  .atom (.const (.n 8749) (word 0 0 0)) ::
+  .atom (.const (.n 8750) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8745, .n 8737, .n 8746, .n 8747, .n 8748, .n 8749, .n 8750, .n 354, .n 355, .n 356, .n 357] [.n 8751, .n 8752, .n 8753, .n 8754, .n 8755, .n 8756, .n 8757, .n 8758, .n 8759, .n 8760, .n 8761, .n 8762, .n 8763] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8764, .n 8765]))) ::
+  .atom (.add (.n 8766) (.n 8751) (.n 8764)) ::
+  .atom (.add (.n 8767) (.n 8764) (.n 8765)) ::
+  .atom (.mul (.n 8766) (.n 629) (.n 8767)) ::
+  .atom (.const (.n 8768) (word 0 8070732007325302784 0)) ::
+  .atom (.add (.n 8769) (.n 1721) (.n 8768)) ::
+  .atom (.const (.n 8770) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8771) (.n 1317) (.n 8770)) ::
+  .atom (.add (.n 8772) (.n 8769) (.n 8771)) ::
+  .atom (.copy (.n 8773) (.n 8765)) ::
+  .atom (.const (.n 8774) (word 1 0 0)) ::
+  .atom (.const (.n 8775) (word 0 0 0)) ::
+  .atom (.const (.n 8776) (word 0 0 0)) ::
+  .atom (.const (.n 8777) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8772, .n 8764, .n 8773, .n 8774, .n 8775, .n 8776, .n 8777, .n 354, .n 355, .n 356, .n 357] [.n 8778, .n 8779, .n 8780, .n 8781, .n 8782, .n 8783, .n 8784, .n 8785, .n 8786, .n 8787, .n 8788, .n 8789, .n 8790] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8791, .n 8792]))) ::
+  .atom (.add (.n 8793) (.n 8778) (.n 8791)) ::
+  .atom (.add (.n 8794) (.n 8791) (.n 8792)) ::
+  .atom (.mul (.n 8793) (.n 630) (.n 8794)) ::
+  .atom (.const (.n 8795) (word 0 13258597303096180736 0)) ::
+  .atom (.add (.n 8796) (.n 1721) (.n 8795)) ::
+  .atom (.const (.n 8797) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8798) (.n 1314) (.n 8797)) ::
+  .atom (.add (.n 8799) (.n 8796) (.n 8798)) ::
+  .atom (.copy (.n 8800) (.n 8792)) ::
+  .atom (.const (.n 8801) (word 1 0 0)) ::
+  .atom (.const (.n 8802) (word 0 0 0)) ::
+  .atom (.const (.n 8803) (word 0 0 0)) ::
+  .atom (.const (.n 8804) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8799, .n 8791, .n 8800, .n 8801, .n 8802, .n 8803, .n 8804, .n 354, .n 355, .n 356, .n 357] [.n 8805, .n 8806, .n 8807, .n 8808, .n 8809, .n 8810, .n 8811, .n 8812, .n 8813, .n 8814, .n 8815, .n 8816, .n 8817] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8818, .n 8819]))) ::
+  .atom (.add (.n 8820) (.n 8805) (.n 8818)) ::
+  .atom (.add (.n 8821) (.n 8818) (.n 8819)) ::
+  .atom (.mul (.n 8820) (.n 631) (.n 8821)) ::
+  .atom (.const (.n 8822) (word 0 6629298651623587840 0)) ::
+  .atom (.add (.n 8823) (.n 1721) (.n 8822)) ::
+  .atom (.const (.n 8824) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8825) (.n 1311) (.n 8824)) ::
+  .atom (.add (.n 8826) (.n 8823) (.n 8825)) ::
+  .atom (.copy (.n 8827) (.n 8819)) ::
+  .atom (.const (.n 8828) (word 1 0 0)) ::
+  .atom (.const (.n 8829) (word 0 0 0)) ::
+  .atom (.const (.n 8830) (word 0 0 0)) ::
+  .atom (.const (.n 8831) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8826, .n 8818, .n 8827, .n 8828, .n 8829, .n 8830, .n 8831, .n 354, .n 355, .n 356, .n 357] [.n 8832, .n 8833, .n 8834, .n 8835, .n 8836, .n 8837, .n 8838, .n 8839, .n 8840, .n 8841, .n 8842, .n 8843, .n 8844] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8845, .n 8846]))) ::
+  .atom (.add (.n 8847) (.n 8832) (.n 8845)) ::
+  .atom (.add (.n 8848) (.n 8845) (.n 8846)) ::
+  .atom (.mul (.n 8847) (.n 616) (.n 8848)) ::
+  .atom (.const (.n 8849) (word 0 3314649325895680000 0)) ::
+  .atom (.add (.n 8850) (.n 1721) (.n 8849)) ::
+  .atom (.const (.n 8851) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 8852) (.n 1308) (.n 8851)) ::
+  .atom (.add (.n 8853) (.n 8850) (.n 8852)) ::
+  .atom (.copy (.n 8854) (.n 8846)) ::
+  .atom (.const (.n 8855) (word 1 0 0)) ::
+  .atom (.const (.n 8856) (word 0 0 0)) ::
+  .atom (.const (.n 8857) (word 0 0 0)) ::
+  .atom (.const (.n 8858) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8853, .n 8845, .n 8854, .n 8855, .n 8856, .n 8857, .n 8858, .n 354, .n 355, .n 356, .n 357] [.n 8859, .n 8860, .n 8861, .n 8862, .n 8863, .n 8864, .n 8865, .n 8866, .n 8867, .n 8868, .n 8869, .n 8870, .n 8871] false false) ::
+  .atom (.hint (.witness "sp_fors_nodes" (.stack [.n 8872, .n 8873]))) ::
+  .atom (.add (.n 8874) (.n 8859) (.n 8872)) ::
+  .atom (.add (.n 8875) (.n 8872) (.n 8873)) ::
+  .atom (.mul (.n 8874) (.n 617) (.n 8875)) ::
+  .atom (.const (.n 8876) (word 0 1657324663040114688 0)) ::
+  .atom (.add (.n 8877) (.n 1721) (.n 8876)) ::
+  .atom (.copy (.n 8878) (.n 8873)) ::
+  .atom (.const (.n 8879) (word 1 0 0)) ::
+  .atom (.const (.n 8880) (word 0 0 0)) ::
+  .atom (.const (.n 8881) (word 0 0 0)) ::
+  .atom (.const (.n 8882) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8877, .n 8872, .n 8878, .n 8879, .n 8880, .n 8881, .n 8882, .n 354, .n 355, .n 356, .n 357] [.n 8883, .n 8884, .n 8885, .n 8886, .n 8887, .n 8888, .n 8889, .n 8890, .n 8891, .n 8892, .n 8893, .n 8894, .n 8895] false false) ::
+  .atom (.const (.n 8896) (word 67108864 0 0)) ::
+  .atom (.add (.n 8897) (.n 1719) (.n 8896)) ::
+  .atom (.copy (.n 8898) (.n 2305)) ::
+  .atom (.copy (.n 8899) (.n 2604)) ::
+  .atom (.copy (.n 8900) (.n 2903)) ::
+  .atom (.copy (.n 8901) (.n 3202)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 8897, .n 2006, .n 8898, .n 8899, .n 8900, .n 8901, .n 3501, .n 354, .n 355, .n 356, .n 357] [.n 8902, .n 8903, .n 8904, .n 8905, .n 8906, .n 8907, .n 8908, .n 8909, .n 8910, .n 8911, .n 8912, .n 8913, .n 8914] false true) ::
+  .atom (.add (.n 8915) (.n 8902) (.n 3501)) ::
+  .atom (.add (.n 8916) (.n 8903) (.n 3800)) ::
+  .atom (.add (.n 8917) (.n 8904) (.n 4099)) ::
+  .atom (.add (.n 8918) (.n 8905) (.n 4398)) ::
+  .atom (.add (.n 8919) (.n 8906) (.n 4697)) ::
+  .atom (.add (.n 8920) (.n 8907) (.n 4996)) ::
+  .atom (.add (.n 8921) (.n 8908) (.n 5295)) ::
+  .atom (.add (.n 8922) (.n 8909) (.n 5594)) ::
+  .atom (.add (.n 8923) (.n 8910) (.n 5893)) ::
+  .atom (.keccak [.n 8915, .n 8916, .n 8917, .n 8918, .n 8919, .n 8920, .n 8921, .n 8922, .n 8923, .n 8911, .n 8912, .n 8913, .n 8914] [.n 8924, .n 8925, .n 8926, .n 8927, .n 8928, .n 8929, .n 8930, .n 8931, .n 8932, .n 8933, .n 8934, .n 8935, .n 8936] true false) ::
+  .atom (.add (.n 8937) (.n 8924) (.n 6192)) ::
+  .atom (.add (.n 8938) (.n 8925) (.n 6491)) ::
+  .atom (.add (.n 8939) (.n 8926) (.n 6790)) ::
+  .atom (.add (.n 8940) (.n 8927) (.n 7089)) ::
+  .atom (.add (.n 8941) (.n 8928) (.n 7388)) ::
+  .atom (.add (.n 8942) (.n 8929) (.n 7687)) ::
+  .atom (.add (.n 8943) (.n 8930) (.n 7986)) ::
+  .atom (.add (.n 8944) (.n 8931) (.n 8285)) ::
+  .atom (.add (.n 8945) (.n 8932) (.n 8584)) ::
+  .atom (.keccak [.n 8937, .n 8938, .n 8939, .n 8940, .n 8941, .n 8942, .n 8943, .n 8944, .n 8945, .n 8933, .n 8934, .n 8935, .n 8936] [.n 8946, .n 8947, .n 8948, .n 8949, .n 8950, .n 8951, .n 8952, .n 8953, .n 8954, .n 8955, .n 8956, .n 8957, .n 8958] false true) ::
+  .atom (.add (.n 8959) (.n 8946) (.n 8584)) ::
+  .atom (.add (.n 8960) (.n 8947) (.n 8883)) ::
+  .atom (.add (.n 8961) (.n 8948) (.n 353)) ::
+  .atom (.const (.n 8962) (word 0 9223372036854775808 0)) ::
+  .atom (.add (.n 8963) (.n 8954) (.n 8962)) ::
+  .atom (.keccak [.n 8959, .n 8960, .n 8961, .n 8949, .n 8950, .n 8951, .n 8952, .n 8953, .n 8963, .n 8955, .n 8956, .n 8957, .n 8958] [.n 8964, .n 8965, .n 8966, .n 8967, .n 8968, .n 8969, .n 8970, .n 8971, .n 8972, .n 8973, .n 8974, .n 8975, .n 8976] true false) ::
+  .atom (.hint (.witness "sp_counter" (.stack [.n 8977, .n 8978, .n 8979, .n 8980]))) ::
+  .atom (.const (.n 8981) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 8980) (.n 8982) (.n 8983) (.n 8984) (.n 8981)) ::
+  .atom (.mul (.n 8985) (.n 1) (.n 8980)) ::
+  .atom (.load (.n 8986) (.n 8985) 0) ::
+  .atom (.const (.n 8987) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 8979) (.n 8988) (.n 8989) (.n 8990) (.n 8987)) ::
+  .atom (.mul (.n 8991) (.n 1) (.n 8979)) ::
+  .atom (.load (.n 8992) (.n 8991) 0) ::
+  .atom (.const (.n 8993) (word 256 0 0)) ::
+  .atom (.mul (.n 8994) (.n 8986) (.n 8993)) ::
+  .atom (.add (.n 8995) (.n 8992) (.n 8994)) ::
+  .atom (.const (.n 8996) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 8978) (.n 8997) (.n 8998) (.n 8999) (.n 8996)) ::
+  .atom (.mul (.n 9000) (.n 1) (.n 8978)) ::
+  .atom (.load (.n 9001) (.n 9000) 0) ::
+  .atom (.const (.n 9002) (word 256 0 0)) ::
+  .atom (.mul (.n 9003) (.n 8995) (.n 9002)) ::
+  .atom (.add (.n 9004) (.n 9001) (.n 9003)) ::
+  .atom (.const (.n 9005) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 8977) (.n 9006) (.n 9007) (.n 9008) (.n 9005)) ::
+  .atom (.mul (.n 9009) (.n 1) (.n 8977)) ::
+  .atom (.load (.n 9010) (.n 9009) 0) ::
+  .atom (.const (.n 9011) (word 256 0 0)) ::
+  .atom (.mul (.n 9012) (.n 9004) (.n 9011)) ::
+  .atom (.add (.n 9013) (.n 9010) (.n 9012)) ::
+  .atom (.const (.n 9014) (word 117440512 0 0)) ::
+  .atom (.add (.n 9015) (.n 1719) (.n 9014)) ::
+  .atom (.const (.n 9016) (word 4294967296 0 0)) ::
+  .atom (.add (.n 9017) (.n 9013) (.n 9016)) ::
+  .atom (.copy (.n 9018) (.n 9017)) ::
+  .atom (.const (.n 9019) (word 0 0 0)) ::
+  [])
+
+/-- `verify_sig_lean_sphincs`: statements 5663 to 6070 of the body. -/
+noncomputable def c13 : List Core.Stmt := (
+  .atom (.const (.n 9020) (word 0 0 0)) ::
+  .atom (.const (.n 9021) (word 0 0 0)) ::
+  .atom (.const (.n 9022) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9015, .n 8964, .n 9018, .n 9019, .n 9020, .n 9021, .n 9022, .n 354, .n 355, .n 356, .n 357] [.n 9023, .n 9024, .n 9025, .n 9026, .n 9027, .n 9028, .n 9029, .n 9030, .n 9031, .n 9032, .n 9033, .n 9034, .n 9035] false false) ::
+  .call "sp_wots" [.n 2, .n 1717, .n 1719, .n 9023] [.n 9036] ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9037, .n 9038]))) ::
+  .atom (.add (.n 9039) (.n 9036) (.n 9037)) ::
+  .atom (.add (.n 9040) (.n 9037) (.n 9038)) ::
+  .atom (.mul (.n 9039) (.n 656) (.n 9040)) ::
+  .atom (.const (.n 9041) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9042) (.n 1354) (.n 9041)) ::
+  .atom (.const (.n 9043) (word 33554432 16777216 0)) ::
+  .atom (.add (.n 9044) (.n 9042) (.n 9043)) ::
+  .atom (.copy (.n 9045) (.n 9038)) ::
+  .atom (.const (.n 9046) (word 1 0 0)) ::
+  .atom (.const (.n 9047) (word 0 0 0)) ::
+  .atom (.const (.n 9048) (word 0 0 0)) ::
+  .atom (.const (.n 9049) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9044, .n 9037, .n 9045, .n 9046, .n 9047, .n 9048, .n 9049, .n 354, .n 355, .n 356, .n 357] [.n 9050, .n 9051, .n 9052, .n 9053, .n 9054, .n 9055, .n 9056, .n 9057, .n 9058, .n 9059, .n 9060, .n 9061, .n 9062] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9063, .n 9064]))) ::
+  .atom (.add (.n 9065) (.n 9050) (.n 9063)) ::
+  .atom (.add (.n 9066) (.n 9063) (.n 9064)) ::
+  .atom (.mul (.n 9065) (.n 657) (.n 9066)) ::
+  .atom (.const (.n 9067) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9068) (.n 1351) (.n 9067)) ::
+  .atom (.const (.n 9069) (word 33554432 33554432 0)) ::
+  .atom (.add (.n 9070) (.n 9068) (.n 9069)) ::
+  .atom (.copy (.n 9071) (.n 9064)) ::
+  .atom (.const (.n 9072) (word 1 0 0)) ::
+  .atom (.const (.n 9073) (word 0 0 0)) ::
+  .atom (.const (.n 9074) (word 0 0 0)) ::
+  .atom (.const (.n 9075) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9070, .n 9063, .n 9071, .n 9072, .n 9073, .n 9074, .n 9075, .n 354, .n 355, .n 356, .n 357] [.n 9076, .n 9077, .n 9078, .n 9079, .n 9080, .n 9081, .n 9082, .n 9083, .n 9084, .n 9085, .n 9086, .n 9087, .n 9088] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9089, .n 9090]))) ::
+  .atom (.add (.n 9091) (.n 9076) (.n 9089)) ::
+  .atom (.add (.n 9092) (.n 9089) (.n 9090)) ::
+  .atom (.mul (.n 9091) (.n 658) (.n 9092)) ::
+  .atom (.const (.n 9093) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9094) (.n 1348) (.n 9093)) ::
+  .atom (.const (.n 9095) (word 33554432 50331648 0)) ::
+  .atom (.add (.n 9096) (.n 9094) (.n 9095)) ::
+  .atom (.copy (.n 9097) (.n 9090)) ::
+  .atom (.const (.n 9098) (word 1 0 0)) ::
+  .atom (.const (.n 9099) (word 0 0 0)) ::
+  .atom (.const (.n 9100) (word 0 0 0)) ::
+  .atom (.const (.n 9101) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9096, .n 9089, .n 9097, .n 9098, .n 9099, .n 9100, .n 9101, .n 354, .n 355, .n 356, .n 357] [.n 9102, .n 9103, .n 9104, .n 9105, .n 9106, .n 9107, .n 9108, .n 9109, .n 9110, .n 9111, .n 9112, .n 9113, .n 9114] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9115, .n 9116]))) ::
+  .atom (.add (.n 9117) (.n 9102) (.n 9115)) ::
+  .atom (.add (.n 9118) (.n 9115) (.n 9116)) ::
+  .atom (.mul (.n 9117) (.n 659) (.n 9118)) ::
+  .atom (.const (.n 9119) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9120) (.n 1345) (.n 9119)) ::
+  .atom (.const (.n 9121) (word 33554432 67108864 0)) ::
+  .atom (.add (.n 9122) (.n 9120) (.n 9121)) ::
+  .atom (.copy (.n 9123) (.n 9116)) ::
+  .atom (.const (.n 9124) (word 1 0 0)) ::
+  .atom (.const (.n 9125) (word 0 0 0)) ::
+  .atom (.const (.n 9126) (word 0 0 0)) ::
+  .atom (.const (.n 9127) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9122, .n 9115, .n 9123, .n 9124, .n 9125, .n 9126, .n 9127, .n 354, .n 355, .n 356, .n 357] [.n 9128, .n 9129, .n 9130, .n 9131, .n 9132, .n 9133, .n 9134, .n 9135, .n 9136, .n 9137, .n 9138, .n 9139, .n 9140] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9141, .n 9142]))) ::
+  .atom (.add (.n 9143) (.n 9128) (.n 9141)) ::
+  .atom (.add (.n 9144) (.n 9141) (.n 9142)) ::
+  .atom (.mul (.n 9143) (.n 660) (.n 9144)) ::
+  .atom (.const (.n 9145) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9146) (.n 1342) (.n 9145)) ::
+  .atom (.const (.n 9147) (word 33554432 83886080 0)) ::
+  .atom (.add (.n 9148) (.n 9146) (.n 9147)) ::
+  .atom (.copy (.n 9149) (.n 9142)) ::
+  .atom (.const (.n 9150) (word 1 0 0)) ::
+  .atom (.const (.n 9151) (word 0 0 0)) ::
+  .atom (.const (.n 9152) (word 0 0 0)) ::
+  .atom (.const (.n 9153) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9148, .n 9141, .n 9149, .n 9150, .n 9151, .n 9152, .n 9153, .n 354, .n 355, .n 356, .n 357] [.n 9154, .n 9155, .n 9156, .n 9157, .n 9158, .n 9159, .n 9160, .n 9161, .n 9162, .n 9163, .n 9164, .n 9165, .n 9166] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9167, .n 9168]))) ::
+  .atom (.add (.n 9169) (.n 9154) (.n 9167)) ::
+  .atom (.add (.n 9170) (.n 9167) (.n 9168)) ::
+  .atom (.mul (.n 9169) (.n 661) (.n 9170)) ::
+  .atom (.const (.n 9171) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9172) (.n 1339) (.n 9171)) ::
+  .atom (.const (.n 9173) (word 33554432 100663296 0)) ::
+  .atom (.add (.n 9174) (.n 9172) (.n 9173)) ::
+  .atom (.copy (.n 9175) (.n 9168)) ::
+  .atom (.const (.n 9176) (word 1 0 0)) ::
+  .atom (.const (.n 9177) (word 0 0 0)) ::
+  .atom (.const (.n 9178) (word 0 0 0)) ::
+  .atom (.const (.n 9179) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9174, .n 9167, .n 9175, .n 9176, .n 9177, .n 9178, .n 9179, .n 354, .n 355, .n 356, .n 357] [.n 9180, .n 9181, .n 9182, .n 9183, .n 9184, .n 9185, .n 9186, .n 9187, .n 9188, .n 9189, .n 9190, .n 9191, .n 9192] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9193, .n 9194]))) ::
+  .atom (.add (.n 9195) (.n 9180) (.n 9193)) ::
+  .atom (.add (.n 9196) (.n 9193) (.n 9194)) ::
+  .atom (.mul (.n 9195) (.n 662) (.n 9196)) ::
+  .atom (.const (.n 9197) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9198) (.n 1336) (.n 9197)) ::
+  .atom (.const (.n 9199) (word 33554432 117440512 0)) ::
+  .atom (.add (.n 9200) (.n 9198) (.n 9199)) ::
+  .atom (.copy (.n 9201) (.n 9194)) ::
+  .atom (.const (.n 9202) (word 1 0 0)) ::
+  .atom (.const (.n 9203) (word 0 0 0)) ::
+  .atom (.const (.n 9204) (word 0 0 0)) ::
+  .atom (.const (.n 9205) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9200, .n 9193, .n 9201, .n 9202, .n 9203, .n 9204, .n 9205, .n 354, .n 355, .n 356, .n 357] [.n 9206, .n 9207, .n 9208, .n 9209, .n 9210, .n 9211, .n 9212, .n 9213, .n 9214, .n 9215, .n 9216, .n 9217, .n 9218] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9219, .n 9220]))) ::
+  .atom (.add (.n 9221) (.n 9206) (.n 9219)) ::
+  .atom (.add (.n 9222) (.n 9219) (.n 9220)) ::
+  .atom (.mul (.n 9221) (.n 663) (.n 9222)) ::
+  .atom (.const (.n 9223) (word 33554432 134217728 0)) ::
+  .atom (.copy (.n 9224) (.n 9220)) ::
+  .atom (.const (.n 9225) (word 1 0 0)) ::
+  .atom (.const (.n 9226) (word 0 0 0)) ::
+  .atom (.const (.n 9227) (word 0 0 0)) ::
+  .atom (.const (.n 9228) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 1717, .n 9223, .n 9219, .n 9224, .n 9225, .n 9226, .n 9227, .n 9228, .n 354, .n 355, .n 356, .n 357] [.n 9229, .n 9230, .n 9231, .n 9232, .n 9233, .n 9234, .n 9235, .n 9236, .n 9237, .n 9238, .n 9239, .n 9240, .n 9241] false false) ::
+  .atom (.const (.n 9242) (word 16777216 0 0)) ::
+  .atom (.const (.n 9243) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9244) (.n 1620) (.n 9243)) ::
+  .atom (.add (.n 9245) (.n 9242) (.n 9244)) ::
+  .atom (.const (.n 9246) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 9247) (.n 1383) (.n 9246)) ::
+  .atom (.add (.n 9248) (.n 9245) (.n 9247)) ::
+  .atom (.const (.n 9249) (word 72057594037927936 0 0)) ::
+  .atom (.mul (.n 9250) (.n 1379) (.n 9249)) ::
+  .atom (.hint (.witness "sp_counter" (.stack [.n 9251, .n 9252, .n 9253, .n 9254]))) ::
+  .atom (.const (.n 9255) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9254) (.n 9256) (.n 9257) (.n 9258) (.n 9255)) ::
+  .atom (.mul (.n 9259) (.n 1) (.n 9254)) ::
+  .atom (.load (.n 9260) (.n 9259) 0) ::
+  .atom (.const (.n 9261) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9253) (.n 9262) (.n 9263) (.n 9264) (.n 9261)) ::
+  .atom (.mul (.n 9265) (.n 1) (.n 9253)) ::
+  .atom (.load (.n 9266) (.n 9265) 0) ::
+  .atom (.const (.n 9267) (word 256 0 0)) ::
+  .atom (.mul (.n 9268) (.n 9260) (.n 9267)) ::
+  .atom (.add (.n 9269) (.n 9266) (.n 9268)) ::
+  .atom (.const (.n 9270) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9252) (.n 9271) (.n 9272) (.n 9273) (.n 9270)) ::
+  .atom (.mul (.n 9274) (.n 1) (.n 9252)) ::
+  .atom (.load (.n 9275) (.n 9274) 0) ::
+  .atom (.const (.n 9276) (word 256 0 0)) ::
+  .atom (.mul (.n 9277) (.n 9269) (.n 9276)) ::
+  .atom (.add (.n 9278) (.n 9275) (.n 9277)) ::
+  .atom (.const (.n 9279) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9251) (.n 9280) (.n 9281) (.n 9282) (.n 9279)) ::
+  .atom (.mul (.n 9283) (.n 1) (.n 9251)) ::
+  .atom (.load (.n 9284) (.n 9283) 0) ::
+  .atom (.const (.n 9285) (word 256 0 0)) ::
+  .atom (.mul (.n 9286) (.n 9278) (.n 9285)) ::
+  .atom (.add (.n 9287) (.n 9284) (.n 9286)) ::
+  .atom (.const (.n 9288) (word 117440512 0 0)) ::
+  .atom (.add (.n 9289) (.n 9250) (.n 9288)) ::
+  .atom (.const (.n 9290) (word 4294967296 0 0)) ::
+  .atom (.add (.n 9291) (.n 9287) (.n 9290)) ::
+  .atom (.copy (.n 9292) (.n 9291)) ::
+  .atom (.const (.n 9293) (word 0 0 0)) ::
+  .atom (.const (.n 9294) (word 0 0 0)) ::
+  .atom (.const (.n 9295) (word 0 0 0)) ::
+  .atom (.const (.n 9296) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9289, .n 9229, .n 9292, .n 9293, .n 9294, .n 9295, .n 9296, .n 354, .n 355, .n 356, .n 357] [.n 9297, .n 9298, .n 9299, .n 9300, .n 9301, .n 9302, .n 9303, .n 9304, .n 9305, .n 9306, .n 9307, .n 9308, .n 9309] false false) ::
+  .call "sp_wots" [.n 2, .n 9248, .n 9250, .n 9297] [.n 9310] ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9311, .n 9312]))) ::
+  .atom (.add (.n 9313) (.n 9310) (.n 9311)) ::
+  .atom (.add (.n 9314) (.n 9311) (.n 9312)) ::
+  .atom (.mul (.n 9313) (.n 648) (.n 9314)) ::
+  .atom (.const (.n 9315) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9316) (.n 1376) (.n 9315)) ::
+  .atom (.const (.n 9317) (word 33554432 16777216 0)) ::
+  .atom (.add (.n 9318) (.n 9316) (.n 9317)) ::
+  .atom (.copy (.n 9319) (.n 9312)) ::
+  .atom (.const (.n 9320) (word 1 0 0)) ::
+  .atom (.const (.n 9321) (word 0 0 0)) ::
+  .atom (.const (.n 9322) (word 0 0 0)) ::
+  .atom (.const (.n 9323) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9318, .n 9311, .n 9319, .n 9320, .n 9321, .n 9322, .n 9323, .n 354, .n 355, .n 356, .n 357] [.n 9324, .n 9325, .n 9326, .n 9327, .n 9328, .n 9329, .n 9330, .n 9331, .n 9332, .n 9333, .n 9334, .n 9335, .n 9336] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9337, .n 9338]))) ::
+  .atom (.add (.n 9339) (.n 9324) (.n 9337)) ::
+  .atom (.add (.n 9340) (.n 9337) (.n 9338)) ::
+  .atom (.mul (.n 9339) (.n 649) (.n 9340)) ::
+  .atom (.const (.n 9341) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9342) (.n 1373) (.n 9341)) ::
+  .atom (.const (.n 9343) (word 33554432 33554432 0)) ::
+  .atom (.add (.n 9344) (.n 9342) (.n 9343)) ::
+  .atom (.copy (.n 9345) (.n 9338)) ::
+  .atom (.const (.n 9346) (word 1 0 0)) ::
+  .atom (.const (.n 9347) (word 0 0 0)) ::
+  .atom (.const (.n 9348) (word 0 0 0)) ::
+  .atom (.const (.n 9349) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9344, .n 9337, .n 9345, .n 9346, .n 9347, .n 9348, .n 9349, .n 354, .n 355, .n 356, .n 357] [.n 9350, .n 9351, .n 9352, .n 9353, .n 9354, .n 9355, .n 9356, .n 9357, .n 9358, .n 9359, .n 9360, .n 9361, .n 9362] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9363, .n 9364]))) ::
+  .atom (.add (.n 9365) (.n 9350) (.n 9363)) ::
+  .atom (.add (.n 9366) (.n 9363) (.n 9364)) ::
+  .atom (.mul (.n 9365) (.n 650) (.n 9366)) ::
+  .atom (.const (.n 9367) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9368) (.n 1370) (.n 9367)) ::
+  .atom (.const (.n 9369) (word 33554432 50331648 0)) ::
+  .atom (.add (.n 9370) (.n 9368) (.n 9369)) ::
+  .atom (.copy (.n 9371) (.n 9364)) ::
+  .atom (.const (.n 9372) (word 1 0 0)) ::
+  .atom (.const (.n 9373) (word 0 0 0)) ::
+  .atom (.const (.n 9374) (word 0 0 0)) ::
+  .atom (.const (.n 9375) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9370, .n 9363, .n 9371, .n 9372, .n 9373, .n 9374, .n 9375, .n 354, .n 355, .n 356, .n 357] [.n 9376, .n 9377, .n 9378, .n 9379, .n 9380, .n 9381, .n 9382, .n 9383, .n 9384, .n 9385, .n 9386, .n 9387, .n 9388] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9389, .n 9390]))) ::
+  .atom (.add (.n 9391) (.n 9376) (.n 9389)) ::
+  .atom (.add (.n 9392) (.n 9389) (.n 9390)) ::
+  .atom (.mul (.n 9391) (.n 651) (.n 9392)) ::
+  .atom (.const (.n 9393) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9394) (.n 1367) (.n 9393)) ::
+  .atom (.const (.n 9395) (word 33554432 67108864 0)) ::
+  .atom (.add (.n 9396) (.n 9394) (.n 9395)) ::
+  .atom (.copy (.n 9397) (.n 9390)) ::
+  .atom (.const (.n 9398) (word 1 0 0)) ::
+  .atom (.const (.n 9399) (word 0 0 0)) ::
+  .atom (.const (.n 9400) (word 0 0 0)) ::
+  .atom (.const (.n 9401) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9396, .n 9389, .n 9397, .n 9398, .n 9399, .n 9400, .n 9401, .n 354, .n 355, .n 356, .n 357] [.n 9402, .n 9403, .n 9404, .n 9405, .n 9406, .n 9407, .n 9408, .n 9409, .n 9410, .n 9411, .n 9412, .n 9413, .n 9414] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9415, .n 9416]))) ::
+  .atom (.add (.n 9417) (.n 9402) (.n 9415)) ::
+  .atom (.add (.n 9418) (.n 9415) (.n 9416)) ::
+  .atom (.mul (.n 9417) (.n 652) (.n 9418)) ::
+  .atom (.const (.n 9419) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9420) (.n 1364) (.n 9419)) ::
+  .atom (.const (.n 9421) (word 33554432 83886080 0)) ::
+  .atom (.add (.n 9422) (.n 9420) (.n 9421)) ::
+  .atom (.copy (.n 9423) (.n 9416)) ::
+  .atom (.const (.n 9424) (word 1 0 0)) ::
+  .atom (.const (.n 9425) (word 0 0 0)) ::
+  .atom (.const (.n 9426) (word 0 0 0)) ::
+  .atom (.const (.n 9427) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9422, .n 9415, .n 9423, .n 9424, .n 9425, .n 9426, .n 9427, .n 354, .n 355, .n 356, .n 357] [.n 9428, .n 9429, .n 9430, .n 9431, .n 9432, .n 9433, .n 9434, .n 9435, .n 9436, .n 9437, .n 9438, .n 9439, .n 9440] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9441, .n 9442]))) ::
+  .atom (.add (.n 9443) (.n 9428) (.n 9441)) ::
+  .atom (.add (.n 9444) (.n 9441) (.n 9442)) ::
+  .atom (.mul (.n 9443) (.n 653) (.n 9444)) ::
+  .atom (.const (.n 9445) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9446) (.n 1361) (.n 9445)) ::
+  .atom (.const (.n 9447) (word 33554432 100663296 0)) ::
+  .atom (.add (.n 9448) (.n 9446) (.n 9447)) ::
+  .atom (.copy (.n 9449) (.n 9442)) ::
+  .atom (.const (.n 9450) (word 1 0 0)) ::
+  .atom (.const (.n 9451) (word 0 0 0)) ::
+  .atom (.const (.n 9452) (word 0 0 0)) ::
+  .atom (.const (.n 9453) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9448, .n 9441, .n 9449, .n 9450, .n 9451, .n 9452, .n 9453, .n 354, .n 355, .n 356, .n 357] [.n 9454, .n 9455, .n 9456, .n 9457, .n 9458, .n 9459, .n 9460, .n 9461, .n 9462, .n 9463, .n 9464, .n 9465, .n 9466] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9467, .n 9468]))) ::
+  .atom (.add (.n 9469) (.n 9454) (.n 9467)) ::
+  .atom (.add (.n 9470) (.n 9467) (.n 9468)) ::
+  .atom (.mul (.n 9469) (.n 654) (.n 9470)) ::
+  .atom (.const (.n 9471) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9472) (.n 1358) (.n 9471)) ::
+  .atom (.const (.n 9473) (word 33554432 117440512 0)) ::
+  .atom (.add (.n 9474) (.n 9472) (.n 9473)) ::
+  .atom (.copy (.n 9475) (.n 9468)) ::
+  .atom (.const (.n 9476) (word 1 0 0)) ::
+  .atom (.const (.n 9477) (word 0 0 0)) ::
+  .atom (.const (.n 9478) (word 0 0 0)) ::
+  .atom (.const (.n 9479) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9474, .n 9467, .n 9475, .n 9476, .n 9477, .n 9478, .n 9479, .n 354, .n 355, .n 356, .n 357] [.n 9480, .n 9481, .n 9482, .n 9483, .n 9484, .n 9485, .n 9486, .n 9487, .n 9488, .n 9489, .n 9490, .n 9491, .n 9492] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9493, .n 9494]))) ::
+  .atom (.add (.n 9495) (.n 9480) (.n 9493)) ::
+  .atom (.add (.n 9496) (.n 9493) (.n 9494)) ::
+  .atom (.mul (.n 9495) (.n 655) (.n 9496)) ::
+  .atom (.const (.n 9497) (word 33554432 134217728 0)) ::
+  .atom (.copy (.n 9498) (.n 9494)) ::
+  .atom (.const (.n 9499) (word 1 0 0)) ::
+  .atom (.const (.n 9500) (word 0 0 0)) ::
+  .atom (.const (.n 9501) (word 0 0 0)) ::
+  .atom (.const (.n 9502) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9248, .n 9497, .n 9493, .n 9498, .n 9499, .n 9500, .n 9501, .n 9502, .n 354, .n 355, .n 356, .n 357] [.n 9503, .n 9504, .n 9505, .n 9506, .n 9507, .n 9508, .n 9509, .n 9510, .n 9511, .n 9512, .n 9513, .n 9514, .n 9515] false false) ::
+  .atom (.const (.n 9516) (word 72057594037927936 0 0)) ::
+  .atom (.mul (.n 9517) (.n 1620) (.n 9516)) ::
+  .atom (.const (.n 9518) (word 281474976710656 0 0)) ::
+  .atom (.mul (.n 9519) (.n 1383) (.n 9518)) ::
+  .atom (.add (.n 9520) (.n 9517) (.n 9519)) ::
+  .atom (.const (.n 9521) (word 33554432 0 0)) ::
+  .atom (.hint (.witness "sp_counter" (.stack [.n 9522, .n 9523, .n 9524, .n 9525]))) ::
+  .atom (.const (.n 9526) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9525) (.n 9527) (.n 9528) (.n 9529) (.n 9526)) ::
+  .atom (.mul (.n 9530) (.n 1) (.n 9525)) ::
+  .atom (.load (.n 9531) (.n 9530) 0) ::
+  .atom (.const (.n 9532) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9524) (.n 9533) (.n 9534) (.n 9535) (.n 9532)) ::
+  .atom (.mul (.n 9536) (.n 1) (.n 9524)) ::
+  .atom (.load (.n 9537) (.n 9536) 0) ::
+  .atom (.const (.n 9538) (word 256 0 0)) ::
+  .atom (.mul (.n 9539) (.n 9531) (.n 9538)) ::
+  .atom (.add (.n 9540) (.n 9537) (.n 9539)) ::
+  .atom (.const (.n 9541) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9523) (.n 9542) (.n 9543) (.n 9544) (.n 9541)) ::
+  .atom (.mul (.n 9545) (.n 1) (.n 9523)) ::
+  .atom (.load (.n 9546) (.n 9545) 0) ::
+  .atom (.const (.n 9547) (word 256 0 0)) ::
+  .atom (.mul (.n 9548) (.n 9540) (.n 9547)) ::
+  .atom (.add (.n 9549) (.n 9546) (.n 9548)) ::
+  .atom (.const (.n 9550) (word 9223372036854810629 0 0)) ::
+  .atom (.rangeCheck (.n 9522) (.n 9551) (.n 9552) (.n 9553) (.n 9550)) ::
+  .atom (.mul (.n 9554) (.n 1) (.n 9522)) ::
+  .atom (.load (.n 9555) (.n 9554) 0) ::
+  .atom (.const (.n 9556) (word 256 0 0)) ::
+  .atom (.mul (.n 9557) (.n 9549) (.n 9556)) ::
+  .atom (.add (.n 9558) (.n 9555) (.n 9557)) ::
+  .atom (.const (.n 9559) (word 117440512 0 0)) ::
+  .atom (.add (.n 9560) (.n 9520) (.n 9559)) ::
+  .atom (.const (.n 9561) (word 4294967296 0 0)) ::
+  .atom (.add (.n 9562) (.n 9558) (.n 9561)) ::
+  .atom (.copy (.n 9563) (.n 9562)) ::
+  .atom (.const (.n 9564) (word 0 0 0)) ::
+  .atom (.const (.n 9565) (word 0 0 0)) ::
+  .atom (.const (.n 9566) (word 0 0 0)) ::
+  .atom (.const (.n 9567) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9560, .n 9503, .n 9563, .n 9564, .n 9565, .n 9566, .n 9567, .n 354, .n 355, .n 356, .n 357] [.n 9568, .n 9569, .n 9570, .n 9571, .n 9572, .n 9573, .n 9574, .n 9575, .n 9576, .n 9577, .n 9578, .n 9579, .n 9580] false false) ::
+  .call "sp_wots" [.n 2, .n 9521, .n 9520, .n 9568] [.n 9581] ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9582, .n 9583]))) ::
+  .atom (.add (.n 9584) (.n 9581) (.n 9582)) ::
+  .atom (.add (.n 9585) (.n 9582) (.n 9583)) ::
+  .atom (.mul (.n 9584) (.n 640) (.n 9585)) ::
+  .atom (.const (.n 9586) (word 256 0 0)) ::
+  .atom (.mul (.n 9587) (.n 1380) (.n 9586)) ::
+  .atom (.add (.n 9588) (.n 1404) (.n 9587)) ::
+  .atom (.const (.n 9589) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9590) (.n 9588) (.n 9589)) ::
+  .atom (.const (.n 9591) (word 0 281474976710656 0)) ::
+  .atom (.mul (.n 9592) (.n 1380) (.n 9591)) ::
+  .atom (.add (.n 9593) (.n 9590) (.n 9592)) ::
+  .atom (.const (.n 9594) (word 33554432 16777216 0)) ::
+  .atom (.add (.n 9595) (.n 9593) (.n 9594)) ::
+  .atom (.copy (.n 9596) (.n 9583)) ::
+  .atom (.const (.n 9597) (word 1 0 0)) ::
+  .atom (.const (.n 9598) (word 0 0 0)) ::
+  .atom (.const (.n 9599) (word 0 0 0)) ::
+  .atom (.const (.n 9600) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9595, .n 9582, .n 9596, .n 9597, .n 9598, .n 9599, .n 9600, .n 354, .n 355, .n 356, .n 357] [.n 9601, .n 9602, .n 9603, .n 9604, .n 9605, .n 9606, .n 9607, .n 9608, .n 9609, .n 9610, .n 9611, .n 9612, .n 9613] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9614, .n 9615]))) ::
+  .atom (.add (.n 9616) (.n 9601) (.n 9614)) ::
+  .atom (.add (.n 9617) (.n 9614) (.n 9615)) ::
+  .atom (.mul (.n 9616) (.n 641) (.n 9617)) ::
+  .atom (.const (.n 9618) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9619) (.n 1401) (.n 9618)) ::
+  .atom (.const (.n 9620) (word 33554432 33554432 0)) ::
+  .atom (.add (.n 9621) (.n 9619) (.n 9620)) ::
+  .atom (.copy (.n 9622) (.n 9615)) ::
+  .atom (.const (.n 9623) (word 1 0 0)) ::
+  .atom (.const (.n 9624) (word 0 0 0)) ::
+  .atom (.const (.n 9625) (word 0 0 0)) ::
+  .atom (.const (.n 9626) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9621, .n 9614, .n 9622, .n 9623, .n 9624, .n 9625, .n 9626, .n 354, .n 355, .n 356, .n 357] [.n 9627, .n 9628, .n 9629, .n 9630, .n 9631, .n 9632, .n 9633, .n 9634, .n 9635, .n 9636, .n 9637, .n 9638, .n 9639] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9640, .n 9641]))) ::
+  .atom (.add (.n 9642) (.n 9627) (.n 9640)) ::
+  .atom (.add (.n 9643) (.n 9640) (.n 9641)) ::
+  .atom (.mul (.n 9642) (.n 642) (.n 9643)) ::
+  .atom (.const (.n 9644) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9645) (.n 1398) (.n 9644)) ::
+  .atom (.const (.n 9646) (word 33554432 50331648 0)) ::
+  .atom (.add (.n 9647) (.n 9645) (.n 9646)) ::
+  .atom (.copy (.n 9648) (.n 9641)) ::
+  .atom (.const (.n 9649) (word 1 0 0)) ::
+  .atom (.const (.n 9650) (word 0 0 0)) ::
+  .atom (.const (.n 9651) (word 0 0 0)) ::
+  .atom (.const (.n 9652) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9647, .n 9640, .n 9648, .n 9649, .n 9650, .n 9651, .n 9652, .n 354, .n 355, .n 356, .n 357] [.n 9653, .n 9654, .n 9655, .n 9656, .n 9657, .n 9658, .n 9659, .n 9660, .n 9661, .n 9662, .n 9663, .n 9664, .n 9665] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9666, .n 9667]))) ::
+  .atom (.add (.n 9668) (.n 9653) (.n 9666)) ::
+  .atom (.add (.n 9669) (.n 9666) (.n 9667)) ::
+  .atom (.mul (.n 9668) (.n 643) (.n 9669)) ::
+  .atom (.const (.n 9670) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9671) (.n 1395) (.n 9670)) ::
+  .atom (.const (.n 9672) (word 33554432 67108864 0)) ::
+  .atom (.add (.n 9673) (.n 9671) (.n 9672)) ::
+  .atom (.copy (.n 9674) (.n 9667)) ::
+  .atom (.const (.n 9675) (word 1 0 0)) ::
+  .atom (.const (.n 9676) (word 0 0 0)) ::
+  .atom (.const (.n 9677) (word 0 0 0)) ::
+  .atom (.const (.n 9678) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9673, .n 9666, .n 9674, .n 9675, .n 9676, .n 9677, .n 9678, .n 354, .n 355, .n 356, .n 357] [.n 9679, .n 9680, .n 9681, .n 9682, .n 9683, .n 9684, .n 9685, .n 9686, .n 9687, .n 9688, .n 9689, .n 9690, .n 9691] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9692, .n 9693]))) ::
+  .atom (.add (.n 9694) (.n 9679) (.n 9692)) ::
+  .atom (.add (.n 9695) (.n 9692) (.n 9693)) ::
+  .atom (.mul (.n 9694) (.n 644) (.n 9695)) ::
+  .atom (.const (.n 9696) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9697) (.n 1392) (.n 9696)) ::
+  .atom (.const (.n 9698) (word 33554432 83886080 0)) ::
+  .atom (.add (.n 9699) (.n 9697) (.n 9698)) ::
+  .atom (.copy (.n 9700) (.n 9693)) ::
+  .atom (.const (.n 9701) (word 1 0 0)) ::
+  .atom (.const (.n 9702) (word 0 0 0)) ::
+  .atom (.const (.n 9703) (word 0 0 0)) ::
+  .atom (.const (.n 9704) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9699, .n 9692, .n 9700, .n 9701, .n 9702, .n 9703, .n 9704, .n 354, .n 355, .n 356, .n 357] [.n 9705, .n 9706, .n 9707, .n 9708, .n 9709, .n 9710, .n 9711, .n 9712, .n 9713, .n 9714, .n 9715, .n 9716, .n 9717] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9718, .n 9719]))) ::
+  .atom (.add (.n 9720) (.n 9705) (.n 9718)) ::
+  .atom (.add (.n 9721) (.n 9718) (.n 9719)) ::
+  .atom (.mul (.n 9720) (.n 645) (.n 9721)) ::
+  .atom (.const (.n 9722) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9723) (.n 1389) (.n 9722)) ::
+  .atom (.const (.n 9724) (word 33554432 100663296 0)) ::
+  .atom (.add (.n 9725) (.n 9723) (.n 9724)) ::
+  .atom (.copy (.n 9726) (.n 9719)) ::
+  .atom (.const (.n 9727) (word 1 0 0)) ::
+  .atom (.const (.n 9728) (word 0 0 0)) ::
+  .atom (.const (.n 9729) (word 0 0 0)) ::
+  .atom (.const (.n 9730) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9725, .n 9718, .n 9726, .n 9727, .n 9728, .n 9729, .n 9730, .n 354, .n 355, .n 356, .n 357] [.n 9731, .n 9732, .n 9733, .n 9734, .n 9735, .n 9736, .n 9737, .n 9738, .n 9739, .n 9740, .n 9741, .n 9742, .n 9743] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9744, .n 9745]))) ::
+  .atom (.add (.n 9746) (.n 9731) (.n 9744)) ::
+  .atom (.add (.n 9747) (.n 9744) (.n 9745)) ::
+  .atom (.mul (.n 9746) (.n 646) (.n 9747)) ::
+  .atom (.const (.n 9748) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9749) (.n 1386) (.n 9748)) ::
+  [])
+
+/-- `verify_sig_lean_sphincs`: statements 6071 to 6119 of the body. -/
+noncomputable def c14 : List Core.Stmt := (
+  .atom (.const (.n 9750) (word 33554432 117440512 0)) ::
+  .atom (.add (.n 9751) (.n 9749) (.n 9750)) ::
+  .atom (.copy (.n 9752) (.n 9745)) ::
+  .atom (.const (.n 9753) (word 1 0 0)) ::
+  .atom (.const (.n 9754) (word 0 0 0)) ::
+  .atom (.const (.n 9755) (word 0 0 0)) ::
+  .atom (.const (.n 9756) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9751, .n 9744, .n 9752, .n 9753, .n 9754, .n 9755, .n 9756, .n 354, .n 355, .n 356, .n 357] [.n 9757, .n 9758, .n 9759, .n 9760, .n 9761, .n 9762, .n 9763, .n 9764, .n 9765, .n 9766, .n 9767, .n 9768, .n 9769] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9770, .n 9771]))) ::
+  .atom (.add (.n 9772) (.n 9757) (.n 9770)) ::
+  .atom (.add (.n 9773) (.n 9770) (.n 9771)) ::
+  .atom (.mul (.n 9772) (.n 647) (.n 9773)) ::
+  .atom (.const (.n 9774) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9775) (.n 1383) (.n 9774)) ::
+  .atom (.const (.n 9776) (word 33554432 134217728 0)) ::
+  .atom (.add (.n 9777) (.n 9775) (.n 9776)) ::
+  .atom (.copy (.n 9778) (.n 9771)) ::
+  .atom (.const (.n 9779) (word 1 0 0)) ::
+  .atom (.const (.n 9780) (word 0 0 0)) ::
+  .atom (.const (.n 9781) (word 0 0 0)) ::
+  .atom (.const (.n 9782) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9777, .n 9770, .n 9778, .n 9779, .n 9780, .n 9781, .n 9782, .n 354, .n 355, .n 356, .n 357] [.n 9783, .n 9784, .n 9785, .n 9786, .n 9787, .n 9788, .n 9789, .n 9790, .n 9791, .n 9792, .n 9793, .n 9794, .n 9795] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9796, .n 9797]))) ::
+  .atom (.add (.n 9798) (.n 9783) (.n 9796)) ::
+  .atom (.add (.n 9799) (.n 9796) (.n 9797)) ::
+  .atom (.mul (.n 9798) (.n 632) (.n 9799)) ::
+  .atom (.const (.n 9800) (word 0 72057594037927936 0)) ::
+  .atom (.mul (.n 9801) (.n 1380) (.n 9800)) ::
+  .atom (.const (.n 9802) (word 33554432 150994944 0)) ::
+  .atom (.add (.n 9803) (.n 9801) (.n 9802)) ::
+  .atom (.copy (.n 9804) (.n 9797)) ::
+  .atom (.const (.n 9805) (word 1 0 0)) ::
+  .atom (.const (.n 9806) (word 0 0 0)) ::
+  .atom (.const (.n 9807) (word 0 0 0)) ::
+  .atom (.const (.n 9808) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9803, .n 9796, .n 9804, .n 9805, .n 9806, .n 9807, .n 9808, .n 354, .n 355, .n 356, .n 357] [.n 9809, .n 9810, .n 9811, .n 9812, .n 9813, .n 9814, .n 9815, .n 9816, .n 9817, .n 9818, .n 9819, .n 9820, .n 9821] false false) ::
+  .atom (.hint (.witness "siblings" (.stack [.n 9822, .n 9823]))) ::
+  .atom (.add (.n 9824) (.n 9809) (.n 9822)) ::
+  .atom (.add (.n 9825) (.n 9822) (.n 9823)) ::
+  .atom (.mul (.n 9824) (.n 633) (.n 9825)) ::
+  .atom (.const (.n 9826) (word 33554432 167772160 0)) ::
+  .atom (.copy (.n 9827) (.n 9823)) ::
+  .atom (.const (.n 9828) (word 1 0 0)) ::
+  .atom (.const (.n 9829) (word 0 0 0)) ::
+  .atom (.const (.n 9830) (word 0 0 0)) ::
+  .atom (.const (.n 9831) (word 9223372036854775808 0 0)) ::
+  .atom (.keccak [.n 2, .n 9521, .n 9826, .n 9822, .n 9827, .n 9828, .n 9829, .n 9830, .n 9831, .n 354, .n 355, .n 356, .n 357] [.n 9832, .n 9833, .n 9834, .n 9835, .n 9836, .n 9837, .n 9838, .n 9839, .n 9840, .n 9841, .n 9842, .n 9843, .n 9844] false false) ::
+  .atom (.assertEq (.n 9832) (.n 3)) ::
   .ret [] ::
   [])
 
 /-- `verify_sig_lean_sphincs`: the body. -/
-noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3 ++ c4 ++ c5 ++ c6 ++ c7 ++ c8 ++ c9 ++ c10
+noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3 ++ c4 ++ c5 ++ c6 ++ c7 ++ c8 ++ c9 ++ c10 ++ c11 ++ c12 ++ c13 ++ c14
 
 end core20
 

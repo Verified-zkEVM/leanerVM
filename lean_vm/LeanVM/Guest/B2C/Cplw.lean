@@ -29,9 +29,11 @@ public import LeanVM.Guest.B2C.Cplw.C20_10_0
 public import LeanVM.Guest.B2C.Cplw.C20_16_0
 public import LeanVM.Guest.B2C.Cplw.C21_3_0
 public import LeanVM.Guest.B2C.Cplw.C21_11_0
-public import LeanVM.Guest.B2C.Cplw.C21_18_1
-public import LeanVM.Guest.B2C.Cplw.C28_0_0
-public import LeanVM.Guest.B2C.Cplw.C35_0_0
+public import LeanVM.Guest.B2C.Cplw.C21_19_0
+public import LeanVM.Guest.B2C.Cplw.C21_27_0
+public import LeanVM.Guest.B2C.Cplw.C22_0_0
+public import LeanVM.Guest.B2C.Cplw.C30_0_0
+public import LeanVM.Guest.B2C.Cplw.C37_0_0
 public import LeanVM.Guest.B2C.Cplw.C37_1_0
 public import LeanVM.Guest.B2C.Cplw.C37_2_0
 public import LeanVM.Guest.B2C.Cplw.C37_3_0
@@ -499,7 +501,7 @@ theorem ok20 : CplOk 20 := by
 
 theorem ok21 : CplOk 21 := by
   intro i hi k hk
-  have hc : (certOf 21).cuts.length = 19 := by decide +kernel
+  have hc : (certOf 21).cuts.length = 32 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 21 0 = 1 := by decide +kernel
@@ -574,15 +576,67 @@ theorem ok21 : CplOk 21 := by
     rw [hn] at hk
     interval_cases k
     · exact cw21_17_0
-  · have hn : nParts 21 18 = 2 := by decide +kernel
+  · have hn : nParts 21 18 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw21_18_0
-    · exact cw21_18_1
   · have hn : nParts 21 19 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw21_19_0
+  · have hn : nParts 21 20 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_20_0
+  · have hn : nParts 21 21 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_21_0
+  · have hn : nParts 21 22 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_22_0
+  · have hn : nParts 21 23 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_23_0
+  · have hn : nParts 21 24 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_24_0
+  · have hn : nParts 21 25 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_25_0
+  · have hn : nParts 21 26 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_26_0
+  · have hn : nParts 21 27 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_27_0
+  · have hn : nParts 21 28 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_28_0
+  · have hn : nParts 21 29 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_29_0
+  · have hn : nParts 21 30 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_30_0
+    · exact cw21_30_1
+  · have hn : nParts 21 31 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_31_0
+  · have hn : nParts 21 32 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw21_32_0
 
 theorem ok37 : CplOk 37 := by
   intro i hi k hk
