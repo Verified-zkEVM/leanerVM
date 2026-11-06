@@ -74,27 +74,27 @@ theorem claims_digest {α : Type} (dec : E → E → E → E → α) (bytes : α
   rfl
 
 theorem xmss_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
-    claimListDigest ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
+    claimListDigest xmssPublicKeyBytes ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
   unfold claimListDigest claimListPreimage
-  rw [← claims_digest Sig.xmssClaimOf (fun c : LeanXmssClaim => claimBytes c.1.root c.1.parameter c.2)
+  rw [← claims_digest Sig.xmssClaimOf (fun c : LeanXmssClaim => claimBytesOf c.1.root c.1.parameter c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
   rfl
 
 theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
-    claimListDigest ((List.range n).map fun j => sphincsAt rd p (o j)) =
+    claimListDigest Sphincs.PublicKey.toBytes ((List.range n).map fun j => sphincsAt rd p (o j)) =
       keccak256 (cellsBytes cells) := by
   unfold claimListDigest claimListPreimage
   rw [← claims_digest Sig.sphincsClaimOf
-    (fun c : LeanSphincsClaim => claimBytes c.1.root c.1.parameter c.2)
+    (fun c : LeanSphincsClaim => claimBytesOf c.1.publicSeed c.1.root c.2)
     (fun a b c d => claimBytes_cells a b c d) h]
   rfl
 
 theorem xmss_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
-    claimListDigest ((List.range n).map (xmssAt rd p)) = keccak256 (cellsBytes cells) :=
+    claimListDigest xmssPublicKeyBytes ((List.range n).map (xmssAt rd p)) = keccak256 (cellsBytes cells) :=
   xmss_digest h
 
 theorem sphincs_digest_id {p : E} {n : ℕ} {cells : List E} (h : SlotsHold rd p id n cells) :
-    claimListDigest ((List.range n).map (sphincsAt rd p)) = keccak256 (cellsBytes cells) :=
+    claimListDigest Sphincs.PublicKey.toBytes ((List.range n).map (sphincsAt rd p)) = keccak256 (cellsBytes cells) :=
   sphincs_digest h
 
 /-! ## DA digests -/
@@ -131,8 +131,8 @@ theorem cellsBytes_eight (a b c d e f g h : E) :
 /-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
 theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y0 y1 d0 d1 : E}
     {defer : List E} (hseed : digestBytes seed = cellsBytes [s0, s1])
-    (hx : digestBytes (claimListDigest s.claims.xmss) = cellsBytes [x0, x1])
-    (hs : digestBytes (claimListDigest s.claims.sphincs) = cellsBytes [y0, y1])
+    (hx : digestBytes (claimListDigest xmssPublicKeyBytes s.claims.xmss) = cellsBytes [x0, x1])
+    (hs : digestBytes (claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs) = cellsBytes [y0, y1])
     (hda : digestBytes s.claims.daDigest = cellsBytes [d0, d1])
     (hdef : s.deferredClaim.cells = defer) (hlen : defer.length = 24) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by

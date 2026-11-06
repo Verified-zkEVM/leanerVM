@@ -40,12 +40,12 @@ theorem cellBytes_cellOfBytes {b : List UInt8} (h : 16 ≤ b.length) :
     kBytes_kOfBytes (by rw [List.length_drop]; omega)]
   exact (List.take_add (l := b) (i := 8) (j := 8)).symm
 
-theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytes r p m).length = 64 := by
-  simp [claimBytes, HashSig.littleEndianBytes]
+theorem length_claimBytes (r p : BitVec 128) (m : BitVec 256) : (claimBytesOf r p m).length = 64 := by
+  simp [claimBytesOf, HashSig.littleEndianBytes]
 
 theorem kid_claimCells_eq (r p : BitVec 128) (m : BitVec 256) :
-    claimCells r p m = [cellOfBytes (claimBytes r p m), cellOfBytes ((claimBytes r p m).drop 16),
-      cellOfBytes ((claimBytes r p m).drop 32), cellOfBytes ((claimBytes r p m).drop 48)] := by
+    claimCells r p m = [cellOfBytes (claimBytesOf r p m), cellOfBytes ((claimBytesOf r p m).drop 16),
+      cellOfBytes ((claimBytesOf r p m).drop 32), cellOfBytes ((claimBytesOf r p m).drop 48)] := by
   rw [claimCells, cellsOfBytes, length_claimBytes]
   rfl
 
@@ -61,7 +61,7 @@ theorem take16_chain {b : List UInt8} (h : b.length = 64) :
 
 /-- **A claim's four cells are its 64 bytes.** -/
 theorem cellsBytes_claimCells (r p : BitVec 128) (m : BitVec 256) :
-    cellsBytes (claimCells r p m) = claimBytes r p m := by
+    cellsBytes (claimCells r p m) = claimBytesOf r p m := by
   have hl := length_claimBytes r p m
   rw [kid_claimCells_eq]
   simp only [cellsBytes, List.flatMap_cons, List.flatMap_nil, List.append_nil]
@@ -80,7 +80,7 @@ theorem claimCells_canonical (r p : BitVec 128) (m : BitVec 256) :
 /-! ## The lists' digests are their cells' -/
 
 theorem xmssList_cells (l : List LeanXmssClaim) :
-    claimListDigest l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+    claimListDigest xmssPublicKeyBytes l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
   unfold claimListDigest claimListPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
@@ -89,8 +89,8 @@ theorem xmssList_cells (l : List LeanXmssClaim) :
   exact (cellsBytes_claimCells _ _ _).symm
 
 theorem sphincsList_cells (l : List LeanSphincsClaim) :
-    claimListDigest l =
-      keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+    claimListDigest Sphincs.PublicKey.toBytes l =
+      keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.publicSeed c.1.root c.2)) := by
   unfold claimListDigest claimListPreimage
   congr 1
   simp only [cellsBytes, List.flatMap_assoc]
@@ -146,8 +146,8 @@ def hKid (c : ℕ) : KidH where
   ex := hEx w c
   es := hEs w c
   base := gen ^ hW s w c
-  cx := (w.children.map fun ch => digestHalves (claimListDigest ch.statement.claims.xmss)).getD c (0, 0)
-  cs := (w.children.map fun ch => digestHalves (claimListDigest ch.statement.claims.sphincs)).getD c
+  cx := (w.children.map fun ch => digestHalves (claimListDigest xmssPublicKeyBytes ch.statement.claims.xmss)).getD c (0, 0)
+  cs := (w.children.map fun ch => digestHalves (claimListDigest Sphincs.PublicKey.toBytes ch.statement.claims.sphincs)).getD c
     (0, 0)
   da := (w.children.map fun ch => digestHalves ch.statement.claims.daDigest).getD c (0, 0)
   defer := (w.children.map fun ch => ch.statement.deferredClaim.cells).getD c []
@@ -165,11 +165,11 @@ theorem hKid_es {c : ℕ} (hc : c < w.children.length) :
     (hKid s w c).es = w.children[c].statement.claims.sphincs.length := getD_map_lt _ _ _ hc
 
 theorem hKid_cx {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cx = digestHalves (claimListDigest w.children[c].statement.claims.xmss) :=
+    (hKid s w c).cx = digestHalves (claimListDigest xmssPublicKeyBytes w.children[c].statement.claims.xmss) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_cs {c : ℕ} (hc : c < w.children.length) :
-    (hKid s w c).cs = digestHalves (claimListDigest w.children[c].statement.claims.sphincs) :=
+    (hKid s w c).cs = digestHalves (claimListDigest Sphincs.PublicKey.toBytes w.children[c].statement.claims.sphincs) :=
   getD_map_lt _ _ _ hc
 
 theorem hKid_da {c : ℕ} (hc : c < w.children.length) :

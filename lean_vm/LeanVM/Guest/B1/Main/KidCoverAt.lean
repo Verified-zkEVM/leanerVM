@@ -51,8 +51,8 @@ theorem statement_completeAt {Lin : Layout} {args rets : List E}
 /-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
 theorem statementDigest_of_parts {seed : Digest} {s : NodeStatement}
     {s0 s1 x0 x1 y0 y1 d0 d1 : E} {defer : List E} (hseed : digestBytes seed = cellsBytes [s0, s1])
-    (hx : digestBytes (claimListDigest s.claims.xmss) = cellsBytes [x0, x1])
-    (hs : digestBytes (claimListDigest s.claims.sphincs) = cellsBytes [y0, y1])
+    (hx : digestBytes (claimListDigest xmssPublicKeyBytes s.claims.xmss) = cellsBytes [x0, x1])
+    (hs : digestBytes (claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs) = cellsBytes [y0, y1])
     (hda : digestBytes s.claims.daDigest = cellsBytes [d0, d1])
     (hdef : s.deferredClaim.cells = defer) (hlen : defer.length = 24) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by

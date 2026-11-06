@@ -71,7 +71,7 @@ structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
 /-- **The raw leanSPHINCS signatures' honest data.** -/
 structure RawSData (nrs Y X nrx cv tb bb : ℕ) (Lin : Layout) where
   slot : ℕ → ℕ
-  pk : ℕ → HashSig.PublicKey
+  pk : ℕ → Sphincs.PublicKey
   msg : ℕ → HashSig.Message
   sig : ℕ → Sphincs.Signature
   slot_lt : ∀ j < nrs, slot j < Y
@@ -79,8 +79,8 @@ structure RawSData (nrs Y X nrx cv tb bb : ℕ) (Lin : Layout) where
   cover : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ j < nrs,
     LoadHolds rd (gen ^ cv) (X + slot j) (gen ^ (nrx + j))
   claim : ∀ rd, LowDef 16 rd → MemL rd Lin → ∀ j < nrs,
-    Sig.ClaimAt rd (gen ^ (tb + 4 * slot j)) (Sig.cellOf128 (pk j).root)
-      (Sig.cellOf128 (pk j).parameter) (Sig.cellOf128 ((msg j).extractLsb' 0 128))
+    Sig.ClaimAt rd (gen ^ (tb + 4 * slot j)) (Sig.cellOf128 (pk j).publicSeed)
+      (Sig.cellOf128 (pk j).root) (Sig.cellOf128 ((msg j).extractLsb' 0 128))
       (Sig.cellOf128 ((msg j).extractLsb' 128 128))
   bytes : ∀ rd, LowDef 16 rd → MemL rd Lin → Sig.ByteBits rd (gen ^ bb)
   regCover : ∀ j < nrs, RegionL Lin (cv + (X + slot j))

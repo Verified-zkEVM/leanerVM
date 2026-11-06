@@ -188,8 +188,8 @@ theorem ss_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {j : ℕ}
 theorem ss_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
     (d0 : LeanSphincsClaim × Sphincs.Signature) {j : ℕ} (hj : j < (hRawS s w).length) :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 1 + 4 * (slotsOf (sPlan s w)).getD j 0))
+      (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.publicSeed)
       (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.root)
-      (Sig.cellOf128 ((hRawS s w).getD j d0).1.1.parameter)
       (Sig.cellOf128 (((hRawS s w).getD j d0).1.2.extractLsb' 0 128))
       (Sig.cellOf128 (((hRawS s w).getD j d0).1.2.extractLsb' 128 128)) := by
   obtain ⟨hk, hc⟩ := sslot hj

@@ -132,7 +132,7 @@ theorem reads_buf (fs : String → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStat
     ReadsAt rd (gen ^ hP fs fp seed s w 0)
       ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap fun c => claimCells c.1.root c.1.parameter c.2) ∧
     ReadsAt rd (gen ^ hP fs fp seed s w 1)
-      ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap fun c => claimCells c.1.root c.1.parameter c.2) ∧
+      ((s.claims.sphincs ++ (sPlan s w).duplicates).flatMap fun c => claimCells c.1.publicSeed c.1.root c.2) ∧
     ReadsAt rd (gen ^ hP fs fp seed s w 2) (hCover s w) ∧
     ReadsAt rd (gen ^ hP fs fp seed s w 4)
       ((w.children.map (·.statement.claims.daDigest) ++ [hOwnDa w]).flatMap B1.Digest.digestCells) ∧

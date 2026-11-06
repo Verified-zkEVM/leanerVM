@@ -74,10 +74,10 @@ theorem own_digest (MF : MainFacts C rd σ) :
     unfold decStmt; simp only [gLog_lg]
   have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
-  have hxd : digestBytes (claimListDigest (decStmt σ rd).claims.xmss) =
+  have hxd : digestBytes (claimListDigest xmssPublicKeyBytes (decStmt σ rd).claims.xmss) =
       cellsBytes [σ (.n 56), σ (.n 57)] := by
     rw [eX, hx]; exact digestBytes_of_cells hdx
-  have hsd : digestBytes (claimListDigest (decStmt σ rd).claims.sphincs) =
+  have hsd : digestBytes (claimListDigest Sphincs.PublicKey.toBytes (decStmt σ rd).claims.sphincs) =
       cellsBytes [σ (.n 58), σ (.n 59)] := by
     rw [eS, hs]; exact digestBytes_of_cells hds
   have hda : digestBytes (decStmt σ rd).claims.daDigest = cellsBytes [σ (.n 476), σ (.n 477)] := by
@@ -113,11 +113,11 @@ theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     ⟨k.xlen, fun j hj i hi => (k.xrec j hj).2.2 i hi⟩
   have hs := sphincs_digest (o := (K c).os) (n := (K c).es) (p := σ (.n 55))
     ⟨k.slen, fun j hj i hi => (k.srec j hj).2.2 i hi⟩
-  have hxd : digestBytes (claimListDigest
+  have hxd : digestBytes (claimListDigest xmssPublicKeyBytes
       ((List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j))) =
       cellsBytes [(K c).cx0, (K c).cx1] := by
     rw [hx]; exact digestBytes_of_cells k.xdig
-  have hsd : digestBytes (claimListDigest
+  have hsd : digestBytes (claimListDigest Sphincs.PublicKey.toBytes
       ((List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j))) =
       cellsBytes [(K c).cs0, (K c).cs1] := by
     rw [hs]; exact digestBytes_of_cells k.sdig

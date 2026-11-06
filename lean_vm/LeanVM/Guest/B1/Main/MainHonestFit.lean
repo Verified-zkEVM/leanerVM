@@ -76,7 +76,7 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation b
   · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.X]
-  · rw [length_flatMap_const _ (fun c : LeanSphincsClaim => claimCells c.1.root c.1.parameter c.2) 4
+  · rw [length_flatMap_const _ (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2) 4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.Y]
   · exact length_hCover
