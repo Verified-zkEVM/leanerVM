@@ -57,6 +57,129 @@ theorem treeBytes_eq (tree : ℕ) (htree : tree < 2 ^ 64) :
     try rw [Nat.div_eq_of_lt (by omega)]
     try simp
 
+/-! ## Layers, indices and addresses -/
+
+/-- A model layer (`0` the top) as the statement's layer (`0` the bottom). -/
+def toLayer (lay : FORS.Layer) : Layer :=
+  ⟨2 - lay.val, by have := lay.isLt; unfold layerCount; omega⟩
+
+/-- A statement layer as the model's. -/
+def ofLayer (layer : Layer) : FORS.Layer :=
+  ⟨2 - layer.val, by have := layer.isLt; unfold layerCount at this; show _ < 3; omega⟩
+
+theorem toLayer_ofLayer (layer : Layer) : toLayer (ofLayer layer) = layer := by
+  have := layer.isLt; unfold layerCount at this
+  apply Fin.ext; simp only [toLayer, ofLayer]; omega
+
+theorem ofLayer_toLayer (lay : FORS.Layer) : ofLayer (toLayer lay) = lay := by
+  have := lay.isLt; change _ < 3 at this
+  apply Fin.ext; simp only [toLayer, ofLayer]; omega
+
+theorem layerHeight_toLayer (lay : FORS.Layer) :
+    layerHeight (toLayer lay) = FORS.layerHeight lay := by
+  rcases lay with ⟨_ | _ | _ | n, h⟩ <;> first | rfl | (change _ < 3 at h; omega)
+
+theorem layerByte_eq (lay : FORS.Layer) : FORS.layerByte lay = (toLayer lay).val := rfl
+
+theorem maxLayerHeight_eq : FORS.maxLayerHeight = 10 := rfl
+
+/-- A model leaf (of any layer) as the statement's. -/
+def toLeaf (leaf : FORS.LeafIndex) : TreeLeafIndex := ⟨leaf.val, leaf.isLt⟩
+
+theorem treeIndexAt_eq (index : FORS.Index) (lay : FORS.Layer) :
+    FORS.Concrete.treeIndexAt index lay = treeOfIndex (toLayer lay) index := by
+  apply Fin.ext
+  fin_cases lay <;> rfl
+
+theorem leafIndexAt_eq (index : FORS.Index) (lay : FORS.Layer) :
+    toLeaf (FORS.Concrete.leafIndexAt index lay) = leafOfIndex (toLayer lay) index := by
+  apply Fin.ext
+  fin_cases lay <;> rfl
+
+/-- **An address's bytes**: the model's fields, the tree below `2^64`, are the statement's address
+of the type whose word is the model's tag. -/
+theorem fieldBytes_tweakFields (addressType : AddressType) (layer tree keyPair height index : ℕ)
+    (htree : tree < 2 ^ 64) :
+    FORS.fieldBytes (FORS.tweakFields addressType.word layer tree keyPair height index) =
+      (makeAddress layer tree addressType keyPair height index).toBytes := by
+  simp only [FORS.fieldBytes, FORS.tweakFields, Address.toBytes, makeAddress,
+    treeBytes_eq tree htree, List.append_assoc]
+  rfl
+
+/-- A model hash domain whose FORS node lies in its tree, as every algorithm's does. -/
+def InRange : FORS.HashDomain → Prop
+  | .forsNode _ _ level node => node.val < 2 ^ (10 - (level.val + 1))
+  | _ => True
+
+/-- A model hash domain as the statement's: the layer reversed, a FORS level as its height. -/
+def toDomain : FORS.HashDomain → HashDomain
+  | .chain lay tree leaf chainIndex step => .chain (toLayer lay) tree (toLeaf leaf) chainIndex step
+  | .leaf lay tree leaf => .leaf (toLayer lay) tree (toLeaf leaf)
+  | .node lay tree level nodeIndex => .node (toLayer lay) tree level nodeIndex
+  | .encoding lay tree leaf => .encoding (toLayer lay) tree (toLeaf leaf)
+  | .forsLeaf index forsTree leaf => .forsLeaf index forsTree leaf
+  | .forsNode index forsTree level node => .forsNode index forsTree (level.val + 1) node.val
+  | .forsRoots index => .forsRoots index
+
+theorem forsTree_lt (index : FORS.Index) : index.val / 2 ^ FORS.bottomHeight < 2 ^ 64 := by
+  have := index.isLt; change _ < 2 ^ 26 at this
+  exact lt_of_le_of_lt (Nat.div_le_self _ _) (by omega)
+
+theorem treeOfIndex_zero (index : FORS.Index) :
+    (treeOfIndex 0 index).val = index.val / 2 ^ FORS.bottomHeight := rfl
+
+theorem leafOfIndex_zero (index : FORS.Index) :
+    (leafOfIndex 0 index).val = index.val % 2 ^ FORS.bottomHeight := by
+  show index.val / 2 ^ 0 % 2 ^ 8 = index.val % 2 ^ 8
+  simp
+
+/-- **The same address bytes**, for a domain in range. -/
+theorem fieldBytes_hashDomainFields (domain : FORS.HashDomain) (h : InRange domain) :
+    FORS.fieldBytes (FORS.hashDomainFields domain) =
+      (hashDomainFields (toDomain domain)).toBytes := by
+  cases domain with
+  | chain lay tree leaf chainIndex step =>
+    exact fieldBytes_tweakFields .wotsHash _ _ _ _ _ (lt_trans tree.isLt (by decide))
+  | leaf lay tree leaf =>
+    exact fieldBytes_tweakFields .wotsPublicKey _ _ _ _ _ (lt_trans tree.isLt (by decide))
+  | node lay tree level nodeIndex =>
+    exact fieldBytes_tweakFields .tree _ _ _ _ _ (lt_trans tree.isLt (by decide))
+  | encoding lay tree leaf =>
+    exact fieldBytes_tweakFields .wotsEncoding _ _ _ _ _ (lt_trans tree.isLt (by decide))
+  | forsLeaf index forsTree leaf =>
+    have hidx : FORS.forsTreeIndex forsTree 0 leaf.val =
+        forsTreeIndex (show ForsTreeIndex from forsTree) 0 leaf.val := by
+      unfold FORS.forsTreeIndex forsTreeIndex
+      split
+      · rfl
+      · next hn => exact absurd (by simp) hn
+    simp only [FORS.hashDomainFields, FORS.forsFields, hashDomainFields, hidx, treeOfIndex_zero,
+      leafOfIndex_zero, toDomain]
+    exact fieldBytes_tweakFields .forsTree _ _ _ _ _ (forsTree_lt index)
+  | forsNode index forsTree level node =>
+    have hidx : FORS.forsTreeIndex forsTree (level.val + 1) node.val =
+        forsTreeIndex (show ForsTreeIndex from forsTree) (level.val + 1) node.val := by
+      unfold FORS.forsTreeIndex forsTreeIndex
+      split
+      · rfl
+      · next hn => exact absurd h hn
+    simp only [FORS.hashDomainFields, FORS.forsFields, hashDomainFields, hidx, treeOfIndex_zero,
+      leafOfIndex_zero, toDomain]
+    exact fieldBytes_tweakFields .forsTree _ _ _ _ _ (forsTree_lt index)
+  | forsRoots index =>
+    simp only [FORS.hashDomainFields, FORS.forsFields, hashDomainFields, treeOfIndex_zero,
+      leafOfIndex_zero, toDomain]
+    exact fieldBytes_tweakFields .forsRoots _ _ _ _ _ (forsTree_lt index)
+
+/-- **The same hash input**, for a domain in range. -/
+theorem tweakableHashInput_eq (parameter : FORS.PublicParameter) (domain : FORS.HashDomain)
+    (h : InRange domain) (payload : FORS.HashInput) :
+    FORS.tweakableHashInput parameter domain payload =
+      addressedHashInput parameter (hashDomainFields (toDomain domain)) payload := by
+  simp only [FORS.tweakableHashInput, FORS.tweakBytes, fieldBytes_hashDomainFields domain h,
+    addressedHashInput, hasherInput]
+  rfl
+
 /-! ## The hash -/
 
 local notation "σ" => schemeHashOverPermutation
