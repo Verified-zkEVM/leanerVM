@@ -370,8 +370,10 @@ Evidence from the Kraken pilot (measured in this survey, Kraken `e211eaf`):
   transcriptions of the Rust. The step from those to field arithmetic is a separate source-level
   lemma.
 
-**Verdict.** Not feasible for the whole verifier in 2026. Feasible for register-only kernels.
-Memory kernels wait on automation.
+**Verdict.** Not feasible for the whole verifier in 2026. With Kraken on x86-64, feasible for
+register-only kernels, and memory kernels wait on automation. On RISC-V, a later pilot proved
+the same BLAKE2s memory kernel in minutes
+([the intermediate representation note](intermediate-representation-route.md#risc-v-machine-code)).
 
 ### 5. Hybrid: source proofs with a per-build machine-code check
 
@@ -570,6 +572,8 @@ one of them:
 - Prove the converse inclusion with a resource hypothesis, for availability.
 - Add the hybrid check of route 5 once Kraken's loop, call and memory automation is on its main
   branch.
+- Consider Wasm as the target of that check, as
+  [the intermediate representation note](intermediate-representation-route.md) proposes.
 - Pursue the recursion guest of route 6 in the recursion track, with the same specification and
   the same shape of statement.
 - Make the model generic in the hash if the random-oracle theorems must transfer.

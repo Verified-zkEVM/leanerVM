@@ -17,6 +17,10 @@ This directory contains stable project and operating knowledge.
     leanVM's Rust verifier against the Lean `verify` — the one inclusion that carries knowledge
     soundness, the portable crate backported to the pin, the routes compared, the obstructions,
     and the recommended Charon and Aeneas plan (2026-11-05).
+  - [intermediate-representation-route.md](design/intermediate-representation-route.md): whether
+    proving the Rust verifier at an intermediate representation such as Wasm, LLVM IR, C or RISC-V
+    shrinks the trusted base or the proof, the candidates compared, and Wasm as the target of a
+    per-build check (2026-11-06).
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)
   per formalization effort.
   - [leanisa-blueprint.md](roadmap/leanisa-blueprint.md): the leanISA roadmap — scope,
