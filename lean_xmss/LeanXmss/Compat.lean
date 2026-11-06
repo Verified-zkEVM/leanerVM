@@ -6,8 +6,8 @@ public import Common.WithHash
 /-!
 # The hash inputs by name
 
-`Statement/LeanXmss.lean` states the tweakable hash once, for both schemes (`thInput`, `th`,
-`thPair`, `taggedSeed`, as `tweak.rs` does). The proofs name the inputs of leanXMSS's calls:
+`Statement/LeanXmss.lean` states leanXMSS's tweakable hash (`thInput`, `th`, `thPair`,
+`schemeSeedOf`, as `lean_xmss/hash.rs` does). The proofs name the inputs of leanXMSS's calls:
 `P || A || payload` at a hash domain's address, the seed derivations' and the randomizer's, the
 scheme seed's; and the derivations themselves.
 -/
@@ -44,7 +44,7 @@ def randomizerHashInput (parameter : PublicParameter) (lay : Layer) (key : KeyIn
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- `S = H("leanXMSS" || S_0)` (`taggedSeed`). -/
+/-- `S = H("leanXMSS" || S_0)` (`schemeSeedOf`). -/
 abbrev schemeSeed (keySeed : MasterSeed) : m MasterSeed :=
   Verification.taggedSeedWithHash seedTag keySeed
 

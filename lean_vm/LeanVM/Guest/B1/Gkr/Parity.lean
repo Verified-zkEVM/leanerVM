@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.WalkTags
 
 /-!
-# The layer loop's parity (lean_ethereum.py:1803-1809, 1854, 1872-1938 at 9d8bce81)
+# The layer loop's parity (lean_ethereum.py:1833-1839, 1884, 1902-1968 at 834e6614)
 
 `__loop6`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
 `layer = layers·(x²·depth_shift[g_bus_mu])^17` (`LAYER_SLOTS = 17`, `LAYER_PARITY = 12`).
@@ -22,11 +22,11 @@ loop's arguments `[layers, x, depth_shift, g_bus_mu, k_mod_next]` (`WalkTags.lea
 * `ly_par_parity`: from the slot's statements on (`lyBody.take 62`, before the dispatch), the
   parity word the iteration reads (at `σ 16`, offset `12`) is such a power;
 * `ly_par_tail`: before the tail call (`lyBody.take 297`), `GkrPar` holds at the tail call's
-  `x·g` (`σ 346`): the iteration stores `layer(x·g)[g^12] = k_mod_next[parity]` (G:1938), the
+  `x·g` (`σ 346`): the iteration stores `layer(x·g)[g^12] = k_mod_next[parity]` (G:1968), the
   dispatch made `parity = g^r`, `r < 4`, and `layer(x·g) = layer(x)·g^34`;
 * `vbg_par`: before `verify_bus_gkr`'s loop call (`vbgPre.take 224`), `GkrPar` at `x = 1`:
-  `k_mod_next[g^r] = g^((r + 1) % 4)` (G:1805-1808), and the first layer's parity `g^0`, at
-  `layers` for an even depth (G:1803), at `layers·g^17` for an odd one (G:1854),
+  `k_mod_next[g^r] = g^((r + 1) % 4)` (G:1835-1838), and the first layer's parity `g^0`, at
+  `layers` for an even depth (G:1833), at `layers·g^17` for an odd one (G:1884),
   `depth_shift[g_bus_mu] = g^(depth % 2)`.
 -/
 
@@ -161,14 +161,14 @@ theorem vbg_par {C : CallRel} {σ : Val} {kret : List E → Prop} {μ : ℕ} (h�
   refine ⟨0, by omega, ?_⟩
   rw [← gen_pow_eq_ofK, pow_zero]
   rcases Nat.mod_two_eq_zero_or_one depth with h2 | h2
-  · -- an even depth: the root slot's parity (G:1803)
+  · -- an even depth: the root slot's parity (G:1833)
     have c55 := a 59 (.const (.n 55) (word 1 0 0)) (by decide +kernel)
     have l55 := a 60 (.load (.n 55) (.n 15) 12) (by decide +kernel)
     simp only [Atom.Holds] at c55 l55
     rw [c55, tb_word_one] at l55
     rw [h2, Nat.zero_mul, pow_zero, mul_one] at hpl
     exact tb_loadHolds_unique hpl l55
-  · -- an odd depth: the binary layer's slot (G:1854)
+  · -- an odd depth: the binary layer's slot (G:1884)
     have m133 := a 212 (.mul (.n 133) (.n 66) (.n 6)) (by decide +kernel)
     have l134 := a 213 (.load (.n 134) (.n 133) 0) (by decide +kernel)
     have c135 := a 214 (.const (.n 135) (word 1 0 0)) (by decide +kernel)

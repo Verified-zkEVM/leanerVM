@@ -33,7 +33,7 @@ def sample : Chain E := do
 
 /-- The rounds of a batching sumcheck from the running claim: each round absorbs `g(1)` and
 `g(∞)`, squeezes the challenge, and folds the round polynomial (`batch_sumcheck`,
-`lean_ethereum.py:1124-1141`; `absorb_round`, `aggregation.rs:809-825`). The challenges and the
+`lean_ethereum.py:1154-1171`; `absorb_round`, `aggregation/deferred.rs:221-237`). The challenges and the
 final claim. -/
 def batchRounds : E → List (E × E) → Chain (List E × E)
   | claim, [] => return ([], claim)
@@ -46,7 +46,7 @@ def batchRounds : E → List (E × E) → Chain (List E × E)
 
 /-- The batching transcript's initial state (`FiatShamirState::from_label`): Keccak-f of the
 label's hash in lanes `0..4`, the other lanes zero. The guest program bakes its capacity
-(`AGG_SEED_*`, `aggregation.rs:2719-2722`). -/
+(`AGG_SEED_*`, `aggregation/placeholders.rs:833-836`). -/
 def batchSeed : KeccakState := keccakF1600 (seedInput (keccak256 batchingLabel) (Vector.replicate 4 0))
 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public

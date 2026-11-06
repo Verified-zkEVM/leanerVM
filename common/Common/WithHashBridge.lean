@@ -129,10 +129,10 @@ theorem simulateQ_thPairWithHash (parameter : PublicParameter) (fields : TweakFi
       thPair queryPermutation parameter fields payload := by
   simp only [thPairWithHash, thPair, simulateQ_oracleHashWithHash]
 
-theorem simulateQ_taggedSeedWithHash (tag : HashInput) (seed : MasterSeed) :
-    simulateQ σ (taggedSeedWithHash (m := OracleComp HashSpec) tag seed) =
-      taggedSeed queryPermutation tag seed := by
-  simp only [taggedSeedWithHash, taggedSeed, simulateQ_oracleHashWithHash]
+theorem simulateQ_taggedSeedWithHash (seed : MasterSeed) :
+    simulateQ σ (taggedSeedWithHash (m := OracleComp HashSpec) seedTag seed) =
+      schemeSeedOf queryPermutation seed := by
+  simp only [taggedSeedWithHash, schemeSeedOf, simulateQ_oracleHashWithHash]
 
 theorem simulateQ_tweakableHashWithHash (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
@@ -261,7 +261,7 @@ theorem simulateQ_treePathWithHash (parameter : PublicParameter) (lay : Layer) (
 
 theorem simulateQ_deriveSchemeSeedKey (keySeed : MasterSeed) :
     simulateQ σ (deriveSchemeSeedKey keySeed) = (do
-      let seed ← taggedSeed queryPermutation seedTag keySeed
+      let seed ← schemeSeedOf queryPermutation keySeed
       let parameter ← publicParameterOf queryPermutation seed
       return (⟨seed, parameter⟩ : SchemeSeedKey)) := by
   simp only [deriveSchemeSeedKey, publicParameterOf, simulateQ_bind, simulateQ_pure,
