@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Wire.Spec
+import LeanVM.Wire.ReadWrite
 
 /-!
 # The reader's determinism
@@ -18,6 +19,13 @@ width less the zero words common to the fronts of the leaves, `zeroPrefix`, as `
 computes them), each leaf without that prefix, and the carried siblings' digests level by level, in
 order. `encodePruned` is `Proof.toBytes` from the pruned form: the stream's length and elements, the
 phase count and each phase.
+
+The reader is deterministic: bytes `readPhase` accepts are `encodePhase` of the phase read, then
+the rest (`eq_encodePhase_of_readPhase`), and bytes `readProof` accepts are `encodePruned` of what
+it reads (`toBytes_of_readProof`). A phase `readPhase` accepts satisfies `PhaseRead`
+(`phaseRead_of_readPhase`): the bounds, the positions, the leaves' shape and minimal row width, and
+the carried siblings' keys level by level. The basic readers' converse forms are
+`LeanVM.Wire.ReadWrite`'s.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven).
@@ -30,8 +38,9 @@ namespace LeanVM.Wire
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile
 
-/-- The number of zero words common to the fronts of the leaves, as `Prover.phaseToBytes` computes
-it: the least, over the leaves, of the length of the leaf's leading run of zeros; `0` for no leaf. -/
+/-- The number of zero words common to the fronts of the leaves, as `Prover.phaseToBytes`
+computes it: the least, over the leaves, of the length of the leaf's leading run of zeros; `0` for
+no leaf. -/
 def zeroPrefix (leaves : List (List K)) : ℕ :=
   ((leaves.map fun leaf ↦ (leaf.takeWhile fun word ↦ decide (word = 0)).length).min?).getD 0
 
@@ -77,19 +86,6 @@ structure PhaseRead (ph : PrunedPhase) : Prop where
     (rowWords = 0 ∨ ∃ leaf ∈ ph.leaves, leaf.getD (ph.leafWords - rowWords) 0 ≠ 0)
   carried_keys : ph.carried.map (·.map Prod.fst) =
     (List.range ph.height).map fun level ↦ carriedSiblings (levelNodes ph.positions level)
-
-/-! ## The readers' converse forms (`LeanVM.Wire.ReadWrite`, rtrw) -/
-
-/-- The basic readers' determinism: a 32-bit word read is below `2 ^ 32` and its four bytes; words
-read are their bytes, as many as asked; a digest read is its 32 bytes. Proved in
-`LeanVM.Wire.ReadWrite`; a hypothesis here until it is merged. -/
-structure ReaderConverse : Prop where
-  u32_eq : ∀ bytes value rest, readU32 bytes = some (value, rest) →
-    value < 2 ^ 32 ∧ bytes = Prover.u32Bytes value ++ rest
-  words_eq : ∀ count bytes words rest, readWords count bytes = some (words, rest) →
-    bytes = words.flatMap K.toBytes ++ rest ∧ words.length = count
-  digest_eq : ∀ bytes digest rest, readDigest bytes = some (digest, rest) →
-    bytes = digestBytes digest ++ rest
 
 /-! ## List facts -/
 
@@ -231,62 +227,7 @@ theorem PhaseRead.exists_zeroPrefix {ph : PrunedPhase} (hp : PhaseRead ph) :
     · omega
     · exact hnz (hall leaf hleaf)
 
-namespace ReaderConverse
-
-variable (hc : ReaderConverse)
-include hc
-
-theorem u32s_eq : ∀ count bytes values rest, readU32s count bytes = some (values, rest) →
-    values.length = count ∧ (∀ value ∈ values, value < 2 ^ 32) ∧
-      bytes = values.flatMap Prover.u32Bytes ++ rest
-  | 0, bytes, values, rest, h => by
-    simp only [readU32s, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    simp
-  | count + 1, bytes, values, rest, h => by
-    simp only [readU32s, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
-      Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨value, input, hvalue, values', input', hvalues, rfl, rfl⟩ := h
-    obtain ⟨hlt, rfl⟩ := hc.u32_eq _ _ _ hvalue
-    obtain ⟨hlength, hall, rfl⟩ := u32s_eq count _ _ _ hvalues
-    refine ⟨by simp [hlength], ?_, by simp⟩
-    intro w hw
-    rcases List.mem_cons.1 hw with rfl | hw
-    exacts [hlt, hall w hw]
-
-theorem digests_eq : ∀ count bytes digests rest, readDigests count bytes = some (digests, rest) →
-    digests.length = count ∧ bytes = digests.flatMap digestBytes ++ rest
-  | 0, bytes, digests, rest, h => by
-    simp only [readDigests, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    simp
-  | count + 1, bytes, digests, rest, h => by
-    simp only [readDigests, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
-      Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨digest, input, hdigest, digests', input', hdigests, rfl, rfl⟩ := h
-    have := hc.digest_eq _ _ _ hdigest
-    subst this
-    obtain ⟨hlength, rfl⟩ := digests_eq count _ _ _ hdigests
-    exact ⟨by simp [hlength], by simp⟩
-
-theorem rows_eq (rowWords : ℕ) : ∀ count bytes rows rest,
-    readRows rowWords count bytes = some (rows, rest) →
-      rows.length = count ∧ (∀ row ∈ rows, row.length = rowWords) ∧
-        bytes = rows.flatMap (·.flatMap K.toBytes) ++ rest
-  | 0, bytes, rows, rest, h => by
-    simp only [readRows, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    simp
-  | count + 1, bytes, rows, rest, h => by
-    simp only [readRows, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
-      Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨row, input, hrow, rows', input', hrows, rfl, rfl⟩ := h
-    obtain ⟨rfl, hrowLength⟩ := hc.words_eq _ _ _ _ hrow
-    obtain ⟨hlength, hall, rfl⟩ := rows_eq rowWords count _ _ _ hrows
-    refine ⟨by simp [hlength], ?_, by simp⟩
-    intro r hr
-    rcases List.mem_cons.1 hr with rfl | hr
-    exacts [hrowLength, hall r hr]
+/-! ## The reader's determinism -/
 
 theorem carriedSiblings_eq (positions : List ℕ) : ∀ level remaining bytes carried rest,
     readCarriedSiblings positions level remaining bytes = some (carried, rest) →
@@ -301,7 +242,7 @@ theorem carriedSiblings_eq (positions : List ℕ) : ∀ level remaining bytes ca
     simp only [readCarriedSiblings, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
       Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨digests, input, hdigests, above, input', habove, rfl, rfl⟩ := h
-    obtain ⟨hlength, rfl⟩ := digests_eq hc _ _ _ _ hdigests
+    obtain ⟨hlength, rfl⟩ := readDigests_eq_some_iff.1 hdigests
     obtain ⟨hkeys, rfl⟩ := carriedSiblings_eq positions (level + 1) remaining _ _ _ habove
     refine ⟨?_, ?_⟩
     · rw [List.range'_succ, List.map_cons, List.map_cons, hkeys,
@@ -322,13 +263,13 @@ theorem readPhase_eq {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
     leafWords, input₄, hleafWords, rowWords, input₅, hrowWords, -, ⟨hheightLe, hleafWordsLe,
     hrowLe, last, hlast, hlastShift⟩, rows, input₆, hrows, -, hmin, carried, input₇, hcarried,
     rfl, rfl⟩ := h
-  obtain ⟨-, rfl⟩ := hc.u32_eq _ _ _ hcount
-  obtain ⟨rfl, hqueriesLt, rfl⟩ := hc.u32s_eq _ _ _ _ hqueries
-  obtain ⟨-, rfl⟩ := hc.u32_eq _ _ _ hheight
-  obtain ⟨-, rfl⟩ := hc.u32_eq _ _ _ hleafWords
-  obtain ⟨-, rfl⟩ := hc.u32_eq _ _ _ hrowWords
-  obtain ⟨hrowsLength, hrowLength, rfl⟩ := hc.rows_eq _ _ _ _ _ hrows
-  obtain ⟨hkeys, rfl⟩ := hc.carriedSiblings_eq _ _ _ _ _ _ hcarried
+  obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hcount
+  obtain ⟨rfl, hqueriesLt, rfl⟩ := readU32s_eq_some_iff.1 hqueries
+  obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hheight
+  obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hleafWords
+  obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hrowWords
+  obtain ⟨hrowsLength, hrowLength, rfl⟩ := readRows_eq_some_iff.1 hrows
+  obtain ⟨hkeys, rfl⟩ := carriedSiblings_eq _ _ _ _ _ _ hcarried
   have hlast' : (distinctPositions queries).getLast? = some last := hlast
   have hne : distinctPositions queries ≠ [] := by
     intro hnil; rw [hnil] at hlast'; cases hlast'
@@ -369,12 +310,12 @@ theorem readPhase_eq {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
 phase it reads, then the rest. -/
 theorem eq_encodePhase_of_readPhase {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
     (h : readPhase bytes = some (ph, rest)) : bytes = encodePhase ph ++ rest :=
-  (hc.readPhase_eq h).1
+  (readPhase_eq h).1
 
 /-- **What `readPhase` guarantees** about the phase it reads. -/
 theorem phaseRead_of_readPhase {bytes : Bytes} {ph : PrunedPhase} {rest : Bytes}
     (h : readPhase bytes = some (ph, rest)) : PhaseRead ph :=
-  (hc.readPhase_eq h).2
+  (readPhase_eq h).2
 
 theorem readPhases_eq : ∀ count bytes phases rest, readPhases count bytes = some (phases, rest) →
     phases.length = count ∧ (∀ ph ∈ phases, PhaseRead ph) ∧
@@ -387,7 +328,7 @@ theorem readPhases_eq : ∀ count bytes phases rest, readPhases count bytes = so
     simp only [readPhases, Option.bind_eq_bind, Option.bind_eq_some_iff, Prod.exists,
       Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨ph, input, hph, phases', input', hphases, rfl, rfl⟩ := h
-    obtain ⟨rfl, hread⟩ := hc.readPhase_eq hph
+    obtain ⟨rfl, hread⟩ := readPhase_eq hph
     obtain ⟨hlength, hall, rfl⟩ := readPhases_eq count _ _ _ hphases
     refine ⟨by simp [hlength], ?_, by simp⟩
     intro q hq
@@ -406,10 +347,10 @@ theorem readProof_eq {bytes : Bytes} {x : List E × List PrunedPhase}
     Option.guard_eq_some', Option.some.injEq, Prod.mk.injEq] at h
   obtain ⟨length, input₁, hlength, words, input₂, hwords, phaseCount, input₃, hcount, -, hcountLe,
     phases', input₄, hphases, -, hempty, rfl, rfl⟩ := h
-  obtain ⟨hlengthLt, rfl⟩ := hc.u32_eq _ _ _ hlength
-  obtain ⟨rfl, hwordsLength⟩ := hc.words_eq _ _ _ _ hwords
-  obtain ⟨-, rfl⟩ := hc.u32_eq _ _ _ hcount
-  obtain ⟨rfl, hall, rfl⟩ := hc.readPhases_eq _ _ _ _ hphases
+  obtain ⟨hlengthLt, rfl⟩ := readU32_eq_some_iff.1 hlength
+  obtain ⟨hwordsLength, rfl⟩ := readWords_eq_some_iff.1 hwords
+  obtain ⟨-, rfl⟩ := readU32_eq_some_iff.1 hcount
+  obtain ⟨rfl, hall, rfl⟩ := readPhases_eq _ _ _ _ hphases
   have hempty' : input₄ = [] := by simpa using hempty
   subst hempty'
   refine ⟨?_, by simpa using hlengthLt, hcountLe, hall⟩
@@ -419,9 +360,8 @@ theorem readProof_eq {bytes : Bytes} {x : List E × List PrunedPhase}
 /-- **`readProof` is deterministic**: the bytes it accepts are `encodePruned` of what it reads. -/
 theorem toBytes_of_readProof {bytes : Bytes} {x : List E × List PrunedPhase}
     (h : readProof bytes = some x) : encodePruned x = bytes :=
-  (hc.readProof_eq h).1
+  (readProof_eq h).1
 
-end ReaderConverse
 
 end LeanVM.Wire
 
