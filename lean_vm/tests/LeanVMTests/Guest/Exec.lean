@@ -62,11 +62,11 @@ theorem canonical_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
 `fp[28..31]`, in the even layout, to `fp[6..18]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 37 20 21 22 23 39 28 6 false false
 
-theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 294610 := by
+theorem hash_name : Data.f333.name = "claim_list_last__L0" ∧ Data.f333.entryPc = 293885 := by
   decide +kernel
 
 theorem hash_shape : (exec F0 Data.f333).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 294631 hashIns),
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 293906 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -74,7 +74,7 @@ theorem hash_shape : (exec F0 Data.f333).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600] the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 294610 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 293885 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 37 20 21 22 23 39 28 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, L.read (fp * addressOfIndex (6 + c.val)) = some (output c)) ∧
@@ -84,7 +84,7 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f333.entryPc + s.start = 294610 := by rw [h0]; rfl
+  have hentry : Data.f333.entryPc + s.start = 293885 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 333) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
