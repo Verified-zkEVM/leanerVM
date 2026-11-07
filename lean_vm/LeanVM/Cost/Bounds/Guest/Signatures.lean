@@ -119,9 +119,9 @@ theorem tabA_cost (hP : Includes P Decoder.tabAC.costDeps) (t : List (List ℕ))
   rw [show M + 2 + 13 = M + 15 by omega] at this
   omega
 
-/-- **`verify_sig_lean_sphincs`' and `sp_wots`' tables, built** (`spTabsC`): at most `6000`. -/
+/-- **`verify_sig_lean_sphincs`' and `sp_wots`' tables, built** (`spTabsC`): at most `7800`. -/
 theorem spTabs_cost (hP : Includes P Decoder.spTabsC.costDeps) :
-    machineCost P Decoder.spTabsC.costIdx [] ≤ 6000 := by
+    machineCost P Decoder.spTabsC.costIdx [] ≤ 7800 := by
   obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := spTabs_lits_ok
   obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8⟩ := spPos_lits_ok
   have t1 := tabA_cost P (by includes) spFirst 64 fun r hr ↦ (h1 r hr).1
@@ -391,7 +391,7 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forsTreeCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))
-    (41 * S + 1504) (fun c ↦ by
+    (41 * S + 1520) (fun c ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.sphincsSigOfNC.lam0.costEq P (by includes) T σ σV hσ]
       simp only [List.length_cons, List.length_nil]

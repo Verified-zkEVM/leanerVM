@@ -38,9 +38,9 @@ structure ReaderTabsOK (Tb : ReaderTabs) : Prop where
 
 theorem readerTabs_ok : ReaderTabsOK readerTabs := ⟨xmssTabs_ok, spTabs_ok, whirTabs_ok⟩
 
-/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `31100`. -/
+/-- **The readers' tables, built once per decoding** (`readerTabsC`): at most `32900`. -/
 theorem readerTabs_cost (hP : Includes P Decoder.readerTabsC.costDeps) :
-    machineCost P Decoder.readerTabsC.costIdx [] ≤ 31100 := by
+    machineCost P Decoder.readerTabsC.costIdx [] ≤ 32900 := by
   rw [Decoder.readerTabsC.costEq P hP]
   have := xmssTabs_cost P (by includes)
   have := spTabs_cost P (by includes)
