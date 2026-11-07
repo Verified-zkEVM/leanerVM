@@ -53,7 +53,7 @@ theorem exists_list_of_forall' {α : Type} [Inhabited α] {P : ℕ → α → Pr
   simp only [List.getElem_map, List.getElem_range, hj, ↓reduceDIte]
   exact Classical.choose_spec (h j hj)
 
-instance : Inhabited Opening := ⟨⟨[], []⟩⟩
+instance : Inhabited Opening := ⟨⟨0, [], []⟩⟩
 
 end
 end LeanVM.Guest.B1.Whir

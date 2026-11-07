@@ -81,7 +81,7 @@ structure ChainEnd (rd : Reader) (lane : ℕ) (O : Fs × List E × E × E) (Lf :
   fin : Lf.fin = true
   len : 2 * (Lf.ml - 1) ≤ xsR.length
   nz : ∀ c ∈ (tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR).2.1, c ≠ 0
-  res : ∃ (osR : List Opening) (R : List (Digest × ℕ × ℕ)), Lf.Ok R (Vector.replicate 4 0) ∧
+  res : ∃ (osR : List (List Opening)) (R : List (Digest × ℕ × ℕ)), Lf.Ok R (Vector.replicate 4 0) ∧
     res = (Lf.wend lane xsR, ⟨(tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR).1,
       xsR.drop (2 * (Lf.ml - 1)), osR, R⟩)
 
@@ -103,7 +103,7 @@ theorem words_length {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit
 /-- **The chain of levels gives the levels' hypotheses.** -/
 theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane : ℕ}
     (sq wp : ℕ → E) : ∀ (lvs : List OsLv) (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT)
-    (F : Fs) (xs : List E) (os : List Opening) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv)
+    (F : Fs) (xs : List E) (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv)
     (res : WhirEnd × FSt) (cur : E),
     LevelsOk c logN lvl lvs cfg → SpChain logN lane lvl cfg ws F xs os R Ls res →
     ws.folds.length = (lvs.headD default).foldsOff → ReadsAt rd cur xs →
