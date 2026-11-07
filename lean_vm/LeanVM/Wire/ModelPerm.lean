@@ -20,9 +20,9 @@ pure decoding (`LeanVM.Wire.Model`):
 * `queriesWith ans oc`: the queries `oc` makes when each query `q` is answered `ans q`; a logged run
   (`logImpl`) is the pure run (`pureImpl`) with the images of these queries (`run_logImpl`);
 * **replay** (`replay_perm`, and `replay_calls` for calls that are computations over the
-  permutation, as Keccak-256 is the sponge over it): a run against the lazy permutation that ends with
-  edges `s` on a permutation `σ` (`OnPerm σ s`, and there is one, `exists_onPerm_of_mem_support_calls`)
-  is the run with `σ`'s answers, and every query it made is recorded in `s`;
+  permutation, as Keccak-256 is the sponge over it): a run against the lazy permutation that ends
+  with edges `s` on a permutation `σ` (`OnPerm σ s`, and there is one,
+  `exists_onPerm_of_mem_support_calls`) is the run with `σ`'s answers, and every query it made is recorded in `s`;
 * **cache** (`cached_perm`, `cached_calls`): a computation whose queries with `σ`'s answers are all
   recorded in edges on `σ` runs from them to its result with `σ`, adding no edge.
 -/
@@ -65,7 +65,8 @@ theorem run_logImpl_query_bind {β : Type} (g : ι → List β) (ans : (q : ι) 
 
 theorem simulateQ_pureImpl_query_bind (ans : (q : ι) → spec.Range q) {α : Type} (t : ι)
     (k : spec.Range t → OracleComp spec α) :
-    simulateQ (pureImpl ans) (liftM (spec.query t) >>= k) = simulateQ (pureImpl ans) (k (ans t)) := by
+    simulateQ (pureImpl ans) (liftM (spec.query t) >>= k) =
+      simulateQ (pureImpl ans) (k (ans t)) := by
   rw [simulateQ_bind, simulateQ_spec_query]
   rfl
 

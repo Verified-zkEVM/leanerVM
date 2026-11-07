@@ -65,7 +65,8 @@ def loggedHash (h : Bytes → Digest) (x : Bytes) : StateM (List Bytes) Digest :
   pure (h x)
 
 /-- The permutation `F`, logging nothing. -/
-def loggedPerm (F : KeccakState → KeccakState) (s : KeccakState) : StateM (List Bytes) KeccakState :=
+def loggedPerm (F : KeccakState → KeccakState) (s : KeccakState) :
+    StateM (List Bytes) KeccakState :=
   pure (F s)
 
 end LeanVM.Wire
