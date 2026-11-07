@@ -25,9 +25,9 @@ set_option maxRecDepth 100000 in
 theorem kwjchkIdx_19 : kwjchkIdx 19 = true := by
   have hb : blockB (kwjlookJ 19) (kwjomLookJ 19) false [] Data.core19.params Data.core19.name ([], []) Data.core19.body = some (⟨0, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core19.body)]
-    rw [blockB_dropE _ _ _ 0 94 94 kwjsplit_19_0.1 rfl kwjsplit_19_0.2.2,
-      ← blockR_eq ((Data.core19.body.drop 0).take 94), kwjsplit_19_0.2.1]
-    rw [← blockR_eq (Data.core19.body.drop 94), kwjsplit_19_94]
+    rw [blockB_dropE _ _ _ 0 96 96 kwjsplit_19_0.1 rfl kwjsplit_19_0.2.2,
+      ← blockR_eq ((Data.core19.body.drop 0).take 96), kwjsplit_19_0.2.1]
+    rw [← blockR_eq (Data.core19.body.drop 96), kwjsplit_19_96]
     rfl
   exact kwjchkIdx_of_split (fn := Data.core19) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 

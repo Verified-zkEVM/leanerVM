@@ -3,7 +3,7 @@
 //! raw proof, the raw signatures with their claims, the batching's hints), the streams `aggregate` installed, the public input and the
 //! run's memory size, as whitespace-separated tokens. Ported from the BLAKE2s-era `guest_diff`: Flock's claims are
 //! gone (a deferred and a fresh claim are a point and a value), and the installed streams are read through
-//! `aggregation.rs`'s test-only `FORGE` hook, which hands this module the node's `Hints` before they are installed.
+//! `aggregation/hints.rs`'s test-only `FORGE` hook, which hands this module the node's `Hints` before they are installed.
 //! `LEANVM_GUEST_DIFF=<dir> cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored`
 //! writes `<dir>/<case>.txt`.
 //!
@@ -12,6 +12,10 @@
 
 use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers, message};
+use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
+use leanvm_core::cpu::{public_input_bytes, scalar_proof};
+use signatures::lean_sphincs::LeanSphincsSignature;
+use signatures::lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -94,7 +98,8 @@ impl Out {
     /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
     /// signature's bytes (`to_bytes`, in that order), the crate keeping its fields private.
     fn xmss_signature(&mut self, sig: &LeanXmssSignature) {
-        use lean_xmss::{LAYER_HEIGHT, LEAF_INDEX_SIZE, N, RANDOMIZER_LEN, V};
+        use lean_xmss::{LAYER_HEIGHT, LeafIndex, N, RANDOMIZER_LEN, V};
+        const LEAF_INDEX_SIZE: usize = size_of::<LeafIndex>();
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
         self.n(sig.leaf_index() as usize);
@@ -107,19 +112,19 @@ impl Out {
         assert!(at.0.is_empty(), "a leanXMSS signature is read whole");
     }
 
-    /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter, chain values
-    /// and path: read off the signature's bytes (`to_bytes`, in that order).
+    /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter (big endian in
+    /// the bytes), chain values and path: read off the signature's bytes (`to_bytes`, in that order).
     fn sphincs_signature(&mut self, sig: &LeanSphincsSignature) {
-        use lean_sphincs::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, RANDOMIZER_LEN, V};
+        use lean_sphincs::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, V};
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
-        self.bytes(at.take(RANDOMIZER_LEN));
+        self.bytes(at.take(N));
         for _ in 0..FORS_TREES {
             self.bytes(at.take(N));
             self.digests(at.take(FORS_HEIGHT * N).as_chunks::<N>().0);
         }
         for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
-            let counter = u32::from_le_bytes(at.take(COUNTER_LEN).try_into().unwrap());
+            let counter = u32::from_be_bytes(at.take(COUNTER_LEN).try_into().unwrap());
             assert_eq!(counter, sig.layers()[layer].counter());
             self.n(counter as usize);
             self.digests(at.take(V * N).as_chunks::<N>().0);
@@ -191,7 +196,7 @@ fn export(
         let fresh_point: Vec<F192> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
         let fresh_value = mle_eval_par(stacked_bytecode(), &fresh_point);
         let (_, fresh) =
-            gen_verify(unified_guest(), pi, &child.proof.stream, summary, fresh_value).expect("the child fits");
+            gen_verify(unified_guest(), pi, &child.proof.stream, &summary, fresh_value).expect("the child fits");
         out.tag("fresh");
         let point: Vec<F192> = fresh.bytecode_point.clone();
         out.es(&point);
@@ -209,7 +214,7 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation.rs:1712-1716`).
+    // deduplicated (`aggregation/node.rs:108-112`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));

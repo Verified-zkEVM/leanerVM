@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Da.RowShape
 
 /-!
-# `da_verify_cell` (G:4334-4346)
+# `da_verify_cell` (G:4441-4453)
 
 `da_verify_cell(lvals)` (`core30`): `256` hinted symbols `.n 1 … .n 256`; pair `e`'s atoms
 (`blkA e`, the template `tmplA`, compared atom by atom) assert both in `K`, pack them into the cell

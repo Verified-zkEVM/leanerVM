@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.Shifts
 
-  `shifts` (`lean_ethereum.py:3512-3518`) over bits pinned Boolean: output `l` is the integer of the
+  `shifts` (`lean_ethereum.py:3542-3548`) over bits pinned Boolean: output `l` is the integer of the
   bits shifted right by `l`, as a word.
 -/
 

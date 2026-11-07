@@ -16,36 +16,36 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `0` to `28`. -/
-def ts19_0 : List ℕ := [16, 17, 1281, 1282, 2477, 2478]
+/-- The temporaries of statements `0` to `30`. -/
+def ts19_0 : List ℕ := [19, 20, 1252, 1253, 2448, 2449]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_0 : RangeFresh ((Data.core19.body.drop 0).take 29) ts19_0 temps19 := by
+theorem fresh19_0 : RangeFresh ((Data.core19.body.drop 0).take 31) ts19_0 temps19 := by
   unfold RangeFresh ts19_0; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `29` to `38`. -/
-def ts19_29 : List ℕ := [3673, 3674, 4869, 4870]
+/-- The temporaries of statements `31` to `40`. -/
+def ts19_31 : List ℕ := [3644, 3645, 4840, 4841]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_29 : RangeFresh ((Data.core19.body.drop 29).take 10) ts19_29 temps19 := by
-  unfold RangeFresh ts19_29; decide +kernel
+theorem fresh19_31 : RangeFresh ((Data.core19.body.drop 31).take 10) ts19_31 temps19 := by
+  unfold RangeFresh ts19_31; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `39` to `48`. -/
-def ts19_39 : List ℕ := [6065, 6066, 7261, 7262]
+/-- The temporaries of statements `41` to `50`. -/
+def ts19_41 : List ℕ := [6036, 6037, 7232, 7233]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_39 : RangeFresh ((Data.core19.body.drop 39).take 10) ts19_39 temps19 := by
-  unfold RangeFresh ts19_39; decide +kernel
+theorem fresh19_41 : RangeFresh ((Data.core19.body.drop 41).take 10) ts19_41 temps19 := by
+  unfold RangeFresh ts19_41; decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- The temporaries of statements `49` to `58`. -/
-def ts19_49 : List ℕ := [8457, 8458, 9653, 9654]
+/-- The temporaries of statements `51` to `60`. -/
+def ts19_51 : List ℕ := [8428, 8429, 9624, 9625]
 
 set_option maxRecDepth 100000 in
-theorem fresh19_49 : RangeFresh ((Data.core19.body.drop 49).take 10) ts19_49 temps19 := by
-  unfold RangeFresh ts19_49; decide +kernel
+theorem fresh19_51 : RangeFresh ((Data.core19.body.drop 51).take 10) ts19_51 temps19 := by
+  unfold RangeFresh ts19_51; decide +kernel
 
 end
 end LeanVM.Guest

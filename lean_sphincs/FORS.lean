@@ -36,7 +36,6 @@ import FORS.Reduction.InternalizeGame
 import FORS.Reduction.Memo
 import FORS.Reduction.NoRepeat
 import FORS.Reduction.PreparedSample
-import FORS.Reduction.SchemeSeed
 import FORS.Reduction.SeedElimination
 import FORS.Reduction.SeedFreeGame
 import FORS.Reduction.ShortInputs
@@ -166,4 +165,6 @@ import FORS.Certificates.Closing
 import FORS.Certificates.H26
 import FORS.Lifetimes
 import FORS.Configurations
+import FORS.Crate
+import FORS.CrateStatic
 import FORS.Main

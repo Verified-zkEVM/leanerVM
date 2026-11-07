@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssLoop2
 
-  An iteration of `__loop2` (`lean_ethereum.py:4497-4510`) is sound for its leanXMSS check: its body
+  An iteration of `__loop2` (`lean_ethereum.py:4604-4617`) is sound for its leanXMSS check: its body
   holding, the statements before the check hold, the statements after it hold, and with the carried
   chain indices held the signature its valuation holds verifies the claim at `.n 65`.
 -/

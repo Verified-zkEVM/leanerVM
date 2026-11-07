@@ -3,7 +3,7 @@
 
   The zkDSL front end in Lean: a source function and its `Const` arguments to the core IR function
   the compiler lowers, by the compiler's own rules (`crates/lean_compiler/src/lower.rs` and
-  `lower/*.rs`, leanVM `9d8bce81`).
+  `lower/*.rs`, leanVM `834e6614`).
 -/
 
 module
@@ -830,7 +830,8 @@ def xorByte (cells : List SpongeCell) (pos v : Nat) : M (List SpongeCell) := do
 
 /-- The `KECCAK` atoms absorbing `cells` into `state` (the zero state if `none`), the last writing
 `out` (`emit_keccak_message`). With `finalLen` the message is the cells' first `finalLen` bytes,
-padded; without, the cells zero-extended to whole blocks. -/
+padded, in `finalLen / rate + 1` blocks (`primitives::hash::permutations`); without, the cells
+zero-extended to whole blocks. -/
 def emitKeccakMessage (cells : List SpongeCell) (finalLen : Option Nat) (state : Option (List V))
     (out : List V) : M Unit := do
   let blocks := match finalLen with
