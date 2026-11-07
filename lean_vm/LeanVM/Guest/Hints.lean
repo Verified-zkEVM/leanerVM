@@ -28,11 +28,11 @@ public import LeanVM.Guest.AcceptableChild
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/rec_aggregation/src/aggregation/` (leanVM `834e6614`; `aggregation/hints.rs` at `d1c4c8f7`) push
-for push (`honestPushes`, grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
-(`aggregate_with_stats`, `aggregation/node.rs:58-341`), a raw signature's (`lean_xmss_hints`,
+`crates/rec_aggregation/src/aggregation/` (leanVM `d1c4c8f7`) push for push (`honestPushes`,
+grouped by stream as `Hints::push` does, `aggregation/hints.rs:62-67`): the node's streams
+(`aggregate_with_stats`, `aggregation/node.rs:58-342`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs:100-135`; `lean_sphincs_hints`, `aggregation/hints.rs:147-183`), a child's
-(`gen_verify`, `aggregation/child.rs:64-256`), the batching's (`aggregate_deferred_claims`,
+(`gen_verify`, `aggregation/child.rs:64-255`), the batching's (`aggregate_deferred_claims`,
 `aggregation/deferred.rs:244-352`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
@@ -272,12 +272,13 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
   let (bottom, rootB) := sphincsLayer publicSeed index σ 0 forsKey
   let (middle, rootM) := sphincsLayer publicSeed index σ 1 rootB
   let (top, _) := sphincsLayer publicSeed index σ 2 rootM
-  [("sp_rand", [cell128 σ.randomizer]), ("sp_unused", sphincsUnusedEntry outputs)] ++ secrets ++ climbs ++ bottom ++ middle ++ top
+  [("sp_rand", [cell128 σ.randomizer]), ("sp_unused", sphincsUnusedEntry outputs)] ++ secrets ++
+    climbs ++ bottom ++ middle ++ top
 
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation/node.rs:287-312`). The Rust pushes the root's
+every row's cells, column by column (`aggregation/node.rs:288-313`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -324,16 +325,16 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
   if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
   else digestCells step.2.2 ++ digestCells step.2.1
 
-/-- One level's Merkle hints, from its commitment's height, its positions and their openings:
-per query its leaf's words and the ordered children below the cap (`merkle_leaf_rows`,
-`merkle_children`), and the level's cap nodes and their parents' activity flags
-(`aggregation/child.rs:179-223`). -/
-def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
+/-- One level's Merkle hints, from its commitment's height, its query count and its phase of
+openings: per opening its leaf's words and the ordered children below the cap, climbing from its
+leaf index (`merkle_leaf_rows`, `merkle_children`), and the level's cap nodes and their parents'
+activity flags (`aggregation/child.rs:178-222`). -/
+def levelHints (depth count : ℕ) (phase : List Opening) :
     List (String × Entry) × Entry × Entry :=
-  let capDepth := min (log2Ceil positions.length) depth
+  let capDepth := min (log2Ceil count) depth
   let pathDepth := depth - capDepth
-  let climbs := (positions.zip openings).map fun (q, o) ↦
-    (o, climbSteps (2 ^ depth + q) (merkleLeafDigest o.leaf) o.path)
+  let climbs := phase.map fun o ↦
+    (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
   let pushes := climbs.flatMap fun (o, steps, _) ↦
     [("merkle_leaf_rows", o.leaf.map ofK),
       ("merkle_children", (steps.take pathDepth).flatMap stepChildren)]
@@ -346,14 +347,14 @@ def levelHints (depth : ℕ) (positions : List ℕ) (openings : List Opening) :
     (Array.replicate (2 ^ capDepth) 0)
   (pushes, nodes.toList.flatMap digestCells, active.toList)
 
-/-- Every level's Merkle hints, the openings consumed in order; the caps and the flags of all
-levels each make one entry. -/
-def merkleHints : List (ℕ × List ℕ) → List Opening → List (String × Entry) × Entry × Entry
-  | [], _ => ([], [], [])
-  | (depth, positions) :: rest, openings =>
-    let (pushes, caps, active) := levelHints depth positions (openings.take positions.length)
-    let (pushes', caps', active') := merkleHints rest (openings.drop positions.length)
+/-- Every level's Merkle hints, each level with its phase of the proof's openings (the levels
+zipped with `proof.merkle`); the caps and the flags of all levels each make one entry. -/
+def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
+  | (depth, positions) :: rest, phase :: phases =>
+    let (pushes, caps, active) := levelHints depth positions.length phase
+    let (pushes', caps', active') := merkleHints rest phases
     (pushes ++ pushes', caps ++ caps', active ++ active')
+  | _, _ => ([], [], [])
 
 /-- A side's blocks in the order the stacked leaf cube lays them out, by offset. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
@@ -441,7 +442,7 @@ def slotGaps : ℕ → List ℕ → List ℕ
 
 /-- A child's slots in one scheme's region, if any: the split, then, strictly increasing, the
 flag `1` and the gaps (`child_claim_list_mono`), else the flag `0` and the slots
-(`aggregation/node.rs:241-260`). -/
+(`aggregation/node.rs:242-261`). -/
 def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
   if offsets = [] then [] else
     ("signers_split", listSplit offsets.length) ::
