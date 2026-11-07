@@ -16,36 +16,41 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L21_L6`, window 1. -/
-theorem w881_1 : shareWin 881 (snapsOf 881) 1 = true := by decide +kernel
+/-- `__loop386`, once. -/
+theorem st884 : shareStatic 884 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop385`, once. -/
-theorem st882 : shareStatic 882 = true := by decide +kernel
+/-- `__loop386`, window 0. -/
+theorem w884_0 : shareWin 884 (snapsOf 884) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop385`, window 0. -/
-theorem w882_0 : shareWin 882 (snapsOf 882) 0 = true := by decide +kernel
+/-- `__loop386`, window 1. -/
+theorem w884_1 : shareWin 884 (snapsOf 884) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop385`, window 1. -/
-theorem w882_1 : shareWin 882 (snapsOf 882) 1 = true := by decide +kernel
+/-- `__loop386`, window 2. -/
+theorem w884_2 : shareWin 884 (snapsOf 884) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop385`, window 2. -/
-theorem w882_2 : shareWin 882 (snapsOf 882) 2 = true := by decide +kernel
+/-- `decode_query_windows__L23_L8`, once. -/
+theorem st885 : shareStatic 885 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L20_L5`, once. -/
-theorem st883 : shareStatic 883 = true := by decide +kernel
+/-- `decode_query_windows__L23_L8`, window 0. -/
+theorem w885_0 : shareWin 885 (snapsOf 885) 0 = true := by decide +kernel
+
+theorem ok885 : ShareOk 885 := ⟨st885, fun i hi ↦ by
+  have h : (snapsOf 885).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w885_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L20_L5`, window 0. -/
-theorem w883_0 : shareWin 883 (snapsOf 883) 0 = true := by decide +kernel
+/-- `walk_path__L15_L8`, once. -/
+theorem st886 : shareStatic 886 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L20_L5`, window 1. -/
-theorem w883_1 : shareWin 883 (snapsOf 883) 1 = true := by decide +kernel
+/-- `walk_path__L15_L8`, window 0. -/
+theorem w886_0 : shareWin 886 (snapsOf 886) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
