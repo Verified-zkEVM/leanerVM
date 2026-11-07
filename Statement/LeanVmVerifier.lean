@@ -166,14 +166,20 @@ challenges squeezed out of a duplex sponge and the rows authenticated by Merkle 
 
 The sponge is the duplex of `Field.lean` (`Sponge`, `absorb`, `squeeze`, `seedInput`), over
 Keccak-f[1600] in the deployed verifier. Merkle openings come from a separate channel that the
-sponge does not absorb: the leaf's words, hashed as bytes, then one sibling per level, the
-position's bit at the level choosing the side.
+sponge does not absorb: each query's opening is its position, the leaf's words, hashed as bytes,
+then one sibling per level, the position's bit at the level choosing the side.
 
-**Deviation from the Python verifier.** The Python reads the Merkle openings from one byte string,
-and checks the leaf's width and the path's height implicitly by reading exactly that many bytes;
-`Proof.openings` is that string already cut into leaves and paths. A byte string that does not cut
-into the lengths the verifier asks for is rejected by the Python, and has no `Proof` here; nothing
-else differs.
+**Deviation from the Python verifier.** The proof here is the Rust verifier's `Proof`
+(`crates/verifier/src/transcript.rs:10-16`): the scalar stream, and the Merkle openings grouped in
+phases, one phase per opened commitment, each query's opening (`MerklePath`,
+`crates/verifier/src/merkle.rs:17-25`: position, leaf, siblings) in the order the verifier samples
+the queries; the proof's wire encoding (`Proof.fromBytes`) needs the phases. The Python reads the
+openings from one byte string, and checks each leaf's width and each path's height implicitly by
+reading exactly that many bytes; a Python byte string is a proof here cut into the phases the
+verifier's queries ask for, and one that does not cut into the lengths the verifier asks for is
+rejected by the Python and has no `Proof` here. The Rust checks a phase's shape, then its
+positions, then its roots (`Transcript::merkle`, `transcript.rs:152-185`); the Python reads the
+phase, checks the positions, then the roots (`verifier.py:433-445`); nothing else differs.
 -/
 
 namespace LeanVM.Protocol.Compile
@@ -267,20 +273,24 @@ def powOk (bits : ℕ) (nonce challenge : E) : Bool :=
   if bits = 0 then decide (nonce.limb 0 = 0 ∧ nonce.limb 1 = 0 ∧ nonce.limb 2 = 0)
   else decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
 
-/-- One Merkle opening: the leaf's words and the siblings from the leaf up. -/
+/-- One Merkle opening (`MerklePath`, `crates/verifier/src/merkle.rs:17-25`): the position it
+opens, the leaf's words and the siblings from the leaf up. -/
 structure Opening where
+  /-- The position of the leaf (`leaf_index`). -/
+  leafIndex : ℕ
   /-- The leaf's words. -/
   leaf : List K
   /-- The siblings from the leaf up. -/
   path : List Digest
 
-/-- A proof: the scalar stream and the Merkle openings, in the order the verifier reads them
-(`verifier.py:336-345`). -/
+/-- A proof (`Proof`, `crates/verifier/src/transcript.rs:10-16`): the scalar stream, and the Merkle
+openings, one phase per commitment opened, each query's opening in the order the verifier samples
+the queries. -/
 structure Proof where
   /-- The scalars the prover sends, in order. -/
   stream : List E
-  /-- The Merkle openings, in order. -/
-  openings : List Opening
+  /-- The Merkle openings, one list per phase, in order. -/
+  openings : List (List Opening)
 
 /-- The compiled verifier's state: the sponge, the scalars and openings not yet read, and the
 roots read so far, each with its height and width. -/
@@ -289,8 +299,8 @@ structure VerifierProgramState where
   sponge : Sponge
   /-- The scalars not yet read. -/
   stream : List E
-  /-- The openings not yet read. -/
-  openings : List Opening
+  /-- The phases of openings not yet read. -/
+  openings : List (List Opening)
   /-- The roots read so far, each with its tree's height and width. -/
   roots : List (Digest × ℕ × ℕ)
 
@@ -299,7 +309,7 @@ section Run
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
-whether `node` is the left child (`verifier.py:439-442`). -/
+whether `node` is the left child (`verifier.py:440-442`, `merkle.rs:28-38`). -/
 def climb : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
@@ -308,7 +318,7 @@ def climb : Digest → ℕ → List Digest → m Digest
     climb parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `position`
-(`verifier.py:436-443`). -/
+(`verifier.py:438-443`). -/
 def openOne (root : Digest) (height width position : ℕ) (opening : Opening) : m Bool :=
   if opening.leaf.length = width ∧ opening.path.length = height then do
     let leafDigest ← keccak256With π (opening.leaf.flatMap K.toBytes)
@@ -327,6 +337,19 @@ def openAll (root : Digest) (height width : ℕ) :
       let rest ← openAll root height width qs os
       pure (rest.map fun r ↦ (o.leaf :: r.1, r.2))
     else pure none
+
+/-- Open one phase of a commitment of the given shape at `positions` (`Transcript::merkle`,
+`crates/verifier/src/transcript.rs:152-185`): reject unless every leaf is `width` words and every
+path `height` siblings, then unless the phase's positions are `positions`, in order, then unless
+each path climbs to `root`, in order (at its position, which is the query's). The leaves. -/
+def openPhase (root : Digest) (height width : ℕ) (positions : List ℕ) (phase : List Opening) :
+    m (Option (List (List K))) :=
+  if (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
+      phase.map Opening.leafIndex = positions then do
+    match ← openAll π root height width positions phase with
+    | some (rows, _) => pure (some rows)
+    | none => pure none
+  else pure none
 
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
 sponge and every opening authenticated; `none` on rejection. -/
@@ -357,21 +380,249 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
         run k { s with sponge := sponge, stream := xs, roots := s.roots ++ [(root, height, width)] }
       | none => pure none
     | _ => pure none
-  | .query i ps k, s => match s.roots[i]? with
-    | none => pure none
-    | some (root, height, width) => do
-      match ← openAll π root height width ps s.openings with
-      | some (rows, rest) => run (k rows) { s with openings := rest }
+  | .query i ps k, s => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest => do
+      match ← openPhase π root height width ps phase with
+      | some rows => run (k rows) { s with openings := rest }
       | none => pure none
+    | _, _ => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
+stream and the openings fully consumed (`verifier.py:456-458`, `finish`,
+`transcript.rs:205-215`). -/
 def runProof (program : VerifierProgram Bool) (seed : KeccakState) (proof : Proof) : m Bool := do
   match ← run π program ⟨⟨seed, []⟩, proof.stream, proof.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
 
 end Run
+
+/-! ## The proof's wire encoding (`crates/fiat_shamir/src/wire.rs`)
+
+A proof travels as one byte string, `Proof::to_bytes` (`Proof.toBytes`, `Prover/Prove.lean`), and
+the verifier decodes it, `Proof::from_bytes` (`Proof.fromBytes`, below), then verifies the proof
+(`LeanVM.leanVmVerifierOnBytes`, `LeanVm.lean`). Every count and size is a little-endian 32-bit
+word, every `K` word eight little-endian bytes, every digest its 32 bytes. A phase travels pruned:
+the queries' positions, the height, the leaf width and the row width, the leaf at each distinct
+position as its last row-width words (the words before are zero in every leaf of the phase), and
+the siblings no other path of the phase gives, bottom level first and left to right; decoding
+recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes
+(`hash_words`, `hash_pair`, `crates/fiat_shamir/src/merkle.rs:26-39`). Decoding verifies nothing:
+it refuses everything but the one encoding of a proof within the bounds below.
+
+The Rust hashes a phase's shared nodes while it reads the phase's siblings; which siblings it reads
+depends on the positions only, never on a hash, so here the bytes are read first (`readProof`) and
+the shared nodes hashed after (`unprunePhase`), in the Rust's order. On bytes the Rust refuses it
+has hashed some nodes, which changes nothing it returns. Sizes are natural numbers here, `usize`
+on a 64-bit host in the Rust, where no product of the decoding overflows.
+-/
+
+/-- `MAX_PHASES`: the most phases a decoded proof has (`wire.rs:11`). -/
+def wireMaxPhases : ℕ := 8
+
+/-- `MAX_QUERIES`: the most queries a decoded phase has (`wire.rs:12`). -/
+def wireMaxQueries : ℕ := 256
+
+/-- `MAX_LEAF_WORDS`: the most words a decoded leaf has (`wire.rs:13`). -/
+def wireMaxLeafWords : ℕ := 64
+
+/-- `MAX_HEIGHT`: the greatest height of a decoded phase's tree (`wire.rs:14`). -/
+def wireMaxHeight : ℕ := 32
+
+/-- `dedup_by_key`: keep the first of each run of consecutive elements with the same key. -/
+def dedupByKey {α β : Type} [DecidableEq β] (key : α → β) : List α → List α
+  | [] => []
+  | a :: rest => match dedupByKey key rest with
+    | [] => [a]
+    | b :: kept => if key a = key b then a :: kept else a :: b :: kept
+
+/-- The distinct positions of a phase's queries, ascending (`sort_unstable`, `dedup`). -/
+def distinctPositions (queries : List ℕ) : List ℕ :=
+  dedupByKey id (queries.mergeSort fun a b ↦ a ≤ b)
+
+/-- The nodes of level `level` a phase's paths climb through: their positions shifted right by
+`level`, distinct and ascending, for positions distinct and ascending. -/
+def levelNodes (positions : List ℕ) (level : ℕ) : List ℕ :=
+  dedupByKey id (positions.map fun position ↦ position >>> level)
+
+/-- The nodes of a level whose sibling a phase carries: those whose sibling `node ^^^ 1` is not a
+node of the level, in order (`wire.rs:88-95`, `wire.rs:138-141`). -/
+def carriedSiblings (nodes : List ℕ) : List ℕ :=
+  nodes.filter fun node ↦ node ^^^ 1 ∉ nodes
+
+/-- The leaf of `leafWords` words whose words after the leading zeros are `row` (`padded`,
+`crates/fiat_shamir/src/merkle.rs:71-75`). -/
+def paddedLeaf (row : List K) (leafWords : ℕ) : List K :=
+  List.replicate (leafWords - row.length) 0 ++ row
+
+/-! ### Reading (`Reader`, `wire.rs:159-187`): each read gives the bytes left, `none` past the end -/
+
+/-- `Reader::bytes`: the first `length` bytes and the rest. -/
+def readBytes (length : ℕ) (input : Bytes) : Option (Bytes × Bytes) :=
+  if length ≤ input.length then some (input.take length, input.drop length) else none
+
+/-- `Reader::u32`: a little-endian 32-bit word. -/
+def readU32 (input : Bytes) : Option (ℕ × Bytes) :=
+  (readBytes 4 input).map fun (head, rest) ↦ ((KeccakHash.littleEndianLane head 0).toNat, rest)
+
+/-- `count` little-endian 32-bit words, in order. -/
+def readU32s : (count : ℕ) → Bytes → Option (List ℕ × Bytes)
+  | 0, input => some ([], input)
+  | count + 1, input => do
+    let (value, input) ← readU32 input
+    let (values, input) ← readU32s count input
+    some (value :: values, input)
+
+/-- `Reader::words`: `count` words of `K`, each eight little-endian bytes. -/
+def readWords (count : ℕ) (input : Bytes) : Option (List K × Bytes) :=
+  (readBytes (8 * count) input).map fun (head, rest) ↦
+    ((List.range count).map fun i ↦ K.ofLane (KeccakHash.littleEndianLane head i), rest)
+
+/-- `Reader::hash`: a digest, its 32 bytes. -/
+def readDigest (input : Bytes) : Option (Digest × Bytes) :=
+  (readBytes 32 input).map fun (head, rest) ↦
+    (#v[KeccakHash.littleEndianLane head 0, KeccakHash.littleEndianLane head 1,
+      KeccakHash.littleEndianLane head 2, KeccakHash.littleEndianLane head 3], rest)
+
+/-- `count` digests, in order. -/
+def readDigests : (count : ℕ) → Bytes → Option (List Digest × Bytes)
+  | 0, input => some ([], input)
+  | count + 1, input => do
+    let (digest, input) ← readDigest input
+    let (digests, input) ← readDigests count input
+    some (digest :: digests, input)
+
+/-- `count` rows of `rowWords` words each, in order. -/
+def readRows (rowWords : ℕ) : (count : ℕ) → Bytes → Option (List (List K) × Bytes)
+  | 0, input => some ([], input)
+  | count + 1, input => do
+    let (row, input) ← readWords rowWords input
+    let (rows, input) ← readRows rowWords count input
+    some (row :: rows, input)
+
+/-- The siblings a phase carries, from level `level` up for `remaining` levels: at each level, the
+sibling of each node of `carriedSiblings` in order, keyed by its node (`wire.rs:134-141`). -/
+def readCarriedSiblings (positions : List ℕ) :
+    (level remaining : ℕ) → Bytes → Option (List (List (ℕ × Digest)) × Bytes)
+  | _, 0, input => some ([], input)
+  | level, remaining + 1, input => do
+    let carried := carriedSiblings (levelNodes positions level)
+    let (digests, input) ← readDigests carried.length input
+    let (above, input) ← readCarriedSiblings positions (level + 1) remaining input
+    some (carried.zip digests :: above, input)
+
+/-- A phase as its encoding gives it, before the shared nodes are hashed: the queries' positions in
+sampling order, the tree's height and leaf width, the distinct positions ascending with their
+leaves, and, level by level, the siblings it carries keyed by their node. -/
+structure PrunedPhase where
+  /-- The queries' positions, in the order the verifier samples them. -/
+  queries : List ℕ
+  /-- The tree's height. -/
+  height : ℕ
+  /-- The leaf width, in words. -/
+  leafWords : ℕ
+  /-- The distinct positions, ascending. -/
+  positions : List ℕ
+  /-- The leaf at each distinct position, whole. -/
+  leaves : List (List K)
+  /-- Level by level from the leaves, the siblings the phase carries, keyed by their node. -/
+  carried : List (List (ℕ × Digest))
+
+/-- `read_phase` up to the hashing (`wire.rs:101-128`): the queries' count, at most
+`wireMaxQueries`, and positions; the height, the leaf width and the row width; refused unless the
+height is at most `wireMaxHeight`, the leaf width at most `wireMaxLeafWords`, the row width at most
+the leaf width, and some query's position is below `2 ^ height`, every one being; the rows at
+the distinct positions, ascending, refused unless the row width is the least (some leaf's first row
+word is nonzero, or the rows are empty); then the carried siblings. -/
+def readPhase (input : Bytes) : Option (PrunedPhase × Bytes) := do
+  let (count, input) ← readU32 input
+  guard (count ≤ wireMaxQueries)
+  let (queries, input) ← readU32s count input
+  let (height, input) ← readU32 input
+  let (leafWords, input) ← readU32 input
+  let (rowWords, input) ← readU32 input
+  let positions := distinctPositions queries
+  guard (height ≤ wireMaxHeight ∧ leafWords ≤ wireMaxLeafWords ∧ rowWords ≤ leafWords ∧
+    ∃ last ∈ positions.getLast?, last >>> height = 0)
+  let (rows, input) ← readRows rowWords positions.length input
+  let leaves := rows.map fun row ↦ paddedLeaf row leafWords
+  guard ¬ (0 < rowWords ∧ ∀ leaf ∈ leaves, leaf.getD (leafWords - rowWords) 0 = 0)
+  let (carried, input) ← readCarriedSiblings positions 0 height input
+  some (⟨queries, height, leafWords, positions, leaves, carried⟩, input)
+
+/-- `count` phases, in order. -/
+def readPhases : (count : ℕ) → Bytes → Option (List PrunedPhase × Bytes)
+  | 0, input => some ([], input)
+  | count + 1, input => do
+    let (phase, input) ← readPhase input
+    let (phases, input) ← readPhases count input
+    some (phase :: phases, input)
+
+/-- `Proof::from_bytes` up to the hashing (`wire.rs:45-58`): the stream's length and its elements,
+each three words `c0, c1, c2` (`F192::new`); the number of phases, at most `wireMaxPhases`, and the
+phases; refused unless no byte is left. -/
+def readProof (bytes : Bytes) : Option (List E × List PrunedPhase) := do
+  let (length, input) ← readU32 bytes
+  let (words, input) ← readWords (3 * length) input
+  let stream := (List.range length).map fun i ↦
+    E.ofLimbs (words.getD (3 * i) 0) (words.getD (3 * i + 1) 0) (words.getD (3 * i + 2) 0)
+  let (phaseCount, input) ← readU32 input
+  guard (phaseCount ≤ wireMaxPhases)
+  let (phases, input) ← readPhases phaseCount input
+  guard input.isEmpty
+  some (stream, phases)
+
+section Unprune
+
+variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+
+/-- One level of the climb (`wire.rs:134-149`), from the level's nodes ascending with their
+digests and the siblings the phase carries at the level: each node's sibling, the level's node at
+`node ^^^ 1` if there is one, else the carried one; and the parents ascending, each hashed once, at
+its first child, the left child's digest first (`hash_pair`). -/
+def climbLevel (nodes carried : List (ℕ × Digest)) :
+    m (List (ℕ × Digest) × List (ℕ × Digest)) := do
+  let siblingOf (node : ℕ) : Digest :=
+    ((nodes.lookup (node ^^^ 1)).orElse fun _ ↦ carried.lookup node).getD default
+  let firstChildren := nodes.filter fun (node, _) ↦ node % 2 = 0 ∨ (node ^^^ 1) ∉ nodes.map (·.1)
+  let parents ← firstChildren.mapM fun (node, digest) ↦ do
+    let (left, right) :=
+      if node % 2 = 0 then (digest, siblingOf node) else (siblingOf node, digest)
+    let parent ← keccak256With π (digestBytes left ++ digestBytes right)
+    pure (node >>> 1, parent)
+  pure (nodes.map fun (node, _) ↦ (node, siblingOf node), parents)
+
+/-- Climb the levels from the nodes of the lowest, the carried siblings level by level: each
+level's siblings keyed by their node. -/
+def climbLevels : List (List (ℕ × Digest)) → List (ℕ × Digest) → m (List (List (ℕ × Digest)))
+  | [], _ => pure []
+  | carried :: above, nodes => do
+    let (siblings, parents) ← climbLevel π nodes carried
+    let rest ← climbLevels above parents
+    pure (siblings :: rest)
+
+/-- Unprune a phase back into its paths (`wire.rs:129-152`): hash the leaves (`hash_words`), in
+order, climb the levels, and give each query the opening at its position: the leaf there and, at
+each level, the sibling of the node its position is under. -/
+def unprunePhase (phase : PrunedPhase) : m (List Opening) := do
+  let leafDigests ← phase.leaves.mapM fun leaf ↦ keccak256With π (leaf.flatMap K.toBytes)
+  let siblings ← climbLevels π phase.carried (phase.positions.zip leafDigests)
+  pure (phase.queries.map fun query ↦
+    ⟨query, ((phase.positions.zip phase.leaves).lookup query).getD [],
+      (List.range phase.height).map fun level ↦
+        ((siblings.getD level []).lookup (query >>> level)).getD default⟩)
+
+/-- **The proof the bytes encode** (`Proof::from_bytes`, `wire.rs:44-58`), over the permutation `π`:
+the bytes read (`readProof`), then each phase unpruned, in order; `none` unless the bytes are
+exactly one proof's encoding within the bounds. Nothing is verified. -/
+def Proof.fromBytes (bytes : Bytes) : m (Option Proof) :=
+  match readProof bytes with
+  | none => pure none
+  | some (stream, phases) => do
+    let openings ← phases.mapM (unprunePhase π)
+    pure (some ⟨stream, openings⟩)
+
+end Unprune
 
 end LeanVM.Protocol.Compile
 

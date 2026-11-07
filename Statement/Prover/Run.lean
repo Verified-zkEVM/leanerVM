@@ -13,8 +13,9 @@ challenge squeezed at each `sample`; a `grind` takes the first nonce below `fuel
 builds the matrix's Merkle tree once (`MerkleBuilder`, `crates/pcs/src/merkle.rs:39-176`) and sends
 its root;
 a `query` gives the script the rows at the positions and puts their openings, read off the tree,
-in the proof. Where the script's move is not the program's, the run sends `0`, commits the empty
-matrix and gives the script nothing more; a script that follows the program never meets it.
+in the proof as one phase. Where the script's move is not the program's, the run sends `0`,
+commits the empty matrix and gives the script nothing more; a script that follows the program
+never meets it.
 -/
 
 @[expose] public section
@@ -39,11 +40,11 @@ def sibling (i : ℕ) : ℕ := if i % 2 = 0 then i + 1 else i - 1
 /-- The root of a tree. -/
 def Tree.root (t : Tree) : Digest := (t.levels.getD t.height #[]).getD 0 default
 
-/-- The opening of a tree at position `q`: the row at `q`'s low `height` bits and its
-authentication path, leaf level first. -/
+/-- The opening of a tree at position `q` (`open`, `crates/fiat_shamir/src/merkle.rs:52-69`): the
+position, the row at `q`'s low `height` bits and its authentication path, leaf level first. -/
 def Tree.opening (t : Tree) (q : ℕ) : Opening :=
   let i := q % 2 ^ t.height
-  ⟨t.word i, (List.range t.height).map fun l ↦
+  ⟨q, t.word i, (List.range t.height).map fun l ↦
     (t.levels.getD l #[]).getD (sibling (i / 2 ^ l)) default⟩
 
 section Monadic
@@ -153,7 +154,8 @@ so far: the scalars and the openings the proof holds from there on, or `none` if
 search finds no nonce below `fuel`. A rejection, and an opening of a missing commitment, end the
 proof. -/
 def runFrom (fuel : ℕ) {α β : Type} :
-    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree →
+      m (Option (List E × List (List Opening)))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -181,7 +183,7 @@ def runFrom (fuel : ℕ) {α β : Type} :
     | some tree => do
       let rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
       let r ← runFrom fuel (k rows) (Script.afterQuery rows S) sp cs
-      pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
+      pure (r.map fun t ↦ (t.1, ps.map tree.opening :: t.2))
 
 /-- **A proof from a script**: the script run against the program from the seed, or `none` if a
 proof-of-work search finds no nonce below `fuel`. -/
