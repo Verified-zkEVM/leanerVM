@@ -58,7 +58,8 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 /-- The honest prover from a history `h` at sponge `sp`, the trees of the commitments so far `cs`
 (`proveFrom`): each commitment's tree built once, the openings read from it. -/
 def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    VerifierProgram α → Sponge → List Ev → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Sponge → List Ev → List Tree →
+      m (Option (List E × List (List Opening)))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, sp, h, cs => do
@@ -86,7 +87,7 @@ def proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     | some tree => do
       let rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
       let r ← proveFromM S fuel (k rows) sp (h ++ [Ev.query rows]) cs
-      pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
+      pure (r.map fun t ↦ (t.1, ps.map tree.opening :: t.2))
 
 /-- **The honest prover**, with the hash and the permutation in any monad (`prove`). -/
 def proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ) : m (Option
@@ -188,10 +189,10 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
     (buildTreeWithHash (m := Id) H height word).opening q = openingAt H height word q := by
   have e := levelsM_id_path H height ((leavesOf height word).map (leafHash H))
     ⟨q % 2 ^ height, Nat.mod_lt _ (Nat.two_pow_pos height)⟩
-  show (⟨word (q % 2 ^ height), (List.range height).map fun l ↦
+  show (⟨q, word (q % 2 ^ height), (List.range height).map fun l ↦
     ((levelsWithHash (m := Id) H height (leafDigestsWithHash (m := Id) H height word)).toArray.getD l #[]).getD
       (LeanVM.Prover.sibling (q % 2 ^ height / 2 ^ l)) default⟩ : Opening) =
-    ⟨word (q % 2 ^ height), _⟩
+    ⟨q, word (q % 2 ^ height), _⟩
   simp only [toArray_getD, leafDigestsM_id]
   exact congrArg _ e
 
@@ -265,7 +266,7 @@ theorem proveFromM_id (S : Strategy) (fuel : ℕ) {α : Type} :
         funext (opening_buildTreeM_id H ht word)
       show (proveFromM (m := Id) H F S fuel (k (ps.map fun q ↦ word (q % 2 ^ ht))) sp
           (h ++ [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))]) (treesOf H (commits h))).map
-          (fun t ↦ (t.1, ps.map (buildTreeWithHash (m := Id) H ht word).opening ++ t.2)) = _
+          (fun t ↦ (t.1, ps.map (buildTreeWithHash (m := Id) H ht word).opening :: t.2)) = _
       rw [ho, ← treesOf_append_nil H h (Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))) rfl,
         proveFromM_id S fuel]
 

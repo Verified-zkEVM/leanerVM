@@ -232,7 +232,8 @@ variable {m : Type → Type} [Monad m] (F : KeccakState → m KeccakState)
 
 /-- `runFrom`, copied. -/
 def runFrom.fast (fuel : ℕ) {α β : Type} :
-    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree →
+      m (Option (List E × List (List Opening)))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -260,7 +261,7 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
     | some tree => do
       let rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
       let r ← runFrom.fast fuel (k rows) (Script.afterQuery rows S) sp cs
-      pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
+      pure (r.map fun t ↦ (t.1, ps.map tree.opening :: t.2))
 
 @[csimp] theorem runFrom.fast_eq : @runFrom = @runFrom.fast := by
   funext m _ F fuel α β P S sp cs
