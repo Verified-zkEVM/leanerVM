@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkT
 
-  `verify_keccak`'s body as a template (G:2952-3118), section by section.
+  `verify_keccak`'s body as a template (G:2957-3123), section by section.
 -/
 
 module
@@ -123,7 +123,7 @@ def flipsT (s b : ℕ) : List Stmt :=
 def flipOf (s b i : ℕ) : ℕ := flipV s b ((iotaUsed s).idxOf i)
 
 /-- The `ι` term from `c`, the segment weights `w0`, `w1`: per segment the flips summed, times
-its weight, the two added (G:3055-3060). -/
+its weight, the two added (G:3056-3061). -/
 def iotaSegT (s b c w0 w1 : ℕ) : List Stmt :=
   let v0 := (iotaIdx s 0).map (flipOf s b)
   let v1 := (iotaIdx s 1).map (flipOf s b)
@@ -160,7 +160,7 @@ def stepTailT (s b : ℕ) (cap : List ℕ) (cur cb pn io : ℕ) : List Stmt :=
 /-- The size of `stepTailT`'s values. -/
 def stepTailSz (s : ℕ) : ℕ := if s = 0 then 12 else 14
 
-/-- **Step `s`** from `b` (G:3042-3064): the claim's point, its segment weights (`eqtree_frame` of
+/-- **Step `s`** from `b` (G:3034-3065): the claim's point, its segment weights (`eqtree_frame` of
 one coordinate, `1 + r` at `b + 4`, `r` at `b + 5`), the flips, the `ι` term, the call. -/
 def stepT (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) : List Stmt :=
   let f0 := b + 6
@@ -258,7 +258,7 @@ def vkFirstT : List Stmt :=
 
 /-- An opening's lane weights at the slot point `slot` and segment point `segp` from `b`: the
 slot's equality weights (`eqfT`, the first 50), the segment's, and per lane the segments'
-`first .. first + count` weighted (`keccak_slot_lanes`, G:2936-2949). -/
+`first .. first + count` weighted (`keccak_slot_lanes`, G:2941-2954). -/
 def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
   eqfT (.n slot) 0 6 50 b ++ eqfLevel0T (.n segp) 0 (b + 129) ++
   ((List.range 25).map fun lane ↦

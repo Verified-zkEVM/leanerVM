@@ -40,7 +40,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-! ## The values -/
 
-/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4448-4453). -/
+/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4449-4454). -/
 def zsVal (z : E) (j : ℕ) : E := if j < 14 then z ^ 2 ^ j else 0
 
 /-- The factor at node `n` of a product tree over the bits `top, top - 1, …`, with the bit powers

@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `assert_canonical` (G:560-567, TRIAGE #2) -/
+/-! ## `assert_canonical` (G:565-572, TRIAGE #2) -/
 
 /-- **`assert_canonical(word)`**: the word has no `y²` term; it returns `0`. -/
 def MeaningAssertCanonical : List E → List E → Prop
@@ -113,7 +113,7 @@ def log2_Spec : Prop :=
   log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L0_L34" 0 ∧
     log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L15_L34" 15
 
-/-! ## `grind_check` (G:811-833, TRIAGE #21) -/
+/-! ## `grind_check` (G:919-945, TRIAGE #21) -/
 
 /-- **`grind_check(word, bits)`** (`bits > 0`): the word, the first cell of the permutation the
 nonce's challenge comes from, is canonical and the low `bits` bits of its first limb are zero:

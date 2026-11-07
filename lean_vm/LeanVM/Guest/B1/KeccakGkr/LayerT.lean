@@ -512,7 +512,7 @@ def flipOffs (i : ℕ) : List (ℕ × ℕ) :=
 `1 + top` (`top1`). -/
 def topOf (top top1 z : ℕ) : ℕ := if z / 32 = 1 then top else top1
 
-/-- Flip `i` from `b` (G:2890-2896): over `flipOffs i`, the lane weight read at `lp`, the slice
+/-- Flip `i` from `b` (G:2902-2907): over `flipOffs i`, the lane weight read at `lp`, the slice
 weight `slices[z % 32]·top(z)`, their product, summed; the flip at `b + 42`. -/
 def lflipT (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) : List Stmt :=
   match flipOffs i with

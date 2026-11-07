@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# `residual_query` (G:1448-1456, TRIAGE #41)
+# `residual_query` (G:1453-1461, TRIAGE #41)
 
 `residual_query(basis_chain, row_d, vanish, n)` is `Π_{t<n} (d_t + chain_t)` over the row
 `d_t = row_d[t]`, `chain_0` the query position and
@@ -22,7 +22,7 @@ and the constants `vals` (`open_stacked`'s query loops number it) is `residualT 
 * `residual_factor`: `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)` when `c·inv ≠ 0`, so the
   product of `inducedWeight`'s factors (V:1715) at one query is `Π_t (c_t·inv_t)` (the level's
   scale, `open_stacked`'s `level_scale`) times the template's value at `d_t = (1 + c_t)/(c_t·inv_t)`
-  (`basis_d`, G:1738-1744): `residual_prod`.
+  (`basis_d`, G:1740-1748): `residual_prod`.
 -/
 
 namespace LeanVM.Guest.B1

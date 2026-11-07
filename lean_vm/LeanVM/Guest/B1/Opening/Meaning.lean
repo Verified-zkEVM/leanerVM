@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `opening_fold` (G:1245-1257, TRIAGE #35) -/
+/-! ## `opening_fold` (G:1250-1263, TRIAGE #35) -/
 
 /-- **`opening_fold(fs0..fs4, w0, w1, cursor, c0, c1, c2)`**: from the carried capacity
 (canonical cells) with the scalars `w0`, `w1` waiting (`dsObserve`), the challenge `r` is
@@ -56,7 +56,7 @@ def opening_fold_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "opening_fold" args rets ↔ MeaningOpeningFold rd args rets
 
-/-! ## `opening_ood_point` (G:1148-1159, TRIAGE #36) -/
+/-! ## `opening_ood_point` (G:1266-1277, TRIAGE #36) -/
 
 /-- **`opening_ood_point(fs0..fs4, r0..r7, point, n)`** (`n ≥ 1`): the rate cells `r0..r7` and the
 capacity are canonical; the first coordinate is the challenge of their permutation, the other
@@ -88,7 +88,7 @@ def opening_ood_point_Spec : Prop :=
   ∀ p ∈ oodPointNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningOodPoint p.2 rd args rets
 
-/-! ## `opening_final_message` (G:1275-1294, TRIAGE #37) -/
+/-! ## `opening_final_message` (G:1280-1299, TRIAGE #37) -/
 
 /-- **`opening_final_message(fs0..fs4, w0, w1, cursor, out, n)`**: from the carried capacity
 (canonical cells) with `w0`, `w1` waiting, the `n` stream words at the cursor (the final message,
@@ -114,7 +114,7 @@ def opening_final_message_Spec : Prop :=
   ∀ p ∈ finalMessageNames, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd p.1 args rets ↔ MeaningOpeningFinalMessage p.2 rd args rets
 
-/-! ## `opening_row_weights` (G:1297-1318, TRIAGE #38) -/
+/-! ## `opening_row_weights` (G:1302-1323, TRIAGE #38) -/
 
 /-- Slot `i` of a run of `2^m`, reversed when `rev = 1`. -/
 def rwSlot (m rev i : ℕ) : ℕ := if rev = 1 then 2 ^ m - 1 - i else i
@@ -146,7 +146,7 @@ def opening_row_weights_Spec : Prop :=
     coreProgram.Rel rd "opening_row_weights__L4_L0" args rets ↔
       MeaningOpeningRowWeights 4 0 rd args rets
 
-/-! ## `opening_query`, `opening_queries` (G:1322-1444, TRIAGE #39, #40) -/
+/-! ## `opening_query`, `opening_queries` (G:1381-1451, TRIAGE #39, #40) -/
 
 /-- `climb` (V:492) at the deployed hash: the node a path reaches. -/
 def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
@@ -173,7 +173,7 @@ def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
 def climbNode (leaf : Digest) (q : ℕ) (sibs : List Digest) (l : ℕ) : Digest :=
   climbD leaf q (sibs.take l)
 
-/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1170): level `k / 4`'s
+/-- Cell `k` of a path's frame run (`walk_path`'s `path`, G:1345-1346): level `k / 4`'s
 children, two cells each, the node reached so far on the side of the position's bit at the level,
 the sibling on the other. -/
 def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=

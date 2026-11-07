@@ -56,7 +56,7 @@ theorem bitT_holds {aP bP : V} {t B : ℕ} {next : Prop} {kret : List E → Prop
     · rw [e9, e5, e4, word_one]; ring
     · rw [e10, e3, e2, word_one]; ring
 
-/-- **A `carry_step`** (G:2568-2582): from the carry sums of `t` bits, those of `t + 1`. -/
+/-- **A `carry_step`** (G:2573-2587): from the carry sums of `t` bits, those of `t + 1`. -/
 theorem carryT_holds {c0 c1 : ℕ → ℕ} {e u v t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)
@@ -140,7 +140,7 @@ theorem uv_sum (α β : E) : (α + α * β) + (β + α * β) = α + β := by
   have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
   linear_combination (α * β) * h2
 
-/-- **A `carry_wrap`** (G:2586-2595): the last bit, both carries out (`modK`). -/
+/-- **A `carry_wrap`** (G:2591-2600): the last bit, both carries out (`modK`). -/
 theorem carryWrapT_holds {c0 c1 : ℕ → ℕ} {e s t B : ℕ} {as bs : List E} {α β : E}
     (hl : bs.length = as.length) (ht : as.length = t)
     (hc0 : ∀ p < 2 ^ t, σ (.n (c0 p)) = carryK as bs 0 p)

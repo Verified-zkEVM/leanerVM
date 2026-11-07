@@ -18,16 +18,16 @@ and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them
 `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at
 leanVM `834e6614`, G below) holds the sponge as the thirteen-cell output of its last permutation,
 of which only the five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x`
-with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:618-626), canonical
+with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:623-631), canonical
 exactly when `c2` is `x`'s top limb (`fsPack_cells`); a permutation is `keccak(a, b, out,
-tail=, cap=sp)` (`fs_perm`, G:630-645), lowered as one `KECCAK` in the even layouts whose eight
+tail=, cap=sp)` (`fs_perm`, G:635-650), lowered as one `KECCAK` in the even layouts whose eight
 rate cells are the waiting cells (zeros past them: the zero run `keccak_pad_run() + 1`) and
 whose cells `8..12` are `sp`'s last five (`builtins.rs:31-63`).
 
 * `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
 * `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at
   `m = Id`, `F = keccakF`;
-* `challengeOf_cells`: `challenge_from_state` (G:595-604) reads `challengeOf`;
+* `challengeOf_cells`: `challenge_from_state` (G:600-609) reads `challengeOf`;
 * `fsPack_cells`: `fs_pack`'s two cells are the scalar's rate cells.
 -/
 
@@ -152,7 +152,7 @@ theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.l
 
 /-! ## Reading a challenge, packing a scalar -/
 
-/-- **`challenge_from_state`** (G:595-604): the challenge of a state is its cell `0` plus `y²` times
+/-- **`challenge_from_state`** (G:600-609): the challenge of a state is its cell `0` plus `y²` times
 the low limb of its cell `1` (which the guest hints and pins by `assert_in_k`, `split_iff`). -/
 theorem challengeOf_cells (S : KeccakState) :
     Compile.challengeOf S =

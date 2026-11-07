@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesT
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# A query's row (`opening_query`, G:1322-1419)
+# A query's row (`opening_query`, G:1380-1419)
 
 * `oqPack_sound`: the packs put each pair of row words in `K` and make the packed cell
   `E.ofLimbs` of their limbs (`pack64x2`); `oqRow b R σ` is the row's `K` words.
