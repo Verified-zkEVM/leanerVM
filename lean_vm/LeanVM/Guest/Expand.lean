@@ -831,20 +831,22 @@ def xorByte (cells : List SpongeCell) (pos v : Nat) : M (List SpongeCell) := do
 /-- The `KECCAK` atoms absorbing `cells` into `state` (the zero state if `none`), the last writing
 `out` (`emit_keccak_message`). With `finalLen` the message is the cells' first `finalLen` bytes,
 padded, in `finalLen / rate + 1` blocks (`primitives::hash::permutations`); without, the cells
-zero-extended to whole blocks. -/
+zero-extended to whole blocks. `padded`: the cells past `finalLen` already hold the padding's
+first byte and zeros (`padTailInPlace`). -/
 def emitKeccakMessage (cells : List SpongeCell) (finalLen : Option Nat) (state : Option (List V))
-    (out : List V) : M Unit := do
+    (out : List V) (padded : Bool) : M Unit := do
   let blocks := match finalLen with
     | some len => len / Protocol.KeccakHash.rate + 1
     | none => (16 * cells.length + Protocol.KeccakHash.rate - 1) / Protocol.KeccakHash.rate
   let read := 17 * (blocks - 1) / 2 + blockCells
   let mut cells := cells ++ List.replicate (read - cells.length) SpongeCell.zero
   if let some len := finalLen then
-    let past := (len + 15) / 16
-    if let some k := (List.range' past (cells.length - past)).find? fun k =>
-        !(cells.getD k .zero).isZero then
-      fail s!"keccak len= {len} ends before message cell {k}, which is not a literal 0"
-    cells ← xorByte cells len Protocol.KeccakHash.padFirst.toNat
+    if !padded then
+      let past := (len + 15) / 16
+      if let some k := (List.range' past (cells.length - past)).find? fun k =>
+          !(cells.getD k .zero).isZero then
+        fail s!"keccak len= {len} ends before message cell {k}, which is not a literal 0"
+      cells ← xorByte cells len Protocol.KeccakHash.padFirst.toNat
     cells ← xorByte cells (blocks * Protocol.KeccakHash.rate - 1) Protocol.KeccakHash.padLast.toNat
   let mut state := state
   for k in List.range blocks do
@@ -1644,13 +1646,40 @@ def keccakOut : Nat → Expr → M KeccakOut
     fail s!"a keccak destination is a {stateCells}-cell run (the state) or a 2-cell run (the \
       digest)"
 
-/-- `keccak(a, b, out, tail=, len=, cap=)` (`lower_keccak`): the Keccak-256 of the first `len`
+/-- `pad_tail=1` (`pad_tail_in_place`): set the cells of the `tail` slice from `len` on to the
+padding (its first byte, then zeros), so the message is read in place instead of copied into a
+padded run. The slice must be a `StackBuf`'s, `len` must end one of its cells, and `a` and `b`
+must not read the cells it sets. -/
+def padTailInPlace : Nat → List (String × Expr) → List SpongeCell → Nat → M Unit
+  | 0, _, _, _ => fail "expansion fuel exhausted"
+  | n + 1, kwargs, cells, len => do
+    let tailStart := 4
+    let some e := kwGet kwargs "pad_tail" | fail "keccak pad_tail= takes 1"
+    if (← tryConstInt e) != some 1 then fail "keccak pad_tail= takes 1"
+    let some tailCells ← (match kwGet kwargs "tail" with
+        | some tail => do
+            match ← tryCellRun n tail with
+            | some (.stack cs) => pure (some cs)
+            | _ => pure none
+        | none => pure none)
+      | fail "keccak pad_tail=1 needs tail= a StackBuf slice"
+    let past := len / 16
+    if len % 16 != 0 || !(tailStart ≤ past && past < cells.length) then
+      fail s!"keccak pad_tail=1 needs len= ending a tail cell (64, 80, 96 or 112), got {len}"
+    let set := (tailCells.drop (past - tailStart)).take (cells.length - past)
+    if (cells.take tailStart).any fun | .cell o => set.contains o | _ => false then
+      fail "keccak pad_tail=1: a or b reads a cell past len, which the padding sets"
+    for (o, k) in set.zipIdx do
+      emitAtom (.const o (if k = 0 then keccakPadValue else 0))
+
+/-- `keccak(a, b, out, tail=, len=, cap=, pad_tail=)` (`lower_keccak`): the Keccak-256 of the first `len`
 bytes of `a ‖ b ‖ tail`, one `KECCAK`; with `cap=`, the duplex step in overwrite mode, the eight
-message cells over the zero padding and the five cells a previous output ends with. -/
+message cells over the zero padding and the five cells a previous output ends with; with
+`pad_tail=1`, the padding set in the tail's cells (`padTailInPlace`). -/
 def lowerKeccak : Nat → List Expr → M Unit
   | 0, _ => fail "expansion fuel exhausted"
   | n + 1, args => do
-    let kwargs ← keccakKwargs args "keccak" ["a", "b", "out"] ["tail", "len", "cap"]
+    let kwargs ← keccakKwargs args "keccak" ["a", "b", "out"] ["tail", "len", "cap", "pad_tail"]
     let a ← keccakWords n 2 (args.getD 0 default)
     let b ← keccakWords n 2 (args.getD 1 default)
     let mut cells := a ++ b
@@ -1680,8 +1709,10 @@ def lowerKeccak : Nat → List Expr → M Unit
       keccakFinish out
       return
     let len ← keccakLen kwargs cells.length
+    let padded := (kwGet kwargs "pad_tail").isSome
+    if padded then padTailInPlace n kwargs cells len
     let out ← keccakOut n (args.getD 2 default)
-    emitKeccakMessage cells (some len) none out.state
+    emitKeccakMessage cells (some len) none out.state padded
     keccakFinish out
 
 /-- `keccak_cells(cells, out, state=, len=, final=)` (`lower_keccak_cells`): the Keccak-256 of the
@@ -1736,7 +1767,7 @@ def lowerKeccakCells : Nat → List Expr → M Unit
               else bad
           | none => bad
     let out ← keccakOut n (args.getD 1 default)
-    emitKeccakMessage cells finalLen state out.state
+    emitKeccakMessage cells finalLen state out.state false
     keccakFinish out
 
 /-- `hint_witness(dest, "stream")` (`lower_hint_witness`). -/
