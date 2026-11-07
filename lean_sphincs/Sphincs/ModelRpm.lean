@@ -116,7 +116,8 @@ noncomputable def staticSwap : StaticSwap modelScheme crateScheme where
 theorem crateScheme_romBound {bits : ℕ} (h : FORS.SecurityBits params bits) :
     RomBound crateScheme bits :=
   StaticSwap.romBound staticSwap Queries.Honest Queries.queriesIn_seededKeygen
-    Queries.queriesIn_crateKeygen Queries.queriesIn_seededSign Queries.queriesIn_crateSign (modelScheme_bound h)
+    Queries.queriesIn_crateKeygen Queries.queriesIn_seededSign Queries.queriesIn_crateSign
+    (modelScheme_bound h)
 
 /-- From `bits ≤ 128` bits in the random-oracle model to `bits` bits in the random-permutation
 model, for the crate's signer, against adversaries that also query Keccak-256. -/

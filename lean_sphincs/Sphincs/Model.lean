@@ -194,8 +194,10 @@ local notation "σ" => schemeHashOverPermutation
 theorem simulateQ_oracleHash (input : FORS.HashInput) :
     simulateQ σ (FORS.Concrete.oracleHash (m := OracleComp FORS.HashSpec) input) =
       keccakHash queryPermutation input := by
-  change simulateQ σ (LeanXmss.Verification.oracleHashWithHash (m := OracleComp SchemeHashSpec) input) = _
-  simp only [LeanXmss.Verification.oracleHashWithHash, simulateQ_HasQuery_query, schemeHashOverPermutation,
+  change simulateQ σ
+    (LeanXmss.Verification.oracleHashWithHash (m := OracleComp SchemeHashSpec) input) = _
+  simp only [LeanXmss.Verification.oracleHashWithHash, simulateQ_HasQuery_query,
+    schemeHashOverPermutation,
     keccak256OverPermutation, keccakHash, Functor.map_map]
   refine congrArg (· <$> _) (funext fun digest ↦ ?_)
   simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes, Vector.toList]
@@ -206,7 +208,8 @@ theorem simulateQ_oracleHash (input : FORS.HashInput) :
 The model's computations are in `OracleComp FORS.HashSpec`, the statement's hash spec up to
 unfolding: the simulation lemmas of its binds, stated in that monad, so that `simp` sees them. -/
 
-theorem sim_bind {α β : Type} (x : OracleComp FORS.HashSpec α) (f : α → OracleComp FORS.HashSpec β) :
+theorem sim_bind {α β : Type} (x : OracleComp FORS.HashSpec α)
+    (f : α → OracleComp FORS.HashSpec β) :
     simulateQ σ (@Bind.bind (OracleComp FORS.HashSpec) _ α β x f) =
       simulateQ σ x >>= fun a ↦ simulateQ σ (f a) :=
   simulateQ_bind _ _ _
@@ -316,7 +319,8 @@ the statement keeps the 34 bytes and reads the fields off them: both read the by
 
 section Digest
 
-open FORS.Concrete (outputBit digestOutputBytes_length testBit_digestOutputByte testBit_digestFieldsValue
+open FORS.Concrete (outputBit digestOutputBytes_length testBit_digestOutputByte
+  testBit_digestFieldsValue
   testBit_digestIndexValue digestIndexValue_lt msbField_lt beInt_append)
 
 theorem digestCalls_eq : FORS.digestCalls = 2 := rfl
@@ -365,7 +369,8 @@ theorem messageDigestByte_eq (outputs : DigestCall → HashOutput) (p : ℕ) (hp
   apply Nat.eq_of_testBit_eq
   intro t
   by_cases ht : t < 8
-  · rw [testBit_digestOutputByte (asModel outputs) p t ht, ← testBit_digestValue outputs _ (by omega)]
+  · rw [testBit_digestOutputByte (asModel outputs) p t ht,
+      ← testBit_digestValue outputs _ (by omega)]
     simp only [messageDigestByte, truncateMessageDigest, BitVec.testBit_toNat,
       BitVec.getLsbD_extractLsb', BitVec.getLsbD_ofNat, ht, decide_true, Bool.true_and]
     have : 8 * p + t < 8 * digestByteCount := by unfold digestByteCount; omega
@@ -379,7 +384,8 @@ theorem messageDigestByte_eq (outputs : DigestCall → HashOutput) (p : ℕ) (hp
 
 theorem messageDigestBigEndian_succ (digest : MessageDigest) (start count : ℕ) :
     messageDigestBigEndian digest start (count + 1) =
-      256 * messageDigestBigEndian digest start count + messageDigestByte digest (start + count) := by
+      256 * messageDigestBigEndian digest start count +
+        messageDigestByte digest (start + count) := by
   simp only [messageDigestBigEndian, List.range_succ, List.foldl_append, List.foldl_cons,
     List.foldl_nil]
 
@@ -406,7 +412,8 @@ theorem digestIndex_val (outputs : DigestCall → HashOutput) :
       FORS.digestIndexValue (FORS.digestOutputBytes (asModel outputs)) := by
   simp only [digestIndex, FORS.digestIndexValue, mdBytes_eq, treeIndexBytes_eq, leafIndexBytes_eq,
     bottomHeight_eq, totalHeight_eq, forsMessageByteCount, treeIndexByteCount, leafIndexByteCount,
-    messageDigestBigEndian_eq outputs 30 3 (by omega), messageDigestBigEndian_eq outputs 33 1 (by omega)]
+    messageDigestBigEndian_eq outputs 30 3 (by omega),
+    messageDigestBigEndian_eq outputs 33 1 (by omega)]
 
 /-- The model's index is its value of the index bytes (at every shape). -/
 theorem modelDigestIndex_val {P : FORS.Params} (outputs : FORS.DigestCall → FORS.HashOutput) :
@@ -552,14 +559,16 @@ theorem simulateQ_encode (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS
     simulateQ σ (FORS.Concrete.encode (m := OracleComp FORS.HashSpec) parameter lay tree leaf
       (FORS.Concrete.rootPayload message) counter) =
       encode queryPermutation parameter (toLayer lay) tree (toLeaf leaf) message counter := by
-  simp only [FORS.Concrete.encode, encode, sim_bind, sim_pure, simulateQ_tweakableHash _ (.encoding _ _ _) trivial]
+  simp only [FORS.Concrete.encode, encode, sim_bind, sim_pure,
+    simulateQ_tweakableHash _ (.encoding _ _ _) trivial]
   rfl
 
 theorem simulateQ_otsLeaf (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
     (message : FORS.Digest) (counter : FORS.Counter) (values : FORS.ChainIndex → FORS.Digest) :
     simulateQ σ (FORS.Concrete.otsLeaf (m := OracleComp FORS.HashSpec) parameter lay tree leaf
       (FORS.Concrete.rootPayload message) counter values) =
-      otsLeaf queryPermutation parameter (toLayer lay) tree (toLeaf leaf) message counter values := by
+      otsLeaf queryPermutation parameter (toLayer lay) tree (toLeaf leaf) message counter
+        values := by
   simp only [FORS.Concrete.otsLeaf, otsLeaf, sim_bind, simulateQ_encode]
   refine bind_eq_of rfl fun encoding ↦ ?_
   rcases encoding with _ | encoding
@@ -584,7 +593,8 @@ theorem simulateQ_treeFold (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FO
     by_cases hbit : leaf.val.testBit levels = true
     · simp only [hbit, toLeaf, ↓reduceIte, simulateQ_tweakableHash _ (.node _ _ _ _) trivial]
       rfl
-    · simp only [hbit, toLeaf, Bool.false_eq_true, ↓reduceIte, simulateQ_tweakableHash _ (.node _ _ _ _) trivial]
+    · simp only [hbit, toLeaf, Bool.false_eq_true, ↓reduceIte,
+        simulateQ_tweakableHash _ (.node _ _ _ _) trivial]
       rfl
 
 theorem simulateQ_forsFold (index : FORS.Index) (forsTree : FORS.FTree) (leaf : FORS.FLeaf)
@@ -628,7 +638,8 @@ theorem simulateQ_forsTreeRecover (index : FORS.Index) (forsTree : FORS.FTree)
       forsTreeRecover queryPermutation parameter index forsTree leaf
         (ofModelTreeOpening opening) := by
   simp only [FORS.Concrete.treeRecover, forsTreeRecover, sim_bind, FORS.Concrete.forsLeafHash,
-    simulateQ_tweakableHash _ (.forsLeaf _ _ _) trivial, simulateQ_forsFold _ _ _ _ _ FORS.forsHeight le_rfl]
+    simulateQ_tweakableHash _ (.forsLeaf _ _ _) trivial,
+    simulateQ_forsFold _ _ _ _ _ FORS.forsHeight le_rfl]
   rfl
 
 theorem simulateQ_forsRecover (index : FORS.Index) (leaves : FORS.FTree → FORS.FLeaf)
@@ -640,7 +651,8 @@ theorem simulateQ_forsRecover (index : FORS.Index) (leaves : FORS.FTree → FORS
       forsRecover queryPermutation parameter index leaves
         (fun forsTree ↦ ofModelTreeOpening (opening forsTree)) := by
   simp only [FORS.Concrete.forsRecover, forsRecover, simulateQ_sequenceFin,
-    simulateQ_forsTreeRecover, FORS.Concrete.forsPublicKey, simulateQ_tweakableHash _ (.forsRoots _) trivial]
+    simulateQ_forsTreeRecover, FORS.Concrete.forsPublicKey,
+    simulateQ_tweakableHash _ (.forsRoots _) trivial]
   rfl
 
 theorem simulateQ_messageDigestCall (root : FORS.Digest) (message : FORS.Message)
