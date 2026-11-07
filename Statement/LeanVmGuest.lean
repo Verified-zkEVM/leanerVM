@@ -458,14 +458,14 @@ open LeanVM.Parameters LeanVM.Semantics
 `Statement/README.md` (*The guest decoder's size bound and budget*) has their measurements and
 limits. -/
 
-/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `1130200`, the
-compiled decoder's size at leanVM `d1c4c8f7` (`1129699`: `lean_vm`'s `Cost/DecoderSize.lean` proves
-it at most that) and a slack of `501`, room for one leanXMSS signature's encoding (`309`) but not
+/-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `1130000`, the
+compiled decoder's size at leanVM `56a4109f` (`1129490`: `lean_vm`'s `Cost/DecoderSize.lean` proves
+it at most that) and a slack of `510`, room for one leanXMSS signature's encoding (`309`) but not
 two, so no useful table of witnesses (hard-coded signatures, matrices or proofs that would mask a
 bug of the guest program on finitely many statements) fits beside the compiled decoder's code. The
 size counts in full the guest program's per-function tables, literals of the compiled decoder; a
 program written differently could hold more. -/
-def guestWitnessDecoderSizeBound : ℕ := 1130200
+def guestWitnessDecoderSizeBound : ℕ := 1130000
 
 /-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
 `2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it
