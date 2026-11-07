@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsLayersComplete
 
-  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3952-3964` at leanVM 3300fd1f,
+  A layer of `verify_sig_lean_sphincs` (`sp_layer`, `lean_ethereum.py:3964-3976` at leanVM 56a4109f,
   after its counter) is complete: its encoding hashed, the key's leaf by the call of `sp_wots`, the
   path to the root.
 -/

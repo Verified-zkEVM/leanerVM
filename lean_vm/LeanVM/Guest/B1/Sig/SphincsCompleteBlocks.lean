@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 
   The completeness of `verify_sig_lean_sphincs`'s FORS block and of a layer of its hypertree
-  (`lean_ethereum.py:3839-3964, 4032-4037` at leanVM d1c4c8f7), as the statements its assembly
+  (`lean_ethereum.py:3841-3976, 4059-4064` at leanVM 56a4109f), as the statements its assembly
   consumes; the byte table's pointers.
 -/
 
@@ -23,10 +23,11 @@ from the completeness of each block (`Completes`: a valuation extending the give
 block's fresh values, under which the block holds): the digest block's (`sDigestBlock_complete`)
 and `sp_from_bytes`'s (`sFromMarks_complete`), and the two stated here:
 
-* `ForsBlockCompletes` (`sForsB`, `G:4032-4037`): at the bottom key's `A0` and `A1`, the leaves `s c`
-  (their bits and shifts), any secrets and siblings, the FORS key is `T_k` of the roots
+* `ForsBlockCompletes` (`sForsB`, `G:4059-4064`): at the bottom key's `A0` and `A1`, the leaves `s c`
+  (their bits, and their shifts with the trees' places, `fIdx`), any secrets and siblings, the FORS
+  key is `T_k` of the roots
   (`forsRootCell`);
-* `HtLayerCompletes` (`sHtLayer`, `G:3957-3964`): a layer whose `sp_wots` call holds of the
+* `HtLayerCompletes` (`sHtLayer`, `G:3969-3976`): a layer whose `sp_wots` call holds of the
   encoding (`encDigestCell`) and a leaf `lv` reaches `pFold` of `pNodeE` from `lv`, along any
   siblings;
 * `SphincsBlocksComplete`: the two.
@@ -96,9 +97,9 @@ theorem hintRun_complete (σ : Val) (s : String) (b n : Nat) (f : Nat → E) :
 
 /-! ## The blocks -/
 
-/-- **FORS completes** (`sForsB`, from `n1379` to `n8636`): at the bottom key's `A0` (`tree`) and
-`A1` (`kp`), the leaves `s c` read off the digest's bits and shifts, any canonical secrets and
-siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
+/-- **FORS completes** (`sForsB`, from `n1405` to `n8456`): at the bottom key's `A0` (`tree`) and
+`A1` (`kp`), the leaves `s c` read off the digest's bits and `vals` (their shifts with the trees'
+places, the FIPS 205 tree indices `fIdx c z (s c)`), any canonical secrets and siblings, the FORS key is `T_k` of `P`, `A0`, `FORS_ROOTS` and the roots. -/
 def ForsBlockCompletes : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (tree kp : Nat) (s : Nat → Nat) (secret : Nat → E)
     (sib : Nat → Nat → E),

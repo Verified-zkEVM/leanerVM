@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsBottomComplete
 
-  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:3967-4037` at leanVM d1c4c8f7)
+  The first stages of `verify_sig_lean_sphincs` (`lean_ethereum.py:3979-4064` at leanVM 56a4109f)
   are complete for an honest signature: the message digest, the bottom key's address, FORS.
 -/
 
@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Sig.SphincsStagesComplete
 /-!
 # The digest and FORS, complete
 
-`G` is `lean_ethereum.py`. From the arguments (`n0` the claim, `n1` the byte table) to `n8636`,
-the body is `sDigestBlock` (`G:3967-4025`), `sForsAddrs` (`G:4029-4030`) and `sForsB`
-(`G:4032-4037`). `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
+`G` is `lean_ethereum.py`. From the arguments (`n0` the claim, `n1` the byte table) to `n8456`,
+the body is `sDigestBlock` (`G:3979-4052`), `sForsAddrs` (`G:4056-4057`) and `sForsB`
+(`G:4059-4064`). `sBottom_complete`: for a claim of `pk` and `m` and a signature `sig`, under the
 blocks' completeness, they complete with the padding run, `PK.seed`, `PK.root`, the digest's number
 `digestT pk m sig` (`DigestAt`), the byte table's pointers, the bottom key's `A0` and `A1`, and the
 FORS key cell (`forsKeyCell`, whose value is the statement's FORS key, `sForsKeyOf_eq`). The
@@ -35,7 +35,7 @@ variable {C : CallRel} {rd : Reader}
 theorem sFVal_below {c z : Nat} (hc : c < 24) (hz : z < 10) : ∃ k < 1395, sFVal c z = .n k :=
   ⟨323 + 29 * c + 3 * (9 - z), by omega, rfl⟩
 
-/-- `DigestAt` reads values below `n1369` only. -/
+/-- `DigestAt` reads values below `n1395` only. -/
 theorem DigestAt.congr {σ σ' : Val} {T : Nat} (h : DigestAt σ T)
     (ha : ∀ k < 1395, σ' (.n k) = σ (.n k)) : DigestAt σ' T := by
   obtain ⟨hT, hb, hv, hl, hm⟩ := h
@@ -75,7 +75,7 @@ theorem sForsAddrs_seq : SeqOK 1395 sForsAddrs 1405 := seqB_ok (by decide +kerne
 
 theorem sForsB_nb : NumBelow 8456 (Stmt.valsList sForsB.1) := numBelow_of_all (by decide +kernel)
 
-/-- `BottomPost` reads values below `n8636` only. -/
+/-- `BottomPost` reads values below `n8456` only. -/
 theorem BottomPost.congr {bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
     {sig : Sphincs.Signature} {σ σ' : Val} (h : BottomPost bb pk m sig σ)
     (ha : ∀ k < 8456, σ' (.n k) = σ (.n k)) : BottomPost bb pk m sig σ' := by

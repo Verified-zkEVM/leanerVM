@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsForsComplete
 
-  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3861-3880`, and
-  `T_k`, `lean_ethereum.py:4032-4037`, at leanVM d1c4c8f7) is complete: each tree's secret and the
+  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3870-3891`, and
+  `T_k`, `lean_ethereum.py:4059-4064`, at leanVM 56a4109f) is complete: each tree's secret and the
   ordered children of its levels hinted, the FORS key is `T_k` of the roots.
 -/
 

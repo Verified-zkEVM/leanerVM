@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 
-  leanSPHINCS's guest functions at leanVM d1c4c8f7 are complete (`SphincsCompleteSpecs`): `sp_wots`
+  leanSPHINCS's guest functions at leanVM 56a4109f are complete (`SphincsCompleteSpecs`): `sp_wots`
   and `verify_sig_lean_sphincs`.
 -/
 
