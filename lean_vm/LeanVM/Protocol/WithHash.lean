@@ -65,6 +65,19 @@ def openAllWithHash (root : Digest) (height width : ℕ) :
       pure (rest.map fun r ↦ (o.leaf :: r.1, r.2))
     else pure none
 
+/-- Open one phase of a commitment of the given shape at `positions` (`Transcript::merkle`,
+`crates/verifier/src/transcript.rs:152-185`): reject unless every leaf is `width` words and every
+path `height` siblings, then unless the phase's positions are `positions`, in order, then unless
+each path climbs to `root`, in order. The leaves. -/
+def openPhaseWithHash (root : Digest) (height width : ℕ) (positions : List ℕ)
+    (phase : List Opening) : m (Option (List (List K))) :=
+  if (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
+      phase.map Opening.leafIndex = positions then do
+    match ← openAllWithHash H root height width positions phase with
+    | some (rows, _) => pure (some rows)
+    | none => pure none
+  else pure none
+
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
 sponge and every opening authenticated; `none` on rejection. -/
 def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m (Option (α ×
@@ -95,21 +108,114 @@ def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m 
           { s with sponge := sp, stream := xs, roots := s.roots ++ [(root, height, width)] }
       | none => pure none
     | _ => pure none
-  | .query i ps k, s => match s.roots[i]? with
-    | none => pure none
-    | some (root, height, width) => do
-      match ← openAllWithHash H root height width ps s.openings with
-      | some (rows, rest) => runWithHash (k rows) { s with openings := rest }
+  | .query i ps k, s => match s.roots[i]?, s.openings with
+    | some (root, height, width), phase :: rest => do
+      match ← openPhaseWithHash H root height width ps phase with
+      | some rows => runWithHash (k rows) { s with openings := rest }
       | none => pure none
+    | _, _ => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`verifier.py:456-458`, `finish`). -/
+stream and the openings fully consumed (`verifier.py:456-458`, `finish`,
+`transcript.rs:205-215`). -/
 def runProofWithHash (P : VerifierProgram Bool) (seed : KeccakState) (π : Proof) : m Bool := do
   match ← runWithHash H F P ⟨⟨seed, []⟩, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
   | _ => pure false
 
 end Run
+
+/-! ### Reading a `query` in `Id` -/
+
+section RunId
+
+variable (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
+
+/-- Opening a list of positions consumes one opening per position. -/
+theorem openAllWithHash_length (root : Digest) (height width : ℕ) :
+    ∀ (ps : List ℕ) (os : List Opening) {rows : List (List K)} {rest : List Opening},
+      openAllWithHash (m := Id) H root height width ps os = some (rows, rest) →
+        os = os.take ps.length ++ rest ∧ rows = (os.take ps.length).map Opening.leaf
+  | [], os, rows, rest, h => by
+    simp only [openAllWithHash, pure] at h
+    cases h
+    simp
+  | _ :: _, [], _, _, h => by simp [openAllWithHash, pure] at h
+  | q :: qs, o :: os, rows, rest, h => by
+    simp only [openAllWithHash, bind, pure] at h
+    split at h
+    · obtain ⟨⟨rows', rest'⟩, h', he⟩ := Option.map_eq_some_iff.mp h
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      obtain ⟨h1, h2⟩ := openAllWithHash_length root height width qs os h'
+      refine ⟨?_, ?_⟩
+      · simp only [List.length_cons, List.take_succ_cons, List.cons_append]
+        exact congrArg (o :: ·) h1
+      · simp [h2]
+    · simp at h
+
+/-- **A phase is opened** exactly when every opening has the commitment's shape, the positions are
+the queried ones, in order, and every path climbs to the root; the rows are the leaves. -/
+theorem openPhaseWithHash_eq_some_iff (root : Digest) (height width : ℕ) (ps : List ℕ)
+    (phase : List Opening) (rows : List (List K)) :
+    openPhaseWithHash (m := Id) H root height width ps phase = some rows ↔
+      (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
+        phase.map Opening.leafIndex = ps ∧
+          openAllWithHash (m := Id) H root height width ps phase = some (rows, []) := by
+  unfold openPhaseWithHash
+  by_cases hc : (∀ opening ∈ phase, opening.leaf.length = width ∧ opening.path.length = height) ∧
+      phase.map Opening.leafIndex = ps
+  · rw [ite_eq_left hc]
+    simp only [bind]
+    refine ⟨fun h ↦ ⟨hc.1, hc.2, ?_⟩, fun h ↦ ?_⟩
+    · split at h
+      · next rows' rest ho =>
+        simp only [pure] at h
+        cases h
+        have hl := (openAllWithHash_length H root height width ps phase ho).1
+        have hlen : (phase.map Opening.leafIndex).length = ps.length := by rw [hc.2]
+        rw [List.length_map] at hlen
+        rw [hlen.symm, List.take_length] at hl
+        have : rest = [] := by simpa using hl
+        rw [ho, this]
+      · simp [pure] at h
+    · rw [h.2.2]
+      rfl
+  · rw [ite_eq_right hc]
+    simp only [pure, reduceCtorEq, false_iff]
+    exact fun h ↦ hc ⟨h.1, h.2.1⟩
+
+/-- **A `query` runs** exactly when its commitment is read, a phase of openings is left, the phase
+is opened, and the continuation runs on the rest. -/
+theorem runWithHash_query_eq_some_iff {α : Type} (i : ℕ) (ps : List ℕ)
+    (k : List (List K) → VerifierProgram α) (s : VerifierProgramState)
+    (r : α × VerifierProgramState) :
+    runWithHash (m := Id) H F (.query i ps k) s = some r ↔
+      ∃ root height width phase rest rows, s.roots[i]? = some (root, height, width) ∧
+        s.openings = phase :: rest ∧
+        openPhaseWithHash (m := Id) H root height width ps phase = some rows ∧
+        runWithHash (m := Id) H F (k rows) { s with openings := rest } = some r := by
+  simp only [runWithHash]
+  rcases hr : s.roots[i]? with _ | ⟨root, height, width⟩ <;>
+    rcases ho : s.openings with _ | ⟨phase, rest⟩
+  · simp [pure]
+  · simp [pure]
+  · simp [pure]
+  · constructor
+    · intro h
+      simp only [bind] at h
+      split at h
+      · next rows hp => exact ⟨root, height, width, phase, rest, rows, rfl, rfl, hp, h⟩
+      · simp [pure] at h
+    · rintro ⟨root', height', width', phase', rest', rows, h1, h2, hp, h⟩
+      simp only [Option.some.injEq, Prod.mk.injEq, List.cons.injEq] at h1 h2
+      obtain ⟨rfl, rfl, rfl⟩ := h1
+      obtain ⟨rfl, rfl⟩ := h2
+      simp only [bind]
+      rw [hp]
+      exact h
+
+end RunId
 
 end LeanVM.Protocol.Compile
 
@@ -196,7 +302,8 @@ so far: the scalars and the openings the proof holds from there on, or `none` if
 search finds no nonce below `fuel`. A rejection, and an opening of a missing commitment, end the
 proof. -/
 def runFromWithHash (fuel : ℕ) {α β : Type} :
-    VerifierProgram α → Option (Script β) → Sponge → List Tree → m (Option (List E × List Opening))
+    VerifierProgram α → Option (Script β) → Sponge → List Tree →
+      m (Option (List E × List (List Opening)))
   | .ret _, _, _, _ => pure (some ([], []))
   | .fail, _, _, _ => pure (some ([], []))
   | .read k, S, sp, cs => do
@@ -224,7 +331,7 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
     | some tree => do
       let rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
       let r ← runFromWithHash fuel (k rows) (Script.afterQuery rows S) sp cs
-      pure (r.map fun t ↦ (t.1, ps.map tree.opening ++ t.2))
+      pure (r.map fun t ↦ (t.1, ps.map tree.opening :: t.2))
 
 /-- **A proof from a script**: the script run against the program from the seed, or `none` if a
 proof-of-work search finds no nonce below `fuel`. -/

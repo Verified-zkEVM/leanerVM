@@ -33,7 +33,7 @@ consumed, lead to `h` and `p` (`SpInv`), and the group starting at `h` is carrie
 
 The run's squeezes and openings until the next prover move or the verdict are the ones `gv`
 follows (`follow`): the squeezes are lookups in `ℓ`, and the openings return the extracted rows
-because the answers are injective (`answer_of_openAll`). So the record's term is at least
+because the answers are injective (`answer_of_openPhase`). So the record's term is at least
 `[D h] · esc D` at the group's end, which is `1` if `D h` holds there and not at the end
 (`group`).
 
@@ -353,11 +353,10 @@ theorem follow (hf : ¬ Fail σ ℓ) :
   | .query i ps k, s, h, s_f, hist, hR, hr, ha, hpe, hsp, hx => by
     simp only [xrun] at hx
     split at hx
-    · simp at hx
-    · rename_i root ht w hroot
+    · next root ht w phase rest hroot hphase =>
       split at hx
-      · rename_i rows rest ho
-        have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
+      · next rows ho =>
+        have hans := answer_of_openPhase (answersInj_lookH hf) hR hroot ho
         have hr' := VerifierProgram.Reachable.query hr ha hans
         have ha' := after_query_step ha rows
         obtain ⟨p_e, s_e, h_e, hg, hx', hR', hre, hae, hse, hm, hp, hnb, hst⟩ :=
@@ -369,6 +368,7 @@ theorem follow (hf : ¬ Fail σ ℓ) :
           exact hg
         · exact noBnd_trans (noBnd_append_single (not_boundary_append_query h _)) hnb hp
       · simp at hx
+    · simp at hx
 
 /-- **Walking a group's openings with scalars waiting.** From a boundary `(h, p)` at which the
 waiting scalars, consumed, end, the run's openings lead either to the group's first squeeze, a
@@ -419,11 +419,10 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : VerifierProgram Bool} {h�
   | .query i ps k, s, h', s_f, hist, hk, hv, hne, hc, hq, hR, hr, ha, hx => by
     simp only [xrun] at hx
     split at hx
-    · simp at hx
-    · rename_i root ht w hroot
+    · next root ht w phase rest hroot hphase =>
       split at hx
-      · rename_i rows rest ho
-        have hans := answer_of_openAll (answersInj_lookH hf) hR hroot ho
+      · next rows ho =>
+        have hans := answer_of_openPhase (answersInj_lookH hf) hR hroot ho
         have hr' := VerifierProgram.Reachable.query hr ha hans
         have ha' := after_query_step ha rows
         obtain ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, hp, hnb, hst, hres⟩ :=
@@ -432,6 +431,7 @@ theorem walk (hf : ¬ Fail σ ℓ) {h : List Ev} {p : VerifierProgram Bool} {h�
         exact ⟨p_e, s_e, h_e, hx', hR', hre, hae, hse, hm, (List.prefix_append _ _).trans hp,
           noBnd_trans (noBnd_append_single (not_boundary_append_query h' _)) hnb hp, hst, hres⟩
       · simp at hx
+    · simp at hx
   | .ret true, s, h', _, _, hk, hv, _, hc, hq, hR, hr, ha, hx =>
     ⟨.ret true, s, h', hx, hR, hr, ha, ⟨hv, _, _, _, _, hk, hc, hq⟩, trivial,
       List.prefix_refl _, noBnd_refl _, rfl, Or.inr (esc_eq_of_qsteps C.D hq)⟩

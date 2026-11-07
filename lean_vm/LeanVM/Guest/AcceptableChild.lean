@@ -62,7 +62,8 @@ def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
     (keccakF1600 (seedInput iv publicInput)) proof)
 
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
-`query` step as its tree's height and its positions, each with the opening it consumes. -/
+`query` step as its tree's height and its positions, each with its opening in the phase it
+consumes. -/
 def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → List (ℕ × List (ℕ ×
     Opening))
   | .ret _, _ => []
@@ -93,13 +94,12 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
           roots := state.roots ++ [(root, height, width)] }
       | none => []
     | _ => []
-  | .query i ps k, state => match state.roots[i]? with
-    | none => []
-    | some (root, height, width) =>
-      match Id.run (openAll (m := Id) keccakF1600 root height width ps state.openings) with
-      | some (rows, rest) =>
-        (height, ps.zip state.openings) :: queryStepsOf (k rows) { state with openings := rest }
+  | .query i ps k, state => match state.roots[i]?, state.openings with
+    | some (root, height, width), phase :: rest =>
+      match Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) with
+      | some rows => (height, ps.zip phase) :: queryStepsOf (k rows) { state with openings := rest }
       | none => []
+    | _, _ => []
 
 /-- The heap index of the node at `level` (the leaves at `0`) above the leaf `leafPosition` of a
 tree of height `depth`. -/

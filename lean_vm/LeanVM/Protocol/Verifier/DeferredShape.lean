@@ -80,15 +80,8 @@ theorem returns_of_run (H : Bytes → Id Digest) (F : KeccakState → Id KeccakS
     · simp at h
   | query i ps k ih =>
     intro s a s' h
-    simp only [runWithHash] at h
-    split at h
-    · simp at h
-    · next root height width hr =>
-      change (match openAllWithHash H root height width ps s.openings with
-        | some (rows, rest) => _ | none => _) = _ at h
-      split at h
-      · next rows rest ho => exact .query i ps rows (ih rows h)
-      · simp at h
+    obtain ⟨_, _, _, _, _, rows, _, _, _, hk⟩ := (runWithHash_query_eq_some_iff H F i ps k s _).mp h
+    exact .query i ps rows (ih rows hk)
 
 /-- An accepted proof's program may return `true`. -/
 theorem returns_of_runProof (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) {P : VerifierProgram Bool}

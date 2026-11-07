@@ -449,7 +449,7 @@ theorem descend_of_openOne {answers : Bytes → Option Digest} {keys : List Byte
     have hss : ss.length = h := by simp [ss, hpath]
     rw [← hsplit, climb_append, hss] at hclimb
     obtain ⟨c, hc1, hc2⟩ := Option.bind_eq_some_iff.mp hclimb
-    have hsub : openOneWithHash answers c h w v ⟨o.leaf, ss⟩ = some true :=
+    have hsub : openOneWithHash answers c h w v ⟨o.leafIndex, o.leaf, ss⟩ = some true :=
       (openOne_eq_some_true ..).mpr ⟨hw, hss, ld, hld, hc1⟩
     have ihc := ih hsub
     rw [climb_single] at hc2
@@ -475,7 +475,7 @@ theorem openOne_of_descend {answers : Bytes → Option Digest} {keys : List Byte
   | zero =>
     obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.mp hl
     obtain ⟨hxa, hxlen, -⟩ := (preimage_eq_some_iff hc).mp hx
-    refine ⟨⟨bytesWords w x, []⟩, (openOne_eq_some_true ..).mpr
+    refine ⟨⟨v, bytesWords w x, []⟩, (openOne_eq_some_true ..).mpr
       ⟨length_bytesWords w x, rfl, d, ?_, rfl⟩, rfl⟩
     rw [flatMap_kBytes_bytesWords w x hxlen]
     exact hxa
@@ -485,7 +485,7 @@ theorem openOne_of_descend {answers : Bytes → Option Digest} {keys : List Byte
     obtain ⟨o, ho, rfl⟩ := ih hl
     obtain ⟨hw, hpath, ld, hld, hclimb⟩ := (openOne_eq_some_true ..).mp ho
     let sib := if v.testBit h then (splitNode x).1 else (splitNode x).2
-    refine ⟨⟨o.leaf, o.path ++ [sib]⟩, (openOne_eq_some_true ..).mpr
+    refine ⟨⟨o.leafIndex, o.leaf, o.path ++ [sib]⟩, (openOne_eq_some_true ..).mpr
       ⟨hw, by simp [hpath], ld, hld, ?_⟩, rfl⟩
     rw [climb_append, hclimb, Option.bind_some, climb_single, hpath]
     have hx64 := append_splitNode x hxlen
