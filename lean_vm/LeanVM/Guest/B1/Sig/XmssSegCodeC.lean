@@ -45,7 +45,8 @@ theorem armM_c (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool) (prod
       armM (sWc layer b) slots first n fold prodIn encIn prodOut encOut k b' := by
   have h := sW_weq layer b
   have hp := sW_power layer b (j := digitSum k n) (by have := lx_digitSum_le k n; omega)
-  simp only [armM, h.size, hp]
+  have he : (sW layer b).enc = (sWc layer b).enc := rfl
+  simp only [armM, h.size, hp, he]
   rw [walksT_weq h slots first k _ n 0 _ (by omega)]
 
 theorem armsM_c (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool) (prodIn encIn prodOut encOut : V)
@@ -493,7 +494,8 @@ theorem digitChecks_complete {dg : Nat} {K : Nat → Nat} (hm : MemOK rd 256) (h
 
 /-- **The product and the encoding the dispatches fold**, from the arms they take. -/
 theorem sGroups_vals {σ : Val} {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd σ W f)
-    (hpow : ∀ s < 13, σ (W.power s) = gen ^ s) {dg vb0 : Nat} (hg : ∀ p < 15, GroupOKM rd σ W dg vb0 p) :
+    (hpow : ∀ s < 13, σ (W.power s) = gen ^ s) {dg vb0 : Nat} (hg : ∀ p < 15, GroupOKM rd σ W dg vb0 p)
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     σ (sSt W vb0 15).1 = gen ^ (∑ i ∈ Finset.range 58, lxDigit (sK σ dg) i) ∧
       σ (sSt W vb0 15).2.1 = lit (∑ i ∈ Finset.range 58, lxDigit (sK σ dg) i * 4 ^ i) := by
   set K := sK σ dg with hKdef
@@ -538,11 +540,13 @@ theorem sGroups_vals {σ : Val} {W : WotsT} {f : Nat → Nat → E → E} (hs : 
       induction p with
       | zero =>
           have := (harm 0 (by omega)).enc
+          rw [hE] at this
           simp only [sSt, beq_self_eq_true, ↓reduceIte, zero_add] at this ⊢
           rw [this]
           simp [lxEncTerm]
       | succ p ih =>
           have := (harm (p + 1) (by omega)).enc
+          rw [hE] at this
           simp only [Nat.add_one_ne_zero, beq_iff_eq, ↓reduceIte] at this
           show σ (encT W (p + 1 == 0) (lxN (p + 1)) (sSt W vb0 (p + 1)).2.2) = _
           rw [this, ih (by omega), ← lx_enc_step K hp]
@@ -606,7 +610,8 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
     (K : Nat → Nat) (hK : ∀ p < 15, K p < 4 ^ lxN p) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i))
     (hd0 : NBv dg d0) (σ : Val) (hg : good σ)
     (hsum : gen ^ (∑ i ∈ Finset.range 58, lxDigit K i) = target)
-    (hd0v : σ d0 = lit (∑ i ∈ Finset.range 58, lxDigit K i * 4 ^ i)) :
+    (hd0v : σ d0 = lit (∑ i ∈ Finset.range 58, lxDigit K i * 4 ^ i))
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Completes C rd dg (sCodewordT W target d0 dg).2.1 (sCodewordT W target d0 dg).1 σ
       (fun σ' => good σ' ∧ (∀ q < 15, σ' (.n (dg + q)) = ofK (addressOfIndex (K q))) ∧
         ∀ i < 58, IsCanonical128 (σ' (sTip W (dg + 70) i)) ∧ σ' (sStart W σ' dg (dg + 70) i) = vals i) := by
@@ -664,7 +669,7 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
   simp only [Nat.zero_add] at hgs
   have hgok := (sGroupsT_sound (rd := rd) (σ := σ4) (C := C) (kret := fun _ => True) (rest := []) hWa dg
     (dg + 70) 15 0 (by rw [List.append_nil, ← sgState_eq_sSt, hgs]; exact hh4)).2
-  obtain ⟨hprod, henc⟩ := sGroups_vals (hss σ4 hg4) (hpow σ4 hg4) (fun p hp => by simpa using hgok p hp)
+  obtain ⟨hprod, henc⟩ := sGroups_vals (hss σ4 hg4) (hpow σ4 hg4) (fun p hp => by simpa using hgok p hp) hE
   have hk4 : ∀ i < 58, lxDigit (sK σ4 dg) i = lxDigit K i := fun i hi => by
     have h256 : 4 ^ lxN (i / 4) ≤ 256 := by unfold lxN; split <;> norm_num
     unfold lxDigit sK

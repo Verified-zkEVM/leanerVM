@@ -260,7 +260,8 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i)) (σ : Val)
     (hg : good σ)
     (hsum : gen ^ (∑ i ∈ Finset.range (3 * G + 1), digK K i) = target)
-    (hd0v : σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), digK K i * 4 ^ i)) :
+    (hd0v : σ d0 = lit (∑ i ∈ Finset.range (3 * G + 1), digK K i * 4 ^ i))
+    (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Completes C rd b (codewordT W G target d0 b).2.1 (codewordT W G target d0 b).1 σ
       (fun σ' => good σ' ∧ (∀ i < 3 * G + 1, IsCanonical128 (σ' (cwTip W b i))) ∧
         (∀ q ≤ G, σ' (.n (cwState W b q).2.2) = ofK (addressOfIndex (K q))) ∧
@@ -382,7 +383,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
     · have hpe : p = G := by omega
       subst hpe
       exact ⟨kL, by simpa [cwN] using hkL, hxL, by simpa [cwArm, cwN, hfG] using haL⟩
-  obtain ⟨-, hprod, henc⟩ := codeword_vals (hss σ1 hg1) (hpow σ1 hg1) hG hG21 hgrp
+  obtain ⟨-, hprod, henc⟩ := codeword_vals (hss σ1 hg1) (hpow σ1 hg1) hG hG21 hgrp hE
   have hdig : ∀ i < 3 * G + 1, cwDigit W G b σ1 i = digK K i := by
     intro i hi
     have hb : 4 ^ cwN G (i / 3) ≤ 2 ^ 64 - 1 := by unfold cwN; split <;> norm_num

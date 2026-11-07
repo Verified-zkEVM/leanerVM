@@ -32,7 +32,8 @@ out from `n21` (`spL`), five above its digit word; every chain step and the leaf
   chain `0` leaving position `0` adds nothing, so the compiler sets no constant and hashes `at[1]`
   itself: its template takes the same three values, using the first only;
 * `spDigitPos`, `spDigitsC`: where the encoding digest holds digit `j`, most significant first in
-  each byte (`base_2b`, two bits a digit), and the constant arm `k` adds to the encoding;
+  each byte (`base_2b`, two bits a digit), and the constant arm `k` adds to the encoding (the
+  digits' fields `XOR`ed: they are apart);
 * `spL`, `spPre`, `spSlot`, `spProd`, `spEnc`, `spGroupT`, `spGroupsT`: a group's layout base, the
   run the first group sets, a chain's slots, the group's outputs, a group, the groups;
 * `spLeafCells`, `spBodyT`: the leaf's cells and the body: the copies, the powers, the groups, the
@@ -62,6 +63,21 @@ def padRun (P : Nat) : List Stmt :=
 step in byte 31 (`SP_WORD3_MUL_0`). -/
 def spStepC (i s : Nat) : Nat := i * 2 ^ 88 + s * 2 ^ 120
 
+/-- Where the encoding digest holds digit `j` (two bits): byte `j / 4`, most significant first
+(`base_2b`): bit `8 (j / 4) + 2 (3 - j % 4)` of its cell. -/
+def spDigitPos (j : Nat) : Nat := 8 * (j / 4) + 2 * (3 - j % 4)
+
+/-- The constant arm `k` of a group of `n` digits from digit `first` adds to the encoding: digit
+`r` of `k` (base 4) at `spDigitPos (first + r)`, the fields apart, so their sum is their `XOR`. -/
+def spDigitsC (first n k : Nat) : Nat :=
+  ((List.range n).map fun r => k / 4 ^ r % 4 * 2 ^ spDigitPos (first + r)).foldr (· ^^^ ·) 0
+
+theorem spDigitsC_zero (first n : Nat) : spDigitsC first n 0 = 0 := by
+  unfold spDigitsC
+  induction (List.range n) with
+  | nil => rfl
+  | cons a l ih => simpa using ih
+
 /-- `sp_wots`'s chain step with its padding run at `X`: step `s` of chain `i`, the address
 `at[1] + spStepC i s`, then the 64-byte hash of `pp`, `at[0]`, it and the value (`walk`,
 `G:3579-3605`). Chain `0`'s step `0` adds nothing: no constant, `at[1]` hashed itself. -/
@@ -71,9 +87,8 @@ def spWp (X : Nat) : WotsT where
       k64 X (.n 0) (.n 4) (.n (c + 1)) v (c + 2) o
   size := 3
   power s := .n (6 + s)
-  enc first n k := ((List.range n).map fun r => k / 4 ^ r % 4 * 2 ^ (8 * ((first + r) / 4) +
-    2 * (3 - (first + r) % 4))).sum
-  enc_zero first n := by simp
+  enc first n k := spDigitsC first n k
+  enc_zero first n := spDigitsC_zero first n
 
 /-- `sp_wots`'s chain step, its padding run at `spPad`. -/
 def spW : WotsT := spWp spPad

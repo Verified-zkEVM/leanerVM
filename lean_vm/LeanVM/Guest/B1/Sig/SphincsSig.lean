@@ -2,13 +2,16 @@
   LeanVM.Guest.B1.Sig.SphincsSig
 
   The leanSPHINCS signature `verify_sig_lean_sphincs` checks, read off its valuation and the frames
-  of its three `sp_wots` calls.
+  of its three `sp_wots` calls (leanVM 834e6614).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsT
-public import LeanVM.Guest.B1.Sig.SpWotsSound
+public import LeanVM.Guest.B1.Sig.SphincsAdrs
+public import LeanVM.Guest.B1.Sig.SpWotsLayout
+public import LeanVM.Guest.B1.Sig.Codeword
+public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Guest.B1.Main.Frames
 
 /-!
@@ -17,16 +20,17 @@ public import LeanVM.Guest.B1.Main.Frames
 `sphincsSigOf σ V` reads the signature off `verify_sig_lean_sphincs`'s valuation `σ` and the
 frame map `V`; it mentions no hash.
 
-* the randomizer `ρ`, `n3` (`sp_rand`);
-* FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base, and at each level the
-  hinted child that is not the node climbed (`siblingOf`: the bit names the climbed one), the last
-  the other top node, at the FORS key's cells;
-* layer `l`'s signature (`sLayerOf`): its counter, the value of its four bytes; its chain values,
-  `spValues` of the frame `V "sp_wots" [P, at, enc] [leaf]` of the layer's call; its path, the
-  sibling of each level of `sp_path`.
+* the randomizer `R`, `n347` (`sRand`, `sp_rand`);
+* FORS tree `c`'s opening (`sForsOpeningOf`): its secret at the tree's base (`sForsBase c`), and
+  at each height `z` the hinted child that is not the node climbed (`siblingOf`, at
+  `sForsKid c z`): `is_child`'s bit names the climbed one;
+* layer `l`'s signature (`sLayerOf`): its counter, its four bytes (`sCtrOf l`, hinted most
+  significant first and read lowest first, `sp_from_bytes`) reversed, `beWordAt 0`; its
+  chain values, the chain starts of the frame `V "sp_wots" [PK.seed, a0, a1, enc] [leaf]` of the
+  layer's call (`sChainValuesOf`); its path, the sibling of each level of `sp_path` (at
+  `sPathKid l j`).
 
-The positions are the template's (`sBody`): the bottom layer's call `sWotsCall (at_b) enc_b leaf_b`
-after the FORS key's encoding, an upper layer's in `sUpper` (`sUpperCtrOf`, `sUpperEncOf`).
+The positions are the template's (`sBody`, `SphincsT`, `SphincsForsT`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -37,75 +41,51 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Positions -/
 
-/-- The counter of an upper layer from base `b`: its statements, next base and value. -/
-def sUpperCtrOf (b : Nat) : List Stmt × Nat × V := sFromBytes (sMarks b 4).1 (sMarks b 4).2 g255W (b + 4)
+/-- **The hinted pair of FORS tree `c`'s level `z`** (`z < 10`, the children of the node at
+height `z + 1`): after the tree's secret, its leaf's address (two values fewer in tree `0`, whose
+leaf address has no constant) and the leaf's hash; level `0` takes 33 values (its parent's index
+two bytes), levels `1 … 8` 27, level `9` 24. -/
+def sForsKid (c z : Nat) : Nat :=
+  sForsBase c + (if c = 0 then 24 else 26) + (if z = 0 then 0 else 6 + 27 * z)
 
-/-- The encoding of an upper layer from base `b` over the root `below`. -/
-def sUpperEncOf (below : V) (b : Nat) : List Stmt × Nat × Nat :=
-  kMsg sPad [.cell sPP, .cell (.n ((sUpperCtrOf b).2.1 + 1)), .cell below, .cell (sUpperCtrOf b).2.2] 52
-    false none ((sUpperCtrOf b).2.1 + 2)
-
-/-- An upper layer, through its counter and encoding. -/
-theorem sUpper_eq (adr below lane : V) (off height b : Nat) :
-    sUpper adr below lane off height b =
-      ([hintW "sp_counter" (runV b 4)] ++ (sUpperCtrOf b).1 ++
-        [cst (sUpperCtrOf b).2.1 (word (tw 4) 0 0), addS (.n ((sUpperCtrOf b).2.1 + 1)) adr
-          (.n (sUpperCtrOf b).2.1)] ++ (sUpperEncOf below b).1 ++
-        [sWotsCall adr (.n (sUpperEncOf below b).2.2) (sUpperEncOf below b).2.1] ++
-        (sPath lane off height 0 (.n (sUpperEncOf below b).2.1) ((sUpperEncOf below b).2.1 + 1)).1,
-        (sPath lane off height 0 (.n (sUpperEncOf below b).2.1) ((sUpperEncOf below b).2.1 + 1)).2.1,
-        (sPath lane off height 0 (.n (sUpperEncOf below b).2.1) ((sUpperEncOf below b).2.1 + 1)).2.2) :=
-  rfl
-
-/-- The base of the middle layer, and of the top one after its lane's constant. -/
-def sBaseM : Nat := sPathB.2.1
-def sBaseT : Nat := sUpperM.2.1 + 1
-
-/-- Layer `l`'s key address cell `at`: `n(sH + 9)`, `n(sH + 10)`, `n(sH + 12)`. -/
-def sAtOf (l : Nat) : V := if l = 0 then .n (sH + 9) else if l = 1 then .n (sH + 10) else .n (sH + 12)
-
-/-- Layer `l`'s encoding digest's first cell. -/
-def sEncOf (l : Nat) : V :=
-  if l = 0 then .n sEncB.2.2 else if l = 1 then .n (sUpperEncOf sPathB.2.2 sBaseM).2.2
-  else .n (sUpperEncOf sUpperM.2.2 sBaseT).2.2
-
-/-- Layer `l`'s one-time leaf, `sp_wots`'s return. -/
-def sLeafOf (l : Nat) : Nat :=
-  if l = 0 then sEncB.2.1 else if l = 1 then (sUpperEncOf sPathB.2.2 sBaseM).2.1
-  else (sUpperEncOf sUpperM.2.2 sBaseT).2.1
-
-/-- Layer `l`'s counter's value. -/
-def sCtrOf (l : Nat) : V :=
-  if l = 0 then sCtrB.2.2 else if l = 1 then (sUpperCtrOf sBaseM).2.2 else (sUpperCtrOf sBaseT).2.2
-
-/-- Layer `l`'s path's first bit: the field of its leaf. -/
-def sOffOf (l : Nat) : Nat := if l = 0 then 0 else if l = 1 then 8 else 16
+/-- **The hinted pair of layer `l`'s path level `j`**, after the counter (37 values), `enc_at` (2),
+the encoding (20) and the leaf: a level takes 26 values, the top layer's level `0` 32 (its parent's
+index two bytes), the root's level 23. -/
+def sPathKid (l j : Nat) : Nat :=
+  sLayerBase l + 60 + 26 * j + (if l = 2 ∧ 0 < j then 6 else 0)
 
 /-! ## Reading the values -/
 
 /-- **The sibling of a node** whose two children are hinted at `x`, `x + 1`, the node climbed the
-one the bit names: the left child when the bit is `1`. -/
+one the bit names (`is_child`): the left child when the bit is `1`. -/
 def siblingOf (σ : Val) (bit : V) (x : Nat) : E :=
   if σ bit = 1 then σ (.n x) else σ (.n (x + 1))
 
-/-- FORS tree `c`'s base: its secret's cell. -/
-def sForsBase (c : Nat) : Nat := (sForsTrees c 0 1225).2.1
+/-- **The chain values `sp_wots`'s frame `σ` holds**: chain `i`'s start, hinted in the arm its
+group's dispatch takes, the group's digit word the exponent of its selector (`spState`, `spN`,
+`spStartAt`), in the guest's numbering (`spRen`). -/
+noncomputable def sChainValuesOf (σ : Val) : Sphincs.ChainIndex → HashSig.Digest :=
+  fun i => cellVal (σ (spRen (spStartAt (fun p => logG (σ (spRen (.n (spState p).2.2))) (4 ^ spN p))
+    i.val)))
 
-/-- **FORS tree `c`'s opening**: its secret, the siblings of its nine levels, the other top node. -/
+/-- **FORS tree `c`'s opening**: its secret, and the sibling at each height. -/
 def sForsOpeningOf (σ : Val) (c : Nat) : Sphincs.ForsTreeOpening where
   secret := cellVal (σ (.n (sForsBase c)))
-  path l := cellVal (siblingOf σ (sBit (26 + 10 * c + l.val)) (sForsBase c + 22 + 23 * l.val))
+  path z := cellVal (siblingOf σ (sForsBit (10 * c + z.val)) (sForsKid c z.val))
 
 /-- **Layer `l`'s one-time signature and path**, its chain values off the frame of its call. -/
-noncomputable def sLayerOf (σ : Val) (V : FrameMap) (l : Sphincs.Layer) : Sphincs.LayerSignature l where
-  counter := BitVec.ofNat 32 (cellNat (σ (sCtrOf l.val)))
-  chainValues := spValues (V "sp_wots" [σ sPP, σ (sAtOf l.val), σ (sEncOf l.val)] [σ (.n (sLeafOf l.val))])
-  authenticationPath j := cellVal (siblingOf σ (sBit (sOffOf l.val + j.val)) (sLeafOf l.val + 1 + 21 * j.val))
+noncomputable def sLayerOf (σ : Val) (V : FrameMap) (l : Sphincs.Layer) :
+    Sphincs.LayerSignature l where
+  counter := BitVec.ofNat 32 (beWordAt 0 (cellNat (σ (sCtrOf l.val))))
+  chainValues := sChainValuesOf
+    (V "sp_wots" [σ sPP, σ (sA0Of l.val), σ (sA1Of l.val), σ (sEncOf l.val)] [σ (sLeafOf l.val)])
+  authenticationPath j :=
+    cellVal (siblingOf σ (sLeafBit (sOffOf l.val + j.val)) (sPathKid l.val j.val))
 
 /-- **The leanSPHINCS signature `verify_sig_lean_sphincs` checks**, read off its valuation `σ` and
 the frame map `V`. -/
 noncomputable def sphincsSigOf (σ : Val) (V : FrameMap) : Sphincs.Signature where
-  randomizer := cellVal (σ (.n 3))
+  randomizer := cellVal (σ sRand)
   forsOpening c := sForsOpeningOf σ c.val
   layers l := sLayerOf σ V l
 

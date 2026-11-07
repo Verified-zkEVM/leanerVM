@@ -171,24 +171,18 @@ theorem OnlyC.sequenceDep : ∀ {n : Nat} {α : Fin n → Type}
   | 0, _, _, _ => OnlyC.pure' _
   | _ + 1, α, computation, h => by
       unfold Concrete.sequenceDep
-      refine OnlyC.bind (h 0) (fun head => ?_)
+      refine OnlyC.bind (h (Fin.last _)) (fun head => ?_)
       rcases head with _ | head
       · exact OnlyC.pure' _
-      · refine OnlyC.bind (OnlyC.sequenceDep (α := fun i => α i.succ) fun i => h i.succ) (fun tail => ?_)
+      · refine OnlyC.bind (OnlyC.sequenceDep (α := fun i => α i.castSucc) fun i => h i.castSucc) (fun tail => ?_)
         rcases tail with _ | tail <;> exact OnlyC.pure' _
-
-theorem OnlyC.sequenceLayersUp {α : Type} {computation : Layer → OracleComp CostSpec (Option α)}
-    (h : ∀ lay, OnlyC (computation lay)) : OnlyC (Concrete.sequenceLayersUp computation) := by
-  unfold Concrete.sequenceLayersUp
-  refine OnlyC.bind (OnlyC.sequenceDep (α := fun _ => α) fun i => h i.rev) (fun found => ?_)
-  rcases found with _ | found <;> exact OnlyC.pure' _
 
 theorem shortMessage_keyMessage (data : PublicData) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
     Short.ShortMessage (data.keyMessage lay tree leaf) := by
   unfold PublicData.keyMessage
   split
   · exact Short.shortMessage_root _
-  · exact Short.shortMessage_roots _
+  · exact Short.shortMessage_root _
 
 theorem OnlyC.layerCostSearch (parameter : PublicParameter) (data : PublicData) (index : Index)
     (lay : Layer) : OnlyC (GraphView.layerCostSearch parameter data index lay) := by
@@ -204,8 +198,7 @@ theorem OnlyC.finishCostSource (parameter : PublicParameter) (data : PublicData)
   unfold GraphView.finishCostSource
   refine OnlyC.bind (OnlyC.liftHash (Short.Only.messageDigest _ _ _ _)) (fun digest => ?_)
   refine OnlyC.bind (OnlyC.tick _) (fun _ => ?_)
-  refine OnlyC.bind (OnlyC.sequenceLayersUp fun lay => OnlyC.layerCostSearch _ _ _ lay)
-    (fun found => ?_)
+  refine OnlyC.bind (OnlyC.sequenceDep fun lay => OnlyC.layerCostSearch _ _ _ lay) (fun found => ?_)
   rcases found with _ | found
   · exact OnlyC.pure' _
   · refine OnlyC.bind (OnlyC.sequenceFin _ fun _ => OnlyC.sequenceFin _ fun _ => OnlyC.reveal _)
