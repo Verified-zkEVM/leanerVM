@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsForsT
 
   The FORS trees, their key `T_k`, the hypertree's paths and a layer of `verify_sig_lean_sphincs`
-  as templates (`lean_ethereum.py:3839-3964, 4032-4037` at leanVM d1c4c8f7), with the values
+  as templates (`lean_ethereum.py:3841-3976, 4059-4064` at leanVM 56a4109f), with the values
   numbered as the renumbered expansion numbers them, over the values the body sets before.
 -/
 
@@ -26,14 +26,14 @@ type's low byte at bit `24` of limb `0`, the key pair's two low bytes at bits `4
 `0`, the height (or chain index) at bit `24` of limb `1`, the index's two low bytes at bits `48`,
 `56` of limb `1` (`SP_*_MUL`, `G:487-497`).
 
-* `sBe16` (`sp_be16`, `G:3839-3847`): an `n`-bit value as an `A1` index, its low byte masked by its
+* `sBe16` (`sp_be16`, `G:3841-3849`): an `n`-bit value as an `A1` index, its low byte masked by its
   shift by eight;
-* `sForsAt` (`sp_fors_at`, `G:3850-3858`): the `A1` of tree `c`'s node at height `z` on the path;
-* `sForsLevel(s)`, `sForsTree(s)` (`sp_fors_tree`, `G:3861-3880`): a tree's leaf hashed from its
+* `sForsAt` (`sp_fors_at`, `G:3852-3867`): the `A1` of tree `c`'s node at height `z` on the path;
+* `sForsLevel(s)`, `sForsTree(s)` (`sp_fors_tree`, `G:3870-3891`): a tree's leaf hashed from its
   hinted secret and climbed up the hinted ordered pairs to its root;
-* `sForsBlock` (`G:4032-4037`): `fors_at`, the 24 trees, then `T_k` over the roots (432 bytes);
-* `sPath` (`sp_path`, `G:3930-3949`): a path up a tree of the hypertree;
-* `sHtLayer` (`sp_layer`, `G:3952-3964`, after its counter): the encoding of `signed`, the key's
+* `sForsBlock` (`G:4059-4064`): `fors_at`, the 24 trees, then `T_k` over the roots (432 bytes);
+* `sPath` (`sp_path`, `G:3941-3961`): a path up a tree of the hypertree;
+* `sHtLayer` (`sp_layer`, `G:3964-3976`, after its counter): the encoding of `signed`, the key's
   leaf by `sp_wots`, the path.
 -/
 
@@ -166,7 +166,7 @@ def sForsTrees : Nat → Nat → Nat → List Stmt × Nat × List V
 
 end Fors
 
-/-- **The FORS block** from base `b0` (`G:4032-4037`), the key pair's cell `key`: `fors_at = key +
+/-- **The FORS block** from base `b0` (`G:4059-4064`), the key pair's cell `key`: `fors_at = key +
 FORS_TREE` at `b0 + 1`, the 24 trees, `roots_at = key + FORS_ROOTS`, then `T_k`: `keccak_cells` of
 `P`, `A0`, `roots_at` and the roots (432 bytes). The statements, the next base and the FORS key's
 output run's base. -/
