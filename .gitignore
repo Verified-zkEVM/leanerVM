@@ -9,6 +9,7 @@
 # The Rust verifier CLI's and the guest exporter's builds, and the exporter's cached signers
 # (`signers_cache.rs` writes them to `lean_vm/target/signers-cache`)
 /lean_vm/scripts/rust-verifier-cli/target/
+/lean_vm/scripts/wire-diff/target/
 /lean_vm/scripts/guest-export/target/
 /lean_vm/target/
 
