@@ -26,11 +26,10 @@ argument; an argument whose relation uses the deployed Keccak-f[1600] instead of
 proving the guest program's DA check) cannot meet that hypothesis in this model.
 
 **The sources.** The leanVM definitions are transcribed from leanVM at
-`3300fd1f4accd8ef404bfdc54473c0391795f702`, the head of leanVM's pull request #662 (leanSPHINCS on
-FIPS 205's layout, on `main` at `3f2ff324`, which added the proof's wire encoding; the crates and
-the guest are the same as at `d1c4c8f7`, where the citations were checked;
-[`../leanvm-rev`](../leanvm-rev)): each cites its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm`
-sections). LeanDA's security framework is
+`56a4109f6dbe74c7f7836184a5cba56a2b38d250`, the head of leanVM's pull request #662 (leanSPHINCS on
+FIPS 205's layout, its guest check hashing each tree node's children in place, merged with `main`
+at `69fb2482`, which has the proof's wire encoding; [`../leanvm-rev`](../leanvm-rev)): each cites
+its source (`verifier.py:N`, `*.rs:N`, `doc/leanvm` sections). LeanDA's security framework is
 Benedikt Wagner's ([b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da), Apache-2.0, see
 [`../lean_da/NOTICE`](../lean_da/NOTICE)).
 
@@ -353,22 +352,22 @@ execution within its budget. The program is that decoder compiled
 
 ## The guest decoder's size bound and budget
 
-**The size bound** (`guestWitnessDecoderSizeBound`, `1130200`) limits any program; it is the
-compiled decoder's size at leanVM `d1c4c8f7`, `1129699` (proved at most that and measured exactly),
-and a slack of `501`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
+**The size bound** (`guestWitnessDecoderSizeBound`, `1130000`) limits any program; it is the
+compiled decoder's size at leanVM `56a4109f`, `1129545` (proved at most that and measured exactly),
+and a slack of `455`: room for one leanXMSS signature's encoding (`309`) beside its code but not two
 (the bound was `1130500` at `834e6614`, before H_msg read the message off the claim's cells,
 `1126600` at `9d8bce81`, before leanSPHINCS's FIPS 205 layout, `1490400` at `1a379148`, whose
 opening queries walked their Merkle paths inline, in more frame cells, and `380000` at `ed7d2b9c`,
 whose had far fewer), so no useful table of witnesses (hard-coded signatures masking a bug of the
 guest program on finitely many statements) fits there. That size counts the guest program's
 per-function tables, literals of the program, in full. It does not bound what a program written
-differently could hold: the guest's frame-cell table (`1088898` of the size, cells below `2^20`)
+differently could hold: the guest's frame-cell table (`1088689` of the size, cells below `2^20`)
 packs to about a third, three cells to a limb, freeing room for about `2350` signatures' encodings.
 Nor is the compiled program compact: its size also counts, a literal `0` each, the indices without a
 body left by the numbering it shares with the extractor's compiled functions
 ([`lean_vm/README.md`](../lean_vm/README.md#the-guests-proof) has the measurements). And a program
 may compute its tables from its input, which holds the guest program: one that derived the
-frame-cell table at run time instead of carrying it would free most of those `1087078`, room for up
+frame-cell table at run time instead of carrying it would free most of those `1088689`, room for up
 to about `3500` signatures' encodings (an estimate, not measured).
 
 **The budget** (`guestWitnessDecoderBudget`) is a short formula,
