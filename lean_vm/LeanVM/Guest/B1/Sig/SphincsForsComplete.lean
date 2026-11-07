@@ -323,5 +323,161 @@ theorem sForsTree_complete_val {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} 
     (fun j hj => by rw [t _ (hvn j hj)]; exact hval j hj) hA, t _ hpp, t _ ha0, t _ ha1, hsec']
   exact fRootE_congr hsib'
 
+/-! ## The trees -/
+
+theorem sForsLevels_nb {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c : Nat} :
+    ∀ (m z : Nat) (cur : V) (x : Nat), z + m ≤ 10 → pad + 5 ≤ x → NBv x pp → NBv x a0 →
+      NBv x a1 → (∀ j < 10, NBv x (bit (10 * c + j))) → (∀ j < 10, NBv x (val (10 * c + j))) →
+      NBv x cur → NumBelow (sForsLevels pad pp a0 a1 bit val c m z cur x).2.1
+        (Stmt.valsList (sForsLevels pad pp a0 a1 bit val c m z cur x).1)
+  | 0, _, _, _, _, _, _, _, _, _, _, _ => NumBelow.nil _
+  | m + 1, z, cur, x, hm, hpx, hpp, ha0, ha1, hbn, hvn, hcur => by
+      rw [sForsLevels_succ, sForsLevel_eq]
+      set A := sForsAt a1 val c (z + 1) (x + 4) with hA
+      obtain ⟨hseqA, hadrA⟩ := sForsAt_seq (a1 := a1) (val := val) (c := c) (z := z + 1) (x := x + 4)
+        (ha1.mono' (by omega)) (fun _ => (hvn (z + 1) (by omega)).mono' (by omega))
+        (fun h1 => (hvn (z + 1 + 8) (by omega)).mono' (by omega))
+      rw [← hA] at hseqA hadrA
+      have hle := hseqA.le
+      have hrest := sForsLevels_nb (pad := pad) (pp := pp) (a0 := a0) (a1 := a1) (bit := bit)
+        (val := val) (c := c) m (z + 1) (.n (A.2.1 + 5)) (A.2.1 + 18) (by omega) (by omega)
+        (hpp.mono' (by omega)) (ha0.mono' (by omega)) (ha1.mono' (by omega))
+        (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
+        ⟨A.2.1 + 5, by omega, rfl⟩
+      have hge := sForsLevels_le pad pp a0 a1 bit val c m (z + 1) (.n (A.2.1 + 5)) (A.2.1 + 18)
+        (by omega)
+      simp only [valsList_append]
+      refine NumBelow.append (NumBelow.append (NumBelow.append (NumBelow.append ?_ ?_) ?_) ?_) hrest
+      · rw [valsList_hint]
+        exact .cons ⟨x, by omega, rfl⟩ (.cons ⟨x + 1, by omega, rfl⟩ (.nil _))
+      · intro v hv
+        simp only [isChildS, addS, mulS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals,
+          List.append_nil, List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil,
+          or_false] at hv
+        rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+        all_goals first | exact ⟨_, by omega, rfl⟩ | exact hcur.mono' (by omega) |
+          exact (hbn z (by omega)).mono' (by omega)
+      · exact hseqA.numBelow.mono (by omega)
+      · refine (kNode_numBelow (by omega) ?_).mono (by omega)
+        simp only [List.mem_cons, List.not_mem_nil, or_false]
+        rintro v (rfl | rfl | rfl | rfl | rfl)
+        · exact hpp.mono' (by omega)
+        · exact ha0.mono' (by omega)
+        · exact hadrA
+        · exact ⟨x, by omega, rfl⟩
+        · exact ⟨x + 1, by omega, rfl⟩
+
+theorem sForsTree_nb {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c b : Nat} (hpb : pad + 5 ≤ b)
+    (hpp : NBv b pp) (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
+    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) :
+    NumBelow (sForsTree pad pp a0 a1 bit val c b).2.1
+      (Stmt.valsList (sForsTree pad pp a0 a1 bit val c b).1) := by
+  have hy := sForsAt_leaf_next a1 val c b
+  have hlw : 24 ≤ forsLeafWidth c := by unfold forsLeafWidth; split <;> omega
+  simp only [sForsTree]
+  set A := sForsAt a1 val c 0 (b + 1) with hA
+  obtain ⟨hseqA, hadrA⟩ := sForsAt_seq (a1 := a1) (val := val) (c := c) (z := 0) (x := b + 1)
+    (ha1.mono' (by omega)) (fun _ => (hvn 0 (by omega)).mono' (by omega))
+    (fun _ => (hvn 8 (by omega)).mono' (by omega))
+  rw [← hA] at hseqA hadrA
+  have hle := hseqA.le
+  have hge := sForsLevels_le pad pp a0 a1 bit val c 10 0 (.n (A.2.1 + 1)) (A.2.1 + 14) (by norm_num)
+  simp only [valsList_append]
+  refine NumBelow.append (NumBelow.append (NumBelow.append ?_ ?_) ?_)
+    (sForsLevels_nb 10 0 _ _ (by norm_num) (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega))
+      (ha1.mono' (by omega)) (fun j hj => (hbn j hj).mono' (by omega))
+      (fun j hj => (hvn j hj).mono' (by omega)) ⟨A.2.1 + 1, by omega, rfl⟩)
+  · rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.nil _)
+  · exact hseqA.numBelow.mono (by omega)
+  · refine (k64_numBelow (by omega) ?_).mono (by omega)
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+    rintro v (rfl | rfl | rfl | rfl)
+    · exact hpp.mono' (by omega)
+    · exact ha0.mono' (by omega)
+    · exact hadrA
+    · exact ⟨b, by omega, rfl⟩
+
+theorem forsTreeBase_mono (b0 : Nat) {c c' : Nat} (h : c ≤ c') :
+    forsTreeBase b0 c ≤ forsTreeBase b0 c' := by
+  unfold forsTreeBase; split_ifs <;> omega
+
+theorem forsRootPos_lt (b0 c : Nat) : forsRootPos b0 c < forsTreeBase b0 (c + 1) ∧
+    forsTreeBase b0 c ≤ forsRootPos b0 c := by
+  rw [forsTreeBase_succ]; unfold forsRootPos; omega
+
+/-- The trees' values, below their next base. -/
+theorem sForsTrees_nb {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0 : Nat}
+    (hpb : pad + 5 ≤ b0 + 2) (hpp : NBv (b0 + 2) pp) (ha0 : NBv (b0 + 2) a0) (ha1 : NBv (b0 + 2) a1)
+    (hbn : ∀ k < 240, NBv (b0 + 2) (bit k)) (hvn : ∀ k < 240, NBv (b0 + 2) (val k)) :
+    ∀ (m c : Nat), c + m ≤ 24 →
+      NumBelow (forsTreeBase b0 (c + m))
+        (Stmt.valsList (sForsTrees pad pp a0 a1 bit val m c (forsTreeBase b0 c)).1)
+  | 0, _, _ => NumBelow.nil _
+  | m + 1, c, hcm => by
+      have h2 : b0 + 2 ≤ forsTreeBase b0 c := by unfold forsTreeBase; split <;> omega
+      rw [sForsTrees_succ, valsList_append]
+      have ht := sForsTree_nb (pad := pad) (pp := pp) (a0 := a0) (a1 := a1) (bit := bit) (val := val)
+        (c := c) (b := forsTreeBase b0 c) (by omega) (hpp.mono' h2) (ha0.mono' h2) (ha1.mono' h2)
+        (fun j hj => (hbn _ (by omega)).mono' h2) (fun j hj => (hvn _ (by omega)).mono' h2)
+      rw [(sForsTree_shape pad pp a0 a1 bit val c _).1, ← forsTreeBase_succ] at ht ⊢
+      have hr := sForsTrees_nb hpb hpp ha0 ha1 hbn hvn m (c + 1) (by omega)
+      rw [show c + 1 + m = c + (m + 1) by omega] at hr
+      exact (ht.mono (forsTreeBase_mono b0 (by omega))).append hr
+
+/-- **The FORS trees complete** from tree `c`, `m` of them: tree `c + k`'s root is `fRootE` of its
+secret and siblings. -/
+theorem sForsTrees_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {b0 : Nat}
+    {s : Nat → Nat} (hs : ∀ c < 24, s c < 2 ^ 10) {secret : Nat → E}
+    (hsec : ∀ c, IsCanonical128 (secret c)) {sib : Nat → Nat → E}
+    (hsib : ∀ c j, IsCanonical128 (sib c j))
+    (hpb : pad + 5 ≤ b0 + 2) (hpp : NBv (b0 + 2) pp) (ha0 : NBv (b0 + 2) a0) (ha1 : NBv (b0 + 2) a1)
+    (hbn : ∀ k < 240, NBv (b0 + 2) (bit k)) (hvn : ∀ k < 240, NBv (b0 + 2) (val k)) :
+    ∀ (m c : Nat) (σ : Val), c + m ≤ 24 → PadOK σ pad → IsCanonical128 (σ pp) →
+      IsCanonical128 (σ a0) → IsCanonical128 (σ a1) →
+      (∀ c < 24, ∀ j < 10, σ (bit (10 * c + j)) = if (s c).testBit j then 1 else 0) →
+      (∀ c < 24, ∀ j < 10, σ (val (10 * c + j)) = eOfNat (s c >>> j)) →
+      Completes C rd (forsTreeBase b0 c) (forsTreeBase b0 (c + m))
+        (sForsTrees pad pp a0 a1 bit val m c (forsTreeBase b0 c)).1 σ
+        (fun σ' => AgreeBelow (forsTreeBase b0 c) σ σ' ∧ ∀ k < m,
+          σ' (.n (forsRootPos b0 (c + k))) =
+            fRootE (σ pp) (σ a0) (σ a1) (c + k) (s (c + k)) (secret (c + k)) (sib (c + k)))
+  | 0, c, σ, _, _, _, _, _, _, _ =>
+      ⟨σ, Ext.refl _ _ _, ⟨fun _ _ => rfl, fun k hk => absurd hk (by omega)⟩, fun _ _ hn => hn⟩
+  | m + 1, c, σ, hcm, hp, hppc, ha0c, ha1c, hbit, hval => by
+      have h2 : b0 + 2 ≤ forsTreeBase b0 c := by unfold forsTreeBase; split <;> omega
+      rw [sForsTrees_succ]
+      have ht := sForsTree_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0)
+        (a1 := a1) (bit := bit) (val := val) (c := c) (s := s c) (b := forsTreeBase b0 c)
+        (by omega) (hs c (by omega)) (hsec c) (hsib c) σ (by omega) (hpp.mono' h2) (ha0.mono' h2)
+        (ha1.mono' h2) (fun j hj => (hbn _ (by omega)).mono' h2)
+        (fun j hj => (hvn _ (by omega)).mono' h2) hp hppc ha0c ha1c (hbit c (by omega))
+        (hval c (by omega))
+      have hnb := sForsTree_nb (pad := pad) (pp := pp) (a0 := a0) (a1 := a1) (bit := bit) (val := val)
+        (c := c) (b := forsTreeBase b0 c) (by omega) (hpp.mono' h2) (ha0.mono' h2) (ha1.mono' h2)
+        (fun j hj => (hbn _ (by omega)).mono' h2) (fun j hj => (hvn _ (by omega)).mono' h2)
+      obtain ⟨e1, e2⟩ := sForsTree_shape pad pp a0 a1 bit val c (forsTreeBase b0 c)
+      rw [e1, ← forsTreeBase_succ] at ht hnb ⊢
+      rw [e2] at ht
+      have hlt := forsRootPos_lt b0 c
+      refine Completes.append (m := forsTreeBase b0 (c + 1))
+        (forsTreeBase_mono b0 (by omega)) (forsTreeBase_mono b0 (by omega)) hnb ht
+        (fun σ1 he1 ⟨hag1, hr1⟩ => ?_)
+      have t1 : ∀ v, NBv (b0 + 2) v → σ1 v = σ v := fun v hv => hag1.apply (hv.mono' h2)
+      have ih := sForsTrees_complete hs hsec hsib hpb hpp ha0 ha1 hbn hvn m (c + 1) σ1 (by omega)
+        (hp.congr hpb fun j hj => (t1 (.n j) ⟨j, hj, rfl⟩).symm) (by rw [t1 _ hpp]; exact hppc)
+        (by rw [t1 _ ha0]; exact ha0c) (by rw [t1 _ ha1]; exact ha1c)
+        (fun c hc j hj => by rw [t1 _ (hbn _ (by omega))]; exact hbit c hc j hj)
+        (fun c hc j hj => by rw [t1 _ (hvn _ (by omega))]; exact hval c hc j hj)
+      rw [show c + 1 + m = c + (m + 1) by omega] at ih
+      refine ih.mono le_rfl le_rfl (fun σ' ⟨hag', hr'⟩ => ⟨?_, ?_⟩)
+      · have hmono := forsTreeBase_mono b0 (Nat.le_succ c)
+        exact fun j hj => (hag1 j hj).trans (hag' j (by omega))
+      · intro k hk
+        rcases k with _ | k
+        · rw [Nat.add_zero, ← hag' _ hlt.1, ← hr1]
+          simp [forsRootPos]
+        · rw [show c + (k + 1) = c + 1 + k by omega, hr' k (by omega), t1 _ hpp, t1 _ ha0,
+            t1 _ ha1]
+
 end
 end LeanVM.Guest.B1.Sig
