@@ -361,5 +361,174 @@ theorem sMsg_complete (hm : MemOK rd 256) {bb p Pc Rc : E} (hbb : ByteBits rd bb
   · rw [m1]; congr 1; simp only [framingNat]; omega
   · rw [m2]; congr 1; simp only [framingNat]; omega
 
+/-! ## `H_msg` -/
+
+/-- The statements before `H_msg`'s first `KECCAK`: its tail run, the `0x80`, the padding run. -/
+def hPre0 : List Stmt :=
+  [copyS (.n 348) sM1, copyS (.n 349) sM2, cst 350 (word 256 0 0), cst 351 (word 0 0 0),
+    cst 352 (word (2 ^ 63) 0 0)] ++ padRun sPad
+
+/-- Between the two calls: the second's counter byte with the `0x01`, its tail run, the `0x80`. -/
+def hPre1 : List Stmt :=
+  [cst 371 (word 1 0 0), cst 372 (word 256 0 0), addS (.n 373) (.n 371) (.n 372), copyS (.n 374) sM1,
+    copyS (.n 375) sM2, copyS (.n 376) (.n 373), cst 377 (word 0 0 0), cst 378 (word (2 ^ 63) 0 0)]
+
+theorem sDigests_eq : sDigests = hintW "sp_rand" [sRand] :: (hPre0 ++
+    ([kecS (sHIns 348) (runV 358 13) false false] ++ (hPre1 ++ [kecS (sHIns 374) (runV 379 13) false false]))) := by
+  simp [sDigests, hPre0, hPre1]
+
+theorem hPre0_ok : SeqOK 348 hPre0 358 := seqB_ok (by decide +kernel)
+theorem hPre1_ok : SeqOK 371 hPre1 379 := seqB_ok (by decide +kernel)
+
+theorem canon_eOfNat192' {n : Nat} (h : n < 2 ^ 128) : IsCanonical128 (eOfNat192 n) := canon_eOfNat192 h
+
+/-- What `H_msg`'s calls give: the randomizer, the padding run and both calls' outputs. -/
+def DigestsPost (σ : Val) (Rho : E) : Prop :=
+  σ sRand = Rho ∧ PadOK σ sPad ∧ (σ sHm0, σ sHm0b) = hcellLen (hmsgCells σ 0) 97 ∧
+    (σ sHm1, σ (.n 380)) = hcellLen (hmsgCells σ 1) 97
+
+/-- **`H_msg`'s two calls complete**: the randomizer hinted, both calls hashed on canonical cells. -/
+theorem sDigests_complete {Rho : E} (hRho : IsCanonical128 Rho) (σ : Val) (hP : IsCanonical128 (σ sPP))
+    (hR : IsCanonical128 (σ sRoot)) (h0 : IsCanonical128 (σ sM0)) (h1 : IsCanonical128 (σ sM1))
+    (h2 : IsCanonical128 (σ sM2)) :
+    Completes C rd 347 392 sDigests σ (fun σ' => DigestsPost σ' Rho) := by
+  rw [sDigests_eq]
+  refine Completes.reload (σr := Function.update σ sRand Rho) (fun v hv =>
+    Function.update_of_ne (hv 347 le_rfl (by norm_num)) _ _) ?_
+  set σr := Function.update σ sRand Rho with hσr
+  have rr : σr sRand = Rho := Function.update_self ..
+  have rlow : ∀ k < 347, σr (.n k) = σ (.n k) := fun k hk =>
+    Function.update_of_ne (by simp [sRand]; omega) _ _
+  refine Completes.append (xs := [hintW "sp_rand" [sRand]]) (m := 348) (by norm_num) (by norm_num)
+    (by rw [valsList_hint]; exact numBelow_of_all (by decide)) (hintKeep_complete _ _ _ _ _)
+    (fun σ1 _ e1 => ?_)
+  subst e1
+  refine Completes.seq (m := 358) hPre0_ok (by norm_num) (fun σ2 he2 hh2 => ?_)
+  have t2 : ∀ k < 348, σ2 (.n k) = σr (.n k) := fun k hk => he2.apply (Or.inl hk)
+  have c : ∀ (k : Nat) (w : E), Stmt.atom (.const (.n k) w) ∈ hPre0 → σ2 (.n k) = w := fun k w hm => hh2.atom hm
+  have p0 := c 353 (word 1 0 0) (by simp [hPre0, padRun, sPad, cst, List.range_succ])
+  have p1 := (c 354 (word 0 0 0) (by simp [hPre0, padRun, sPad, cst, List.range_succ])).trans word_zero
+  have p2 := (c 355 (word 0 0 0) (by simp [hPre0, padRun, sPad, cst, List.range_succ])).trans word_zero
+  have p3 := (c 356 (word 0 0 0) (by simp [hPre0, padRun, sPad, cst, List.range_succ])).trans word_zero
+  have p4 := (c 357 (word 0 0 0) (by simp [hPre0, padRun, sPad, cst, List.range_succ])).trans word_zero
+  have k0 := c 350 (word 256 0 0) (by simp [hPre0, cst])
+  have k1 := (c 351 (word 0 0 0) (by simp [hPre0, cst])).trans word_zero
+  have k2 := c 352 (word (2 ^ 63) 0 0) (by simp [hPre0, cst])
+  have c348 : σ2 (.n 348) = σ2 sM1 := hh2.atom (a := .copy (.n 348) sM1) (by simp [hPre0, copyS])
+  have c349 : σ2 (.n 349) = σ2 sM2 := hh2.atom (a := .copy (.n 349) sM2) (by simp [hPre0, copyS])
+  have s2 : ∀ k < 347, σ2 (.n k) = σ (.n k) := fun k hk => by rw [t2 k (by omega), rlow k hk]
+  have s2r : σ2 sRand = Rho := by rw [show sRand = .n 347 from rfl, t2 347 (by norm_num)]; exact rr
+  have hins0 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 348).map σ2) c) := by
+    intro c
+    fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
+      simp only [List.getD_cons_zero, List.getD_cons_succ] <;>
+      first
+        | (rw [s2r]; exact hRho)
+        | (rw [show sPP = .n 2 from rfl, s2 2 (by norm_num)]; exact hP)
+        | (rw [show sRoot = .n 3 from rfl, s2 3 (by norm_num)]; exact hR)
+        | (rw [show sM0 = .n 331 from rfl, s2 331 (by norm_num)]; exact h0)
+        | (rw [c348, show sM1 = .n 340 from rfl, s2 340 (by norm_num)]; exact h1)
+        | (rw [c349, show sM2 = .n 346 from rfl, s2 346 (by norm_num)]; exact h2)
+        | (rw [k0]; exact canon_word _ _) | (rw [k1]; exact canon_zero) | (rw [k2]; exact canon_word _ _)
+        | (rw [p1]; exact canon_zero) | (rw [p2]; exact canon_zero) | (rw [p3]; exact canon_zero)
+        | (rw [p4]; exact canon_zero)
+  have hpad2 : PadOK σ2 sPad := ⟨p0, p1, p2, p3, p4⟩
+  refine Completes.append (xs := [kecS (sHIns 348) (runV 358 13) false false]) (m := 371) (by norm_num)
+    (by norm_num) (numBelow_of_all (by decide))
+    (kecS_complete (C := C) (rd := rd) σ2 (ins := sHIns 348) 358 rfl
+      (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 348).all (nbB 358) = true) v hv))
+      hins0 false false).withHolds (fun σ3 he3 ⟨_, hh3⟩ => ?_)
+  have t3 : ∀ k < 358, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
+  have hk3 : AtomsHold rd σ3 [kecS (sHIns 348) (runV 358 13) false false] :=
+    atomsHold_of_holdsList rfl hh3
+  have d0 : (σ3 (.n 358), σ3 (.n (358 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1, σ2 sM2,
+      word 0 0 0] 97 := by
+    refine kec97_sound (i := 0) (by norm_num) hk3 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
+    · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
+        first
+          | (rw [show sRand = .n 347 from rfl, t3 _ (by norm_num)])
+          | (rw [show sPP = .n 2 from rfl, t3 _ (by norm_num)])
+          | (rw [show sRoot = .n 3 from rfl, t3 _ (by norm_num)])
+          | (rw [show sM0 = .n 331 from rfl, t3 _ (by norm_num)])
+          | (rw [t3 _ (by norm_num), c348]) | (rw [t3 _ (by norm_num), c349])
+          | (rw [t3 _ (by norm_num), k0]) | (rw [t3 _ (by norm_num), k1])
+          | (rw [t3 _ (by norm_num), k2])
+    · interval_cases k <;> simp only [sHIns, sPad, List.getD_cons_zero, List.getD_cons_succ] <;>
+        first
+          | (rw [t3 _ (by norm_num), p1])
+          | (rw [t3 _ (by norm_num), p2])
+          | (rw [t3 _ (by norm_num), p3])
+          | (rw [t3 _ (by norm_num), p4])
+  refine Completes.seq (m := 379) hPre1_ok (by norm_num) (fun σ4 he4 hh4 => ?_)
+  have t43 : ∀ k < 371, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
+  have t4 : ∀ k < 358, σ4 (.n k) = σ2 (.n k) := fun k hk => by
+    rw [t43 k (by omega), t3 k hk]
+  have e : ∀ (k : Nat) (w : E), Stmt.atom (.const (.n k) w) ∈ hPre1 → σ4 (.n k) = w := fun k w hm => hh4.atom hm
+  have e71 := e 371 (word 1 0 0) (by simp [hPre1, cst])
+  have e72 := e 372 (word 256 0 0) (by simp [hPre1, cst])
+  have e77 := (e 377 (word 0 0 0) (by simp [hPre1, cst])).trans word_zero
+  have e78 := e 378 (word (2 ^ 63) 0 0) (by simp [hPre1, cst])
+  have a73 : σ4 (.n 373) = σ4 (.n 371) + σ4 (.n 372) := hh4.atom (a := .add (.n 373) _ _) (by simp [hPre1, addS])
+  have c74 : σ4 (.n 374) = σ4 sM1 := hh4.atom (a := .copy (.n 374) sM1) (by simp [hPre1, copyS])
+  have c75 : σ4 (.n 375) = σ4 sM2 := hh4.atom (a := .copy (.n 375) sM2) (by simp [hPre1, copyS])
+  have c76 : σ4 (.n 376) = σ4 (.n 373) := hh4.atom (a := .copy (.n 376) (.n 373)) (by simp [hPre1, copyS])
+  have v76 : σ4 (.n 376) = word (1 + 256) 0 0 := by rw [c76, a73, e71, e72, word_257]
+  have hins1 : ∀ c : Fin 13, IsCanonical128 (cells13 ((sHIns 374).map σ4) c) := by
+    intro c
+    fin_cases c <;> simp only [cells13, sHIns, sPad, List.map_cons, List.map_nil] <;>
+      simp only [List.getD_cons_zero, List.getD_cons_succ] <;>
+      first
+        | (rw [show sRand = .n 347 from rfl, t4 _ (by norm_num)]; rw [← s2r] at hRho; exact hRho)
+        | (rw [show sPP = .n 2 from rfl, t4 _ (by norm_num), s2 2 (by norm_num)]; exact hP)
+        | (rw [show sRoot = .n 3 from rfl, t4 _ (by norm_num), s2 3 (by norm_num)]; exact hR)
+        | (rw [show sM0 = .n 331 from rfl, t4 _ (by norm_num), s2 331 (by norm_num)]; exact h0)
+        | (rw [c74, show sM1 = .n 340 from rfl, t4 _ (by norm_num), s2 340 (by norm_num)]; exact h1)
+        | (rw [c75, show sM2 = .n 346 from rfl, t4 _ (by norm_num), s2 346 (by norm_num)]; exact h2)
+        | (rw [v76]; exact canon_word _ _) | (rw [e77]; exact canon_zero) | (rw [e78]; exact canon_word _ _)
+        | (rw [t4 _ (by norm_num), p1]; exact canon_zero) | (rw [t4 _ (by norm_num), p2]; exact canon_zero)
+        | (rw [t4 _ (by norm_num), p3]; exact canon_zero) | (rw [t4 _ (by norm_num), p4]; exact canon_zero)
+  obtain ⟨σ5, he5, -, hh5⟩ := kecS_complete (C := C) (rd := rd) σ4 (ins := sHIns 374) 379 rfl
+    (fun v hv => nbB_ok (List.all_eq_true.mp (by decide : (sHIns 374).all (nbB 379) = true) v hv))
+    hins1 false false
+  have hk5 : AtomsHold rd σ5 [kecS (sHIns 374) (runV 379 13) false false] :=
+    atomsHold_of_holdsList rfl (hh5 True (fun _ => True) trivial)
+  have t5 : ∀ k < 379, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
+  have u : ∀ k < 358, σ5 (.n k) = σ2 (.n k) := fun k hk => by rw [t5 k (by omega), t4 k (by omega)]
+  have d1 : (σ5 (.n 379), σ5 (.n (379 + 1))) = hcellLen [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1, σ2 sM2,
+      word 1 0 0] 97 := by
+    refine kec97_sound (i := 1) (by norm_num) hk5 (fun k hk => ?_) (fun k hk1 hk2 => ?_)
+    · interval_cases k <;> simp only [sHIns, List.getD_cons_zero, List.getD_cons_succ] <;>
+        first
+          | (rw [show sRand = .n 347 from rfl, u _ (by norm_num)])
+          | (rw [show sPP = .n 2 from rfl, u _ (by norm_num)])
+          | (rw [show sRoot = .n 3 from rfl, u _ (by norm_num)])
+          | (rw [show sM0 = .n 331 from rfl, u _ (by norm_num)])
+          | (rw [t5 _ (by norm_num), c74, show sM1 = .n 340 from rfl, t4 _ (by norm_num)])
+          | (rw [t5 _ (by norm_num), c75, show sM2 = .n 346 from rfl, t4 _ (by norm_num)])
+          | (rw [t5 _ (by norm_num), v76]) | (rw [t5 _ (by norm_num), e77])
+          | (rw [t5 _ (by norm_num), e78])
+    · interval_cases k <;> simp only [sHIns, sPad, List.getD_cons_zero, List.getD_cons_succ] <;>
+        first
+          | (rw [u _ (by norm_num), p1])
+          | (rw [u _ (by norm_num), p2])
+          | (rw [u _ (by norm_num), p3])
+          | (rw [u _ (by norm_num), p4])
+  have hcells : ∀ i, hmsgCells σ5 i = [σ2 sRand, σ2 sPP, σ2 sRoot, σ2 sM0, σ2 sM1, σ2 sM2, word i 0 0] := by
+    intro i
+    simp only [hmsgCells, show sRand = .n 347 from rfl, show sPP = .n 2 from rfl, show sRoot = .n 3 from rfl,
+      show sM0 = .n 331 from rfl, show sM1 = .n 340 from rfl, show sM2 = .n 346 from rfl]
+    rw [u 347 (by norm_num), u 2 (by norm_num), u 3 (by norm_num), u 331 (by norm_num), u 340 (by norm_num),
+      u 346 (by norm_num)]
+  refine ⟨σ5, he5, ⟨?_, ?_, ?_, ?_⟩, hh5⟩
+  · rw [show sRand = .n 347 from rfl, u _ (by norm_num)]; exact s2r
+  · exact ⟨by rw [u _ (by simp [sPad])]; exact p0, by rw [u _ (by simp [sPad])]; exact p1,
+      by rw [u _ (by simp [sPad])]; exact p2, by rw [u _ (by simp [sPad])]; exact p3,
+      by rw [u _ (by simp [sPad])]; exact p4⟩
+  · rw [hcells, show sHm0 = .n 358 from rfl, show sHm0b = .n 359 from rfl, t5 _ (by norm_num),
+      t5 _ (by norm_num), t43 _ (by norm_num), t43 _ (by norm_num)]
+    exact d0
+  · rw [hcells, show sHm1 = .n 379 from rfl]
+    exact d1
+
 end
 end LeanVM.Guest.B1.Sig
