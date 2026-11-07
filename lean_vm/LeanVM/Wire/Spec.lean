@@ -152,15 +152,6 @@ def OneEncodingStatement : Prop :=
   ∀ (h : Bytes → Digest) (bytes : Bytes) (proof : Proof),
     fromBytesWithHash (m := Id) h bytes = some proof → proof.toBytes = bytes
 
-/-- The decoding's bound on hash calls: eight phases, each at most `256` leaves and `32` levels of
-at most `256` parents. -/
-def wireDecodeHashCalls : ℕ := wireMaxPhases * (wireMaxQueries + wireMaxHeight * wireMaxQueries)
-
-/-- The decoding's bound on permutation calls, `73728`: a leaf of at most `64` words is `512`
-bytes, four calls of Keccak-256, and a pair of digests one. -/
-def wireDecodePermutationCalls : ℕ :=
-  wireMaxPhases * (4 * wireMaxQueries + wireMaxHeight * wireMaxQueries)
-
 end LeanVM.Wire
 
 end

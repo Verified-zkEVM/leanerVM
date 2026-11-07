@@ -2,7 +2,7 @@
   LeanVM.Wire.Honest
 
   The honest prover's proofs survive their encoding: `WireDecodable` with the hash they were
-  proved with, and, run with a hash that logs its inputs, every hash input of their paths logged.
+  proved with, so the round trip (`LeanVM.Wire.roundTrip`) applies to them.
 -/
 
 import LeanVM.Prover.Assemble
@@ -22,10 +22,7 @@ shaped (`Strategy.AcceptsFrom`), and the verifier program's openings are within 
 
 * `proveWithHash_wireDecodable`: a proof of `Prover.proveWithHash (m := Id) h F` is
   `WireDecodable h`: its stream is at most `leanVmCost = 48017` elements, at most
-  `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds;
-* `proveWithHash_climbInputsIn`: run with the logging hash (`loggedHash h`, `loggedPerm F`),
-  every input every path of its proof climbs through is in the log (`proveFromM_logged`): the
-  prover hashed every node of every tree it opened.
+  `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven).
@@ -149,37 +146,6 @@ theorem prove_wireDecodable (h1 : ∀ chal, runI P S chal = some true)
   obtain ⟨ht, w, word, ps, rfl, hws, hne, hql, hht, hwl, hps⟩ := hph phase hphase
   exact ⟨ht, w, phaseDecodable_openingAt hws hne hql hht hwl hps⟩
 
-/-- **The logged honest prover's paths climb through logged inputs only**, under the same
-hypotheses. -/
-theorem proveM_logged_climbInputsIn (h1 : ∀ chal, runI P S chal = some true)
-    (h2 : ∀ chal, shapedI P S chal) (hw : Wired P [] wireMaxPhases Q)
-    (hc : P.CostLE costHeight leanVmCost) {seed : KeccakState} {x : Bytes} {p : Proof}
-    {log : List Bytes}
-    (hp : (proveM (loggedHash h) (loggedPerm F) P S seed fuel).run [x] = (some p, log)) :
-    ClimbInputsIn h p log := by
-  obtain ⟨r, log', hrun⟩ : ∃ r log', (proveFromM (loggedHash h) (loggedPerm F) S fuel P
-      ⟨seed, []⟩ [] []).run [x] = (r, log') :=
-    ⟨_, _, rfl⟩
-  rw [proveM, run_bind_of hrun] at hp
-  obtain ⟨rfl, -, hlogged⟩ := proveFromM_logged h F S fuel P _ [] [x]
-    (fun c hc ↦ by simp [commits] at hc) hrun
-  have hp1 := congrArg Prod.fst hp
-  have hlog := congrArg Prod.snd hp
-  simp only [StateT.run_pure] at hp1 hlog
-  subst hlog
-  obtain ⟨tr, htr, rfl⟩ := Option.map_eq_some_iff.mp hp1
-  have hd : WireDecodable h ⟨tr.1, tr.2⟩ := prove_wireDecodable (seed := seed) (F := F)
-    (fuel := fuel) h1 h2 hw hc (p := ⟨tr.1, tr.2⟩)
-    (congrArg (Option.map fun t : List E × List (List Opening) ↦ (⟨t.1, t.2⟩ : Proof)) htr)
-  intro phase hphase path hpath level hlevel
-  obtain ⟨ht, word, hpe, hlog⟩ := hlogged tr htr phase hphase path hpath
-  obtain ⟨height, leafWords, hdp⟩ := hd.phases phase hphase
-  have hlen : path.path.length = ht := by rw [hpe]; exact MerkleTree.length_path _ _ _ _
-  have hq : path.leafIndex < 2 ^ ht := by
-    rw [← hlen, (hdp.shape path hpath).1]; exact hdp.position_lt path hpath
-  rw [hpe]
-  exact hlog _ hq level (hlen ▸ hlevel)
-
 end Abstract
 
 /-- **The honest prover's proofs are decodable** with the hash they were proved with. -/
@@ -193,29 +159,6 @@ theorem proveWithHash_wireDecodable {h : Bytes → Digest} {F : KeccakState → 
     rw [← hP] at hp
     exact prove_wireDecodable h1 h2 hw hc hp
   · rw [proveWithHash_eq_none (m := Id) h F hcond fuel] at hp
-    cases hp
-
-/-- **The honest prover hashed every node of the trees it opened**: run with the logging hash,
-every input every path of its proof climbs through, up to its root's, is in the log. -/
-theorem proveWithHash_climbInputsIn {h : Bytes → Digest} {F : KeccakState → KeccakState}
-    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {p : Proof}
-    {log : List Bytes}
-    (hp : (Prover.proveWithHash (loggedHash h) (loggedPerm F) prog input t ρ fuel).run [] =
-      (some p, log)) :
-    ClimbInputsIn h p log := by
-  by_cases hcond : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
-  · obtain ⟨hv, hcap, hρ⟩ := hcond
-    rw [proveWithHash_eq_proveM (loggedHash h) (loggedPerm F) hv hcap hρ fuel] at hp
-    have hseed : (seedWithHash (loggedHash h) (loggedPerm F) (bytecodeWords prog)
-        (publicInputDigest input)).run [] =
-          (F (seedInput (h (versionTag ++ (bytecodeWords prog).flatMap K.toBytes))
-            (publicInputDigest input)), [versionTag ++ (bytecodeWords prog).flatMap K.toBytes]) :=
-      rfl
-    rw [run_bind_of hseed] at hp
-    obtain ⟨P, hP, h1, h2, hw, hc⟩ := leanVm_honest_facts hv hcap hρ
-    rw [← hP] at hp
-    exact proveM_logged_climbInputsIn h1 h2 hw hc hp
-  · rw [proveWithHash_eq_none (loggedHash h) (loggedPerm F) hcond fuel] at hp
     cases hp
 
 end LeanVM.Wire

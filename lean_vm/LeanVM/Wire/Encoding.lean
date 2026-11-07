@@ -16,9 +16,9 @@ public import Statement.Prover.Prove
 The end statements (`Statement/`) are about the structured `Proof`; the wire encoding is a
 compression layer on it. Its transcription is here, and its properties are proved in the other
 `LeanVM.Wire` modules: the round trip (`LeanVM.Wire.roundTrip`), the one encoding
-(`LeanVM.Wire.oneEncoding`), the decoding's cost (`LeanVM.Wire.fromBytes_queryCost`), and
-knowledge soundness and completeness on bytes (`LeanVM.Wire.Statements`). That this
-transcription is the Rust's is test evidence: the wire differential (`scripts/wire-diff.py`).
+(`LeanVM.Wire.oneEncoding`), and that the honest prover's proofs are within the round trip's
+hypotheses (`LeanVM.Wire.proveWithHash_wireDecodable`). That this transcription is the Rust's is
+test evidence: the wire differential (`scripts/wire-diff.py`).
 The pruning idea, and its formalization on leanerVM's main branch, are scaraven's
 (https://github.com/scaraven).
 -/
@@ -32,15 +32,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 /-! ## The proof's wire encoding (`crates/fiat_shamir/src/wire.rs`)
 
 A proof travels as one byte string, `Proof::to_bytes` (`Proof.toBytes`, below), and the verifier
-decodes it, `Proof::from_bytes` (`Proof.fromBytes`, below), then verifies the proof
-(`LeanVM.leanVmVerifierOnBytes`, `LeanVM.Wire.Statements`). Every count and size is a little-endian
-32-bit word, every `K` word eight little-endian bytes, every digest its 32 bytes. A phase travels
-pruned: the queries' positions, the height, the leaf width and the row width, the leaf at each
-distinct position as its last row-width words (the words before are zero in every leaf of the
-phase), and the siblings no other path of the phase gives, bottom level first and left to right;
-decoding recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes (`hash_words`,
-`hash_pair`, `crates/fiat_shamir/src/merkle.rs:26-39`). Decoding verifies nothing: it refuses
-everything but the one encoding of a proof within the bounds below.
+decodes it, `Proof::from_bytes` (`Proof.fromBytes`, below), then verifies the proof. Every count and
+size is a little-endian 32-bit word, every `K` word eight little-endian bytes, every digest its 32
+bytes. A phase travels pruned: the queries' positions, the height, the leaf width and the row width,
+the leaf at each distinct position as its last row-width words (the words before are zero in every
+leaf of the phase), and the siblings no other path of the phase gives, bottom level first and left
+to right; decoding recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes
+(`hash_words`, `hash_pair`, `crates/fiat_shamir/src/merkle.rs:26-39`). Decoding verifies nothing: it
+refuses everything but the one encoding of a proof within the bounds below.
 
 The Rust hashes a phase's shared nodes while it reads the phase's siblings; which siblings it reads
 depends on the positions only, never on a hash, so here the bytes are read first (`readProof`) and

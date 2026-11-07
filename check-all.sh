@@ -117,9 +117,7 @@ lean_vm() {
   step "lean_vm: build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
-    LeanVM.knowledgeSoundnessOnBytes_holds LeanVM.knowledgeSoundnessOnBytes_compiled \
-    LeanVM.completenessOnBytes_holds LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding \
-    LeanVM.Wire.fromBytes_queryCost
+    LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
   step "lean_vm: lake test"
   (cd lean_vm && lake test)
   step "lean_vm: the Rust vectors' costly checks, compiled"

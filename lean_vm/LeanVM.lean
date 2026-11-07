@@ -20,10 +20,8 @@ import LeanVM.Guest.DecoderProgram
 import LeanVM.Cost.DecoderSpec
 import LeanVM.Cost.Bounds.Guest.Budget
 import LeanVM.Cost.GuestDecoding
-import LeanVM.Wire.Sound
-import LeanVM.Wire.CompleteEnd
 import LeanVM.Wire.OneEncoding
-import LeanVM.Wire.Cost
+import LeanVM.Wire.Honest
 
 /-! # The end theorems of leanVM
 
@@ -252,67 +250,30 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 
 The end theorems are about structured proofs; the wire encoding is a compression layer
 (`LeanVM/Wire/Encoding.lean`: `Proof.toBytes`, `Proof.fromBytes`, transcriptions of leanVM's
-`crates/fiat_shamir/src/wire.rs`), and the statements on the wire are `lean_vm`'s
-(`LeanVM/Wire/Statements.lean`): the verifier on bytes decodes, then verifies.
+`crates/fiat_shamir/src/wire.rs`). It is lossless on honest proofs and the only encoding of its
+proof:
 
-* `LeanVM.knowledgeSoundnessOnBytes_holds : KnowledgeSoundnessOnBytes transcriptExtractor`, and
-  `knowledgeSoundnessOnBytes_compiled` for the extractor the compiled program computes: knowledge
-  soundness for the adversary that decodes its own bytes, at most `73728` more permutation calls
-  (`LeanVM.Wire.knowledgeSoundnessOnBytes_of`, `LeanVM/Wire/Sound.lean`; the decoding's cost
-  `LeanVM.Wire.fromBytes_queryCost`, `LeanVM/Wire/Cost.lean`);
-* `LeanVM.completenessOnBytes_holds : CompletenessOnBytes`: the honest prover's bytes are rejected
-  with probability at most `2^-256`, as its structured proofs are (`LeanVM/Wire/Complete.lean`,
-  `CompleteEnd.lean`: the round trip, and decoding after the honest prover adding no edge to the
-  permutation, `LeanVM.Wire.fromBytesWithHash_run_of`, `LeanVM/Wire/Model.lean`);
-* `LeanVM.Wire.roundTrip : RoundTripStatement` (a proof that survives its encoding decodes from
-  it) and `LeanVM.Wire.oneEncoding : OneEncodingStatement` (bytes that decode to a proof are its
-  encoding).
+* `LeanVM.Wire.roundTrip : RoundTripStatement`: a proof whose phases one Merkle tree each opens,
+  within the decoding's bounds (`WireDecodable`), decodes from its encoding;
+* `LeanVM.Wire.proveWithHash_wireDecodable`: the honest prover's proofs are such proofs, so the
+  round trip applies to them (`LeanVM/Wire/Honest.lean`);
+* `LeanVM.Wire.oneEncoding : OneEncodingStatement`: bytes that decode to a proof are its encoding.
 
+That `Proof.toBytes` and `Proof.fromBytes` are the Rust's is test evidence (`scripts/wire-diff.py`).
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven). -/
-
-/-- **Knowledge soundness on the wire** (in the random-permutation model), for the extractor
-`transcriptExtractor`. -/
-theorem LeanVM.knowledgeSoundnessOnBytes_holds :
-    LeanVM.KnowledgeSoundnessOnBytes LeanVM.transcriptExtractor :=
-  LeanVM.Wire.knowledgeSoundnessOnBytes_of LeanVM.knowledgeSoundness_holds
-
-/-- **Knowledge soundness on the wire**, for the extractor the compiled extractor program
-computes (`LeanVM.Cost.compiledKnowledgeExtractor`), as `Statement.Theorems` states the structured
-one. -/
-theorem LeanVM.knowledgeSoundnessOnBytes_compiled :
-    LeanVM.KnowledgeSoundnessOnBytes
-      (LeanVM.extractorComputedBy LeanVM.Cost.compiledKnowledgeExtractor) := by
-  rw [LeanVM.Cost.extractorOf_extractorProgram]
-  exact LeanVM.knowledgeSoundnessOnBytes_holds
-
-/-- **Completeness on the wire** (in the random-permutation model). -/
-theorem LeanVM.completenessOnBytes_holds : LeanVM.CompletenessOnBytes :=
-  LeanVM.Wire.completenessOnBytes_holds
-
-/-- info: 'LeanVM.knowledgeSoundnessOnBytes_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.knowledgeSoundnessOnBytes_holds
-
-/-- info: 'LeanVM.knowledgeSoundnessOnBytes_compiled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.knowledgeSoundnessOnBytes_compiled
-
-/-- info: 'LeanVM.completenessOnBytes_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.completenessOnBytes_holds
 
 /-- info: 'LeanVM.Wire.roundTrip' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Wire.roundTrip
 
+/-- info: 'LeanVM.Wire.proveWithHash_wireDecodable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Wire.proveWithHash_wireDecodable
+
 /-- info: 'LeanVM.Wire.oneEncoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Wire.oneEncoding
-
-/-- info: 'LeanVM.Wire.fromBytes_queryCost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Wire.fromBytes_queryCost
 
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its

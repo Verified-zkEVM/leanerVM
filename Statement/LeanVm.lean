@@ -37,10 +37,9 @@ program (`Statement/README.md` says what a reviewer checks of it).
 * A proof is the Rust verifier's `Proof`: the scalar stream and one full Merkle path per query, with
   its position, grouped in phases. It travels as bytes, its one encoding (`wire.rs`), the paths
   pruned: a compression layer formalized in `lean_vm` (`LeanVM.Wire`, after scaraven's idea and
-  formalization, https://github.com/scaraven), where the round trip, the one encoding, and knowledge
-  soundness and completeness on bytes are proved from the statements here. That its transcription
-  of `Proof::from_bytes` and `Proof::to_bytes` is the Rust's is test evidence (the wire
-  differential).
+  formalization, https://github.com/scaraven), where it is proved lossless on honest proofs and the
+  only encoding of its proof. That its transcription of `Proof::from_bytes` and `Proof::to_bytes`
+  is the Rust's is test evidence (the wire differential).
 * That `verifier` is the Python and Rust verifiers is test evidence: it is a transcription of the
   Python, it accepts the Rust prover's proofs, and on mutated proofs it gives the Rust verifier's
   verdict every time (`scripts/fuzz-verifier.py`).

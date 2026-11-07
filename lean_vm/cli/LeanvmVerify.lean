@@ -17,7 +17,7 @@ verifier on mutated proofs.
 * `lake exe leanvm-verify <bytecode> <public input> <proof wire>`: the proof's one wire encoding
   (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`, `proof.wire`), decoded with
   `Proof.fromBytes` (`LeanVM/Wire/Encoding.lean`) over Keccak-f[1600], a proof that does not
-  decode rejected, as `LeanVM.leanVmVerifierOnBytes` (`LeanVM/Wire/Statements.lean`) does, then
+  decode rejected, as the deployed verifier does, then
   `Verifier.verify` on the decoded proof.
 * `lake exe leanvm-verify --flat <bytecode> <public input> <stream> <merkle openings>`:
   `LeanVM.Protocol.Verifier.verifyFiles`, the Lean transcription of `python-verifier/verifier.py`,

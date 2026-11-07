@@ -241,14 +241,10 @@ gives; the pruning idea and its first formalization, on leanerVM's \texttt{main}
 scaraven's (\url{https://github.com/scaraven}). The encoding is a compression layer, outside
 \lean{Statement/}: \lean{lean_vm} transcribes the encoding and the decoding
 (\lean{lean_vm/LeanVM/Wire/Encoding.lean}) and proves, as theorems of its own pinned with the end
-theorems, that nothing is lost through it: an honest proof decodes from its encoding (the round trip,
-\lean{LeanVM.Wire.roundTrip}), bytes that decode to a proof are its encoding
-(\lean{LeanVM.Wire.oneEncoding}), decoding costs at most $73728$ permutation calls
-(\lean{LeanVM.Wire.fromBytes_queryCost}), and knowledge soundness and completeness carry over to the
-verifier and the honest prover on bytes (\lean{LeanVM.Wire.knowledgeSoundnessOnBytes_of}, at
-$(Q+2^{17})\cdot 2^{-128} + 5\,(Q+2^{17})^2\cdot 2^{-256}$ with the extractor reading the decoding's
-queries after the adversary's; completeness at $2^{-256}$,
-\lean{LeanVM.Wire.completenessOnBytes_holds}). That the transcription is the Rust's
+theorems, that it is lossless on honest proofs (the round trip, \lean{LeanVM.Wire.roundTrip}, with
+\lean{LeanVM.Wire.proveWithHash_wireDecodable}: the honest prover's proofs decode from their
+encoding) and the only encoding of its proof (bytes that decode to a proof are its encoding,
+\lean{LeanVM.Wire.oneEncoding}). That the transcription is the Rust's
 \texttt{from\_bytes} and \texttt{to\_bytes} is test evidence (the wire differential: honest wire
 proofs, their mutations and the Rust test's vector).
 

@@ -79,12 +79,10 @@ leaves and the siblings no other path gives: a compression layer, not part of th
 pruning idea and its first formalization, on leanerVM's `main` branch, are
 [scaraven](https://github.com/scaraven)'s. `lean_vm` transcribes the encoding and the decoding
 ([`LeanVM/Wire/Encoding.lean`](../lean_vm/LeanVM/Wire/Encoding.lean)) and proves, as theorems of
-its own (not end statements), that nothing is lost through the layer: the round trip (an honest
-proof decodes from its encoding), the one encoding (bytes that decode to a proof are its encoding),
-the decoding's cost (at most `73728` permutation calls), and that knowledge soundness (at
-`(Q + 2^17)·2^-128 + 5(Q + 2^17)²·2^-256`, the extractor reading the decoding's queries after the
-adversary's) and completeness (at `2^-256`) carry over to the verifier and the honest prover on
-bytes ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)). That its transcription
+its own (not end statements), that the layer is lossless on honest proofs (the round trip: the
+honest prover's proofs decode from their encoding) and is the only encoding of its proof (bytes that
+decode to a proof are its encoding) ([`lean_vm/README.md`](../lean_vm/README.md#the-proof-on-the-wire)).
+That its transcription
 is the Rust's `Proof::from_bytes` and `Proof::to_bytes` is test evidence: the wire differential in
 the gate (`lean_vm/scripts/wire-diff.py`), on honest wire proofs, their mutations and the Rust
 test's vector.
