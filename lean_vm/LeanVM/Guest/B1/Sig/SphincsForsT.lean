@@ -60,13 +60,17 @@ def sBe16 (val : Nat → V) (pos n x : Nat) : List Stmt × Nat × V :=
 /-- The constant of `sp_fors_at`: the height `z`, and tree `c` shifted past a node's index in its
 tree, across the index's two bytes. -/
 def forsAtConst (c z : Nat) : Nat :=
-  z * 2 ^ 88 + c * 2 ^ (10 - z) % 256 * 2 ^ 120 + c * 2 ^ (10 - z) / 256 * 2 ^ 112
+  2 ^ 88 * z + 2 ^ 120 * (c * 2 ^ (10 - z) % 256) + 2 ^ 112 * (c * 2 ^ (10 - z) / 256)
 
-/-- `sp_fors_at(a1, vals, c, z)` from base `x`: the constant added (none if zero), then below the
+/-- `a1 + const(…)` of `sp_fors_at` from base `x`: none if the constant is zero. -/
+def sForsAtK (a1 : V) (c z x : Nat) : List Stmt × Nat × V :=
+  if forsAtConst c z = 0 then ([], x, a1)
+  else ([cst x (lit (forsAtConst c z)), addS (.n (x + 1)) a1 (.n x)], x + 2, .n (x + 1))
+
+/-- `sp_fors_at(a1, vals, c, z)` from base `x`: the constant added (`sForsAtK`), then below the
 root the index `val (10 c + z)` (`sBe16`). The statements, the next base and the value. -/
 def sForsAt (a1 : V) (val : Nat → V) (c z x : Nat) : List Stmt × Nat × V :=
-  let s1 : List Stmt × Nat × V := if forsAtConst c z = 0 then ([], x, a1)
-    else ([cst x (lit (forsAtConst c z)), addS (.n (x + 1)) a1 (.n x)], x + 2, .n (x + 1))
+  let s1 := sForsAtK a1 c z x
   if z = 10 then s1
   else
     let be := sBe16 val (10 * c + z) (10 - z) s1.2.1
@@ -136,7 +140,7 @@ def sForsBlock (pad : Nat) (pp a0 key : V) (bit val : Nat → V) (b0 : Nat) : Li
 /-! ## The hypertree -/
 
 /-- The constant of a path's node address at height `h`: the type `TREE` and the height. -/
-def pathConst (h : Nat) : Nat := 2 * 2 ^ 24 + h * 2 ^ 88
+def pathConst (h : Nat) : Nat := 2 * 2 ^ 24 + 2 ^ 88 * h
 
 /-- `sp_path` from `cur`, the levels `z ..< z + m` of the tree whose leaf's bits are `bit (off + ·)`
 and its ancestors' indices `val (off + ·)`, from base `x`: the children hinted and checked, the

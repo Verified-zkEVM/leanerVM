@@ -344,8 +344,11 @@ theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat �
             rw [Nat.shiftRight_eq_div_pow]
             exact Nat.div_eq_of_lt
               (lt_of_lt_of_le he (Nat.pow_le_pow_right (by norm_num) (by omega)))
-          rw [c0, hq, pathAdr, a1Hi, pathConst, lit]
-          congr 1 <;> omega
+          have hlo : (2 * 2 ^ 24 + 2 ^ 88 * (z + 1)) % 2 ^ 64 = 2 * 2 ^ 24 := by omega
+          have hhi : (2 * 2 ^ 24 + 2 ^ 88 * (z + 1)) / 2 ^ 64 % 2 ^ 64 = 2 ^ 24 * (z + 1) := by
+            omega
+          rw [c0, hq, pathAdr, a1Hi, pathConst, lit, hlo, hhi]
+          simp only [Nat.zero_div, Nat.zero_mod, Nat.mul_zero, Nat.add_zero]
         · simp only [hm0, ↓reduceIte] at hA2 ⊢
           have hv : e >>> (z + 1) < 2 ^ m := by
             rw [Nat.shiftRight_eq_div_pow]
@@ -369,8 +372,8 @@ theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat �
           have hv16 : e >>> (z + 1) < 2 ^ 16 :=
             lt_of_lt_of_le hv (Nat.pow_le_pow_right (by norm_num) (by omega))
           rw [a2, hbv, c1, pathConst, lit, pathAdr, word_add_word]
-          have hlo : (2 * 2 ^ 24 + (z + 1) * 2 ^ 88) % 2 ^ 64 = 2 * 2 ^ 24 := by omega
-          have hhi : (2 * 2 ^ 24 + (z + 1) * 2 ^ 88) / 2 ^ 64 % 2 ^ 64 = 2 ^ 24 * (z + 1) := by
+          have hlo : (2 * 2 ^ 24 + 2 ^ 88 * (z + 1)) % 2 ^ 64 = 2 * 2 ^ 24 := by omega
+          have hhi : (2 * 2 ^ 24 + 2 ^ 88 * (z + 1)) / 2 ^ 64 % 2 ^ 64 = 2 ^ 24 * (z + 1) := by
             omega
           rw [hlo, hhi, Nat.zero_xor, Nat.xor_comm]
           have := a1Hi_xor (z := z + 1) (P := 0) (v := e >>> (z + 1)) (by omega) (by norm_num) hv16
