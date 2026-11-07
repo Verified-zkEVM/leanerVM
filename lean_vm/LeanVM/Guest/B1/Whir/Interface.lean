@@ -19,7 +19,7 @@ public import LeanVM.Protocol.Compile.Prog
 (`crates/rec_aggregation/guests/lean_ethereum.py:1464-1796` at leanVM `834e6614`, G below) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`, V:1836;
 `verifier.py:1124-1202`) from `verifyStackedOpening` (V:1854), up to its terminal: the terminal's
-check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3107,
+check `(inner + evaluateBasis point) · residual = target` is `check_opening_terminal`'s (G:3268,
 TRIAGE #70), which evaluates the transparent weight `evaluateBasis`. It has 28 specializations
 `open_stacked__L{m}`, one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 28`
 and the rate `1 ≤ r ≤ 4` (G:3344-3351, rate-major), each reading its row of the `LIG_*` tables at
@@ -178,14 +178,14 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 def openNames : List String :=
   (List.range 28).map fun m ↦ "open_stacked__L" ++ toString m
 
-/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3344-3350):
+/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3521-3528):
 `(μ - 22) + 7·(r - 1)`. -/
 def candidate (μ r : ℕ) : ℕ := μ - 22 + 7 * (r - 1)
 
 /-- The specialization of `open_stacked` for the stack log `μ` and the rate `r`. -/
 def openName (μ r : ℕ) : String := openNames.getD (candidate μ r) ""
 
-/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1607-1608). -/
+/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1706-1707). -/
 abbrev pointCap : ℕ := 40
 
 /-! ## Runs with openings and commitments -/

@@ -21,11 +21,11 @@ integer word its bit pattern `eOfNat n`. The guest moves between the two with hi
 booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruction:
 
 * `sum_bitE_coordBasis` and `bits_of_reconstruct`: booleanity and `Σ b_i · COORD_BASIS[s + i] = x`
-  make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`decode_query_bits`,
-  G:764-809; `grind_check`, G:811-833, whose reconstruction starts at bit `nbits`, G:934);
+  make the `b_i` the bits of `x` from bit `s` on, and `x` zero elsewhere (`grind_check`,
+  G:919-945, whose reconstruction starts at bit `nbits`, G:937-944);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
-  (`g_power_of_word`, G:733-760; `verify_log2_ceil`, G:716-750; `column_selector`, G:3054-3077,
-  a nibble at a time),
+  (`g_power_of_word`, G:752-765; `log2_ceil_in_the_exponent`, G:786-801; `column_selector`,
+  G:3215-3242, a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
   and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate

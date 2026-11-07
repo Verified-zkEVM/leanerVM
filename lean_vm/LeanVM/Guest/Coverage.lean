@@ -78,7 +78,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4521): each
+/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4552): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
 `DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=

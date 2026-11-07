@@ -201,7 +201,7 @@ theorem flatBody_params {C : CallRel} {fl : Fn} (hpl : fl.params = oqLoopParams)
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, -⟩ := hp
   exact ⟨σ, hA, h0, h1, h2, h3, h4, h5, h6, h7⟩
 
-/-- **`opening_queries` at level 0 is sound** (G:1276-1298): with the window pointers naming
+/-- **`opening_queries` at level 0 is sound** (G:1427-1451): with the window pointers naming
 positions' windows, its relation is `MeaningOpeningQueries`. -/
 theorem oqMain1_sound {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1)
     {odd : ℕ} (hodd : odd ≤ 1) {name walk loop : String} (hW : WalkSound walk s.pd s.cd) {fm fl : Fn}

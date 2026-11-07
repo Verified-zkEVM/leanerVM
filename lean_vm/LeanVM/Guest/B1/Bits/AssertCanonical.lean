@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Bits.Templates
 
 /-!
-# `assert_canonical` (G:560-567, TRIAGE #2)
+# `assert_canonical` (G:565-572, TRIAGE #2)
 
 Its body is `canonicalLimbsT (.n 0) 1`, then the return of `0`.
 -/
