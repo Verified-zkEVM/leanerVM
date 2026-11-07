@@ -267,7 +267,7 @@ theorem beWordAt_lt (w : ℕ) : LeanVM.Guest.B1.Sig.beWordAt 0 w < 2 ^ 32 := by
 
 omit hσ hS in
 theorem spForsBase_cost (hP : Includes P Decoder.spForsBaseC.costDeps) (c : ℕ) (hc : c < 24) :
-    machineCost P Decoder.spForsBaseC.costIdx [encodeValue c] ≤ 10 := by
+    machineCost P Decoder.spForsBaseC.costIdx [encodeValue c] ≤ 27 := by
   rw [Decoder.spForsBaseC.costEq P hP]
   limbs_one; split_ifs <;> omega
 

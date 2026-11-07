@@ -128,8 +128,14 @@ structure SpTabs where
 def spTabs : SpTabs := ⟨gLanes, spSel.toArray, tabA spFirst, tabA spRest, tabA spLast,
   tabA spForsKids, tabA spForsBits, tabA spPathKids, tabA spPathBits⟩
 
-/-- FORS tree `c`'s base: its secret's cell (`sForsBase`), 21 values before its first pair. -/
-def spForsBase (c : ℕ) : ℕ := (spForsKids.getD c []).getD 0 0 - 21
+/-- FORS tree `c`'s base: its secret's cell (`sForsBase`), 21 values before its first pair. Tree
+`k`'s width is `281 + 2·([k ≠ 0] + bitlen k)` (`sp_fors_at`'s constants, nonzero at the root for
+`k ≠ 0` and at heights `2..9` while `k >>> (z - 2) ≠ 0`), so the bases are linear on each run of
+equal bit lengths; arithmetic, as the decoder computes it cheaply (`sForsPositions` checks it). -/
+def spForsBase (c : ℕ) : ℕ :=
+  if c = 0 then 1407 else if c < 2 then 1688 else if c < 4 then 1973 + 287 * (c - 2)
+  else if c < 8 then 2547 + 289 * (c - 4) else if c < 16 then 3703 + 291 * (c - 8)
+  else 6031 + 293 * (c - 16)
 
 /-- **FORS tree `c`'s opening**, off `verify_sig_lean_sphincs`' valuation. -/
 def forsOpeningA (T : SpTabs) (σ : Val) (c : ℕ) : Sphincs.ForsTreeOpening :=
