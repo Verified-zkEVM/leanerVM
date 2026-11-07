@@ -9,9 +9,12 @@ import Sphincs.Bridge
 signatures, an adversary whose game makes at most `Q` permutation calls, `Q ≥ 1`, forges with
 probability at most `(Q + 1) · 2^-127`. The route: upstream's random-oracle theorem
 `FORS.h26_layered` (127 bits for `q` hash calls, the model `FORS.Scheme` at the deployed
-configuration), moved to the random-permutation model by `Common.SufCma.rpm_bound`
-(`Sphincs.Model.modelScheme_stronglyUnforgeable`), then to the statement's scheme, which is the
-model's with each hash query answered by Keccak-256 over `π` (`Sphincs.Model.stronglyUnforgeable_of_model`).
+configuration, leanVM `834e6614`), moved to the crate's key generation and signer in the model's
+hash monad (`FORS.Crate`: the same keys and signatures on every answer function, with at least the
+model's hash calls; `Common.SufCma.StaticSwap.romBound`), then to the random-permutation model by
+`Common.SufCma.rpm_bound` (`Sphincs.Model.crateScheme_stronglyUnforgeable`), then to the statement's
+scheme, which is the crate's copy with each hash query answered by Keccak-256 over `π`
+(`Sphincs.Model.stronglyUnforgeable_of_model`).
 -/
 
 namespace Sphincs

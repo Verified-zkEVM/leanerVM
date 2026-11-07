@@ -167,4 +167,5 @@ import FORS.Lifetimes
 import FORS.Configurations
 import FORS.Crate
 import FORS.CrateStatic
+import FORS.CrateShort
 import FORS.Main
